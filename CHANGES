@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.10 Engineering
+OpenLDAP 2.0.10 Release
 	Build Environment
 		Fix TLS-less build (ITS#1156)
 
