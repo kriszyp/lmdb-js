@@ -132,7 +132,7 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
  */
 
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
-int index_add_mods LDAP_P(( Backend *be, LDAPModList *ml, ID id ));
+int index_add_mods LDAP_P(( Backend *be, Modifications *ml, ID id ));
 ID_BLOCK * index_read LDAP_P(( Backend *be,
 	char *type, int indextype, char *val ));
 /* Possible operations supported (op) by index_change_values() */
@@ -175,7 +175,7 @@ int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 /* returns LDAP error code indicating error OR SLAPD_ABANDON */
 int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,
-	char *dn, LDAPModList *mods, Entry *e ));
+	char *dn, Modifications *mods, Entry *e ));
 
 #ifdef HAVE_CYRUS_SASL
 /*

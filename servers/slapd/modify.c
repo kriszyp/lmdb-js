@@ -26,9 +26,9 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-static void	modlist_free(LDAPModList *ml);
+static void	modlist_free(Modifications *ml);
 
-static int add_modified_attrs( Operation *op, LDAPModList **modlist );
+static int add_modified_attrs( Operation *op, Modifications **modlist );
 
 int
 do_modify(
@@ -40,10 +40,10 @@ do_modify(
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
-	LDAPModList	*modlist = NULL;
-	LDAPModList	**modtail = &modlist;
+	Modifications	*modlist = NULL;
+	Modifications	**modtail = &modlist;
 #ifdef LDAP_DEBUG
-	LDAPModList *tmp;
+	Modifications *tmp;
 #endif
 	Backend		*be;
 	int rc;
@@ -103,8 +103,11 @@ do_modify(
 	{
 		ber_int_t mop;
 
-		(*modtail) = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
+		(*modtail) = (Modifications *) ch_calloc( 1, sizeof(Modifications) );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		if ( ber_scanf( op->o_ber, "{i{a[V]}}", &mop,
 		    &(*modtail)->ml_type, &(*modtail)->ml_bvalues )
 		    == LBER_ERROR )
@@ -114,6 +117,7 @@ do_modify(
 			rc = -1;
 			goto cleanup;
 		}
+#endif
 
 		(*modtail)->ml_op = mop;
 		
@@ -152,6 +156,9 @@ do_modify(
 	}
 	*modtail = NULL;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
 	for ( tmp = modlist; tmp != NULL; tmp = tmp->ml_next ) {
@@ -160,6 +167,7 @@ do_modify(
 				? "add" : (tmp->ml_op == LDAP_MOD_DELETE
 					? "delete" : "replace"), tmp->ml_type, 0 );
 	}
+#endif
 #endif
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
@@ -262,18 +270,21 @@ cleanup:
 }
 
 static int
-add_modified_attrs( Operation *op, LDAPModList **modlist )
+add_modified_attrs( Operation *op, Modifications **modlist )
 {
 	char		buf[22];
 	struct berval	bv;
 	struct berval	*bvals[2];
-	LDAPModList		*m;
+	Modifications		*m;
 	struct tm	*ltm;
 	time_t		currenttime;
 
 	bvals[0] = &bv;
 	bvals[1] = NULL;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	/* remove any attempts by the user to modify these attrs */
 	for ( m = *modlist; m != NULL; m = m->ml_next ) {
 		if ( oc_check_op_no_usermod_attr( m->ml_type ) ) {
@@ -288,7 +299,7 @@ add_modified_attrs( Operation *op, LDAPModList **modlist )
 		bv.bv_val = op->o_dn;
 		bv.bv_len = strlen( bv.bv_val );
 	}
-	m = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
+	m = (Modifications *) ch_calloc( 1, sizeof(Modifications) );
 	m->ml_type = ch_strdup( "modifiersname" );
 	m->ml_op = LDAP_MOD_REPLACE;
 	m->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
@@ -304,24 +315,28 @@ add_modified_attrs( Operation *op, LDAPModList **modlist )
 
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
-	m = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
+	m = (Modifications *) ch_calloc( 1, sizeof(Modifications) );
 	m->ml_type = ch_strdup( "modifytimestamp" );
 	m->ml_op = LDAP_MOD_REPLACE;
 	m->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
 	m->ml_bvalues[0] = ber_bvdup( &bv );
 	m->ml_next = *modlist;
 	*modlist = m;
+#endif
 
 	return LDAP_SUCCESS;
 }
 
 static void
 modlist_free(
-    LDAPModList	*ml
+    Modifications	*ml
 )
 {
-	LDAPModList *next;
+	Modifications *next;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 	for ( ; ml != NULL; ml = next ) {
 		next = ml->ml_next;
 
@@ -333,4 +348,5 @@ modlist_free(
 
 		free( ml );
 	}
+#endif
 }

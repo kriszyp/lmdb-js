@@ -67,7 +67,7 @@ ldbm_back_modrdn(
 	struct berval	*add_bvals[2];		/* Stores new rdn att */
 	struct berval	del_bv;			/* Stores old rdn att */
 	struct berval	*del_bvals[2];		/* Stores old rdn att */
-	LDAPModList	mod[2];			/* Used to delete old rdn */
+	Modifications	mod[2];			/* Used to delete old rdn */
 	int		manageDSAit = get_manageDSAit( op );
 
 	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",
@@ -356,10 +356,14 @@ ldbm_back_modrdn(
 		add_bv.bv_val = new_rdn_val;
 		add_bv.bv_len = strlen(new_rdn_val);
 		
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		mod[0].ml_type = new_rdn_type;	
 		mod[0].ml_bvalues = add_bvals;
-		mod[0].ml_op = LDAP_MOD_SOFTADD;
+		mod[0].ml_op = SLAP_MOD_SOFTADD;
 		mod[0].ml_next = NULL;
+#endif
 
 		/* Remove old rdn value if required */
 
@@ -385,6 +389,9 @@ ldbm_back_modrdn(
 			del_bv.bv_val = old_rdn_val;
 			del_bv.bv_len = strlen(old_rdn_val);
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
 			/* No need to normalize old_rdn_type, delete_values()
 			 * does that for us
 			 */
@@ -393,6 +400,7 @@ ldbm_back_modrdn(
 			mod[1].ml_bvalues = del_bvals;
 			mod[1].ml_op = LDAP_MOD_DELETE;
 			mod[1].ml_next = NULL;
+#endif
 
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: removing old_rdn_val=%s\n",

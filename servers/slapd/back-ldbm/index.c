@@ -80,16 +80,20 @@ index_add_entry(
 int
 index_add_mods(
     Backend	*be,
-    LDAPModList	*ml,
+    Modifications	*ml,
     ID		id
 )
 {
 	int	rc;
 
 	for ( ; ml != NULL; ml = ml->ml_next ) {
-		LDAPMod *mod = &ml->ml_mod;
+		Modification *mod = &ml->ml_mod;
 
-		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+		rc = -1;
+#else
+		switch ( mod->mod_op ) {
 		case LDAP_MOD_REPLACE:
 			/* XXX: Delete old index data==>problem when this 
 			 * gets called we lost values already!
@@ -108,10 +112,14 @@ index_add_mods(
 						   id,
 						   SLAP_INDEX_DELETE_OP );
 			break;
- 		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there */
+ 		case SLAP_MOD_SOFTADD:	/* SOFTADD means index was there */
 			rc = 0;
 			break;
+
+		default:
+			rc = -1;
 		}
+#endif
 
 		if ( rc != 0 ) {
 			return( rc );

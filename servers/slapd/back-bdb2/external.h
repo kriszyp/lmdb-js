@@ -39,7 +39,7 @@ extern int	bdb2_back_compare LDAP_P((BackendDB *bd,
 
 extern int	bdb2_back_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char *ndn, LDAPModList *ml ));
+	char *dn, char *ndn, Modifications *ml ));
 
 extern int	bdb2_back_modrdn LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,

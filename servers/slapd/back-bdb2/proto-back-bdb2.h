@@ -144,7 +144,7 @@ ID bdb2i_idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
  */
 
 int bdb2i_index_add_entry LDAP_P(( BackendDB *be, Entry *e ));
-int bdb2i_index_add_mods LDAP_P(( BackendDB *be, LDAPModList *ml, ID id ));
+int bdb2i_index_add_mods LDAP_P(( BackendDB *be, Modifications *ml, ID id ));
 ID_BLOCK * bdb2i_index_read LDAP_P(( BackendDB *be, char *type, int indextype, char *val ));
 int bdb2i_index_add_values LDAP_P(( BackendDB *be, char *type, struct berval **vals, ID  id ));
 
@@ -172,7 +172,7 @@ int bdb2i_add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int bdb2i_delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int bdb2i_replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int bdb2i_back_modify_internal LDAP_P((Backend *be, Connection *conn, Operation *op,
-			         char *dn, LDAPModList *mods, Entry *e));
+			         char *dn, Modifications *mods, Entry *e));
 /*
  * nextid.c
  */
@@ -232,7 +232,7 @@ void bdb2i_check_default_attr_index_add LDAP_P((
  Entry *e ));
 void bdb2i_check_default_attr_index_mod LDAP_P((
  struct ldbminfo *li,
- LDAPModList *modlist ));
+ Modifications *modlist ));
 ID bdb2i_get_nextid  LDAP_P(( BackendDB *be ));
 int bdb2i_put_nextid LDAP_P(( BackendDB *be, ID id ));
 LDBM bdb2i_db_open LDAP_P(( char *name, int type, int rw, int mode,

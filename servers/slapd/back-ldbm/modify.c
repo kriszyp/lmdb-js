@@ -28,13 +28,13 @@ int ldbm_modify_internal(
     Connection	*conn,
     Operation	*op,
     char	*dn,
-    LDAPModList	*modlist,
+    Modifications	*modlist,
     Entry	*e 
 )
 {
 	int err;
 	LDAPMod		*mod;
-	LDAPModList	*ml;
+	Modifications	*ml;
 	Attribute	*a;
 	Attribute	*save_attrs;
 
@@ -48,7 +48,7 @@ int ldbm_modify_internal(
 	for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
 		mod = &ml->ml_mod;
 
-		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
+		switch ( mod->mod_op ) {
 		case LDAP_MOD_ADD:
 			err = add_values( e, mod, op->o_ndn );
 			break;
@@ -61,7 +61,7 @@ int ldbm_modify_internal(
 			err = replace_values( e, mod, op->o_ndn );
 			break;
 
-		case LDAP_MOD_SOFTADD:
+		case SLAP_MOD_SOFTADD:
  			/* Avoid problems in index_add_mods()
  			 * We need to add index if necessary.
  			 */
@@ -70,7 +70,7 @@ int ldbm_modify_internal(
  				==  LDAP_TYPE_OR_VALUE_EXISTS ) {
  
  				err = LDAP_SUCCESS;
- 				mod->mod_op = LDAP_MOD_SOFTADD;
+ 				mod->mod_op = SLAP_MOD_SOFTADD;
  
  			}
  			break;
@@ -116,9 +116,7 @@ int ldbm_modify_internal(
 	if( save_attrs != NULL ) {
 		for ( ml = modlist; ml != NULL; ml = ml->ml_next ) {
 			mod = &ml->ml_mod;
-			if( ( mod->mod_op & ~LDAP_MOD_BVALUES )
-				== LDAP_MOD_REPLACE )
-			{
+			if ( mod->mod_op == LDAP_MOD_REPLACE ) {
 				/* Need to remove all values from indexes */
 				a = attr_find( save_attrs, mod->mod_type );
 
@@ -151,7 +149,7 @@ ldbm_back_modify(
     Operation	*op,
     char	*dn,
     char	*ndn,
-    LDAPModList	*modlist
+    Modifications	*modlist
 )
 {
 	int rc;

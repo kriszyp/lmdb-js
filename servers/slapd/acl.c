@@ -617,7 +617,7 @@ acl_check_modlist(
     Connection	*conn,
     Operation	*op,
     Entry	*e,
-    LDAPModList	*mlist
+    Modifications	*mlist
 )
 {
 	int		i;
@@ -660,6 +660,9 @@ acl_check_modlist(
 		 * by ACL_WRITE checking as any found here are not provided
 		 * by the user
 		 */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		if ( oc_check_op_no_usermod_attr( mlist->ml_type ) ) {
  			Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 				" modify access granted\n",
@@ -667,7 +670,7 @@ acl_check_modlist(
 			continue;
 		}
 
-		switch ( mlist->ml_op & ~LDAP_MOD_BVALUES ) {
+		switch ( mlist->ml_op ) {
 		case LDAP_MOD_REPLACE:
 		case LDAP_MOD_ADD:
 			if ( mlist->ml_bvalues == NULL ) {
@@ -703,6 +706,7 @@ acl_check_modlist(
 			}
 			break;
 		}
+#endif
 	}
 
 	return( 1 );

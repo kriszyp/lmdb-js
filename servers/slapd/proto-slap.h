@@ -33,7 +33,7 @@ LIBSLAPD_F (int) acl_check_modlist LDAP_P(( Backend *be,
 	Connection *conn,
 	Operation *op,
 	Entry *e,
-	LDAPModList *ml ));
+	Modifications *ml ));
 
 LIBSLAPD_F (void) acl_append( AccessControl **l, AccessControl *a );
 

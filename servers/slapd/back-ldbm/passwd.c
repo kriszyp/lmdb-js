@@ -114,21 +114,29 @@ ldbm_back_exop_passwd(
 	}
 
 	{
-		LDAPModList ml;
+		Modifications ml;
 		struct berval *vals[2];
 
 		vals[0] = hash;
 		vals[1] = NULL;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		ml.ml_type = ch_strdup("userPassword");
 		ml.ml_bvalues = vals;
-		ml.ml_op = LDAP_MOD_REPLACE | LDAP_MOD_BVALUES;
+		ml.ml_op = LDAP_MOD_REPLACE;
 		ml.ml_next = NULL;
+#endif
 
 		rc = ldbm_modify_internal( be,
 			conn, op, op->o_ndn, &ml, e );
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		/* not yet implemented */
+#else
 		ch_free(ml.ml_type);
+#endif
 	}
 
 	if( rc == LDAP_SUCCESS ) {

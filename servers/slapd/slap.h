@@ -53,7 +53,8 @@ LDAP_BEGIN_DECL
  * modrdn when the new rdn was already an attribute value itself.
  * JCG 05/1999 (gomez@engr.sgi.com)
  */
-#define LDAP_MOD_SOFTADD	0x1000
+#define SLAP_MOD_SOFTADD	0x1000
+#undef LDAP_MOD_BVALUES
 
 #define ON	1
 #define OFF	(-1)
@@ -455,6 +456,34 @@ typedef struct slap_entry {
 } Entry;
 
 /*
+ * A list of LDAPMods
+ */
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+typedef struct slap_mod {
+	int sm_op;
+	AttributeDescription sm_desc;
+	struct berval **sm_bvalues;
+} Modification;
+#else
+#define Modification LDAPMod
+#endif
+
+typedef struct slap_mod_list {
+	Modification ml_mod;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+#define ml_op		ml_mod.sm_op
+#define ml_desc		ml_mod.sm_desc
+#define ml_bvalues	ml_mod.sm_bvalues
+#else
+#define ml_op		ml_mod.mod_op
+#define ml_type		ml_mod.mod_type
+#define ml_values	ml_mod.mod_values
+#define ml_bvalues	ml_mod.mod_bvalues
+#endif
+	struct slap_mod_list *ml_next;
+} Modifications;
+
+/*
  * represents an access control list
  */
 
@@ -589,18 +618,8 @@ typedef struct slap_acl {
 } AccessControl;
 
 /*
- * A list of LDAPMods
+ * replog moddn param structure
  */
-typedef struct ldapmodlist {
-	struct ldapmod ml_mod;
-	struct ldapmodlist *ml_next;
-#define ml_op		ml_mod.mod_op
-#define ml_type		ml_mod.mod_type
-#define ml_values	ml_mod.mod_values
-#define ml_bvalues	ml_mod.mod_bvalues
-} LDAPModList;
-
-
 struct replog_moddn {
 	char *newrdn;
 	int	deloldrdn;
@@ -802,7 +821,7 @@ struct slap_backend_info {
 #endif
 	int	(*bi_op_modify) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		char *dn, char *ndn, LDAPModList *m));
+		char *dn, char *ndn, Modifications *m));
 	int	(*bi_op_modrdn) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		char *dn, char *ndn, char *newrdn, int deleteoldrdn,

@@ -28,7 +28,7 @@ replog(
     void	*change
 )
 {
-	LDAPModList	*ml;
+	Modifications	*ml;
 	Entry	*e;
 	struct replog_moddn *moddn;
 	char *tmp;
@@ -58,7 +58,10 @@ replog(
 		fprintf( fp, "changetype: modify\n" );
 		ml = change;
 		for ( ; ml != NULL; ml = ml->ml_next ) {
-			switch ( ml->ml_op & ~LDAP_MOD_BVALUES ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+#else
+			switch ( ml->ml_op ) {
 			case LDAP_MOD_ADD:
 				fprintf( fp, "add: %s\n", ml->ml_type );
 				break;
@@ -92,6 +95,7 @@ replog(
 
 				free( buf );
 			}
+#endif
 			fprintf( fp, "-\n" );
 		}
 		break;
