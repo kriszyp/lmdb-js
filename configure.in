@@ -584,7 +584,6 @@ SLAPD_SQL_INCLUDES=
 MOD_TCL_LIB=
 KRB4_LIBS=
 KRB5_LIBS=
-READLINE_LIBS=
 SASL_LIBS=
 TERMCAP_LIBS=
 TLS_LIBS=
@@ -2285,35 +2284,6 @@ if test $ol_with_fetch != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-dnl
-dnl Check for GNU readline
-dnl
-ol_link_readline=no
-if test $ol_with_readline != no ; then
-	AC_CHECK_HEADERS(readline/readline.h readline/history.h)
-
-	if test $ac_cv_header_readline_readline_h = yes ; then
-		save_LIBS="$LIBS"
-		LIBS="$TERMCAP_LIBS $LIBS"
-		AC_CHECK_LIB(readline, readline, 
-			[have_readline=yes], [have_readline=no])
-		LIBS="$save_LIBS"
-			
-		if test $have_readline = yes ; then
-			ol_with_readline=found
-			ol_link_readline=yes
-
-			READLINE_LIBS="-lreadline"
-		fi
-	fi
-fi
-
-if test $ol_link_readline = yes ; then
-	AC_DEFINE(HAVE_READLINE, 1, [define if you have -lreadline])
-fi
-
-
-dnl ----------------------------------------------------------------
 dnl FreeBSD (and others) have crypt(3) in -lcrypt
 if test $ol_enable_crypt != no ; then
 	save_LIBS="$LIBS"
@@ -2905,7 +2875,6 @@ AC_SUBST(MOD_PERL_LDFLAGS)
 
 AC_SUBST(KRB4_LIBS)
 AC_SUBST(KRB5_LIBS)
-AC_SUBST(READLINE_LIBS)
 AC_SUBST(SASL_LIBS)
 AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
