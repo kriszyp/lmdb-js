@@ -378,10 +378,14 @@ bdb_db_open( BackendDB *be )
 			bdb->bi_dbenv_mode );
 #endif
 
-		if( rc != 0 ) {
+		if ( rc != 0 ) {
+			char	buf[SLAP_TEXT_BUFLEN];
+
+			snprintf( buf, sizeof(buf), "%s/%s", 
+				bdb->bi_dbenv_home, bdbi_databases[i].file );
 			Debug( LDAP_DEBUG_ANY,
 				"bdb_db_open: db_open(%s) failed: %s (%d)\n",
-				bdb->bi_dbenv_home, db_strerror(rc), rc );
+				buf, db_strerror(rc), rc );
 			return rc;
 		}
 

@@ -49,35 +49,39 @@ usage( int tool, const char *progname )
 {
 	char *options = NULL;
 	fprintf( stderr,
-		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]\n",
+		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]",
 		progname );
 
 	switch( tool ) {
+	case SLAPACL:
+		options = "\n\t[-U authcID | -D authcDN]"
+			" -b DN [attr[/access][:value]] [...]\n";
+		break;
+
 	case SLAPADD:
-		options = "\t[-n databasenumber | -b suffix]\n"
+		options = "\n\t[-n databasenumber | -b suffix]\n"
 			"\t[-l ldiffile] [-u] [-p [-w] | -r [-i syncreplidlist] [-w]]\n";
 		break;
 
+	case SLAPAUTH:
+		options = "\n\t[-U authcID] [-X authzID] [-R realm] [-M mech] ID [...]\n";
+		break;
+
 	case SLAPCAT:
-		options = "\t[-n databasenumber | -b suffix]"
+		options = "\n\t[-n databasenumber | -b suffix]"
 			" [-l ldiffile] [-a filter] [-m] [-k]\n";
 		break;
 
 	case SLAPDN:
-		options = "\tDN [...]\n";
+		options = " DN [...]\n";
 		break;
 
 	case SLAPINDEX:
-		options = "\t[-n databasenumber | -b suffix]\n";
+		options = "\n\t[-n databasenumber | -b suffix]\n";
 		break;
 
-	case SLAPAUTH:
-		options = "\t[-U authcID] [-X authzID] [-R realm] [-M mech] ID [...]\n";
-		break;
-
-	case SLAPACL:
-		options = "\t[-U authcID | -D authcDN]"
-			" -b DN [attr[/access][:value]] [...]\n";
+	case SLAPTEST:
+		options = " [-u]\n";
 		break;
 	}
 
@@ -132,8 +136,12 @@ slap_tool_init(
 		break;
 
 	case SLAPDN:
-	case SLAPTEST:
 		options = "d:f:v";
+		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
+		break;
+
+	case SLAPTEST:
+		options = "d:f:uv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
