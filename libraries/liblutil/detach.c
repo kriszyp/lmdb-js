@@ -72,7 +72,7 @@ lutil_detach( int debug, int do_close )
 			break;
 		}
 
-		if ( (sd = open( "/dev/null", O_RDWR )) != -1 ) {
+		if ( (sd = open( "/dev/null", O_RDWR )) == -1 ) {
 			perror("/dev/null");
 		}
 
