@@ -1127,7 +1127,7 @@ re_encode_request( LDAP *ld,
 
 	} else if ( tag == LDAP_REQ_SEARCH ) {
 		/* search requests need to be re-scope-ed */
-		rc = ber_scanf( &tmpber, "{ae" /*"}"*/, &orig_dn, &scope );
+		rtag = ber_scanf( &tmpber, "{ae" /*"}"*/, &orig_dn, &scope );
 
 		if( srv->lud_scope != LDAP_SCOPE_DEFAULT ) {
 			/* use the scope provided in reference */
