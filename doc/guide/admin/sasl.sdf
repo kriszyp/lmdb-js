@@ -9,11 +9,11 @@ in {{REF:RFC2222}}.   This chapter describes how to make use of
 SASL in OpenLDAP.
 
 There are several industry standard authentication mechanisms that
-can be used with SASL, including Kerberos V4, GSSAPI, and some of
-the Digest mechanisms. The standard client tools provided with
-OpenLDAP, such as {{ldapsearch}}(1) and {{ldapmodify}}(1), will by
-default attempt to authenticate the user to the {{slapd}}(8) server
-using SASL. Basic authentication service can be set up by the LDAP
+can be used with SASL, including {{TERM:Kerberos}} V4, {{TERM:GSSAPI}},
+and DIGEST-MD.  The standard client tools provided with OpenLDAP,
+such as {{ldapsearch}}(1) and {{ldapmodify}}(1), will by default
+attempt to authenticate the user to the {{slapd}}(8) server using
+SASL. Basic authentication service can be set up by the LDAP
 administrator with a few steps, allowing users to be authenticated
 to the slapd server as their LDAP entry.  With a few extra steps,
 some users and services can be allowed to exploit SASL's proxy
@@ -22,7 +22,10 @@ then switch their identity to that of another user or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
 Administrators}}, provided with the {{PRD:Cyrus}} {{PRD:SASL}}
-package (in {{FILE:doc/sysadmin.html}}).
+package (in {{FILE:doc/sysadmin.html}}) and have a working Cyrus
+SASL installation.  You should use the Cyrus SASL {{EX:sample_client}}
+and {{EX:sample_server}} to test your SASL installation before
+attempting to make use of it in OpenLDAP.
 
 Note that in the following text the term {{user}} is used to describe
 a person or application entity who is connecting to the LDAP server
@@ -65,9 +68,9 @@ and {{SECT:GSSAPI}} are discussed below.
 
 The EXTERNAL mechanism utilizes authentication services provided
 by lower level network services such as {{TERM:TLS}} (TLS).  When
-used in conjunction with TLS {{TERM:X.509}}-based public key technology,
-EXTERNAL offers strong authentication.  Use of EXTERNAL is discussed
-in the {{SECT:Using TLS}} chapter.
+used in conjunction with {{TERM:TLS}} {{TERM:X.509}}-based public
+key technology, EXTERNAL offers strong authentication.  Use of
+EXTERNAL is discussed in the {{SECT:Using TLS}} chapter.
 
 There are other strong authentication mechanisms to choose from,
 including OTP (one time passwords) and SRP (secure remote passwords).
@@ -156,16 +159,16 @@ request DN would not appear.
 H3: GSSAPI
 
 This section describes the use of the SASL GSSAPI mechanism and
-Kerberos V with OpenLDAP. Since Kerberos V is being used, the information
-is very similar to the previous section.
-It will be assumed that you have Kerberos
-V deployed, you are familiar with the operation of the system, and that
-your users are trained in its use.  This section also assumes you have
-familiarized yourself with the use of the GSSAPI mechanism by reading
-{{Configuring GSSAPI and Cyrus SASL}} (provided with Cyrus SASL in
-the {{FILE:doc/gssapi}} file) and successfully experimented with
-the Cyrus provided sample_server and sample_client applications.
-General information about Kerberos is available at
+Kerberos V with OpenLDAP. Since Kerberos V is being used, the
+information is very similar to the previous section.  It will be
+assumed that you have Kerberos V deployed, you are familiar with
+the operation of the system, and that your users are trained in its
+use.  This section also assumes you have familiarized yourself with
+the use of the GSSAPI mechanism by reading {{Configuring GSSAPI and
+Cyrus SASL}} (provided with Cyrus SASL in the {{FILE:doc/gssapi}}
+file) and successfully experimented with the Cyrus provided
+{{EX:sample_server}} and {{EX:sample_client}} applications.  General
+information about Kerberos is available at
 {{URL:http://web.mit.edu/kerberos/www/}}.
 
 To use the GSSAPI mechanism with {{slapd}}(8) one must create a service
@@ -229,7 +232,7 @@ of Cyrus SASL 2.1. If you are using version 1.5 then certain features
 will not be available, and the command names will not have the trailing
 digit "2".
 
-To use secrets stored in {{sasldb,}} simply add users with the
+To use secrets stored in {{sasldb}}, simply add users with the
 {{saslpasswd2}} command:
 
 >       saslpasswd2 -c <username>
@@ -287,11 +290,11 @@ necessary to specify which one to use, e.g.:
 >       ldapsearch -Y DIGEST-MD5 -U u000997 -b dc=example,dc=com 'cn=andrew*'
 
 
-Note: in each of the above cases, no authorization identity (e.g. {{EX:-X}})
-was provided.   Unless you are attempting {{SECT:SASL Proxy
-Authorization}}, no authorization identity should be specified.
-The server will infer an authorization identity from authentication
-identity (as described below).
+Note: in each of the above cases, no authorization identity (e.g.
+{{EX:-X}}) was provided.   Unless you are attempting
+{{SECT:SASL Proxy Authorization}}, no authorization identity should
+be specified.  The server will infer an authorization identity from
+authentication identity (as described below).
 
 
 H3: Mapping Authentication identities to LDAP entries
@@ -661,9 +664,9 @@ comparison can be evaluated much faster than an LDAP search for
 
 Also note that the values in an authorization rule must be one of
 the two forms: an LDAP URL or a DN (with or without regular expression
-characters). Anything that does not begin with "ldap://" is taken
-as a DN. It is not permissable to enter another authorization
-identity of the form "u:<username>" as an authorization rule.
+characters). Anything that does not begin with "{{EX:ldap://}}" is
+taken as a DN. It is not permissable to enter another authorization
+identity of the form "{{EX:u:<username>}}" as an authorization rule.
 
 
 H4: Policy Configuration

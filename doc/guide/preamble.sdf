@@ -216,4 +216,6 @@ RFC2829|PS|Authentication Methods for LDAP|ftp://ftp.isi.edu/in-notes/rfc2829.tx
 RFC2830|PS|LDAPv3: Extension for Transport Layer Security|ftp://ftp.isi.edu/in-notes/rfc2830.txt
 RFC2831|PS|Using Digest Authentication as a SASL Mechanism|ftp://ftp.isi.edu/in-notes/rfc2831.txt
 RFC2849|PS|The LDAP Data Interchange Format|ftp://ftp.isi.edu/in-notes/rfc2849.txt
+RFC3088|X|OpenLDAP Root Service|ftp://ftp.isi.edu/in-notes/rfc3088.txt
+RFC3296|PS|Named Subordinate References in LDAP|ftp://ftp.isi.edu/in-notes/rfc3296.txt
 !endblock

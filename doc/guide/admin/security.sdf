@@ -136,18 +136,18 @@ bind request when authenticated access was intended (that is, they
 do not ensure a password was provided), this mechanism should
 generally not be enabled.
 
-A successful authenticated bind results in a user authorization
-identity, the provided name, being associated with the session.
-Authenticated bind is enabled by default.  However, as this mechanism
-offers no evesdropping protection (e.g., the password is set in the
-clear), it is generally recommended that it be used only in tightly
-controlled systems or when the LDAP session is protected by other
-means (e.g., TLS, {{TERM:IPSEC}}).  Where the administrator relies
-on TLS to protect the password, it is recommended that unprotected
-authentication be disabled.  This is done by setting "{{EX:disallow
-bind_simple_unprotected}} in {{slapd.conf}}(5).   The authenticated
-bind mechanism can be completely disabled by setting "{{EX:disallow
-bind_simple}}".
+A successful user/password authenticated bind results in a user
+authorization identity, the provided name, being associated with
+the session.  User/password authenticated bind is enabled by default.
+However, as this mechanism offers no evesdropping protection (e.g.,
+the password is set in the clear), it is recommended that it be
+used only in tightly controlled systems or when the LDAP session
+is protected by other means (e.g., TLS, {{TERM:IPSEC}}).  Where the
+administrator relies on TLS to protect the password, it is recommended
+that unprotected authentication be disabled.  This is done by setting
+"{{EX:disallow bind_simple_unprotected}} in {{slapd.conf}}(5).   The
+user/password authenticated bind mechanism can be completely disabled
+by setting "{{EX:disallow bind_simple}}".
 
 Note:  An unsuccessful bind always results in the session having
 an {{anonymous}} authorization state.

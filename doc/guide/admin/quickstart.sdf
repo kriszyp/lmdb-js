@@ -168,13 +168,13 @@ in the {{slapd.conf}}(5) manual page and the
 {{SECT:The slapd Configuration File}} chapter of this
 document.
 
-Note: the directory specified must exist prior to starting slapd(8).
+Note: the directory specified must exist prior to starting {{slapd}}(8).
 
 
 .{{S: }}
 +{{B:Start SLAPD}}.
 
-. You are now ready to start the stand-alone LDAP server, slapd(8),
+. You are now ready to start the stand-alone LDAP server, {{slapd}}(8),
 by running the command:
 
 ..{{EX:su root -c /usr/local/libexec/slapd}}

@@ -14,6 +14,8 @@ certain part of the tree (which may or may not be running {{slapd}}).
 and {{superior}} knowledge information.
 !else
 {{slapd}} supports {{subordinate}} and {{superior}} knowledge information.
+Subordinate knowledge information is held in {{EX:referral}}
+objects ({{REF:RFC3296}}).
 !endif
 
 
@@ -81,12 +83,12 @@ is similar to an X.500 knowledge reference held in a
 
 H2: Superior Knowledge Information
 
-Superior knowledge information may be specified using the
-{{EX:referral}} directive.  The value is a list of {{TERM:URI}}s
-referring to superior directory services.  For servers without
-immediate superiors, such as for {{EX:a.example.net}} in the example
-above, the server can be configured to use a directory service with
-{{global knowledge}}, such as the {{OpenLDAP Root Service}}
+Superior knowledge information may be specified using the {{EX:referral}}
+directive.  The value is a list of {{TERM:URI}}s referring to
+superior directory services.  For servers without immediate superiors,
+such as for {{EX:a.example.net}} in the example above, the server
+can be configured to use a directory service with {{global knowledge}},
+such as the {{OpenLDAP Root Service}}
 ({{URL:http://www.openldap.org/faq/index.cgi?file=393}}).
 
 >	referral	ldap://root.openldap.org/
