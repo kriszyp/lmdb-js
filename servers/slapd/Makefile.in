@@ -117,15 +117,20 @@ install-conf: FORCE
 	@-$(MKDIR) $(sysconfdir)
 	@for i in $(CFFILES); do \
 		tmpcf=/tmp/$$i.$$ ; \
+		if test $$i = slapd.conf ; then \
+			mode=600 ; \
+		else \
+			mode=644 ; \
+		fi ; \
 		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' $(srcdir)/$$i > $$tmpcf ; \
 		if test ! -f $(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i; \
+			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i"; \
+			$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i; \
 		else \
 			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$tmpcf $(sysconfdir)/$$i.default; \
+		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i.default ; \
 		$(RM) -f $$tmpcf ; \
 	done
 
