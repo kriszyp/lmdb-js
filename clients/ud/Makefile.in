@@ -22,4 +22,4 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 install-local: FORCE
 	-$(MKDIR) $(bindir)
 	-mv -f $(bindir)/ud $(bindir)/ud-
-	$(LTINSTALL) $(INSTALLFLAGS) -m 775 ud $(bindir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ud $(bindir)
