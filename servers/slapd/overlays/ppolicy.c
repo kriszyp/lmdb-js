@@ -1143,7 +1143,7 @@ ppolicy_add(
 			}
 		}
 		/* If password aging is in effect, set the pwdChangedTime */
-		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_isupdate( op )) {
+		if (( pp.pwdMaxAge || pp.pwdMinAge ) && !be_shadow_update( op )) {
 			struct berval timestamp;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 			struct tm *ltm;
@@ -1173,7 +1173,6 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	PassPolicy		pp;
 	Modifications		*mods = NULL, *modtail, *ml, *delmod, *addmod;
 	Attribute		*pa, *ha, *ra, at;
-	int			repl_user = be_isupdate( op );
 	const char		*txt;
 	pw_hist			*tl = NULL, *p;
 	int			zapReset, send_ctrl = 0;
@@ -1457,7 +1456,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	}
 
 do_modify:
-	if ((pwmod) && (!repl_user)) {
+	if ((pwmod) && (!be_shadow_update( op ))) {
 		struct berval timestamp;
 		char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 		struct tm *ltm;
