@@ -173,7 +173,6 @@ typedef cond_t	pthread_cond_t;
 #define _THREAD
 
 #include <pthread.h>
-#include <sched.h>
 
 #define pthread_mutexattr_default	NULL
 #define pthread_condattr_default	NULL
