@@ -73,29 +73,9 @@ modify_add_values(
 				"modify/%s: %s: no equality matching rule",
 				op, mod->sm_desc->ad_cname.bv_val );
 			return LDAP_INAPPROPRIATE_MATCHING;
-		}
 
-		for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
-			/* test asserted values against existing values */
-			for( matched = 0, j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
-				if ( bvmatch( &mod->sm_values[i], &a->a_vals[j] ) ) {
-					if ( permissive ) {
-						matched++;
-						continue;
-					}
-					/* value exists already */
-					*text = textbuf;
-					snprintf( textbuf, textlen,
-						"modify/%s: %s: value #%i already exists",
-						op, mod->sm_desc->ad_cname.bv_val, j );
-					return LDAP_TYPE_OR_VALUE_EXISTS;
-				}
-			}
-
-			if ( permissive && matched == j ) {
-				/* values already exist; do nothing */
-				return LDAP_SUCCESS;
-			}
+		} else {
+			return LDAP_SUCCESS;
 		}
 
 	} else if ( a != NULL ) {
