@@ -618,7 +618,41 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl
 
 		dnl pthread_create in $LIBS
-		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
+		AC_MSG_CHECKING([for pthread_create in default libraries])
+		AC_CACHE_VAL(ol_cv_pthread_create,[
+		AC_TRY_RUN([
+#include <pthread.h>
+#ifndef NULL
+#define NULL (void*)0
+#endif
+
+static void *task(p)
+	void *p;
+{
+	return (void *) (p == NULL);
+}
+
+int main(argc, argv)
+	int argc;
+	char **argv;
+{
+	pthread_t t;
+#if HAVE_PTHREADS_D4
+	exit(pthread_create(&t, pthread_attr_default, task, NULL));
+#else
+	exit(pthread_create(&t, NULL, task, NULL));
+#endif
+}
+],
+			[ol_cv_pthread_create=yes],
+			[ol_cv_pthread_create=no],
+			[dnl assume yes
+			ol_cv_pthread_create=yes])])
+		AC_MSG_RESULT($ol_cv_pthread_create)
+
+		if test $ol_cv_pthread_create != no ; then
+			ol_link_threads=posix
+		fi
 
 		if test $ol_link_threads = no ; then
 			dnl try -mt
