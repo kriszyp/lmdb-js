@@ -30,10 +30,10 @@ create table ldap_attr_mappings (
 	oc_map_id int not null references ldap_oc_mappings(id),
 	name varchar (255) not null ,
 	sel_expr varchar (255) not null ,
+	sel_expr_u varchar(255),
 	from_tbls varchar (255) not null ,
 	join_where varchar (255) NULL ,
 	add_proc varchar (255) NULL ,
-	modify_proc varchar (255) NULL ,
 	delete_proc varchar (255) NULL ,
 	param_order int not null,
 	expect_return int not null

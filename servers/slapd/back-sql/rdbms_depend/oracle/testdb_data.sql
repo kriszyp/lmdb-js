@@ -1,10 +1,10 @@
-insert into institutes (id,name) values (institute_ids.nextval,'sql');
+insert into institutes (id,name) values (institute_ids.nextval,'example');
 
-insert into persons (id,name) values (person_ids.nextval,'Mitya Kovalev');
+insert into persons (id,name,surname,password) values (person_ids.nextval,'Mitya','Kovalev','mit');
 
-insert into persons (id,name) values (person_ids.nextval,'Torvlobnor Puzdoy');
+insert into persons (id,name,surname) values (person_ids.nextval,'Torvlobnor','Puzdoy');
 
-insert into persons (id,name) values (person_ids.nextval,'Akakiy Zinberstein');
+insert into persons (id,name,surname) values (person_ids.nextval,'Akakiy','Zinberstein');
 
 
 insert into phones (id,phone,pers_id) values (phone_ids.nextval,'332-2334',1);

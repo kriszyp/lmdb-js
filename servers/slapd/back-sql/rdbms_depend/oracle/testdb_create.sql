@@ -1,6 +1,8 @@
 CREATE TABLE persons (
 	id NUMBER NOT NULL,
-	name varchar2(255) NOT NULL
+	name varchar2(255) NOT NULL,
+	surname varchar2(255) NOT NULL,
+	password varchar2(64) NOT NULL
 );
 
 CREATE TABLE institutes (

@@ -22,7 +22,9 @@ GO
 
 CREATE TABLE persons (
 	id int IDENTITY (1, 1) NOT NULL ,
-	name varchar (255) NULL 
+	name varchar (255) NULL ,
+	surname varchar (255) NULL ,
+	password varchar (64) NULL
 )
 GO
 
