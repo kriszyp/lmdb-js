@@ -2,7 +2,7 @@
 ## Makefile.in for slapd
 ##
 PROGRAMS=slapd
-XPROGRAMS=sslapd libbackends.a
+XPROGRAMS=sslapd libbackends.a .backend
 XSRCS=version.c
 SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
@@ -39,7 +39,7 @@ XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
-all-local-srv: all-cffiles
+all-local-srv: backendslib all-cffiles
 
 slapd: libbackends.a version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
@@ -48,10 +48,7 @@ slapd: libbackends.a version.o
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
-# dummy equivalent of FORCE when wildcard fails
-back-*/libback*.a:
-
-libbackends.a: back-*/libback*.a
+backendslib: FORCE
 	@for i in back-*; do \
 		if [ -d $$i ]; then \
 			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
@@ -59,6 +56,10 @@ libbackends.a: back-*/libback*.a
 		fi; \
 	done; \
 	echo " "
+
+.backend: 
+
+libbackends.a: .backend
 	@$(RM) -r tmp
 	@$(MKDIR) tmp
 	@-for i in back-*/*.a; do \

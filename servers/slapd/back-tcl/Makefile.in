@@ -29,3 +29,8 @@ XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS)
 XINCPATH = -I.. -I$(srcdir)/..
 
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+
