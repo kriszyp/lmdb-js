@@ -181,6 +181,16 @@ do
   --mode) prevopt="--mode" prev=mode ;;
   --mode=*) mode="$optarg" ;;
 
+  --only-shared)
+    build_libtool_libs=yes
+    build_old_libs=no
+    ;;
+
+  --only-static)
+    build_libtool_libs=no
+    build_old_libs=yes
+    ;;
+
   --quiet | --silent)
     show=:
     ;;
@@ -1077,7 +1087,7 @@ compiler."
       -l*)
 	if test "$arg" = "-lc"; then
 	  case "$host" in
-	  *-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos*)
+	  *-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos* | *-*-aix*)
 	    # These systems don't actually have c library (as such)
 	    continue
 	    ;;
@@ -1628,6 +1638,9 @@ compiler."
 	$echo "$modename: warning: ignoring multiple \`-rpath's for a libtool library" 1>&2
       fi
       install_libdir="$2"
+      if test -n "$hardcode_default_flag"; then
+	eval linkopts=\"$linkopts$hardcode_default_flag\"
+      fi
 
       oldlibs=
       if test -z "$rpath"; then
@@ -1802,7 +1815,7 @@ compiler."
 
 	dependency_libs="$deplibs"
 	case "$host" in
-	*-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos*)
+	*-*-cygwin* | *-*-mingw* | *-*-os2* | *-*-beos* | *-*-aix*)
 	  # these systems don't actually have a c library (as such)!
 	  ;;
         *-*-rhapsody*)
@@ -2463,6 +2476,14 @@ EOF
       fi
       finalize_rpath="$rpath"
 
+      if test -z "$compile_rpath" -a -n "$hardcode_default_flag"; then
+	eval compile_rpath=\" $hardcode_default_flag\"
+      fi
+
+      if test -z "$finalize_rpath" -a -n "$hardcode_default_flag"; then
+	eval finalize_rpath=\" $hardcode_default_flag\"
+      fi
+
       output_objdir=`$echo "X$output" | $Xsed -e 's%/[^/]*$%%'`
       if test "X$output_objdir" = "X$output"; then
 	output_objdir="$objdir"
@@ -2555,6 +2576,32 @@ extern \"C\" {
 	      $run eval 'mv "$nlist"T "$nlist"'
 	    fi
 	  fi
+
+	# Prepare the list of exported symbols
+	if test -z "$export_symbols"; then
+	  if test "$always_export_symbols" = yes -a -n "$link_export_all"; then
+	    eval link_export=\"$link_export_all\"
+	  elif test "$always_export_symbols" = yes || test -n "$export_symbols_regex"; then
+	    $show "generating symbol list for \`$output'"
+	    export_symbols="$output_objdir/$output.exp"
+	    $run $rm $export_symbols
+	    libobjs="$objs"
+	    eval cmds=\"$export_symbols_cmds\"
+	    IFS="${IFS= 	}"; save_ifs="$IFS"; IFS='~'
+	    for cmd in $cmds; do
+	      IFS="$save_ifs"
+	      $show "$cmd"
+	      $run eval "$cmd" || exit $?
+	    done
+	    IFS="$save_ifs"
+	    if test -n "$export_symbols_regex"; then
+	      $show "egrep -e \"$export_symbols_regex\" \"$export_symbols\" > \"${export_symbols}T\""
+	      $run eval 'egrep -e "$export_symbols_regex" "$export_symbols" > "${export_symbols}T"'
+	      $show "$mv \"${export_symbols}T\" \"$export_symbols\""
+	      $run eval '$mv "${export_symbols}T" "$export_symbols"'
+	    fi
+	  fi
+	fi
 
 	  for arg in $dlprefiles; do
 	    $show "extracting global C symbols from \`$arg'"
@@ -2672,10 +2719,15 @@ static const void *lt_preloaded_setup() {
 	finalize_command=`$echo "X$finalize_command" | $Xsed -e "s% @SYMFILE@%%"`
       fi
 
+      link_export_opt=
+      if test -n "$export_symbols" -o -n "$dlsyms"; then
+	eval link_export_opt=\"$link_export\"
+      fi
+
       if test -z "$link_against_libtool_libs" || test "$build_libtool_libs" != yes; then
 	# Replace the output file specification.
 	compile_command=`$echo "X$compile_command" | $Xsed -e 's%@OUTPUT@%'"$output"'%g'`
-	link_command="$compile_command$compile_rpath"
+	link_command="$compile_command$compile_rpath$link_export_opt"
 
 	# We have no uninstalled library dependencies, so finalize right now.
 	$show "$link_command"
@@ -2761,7 +2813,9 @@ static const void *lt_preloaded_setup() {
 
       # Replace the output file specification.
       link_command=`$echo "X$link_command" | $Xsed -e 's%@OUTPUT@%'"$output_objdir/$outputname"'%g'`
-      
+
+      link_command="$link_command$link_export_opt"
+
       # Delete the old output files.
       $run $rm $output $output_objdir/$outputname $output_objdir/lt-$outputname
 

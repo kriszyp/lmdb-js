@@ -1079,8 +1079,11 @@ hardcode_libdir_flag_spec=
 hardcode_libdir_separator=
 hardcode_direct=no
 hardcode_minus_L=no
+hardcode_default_flag=
 hardcode_shlibpath_var=unsupported
 runpath_var=
+link_export=
+link_export_all=
 always_export_symbols=no
 export_symbols_cmds='$NM $libobjs $convenience | $global_symbol_pipe | sed '\''s/.* //'\'' | sort | uniq > $export_symbols'
 # include_expsyms should be a list of space-separated symbols to be *always*
@@ -1266,6 +1269,7 @@ else
   aix3*)
     allow_undefined_flag=unsupported
     always_export_symbols=yes
+    link_export=' -bE:$export_symbols'
     archive_expsym_cmds='$LD -o $objdir/$soname $libobjs $deplibs $linkopts -bE:$export_symbols -T512 -H512 -bM:SRE~$AR cru $lib $objdir/$soname'
     # Note: this linker hardcodes the directories in LIBPATH if there
     # are no directories specified by -L.
@@ -1278,7 +1282,7 @@ else
     ;;
 
   aix4*)
-    hardcode_libdir_flag_spec='${wl}-b ${wl}nolibpath ${wl}-b ${wl}libpath:$libdir:/usr/lib:/lib'
+    hardcode_libdir_flag_spec='${wl}-b ${wl}libpath:$libdir:/usr/lib:/lib'
     hardcode_libdir_separator=':'
     if test "$with_gcc" = yes; then
       collect2name=`${CC} -print-prog-name=collect2`
@@ -1301,14 +1305,15 @@ else
     else
       shared_flag='${wl}-bM:SRE'
       hardcode_direct=yes
+      hardcode_minus_L=yes
+      hardcode_default_flag='${wl}-b nolibpath'
     fi
     allow_undefined_flag=' ${wl}-berok'
     archive_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bexpall ${wl}-bnoentry${allow_undefined_flag}'
     archive_expsym_cmds="\$CC $shared_flag"' -o $objdir/$soname $libobjs $deplibs $linkopts ${wl}-bE:$export_symbols ${wl}-bnoentry${allow_undefined_flag}'
-    case "$host_os" in aix4.[01]|aix4.[01].*)
-      # According to Greg Wooledge, -bexpall is only supported from AIX 4.2 on
-      always_export_symbols=yes ;;
-    esac
+    link_export=' ${wl}-bE:$export_symbols'
+    link_export_all=' ${wl}-bexpall'
+    always_export_symbols=yes
    ;;
 
   amigaos*)
@@ -1828,6 +1833,8 @@ aix3*)
 
   # AIX has no versioning support, so we append a major version to the name.
   soname_spec='${libname}${release}.so$major'
+  lt_cv_dlopen_self=yes
+  need_lib_prefix=no
   ;;
 
 aix4*)
@@ -1840,6 +1847,8 @@ aix4*)
   library_names_spec='${libname}${release}.so$versuffix ${libname}${release}.so$major $libname.a'
   shlibpath_var=LIBPATH
   deplibs_check_method=pass_all
+  lt_cv_dlopen_self=yes
+  need_lib_prefix=no
   ;;
 
 amigaos*)
@@ -3017,6 +3026,9 @@ hardcode_direct=$hardcode_direct
 # resulting binary.
 hardcode_minus_L=$hardcode_minus_L
 
+# Flag to force default rpath, to bypass effect of -L
+hardcode_default_flag='$hardcode_default_flag'
+
 # Set to yes if using SHLIBPATH_VAR=DIR during linking hardcodes DIR into
 # the resulting binary.
 hardcode_shlibpath_var=$hardcode_shlibpath_var
@@ -3032,6 +3044,10 @@ fix_srcfile_path="$fix_srcfile_path"
 
 # Set to yes if exported symbols are required.
 always_export_symbols=$always_export_symbols
+
+# Set to use export list when linking programs.
+link_export='$link_export'
+link_export_all='$link_export_all'
 
 # The commands to list exported symbols.
 export_symbols_cmds=$export_symbols_cmds
