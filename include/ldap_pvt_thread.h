@@ -138,7 +138,7 @@ typedef ldap_int_thread_pool_t ldap_pvt_thread_pool_t;
 LDAP_F( int )
 ldap_pvt_thread_pool_init LDAP_P((
 	ldap_pvt_thread_pool_t *pool_out,
-	int max_concurrency,
+	int max_threads,
 	int max_pending ));
 
 LDAP_F( int )
@@ -146,6 +146,11 @@ ldap_pvt_thread_pool_submit LDAP_P((
 	ldap_pvt_thread_pool_t *pool,
 	void *(*start_routine)( void * ),
 	void *arg ));
+
+LDAP_F( int )
+ldap_pvt_thread_pool_maxthreads LDAP_P((
+	ldap_pvt_thread_pool_t *pool,
+	int max_threads ));
 
 LDAP_F( int )
 ldap_pvt_thread_pool_backload LDAP_P((

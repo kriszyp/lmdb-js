@@ -62,6 +62,8 @@ LDAP_BEGIN_DECL
 
 #define MAXREMATCHES 10
 
+#define SLAP_MAX_WORKER_THREADS		32
+
 
 /* psuedo error code indicating abandoned operation */
 #define SLAPD_ABANDON (-1)
