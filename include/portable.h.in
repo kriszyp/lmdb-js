@@ -849,8 +849,8 @@
 /* define to support CLDAP */
 #undef LDAP_CONNECTIONLESS
 
-/* define to support PF_UNIX */
-#undef LDAP_PF_UNIX
+/* define to support PF_LOCAL */
+#undef LDAP_PF_LOCAL
 
 /* define to support PF_INET6 */
 #undef LDAP_PF_INET6

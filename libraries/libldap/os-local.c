@@ -13,7 +13,7 @@
 
 #include "portable.h"
 
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_LOCAL
 
 #include <stdio.h>
 
@@ -65,7 +65,7 @@ ldap_pvt_ndelay_off(LDAP *ld, int fd)
 static ber_socket_t
 ldap_pvt_socket(LDAP *ld)
 {
-	ber_socket_t s = socket(AF_UNIX, SOCK_STREAM, 0);
+	ber_socket_t s = socket(PF_LOCAL, SOCK_STREAM, 0);
 	oslocal_debug(ld, "ldap_new_socket: %d\n",s,0,0);
 	return ( s );
 }
@@ -203,7 +203,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 	oslocal_debug(ld, "ldap_connect_to_path: Trying %s\n", path, 0, 0);
 
 	memset( &server, '\0', sizeof(server) );
-	server.sun_family = AF_UNIX;
+	server.sun_family = AF_LOCAL;
 	strcpy( server.sun_path, path );
 
 	rc = ldap_pvt_connect(ld, s, &server, async);
@@ -217,4 +217,4 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 }
 #else
 static int dummy;
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */

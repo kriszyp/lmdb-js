@@ -306,16 +306,16 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 			break;
 		case LDAP_PROTO_IPC:
-#ifdef LDAP_PF_UNIX
-			/* only IPC mechanism supported is PF_UNIX */
-			rc = ldap_connect_to_path( ld, sb, srv->lud_host,
-				async );
+#ifdef LDAP_PF_LOCAL
+			/* only IPC mechanism supported is PF_LOCAL (PF_UNIX) */
+			rc = ldap_connect_to_path( ld, sb,
+				srv->lud_host, async );
 			if ( rc == -1 )
 				return rc;
 			ber_sockbuf_add_io( sb, &ber_sockbuf_io_fd,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 			break;
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 		default:
 			return -1;
 			break;

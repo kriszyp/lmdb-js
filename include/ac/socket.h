@@ -167,5 +167,13 @@ LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #define AC_HTONS( s ) htons( s )
 #define AC_NTOHS( s ) ntohs( s )
 
+#ifdef LDAP_PF_LOCAL
+#  if !defined( AF_LOCAL ) && defined( AF_UNIX )
+#    define AF_LOCAL	AF_UNIX
+#  endif
+#  if !defined( PF_LOCAL ) && defined( PF_UNIX )
+#    define PF_LOCAL	PF_UNIX
+#  endif
+#endif
 
 #endif /* _AC_SOCKET_H_ */

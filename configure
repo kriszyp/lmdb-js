@@ -43,7 +43,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-ipv6 	enable IPv6 support (auto)"
 ac_help="$ac_help
-  --enable-unix		enable UNIX domain socket support (auto)"
+  --enable-local		enable AF_LOCAL socket support (auto)"
 ac_help="$ac_help
   --enable-x-compile	enable cross compiling (no)"
 ac_help="$ac_help
@@ -1337,10 +1337,10 @@ else
   	ol_enable_ipv6="auto"
 fi
 # end --enable-ipv6
-# OpenLDAP --enable-unix
-	# Check whether --enable-unix or --disable-unix was given.
-if test "${enable_unix+set}" = set; then
-  enableval="$enable_unix"
+# OpenLDAP --enable-local
+	# Check whether --enable-local or --disable-local was given.
+if test "${enable_local+set}" = set; then
+  enableval="$enable_local"
   
 	ol_arg=invalid
 	for ol_val in auto yes no ; do
@@ -1349,14 +1349,14 @@ if test "${enable_unix+set}" = set; then
 		fi
 	done
 	if test "$ol_arg" = "invalid" ; then
-		{ echo "configure: error: bad value $enableval for --enable-unix" 1>&2; exit 1; }
+		{ echo "configure: error: bad value $enableval for --enable-local" 1>&2; exit 1; }
 	fi
-	ol_enable_unix="$ol_arg"
+	ol_enable_local="$ol_arg"
 
 else
-  	ol_enable_unix="auto"
+  	ol_enable_local="auto"
 fi
-# end --enable-unix
+# end --enable-local
 # OpenLDAP --enable-x_compile
 	# Check whether --enable-x_compile or --disable-x_compile was given.
 if test "${enable_x_compile+set}" = set; then
@@ -4192,7 +4192,7 @@ if test $ac_cv_func_getaddrinfo = no ; then
 	ol_enable_ipv6=no
 fi
 
-if test $ol_enable_unix != no ; then
+if test $ol_enable_local != no ; then
 	for ac_hdr in sys/un.h 
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
@@ -4234,10 +4234,10 @@ fi
 done
 
 
-	if test $ol_enable_unix = auto ; then
-		ol_enable_unix=$ac_cv_header_sys_un_h
+	if test $ol_enable_local = auto ; then
+		ol_enable_local=$ac_cv_header_sys_un_h
 	elif test $ac_cv_header_sys_un_h = no ; then
-		{ echo "configure: error: UNIX domain support requires sys/un.h" 1>&2; exit 1; }
+		{ echo "configure: error: AF_LOCAL domain support requires sys/un.h" 1>&2; exit 1; }
 	fi
 fi
 
@@ -15738,9 +15738,9 @@ if test "$ol_enable_cldap" != no ; then
 EOF
 
 fi
-if test "$ol_enable_unix" != no; then
+if test "$ol_enable_local" != no; then
 	cat >> confdefs.h <<\EOF
-#define LDAP_PF_UNIX 1
+#define LDAP_PF_LOCAL 1
 EOF
 
 fi

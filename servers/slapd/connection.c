@@ -504,7 +504,7 @@ connection_destroy( Connection *c )
 		c->c_peer_domain = NULL;
 	}
 	if(c->c_peer_name != NULL) {
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_lOCAL
 		/*
 		 * If peer was a domain socket, unlink. Mind you,
 		 * they may be un-named. Should we leave this to
@@ -516,7 +516,7 @@ connection_destroy( Connection *c )
 				(void)unlink(path);
 			}
 		}
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 		free(c->c_peer_name);
 		c->c_peer_name = NULL;

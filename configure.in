@@ -108,7 +108,7 @@ OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], ye
 OL_ARG_ENABLE(kbind,[  --enable-kbind	enable V2 Kerberos IV bind], auto)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	enable IPv6 support], auto)dnl
-OL_ARG_ENABLE(unix,[  --enable-unix		enable UNIX domain socket support], auto)dnl
+OL_ARG_ENABLE(local,[  --enable-local		enable AF_LOCAL socket support], auto)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 	no, [yes no])dnl
 
@@ -597,7 +597,7 @@ AC_CHECK_LIB(s, afopen, [
 
 dnl ----------------------------------------------------------------
 dnl PF_INET6 support requires getaddrinfo
-dnl PF_UNIX may use getaddrinfo in available
+dnl PF_LOCAL may use getaddrinfo in available
 AC_CHECK_FUNCS( getaddrinfo )
 
 if test $ac_cv_func_getaddrinfo = no ; then
@@ -607,13 +607,13 @@ if test $ac_cv_func_getaddrinfo = no ; then
 	ol_enable_ipv6=no
 fi
 
-if test $ol_enable_unix != no ; then
+if test $ol_enable_local != no ; then
 	AC_CHECK_HEADERS( sys/un.h )
 
-	if test $ol_enable_unix = auto ; then
-		ol_enable_unix=$ac_cv_header_sys_un_h
+	if test $ol_enable_local = auto ; then
+		ol_enable_local=$ac_cv_header_sys_un_h
 	elif test $ac_cv_header_sys_un_h = no ; then
-		AC_MSG_ERROR([UNIX domain support requires sys/un.h])
+		AC_MSG_ERROR([AF_LOCAL domain support requires sys/un.h])
 	fi
 fi
 
@@ -2125,8 +2125,8 @@ fi
 if test "$ol_enable_cldap" != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1,[define to support CLDAP])
 fi
-if test "$ol_enable_unix" != no; then
-	AC_DEFINE(LDAP_PF_UNIX,1,[define to support PF_UNIX])
+if test "$ol_enable_local" != no; then
+	AC_DEFINE(LDAP_PF_LOCAL,1,[define to support PF_LOCAL])
 fi
 if test "$ol_enable_ipv6" != no; then
 	AC_DEFINE(LDAP_PF_INET6,1,[define to support PF_INET6])
