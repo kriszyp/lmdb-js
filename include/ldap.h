@@ -76,6 +76,9 @@ LDAP_BEGIN_DECL
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
 #define LDAP_ALL_OPERATIONAL_ATTRIBUTES	"+" /* RFC 3673 */
 
+/* RFC 2251:  maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) -- */
+#define LDAP_MAXINT (2147483647)
+
 /*
  * LDAP_OPTions
  *	0x0000 - 0x0fff reserved for api options

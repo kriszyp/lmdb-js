@@ -438,20 +438,18 @@ handle_private_option( int i )
 			timelimit = 0;
 
 		} else if ( strcasecmp( optarg, "max" ) == 0 ) {
-			/* RFC 2251:
-			        maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) --
-			 */
-			timelimit = 2147483647;
+			timelimit = LDAP_MAXINT;
 
 		} else {
 			ival = strtol( optarg, &next, 10 );
 			if ( next == NULL || next[0] != '\0' ) {
-				fprintf( stderr, _("Unable to parse time limit \"%s\"\n"), optarg );
+				fprintf( stderr,
+					_("Unable to parse time limit \"%s\"\n"), optarg );
 				exit( EXIT_FAILURE );
 			}
 			timelimit = ival;
 		}
-		if( timelimit < 0 ) {
+		if( timelimit < 0 || timelimit > LDAP_MAXINT ) {
 			fprintf( stderr, _("%s: invalid timelimit (%d) specified\n"),
 				prog, timelimit );
 			exit( EXIT_FAILURE );
@@ -496,22 +494,20 @@ handle_private_option( int i )
 			sizelimit = 0;
 
 		} else if ( strcasecmp( optarg, "max" ) == 0 ) {
-			/* RFC 2251:
-			        maxInt INTEGER ::= 2147483647 -- (2^^31 - 1) --
-			 */
-			sizelimit = 2147483647;
+			sizelimit = LDAP_MAXINT;
 
 		} else {
 			ival = strtol( optarg, &next, 10 );
 			if ( next == NULL || next[0] != '\0' ) {
-				fprintf( stderr, _("Unable to parse size limit \"%s\"\n"), optarg );
+				fprintf( stderr,
+					_("Unable to parse size limit \"%s\"\n"), optarg );
 				exit( EXIT_FAILURE );
 			}
 			sizelimit = ival;
 		}
-		if( sizelimit < 0 ) {
+		if( sizelimit < 0 || sizelimit > LDAP_MAXINT ) {
 			fprintf( stderr, _("%s: invalid sizelimit (%d) specified\n"),
-				prog, timelimit );
+				prog, sizelimit );
 			exit( EXIT_FAILURE );
 		}
 		break;
