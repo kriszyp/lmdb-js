@@ -306,7 +306,7 @@ idl_find(
     ID		id
 )
 {
-	int lo=0, hi=ID_BLOCK_NIDS(b)-1, nr;
+	int lo=0, hi=ID_BLOCK_NIDS(b)-1, nr=0;
 
 	for (;lo<=hi;)
 	{
@@ -802,7 +802,7 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 	if ( ID_BLOCK_ID(*idl, i) == id ) {
 		return( 2 );	/* already there */
 	}
-	if ( ID_BLOCK_ID(*idl, i) < id )
+	if ( ID_BLOCK_NIDS(*idl) && ID_BLOCK_ID(*idl, i) < id )
 		i++;
 
 	/* do we need to make room for it? */
