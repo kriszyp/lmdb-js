@@ -742,6 +742,8 @@ ldap_back_proxy_authz_ctrl(
 
 	*pctrls = NULL;
 
+	rs->sr_err = LDAP_SUCCESS;
+
 	if ( ( BER_BVISNULL( &li->idassert_authcID ) || BER_BVISEMPTY( &li->idassert_authcID ) )
 			&& ( BER_BVISNULL( &li->idassert_authcDN ) || BER_BVISEMPTY( &li->idassert_authcDN ) ) ) {
 		goto done;
