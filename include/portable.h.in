@@ -352,6 +352,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the strerror function.  */
 #undef HAVE_STRERROR
 
+/* Define if you have the strpbrk function.  */
+#undef HAVE_STRPBRK
+
 /* Define if you have the strrchr function.  */
 #undef HAVE_STRRCHR
 
@@ -363,6 +366,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the strtod function.  */
 #undef HAVE_STRTOD
+
+/* Define if you have the strtok function.  */
+#undef HAVE_STRTOK
 
 /* Define if you have the strtol function.  */
 #undef HAVE_STRTOL
@@ -435,6 +441,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H
+
+/* Define if you have the <memory.h> header file.  */
+#undef HAVE_MEMORY_H
 
 /* Define if you have the <ncurses.h> header file.  */
 #undef HAVE_NCURSES_H

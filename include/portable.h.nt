@@ -1,5 +1,5 @@
 /* include/portable.h.nt -- manually updated of MS NT (MS VC5) */
-/* synced with portable.h.in 1.11 */
+/* synced with portable.h.in 1.18 */
 /*
 Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
@@ -32,8 +32,9 @@ is provided ``as is'' without express or implied warranty.
 #ifndef _LDAP_PORTABLE_H
 #define _LDAP_PORTABLE_H
 
-/* MSVC5 doesn't define _STDC_, but requires prototypes */
+/* MSVC5 doesn't define _STDC_ but supports _STDC_ features */
 #define __NEED_PROTOTYPES 1
+#define HAVE_STDARG 1
 
 /* we installed Henry Spencer's REGEX */
 #define HAVE_REGEX_H 1
@@ -133,10 +134,13 @@ typedef char * caddr_t;
 #define uid_t long
 
 /* define this if needed to get reentrant functions */
-#undef _REENTRANT
+/* #undef _REENTRANT */
 
 /* define this if needed to get threadsafe functions */
-#undef _THREAD_SAFE
+/* #undef _THREAD_SAFE */
+
+/* define this if needed to get threadsafe functions */
+/* #undef _THREADSAFE */
 
 /* define this if toupper() requires tolower() */
 #define C_UPPER_LOWER
@@ -152,9 +156,6 @@ typedef char * caddr_t;
 
 /* define if you have crypt */
 /* #undef HAVE_CRYPT */
-
-/* define if you have DCE */
-/* #undef HAVE_DCE */
 
 /* define if you have DSAP */
 /* #undef HAVE_DSAP */
@@ -225,17 +226,11 @@ typedef char * caddr_t;
 /* define this to add debugging code */
 #define LDAP_DEBUG 1
 
-/* define this for LDAP DNS support */
-/* #undef LDAP_DNS */
-
 /* define this to remove -lldap cache support */
 /* #undef LDAP_NOCACHE */
 
 /* define this for LDAP process title support */
 /* #undef LDAP_PROCTITLE */
-
-/* define this for LDAP referrals support */
-#define LDAP_REFERRALS 1
 
 /* define this for LDAP User Interface support */
 /* #undef LDAP_LIBUI */
@@ -282,6 +277,12 @@ typedef char * caddr_t;
 /* define this to use SLAPD shell backend */
 /* #undef SLAPD_SHELL */
 
+/* These are defined in ldap_features.h */
+/*
+ LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+ LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+*/
+
 /* Define if you have the bcopy function.  */
 /* #undef HAVE_BCOPY */
 
@@ -296,6 +297,9 @@ typedef char * caddr_t;
 
 /* define if you have the getopt function */
 /* #undef HAVE_GETOPT */
+
+/* Define if you have the getpwuid function.  */
+/* #undef HAVE_GETPWUID */
 
 /* Define if you have the gettimeofday function.  */
 /* #undef HAVE_GETTIMEOFDAY */
@@ -314,6 +318,24 @@ typedef char * caddr_t;
 
 /* Define if you have the mktime function.  */
 #define HAVE_MKTIME 1
+
+/* Define if you have the pthread_attr_create function.  */
+/* #undef HAVE_PTHREAD_ATTR_CREATE */
+
+/* Define if you have the pthread_attr_delete function.  */
+/* #undef HAVE_PTHREAD_ATTR_DELETE */
+
+/* Define if you have the pthread_attr_destroy function.  */
+/* #undef HAVE_PTHREAD_ATTR_DESTROY */
+
+/* Define if you have the pthread_attr_init function.  */
+/* #undef HAVE_PTHREAD_ATTR_INIT */
+
+/* Define if you have the pthread_attr_setdetach_np function.  */
+/* #undef HAVE_PTHREAD_ATTR_SETDETACH_NP */
+
+/* Define if you have the pthread_attr_setdetachstate function.  */
+/* #undef HAVE_PTHREAD_ATTR_SETDETACHSTATE */
 
 /* Define if you have the pthread_kill function.  */
 /* #undef HAVE_PTHREAD_KILL */
@@ -357,6 +379,9 @@ typedef char * caddr_t;
 /* Define if you have the strerror function.  */
 #define HAVE_STRERROR 1
 
+/* Define if you have the strpbrk function.  */
+#define HAVE_STRPBRK 1
+
 /* Define if you have the strrchr function.  */
 #define HAVE_STRRCHR 1
 
@@ -368,6 +393,9 @@ typedef char * caddr_t;
 
 /* Define if you have the strtod function.  */
 #define HAVE_STRTOD 1
+
+/* Define if you have the strtok function.  */
+#define HAVE_STRTOK 1
 
 /* Define if you have the strtol function.  */
 #define HAVE_STRTOL 1
@@ -453,6 +481,9 @@ typedef char * caddr_t;
 /* Define if you have the <pthread.h> header file.  */
 /* #undef HAVE_PTHREAD_H */
 
+/* Define if you have the <pwd.h> header file.  */
+/* #undef HAVE_PWD_H */
+
 /* Define if you have the <regex.h> header file.  */
 /* #undef HAVE_REGEX_H */
 
@@ -467,6 +498,12 @@ typedef char * caddr_t;
 
 /* Define if you have the <stddef.h> header file.  */
 #define HAVE_STDDEF_H 1
+
+/* Define if you have the <string.h> header file.  */
+#define HAVE_STRING_H 1
+
+/* Define if you have the <strings.h> header file.  */
+/* #undef HAVE_STRINGS_H */
 
 /* Define if you have the <synch.h> header file.  */
 /* #undef HAVE_SYNCH_H */
@@ -491,6 +528,9 @@ typedef char * caddr_t;
 
 /* Define if you have the <sys/param.h> header file.  */
 /* #undef HAVE_SYS_PARAM_H */
+
+/* Define if you have the <sys/resource.h> header file.  */
+/* #undef HAVE_SYS_RESOURCE_H */
 
 /* Define if you have the <sys/socket.h> header file.  */
 /* #undef HAVE_SYS_SOCKET_H */
@@ -548,5 +588,6 @@ typedef char * caddr_t;
 #endif
 
 #include "ldap_cdefs.h"
+#include "ldap_features.h"
 
 #endif /* _LDAP_PORTABLE_H */
