@@ -562,7 +562,7 @@ int slap_mods_check(
 		/*
 		 * check values
 		 */
-		if( ml->sml_nvalues != NULL ) {
+		if( ml->sml_values != NULL ) {
 			ber_len_t nvals;
 			slap_syntax_validate_func *validate =
 				ad->ad_type->sat_syntax->ssyn_validate;
@@ -583,14 +583,14 @@ int slap_mods_check(
 			 * check that each value is valid per syntax
 			 *	and pretty if appropriate
 			 */
-			for( nvals = 0; ml->sml_nvalues[nvals].bv_val; nvals++ ) {
+			for( nvals = 0; ml->sml_values[nvals].bv_val; nvals++ ) {
 				struct berval pval;
 				if( pretty ) {
 					rc = pretty( ad->ad_type->sat_syntax,
-						&ml->sml_nvalues[nvals], &pval );
+						&ml->sml_values[nvals], &pval );
 				} else {
 					rc = validate( ad->ad_type->sat_syntax,
-						&ml->sml_nvalues[nvals] );
+						&ml->sml_values[nvals] );
 				}
 
 				if( rc != 0 ) {
@@ -602,8 +602,8 @@ int slap_mods_check(
 				}
 
 				if( pretty ) {
-					ber_memfree( ml->sml_nvalues[nvals].bv_val );
-					ml->sml_nvalues[nvals] = pval;
+					ber_memfree( ml->sml_values[nvals].bv_val );
+					ml->sml_values[nvals] = pval;
 				}
 			}
 

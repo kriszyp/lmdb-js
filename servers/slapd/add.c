@@ -413,7 +413,7 @@ slap_mods2entry(
 			for( i=0; attr->a_vals[i].bv_val; i++ ) {
 				/* count them */
 			}
-			for( j=0; mods->sml_nvalues[j].bv_val; j++ ) {
+			for( j=0; mods->sml_values[j].bv_val; j++ ) {
 				/* count them */
 			}
 			j++;	/* NULL */
@@ -423,13 +423,14 @@ slap_mods2entry(
 
 			/* should check for duplicates */
 
-			AC_MEMCPY( &attr->a_vals[i], mods->sml_nvalues,
+			AC_MEMCPY( &attr->a_vals[i], mods->sml_values,
 				sizeof( struct berval ) * j );
 
 			/* trim the mods array */
-			ch_free( mods->sml_nvalues );
-			mods->sml_nvalues = NULL;
+			ch_free( mods->sml_values );
+			mods->sml_values = NULL;
 
+#ifdef SLAP_NVALUES
 			if( attr->a_nvals ) {
 				attr->a_nvals = ch_realloc( attr->a_nvals,
 					sizeof( struct berval ) * (i+j) );
@@ -441,6 +442,7 @@ slap_mods2entry(
 				ch_free( mods->sml_nvalues );
 				mods->sml_nvalues = NULL;
 			}
+#endif
 
 			continue;
 #else
