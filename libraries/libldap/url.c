@@ -36,7 +36,7 @@ static char copyright[] = "@(#) Copyright (c) 1996 Regents of the University of 
 
 static int skip_url_prefix LDAP_P(( char **urlp, int *enclosedp ));
 static void hex_unescape LDAP_P(( char *s ));
-static int unhex LDAP_P(( char c ));
+static int unhex( char c );
 
 
 int
