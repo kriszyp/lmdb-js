@@ -223,7 +223,7 @@ utbm_create_pattern(void)
     utbm_pattern_t p;
 
     p = (utbm_pattern_t) malloc(sizeof(_utbm_pattern_t));
-    (void) memset((char *) p, 0, sizeof(_utbm_pattern_t));
+    (void) memset((char *) p, '\0', sizeof(_utbm_pattern_t));
     return p;
 }
 

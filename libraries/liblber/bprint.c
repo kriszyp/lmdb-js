@@ -43,7 +43,7 @@ int * ber_errno_addr(void)
  * Print stuff
  */
 static void
-ber_error_print( char *data )
+ber_error_print( const char *data )
 {
 	assert( data != NULL );
 
@@ -147,7 +147,7 @@ ber_bprint(
 
 	assert( data != NULL );
 
-    memset( out, 0, BPLEN );
+    memset( out, '\0', BPLEN );
     for ( ;; ) {
 	if ( len < 1 ) {
 	    sprintf( buf, "\t%s\n", ( i == 0 ) ? "(end)" : out );
@@ -174,7 +174,7 @@ ber_bprint(
 		char data[128 + BPLEN];
 	    sprintf( data, "\t%s\n", out );
 		(*ber_pvt_log_print)(data);
-	    memset( out, 0, BPLEN );
+	    memset( out, '\0', BPLEN );
 	    i = 0;
 	    continue;
 	}

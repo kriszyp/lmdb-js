@@ -173,7 +173,7 @@ idl_fetch(
 
 		if ( (tmp[i] = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "idl_fetch of (%s) returns NULL\n", data.dptr, 0, 0 );
+			    "idl_fetch: one returned NULL\n", 0, 0, 0 );
 			continue;
 		}
 
@@ -313,8 +313,8 @@ idl_change_first(
 	/* delete old key block */
 	if ( (rc = ldbm_cache_delete( db, bkey )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "ldbm_delete of (%s) returns %d\n", bkey.dptr, rc,
-		    0 );
+		    "idl_change_first: ldbm_cache_delete returned %d\n",
+			rc, 0, 0 );
 		return( rc );
 	}
 
@@ -323,7 +323,7 @@ idl_change_first(
 
 	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "idl_store of (%s) returns %d\n", bkey.dptr, rc, 0 );
+		    "idl_change_first: idl_store returned %d\n", rc, 0, 0 );
 		return( rc );
 	}
 
@@ -331,7 +331,7 @@ idl_change_first(
 	ID_BLOCK_ID(h, pos) = ID_BLOCK_ID(b, 0);
 	if ( (rc = idl_store( be, db, hkey, h )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "idl_store of (%s) returns %d\n", hkey.dptr, rc, 0 );
+		    "idl_change_first: idl_store returned %d\n", rc, 0, 0 );
 		return( rc );
 	}
 
@@ -352,11 +352,6 @@ idl_insert_key(
 	Datum	k2;
 
 	if ( (idl = idl_fetch_one( be, db, key )) == NULL ) {
-#ifdef LDBM_DEBUG
-		Statslog( LDAP_DEBUG_STATS, "=> idl_insert_key(): no key yet\n",
-			0, 0, 0, 0, 0 );
-#endif
-
 		idl = idl_alloc( 1 );
 		ID_BLOCK_ID(idl, ID_BLOCK_NIDS(idl)++) = id;
 		rc = idl_store( be, db, key, idl );
@@ -449,8 +444,8 @@ idl_insert_key(
 	cont_id( k2, ID_BLOCK_ID(idl, i) );
 
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "nonexistent continuation block (%s)\n",
-		    k2.dptr, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "idl_insert_key: nonexistent continuation block\n",
+		    0, 0, 0 );
 		cont_free( k2 );
 		idl_free( idl );
 		return( -1 );
@@ -461,7 +456,7 @@ idl_insert_key(
 	case 0:		/* id inserted ok */
 		if ( (rc = idl_store( be, db, k2, tmp )) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "idl_store of (%s) returns %d\n", k2.dptr, rc, 0 );
+			    "idl_insert_key: idl_store returned %d\n", rc, 0, 0 );
 		}
 		break;
 
@@ -494,8 +489,8 @@ idl_insert_key(
 			cont_id( k2, ID_BLOCK_ID(idl, i) );
 			if ( (tmp2 = idl_fetch_one( be, db, k2 )) == NULL ) {
 				Debug( LDAP_DEBUG_ANY,
-				    "idl_fetch_one (%s) returns NULL\n",
-				    k2.dptr, 0, 0 );
+				    "idl_insert_key: idl_fetch_one returned NULL\n",
+				    0, 0, 0 );
 				/* split the original block */
 				cont_free( k2 );
 				goto split;
@@ -523,7 +518,7 @@ idl_insert_key(
 				memcpy(k3.dptr, k2.dptr, k3.dsize);
 			    if ( (rc = idl_store( be, db, k3, tmp )) != 0 ) {
 				Debug( LDAP_DEBUG_ANY,
-			    "idl_store of (%s) returns %d\n", k3.dptr, rc, 0 );
+			    "idl_insert_key: idl_store returned %d\n", rc, 0, 0 );
 			    }
 
 				free( k3.dptr );
@@ -550,7 +545,7 @@ idl_insert_key(
 					 */
 				if ( rc == 2 ) {
 					Debug( LDAP_DEBUG_ANY,
-					    "id %ld already in next block\n",
+					    "idl_insert_key: id %ld already in next block\n",
 					    id, 0, 0 );
 				}
 
@@ -772,7 +767,7 @@ idl_delete_key (
 
 		if ( (tmp = idl_fetch_one( be, db, data )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "idl_fetch of (%s) returns NULL\n", data.dptr, 0, 0 );
+			    "idl_delete_key: idl_fetch of returned NULL\n", 0, 0, 0 );
 			continue;
 		}
 		/*

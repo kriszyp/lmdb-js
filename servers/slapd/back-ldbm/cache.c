@@ -36,6 +36,7 @@ typedef struct ldbm_entry_info {
 	Entry	*lei_lrunext;	/* for cache lru list */
 	Entry	*lei_lruprev;
 } EntryInfo;
+#undef LEI
 #define LEI(e)	((EntryInfo *) ((e)->e_private))
 
 static int	cache_delete_entry_internal(Cache *cache, Entry *e);

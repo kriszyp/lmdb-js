@@ -397,7 +397,7 @@ get_value( char *id, char *prompt )
 	 *  Other attributes may not.
 	 */
 	count = 1;
-	(void) memset(buffer, 0, sizeof(buffer));
+	(void) memset(buffer, '\0', sizeof(buffer));
 #ifdef UOFM
 	if (!strcmp(id, "postalAddress") || !strcmp(id, "homePostalAddress") || !strcmp(id, "multiLineDescription") || !strcmp(id, "vacationMessage")) 
 #else

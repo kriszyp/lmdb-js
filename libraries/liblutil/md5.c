@@ -157,14 +157,14 @@ lutil_MD5Final( unsigned char *digest, struct lutil_MD5Context *ctx )
 	/* Pad out to 56 mod 64 */
 	if (count < 8) {
 		/* Two lots of padding:  Pad the first block to 64 bytes */
-		memset(p, 0, count);
+		memset(p, '\0', count);
 		lutil_MD5Transform(ctx->buf, ctx->in);
 
 		/* Now fill the next block with 56 bytes */
-		memset(ctx->in, 0, 56);
+		memset(ctx->in, '\0', 56);
 	} else {
 		/* Pad block to 56 bytes */
-		memset(p, 0, count-8);
+		memset(p, '\0', count-8);
 	}
 
 	/* Append length in bits and transform */
@@ -176,7 +176,7 @@ lutil_MD5Final( unsigned char *digest, struct lutil_MD5Context *ctx )
 	putu32(ctx->buf[1], digest + 4);
 	putu32(ctx->buf[2], digest + 8);
 	putu32(ctx->buf[3], digest + 12);
-	memset(ctx, 0, sizeof(ctx));	/* In case it's sensitive */
+	memset(ctx, '\0', sizeof(ctx));	/* In case it's sensitive */
 }
 
 #ifndef ASM_MD5

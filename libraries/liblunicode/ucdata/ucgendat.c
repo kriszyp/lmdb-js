@@ -436,7 +436,7 @@ add_decomp(unsigned long code)
           decomps = (_decomp_t *)
               realloc((char *) decomps,
                       sizeof(_decomp_t) * (decomps_size + 8));
-        (void) memset((char *) (decomps + decomps_size), 0,
+        (void) memset((char *) (decomps + decomps_size), '\0',
                       sizeof(_decomp_t) << 3);
         decomps_size += 8;
     }

@@ -135,7 +135,7 @@ int sasl_init( void )
 #ifdef RESTRICT_SASL
 	{
 		sasl_security_properties_t secprops;
-		memset(&secprops, 0, sizeof(secprops));
+		memset(&secprops, '\0', sizeof(secprops));
 		secprops.security_flags = SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS;
 		secprops.property_names = NULL;
 		secprops.property_values = NULL;

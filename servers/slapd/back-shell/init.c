@@ -19,7 +19,7 @@
 int back_shell_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "shell";
     bi.bi_init = shell_back_initialize;
 

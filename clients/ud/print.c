@@ -575,7 +575,7 @@ time2text( char *ldtimestr, int dateonly )
 	    return( fmterr );
 	}
 	
-    memset( (char *)&t, 0, sizeof( struct tm ));
+    memset( (char *)&t, '\0', sizeof( struct tm ));
 
     p = ldtimestr;
 

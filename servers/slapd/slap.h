@@ -703,9 +703,6 @@ LIBSLAPD_F (int) slapMode;
 #define SLAP_MODE			0x0003
 
 #define SLAP_TRUNCATE_MODE	0x0100
-#ifdef SLAPD_BDB2
-#define SLAP_TIMED_MODE		0x1000
-#endif
 
 /* temporary aliases */
 typedef BackendDB Backend;

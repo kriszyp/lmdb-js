@@ -25,7 +25,7 @@ ldap_pvt_thread_mutex_t tcl_interpreter_mutex;
 void back_tcl_LTX_init_module(int argc, char *argv[]) {
    BackendInfo bi;
 
-   memset( &bi, 0, sizeof(bi) );
+   memset( &bi, '\0', sizeof(bi) );
    bi.bi_type = "tcl";
    bi.bi_init = tcl_back_initialize;
 

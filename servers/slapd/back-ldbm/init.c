@@ -20,7 +20,7 @@
 int back_ldbm_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "ldbm";
     bi.bi_init = ldbm_back_initialize;
 

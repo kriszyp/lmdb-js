@@ -835,7 +835,7 @@ ldap_pvt_sasl_bind(
 	}
 	sasl_setprop( ld->ld_sasl_context, SASL_IP_LOCAL, &sin );
 
-	memset( &secprops, 0, sizeof( secprops ) );
+	memset( &secprops, '\0', sizeof( secprops ) );
 	secprops.min_ssf = ld->ld_options.ldo_sasl_minssf;
 	secprops.max_ssf = ld->ld_options.ldo_sasl_maxssf;
 	secprops.security_flags = SASL_SECURITY_LAYER;

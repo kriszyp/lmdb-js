@@ -67,7 +67,7 @@ des_string_to_key( char *str, register des_cblock *key )
     length = strlen(str);
 
     /* init key array for bits */
-    memset(k_char, 0, sizeof(k_char));
+    memset(k_char, '\0', sizeof(k_char));
 
 #ifdef USE_DES_DEBUG
     if (des_debug)
@@ -116,7 +116,7 @@ des_string_to_key( char *str, register des_cblock *key )
     (void) des_key_sched(key,key_sked);
     (void) des_cbc_cksum((des_cblock *)in_str,key,length,key_sked,key);
     /* erase key_sked */
-    memset((char *)key_sked, 0, sizeof(key_sked));
+    memset((char *)key_sked, '\0', sizeof(key_sked));
 
     /* now fix up key parity again */
     des_fixup_key_parity(key);
@@ -160,8 +160,8 @@ Andrew_StringToKey(
     int   i;
     int   passlen;
 
-    memset(key, 0, sizeof(des_cblock));
-    memset(password, 0, sizeof(password));
+    memset(key, '\0', sizeof(des_cblock));
+    memset(password, '\0', sizeof(password));
 
     strncpy (password, cell, 8);
     passlen = strlen (str);

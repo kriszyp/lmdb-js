@@ -324,7 +324,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 			break;
 		}
 
-		(void)memset((char *)&sin, 0, sizeof(struct sockaddr_in));
+		(void)memset((char *)&sin, '\0', sizeof(struct sockaddr_in));
 		sin.sin_family = AF_INET;
 		sin.sin_port = port;
 		p = (char *)&sin.sin_addr;
@@ -365,7 +365,7 @@ ldap_host_connected_to( Sockbuf *sb )
 	ber_socket_t		sd;
 #define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
    
-	(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
+	(void)memset( (char *)&sin, '\0', sizeof( struct sockaddr_in ));
 	len = sizeof( sin );
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );

@@ -15,7 +15,7 @@
 int back_passwd_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "passwd";
     bi.bi_init = passwd_back_initialize;
 

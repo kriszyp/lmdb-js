@@ -145,7 +145,7 @@ ber_sockbuf_add_io( Sockbuf *sb, Sockbuf_IO *sbio, int layer, void *arg )
 	d->sbiod_level = layer;
 	d->sbiod_sb = sb;
 	d->sbiod_io = sbio;
-	memset( &d->sbiod_pvt, 0, sizeof( d->sbiod_pvt ) );
+	memset( &d->sbiod_pvt, '\0', sizeof( d->sbiod_pvt ) );
 	d->sbiod_next = p;
 	*q = d;
       
@@ -561,7 +561,7 @@ sb_dgram_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	p = LBER_MALLOC( sizeof( *p ) );
 	if ( p == NULL )
      return -1;
-	memset( p, 0, sizeof( *p ) );
+	memset( p, '\0', sizeof( *p ) );
 	sbiod->sbiod_pvt = (void *)p;
 	if ( arg != NULL )
 		sbiod->sbiod_sb->sb_fd = *((int *)arg);

@@ -79,7 +79,7 @@ int lutil_unlockf ( int fd ) {
 int lutil_lockf ( int fd ) {
 	struct flock file_lock;
 
-	memset( &file_lock, 0, sizeof( file_lock ) );
+	memset( &file_lock, '\0', sizeof( file_lock ) );
 	file_lock.l_type = F_WRLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;
@@ -92,7 +92,7 @@ int lutil_lockf ( int fd ) {
 int lutil_unlockf ( int fd ) {
 	struct flock file_lock;
 
-	memset( &file_lock, 0, sizeof( file_lock ) );
+	memset( &file_lock, '\0', sizeof( file_lock ) );
 	file_lock.l_type = F_UNLCK;
 	file_lock.l_whence = SEEK_SET;
 	file_lock.l_start = 0;

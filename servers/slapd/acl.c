@@ -141,7 +141,7 @@ access_allowed(
 	}
 
 	ACL_INIT(mask);
-	memset(matches, 0, sizeof(matches));
+	memset(matches, '\0', sizeof(matches));
 	
 	control = ACL_BREAK;
 	a = NULL;
@@ -171,7 +171,7 @@ access_allowed(
 			break;
 		}
 
-		memset(matches, 0, sizeof(matches));
+		memset(matches, '\0', sizeof(matches));
 	}
 
 	if ( ACL_IS_INVALID( mask ) ) {

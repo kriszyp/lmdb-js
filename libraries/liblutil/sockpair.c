@@ -33,7 +33,7 @@ int lutil_pair( LBER_SOCKET_T sds[2] )
 	if ( sd == AC_SOCKET_INVALID )
 		return sd;
 	
-	(void) memset( (void*) &si, 0, len );
+	(void) memset( (void*) &si, '\0', len );
 	si.sin_family = AF_INET;
 	si.sin_port = 0;
 	si.sin_addr.s_addr = htonl( INADDR_LOOPBACK );

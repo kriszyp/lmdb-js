@@ -34,7 +34,7 @@ ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 {
 	assert( rw != NULL );
 
-	memset( rw, 0, sizeof(ldap_pvt_thread_rdwr_t) );
+	memset( rw, '\0', sizeof(ldap_pvt_thread_rdwr_t) );
 
 	/* we should check return results */
 	ldap_pvt_thread_mutex_init( &rw->ltrw_mutex );

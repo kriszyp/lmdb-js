@@ -1077,7 +1077,7 @@ _ure_make_symbol(ucs2_t *sym, unsigned long limit, unsigned long *consumed,
      * Build the next symbol so we can test to see if it is already in the
      * symbol table.
      */
-    (void) memset((char *) &symbol, 0, sizeof(_ure_symtab_t));
+    (void) memset((char *) &symbol, '\0', sizeof(_ure_symtab_t));
     *consumed = _ure_compile_symbol(sym, limit, &symbol, b);
 
     /*
@@ -1108,7 +1108,7 @@ _ure_make_symbol(ucs2_t *sym, unsigned long limit, unsigned long *consumed,
               realloc((char *) b->symtab,
                       sizeof(_ure_symtab_t) * (b->symtab_size + 8));
         sp = b->symtab + b->symtab_size;
-        (void) memset((char *) sp, 0, sizeof(_ure_symtab_t) << 3);
+        (void) memset((char *) sp, '\0', sizeof(_ure_symtab_t) << 3);
         b->symtab_size += 8;
     }
 
@@ -1329,7 +1329,7 @@ _ure_add_state(ucs2_t nstates, ucs2_t *states, _ure_buffer_t *b)
                   realloc((char *) b->states.states,
                           sizeof(_ure_state_t) * (b->states.states_size + 8));
             sp = b->states.states + b->states.states_size;
-            (void) memset((char *) sp, 0, sizeof(_ure_state_t) << 3);
+            (void) memset((char *) sp, '\0', sizeof(_ure_state_t) << 3);
             b->states.states_size += 8;
         }
 
@@ -1734,7 +1734,7 @@ ure_compile(ucs2_t *re, unsigned long relen, int casefold, ure_buffer_t buf)
      * Construct the minimal DFA.
      */
     dfa = (ure_dfa_t) malloc(sizeof(_ure_dfa_t));
-    (void) memset((char *) dfa, 0, sizeof(_ure_dfa_t));
+    (void) memset((char *) dfa, '\0', sizeof(_ure_dfa_t));
 
     dfa->flags = buf->flags & (_URE_DFA_CASEFOLD|_URE_DFA_BLANKLINE);
 

@@ -201,7 +201,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 
 	oslocal_debug(ld, "ldap_connect_to_path: Trying %s\n", path, 0, 0);
 
-	memset( &server, 0, sizeof(server) );
+	memset( &server, '\0', sizeof(server) );
 	server.sun_family = AF_UNIX;
 	strcpy( server.sun_path, path );
 

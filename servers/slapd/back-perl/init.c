@@ -36,7 +36,7 @@ ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 int back_perl_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "perl";
     bi.bi_init = perl_back_initialize;
 
@@ -125,7 +125,7 @@ perl_back_db_init(
 )
 {
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );
-	memset( be->be_private, 0, sizeof(PerlBackend));
+	memset( be->be_private, '\0', sizeof(PerlBackend));
 
 	Debug( LDAP_DEBUG_TRACE, "perl backend db init\n", 0, 0, 0 );
 

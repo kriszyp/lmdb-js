@@ -44,7 +44,7 @@ ldap_enable_cache( LDAP *ld, long timeout, ber_len_t maxmem )
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return( -1 );
 		}
-		(void) memset( ld->ld_cache, 0, sizeof( LDAPCache ));
+		(void) memset( ld->ld_cache, '\0', sizeof( LDAPCache ));
 		ld->ld_cache->lc_memused = sizeof( LDAPCache );
 	}
 

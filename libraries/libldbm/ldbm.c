@@ -30,7 +30,7 @@ ldbm_datum_free( LDBM ldbm, Datum data )
 {
 	if ( data.dptr ) {
 		free( data.dptr );
-		memset( &data, 0, sizeof( Datum ));
+		memset( &data, '\0', sizeof( Datum ));
 		data.dptr = NULL;
 	}
 }
@@ -263,7 +263,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 #elif DB_VERSION_MAJOR >= 2
 	DB_INFO dbinfo;
 
-	memset( &dbinfo, 0, sizeof( dbinfo ));
+	memset( &dbinfo, '\0', sizeof( dbinfo ));
 
 #if defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
     DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR == 4

@@ -96,7 +96,7 @@ disambiguate( LDAPMessage *result, int matches, char **read_attrs, char *who )
 	for (;;) {
 		printf("  Do you wish to see a list of names? ");
 		fflush(stdout);
-		(void) memset(response, 0, sizeof(response));
+		(void) memset(response, '\0', sizeof(response));
 		fetch_buffer(response, sizeof(response), stdin);
 		switch (response[0]) {
 		case 'n' :

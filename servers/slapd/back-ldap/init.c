@@ -36,7 +36,7 @@
 int back_ldap_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "ldap";
     bi.bi_init = ldap_back_initialize;
 

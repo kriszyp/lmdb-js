@@ -227,7 +227,7 @@ cldap_search_s( LDAP *ld,
 
     *res = NULL;
 
-    (void) memset( &cri, 0, sizeof( cri ));
+    (void) memset( &cri, '\0', sizeof( cri ));
 
     if ( logdn != NULL ) {
 	ld->ld_cldapdn = logdn;
