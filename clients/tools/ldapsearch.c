@@ -25,6 +25,7 @@
 
 #include "ldapconfig.h"
 
+#undef DEPSEP
 #define DEFSEP		"="
 
 static void usage( s )
