@@ -30,6 +30,13 @@ dnssrv_back_request(
 	char **hosts = NULL;
 	struct berval **urls = NULL;
 
+	if( ndn == NULL && *ndn == '\0' ) ) {
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+			NULL, "operation upon null (empty) DN disallowed",
+			NULL, NULL );
+		goto done;
+	}
+
 	if( ldap_dn2domain( dn, &domain ) ) {
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
@@ -45,7 +52,7 @@ dnssrv_back_request(
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: domain2hostlist returned %d\n",
 			rc, 0, 0 );
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			NULL, "could not locate DNS SRV records", NULL, NULL );
+			NULL, "no DNS SRV available for DN", NULL, NULL );
 		goto done;
 	}
 
@@ -54,7 +61,7 @@ dnssrv_back_request(
 	if( hosts == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: str2charrary error\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, NULL, NULL, NULL );
+			NULL, "problem processing DNS SRV records for DN", NULL, NULL );
 		goto done;
 	}
 
@@ -70,7 +77,8 @@ dnssrv_back_request(
 		if( ber_bvecadd( &urls, url ) < 0) {
 			ber_bvfree( url );
 			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, NULL, NULL, NULL );
+				NULL, "problem processing DNS SRV records for DN",
+				NULL, NULL );
 			goto done;
 		}
 	}
@@ -84,7 +92,7 @@ dnssrv_back_request(
 		urls[0]->bv_val, 0 );
 
 	send_ldap_result( conn, op, LDAP_REFERRAL,
-		NULL, NULL, urls, NULL );
+		NULL, "DNS SRV generated referrals", urls, NULL );
 
 done:
 	if( domain != NULL ) ch_free( domain );
