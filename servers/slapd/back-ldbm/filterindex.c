@@ -128,8 +128,8 @@ presence_candidates(
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "<= presence_candidates: index_param failed (%d)\n",
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= presence_candidates: index_param returned=%d\n",
 			rc, 0, 0 );
 		return idl;
 	}
@@ -203,8 +203,8 @@ equality_candidates(
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "<= equality_candidates: index_param failed (%d)\n",
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= equality_candidates: index_param returned=%d\n",
 			rc, 0, 0 );
 		return idl;
 	}
@@ -329,8 +329,8 @@ approx_candidates(
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "<= approx_candidates: index_param failed (%d)\n",
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= approx_candidates: index_param returned=%d\n",
 			rc, 0, 0 );
 		return idl;
 	}
@@ -497,8 +497,8 @@ substring_candidates(
 		&dbname, &mask, &prefix );
 
 	if( rc != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "<= substrings_candidates: index_param failed (%d)\n",
+		Debug( LDAP_DEBUG_TRACE,
+		    "<= substrings_candidates: index_param returned=%d\n",
 			rc, 0, 0 );
 		return idl;
 	}
