@@ -40,7 +40,6 @@ slap_mask_t		global_disallows = 0;
 slap_mask_t		global_requires = 0;
 slap_ssf_set_t	global_ssf_set;
 char		*replogfile;
-int		global_lastmod = ON;
 int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
@@ -78,6 +77,7 @@ read_config( const char *fname )
 	int rc;
 	struct berval vals[2];
 
+	static int lastmod = ON;
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
 
@@ -203,6 +203,8 @@ read_config( const char *fname )
 
 			bi = NULL;
 			be = backend_db_init( cargv[1] );
+
+			if( lastmod ) be->be_flags |= SLAP_BFLAG_LASTMOD;
 
 			if( be == NULL ) {
 #ifdef NEW_LOGGING
@@ -842,7 +844,7 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 #endif
 			} else {
-				be->be_glueflags |= SLAP_GLUE_SUBORDINATE;
+				be->be_flags |= SLAP_BFLAG_GLUE_SUBORDINATE;
 				num_subordinates++;
 			}
 
@@ -1994,14 +1996,14 @@ read_config( const char *fname )
 			}
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 				if ( be )
-					be->be_lastmod = ON;
+					be->be_flags |= SLAP_BFLAG_LASTMOD;
 				else
-					global_lastmod = ON;
+					lastmod = ON;
 			} else {
 				if ( be )
-					be->be_lastmod = OFF;
+					be->be_flags &= ~SLAP_BFLAG_LASTMOD;
 				else
-					global_lastmod = OFF;
+					lastmod = OFF;
 			}
 
 		/* set idle timeout value */

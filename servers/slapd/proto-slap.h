@@ -977,7 +977,6 @@ LDAP_SLAPD_V (const char) 	Versionstr[];
 LDAP_SLAPD_V (struct slap_limits_set)		deflimit;
 
 LDAP_SLAPD_V (slap_access_t)	global_default_access;
-LDAP_SLAPD_V (int)		global_lastmod;
 LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
 LDAP_SLAPD_V (char *)	global_host;

@@ -262,9 +262,7 @@ do_add( Connection *conn, Operation *op )
 				goto done;
 			}
 
-			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && !repl_user )
-			{
+			if ( SLAP_LASTMOD(be) && !repl_user ) {
 				for( modtail = &modlist;
 					*modtail != NULL;
 					modtail = &(*modtail)->sml_next )

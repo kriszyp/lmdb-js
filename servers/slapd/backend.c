@@ -533,9 +533,11 @@ select_backend(
 		for ( j = 0; backends[i].be_nsuffix != NULL &&
 		    backends[i].be_nsuffix[j] != NULL; j++ )
 		{
-			if ((backends[i].be_glueflags&SLAP_GLUE_SUBORDINATE)&&
-				noSubs)
+			if (( backends[i].be_flags & SLAP_BFLAG_GLUE_SUBORDINATE )
+				&& noSubs )
+			{
 			  	continue;
+			}
 
 			len = backends[i].be_nsuffix[j]->bv_len;
 
@@ -997,7 +999,7 @@ backend_group(
 		/* we won't attempt to send it to a different backend */
 		
 		be = select_backend( gr_ndn, 0,
-			(be->be_glueflags & SLAP_GLUE_INSTANCE));
+			(be->be_flags & SLAP_BFLAG_GLUE_INSTANCE));
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;
@@ -1058,7 +1060,7 @@ backend_attribute(
 		/* we won't attempt to send it to a different backend */
 		
 		be = select_backend( edn, 0,
-			(be->be_glueflags & SLAP_GLUE_INSTANCE));
+			(be->be_flags & SLAP_BFLAG_GLUE_INSTANCE));
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;

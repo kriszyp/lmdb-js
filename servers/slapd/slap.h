@@ -1015,6 +1015,20 @@ struct slap_backend_db {
 #define		be_sync bd_info->bi_tool_sync
 #endif
 
+#define SLAP_BFLAG_LASTMOD		0x0001U
+
+#define	SLAP_BFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
+#define	SLAP_BFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
+#define	SLAP_BFLAG_GLUE_LINKED		0x00400	/* child is connected to parent */
+
+#define SLAP_BFLAG_ALIASES		0x0010U
+#define SLAP_BFLAG_MONITOR		0x0020U
+#define SLAP_BFLAG_REFERRALS	0x0040U
+#define SLAP_BFLAG_SUBENTRIES	0x0080U
+
+	slap_mask_t	be_flags;
+#define SLAP_LASTMOD(be)	((be)->be_flags & SLAP_BFLAG_LASTMOD)
+
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U
 #define	SLAP_RESTRICT_OP_BIND		0x0002U
@@ -1074,13 +1088,7 @@ struct slap_backend_db {
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BVarray	be_update_refs;	/* where to refer modifying clients to */
 	char	*be_realm;
-	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 
-#define	SLAP_GLUE_INSTANCE	0x01	/* a glue backend */
-#define	SLAP_GLUE_SUBORDINATE	0x02	/* child of a glue hierarchy */
-#define	SLAP_GLUE_LINKED	0x04	/* child is connected to parent */
-
-	int	be_glueflags;	/* */
 	void	*be_private;	/* anything the backend database needs 	   */
 };
 
@@ -1195,7 +1203,7 @@ typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
 typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 
 struct slap_backend_info {
-	char	*bi_type;	/* type of backend */
+	char	*bi_type; /* type of backend */
 
 	/*
 	 * per backend type routines:

@@ -785,24 +785,27 @@ glue_sub_init( )
 	 * backends and connect them to their superior.
 	 */
 	for (i = nBackendDB - 1, b1=&backendDB[i]; cont && i>=0; b1--,i--) {
-		if (b1->be_glueflags & SLAP_GLUE_SUBORDINATE) {
+		if (b1->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE) {
 			/* The last database cannot be a subordinate of noone */
-			if (i == nBackendDB - 1)
-				b1->be_glueflags ^= SLAP_GLUE_SUBORDINATE;
+			if (i == nBackendDB - 1) {
+				b1->be_flags ^= SLAP_BFLAG_GLUE_SUBORDINATE;
+			}
 			continue;
 		}
 		gi = NULL;
 		for (j = i-1, be=&backendDB[j]; j>=0; be--,j--) {
-			if (!(be->be_glueflags & SLAP_GLUE_SUBORDINATE))
+			if (!(be->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE)) {
 				continue;
+			}
 			/* We will only link it once */
-			if (be->be_glueflags & SLAP_GLUE_LINKED)
+			if (be->be_flags & SLAP_BFLAG_GLUE_LINKED) {
 				continue;
-			if (!dnIsSuffix(be->be_nsuffix[0],
-				b1->be_nsuffix[0]))
+			}
+			if (!dnIsSuffix(be->be_nsuffix[0], b1->be_nsuffix[0])) {
 				continue;
+			}
 			cont--;
-			be->be_glueflags |= SLAP_GLUE_LINKED;
+			be->be_flags |= SLAP_BFLAG_GLUE_LINKED;
 			if (gi == NULL) {
 				/* We create a copy of the superior's be
 				 * structure, pointing to all of its original
@@ -811,9 +814,10 @@ glue_sub_init( )
 				 * is used whenever we have operations to pass
 				 * down to the real database.
 				 */
-				b1->be_glueflags |= SLAP_GLUE_INSTANCE;
+				b1->be_flags |= SLAP_BFLAG_GLUE_INSTANCE;
 				gi = (glueinfo *)ch_malloc(sizeof(glueinfo));
-				gi->be = (BackendDB *)ch_malloc(sizeof(BackendDB) + sizeof(BackendInfo));
+				gi->be = (BackendDB *)ch_malloc(
+					sizeof(BackendDB) + sizeof(BackendInfo));
 				bi = (BackendInfo *)(gi->be+1);
 				*gi->be = *b1;
 				gi->nodes = 0;
