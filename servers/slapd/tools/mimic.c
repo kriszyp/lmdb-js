@@ -229,3 +229,21 @@ int slap_sasl_authorized( Connection *conn,
 	return -1;
 }
 
+int slap_mods_check( Modifications *ml, int update, const char **text,
+	char *textbuf, size_t textlen )
+{
+	return -1;
+}
+
+int slap_mods_opattrs( Operation *op, Modifications *mods,
+	Modifications **modtail, const char **text,
+	char *textbuf, size_t textlen )
+{
+	return -1;
+}
+
+int root_dse_info( Connection *conn, Entry **entry, const char **text )
+{
+	return -1;
+}
+
