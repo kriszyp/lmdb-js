@@ -243,8 +243,8 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	u_int32_t	envFlags;
 
 	envFlags = 
-#if defined( DB_PRIVATE )
-	DB_PRIVATE |
+#if defined( DB_PRIVATE )	/* comment out DB_PRIVATE setting to use */
+	DB_PRIVATE |		/* db_stat to view cache behavior */
 #endif
 #if defined( HAVE_BERKELEY_DB_THREAD )
 	DB_THREAD |
@@ -264,10 +264,10 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 		return( NULL );
 	}
 
-	env->set_cachesize( env, 0, dbcachesize, 0 );
-        
 	env->set_errcall( env, ldbm_db_errcall );
 	env->set_errpfx( env, "==>" );
+	if (dbcachesize)
+		env->set_cachesize( env, 0, dbcachesize, 0 );
 
 	envFlags |= DB_INIT_MPOOL | DB_INIT_CDB | DB_USE_ENVIRON;
 
@@ -341,7 +341,7 @@ ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 
 	ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
 	ret->set_malloc( ret, ldbm_malloc );
-	ret->set_cachesize( ret, 0, dbcachesize, 0 );
+	/* ret->set_cachesize( ret, 0, dbcachesize, 0 ); */
 
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
 
