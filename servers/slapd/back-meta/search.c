@@ -438,7 +438,7 @@ meta_back_search(
 				( void )meta_clear_unused_candidates( li,
 						lc, -1, 0 );
 				send_search_result( conn, op,
-						LDAP_REWRITE,
+						LDAP_OTHER,
 						"", "", NULL, NULL, count );
 				
 				/* anything else needs be done? */
