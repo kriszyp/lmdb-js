@@ -14,9 +14,6 @@
 #include "back-bdb.h"
 #include "external.h"
 
-#define INDEXED	0x2000
-#define NULLIFIED	0x4000
-
 int bdb_modify_internal(
 	Operation *op,
 	DB_TXN *tid,
@@ -196,6 +193,17 @@ int bdb_modify_internal(
 		if ( mod->sm_desc == slap_schema.si_ad_objectClass ) {
 			e->e_ocflags = 0;
 		}
+
+		/* check if modified attribute was indexed
+		 * but not in case of NOOP... */
+		err = bdb_index_is_indexed( op->o_bd, mod->sm_desc );
+		if ( err == LDAP_SUCCESS && !op->o_noop ) {
+			ap = attr_find( save_attrs, mod->sm_desc );
+			if ( ap ) ap->a_flags |= SLAP_ATTR_IXDEL;
+
+			ap = attr_find( e->e_attrs, mod->sm_desc );
+			if ( ap ) ap->a_flags |= SLAP_ATTR_IXADD;
+		}
 	}
 
 	/* check that the entry still obeys the schema */
@@ -221,86 +229,52 @@ int bdb_modify_internal(
 	}
 
 	/* update the indices of the modified attributes */
-	if ( !op->o_noop ) {
-		Modifications *m2;
 
-		/* First look for any deletes that would nullify any adds
-		 * in this request. I.e., deleting an entire attribute after
-		 * assigning some values to it.
-		 */
-		for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
-			if (bdb_index_is_indexed( op->o_bd, ml->sml_desc ))
-				continue;
-			switch ( ml->sml_op ) {
-			case LDAP_MOD_DELETE:
-				/* If just deleting specific values, ignore */
-				if ( ml->sml_bvalues ) break;
-			case LDAP_MOD_REPLACE:
-				for ( m2 = modlist; m2 != ml; m2 = m2->sml_next ) {
-					if ( m2->sml_desc == ml->sml_desc &&
-						m2->sml_op != LDAP_MOD_DELETE )
-						m2->sml_op |= NULLIFIED;
-				}
-				break;
-			}
-			ml->sml_op |= INDEXED;
-		}
-		/* Now index the modifications */
-		for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
-			if ( ! (ml->sml_op & INDEXED) ) continue;
-			ml->sml_op ^= INDEXED;
-			switch ( ml->sml_op ) {
-			case LDAP_MOD_DELETE:
-				if ( ml->sml_bvalues ) {
-					ap = attr_find( e->e_attrs, ml->sml_desc );
-					rc = bdb_index_values( op, tid, ml->sml_desc,
-						ml->sml_nvalues ? ml->sml_nvalues : ml->sml_bvalues,
-						ap ? ap->a_nvals : NULL,
-						e->e_id, SLAP_INDEX_DELETE_OP );
-					break;
-				}
-				/* FALLTHRU */
-			case LDAP_MOD_REPLACE:
-			/* A nullified replace still does its delete action */
-			case LDAP_MOD_REPLACE | NULLIFIED:
-				ap = attr_find( save_attrs, ml->sml_desc );
-				if ( ap != NULL ) {
-					rc = bdb_index_values( op, tid, ap->a_desc,
-						ap->a_nvals, NULL,
-						e->e_id, SLAP_INDEX_DELETE_OP );
-				} else {
-					rc = LDAP_SUCCESS;
-				}
-				if ( rc || ml->sml_op == LDAP_MOD_DELETE ||
-					(ml->sml_op & NULLIFIED))
-					break;
-				/* FALLTHRU */
-			case LDAP_MOD_ADD:
-			case SLAP_MOD_SOFTADD:
-				rc = bdb_index_values( op, tid, ml->sml_desc,
-					ml->sml_nvalues ? ml->sml_nvalues : ml->sml_bvalues,
-					NULL, e->e_id, SLAP_INDEX_ADD_OP );
-				break;
-			}
-			ml->sml_op &= ~NULLIFIED;
+	/* start with deleting the old index entries */
+	for ( ap = save_attrs; ap != NULL; ap = ap->a_next ) {
+		if ( ap->a_flags & SLAP_ATTR_IXDEL ) {
+			rc = bdb_index_values( op, tid, ap->a_desc,
+				ap->a_nvals,
+				e->e_id, SLAP_INDEX_DELETE_OP );
 			if ( rc != LDAP_SUCCESS ) {
 				attrs_free( e->e_attrs );
 				e->e_attrs = save_attrs;
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR, 
-					"bdb_modify_internal: attribute index update failure\n",
+					"bdb_modify_internal: attribute index delete failure\n",
 					0, 0, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-				       "Attribute index update failure",
+				       "Attribute index delete failure",
 				       0, 0, 0 );
 #endif
-				/* reset our flags */
-				for (; ml; ml=ml->sml_next ) {
-					ml->sml_op &= ~(INDEXED | NULLIFIED);
-				}
-				break;
+				return rc;
 			}
+			ap->a_flags &= ~SLAP_ATTR_IXDEL;
+		}
+	}
+
+	/* add the new index entries */
+	for ( ap = e->e_attrs; ap != NULL; ap = ap->a_next ) {
+		if (ap->a_flags & SLAP_ATTR_IXADD) {
+			rc = bdb_index_values( op, tid, ap->a_desc,
+				ap->a_nvals,
+				e->e_id, SLAP_INDEX_ADD_OP );
+			if ( rc != LDAP_SUCCESS ) {
+				attrs_free( e->e_attrs );
+				e->e_attrs = save_attrs;
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, ERR, 
+					"bdb_modify_internal: attribute index add failure\n", 
+					0, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+				       "Attribute index add failure",
+				       0, 0, 0 );
+#endif
+				return rc;
+			}
+			ap->a_flags &= ~SLAP_ATTR_IXADD;
 		}
 	}
 
