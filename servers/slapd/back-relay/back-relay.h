@@ -29,6 +29,8 @@ LDAP_BEGIN_DECL
 
 typedef struct relay_back_info {
 	BackendDB	*ri_bd;
+	struct berval	ri_realsuffix;
+	int		ri_massage;
 } relay_back_info;
 
 LDAP_END_DECL

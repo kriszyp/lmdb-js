@@ -46,6 +46,7 @@ relay_back_db_config(
 	if ( strcasecmp( argv[0], "relay" ) == 0 ) {
 		struct berval	dn, ndn, pdn;
 		int		rc;
+		BackendDB	*bd;
 
 		if ( argc < 2 ) {
 			fprintf( stderr,
@@ -70,20 +71,22 @@ relay_back_db_config(
 			return 1;
 		}
 
-		ri->ri_bd = select_backend( &ndn, 0, 1 );
-		if ( ri->ri_bd == NULL ) {
+		bd = select_backend( &ndn, 0, 1 );
+		if ( bd == NULL ) {
 			fprintf( stderr, "%s: line %d: "
 					"cannot find database "
 					"of relay dn \"%s\"\n",
 					fname, lineno, argv[ 1 ] );
 			return 1;
 
-		} else if ( ri->ri_bd == be ) {
+		} else if ( bd == be ) {
 			fprintf( stderr, "%s: line %d: "
 					"relay dn \"%s\" would call self\n",
 					fname, lineno, pdn.bv_val );
 			return 1;
-		} 
+		}
+
+		ri->ri_realsuffix = ndn;
 
 		if ( overlay_config( be, "rewrite-remap" ) ) {
 			fprintf( stderr, "%s: line %d: unable to install "
@@ -93,9 +96,27 @@ relay_back_db_config(
 			return 1;
 		}
 
-		if ( argc == 3 ) {
+#if 0
+		{
 			char	*cargv[ 4 ];
 
+			cargv[ 0 ] = "overlay";
+			cargv[ 1 ] = "rewrite-remap";
+			cargv[ 2 ] = NULL;
+
+			be->be_config( be, fname, lineno, 2, cargv ); 
+
+			cargv[ 0 ] = "suffixmassage";
+			cargv[ 1 ] = be->be_suffix[0].bv_val;
+			cargv[ 2 ] = ri->ri_bd->be_suffix[0].bv_val;
+			cargv[ 3 ] = NULL;
+
+			if ( be->be_config( be, fname, lineno, 3, cargv ) ) {
+				return 1;
+			}
+		}
+
+		if ( argc == 3 ) {
 			if ( strcmp( argv[2], "massage" ) ) {
 				fprintf( stderr, "%s: line %d: "
 					"unknown directive \"%s\" "
@@ -104,22 +125,9 @@ relay_back_db_config(
 				return 1;
 			}
 
-			if ( be->be_suffix[0].bv_val == NULL ) {
-				fprintf( stderr, "%s: line %d: "
-					"relay line must come after \"suffix\"\n",
-					fname, lineno );
-				return 1;
-			}
-
-			cargv[ 0 ] = "suffixmassage";
-			cargv[ 1 ] = be->be_suffix[0].bv_val;
-			cargv[ 2 ] = ri->ri_bd->be_suffix[0].bv_val;
-			cargv[ 3 ] = NULL;
-
-			if ( be->be_config( be, "back-relay", 1, 3, cargv ) ) {
-				return 1;
-			}
+			ri->ri_massage = 1;
 		}
+#endif
 
 	/* anything else */
 	} else {

@@ -92,6 +92,9 @@ relay_back_db_init( Backend *be )
  	}
 
 	ri->ri_bd = NULL;
+	ri->ri_realsuffix.bv_val = NULL;
+	ri->ri_realsuffix.bv_len = 0;
+	ri->ri_massage = 0;
 
 	be->be_private = (void *)ri;
 
@@ -105,9 +108,19 @@ relay_back_db_open( Backend *be )
 
 	assert( ri != NULL );
 
+	if ( ri->ri_realsuffix.bv_val != NULL ) {
+		ri->ri_bd = select_backend( &ri->ri_realsuffix, 0, 1 );
+		assert( ri->ri_bd );
+	}
+
 #if 0
-	if ( !ri->ri_do_not_massage ) {
+	if ( ri->ri_massage ) {
 		char	*argv[ 4 ];
+
+		if ( be->be_suffix[0].bv_val == NULL ) {
+			fprintf( stderr, "suffix must be defined to require suffix massage\n" );
+			return 1;
+		}
 
 		argv[ 0 ] = "suffixmassage";
 		argv[ 1 ] = be->be_suffix[0].bv_val;
