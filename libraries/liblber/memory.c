@@ -681,7 +681,7 @@ ber_bvarray_add( BerVarray *a, BerValue *bv )
 		}
 
 	} else {
-		BerVarray *atmp;
+		BerVarray atmp;
 		BER_MEM_VALID( a );
 
 		for ( n = 0; *a != NULL && (*a)[n].bv_val != NULL; n++ ) {
@@ -692,14 +692,14 @@ ber_bvarray_add( BerVarray *a, BerValue *bv )
 			return n;
 		}
 
-		*atmp = (BerValue *) LBER_REALLOC( (char *) *a,
+		atmp = (BerValue *) LBER_REALLOC( (char *) *a,
 		    (n + 2) * sizeof(BerValue) );
 
-		if( *atmp == NULL ) {
+		if( atmp == NULL ) {
 			return -1;
 		}
 
-		*a = *atmp;
+		*a = atmp;
 	}
 
 	(*a)[n++] = *bv;
