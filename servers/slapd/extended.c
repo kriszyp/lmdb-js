@@ -42,6 +42,22 @@ typedef struct extop_list_t {
 
 extop_list_t *supp_ext_list = NULL;
 
+/* this list of built-in extops is for extops that are not part
+ * of backends or in external modules.  essentially, this is
+ * just a way to get built-in extops onto the extop list without
+ * having a separate init routine for each built-in extop.
+ */
+struct {
+	char *oid;
+	SLAP_EXTOP_MAIN_FN ext_main;
+} builtin_extops[] = {
+#ifdef HAVE_TLS
+		{ LDAP_EXOP_START_TLS, starttls_extop },
+#endif
+		{ NULL, NULL }
+	};
+
+
 static extop_list_t *find_extop( extop_list_t *list, char *oid );
 
 static int extop_callback(
@@ -182,6 +198,31 @@ load_extop(
 	return(0);
 }
 
+int
+extops_init (void)
+{
+	int i;
+
+	for (i = 0; builtin_extops[i].oid != NULL; i++) {
+		load_extop(builtin_extops[i].oid, builtin_extops[i].ext_main);
+	}
+	return(0);
+}
+
+int
+extops_kill (void)
+{
+	extop_list_t *ext;
+
+	/* we allocated the memory, so we have to free it, too. */
+	while ((ext = supp_ext_list) != NULL) {
+		supp_ext_list = ext->next;
+		if (ext->oid != NULL)
+			ch_free(ext->oid);
+		ch_free(ext);
+	}
+	return(0);
+}
 
 static extop_list_t *
 find_extop( extop_list_t *list, char *oid )

@@ -268,6 +268,10 @@ LIBSLAPD_F (int) load_extop LDAP_P((
 	const char *ext_oid,
 	SLAP_EXTOP_MAIN_FN ext_main ));
 
+LIBSLAPD_F (int) extops_init LDAP_P(( void ));
+
+LIBSLAPD_F (int) extops_kill LDAP_P(( void ));
+
 LIBSLAPD_F (char *) get_supported_extop LDAP_P((int index));
 
 /*
@@ -449,6 +453,15 @@ LIBSLAPD_F (void) parse_at LDAP_P(( const char *fname, int lineno, char *line, c
 LIBSLAPD_F (void) parse_oidm LDAP_P(( const char *fname, int lineno, int argc, char **argv ));
 LIBSLAPD_F (char *) scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
 LIBSLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del, char delim ));
+
+
+/*
+ * starttls.c
+ */
+
+LIBSLAPD_F (int) starttls_extop LDAP_P(( SLAP_EXTOP_CALLBACK_FN, Connection *conn, Operation *op, char * oid, struct berval * reqdata, struct berval ** rspdata, char ** text ));
+
+
 /*
  * str2filter.c
  */

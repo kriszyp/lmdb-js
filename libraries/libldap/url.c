@@ -565,8 +565,7 @@ ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
 			*p++ = 0;
 			ludp->lud_port = atoi(p);
 		}
-		if (ludp->lud_port == LDAPS_PORT)
-			ludp->lud_ldaps = 1;	/* cheat */
+		ludp->lud_ldaps = -1;	/* unknown (use TLS default) */
 		ludp->lud_next = *ludlist;
 		*ludlist = ludp;
 	}
@@ -634,7 +633,7 @@ ldap_url_list2urls (LDAPURLDesc *ludlist)
 
 	p = s;
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
-		p += sprintf(p, "ldap%s://%s", ludp->lud_ldaps ? "s" : "", ludp->lud_host);
+		p += sprintf(p, "ldap%s://%s", (ludp->lud_ldaps == 1) ? "s" : "", ludp->lud_host);
 		if (ludp->lud_port != 0)
 			p += sprintf(p, ":%d", ludp->lud_port);
 		*p++ = '/';

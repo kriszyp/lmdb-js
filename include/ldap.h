@@ -984,6 +984,18 @@ ldap_init LDAP_P((
 	LDAP_CONST char *host,
 	int port ));
 
+LIBLDAP_F( int )
+ldap_create LDAP_P(( 
+	LDAP **ldp ));
+
+LIBLDAP_F( int )
+ldap_initialize LDAP_P((
+	LDAP **ldp,
+	LDAP_CONST char *url ));
+
+LIBLDAP_F( int )
+ldap_start_tls LDAP_P((
+	LDAP *ld ));
 
 /*
  * in messages.c:

@@ -189,7 +189,7 @@ static int module_unload (module_loaded_t *module)
 	return 0;
 }
 
-int load_null (const void *module, const char *file_name)
+int load_null_module (const void *module, const char *file_name)
 {
 	return 0;
 }
@@ -201,7 +201,12 @@ load_extop_module (
 	const char *file_name
 )
 {
-	ext_main = module_resolve(module, "ext_main");
+	SLAP_EXTOP_MAIN_FN ext_main;
+	int (*ext_getoid)(int index, char *oid, int blen);
+	char *oid;
+	int rc;
+
+	ext_main = (SLAP_EXTOP_MAIN_FN)module_resolve(module, "ext_main");
 	if (ext_main == NULL) {
 		return(-1);
 	}
@@ -211,7 +216,20 @@ load_extop_module (
 		return(-1);
 	}
 
-	return load_extop( ext_main, ext_getoid );
+	oid = ch_malloc(256);
+	rc = (ext_getoid)(0, oid, 256);
+	if (rc != 0) {
+		ch_free(oid);
+		return(rc);
+	}
+	if (*oid == 0) {
+		free(oid);
+		return(-1);
+	}
+
+	rc = load_extop( oid, ext_main );
+	free(oid);
+	return rc;
 }
 #endif /* SLAPD_EXTERNAL_EXTENSIONS */
 #endif /* SLAPD_MODULES */

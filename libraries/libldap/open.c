@@ -228,11 +228,39 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 }
 
 int
+ldap_start_tls ( LDAP *ld )
+{
+	LDAPConn *lc;
+	int rc;
+	char *rspoid;
+	struct berval *rspdata;
+
+	if (ld->ld_conns == NULL) {
+		rc = ldap_open_defconn( ld );
+		if (rc != LDAP_SUCCESS)
+			return(rc);
+	}
+
+	for (lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next) {
+		if (ldap_pvt_tls_inplace(lc->lconn_sb) != 0)
+			return LDAP_OPERATIONS_ERROR;
+		rc = ldap_extended_operation_s(ld, LDAP_EXOP_START_TLS,
+							NULL, NULL, NULL, &rspoid, &rspdata);
+		if (rc != LDAP_SUCCESS)
+			return rc;
+		rc = ldap_pvt_tls_start( lc->lconn_sb, ld->ld_options.ldo_tls_ctx );
+		if (rc != LDAP_SUCCESS)
+			return rc;
+	}
+	return LDAP_SUCCESS;
+}
+
+int
 open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 	char **krbinstancep, int async )
 {
-	int 			rc = -1;
-	int port;
+	int rc = -1;
+	int port, tls;
 	long addr;
 
 	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
@@ -254,19 +282,13 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
    	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 
 #ifdef HAVE_TLS
-   	if ( ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD 
-   		|| srv->lud_ldaps != 0 )
-   	{
-		/*
-		 * Fortunately, the lib uses blocking io...
-		 */
-		if ( ldap_pvt_tls_connect( sb, ld->ld_options.ldo_tls_ctx ) < 
-		     0 ) {
-			return -1;
-		}
-		/* FIXME: hostname of server must be compared with name in
-		 * certificate....
-		 */
+	tls = srv->lud_ldaps;
+	if (tls == -1)
+		tls = ld->ld_options.ldo_tls_mode;
+   	if ( tls != 0 )	{
+   		rc = ldap_pvt_tls_start( sb, ld->ld_options.ldo_tls_ctx );
+   		if (rc != LDAP_SUCCESS)
+   			return rc;
 	}
 #endif
 	if ( krbinstancep != NULL ) {
@@ -277,7 +299,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, LDAPURLDesc *srv,
 			*c = '\0';
 		}
 #else /* HAVE_KERBEROS */
-		krbinstancep = NULL;
+		*krbinstancep = NULL;
 #endif /* HAVE_KERBEROS */
 	}
 

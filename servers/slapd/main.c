@@ -359,6 +359,8 @@ int main( int argc, char **argv )
 	}
 #endif
 
+	extops_init();
+
 #ifdef SLAPD_MODULES
 	if ( module_init() != 0 ) {
 		rc = 1;
@@ -463,6 +465,8 @@ destroy:
 #ifdef SLAPD_MODULES
 	module_kill();
 #endif
+
+	extops_kill();
 
 stop:
 #ifdef HAVE_NT_EVENT_LOG

@@ -355,6 +355,14 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 	return 0;
 }
 
+int
+ldap_pvt_tls_inplace ( Sockbuf *sb )
+{
+	if ( HAS_TLS( sb ) )
+		return(1);
+	return(0);
+}
+
 const char *
 ldap_pvt_tls_get_peer( LDAP *ld )
 {
@@ -495,6 +503,24 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 	}
 	return 0;
 }
+
+int
+ldap_pvt_tls_start ( Sockbuf *sb, void *ctx_arg )
+{
+	/*
+	 * Fortunately, the lib uses blocking io...
+	 */
+	if ( ldap_pvt_tls_connect( sb, ctx_arg ) < 0 ) {
+		return LDAP_CONNECT_ERROR;
+	}
+
+	/* FIXME: hostname of server must be compared with name in
+	 * certificate....
+	 */
+
+	return LDAP_SUCCESS;
+}
+
 
 static int
 tls_setup( Sockbuf *sb, void *arg )

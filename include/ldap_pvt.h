@@ -123,6 +123,8 @@ LIBLDAP_F (int) ldap_pvt_tls_connect LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LIBLDAP_F (int) ldap_pvt_tls_accept LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 LIBLDAP_F (int) ldap_pvt_tls_get_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
 LIBLDAP_F (int) ldap_pvt_tls_set_option LDAP_P(( struct ldapoptions *lo, int option, void *arg ));
+LIBLDAP_F (int) ldap_pvt_tls_inplace LDAP_P(( Sockbuf *sb ));
+LIBLDAP_F (int) ldap_pvt_tls_start LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 
 LDAP_END_DECL
 
