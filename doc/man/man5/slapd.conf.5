@@ -321,7 +321,9 @@ or administrative limit restrictions for operations on this database.
 Specify a password (or hash of the password) for the rootdn.
 This option accepts all RFC 2307 userPassword formats known to
 the server including \fB{SSHA}\fP, \fB{SHA}\fP, \fB{SMD5}\fP,
-\fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext schemes.  Cleartext
+\fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext schemes.
+.BR slappasswd (8) 
+may be used to generate a hash of a password.  Cleartext
 and \fB{CRYPT}\fP passwords are not recommended.
 .TP
 .B suffix <dn suffix>
@@ -439,6 +441,7 @@ ETCDIR/slapd.conf
 .BR slapadd (8),
 .BR slapcat (8),
 .BR slapindex (8),
+.BR slappassword (8),
 .BR slurpd (8),
 .LP
 "The SLAPD and SLURPD Administrator's Guide"
