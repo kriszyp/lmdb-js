@@ -721,13 +721,14 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 		
 		if ( *nextstar == '\0' ) {
 			ftype = LDAP_SUBSTRING_FINAL;
-		} else if ( gotstar++ == 0 ) {
-			ftype = LDAP_SUBSTRING_INITIAL;
 		} else {
-			ftype = LDAP_SUBSTRING_ANY;
+			*nextstar++ = '\0';
+			if ( gotstar++ == 0 ) {
+				ftype = LDAP_SUBSTRING_INITIAL;
+			} else {
+				ftype = LDAP_SUBSTRING_ANY;
+			}
 		}
-
-		*nextstar++ = '\0';
 
 		if ( *val != '\0' || ftype == LDAP_SUBSTRING_ANY ) {
 			ber_slen_t len = ldap_pvt_filter_value_unescape( val );
