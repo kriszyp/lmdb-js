@@ -1487,11 +1487,11 @@ consumer site by turning on the
 parameter. The default is off.
 The
 .B starttls
-parameter may be used to specify use of the StartTLS extended operation
+parameter specifies use of the StartTLS extended operation
 to establish a TLS session before Binding to the provider. If the
 .B critical
 argument is supplied, the session will be aborted if the StartTLS request
-fails. Otherwise the syncrepl session continues in the clear.
+fails. Otherwise the syncrepl session continues without TLS.
 A
 .B bindmethod
 of 
