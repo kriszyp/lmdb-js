@@ -103,7 +103,7 @@ typedef LBER_LEN_T ber_slen_t;
 
 typedef int (*BERTranslateProc) LDAP_P((
 	char **bufp,
-	unsigned long *buflenp,
+	ber_len_t *buflenp,
 	int free_input ));
 
 /* LBER BerElement options */
