@@ -47,6 +47,13 @@ relay_back_add_cb( slap_callback *cb, struct slap_op *op )
 	op->o_callback = cb;
 }
 
+/*
+ * selects the backend if not enforced at config;
+ * in case of failure, behaves based on err:
+ *	-1			don't send result
+ *	LDAP_SUCCESS		don't send result; may send referral
+ *	any valid error 	send as error result
+ */
 static BackendDB *
 relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 {
@@ -56,16 +63,16 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 	if ( bd == NULL ) {
 		bd = select_backend( &op->o_req_ndn, 0, 1 );
 		if ( bd == op->o_bd ) {
-			if ( err != LDAP_SUCCESS ) {
+			if ( err > LDAP_SUCCESS ) {
 				send_ldap_error( op, rs,
 						LDAP_UNWILLING_TO_PERFORM, 
-						"would call self" );
+						"back-relay would call self" );
 			}
 			return NULL;
 		}
 	}
 
-	if ( bd == NULL ) {
+	if ( bd == NULL && err > -1 ) {
 		if ( default_referral ) {
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
@@ -368,7 +375,7 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 	BackendDB		*bd;
 	int			rc = 1;
 
-	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	bd = relay_back_select_backend( op, rs, -1 );
 	if ( bd == NULL ) {
 		return 1;
 	}
@@ -386,11 +393,6 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 		if ( op->o_callback == &cb ) {
 			op->o_callback = op->o_callback->sc_next;
 		}
-
-	} else {
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"operation not supported "
-				"within naming context" );
 	}
 
 	return rc;

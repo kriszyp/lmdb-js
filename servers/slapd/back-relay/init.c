@@ -50,9 +50,7 @@ relay_back_initialize( BackendInfo *bi )
 	bi->bi_op_modrdn = relay_back_op_modrdn;
 	bi->bi_op_add = relay_back_op_add;
 	bi->bi_op_delete = relay_back_op_delete;
-#if 0	/* causes a deadlock */
 	bi->bi_op_abandon = relay_back_op_abandon;
-#endif
 	bi->bi_op_cancel = relay_back_op_cancel;
 	bi->bi_extended = relay_back_op_extended;
 	bi->bi_entry_release_rw = relay_back_entry_release_rw;
