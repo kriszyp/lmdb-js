@@ -22,6 +22,10 @@ isOkNetscapeParam( int param )
 	case SLAPI_BACKEND:
 	case SLAPI_CONNECTION:
 	case SLAPI_OPERATION:
+	case SLAPI_OPERATION_PARAMETERS:
+	case SLAPI_OPERATION_TYPE:
+	case SLAPI_OPERATION_ID:
+	case SLAPI_OPERATION_AUTHTYPE:
 	case SLAPI_REQUESTOR_ISROOT:
 	case SLAPI_BE_MONITORDN:
 	case SLAPI_BE_TYPE:
@@ -32,7 +36,11 @@ isOkNetscapeParam( int param )
 	case SLAPI_REQUESTOR_DN:
 	case SLAPI_REQUESTOR_ISUPDATEDN:
 	case SLAPI_CONN_DN:
+	case SLAPI_CONN_CLIENTIP:
+	case SLAPI_CONN_SERVERIP:
 	case SLAPI_CONN_AUTHTYPE:
+	case SLAPI_CONN_AUTHMETHOD:
+	case SLAPI_CONN_CERT:
 	case SLAPI_IBM_CONN_DN_ALT:
 	case SLAPI_IBM_CONN_DN_ORIG:
 	case SLAPI_IBM_GSSAPI_CONTEXT:
@@ -185,6 +193,9 @@ isOkNetscapeParam( int param )
 	case SLAPI_CHANGENUMBER:
 	case SLAPI_LOG_OPERATION:
 	case SLAPI_DBSIZE:
+	case SLAPI_RESULT_CODE:
+	case SLAPI_RESULT_TEXT:
+	case SLAPI_RESULT_MATCHED:
 		return LDAP_SUCCESS;
 	default:
 		return INVALID_PARAM;
@@ -350,7 +361,19 @@ slapi_pblock_destroy( Slapi_PBlock* pb )
 		str = NULL;
 	}
 
+	get( pb, SLAPI_OPERATION_AUTHTYPE, (void **)&str );
+	if ( str != NULL ) {
+		ch_free( str );
+		str = NULL;
+	}
+
 	get( pb, SLAPI_CONN_AUTHTYPE, (void **)&str );
+	if ( str != NULL ) {
+		ch_free( str );
+		str = NULL;
+	}
+
+	get( pb, SLAPI_CONN_AUTHMETHOD, (void **)&str );
 	if ( str != NULL ) {
 		ch_free( str );
 		str = NULL;

@@ -1136,12 +1136,12 @@ int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 #if defined(LDAP_SLAPI)
 	int rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_BACKEND, (void *)be);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_BACKEND, (void *)be );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_BE_TYPE, (void *)be->bd_info->bi_type );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
 	return LDAP_SUCCESS;
@@ -1150,6 +1150,36 @@ int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 #endif /* defined(LDAP_SLAPI) */
 }
 
+#if defined(LDAP_SLAPI)
+static char *Authorization2AuthType( AuthorizationInformation *authz, int is_tls )
+{
+	size_t len;
+	char *authType;
+
+	switch ( authz->sai_method ) {
+	case LDAP_AUTH_SASL: 
+		len = sizeof(SLAPD_AUTH_SASL) + authz->sai_mech.bv_len;
+		authType = slapi_ch_malloc( len );
+		snprintf( authType, len, "%s%s", SLAPD_AUTH_SASL, authz->sai_mech.bv_val );
+		break;
+	case LDAP_AUTH_SIMPLE:
+		authType = slapi_ch_strdup( SLAPD_AUTH_SIMPLE );
+		break;
+	case LDAP_AUTH_NONE:
+		authType = slapi_ch_strdup( SLAPD_AUTH_NONE );
+		break;
+	default:
+		authType = NULL;
+		break;
+	}
+	if ( is_tls && authType == NULL ) {
+		authType = slapi_ch_strdup( SLAPD_AUTH_SSL );
+	}
+
+	return authType;
+}
+#endif
+
 /*
  * Internal API to prime a Slapi_PBlock with a Connection.
  */
@@ -1157,48 +1187,44 @@ int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 {
 #if defined(LDAP_SLAPI)
 	char *connAuthType;
-	size_t len;
 	int rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_CONNECTION, (void *)conn);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_CONNECTION, (void *)conn );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_CONN_ID, (void *)conn->c_connid);
-	if (rc != LDAP_SUCCESS)
-		return rc;
-
-	switch (conn->c_authz.sai_method) {
-	case LDAP_AUTH_SASL: 
-		len = sizeof(SLAPD_AUTH_SASL) + conn->c_authz.sai_mech.bv_len;
-		connAuthType = slapi_ch_malloc(len);
-		snprintf(connAuthType, len, "%s%s", SLAPD_AUTH_SASL, conn->c_authz.sai_mech.bv_val);
-		break;
-	case LDAP_AUTH_SIMPLE:
-		connAuthType = slapi_ch_strdup(SLAPD_AUTH_SIMPLE);
-		break;
-	case LDAP_AUTH_NONE:
-		connAuthType = slapi_ch_strdup(SLAPD_AUTH_NONE);
-		break;
-	default:
-		connAuthType = NULL;
-		break;
-	}
-	if (conn->c_is_tls && connAuthType == NULL) {
-		connAuthType = slapi_ch_strdup(SLAPD_AUTH_SSL);
-	}
-	if (connAuthType != NULL) {
-		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
-		if (rc != LDAP_SUCCESS)
+	if ( strncmp( conn->c_peer_name.bv_val, "IP=", 3 ) == 0 ) {
+		rc = slapi_pblock_set( pb, SLAPI_CONN_CLIENTIP, (void *)&conn->c_peer_name.bv_val[3] );
+		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
-	if (conn->c_authz.sai_dn.bv_val != NULL) {
+
+	if ( strncmp( conn->c_sock_name.bv_val, "IP=", 3 ) == 0 ) {
+		rc = slapi_pblock_set( pb, SLAPI_CONN_SERVERIP, (void *)&conn->c_sock_name.bv_val[3] );
+		if ( rc != LDAP_SUCCESS )
+			return rc;
+	}
+
+	rc = slapi_pblock_set( pb, SLAPI_CONN_ID, (void *)conn->c_connid );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	connAuthType = Authorization2AuthType( &conn->c_authz, conn->c_is_tls );
+	if ( connAuthType != NULL ) {
+		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
+		if ( rc != LDAP_SUCCESS )
+			return rc;
+
+		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHMETHOD, (void *)connAuthType);
+		if ( rc != LDAP_SUCCESS )
+			return rc;
+	}
+	if ( conn->c_authz.sai_dn.bv_val != NULL ) {
 		char *connDn = slapi_ch_strdup(conn->c_authz.sai_dn.bv_val);
 		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)connDn);
-		if (rc != LDAP_SUCCESS)
+		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
-	return LDAP_SUCCESS;
 #else
 	return -1;
 #endif /* defined(LDAP_SLAPI) */
@@ -1214,38 +1240,54 @@ int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op )
 	int isUpdateDn = 0;
 	int rc;
 	Backend *be;
+	char *opAuthType;
 
-	if (slapi_pblock_get(pb, SLAPI_BACKEND, (void *)&be) != 0) {
+	if ( slapi_pblock_get(pb, SLAPI_BACKEND, (void *)&be ) != 0 ) {
 		be = NULL;
 	}
 	if (be != NULL) {
-		isRoot = be_isroot(be, &op->o_ndn);
-		isUpdateDn = be_isupdate(be, &op->o_ndn);
+		isRoot = be_isroot( be, &op->o_ndn );
+		isUpdateDn = be_isupdate( be, &op->o_ndn );
 	}
 		
-	rc = slapi_pblock_set(pb, SLAPI_OPERATION, (void *)op);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_OPERATION, (void *)op );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_OPINITIATED_TIME, (void *)op->o_time);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_OPINITIATED_TIME, (void *)op->o_time );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_REQUESTOR_ISROOT, (void *)isRoot);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_OPERATION_ID, (void *)op->o_opid );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_REQUESTOR_ISUPDATEDN, (void *)isUpdateDn);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_OPERATION_TYPE, (void *)op->o_tag );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_REQUESTOR_ISROOT, (void *)isRoot );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	rc = slapi_pblock_set(pb, SLAPI_REQUESTOR_DN, (void *)op->o_ndn.bv_val);
-	if (rc != LDAP_SUCCESS)
+	rc = slapi_pblock_set( pb, SLAPI_REQUESTOR_ISUPDATEDN, (void *)isUpdateDn );
+	if ( rc != LDAP_SUCCESS )
 		return rc;
+
+	rc = slapi_pblock_set( pb, SLAPI_REQCONTROLS, (void *)op->o_ctrls );
+	if ( rc != LDAP_SUCCESS)
+		return rc;
+
+	rc = slapi_pblock_set( pb, SLAPI_REQUESTOR_DN, (void *)op->o_ndn.bv_val );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	opAuthType = Authorization2AuthType( &op->o_authz, op->o_conn->c_is_tls );
+	if (opAuthType != NULL) {
+		rc = slapi_pblock_set( pb, SLAPI_OPERATION_AUTHTYPE, (void *)opAuthType );
+		if ( rc != LDAP_SUCCESS )
+			return rc;
+	}
 
 	return LDAP_SUCCESS;
 #else
