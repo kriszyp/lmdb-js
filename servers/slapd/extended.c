@@ -92,6 +92,7 @@ do_extended(
 	ber_len_t len;
 	extop_list_t *ext;
 	char *text;
+	struct berval **refs;
 	struct berval *rspdata;
 	LDAPControl **rspctrls;
 
@@ -152,8 +153,12 @@ do_extended(
 		oid, reqdata, &rspdata, &rspctrls, &text );
 
 	if( rc != SLAPD_ABANDON ) {
+		refs = NULL;
+		if (rc == LDAP_REFERRAL)
+			refs = default_referral;
+
 		send_ldap_extended( conn, op, rc, NULL, text,
-			oid, rspdata, rspctrls );
+			refs, oid, rspdata, rspctrls );
 	}
 
 	if ( rspdata != NULL )

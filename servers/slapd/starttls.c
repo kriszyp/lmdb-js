@@ -29,6 +29,8 @@ starttls_extop (
 	LDAPControl ***rspctrls,
 	char ** text )
 {
+	void *ctx;
+
 	if ( reqdata != NULL ) {
 		/* no request data should be provided */
 		return LDAP_PROTOCOL_ERROR;
@@ -37,6 +39,17 @@ starttls_extop (
 	/* can't start TLS if it is already started */
 	if (conn->c_is_tls != 0)
 		return(LDAP_OPERATIONS_ERROR);
+
+	/* fail if TLS could not be initialized */
+	if (ldap_pvt_tls_get_option(NULL, LDAP_OPT_X_TLS_CERT, &ctx) != 0
+		|| ctx == NULL)
+	{
+		if (default_referral != NULL) {
+			/* caller will put the referral into the result */
+			return(LDAP_REFERRAL);
+		}
+		return(LDAP_UNAVAILABLE);
+	}
 
 	/* can't start TLS if there are other op's around */
 	if (conn->c_ops != NULL) {
@@ -47,19 +60,6 @@ starttls_extop (
 		if (conn->c_pending_ops != op || op->o_next != NULL)
 			return(LDAP_OPERATIONS_ERROR);
 	}
-
-	/* here's some pseudo-code if HAVE_TLS is defined
-	 * but for some reason TLS is not available.
-	 */
-	/*
-		if (tls not really supported) {
-			if (referral exists) {
-				// caller will need to put the referral into the result
-				return(LDAP_REFERRAL);
-			}
-			return(LDAP_UNAVAILABLE);
-		}
-	*/
 
     conn->c_is_tls = 1;
     conn->c_needs_tls_accept = 1;

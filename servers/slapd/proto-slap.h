@@ -387,7 +387,7 @@ LIBSLAPD_F (void) send_ldap_disconnect LDAP_P((
 LIBSLAPD_F (void) send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
-	const char *text,
+	const char *text, struct berval **refs,
 	char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 

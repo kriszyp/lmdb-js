@@ -493,6 +493,7 @@ send_ldap_extended(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
+    struct berval **refs,
     char		*rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
@@ -522,7 +523,7 @@ send_ldap_extended(
 #endif
 
 	send_ldap_response( conn, op, tag, msgid,
-		err, matched, text, NULL,
+		err, matched, text, refs,
 		rspoid, rspdata, NULL, ctrls );
 }
 

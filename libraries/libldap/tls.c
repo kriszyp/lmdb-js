@@ -110,6 +110,7 @@ ldap_pvt_tls_init( void )
 
 	if ( tls_initialized )
 		return -1;
+	tls_initialized = 1;
 #ifdef LDAP_R_COMPILE
 	tls_init_threads();
 #endif
@@ -211,6 +212,10 @@ ldap_pvt_tls_init_def_ctx( void )
 #endif
 	return 0;
 error_exit:
+	if ( tls_def_ctx != NULL ) {
+		SSL_CTX_free( tls_def_ctx );
+		tls_def_ctx = NULL;
+	}
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &tls_def_ctx_mutex );
 #endif

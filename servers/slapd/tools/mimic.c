@@ -46,6 +46,7 @@ send_ldap_extended(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
+	struct berval **refs,
     char	*rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
