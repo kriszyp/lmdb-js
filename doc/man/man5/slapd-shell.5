@@ -143,6 +143,12 @@ Lines starting with `#' or `DEBUG:' are ignored.
 .SH EXAMPLE
 There is an example search script in the slapd/back-shell/ directory
 in the OpenLDAP source tree.
+.SH LIMITATIONS
+The shell backend does not support threaded environments.
+When using the shell backend, 
+.BR slapd (8)
+should be built
+.IR --without-thread .
 .SH FILES
 .TP
 ETCDIR/slapd.conf
