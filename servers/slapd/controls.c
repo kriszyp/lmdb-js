@@ -598,6 +598,7 @@ int get_ctrls(
 
 			if (( sc->sc_mask & tagmask ) == tagmask ) {
 				/* available extension */
+				int	rc;
 
 				if( !sc->sc_parse ) {
 					rs->sr_err = LDAP_OTHER;
@@ -605,9 +606,24 @@ int get_ctrls(
 					goto return_results;
 				}
 
-				rs->sr_err = sc->sc_parse( op, rs, c );
-				assert( rs->sr_err != LDAP_UNAVAILABLE_CRITICAL_EXTENSION );
-				if( rs->sr_err != LDAP_SUCCESS ) goto return_results;
+				rc = sc->sc_parse( op, rs, c );
+				assert( rc != LDAP_UNAVAILABLE_CRITICAL_EXTENSION );
+				switch ( rc ) {
+				/* for some reason, the control should be ignored */
+				case SLAP_CTRL_IGNORE:
+					op->o_tmpfree( c, op->o_tmpmemctx );
+					op->o_ctrls[--nctrls] = NULL;
+					goto next_ctrl;
+				
+				/* the control was successfully parsed */
+				case LDAP_SUCCESS:
+					break;
+
+				/* something happened... */
+				default:
+					rs->sr_err = rc;
+					goto return_results;
+				}
 
 				if ( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
 					/* kludge to disable backend_control() check */
@@ -633,6 +649,7 @@ int get_ctrls(
 			rs->sr_text = "critical extension is not recognized";
 			goto return_results;
 		}
+next_ctrl:;
 	}
 
 return_results:
@@ -883,6 +900,20 @@ static int parsePagedResults (
 	if( size < 0 ) {
 		rs->sr_text = "paged results control size invalid";
 		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/*
+	 * NOTE: according to RFC 2696 3.:
+	 *
+	     If the page size is greater than or equal to the sizeLimit value, the
+	     server should ignore the control as the request can be satisfied in a
+	     single page.
+	 *
+	 * NOTE: this assumes that the op->ors_slimit be set before the controls
+	 * are parsed.
+	 */
+	if ( op->ors_slimit > 0 && size >= op->ors_slimit ) {
+		return SLAP_CTRL_IGNORE;
 	}
 
 	if( cookie.bv_len ) {
