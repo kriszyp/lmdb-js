@@ -72,21 +72,16 @@ oidm_find(char *oid)
 void
 oidm_destroy()
 {
-
-#ifdef SLAP_NVALUES
-	/* FIXME: this causes a malloc debug error */
-#else
 	OidMacro *om;
 	while( !LDAP_SLIST_EMPTY( &om_list )) {
 		om = LDAP_SLIST_FIRST( &om_list );
+		LDAP_SLIST_REMOVE_HEAD( &om_list, som_next );
 
 		ldap_charray_free(om->som_names);
 		free(om->som_oid.bv_val);
 		free(om);
 		
-		LDAP_SLIST_REMOVE_HEAD( &om_list, som_next );
 	}
-#endif
 }
 
 int
