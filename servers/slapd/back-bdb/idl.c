@@ -1014,8 +1014,11 @@ bdb_idl_union(
 	}
 
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ) {
-over:		a[1] = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
-		a[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
+over:		ida = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
+		idb = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
+		a[0] = NOID;
+		a[1] = ida;
+		a[2] = idb;
 		return 0;
 	}
 
@@ -1028,7 +1031,6 @@ over:		a[1] = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
 	while( ida != NOID || idb != NOID ) {
 		if ( ida < idb ) {
 			if( ++cursorc > BDB_IDL_UM_MAX ) {
-				a[0] = NOID;
 				goto over;
 			}
 			b[cursorc] = ida;
