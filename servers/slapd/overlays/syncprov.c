@@ -1144,6 +1144,11 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 	int i, j, ndel, num, nmods, mmods;
 	BerVarray uuids;
 
+	if ( !sl->sl_num ) {
+		ldap_pvt_thread_mutex_unlock( &sl->sl_mutex );
+		return;
+	}
+
 	num = sl->sl_num;
 	i = 0;
 	nmods = 0;
@@ -1211,7 +1216,6 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		fop.o_sync_mode = 0;
 		fop.o_callback = &cb;
 		fop.ors_limit = NULL;
-		fop.ors_slimit = 1;
 		fop.ors_tlimit = SLAP_NO_LIMIT;
 		fop.ors_attrs = slap_anlist_all_attributes;
 		fop.ors_attrsonly = 0;
@@ -1228,23 +1232,22 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 		fop.ors_filter = &af;
 
 		cb.sc_response = playlog_cb;
+		fop.o_bd->bd_info = on->on_info->oi_orig;
 
-		for ( i=0; i<nmods; i++ ) {
-			if ( uuids[num - 1 - 1].bv_len == 0 ) continue;
+		for ( i=ndel; i<num; i++ ) {
+			if ( uuids[i].bv_len == 0 ) continue;
 
-			mf.f_av_value = uuids[num -1 -i];
-			filter2bv_x( &fop, fop.ors_filter, &fop.ors_filterstr );
-			fop.o_bd->bd_info = on->on_info->oi_orig;
+			mf.f_av_value = uuids[i];
 			cb.sc_private = NULL;
+			fop.ors_slimit = 1;
 			rc = fop.o_bd->be_search( &fop, &frs );
-			fop.o_bd->bd_info = (BackendInfo *)on;
-			op->o_tmpfree( fop.ors_filterstr.bv_val, op->o_tmpmemctx );
 
 			/* If entry was not found, add to delete list */
 			if ( !cb.sc_private ) {
-				uuids[ndel++] = uuids[num - 1 - i];
+				uuids[ndel++] = uuids[i];
 			}
 		}
+		fop.o_bd->bd_info = (BackendInfo *)on;
 	}
 	if ( ndel ) {
 		uuids[ndel].bv_val = NULL;
