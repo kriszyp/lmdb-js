@@ -1334,7 +1334,14 @@ slapd_daemon_task(
 				 ldap_pvt_runqueue_persistent_backload( &syncrepl_rq );
 		}
 
-		tvp = at ? &tv : NULL;
+		if ( at 
+#if defined(HAVE_YIELDING_SELECT) || defined(NO_THREADS)
+			&&  ( tv.tv_sec || tv.tv_usec )
+#endif
+			)
+			tvp = &tv;
+		else
+			tvp = NULL;
 
 #ifdef LDAP_SYNCREPL
 		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
