@@ -118,7 +118,7 @@ chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND)
 	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
 
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(LDBMPROGRAMS2) $(BDB2PROGRAMS) $(QUIPUPROGRAM) \
+	$(RM) $(PROGRAMS) $(LDBMPROGRAMS) $(BDB2PROGRAMS) $(QUIPUPROGRAMS) \
 		$(XPROGRAMS) $(XSRCS) *.o core .libs/*
 
 depend-local: FORCE
