@@ -148,6 +148,15 @@ changetype: modify
 add: cn
 cn: Jane Qissapaolo Doe
 -
+# This operation (delete of DN-valued attribute) triggered ITS#3498
+delete: seeAlso
+-
+
+dn: cn=Jane Q. Doe,ou=Information Technology Division,ou=People,$BASEDN
+changetype: modify
+add: seeAlso
+seeAlso: cn=All Staff,ou=Groups,$BASEDN
+-
 
 dn: ou=Referrals,$BASEDN
 changetype: add
@@ -178,6 +187,7 @@ BASEDN="o=Example,c=US"
 echo "Modifying database \"$BASEDN\"..."
 $LDAPMODIFY -v -D "cn=Manager,$BASEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
 	-M >> $TESTOUT 2>&1 << EOMODS
+# These operations (updates with objectClass mapping) triggered ITS#3499
 dn: cn=Added Group,ou=Groups,$BASEDN
 changetype: add
 objectClass: groupOfNames
@@ -248,7 +258,7 @@ echo "# 	attrs=\"'*' ref\"" >> $SEARCHOUT
 BASEDN="dc=example,dc=com"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" '*' ref \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -260,7 +270,7 @@ fi
 BASEDN="o=Example,c=US"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" '*' ref \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -272,7 +282,7 @@ fi
 BASEDN="o=Esempio,c=IT"
 echo "	base=\"$BASEDN\"..."
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
-$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" "*" ref \
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" -M "$FILTER" '*' ref \
 	>> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -304,7 +314,7 @@ echo "Searching filter=\"$FILTER\""
 echo "	attrs=\"member\""
 echo "	base=\"$BASEDN\"..."
 echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
-echo "# 	attrs=\"seeAlso\"" >> $SEARCHOUT
+echo "# 	attrs=\"member\"" >> $SEARCHOUT
 echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" member \
 	>> $SEARCHOUT 2>&1
