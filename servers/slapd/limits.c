@@ -683,6 +683,7 @@ limits_parse_one(
 			arg++;
 			if ( strcasecmp( arg, "none" ) == 0 ) {
 				limit->lms_t_soft = -1;
+
 			} else {
 				char	*next = NULL;
 
@@ -706,6 +707,7 @@ limits_parse_one(
 				arg += STRLENOF( "soft=" );
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_soft = -1;
+
 				} else {
 					char	*next = NULL;
 					int	soft = strtol( arg, &next, 10 );
@@ -854,6 +856,7 @@ limits_parse_one(
 			arg++;
 			if ( strcasecmp( arg, "none" ) == 0 ) {
 				limit->lms_s_soft = -1;
+
 			} else {
 				char	*next = NULL;
 
@@ -944,6 +947,9 @@ limits_check( Operation *op, SlapReply *rs )
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_text = NULL;
 				return -1;
+
+			} else if ( op->ors_limit->lms_s_pr_total == -1 ) {
+				slimit = -1;
 	
 			} else {
 				/* if no limit is required, use soft limit */
@@ -955,23 +961,7 @@ limits_check( Operation *op, SlapReply *rs )
 				/* if the limit is set, check that it does not violate any limit */
 				if ( op->ors_slimit > 0 ) {
 					slimit2 = op->ors_slimit;
-					if ( op->ors_limit->lms_s_pr_total > 0 ) {
-						if ( op->ors_slimit > op->ors_limit->lms_s_pr_total ) {
-							slimit2 = -2;
-						}
-
-					} else if ( op->ors_limit->lms_s_hard > 0 ) {
-						if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
-							slimit2 = -2;
-						}
-
-					} else if ( op->ors_limit->lms_s_soft > 0 ) {
-						if ( op->ors_slimit > op->ors_limit->lms_s_soft ) {
-							slimit2 = -2;
-						}
-					}
-
-					if ( slimit2 == -2 ) {
+					if ( op->ors_slimit > op->ors_limit->lms_s_pr_total ) {
 						rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 						send_ldap_result( op, rs );
 						rs->sr_err = LDAP_SUCCESS;
@@ -979,15 +969,7 @@ limits_check( Operation *op, SlapReply *rs )
 					}
 
 				} else {
-					if ( op->ors_limit->lms_s_pr_total > 0 ) {
-						slimit2 = op->ors_limit->lms_s_pr_total;
-
-					} else if ( op->ors_limit->lms_s_hard > 0 ) {
-						slimit2 = op->ors_limit->lms_s_hard;
-
-					} else if ( op->ors_limit->lms_s_soft > 0 ) {
-						slimit2 = op->ors_limit->lms_s_soft;
-					}
+					slimit2 = op->ors_limit->lms_s_pr_total;
 				}
 
 				total = slimit2 - op->o_pagedresults_state.ps_count;
@@ -1028,6 +1010,7 @@ limits_check( Operation *op, SlapReply *rs )
 					send_ldap_result( op, rs );
 					rs->sr_err = LDAP_SUCCESS;
 					return -1;
+
 				} else {
 					op->ors_slimit = slimit;
 				}
