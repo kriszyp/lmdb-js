@@ -143,6 +143,10 @@ SOURCE=.\init.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\nextid.c
+# End Source File
+# Begin Source File
+
 SOURCE=".\proto-bdb.h"
 # End Source File
 # Begin Source File

@@ -135,8 +135,8 @@ ID bdb_tool_entry_put(
 		return NOID;
 	}
 
-	e->e_id = bdb_next_id( be, tid );
-	if( e->e_id == NOID ) {
+	rc = bdb_next_id( be, tid, &e->e_id );
+	if( rc != 0 ) {
 		goto done;
 	}
 
@@ -144,27 +144,26 @@ ID bdb_tool_entry_put(
 	rc = bdb->bi_entries->bdi_db->put( bdb->bi_entries->bdi_db,
 		tid, &key, &data, DB_NOOVERWRITE );
 	if( rc != 0 ) {
-		e->e_id = NOID;
 		goto done;
 	}
 
 	/* add dn indices */
 	rc = bdb_index_dn_add( be, tid, e->e_ndn, e->e_id );
 	if( rc != 0 ) {
-		e->e_id = NOID;
 		goto done;
 	}
 
 #if 0
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 	if( rc != 0 ) {
-		e->e_id = NOID;
 		goto done;
 	}
 #endif
 
 done:
-	if( e->e_id != NOID ) {
+	ber_bvfree( bv );
+
+	if( rc == 0 ) {
 		rc = txn_commit( tid, 0 );
 		if( rc != 0 ) {
 			e->e_id = NOID;
@@ -172,9 +171,9 @@ done:
 
 	} else {
 		txn_abort( tid );
+		e->e_id = NOID;
 	}
 
-	ber_bvfree( bv );
 	return e->e_id;
 }
 

@@ -14,6 +14,20 @@ LDAP_BEGIN_DECL
  */
 void bdb_errcall( const char *pfx, char * msg );
 
+/*
+ * dn.c
+ */
+int bdb_index_dn_add(
+	BackendDB *be,
+	DB_TXN *tid,
+	const char *dn,
+	ID id );
+
+/*
+ * nextid.c
+ */
+int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *id );
+
 LDAP_END_DECL
 
 #endif /* _PROTO_BDB_H */

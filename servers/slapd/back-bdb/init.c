@@ -168,7 +168,7 @@ bi_back_db_destroy( BackendDB *be )
 }
 
 #ifdef SLAPD_BDB_DYNAMIC
-int back_bi_LTX_init_module( int argc, char *argv[] ) {
+int back_bdb_LTX_init_module( int argc, char *argv[] ) {
     BackendInfo bi;
 
     memset( &bi, '\0', sizeof(bi) );
@@ -181,7 +181,7 @@ int back_bi_LTX_init_module( int argc, char *argv[] ) {
 #endif /* SLAPD_BDB_DYNAMIC */
 
 int
-bi_back_initialize(
+bdb_back_initialize(
     BackendInfo	*bi
 )
 {
