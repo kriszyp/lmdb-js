@@ -119,10 +119,11 @@ int ber_realloc LDAP_P((
 #ifdef NEW_LOGGING
 LBER_F( int )
 ber_output_dump LDAP_P((
-                        char *subsys,
-                        int level,
-                        BerElement *ber,
-                        int inout ));
+	const char *subsys,
+	int level,
+	BerElement *ber,
+	int inout ));
+
 #endif
 
 LBER_F( int )

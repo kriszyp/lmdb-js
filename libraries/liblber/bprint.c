@@ -225,10 +225,10 @@ ber_bprint(
 
 #ifdef NEW_LOGGING
 int ber_output_dump(
-                    char *subsys,
-                    int level,
-                    BerElement *ber,
-                    int inout )
+	const char *subsys,
+	int level,
+	BerElement *ber,
+	int inout )
 {
     static const char	hexdig[] = "0123456789abcdef";
     char buf[132];
