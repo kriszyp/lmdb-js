@@ -2,6 +2,9 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.23 Engineering
 	Fixed ldappasswd -y handling bug (ITS#2696)
+	Added replica uri keyword (ITS#2594)
+	Added replica-pidfile, replica-argsfile keywords
+	Fixed portability issue in ldapsasl (ITS#2691)
 
 OpenLDAP 2.1.22 Release
 	Fixed slapd yielding select fix (ITS#2603)
