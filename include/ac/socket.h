@@ -26,6 +26,7 @@
 #endif
 
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>

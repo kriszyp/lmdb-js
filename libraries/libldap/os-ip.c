@@ -91,6 +91,18 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 		if (( s = socket( AF_INET, SOCK_STREAM, 0 )) < 0 ) {
 			DO_RETURN( -1 );
 		}
+#ifdef TCP_NODELAY
+		{
+			int tmp = 1;
+			if( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
+				&tmp, sizeof(tmp) ) == -1 )
+			{
+				Debug( LDAP_DEBUG_ANY,
+					"setsockopt(TCP_NODELAY failed on %d\n",
+					s, 0, 0 );
+			}
+		}
+#endif
 #ifdef notyet
 		status = 1;
 		if ( async && ioctl( s, FIONBIO, (caddr_t)&status ) == -1 ) {

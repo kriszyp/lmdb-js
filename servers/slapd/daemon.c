@@ -312,7 +312,7 @@ open_listener(
 	{
 		int err = errno;
 		Debug( LDAP_DEBUG_ANY,
-	       "slapd(%ld): setsockopt() failed errno %d (%s)\n",
+	       "slapd(%ld): setsockopt(SO_REUSEADDR) failed errno %d (%s)\n",
 	    	(long) l.sl_sd, err,
 			err > -1 && err < sys_nerr
 				? sys_errlist[err] : "unknown" );
@@ -325,7 +325,20 @@ open_listener(
 	{
 		int err = errno;
 		Debug( LDAP_DEBUG_ANY,
-			"slapd(%ld): setsockopt(KEEPALIVE) failed errno %d (%s)\n",
+			"slapd(%ld): setsockopt(SO_KEEPALIVE) failed errno %d (%s)\n",
+	    	(long) l.sl_sd, err,
+			err > -1 && err < sys_nerr
+				? sys_errlist[err] : "unknown" );
+	}
+#endif
+#ifdef TCP_NODELAY
+	tmp = 1;
+	if ( setsockopt( l.sl_sd, IPPROTO_TCP, TCP_NODELAY,
+		(char *)&tmp, sizeof(tmp) ) )
+	{
+		int err = errno;
+		Debug( LDAP_DEBUG_ANY,
+			"slapd(%ld): setsockopt(TCP_NODELAY) failed errno %d (%s)\n",
 	    	(long) l.sl_sd, err,
 			err > -1 && err < sys_nerr
 				? sys_errlist[err] : "unknown" );
