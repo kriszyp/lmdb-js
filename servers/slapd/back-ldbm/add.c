@@ -55,8 +55,12 @@ ldbm_back_add(
 	 * add the entry.
 	 */
 
-	if ( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
+	pdn = dn_parent( be, e->e_ndn );
+
+	if( pdn != NULL && *pdn != '\0' && !be_issuffix(be, "") ) {
 		char *matched = NULL;
+
+		assert( *pdn != '\0' );
 
 		/* get parent with writer lock */
 		if ( (p = dn2entry_w( be, pdn, &matched )) == NULL ) {
@@ -100,11 +104,19 @@ ldbm_back_add(
 		}
 
 	} else {
+		if(pdn != NULL) {
+			assert( *pdn == '\0' );
+			free(pdn);
+		}
+
 		/* no parent, must be adding entry to root */
 		if ( ! be_isroot( be, op->o_ndn ) ) {
 			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
-			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
-			    0, 0 );
+
+			Debug( LDAP_DEBUG_TRACE, "%s add denied\n",
+					pdn == NULL ? "suffix" : "entry at root",
+					0, 0 );
+
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    "", "" );
 
