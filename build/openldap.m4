@@ -230,6 +230,52 @@ AC_DEFUN([OL_GDBM],
 	AC_DEFINE(HAVE_GDBM,1)
  fi
 ])dnl
+
+dnl
+dnl ====================================================================
+dnl Check if MDBM library exists
+dnl Check for mdbm_open in standard libraries or -lmdbm
+dnl
+dnl defines ol_cv_lib_mdbm to 'yes' or '-lmdbm' or 'no'
+dnl		'yes' implies mdbm_open is in $LIBS
+dnl
+dnl uses:
+dnl		AC_CHECK_FUNC(mdbm_set_chain)
+dnl		AC_CHECK_LIB(mdbm,mdbm_set_chain)
+dnl
+AC_DEFUN([OL_LIB_MDBM],
+[AC_CACHE_CHECK(for MDBM library, [ol_cv_lib_mdbm],
+[	ol_LIBS="$LIBS"
+	AC_CHECK_FUNC(mdbm_set_chain,[ol_cv_lib_mdbm=yes], [
+		AC_CHECK_LIB(mdbm,mdbm_set_chain,[ol_cv_lib_mdbm=-lmdbm],[ol_cv_lib_mdbm=no])
+	])
+	LIBS="$ol_LIBS"
+])
+])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if MDBM exists
+dnl
+dnl defines ol_cv_mdbm to 'yes' or 'no'
+dnl 
+dnl uses:
+dnl		OL_LIB_MDBM
+dnl		AC_CHECK_HEADERS(mdbm.h)
+dnl
+AC_DEFUN([OL_MDBM],
+[AC_REQUIRE([OL_LIB_MDBM])
+ AC_CHECK_HEADERS(mdbm.h)
+ AC_CACHE_CHECK(for db, [ol_cv_mdbm], [
+	if test $ol_cv_lib_mdbm = no -o $ac_cv_header_mdbm_h = no ; then
+		ol_cv_mdbm=no
+	else
+		ol_cv_mdbm=yes
+	fi
+])
+ if test $ol_cv_mdbm = yes ; then
+	AC_DEFINE(HAVE_MDBM,1, [define if MDBM is available])
+ fi
+])dnl
 dnl
 dnl ====================================================================
 dnl Check if NDBM library exists
