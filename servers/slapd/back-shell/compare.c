@@ -36,7 +36,7 @@ shell_back_compare(
 
 	if ( (op->o_private = (void *) forkandexec( si->si_compare, &rfp, &wfp ))
 	    == (void *) -1 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL,
+		send_ldap_result( conn, op, LDAP_OTHER, NULL,
 		    "could not fork/exec", NULL, NULL );
 		return( -1 );
 	}

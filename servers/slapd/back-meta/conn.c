@@ -308,10 +308,10 @@ init_one_conn(
 			
 		case REWRITE_REGEXEC_ERR:
 			send_ldap_result( conn, op,
-					LDAP_OPERATIONS_ERROR,
-					NULL, "Operations error",
+					LDAP_OTHER,
+					NULL, "Rewrite error",
 					NULL, NULL );
-			return LDAP_OPERATIONS_ERROR;
+			return LDAP_OTHER;
 		}
 
 		assert( lsc->bound_dn.bv_val );
@@ -524,7 +524,7 @@ meta_back_getconn(
 		 * Err could be -1 in case a duplicate metaconn is inserted
 		 */
 		if ( err != 0 ) {
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 			NULL, "Internal server error", NULL, NULL );
 			metaconn_free( lc );
 			return NULL;

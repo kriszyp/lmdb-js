@@ -384,7 +384,7 @@ ldbm_back_modrdn(
 					np->e_dn, 0, 0 );
 #endif
 
-				send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+				send_ldap_result( conn, op, LDAP_OTHER,
 				    NULL, "newSuperior is a referral", NULL, NULL );
 
 				goto return_results;
@@ -475,7 +475,7 @@ ldbm_back_modrdn(
 	if ( ( rc_id = dn2id ( be, &new_ndn, &id ) ) || id != NOID ) {
 		/* if (rc_id) something bad happened to ldbm cache */
 		send_ldap_result( conn, op, 
-			rc_id ? LDAP_OPERATIONS_ERROR : LDAP_ALREADY_EXISTS,
+			rc_id ? LDAP_OTHER : LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
 		goto return_results;
 	}
@@ -506,7 +506,7 @@ ldbm_back_modrdn(
 		    0, 0, 0 );
 #endif
 
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
 			NULL, "unable to parse type(s)/value(s) used in RDN", NULL, NULL );
 		goto return_results;		
 	}

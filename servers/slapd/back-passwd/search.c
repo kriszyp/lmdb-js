@@ -144,7 +144,7 @@ passwd_back_search(
 				}
 
 				if ( !(e = pw2entry( be, pw, &text )) ) {
-					err = LDAP_OPERATIONS_ERROR;
+					err = LDAP_OTHER;
 					endpwent();
 					ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 					goto done;
@@ -198,7 +198,7 @@ passwd_back_search(
 		if ( ldap_bv2rdn( base, &rdn, (char **)&text,
 			LDAP_DN_FORMAT_LDAP ))
 		{ 
-			err = LDAP_OPERATIONS_ERROR;
+			err = LDAP_OTHER;
 			goto done;
 		}
 
@@ -214,7 +214,7 @@ passwd_back_search(
 		e = pw2entry( be, pw, &text );
 		ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 		if ( !e ) {
-			err = LDAP_OPERATIONS_ERROR;
+			err = LDAP_OTHER;
 			goto done;
 		}
 

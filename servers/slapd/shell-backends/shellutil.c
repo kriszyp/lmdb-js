@@ -141,7 +141,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
     struct inputparams	*ip;
 
     if ( fgets( line, MAXLINELEN, ifp ) == NULL ) {
-	write_result( ofp, LDAP_OPERATIONS_ERROR, NULL, "Empty Input" );
+	write_result( ofp, LDAP_OTHER, NULL, "Empty Input" );
     }
     line[ strlen( line ) - 1 ] = '\0';
     if ( strncasecmp( line, STR_OP_SEARCH, sizeof( STR_OP_SEARCH ) - 1 )
@@ -174,7 +174,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
 	    if (( op->ldop_srch.ldsp_scope = atoi( args )) != LDAP_SCOPE_BASE &&
 		    op->ldop_srch.ldsp_scope != LDAP_SCOPE_ONELEVEL &&
 		    op->ldop_srch.ldsp_scope != LDAP_SCOPE_SUBTREE ) {
-		write_result( ofp, LDAP_OPERATIONS_ERROR, NULL, "Bad scope" );
+		write_result( ofp, LDAP_OTHER, NULL, "Bad scope" );
 		return( -1 );
 	    }
 	    break;
@@ -214,7 +214,7 @@ parse_input( FILE *ifp, FILE *ofp, struct ldop *op )
 
     if ( op->ldop_suffixes == NULL || op->ldop_dn == NULL ||
 		op->ldop_srch.ldsp_filter == NULL ) {
-	write_result( ofp, LDAP_OPERATIONS_ERROR, NULL,
+	write_result( ofp, LDAP_OTHER, NULL,
 		"Required suffix:, base:, or filter: missing" );
 	return( -1 );
     }

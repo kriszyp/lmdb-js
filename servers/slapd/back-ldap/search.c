@@ -169,7 +169,7 @@ ldap_back_search(
 		goto finish;
 
 	case REWRITE_REGEXEC_ERR:
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "Operations error", NULL, NULL );
 		rc = -1;
 		goto finish;

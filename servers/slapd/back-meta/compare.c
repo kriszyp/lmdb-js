@@ -143,8 +143,8 @@ meta_back_compare(
 			return -1;
 			
 		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-					NULL, "Operations error",
+			send_ldap_result( conn, op,  LDAP_OTHER,
+					NULL, "Rewrite error",
 					NULL, NULL );
 			return -1;
 		}
@@ -227,7 +227,7 @@ meta_back_compare(
 				continue;
 			} else if ( lrc == LDAP_RES_COMPARE ) {
 				if ( count > 0 ) {
-					rres = LDAP_OPERATIONS_ERROR;
+					rres = LDAP_OTHER;
 					rc = -1;
 					goto finish;
 				}
@@ -331,8 +331,8 @@ finish:;
 			goto cleanup;
 			
 		case REWRITE_REGEXEC_ERR:
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-					NULL, "Operations error",
+			send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "Rewrite error",
 					NULL, NULL );
 			rc = -1;
 			goto cleanup;

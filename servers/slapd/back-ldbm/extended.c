@@ -51,6 +51,6 @@ ldbm_back_extended(
 	}
 
 	*text = "not supported within naming context";
-	return LDAP_OPERATIONS_ERROR;
+	return LDAP_UNWILLING_TO_PERFORM;
 }
 

@@ -99,7 +99,7 @@ ldap_back_add(
 		return( -1 );
 	       	
 	case REWRITE_REGEXEC_ERR:
- 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+ 		send_ldap_result( conn, op, LDAP_OTHER,
  				NULL, "Operations error", NULL, NULL );
 		return( -1 );
 	}
