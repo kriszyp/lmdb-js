@@ -597,11 +597,10 @@ main( int argc, char *argv[] )
 	}
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_start_tls" );
 		if ( use_tls > 1 ) {
-			ldap_perror( ld, "ldap_start_tls" );
 			return( EXIT_FAILURE );
 		}
-		fprintf( stderr, "WARNING: could not start TLS\n" );
 	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {
