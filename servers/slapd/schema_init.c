@@ -2792,7 +2792,6 @@ char *objectIdentifierFirstComponentMatchSyntaxes[] = {
  * 2.5.13.31	directoryStringFirstComponentMatch
  * 2.5.13.32	wordMatch
  * 2.5.13.33	keywordMatch
- * 2.5.13.35	certificateMatch
  * 2.5.13.36	certificatePairExactMatch
  * 2.5.13.37	certificatePairMatch
  * 2.5.13.38	certificateListExactMatch
@@ -3023,6 +3022,17 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, certificateExactMatchSyntaxes,
 #ifdef HAVE_TLS
 		NULL, certificateExactNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
+#else
+		NULL, NULL, NULL, NULL, NULL,
+#endif
+		NULL },
+
+	{"( 2.5.13.35 NAME 'certificateMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
+#ifdef HAVE_TLS
+		NULL, NULL, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 #else
 		NULL, NULL, NULL, NULL, NULL,
