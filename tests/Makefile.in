@@ -63,5 +63,5 @@ clean-local:	FORCE
 	-$(RM) -r testrun *leak *gmon *core
 
 veryclean-local: FORCE
-	@-$(RM) data schema ucdata
+	@-$(RM) run data schema ucdata
 
