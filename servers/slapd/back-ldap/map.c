@@ -216,7 +216,7 @@ ldap_back_map_attrs(
 		int remap
 )
 {
-	int i;
+	int i, j;
 	char **na;
 	struct berval mapped;
 
@@ -231,14 +231,14 @@ ldap_back_map_attrs(
 	if (na == NULL)
 		return(NULL);
 
-	for (i = 0; an[i].an_name.bv_val; ) {
+	for (i = j = 0; an[i].an_name.bv_val; i++) {
 		ldap_back_map(at_map, &an[i].an_name, &mapped, remap);
-		if (mapped.bv_val != NULL) {
-			na[i] = mapped.bv_val;
-			i++;
-		}
+		if (mapped.bv_val != NULL)
+			na[j++] = mapped.bv_val;
 	}
-	na[i] = NULL;
+	if (j == 0 && i != 0)
+		na[j++] = LDAP_NO_ATTRS;
+	na[j] = NULL;
 
 	return(na);
 }
