@@ -17,6 +17,7 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
 #include <ac/wait.h>
