@@ -128,6 +128,7 @@ drink: Iced Tea
 drink: Mad Dog 20/20
 
 dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
+changetype: modify
 delete: member
 member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
