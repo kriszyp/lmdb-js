@@ -145,24 +145,26 @@ _EOF_
 $MKDEP_CC $MKDEP_CFLAGS $files | \
 	sed -e 's; \./; ;g' | \
 	$SED > $TMP.sed
-# dont pipe to awk.  SGI awk wants a filename as argument.
+# do not pipe to awk.  SGI awk wants a filename as argument.
 # (or '-', but I do not know if all other awks support that.)
 awk '
-$1 ~ /:/ {
-	filenm=$1;
-	dep=substr($0, length(filenm)+1);
+$1 ~ /:$/ {
+	filenm=$1
+	dep=substr($0, length(filenm)+1)
 }
-$1 !~ /:/ {
-	dep=$0;
+$1 !~ /:$/ {
+	dep=$0
 }
 /.*/ {
-	split(dep, depends, " ");
+	if ( filenm ~ /:.*:$/ ) next
+	split(dep, depends, " ")
 	for(d in depends) {
-		dfile = depends[d];
-		if (( noslash == "yes") && (dfile ~ /^\// )) next
+		dfile = depends[d]
+		if ( dfile ~ /:/ ) continue
+		if (( noslash == "yes") && (dfile ~ /^\// )) continue
 		if ( length(dfile) < 2 ) continue
-		rec = filenm " " dfile;
-		print rec;
+		rec = filenm " " dfile
+		print rec
 	}
     }
 ' noslash="$NOSLASH" $TMP.sed >> $TMP
