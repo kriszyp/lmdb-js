@@ -270,8 +270,7 @@ static int test_mra_filter(
 			int		rc;
 
 			/* check if matching is appropriate */
-			if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
-				a->a_desc->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+			if ( !mr_usable_with_at( mra->ma_rule, a->a_desc->ad_type )) {
 				continue;
 			}
 
@@ -346,8 +345,7 @@ static int test_mra_filter(
 					const char	*text = NULL;
 
 					/* check if matching is appropriate */
-					if ( strcmp( mra->ma_rule->smr_syntax->ssyn_oid,
-						ad->ad_type->sat_syntax->ssyn_oid ) != 0 ) {
+					if ( !mr_usable_with_at( mra->ma_rule, ad->ad_type )) {
 						continue;
 					}
 

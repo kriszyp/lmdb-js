@@ -630,6 +630,9 @@ LDAP_SLAPD_F (int) matching_rule_use_init LDAP_P(( void ));
 LDAP_SLAPD_F (int) mr_schema_info( Entry *e );
 LDAP_SLAPD_F (int) mru_schema_info( Entry *e );
 
+LDAP_SLAPD_F (int) mr_usable_with_at( MatchingRule *mr,
+	AttributeType *at );
+
 /*
  * mra.c
  */

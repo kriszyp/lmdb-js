@@ -383,21 +383,9 @@ matching_rule_use_init( void )
 		at = NULL;
 		for ( at_start( &at ); at; at_next( &at ) ) {
 			if( at->sat_flags & SLAP_AT_HIDE ) continue;
-			if( mr->smr_usage & SLAP_MR_EXT && ( 
-				mr->smr_syntax == at->sat_syntax ||
-				mr == at->sat_equality ||
-				mr == at->sat_approx ) )
-			{
-				ldap_charray_add( &applies_oids, at->sat_cname.bv_val );
 
-			} else if ( mr->smr_compat_syntaxes ) {
-				int i;
-				for( i=0; mr->smr_compat_syntaxes[i]; i++ ) {
-					if( at->sat_syntax == mr->smr_compat_syntaxes[i] ) {
-						ldap_charray_add( &applies_oids, at->sat_cname.bv_val );
-						break;
-					}
-				}
+			if( mr_usable_with_at( mr, at )) {
+				ldap_charray_add( &applies_oids, at->sat_cname.bv_val );
 			}
 		}
 
@@ -437,6 +425,27 @@ matching_rule_use_init( void )
 	return( 0 );
 }
 
+int mr_usable_with_at(
+	MatchingRule *mr,
+	AttributeType *at )
+{
+	if( mr->smr_usage & SLAP_MR_EXT && ( 
+		mr->smr_syntax == at->sat_syntax ||
+		mr == at->sat_equality || mr == at->sat_approx ) )
+	{
+		return 1;
+	}
+
+	if ( mr->smr_compat_syntaxes ) {
+		int i;
+		for( i=0; mr->smr_compat_syntaxes[i]; i++ ) {
+			if( at->sat_syntax == mr->smr_compat_syntaxes[i] ) {
+				return 1;
+			}
+		}
+	}
+	return 0;
+}
 
 #if defined( SLAPD_SCHEMA_DN )
 
