@@ -5,13 +5,15 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
     Access Protocol (v3) servers, clients, utilities, and
     development tools.
 
-    This alpha release contains the following major enhancements:
+    This beta release contains the following major enhancements:
 
         * Slapd(8) enhancements
 			- Updated slapd "overlay" interface, and numberous
 			  example (and mostly experimental) overlays.
             - Updated LDAP "sync" Engine with replication support,
 			  provider now an "overlay"
+			- Numerous access control enhancments, including
+              expimental "don't disclose on error" capability
         * LDAPv3 extensions, including:
 			- LDAP Component Matching (requires OpenLDAP snacc)
 			- LDAP Modify Increment

@@ -18,6 +18,7 @@
 
 #include <stdio.h>
 #include <ac/string.h>
+#include <lutil.h>
 
 #include "slap.h"
 
