@@ -80,6 +80,10 @@ ldap_whoami_s(
 	}
 
 	rc = ldap_parse_whoami( ld, res, authzid );
-	ldap_msgfree( res );
-	return rc;
+	if( rc != LDAP_SUCCESS ) {
+		ldap_msgfree( res );
+		return rc;
+	}
+
+	return( ldap_result2error( ld, res, 1 ) );
 }

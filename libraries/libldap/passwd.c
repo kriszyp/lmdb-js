@@ -146,6 +146,10 @@ ldap_passwd_s(
 	}
 
 	rc = ldap_parse_passwd( ld, res, newpasswd );
-	ldap_msgfree( res );
-	return rc;
+	if( rc != LDAP_SUCCESS ) {
+		ldap_msgfree( res );
+		return rc;
+	}
+
+	return( ldap_result2error( ld, res, 1 ) );
 }
