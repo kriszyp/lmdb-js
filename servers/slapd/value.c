@@ -350,7 +350,7 @@ int value_find_ex(
 	}
 
 	if( mr->smr_syntax->ssyn_normalize ) {
-		struct berval nval_tmp;
+		struct berval nval_tmp = { 0, NULL };
 
 		rc = mr->smr_syntax->ssyn_normalize(
 			mr->smr_syntax,

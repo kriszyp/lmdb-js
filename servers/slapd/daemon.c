@@ -49,7 +49,7 @@ Listener **slap_listeners = NULL;
 
 static ber_socket_t wake_sds[2];
 
-#ifdef NO_THREADS
+#if defined(NO_THREADS) || defined(HAVE_GNU_PTH)
 static int waking;
 #define WAKE_LISTENER(w) \
 ((w && !waking) ? tcp_write( wake_sds[1], "0", 1 ), waking=1 : 0)
@@ -1315,7 +1315,7 @@ slapd_daemon_task(
 		if( FD_ISSET( wake_sds[0], &readfds ) ) {
 			char c[BUFSIZ];
 			tcp_read( wake_sds[0], c, sizeof(c) );
-#ifdef NO_THREADS
+#if defined(NO_THREADS) || defined(HAVE_GNU_PTH)
 			waking = 0;
 #endif
 			continue;
