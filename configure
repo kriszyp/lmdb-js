@@ -2797,7 +2797,7 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-	if test $ac_cv_libac_cv_lib_bind_res_search = "yes" ; then
+	if test "$ac_cv_lib_bind_res_search" = "yes" ; then
 		cat >> confdefs.h <<\EOF
 #define HAVE_RES_SEARCH 1
 EOF
@@ -2850,7 +2850,7 @@ else
   echo "$ac_t""no" 1>&6
 fi
 
-		if test $ac_cv_libac_cv_lib_resolv_res_search = "yes" ; then
+		if test "$ac_cv_lib_resolv_res_search" = "yes" ; then
 			cat >> confdefs.h <<\EOF
 #define HAVE_RES_SEARCH 1
 EOF
