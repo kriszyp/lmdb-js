@@ -54,7 +54,8 @@ ldap_open( char *host, int port )
 	}
 
 	if ( ldap_delayed_open( ld ) < 0 ) {
-		return( NULL );
+		ldap_ld_free( ld, 0 );
+		return NULL;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open successful, ld_host is %s\n",
