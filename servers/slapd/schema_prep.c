@@ -62,7 +62,9 @@ oidValidate(
 				return LDAP_SUCCESS;
 			}
 
-			if ( val.bv_val[0] == '0' ) {
+			/* FIXME: the OID of 'dc' and other attributeTypes
+			 * starts with '0'! */
+			if ( val.bv_val[0] == '0' && !OID_SEPARATOR( val.bv_val[1] ) ) {
 				break;
 			}
 
