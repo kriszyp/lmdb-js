@@ -647,16 +647,9 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 		    (ID_BLOCK_NMAX(*idl) + ID_BLOCK_IDS_OFFSET) * sizeof(ID) );
 	}
 
-	/* make a slot for the new id *//* XXX bubble move XXX */
-#define BUBBLE 1
-#ifdef BUBBLE
-	for ( j = ID_BLOCK_NIDS(*idl); j != i; j-- ) {
-		ID_BLOCK_ID(*idl, j) = ID_BLOCK_ID(*idl, j-1);
-	}
-#else
+	/* make a slot for the new id */
 	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i), &ID_BLOCK_ID(*idl, i+1), 
 		ID_BLOCK_NIDS(*idl) - i );
-#endif
 
 	ID_BLOCK_ID(*idl, i) = id;
 	ID_BLOCK_NIDS(*idl)++;
