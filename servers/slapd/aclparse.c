@@ -1282,7 +1282,7 @@ acl_usage( void )
 			"\t[aci=<attrname>]\n"
 #endif
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
-		"<dnstyle> ::= regex | base | exact (alias of base) | one | sub[tree] | children\n"
+		"<dnstyle> ::= regex | base | exact (alias of base) | one | subtree | children\n"
 		"<style> ::= regex | base | exact (alias of base)\n"
 		"<groupflags> ::= R\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
