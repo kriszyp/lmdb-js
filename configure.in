@@ -341,7 +341,9 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 fi
 
 ol_link_threads=no
-if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = posix ; then
+
 	AC_CHECK_HEADERS(pthread.h sched.h)
 
 	if test $ac_cv_header_pthread_h = yes ; then
@@ -385,6 +387,26 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 			if test $ol_cv_pthread_flag = yes ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
+				ol_link_threads=posix
+			fi
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try -pthreads
+			AC_CACHE_CHECK([for pthread_create with -pthreads],
+				[ol_cv_pthreads_flag], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="-pthreads $LIBS"
+				AC_TRY_LINK([char pthread();],[
+					pthread_create();
+					], ol_cv_pthreads_flag=yes, ol_cv_pthreads_flag=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_pthreads_flag = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -pthreads"
 				ol_link_threads=posix
 			fi
 		fi
@@ -642,7 +664,9 @@ dnl			)
 	fi
 fi
 
-if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = mach ; then
+
 	dnl check for Mach CThreads
 	AC_CHECK_HEADERS(mach/cthreads.h)
 	if test $ac_cv_header_mach_cthreads_h = yes ; then
@@ -685,7 +709,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 	fi
 fi
 
-if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = lwp ; then
+
 	dnl check for SunOS5 LWP
 	AC_CHECK_HEADERS(thread.h synch.h)
 	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
@@ -738,7 +764,7 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
-if test $ol_with_threads != no ; then  
+if test $ol_link_threads != no ; then  
 	dnl needed to get reentrant/threadsafe versions
 	dnl
 	AC_DEFINE(REENTRANT,1)
