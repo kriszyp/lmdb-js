@@ -97,7 +97,9 @@ extern int lber_debug;
 /*
  * in bprint.c:
  */
-LDAP_F void lber_bprint LDAP_P(( char *data, int len ));
+LDAP_F void ber_print_error LDAP_P(( char *data ));
+LDAP_F void ber_bprint LDAP_P(( char *data, int len ));
+#define lber_bprint(d,l)	ber_bprint((d),(l))
 
 /*
  * in decode.c:

@@ -1,9 +1,9 @@
 
 #include "portable.h"
 
-#if defined( LDAP_DEBUG ) && defined( LDAP_LIBUI )
 #include <stdio.h>
 
+#if defined( LDAP_DEBUG ) && defined( LDAP_LIBUI )
 #include <ac/ctype.h>
 #include <ac/string.h>
 #endif /* LDAP_DEBUG && LDAP_LIBUI  */
@@ -11,12 +11,21 @@
 #include "lber-int.h"
 
 /*
+ * Print stuff
+ */
+void
+ber_print_error( char *data)
+{
+	fputs( data, stderr );
+	fflush( stderr );
+}
+
+/*
  * Print arbitrary stuff, for debugging.
  */
 
-
 void
-lber_bprint( char *data, int len )
+ber_bprint( char *data, int len )
 {
 #if defined( LDAP_DEBUG ) && defined( LDAP_LIBUI )
 #define BPLEN	48
@@ -48,7 +57,9 @@ lber_bprint( char *data, int len )
 	data++;
 
 	if ( i > BPLEN - 2 ) {
-	    fprintf( stderr, "\t%s\n", out );
+		char data[128 + BPLEN];
+	    sprintf( data, "\t%s\n", out );
+		ber_print_error(data);
 	    memset( out, 0, BPLEN );
 	    i = 0;
 	    continue;
