@@ -247,7 +247,7 @@ all-cffiles: slapd
 	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
 		-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
 		-e 's;%MODULEDIR%;$(moduledir);' \
-		slapd.conf > slapd.conf.tmp ; \
+		$(srcdir)/slapd.conf > slapd.conf.tmp ; \
 	touch all-cffiles
 
 install-schema: FORCE
