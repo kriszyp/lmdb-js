@@ -1057,6 +1057,18 @@ syncrepl_message_to_entry(
 #endif
 		goto done;
 	}
+
+	/* Strip out dynamically generated attrs */
+	for ( modtail = modlist; *modtail ; ) {
+		mod = *modtail;
+		if ( mod->sml_desc->ad_type->sat_flags & SLAP_AT_DYNAMIC ) {
+			*modtail = mod->sml_next;
+			slap_mod_free( &mod->sml_mod, 0 );
+			free( mod );
+		} else {
+			modtail = &mod->sml_next;
+		}
+	}
 	
 	rc = slap_mods2entry( *modlist, &e, 1, 1, &text, txtbuf, textlen);
 	if( rc != LDAP_SUCCESS ) {

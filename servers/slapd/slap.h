@@ -622,6 +622,8 @@ typedef struct slap_attribute_type {
 #else
 #define SLAP_AT_HIDE		0x8000U /* hide attribute */
 #endif
+#define	SLAP_AT_DYNAMIC		0x0400U	/* dynamically generated */
+
 	slap_mask_t					sat_flags;
 
 	LDAP_SLIST_ENTRY(slap_attribute_type) sat_next;
