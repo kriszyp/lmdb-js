@@ -540,6 +540,7 @@ at_insert(
 					 (AVL_CMP) attr_index_cmp,
 					 (AVL_DUP) avl_dup_error ) ) {
 				*err = *names;
+				ldap_memfree(air->air_name);
 				ldap_memfree(air);
 				return SLAP_SCHERR_DUP_ATTR;
 			}
