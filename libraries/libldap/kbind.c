@@ -66,6 +66,11 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1\n", 0, 0, 0 );
 
+	if( ld->ld_version > LDAP_VERSION2 ) {
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
+		return -1;
+	}
+
 	if ( dn == NULL )
 		dn = "";
 
@@ -143,6 +148,11 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	ber_len_t credlen;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2\n", 0, 0, 0 );
+
+	if( ld->ld_version > LDAP_VERSION2 ) {
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
+		return -1;
+	}
 
 	if ( dn == NULL )
 		dn = "";
