@@ -203,24 +203,38 @@ Backends="bdb dnssrv hdb ldap ldbm meta monitor null \
 AC_ARG_WITH(xxslapbackends,[
 SLAPD Backend Options:])
 
-OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend no|yes|mod], yes, [no yes mod])dnl
-OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_WITH(ldbm_api,[      --with-ldbm-api     with LDBM API auto|berkeley|bcompat|mdbm|gdbm], auto,
-	[auto berkeley bcompat mdbm gdbm])
-OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	  use LDBM type auto|btree|hash], auto,
-	[auto btree hash])
-OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend no|yes|mod], yes, [no yes mod])dnl
-OL_ARG_ENABLE(null,[    --enable-null	  enable null backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(relay,[    --enable-relay  	  enable relay backend no|yes|mod], yes, [no yes mod])dnl
-OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod], no, [no yes mod])dnl
+OL_ARG_ENABLE(backends,[    --enable-backends	  enable all available backends no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend no|yes|mod],
+	yes, [no yes mod])dnl
+OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend no|yes|mod], no,
+	[no yes mod])dnl
+OL_ARG_WITH(ldbm_api,[      --with-ldbm-api     with LDBM API auto|berkeley|bcompat|mdbm|gdbm],
+	auto, [auto berkeley bcompat mdbm gdbm])
+OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	  use LDBM type auto|btree|hash],
+	auto, [auto btree hash])
+OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend no|yes|mod],
+	yes, [no yes mod])dnl
+OL_ARG_ENABLE(null,[    --enable-null	  enable null backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(relay,[    --enable-relay  	  enable relay backend no|yes|mod],
+	yes, [no yes mod])dnl
+OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend no|yes|mod],
+	no, [no yes mod])dnl
 
 dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
@@ -230,25 +244,26 @@ Overlays="chain denyop dyngroup lastmod ppolicy proxycache rwm \
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
 
-OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no|yes|mod], no, [no yes mod])dnl
-OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(lastmod,[    --enable-lastmod	  Last Modification overlay no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(proxycache,[    --enable-proxycache	  Proxy Cache overlay no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod], no,
-	[no yes mod])
-OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod], no,
-	[no yes mod])
+OL_ARG_ENABLE(overlays,[    --enable-overlays	  enable all available overlays no|yes|mod],
+	no, [no yes mod])dnl
+OL_ARG_ENABLE(chain,[    --enable-chain   	  LDAP Chain Response no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(denyop,[    --enable-denyop  	  Deny Operation overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(dyngroup,[    --enable-dyngroup	  Dynamic Group overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(lastmod,[    --enable-lastmod	  Last Modification overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(ppolicy,[    --enable-ppolicy	  Password Policy overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(proxycache,[    --enable-proxycache	  Proxy Cache overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(refint,[    --enable-refint	  Referential Integrity overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(rwm,[    --enable-rwm       	  Rewrite/Remap overlay no|yes|mod],
+	no, [no yes mod])
+OL_ARG_ENABLE(unique,[    --enable-unique       Attribute Uniqueness overlay no|yes|mod],
+	no, [no yes mod])
 
 
 dnl ----------------------------------------------------------------
