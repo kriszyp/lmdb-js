@@ -66,9 +66,8 @@ LDAP_BEGIN_DECL
  * Note that LBER_ERROR and LBER_DEFAULT are values that can never appear
  * as valid BER tags, and so it is safe to use them to report errors.  In
  * fact, any tag for which the following is true is invalid:
- *     (( tag & 0x00000080 ) != 0 ) && (( tag & 0xFFFFFF00 ) != 0 )
  */
-#define LBER_INVALID(tag) ( ( (tag) & 0xFFFFFF80UL ) != 0 )
+#define LBER_INVALID(tag) (((tag) & 0x00000080) && (((tag) & 0xFFFFFF00))
 #define LBER_ERROR		0xffffffffUL
 #define LBER_DEFAULT		0xffffffffUL
 
