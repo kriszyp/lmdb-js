@@ -232,7 +232,7 @@ to trim any leading and trailing whitespace from the example.
 . Now, you may run {{ldapadd}}(1) to insert these entries into
 your directory.
 
-..{{EX:ldapadd -D "cn=Manager,dc=<MY-DOMAIN>,dc=<COM>" -W -f example.ldif}}
+..{{EX:ldapadd -x -D "cn=Manager,dc=<MY-DOMAIN>,dc=<COM>" -W -f example.ldif}}
 
 . Be sure to replace {{EX:<MY-DOMAIN>}} and {{EX:<COM>}} with the
 appropriate domain components of your domain name.  You will be

@@ -107,5 +107,5 @@ You should be able to use any LDAP client to retrieve this
 information. Here's how you might do it using the
 {{I: ldapsearch}}(1) client:
 
-E: ldapsearch -s base -b cn=monitor 'objectclass=*'
+E: ldapsearch -x -s base -b cn=monitor 'objectclass=*'
 
