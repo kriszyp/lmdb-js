@@ -18,16 +18,15 @@
  */
 
 #include "portable.h"
-#include "slapi_common.h"
 
 #include <ac/string.h>
-
-#include <slap.h>
-#include <slapi.h>
 #include <ac/stdarg.h>
 #include <ac/ctype.h>
 #include <ac/unistd.h>
 #include <ldap_pvt.h>
+
+#include <slap.h>
+#include <slapi.h>
 
 struct berval *ns_get_supported_extop( int );
 
@@ -594,7 +593,6 @@ slapi_entry_add_valueset(Slapi_Entry *e, const char *type, Slapi_ValueSet *vs)
 	AttributeDescription	*ad = NULL;
 	const char		*text;
 	int			rc;
-	BerVarray		bv;
 	
 	rc = slap_str2ad( type, &ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
@@ -1674,7 +1672,9 @@ slapi_pw_find(
 	return 1;
 #endif /* !defined(LDAP_SLAPI) */
 }
-             
+
+#define MAX_HOSTNAME 512
+
 char *
 slapi_get_hostname( void ) 
 {

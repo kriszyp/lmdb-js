@@ -11,7 +11,6 @@
  */
 
 #include <portable.h>
-#include <slapi_common.h>
 #include <stdio.h>
 #include <ac/string.h>
 #include <ac/stdarg.h>

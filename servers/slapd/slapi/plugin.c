@@ -11,7 +11,6 @@
  */
 
 #include "portable.h"
-#include "slapi_common.h"
 #include <ldap_pvt_thread.h>
 #include <slap.h>
 #include <slapi.h>

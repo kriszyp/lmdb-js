@@ -15,28 +15,145 @@
 
 #include <ibm_pblock_params.h> 
 
+#define slapi_entry	slap_entry
+#define slapi_attr	slap_attr
+#define slapi_filter	slap_filter
+#include <slapi-plugin.h>
+
 LDAP_BEGIN_DECL
 
+/*
+ * Generic typedefs
+ */
+#if 0
 typedef struct	slapi_pblock	Slapi_PBlock;
 typedef struct	slap_entry	Slapi_Entry;
 typedef struct	slap_attr	Slapi_Attr;
 typedef struct	berval		Slapi_Value;
 typedef BerVarray		Slapi_ValueSet;
 typedef Filter			Slapi_Filter;
+#endif
 
-LDAP_END_DECL
+/*
+ * Was: slapi_common.h
+ */
 
-#include <slapi_utils.h>
+/* a little naif ... */
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
+#if 0
+
+#define dn_normalize_case	dn_normalize
+#define SLAPD_NO_MEMORY    	7
+#define ANYBODY_STRING 		"CN=ANYBODY"
+
+extern int slap_debug;
+
+int
+dn_check(char *, int *);
+
+typedef struct strlist {
+	char *string;
+	struct strlist *next;
+} StrList;
+
+#endif
+
+
+/*
+ * Was: slapi_utils.h
+ */
+typedef struct _Audit_record Audit_record;
+
+#define SLAPI_CONTROL_MANAGEDSAIT_OID		LDAP_CONTROL_MANAGEDSAIT
+#define SLAPI_CONTROL_SORTEDSEARCH_OID		LDAP_CONTROL_SORTREQUEST
+#define SLAPI_CONTROL_PAGED_RESULTS_OID		LDAP_CONTROL_PAGEDRESULTS
+
+typedef int (*SLAPI_FUNC)( Slapi_PBlock *pb );
+
+#if 0
+#define DOMAIN "Domain"
+#define TCPIPPATH "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters"
+#endif
+
+typedef struct _slapi_control {
+        int			s_ctrl_num;
+        char			**s_ctrl_oids;
+        unsigned long		*s_ctrl_ops;
+} Slapi_Control;
+
+typedef struct _ExtendedOp {
+	struct berval		ext_oid;
+        SLAPI_FUNC		ext_func;
+        Backend			*ext_be;
+        struct _ExtendedOp	*ext_next;
+} ExtendedOp;
+
+/* Computed attribute support */
+struct _computed_attr_context {
+	/* slap_send_search_entry() argblock */
+	Slapi_PBlock	*cac_pb;
+	AttributeName	*cac_attrs;
+	int		cac_attrsonly : 1;
+	int		cac_userattrs : 1;
+	int 		cac_opattrs : 1;
+	AccessControlState	cac_acl_state;
+	/* private data */
+	void *cac_private;
+};
+
+/* for slapi_attr_type_cmp() */
+#define SLAPI_TYPE_CMP_EXACT	0
+#define SLAPI_TYPE_CMP_BASE	1
+#define SLAPI_TYPE_CMP_SUBTYPE	2
+
+
+/*
+ * Was: slapi_pblock.h
+ */
+
 #ifndef NO_PBLOCK_CLASS
+
+#if 0
+#define CMP_EQUAL			0
+#define CMP_GREATER			1
+#define CMP_LOWER			(-1)
+#endif
+#define PBLOCK_ERROR			(-1)
+#define INVALID_PARAM			PBLOCK_ERROR
+#define PBLOCK_MAX_PARAMS		100
+
+struct slapi_pblock {
+	ldap_pvt_thread_mutex_t	pblockMutex;
+	int			ckParams;
+	int			numParams;
+	int			curParams[PBLOCK_MAX_PARAMS];
+	void			*curVals[PBLOCK_MAX_PARAMS];
+};
+
+#endif /* !NO_PBLOCK_CLASS */
+
+/*
+ * Was: plugin.h
+ */
+
+#define SLAPI_PLUGIN_IS_POST_FN(x) ((x) >= SLAPI_PLUGIN_POST_BIND_FN && (x) <= SLAPI_PLUGIN_POST_RESULT_FN)
+
+#if 0
+#include <slapi_utils.h.h>
 #include <slapi_pblock.h>
-#endif /* NO_PBLOCK_CLASS */
 #include <plugin.h>
 #include <slapi_ops.h>
 #if 0 /* unused (yet?) */
 #include <slapi_cl.h>
 #endif /* 0 */
-
-LDAP_BEGIN_DECL
+#endif
 
 /*
  * Attribute flags returned by slapi_attr_get_flags()
@@ -374,6 +491,8 @@ LDAP_BEGIN_DECL
 #define SLAPI_OPERATION_NONE            	0x00000000L
 
 LDAP_END_DECL
+
+#include "proto-slapi.h"
 
 #endif /* _SLAPI_H */
 

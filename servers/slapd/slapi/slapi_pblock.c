@@ -11,7 +11,6 @@
  */
 
 #include "portable.h"
-#include "slapi_common.h"
 #include <slap.h>
 #include <slapi.h>
 
@@ -273,7 +272,7 @@ set( Slapi_PBlock *pb, int param, void *val )
 
 	Lock( pb );	
 
-	if ( pb->numParams == MAX_PARAMS ) {
+	if ( pb->numParams == PBLOCK_MAX_PARAMS ) {
 		unLock( pb );
 		return PBLOCK_ERROR; 
 	}

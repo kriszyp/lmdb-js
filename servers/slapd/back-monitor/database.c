@@ -36,8 +36,7 @@
 #include <stdio.h>
 
 #include "slap.h"
-#include "slapi-plugin.h"
-#include "slapi_pblock.h"
+#include "slapi.h"
 #include "back-monitor.h"
 
 #if defined(LDAP_SLAPI)

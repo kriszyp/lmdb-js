@@ -11,7 +11,6 @@
  */
 
 #include "portable.h"
-#include "slapi_common.h"
 #include <slap.h>
 #include <slapi.h>
 #include <lber.h>

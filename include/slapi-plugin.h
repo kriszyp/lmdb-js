@@ -20,7 +20,7 @@ typedef struct slapi_pblock	Slapi_PBlock;
 typedef struct slapi_entry	Slapi_Entry;
 typedef struct slapi_attr	Slapi_Attr;
 typedef struct berval		Slapi_Value;
-typedef struct BerVarray	Slapi_ValueSet;
+typedef BerVarray		Slapi_ValueSet;
 typedef struct slapi_filter	Slapi_Filter;
 
 /* pblock routines */
@@ -195,15 +195,13 @@ int slapi_filter_get_subfilt( Slapi_Filter *f, char **type, char **initial,
 Slapi_Filter *slapi_filter_join( int ftype, Slapi_Filter *f1, Slapi_Filter *f2);
 int slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	int verify_access );
-int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f);
+int slapi_filter_test_simple( Slapi_Entry *e, Slapi_Filter *f );
 
 /* internal add/delete/search/modify routines */
 Slapi_PBlock *slapi_search_internal( char *base, int scope, char *filter, 
 	LDAPControl **controls, char **attrs, int attrsonly );
 Slapi_PBlock *slapi_modify_internal( char *dn, LDAPMod **mods,
-        LDAPControl **controls, int log_change);
-Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e,
-	LDAPControl **controls, int log_change );
+        LDAPControl **controls, int log_change );
 Slapi_PBlock *slapi_add_internal( char * dn, LDAPMod **attrs,
 	LDAPControl **controls, int log_changes );
 Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e,
@@ -211,8 +209,13 @@ Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e,
 Slapi_PBlock *slapi_delete_internal( char * dn,  LDAPControl **controls,
 	int log_change );
 Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
+	int deloldrdn, LDAPControl **controls,
+	int log_change );
+#if 0
+Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
 	char *newParent, int deloldrdn, LDAPControl **controls,
-	int log_change);
+	int log_change );
+#endif
 void slapi_free_search_results_internal(Slapi_PBlock *pb);
 
 /* connection related routines */
@@ -220,7 +223,6 @@ int slapi_is_connection_ssl(Slapi_PBlock *pPB, int *isSSL);
 int slapi_get_client_port(Slapi_PBlock *pPB, int *fromPort);
 
 /* computed attributes */
-struct _computed_attr_context;
 typedef struct _computed_attr_context computed_attr_context;
 typedef int (*slapi_compute_output_t)(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e);
 typedef int (*slapi_compute_callback_t)(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
