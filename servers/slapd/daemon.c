@@ -249,7 +249,7 @@ slapd_daemon(
 			}
 			if ( ioctl( ns, FIONBIO, (caddr_t) &on ) == -1 ) {
 				Debug( LDAP_DEBUG_ANY,
-				    "FIONBIO ioctl on %d faled\n", ns, 0, 0 );
+				    "FIONBIO ioctl on %d failed\n", ns, 0, 0 );
 			}
 			c[ns].c_sb.sb_sd = ns;
 			Debug( LDAP_DEBUG_CONNS, "new connection on %d\n", ns,
