@@ -31,9 +31,9 @@ LDAP_BEGIN_DECL
 #define BDB_MAX_ADD_LOOP	30
 
 #ifdef BDB_SUBDIRS
-#define BDB_TMP_SUBDIR	LDAP_DIRSEP "tmp"
-#define BDB_LG_SUBDIR	LDAP_DIRSEP "log"
-#define BDB_DATA_SUBDIR	LDAP_DIRSEP "data"
+#define BDB_TMP_SUBDIR	"tmp"
+#define BDB_LG_SUBDIR	"log"
+#define BDB_DATA_SUBDIR	"data"
 #endif
 
 #define BDB_SUFFIX		".bdb"
