@@ -215,10 +215,6 @@ Please try again later.\r\n"
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */
 #define SLAPD_DEFAULT_TIMELIMIT		3600
-	/* extension of the slapd pid file */
-#define SLAPD_PIDEXT            ".pid"
-	/* extension of the slapd args file */
-#define SLAPD_ARGSEXT           ".args"
 	/* minimum max ids that a single index entry can map to in ldbm */
 #define SLAPD_LDBM_MIN_MAXIDS		4000
 

@@ -24,6 +24,9 @@ char		*replogfile;
 int		global_lastmod;
 char		*ldap_srvtab = "";
 
+char   *slapd_pid_file  = NULL;
+char   *slapd_args_file = NULL;
+
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
 static void	fp_parse_line(char *line, int *argcp, char **argv);
@@ -82,6 +85,28 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 
  		/* assign a default depth limit for alias deref */
 		be->be_maxDerefDepth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
+
+		/* get pid file name */
+		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing file name in \"pidfile <file>\" line\n",
+				    fname, lineno, 0 );
+				exit( 1 );
+			}
+
+			slapd_pid_file = ch_strdup( cargv[1] );
+
+		/* get args file name */
+		} else if ( strcasecmp( cargv[0], "argsfile" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing file name in \"argsfile <file>\" line\n",
+				    fname, lineno, 0 );
+				exit( 1 );
+			}
+
+			slapd_args_file = ch_strdup( cargv[1] );
 
 		/* set size limit */
 		} else if ( strcasecmp( cargv[0], "sizelimit" ) == 0 ) {

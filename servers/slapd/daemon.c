@@ -40,11 +40,9 @@ static int slapd_shutdown = 0;
 static void	set_shutdown(int sig);
 static void	do_nothing  (int sig);
 
-/* we need the server's name for constructing the pid/args file names */
-#if defined( SLAPD_PIDEXT ) || defined( SLAPD_ARGSEXT )
-extern char  *serverName;
-#define DEFAULT_SERVERNAME  "slapd"
-#endif
+/* a link to the slapd.conf configuration parameters */
+extern char *slapd_pid_file;
+extern char *slapd_args_file;
 
 void *
 slapd_daemon(
@@ -61,13 +59,6 @@ slapd_daemon(
 	fd_set			writefds;
 	FILE			*fp;
 	int			on = 1;
-
-#ifdef SLAPD_PIDEXT
-    char            pidFile[BUFSIZ];
-#endif
-#ifdef SLAPD_ARGSEXT
-    char            argsFile[BUFSIZ];
-#endif
 
 #ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
@@ -150,30 +141,20 @@ slapd_daemon(
 
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
-#if defined( SLAPD_PIDEXT ) || defined( SLAPD_ARGSEXT )
-    if ( !serverName ) serverName = DEFAULT_SERVERNAME;
-
-#ifdef SLAPD_PIDEXT
-    sprintf( pidFile, "%s%s%s%s", DEFAULT_RUNDIR, DEFAULT_DIRSEP,
-		serverName, SLAPD_PIDEXT );
-	if ( (fp = fopen( pidFile, "w" )) != NULL ) {
+	if (( slapd_pid_file != NULL ) &&
+			(( fp = fopen( slapd_pid_file, "w" )) != NULL )) {
 		fprintf( fp, "%d\n", (int) getpid() );
 		fclose( fp );
 	}
-#endif
-#ifdef SLAPD_ARGSEXT
-    sprintf( argsFile, "%s%s%s%s", DEFAULT_RUNDIR, DEFAULT_DIRSEP,
-    	serverName, SLAPD_ARGSEXT );
-	if ( (fp = fopen( argsFile, "w" )) != NULL ) {
+
+	if (( slapd_args_file != NULL ) &&
+			(( fp = fopen( slapd_args_file, "w" )) != NULL )) {
 		for ( i = 0; i < g_argc; i++ ) {
 			fprintf( fp, "%s ", g_argv[i] );
 		}
 		fprintf( fp, "\n" );
 		fclose( fp );
 	}
-#endif
-#endif
-
 
 	while ( !slapd_shutdown ) {
 		struct sockaddr_in	from;

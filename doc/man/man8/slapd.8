@@ -1,4 +1,4 @@
-.TH SLAPD 8C "22 September 1998" "OpenLDAP LDVERSION"
+.TH SLAPD 8C "20 January 1999" "OpenLDAP LDVERSION"
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
@@ -18,26 +18,19 @@ is typically invoked at boot time, usually out of
 Upon startup,
 .B slapd
 normally forks and disassociates itself from the invoking tty.
-In this case, the
+If configured in
+.BR ETCDIR/slapd.conf ,
+the
 .B slapd
-process will print its process ID to a 
-.B .pid
-file ( see
+process will print its process ID ( see
 .BR getpid (2)
-), as well as the command line options during invocation to an
+) to a 
+.B .pid
+file, as well as the command line options during invocation to an
 .B .args
-file. By default, these files are located in the directory 
-.B LOCALSTATEDIR.
-The files' base names are derived from the 
-.B slapd
-binary name, making it possible to run several 
-.B slapd
-servers with differet names on the same machine, with each having
-its own 
-.B .pid/.args 
-files. (Those 
-.B slapd
-names might be obtained via symbolic links to one binary file.)
+file ( see 
+.BR slapd.conf (5)
+).
 If the
 .B \-d
 flag is given and debugging is set to some non-zero

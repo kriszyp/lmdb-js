@@ -48,12 +48,6 @@ static int   cnvt_str2int();
 
 #endif  /* LOG_LOCAL4 */
 
-/*
- * the server's name must be accessible from the daemon module,
- * to construct the pid/args file names
- */
-char  *serverName = NULL;
-
 
 static void
 usage( char *name )
@@ -75,6 +69,7 @@ main( int argc, char **argv )
 	Backend		*be = NULL;
 	FILE		*fp = NULL;
 	char		*configfile;
+	char	*serverName;
 #ifdef LOG_LOCAL4
 	int	syslogUser = DEFAULT_SYSLOG_USER;
 #endif
