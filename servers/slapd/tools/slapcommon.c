@@ -195,7 +195,7 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
-	rc = read_config( conffile );
+	rc = read_config( conffile, 0 );
 
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: bad configuration file!\n", progname );
