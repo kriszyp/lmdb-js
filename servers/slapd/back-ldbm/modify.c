@@ -187,6 +187,11 @@ int ldbm_modify_internal(
 			goto exit;
 		}
 
+		/* If objectClass was modified, reset the flags */
+		if ( mod->sm_desc == slap_schema.si_ad_objectClass ) {
+			e->e_ocflags = 0;
+		}
+
 		/* check if modified attribute was indexed */
 		rc = index_is_indexed( be, mod->sm_desc );
 		if ( rc == LDAP_SUCCESS ) {

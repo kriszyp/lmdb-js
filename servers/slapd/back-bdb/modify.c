@@ -117,6 +117,11 @@ int bdb_modify_internal(
 			return err; 
 		}
 
+		/* If objectClass was modified, reset the flags */
+		if ( mod->sm_desc == slap_schema.si_ad_objectClass ) {
+			e->e_ocflags = 0;
+		}
+
 		/* check if modified attribute was indexed */
 		err = bdb_index_is_indexed( be, mod->sm_desc );
 		if ( err == LDAP_SUCCESS ) {
