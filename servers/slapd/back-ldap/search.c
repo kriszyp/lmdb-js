@@ -145,7 +145,7 @@ ldap_send_entry(
 	BerElement *ber = NULL;
 	Attribute *attr, **attrp;
 	struct berval *dummy = NULL;
-	char *text;
+	const char *text;
 
 	ent.e_dn = ldap_get_dn(lc->ld, e);
 	ent.e_ndn = ch_strdup( ent.e_dn);
