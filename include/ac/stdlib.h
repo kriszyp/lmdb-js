@@ -32,4 +32,11 @@
 #	define EXIT_FAILURE 1
 #endif
 
+#ifdef HAVE_EBCDIC
+#undef putchar
+#undef putc
+#define	putchar(c)	putc((c), stdout)
+#define	putc(c, fp)	do { char x=(c); __atoe_l(&x,1); putc(x,fp);} while(0)
+#endif
+
 #endif /* _AC_STDLIB_H */
