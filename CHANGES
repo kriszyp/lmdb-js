@@ -1,5 +1,9 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.6 Release
+	Build Environment
+		Updated pthreads detection
+
 OpenLDAP 2.1.5 Release
 	Fixed back-ldbm indirect IDL bug (ITS#2039)
 	Fixed back-bdb locker_id bugs (ITS#2040)
