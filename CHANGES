@@ -1,5 +1,7 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.18 Engineering
+
 OpenLDAP 2.2.17 Release
 	Fixed slapd syncrepl memory leak bugs
 	Documentation

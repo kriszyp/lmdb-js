@@ -257,6 +257,9 @@ int slap_destroy(void)
 		slap_name, 0, 0 );
 #endif
 
+	if ( default_referral ) {
+		ber_bvarray_free( default_referral );
+	}
 
 	rc = backend_destroy();
 
