@@ -52,6 +52,7 @@ int at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
 int at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
 int at_fake_if_needed LDAP_P(( char *name ));
 int at_schema_info LDAP_P(( Entry *e ));
+int at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, char **err ));
 
 /*
  * ava.c
