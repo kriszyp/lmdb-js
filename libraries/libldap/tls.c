@@ -809,13 +809,7 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 {
 	struct ldapoptions *lo;
 
-	/* Get pointer to global option structure */
-	lo = LDAP_INT_GLOBAL_OPT();   
-	if (NULL == lo)	{
-		return LDAP_NO_MEMORY;
-	}
-
-	if(ld != NULL) {
+	if( ld != NULL ) {
 		assert( LDAP_VALID( ld ) );
 
 		if( !LDAP_VALID( ld ) ) {
@@ -823,6 +817,13 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		}
 
 		lo = &ld->ld_options;
+
+	} else {
+		/* Get pointer to global option structure */
+		lo = LDAP_INT_GLOBAL_OPT();   
+		if ( lo == NULL ) {
+			return LDAP_NO_MEMORY;
+		}
 	}
 
 	switch( option ) {
@@ -868,13 +869,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 {
 	struct ldapoptions *lo;
 
-	/* Get pointer to global option structure */
-	lo = LDAP_INT_GLOBAL_OPT();   
-	if (NULL == lo)	{
-		return LDAP_NO_MEMORY;
-	}
-
-	if(ld != NULL) {
+	if( ld != NULL ) {
 		assert( LDAP_VALID( ld ) );
 
 		if( !LDAP_VALID( ld ) ) {
@@ -882,6 +877,13 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		}
 
 		lo = &ld->ld_options;
+
+	} else {
+		/* Get pointer to global option structure */
+		lo = LDAP_INT_GLOBAL_OPT();   
+		if ( lo == NULL ) {
+			return LDAP_NO_MEMORY;
+		}
 	}
 
 	switch( option ) {
@@ -910,7 +912,7 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 		return 0;
 	}
 
-	if ( lo != NULL ) {
+	if ( ld != NULL ) {
 		return -1;
 	}
 
