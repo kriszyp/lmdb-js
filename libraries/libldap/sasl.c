@@ -186,6 +186,12 @@ ldap_sasl_bind_s(
 		return( rc );
 	}
 
+#ifdef LDAP_CONNECTIONLESS
+	if (LDAP_IS_UDP(ld)) {
+		return( rc );
+	}
+#endif
+
 	if ( ldap_result( ld, msgid, 1, NULL, &result ) == -1 ) {
 		return( ld->ld_errno );	/* ldap_result sets ld_errno */
 	}

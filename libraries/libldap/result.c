@@ -426,7 +426,7 @@ try_read1msg(
 		return( -2 );	/* continue looking */
 	}
 #ifdef LDAP_CONNECTIONLESS
-	if (LDAP_IS_UDP(ld)) {
+	if (LDAP_IS_UDP(ld) && ld->ld_options.ldo_version == LDAP_VERSION2) {
 		char *blank;
 		ber_scanf(ber, "a{", &blank);
 		if (blank)

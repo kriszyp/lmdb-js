@@ -202,6 +202,12 @@ do_search(
 		Entry *entry = NULL;
 
 		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
+#ifdef LDAP_CONNECTIONLESS
+			/* Ignore LDAPv2 CLDAP DSE queries */
+			if (op->o_protocol==LDAP_VERSION2 && conn->c_is_udp) {
+				goto return_results;
+			}
+#endif
 			/* check restrictions */
 			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
 			if( rc != LDAP_SUCCESS ) {

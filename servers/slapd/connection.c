@@ -479,7 +479,6 @@ long connection_init(
 	if (tls_udp_option == 2)
 	{
 		c->c_is_udp = 1;
-		c->c_protocol = LDAP_VERSION2;
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
 		LBER_SBIOD_LEVEL_PROVIDER, (void*)"udp_" );
@@ -1200,6 +1199,8 @@ connection_input(
 		char	peername[sizeof("IP=255.255.255.255:65336")];
 		len = ber_int_sb_read(conn->c_sb, &peeraddr,
 			sizeof(struct sockaddr));
+		if (len != sizeof(struct sockaddr))
+			return 1;
 		sprintf( peername, "IP=%s:%d",
 			inet_ntoa( peeraddr.sa_in_addr.sin_addr ),
 			(unsigned) ntohs( peeraddr.sa_in_addr.sin_port ) );
@@ -1251,11 +1252,6 @@ connection_input(
 		ber_free( ber, 1 );
 		return -1;
 	}
-#ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp) {
-		tag = ber_get_stringa( ber, &cdn );
-	}
-#endif
 
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
 		/* log, close and send error */
@@ -1273,19 +1269,23 @@ connection_input(
 	}
 
 #ifdef LDAP_CONNECTIONLESS
-	if (conn->c_is_udp && (tag != LDAP_REQ_ABANDON &&
-		tag != LDAP_REQ_SEARCH))
-	{
+	if (conn->c_is_udp) {
+		if (tag == LBER_OCTETSTRING) {
+			ber_get_stringa( ber, &cdn );
+			tag = ber_peek_tag(ber, &len);
+		}
+		if (tag != LDAP_REQ_ABANDON && tag != LDAP_REQ_SEARCH) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_input: conn %d  invalid req for UDP 0x%lx.\n",
-			   conn->c_connid, tag ));
+		    LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
+			       "connection_input: conn %d  invalid req for UDP 0x%lx.\n",
+			       conn->c_connid, tag ));
 #else
-		Debug( LDAP_DEBUG_ANY, "invalid req for UDP 0x%lx\n", tag, 0,
-		    0 );
+		    Debug( LDAP_DEBUG_ANY, "invalid req for UDP 0x%lx\n", tag, 0,
+			0 );
 #endif
-		ber_free( ber, 1 );
-		return 0;
+		    ber_free( ber, 1 );
+		    return 0;
+		}
 	}
 #endif
 	if(tag == LDAP_REQ_BIND) {
@@ -1297,7 +1297,10 @@ connection_input(
 
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
-	op->o_dn = cdn;
+	if (cdn) {
+	    op->o_dn = cdn;
+	    op->o_protocol = LDAP_VERSION2;
+	}
 #endif
 	if ( conn->c_conn_state == SLAP_C_BINDING
 		|| conn->c_conn_state == SLAP_C_CLOSING )
@@ -1436,8 +1439,10 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	arg->co_op->o_authmech = conn->c_authmech != NULL
 		?  ch_strdup( conn->c_authmech ) : NULL;
 	
-	arg->co_op->o_protocol = conn->c_protocol
+	if (!arg->co_op->o_protocol) {
+	    arg->co_op->o_protocol = conn->c_protocol
 		? conn->c_protocol : LDAP_VERSION3;
+	}
 	arg->co_op->o_connid = conn->c_connid;
 
 	slap_op_add( &conn->c_ops, arg->co_op );

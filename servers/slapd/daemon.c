@@ -571,8 +571,7 @@ static Listener * slap_open_listener(
 #endif
 	} else {
 #ifdef LDAP_CONNECTIONLESS
-		if ( tmp == LDAP_PROTO_UDP )
-			l.sl_is_udp = 1;
+		l.sl_is_udp = ( tmp == LDAP_PROTO_UDP );
 #endif
 		if( lud->lud_host == NULL || lud->lud_host[0] == '\0'
 			|| strcmp(lud->lud_host, "*") == 0 )

@@ -766,6 +766,10 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	if ((*ludpp)->lud_port == 0) {
 		if( strcmp((*ludpp)->lud_scheme, "ldap") == 0 ) {
 			(*ludpp)->lud_port = LDAP_PORT;
+#ifdef LDAP_CONNECTIONLESS
+		} else if( strcmp((*ludpp)->lud_scheme, "cldap") == 0 ) {
+			(*ludpp)->lud_port = LDAP_PORT;
+#endif
 		} else if( strcmp((*ludpp)->lud_scheme, "ldaps") == 0 ) {
 			(*ludpp)->lud_port = LDAPS_PORT;
 		}

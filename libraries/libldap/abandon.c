@@ -151,13 +151,14 @@ do_abandon(
 			if ( LDAP_IS_UDP(ld) ) {
 			    err = ber_write( ber, ld->ld_options.ldo_peer,
 				sizeof(struct sockaddr), 0);
-			    if (err == sizeof(struct sockaddr)) {
-			    	char *dn = ld->ld_options.ldo_cldapdn;
-				if (!dn) dn = "";
-				err = ber_printf( ber, "{isti",  /* '}' */
-				    ++ld->ld_msgid, dn,
-				    LDAP_REQ_ABANDON, msgid );
-			    }
+			}
+			if ( LDAP_IS_UDP(ld) && ld->ld_options.ldo_version ==
+				LDAP_VERSION2) {
+			    char *dn = ld->ld_options.ldo_cldapdn;
+			    if (!dn) dn = "";
+			    err = ber_printf( ber, "{isti",  /* '}' */
+				++ld->ld_msgid, dn,
+				LDAP_REQ_ABANDON, msgid );
 			} else
 #endif
 			{
