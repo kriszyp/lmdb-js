@@ -48,7 +48,8 @@ char	**cargv;
 /* current config file line # */
 static int	lineno;
 
-
+char *slurpd_pid_file = NULL;
+char *slurpd_args_file = NULL;
 
 /*
  * Read the slapd config file, looking only for config options we're
@@ -153,6 +154,41 @@ slurpd_read_config(
 		
 	    free( savefname );
 	    lineno = savelineno - 1;
+
+	} else if ( strcasecmp( cargv[0], "replica-pidfile" ) == 0 ) {
+		if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, CRIT, 
+				"%s: line %d missing file name in \"replica-pidfile <file>\" "
+				"line.\n", fname, lineno, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing file name in \"replica-pidfile <file>\" line\n",
+				fname, lineno, 0 );
+#endif
+
+			return( 1 );
+		}
+
+		slurpd_pid_file = ch_strdup( cargv[1] );
+
+	} else if ( strcasecmp( cargv[0], "replica-argsfile" ) == 0 ) {
+		if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, CRIT, 
+				   "%s: %d: missing file name in "
+				   "\"argsfile <file>\" line.\n",
+				   fname, lineno, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing file name in \"argsfile <file>\" line\n",
+			    fname, lineno, 0 );
+#endif
+
+			return( 1 );
+		}
+
+		slurpd_args_file = ch_strdup( cargv[1] );
 	}
     }
     fclose( fp );

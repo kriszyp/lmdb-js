@@ -550,6 +550,19 @@ Specify the referral to pass back when
 cannot find a local database to handle a request.
 If specified multiple times, each url is provided.
 .TP
+.B replica-argsfile
+The ( absolute ) name of a file that will hold the 
+.B slurpd
+server's command line options
+if started without the debugging command line option.
+.TP
+.B replica-pidfile
+The ( absolute ) name of a file that will hold the 
+.B slurpd
+server's process ID ( see
+.BR getpid (2)
+) if started without the debugging command line option.
+.TP
 .B require <conditions>
 Specify a set of conditions (separated by white space) to
 require (default none).

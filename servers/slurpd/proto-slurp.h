@@ -21,16 +21,21 @@ int doargs	LDAP_P((int argc, char **argv, struct globals *g));
 #define ch_malloc malloc
 #define ch_realloc realloc
 #define ch_calloc calloc
+#define ch_strdup strdup
 #define ch_free free
 #else
 void *ch_malloc	LDAP_P((ber_len_t size));
 void *ch_realloc	LDAP_P((void *block, ber_len_t size));
 void *ch_calloc	LDAP_P((ber_len_t nelem, ber_len_t size));
+char *ch_strdup LDAP_P((const char *str));
 void ch_free	LDAP_P((void *p));
 #endif
 
 /* config.c */
 int slurpd_read_config	LDAP_P((char *fname));
+
+char *slurpd_pid_file;
+char *slurpd_args_file;
 
 /* ch_malloc.c */
 void ch_free LDAP_P(( void *p ));

@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <ac/stdlib.h>
+#include <ac/unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -176,6 +177,35 @@ int main( int argc, char **argv )
 	goto stop;
     }
 
+
+    if ( slurpd_pid_file != NULL ) {
+	FILE *fp = fopen( slurpd_pid_file, "w" );
+
+	if( fp != NULL ) {
+		fprintf( fp, "%d\n", (int) getpid() );
+		fclose( fp );
+
+	} else {
+		free(slurpd_pid_file);
+		slurpd_pid_file = NULL;
+	}
+    }
+
+    if ( slurpd_args_file != NULL ) {
+	FILE *fp = fopen( slurpd_args_file, "w" );
+
+	if( fp != NULL ) {
+		for ( i = 0; i < argc; i++ ) {
+			fprintf( fp, "%s ", argv[i] );
+		}
+		fprintf( fp, "\n" );
+		fclose( fp );
+	} else {
+		free(slurpd_args_file);
+		slurpd_args_file = NULL;
+	}
+    }
+
     /*
      * Detach from the controlling terminal
      * unless the -d flag is given or in one-shot mode.
@@ -262,6 +292,15 @@ stop:
 #else
     Debug( LDAP_DEBUG_ANY, "slurpd: terminated.\n", 0, 0, 0 );
 #endif
+
+    if ( slurpd_pid_file != NULL ) {
+	unlink( slurpd_pid_file );
+    }
+    if ( slurpd_args_file != NULL ) {
+	unlink( slurpd_args_file );
+    }
+
+
 	MAIN_RETURN(rc);
 #endif /* !NO_THREADS */
 }

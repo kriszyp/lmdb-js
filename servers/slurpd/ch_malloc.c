@@ -109,6 +109,25 @@ ch_calloc(
 	return( new );
 }
 
+/*
+ * Just like strdup, except we check the returned value and exit
+ * if anything goes wrong.
+ */
+char *
+ch_strdup(
+    const char *string
+)
+{
+	char	*new;
+
+	if ( (new = ber_strdup( string )) == NULL ) {
+		fprintf( stderr, "ch_strdup: duplication of \"%s\" failed\n",
+				string );
+		exit( EXIT_FAILURE );
+	}
+
+	return( new );
+}
 
 /*
  * Just like free, except we check to see if p is null.
