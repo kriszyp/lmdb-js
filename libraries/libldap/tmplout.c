@@ -29,6 +29,8 @@
 #include "ldap-int.h"
 #include "ldapconfig.h"
 
+#define writeptype ldap_writeptype
+
 /* local functions */
 static int do_entry2text LDAP_P((
 	LDAP *ld, char *buf, char *base, LDAPMessage *entry,
@@ -271,9 +273,9 @@ do_entry2text(
 	}
     } else {
 	for ( rowp = ldap_first_tmplrow( tmpl );
-		NONFATAL_LDAP_ERR( err ) && rowp != NULLTMPLITEM;
+		NONFATAL_LDAP_ERR( err ) && rowp != NULL;
 		rowp = ldap_next_tmplrow( tmpl, rowp )) {
-	    for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULLTMPLITEM;
+	    for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULL;
 		    colp = ldap_next_tmplcol( tmpl, rowp, colp )) {
 		vals = NULL;
 		if ( colp->ti_attrname == NULL || ( vals = ldap_get_values( ld,
@@ -768,9 +770,9 @@ max_label_len( struct ldap_disptmpl *tmpl )
 
     maxlen = 0;
 
-    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULLTMPLITEM;
+    for ( rowp = ldap_first_tmplrow( tmpl ); rowp != NULL;
 	    rowp = ldap_next_tmplrow( tmpl, rowp )) {
-	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULLTMPLITEM;
+	for ( colp = ldap_first_tmplcol( tmpl, rowp ); colp != NULL;
 		colp = ldap_next_tmplcol( tmpl, rowp, colp )) {
 	    if (( len = strlen( colp->ti_label )) > maxlen ) {
 		maxlen = len;

@@ -199,13 +199,13 @@ extern BerMemoryFunctions*		ber_int_memory_fns;
 #define LBER_INT_CALLOC(n,s)	ber_memcalloc((n),(s))
 #define LBER_INT_REALLOC(p,s)	ber_memrealloc((p),(s))
 #define LBER_INT_FREE(p)		ber_memfree((p))
-#define LBER_INT_VFREE(v)		ber_memvfree((v))
+#define LBER_INT_VFREE(v)		ber_memvfree((void**)(v))
 	
 #define LBER_MALLOC(s)		ber_memalloc((s))
 #define LBER_CALLOC(n,s)	ber_memcalloc((n),(s))
 #define LBER_REALLOC(p,s)	ber_memrealloc((p),(s))
 #define LBER_FREE(p)		ber_memfree((p))	
-#define LBER_VFREE(v)		ber_memvfree((v))
+#define LBER_VFREE(v)		ber_memvfree((void**)(v))
 
 /* sockbuf.c */
 

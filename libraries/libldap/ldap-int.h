@@ -271,14 +271,14 @@ void ldap_int_initialize LDAP_P((void));
 #define LDAP_INT_CALLOC(n,s)	(LBER_CALLOC((n),(s)))
 #define LDAP_INT_REALLOC(p,s)	(LBER_REALLOC((p),(s)))
 #define LDAP_INT_FREE(p)		(LBER_FREE((p)))
-#define LDAP_INT_VFREE(v)		(LBER_VFREE((v)))
+#define LDAP_INT_VFREE(v)		(LBER_VFREE((void **)(v)))
 
 #ifndef LDAP_MALLOC
 #define LDAP_MALLOC(s)		(LBER_MALLOC((s)))
 #define LDAP_CALLOC(n,s)	(LBER_CALLOC((n),(s)))
 #define LDAP_REALLOC(p,s)	(LBER_REALLOC((p),(s)))
 #define LDAP_FREE(p)		(LBER_FREE((p)))
-#define LDAP_VFREE(v)		(LBER_VFREE((v)))
+#define LDAP_VFREE(v)		(LBER_VFREE((void **)(v)))
 #endif
 
 /*
