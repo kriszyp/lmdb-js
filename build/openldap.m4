@@ -265,6 +265,24 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 #define NULL ((void*)0)
 #endif
 ],[
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\texpected: %s\n\tgot: %s\n",
+				DB_VERSION_STRING, version);
+			return 1;
+		}
+	}
+#endif
+
 #if DB_VERSION_MAJOR > 2
 	db_env_create( NULL, 0 );
 #elif DB_VERSION_MAJOR > 1
@@ -329,11 +347,18 @@ main()
 
 	rc = db_env_create( &env, 0 );
 
-	if( rc ) return rc;
+	if( rc ) {
+		printf("BerkeleyDB: %s\n", db_strerror(rc) );
+		return rc;
+	}
 
 #ifdef DB_CDB_ALLDB
 	rc = env->set_flags( env, DB_CDB_ALLDB, 1 );
-	if( rc ) goto done;
+
+	if( rc ) {
+		printf("BerkeleyDB: %s\n", db_strerror(rc) );
+		return rc;
+	}
 #endif
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
@@ -342,14 +367,14 @@ main()
 	rc = env->open( env, NULL, NULL, flags, 0 );
 #endif
 
-#ifdef DB_CDB_ALLDB
-done:
-#endif
-#if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-	env->remove( env, NULL, DB_FORCE);
-#else
-	env->remove( env, NULL, NULL, DB_FORCE);
-#endif
+	if ( rc == 0 ) {
+		rc = env->close( env, 0 );
+	}
+
+	if( rc ) {
+		printf("BerkeleyDB: %s\n", db_strerror(rc) );
+		return rc;
+	}
 
 #else
 	DB_ENV env;

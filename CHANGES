@@ -1,19 +1,19 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.12 Engineering
+	Fixed ldapmodrdn SASL auth bug (ITS#1179)
 	Fixed slapd modlist2mods error text bug
 	Fixed slapd empty rootdn bug (ITS#1172)
 	Fixed slapd numericString empty value bug (ITS#1182)
-	Fixed slapd undefined attr error report
 	Fixed slapd acl default clause bug (ITS#1187)
-	Fixed ldapmodrdn SASL auth bug (ITS#1179)
-	Added slapd DB_ENV support
+	Added slapadd already exists check (ITS#1191)
 	Added slapd modrdn children check (ITS#1053,1192)
 	Added slapd sb_max_incoming_auth support (ITS#1181)
-	Added slapadd already exists check (ITS#1191)
+	Added slapd DB_ENV support
+	Updated slapd schema check handling
+	Updated ldbm to use BerkeleyDB's CDB (ITS#1176)
 	Updated slapd filter checks
 	Updated ldaptcl API (contrib)
-	Updated ldbm to use BerkeleyDB's CDB (ITS#1176)
 	Build environment
 		Remove extraneous files
 

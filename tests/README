@@ -8,6 +8,6 @@ To modify the debug level the tests run slapd with, set the SLAPD_DEBUG
 environment variable.
 	env SLAPD_DEBUG=1 make test
 
-To test LDAPv3, set PROTO to "-P 3".
-	env PROTO="-P 3" make test
+To test LDAPv2, set PROTO to "-P 2".
+	env PROTO="-P 2" make test
 

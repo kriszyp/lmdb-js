@@ -106,6 +106,29 @@ int ldbm_initialize( const char* home )
 
 	if(ldbm_initialized++) return 1;
 
+	{
+		char *version;
+		int major, minor, patch;
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+#ifdef LDAP_SYSLOG
+			char error[BUFSIZ];
+
+			sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
+			syslog( LOG_INFO,
+				"ldbm_initialize(): version mismatch\nexpected: %s\ngot: %s\n",
+				DB_VERSION_STRING,
+				version );
+#endif
+
+			return 1;
+		}
+	}
+
 #ifndef HAVE_BERKELEY_DB_THREAD
 	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 #endif
@@ -252,6 +275,8 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	err = db_create( &ret, ldbm_Env, 0 );
 	if ( err != 0 ) {
 		(void)ret->close(ret, 0);
+		LDBM_UNLOCK;
+
 		return NULL;
 	}
 
@@ -260,12 +285,16 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
 
-	LDBM_UNLOCK;
-
 	if ( err != 0 ) {
+		int tmp = errno;
 		(void)ret->close(ret, 0);
+		errno = tmp;
+
+		LDBM_UNLOCK;
 		return NULL;
 	}
+
+	LDBM_UNLOCK;
  
 #elif DB_VERSION_MAJOR >= 2
 	DB_INFO dbinfo;
@@ -313,7 +342,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	LDBM_UNLOCK;
 #endif
 
-	return( ret );
+	return ret;
 }
 
 void
