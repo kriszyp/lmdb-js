@@ -135,7 +135,7 @@ objectClass: userSecurityInformation
 
 dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: add
-objectclass: OpenLDAPperson
+objectclass: testPerson
 cn: Gern Jensen
 sn: Jensen
 uid: gjensen
@@ -149,7 +149,7 @@ facsimiletelephonenumber: +1 313 555 7557
 telephonenumber: +1 313 555 8343
 mail: gjensen@mailgw.example.com
 homephone: +1 313 555 8844
-OpenLDAPtime: 20050304001801.234Z
+testTime: 20050304001801.234Z
 
 dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,dc=example,dc=com
 changetype: delete
