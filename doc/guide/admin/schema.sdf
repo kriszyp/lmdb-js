@@ -5,7 +5,7 @@
 H1: Schema Specification
 
 This chapter describes how to extend the schema used by {{slapd}}(8).
-The first section, {{SECT:Distribution Schema Files}} details optional
+The first section, {{SECT:Distributed Schema Files}} details optional
 schema definitions provided in the distribution and where to obtain
 other definitions.
 The second section, {{SECT:Extending Schema}}, details how to define
@@ -56,7 +56,7 @@ H2: Extending Schema
 Schema used by {{slapd}}(8) may be extended to support additional
 syntaxes, matching rules, attribute types, and object classes.
 This chapter details how to add attribute types and object classes
-using the syntaxes and matching rules already support by slapd.
+using the syntaxes and matching rules already supported by slapd.
 slapd can also be extended to support additional syntaxes
 and matching rules, but this requires some programming and hence
 is not discussed here.
@@ -74,7 +74,7 @@ Each schema element is identified by a globally unique
 {{TERM[expand]OID}} (OID).  OIDs are also used to identify
 other objects.
 They are commonly found in protocols described by {{TERM:ASN.1}}.  In
-particular, they are heavy used by {{TERM[expand]SNMP}} (SNMP).
+particular, they are heavily used by the {{TERM[expand]SNMP}} (SNMP).
 As OIDs are hierarchical, your organization
 can obtain one OID and branch it as needed.  For example,
 if your organization were assigned OID {{EX:1.1}}, you could branch
@@ -105,7 +105,7 @@ service) see {{URL:http://www.alvestrand.no/harald/objectid/}}.
 .{{Under no circumstances should you use a fictious OID!}} 
 
 To obtain a fully registered OID at {{no cost}}, apply for
-a OID under {{ORG[expand]IANA}} (IANA) maintained
+an OID under {{ORG[expand]IANA}} (IANA) maintained
 {{Private Enterprise}} arch.  Any private enterprise (organization)
 may request an OID to be assigned under this arch.  Just fill
 out the {{ORG:IANA}} form at {{URL: http://www.iana.org/cgi-bin/enterprise.pl}}
@@ -120,7 +120,7 @@ identifying LDAP schema elements.
 
 H3: Name Prefix
 
-In addition to assign a unique object identifier to each schema
+In addition to assigning a unique object identifier to each schema
 element, you should provide a least one textual name for each
 element.  The name should be both descriptive and not likely
 to clash with names of other schema elements.  In particular,
@@ -197,7 +197,7 @@ where Attribute Type Description is defined by the following
 
 where whsp is a space ('{{EX: }}'), numericoid is a globally unique
 OID in numeric form (e.g. {{EX:1.2.3}}), qdescrs is one or more
-names, woid is either the name or OID, and noidlen is a optional length
+names, woid is either the name or OID, and noidlen is an optional length
 specifier (e.g {{EX:{10}}}).
 
 For example, the attribute types {{EX:name}} and {{EX:cn}} are defined
@@ -214,9 +214,9 @@ Notice that each defines the attribute's OID and descriptive
 names.  Each name is an alias for the OID.  {{slapd}}(8) returns
 the first listed name when returning results.
 
-The first attribute, {{EX:name}}, has a syntax of directory string
+The first attribute, {{EX:name}}, has a syntax of {{EX:directoryString}}
 (a UTF-8 encoded Unicode string) with a recommend maximun length.
-Note that syntaxes is specified by OID.  In addition, the equality
+Note that syntaxes are specified by OID.  In addition, the equality
 and substring matching uses case ignore rules.  Below are tables 
 listing commonly used supported syntax and matching rules.
 
@@ -263,10 +263,10 @@ caseExactSubstringsIA5Match	substrings	case sensitive, space insensitive
 !endblock
 
 The second attribute, {{EX:cn}}, is a subtype of {{EX:name}} hence
-in inherits the syntax, matching rules, and usage of {{EX:name}}.
+it inherits the syntax, matching rules, and usage of {{EX:name}}.
 {{EX:commonName}} is an alternative name.
 
-Neither attributes is restricted to a single value and both are
+Neither attribute is restricted to a single value and both are
 meant for usage by user applications.  You likely won't need to
 specify other parameters such as {{EX:OBSOLETE}}.
 
@@ -276,8 +276,8 @@ The following subsections provide a couple of examples.
 H4: myUniqueName
 
 Many organizations maintain a single unique name for each user.
-Though one could use {{EX:displayName}} ({{REF:RFC2798}}), but this
-attribute is meant to be controlled by the user, not the
+Though one could use {{EX:displayName}} ({{REF:RFC2798}}), this
+attribute is really meant to be controlled by the user, not the
 organization.  We could just copy the definition of {{EX:displayName}}
 from {{F:inetorgperson.schema}} and replace the OID, name, and
 description, e.g:
@@ -289,7 +289,7 @@ description, e.g:
 >		SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
 >		SINGLE-VALUE )
 
-However, if we desire this name to included in
+However, if we want this name to be included in
 {{EX:name}} assertions [e.g. {{EX:(name=*Jane*)}}], the attribute
 could alternatively be defined as a subtype of {{EX:name}}, e.g.:
 
@@ -317,8 +317,8 @@ As noted in the description, LDAP has no knowledge of the
 format of the photo.  It's assumed that all applications
 accessing this attribute agree on the handling of values.
 
-If you want to support multiple photo format, one could define
-a separate attributes type for each format, prefix the photo
+If you wanted to support multiple photo formats, you could define
+a separate attribute type for each format, prefix the photo
 with some typing information, or describe the value using
 {{TERM:ASN.1}} and use the {{EX:;binary}} transfer option.
 
@@ -353,7 +353,7 @@ where Object Class Description is defined by the following
 
 where whsp is a space ('{{EX: }}'), numericoid is a globally unique
 OID in numeric form (e.g. {{EX:1.2.3}}), qdescrs is one or more
-names, oids is one or more names and/or OIDs.
+names, and oids is one or more names and/or OIDs.
 
 
 H4: myPhotoObject

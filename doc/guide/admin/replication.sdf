@@ -6,8 +6,8 @@ H1: Replication with slurpd
 In certain configurations, a single {{slapd}}(8) instance may be
 insufficient to handle the number of clients requiring
 directory service via LDAP. It may become necessary to
-run more than one slapd instance.  Many sites,
-for instance, there are multiple slapd servers, one
+run more than one slapd instance.  At many sites,
+for instance, there are multiple slapd servers: one
 master and one or more slaves.  {{TERM:DNS}} can be setup such that
 a lookup of {{EX:ldap.example.com}} returns the {{TERM:IP}} addresses
 of these servers, distributing the load among them (or
@@ -193,7 +193,7 @@ inappropriate.
 
 + Do not include a {{EX:replogfile}} directive.
 
-+ Do include an updatedn line. The DN given should
++ Do include an {{EX:updatedn}} line. The DN given should
 match the DN given in the {{EX:binddn=}} parameter of the
 corresponding {{EX:replica=}} directive in the master slapd
 config file.
@@ -237,8 +237,8 @@ Suffix		Database
 {{EX:gdbm}}	GNU DBM backend
 !endblock
 
-In general, you should copy all files found in the database
-{{EX: directory}} unless you know it not used by {{slapd}}(8).
+In general, you should copy each file found in the database
+{{EX: directory}} unless you know it is not used by {{slapd}}(8).
 
 Note: The copy process assumes homogeneous servers with
 identically configured OpenLDAP installations.
@@ -261,7 +261,7 @@ standard LDAP port) on host slave.example.com. The slurpd
 process will bind to the slave slapd as 
 "{{EX:cn=Replicator,dc=example,dc=com}}" using simple authentication
 with password "{{EX:secret}}".  Note that the DN given by the {{EX:binddn=}}
-directive must either exist in the slave slapd's database (or be
+directive must exist in the slave slapd's database (or be
 the rootdn specified in the slapd config file) in order for the
 bind operation to succeed.  The DN should also be listed as
 the {{EX:updatedn}} for the database in the slave's slapd.conf(5).
@@ -296,7 +296,7 @@ H3: Replication errors
 When slurpd propagates a change to a slave slapd and
 receives an error return code, it writes the reason for the
 error and the replication record to a reject file. The reject
-file is located in the same directory with the per-replica
+file is located in the same directory as the per-replica
 replication logfile, and has the same name, but with the
 string "{{F:.rej}}" appended. For example, for a replica running
 on host {{EX:slave.example.com}}, port 389, the reject file, if it

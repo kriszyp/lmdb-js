@@ -308,7 +308,7 @@ authentication requires specification of {{EX:binddn}} and
 {{EX:credentials}} parameters.
 
 Kerberos authentication is deprecated in favor of SASL authentication
-mechanisms, in particular the {EX:KERBEROS_V4}} and {{EX:GSSAPI}}
+mechanisms, in particular the {{EX:KERBEROS_V4}} and {{EX:GSSAPI}}
 mechanisms.  Kerberos authentication requires {{EX:binddn}} and
 {{EX:srvtab}} parameters.
 
@@ -319,8 +319,8 @@ credentials can be specified using {{EX:authcid}} and {{EX:credentials}}
 respectively.  The {{EX:authzid}} parameter may be used to specify
 an authorization identity.
 
-See the {{SECT:Replication}} chapter for more information on how to
-use this directive.
+See the chapter entitled {{SECT:Replication with slurpd}} for more
+information on how to use this directive.
 
 
 H4: replogfile <filename>
@@ -333,8 +333,8 @@ However, you can also use it to generate a transaction log, if
 slurpd is not running. In this case, you will need to periodically
 truncate the file, since it will grow indefinitely otherwise.
 
-See the {{SECT:Replication}} chapter for more information on how to
-use this directive.
+See the chapter entitled {{SECT:Replication with slurpd}} for more
+information on how to use this directive.
 
 
 H4: rootdn <dn>

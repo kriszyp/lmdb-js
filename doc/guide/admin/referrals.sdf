@@ -6,7 +6,7 @@ H1: Constructing a Distributed Directory Service
 
 For many sites, running one or more {{slapd}}(8) that hold an
 entire subtree of data is sufficient. But often it is desirable
-to have one {{slapd}}} refer to other directory services for a
+to have one {{slapd}} refer to other directory services for a
 certain part of the tree (which may or may not be running {{slapd}}).
 
 !if 0
@@ -28,7 +28,7 @@ together.
 This mechanism allows for hierarchical directory services to to be
 constructed.
 
-A referral object has an structural object class of
+A referral object has a structural object class of
 {{EX:referral}} and has the same {{TERM[expand]DN}} as the
 delegated subtree.  Generally, the referral object will also
 provide the auxiliary object class {{EX:extensibleObject}}.
@@ -106,7 +106,7 @@ is similar to an X.500 knowledge reference held in a
 
 H2: The ManageDsaIT Control
 
-Adding, modify, and deleting referral objects is generally done
+Adding, modifying, and deleting referral objects is generally done
 using {{ldapmodify}}(1) or similar tools which support the
 ManageDsaIT control.  The ManageDsaIT control informs the server
 that you intend to manage the referral object as a regular

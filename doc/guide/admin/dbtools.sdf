@@ -28,14 +28,14 @@ H2: Creating a database over LDAP
 With this method, you use the LDAP client of your choice
 (e.g., the ldapadd(1)) to add entries, just like you would
 once the database is created. You should be sure to set the
-following configuration options before starting slapd:
+following options in the configuration file before starting slapd:
 
 >	suffix <dn>
 
-As described in the preceding section, this option says what
-entries are to be held by this database. You should set this
-to the DN of the root of the subtree you are trying to create.
-For example
+As described in the {{SECT:General Database Directives}} section,
+this option defines which entries are to be held by this database.
+You should set this to the DN of the root of the subtree you
+are trying to create.  For example:
 
 >	suffix "dc=example, dc=com"
 
@@ -51,8 +51,8 @@ For example:
 You need to create this directory with appropriate permissions
 such that slapd can write to it.
 
-You need to make it so you can connect to slapd as directory user
-with permission to add entries. You can configure the directory
+You need to configure slapd so that you can connect to it as a directory
+user with permission to add entries. You can configure the directory
 to support a special {{super-user}} or {{root}} user just for
 this purpose. This is done through the following two options
 in the database definition:
@@ -79,7 +79,7 @@ contains the index definitions you want:
 >	index {<attrlist> | default} [pres,eq,approx,sub,none]
 
 For example, to index the cn, sn, uid and objectclass
-attributes the following index configuration lines could be
+attributes, the following index configuration lines could be
 used.
 
 >	index cn,sn,uid
@@ -119,7 +119,7 @@ H2: Creating a database off-line
 The second method of database creation is to do it off-line,
 using the slapd database tools described below. This method is
 best if you have many thousands of entries to create, which
-would take an unacceptably long time using
+would take an unacceptably long time to add using
 the LDAP method described above. These tools read the
 slapd configuration file and an input file containing a text
 representation of the entries to add. For database types which
@@ -130,10 +130,10 @@ file database definition first:
 
 >	suffix <dn>
 
-As described in the preceding section, this option says what
-entries are to be held by this database. You should set this
-to the DN of the root of the subtree you are trying to create.
-For example
+As described in the {{SECT:General Database Directives}} section,
+this option defines which entries are to be held by this database.
+You should set this to the DN of the root of the subtree you are
+trying to create.  For example:
 
 >	suffix "dc=example, dc=com"
 
@@ -191,18 +191,18 @@ the {{SECT:Command-Line Options}} section in {{SECT:Running slapd}}.
 
 > 	-n <databasenumber>
 
-An optional argument that specifies the configuration file
-database for which to build. The first database listed
+An optional argument that specifies which database to modify.
+The first database listed in the configuration file
 is "1", the second "2", etc. By default, the first ldbm database
 in the configuration file is used. Should not be used in
 conjunction with {{EX:-b}}.
 
 >	-b <suffix>
 
-An optional argument that specifies the configuration file
-database for which to build. The provided suffix is matched
-against database {{EX:suffix}} to determine the database
-number. Should not be used in conjunction with {{EX:-n}}.
+An optional argument that specifies which database to modify.
+The provided suffix is matched against a database {{EX:suffix}}
+directive to determine the database number. Should not be
+used in conjunction with {{EX:-n}}.
 
 
 H3: The {{EX:slapindex}} program
@@ -222,9 +222,9 @@ upon the current database contents.
 
 H3: The {{EX:slapcat}} program
 
-The {{EX:slapcat}} program is used to dump the database to a {{TERM:LDIF}}
+The {{EX:slapcat}} program is used to dump the database to an {{TERM:LDIF}}
 file. This can be useful when you want to make a human-readable
-backup of your database or for editing your database off-line.
+backup of your database or when you want to edit your database off-line.
 The program is invoked like this:
 
 >	slapcat -l <filename> -f <slapdconfigfile>
@@ -242,7 +242,7 @@ The {{ldif}}(1) program is used to convert arbitrary data values to
 {{TERM:LDIF}} format. This can be useful when writing a program or
 script to create the LDIF file you will feed into the {{slapadd}}(8)
 or {{ldapadd}}(1) program, or when writing a SHELL backend. {{ldif}}(1)
-takes an attribute descriptin as an argument and reads the attribute
+takes an attribute description as an argument and reads the attribute
 value(s) from standard input. It produces the LDIF formatted
 attribute line(s) on standard output. The usage is:
 
@@ -257,7 +257,7 @@ value of the attribute.
 >	# leading hash mark
 >	EOF
 
-The -b option can be used to force ldif to interpret its input
+The {{EX:-b}} option can be used to force ldif to interpret its input
 as a single raw binary value. This option is useful when
 converting binary data such as a {{EX:jpegPhoto}} or {{EX:audio}}
 attribute.  For example:
@@ -282,7 +282,7 @@ The basic form of an entry is:
 >
 > 	...
 
-Lines starting with '{{EX:#}}' character are
+Lines starting with a '{{EX:#}}' character are
 comments.  An attribute description may be a simple attribute
 type like {{EX:cn}} or {{EX:objectClass}} or {{EX:1.2.3}} (an {{TERM:OID}}
 associated with an attribute type) or may include options such
