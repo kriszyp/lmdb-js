@@ -102,8 +102,8 @@ do_bind(
 	 *	}
 	 *
 	 *	SaslCredentials ::= SEQUENCE {
-     *		mechanism	    LDAPString,
-     *		credentials	    OCTET STRING OPTIONAL
+	 *		mechanism	    LDAPString,
+	 *		credentials	    OCTET STRING OPTIONAL
 	 *	}
 	 */
 
@@ -542,6 +542,7 @@ do_bind(
 	slapi_x_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
+	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&cred );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
 
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_BIND_FN, pb );
