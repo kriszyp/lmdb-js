@@ -425,7 +425,7 @@ function prototype:
 .RS 4
 int
 .I check_password
-(char *pPasswd, char **ppErrStr, Attribute *pAttrs);
+(char *pPasswd, char **ppErrStr, Entry *pEntry);
 .RE
 The
 .B pPasswd
@@ -434,8 +434,8 @@ parameter contains the clear-text user password, the
 parameter contains a double pointer that allows the function
 to return human-readable details about any error it encounters.
 The optional
-.B pAttr
-parameter, if non-NULL, carries a list of the attributes for the
+.B pEntry
+parameter, if non-NULL, carries a pointer to the
 entry whose password is being checked.
 If
 .B ppErrStr
