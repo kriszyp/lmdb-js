@@ -420,21 +420,21 @@ typedef struct slap_matching_rule {
 
 #define SLAP_MR_HIDE			0x8000U
 
-#define SLAP_MR_TYPE_MASK		0xF000U
-#define SLAP_MR_SUBTYPE_MASK	0x0F00U
-#define SLAP_MR_USAGE			0x00FFU
+#define SLAP_MR_TYPE_MASK		0x0F00U
+#define SLAP_MR_SUBTYPE_MASK	0x00F0U
+#define SLAP_MR_USAGE			0x000FU
 
 #define SLAP_MR_NONE			0x0000U
-#define SLAP_MR_EQUALITY		0x1000U
-#define SLAP_MR_ORDERING		0x2000U
-#define SLAP_MR_SUBSTR			0x4000U
-#define SLAP_MR_EXT				0x8000U /* implicitly extensible */
+#define SLAP_MR_EQUALITY		0x0100U
+#define SLAP_MR_ORDERING		0x0200U
+#define SLAP_MR_SUBSTR			0x0400U
+#define SLAP_MR_EXT				0x0800U /* implicitly extensible */
 
-#define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0100U )
+#define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0010U )
 
-#define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0100U )
-#define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0200U )
-#define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0400U )
+#define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0010U )
+#define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0020U )
+#define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0040U )
 
 
 /*
@@ -459,8 +459,8 @@ typedef struct slap_matching_rule {
 /* either or both the asserted value or attribute value
  * may be provided in normalized form
  */
-#define SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH		0x0010U
-#define SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH	0x0020U
+#define SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH		0x0004U
+#define SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH	0x0008U
 
 #define SLAP_IS_MR_ASSERTION_SYNTAX_MATCH( usage ) \
 	(!((usage) & SLAP_MR_ATTRIBUTE_SYNTAX_MATCH))
