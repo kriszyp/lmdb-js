@@ -8,7 +8,9 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 
 #include "ldapconfig.h"
 #include "../slap.h"
@@ -27,6 +29,10 @@ static char	*tailorfile;
 static char	*inputfile;
 static int      maxkids = 1;
 static int      nkids;
+
+#ifdef WIN32
+time_t starttime;
+#endif
 
 static void
 usage( char *name )
@@ -271,8 +277,49 @@ main( int argc, char **argv )
 
 	slap_destroy();
 
-	exit( 0 );
+	return( 0 );
 }
+
+#ifdef WIN32
+
+static HANDLE processes[MAXIMUM_WAIT_OBJECTS];
+static int nprocesses=0;
+
+static void
+fork_child( char *prog, char *args[] )
+{
+    PROCESS_INFORMATION proc_info;
+    PROCESS_INFORMATION *pinfo = &proc_info;
+
+    int i = 0;
+    char cmdLine[2048];
+    memset( cmdLine, 0, sizeof(cmdLine) );
+    strcpy( cmdLine, prog );
+    while ( args[i] != NULL );
+    {
+        strcat( cmdLine, " " );
+        strcat( cmdLine, args[i] );
+    }
+
+    if ( !CreateProcess( NULL, cmdLine, NULL, NULL,
+                         TRUE, CREATE_NEW_CONSOLE,
+                         NULL, NULL, NULL, pinfo ) )
+    {
+        fprintf( stderr, "Could not create %s: ", prog );
+        perror( "CreateProcess" );
+        exit (-1);
+    }
+    processes[nprocesses] = proc_info.hProcess;
+    nprocesses++;
+}
+
+static void
+wait4kids( int nkidval )
+{
+    WaitForMultipleObjects( nprocesses, processes, TRUE, INFINITE );
+}
+
+#else
 
 static void
 fork_child( char *prog, char *args[] )
@@ -328,3 +375,5 @@ wait4kids( int nkidval )
 		}
 	}
 }
+
+#endif
