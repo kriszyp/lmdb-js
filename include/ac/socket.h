@@ -77,6 +77,9 @@
 #define EINPROGRESS WSAEINPROGRESS
 #define ETIMEDOUT	WSAETIMEDOUT
 
+#define	sock_errno()	WSAGetLastError()
+#define	sock_errstr(err)	WSAGetLastErrorString()
+
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
 
@@ -93,6 +96,8 @@
 
 #else
 #	define tcp_close( s )		close( s )
+#	define sock_errno()	errno
+#	define sock_errstr(err)	strerror(err)
 #endif /* MACOS */
 
 #ifndef ioctl_t
