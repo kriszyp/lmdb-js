@@ -6415,7 +6415,7 @@ objectclass: top
 
 dn: uid=root, o=SGI, c=US
 uid: root
-userPassword: xZuUdcHRxN1cc
+userPassword: {crypt}xZuUdcHRxN1cc
 uidNumber: 0
 gidNumber: 0
 gecos: Super-User
