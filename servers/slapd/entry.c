@@ -320,8 +320,14 @@ entry2str(
 void
 entry_free( Entry *e )
 {
-	Attribute	*a, *next;
+	/* free an entry structure */
+	assert( e != NULL );
 
+	/* e_private must be freed by the caller */
+	assert( e->e_private == NULL );
+	e->e_private = NULL;
+
+	/* free DNs */
 	if ( e->e_dn != NULL ) {
 		free( e->e_dn );
 		e->e_dn = NULL;
@@ -330,12 +336,11 @@ entry_free( Entry *e )
 		free( e->e_ndn );
 		e->e_ndn = NULL;
 	}
-	for ( a = e->e_attrs; a != NULL; a = next ) {
-		next = a->a_next;
-		attr_free( a );
-	}
+
+	/* free attributes */
+	attrs_free( e->e_attrs );
 	e->e_attrs = NULL;
-	e->e_private = NULL;
+
 	free( e );
 }
 
