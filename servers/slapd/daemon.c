@@ -337,119 +337,22 @@ static int slap_get_listener_addresses(
 	struct sockaddr ***sal)
 {
 	struct sockaddr **sap;
-#ifdef HAVE_GETADDRINFO
-	struct addrinfo hints, *res, *sai;
-	int n, err;
 
-	memset( &hints, '\0', sizeof(hints) );
-	hints.ai_flags = AI_PASSIVE;
-	hints.ai_socktype = SOCK_STREAM;
-#  ifdef LDAP_PF_LOCAL
+#ifdef LDAP_PF_LOCAL
 	if ( port == 0 ) {
-		hints.ai_family = AF_LOCAL;
-		/* host specifies a service in this case */
-		if (err = getaddrinfo(NULL, host, &hints, &res)) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-				   "slap_get_listener_addresses: getaddrinfo failed: %s\n",
-				   AC_GAI_STRERROR(err) ));
-#else
-			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
-				AC_GAI_STRERROR(err), 0, 0);
-#endif
-			return -1;
-		}
-	} else
-#  endif
-	{
-		char serv[7];
-
-		snprintf(serv, sizeof serv, "%d", port);
-		hints.ai_family = AF_UNSPEC;
-		if (err = getaddrinfo(host, serv, &hints, &res)) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-				   "slap_get_listener_addresses: getaddrinfo failed: %s\n",
-				   AC_GAI_STRERROR(err) ));
-#else
-			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
-				AC_GAI_STRERROR(err), 0, 0);
-#endif
-			return -1;
-		}
-	}
-
-	sai = res;
-	for (n=2; (sai = sai->ai_next) != NULL; n++) {
-		/* EMPTY */ ;
-	}
-	*sal = ch_malloc(n * sizeof(*sal));
-	if (*sal == NULL) {
-		return -1;
-	}
-
-	sai = res;
-	sap = *sal;
-	do {
-		switch (sai->ai_family) {
-#  ifdef LDAP_PF_LOCAL
-		case AF_LOCAL: {
-			*sap = ch_malloc(sizeof(struct sockaddr_un));
-			if (*sap == NULL) {
-				freeaddrinfo(res);
-				goto errexit;
-			}
-			*(struct sockaddr_un *)*sap =
-				*((struct sockaddr_un *)sai->ai_addr);
-		} break;
-#  endif
-#  ifdef LDAP_PF_INET6
-		case AF_INET6: {
-			*sap = ch_malloc(sizeof(struct sockaddr_in6));
-			if (*sap == NULL) {
-				freeaddrinfo(res);
-				goto errexit;
-			}
-			*(struct sockaddr_in6 *)*sap =
-				*((struct sockaddr_in6 *)sai->ai_addr);
-		} break;
-#  endif
-		case AF_INET: {
-			*sap = ch_malloc(sizeof(struct sockaddr_in));
-			if (*sap == NULL) {
-				freeaddrinfo(res);
-				goto errexit;
-			}
-			*(struct sockaddr_in *)*sap =
-				*((struct sockaddr_in *)sai->ai_addr);
-		} break;
-		default:
-			*sap = NULL;
-			break;
-		}
-		if (*sap != NULL) {
-			(*sap)->sa_family = sai->ai_family;
-			sap++;
-		}
-	} while ((sai = sai->ai_next) != NULL);
-
-	freeaddrinfo(res);
-
-#else
-#  ifdef LDAP_PF_LOCAL
-	if ( port == 0 ) {
-		*sal = ch_malloc(2 * sizeof(*sal));
+		*sal = ch_malloc(2 * sizeof(void *));
 		if (*sal == NULL) {
 			return -1;
 		}
+
 		sap = *sal;
 		*sap = ch_malloc(sizeof(struct sockaddr_un));
 		if (*sap == NULL)
 			goto errexit;
-		(void)memset( (void *)*sap, '\0', sizeof(struct sockaddr_un) );
-		(*sap)->sa_family = AF_LOCAL;
+		sap[1] = NULL;
+
 		if ( strlen(host) >
-		     (sizeof(((struct sockaddr_un *)*sal)->sun_path) - 1) ) {
+		     (sizeof(((struct sockaddr_un *)*sap)->sun_path) - 1) ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
 				   "slap_get_listener_addresses: domain socket path (%s) too long in URL\n",
@@ -461,10 +364,83 @@ static int slap_get_listener_addresses(
 #endif
 			goto errexit;
 		}
+
+		(void)memset( (void *)*sap, '\0', sizeof(struct sockaddr_un) );
+		(*sap)->sa_family = AF_LOCAL;
 		strcpy( ((struct sockaddr_un *)*sap)->sun_path, host );
 	} else
-#  endif
+#endif
 	{
+#ifdef HAVE_GETADDRINFO
+		struct addrinfo hints, *res, *sai;
+		int n, err;
+		char serv[7];
+
+		memset( &hints, '\0', sizeof(hints) );
+		hints.ai_flags = AI_PASSIVE;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_family = AF_UNSPEC;
+		snprintf(serv, sizeof serv, "%d", port);
+
+		if (err = getaddrinfo(host, serv, &hints, &res)) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+				   "slap_get_listener_addresses: getaddrinfo failed: %s\n",
+				   AC_GAI_STRERROR(err) ));
+#else
+			Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n",
+				AC_GAI_STRERROR(err), 0, 0);
+#endif
+			return -1;
+		}
+
+		sai = res;
+		for (n=2; (sai = sai->ai_next) != NULL; n++) {
+			/* EMPTY */ ;
+		}
+		*sal = ch_malloc(n * sizeof(void *));
+		if (*sal == NULL) {
+			return -1;
+		}
+
+		sai = res;
+		sap = *sal;
+
+		do {
+			switch (sai->ai_family) {
+#  ifdef LDAP_PF_INET6
+			case AF_INET6:
+				*sap = ch_malloc(sizeof(struct sockaddr_in6));
+				if (*sap == NULL) {
+					freeaddrinfo(res);
+					goto errexit;
+				}
+				*(struct sockaddr_in6 *)*sap =
+					*((struct sockaddr_in6 *)sai->ai_addr);
+				break;
+#  endif
+			case AF_INET:
+				*sap = ch_malloc(sizeof(struct sockaddr_in));
+				if (*sap == NULL) {
+					freeaddrinfo(res);
+					goto errexit;
+				}
+				*(struct sockaddr_in *)*sap =
+					*((struct sockaddr_in *)sai->ai_addr);
+				break;
+			default:
+				*sap = NULL;
+				break;
+			}
+			if (*sap != NULL) {
+				(*sap)->sa_family = sai->ai_family;
+				sap++;
+			}
+		} while ((sai = sai->ai_next) != NULL);
+
+		*sap = NULL;
+		freeaddrinfo(res);
+#else
 		struct in_addr in;
 
 		if ( host == NULL ) {
@@ -486,7 +462,7 @@ static int slap_get_listener_addresses(
 			AC_MEMCPY( &in, he->h_addr, sizeof( in ) );
 		}
 
-		*sal = ch_malloc(2 * sizeof(*sal));
+		*sal = ch_malloc(2 * sizeof(void *));
 		if (*sal == NULL) {
 			return -1;
 		}
@@ -496,16 +472,15 @@ static int slap_get_listener_addresses(
 		if (*sap == NULL) {
 			goto errexit;
 		}
+		sap[1] = NULL;
 
 		(void)memset( (void *)*sap, '\0', sizeof(struct sockaddr_in) );
 		(*sap)->sa_family = AF_INET;
 		((struct sockaddr_in *)*sap)->sin_port = htons(port);
 		((struct sockaddr_in *)*sap)->sin_addr = in;
-	}
-	sap++;
 #endif
+	}
 
-	*sap = NULL;
 	return 0;
 
 errexit:
