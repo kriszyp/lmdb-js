@@ -217,15 +217,17 @@ struct slap_schema_ad_map {
 };
 
 static AttributeType slap_at_undefined = {
-	"UNDEFINED", /* cname */
 	{ "1.1.1", NULL, NULL, 1, NULL,
 		NULL, NULL, NULL, NULL,
-		0, 0, 0, 1, 3 },
+		0, 0, 0, 1, 3 }, /* LDAPAttributeType */
+	{ sizeof( "UNDEFINED" ) - 1, "UNDEFINED" }, /* cname */
 	NULL, /* sup */
 	NULL, /* subtypes */
 	NULL, NULL, NULL, NULL,	/* matching rules */
 	NULL, /* syntax (this may need to be defined) */
+	NULL, /* attribute description */
 	NULL  /* next */
+	/* mutex (don't know how to initialize it :) */
 };
 
 struct slap_schema_mr_map {
