@@ -415,7 +415,7 @@ main( int argc, char **argv )
 			filtpattern );
 
 		if ( attrs == NULL ) {
-			printf( "ALL" );
+			fprintf( stderr, "ALL" );
 		} else {
 			for ( i = 0; attrs[ i ] != NULL; ++i ) {
 				fprintf( stderr, "%s ", attrs[ i ] );
