@@ -121,46 +121,49 @@ int ldap_domain2dn(
 	LDAP_CONST char *domain_in,
 	char **dnp)
 {
-    char *domain, *s, *tok_r, *dn;
-    size_t loc;
+	char *domain, *s, *tok_r, *dn, *dntmp;
+	size_t loc;
 
 	assert( domain_in != NULL );
 	assert( dnp != NULL );
 
-    domain = LDAP_STRDUP(domain_in);
-    if (domain == NULL) {
+	domain = LDAP_STRDUP(domain_in);
+	if (domain == NULL) {
 		return LDAP_NO_MEMORY;
-    }
-    dn = NULL;
-    loc = 0;
-
-    for (s = ldap_pvt_strtok(domain, ".", &tok_r);
-	 s != NULL;
-	 s = ldap_pvt_strtok(NULL, ".", &tok_r)) {
-	size_t len = strlen(s);
-
-	dn = (char *) LDAP_REALLOC(dn, loc + sizeof(",dc=") + len );
-	if (dn == NULL) {
-	    LDAP_FREE(domain);
-	    return LDAP_NO_MEMORY;
 	}
-	if (loc > 0) {
-	    /* not first time. */
-	    strcpy(dn + loc, ",");
-	    loc++;
-	}
-	strcpy(dn + loc, "dc=");
-	loc += sizeof("dc=")-1;
+	dn = NULL;
+	loc = 0;
 
-	strcpy(dn + loc, s);
-	loc += len;
+	for (s = ldap_pvt_strtok(domain, ".", &tok_r);
+		s != NULL;
+		s = ldap_pvt_strtok(NULL, ".", &tok_r))
+	{
+		size_t len = strlen(s);
+
+		dntmp = (char *) LDAP_REALLOC(dn, loc + sizeof(",dc=") + len );
+		if (dn == NULL) {
+			LDAP_FREE(dn);
+		    LDAP_FREE(domain);
+		    return LDAP_NO_MEMORY;
+		}
+
+		dn = dntmp;
+
+		if (loc > 0) {
+		    /* not first time. */
+		    strcpy(dn + loc, ",");
+		    loc++;
+		}
+		strcpy(dn + loc, "dc=");
+		loc += sizeof("dc=")-1;
+
+		strcpy(dn + loc, s);
+		loc += len;
     }
 
-    LDAP_FREE(domain);
-
-    *dnp = dn;
-
-    return LDAP_SUCCESS;
+	LDAP_FREE(domain);
+	*dnp = dn;
+	return LDAP_SUCCESS;
 }
 
 /*
