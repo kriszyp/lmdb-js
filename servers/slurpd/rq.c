@@ -197,27 +197,10 @@ Rq_add(
 	rq->rq_head = re;
 	rq->rq_tail = re;
 	wasempty = 1;
-    } else if ( re->re_timestamp > rq->rq_tail->re_timestamp ||
-    		( re->re_timestamp == rq->rq_tail->re_timestamp &&
-		  re->re_seq > rq->rq_tail->re_seq )) {
-	rq->rq_tail->re_next = re;
-	rq->rq_tail = re;
     } else {
-    	Re *p, *r;
-
-	for (r = rq->rq_head, p = NULL; r->re_timestamp < re->re_timestamp ||
-	    (r->re_timestamp == re->re_timestamp && r->re_seq < re->re_seq);
-	    p = r, r = r->re_next );
-	if ( !p ) {
-	    re->re_next = rq->rq_head;
-	    rq->rq_head = re;
-	} else {
-	    re->re_next = p->re_next;
-	    p->re_next = re;
-	}
+	rq->rq_tail->re_next = re;
     }
 
-#if 0
     /* set the sequence number */
     re->re_seq = 0;
     if ( !wasempty && ( rq->rq_tail->re_timestamp == re->re_timestamp )) {
@@ -228,14 +211,11 @@ Rq_add(
 	re->re_seq = rq->rq_tail->re_seq + 1;
     }
     rq->rq_tail = re;
-#endif
 
     /* Increment count of items in queue */
     rq->rq_nre++;
-#if 0
     /* wake up any threads waiting for more work */
     ldap_pvt_thread_cond_broadcast( &rq->rq_more );
-#endif
 
     /* ... and unlock the queue */
     rq->rq_unlock( rq );
