@@ -25,6 +25,10 @@
 #ifndef REWRITE_H
 #define REWRITE_H
 
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
+
 LDAP_BEGIN_DECL
 
 /*
