@@ -152,6 +152,7 @@ lutil_eaddr( void )
 	if (memcmp(eaddr, zero, sizeof(eaddr)) == 0) {
 		/* XXX - who knows? */
 		lutil_entropy( eaddr, sizeof(eaddr) );
+		eaddr[0] |= 0x80; /* turn it into a mutlicast address */
 	}
 
 	return eaddr;
