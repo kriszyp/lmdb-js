@@ -11,9 +11,6 @@
 #include "back-bdb2.h"
 #include "proto-back-bdb2.h"
 
-static int	add_values(Entry *e, LDAPMod *mod, char *dn);
-static int	delete_values(Entry *e, LDAPMod *mod, char *dn);
-static int	replace_values(Entry *e, LDAPMod *mod, char *dn);
 
 static int
 bdb2i_back_modify_internal(
@@ -157,7 +154,7 @@ bdb2_back_modify(
 }
 
 
-static int
+int
 add_values(
     Entry	*e,
     LDAPMod	*mod,
@@ -185,7 +182,7 @@ add_values(
 	return( LDAP_SUCCESS );
 }
 
-static int
+int
 delete_values(
     Entry	*e,
     LDAPMod	*mod,
@@ -241,7 +238,7 @@ delete_values(
 	return( LDAP_SUCCESS );
 }
 
-static int
+int
 replace_values(
     Entry	*e,
     LDAPMod	*mod,

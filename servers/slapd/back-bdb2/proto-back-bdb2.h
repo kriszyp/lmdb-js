@@ -132,6 +132,16 @@ int bdb2i_index_add_values LDAP_P(( BackendDB *be, char *type, struct berval **v
 #endif
 
 /*
+ * modify.c
+ * These prototypes are placed here because they are used by modify and
+ * modify rdn which are implemented in different files. 
+ */
+
+int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+
+/*
  * nextid.c
  */
 
