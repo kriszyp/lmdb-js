@@ -34,10 +34,11 @@
  */
 
 char *
-dn_validate( char *dn )
+dn_validate( char *dn_in )
 {
 	char	*d, *s;
 	int	state, gotesc;
+	char	*dn = dn_in;
 
 	gotesc = 0;
 	state = B4LEADTYPE;
@@ -121,7 +122,7 @@ dn_validate( char *dn )
 			    !RDN_SEPARATOR( *s ) ) {
 				*--d = *s;
 				d++;
-			} else {
+			} else if( !ASCII_SPACE( *s ) || !ASCII_SPACE( *(d - 1) ) ) {
 				*d++ = *s;
 			}
 			break;
@@ -133,7 +134,7 @@ dn_validate( char *dn )
 			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) ) {
 				*--d = *s;
 				d++;
-			} else {
+			} else if( !ASCII_SPACE( *s ) || !ASCII_SPACE( *(d - 1) ) ) {
 				*d++ = *s;
 			}
 			break;
@@ -142,6 +143,8 @@ dn_validate( char *dn )
 			if ( RDN_SEPARATOR( *s ) ) {
 				state = B4TYPE;
 				*d++ = *s;
+			} else if ( !ASCII_SPACE( *s ) ) {
+				dn = NULL;
 			}
 			break;
 
@@ -157,6 +160,11 @@ dn_validate( char *dn )
 		} else {
 			gotesc = 0;
 		}
+	}
+
+	/* trim trailing spaces */
+	while( d > dn_in && ASCII_SPACE( *(d-1) ) ) {
+		--d;
 	}
 	*d = '\0';
 
