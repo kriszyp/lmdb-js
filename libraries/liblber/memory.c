@@ -446,38 +446,43 @@ ber_bvecadd( struct berval ***bvec, struct berval *bv )
 
 
 struct berval *
-ber_bvdup(
-	LDAP_CONST struct berval *bv )
+ber_dupbv(
+	struct berval *dst, LDAP_CONST struct berval *src )
 {
 	struct berval *new;
 
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
-	if( bv == NULL ) {
+	if( src == NULL ) {
 		ber_errno = LBER_ERROR_PARAM;
 		return NULL;
 	}
 
-	if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
-		ber_errno = LBER_ERROR_MEMORY;
-		return NULL;
+	if ( dst ) {
+		new = dst;
+	} else {
+		if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
+			ber_errno = LBER_ERROR_MEMORY;
+			return NULL;
+		}
 	}
 
-	if ( bv->bv_val == NULL ) {
+	if ( src->bv_val == NULL ) {
 		new->bv_val = NULL;
 		new->bv_len = 0;
 		return new;
 	}
 
-	if(( new->bv_val = LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+	if(( new->bv_val = LBER_MALLOC( src->bv_len + 1 )) == NULL ) {
 		ber_errno = LBER_ERROR_MEMORY;
-		LBER_FREE( new );
+		if ( !dst )
+			LBER_FREE( new );
 		return NULL;
 	}
 
-	AC_MEMCPY( new->bv_val, bv->bv_val, bv->bv_len );
-	new->bv_val[bv->bv_len] = '\0';
-	new->bv_len = bv->bv_len;
+	AC_MEMCPY( new->bv_val, src->bv_val, src->bv_len );
+	new->bv_val[src->bv_len] = '\0';
+	new->bv_len = src->bv_len;
 
 	return new;
 }
