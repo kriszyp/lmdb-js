@@ -123,6 +123,9 @@ LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	BerVarray vals ));
+LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
+	AttributeDescription *desc,
+	struct berval *val ));
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((
@@ -998,6 +1001,9 @@ LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 LDAP_SLAPD_F (int) value_add LDAP_P((
 	BerVarray *vals,
 	BerVarray addvals ));
+LDAP_SLAPD_F (int) value_add_one LDAP_P((
+	BerVarray *vals,
+	struct berval *addval ));
 
 /*
  * Other...
@@ -1072,6 +1078,10 @@ LDAP_SLAPD_V (AccessControl *) global_acl;
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
 
 LDAP_SLAPD_V (int)		use_reverse_lookup;
+
+LDAP_SLAPD_V (struct berval)	AllUser;
+LDAP_SLAPD_V (struct berval)	AllOper;
+LDAP_SLAPD_V (struct berval)	NoAttrs;
 
 /*
  * operations
