@@ -262,6 +262,7 @@ bdb_get_commit_csn(
 	int			num_retries = 0;
 	int			ctxcsn_added = 0;
 	int			rc;
+	struct sync_cookie syncCookie = { NULL, -1, NULL};
 
 	if ( op->o_sync_mode != SLAP_SYNC_NONE ) {
 		if ( op->o_bd->be_syncinfo ) {
@@ -271,7 +272,8 @@ bdb_get_commit_csn(
 			ber_str2bv( substr, 0, 0, &bv );
 			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &bv, NULL );
 		} else {
-			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv, NULL );
+			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
+						(struct berval *)&slap_ldapsync_cn_bv, NULL );
 		}
 
 ctxcsn_retry :
@@ -330,7 +332,8 @@ txn_retry:
 					return rs->sr_err;
 				}
 
-				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, (struct berval *)&slap_ldapsync_cn_bv, locker );
+				bdb_cache_add( bdb, suffix_ei, ctxcsn_e,
+						(struct berval *)&slap_ldapsync_cn_bv, locker );
 
 				rs->sr_err = TXN_COMMIT( ltid, 0 );
 				if ( rs->sr_err != 0 ) {
@@ -361,14 +364,24 @@ txn_retry:
 			if ( op->o_bd->be_syncinfo ) {
 				csn_a = attr_find( ctxcsn_e->e_attrs,
 					slap_schema.si_ad_syncreplCookie );
+				if ( csn_a ) {
+					struct berval cookie;
+					ber_dupbv( &cookie, &csn_a->a_vals[0] );
+					ber_bvarray_add( &syncCookie.octet_str, &cookie );
+					slap_parse_sync_cookie( &syncCookie );
+					*search_context_csn = ber_dupbv( NULL, syncCookie.ctxcsn );
+					slap_sync_cookie_free( &syncCookie, 0 );
+				} else {
+					*search_context_csn = NULL;
+				}
 			} else {
 				csn_a = attr_find( ctxcsn_e->e_attrs,
 					slap_schema.si_ad_contextCSN );
-			}
-			if ( csn_a ) {
-				*search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
-			} else {
-				*search_context_csn = NULL;
+				if ( csn_a ) {
+					*search_context_csn = ber_dupbv( NULL, &csn_a->a_vals[0] );
+				} else {
+					*search_context_csn = NULL;
+				}
 			}
 		} else {
 			*search_context_csn = NULL;

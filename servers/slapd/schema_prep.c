@@ -423,7 +423,7 @@ static struct slap_schema_ad_map {
 			"DESC 'syncrepl Cookie for shadow copy' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,
@@ -435,7 +435,7 @@ static struct slap_schema_ad_map {
 			"DESC 'the largest committed CSN of a context' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,

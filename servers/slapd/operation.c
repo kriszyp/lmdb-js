@@ -42,6 +42,8 @@ void slap_op_destroy(void)
 void
 slap_op_free( Operation *op )
 {
+	struct berval slap_empty_bv_dup;
+
 	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
 
 	if ( op->o_ber != NULL ) {
@@ -65,9 +67,8 @@ slap_op_free( Operation *op )
 		ber_free( op->o_res_ber, 1 );
 	}
 #endif
-	if ( op->o_sync_state.bv_val != NULL ) {
-		free( op->o_sync_state.bv_val );
-	}
+
+	slap_sync_cookie_free( &op->o_sync_state, 0 );
 
 	{
 		GroupAssertion *g, *n;
@@ -85,7 +86,14 @@ slap_op_free( Operation *op )
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
+	if ( op->o_sync_csn.bv_val != NULL ) {
+		ch_free( op->o_sync_csn.bv_val );
+	}
+
 	memset( op, 0, sizeof(Operation) );
+
+	op->o_sync_state.sid = -1;
+	op->o_sync_slog_size = -1;
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	LDAP_STAILQ_INSERT_HEAD( &slap_free_ops, op, o_next );
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
@@ -100,6 +108,7 @@ slap_op_alloc(
 )
 {
 	Operation	*op;
+	struct berval slap_empty_bv_dup;
 
 	ldap_pvt_thread_mutex_lock( &slap_op_mutex );
 	if ((op = LDAP_STAILQ_FIRST( &slap_free_ops ))) {
@@ -107,8 +116,9 @@ slap_op_alloc(
 	}
 	ldap_pvt_thread_mutex_unlock( &slap_op_mutex );
 
-	if (!op)
+	if (!op) {
 		op = (Operation *) ch_calloc( 1, sizeof(Operation) );
+	}
 
 	op->o_ber = ber;
 	op->o_msgid = msgid;
@@ -117,6 +127,11 @@ slap_op_alloc(
 	op->o_time = slap_get_time();
 	op->o_opid = id;
 	op->o_res_ber = NULL;
+
+	op->o_sync_state.sid = -1;
+	op->o_sync_slog_size = -1;
+	LDAP_STAILQ_FIRST( &op->o_sync_slog_list ) = NULL;
+	op->o_sync_slog_list.stqh_last = &LDAP_STAILQ_FIRST( &op->o_sync_slog_list );
 
 #if defined( LDAP_SLAPI )
 	if ( slapi_plugins_used ) {

@@ -1,0 +1,377 @@
+/* $OpenLDAP$ */
+/*
+ * LDAP Content Sync Routines
+ */
+/*
+ * Copyright 2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* Copyright (c) 2003 by International Business Machines, Inc.
+ *
+ * International Business Machines, Inc. (hereinafter called IBM) grants
+ * permission under its copyrights to use, copy, modify, and distribute this
+ * Software with or without fee, provided that the above copyright notice and
+ * all paragraphs of this notice appear in all copies, and that the name of IBM
+ * not be used in connection with the marketing of any product incorporating
+ * the Software or modifications thereof, without specific, written prior
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", AND IBM DISCLAIMS ALL WARRANTIES,
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE.  IN NO EVENT SHALL IBM BE LIABLE FOR ANY SPECIAL,
+ * DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING
+ * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE, EVEN
+ * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
+ */
+
+#include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
+#include "ldap_pvt.h"
+#include "lutil.h"
+#include "slap.h"
+#include "lutil_ldap.h"
+
+int
+slap_build_sync_state_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	Entry		*e,
+	int			entry_sync_state,
+	LDAPControl	**ctrls,
+	int			num_ctrls,
+	int			send_cookie,
+	struct berval	*csn)
+{
+	Attribute* a;
+	int ret;
+	int res;
+	const char *text = NULL;
+
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+
+	struct berval entryuuid_bv	= { 0, NULL };
+
+	ber_init2( ber, 0, LBER_USE_DER );
+
+	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		AttributeDescription *desc = a->a_desc;
+		if ( desc == slap_schema.si_ad_entryUUID ) {
+			ber_dupbv( &entryuuid_bv, &a->a_vals[0] );
+		}
+	}
+
+	if ( send_cookie && csn ) {
+		ber_printf( ber, "{eOON}",
+			entry_sync_state, &entryuuid_bv, csn );
+	} else {
+		ber_printf( ber, "{eON}",
+			entry_sync_state, &entryuuid_bv );
+	}
+
+	ch_free( entryuuid_bv.bv_val );
+	entryuuid_bv.bv_val = NULL;
+
+	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
+	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
+	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+
+	ber_free_buf( ber );
+
+	if ( ret < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, RESULTS, 
+			"slap_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#endif
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+int
+slap_build_sync_done_ctrl(
+	Operation	*op,
+	SlapReply	*rs,
+	LDAPControl	**ctrls,
+	int		num_ctrls,
+	int		send_cookie,
+	struct berval	*csn )
+{
+	int ret;
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+
+	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+
+	if ( send_cookie && csn ) {
+		ber_printf( ber, "{ON}", csn );
+	} else {
+		ber_printf( ber, "{N}" );
+	}
+
+	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_DONE;
+	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
+	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+
+	ber_free_buf( ber );
+
+	if ( ret < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, RESULTS, 
+			"slap_build_sync_done_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_build_sync_done_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#endif
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+
+int
+slap_build_sync_state_ctrl_from_slog(
+	Operation	*op,
+	SlapReply	*rs,
+	struct slog_entry *slog_e,
+	int			entry_sync_state,
+	LDAPControl	**ctrls,
+	int			num_ctrls,
+	int			send_cookie,
+	struct berval	*csn)
+{
+	Attribute* a;
+	int ret;
+	int res;
+	const char *text = NULL;
+
+	BerElementBuffer berbuf;
+	BerElement *ber = (BerElement *)&berbuf;
+
+	struct berval entryuuid_bv	= { 0, NULL };
+
+	ber_init2( ber, 0, LBER_USE_DER );
+
+	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+
+	ber_dupbv( &entryuuid_bv, &slog_e->sl_uuid );
+
+	if ( send_cookie && csn ) {
+		ber_printf( ber, "{eOON}",
+			entry_sync_state, &entryuuid_bv, csn );
+	} else {
+		ber_printf( ber, "{eON}",
+			entry_sync_state, &entryuuid_bv );
+	}
+
+	ch_free( entryuuid_bv.bv_val );
+	entryuuid_bv.bv_val = NULL;
+
+	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
+	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
+	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
+
+	ber_free_buf( ber );
+
+	if ( ret < 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG ( OPERATION, RESULTS, 
+			"slap_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_build_sync_ctrl: ber_flatten2 failed\n",
+			0, 0, 0 );
+#endif
+		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
+		return ret;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+void
+slap_compose_sync_cookie(
+	Operation *op,
+	struct berval *cookie,
+	struct berval *csn,
+	int sid )
+{
+	char cookiestr[ LDAP_LUTIL_CSNSTR_BUFSIZE + 10 ];
+
+	if ( csn->bv_val == NULL ) {
+		if ( sid == -1 ) {
+			cookiestr[0] = '\0';
+		} else {
+			snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
+						"sid=%03d", sid );
+		}
+	} else if ( sid == -1 ) {
+		snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
+						"csn=%s", csn->bv_val );
+	} else {
+		snprintf( cookiestr, LDAP_LUTIL_CSNSTR_BUFSIZE + 10,
+						"csn=%s,sid=%03d", csn->bv_val, sid );
+	}
+	ber_str2bv( cookiestr, strlen(cookiestr), 1, cookie );
+}
+
+void
+slap_sync_cookie_free(
+	struct sync_cookie *cookie,
+	int free_cookie
+)
+{
+	if ( cookie == NULL )
+		return;
+
+	if ( cookie->ctxcsn ) {
+		ber_bvarray_free( cookie->ctxcsn );
+		cookie->ctxcsn = NULL;
+	}
+
+	if ( cookie->octet_str ) {
+		ber_bvarray_free( cookie->octet_str );
+		cookie->octet_str = NULL;
+	}
+
+	if ( free_cookie ) {
+		ch_free( cookie );
+	}
+
+	return;
+}
+
+int
+slap_parse_sync_cookie(
+	struct sync_cookie *cookie
+)
+{
+	char *csn_ptr;
+	char *csn_str;
+	char *sid_ptr;
+	char *sid_str;
+	char *cval;
+	struct berval *ctxcsn;
+
+	if ( cookie == NULL )
+		return -1;
+
+	if (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
+		csn_str = (char *) strndup( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
+		if ( cval = strchr( csn_str, ',' )) {
+			*cval = '\0';
+		}
+		ctxcsn = ber_str2bv( csn_str + 4, strlen(csn_str) - 4, 1, NULL );
+		ch_free( csn_str );
+		ber_bvarray_add( &cookie->ctxcsn, ctxcsn );
+		ch_free( ctxcsn );
+	} else {
+		cookie->ctxcsn = NULL;
+	}
+
+	if (( sid_ptr = strstr( cookie->octet_str->bv_val, "sid=" )) != NULL ) {
+		sid_str = (char *) strndup( sid_ptr, 7 );
+		if ( cval = strchr( sid_str, ',' )) {
+			*cval = '\0';
+		}
+		cookie->sid = atoi( sid_str+4 );
+		ch_free( sid_str );
+	} else {
+		cookie->sid = -1;
+	}
+}
+
+int
+slap_init_sync_cookie_ctxcsn(
+	struct sync_cookie *cookie
+)
+{
+	char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE + 4 ];
+	struct berval octet_str = { 0, NULL };
+	struct berval ctxcsn = { 0, NULL };
+	struct berval ctxcsn_dup = { 0, NULL };
+	struct berval slap_syncCookie;
+
+	if ( cookie == NULL )
+		return -1;
+
+	octet_str.bv_len = snprintf( csnbuf, LDAP_LUTIL_CSNSTR_BUFSIZE + 4,
+					"csn=%4d%02d%02d%02d:%02d:%02dZ#0x%04x#%d#%04x",
+					1900, 1, 1, 0, 0, 0, 0, 0, 0 );
+	octet_str.bv_val = csnbuf;
+	build_new_dn( &slap_syncCookie, &cookie->octet_str[0], &octet_str, NULL );
+	ber_bvarray_free( cookie->octet_str );
+	cookie->octet_str = NULL;
+	ber_bvarray_add( &cookie->octet_str, &slap_syncCookie );
+
+	ber_dupbv( &ctxcsn, &octet_str );
+	ctxcsn.bv_val += 4;
+	ctxcsn.bv_len -= 4;
+	ber_dupbv( &ctxcsn_dup, &ctxcsn );
+	ch_free( ctxcsn.bv_val );
+	ber_bvarray_add( &cookie->ctxcsn, &ctxcsn_dup );
+
+	return 0;
+}
+
+struct sync_cookie *
+slap_dup_sync_cookie(
+	struct sync_cookie *dst,
+	struct sync_cookie *src
+)
+{
+	int i;
+	struct sync_cookie *new;
+	struct berval tmp_bv;
+
+	if ( src == NULL )
+		return NULL;
+
+	if ( dst ) {
+		ber_bvarray_free( dst->ctxcsn );
+		ber_bvarray_free( dst->octet_str );
+		new = dst;
+	} else {
+		new = ( struct sync_cookie * )
+				ch_calloc( 1, sizeof( struct sync_cookie ));
+	}
+
+	new->sid = src->sid;
+
+	if ( src->ctxcsn ) {
+		for ( i=0; src->ctxcsn[i].bv_val; i++ ) {
+			ber_dupbv( &tmp_bv, &src->ctxcsn[i] );
+			ber_bvarray_add( &new->ctxcsn, &tmp_bv );
+		}
+	}
+
+	if ( src->octet_str ) {
+		for ( i=0; src->octet_str[i].bv_val; i++ ) {
+			ber_dupbv( &tmp_bv, &src->octet_str[i] );
+			ber_bvarray_add( &new->octet_str, &tmp_bv );
+		}
+	}
+
+	return new;
+}

@@ -467,7 +467,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
+	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop && !op->o_no_psearch ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch(op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
 		}

@@ -216,6 +216,7 @@ modify_delete_values(
 	Attribute	*a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
 	char		dummy = '\0';
+	int			match = 0;
 
 	/*
 	 * If permissive is set, then the non-existence of an 
@@ -264,7 +265,6 @@ modify_delete_values(
 	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
 		int	found = 0;
 		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
-			int match;
 
 			if( mod->sm_nvalues ) {
 				assert( a->a_nvals );

@@ -928,6 +928,7 @@ connection_operation( void *ctx, void *arg_v )
 #endif /* SLAPD_MONITOR */
 	Connection *conn = op->o_conn;
 	void *memctx = NULL;
+	void *memctx_null = NULL;
 	ber_len_t memsiz;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
@@ -1098,19 +1099,24 @@ operations_error:
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-	if ( op->o_cancel != SLAP_CANCEL_ACK && ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
+	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx_null );
+
+	if ( op->o_cancel != SLAP_CANCEL_ACK &&
+				( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
 		sl_mem_detach( ctx, memctx );
-		goto no_co_op_free;
+	} else if (( op->o_sync_slog_size != -1 )) {
+		sl_mem_detach( ctx, memctx );
+		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
+		LDAP_STAILQ_NEXT(op, o_next) = NULL;
+		conn->c_n_ops_executing--;
+		conn->c_n_ops_completed++;
+	} else {
+		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
+		LDAP_STAILQ_NEXT(op, o_next) = NULL;
+		slap_op_free( op );
+		conn->c_n_ops_executing--;
+		conn->c_n_ops_completed++;
 	}
-
-	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
-	LDAP_STAILQ_NEXT(op, o_next) = NULL;
-
-	conn->c_n_ops_executing--;
-	conn->c_n_ops_completed++;
-	memctx = NULL;
-	ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, &memctx );
-	slap_op_free( op );
 
 no_co_op_free:
 

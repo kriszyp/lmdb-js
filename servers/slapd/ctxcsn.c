@@ -193,6 +193,7 @@ slap_get_csn(
 	if ( manage_ctxcsn ) {
 		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
 		ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
+		ber_dupbv( &op->o_sync_csn, csn );
 		pending->csn = ber_dupbv( NULL, csn );
 		pending->connid = op->o_connid;
 		pending->opid = op->o_opid;

@@ -548,29 +548,7 @@ int bdb_do_search(
 );
 #define	bdb_psearch(op, rs, sop, e, ps_type)	bdb_do_search(op, rs, sop, e, ps_type)
 
-#define bdb_build_sync_state_ctrl	BDB_SYMBOL(build_sync_state_ctrl)
-#define bdb_build_sync_done_ctrl	BDB_SYMBOL(build_sync_done_ctrl)
 #define bdb_send_ldap_intermediate	BDB_SYMBOL(send_ldap_intermediate)
-
-int
-bdb_build_sync_state_ctrl(
-	Operation       *op,
-	SlapReply		*rs,
-	Entry           *e,
-	int             entry_sync_state,
-	LDAPControl     **ctrls,
-	int             num_ctrls,
-	int             send_cookie,
-	struct berval   *csn     );
-
-int
-bdb_build_sync_done_ctrl(
-	Operation       *op,
-	SlapReply	*rs,
-	LDAPControl     **ctrls,
-	int             num_ctrls,
-	int             send_cookie,
-	struct berval   *latest_entrycsn_bv     );
 
 int
 bdb_send_ldap_intermediate(

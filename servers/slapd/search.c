@@ -401,6 +401,9 @@ return_results:;
 	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
 		return rs->sr_err;
 
+	if ( ( op->o_sync_slog_size != -1 ) )
+		return rs->sr_err;
+
 	if( op->o_req_dn.bv_val != NULL) sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	if( op->o_req_ndn.bv_val != NULL) sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 

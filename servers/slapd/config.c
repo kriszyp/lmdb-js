@@ -2797,8 +2797,9 @@ add_syncrepl(
 	si->si_attrs[0] = NULL;
 	si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
-	si->si_syncCookie.bv_val = NULL;
-	si->si_syncCookie.bv_len = 0;
+	si->si_syncCookie.ctxcsn = NULL;
+	si->si_syncCookie.octet_str = NULL;
+	si->si_syncCookie.sid = -1;
 	si->si_manageDSAit = 0;
 	si->si_tlimit = -1;
 	si->si_slimit = -1;
@@ -2864,7 +2865,6 @@ add_syncrepl(
 #define ATTRSONLYSTR	"attrsonly"
 #define TYPESTR			"type"
 #define INTERVALSTR		"interval"
-#define COOKIESTR		"cookie"
 #define LASTMODSTR		"lastmod"
 #define LMREQSTR		"req"
 #define LMGENSTR		"gen"
@@ -3105,14 +3105,9 @@ parse_syncrepl_line(
 				return 1;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
-			COOKIESTR, sizeof( COOKIESTR ) - 1 ) )
-		{
-			val = cargv[ i ] + sizeof( COOKIESTR );
-			ber_str2bv( val, 0, 1, &si->si_syncCookie );
-		} else if ( !strncasecmp( cargv[ i ],
 			MANAGEDSAITSTR, sizeof( MANAGEDSAITSTR ) - 1 ) )
 		{
-			val = cargv[ i ] + sizeof( COOKIESTR );
+			val = cargv[ i ] + sizeof( MANAGEDSAITSTR );
 			si->si_manageDSAit = atoi( val );
 		} else if ( !strncasecmp( cargv[ i ],
 			SLIMITSTR, sizeof( SLIMITSTR ) - 1 ) )
