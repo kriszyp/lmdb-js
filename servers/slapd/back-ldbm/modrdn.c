@@ -1,24 +1,25 @@
 /* modrdn.c - ldbm backend modrdn routine */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
-
-/*
- * LDAP v3 newSuperior support. Add new rdn as an attribute.
- * (Full support for v2 also used software/ideas contributed
- * by Roy Hooper rhooper@cyberus.ca, thanks to him for his
- * submission!.)
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1999, Juan C. Gomez, All rights reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* Portions Copyright 1999, Juan C. Gomez, All rights reserved.
  * This software is not subject to any license of Silicon Graphics 
  * Inc. or Purdue University.
  *
  * Redistribution and use in source and binary forms are permitted
  * without restriction or fee of any kind as long as this notice
  * is preserved.
- *
  */
 
 #include "portable.h"
