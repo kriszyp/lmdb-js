@@ -434,6 +434,7 @@ read_config( const char *fname )
 		/* specify an Object Identifier macro */
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
 			parse_oidm( fname, lineno, cargc, cargv );
+
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
 			if ( *cargv[1] == '(' ) {
@@ -444,8 +445,10 @@ read_config( const char *fname )
 				parse_oc_old( be, fname, lineno, cargc, cargv );
 			}
 
-		/* specify an attribute */
-		} else if ( strcasecmp( cargv[0], "attribute" ) == 0 ) {
+		/* specify an attribute type */
+		} else if (( strcasecmp( cargv[0], "attributetype" ) == 0 )
+			|| ( strcasecmp( cargv[0], "attribute" ) == 0 ))
+		{
 			if ( *cargv[1] == '(' ) {
 				char * p;
 				p = strchr(saveline,'(');

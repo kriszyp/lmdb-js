@@ -76,7 +76,7 @@ information on using the
 access-control mechanisms.
 .TP
 .B
-attribute ( <oid> [NAME <name>] [DESC <description>] [OBSOLETE] \
+attributetype ( <oid> [NAME <name>] [DESC <description>] [OBSOLETE] \
 [SUP <oid>] [EQUALITY <oid>] [ORDERING <oid>] [SUBSTR <oid>] \
 [SYNTAX <oidlen>] [SINGLE-VALUE] [COLLECTIVE] [NO-USER-MODIFICATION] \
 [USAGE <attributeUsage>] )
@@ -85,8 +85,7 @@ This is the preferred format for attribute type definitions. The slapd
 parser extends the RFC 2252 definition by allowing string forms as well
 as numeric OIDs to be used for the attribute OID and attribute syntax OID.
 (See the
-.B
-objectidentifier
+.B objectidentifier
 description.) Currently the syntax name parser is case-sensitive.
 The known syntax names are:
 .RS
@@ -107,7 +106,7 @@ SubstringAssertion NISnetgrouptriple Bootparameter
 .RE
 .TP
 .B 
-attribute <name> [<name2>] { bin | ces | cis | tel | dn }
+attribute[type] <name> [<name2>] { bin | ces | cis | tel | dn }
 Associate a syntax with an attribute name. This directive is deprecated
 in favor of the one above. By default, an 
 attribute is assumed to have syntax
