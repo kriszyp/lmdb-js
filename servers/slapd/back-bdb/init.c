@@ -579,7 +579,7 @@ bdb_back_initialize(
 		{
 			Debug( LDAP_DEBUG_ANY,
 				LDAP_XSTRING(bdb_back_initialize) ": "
-				BDB_UCTYPE " library version mismatch:"
+				"BDB library version mismatch:"
 				" expected " DB_VERSION_STRING ","
 				" got %s\n", version, 0, 0 );
 		}
