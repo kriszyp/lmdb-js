@@ -994,6 +994,22 @@ aci_mask (
 		if (strcasecmp(op->o_ndn, e->e_ndn) == 0)
 			return(1);
 
+	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
+		Attribute *at;
+		char *attrname;
+
+		attrname = aci_bvstrdup(&sdn);
+		at = attr_find(e->e_attrs, attrname);
+		ch_free(attrname);
+
+		if (at != NULL) {
+			bv.bv_val = op->o_ndn;
+			bv.bv_len = strlen( bv.bv_val );
+
+			if (value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
+				return(1);
+		}
+
 	} else if (aci_strbvcmp( "group", &bv ) == 0) {
 		if (aci_group_member(&sdn, "groupOfNames", "member", be, e, op, matches))
 			return(1);
