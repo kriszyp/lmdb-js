@@ -122,6 +122,9 @@ int bdb_modify_internal(
 
 			err = modify_add_values( e, mod, get_permissiveModify(op),
 				text, textbuf, textlen );
+
+ 			mod->sm_op = SLAP_MOD_SOFTADD;
+
  			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
  				err = LDAP_SUCCESS;
  			}
