@@ -804,14 +804,17 @@ read_config( const char *fname )
 
 		/* specify an Object Identifier macro */
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
-			parse_oidm( fname, lineno, cargc, cargv );
+			rc = parse_oidm( fname, lineno, cargc, cargv );
+			if( rc ) return rc;
 
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
 			if ( *cargv[1] == '(' ) {
 				char * p;
 				p = strchr(saveline,'(');
-				parse_oc( fname, lineno, p, cargv );
+				rc = parse_oc( fname, lineno, p, cargv );
+				if( rc ) return rc;
+
 			} else {
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: old objectclass format not supported.\n",
@@ -825,7 +828,9 @@ read_config( const char *fname )
 			if ( *cargv[1] == '(' ) {
 				char * p;
 				p = strchr(saveline,'(');
-				parse_at( fname, lineno, p, cargv );
+				rc = parse_at( fname, lineno, p, cargv );
+				if( rc ) return rc;
+
 			} else {
 				Debug( LDAP_DEBUG_ANY,
     "%s: line %d: old attribute type format not supported.\n",
