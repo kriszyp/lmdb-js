@@ -2475,6 +2475,7 @@ AC_CHECK_FUNCS(		\
 	wait4			\
 	write			\
 	send			\
+	sendmsg			\
 	sendto			\
 )
 

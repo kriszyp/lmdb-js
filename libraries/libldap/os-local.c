@@ -131,6 +131,10 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 }
 #undef TRACE
 
+#if !defined(HAVE_GETPEEREID) && !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && defined(HAVE_SENDMSG)
+#define DO_SENDMSG
+#endif
+
 static int
 ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 {
@@ -155,6 +159,25 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 		if ( ldap_pvt_ndelay_off(ld, s) == -1 ) {
 			return ( -1 );
 		}
+#ifdef DO_SENDMSG
+	/* Send a dummy message with access rights. Remote side will
+	 * obtain our uid/gid by fstat'ing this descriptor.
+	 */
+sendcred:	 {
+			int fds[2];
+			struct iovec iov = {(char *)fds, sizeof(int)};
+			struct msghdr msg = {0};
+			if (pipe(fds) == 0) {
+				msg.msg_iov = &iov;
+				msg.msg_iovlen = 1;
+				msg.msg_accrights = (char *)fds;
+				msg.msg_accrightslen = sizeof(int);
+				sendmsg( s, &msg, 0 );
+			    	close(fds[0]);
+				close(fds[1]);
+			}
+		}
+#endif
 		return ( 0 );
 	}
 
@@ -181,7 +204,11 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 			return ( -1 );
 		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
 			return ( -1 );
+#ifdef DO_SENDMSG
+		goto sendcred;
+#else
 		return ( 0 );
+#endif
 	}
 	oslocal_debug(ld, "ldap_connect_timeout: timed out\n",0,0,0);
 	ldap_pvt_set_errno( ETIMEDOUT );
