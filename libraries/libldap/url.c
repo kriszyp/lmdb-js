@@ -161,7 +161,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 
 	LDAPURLDesc	*ludp;
 	char	*p, *q;
-	int		enclosed, ldaps;
+	int		i, enclosed, ldaps;
 	const char *url_tmp;
 	char *url;
 
@@ -397,6 +397,17 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	ludp->lud_exts = ldap_str2charray( p, "," );
 
 	if( ludp->lud_exts == NULL ) {
+		LDAP_FREE( url );
+		ldap_free_urldesc( ludp );
+		return LDAP_URL_ERR_BADEXTS;
+	}
+
+	for( i=0; ludp->lud_exts[i] != NULL; i++ ) {
+		hex_unescape( ludp->lud_exts[i] );
+	}
+
+	if( i == 0 ) {
+		ldap_charray_free( ludp->lud_exts );
 		LDAP_FREE( url );
 		ldap_free_urldesc( ludp );
 		return LDAP_URL_ERR_BADEXTS;
