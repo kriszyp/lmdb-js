@@ -111,6 +111,16 @@ ldap_back_db_config(
 		}
 		li->bindpw = ch_strdup(argv[1]);
 	
+	/* save bind creds for referral rebinds? */
+	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
+		if (argc != 1) {
+			fprintf( stderr,
+	"%s: line %d: rebind-as-user takes no arguments\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		li->savecred = 1;
+	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[0], "suffixmassage" ) == 0 ) {
 #ifndef ENABLE_REWRITE

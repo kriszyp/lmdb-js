@@ -53,6 +53,7 @@ struct slap_op;
 struct ldapconn {
 	struct slap_conn	*conn;
 	LDAP		*ld;
+	struct berval	cred;
 	struct berval 	bound_dn;
 	int		bound;
 };
@@ -74,6 +75,7 @@ struct ldapinfo {
 	char *binddn;
 	char *bindpw;
 	ldap_pvt_thread_mutex_t		conn_mutex;
+	int savecred;
 	Avlnode *conntree;
 #ifdef ENABLE_REWRITE
 	struct rewrite_info *rwinfo;
