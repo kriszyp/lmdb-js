@@ -251,7 +251,7 @@ IA5StringNormalize(
 		/* EMPTY */  ;
 	}
 
-	if( *p ) {
+	if( *p != '\0' ) {
 		ch_free( newval );
 		return LDAP_INVALID_SYNTAX;
 	}
