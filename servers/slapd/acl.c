@@ -67,9 +67,9 @@ static int aci_mask(
 #endif
 
 static int	regex_matches(
-	char *pat, char *str, char *buf, regmatch_t *matches);
+	struct berval *pat, char *str, char *buf, regmatch_t *matches);
 static void	string_expand(
-	struct berval *newbuf, char *pattern,
+	struct berval *newbuf, struct berval *pattern,
 	char *match, regmatch_t *matches);
 
 typedef	struct AciSetCookie {
@@ -553,7 +553,7 @@ acl_mask(
 
 			} else if ( b->a_dn_style == ACL_STYLE_REGEX ) {
 				if ( ber_bvccmp( &b->a_dn_pat, '*' ) == 0 ) {
-					int ret = regex_matches( b->a_dn_pat.bv_val,
+					int ret = regex_matches( &b->a_dn_pat,
 						op->o_ndn.bv_val, e->e_ndn, matches );
 
 					if( ret == 0 ) {
@@ -604,94 +604,94 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_sockurl_pat != NULL ) {
+		if ( b->a_sockurl_pat.bv_len ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 				   "acl_mask: conn %d  check a_sockurl_pat: %s\n",
-				   conn->c_connid, b->a_sockurl_pat ));
+				   conn->c_connid, b->a_sockurl_pat.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockurl_pat: %s\n",
-				b->a_sockurl_pat, 0, 0 );
+				b->a_sockurl_pat.bv_val, 0, 0 );
 #endif
 
-			if ( ber_strccmp( b->a_sockurl_pat, '*' ) != 0) {
+			if ( ber_bvccmp( &b->a_sockurl_pat, '*' ) != 0) {
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( b->a_sockurl_pat, conn->c_listener_url,
+					if (!regex_matches( &b->a_sockurl_pat, conn->c_listener_url.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_sockurl_pat, conn->c_listener_url ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_sockurl_pat, &conn->c_listener_url ) != 0 )
 						continue;
 				}
 			}
 		}
 
-		if ( b->a_domain_pat != NULL ) {
+		if ( b->a_domain_pat.bv_len ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 				   "acl_mask: conn %d  check a_domain_pat: %s\n",
-				   conn->c_connid, b->a_domain_pat ));
+				   conn->c_connid, b->a_domain_pat.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_domain_pat: %s\n",
-				b->a_domain_pat, 0, 0 );
+				b->a_domain_pat.bv_val, 0, 0 );
 #endif
-			if ( ber_strccmp( b->a_domain_pat, '*' ) != 0) {
+			if ( ber_bvccmp( &b->a_domain_pat, '*' ) != 0) {
 				if ( b->a_domain_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( b->a_domain_pat, conn->c_peer_domain,
+					if (!regex_matches( &b->a_domain_pat, conn->c_peer_domain.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_domain_pat, conn->c_peer_domain ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_domain_pat, &conn->c_peer_domain ) != 0 )
 						continue;
 				}
 			}
 		}
 
-		if ( b->a_peername_pat != NULL ) {
+		if ( b->a_peername_pat.bv_len ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 				   "acl_mask: conn %d  check a_perrname_path: %s\n",
-				   conn->c_connid, b->a_peername_pat ));
+				   conn->c_connid, b->a_peername_pat.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
-				b->a_peername_pat, 0, 0 );
+				b->a_peername_pat.bv_val, 0, 0 );
 #endif
-			if ( ber_strccmp( b->a_peername_pat, '*' ) != 0) {
+			if ( ber_bvccmp( &b->a_peername_pat, '*' ) != 0) {
 				if ( b->a_peername_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( b->a_peername_pat, conn->c_peer_name,
+					if (!regex_matches( &b->a_peername_pat, conn->c_peer_name.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_peername_pat, conn->c_peer_name ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_peername_pat, &conn->c_peer_name ) != 0 )
 						continue;
 				}
 			}
 		}
 
-		if ( b->a_sockname_pat != NULL ) {
+		if ( b->a_sockname_pat.bv_len ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
 				   "acl_mask: conn %d  check a_sockname_path: %s\n",
-				   conn->c_connid, b->a_sockname_pat ));
+				   conn->c_connid, b->a_sockname_pat.bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_sockname_path: %s\n",
-				b->a_sockname_pat, 0, 0 );
+				b->a_sockname_pat.bv_val, 0, 0 );
 #endif
-			if ( ber_strccmp( b->a_sockname_pat, '*' ) != 0) {
+			if ( ber_bvccmp( &b->a_sockname_pat, '*' ) != 0) {
 				if ( b->a_sockname_style == ACL_STYLE_REGEX) {
-					if (!regex_matches( b->a_sockname_pat, conn->c_sock_name,
+					if (!regex_matches( &b->a_sockname_pat, conn->c_sock_name.bv_val,
 							e->e_ndn, matches ) ) 
 					{
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_sockname_pat, conn->c_sock_name ) != 0 )
+					if ( ber_bvstrcasecmp( &b->a_sockname_pat, &conn->c_sock_name ) != 0 )
 						continue;
 				}
 			}
@@ -780,7 +780,7 @@ acl_mask(
 			 */
 			/* see if asker is listed in dnattr */
 			if ( b->a_group_style == ACL_STYLE_REGEX ) {
-				string_expand(&bv, b->a_group_pat.bv_val, e->e_ndn, matches);
+				string_expand(&bv, &b->a_group_pat, e->e_ndn, matches);
 				if ( dnNormalize2(NULL, &bv, &ndn) != LDAP_SUCCESS ) {
 					/* did not expand to a valid dn */
 					continue;
@@ -1173,26 +1173,6 @@ aci_bvstrdup( struct berval *bv )
 	return(s);
 }
 
-#ifdef SLAPD_ACI_ENABLED
-static int
-aci_strbvcmp(
-	const char *s,
-	struct berval *bv )
-{
-	int res, len;
-
-	res = strncasecmp( s, bv->bv_val, bv->bv_len );
-	if (res)
-		return(res);
-	len = strlen(s);
-	if (len > (int)bv->bv_len)
-		return(1);
-	if (len < (int)bv->bv_len)
-		return(-1);
-	return(0);
-}
-#endif
-
 static int
 aci_get_part(
 	struct berval *list,
@@ -1502,7 +1482,7 @@ aci_group_member (
 )
 {
 	struct berval bv;
-	char *subjdn;
+	struct berval subjdn;
 	struct berval grpoc;
 	struct berval grpat;
 	ObjectClass *grp_oc = NULL;
@@ -1511,12 +1491,7 @@ aci_group_member (
 	int rc;
 
 	/* format of string is "group/objectClassValue/groupAttrName" */
-	if (aci_get_part(subj, 0, '/', &bv) < 0) {
-		return(0);
-	}
-
-	subjdn = aci_bvstrdup(&bv);
-	if (subjdn == NULL) {
+	if (aci_get_part(subj, 0, '/', &subjdn) < 0) {
 		return(0);
 	}
 
@@ -1541,7 +1516,7 @@ aci_group_member (
 		struct berval ndn;
 		bv.bv_val = (char *)ch_malloc(1024);
 		bv.bv_len = 1024;
-		string_expand(&bv, subjdn, e->e_ndn, matches);
+		string_expand(&bv, &subjdn, e->e_ndn, matches);
 		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
 			rc = (backend_group(be, conn, op, e, &ndn, &op->o_ndn, grp_oc, grp_ad) == 0);
 			free( ndn.bv_val );
@@ -1550,7 +1525,6 @@ aci_group_member (
 	}
 
 done:
-	ch_free(subjdn);
 	return(rc);
 }
 
@@ -1691,7 +1665,7 @@ aci_mask(
 static void
 string_expand(
 	struct berval *bv,
-	char *pat,
+	struct berval *pat,
 	char *match,
 	regmatch_t *matches)
 {
@@ -1705,7 +1679,8 @@ string_expand(
 	bv->bv_len--; /* leave space for lone $ */
 
 	flag = 0;
-	for ( dp = bv->bv_val, sp = pat; size < bv->bv_len && *sp ; sp++) {
+	for ( dp = bv->bv_val, sp = pat->bv_val; size < bv->bv_len &&
+		sp < pat->bv_val + pat->bv_len ; sp++) {
 		/* did we previously see a $ */
 		if (flag) {
 			if (*sp == '$') {
@@ -1748,18 +1723,18 @@ string_expand(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
-		   "string_expand:  pattern = %s\n", pat ));
+		   "string_expand:  pattern = %.*s\n", pat->bv_len, pat->bv_val ));
 	LDAP_LOG(( "aci", LDAP_LEVEL_DETAIL1,
 		   "string_expand:  expanded = %s\n", bv->bv_val ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> string_expand: pattern:  %s\n", pat, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> string_expand: pattern:  %.*s\n", pat->bv_len, pat->bv_val, 0 );
 	Debug( LDAP_DEBUG_TRACE, "=> string_expand: expanded: %s\n", bv->bv_val, 0, 0 );
 #endif
 }
 
 static int
 regex_matches(
-	char *pat,				/* pattern to expand and match against */
+	struct berval *pat,			/* pattern to expand and match against */
 	char *str,				/* string to match against pattern */
 	char *buf,				/* buffer with $N expansion variables */
 	regmatch_t *matches		/* offsets in buffer for $N expansion variables */
@@ -1780,11 +1755,11 @@ regex_matches(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "aci", LDAP_LEVEL_ERR,
 			   "regex_matches: compile( \"%s\", \"%s\") failed %s\n",
-			   pat, str, error ));
+			   pat->bv_val, str, error ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		    "compile( \"%s\", \"%s\") failed %s\n",
-			pat, str, error );
+			pat->bv_val, str, error );
 #endif
 		return( 0 );
 	}

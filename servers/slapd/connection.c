@@ -422,10 +422,14 @@ long connection_init(
 		c->c_cdn.bv_len = 0;
 		c->c_groups = NULL;
 
-		c->c_listener_url = NULL;
-		c->c_peer_domain = NULL;
-		c->c_peer_name = NULL;
-		c->c_sock_name = NULL;
+		c->c_listener_url.bv_val = NULL;
+		c->c_listener_url.bv_len = 0;
+		c->c_peer_domain.bv_val = NULL;
+		c->c_peer_domain.bv_len = 0;
+		c->c_peer_name.bv_val = NULL;
+		c->c_peer_name.bv_len = 0;
+		c->c_sock_name.bv_val = NULL;
+		c->c_sock_name.bv_len = 0;
 
 		LDAP_STAILQ_INIT(&c->c_ops);
 		LDAP_STAILQ_INIT(&c->c_pending_ops);
@@ -460,10 +464,10 @@ long connection_init(
     assert( c->c_ndn.bv_val == NULL );
     assert( c->c_cdn.bv_val == NULL );
     assert( c->c_groups == NULL );
-    assert( c->c_listener_url == NULL );
-    assert( c->c_peer_domain == NULL );
-    assert( c->c_peer_name == NULL );
-    assert( c->c_sock_name == NULL );
+    assert( c->c_listener_url.bv_val == NULL );
+    assert( c->c_peer_domain.bv_val == NULL );
+    assert( c->c_peer_name.bv_val == NULL );
+    assert( c->c_sock_name.bv_val == NULL );
     assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
     assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
 	assert( c->c_sasl_bind_mech.bv_val == NULL );
@@ -471,10 +475,10 @@ long connection_init(
 	assert( c->c_sasl_extra == NULL );
 	assert( c->c_currentber == NULL );
 
-	c->c_listener_url = ch_strdup( url  );
-	c->c_peer_domain = ch_strdup( dnsname  );
-    c->c_peer_name = ch_strdup( peername  );
-    c->c_sock_name = ch_strdup( sockname );
+	ber_str2bv( url, 0, 1, &c->c_listener_url );
+	ber_str2bv( dnsname, 0, 1, &c->c_peer_domain );
+	ber_str2bv( peername, 0, 1, &c->c_peer_name );
+	ber_str2bv( sockname, 0, 1, &c->c_sock_name );
 
     c->c_n_ops_received = 0;
     c->c_n_ops_executing = 0;
@@ -637,37 +641,41 @@ connection_destroy( Connection *c )
 
 	connection2anonymous( c );
 
-	if(c->c_listener_url != NULL) {
-		free(c->c_listener_url);
-		c->c_listener_url = NULL;
+	if(c->c_listener_url.bv_val != NULL) {
+		free(c->c_listener_url.bv_val);
+		c->c_listener_url.bv_val = NULL;
 	}
+	c->c_listener_url.bv_len = 0;
 
-	if(c->c_peer_domain != NULL) {
-		free(c->c_peer_domain);
-		c->c_peer_domain = NULL;
+	if(c->c_peer_domain.bv_val != NULL) {
+		free(c->c_peer_domain.bv_val);
+		c->c_peer_domain.bv_val = NULL;
 	}
-	if(c->c_peer_name != NULL) {
+	c->c_peer_domain.bv_len = 0;
+	if(c->c_peer_name.bv_val != NULL) {
 #ifdef LDAP_PF_lOCAL
 		/*
 		 * If peer was a domain socket, unlink. Mind you,
 		 * they may be un-named. Should we leave this to
 		 * the client?
 		 */
-		if (strncmp(c->c_peer_name, "PATH=", 5) == 0) {
-			char *path = c->c_peer_name + 5;
+		if (strncmp(c->c_peer_name.bv_val, "PATH=", 5) == 0) {
+			char *path = c->c_peer_name.bv_val + 5;
 			if (path != '\0') {
 				(void)unlink(path);
 			}
 		}
 #endif /* LDAP_PF_LOCAL */
 
-		free(c->c_peer_name);
-		c->c_peer_name = NULL;
+		free(c->c_peer_name.bv_val);
+		c->c_peer_name.bv_val = NULL;
 	}
-	if(c->c_sock_name != NULL) {
-		free(c->c_sock_name);
-		c->c_sock_name = NULL;
+	c->c_peer_name.bv_len = 0;
+	if(c->c_sock_name.bv_val != NULL) {
+		free(c->c_sock_name.bv_val);
+		c->c_sock_name.bv_val = NULL;
 	}
+	c->c_sock_name.bv_len = 0;
 
 	c->c_sasl_bind_in_progress = 0;
 	if(c->c_sasl_bind_mech.bv_val != NULL) {

@@ -910,14 +910,14 @@ typedef struct slap_access {
 	int			a_dn_self;
 
 	slap_style_t a_peername_style;
-	char		*a_peername_pat;
+	struct berval	a_peername_pat;
 	slap_style_t a_sockname_style;
-	char		*a_sockname_pat;
+	struct berval	a_sockname_pat;
 
 	slap_style_t a_domain_style;
-	char		*a_domain_pat;
+	struct berval	a_domain_pat;
 	slap_style_t a_sockurl_style;
-	char		*a_sockurl_pat;
+	struct berval	a_sockurl_pat;
 	slap_style_t a_set_style;
 	struct berval	a_set_pat;
 
@@ -1459,10 +1459,10 @@ typedef struct slap_conn {
 	time_t		c_activitytime;	/* when the connection was last used */
 	unsigned long		c_connid;	/* id of this connection for stats*/
 
-	char		*c_listener_url;	/* listener URL */
-	char		*c_peer_domain;	/* DNS name of client */
-	char		*c_peer_name;	/* peer name (trans=addr:port) */
-	char		*c_sock_name;	/* sock name (trans=addr:port) */
+	struct berval	c_listener_url;	/* listener URL */
+	struct berval	c_peer_domain;	/* DNS name of client */
+	struct berval	c_peer_name;	/* peer name (trans=addr:port) */
+	struct berval	c_sock_name;	/* sock name (trans=addr:port) */
 
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */

@@ -317,10 +317,10 @@ conn_create(
 		
 		c->c_cdn.bv_len ? c->c_cdn.bv_val : SLAPD_ANONYMOUS,
 		
-		c->c_listener_url,
-		c->c_peer_domain,
-		c->c_peer_name,
-		c->c_sock_name,
+		c->c_listener_url.bv_val,
+		c->c_peer_domain.bv_val,
+		c->c_peer_name.bv_val,
+		c->c_sock_name.bv_val,
 		
 		buf2,
 		buf3

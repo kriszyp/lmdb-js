@@ -587,7 +587,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( b->a_peername_pat != NULL ) {
+					if( b->a_peername_pat.bv_len ) {
 						fprintf( stderr,
 							"%s: line %d: peername pattern already specified.\n",
 							fname, lineno );
@@ -599,9 +599,9 @@ parse_acl(
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
 						regtest(fname, lineno, bv.bv_val);
-						b->a_peername_pat = bv.bv_val;
+						b->a_peername_pat = bv;
 					} else {
-						b->a_peername_pat = ch_strdup( right );
+						ber_str2bv( right, 0, 1, &b->a_peername_pat );
 					}
 					continue;
 				}
@@ -614,7 +614,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( b->a_sockname_pat != NULL ) {
+					if( b->a_sockname_pat.bv_len ) {
 						fprintf( stderr,
 							"%s: line %d: sockname pattern already specified.\n",
 							fname, lineno );
@@ -626,9 +626,9 @@ parse_acl(
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
 						regtest(fname, lineno, bv.bv_val);
-						b->a_sockname_pat = bv.bv_val;
+						b->a_sockname_pat = bv;
 					} else {
-						b->a_sockname_pat = ch_strdup( right );
+						ber_str2bv( right, 0, 1, &b->a_sockname_pat );
 					}
 					continue;
 				}
@@ -641,7 +641,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( b->a_domain_pat != NULL ) {
+					if( b->a_domain_pat.bv_len ) {
 						fprintf( stderr,
 							"%s: line %d: domain pattern already specified.\n",
 							fname, lineno );
@@ -653,9 +653,9 @@ parse_acl(
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
 						regtest(fname, lineno, bv.bv_val);
-						b->a_domain_pat = bv.bv_val;
+						b->a_domain_pat = bv;
 					} else {
-						b->a_domain_pat = ch_strdup( right );
+						ber_str2bv( right, 0, 1, &b->a_domain_pat );
 					}
 					continue;
 				}
@@ -668,7 +668,7 @@ parse_acl(
 						acl_usage();
 					}
 
-					if( b->a_sockurl_pat != NULL ) {
+					if( b->a_sockurl_pat.bv_len ) {
 						fprintf( stderr,
 							"%s: line %d: sockurl pattern already specified.\n",
 							fname, lineno );
@@ -680,9 +680,9 @@ parse_acl(
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
 						regtest(fname, lineno, bv.bv_val);
-						b->a_sockurl_pat = bv.bv_val;
+						b->a_sockurl_pat = bv;
 					} else {
-						b->a_sockurl_pat = ch_strdup( right );
+						ber_str2bv( right, 0, 1, &b->a_sockurl_pat );
 					}
 					continue;
 				}
@@ -1249,14 +1249,14 @@ access_free( Access *a )
 {
 	if ( a->a_dn_pat.bv_val )
 		free ( a->a_dn_pat.bv_val );
-	if ( a->a_peername_pat )
-		free ( a->a_peername_pat );
-	if ( a->a_sockname_pat )
-		free ( a->a_sockname_pat );
-	if ( a->a_domain_pat )
-		free ( a->a_domain_pat );
-	if ( a->a_sockurl_pat )
-		free ( a->a_sockurl_pat );
+	if ( a->a_peername_pat.bv_val )
+		free ( a->a_peername_pat.bv_val );
+	if ( a->a_sockname_pat.bv_val )
+		free ( a->a_sockname_pat.bv_val );
+	if ( a->a_domain_pat.bv_val )
+		free ( a->a_domain_pat.bv_val );
+	if ( a->a_sockurl_pat.bv_val )
+		free ( a->a_sockurl_pat.bv_val );
 	if ( a->a_set_pat.bv_len )
 		free ( a->a_set_pat.bv_val );
 	if ( a->a_group_pat.bv_len )
@@ -1403,20 +1403,20 @@ print_access( Access *b )
 		}
     }
 
-	if ( b->a_peername_pat != NULL ) {
-		fprintf( stderr, " peername=%s", b->a_peername_pat );
+	if ( b->a_peername_pat.bv_len != 0 ) {
+		fprintf( stderr, " peername=%s", b->a_peername_pat.bv_val );
 	}
 
-	if ( b->a_sockname_pat != NULL ) {
-		fprintf( stderr, " sockname=%s", b->a_sockname_pat );
+	if ( b->a_sockname_pat.bv_len != 0 ) {
+		fprintf( stderr, " sockname=%s", b->a_sockname_pat.bv_val );
 	}
 
-	if ( b->a_domain_pat != NULL ) {
-		fprintf( stderr, " domain=%s", b->a_domain_pat );
+	if ( b->a_domain_pat.bv_len != 0 ) {
+		fprintf( stderr, " domain=%s", b->a_domain_pat.bv_val );
 	}
 
-	if ( b->a_sockurl_pat != NULL ) {
-		fprintf( stderr, " sockurl=%s", b->a_sockurl_pat );
+	if ( b->a_sockurl_pat.bv_len != 0 ) {
+		fprintf( stderr, " sockurl=%s", b->a_sockurl_pat.bv_val );
 	}
 
 #ifdef SLAPD_ACI_ENABLED
