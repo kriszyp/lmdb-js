@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -15,35 +20,34 @@
  * main.c - main routine for slurpd.
  */
 
+#include "portable.h"
+
+#include <ac/stdlib.h>
+
 #include <stdio.h>
 
 #include "slurp.h"
 #include "globals.h"
+#include "lutil.h"
 
+#include <ldap_pvt.h>
 
-extern int		doargs( int, char **, Globals * );
-extern void		fm();
-extern int		start_replica_thread( Ri * );
-extern Globals		*init_globals();
-extern int		sanity();
-#if defined( THREAD_SUNOS4_LWP )
-extern void		start_lwp_scheduler();
-#endif /* THREAD_SUNOS4_LWP */
-
+int
 main(
     int		argc,
     char	**argv
 )
 {
-    pthread_attr_t	attr;
-    int			status;
+#ifdef NO_THREADS
+    /* Haven't yet written the non-threaded version */
+    fputs( "slurpd currently requires threads support\n", stderr );
+    return( 1 );
+#else
+
     int			i;
 
-#ifndef _THREAD
-    /* Haven't yet written the non-threaded version */
-    fprintf( stderr, "slurpd currently requires threads support\n" );
-    exit( 1 );
-#endif /* !_THREAD */
+    /* initialize thread package */
+    ldap_pvt_thread_initialize();
 
     /* 
      * Create and initialize globals.  init_globals() also initializes
@@ -51,14 +55,14 @@ main(
      */
     if (( sglob = init_globals()) == NULL ) {
 	fprintf( stderr, "Out of memory initializing globals\n" );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
      * Process command-line args and fill in globals.
      */
     if ( doargs( argc, argv, sglob ) < 0 ) {
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
@@ -68,6 +72,21 @@ main(
 	fprintf( stderr,
 		"Errors encountered while processing config file \"%s\"\n",
 		sglob->slapd_configfile );
+	exit( EXIT_FAILURE );
+    }
+
+#ifdef HAVE_TLS
+	if( ldap_pvt_tls_init() || ldap_pvt_tls_init_def_ctx() ) {
+		fprintf( stderr, "TLS Initialization failed.\n" );
+		exit( EXIT_FAILURE);
+	}
+#endif
+
+    /* 
+     * Make sure our directory exists
+     */
+    if ( mkdir(sglob->slurpd_rdir, 0755) == -1 && errno != EEXIST) {
+	perror(sglob->slurpd_rdir);
 	exit( 1 );
     }
 
@@ -77,7 +96,7 @@ main(
     if ( sglob->st->st_read( sglob->st )) {
 	fprintf( stderr, "Malformed slurpd status file \"%s\"\n",
 		sglob->slurpd_status_file, 0, 0 );
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
@@ -85,30 +104,34 @@ main(
      * Check for any fatal error conditions before we get started
      */
      if ( sanity() < 0 ) {
-	exit( 1 );
+	exit( EXIT_FAILURE );
     }
 
     /*
-     * Detach from the controlling terminal, if debug level = 0,
-     * and if not in one-shot mode.
+     * Detach from the controlling terminal
+     * unless the -d flag is given or in one-shot mode.
      */
-#ifdef LDAP_DEBUG
-    if (( ldap_debug == 0 )  && !sglob->one_shot_mode ) {
-#else /* LDAP_DEBUG */
-    if ( !sglob->one_shot_mode ) {
-#endif /* LDAP_DEBUG */
-	detach();
+    if ( ! (sglob->no_detach || sglob->one_shot_mode) )
+	lutil_detach( 0, 0 );
+
+    /*
+     * Start the main file manager thread (in fm.c).
+     */
+    if ( ldap_pvt_thread_create( &(sglob->fm_tid),
+		0, fm, (void *) NULL ) != 0 )
+	{
+	Debug( LDAP_DEBUG_ANY, "file manager ldap_pvt_thread_create failed\n",
+		0, 0, 0 );
+	exit( EXIT_FAILURE );
+
     }
 
-#ifdef _THREAD
-
-#if defined( THREAD_SUNOS4_LWP )
     /*
-     * Need to start a scheduler thread under SunOS 4
+     * wait for fm to finish if in oneshot mode
      */
-    start_lwp_scheduler();
-#endif /* THREAD_SUNOS4_LWP */
-
+    if ( sglob->one_shot_mode ) {
+	ldap_pvt_thread_join( sglob->fm_tid, (void *) NULL );
+    }
 
     /*
      * Start threads - one thread for each replica
@@ -118,38 +141,23 @@ main(
     }
 
     /*
-     * Start the main file manager thread (in fm.c).
-     */
-    pthread_attr_init( &attr );
-    if ( pthread_create( &(sglob->fm_tid), attr, (void *) fm, (void *) NULL )
-	    != 0 ) {
-	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
-		0, 0, 0 );
-	exit( 1 );
-
-    }
-    pthread_attr_destroy( &attr );
-
-    /*
      * Wait for the fm thread to finish.
      */
-    pthread_join( sglob->fm_tid, (void *) &status );
+    if ( !sglob->one_shot_mode ) {
+	ldap_pvt_thread_join( sglob->fm_tid, (void *) NULL );
+    }
+
     /*
      * Wait for the replica threads to finish.
      */
     for ( i = 0; sglob->replicas[ i ] != NULL; i++ ) {
-	pthread_join( sglob->replicas[ i ]->ri_tid, (void *) &status );
+	ldap_pvt_thread_join( sglob->replicas[ i ]->ri_tid, (void *) NULL );
     }
-    Debug( LDAP_DEBUG_ANY, "slurpd: terminating normally\n", 0, 0, 0 );
-    sglob->slurpd_shutdown = 1;
-    pthread_exit( 0 );
 
-#else /* !_THREAD */
-    /*
-     * Non-threaded case.
-     */
-    exit( 0 );
+    /* destroy the thread package */
+    ldap_pvt_thread_destroy();
 
-#endif /* !_THREAD */
-    
+    Debug( LDAP_DEBUG_ANY, "slurpd: terminated.\n", 0, 0, 0 );
+	return 0;
+#endif /* !NO_THREADS */
 }

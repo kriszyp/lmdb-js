@@ -43,6 +43,7 @@
 #define generalizedTimeMatch			caseIgnoreIA5Match
 #define generalizedTimeOrderingMatch	caseIgnoreIA5Match
 #define uniqueMemberMatch				dnMatch
+#define integerFirstComponentMatch		integerMatch
 
 /* approx matching rules */
 #define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
@@ -54,15 +55,15 @@
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
 
-/* orderring matching rules */
+/* ordering matching rules */
 #define caseIgnoreOrderingMatch			caseIgnoreMatch
 #define caseExactOrderingMatch			caseExactMatch
+#define integerOrderingMatch			integerMatch
 
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
 #define protocolInformationMatch		NULL
-#define integerFirstComponentMatch		NULL
 
 #ifdef SLAPD_ACI_ENABLED
 #define OpenLDAPaciMatch				NULL
@@ -82,9 +83,20 @@
 #define telephoneNumberSubstringsIndexer	caseIgnoreIA5SubstringsIndexer
 #define telephoneNumberSubstringsFilter		caseIgnoreIA5SubstringsFilter
 
-/* must match OIDs below */
-#define caseExactMatchOID			"2.5.13.5"
-#define caseExactSubstringsMatchOID		"2.5.13.7"
+static MatchingRule *caseExactMatchingRule;
+static MatchingRule *caseExactSubstringsMatchingRule;
+static MatchingRule *integerFirstComponentMatchingRule;
+
+static const struct MatchingRulePtr {
+	const char   *oid;
+	MatchingRule **mr;
+} mr_ptr [] = {
+	/* must match OIDs below */
+	{ "2.5.13.5",  &caseExactMatchingRule },
+	{ "2.5.13.7",  &caseExactSubstringsMatchingRule },
+	{ "2.5.13.29", &integerFirstComponentMatchingRule }
+};
+
 
 static char *bvcasechr( struct berval *bv, int c, ber_len_t *len )
 {
@@ -539,6 +551,7 @@ UTF8StringNormalize(
 	ber_mem2bv( p, val->bv_len - (p - val->bv_val), 1, normalized );
 	e = normalized->bv_val + val->bv_len - (p - val->bv_val);
 
+	assert( normalized->bv_len );
 	assert( normalized->bv_val );
 
 	p = q = normalized->bv_val;
@@ -646,30 +659,6 @@ err:
 	return NULL;
 }
 
-/* Strip characters with the 8th bit set */
-static char *
-strip8bitChars(
-	char *in )      
-{
-	char *p = in, *q;
-  
-	if( in == NULL ) {
-		return NULL;
-	}
-	while( *p ) {
-		if( *p & 0x80 ) {
-			q = p;
-			while( *++q & 0x80 ) {
-				/* empty */
-			}
-			p = AC_MEMCPY(p, q, strlen(q) + 1);
-		} else {
-			p++;
-		}
-	}
-	return in;
-}
-
 #ifndef SLAPD_APPROX_OLDSINGLESTRING
 
 #if defined(SLAPD_APPROX_INITIALS)
@@ -689,31 +678,27 @@ approxMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	char *val, *nval, *assertv, **values, **words, *c;
+	struct berval *nval, *assertv;
+	char *val, **values, **words, *c;
 	int i, count, len, nextchunk=0, nextavail=0;
-	size_t avlen;
 
 	/* Yes, this is necessary */
-	nval = UTF8normalize( value, LDAP_UTF8_NOCASEFOLD );
+	nval = UTF8bvnormalize( value, NULL, LDAP_UTF8_APPROX );
 	if( nval == NULL ) {
 		*matchp = 1;
 		return LDAP_SUCCESS;
 	}
-	strip8bitChars( nval );
 
 	/* Yes, this is necessary */
-	assertv = UTF8normalize( ((struct berval *)assertedValue),
-		LDAP_UTF8_NOCASEFOLD );
+	assertv = UTF8bvnormalize( ((struct berval *)assertedValue), NULL, LDAP_UTF8_APPROX );
 	if( assertv == NULL ) {
-		ch_free( nval );
+		ber_bvfree( nval );
 		*matchp = 1;
 		return LDAP_SUCCESS;
 	}
-	strip8bitChars( assertv );
-	avlen = strlen( assertv );
 
 	/* Isolate how many words there are */
-	for( c=nval,count=1; *c; c++ ) {
+	for ( c = nval->bv_val, count = 1; *c; c++ ) {
 		c = strpbrk( c, SLAPD_APPROX_DELIMITER );
 		if ( c == NULL ) break;
 		*c = '\0';
@@ -723,7 +708,7 @@ approxMatch(
 	/* Get a phonetic copy of each word */
 	words = (char **)ch_malloc( count * sizeof(char *) );
 	values = (char **)ch_malloc( count * sizeof(char *) );
-	for( c=nval,i=0;  i<count;  i++,c+=strlen(c)+1 ) {
+	for ( c = nval->bv_val, i = 0;  i < count; i++, c += strlen(c) + 1 ) {
 		words[i] = c;
 		values[i] = phonetic(c);
 	}
@@ -731,8 +716,8 @@ approxMatch(
 	/* Work through the asserted value's words, to see if at least some
 	   of the words are there, in the same order. */
 	len = 0;
-	while ( (size_t) nextchunk < avlen ) {
-		len = strcspn( assertv + nextchunk, SLAPD_APPROX_DELIMITER);
+	while ( (ber_len_t) nextchunk < assertv->bv_len ) {
+		len = strcspn( assertv->bv_val + nextchunk, SLAPD_APPROX_DELIMITER);
 		if( len == 0 ) {
 			nextchunk++;
 			continue;
@@ -741,7 +726,7 @@ approxMatch(
 		else if( len == 1 ) {
 			/* Single letter words need to at least match one word's initial */
 			for( i=nextavail; i<count; i++ )
-				if( !strncasecmp( assertv+nextchunk, words[i], 1 )) {
+				if( !strncasecmp( assertv->bv_val + nextchunk, words[i], 1 )) {
 					nextavail=i+1;
 					break;
 				}
@@ -749,8 +734,8 @@ approxMatch(
 #endif
 		else {
 			/* Isolate the next word in the asserted value and phonetic it */
-			assertv[nextchunk+len] = '\0';
-			val = phonetic( assertv + nextchunk );
+			assertv->bv_val[nextchunk+len] = '\0';
+			val = phonetic( assertv->bv_val + nextchunk );
 
 			/* See if this phonetic chunk is in the remaining words of *value */
 			for( i=nextavail; i<count; i++ ){
@@ -781,13 +766,13 @@ approxMatch(
 	}
 
 	/* Cleanup allocs */
-	free( assertv );
+	ber_bvfree( assertv );
 	for( i=0; i<count; i++ ) {
 		ch_free( values[i] );
 	}
 	ch_free( values );
 	ch_free( words );
-	ch_free( nval );
+	ber_bvfree( nval );
 
 	return LDAP_SUCCESS;
 }
@@ -802,18 +787,19 @@ approxIndexer(
 	BerVarray values,
 	BerVarray *keysp )
 {
-	char *val, *c;
+	char *c;
 	int i,j, len, wordcount, keycount=0;
 	struct berval *newkeys;
 	BerVarray keys=NULL;
 
 	for( j=0; values[j].bv_val != NULL; j++ ) {
+		struct berval val = { 0, NULL };
 		/* Yes, this is necessary */
-		val = UTF8normalize( &values[j], LDAP_UTF8_NOCASEFOLD );
-		strip8bitChars( val );
+		UTF8bvnormalize( &values[j], &val, LDAP_UTF8_APPROX );
+		assert( val.bv_val != NULL );
 
 		/* Isolate how many words there are. There will be a key for each */
-		for( wordcount=0,c=val;	 *c;  c++) {
+		for( wordcount = 0, c = val.bv_val; *c; c++) {
 			len = strcspn(c, SLAPD_APPROX_DELIMITER);
 			if( len >= SLAPD_APPROX_WORDLEN ) wordcount++;
 			c+= len;
@@ -829,7 +815,7 @@ approxIndexer(
 		keys = newkeys;
 
 		/* Get a phonetic copy of each word */
-		for( c=val,i=0;	 i<wordcount;  c+=len+1	 ) {
+		for( c = val.bv_val, i = 0; i < wordcount; c += len + 1 ) {
 			len = strlen( c );
 			if( len < SLAPD_APPROX_WORDLEN ) continue;
 			ber_str2bv( phonetic( c ), 0, 0, &keys[keycount] );
@@ -837,7 +823,7 @@ approxIndexer(
 			i++;
 		}
 
-		free( val );
+		ber_memfree( val.bv_val );
 	}
 	keys[keycount].bv_val = NULL;
 	*keysp = keys;
@@ -855,23 +841,23 @@ approxFilter(
 	void * assertValue,
 	BerVarray *keysp )
 {
-	char *val, *c;
+	char *c;
 	int i, count, len;
+	struct berval *val;
 	BerVarray keys;
 
 	/* Yes, this is necessary */
-	val = UTF8normalize( ((struct berval *)assertValue),
-		LDAP_UTF8_NOCASEFOLD );
-	if( val == NULL ) {
+	val = UTF8bvnormalize( ((struct berval *)assertValue), NULL, LDAP_UTF8_APPROX );
+	if( val == NULL || val->bv_val == NULL ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
 		keys[0].bv_val = NULL;
 		*keysp = keys;
+		ber_bvfree( val );
 		return LDAP_SUCCESS;
 	}
-	strip8bitChars( val );
 
 	/* Isolate how many words there are. There will be a key for each */
-	for( count=0,c=val;  *c;  c++) {
+	for( count = 0,c = val->bv_val; *c; c++) {
 		len = strcspn(c, SLAPD_APPROX_DELIMITER);
 		if( len >= SLAPD_APPROX_WORDLEN ) count++;
 		c+= len;
@@ -883,14 +869,14 @@ approxFilter(
 	keys = (struct berval *)ch_malloc( (count + 1) * sizeof(struct berval) );
 
 	/* Get a phonetic copy of each word */
-	for( c=val,i=0;	 i<count; c+=len+1 ) {
+	for( c = val->bv_val, i = 0; i < count; c += len + 1 ) {
 		len = strlen(c);
 		if( len < SLAPD_APPROX_WORDLEN ) continue;
 		ber_str2bv( phonetic( c ), 0, 0, &keys[i] );
 		i++;
 	}
 
-	free( val );
+	ber_bvfree( val );
 
 	keys[count].bv_val = NULL;
 	*keysp = keys;
@@ -1025,8 +1011,8 @@ caseExactMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	*matchp = UTF8normcmp( value->bv_val,
-		((struct berval *) assertedValue)->bv_val,
+	*matchp = UTF8bvnormcmp( value,
+		(struct berval *) assertedValue,
 		LDAP_UTF8_NOCASEFOLD );
 	return LDAP_SUCCESS;
 }
@@ -1048,7 +1034,7 @@ caseExactIgnoreSubstringsMatch(
 	char *nav = NULL;
 	unsigned casefold;
 
-	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
+	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	if ( UTF8bvnormalize( value, &left, casefold ) == NULL ) {
@@ -1218,13 +1204,12 @@ static int caseExactIgnoreIndexer(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
+	casefold = ( mr != caseExactMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		struct berval value;
-		ber_str2bv( UTF8normalize( &values[i], casefold ), 0, 0,
-			&value );
+		UTF8bvnormalize( &values[i], &value, casefold );
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1264,19 +1249,19 @@ static int caseExactIgnoreFilter(
 	BerVarray keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
-	struct berval value;
+	struct berval value = { 0, NULL };
 	struct berval digest;
+
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
+	casefold = ( mr != caseExactMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
-	ber_str2bv( UTF8normalize( ((struct berval *) assertValue), casefold ),
-		0, 0, &value );
+	UTF8bvnormalize( (struct berval *) assertValue, &value, casefold );
 	/* This usually happens if filter contains bad UTF8 */
 	if( value.bv_val == NULL ) {
 		keys = ch_malloc( sizeof( struct berval ) );
@@ -1339,13 +1324,12 @@ static int caseExactIgnoreSubstringsIndexer(
 	/* we should have at least one value at this point */
 	assert( i > 0 );
 
-	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
+	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	nvalues = ch_malloc( sizeof( struct berval ) * (i+1) );
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		ber_str2bv( UTF8normalize( &values[i], casefold ),
-			0, 0, &nvalues[i] );
+		UTF8bvnormalize( &values[i], &nvalues[i], casefold );
 	}
 	nvalues[i].bv_val = NULL;
 	values = nvalues;
@@ -1510,7 +1494,7 @@ static int caseExactIgnoreSubstringsFilter(
 	struct berval *value;
 	struct berval digest;
 
-	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
+	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	sa = UTF8SubstringsassertionNormalize( assertValue, casefold );
@@ -1675,12 +1659,33 @@ caseIgnoreMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	*matchp = UTF8normcmp( value->bv_val,
-		((struct berval *) assertedValue)->bv_val,
+	*matchp = UTF8bvnormcmp( value,
+		(struct berval *) assertedValue,
 		LDAP_UTF8_CASEFOLD );
 	return LDAP_SUCCESS;
 }
 	
+/* Remove all spaces and '-' characters */
+static int
+telephoneNumberNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval *normalized )
+{
+	char *p, *q;
+
+	q = normalized->bv_val = ch_malloc( val->bv_len + 1 );
+
+	for( p = val->bv_val; *p; p++ )
+		if ( ! ( ASCII_SPACE( *p ) || *p == '-' ))
+			*q++ = *p;
+	*q = '\0';
+
+	normalized->bv_len = q - normalized->bv_val;
+
+	return LDAP_SUCCESS;
+}
+
 static int
 oidValidate(
 	Syntax *syntax,
@@ -1730,85 +1735,47 @@ integerMatch(
 	void *assertedValue )
 {
 	char *v, *av;
-	int vsign=0, avsign=0;
+	int vsign = 1, avsign = 1;	/* default sign = '+' */
 	struct berval *asserted;
 	ber_len_t vlen, avlen;
+	int match;
 
-
-	/* Start off pessimistic */
-	*matchp = 1;
-
-	/* Skip past leading spaces/zeros, and get the sign of the *value number */
+	/* Skip leading space/sign/zeroes, and get the sign of the *value number */
 	v = value->bv_val;
 	vlen = value->bv_len;
-	while( vlen ) {
-		if( ASCII_SPACE(*v) || ( *v == '0' )) {
-			/* empty -- skip spaces */
-		}
-		else if ( *v == '+' ) {
-			vsign = 1;
-		}
-		else if ( *v == '-' ) {
-			vsign = -1;
-		}
-		else if ( ASCII_DIGIT(*v) ) {
-			if ( vsign == 0 ) vsign = 1;
-			vsign *= 2;
-			break;
-		}
-		v++;
-		vlen--;
+	if( mr == integerFirstComponentMatchingRule ) {
+		char *tmp = memchr( v, '$', vlen );
+		if( tmp )
+			vlen = tmp - v;
+		while( vlen && ASCII_SPACE( v[vlen-1] ))
+			vlen--;
 	}
+	for( ; vlen && ( *v < '1' || '9' < *v ); v++, vlen-- ) /* ANSI 2.2.1 */
+		if( *v == '-' )
+			vsign = -1;
+	if( vlen == 0 )
+		vsign = 0;
 
-	/* Skip past leading spaces/zeros, and get the sign of the *assertedValue
-	   number */
+	/* Do the same with the *assertedValue number */
 	asserted = (struct berval *) assertedValue;
 	av = asserted->bv_val;
 	avlen = asserted->bv_len;
-	while( avlen ) {
-		if( ASCII_SPACE(*av) || ( *av == '0' )) {
-			/* empty -- skip spaces */
-		}
-		else if ( *av == '+' ) {
-			avsign = 1;
-		}
-		else if ( *av == '-' ) {
+	for( ; avlen && ( *av < '1' || '9' < *av ); av++, avlen-- )
+		if( *av == '-' )
 			avsign = -1;
-		}
-		else if ( ASCII_DIGIT(*av) ) {
-			if ( avsign == 0 ) avsign = 1;
-			avsign *= 2;
-			break;
-		}
-		av++;
-		avlen--;
+	if( avlen == 0 )
+		avsign = 0;
+
+	match = vsign - avsign;
+	if( match == 0 ) {
+		match = (vlen != avlen
+			     ? ( vlen < avlen ? -1 : 1 )
+			     : memcmp( v, av, vlen ));
+		if( vsign < 0 )
+			match = -match;
 	}
 
-	/* The two ?sign vars are now one of :
-	   -2  negative non-zero number
-	   -1  -0   \
-	    0   0   collapse these three to 0
-	   +1  +0   /
-	   +2  positive non-zero number
-	*/
-	if ( abs( vsign ) == 1 ) vsign = 0;
-	if ( abs( avsign ) == 1 ) avsign = 0;
-
-	if( vsign != avsign ) return LDAP_SUCCESS;
-
-	/* Check the significant digits */
-	while( vlen && avlen ) {
-		if( *v != *av ) break;
-		v++;
-		vlen--;
-		av++;
-		avlen--;
-	}
-
-	/* If all digits compared equal, the numbers are equal */
-	if(( vlen == 0 ) && ( avlen == 0 )) {
-		*matchp = 0;
-	}
+	*matchp = match;
 	return LDAP_SUCCESS;
 }
 	
@@ -1877,11 +1844,12 @@ integerNormalize(
 	}
 	else {
 		normalized->bv_len = len+negative;
-		normalized->bv_val = ch_malloc( normalized->bv_len );
+		normalized->bv_val = ch_malloc( normalized->bv_len + 1 );
 		if( negative ) {
 			normalized->bv_val[0] = '-';
 		}
 		AC_MEMCPY( normalized->bv_val + negative, p, len );
+		normalized->bv_val[len+negative] = '\0';
 	}
 
 	return LDAP_SUCCESS;
@@ -1898,19 +1866,45 @@ static int integerIndexer(
 	BerVarray *keysp )
 {
 	int i;
+	size_t slen, mlen;
 	BerVarray keys;
-
-	/* we should have at least one value at this point */
-	assert( values != NULL && values[0].bv_val != NULL );
+	HASH_CONTEXT   HASHcontext;
+	unsigned char	HASHdigest[HASH_BYTES];
+	struct berval digest;
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		/* empty -- just count them */
+		/* empty - just count them */
 	}
+
+	/* we should have at least one value at this point */
+	assert( i > 0 );
 
 	keys = ch_malloc( sizeof( struct berval ) * (i+1) );
 
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
+
 	for( i=0; values[i].bv_val != NULL; i++ ) {
-		integerNormalize( syntax, &values[i], &keys[i] );
+		struct berval norm;
+		integerNormalize( syntax, &values[i], &norm );
+
+		HASH_Init( &HASHcontext );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			HASH_Update( &HASHcontext,
+				prefix->bv_val, prefix->bv_len );
+		}
+		HASH_Update( &HASHcontext,
+			syntax->ssyn_oid, slen );
+		HASH_Update( &HASHcontext,
+			mr->smr_oid, mlen );
+		HASH_Update( &HASHcontext,
+			norm.bv_val, norm.bv_len );
+		HASH_Final( HASHdigest, &HASHcontext );
+
+		ber_dupbv( &keys[i], &digest );
+		ch_free( norm.bv_val );
 	}
 
 	keys[i].bv_val = NULL;
@@ -1928,13 +1922,40 @@ static int integerFilter(
 	void * assertValue,
 	BerVarray *keysp )
 {
+	size_t slen, mlen;
 	BerVarray keys;
+	HASH_CONTEXT   HASHcontext;
+	unsigned char	HASHdigest[HASH_BYTES];
+	struct berval norm;
+	struct berval digest;
+	digest.bv_val = HASHdigest;
+	digest.bv_len = sizeof(HASHdigest);
+
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
+
+	integerNormalize( syntax, assertValue, &norm );
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
-	integerNormalize( syntax, assertValue, &keys[0] );
-	keys[1].bv_val = NULL;
-	*keysp = keys;
 
+	HASH_Init( &HASHcontext );
+	if( prefix != NULL && prefix->bv_len > 0 ) {
+		HASH_Update( &HASHcontext,
+			prefix->bv_val, prefix->bv_len );
+	}
+	HASH_Update( &HASHcontext,
+		syntax->ssyn_oid, slen );
+	HASH_Update( &HASHcontext,
+		mr->smr_oid, mlen );
+	HASH_Update( &HASHcontext,
+		norm.bv_val, norm.bv_len );
+	HASH_Final( HASHdigest, &HASHcontext );
+
+	ber_dupbv( &keys[0], &digest );
+	keys[1].bv_val = NULL;
+	ch_free( norm.bv_val );
+
+	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 
@@ -2799,7 +2820,7 @@ static int caseIgnoreIA5Indexer(
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		struct berval value;
 		ber_dupbv( &value, &values[i] );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -2847,7 +2868,7 @@ static int caseIgnoreIA5Filter(
 	mlen = mr->smr_oidlen;
 
 	ber_dupbv( &value, (struct berval *) assertValue );
-	ldap_pvt_str2upper( value.bv_val );
+	ldap_pvt_str2lower( value.bv_val );
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
@@ -2947,7 +2968,7 @@ static int caseIgnoreIA5SubstringsIndexer(
 		if( values[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
 		ber_dupbv( &value, &values[i] );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
 			( value.bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
@@ -3100,7 +3121,7 @@ static int caseIgnoreIA5SubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 		ber_dupbv( &value, &sa->sa_initial );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
@@ -3135,7 +3156,7 @@ static int caseIgnoreIA5SubstringsFilter(
 			}
 
 			ber_dupbv( &value, &sa->sa_any[i] );
-			ldap_pvt_str2upper( value.bv_val );
+			ldap_pvt_str2lower( value.bv_val );
 
 			for(j=0;
 				j <= value.bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
@@ -3168,7 +3189,7 @@ static int caseIgnoreIA5SubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 		ber_dupbv( &value, &sa->sa_final );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
@@ -3676,7 +3697,7 @@ certificateExactMatch(
 	LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
 		   "certificateExactMatch: %d\n	 %s $ %s\n	 %s $	%s\n",
 		   *matchp, serial->bv_val, issuer_dn->bv_val,
-		   asserted->serial->bv_val, asserted_issuer_dn->bv_val));
+		   asserted_serial->bv_val, asserted_issuer_dn->bv_val));
 #else
 	Debug( LDAP_DEBUG_ARGS, "certificateExactMatch "
 		"%d\n\t\"%s $ %s\"\n",
@@ -3959,6 +3980,7 @@ check_time_syntax (struct berval *val,
 	return LDAP_SUCCESS;
 }
 
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 static int
 utcTimeNormalize(
 	Syntax *syntax,
@@ -3984,7 +4006,9 @@ utcTimeNormalize(
 
 	return LDAP_SUCCESS;
 }
+#endif
 
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 static int
 utcTimeValidate(
 	Syntax *syntax,
@@ -3994,6 +4018,7 @@ utcTimeValidate(
 
 	return check_time_syntax(in, 1, parts);
 }
+#endif
 
 static int
 generalizedTimeValidate(
@@ -4181,7 +4206,7 @@ static struct syntax_defs_rec {
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
-		0, printablesStringValidate, IA5StringNormalize, NULL},
+		0, printablesStringValidate, telephoneNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
@@ -4233,13 +4258,15 @@ static struct syntax_defs_rec {
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, printableStringValidate, IA5StringNormalize, NULL},
+		0, printableStringValidate, telephoneNumberNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
 		0, printablesStringValidate, IA5StringNormalize, NULL},
+#ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
 		0, utcTimeValidate, utcTimeNormalize, NULL},
+#endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.55 DESC 'Modify Rights' )",
@@ -4291,7 +4318,6 @@ static struct syntax_defs_rec {
  * Other matching rules in X.520 that we do not use (yet):
  *
  * 2.5.13.9		numericStringOrderingMatch
- * 2.5.13.15	integerOrderingMatch
  * 2.5.13.18	octetStringOrderingMatch
  * 2.5.13.19	octetStringSubstringsMatch
  * 2.5.13.25	uTCTimeMatch
@@ -4451,6 +4477,13 @@ static struct mrule_defs_rec {
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
 		integerMatch, integerIndexer, integerFilter,
+		NULL},
+
+	{"( 2.5.13.15 NAME 'integerOrderingMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+		SLAP_MR_ORDERING,
+		NULL, NULL,
+		integerOrderingMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
@@ -4667,6 +4700,9 @@ slap_schema_init( void )
 		}
 	}
 
+	for ( i=0; i < (int)(sizeof(mr_ptr)/sizeof(mr_ptr[0])); i++ )
+		*mr_ptr[i].mr = mr_find( mr_ptr[i].oid );
+
 	res = slap_schema_load();
 	schema_init_done = 1;
 	return res;
@@ -4675,9 +4711,12 @@ slap_schema_init( void )
 void
 schema_destroy( void )
 {
+	int i;
 	oidm_destroy();
 	oc_destroy();
 	at_destroy();
+	for ( i=0; i < (int)(sizeof(mr_ptr)/sizeof(mr_ptr[0])); i++ )
+		*mr_ptr[i].mr = NULL;
 	mr_destroy();
 	syn_destroy();
 }

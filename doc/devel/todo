@@ -1,0 +1,68 @@
+OpenLDAP To Do List
+-------------------
+
+This is a list of projects that need getting done.  They are defined
+by scale of the effort as opposed to priority.  Contribute to
+projects based upon your personal priorities.
+
+If you would like to work on any of these projects, please coordinate
+by posting to OpenLDAP-devel mailing list:
+  http://www.OpenLDAP.org/lists
+
+If you have a project you'd like added to the list, talk it up on
+Developer's list or just do it.
+
+Please read:
+	http://www.OpenLDAP.org/devel/programming.html
+	http://www.OpenLDAP.org/devel/contributing.html
+
+
+OpenLDAP 2.x Projects
+---------------------
+	SLAPD
+		Complete Unicode Support (ACLs, etc.)
+	client API update
+		Implement per referral/continuation callback
+	clients
+		Implement referral chasing options w/ referral callback
+	Update manual pages
+
+
+Large projects
+--------------
+Redesign slapd memory allocation fault handling
+Perform a security audit (and fix any hole found)
+
+
+Medium projects
+---------------
+Implement LDAP Transactions
+Implement authPassword (RFC 3112)
+Implement localization
+Implement Proxy Authorization Group extension
+Implement LCUP
+Add LDIFv1 control support
+Update to latest autoconf and friends
+
+
+Small projects
+--------------
+Populate matchingRuleUse attribute in the subschema
+Implement -E/-e extensions options
+Implement -V version options
+Implement Proxy Authorization Control extension
+Complete Simple Paged Results Control
+Add No-Op Control support to ldap client tools
+Add tests to test suite (ACI, moddn, manageDSAit, etc.)
+Add support for Cyrus pwcheckd/saslauthd
+Create ldapbind (from ldapcompare?) to support bind operations
+Convert utfconv.txt into man page(s).
+Update any manual page
+
+
+For additional TODO items, see:
+  http://www.openldap.org/its/index.cgi/Software%20Enhancements
+
+
+---
+$OpenLDAP$

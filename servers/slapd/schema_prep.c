@@ -230,7 +230,7 @@ static struct slap_schema_ad_map {
 			"DESC 'X.500(93): structural object class of entry' "
 			"EQUALITY objectIdentifierMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
-			"NO-USER-MODIFICATION SINGLE-VALUE USAGE directoryOperation )",
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0, structuralObjectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
 	{ "createTimestamp", "( 2.5.18.1 NAME 'createTimestamp' "
@@ -273,8 +273,8 @@ static struct slap_schema_ad_map {
 	{ "subschemaSubentry", "( 2.5.18.10 NAME 'subschemaSubentry' "
 			"DESC 'RFC2252: name of controlling subschema entry' "
 			"EQUALITY distinguishedNameMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION "
-			"SINGLE-VALUE USAGE directoryOperation )",
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE "
+			"NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
 
@@ -292,8 +292,8 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_namingContexts) },
 	{ "supportedControl", "( 1.3.6.1.4.1.1466.101.120.13 "
 			"NAME 'supportedControl' "
-		   "DESC 'RFC2252: supported controls' "
-		   "SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )",
+			"DESC 'RFC2252: supported controls' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 USAGE dSAOperation )",
 		rootDseAttribute, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_supportedControl) },
 	{ "supportedExtension", "( 1.3.6.1.4.1.1466.101.120.7 "
@@ -531,6 +531,8 @@ static struct slap_schema_syn_map {
 	char *sssm_name;
 	size_t sssm_offset;
 } syn_map[] = {
+	{ "1.3.6.1.4.1.1466.115.121.1.40",
+		offsetof(struct slap_internal_schema, si_syn_octetString) },
 	{ "1.3.6.1.4.1.1466.115.121.1.12",
 		offsetof(struct slap_internal_schema, si_syn_distinguishedName) },
 	{ "1.3.6.1.4.1.1466.115.121.1.27",
@@ -542,82 +544,6 @@ int
 slap_schema_load( void )
 {
 	int i;
-	for( i=0; ad_map[i].ssam_name; i++ ) {
-		if( ad_map[i].ssam_defn != NULL ) {
-			LDAPAttributeType *at;
-			int		code;
-			const char	*err;
-
-			at = ldap_str2attributetype( ad_map[i].ssam_defn,
-				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
-			if ( !at ) {
-				fprintf( stderr,
-					"slap_schema_load: %s: %s before %s\n",
-					 ad_map[i].ssam_name, ldap_scherr2str(code), err );
-				return code;
-			}
-
-			if ( at->at_oid == NULL ) {
-				fprintf( stderr, "slap_schema_load: "
-					"attributeType \"%s\" has no OID\n",
-					ad_map[i].ssam_name );
-				return LDAP_OTHER;
-			}
-
-			code = at_add( at, &err );
-			if ( code ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: %s: \"%s\"\n",
-					 ad_map[i].ssam_name, scherr2str(code), err );
-				return code;
-			}
-			ldap_memfree( at );
-		}
-	}
-
-	for( i=0; oc_map[i].ssom_name; i++ ) {
-		if( oc_map[i].ssom_defn != NULL ) {
-			LDAPObjectClass *oc;
-			int		code;
-			const char	*err;
-
-			oc = ldap_str2objectclass( oc_map[i].ssom_defn, &code, &err,
-				LDAP_SCHEMA_ALLOW_ALL );
-			if ( !oc ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: %s before %s\n",
-				 	oc_map[i].ssom_name, ldap_scherr2str(code), err );
-				return code;
-			}
-
-			if ( oc->oc_oid == NULL ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: objectclass has no OID\n",
-					oc_map[i].ssom_name );
-				return LDAP_OTHER;
-			}
-
-			code = oc_add(oc,&err);
-			if ( code ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: %s: \"%s\"\n",
-				 	oc_map[i].ssom_name, scherr2str(code), err);
-				return code;
-			}
-
-			ldap_memfree(oc);
-		}
-	}
-
-	return LDAP_SUCCESS;
-}
-
-int
-slap_schema_check( void )
-{
-	int i;
-	/* we should only be called once after schema_init() was called */
-	assert( schema_init_done == 1 );
 
 	for( i=0; syn_map[i].sssm_name; i++ ) {
 		Syntax ** synp = (Syntax **)
@@ -651,65 +577,136 @@ slap_schema_check( void )
 		}
 	}
 
-	slap_at_undefined.sat_syntax = syn_find( SLAPD_OCTETSTRING_SYNTAX );
-	if( slap_at_undefined.sat_syntax == NULL ) {
-		fprintf( stderr, "slap_schema_check: "
-			"No octetString syntax \"" SLAPD_OCTETSTRING_SYNTAX "\"\n" );
-		return LDAP_INVALID_SYNTAX;
-	}
-	slap_schema.si_at_undefined = &slap_at_undefined;
-
 	for( i=0; ad_map[i].ssam_name; i++ ) {
-		int rc;
-		const char *text;
+		assert( ad_map[i].ssam_defn != NULL );
+		{
+			LDAPAttributeType *at;
+			int		code;
+			const char	*err;
 
-		AttributeDescription ** adp = (AttributeDescription **)
-			&(((char *) &slap_schema)[ad_map[i].ssam_offset]);
+			at = ldap_str2attributetype( ad_map[i].ssam_defn,
+				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
+			if ( !at ) {
+				fprintf( stderr,
+					"slap_schema_load: %s: %s before %s\n",
+					 ad_map[i].ssam_name, ldap_scherr2str(code), err );
+				return code;
+			}
 
-		assert( *adp == NULL );
+			if ( at->at_oid == NULL ) {
+				fprintf( stderr, "slap_schema_load: "
+					"attributeType \"%s\" has no OID\n",
+					ad_map[i].ssam_name );
+				return LDAP_OTHER;
+			}
 
-		rc = slap_str2ad( ad_map[i].ssam_name, adp, &text );
-		if( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "slap_schema_check: "
-				"No attribute \"%s\" defined in schema\n",
-				ad_map[i].ssam_name );
-			return rc;
+			code = at_add( at, &err );
+			if ( code ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: %s: \"%s\"\n",
+					 ad_map[i].ssam_name, scherr2str(code), err );
+				return code;
+			}
+			ldap_memfree( at );
 		}
+		{
+			int rc;
+			const char *text;
 
-		if( ad_map[i].ssam_check ) {
-			/* install check routine */
-			(*adp)->ad_type->sat_check = ad_map[i].ssam_check;
-		}
-		/* install flags */
-		(*adp)->ad_type->sat_flags |= ad_map[i].ssam_flags;
+			AttributeDescription ** adp = (AttributeDescription **)
+				&(((char *) &slap_schema)[ad_map[i].ssam_offset]);
 
-		if( ad_map[i].ssam_match ) {
-			/* install custom matching routine */
-			(*adp)->ad_type->sat_equality->smr_match = ad_map[i].ssam_match;
+			assert( *adp == NULL );
+
+			rc = slap_str2ad( ad_map[i].ssam_name, adp, &text );
+			if( rc != LDAP_SUCCESS ) {
+				fprintf( stderr, "slap_schema_check: "
+					"No attribute \"%s\" defined in schema\n",
+					ad_map[i].ssam_name );
+				return rc;
+			}
+
+			if( ad_map[i].ssam_check ) {
+				/* install check routine */
+				(*adp)->ad_type->sat_check = ad_map[i].ssam_check;
+			}
+			/* install flags */
+			(*adp)->ad_type->sat_flags |= ad_map[i].ssam_flags;
+
+			if( ad_map[i].ssam_match ) {
+				/* install custom matching routine */
+				(*adp)->ad_type->sat_equality->smr_match = ad_map[i].ssam_match;
+			}
 		}
 	}
 
 	for( i=0; oc_map[i].ssom_name; i++ ) {
-		ObjectClass ** ocp = (ObjectClass **)
-			&(((char *) &slap_schema)[oc_map[i].ssom_offset]);
+		assert( oc_map[i].ssom_defn != NULL );
+		{
+			LDAPObjectClass *oc;
+			int		code;
+			const char	*err;
 
-		assert( *ocp == NULL );
+			oc = ldap_str2objectclass( oc_map[i].ssom_defn, &code, &err,
+				LDAP_SCHEMA_ALLOW_ALL );
+			if ( !oc ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: %s before %s\n",
+				 	oc_map[i].ssom_name, ldap_scherr2str(code), err );
+				return code;
+			}
 
-		*ocp = oc_find( oc_map[i].ssom_name );
-		if( *ocp == NULL ) {
-			fprintf( stderr, "slap_schema_check: "
-				"No objectClass \"%s\" defined in schema\n",
-				oc_map[i].ssom_name );
-			return LDAP_OBJECT_CLASS_VIOLATION;
+			if ( oc->oc_oid == NULL ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: objectclass has no OID\n",
+					oc_map[i].ssom_name );
+				return LDAP_OTHER;
+			}
+
+			code = oc_add(oc,&err);
+			if ( code ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: %s: \"%s\"\n",
+				 	oc_map[i].ssom_name, scherr2str(code), err);
+				return code;
+			}
+
+			ldap_memfree(oc);
 		}
+		{
+			ObjectClass ** ocp = (ObjectClass **)
+				&(((char *) &slap_schema)[oc_map[i].ssom_offset]);
 
-		if( oc_map[i].ssom_check ) {
-			/* install check routine */
-			(*ocp)->soc_check = oc_map[i].ssom_check;
+			assert( *ocp == NULL );
+
+			*ocp = oc_find( oc_map[i].ssom_name );
+			if( *ocp == NULL ) {
+				fprintf( stderr, "slap_schema_check: "
+					"No objectClass \"%s\" defined in schema\n",
+					oc_map[i].ssom_name );
+				return LDAP_OBJECT_CLASS_VIOLATION;
+			}
+
+			if( oc_map[i].ssom_check ) {
+				/* install check routine */
+				(*ocp)->soc_check = oc_map[i].ssom_check;
+			}
+			/* install flags */
+			(*ocp)->soc_flags |= oc_map[i].ssom_flags;
 		}
-		/* install flags */
-		(*ocp)->soc_flags |= oc_map[i].ssom_flags;
 	}
+
+	slap_at_undefined.sat_syntax = slap_schema.si_syn_distinguishedName;
+	slap_schema.si_at_undefined = &slap_at_undefined;
+
+	return LDAP_SUCCESS;
+}
+
+int
+slap_schema_check( void )
+{
+	/* we should only be called once after schema_init() was called */
+	assert( schema_init_done == 1 );
 
 	++schema_init_done;
 	return LDAP_SUCCESS;

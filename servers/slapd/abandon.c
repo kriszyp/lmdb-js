@@ -1,4 +1,9 @@
 /* abandon.c - decode and handle an ldap abandon operation */
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 /*
  * Copyright (c) 1995 Regents of the University of Michigan.
@@ -12,26 +17,29 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
-extern Backend	*select_backend();
-
-extern char	*default_referral;
-
-void
+int
 do_abandon(
     Connection	*conn,
     Operation	*op
 )
 {
-	int		id;
-	Backend		*be;
+	ber_int_t		id;
 	Operation	*o;
+	int rc;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY, "conn: %d do_abandon\n",
+		conn->c_connid));
+#else
 	Debug( LDAP_DEBUG_TRACE, "do_abandon\n", 0, 0, 0 );
+#endif
 
 	/*
 	 * Parse the abandon request.  It looks like this:
@@ -40,31 +48,73 @@ do_abandon(
 	 */
 
 	if ( ber_scanf( op->o_ber, "i", &id ) == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0 ,0 );
-		return;
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR, 
+		       "conn: %d do_abandon: ber_scanf failed\n",
+		       conn->c_connid ));
+#else
+		Debug( LDAP_DEBUG_ANY, "do_abandon: ber_scanf failed\n", 0, 0 ,0 );
+#endif
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
 	}
 
-	Debug( LDAP_DEBUG_ARGS, "do_abandon: id %d\n", id, 0 ,0 );
+	if( (rc = get_ctrls( conn, op, 0 )) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "do_abandon: get_ctrls failed\n", 0, 0 ,0 );
+		return rc;
+	} 
 
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
+		"do_abandon: conn: %d  id=%ld\n", conn->c_connid, (long) id ));
+#else
+	Debug( LDAP_DEBUG_ARGS, "do_abandon: id=%ld\n", (long) id, 0 ,0 );
+#endif
+
+	if( id <= 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
+		    "do_abandon: conn: %d bad msgid %ld\n", conn->c_connid, (long) id ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"do_abandon: bad msgid %ld\n", (long) id, 0, 0 );
+#endif
+		return LDAP_SUCCESS;
+	}
+
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 	/*
 	 * find the operation being abandoned and set the o_abandon
 	 * flag.  It's up to the backend to periodically check this
 	 * flag and abort the operation at a convenient time.
 	 */
 
-	pthread_mutex_lock( &conn->c_opsmutex );
-	for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
-		if ( o->o_msgid == id )
-			break;
+	LDAP_STAILQ_FOREACH( o, &conn->c_ops, o_next ) {
+		if ( o->o_msgid == id ) {
+			o->o_abandon = 1;
+			goto done;
+		}
 	}
 
-	if ( o != NULL ) {
-		pthread_mutex_lock( &o->o_abandonmutex );
-		o->o_abandon = 1;
-		pthread_mutex_unlock( &o->o_abandonmutex );
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "do_abandon: op not found\n", 0, 0,
-		    0 );
+	LDAP_STAILQ_FOREACH( o, &conn->c_pending_ops, o_next ) {
+		if ( o->o_msgid == id ) {
+			LDAP_STAILQ_REMOVE( &conn->c_pending_ops, o, slap_op, o_next );
+			slap_op_free( o );
+			goto done;
+		}
 	}
-	pthread_mutex_unlock( &conn->c_opsmutex );
+
+done:
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
+		"do_abandon: conn: %d op=%ld %sfound\n",
+		conn->c_connid, (long)id, o ? "" : "not " ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "do_abandon: op=%ld %sfound\n",
+		(long) id, o ? "" : "not ", 0 );
+#endif
+	return LDAP_SUCCESS;
 }

@@ -97,7 +97,7 @@ glue_back_close (
 )
 {
 	static int glueClosed = 0;
-	int rc;
+	int rc = 0;
 
 	if (glueClosed) return 0;
 
@@ -292,7 +292,7 @@ glue_back_search (
 {
 	glueinfo *gi = (glueinfo *)b0->be_private;
 	BackendDB *be;
-	int i, rc, t2limit = 0, s2limit = 0;
+	int i, rc = 0, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
 	struct berval bv;
 	glue_state gs = {0};
@@ -327,6 +327,7 @@ glue_back_search (
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
 		op->o_callback = &cb;
+		rc = gs.err = LDAP_UNWILLING_TO_PERFORM;
 
 		/*
 		 * Execute in reverse order, most general first 
@@ -336,22 +337,23 @@ glue_back_search (
 				continue;
 			if (tlimit) {
 				t2limit = stoptime - slap_get_time ();
-				if (t2limit <= 0)
+				if (t2limit <= 0) {
+					rc = gs.err = LDAP_TIMELIMIT_EXCEEDED;
 					break;
+				}
 			}
 			if (slimit) {
 				s2limit = slimit - gs.nentries;
-				if (s2limit <= 0)
+				if (s2limit <= 0) {
+					rc = gs.err = LDAP_SIZELIMIT_EXCEEDED;
 					break;
+				}
 			}
+			rc = 0;
 			/*
 			 * check for abandon 
 			 */
-			ldap_pvt_thread_mutex_lock (&op->o_abandonmutex);
-			rc = op->o_abandon;
-			ldap_pvt_thread_mutex_unlock (&op->o_abandonmutex);
-			if (rc) {
-				rc = 0;
+			if (op->o_abandon) {
 				goto done;
 			}
 			be = gi->n[i].be;
@@ -808,7 +810,7 @@ glue_sub_init( )
 	int i, j;
 	int cont = num_subordinates;
 	BackendDB *b1, *be;
-	BackendInfo *bi;
+	BackendInfo *bi = NULL;
 	glueinfo *gi;
 
 	/* While there are subordinate backends, search backwards through the

@@ -152,7 +152,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #if defined( notyet ) /* && defined( SO_ERROR ) */
 {
 	int so_errno;
-	int dummy = sizeof(so_errno);
+	socklen_t dummy = sizeof(so_errno);
 	if ( getsockopt( s, SOL_SOCKET, SO_ERROR, &so_errno, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -170,7 +170,7 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 	/* error slippery */
 	struct sockaddr_in sin;
 	char ch;
-	int dummy = sizeof(sin);
+	socklen_t dummy = sizeof(sin);
 	if ( getpeername( s, (struct sockaddr *) &sin, &dummy )
 		== AC_SOCKET_ERROR )
 	{
@@ -344,7 +344,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		hints.ai_socktype = socktype;
 
 		snprintf(serv, sizeof serv, "%d", port );
-		if ( err = getaddrinfo(host, serv, &hints, &res) ) {
+		if ( ( err = getaddrinfo(host, serv, &hints, &res) ) ) {
 			osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n",
 				AC_GAI_STRERROR(err), 0, 0);
 			return -1;
@@ -681,7 +681,11 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 {
 	struct selectinfo	*sip;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "os-ip", LDAP_LEVEL_ENTRY, "ldap_int_select\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
+#endif
 
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();

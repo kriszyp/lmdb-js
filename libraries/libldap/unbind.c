@@ -1,81 +1,91 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  unbind.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+/* An Unbind Request looks like this:
+ *
+ *	UnbindRequest ::= NULL
+ *
+ * and has no response.
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/stdlib.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "ldap-int.h"
 
+int
+ldap_unbind_ext(
+	LDAP *ld,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
+{
+	int rc;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
+	/* check client controls */
+	rc = ldap_int_client_controls( ld, cctrls );
+	if( rc != LDAP_SUCCESS ) return rc;
+
+	return ldap_ld_free( ld, 1, sctrls, cctrls );
+}
+
+int
+ldap_unbind_ext_s(
+	LDAP *ld,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
+{
+	return ldap_unbind_ext( ld, sctrls, cctrls );
+}
 
 int
 ldap_unbind( LDAP *ld )
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "unbind", LDAP_LEVEL_ENTRY, "ldap_unbind\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_unbind\n", 0, 0, 0 );
+#endif
 
-	return( ldap_ld_free( ld, 1 ));
+	return( ldap_unbind_ext( ld, NULL, NULL ) );
 }
 
 
 int
-ldap_ld_free( LDAP *ld, int close )
+ldap_ld_free(
+	LDAP *ld,
+	int close,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
 {
 	LDAPMessage	*lm, *next;
 	int		err = LDAP_SUCCESS;
-#ifdef LDAP_REFERRALS
-	LDAPRequest	*lr, *nextlr;
-#endif /* LDAP_REFERRALS */
 
-	if ( ld->ld_sb.sb_naddr == 0 ) {
-#ifdef LDAP_REFERRALS
-		/* free LDAP structure and outstanding requests/responses */
-		for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
-			nextlr = lr->lr_next;
-			free_request( ld, lr );
-		}
+	/* free LDAP structure and outstanding requests/responses */
+	while ( ld->ld_requests != NULL ) {
+		ldap_free_request( ld, ld->ld_requests );
+	}
 
-		/* free and unbind from all open connections */
-		while ( ld->ld_conns != NULL ) {
-			free_connection( ld, ld->ld_conns, 1, close );
-		}
-#else /* LDAP_REFERRALS */
-		if ( close ) {
-			err = send_unbind( ld, &ld->ld_sb );
-			close_connection( &ld->ld_sb );
-		}
-#endif /* LDAP_REFERRALS */
-	} else {
-		int	i;
-
-		for ( i = 0; i < ld->ld_sb.sb_naddr; ++i ) {
-			free( ld->ld_sb.sb_addrs[ i ] );
-		}
-		free( ld->ld_sb.sb_addrs );
-		free( ld->ld_sb.sb_fromaddr );
+	/* free and unbind from all open connections */
+	while ( ld->ld_conns != NULL ) {
+		ldap_free_connection( ld, ld->ld_conns, 1, close );
 	}
 
 	for ( lm = ld->ld_responses; lm != NULL; lm = next ) {
@@ -83,62 +93,123 @@ ldap_ld_free( LDAP *ld, int close )
 		ldap_msgfree( lm );
 	}
 
-#ifndef NO_CACHE
-	if ( ld->ld_cache != NULL )
+#ifndef LDAP_NOCACHE
+	if ( ld->ld_cache != NULL ) {
 		ldap_destroy_cache( ld );
-#endif /* !NO_CACHE */
-	if ( ld->ld_error != NULL )
-		free( ld->ld_error );
-	if ( ld->ld_matched != NULL )
-		free( ld->ld_matched );
-	if ( ld->ld_host != NULL )
-		free( ld->ld_host );
-	if ( ld->ld_ufnprefix != NULL )
-		free( ld->ld_ufnprefix );
-	if ( ld->ld_filtd != NULL )
-		ldap_getfilter_free( ld->ld_filtd );
-#ifndef LDAP_REFERRALS
-	if ( ld->ld_sb.sb_ber.ber_buf != NULL )
-		free( ld->ld_sb.sb_ber.ber_buf );
-#endif /* !LDAP_REFERRALS */
-	if ( ld->ld_abandoned != NULL )
-		free( ld->ld_abandoned );
+		ld->ld_cache = NULL;
+	}
+#endif /* !LDAP_NOCACHE */
 
-#ifdef LDAP_REFERRALS
-	if ( ld->ld_selectinfo != NULL )
-		free_select_info( ld->ld_selectinfo );
-#endif /* LDAP_REFERRALS */
+	if ( ld->ld_error != NULL ) {
+		LDAP_FREE( ld->ld_error );
+		ld->ld_error = NULL;
+	}
 
-	if ( ld->ld_defhost != NULL )
-		free( ld->ld_defhost );
+	if ( ld->ld_matched != NULL ) {
+		LDAP_FREE( ld->ld_matched );
+		ld->ld_matched = NULL;
+	}
 
-	free( (char *) ld );
+	if ( ld->ld_abandoned != NULL ) {
+		LDAP_FREE( ld->ld_abandoned );
+		ld->ld_abandoned = NULL;
+	}
 
+	if ( ld->ld_selectinfo != NULL ) {
+		ldap_free_select_info( ld->ld_selectinfo );
+		ld->ld_selectinfo = NULL;
+	}
+
+	if ( ld->ld_options.ldo_defludp != NULL ) {
+		ldap_free_urllist( ld->ld_options.ldo_defludp );
+		ld->ld_options.ldo_defludp = NULL;
+	}
+
+	if ( ld->ld_options.ldo_tm_api != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_tm_api );
+		ld->ld_options.ldo_tm_api = NULL;
+	}
+
+	if ( ld->ld_options.ldo_tm_net != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_tm_net );
+		ld->ld_options.ldo_tm_net = NULL;
+	}
+
+#ifdef HAVE_CYRUS_SASL
+	if ( ld->ld_options.ldo_def_sasl_mech != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_mech );
+		ld->ld_options.ldo_def_sasl_mech = NULL;
+	}
+
+	if ( ld->ld_options.ldo_def_sasl_realm != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_realm );
+		ld->ld_options.ldo_def_sasl_realm = NULL;
+	}
+
+	if ( ld->ld_options.ldo_def_sasl_authcid != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_authcid );
+		ld->ld_options.ldo_def_sasl_authcid = NULL;
+	}
+
+	if ( ld->ld_options.ldo_def_sasl_authzid != NULL ) {
+		LDAP_FREE( ld->ld_options.ldo_def_sasl_authzid );
+		ld->ld_options.ldo_def_sasl_authzid = NULL;
+	}
+#endif
+
+	ber_sockbuf_free( ld->ld_sb );   
+   
+	LDAP_FREE( (char *) ld );
+   
 	return( err );
 }
 
 int
 ldap_unbind_s( LDAP *ld )
 {
-	return( ldap_ld_free( ld, 1 ));
+	return( ldap_unbind_ext( ld, NULL, NULL ) );
 }
 
 
 int
-send_unbind( LDAP *ld, Sockbuf *sb )
+ldap_send_unbind(
+	LDAP *ld,
+	Sockbuf *sb,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
 {
 	BerElement	*ber;
 
-	Debug( LDAP_DEBUG_TRACE, "send_unbind\n", 0, 0, 0 );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "unbind", LDAP_LEVEL_ENTRY, "ldap_send_unbind\n" ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_send_unbind\n", 0, 0, 0 );
+#endif
 
+#ifdef LDAP_CONNECTIONLESS
+	if (LDAP_IS_UDP(ld))
+		return LDAP_SUCCESS;
+#endif
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
 		return( ld->ld_errno );
 	}
 
 	/* fill it in */
-	if ( ber_printf( ber, "{itn}", ++ld->ld_msgid,
+	if ( ber_printf( ber, "{itn" /*}*/, ++ld->ld_msgid,
 	    LDAP_REQ_UNBIND ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( ld->ld_errno );
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return ld->ld_errno;
+	}
+
+	if ( ber_printf( ber, /*{*/ "N}", LDAP_REQ_UNBIND ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );

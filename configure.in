@@ -199,6 +199,9 @@ OL_ARG_WITH(meta_module,[    --with-meta-module	  module type], static,
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], no)dnl
 OL_ARG_WITH(monitor_module,[    --with-monitor-module module type], static,
 	[static dynamic])
+OL_ARG_ENABLE(null,[    --enable-null	  enable null backend], no)dnl
+OL_ARG_WITH(null_module,[    --with-null-module	  module type], static,
+	[static dynamic])
 OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no)dnl
 OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type], static,
 	[static dynamic])
@@ -248,6 +251,9 @@ if test $ol_enable_slapd = no ; then
 	fi
 	if test $ol_enable_monitor = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-monitor argument])
+	fi
+	if test $ol_enable_null = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-null argument])
 	fi
 	if test $ol_enable_passwd = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-passwd argument])
@@ -303,6 +309,9 @@ dnl	fi
 	if test $ol_with_monitor_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-monitor-module argument])
 	fi
+	if test $ol_with_null_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-null-module argument])
+	fi
 	if test $ol_with_passwd_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-passwd-module argument])
 	fi
@@ -329,6 +338,7 @@ dnl	fi
 	ol_enable_ldbm=no
 	ol_enable_meta=no
 	ol_enable_monitor=no
+	ol_enable_null=no
 	ol_enable_passwd=no
 	ol_enable_perl=no
 	ol_enable_shell=no
@@ -351,6 +361,7 @@ dnl	ol_enable_multimaster=no
 	ol_with_ldbm_module=static
 	ol_with_meta_module=static
 	ol_with_monitor_module=static
+	ol_with_null_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
@@ -381,6 +392,7 @@ elif test $ol_enable_ldbm = no ; then
 		$ol_enable_ldap = no -a \
 		$ol_enable_meta = no -a \
 		$ol_enable_monitor = no -a \
+		$ol_enable_null = no -a \
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
@@ -494,6 +506,7 @@ BUILD_LDAP=no
 BUILD_LDBM=no
 BUILD_META=no
 BUILD_MONITOR=no
+BUILD_NULL=no
 BUILD_PASSWD=no
 BUILD_PERL=no
 BUILD_SHELL=no
@@ -505,6 +518,7 @@ BUILD_LDAP_DYNAMIC=static
 BUILD_LDBM_DYNAMIC=static
 BUILD_META_DYNAMIC=static
 BUILD_MONITOR_DYNAMIC=static
+BUILD_NULL_DYNAMIC=static
 BUILD_PASSWD_DYNAMIC=static
 BUILD_PERL_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
@@ -719,6 +733,7 @@ else
 	ol_with_ldbm_module=static
 	ol_with_meta_module=static
 	ol_with_monitor_module=static
+	ol_with_null_module=static
 	ol_with_passwd_module=static
 	ol_with_perl_module=static
 	ol_with_shell_module=static
@@ -1032,11 +1047,15 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 				[-l$krb5crypto -lcom_err])
 
 		elif test $krb5_impl = heimdal; then
+			AC_CHECK_LIB(des, main,
+				[krb5crypto=des],
+				[krb5crypto=crypto])
+
 			AC_CHECK_LIB(krb5, main,
 				[have_krb5=yes
-				KRB5_LIBS="-lkrb5 -ldes -lasn1 -lroken -lcom_err"],
+				KRB5_LIBS="-lkrb5 -l$krb5crypto -lasn1 -lroken -lcom_err"],
 				[have_krb5=no],
-				[-ldes -lasn1 -lroken -lcom_err])
+				[-l$krb5crypto -lasn1 -lroken -lcom_err])
 
 			AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1,
 				[define if you have HEIMDAL Kerberos])
@@ -1081,7 +1100,7 @@ if test $ol_link_krb5 = yes -a \( $ol_with_kerberos = yes -o \
 		elif test $krb5_impl = heimdal; then
 			AC_CHECK_LIB(krb4, main, [have_k425=yes
 				KRB4_LIBS="-lkrb4"], [have_k425=no],
-				[-lkrb5 -ldes -lasn1 -lroken -lcom_err])
+				[-lkrb5 -l$krb5crypto -lasn1 -lroken -lcom_err])
 
 		else
 			have_425=no
@@ -1216,7 +1235,7 @@ if test $ol_with_tls != no ; then
 	fi
 
 else
-	AC_WARN([TLS privacy protection not supported!])
+	AC_WARN([TLS data protection not supported!])
 fi
 
 if test $ol_link_tls = yes ; then
@@ -1224,7 +1243,7 @@ if test $ol_link_tls = yes ; then
 
 elif test $ol_with_tls = auto ; then
 	AC_WARN([Could not locate TLS/SSL package])
-	AC_WARN([TLS privacy protection not supported!])
+	AC_WARN([TLS data protection not supported!])
 
 elif test $ol_with_tls != no ; then
 	AC_ERROR([Could not locate TLS/SSL package])
@@ -2554,6 +2573,22 @@ if test "$ol_enable_monitor" != no ; then
 	fi
 fi
 
+if test "$ol_enable_null" != no ; then
+	AC_DEFINE(SLAPD_NULL,1,[define to support NULL backend])
+	BUILD_SLAPD=yes
+	BUILD_NULL=yes
+	if test "$ol_with_null_module" != static ; then
+		AC_DEFINE(SLAPD_NULL_DYNAMIC,1,
+			[define to support dynamic NULL backend])
+		BUILD_NULL=mod
+		BUILD_NULL_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-null/back_null.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-null"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-null"
+	fi
+fi
+
 if test "$ol_enable_passwd" != no ; then
 	AC_DEFINE(SLAPD_PASSWD,1,[define to support PASSWD backend])
 	BUILD_SLAPD=yes
@@ -2654,6 +2689,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDBM)
   AC_SUBST(BUILD_META)
   AC_SUBST(BUILD_MONITOR)
+  AC_SUBST(BUILD_NULL)
   AC_SUBST(BUILD_PASSWD)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
@@ -2664,6 +2700,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_LDBM_DYNAMIC)
   AC_SUBST(BUILD_META_DYNAMIC)
   AC_SUBST(BUILD_MONITOR_DYNAMIC)
+  AC_SUBST(BUILD_NULL_DYNAMIC)
   AC_SUBST(BUILD_PASSWD_DYNAMIC)
   AC_SUBST(BUILD_PERL_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
@@ -2749,6 +2786,7 @@ servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.i
 servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
 servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk \
 servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk \
+servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk \
 servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \

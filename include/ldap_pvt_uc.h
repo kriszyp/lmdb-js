@@ -84,16 +84,16 @@ LDAP_F (char*) ldap_utf8_strtok( char* sp, const char* sep, char **last);
 LDAP_V (const char) ldap_utf8_lentab[128];
 LDAP_V (const char) ldap_utf8_mintab[32];
 
-#define LDAP_UTF8_ISASCII(p) ( !(*(unsigned char *)(p) & 0x80 ) )
+#define LDAP_UTF8_ISASCII(p) ( !(*(const unsigned char *)(p) & 0x80 ) )
 #define LDAP_UTF8_CHARLEN(p) ( LDAP_UTF8_ISASCII(p) \
-	? 1 : ldap_utf8_lentab[*(unsigned char *)(p) ^ 0x80] )
+	? 1 : ldap_utf8_lentab[*(const unsigned char *)(p) ^ 0x80] )
 
 /* This is like CHARLEN but additionally validates to make sure
  * the char used the shortest possible encoding.
  * 'l' is used to temporarily hold the result of CHARLEN.
  */
 #define LDAP_UTF8_CHARLEN2(p, l) ( ( ( l = LDAP_UTF8_CHARLEN( p )) < 3 || \
-	( ldap_utf8_mintab[*(unsigned char *)(p) & 0x1f] & (p)[1] ) ) ? \
+	( ldap_utf8_mintab[*(const unsigned char *)(p) & 0x1f] & (p)[1] ) ) ? \
 	l : 0 )
 
 #define LDAP_UTF8_OFFSET(p) ( LDAP_UTF8_ISASCII(p) \
@@ -137,21 +137,15 @@ LDAP_LUNICODE_F(void) ucstr2upper(
 	ldap_unicode_t *,
 	ber_len_t );
 
-#define LDAP_UTF8_CASEFOLD		0x1U
 #define LDAP_UTF8_NOCASEFOLD	0x0U
-
-LDAP_LUNICODE_F(char *) UTF8normalize(
-	struct berval *,
-	unsigned );
+#define LDAP_UTF8_CASEFOLD	0x1U
+#define LDAP_UTF8_ARG1NFC	0x2U
+#define LDAP_UTF8_ARG2NFC	0x4U
+#define LDAP_UTF8_APPROX	0x8U
 
 LDAP_LUNICODE_F(struct berval *) UTF8bvnormalize(
 	struct berval *,
 	struct berval *,
-	unsigned );
-
-LDAP_LUNICODE_F(int) UTF8normcmp(
-	const char *,
-	const char *,
 	unsigned );
 
 LDAP_LUNICODE_F(int) UTF8bvnormcmp(

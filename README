@@ -1,9 +1,9 @@
-OpenLDAP 2.1 ALPHA README
+OpenLDAP 2.1 BETA README
 	
 	For a description of what this distribution contains, see the
 	ANNOUNCEMENT file in this directory.
 
-	This is a 2.1 alpha release.
+	This is a 2.1 beta release.
 	It is NOT intended for general use.
 
 
@@ -61,7 +61,7 @@ SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 	the answer, please enquire on the OpenLDAP-software list.
 
 	Issues, such as bug reports, should be reported using our
-	our Issue Tracking System <http://www.OpenLDAP.com/its/> or
+	our Issue Tracking System <http://www.OpenLDAP.org/its/> or
 	by sending mail to OpenLDAP-its@OpenLDAP.org.  Do not use
 	this system for software enquiries.  Please direct these
 	to an appropriate mailing list.

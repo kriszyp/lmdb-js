@@ -1,4 +1,7 @@
-.TH SLAPD.CONF 5  "13 November 1995" "U-M LDAP LDVERSION"
+.TH SLAPD.CONF 5 "26 January 2002" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
 .SH NAME
 slapd.conf \- configuration file for slapd, the stand-alone LDAP daemon
 .SH SYNOPSIS
@@ -10,12 +13,11 @@ contains configuration information for the
 .BR slapd (8)
 daemon.  This configuration file is also used by the
 .BR slurpd (8)
-replication daemon and by the LDBM indexing utilities
-.BR ldif2ldbm (8),
-.BR ldif2index (8),
-.BR ldif2id2entry (8),
+replication daemon and by the SLAPD tools
+.BR slapadd (8),
+.BR slapcat (8),
 and
-.BR ldif2id2children (8).
+.BR slapindex (8).
 .LP
 The
 .B slapd.conf
@@ -54,9 +56,10 @@ backslash character (`\\'), the character should be preceded by a
 backslash character.
 .LP
 The specific configuration options available are discussed below in the
-Global Configuration Options, General Backend Options, LDBM
-Backend-Specific Options, Shell Backend-Specific Options, and Password
-Backend-Specific Options sections.  Refer to "The SLAPD and SLURPD
+Global Configuration Options, General Backend Options, General Database
+Options, LDBM Database-Specific Options,
+Shell Database-Specific Options, and Password
+Database-Specific Options sections.  Refer to the "OpenLDAP
 Administrator's Guide" for more details on the slapd configuration
 file.
 .SH GLOBAL CONFIGURATION OPTIONS
@@ -64,52 +67,217 @@ Options described in this section apply to all backends, unless specifically
 overridden in a backend definition. Arguments that should be replaced by 
 actual text are shown in brackets <>.
 .TP
-.B
-access to <what> [ by <who> <accesslevel> ]+
-Grant access (specified by <accesslevel>) to a set of entries and/or
+.B access to <what> [ by <who> <access> <control> ]+
+Grant access (specified by <access>) to a set of entries and/or
 attributes (specified by <what>) by one or more requestors (specified
-by <who>).  Refer to "The SLAPD and SLURPD Administrator's Guide" for
-information on using the
-.B slapd
-access-control mechanisms.
+by <who>).
+See the "OpenLDAP's Administrator's Guide" for details.
 .TP
-.B
-attribute <name> [<name2>] { bin | ces | cis | tel | dn }
-Associate a syntax with an attribute name. By default, an 
-attribute is assumed to have syntax
-.BR cis .
-An optional alternate name can be 
-given for an attribute. The possible syntaxes and their meanings are:
+.B allow <features>
+Specify a set of features (separated by white space) to
+allow (default none).
+.B bind_v2
+allows acceptance of LDAPv2 bind requests.
+.B bind_anon_cred
+allows anonymous bind when credentials are not empty (e.g.
+when DN is empty).
+.B bind_anon_dn
+allows unauthenticated (anonymous) bind when DN is not empty.
+.TP
+.B argsfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's command line options
+if started without the debugging command line option.
+.HP
+.hy 0
+.B attributetype (\ <oid> [NAME\ <name>] [OBSOLETE]\
+ [DESC\ <description>]\
+ [SUP\ <oid>] [EQUALITY\ <oid>] [ORDERING\ <oid>]\
+ [SUBSTR\ <oid>] [SYNTAX\ <oidlen>] [SINGLE\-VALUE] [COLLECTIVE]\
+ [NO\-USER\-MODIFICATION] [USAGE\ <attributeUsage>]\ )
+.RS
+Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
+The slapd parser extends the RFC 2252 definition by allowing string
+forms as well as numeric OIDs to be used for the attribute OID and
+attribute syntax OID.
+(See the
+.B objectidentifier
+description.) Currently the syntax name parser is case-sensitive.
+The known syntax names are:
 .RS
 .RS
 .PD 0
-.TP
-.B bin
-binary
-.TP
-.B ces
-case exact string
-.TP
-.B cis
-case ignore string
-.TP
-.B tel
-telephone number string
-.TP
-.B dn
-distinguished name
+AttributeTypeDescription Audio Binary BitString Certificate CertificateList
+CertificatePair DN DeliveryMethod DirectoryString DITContentRuleDescription
+DITStructureRuleDescription EnhancedGuide FacsimileTelephoneNumber
+GeneralizedTime Guide IA5String Integer MatchingRuleDescription
+MatchingRuleUseDescription MailPreference NameAndOptionalUUID
+NameFormDescription NumericString ObjectClassDescription OID
+OtherMailbox OctetString PostalAddress ProtocolInformation
+PresentationAddress PrintableString SupportedAlgorithm TelephoneNumber
+TeletexTerminalIdentifier TelexNumber UTCTime LDAPSyntaxDescription
+SubstringAssertion NISnetgrouptriple Bootparameter
 .PD
 .RE
 .RE
+.RE
 .TP
-.B
-defaultaccess { none | compare | search | read | write | delete }
-Specify the default access to grant requestors not matched by 
-any other access line.  The default behavior is to grant read access.
+.B concurrency <integer>
+Specify a desired level of concurrency.  Provided to the underlying
+thread system as a hint.  The default is not to provide any hint.
+.TP
+.B defaultsearchbase <dn>
+Specify a default search base to use when client submits a
+non-base search request with an empty base DN.
+.TP
+.B disallow <features>
+Specify a set of features (separated by white space) to
+disallow (default none).
+.B bind_anon
+disables acceptance of anonymous bind requests.
+.B bind_simple
+disables simple (bind) authentication.
+.B bind_krbv4
+disables Kerberos V4 (bind) authentication.
+.B tls_2_anon
+disables Start TLS from forcing session to anonymous status (see also
+.BR tls_authc ).
+.B tls_authc
+disables StartTLS if authenticated (see also
+.BR tls_2_anon ).
+.TP
+.B idletimeout <integer>
+Specify the number of seconds to wait before forcibly closing
+an idle client connection.  A idletimeout of 0 disables this
+feature.  The default is 0.
 .TP
 .B include <filename>
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
+.TP
+.B limits <who> <limit> [<limit> [...]]
+Specify time and size limits based on who initiated an operation.
+The argument
+.B who
+can be any of
+.RS
+.RS
+.TP
+anonymous | users | [dn[.<style>]=]<pattern>
+
+.RE
+with
+.RS
+.TP
+<style> ::= exact | base | one | subtree | children | regex | anonymous
+
+.RE
+.B Anonymous
+is hit when a search is performed without prior binding;
+.B users
+is hit when a search is performed by a successfully bound user;
+otherwise a
+.B regex
+dn pattern is assumed unless otherwise specified by qualifying 
+the (optional) key string
+.B dn
+with 
+.B exact
+or
+.B base
+(which are synonims), to require an exact match; with
+.BR one, 
+to require exactly one level of depth match; with
+.BR subtree,
+to allow any level of depth match, including the exact match; with
+.BR children,
+to allow any level of depth match, not including the exact match;
+.BR regex
+explicitly requires the (default) match based on regular expression
+pattern, as detailed in
+.BR regex(7).
+Finally,
+.B anonymous
+matches unbound operations; the 
+.B pattern
+field is ignored.
+The same behavior is obtained by using the 
+.B anonymous
+form of the
+.B who
+clause.
+
+The currently supported limits are 
+.B size
+and 
+.BR time.
+
+The syntax for time limits is 
+.BR time[.{soft|hard}]=<integer> ,
+where 
+.BR integer
+is the number of seconds slapd will spend answering a search request.
+If no time limit is explicitly requested by the client, the 
+.BR soft
+limit is used; if the requested time limit exceedes the
+.BR hard
+limit, an "Unwilling to perform" is returned.
+If the
+.BR hard
+limit is set to 0 or to the keyword "soft", the soft limit is used 
+in either case; if it is set to -1 or to the keyword "none", 
+no hard limit is enforced.
+Explicit requests for time limits smaller or equal to the
+.BR hard 
+limit are honored.
+If no flag is set, the value is assigned to the 
+.BR soft 
+limit, and the
+.BR hard
+limit is set to zero, to preserve the original behavior.
+
+The syntax for size limits is
+.BR size[.{soft|hard|unchecked}]=<integer> ,
+where
+.BR integer
+is the maximum number of entries slapd will return answering a search 
+request.
+If no size limit is explicitly requested by the client, the
+.BR soft
+limit is used; if the requested size limit exceedes the
+.BR hard
+limit, an "Unwilling to perform" is returned.
+If the 
+.BR hard
+limit is set to 0 or to the keyword "soft", the soft limit is used 
+in either case; if it is set to -1 or to the keyword "none", 
+no hard limit is enforced.
+Explicit requests for size limits smaller or equal to the
+.BR hard
+limit are honored.
+The
+.BR unchecked
+flag sets a limit on the number of candidates a search request is allowed
+to examine.
+If the selected candidates exceed the 
+.BR unchecked
+limit, the search will abort with "Unwilling to perform".
+If it is set to -1 or to the keyword "none", no limit is applied (the default).
+If no flag is set, the value is assigned to the
+.BR soft 
+limit, and the
+.BR hard
+limit is set to zero, to preserve the original behavior.
+
+In case of no match, the global limits are used.
+The default values are the same of
+.BR sizelimit
+and
+.BR timelimit ;
+no limit is set on 
+.BR unchecked .
+.RE
 .TP
 .B loglevel <integer>
 Specify the level at which debugging statements and operation 
@@ -159,45 +327,401 @@ entry parsing
 .PD
 .RE
 .RE
-.TP
+.HP
+.B objectclass ( <oid> [NAME <name>] [DESC <description] [OBSOLETE]\
+ [SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>]\
+ [MAY <oids>] )
+.RS
+Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
+The slapd parser extends the RFC 2252 definition by allowing string
+forms as well as numeric OIDs to be used for the object class OID.
+(See the
 .B
-objectclass <name> requires <attrs> allows <attrs>
-Define the schema rules for the object class named <name>.  These are
-used in conjunction with the schemacheck option.
+objectidentifier
+description.)  Object classes are "STRUCTURAL" by default.
+.RE
+.TP
+.B objectidentifier <name> { <oid> | <name>[:<suffix>] }
+Define a string name that equates to the given OID. The string can be used
+in place of the numeric OID in objectclass and attribute definitions. The
+name can also be used with a suffix of the form ":xx" in which case the
+value "oid.xx" will be used.
+.TP
+.B password-hash <hash>
+This option sets the hash to be used in generation of user
+passwords, stored in userPassword, during processing of
+LDAP Password Modify Extended Operations (RFC 3052).
+The <hash> must be one of
+.BR {SSHA} ,
+.BR {SHA} ,
+.BR {SMD5} ,
+.BR {MD5} ,
+and
+.BR {CRYPT} .
+The default is
+.BR {SSHA} .
+
+Note that this option does not alter the normal user applications
+handling of userPassword during LDAP Add, Modify, or other LDAP operations.
+.TP
+.B password\-crypt\-salt\-format <format>
+Specify the format of the salt passed to
+.BR crypt (3)
+when generating {CRYPT} passwords (see
+.BR password\-hash )
+during processing of LDAP Password Modify Extended Operations (RFC 3062).
+
+This string needs to be in
+.BR sprintf (3)
+format and may include one (and only one) %s conversion.
+This conversion will be substituted with a string random
+characters from [A\-Za\-z0\-9./].  For example, "%.2s"
+provides a two character salt and "$1$%.8s" tells some
+versions of crypt(3) to use an MD5 algorithm and provides
+8 random characters of salt.  The default is "%s", which
+provides 31 characters of salt.
+.TP
+.B pidfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's process ID ( see
+.BR getpid (2)
+) if started without the debugging command line option.
 .TP
 .B referral <url>
 Specify the referral to pass back when
 .BR slapd (8)
 cannot find a local database to handle a request.
+If specified multiple times, each url is provided.
 .TP
-.B schemacheck { on | off }
-Turn schema checking on or off. The default is off.
+.B require <conditions>
+Specify a set of conditions (separated by white space) to
+require (default none).
+The directive may be specified globally and/or per-database.
+.B bind
+requires bind operation prior to directory operations.
+.B LDAPv3
+requires session to be using LDAP version 3.
+.B authc
+requires authentication prior to directory operations.
+.B SASL
+requires SASL authentication prior to directory operations.
+.B strong
+requires strong authentication prior to directory operations.
+The
+.B SASL
+and
+.B strong
+conditions are currently same.
+.B none
+may be used to require no conditions (useful for clearly globally
+set conditions within a particular database).
 .TP
-.B sizelimit <integer>
+.B reverse-lookup on | off
+Enable/disable client name reverse lookup (default is 
+.BR on 
+if compiled with --enable-rlookups).
+.TP
+.B rootDSE <file>
+Specify the name of an LDIF(5) file containing user defined attributes
+for the root DSE.  These attributes are returned in addition to the
+attributes normally produced by slapd.
+.TP
+.B sasl-host <fqdn>
+Used to specify the fully qualified domain name used for SASL processing.
+.TP
+.B sasl-realm <realm>
+Specify SASL realm.  Default is empty.
+.TP
+.B sasl-regexp <match> <replace>
+Used by the SASL authorization mechanism to convert a SASL authenticated 
+username to an LDAP DN. When an authorization request is received, the SASL 
+.B USERNAME, REALM, 
+and
+.B MECHANISM
+are taken, when available, and combined into a SASL name of the 
+form
+.RS
+.RS
+.TP
+.B uid=<UID>[,cn=<REALM>][,cn=<MECH>],cn=AUTHZ
+
+.RE
+This SASL name is then compared against the
+.B match
+regular expression, and if the match is successful, the SASL name is
+replaced with the
+.B replace
+string. If there are wildcard strings in the 
+.B match
+regular expression that are enclosed in parenthesis, e.g. 
+.RS
+.RS
+.TP
+.B uid=(.*)\\\\+realm=.*
+
+.RE
+.RE
+then the portion of the SASL name that matched the wildcard will be stored
+in the numbered placeholder variable $1. If there are other wildcard strings
+in parenthesis, the matching strings will be in $2, $3, etc. up to $9. The 
+placeholders can then be used in the 
+.B replace
+string, e.g. 
+.RS
+.RS
+.TP
+.B cn=$1,ou=Accounts,dc=$2,dc=$4. 
+
+.RE
+.RE
+The replaced SASL name can be either a DN or an LDAP URI. If the latter, the slapd
+server will use the URI to search its own database, and if the search returns 
+exactly one entry, the SASL name is replaced by the DN of that entry.
+Multiple 
+.B sasl-regexp 
+options can be given in the configuration file to allow for multiple matching 
+and replacement patterns. The matching patterns are checked in the order they 
+appear in the file, stopping at the first successful match.
+
+.B Caution:
+Because the plus sign + is a character recognized by the regular expression engine,
+and it will appear in SASL names that include a REALM, be careful to escape the
+plus sign with a backslash \\+ to remove the character's special meaning.
+.RE
+.TP
+.B sasl-secprops <properties>
+Used to specify Cyrus SASL security properties.
+The
+.B none
+flag (without any other properities) causes the flag properites
+default, "noanonymous,noplain", to be cleared.
+The
+.B noplain
+flag disables mechanisms susceptible to simple passive attacks.
+The
+.B noactive
+flag disables mechanisms susceptible to active attacks.
+The
+.B nodict
+flag disables mechanisms susceptible to passive dictionary attacks.
+The
+.B noanonyous
+flag disables mechanisms which support anonymous login.
+The
+.B forwardsec
+flag require forward secrecy between sessions.
+The
+.B passcred
+require mechanisms which pass client credentials (and allow
+mechanisms which can pass credentials to do so).
+The
+.B minssf=<factor> 
+property specifies the minimum acceptable
+.I security strength factor
+as an integer approximate to effective key length used for
+encryption.  0 (zero) implies no protection, 1 implies integrity
+protection only, 56 allows DES or other weak ciphers, 112
+allows triple DES and other strong ciphers, 128 allows RC4,
+Blowfish and other modern strong ciphers.  The default is 0.
+The
+.B maxssf=<factor> 
+property specifies the maximum acceptable
+.I security strength factor
+as an integer (see minssf description).  The default is INT_MAX.
+The
+.B maxbufsize=<size> 
+property specifies the maximum security layer receive buffer
+size allowed.  0 disables security layers.  The default is 65536.
+.TP
+.B security <factors>
+Specify a set of factors (separated by white space) to require.
+An integer value is associated with each factor and is roughly
+equivalent of the encryption key length to require.  A value
+of 112 is equivalent to 3DES, 128 to Blowfish, etc..
+The directive may be specified globally and/or per-database.
+.B ssf=<n>
+specifies the overall security strength factor.
+.B transport=<n>
+specifies the transport security strength factor.
+.B tls=<n>
+specifies the TLS security strength factor.
+.B sasl=<n>
+specifies the SASL security strength factor.
+.B update_ssf=<n>
+specifies the overall security strength factor to require for
+directory updates.
+.B update_transport=<n>
+specifies the transport security strength factor to require for
+directory updates.
+.B update_tls=<n>
+specifies the TLS security strength factor to require for
+directory updates.
+.B update_sasl=<n>
+specifies the SASL security strength factor to require for
+directory updates.
+Note that the
+.B transport
+factor is measure of security provided by the underlying transport,
+e.g. ldapi:// (and eventually IPSEC).  It is not normally used.
+.TP
+.B sizelimit <integer> 
+.TP
+.B sizelimit size[.{soft|hard|unchecked}]=<integer> [...]
 Specify the maximum number of entries to return from a search operation.
 The default size limit is 500.
+The second format allows a fine grain setting of the size limits.
+Extra args can be added on the same line.
+See
+.BR limits
+for an explanation of the different flags.
+.TP
+.B sockbuf_max_incoming <integer>
+Specify the maximum incoming LDAP PDU size for anonymous sessions.
+The default is 262143.
+.TP
+.B sockbuf_max_incoming_auth <integer>
+Specify the maximum incoming LDAP PDU size for authenticated sessions.
+The default is 4194303.
 .TP
 .B srvtab <filename>
 Specify the srvtab file in which the kerberos keys necessary for
 authenticating clients using kerberos can be found. This option is only
 meaningful if you are using Kerberos authentication.
 .TP
+.B threads <integer>
+Specify the maximum size of the primary thread pool.
+The default is 32.
+.TP
 .B timelimit <integer>
+.TP
+.B timelimit time[.{soft|hard}]=<integer> [...]
 Specify the maximum number of seconds (in real time)
 .B slapd
 will spend answering a search request.  The default time limit is 3600.
+The second format allows a fine grain setting of the time limits.
+Extra args can be added on the same line.
+See
+.BR limits
+for an explanation of the different flags.
+.SH TLS OPTIONS
+If
+.B slapd
+is built with support for Transport Layer Security, there are more options
+you can specify.
+.TP
+.B TLSCipherSuite <cipher-suite-spec>
+Permits configuring what ciphers will be accepted and the preference order.
+<cipher-suite-spec> should be a cipher specification for OpenSSL.  Example:
+
+TLSCipherSuite HIGH:MEDIUM:+SSLv2
+
+To check what ciphers a given spec selects, use:
+
+openssl ciphers -v <cipher-suite-spec>
+.TP
+.B TLSCACertificateFile <filename>
+Specifies the file that contains certificates for all of the Certificate
+Authorities that
+.B slapd
+will recognize.
+.TP
+.B TLSCertificateFile <filename>
+Specifies the file that contains the
+.B slapd
+server certificate.
+.TP
+.B TLSCertificateKeyFile <filename>
+Specifies the file that contains the
+.B slapd
+server private key that matches the certificate stored in the
+.B TLSCertificateFile
+file.  Currently, the private key must not be protected with a password, so
+it is of critical importance that it is protected carefully. 
+.TP
+.B TLSRandFile <filename>
+Specifies the file to obtain random bits from when /dev/[u]random
+is not available.  Generally set to the name of the EGD/PRNGD socket.
+The environment variable RANDFILE can also be used to specify the filename.
+.TP
+.B TLSVerifyClient <level>
+Specifies what checks to perform on client certificates in an
+incoming TLS session, if any.
+The
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+This is the default.
+.B slapd
+will not ask the client for a certificate.
+.TP
+.B allow
+The client certificate is requested.  If no certificate is provided,
+the session proceeds normally.  If a bad certificate is provided,
+it will be ignored and the session proceeds normally.
+.TP
+.B try
+The client certificate is requested.  If no certificate is provided,
+the session proceeds normally.  If a bad certificate is provided,
+the session is immediately terminated.
+.TP
+.B demand | hard | true
+These keywords are all equivalent, for compatibility reasons.
+The client certificate is requested.  If no certificate is provided,
+or a bad certificate is provided, the session is immediately terminated.
+
+Note that a valid client certificate is required in order to use the
+SASL EXTERNAL authentication mechanism with a TLS session.  As such,
+a non-default
+.B TLSVerifyClient
+setting must be chosen to enable SASL EXTERNAL authentication.
+.RE
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
-for the backend in which they are defined.  They are supported by every
+for the specified backend.  They are supported by every
+type of backend.
+.TP
+.B backend <databasetype>
+Mark the beginning of a backend definition. <databasetype>
+should be one of
+.B bdb,
+.B dnssrv,
+.B ldap,
+.B ldbm,
+.B meta,
+.B monitor,
+.B null,
+.B passwd,
+.B perl,
+.B shell,
+.B sql,
+or
+.B tcl,
+depending on which backend will serve the database.
+
+.SH GENERAL DATABASE OPTIONS
+Options in this section only apply to the configuration file section
+for the database in which they are defined.  They are supported by every
 type of backend.
 .TP
 .B database <databasetype>
 Mark the beginning of a new database instance definition. <databasetype>
 should be one of
+.B bdb,
+.B dnssrv,
+.B ldap,
 .B ldbm,
+.B meta,
+.B monitor,
+.B null,
+.B passwd,
+.B perl,
 .B shell,
+.B sql,
 or
-.B passwd
+.B tcl,
 depending on which backend will serve the database.
 .TP
 .B lastmod on | off
@@ -205,23 +729,57 @@ Controls whether
 .B slapd
 will automatically maintain the 
 modifiersName, modifyTimestamp, creatorsName, and 
-createTimestamp attributes for entries.  By default, lastmod is off.
+createTimestamp attributes for entries.  By default, lastmod is on.
 .TP
 .B readonly on | off
 This option puts the database into "read-only" mode.  Any attempts to 
 modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
-.TP
-.B
-replica host=<hostname>[:port] "binddn=<DN>" bindmethod=simple |
-.B
-kerberos [credentials=<password>] [srvtab=<filename>]
-.br
-Specify a replication site for this database.  Refer to "The SLAPD and
-SLURPD Administrator's Guide" for detailed information on setting up
-a replicated
+.HP
+.B replica host=<hostname>[:port] [tls=yes|critical]
+.B [suffix=<suffix> [...]]
+.B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
+.B [saslmech=<SASL mech>] [secopts=<options>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authcId=<authentication ID>]
+.B [attr[!]=<attr list>]
+.RS
+Specify a replication site for this database.  Refer to the "OpenLDAP 
+Administrator's Guide" for detailed information on setting up a replicated
 .B slapd
-directory service.
+directory service. Zero or more
+.B suffix
+instances can be used to select the subtrees that will be replicated
+(defaults to all the database). A
+.B bindmethod
+of
+.B simple
+requires the options
+.B binddn 
+and
+.B credentials  
+and should only be used when adequate security services 
+(e.g TLS or IPSEC) are in place. A
+.B bindmethod 
+of
+.B sasl 
+requires the option
+.B saslmech. 
+If the 
+.B mechanism
+will use Kerberos, a kerberos instance should be given in 
+.B authcId.
+An
+.B attr list
+can be given after the 
+.B attr
+keyword to allow the selective replication of the listed attributes only;
+if the optional 
+.B !
+mark is used, the list is considered exclusive, i.e. the listed attributes
+are not replicated.
+If an objectClass is listed, all the related attributes
+are (are not) replicated.
+.RE
 .TP
 .B replogfile <filename>
 Specify the name of the replication log file to log changes to.  
@@ -231,19 +789,52 @@ and read by
 .BR slurpd (8).
 See
 .BR slapd.replog (5)
-for more information.
+for more information.  The specified file should be located
+in a directory with limited read/write/execute access as the replication
+logs may contain sensitive information.
 .TP
 .B rootdn <dn>
-Specify the DN of an entry that is not subject to access control 
+Specify the distinguished name that is not subject to access control 
 or administrative limit restrictions for operations on this database.
+This DN may or may not be associated with an entry.  An empty root
+DN (the default) specifies no root access is to be granted.  It is
+recommended that the rootdn only be specified when needed (such as
+when initially populating a database).  If the rootdn is within
+a namingContext (suffix) of the database, a simple bind password
+may also be provided using the
+.B rootpw
+directive.
 .TP
 .B rootpw <password>
-Specify a password for the rootdn.
+Specify a password (or hash of the password) for the rootdn.  If
+the rootdn is not within the namingContext of the database, the
+provided password is ignored.
+This option accepts all RFC 2307 userPassword formats known to
+the server (see 
+.B password-hash
+desription) as well as cleartext.
+.BR slappasswd (8) 
+may be used to generate a hash of a password.  Cleartext
+and \fB{CRYPT}\fP passwords are not recommended.  If empty
+(the default), authentication of the root DN is by other means
+(e.g. SASL).  Use of SASL is encouraged.
 .TP
 .B suffix <dn suffix>
 Specify the DN suffix of queries that will be passed to this 
 backend database.  Multiple suffix lines can be given and at least one is 
 required for each database definition.
+.TP
+.B subordinate
+Specify that the current backend database is a subordinate of another
+backend database. A subordinate database may have only one suffix. This
+option may be used to glue multiple databases into a single namingContext.
+If the suffix of the current database is within the namingContext of a
+superior database, searches against the superior database will be
+propagated to the subordinate as well. All of the databases
+associated with a single namingContext should have identical rootdns.
+Behavior of other LDAP operations is unaffected by this setting. In
+particular, it is not possible to use moddn to move an entry from
+one subordinate to another subordinate within the namingContext.
 .TP
 .B updatedn <dn>
 This option is only applicable in a slave
@@ -252,11 +843,26 @@ It specifies the DN allowed to make changes to the replica (typically,
 this is the DN
 .BR slurpd (8)
 binds as when making changes to the replica).
-.SH LDBM BACKEND-SPECIFIC OPTIONS
-Options in this category only apply to the LDBM backend database. That is,
-they must follow a "database ldbm" line and come before any subsequent
-"database" lines.  The LDBM backend is a high-performance database that
-makes extensive use of indexing and caching to speed data access. 
+.TP
+.B updateref <url>
+Specify the referral to pass back when
+.BR slapd (8)
+is asked to modify a replicated local database.
+If specified multiple times, each url is provided.
+.\" .SH LDBM BACKEND-SPECIFIC OPTIONS
+.\" Options in this category only apply to the LDBM backend. That is,
+.\" they must follow "backend ldbm" line and come before any subsequent
+.\" "backend" or "database" lines.  The LDBM backend is a high-performance
+.\" database that makes extensive use of indexing and caching to speed
+.\" data access. 
+.SH BDB DATABASE-SPECIFIC OPTIONS
+Options in this category only apply to the BDB databases. That is,
+they must follow "database bdb" line and come before any subsequent
+"backend" or "database" lines.
+.SH LDBM DATABASE-SPECIFIC OPTIONS
+Options in this category only apply to the LDBM databases. That is,
+they must follow "database ldbm" line and come before any subsequent
+"backend" or "database" lines.
 .TP
 .B cachesize <integer>
 Specify the size in entries of the in-memory cache maintained 
@@ -267,23 +873,84 @@ Specify the size in bytes of the in-memory cache associated
 with each open index file. If not supported by the underlying database 
 method, this option is ignored without comment.  The default is 100000 bytes.
 .TP
+.B dbnolocking
+Specify that no database locking should be performed.  
+Enabling this option may improve performance at the expense of data security.
+Do NOT run any slap tools while slapd is running.
+.TP
+.B dbnosync
+Specify that on-disk database contents should not be immediately
+synchronized with in memory changes.  Enabling this option may improve
+performance at the expense of data security.
+.TP
+.B dbsync <frequency> <maxdelays> <delayinterval>
+Flush dirty database buffers to disk every
+.B <seconds>
+seconds.  Implies
+.B dbnosync
+(ie. indvidual updates are no longer written to disk).  It attempts to avoid
+syncs during periods of peak activity by waiting
+.B <delayinterval>
+seconds if the server is busy, repeating this delay up to
+.B <maxdelays>
+times before proceeding.  
+It is an attempt to provide higher write performance with some amount of data
+security.  Note that it may still be possible to get an inconsistent 
+database if the underlying engine fills its cache and writes out individual
+pages and slapd crashes or is killed before the next sync.
+.B <maxdelays>
+and
+.B <delayinterval>
+are optional and default to
+.B 12
+and
+.B 5
+respectively, giving a total elapsed delay of 60 seconds before a sync
+will occur.
+.B <maxdelays>
+may be zero, and
+.B <delayinterval>
+must be 1 or greater.
+.TP
 .B directory <directory>
-Specify the directory where the LDBM files containing the database and
-associated indexes live.  The default is
-.B /usr/tmp.
+Specify the directory where the LDBM files containing this database and
+associated indexes live.  A separate directory must be specified for
+each database.  The default is
+.BR LOCALSTATEDIR/openldap-data .
 .TP
 .B
-index { <attrlist> | default } [ pres,eq,approx,sub,none ]
-Specify the indexes to maintain for the given attribute. If only 
-an <attr> is given, all possible indexes are maintained.
+index {<attrlist>|default} [pres,eq,approx,sub,<special>]
+Specify the indexes to maintain for the given attribute (or
+list of attributes).  Some attributes only support a subset
+of indexes.  If only an <attr> is given, the indices specified
+for \fBdefault\fR are maintained.  Note that setting a default
+does not imply that all attributes will be indexed.
+
+A number of special index parameters may be
+specified.
+The index type
+.B sub
+can be decomposed into
+.BR subinitial ,
+.BR subany ,\ and
+.B subfinal
+indices.
+The special type
+.B nolang
+may be specified to disallow use of this index by language subtypes.
+The special type
+.B nosubtypes
+may be specified to disallow use of this index by named subtypes.
+Note: changing index settings requires rebuilding indices, see
+.BR slapindex (8).
 .TP
 .B mode <integer>
 Specify the file protection mode that newly created database 
 index files should have.  The default is 0600.
-.SH SHELL BACKEND-SPECIFIC OPTIONS
+.SH SHELL DATABASE-SPECIFIC OPTIONS
 Options in this category only apply to the SHELL backend database. That is,
 they must follow a "database shell" line and come before any subsequent
-"database" lines.  The Shell backend executes external programs to
+"backend" or "database" lines.  The Shell backend executes external programs to
 implement operations, and is designed to make it easy to tie an existing
 database to the
 .B slapd
@@ -307,17 +974,15 @@ front-end.
 .TP
 .B abandon <pathname>
 These options specify the pathname of the command to execute in response 
-to the given LDAP operation. The command given should understand and 
-follow the input/output conventions described in Appendix B of "The SLAPD
-and SLURPD Administrator's Guide."
-.LP
+to the given LDAP operation.
+
 Note that you need only supply configuration lines for those commands you
 want the backend to handle. Operations for which a command is not
 supplied will be refused with an "unwilling to perform" error.
-.SH PASSWORD BACKEND-SPECIFIC OPTIONS
+.SH PASSWORD DATABASE-SPECIFIC OPTIONS
 Options in this category only apply to the PASSWD backend database.
 That is, they must follow a "database passwd" line and come before any
-subsequent "database" lines.  The PASSWD database serves up the user
+subsequent "backend" or "database" lines.  The PASSWD database serves up the user
 account information listed in the system
 .BR passwd (5)
 file.
@@ -325,16 +990,31 @@ file.
 .B file <filename>
 Specifies an alternate passwd file to use.  The default is
 .B /etc/passwd.
+.SH OTHER DATABASE-SPECIFIC OPTIONS
+Other databases may allow specific configuration options; they will be
+documented separately since most of these databases are very specific
+or experimental.
 .SH EXAMPLE
-"The SLAPD and SLURPD Administrator's Guide" contains an annotated
+"OpenLDAP Administrator's Guide" contains an annotated
 example of a configuration file.
 .SH FILES
 ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR ldap (3),
 .BR slapd.replog (5),
+.BR slapd.access (5),
+.BR locale (5),
 .BR passwd (5),
 .BR slapd (8),
+.BR slapadd (8),
+.BR slapcat (8),
+.BR slapindex (8),
+.BR slappassword (8),
 .BR slurpd (8),
 .LP
-"The SLAPD and SLURPD Administrator's Guide"
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

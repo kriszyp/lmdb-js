@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -14,55 +19,41 @@
  * ldap_op.c - routines to perform LDAP operations
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-
-#ifdef KERBEROS
-#include <krb.h>
-#endif /* KERBEROS */
-
-#include <lber.h>
-#include <ldap.h>
-
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/errno.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#include <ldap.h>
+#include "lutil_ldap.h"
 #include "slurp.h"
 
 /* Forward references */
-static int get_changetype( char * );
-static struct berval **make_singlevalued_berval( char	*, int );
-static int op_ldap_add( Ri *, Re *, char ** );
-static int op_ldap_modify( Ri *, Re *, char ** );
-static int op_ldap_delete( Ri *, Re *, char ** );
-static int op_ldap_modrdn( Ri *, Re *, char ** );
-static LDAPMod *alloc_ldapmod();
-static void free_ldapmod( LDAPMod * );
-static void free_ldmarr( LDAPMod ** );
-static int getmodtype( char * );
-static void dump_ldm_array( LDAPMod ** );
-static char **read_krbnames( Ri * );
-static void upcase( char * );
-static int do_bind( Ri *, int * );
-static int do_unbind( Ri * );
-
-
-/* External references */
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
-
-extern char *ch_malloc( unsigned long );
-
-static char *kattrs[] = {"kerberosName", NULL };
-static struct timeval kst = {30L, 0L};
-
+static struct berval **make_singlevalued_berval LDAP_P(( char	*, int ));
+static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_delete LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char ** ));
+static LDAPMod *alloc_ldapmod LDAP_P(( void ));
+static void free_ldapmod LDAP_P(( LDAPMod * ));
+static void free_ldmarr LDAP_P(( LDAPMod ** ));
+static int getmodtype LDAP_P(( char * ));
+static void dump_ldm_array LDAP_P(( LDAPMod ** ));
+static int do_bind LDAP_P(( Ri *, int * ));
+static int do_unbind LDAP_P(( Ri * ));
 
 
 /*
  * Determine the type of ldap operation being performed and call the
  * appropriate routine.
- * - If successful, returns ERR_DO_LDAP_OK
+ * - If successful, returns DO_LDAP_OK
  * - If a retryable error occurs, ERR_DO_LDAP_RETRYABLE is returned.
  *   The caller should wait a while and retry the operation.
  * - If a fatal error occurs, ERR_DO_LDAP_FATAL is returned.  The caller
@@ -71,88 +62,92 @@ static struct timeval kst = {30L, 0L};
  */
 int
 do_ldap(
-    Ri		*ri,
-    Re		*re,
-    char	**errmsg
+	Ri		*ri,
+	Re		*re,
+	char	**errmsg
 )
 {
-    int	rc = 0;
-    int	lderr = LDAP_SUCCESS;
-    int	retry = 2;
-    char *msg;
+	int	retry = 2;
+	*errmsg = NULL;
 
-    *errmsg = NULL;
+	do {
+		int lderr;
+		if ( ri->ri_ldp == NULL ) {
+			lderr = do_bind( ri, &lderr );
 
-    while ( retry > 0 ) {
-	if ( ri->ri_ldp == NULL ) {
-	    rc = do_bind( ri, &lderr );
-	    if ( rc != BIND_OK ) {
-		return DO_LDAP_ERR_RETRYABLE;
-	    }
-	}
+			if ( lderr != BIND_OK ) {
+				return DO_LDAP_ERR_RETRYABLE;
+			}
+		}
 
-	switch ( re->re_changetype ) {
-	case T_ADDCT:
-	    lderr = op_ldap_add( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_add_s failed adding \"%s\": %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	case T_MODIFYCT:
-	    lderr = op_ldap_modify( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_modify_s failed modifying \"%s\": %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	case T_DELETECT:
-	    lderr = op_ldap_delete( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_delete_s failed deleting \"%s\": %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	case T_MODRDNCT:
-	    lderr = op_ldap_modrdn( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_modrdn_s failed modifying %s: %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	default:
-	    Debug( LDAP_DEBUG_ANY,
-		    "Error: do_ldap: bad op \"%d\", dn = \"%s\"\n",
-		    re->re_changetype, re->re_dn, 0 );
-	    return DO_LDAP_ERR_FATAL;
-	}
+		switch ( re->re_changetype ) {
+		case T_ADDCT:
+			lderr = op_ldap_add( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_add_s failed adding \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
 
-	/*
-	 * Analyze return code.  If ok, just return.  If LDAP_SERVER_DOWN,
-	 * we may have been idle long enough that the remote slapd timed
-	 * us out.  Rebind and try again.
-	 */
-	if ( lderr == LDAP_SUCCESS ) {
-	    return DO_LDAP_OK;
-	} else if ( lderr == LDAP_SERVER_DOWN ) {
-	    /* The LDAP server may have timed us out - rebind and try again */
-	    (void) do_unbind( ri );
-	    retry--;
-	} else {
-	    return DO_LDAP_ERR_FATAL;
-	}
-    }
-    return DO_LDAP_ERR_FATAL;
+		case T_MODIFYCT:
+			lderr = op_ldap_modify( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_modify_s failed modifying \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
+
+		case T_DELETECT:
+			lderr = op_ldap_delete( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_delete_s failed deleting \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
+
+		case T_MODRDNCT:
+			lderr = op_ldap_modrdn( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_modrdn_s failed modifying %s: %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"Error: do_ldap: bad op \"%d\", dn = \"%s\"\n",
+				re->re_changetype, re->re_dn, 0 );
+			return DO_LDAP_ERR_FATAL;
+		}
+
+		/*
+		 * Analyze return code. If ok, just return. If LDAP_SERVER_DOWN,
+		 * we may have been idle long enough that the remote slapd timed
+		 * us out. Rebind and try again.
+		 */
+		switch( lderr ) {
+		case LDAP_SUCCESS:
+			return DO_LDAP_OK;
+	
+		default:
+			return DO_LDAP_ERR_FATAL;
+
+		case LDAP_SERVER_DOWN: /* server went down */
+			(void) do_unbind( ri );
+ 			retry--;
+		}
+	} while ( retry > 0 );
+
+	return DO_LDAP_ERR_RETRYABLE;
 }
-
 
 
 
@@ -198,11 +193,13 @@ op_ldap_add(
 	Debug( LDAP_DEBUG_ARGS, "replica %s:%d - add dn \"%s\"\n",
 		ri->ri_hostname, ri->ri_port, re->re_dn );
 	rc = ldap_add_s( ri->ri_ldp, re->re_dn, ldmarr );
-	lderr = ri->ri_ldp->ld_errno;
+
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+
     } else {
 	*errmsg = "No modifications to do";
 	Debug( LDAP_DEBUG_ANY,
-		"Error: op_ldap_add: no mods to do (%s)!", re->re_dn, 0, 0 );
+	       "Error: op_ldap_add: no mods to do (%s)!\n", re->re_dn, 0, 0 );
     }
     free_ldmarr( ldmarr );
     return( lderr ); 
@@ -226,7 +223,7 @@ op_ldap_modify(
     int		state;	/* This code is a simple-minded state machine */
     int		nvals;	/* Number of values we're modifying */
     int		nops;	/* Number of LDAPMod structs in ldmarr */
-    LDAPMod	*ldm, *nldm, **ldmarr;
+    LDAPMod	*ldm = NULL, **ldmarr;
     int		i, len;
     char	*type, *value;
     int		rc = 0;
@@ -292,6 +289,8 @@ op_ldap_modify(
 		continue;
 	    }
 
+	    assert( ldm );
+
 	    /*
 	     * We should have an attribute: value pair here.
 	     * Construct the mod_bvalues part of the ldapmod struct.
@@ -353,9 +352,12 @@ op_ldap_delete(
 /*
  * Perform an ldap modrdn operation.
  */
-#define	GOT_NEWRDN		1
-#define	GOT_DRDNFLAGSTR		2
-#define	GOT_ALLNEWRDNFLAGS	( GOT_NEWRDN | GOT_DRDNFLAGSTR )
+#define	GOT_NEWRDN		0x1
+#define	GOT_DELOLDRDN	0x2
+#define GOT_NEWSUP		0x4
+
+#define GOT_MODDN_REQ	(GOT_NEWRDN|GOT_DELOLDRDN)
+#define	GOT_ALL_MODDN(f)	(((f) & GOT_MODDN_REQ) == GOT_MODDN_REQ)
 static int
 op_ldap_modrdn(
     Ri		*ri,
@@ -366,9 +368,11 @@ op_ldap_modrdn(
     int		rc = 0;
     Mi		*mi;
     int		i;
+	int		lderr = 0;
     int		state = 0;
     int		drdnflag = -1;
-    char	*newrdn;
+    char	*newrdn = NULL;
+	char	*newsup = NULL;
 
     if ( re->re_mods == NULL ) {
 	*errmsg = "No arguments given";
@@ -382,10 +386,27 @@ op_ldap_modrdn(
      */
     for ( mi = re->re_mods, i = 0; mi[ i ].mi_type != NULL; i++ ) {
 	if ( !strcmp( mi[ i ].mi_type, T_NEWRDNSTR )) {
+		if( state & GOT_NEWRDN ) {
+		Debug( LDAP_DEBUG_ANY,
+			"Error: op_ldap_modrdn: multiple newrdn arg \"%s\"\n",
+			mi[ i ].mi_val, 0, 0 );
+		*errmsg = "Multiple newrdn argument";
+		return -1;
+		}
+
 	    newrdn = mi[ i ].mi_val;
 	    state |= GOT_NEWRDN;
-	} else if ( !strcmp( mi[ i ].mi_type, T_DRDNFLAGSTR )) {
-	    state |= GOT_DRDNFLAGSTR;
+
+	} else if ( !strcmp( mi[ i ].mi_type, T_DELOLDRDNSTR )) {
+		if( state & GOT_DELOLDRDN ) {
+		Debug( LDAP_DEBUG_ANY,
+			"Error: op_ldap_modrdn: multiple deleteoldrdn arg \"%s\"\n",
+			mi[ i ].mi_val, 0, 0 );
+		*errmsg = "Multiple newrdn argument";
+		return -1;
+		}
+
+	    state |= GOT_DELOLDRDN;
 	    if ( !strcmp( mi[ i ].mi_val, "0" )) {
 		drdnflag = 0;
 	    } else if ( !strcmp( mi[ i ].mi_val, "1" )) {
@@ -397,6 +418,19 @@ op_ldap_modrdn(
 		*errmsg = "Incorrect argument to deleteoldrdn";
 		return -1;
 	    }
+
+	} else if ( !strcmp( mi[ i ].mi_type, T_NEWSUPSTR )) {
+		if( state & GOT_NEWSUP ) {
+		Debug( LDAP_DEBUG_ANY,
+			"Error: op_ldap_modrdn: multiple newsuperior arg \"%s\"\n",
+			mi[ i ].mi_val, 0, 0 );
+		*errmsg = "Multiple newsuperior argument";
+		return -1;
+		}
+
+		newsup = mi[ i ].mi_val;
+	    state |= GOT_NEWSUP;
+
 	} else {
 	    Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: bad type \"%s\"\n",
 		    mi[ i ].mi_type, 0, 0 );
@@ -408,7 +442,7 @@ op_ldap_modrdn(
     /*
      * Punt if we don't have all the args.
      */
-    if ( state != GOT_ALLNEWRDNFLAGS ) {
+    if ( !GOT_ALL_MODDN(state) ) {
 	Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: missing arguments\n",
 		0, 0, 0 );
 	*errmsg = "Missing argument: requires \"newrdn\" and \"deleteoldrdn\"";
@@ -430,10 +464,13 @@ op_ldap_modrdn(
     }
 #endif /* LDAP_DEBUG */
 
-    /* Do the modrdn */
-    rc = ldap_modrdn2_s( ri->ri_ldp, re->re_dn, mi->mi_val, drdnflag );
+    assert( newrdn );
 
-    return( ri->ri_ldp->ld_errno );
+    /* Do the modrdn */
+    rc = ldap_rename2_s( ri->ri_ldp, re->re_dn, newrdn, newsup, drdnflag );
+
+	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
+    return( lderr );
 }
 
 
@@ -442,7 +479,7 @@ op_ldap_modrdn(
  * Allocate and initialize an ldapmod struct.
  */
 static LDAPMod *
-alloc_ldapmod()
+alloc_ldapmod( void )
 {
     LDAPMod	*ldm;
 
@@ -557,7 +594,7 @@ do_unbind(
 	if ( rc != LDAP_SUCCESS ) {
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: do_unbind: ldap_unbind failed for %s:%d: %s\n",
-		    ldap_err2string( rc ), ri->ri_hostname, ri->ri_port );
+		    ri->ri_hostname, ri->ri_port, ldap_err2string( rc ) );
 	}
 	ri->ri_ldp = NULL;
     }
@@ -583,18 +620,7 @@ do_bind(
     int	*lderr
 )
 {
-    int		rc;
     int		ldrc;
-    char	msgbuf[ 1024];
-#ifdef KERBEROS
-    int retval = 0;
-    int kni, got_tgt;
-    char **krbnames;
-    char *skrbnames[ 2 ];
-    char realm[ REALM_SZ ];
-    char name[ ANAME_SZ ];
-    char instance[ INST_SZ ];
-#endif /* KERBEROS */
 
     *lderr = 0;
 
@@ -613,108 +639,70 @@ do_bind(
 	ri->ri_ldp = NULL;
     }
 
-    Debug( LDAP_DEBUG_ARGS, "Open connection to %s:%d\n",
+    Debug( LDAP_DEBUG_ARGS, "Initializing session to %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
-    ri->ri_ldp = ldap_open( ri->ri_hostname, ri->ri_port );
+
+    ri->ri_ldp = ldap_init( ri->ri_hostname, ri->ri_port );
     if ( ri->ri_ldp == NULL ) {
-	Debug( LDAP_DEBUG_ANY, "Error: ldap_open(%s, %d) failed: %s\n",
-		ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
-	return( BIND_ERR_OPEN );
+		Debug( LDAP_DEBUG_ANY, "Error: ldap_init(%s, %d) failed: %s\n",
+			ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
+		return( BIND_ERR_OPEN );
     }
+
+	{	/* set version 3 */
+		int err, version = 3;
+		err = ldap_set_option(ri->ri_ldp,
+			LDAP_OPT_PROTOCOL_VERSION, &version);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Error: ldap_set_option(%s, LDAP_OPT_VERSION, 3) failed!\n",
+				ri->ri_hostname, NULL, NULL );
+
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_VERSION;
+		}
+	}
 
     /*
      * Set ldap library options to (1) not follow referrals, and 
      * (2) restart the select() system call.
      */
-#ifdef LDAP_REFERRALS
-    ri->ri_ldp->ld_options &= ~LDAP_OPT_REFERRALS;
-#endif /* LDAP_REFERRALS */
-    ri->ri_ldp->ld_options |= LDAP_OPT_RESTART;
+	{
+		int err;
+		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Error: ldap_set_option(%s,REFERRALS, OFF) failed!\n",
+				ri->ri_hostname, NULL, NULL );
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_REFERRALS;
+		}
+	}
+	ldap_set_option(ri->ri_ldp, LDAP_OPT_RESTART, LDAP_OPT_ON);
+
+	if( ri->ri_tls ) {
+		int err;
+		err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
+
+		if( err != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"%s: ldap_start_tls failed: %s (%d)\n",
+				ri->ri_tls == TLS_CRITICAL ? "Error" : "Warning",
+				ldap_err2string( err ), err );
+
+			if( ri->ri_tls == TLS_CRITICAL ) {
+				ldap_unbind( ri->ri_ldp );
+				ri->ri_ldp = NULL;
+				return BIND_ERR_TLS_FAILED;
+			}
+		}
+	}
 
     switch ( ri->ri_bind_method ) {
-    case AUTH_KERBEROS:
-#ifndef KERBEROS
-	Debug( LDAP_DEBUG_ANY,
-	    "Error: Kerberos bind for %s:%d, but not compiled w/kerberos\n",
-	    ri->ri_hostname, ri->ri_port, 0 );
-	return( BIND_ERR_KERBEROS_FAILED );
-#else /* KERBEROS */
-	/*
-	 * Bind using kerberos.
-	 * If "bindprincipal" was given in the config file, then attempt
-	 * to get a TGT for that principal (via the srvtab file).  If only
-	 * a binddn was given, then we need to read that entry to get
-	 * the kerberosName attributes, and try to get a TGT for one
-	 * of them.  All are tried.  The first one which succeeds is
-	 * returned.  XXX It might be a good idea to just require a
-	 * bindprincipal.  Reading the entry every time might be a significant
-	 * amount of overhead, if the connection is closed between most
-	 * updates.
-	 */
-
-	if ( ri->ri_principal != NULL ) {
-	    skrbnames[ 0 ] = ri->ri_principal;
-	    skrbnames[ 1 ] = NULL;
-	    krbnames = skrbnames;
-	} else {
-	    krbnames = read_krbnames( ri );
-	}	
-	    
-	if (( krbnames == NULL ) || ( krbnames[ 0 ] == NULL )) {
-	    Debug( LDAP_DEBUG_ANY,
-		    "Error: Can't find krbname for binddn \"%s\"\n",
-		    ri->ri_bind_dn, 0, 0 );
-	    retval = BIND_ERR_KERBEROS_FAILED;
-	    goto kexit;
-	}
-	/*
-	 * Now we've got one or more kerberos principals.  See if any
-	 * of them are in the srvtab file.
-	 */
-	got_tgt = 0;
-	for ( kni = 0; krbnames[ kni ] != NULL; kni++ ) {
-	    rc = kname_parse( name, instance, realm, krbnames[ kni ]);
-	    if ( rc != KSUCCESS ) {
-		continue;
-	    }
-	    upcase( realm );
-	    rc = krb_get_svc_in_tkt( name, instance, realm, "krbtgt", realm,
-		    1, ri->ri_srvtab );
-	    if ( rc != KSUCCESS) {
-		Debug( LDAP_DEBUG_ANY, "Error: Can't get TGT for %s: %s\n",
-			krbnames[ kni ], krb_err_txt[ rc ], 0 );
-	    } else {
-		got_tgt = 1;
-		break;
-	    }
-	}
-	if (!got_tgt) {
-	    Debug( LDAP_DEBUG_ANY,
-		    "Error: Could not obtain TGT for DN \"%s\"\n", 
-		    ri->ri_bind_dn, 0, 0 );
-	    retval = BIND_ERR_KERBEROS_FAILED;
-	    goto kexit;
-	}
-	/*
-	 * We've got a TGT.  Do a kerberos bind.
-	 */
-	Debug( LDAP_DEBUG_ARGS, "bind to %s:%d as %s (kerberos)\n",
-		ri->ri_hostname, ri->ri_port, ri->ri_bind_dn );
-	ldrc = ldap_kerberos_bind_s( ri->ri_ldp, ri->ri_bind_dn );
-	ri->ri_principal = strdup( krbnames[ kni ] );
-	if ( ldrc != LDAP_SUCCESS ) {
-	    Debug( LDAP_DEBUG_ANY, "Error: kerberos bind for %s:%dfailed: %s\n",
-		ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
-	    *lderr = ldrc;
-	    retval = BIND_ERR_KERBEROS_FAILED;
-	    goto kexit;
-	}
-kexit:	if ( krbnames != NULL ) {
-	    ldap_value_free( krbnames );
-	}
-	return( retval);
-	break;
-#endif /* KERBEROS */
     case AUTH_SIMPLE:
 	/*
 	 * Bind with a plaintext password.
@@ -728,17 +716,96 @@ kexit:	if ( krbnames != NULL ) {
 		    "Error: ldap_simple_bind_s for %s:%d failed: %s\n",
 		    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
 	    *lderr = ldrc;
+		ldap_unbind( ri->ri_ldp );
+		ri->ri_ldp = NULL;
 	    return( BIND_ERR_SIMPLE_FAILED );
-	} else {
-	    return( BIND_OK );
 	}
 	break;
+
+	case AUTH_SASL:
+	Debug( LDAP_DEBUG_ARGS, "bind to %s as %s via %s (SASL)\n",
+		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech );
+
+#ifdef HAVE_CYRUS_SASL
+	if( ri->ri_secprops != NULL ) {
+		int err;
+		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_X_SASL_SECPROPS,
+			ri->ri_secprops);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"Error: ldap_set_option(%s,SECPROPS,\"%s\") failed!\n",
+				ri->ri_hostname, ri->ri_secprops, NULL );
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_SASL_FAILED;
+		}
+	}
+
+	{
+		char *passwd = ri->ri_password ? ber_strdup( ri->ri_password ) : NULL;
+		void *defaults = lutil_sasl_defaults( ri->ri_ldp, ri->ri_saslmech,
+		    ri->ri_realm, ri->ri_authcId, passwd, ri->ri_authzId );
+
+		ldrc = ldap_sasl_interactive_bind_s( ri->ri_ldp, ri->ri_bind_dn,
+		    ri->ri_saslmech, NULL, NULL,
+		    LDAP_SASL_QUIET, lutil_sasl_interact, defaults );
+		if ( ldrc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "Error: LDAP SASL for %s:%d failed: %s\n",
+			    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
+			*lderr = ldrc;
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return( BIND_ERR_SASL_FAILED );
+		}
+
+		ber_memfree( passwd );
+		ber_memfree( defaults );
+	}
+	break;
+#else
+	Debug( LDAP_DEBUG_ANY,
+		"Error: do_bind: SASL not supported %s:%d\n",
+		 ri->ri_hostname, ri->ri_port, NULL );
+	ldap_unbind( ri->ri_ldp );
+	ri->ri_ldp = NULL;
+	return( BIND_ERR_BAD_ATYPE );
+#endif
+
     default:
 	Debug(  LDAP_DEBUG_ANY,
 		"Error: do_bind: unknown auth type \"%d\" for %s:%d\n",
 		ri->ri_bind_method, ri->ri_hostname, ri->ri_port );
+	ldap_unbind( ri->ri_ldp );
+	ri->ri_ldp = NULL;
 	return( BIND_ERR_BAD_ATYPE );
     }
+
+	{
+		int err;
+		LDAPControl c;
+		LDAPControl *ctrls[2];
+		ctrls[0] = &c;
+		ctrls[1] = NULL;
+
+		c.ldctl_oid = LDAP_CONTROL_MANAGEDSAIT;
+		c.ldctl_value.bv_val = NULL;
+		c.ldctl_value.bv_len = 0;
+		c.ldctl_iscritical = 0;
+
+		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_SERVER_CONTROLS, &ctrls);
+
+		if( err != LDAP_OPT_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY, "Error: "
+				"ldap_set_option(%s, SERVER_CONTROLS, ManageDSAit) failed!\n",
+				ri->ri_hostname, NULL, NULL );
+			ldap_unbind( ri->ri_ldp );
+			ri->ri_ldp = NULL;
+			return BIND_ERR_MANAGEDSAIT;
+		}
+	}
+
+	return( BIND_OK );
 }
 
 
@@ -750,7 +817,8 @@ kexit:	if ( krbnames != NULL ) {
  */
 static void
 dump_ldm_array(
-LDAPMod **ldmarr )
+    LDAPMod **ldmarr
+)
 {
     int			 i, j;
     LDAPMod		*ldm;
@@ -760,99 +828,23 @@ LDAPMod **ldmarr )
     for ( i = 0; ldmarr[ i ] != NULL; i++ ) {
 	ldm = ldmarr[ i ];
 	Debug( LDAP_DEBUG_TRACE,
-		"Trace (%d): *** ldmarr[ %d ] contents:\n",
-		getpid(), i, 0 );
+		"Trace (%ld): *** ldmarr[ %d ] contents:\n",
+		(long) getpid(), i, 0 );
 	Debug( LDAP_DEBUG_TRACE,
-		"Trace (%d): *** ldm->mod_op: %d\n",
-		getpid(), ldm->mod_op, 0 );
+		"Trace (%ld): *** ldm->mod_op: %d\n",
+		(long) getpid(), ldm->mod_op, 0 );
 	Debug( LDAP_DEBUG_TRACE,
-		"Trace (%d): *** ldm->mod_type: %s\n",
-		getpid(), ldm->mod_type, 0 );
+		"Trace (%ld): *** ldm->mod_type: %s\n",
+		(long) getpid(), ldm->mod_type, 0 );
 	if ( ldm->mod_bvalues != NULL ) {
 	    for ( j = 0; ( b = ldm->mod_bvalues[ j ] ) != NULL; j++ ) {
 		msgbuf = ch_malloc( b->bv_len + 512 );
-		sprintf( msgbuf, "***** bv[ %d ] len = %d, val = <%s>",
+		sprintf( msgbuf, "***** bv[ %d ] len = %ld, val = <%s>",
 			j, b->bv_len, b->bv_val );
 		Debug( LDAP_DEBUG_TRACE,
-			"Trace (%d):%s\n", getpid(), msgbuf, 0 );
+			"Trace (%ld):%s\n", (long) getpid(), msgbuf, 0 );
 		free( msgbuf );
 	    }
-	}
-    }
-}
-
-
-/*
- * Get the kerberos names from the binddn for "replica" via an ldap search.
- * Returns a null-terminated array of char *, or NULL if the entry could
- * not be found or there were no kerberosName attributes.  The caller is
- * responsible for freeing the returned array and strings it points to.
- */
-static char **
-read_krbnames(
-    Ri	*ri
-)
-{
-    int rc;
-    char **krbnames;
-    int ne;
-    LDAPMessage *result, *entry;
-
-    /* First need to bind as NULL */
-    rc = ldap_simple_bind_s( ri->ri_ldp, NULL, NULL );
-    if ( rc != LDAP_SUCCESS ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: null bind failed getting krbnames for %s:%d: %s\n",
-		ri->ri_hostname, ri->ri_port, ldap_err2string( rc ));
-	return( NULL );
-    }
-    rc = ldap_search_st( ri->ri_ldp, ri->ri_bind_dn, LDAP_SCOPE_BASE,
-	    "objectclass=*", kattrs, 0, &kst, &result );
-    if ( rc != LDAP_SUCCESS ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: search failed getting krbnames for %s:%d: %s\n",
-		ri->ri_hostname, ri->ri_port, ldap_err2string( rc ));
-	return( NULL );
-    }
-    ne = ldap_count_entries( ri->ri_ldp, result );
-    if ( ne == 0 ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: Can't find entry \"%s\" for %s:%d kerberos bind\n",
-		ri->ri_bind_dn, ri->ri_hostname, ri->ri_port );
-	    return( NULL );
-    }
-    if ( ne > 1 ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: Kerberos binddn \"%s\" for %s:%dis ambiguous\n",
-		ri->ri_bind_dn, ri->ri_hostname, ri->ri_port );
-	    return( NULL );
-    }
-    entry = ldap_first_entry( ri->ri_ldp, result );
-    if ( entry == NULL ) {
-	Debug( LDAP_DEBUG_ANY,
-		"Error: Can't find \"%s\" for kerberos binddn for %s:%d\n",
-		    ri->ri_bind_dn, ri->ri_hostname, ri->ri_port );
-	return( NULL );
-    }
-    krbnames = ldap_get_values( ri->ri_ldp, entry, "kerberosName" );
-    ldap_msgfree( result );
-    return( krbnames );
-}
-
-
-
-/*
- * upcase a string
- */
-static void
-upcase(
-char *s )
-{
-    char *p;
-
-    for ( p = s; ( p != NULL ) && ( *p != '\0' ); p++ ) {
-	if ( islower( *p )) {
-	    *p = toupper( *p );
 	}
     }
 }

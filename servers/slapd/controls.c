@@ -46,6 +46,7 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseSubentries;
 static SLAP_CTRL_PARSE_FN parseNoOp;
+static SLAP_CTRL_PARSE_FN parsePagedResults;
 
 static struct slap_control {
 	char *sc_oid;
@@ -66,6 +67,11 @@ static struct slap_control {
 	{ LDAP_CONTROL_NOOP,
 		SLAP_CTRL_UPDATE, NULL,
 		parseNoOp },
+#endif
+#ifdef LDAP_CONTROL_PAGEDRESULTS_REQUEST
+	{ LDAP_CONTROL_PAGEDRESULTS_REQUEST,
+		SLAP_CTRL_SEARCH, NULL,
+		parsePagedResults },
 #endif
 	{ NULL }
 };
@@ -93,7 +99,7 @@ int get_ctrls(
 	Operation *op,
 	int sendres )
 {
-	int nctrls;
+	int nctrls = 0;
 	ber_tag_t tag;
 	ber_len_t len;
 	char *opaque;
@@ -121,7 +127,7 @@ int get_ctrls(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		"get_ctrls: conn %d\n", conn->c_connid ));
+		"get_ctrls: conn %lu\n", conn->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> get_ctrls\n", 0, 0, 0 );
 #endif
@@ -142,7 +148,7 @@ int get_ctrls(
 	}
 #endif
 
-	op->o_ctrls[nctrls=0] = NULL;
+	op->o_ctrls[nctrls] = NULL;
 
 	/* step through each element */
 	for( tag = ber_first_element( ber, &len, &opaque );
@@ -192,7 +198,7 @@ int get_ctrls(
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				"get_ctrls: conn %d get OID failed.\n",
+				"get_ctrls: conn %lu get OID failed.\n",
 				conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
@@ -214,7 +220,7 @@ int get_ctrls(
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					"get_ctrls: conn %d get crit failed.\n",
+					"get_ctrls: conn %lu get crit failed.\n",
 					conn->c_connid ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get crit failed.\n",
@@ -236,13 +242,13 @@ int get_ctrls(
 
 			if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "get_ctrls: conn %d: "
+				LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "get_ctrls: conn %lu: "
 					"%s (%scritical): get value failed.\n",
 					conn->c_connid,
 					c->ldctl_oid ? c->ldctl_oid : "(NULL)",
 					c->ldctl_iscritical ? "" : "non" ));
 #else
-				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: conn %d: "
+				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: conn %lu: "
 					"%s (%scritical): get value failed.\n",
 					conn->c_connid,
 					c->ldctl_oid ? c->ldctl_oid : "(NULL)",
@@ -258,7 +264,7 @@ int get_ctrls(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"get_ctrls: conn %d oid=\"%s\" (%scritical)\n",
+			"get_ctrls: conn %lu oid=\"%s\" (%scritical)\n",
 			conn->c_connid,
 			c->ldctl_oid ? c->ldctl_oid : "(NULL)",
 			c->ldctl_iscritical ? "" : "non" ));
@@ -344,7 +350,7 @@ int get_ctrls(
 return_results:
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_RESULTS,
-		"get_ctrls: conn=%d	n=%d rc=%d err=%s\n",
+		"get_ctrls: conn=%lu	n=%d rc=%d err=%s\n",
 		conn->c_connid, nctrls, rc, errmsg ? errmsg : "" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= get_ctrls: n=%d rc=%d err=%s\n",
@@ -442,3 +448,82 @@ static int parseNoOp (
 }
 #endif
 
+#ifdef LDAP_CONTROL_PAGEDRESULTS_REQUEST
+static int parsePagedResults (
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text )
+{
+	ber_tag_t tag;
+	ber_int_t size;
+	BerElement *ber;
+	struct berval cookie = { 0, NULL };
+
+	if ( op->o_pagedresults != SLAP_NO_CONTROL ) {
+		*text = "paged results control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		*text = "paged results control value is empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	/* Parse the control value
+	 *	realSearchControlValue ::= SEQUENCE {
+	 *		size	INTEGER (0..maxInt),
+	 *				-- requested page size from client
+	 *				-- result set size estimate from server
+	 *		cookie	OCTET STRING
+	 */
+	ber = ber_init( &ctrl->ldctl_value );
+	if( ber == NULL ) {
+		*text = "internal error";
+		return LDAP_OTHER;
+	}
+
+	tag = ber_scanf( ber, "{im}", &size, &cookie );
+	(void) ber_free( ber, 1 );
+
+	if( tag == LBER_ERROR ) {
+		*text = "paged results control could not be decoded";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if( size <= 0 ) {
+		*text = "paged results control size invalid";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if( cookie.bv_len ) {
+		PagedResultsCookie reqcookie;
+		if( cookie.bv_len != sizeof( reqcookie ) ) {
+			/* bad cookie */
+			*text = "paged results cookie is invalid";
+			return LDAP_PROTOCOL_ERROR;
+		}
+
+		AC_MEMCPY( &reqcookie, cookie.bv_val, sizeof( reqcookie ));
+
+		if( reqcookie > op->o_pagedresults_state.ps_cookie ) {
+			/* bad cookie */
+			*text = "paged results cookie is invalid";
+			return LDAP_PROTOCOL_ERROR;
+
+		} else if( reqcookie < op->o_pagedresults_state.ps_cookie ) {
+			*text = "paged results cookie is invalid or old";
+			return LDAP_UNWILLING_TO_PERFORM;
+		}
+	}
+
+	op->o_pagedresults_state.ps_cookie = op->o_opid;
+	op->o_pagedresults_size = size;
+
+	op->o_pagedresults = ctrl->ldctl_iscritical
+		? SLAP_CRITICAL_CONTROL
+		: SLAP_NONCRITICAL_CONTROL;
+
+	return LDAP_SUCCESS;
+}
+#endif

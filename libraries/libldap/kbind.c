@@ -1,39 +1,49 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1993 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  kbind.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
+/*
+ *	BindRequest ::= SEQUENCE {
+ *		version		INTEGER,
+ *		name		DistinguishedName,	 -- who
+ *		authentication	CHOICE {
+ *			simple		[0] OCTET STRING -- passwd
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+ *			krbv42ldap	[1] OCTET STRING
+ *			krbv42dsa	[2] OCTET STRING
 #endif
+ *			sasl		[3] SaslCredentials	-- LDAPv3
+ *		}
+ *	}
+ *
+ *	BindResponse ::= SEQUENCE {
+ *		COMPONENTS OF LDAPResult,
+ *		serverSaslCreds		OCTET STRING OPTIONAL -- LDAPv3
+ *	}
+ *
+ */
 
-#ifdef KERBEROS
+#include "portable.h"
+
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 #include <stdio.h>
-#include <string.h>
+#include <ac/stdlib.h>
 
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include "msdos.h"
-#endif /* DOS */
-#include <krb.h>
-#include <stdlib.h>
-#if !defined(DOS) && !defined( _WIN32 )
-#include <sys/types.h>
-#endif /* !DOS && !_WIN32 */
-#include <sys/time.h>
-#include <sys/socket.h>
-#endif /* MACOS */
+#include <ac/krb.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
-
 
 
 /*
@@ -47,88 +57,72 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
  *	ldap_kerberos_bind1( ld, "cn=manager, o=university of michigan, c=us" )
  */
 int
-ldap_kerberos_bind1( LDAP *ld, char *dn )
+ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 {
 	BerElement	*ber;
 	char		*cred;
-	int		rc, credlen;
-	char		*get_kerberosv4_credentials();
-#ifdef STR_TRANSLATION
-	int		str_translation_on;
-#endif /* STR_TRANSLATION */
+	int		rc;
+	ber_len_t credlen;
 
-	/*
-	 * The bind request looks like this:
-	 *	BindRequest ::= SEQUENCE {
-	 *		version		INTEGER,
-	 *		name		DistinguishedName,
-	 *		authentication	CHOICE {
-	 *			krbv42ldap	[1] OCTET STRING
-	 *			krbv42dsa	[2] OCTET STRING
-	 *		}
-	 *	}
-	 * all wrapped up in an LDAPMessage sequence.
-	 */
-
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind1\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1\n", 0, 0, 0 );
+#endif
+
+	if( ld->ld_version > LDAP_VERSION2 ) {
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
+		return -1;
+	}
 
 	if ( dn == NULL )
 		dn = "";
 
-	if ( (cred = get_kerberosv4_credentials( ld, dn, "ldapserver",
+	if ( (cred = ldap_get_kerberosv4_credentials( ld, dn, "ldapserver",
 	    &credlen )) == NULL ) {
 		return( -1 );	/* ld_errno should already be set */
 	}
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
-		free( cred );
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		LDAP_FREE( cred );
 		return( -1 );
 	}
 
-#ifdef STR_TRANSLATION
-	if (( str_translation_on = (( ber->ber_options &
-	    LBER_TRANSLATE_STRINGS ) != 0 ))) {	/* turn translation off */
-		ber->ber_options &= ~LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
 	/* fill it in */
-	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV41, cred, credlen );
 
-#ifdef STR_TRANSLATION
-	if ( str_translation_on ) {	/* restore translation */
-		ber->ber_options |= LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
 	if ( rc == -1 ) {
-		free( cred );
+		LDAP_FREE( cred );
 		ber_free( ber, 1 );
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		return( -1 );
 	}
 
-	free( cred );
+	LDAP_FREE( cred );
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
 	}
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
 }
 
 int
-ldap_kerberos_bind1_s( LDAP *ld, char *dn )
+ldap_kerberos_bind1_s( LDAP *ld, LDAP_CONST char *dn )
 {
 	int		msgid;
 	LDAPMessage	*res;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind1_s\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1_s\n", 0, 0, 0 );
+#endif
 
 	/* initiate the bind */
 	if ( (msgid = ldap_kerberos_bind1( ld, dn )) == -1 )
@@ -154,51 +148,44 @@ ldap_kerberos_bind1_s( LDAP *ld, char *dn )
  *	ldap_kerberos_bind2( ld, "cn=manager, o=university of michigan, c=us" )
  */
 int
-ldap_kerberos_bind2( LDAP *ld, char *dn )
+ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 {
 	BerElement	*ber;
 	char		*cred;
-	int		rc, credlen;
-	char		*get_kerberosv4_credentials();
-#ifdef STR_TRANSLATION
-	int		str_translation_on;
-#endif /* STR_TRANSLATION */
+	int		rc;
+	ber_len_t credlen;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind2\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2\n", 0, 0, 0 );
+#endif
+
+	if( ld->ld_version > LDAP_VERSION2 ) {
+		ld->ld_errno = LDAP_NOT_SUPPORTED;
+		return -1;
+	}
 
 	if ( dn == NULL )
 		dn = "";
 
-	if ( (cred = get_kerberosv4_credentials( ld, dn, "x500dsa", &credlen ))
+	if ( (cred = ldap_get_kerberosv4_credentials( ld, dn, "x500dsa", &credlen ))
 	    == NULL ) {
 		return( -1 );	/* ld_errno should already be set */
 	}
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
-		free( cred );
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		LDAP_FREE( cred );
 		return( -1 );
 	}
 
-#ifdef STR_TRANSLATION
-	if (( str_translation_on = (( ber->ber_options &
-	    LBER_TRANSLATE_STRINGS ) != 0 ))) {	/* turn translation off */
-		ber->ber_options &= ~LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
 	/* fill it in */
-	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV42, cred, credlen );
 
 
-#ifdef STR_TRANSLATION
-	if ( str_translation_on ) {	/* restore translation */
-		ber->ber_options |= LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
-	free( cred );
+	LDAP_FREE( cred );
 
 	if ( rc == -1 ) {
 		ber_free( ber, 1 );
@@ -207,17 +194,21 @@ ldap_kerberos_bind2( LDAP *ld, char *dn )
 	}
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
 }
 
 /* synchronous bind to DSA using kerberos */
 int
-ldap_kerberos_bind2_s( LDAP *ld, char *dn )
+ldap_kerberos_bind2_s( LDAP *ld, LDAP_CONST char *dn )
 {
 	int		msgid;
 	LDAPMessage	*res;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind2_s\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2_s\n", 0, 0, 0 );
+#endif
 
 	/* initiate the bind */
 	if ( (msgid = ldap_kerberos_bind2( ld, dn )) == -1 )
@@ -234,11 +225,15 @@ ldap_kerberos_bind2_s( LDAP *ld, char *dn )
 
 /* synchronous bind to ldap and DSA using kerberos */
 int
-ldap_kerberos_bind_s( LDAP *ld, char *dn )
+ldap_kerberos_bind_s( LDAP *ld, LDAP_CONST char *dn )
 {
 	int	err;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind_s\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind_s\n", 0, 0, 0 );
+#endif
 
 	if ( (err = ldap_kerberos_bind1_s( ld, dn )) != LDAP_SUCCESS )
 		return( err );
@@ -249,54 +244,76 @@ ldap_kerberos_bind_s( LDAP *ld, char *dn )
 
 #ifndef AUTHMAN
 /*
- * get_kerberosv4_credentials - obtain kerberos v4 credentials for ldap.
+ * ldap_get_kerberosv4_credentials - obtain kerberos v4 credentials for ldap.
  * The dn of the entry to which to bind is supplied.  It's assumed the
  * user already has a tgt.
  */
 
 char *
-get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
+ldap_get_kerberosv4_credentials(
+	LDAP *ld,
+	LDAP_CONST char *who,
+	LDAP_CONST char *service,
+	ber_len_t *len )
 {
 	KTEXT_ST	ktxt;
 	int		err;
 	char		realm[REALM_SZ], *cred, *krbinstance;
 
-	Debug( LDAP_DEBUG_TRACE, "get_kerberosv4_credentials\n", 0, 0, 0 );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, 
+		"ldap_get_kerberosv4_credentials\n" ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_get_kerberosv4_credentials\n", 0, 0, 0 );
+#endif
 
 	if ( (err = krb_get_tf_realm( tkt_string(), realm )) != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
-		fprintf( stderr, "krb_get_tf_realm failed (%s)\n",
-		    krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
-		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "kbind", LDAP_LEVEL_ERR, 
+			"ldap_get_kerberosv4_credentials: krb_get_tf_realm failed: %s\n",
+			krb_err_txt[err] ));
+#else
+		Debug( LDAP_DEBUG_ANY, "ldap_get_kerberosv4_credentials: "
+			"krb_get_tf_realm failed: %s\n", krb_err_txt[err], 0, 0 );
+#endif
+		ld->ld_errno = LDAP_AUTH_UNKNOWN;
 		return( NULL );
 	}
 
-#ifdef LDAP_REFERRALS
+	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
+		/* not connected yet */
+		int rc = ldap_open_defconn( ld );
+
+		if( rc < 0 ) return NULL;
+	}
+
 	krbinstance = ld->ld_defconn->lconn_krbinstance;
-#else /* LDAP_REFERRALS */
-	krbinstance = ld->ld_host;
-#endif /* LDAP_REFERRALS */
 
 	if ( (err = krb_mk_req( &ktxt, service, krbinstance, realm, 0 ))
-	    != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
-		fprintf( stderr, "krb_mk_req failed (%s)\n", krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
-		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
+	    != KSUCCESS )
+	{
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "kbind", LDAP_LEVEL_ERR, 
+			"ldap_get_kerberosv4_credentials: krb_mk_req failed: %s\n",
+			krb_err_txt[err] ));
+#else
+		Debug( LDAP_DEBUG_ANY, "ldap_get_kerberosv4_credentials: "
+			"krb_mk_req failed (%s)\n", krb_err_txt[err], 0, 0 );
+#endif
+		ld->ld_errno = LDAP_AUTH_UNKNOWN;
 		return( NULL );
 	}
 
-	if ( ( cred = malloc( ktxt.length )) == NULL ) {
+	if ( ( cred = LDAP_MALLOC( ktxt.length )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( NULL );
 	}
 
 	*len = ktxt.length;
-	memcpy( cred, ktxt.dat, ktxt.length );
+	AC_MEMCPY( cred, ktxt.dat, ktxt.length );
 
 	return( cred );
 }
 
 #endif /* !AUTHMAN */
-#endif /* KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */

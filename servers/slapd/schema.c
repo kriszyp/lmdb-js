@@ -1,179 +1,104 @@
-/* schema.c - routines to enforce schema definitions */
-
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "slap.h"
-
-extern Attribute	*attr_find();
-extern char		**str2charray();
-extern void		charray_merge();
-
-extern struct objclass	*global_oc;
-extern int		global_schemacheck;
-
-static struct objclass	*oc_find();
-static int		oc_check_required();
-static int		oc_check_allowed();
-
+/* schema.c - routines to manage schema definitions */
+/* $OpenLDAP$ */
 /*
- * oc_check - check that entry e conforms to the schema required by
- * its object class(es). returns 0 if so, non-zero otherwise.
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+#include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+
+#include "slap.h"
+#include "ldap_pvt.h"
+
+
+#if defined( SLAPD_SCHEMA_DN )
+
 int
-oc_schema_check( Entry *e )
+schema_info( Entry **entry, const char **text )
 {
-	Attribute	*a, *aoc;
-	struct objclass	*oc;
-	int		i;
-	int		ret = 0;
+	AttributeDescription *ad_structuralObjectClass
+		= slap_schema.si_ad_structuralObjectClass;
+	AttributeDescription *ad_objectClass
+		= slap_schema.si_ad_objectClass;
 
-	/* find the object class attribute - could error out here */
-	if ( (aoc = attr_find( e->e_attrs, "objectclass" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
-		    e->e_dn, 0, 0 );
-		return( 0 );
-	}
+	Entry		*e;
+	struct berval	vals[2];
 
-	/* check that the entry has required attrs for each oc */
-	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
-		if ( oc_check_required( e, aoc->a_vals[i]->bv_val ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), required attr (%s) missing\n",
-			    e->e_dn, aoc->a_vals[i]->bv_val, 0 );
-			ret = 1;
+	vals[1].bv_val = NULL;
+
+	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+
+	e->e_attrs = NULL;
+	ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1, &e->e_name);
+	(void) dnNormalize2( NULL, &e->e_name, &e->e_nname );
+	e->e_private = NULL;
+
+	vals[0].bv_val = "subentry";
+	vals[0].bv_len = sizeof("subentry")-1;
+	attr_merge( e, ad_structuralObjectClass, vals );
+
+	vals[0].bv_val = "top";
+	vals[0].bv_len = sizeof("top")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	vals[0].bv_val = "subentry";
+	vals[0].bv_len = sizeof("subentry")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	vals[0].bv_val = "subschema";
+	vals[0].bv_len = sizeof("subschema")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	vals[0].bv_val = "extensibleObject";
+	vals[0].bv_len = sizeof("extensibleObject")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	{
+		int rc;
+		AttributeDescription *desc = NULL;
+		struct berval rdn = { sizeof(SLAPD_SCHEMA_DN)-1,
+			SLAPD_SCHEMA_DN };
+		vals[0].bv_val = strchr( rdn.bv_val, '=' );
+
+		if( vals[0].bv_val == NULL ) {
+			*text = "improperly configured subschema subentry";
+			return LDAP_OTHER;
 		}
-	}
 
-	if ( ret != 0 ) {
-	    return( ret );
-	}
+		vals[0].bv_val++;
+		vals[0].bv_len = rdn.bv_len - (vals[0].bv_val - rdn.bv_val);
+		rdn.bv_len -= vals[0].bv_len + 1;
 
-	/* check that each attr in the entry is allowed by some oc */
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		if ( oc_check_allowed( a->a_type, aoc->a_vals ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), attr (%s) not allowed\n",
-			    e->e_dn, a->a_type, 0 );
-			ret = 1;
+		rc = slap_bv2ad( &rdn, &desc, text );
+
+		if( rc != LDAP_SUCCESS ) {
+			entry_free( e );
+			*text = "improperly configured subschema subentry";
+			return LDAP_OTHER;
 		}
+
+		attr_merge( e, desc, vals );
 	}
 
-	return( ret );
+	if ( syn_schema_info( e ) 
+		|| mr_schema_info( e )
+		|| mru_schema_info( e )
+		|| at_schema_info( e )
+		|| oc_schema_info( e ) )
+	{
+		/* Out of memory, do something about it */
+		entry_free( e );
+		*text = "out of memory";
+		return LDAP_OTHER;
+	}
+	
+	*entry = e;
+	return LDAP_SUCCESS;
 }
-
-static int
-oc_check_required( Entry *e, char *ocname )
-{
-	struct objclass	*oc;
-	int		i;
-	Attribute	*a;
-
-	/* find global oc defn. it we don't know about it assume it's ok */
-	if ( (oc = oc_find( ocname )) == NULL ) {
-		return( 0 );
-	}
-
-	/* for each required attribute */
-	for ( i = 0; oc->oc_required[i] != NULL; i++ ) {
-		/* see if it's in the entry */
-		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-			if ( strcasecmp( a->a_type, oc->oc_required[i] )
-			    == 0 ) {
-				break;
-			}
-		}
-
-		/* not there => schema violation */
-		if ( a == NULL ) {
-			return( 1 );
-		}
-	}
-
-	return( 0 );
-}
-
-static int
-oc_check_allowed( char *type, struct berval **ocl )
-{
-	struct objclass	*oc;
-	int		i, j;
-
-	/* always allow objectclass attribute */
-	if ( strcasecmp( type, "objectclass" ) == 0 ) {
-		return( 0 );
-	}
-
-	/* check that the type appears as req or opt in at least one oc */
-	for ( i = 0; ocl[i] != NULL; i++ ) {
-		/* if we know about the oc */
-		if ( (oc = oc_find( ocl[i]->bv_val )) != NULL ) {
-			/* does it require the type? */
-			for ( j = 0; oc->oc_required[j] != NULL; j++ ) {
-				if ( strcasecmp( oc->oc_required[j], type )
-				    == 0 ) {
-					return( 0 );
-				}
-			}
-			/* does it allow the type? */
-			for ( j = 0; oc->oc_allowed[j] != NULL; j++ ) {
-				if ( strcasecmp( oc->oc_allowed[j], type )
-				    == 0 || strcmp( oc->oc_allowed[j], "*" )
-				    == 0 )
-				{
-					return( 0 );
-				}
-			}
-			/* maybe the next oc allows it */
-
-		/* we don't know about the oc. assume it allows it */
-		} else {
-			return( 0 );
-		}
-	}
-
-	/* not allowed by any oc */
-	return( 1 );
-}
-
-static struct objclass *
-oc_find( char *ocname )
-{
-	struct objclass	*oc;
-
-	for ( oc = global_oc; oc != NULL; oc = oc->oc_next ) {
-		if ( strcasecmp( oc->oc_name, ocname ) == 0 ) {
-			return( oc );
-		}
-	}
-
-	return( NULL );
-}
-
-#ifdef LDAP_DEBUG
-
-static
-oc_print( struct objclass *oc )
-{
-	int	i;
-
-	printf( "objectclass %s\n", oc->oc_name );
-	if ( oc->oc_required != NULL ) {
-		printf( "\trequires %s", oc->oc_required[0] );
-		for ( i = 1; oc->oc_required[i] != NULL; i++ ) {
-			printf( ",%s", oc->oc_required[i] );
-		}
-		printf( "\n" );
-	}
-	if ( oc->oc_allowed != NULL ) {
-		printf( "\tallows %s", oc->oc_allowed[0] );
-		for ( i = 1; oc->oc_allowed[i] != NULL; i++ ) {
-			printf( ",%s", oc->oc_allowed[i] );
-		}
-		printf( "\n" );
-	}
-}
-
 #endif

@@ -1,16 +1,23 @@
-.TH SLAPD 8C "6 November 1995" "U-M LDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.TH SLAPD 8C "5 Novemeber 2000" "OpenLDAP LDVERSION"
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
-.B ETCDIR/slapd [\-d debug\-level]
-.B [\-f slapd\-config\-file] [\-p port\-number]
-.B [\-s syslog\-level] [\-i]
+.B LIBEXECDIR/slapd 
+.B [\-f slapd\-config\-file]
+.B [\-h URLs]
+.B [\-d debug\-level]
+.B [\-n service\-name] [\-s syslog\-level] [\-l syslog\-local\-user]
+.B [\-r directory]
+.B [\-u user] [\-g group]
 .B 
 .SH DESCRIPTION
 .LP
 .B Slapd
 is the stand-alone LDAP daemon. It listens for LDAP connections on
-port 389, responding
+any number of ports (default 389), responding
 to the LDAP operations it receives over these connections.
 .B slapd
 is typically invoked at boot time, usually out of
@@ -18,10 +25,22 @@ is typically invoked at boot time, usually out of
 Upon startup,
 .B slapd
 normally forks and disassociates itself from the invoking tty.
+If configured in
+.BR ETCDIR/slapd.conf ,
+the
+.B slapd
+process will print its process ID ( see
+.BR getpid (2)
+) to a 
+.B .pid
+file, as well as the command line options during invocation to an
+.B .args
+file ( see 
+.BR slapd.conf (5)
+).
 If the
 .B \-d
-flag is given and debugging is set to some non-zero
-value,
+flag is given, even with a zero argument,
 .B slapd
 will not fork and disassociate from the invoking tty.
 .LP
@@ -34,19 +53,22 @@ See
 .BR slurpd (8)
 for details.
 .LP
-See "The SLAPD and SLURPD Administrator's Guide" for more details on
+See the "OpenLDAP Administrator's Guide" for more details on
 .BR slapd .
 .SH OPTIONS
 .TP
 .BI \-d " debug\-level"
 Turn on debugging as defined by
 .I debug\-level.
-If this option is specified,
+If this option is specified, even with a zero argument,
 .B slapd
 will not fork or disassociate from the invoking terminal.  Some general
 operation and status messages are printed for any value of \fIdebug\-level\fP.
 \fIdebug\-level\fP is taken as a bit string, with each bit corresponding to a
 different kind of debugging information.  See <ldap.h> for details.
+Remember that if you turn on packet logging, packets containing bind passwords
+will be output, so if you redirect the log to a logfile, that file should
+be read-protected.
 .TP
 .BI \-s " syslog\-level"
 This option tells
@@ -55,21 +77,73 @@ at what level debugging statements should be logged to the
 .BR syslog (8)
 facility.
 .TP
+.BI \-n " service\-name"
+Specifies the service name for logging and other purposes.  Defaults
+to basename of argv[0], i.e.: "slapd".
+.TP
+.BI \-l " syslog\-local\-user"
+Selects the local user of the
+.BR syslog (8)
+facility. Values can be 
+.BR LOCAL0 , 
+.BR LOCAL1 , 
+and so on, up to 
+.BR LOCAL7 . 
+The default is
+.BR LOCAL4 .
+However, this option is only permitted on systems that support
+local users with the 
+.BR syslog (8)
+facility.
+.TP
 .BI \-f " slapd\-config\-file"
 Specifies the slapd configuration file. The default is
 .BR ETCDIR/slapd.conf .
 .TP
-.BI \-p " port\-number"
+.BI \-h " URLlist"
 .B slapd
-will listen on the default LDAP port (389) unless this option is given
-to override the default.
+will by default serve
+.B ldap:///
+(LDAP over TCP on all interfaces on default LDAP port).  That is, 
+it will bind using INADDR_ANY and port 389.
+The
+.B \-h
+option may be used to specify LDAP (and LDAPS) URLs to serve.
+For example, if slapd is given
+.B \-h " ldap://127.0.0.1:9009/ ldaps:/// ldapi:///", 
+It will bind 127.0.0.1:9009 for LDAP, 0.0.0.0:636 for LDAP over TLS,
+and LDAP over IPC (Unix domain sockets).  Host 0.0.0.0 represents
+INADDR_ANY.
+A space separated list of URLs is expected.  The URLs should be of
+LDAP (ldap://) or LDAP over TLS (ldaps://) or LDAP over IPC (ldapi://)
+scheme without a DN or other optional parameters.  Support for the
+latter two schemes depends on selected configuration options.  Hosts
+may be specified by name or IPv4 and IPv6 address formats.
+Ports, if specfied, must be numeric.  The default ldap:// port is 389
+and the default ldaps:// port is 636.
 .TP
-.B \-i
-This option tells
+.BI \-r " directory"
+Specifies a chroot "jail" directory.  slapd will
+.BR chdir (2)
+then
+.BR chroot (2)
+to this directory after opening listeners but before reading
+any configuration file or initializing any backend.
+.TP
+.BI \-u " user"
 .B slapd
-that it is being run from
-.BR inetd(8) ,
-the Internet protocol daemon.
+will run slapd with the specified user name or id, and that user's
+supplementary group access list as set with initgroups(3).  The group ID
+is also changed to this user's gid, unless the -g option is used to
+override.
+.TP
+.BI \-g " group"
+.B slapd
+will run with the specified group name or id.
+.LP
+Note that on some systems, running as a non-privileged user will prevent
+passwd back-ends from accessing the encrypted passwords.  Note also that
+any shell back-ends will run as the specified non-privileged user.
 .SH EXAMPLES
 To start 
 .I slapd
@@ -78,7 +152,7 @@ the LDAP databases defined in the default config file, just type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd
+	LIBEXECDIR/slapd
 .ft
 .fi
 .LP
@@ -89,16 +163,21 @@ on voluminous debugging which will be printed on standard error, type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd -f /usr/local/slapd/slapd.conf -d 255
+	LIBEXECDIR/slapd -f ETCDIR/slapd.conf -d 255
 .ft
 .fi
 .LP
 .SH "SEE ALSO"
 .BR ldap (3),
 .BR slapd.conf (5),
+.BR slapd.access (5),
 .BR slurpd (8)
 .LP
-"The SLAPD and SLURPD Administrator's Guide"
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH BUGS
-When using the LDBM database backend, the Modify RDN operation does not
-update the attribute values in the entry that are affected by the change.
+See http://www.openldap.org/its/
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/time.h>
 #include <ac/param.h>
@@ -69,7 +70,7 @@ LDAP_BEGIN_DECL
  */
 #define SLAP_MOD_SOFTADD	0x1000
 
-#define MAXREMATCHES (10)
+#define MAXREMATCHES (100)
 
 #define SLAP_MAX_WORKER_THREADS		(32)
 
@@ -626,6 +627,7 @@ struct slap_internal_schema {
 	MatchingRule	*si_mr_integerMatch;
 
 	/* Syntaxes */
+	Syntax		*si_syn_octetString;
 	Syntax		*si_syn_distinguishedName;
 	Syntax		*si_syn_integer;
 };
@@ -900,6 +902,7 @@ typedef struct slap_access {
 	slap_style_t a_dn_style;
 	AttributeDescription	*a_dn_at;
 	int			a_dn_self;
+	int 			a_dn_expand;
 
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
@@ -908,6 +911,8 @@ typedef struct slap_access {
 
 	slap_style_t a_domain_style;
 	struct berval	a_domain_pat;
+	int		a_domain_expand;
+
 	slap_style_t a_sockurl_style;
 	struct berval	a_sockurl_pat;
 	slap_style_t a_set_style;
@@ -959,7 +964,7 @@ typedef struct slap_acl_state {
 
 	int as_result;
 } AccessControlState;
-#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, 0UL, { 0 }, 0, NULL, 0 }
+#define ACL_STATE_INIT { ACL_STATE_NOT_RECORDED, NULL, 0UL, { { 0, 0 } }, 0, NULL, 0, 0 }
 
 /*
  * replog moddn param structure
@@ -995,6 +1000,7 @@ struct slap_replica_info {
 	char *ri_host;				/* supersedes be_replica */
 	struct berval **ri_nsuffix;	/* array of suffixes this replica accepts */
 	AttributeName *ri_attrs;	/* attrs to replicate, NULL=all */
+	int ri_exclude;			/* 1 => exclude ri_attrs */
 };
 
 struct slap_limits_set {
@@ -1404,27 +1410,42 @@ typedef struct slap_callback {
 } slap_callback;
 
 /*
+ * Paged Results state
+ */
+typedef unsigned long PagedResultsCookie;
+typedef struct slap_paged_state {
+	Backend *ps_be;
+	PagedResultsCookie ps_cookie;
+	ID ps_id;
+} PagedResultsState;
+
+/*
  * represents an operation pending from an ldap client
  */
 typedef struct slap_op {
-	ber_int_t	o_opid;		/* id of this operation		  */
-	ber_int_t	o_msgid;	/* msgid of the request		  */
+	unsigned long o_opid;	/* id of this operation */
+	unsigned long o_connid; /* id of conn initiating this op */
+
+	ber_int_t	o_msgid;	/* msgid of the request */
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
-	ber_tag_t	o_tag;		/* tag of the request		  */
-	time_t		o_time;		/* time op was initiated	  */
-	unsigned long	o_connid; /* id of conn initiating this op  */
-	ldap_pvt_thread_t	o_tid;	/* thread handling this op	  */
+	ber_tag_t	o_tag;		/* tag of the request */
+	time_t		o_time;		/* time op was initiated */
+
+	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
+
+	volatile sig_atomic_t o_abandon;	/* abandon flag */
 
 #define SLAP_NO_CONTROL 0
 #define SLAP_NONCRITICAL_CONTROL 1
 #define SLAP_CRITICAL_CONTROL 2
 	char o_managedsait;
+	char o_noop;
 	char o_subentries;
 	char o_subentries_visibility;
-	char o_noop;
 
-	char o_abandon;	/* abandon flag */
-	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
+	char o_pagedresults;
+	ber_int_t o_pagedresults_size;
+	PagedResultsState o_pagedresults_state;
 
 #ifdef LDAP_CONNECTIONLESS
 	Sockaddr	o_peeraddr;	/* UDP peer address		  */
@@ -1482,10 +1503,7 @@ typedef struct slap_conn {
 	struct berval	c_sasl_bind_mech;			/* mech in progress */
 	struct berval	c_cdn;
 
-	/* authentication backend */
-	Backend *c_authc_backend;
-
-	/* authorization backend - normally same as c_authc_backend */
+	/* authorization backend */
 	Backend *c_authz_backend;
 
 	AuthorizationInformation c_authz;
@@ -1512,6 +1530,8 @@ typedef struct slap_conn {
 	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
 	void	*c_sasl_context;	/* SASL session context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
+
+	PagedResultsState c_pagedresults_state; /* paged result state */
 
 	long	c_n_ops_received;	/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */
@@ -1565,6 +1585,25 @@ typedef struct slap_listener {
 	Sockaddr sl_sa;
 #define sl_addr	sl_sa.sa_in_addr
 } Listener;
+
+#ifdef SLAPD_MONITOR
+/*
+ * Operation indices
+ */
+enum {
+	SLAP_OP_BIND = 0,
+	SLAP_OP_UNBIND,
+	SLAP_OP_ADD,
+	SLAP_OP_DELETE,
+	SLAP_OP_MODRDN,
+	SLAP_OP_MODIFY,
+	SLAP_OP_COMPARE,
+	SLAP_OP_SEARCH,
+	SLAP_OP_ABANDON,
+	SLAP_OP_EXTENDED,
+	SLAP_OP_LAST
+};
+#endif /* SLAPD_MONITOR */
 
 LDAP_END_DECL
 

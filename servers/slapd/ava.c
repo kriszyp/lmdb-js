@@ -1,38 +1,78 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* ava.c - routines for dealing with attribute value assertions */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
+
+
+void
+ava_free(
+    AttributeAssertion *ava,
+    int	freeit
+)
+{
+	free( ava->aa_value.bv_val );
+	if ( freeit ) {
+		ch_free( (char *) ava );
+	}
+}
 
 int
 get_ava(
     BerElement	*ber,
-    Ava		*ava
+    AttributeAssertion	**ava,
+	unsigned usage,
+	const char **text
 )
 {
-	if ( ber_scanf( ber, "{ao}", &ava->ava_type, &ava->ava_value )
-	    == LBER_ERROR ) {
+	int rc;
+	ber_tag_t rtag;
+	struct berval type, value;
+	AttributeAssertion *aa;
+
+	rtag = ber_scanf( ber, "{mm}", &type, &value );
+
+	if( rtag == LBER_ERROR ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "filter", LDAP_LEVEL_ERR,
+			   "get_ava:  ber_scanf failure\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "  get_ava ber_scanf\n", 0, 0, 0 );
-		return( LDAP_PROTOCOL_ERROR );
+#endif
+		*text = "Error decoding attribute value assertion";
+		return SLAPD_DISCONNECT;
 	}
-	attr_normalize( ava->ava_type );
-	value_normalize( ava->ava_value.bv_val, attr_syntax( ava->ava_type ) );
 
-	return( 0 );
-}
+	aa = ch_malloc( sizeof( AttributeAssertion ) );
+	aa->aa_desc = NULL;
+	aa->aa_value.bv_val = NULL;
 
-void
-ava_free(
-    Ava	*ava,
-    int	freeit
-)
-{
-	free( (char *) ava->ava_type );
-	free( (char *) ava->ava_value.bv_val );
-	if ( freeit ) {
-		free( (char *) ava );
+	rc = slap_bv2ad( &type, &aa->aa_desc, text );
+
+	if( rc != LDAP_SUCCESS ) {
+		ch_free( aa );
+		return rc;
 	}
-}
 
+	rc = value_validate_normalize( aa->aa_desc, usage,
+		&value, &aa->aa_value, text );
+
+	if( rc != LDAP_SUCCESS ) {
+		ch_free( aa );
+		return rc;
+	}
+
+	*ava = aa;
+
+	return LDAP_SUCCESS;
+}

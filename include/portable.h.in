@@ -944,6 +944,12 @@
 /* define to support dynamic cn=Monitor backend */
 #undef SLAPD_MONITOR_DYNAMIC
 
+/* define to support NULL backend */
+#undef SLAPD_NULL
+
+/* define to support dynamic NULL backend */
+#undef SLAPD_NULL_DYNAMIC
+
 /* define to support PASSWD backend */
 #undef SLAPD_PASSWD
 

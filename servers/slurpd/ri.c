@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -17,33 +22,21 @@
  */
 
 
+#include "portable.h"
 
 #include <stdio.h>
-#include <signal.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/signal.h>
 
 #include "slurp.h"
 #include "globals.h"
 
 
-/* External references */
-#ifdef NEEDPROTOS
-extern void write_reject( Ri *, Re *, int, char * );
-extern void do_nothing();
-#else /* NEEDPROTOS */
-extern void write_reject();
-extern void do_nothing();
-#endif /* NEEDPROTOS */
-
 /* Forward references */
-#ifdef NEEDPROTOS
-static int ismine( Ri  *, Re  * );
-static int isnew( Ri  *, Re  * );
-void tsleep( time_t );
-#else /* NEEDPROTOS */
-static int ismine();
-static int isnew();
-void tsleep();
-#endif /* NEEDPROTOS */
+static int ismine LDAP_P(( Ri  *, Re  * ));
+static int isnew LDAP_P(( Ri  *, Re  * ));
 
 
 /*
@@ -55,12 +48,11 @@ Ri_process(
 )
 {
     Rq		*rq = sglob->rq;
-    Re		*re, *new_re;
-    int		i;
+    Re		*re = NULL, *new_re = NULL;
     int		rc ;
     char	*errmsg;
 
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
     (void) SIGNAL( SIGPIPE, SIG_IGN );
     if ( ri == NULL ) {
 	Debug( LDAP_DEBUG_ANY, "Error: Ri_process: ri == NULL!\n", 0, 0, 0 );
@@ -74,8 +66,14 @@ Ri_process(
     rq->rq_lock( rq );
     while ( !sglob->slurpd_shutdown &&
 	    (( re = rq->rq_gethead( rq )) == NULL )) {
-	/* No work - wait on condition variable */
-	pthread_cond_wait( &rq->rq_more, &rq->rq_mutex );
+	/* No work */
+	if ( sglob->one_shot_mode ) {
+	    /* give up if in one shot mode */
+	    rq->rq_unlock( rq );
+	    return 0;
+	}
+	/* wait on condition variable */
+	ldap_pvt_thread_cond_wait( &rq->rq_more, &rq->rq_mutex );
     }
 
     /*
@@ -99,20 +97,22 @@ Ri_process(
 		rc = do_ldap( ri, re, &errmsg );
 		switch ( rc ) {
 		case DO_LDAP_ERR_RETRYABLE:
-		    tsleep( RETRY_SLEEP_TIME );
+		    ldap_pvt_thread_sleep( RETRY_SLEEP_TIME );
 		    Debug( LDAP_DEBUG_ANY,
 			    "Retrying operation for DN %s on replica %s:%d\n",
 			    re->re_dn, ri->ri_hostname, ri->ri_port );
 		    continue;
 		    break;
-		case DO_LDAP_ERR_FATAL:
+		case DO_LDAP_ERR_FATAL: {
 		    /* Non-retryable error.  Write rejection log. */
-		    write_reject( ri, re, ri->ri_ldp->ld_errno, errmsg );
+			int ld_errno = 0;
+			ldap_get_option(ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		    write_reject( ri, re, ld_errno, errmsg );
 		    /* Update status ... */
 		    (void) sglob->st->st_update( sglob->st, ri->ri_stel, re );
 		    /* ... and write to disk */
 		    (void) sglob->st->st_write( sglob->st );
-		    break;
+		    } break;
 		default:
 		    /* LDAP op completed ok - update status... */
 		    (void) sglob->st->st_update( sglob->st, ri->ri_stel, re );
@@ -129,10 +129,11 @@ Ri_process(
 	while ( !sglob->slurpd_shutdown &&
 		((new_re = re->re_getnext( re )) == NULL )) {
 	    if ( sglob->one_shot_mode ) {
+		rq->rq_unlock( rq );
 		return 0;
 	    }
 	    /* No work - wait on condition variable */
-	    pthread_cond_wait( &rq->rq_more, &rq->rq_mutex );
+	    ldap_pvt_thread_cond_wait( &rq->rq_more, &rq->rq_mutex );
 	}
 	re->re_decrefcnt( re );
 	re = new_re;
@@ -146,7 +147,8 @@ Ri_process(
 
 
 /*
- * Wake a replication thread which may be sleeping.  Send it a SIGUSR1.
+ * Wake a replication thread which may be sleeping.
+ * Send it a LDAP_SIGUSR1.
  */
 static void
 Ri_wake(
@@ -156,8 +158,7 @@ Ri_wake(
     if ( ri == NULL ) {
 	return;
     }
-    pthread_kill( ri->ri_tid, SIGUSR1 );
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+    ldap_pvt_thread_kill( ri->ri_tid, LDAP_SIGUSR1 );
 }
 
 
@@ -170,7 +171,7 @@ Ri_init(
     Ri	**ri
 )
 {
-    (*ri) = ( Ri * ) malloc( sizeof( Ri ));
+    (*ri) = ( Ri * ) calloc( 1, sizeof( Ri ));
     if ( *ri == NULL ) {
 	return -1;
     }
@@ -181,12 +182,10 @@ Ri_init(
 
     /* Initialize private data */
     (*ri)->ri_hostname = NULL;
-    (*ri)->ri_port = 0;
     (*ri)->ri_ldp = NULL;
-    (*ri)->ri_bind_method = 0;
     (*ri)->ri_bind_dn = NULL;
     (*ri)->ri_password = NULL;
-    (*ri)->ri_principal = NULL;
+    (*ri)->ri_authcId = NULL;
     (*ri)->ri_srvtab = NULL;
     (*ri)->ri_curr = NULL;
 
@@ -239,12 +238,12 @@ isnew(
     Re	*re
 )
 {
-    int	x;
+    long x;
     int	ret;
 
     /* Lock the St struct to avoid a race */
     sglob->st->st_lock( sglob->st );
-    x = strcmp( re->re_timestamp, ri->ri_stel->last );
+    x = re->re_timestamp - ri->ri_stel->last;
     if ( x > 0 ) {
 	/* re timestamp is newer */
 	ret = 1;
@@ -262,5 +261,3 @@ isnew(
     sglob->st->st_unlock( sglob->st );
     return ret;
 }
-
-

@@ -225,7 +225,7 @@ slap_strcopy(
 	if (!a || !b)
 		return a;
 	
-	while (*a++ = *b++) ;
+	while ((*a++ = *b++)) ;
 	return a-1;
 }
 

@@ -1,212 +1,350 @@
 /* value.c - routines for dealing with values */
+/* $OpenLDAP$ */
+/*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <sys/stat.h>
-#include "portable.h"
+
 #include "slap.h"
 
 int
-value_add_fast( 
-    struct berval	***vals,
-    struct berval	**addvals,
-    int			nvals,
-    int			naddvals,
-    int			*maxvals
-)
-{
-	int	need, i, j;
-
-	if ( *maxvals == 0 ) {
-		*maxvals = 1;
-	}
-	need = nvals + naddvals + 1;
-	while ( *maxvals < need ) {
-		*maxvals *= 2;
-		*vals = (struct berval **) ch_realloc( (char *) *vals,
-		    *maxvals * sizeof(struct berval *) );
-	}
-
-	for ( i = 0, j = 0; i < naddvals; i++, j++ ) {
-		if ( addvals[i]->bv_len > 0 ) {
-			(*vals)[nvals + j] = ber_bvdup( addvals[i] );
-		}
-	}
-	(*vals)[nvals + j] = NULL;
-
-	return( 0 );
-}
-
-int
 value_add( 
-    struct berval	***vals,
-    struct berval	**addvals
+    BerVarray *vals,
+    BerVarray addvals
 )
 {
-	int	n, nn, i, j;
+	int	n, nn;
+	BerVarray v2;
 
-	for ( nn = 0; addvals != NULL && addvals[nn] != NULL; nn++ )
+	for ( nn = 0; addvals != NULL && addvals[nn].bv_val != NULL; nn++ )
 		;	/* NULL */
 
 	if ( *vals == NULL ) {
-		*vals = (struct berval **) ch_malloc( (nn + 1)
-		    * sizeof(struct berval *) );
+		*vals = (BerVarray) ch_malloc( (nn + 1)
+		    * sizeof(struct berval) );
 		n = 0;
 	} else {
-		for ( n = 0; (*vals)[n] != NULL; n++ )
-			;	/* NULL */
-		*vals = (struct berval **) ch_realloc( (char *) *vals,
-		    (n + nn + 1) * sizeof(struct berval *) );
-	}
-
-	for ( i = 0, j = 0; i < nn; i++ ) {
-		if ( addvals[i]->bv_len > 0 ) {
-			(*vals)[n + j++] = ber_bvdup( addvals[i] );
+		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
+			;	/* Empty */
 		}
+		*vals = (BerVarray) ch_realloc( (char *) *vals,
+		    (n + nn + 1) * sizeof(struct berval) );
 	}
-	(*vals)[n + j] = NULL;
 
-	return( 0 );
+	v2 = *vals + n;
+	for ( ; addvals->bv_val; v2++, addvals++ ) {
+		ber_dupbv(v2, addvals);
+		if (v2->bv_val == NULL) break;
+	}
+	v2->bv_val = NULL;
+	v2->bv_len = 0;
+
+	return LDAP_SUCCESS;
 }
 
-void
+int
+value_validate(
+	MatchingRule *mr,
+	struct berval *in,
+	const char **text )
+{
+	int rc;
+
+	if( mr == NULL ) {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( mr->smr_syntax == NULL ) {
+		*text = "no assertion syntax";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if( ! mr->smr_syntax->ssyn_validate ) {
+		*text = "no syntax validator";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+
+	if( rc != LDAP_SUCCESS ) {
+		*text = "value is invalid";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+int
 value_normalize(
-    char	*s,
-    int		syntax
-)
+	AttributeDescription *ad,
+	unsigned usage,
+	struct berval *in,
+	struct berval *out,
+	const char **text )
 {
-	char	*d, *save;
+	int rc;
+	MatchingRule *mr;
 
-	if ( ! (syntax & SYNTAX_CIS) ) {
-		return;
+	switch( usage & SLAP_MR_TYPE_MASK ) {
+	case SLAP_MR_NONE:
+	case SLAP_MR_EQUALITY:
+		mr = ad->ad_type->sat_equality;
+		break;
+	case SLAP_MR_ORDERING:
+		mr = ad->ad_type->sat_ordering;
+		break;
+	case SLAP_MR_SUBSTR:
+		mr = ad->ad_type->sat_substr;
+		break;
+	case SLAP_MR_EXT:
+	default:
+		assert( 0 );
+		*text = "internal error";
+		return LDAP_OTHER;
 	}
 
-	if ( syntax & SYNTAX_DN ) {
-		(void) dn_normalize_case( s );
-		return;
+	if( mr == NULL ) {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	save = s;
-	for ( d = s; *s; s++ ) {
-		if ( (syntax & SYNTAX_TEL) && (*s == ' ' || *s == '-') ) {
-			continue;
+	/* we only support equality matching of binary attributes */
+	/* This is suspect, flexible certificate matching will hit this */
+	if( slap_ad_is_binary( ad ) && usage != SLAP_MR_EQUALITY ) {
+		*text = "inappropriate binary matching";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( mr->smr_normalize ) {
+		rc = (mr->smr_normalize)( usage,
+			ad->ad_type->sat_syntax,
+			mr, in, out );
+
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value";
+			return LDAP_INVALID_SYNTAX;
 		}
-		*d++ = TOUPPER( *s );
+
+	} else if ( mr->smr_syntax->ssyn_normalize ) {
+		rc = (mr->smr_syntax->ssyn_normalize)(
+			ad->ad_type->sat_syntax,
+			in, out );
+
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value";
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		ber_dupbv( out, in );
 	}
-	*d = '\0';
+
+	return LDAP_SUCCESS;
 }
 
-#define MIN( a, b )	(a < b ? a : b )
-
 int
-value_cmp(
-    struct berval	*v1,
-    struct berval	*v2,
-    int			syntax,
-    int			normalize	/* 1 => arg 1; 2 => arg 2; 3 => both */
-)
+value_validate_normalize(
+	AttributeDescription *ad,
+	unsigned usage,
+	struct berval *in,
+	struct berval *out,
+	const char **text )
 {
-	int		rc;
-	struct stat	st1, st2;
+	int rc;
+	MatchingRule *mr;
 
-	if ( normalize & 1 ) {
-		v1 = ber_bvdup( v1 );
-		value_normalize( v1->bv_val, syntax );
-	}
-	if ( normalize & 2 ) {
-		v2 = ber_bvdup( v2 );
-		value_normalize( v2->bv_val, syntax );
-	}
-
-	switch ( syntax ) {
-	case SYNTAX_CIS:
-	case (SYNTAX_CIS | SYNTAX_TEL):
-	case (SYNTAX_CIS | SYNTAX_DN):
-		rc = strcasecmp( v1->bv_val, v2->bv_val );
+	switch( usage & SLAP_MR_TYPE_MASK ) {
+	case SLAP_MR_NONE:
+	case SLAP_MR_EQUALITY:
+		mr = ad->ad_type->sat_equality;
 		break;
-
-	case SYNTAX_CES:
-		rc = strcmp( v1->bv_val, v2->bv_val );
+	case SLAP_MR_ORDERING:
+		mr = ad->ad_type->sat_ordering;
 		break;
-
-	case SYNTAX_BIN:
-		rc = memcmp( v1->bv_val, v2->bv_val, MIN( v1->bv_len,
-		    v2->bv_len ) );
+	case SLAP_MR_SUBSTR:
+		mr = ad->ad_type->sat_substr;
 		break;
+	case SLAP_MR_EXT:
+	default:
+		assert( 0 );
+		*text = "internal error";
+		return LDAP_OTHER;
 	}
 
-	if ( normalize & 1 ) {
-		ber_bvfree( v1 );
-	}
-	if ( normalize & 2 ) {
-		ber_bvfree( v2 );
+	if( mr == NULL ) {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	return( rc );
+	if( mr->smr_syntax == NULL ) {
+		*text = "no assertion syntax";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if( ! mr->smr_syntax->ssyn_validate ) {
+		*text = "no syntax validator";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+
+	if( rc != LDAP_SUCCESS ) {
+		*text = "value is invalid";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	/* we only support equality matching of binary attributes */
+	/* This is suspect, flexible certificate matching will hit this */
+	if( slap_ad_is_binary( ad ) && usage != SLAP_MR_EQUALITY ) {
+		*text = "inappropriate binary matching";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( mr->smr_normalize ) {
+		rc = (mr->smr_normalize)( usage,
+			ad->ad_type->sat_syntax,
+			mr, in, out );
+
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value";
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else if ( mr->smr_syntax->ssyn_normalize ) {
+		rc = (mr->smr_syntax->ssyn_normalize)(
+			ad->ad_type->sat_syntax,
+			in, out );
+
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value";
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		ber_dupbv( out, in );
+	}
+
+	return LDAP_SUCCESS;
 }
 
+
 int
-value_ncmp(
-    struct berval	*v1,
-    struct berval	*v2,
-    int			syntax,
-    int			len,
-    int			normalize
-)
+value_match(
+	int *match,
+	AttributeDescription *ad,
+	MatchingRule *mr,
+	unsigned flags,
+	struct berval *v1, /* stored value */
+	void *v2, /* assertion */
+	const char ** text )
 {
-	int	rc;
+	int rc;
+	struct berval nv1 = { 0, NULL };
+	struct berval nv2 = { 0, NULL };
 
-	if ( normalize & 1 ) {
-		v1 = ber_bvdup( v1 );
-		value_normalize( v1->bv_val, syntax );
-	}
-	if ( normalize & 2 ) {
-		v2 = ber_bvdup( v2 );
-		value_normalize( v2->bv_val, syntax );
+	if( !mr->smr_match ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	switch ( syntax ) {
-	case SYNTAX_CIS:
-	case (SYNTAX_CIS | SYNTAX_TEL):
-		rc = strncasecmp( v1->bv_val, v2->bv_val, len );
-		break;
+	if( ad->ad_type->sat_syntax->ssyn_normalize ) {
+		rc = ad->ad_type->sat_syntax->ssyn_normalize(
+			ad->ad_type->sat_syntax, v1, &nv1 );
 
-	case SYNTAX_CES:
-		rc = strncmp( v1->bv_val, v2->bv_val, len );
-		break;
-
-	case SYNTAX_BIN:
-		rc = memcmp( v1->bv_val, v2->bv_val, len );
+		if( rc != LDAP_SUCCESS ) {
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
 	}
 
-	if ( normalize & 1 ) {
-		ber_bvfree( v1 );
-	}
-	if ( normalize & 2 ) {
-		ber_bvfree( v2 );
+	if ( SLAP_IS_MR_VALUE_SYNTAX_NONCONVERTED_MATCH( flags ) &&
+		mr->smr_convert )
+	{
+		rc = (mr->smr_convert)( v2, &nv2 );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* let smr_match know we've converted the value */
+		flags |= SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH;
 	}
 
-	return( rc );
+	rc = (mr->smr_match)( match, flags,
+		ad->ad_type->sat_syntax,
+		mr,
+		nv1.bv_val != NULL ? &nv1 : v1,
+		nv2.bv_val != NULL ? &nv2 : v2 );
+	
+	if (nv1.bv_val ) free( nv1.bv_val );
+	if (nv2.bv_val ) free( nv2.bv_val );
+	return rc;
 }
 
-int
-value_find(
-    struct berval	**vals,
-    struct berval	*v,
-    int			syntax,
-    int			normalize
-)
+
+int value_find_ex(
+	AttributeDescription *ad,
+	unsigned flags,
+	BerVarray vals,
+	struct berval *val )
 {
 	int	i;
+	int rc;
+	struct berval nval = { 0, NULL };
+	struct berval nval_tmp;
+	MatchingRule *mr = ad->ad_type->sat_equality;
 
-	for ( i = 0; vals[i] != NULL; i++ ) {
-		if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
-			return( 0 );
+	if( mr == NULL || !mr->smr_match ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	/* Take care of this here or ssyn_normalize later will hurt */
+	if ( SLAP_IS_MR_VALUE_SYNTAX_NONCONVERTED_MATCH( flags )
+		&& mr->smr_convert )
+	{
+		rc = (mr->smr_convert)( val, &nval );
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* let value_match know we've done the version */
+		flags |= SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH;
+	}
+
+	if( mr->smr_syntax->ssyn_normalize ) {
+		rc = mr->smr_syntax->ssyn_normalize(
+			mr->smr_syntax, nval.bv_val == NULL ? val : &nval, &nval_tmp );
+
+		free(nval.bv_val);
+		nval = nval_tmp;
+		if( rc != LDAP_SUCCESS ) {
+			free(nval.bv_val);
+			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 	}
 
-	return( 1 );
+	for ( i = 0; vals[i].bv_val != NULL; i++ ) {
+		int match;
+		const char *text;
+
+		rc = value_match( &match, ad, mr, flags,
+			&vals[i], nval.bv_val == NULL ? val : &nval, &text );
+
+		if( rc == LDAP_SUCCESS && match == 0 ) {
+			free( nval.bv_val );
+			return LDAP_SUCCESS;
+		}
+	}
+
+	free( nval.bv_val );
+	return LDAP_NO_SUCH_ATTRIBUTE;
 }
