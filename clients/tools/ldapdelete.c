@@ -30,16 +30,16 @@ static int dodelete LDAP_P((
 int
 main( int argc, char **argv )
 {
-    char		*usage = "usage: %s [-n] [-v] [-k] [-d debug-level] [-f file] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
+    char		*usage = "usage: %s [-n] [-v] [-k] [-W] [-d debug-level] [-f file] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
     char		buf[ 4096 ];
     FILE		*fp;
-    int			i, rc, authmethod;
+    int			i, rc, authmethod, want_bindpw;
 
-    not = verbose = contoper = 0;
+    not = verbose = contoper = want_bindpw = 0;
     fp = NULL;
     authmethod = LDAP_AUTH_SIMPLE;
 
-    while (( i = getopt( argc, argv, "nvkKch:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WnvkKch:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef HAVE_KERBEROS
@@ -89,6 +89,9 @@ main( int argc, char **argv )
 	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
+	case 'W':
+		want_bindpw++;
+		break;
 	default:
 	    fprintf( stderr, usage, argv[0] );
 	    exit( 1 );
@@ -111,6 +114,9 @@ main( int argc, char **argv )
 		int deref = LDAP_DEREF_NEVER;
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref );
 	}
+
+	if (want_bindpw)
+		passwd = getpass("Enter LDAP Password: ");
 
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );

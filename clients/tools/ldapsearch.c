@@ -43,6 +43,7 @@ usage( char *s )
     fprintf( stderr, "    -z size lim\tsize limit (in entries) for search\n" );
     fprintf( stderr, "    -D binddn\tbind dn\n" );
     fprintf( stderr, "    -w passwd\tbind passwd (for simple authentication)\n" );
+    fprintf( stderr, "    -W\t\tprompt for bind passwd\n" );
 #ifdef HAVE_KERBEROS
     fprintf( stderr, "    -k\t\tuse Kerberos instead of Simple Password authentication\n" );
 #endif
@@ -86,18 +87,18 @@ main( int argc, char **argv )
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
     int			rc, i, first, scope, deref, attrsonly;
-    int			referrals, timelimit, sizelimit, authmethod;
+    int			referrals, timelimit, sizelimit, authmethod, want_bindpw;
     LDAP		*ld;
 
     infile = NULL;
     deref = verbose = allow_binary = not = vals2tmp =
-	    attrsonly = ldif = 0;
+	    attrsonly = ldif = want_bindpw = 0;
     referrals = (int) LDAP_OPT_ON;
     sizelimit = timelimit = 0;
     scope = LDAP_SCOPE_SUBTREE;
     authmethod = LDAP_AUTH_SIMPLE;
 
-    while (( i = getopt( argc, argv, "KknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:")) != EOF ) {
+    while (( i = getopt( argc, argv, "WKknuvtRABLD:s:f:h:b:d:p:F:a:w:l:z:S:")) != EOF ) {
 	switch( i ) {
 	case 'n':	/* do Not do any searches */
 	    ++not;
@@ -202,6 +203,9 @@ main( int argc, char **argv )
 	case 'S':	/* sort attribute */
 	    sortattr = strdup( optarg );
 	    break;
+	case 'W':
+		want_bindpw++;
+		break;
 	default:
 	    usage( argv[0] );
 	}
@@ -260,6 +264,9 @@ main( int argc, char **argv )
 	if (ldap_set_option( ld, LDAP_OPT_REFERRALS, (void *) referrals ) == -1 ) {
 		/* set option error */
 	}
+
+	if (want_bindpw)
+		passwd = getpass("Enter LDAP Password: ");
 
     if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
 	ldap_perror( ld, "ldap_bind" );
