@@ -86,13 +86,13 @@ typedef char * caddr_t;
 #undef _MINIX
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
-#undef mode_t int
+#define mode_t int
 
 /* Define to `long' if <sys/types.h> doesn't define.  */
 #undef off_t
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
-#undef pid_t int
+#define pid_t int
 
 /* Define if the system does not provide POSIX.1 features except
    with this defined.  */
@@ -102,7 +102,7 @@ typedef char * caddr_t;
 #undef _POSIX_SOURCE
 
 /* Define as the return type of signal handlers (int or void).  */
-#undef RETSIGTYPE void
+#define RETSIGTYPE void
 
 /* Define to `unsigned' if <sys/types.h> doesn't define.  */
 #undef size_t
@@ -117,7 +117,7 @@ typedef char * caddr_t;
 #undef TM_IN_SYS_TIME
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
-#undef uid_t long
+#define uid_t long
 
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
@@ -213,7 +213,7 @@ typedef char * caddr_t;
 #undef SLAPD_LDBM
 
 /* define this for MD5 password support */
-#define SLAPD_MD5
+#define SLAPD_MD5 1
 
 /* define this to use SLAPD passwd backend */
 #undef SLAPD_PASSWD
@@ -222,10 +222,10 @@ typedef char * caddr_t;
 #undef SLAPD_PHONETIC
 
 /* define this for Reverse Lookup support */
-#define SLAPD_RLOOKUPS
+#define SLAPD_RLOOKUPS 1
 
 /* define this for SHA1 password support */
-#define SLAPD_SHA1
+#define SLAPD_SHA1 1
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
