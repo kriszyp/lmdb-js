@@ -28,18 +28,65 @@
 #include "slap.h"
 #include "back-relay.h"
 
+static BackendDB *
+relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
+{
+	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd = ri->ri_bd;
+
+	if ( bd == NULL ) {
+		bd = select_backend( &op->o_req_ndn, 0, 1 );
+	}
+
+	if ( bd == NULL ) {
+		if ( default_referral ) {
+			rs->sr_ref = referral_rewrite( default_referral,
+				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+			if (!rs->sr_ref) {
+				rs->sr_ref = default_referral;
+			}
+
+			rs->sr_err = LDAP_REFERRAL;
+			send_ldap_result( op, rs );
+
+			if (rs->sr_ref != default_referral) {
+				ber_bvarray_free( rs->sr_ref );
+			}
+
+		} else {
+			/* NOTE: err is LDAP_INVALID_CREDENTIALS for bind,
+			 * LDAP_NO_SUCH_OBJECT for other operations.
+			 * noSuchObject is not allowed to be returned by bind */
+			rs->sr_err = err;
+			send_ldap_result( op, rs );
+		}
+	}
+
+	return bd;
+}
+
 int
 relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_bind ) {
+	bd = relay_back_select_backend( op, rs, LDAP_INVALID_CREDENTIALS );
+	if ( bd == NULL ) {
+		return rc;
+	}
+
+	if ( bd->be_bind ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_bind )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_bind )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -48,15 +95,25 @@ relay_back_op_bind( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_unbind ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_unbind ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_unbind )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_unbind )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -66,15 +123,25 @@ relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_search ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_search ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_search )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_search )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -84,15 +151,25 @@ relay_back_op_search( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_compare ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_compare ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_compare )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_compare )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -102,15 +179,25 @@ relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_modify ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_modify ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_modify )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_modify )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -120,15 +207,25 @@ relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_modrdn ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_modrdn ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_modrdn )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_modrdn )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -138,15 +235,25 @@ relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_add ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_add ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_add )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_add )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -156,14 +263,19 @@ relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_delete ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_delete ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_delete )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_delete )( op, rs );
 		op->o_bd = be;
 	}
 
@@ -174,15 +286,25 @@ relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_abandon ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_abandon ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_abandon )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_abandon )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -192,15 +314,25 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_cancel ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_cancel ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_cancel )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_cancel )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -210,15 +342,25 @@ relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 int
 relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
 {
-	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_extended ) {
+	bd = relay_back_select_backend( op, rs, LDAP_NO_SUCH_OBJECT );
+	if ( bd == NULL ) {
+		return 1;
+	}
+
+	if ( bd->be_extended ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_extended )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_extended )( op, rs );
 		op->o_bd = be;
+
+	} else {
+		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
+				"operation not supported "
+				"within naming context" );
 	}
 
 	return rc;
@@ -229,13 +371,22 @@ int
 relay_back_entry_release_rw( struct slap_op *op, Entry *e, int rw )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_release ) {
+	bd = ri->ri_bd;
+	if ( bd == NULL) {
+		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		if ( bd == NULL ) {
+			return 1;
+		}
+	}
+
+	if ( bd->be_release ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_release )( op, e, rw );
+		op->o_bd = bd;
+		rc = ( bd->be_release )( op, e, rw );
 		op->o_bd = be;
 	}
 
@@ -248,13 +399,22 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_fetch ) {
+	bd = ri->ri_bd;
+	if ( bd == NULL) {
+		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		if ( bd == NULL ) {
+			return 1;
+		}
+	}
+
+	if ( bd->be_fetch ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_fetch )( op, ndn, oc, at, rw, e );
+		op->o_bd = bd;
+		rc = ( bd->be_fetch )( op, ndn, oc, at, rw, e );
 		op->o_bd = be;
 	}
 
@@ -262,16 +422,26 @@ relay_back_entry_get_rw( struct slap_op *op, struct berval *ndn,
 
 }
 
-int relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
+int
+relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_chk_referrals ) {
+	bd = ri->ri_bd;
+	if ( bd == NULL) {
+		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		if ( bd == NULL ) {
+			return 1;
+		}
+	}
+
+	if ( bd->be_chk_referrals ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_chk_referrals )( op, rs );
+		op->o_bd = bd;
+		rc = ( bd->be_chk_referrals )( op, rs );
 		op->o_bd = be;
 	}
 
@@ -279,16 +449,27 @@ int relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 
 }
 
-int relay_back_operational( struct slap_op *op, struct slap_rep *rs, int opattrs, Attribute **ap )
+int
+relay_back_operational( struct slap_op *op, struct slap_rep *rs, 
+		int opattrs, Attribute **ap )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_operational ) {
+	bd = ri->ri_bd;
+	if ( bd == NULL) {
+		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		if ( bd == NULL ) {
+			return 1;
+		}
+	}
+
+	if ( bd->be_operational ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_operational )( op, rs, opattrs, ap );
+		op->o_bd = bd;
+		rc = ( bd->be_operational )( op, rs, opattrs, ap );
 		op->o_bd = be;
 	}
 
@@ -296,16 +477,26 @@ int relay_back_operational( struct slap_op *op, struct slap_rep *rs, int opattrs
 
 }
 
-int relay_back_has_subordinates( struct slap_op *op, Entry *e, int *hasSubs )
+int
+relay_back_has_subordinates( struct slap_op *op, Entry *e, int *hasSubs )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
+	BackendDB		*bd;
 	int			rc = 1;
 
-	if ( ri->ri_bd->be_has_subordinates ) {
+	bd = ri->ri_bd;
+	if ( bd == NULL) {
+		bd = select_backend( &op->o_req_ndn, 0, 1 );
+		if ( bd == NULL ) {
+			return 1;
+		}
+	}
+
+	if ( bd->be_has_subordinates ) {
 		BackendDB	*be = op->o_bd;
 
-		op->o_bd = ri->ri_bd;
-		rc = ( ri->ri_bd->be_has_subordinates )( op, e, hasSubs );
+		op->o_bd = bd;
+		rc = ( bd->be_has_subordinates )( op, e, hasSubs );
 		op->o_bd = be;
 	}
 
@@ -339,3 +530,6 @@ relay_back_connection_destroy( BackendDB *bd, struct slap_conn *c )
 
 }
 
+/*
+ * FIXME: must implement tools as well
+ */
