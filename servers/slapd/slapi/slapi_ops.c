@@ -40,7 +40,7 @@ internal_result_v3(
 {
 	if (op->o_tag == LDAP_REQ_SEARCH)
 		slapi_pblock_set( (Slapi_PBlock *)op->o_pb,
-			SLAPI_NENTRIES, (void *)sr->sr_nentries );
+			SLAPI_NENTRIES, (void *)rs->sr_nentries );
 
 	return;
 }
