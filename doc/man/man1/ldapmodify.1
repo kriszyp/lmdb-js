@@ -312,7 +312,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Modify Me, dc=OpenLDAP, dc=Org
+    dn: cn=Modify Me, dc=example, dc=com
     changetype: modify
     replace: mail
     mail: modme@OpenLDAP.org
@@ -335,7 +335,7 @@ the command:
 .LP
 will replace the contents of the "Modify Me" entry's
 .I mail
-attribute with the value "modme@OpenLDAP.org", add a
+attribute with the value "modme@example.com", add a
 .I title
 of "Grand Poobah", and the contents of the file "/tmp/modme.jpeg"
 as a
@@ -345,11 +345,11 @@ and completely remove the
 attribute.
 The same modifications as above can be performed using the older
 .I ldapmodify
-inout format:
+input format:
 .LP
 .nf
-    cn=Modify Me, dc=OpenLDAP, dc=org
-    mail=modme@OpenLDAP.org
+    cn=Modify Me, dc=example, dc=com
+    mail=modme@example.com
     +title=Grand Poobah
     +jpegPhoto=/tmp/modme.jpeg
     -description
@@ -366,13 +366,13 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, dc=OpenLDAP, dc=org 
+    dn: cn=Barbara Jensen, dc=example, dc=com
     objectClass: person
     cn: Barbara Jensen
     cn: Babs Jensen
     sn: Jensen
     title: the world's most famous mythical manager
-    mail: bjensen@OpenLDAP.org
+    mail: bjensen@example.com
     uid: bjensen
 .LP
 the command:
@@ -390,7 +390,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, dc=OpenLDAP, dc=org
+    dn: cn=Barbara Jensen, dc=example, dc=com
     changetype: delete
 .LP
 the command:
@@ -401,8 +401,8 @@ the command:
 .LP
 will remove Babs Jensen's entry.
 .SH DIAGNOSTICS
-Exit status is 0 if no errors occur.  Errors result in a non-zero exit
-status and a diagnostic message being written to standard error.
+Exit status is zero if no errors occur.  Errors result in a non-zero
+exit status and a diagnostic message being written to standard error.
 .SH "SEE ALSO"
 .BR ldapadd (1),
 .BR ldapdelete (1),
