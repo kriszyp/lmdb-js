@@ -394,20 +394,10 @@ long connection_init(
     c->c_conn_state = SLAP_C_INACTIVE;
     c->c_struct_state = SLAP_C_USED;
 
-#ifdef HAVE_TLS
     if ( use_tls ) {
-	    /* FIXME: >0 means incomplete read */
-	    if ( ldap_pvt_tls_accept( c->c_sb, NULL ) < 0 ) {
-		    Debug( LDAP_DEBUG_ANY,
-			   "connection_init(%d): TLS accept failed.\n",
-				s, 0, 0);
-		    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-		    ldap_pvt_thread_mutex_unlock( &connections_mutex );
-		    connection_destroy( c );
-		    return -1;
-	    }
+	    c->c_is_tls = 1;
+	    c->c_needs_tls_accept = 1;
     }
-#endif
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     ldap_pvt_thread_mutex_unlock( &connections_mutex );
@@ -795,6 +785,26 @@ int connection_read(ber_socket_t s)
 	Debug( LDAP_DEBUG_TRACE,
 		"connection_read(%d): checking for input on id=%ld\n",
 		s, c->c_connid, 0 );
+
+#ifdef HAVE_TLS
+	if ( c->c_is_tls && c->c_needs_tls_accept ) {
+		rc = ldap_pvt_tls_accept( c->c_sb, NULL );
+		if ( rc < 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+			       "connection_read(%d): TLS accept error error=%d id=%ld, closing.\n",
+			       s, rc, c->c_connid );
+
+			/* connections_mutex and c_mutex are locked */
+			connection_closing( c );
+			connection_close( c );
+		} else if ( rc == 0 ) {
+			c->c_needs_tls_accept = 0;
+		}
+		connection_return( c );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
+		return 0;
+	}
+#endif
 
 #define CONNECTION_INPUT_LOOP 1
 
