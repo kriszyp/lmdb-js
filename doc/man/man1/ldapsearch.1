@@ -21,11 +21,11 @@ ldapsearch \- LDAP search tool
 [\c
 .BR \-A ]
 [\c
+.BR \-C ]
+[\c
 .BR \-L[L[L]] ]
 [\c
 .BR \-M[M] ]
-[\c
-.BR \-R ]
 [\c
 .BI \-d \ debuglevel\fR]
 [\c
@@ -130,8 +130,8 @@ Enable manage DSA IT control.
 .B \-MM
 makes control critical.
 .TP
-.B \-R
-Do not automatically follow referrals returned while searching.
+.B \-C
+Automatically chase referrals.
 .TP
 .BI \-S \ attribute
 Sort the entries returned based on \fIattribute\fP. The default is not
