@@ -254,7 +254,7 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 [
 	ol_DB_LIB=ifelse($2,,,$2)
 	ol_LIBS=$LIBS
-	LIBS="$ol_DB_LIB $LIBS"
+	LIBS="$ol_DB_LIB $LTHREAD_LIBS $LIBS"
 
 	AC_TRY_LINK([
 #ifdef HAVE_DB_185_H
@@ -328,8 +328,9 @@ dnl Check if Berkeley DB supports DB_THREAD
 AC_DEFUN([OL_BERKELEY_DB_THREAD],
 [AC_CACHE_CHECK([for Berkeley DB thread support], [ol_cv_berkeley_db_thread], [
 	ol_LIBS="$LIBS"
+	LIBS="$LTHREAD_LIBS $LIBS"
 	if test $ol_cv_lib_db != yes ; then
-		LIBS="$ol_cv_lib_db"
+		LIBS="$ol_cv_lib_db $LIBS"
 	fi
 
 	AC_TRY_RUN([
