@@ -85,11 +85,6 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
-#ifdef BDB_PSEARCH
-	LDAP_LIST_INIT (&bdb->bi_psearch_list);
-	ldap_pvt_thread_rdwr_init ( &bdb->bi_pslist_rwlock );
-#endif
-
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
@@ -467,68 +462,6 @@ bdb_db_destroy( BackendDB *be )
 		ldap_pvt_thread_rdwr_destroy( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_destroy( &bdb->bi_idl_tree_lrulock );
 	}
-
-#ifdef BDB_PSEARCH
-	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_pslist_rwlock );
-	ps = LDAP_LIST_FIRST( &bdb->bi_psearch_list );
-
-	if ( ps ) {
-		psn = LDAP_LIST_NEXT( ps, o_ps_link );
-
-		saved_tmpmemctx = ps->o_tmpmemctx;
-
-		if (!BER_BVISNULL(&ps->o_req_dn)) {
-			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->o_req_ndn)) {
-			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->ors_filterstr)) {
-			slap_sl_free(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
-		}
-		if (ps->ors_filter != NULL) {
-			filter_free_x(ps, ps->ors_filter);
-		}
-		if ( ps->ors_attrs != NULL) {
-			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
-		}
-
-		slap_op_free( ps );
-
-		if ( saved_tmpmemctx ) {
-			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
-		}
-	}
-
-	while ( psn ) {
-		ps = psn;
-		psn = LDAP_LIST_NEXT( ps, o_ps_link );
-
-		saved_tmpmemctx = ps->o_tmpmemctx;
-
-		if (!BER_BVISNULL(&ps->o_req_dn)) {
-			slap_sl_free( ps->o_req_dn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->o_req_ndn)) {
-			slap_sl_free( ps->o_req_ndn.bv_val, ps->o_tmpmemctx );
-		}
-		if (!BER_BVISNULL(&ps->ors_filterstr)) {
-			slap_sl_free(ps->ors_filterstr.bv_val, ps->o_tmpmemctx);
-		}
-		if (ps->ors_filter != NULL) {
-			filter_free_x(ps, ps->ors_filter);
-		}
-		if ( ps->ors_attrs != NULL) {
-			ps->o_tmpfree(ps->ors_attrs, ps->o_tmpmemctx);
-		}
-
-		slap_op_free( ps );
-
-		if ( saved_tmpmemctx ) {
-			slap_sl_mem_destroy( NULL, saved_tmpmemctx );
-		}
-	}
-#endif
 
 	ch_free( bdb );
 	be->be_private = NULL;

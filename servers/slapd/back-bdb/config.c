@@ -194,48 +194,7 @@ bdb_db_config(
 		}
 		if ( !( slapMode & SLAP_TOOL_MODE ) )
 			bdb->bi_idl_cache_max_size = atoi( argv[1] );
-#ifdef BDB_PSEARCH
-	} else if ( strcasecmp( argv[0], "sessionlog" ) == 0 ) {
-		int se_id = 0, se_size = 0;
-		struct slap_session_entry *sent;
-		if ( argc < 3 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s: line %d: missing arguments in \"sessionlog <id> <size>\""
-				" line\n", fname, lineno, 0 );
-			return( 1 );
-		}
 
-		se_id = atoi( argv[1] );
-
-		if ( se_id < 0 || se_id > 999 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s: line %d: session log id %d is out of range [0..999]\n",
-				fname, lineno , se_id );
-			return( 1 );
-		}
-
-		se_size = atoi( argv[2] );
-		if ( se_size < 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"%s: line %d: session log size %d is negative\n",
-				fname, lineno , se_size );
-			return( 1 );
-		}
-
-		LDAP_LIST_FOREACH( sent, &bdb->bi_session_list, se_link ) {
-			if ( sent->se_id == se_id ) {
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: session %d already exists\n",
-					fname, lineno , se_id );
-				return( 1 );
-			}
-		}
-		sent = (struct slap_session_entry *) ch_calloc( 1,
-						sizeof( struct slap_session_entry ));
-		sent->se_id = se_id;
-		sent->se_size = se_size;
-		LDAP_LIST_INSERT_HEAD( &bdb->bi_session_list, sent, se_link );
-#endif /* BDB_PSEARCH */
 	/* anything else */
 	} else {
 		return SLAP_CONF_UNKNOWN;
