@@ -1364,16 +1364,13 @@ slapi_send_ldap_result(
 	rs.sr_ctrls = NULL;
 
 	if ( err == LDAP_SASL_BIND_IN_PROGRESS ) {
-		rs.sr_type = REP_SASL;
 		slapi_pblock_get( pb, SLAPI_BIND_RET_SASLCREDS, (void *) &rs.sr_sasldata );
-
 		send_ldap_sasl( op, &rs );
 		return;
 	}
 
 	slapi_pblock_get( pb, SLAPI_EXT_OP_RET_OID, &extOID );
 	if ( extOID != NULL ) {
-		rs.sr_type = REP_EXTENDED;
 		rs.sr_rspoid = extOID;
 		slapi_pblock_get( pb, SLAPI_EXT_OP_RET_VALUE, &rs.sr_rspdata );
 		send_ldap_extended( op, &rs );
@@ -1419,7 +1416,6 @@ slapi_send_ldap_search_entry(
 		an[i].an_name.bv_val = NULL;
 	}
 
-	rs.sr_type = REP_SEARCH;
 	rs.sr_err = LDAP_SUCCESS;
 	rs.sr_matched = NULL;
 	rs.sr_text = NULL;
@@ -1855,7 +1851,6 @@ slapi_send_ldap_extended_response(
 #ifdef LDAP_SLAPI
 	SlapReply	rs;
 
-	rs.sr_type = REP_EXTENDED;
 	rs.sr_err = errornum;
 	rs.sr_matched = NULL;
 	rs.sr_text = NULL;

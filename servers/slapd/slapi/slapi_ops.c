@@ -9,9 +9,15 @@
  * given to IBM Corporation. This software is provided ``as is''
  * without express or implied warranty.
  */
+/*
+ * Portions (C) Copyright PADL Software Pty Ltd. 2003
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is 
+ * given to PADL Software Pty Ltd. This software is provided ``as is'' 
+ * without express or implied warranty.
+ */
 
 #include "portable.h"
-//#include "../../../libraries/liblber/lber-int.h"
 #include <slap.h>
 #include <lber_pvt.h>
 #include <slapi.h>
@@ -115,7 +121,7 @@ internal_search_reference(
 }
 
 static Connection *
-fakeConnection(
+slapiConnectionInit(
 	char *DN, 
 	int OpType ) 
 { 
@@ -216,6 +222,33 @@ fakeConnection(
 	pConn->c_send_search_reference = internal_search_reference;
 
 	return pConn;
+}
+
+static void slapiConnectionDestroy( Connection **pConn )
+{
+	Connection *conn = *pConn;
+	Operation *op;
+
+	if ( pConn == NULL ) {
+		return;
+	}
+
+	op = (Operation *)conn->c_pending_ops.stqh_first;
+
+	if ( op->o_req_dn.bv_val != NULL ) {
+		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
+	}
+	if ( op->o_req_ndn.bv_val != NULL ) {
+		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
+	}
+
+	if ( conn->c_sb != NULL ) {
+		ber_sockbuf_free( conn->c_sb );
+	}
+	if ( op != NULL ) {
+		slapi_ch_free( (void **)&op );
+	}
+	slapi_ch_free( (void **)pConn );
 }
 
 /*
@@ -323,7 +356,8 @@ LDAPModToEntry(
 	dn.bv_len = strlen(ldn);
 
 	rc = dnPrettyNormal( NULL, &dn, &pEntry->e_name, &pEntry->e_nname );
-	if (rc != LDAP_SUCCESS) goto cleanup;
+	if ( rc != LDAP_SUCCESS )
+		goto cleanup;
 
 	if ( rc == LDAP_SUCCESS ) {
 		for ( i=0, pMod=mods[0]; rc == LDAP_SUCCESS && pMod != NULL; pMod=mods[++i]) {
@@ -434,9 +468,12 @@ LDAPModToEntry(
 
 cleanup:
 
-	if ( dn.bv_val ) slapi_ch_free( (void **)&dn.bv_val );
-	if ( op ) slapi_ch_free( (void **)&op );
-	if ( modlist != NULL ) freeMods( modlist );
+	if ( dn.bv_val )
+		slapi_ch_free( (void **)&dn.bv_val );
+	if ( op )
+		slapi_ch_free( (void **)&op );
+	if ( modlist != NULL )
+		freeMods( modlist );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( pEntry != NULL ) {
 			slapi_entry_free( pEntry );
@@ -463,28 +500,26 @@ slapi_delete_internal(
 	LDAPControl **controls, 
 	int log_change )
 {
-#if defined(LDAP_SLAPI)
+#ifdef LDAP_SLAPI
 	Backend			*be;
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
 	Slapi_PBlock		*pSavePB = NULL;
 	SlapReply		rs = { REP_RESULT };
+	struct berval		dn = { 0, NULL };
 
-	struct berval dn  = { 0, NULL };
-
-	int				rc=LDAP_SUCCESS;
-	int				manageDsaIt = 0;
-	int				isCritical;
+	int			manageDsaIt = 0;
+	int			isCritical;
 
 	if ( ldn == NULL ) {
-		rc = LDAP_PARAM_ERROR; 
+		rs.sr_err = LDAP_PARAM_ERROR; 
 		goto cleanup;
 	}
 
-	pConn = fakeConnection( NULL, LDAP_REQ_DELETE );
+	pConn = slapiConnectionInit( NULL, LDAP_REQ_DELETE );
 	if (pConn == NULL) {
-		rc = LDAP_NO_MEMORY;
+		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 
@@ -494,8 +529,9 @@ slapi_delete_internal(
 
 	dn.bv_val = slapi_ch_strdup(ldn);
 	dn.bv_len = strlen(ldn);
-	rc = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
-	if ( rc != LDAP_SUCCESS ) goto cleanup;
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	if ( rs.sr_err != LDAP_SUCCESS )
+		goto cleanup;
 
 	if ( slapi_control_present( controls, 
 			SLAPI_CONTROL_MANAGEDSAIT_OID, NULL, &isCritical) ) {
@@ -504,7 +540,7 @@ slapi_delete_internal(
 
 	be = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
-		rc =  LDAP_PARTIAL_RESULTS;
+		rs.sr_err = LDAP_PARTIAL_RESULTS;
 		goto cleanup;
 	}
 
@@ -514,43 +550,37 @@ slapi_delete_internal(
 	if ( be->be_delete ) {
 		int repl_user = be_isupdate( be, &op->o_ndn );
 		if ( !be->be_update_ndn.bv_len || repl_user ) {
-			rc = (*be->be_delete)( op, &rs );
-			if ( rc == 0 ) {
-				if (log_change) {
+			if ( (*be->be_delete)( op, &rs ) == 0 ) {
+				if ( log_change ) {
 					replog( op );
 				}
-				rc = LDAP_SUCCESS;
 			} else {
-				rc = LDAP_OTHER;
+				rs.sr_err = LDAP_OTHER;
 			}
         	} else {
-			rc = LDAP_REFERRAL;
+			rs.sr_err = LDAP_REFERRAL;
         	}
 	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
 
 cleanup:
-	if (pPB != NULL) 
-		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
-
-	if ( dn.bv_val )
-		slapi_ch_free( (void **)&dn.bv_val );
-	if ( op->o_req_dn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
-	if ( op->o_req_ndn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
-
-	if ( pConn != NULL ) {
-		if ( pConn->c_sb != NULL ) ber_sockbuf_free( pConn->c_sb );
-		if ( op ) slapi_ch_free( (void **)&op );
-		pSavePB = pPB;
-		free( pConn );
+	if ( pPB != NULL ) {
+		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 	}
-	
+	if ( dn.bv_val ) {
+		slapi_ch_free( (void **)&dn.bv_val );
+	}
+	if ( pConn != NULL ) {
+		pSavePB = pPB;
+	}
+
+	slapiConnectionDestroy( &pConn );
+
 	return (pSavePB);
-#endif /* LDAP_SLAPI */
+#else
 	return NULL;
+#endif /* LDAP_SLAPI */
 }
 
 Slapi_PBlock * 
@@ -559,7 +589,7 @@ slapi_add_entry_internal(
 	LDAPControl **controls, 
 	int log_changes ) 
 {
-#if defined(LDAP_SLAPI)
+#ifdef LDAP_SLAPI
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL, *pSavePB = NULL;
@@ -567,17 +597,16 @@ slapi_add_entry_internal(
 
 	int			manageDsaIt = 0;
 	int			isCritical;
-	int			rc = LDAP_SUCCESS;
 	SlapReply		rs = { REP_RESULT };
 
 	if ( e == NULL ) {
-		rc = LDAP_PARAM_ERROR;
+		rs.sr_err = LDAP_PARAM_ERROR;
 		goto cleanup;
 	}
 	
-	pConn = fakeConnection( NULL, LDAP_REQ_ADD );
+	pConn = slapiConnectionInit( NULL, LDAP_REQ_ADD );
 	if ( pConn == NULL ) {
-		rc = LDAP_NO_MEMORY;
+		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 
@@ -592,7 +621,7 @@ slapi_add_entry_internal(
 
 	be = select_backend( &e->e_nname, manageDsaIt, 0 );
 	if ( be == NULL ) {
-		rc = LDAP_PARTIAL_RESULTS;
+		rs.sr_err = LDAP_PARTIAL_RESULTS;
 		goto cleanup;
 	}
 
@@ -607,30 +636,30 @@ slapi_add_entry_internal(
 				if ( log_changes ) {
 					replog( op );
 				}
-				rc = LDAP_SUCCESS;
 			}
 		} else {
-			rc = LDAP_REFERRAL;
+			rs.sr_err = LDAP_REFERRAL;
 		}
 	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
 
 cleanup:
 
 	if ( pPB != NULL ) {
-		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
+		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 	}
 
 	if ( pConn != NULL ) {
-		if ( pConn->c_sb != NULL ) ber_sockbuf_free( pConn->c_sb );
-		if ( op != NULL ) slapi_ch_free( (void **)&op );
 		pSavePB = pPB;
-		free( pConn );
 	}
+
+	slapiConnectionDestroy( &pConn );
+
 	return( pSavePB );
-#endif /* LDAP_SLAPI */
+#else
 	return NULL;
+#endif /* LDAP_SLAPI */
 }
 
 
@@ -641,11 +670,11 @@ slapi_add_internal(
 	LDAPControl **controls, 
 	int log_changes  ) 
 {
-#if defined(LDAP_SLAPI)
+#ifdef LDAP_SLAPI
 	LDAPMod			*pMod = NULL;
 	Slapi_PBlock		*pb = NULL;
 	Entry			*pEntry = NULL;
-	int			i, rc=LDAP_SUCCESS;
+	int			i, rc = LDAP_SUCCESS;
 
 	if ( mods == NULL || *mods == NULL || dn == NULL || *dn == '\0' ) {
 		rc = LDAP_PARAM_ERROR ;
@@ -678,8 +707,9 @@ slapi_add_internal(
 	}
 
 	return(pb);
-#endif /* LDAP_SLAPI */
+#else
 	return NULL;
+#endif /* LDAP_SLAPI */
 }
 
 /* Function : slapi_modrdn_internal
@@ -702,8 +732,7 @@ slapi_modrdn_internal(
 	LDAPControl **controls, 
 	int log_change )
 {
-#if defined(LDAP_SLAPI)
-	int			rc = LDAP_SUCCESS;
+#ifdef LDAP_SLAPI
 	struct berval		dn = { 0, NULL };
 	struct berval		newrdn = { 0, NULL };
 	Connection		*pConn = NULL;
@@ -715,9 +744,9 @@ slapi_modrdn_internal(
 	int			isCritical;
 	SlapReply		rs = { REP_RESULT };
 
-	pConn = fakeConnection( NULL,  LDAP_REQ_MODRDN);
+	pConn = slapiConnectionInit( NULL,  LDAP_REQ_MODRDN);
 	if ( pConn == NULL) {
-		rc = LDAP_NO_MEMORY;
+		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 
@@ -732,7 +761,7 @@ slapi_modrdn_internal(
 
 	be = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
-		rc =  LDAP_PARTIAL_RESULTS;
+		rs.sr_err =  LDAP_PARTIAL_RESULTS;
 		goto cleanup;
 	}
 
@@ -742,21 +771,21 @@ slapi_modrdn_internal(
 	dn.bv_val = slapi_ch_strdup( olddn );
 	dn.bv_len = strlen( olddn );
 
-	rc = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
-	if ( rc != LDAP_SUCCESS ) {
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
 	if ( op->o_req_dn.bv_len == 0 ) {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 		goto cleanup;
 	}
 
 	newrdn.bv_val = slapi_ch_strdup( lnewrdn );
 	newrdn.bv_len = strlen( lnewrdn );
 
-	rc = dnPrettyNormal( NULL, &newrdn, &op->oq_modrdn.rs_newrdn, &op->oq_modrdn.rs_nnewrdn );
-	if ( rc != LDAP_SUCCESS ) {
+	rs.sr_err = dnPrettyNormal( NULL, &newrdn, &op->oq_modrdn.rs_newrdn, &op->oq_modrdn.rs_nnewrdn );
+	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
@@ -771,37 +800,28 @@ slapi_modrdn_internal(
 	if ( be->be_modrdn ) {
 		int repl_user = be_isupdate( be, &op->o_ndn );
 		if ( !be->be_update_ndn.bv_len || repl_user ) {
-			rc = (*be->be_modrdn)( op, &rs );
-			if ( rc == 0 ) {
+			if ( (*be->be_modrdn)( op, &rs ) == 0 ) {
 				if ( log_change ) {
 					replog( op );
 				}
-				rc = LDAP_SUCCESS;
-
 			} else {
-				rc = LDAP_OTHER;
+				rs.sr_err = LDAP_OTHER;
 			}
-
 		} else {
-			rc = LDAP_REFERRAL;
+			rs.sr_err = LDAP_REFERRAL;
 		}
-
 	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
 
 cleanup:
 
 	if ( pPB != NULL ) {
-		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
+		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 	}
 	
 	if ( dn.bv_val )
 		slapi_ch_free( (void **)&dn.bv_val );
-	if ( op->o_req_dn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
-	if ( op->o_req_ndn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
 
 	if ( newrdn.bv_val )
 		slapi_ch_free( (void **)&newrdn.bv_val );
@@ -811,17 +831,15 @@ cleanup:
 		slapi_ch_free( (void **)&op->oq_modrdn.rs_nnewrdn.bv_val );
 
 	if ( pConn != NULL ) {
-		if ( pConn->c_sb != NULL )
-			ber_sockbuf_free( pConn->c_sb );
-		if ( op != NULL )
-			slapi_ch_free( (void **)&op );
 		pSavePB = pPB;
-		free( pConn );
 	}
 
+	slapiConnectionDestroy( &pConn );
+
 	return( pSavePB );
-#endif /* LDAP_SLAPI */
+#else
 	return NULL;
+#endif /* LDAP_SLAPI */
 }
 
 /* Function : slapi_modify_internal
@@ -841,8 +859,8 @@ slapi_modify_internal(
 	LDAPControl **controls, 
 	int log_change )
 {
-#if defined(LDAP_SLAPI)
-	int			i, rc = LDAP_SUCCESS;
+#ifdef LDAP_SLAPI
+	int			i;
 	Connection		*pConn = NULL;
 	Operation		*op = NULL;
 	Slapi_PBlock		*pPB = NULL;
@@ -863,13 +881,13 @@ slapi_modify_internal(
 	SlapReply		rs = { REP_RESULT };
 
 	if ( mods == NULL || *mods == NULL || ldn == NULL ) {
-		rc = LDAP_PARAM_ERROR ;
+		rs.sr_err = LDAP_PARAM_ERROR ;
 		goto cleanup;
 	}
 
-	pConn = fakeConnection( NULL,  LDAP_REQ_MODIFY );
+	pConn = slapiConnectionInit( NULL,  LDAP_REQ_MODIFY );
 	if ( pConn == NULL ) {
-		rc = LDAP_NO_MEMORY;
+		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 
@@ -879,8 +897,8 @@ slapi_modify_internal(
 
 	dn.bv_val = slapi_ch_strdup( ldn );
 	dn.bv_len = strlen( ldn );
-	rc = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
-	if ( rc != LDAP_SUCCESS ) {
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
@@ -891,24 +909,28 @@ slapi_modify_internal(
 
 	be = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
-		rc =  LDAP_PARTIAL_RESULTS;
+		rs.sr_err = LDAP_PARTIAL_RESULTS;
 		goto cleanup;
     	}
 
 	op->o_dn = pConn->c_dn = be->be_rootdn;
 	op->o_ndn = pConn->c_ndn = be->be_rootndn;
 
-	for ( i = 0, pMod = mods[0]; rc == LDAP_SUCCESS && pMod != NULL; 
-			pMod = mods[++i] ) {
+	for ( i = 0, pMod = mods[0];
+		rs.sr_err == LDAP_SUCCESS && pMod != NULL; 
+		pMod = mods[++i] )
+	{
 		Modifications *mod;
+
 		if ( (pMod->mod_op & LDAP_MOD_BVALUES) != 0 ) {
 			/*
 			 * attr values are in berval format
 			 * convert an array of pointers to bervals
 			 * to an array of bervals
 			 */
-			rc = bvptr2obj( pMod->mod_bvalues, &bv );
-			if ( rc != LDAP_SUCCESS ) goto cleanup;
+			rs.sr_err = bvptr2obj( pMod->mod_bvalues, &bv );
+			if ( rs.sr_err != LDAP_SUCCESS )
+				goto cleanup;
 			tmp.sml_type.bv_val = pMod->mod_type;
 			tmp.sml_type.bv_len = strlen( pMod->mod_type );
 			tmp.sml_bvalues = bv;
@@ -927,8 +949,9 @@ slapi_modify_internal(
 			mod->sml_nvalues = tmp.sml_nvalues;
 #endif
 		} else { 
-			rc = values2obj( pMod->mod_values, &bv );
-			if ( rc != LDAP_SUCCESS ) goto cleanup;
+			rs.sr_err = values2obj( pMod->mod_values, &bv );
+			if ( rs.sr_err != LDAP_SUCCESS )
+				goto cleanup;
 			tmp.sml_type.bv_val = pMod->mod_type;
 			tmp.sml_type.bv_len = strlen( pMod->mod_type );
 			tmp.sml_bvalues = bv;
@@ -953,7 +976,7 @@ slapi_modify_internal(
 		switch( pMod->mod_op ) {
 		case LDAP_MOD_ADD:
 		if ( mod->sml_bvalues == NULL ) {
-			rc = LDAP_PROTOCOL_ERROR;
+			rs.sr_err = LDAP_PROTOCOL_ERROR;
 			goto cleanup;
 		}
 
@@ -963,14 +986,14 @@ slapi_modify_internal(
 		break;
 
 		default:
-			rc = LDAP_PROTOCOL_ERROR;
+			rs.sr_err = LDAP_PROTOCOL_ERROR;
 			goto cleanup;
 		}
 	} 
 	*modtail = NULL;
 
 	if ( op->o_req_ndn.bv_len == 0 ) {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 		goto cleanup;
 	}
 
@@ -984,61 +1007,55 @@ slapi_modify_internal(
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof( textbuf );
 
-			rc = slap_mods_check( modlist, update,
+			rs.sr_err = slap_mods_check( modlist, update,
 					&text, textbuf, textlen );
-			if (rc != LDAP_SUCCESS) {
+			if ( rs.sr_err != LDAP_SUCCESS ) {
 				goto cleanup;
 			}
 
 			if ( !repl_user ) {
-				rc = slap_mods_opattrs( op, modlist,
+				rs.sr_err = slap_mods_opattrs( op, modlist,
 						modtail, &text, textbuf, 
 						textlen );
-				if (rc != LDAP_SUCCESS) {
+				if ( rs.sr_err != LDAP_SUCCESS ) {
 					goto cleanup;
 				}
 			}
-			rc = (*be->be_modify)( op, &rs );
-			if ( rc == 0 ) {
+			if ( (*be->be_modify)( op, &rs ) == 0 ) {
 				if ( log_change ) {
 					replog( op );
 				}
-				rc = LDAP_SUCCESS;
 			} else {
-				rc = LDAP_OTHER;
+				rs.sr_err = LDAP_OTHER;
 			}
 		} else {
-			rc = LDAP_REFERRAL;
+			rs.sr_err = LDAP_REFERRAL;
 		}
 	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
 
 cleanup:
 
 	if ( pPB != NULL ) 
-		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
+		slapi_pblock_set( pPB, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 
 	if ( dn.bv_val )
 		slapi_ch_free( (void **)&dn.bv_val );
-	if ( op->o_req_dn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
-	if ( op->o_req_ndn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
 
-	if ( modlist != NULL ) freeMods( modlist );
+	if ( modlist != NULL )
+		freeMods( modlist );
 
 	if ( pConn != NULL ) {
-		if ( pConn->c_sb != NULL ) ber_sockbuf_free( pConn->c_sb );
-		if ( op != NULL ) slapi_ch_free( (void **)&op );
 		pSavePB = pPB;
-		free( pConn );
 	}
 
-	return ( pSavePB );
+	slapiConnectionDestroy( &pConn );
 
-#endif /* LDAP_SLAPI */
+	return ( pSavePB );
+#else
 	return NULL;
+#endif /* LDAP_SLAPI */
 }
 
 Slapi_PBlock *
@@ -1051,7 +1068,7 @@ slapi_search_internal_bind(
 	char **attrs, 
 	int attrsonly ) 
 {	
-#if defined(LDAP_SLAPI)
+#ifdef LDAP_SLAPI
 	Backend			*be;
 	Connection		*c;
 	Operation		*op = NULL;
@@ -1065,14 +1082,13 @@ slapi_search_internal_bind(
 
 	int			manageDsaIt = 0; 
 	int			isCritical;
-
-	int			i, rc = LDAP_SUCCESS;
+	int			i;
 
 	SlapReply		rs = { REP_RESULT };
 
-	c = fakeConnection( NULL, LDAP_REQ_SEARCH );
-	if (c == NULL) {
-		rc = LDAP_NO_MEMORY;
+	c = slapiConnectionInit( NULL, LDAP_REQ_SEARCH );
+	if ( c == NULL ) {
+		rs.sr_err = LDAP_NO_MEMORY;
 		goto cleanup;
 	}
 
@@ -1083,21 +1099,21 @@ slapi_search_internal_bind(
 	dn.bv_val = slapi_ch_strdup(ldn);
 	dn.bv_len = strlen(ldn);
 
-	rc = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
-	if ( rc != LDAP_SUCCESS ) {
+	rs.sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn );
+	if ( rs.sr_err != LDAP_SUCCESS ) {
 		goto cleanup;
 	}
 
 	if ( scope != LDAP_SCOPE_BASE && 
 		 	scope != LDAP_SCOPE_ONELEVEL && 
 		 	scope != LDAP_SCOPE_SUBTREE ) {
-		rc = LDAP_PROTOCOL_ERROR;
+		rs.sr_err = LDAP_PROTOCOL_ERROR;
 		goto cleanup;
 	}
 
 	filter = slapi_str2filter(filStr);
 	if ( filter == NULL ) {
-		rc = LDAP_PROTOCOL_ERROR;
+		rs.sr_err = LDAP_PROTOCOL_ERROR;
 		goto cleanup;
 	}
 
@@ -1121,7 +1137,8 @@ slapi_search_internal_bind(
 
 	memset( &rs, 0, sizeof(rs) );
 	rs.sr_type = REP_RESULT;
-	rs.sr_err = LDAP_OTHER;
+	rs.sr_err = LDAP_SUCCESS;
+	rs.sr_entry = NULL; /* paranoia */
 
 	if ( scope == LDAP_SCOPE_BASE ) {
 		rs.sr_entry = NULL;
@@ -1134,9 +1151,9 @@ slapi_search_internal_bind(
 			send_ldap_result( op, &rs );
 			goto cleanup;
 		} else if ( rs.sr_entry != NULL ) {
-			rc = test_filter( op, rs.sr_entry, filter );
+			rs.sr_err = test_filter( op, rs.sr_entry, filter );
 
-			if( rc == LDAP_COMPARE_TRUE ) {
+			if ( rs.sr_err == LDAP_COMPARE_TRUE ) {
 				rs.sr_type = REP_SEARCH;
 				rs.sr_err = LDAP_SUCCESS;
 				rs.sr_attrs = an;
@@ -1150,8 +1167,6 @@ slapi_search_internal_bind(
 			rs.sr_err = LDAP_SUCCESS;
 
 			send_ldap_result( op, &rs );
-
-			rc = LDAP_SUCCESS;
 
 			goto cleanup;
 		}
@@ -1173,9 +1188,9 @@ slapi_search_internal_bind(
 	be = select_backend( &op->o_req_ndn, manageDsaIt, 0 );
 	if ( be == NULL ) {
 		if ( manageDsaIt == 1 ) {
-			rc = LDAP_NO_SUCH_OBJECT;
+			rs.sr_err = LDAP_NO_SUCH_OBJECT;
 		} else {
-			rc = LDAP_PARTIAL_RESULTS;
+			rs.sr_err = LDAP_PARTIAL_RESULTS;
 		}
 		goto cleanup;
 	} 
@@ -1193,42 +1208,37 @@ slapi_search_internal_bind(
 	op->oq_search.rs_filterstr = fstr;
 
 	if ( be->be_search ) {
-		rc = (*be->be_search)( op, &rs );
-		if ( rc == 0 ) {
-			rc = LDAP_SUCCESS;
-		} else {
-			rc = LDAP_OTHER;
+		if ( (*be->be_search)( op, &rs ) != 0 ) {
+			rs.sr_err = LDAP_OTHER;
 		}
 	} else {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rs.sr_err = LDAP_UNWILLING_TO_PERFORM;
 	}
 
 cleanup:
 
 	if ( ptr != NULL )
-		slapi_pblock_set( ptr, SLAPI_PLUGIN_INTOP_RESULT, (void *)rc );
+		slapi_pblock_set( ptr, SLAPI_PLUGIN_INTOP_RESULT, (void *)rs.sr_err );
 
 	if ( dn.bv_val )
 		slapi_ch_free( (void **)&dn.bv_val );
-	if ( op->o_req_dn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_dn.bv_val );
-	if ( op->o_req_ndn.bv_val )
-		slapi_ch_free( (void **)&op->o_req_ndn.bv_val );
-
-	if ( filter ) slapi_filter_free( filter, 1 );
-	if ( fstr.bv_val ) free ( fstr.bv_val );
-
-	if ( an != NULL ) free( an );
+	if ( filter )
+		slapi_filter_free( filter, 1 );
+	if ( fstr.bv_val )
+		slapi_ch_free( (void **)&fstr.bv_val );
+	if ( an != NULL )
+		slapi_ch_free( (void **)&an );
 
 	if ( c != NULL ) {
-		if ( c->c_sb != NULL ) ber_sockbuf_free( c->c_sb );
-		if ( op != NULL ) slapi_ch_free( (void **)&op );
 		pSavePB = ptr;
-		free( c );
     	}
+
+	slapiConnectionDestroy( &c );
+
 	return( pSavePB );
-#endif /* LDAP_SLAPI */
+#else
 	return NULL;
+#endif /* LDAP_SLAPI */
 }
 
 Slapi_PBlock * 
@@ -1240,7 +1250,7 @@ slapi_search_internal(
 	char **attrs,
 	int attrsonly ) 
 {
-#if defined(LDAP_SLAPI)
+#ifdef LDAP_SLAPI
 	return slapi_search_internal_bind( NULL, base, scope, filStr,
 			controls, attrs, attrsonly );
 #else
