@@ -105,8 +105,35 @@ void
 ldap_pvt_tls_destroy( void )
 {
 	SSL_CTX_free(tls_def_ctx);
+	tls_def_ctx = NULL;
+
 	EVP_cleanup();
 	ERR_free_strings();
+
+	if ( tls_opt_certfile ) {
+		LDAP_FREE( tls_opt_certfile );
+		tls_opt_certfile = NULL;
+	}
+	if ( tls_opt_keyfile ) {
+		LDAP_FREE( tls_opt_keyfile );
+		tls_opt_keyfile = NULL;
+	}
+	if ( tls_opt_cacertfile ) {
+		LDAP_FREE( tls_opt_cacertfile );
+		tls_opt_cacertfile = NULL;
+	}
+	if ( tls_opt_cacertdir ) {
+		LDAP_FREE( tls_opt_cacertdir );
+		tls_opt_cacertdir = NULL;
+	}
+	if ( tls_opt_ciphersuite ) {
+		LDAP_FREE( tls_opt_ciphersuite );
+		tls_opt_ciphersuite = NULL;
+	}
+	if ( tls_opt_randfile ) {
+		LDAP_FREE( tls_opt_randfile );
+		tls_opt_randfile = NULL;
+	}
 }
 
 /*
@@ -968,7 +995,8 @@ ldap_pvt_tls_get_option( LDAP *ld, int option, void *arg )
 		*(int *)arg = tls_opt_require_cert;
 		break;
 	case LDAP_OPT_X_TLS_RANDOM_FILE:
-		*(char **)arg = tls_opt_randfile;
+		*(char **)arg = tls_opt_randfile ?
+			LDAP_STRDUP( tls_opt_randfile ) : NULL;
 		break;
 	default:
 		return -1;
@@ -1296,7 +1324,7 @@ ldap_start_tls_s ( LDAP *ld,
 
 	/* XXYYZ: this initiates operation only on default connection! */
 
-	if ( ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
+	if ( ld->ld_sb != NULL && ldap_pvt_tls_inplace( ld->ld_sb ) != 0 ) {
 		return LDAP_LOCAL_ERROR;
 	}
 

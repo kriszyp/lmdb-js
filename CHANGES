@@ -5,6 +5,7 @@ OpenLDAP 2.0.20 Engineering
 	Fixed back-passwd db_config bug
 	Fixed -lldap cache debug bug (ITS#1501)
 	Fixed -lldap dnssrv free bug
+	Fixed -lldap Start TLS first op bug
 	Fixed slurpd TLS non-critical/critical bug (ITS#1527)
 	Fixed slurpd SASL password bug (ITS#1528)
 	Build environment
