@@ -81,13 +81,21 @@ main( int argc, char **argv )
 		fmt[1] = '\0';
 
 		printf("decode: format %s\n", fmt );
-		rc = ber_scanf( ber, fmt, buf );
+		rc = ber_scanf( ber, fmt, &buf[0], &len );
 
 		if( rc == LBER_ERROR ) {
 			perror( "ber_scanf" );
 			return( EXIT_FAILURE );
 		}
 	}
+
+	if(( tag = ber_get_next( sb, &len, ber) ) == LBER_ERROR ) {
+		perror( "ber_get_next" );
+		return( EXIT_FAILURE );
+	}
+
+	printf("decode: message tag 0x%lx and length %ld\n",
+		tag, len );
 
 	ber_sockbuf_free( sb );
 	return( EXIT_SUCCESS );

@@ -484,7 +484,7 @@ va_dcl
 
 		case 'l':	/* length of next item */
 			l = va_arg( ap, long * );
-			rc = ber_peek_tag( ber, (unsigned long *)l );
+			rc = ber_peek_tag( ber, l );
 			break;
 
 		case 'n':	/* null */
@@ -494,7 +494,7 @@ va_dcl
 		case 's':	/* octet string - in a buffer */
 			s = va_arg( ap, char * );
 			l = va_arg( ap, long * );
-			rc = ber_get_stringb( ber, s, (unsigned long *)l );
+			rc = ber_get_stringb( ber, s, l );
 			break;
 
 		case 'o':	/* octet string in a supplied berval */
@@ -511,17 +511,17 @@ va_dcl
 		case 'B':	/* bit string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
 			l = va_arg( ap, long * ); /* for length, in bits */
-			rc = ber_get_bitstringa( ber, ss, (unsigned long *)l );
+			rc = ber_get_bitstringa( ber, ss, l );
 			break;
 
 		case 't':	/* tag of next item */
-			i = va_arg( ap, int * );
-			*i = rc = ber_peek_tag( ber, &len );
+			l = va_arg( ap, long * );
+			*l = rc = ber_peek_tag( ber, &len );
 			break;
 
 		case 'T':	/* skip tag of next item */
-			i = va_arg( ap, int * );
-			*i = rc = ber_skip_tag( ber, &len );
+			l = va_arg( ap, long * );
+			*l = rc = ber_skip_tag( ber, &len );
 			break;
 
 		case 'v':	/* sequence of strings */
@@ -652,17 +652,19 @@ va_dcl
 			break;
 
 		case 'b':	/* boolean */
-		case 't':	/* tag of next item */
-		case 'T':	/* skip tag of next item */
 			(void) va_arg( ap, int * );
 			break;
 
 		case 's':	/* octet string - in a buffer */
 			(void) va_arg( ap, char * );
-			/* Fall through */
+			(void) va_arg( ap, long * );
+			break;
+
 		case 'e':	/* enumerated */
 		case 'i':	/* int */
 		case 'l':	/* length of next item */
+		case 't':	/* tag of next item */
+		case 'T':	/* skip tag of next item */
 			(void) va_arg( ap, long * );
 			break;
 
@@ -712,15 +714,17 @@ va_dcl
 			}
 			break;
 
-#if 0		/* No action for these format characters */
 		case 'n':	/* null */
 		case 'x':	/* skip the next element - whatever it is */
 		case '{':	/* begin sequence */
 		case '[':	/* begin set */
 		case '}':	/* end sequence */
 		case ']':	/* end set */
-#endif
+			break;
 
+		default:
+			/* format should be good */
+			assert( 0 );
 		}
 	    }
 

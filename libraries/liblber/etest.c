@@ -11,6 +11,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <ac/socket.h>
 #include <ac/string.h>
@@ -54,7 +55,7 @@ main( int argc, char **argv )
 
 	if ( argc < 2 ) {
 		usage( argv[0] );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
 
 #ifdef HAVE_CONSOLE_H
@@ -64,7 +65,7 @@ main( int argc, char **argv )
 	if (( fd = open( "lber-test", O_WRONLY|O_CREAT|O_TRUNC|O_BINARY ))
 		< 0 ) {
 	    perror( "open" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
 
 #else
@@ -75,12 +76,18 @@ main( int argc, char **argv )
 
 	if( sb == NULL ) {
 		perror( "lber_sockbuf_alloc_fd" );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
 
 	if ( (ber = ber_alloc_t( LBER_USE_DER )) == NULL ) {
 		perror( "ber_alloc" );
-		exit( 1 );
+		return( EXIT_FAILURE );
+	}
+
+	fprintf(stderr, "encode: start\n" );
+	if( ber_printf( ber, "{" /*}*/ ) ) {
+		perror( "ber_printf {" /*}*/ );
+		return( EXIT_FAILURE );
 	}
 
 	for ( s = argv[1]; *s; s++ ) {
@@ -90,7 +97,7 @@ main( int argc, char **argv )
 		fmt[0] = *s;
 		fmt[1] = '\0';
 
-		printf("encode: %s\n", fmt );
+		fprintf(stderr, "encode: %s\n", fmt );
 		switch ( *s ) {
 		case 'i':	/* int */
 		case 'b':	/* boolean */
@@ -129,15 +136,21 @@ main( int argc, char **argv )
 
 		if( rc == -1 ) {
 			perror( "ber_printf" );
-			exit( 1 );
+			return( EXIT_FAILURE );
 		}
+	}
+
+	fprintf(stderr, "encode: end\n" );
+	if( ber_printf( ber, /*{*/ "}" ) == -1 ) {
+		perror( /*{*/ "ber_printf }" );
+		return( EXIT_FAILURE );
 	}
 
 	if ( ber_flush( sb, ber, 1 ) == -1 ) {
 		perror( "ber_flush" );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
 
 	ber_sockbuf_free( sb );
-	return( 0 );
+	return( EXIT_SUCCESS );
 }
