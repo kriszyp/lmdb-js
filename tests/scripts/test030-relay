@@ -69,6 +69,7 @@ cat /dev/null > $SEARCHOUT
 
 BASEDN="dc=example,dc=com"
 echo "searching base=\"$BASEDN\"..."
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -79,6 +80,7 @@ fi
 
 BASEDN="o=Example,c=US"
 echo "searching base=\"$BASEDN\"..."
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -89,6 +91,7 @@ fi
 
 BASEDN="o=Esempio,c=IT"
 echo "searching base=\"$BASEDN\"..."
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -99,6 +102,7 @@ fi
 
 BASEDN="o=Beispiel,c=DE"
 echo "searching base=\"$BASEDN\"..."
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -175,8 +179,19 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "searching base=\"$BASEDN\"..."
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
+$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "Search failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 BASEDN="o=Esempio,c=IT"
 echo "searching base=\"$BASEDN\"..."
+echo "# searching base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" >> $SEARCHOUT 2>&1
 RC=$?
 if test $RC != 0 ; then
@@ -191,6 +206,7 @@ echo "	attrs=\"'*' ref\""
 
 BASEDN="dc=example,dc=com"
 echo "	base=\"$BASEDN\"..."
+echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
 	-e manageDSAit >> $SEARCHOUT 2>&1
 RC=$?
@@ -202,6 +218,7 @@ fi
 
 BASEDN="o=Example,c=US"
 echo "	base=\"$BASEDN\"..."
+echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
 	-e manageDSAit >> $SEARCHOUT 2>&1
 RC=$?
@@ -213,6 +230,7 @@ fi
 
 BASEDN="o=Esempio,c=IT"
 echo "	base=\"$BASEDN\"..."
+echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" "*" ref \
 	-e manageDSAit >> $SEARCHOUT 2>&1
 RC=$?
@@ -227,6 +245,9 @@ FILTER="(seeAlso=cn=all staff,ou=Groups,$BASEDN)"
 echo "searching filter=\"$FILTER\""
 echo "	attrs=\"seeAlso\""
 echo "	base=\"$BASEDN\"..."
+echo "# searching filter=\"$FILTER\"" >> $SEARCHOUT
+echo "# 	attrs=\"seeAlso\"" >> $SEARCHOUT
+echo "# 	base=\"$BASEDN\"..." >> $SEARCHOUT
 $LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" "$FILTER" seeAlso \
 	>> $SEARCHOUT 2>&1
 RC=$?

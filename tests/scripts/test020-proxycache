@@ -23,6 +23,11 @@ if test $PROXYCACHE = pcacheno; then
 	exit 0
 fi 
 
+if test $BACKLDAP = "ldapno" ; then 
+	echo "LDAP backend not available, test skipped"
+	exit 0
+fi 
+
 mkdir -p $TESTDIR $DBDIR1 $DBDIR2
 
 # Test proxy caching:

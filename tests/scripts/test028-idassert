@@ -27,6 +27,11 @@ if test $BACKLDAP = "ldapno" ; then
 	exit 0
 fi 
 
+if test $RWM = rwmno ; then 
+	echo "Rewrite/remap overlay not available, test skipped"
+	exit 0
+fi 
+
 if test $WITH_SASL = "yes" ; then
 	if test $USE_SASL != "no" ; then
 		if test $USE_SASL = "yes" ; then
