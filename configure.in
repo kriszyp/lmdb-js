@@ -157,7 +157,7 @@ OL_ARG_WITH(ldap_module,[      --with-ldap-module	module type], static,
 	[static dynamic])
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
-	[auto db2 db mdbm gdbm manual])
+	[auto berkeley bcompat mdbm gdbm])
 OL_ARG_WITH(ldbm_module,[      --with-ldbm-module	module type], static,
 	[static dynamic])
 OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
@@ -363,8 +363,8 @@ elif test $ol_enable_bdb2 = yes ; then
 	dnl SLAPD with BDB2
 
 	if test $ol_with_ldbm_api != auto -a \
-		$ol_with_ldbm_api != db2 ; then
-		AC_MSG_ERROR([BDB2 requires LDBM API DB2])
+		$ol_with_ldbm_api != berkeley ; then
+		AC_MSG_ERROR([BDB2 requires LDBM API berkeley or auto])
 	fi
 
 	ol_with_ldbm_api=db2
@@ -374,8 +374,8 @@ else
 
 	if test $ol_enable_bdb2 != no ; then
 		if test $ol_with_ldbm_api != auto -a \
-			$ol_with_ldbm_api != db2 ; then
-			AC_MSG_WARN([BDB2 requires LDBM api db2 or auto])
+			$ol_with_ldbm_api != berkeley ; then
+			AC_MSG_WARN([BDB2 requires LDBM api berkeley or auto])
 			ol_enable_bdb2=no
 		fi
 	fi
@@ -1688,47 +1688,23 @@ if test $ol_link_threads != no ; then
 fi
 
 dnl ----------------------------------------------------------------
-
 ol_link_ldbm=no 
-if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
-	OL_BERKELEY_DB2
 
-	if test $ol_cv_berkeley_db2 = yes ; then
-		ol_link_ldbm=db2
-		ol_with_ldbm_api=db2
+if test $ol_with_ldbm_api = auto \
+	-o $ol_with_ldbm_api = berkeley \
+	-o $ol_with_ldbm_api = bcompat ; then
 
-		if test $ol_with_ldbm_type = hash ; then
-			AC_DEFINE(LDBM_USE_DBHASH,1,
-				[define this to use DBHASH w/ LDBM backend])
-		else
-			AC_DEFINE(LDBM_USE_DBBTREE,1,
-				[define this to use DBBTREE w/ LDBM backend])
-		fi
-
-		OL_BERKELEY_DB2_DB_THREAD
-
-		dnl $ol_cv_lib_db2 should be yes or -ldb
-		dnl (it could be no, but that would be an error
-		if test $ol_cv_lib_db2 != yes ; then
-			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db2"
-		fi
-	fi
-fi
-
-ol_link_bdb2=no
-if test $ol_link_ldbm = db2 -a $ol_enable_bdb2 != no ; then
-	if test $ol_cv_berkeley_db2_db_thread != no ; then
-		ol_link_bdb2=yes
+	if test $ol_with_ldbm_api = bcompat; then \
+		OL_BERKELEY_COMPAT_DB
 	else
-		AC_MSG_WARN([Installed BerkeleyDB does not provide DB_THREAD support.])
+		OL_BERKELEY_DB
 	fi
-fi
 
-if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
-	OL_BERKELEY_DB
+	if test $ol_cv_berkeley_db != no ; then
+		AC_DEFINE(HAVE_BERKELEY_DB,1,
+			[define this if Berkeley DB is available])
 
-	if test $ol_cv_berkeley_db = yes ; then
-		ol_link_ldbm=db
+		ol_link_ldbm=berkeley
 		ol_with_ldbm_api=db
 
 		if test $ol_with_ldbm_type = hash ; then
@@ -1747,14 +1723,7 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
 	fi
 fi
 
-if test $ol_with_ldbm_api = manual ; then
-	dnl User thinks he can manually configure LDBM api.
-	ol_link_ldbm=yes
-
-	AC_MSG_WARN([LDBM defines and link options must be set manually])
-
-	AC_CHECK_HEADERS(db.h db_185.h gdbm.h ndbm.h)
-fi
+exit
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
 	AC_MSG_WARN(Could not find LDBM with BTREE support)
@@ -1807,6 +1776,16 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 
 	AC_MSG_WARN(disabling LDBM)
 	ol_enable_ldbm=no
+fi
+
+dnl ----------------------------------------------------------------
+ol_link_bdb2=no
+if test $ol_enable_bdb2 != no ; then
+	if test $ol_enable_bdb2 = yes -a $ol_link_ldbm != berkeley ; then
+		AC_MSG_ERROR(BDB2 requires LDBM BerkeleyDB 2)
+	elif test $ol_link_ldbm = berkeley ; then
+		ol_link_bdb2=$ol_link_ldbm
+	fi
 fi
 
 dnl ----------------------------------------------------------------

@@ -238,83 +238,75 @@ fi
 ])
 dnl
 dnl ====================================================================
-dnl Check if db.h is Berkeley DB2
+dnl Berkeley DB macros
 dnl
-dnl defines ol_cv_header_db2 to 'yes' or 'no'
-dnl
-dnl uses:
-dnl		AC_CHECK_HEADERS(db.h)
-dnl
-AC_DEFUN([OL_HEADER_BERKELEY_DB2],
-[AC_CHECK_HEADERS(db.h)
-if test $ac_cv_header_db_h = yes ; then
-	AC_CACHE_CHECK([if db.h is DB2], [ol_cv_header_db2],[
-		AC_EGREP_CPP(__db_version_2,[
-#			include <db.h>
-			/* this check could be improved */
-#			ifdef DB_VERSION_MAJOR
-#				if DB_VERSION_MAJOR == 2
-					__db_version_2;
-#				endif
-#			endif
-		], ol_cv_header_db2=yes, ol_cv_header_db2=no)])
-else
-	ol_cv_header_db2=no
-fi
-])dnl
 dnl --------------------------------------------------------------------
-dnl Check if Berkeley DB2 library exists
-dnl Check for dbopen in standard libraries or -ldb
-dnl
-dnl defines ol_cv_lib_db2 to '-ldb' or 'no'
-dnl
-dnl uses:
-dnl		AC_CHECK_LIB(db,db_appexit)
-dnl
-AC_DEFUN([OL_LIB_BERKELEY_DB2],
-[AC_CACHE_CHECK([for DB2 library], [ol_cv_lib_db2],
-[	ol_LIBS="$LIBS"
-	AC_CHECK_LIB(db,db_appexit,[ol_cv_lib_db2=-ldb],[ol_cv_lib_db2=no])
+dnl Try to link
+AC_DEFUN([OL_BERKELEY_DB_TRY],
+[if test $ol_cv_lib_db = no ; then
+	AC_CACHE_CHECK([for Berkeley DB link (]ifelse($2,,default,$2)[)],[$1],
+[
+	ol_DB_LIB=ifelse($2,,,$2)
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LIBS"
+
+	AC_TRY_LINK([
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+],[
+#if DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+],[$1=yes],[$1=no])
+
 	LIBS="$ol_LIBS"
 ])
-])dnl
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if Berkeley db2 exists
-dnl
-dnl defines ol_cv_berkeley_db2 to 'yes' or 'no'
-dnl 
-dnl uses:
-dnl		OL_LIB_BERKELEY_DB2
-dnl		OL_HEADER_BERKELEY_DB2
-dnl
-AC_DEFUN([OL_BERKELEY_DB2],
-[AC_REQUIRE([OL_LIB_BERKELEY_DB2])
- AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
- AC_CACHE_CHECK([for Berkeley DB2], [ol_cv_berkeley_db2], [
-	if test "$ol_cv_lib_db2" = no -o "$ol_cv_header_db2" = no ; then
-		ol_cv_berkeley_db2=no
-	else
-		ol_cv_berkeley_db2=yes
+
+	if test $$1 = yes ; then
+		ol_cv_lib_db=ifelse($2,,yes,$2)
 	fi
+fi
 ])
- if test $ol_cv_berkeley_db2 = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB2,1, [define if Berkeley DBv2 is available])
- fi
-])dnl
-dnl
 dnl
 dnl --------------------------------------------------------------------
-dnl Check if Berkeley db2 supports DB_THREAD
-AC_DEFUN([OL_BERKELEY_DB2_DB_THREAD],
-[AC_CACHE_CHECK([for DB_THREAD support], [ol_cv_berkeley_db2_db_thread], [
+dnl Try to locate appropriate library
+AC_DEFUN([OL_BERKELEY_DB_LINK],
+[ol_cv_lib_db=no
+OL_BERKELEY_DB_TRY(ol_cv_db_none)
+OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
+OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
+OL_BERKELEY_DB_TRY(ol_cv_db_db2,[-ldb2])
+OL_BERKELEY_DB_TRY(ol_cv_db_db1,[-ldb1])
+])
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if Berkeley DB supports DB_THREAD
+AC_DEFUN([OL_BERKELEY_DB_THREAD],
+[AC_CACHE_CHECK([for Berkeley DB thread support], [ol_cv_berkeley_db_thread], [
 	ol_LIBS="$LIBS"
-	if test $ol_cv_lib_db2 != yes ; then
-		LIBS="$ol_cv_lib_db2"
+	if test $ol_cv_lib_db != yes ; then
+		LIBS="$ol_cv_lib_db"
 	fi
 
 	AC_TRY_RUN([
+#ifdef HAVE_DB_185_H
+	choke me;
+#else
 #include <db.h>
+#endif
 #ifndef NULL
 #define NULL ((void *)0)
 #endif
@@ -334,87 +326,64 @@ main()
 
 	return rc;
 }],
-	[ol_cv_berkeley_db2_db_thread=yes],
-	[ol_cv_berkeley_db2_db_thread=no],
-	[ol_cv_berkeley_db2_db_thread=cross])
+	[ol_cv_berkeley_db_thread=yes],
+	[ol_cv_berkeley_db_thread=no],
+	[ol_cv_berkeley_db_thread=cross])
 
 	LIBS="$ol_LIBS"
 
-	if test $ol_cv_berkeley_db2_db_thread != no ; then
-		AC_DEFINE(HAVE_BERKELEY_DB2_DB_THREAD, 1,
-			[define if BerkeleyDB2 has DB_THREAD support])
+	if test $ol_cv_berkeley_db_thread != no ; then
+		AC_DEFINE(HAVE_BERKELEY_DB_THREAD, 1,
+			[define if Berkeley DB has DB_THREAD support])
 	fi
 ])])dnl
-dnl ====================================================================
-dnl Check for db.h/db_185.h is Berkeley DB
-dnl
-dnl defines ol_cv_header_db to 'yes' or 'no'
-dnl
-dnl uses:
-dnl		OL_HEADER_BERKELEY_DB2
-dnl		AC_CHECK_HEADERS(db_185.h)
-dnl
-AC_DEFUN([OL_HEADER_BERKELEY_DB],
-[AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
-AC_CHECK_HEADERS(db_185.h)
-if test "$ol_cv_header_db2" = yes ; then
-	dnl db.h is db2! 
-
-	ol_cv_header_db=$ac_cv_header_db_185_h
-else
-	ol_cv_header_db=$ac_cv_header_db_h
-fi
-])dnl
 dnl
 dnl --------------------------------------------------------------------
-dnl Check if Berkeley DB library exists
-dnl Check for dbopen in standard libraries or -ldb
-dnl
-dnl defines ol_cv_lib_db to 'yes' or '-ldb' or 'no'
-dnl		'yes' implies dbopen is in $LIBS
-dnl
-dnl uses:
-dnl		AC_CHECK_FUNC(dbopen)
-dnl		AC_CHECK_LIB(db,dbopen)
-dnl
-AC_DEFUN([OL_LIB_BERKELEY_DB],
-[AC_CACHE_CHECK([for Berkeley DB library], [ol_cv_lib_db],
-[
-	AC_CHECK_HEADERS(db1/db.h)
-	ol_LIBS="$LIBS"
-	AC_CHECK_FUNC(dbopen,[ol_cv_lib_db=yes], [
-		AC_CHECK_LIB(db1,dbopen,[ol_cv_lib_db=-ldb1],[
-			AC_CHECK_LIB(db,dbopen,[ol_cv_lib_db=-ldb],
-			[ol_cv_lib_db=no])
-		])
-	])
-	LIBS="$ol_LIBS"
-])
-])dnl
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if Berkeley DB exists
-dnl
-dnl defines ol_cv_berkeley_db to 'yes' or 'no'
-dnl 
-dnl uses:
-dnl		OL_LIB_BERKELEY_DB
-dnl		OL_HEADER_BERKELEY_DB
-dnl
+dnl Find any DB
 AC_DEFUN([OL_BERKELEY_DB],
-[AC_REQUIRE([OL_LIB_BERKELEY_DB])
- AC_REQUIRE([OL_HEADER_BERKELEY_DB])
- AC_CACHE_CHECK([for Berkeley DB], [ol_cv_berkeley_db], [
-	if test "$ol_cv_lib_db" = no -o "$ol_cv_header_db" = no ; then
-		ol_cv_berkeley_db=no
-	else
+[ol_cv_berkeley_db=no
+AC_CHECK_HEADERS(db.h)
+if test $ac_cv_header_db_h = yes; then
+	OL_BERKELEY_DB_LINK
+	if test "$ol_cv_lib_db" != no ; then
 		ol_cv_berkeley_db=yes
+		OL_BERKELEY_DB_THREAD
 	fi
+fi
 ])
- if test $ol_cv_berkeley_db = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB,1, [define if Berkeley DB is available])
- fi
-])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Find old Berkeley DB 1.85/1.86
+AC_DEFUN([OL_BERKELEY_COMPAT_DB],
+[ol_cv_berkeley_db=no
+AC_CHECK_HEADERS(db_185.h db.h)
+if test $ac_cv_header_db_185_h = yes -o $ac_cv_header_db_h = yes; then
+	AC_CACHE_CHECK([if Berkeley DB header compatibility], [ol_cv_header_db1],[
+		AC_EGREP_CPP(__db_version_1,[
+#if HAVE_DB_185_H
+#	include <db_185.h>
+#else
+#	include <db.h>
+#endif
+
+ /* this check could be improved */
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+
+#if DB_VERSION_MAJOR == 1 
+	__db_version_1
+#endif
+],	[ol_cv_header_db1=yes], [ol_cv_header_db1=no])])
+
+	if test ol_cv_header_db1=yes ; then
+		OL_BERKELEY_DB_LINK
+		if test "$ol_cv_lib_db" != no ; then
+			ol_cv_berkeley_db=yes
+		fi
+	fi
+fi
+])
 dnl
 dnl ====================================================================
 dnl Check if GDBM library exists
