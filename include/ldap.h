@@ -172,16 +172,18 @@ typedef struct ldapcontrol {
 /* Experimental Controls */
 #define LDAP_CONTROL_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.5.1"
 
-
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036"
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
 
 
 /* LDAP Extended Operations */
-#define LDAP_EXOP_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.6.1"
 #define LDAP_EXOP_START_TLS "1.3.6.1.4.1.1466.20037"
 
+#define LDAP_EXOP_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.6.1"
+#define LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID	((ber_tag_t) 0x80U)
+#define LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD	((ber_tag_t) 0x81U)
+#define LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
 
 /* 
  * specific LDAP instantiations of BER types we know about
@@ -220,8 +222,6 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_RES_VALUE ((ber_tag_t) 0x8bU)	/* context specific + primitive */
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
-
-
 
 
 /* possible operations a client can invoke */
@@ -296,27 +296,10 @@ typedef struct ldapcontrol {
 #define LDAP_SCOPE_ONELEVEL	((ber_int_t) 0x0001)
 #define LDAP_SCOPE_SUBTREE	((ber_int_t) 0x0002)
 
-/* for modifications */
-typedef struct ldapmod {
-	int		mod_op;
-
-#define LDAP_MOD_ADD		((ber_int_t) 0x0000)
-#define LDAP_MOD_DELETE		((ber_int_t) 0x0001)
-#define LDAP_MOD_REPLACE	((ber_int_t) 0x0002)
-#define LDAP_MOD_BVALUES	((ber_int_t) 0x0080)
-/* IMPORTANT: do not use code 0x1000 (or above),
- * it is used internally by the backends!
- * (see ldap/servers/slapd/slap.h)
- */
-
-	char		*mod_type;
-	union mod_vals_u {
-		char		**modv_strvals;
-		struct berval	**modv_bvals;
-	} mod_vals;
-#define mod_values	mod_vals.modv_strvals
-#define mod_bvalues	mod_vals.modv_bvals
-} LDAPMod;
+/* substring filter component types */
+#define LDAP_SUBSTRING_INITIAL	((ber_tag_t) 0x80U)	/* context specific */
+#define LDAP_SUBSTRING_ANY	((ber_tag_t) 0x81U)	/* context specific */
+#define LDAP_SUBSTRING_FINAL	((ber_tag_t) 0x82U)	/* context specific */
 
 /* 
  * possible error codes we can return
@@ -413,6 +396,28 @@ typedef struct ldapmod {
  */
 
 typedef struct ldapmsg LDAPMessage;
+
+/* for modifications */
+typedef struct ldapmod {
+	int		mod_op;
+
+#define LDAP_MOD_ADD		((ber_int_t) 0x0000)
+#define LDAP_MOD_DELETE		((ber_int_t) 0x0001)
+#define LDAP_MOD_REPLACE	((ber_int_t) 0x0002)
+#define LDAP_MOD_BVALUES	((ber_int_t) 0x0080)
+/* IMPORTANT: do not use code 0x1000 (or above),
+ * it is used internally by the backends!
+ * (see ldap/servers/slapd/slap.h)
+ */
+
+	char		*mod_type;
+	union mod_vals_u {
+		char		**modv_strvals;
+		struct berval	**modv_bvals;
+	} mod_vals;
+#define mod_values	mod_vals.modv_strvals
+#define mod_bvalues	mod_vals.modv_bvals
+} LDAPMod;
 
 /*
  * structures for ldap getfilter routines
