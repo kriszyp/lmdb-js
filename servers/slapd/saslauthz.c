@@ -409,7 +409,17 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	 * <filter> must pass str2filter()
 	 */
 	rc = ldap_url_parse( uri->bv_val, &ludp );
-	if ( rc == LDAP_URL_ERR_BADSCHEME ) {
+	switch ( rc ) {
+	case LDAP_URL_SUCCESS:
+		if ( strcasecmp( ludp->lud_scheme, "ldap" ) != 0 ) {
+			/*
+			 * must be ldap:///
+			 */
+			return LDAP_PROTOCOL_ERROR;
+		}
+		break;
+
+	case LDAP_URL_ERR_BADSCHEME:
 		/*
 		 * last chance: assume it's a(n exact) DN ...
 		 *
@@ -418,13 +428,12 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		bv.bv_val = uri->bv_val;
 		*scope = LDAP_X_SCOPE_EXACT;
 		goto is_dn;
-	}
 
-	if ( rc != LDAP_URL_SUCCESS ) {
+	default:
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if (( ludp->lud_host && *ludp->lud_host )
+	if ( ( ludp->lud_host && *ludp->lud_host )
 		|| ludp->lud_attrs || ludp->lud_exts )
 	{
 		/* host part must be empty */

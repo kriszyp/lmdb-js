@@ -357,16 +357,21 @@ string, e.g.
 .B UID=$1,OU=Accounts,DC=example,DC=com 
 
 .RE
-The replaced name can be either a DN or an LDAP URI. If the
-latter, the server will use the URI to search its own database(s)
+The replaced name can be either a DN, i.e. a string prefixed by "dn:",
+or an LDAP URI.
+If the latter, the server will use the URI to search its own database(s)
 and, if the search returns exactly one entry, the name is
 replaced by the DN of that entry.   The LDAP URI must have no
-hostport, attrs, or extensions components, e.g.
+hostport, attrs, or extensions components, but the filter is mandatory,
+e.g.
 .RS
 .TP
 .B ldap:///OU=Accounts,DC=example,DC=com??one?(UID=$1)
 
 .RE
+The protocol portion of the URI must be strictly
+.BR ldap .
+
 Multiple 
 .B authz-regexp 
 options can be given in the configuration file to allow for multiple matching 
