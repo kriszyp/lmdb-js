@@ -235,7 +235,14 @@ do_modify(
 				global_lastmod == ON)) && !update )
 			{
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-				rc = slap_mods_opattrs( op, &mods, &text );
+				Modifications **modstail;
+				for( modstail = &mods;
+					*modstail != NULL;
+					modstail = &(*modstail)->sml_next )
+				{
+					/* empty */
+				}
+				rc = slap_mods_opattrs( op, modstail, &text );
 #else
 				char *text = "no-user-modification attribute type";
 				rc = add_modified_attrs( op, &mods );
@@ -303,15 +310,15 @@ int slap_modlist2mods(
 		mod = (Modifications *)
 			ch_calloc( 1, sizeof(Modifications) );
 
-		ad = mod->sml_desc;
-
 		/* convert to attribute description */
-		rc = slap_str2ad( ml->ml_type, &ad, text );
+		rc = slap_str2ad( ml->ml_type, &mod->sml_desc, text );
 
 		if( rc != LDAP_SUCCESS ) {
 			slap_mods_free( mod );
 			return rc;
 		}
+
+		ad = mod->sml_desc;
 
 		if( slap_syntax_is_binary( ad->ad_type->sat_syntax )
 			&& !slap_ad_is_binary( ad ))
@@ -404,6 +411,9 @@ int slap_mods_opattrs(
 
 	int mop = op->o_tag == LDAP_REQ_ADD
 		? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
+
+	assert( modtail != NULL );
+	assert( *modtail == NULL );
 
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	ltm = gmtime( &now );

@@ -233,7 +233,15 @@ do_add( Connection *conn, Operation *op )
 #endif
 			{
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-				rc = slap_mods_opattrs( op, &mods, &text );
+				Modifications **modstail;
+				for( modstail = &mods;
+					*modstail != NULL;
+					modstail = &(*modstail)->sml_next )
+				{
+					assert( (*modstail)->sml_op == LDAP_MOD_ADD );
+					assert( (*modstail)->sml_desc != NULL );
+				}
+				rc = slap_mods_opattrs( op, modstail, &text );
 #else
 				char *text = "no-user-modification attribute type";
 				rc = add_created_attrs( op, e );
@@ -307,6 +315,7 @@ static int slap_mods2entry(
 		Attribute *attr;
 
 		assert( mods->sml_op == LDAP_MOD_ADD );
+		assert( mods->sml_desc != NULL );
 
 		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
 
@@ -317,7 +326,12 @@ static int slap_mods2entry(
 
 		attr = ch_calloc( 1, sizeof(Attribute) );
 
-		/* should check for duplicates */
+		/* move ad to attr structure */
+		attr->a_desc = mods->sml_desc;
+		mods->sml_desc = NULL;
+
+		/* move values to attr structure */
+		/*	should check for duplicates */
 		attr->a_vals = mods->sml_bvalues;
 		mods->sml_bvalues = NULL;
 

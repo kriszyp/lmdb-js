@@ -52,6 +52,7 @@ entry_schema_check(
 	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
 		    e->e_dn, 0, 0 );
+		assert(0);
 
 		*text = "no objectclass attribute";
 		return oldattrs != NULL
