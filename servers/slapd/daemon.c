@@ -211,6 +211,7 @@ set_socket( struct sockaddr_in *addr )
 		}
 #endif
 
+#ifdef SO_REUSEADDR
 		tmp = 1;
 		if ( setsockopt( tcps, SOL_SOCKET, SO_REUSEADDR,
 			(char *) &tmp, sizeof(tmp) ) == -1 )
@@ -222,6 +223,7 @@ set_socket( struct sockaddr_in *addr )
 				err > -1 && err < sys_nerr
 					? sys_errlist[err] : "unknown" );
 		}
+#endif
 
 		if ( bind( tcps, (struct sockaddr *) addr, sizeof(*addr) ) == -1 ) {
 			int err = errno;
@@ -280,7 +282,7 @@ slapd_daemon_task(
 
 	while ( !slapd_shutdown ) {
 		unsigned int i;
-		int ns, nfds;
+		int ns, nfds, tmp;
 
 		fd_set			readfds;
 		fd_set			writefds;
@@ -452,6 +454,21 @@ slapd_daemon_task(
 				continue;
 			}
 #endif /* HAVE_TCPD */
+
+
+#ifdef SO_KEEPALIVE
+			tmp = 1;
+			if ( setsockopt( tcps, SOL_SOCKET, SO_KEEPALIVE,
+				(char *) &tmp, sizeof(tmp) ) == -1 )
+			{
+				int err = errno;
+				Debug( LDAP_DEBUG_ANY,
+					"slapd(%d): setsockopt(KEEPALIVE) failed errno %d (%s)\n",
+			    	tcps, err,
+					err > -1 && err < sys_nerr
+						? sys_errlist[err] : "unknown" );
+			}
+#endif
 
 			if( (id = connection_init(s, client_name, client_addr)) < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
