@@ -24,6 +24,7 @@
 #ifdef CSRIMALLOC
 #define ber_memalloc malloc
 #define ber_memrealloc realloc
+#define ber_memfree free
 #else
 #include "lber.h"
 #endif
@@ -377,13 +378,13 @@ ravl_delete( Avlnode **root, void* data, AVL_CMP fcmp, int *shorter )
 		if ( (*root)->avl_left == 0 ) {
 			*root = (*root)->avl_right;
 			*shorter = 1;
-			free( (char *) savenode );
+			ber_memfree( (char *) savenode );
 			return( savedata );
 		/* no right child */
 		} else if ( (*root)->avl_right == 0 ) {
 			*root = (*root)->avl_left;
 			*shorter = 1;
-			free( (char *) savenode );
+			ber_memfree( (char *) savenode );
 			return( savedata );
 		}
 
@@ -616,7 +617,7 @@ avl_free( Avlnode *root, AVL_FREE dfree )
 
 	if ( dfree )
 		(*dfree)( root->avl_data );
-	free( root );
+	ber_memfree( root );
 
 	return( nleft + nright + 1 );
 }
@@ -717,7 +718,7 @@ void*
 avl_getfirst( Avlnode *root )
 {
 	if ( avl_list ) {
-		free( (char *) avl_list);
+		ber_memfree( (char *) avl_list);
 		avl_list = (void* *) 0;
 	}
 	avl_maxlist = 0;
@@ -738,7 +739,7 @@ avl_getnext( void )
 		return( 0 );
 
 	if ( avl_nextlist == avl_maxlist ) {
-		free( (void*) avl_list);
+		ber_memfree( (void*) avl_list);
 		avl_list = (void* *) 0;
 		return( 0 );
 	}
