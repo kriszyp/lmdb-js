@@ -226,5 +226,9 @@ SOURCE=.\user.c
 
 SOURCE=.\value.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\wsa_err.c
+# End Source File
 # End Target
 # End Project
