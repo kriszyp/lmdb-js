@@ -340,23 +340,30 @@ pw2entry( Backend *be, struct passwd *pw, const char **text )
 
 		s = strchr(vals[0].bv_val, '&');
 		if (s) {
-			char buf[256];
-			int i = s - vals[0].bv_val;
-			strncpy(buf, vals[0].bv_val, i);
-			s = buf+i;
-			strcpy(s, pw->pw_name);
-			*s = TOUPPER((unsigned char)*s);
-			strcat(s, vals[0].bv_val+i+1);
-			vals[0].bv_val = buf;
+			char buf[1024];
+
+			if( vals[0].bv_len + pwlen < sizeof(buf) ) {
+				int i = s - vals[0].bv_val;
+				strncpy(buf, vals[0].bv_val, i);
+				s = buf+i;
+				strcpy(s, pw->pw_name);
+				*s = TOUPPER((unsigned char)*s);
+				strcat(s, vals[0].bv_val+i+1);
+				vals[0].bv_val = buf;
+			}
 		}
 		vals[0].bv_len = strlen(vals[0].bv_val);
-		if ( strcmp( vals[0].bv_val, pw->pw_name ))
+
+		if ( vals[0].bv_len && strcasecmp( vals[0].bv_val, pw->pw_name )) {
 			attr_merge( e, ad_cn, vals );
+		}
+
 		if ( (s=strrchr(vals[0].bv_val, ' '))) {
 			vals[0].bv_val = s + 1;
 			vals[0].bv_len = strlen(vals[0].bv_val);
 			attr_merge(e, ad_sn, vals);
 		}
+nogecos:;
 	}
 #endif
 
