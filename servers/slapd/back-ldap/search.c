@@ -154,7 +154,17 @@ ldap_back_search(
 	rc = ldap_back_filter_map_rewrite( &dc, op->oq_search.rs_filter,
 			&mfilter, BACKLDAP_MAP );
 
-	if ( rc ) {
+	switch ( rc ) {
+	case LDAP_SUCCESS:
+		break;
+
+	case LDAP_COMPARE_FALSE:
+		rs->sr_err = LDAP_SUCCESS;
+		rs->sr_text = NULL;
+		rc = 0;
+		goto finish;
+
+	default:
 		rs->sr_err = LDAP_OTHER;
 		rs->sr_text = "Rewrite error";
 		dontfreetext = 1;
@@ -354,7 +364,7 @@ finish:;
 	if ( mfilter.bv_val != op->oq_search.rs_filterstr.bv_val ) {
 		ch_free( mfilter.bv_val );
 	}
-	if ( mbase.bv_val != op->o_req_dn.bv_val ) {
+	if ( mbase.bv_val != op->o_req_ndn.bv_val ) {
 		free( mbase.bv_val );
 	}
 	
