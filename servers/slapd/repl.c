@@ -284,8 +284,8 @@ replog1(
 				fprintf( fp, "replace: %s\n", type );
 				break;
 			}
-
-			print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_bvalues );
+			if ( ml->sml_bvalues )
+				print_vals( fp, &ml->sml_desc->ad_cname, ml->sml_bvalues );
 			fprintf( fp, "-\n" );
 		}
 		break;
@@ -324,15 +324,18 @@ print_vals(
 	struct berval *type,
 	struct berval *bv )
 {
-	int len;
+	int i, len;
 	char	*buf, *bufp;
 
-	for ( ; bv && bv->bv_val; bv++ )
-	{
-		len = type->bv_len;
-		len = LDIF_SIZE_NEEDED( len, bv->bv_len ) + 1;
-		buf = (char *) ch_malloc( len );
+	for ( i = 0, len = 0; bv && bv[i].bv_val; i++ ) {
+		if ( bv[i].bv_len > len )
+			len = bv[i].bv_len;
+	}
 
+	len = LDIF_SIZE_NEEDED( type->bv_len, len ) + 1;
+	buf = (char *) ch_malloc( len );
+
+	for ( ; bv && bv->bv_val; bv++ ) {
 		bufp = buf;
 		ldif_sput( &bufp, LDIF_PUT_VALUE, type->bv_val,
 				    bv->bv_val, bv->bv_len );
@@ -340,6 +343,6 @@ print_vals(
 
 		fputs( buf, fp );
 
-		free( buf );
 	}
+	free( buf );
 }
