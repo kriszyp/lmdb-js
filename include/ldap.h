@@ -52,16 +52,10 @@ LDAP_BEGIN_DECL
 #endif
 
 #define LDAP_PORT		389
-#define LDAP_MAX_PORT	65535
 
 #define LDAP_ROOT_DSE				""
 #define LDAP_NO_ATTRS				"1.1"
 #define LDAP_ALL_USER_ATTRIBUTES	"*"
-
-#define LDAP_URL_PREFIX			"ldap://"
-#define LDAP_URL_PREFIX_LEN		(sizeof(LDAP_URL_PREFIX) - 1)
-#define LDAP_REFERRAL_STR		"Referral:\n"
-#define LDAP_RERERRAL_STR_LEN	(sizeof(LDAP_REFERRAL_STR) - 1)
 
 #define LDAP_COMPAT20
 #define LDAP_COMPAT30
@@ -287,9 +281,11 @@ typedef struct ldapmod {
 #define LDAP_COMPARE_FALSE		0x05
 #define LDAP_COMPARE_TRUE		0x06
 #define LDAP_STRONG_AUTH_NOT_SUPPORTED	0x07
+#define LDAP_AUTH_METHOD_NOT_SUPPORTED LDAP_STRONG_AUTH_NOT_SUPPORTED
 #define LDAP_STRONG_AUTH_REQUIRED	0x08
-#define LDAP_PARTIAL_RESULTS		0x09
-#define	LDAP_REFERRAL		0x0a /* LDAPv3 */
+#define LDAP_PARTIAL_RESULTS		0x09	/* not listed in v3 */
+
+#define	LDAP_REFERRAL				0x0a /* LDAPv3 */
 #define LDAP_ADMINLIMIT_EXCEEDED	0x0b /* LDAPv3 */
 #define	LDAP_UNAVAILABLE_CRITICIAL_EXTENSION	0x0c /* LDAPv3 */
 #define LDAP_CONFIDENTIALITY_REQUIRED	0x0d /* LDAPv3 */
@@ -308,7 +304,8 @@ typedef struct ldapmod {
 #define LDAP_IS_LEAF			0x23 /* not LDAPv3 */
 #define LDAP_ALIAS_DEREF_PROBLEM	0x24
 
-#define NAME_ERROR(n)	((n & 0xf0) == 0x20)
+#define LDAP_NAME_ERROR(n)	((n & 0xf0) == 0x20)
+#define NAME_ERROR(n)	LDAP_NAME_ERROR(n)	/* depreciated */
 
 #define LDAP_INAPPROPRIATE_AUTH		0x30
 #define LDAP_INVALID_CREDENTIALS	0x31
@@ -339,6 +336,13 @@ typedef struct ldapmod {
 #define LDAP_PARAM_ERROR		0x59
 #define LDAP_NO_MEMORY			0x5a
 
+#define LDAP_CONNECT_ERROR				0x5b	/* new */
+#define LDAP_NOT_SUPPORTED				0x5c	/* new */
+#define LDAP_CONTROL_NOT_FOUND			0x5d	/* new */
+#define LDAP_NO_RESULTS_RETURNED		0x5e	/* new */
+#define LDAP_MORE_RESULTS_TO_RETURN		0x5f	/* new */
+#define LDAP_CLIENT_LOOP				0x60	/* new */
+#define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* new */
 
 /* default limit on nesting of referrals */
 #define LDAP_DEFAULT_REFHOPLIMIT	5
