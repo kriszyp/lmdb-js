@@ -179,8 +179,10 @@ ber_free( BerElement *ber, int freebuf )
 
 	if ( freebuf && ber->ber_buf != NULL )
 		free( ber->ber_buf );
+
 	ber->ber_buf = NULL;
 	ber->ber_valid = LBER_UNINITIALIZED;
+
 	free( (char *) ber );
 }
 
@@ -593,18 +595,3 @@ fill_buffer:
 	assert( 0 ); /* ber structure is messed up ?*/
 	return LBER_DEFAULT;
 }
-
-void	ber_clear( BerElement *ber, int freebuf )
-{
-	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
-
-	if ((freebuf) && (ber->ber_buf))
-		free( ber->ber_buf );
-	ber->ber_buf = NULL;
-	ber->ber_rwptr = NULL;
-	ber->ber_end = NULL;
-
-	ber->ber_valid = LBER_UNINITIALIZED;
-}
-
