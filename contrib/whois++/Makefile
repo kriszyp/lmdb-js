@@ -65,7 +65,7 @@ inst-whois++: $(DESTDIR)$(ETCDIR)/whois++d
 	cp -r templates $(DESTDIR)$(CONFIG_DIRECTORY)
 	-$(MKDIR) $(DESTDIR)$(HELP_DIRECTORY)
 	cp -r helpfiles/* $(DESTDIR)$(HELP_DIRECTORY)
-	-$(MKDIR) $(DESTDIR)$(DESTDIR)$(MANDIR)/man$(MANSEC)
+	-$(MKDIR) $(DESTDIR)$(MANDIR)/man$(MANSEC)
 	sed -e 's#ETCDIR#$(ETCDIR)#' whois++d.man > $(DESTDIR)$(MANDIR)/man$(MANSEC)/whois++d.$(MANSEC)
 	@echo "Don't forget to modify and install the tailor file"
 
