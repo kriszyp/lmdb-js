@@ -64,7 +64,7 @@ static int ldap_mark_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
 static int wait4msg LDAP_P(( LDAP *ld, ber_int_t msgid, int all, struct timeval *timeout,
 	LDAPMessage **result ));
 static ber_tag_t try_read1msg LDAP_P(( LDAP *ld, ber_int_t msgid,
-	int all, Sockbuf *sb, LDAPConn *lc, LDAPMessage **result ));
+	int all, Sockbuf *sb, LDAPConn **lc, LDAPMessage **result ));
 static ber_tag_t build_result_ber LDAP_P(( LDAP *ld, BerElement **bp, LDAPRequest *lr ));
 static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
 static LDAPMessage * chkResponseList LDAP_P(( LDAP *ld, int msgid, int all));
@@ -298,11 +298,12 @@ wait4msg(
             rc = (*result)->lm_msgtype;
         } else {
 
-			for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
+			for ( lc = ld->ld_conns; lc != NULL; lc = nextlc ) {
+				nextlc = lc->lconn_next;
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
 						LBER_SB_OPT_DATA_READY, NULL ) ) {
-					    rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
-					        lc, result );
+					rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
+						&lc, result );
 				    break;
 				}
 	        }
@@ -352,7 +353,8 @@ wait4msg(
 					        ldap_is_read_ready( ld,
 					        lc->lconn_sb )) {
 						    rc = try_read1msg( ld, msgid, all,
-						        lc->lconn_sb, lc, result );
+						        lc->lconn_sb, &lc, result );
+							if ( lc == NULL ) lc = nextlc;
 					    }
 				    }
 			    }
@@ -388,7 +390,7 @@ try_read1msg(
 	ber_int_t msgid,
 	int all,
 	Sockbuf *sb,
-	LDAPConn *lc,
+	LDAPConn **lcp,
 	LDAPMessage **result )
 {
 	BerElement	*ber;
@@ -398,6 +400,7 @@ try_read1msg(
 	ber_len_t	len;
 	int		foundit = 0;
 	LDAPRequest	*lr, *tmplr;
+	LDAPConn	*lc;
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
 	ber_int_t	lderr;
@@ -411,13 +414,16 @@ try_read1msg(
 	int     v3ref;
 
 	assert( ld != NULL );
-	assert( lc != NULL );
+	assert( lcp != NULL );
+	assert( *lcp != NULL );
 	
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, "read1msg: msgid %d, all %d\n", msgid, all, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "read1msg: msgid %d, all %d\n", msgid, all, 0 );
 #endif
+
+	lc = *lcp;
 
 retry:
     if ( lc->lconn_ber == NULL ) {
@@ -798,6 +804,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 			if ( lc != NULL ) {
 				ldap_free_connection( ld, lc, 0, 1 );
+				*lcp = NULL;
 			}
 		}
 	}
