@@ -1,0 +1,8 @@
+ChangeLog for gtk-tool
+
+26/11/1998
+	* First appearance of ChangeLog
+	* Fixed removal of scrolled window on the right hand side
+	  thus making gtk-tool a viable project to be worked on
+	* added command-line parameter parsing - now accepts
+	  -s for server, -p for port, -b for baseDN
