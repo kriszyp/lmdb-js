@@ -216,7 +216,7 @@ searchit:
 		 */
 		isroot = 1;
 	} else {
-		( void ) get_limits( op->o_bd, &op->o_ndn, &limit );
+		( void ) get_limits( op, &op->o_ndn, &limit );
 	}
 
 	/* if candidates exceed to-be-checked entries, abort */

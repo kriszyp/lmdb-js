@@ -1191,7 +1191,7 @@ backsql_search( Operation *op, SlapReply *rs )
 	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
 		isroot = 1;
 	} else {
-		( void ) get_limits( op->o_bd, &op->o_ndn, &limit );
+		( void ) get_limits( op, &op->o_ndn, &limit );
 	}
 
 	/* The time/size limits come first because they require very little

@@ -232,7 +232,7 @@ int parse_limit( const char *arg, struct slap_limits_set *limit )
 	return 0;
 }
 
-int get_limits( Backend *be, struct berval *ndn, struct slap_limits_set **limit )
+int get_limits( Operation *op, struct berval *ndn, struct slap_limits_set **limit )
 {
 	return 0;
 }

@@ -1281,24 +1281,37 @@ struct slap_limits_set {
 };
 
 struct slap_limits {
-	int     lm_type;	/* type of pattern */
-#define SLAP_LIMITS_UNDEFINED	0x0000
-#define SLAP_LIMITS_EXACT		0x0001
+	unsigned		lm_flags;	/* type of pattern */
+#define SLAP_LIMITS_UNDEFINED		0x0000U
+#define SLAP_LIMITS_EXACT		0x0001U
 #define SLAP_LIMITS_BASE		SLAP_LIMITS_EXACT
-#define SLAP_LIMITS_ONE			0x0002
-#define SLAP_LIMITS_SUBTREE		0x0003
-#define SLAP_LIMITS_CHILDREN	0x0004
-#define SLAP_LIMITS_REGEX		0x0005
-#define SLAP_LIMITS_ANONYMOUS	0x0006
-#define SLAP_LIMITS_USERS		0x0007
-#define SLAP_LIMITS_ANY			0x0008
-	regex_t	lm_dn_regex;		/* regex data for REGEX */
+#define SLAP_LIMITS_ONE			0x0002U
+#define SLAP_LIMITS_SUBTREE		0x0003U
+#define SLAP_LIMITS_CHILDREN		0x0004U
+#define SLAP_LIMITS_REGEX		0x0005U
+#define SLAP_LIMITS_ANONYMOUS		0x0006U
+#define SLAP_LIMITS_USERS		0x0007U
+#define SLAP_LIMITS_ANY			0x0008U
+#define SLAP_LIMITS_MASK		0x000FU
+
+#define SLAP_LIMITS_TYPE_DN		0x0000U
+#define SLAP_LIMITS_TYPE_GROUP		0x0010U
+#define SLAP_LIMITS_TYPE_MASK		0x00F0U
+
+	regex_t			lm_regex;	/* regex data for REGEX */
 
 	/*
 	 * normalized DN for EXACT, BASE, ONE, SUBTREE, CHILDREN;
 	 * pattern for REGEX; NULL for ANONYMOUS, USERS
 	 */
-	struct berval lm_dn_pat;
+	struct berval		lm_pat;
+
+	/* if lm_flags & SLAP_LIMITS_TYPE_MASK == SLAP_LIMITS_GROUP,
+	 * lm_group_oc is objectClass and lm_group_at is attributeType
+	 * of member in oc for match; then lm_flags & SLAP_LIMITS_MASK
+	 * can only be SLAP_LIMITS_EXACT */
+	ObjectClass		*lm_group_oc;
+	AttributeDescription	*lm_group_ad;
 
 	struct slap_limits_set	lm_limits;
 };

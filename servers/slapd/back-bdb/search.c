@@ -651,7 +651,7 @@ dn2entry_retry:
 	if ( be_isroot( op->o_bd, &sop->o_ndn ) ) {
 		isroot = 1;
 	} else {
-		( void ) get_limits( op->o_bd, &sop->o_ndn, &limit );
+		( void ) get_limits( op, &sop->o_ndn, &limit );
 	}
 
 	/* The time/size limits come first because they require very little
