@@ -40,9 +40,11 @@ static char *put_complex_filter LDAP_P((
 	ber_tag_t tag,
 	int not ));
 
-static int put_filter LDAP_P((
+int ldap_int_put_filter LDAP_P((
 	BerElement *ber,
 	char *str ));
+
+#define put_filter(b,s) ldap_int_put_filter((b),(s))
 
 static int put_simple_filter LDAP_P((
 	BerElement *ber,
@@ -553,8 +555,8 @@ put_complex_filter( BerElement *ber, char *str, ber_tag_t tag, int not )
 	return( next );
 }
 
-static int
-put_filter( BerElement *ber, char *str )
+int
+ldap_int_put_filter( BerElement *ber, char *str )
 {
 	char	*next;
 	int	parens, balance, escape;

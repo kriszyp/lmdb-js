@@ -726,7 +726,7 @@ main( int argc, char **argv )
 
 		case '?':	/* help */
     printf( "Commands: [ad]d         [ab]andon         [b]ind\n" );
-    printf( "          [B]ind async  [c]ompare         [l]URL search\n" );
+    printf( "          [B]ind async  [c]ompare\n" );
     printf( "          [modi]fy      [modr]dn          [rem]ove\n" );
     printf( "          [res]ult      [s]earch          [q]uit/unbind\n\n" );
     printf( "          [d]ebug       [e]nable cache    set ms[g]id\n" );

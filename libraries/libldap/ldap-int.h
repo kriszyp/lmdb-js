@@ -495,10 +495,9 @@ LDAP_F (BerElement *) ldap_build_search_req LDAP_P((
 	ber_int_t timelimit,
 	ber_int_t sizelimit ));
 
-/*
- * in string.c
- */
-	/* see <ac/string.h> */
+LDAP_F( int ) ldap_int_put_filter LDAP_P((
+	BerElement *ber,
+	char *str ));
 
 /*
  * in unbind.c

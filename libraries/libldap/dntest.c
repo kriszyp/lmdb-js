@@ -4,7 +4,7 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
- * OpenLDAP API Test
+ * OpenLDAP DN API Test
  *      Written by: Pierangelo Masarati <ando@OpenLDAP.org>
  *
  * This program is designed to test the ldap_str2dn/ldap_dn2str
