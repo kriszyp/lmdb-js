@@ -130,7 +130,7 @@ over_db_destroy(
 static int
 over_back_response ( Operation *op, SlapReply *rs )
 {
-	slap_overinfo *oi = (slap_overinfo *) op->o_bd->bd_info;
+	slap_overinfo *oi = op->o_callback->sc_private;
 	slap_overinst *on = oi->oi_list;
 	int rc = SLAP_CB_CONTINUE;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
@@ -167,6 +167,7 @@ over_op_func(
 
 	op->o_bd = &db;
 	cb.sc_next = op->o_callback;
+	cb.sc_private = oi;
 	op->o_callback = &cb;
 
 	for (; on; on=on->on_next ) {
