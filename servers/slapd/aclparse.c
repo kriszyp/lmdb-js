@@ -771,6 +771,56 @@ acl_append( AccessControl **l, AccessControl *a )
 	*l = a;
 }
 
+char *
+access2str( slap_access_t access )
+{
+	if ( access == ACL_NONE ) {
+		return "none";
+
+	} else if ( access == ACL_AUTH ) {
+		return "auth";
+
+	} else if ( access == ACL_COMPARE ) {
+		return "compare";
+
+	} else if ( access == ACL_SEARCH ) {
+		return "search";
+
+	} else if ( access == ACL_READ ) {
+		return "read";
+
+	} else if ( access == ACL_WRITE ) {
+		return "write";
+	}
+
+	return "unknown";
+}
+
+slap_access_t
+str2access( const char *str )
+{
+	if ( strcasecmp( str, "none" ) == 0 ) {
+		return ACL_NONE;
+
+	} else if ( strcasecmp( str, "auth" ) == 0 ) {
+		return ACL_AUTH;
+
+	} else if ( strcasecmp( str, "compare" ) == 0 ) {
+		return ACL_COMPARE;
+
+	} else if ( strcasecmp( str, "search" ) == 0 ) {
+		return ACL_SEARCH;
+
+	} else if ( strcasecmp( str, "read" ) == 0 ) {
+		return ACL_READ;
+
+	} else if ( strcasecmp( str, "write" ) == 0 ) {
+		return ACL_WRITE;
+	}
+
+	return( ACL_INVALID_ACCESS );
+}
+
 #ifdef LDAP_DEBUG
 
 static void
@@ -846,56 +896,6 @@ print_access( Access *b )
 	}
 
 	fprintf( stderr, "\n" );
-}
-
-char *
-access2str( slap_access_t access )
-{
-	if ( access == ACL_NONE ) {
-		return "none";
-
-	} else if ( access == ACL_AUTH ) {
-		return "auth";
-
-	} else if ( access == ACL_COMPARE ) {
-		return "compare";
-
-	} else if ( access == ACL_SEARCH ) {
-		return "search";
-
-	} else if ( access == ACL_READ ) {
-		return "read";
-
-	} else if ( access == ACL_WRITE ) {
-		return "write";
-	}
-
-	return "unknown";
-}
-
-slap_access_t
-str2access( const char *str )
-{
-	if ( strcasecmp( str, "none" ) == 0 ) {
-		return ACL_NONE;
-
-	} else if ( strcasecmp( str, "auth" ) == 0 ) {
-		return ACL_AUTH;
-
-	} else if ( strcasecmp( str, "compare" ) == 0 ) {
-		return ACL_COMPARE;
-
-	} else if ( strcasecmp( str, "search" ) == 0 ) {
-		return ACL_SEARCH;
-
-	} else if ( strcasecmp( str, "read" ) == 0 ) {
-		return ACL_READ;
-
-	} else if ( strcasecmp( str, "write" ) == 0 ) {
-		return ACL_WRITE;
-	}
-
-	return( ACL_INVALID_ACCESS );
 }
 
 
