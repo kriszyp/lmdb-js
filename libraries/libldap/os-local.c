@@ -174,10 +174,10 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 sendcred:
 		{
 			int fds[2];
-			/* Abandon, noop, has no reply */
-			struct iovec iov = {abandonPDU, sizeof(abandonPDU)};
-			struct msghdr msg = {0};
 			if (pipe(fds) == 0) {
+				/* Abandon, noop, has no reply */
+				struct iovec iov = {abandonPDU, sizeof(abandonPDU)};
+				struct msghdr msg = {0};
 				msg.msg_iov = &iov;
 				msg.msg_iovlen = 1;
 				msg.msg_accrights = (char *)fds;
