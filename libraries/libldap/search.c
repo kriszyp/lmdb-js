@@ -568,6 +568,10 @@ put_filter( BerElement *ber, char *str )
 		case '(':
 			str++;
 			parens++;
+
+			/* skip spaces */
+			while( isspace( *str ) ) str++;
+
 			switch ( *str ) {
 			case '&':
 				Debug( LDAP_DEBUG_TRACE, "put_filter: AND\n",
