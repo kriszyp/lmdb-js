@@ -40,7 +40,7 @@ dnssrv_back_request(
 		dn == NULL ? "" : dn,
 		domain == NULL ? "" : domain,
 		0 );
-	
+
 	if( rc = ldap_domain2hostlist( domain, &hostlist ) ) {
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: domain2hostlist returned %d\n",
 			rc, 0, 0 );

@@ -61,12 +61,15 @@ int ldap_dn2domain(
 			return -3;
 		}
 
-#define LDAP_DC "dc="
-#define LDAP_DCOID "0.9.2342.19200300.100.1.25="
 
 		if( rdn[1] == NULL ) {
+			/*
+			 * single-valued RDN
+			 */
 			char *dc;
-			/* single RDN */
+
+#define LDAP_DC "dc="
+#define LDAP_DCOID "0.9.2342.19200300.100.1.25="
 
 			if( strncasecmp( rdn[0],
 				LDAP_DC, sizeof(LDAP_DC)-1 ) == 0 )
@@ -106,6 +109,8 @@ int ldap_dn2domain(
 					return -5;
 				}
 
+				if( domain == NULL ) ndomain[0] = '\0';
+
 				strcat( ndomain, dc );
 				strcat( ndomain, "." );
 
@@ -114,10 +119,19 @@ int ldap_dn2domain(
 			}
 		}
 
+		/*
+		 * multi-valued RDN or fall thru
+		 */
+
 		LDAP_VFREE( rdn );
 		LDAP_FREE( domain );
 		domain = NULL;
 	} 
+
+	if( domain != NULL &&  *domain == '\0' ) {
+		LDAP_FREE( domain );
+		domain = NULL;
+	}
 
 	*domainp = domain;
 	return 0;
