@@ -1413,7 +1413,9 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 	savepos = ss;
 	at->at_oid = parse_numericoid(&ss,code,0);
 	if ( !at->at_oid ) {
-		if ( flags & LDAP_SCHEMA_ALLOW_NO_OID ) {
+		if ( ( flags & ( LDAP_SCHEMA_ALLOW_NO_OID
+				| LDAP_SCHEMA_ALLOW_OID_MACRO ) )
+			    && (ss == savepos) ) {
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
@@ -1433,8 +1435,13 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 				     !strncmp(sval, "X-", 2) ) {
 					/* Missing OID, backtrack */
 					ss = savepos;
-				} else {
-					/* Non-numerical OID, ignore */
+				} else if ( flags
+					& LDAP_SCHEMA_ALLOW_OID_MACRO) {
+					/* Non-numerical OID ... */
+					int len = ss-savepos;
+					at->at_oid = LDAP_MALLOC(len+1);
+					strncpy(at->at_oid, savepos, len);
+					at->at_oid[len] = 0;
 				}
 			}
 			LDAP_FREE(sval);
@@ -1579,15 +1586,38 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 				}
 				seen_syntax = 1;
 				parse_whsp(&ss);
+				savepos = ss;
 				at->at_syntax_oid =
 					parse_noidlen(&ss,
 						      code,
 						      &at->at_syntax_len,
 						      flags);
 				if ( !at->at_syntax_oid ) {
+				    if ( flags & LDAP_SCHEMA_ALLOW_OID_MACRO ) {
+					kind = get_token(&ss,&sval);
+					if (kind == TK_BAREWORD)
+					{
+					    char *sp = strchr(sval, '{');
+					    at->at_syntax_oid = sval;
+					    if (sp)
+					    {
+						*sp++ = 0;
+					    	at->at_syntax_len = atoi(sp);
+						while ( LDAP_DIGIT(*sp) )
+							sp++;
+						if ( *sp != '}' ) {
+						    *code = LDAP_SCHERR_UNEXPTOKEN;
+						    *errp = ss;
+						    ldap_attributetype_free(at);
+						    return NULL;
+						}
+					    }
+					}
+				    } else {
 					*errp = ss;
 					ldap_attributetype_free(at);
 					return NULL;
+				    }
 				}
 				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"SINGLE-VALUE") ) {
@@ -1757,7 +1787,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp, const int 
 	savepos = ss;
 	oc->oc_oid = parse_numericoid(&ss,code,0);
 	if ( !oc->oc_oid ) {
-		if ( flags & LDAP_SCHEMA_ALLOW_ALL ) {
+		if ( (flags & LDAP_SCHEMA_ALLOW_ALL) && (ss == savepos) ) {
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
@@ -1773,8 +1803,13 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp, const int 
 				     !strncmp(sval, "X-", 2) ) {
 					/* Missing OID, backtrack */
 					ss = savepos;
-				} else {
+				} else if ( flags &
+					LDAP_SCHEMA_ALLOW_OID_MACRO ) {
 					/* Non-numerical OID, ignore */
+					int len = ss-savepos;
+					oc->oc_oid = LDAP_MALLOC(len+1);
+					strncpy(oc->oc_oid, savepos, len);
+					oc->oc_oid[len] = 0;
 				}
 			}
 			LDAP_FREE(sval);

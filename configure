@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP 
+# from OpenLDAP: pkg/ldap/configure.in,v 1.223.2.32 2001/09/18 16:12:10 kurt Exp  
 
 # Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -4694,7 +4694,7 @@ else
   rm -rf conftest*
   ol_cv_winsock=no
 fi
-rm -f conftest*]
+rm -f conftest*
 fi
 
 echo "$ac_t""$ol_cv_winsock" 1>&6

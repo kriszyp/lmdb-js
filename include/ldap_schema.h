@@ -106,7 +106,8 @@ typedef struct ldap_objectclass {
 #define LDAP_SCHEMA_ALLOW_QUOTED	0x02 /* Allow bogus extra quotes     */
 #define LDAP_SCHEMA_ALLOW_DESCR		0x04 /* Allow descr instead of OID   */
 #define LDAP_SCHEMA_ALLOW_DESCR_PREFIX	0x08 /* Allow descr as OID prefix    */
-#define LDAP_SCHEMA_ALLOW_ALL		0x0f /* Be very liberal in parsing   */
+#define LDAP_SCHEMA_ALLOW_OID_MACRO	0x10 /* Allow OID macros in slapd    */
+#define LDAP_SCHEMA_ALLOW_ALL		0x1f /* Be very liberal in parsing   */
 
 LDAP_F( LDAP_CONST char * )
 ldap_syntax2name LDAP_P((

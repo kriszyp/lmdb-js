@@ -3,6 +3,13 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.15 Engineering
 	Fixed -lldap TLS external handling
 	Fixed -lldap ldaps:// no host bug
+	Fixed slapd Statslog bug
+	Fixed slapd oidm support
+	Added -lldap oidm support
+	Added slapd supportedFeatures support
+	Removed lint
+	Build environment
+		Fixed winsock detection
 
 OpenLDAP 2.0.14 Release
 	Fixed slurpd billionth second bug (ITS#1323)
