@@ -23,6 +23,10 @@
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
  */
+/* ACKNOWLEDGEMENTS:
+ * This work was originally developed by the University of Michigan
+ * (as part of U-MICH LDAP).
+ */
 
 #include "portable.h"
 
