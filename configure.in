@@ -827,8 +827,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl
 
 		dnl pthread_create in $LIBS
-		AC_MSG_CHECKING([for pthread_create in default libraries])
-		AC_CACHE_VAL(ol_cv_pthread_create,[
+		AC_CACHE_CHECK([for pthread_create in default libraries],
+			ol_cv_pthread_create,[
 		AC_TRY_RUN([
 #include <pthread.h>
 #ifndef NULL
@@ -873,7 +873,6 @@ int main(argc, argv)
 			[ol_cv_pthread_create=no],
 			[dnl assume yes
 			ol_cv_pthread_create=yes])])
-		AC_MSG_RESULT($ol_cv_pthread_create)
 
 		if test $ol_cv_pthread_create != no ; then
 			ol_link_threads=posix
@@ -990,8 +989,8 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 				AC_MSG_ERROR([LinuxThreads header/library mismatch]);
 			fi
 
-			AC_MSG_CHECKING([if pthread_create() works])
-			AC_CACHE_VAL(ol_cv_pthread_create_works,[
+			AC_CACHE_CHECK([if pthread_create() works],
+				ol_cv_pthread_create_works,[
 			AC_TRY_RUN([
 #include <pthread.h>
 #ifndef NULL
@@ -1020,7 +1019,6 @@ int main(argc, argv)
 				[ol_cv_pthread_create_works=no],
 				[dnl assume yes
 				ol_cv_pthread_create_works=yes])])
-			AC_MSG_RESULT($ol_cv_pthread_create_works)
 
 			if test $ol_cv_pthread_create_works = no ; then
 				AC_MSG_ERROR([pthread_create is not usable, check environment settings])
@@ -1028,8 +1026,8 @@ int main(argc, argv)
 
 			dnl Check if select causes an yield
 			if test $ol_with_yielding_select = auto ; then
-				AC_MSG_CHECKING([if select yields when using pthreads])
-				AC_CACHE_VAL(ol_cv_pthread_select_yields,[
+				AC_CACHE_CHECK([if select yields when using pthreads],
+					ol_cv_pthread_select_yields,[
 				AC_TRY_RUN([
 #include <sys/types.h>
 #include <sys/time.h>
@@ -1104,9 +1102,12 @@ int main(argc, argv)
 	exit(2);
 }],
 				[ol_cv_pthread_select_yields=no],
-				[ol_cv_pthread_select_yields=yes], [
-				AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])])])
-				AC_MSG_RESULT($ol_cv_pthread_select_yields)
+				[ol_cv_pthread_select_yields=yes],
+				[ol_cv_pthread_select_yields=cross])])
+
+				if test $ol_cv_pthread_select_yields = cross ; then
+					AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])
+				fi
 
 				if test $ol_cv_pthread_select_yields = yes ; then
 					ol_with_yielding_select=yes

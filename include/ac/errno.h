@@ -18,14 +18,14 @@
 # include <sys/errno.h>
 #endif
 
-#ifdef DECL_SYS_ERRLIST 
 #ifndef HAVE_SYS_ERRLIST
-#define		sys_nerr	0
-#define		sys_errlist	((char **)0)
-#else
-extern int      sys_nerr;
-extern char     *sys_errlist[];
-#endif
+	/* no sys_errlist */
+#	define		sys_nerr	0
+#	define		sys_errlist	((char **)0)
+#elif DECL_SYS_ERRLIST 
+	/* have sys_errlist but need declaration */
+	extern int      sys_nerr;
+	extern char     *sys_errlist[];
 #endif
 
 extern char* strerror_r();

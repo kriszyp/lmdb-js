@@ -120,8 +120,7 @@ dnl
 dnl ====================================================================
 dnl Check if system uses EBCDIC instead of ASCII
 AC_DEFUN([OL_CPP_EBCDIC], [# test for EBCDIC
-AC_MSG_CHECKING([for EBCDIC])
-AC_CACHE_VAL(ol_cv_cpp_ebcdic,[
+AC_CACHE_CHECK([for EBCDIC],ol_cv_cpp_ebcdic,[
 	AC_TRY_CPP([
 #if !('M' == 0xd4)
 #include <__ASCII__/generate_error.h>
@@ -129,7 +128,6 @@ AC_CACHE_VAL(ol_cv_cpp_ebcdic,[
 ],
 	[ol_cv_cpp_ebcdic=yes],
 	[ol_cv_cpp_ebcdic=no])])
-AC_MSG_RESULT($ol_cv_cpp_ebcdic)
 if test $ol_cv_cpp_ebcdic = yes ; then
 	AC_DEFINE(HAVE_EBCDIC,1, [define if system uses EBCDIC instead of ASCII])
 fi
@@ -183,15 +181,13 @@ dnl
 dnl ====================================================================
 dnl Check if struct passwd has pw_gecos
 AC_DEFUN([OL_STRUCT_PASSWD_PW_GECOS], [# test for pw_gecos in struct passwd
-AC_MSG_CHECKING([struct passwd for pw_gecos])
-AC_CACHE_VAL(ol_cv_struct_passwd_pw_gecos,[
+AC_CACHE_CHECK([struct passwd for pw_gecos],ol_cv_struct_passwd_pw_gecos,[
 	AC_TRY_COMPILE([#include <pwd.h>],[
 	struct passwd pwd;
 	pwd.pw_gecos = pwd.pw_name;
 ],
 	[ol_cv_struct_passwd_pw_gecos=yes],
 	[ol_cv_struct_passwd_pw_gecos=no])])
-AC_MSG_RESULT($ol_cv_struct_passwd_pw_gecos)
 if test $ol_cv_struct_passwd_pw_gecos = yes ; then
 	AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
 fi
@@ -200,15 +196,13 @@ dnl
 dnl --------------------------------------------------------------------
 dnl Check if struct passwd has pw_passwd
 AC_DEFUN([OL_STRUCT_PASSWD_PW_PASSWD], [# test for pw_passwd in struct passwd
-AC_MSG_CHECKING([struct passwd for pw_passwd])
-AC_CACHE_VAL(ol_cv_struct_passwd_pw_passwd,[
+AC_CACHE_CHECK([struct passwd for pw_passwd],ol_cv_struct_passwd_pw_passwd,[
 	AC_TRY_COMPILE([#include <pwd.h>],[
 	struct passwd pwd;
 	pwd.pw_passwd = pwd.pw_name;
 ],
 	[ol_cv_struct_passwd_pw_passwd=yes],
 	[ol_cv_struct_passwd_pw_passwd=no])])
-AC_MSG_RESULT($ol_cv_struct_passwd_pw_passwd)
 if test $ol_cv_struct_passwd_pw_passwd = yes ; then
 	AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
 fi
@@ -627,8 +621,7 @@ dnl
 dnl ====================================================================
 dnl Check for POSIX Regex
 AC_DEFUN([OL_POSIX_REGEX], [
-AC_MSG_CHECKING([for compatible POSIX regex])
-AC_CACHE_VAL(ol_cv_c_posix_regex,[
+AC_CACHE_CHECK([for compatible POSIX regex],ol_cv_c_posix_regex,[
 	AC_TRY_RUN([
 #include <sys/types.h>
 #include <regex.h>
@@ -655,15 +648,12 @@ main()
 	[ol_cv_c_posix_regex=yes],
 	[ol_cv_c_posix_regex=no],
 	[ol_cv_c_posix_regex=cross])])
-AC_MSG_RESULT($ol_cv_c_posix_regex)
 ])
 dnl
 dnl ====================================================================
 dnl Check if toupper() requires islower() to be called first
 AC_DEFUN([OL_C_UPPER_LOWER],
-[
-AC_MSG_CHECKING([if toupper() requires islower()])
-AC_CACHE_VAL(ol_cv_c_upper_lower,[
+[AC_CACHE_CHECK([if toupper() requires islower()],ol_cv_c_upper_lower,[
 	AC_TRY_RUN([
 #include <ctype.h>
 main()
@@ -676,7 +666,6 @@ main()
 	[ol_cv_c_upper_lower=no],
 	[ol_cv_c_upper_lower=yes],
 	[ol_cv_c_upper_lower=safe])])
-AC_MSG_RESULT($ol_cv_c_upper_lower)
 if test $ol_cv_c_upper_lower != no ; then
 	AC_DEFINE(C_UPPER_LOWER,1, [define if toupper() requires islower()])
 fi
@@ -687,32 +676,30 @@ dnl Check for declaration of sys_errlist in one of stdio.h and errno.h.
 dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
 dnl Reported by Keith Bostic.
 AC_DEFUN([OL_SYS_ERRLIST],
-[
-AC_MSG_CHECKING([declaration of sys_errlist])
-AC_CACHE_VAL(ol_cv_dcl_sys_errlist,[
+[AC_CACHE_CHECK([declaration of sys_errlist],ol_cv_dcl_sys_errlist,[
 	AC_TRY_COMPILE([
 #include <stdio.h>
 #include <sys/types.h>
 #include <errno.h> ],
 	[char *c = (char *) *sys_errlist],
-	[ol_cv_dcl_sys_errlist=yes],
+	[ol_cv_dcl_sys_errlist=yes
+	ol_cv_have_sys_errlist=yes],
 	[ol_cv_dcl_sys_errlist=no])])
-AC_MSG_RESULT($ol_cv_dcl_sys_errlist)
+#
 # It's possible (for near-UNIX clones) that sys_errlist doesn't exist
 if test $ol_cv_dcl_sys_errlist = no ; then
 	AC_DEFINE(DECL_SYS_ERRLIST,1,
 		[define if sys_errlist is not declared in stdio.h or errno.h])
-	AC_MSG_CHECKING([existence of sys_errlist])
-	AC_CACHE_VAL(ol_cv_have_sys_errlist,[
+
+	AC_CACHE_CHECK([existence of sys_errlist],ol_cv_have_sys_errlist,[
 		AC_TRY_LINK([#include <errno.h>],
 			[char *c = (char *) *sys_errlist],
 			[ol_cv_have_sys_errlist=yes],
 			[ol_cv_have_sys_errlist=no])])
-	AC_MSG_RESULT($ol_cv_have_sys_errlist)
-	if test $ol_cv_have_sys_errlist = yes ; then
-		AC_DEFINE(HAVE_SYS_ERRLIST,1,
-			[define if you actually have sys_errlist in your libs])
-	fi
+fi
+if test $ol_cv_have_sys_errlist = yes ; then
+	AC_DEFINE(HAVE_SYS_ERRLIST,1,
+		[define if you actually have sys_errlist in your libs])
 fi
 ])dnl
 dnl
