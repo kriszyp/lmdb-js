@@ -1,6 +1,6 @@
 # $OpenLDAP$
 
-UNIX_PRGS = mail500
+UNIX_PRGS = maildap
 PROGRAMS = $(@PLAT@_PRGS)
 
 SRCS=	main.c
@@ -13,12 +13,12 @@ LDAP_LIBDIR= ../../libraries
 XLIBS =  -lldap -llber -llutil
 XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
-mail500 : version.o
+maildap : version.o
 	$(LTLINK) -o $@ version.o $(OBJS) $(LIBS)
 
 version.c: ${OBJS} $(LDAP_LIBDEPEND)
 	@-$(RM) $@
-	$(MKVERSION) mail500 > $@
+	$(MKVERSION) maildap > $@
 
 install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)

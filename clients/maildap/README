@@ -1,17 +1,17 @@
 
 *** WARNING:  Preliminary ***
 
-This is the README file for mail500, a mailer that does X.500 lookups
-via LDAP.
+This is the README file for maildap, a mailer that does X.500 lookups
+via LDAP.  It is based on mail500.
 
-If you are planning to run mail500 at your site, you need to create a
+If you are planning to run maildap at your site, you need to create a
 configuration file.  Previous versions required modifying the source
 code for configuration.  This is no longer necessary.
 there are several
 
-*** WHAT mail500 DOES: ***
+*** WHAT maildap DOES: ***
 
-mail500 is designed to be invoked as a mailer (e.g., from sendmail),
+maildap is designed to be invoked as a mailer (e.g., from sendmail),
 similar to the way /bin/mail works.  It takes a few required arguments
 and then a list of addresses to deliver to.  It expects to find the
 message to deliver on its standard input.  It looks up the addresses in
@@ -24,12 +24,12 @@ mailing lists, the details of which are given below.
 The idea is that you might have a rule like this in your sendmail.cf
 file somewhere in rule set 0:
 
-R$*<@umich.edu>$*	$#mail500$@umich.edu$:<$1>
+R$*<@umich.edu>$*	$#maildap$@umich.edu$:<$1>
 
 This rule says that any address that ends in @umich.edu will cause
-the mail500 mailer to be called to deliver the mail.  You probably
+the maildap mailer to be called to deliver the mail.  You probably
 also want to do something to prevent addresses like terminator!tim@umich.edu
-or tim%terminator.rs.itd.umich.edu@umich.edu from being passed to mail500.
+or tim%terminator.rs.itd.umich.edu@umich.edu from being passed to maildap.
 At U-M, we do this by adding rules like this to rule set 9 where we
 strip off our local names:
 
@@ -37,29 +37,29 @@ R<@umich.edu>$*:$*                 $>10<@>$1:$2
 R$+%$+<@umich.edu>                 $>10$1%$2<@>
 R$+!$+<@umich.edu>                 $>10$1!$2<@>
 
-You can also feed complete FQDN addresses to mail500.  For instance,
+You can also feed complete FQDN addresses to maildap.  For instance,
 you could define a class containing the list of domains you want to
 serve like this:
 
-FQ/etc/mail/mail500domains
+FQ/etc/mail/maildapdomains
 
 and then use a rule in rule set 0 like this:
 
-R$*<$=Q>$*		$#mail500 $@$2 $:<$1@$2>
+R$*<$=Q>$*		$#maildap $@$2 $:<$1@$2>
 
 See the sample sendmail.cf in this directory for more details.
-For sendmail 8.9 (and later) users can use MAILER(mail500) if
-mail500.m4 is placed within sendmail's cf/mailer directory.
+For sendmail 8.9 (and later) users can use MAILER(maildap) if
+maildap.m4 is placed within sendmail's cf/mailer directory.
 
-The mail500 mailer should be defined similar to this in the
+The maildap mailer should be defined similar to this in the
 sendmail.cf file:
 
-Mmail500, P=/usr/local/etc/mail500, F=DFMSmnXuh, A=mail500 -f $f -h $h -m $n@$w $u
+Mmaildap, P=/usr/local/etc/maildap, F=DFMSmnXuh, A=maildap -f $f -h $h -m $n@$w $u
 
-This defines how mail500 will be treated by sendmail and what
+This defines how maildap will be treated by sendmail and what
 arguments it will have when it's called.  The various flags specified
 by the F=... parameter are explained in your local sendmail book (with
-any luck).  The arguments to mail500 are as follows:
+any luck).  The arguments to maildap are as follows:
 
 	-f	Who the mail is from.  This will be used as the address
 		to which any errors should be sent (unless the address
@@ -67,7 +67,7 @@ any luck).  The arguments to mail500 are as follows:
 		defines the $f macro to be the sender.
 
 	-h	The domain for which the mail is destined.  This is passed
-		in to mail500 via the $h macro, which is set by the
+		in to maildap via the $h macro, which is set by the
 		$@ metasymbol in the rule added to rule set 0 above.
 		It's normally used when searching for groups.
 
@@ -79,18 +79,18 @@ any luck).  The arguments to mail500 are as follows:
 The final argument $u is used to stand for the addresses to which to
 deliver the mail.
 
-*** HOW IT WORKS (from the mail500 side): ***
+*** HOW IT WORKS (from the maildap side): ***
 
-When mail500 gets invoked with one or more names to which to deliver
+When maildap gets invoked with one or more names to which to deliver
 mail, it searches for each name in X.500.  Where it searches, and what
 kind(s) of search(es) is controlled by a configuration file.  There
 are a number of different approaches to handling mail and no general
 rules can be given.  We will however present some examples of what you
-can do.  The new mail500 is designed to be flexible and able to
+can do.  The new maildap is designed to be flexible and able to
 accommodate most scenarios.
 
 For instance, if you are following the mail distribution model that
-the old mail500 used, you need lines in the configuration file like
+the old maildap used, you need lines in the configuration file like
 these:
 
 search  ldap:///ou=People, dc=OpenLDAP, dc=org??sub?\
@@ -119,12 +119,12 @@ want.  Known substitutions at this time are:
         %m   The recipient address we are considering now, maybe fully
 	     qualified
 	%h   The host, that is, the value of the -h argument to
-	     mail500
+	     maildap
 	%l   The local part from %m
 	%d   The domain part from %m
 
 So, in the above example, if the recipient address were
-name@OpenLDAP.org, mail500 would do the the following searches,
+name@OpenLDAP.org, maildap would do the the following searches,
 stopping if it found anything at any step:
 
 	Search (18) [2]: dc=org@dc=OpenLDAP@ou=People
@@ -150,7 +150,7 @@ simple-minded, and may not always be correct.
 
 First you need to decide what attributes you will search for and what
 attributes will be used to deliver the message.  In the classical
-mail500, we would search by uid or cn and deliver to the mail
+maildap, we would search by uid or cn and deliver to the mail
 attribute.  Another model is to search by the mail attribute and
 deliver to something else, such as the uid if determined that the user
 has a local account.
@@ -158,7 +158,7 @@ has a local account.
 *** THE CONFIGURATION FILE
 
 The configuration file is composed of lines that prescribe the
-operation of mail500.  Blank lines are ignored and lines beginning
+operation of maildap.  Blank lines are ignored and lines beginning
 with # are considered comments and ignored.  Outside comments, the
 sequence '\', newline, whitespace is ignored so that long lines can be
 split for readability.
@@ -230,7 +230,7 @@ using attributes of syntax "search-with-filter".
 *** EXAMPLES
 
 A configuration file that approximates the operation of the old
-mail500 runs as follows:
+maildap runs as follows:
 
 attribute errorsTo				errors dn
 attribute rfc822ErrorsTo			errors rfc822
@@ -290,14 +290,14 @@ search  ldap://localhost/dc=OpenLDAP,dc=org?\
 [ The rest is from the original README and I did not rewrite it yet ]
 
 In X.500, there are several new attribute types and one new object
-class defined that mail500 makes use of.  At its most basic, for normal
-entries mail500 will deliver to the value(s) listed in the
+class defined that maildap makes use of.  At its most basic, for normal
+entries maildap will deliver to the value(s) listed in the
 rfc822Mailbox attribute of the entry.  For example, at U-M my entry has
 the attribute
 
 	mail= tim@terminator.rs.itd.umich.edu
 
-So mail sent to tim@umich.edu will be delivered via mail500 to that
+So mail sent to tim@umich.edu will be delivered via maildap to that
 address.  If there were multiple values for the mail attribute, multiple
 copies of the mail would be sent.
 
@@ -342,11 +342,11 @@ listed (or X.500 entry via it's mail attribute).
 
 If you fill in the requestsTo or rfc822RequestsTo (or both) attributes,
 mail sent to groupname-request will be sent to the addresses listed
-there.  mail500 does this automatically, so you don't have to explicitly
+there.  maildap does this automatically, so you don't have to explicitly
 add the groupname-request alias to your group.
 
 To allow users to join a group, there is the joinable flag.  If TRUE,
-mail500 will search for entries that have a memberOfGroup attribute
+maildap will search for entries that have a memberOfGroup attribute
 equal to the DN of the group, using the same algorithm it used to find
 the group in the first place (i.e. the DNs and filters listed in the
 base array).  This allows people to join (or subscribe to) a group

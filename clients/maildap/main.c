@@ -1414,7 +1414,7 @@ entry_engine(
 	 * Sendmail 8.10.0 does, if compiled properly.
 	 *
 	 * The second method, that is most emphatically not recommended
-	 * is routing in mail500.  This is going to require using the
+	 * is routing in maildap.  This is going to require using the
 	 * percent hack.  Moreover, this may occasionally loop.
 	 */
 	if ( needs_mta_routing ) {

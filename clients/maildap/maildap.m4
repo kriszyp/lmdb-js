@@ -8,46 +8,46 @@ PUSHDIVERT(-1)
 ## in file LICENSE in the top-level directory of the distribution.
 
 dnl
-dnl mail500 mailer
+dnl maildap mailer
 dnl
 dnl This file should be placed in the sendmail's cf/mailer directory.
 dnl To include this mailer in your .cf file, use the directive:
-dnl	MAILER(mail500)
+dnl	MAILER(maildap)
 dnl
 
-ifdef(`MAIL500_HOST',
-	`define(`MAIL500_HOST_FLAG', CONCAT(` -l ', CONCAT(MAIL500_HOST,` ')))',
-	`define(`MAIL500_HOST_FLAG', `')')
-ifdef(`MAIL500_CONFIG_PATH',,
-	`define(`MAIL500_CONFIG_PATH', /etc/mail/mail500.conf)')
-ifdef(`MAIL500_MAILER_PATH',,
-	`ifdef(`MAIL500_PATH',
-		`define(`MAIL500_MAILER_PATH', MAIL500_PATH)',
-		`define(`MAIL500_MAILER_PATH', /usr/local/libexec/mail500)')')
-ifdef(`MAIL500_MAILER_FLAGS',,
-	`define(`MAIL500_MAILER_FLAGS', `SmnXuh')')
-ifdef(`MAIL500_MAILER_ARGS',,
-	`define(`MAIL500_MAILER_ARGS',
-		CONCAT(`mail500',CONCAT(` -C ',MAIL500_CONFIG_PATH,MAIL500_HOST_FLAG,`-f $f -m $n@$w $u')))')
+ifdef(`MAILDAP_HOST',
+	`define(`MAILDAP_HOST_FLAG', CONCAT(` -l ', CONCAT(MAILDAP_HOST,` ')))',
+	`define(`MAILDAP_HOST_FLAG', `')')
+ifdef(`MAILDAP_CONFIG_PATH',,
+	`define(`MAILDAP_CONFIG_PATH', /etc/mail/maildap.conf)')
+ifdef(`MAILDAP_MAILER_PATH',,
+	`ifdef(`MAILDAP_PATH',
+		`define(`MAILDAP_MAILER_PATH', MAILDAP_PATH)',
+		`define(`MAILDAP_MAILER_PATH', /usr/local/libexec/maildap)')')
+ifdef(`MAILDAP_MAILER_FLAGS',,
+	`define(`MAILDAP_MAILER_FLAGS', `SmnXuh')')
+ifdef(`MAILDAP_MAILER_ARGS',,
+	`define(`MAILDAP_MAILER_ARGS',
+		CONCAT(`maildap',CONCAT(` -C ',MAILDAP_CONFIG_PATH,MAILDAP_HOST_FLAG,`-f $f -m $n@$w $u')))')
 
 POPDIVERT
 
 MAILER_DEFINITIONS
 
 ######################*****##############
-###   MAIL500 Mailer specification   ###
+###   MAILDAP Mailer specification   ###
 ##################*****##################
 
 VERSIONID(`$OpenLDAP$')
 
-Mmail500,	P=MAIL500_MAILER_PATH, F=CONCAT(`DFM', MAIL500_MAILER_FLAGS), S=11/31, R=20/40, T=DNS/RFC822/X-Unix,
-		ifdef(`MAIL500_MAILER_MAX', `M=500_MAILER_MAX, ')A=MAIL500_MAILER_ARGS
+Mmaildap,	P=MAILDAP_MAILER_PATH, F=CONCAT(`DFM', MAILDAP_MAILER_FLAGS), S=11/31, R=20/40, T=DNS/RFC822/X-Unix,
+		ifdef(`MAILDAP_MAILER_MAX', `M=500_MAILER_MAX, ')A=MAILDAP_MAILER_ARGS
 
 LOCAL_CONFIG
-# Mail500 Domains
+# Maildap Domains
 #CQ foo.com
 
 PUSHDIVERT(3)
-# mail500 additions
-R$* < @ $=Q > $*	$#mail500 $@ $2 $: <$1@$2>		domain handled by mail500
+# maildap additions
+R$* < @ $=Q > $*	$#maildap $@ $2 $: <$1@$2>		domain handled by maildap
 POPDIVERT
