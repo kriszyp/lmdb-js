@@ -2665,7 +2665,6 @@ fi
 if test "$ol_enable_rewrite" != no ; then
 	AC_DEFINE(ENABLE_REWRITE,1,[define to enable rewriting in back-ldap and back-meta])
 	BUILD_REWRITE=yes
-	SLAPD_LIBS="$SLAPD_LIBS -lrewrite"
 fi
 
 dnl ----------------------------------------------------------------
