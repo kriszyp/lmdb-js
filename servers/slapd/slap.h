@@ -3,12 +3,12 @@
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
 
-#include <stdlib.h>
+#include <ac/stdlib.h>
 
 #include <sys/types.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
-#include <ac/socket.h>			/* needed by LDAP_CONNECTIONLESS */
+#include <ac/socket.h>
 #include <ldap_schema.h>
 
 #include "avl.h"

@@ -200,7 +200,7 @@ static char rcsid[] = "$OpenBSD: sha1hl.c,v 1.1 1997/07/12 20:06:03 millert Exp 
 #endif /* LIBC_SCCS and not lint */
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <ac/stdlib.h>
 
 #include <ac/errno.h>
 #include <ac/unistd.h>

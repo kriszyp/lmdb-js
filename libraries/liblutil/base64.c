@@ -46,10 +46,8 @@
 
 #include "portable.h"
 
-#include <stdlib.h>
-#include <stddef.h>
-#include <ctype.h>
-
+#include <ac/stdlib.h>
+#include <ac/ctype.h>
 #include <ac/string.h>
 
 /* include socket.h to get sys/types.h and/or winsock2.h */

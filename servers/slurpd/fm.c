@@ -17,8 +17,8 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>			/* get free() */
 
+#include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/signal.h>
 

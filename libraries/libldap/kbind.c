@@ -14,7 +14,7 @@
 #ifdef HAVE_KERBEROS
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <ac/stdlib.h>
 
 #include <ac/krb.h>
 #include <ac/socket.h>

@@ -19,7 +19,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <ac/stdlib.h>
 
 #include <ac/ctype.h>
 #include <ac/string.h>
@@ -413,7 +413,7 @@ print_as(Attr_Sequence as, int modtype, FILE *ofp)
 	    }
 	    if ( obuf != NULL ) {
 		fputs( obuf, ofp );
-		free( obuf );
+		ber_memfree( obuf );
 	    }
 	}
 	if ( modtype != 0 ) {

@@ -22,7 +22,7 @@
 
 #include "portable.h"
 
-#include <stdlib.h>
+#include <ac/stdlib.h>
 
 #include <ac/errno.h>
 #include <ac/socket.h>

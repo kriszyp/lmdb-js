@@ -14,7 +14,8 @@
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>

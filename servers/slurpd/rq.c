@@ -34,7 +34,8 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 #include <ac/unistd.h>		/* get ftruncate() */
 
 #include "slurp.h"

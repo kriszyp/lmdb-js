@@ -123,7 +123,7 @@ av2ldif( FILE *outfp, AV_Sequence av, DN dn, short syntax, char *attrname,
 	    if ( fputs( buf, outfp ) == EOF ) {
 		rc = -1;
 	    }
-	    free( buf );
+	    ber_memfree( buf );
 	}
     }
 

@@ -12,7 +12,8 @@
 #ifdef SLAPD_LDBM
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/errno.h>
 
@@ -552,8 +553,8 @@ ldbm_errno( LDBM ldbm )
 
 /* MMAPED DBM HASHING DATABASE */
 
-#include <alloca.h>
-#include <string.h>
+#include <ac/alloca.h>
+#include <ac/string.h>
 
 /* #define MDBM_DEBUG */
 

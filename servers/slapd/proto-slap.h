@@ -249,7 +249,7 @@ void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attr
 void parse_oc_old LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
 void parse_oc LDAP_P(( char *fname, int lineno, char * line ));
 void parse_at LDAP_P(( char *fname, int lineno, char *line ));
-
+char *scherr2str LDAP_P((int code));
 /*
  * str2filter.c
  */

@@ -8,7 +8,7 @@
 
 #include "portable.h"
 
-#include <stdlib.h>
+#include <ac/stdlib.h>
 
 #include <ac/time.h>
 #include <ac/string.h>

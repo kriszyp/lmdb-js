@@ -19,8 +19,8 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ac/socket.h>		/* Get struct sockaddr for slap.h */
+#include <ac/string.h>
+#include <ac/socket.h>
 #include "slap.h"
 
 /* 

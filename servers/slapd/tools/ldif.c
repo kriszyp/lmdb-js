@@ -1,11 +1,12 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
-#include <ac/unistd.h>			/* Get read() */
+#include <ac/unistd.h>
 
 #ifdef HAVE_IO_H
 #include <io.h>
@@ -76,7 +77,7 @@ main( int argc, char **argv )
 		}
 
 		fputs( out, stdout );
-		free( out );
+		ber_memfree( out );
 		free( val );
 		exit( 0 );
 	}
@@ -91,7 +92,7 @@ main( int argc, char **argv )
 			exit( 1 );
 		}
 		fputs( out, stdout );
-		free( out );
+		ber_memfree( out );
 	}
 
 	exit( 0 );

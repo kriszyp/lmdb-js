@@ -3,7 +3,8 @@
 #ifndef HAVE_SETPROCTITLE
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 
 #include <ac/setproctitle.h>
 #include <ac/string.h>

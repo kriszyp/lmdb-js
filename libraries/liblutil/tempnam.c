@@ -3,7 +3,8 @@
 #ifndef HAVE_TEMPNAM
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 

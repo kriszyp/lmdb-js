@@ -7,8 +7,8 @@
 
 #include <stdio.h>
 #include <sys/stat.h>
-#include <dirent.h>
 
+#include <ac/dirent.h>
 #include <ac/errno.h>
 #include <ac/signal.h>
 #include <ac/socket.h>

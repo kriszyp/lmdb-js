@@ -574,7 +574,7 @@ Re_write(
 		free( obuf );
 		goto bad;
 	    } else {
-		free( obuf );
+		ber_memfree( obuf );
 	    }
 	}
     }

@@ -8,7 +8,7 @@
 
 #include "portable.h"
 
-#include <stdlib.h>
+#include <ac/stdlib.h>
 #include "rcpt500.h"
 
 struct command cmds[] = {

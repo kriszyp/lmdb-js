@@ -17,13 +17,14 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 
 #include <ac/errno.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
 #include <ac/time.h>
-#include <ac/unistd.h>		/* Get_t getpid() */
+#include <ac/unistd.h>
 
 #include <ac/krb.h>
 

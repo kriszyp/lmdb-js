@@ -20,7 +20,8 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 
 #ifdef HAVE_READLINE
 #  include <readline/readline.h>

@@ -1,9 +1,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <limits.h>
 
+#include <ac/stdlib.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/ctype.h>

@@ -7,15 +7,15 @@
 
 #include "portable.h"
 
-#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdio.h>
-#include <time.h>
 
-#include <ac/unistd.h>
+#include <ac/stdlib.h>
 #include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>

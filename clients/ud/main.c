@@ -23,7 +23,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
+
 #include <setjmp.h>
 
 #ifdef HAVE_PWD_H

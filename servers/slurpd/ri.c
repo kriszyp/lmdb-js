@@ -20,7 +20,8 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 #include <ac/signal.h>
 
 #include "slurp.h"

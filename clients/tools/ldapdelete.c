@@ -3,8 +3,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
+
+#include <ac/stdlib.h>
+#include <ac/ctype.h>
 
 #include <ac/signal.h>
 #include <ac/string.h>

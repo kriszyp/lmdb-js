@@ -14,7 +14,8 @@
 #ifdef STR_TRANSLATION
 
 #include <stdio.h>
-#include <stdlib.h>
+
+#include <ac/stdlib.h>
 
 #include <ac/socket.h>
 #include <ac/string.h>
@@ -147,7 +148,7 @@ ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 
 
 #include <stdio.h>
-#include <stdlib.h>
+#include <ac/stdlib.h>
 #include <ac/string.h>
 
 /* Character set used: ISO 8859-1, ISO 8859-2, ISO 8859-3, ... */
