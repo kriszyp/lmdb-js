@@ -48,7 +48,7 @@ read_config( const char *fname )
 	FILE	*fp;
 	char	*line, *savefname, *saveline;
 	int	cargc, savelineno;
-	char	*cargv[MAXARGS];
+	char	*cargv[MAXARGS+1];
 	int	lineno, i;
 #ifdef HAVE_TLS
 	int rc;
