@@ -135,23 +135,21 @@ ber_peek_tag(
 	BerElement *ber_in,
 	ber_len_t *len )
 {
-	ber_tag_t	tag;
+	char*	save;
 	BerElement *ber;
+	ber_tag_t tag;
 
 	assert( ber_in != NULL );
 	assert( BER_VALID( ber_in ) );
 
-	ber = ber_dup( ber_in );
-
-	if( ber == NULL ) {
-		return LBER_ERROR;
-	}
-
-	assert( BER_VALID( ber ) );
+	/* save state */
+	save = ber->ber_ptr;
 
 	tag = ber_skip_tag( ber, len );
 
-	ber_free( ber, 0 );
+	/* restore state */
+	ber->ber_ptr = save;
+
 	return( tag );
 }
 
@@ -453,8 +451,7 @@ ber_first_element(
 
 	/* skip the sequence header, use the len to mark where to stop */
 	if ( ber_skip_tag( ber, len ) == LBER_DEFAULT ) {
-		*last = NULL;
-		return( LBER_DEFAULT );
+		return( LBER_ERROR );
 	}
 
 	*last = ber->ber_ptr + *len;
@@ -470,7 +467,7 @@ ber_tag_t
 ber_next_element(
 	BerElement *ber,
 	ber_len_t *len,
-	char *last )
+	LDAP_CONST char *last )
 {
 	assert( ber != NULL );
 	assert( len != NULL );
@@ -479,6 +476,7 @@ ber_next_element(
 	assert( BER_VALID( ber ) );
 
 	if ( ber->ber_ptr == last ) {
+		/* set last to NULL on end of SEQUENCE */
 		return( LBER_DEFAULT );
 	}
 

@@ -685,6 +685,7 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 			break;
 
 		case 'B':	/* bit string */
+		case 'X':	/* bit string (deprecated) */
 			s = va_arg( ap, char * );
 			len = va_arg( ap, int );	/* in bits */
 			rc = ber_put_bitstring( ber, s, len, ber->ber_tag );

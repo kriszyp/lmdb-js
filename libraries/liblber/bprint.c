@@ -18,6 +18,22 @@
 #include "lber-int.h"
 
 /*
+ * ber errno
+ */
+BER_ERRNO_FN ber_int_errno_fn;
+
+int * ber_errno_addr(void)
+{
+	static int ber_int_errno = LBER_ERROR_NONE;
+
+	if( ber_int_errno_fn ) {
+		return (*ber_int_errno_fn)();
+	}
+
+	return &ber_int_errno;
+}
+
+/*
  * Print stuff
  */
 static void

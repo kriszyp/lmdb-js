@@ -171,7 +171,9 @@ static long send_ldap_ber(
 	Connection *conn,
 	BerElement *ber )
 {
-	ber_len_t bytes = ber_pvt_ber_bytes( ber );
+	ber_len_t bytes;
+
+	ber_get_option( ber, LBER_OPT_BER_BYTES_TO_WRITE, &bytes );
 
 	/* write only one pdu at a time - wait til it's our turn */
 	ldap_pvt_thread_mutex_lock( &conn->c_write_mutex );

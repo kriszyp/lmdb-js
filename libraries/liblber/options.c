@@ -55,6 +55,18 @@ ber_get_option(
 		* (int *) outvalue = ber->ber_debug;
 		return LBER_OPT_SUCCESS;
 
+	case LBER_OPT_BER_REMAINING_BYTES:
+		*((ber_len_t *) outvalue) = ber->ber_end - ber->ber_ptr;
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_TOTAL_BYTES:
+		*((ber_len_t *) outvalue) = ber->ber_end - ber->ber_buf;
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_BYTES_TO_WRITE:
+		*((ber_len_t *) outvalue) = ber->ber_ptr - ber->ber_buf;
+		return LBER_OPT_SUCCESS;
+
 	default:
 		/* bad param */
 		break;
@@ -132,6 +144,18 @@ ber_set_option(
 	case LBER_OPT_BER_DEBUG:
 		assert( BER_VALID( ber ) );
 		ber->ber_debug = * (const int *) invalue;
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_REMAINING_BYTES:
+		ber->ber_end = &ber->ber_ptr[* (const ber_len_t *) invalue];
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_TOTAL_BYTES:
+		ber->ber_end = &ber->ber_buf[* (const ber_len_t *) invalue];
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_BYTES_TO_WRITE:
+		ber->ber_ptr = &ber->ber_buf[* (const ber_len_t *) invalue];
 		return LBER_OPT_SUCCESS;
 
 	default:

@@ -24,6 +24,9 @@
 
 LDAP_BEGIN_DECL
 
+extern BER_ERRNO_FN ber_int_errno_fn;
+
+
 /* these have to match lber types settings */
 #define LBER_INT_HTON(i)	AC_HTONL(i)
 #define LBER_INT_NTOH(i)	AC_NTOHL(i)

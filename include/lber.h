@@ -66,41 +66,40 @@ typedef signed LBER_LEN_T ber_slen_t;
  */
 
 /* BER classes and mask */
-#define LBER_CLASS_UNIVERSAL	(ber_tag_t) 0x00U
-#define LBER_CLASS_APPLICATION	(ber_tag_t) 0x40U
-#define LBER_CLASS_CONTEXT	(ber_tag_t) 0x80U
-#define LBER_CLASS_PRIVATE	(ber_tag_t) 0xc0U
-#define LBER_CLASS_MASK		(ber_tag_t) 0xc0U
+#define LBER_CLASS_UNIVERSAL	((ber_tag_t) 0x00U)
+#define LBER_CLASS_APPLICATION	((ber_tag_t) 0x40U)
+#define LBER_CLASS_CONTEXT		((ber_tag_t) 0x80U)
+#define LBER_CLASS_PRIVATE		((ber_tag_t) 0xc0U)
+#define LBER_CLASS_MASK			((ber_tag_t) 0xc0U)
 
 /* BER encoding type and mask */
-#define LBER_PRIMITIVE		(ber_tag_t) 0x00U
-#define LBER_CONSTRUCTED	(ber_tag_t) 0x20U
-#define LBER_ENCODING_MASK	(ber_tag_t) 0x20U
+#define LBER_PRIMITIVE			((ber_tag_t) 0x00U)
+#define LBER_CONSTRUCTED		((ber_tag_t) 0x20U)
+#define LBER_ENCODING_MASK		((ber_tag_t) 0x20U)
 
-#define LBER_BIG_TAG_MASK	(ber_tag_t) 0x1fU
-#define LBER_MORE_TAG_MASK	(ber_tag_t) 0x80U
+#define LBER_BIG_TAG_MASK		((ber_tag_t) 0x1fU)
+#define LBER_MORE_TAG_MASK		((ber_tag_t) 0x80U)
 
 /*
  * Note that LBER_ERROR and LBER_DEFAULT are values that can never appear
  * as valid BER tags, and so it is safe to use them to report errors.  In
  * fact, any tag for which the following is true is invalid:
  */
-#define LBER_INVALID(t)     (((t) & 0x080) && (((t) & (ber_tag_t) ~ 0x0FF))
-#define LBER_ERROR			((ber_tag_t) ~ 0x0)
-#define LBER_DEFAULT		((ber_tag_t) ~ 0x0)
+#define LBER_INVALID(t)     (((t) & (ber_tag_t) 0x080) \
+	&& (((t) & (ber_tag_t) ~ 0x0FF))
+
+#define LBER_ERROR			((ber_tag_t) -1)
+#define LBER_DEFAULT		((ber_tag_t) -1)
 
 /* general BER types we know about */
-#define LBER_BOOLEAN		(ber_tag_t) 0x01UL
-#define LBER_INTEGER		(ber_tag_t) 0x02UL
-#define LBER_BITSTRING		(ber_tag_t) 0x03UL
-#define LBER_OCTETSTRING	(ber_tag_t) 0x04UL
-#define LBER_NULL			(ber_tag_t) 0x05UL
-#define LBER_ENUMERATED		(ber_tag_t) 0x0aUL
-#define LBER_SEQUENCE		(ber_tag_t) 0x30UL	/* constructed */
-#define LBER_SET			(ber_tag_t) 0x31UL	/* constructed */
-
-#define OLD_LBER_SEQUENCE	(ber_tag_t) 0x10UL	/* w/o constructed bit - broken */
-#define OLD_LBER_SET		(ber_tag_t) 0x11UL	/* w/o constructed bit - broken */
+#define LBER_BOOLEAN		((ber_tag_t) 0x01UL)
+#define LBER_INTEGER		((ber_tag_t) 0x02UL)
+#define LBER_BITSTRING		((ber_tag_t) 0x03UL)
+#define LBER_OCTETSTRING	((ber_tag_t) 0x04UL)
+#define LBER_NULL			((ber_tag_t) 0x05UL)
+#define LBER_ENUMERATED		((ber_tag_t) 0x0aUL)
+#define LBER_SEQUENCE		((ber_tag_t) 0x30UL)	/* constructed */
+#define LBER_SET			((ber_tag_t) 0x31UL)	/* constructed */
 
 typedef int (*BERTranslateProc) LDAP_P((
 	char **bufp,
@@ -113,13 +112,22 @@ typedef int (*BERTranslateProc) LDAP_P((
 #define LBER_TRANSLATE_STRINGS	0x04
 
 /* get/set options for BerElement */
-#define LBER_OPT_BER_OPTIONS	0x01
-#define LBER_OPT_BER_DEBUG		0x02
+#define LBER_OPT_BER_OPTIONS			0x01
+#define LBER_OPT_BER_DEBUG				0x02
+#define LBER_OPT_BER_REMAINING_BYTES	0x03
+#define LBER_OPT_BER_TOTAL_BYTES		0x04
+#define LBER_OPT_BER_BYTES_TO_WRITE		0x05
 
 #define LBER_OPT_DEBUG_LEVEL	LBER_OPT_BER_DEBUG
+#define LBER_OPT_REMAINING_BYTES	LBER_OPT_BER_REMAINING_BYTES
+#define LBER_OPT_TOTAL_BYTES		LBER_OPT_BER_TOTAL_BYTES
+#define LBER_OPT_BYTES_TO_WRITE		LBER_OPT_BER_BYTES_TO_WRITE
 
 #define LBER_OPT_LOG_PRINT_FN	0x8001
 #define LBER_OPT_MEMORY_FNS		0x8002
+#define LBER_OPT_ERROR_FN		0x8003
+
+typedef int* (*BER_ERRNO_FN) LDAP_P(( void ));
 
 typedef void (*BER_LOG_PRINT_FN) LDAP_P(( char *buf ));
 
@@ -150,7 +158,7 @@ typedef struct lber_memory_fns {
 #define LBER_OPT_ON		((void *) 1)
 #define LBER_OPT_OFF	((void *) 0)
 
-#define LBER_OPT_SUCCESS	0
+#define LBER_OPT_SUCCESS	(0)
 #define LBER_OPT_ERROR		(-1)
 
 typedef struct berelement BerElement;
@@ -260,7 +268,7 @@ LDAP_F( ber_tag_t )
 ber_next_element LDAP_P((
 	BerElement *ber,
 	ber_len_t *len,
-	char *last ));
+	LDAP_CONST char *last ));
 
 LDAP_F( ber_tag_t )
 ber_scanf LDAP_P((								  
@@ -493,6 +501,16 @@ ber_bvdup LDAP_P((
 LDAP_F( char * )
 ber_strdup LDAP_P((
 	LDAP_CONST char * ));
+
+/*
+ * error.c
+ */
+LDAP_F( int * ) ber_errno_addr LDAP_P((void));
+#define ber_errno (*(ber_errno_addr)())
+
+#define LBER_ERROR_NONE		0
+#define LBER_ERROR_PARAM	0x1
+#define LBER_ERROR_MEMORY	0x2
 
 LDAP_END_DECL
 

@@ -10,11 +10,12 @@
  */
 
 /*
- * LBER types for Windows NT
+ * LBER types for Windows NT (and Win32)
+ * copied by setup.mak to lber_types.h (when confingure is not used).
  */
 
-#ifndef _LBER_TYPES_H_NT
-#define _LBER_TYPES_H_NT
+#ifndef _LBER_TYPES_H
+#define _LBER_TYPES_H
 
 /*
  * NT types:
@@ -41,4 +42,4 @@
 /* LBER lengths - 32 bits or larger*/
 #define LBER_LEN_T		int
 
-#endif /* _LBER_TYPES_H_NT */
+#endif /* _LBER_TYPES_H */
