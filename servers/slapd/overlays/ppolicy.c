@@ -323,7 +323,6 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	const char *text;
 	AttributeDescription *ad;
 	struct berval bv;
-	void *opr = op->o_private;
 
 	memset( pp, 0, sizeof(PassPolicy) );
 
@@ -346,8 +345,6 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 		}
 	}
 
-	/* back-bdb stores lock info in o_private */
-	op->o_private = NULL;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	rc = be_entry_get_rw( op, vals, NULL, NULL, 0, &pe );
 	op->o_bd->bd_info = (BackendInfo *)on;
@@ -401,13 +398,11 @@ ppolicy_get( Operation *op, Entry *e, PassPolicy *pp )
 	be_entry_release_r( op, pe );
 	op->o_bd->bd_info = (BackendInfo *)on;
 
-	op->o_private = opr;
 	return;
 
 defaultpol:
 	Debug( LDAP_DEBUG_ANY,
 		"ppolicy_get: using default policy\n", 0, 0, 0 );
-	op->o_private = opr;
 	return;
 }
 

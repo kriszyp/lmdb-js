@@ -213,9 +213,21 @@ int bdb_entry_release(
 		if ( !boi || boi->boi_txn ) {
 			bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
 		} else {
-			bdb_cache_return_entry_rw( bdb->bi_dbenv, &bdb->bi_cache, e, rw, &boi->boi_lock );
-			o->o_tmpfree( boi, o->o_tmpmemctx );
-			o->o_private = NULL;
+			struct bdb_lock_info *bli, *prev;
+			for ( prev=(struct bdb_lock_info *)&boi->boi_locks,
+				bli = boi->boi_locks; bli; prev=bli, bli=bli->bli_next ) {
+				if ( bli->bli_id == e->e_id ) {
+					bdb_cache_return_entry_rw( bdb->bi_dbenv, &bdb->bi_cache,
+						e, rw, &bli->bli_lock );
+					prev->bli_next = bli->bli_next;
+					o->o_tmpfree( bli, o->o_tmpmemctx );
+					break;
+				}
+			}
+			if ( !boi->boi_locks ) {
+				o->o_tmpfree( boi, o->o_tmpmemctx );
+				o->o_private = NULL;
+			}
 		}
 	} else {
 		if (e->e_private != NULL)
@@ -344,15 +356,25 @@ return_results:
 		if ( slapMode == SLAP_SERVER_MODE ) {
 			*ent = e;
 			/* big drag. we need a place to store a read lock so we can
-			 * release it later??
+			 * release it later?? If we're in a txn, nothing is needed
+			 * here because the locks will go away with the txn.
 			 */
-			if ( op && !boi ) {
-				boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
-				boi->boi_lock = lock;
-				boi->boi_bdb = op->o_bd;
-				op->o_private = boi;
+			if ( op ) {
+				if ( !boi ) {
+					boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
+					boi->boi_bdb = op->o_bd;
+					op->o_private = boi;
+				}
+				if ( !boi->boi_txn ) {
+					struct bdb_lock_info *bli;
+					bli = op->o_tmpalloc( sizeof(struct bdb_lock_info),
+						op->o_tmpmemctx );
+					bli->bli_next = boi->boi_locks;
+					bli->bli_id = e->e_id;
+					bli->bli_lock = lock;
+					boi->boi_locks = bli;
+				}
 			}
-
 		} else {
 			*ent = entry_dup( e );
 			bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);

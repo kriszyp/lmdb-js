@@ -1248,7 +1248,6 @@ backend_group(
 				Filter *filter;
 				Entry *user;
 				Backend *b2 = op->o_bd;
-				void *o_private = op->o_private;
 
 				if ( target && dn_match( &target->e_nname, op_ndn ) ) {
 					user = target;
@@ -1256,7 +1255,6 @@ backend_group(
 					/* back-bdb stored lockinfo here, we saved it
 					 * above. Clear it out so that a new lock can be used.
 					 */
-					op->o_private = NULL;
 					op->o_bd = select_backend( op_ndn, 0, 0 );
 					rc = be_entry_get_rw(op, op_ndn, NULL, NULL, 0, &user );
 				}
@@ -1321,8 +1319,6 @@ loopit:
 					}
 					if ( user != target ) {
 						be_entry_release_r( op, user );
-						/* restore previous lockinfo, if any */
-						op->o_private = o_private;
 					}
 				}
 				op->o_bd = b2;

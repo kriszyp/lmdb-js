@@ -194,13 +194,19 @@ struct bdb_info {
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
 #define bi_dn2id	bi_databases[BDB_DN2ID]
 
+struct bdb_lock_info {
+	struct bdb_lock_info *bli_next;
+	ID		bli_id;
+	DB_LOCK	bli_lock;
+};
+
 struct bdb_op_info {
 	BackendDB*	boi_bdb;
 	DB_TXN*		boi_txn;
-	DB_LOCK		boi_lock;	/* used when no txn */
 	u_int32_t	boi_err;
 	u_int32_t	boi_locker;
 	int		boi_acl_cache;
+	struct bdb_lock_info *boi_locks;	/* used when no txn */
 };
 
 #define	DB_OPEN(db, file, name, type, flags, mode) \

@@ -33,7 +33,7 @@ bdb_add(Operation *op, SlapReply *rs )
 	AttributeDescription *children = slap_schema.si_ad_children;
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	DB_TXN		*ltid = NULL, *lt2;
-	struct bdb_op_info opinfo;
+	struct bdb_op_info opinfo = {0};
 #ifdef BDB_SUBENTRIES
 	int subentry;
 #endif

@@ -269,7 +269,7 @@ bdb_modify( Operation *op, SlapReply *rs )
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
 	DB_TXN	*ltid = NULL, *lt2;
-	struct bdb_op_info opinfo;
+	struct bdb_op_info opinfo = {0};
 	Entry		dummy = {0};
 
 	u_int32_t	locker = 0;
