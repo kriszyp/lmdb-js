@@ -553,16 +553,19 @@ BIO_METHOD ldap_pvt_sb_bio_method =
  *		and call again.
  */
 
-int
-ldap_pvt_tls_connect( LDAP *ld, Sockbuf *sb, void *ctx_arg )
+static int
+ldap_int_tls_connect( LDAP *ld, LDAPConn *conn )
 {
+	Sockbuf *sb = conn->lconn_sb;
+	void *ctx = ld->ld_defconn->lconn_tls_ctx;
+
 	int	err;
 	SSL	*ssl;
 
 	if ( HAS_TLS( sb ) ) {
 		ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_SSL, (void *)&ssl );
 	} else {
-		ssl = alloc_handle( ctx_arg );
+		ssl = alloc_handle( ctx );
 		if ( ssl == NULL )
 			return -1;
 #ifdef LDAP_DEBUG
@@ -652,7 +655,7 @@ ldap_pvt_tls_inplace ( Sockbuf *sb )
 }
 
 void *
-ldap_pvt_tls_sb_handle( Sockbuf *sb )
+ldap_pvt_tls_sb_ctx( Sockbuf *sb )
 {
 	void			*p;
 	
@@ -662,12 +665,6 @@ ldap_pvt_tls_sb_handle( Sockbuf *sb )
 	}
 
 	return NULL;
-}
-
-void *
-ldap_pvt_tls_get_handle( LDAP *ld )
-{
-	return ldap_pvt_tls_sb_handle( ld->ld_sb );
 }
 
 int
@@ -952,9 +949,12 @@ ldap_pvt_tls_set_option( LDAP *ld, int option, void *arg )
 }
 
 int
-ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
+ldap_int_tls_start ( LDAP *ld, LDAPConn *conn )
 {
-	char *ld_host = ld->ld_conns->lconn_server->lud_host;
+	Sockbuf *sb = conn->lconn_sb;
+	char *host = conn->lconn_server->lud_host;
+	void *ctx = ld->ld_defconn->lconn_tls_ctx;
+
 	char *peer_cert_cn;
 	void *ssl;
 
@@ -963,11 +963,11 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 	/*
 	 * Fortunately, the lib uses blocking io...
 	 */
-	if ( ldap_pvt_tls_connect( ld, sb, ctx_arg ) < 0 ) {
+	if ( ldap_int_tls_connect( ld, conn ) < 0 ) {
 		return LDAP_CONNECT_ERROR;
 	}
 
-	ssl = (void *) ldap_pvt_tls_sb_handle( sb );
+	ssl = (void *) ldap_pvt_tls_sb_ctx( sb );
 	assert( ssl != NULL );
 
 	/* 
@@ -983,10 +983,10 @@ ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 		return LDAP_LOCAL_ERROR;
 	}
 
-	if ( strcasecmp( ld_host, peer_cert_cn ) != 0 ) {
+	if ( strcasecmp( host, peer_cert_cn ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
 			"common name in certificate (%s).\n", 
-			ld_host, peer_cert_cn, 0 );
+			host, peer_cert_cn, 0 );
 		LDAP_FREE( peer_cert_cn );
 		return LDAP_CONNECT_ERROR;
 	}
@@ -1181,8 +1181,9 @@ ldap_start_tls_s ( LDAP *ld,
 	LDAPControl **serverctrls,
 	LDAPControl **clientctrls )
 {
-#ifdef HAVE_TLS
 	int rc;
+
+#ifdef HAVE_TLS
 	char *rspoid = NULL;
 	struct berval *rspdata = NULL;
 
@@ -1206,12 +1207,10 @@ ldap_start_tls_s ( LDAP *ld,
 		ber_bvfree( rspdata );
 	}
 
-	rc = ldap_pvt_tls_start( ld, ld->ld_sb,
-		ld->ld_defconn->lconn_tls_ctx );
-
-	return rc;
+	rc = ldap_int_tls_start( ld, ld->ld_defconn );
 #else
-	return LDAP_NOT_SUPPORTED;
+	rc = LDAP_NOT_SUPPORTED;
 #endif
+	return rc;
 }
 

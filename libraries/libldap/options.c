@@ -585,7 +585,7 @@ ldap_set_option(
 
 	default:
 #ifdef HAVE_TLS
-		if ( ldap_pvt_tls_set_option( lo, option, (void	*)invalue ) == 0 )
+		if ( ldap_pvt_tls_set_option( ld, option, (void *)invalue ) == 0 )
 	     	return LDAP_OPT_SUCCESS;
 #endif
 #ifdef HAVE_CYRUS_SASL

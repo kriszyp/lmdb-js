@@ -553,6 +553,9 @@ LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 LDAP_F (int) ldap_int_tls_config LDAP_P(( LDAP *ld,
 	int option, const char *arg ));
 
+LDAP_F (int) ldap_int_tls_start LDAP_P(( LDAP *ld,
+	LDAPConn *conn ));
+
 LDAP_END_DECL
 
 #endif /* _LDAP_INT_H */
