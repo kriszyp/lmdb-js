@@ -19,6 +19,7 @@
 
 #include <portable.h>
 
+#define LDAP_DEPRECATED 1
 #include "rewrite-int.h"
 #include "rewrite-map.h"
 

@@ -32,6 +32,7 @@
 #include <ac/unistd.h>
 #include <ac/errno.h>
 
+#define LDAP_DEPRECATED 1
 #include <ldap.h>
 
 #include "lutil_ldap.h"

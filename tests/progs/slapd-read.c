@@ -30,6 +30,7 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#define LDAP_DEPRECATED 1
 #include <ldap.h>
 
 #define LOOPS	100
