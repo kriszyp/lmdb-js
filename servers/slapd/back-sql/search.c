@@ -132,7 +132,7 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
  {
   if (bsi->bi->upper_func)
    {
-    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,toupper(f->f_sub_initial->bv_val),NULL);
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,ldap_pvt_str2upper(f->f_sub_initial->bv_val),NULL);
    }
    else
     bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_initial->bv_val,NULL);
@@ -146,7 +146,7 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
    //Debug(LDAP_DEBUG_TRACE,"==>backsql_process_sub_filter(): sub_any='%s'\n",f->f_sub_any[i]->bv_val,0,0);
    if (bsi->bi->upper_func)
    {
-    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,toupper(f->f_sub_any[i]->bv_val),"%",NULL);
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,ldap_pvt_str2upper(f->f_sub_any[i]->bv_val),"%",NULL);
    }
    else
     bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_any[i]->bv_val,"%",NULL);    
@@ -155,7 +155,7 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
  if (f->f_sub_final!=NULL)
   if (bsi->bi->upper_func)
    {
-    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,toupper(f->f_sub_final->bv_val),NULL);
+    bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,ldap_pvt_str2upper(f->f_sub_final->bv_val),NULL);
    }
    else
     bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_final->bv_val,NULL);
@@ -240,7 +240,7 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
 			if (bsi->bi->upper_func)
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
 					bsi->bi->upper_func,"(",at->sel_expr,")='",
-						toupper(f->f_av_value->bv_val),"')",NULL);
+						ldap_pvt_str2upper(f->f_av_value->bv_val),"')",NULL);
 			else
 			 bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,"='",
 							f->f_av_value->bv_val,"')",NULL);
@@ -284,7 +284,7 @@ char* backsql_srch_query(backsql_srch_info *bsi)
  bsi->sel_len=bsi->from_len=bsi->jwhere_len=bsi->fwhere_len=0;
 
  bsi->sel=backsql_strcat(bsi->sel,&bsi->sel_len,
-				"SELECT ldap_entries.id,",bsi->oc->keytbl,".",bsi->oc->keycol,
+				"SELECT DISTINCT ldap_entries.id,",bsi->oc->keytbl,".",bsi->oc->keycol,
 				", '",bsi->oc->name,"' AS objectClass",
 				", ldap_entries.dn AS dn",
 				NULL);
