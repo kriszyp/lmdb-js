@@ -59,7 +59,7 @@ shell_back_search(
 	fprintf( wfp, "deref: %d\n", deref );
 	fprintf( wfp, "sizelimit: %d\n", size );
 	fprintf( wfp, "timelimit: %d\n", time );
-	fprintf( wfp, "filter: %s\n", filterstr );
+	fprintf( wfp, "filter: %s\n", filterstr->bv_val );
 	fprintf( wfp, "attrsonly: %d\n", attrsonly ? 1 : 0 );
 	fprintf( wfp, "attrs:%s", attrs == NULL ? " all" : "" );
 	for ( an = attrs; an && an->an_name.bv_val; an++ ) {

@@ -69,7 +69,7 @@ modify_add_values(
 						*text = textbuf;
 						snprintf( textbuf, textlen,
 							"modify/%s: %s: value #%i already exists",
-							op, mod->sm_desc->ad_cname.bv_val );
+							op, mod->sm_desc->ad_cname.bv_val, j );
 						return LDAP_TYPE_OR_VALUE_EXISTS;
 					}
 				}
@@ -85,7 +85,7 @@ modify_add_values(
 					*text = textbuf;
 					snprintf( textbuf, textlen,
 						"modify/%s: %s: value #%i already exists",
-						op, mod->sm_desc->ad_cname.bv_val );
+						op, mod->sm_desc->ad_cname.bv_val, j );
 					return LDAP_TYPE_OR_VALUE_EXISTS;
 				}
 			}
@@ -155,8 +155,7 @@ modify_delete_values(
 {
 	int		i, j, k, found;
 	Attribute	*a;
-	char *desc = mod->sm_desc->ad_cname.bv_val;
-	MatchingRule *mr = mod->sm_desc->ad_type->sat_equality;
+	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
 
 	/* delete the entire attribute */
 	if ( mod->sm_bvalues == NULL ) {

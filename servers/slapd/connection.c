@@ -288,10 +288,10 @@ static Connection* connection_get( ber_socket_t s )
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_RESULTS,
-			   "connection_get: get for %d got connid %ld\n",s, c->c_connid ));
+			   "connection_get: get for %d got connid %lu\n", s, c->c_connid ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_get(%d): got connid=%ld\n",
+			"connection_get(%d): got connid=%lu\n",
 			s, c->c_connid, 0 );
 #endif
 
@@ -534,7 +534,7 @@ long connection_init(
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-			   "connection_init: conn %d  set nonblocking failed\n",
+			   "connection_init: conn %lu  set nonblocking failed\n",
 			   c->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY,
@@ -698,7 +698,7 @@ connection_destroy( Connection *c )
 		slapd_remove( sd, 0 );
 
 		Statslog( LDAP_DEBUG_STATS,
-		    "conn=%ld fd=%d closed\n",
+		    "conn=%lu fd=%d closed\n",
 			c->c_connid, sd, 0, 0, 0 );
 	}
 
@@ -765,11 +765,11 @@ void connection_closing( Connection *c )
 		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_GET_FD, &sd );
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-			   "connection_closing: conn %d readying socket %d for close.\n",
+			   "connection_closing: conn %lu readying socket %d for close.\n",
 			   c->c_connid, sd ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_closing: readying conn=%ld sd=%d for close\n",
+			"connection_closing: readying conn=%lu sd=%d for close\n",
 			c->c_connid, sd, 0 );
 #endif
 		/* update state to closing */
@@ -802,11 +802,11 @@ static void connection_close( Connection *c )
 	if( !LDAP_STAILQ_EMPTY(&c->c_ops) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-			   "connection_close: conn %d  deferring sd %d\n",
+			   "connection_close: conn %lu  deferring sd %d\n",
 			   c->c_connid, sd ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_close: deferring conn=%ld sd=%d\n",
+			"connection_close: deferring conn=%lu sd=%d\n",
 			c->c_connid, sd, 0 );
 #endif
 		return;
@@ -814,10 +814,10 @@ static void connection_close( Connection *c )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "connection", LDAP_LEVEL_RESULTS,
-		   "connection_close: conn %d  sd %d\n",
+		   "connection_close: conn %lu  sd %d\n",
 		   c->c_connid, sd ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%ld sd=%d\n",
+	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%lu sd=%d\n",
 		c->c_connid, sd, 0 );
 #endif
 	connection_destroy( c );
@@ -920,7 +920,7 @@ connection_operation( void *arg_v )
 	if( conn->c_sasl_bind_in_progress && tag != LDAP_REQ_BIND ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_operation: conn %d  SASL bind in progress (tag=%ld).\n",
+			   "connection_operation: conn %lu  SASL bind in progress (tag=%ld).\n",
 			   conn->c_connid, (long)tag ));
 #else
 		Debug( LDAP_DEBUG_ANY, "connection_operation: "
@@ -977,7 +977,7 @@ connection_operation( void *arg_v )
 	default:
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-			   "connection_operation: conn %d  unknown LDAP request 0x%lx\n",
+			   "connection_operation: conn %lu  unknown LDAP request 0x%lx\n",
 			   conn->c_connid, tag ));
 #else
 		Debug( LDAP_DEBUG_ANY, "unknown LDAP request 0x%lx\n",
@@ -1065,11 +1065,11 @@ int connection_read(ber_socket_t s)
 	if( c->c_conn_state == SLAP_C_CLOSING ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-			   "connection_read: conn %d connection closing, ignoring input\n",
+			   "connection_read: conn %lu connection closing, ignoring input\n",
 			   c->c_connid));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_read(%d): closing, ignoring input for id=%ld\n",
+			"connection_read(%d): closing, ignoring input for id=%lu\n",
 			s, c->c_connid, 0 );
 #endif
 		connection_return( c );
@@ -1079,10 +1079,10 @@ int connection_read(ber_socket_t s)
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-		   "connection_read: conn %d  checking for input.\n", c->c_connid ));
+		   "connection_read: conn %lu  checking for input.\n", c->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-		"connection_read(%d): checking for input on id=%ld\n",
+		"connection_read(%d): checking for input on id=%lu\n",
 		s, c->c_connid, 0 );
 #endif
 
@@ -1097,12 +1097,12 @@ int connection_read(ber_socket_t s)
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-				   "connection_read: conn %d  TLS accept error, error %d\n",
+				   "connection_read: conn %lu  TLS accept error, error %d\n",
 				   c->c_connid, rc ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"connection_read(%d): TLS accept error "
-				"error=%d id=%ld, closing\n",
+				"error=%d id=%lu, closing\n",
 				s, rc, c->c_connid );
 #endif
 			c->c_needs_tls_accept = 0;
@@ -1158,12 +1158,12 @@ int connection_read(ber_socket_t s)
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-				   "connection_read: conn %d SASL install error %d, closing\n",
+				   "connection_read: conn %lu SASL install error %d, closing\n",
 				   c->c_connid, rc ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"connection_read(%d): SASL install error "
-				"error=%d id=%ld, closing\n",
+				"error=%d id=%lu, closing\n",
 				s, rc, c->c_connid );
 #endif
 			/* connections_mutex and c_mutex are locked */
@@ -1191,11 +1191,11 @@ int connection_read(ber_socket_t s)
 	if( rc < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_read: conn %d  input error %d, closing.\n",
+			   "connection_read: conn %lu  input error %d, closing.\n",
 			   c->c_connid, rc ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"connection_read(%d): input error=%d id=%ld, closing.\n",
+			"connection_read(%d): input error=%d id=%lu, closing.\n",
 			s, rc, c->c_connid );
 #endif
 		/* connections_mutex and c_mutex are locked */
@@ -1238,7 +1238,8 @@ connection_input(
 	    == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_input: conn %d  ber_alloc failed.\n", conn->c_connid ));
+			   "connection_input: conn %lu  ber_alloc failed.\n", 
+			   conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
 #endif
@@ -1259,7 +1260,7 @@ connection_input(
 			inet_ntoa( peeraddr.sa_in_addr.sin_addr ),
 			(unsigned) ntohs( peeraddr.sa_in_addr.sin_port ) );
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%ld UDP request from %s (%s) accepted.\n",
+			"conn=%lu UDP request from %s (%s) accepted.\n",
 			conn->c_connid, peername, conn->c_sock_name.bv_val, 0, 0 );
 	}
 #endif
@@ -1272,7 +1273,7 @@ connection_input(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_input: conn %d  ber_get_next failed, errno %d (%s).\n",
+			   "connection_input: conn %lu  ber_get_next failed, errno %d (%s).\n",
 			   conn->c_connid, err, sock_errstr(err) ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
@@ -1296,7 +1297,7 @@ connection_input(
 		/* log, close and send error */
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_input: conn %d  ber_get_int returns 0x%lx.\n",
+			   "connection_input: conn %lu  ber_get_int returns 0x%lx.\n",
 			   conn->c_connid, tag ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_get_int returns 0x%lx\n", tag, 0,
@@ -1310,7 +1311,7 @@ connection_input(
 		/* log, close and send error */
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_input: conn %d  ber_peek_tag returns 0x%lx.\n",
+			   "connection_input: conn %lu  ber_peek_tag returns 0x%lx.\n",
 			   conn->c_connid, tag ));
 #else
 		Debug( LDAP_DEBUG_ANY, "ber_peek_tag returns 0x%lx\n", tag, 0,
@@ -1330,7 +1331,7 @@ connection_input(
 		if (tag != LDAP_REQ_ABANDON && tag != LDAP_REQ_SEARCH) {
 #ifdef NEW_LOGGING
 		    LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			       "connection_input: conn %d  invalid req for UDP 0x%lx.\n",
+			       "connection_input: conn %lu  invalid req for UDP 0x%lx.\n",
 			       conn->c_connid, tag ));
 #else
 		    Debug( LDAP_DEBUG_ANY, "invalid req for UDP 0x%lx\n", tag, 0,
@@ -1360,7 +1361,7 @@ connection_input(
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-			   "connection_input: conn %d  deferring operation\n",
+			   "connection_input: conn %lu  deferring operation\n",
 			   conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "deferring operation\n", 0, 0, 0 );
@@ -1400,11 +1401,11 @@ connection_resched( Connection *conn )
 		if( rc ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-				   "connection_resched: conn %d  reaquiring locks.\n",
+				   "connection_resched: conn %lu  reaquiring locks.\n",
 				   conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"connection_resched: reaquiring locks conn=%ld sd=%d\n",
+				"connection_resched: reaquiring locks conn=%lu sd=%d\n",
 				conn->c_connid, sd, 0 );
 #endif
 			/*
@@ -1420,21 +1421,21 @@ connection_resched( Connection *conn )
 		if( conn->c_conn_state != SLAP_C_CLOSING ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-				   "connection_resched: conn %d  closed by other thread.\n",
+				   "connection_resched: conn %lu  closed by other thread.\n",
 				   conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "connection_resched: "
-				"closed by other thread conn=%ld sd=%d\n",
+				"closed by other thread conn=%lu sd=%d\n",
 				conn->c_connid, sd, 0 );
 #endif
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-				   "connection_resched: conn %d  attempting closing.\n",
+				   "connection_resched: conn %lu  attempting closing.\n",
 				   conn->c_connid ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "connection_resched: "
-				"attempting closing conn=%ld sd=%d\n",
+				"attempting closing conn=%lu sd=%d\n",
 				conn->c_connid, sd, 0 );
 #endif
 			connection_close( conn );
@@ -1505,7 +1506,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	if ( status != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_ERR,
-			   "connection_op_activate: conn %d	 thread pool submit failed.\n",
+			   "connection_op_activate: conn %lu	 thread pool submit failed.\n",
 			   conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY,
@@ -1546,11 +1547,11 @@ int connection_write(ber_socket_t s)
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,
-		   "connection_write conn %d  waking output.\n",
+		   "connection_write conn %lu  waking output.\n",
 		   c->c_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-		"connection_write(%d): waking output for id=%ld\n",
+		"connection_write(%d): waking output for id=%lu\n",
 		s, c->c_connid, 0 );
 #endif
 	ldap_pvt_thread_cond_signal( &c->c_write_cv );
