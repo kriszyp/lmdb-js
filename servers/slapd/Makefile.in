@@ -240,16 +240,12 @@ install-slapd: FORCE
 	fi
 
 
-CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
-
 all-cffiles: slapd
-	@for i in $(CFFILES); do \
-		tmpcf=$$i.tmp; \
-		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
-			-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
-			-e 's;%MODULEDIR%;$(moduledir);' \
-			$(srcdir)/$$i > $$tmpcf ; \
-	done
+	cf=slapd.conf tmpcf=$$cf.tmp; \
+	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
+		-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
+		-e 's;%MODULEDIR%;$(moduledir);' \
+		$(srcdir)/$$cf > $$tmpcf ; \
 	touch all-cffiles
 
 install-schema: FORCE
@@ -269,22 +265,15 @@ install-schema: FORCE
 install-conf: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sysconfdir)
 	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-ldbm
-	@for i in $(CFFILES); do \
-		tmpcf=$$i.tmp ; \
-		if test $$i = slapd.conf ; then \
-			mode=600 ; \
-		else \
-			mode=644 ; \
-		fi ; \
-		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
-			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$i; \
-		else \
-			echo "PRESERVING EXISTING CONFIGURATION FILE $(DESTDIR)$(sysconfdir)/$$i" ; \
-		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$i.default ; \
-	done
+	cf=slapd.conf tmpcf=$$cf.tmp mode=600 ; \
+	if test ! -f $(DESTDIR)$(sysconfdir)/$$cf; then \
+		echo "installing $$cf in $(sysconfdir)"; \
+		echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$i"; \
+		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$cf; \
+	else \
+		echo "PRESERVING EXISTING CONFIGURATION FILE $(DESTDIR)$(sysconfdir)/$$cf" ; \
+	fi; \
+	$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(DESTDIR)$(sysconfdir)/$$cf.default
 
 install-tools: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sbindir)

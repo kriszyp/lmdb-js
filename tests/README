@@ -3,7 +3,11 @@ verify basic functionality of the LDAP libraries, slapd, and slurpd.
 
 	To run all of the tests, type "make test".
 	To run LDBM tests, type "make ldbm".
-	To run BDB2 tests, type "make bdb2".
 
 To modify the debug level the tests run slapd with, set the SLAPD_DEBUG
 environment variable.
+	env SLAPD_DEBUG=1 make test
+
+To test LDAPv3, set PROTO to "-P 3".
+	env PROTO="-P 3" make test
+
