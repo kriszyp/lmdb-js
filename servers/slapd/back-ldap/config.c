@@ -431,11 +431,12 @@ ldap_back_exop_whoami(
 	if ( op->o_conn->c_authz_backend && !strcmp(op->o_conn->c_authz_backend->be_type, "ldap" ) && !dn_match(&op->o_ndn, &op->o_conn->c_ndn)) {
 		struct ldapconn *lc;
 
-		LDAPControl c, *ctrls[2] = {&c, NULL};
+		LDAPControl c, *ctrls[2] = {NULL, NULL};
 		LDAPMessage *res;
 		Operation op2 = *op;
 		ber_int_t msgid;
 
+		ctrls[0] = &c;
 		op2.o_ndn = op->o_conn->c_ndn;
 		lc = ldap_back_getconn(&op2, rs);
 		if (!lc || !ldap_back_dobind( lc, op, rs )) {
