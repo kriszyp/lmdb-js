@@ -61,6 +61,11 @@ typedef ID ID_BLOCK;
 /* all ID_BLOCK macros operate on a pointer to a ID_BLOCK */
 
 #define ID_BLOCK_NMAX(b)		((b)[ID_BLOCK_NMAX_OFFSET])
+
+/* Use this macro to get the value, but not to set it.
+ * By default this is identical to above.
+ */
+#define	ID_BLOCK_NMAXN(b)		ID_BLOCK_NMAX(b)
 #define ID_BLOCK_NIDS(b)		((b)[ID_BLOCK_NIDS_OFFSET])
 #define ID_BLOCK_ID(b, n)		((b)[ID_BLOCK_IDS_OFFSET+(n)])
 
@@ -71,6 +76,21 @@ typedef ID ID_BLOCK;
 
 #define ID_BLOCK_INDIRECT_VALUE	0
 #define ID_BLOCK_INDIRECT(b)	(ID_BLOCK_NIDS(b) == ID_BLOCK_INDIRECT_VALUE)
+
+#ifdef USE_INDIRECT_NIDS
+/*
+ * Use the high bit of ID_BLOCK_NMAX to indicate an INDIRECT block, thus
+ * freeing up the ID_BLOCK_NIDS to store an actual count. This allows us
+ * to use binary search on INDIRECT blocks.
+ */
+#undef	ID_BLOCK_NMAXN
+#define	ID_BLOCK_NMAXN(b)		((b)[ID_BLOCK_NMAX_OFFSET]&0x7fffffff)
+#undef	ID_BLOCK_INDIRECT_VALUE
+#define	ID_BLOCK_INDIRECT_VALUE	0x80000000
+#undef	ID_BLOCK_INDIRECT
+#define	ID_BLOCK_INDIRECT(b)	(ID_BLOCK_NMAX(b) & ID_BLOCK_INDIRECT_VALUE)
+
+#endif	/* USE_INDIRECT_NIDS */
 
 /* for the in-core cache of entries */
 typedef struct ldbm_cache {
