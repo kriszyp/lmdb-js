@@ -1,2 +1,6 @@
 * lock mutex on a per interpreter basis instead of global
-* Add a version callable from the tcl script for checking features
+
+* Add a version, callable from the tcl script for checking features
+
+* don't expand tabs for spaces...
+
