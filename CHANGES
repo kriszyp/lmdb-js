@@ -6,11 +6,13 @@ OpenLDAP 2.0.16 Engineering
 	Fixed slapd ManageDSAIT warning
 	Fixed slurpd server down reject fix (ITS#1183)
 	Fixed -llber ber_realloc bug (ITS#1346)
-	Removed -lldbm use of Berkeley CDB
-	Updated slapd/-lldap getaddrinfo error detection
+	Fixed -lldap multi-level referral chase bug (ITS#1346)
+	Updated slapd/-lldap getaddrinfo handling
 	Updated -lldap_r pthread stack size
+	Updated slapd acl assert checks
+	Removed -lldbm use of Berkeley CDB
 	Build environment
-		Updated ltconfig for MacOS X 10.1
+		Updated ltconfig for MacOS X 10.1 (ITS#1361)
 		Updated slapd.conf with ACL example
 		Updated pthread detection
 		Adjust test 7 read/write ratio
@@ -24,7 +26,7 @@ OpenLDAP 2.0.15 Release
 	Added slapd supportedFeatures support
 	Removed lint
 	Build environment
-		Fixed winsock detection
+		Fixed winsock detection (ITS#1334)
 
 OpenLDAP 2.0.14 Release
 	Fixed slurpd billionth second bug (ITS#1323)
