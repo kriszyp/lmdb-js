@@ -59,6 +59,11 @@ idl_fetch_one(
 	char	*kstr;
 	int	i, nids;
 
+#ifdef LDBM_USE_DB2
+	memset( &k2, 0, sizeof( k2 ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
+
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch_one\n", 0, 0, 0 ); */
 
 	data = ldbm_cache_fetch( db, key );
@@ -80,6 +85,11 @@ idl_fetch(
 	IDList	**tmp;
 	char	*kstr;
 	int	i, nids;
+
+#ifdef LDBM_USE_DB2
+	memset( &k2, 0, sizeof( k2 ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch\n", 0, 0, 0 ); */
 
@@ -170,11 +180,20 @@ idl_store(
 	Datum	data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
+#ifdef LDBM_USE_DB2
+	memset( &data, 0, sizeof( data ) );
+#endif
+
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_store\n", 0, 0, 0 ); */
 
 	data.dptr = (char *) idl;
 	data.dsize = (2 + idl->b_nmax) * sizeof(ID);
 	
+#ifdef LDBM_DEBUG
+	Statslog( LDAP_DEBUG_STATS, "<= idl_store(): rc=%d\n",
+		rc, 0, 0, 0, 0 );
+#endif
+
 	flags = LDBM_REPLACE;
 	if( li->li_flush_wrt ) flags |= LDBM_SYNC;
 	rc = ldbm_cache_store( db, key, data, flags );
@@ -283,7 +302,16 @@ idl_insert_key(
 	char	*kstr;
 	Datum	k2;
 
+#ifdef LDBM_USE_DB2
+	memset( &k2, 0, sizeof( k2 ) );
+#endif
+
 	if ( (idl = idl_fetch_one( be, db, key )) == NULL ) {
+#ifdef LDBM_DEBUG
+		Statslog( LDAP_DEBUG_STATS, "=> idl_insert_key(): no key yet\n",
+			0, 0, 0, 0, 0 );
+#endif
+
 		idl = idl_alloc( 1 );
 		idl->b_ids[idl->b_nids++] = id;
 		rc = idl_store( be, db, key, idl );

@@ -144,6 +144,8 @@ SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 # standard unix ndbm
 
 # Fallback settings, defaults are set in build/*/Make-platform
+#   The NDBM interface may not work on some (any) platforms.
+#	You may be happier with Berkeley DB B-trees.
 LDBMBACKEND?=-DLDBM_USE_NDBM
 LDBMINCLUDE?=
 LDBMLIB?=
@@ -163,8 +165,13 @@ LDBMLIB?=
 #LDBMINCLUDE=-I/usr/local/gdbm/include
 #LDBMLIB=-lgdbm
 
-#undef these if you have SLEEPYCAT DB2 installed
-#LDBMBACKEND=-DLDBM_USE_DBBTREE -DHAVE_SLEEPYCAT_DB2
+#undef these if you have SleepyCat DB2 installed the updated DBI
+#LDBMBACKEND=-DLDBM_USE_DBBTREE -DLDBM_USE_DB2
+#LDBMINCLUDE=-I/usr/local/include
+#LDBMLIB=-L/usr/local/lib -ldb
+
+#undef these if you have SleepyCat DB2 installed (with compat185)
+#LDBMBACKEND=-DLDBM_USE_DBBTREE -DLDBM_USE_DB2_COMPAT185
 #LDBMINCLUDE=-I/usr/local/include
 #LDBMLIB=-L/usr/local/lib -ldb
 

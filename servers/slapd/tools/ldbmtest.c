@@ -64,6 +64,10 @@ main( argc, argv )
 	int		i;
 	extern char	*optarg;
 
+#ifdef LDBM_USE_DB2
+	DBC	*cursorp;
+#endif
+
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	while ( (i = getopt( argc, argv, "d:f:" )) != EOF ) {
 		switch ( i ) {
@@ -151,9 +155,16 @@ main( argc, argv )
 			}
 
 			savekey.dptr = NULL;
+#ifdef LDBM_USE_DB2
+			for ( key = ldbm_firstkey( dbc->dbc_db, &cursorp );
+			    key.dptr != NULL;
+			    key = ldbm_nextkey( dbc->dbc_db, key, cursorp ) )
+#else
 			for ( key = ldbm_firstkey( dbc->dbc_db );
 			    key.dptr != NULL;
-			    key = ldbm_nextkey( dbc->dbc_db, key ) ) {
+			    key = ldbm_nextkey( dbc->dbc_db, key ) )
+#endif
+			{
 				if ( savekey.dptr != NULL )
 					ldbm_datum_free( dbc->dbc_db, savekey );
 				savekey = key;
@@ -313,8 +324,16 @@ main( argc, argv )
 			}
 
 			last.dptr = NULL;
+
+#ifdef LDBM_USE_DB2
+			for ( key = ldbm_firstkey( dbp, &cursorp );
+				key.dptr != NULL;
+				key = ldbm_nextkey( dbp, last, cursorp ) )
+#else
 			for ( key = ldbm_firstkey( dbp ); key.dptr != NULL;
-			    key = ldbm_nextkey( dbp, last ) ) {
+			    key = ldbm_nextkey( dbp, last ) )
+#endif
+			{
 				if ( last.dptr != NULL ) {
 					ldbm_datum_free( dbp, last );
 				}

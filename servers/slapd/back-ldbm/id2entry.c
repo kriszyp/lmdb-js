@@ -22,6 +22,11 @@ id2entry_add( Backend *be, Entry *e )
 	Datum		key, data;
 	int		len, rc, flags;
 
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %d, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
@@ -61,6 +66,10 @@ id2entry_delete( Backend *be, Entry *e )
 	Datum		key;
 	int		rc;
 
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_delete( %d, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
@@ -94,6 +103,11 @@ id2entry( Backend *be, ID id )
 	struct dbcache	*db;
 	Datum		key, data;
 	Entry		*e;
+
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry( %ld )\n", id, 0, 0 );
 

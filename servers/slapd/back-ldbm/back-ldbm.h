@@ -6,7 +6,13 @@
 #include "ldbm.h"
 
 #define DEFAULT_CACHE_SIZE	1000
-#define DEFAULT_DBCACHE_SIZE	100000
+
+#ifdef LDBM_USE_DB2
+#	define DEFAULT_DBCACHE_SIZE (100 * DEFAULT_DB_PAGE_SIZE)
+#else
+#	define DEFAULT_DBCACHE_SIZE 100000
+#endif
+
 #define DEFAULT_DB_DIRECTORY	"/usr/tmp"
 #define DEFAULT_MODE		0600
 

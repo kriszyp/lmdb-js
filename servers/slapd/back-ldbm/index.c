@@ -105,6 +105,10 @@ index_read(
 	char		*realval, *tmpval;
 	char		buf[BUFSIZ];
 
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
+
 	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> index_read( \"%s\" \"%c\" \"%s\" )\n",
 	    type, prefix, val );
@@ -174,6 +178,10 @@ add_value(
 	char	prefix;
 	char	*realval, *tmpval, *s;
 	char	buf[BUFSIZ];
+
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
 
 	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );

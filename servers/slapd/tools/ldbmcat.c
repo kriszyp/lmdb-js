@@ -24,6 +24,10 @@ main( argc, argv )
 	char		*file, *s;
 	int		printid = 1;
 
+#ifdef LDBM_USE_DB2
+	DBC	*cursorp;
+#endif
+
 	if ( argc < 2 || argc > 3 || ( argc == 3 && strcmp( argv[1], "-n" )
 	    != 0 )) {
 		usage( argv[0] );
@@ -41,8 +45,15 @@ main( argc, argv )
 	}
 
         last.dptr = NULL;
+
+#ifdef LDBM_USE_DB2
+        for ( key = ldbm_firstkey( dbp, &cursorp ); key.dptr != NULL;
+            key = ldbm_nextkey( dbp, last, cursorp ) )
+#else
         for ( key = ldbm_firstkey( dbp ); key.dptr != NULL;
-            key = ldbm_nextkey( dbp, last ) ) {
+            key = ldbm_nextkey( dbp, last ) )
+#endif
+	{
                 if ( last.dptr != NULL )
                         ldbm_datum_free( dbp, last );
                 data = ldbm_fetch( dbp, key );

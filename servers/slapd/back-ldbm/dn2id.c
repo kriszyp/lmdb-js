@@ -25,6 +25,11 @@ dn2id_add(
 	Datum		key, data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
@@ -66,6 +71,10 @@ dn2id(
 	ID		id;
 	Datum		key, data;
 
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	dn = strdup( dn );
 	dn_normalize_case( dn );
@@ -121,6 +130,10 @@ dn2id_delete(
 	struct dbcache	*db;
 	Datum		key;
 	int		rc;
+
+#ifdef LDBM_USE_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\" )\n", dn, 0, 0 );
 

@@ -176,6 +176,9 @@ ldbm_cache_fetch(
 )
 {
 	Datum	data;
+#ifdef LDBM_USE_DB2
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	pthread_mutex_lock( &db->dbc_mutex );
 #ifdef reentrant_database
@@ -215,6 +218,24 @@ ldbm_cache_store(
 		pthread_cond_wait( &db->dbc_cv, &db->dbc_mutex );
 	}
 #endif
+
+#ifdef LDBM_DEBUG
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): key.dptr=%s, key.dsize=%d\n",
+		key.dptr, key.dsize, 0, 0, 0 );
+
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): key.dptr=0x%08x, data.dptr=0x%0 8x\n",
+		key.dptr, data.dptr, 0, 0, 0 );
+
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): data.dptr=%s, data.dsize=%d\n",
+		data.dptr, data.dsize, 0, 0, 0 );
+
+	Statslog( LDAP_DEBUG_STATS,
+		"=> ldbm_cache_store(): flags=0x%08x\n",
+		flags, 0, 0, 0, 0 );
+#endif /* LDBM_DEBUG */
 
 	rc = ldbm_store( db->dbc_db, key, data, flags );
 
