@@ -296,7 +296,12 @@ makeconfig:	.makefiles buildtools
 		PLATFORM="netbsd" \
 		;; \
 	    FreeBSD) \
-		PLATFORM="freebsd" \
+		MAJRELEASE=`echo $$OSRELEASE | sed 's/\..*//'` ; \
+		if [ $$MAJRELEASE -lt 3 ]; then \
+			PLATFORM="freebsd2" ; \
+		else \
+			PLATFORM="freebsd3" ; \
+		fi; \
 		;; \
 	    NeXTSTEP) \
 		PLATFORM="nextstep" \
