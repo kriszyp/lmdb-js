@@ -30,15 +30,19 @@ void hit_socket();
 char *WSAGetLastErrorString();
 
 #define WAKE_LISTENER \
+do {\
     if( wake ) {\
         ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
         hit_socket();\
-    }
+    }\
+} while(0)
 #else
 #define WAKE_LISTENER \
+do {\
     if( wake ) {\
         ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );\
-    }
+    }\
+} while(0)
 #endif
 
 static int daemon_initialized = 0;
@@ -183,16 +187,16 @@ set_socket( struct sockaddr_in *addr )
 		int	tmp;
 
 		if ( (tcps = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
-#ifndef WIN32
+#ifndef HAVE_WINSOCK
 			int err = errno;
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: socket() failed errno %d (%s)\n", err,
 		    	err > -1 && err < sys_nerr ? sys_errlist[err] :
 		    	"unknown", 0 );
-#endif
-#ifdef WIN32
+#else
 			Debug( LDAP_DEBUG_ANY, 
-				"daemon: socket() failed errno %d (%s)\n", WSAGetLastError(),
+				"daemon: socket() failed errno %d (%s)\n",
+				WSAGetLastError(),
 		    	WSAGetLastErrorString(), 0 );
 #endif
 			exit( 1 );
@@ -621,7 +625,8 @@ int slapd_daemon( int inetd, int tcps )
 	connections_init();
 
 #define SLAPD_LISTENER_THREAD 1
-#if SLAPD_LISTENER_THREAD
+#if defined( SLAPD_LISTENER_THREAD ) || !defined(HAVE_PTHREADS)
+
 	/* listener as a separate THREAD */
 	rc = ldap_pvt_thread_create( &listener_tid,
 		0, slapd_daemon_task, args );
@@ -721,7 +726,7 @@ void
 slap_set_shutdown( int sig )
 {
 	slapd_shutdown = sig;
-#ifndef WIN32
+#ifndef HAVE_WINSOCK
 	if(slapd_listener) {
 		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 	}

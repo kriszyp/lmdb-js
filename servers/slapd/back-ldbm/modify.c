@@ -6,6 +6,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/time.h>
 
 #include "slap.h"
 #include "back-ldbm.h"

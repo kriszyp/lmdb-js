@@ -25,7 +25,8 @@ static RETSIGTYPE wait4child( int sig );
  */
 
 #ifndef HAVE_MKVERSION
-const char Versionstr[] = "OpenLDAP Standalone LDAP Server (slapd)";
+const char Versionstr[] =
+	OPENLDAP_PACKAGE " " OPENLDAP_VERSION " Standalone LDAP Server (slapd)";
 #endif
 
 #ifdef LOG_LOCAL4
