@@ -1914,7 +1914,6 @@ typedef unsigned long PagedResultsCookie;
 typedef struct slap_paged_state {
 	Backend *ps_be;
 	PagedResultsCookie ps_cookie;
-	ID ps_id;
 	int ps_count;
 } PagedResultsState;
 
