@@ -50,7 +50,6 @@ Small projects
 Add support for duplicate entry control
 Add support for matched values control
 Add tests to test suite (ACI, moddn, manageDSAit, subtyping, etc.)
-Add compare of RootDSE, cn=subschema, etc.
 Add user configurable attributes to RootDSE
 Update -lldap TLS checking to fully implement RFC 2829/2830
 Create ldapbind (from ldappasswd?) to support bind operations
