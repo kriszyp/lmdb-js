@@ -371,7 +371,10 @@ do_search(
 		return rc;
 	}
 
-	doPluginFNs( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
+	if ( doPluginFNs( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb ) == 0 ) {
+		slapi_pblock_get( pb, SLAPI_SEARCH_FILTER, (void *)&filter);
+		slapi_pblock_get( pb, SLAPI_SEARCH_STRFILTER, (void *)&fstr.bv_val );
+	}
 #endif /* defined( LDAP_SLAPI ) */
 
 	/* actually do the search and send the result(s) */
