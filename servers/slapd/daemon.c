@@ -1170,6 +1170,7 @@ slapd_daemon_task(
 	int l;
 	time_t	last_idle_check = 0;
 	struct timeval idle;
+	int ebadf = 0;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
 
@@ -1269,7 +1270,6 @@ slapd_daemon_task(
 		int at;
 		ber_socket_t nfds;
 #define SLAPD_EBADF_LIMIT 16
-		int ebadf = 0;
 
 		time_t	now;
 
