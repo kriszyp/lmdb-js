@@ -118,7 +118,6 @@ ldbm_back_close(
 {
 	/* terminate the underlying database system */
 	ldbm_shutdown();
-
 	return 0;
 }
 
@@ -153,6 +152,24 @@ ldbm_back_db_init(
 	/* default database directory */
 	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
 
+	/* DB_ENV environment pointer for DB3 */
+	li->li_dbenv = 0;
+
+	/* envdirok is turned on by ldbm_initialize_env if DB3 */
+	li->li_envdirok = 0;
+
+	/* syncfreq is 0 if disabled, or # seconds */
+	li->li_dbsyncfreq = 0;
+
+	/* wait up to dbsyncwaitn times if server is busy */
+	li->li_dbsyncwaitn = 12;
+
+	/* delay interval */
+	li->li_dbsyncwaitinterval = 5;
+
+	/* flag to notify ldbm_cache_sync_daemon to shut down */
+	li->li_dbshutdown = 0;
+
 	/* initialize various mutex locks & condition variables */
 	ldap_pvt_thread_mutex_init( &li->li_root_mutex );
 	ldap_pvt_thread_mutex_init( &li->li_add_mutex );
@@ -171,6 +188,25 @@ ldbm_back_db_open(
     BackendDB	*be
 )
 {
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
+	li->li_dbenv = ldbm_initialize_env( li->li_directory,
+		li->li_dbcachesize, &li->li_envdirok );
+
+	/* sync thread */
+	if ( li->li_dbsyncfreq > 0 )
+	{
+		int rc;
+		rc = ldap_pvt_thread_create( &li->li_dbsynctid,
+			0, ldbm_cache_sync_daemon, (void*)be );
+
+		if ( rc != 0 )
+		{
+			Debug(	LDAP_DEBUG_ANY,
+				"sync ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
+			return 1;
+		}
+	}
+
 	return 0;
 }
 
@@ -181,6 +217,10 @@ ldbm_back_db_destroy(
 {
 	/* should free/destroy every in be_private */
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+
+	if (li->li_dbenv)
+	    ldbm_shutdown_env(li->li_dbenv);
+
 	free( li->li_directory );
 	attr_index_destroy( li->li_attrs );
 

@@ -68,6 +68,7 @@ DBCache * ldbm_cache_open LDAP_P(( Backend *be,
 void ldbm_cache_close LDAP_P(( Backend *be, DBCache *db ));
 void ldbm_cache_really_close LDAP_P(( Backend *be, DBCache *db ));
 void ldbm_cache_flush_all LDAP_P(( Backend *be ));
+void ldbm_cache_sync LDAP_P(( Backend *be ));
 Datum ldbm_cache_fetch LDAP_P(( DBCache *db, Datum key ));
 int ldbm_cache_store LDAP_P(( DBCache *db, Datum key, Datum data, int flags ));
 int ldbm_cache_delete LDAP_P(( DBCache *db, Datum key ));

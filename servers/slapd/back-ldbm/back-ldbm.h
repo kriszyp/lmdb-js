@@ -117,6 +117,13 @@ struct ldbminfo {
 	DBCache		li_dbcache[MAXDBCACHE];
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
+	DB_ENV			*li_dbenv;
+	int			li_envdirok;
+	int			li_dbsyncfreq;
+	int			li_dbsyncwaitn;
+	int			li_dbsyncwaitinterval;
+	ldap_pvt_thread_t	li_dbsynctid;
+	int			li_dbshutdown;
 };
 
 LDAP_END_DECL

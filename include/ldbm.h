@@ -16,6 +16,11 @@
 
 #include <ldap_cdefs.h>
 
+/* dummy DB_ENV for non Berkeley DB */
+#if !defined( LDBM_USE_DBBTREE ) && !defined( LDBM_USE_DBHASH )
+#  define DB_ENV void
+#endif
+
 #if defined( LDBM_USE_DBBTREE ) || defined( LDBM_USE_DBHASH )
 
 /*****************************************************************
@@ -49,6 +54,8 @@
 #	ifndef DEFAULT_DB_PAGE_SIZE
 #		define DEFAULT_DB_PAGE_SIZE 4096
 #	endif
+#else
+#  define DB_ENV void
 #endif
 
 
@@ -240,8 +247,11 @@ LDAP_BEGIN_DECL
 LDAP_LDBM_F (int) ldbm_initialize( const char * );
 LDAP_LDBM_F (int) ldbm_shutdown( void );
 
+LDAP_LDBM_F (DB_ENV*) ldbm_initialize_env(const char *, int dbcachesize, int *envdirok);
+LDAP_LDBM_F (void) ldbm_shutdown_env(DB_ENV *);
+
 LDAP_LDBM_F (int) ldbm_errno( LDBM ldbm );
-LDAP_LDBM_F (LDBM) ldbm_open( char *name, int rw, int mode, int dbcachesize );
+LDAP_LDBM_F (LDBM) ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize );
 LDAP_LDBM_F (void) ldbm_close( LDBM ldbm );
 LDAP_LDBM_F (void) ldbm_sync( LDBM ldbm );
 LDAP_LDBM_F (void) ldbm_datum_free( LDBM ldbm, Datum data );
