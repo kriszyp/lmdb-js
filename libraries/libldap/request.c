@@ -45,14 +45,13 @@
 static LDAPConn *find_connection LDAP_P(( LDAP *ld, LDAPURLDesc *srv, int any ));
 static void use_connection LDAP_P(( LDAP *ld, LDAPConn *lc ));
 
-
-static BerElement *re_encode_request LDAP_P((
-	LDAP *ld,
+static BerElement *
+re_encode_request( LDAP *ld,
 	BerElement *origber,
-    ber_int_t msgid,
-	char **dnp,
-	int	 *type));
-
+	ber_int_t msgid,
+	int sref,
+	LDAPURLDesc *srv,
+	int *type );
 
 BerElement *
 ldap_alloc_ber_with_options( LDAP *ld )
@@ -628,7 +627,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	/* parse out & follow referrals */
 	for( i=0; refarray[i] != NULL; i++) {
 		/* Parse the referral URL */
-		if (( rc = ldap_url_parse( refarray[i], &srv)) != LDAP_SUCCESS) {
+		if (( rc = ldap_url_parse_ext( refarray[i], &srv)) != LDAP_SUCCESS) {
 			ld->ld_errno = rc;
 			rc = -1;
 			goto done;
@@ -657,7 +656,8 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 				 * if two search references come in one behind the other
 				 * for the same server with different contexts.
 				 */
-				Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referrals: queue referral \"%s\"\n",
+				Debug( LDAP_DEBUG_TRACE,
+					"ldap_chase_v3referrals: queue referral \"%s\"\n",
 					refarray[i], 0, 0);
 				if( lc->lconn_rebind_queue == NULL ) {
 					/* Create a referral list */
@@ -698,17 +698,21 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 		 */
 
 		/* For references we don't want old dn if new dn empty */
-		if ( sref && srv->lud_dn == NULL )
+		if ( sref && srv->lud_dn == NULL ) {
 			srv->lud_dn = LDAP_STRDUP( "" );
+		}
 
-		if (( ber = re_encode_request( ld, origreq->lr_ber,
-			    ++ld->ld_msgid, &srv->lud_dn, &rinfo.ri_request )) == NULL ) {
+		ber = re_encode_request( ld, origreq->lr_ber, ++ld->ld_msgid,
+			sref, srv, &rinfo.ri_request );
+
+		if( ber == NULL ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
 			rc = -1;
 			goto done;
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referral: msgid %d, url \"%s\"\n",
+		Debug( LDAP_DEBUG_TRACE,
+			"ldap_chase_v3referral: msgid %d, url \"%s\"\n",
 			lr->lr_msgid, refarray[i], 0);
 
 		/* Send the new request to the server - may require a bind */
@@ -782,10 +786,14 @@ done:
  * XXX merging of errors in this routine needs to be improved
  */
 int
-ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
+ldap_chase_referrals( LDAP *ld,
+	LDAPRequest *lr,
+	char **errstrp,
+	int sref,
+	int *hadrefp )
 {
-	int		rc, count, len, newdn;
-	char		*p, *ports, *ref, *tmpref, *refdn, *unfollowed;
+	int		rc, count, len;
+	char		*p, *ref, *unfollowed;
 	LDAPRequest	*origreq;
 	LDAPURLDesc	*srv;
 	BerElement	*ber;
@@ -824,7 +832,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 	/* find original request */
 	for ( origreq = lr; origreq->lr_parent != NULL;
 	     origreq = origreq->lr_parent ) {
-		;
+		/* empty */;
 	}
 
 	unfollowed = NULL;
@@ -832,82 +840,50 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 
 	/* parse out & follow referrals */
 	for ( ref = p; rc == 0 && ref != NULL; ref = p ) {
-
 		if (( p = strchr( ref, '\n' )) != NULL ) {
 			*p++ = '\0';
 		} else {
 			p = NULL;
 		}
 
-		/* copy the complete referral for rebind process */
-		rinfo.ri_url = LDAP_STRDUP( ref );
+		rc = ldap_url_parse_ext( ref, &srv );
 
-		ldap_pvt_hex_unescape( ref );
-		len = strlen( ref );
-
-		/* FIXME: we should use the URL Parser */
-
-		if ( len > LDAP_LDAP_REF_STR_LEN && strncasecmp( ref,
-		    LDAP_LDAP_REF_STR, LDAP_LDAP_REF_STR_LEN ) == 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
-			    "chasing LDAP referral: <%s>\n", ref, 0, 0 );
-			tmpref = ref + LDAP_LDAP_REF_STR_LEN;
-		} else {
+		if ( rc != LDAP_URL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
-			LDAP_FREE( rinfo.ri_url );
-			rinfo.ri_url = NULL;
 			continue;
 		}
 
+		if( srv->lud_dn != NULL && srv->lud_dn == '\0' ) {
+			LDAP_FREE( srv->lud_dn );
+			srv->lud_dn = NULL;
+		}
+
+		Debug( LDAP_DEBUG_TRACE,
+		    "chasing LDAP referral: <%s>\n", ref, 0, 0 );
+
 		*hadrefp = 1;
 
-		if (( refdn = strchr( tmpref, '/' )) != NULL ) {
-			*refdn++ = '\0';
-			newdn = refdn[0] != '?' && refdn[0] != '\0';
-			if( !newdn ) refdn = NULL;
-		} else {
-			newdn = 0;
+		ber = re_encode_request( ld, origreq->lr_ber,
+		    ++ld->ld_msgid, sref, srv, &rinfo.ri_request );
+
+		if( ber == NULL ) {
+			return -1 ;
 		}
 
-		if (( ber = re_encode_request( ld, origreq->lr_ber,
-		    ++ld->ld_msgid, &refdn, &rinfo.ri_request )) == NULL ) {
-			return( -1 );
-		}
-
-			if (( srv = (LDAPURLDesc *)LDAP_CALLOC( 1,
-			    sizeof( LDAPURLDesc ))) == NULL ) {
-				ber_free( ber, 1 );
-				ld->ld_errno = LDAP_NO_MEMORY;
-				return( -1 );
-			}
-
-			if (( srv->lud_scheme = LDAP_STRDUP("ldap")) == NULL ) {
-				LDAP_FREE( (char *)srv );
-				ber_free( ber, 1 );
-				ld->ld_errno = LDAP_NO_MEMORY;
-				return( -1 );
-			}
-
-			if (( srv->lud_host = LDAP_STRDUP( tmpref )) == NULL ) {
-				LDAP_FREE( (char *)srv );
-				ber_free( ber, 1 );
-				ld->ld_errno = LDAP_NO_MEMORY;
-				return( -1 );
-			}
-
-			if (( ports = strchr( srv->lud_host, ':' )) != NULL ) {
-				*ports++ = '\0';
-				srv->lud_port = atoi( ports );
-			} else {
-				srv->lud_port = (LDAP_INT_GLOBAL_OPT())->ldo_defport;
-			}
+		/* copy the complete referral for rebind process */
+		rinfo.ri_url = LDAP_STRDUP( ref );
 
 		rinfo.ri_msgid = origreq->lr_origid;
-		if ( srv != NULL && ldap_send_server_request( ld, ber, ld->ld_msgid,
-		    lr, srv, NULL, &rinfo ) >= 0 ) {
+
+		rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
+		    lr, srv, NULL, &rinfo );
+
+		LDAP_FREE( rinfo.ri_url );
+
+		if( rc >= 0 ) {
 			++count;
 		} else {
 			Debug( LDAP_DEBUG_ANY,
@@ -915,14 +891,8 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			    ldap_err2string( ld->ld_errno ), 0, 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 		}
-		LDAP_FREE( rinfo.ri_url);
 
-		if (srv != NULL)
-			ldap_free_urllist(srv);
-
-		if ( !newdn && refdn != NULL ) {
-			LDAP_FREE( refdn );
-		}
+		ldap_free_urllist(srv);
 	}
 
 	LDAP_FREE( *errstrp );
@@ -965,7 +935,12 @@ ldap_append_referral( LDAP *ld, char **referralsp, char *s )
 
 
 static BerElement *
-re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, int *type )
+re_encode_request( LDAP *ld,
+	BerElement *origber,
+	ber_int_t msgid,
+	int sref,
+	LDAPURLDesc *srv,
+	int *type )
 {
 	/*
 	 * XXX this routine knows way too much about how the lber library works!
@@ -973,13 +948,16 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 	ber_int_t	along;
 	ber_tag_t	tag;
 	ber_int_t	ver;
+	ber_int_t	scope;
 	int		rc;
 	BerElement	tmpber, *ber;
 	char		*orig_dn;
+	char		*dn;
 
 	Debug( LDAP_DEBUG_TRACE,
 	    "re_encode_request: new msgid %ld, new dn <%s>\n",
-	    (long) msgid, ( *dnp == NULL ) ? "NONE" : *dnp, 0 );
+	    (long) msgid,
+		( srv == NULL || srv->lud_dn == NULL) ? "NONE" : srv->lud_dn, 0 );
 
 	tmpber = *origber;
 
@@ -1005,6 +983,22 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 		/* delete requests don't have a DN wrapping sequence */
 		rc = ber_scanf( &tmpber, "a", &orig_dn );
 
+	} else if ( tag == LDAP_REQ_SEARCH ) {
+		/* search requests need to be re-scope-ed */
+		rc = ber_scanf( &tmpber, "{ae" /*"}"*/, &orig_dn, &scope );
+
+		if( srv->lud_scope != LDAP_SCOPE_DEFAULT ) {
+			/* use the scope provided in reference */
+			scope = srv->lud_scope;
+
+		} else if ( sref && scope != LDAP_SCOPE_SUBTREE ) {
+			/* use scope implied by previous operation */
+			/*   base -> base */
+			/*   one -> base */
+			/*   subtree -> subtree */
+			scope = LDAP_SCOPE_BASE;
+		}
+
 	} else {
 		rc = ber_scanf( &tmpber, "{a" /*}*/, &orig_dn );
 	}
@@ -1014,28 +1008,32 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 		return NULL;
 	}
 
-	if ( *dnp == NULL ) {
-		*dnp = orig_dn;
-	} else {
-		LDAP_FREE( orig_dn );
+	if (( ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		return NULL;
 	}
 
-	if (( ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
-		return( NULL );
+	if ( srv->lud_dn == NULL ) {
+		dn = orig_dn;
+	} else {
+		dn = srv->lud_dn;
 	}
 
 	if ( tag == LDAP_REQ_BIND ) {
-		rc = ber_printf( ber, "{it{is" /*}}*/, msgid, tag, ver, *dnp );
+		rc = ber_printf( ber, "{it{is" /*}}*/, msgid, tag, ver, dn );
 	} else if ( tag == LDAP_REQ_DELETE ) {
-		rc = ber_printf( ber, "{itsN}", msgid, tag, *dnp );
+		rc = ber_printf( ber, "{itsN}", msgid, tag, dn );
+	} else if ( tag == LDAP_REQ_SEARCH ) {
+		rc = ber_printf( ber, "{it{se" /*}}*/, msgid, tag, dn, scope );
 	} else {
-		rc = ber_printf( ber, "{it{s" /*}}*/, msgid, tag, *dnp );
+		rc = ber_printf( ber, "{it{s" /*}}*/, msgid, tag, dn );
 	}
+
+	LDAP_FREE( orig_dn );
 
 	if ( rc == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( NULL );
+		return NULL;
 	}
 
 	if ( tag != LDAP_REQ_DELETE && (
@@ -1045,7 +1043,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( NULL );
+		return NULL;
 	}
 
 #ifdef LDAP_DEBUG
@@ -1057,7 +1055,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 #endif /* LDAP_DEBUG */
 
 	*type = tag;	/* return request type */
-	return( ber );
+	return ber;
 }
 
 

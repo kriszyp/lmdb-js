@@ -334,7 +334,7 @@ try_read1msg(
 	ber_int_t msgid,
 	int all,
 	Sockbuf *sb,
-    LDAPConn *lc,
+	LDAPConn *lc,
 	LDAPMessage **result )
 {
 	BerElement	*ber;
@@ -426,7 +426,8 @@ try_read1msg(
 		return( -1 );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_read: message type %s msgid %ld, original id %ld\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"ldap_read: message type %s msgid %ld, original id %ld\n",
 	    ldap_int_msgtype2str( tag ),
 		(long) lr->lr_msgid, (long) lr->lr_origid );
 
@@ -534,14 +535,13 @@ try_read1msg(
 			tmpber = *ber;	/* struct copy */
 			if ( v3ref == 1 ) {
 				; /* V3 search reference or V3 referral sucessfully chased */
-			} else
-			if ( ber_scanf( &tmpber, "{iaa}", &lderr,
+			} else if ( ber_scanf( &tmpber, "{iaa}", &lderr,
 			    &lr->lr_res_matched, &lr->lr_res_error )
 			    != LBER_ERROR ) {
 				if ( lderr != LDAP_SUCCESS ) {
 					/* referrals are in error string */
 					refer_cnt = ldap_chase_referrals( ld, lr,
-					    &lr->lr_res_error, &hadref );
+						&lr->lr_res_error, -1, &hadref );
 					lr->lr_status = LDAP_REQST_COMPLETED;
 					Debug( LDAP_DEBUG_TRACE,
 					    "read1msg:  V2 referral chased, mark request completed, id = %d\n", lr->lr_msgid, 0, 0);
