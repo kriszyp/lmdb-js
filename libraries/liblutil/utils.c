@@ -9,6 +9,7 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
+#include <lber.h>
 #include <lutil.h>
 #include <ldap_defaults.h>
 
