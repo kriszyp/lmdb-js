@@ -129,13 +129,14 @@ struct name {								\
 
 #define LDAP_SLIST_HEAD_INITIALIZER(head)				\
 	{ NULL }
-#define LDAP_SLIST_NEXT_INITIALIZER(next)				\
-	{ NULL }
 
 #define LDAP_SLIST_ENTRY(type)						\
 struct {								\
 	struct type *sle_next;	/* next element */			\
 }
+
+#define LDAP_SLIST_ENTRY_INITIALIZER(entry)				\
+	{ NULL }
 
 /*
  * Singly-linked List functions.
@@ -196,6 +197,9 @@ struct name {								\
 struct {								\
 	struct type *stqe_next;	/* next element */			\
 }
+
+#define LDAP_STAILQ_ENTRY_INITIALIZER(entry)				\
+	{ NULL }
 
 /*
  * Singly-linked Tail queue functions.
@@ -273,14 +277,15 @@ struct name {								\
 
 #define LDAP_LIST_HEAD_INITIALIZER(head)				\
 	{ NULL }
-#define LDAP_LIST_NEXT_PREV_INITIALIZER(next, prev)			\
-	{ NULL, NULL }
 
 #define LDAP_LIST_ENTRY(type)						\
 struct {								\
 	struct type *le_next;	/* next element */			\
 	struct type **le_prev;	/* address of previous next element */	\
 }
+
+#define LDAP_LIST_ENTRY_INITIALIZER(entry)			\
+	{ NULL, NULL }
 
 /*
  * List functions.
@@ -345,6 +350,9 @@ struct {								\
 	struct type *tqe_next;	/* next element */			\
 	struct type **tqe_prev;	/* address of previous next element */	\
 }
+
+#define LDAP_TAILQ_ENTRY_INITIALIZER(entry)				\
+	{ NULL, NULL }
 
 /*
  * Tail queue functions.
