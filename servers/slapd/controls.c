@@ -26,7 +26,7 @@ int get_ctrls(
 	Operation *op,
 	int sendres )
 {
-	int nctrls;
+	int nctrls = 0;
 	ber_tag_t tag;
 	ber_len_t len;
 	char *opaque;
@@ -40,7 +40,7 @@ int get_ctrls(
 	if( len == 0) {
 		/* no controls */
 		rc = LDAP_SUCCESS;
-		goto return_results;
+		return rc;
 	}
 
 	if(( tag = ber_peek_tag( ber, &len )) != LDAP_TAG_CONTROLS ) {
@@ -61,7 +61,6 @@ int get_ctrls(
 	}
 
 	/* set through each element */
-	nctrls = 0;
 	*ctrls = ch_malloc( 1 * sizeof(LDAPControl *) );
 
 #if 0
@@ -123,9 +122,6 @@ int get_ctrls(
 			goto return_results;
 		}
 
-		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: %s\n",
-			tctrl->ldctl_oid, 0, 0 );
-
 		tag = ber_peek_tag( ber, &len );
 
 		if( tag == LBER_BOOLEAN ) {
@@ -142,9 +138,14 @@ int get_ctrls(
 				goto return_results;
 			}
 
-			tctrl->ldctl_iscritical = crit ? (char) 0 : (char) ~0;
+			tctrl->ldctl_iscritical = (crit != 0);
 			tag = ber_peek_tag( ber, &len );
 		}
+
+		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: oid=\"%s\" (%scritical)\n",
+			tctrl->ldctl_oid, 
+			tctrl->ldctl_iscritical ? "" : "non",
+			0 );
 
 		if( tag == LBER_OCTETSTRING ) {
 			tag = ber_scanf( ber, "o", &tctrl->ldctl_value );
