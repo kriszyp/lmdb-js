@@ -376,7 +376,7 @@ ldap_check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 	LDAPMessage	*m, *new, *prev, *next;
 	BerElement	reqber;
 	int		first, hash;
-	unsigned long	validtime;
+	time_t	c_time;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_check_cache\n", 0, 0, 0 );
 
@@ -388,14 +388,14 @@ ldap_check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 	reqber.ber_buf = reqber.ber_ptr = request->ber_buf;
 	reqber.ber_end = request->ber_ptr;
 
-	validtime = (long)time( NULL ) - ld->ld_cache->lc_timeout;
+	c_time = time( NULL );
 
 	prev = NULLMSG;
 	hash = cache_hash( &reqber );
 	for ( m = ld->ld_cache->lc_buckets[ hash ]; m != NULLMSG; m = next ) {
 		Debug( LDAP_DEBUG_TRACE,"cc: examining id %d,type %d\n",
 		    m->lm_msgid, m->lm_msgtype, 0 );
-		if ( m->lm_time < validtime ) {
+		if ( difftime(c_time, m->lm_time) > ld->ld_cache->lc_timeout ) {
 			/* delete expired message */
 			next = m->lm_next;
 			if ( prev == NULL ) {
@@ -617,7 +617,8 @@ check_cache_memused( LDAPCache *lc )
  *    } while ( cache size is > SIZE_FACTOR * lc_maxmem )
  */
 	int		i;
-	unsigned long	remove_threshold, validtime;
+	unsigned long	remove_threshold;
+	time_t c_time;
 	LDAPMessage	*m, *prev, *next;
 
 	Debug( LDAP_DEBUG_TRACE, "check_cache_memused: %ld bytes in use (%ld max)\n",
@@ -630,13 +631,13 @@ check_cache_memused( LDAPCache *lc )
 
 	remove_threshold = lc->lc_timeout;
 	while ( lc->lc_memused > lc->lc_maxmem * SIZE_FACTOR ) {
-		validtime = (long)time( NULL ) - remove_threshold;
+		c_time = time( NULL );
 		for ( i = 0; i < LDAP_CACHE_BUCKETS; ++i ) {
 			prev = NULLMSG;
 			for ( m = lc->lc_buckets[ i ]; m != NULLMSG;
 			    m = next ) {
 				next = m->lm_next;
-				if ( m->lm_time < validtime ) {
+				if ( difftime(c_time, m->lm_time) > remove_threshold) {
 					if ( prev == NULLMSG ) {
 						lc->lc_buckets[ i ] = next;
 					} else {

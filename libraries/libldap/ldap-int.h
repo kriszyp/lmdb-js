@@ -73,7 +73,7 @@ struct ldapmsg {
 	BerElement	*lm_ber;	/* the ber encoded message contents */
 	struct ldapmsg	*lm_chain;	/* for search - next msg in the resp */
 	struct ldapmsg	*lm_next;	/* next response */
-	unsigned int	lm_time;	/* used to maintain cache */
+	time_t	lm_time;	/* used to maintain cache */
 };
 #define NULLMSG ((LDAPMessage *)NULL)
 /*
