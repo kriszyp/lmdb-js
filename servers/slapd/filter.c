@@ -1126,7 +1126,6 @@ vrFilter_free( ValuesReturnFilter *f )
 void
 vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 {
-	int	i;
 	ValuesReturnFilter	*p;
 	struct berval tmp;
 	ber_len_t len;
@@ -1159,8 +1158,6 @@ vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 static void
 simple_vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 {
-	int	i;
-	ValuesReturnFilter	*p;
 	struct berval tmp;
 	ber_len_t len;
 
@@ -1249,6 +1246,7 @@ simple_vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 		}
 
 		if ( f->f_sub_any != NULL ) {
+			int i;
 			for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
 				len = fstr->bv_len;
 				filter_escape_value( &f->f_sub_any[i], &tmp );
