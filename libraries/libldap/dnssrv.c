@@ -195,10 +195,11 @@ int ldap_domain2hostlist(
 	char **list )
 {
 #ifdef HAVE_RES_QUERY
+#define DNSBUFSIZ (64*1024)
     char *request;
     char *hostlist = NULL;
     int rc, len, cur = 0;
-    unsigned char reply[1024];
+    unsigned char reply[DNSBUFSIZ];
 
 	if( domain == NULL || *domain == '\0' ) {
 		return LDAP_PARAM_ERROR;
@@ -222,7 +223,7 @@ int ldap_domain2hostlist(
     len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
     if (len >= 0) {
 	unsigned char *p;
-	char host[1024];
+	char host[DNSBUFSIZ];
 	int status;
 	u_short port;
 	/* int priority, weight; */
@@ -263,7 +264,7 @@ int ldap_domain2hostlist(
 		/* weight = (p[2] << 8) | p[3]; */
 		port = (p[4] << 8) | p[5];
 
-		buflen = strlen(host) + sizeof(":65355");
+		buflen = strlen(host) + sizeof(":65355 ");
 		hostlist = (char *) LDAP_REALLOC(hostlist, cur + buflen);
 		if (hostlist == NULL) {
 		    rc = LDAP_NO_MEMORY;
