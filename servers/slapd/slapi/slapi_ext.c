@@ -330,7 +330,7 @@ int slapi_x_clear_object_extensions(int objecttype, void *object)
 	}
 
 	for ( i = 0; i < registered_extensions.extensions[objecttype].count; i++ ) {
-		 newExtension( eblock, objecttype, object, parent, i );
+		newExtension( eblock, objecttype, object, parent, i );
 	}
 
 	return 0;

@@ -637,8 +637,11 @@ doPluginFNs(
 		 * failure (confirmed with SLAPI specification).
 		 */
 		if ( !SLAPI_PLUGIN_IS_POST_FN( funcType ) && rc != 0 ) {
-			/* make sure errors are negative */
-			if ( rc > 0 ) rc = 0 - rc;
+			/*
+			 * Plugins generally return negative error codes
+			 * to indicate failure, although in the case of
+			 * bind plugins they may return SLAPI_BIND_xxx
+			 */
 			break;
 		}
 	}
