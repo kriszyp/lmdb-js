@@ -434,6 +434,13 @@ oc_add(
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
 	AC_MEMCPY( &soc->soc_oclass, oc, sizeof(LDAPObjectClass) );
 
+	if( oc->oc_names != NULL ) {
+		soc->soc_cname.bv_val = soc->soc_names[0];
+	} else {
+		soc->soc_cname.bv_val = soc->soc_oid;
+	}
+	soc->soc_cname.bv_len = strlen( soc->soc_cname.bv_val );
+
 	if( soc->soc_sup_oids == NULL &&
 		soc->soc_kind == LDAP_SCHEMA_STRUCTURAL )
 	{

@@ -893,6 +893,24 @@ LDAP_SLAPD_V( int ) schema_init_done;
 LDAP_SLAPD_F (int) slap_schema_init LDAP_P((void));
 LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
+LDAP_SLAPD_F( int ) octetStringIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	BerVarray values,
+	BerVarray *keysp );
+
+LDAP_SLAPD_F( int ) octetStringFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	BerVarray *keysp );
+
 /*
  * schema_prep.c
  */

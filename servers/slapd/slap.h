@@ -505,7 +505,8 @@ typedef int (ObjectClassSchemaCheckFN)(
 	char *textbuf, size_t textlen );
 
 typedef struct slap_object_class {
-	LDAPObjectClass		soc_oclass;
+	LDAPObjectClass			soc_oclass;
+	struct berval			soc_cname;
 	struct slap_object_class	**soc_sups;
 	AttributeType				**soc_required;
 	AttributeType				**soc_allowed;

@@ -37,7 +37,7 @@
 /* recycled matching routines */
 #define bitStringMatch					octetStringMatch
 #define numericStringMatch				caseIgnoreIA5Match
-#define objectIdentifierMatch			caseIgnoreIA5Match
+#define objectIdentifierMatch			octetStringMatch
 #define telephoneNumberMatch			caseIgnoreIA5Match
 #define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
 #define generalizedTimeMatch			caseIgnoreIA5Match
@@ -138,7 +138,7 @@ octetStringMatch(
 }
 
 /* Index generation function */
-static int octetStringIndexer(
+int octetStringIndexer(
 	slap_mask_t use,
 	slap_mask_t flags,
 	Syntax *syntax,
@@ -186,6 +186,7 @@ static int octetStringIndexer(
 	}
 
 	keys[i].bv_val = NULL;
+	keys[i].bv_len = 0;
 
 	*keysp = keys;
 
@@ -193,7 +194,7 @@ static int octetStringIndexer(
 }
 
 /* Index generation function */
-static int octetStringFilter(
+int octetStringFilter(
 	slap_mask_t use,
 	slap_mask_t flags,
 	Syntax *syntax,
@@ -231,6 +232,7 @@ static int octetStringFilter(
 
 	ber_dupbv( keys, &digest );
 	keys[1].bv_val = NULL;
+	keys[1].bv_len = 0;
 
 	*keysp = keys;
 
