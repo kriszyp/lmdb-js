@@ -64,7 +64,7 @@ fi
 BASEDN="dc=example,dc=com"
 case ${RDBMS} in
 	# list here the RDBMSes whose mapping allows writes
-postgres)
+postgres|ibmdb2)
 	MANAGERDN="cn=Manager,${BASEDN}"
 	echo "Testing add..."
 	$LDAPMODIFY -v -c -D "$MANAGERDN" -w $PASSWD \

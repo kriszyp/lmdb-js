@@ -6,19 +6,21 @@
 --      keytbl          the name of the table that is referenced for the primary key of an entry
 --      keycol          the name of the column in "keytbl" that contains the primary key of an entry; the pair "keytbl.keycol" uniquely identifies an entry of objectClass "id"
 --      create_proc     a procedure to create the entry
+--      create_keyval   a query that returns the id of the last inserted entry
 --      delete_proc     a procedure to delete the entry; it takes "keytbl.keycol" of the row to be deleted
 --      expect_return   a bitmap that marks whether create_proc (1) and delete_proc (2) return a value or not
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
 values (1,'inetOrgPerson','persons','id','insert into persons (id,name,surname) values ((select max(id)+1 from persons),'''','''')',
+	'select max(id) from persons',
 	'delete from persons where id=?',0);
 
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
 values (2,'document','documents','id','insert into documents (id,title,abstract) values ((select max(id)+1 from documents),'''','''')',
-	'delete from documents where id=?',0);
+	'select max(id) from documents','delete from documents where id=?',0);
 
-insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,create_keyval,delete_proc,expect_return)
 values (3,'organization','institutes','id','insert into institutes (id,name) values ((select max(id)+1 from institutes),'''')',
-	'delete from institutes where id=?',0);
+	'select max(id) from institutes','delete from institutes where id=?',0);
 
 -- attributeType mappings: describe how an attributeType for a certain objectClass maps to the SQL data.
 --      id              a unique number identifying the attribute       

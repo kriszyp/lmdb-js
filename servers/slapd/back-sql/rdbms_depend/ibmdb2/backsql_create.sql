@@ -6,6 +6,7 @@ create table ldap_oc_mappings
 	keytbl varchar(64) not null,
 	keycol varchar(64) not null,
 	create_proc varchar(255),
+	create_keyval varchar(255),
 	delete_proc varchar(255),
 	expect_return integer not null
 );
