@@ -55,9 +55,15 @@ bdb_modrdn(
 
 	int		manageDSAit = get_manageDSAit( op );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "modrdn", LDAP_LEVEL_ENTRY, "==>bdb_modrdn(%s,%s,%s)\n",
+		dn->bv_val,newrdn->bv_val,
+		newSuperior ? newSuperior->bv_val : "NULL" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn(%s,%s,%s)\n",
 		dn->bv_val, newrdn->bv_val,
 		newSuperior ? newSuperior->bv_val : "NULL" );
+#endif
 
 #if 0
 	if( newSuperior != NULL ) {
@@ -79,7 +85,11 @@ retry:	/* transaction retry */
 		if (np != NULL) {
 			bdb_cache_return_entry_r(&bdb->bi_cache, np);
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: retrying...\n"));
+#else
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
+#endif
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -96,9 +106,13 @@ retry:	/* transaction retry */
 		bdb->bi_db_opflags );
 	text = NULL;
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "==>bdb_modrdn: txn_begin failed: %s (%d)\n", db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		rc = LDAP_OTHER;
 		text = "internal error";
 		goto return_results;
@@ -157,8 +171,12 @@ retry:	/* transaction retry */
 		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: entry %s is referral \n", e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry %s is referral\n",
 			e->e_dn, 0, 0 );
+#endif
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			e->e_dn, NULL, refs, NULL );
@@ -193,8 +211,12 @@ retry:	/* transaction retry */
 		}
 
 		if( p == NULL) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "==>bdb_modrdn: parent does not exist\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: parent does not exist\n",
 				0, 0, 0);
+#endif
 			rc = LDAP_OTHER;
 			goto return_results;
 		}
@@ -203,16 +225,24 @@ retry:	/* transaction retry */
 		if ( ! access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE, NULL ) )
 		{
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "==>bdb_modrdn: no access to parent\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
+#endif
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: wr to children %s is OK\n", p_ndn.bv_val ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: wr to children of entry %s OK\n",
 			p_ndn.bv_val, 0, 0 );
+#endif
 		
 		if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
 			p_dn = slap_empty_bv;
@@ -220,9 +250,13 @@ retry:	/* transaction retry */
 			dnParent( &e->e_name, &p_dn );
 		}
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: parent dn=%s\n", p_dn.bv_val ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: parent dn=%s\n",
 			p_dn.bv_val, 0, 0 );
+#endif
 
 	} else {
 		/* no parent, modrdn entry directly under root */
@@ -241,31 +275,47 @@ retry:	/* transaction retry */
 
 				if ( ! rc )
 				{
+#ifdef NEW_LOGGING
+					LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "==>bdb_modrdn: no access to parent\n" ));
+#else
 					Debug( LDAP_DEBUG_TRACE, 
 						"no access to parent\n", 
 						0, 0, 0 );
+#endif
 					send_ldap_result( conn, op, 
 						LDAP_INSUFFICIENT_ACCESS,
 						NULL, NULL, NULL, NULL );
 					goto return_results;
 				}
 
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: wr to children of entry \"\" OK\n", p_dn.bv_val ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: wr to children of entry \"\" OK\n",
 					0, 0, 0 );
+#endif
 		
 				p_dn.bv_val = "";
 				p_dn.bv_len = 0;
 
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: parent dn=\"\" \n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: parent dn=\"\"\n",
 					0, 0, 0 );
+#endif
 
 			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "==>bdb_modrdn: no parent, not root &\"\" is not suffix\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: no parent, not root "
 					"& \"\" is not suffix\n",
 					0, 0, 0);
+#endif
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -275,9 +325,13 @@ retry:	/* transaction retry */
 	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
 	if ( newSuperior != NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: new parent \"%s\" requested...\n", newSuperior->bv_val ));
+#else
 		Debug( LDAP_DEBUG_TRACE, 
 			"bdb_modrdn: new parent \"%s\" requested...\n",
 			newSuperior->bv_val, 0, 0 );
+#endif
 
 		if ( newSuperior->bv_len ) {
 			np_dn = newSuperior;
@@ -303,22 +357,34 @@ retry:	/* transaction retry */
 			}
 
 			if( np == NULL) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: newSup(ndn=%s) not here!\n", np_ndn->bv_val ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: newSup(ndn=%s) not here!\n",
 					np_ndn->bv_val, 0, 0);
+#endif
 				rc = LDAP_OTHER;
 				goto return_results;
 			}
 
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: wr to new parent OK np=%p, id=%ld\n", np, (long) np->e_id ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: wr to new parent OK np=%p, id=%ld\n",
 				np, (long) np->e_id, 0 );
+#endif
 
 			/* check newSuperior for "children" acl */
 			if ( !access_allowed( be, conn, op, np, children, NULL, ACL_WRITE, NULL ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: no wr to newSup children\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: no wr to newSup children\n",
 					0, 0, 0 );
+#endif
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -326,8 +392,12 @@ retry:	/* transaction retry */
 #ifdef BDB_ALIASES
 			if ( is_entry_alias( np ) ) {
 				/* parent is an alias, don't allow add */
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: entry is alias\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry is alias\n",
 					0, 0, 0 );
+#endif
 
 				rc = LDAP_ALIAS_PROBLEM;
 				goto return_results;
@@ -336,8 +406,12 @@ retry:	/* transaction retry */
 
 			if ( is_entry_referral( np ) ) {
 				/* parent is a referral, don't allow add */
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: entry is referral\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry is referral\n",
 					0, 0, 0 );
+#endif
 
 				rc = LDAP_OPERATIONS_ERROR;
 				goto return_results;
@@ -364,37 +438,57 @@ retry:	/* transaction retry */
 
 					if ( ! rc )
 					{
+#ifdef NEW_LOGGING
+						LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "==>bdb_modrdn: no access to superior\n" ));
+#else
 						Debug( LDAP_DEBUG_TRACE, 
 							"no access to new superior\n", 
 							0, 0, 0 );
+#endif
 						send_ldap_result( conn, op, 
 							LDAP_INSUFFICIENT_ACCESS,
 							NULL, NULL, NULL, NULL );
 						goto return_results;
 					}
 
+#ifdef NEW_LOGGING
+					LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "bdb_modrdn: wr to children entry \"\" OK\n" ));
+#else
 					Debug( LDAP_DEBUG_TRACE,
 						"bdb_modrdn: wr to children of entry \"\" OK\n",
 						0, 0, 0 );
+#endif
 		
 				} else {
+#ifdef NEW_LOGGING
+					LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: new superior=\"\", not root & \"\" is not suffix\n" ));
+#else
 					Debug( LDAP_DEBUG_TRACE,
 						"bdb_modrdn: new superior=\"\", not root "
 						"& \"\" is not suffix\n",
 						0, 0, 0);
+#endif
 					rc = LDAP_INSUFFICIENT_ACCESS;
 					goto return_results;
 				}
 			}
 
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "bdb_modrdn: new superior=\"\"\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: new superior=\"\"\n",
 				0, 0, 0 );
+#endif
 		}
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "bdb_modrdn: wr to new parent's children OK\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: wr to new parent's children OK\n",
 			0, 0, 0 );
+#endif
 
 		new_parent_dn = np_dn;
 	}
@@ -404,8 +498,12 @@ retry:	/* transaction retry */
 
 	dnNormalize2( NULL, &new_dn, &new_ndn );
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "modrdn", LDAP_LEVEL_RESULTS, "bdb_modrdn: new ndn=%s\n", new_ndn.bv_val ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
 		new_ndn.bv_val, 0, 0 );
+#endif
 
 	rc = bdb_dn2id ( be, ltid, &new_ndn, &id );
 	switch( rc ) {
@@ -423,9 +521,13 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: new ndn=%s does not exist\n", new_ndn.bv_val ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_modrdn: new ndn=%s does not exist\n",
 		new_ndn.bv_val, 0, 0 );
+#endif
 
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
@@ -433,24 +535,36 @@ retry:	/* transaction retry */
 	if ( ldap_bv2rdn( newrdn, &new_rdn, (char **)&text,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: can't figure out type(s)/values(s) of newrdn\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: can't figure out type(s)/values(s) "
 			"of newrdn\n", 0, 0, 0 );
+#endif
 		rc = LDAP_OPERATIONS_ERROR;
 		text = "unknown type(s) used in RDN";
 		goto return_results;		
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "modrdn", LDAP_LEVEL_RESULTS, "bdb_modrdn: new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n", new_rdn[0][0]->la_attr.bv_val, new_rdn[0][0]->la_value.bv_val ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_modrdn: new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n",
 		new_rdn[0][0]->la_attr.bv_val, new_rdn[0][0]->la_value.bv_val, 0 );
+#endif
 
 	if ( ldap_bv2rdn( dn, &old_rdn, (char **)&text,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: can't figure out type(s)/values(s) of old_rdn\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_back_modrdn: can't figure out the old_rdn "
 			"type(s)/value(s)\n", 0, 0, 0 );
+#endif
 		rc = LDAP_OTHER;
 		text = "cannot parse RDN from old DN";
 		goto return_results;		
@@ -461,10 +575,14 @@ retry:	/* transaction retry */
 		&& charray_strcasecmp( ( const char ** )old_rdn_types, 
 				( const char ** )new_rdn_types ) != 0 ) {
 		/* Not a big deal but we may say something */
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: old_rdn_type(s)=%s, new_rdn_type(s)=%s do not match\n", old_rdn_types[ 0 ], new_rdn_types[ 0 ] ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: old_rdn_type(s)=%s, new_rdn_type(s)=%s "
 			"do not match\n", 
 			old_rdn_types[ 0 ], new_rdn_types[ 0 ], 0 );
+#endif
 	}		
 #endif
 
@@ -477,19 +595,27 @@ retry:	/* transaction retry */
 		rc = slap_bv2ad( &new_rdn[0][ a_cnt ]->la_attr, &desc, &text );
 
 		if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: %s: %s (new)\n", text, new_rdn[0][a_cnt]->la_attr.bv_val ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: %s: %s (new)\n",
 				text, new_rdn[0][ a_cnt ]->la_attr.bv_val, 0 );
+#endif
 			goto return_results;		
 		}
 
 		/* ACL check of newly added attrs */
 		if ( !access_allowed( be, conn, op, e, desc,
 			&new_rdn[0][ a_cnt ]->la_value, ACL_WRITE, NULL ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: access to attr \"%s\" (new) not allowed\n", new_rdn[0][a_cnt]->la_attr.bv_val ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: access to attr \"%s\" "
 				"(new) not allowed\n", 
 				new_rdn[0][ a_cnt ]->la_attr.bv_val, 0, 0 );
+#endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
@@ -510,9 +636,13 @@ retry:	/* transaction retry */
 	if ( deleteoldrdn ) {
 		/* Get value of old rdn */
 		if ( old_rdn == NULL) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: can't figure out old RDN values(s) from old RDN\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_modrdn: can't figure out old RDN value(s) "
 				"from old RDN\n", 0, 0, 0 );
+#endif
 			rc = LDAP_OTHER;
 			text = "could not parse value(s) from old RDN";
 			goto return_results;		
@@ -527,19 +657,27 @@ retry:	/* transaction retry */
 					&desc, &text );
 
 			if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: %s: %s (old)\n", text, old_rdn[0][d_cnt]->la_attr.bv_val ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: %s: %s (old)\n",
 					text, old_rdn[0][ d_cnt ]->la_attr.bv_val, 0 );
+#endif
 				goto return_results;		
 			}
 
 			/* ACL check of newly added attrs */
 			if ( !access_allowed( be, conn, op, e, desc,
 				&old_rdn[0][d_cnt]->la_value, ACL_WRITE, NULL ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "modrdn", LDAP_LEVEL_ERR, "bdb_modrdn: access to attr \"%s\" (old) not allowed\n", old_rdn[0][d_cnt]->la_attr.bv_val ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: access to attr \"%s\" "
 					"(old) not allowed\n", 
 					old_rdn[0][ d_cnt ]->la_attr.bv_val, 0, 0 );
+#endif
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -659,15 +797,23 @@ retry:	/* transaction retry */
 	op->o_private = NULL;
  
 	if( rc == LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_RESULTS, "bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n", op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn ));
+#else
 		Debug(LDAP_DEBUG_TRACE,
 			"bdb_modrdn: rdn modified%s id=%08lx dn=\"%s\"\n",
-			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn );
+			op->o_noop ? " (no-op)" : "", e->e_id, e->e_dn )
+#endif
 		text = NULL;
 		bdb_cache_entry_commit( e );
 
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "modrdn", LDAP_LEVEL_RESULTS, "bdb_modrdn: %s : %s (%d)\n", text, db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: %s : %s (%d)\n",
 			text, db_strerror(rc), rc );
+#endif
 		rc = LDAP_OTHER;
 	}
 
