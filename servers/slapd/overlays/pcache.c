@@ -1499,18 +1499,19 @@ proxy_cache_config(
 	AttributeName*  attr_name;
 	AttributeName* 	attrarray;
 	const char* 	text=NULL;
-	char		*save_argv0 = NULL;
+	char		*argv0 = NULL;
 
 	int 		index, i;
 	int 		num;
 	int		rc = 0;
 
 	if ( strncasecmp( argv[0], "proxycache-", STRLENOF( "proxycache-" ) ) == 0 ) {
-		save_argv0 = argv[0];
-		argv[0] += STRLENOF( "proxycache-" );
+		argv0 = argv[0] + STRLENOF( "proxycache-" );
+	} else {
+		argv0 = argv[0];
 	}
 
-	if ( strcasecmp( argv[0], "proxycache" ) == 0 ) {
+	if ( strcasecmp( argv0, "proxycache" ) == 0 ) {
 		if ( argc < 6 ) {
 			fprintf( stderr, "%s: line %d: missing arguments in \"proxycache"
 				" <backend> <max_entries> <numattrsets> <entry limit> "
@@ -1549,7 +1550,7 @@ proxy_cache_config(
 			qm->attr_sets[i].attrs = NULL;
 		}
 
-	} else if ( strcasecmp( argv[0], "proxyattrset" ) == 0 ) {
+	} else if ( strcasecmp( argv0, "proxyattrset" ) == 0 ) {
 		if ( argc < 3 ) {
 			fprintf( stderr, "%s: line %d: missing arguments in \"proxyattrset "
 				"<index> <attributes>\"\n", fname, lineno );
@@ -1581,7 +1582,7 @@ proxy_cache_config(
 				attr_name->an_name.bv_len = 0;
 			}
 		}
-	} else if ( strcasecmp( argv[0], "proxytemplate" ) == 0 ) {
+	} else if ( strcasecmp( argv0, "proxytemplate" ) == 0 ) {
 		if ( argc != 4 ) {
 			fprintf( stderr, "%s: line %d: missing argument(s) in "
 				"\"proxytemplate <filter> <proj attr set> <TTL>\" line\n",
@@ -1625,7 +1626,7 @@ proxy_cache_config(
 		temp->querystr.bv_val = NULL;
 		cm->numtemplates++;
 
-	} else if ( strcasecmp( argv[0], "response-callback" ) == 0 ) {
+	} else if ( strcasecmp( argv0, "response-callback" ) == 0 ) {
 		/* set to "tail" to put the response callback
 		 * at the end of the callback list; this is required
 		 * in case other overlays are present, so that the
@@ -1653,11 +1654,10 @@ proxy_cache_config(
 	}
 	/* anything else */
 	else {
+		if ( argv0 != argv[0] ) {
+			return SLAP_CONF_UNKNOWN;
+		}
 		rc = cm->db.bd_info->bi_db_config( &cm->db, fname, lineno, argc, argv );
-	}
-
-	if ( save_argv0 ) {
-		argv[0] = save_argv0;
 	}
 
 	return rc;
