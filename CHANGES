@@ -5,6 +5,7 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd ACL nameuid bug
 	Updated -lldap SASL error reporting
 	Updated -lldap TLS error reporting
+	Updated slapadd error reporting
 	Added slapd numericString indexing
 	Build Environment
 		Fixed make comment bug (ITS#811)
