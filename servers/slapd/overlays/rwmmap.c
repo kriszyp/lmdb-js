@@ -360,7 +360,7 @@ map_attr_value(
 		struct berval		*mapped_value,
 		int			remap )
 {
-	struct berval		vtmp;
+	struct berval		vtmp = BER_BVNULL;
 	int			freeval = 0;
 
 	rwm_map( &dc->rwmap->rwm_at, &ad->ad_cname, mapped_attr, remap );
@@ -388,7 +388,8 @@ map_attr_value(
 		fdc.ctx = "searchFilterAttrDN";
 #endif /* ENABLE_REWRITE */
 
-		rc = rwm_dn_massage( &fdc, value, NULL, &vtmp );
+		vtmp = *value;
+		rc = rwm_dn_massage_normalize( &fdc, value, &vtmp );
 		switch ( rc ) {
 		case LDAP_SUCCESS:
 			if ( vtmp.bv_val != value->bv_val ) {
@@ -762,7 +763,8 @@ rwm_referral_rewrite(
 	int			i, last;
 
 	dncookie		dc;
-	struct berval		dn, ndn, *ndnp = NULL;
+	struct berval		dn = BER_BVNULL,
+				ndn = BER_BVNULL;
 
 	assert( a_vals );
 
@@ -779,16 +781,16 @@ rwm_referral_rewrite(
 	dc.normalized = 0;
 #endif /* ! ENABLE_REWRITE */
 
-	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ );
+	for ( last = 0; !BER_BVISNULL( &a_vals[last] ); last++ )
+		;
+	last--;
+	
 	if ( pa_nvals != NULL ) {
-		ndnp = &ndn;
-
 		if ( *pa_nvals == NULL ) {
-			*pa_nvals = ch_malloc( last * sizeof(struct berval) );
-			memset( *pa_nvals, 0, last * sizeof(struct berval) );
+			*pa_nvals = ch_malloc( ( last + 2 ) * sizeof(struct berval) );
+			memset( *pa_nvals, 0, ( last + 2 ) * sizeof(struct berval) );
 		}
 	}
-	last--;
 
 	for ( i = 0; !BER_BVISNULL( &a_vals[i] ); i++ ) {
 		struct berval	olddn, oldval;
@@ -804,9 +806,26 @@ rwm_referral_rewrite(
 			}
 			continue;
 		}
+
+		/* FIXME: URLs like "ldap:///dc=suffix" if passed
+		 * thru ldap_url_parse() and ldap_url_desc2str() 
+		 * get rewritten as "ldap:///dc=suffix??base";
+		 * we don't want this to occur... */
+		if ( ludp->lud_scope == LDAP_SCOPE_BASE ) {
+			ludp->lud_scope = LDAP_SCOPE_DEFAULT;
+		}
+
 		ber_str2bv( ludp->lud_dn, 0, 0, &olddn );
 
-		rc = rwm_dn_massage( &dc, &olddn, &dn, ndnp );
+		dn = olddn;
+		if ( pa_nvals ) {
+			ndn = olddn;
+			rc = rwm_dn_massage_pretty_normalize( &dc, &olddn,
+					&dn, &ndn );
+		} else {
+			rc = rwm_dn_massage_pretty( &dc, &olddn, &dn );
+		}
+
 		switch ( rc ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
@@ -834,9 +853,12 @@ rwm_referral_rewrite(
 
 				ludp->lud_dn = dn.bv_val;
 				newurl = ldap_url_desc2str( ludp );
+				ludp->lud_dn = olddn.bv_val;
+				ch_free( dn.bv_val );
 				if ( newurl == NULL ) {
 					/* FIXME: leave attr untouched
-					 * even if ldap_url_desc2str failed... */
+					 * even if ldap_url_desc2str failed...
+					 */
 					break;
 				}
 
@@ -846,9 +868,12 @@ rwm_referral_rewrite(
 				if ( pa_nvals ) {
 					ludp->lud_dn = ndn.bv_val;
 					newurl = ldap_url_desc2str( ludp );
+					ludp->lud_dn = olddn.bv_val;
+					ch_free( ndn.bv_val );
 					if ( newurl == NULL ) {
 						/* FIXME: leave attr untouched
-						 * even if ldap_url_desc2str failed... */
+						 * even if ldap_url_desc2str failed...
+						 */
 						ch_free( a_vals[i].bv_val );
 						a_vals[i] = oldval;
 						break;
@@ -901,12 +926,12 @@ rwm_dnattr_rewrite(
 	int			i, last;
 
 	dncookie		dc;
-	struct berval		dn, *dnp = NULL, ndn, *ndnp = NULL;
+	struct berval		dn = BER_BVNULL,
+				ndn = BER_BVNULL;
 	BerVarray		in;
 
 	if ( a_vals ) {
 		in = a_vals;
-		dnp = &dn;
 
 	} else {
 		if ( pa_nvals == NULL || *pa_nvals == NULL ) {
@@ -929,20 +954,30 @@ rwm_dnattr_rewrite(
 #endif /* ! ENABLE_REWRITE */
 
 	for ( last = 0; !BER_BVISNULL( &in[last] ); last++ );
+	last--;
 	if ( pa_nvals != NULL ) {
-		ndnp = &ndn;
-
 		if ( *pa_nvals == NULL ) {
-			*pa_nvals = ch_malloc( last * sizeof(struct berval) );
-			memset( *pa_nvals, 0, last * sizeof(struct berval) );
+			*pa_nvals = ch_malloc( ( last + 2 ) * sizeof(struct berval) );
+			memset( *pa_nvals, 0, ( last + 2 ) * sizeof(struct berval) );
 		}
 	}
-	last--;
 
 	for ( i = 0; !BER_BVISNULL( &in[i] ); i++ ) {
 		int		rc;
 
-		rc = rwm_dn_massage( &dc, &in[i], dnp, ndnp );
+		if ( a_vals ) {
+			dn = in[i];
+			if ( pa_nvals ) {
+				ndn = (*pa_nvals)[i];
+				rc = rwm_dn_massage_pretty_normalize( &dc, &in[i], &dn, &ndn );
+			} else {
+				rc = rwm_dn_massage_pretty( &dc, &in[i], &dn );
+			}
+		} else {
+			ndn = in[i];
+			rc = rwm_dn_massage_normalize( &dc, &in[i], &ndn );
+		}
+
 		switch ( rc ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
@@ -979,8 +1014,6 @@ rwm_dnattr_rewrite(
 				}
 				
 			} else {
-				assert( ndnp != NULL );
-
 				if ( !BER_BVISNULL( &ndn ) && ndn.bv_val != (*pa_nvals)[i].bv_val ) {
 					ch_free( (*pa_nvals)[i].bv_val );
 					(*pa_nvals)[i] = ndn;
@@ -1022,9 +1055,18 @@ rwm_referral_result_rewrite(
 			continue;
 		}
 
+		/* FIXME: URLs like "ldap:///dc=suffix" if passed
+		 * thru ldap_url_parse() and ldap_url_desc2str()
+		 * get rewritten as "ldap:///dc=suffix??base";
+		 * we don't want this to occur... */
+		if ( ludp->lud_scope == LDAP_SCOPE_BASE ) {
+			ludp->lud_scope = LDAP_SCOPE_DEFAULT;
+		}
+
 		ber_str2bv( ludp->lud_dn, 0, 0, &olddn );
-		
-		rc = rwm_dn_massage( dc, &olddn, &dn, NULL );
+
+		dn = olddn;
+		rc = rwm_dn_massage_pretty( dc, &olddn, &dn );
 		switch ( rc ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*
@@ -1050,7 +1092,8 @@ rwm_referral_result_rewrite(
 				newurl = ldap_url_desc2str( ludp );
 				if ( newurl == NULL ) {
 					/* FIXME: leave attr untouched
-					 * even if ldap_url_desc2str failed... */
+					 * even if ldap_url_desc2str failed...
+					 */
 					break;
 				}
 
@@ -1083,7 +1126,8 @@ rwm_dnattr_result_rewrite(
 		struct berval	dn;
 		int		rc;
 		
-		rc = rwm_dn_massage( dc, &a_vals[i], &dn, NULL );
+		dn = a_vals[i];
+		rc = rwm_dn_massage_pretty( dc, &a_vals[i], &dn );
 		switch ( rc ) {
 		case LDAP_UNWILLING_TO_PERFORM:
 			/*

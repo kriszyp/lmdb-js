@@ -96,8 +96,10 @@ typedef struct dncookie {
 #endif /* !ENABLE_REWRITE */
 } dncookie;
 
-int rwm_dn_massage( dncookie *dc, struct berval *in,
-	struct berval *dn, struct berval *ndn );
+int rwm_dn_massage( dncookie *dc, struct berval *in, struct berval *dn );
+int rwm_dn_massage_pretty( dncookie *dc, struct berval *in, struct berval *pdn );
+int rwm_dn_massage_normalize( dncookie *dc, struct berval *in, struct berval *ndn );
+int rwm_dn_massage_pretty_normalize( dncookie *dc, struct berval *in, struct berval *pdn, struct berval *ndn );
 
 /* attributeType/objectClass mapping */
 int rwm_mapping_cmp (const void *, const void *);

@@ -34,7 +34,6 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	struct berval		dn = BER_BVNULL,
-				*dnp = NULL,
 				ndn = BER_BVNULL;
 	int			rc = 0;
 	dncookie		dc;
@@ -56,28 +55,32 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 	 * and the caller sets op->o_req_dn = op->o_req_ndn,
 	 * only rewrite the op->o_req_ndn and use it as 
 	 * op->o_req_dn as well */
+	ndn = op->o_req_ndn;
 	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
-		dnp = &dn;
+		dn = op->o_req_dn;
+		rc = rwm_dn_massage_pretty_normalize( &dc, &op->o_req_dn, &dn, &ndn );
+	} else {
+		rc = rwm_dn_massage_normalize( &dc, &op->o_req_ndn, &ndn );
 	}
 
-	rc = rwm_dn_massage( &dc, &op->o_req_dn, dnp, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
 
-	if ( ( dnp && dn.bv_val == op->o_req_dn.bv_val ) ||
-		( !dnp && ndn.bv_val == op->o_req_ndn.bv_val ) ) {
+	if ( ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val && dn.bv_val == op->o_req_dn.bv_val )
+			|| ndn.bv_val == op->o_req_ndn.bv_val )
+	{
 		return LDAP_SUCCESS;
 	}
 
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
-	if ( dnp ) {
+	op->o_req_ndn = ndn;
+	if ( op->o_req_dn.bv_val != op->o_req_ndn.bv_val ) {
 		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		op->o_req_dn = dn;
 	} else {
 		op->o_req_dn = ndn;
 	}
-	op->o_req_ndn = ndn;
 
 	return LDAP_SUCCESS;
 }
@@ -494,7 +497,9 @@ rwm_op_modrdn( Operation *op, SlapReply *rs )
 		dc.tofrom = 0;
 		dc.normalized = 0;
 #endif /* ! ENABLE_REWRITE */
-		rc = rwm_dn_massage( &dc, op->orr_newSup, &newSup, &nnewSup );
+		newSup = *op->orr_newSup;
+		nnewSup = *op->orr_nnewSup;
+		rc = rwm_dn_massage_pretty_normalize( &dc, op->orr_newSup, &newSup, &nnewSup );
 		if ( rc != LDAP_SUCCESS ) {
 			op->o_bd->bd_info = (BackendInfo *)on->on_info;
 			send_ldap_error( op, rs, rc, "newSuperiorDN massage error" );
@@ -709,7 +714,8 @@ rwm_matched( Operation *op, SlapReply *rs )
 	dc.normalized = 0;
 #endif /* ! ENABLE_REWRITE */
 	ber_str2bv( rs->sr_matched, 0, 0, &dn );
-	rc = rwm_dn_massage( &dc, &dn, &mdn, NULL );
+	mdn = dn;
+	rc = rwm_dn_massage_pretty( &dc, &dn, &mdn );
 	if ( rc != LDAP_SUCCESS ) {
 		rs->sr_err = rc;
 		rs->sr_text = "Rewrite error";
@@ -938,7 +944,9 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	 * from the one known to the meta, and a DN with unknown
 	 * attributes is returned.
 	 */
-	rc = rwm_dn_massage( &dc, &e->e_name, &dn, &ndn );
+	dn = e->e_name;
+	ndn = e->e_nname;
+	rc = rwm_dn_massage_pretty_normalize( &dc, &e->e_name, &dn, &ndn );
 	if ( rc != LDAP_SUCCESS ) {
 		rc = 1;
 		goto fail;
