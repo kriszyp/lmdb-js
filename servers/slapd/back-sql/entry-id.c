@@ -396,7 +396,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 			}
 
 			rc = backsql_supad2at( bsi->bsi_oc, attr->an_desc, &vat );
-			if ( rc != 0 ) {
+			if ( rc != 0 || vat == NULL ) {
 				Debug( LDAP_DEBUG_TRACE, "backsql_id2entry(): "
 						"attribute '%s' is not defined "
 						"for objectlass '%s'\n",
