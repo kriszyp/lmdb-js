@@ -257,11 +257,6 @@ init_one_conn(
 	 * Attempts to initialize the connection to the target ds
 	 */
 	err = ldap_initialize( &lsc->ld, lt->uri );
-
-	/*
-	 * In case of failure, the error is mapped back from client
-	 * to server error code
-	 */
 	if ( err != LDAP_SUCCESS ) {
 		return ldap_back_map_result( err );
 	}
@@ -308,9 +303,13 @@ init_one_conn(
 					LDAP_UNWILLING_TO_PERFORM,
 					NULL, "Unwilling to perform",
 					NULL, NULL );
-			/* continues to the next case */
+			return LDAP_UNWILLING_TO_PERFORM;
 			
 		case REWRITE_REGEXEC_ERR:
+			send_ldap_result( conn, op,
+					LDAP_OPERATIONS_ERROR,
+					NULL, "Operations error",
+					NULL, NULL );
 			return LDAP_OPERATIONS_ERROR;
 		}
 	} else {
@@ -416,7 +415,8 @@ meta_back_getconn(
 
 		/*
 		 * The target is activated; if needed, it is
-		 * also init'd
+		 * also init'd. In case of error, init_one_conn
+		 * sends the appropriate result.
 		 */
 		err = init_one_conn( conn, op, li->targets[ i ],
 				vers, lc->conns[ i ] );
@@ -431,9 +431,6 @@ meta_back_getconn(
 			if ( new_conn ) {
 				metaconn_free( lc );
 			}
-
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,					NULL, "internal server error", NULL, NULL );
-
 			return NULL;
 		}
 
@@ -503,7 +500,7 @@ meta_back_getconn(
 		 */
 		if ( err != 0 ) {
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, "internal server error", NULL, NULL );
+			NULL, "Internal server error", NULL, NULL );
 			metaconn_free( lc );
 			return NULL;
 		}

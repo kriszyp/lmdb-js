@@ -47,7 +47,7 @@ to the target servers, generating an error.  Moreover, it makes
 little sense to use such attributes in proxying, as the proxy
 server doesn't actually store data, so it should have no knowledge
 of such attributes.  While code to strip the modification attributes
-has been put in place (and #ifdef's), it implies unmotivated overhead.
+has been put in place (and #ifdef'd), it implies unmotivated overhead.
 So it is strongly recommended to set
 
 	lastmod		off
@@ -68,9 +68,11 @@ all backends.  They are:
 This directive forces the backend to reject all those operations
 that must resolve to a single target in case none or multiple
 targets are selected.  They include: add, delete, modify, modrdn;
-compare is also included, although a different behavior might be
-considered in the future.  This directive can also be used when
-processing targets to mark a specific target as default.
+compare is not included, as well as bind since, as they don't
+alter entries, in case of multiple matches an attempt is made
+to perform the operation on any candidate target, with the
+constraint that at most on must succeed.  This directive can also
+be used when processing targets to mark a specific target as default.
 
 	dncache-ttl	{forever|disabled|<ttl>}
 
@@ -88,10 +90,11 @@ Target specification starts with a "uri" directive:
 
 	uri		<protocol>://[<host>[:<port>]]/<naming context>
 
-The "server" directive that was allowed in back-ldap has been discarded
-in back-meta.  The <protocol> part can be anything ldap_initialize(3)
-accepts ({ldap|ldaps|ldapi} and variants); <host> and <port> may be
-omitted, defaulting to whatever is set in /etc/ldap.conf (correct me!?!).
+The "server" directive that was allowed in back-ldap (although deprecated)
+has been discarded in back-meta.  The <protocol> part can be anything
+ldap_initialize(3) accepts ({ldap|ldaps|ldapi} and variants); <host>
+and <port> may be omitted, defaulting to whatever is set in
+/etc/ldap.conf (correct me!?!).
 The <naming context> part is mandatory.  It must end with one of the
 naming contexts defined for the backend, e.g.:
 
@@ -131,7 +134,7 @@ introduced in back-ldap to allow suffix massaging while proxying.
 It has been obsoleted by the rewriting tools.  However, both for
 backward compatibility and for ease of configuration when simple
 suffix massage is required, it has been preserved.  It wraps the
-basic rewriting instruction that perform suffix massaging.
+basic rewriting instructions that perform suffix massaging.
 
 Note: this also fixes a flaw in suffix massaging, which operated
 on (case insensitive) DNs instead of normalized DNs,
@@ -176,9 +179,9 @@ to the targets.
 2a) Two directory servers don't share any portion of naming context,
 but they'd present as a single DIT.  [Caveat: uniqueness of
 (massaged) entries among the two servers is assumed; integrity 
-checks risk to incurr in excessive overhead.]
+checks risk to incurr in excessive overhead and have not been implemented.]
 Say we have "dc=bar,dc=org" and "o=Foo,c=US", and we'd like them to
-present as branches of "dc=foo,dc=com", say "dc=a,dc=foo,dc=com"
+appear as branches of "dc=foo,dc=com", say "dc=a,dc=foo,dc=com"
 and "dc=b,dc=foo,dc=com".  Then we need to configure our back-meta as:
 
 	database	meta
@@ -200,10 +203,10 @@ later.
 When a search with base "dc=foo,dc=com" is attempted, if the 
 scope is "base" it fails with "no such object"; in fact, the
 common root of the two targets (prior to massaging) does not
-exists.  If the scope is "one", both targets are contacted with
-the base replaced by each target's base; the scope is decreased
-to "base".  In general, the scope "one" search is honored,
-and the scope is decreased, only when the incoming base is
+exist.  If the scope is "one", both targets are contacted with
+the base replaced by each target's base; the scope is derated
+to "base".  In general, a scope "one" search is honored,
+and the scope is derated, only when the incoming base is
 at most one level lower of a target's naming context (prior
 to massaging).
 Finally, if the scope is "sub" the incoming base is replaced
@@ -252,19 +255,19 @@ on a proxy may require some considerations.  Two philosophies may be
 considered:
 
 a) the remote server dictates the permissions; the proxy simply passes
-back what it gets from the remore server.
+back what it gets from the remote server.
 
 b) the remote server unveils "everything"; the proxy is responsible
 for protecting data from unauthorized access.
 
 Of course the latter sounds unreasonable, but it is not.  It is possible
 to imagine scenarios in which a remote host discloses data that can
-be considered "public" in an intranet, and a proxy that connects it to
-the internet may impose additional constraints.  To this purpose, the
+be considered "public" inside an intranet, and a proxy that connects it
+to the internet may impose additional constraints.  To this purpose, the
 proxy should be able to comply with all the ACL matching criteria that
 the server supports.  This has been achieved with regard to all the
-criteria supported by slapd except a secial subtle case (please notify
-me if you can find other exceptions).
+criteria supported by slapd except a special subtle case (please drop
+me a note if you can find other exceptions: <ando@openldap.org>).
 The rule
 
 access to dn="<dn>" attr=<attr>
@@ -272,14 +275,21 @@ access to dn="<dn>" attr=<attr>
 	by * none
 
 cannot be matched IFF:
-- the operation dn (the one that bound) is "<dn>", and
-- the entry whose <attr> is being accessed is again <dn>, and
+- the attribute that is being requested, <attr>, is NOT <dnattr>, and
 - the attribute that determines membership, <dnattr>, has not
-  been required (e.g. in a search)
+  been requested (e.g. in a search)
 
-In fact this ACL is resolved by slapd considering the entry it retrieved
+In fact this ACL is resolved by slapd using the portion of entry it retrieved
 from the remote server without requiring any further intervention of the
 backend, so, if the <dnattr> attribute has not been fetched, the match
-cannot be accomplished because the attribute is not present, not because
-no value matches the requirement.
+cannot be assessed because the attribute is not present, not because
+no value matches the requirement!
+
+
+Note on ACLS and attribute mapping: ACLs are applied to the mapped
+attributes; for instance, if the attribute locally known as "foo" 
+is mapped to "bar" on a remote server, then local ACLs apply to 
+attribute "foo" and are totally unaware of its remote name.  The 
+remote server will check permissions for "bar", and the local server 
+will possibly enforce additional restrictions to "foo".
 

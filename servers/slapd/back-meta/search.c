@@ -354,7 +354,7 @@ meta_back_search(
 				break;
 			}
 
-			rc = ldap_result( lsc[ 0 ]->ld, LDAP_RES_ANY,
+			rc = ldap_result( lsc[ 0 ]->ld, msgid[ i ],
 					0, &tv, &res );
 
 			if ( rc == 0 ) {
