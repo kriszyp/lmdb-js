@@ -73,12 +73,83 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+# Ensure the new rdn's can be found
+
+echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones III)..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	    'cn=James A Jones III' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
+	    > $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+
+LDIF=$MODRDNOUTMASTER1
+
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+cmp $SEARCHFLT $LDIFFLT
+
+if test $? != 0 ; then
+	echo "comparison failed - modrdn operations did not complete correctly"
+	kill -HUP $PID
+	exit 1
+fi
+
+
+echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones II)..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	    'cn=James A Jones II' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
+	    >  $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+
+LDIF=$MODRDNOUTMASTER2
+
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+cmp $SEARCHFLT $LDIFFLT
+
+if test $? != 0 ; then
+	echo "comparison failed - modrdn operations did not complete correctly"
+	kill -HUP $PID
+	exit 1
+fi
+
+# Ensure that you cannot find the entry for which the rdn was deleted as
+# an attribute.
+
+echo "Using ldapsearch to retrieve entries using removed rdn (cn=James A Jones 2)..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	    'cn=James A Jones 2' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
+	    > /dev/null 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "failure: ldapsearch found attribute that was to be removed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
 echo "Using ldapsearch to retrieve all the entries..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
 	    'objectClass=*' > $SEARCHOUT 2>&1
 RC=$?
-kill -HUP $PID
 if test $RC != 0 ; then
+	kill -HUP $PID
 	echo "ldapsearch failed!"
 	exit $RC
 fi
@@ -92,6 +163,49 @@ echo "Filtering original ldif used to create database..."
 echo "Comparing filter output..."
 cmp $SEARCHFLT $LDIFFLT
 
+if test $? != 0 ; then
+	echo "comparison failed - modrdn operations did not complete correctly"
+	kill -HUP $PID
+	exit 1
+fi
+
+
+echo "Testing modrdn(deleteoldrdn=1), modrdn with new rdn already an att val..."
+$LDAPMODRDN -v -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD > \
+	/dev/null 2>&1 'cn=James A Jones III, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones 1'
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodrdn failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+# Test that you can use modrdn with an attribute value which was previously
+# present
+
+echo "Using ldapsearch to retrieve entries using new rdn (cn=James A Jones 1)..."
+$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
+	    'cn=James A Jones 1' | egrep -iv '^createtimestamp:|^modifytimestamp:' \
+	    >  $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed!"
+	kill -HUP $PID
+	exit $RC
+fi
+
+
+LDIF=$MODRDNOUTMASTER3
+
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+cmp $SEARCHFLT $LDIFFLT
+
+kill -HUP $PID
 if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
 	exit 1
