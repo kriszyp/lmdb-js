@@ -1,6 +1,8 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.20 Engineering
+	Fixed slapd idletimeout behavior (ITS#2374)
+	Fixed slapd accept() fail busyloop (ITS#2482)
 	Fixed slapd regex lookup mutex issue (ITS#2505)
 	Fixed back-bdb/ldbm filter indexing bugs (ITS#2506) (ITS#2507)
 	Fixed back-bdb cache consistency bug (ITS#2470)
