@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.451 2002/12/07 18:19:26 ando Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.452 2003/01/02 19:39:00 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -46,7 +46,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --with-cyrus-sasl	  with Cyrus SASL support [auto]"
 ac_help="$ac_help
-  --with-fetch		  with freeBSD fetch URL support [auto]"
+  --with-fetch		  with fetch(3) URL support [auto]"
 ac_help="$ac_help
   --with-kerberos	  with Kerberos support [auto]"
 ac_help="$ac_help
