@@ -522,7 +522,7 @@ read_config( const char *fname )
 
 			}
 
-			if ( lutil_passwd_scheme( cargv[1] ) == NULL ) {
+			if ( lutil_passwd_scheme( cargv[1] ) == 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
 					   "%s: line %d: password scheme \"%s\" not available\n",
