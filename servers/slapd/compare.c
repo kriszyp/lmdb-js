@@ -409,19 +409,22 @@ static int compare_entry(
 	Entry *e,
 	AttributeAssertion *ava )
 {
-	int rc;
+	int rc = LDAP_COMPARE_FALSE;
 	Attribute *a;
 
 	if ( ! access_allowed( op, e,
 		ava->aa_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
 	{	
-		return LDAP_INSUFFICIENT_ACCESS;
+		rc = LDAP_INSUFFICIENT_ACCESS;
+		goto done;
 	}
 
 	a = attrs_find( e->e_attrs, ava->aa_desc );
-	if( a == NULL ) return LDAP_NO_SUCH_ATTRIBUTE;
+	if( a == NULL ) {
+		rc = LDAP_NO_SUCH_ATTRIBUTE;
+		goto done;
+	}
 
-	rc = LDAP_COMPARE_FALSE;
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
 		a = attrs_find( a->a_next, ava->aa_desc ))
@@ -436,13 +439,23 @@ static int compare_entry(
 		if ( value_find_ex( ava->aa_desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-			a->a_nvals,
-			&ava->aa_value, op->o_tmpmemctx ) == 0 )
+			a->a_nvals, &ava->aa_value, op->o_tmpmemctx ) == 0 )
 		{
 			rc = LDAP_COMPARE_TRUE;
 			break;
 		}
 	}
+
+done:
+#ifdef LDAP_ACL_HONOR_DISCLOSE
+	if( rc != LDAP_COMPARE_TRUE && rc != LDAP_COMPARE_FALSE ) {
+		if ( ! access_allowed( op, e,
+			slap_schema.si_ad_entry, NULL, ACL_DISCLOSE, NULL ) )
+		{
+			rc = LDAP_NO_SUCH_OBJECT;
+		}
+	}
+#endif
 
 	return rc;
 }
