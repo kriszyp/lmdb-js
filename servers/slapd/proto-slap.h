@@ -694,8 +694,8 @@ LDAP_SLAPD_V (int)	krbv4_ldap_auth();
  * ldapsync.c
  */
 LDAP_SLAPD_F (int) slap_build_sync_state_ctrl LDAP_P((
-				Operation *, SlapReply *, Entry *, int, LDAPControl **,
-				int, int, struct berval * ));
+				Operation *, SlapReply *, Entry *, int,
+				LDAPControl **, int, int, struct berval * ));
 LDAP_SLAPD_F (int) slap_build_sync_done_ctrl LDAP_P((
 				Operation *, SlapReply *, LDAPControl **,
 				int, int, struct berval *, int ));

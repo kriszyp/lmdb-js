@@ -45,6 +45,9 @@ static void send_paged_response(
 	ID  *lastid,
 	int tentries );
 
+static int bdb_pfid_cmp( const void *v_id1, const void *v_id2 );
+static ID* bdb_id_dup( Operation *op, ID *id );
+
 /* Dereference aliases for a single alias entry. Return the final
  * dereferenced entry on success, NULL on any failure.
  */
@@ -306,6 +309,7 @@ sameido:
 #define IS_BDB_REPLACE(type) (( type == LDAP_PSEARCH_BY_DELETE ) || \
 	( type == LDAP_PSEARCH_BY_SCOPEOUT ))
 #define IS_PSEARCH (op != sop)
+#define IS_POST_SEARCH ( op->ors_post_search_id != NOID )
 
 static Operation *
 bdb_drop_psearch( Operation *op, ber_int_t msgid )
@@ -369,19 +373,170 @@ bdb_cancel( Operation *op, SlapReply *rs )
 
 int bdb_search( Operation *op, SlapReply *rs )
 {
-	return bdb_do_search( op, rs, op, NULL, 0 );
+	int rc;
+	struct pc_entry *pce = NULL;
+	struct pc_entry *tmp_pce = NULL;
+	Entry ps_e = {0};
+	Attribute *a;
+
+	ps_e.e_private = NULL;
+	ldap_pvt_thread_mutex_init( &op->o_pcmutex );
+	LDAP_TAILQ_INIT( &op->o_ps_pre_candidates );
+	LDAP_TAILQ_INIT( &op->o_ps_post_candidates );
+
+	op->ors_post_search_id = NOID;
+	rc = bdb_do_search( op, rs, op, NULL, 0 );
+
+	ldap_pvt_thread_mutex_lock( &op->o_pcmutex );
+	pce = LDAP_TAILQ_FIRST( &op->o_ps_post_candidates );
+	ldap_pvt_thread_mutex_unlock( &op->o_pcmutex );
+
+	while ( rc == LDAP_SUCCESS && pce &&
+			op->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST ) {
+
+		ps_e.e_id = op->ors_post_search_id = pce->pc_id;
+		if ( op->o_sync_csn.bv_val ) {
+			ch_free( op->o_sync_csn.bv_val );
+			op->o_sync_csn.bv_val = NULL;
+		}
+		ber_dupbv( &op->o_sync_csn, &pce->pc_csn );
+		ber_dupbv( &ps_e.e_name, &pce->pc_ename );
+		ber_dupbv( &ps_e.e_nname, &pce->pc_enname );
+		a = ch_calloc( 1, sizeof( Attribute ));
+		a->a_desc = slap_schema.si_ad_entryUUID;
+		a->a_vals = ch_calloc( 2, sizeof( struct berval ));
+		ber_dupbv( &a->a_vals[0], &pce->pc_entryUUID );
+		a->a_nvals = a->a_vals;
+		a->a_next = NULL;
+		ps_e.e_attrs = a;
+
+		rc = bdb_do_search( op, rs, op, &ps_e, 0 );
+
+		tmp_pce = pce;
+		ldap_pvt_thread_mutex_lock( &op->o_pcmutex );
+		pce = LDAP_TAILQ_NEXT( pce, pc_link );
+		LDAP_TAILQ_REMOVE( &op->o_ps_post_candidates, tmp_pce, pc_link );
+		ldap_pvt_thread_mutex_unlock( &op->o_pcmutex );
+
+		ch_free( tmp_pce->pc_csn.bv_val );
+		ch_free( tmp_pce->pc_entryUUID.bv_val );
+		ch_free( tmp_pce->pc_ename.bv_val );
+		ch_free( tmp_pce->pc_enname.bv_val );
+		ch_free( tmp_pce );	
+		entry_clean( &ps_e );
+	}
+	return rc;
 }
 
 int bdb_psearch( Operation *op, SlapReply *rs, Operation *sop,
 	Entry *ps_e, int ps_type )
 {
 	int	rc;
+	struct pc_entry *pce = NULL;
+	struct pc_entry *p = NULL;
 
-	sop->o_private = op->o_private;
-	rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
-	sop->o_private = NULL;
+	op->ors_post_search_id = NOID;
 
-	return rc;
+	switch (ps_type) {
+	case LDAP_PSEARCH_BY_PREMODIFY:
+	case LDAP_PSEARCH_BY_PREDELETE:
+
+		if ( sop->o_refresh_in_progress ) {
+			pce = (struct pc_entry *) ch_calloc( 1, sizeof( struct pc_entry ));
+			pce->pc_id = ps_e->e_id;
+			ldap_pvt_thread_mutex_lock( &sop->o_pcmutex );
+			if ( LDAP_TAILQ_EMPTY( &sop->o_ps_pre_candidates )) {
+				LDAP_TAILQ_INSERT_HEAD( &sop->o_ps_pre_candidates, pce, pc_link );
+			} else {
+				LDAP_TAILQ_FOREACH( p, &sop->o_ps_pre_candidates, pc_link ) {
+					if ( p->pc_id > pce->pc_id )
+						break;
+				}
+
+				if ( p ) {
+					LDAP_TAILQ_INSERT_BEFORE( p, pce, pc_link );
+				} else {
+					LDAP_TAILQ_INSERT_TAIL(
+							&sop->o_ps_pre_candidates,
+							pce, pc_link );
+				}
+			}
+			ldap_pvt_thread_mutex_unlock( &sop->o_pcmutex );
+		} else {
+			rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
+			return rc;
+		}
+
+		/* Wait until refresh search send the entry */
+		while ( !pce->pc_sent ) {
+			if ( sop->o_refresh_in_progress ) {
+				ldap_pvt_thread_yield();
+			} else {
+				break;
+			}
+		}
+
+		if ( !sop->o_refresh_in_progress && !pce->pc_sent ) {
+			/* refresh ended without processing pce */
+			/* need to perform psearch for ps_e */
+			ldap_pvt_thread_mutex_lock( &sop->o_pcmutex );
+			LDAP_TAILQ_REMOVE( &sop->o_ps_pre_candidates, pce, pc_link );
+			ldap_pvt_thread_mutex_unlock( &sop->o_pcmutex );
+			ch_free( pce );
+			rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
+			return rc;
+		} else {
+			/* the pce entry was sent in the refresh phase */
+			if ( ps_type == LDAP_PSEARCH_BY_PREMODIFY ) {
+				struct psid_entry* psid_e;
+				psid_e = (struct psid_entry *) ch_calloc(1,
+							sizeof(struct psid_entry));
+				psid_e->ps_op = sop;
+				LDAP_LIST_INSERT_HEAD( &op->o_pm_list, psid_e, ps_link );
+			}
+
+			ldap_pvt_thread_mutex_lock( &sop->o_pcmutex );
+			LDAP_TAILQ_REMOVE( &sop->o_ps_pre_candidates, pce, pc_link );
+			ldap_pvt_thread_mutex_unlock( &sop->o_pcmutex );
+			ch_free( pce );
+			return LDAP_SUCCESS;
+		} 
+		break;
+	case LDAP_PSEARCH_BY_DELETE:
+	case LDAP_PSEARCH_BY_SCOPEOUT:
+	case LDAP_PSEARCH_BY_ADD:
+	case LDAP_PSEARCH_BY_MODIFY:
+		ldap_pvt_thread_mutex_lock( &op->o_pcmutex );
+		if ( sop->o_refresh_in_progress ||
+				!LDAP_TAILQ_EMPTY( &sop->o_ps_post_candidates )) {
+			pce = (struct pc_entry *) ch_calloc( 1, sizeof( struct pc_entry ));
+			pce->pc_id = ps_e->e_id;
+//			pce->ps_type = ps_type;
+			ber_dupbv( &pce->pc_csn, &op->o_sync_csn );
+			if ( ps_type == LDAP_PSEARCH_BY_DELETE ) {
+				Attribute *a;
+				for ( a = ps_e->e_attrs; a != NULL; a = a->a_next ) {
+					AttributeDescription *desc = a->a_desc;
+					if ( desc == slap_schema.si_ad_entryUUID ) {
+						ber_dupbv( &pce->pc_entryUUID, &a->a_nvals[0] );
+					}
+				}
+			}	
+			ber_dupbv( &pce->pc_ename, &ps_e->e_name ); 
+			ber_dupbv( &pce->pc_enname, &ps_e->e_nname ); 
+			LDAP_TAILQ_INSERT_TAIL( &sop->o_ps_post_candidates, pce, pc_link );
+			ldap_pvt_thread_mutex_unlock( &op->o_pcmutex );
+		} else {
+			ldap_pvt_thread_mutex_unlock( &op->o_pcmutex );
+			rc = bdb_do_search( op, rs, sop, ps_e, ps_type );
+			return rc;
+		}
+		break;
+	default:
+		Debug( LDAP_DEBUG_TRACE, "do_psearch: invalid psearch type\n",
+				0, 0, 0 );
+		return LDAP_OTHER;
+	}
 }
 
 /* For persistent searches, op is the currently executing operation,
@@ -428,6 +583,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	const char *text;
 	int			slog_found = 0;
 
+	struct pc_entry *pce = NULL;
 	BerVarray	syncUUID_set = NULL;
 	int			syncUUID_set_cnt = 0;
 
@@ -439,7 +595,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 
 	opinfo = (struct bdb_op_info *) op->o_private;
 
-	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST ) {
+	if ( !IS_POST_SEARCH && !IS_PSEARCH &&
+			sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST ) {
 		struct slap_session_entry *sent;
 		if ( sop->o_sync_state.sid >= 0 ) {
 			LDAP_LIST_FOREACH( sent, &bdb->bi_session_list, se_link ) {
@@ -452,14 +609,16 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	}
 
 	/* psearch needs to be registered before refresh begins */
-	/* psearch and refresh transmission is serialized in send_ldap_ber() */
-	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
+	if ( !IS_POST_SEARCH && !IS_PSEARCH &&
+			sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
+		sop->o_refresh_in_progress = 1;
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_INSERT_HEAD( &bdb->bi_psearch_list, sop, o_ps_link );
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
 
-	} else if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST
-		&& sop->o_sync_slog_size >= 0 )
+	} else if ( !IS_POST_SEARCH && !IS_PSEARCH &&
+				sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST
+				&& sop->o_sync_slog_size >= 0 )
 	{
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
@@ -543,6 +702,14 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 			send_ldap_error( sop, rs, LDAP_OTHER, "internal error" );
 			return rs->sr_err;
 		}
+	}
+
+	if ( IS_POST_SEARCH ) {
+		cursor = 0;
+		candidates[0] = 1;
+		candidates[1] = op->ors_post_search_id;
+		search_context_csn = ber_dupbv( NULL, &op->o_sync_csn );	
+		goto loop_start;
 	}
 
 	if ( sop->o_req_ndn.bv_len == 0 ) {
@@ -876,13 +1043,64 @@ dn2entry_retry:
 		}
 	}
 
+loop_start:
+
 	for ( id = bdb_idl_first( candidates, &cursor );
-		id != NOID && !no_sync_state_change;
+		  id != NOID && !no_sync_state_change;
 		id = bdb_idl_next( candidates, &cursor ) )
 	{
 		int scopeok = 0;
+		ID* idhole = NULL;
 
 loop_begin:
+
+		if ( !IS_POST_SEARCH ) {
+			idhole = (ID*) avl_find( sop->o_psearch_finished,
+									 (caddr_t)&id, bdb_pfid_cmp );
+			if ( idhole ) {
+				avl_delete( &sop->o_psearch_finished,
+							(caddr_t)idhole, bdb_pfid_cmp );
+				sop->o_tmpfree( idhole, sop->o_tmpmemctx );
+				goto loop_continue;
+			}
+
+			if ( sop->o_refresh_in_progress ) {
+				ldap_pvt_thread_mutex_lock( &sop->o_pcmutex );
+				pce = LDAP_TAILQ_FIRST( &sop->o_ps_pre_candidates );	
+				while ( pce && pce->pc_sent ) {
+					pce = LDAP_TAILQ_NEXT( pce, pc_link );
+				}
+				ldap_pvt_thread_mutex_unlock( &sop->o_pcmutex );
+				if ( pce ) {
+					ID pos;
+					if ( BDB_IDL_IS_RANGE( candidates ) ) {
+						if ( pce->pc_id >= candidates[1] &&
+							 pce->pc_id <= candidates[2] &&
+							 pce->pc_id > cursor-1 ) {
+							id = pce->pc_id;
+							cursor--;
+							avl_insert( &sop->o_psearch_finished,
+										(caddr_t)bdb_id_dup( sop, &pce->pc_id ),
+										bdb_pfid_cmp, avl_dup_error );
+						} else {
+							pce->pc_sent = 1;
+						}
+					} else {
+						pos = bdb_idl_search(candidates, pce->pc_id);
+						if ( pos > cursor-1 && pos <= candidates[0] ) {
+							id = pce->pc_id;
+							cursor--;
+							avl_insert( &sop->o_psearch_finished,
+										(caddr_t)bdb_id_dup( sop, &pce->pc_id ),
+										bdb_pfid_cmp, avl_dup_error );
+						} else {
+							pce->pc_sent = 1;
+						}
+					}
+				}
+			}
+		}
+
 		/* check for abandon */
 		if ( sop->o_abandon ) {
 			if ( sop != op ) {
@@ -937,7 +1155,11 @@ id2entry_retry:
 			}
 
 			if ( e == NULL ) {
-				if( !BDB_IDL_IS_RANGE(candidates) ) {
+				if ( IS_POST_SEARCH ) {
+					/* send LDAP_SYNC_DELETE */
+					rs->sr_entry = e = ps_e;
+					goto post_search_no_entry;
+				} else if( !BDB_IDL_IS_RANGE(candidates) ) {
 					/* only complain for non-range IDLs */
 					Debug( LDAP_DEBUG_TRACE,
 						"bdb_search: candidate %ld not found\n",
@@ -1049,7 +1271,7 @@ id2entry_retry:
 #endif
 
 		/* Not in scope, ignore it */
-		if ( !scopeok ) {
+		if ( !IS_POST_SEARCH && !scopeok ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_search: %ld scope not okay\n",
 				(long) id, 0, 0 );
@@ -1091,29 +1313,39 @@ id2entry_retry:
 			}
 
 		} else {
-			if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-				rc_sync = test_filter( sop, rs->sr_entry, &cookief );
-				rs->sr_err = test_filter( sop, rs->sr_entry, &contextcsnand );
-				if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
-					if ( rc_sync == LDAP_COMPARE_TRUE ) {
-						if ( no_sync_state_change ) {
-							Debug( LDAP_DEBUG_TRACE,
-								"bdb_search: error in context csn management\n",
-								0, 0, 0 );
-						}
-						entry_sync_state = LDAP_SYNC_ADD;
+			if ( !IS_POST_SEARCH ) {
+				if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
+					rc_sync = test_filter( sop, rs->sr_entry, &cookief );
+					rs->sr_err = test_filter( sop, rs->sr_entry,
+										&contextcsnand );
+					if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
+						if ( rc_sync == LDAP_COMPARE_TRUE ) {
+							if ( no_sync_state_change ) {
+								Debug( LDAP_DEBUG_TRACE,
+									"bdb_search: "
+									"error in context csn management\n",
+									0, 0, 0 );
+							}
+							entry_sync_state = LDAP_SYNC_ADD;
 
-					} else {
-						if ( no_sync_state_change ) {
-							goto loop_continue;
+						} else {
+							if ( no_sync_state_change ) {
+								goto loop_continue;
+							}
+							entry_sync_state = LDAP_SYNC_PRESENT;
 						}
-						entry_sync_state = LDAP_SYNC_PRESENT;
 					}
+				} else {
+					rs->sr_err = test_filter( sop,
+						rs->sr_entry, sop->oq_search.rs_filter );
 				}
-
 			} else {
-				rs->sr_err = test_filter( sop,
-					rs->sr_entry, sop->oq_search.rs_filter );
+				if ( scopeok ) {
+					rs->sr_err = test_filter( sop,
+						rs->sr_entry, sop->oq_search.rs_filter );
+				} else {
+					rs->sr_err = LDAP_COMPARE_TRUE;
+				}
 			}
 		}
 
@@ -1147,16 +1379,17 @@ id2entry_retry:
 				/* safe default */
 				int result = -1;
 				
-				if (IS_PSEARCH) {
+				if (IS_PSEARCH || IS_POST_SEARCH) {
 					int premodify_found = 0;
-					int entry_sync_state;
 
-					if ( ps_type == LDAP_PSEARCH_BY_ADD ||
+					if ( IS_POST_SEARCH ||
+						 ps_type == LDAP_PSEARCH_BY_ADD ||
 						 ps_type == LDAP_PSEARCH_BY_DELETE ||
 						 ps_type == LDAP_PSEARCH_BY_MODIFY ||
 						 ps_type == LDAP_PSEARCH_BY_SCOPEOUT )
 					{
-						if ( ps_type == LDAP_PSEARCH_BY_MODIFY ) {
+						if ( !IS_POST_SEARCH &&
+							 ps_type == LDAP_PSEARCH_BY_MODIFY ) {
 							struct psid_entry* psid_e;
 							LDAP_LIST_FOREACH( psid_e,
 								&op->o_pm_list, ps_link)
@@ -1170,7 +1403,14 @@ id2entry_retry:
 							if (psid_e != NULL) free (psid_e);
 						}
 
-						if ( ps_type == LDAP_PSEARCH_BY_ADD ) {
+						if ( IS_POST_SEARCH ) {
+							if ( scopeok ) {
+								entry_sync_state = LDAP_SYNC_ADD;
+							} else {
+post_search_no_entry:
+								entry_sync_state = LDAP_SYNC_DELETE;
+							}
+						} else if ( ps_type == LDAP_PSEARCH_BY_ADD ) {
 							entry_sync_state = LDAP_SYNC_ADD;
 						} else if ( ps_type == LDAP_PSEARCH_BY_DELETE ) {
 							entry_sync_state = LDAP_SYNC_DELETE;
@@ -1199,11 +1439,16 @@ id2entry_retry:
 								search_context_csn,
 								sop->o_sync_state.sid,
 								sop->o_sync_state.rid );
-							rs->sr_err = slap_build_sync_state_ctrl( sop,
-								rs, e, entry_sync_state, ctrls,
+							rs->sr_err = slap_build_sync_state_ctrl(
+								sop, rs, e, entry_sync_state, ctrls,
 								num_ctrls++, 1, &cookie );
 							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
-							rs->sr_attrs = attrs;
+							if (!(IS_POST_SEARCH &&
+								entry_sync_state == LDAP_SYNC_DELETE)) {
+								rs->sr_attrs = attrs;
+							} else {
+								rs->sr_attrs = NULL;
+							}
 							rs->sr_operational_attrs = NULL;
 							rs->sr_ctrls = ctrls;
 							rs->sr_flags = 0;
@@ -1235,8 +1480,8 @@ id2entry_retry:
 				} else {
 					if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 						if ( rc_sync == LDAP_COMPARE_TRUE ) { /* ADD */
-							rs->sr_err = slap_build_sync_state_ctrl( sop,
-								rs, e, entry_sync_state, ctrls,
+							rs->sr_err = slap_build_sync_state_ctrl(
+								sop, rs, e, entry_sync_state, ctrls,
 								num_ctrls++, 0, NULL );
 							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 							rs->sr_ctrls = ctrls;
@@ -1321,14 +1566,23 @@ loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
 			if (!IS_PSEARCH) {
-				bdb_cache_return_entry_r( bdb->bi_dbenv,
-					&bdb->bi_cache, e , &lock );
-				if ( sop->o_nocaching ) {
-					bdb_cache_delete_entry( bdb, ei, locker, &lock );
+				if (!(IS_POST_SEARCH &&
+						 entry_sync_state == LDAP_SYNC_DELETE)) {
+					bdb_cache_return_entry_r( bdb->bi_dbenv,
+						&bdb->bi_cache, e , &lock );
+					if ( sop->o_nocaching ) {
+						bdb_cache_delete_entry( bdb, ei, locker, &lock );
+					}
 				}
 			}
 			e = NULL;
 			rs->sr_entry = NULL;
+		}
+		
+		if ( sop->o_refresh_in_progress ) {
+			if ( pce ) {
+				pce->pc_sent = 1;
+			}
 		}
 
 		ldap_pvt_thread_yield();
@@ -1345,7 +1599,7 @@ loop_continue:
 	}
 
 nochange:
-	if (!IS_PSEARCH) {
+	if (!IS_PSEARCH && !IS_POST_SEARCH) {
 		if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 			if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
 				struct berval cookie;
@@ -1458,9 +1712,17 @@ nochange:
 		}
 	}
 
+	if ( sop->o_refresh_in_progress ) {
+		sop->o_refresh_in_progress = 0;
+	}
+
 	rs->sr_err = LDAP_SUCCESS;
 
 done:
+	if ( sop->o_psearch_finished ) {
+		avl_free( sop->o_psearch_finished, ch_free );
+	}
+
 	if( !IS_PSEARCH && e != NULL ) {
 		/* free reader lock */
 		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
@@ -1849,3 +2111,18 @@ done:
 	(void) ber_free_buf( ber );
 }
 
+static int
+bdb_pfid_cmp( const void *v_id1, const void *v_id2 )
+{
+    const ID *p1 = v_id1, *p2 = v_id2;
+	return *p1 - *p2;
+}
+
+static ID*
+bdb_id_dup( Operation *op, ID *id )
+{
+	ID *new;
+	new = ch_malloc( sizeof(ID) );
+	*new = *id;
+	return new;
+}

@@ -366,6 +366,17 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
+	LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
+		rc = bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_PREDELETE );
+		if ( rc ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"bdb_delete: persistent search failed (%d,%d)\n",
+				rc, rs->sr_err, 0 );
+		}
+	}
+	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
+
 	/* delete from dn2id */
 	rs->sr_err = bdb_dn2id_delete( op, lt2, eip, e );
 	if ( rs->sr_err != 0 ) {

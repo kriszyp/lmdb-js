@@ -1662,6 +1662,7 @@ typedef struct req_search_s {
 	AttributeName *rs_attrs;
 	Filter *rs_filter;
 	struct berval rs_filterstr;
+	int rs_post_search_id;
 } req_search_s;
 
 typedef struct req_compare_s {
@@ -1998,6 +1999,7 @@ typedef struct slap_paged_state {
 #define LDAP_PSEARCH_BY_PREMODIFY	0x03
 #define LDAP_PSEARCH_BY_MODIFY		0x04
 #define LDAP_PSEARCH_BY_SCOPEOUT	0x05
+#define LDAP_PSEARCH_BY_PREDELETE	0x06
 
 struct psid_entry {
 	struct slap_op *ps_op;
@@ -2027,6 +2029,16 @@ struct slap_csn_entry {
 #define SLAP_CSN_COMMIT		2
 	long ce_state;
 	LDAP_TAILQ_ENTRY (slap_csn_entry) ce_csn_link;
+};
+
+struct pc_entry {
+	ID pc_id;
+	int pc_sent;
+	struct berval pc_csn;
+	struct berval pc_entryUUID;
+	struct berval pc_ename;
+	struct berval pc_enname;
+	LDAP_TAILQ_ENTRY( pc_entry ) pc_link;
 };
 
 /*
@@ -2101,6 +2113,7 @@ typedef struct slap_op {
 #define ors_attrs oq_search.rs_attrs
 #define ors_filter oq_search.rs_filter
 #define ors_filterstr oq_search.rs_filterstr
+#define ors_post_search_id oq_search.rs_post_search_id
 
 #define orr_newrdn oq_modrdn.rs_newrdn
 #define orr_nnewrdn oq_modrdn.rs_nnewrdn
@@ -2201,6 +2214,12 @@ typedef struct slap_op {
 	int	o_no_psearch;
 	LDAP_LIST_ENTRY(slap_op) o_ps_link;
 	LDAP_LIST_HEAD(pe, psid_entry) o_pm_list;
+
+	int o_refresh_in_progress;
+	LDAP_TAILQ_HEAD(pc_pre, pc_entry) o_ps_pre_candidates;
+	LDAP_TAILQ_HEAD(pc_post, pc_entry) o_ps_post_candidates;
+	Avlnode *o_psearch_finished;
+	ldap_pvt_thread_mutex_t	o_pcmutex;
 
 	AuthorizationInformation o_authz;
 
