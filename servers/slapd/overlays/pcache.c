@@ -1074,6 +1074,8 @@ cache_entries(
 	ber_str2bv(uuidbuf, query_uuid->bv_len, 1, query_uuid);
 
 	op_tmp.o_bd = &db;
+	op_tmp.o_dn = db.be_rootdn;
+	op_tmp.o_ndn = db.be_rootndn;
 	db.bd_info = cm->bi;
 	db.be_private =cm->be_private;
 	db.be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
