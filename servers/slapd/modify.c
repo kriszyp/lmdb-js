@@ -23,6 +23,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 static void	modlist_free(LDAPModList *ml);

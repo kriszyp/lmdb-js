@@ -23,6 +23,7 @@
 #include <ac/time.h>
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 static int	add_created_attrs(Operation *op, Entry *e);

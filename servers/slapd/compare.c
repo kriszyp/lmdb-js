@@ -21,6 +21,7 @@
 
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 int
@@ -65,7 +66,6 @@ do_compare(
 	}
 
 	ndn = ch_strdup( dn );
-
 
 	if( dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
