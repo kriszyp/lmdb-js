@@ -5,7 +5,7 @@ H1: Security Considerations
 
 OpenLDAP Software is designed to run in a wide variety of computing
 environments from tightly-controlled closed networks to the global
-Internet.  Hence, OpenLDAP Software provides many different security
+Internet.  Hence, OpenLDAP Software supports many different security
 mechanisms.  This chapter describes these mechanisms and discusses
 security considerations for using OpenLDAP Software.
 
@@ -37,12 +37,9 @@ H3: IP Firewall
 to restrict access based upon the client's IP address and/or network
 interface used to communicate with the client.
 
-Generally, {{slapd}}(8) listens on port 389/tcp for LDAP over
-{{TERM:TCP}} (e.g.  {{F:ldap://}}) and port 636/tcp for LDAP over
-{{TERM:SSL}} (e.g.  {{F:ldaps://}}).  Note that LDAP over TCP
-sessions can be protected by {{TERM:TLS}} through the use of
-{{StartTLS}}.  StartTLS is the Standard Track mechanism for protecting
-LDAP sessions with TLS.
+Generally, {{slapd}}(8) listens on port 389/tcp for {{F:ldap://}}
+sessions and port 636/tcp for {{F:ldaps://}}) sessions.  {{slapd}}(8)
+may be configured to listen on other ports.
 
 As specifics of how to configure IP firewall are dependent on the
 particular kind of IP firewall used, no examples are provided here.
@@ -51,9 +48,9 @@ See the document associated with your IP firewall.
 
 H3: TCP Wrappers
 
-OpenLDAP supports {{TERM:TCP}} Wrappers.  TCP Wrappers provide a rule-based
-access control system for controlling TCP/IP access to the server.
-For example, the {{host_options}}(5) rule:
+{{slapd}}(8) supports {{TERM:TCP}} Wrappers.  TCP Wrappers provide
+a rule-based access control system for controlling TCP/IP access
+to the server.  For example, the {{host_options}}(5) rule:
 
 >	slapd: 10.0.0.0/255.0.0.0 127.0.0.1 : ALLOW
 >	slapd: ALL : DENY
@@ -71,15 +68,16 @@ of TCP wrappers.
 See {{hosts_access}}(5) for more information on TCP wrapper rules.
 
 
-H2: Integrity and Confidentiality Protection
+H2: Data Integrity and Confidentiality Protection
 
-{{TERM[expand]TLS}} (TLS) can be used to provide integrity and
-confidentiality protection.  OpenLDAP supports both StartTLS and
-{{F:ldaps://}}.  See the {{SECT:Using TLS}} chapter for more
-information.
+{{TERM[expand]TLS}} (TLS) can be used to provide data integrity and
+confidentiality protection.  OpenLDAP supports negotiation of
+{{TERM:TLS}} ({{TERM:SSL}}) via both StartTLS and {{F:ldaps://}}.
+See the {{SECT:Using TLS}} chapter for more information.  StartTLS
+is the standard track mechanism.
 
 A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as DIGEST-MD5
-and {{TERM:GSSAPI}}, also provide integrity and confidentiality
+and {{TERM:GSSAPI}}, also provide data integrity and confidentiality
 protection.  See the {{SECT:Using SASL}} chapter for more information.
 
 
@@ -124,41 +122,42 @@ to the "simple" bind operation.  Unauthenticated access is obtained
 by providing a name but no password.  Authenticated access is obtain
 by providing a valid name and password.
 
-An anonymous bind results in an {{anonymous}} authorization.
-Anonymous bind mechanism is enabled by default, but can be disabled
-by specifying "{{EX:disallow bind_anon}}" in {{slapd.conf}}(5).
+An anonymous bind results in an {{anonymous}} authorization
+association.  Anonymous bind mechanism is enabled by default, but
+can be disabled by specifying "{{EX:disallow bind_anon}}" in
+{{slapd.conf}}(5).
 
-An unauthenticated bind results in an {{anonymous}} authorization.
-Unauthenticated bind mechanism is disabled by default, but can be
-enabled by specifying "{{EX:allow bind_anon_cred}}" in {{slapd.conf}}(5).
-As a number of LDAP applications mistakenly generate unauthenticated
-bind request when authenticated access was intended (that is, they
-do not ensure a password was provided), this mechanism should
-generally not be enabled.
+An unauthenticated bind also results in an {{anonymous}} authorization
+association.  Unauthenticated bind mechanism is disabled by default,
+but can be enabled by specifying "{{EX:allow bind_anon_cred}}" in
+{{slapd.conf}}(5).  As a number of LDAP applications mistakenly
+generate unauthenticated bind request when authenticated access was
+intended (that is, they do not ensure a password was provided),
+this mechanism should generally remain disabled.
 
 A successful user/password authenticated bind results in a user
 authorization identity, the provided name, being associated with
 the session.  User/password authenticated bind is enabled by default.
-However, as this mechanism offers no evesdropping protection (e.g.,
-the password is set in the clear), it is recommended that it be
-used only in tightly controlled systems or when the LDAP session
-is protected by other means (e.g., TLS, {{TERM:IPSEC}}).  Where the
-administrator relies on TLS to protect the password, it is recommended
-that unprotected authentication be disabled.  This is done by setting
-"{{EX:disallow bind_simple_unprotected}}" in {{slapd.conf}}(5).
-The {{EX:security}} directive's {{EX:simple_bind}} option provides
-fine grain control over the level of confidential protection to
-require for {{simple}} user/password authentication.
+However, as this mechanism itself offers no evesdropping protection
+(e.g., the password is set in the clear), it is recommended that
+it be used only in tightly controlled systems or when the LDAP
+session is protected by other means (e.g., TLS, {{TERM:IPSEC}}).
+Where the administrator relies on TLS to protect the password, it
+is recommended that unprotected authentication be disabled.  This
+is done by setting "{{EX:disallow bind_simple_unprotected}}" in
+{{slapd.conf}}(5).  The {{EX:security}} directive's {{EX:simple_bind}}
+option provides fine grain control over the level of confidential
+protection to require for {{simple}} user/password authentication.
 
 The user/password authenticated bind mechanism can be completely
 disabled by setting "{{EX:disallow bind_simple}}".
 
 Note:  An unsuccessful bind always results in the session having
-an {{anonymous}} authorization state.
+an {{anonymous}} authorization association.
 
 
 H3: SASL method
 
-The LDAP SASL method allows use of any SASL authentication
+The LDAP {{TERM:SASL}} method allows use of any SASL authentication
 mechanism.  The {{SECT:Using SASL}} discusses use of SASL.
 
