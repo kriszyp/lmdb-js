@@ -38,6 +38,7 @@ void ch_free LDAP_P(( void *p ));
 /* fm.c */
 void *fm	LDAP_P((void *arg));
 RETSIGTYPE do_nothing	LDAP_P((int i));
+RETSIGTYPE slurp_set_shutdown LDAP_P((int));
 
 /* globals.c */
 extern struct globals *sglob;

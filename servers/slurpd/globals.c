@@ -39,7 +39,6 @@ int ldap_syslog_level = 0;
 #endif
 int ldap_debug = 0;
 
-
 /*
  * Initialize the globals
  */
@@ -53,12 +52,17 @@ init_globals( void )
 	return NULL;
     }
 
+#ifdef HAVE_NT_SERVICE_MANAGER
+    g->slapd_configfile = ".\\slapd.conf";
+    g->slurpd_rdir = ".\\replica";
+#else
     g->slapd_configfile = SLAPD_DEFAULT_CONFIGFILE;
+    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR "/replica";
+#endif
     g->no_work_interval = DEFAULT_NO_WORK_INTERVAL;
     g->slurpd_shutdown = 0;
     g->num_replicas = 0;
     g->replicas = NULL;
-    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR "/replica";
     strcpy( g->slurpd_status_file, DEFAULT_SLURPD_STATUS_FILE );
     g->slapd_replogfile[ 0 ] = '\0';
     g->slurpd_replogfile[ 0 ] = '\0';
@@ -66,6 +70,7 @@ init_globals( void )
     g->one_shot_mode = 0;
     g->no_detach = 0;
     g->myname = NULL;
+    g->serverName = NULL;
     g->srpos = 0L;
     if ( St_init( &(g->st)) < 0 ) {
 	fprintf( stderr, "Cannot initialize status data\n" );

@@ -53,6 +53,8 @@ typedef struct globals {
     int no_detach;
     /* Name of program */
     char *myname;
+    /* NT service name */
+    char *serverName;
     /* Current offset into slurpd replica logfile */
     off_t srpos;
     /* mutex to serialize access to reject file */

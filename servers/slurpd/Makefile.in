@@ -10,12 +10,17 @@ XPROGRAMS = sslurpd
 
 XSRCS	= version.c
 
+NT_SRCS	= nt_svc.c
+NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
+
 SRCS	=	admin.c args.c ch_malloc.c config.c \
 		fm.c globals.c ldap_op.c lock.c main.c re.c \
-		reject.c replica.c replog.c ri.c rq.c sanity.c st.c
+		reject.c replica.c replog.c ri.c rq.c sanity.c st.c \
+		$(@PLAT@_SRCS)
 OBJS	=	admin.o args.o ch_malloc.o config.o \
 		fm.o globals.o ldap_op.o lock.o main.o re.o \
-		reject.o replica.o replog.o ri.o rq.o sanity.o st.o
+		reject.o replica.o replog.o ri.o rq.o sanity.o st.o \
+		$(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

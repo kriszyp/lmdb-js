@@ -36,7 +36,6 @@
  */
 static char *get_record LDAP_P(( FILE * ));
 static void populate_queue LDAP_P(( char *f ));
-static RETSIGTYPE set_shutdown LDAP_P((int));
 
 
 /*
@@ -60,11 +59,14 @@ fm(
 	 * LDAP_SIGUSR2 - causes a shutdown
      */
     (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
-    (void) SIGNAL( LDAP_SIGUSR2, set_shutdown );
-    (void) SIGNAL( SIGTERM, set_shutdown );
-    (void) SIGNAL( SIGINT, set_shutdown );
+    (void) SIGNAL( LDAP_SIGUSR2, slurp_set_shutdown );
+    (void) SIGNAL( SIGTERM, slurp_set_shutdown );
+    (void) SIGNAL( SIGINT, slurp_set_shutdown );
 #ifdef SIGHUP
-    (void) SIGNAL( SIGHUP, set_shutdown );
+    (void) SIGNAL( SIGHUP, slurp_set_shutdown );
+#endif
+#ifdef SIGBREAK
+    (void) SIGNAL( SIGBREAK, slurp_set_shutdown );
 #endif
 
     if ( sglob->one_shot_mode ) {
@@ -155,10 +157,14 @@ fm(
 /*
  * Set a global flag which signals that we're shutting down.
  */
-static RETSIGTYPE
-set_shutdown(int sig)
+RETSIGTYPE
+slurp_set_shutdown(int sig)
 {
     int	i;
+
+#if HAVE_NT_SERVICE_MANAGER && SIGBREAK
+    if (sig == SIGBREAK) return do_nothing( sig );
+#endif
 
     sglob->slurpd_shutdown = 1;				/* set flag */
     ldap_pvt_thread_kill( sglob->fm_tid, LDAP_SIGUSR1 );	/* wake up file mgr */
@@ -168,7 +174,7 @@ set_shutdown(int sig)
 	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
     }
     sglob->rq->rq_unlock( sglob->rq );			/* unlock queue */
-    (void) SIGNAL_REINSTALL( sig, set_shutdown );	/* reinstall handlers */
+    (void) SIGNAL_REINSTALL( sig, slurp_set_shutdown );	/* reinstall handlers */
 }
 
 
