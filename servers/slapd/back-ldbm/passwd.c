@@ -143,7 +143,10 @@ ldbm_back_exop_passwd(
 		vals[1].bv_val = NULL;
 
 		ml.sml_desc = slap_schema.si_ad_userPassword;
-		ml.sml_bvalues = vals;
+		ml.sml_values = vals;
+#ifdef SLAP_NVALUES
+		ml.sml_nvalues = vals;
+#endif
 		ml.sml_op = LDAP_MOD_REPLACE;
 		ml.sml_next = NULL;
 

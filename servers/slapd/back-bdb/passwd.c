@@ -216,7 +216,7 @@ retry:	/* transaction retry */
 
 		ml.sml_desc = slap_schema.si_ad_userPassword;
 		ml.sml_values = vals;
-#ifdef SLAP_VALUES
+#ifdef SLAP_NVALUES
 		ml.sml_nvalues = vals;
 #endif
 		ml.sml_op = LDAP_MOD_REPLACE;
