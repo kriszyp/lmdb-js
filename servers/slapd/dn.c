@@ -13,12 +13,13 @@
 
 #define B4LEADTYPE		0
 #define B4TYPE			1
-#define INTYPE			2
-#define B4EQUAL			3
-#define B4VALUE			4
-#define INVALUE			5
-#define INQUOTEDVALUE	6
-#define B4SEPARATOR		7
+#define INOIDTYPE		2
+#define INKEYTYPE		3
+#define B4EQUAL			4
+#define B4VALUE			5
+#define INVALUE			6
+#define INQUOTEDVALUE	7
+#define B4SEPARATOR		8
 
 /*
  * dn_normalize - put dn into a canonical format.  the dn is
@@ -37,21 +38,47 @@ dn_normalize( char *dn )
 		switch ( state ) {
 		case B4LEADTYPE:
 		case B4TYPE:
-			if ( ! SPACE( *s ) ) {
-				state = INTYPE;
+			if ( LEADOIDCHAR(*s) ) {
+				state = INOIDTYPE;
+				*d++ = *s;
+			} else if ( LEADKEYCHAR(*s) ) {
+				state = INKEYTYPE;
+				*d++ = *s;
+			} else if ( ! SPACE( *s ) ) {
+				dn = NULL;
+				state = INKEYTYPE;
 				*d++ = *s;
 			}
 			break;
-		case INTYPE:
-			if ( *s == '=' ) {
+
+		case INOIDTYPE:
+			if ( OIDCHAR(*s) ) {
+				*d++ = *s;
+			} else if ( *s == '=' ) {
 				state = B4VALUE;
 				*d++ = *s;
 			} else if ( SPACE( *s ) ) {
 				state = B4EQUAL;
 			} else {
+				dn = NULL;
 				*d++ = *s;
 			}
 			break;
+
+		case INKEYTYPE:
+			if ( KEYCHAR(*s) ) {
+				*d++ = *s;
+			} else if ( *s == '=' ) {
+				state = B4VALUE;
+				*d++ = *s;
+			} else if ( SPACE( *s ) ) {
+				state = B4EQUAL;
+			} else {
+				dn = NULL;
+				*d++ = *s;
+			}
+			break;
+
 		case B4EQUAL:
 			if ( *s == '=' ) {
 				state = B4VALUE;
@@ -62,6 +89,7 @@ dn_normalize( char *dn )
 				dn = NULL;
 			}
 			break;
+
 		case B4VALUE:
 			if ( *s == '"' ) {
 				state = INQUOTEDVALUE;
@@ -71,6 +99,7 @@ dn_normalize( char *dn )
 				*d++ = *s;
 			}
 			break;
+
 		case INVALUE:
 			if ( !gotesc && SEPARATOR( *s ) ) {
 				while ( SPACE( *(d - 1) ) )
@@ -89,6 +118,7 @@ dn_normalize( char *dn )
 				*d++ = *s;
 			}
 			break;
+
 		case INQUOTEDVALUE:
 			if ( !gotesc && *s == '"' ) {
 				state = B4SEPARATOR;

@@ -56,9 +56,25 @@ LDAP_BEGIN_DECL
 
 #define MAXREMATCHES 10
 
+/* XXYYZ: these macros assume 'x' is an ASCII x */
 #define DNSEPARATOR(c)	((c) == ',' || (c) == ';')
 #define SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
 #define SPACE(c)	((c) == ' ' || (c) == '\n')
+
+#define ASCII_LOWER(c)	( (c) >= 'a' && (c) <= 'z' )
+#define ASCII_UPPER(c)	( (c) >= 'A' && (c) <= 'Z' )
+#define ASCII_ALPHA(c)	( ASCII_LOWER(c) || ASCII_UPPER(c) )
+#define ASCII_DIGIT(c)	( (c) >= '0' && (c) <= '9' )
+#define ASCII_ALNUM(c)	( ASCII_ALPHA(c) || ASCII_DIGIT(c) )
+
+#define LEADKEYCHAR(c)	( ASCII_ALPHA(c) )
+#define KEYCHAR(c)	( ASCII_ALNUM(c) || (c) == '-' )
+#define LEADOIDCHAR(c)	( ASCII_DIGIT(c) )
+#define OIDCHAR(c)	( ASCII_DIGIT(c) || (c) == '.' )
+
+#define LEADATTRCHAR(c)	( LEADKEYCHAR(c) || LEADOIDCHAR(c) )
+#define ATTRCHAR(c)	( KEYCHAR((c)) || (c) == '.' )
+
 #define NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
 #define SLAP_SCHERR_OUTOFMEM		1

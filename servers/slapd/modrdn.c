@@ -194,7 +194,7 @@ do_modrdn(
 	if( newSuperior != NULL ) {
 		newSuperior_be = select_backend( nnewSuperior );
 
-		if ( newSuperior != be ) {
+		if ( newSuperior_be != be ) {
 			/* newSuperior is in same backend */
 			rc = LDAP_AFFECTS_MULTIPLE_DSAS;
 
