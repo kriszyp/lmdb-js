@@ -1,7 +1,12 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.26 Engineering
+	Fixed slapd ACL buffer size bug (ITS#1963)
+	Fixed slapd ACL filters w/substrings bug (ITS#2023, ITS#2027)
+	Fixed slurpd reject file handling bugs (ITS#2007, ITS#2009)
 	Fixed back-ldbm indirect IDL bug (ITS#2039)
+	Fixed libldap buffer size bugs (ITS#1935, ITS#1936)
+	Fixed libldap gethostbyname mutex init bug (ITS#2019)
 
 OpenLDAP 2.0.25 Release
 	Fixed slapd extended op reqdata crash bug (ITS#1721)
