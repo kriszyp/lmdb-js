@@ -48,9 +48,6 @@ static int dn_callback( struct slap_op *, struct slap_rep * );
 static int nonpresent_callback( struct slap_op *, struct slap_rep * );
 static int null_callback( struct slap_op *, struct slap_rep * );
 
-static int si_refreshDelete = 0;
-static int si_refreshPresent = 0;
-
 static AttributeDescription *sync_descs[4];
 
 struct runqueue_s syncrepl_rq;
@@ -724,7 +721,7 @@ do_syncrep2(
 							"do_syncrep2: %s - %s%s\n", 
 							"LDAP_RES_INTERMEDIATE", 
 							"REFRESH_DELETE\n", "\n" );
-						si_refreshDelete = 1;
+						si->si_refreshDelete = 1;
 					case LDAP_TAG_SYNC_REFRESH_PRESENT:
 						Debug( LDAP_DEBUG_SYNC,
 							"do_syncrep2: %s - %s%s\n", 
@@ -732,8 +729,8 @@ do_syncrep2(
 							si_tag == LDAP_TAG_SYNC_REFRESH_PRESENT ?
 							"REFRESH_PRESENT" : "REFRESH_DELETE",
 							"\n" );
-						si_refreshDelete = 1;
-						si_refreshPresent = 1;
+						si->si_refreshDelete = 1;
+						si->si_refreshPresent = 1;
 						ber_scanf( ber, "t{" /*"}"*/, &tag );
 						if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE )
 						{
@@ -824,7 +821,7 @@ do_syncrep2(
 						syncrepl_updateCookie( si, op, psub, &syncCookie);
 					}
 
-					if ( si_refreshPresent == 1 ) {
+					if ( si->si_refreshPresent == 1 ) {
 						if ( match < 0 ) {
 							syncrepl_del_nonpresent( op, si );
 						}
@@ -942,8 +939,8 @@ do_syncrepl(
 	/* Establish session, do search */
 	if ( !si->si_ld ) {
 		first = 1;
-		si_refreshDelete = 0;
-		si_refreshPresent = 0;
+		si->si_refreshDelete = 0;
+		si->si_refreshPresent = 0;
 		rc = do_syncrep1( &op, si );
 	}
 
@@ -1223,7 +1220,7 @@ syncrepl_entry(
 	}
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD )) {
-		if ( !si_refreshPresent ) {
+		if ( !si->si_refreshPresent ) {
 			syncuuid_bv = ber_dupbv( NULL, syncUUID );
 			avl_insert( &si->si_presentlist, (caddr_t) syncuuid_bv,
 				syncuuid_cmp, avl_dup_error );
