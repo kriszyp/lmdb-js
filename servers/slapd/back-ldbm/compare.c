@@ -26,7 +26,7 @@ ldbm_back_compare(
 	char		*matched;
 	Entry		*e;
 	Attribute	*a;
-	int		i, rc;
+	int		rc;
 
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {

@@ -55,13 +55,11 @@ idl_fetch_one(
     Datum		key
 )
 {
-	Datum	data, k2;
+	Datum	data;
 	IDList	*idl;
-	IDList	**tmp;
-	char	*kstr;
-	int	i, nids;
 
 #ifdef HAVE_BERKELEY_DB2
+	datum	k2;
 	memset( &k2, 0, sizeof( k2 ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -131,7 +129,7 @@ idl_fetch(
 	kstr = (char *) ch_malloc( key.dsize + 20 );
 	nids = 0;
 	for ( i = 0; idl->b_ids[i] != NOID; i++ ) {
-		sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr, idl->b_ids[i] );
+		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, idl->b_ids[i] );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
 
@@ -212,7 +210,7 @@ idl_split_block(
     IDList	**n2
 )
 {
-	int	i;
+	unsigned int	i;
 
 	/* find where to split the block */
 	for ( i = 0; i < b->b_nids && id > b->b_ids[i]; i++ )
@@ -272,7 +270,7 @@ idl_change_first(
 	}
 
 	/* write block with new key */
-	sprintf( bkey.dptr, "%c%s%d", CONT_PREFIX, hkey.dptr, b->b_ids[0] );
+	sprintf( bkey.dptr, "%c%s%ld", CONT_PREFIX, hkey.dptr, b->b_ids[0] );
 	bkey.dsize = strlen( bkey.dptr ) + 1;
 	if ( (rc = idl_store( be, db, bkey, b )) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -361,14 +359,14 @@ idl_insert_key(
 
 			/* store the first id block */
 			kstr = (char *) ch_malloc( key.dsize + 20 );
-			sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr,
+			sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
 			    tmp->b_ids[0] );
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
 			rc = idl_store( be, db, k2, tmp );
 
 			/* store the second id block */
-			sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr,
+			sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
 			    tmp2->b_ids[0] );
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
@@ -404,7 +402,7 @@ idl_insert_key(
 
 	/* get the block */
 	kstr = (char *) ch_malloc( key.dsize + 20 );
-	sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr, idl->b_ids[i] );
+	sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, idl->b_ids[i] );
 	k2.dptr = kstr;
 	k2.dsize = strlen( kstr ) + 1;
 	if ( (tmp = idl_fetch_one( be, db, k2 )) == NULL ) {
@@ -446,7 +444,7 @@ idl_insert_key(
 		/* is there a next block? */
 		if ( !first && idl->b_ids[i + 1] != NOID ) {
 			/* read it in */
-			sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr,
+			sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
 			    idl->b_ids[i + 1] );
 			k2.dptr = kstr;
 			k2.dsize = strlen( kstr ) + 1;
@@ -505,7 +503,7 @@ idl_insert_key(
 
 			/* delete all indirect blocks */
 			for ( j = 0; idl->b_ids[j] != NOID; j++ ) {
-				sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr,
+				sprintf( kstr,"%c%s%ld", CONT_PREFIX, key.dptr,
 				    idl->b_ids[j] );
 				k2.dptr = kstr;
 				k2.dsize = strlen( kstr ) + 1;
@@ -544,14 +542,14 @@ idl_insert_key(
 		rc = idl_store( be, db, key, tmp );
 
 		/* store the first id block */
-		sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr,
+		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
 		    tmp2->b_ids[0] );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
 		rc = idl_store( be, db, k2, tmp2 );
 
 		/* store the second id block */
-		sprintf( kstr, "%c%s%d", CONT_PREFIX, key.dptr,
+		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr,
 		    tmp3->b_ids[0] );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;
@@ -579,7 +577,7 @@ idl_insert_key(
 int
 idl_insert( IDList **idl, ID id, int maxids )
 {
-	int	i, j;
+	unsigned int	i, j;
 
 	if ( ALLIDS( *idl ) ) {
 		return( 2 );	/* already there */
@@ -653,8 +651,8 @@ idl_intersection(
     IDList	*b
 )
 {
-	int	ai, bi, ni;
-	IDList	*n;
+	unsigned int	ai, bi, ni;
+	IDList		*n;
 
 	if ( a == NULL || b == NULL ) {
 		return( NULL );
@@ -701,8 +699,8 @@ idl_union(
     IDList	*b
 )
 {
-	int	ai, bi, ni;
-	IDList	*n;
+	unsigned int	ai, bi, ni;
+	IDList		*n;
 
 	if ( a == NULL ) {
 		return( idl_dup( b ) );
@@ -755,8 +753,8 @@ idl_notin(
     IDList 	*b
 )
 {
-	int	ni, ai, bi;
-	IDList	*n;
+	unsigned int	ni, ai, bi;
+	IDList		*n;
 
 	if ( a == NULL ) {
 		return( NULL );
@@ -834,7 +832,7 @@ idl_firstid( IDList *idl )
 ID
 idl_nextid( IDList *idl, ID id )
 {
-	int	i;
+	unsigned int	i;
 
 	if ( ALLIDS( idl ) ) {
 		return( ++id < idl->b_nids ? id : NOID );

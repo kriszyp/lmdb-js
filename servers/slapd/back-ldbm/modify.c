@@ -30,7 +30,7 @@ ldbm_back_modify(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*matched = NULL;
 	Entry		*e;
-	int		i, err, modtype;
+	int		i, err;
 	LDAPMod		*mod;
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);

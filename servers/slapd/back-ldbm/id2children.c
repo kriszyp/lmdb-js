@@ -21,12 +21,13 @@ id2children_add(
 )
 {
 	struct dbcache	*db;
-	Datum		key, data;
+	Datum		key;
 	int		len, rc;
 	IDList		*idl;
 	char		buf[20];
 
 #ifdef HAVE_BERKELEY_DB2
+	Datum		data;
 	memset( &key, 0, sizeof( key ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -42,7 +43,7 @@ id2children_add(
 		return( -1 );
 	}
 
-	sprintf( buf, "%c%d", EQ_PREFIX, p ? p->e_id : 0 );
+	sprintf( buf, "%c%ld", EQ_PREFIX, p ? p->e_id : 0 );
 	key.dptr = buf;
 	key.dsize = strlen( buf ) + 1;
 
@@ -85,7 +86,7 @@ has_children(
 		return( 0 );
 	}
 
-	sprintf( buf, "%c%d", EQ_PREFIX, p->e_id );
+	sprintf( buf, "%c%ld", EQ_PREFIX, p->e_id );
 	key.dptr = buf;
 	key.dsize = strlen( buf ) + 1;
 

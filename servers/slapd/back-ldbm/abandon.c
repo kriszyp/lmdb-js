@@ -2,6 +2,7 @@
 
 #include "portable.h"
 
+int
 ldbm_back_abandon()
 {
 }

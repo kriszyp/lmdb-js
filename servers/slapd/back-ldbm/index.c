@@ -137,7 +137,7 @@ index_read(
 	realval = val;
 	tmpval = NULL;
 	if ( prefix != '\0' ) {
-              int     len = strlen( val );
+              unsigned int	len = strlen( val );
 
               if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
@@ -193,7 +193,7 @@ add_value(
 	tmpval = NULL;
 	idl = NULL;
 	if ( prefix != '\0' ) {
-              int     len = strlen( val );
+              unsigned int     len = strlen( val );
 
               if ( (len + 2) < sizeof(buf) ) {
 			realval = buf;
