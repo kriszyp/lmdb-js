@@ -15,66 +15,73 @@ dnl Start Args
 AC_MSG_CHECKING(arguments)
 AC_PREFIX_DEFAULT(/usr/local)
 
-dnl general options
+dnl General "enable" options
 CF_ARG_OPTION(debug,[  --enable-debug	enable debugging (yes)],[
 	LDAP_DEBUG=no],[LDAP_DEBUG=yes],yes)dnl
 CF_ARG_OPTION(libui,[  --enable-libui	enable library user interface (yes)],[
 	LDAP_LIBUI=no],[LDAP_LIBUI=yes],yes)dnl
 CF_ARG_OPTION(cache,[  --enable-cache	enable caching (yes)],[
 	LDAP_CACHE=no],[LDAP_CACHE=yes],yes)dnl
-CF_ARG_OPTION(rlookups,[  --enable-rlookups	enable reverse lookups (yes)],[
-	LDAP_RLOOKUP=no],[LDAP_RLOOKUP=yes],yes)dnl
 CF_ARG_OPTION(referrals,[  --enable-referrals	enable referrals (yes)],[
 	LDAP_REFERRALS=no],[LDAP_REFERRALS=yes],yes)dnl
-CF_ARG_OPTION(aclgroup,[  --enable-aclgroup	enable ACL group support (yes)],[
-	LDAP_ACLGROUP=no],[LDAP_ALCGROUP=yes],yes)dnl
 
 CF_ARG_OPTION(cldap,[  --enable-clapd	enable connectionless ldap (no)],[
 	LDAP_CLDAP=yes],[LDAP_CLDAP=no],no)dnl
 CF_ARG_OPTION(phonetic,[  --enable-phonetic	enable phonetic/soundex  (no)],[
 	LDAP_PHONETIC=yes],[LDAP_PHONETIC=no],no)dnl
 
-CF_ARG_OPTION(crypt,[  --enable-crypt	enable crypt(3) passwords (yes)],[
-	LDAP_CRYPT=no],[LDAP_CRYPT=yes],yes)dnl
-CF_ARG_OPTION(md5,[  --enable-md5		enable MD5 passwords (yes)],[
-	LDAP_MD5=no],[LDAP_MD5=yes],yes)dnl
-CF_ARG_OPTION(sha1,[  --enable-sha1		enable SHA1 passwords (yes)],[
-	LDAP_SHA1=no],[LDAP_SHA1=yes],yes)dnl
-
-CF_ARG_OPTION(tcpwrappers,[  --enable-tcpwrappers	enable tcp wrapper support (no)],[
-	LDAP_TCP_WRAPPERS=yes],[LDAP_TCP_WRAPPERS=no],no)dnl
-
-dnl server options
-CF_ARG_OPTION(ldapd,[  --enable-ldapd	enable building ldapd (no)],[
-	BUILD_LDAPD=yes],[BUILD_LDAPD=no],no)dnl
-CF_ARG_OPTION(slapd,[  --enable-slapd	enable building slapd (yes)],[
-	BUILD_SLAPD=no],[BUILD_SLAPD=yes],yes)dnl
-CF_ARG_OPTION(slurpd,[  --enable-slurpd	enable building slurpd (yes)],[
-	BUILD_SLURPD=no],[BUILD_SLURPD=yes],yes)dnl
-
-dnl Backend options
-CF_ARG_OPTION(ldbm,[  --enable-ldbm		enable ldbm backend (yes)],[
-	BUILD_LDBM=no],[BUILD_LDBM=yes],yes)dnl
-CF_ARG_OPTION(passwd,[  --enable-passwd	enable passwd backend (yes)],[
-	BUILD_PASSWD=no],[BUILD_PASSWD=yes],yes)dnl
-CF_ARG_OPTION(shell,[  --enable-shell	enable shell backend (yes)],[
-	BUILD_SHELL=no],[BUILD_SHELL=yes],yes)dnl
-
-AC_ARG_WITH(ndbm,[  --with-ndbm		use NDB for LDBM backend (any)],[
-	opt_ndbm=yes],[opt_ndbm=no])
-AC_ARG_WITH(gdbm,[  --with-gdbm		use GDBM for LDBM backend (any)],[
-	opt_gdbm=yes],[opt_gdbm=no])
-AC_ARG_WITH(dbhash,[  --with-dbhash		use Berkeley DB Hash for LDBM backend (any)],[
-	opt_dbhash=yes],[opt_dbhash=no])
-AC_ARG_WITH(dbbtree,[  --with-dbbtree	use Berkeley DB Btrees for LDBM backend (any)],[
-	opt_dbbtree=yes],[opt_dbbtree=no])
-
+dnl General "with" options
 AC_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos (no)],[
 	opt_kerberos=yes],[opt_kerberos=no])
 AC_ARG_WITH(kerberos-afs,[  --with-kerberos-afs	use AFS Kerberos (no)],[
 	opt_kerberos_afs=yes],[opt_kerberos_afs=no])
 AC_ARG_WITH(threads,[  --with-threads	use threads (yes)],[
 	opt_threads=yes],[opt_threads=no])
+
+dnl Server options
+
+dnl LDAPD OPTIONS
+CF_ARG_OPTION(ldapd,[  --enable-ldapd	enable building ldapd (no)],[
+	BUILD_LDAPD=yes],[BUILD_LDAPD=no],no)dnl
+
+dnl SLAPD OPTIONS
+CF_ARG_OPTION(slapd,[  --enable-slapd	enable building slapd (yes)],[
+	BUILD_SLAPD=no],[BUILD_SLAPD=yes],yes)dnl
+CF_ARG_OPTION(aclgroup,[    --enable-aclgroup	enable ACL group support (yes)],[
+	SLAPD_ACLGROUP=no],[SLAPD_ALCGROUP=yes],yes)dnl
+CF_ARG_OPTION(crypt,[    --enable-crypt	enable crypt(3) passwords (yes)],[
+	SLAPD_CRYPT=no],[SLAPD_CRYPT=yes],yes)dnl
+CF_ARG_OPTION(md5,[    --enable-md5	enable MD5 passwords (yes)],[
+	SLAPD_MD5=no],[SLAPD_MD5=yes],yes)dnl
+CF_ARG_OPTION(sha1,[    --enable-sha1	enable SHA1 passwords (yes)],[
+	SLAPD_SHA1=no],[SLAPD_SHA1=yes],yes)dnl
+CF_ARG_OPTION(wrappers,[    --enable-wrappers	enable tcp wrapper support (no)],[
+	SLAPD_TCP_WRAPPERS=yes],[LDAP_TCP_WRAPPERS=no],no)dnl
+CF_ARG_OPTION(rlookups,[    --enable-rlookups	enable reverse lookups (yes)],[
+	LDAP_RLOOKUP=no],[LDAP_RLOOKUP=yes],yes)dnl
+
+dnl SLAPD Backend options
+CF_ARG_OPTION(ldbm,[    --enable-ldbm	enable ldbm backend (yes)],[
+	SLAPD_LDBM=no],[SLAPD_LDBM=yes],yes)dnl
+CF_ARG_OPTION(passwd,[    --enable-passwd	enable passwd backend (yes)],[
+	SLAPD_PASSWD=no],[SLAPD_PASSWD=yes],yes)dnl
+CF_ARG_OPTION(shell,[    --enable-shell	enable shell backend (yes)],[
+	SLAPD_SHELL=no],[SLAPD_SHELL=yes],yes)dnl
+
+AC_ARG_WITH(ndbm,[    --with-ndbm		use NDB for LDBM backend (any)],[
+	opt_ndbm=yes],[opt_ndbm=no])
+AC_ARG_WITH(gdbm,[    --with-gdbm		use GDBM for LDBM backend (any)],[
+	opt_gdbm=yes],[opt_gdbm=no])
+AC_ARG_WITH(dbhash,[    --with-dbhash	use Berkeley DB Hash for LDBM backend (any)],[
+	opt_dbhash=yes],[opt_dbhash=no])
+AC_ARG_WITH(dbbtree,[    --with-dbbtree	use Berkeley DB Btrees for LDBM backend (any)],[
+	opt_dbbtree=yes],[opt_dbbtree=no])
+AC_ARG_WITH(db2,[    --with-db2		use Berkeley DB2 API (any)],[
+	opt_db2=yes],[opt_db2=no])
+
+dnl SLURPD OPTIONS
+CF_ARG_OPTION(slurpd,[  --enable-slurpd	enable building slurpd (yes)],[
+	BUILD_SLURPD=no],[BUILD_SLURPD=yes],yes)dnl
 
 AC_MSG_RESULT(done)
 
@@ -97,9 +104,9 @@ AC_MSG_RESULT($ldbm_prefer)
 
 if test "$BUILD_SLAPD" != "yes" ; then
 	BUILD_SLURPD="no"
-	BUILD_LDBM="no"
-	BUILD_PASSWD="no"
-	BUILD_SHELL="no"
+	SLAPD_LDBM="no"
+	SLAPD_PASSWD="no"
+	SLAPD_SHELL="no"
 	ldbm_prefer="none"
 fi
 
@@ -107,25 +114,26 @@ AC_SUBST(BUILD_LDAPD)
 AC_SUBST(BUILD_SLAPD)
 AC_SUBST(BUILD_SLURPD)
 
-AC_SUBST(BUILD_LDBM)
-AC_SUBST(BUILD_PASSWD)
-AC_SUBST(BUILD_SHELL)
+AC_SUBST(SLAPD_LDBM)
+AC_SUBST(SLAPD_PASSWD)
+AC_SUBST(SLAPD_SHELL)
 
+dnl general LDAP arguments
 LDAP_DEFS=
 
 if test "$LDAP_DEBUG" = "yes" ; then
 	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
 fi
 if test "$LDAP_REFERRALS" = "yes" ; then
-	AC_DEFINE(LDAP_REFERRALS)
-dnl	LDAP_DEFS="$LDAP_DEFS -DLDAP_REFERRALS"
+dnl	AC_DEFINE(LDAP_REFERRALS,1)
+	LDAP_DEFS="$LDAP_DEFS -DLDAP_REFERRALS"
 fi
 if test "$LDAP_CACHE" = "no" ; then
 	AC_DEFINE(LDAP_NOCACHE,1)
 	LDAP_DEFS="$LDAP_DEFS -DNO_CACHE"
 fi
 if test "$LDAP_CLDAP" = "yes" ; then
-	AC_DEFINE(LDAP_CONN_LESS,1)
+	AC_DEFINE(LDAP_CONNECTIONLESS,1)
 	LDAP_DEFS="$LDAP_DEFS -DCLDAP"
 fi
 if test "$LDAP_PHONETIC" = "yes" ; then
@@ -133,18 +141,27 @@ if test "$LDAP_PHONETIC" = "yes" ; then
 	LDAP_DEFS="$LDAP_DEFS -DSOUNDEX"
 fi
 
-if test "$BUILD_LDBM" = "yes" ; then
-	AC_DEFINE(LDAP_LDBM,1)
-dnl	LDAP_DEFS="$LDAP_DEFS -DLDAP_LDBM"
+dnl ldapd arguments
+LDAPD_DEFS=
+
+dnl slapd arguments
+SLAPD_DEFS=
+
+if test "$SLAPD_LDBM" = "yes" ; then
+	AC_DEFINE(SLAPD_LDBM,1)
+dnl	SLAPD_DEFS="$SLAPD_DEFS -DSLAPD_LDBM"
 fi
-if test "$BUILD_PASSWD" = "yes" ; then
-	AC_DEFINE(LDAP_PASSWD,1)
-dnl	LDAP_DEFS="$LDAP_DEFS -DLDAP_PASSWD"
+if test "$SLAPD_PASSWD" = "yes" ; then
+	AC_DEFINE(SLAPD_PASSWD,1)
+dnl	SLAPD_DEFS="$SLAPD_DEFS -DSLAPD_PASSWD"
 fi
-if test "$BUILD_SHELL" = "yes" ; then
-	AC_DEFINE(LDAP_SHELL,1)
-dnl	LDAP_DEFS="$LDAP_DEFS -DLDAP_SHELL"
+if test "$SLAPD_SHELL" = "yes" ; then
+	AC_DEFINE(SLAPD_SHELL,1)
+dnl	SLAPD_DEFS="$SLAPD_DEFS -DSLAPD_SHELL"
 fi
+
+dnl slurpd arguments
+SLURPD_DEFS=
 
 dnl End Args
 
