@@ -9,8 +9,8 @@ OpenLDAP Devel README
 	The OpenLDAP Developer's FAQ is available at:
 		http://www.openldap.org/faq/index.cgi?file=4
 
-	Client developers seeking a stable development platform
-	should use OpenLDAP-release or OpenLDAP-software.
+	Client developers seeking a suitable development platform
+	should use "release" or "stable" versions.
 		http://www.openldap.org/software/
 
 ---
