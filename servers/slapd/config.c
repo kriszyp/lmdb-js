@@ -16,7 +16,7 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-#define MAXARGS	200
+#define MAXARGS	500
 
 /*
  * defaults for various global variables
@@ -1326,7 +1326,9 @@ fp_getline( FILE *fp, int *lineno )
 	}
 
 	while ( fgets( buf, sizeof(buf), fp ) != NULL ) {
+		/* trim off \r\n or \n */
 		if ( (p = strchr( buf, '\n' )) != NULL ) {
+			if( p > buf && p[-1] == '\r' ) --p;
 			*p = '\0';
 		}
 		if ( ! isspace( (unsigned char) buf[0] ) ) {
