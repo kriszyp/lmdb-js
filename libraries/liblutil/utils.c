@@ -46,9 +46,9 @@ char* lutil_progname( const char* name, int argc, char *argv[] )
 	return progname;
 }
 
+#if 0
 size_t lutil_gentime( char *s, size_t smax, const struct tm *tm )
 {
-#if 0
 	size_t ret;
 #ifdef HAVE_EBCDIC
 /* We've been compiling in ASCII so far, but we want EBCDIC now since
@@ -62,18 +62,16 @@ size_t lutil_gentime( char *s, size_t smax, const struct tm *tm )
 	__etoa( s );
 #endif
 	return ret;
-#else
-	return lutil_localtime( s, smax, tm, 0 );
-#endif
 }
+#endif
 
 size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
 {
 	size_t	ret;
 	char	*p;
 
-	if ( smax < 20 ) {
-		return -1;
+	if ( smax < 16 ) {	/* YYYYmmddHHMMSSZ */
+		return 0;
 	}
 
 #ifdef HAVE_EBCDIC
@@ -83,12 +81,12 @@ size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
 #pragma convlit(suspend)
 #endif
 	ret = strftime( s, smax, "%Y%m%d%H%M%SZ", tm );
-	if ( ret == 0 ) {
+	if ( delta == 0 || ret == 0 ) {
 		return ret;
 	}
 
-	if ( delta == 0 ) {
-		return ret;
+	if ( smax < 20 ) {	/* YYYYmmddHHMMSS+HHMM */
+		return 0;
 	}
 
 	p = s + 14;

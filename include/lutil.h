@@ -149,8 +149,10 @@ struct tm;
 
 /* use this macro to statically allocate buffer for lutil_gentime */
 #define LDAP_LUTIL_GENTIME_BUFSIZE	22
+#define lutil_gentime(s,m,t)	lutil_localtime((s),(m),(t),0)
 LDAP_LUTIL_F( size_t )
-lutil_gentime LDAP_P(( char *s, size_t max, const struct tm *tm ));
+lutil_localtime LDAP_P(( char *s, size_t smax, const struct tm *tm,
+			long delta ));
 
 #ifndef HAVE_MKSTEMP
 LDAP_LUTIL_F( int )
