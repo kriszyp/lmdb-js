@@ -3,7 +3,17 @@
 #ifndef _AC_TERMIOS_H
 #define _AC_TERMIOS_H
 
-#ifdef HAVE_SGTTY_H
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+
+#define TERMIO_TYPE	struct termios
+#define TERMFLAG_TYPE	tcflag_t
+#define GETATTR( fd, tiop )	tcgetattr((fd), (tiop))
+#define SETATTR( fd, tiop )	tcsetattr((fd), TCSANOW /* 0 */, (tiop))
+#define GETFLAGS( tio )		((tio).c_lflag)
+#define SETFLAGS( tio, flags )	((tio).c_lflag = (flags))
+
+#elif defined( HAVE_SGTTY_H )
 #include <sgtty.h>
 
 #ifdef HAVE_SYS_IOCTL_H
@@ -17,16 +27,6 @@
 #define GETFLAGS( tio )     ((tio).sg_flags)
 #define SETFLAGS( tio, flags )  ((tio).sg_flags = (flags))
 
-#elif HAVE_TERMIOS_H
-#include <termios.h>
-
-#define TERMIO_TYPE	struct termios
-#define TERMFLAG_TYPE	tcflag_t
-#define GETATTR( fd, tiop )	tcgetattr((fd), (tiop))
-#define SETATTR( fd, tiop )	tcsetattr((fd), TCSANOW /* 0 */, (tiop))
-#define GETFLAGS( tio )		((tio).c_lflag)
-#define SETFLAGS( tio, flags )	((tio).c_lflag = (flags))
-
-#endif /* HAVE_TERMIOS_H */
+#endif /* HAVE_SGTTY_H */
 
 #endif /* _AC_TERMIOS_H */
