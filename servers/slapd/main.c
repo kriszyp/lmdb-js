@@ -119,10 +119,8 @@ static int   cnvt_str2int( char *, STRDISP_P, int );
 #endif	/* LOG_LOCAL4 */
 
 #define CHECK_NONE	0x00
-#define	CHECK_CONFIG	0x01
-#define CHECK_DN 	0x02
+#define CHECK_CONFIG	0x01
 static int check = CHECK_NONE;
-static struct berval check_dn = BER_BVC("");
 static int version = 0;
 
 static void
@@ -133,7 +131,7 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
-		"\t-T (a|c|i|p)\tRun in Tool mode\n"
+		"\t-T {acdipt}\tRun in Tool mode\n"
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
@@ -149,8 +147,6 @@ usage( char *name )
 		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
 		"\t-s level\tSyslog level\n"
-		"\t-t\t\tCheck configuration file and exit\n"
-		"\t-D dn\tCheck dn and exit\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\t\tUser (id or name) to run as\n"
 		"\t-V\t\tprint version info (-VV only)\n"
@@ -273,7 +269,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:D:f:h:s:n:tT:V"
+			     "c:d:f:h:s:n:tT:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -377,13 +373,10 @@ int main( int argc, char **argv )
 			break;
 
 		case 't':
+			/* deprecated; use slaptest instead */
+			fprintf( stderr, "option -t deprecated; "
+				"use slaptest command instead\n" );
 			check |= CHECK_CONFIG;
-			break;
-
-		case 'D':
-			check |= CHECK_DN;
-			check_dn.bv_val = optarg;
-			check_dn.bv_len = strlen( optarg );
 			break;
 
 		case 'V':
@@ -584,32 +577,6 @@ int main( int argc, char **argv )
 #endif
 
 		goto destroy;
-	}
-
-	if ( check & CHECK_DN ) {
-		struct berval	pdn, ndn;
-		
-		rc = dnPrettyNormal( NULL, &check_dn,
-					&pdn, &ndn, NULL );
-		if ( rc != LDAP_SUCCESS ) {
-			fprintf( stderr, "DN: <%s> check failed %d (%s)\n",
-					check_dn.bv_val, rc,
-					ldap_err2string( rc ) );
-			rc = 1;
-			
-		} else {
-			fprintf( stderr, "DN: <%s> check succeeded\n"
-					"normalized: <%s>\n"
-					"pretty:     <%s>\n",
-					check_dn.bv_val,
-					ndn.bv_val, pdn.bv_val );
-			rc = 0;
-		}
-
-		check &= ~CHECK_DN;
-		if ( check == CHECK_NONE ) {
-			goto destroy;
-		}
 	}
 
 #ifdef HAVE_TLS
