@@ -1,5 +1,8 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.20 Engineering
+	<insert notes here>
+
 OpenLDAP 2.2.19 Release
 	Fixed slapd check for mandatory filter in authz-regexp URI (ITS#3396)
 	Fixed slapd bad descriptor check (ITS#3400)
