@@ -31,7 +31,7 @@ ldbm_back_add(
 	int			rc; 
 	const char	*text;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *children = NULL;
+	AttributeDescription *children = slap_schema.si_ad_children;
 #else
 	static const char *children = "children";
 #endif
