@@ -50,7 +50,7 @@ init_globals( void )
     g->slurpd_shutdown = 0;
     g->num_replicas = 0;
     g->replicas = NULL;
-    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR;
+    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR "/replica";
     strcpy( g->slurpd_status_file, DEFAULT_SLURPD_STATUS_FILE );
     g->slapd_replogfile[ 0 ] = '\0';
     g->slurpd_replogfile[ 0 ] = '\0';

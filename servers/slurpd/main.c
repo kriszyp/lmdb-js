@@ -70,6 +70,14 @@ main(
 	exit( EXIT_FAILURE );
     }
 
+    /* 
+     * Make sure our directory exists
+     */
+    if ( mkdir(sglob->slurpd_rdir, 0755) == -1 && errno != EEXIST) {
+	perror(sglob->slurpd_rdir);
+	exit( 1 );
+    }
+
     /*
      * Get any saved state information off the disk.
      */
