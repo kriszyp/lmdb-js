@@ -119,7 +119,7 @@ doargs(
 	    rflag++;
 	    break;
 	case 't':	/* dir to use for our copies of replogs */
-	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + strlen("/replica") + 1);
+	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + sizeof("/replica"));
 	    sprintf(g->slurpd_rdir, "%s/replica", optarg);
 	    break;
 	default:
