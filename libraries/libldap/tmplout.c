@@ -265,6 +265,10 @@ do_entry2text(
 		ldap_value_free( vals );
 	    }
 	}
+
+	if( ber != NULL) {
+		ber_free( ber, 0 );
+	}
     } else {
 	for ( rowp = ldap_first_tmplrow( tmpl );
 		NONFATAL_LDAP_ERR( err ) && rowp != NULLTMPLITEM;

@@ -428,7 +428,7 @@ void print_entry(
 {
     char		*a, *dn, *ufn, tmpfname[ 64 ];
     int			i, j, notascii;
-    BerElement		*ber;
+    BerElement		*ber = NULL;
     struct berval	**bvals;
     FILE		*tmpfp;
 
@@ -505,6 +505,10 @@ void print_entry(
 	    ber_bvecfree( bvals );
 	}
     }
+
+	if( ber != NULL ) {
+		ber_free( ber, 0 );
+	}
 }
 
 

@@ -43,15 +43,9 @@ allocated to keep track of its current position.  This pointer should
 be passed to subsequent calls to
 .B ldap_next_attribute()
 and is used used
-to effectively step through the entry's attributes.  This pointer
-is freed by
-.B ldap_next_attribute()
-when there are no more attributes (that
-is, when
-.B ldap_next_attribute()
-returns NULL).  Otherwise, the caller is
-responsible for freeing the BerElement pointed to by \fIberptr\fP when
-it is no longer needed by calling
+to effectively step through the entry's attributes.  The caller is
+solely responsible for freeing the BerElement pointed to by \fIberptr\fP
+when it is no longer needed by calling
 .BR ber_free (3).
 When calling
 .BR ber_free (3)
@@ -69,9 +63,8 @@ for a description of possible error codes.
 .SH NOTES
 The
 .B ldap_first_attribute()
-routine dyanamically allocated memory that may need to
-be freed by the caller via
-.BR ber_free (3).
+routine dyanamically allocated memory that must be freed by the caller via
+.BR ber_free (3).   
 .SH SEE ALSO
 .BR ldap(3),
 .BR ldap_first_entry(3),

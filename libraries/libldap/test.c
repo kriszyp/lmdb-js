@@ -914,14 +914,14 @@ print_ldap_result( LDAP *ld, LDAPMessage *lm, char *s )
 static void
 print_search_entry( LDAP *ld, LDAPMessage *res )
 {
-	BerElement	*ber;
-	char		*a, *dn, *ufn;
-	struct berval	**vals;
-	int		i;
 	LDAPMessage	*e;
 
 	for ( e = ldap_first_entry( ld, res ); e != NULLMSG;
-	    e = ldap_next_entry( ld, e ) ) {
+	    e = ldap_next_entry( ld, e ) )
+	{
+		BerElement	*ber = NULL;
+		char *a, *dn, *ufn;
+
 		if ( e->lm_msgtype == LDAP_RES_SEARCH_RESULT )
 			break;
 
@@ -935,12 +935,16 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 		free( ufn );
 
 		for ( a = ldap_first_attribute( ld, e, &ber ); a != NULL;
-		    a = ldap_next_attribute( ld, e, ber ) ) {
+		    a = ldap_next_attribute( ld, e, ber ) )
+		{
+			struct berval	**vals;
+
 			printf( "\t\tATTR: %s\n", a );
 			if ( (vals = ldap_get_values_len( ld, e, a ))
 			    == NULL ) {
 				printf( "\t\t\t(no values)\n" );
 			} else {
+				int i;
 				for ( i = 0; vals[i] != NULL; i++ ) {
 					int	j, nonascii;
 
@@ -964,6 +968,10 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 				}
 				ber_bvecfree( vals );
 			}
+		}
+
+		if(ber != NULL) {
+			ber_free( ber, 0 );
 		}
 	}
 

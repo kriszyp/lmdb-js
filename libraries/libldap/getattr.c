@@ -29,6 +29,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 
 	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+		*ber = NULL;
 		return( NULL );
 	}
 
@@ -45,6 +46,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 	    == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( *ber, 0 );
+		*ber = NULL;
 		return( NULL );
 	}
 
@@ -64,7 +66,7 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	if ( ber_scanf( ber, "{sx}", ld->ld_attrbuffer, &len ) 
 	    == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		ber_free( ber, 0 );
+		/* ber_free( ber, 0 ); *//* don't free the BerElement */
 		return( NULL );
 	}
 

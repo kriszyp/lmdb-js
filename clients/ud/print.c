@@ -82,7 +82,6 @@ parse_answer( LDAPMessage *s )
 {
 	int idx;
 	char **rdns;
-	BerElement *cookie;
 	register LDAPMessage *ep;
 	register char *ap;
 
@@ -98,6 +97,7 @@ parse_answer( LDAPMessage *s )
 		printf(" Done clearing entry\n");
 #endif
 	for (ep = ldap_first_entry(ld, s); ep != NULL; ep = ldap_next_entry(ld, ep)) {
+		BerElement *cookie = NULL;
 #ifdef DEBUG
 		if (debug & D_PARSE)
 			printf(" Determining DN and name\n");
@@ -125,6 +125,10 @@ parse_answer( LDAPMessage *s )
 				continue;
 			}
 			add_value(&(Entry.attrs[idx]), ep, ap);
+		}
+
+		if( cookie != NULL ) {
+			ber_free( cookie, 0 );
 		}
 	}
 #ifdef DEBUG
