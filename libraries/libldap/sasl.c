@@ -357,7 +357,7 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_sasl_getmech\n", 0, 0, 0 );
 
-	rc = ldap_search_s( ld, NULL, LDAP_SCOPE_BASE,
+	rc = ldap_search_s( ld, "", LDAP_SCOPE_BASE,
 		NULL, attrs, 0, &res );
 
 	if ( rc != LDAP_SUCCESS ) {
