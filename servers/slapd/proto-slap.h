@@ -481,11 +481,6 @@ LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));
  * filterentry.c
  */
 
-/*
- * define to enable dn components match in extended filter matching
- */
-#define SLAP_X_MRA_MATCH_DNATTRS
-
 LDAP_SLAPD_F (int) test_filter LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, Filter *f ));

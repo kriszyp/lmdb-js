@@ -358,13 +358,6 @@ test_mra_vrFilter(
 	for ( i=0; a != NULL; a = a->a_next, i++ ) {
 		struct berval *bv, value;
 
-#ifndef SLAP_X_MRA_MATCH_DNATTRS
-		if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
-			continue;
-		}
-		value = mra->ma_value;
-
-#else /* SLAP_X_MRA_MATCH_DNATTRS */
 		if ( mra->ma_desc ) {
 			if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
 				continue;
@@ -389,7 +382,6 @@ test_mra_vrFilter(
 			}
 
 		}
-#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
 		for ( bv = a->a_vals, j = 0; bv->bv_val != NULL; bv++, j++ ) {
 			int ret;

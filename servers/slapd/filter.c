@@ -742,24 +742,9 @@ filter2bv( Filter *f, struct berval *fstr )
 
 		break;
 
-	case LDAP_FILTER_EXT:
-		filter_escape_value( &f->f_mr_value, &tmp );
-#ifndef SLAP_X_MRA_MATCH_DNATTRS
-		fstr->bv_len = f->f_mr_desc->ad_cname.bv_len +
-			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
-			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
-			tmp.bv_len + ( sizeof("(:=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
-
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
-			f->f_mr_desc->ad_cname.bv_val,
-			f->f_mr_dnattrs ? ":dn" : "",
-			f->f_mr_rule_text.bv_len ? ":" : "",
-			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
-			tmp.bv_val );
-#else /* SLAP_X_MRA_MATCH_DNATTRS */
-		{
+	case LDAP_FILTER_EXT: {
 		struct berval ad;
+		filter_escape_value( &f->f_mr_value, &tmp );
 
 		if ( f->f_mr_desc ) {
 			ad = f->f_mr_desc->ad_cname;
@@ -780,10 +765,8 @@ filter2bv( Filter *f, struct berval *fstr )
 			f->f_mr_rule_text.bv_len ? ":" : "",
 			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
 			tmp.bv_val );
-		}
-#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 		ber_memfree( tmp.bv_val );
-		break;
+		} break;
 
 	case SLAPD_FILTER_COMPUTED:
 		ber_str2bv(
@@ -1308,25 +1291,9 @@ simple_vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 			f->f_desc->ad_cname.bv_val );
 		break;
 
-	case LDAP_FILTER_EXT:
-		filter_escape_value( &f->f_mr_value, &tmp );
-
-#ifndef SLAP_X_MRA_MATCH_DNATTRS
-		fstr->bv_len = f->f_mr_desc->ad_cname.bv_len +
-			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
-			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
-			tmp.bv_len + ( sizeof("(:=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
-
-		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
-			f->f_mr_desc->ad_cname.bv_val,
-			f->f_mr_dnattrs ? ":dn" : "",
-			f->f_mr_rule_text.bv_len ? ":" : "",
-			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
-			tmp.bv_val );
-#else /* SLAP_X_MRA_MATCH_DNATTRS */
-		{
+	case LDAP_FILTER_EXT: {
 		struct berval ad;
+		filter_escape_value( &f->f_mr_value, &tmp );
 
 		if ( f->f_mr_desc ) {
 			ad = f->f_mr_desc->ad_cname;
@@ -1347,11 +1314,9 @@ simple_vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr )
 			f->f_mr_rule_text.bv_len ? ":" : "",
 			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
 			tmp.bv_val );
-		}
-#endif /* SLAP_X_MRA_MATCH_DNATTRS */
 
 		ber_memfree( tmp.bv_val );
-		break;
+		} break;
 
 	case SLAPD_FILTER_COMPUTED:
 		ber_str2bv(
