@@ -626,18 +626,23 @@ main( int argc, char **argv )
 	}
 
 	rc = 0;
+
     if ( fp == NULL ) {
-	for ( ; optind < argc; ++optind ) {
-	    rc = dodelete( ld, argv[ optind ] );
+		for ( ; optind < argc; ++optind ) {
+			rc = dodelete( ld, argv[ optind ] );
+
+			/* Stop on error and no -c option */
+			if( rc != 0 && contoper == 0) break;
+		}
+	} else {
+		while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
+			buf[ strlen( buf ) - 1 ] = '\0'; /* remove trailing newline */
+
+			if ( *buf != '\0' ) {
+				rc = dodelete( ld, buf );
+			}
+		}
 	}
-    } else {
-	while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
-	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove trailing newline */
-	    if ( *buf != '\0' ) {
-		rc = dodelete( ld, buf );
-	    }
-	}
-    }
 
     ldap_unbind( ld );
 
