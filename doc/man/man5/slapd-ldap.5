@@ -22,6 +22,21 @@ same connection. This connection pooling strategy can enhance the proxy's
 efficiency by reducing the overhead of repeatedly making/breaking multiple
 connections.
 
+The ldap database can also act as an information service, i.e. the identity
+of locally authenticated clients is asserted to the remote server, possibly
+in some modified form.
+For this purpose, the proxy binds to the remote server with some 
+administrative identity, and, if required, authorizes the asserted identity.
+See the 
+.IR idassert- *
+rules below.
+The administrative identity of the proxy, on the remote server, must be 
+allowed to authorize by means of appropriate
+.B authzTo
+rules; see 
+.BR slapd.conf (5)
+for details.
+
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -72,7 +87,7 @@ check permissions.
 .B bindpw <password>
 Password used with the bind DN above.
 .TP
-.B proxyauthzdn "<administrative DN for proxyAuthz purposes>"
+.B idassert-authcdn "<administrative DN for proxyAuthz purposes>"
 DN which is used to propagate the client's identity to the target
 by means of the proxyAuthz control when the client does not
 belong to the DIT fragment that is being proxyied by back-ldap.
@@ -83,7 +98,7 @@ This requires the entry with
 identity on the remote server to have
 .B proxyAuthz
 privileges on a wide set of DNs, e.g.
-.BR authzTo=dn.regex:.* ,
+.BR authzTo=dn.subtree:"" ,
 and the remote server to have
 .B authz-policy
 set to 
@@ -95,7 +110,7 @@ See
 for details on these statements and for remarks and drawbacks about
 their usage.
 .TP
-.B proxyauthzpw <password>
+.B idassert-passwd <password>
 Password used with the proxy authzDN above.
 .TP
 .B idassert-mode <mode>
@@ -158,6 +173,7 @@ permissions, or the asserted identities must have appropriate
 .I authzFrom 
 permissions.  Note, however, that the ID assertion feature is mostly 
 useful when the asserted identities do not exist on the remote server.
+.RE
 .TP
 .B idassert-authz <authz>
 if defined, selects what
@@ -173,6 +189,28 @@ See
 section related to
 .BR authz-policy ,
 for details on the supported syntaxes.
+.TP
+.B idassert-method <method> [<saslargs>]
+where valid method values are
+.RS
+.TP
+.B <method>={none|simple|sasl}
+.RE
+.RS
+.B <saslargs>=[mech=<mech>] [realm=<realm>] [authcid=<authcid>] [cred=<cred>]
+.RE
+If method is 
+.IR sasl ,
+extra parameters can be given a described above.
+The default is
+.BR simple ;
+.B none
+inhibits proxy authorization;
+.B sasl
+uses a SASL bind with the above parameters; if required,
+.I authorization
+is performed by means of native SASL mechanism, and no proxyAuthz
+is used for subsequent operations.
 .TP
 .B proxy-whoami
 Turns on proxying of the WhoAmI extended operation. If this option is
