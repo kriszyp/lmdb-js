@@ -331,13 +331,10 @@ nameUIDValidate(
 				break;
 			}
 		}
-		if( dn->bv_val[i] != '\'' ) {
-			return LDAP_INVALID_SYNTAX;
-		}
-		if( dn->bv_val[i-1] != 'B' ) {
-			return LDAP_INVALID_SYNTAX;
-		}
-		if( dn->bv_val[i-2] != '#' ) {
+		if( dn->bv_val[i] != '\'' ||
+		    dn->bv_val[i-1] != 'B' ||
+		    dn->bv_val[i-2] != '#' ) {
+			ber_bvfree( dn );
 			return LDAP_INVALID_SYNTAX;
 		}
 
@@ -1153,6 +1150,11 @@ retry:
 
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
+				free( nav );
+				ch_free( sub->sa_final );
+				ber_bvecfree( sub->sa_any );
+				ch_free( sub->sa_initial );
+				ch_free( sub );
 				return LDAP_OTHER;
 			}
 
@@ -1391,6 +1393,7 @@ int caseExactIgnoreSubstringsIndexer(
 	if( nkeys == 0 ) {
 		/* no keys to generate */
 		*keysp = NULL;
+		ber_bvecfree( nvalues );
 		return LDAP_SUCCESS;
 	}
 
@@ -3486,7 +3489,8 @@ asn1_integer2str(ASN1_INTEGER *a)
 				 * Way too large, we need to leave
 				 * room for sign if negative
 				 */
-			  return NULL;
+				free(copy);
+				return NULL;
 			}
 			*--p = digit[carry];
 			if (copy[base] == 0)
