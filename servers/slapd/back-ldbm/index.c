@@ -265,6 +265,13 @@ index_change_values(
 	char		*at_cn;	/* Attribute canonical name */
 	int		mode;
 
+	if( vals == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"=> index_change_values( %s, NULL, %ld, op=%s )\n", 
+			type, id, ((op == __INDEX_ADD_OP) ? "ADD" : "DELETE" ) );
+		return 0;
+	}
+
 	Debug( LDAP_DEBUG_TRACE,
 	       "=> index_change_values( \"%s\", %ld, op=%s )\n", 
 	       type, id, ((op == __INDEX_ADD_OP) ? "ADD" : "DELETE" ) );
@@ -306,8 +313,7 @@ index_change_values(
 	}
 
 
-	if ( vals != NULL ) {
-	  for ( i = 0; vals[i] != NULL; i++ ) {
+	for ( i = 0; vals[i] != NULL; i++ ) {
 		/*
 		 * presence index entry
 		 */
@@ -417,7 +423,6 @@ index_change_values(
 		if ( bigbuf != NULL ) {
 			free( bigbuf );
 		}
-	  }
 	}
 
 	ldbm_cache_close( be, db );

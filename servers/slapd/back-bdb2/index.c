@@ -231,6 +231,13 @@ bdb2i_index_add_values(
 
 	char		*at_cn;
 
+	if( vals == NULL ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"=> bdb2i_index_add_values( \"%s\", NULL, %ld )\n",
+			type, id, 0 );
+		return 0;
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "=> bdb2i_index_add_values( \"%s\", %ld )\n", type,
 	    id, 0 );
 	attr_normalize( type );
@@ -248,8 +255,7 @@ bdb2i_index_add_values(
 		return( -1 );
 	}
 
-	if( vals != NULL ) {
-	  for ( i = 0; vals[i] != NULL; i++ ) {
+	for ( i = 0; vals[i] != NULL; i++ ) {
 		/*
 		 * presence index entry
 		 */
@@ -341,7 +347,6 @@ bdb2i_index_add_values(
 		if ( bigbuf != NULL ) {
 			free( bigbuf );
 		}
-	  }
 	}
 	bdb2i_cache_close( be, db );
 
