@@ -468,7 +468,7 @@ send_search_result(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		ber_pvt_sb_udp_set_dst( &conn->c_sb, &op->o_clientaddr );
+		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),
