@@ -293,7 +293,7 @@ bdb_show_key(
 	DBT		*key,
 	char		*buf )
 {
-	if ( key->size == sizeof( ID ) ) {
+	if ( key->size == 4 /* LUTIL_HASH_BYTES */ ) {
 		unsigned char *c = key->data;
 		sprintf( buf, "[%02x%02x%02x%02x]", c[0], c[1], c[2], c[3] );
 		return buf;
@@ -314,6 +314,7 @@ bdb_idl_cache_get(
 {
 	bdb_idl_cache_entry_t idl_tmp;
 	bdb_idl_cache_entry_t *matched_idl_entry;
+	int rc = LDAP_NO_SUCH_OBJECT;
 
 	DBT2bv( key, &idl_tmp.kstr );
 	idl_tmp.db = db;
@@ -323,19 +324,18 @@ bdb_idl_cache_get(
 	if ( matched_idl_entry != NULL ) {
 		if ( matched_idl_entry->idl && ids )
 			BDB_IDL_CPY( ids, matched_idl_entry->idl );
-		ldap_pvt_thread_rdwr_runlock( &bdb->bi_idl_tree_rwlock );
 		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_lrulock );
 		IDL_LRU_DELETE( bdb, matched_idl_entry );
 		IDL_LRU_ADD( bdb, matched_idl_entry );
 		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_lrulock );
 		if ( matched_idl_entry->idl )
-			return LDAP_SUCCESS;
+			rc = LDAP_SUCCESS;
 		else
-			return DB_NOTFOUND;
+			rc = DB_NOTFOUND;
 	}
 	ldap_pvt_thread_rdwr_runlock( &bdb->bi_idl_tree_rwlock );
 
-	return LDAP_NO_SUCH_OBJECT;
+	return rc;
 }
 
 void
