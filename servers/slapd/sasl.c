@@ -382,7 +382,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
 
 		/* username may have embedded realm name */
-		if( realm = strchr( dn->bv_val, '@') ) {
+		if( ( realm = strchr( dn->bv_val, '@') ) ) {
 			*realm++ = '\0';
 			len += sizeof(",cn=")-2;
 		} else if( user_realm && *user_realm ) {

@@ -286,7 +286,9 @@ static void slap_sasl_rx_exp(
 static int slap_sasl_regexp( struct berval *in, struct berval *out )
 {
 	char *saslname = in->bv_val;
+#if 0
 	char *scope[] = { "base", "one", "sub" };
+#endif
 	SaslRegexp_t *reg;
 	int i;
 
@@ -386,7 +388,7 @@ void slap_sasl2dn( Connection *conn,
 	struct berval *saslname, struct berval *sasldn )
 {
 	int rc;
-	Backend *be;
+	Backend *be = NULL;
 	struct berval dn = { 0, NULL };
 	int scope = LDAP_SCOPE_BASE;
 	Filter *filter = NULL;
