@@ -120,8 +120,8 @@ a trailing `-') matches all options starting with that name, as well
 as the option with the range name sans the trailing `-'.
 That is, `x-foo-bar-' matches `x-foo-bar' and `x-foo-bar-baz'.
 
-RFC2251 reserves options beginning with `x-' for private experiments.
-Other options should be registered with IANA, see RFC3383 section 3.4.
+RFC 2251 reserves options beginning with `x-' for private experiments.
+Other options should be registered with IANA, see RFC 3383 section 3.4.
 OpenLDAP also has the `binary' option built in, but this is a transfer
 option, not a tagging option.
 .HP
@@ -514,7 +514,7 @@ value "oid.xx" will be used.
 .B password-hash <hash>
 This option sets the hash to be used in generation of user
 passwords, stored in userPassword, during processing of
-LDAP Password Modify Extended Operations (RFC 3052).
+LDAP Password Modify Extended Operations (RFC 3062).
 The <hash> must be one of
 .BR {SSHA} ,
 .BR {SHA} ,
