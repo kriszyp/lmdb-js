@@ -57,6 +57,12 @@
 #define SLAP_SCHERR_ATTR_NOT_FOUND	3
 #define SLAP_SCHERR_DUP_CLASS		4
 #define SLAP_SCHERR_DUP_ATTR		5
+#define SLAP_SCHERR_DUP_SYNTAX		6
+#define SLAP_SCHERR_DUP_RULE		7
+#define SLAP_SCHERR_NO_NAME		8
+#define SLAP_SCHERR_ATTR_INCOMPLETE	9
+#define SLAP_SCHERR_MR_NOT_FOUND	10
+#define SLAP_SCHERR_SYN_NOT_FOUND	11
 
 LDAP_BEGIN_DECL
 
@@ -220,6 +226,7 @@ typedef int slap_syntax_check_func LDAP_P((struct berval * val));
 typedef struct slap_syntax {
 	LDAP_SYNTAX			ssyn_syn;
 	slap_syntax_check_func		*ssyn_check;
+	struct slap_syntax		*ssyn_next;
 } Syntax;
 #define ssyn_oid			ssyn_syn.syn_oid
 #define ssyn_desc			ssyn_syn.syn_desc
@@ -232,6 +239,7 @@ typedef struct slap_matching_rule {
 	slap_mr_normalize_func		*smr_normalize;
 	slap_mr_compare_func		*smr_compare;
 	Syntax				smr_syntax;
+	struct slap_matching_rule	*smr_next;
 } MatchingRule;
 #define smr_oid				smr_mrule.mr_oid
 #define smr_names			smr_mrule.mr_names

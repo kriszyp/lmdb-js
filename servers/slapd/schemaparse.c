@@ -23,7 +23,13 @@ static char *err2text[] = {
 	"Objectclass not found",
 	"Attribute type not found",
 	"Duplicate objectclass",
-	"Duplicate attributetype"
+	"Duplicate attributetype",
+	"Duplicate syntax",
+	"Duplicate matchingrule",
+	"OID or name required",
+	"Syntax or superior required",
+	"Matchingrule not found",
+	"Syntax not found"
 };
 
 char *

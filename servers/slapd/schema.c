@@ -228,11 +228,11 @@ oc_index_cmp(
 
 static int
 oc_index_name_cmp(
-    char 		*type,
+    char 		*name,
     struct oindexrec	*oir
 )
 {
-	return (strcasecmp( type, oir->oir_name ));
+	return (strcasecmp( name, oir->oir_name ));
 }
 
 ObjectClass *
@@ -446,7 +446,378 @@ oc_add(
 	return code;
 }
 
+struct sindexrec {
+	char		*sir_name;
+	Syntax		*sir_syn;
+};
+
+static Avlnode	*syn_index = NULL;
+static Syntax *syn_list = NULL;
+
+static int
+syn_index_cmp(
+    struct sindexrec	*sir1,
+    struct sindexrec	*sir2
+)
+{
+	return (strcmp( sir1->sir_name, sir2->sir_name ));
+}
+
+static int
+syn_index_name_cmp(
+    char 		*name,
+    struct sindexrec	*sir
+)
+{
+	return (strcmp( name, sir->sir_name ));
+}
+
+Syntax *
+syn_find( const char *synname )
+{
+	struct sindexrec	*sir = NULL;
+
+	if ( (sir = (struct sindexrec *) avl_find( syn_index, synname,
+            (AVL_CMP) syn_index_name_cmp )) != NULL ) {
+		return( sir->sir_syn );
+	}
+	return( NULL );
+}
+
+static int
+syn_insert(
+    Syntax		*ssyn,
+    const char		**err
+)
+{
+	Syntax		**synp;
+	struct sindexrec	*sir;
+
+	synp = &syn_list;
+	while ( *synp != NULL ) {
+		synp = &(*synp)->ssyn_next;
+	}
+	*synp = ssyn;
+
+	if ( ssyn->ssyn_oid ) {
+		sir = (struct sindexrec *)
+			ch_calloc( 1, sizeof(struct sindexrec) );
+		sir->sir_name = ssyn->ssyn_oid;
+		sir->sir_syn = ssyn;
+		if ( avl_insert( &syn_index, (caddr_t) sir,
+				 (AVL_CMP) syn_index_cmp,
+				 (AVL_DUP) avl_dup_error ) ) {
+			*err = ssyn->ssyn_oid;
+			ldap_memfree(sir);
+			return SLAP_SCHERR_DUP_SYNTAX;
+		}
+		/* FIX: temporal consistency check */
+		syn_find(sir->sir_name);
+	}
+	return 0;
+}
+
+int
+syn_add(
+    LDAP_SYNTAX		*syn,
+    slap_syntax_check_func	*check,
+    const char		**err
+)
+{
+	Syntax		*ssyn;
+	int		code;
+
+	ssyn = (Syntax *) ch_calloc( 1, sizeof(Syntax) );
+	memcpy( &ssyn->ssyn_syn, syn, sizeof(LDAP_SYNTAX));
+	ssyn->ssyn_check = check;
+	code = syn_insert(ssyn,err);
+	return code;
+}
+
+struct mindexrec {
+	char		*mir_name;
+	MatchingRule	*mir_mr;
+};
+
+static Avlnode	*mr_index = NULL;
+static MatchingRule *mr_list = NULL;
+
+static int
+mr_index_cmp(
+    struct mindexrec	*mir1,
+    struct mindexrec	*mir2
+)
+{
+	return (strcmp( mir1->mir_name, mir2->mir_name ));
+}
+
+static int
+mr_index_name_cmp(
+    char 		*name,
+    struct mindexrec	*mir
+)
+{
+	return (strcmp( name, mir->mir_name ));
+}
+
+MatchingRule *
+mr_find( const char *mrname )
+{
+	struct mindexrec	*mir = NULL;
+
+	if ( (mir = (struct mindexrec *) avl_find( mr_index, mrname,
+            (AVL_CMP) mr_index_name_cmp )) != NULL ) {
+		return( mir->mir_mr );
+	}
+	return( NULL );
+}
+
+static int
+mr_insert(
+    MatchingRule	*smr,
+    const char		**err
+)
+{
+	MatchingRule		**mrp;
+	struct mindexrec	*mir;
+	char			**names;
+
+	mrp = &mr_list;
+	while ( *mrp != NULL ) {
+		mrp = &(*mrp)->smr_next;
+	}
+	*mrp = smr;
+
+	if ( smr->smr_oid ) {
+		mir = (struct mindexrec *)
+			ch_calloc( 1, sizeof(struct mindexrec) );
+		mir->mir_name = smr->smr_oid;
+		mir->mir_mr = smr;
+		if ( avl_insert( &mr_index, (caddr_t) mir,
+				 (AVL_CMP) mr_index_cmp,
+				 (AVL_DUP) avl_dup_error ) ) {
+			*err = smr->smr_oid;
+			ldap_memfree(mir);
+			return SLAP_SCHERR_DUP_RULE;
+		}
+		/* FIX: temporal consistency check */
+		mr_find(mir->mir_name);
+	}
+	if ( (names = smr->smr_names) ) {
+		while ( *names ) {
+			mir = (struct mindexrec *)
+				ch_calloc( 1, sizeof(struct mindexrec) );
+			mir->mir_name = ch_strdup(*names);
+			mir->mir_mr = smr;
+			if ( avl_insert( &mr_index, (caddr_t) mir,
+					 (AVL_CMP) mr_index_cmp,
+					 (AVL_DUP) avl_dup_error ) ) {
+				*err = *names;
+				ldap_memfree(mir);
+				return SLAP_SCHERR_DUP_RULE;
+			}
+			/* FIX: temporal consistency check */
+			mr_find(mir->mir_name);
+			names++;
+		}
+	}
+	return 0;
+}
+
+int
+mr_add(
+    LDAP_MATCHING_RULE		*mr,
+    slap_mr_normalize_func	*normalize,
+    slap_mr_compare_func	*compare,
+    const char		**err
+)
+{
+	MatchingRule	*smr;
+	int		code;
+
+	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
+	memcpy( &smr->smr_mrule, mr, sizeof(LDAP_MATCHING_RULE));
+	smr->smr_normalize = normalize;
+	smr->smr_compare = compare;
+	code = mr_insert(smr,err);
+	return code;
+}
+
+int
+register_syntax(
+	char * desc,
+	slap_syntax_check_func *check )
+{
+	LDAP_SYNTAX	*syn;
+	int		code;
+	const char	*err;
+
+	syn = ldap_str2syntax( desc, &code, &err);
+	if ( !syn ) {
+		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s before %s in %s\n",
+		    ldap_scherr2str(code), err, desc );
+		return( -1 );
+	}
+	code = syn_add( syn, check, &err );
+	if ( code ) {
+		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
+		    scherr2str(code), err, desc );
+		return( -1 );
+	}
+	return( 0 );
+}
+
+int
+register_matching_rule(
+	char * desc,
+	slap_mr_normalize_func *normalize,
+	slap_mr_compare_func *compare )
+{
+	LDAP_MATCHING_RULE *mr;
+	int		code;
+	const char	*err;
+
+	mr = ldap_str2matchingrule( desc, &code, &err);
+	if ( !mr ) {
+		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s before %s in %s\n",
+		    ldap_scherr2str(code), err, desc );
+		return( -1 );
+	}
+	code = mr_add( mr, normalize, compare, &err );
+	if ( code ) {
+		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
+		    scherr2str(code), err, desc );
+		return( -1 );
+	}
+	return( 0 );
+}
+
+struct syntax_defs_rec {
+	char *sd_desc;
+	slap_syntax_check_func *sd_check;
+};
+
+struct syntax_defs_rec syntax_defs[] = {
+	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'Attribute Type Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'DN' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DIT Content Rule Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DIT Structure Rule Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'INTEGER' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'Matching Rule Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'Matching Rule Use Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )", NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )", NULL},
+	{NULL, NULL}
+};
+
+struct mrule_defs_rec {
+	char *mrd_desc;
+	slap_mr_normalize_func *mrd_normalize;
+	slap_mr_compare_func *mrd_compare;
+};
+
+struct mrule_defs_rec mrule_defs[] = {
+	{"( 2.5.13.0 NAME 'objectIdentifierMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
+	{"( 2.5.13.1 NAME 'distinguishedNameMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )", NULL, NULL},
+	{"( 2.5.13.2 NAME 'caseIgnoreMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
+	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
+	{"( 2.5.13.8 NAME 'numericStringMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )", NULL, NULL},
+	{"( 2.5.13.27 NAME 'generalizedTimeMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )", NULL, NULL},
+	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )", NULL, NULL},
+	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", NULL, NULL},
+	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
+	{NULL, NULL, NULL}
+};
+
+int
+schema_init( void )
+{
+	int		res;
+	int		code;
+	const char	*err;
+	int		i;
+
+	/* For now */
+	return( 0 );
+	for ( i=0; syntax_defs[i].sd_desc != NULL; i++ ) {
+		res = register_syntax( syntax_defs[i].sd_desc,
+		    syntax_defs[i].sd_check );
+		if ( res ) {
+			fprintf( stderr, "schema_init: Error registering syntax %s\n",
+				 syntax_defs[i].sd_desc );
+			exit( 1 );
+		}
+	}
+	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
+		res = register_matching_rule( mrule_defs[i].mrd_desc,
+		    mrule_defs[i].mrd_normalize,
+		    mrule_defs[i].mrd_compare );
+		if ( res ) {
+			fprintf( stderr, "schema_init: Error registering matching rule %s\n",
+				 mrule_defs[i].mrd_desc );
+			exit( 1 );
+		}
+	}
+}
+
 #if defined( SLAPD_SCHEMA_DN )
+
+static int
+syn_schema_info( Entry *e )
+{
+	struct berval	val;
+	struct berval	*vals[2];
+	Syntax		*syn;
+
+	vals[0] = &val;
+	vals[1] = NULL;
+
+	for ( syn = syn_list; syn; syn = syn->ssyn_next ) {
+		val.bv_val = ldap_syntax2str( &syn->ssyn_syn );
+		if ( val.bv_val ) {
+			val.bv_len = strlen( val.bv_val );
+			Debug( LDAP_DEBUG_TRACE, "Merging syn [%d] %s\n",
+			       val.bv_len, val.bv_val, 0 );
+			attr_merge( e, "ldapSyntaxes", vals );
+			ldap_memfree( val.bv_val );
+		} else {
+			return -1;
+		}
+	}
+	return 0;
+}
+
+static int
+mr_schema_info( Entry *e )
+{
+	struct berval	val;
+	struct berval	*vals[2];
+	MatchingRule	*mr;
+
+	vals[0] = &val;
+	vals[1] = NULL;
+
+	for ( mr = mr_list; mr; mr = mr->smr_next ) {
+		val.bv_val = ldap_matchingrule2str( &mr->smr_mrule );
+		if ( val.bv_val ) {
+			val.bv_len = strlen( val.bv_val );
+			Debug( LDAP_DEBUG_TRACE, "Merging mr [%d] %s\n",
+			       val.bv_len, val.bv_val, 0 );
+			attr_merge( e, "matchingRules", vals );
+			ldap_memfree( val.bv_val );
+		} else {
+			return -1;
+		}
+	}
+	return 0;
+}
 
 static int
 oc_schema_info( Entry *e )
@@ -464,7 +835,7 @@ oc_schema_info( Entry *e )
 			val.bv_len = strlen( val.bv_val );
 			Debug( LDAP_DEBUG_TRACE, "Merging oc [%d] %s\n",
 			       val.bv_len, val.bv_val, 0 );
-			attr_merge( e, "objectclasses", vals );
+			attr_merge( e, "objectClasses", vals );
 			ldap_memfree( val.bv_val );
 		} else {
 			return -1;
@@ -500,6 +871,16 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	attr_merge( e, "objectclass", vals );
 	ldap_memfree( val.bv_val );
 
+	if ( syn_schema_info( e ) ) {
+		/* Out of memory, do something about it */
+		entry_free( e );
+		return;
+	}
+	if ( mr_schema_info( e ) ) {
+		/* Out of memory, do something about it */
+		entry_free( e );
+		return;
+	}
 	if ( at_schema_info( e ) ) {
 		/* Out of memory, do something about it */
 		entry_free( e );

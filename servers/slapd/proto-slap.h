@@ -240,7 +240,12 @@ void send_ldap_search_result LDAP_P(( Connection *conn, Operation *op, int err,
 int oc_schema_check LDAP_P(( Entry *e ));
 ObjectClass *oc_find LDAP_P((const char *ocname));
 int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
+Syntax *syn_find LDAP_P((const char *synname));
+int syn_add LDAP_P((LDAP_SYNTAX *syn, slap_syntax_check_func *check, const char **err));
+MatchingRule *mr_find LDAP_P((const char *mrname));
+int mr_add LDAP_P((LDAP_MATCHING_RULE *mr, slap_mr_normalize_func *normalize, slap_mr_compare_func *compare, const char **err));
 void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
+int schema_init LDAP_P((void));
 
 
 /*

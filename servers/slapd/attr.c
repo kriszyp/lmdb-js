@@ -476,13 +476,18 @@ at_add(
 {
 	AttributeType	*sat;
 	AttributeType	*sat1;
+	MatchingRule	*mr;
+	Syntax		*syn;
 	int		code;
 	char		*errattr;
 
 	if ( at->at_names && at->at_names[0] ) {
 		errattr = at->at_names[0];
-	} else {
+	} else if ( at->at_oid ) {
 		errattr = at->at_oid;
+	} else {
+		errattr = "";
+		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
 	memcpy( &sat->sat_atype, at, sizeof(LDAP_ATTRIBUTE_TYPE));
@@ -500,6 +505,14 @@ at_add(
 	}
 
 	if ( at->at_syntax_oid ) {
+#if 0
+		if ( (syn = syn_find(sat->sat_syntax_oid)) ) {
+			sat->sat_syntax = syn;
+		} else {
+			*err = sat->sat_syntax_oid;
+			return SLAP_SCHERR_SYN_NOT_FOUND;
+		}
+#endif
 		if ( !strcmp(at->at_syntax_oid,
 			     "1.3.6.1.4.1.1466.115.121.1.15") ) {
 			if ( at->at_equality_oid &&
@@ -524,6 +537,32 @@ at_add(
 		sat->sat_syntax_compat = DEFAULT_SYNTAX;
 	}
 
+#if 0
+	if ( sat->sat_equality_oid ) {
+		if ( (mr = mr_find(sat->sat_equality_oid)) ) {
+			sat->sat_equality = mr;
+		} else {
+			*err = sat->sat_equality_oid;
+			return SLAP_SCHERR_MR_NOT_FOUND;
+		}
+	}
+	if ( sat->sat_ordering_oid ) {
+		if ( (mr = mr_find(sat->sat_ordering_oid)) ) {
+			sat->sat_ordering = mr;
+		} else {
+			*err = sat->sat_ordering_oid;
+			return SLAP_SCHERR_MR_NOT_FOUND;
+		}
+	}
+	if ( sat->sat_substr_oid ) {
+		if ( (mr = mr_find(sat->sat_substr_oid)) ) {
+			sat->sat_substr = mr;
+		} else {
+			*err = sat->sat_substr_oid;
+			return SLAP_SCHERR_MR_NOT_FOUND;
+		}
+	}
+#endif
 	code = at_insert(sat,err);
 	return code;
 }
