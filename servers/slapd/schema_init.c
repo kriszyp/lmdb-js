@@ -3580,7 +3580,6 @@ integerBitOrMatch(
 #ifdef HAVE_TLS
 #include <openssl/x509.h>
 #include <openssl/err.h>
-char digit[] = "0123456789";
 
 /*
  * Next function returns a string representation of a ASN1_INTEGER.
@@ -3592,6 +3591,7 @@ asn1_integer2str(ASN1_INTEGER *a, struct berval *bv)
 {
 	char buf[256];
 	char *p;
+	static char digit[] = "0123456789";
   
 	/* We work backwards, make it fill from the end of buf */
 	p = buf + sizeof(buf) - 1;
