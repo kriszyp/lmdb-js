@@ -225,7 +225,8 @@ main( int argc, char *argv[] )
 					LDAPAVA		*a = r[ iAVA ][ 0 ];
 					LDAPAVA		*a2 = r2[ iAVA ][ 0 ];
 
-					if ( strcmp( a->la_attr, a2->la_attr )
+					if ( a->la_attr->bv_len != a2->la_attr->bv_len
+							|| memcmp( a->la_attr->bv_val, a2->la_attr->bv_val, a->la_attr->bv_len )
 							|| a->la_flags != a2->la_flags
 							|| a->la_value->bv_len != a2->la_value->bv_len
 							|| memcmp( a->la_value->bv_val, a2->la_value->bv_val, a->la_value->bv_len ) ) {
