@@ -1062,9 +1062,37 @@ config_generic(ConfigArgs *c) {
 			c->value_int = index_substr_if_minlen;
 			break;
 #ifdef SLAPD_MODULES
-		case CFG_MODLOAD:	/* FIXME */
-		case CFG_MODPATH:
-			rc = 1;
+		case CFG_MODLOAD: {
+			ConfigFile *cf = (ConfigFile *)c->line;
+			ModPaths *mp;
+			for (i=0, mp=&cf->c_modpaths; mp; mp=mp->mp_next, i++) {
+				int j;
+				if (!mp->mp_loads) continue;
+				for (j=0; !BER_BVISNULL(&mp->mp_loads[j]); j++) {
+					struct berval bv;
+					bv.bv_val = c->log;
+					bv.bv_len = sprintf( bv.bv_val, "{%d}{%d}%s", i, j,
+						mp->mp_loads[j].bv_val );
+					value_add_one( &c->rvalue_vals, &bv );
+				}
+			}
+			rc = c->rvalue_vals ? 0 : 1;
+			}
+			break;
+		case CFG_MODPATH: {
+			ConfigFile *cf = (ConfigFile *)c->line;
+			ModPaths *mp;
+			for (i=0, mp=&cf->c_modpaths; mp; mp=mp->mp_next, i++) {
+				struct berval bv;
+				if ( BER_BVISNULL( &mp->mp_path ) && !mp->mp_loads )
+					continue;
+				bv.bv_val = c->log;
+				bv.bv_len = sprintf( bv.bv_val, "{%d}%s", i,
+					mp->mp_path.bv_val );
+				value_add_one( &c->rvalue_vals, &bv );
+			}
+			rc = c->rvalue_vals ? 0 : 1;
+			}
 			break;
 #endif
 #ifdef LDAP_SLAPI
@@ -1095,8 +1123,7 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_DATABASE:
 			c->bi = NULL;
-			/* FIXME - config should probably be the
-			 * last backend, not the first.
+			/* NOTE: config is always the first backend!
 			 */
 			if ( !strcasecmp( c->argv[1], "config" )) {
 				c->be = backendDB;
@@ -1285,14 +1312,15 @@ config_generic(ConfigArgs *c) {
 			{
 				ModPaths *mp;
 
-				if (!cfn->c_modpaths.mp_loads)
+				if (!cfn->c_modpaths.mp_loads) {
 					mp = &cfn->c_modpaths;
-				else
+				} else {
 					mp = ch_malloc( sizeof( ModPaths ));
+					cfn->c_modlast->mp_next = mp;
+				}
 				ber_str2bv(c->argv[1], 0, 1, &mp->mp_path);
 				mp->mp_next = NULL;
 				mp->mp_loads = NULL;
-				cfn->c_modlast->mp_next = mp;
 				cfn->c_modlast = mp;
 			}
 			
