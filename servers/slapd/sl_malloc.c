@@ -21,6 +21,7 @@
 
 #include "slap.h"
 
+static struct slab_object * slap_replenish_sopool(struct slab_heap* sh);
 static void print_slheap(int level, void *ctx);
 
 void
@@ -99,7 +100,7 @@ slap_sl_mem_create(
 	int pad = 2*sizeof(int)-1, pad_shift;
 	int order = -1, order_start = -1, order_end = -1;
 	int i, k;
-	struct slab_object *so, *so_block;
+	struct slab_object *so;
 
 #ifdef NO_THREADS
 	sh = slheap;
@@ -195,27 +196,16 @@ slap_sl_mem_create(
 		LDAP_LIST_INIT(&sh->sh_sopool);
 
 		if (LDAP_LIST_EMPTY(&sh->sh_sopool)) {
-			so_block = (struct slab_object *)ch_malloc(
-							SLAP_SLAB_SOBLOCK * sizeof( struct slab_object));
-			so_block[0].so_blockhead = 1;
-			LDAP_LIST_INSERT_HEAD(&sh->sh_sopool, &so_block[0], so_link);
-			for (k = 1; k < SLAP_SLAB_SOBLOCK; k++) {
-				so_block[k].so_blockhead = 0;
-				LDAP_LIST_INSERT_HEAD(&sh->sh_sopool, &so_block[k], so_link);
-			}
-			so = LDAP_LIST_FIRST(&sh->sh_sopool);
-			LDAP_LIST_REMOVE(so, so_link);
-			so->so_ptr = sh->sh_base;
-		} else {
-			so = LDAP_LIST_FIRST(&sh->sh_sopool);
-			LDAP_LIST_REMOVE(so, so_link);
-			so->so_ptr = sh->sh_base;
+			slap_replenish_sopool(sh);
 		}
+		so = LDAP_LIST_FIRST(&sh->sh_sopool);
+		LDAP_LIST_REMOVE(so, so_link);
+		so->so_ptr = sh->sh_base;
 
 		LDAP_LIST_INSERT_HEAD(&sh->sh_free[order-1], so, so_link);
 
 		sh->sh_map = (unsigned char **)
-					ch_malloc(order * sizeof(unsigned long *));
+					ch_malloc(order * sizeof(unsigned char *));
 		for (i = 0; i < order; i++) {
 			sh->sh_map[i] = (unsigned char *)
 							ch_malloc(size >> (1 << (order_start + i + 3)));
@@ -247,10 +237,10 @@ slap_sl_malloc(
 )
 {
 	struct slab_heap *sh = ctx;
-	int size_shift;
+	ber_len_t size_shift;
 	int pad = 2*sizeof(int)-1, pad_shift;
 	int order = -1, order_start = -1;
-	struct slab_object *so_new, *so_left, *so_right, *so_block;
+	struct slab_object *so_new, *so_left, *so_right;
 	ber_len_t *ptr, *new;
 	unsigned long diff;
 	int i, j, k;
@@ -258,10 +248,10 @@ slap_sl_malloc(
 	/* ber_set_option calls us like this */
 	if (!ctx) return ber_memalloc_x(size, NULL);
 
-	Debug(LDAP_DEBUG_ANY, "slap_sl_malloc (%d)\n", size, 0, 0);
+	Debug(LDAP_DEBUG_TRACE, "==> slap_sl_malloc (%d)\n", size, 0, 0);
 
 	/* round up to doubleword boundary */
-	size += pad + sizeof(ber_len_t);
+	size += sizeof(ber_len_t) + pad;
 	size &= ~pad;
 
 	if (sh->sh_stack) {
@@ -304,24 +294,11 @@ slap_sl_malloc(
 				so_left = LDAP_LIST_FIRST(&sh->sh_free[j-order_start]);
 				LDAP_LIST_REMOVE(so_left, so_link);
 				if (LDAP_LIST_EMPTY(&sh->sh_sopool)) {
-					so_block = (struct slab_object *)ch_malloc(
-								SLAP_SLAB_SOBLOCK * sizeof(struct slab_object));
-					so_block[0].so_blockhead = 1;
-					LDAP_LIST_INSERT_HEAD(
-							&sh->sh_sopool, &so_block[0], so_link);
-					for (k = 1; k < SLAP_SLAB_SOBLOCK; k++) {
-						so_block[k].so_blockhead = 0;
-						LDAP_LIST_INSERT_HEAD(
-							&sh->sh_sopool, &so_block[k], so_link);
-					}
-					so_right = LDAP_LIST_FIRST(&sh->sh_sopool);
-					LDAP_LIST_REMOVE(so_right, so_link);
-					so_right->so_ptr = so_left->so_ptr + (1 << j);
-				} else {
-					so_right = LDAP_LIST_FIRST(&sh->sh_sopool);
-					LDAP_LIST_REMOVE(so_right, so_link);
-					so_right->so_ptr = so_left->so_ptr + (1 << j);
+					slap_replenish_sopool(sh);
 				}
+				so_right = LDAP_LIST_FIRST(&sh->sh_sopool);
+				LDAP_LIST_REMOVE(so_right, so_link);
+				so_right->so_ptr = so_left->so_ptr + (1 << j);
 				if (j == order + 1) {
 					ptr = so_left->so_ptr;
 					diff = (unsigned long)((char*)ptr -
@@ -431,11 +408,11 @@ slap_sl_free(void *ptr, void *ctx)
 	int pad = 2*sizeof(int)-1, pad_shift;
 	ber_len_t *p = (ber_len_t *)ptr, *tmpp;
 	int order_start = -1, order = -1;
-	struct slab_object *so, *so_block;
+	struct slab_object *so;
 	unsigned long diff;
 	int i, k, inserted = 0;
 
-	Debug( LDAP_DEBUG_ANY, "==> slap_sl_free \n", 0, 0, 0);
+	Debug( LDAP_DEBUG_TRACE, "==> slap_sl_free \n", 0, 0, 0);
 
 	if (!sh || ptr < sh->sh_base || ptr >= sh->sh_end) {
 		ber_memfree_x(ptr, NULL);
@@ -482,30 +459,16 @@ slap_sl_free(void *ptr, void *ctx)
 						continue;
 					} else {
 						if (LDAP_LIST_EMPTY(&sh->sh_sopool)) {
-							so_block = (struct slab_object *)ch_malloc(
-										SLAP_SLAB_SOBLOCK *
-										sizeof( struct slab_object));
-							so_block[0].so_blockhead = 1;
-							LDAP_LIST_INSERT_HEAD( &sh->sh_sopool,
-									&so_block[0], so_link );
-							for ( k = 1; k < SLAP_SLAB_SOBLOCK; k++ ) {
-								so_block[k].so_blockhead = 0;
-								LDAP_LIST_INSERT_HEAD( &sh->sh_sopool,
-										&so_block[k], so_link );
-							}
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
-						} else {
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
+							slap_replenish_sopool(sh);
 						}
+						so = LDAP_LIST_FIRST(&sh->sh_sopool);
+						LDAP_LIST_REMOVE(so, so_link);
+						so->so_ptr = tmpp;
 						LDAP_LIST_INSERT_HEAD(&sh->sh_free[i-order_start],
 								so, so_link);
 						break;
 
-						Debug(LDAP_DEBUG_ANY, "slap_sl_free: "
+						Debug(LDAP_DEBUG_TRACE, "slap_sl_free: "
 							"free object not found while bit is clear.\n",
 							0, 0, 0);
 						assert(so);
@@ -514,25 +477,11 @@ slap_sl_free(void *ptr, void *ctx)
 				} else {
 					if (!inserted) {
 						if (LDAP_LIST_EMPTY(&sh->sh_sopool)) {
-							so_block = (struct slab_object *)ch_malloc(
-										SLAP_SLAB_SOBLOCK *
-										sizeof(struct slab_object));
-							so_block[0].so_blockhead = 1;
-							LDAP_LIST_INSERT_HEAD(&sh->sh_sopool,
-									&so_block[0], so_link);
-							for (k = 1; k < SLAP_SLAB_SOBLOCK; k++) {
-								so_block[k].so_blockhead = 0;
-								LDAP_LIST_INSERT_HEAD(&sh->sh_sopool,
-										&so_block[k], so_link);
-							}
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
-						} else {
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
+							slap_replenish_sopool(sh);
 						}
+						so = LDAP_LIST_FIRST(&sh->sh_sopool);
+						LDAP_LIST_REMOVE(so, so_link);
+						so->so_ptr = tmpp;
 						LDAP_LIST_INSERT_HEAD(&sh->sh_free[i-order_start],
 								so, so_link);
 					}
@@ -560,30 +509,16 @@ slap_sl_free(void *ptr, void *ctx)
 						}
 					} else {
 						if (LDAP_LIST_EMPTY(&sh->sh_sopool)) {
-							so_block = (struct slab_object *)ch_malloc(
-											SLAP_SLAB_SOBLOCK *
-											sizeof(struct slab_object));
-							so_block[0].so_blockhead = 1;
-							LDAP_LIST_INSERT_HEAD(&sh->sh_sopool,
-									&so_block[0], so_link);
-							for (k = 1; k < SLAP_SLAB_SOBLOCK; k++) {
-								so_block[k].so_blockhead = 0;
-								LDAP_LIST_INSERT_HEAD(&sh->sh_sopool,
-										&so_block[k], so_link );
-							}
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
-						} else {
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
+							slap_replenish_sopool(sh);
 						}
+						so = LDAP_LIST_FIRST(&sh->sh_sopool);
+						LDAP_LIST_REMOVE(so, so_link);
+						so->so_ptr = tmpp;
 						LDAP_LIST_INSERT_HEAD(&sh->sh_free[i-order_start],
 								so, so_link);
 						break;
 
-						Debug(LDAP_DEBUG_ANY, "slap_sl_free: "
+						Debug(LDAP_DEBUG_TRACE, "slap_sl_free: "
 							"free object not found while bit is clear.\n",
 							0, 0, 0 );
 						assert( so );
@@ -592,25 +527,11 @@ slap_sl_free(void *ptr, void *ctx)
 				} else {
 					if ( !inserted ) {
 						if (LDAP_LIST_EMPTY(&sh->sh_sopool)) {
-							so_block = (struct slab_object *)ch_malloc(
-											SLAP_SLAB_SOBLOCK *
-											sizeof(struct slab_object));
-							so_block[0].so_blockhead = 1;
-							LDAP_LIST_INSERT_HEAD(&sh->sh_sopool,
-									&so_block[0], so_link );
-							for (k = 1; k < SLAP_SLAB_SOBLOCK; k++) {
-								so_block[k].so_blockhead = 0;
-								LDAP_LIST_INSERT_HEAD(&sh->sh_sopool,
-										&so_block[k], so_link );
-							}
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
-						} else {
-							so = LDAP_LIST_FIRST(&sh->sh_sopool);
-							LDAP_LIST_REMOVE(so, so_link);
-							so->so_ptr = tmpp;
+							slap_replenish_sopool(sh);
 						}
+						so = LDAP_LIST_FIRST(&sh->sh_sopool);
+						LDAP_LIST_REMOVE(so, so_link);
+						so->so_ptr = tmpp;
 						LDAP_LIST_INSERT_HEAD(&sh->sh_free[i-order_start],
 								so, so_link);
 					}
@@ -640,6 +561,31 @@ slap_sl_context( void *ptr )
 		return sh;
 	}
 	return NULL;
+}
+
+static struct slab_object *
+slap_replenish_sopool(
+    struct slab_heap* sh
+)
+{
+    struct slab_object *so_block;
+    int i;
+
+    so_block = (struct slab_object *)ch_malloc(
+                    SLAP_SLAB_SOBLOCK * sizeof(struct slab_object));
+
+    if ( so_block == NULL ) {
+        return NULL;
+    }
+
+    so_block[0].so_blockhead = 1;
+    LDAP_LIST_INSERT_HEAD(&sh->sh_sopool, &so_block[0], so_link);
+    for (i = 1; i < SLAP_SLAB_SOBLOCK; i++) {
+        so_block[i].so_blockhead = 0;
+        LDAP_LIST_INSERT_HEAD(&sh->sh_sopool, &so_block[i], so_link );
+    }
+
+    return so_block;
 }
 
 static void
