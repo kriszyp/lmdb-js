@@ -594,7 +594,6 @@ idl_insert_key(
 			     * ID off the end of it.
 			     */
 			    rc = idl_insert( &tmp, id, db->dbc_maxids );
-			    assert( rc == 0 );
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 				k3.dptr = ch_malloc(k2.dsize);

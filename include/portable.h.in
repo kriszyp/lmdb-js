@@ -875,12 +875,6 @@
 /* define to support modules */
 #undef SLAPD_MODULES
 
-/* define to support BDB2 backend */
-#undef SLAPD_BDB2
-
-/* define to support dynamic BDB2 backend */
-#undef SLAPD_BDB2_DYNAMIC
-
 /* define to support DNS SRV backend */
 #undef SLAPD_DNSSRV
 

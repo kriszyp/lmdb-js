@@ -4,31 +4,22 @@
 ##
 ## tests Makefile.in for OpenLDAP
 SUBDIRS= progs
-
-BUILD_BDB2 = @BUILD_BDB2@
+BUILD_LDBM=@BUILD_LDBM@
 
 test: tests
-tests: bdb2 ldbm
-
-bdb2: test-bdb2
-test-bdb2:	FORCE
-	@-$(LN_S) $(srcdir)/data data
-	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
-	@if test "$(BUILD_BDB2)" = "yes" ; then \
-		echo "Initiating LDAP tests..." ; \
-		$(MKDIR) test-db test-repl || true; \
-		$(srcdir)/scripts/all $(srcdir) bdb2 ; \
-	else \
-		echo "run configure with --enable-bdb2" ; \
-	fi
+tests: ldbm
 
 ldbm: test-ldbm
 test-ldbm:	FORCE
 	@-$(LN_S) $(srcdir)/data data
 	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
-	@echo "Initiating LDAP tests..."
-	@-$(MKDIR) test-db test-repl || true
-	@$(srcdir)/scripts/all $(srcdir) ldbm
+	@if test "$(BUILD_LDBM)" = "yes" ; then \
+		echo "Initiating LDAP tests for LDBM..." ; \
+		$(MKDIR) test-db test-repl || true; \
+		$(srcdir)/scripts/all $(srcdir) ldbm ; \
+	else \
+		echo "run configure with --enable-ldbm" ; \
+	fi
 
 passwd: test-passwd
 test-passwd: FORCE
@@ -45,18 +36,6 @@ test-nis-schema-ldbm:
 	@echo "Initiating LDAP server with NIS schema & ldbm backend..."; \
 	$(MKDIR) test-db test-repl ; \
 	$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) ldbm
-
-test-nis-schema-bdb2:
-	@-$(LN_S) $(srcdir)/data data
-	@-$(LN_S) $(top_srcdir)/servers/slapd/schema schema 
-	@echo "Initiating LDAP server with NIS schema & DB2 backend..."; \
-	@if test "$(BUILD_BDB2)" = "yes" ; then \
-		echo "Initiating LDAP tests..." ; \
-		$(MKDIR) test-db test-repl ; \
-		$(srcdir)/scripts/startup_nis_ldap_server.sh $(srcdir) bdb2 ; \
-	else \
-		echo "run configure with --enable-bdb2" ; \
-	fi
 
 clean-local:	FORCE
 	-$(RM) test-db/[!C]* test-repl/[!C]* *leak *gmon *core

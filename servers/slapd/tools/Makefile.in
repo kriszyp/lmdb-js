@@ -16,7 +16,6 @@
 #
 #-----------------------------------------------------------------------------
 BUILD_LDBM = @BUILD_LDBM@
-BUILD_BDB2 = @BUILD_BDB2@
 BUILD_QUIPU = @BUILD_QUIPU@
 
 LDAP_INCDIR= ../../../include       
@@ -35,7 +34,6 @@ XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
 PROGRAMS=ldif slappasswd slapadd slapcat slapindex
 LDBMPROGRAMS=centipede sizecount
-BDB2PROGRAMS=
 QUIPUPROGRAMS=chlog2replog edb2ldif
 
 # CPPFLAGS will include the defines for dynamic libs in Mingw32.
@@ -47,8 +45,6 @@ SRCS = ldif.c mimic.c slapcommon.c
 XSRCS = edb2-vers.c
 
 LDBMSRCS = centipede.c sizecount.c
-
-BDB2SRCS =
 
 QUIPUSRCS	= edb2ldif.c ldapsyntax.c chlog2replog.c
 SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
@@ -65,7 +61,7 @@ SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
 EDB2LDIFSRCS    = edb2ldif.c ldapsyntax.c
 EDB2LDIFOBJS    = edb2ldif.o ldapsyntax.o
 
-UNIX_PRGS = build-ldbm build-bdb2 build-quipu
+UNIX_PRGS = build-ldbm build-quipu
 
 all-local: build-progs $(@PLAT@_PRGS)
 
@@ -76,12 +72,6 @@ ldbm-tools-no:
 	@echo "run configure with --enable-ldbm to build LDBM tools"
 
 ldbm-tools-yes ldbm-tools-mod: $(LDBMPROGRAMS)
-
-build-bdb2: bdb2-tools-$(BUILD_BDB2)
-bdb2-tools-no:
-	@echo "run configure with --enable-bdb2 to build BDB2 tools"
-
-bdb2-tools-yes bdb2-tools-mod: $(BDB2PROGRAMS)
 
 build-quipu: quipu-tools-$(BUILD_QUIPU)
 quipu-tools-no:
@@ -117,10 +107,6 @@ sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND)
 	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
 
 #
-# BDBM Specific Tools
-#
-
-#
 # QUIPU Specific Tools
 #
 edb2ldif:	edb2-vers.o
@@ -134,27 +120,23 @@ chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND)
 	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
 
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(LDBMPROGRAMS) $(BDB2PROGRAMS) $(QUIPUPROGRAMS) \
+	$(RM) $(PROGRAMS) $(LDBMPROGRAMS) $(QUIPUPROGRAMS) \
 		$(XPROGRAMS) $(XSRCS) *.o core .libs/* *.exe
 
 depend-local: FORCE
-	DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
+	DEPEND_LDBM= ; DEPEND_QUIPU= ; \
 	if [ "$(BUILD_LDBM)" != "no" ]; then \
 		DEPEND_LDBM="$(LDBMSRCS)"; \
-	fi; \
-	if [ "$(BUILD_BDB2)" != "no" ]; then \
-		DEPEND_BDB2="$(BDBMSRCS)"; \
 	fi; \
 	if [ "$(BUILD_QUIPU)" != "no" ]; then \
 		DEPEND_QUIPU="$(QUIPUINCLUDEFLAG) $(QUIPUSRCS)"; \
 	fi; \
-	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $$DEPEND_QUIPU \
-			$$DEPEND_LDBM $$DEPEND_BDB2
+	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $$DEPEND_QUIPU $$DEPEND_LDBM
 
-install-local: install-ldbm-$(BUILD_LDBM) install-bdb2-$(BUILD_BDB2) \
+install-local: install-ldbm-$(BUILD_LDBM) \
 	 install-quipu-$(BUILD_QUIPU)
 
-install-ldbm-no install-bdb2-no install-quipu-no:
+install-ldbm-no install-quipu-no:
 
 install-ldbm-yes install-ldbm-mod: FORCE
 	-$(MKDIR) $(DESTDIR)$(sbindir) 
@@ -162,9 +144,6 @@ install-ldbm-yes install-ldbm-mod: FORCE
 		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
 			$$bin$(EXEEXT) $(DESTDIR)$(sbindir); \
 	done
-
-install-bdb2-yes install-bdb2-mod: FORCE
-	@-$(MKDIR) $(DESTDIR)$(sbindir) 
 
 install-quipu-yes: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sbindir)

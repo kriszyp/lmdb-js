@@ -264,9 +264,6 @@ typedef signed int ssize_t;
 /* define this for ACL Group support */
 #define SLAPD_ACLGROUPS 1
 
-/* define this to use SLAPD Berkeley DB2 backend */
-/* #define SLAPD_BDB2 1 */
-
 /* define this for ClearText password support */
 #define SLAPD_CLEARTEXT 1
 
