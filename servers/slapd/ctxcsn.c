@@ -103,7 +103,7 @@ static struct berval ocbva[] = {
 	BER_BVC("top"),
 	BER_BVC("subentry"),
 	BER_BVC("syncProviderSubentry"),
-	{0,NULL}
+	BER_BVNULL
 };
 
 Entry *
@@ -130,8 +130,7 @@ slap_create_context_csn_entry(
 			context_csn, NULL );
 	}
 
-	bv.bv_val = "{}";
-	bv.bv_len = sizeof("{}")-1;
+	BER_BVSTR( &bv, "{}" );
 	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
 
 	build_new_dn( &e->e_name, &be->be_nsuffix[0],

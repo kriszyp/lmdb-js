@@ -1005,8 +1005,7 @@ id2entry_retry:
 #endif
 		case LDAP_SCOPE_SUBTREE: {
 			EntryInfo *tmp;
-			for (tmp = BEI(e); tmp;
-				 tmp = tmp->bei_parent ) {
+			for ( tmp = BEI(e); tmp; tmp = tmp->bei_parent ) {
 				if ( tmp->bei_id == base.e_id ) {
 					scopeok = 1;
 					break;

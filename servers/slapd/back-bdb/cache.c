@@ -553,7 +553,8 @@ bdb_cache_find_info(
 	struct bdb_info *bdb,
 	ID id )
 {
-	EntryInfo ei, *ei2;
+	EntryInfo	ei = { 0 },
+			*ei2;
 
 	ei.bei_id = id;
 
@@ -583,7 +584,7 @@ bdb_cache_find_id(
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	Entry	*ep = NULL;
 	int	rc = 0;
-	EntryInfo ei;
+	EntryInfo ei = { 0 };
 
 	ei.bei_id = id;
 
