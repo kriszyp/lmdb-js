@@ -22,7 +22,7 @@
 /*
  * When pretty printing the entities we will be appending to a buffer.
  * Since checking for overflow, realloc'ing and checking if no error
- * is extremely boring, we will use a pretection layer that will let
+ * is extremely boring, we will use a protection layer that will let
  * us blissfully ignore the error until the end.  This layer is
  * implemented with the help of the next type.
  */
@@ -156,7 +156,7 @@ print_qdescrlist(safe_string *ss, char **sa)
 		ret = print_qdescr(ss,*sp);
 	}
 	/* If the list was empty, we return zero that is potentially
-	 * incorrect, but since we will still appending things, the
+	 * incorrect, but since we will be still appending things, the
 	 * overflow will be detected later.  Maybe FIX.
 	 */
 	return(ret);
@@ -167,7 +167,9 @@ print_qdescrs(safe_string *ss, char **sa)
 {
 	/* The only way to represent an empty list is as a qdescrlist
 	 * so, if the list is empty we treat it as a long list.
-	 * Really, this is what the syntax mandates.
+	 * Really, this is what the syntax mandates.  We should not
+	 * be here if the list was empty, but if it happens, a label
+	 * has already been output and we cannot undo it.
 	 */
 	if ( !sa[0] || ( sa[0] && sa[1] ) ) {
 		print_whsp(ss);
@@ -455,8 +457,8 @@ charray_free( char **array )
 #define TK_QDESCR	TK_QDSTRING
 
 struct token {
-  int type;
-  char *sval;
+	int type;
+	char *sval;
 };
 
 static int
@@ -554,7 +556,10 @@ parse_numericoid(char **sp, int *code)
 	/* Each iteration of this loops gets one decimal string */
 	while (**sp) {
 		if ( !isdigit(**sp) ) {
-			/* Initial char is not a digit or char after dot is not a digit */
+			/*
+			 * Initial char is not a digit or char after dot is
+			 * not a digit
+			 */
 			*code = LDAP_SCHERR_NODIGIT;
 			return NULL;
 		}
@@ -566,7 +571,7 @@ parse_numericoid(char **sp, int *code)
 		/* Otherwise, gobble the dot and loop again */
 		(*sp)++;
 	}
-	/* At this point, *sp points at the char past the numericoid. Perfect. */
+	/* Now *sp points at the char past the numericoid. Perfect. */
 	len = *sp - start;
 	res = LDAP_MALLOC(len+1);
 	if (!res) {
@@ -853,7 +858,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 	parse_whsp(&ss);
 
 	/*
-	 * Beyond this point we will be liberal an accept the items
+	 * Beyond this point we will be liberal and accept the items
 	 * in any order.
 	 */
 	while (1) {
@@ -1027,13 +1032,17 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					return NULL;
 				}
 				if ( !strcasecmp(sval,"userApplications") )
-					at->at_usage = LDAP_SCHEMA_USER_APPLICATIONS;
+					at->at_usage =
+					    LDAP_SCHEMA_USER_APPLICATIONS;
 				else if ( !strcasecmp(sval,"directoryOperation") )
-					at->at_usage = LDAP_SCHEMA_DIRECTORY_OPERATION;
+					at->at_usage =
+					    LDAP_SCHEMA_DIRECTORY_OPERATION;
 				else if ( !strcasecmp(sval,"distributedOperation") )
-					at->at_usage = LDAP_SCHEMA_DISTRIBUTED_OPERATION;
+					at->at_usage =
+					    LDAP_SCHEMA_DISTRIBUTED_OPERATION;
 				else if ( !strcasecmp(sval,"dSAOperation") )
-					at->at_usage = LDAP_SCHEMA_DSA_OPERATION;
+					at->at_usage =
+					    LDAP_SCHEMA_DSA_OPERATION;
 				else {
 					*code = LDAP_SCHERR_UNEXPTOKEN;
 					*errp = ss;
