@@ -81,7 +81,7 @@ slapd_daemon(
 		c[i].c_domain = NULL;
 		c[i].c_ops = NULL;
 		c[i].c_sb.sb_sd = -1;
-		c[i].c_sb.sb_options = LBER_NO_READ_AHEAD;
+		c[i].c_sb.sb_options = LBER_NO_READ_AHEAD | LBER_MAX_INCOMING_SIZE;
 		c[i].c_sb.sb_naddr = 0;
 		c[i].c_sb.sb_ber.ber_buf = NULL;
 		c[i].c_sb.sb_ber.ber_ptr = NULL;

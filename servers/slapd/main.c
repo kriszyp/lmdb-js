@@ -234,11 +234,12 @@ main( int argc, char **argv )
 		c.c_cdn = NULL;
 		c.c_ops = NULL;
 		c.c_sb.sb_sd = 0;
-		c.c_sb.sb_options = 0;
+		c.c_sb.sb_options = LBER_MAX_INCOMING_SIZE;
 		c.c_sb.sb_naddr = udp ? 1 : 0;
 		c.c_sb.sb_ber.ber_buf = NULL;
 		c.c_sb.sb_ber.ber_ptr = NULL;
 		c.c_sb.sb_ber.ber_end = NULL;
+		c.c_sb.sb_max_incoming = 1 << 16;
 		ldap_pvt_thread_mutex_init( &c.c_dnmutex );
 		ldap_pvt_thread_mutex_init( &c.c_opsmutex );
 		ldap_pvt_thread_mutex_init( &c.c_pdumutex );
