@@ -12,14 +12,15 @@
 
 #ifdef SLAPD_BDB2_DYNAMIC
 
-void back_bdb2_LTX_init_module(int argc, char *argv[]) {
-   BackendInfo bi;
+int back_bdb2_LTX_init_module(int argc, char *argv[]) {
+    BackendInfo bi;
 
-   memset( &bi, 0, sizeof(bi) );
-   bi.bi_type = "bdb2";
-   bi.bi_init = bdb2_back_initialize;
+    memset( &bi, 0, sizeof(bi) );
+    bi.bi_type = "bdb2";
+    bi.bi_init = bdb2_back_initialize;
 
-   backend_add(&bi);
+    backend_add(&bi);
+    return 0;
 }
 
 #endif /* SLAPD_BDB2_DYNAMIC */

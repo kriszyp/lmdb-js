@@ -30,14 +30,15 @@ ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
 #ifdef SLAPD_PERL_DYNAMIC
 
-void back_perl_LTX_init_module(int argc, char *argv[]) {
-   BackendInfo bi;
+int back_perl_LTX_init_module(int argc, char *argv[]) {
+    BackendInfo bi;
 
-   memset( &bi, 0, sizeof(bi) );
-   bi.bi_type = "perl";
-   bi.bi_init = perl_back_initialize;
+    memset( &bi, 0, sizeof(bi) );
+    bi.bi_type = "perl";
+    bi.bi_init = perl_back_initialize;
 
-   backend_add(&bi);
+    backend_add(&bi);
+    return 0;
 }
 
 #endif /* SLAPD_PERL_DYNAMIC */

@@ -11,14 +11,15 @@
 
 #ifdef SLAPD_PASSWD_DYNAMIC
 
-void back_passwd_LTX_init_module(int argc, char *argv[]) {
-   BackendInfo bi;
+int back_passwd_LTX_init_module(int argc, char *argv[]) {
+    BackendInfo bi;
 
-   memset( &bi, 0, sizeof(bi) );
-   bi.bi_type = "passwd";
-   bi.bi_init = passwd_back_initialize;
+    memset( &bi, 0, sizeof(bi) );
+    bi.bi_type = "passwd";
+    bi.bi_init = passwd_back_initialize;
 
-   backend_add(&bi);
+    backend_add(&bi);
+    return 0;
 }
 
 #endif /* SLAPD_PASSWD_DYNAMIC */

@@ -32,14 +32,15 @@
 
 #ifdef SLAPD_LDAP_DYNAMIC
 
-void back_ldap_LTX_init_module(int argc, char *argv[]) {
-   BackendInfo bi;
+int back_ldap_LTX_init_module(int argc, char *argv[]) {
+    BackendInfo bi;
 
-   memset( &bi, 0, sizeof(bi) );
-   bi.bi_type = "ldap";
-   bi.bi_init = ldap_back_initialize;
+    memset( &bi, 0, sizeof(bi) );
+    bi.bi_type = "ldap";
+    bi.bi_init = ldap_back_initialize;
 
-   backend_add(&bi);
+    backend_add(&bi);
+    return 0;
 }
 
 #endif /* SLAPD_LDAP_DYNAMIC */
