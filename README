@@ -1,86 +1,14 @@
 OpenLDAP Devel README
-	OpenLDAP -devel is for the development of OpenLDAP.  As such,
-	it changes often.  These changes include changes in functionality
-	and unproven bug fixes.  Many of these changes will cause
-	previous working programs to fail.
-
-	Additional developer documents are available in doc/devel,
-		todo list
-		guidelines for developers
-
-	Client developers seeking a stable development platform
-	should use an OpenLDAP release.
+	This software was obtained from the development branch (HEAD) of
+	the OpenLDAP Software Repository.  This copy is likely already
+	not current, the development branch changes frequently.  These
+	changes include code implementing experimental features and
+	unproven bug fixes.  This copy is meant only for reference
+	purposes.
 
 	The OpenLDAP Developer's FAQ is available at:
 		http://www.openldap.org/faq/index.cgi?file=4
 
-
-OpenLDAP Release README
-	For a description of what this distribution contains, see the
-	ANNOUNCEMENT file in this directory.  For a description of
-	changes from previous releases, see the CHANGES file in this
-	directory.
-
-	For a more detailed description of how to make an install the
-	distribution, see the INSTALL file in this directory.  Additional
-	installation information can be found on the OpenLDAP website:
-		http://www.openldap.org/
-
-
-REQUIRED SOFTWARE
-	Build OpenLDAP requires the following software components:
-
-	Base system (libraries and tools):
-		Standard C compiler, headers, and libraries
-		POSIX REGEX headers and libraries
-
-	SLAPD:
-		LDBM compatible datastore
-			(Sleepycat Berkeley DB 2.7.5 or GDBM)
-
-	SLURPD:
-		LTHREAD compatible thread package
-			(POSIX threads, Mach Cthreads, Sun LWP, or GNU Pth)
-
-	CLIENTS/CONTRIB ware:
-		Depends on package.  See per package README.
-		
-
-MAKING AND INSTALLING THE DISTRIBUTION
-	Please see the INSTALL file for details.
-
-
-DOCUMENTATION
-	There are man pages for most programs in the distribution and
-	routines in the various libraries.  See ldap(3) for details.
-
-	Additional documentation can be found in the doc directory.
-		doc/devel   Developer Information
-		doc/drafts  LDAP-related IETF drafts
-		doc/install Installation and Integration
-		doc/man     Raw man(1) pages
-		doc/rfcs    LDAP-related Request for Comments
-
-	There is an OpenLDAP home page available that contains the latest
-	LDAP news, releases announcements, pointers to other LDAP resources,
-	etc..  It is located at:
-		http://www.OpenLDAP.org/
-
-	The OpenLDAP Quick Start Guide is available at:
-		http://www.openldap.org/faq/index.cgi?file=172
-
-	The OpenLDAP Software FAQ is available at:
-		http://www.openldap.org/faq/index.cgi?file=2
-
-
-SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
-	OpenLDAP is user supported.  If you have problems, please
-	review the OpenLDAP FAQ <http://www.openldap.org/faq/> and
-	archives of the OpenLDAP-software and OpenLDAP-bugs mailing
-	lists <http://www.openldap.org/lists/>.
-
-	Issues, such as bug reports, should be reported using our
-	our Issue Tracking System <http://www.OpenLDAP.com/its/> or
-	by sending mail to OpenLDAP-its@OpenLDAP.org.  Do not use
-	this system for general or software equiries.  Please direct
-	these to the appropriate mailing list.
+	Client developers seeking a stable development platform
+	should use OpenLDAP-release or OpenLDAP-software.
+		http://www.openldap.org/software/
