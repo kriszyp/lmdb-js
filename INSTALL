@@ -136,7 +136,9 @@ Follow these steps for each different platform:
 CONFIGURE OPTIONS
 
 Regrettably, this section has not been written (yet).  See
-"./configure --help" for current list of options.
+"./configure --help" for current list of options.  For general
+information about how to use "configure", please read:
+	doc/install/configure
 
 
 USING ENVIRONMENT VARIABLES
