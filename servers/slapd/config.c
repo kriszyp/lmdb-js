@@ -313,6 +313,17 @@ read_config( const char *fname )
 				global_realm = ch_strdup( cargv[1] );
 			}
 
+		} else if ( !strcasecmp( cargv[0], "saslregexp" ) ) {
+			if ( cargc != 3 ) {
+				Debug( LDAP_DEBUG_ANY, 
+				"%s: line %d: need 2 args in \"saslregexp <match> <replace>\"\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+			rc = slap_sasl_regexp_config( cargv[1], cargv[2] );
+			if ( rc )
+				return rc;
+
 		/* SASL security properties */
 		} else if ( strcasecmp( cargv[0], "sasl-secprops" ) == 0 ) {
 			char *txt;
@@ -1110,17 +1121,6 @@ read_config( const char *fname )
 				return rc;
 
 #endif
-
-		} else if ( !strcasecmp( cargv[0], "saslregexp" ) ) {
-			if ( cargc != 3 ) {
-				Debug( LDAP_DEBUG_ANY, 
-				"%s: line %d: need 2 args in \"saslregexp <match> <replace>\"\n",
-				    fname, lineno, 0 );
-				return( 1 );
-			}
-			rc = slap_sasl_regexp_config( cargv[1], cargv[2] );
-			if ( rc )
-				return rc;
 
 		/* pass anything else to the current backend info/db config routine */
 		} else {

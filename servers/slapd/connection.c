@@ -1305,7 +1305,7 @@ int connection_internal_open( Connection **conn, LDAP **ldp, char *id )
 	}
 
 	/* The connection_get() will have locked the connection's mutex */
-	pthread_mutex_unlock(  &((*conn)->c_mutex) );
+	ldap_pvt_thread_mutex_unlock(  &((*conn)->c_mutex) );
 
 	return( LDAP_SUCCESS );
 }
