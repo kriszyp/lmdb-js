@@ -82,7 +82,6 @@ ldbm_back_add(
 	if ( (pdn = dn_parent( be, dn )) != NULL ) {
 		char *matched;
 		/* no parent */
-		matched = NULL;
 
 		/* get entry with reader lock */
 		if ( (p = dn2entry_r( be, pdn, &matched )) == NULL ) {
@@ -90,15 +89,13 @@ ldbm_back_add(
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
 			    matched, "" );
+
 			if ( matched != NULL ) {
 				free( matched );
 			}
 
 			rc = -1;
 			goto return_results;
-		}
-		if ( matched != NULL ) {
-			free( matched );
 		}
 
 		if ( ! access_allowed( be, conn, op, p, "children", NULL,

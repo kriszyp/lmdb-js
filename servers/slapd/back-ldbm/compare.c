@@ -29,6 +29,8 @@ ldbm_back_compare(
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched, "" );
+
+		if(matched == NULL) free(matched);
 		return( 1 );
 	}
 

@@ -112,7 +112,7 @@ char *derefDN ( Backend     *be,
 )
 {
   struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-  char 	*matched = NULL;
+  char 	*matched;
   char 	*newDN = NULL;
   int	depth;
   Entry 	*eMatched;
@@ -135,7 +135,7 @@ char *derefDN ( Backend     *be,
     /* free reader lock */
     cache_return_entry_r(&li->li_cache, eMatched);
 
-    if (*matched) {	
+    if ((matched != NULL) && *matched) {	
       char *submatch;
       
       /* 
@@ -155,6 +155,7 @@ char *derefDN ( Backend     *be,
 	
 	if ((eNew = derefAlias_r( be, conn, op, eMatched )) == NULL) {
 	  free (matched);
+	  matched = NULL;
 	  free (newDN);
 	  newDN = NULL;
 	  free (remainder);
@@ -169,6 +170,7 @@ char *derefDN ( Backend     *be,
 	    free (newDN);
 	    newDN = NULL;
 	    free (matched);
+	    matched = NULL;
 	    free (remainder);
 	    break;
 	  }
@@ -178,13 +180,13 @@ char *derefDN ( Backend     *be,
 	   * the new dn together
 	   */
 	  free (newDN);
-	  free (matched);
-	  
 	  newDN = ch_malloc (strlen(eMatched->e_dn) + rlen + 1);
 	  strcpy (newDN, remainder);
 	  strcat (newDN, eMatched->e_dn);
 	  Debug( LDAP_DEBUG_TRACE, "<= expanded to %s\n", newDN, 0, 0 );
 
+	  free (matched);
+	  matched = NULL;
 	  free (remainder);
 
           /* free reader lock */
@@ -234,7 +236,7 @@ char *derefDN ( Backend     *be,
   }
   
   Debug( LDAP_DEBUG_TRACE, "<= returning deref DN of  %s\n", newDN, 0, 0 ); 
-  free(matched);
+  if (matched != NULL) free(matched);
 
   return newDN;
 }

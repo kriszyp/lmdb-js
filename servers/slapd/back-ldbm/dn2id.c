@@ -166,18 +166,19 @@ dn2entry(
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	ID		id;
-	Entry		*e;
+	Entry		*e = NULL;
 	char		*pdn;
 
 	Debug(LDAP_DEBUG_TRACE, "dn2entry_%s: dn: %s\n",
 		rw ? "w" : "r", dn, 0);
+
+	*matched = NULL;
 
 	if ( (id = dn2id( be, dn )) != NOID &&
 		(e = id2entry( be, id, rw )) != NULL )
 	{
 		return( e );
 	}
-	*matched = NULL;
 
 	/* stop when we get to the suffix */
 	if ( be_issuffix( be, dn ) ) {
@@ -198,19 +199,6 @@ dn2entry(
 
 	return( NULL );
 }
-
-#if 0
-		if (e->e_state == ENTRY_STATE_DELETED)
-			continue;
-
-		if (strcmp(dn, e->e_dn) != 0)
-			continue;
-
-		/* return locked entry entry */
-		return(e);
-	}
-}
-#endif
 
 Entry *
 dn2entry_r(

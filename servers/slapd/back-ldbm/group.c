@@ -45,7 +45,8 @@ ldbm_back_group(
                         free(matched);
                 return( 1 );
         }
-        Debug( LDAP_DEBUG_ARGS, "=> ldbm_back_group: found bdn: %s matched: %s\n", bdn, (matched ? matched : ""), 0 ); 
+
+        Debug( LDAP_DEBUG_ARGS, "=> ldbm_back_group: found bdn: %s\n", bdn, 0, 0 ); 
 
         /* check for deleted */
 

@@ -20,7 +20,7 @@ ldbm_back_delete(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*matched = NULL;
+	char		*matched;
         char            *pdn = NULL;
 	Entry		*e, *p;
 
@@ -66,7 +66,6 @@ ldbm_back_delete(
 
 	/* XXX delete from parent's id2children entry XXX */
 	pdn = dn_parent( be, dn );
-	matched = NULL;
 	p = dn2entry_r( be, pdn, &matched );
 	if ( id2children_remove( be, p, e ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "","" );
@@ -93,8 +92,10 @@ ldbm_back_delete(
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
-	if ( p )
+	if ( p != NULL )
 		cache_return_entry_r( &li->li_cache, p );
+
+	if ( matched != NULL ) free(matched);
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
 
@@ -104,8 +105,10 @@ error_return:;
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
 
-	if( p )
+	if( p != NULL )
 		cache_return_entry_r( &li->li_cache, p );
+
+	if ( matched != NULL ) free(matched);
 
 	return( -1 );
 }
