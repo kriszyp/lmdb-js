@@ -24,7 +24,8 @@ static int search_candidates(
 	SlapReply *rs,
 	Entry *e,
 	u_int32_t locker,
-	ID	*ids );
+	ID	*ids,
+	ID	*scopes );
 static void send_pagerequest_response( 
 	Operation *op,
 	SlapReply *rs,
@@ -87,7 +88,10 @@ static Entry * deref_base (
 
 		rs->sr_err = bdb_dn2entry( op->o_bd, NULL, &ndn, &ei,
 			0, locker, &lockr, op->o_tmpmemctx );
+
 		if ( ei ) e = ei->bei_e;
+		else	e = NULL;
+
 		if (!e) {
 			rs->sr_err = LDAP_ALIAS_PROBLEM;
 			rs->sr_text = "aliasedObject not found";
@@ -115,7 +119,7 @@ static Entry * deref_base (
 
 /* Look for and dereference all aliases within the search scope. Adds
  * the dereferenced entries to the "ids" list. Requires "stack" to be
- * able to hold 8 levels of IDLs.
+ * able to hold 8 levels of DB_SIZE IDLs.
  */
 static int search_aliases(
 	Operation *op,
@@ -124,6 +128,7 @@ static int search_aliases(
 	u_int32_t locker,
 	Filter *sf,
 	ID *ids,
+	ID *scopes,
 	ID *stack
 )
 {
@@ -140,17 +145,17 @@ static int search_aliases(
 
 
 	aliases = stack;	/* IDL of all aliases in the database */
-	curscop = aliases + BDB_IDL_UM_SIZE;	/* Aliases in the current scope */
-	subscop = curscop + BDB_IDL_UM_SIZE;	/* The current scope */
-	visited = subscop + BDB_IDL_UM_SIZE;	/* IDs we've seen in this search */
-	newsubs = visited + BDB_IDL_UM_SIZE;	/* New subtrees we've added */
-	oldsubs = newsubs + BDB_IDL_UM_SIZE;	/* Subtrees added previously */
-	tmp = oldsubs + BDB_IDL_UM_SIZE;	/* Scratch space for deref_base() */
+	curscop = aliases + BDB_IDL_DB_SIZE;	/* Aliases in the current scope */
+	subscop = curscop + BDB_IDL_DB_SIZE;	/* The current scope */
+	visited = subscop + BDB_IDL_DB_SIZE;	/* IDs we've seen in this search */
+	newsubs = visited + BDB_IDL_DB_SIZE;	/* New subtrees we've added */
+	oldsubs = newsubs + BDB_IDL_DB_SIZE;	/* Subtrees added previously */
+	tmp = oldsubs + BDB_IDL_DB_SIZE;	/* Scratch space for deref_base() */
 
 	/* A copy of subscop, because subscop gets clobbered by
 	 * the bdb_idl_union/intersection routines
 	 */
-	subscop2 = tmp + BDB_IDL_UM_SIZE;
+	subscop2 = tmp + BDB_IDL_DB_SIZE;
 
 	af.f_choice = LDAP_FILTER_EQUALITY;
 	af.f_ava = &aa_alias;
@@ -220,12 +225,13 @@ static int search_aliases(
 				tmp, visited );
 			if (a) {
 				/* If the target was not already in our current candidates,
-				 * make note of it in the newsubs list.
-				 * FIXME: Somehow we have to propagate these new scopes back
-				 * up to bdb_search.
+				 * make note of it in the newsubs list. Also
+				 * set it in the scopes list so that bdb_search
+				 * can check it.
 				 */
 				if (bdb_idl_insert(ids, a->e_id) == 0) {
 					bdb_idl_insert(newsubs, a->e_id);
+					bdb_idl_insert(scopes, a->e_id);
 				}
 				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
 					a, &lockr);
@@ -346,6 +352,7 @@ int bdb_search( Operation *op, SlapReply *rs )
 	time_t		stoptime;
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
+	ID		scopes[BDB_IDL_DB_SIZE];
 	Entry		*e = NULL, dummy;
 	Entry	*matched = NULL;
 	EntryInfo	*ei;
@@ -661,7 +668,8 @@ dn2entry_retry:
 
 	} else {
 		BDB_IDL_ALL( bdb, candidates );
-		rs->sr_err = search_candidates( op, sop, rs, &dummy, locker, candidates );
+		BDB_IDL_ZERO( scopes );
+		rs->sr_err = search_candidates( op, sop, rs, &dummy, locker, candidates, scopes );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -915,14 +923,38 @@ id2entry_retry:
 
 #ifdef BDB_ALIASES
 		/* aliases were already dereferenced in candidate list */
-		if ( (sop->ors_deref & LDAP_DEREF_SEARCHING) && is_entry_alias(e)) {
+		if ( sop->ors_deref & LDAP_DEREF_SEARCHING ) {
 			/* but if the search base is an alias, and we didn't
 			 * deref it when finding, return it.
 			 */
-			if ( (sop->ors_deref & LDAP_DEREF_FINDING)
-				|| !bvmatch(&e->e_nname, &op->o_req_ndn))
+			if ( is_entry_alias(e) &&
+				((sop->ors_deref & LDAP_DEREF_FINDING)
+				  || !bvmatch(&e->e_nname, &op->o_req_ndn)))
 			{
 				goto loop_continue;
+			}
+
+			/* scopes is only non-empty for onelevel or subtree */
+			if ( BDB_IDL_N(scopes) ) {
+				unsigned x;
+				if ( sop->ors_scope == LDAP_SCOPE_ONELEVEL ) {
+					x = bdb_idl_search( scopes,
+						e->e_id );
+					if ( scopes[x] == e->e_id )
+						scopeok = 1;
+				} else {
+				/* subtree, walk up the tree */
+					EntryInfo *tmp = BEI(e);
+					for (;tmp->bei_parent;
+						tmp=tmp->bei_parent) {
+						x = bdb_idl_search(
+							scopes, tmp->bei_id );
+						if ( scopes[x] == tmp->bei_id ) {
+							scopeok = 1;
+							break;
+						}
+					}
+				}
 			}
 		}
 #endif
@@ -1441,7 +1473,8 @@ static int search_candidates(
 	SlapReply *rs,
 	Entry *e,
 	u_int32_t locker,
-	ID	*ids )
+	ID	*ids,
+	ID	*scopes )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	int rc, depth = 1;
@@ -1529,7 +1562,7 @@ static int search_candidates(
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
-		rc = search_aliases( op, rs, e, locker, &scopef, ids, stack );
+		rc = search_aliases( op, rs, e, locker, &scopef, ids, scopes, stack );
 	} else {
 		rc = bdb_filter_candidates( op, &scopef, ids,
 			stack, stack+BDB_IDL_UM_SIZE );
