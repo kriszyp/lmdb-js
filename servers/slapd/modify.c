@@ -112,8 +112,7 @@ do_modify(
 		tmp.sml_nvalues = NULL;
 
 		if ( ber_scanf( op->o_ber, "{i{m[W]}}", &mop,
-		    &tmp.sml_type, &tmp.sml_values )
-		    == LBER_ERROR )
+		    &tmp.sml_type, &tmp.sml_values ) == LBER_ERROR )
 		{
 			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR,
 				"decoding modlist error" );
@@ -766,6 +765,64 @@ int slap_mods_check(
 				ml->sml_nvalues[nvals].bv_val = NULL;
 				ml->sml_nvalues[nvals].bv_len = 0;
 			}
+
+			if( nvals ) {
+				/* check for duplicates */
+				int		i, j;
+				MatchingRule *mr = ad->ad_type->sat_equality;
+
+				/* check if the values we're adding already exist */
+				if( mr == NULL || !mr->smr_match ) {
+					for ( i = 1; ml->sml_values[i].bv_val != NULL; i++ ) {
+						/* test asserted values against themselves */
+						for( j = 0; j < i; j++ ) {
+							if ( bvmatch( &ml->sml_values[i],
+								&ml->sml_values[j] ) )
+							{
+								/* value exists already */
+								snprintf( textbuf, textlen,
+									"%s: value #%d provided more than once",
+									ml->sml_desc->ad_cname.bv_val, j );
+								*text = textbuf;
+								return LDAP_TYPE_OR_VALUE_EXISTS;
+							}
+						}
+					}
+
+				} else {
+					int rc = LDAP_SUCCESS;
+					int match;
+
+					for ( i = 1; ml->sml_values[i].bv_val != NULL; i++ ) {
+						/* test asserted values against themselves */
+						for( j = 0; j < i; j++ ) {
+							rc = value_match( &match, ml->sml_desc, mr,
+								SLAP_MR_EQUALITY
+									| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
+									| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+									| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+								ml->sml_nvalues
+									? &ml->sml_nvalues[i]
+									: &ml->sml_values[i],
+								ml->sml_nvalues
+									? &ml->sml_nvalues[j]
+									: &ml->sml_values[j],
+								text );
+							if ( rc == LDAP_SUCCESS && match == 0 ) {
+								/* value exists already */
+								snprintf( textbuf, textlen,
+									"%s: value #%d provided more than once",
+									ml->sml_desc->ad_cname.bv_val, j );
+								*text = textbuf;
+								return LDAP_TYPE_OR_VALUE_EXISTS;
+							}
+						}
+					}
+
+					if ( rc != LDAP_SUCCESS ) return rc;
+				}
+			}
+
 		}
 	}
 

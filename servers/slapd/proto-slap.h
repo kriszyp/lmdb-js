@@ -688,10 +688,6 @@ LDAP_SLAPD_F( int ) slap_mods_opattrs(
 /*
  * mods.c
  */
-LDAP_SLAPD_F( int ) modify_check_duplicates(
-	AttributeDescription *ad, MatchingRule *mr, 
-	BerVarray vals, BerVarray mods, int permissive, 
-	const char **text, char *textbuf, size_t textlen );
 LDAP_SLAPD_F( int ) modify_add_values( Entry *e,
 	Modification *mod,
 	int permissive,
