@@ -50,8 +50,8 @@ LDAPMessageQueue* LDAPCompareRequest::sendRequest(){
             m_attr.getName().c_str(), val[0], tmpSrvCtrls, 
             tmpClCtrls, &msgID);
     ber_bvecfree(val);
-    ldap_controls_free(tmpSrvCtrls);
-    ldap_controls_free(tmpClCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpSrvCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpClCtrls);
     if(err != LDAP_SUCCESS){
         throw LDAPException(err);
     }else{

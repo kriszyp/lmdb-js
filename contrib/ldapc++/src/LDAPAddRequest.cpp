@@ -50,8 +50,8 @@ LDAPMessageQueue* LDAPAddRequest::sendRequest(){
     LDAPControl** tmpClCtrls = m_cons->getClCtrlsArray();
     int err=ldap_add_ext(m_connection->getSessionHandle(),
             m_entry->getDN().c_str(),attrs,tmpSrvCtrls,tmpClCtrls,&msgID);
-    ldap_controls_free(tmpSrvCtrls);
-    ldap_controls_free(tmpClCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpSrvCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpClCtrls);
     ldap_mods_free(attrs,1);
     if(err != LDAP_SUCCESS){
         throw LDAPException(err);

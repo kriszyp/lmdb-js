@@ -41,17 +41,17 @@ LDAPMessageQueue* LDAPExtRequest::sendRequest(){
     int msgID=0;
     BerValue* tmpdata=0;
     if(m_data != ""){
-        tmpdata=new BerValue;
+        tmpdata=(BerValue*) malloc(sizeof(BerValue));
         tmpdata->bv_len = m_data.size();
-        tmpdata->bv_val = new char[m_data.size()];
+        tmpdata->bv_val = (char*) malloc(sizeof(char) * (m_data.size()) );
         m_data.copy(tmpdata->bv_val, string::npos);
     }
     LDAPControl** tmpSrvCtrls=m_cons->getSrvCtrlsArray();
     LDAPControl** tmpClCtrls=m_cons->getClCtrlsArray();
     int err=ldap_extended_operation(m_connection->getSessionHandle(),
             m_oid.c_str(), tmpdata, tmpSrvCtrls, tmpClCtrls, &msgID);
-    ldap_controls_free(tmpSrvCtrls);
-    ldap_controls_free(tmpClCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpSrvCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpClCtrls);
     ber_bvfree(tmpdata);
     if(err != LDAP_SUCCESS){
         delete this;

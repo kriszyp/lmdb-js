@@ -51,8 +51,9 @@ LDAPMessageQueue* LDAPModifyRequest::sendRequest(){
     LDAPMod** tmpMods=m_modList->toLDAPModArray();
     int err=ldap_modify_ext(m_connection->getSessionHandle(),m_dn.c_str(),
             tmpMods, tmpSrvCtrls, tmpClCtrls,&msgID);
-    ldap_controls_free(tmpSrvCtrls);
-    ldap_controls_free(tmpClCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpSrvCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpClCtrls);
+    ldap_mods_free(tmpMods,1);
     if(err != LDAP_SUCCESS){
         throw LDAPException(err);
     }else{

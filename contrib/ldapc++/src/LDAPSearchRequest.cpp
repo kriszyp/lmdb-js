@@ -71,8 +71,8 @@ LDAPMessageQueue* LDAPSearchRequest::sendRequest(){
             tmpClCtrl, tmptime, m_cons->getSizeLimit(), &msgID );
     delete tmptime;
     ldap_value_free(tmpattrs);
-    ldap_controls_free(tmpSrvCtrl);
-    ldap_controls_free(tmpClCtrl);
+    LDAPControlSet::freeLDAPControlArray(tmpSrvCtrl);
+    LDAPControlSet::freeLDAPControlArray(tmpClCtrl);
 
     if (err != LDAP_SUCCESS){  
         throw LDAPException(err);

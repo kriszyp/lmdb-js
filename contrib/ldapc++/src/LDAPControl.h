@@ -73,7 +73,8 @@ class LDAPCtrl{
          * the C-API
          */
         LDAPControl* getControlStruct() const;
-    
+	static void freeLDAPControlStruct(LDAPControl *ctrl);
+
     private :
         std::string m_oid;
         std::string m_data;

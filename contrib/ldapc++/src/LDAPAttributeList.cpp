@@ -92,7 +92,7 @@ void LDAPAttributeList::addAttribute(const LDAPAttribute& attr){
 
 LDAPMod** LDAPAttributeList::toLDAPModArray() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::toLDAPModArray()" << endl);
-    LDAPMod **ret = new LDAPMod*[m_attrs.size()+1];
+    LDAPMod **ret = (LDAPMod**) malloc((m_attrs.size()+1) * sizeof(LDAPMod*));
     AttrList::const_iterator i;
     int j=0;
     for (i=m_attrs.begin(); i!= m_attrs.end(); i++, j++){

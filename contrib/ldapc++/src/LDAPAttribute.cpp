@@ -123,18 +123,18 @@ const StringList& LDAPAttribute::getValues() const{
 
 BerValue** LDAPAttribute::getBerValues() const{
     DEBUG(LDAP_DEBUG_TRACE,"LDAPAttribute::getBerValues()" << endl);
-	size_t size=m_values.size();
+    size_t size=m_values.size();
     if (size == 0){
         return 0;
     }else{
-        BerValue **temp = new BerValue*[size+1];
+        BerValue **temp = (BerValue**) malloc(sizeof(BerValue*) * (size+1));
         StringList::const_iterator i;
         int p=0;
 
         for(i=m_values.begin(), p=0; i!=m_values.end(); i++,p++){
-            temp[p]=new BerValue;
+            temp[p]=(BerValue*) malloc(sizeof(BerValue));
             temp[p]->bv_len= i->size();
-            temp[p]->bv_val= new char[i->size()+1];
+            temp[p]->bv_val= (char*) malloc(sizeof(char) * (i->size()+1));
             i->copy(temp[p]->bv_val,string::npos);
         }
         temp[size]=0;
@@ -162,37 +162,37 @@ void LDAPAttribute::setName(const string& name){
 // The bin-FLAG of the mod_op  is always set to LDAP_MOD_BVALUES (0x80) 
 LDAPMod* LDAPAttribute::toLDAPMod() const {
     DEBUG(LDAP_DEBUG_TRACE, "LDAPAttribute::toLDAPMod()" << endl);
-	LDAPMod* ret=new LDAPMod();
-	ret->mod_op=LDAP_MOD_BVALUES;	//always assume binary-Values
-	ret->mod_type= new char[m_name.size()+1];
+    LDAPMod* ret= (LDAPMod*) malloc(sizeof(LDAPMod));
+    ret->mod_op=LDAP_MOD_BVALUES;	//always assume binary-Values
+    ret->mod_type= (char*) malloc(sizeof(char) * (m_name.size()+1));
     m_name.copy(ret->mod_type,string::npos);
     ret->mod_type[m_name.size()]=0;
-	ret->mod_bvalues=this->getBerValues();
-	return ret;
+    ret->mod_bvalues=this->getBerValues();
+    return ret;
 }
 
 bool LDAPAttribute::isNotPrintable() const {
-	StringList::const_iterator i;
-	for(i=m_values.begin(); i!=m_values.end(); i++){
-		size_t len = i->size();
-		for(size_t j=0; j<len; j++){
-			if (! isprint( (i->data())[j] ) ){
-				return true;
-			}
-		}
+    StringList::const_iterator i;
+    for(i=m_values.begin(); i!=m_values.end(); i++){
+	size_t len = i->size();
+	for(size_t j=0; j<len; j++){
+	    if (! isprint( (i->data())[j] ) ){
+		return true;
+	    }
 	}
-	return false;
+    }
+    return false;
 }
 
 ostream& operator << (ostream& s, const LDAPAttribute& attr){
-	s << attr.m_name << "=";
-	StringList::const_iterator i;
-	if (attr.isNotPrintable()){
-		s << "NOT_PRINTABLE" ;
-	}else{
-		for(i=attr.m_values.begin(); i!=attr.m_values.end(); i++){
-			s << *i << " ";
-		}
+    s << attr.m_name << "=";
+    StringList::const_iterator i;
+    if (attr.isNotPrintable()){
+	    s << "NOT_PRINTABLE" ;
+    }else{
+	for(i=attr.m_values.begin(); i!=attr.m_values.end(); i++){
+	    s << *i << " ";
 	}
+    }
 	return s;
 }

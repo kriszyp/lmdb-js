@@ -72,3 +72,12 @@ LDAPControl** LDAPControlSet::toLDAPControlArray() const{
     }
 }
 
+void LDAPControlSet::freeLDAPControlArray(LDAPControl **ctrl){
+    DEBUG(LDAP_DEBUG_TRACE, "LDAPControlSet::freeLDAPControlArray()" << endl);
+    if( ctrl ){
+        for( LDAPControl **i = ctrl; *i != 0; ++i ){
+	    LDAPCtrl::freeLDAPControlStruct(*i);
+	}
+    }
+    delete[] ctrl;
+}

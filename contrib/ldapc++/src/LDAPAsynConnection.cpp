@@ -211,8 +211,8 @@ void LDAPAsynConnection::unbind(){
         LDAPControl** tmpClCtrls=m_constr->getClCtrlsArray();
         int err=ldap_unbind_ext(cur_session, tmpSrvCtrls, tmpClCtrls);
         cur_session=0;
-        ldap_controls_free(tmpSrvCtrls);
-        ldap_controls_free(tmpClCtrls);
+        LDAPControlSet::freeLDAPControlArray(tmpSrvCtrls);
+        LDAPControlSet::freeLDAPControlArray(tmpClCtrls);
         if(err != LDAP_SUCCESS){
             throw LDAPException(err);
         }

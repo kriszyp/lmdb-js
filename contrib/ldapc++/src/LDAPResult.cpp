@@ -41,11 +41,11 @@ LDAPResult::LDAPResult(const LDAPRequest *req, LDAPMessage *msg) :
             }
             if(matchedDN != 0){
                 m_matchedDN=string(matchedDN);
-                delete[] matchedDN;
+                free(matchedDN);
             }
             if(errMsg != 0){
                 m_errMsg=string(errMsg);
-                delete[] errMsg;
+                free(errMsg);
             }
         }
     }

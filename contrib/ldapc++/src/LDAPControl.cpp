@@ -79,3 +79,10 @@ LDAPControl* LDAPCtrl::getControlStruct() const {
     return ret;
 }
 
+void LDAPCtrl::freeLDAPControlStruct(LDAPControl *ctrl){
+    DEBUG(LDAP_DEBUG_TRACE,"LDAPCtrl::freeControlStruct()" << endl);
+    delete[] ctrl->ldctl_oid;
+    delete[] ctrl->ldctl_value.bv_val;
+    delete ctrl;
+}
+

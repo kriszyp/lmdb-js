@@ -32,11 +32,11 @@ StringList::~StringList(){
 
 char** StringList::toCharArray() const{
     if(!empty()){
-        char** ret = new char*[size()+1];
+        char** ret = (char**) malloc(sizeof(char*) * (size()+1));
         StringList::const_iterator i;
         int j=0;
         for(i=begin(); i != end(); i++,j++){
-            ret[j]=new char[i->size()+1];
+            ret[j]=(char*) malloc(sizeof(char) * (i->size()+1));
             i->copy(ret[j],string::npos);
             ret[j][i->size()]=0;
         }

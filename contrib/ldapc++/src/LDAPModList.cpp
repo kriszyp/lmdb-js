@@ -25,12 +25,13 @@ void LDAPModList::addModification(const LDAPModification &mod){
 
 LDAPMod** LDAPModList::toLDAPModArray(){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPModList::toLDAPModArray()" << endl);
-	LDAPMod **ret = new LDAPMod*[m_modList.size()+1];
-	ret[m_modList.size()]=0;
-	ModList::const_iterator i;
-	int j=0;
-	for (i=m_modList.begin(); i != m_modList.end(); i++ , j++){
-		ret[j]=i->toLDAPMod();
-	}
-	return ret;
+    LDAPMod **ret = (LDAPMod**) malloc(
+		    (m_modList.size()+1) * sizeof(LDAPMod*));
+    ret[m_modList.size()]=0;
+    ModList::const_iterator i;
+    int j=0;
+    for (i=m_modList.begin(); i != m_modList.end(); i++ , j++){
+	    ret[j]=i->toLDAPMod();
+    }
+    return ret;
 }

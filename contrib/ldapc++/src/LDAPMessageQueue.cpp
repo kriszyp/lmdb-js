@@ -41,18 +41,18 @@ LDAPMessageQueue::~LDAPMessageQueue(){
 
 LDAPMsg *LDAPMessageQueue::getNext(){
     DEBUG(LDAP_DEBUG_TRACE,"LDAPMessageQueue::getNext()" << endl);
-	LDAPMessage *msg;
+    LDAPMessage *msg;
     LDAPRequest *req=m_activeReq.top();
     int msg_id = req->getMsgID();
-	int res;
+    int res;
     const  LDAPAsynConnection *con=req->getConnection();
     res=ldap_result(con->getSessionHandle(),msg_id,0,0,&msg);
     if (res <= 0){
         if(msg != 0){
             ldap_msgfree(msg);
         }
-		throw  LDAPException(con);
-	}else{	
+	throw  LDAPException(con);
+    }else{	
         const LDAPConstraints *constr=req->getConstraints();
         LDAPMsg *ret=0;
         //this can  throw an exception (Decoding Error)
@@ -144,7 +144,7 @@ LDAPMsg *LDAPMessageQueue::getNext(){
                 }
             break;
         }
-	}	
+    }	
 }
 
 // TODO Maybe moved to LDAPRequest::followReferral seems more reasonable

@@ -42,12 +42,12 @@ LDAPMessageQueue* LDAPBindRequest::sendRequest(){
     const char* mech = (m_mech == "" ? 0 : m_mech.c_str());
     BerValue* tmpcred=0;
     if(m_cred != ""){
-        char* tmppwd = new char[m_cred.size()+1];
+        char* tmppwd = (char*) malloc( (m_cred.size()+1) * sizeof(char));
         m_cred.copy(tmppwd,string::npos);
         tmppwd[m_cred.size()]=0;
         tmpcred=ber_bvstr(tmppwd);
     }else{
-        tmpcred=new BerValue;
+        tmpcred=(BerValue*) malloc(sizeof(BerValue));
         tmpcred->bv_len=0;
         tmpcred->bv_val=0;
     }
@@ -59,8 +59,8 @@ LDAPMessageQueue* LDAPBindRequest::sendRequest(){
     LDAPControl** tmpClCtrls=m_cons->getClCtrlsArray();
     int err=ldap_sasl_bind(m_connection->getSessionHandle(),dn, 
             mech, tmpcred, tmpSrvCtrls, tmpClCtrls, &msgID);
-    ldap_controls_free(tmpSrvCtrls);
-    ldap_controls_free(tmpClCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpSrvCtrls);
+    LDAPControlSet::freeLDAPControlArray(tmpClCtrls);
     ber_bvfree(tmpcred);
 
     if(err != LDAP_SUCCESS){

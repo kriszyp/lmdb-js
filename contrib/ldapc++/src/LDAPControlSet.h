@@ -81,7 +81,7 @@ class LDAPControlSet {
          * LDAPControl-structures as needed by the C-API
          */
         LDAPControl** toLDAPControlArray()const ;
-
+	static void freeLDAPControlArray(LDAPControl **ctrl);
     private :
         CtrlList data;
 } ;
