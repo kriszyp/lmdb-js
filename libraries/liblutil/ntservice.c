@@ -63,8 +63,11 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 	HKEY		hKey;
 	DWORD		dwValue, dwDisposition;
 	SC_HANDLE	schSCManager, schService;
+	char *sp = strchr( lpszBinaryPathName, ' ');
 
+	if ( sp ) *sp = '\0';
 	fprintf( stderr, "The install path is %s.\n", lpszBinaryPathName );
+	if ( sp ) *sp = ' ';
 	if ((schSCManager = OpenSCManager( NULL, NULL, SC_MANAGER_CONNECT|SC_MANAGER_CREATE_SERVICE ) ) != NULL )
 	{
 	 	if ((schService = CreateService( 
@@ -95,6 +98,7 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 				RegCloseKey(hKey);
 				return(0);
 			}
+			if ( sp ) *sp = '\0';
 			if ( RegSetValueEx(hKey, "EventMessageFile", 0, REG_EXPAND_SZ, lpszBinaryPathName, strlen(lpszBinaryPathName) + 1) != ERROR_SUCCESS)
 			{
 				fprintf( stderr, "RegSetValueEx(EventMessageFile) failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
