@@ -126,7 +126,7 @@ ldbm_back_add(
 	/*
 	 * Try to add the entry to the cache, assign it a new dnid.
 	 */
-	rc = cache_add_entry_rw(&li->li_cache, e, ENTRY_STATE_CREATING, 1);
+	rc = cache_add_entry_rw(&li->li_cache, e, CACHE_WRITE_LOCK);
 
 	if ( rc != 0 ) {
 		if( p != NULL) {
@@ -217,8 +217,6 @@ return_results:;
 		/* release root lock */
 		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
 	}
-
-	cache_set_state( &li->li_cache, e, 0 );
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e ); 

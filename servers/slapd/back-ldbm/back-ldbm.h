@@ -79,8 +79,8 @@ struct cache {
 	ldap_pvt_thread_mutex_t	c_mutex;
 };
 
-#define ENTRY_STATE_DELETED		1
-#define ENTRY_STATE_CREATING	2
+#define CACHE_READ_LOCK		0
+#define CACHE_WRITE_LOCK	1
 
 /* for the cache of open index files */
 struct dbcache {

@@ -132,14 +132,9 @@ Entry * str2entry LDAP_P(( char	*s ));
 char * entry2str LDAP_P(( Entry *e, int *len, int printid ));
 void entry_free LDAP_P(( Entry *e ));
 
-int entry_rdwr_lock LDAP_P(( Entry *e, int rw ));
-int entry_rdwr_rlock LDAP_P(( Entry *e ));
-int entry_rdwr_wlock LDAP_P(( Entry *e ));
-int entry_rdwr_trylock LDAP_P(( Entry *e, int rw ));
-int entry_rdwr_unlock LDAP_P(( Entry *e, int rw ));
-int entry_rdwr_runlock LDAP_P(( Entry *e ));
-int entry_rdwr_wunlock LDAP_P(( Entry *e ));
-int entry_rdwr_init LDAP_P(( Entry *e ));
+int entry_cmp LDAP_P(( Entry *a, Entry *b ));
+int entry_dn_cmp LDAP_P(( Entry *a, Entry *b ));
+int entry_id_cmp LDAP_P(( Entry *a, Entry *b ));
 
 /*
  * filter.c

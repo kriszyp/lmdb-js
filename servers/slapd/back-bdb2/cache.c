@@ -27,25 +27,9 @@ static void	lru_print(struct cache *cache);
  *
  * these correspond to three different avl trees that are maintained.
  */
-
-static int
-cache_entry_cmp( Entry *e1, Entry *e2 )
-{
-	return( e1 < e2 ? -1 : (e1 > e2 ? 1 : 0) );
-}
-
-static int
-cache_entrydn_cmp( Entry *e1, Entry *e2 )
-{
-	/* compare their normalized UPPERCASED dn's */
-	return( strcmp( e1->e_ndn, e2->e_ndn ) );
-}
-
-static int
-cache_entryid_cmp( Entry *e1, Entry *e2 )
-{
-	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
-}
+#define cache_entry_cmp entry_cmp
+#define cache_entrydn_cmp entry_dn_cmp
+#define cache_entryid_cmp entry_id_cmp
 
 void
 bdb2i_cache_set_state( struct cache *cache, Entry *e, int state )

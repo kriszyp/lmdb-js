@@ -237,3 +237,35 @@ entry_free( Entry *e )
 	free( e );
 }
 
+/*
+ * These routines are used only by Backend.
+ *
+ * the Entry has three entry points (ways to find things):
+ *
+ * 	by entry	e.g., if you already have an entry from the cache
+ *			and want to delete it. (really by entry ptr)
+ *	by dn		e.g., when looking for the base object of a search
+ *	by id		e.g., for search candidates
+ *
+ * these correspond to three different avl trees that are maintained.
+ */
+
+int
+entry_cmp( Entry *e1, Entry *e2 )
+{
+	return( e1 < e2 ? -1 : (e1 > e2 ? 1 : 0) );
+}
+
+int
+entry_dn_cmp( Entry *e1, Entry *e2 )
+{
+	/* compare their normalized UPPERCASED dn's */
+	return( strcmp( e1->e_ndn, e2->e_ndn ) );
+}
+
+int
+entry_id_cmp( Entry *e1, Entry *e2 )
+{
+	return( e1->e_id < e2->e_id ? -1 : (e1->e_id > e2->e_id ? 1 : 0) );
+}
+

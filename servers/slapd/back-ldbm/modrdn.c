@@ -145,7 +145,6 @@ ldbm_back_modrdn(
 	free( e->e_ndn );
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
-
 	(void) cache_update_entry( &li->li_cache, e );
 
 	/* 

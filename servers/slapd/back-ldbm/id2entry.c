@@ -51,9 +51,6 @@ id2entry_add( Backend *be, Entry *e )
 
 	ldbm_cache_close( be, db );
 
-	/* XXX entry should have already been added to the cache */
-	/* (void) cache_add_entry_rw( &li->li_cache, e, 0 ); */
-
 	Debug( LDAP_DEBUG_TRACE, "<= id2entry_add %d\n", rc, 0, 0 );
 
 	return( rc );
@@ -102,7 +99,7 @@ id2entry_delete( Backend *be, Entry *e )
 	return( rc );
 }
 
-/* XXX returns entry with reader/writer lock */
+/* returns entry with reader/writer lock */
 Entry *
 id2entry_rw( Backend *be, ID id, int rw )
 {
@@ -118,8 +115,8 @@ id2entry_rw( Backend *be, ID id, int rw )
 		rw ? "w" : "r", id, 0 );
 
 	if ( (e = cache_find_entry_id( &li->li_cache, id, rw )) != NULL ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s 0x%lx (cache)\n",
-			rw ? "w" : "r", (unsigned long)e, 0 );
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (cache)\n",
+			rw ? "w" : "r", id, (unsigned long) e );
 		return( e );
 	}
 
@@ -153,27 +150,22 @@ id2entry_rw( Backend *be, ID id, int rw )
 		return( NULL );
 	}
 
-	e->e_id = id;
-
-	if( cache_add_entry_rw( &li->li_cache, e, 0, rw ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (cache add failed)\n",
-			rw ? "w" : "r", id, 0 );
+	if ( e->e_id != id ) {
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (wrong id %ld on disk)\n",
+			rw ? "w" : "r", id, e->e_id );
+		entry_free( e );
+		return( NULL );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (disk)\n",
-		rw ? "w" : "r", id, 0 );
+	if( cache_add_entry_rw( &li->li_cache, e, rw ) != 0 ) {
+		Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) (cache add failed)\n",
+			rw ? "w" : "r", id, 0 );
+		entry_free( e );
+		return NULL;
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "<= id2entry_%s( %ld ) 0x%lx (disk)\n",
+		rw ? "w" : "r", id, (unsigned long) e );
+
 	return( e );
 }
-
-Entry *
-id2entry_r( Backend *be, ID id )
-{
-	return( id2entry_rw( be, id, 0 ) );
-}
-
-Entry *
-id2entry_w( Backend *be, ID id )
-{
-	return( id2entry_rw( be, id, 1 ) );
-}
-

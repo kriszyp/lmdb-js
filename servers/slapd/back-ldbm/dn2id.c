@@ -153,7 +153,7 @@ dn2id_delete(
  * entry.
  */
 
-static Entry *
+Entry *
 dn2entry_rw(
     Backend	*be,
     char	*dn,
@@ -207,26 +207,4 @@ dn2entry_rw(
 
 	return( NULL );
 }
-
-Entry *
-dn2entry_r(
-	Backend	*be,
-	char	*dn,
-	char	**matched
-)
-{
-	return( dn2entry_rw( be, dn, matched, 0 ) );
-}
-
-Entry *
-dn2entry_w(
-	Backend	*be,
-	char	*dn,
-	char	**matched
-)
-{
-	return( dn2entry_rw( be, dn, matched, 1 ) );
-}
-
-
 
