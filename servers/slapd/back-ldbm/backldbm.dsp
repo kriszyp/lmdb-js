@@ -128,6 +128,10 @@ SOURCE=.\dn2id.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\entry.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\external.h
 # End Source File
 # Begin Source File
