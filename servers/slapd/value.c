@@ -134,8 +134,9 @@ value_cmp(
 		break;
 
 	case SYNTAX_BIN:
-		rc = ( v1->bv_len == v2->bv_len ) ? memcmp( v1->bv_val, 
-		    v2->bv_val, v1->bv_len ) : v1->bv_len - v2->bv_len ;
+		rc = (v1->bv_len == v2->bv_len
+		      ? memcmp( v1->bv_val, v2->bv_val, v1->bv_len )
+		      : v1->bv_len > v2->bv_len ? 1 : -1);
 		break;
 	}
 
