@@ -1,4 +1,8 @@
 #!/bin/sh
+# $OpenLDAP$
+# This file is distributed with OpenLDAP Software, but is an
+# an independently licensed program.
+
 ##
 ##  GNU shtool -- The GNU Portable Shell Tool
 ##  Copyright (c) 1994-2002 Ralf S. Engelschall <rse@engelschall.com>

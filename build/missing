@@ -1,8 +1,8 @@
 #! /bin/sh
 # $OpenLDAP$
-#
-# Modified for use with OpenLDAP
-#
+# This file is distributed with OpenLDAP Software, but is an an 
+# independently licensed program.
+
 # Common stub for a few missing GNU programs while installing.
 # Copyright (C) 1996, 1997 Free Software Foundation, Inc.
 # Franc,ois Pinard <pinard@iro.umontreal.ca>, 1996.
