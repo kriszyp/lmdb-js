@@ -40,7 +40,9 @@ do_delete(
 	int rc;
 	int manageDSAit;
 
+#ifdef LDAP_SLAPI
 	Slapi_PBlock *pb = op->o_pb;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 

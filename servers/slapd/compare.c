@@ -49,7 +49,9 @@ do_compare(
 	const char *text = NULL;
 	int manageDSAit;
 
+#ifdef LDAP_SLAPI
 	Slapi_PBlock *pb = op->o_pb;
+#endif
 
 	ava.aa_desc = NULL;
 

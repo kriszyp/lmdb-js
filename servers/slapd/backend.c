@@ -687,9 +687,9 @@ backend_unbind(
 )
 {
 	int		i;
+#if defined( LDAP_SLAPI )
 	Slapi_PBlock *pb = op->o_pb;
 
-#if defined( LDAP_SLAPI )
 	int     rc;
 	slapi_x_connection_set_pb( pb, conn );
 	slapi_x_operation_set_pb( pb, op );

@@ -10,6 +10,8 @@
  * without express or implied warranty.
  */
 
+#ifdef LDAP_SLAPI /* SLAPI is OPTIONAL */
+
 #ifndef _SLAPI_H
 #define _SLAPI_H
 
@@ -526,4 +528,4 @@ LDAP_END_DECL
 #include "proto-slapi.h"
 
 #endif /* _SLAPI_H */
-
+#endif /* LDAP_SLAPI */

@@ -42,17 +42,17 @@ do_modify(
 	ber_len_t	len;
 	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
-#ifdef LDAP_SLAPI
-	LDAPMod		**modv = NULL;
-#endif
 #ifdef LDAP_DEBUG
 	Modifications *tmp;
+#endif
+#ifdef LDAP_SLAPI
+	LDAPMod		**modv = NULL;
+	Slapi_PBlock *pb = op->o_pb;
 #endif
 	Backend		*be;
 	int rc;
 	const char	*text;
 	int manageDSAit;
-	Slapi_PBlock *pb = op->o_pb;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modify: enter\n", 0, 0, 0 );

@@ -49,7 +49,9 @@ do_bind(
 	struct berval cred = { 0, NULL };
 	Backend *be = NULL;
 
+#ifdef LDAP_SLAPI
 	Slapi_PBlock *pb = op->o_pb;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_bind: conn %d\n", conn->c_connid, 0, 0 );

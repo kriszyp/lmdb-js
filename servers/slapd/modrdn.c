@@ -65,7 +65,9 @@ do_modrdn(
 	const char *text;
 	int manageDSAit;
 
+#ifdef LDAP_SLAPI
 	Slapi_PBlock *pb = op->o_pb;
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modrdn: begin\n", 0, 0, 0 );
