@@ -24,7 +24,7 @@ OpenLDAP 2.x Projects
 	client API update
 		Implement per referral callback
 	clients
-		referral chasing options/rebind proc
+		Implement referral chasing options w/ referral callback
 	Update manual pages
 
 
@@ -51,6 +51,8 @@ Implement localization
 
 Small projects
 --------------
+Implement -E/-e extensions options
+Implement -V version options
 Implement simple paged results control
 Implement whoami? (get-authzid) operation
 Implement proxy-grp operation/control

@@ -22,8 +22,8 @@ ud                 D                 *      cd f     l  p   s uv
 * General flags:
 	-C Chase Referrals
 	-D Bind DN
-	-E Extensions
-	-e Extensions
+	-E CommandSpecific Extensions	(e.g., -E <[!]oid[=options]>*)
+	-e General Extensions			(e.g., -e <[!]oid[=options]>*)
 	-H URI
 	-P protocol version
 	-V version information
