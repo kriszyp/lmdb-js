@@ -59,6 +59,8 @@ typedef struct slap_listener {
 
 Listener **slap_listeners = NULL;
 
+#define SLAPD_LISTEN 10
+
 static ber_socket_t wake_sds[2];
 
 #ifdef NO_THREADS
@@ -698,7 +700,7 @@ slapd_daemon_task(
 		if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 			continue;
 
-		if ( listen( slap_listeners[l]->sl_sd, 5 ) == -1 ) {
+		if ( listen( slap_listeners[l]->sl_sd, SLAPD_LISTEN ) == -1 ) {
 			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%s, 5) failed errno=%d (%s)\n",
