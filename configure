@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.373 2001/10/20 22:32:55 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.374 2001/10/23 15:33:03 kurt Exp  
 
 # Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -116,7 +116,7 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-monitor	  enable monitor backend [no]"
 ac_help="$ac_help
-    --with-monitor-module	  module type [static]"
+    --with-monitor-module module type [static]"
 ac_help="$ac_help
     --enable-passwd	  enable passwd backend [no]"
 ac_help="$ac_help
