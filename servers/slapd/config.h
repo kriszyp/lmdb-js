@@ -61,6 +61,7 @@ typedef struct config_args_s {
 	char *line;
 	const char *fname;
 	unsigned long lineno;
+	char log[PATH_MAX + STRLENOF(": line 18446744073709551615") + 1];
 	int depth;
 	int value_int;   /* parsed first val */
 	long value_long; /* for simple cases */

@@ -39,6 +39,12 @@
 #include "slapi/slapi.h"
 #endif
 #include "lutil.h"
+#ifdef HAVE_LIMITS_H
+#include <limits.h>
+#endif /* HAVE_LIMITS_H */
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif /* ! PATH_MAX */
 #include "config.h"
 
 #define ARGS_STEP	512
@@ -190,7 +196,7 @@ ConfigTable SystemConfiguration[] = {
   { "sizelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_SIZE,	&config_sizelimit,		NULL, NULL, NULL },
   { "timelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_TIME,	&config_timelimit,		NULL, NULL, NULL },
   { "limits",			2,  2,  0,  "limits",	ARG_DB|ARG_MAGIC|CFG_LIMITS, &config_generic,		NULL, NULL, NULL },
-  { "overlay",			2,  2,  0,  "overlay",	ARG_DB|ARG_MAGIC,	&config_overlay,		NULL, NULL, NULL },
+  { "overlay",			2,  2,  0,  "overlay",	ARG_MAGIC,		&config_overlay,		NULL, NULL, NULL },
   { "suffix",			2,  2,  0,  "suffix",	ARG_DB|ARG_MAGIC,	&config_suffix,			NULL, NULL, NULL },
   { "maxDerefDepth",		2,  2,  0,  "depth",	ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH, &config_generic,	NULL, NULL, NULL },
   { "rootdn",			2,  2,  0,  "dn",	ARG_DB|ARG_MAGIC,	&config_rootdn,			NULL, NULL, NULL },
@@ -275,6 +281,7 @@ new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **
 	c->argc   = argc;
 	c->argv   = argv; 
 	c->lineno = lineno;
+	snprintf( c->log, sizeof( c->log ), "%s: line %lu", fname, lineno );
 	return(c);
 }
 
@@ -288,35 +295,37 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 	if(!Conf[i].name) return(ARG_UNKNOWN);
 	arg_type = Conf[i].arg_type;
 	if(arg_type == ARG_IGNORED) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: keyword <%s> ignored\n",
-			c->fname, c->lineno, Conf[i].name);
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> ignored\n",
+			c->log, Conf[i].name, 0);
 		return(0);
 	}
 	if(Conf[i].min_args && (c->argc < Conf[i].min_args)) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: ", c->fname, c->lineno, 0);
-		Debug(LDAP_DEBUG_CONFIG, "keyword <%s> missing <%s> argument\n", Conf[i].name, Conf[i].what, 0);
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> missing <%s> argument\n",
+			c->log, Conf[i].name, Conf[i].what);
 		return(ARG_BAD_CONF);
 	}
 	if(Conf[i].max_args && (c->argc > Conf[i].max_args)) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: ", c->fname, c->lineno, 0);
-		Debug(LDAP_DEBUG_CONFIG, "extra cruft after <%s> in <%s> line (ignored)\n", Conf[i].what, Conf[i].name, 0);
+		Debug(LDAP_DEBUG_CONFIG, "%s: extra cruft after <%s> in <%s> line (ignored)\n",
+			c->log, Conf[i].what, Conf[i].name);
 	}
 	if((arg_type & ARG_DB) && !c->be) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: keyword <%s> allowed only within database declaration\n",
-			c->fname, c->lineno, Conf[i].name);
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> allowed only within database declaration\n",
+			c->log, Conf[i].name, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_DB) && c->be) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: keyword <%s> must appear before any database declaration\n",
-			c->fname, c->lineno, Conf[i].name);
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any database declaration\n",
+			c->log, Conf[i].name, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PAREN) && *c->argv[1] != '(' /*')'*/) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: old <%s> format not supported\n", c->fname, c->lineno, Conf[i].name);
+		Debug(LDAP_DEBUG_CONFIG, "%s: old <%s> format not supported\n",
+			c->log, Conf[i].name, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARGS_POINTER) && !Conf[i].arg_item) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: null arg_item for <%s>\n", c->fname, c->lineno, Conf[i].name);
+		Debug(LDAP_DEBUG_CONFIG, "%s: null arg_item for <%s>\n",
+			c->log, Conf[i].name, 0);
 		return(ARG_BAD_CONF);
 	}
 	c->type = arg_user = (arg_type & ARGS_USERLAND);
@@ -335,7 +344,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 				} else if(!strcasecmp(c->argv[1], "off")) {
 					iarg = 0;
 				} else {
-					Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: ignoring ", c->fname, c->lineno, 0);
+					Debug(LDAP_DEBUG_CONFIG, "%s: ignoring ", c->log, 0, 0);
 					Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%s) in <%s> line\n",
 						Conf[i].what, c->argv[1], Conf[i].name);
 					return(0);
@@ -346,7 +355,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		rc = (Conf == SystemConfiguration) ? ((arg_type & ARG_SPECIAL) && (larg < index_substr_if_maxlen)) : 0;
 		if(iarg < j || larg < j || barg < j || rc) {
 			larg = larg ? larg : (barg ? barg : iarg);
-			Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: " , c->fname, c->lineno, 0);
+			Debug(LDAP_DEBUG_CONFIG, "%s: " , c->log, 0, 0);
 			Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%ld) in <%s> line\n", Conf[i].what, larg, Conf[i].name);
 			return(ARG_BAD_CONF);
 		}
@@ -360,8 +369,8 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		rc = (*((ConfigDriver*)Conf[i].arg_item))(c);
 		if(c->be == frontendDB) c->be = NULL;
 		if(rc) {
-			Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: ", c->fname, c->lineno, 0);
-			Debug(LDAP_DEBUG_CONFIG, "handler for <%s> exited with %d!", Conf[i].name, rc, 0);
+			Debug(LDAP_DEBUG_CONFIG, "%s: handler for <%s> exited with %d!",
+				c->log, Conf[i].name, rc);
 			return(ARG_BAD_CONF);
 		}
 		return(0);
@@ -428,12 +437,16 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		if ( c->line[0] == '#' || c->line[0] == '\0' ) {
 			continue;
 		}
+
+		snprintf( c->log, sizeof( c->log ), "%s: line %lu",
+				c->fname, c->lineno );
+
 		if ( fp_parse_line( c ) ) {
 			goto badline;
 		}
 
 		if ( c->argc < 1 ) {
-			Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: bad config line (ignored)\n", fname, c->lineno, 0);
+			Debug(LDAP_DEBUG_CONFIG, "%s: bad config line (ignored)\n", c->log, 0, 0);
 			continue;
 		}
 
@@ -444,8 +457,8 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		if ( rc & ARGS_USERLAND ) {
 			switch(rc) {	/* XXX a usertype would be opaque here */
 			default:
-				Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: unknown user type <%d>\n",
-					c->fname, c->lineno, *c->argv);
+				Debug(LDAP_DEBUG_CONFIG, "%s: unknown user type <%d>\n",
+					c->log, *c->argv, 0);
 				goto badline;
 			}
 
@@ -457,9 +470,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: "
+					Debug(LDAP_DEBUG_CONFIG, "%s: "
 						"unknown directive <%s> inside backend info definition (ignored)\n",
-				   		c->fname, c->lineno, *c->argv);
+				   		c->log, *c->argv, 0);
 					continue;
 				default:
 					goto badline;
@@ -471,9 +484,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug( LDAP_DEBUG_CONFIG, "%s: line %lu: "
+					Debug( LDAP_DEBUG_CONFIG, "%s: "
 						"unknown directive <%s> inside backend database definition (ignored)\n",
-						c->fname, c->lineno, *c->argv);
+						c->log, *c->argv, 0);
 					continue;
 				default:
 					goto badline;
@@ -485,9 +498,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
-					Debug( LDAP_DEBUG_CONFIG, "%s: line %lu: "
-						"%s: line %lu: unknown directive <%s> inside global database definition (ignored)\n",
-						c->fname, c->lineno, *c->argv);
+					Debug( LDAP_DEBUG_CONFIG, "%s: "
+						"unknown directive <%s> inside global database definition (ignored)\n",
+						c->log, *c->argv, 0);
 					continue;
 				default:
 					goto badline;
@@ -495,9 +508,9 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			}
 			
 		} else {
-			Debug(LDAP_DEBUG_CONFIG, "%s: line %lu: "
+			Debug(LDAP_DEBUG_CONFIG, "%s: "
 				"unknown directive <%s> outside backend info and database definitions (ignored)\n",
-				c->fname, c->lineno, *c->argv);
+				c->log, *c->argv, 0);
 			continue;
 
 		}
@@ -508,7 +521,14 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 	if ( BER_BVISNULL( &frontendDB->be_schemadn ) ) {
 		ber_str2bv( SLAPD_SCHEMA_DN, STRLENOF( SLAPD_SCHEMA_DN ), 1,
 			&frontendDB->be_schemadn );
-		dnNormalize( 0, NULL, NULL, &frontendDB->be_schemadn, &frontendDB->be_schemandn, NULL );
+		rc = dnNormalize( 0, NULL, NULL, &frontendDB->be_schemadn, &frontendDB->be_schemandn, NULL );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug(LDAP_DEBUG_ANY, "%s: "
+				"unable to normalize default schema DN \"%s\"\n",
+				c->log, frontendDB->be_schemadn.bv_val, 0 );
+			/* must not happen */
+			assert( 0 );
+		}
 	}
 
 	ch_free(c->argv);
@@ -530,8 +550,8 @@ config_generic(ConfigArgs *c) {
 	switch(c->type) {
 		case CFG_BACKEND:
 			if(!(c->bi = backend_info(c->argv[1]))) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
-					"backend %s failed init!\n", c->fname, c->lineno, c->argv[1]);
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"backend %s failed init!\n", c->log, c->argv[1], 0);
 				return(1);
 			}
 			break;
@@ -539,8 +559,8 @@ config_generic(ConfigArgs *c) {
 		case CFG_DATABASE:
 			c->bi = NULL;
 			if(!(c->be = backend_db_init(c->argv[1]))) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
-					"database %s failed init!\n", c->fname, c->lineno, c->argv[1]);
+				Debug(LDAP_DEBUG_ANY, "%s: "
+					"database %s failed init!\n", c->log, c->argv[1], 0);
 				return(1);
 			}
 			break;
@@ -605,9 +625,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_CHECK:
 			global_schemacheck = c->value_int;
-			if(!global_schemacheck) Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+			if(!global_schemacheck) Debug(LDAP_DEBUG_ANY, "%s: "
 				"schema checking disabled! your mileage may vary!\n",
-				c->fname, c->lineno, 0);
+				c->log, 0, 0);
 			break;
 
 		case CFG_ACL:
@@ -622,10 +642,10 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_REPLOG:
 			if(SLAP_MONITOR(c->be)) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+				Debug(LDAP_DEBUG_ANY, "%s: "
 					"\"replogfile\" should not be used "
 					"inside monitor database\n",
-					c->fname, c->lineno, 0);
+					c->log, 0, 0);
 				return(0);	/* FIXME: should this be an error? */
 			}
 
@@ -634,9 +654,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_ROOTDSE:
 			if(read_root_dse_file(c->argv[1])) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+				Debug(LDAP_DEBUG_ANY, "%s: "
 					"could not read \"rootDSE <filename>\" line\n",
-					c->fname, c->lineno, 0);
+					c->log, 0, 0);
 				return(1);
 			}
 			break;
@@ -649,9 +669,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_LASTMOD:
 			if(SLAP_NOLASTMODCMD(c->be)) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+				Debug(LDAP_DEBUG_ANY, "%s: "
 					"lastmod not available for %s databases\n",
-					c->fname, c->lineno, c->be->bd_info->bi_type);
+					c->log, c->be->bd_info->bi_type, 0);
 				return(1);
 			}
 			if(c->value_int)
@@ -688,8 +708,8 @@ config_generic(ConfigArgs *c) {
 
 
 		default:
-			Debug(LDAP_DEBUG_ANY, "%s: line %lu: unknown CFG_TYPE %d"
-				"(ignored)\n", c->fname, c->lineno, c->type);
+			Debug(LDAP_DEBUG_ANY, "%s: unknown CFG_TYPE %d"
+				"(ignored)\n", c->log, c->type, 0);
 
 	}
 	return(0);
@@ -701,17 +721,17 @@ config_search_base(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
 	if(c->bi || c->be != frontendDB) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: defaultSearchBase line must appear "
+		Debug(LDAP_DEBUG_ANY, "%s: defaultSearchBase line must appear "
 			"prior to any backend or database definition\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(1);
 	}
 
 	if(default_search_nbase.bv_len) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"default search base \"%s\" already defined "
 			"(discarding old)\n",
-			c->fname, c->lineno, default_search_base.bv_val);
+			c->log, default_search_base.bv_val, 0);
 		free(default_search_base.bv_val);
 		free(default_search_nbase.bv_val);
 	}
@@ -721,8 +741,8 @@ config_search_base(ConfigArgs *c) {
 
 	if(rc != LDAP_SUCCESS) {
 		Debug(LDAP_DEBUG_ANY,
-			"%s: line %lu: defaultSearchBase DN is invalid\n",
-			c->fname, c->lineno, 0 );
+			"%s: defaultSearchBase DN is invalid: %d (%s)\n",
+			c->log, rc, ldap_err2string( rc ));
 		return(1);
 	}
 	return(0);
@@ -732,22 +752,22 @@ int
 config_passwd_hash(ConfigArgs *c) {
 	int i;
 	if(default_passwd_hash) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"already set default password_hash\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(1);
 	}
 	for(i = 1; i < c->argc; i++) {
 		if(!lutil_passwd_scheme(c->argv[i])) {
-			Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+			Debug(LDAP_DEBUG_ANY, "%s: "
 				"password scheme \"%s\" not available\n",
-				c->fname, c->lineno, c->argv[i] );
+				c->log, c->argv[i], 0);
 		} else {
 			ldap_charray_add(&default_passwd_hash, c->argv[i]);
 		}
 		if(!default_passwd_hash) {
-			Debug(LDAP_DEBUG_ANY, "%s: line %lu: no valid hashes found\n",
-				c->fname, c->lineno, 0 );
+			Debug(LDAP_DEBUG_ANY, "%s: no valid hashes found\n",
+				c->log, 0, 0 );
 			return(1);
 		}
 	}
@@ -761,8 +781,9 @@ config_schema_dn(ConfigArgs *c) {
 	ber_str2bv(c->argv[1], 0, 1, &dn);
 	rc = dnPrettyNormal(NULL, &dn, &c->be->be_schemadn, &c->be->be_schemandn, NULL);
 	if(rc != LDAP_SUCCESS) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
-			"schema DN is invalid\n", c->fname, c->lineno, 0);
+		Debug(LDAP_DEBUG_ANY, "%s: "
+			"schema DN is invalid: %d (%s)\n",
+			c->log, rc, ldap_err2string( rc ));
 		return(1);
 	}
 	return(0);
@@ -777,9 +798,9 @@ config_sizelimit(ConfigArgs *c) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
 			rc = limits_parse_one(c->argv[i], lim);
 			if ( rc ) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+				Debug(LDAP_DEBUG_ANY, "%s: "
 					"unable to parse value \"%s\" in \"sizelimit <limit>\" line\n",
-					c->fname, c->lineno, c->argv[i]);
+					c->log, c->argv[i], 0);
 				return(1);
 			}
 		} else {
@@ -788,14 +809,14 @@ config_sizelimit(ConfigArgs *c) {
 			} else {
 				lim->lms_s_soft = strtol(c->argv[i], &next, 0);
 				if(next == c->argv[i]) {
-					Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+					Debug(LDAP_DEBUG_ANY, "%s: "
 						"unable to parse limit \"%s\" in \"sizelimit <limit>\" line\n",
-						c->fname, c->lineno, c->argv[i]);
+						c->log, c->argv[i], 0);
 					return(1);
 				} else if(next[0] != '\0') {
-					Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+					Debug(LDAP_DEBUG_ANY, "%s: "
 						"trailing chars \"%s\" in \"sizelimit <limit>\" line (ignored)\n",
-						c->fname, c->lineno, next);
+						c->log, next, 0);
 				}
 			}
 			lim->lms_s_hard = 0;
@@ -813,9 +834,9 @@ config_timelimit(ConfigArgs *c) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
 			rc = limits_parse_one(c->argv[i], lim);
 			if ( rc ) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+				Debug(LDAP_DEBUG_ANY, "%s: "
 					"unable to parse value \"%s\" in \"timelimit <limit>\" line\n",
-					c->fname, c->lineno, c->argv[i]);
+					c->log, c->argv[i], 0);
 				return(1);
 			}
 		} else {
@@ -824,14 +845,14 @@ config_timelimit(ConfigArgs *c) {
 			} else {
 				lim->lms_t_soft = strtol(c->argv[i], &next, 0);
 				if(next == c->argv[i]) {
-					Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+					Debug(LDAP_DEBUG_ANY, "%s: "
 						"unable to parse limit \"%s\" in \"timelimit <limit>\" line\n",
-						c->fname, c->lineno, c->argv[i]);
+						c->log, c->argv[i], 0);
 					return(1);
 				} else if(next[0] != '\0') {
-					Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+					Debug(LDAP_DEBUG_ANY, "%s: "
 						"trailing chars \"%s\" in \"timelimit <limit>\" line (ignored)\n",
-						c->fname, c->lineno, next);
+						c->log, next, 0);
 				}
 			}
 			lim->lms_t_hard = 0;
@@ -844,10 +865,8 @@ int
 config_overlay(ConfigArgs *c) {
 	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1])) {
 		/* log error */
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: (optional) %s",
-			c->fname, c->lineno, c->be == frontendDB ? "global " : "");
-		Debug(LDAP_DEBUG_ANY, "overlay \"%s\" configuration "
-			"failed (ignored)\n", c->argv[1][1], 0, 0);
+		Debug(LDAP_DEBUG_ANY, "%s: (optional) %s overlay \"%s\" configuration failed (ignored)\n",
+			c->log, c->be == frontendDB ? "global " : "", c->argv[1][1]);
 	} else if(overlay_config(c->be, c->argv[1])) {
 		return(1);
 	}
@@ -861,9 +880,9 @@ config_suffix(ConfigArgs *c) {
 	int rc;
 #ifdef SLAPD_MONITOR_DN
 	if(!strcasecmp(c->argv[1], SLAPD_MONITOR_DN)) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
-			"%s\" is reserved for monitoring slapd\n",
-			c->fname, c->lineno, SLAPD_MONITOR_DN);
+		Debug(LDAP_DEBUG_ANY, "%s: "
+			"\"%s\" is reserved for monitoring slapd\n",
+			c->log, SLAPD_MONITOR_DN, 0);
 		return(1);
 	}
 #endif
@@ -871,26 +890,27 @@ config_suffix(ConfigArgs *c) {
 
 	rc = dnPrettyNormal(NULL, &dn, &pdn, &ndn, NULL);
 	if(rc != LDAP_SUCCESS) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: suffix DN is invalid\n",
-			c->fname, c->lineno, 0);
+		Debug( LDAP_DEBUG_ANY,
+			"%s: suffix DN is invalid: %d (%s)\n",
+			c->log, rc, ldap_err2string( rc ));
 		return(1);
 	}
 	tbe = select_backend(&ndn, 0, 0);
 	if(tbe == c->be) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: suffix already served by this backend! (ignored)\n",
-			c->fname, c->lineno, 0);
+		Debug(LDAP_DEBUG_ANY, "%s: suffix already served by this backend! (ignored)\n",
+			c->log, 0, 0);
 		free(pdn.bv_val);
 		free(ndn.bv_val);
 	} else if(tbe) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: suffix already served by a preceding backend \"%s\"\n",
-			c->fname, c->lineno, tbe->be_suffix[0].bv_val);
+		Debug(LDAP_DEBUG_ANY, "%s: suffix already served by a preceding backend \"%s\"\n",
+			c->log, tbe->be_suffix[0].bv_val, 0);
 		free(pdn.bv_val);
 		free(ndn.bv_val);
 		return(1);
 	} else if(pdn.bv_len == 0 && default_search_nbase.bv_len) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: suffix DN empty and default search "
+		Debug(LDAP_DEBUG_ANY, "%s: suffix DN empty and default search "
 			"base provided \"%s\" (assuming okay)\n",
-			c->fname, c->lineno, default_search_base.bv_val);
+			c->log, default_search_base.bv_val, 0);
 	}
 	ber_bvarray_add(&c->be->be_suffix, &pdn);
 	ber_bvarray_add(&c->be->be_nsuffix, &ndn);
@@ -907,8 +927,9 @@ config_rootdn(ConfigArgs *c) {
 	rc = dnPrettyNormal(NULL, &dn, &c->be->be_rootdn, &c->be->be_rootndn, NULL);
 
 	if(rc != LDAP_SUCCESS) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
-			"rootdn DN is invalid\n", c->fname, c->lineno, 0);
+		Debug(LDAP_DEBUG_ANY, "%s: "
+			"rootdn DN is invalid: %d (%s)\n",
+			c->log, rc, ldap_err2string( rc ));
 		return(1);
 	}
 	return(0);
@@ -918,9 +939,9 @@ int
 config_rootpw(ConfigArgs *c) {
 	Backend *tbe = select_backend(&c->be->be_rootndn, 0, 0);
 	if(tbe != c->be) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"rootpw can only be set when rootdn is under suffix\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(1);
 	}
 	ber_str2bv(c->argv[1], 0, 1, &c->be->be_rootpw);
@@ -999,9 +1020,9 @@ config_restrict(ConfigArgs *c) {
 		c->be->be_restrictops |= restrictops;
 		return(0);
 	}
-	Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+	Debug(LDAP_DEBUG_ANY, "%s: "
 		"unknown operation %s in \"restrict <features>\" line\n",
-		c->fname, c->lineno, c->argv[i]);
+		c->log, c->argv[i], 0);
 	return(1);
 }
 
@@ -1018,9 +1039,9 @@ config_allows(ConfigArgs *c) {
 	};
 	i = verbs_to_mask(c, allowable_ops, &allows);
 	if ( i ) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unknown feature %s in \"allow <features>\" line\n",
-			c->fname, c->lineno, c->argv[i]);
+			c->log, c->argv[i], 0);
 		return(1);
 	}
 	global_allows |= allows;
@@ -1041,9 +1062,9 @@ config_disallows(ConfigArgs *c) {
 	};
 	i = verbs_to_mask(c, disallowable_ops, &disallows);
 	if ( i ) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unknown feature %s in \"disallow <features>\" line\n",
-			c->fname, c->lineno, c->argv[i]);
+			c->log, c->argv[i], 0);
 		return(1);
 	}
 	global_disallows |= disallows;
@@ -1064,9 +1085,9 @@ config_requires(ConfigArgs *c) {
 	};
 	i = verbs_to_mask(c, requires_ops, &requires);
 	if ( i ) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unknown feature %s in \"require <features>\" line\n",
-			c->fname, c->lineno, c->argv[i]);
+			c->log, c->argv[i], 0);
 		return(1);
 	}
 	c->be->be_requires = requires;
@@ -1104,18 +1125,18 @@ config_loglevel(ConfigArgs *c) {
 			level = strtol( c->argv[i], &next, 10 );
 			if ( next == NULL || next[0] != '\0' ) {
 				Debug( LDAP_DEBUG_ANY,
-					"%s: line %lu: unable to parse level \"%s\" "
+					"%s: unable to parse level \"%s\" "
 					"in \"loglevel <level> [...]\" line.\n",
-					c->fname, c->lineno , c->argv[i] );
+					c->log, c->argv[i], 0);
 				return( 1 );
 			}
 		} else {
 			int j = verb_to_mask(c, loglevel_ops, c->argv[i][0]);
 			if(!loglevel_ops[j].word) {
 				Debug( LDAP_DEBUG_ANY,
-					"%s: line %lu: unknown level \"%s\" "
+					"%s: unknown level \"%s\" "
 					"in \"loglevel <level> [...]\" line.\n",
-					c->fname, c->lineno , c->argv[i] );
+					c->log, c->argv[i], 0);
 				return( 1 );
 			}
 			level = loglevel_ops[j].mask;
@@ -1128,9 +1149,9 @@ config_loglevel(ConfigArgs *c) {
 int
 config_syncrepl(ConfigArgs *c) {
 	if(SLAP_SHADOW(c->be)) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"syncrepl: database already shadowed.\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(1);
 	} else if(add_syncrepl(c->be, c->argv, c->argc)) {
 		return(1);
@@ -1143,9 +1164,9 @@ int
 config_referral(ConfigArgs *c) {
 	struct berval vals[2];
 	if(validate_global_referral(c->argv[1])) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"invalid URL (%s) in \"referral\" line.\n",
-			c->fname, c->lineno, c->argv[1] );
+			c->log, c->argv[1], 0);
 		return(1);
 	}
 
@@ -1191,17 +1212,17 @@ config_security(ConfigArgs *c) {
 			tgt = &set->sss_simple_bind;
 			src = &c->argv[i][12];
 		} else {
-			Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+			Debug(LDAP_DEBUG_ANY, "%s: "
 				"unknown factor %s in \"security <factors>\" line\n",
-				c->fname, c->lineno, c->argv[i]);
+				c->log, c->argv[i], 0);
 			return(1);
 		}
 
 		*tgt = strtol(src, &next, 10);
 		if(next == NULL || next[0] != '\0' ) {
-			Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+			Debug(LDAP_DEBUG_ANY, "%s: "
 				"unable to parse factor \"%s\" in \"security <factors>\" line\n",
-				c->fname, c->lineno, c->argv[i]);
+				c->log, c->argv[i], 0);
 			return(1);
 		}
 	}
@@ -1211,31 +1232,33 @@ config_security(ConfigArgs *c) {
 int
 config_replica(ConfigArgs *c) {
 	int i, nr = -1;
-	char *replicahost;
+	char *replicahost, *replicalog = NULL;
 	LDAPURLDesc *ludp;
 
 	if(SLAP_MONITOR(c->be)) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"\"replica\" should not be used inside monitor database\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(0);	/* FIXME: should this be an error? */
 	}
 
 	for(i = 1; i < c->argc; i++) {
-		if(!strncasecmp(c->argv[i], "host=", 5)) {
-			nr = add_replica_info(c->be, c->argv[i] + 5);
+		if(!strncasecmp(c->argv[i], "host=", STRLENOF("host="))) {
+			replicalog = c->argv[i] + STRLENOF("host=");
+			nr = add_replica_info(c->be, c->argv[i] + STRLENOF("host="));
 			break;
-		} else if(!strncasecmp(c->argv[i], "uri=", 4)) {
-			if(ldap_url_parse(c->argv[i] + 4, &ludp) != LDAP_SUCCESS) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		} else if(!strncasecmp(c->argv[i], "uri=", STRLENOF("uri="))) {
+			if(ldap_url_parse(c->argv[i] + STRLENOF("uri="), &ludp) != LDAP_SUCCESS) {
+				Debug(LDAP_DEBUG_ANY, "%s: "
 					"replica line contains invalid "
-					"uri definition.\n", c->fname, c->lineno, 0);
+					"uri definition.\n", c->log, 0, 0);
 				return(1);
 			}
 			if(!ludp->lud_host) {
-				Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+				Debug(LDAP_DEBUG_ANY, "%s: "
 					"replica line contains invalid "
-					"uri definition - missing hostname.\n", c->fname, c->lineno, 0);
+					"uri definition - missing hostname.\n",
+					c->log, 0, 0);
 				return(1);
 			}
 			replicahost = ch_malloc(strlen(c->argv[i]));
@@ -1246,6 +1269,7 @@ config_replica(ConfigArgs *c) {
 				exit(EXIT_FAILURE);
 			}
 			sprintf(replicahost, "%s:%d", ludp->lud_host, ludp->lud_port);
+			replicalog = c->argv[i] + STRLENOF("uri=");
 			nr = add_replica_info(c->be, replicahost);
 			ldap_free_urldesc(ludp);
 			ch_free(replicahost);
@@ -1253,34 +1277,34 @@ config_replica(ConfigArgs *c) {
 		}
 	}
 	if(i == c->argc) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"missing host or uri in \"replica\" line\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(1);
 	} else if(nr == -1) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"unable to add replica \"%s\"\n",
-			c->fname, c->lineno, c->argv[i] + 5);
+			c->log, replicalog, 0);
 		return(1);
 	} else {
 		for(i = 1; i < c->argc; i++) {
-			if(!strncasecmp(c->argv[i], "suffix=", 7)) {
-				switch(add_replica_suffix(c->be, nr, c->argv[i] + 7)) {
+			if(!strncasecmp(c->argv[i], "suffix=", STRLENOF( "suffix="))) {
+				switch(add_replica_suffix(c->be, nr, c->argv[i] + STRLENOF("suffix="))) {
 					case 1:
-						Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+						Debug(LDAP_DEBUG_ANY, "%s: "
 						"suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
-						c->fname, c->lineno, c->argv[i] + 7);
+						c->log, c->argv[i] + STRLENOF("suffix="), 0);
 						break;
 					case 2:
-						Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+						Debug(LDAP_DEBUG_ANY, "%s: "
 						"unable to normalize suffix in \"replica\" line (ignored)\n",
-						c->fname, c->lineno, 0);
+						c->log, 0, 0);
 						break;
 				}
 
-			} else if(!strncasecmp(c->argv[i], "attr", 4)) {
+			} else if(!strncasecmp(c->argv[i], "attr", STRLENOF("attr"))) {
 				int exclude = 0;
-				char *arg = c->argv[i] + 4;
+				char *arg = c->argv[i] + STRLENOF("attr");
 				if(arg[0] == '!') {
 					arg++;
 					exclude = 1;
@@ -1289,9 +1313,9 @@ config_replica(ConfigArgs *c) {
 					continue;
 				}
 				if(add_replica_attrs(c->be, nr, arg + 1, exclude)) {
-					Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+					Debug(LDAP_DEBUG_ANY, "%s: "
 						"attribute \"%s\" in \"replica\" line is unknown\n",
-						c->fname, c->lineno, arg + 1);
+						c->log, arg + 1, 0);
 					return(1);
 				}
 			}
@@ -1305,9 +1329,9 @@ config_updatedn(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
 	if(SLAP_SHADOW(c->be)) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"updatedn: database already shadowed.\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(1);
 	}
 
@@ -1316,8 +1340,9 @@ config_updatedn(ConfigArgs *c) {
 	rc = dnNormalize(0, NULL, NULL, &dn, &c->be->be_update_ndn, NULL);
 
 	if(rc != LDAP_SUCCESS) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
-			"updatedn DN is invalid\n", c->fname, c->lineno, 0);
+		Debug(LDAP_DEBUG_ANY, "%s: "
+			"updatedn DN is invalid: %d (%s)\n",
+			c->log, rc, ldap_err2string( rc ));
 		return(1);
 	}
 
@@ -1329,16 +1354,16 @@ int
 config_updateref(ConfigArgs *c) {
 	struct berval vals[2];
 	if(!SLAP_SHADOW(c->be)) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"updateref line must after syncrepl or updatedn.\n",
-			c->fname, c->lineno, 0);
+			c->log, 0, 0);
 		return(1);
 	}
 
 	if(validate_global_referral(c->argv[1])) {
-		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		Debug(LDAP_DEBUG_ANY, "%s: "
 			"invalid URL (%s) in \"updateref\" line.\n",
-			c->fname, c->lineno, c->argv[1]);
+			c->log, c->argv[1], 0);
 		return(1);
 	}
 	ber_str2bv(c->argv[1], 0, 0, &vals[0]);
@@ -1374,9 +1399,9 @@ config_tls_option(ConfigArgs *c) {
 #ifdef HAVE_OPENSSL_CRL
 	case CFG_TLS_CRLCHECK:	flag = LDAP_OPT_X_TLS_CRLCHECK;		break;
 #endif
-		default:		Debug(LDAP_DEBUG_ANY, "%s: line %lu: "
+		default:		Debug(LDAP_DEBUG_ANY, "%s: "
 						"unknown tls_option <%x>\n",
-						c->fname, c->lineno, c->type);
+						c->log, c->type, 0);
 	}
 	return(ldap_pvt_tls_set_option(NULL, flag, c->argv[1]));
 }
@@ -1782,12 +1807,20 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ], UPDATEDNSTR "=",
 					STRLENOF( UPDATEDNSTR "=" ) ) )
 		{
-			struct berval updatedn = BER_BVNULL;
+			struct berval	updatedn = BER_BVNULL;
+			int		rc;
 
 			val = cargv[ i ] + STRLENOF( UPDATEDNSTR "=" );
 			ber_str2bv( val, 0, 0, &updatedn );
 			ch_free( si->si_updatedn.bv_val );
-			dnNormalize( 0, NULL, NULL, &updatedn, &si->si_updatedn, NULL );
+			rc = dnNormalize( 0, NULL, NULL, &updatedn, &si->si_updatedn, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr, "Error: parse_syncrepl_line: "
+					"update DN \"%s\" is invalid: %d (%s)\n",
+					updatedn, rc, ldap_err2string( rc ) );
+				return -1;
+			}
+			
 		} else if ( !strncasecmp( cargv[ i ], BINDMETHSTR "=",
 				STRLENOF( BINDMETHSTR "=" ) ) )
 		{
@@ -1871,14 +1904,18 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ], SEARCHBASESTR "=",
 					STRLENOF( SEARCHBASESTR "=" ) ) )
 		{
-			struct berval bv;
+			struct berval	bv;
+			int		rc;
+
 			val = cargv[ i ] + STRLENOF( SEARCHBASESTR "=" );
 			if ( si->si_base.bv_val ) {
 				ch_free( si->si_base.bv_val );
 			}
 			ber_str2bv( val, 0, 0, &bv );
-			if ( dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL )) {
-				fprintf( stderr, "Invalid base DN \"%s\"\n", val );
+			rc = dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr, "Invalid base DN \"%s\": %d (%s)\n",
+					val, rc, ldap_err2string( rc ) );
 				return -1;
 			}
 		} else if ( !strncasecmp( cargv[ i ], SCOPESTR "=",
