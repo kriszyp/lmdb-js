@@ -364,13 +364,12 @@ connection_destroy( Connection *c )
 
 int connection_state_closing( Connection *c )
 {
+	/* connection must be locked by caller */
 	int state;
 	assert( c != NULL );
 	assert( c->c_struct_state == SLAP_C_USED );
 
-    ldap_pvt_thread_mutex_lock( &c->c_mutex );
 	state = c->c_conn_state;
-    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 
 	assert( state != SLAP_C_INVALID );
 
