@@ -1,7 +1,8 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.9 Release Engineering
-	Fixed slapd dynamic backend build (ITS#3044)
+OpenLDAP 2.2.9 Engineering
+	Build Environment
+		Fixed slapd dynamic backend build (ITS#3044)
 
 OpenLDAP 2.2.8 Release
 	Fixed slapd/slapadd syncrepl bugs (ITS#2948,2995)
