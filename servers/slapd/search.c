@@ -202,6 +202,13 @@ do_search(
 		}
 	}
 
+	if( nbase[0] == '\0' && default_search_nbase != NULL ) {
+		ch_free( base );
+		ch_free( nbase );
+		base = ch_strdup( default_search_base );
+		nbase = ch_strdup( default_search_nbase );
+	}
+
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"

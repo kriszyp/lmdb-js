@@ -38,6 +38,8 @@ char	*global_realm = NULL;
 char	*global_ucdata_path = NULL;
 char		*ldap_srvtab = "";
 char		*default_passwd_hash;
+char		*default_search_base = NULL;
+char		*default_search_nbase = NULL;
 
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
@@ -167,6 +169,47 @@ read_config( const char *fname )
 
 			ldap_pvt_thread_set_concurrency( c );
 
+		/* default search base */
+		} else if ( strcasecmp( cargv[0], "defaultSearchBase" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing dn in \"defaultSearchBase <dn>\" line\n",
+					fname, lineno, 0 );
+				return 1;
+
+			} else if ( cargc > 2 ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"extra cruft after <dn> in \"defaultSearchBase %s\", "
+					"line (ignored)\n",
+					fname, lineno, cargv[1] );
+			}
+
+			if ( bi != NULL || be != NULL ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"defaultSearchBaase line must appear prior to "
+					"any backend or database definition\n",
+				    fname, lineno, 0 );
+				return 1;
+			}
+
+			if ( default_search_base != NULL ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"default search base \"%s\" already defined "
+					"(discarding old)\n",
+					fname, lineno, default_search_base );
+				free( default_search_base );
+			}
+
+			default_search_base = ch_strdup( cargv[1] );
+			default_search_nbase = ch_strdup( cargv[1] );
+
+			if( dn_normalize( default_search_nbase ) == NULL ) {
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"invalid default search base \"%s\""
+					"(discarding old)\n",
+					fname, lineno, default_search_base );
+			}
+	       
 		/* set maximum threads in thread pool */
 		} else if ( strcasecmp( cargv[0], "threads" ) == 0 ) {
 			int c;
@@ -359,7 +402,18 @@ read_config( const char *fname )
 				    fname, lineno, tmp_be->be_suffix[0] );
 			} else {
 				char *dn = ch_strdup( cargv[1] );
-				(void) dn_validate( dn );
+				if( dn_validate( dn ) == NULL ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"suffix DN invalid \"%s\"\n",
+				    	fname, lineno, cargv[1] );
+					return 1;
+
+				} else if( *dn == '\0' && default_search_nbase != NULL ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"suffix DN empty and default "
+						"search base provided \"%s\" (assuming okay)\n",
+			    		fname, lineno, default_search_base );
+				}
 				charray_add( &be->be_suffix, dn );
 				(void) ldap_pvt_str2upper( dn );
 				charray_add( &be->be_nsuffix, dn );

@@ -776,6 +776,8 @@ LDAP_SLAPD_F (char)		*global_ucdata_path;
 LDAP_SLAPD_F (char)		*default_passwd_hash;
 LDAP_SLAPD_F (int)		lber_debug;
 LDAP_SLAPD_F (int)		ldap_syslog;
+LDAP_SLAPD_F (char *)	default_search_base;
+LDAP_SLAPD_F (char *)	default_search_nbase;
 
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	num_sent_mutex;
 LDAP_SLAPD_F (long)		num_bytes_sent;
