@@ -323,7 +323,6 @@ alock_open ( alock_info_t * info,
 	alock_info_t scan_info;
 	alock_slot_t slot_data;
 	char * filename;
-	struct timeval tv;
 	int res, max_slot;
 	int dirty_count, live_count;
 
@@ -332,11 +331,8 @@ alock_open ( alock_info_t * info,
 	assert (envdir != NULL);
 	assert (locktype >= 1 && locktype <= 2);
 
-	res = gettimeofday (&tv, NULL);
-	if (res == -1) return ALOCK_UNSTABLE;
-
 	slot_data.al_lock = locktype;
-	slot_data.al_stamp = tv.tv_sec;
+	slot_data.al_stamp = time(NULL);
 	slot_data.al_pid = getpid();
 	slot_data.al_appname = calloc (1, ALOCK_MAX_APPNAME);
 	strncpy (slot_data.al_appname, appname, ALOCK_MAX_APPNAME-1);
