@@ -708,8 +708,8 @@ if test $ol_enable_modules != no ; then
 	fi
 
 	AC_CHECK_LIB(ltdl, lt_dlinit, [
-	    MODULES_LIBS=-lltdl
-	    AC_DEFINE(HAVE_LIBLTDL,1,[define if you have libtool -ltdl])
+		MODULES_LIBS=-lltdl
+		AC_DEFINE(HAVE_LIBLTDL,1,[define if you have libtool -ltdl])
 	])
 
 	if test "$ac_cv_lib_ltdl_lt_dlinit" = no ; then
@@ -815,14 +815,14 @@ for curlib in ws2_32 wsock32; do
 			char select@20();
 			char closesocket@4();
 			char gethostname@8();
-		    ],
-		    [
+			],
+			[
 			socket@12();
 			select@20();
 			closesocket@4();
 			gethostname@8();
-		    ],
-		    have_winsock=yes, have_winsock=no)
+			],
+			have_winsock=yes, have_winsock=no)
 
 	if test $have_winsock = yes; then
 		AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
@@ -860,10 +860,10 @@ dnl require select
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
 
 if test "${ac_cv_header_winsock_h}" != yes; then
-    dnl Select arg types
-    dnl (if this detection becomes permenent, it and the select() detection
-    dnl should be done before the yielding select test) 
-    AC_FUNC_SELECT_ARGTYPES
+	dnl Select arg types
+	dnl (if this detection becomes permenent, it and the select() detection
+	dnl should be done before the yielding select test) 
+	AC_FUNC_SELECT_ARGTYPES
 fi
 
 dnl check to see if system call automatically restart
@@ -876,7 +876,7 @@ if test "$ac_cv_header_regex_h" != yes ; then
 	AC_MSG_ERROR([POSIX regex.h required.])
 fi
 AC_SEARCH_LIBS(regfree, [regex gnuregex],
-	       :, AC_MSG_ERROR([POSIX regex required.]))
+	:, AC_MSG_ERROR([POSIX regex required.]))
 
 OL_POSIX_REGEX
 if test "$ol_cv_c_posix_regex" = no ; then
@@ -1258,9 +1258,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	OL_NT_THREADS
 
 	if test "$ol_cv_nt_threads" = yes ; then
-    	ol_link_threads=nt
-    	ol_with_threads=found
-    	ol_with_yielding_select=yes
+		ol_link_threads=nt
+		ol_with_threads=found
+		ol_with_yielding_select=yes
 
 		AC_DEFINE(HAVE_NT_SERVICE_MANAGER,1,[if you have NT Service Manager])
 		AC_DEFINE(HAVE_NT_EVENT_LOG,1,[if you have NT Event Log])
@@ -1604,7 +1604,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			fi
 		fi
 
-    elif test $ac_cv_header_cthreads_h = yes ; then
+	elif test $ac_cv_header_cthreads_h = yes ; then
 		dnl Hurd variant of Mach Cthreads
 		dnl uses <cthreads.h> and -lthreads
 
@@ -1790,7 +1790,7 @@ dnl
 dnl	dnl check for reentrant/threadsafe functions
 dnl	dnl
 dnl	dnl note: these should only be used when linking
-dnl	dnl       with $LTHREAD_LIBS
+dnl	dnl		with $LTHREAD_LIBS
 dnl	dnl
 dnl	save_CPPFLAGS="$CPPFLAGS"
 dnl	save_LIBS="$LIBS"
@@ -2010,9 +2010,9 @@ if test $ol_enable_tcl != no ; then
 			AC_CHECK_LIB($lib,main,
 			  [have_tcl=yes
 			   if test x"$ol_with_tcl_module" = "xstatic" ; then
-			       SLAPD_LIBS="$SLAPD_LIBS -l${lib}"
+					SLAPD_LIBS="$SLAPD_LIBS -l${lib}"
 			   else
-			       MOD_TCL_LIB="-l${lib}"
+					MOD_TCL_LIB="-l${lib}"
 			   fi;break],[have_tcl=no])
 		done
 	fi
@@ -2352,7 +2352,7 @@ dnl We actually may need to replace more than this.
 AC_REPLACE_FUNCS(getopt)
 
 if test "$ac_cv_func_getopt" != yes; then
-    LIBSRCS="$LIBSRCS getopt.c"
+	LIBSRCS="$LIBSRCS getopt.c"
 fi
 
 dnl ----------------------------------------------------------------
@@ -2623,11 +2623,11 @@ dnl They hurt more than they help.
 dnl
 
 if test "$ac_cv_mingw32" = yes ; then
-    PLAT=NT
-    SLAPD_MODULES_LDFLAGS=
-    SLAPD_MODULES_LIST=
+	PLAT=NT
+	SLAPD_MODULES_LDFLAGS=
+	SLAPD_MODULES_LIST=
 else
-    PLAT=UNIX
+	PLAT=UNIX
 fi
 
 AC_SUBST(LIBSRCS)
@@ -2725,7 +2725,7 @@ libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.
 libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
-libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk    \
+libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk \
 servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
 servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
 servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk \
