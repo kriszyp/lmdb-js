@@ -205,14 +205,20 @@ lutil_uuidstr( char *buf, size_t len )
 	struct timeval tv;
 	unsigned long long tl;
 	unsigned char *nl;
-	unsigned short sq, t2, t3, s1, n1, n2, n3;
+	unsigned short t2, t3, s1, n1, n2, n3;
 	unsigned int t1;
 
 	/*
 	 * Theoretically we should delay if seq wraps within 100usec but for now
 	 * systems are not fast enough to worry about it.
 	 */
-	static unsigned short seq = 0;
+	static int inited = 0;
+	static unsigned short seq;
+	
+	if (!inited) {
+		lutil_entropy( &seq, sizeof(seq) );
+		inited++;
+	}
 
 #ifdef HAVE_GETTIMEOFDAY
 	gettimeofday( &tv, 0 );
@@ -224,15 +230,10 @@ lutil_uuidstr( char *buf, size_t len )
 	tl = ( tv.tv_sec * 10000000LL ) + ( tv.tv_usec * 10LL ) + UUID_TPLUS;
 	nl = lutil_eaddr();
 
-	if (! seq) {
-		lutil_entropy( &seq, sizeof(seq) );
-	}
-	sq = ++seq;
-
 	t1 = tl & 0xffffffff;					/* time_low */
 	t2 = ( tl >> 32 ) & 0xffff;				/* time_mid */
 	t3 = ( tl >> 48 ) & 0x0fff | 0x1000;	/* time_hi_and_version */
-	s1 = (sq & 0x1fff ) | 0x8000;			/* clock_seq_and_reserved */
+	s1 = ( ++seq & 0x1fff ) | 0x8000;		/* clock_seq_and_reserved */
 
 	t1 = snprintf( buf, len,
 		"%08x-%04x-%04x-%04x-%02x%02x%02x%02x%02x%02x",
