@@ -217,7 +217,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
  */
 
 	LDAPURLDesc	*ludp;
-	char	*p, *q;
+	char	*p, *q, *r;
 	int		i, enclosed;
 	const char *scheme = NULL;
 	const char *url_tmp;
@@ -296,7 +296,19 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		*p++ = '\0';
 	}
 
-	q = strchr( url, ':' );
+	/* IPv6 syntax with [ip address]:port */
+	if ( *url == '[' ) {
+		r = strchr( url, ']' );
+		if ( r == NULL ) {
+			LDAP_FREE( url );
+			ldap_free_urldesc( ludp );
+			return LDAP_URL_ERR_BADURL;
+		}
+		*r++ = '\0';
+		q = strchr( r, ':' );
+	} else {
+		q = strchr( url, ':' );
+	}
 
 	if ( q != NULL ) {
 		*q++ = '\0';
@@ -312,7 +324,9 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	}
 
 	ldap_pvt_hex_unescape( url );
-	ludp->lud_host = LDAP_STRDUP( url );
+
+	/* If [ip address]:port syntax, url is [ip and we skip the [ */
+	ludp->lud_host = LDAP_STRDUP( url + ( *url == '[' ) );
 
 	if( ludp->lud_host == NULL ) {
 		LDAP_FREE( url );
@@ -677,9 +691,32 @@ ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
 		specs[i] = NULL;
 		p = strchr(ludp->lud_host, ':');
 		if (p != NULL) {
-			*p++ = 0;
-			ldap_pvt_hex_unescape(p);
-			ludp->lud_port = atoi(p);
+			/* more than one :, IPv6 address */
+			if ( strchr(p+1, ':') != NULL ) {
+				/* allow [address] and [address]:port */
+				if ( *ludp->lud_host == '[' ) {
+					p = LDAP_STRDUP(ludp->lud_host+1);
+					/* copied, make sure we free source later */
+					specs[i] = ludp->lud_host;
+					ludp->lud_host = p;
+					p = strchr( ludp->lud_host, ']' );
+					if ( p == NULL )
+						return LDAP_PARAM_ERROR;
+					*p++ = '\0';
+					if ( *p != ':' ) {
+						if ( *p != '\0' )
+							return LDAP_PARAM_ERROR;
+						p = NULL;
+					}
+				} else {
+					p = NULL;
+				}
+			}
+			if (p != NULL) {
+				*p++ = 0;
+				ldap_pvt_hex_unescape(p);
+				ludp->lud_port = atoi(p);
+			}
 		}
 		ldap_pvt_hex_unescape(ludp->lud_host);
 		ludp->lud_scheme = LDAP_STRDUP("ldap");
@@ -688,6 +725,7 @@ ldap_url_parsehosts (LDAPURLDesc **ludlist, const char *hosts )
 	}
 
 	/* this should be an array of NULLs now */
+	/* except entries starting with [ */
 	ldap_charray_free(specs);
 	return LDAP_SUCCESS;
 }
@@ -706,6 +744,8 @@ ldap_url_list2hosts (LDAPURLDesc *ludlist)
 	size = 1;	/* nul-term */
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
 		size += strlen(ludp->lud_host) + 1;		/* host and space */
+		if (strchr(ludp->lud_host, ':'))        /* will add [ ] below */
+			size += 2;
 		if (ludp->lud_port != 0)
 			size += sprintf(buf, ":%d", ludp->lud_port);
 	}
@@ -715,8 +755,12 @@ ldap_url_list2hosts (LDAPURLDesc *ludlist)
 
 	p = s;
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
-		strcpy(p, ludp->lud_host);
-		p += strlen(ludp->lud_host);
+		if (strchr(ludp->lud_host, ':')) {
+			p += sprintf(p, "[%s]", ludp->lud_host);
+		} else {
+			strcpy(p, ludp->lud_host);
+			p += strlen(ludp->lud_host);
+		}
 		if (ludp->lud_port != 0)
 			p += sprintf(p, ":%d", ludp->lud_port);
 		*p++ = ' ';
@@ -742,6 +786,8 @@ ldap_url_list2urls(
 	size = 1;	/* nul-term */
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
 		size += strlen(ludp->lud_scheme) + strlen(ludp->lud_host);
+		if (strchr(ludp->lud_host, ':'))        /* will add [ ] below */
+			size += 2;
 		size += sizeof(":/// ");
 
 		if (ludp->lud_port != 0) {
@@ -756,7 +802,9 @@ ldap_url_list2urls(
 
 	p = s;
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
-		p += sprintf(p, "%s://%s", ludp->lud_scheme, ludp->lud_host);
+		p += sprintf(p,
+			     strchr(ludp->lud_host, ':') ? "%s://[%s]" : "%s://%s",
+			     ludp->lud_scheme, ludp->lud_host);
 		if (ludp->lud_port != 0)
 			p += sprintf(p, ":%d", ludp->lud_port);
 		*p++ = '/';
