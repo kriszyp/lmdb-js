@@ -66,7 +66,7 @@ sanity( void )
      * Are there any replicas listed in the slapd config file?
      */
     if ( sglob->replicas == NULL ) {
-	fprintf( stderr, "No replicas in slapd config file \"%s\"!\n",
+	fprintf( stderr, "No replicas in slapd.conf file \"%s\"!\n",
 	    sglob->slapd_configfile );
 	err++;
     }
@@ -76,20 +76,24 @@ sanity( void )
      * that the slapd replogfile is readable, if it exists.
      */
     if ( sglob->slapd_replogfile == NULL ) {
-	fprintf( stderr, "Fatal error: no \"replogfile\" directive given\n" );
+	fprintf( stderr, "Fatal error: no \"replogfile\" "
+		"slapd.conf directive given\n" );
 	err++;
     } else {
 	rc = filecheck( sglob->slapd_replogfile );
 	if ( rc & FC_DIRBAD ) {
-	    fprintf( stderr, "Error: %s: directory does not exist\n", 
+	    fprintf( stderr, "Error: %s: directory specified in "
+			"\"replogfile\" slapd.conf directive does not exist\n", 
 		    sglob->slapd_replogfile );
 	    err++;
 	} else if ( rc & FC_DIRUNREAD ) {
-	    fprintf( stderr, "Error: %s: directory not readable\n", 
+	    fprintf( stderr, "Error: %s: directory specified in "
+			"\"replogfile\" slapd.conf directive is not readable\n", 
 		    sglob->slapd_replogfile );
 	    err++;
 	} else if (!( rc & FC_FILEBAD) && ( rc & FC_FILEUNREAD )) {
-	    fprintf( stderr, "Error: %s: file not readable\n", 
+	    fprintf( stderr, "Error: %s: file specified in "
+			"\"replogfile\" slapd.conf directive is not readable\n", 
 		    sglob->slapd_replogfile );
 	    err++;
 	}
@@ -105,19 +109,21 @@ sanity( void )
     } else {
 	rc = filecheck( sglob->slurpd_replogfile );
 	if ( rc & FC_DIRBAD ) {
-	    fprintf( stderr, "Error: %s: directory does not exist\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" "
+			"directory does not exist\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	} else if ( rc & FC_DIRUNREAD ) {
-	    fprintf( stderr, "Error: %s: directory not readable\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" "
+			"directory not readable\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	} else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNREAD )) {
-	    fprintf( stderr, "Error: %s: file not readable\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" not readable\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	} else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNWRITE )) {
-	    fprintf( stderr, "Error: %s: file not writeable\n", 
+	    fprintf( stderr, "Error: %s: slurpd \"replogfile\" not writeable\n", 
 		    sglob->slurpd_replogfile );
 	    err++;
 	}
@@ -129,19 +135,19 @@ sanity( void )
      */
     rc = filecheck( sglob->slurpd_status_file );
     if ( rc & FC_DIRBAD ) {
-	fprintf( stderr, "Error: %s: directory does not exist\n", 
+	fprintf( stderr, "Error: %s: status directory does not exist\n", 
 		sglob->slurpd_status_file );
 	err++;
     } else if ( rc & FC_DIRUNREAD ) {
-	fprintf( stderr, "Error: %s: directory not readable\n", 
+	fprintf( stderr, "Error: %s: status directory not readable\n", 
 		sglob->slurpd_status_file );
 	err++;
     } else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNREAD )) {
-	fprintf( stderr, "Error: %s: file not readable\n", 
+	fprintf( stderr, "Error: %s: status file not readable\n", 
 		sglob->slurpd_status_file );
 	err++;
     } else if ( !( rc & FC_FILEBAD ) && ( rc & FC_FILEUNWRITE )) {
-	fprintf( stderr, "Error: %s: file not writeable\n", 
+	fprintf( stderr, "Error: %s: status file not writeable\n", 
 		sglob->slurpd_status_file );
 	err++;
     }
