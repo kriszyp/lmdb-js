@@ -103,7 +103,7 @@ do_abandon( Operation *op, SlapReply *rs )
 
 done:
 
-	op->oq_abandon.rs_msgid = id;
+	op->orn_msgid = id;
 	for ( i = 0; i < nbackends; i++ ) {
 		op->o_bd = &backends[i];
 

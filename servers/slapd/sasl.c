@@ -1312,14 +1312,14 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "",
 		op->o_conn->c_sasl_bind_in_progress ? "<continuing>" : 
 		op->o_conn->c_sasl_bind_mech.bv_val,
-		op->oq_bind.rb_cred.bv_len );
+		op->orb_cred.bv_len );
 #else
 	Debug(LDAP_DEBUG_ARGS,
 		"==> sasl_bind: dn=\"%s\" mech=%s datalen=%ld\n",
 		op->o_req_dn.bv_len ? op->o_req_dn.bv_val : "",
 		op->o_conn->c_sasl_bind_in_progress ? "<continuing>" : 
 		op->o_conn->c_sasl_bind_mech.bv_val,
-		op->oq_bind.rb_cred.bv_len );
+		op->orb_cred.bv_len );
 #endif
 
 
@@ -1344,12 +1344,12 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 	if ( !op->o_conn->c_sasl_bind_in_progress ) {
 		sc = START( ctx,
 			op->o_conn->c_sasl_bind_mech.bv_val,
-			op->oq_bind.rb_cred.bv_val, op->oq_bind.rb_cred.bv_len,
+			op->orb_cred.bv_val, op->orb_cred.bv_len,
 			(SASL_CONST char **)&response.bv_val, &reslen, &rs->sr_text );
 
 	} else {
 		sc = STEP( ctx,
-			op->oq_bind.rb_cred.bv_val, op->oq_bind.rb_cred.bv_len,
+			op->orb_cred.bv_val, op->orb_cred.bv_len,
 			(SASL_CONST char **)&response.bv_val, &reslen, &rs->sr_text );
 	}
 
@@ -1358,16 +1358,16 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 	if ( sc == SASL_OK ) {
 		sasl_ssf_t *ssf = NULL;
 
-		op->oq_bind.rb_edn = op->o_conn->c_sasl_dn;
+		op->orb_edn = op->o_conn->c_sasl_dn;
 		op->o_conn->c_sasl_dn.bv_val = NULL;
 		op->o_conn->c_sasl_dn.bv_len = 0;
 
 		rs->sr_err = LDAP_SUCCESS;
 
 		(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
-		op->oq_bind.rb_ssf = ssf ? *ssf : 0;
+		op->orb_ssf = ssf ? *ssf : 0;
 
-		if( op->oq_bind.rb_ssf ) {
+		if( op->orb_ssf ) {
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 			op->o_conn->c_sasl_layers++;
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );

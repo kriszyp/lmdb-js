@@ -207,7 +207,7 @@ replog( Operation *op )
 				/* assume change parameter is a Modfications* */
 				/* fall thru */
 			case LDAP_REQ_MODIFY:
-				for ( ml = op->oq_modify.rs_modlist; ml != NULL; ml = ml->sml_next ) {
+				for ( ml = op->orm_modlist; ml != NULL; ml = ml->sml_next ) {
 					int is_in, exclude;
 
    					is_in = ad_inlist( ml->sml_desc, op->o_bd->be_replica[i]->ri_attrs );
@@ -228,7 +228,7 @@ replog( Operation *op )
 				}
 				break;
 			case LDAP_REQ_ADD:
-				for ( a = op->oq_add.rs_e->e_attrs; a != NULL; a = a->a_next ) {
+				for ( a = op->ora_e->e_attrs; a != NULL; a = a->a_next ) {
 					int is_in, exclude;
 
    					is_in = ad_inlist( a->a_desc, op->o_bd->be_replica[i]->ri_attrs );
@@ -279,7 +279,7 @@ replog1(
 
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
-		ml = first ? first : op->oq_modify.rs_modlist;
+		ml = first ? first : op->orm_modlist;
 		for ( ; ml != NULL; ml = ml->sml_next ) {
 			char *type;
 			if ( ri && ri->ri_attrs ) {
@@ -311,7 +311,7 @@ replog1(
 
 	case LDAP_REQ_ADD:
 		fprintf( fp, "changetype: add\n" );
-		a = first ? first : op->oq_add.rs_e->e_attrs;
+		a = first ? first : op->ora_e->e_attrs;
 		for ( ; a != NULL; a=a->a_next ) {
 			if ( ri && ri->ri_attrs ) {
 				int is_in = ad_inlist( a->a_desc, ri->ri_attrs );
@@ -356,10 +356,10 @@ replog1(
 
 	case LDAP_REQ_MODRDN:
 		fprintf( fp, "changetype: modrdn\n" );
-		fprintf( fp, "newrdn: %s\n", op->oq_modrdn.rs_newrdn.bv_val );
-		fprintf( fp, "deleteoldrdn: %d\n", op->oq_modrdn.rs_deleteoldrdn ? 1 : 0 );
-		if( op->oq_modrdn.rs_newSup != NULL ) {
-			fprintf( fp, "newsuperior: %s\n", op->oq_modrdn.rs_newSup->bv_val );
+		fprintf( fp, "newrdn: %s\n", op->orr_newrdn.bv_val );
+		fprintf( fp, "deleteoldrdn: %d\n", op->orr_deleteoldrdn ? 1 : 0 );
+		if( op->orr_newSup != NULL ) {
+			fprintf( fp, "newsuperior: %s\n", op->orr_newSup->bv_val );
 		}
 	}
 	fprintf( fp, "\n" );

@@ -557,11 +557,11 @@ int get_ctrls(
 				break;
 			case LDAP_REQ_EXTENDED:
 				tagmask=~0L;
-				assert( op->oq_extended.rs_reqoid.bv_val != NULL );
+				assert( op->ore_reqoid.bv_val != NULL );
 				if( sc->sc_extendedops != NULL ) {
 					int i;
 					for( i=0; sc->sc_extendedops[i] != NULL; i++ ) {
-						if( strcmp( op->oq_extended.rs_reqoid.bv_val, sc->sc_extendedops[i] )
+						if( strcmp( op->ore_reqoid.bv_val, sc->sc_extendedops[i] )
 							== 0 )
 						{
 							tagmask=0L;

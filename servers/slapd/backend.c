@@ -650,7 +650,7 @@ be_isroot_pw( Operation *op )
 #endif
 #endif
 
-	result = lutil_passwd( &op->o_bd->be_rootpw, &op->oq_bind.rb_cred, NULL );
+	result = lutil_passwd( &op->o_bd->be_rootpw, &op->orb_cred, NULL );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD
@@ -686,8 +686,7 @@ backend_unbind( Operation *op, SlapReply *rs )
 	Slapi_PBlock *pb = op->o_pb;
 
 	int     rc;
-	slapi_x_connection_set_pb( pb, op->o_conn );
-	slapi_x_operation_set_pb( pb, op );
+	slapi_x_pblock_set_operation( pb, op );
 #endif /* defined( LDAP_SLAPI ) */
 
 	for ( i = 0; i < nbackends; i++ ) {
@@ -1262,13 +1261,13 @@ Attribute *backend_operational(
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-	if ( opattrs || ( op->oq_search.rs_attrs &&
-		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->oq_search.rs_attrs )) ) {
+	if ( opattrs || ( op->ors_attrs &&
+		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->ors_attrs )) ) {
 		*ap = slap_operational_subschemaSubentry( op->o_bd );
 		ap = &(*ap)->a_next;
 	}
 
-	if ( ( opattrs || op->oq_search.rs_attrs ) && op->o_bd && op->o_bd->be_operational != NULL ) {
+	if ( ( opattrs || op->ors_attrs ) && op->o_bd && op->o_bd->be_operational != NULL ) {
 		( void )op->o_bd->be_operational( op, rs, opattrs, ap );
 	}
 

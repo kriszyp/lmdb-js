@@ -135,7 +135,7 @@ do_extended(
 		goto done;
 	}
 
-	if ( ber_scanf( op->o_ber, "{m" /*}*/, &op->oq_extended.rs_reqoid ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{m" /*}*/, &op->ore_reqoid ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, "do_extended: conn %d  ber_scanf failed\n", 
 			op->o_connid, 0, 0 );
@@ -148,19 +148,19 @@ do_extended(
 	}
 
 #ifdef LDAP_SLAPI
-	getPluginFunc( &op->oq_extended.rs_reqoid, &funcAddr ); /* NS-SLAPI extended operation */
-	if( !funcAddr && !(ext = find_extop(supp_ext_list, &op->oq_extended.rs_reqoid )))
+	getPluginFunc( &op->ore_reqoid, &funcAddr ); /* NS-SLAPI extended operation */
+	if( !funcAddr && !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
 #else
-	if( !(ext = find_extop(supp_ext_list, &op->oq_extended.rs_reqoid )))
+	if( !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
 #endif
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"do_extended: conn %d  unsupported operation \"%s\"\n",
-			op->o_connid, op->oq_extended.rs_reqoid.bv_val, 0 );
+			op->o_connid, op->ore_reqoid.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
-			op->oq_extended.rs_reqoid.bv_val, 0 ,0 );
+			op->ore_reqoid.bv_val, 0 ,0 );
 #endif
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR,
 			"unsupported extended operation" );
@@ -204,16 +204,16 @@ do_extended(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, DETAIL1, 
-		"do_extended: conn %d  oid=%s\n.", op->o_connid, op->oq_extended.rs_reqoid.bv_val, 0 );
+		"do_extended: conn %d  oid=%s\n.", op->o_connid, op->ore_reqoid.bv_val, 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", op->oq_extended.rs_reqoid.bv_val, 0 ,0 );
+	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", op->ore_reqoid.bv_val, 0 ,0 );
 #endif
 
 #if defined(LDAP_SLAPI)
 	if (ext != NULL) { /* OpenLDAP extended operation */
 #endif /* defined(LDAP_SLAPI) */
 
-		if (reqdata.bv_val) op->oq_extended.rs_reqdata = &reqdata;
+		if (reqdata.bv_val) op->ore_reqdata = &reqdata;
 		rs->sr_err = (ext->ext_main)( op, rs );
 
 		if( rs->sr_err != SLAPD_ABANDON ) {
@@ -240,7 +240,7 @@ do_extended(
 
 	} else { /* start of Netscape extended operation */
 		rs->sr_err = slapi_pblock_set( pb, SLAPI_EXT_OP_REQ_OID,
-				(void *)op->oq_extended.rs_reqoid.bv_val);
+				(void *)op->ore_reqoid.bv_val);
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_err = LDAP_OTHER;
 			goto done;
@@ -377,7 +377,7 @@ whoami_extop (
 {
 	struct berval *bv;
 
-	if ( op->oq_extended.rs_reqdata != NULL ) {
+	if ( op->ore_reqdata != NULL ) {
 		/* no request data should be provided */
 		rs->sr_text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;

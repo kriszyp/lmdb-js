@@ -121,7 +121,7 @@ do_bind(
 	op->o_protocol = version;
 
 	if( method != LDAP_AUTH_SASL ) {
-		tag = ber_scanf( ber, /*{*/ "m}", &op->oq_bind.rb_cred );
+		tag = ber_scanf( ber, /*{*/ "m}", &op->orb_cred );
 
 	} else {
 		tag = ber_scanf( ber, "{m" /*}*/, &mech );
@@ -131,11 +131,11 @@ do_bind(
 			tag = ber_peek_tag( ber, &len );
 
 			if ( tag == LDAP_TAG_LDAPCRED ) { 
-				tag = ber_scanf( ber, "m", &op->oq_bind.rb_cred );
+				tag = ber_scanf( ber, "m", &op->orb_cred );
 			} else {
 				tag = LDAP_TAG_LDAPCRED;
-				op->oq_bind.rb_cred.bv_val = NULL;
-				op->oq_bind.rb_cred.bv_len = 0;
+				op->orb_cred.bv_val = NULL;
+				op->orb_cred.bv_len = 0;
 			}
 
 			if ( tag != LBER_ERROR ) {
@@ -292,8 +292,8 @@ do_bind(
 
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		if( rs->sr_err == LDAP_SUCCESS ) {
-			op->o_conn->c_dn = op->oq_bind.rb_edn;
-			if( op->oq_bind.rb_edn.bv_len != 0 ) {
+			op->o_conn->c_dn = op->orb_edn;
+			if( op->orb_edn.bv_len != 0 ) {
 				/* edn is always normalized already */
 				ber_dupbv( &op->o_conn->c_ndn, &op->o_conn->c_dn );
 			}
@@ -302,9 +302,9 @@ do_bind(
 			op->o_conn->c_sasl_bind_mech.bv_len = 0;
 			op->o_conn->c_sasl_bind_in_progress = 0;
 
-			op->o_conn->c_sasl_ssf = op->oq_bind.rb_ssf;
-			if( op->oq_bind.rb_ssf > op->o_conn->c_ssf ) {
-				op->o_conn->c_ssf = op->oq_bind.rb_ssf;
+			op->o_conn->c_sasl_ssf = op->orb_ssf;
+			if( op->orb_ssf > op->o_conn->c_ssf ) {
+				op->o_conn->c_ssf = op->orb_ssf;
 			}
 
 			if( op->o_conn->c_dn.bv_len != 0 ) {
@@ -318,20 +318,20 @@ do_bind(
 				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=%d\n",
 				op->o_connid, op->o_opid,
 				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->o_conn->c_authmech.bv_val, op->oq_bind.rb_ssf );
+				op->o_conn->c_authmech.bv_val, op->orb_ssf );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
 				op->o_conn->c_authmech.bv_val,
 				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->oq_bind.rb_ssf );
+				op->orb_ssf );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
 				op->o_conn->c_authmech.bv_val,
 				op->o_conn->c_dn.bv_val ? op->o_conn->c_dn.bv_val : "<empty>",
-				op->oq_bind.rb_ssf );
+				op->orb_ssf );
 #endif
 
 		} else if ( rs->sr_err == LDAP_SASL_BIND_IN_PROGRESS ) {
@@ -366,10 +366,10 @@ do_bind(
 
 	if ( method == LDAP_AUTH_SIMPLE ) {
 		/* accept "anonymous" binds */
-		if ( op->oq_bind.rb_cred.bv_len == 0 || op->o_req_ndn.bv_len == 0 ) {
+		if ( op->orb_cred.bv_len == 0 || op->o_req_ndn.bv_len == 0 ) {
 			rs->sr_err = LDAP_SUCCESS;
 
-			if( op->oq_bind.rb_cred.bv_len &&
+			if( op->orb_cred.bv_len &&
 				!( global_allows & SLAP_ALLOW_BIND_ANON_CRED ))
 			{
 				/* cred is not empty, disallow */
@@ -517,7 +517,7 @@ do_bind(
 	slapi_x_pblock_set_operation( pb, op );
 	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
-	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->oq_bind.rb_cred );
+	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
 
 	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_BIND_FN, pb );
@@ -536,14 +536,14 @@ do_bind(
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&ldapRc ) != 0 )
 			ldapRc = LDAP_OTHER;
 
-		op->oq_bind.rb_edn.bv_val = NULL;
-		op->oq_bind.rb_edn.bv_len = 0;
+		op->orb_edn.bv_val = NULL;
+		op->orb_edn.bv_len = 0;
 		if ( rs->sr_err != SLAPI_BIND_FAIL && ldapRc == LDAP_SUCCESS ) {
 			/* Set the new connection DN. */
 			if ( rs->sr_err != SLAPI_BIND_ANONYMOUS ) {
-				slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&op->oq_bind.rb_edn.bv_val );
+				slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&op->orb_edn.bv_val );
 			}
-			rs->sr_err = dnPrettyNormal( NULL, &op->oq_bind.rb_edn, &op->o_req_dn, &op->o_req_ndn );
+			rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn, &op->o_req_dn, &op->o_req_ndn );
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 			op->o_conn->c_dn = op->o_req_dn;
 			op->o_conn->c_ndn = op->o_req_ndn;
@@ -575,7 +575,7 @@ do_bind(
 #endif /* defined( LDAP_SLAPI ) */
 
 	if ( op->o_bd->be_bind ) {
-		op->oq_bind.rb_method = method;
+		op->orb_method = method;
 		rs->sr_err = (op->o_bd->be_bind)( op, rs );
 
 		if ( rs->sr_err == 0 ) {
@@ -585,8 +585,8 @@ do_bind(
 				op->o_conn->c_authz_backend = op->o_bd;
 			}
 
-			if(op->oq_bind.rb_edn.bv_len) {
-				op->o_conn->c_dn = op->oq_bind.rb_edn;
+			if(op->orb_edn.bv_len) {
+				op->o_conn->c_dn = op->orb_edn;
 			} else {
 				op->o_conn->c_dn = op->o_req_dn;
 				op->o_req_dn.bv_val = NULL;
@@ -624,8 +624,8 @@ do_bind(
 			/* send this here to avoid a race condition */
 			send_ldap_result( op, rs );
 
-		} else if (op->oq_bind.rb_edn.bv_val != NULL) {
-			free( op->oq_bind.rb_edn.bv_val );
+		} else if (op->orb_edn.bv_val != NULL) {
+			free( op->orb_edn.bv_val );
 		}
 
 	} else {

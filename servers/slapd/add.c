@@ -288,7 +288,7 @@ do_add( Operation *op, SlapReply *rs )
 			}
 #endif /* LDAP_SLAPI */
 
-			op->oq_add.rs_e = e;
+			op->ora_e = e;
 			if ( (op->o_bd->be_add)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if ( !repl_user )

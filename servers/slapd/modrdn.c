@@ -133,8 +133,8 @@ do_modrdn(
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
-		op->oq_modrdn.rs_newSup = &pnewSuperior;
-		op->oq_modrdn.rs_nnewSup = &nnewSuperior;
+		op->orr_newSup = &pnewSuperior;
+		op->orr_nnewSup = &nnewSuperior;
 	}
 
 #ifdef NEW_LOGGING
@@ -216,7 +216,7 @@ do_modrdn(
 
 	/* FIXME: should have/use rdnPretty / rdnNormalize routines */
 
-	rs->sr_err = dnPrettyNormal( NULL, &newrdn, &op->oq_modrdn.rs_newrdn, &op->oq_modrdn.rs_nnewrdn );
+	rs->sr_err = dnPrettyNormal( NULL, &newrdn, &op->orr_newrdn, &op->orr_nnewrdn );
 	if( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
@@ -230,20 +230,20 @@ do_modrdn(
 		goto cleanup;
 	}
 
-	if( rdnValidate( &op->oq_modrdn.rs_newrdn ) != LDAP_SUCCESS ) {
+	if( rdnValidate( &op->orr_newrdn ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
-			"do_modrdn: invalid rdn (%s).\n", op->oq_modrdn.rs_newrdn.bv_val, 0, 0 );
+			"do_modrdn: invalid rdn (%s).\n", op->orr_newrdn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n",
-			op->oq_modrdn.rs_newrdn.bv_val, 0, 0 );
+			op->orr_newrdn.bv_val, 0, 0 );
 #endif
 
 		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX, "invalid new RDN" );
 		goto cleanup;
 	}
 
-	if( op->oq_modrdn.rs_newSup ) {
+	if( op->orr_newSup ) {
 		rs->sr_err = dnPrettyNormal( NULL, &newSuperior, &pnewSuperior,
 			&nnewSuperior );
 		if( rs->sr_err != LDAP_SUCCESS ) {
@@ -297,7 +297,7 @@ do_modrdn(
 	/* Make sure that the entry being changed and the newSuperior are in 
 	 * the same backend, otherwise we return an error.
 	 */
-	if( op->oq_modrdn.rs_newSup ) {
+	if( op->orr_newSup ) {
 		newSuperior_be = select_backend( &nnewSuperior, 0, 0 );
 
 		if ( newSuperior_be != op->o_bd ) {
@@ -350,7 +350,7 @@ do_modrdn(
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
 #endif
 		{
-			op->oq_modrdn.rs_deleteoldrdn = deloldrdn;
+			op->orr_deleteoldrdn = deloldrdn;
 			if ( (op->o_bd->be_modrdn)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
@@ -393,8 +393,8 @@ cleanup:
 	free( op->o_req_dn.bv_val );
 	free( op->o_req_ndn.bv_val );
 
-	free( op->oq_modrdn.rs_newrdn.bv_val );	
-	free( op->oq_modrdn.rs_nnewrdn.bv_val );	
+	free( op->orr_newrdn.bv_val );	
+	free( op->orr_nnewrdn.bv_val );	
 
 	if ( pnewSuperior.bv_val ) free( pnewSuperior.bv_val );
 	if ( nnewSuperior.bv_val ) free( nnewSuperior.bv_val );
@@ -415,7 +415,7 @@ slap_modrdn2mods(
 	int		a_cnt, d_cnt;
 
 	assert( new_rdn != NULL );
-	assert( !op->oq_modrdn.rs_deleteoldrdn || old_rdn != NULL );
+	assert( !op->orr_deleteoldrdn || old_rdn != NULL );
 
 	/* Add new attribute values to the entry */
 	for ( a_cnt = 0; new_rdn[0][a_cnt]; a_cnt++ ) {
@@ -489,7 +489,7 @@ slap_modrdn2mods(
 	}
 
 	/* Remove old rdn value if required */
-	if ( op->oq_modrdn.rs_deleteoldrdn ) {
+	if ( op->orr_deleteoldrdn ) {
 		for ( d_cnt = 0; old_rdn[0][d_cnt]; d_cnt++ ) {
 			AttributeDescription	*desc = NULL;
 			Modifications 		*mod_tmp;

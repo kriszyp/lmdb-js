@@ -407,7 +407,7 @@ do_modify(
 				}
 			}
 
-			op->oq_modify.rs_modlist = modlist;
+			op->orm_modlist = modlist;
 			if ( (op->o_bd->be_modify)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& !repl_user

@@ -23,7 +23,7 @@ int passwd_extop(
 	Operation *op,
 	SlapReply *rs )
 {
-	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->oq_extended.rs_reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
 	if( op->o_dn.bv_len == 0 ) {
 		rs->sr_text = "only authenticated users may change passwords";

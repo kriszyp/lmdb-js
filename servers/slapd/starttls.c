@@ -26,7 +26,7 @@ starttls_extop ( Operation *op, SlapReply *rs )
 	void *ctx;
 	int rc;
 
-	if ( op->oq_extended.rs_reqdata != NULL ) {
+	if ( op->ore_reqdata != NULL ) {
 		/* no request data should be provided */
 		rs->sr_text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;

@@ -38,12 +38,10 @@ do_compare(
 )
 {
 	Entry *entry = NULL;
-	Entry *fentry = NULL;
 	struct berval dn = { 0, NULL };
 	struct berval desc = { 0, NULL };
 	struct berval value = { 0, NULL };
 	AttributeAssertion ava = { NULL, { 0, NULL } };
-	Backend	*be;
 	int manageDSAit;
 
 #ifdef LDAP_SLAPI
@@ -172,8 +170,6 @@ do_compare(
 			goto cleanup;
 		}
 
-		fentry = entry;
-
 	} else if ( bvmatch( &op->o_req_ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
@@ -202,12 +198,11 @@ do_compare(
 			rs->sr_err = 0;
 			goto cleanup;
 		}
-		fentry = entry;
 	}
 
 	if( entry ) {
 		rs->sr_err = compare_entry( op, entry, &ava );
-		if( fentry) entry_free( fentry );
+		entry_free( entry );
 
 		send_ldap_result( op, rs );
 
@@ -289,7 +284,7 @@ do_compare(
 #endif /* defined( LDAP_SLAPI ) */
 
 	if ( op->o_bd->be_compare ) {
-		op->oq_compare.rs_ava = &ava;
+		op->orc_ava = &ava;
 		op->o_bd->be_compare( op, rs );
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,

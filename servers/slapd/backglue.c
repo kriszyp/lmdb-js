@@ -284,11 +284,11 @@ glue_back_search ( Operation *op, SlapReply *rs )
 
 	gs.prevcb = op->o_callback;
 
-	if (op->oq_search.rs_tlimit) {
-		stoptime = slap_get_time () + op->oq_search.rs_tlimit;
+	if (op->ors_tlimit) {
+		stoptime = slap_get_time () + op->ors_tlimit;
 	}
 
-	switch (op->oq_search.rs_scope) {
+	switch (op->ors_scope) {
 	case LDAP_SCOPE_BASE:
 		op->o_bd = glue_back_select (b0, op->o_req_ndn.bv_val);
 
@@ -304,9 +304,9 @@ glue_back_search ( Operation *op, SlapReply *rs )
 	case LDAP_SCOPE_SUBTREE:
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;
-		scope0 = op->oq_search.rs_scope;
-		slimit0 = op->oq_search.rs_slimit;
-		tlimit0 = op->oq_search.rs_tlimit;
+		scope0 = op->ors_scope;
+		slimit0 = op->ors_slimit;
+		tlimit0 = op->ors_tlimit;
 		dn = op->o_req_dn;
 		ndn = op->o_req_ndn;
 
@@ -317,15 +317,15 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			if (!gi->n[i].be || !gi->n[i].be->be_search)
 				continue;
 			if (tlimit0) {
-				op->oq_search.rs_tlimit = stoptime - slap_get_time ();
-				if (op->oq_search.rs_tlimit <= 0) {
+				op->ors_tlimit = stoptime - slap_get_time ();
+				if (op->ors_tlimit <= 0) {
 					rs->sr_err = gs.err = LDAP_TIMELIMIT_EXCEEDED;
 					break;
 				}
 			}
 			if (slimit0) {
-				op->oq_search.rs_slimit = slimit0 - gs.nentries;
-				if (op->oq_search.rs_slimit <= 0) {
+				op->ors_slimit = slimit0 - gs.nentries;
+				if (op->ors_slimit <= 0) {
 					rs->sr_err = gs.err = LDAP_SIZELIMIT_EXCEEDED;
 					break;
 				}
@@ -340,7 +340,7 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			op->o_bd = gi->n[i].be;
 			if (scope0 == LDAP_SCOPE_ONELEVEL && 
 				dn_match(&gi->n[i].pdn, &ndn)) {
-				op->oq_search.rs_scope = LDAP_SCOPE_BASE;
+				op->ors_scope = LDAP_SCOPE_BASE;
 				op->o_req_dn = op->o_bd->be_suffix[0];
 				op->o_req_ndn = op->o_bd->be_nsuffix[0];
 				rs->sr_err = op->o_bd->be_search(op, rs);
@@ -371,9 +371,9 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			}
 		}
 end_of_loop:;
-		op->oq_search.rs_scope = scope0;
-		op->oq_search.rs_slimit = slimit0;
-		op->oq_search.rs_tlimit = tlimit0;
+		op->ors_scope = scope0;
+		op->ors_slimit = slimit0;
+		op->ors_tlimit = tlimit0;
 		op->o_req_dn = dn;
 		op->o_req_ndn = ndn;
 

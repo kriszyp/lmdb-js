@@ -609,11 +609,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
 		"send_search_entry: conn %lu	dn=\"%s\"%s\n",
-		op->o_connid, rs->sr_entry->e_name.bv_val, op->oq_search.rs_attrsonly ? " (attrsOnly)" : "" );
+		op->o_connid, rs->sr_entry->e_name.bv_val, op->ors_attrsonly ? " (attrsOnly)" : "" );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_entry: dn=\"%s\"%s\n",
-		rs->sr_entry->e_name.bv_val, op->oq_search.rs_attrsonly ? " (attrsOnly)" : "", 0 );
+		rs->sr_entry->e_name.bv_val, op->ors_attrsonly ? " (attrsOnly)" : "", 0 );
 #endif
 
 	if ( ! access_allowed( op, rs->sr_entry, ad_entry, NULL, ACL_READ, NULL ) )
@@ -789,7 +789,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			goto error_return;
 		}
 
-		if ( ! op->oq_search.rs_attrsonly ) {
+		if ( ! op->ors_attrsonly ) {
 			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( op, rs->sr_entry,
 					desc, &a->a_vals[i], ACL_READ, &acl_state ) )
@@ -982,7 +982,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			goto error_return;
 		}
 
-		if ( ! op->oq_search.rs_attrsonly ) {
+		if ( ! op->ors_attrsonly ) {
 			for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 				if ( ! access_allowed( op, rs->sr_entry,
 					desc, &a->a_vals[i], ACL_READ, &acl_state ) )
@@ -1054,7 +1054,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 */
 	ctx.cac_pb = op->o_pb;
 	ctx.cac_attrs = rs->sr_attrs;
-	ctx.cac_attrsonly = op->oq_search.rs_attrsonly;
+	ctx.cac_attrsonly = op->ors_attrsonly;
 	ctx.cac_userattrs = userattrs;
 	ctx.cac_opattrs = opattrs;
 	ctx.cac_acl_state = acl_state;

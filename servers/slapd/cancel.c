@@ -30,14 +30,14 @@ int cancel_extop( Operation *op, SlapReply *rs )
 	BerElement *ber;
 	int i;
 
-	assert( ber_bvcmp( &slap_EXOP_CANCEL, &op->oq_extended.rs_reqoid ) == 0 );
+	assert( ber_bvcmp( &slap_EXOP_CANCEL, &op->ore_reqoid ) == 0 );
 
-	if ( op->oq_extended.rs_reqdata == NULL ) {
+	if ( op->ore_reqdata == NULL ) {
 		rs->sr_text = "no message ID supplied";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	ber = ber_init( op->oq_extended.rs_reqdata );
+	ber = ber_init( op->ore_reqdata );
 	if ( ber == NULL ) {
 		rs->sr_text = "internal error";
 		return LDAP_OTHER;
