@@ -26,7 +26,11 @@
 /* don't suck in all of the win32 api */
 #define WIN32_LEAN_AND_MEAN
 
-#ifdef _MT
+#if defined(_WIN32) && !defined(_WINNT) && !defined(_WIN95)
+#define _WINNT
+#endif
+
+#if defined( _MT ) && defined( _WINNT )
 #define HAVE_NT_THREADS 1
 #else
 #define NO_THREADS 1
