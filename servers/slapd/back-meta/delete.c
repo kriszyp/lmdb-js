@@ -41,22 +41,15 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	dncookie dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
-			&op->o_req_ndn, &candidate );
-	if ( !lc ) {
- 		send_ldap_result( op, rs );
-		return -1;
+			&op->o_req_ndn, &candidate, LDAP_BACK_SENDERR );
+	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
+		return rs->sr_err;
 	}
-	
-	if ( !meta_back_dobind( lc, op ) ) {
-		rs->sr_err = LDAP_UNAVAILABLE;
 
-	} else if ( !meta_back_is_valid( lc, candidate ) ) {
+	if ( !meta_back_is_valid( lc, candidate ) ) {
 		rs->sr_err = LDAP_OTHER;
-	}
-
-	if ( rs->sr_err != LDAP_SUCCESS ) {
  		send_ldap_result( op, rs );
-		return -1;
+		return rs->sr_err;
 	}
 
 	/*

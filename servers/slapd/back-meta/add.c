@@ -51,14 +51,12 @@ meta_back_add( Operation *op, SlapReply *rs )
 	 * get the current connection
 	 */
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
-			&op->o_req_ndn, &candidate );
-	if ( !lc ) {
-		send_ldap_result( op, rs );
+			&op->o_req_ndn, &candidate, LDAP_BACK_SENDERR );
+	if ( !lc || !meta_back_dobind( lc, op, LDAP_BACK_SENDERR ) ) {
 		return rs->sr_err;
 	}
 
-	if ( !meta_back_dobind( lc, op )
-			|| !meta_back_is_valid( lc, candidate ) ) {
+	if ( !meta_back_is_valid( lc, candidate ) ) {
 		rs->sr_err = LDAP_UNAVAILABLE;
  		send_ldap_result( op, rs );
 		return rs->sr_err;

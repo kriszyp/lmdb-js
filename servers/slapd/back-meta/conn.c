@@ -186,8 +186,8 @@ init_one_conn(
 		Operation		*op,
 		SlapReply		*rs,
 		struct metatarget	*lt, 
-		struct metasingleconn	*lsc
-		)
+		struct metasingleconn	*lsc,
+		ldap_back_send_t	sendok )
 {
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	int		vers;
@@ -205,7 +205,7 @@ init_one_conn(
 	 */
 	rs->sr_err = ldap_initialize( &lsc->msc_ld, lt->mt_uri );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		return slap_map_api2result( rs );
+		goto error_return;
 	}
 
 	/*
@@ -216,8 +216,69 @@ init_one_conn(
 	ldap_set_option( lsc->msc_ld, LDAP_OPT_PROTOCOL_VERSION, &vers );
 
 	/* automatically chase referrals ("chase-referrals"/"dont-chase-referrals" statement) */
-	if ( li->flags & LDAP_BACK_F_CHASE_REFERRALS ) {
+	if ( LDAP_BACK_CHASE_REFERRALS( li ) ) {
 		ldap_set_option( lsc->msc_ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
+	}
+
+	/* start TLS ("start-tls"/"try-start-tls" statements) */
+	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
+			&& !ldap_is_ldaps_url( lt->mt_uri ) )
+	{
+		int		rc, msgid;
+		LDAPMessage	*res;
+		int		retries = 1;
+
+retry:;
+		rc = ldap_start_tls( lsc->msc_ld, NULL, NULL, &msgid );
+		if ( rc == LDAP_SUCCESS ) {
+			struct timeval	tv = { 0, 0 };
+
+			rc = ldap_result( lsc->msc_ld, msgid, LDAP_MSG_ALL, &tv, &res );
+			if ( rc < 0 ) {
+				rs->sr_err = LDAP_OTHER;
+
+			} else if ( rc == 0 ) {
+				if ( retries ) {
+					retries--;
+					tv.tv_sec = 0;
+					tv.tv_usec = 100000;
+					goto retry;
+				}
+				rs->sr_err = LDAP_OTHER;
+
+			} else {
+				if ( rc == LDAP_RES_EXTENDED ) {
+					rc = ldap_parse_result( lsc->msc_ld, res,
+						&rs->sr_err, NULL, NULL, NULL, NULL, 1 );
+					if ( rc != LDAP_SUCCESS ) {
+						rs->sr_err = rc;
+
+					/* FIXME: in case a referral 
+					 * is returned, should we try
+					 * using it instead of the 
+					 * configured URI? */
+					} else if ( rs->sr_err == LDAP_REFERRAL ) {
+						rs->sr_err = LDAP_OTHER;
+						rs->sr_text = "unwilling to chase referral returned by Start TLS exop";
+					}
+
+				} else {
+					ldap_msgfree( res );
+					rs->sr_err = LDAP_OTHER;
+				}
+			}
+		}
+
+		/* if StartTLS is requested, only attempt it if the URL
+		 * is not "ldaps://"; this may occur not only in case
+		 * of misconfiguration, but also when used in the chain 
+		 * overlay, where the "uri" can be parsed out of a referral */
+		if ( rs->sr_err == LDAP_SERVER_DOWN
+				|| ( rs->sr_err != LDAP_SUCCESS && LDAP_BACK_TLS_CRITICAL( li ) ) )
+		{
+			ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
+			goto error_return;
+		}
 	}
 
 	/*
@@ -241,7 +302,7 @@ init_one_conn(
 	/*
 	 * If the connection DN is not null, an attempt to rewrite it is made
 	 */
-	if ( op->o_conn->c_dn.bv_len != 0 ) {
+	if ( !BER_BVISEMPTY( &op->o_conn->c_dn ) ) {
 		dc.rwmap = &lt->mt_rwmap;
 		dc.conn = op->o_conn;
 		dc.rs = rs;
@@ -253,8 +314,7 @@ init_one_conn(
 		if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
 					&lsc->msc_bound_ndn ) )
 		{
-			send_ldap_result( op, rs );
-			return rs->sr_err;
+			goto error_return;
 		}
 
 		/* copy the DN idf needed */
@@ -262,7 +322,7 @@ init_one_conn(
 			ber_dupbv( &lsc->msc_bound_ndn, &op->o_conn->c_dn );
 		}
 
-		assert( lsc->msc_bound_ndn.bv_val );
+		assert( !BER_BVISNULL( &lsc->msc_bound_ndn ) );
 
 	} else {
 		ber_str2bv( "", 0, 1, &lsc->msc_bound_ndn );
@@ -270,11 +330,23 @@ init_one_conn(
 
 	lsc->msc_bound = META_UNBOUND;
 
-	/*
-	 * The candidate is activated
-	 */
-	lsc->msc_candidate = META_CANDIDATE;
-	return LDAP_SUCCESS;
+error_return:;
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		rs->sr_err = slap_map_api2result( rs );
+		if ( sendok & LDAP_BACK_SENDERR ) {
+			send_ldap_result( op, rs );
+			rs->sr_text = NULL;
+		}
+
+	} else {
+
+		/*
+		 * The candidate is activated
+		 */
+		lsc->msc_candidate = META_CANDIDATE;
+	}
+
+	return rs->sr_err;
 }
 
 /*
@@ -291,11 +363,12 @@ init_one_conn(
  */
 struct metaconn *
 meta_back_getconn(
-	       	Operation 	*op,
-		SlapReply	*rs,
-		int 		op_type,
-		struct berval	*ndn,
-		int 		*candidate )
+	       	Operation 		*op,
+		SlapReply		*rs,
+		int 			op_type,
+		struct berval		*ndn,
+		int 			*candidate,
+		ldap_back_send_t	sendok )
 {
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn	*lc, lc_curr;
@@ -329,7 +402,7 @@ meta_back_getconn(
 			 * also init'd
 			 */
 			int lerr = init_one_conn( op, rs, li->targets[ i ],
-					&lc->mc_conns[ i ] );
+					&lc->mc_conns[ i ], sendok );
 			if ( lerr != LDAP_SUCCESS ) {
 				
 				/*
@@ -389,7 +462,7 @@ meta_back_getconn(
 		 * sends the appropriate result.
 		 */
 		err = init_one_conn( op, rs, li->targets[ i ],
-				&lc->mc_conns[ i ] );
+				&lc->mc_conns[ i ], sendok );
 		if ( err != LDAP_SUCCESS ) {
 		
 			/*
@@ -423,7 +496,7 @@ meta_back_getconn(
 				 */
 				int lerr = init_one_conn( op, rs,
 						li->targets[ i ],
-						&lc->mc_conns[ i ] );
+						&lc->mc_conns[ i ], sendok );
 				if ( lerr != LDAP_SUCCESS ) {
 				
 					/*

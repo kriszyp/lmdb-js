@@ -234,13 +234,15 @@ meta_back_getconn(
 		SlapReply		*rs,
 		int			op_type,
 		struct berval		*dn,
-		int			*candidate
+		int			*candidate,
+		ldap_back_send_t	sendok
 );
 
 extern int
 meta_back_dobind(
 		struct metaconn		*lc,
-		Operation		*op
+		Operation		*op,
+		ldap_back_send_t	sendok
 );
 
 extern int
