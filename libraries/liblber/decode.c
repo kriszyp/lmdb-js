@@ -324,6 +324,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 		{
 			if (ber_skip_tag( b->ber, &len ) == LBER_DEFAULT) break;
 			b->ber->ber_ptr += len;
+			b->ber->ber_tag = *(unsigned char *)b->ber->ber_ptr;
 		}
 	}
 
