@@ -12,9 +12,9 @@ LIBSTAT = lib$(LIBBASE).a
 
 LTFLAGS = --only-$(LINKAGE)
 
-COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(MODDEFS) -c
-LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) \
-		$(LTVERSION) $(LT_NO_UNDEF)
+COMPILE = $(LIBTOOL) --mode=compile $(CC) $(CFLAGS) $(MODDEFS) -c
+LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -rpath $(moduledir) \
+	$(CFLAGS) $(LDFLAGS) $(LTVERSION) $(LT_NO_UNDEF)
 
 MKDEPFLAG = -l
 
@@ -33,7 +33,7 @@ version.c: $(OBJS)
 	$(MKVERSION) $(LIBBASE) > $@
 
 $(LIBRARY): $(MODDEPS) version.lo
-	$(LTLIBLINK) -module -rpath $(moduledir) -o $@ $(OBJS) version.lo \
+	$(LTLIBLINK) -module -o $@ $(OBJS) version.lo \
 	    $(MODLIBS)
 
 $(LIBSTAT): version.lo
