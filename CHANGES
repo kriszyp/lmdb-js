@@ -8,6 +8,7 @@ OpenLDAP 2.1.4 Engineering
 	Fixed back-monitor time stats (ITS#1984)
 	Fixed slapd saslRegexp normalization (ITS#1951)
 	Fixed back-meta undef DN attr bug (ITS#1953)
+	Fixed back-meta search operation error (ITS#2014)
 	Fixed ldapmodify LDIF CRLF handling
 	Fixed back-bdb IDL bugs (ITS#1969, ITS#1977, ITS#2015)
 	Fixed back-bdb entry return (ITS#1994)
@@ -23,10 +24,11 @@ OpenLDAP 2.1.4 Engineering
 	Updated new logging
 	Updated OpenLDAPaci (experimental) syntax/semantics (ITS#2005, ITS#2006)
 	Added slapd subschema DN configuration (ITS#1893)
+	Updated slapd bind logging (ITS#1809) (ITS#2017)
 	Build Environment
 		Added OS/390 port
-		Added DN testing to tests suite
 		Updated WinNT port
+		Added DN testing to tests suite
 		Fixed krbName schema (ITS#1948)
 		Fixed pkiUser schema (ITS#1959)
 		Disabled back-sql (ITS#1966)
@@ -34,6 +36,7 @@ OpenLDAP 2.1.4 Engineering
 		Resolve liblutil/passwd <des.h> conflict (ITS#2016)
 		Resolved IRIX sc_mask conflict (ITS#2022)
 		Removed ud(1) and filter template API (ITS#2011)
+		Removed lint (ITS#2021)
 	Documentation
 		Replaced namedref with RFC 3296
 		Misc manual page updates
