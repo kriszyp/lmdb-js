@@ -23,6 +23,8 @@
 int
 ldap_back_group(
 	Backend	*be,
+	Connection *conn,
+	Operation *op,
 	Entry	*target,
 	const char	*gr_ndn,
 	const char	*op_ndn,
