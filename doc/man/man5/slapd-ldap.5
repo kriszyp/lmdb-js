@@ -98,6 +98,30 @@ their usage.
 .B proxyauthzpw <password>
 Password used with the proxy authzDN above.
 .TP
+.B idassert-mode {none|anonymous|self|proxyid|<dn>}
+defines what type of identity assertion is used.
+The default is 
+.BR none ,
+which implies that the proxy will bind as itself and assert the user's
+identity only when a user is bound.
+Other values are
+.BR anonymous
+and
+.BR self ,
+which respectively mean that the empty or the client's identity
+will be asserted,
+.BR proxyid ,
+which means that no proxyAuthz control will be used, so the proxyauthzdn
+identity will be asserted.
+Moreover, if a valid DN is used as 
+.BR <mode> ,
+that identity will be asserted.
+.TP
+.B idassert-authz <authz>
+if defined, selects what
+.I local
+identities are authorized to exploit the identity assertion feature.
+.TP
 .B proxy-whoami
 Turns on proxying of the WhoAmI extended operation. If this option is
 given, back-ldap will replace slapd's original WhoAmI routine with its
