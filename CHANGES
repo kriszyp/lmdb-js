@@ -3,6 +3,9 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.x Engineering
 	Fixed -lldap SASL interoperability bug
 	Removed lint
+	Fixed fprintf statements in clients
+	Fixed for some compiler warnings
+	Fixed decleration and callers of for AF_LOCAL
 
 OpenLDAP 2.0.3 Release
 	Fixed -lldap KBIND typo (ITS#717)
