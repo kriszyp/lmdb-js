@@ -198,7 +198,7 @@ ber_get_stringb( BerElement *ber, char *buf, unsigned long *len )
 
 #ifdef STR_TRANSLATION
 	if ( datalen > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	     && ber->ber_decode_translate_proc != 0 ) {
+	    && ber->ber_decode_translate_proc != NULL ) {
 		transbuf = buf;
 		++datalen;
 		if ( (*(ber->ber_decode_translate_proc))( &transbuf, &datalen,
@@ -241,7 +241,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 
 #ifdef STR_TRANSLATION
 	if ( datalen > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	     && ber->ber_decode_translate_proc != 0 ) {
+	    && ber->ber_decode_translate_proc != NULL ) {
 		++datalen;
 		if ( (*(ber->ber_decode_translate_proc))( buf, &datalen, 1 )
 		    != 0 ) {
@@ -284,7 +284,7 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 
 #ifdef STR_TRANSLATION
 	if ( len > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	     && ber->ber_decode_translate_proc != 0 ) {
+	    && ber->ber_decode_translate_proc != NULL ) {
 		++len;
 		if ( (*(ber->ber_decode_translate_proc))( &((*bv)->bv_val),
 		    &len, 1 ) != 0 ) {

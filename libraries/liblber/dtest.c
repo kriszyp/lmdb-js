@@ -28,7 +28,7 @@
 #include <console.h>
 #endif /* MACOS */
 
-#include "lber-int.h"
+#include <lber.h>
 
 static void usage( char *name )
 {
@@ -62,7 +62,7 @@ main( int argc, char **argv )
 	}
 	printf( "message has tag 0x%x and length %ld\n", tag, len );
 
-	if ( ber_scanf( ber, "i", &i ) == LBER_ERROR ) {
+	if ( ber_scanf( ber, "i", &i ) == -1 ) {
 		fprintf( stderr, "ber_scanf returns -1\n" );
 		exit( 1 );
 	}

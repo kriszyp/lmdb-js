@@ -166,14 +166,6 @@ LDAP_F int lber_log_sos_dump LDAP_P((
 	int loglvl,
 	Seqorset *sos ));
 
-/* io.c */
-LDAP_F	Sockbuf *lber_pvt_sb_alloc	LDAP_P(( void ));
-LDAP_F	Sockbuf *lber_pvt_sb_alloc_fd	LDAP_P(( int ));
-LDAP_F	Sockbuf *lber_pvt_sb_alloc_fd	LDAP_P(( int ));
-LDAP_F	void	lber_pvt_sb_free	LDAP_P(( Sockbuf * ));
-LDAP_F	int	lber_pvt_sb_get_option	LDAP_P(( Sockbuf *, int, void * ));
-LDAP_F	int	lber_pvt_sb_set_option	LDAP_P(( Sockbuf *, int, void * ));
-
 /* sockbuf.c */
 
 LDAP_F	int lber_pvt_sb_init LDAP_P(( Sockbuf *sb ));

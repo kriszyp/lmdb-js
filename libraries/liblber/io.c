@@ -237,7 +237,7 @@ ber_dup( BerElement *ber )
 void
 ber_init_w_nullc( BerElement *ber, int options )
 {
-	(void) memset( (char *)ber, '\0', sizeof( BerElement )); /* ### Bug: Expects pointers to have 00000 bit pattern */
+	(void) memset( (char *)ber, '\0', sizeof( BerElement ));
 	ber->ber_tag = LBER_DEFAULT;
 	ber->ber_options = (char) options;
 }
