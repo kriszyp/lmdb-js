@@ -11,6 +11,8 @@ Changes included in OpenLDAP 1.2 Release Engineering
 		Updated to libtool-1.3.3.
 		Don't use "ln -s -f file link" (ITS#227)
 	Documentation
+		Added -n option to ldif2ldbm(8) (ITS#59)
+		Added server-side maximal limits note to ldapsearch(1) (ITS#180)
 		Fix misplaced paragraph tag in ldap.conf(5)  (ITS#234)
 
 Changes included in OpenLDAP 1.2.4
