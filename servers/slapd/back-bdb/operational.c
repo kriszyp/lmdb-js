@@ -13,7 +13,6 @@
 
 #include "slap.h"
 #include "back-bdb.h"
-#include "proto-bdb.h"
 #include "external.h"
 
 /*

@@ -16,7 +16,7 @@
 #include "external.h"
 #include <lutil.h>
 
-static struct bdbi_database {
+static const struct bdbi_database {
 	char *file;
 	char *name;
 	int type;
@@ -371,7 +371,7 @@ bdb_db_open( BackendDB *be )
 				bdb_bt_compare );
 #else
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
-				hdb_dup_compare );
+				bdb_dup_compare );
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
 #endif
@@ -462,11 +462,10 @@ bdb_db_close( BackendDB *be )
 #ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {
 		ldap_pvt_thread_rdwr_wlock ( &bdb->bi_idl_tree_rwlock );
+		avl_free( bdb->bi_idl_tree, NULL );
 		entry = bdb->bi_idl_lru_head;
 		while ( entry != NULL ) {
 			next_entry = entry->idl_lru_next;
-			avl_delete( &bdb->bi_idl_tree, (caddr_t) entry,
-					bdb_idl_entry_cmp );
 			if ( entry->idl )
 				free( entry->idl );
 			free( entry->kstr.bv_val );

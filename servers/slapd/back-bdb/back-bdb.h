@@ -214,17 +214,9 @@ struct bdb_op_info {
 	(db)->open(db, txn, file, name, type, flags, mode)
 #endif
 
+#endif
+
 #define BDB_REUSE_LOCKERS
-
-#ifdef BDB_REUSE_LOCKERS
-#define	LOCK_ID_FREE(env, locker)
-#define	LOCK_ID(env, locker)	bdb_locker_id(op, env, locker)
-#else
-#define	LOCK_ID_FREE(env, locker)	XLOCK_ID_FREE(env, locker)
-#define	LOCK_ID(env, locker)		XLOCK_ID(env, locker)
-#endif
-
-#endif
 
 LDAP_END_DECL
 

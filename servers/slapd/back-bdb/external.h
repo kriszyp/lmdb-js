@@ -9,6 +9,34 @@
 
 LDAP_BEGIN_DECL
 
+#ifndef BDB_SYMBOL
+#ifdef BDB_HIER
+#define	BDB_SYMBOL(x)	LDAP_CONCAT(hdb_,x)
+#else
+#define BDB_SYMBOL(x)	LDAP_CONCAT(bdb_,x)
+#endif
+#endif
+
+#define bdb_initialize				BDB_SYMBOL(initialize)
+#define bdb_db_config				BDB_SYMBOL(db_config)
+#define bdb_add						BDB_SYMBOL(add)
+#define bdb_bind					BDB_SYMBOL(bind)
+#define bdb_compare					BDB_SYMBOL(compare)
+#define bdb_delete					BDB_SYMBOL(delete)
+#define bdb_modify					BDB_SYMBOL(modify)
+#define bdb_modrdn					BDB_SYMBOL(modrdn)
+#define bdb_search					BDB_SYMBOL(search)
+#define bdb_extended				BDB_SYMBOL(extended)
+#define bdb_referrals				BDB_SYMBOL(referrals)
+#define bdb_operational				BDB_SYMBOL(operational)
+#define bdb_hasSubordinates			BDB_SYMBOL(hasSubordinates)
+#define bdb_tool_entry_open			BDB_SYMBOL(tool_entry_open)
+#define bdb_tool_entry_close		BDB_SYMBOL(tool_entry_close)
+#define bdb_tool_entry_next			BDB_SYMBOL(tool_entry_next)
+#define bdb_tool_entry_get			BDB_SYMBOL(tool_entry_get)
+#define bdb_tool_entry_put			BDB_SYMBOL(tool_entry_put)
+#define bdb_tool_entry_reindex		BDB_SYMBOL(tool_entry_reindex)
+
 extern BI_init	bdb_initialize;
 
 extern BI_db_config	bdb_db_config;

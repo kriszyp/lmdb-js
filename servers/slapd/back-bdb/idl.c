@@ -44,7 +44,7 @@
 	}								\
 } while ( 0 )
 
-int
+static int
 bdb_idl_entry_cmp( const void *v_idl1, const void *v_idl2 )
 {
 	const bdb_idl_cache_entry_t *idl1 = v_idl1, *idl2 = v_idl2;

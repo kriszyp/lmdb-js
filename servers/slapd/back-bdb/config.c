@@ -11,6 +11,7 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "external.h"
 
 #ifdef DB_DIRTY_READ
 #	define	SLAP_BDB_ALLOW_DIRTY_READ

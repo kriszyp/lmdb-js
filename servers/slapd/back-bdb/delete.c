@@ -124,7 +124,7 @@ retry:	/* transaction retry */
 	if ( rs->sr_err == 0 ) {
 		e = ei->bei_e;
 		eip = ei->bei_parent;
-		bdb_cache_find_entry_id( op->o_bd, ltid, eip->bei_id, &eip,
+		bdb_cache_find_id( op->o_bd, ltid, eip->bei_id, &eip,
 			0, locker, &plock, op->o_tmpmemctx );
 	}
 	if ( eip ) {
@@ -442,7 +442,7 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_SUCCESS;
 		}
 	} else {
-		bdb_cache_delete_entry( &bdb->bi_cache, e, bdb->bi_dbenv,
+		bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
 			locker, &lock );
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}

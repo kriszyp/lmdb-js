@@ -506,7 +506,7 @@ typedef struct diskNode {
  * Sorts based on normalized RDN, in lexical order.
  */
 int
-hdb_dup_compare(
+bdb_dup_compare(
 	DB *db, 
 	const DBT *usrkey,
 	const DBT *curkey
@@ -544,7 +544,7 @@ hdb_dup_compare(
 
 /* This function constructs a full DN for a given entry.
  */
-int hdb_fix_dn(
+int bdb_fix_dn(
 	Entry *e
 )
 {
@@ -880,7 +880,7 @@ struct dn2id_cookie {
 	void *ctx;
 };
 
-int
+static int
 bdb_dn2idl_internal(
 	struct dn2id_cookie *cx
 )

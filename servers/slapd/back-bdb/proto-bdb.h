@@ -9,25 +9,19 @@
 
 LDAP_BEGIN_DECL
 
-/*
- * alias.c
- */
-Entry *bdb_deref_internal_r LDAP_P((
-	BackendDB *be,
-	Entry *e,
-	struct berval *dn,
-	int *err,
-	Entry **matched,
-	const char **text ));
-
-#define deref_entry_r( be, e, err, matched, text ) \
-	bdb_deref_internal_r( be, e, NULL, err, matched, text )
-#define deref_dn_r( be, dn, err, matched, text ) \
-	bdb_deref_internal_r( be, NULL, dn, err, matched, text)
+#ifdef BDB_HIER
+#define	BDB_SYMBOL(x)	LDAP_CONCAT(hdb_,x)
+#else
+#define BDB_SYMBOL(x)	LDAP_CONCAT(bdb_,x)
+#endif
 
 /*
  * attr.c
  */
+
+#define bdb_attr_mask				BDB_SYMBOL(attr_mask)
+#define bdb_attr_index_config		BDB_SYMBOL(attr_index_config)
+#define bdb_attr_index_destroy		BDB_SYMBOL(attr_index_destroy)
 
 void bdb_attr_mask( struct bdb_info *bdb,
 	AttributeDescription *desc,
@@ -42,6 +36,8 @@ void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 /*
  * dbcache.c
  */
+#define bdb_db_cache				BDB_SYMBOL(db_cache)
+
 int
 bdb_db_cache(
     Backend	*be,
@@ -52,6 +48,8 @@ bdb_db_cache(
 /*
  * dn2entry.c
  */
+#define bdb_dn2entry				BDB_SYMBOL(dn2entry)
+
 int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
 	struct berval *dn, EntryInfo **e, int matched,
 	u_int32_t locker, DB_LOCK *lock, void *ctx));
@@ -59,6 +57,12 @@ int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
 /*
  * dn2id.c
  */
+#define bdb_dn2id					BDB_SYMBOL(dn2id)
+#define bdb_dn2id_add				BDB_SYMBOL(dn2id_add)
+#define bdb_dn2id_delete			BDB_SYMBOL(dn2id_delete)
+#define bdb_dn2id_children			BDB_SYMBOL(dn2id_children)
+#define bdb_dn2idl					BDB_SYMBOL(dn2idl)
+
 int bdb_dn2id(
 	BackendDB *be,
 	DB_TXN *tid,
@@ -85,8 +89,7 @@ int bdb_dn2id_children(
 	DB_TXN *tid,
 	Entry *e );
 
-int
-bdb_dn2idl(
+int bdb_dn2idl(
 	BackendDB	*be,
 	struct berval	*dn,
 	int prefix,
@@ -95,29 +98,45 @@ bdb_dn2idl(
 	void *ctx );
 
 #ifdef BDB_HIER
-int hdb_dup_compare(
+#define bdb_dn2id_parent			BDB_SYMBOL(dn2id_parent)
+#define bdb_dup_compare				BDB_SYMBOL(dup_compare)
+#define bdb_fix_dn					BDB_SYMBOL(fix_dn)
+
+int bdb_dn2id_parent(
+	Backend *be,
+	DB_TXN *txn,
+	EntryInfo *ei,
+	ID *idp,
+	void *ctx );
+
+int bdb_dup_compare(
 	DB *db,
 	const DBT *usrkey,
 	const DBT *curkey );
 
-int hdb_fix_dn( Entry *e );
+int bdb_fix_dn( Entry *e );
 #endif
 
-/*
- * entry.c
- */
-int bdb_entry_return( Entry *e );
-BI_entry_release_rw bdb_entry_release;
-BI_entry_get_rw bdb_entry_get;
 
 /*
  * error.c
  */
+#define bdb_errcall					BDB_SYMBOL(errcall)
+
 void bdb_errcall( const char *pfx, char * msg );
+
+#ifdef HAVE_EBCDIC
+#define ebcdic_dberror				BDB_SYMBOL(ebcdic_dberror)
+
+char *ebcdic_dberror( int rc );
+#define db_strerror(x)	ebcdic_dberror(x)
+#endif
 
 /*
  * filterentry.c
  */
+#define bdb_filter_candidates		BDB_SYMBOL(filter_candidates)
+
 int bdb_filter_candidates(
 	Operation *op,
 	Filter	*f,
@@ -128,6 +147,11 @@ int bdb_filter_candidates(
 /*
  * id2entry.c
  */
+#define bdb_id2entry				BDB_SYMBOL(id2entry)
+#define bdb_id2entry_add			BDB_SYMBOL(id2entry_add)
+#define bdb_id2entry_update			BDB_SYMBOL(id2entry_update)
+#define bdb_id2entry_delete			BDB_SYMBOL(id2entry_delete)
+
 int bdb_id2entry_add(
 	BackendDB *be,
 	DB_TXN *tid,
@@ -149,13 +173,25 @@ int bdb_id2entry(
 	ID id,
 	Entry **e);
 
+#define bdb_entry_free				BDB_SYMBOL(entry_free)
+#define bdb_entry_return			BDB_SYMBOL(entry_return)
+#define bdb_entry_release			BDB_SYMBOL(entry_release)
+#define bdb_entry_get				BDB_SYMBOL(entry_get)
+
 void bdb_entry_free ( Entry *e );
+int bdb_entry_return( Entry *e );
+BI_entry_release_rw bdb_entry_release;
+BI_entry_get_rw bdb_entry_get;
+
 
 /*
  * idl.c
  */
 #ifdef SLAP_IDL_CACHE
-int bdb_idl_entry_cmp( const void*, const void* );
+
+#define bdb_idl_cache_get			BDB_SYMBOL(idl_cache_get)
+#define bdb_idl_cache_put			BDB_SYMBOL(idl_cache_put)
+#define bdb_idl_cache_del			BDB_SYMBOL(idl_cache_del)
 
 int bdb_idl_cache_get(
 	struct bdb_info *bdb,
@@ -178,12 +214,18 @@ bdb_idl_cache_del(
 	DBT		*key );
 #endif
 
-unsigned bdb_idl_search( ID *ids, ID id );
+#define bdb_idl_first				BDB_SYMBOL(idl_first)
+#define bdb_idl_next				BDB_SYMBOL(idl_next)
+#define bdb_idl_search				BDB_SYMBOL(idl_search)
+#define bdb_idl_insert				BDB_SYMBOL(idl_insert)
+#define bdb_idl_intersection		BDB_SYMBOL(idl_intersection)
+#define bdb_idl_union				BDB_SYMBOL(idl_union)
 
-int bdb_bt_compare(
-	DB *db,
-	const DBT *a,
-	const DBT *b );
+#define bdb_idl_fetch_key			BDB_SYMBOL(idl_fetch_key)
+#define bdb_idl_insert_key			BDB_SYMBOL(idl_insert_key)
+#define bdb_idl_delete_key			BDB_SYMBOL(idl_delete_key)
+
+unsigned bdb_idl_search( ID *ids, ID id );
 
 int bdb_idl_fetch_key(
 	BackendDB *be,
@@ -208,14 +250,6 @@ int bdb_idl_delete_key(
 	DBT *key,
 	ID id );
 
-#if 0
-int
-bdb_idl_notin(
-    ID 	*a,
-    ID 	*b,
-	ID	*ids );
-#endif
-
 int
 bdb_idl_intersection(
 	ID *a,
@@ -230,9 +264,22 @@ ID bdb_idl_first( ID *ids, ID *cursor );
 ID bdb_idl_next( ID *ids, ID *cursor );
 
 
+#define bdb_bt_compare				BDB_SYMBOL(bt_compare)
+
+int bdb_bt_compare(
+	DB *db,
+	const DBT *a,
+	const DBT *b );
+
+
 /*
  * index.c
  */
+#define bdb_index_is_indexed		BDB_SYMBOL(index_is_indexed)
+#define bdb_index_param				BDB_SYMBOL(index_param)
+#define bdb_index_values			BDB_SYMBOL(index_values)
+#define bdb_index_entry				BDB_SYMBOL(index_entry)
+
 extern int
 bdb_index_is_indexed LDAP_P((
 	Backend *be,
@@ -266,11 +313,16 @@ int bdb_index_entry LDAP_P(( Operation *op, DB_TXN *t, int r, Entry *e ));
 /*
  * init.c
  */
+#define bdb_uuid					BDB_SYMBOL(uuid)
+
 extern struct berval bdb_uuid;
 
 /*
  * key.c
  */
+#define bdb_key_read				BDB_SYMBOL(key_read)
+#define bdb_key_change				BDB_SYMBOL(key_change)
+
 extern int
 bdb_key_read(
     Backend	*be,
@@ -291,12 +343,17 @@ bdb_key_change(
 /*
  * nextid.c
  */
+#define bdb_next_id					BDB_SYMBOL(next_id)
+#define bdb_last_id					BDB_SYMBOL(last_id)
+
 int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *id );
 int bdb_last_id( BackendDB *be, DB_TXN *tid );
 
 /*
  * modify.c
  */
+#define bdb_modify_internal			BDB_SYMBOL(modify_internal)
+
 int bdb_modify_internal(
 	Operation *op,
 	DB_TXN *tid,
@@ -309,18 +366,24 @@ int bdb_modify_internal(
 /*
  * passwd.c
  */
+#define bdb_exop_passwd				BDB_SYMBOL(exop_passwd)
+
 BI_op_extended bdb_exop_passwd;
 
 
 /*
  * cache.c
  */
+#define bdb_cache_entry_db_unlock	BDB_SYMBOL(cache_entry_db_unlock)
 
 #define	bdb_cache_entryinfo_lock(e) \
 	ldap_pvt_thread_mutex_lock( &(e)->bei_kids_mutex )
 #define	bdb_cache_entryinfo_unlock(e) \
 	ldap_pvt_thread_mutex_unlock( &(e)->bei_kids_mutex )
 
+/* What a mess. Hopefully the current cache scheme will stabilize
+ * and we can trim out all of this stuff.
+ */
 #if 0
 void bdb_cache_return_entry_rw( DB_ENV *env, Cache *cache, Entry *e,
 	int rw, DB_LOCK *lock );
@@ -343,6 +406,15 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 	bdb_unlocked_cache_return_entry_rw((c), (e), 0)
 #define bdb_unlocked_cache_return_entry_w( c, e ) \
 	bdb_unlocked_cache_return_entry_rw((c), (e), 1)
+
+#define bdb_cache_add				BDB_SYMBOL(cache_add)
+#define bdb_cache_children			BDB_SYMBOL(cache_children)
+#define bdb_cache_delete			BDB_SYMBOL(cache_delete)
+#define bdb_cache_find_id			BDB_SYMBOL(cache_find_id)
+#define bdb_cache_find_ndn			BDB_SYMBOL(cache_find_ndn)
+#define bdb_cache_modify			BDB_SYMBOL(cache_modify)
+#define bdb_cache_modrdn			BDB_SYMBOL(cache_modrdn)
+#define bdb_cache_release_all		BDB_SYMBOL(cache_release_all)
 
 int bdb_cache_children(
 	Operation *op,
@@ -372,11 +444,7 @@ int bdb_cache_modify(
 	u_int32_t locker,
 	DB_LOCK *lock
 );
-int bdb_cache_update_entry(
-       Cache   *cache,
-       Entry   *e
-);
-int bdb_cache_find_entry_ndn2id(
+int bdb_cache_find_ndn(
 	Backend *be,
 	DB_TXN	*txn,
 	struct berval   *ndn,
@@ -384,7 +452,7 @@ int bdb_cache_find_entry_ndn2id(
 	u_int32_t	locker,
 	void	*ctx
 );
-int bdb_cache_find_entry_id(
+int bdb_cache_find_id(
 	Backend *be,
 	DB_TXN	*tid,
 	ID		id,
@@ -394,7 +462,7 @@ int bdb_cache_find_entry_id(
 	DB_LOCK		*lock,
 	void	*ctx
 );
-int bdb_cache_delete_entry(
+int bdb_cache_delete(
 	Cache	*cache,
 	Entry	*e,
 	DB_ENV	*env,
@@ -403,15 +471,34 @@ int bdb_cache_delete_entry(
 );
 void bdb_cache_release_all( Cache *cache );
 
+#ifdef BDB_REUSE_LOCKERS
+
+#define bdb_locker_id				BDB_SYMBOL(locker_id)
+int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
+
+#define	LOCK_ID_FREE(env, locker)
+#define	LOCK_ID(env, locker)	bdb_locker_id(op, env, locker)
+
+#else
+
+#define	LOCK_ID_FREE(env, locker)	XLOCK_ID_FREE(env, locker)
+#define	LOCK_ID(env, locker)		XLOCK_ID(env, locker)
+
+#endif
+
 /*
- * lcup.c
+ * search.c
  */
 
-BI_op_abandon bdb_abandon;
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 
+#define bdb_abandon					BDB_SYMBOL(abandon)
+#define bdb_cancel					BDB_SYMBOL(cancel)
+#define bdb_do_search				BDB_SYMBOL(do_search)
+
+BI_op_abandon bdb_abandon;
 BI_op_cancel bdb_cancel;
 
-#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 int bdb_do_search(
 	Operation       *op,
 	SlapReply	*rs,
@@ -422,11 +509,11 @@ int bdb_do_search(
 #define	bdb_psearch(op, rs, sop, e, ps_type)	bdb_do_search(op, rs, sop, e, ps_type)
 #endif
 
-/*
- * search.c
- */
 
 #ifdef LDAP_CLIENT_UPDATE
+#define bdb_build_lcup_update_ctrl	BDB_SYMBOL(build_lcup_update_ctrl)
+#define bdb_build_lcup_done_ctrl	BDB_SYMBOL(build_lcup_done_ctrl)
+
 int
 bdb_build_lcup_update_ctrl(
 	Operation       *op,
@@ -448,6 +535,10 @@ bdb_build_lcup_done_ctrl(
 #endif
 
 #ifdef LDAP_SYNC
+#define bdb_build_sync_state_ctrl	BDB_SYMBOL(build_sync_state_ctrl)
+#define bdb_build_sync_done_ctrl	BDB_SYMBOL(build_sync_done_ctrl)
+#define bdb_send_ldap_intermediate	BDB_SYMBOL(send_ldap_intermediate)
+
 int
 bdb_build_sync_state_ctrl(
 	Operation       *op,
@@ -476,17 +567,6 @@ bdb_send_ldap_intermediate(
 	struct berval *cookie );
 #endif
 
-#ifdef BDB_REUSE_LOCKERS
-
-int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
-
-#endif
-
-#ifdef HAVE_EBCDIC
-char *ebcdic_dberror( int rc );
-
-#define db_strerror(x)	ebcdic_dberror(x)
-#endif
 
 LDAP_END_DECL
 

@@ -273,7 +273,7 @@ retry:	/* transaction retry */
 		 * children.
 		 */
 		eip = ei->bei_parent;
-		rs->sr_err = bdb_cache_find_entry_id( op->o_bd, ltid,
+		rs->sr_err = bdb_cache_find_id( op->o_bd, ltid,
 			eip->bei_id, &eip, 0, locker, &plock, op->o_tmpmemctx );
 
 		switch( rs->sr_err ) {
@@ -669,7 +669,7 @@ retry:	/* transaction retry */
 
 	/* Shortcut the search */
 	nei = neip ? neip : eip;
-	rs->sr_err = bdb_cache_find_entry_ndn2id ( op->o_bd, ltid, &new_ndn,
+	rs->sr_err = bdb_cache_find_ndn ( op->o_bd, ltid, &new_ndn,
 		&nei, locker, op->o_tmpmemctx );
 	if ( nei ) bdb_cache_entryinfo_unlock( nei );
 	switch( rs->sr_err ) {

@@ -203,7 +203,7 @@ static int search_aliases(
 			ida = bdb_idl_next(curscop, &cursora))
 		{
 			ei = NULL;
-			rs->sr_err = bdb_cache_find_entry_id(op->o_bd, NULL,
+			rs->sr_err = bdb_cache_find_id(op->o_bd, NULL,
 				ida, &ei, 0, locker, &lockr, op->o_tmpmemctx );
 			if (rs->sr_err != LDAP_SUCCESS) {
 				continue;
@@ -269,7 +269,7 @@ nextido:
 		 * Set the name so that the scope's IDL can be retrieved.
 		 */
 		ei = NULL;
-		rs->sr_err = bdb_cache_find_entry_id(op->o_bd, NULL, ido, &ei,
+		rs->sr_err = bdb_cache_find_id(op->o_bd, NULL, ido, &ei,
 			0, locker, &locka, op->o_tmpmemctx );
 		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
 		e = ei->bei_e;
@@ -866,7 +866,7 @@ loop_begin:
 id2entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
-			rs->sr_err = bdb_cache_find_entry_id( op->o_bd, NULL,
+			rs->sr_err = bdb_cache_find_id( op->o_bd, NULL,
 				id, &ei, 0, locker, &lock, op->o_tmpmemctx );
 
 			if (rs->sr_err == LDAP_BUSY) {

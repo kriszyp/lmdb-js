@@ -42,7 +42,7 @@ bdb_dn2entry(
 
 	*e = NULL;
 
-	rc = bdb_cache_find_entry_ndn2id( be, tid, dn, &ei, locker, ctx );
+	rc = bdb_cache_find_ndn( be, tid, dn, &ei, locker, ctx );
 	if ( rc ) {
 		if ( matched && rc == DB_NOTFOUND ) {
 			/* Set the return value, whether we have its entry
@@ -50,7 +50,7 @@ bdb_dn2entry(
 			 */
 			*e = ei;
 			if ( ei && ei->bei_id )
-				bdb_cache_find_entry_id( be, tid, ei->bei_id,
+				bdb_cache_find_id( be, tid, ei->bei_id,
 					&ei, 1, locker, lock, ctx );
 			else if ( ei )
 				bdb_cache_entryinfo_unlock( ei );
@@ -58,14 +58,14 @@ bdb_dn2entry(
 			bdb_cache_entryinfo_unlock( ei );
 		}
 	} else {
-		rc = bdb_cache_find_entry_id( be, tid, ei->bei_id, &ei, 1,
+		rc = bdb_cache_find_id( be, tid, ei->bei_id, &ei, 1,
 			locker, lock, ctx );
 		if ( rc == 0 ) {
 			*e = ei;
 		} else if ( matched && rc == DB_NOTFOUND ) {
 			/* always return EntryInfo */
 			ei = ei->bei_parent;
-			bdb_cache_find_entry_id( be, tid, ei->bei_id, &ei, 1,
+			bdb_cache_find_id( be, tid, ei->bei_id, &ei, 1,
 				locker, lock, ctx );
 			*e = ei;
 		}

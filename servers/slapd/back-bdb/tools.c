@@ -11,6 +11,7 @@
 #include <ac/string.h>
 
 #include "back-bdb.h"
+#include "external.h"
 
 static DBC *cursor = NULL;
 static DBT key, data;
@@ -21,9 +22,9 @@ typedef struct dn_id {
 } dn_id;
 
 #define	HOLE_SIZE	4096
-dn_id hbuf[HOLE_SIZE], *holes = hbuf;
-unsigned nhmax = HOLE_SIZE;
-unsigned nholes;
+static dn_id hbuf[HOLE_SIZE], *holes = hbuf;
+static unsigned nhmax = HOLE_SIZE;
+static unsigned nholes;
 
 int bdb_tool_entry_open(
 	BackendDB *be, int mode )
@@ -124,7 +125,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 #else
 	{
 		EntryInfo *ei = NULL;
-		rc = bdb_cache_find_entry_id( be, NULL, id, &ei, 0, 0,
+		rc = bdb_cache_find_id( be, NULL, id, &ei, 0, 0,
 			NULL, NULL );
 		if ( rc == LDAP_SUCCESS )
 			e = ei->bei_e;
@@ -133,7 +134,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	return e;
 }
 
-int bdb_tool_next_id(
+static int bdb_tool_next_id(
 	BackendDB *be,
 	DB_TXN *tid,
 	Entry *e,
@@ -147,7 +148,7 @@ int bdb_tool_next_id(
 	EntryInfo *ei = NULL;
 	int rc;
 
-	rc = bdb_cache_find_entry_ndn2id( be, tid, &dn, &ei, locker, NULL );
+	rc = bdb_cache_find_ndn( be, tid, &dn, &ei, locker, NULL );
 	if ( ei ) bdb_cache_entryinfo_unlock( ei );
 	if ( rc == DB_NOTFOUND ) {
 		if ( be_issuffix( be, &dn ) ) {

@@ -17,7 +17,7 @@
 
 #include "back-bdb.h"
 
-static int	bdb_cache_delete_entry_internal(Cache *cache, EntryInfo *e);
+static int	bdb_cache_delete_internal(Cache *cache, EntryInfo *e);
 #ifdef LDAP_DEBUG
 static void	bdb_lru_print(Cache *cache);
 #endif
@@ -34,7 +34,7 @@ bdb_cache_entryinfo_new( )
 }
 
 /* Atomically release and reacquire a lock */
-int
+static int
 bdb_cache_entry_db_relock(
 	DB_ENV *env,
 	u_int32_t locker,
@@ -80,7 +80,7 @@ bdb_cache_entry_db_relock(
 	return rc;
 #endif
 }
-int
+static int
 bdb_cache_entry_db_lock
 ( DB_ENV *env, u_int32_t locker, EntryInfo *ei, int rw, int tryOnly, DB_LOCK *lock )
 {
@@ -188,7 +188,7 @@ bdb_id_cmp( const void *v_e1, const void *v_e2 )
 
 /* Create an entryinfo in the cache. Caller must release the locks later.
  */
-int
+static int
 bdb_entryinfo_add_internal(
 	struct bdb_info *bdb,
 	EntryInfo *ei,
@@ -244,7 +244,7 @@ bdb_entryinfo_add_internal(
 					bdb_cache_entry_db_unlock( env, &lock );
 					continue;
 				}
-				bdb_cache_delete_entry_internal( cache, elru );
+				bdb_cache_delete_internal( cache, elru );
 				bdb_cache_entryinfo_unlock( elru->bei_parent );
 				elru->bei_e->e_private = NULL;
 				bdb_entry_return( elru->bei_e );
@@ -311,7 +311,7 @@ bdb_entryinfo_add_internal(
  * The EntryInfo is locked upon return and must be unlocked by the caller.
  */
 int
-bdb_cache_find_entry_ndn2id(
+bdb_cache_find_ndn(
 	Backend		*be,
 	DB_TXN		*txn,
 	struct berval	*ndn,
@@ -401,7 +401,7 @@ bdb_cache_find_entry_ndn2id(
 /* Walk up the tree from a child node, looking for an ID that's already
  * been linked into the cache.
  */
-int
+static int
 bdb_cache_find_parent(
 	Backend *be,
 	DB_TXN *txn,
@@ -430,9 +430,7 @@ bdb_cache_find_parent(
 		ein->bei_id = ei.bei_id;
 		ein->bei_kids = ei.bei_kids;
 		ein->bei_nrdn = ei.bei_nrdn;
-#ifdef BDB_HIER
 		ein->bei_rdn = ei.bei_rdn;
-#endif
 		
 		/* This node is not fully connected yet */
 		ein->bei_state = CACHE_ENTRY_NOT_LINKED;
@@ -493,13 +491,13 @@ bdb_cache_find_parent(
 #endif
 
 /*
- * cache_find_entry_id - find an entry in the cache, given id.
+ * cache_find_id - find an entry in the cache, given id.
  * The entry is locked for Read upon return. Call with islocked TRUE if
  * the supplied *eip was already locked.
  */
 
 int
-bdb_cache_find_entry_id(
+bdb_cache_find_id(
 	Backend *be,
 	DB_TXN	*tid,
 	ID				id,
@@ -534,7 +532,7 @@ bdb_cache_find_entry_id(
 #ifndef BDB_HIER
 		rc = bdb_id2entry( be, tid, id, &ep );
 		if ( rc == 0 ) {
-			rc = bdb_cache_find_entry_ndn2id( be, tid,
+			rc = bdb_cache_find_ndn( be, tid,
 				&ep->e_nname, eip, locker, ctx );
 			if ( *eip )
 				islocked = 1;
@@ -563,7 +561,7 @@ bdb_cache_find_entry_id(
 					*eip, 1, 0, lock );
 				ep->e_private = *eip;
 #ifdef BDB_HIER
-				hdb_fix_dn( ep );
+				bdb_fix_dn( ep );
 #endif
 				(*eip)->bei_e = ep;
 				bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
@@ -738,14 +736,14 @@ bdb_cache_modrdn(
 	return rc;
 }
 /*
- * cache_delete_entry - delete the entry e from the cache. 
+ * cache_delete - delete the entry e from the cache. 
  *
  * returns:	0	e was deleted ok
  *		1	e was not in the cache
  *		-1	something bad happened
  */
 int
-bdb_cache_delete_entry(
+bdb_cache_delete(
     Cache	*cache,
     Entry		*e,
     DB_ENV	*env,
@@ -772,15 +770,15 @@ bdb_cache_delete_entry(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( CACHE, ENTRY, 
-		"bdb_cache_delete_entry: delete %ld.\n", e->e_id, 0, 0 );
+		"bdb_cache_delete: delete %ld.\n", e->e_id, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_delete_entry( %ld )\n",
+	Debug( LDAP_DEBUG_TRACE, "====> bdb_cache_delete( %ld )\n",
 		e->e_id, 0, 0 );
 #endif
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
-	rc = bdb_cache_delete_entry_internal( cache, e->e_private );
+	rc = bdb_cache_delete_internal( cache, e->e_private );
 	/* free lru mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
@@ -793,7 +791,7 @@ bdb_cache_delete_entry(
 }
 
 static int
-bdb_cache_delete_entry_internal(
+bdb_cache_delete_internal(
     Cache	*cache,
     EntryInfo		*e
 )
@@ -893,7 +891,7 @@ bdb_lru_print( Cache *cache )
 #endif
 
 #ifdef BDB_REUSE_LOCKERS
-void
+static void
 bdb_locker_id_free( void *key, void *data )
 {
 	DB_ENV *env = key;
