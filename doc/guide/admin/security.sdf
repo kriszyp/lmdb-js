@@ -76,11 +76,30 @@ A number of {{TERM[expand]SASL}} (SASL) mechanisms, such as DIGEST-MD5
 and {{TERM:GSSAPI}}, provide integrity and confidentiality protection.
 See the {{SECT:Using SASL}} chapter for more information.
 
+
+H3: Security Strength Factors
+
 The server uses {{TERM[expand]Security Strength Factors}} (SSF) to
 indicate the relative strength of protection.  A SSF of zero (0)
 indicates no protections are in place.  A SSF of one (1) indicates
 integrity protection are in place.  A SSF greater than one (>1)
 roughly correlates to the effective encryption key length.  For
 example, {{TERM:DES}} is 56, {{TERM:3DES}} is 112, and {{TERM:AES}}
-is 128.
+128, 192, or 256.
+
+A number of administrative controls rely on SSFs associated with
+TLS and SASL protection in place on an LDAP session.
+
+{{EX:security}} controls disallow operations when appropriate
+protections are not in place.  For example:
+
+>	security ssf=1 update_ssf=112
+
+requires integrity protection for all operations and encryption
+protection, 3DES equivalent, for update operations (e.g. add,
+delete, modify, etc.).  See {{slapd.conf}}(5) for details.
+
+For finer grained control, SSFs may be used in access controls.
+See {{SECT:Access Control}} section of the {{SECT:The slapd
+Configuration File}} for more information.
 
