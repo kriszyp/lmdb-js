@@ -1717,7 +1717,7 @@ aci_group_member (
 		bv.bv_len = sizeof( buf ) - 1;
 		bv.bv_val = (char *)&buf;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
-		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
+		if ( dnNormalize2(NULL, &bv, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
 			rc = (backend_group(op, e, &ndn, &op->o_ndn,
 				grp_oc, grp_ad) == 0);
 			free( ndn.bv_val );
@@ -1790,7 +1790,7 @@ aci_mask(
 	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
 		rc = 0;
-		if ( dnNormalize2(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
+		if ( dnNormalize2(NULL, &sdn, &ndn, op->o_tmpmemctx) == LDAP_SUCCESS ) {
 			if (dn_match( &op->o_ndn, &ndn))
 				rc = 1;
 			free(ndn.bv_val);
@@ -1827,7 +1827,7 @@ aci_mask(
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 				at->a_nvals,
-				&bv) == 0 )
+				&bv, op->o_tmpmemctx) == 0 )
 			{
 				rc = 1;
 				break;
