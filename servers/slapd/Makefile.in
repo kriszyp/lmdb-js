@@ -39,7 +39,7 @@ XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
-all-local-srv: backendslib all-cffiles
+all-local-srv: all-cffiles
 
 slapd: libbackends.a version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
@@ -48,7 +48,7 @@ slapd: libbackends.a version.o
 sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
-backendslib: FORCE
+.backend: FORCE
 	@for i in back-*; do \
 		if [ -d $$i ]; then \
 			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
@@ -56,8 +56,6 @@ backendslib: FORCE
 		fi; \
 	done; \
 	echo " "
-
-.backend: 
 
 libbackends.a: .backend
 	@$(RM) -r tmp
