@@ -4,7 +4,10 @@
 
 H1: Schema Specification
 
-This chapter describes how to extend the user schema used by {{slapd}}(8).
+This chapter describes how to extend the user schema used by
+{{slapd}}(8).  The chapter assumes the reader is familar with the
+{{TERM:LDAP}}/{{TERM:X.500}} information model.
+
 The first section, {{SECT:Distributed Schema Files}} details optional
 schema definitions provided in the distribution and where to obtain
 other definitions.

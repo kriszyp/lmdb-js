@@ -9,23 +9,26 @@ in {{REF:RFC2222}}.   This chapter describes how to make use of
 SASL in OpenLDAP.
 
 There are several industry standard authentication mechanisms that
-can be used with SASL, including {{TERM:Kerberos}} V4, {{TERM:GSSAPI}},
-and DIGEST-MD.  The standard client tools provided with OpenLDAP,
-such as {{ldapsearch}}(1) and {{ldapmodify}}(1), will by default
-attempt to authenticate the user to the {{slapd}}(8) server using
-SASL. Basic authentication service can be set up by the LDAP
-administrator with a few steps, allowing users to be authenticated
-to the slapd server as their LDAP entry.  With a few extra steps,
-some users and services can be allowed to exploit SASL's proxy
-authorization feature, allowing them to authenticate themselves and
-then switch their identity to that of another user or service.
+can be used with SASL, including {{TERM:GSSAPI}} for {{TERM:Kerberos}}
+V, DIGEST-MD5, and PLAIN and EXTERNAL for use with {{TERM[expand]TLS}}
+(TLS).
+
+The standard client tools provided with OpenLDAP Software, such as
+{{ldapsearch}}(1) and {{ldapmodify}}(1), will by default attempt
+to authenticate the user to the {{slapd}}(8) server using SASL.
+Basic authentication service can be set up by the LDAP administrator
+with a few steps, allowing users to be authenticated to the slapd
+server as their LDAP entry.  With a few extra steps, some users and
+services can be allowed to exploit SASL's proxy authorization
+feature, allowing them to authenticate themselves and then switch
+their identity to that of another user or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
 Administrators}}, provided with the {{PRD:Cyrus}} {{PRD:SASL}}
 package (in {{FILE:doc/sysadmin.html}}) and have a working Cyrus
 SASL installation.  You should use the Cyrus SASL {{EX:sample_client}}
 and {{EX:sample_server}} to test your SASL installation before
-attempting to make use of it in OpenLDAP.
+attempting to make use of it with OpenLDAP Software.
 
 Note that in the following text the term {{user}} is used to describe
 a person or application entity who is connecting to the LDAP server
@@ -42,29 +45,30 @@ H2: SASL Security Considerations
 SASL offers many different authentication mechanisms.  This section
 briefly outlines security considerations.
 
-Some mechanisms, such as PLAIN and LOGIN, offer no greater security over
-LDAP "simple" authentication.  Like "simple" authentication, such
-mechanisms should not be used unless you have adequate security
-protections in place.  It is recommended that these mechanisms be
-used only in conjunction with {{TERM[expand]TLS}} (TLS).  Use of
-PLAIN and LOGIN are not discussed further in this document.
+Some mechanisms, such as PLAIN and LOGIN, offer no greater security
+over LDAP {{simple}} authentication.  Like LDAP {{simple}}
+authentication, such mechanisms should not be used unless you have
+adequate security protections in place.  It is recommended that
+these mechanisms be used only in conjunction with {{TERM[expand]TLS}}
+(TLS).  Use of PLAIN and LOGIN are not discussed further in this
+document.
 
 The DIGEST-MD5 mechanism is the mandatory-to-implement authentication
 mechanism for LDAPv3.  Though DIGEST-MD5 is not a strong authentication
 mechanism in comparison with trusted third party authentication
-systems (such as Kerberos or public key systems), yet it does offer
+systems (such as Kerberos or public key systems), it does offer
 significant protections against a number of attacks.  Unlike the
 CRAM-MD5 mechanism, it prevents chosen plaintext attacks.  DIGEST-MD5
-is favored over the weaker and even more dangerous use of plaintext
-password mechanisms.  The CRAM-MD5 mechanism is deprecated in favor
-of DIGEST-MD5.  Use of {{SECT:DIGEST-MD5}} is discussed below.
+is favored over the use of plaintext password mechanisms.  The
+CRAM-MD5 mechanism is deprecated in favor of DIGEST-MD5.  Use of
+{{SECT:DIGEST-MD5}} is discussed below.
 
-The KERBEROS_V4 mechanism utilizes Kerberos IV to provide secure
-authentication services.  There is also a GSSAPI based mechanism
-which is generally used in conjunction with Kerberos V.  Kerberos
-is viewed as a secure, distributed authentication system suitable
-for both small and large enterprises.  Use of {{SECT:KERBEROS_V4}}
-and {{SECT:GSSAPI}} are discussed below.
+The GSSAPI mechanism utilizes Kerberos V to provide secure
+authentication services.  The KERBEROS_V4 mechanism is available
+for those using Kerberos IV.  Kerberos is viewed as a secure,
+distributed authentication system suitable for both small and large
+enterprises.  Use of {{SECT:GSSAPI}} and {{SECT:KERBEROS_V4}} are
+discussed below.
 
 The EXTERNAL mechanism utilizes authentication services provided
 by lower level network services such as {{TERM:TLS}} (TLS).  When
@@ -73,8 +77,9 @@ key technology, EXTERNAL offers strong authentication.  Use of
 EXTERNAL is discussed in the {{SECT:Using TLS}} chapter.
 
 There are other strong authentication mechanisms to choose from,
-including OTP (one time passwords) and SRP (secure remote passwords).
-These mechanisms are not discussed in this document.
+including {{TERM:OTP}} (one time passwords) and {{TERM:SRP}} (secure
+remote passwords).  These mechanisms are not discussed in this
+document.
 
 
 H2: SASL Authentication
@@ -93,6 +98,54 @@ mechanism available under SASL is beyond the scope of this chapter.
 The second step is described in the section 
 {{SECT:Mapping Authentication identities to LDAP entries}}.
 
+
+H3: GSSAPI
+
+This section describes the use of the SASL GSSAPI mechanism and
+Kerberos V with OpenLDAP.  It will be assumed that you have Kerberos
+V deployed, you are familiar with the operation of the system, and
+that your users are trained in its use.  This section also assumes
+you have familiarized yourself with the use of the GSSAPI mechanism
+by reading {{Configuring GSSAPI and Cyrus SASL}} (provided with
+Cyrus SASL in the {{FILE:doc/gssapi}} file) and successfully
+experimented with the Cyrus provided {{EX:sample_server}} and
+{{EX:sample_client}} applications.  General information about
+Kerberos is available at {{URL:http://web.mit.edu/kerberos/www/}}.
+
+To use the GSSAPI mechanism with {{slapd}}(8) one must create a service
+key with a principal for {{ldap}} service within the realm for the host
+on which the service runs.  For example, if you run {{slapd}} on
+{{EX:directory.example.com}} and your realm is {{EX:EXAMPLE.COM}},
+you need to create a service key with the principal:
+
+>	ldap/directory.example.com@EXAMPLE.COM
+
+When {{slapd}}(8) runs, it must have access to this key.  This is
+generally done by placing the key into a keytab, such as
+{{FILE:/etc/krb5.keytab}}.
+
+To use the GSSAPI mechanism to authenticate to the directory, the
+user obtains a Ticket Granting Ticket (TGT) prior to running the
+LDAP client.  When using OpenLDAP client tools, the user may mandate
+use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
+command option.
+
+For the purposes of authentication and authorization, {{slapd}}(8)
+associates a non-mapped authentication request DN of the form:
+
+>	uid=<primary[/instance]>,cn=<realm>,cn=gssapi,cn=auth
+
+Continuing our example, a user with the Kerberos principal
+{{EX:kurt@EXAMPLE.COM}} would have the associated DN:
+
+>	uid=kurt,cn=example.com,cn=gssapi,cn=auth
+
+and the principal {{EX:ursula/admin@FOREIGN.REALM}} would have the
+associated DN:
+
+>	uid=ursula/admin,cn=foreign.realm,cn=gssapi,cn=auth
+
+
 H3: KERBEROS_V4
 
 This section describes the use of the SASL KERBEROS_V4 mechanism
@@ -101,6 +154,9 @@ workings of the Kerberos IV security system, and that your site has
 Kerberos IV deployed.  Your users should be familiar with
 authentication policy, how to receive credentials in
 a Kerberos ticket cache, and how to refresh expired credentials.
+
+Note: KERBEROS_V4 and Kerberos IV are deprecated in favor of GSSAPI
+and Kerberos V.
 
 Client programs will need to be able to obtain a session key for
 use when connecting to your LDAP server. This allows the LDAP server
@@ -156,80 +212,33 @@ concept of a realm, so the ",cn=<realm>" portion of the authentication
 request DN would not appear.
 
 
-H3: GSSAPI
-
-This section describes the use of the SASL GSSAPI mechanism and
-Kerberos V with OpenLDAP. Since Kerberos V is being used, the
-information is very similar to the previous section.  It will be
-assumed that you have Kerberos V deployed, you are familiar with
-the operation of the system, and that your users are trained in its
-use.  This section also assumes you have familiarized yourself with
-the use of the GSSAPI mechanism by reading {{Configuring GSSAPI and
-Cyrus SASL}} (provided with Cyrus SASL in the {{FILE:doc/gssapi}}
-file) and successfully experimented with the Cyrus provided
-{{EX:sample_server}} and {{EX:sample_client}} applications.  General
-information about Kerberos is available at
-{{URL:http://web.mit.edu/kerberos/www/}}.
-
-To use the GSSAPI mechanism with {{slapd}}(8) one must create a service
-key with a principal for {{ldap}} service within the realm for the host
-on which the service runs.  For example, if you run {{slapd}} on
-{{EX:directory.example.com}} and your realm is {{EX:EXAMPLE.COM}},
-you need to create a service key with the principal:
-
->	ldap/directory.example.com@EXAMPLE.COM
-
-When {{slapd}}(8) runs, it must have access to this key.  This is
-generally done by placing the key into a keytab, such as
-{{FILE:/etc/krb5.keytab}}.
-
-To use the GSSAPI mechanism to authenticate to the directory, the
-user obtains a Ticket Granting Ticket (TGT) prior to running the
-LDAP client.  When using OpenLDAP client tools, the user may mandate
-use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
-command option.
-
-For the purposes of authentication and authorization, {{slapd}}(8)
-associates a non-mapped authentication request DN of the form:
-
->	uid=<primary[/instance]>,cn=<realm>,cn=gssapi,cn=auth
-
-Continuing our example, a user with the Kerberos principal
-{{EX:kurt@EXAMPLE.COM}} would have the associated DN:
-
->	uid=kurt,cn=example.com,cn=gssapi,cn=auth
-
-and the principal {{EX:ursula/admin@FOREIGN.REALM}} would have the
-associated DN:
-
->	uid=ursula/admin,cn=foreign.realm,cn=gssapi,cn=auth
-
-
 H3: DIGEST-MD5
 
-This section describes the use of the SASL DIGEST-MD5 mechanism using
-secrets stored either in the directory itself or in Cyrus SASL's own
-database. DIGEST-MD5 relies on the client and the server sharing a
-"secret", usually a password. The server generates a challenge and the
-client a response proving that it knows the shared secret. This is much
-more secure than simply sending the secret over the wire.
+This section describes the use of the SASL DIGEST-MD5 mechanism
+using secrets stored either in the directory itself or in Cyrus
+SASL's own database. DIGEST-MD5 relies on the client and the server
+sharing a "secret", usually a password. The server generates a
+challenge and the client a response proving that it knows the shared
+secret. This is much more secure than simply sending the secret
+over the wire.
 
-Cyrus SASL supports several shared-secret mechanisms. To do this, it
-needs access to the plaintext password (unlike mechanisms which pass
-plaintext passwords over the wire, where the server can store a hashed
-version of the password).
+Cyrus SASL supports several shared-secret mechanisms. To do this,
+it needs access to the plaintext password (unlike mechanisms which
+pass plaintext passwords over the wire, where the server can store
+a hashed version of the password).
 
 Secret passwords are normally stored in Cyrus SASL's own {{sasldb}}
-database, but if OpenLDAP has been compiled with Cyrus SASL 2.1 it is
-possible to store the secrets in the LDAP database itself. With Cyrus
-SASL 1.5, secrets may only be stored in the {{sasldb}}.  In either
-case it is very important to apply file access controls and LDAP access
-controls to prevent exposure of the passwords.
+database, but if OpenLDAP Software has been compiled with Cyrus
+SASL 2.1 it is possible to store the secrets in the LDAP database
+itself. With Cyrus SASL 1.5, secrets may only be stored in the
+{{sasldb}}.  In either case it is very important to apply file
+access controls and LDAP access controls to prevent exposure of the
+passwords.
 
-The configuration and commands discussed in this section assume the use
-of Cyrus SASL 2.1. If you are using version 1.5 then certain features
-will not be available, and the command names will not have the trailing
-digit "2".
+The configuration and commands discussed in this section assume the
+use of Cyrus SASL 2.1. If you are using version 1.5 then certain
+features will not be available, and the command names will not have
+the trailing digit "2".
 
 To use secrets stored in {{sasldb}}, simply add users with the
 {{saslpasswd2}} command:
@@ -240,9 +249,9 @@ The passwords for such users must be managed with the {{saslpasswd2}}
 command.
 
 To use secrets stored in the LDAP directory, place plaintext passwords
-in the {{EX:userPassword}} attribute. It will be necessary to add an
-option to {{EX:slapd.conf}} to make sure that passwords changed through
-LDAP are stored in plaintext:
+in the {{EX:userPassword}} attribute. It will be necessary to add
+an option to {{EX:slapd.conf}} to make sure that passwords changed
+through LDAP are stored in plaintext:
 
 >       password-hash   {CLEARTEXT}
 
@@ -390,20 +399,20 @@ DN to which they should not have access. It is better to write
 several strict directives than one lenient directive which has
 security holes. If there is only one authentication mechanism in
 place at your site, and zero or one realms in use, you might be
-able to map between authentication identities and LDAP DN's with
-a single {{EX:sasl-regexp}} directive.
+able to map between authentication identities and LDAP DN's with a
+single {{EX:sasl-regexp}} directive.
 
-Don't forget to allow for the case where the realm is omitted as well
-as the case with an explicitly specified realm. This may well
-require a separate {{EX:sasl-regexp}} directive for each case, with the
-explicit-realm entry being listed first.
+Don't forget to allow for the case where the realm is omitted as
+well as the case with an explicitly specified realm. This may well
+require a separate {{EX:sasl-regexp}} directive for each case, with
+the explicit-realm entry being listed first.
 
 Some sites may have people's DN's spread to multiple areas of the
-LDAP tree, such as if there were an {{EX:ou=accounting}} tree and an
-{{EX:ou=engineering}} tree, with people interspersed between them. Or
-there may not be enough information in the authentication identity
-to isolate the DN, such as if the above person's LDAP entry looked
-like
+LDAP tree, such as if there were an {{EX:ou=accounting}} tree and
+an {{EX:ou=engineering}} tree, with people interspersed between
+them. Or there may not be enough information in the authentication
+identity to isolate the DN, such as if the above person's LDAP entry
+looked like
 
 >	dn: cn=mark adamson,ou=person,dc=example,dc=com
 >	objectclass: Person
@@ -452,8 +461,8 @@ This will initiate an internal search of the LDAP database inside
 the slapd server. If the search returns exactly one entry, it is
 accepted as being the DN of the user. If there are more than one
 entries returned, or if there are zero entries returned, the
-authentication fails and the user's connection is left bound as
-the authentication request DN.
+authentication fails and the user's connection is left bound as the
+authentication request DN.
 
 Note that if the search scope <scope> in the URL is "base", then
 the only LDAP entry that will be returned is the searchbase DN
@@ -466,8 +475,8 @@ URL should be indexed to allow faster searching. If they are not,
 the authentication step alone can take uncomfortably long periods,
 and users may assume the server is down.
 
-A more complex site might have several realms in use, each mapping to
-a different sub-tree in the directory. These can be handled with
+A more complex site might have several realms in use, each mapping
+to a different sub-tree in the directory. These can be handled with
 statements of the form:
 
 >	# Match Engineering realm
@@ -636,18 +645,18 @@ If an LDAP entry looked like:
 >	dn: cn=WebUpdate,dc=example,dc=com
 >	saslAuthzTo: ldap:///dc=example,dc=com??sub?(objectclass=Person)
 
-then any user who authenticated as cn=WebUpdate,dc=example,dc=com
+then any user who authenticated as {{EX:cn=WebUpdate,dc=example,dc=com}}
 could authorize to any other LDAP entry under the search base
-"dc=example,dc=com" which has an objectClass of "Person".
+{{EX:dc=example,dc=com}} which has an objectClass of {{EX:Person}}.
 
 
 H4: Notes on Proxy Authorization Rules
 
 An LDAP URL in a {{EX:saslAuthzTo}} or {{EX:saslAuthzFrom}} attribute
-will return a set of DNs.  Each DN returned will be checked.
-Searches which return a large set can cause the authorization
-process to take an uncomfortably long time. Also, searches should
-be performed on attributes that have been indexed by slapd.
+will return a set of DNs.  Each DN returned will be checked.  Searches
+which return a large set can cause the authorization process to
+take an uncomfortably long time. Also, searches should be performed
+on attributes that have been indexed by slapd.
 
 To help produce more sweeping rules for {{EX:saslAuthzFrom}} and
 {{EX:saslAuthzTo}}, the values of these attributes are allowed to
@@ -687,8 +696,9 @@ source rules, {{EX:to}} for destination rules, or {{EX:both}} for
 both source and destination rules.
 
 Destination rules are extremely powerful. If ordinary users have
-access to write the {{EX:saslAuthzTo}} attribute in their own entries, then
-they can write rules that would allow them to authorize as anyone else.
-As such, when using destination rules, the {{EX:saslAuthzTo}} attribute
-should be protected with an ACL that only allows privileged users
-to set its values.
+access to write the {{EX:saslAuthzTo}} attribute in their own
+entries, then they can write rules that would allow them to authorize
+as anyone else.  As such, when using destination rules, the
+{{EX:saslAuthzTo}} attribute should be protected with an ACL that
+only allows privileged users to set its values.
+
