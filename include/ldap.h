@@ -1707,5 +1707,34 @@ ldap_whoami_s LDAP_P((
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
 
+/*
+ * in passwd.c
+ */
+
+LDAP_F( int )
+ldap_parse_passwd LDAP_P((
+	LDAP *ld,
+	LDAPMessage *res,
+	struct berval *newpasswd ));
+
+LDAP_F( int )
+ldap_passwd LDAP_P(( LDAP *ld,
+	struct berval	*user,
+	struct berval	*oldpw,
+	struct berval	*newpw,
+	LDAPControl		**sctrls,
+	LDAPControl		**cctrls,
+	int				*msgidp ));
+
+LDAP_F( int )
+ldap_passwd_s LDAP_P((
+	LDAP *ld,
+	struct berval	*user,
+	struct berval	*oldpw,
+	struct berval	*newpw,
+	struct berval *newpasswd,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
+
 LDAP_END_DECL
 #endif /* _LDAP_H */
