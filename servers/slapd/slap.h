@@ -1293,44 +1293,41 @@ struct nonpresent_entry {
  * syncinfo structure for syncrepl
  */
 typedef struct syncinfo_s {
-        struct slap_conn *si_conn;
-        struct slap_backend_db *si_be;
-        struct slap_entry *si_e;
-        void			*si_ctx;
-        unsigned int	si_id;
-        char			*si_provideruri;
-        BerVarray		si_provideruri_bv;
-#define SYNCINFO_TLS_OFF		0
-#define SYNCINFO_TLS_ON			1
-#define SYNCINFO_TLS_CRITICAL	2
-        int				si_tls;
-		struct berval	si_updatedn;	
-        int				si_bindmethod;
-        char			*si_binddn;
-        char			*si_passwd;
-        char			*si_saslmech;
-        char			*si_secprops;
-        char			*si_realm;
-        char			*si_authcId;
-        char			*si_authzId;
-		int				si_schemachecking;
-        Filter			*si_filter;
-        struct berval		si_filterstr;
-        struct berval		si_base;
-        int				si_scope;
-        int				si_attrsonly;
-        char			**si_attrs;
-        int				si_type;
-        time_t			si_interval;
-        struct berval	*si_syncCookie;
-        int				si_manageDSAit;
-        int				si_slimit;
-		int				si_tlimit;
-        struct berval	*si_syncUUID;
-		struct berval	*si_syncUUID_ndn;
-        Avlnode			*si_presentlist;
-		int				si_sync_mode;
-		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
+	struct slap_backend_db *si_be;
+	unsigned int	si_id;
+	char			*si_provideruri;
+	BerVarray		si_provideruri_bv;
+#define	SYNCINFO_TLS_OFF		0
+#define	SYNCINFO_TLS_ON			1
+#define	SYNCINFO_TLS_CRITICAL	2
+	int				si_tls;
+	struct	berval	si_updatedn;	
+	int				si_bindmethod;
+	char			*si_binddn;
+	char			*si_passwd;
+	char			*si_saslmech;
+	char			*si_secprops;
+	char			*si_realm;
+	char			*si_authcId;
+	char			*si_authzId;
+	int				si_schemachecking;
+	Filter			*si_filter;
+	struct berval	si_filterstr;
+	struct berval	si_base;
+	int				si_scope;
+	int				si_attrsonly;
+	char			**si_attrs;
+	int				si_type;
+	time_t			si_interval;
+	struct berval	si_syncCookie;
+	int				si_manageDSAit;
+	int				si_slimit;
+	int				si_tlimit;
+	struct berval	si_syncUUID_ndn;
+	Avlnode			*si_presentlist;
+	int				si_sync_mode;
+	LDAP			*si_ld;
+	LDAP_LIST_HEAD(np,	nonpresent_entry) si_nonpresentlist;
 } syncinfo_t;
 
 struct slap_backend_db {
@@ -2081,6 +2078,10 @@ typedef struct slap_conn {
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int		c_writewaiter;	/* true if writer is waiting */
 
+#define	CONN_IS_TLS	1
+#define	CONN_IS_UDP	2
+#define	CONN_IS_CLIENT	3
+
 #ifdef LDAP_CONNECTIONLESS
 	int	c_is_udp;		/* true if this is (C)LDAP over UDP */
 #endif
@@ -2108,6 +2109,12 @@ typedef struct slap_conn {
 
 	void    *c_pb;                  /* Netscape plugin */
 	void	*c_extensions;		/* Netscape plugin */
+
+	/*
+	 * Client connection handling
+	 */
+	ldap_pvt_thread_start_t	*c_clientfunc;
+	void	*c_clientarg;
 
 	/*
 	 * These are the "callbacks" that are available for back-ends to

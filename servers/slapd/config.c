@@ -2797,12 +2797,14 @@ add_syncrepl(
 	si->si_attrs[0] = NULL;
 	si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
-	si->si_syncCookie = NULL;
+	si->si_syncCookie.bv_val = NULL;
+	si->si_syncCookie.bv_len = 0;
 	si->si_manageDSAit = 0;
 	si->si_tlimit = -1;
 	si->si_slimit = -1;
 	si->si_syncUUID = NULL;
-	si->si_syncUUID_ndn = NULL;
+	si->si_syncUUID_ndn.bv_val = NULL;
+	si->si_syncUUID_ndn.bv_len = 0;
 	si->si_sync_mode = LDAP_SYNC_STATE_MODE;
 
 	si->si_presentlist = NULL;
@@ -3084,7 +3086,7 @@ parse_syncrepl_line(
 			COOKIESTR, sizeof( COOKIESTR ) - 1 ) )
 		{
 			val = cargv[ i ] + sizeof( COOKIESTR );
-			si->si_syncCookie = ber_str2bv( val, strlen( val ), 1, NULL );
+			ber_str2bv( val, 0, 1, &si->si_syncCookie );
 		} else if ( !strncasecmp( cargv[ i ],
 			MANAGEDSAITSTR, sizeof( MANAGEDSAITSTR ) - 1 ) )
 		{

@@ -169,6 +169,12 @@ int connections_shutdown(void)
 		if( connections[i].c_struct_state != SLAP_C_USED ) {
 			continue;
 		}
+		/* give persistent clients a chance to cleanup */
+		if( connections[i].c_conn_state == SLAP_C_CLIENT ) {
+			ldap_pvt_thread_pool_submit( &connection_pool,
+			connections[i].c_clientfunc, connections[i].c_clientarg );
+			continue;
+		}
 
 		ldap_pvt_thread_mutex_lock( &connections[i].c_mutex );
 
@@ -294,6 +300,7 @@ static Connection* connection_get( ber_socket_t s )
 			ldap_pvt_thread_mutex_unlock( &c->c_mutex );
 			return NULL;
 		}
+		if( c->c_conn_state == SLAP_C_CLIENT ) sd = 0;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, RESULTS, 
@@ -332,7 +339,7 @@ long connection_init(
 	Listener *listener,
 	const char* dnsname,
 	const char* peername,
-	int tls_udp_option,
+	int flags,
 	slap_ssf_t ssf,
 	const char *authid )
 {
@@ -346,7 +353,7 @@ long connection_init(
 	assert( peername != NULL );
 
 #ifndef HAVE_TLS
-	assert( tls_udp_option != 1 );
+	assert( flags != CONN_IS_TLS );
 #endif
 
 	if( s == AC_SOCKET_INVALID ) {
@@ -495,6 +502,16 @@ long connection_init(
 	assert( c->c_currentber == NULL );
 
 	c->c_listener = listener;
+
+	if ( flags == CONN_IS_CLIENT ) {
+		c->c_conn_state = SLAP_C_CLIENT;
+		c->c_struct_state = SLAP_C_USED;
+		ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
+
+		return 0;
+	}
+
 	ber_str2bv( dnsname, 0, 1, &c->c_peer_domain );
 	ber_str2bv( peername, 0, 1, &c->c_peer_name );
 
@@ -520,7 +537,7 @@ long connection_init(
 
 #ifdef LDAP_CONNECTIONLESS
 	c->c_is_udp = 0;
-	if( tls_udp_option == 2 ) {
+	if( flags == CONN_IS_UDP ) {
 		c->c_is_udp = 1;
 #ifdef LDAP_DEBUG
 		ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug,
@@ -569,7 +586,7 @@ long connection_init(
 	c->c_tls_ssf = 0;
 
 #ifdef HAVE_TLS
-    if ( tls_udp_option == 1 ) {
+    if ( flags == CONN_IS_TLS ) {
 	    c->c_is_tls = 1;
 	    c->c_needs_tls_accept = 1;
     } else {
@@ -1118,6 +1135,51 @@ no_co_op_free:
 	return NULL;
 }
 
+int connection_client_setup(
+	ber_socket_t s,
+	Listener *l,
+	ldap_pvt_thread_start_t *func,
+	void *arg )
+{
+	Connection *c;
+
+	if ( connection_init( s, l, "", "", CONN_IS_CLIENT, 0, "" ) < 0 ) {
+		return -1;
+	}
+
+	c = connection_get( s );
+	c->c_clientfunc = func;
+	c->c_clientarg = arg;
+	connection_return( c );
+	slapd_add_internal( s );
+	slapd_set_read( s, 1 );
+	return 0;
+}
+
+void connection_client_enable(
+	ber_socket_t s
+)
+{
+	slapd_set_read( s, 1 );
+}
+
+void connection_client_stop(
+	ber_socket_t s
+)
+{
+	Connection *c;
+
+	/* get (locked) connection */
+	c = connection_get( s );
+	
+	assert( c->c_conn_state == SLAP_C_CLIENT );
+
+	c->c_listener = NULL;
+	c->c_conn_state = SLAP_C_INVALID;
+	c->c_struct_state = SLAP_C_UNUSED;
+	connection_return( c );
+}
+
 int connection_read(ber_socket_t s)
 {
 	int rc = 0;
@@ -1157,6 +1219,15 @@ int connection_read(ber_socket_t s)
 			"connection_read(%d): closing, ignoring input for id=%lu\n",
 			s, c->c_connid, 0 );
 #endif
+		connection_return( c );
+		ldap_pvt_thread_mutex_unlock( &connections_mutex );
+		return 0;
+	}
+
+	if ( c->c_conn_state == SLAP_C_CLIENT ) {
+		slapd_clr_read( s, 0 );
+		ldap_pvt_thread_pool_submit( &connection_pool,
+			c->c_clientfunc, c->c_clientarg );
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return 0;

@@ -1503,7 +1503,7 @@ slapd_daemon_task(
 				    id = connection_init(
 					slap_listeners[l]->sl_sd,
 				    	slap_listeners[l], "", "",
-					2, ssf, authid );
+					CONN_IS_UDP, ssf, authid );
 				    slap_listeners[l]->sl_is_udp++;
 				}
 				continue;
@@ -1733,7 +1733,7 @@ slapd_daemon_task(
 				dnsname != NULL ? dnsname : SLAP_STRING_UNKNOWN,
 				peername,
 #ifdef HAVE_TLS
-				slap_listeners[l]->sl_is_tls,
+				slap_listeners[l]->sl_is_tls ? CONN_IS_TLS : 0,
 #else
 				0,
 #endif

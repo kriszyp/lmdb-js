@@ -316,6 +316,15 @@ LDAP_SLAPD_F (int) connections_shutdown LDAP_P((void));
 LDAP_SLAPD_F (int) connections_destroy LDAP_P((void));
 LDAP_SLAPD_F (int) connections_timeout_idle LDAP_P((time_t));
 
+LDAP_SLAPD_F (int) connection_client_setup LDAP_P((
+	ber_socket_t s,
+	Listener *l,
+	ldap_pvt_thread_start_t *func,
+	void *arg ));
+LDAP_SLAPD_F (void) connection_client_enable LDAP_P(( ber_socket_t s ));
+LDAP_SLAPD_F (void) connection_client_stop LDAP_P(( ber_socket_t s ));
+
+
 LDAP_SLAPD_F (long) connection_init LDAP_P((
 	ber_socket_t s,
 	Listener* url,
@@ -1183,13 +1192,13 @@ LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P((syncinfo_t *));
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
 LDAP_SLAPD_F (Entry*) syncrepl_message_to_entry LDAP_P((
-					syncinfo_t *, LDAP *, Operation *, LDAPMessage *,
-					Modifications **, int*, struct berval *, struct berval * ));
+					syncinfo_t *, Operation *, LDAPMessage *,
+					Modifications **, int ));
 LDAP_SLAPD_F (int) syncrepl_entry LDAP_P((
-					syncinfo_t *, LDAP *, Operation*, Entry*,
-					Modifications*,int, struct berval*, struct berval*, int ));
+					syncinfo_t *, Operation*, Entry*,
+					Modifications*,int, struct berval*, int ));
 LDAP_SLAPD_F (void) syncrepl_updateCookie LDAP_P((
-					syncinfo_t *, LDAP *, Operation *, struct berval *,
+					syncinfo_t *, Operation *, struct berval *,
 					struct berval * ));
 LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( 
 					Operation*, Entry* ));
