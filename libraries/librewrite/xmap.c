@@ -95,7 +95,7 @@ rewrite_xmap_parse(
 	 * Experimental file map:
 	 * looks up key in a `key value' ascii file
 	 */
-	} else if ( strncasecmp(s, "xfile", 5 ) == 0 ) {
+	} else if ( strncasecmp( s, "xfile", 5 ) == 0 ) {
 		char *filename;
 		const char *p;
 		int l;
