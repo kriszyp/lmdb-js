@@ -193,7 +193,7 @@ static void slapd_close(ber_socket_t s) {
 	tcp_close(s);
 }
 
-static slap_free_listener_addresses(struct sockaddr **sal)
+static void slap_free_listener_addresses(struct sockaddr **sal)
 {
 	struct sockaddr **sap;
 
@@ -863,7 +863,7 @@ slapd_daemon_task(
 		}
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
-			ber_int_t s;
+			ber_socket_t s;
 			socklen_t len = sizeof(from);
 			long id;
 			slap_ssf_t ssf = 0;
