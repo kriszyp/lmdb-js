@@ -243,6 +243,8 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
+dnl need to add check for -lresolv
+
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
 
