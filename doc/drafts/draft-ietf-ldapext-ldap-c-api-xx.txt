@@ -1,14 +1,8 @@
-
-
-
-
-
-
 Network Working Group                                   M. Smith, Editor
 INTERNET-DRAFT                             Netscape Communications Corp.
 Intended Category: Standards Track                              T. Howes
 Obsoletes: RFC 1823                        Netscape Communications Corp.
-Expires: 23 August 1999                                        A. Herron
+Expires: 2 December 1999                                       A. Herron
                                                          Microsoft Corp.
                                                                  M. Wahl
                                             Innosoft International, Inc.
@@ -16,10 +10,10 @@ Expires: 23 August 1999                                        A. Herron
                                                          Microsoft Corp.
 
 
-                                                        23 February 1999
+                                                             2 June 1999
 
                 The C LDAP Application Program Interface
-                 <draft-ietf-ldapext-ldap-c-api-02.txt>
+                 <draft-ietf-ldapext-ldap-c-api-03.txt>
 
 
 1.  Status of this Memo
@@ -55,9 +49,10 @@ information.
 
 
 
-Expires: 23 August 1999                                         [Page 1]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
+Expires: 2 December 1999                                        [Page 1]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 2.  Introduction
@@ -91,18 +86,18 @@ list of changes made since the last revision of this document.
 6.     Header File Requirements.......................................6
 7.     Common Data Structures.........................................7
 8.     Retrieving Information About the API Implementation............8
-8.1.      Retrieving Information at Compile Time......................8
+8.1.      Retrieving Information at Compile Time......................9
 8.2.      Retrieving Information During Execution.....................10
 9.     LDAP Error Codes...............................................13
 10.    Performing LDAP Operations.....................................14
 10.1.     Initializing an LDAP Session................................14
 10.2.     LDAP Session Handle Options.................................15
-10.3.     Working With Controls.......................................21
+10.3.     Working With Controls.......................................20
 10.3.1.      A Client Control That Governs Referral Processing........22
 10.4.     Authenticating to the directory.............................22
 10.5.     Closing the session.........................................25
 10.6.     Searching...................................................26
-10.7.     Reading an Entry............................................30
+10.7.     Reading an Entry............................................29
 10.8.     Listing the Children of an Entry............................30
 10.9.     Comparing a Value Against an Entry..........................30
 10.10.    Modifying an entry..........................................32
@@ -111,18 +106,19 @@ list of changes made since the last revision of this document.
 
 
 
-Expires: 23 August 1999                                         [Page 2]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
+Expires: 2 December 1999                                        [Page 2]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 10.13.    Deleting an entry...........................................38
-10.14.    Extended Operations.........................................40
+10.14.    Extended Operations.........................................39
 11.    Abandoning An Operation........................................41
 12.    Obtaining Results and Peeking Inside LDAP Messages.............42
 13.    Handling Errors and Parsing Results............................44
-14.    Stepping Through a List of Results.............................47
-15.    Parsing Search Results.........................................48
+14.    Stepping Through a List of Results.............................46
+15.    Parsing Search Results.........................................47
 15.1.     Stepping Through a List of Entries or References............48
 15.2.     Stepping Through the Attributes of an Entry.................49
 15.3.     Retrieving the Values of an Attribute.......................50
@@ -140,14 +136,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 19.    Copyright......................................................64
 20.    Bibliography...................................................65
 21.    Authors' Addresses.............................................66
-22.    Appendix A - Sample C LDAP API Code............................67
+22.    Appendix A - Sample C LDAP API Code............................66
 23.    Appendix B - Namespace Consumed By This Specification..........68
-24.    Appendix C - Summary of Requirements for API Extensions........69
+24.    Appendix C - Summary of Requirements for API Extensions........68
 24.1.     Compatibility...............................................69
 24.2.     Style.......................................................69
 24.3.     Dependence on Externally Defined Types......................69
 24.4.     Compile Time Information....................................69
-24.5.     Runtime Information.........................................70
+24.5.     Runtime Information.........................................69
 24.6.     Values Used for Session Handle Options......................70
 25.    Appendix D - Known Incompatibilities with RFC 1823.............70
 25.1.     Opaque LDAP Structure.......................................70
@@ -156,20 +152,21 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 25.4.     Changes to ldap_result()....................................71
 25.5.     Changes to ldap_first_attribute() and ldap_next_attribute...71
 25.6.     Changes to ldap_modrdn() and ldap_modrdn_s() Functions......71
-25.7.     API Specification Clarified.................................72
-25.8.     Deprecated Functions........................................72
-26.    Appendix E - Changes Made Since Last Document Revision.........72
-26.1.     API Changes.................................................73
-26.2.     Editorial changes...........................................74
+25.7.     Changes to the berval structure.............................71
+25.8.     API Specification Clarified.................................72
+25.9.     Deprecated Functions........................................72
+26.    Appendix E - Data Types and Legacy Implementations.............72
+27.    Appendix F - Changes Made Since Last Document Revision.........73
+27.1.     API Changes.................................................73
+27.2.     Editorial Changes...........................................74
+28.    Appendix G - Changes Made Since draft-ietf-ldapext-ldap-c-api-.74
+28.1.     API Changes.................................................74
+28.2.     Editorial changes...........................................75
+
+Expires: 2 December 1999                                        [Page 3]
 
 
-
-
-
-
-Expires: 23 August 1999                                         [Page 3]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 4.  Overview of the LDAP Model
@@ -223,9 +220,10 @@ An application generally uses the C LDAP API in four simple steps.
 
 
 
-Expires: 23 August 1999                                         [Page 4]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
+Expires: 2 December 1999                                        [Page 4]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
    3.   Perform some LDAP operations and obtain some results.
@@ -279,9 +277,10 @@ type is at least 32 bits in size.
 
 
 
-Expires: 23 August 1999                                         [Page 5]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
+Expires: 2 December 1999                                        [Page 5]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 6.  Header File Requirements
@@ -335,9 +334,10 @@ Use of the 'const' Keyword
 
 
 
-Expires: 23 August 1999                                         [Page 6]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
+Expires: 2 December 1999                                        [Page 6]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
         LDAP API functions as 'const.'  Implementations specifically
@@ -365,39 +365,44 @@ Definition of 'struct timeval'
 Some data structures that are common to several LDAP API functions are
 defined here:
 
-           typedef struct ldap LDAP;
+       typedef struct ldap LDAP;
 
-           typedef struct ldapmsg LDAPMessage;
+       typedef struct ldapmsg LDAPMessage;
 
-           typedef struct berelement BerElement;
+       typedef struct berelement BerElement;
 
-           struct berval {
-                   unsigned long   bv_len;
-                   char            *bv_val;
-           };
+       typedef ber_len_t;  /* actual definition is implementation-specific */
 
-           struct timeval {
-                   long            tv_sec;
-                   long            tv_usec;
-           };
+       typedef ber_tag_t;  /* actual definition is implementation-specific */
+
+       struct berval {
+           ber_len_t       bv_len;
+           char            *bv_val;
+       };
+
+       struct timeval {
+               long        tv_sec;
+               long        tv_usec;
+       };
 
 The LDAP structure is an opaque data type that represents an LDAP ses-
 sion Typically this corresponds to a connection to a single server, but
-it may encompass several server connections in the face of LDAPv3 refer-
-rals.
+it may encompass several server connections in the face of LDAPv3
+
+
+
+Expires: 2 December 1999                                        [Page 7]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
+referrals.
 
 The LDAPMessage structure is an opaque data type that is used to return
-entry, reference, result, and error information.  An LDAPMessage
-
-
-
-Expires: 23 August 1999                                         [Page 7]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
-structure may represent the beginning of a list, or chain of messages
-that consists of a series of entries, references, and result messages as
+entry, reference, result, and error information.  An LDAPMessage struc-
+ture may represent the beginning of a list, or chain of messages that
+consists of a series of entries, references, and result messages as
 returned by LDAP operations such as search.  LDAP API functions such as
 ldap_parse_result() that operate on message chains that may contain more
 than one result message always operate on the first result message in
@@ -408,6 +413,14 @@ The BerElement structure is an opaque data type that is used to hold
 data and state information about encoded data.  It is described in more
 detail in the section "Encoded ASN.1 Value Manipulation" later in this
 document.
+
+The ber_len_t type is an unsigned integral data type that is large
+enough to contain the length of the largest piece of data supported by
+the API implementation.  Similarly, the ber_tag_t type is an unsigned
+integral data type that is large enough to hold the largest BER tag sup-
+ported by the API implementation.  Both of these types should be at
+least 32 bits in size.  See the appendix "Data Types and Legacy Imple-
+mentations" for additional considerations.
 
 The berval structure is used to represent arbitrary binary data and its
 fields have the following meanings:
@@ -432,6 +445,15 @@ on struct timeval.
 
 Applications developed to this specification need to be able to deter-
 mine information about the particular API implementation they are using
+
+
+
+Expires: 2 December 1999                                        [Page 8]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 both at compile time and during execution.
 
 
@@ -444,14 +466,6 @@ software developers:
    #define LDAP_API_VERSION     level
    #define LDAP_VERSION_MIN     min-version
    #define LDAP_VERSION_MAX     max-version
-
-
-
-Expires: 23 August 1999                                         [Page 8]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
    #define LDAP_VENDOR_NAME     "vend-name"
    #define LDAP_VENDOR_VERSION  vend-version
 
@@ -489,6 +503,14 @@ might include macro definitions like these:
 and application code can test the C LDAP API version level using a
 construct such as this one:
 
+
+
+Expires: 2 December 1999                                        [Page 9]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
    #if (LDAP_API_VERSION >= 88888)
            /* use features supported in RFC 88888 or later */
    #endif
@@ -500,13 +522,6 @@ for revision 03 of this draft is 2003.
 
 Documents that extend this specification SHOULD define a macro of the
 form:
-
-
-
-Expires: 23 August 1999                                         [Page 9]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
 
    #define LDAP_API_FEATURE_x level
 
@@ -544,6 +559,15 @@ LDAPAPIInfo structure which is defined as follows:
        int  ldapai_protocol_version; /* highest LDAP version supported */
        char **ldapai_extensions;     /* names of API extensions */
        char *ldapai_vendor_name;     /* name of supplier */
+
+
+
+Expires: 2 December 1999                                       [Page 10]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
        int  ldapai_vendor_version;   /* supplier-specific version times 100 */
    } LDAPAPIInfo;
 
@@ -556,13 +580,6 @@ Note that the ldapai_info_version field of the LDAPAPIInfo structure
 should be set to the value LDAP_API_INFO_VERSION (1) before calling
 ldap_get_option() so that it can be checked for consistency.  All other
 fields are set by the ldap_get_option() function.
-
-
-
-Expires: 23 August 1999                                        [Page 10]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
 
 The members of the LDAPAPIInfo structure are:
 
@@ -599,6 +616,15 @@ ldapai_extensions
           to ldap_value_free() which is described later in this docu-
           ment.  To retrieve more information about a particular exten-
           sion, the ldap_get_option() call can be used with an option
+
+
+
+Expires: 2 December 1999                                       [Page 11]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
           parameter value of LDAP_OPT_API_FEATURE_INFO (0x15).  The opt-
           data parameter to the ldap_get_option() MUST be the address of
           an LDAPAPIFeatureInfo structure which is defined as follows:
@@ -611,14 +637,6 @@ ldapai_extensions
 
           In addition, API implementations MUST include the following
           macro definition:
-
-
-
-
-Expires: 23 August 1999                                        [Page 11]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
 
              #define LDAP_FEATURE_INFO_VERSION    1
 
@@ -656,30 +674,12 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
              LDAP_API_FEATURE_x macro defined for the extension
              (described above).
 
-ldapai_vendor_name
-          A zero-terminated string that contains the name of the party
-          that produced the LDAP API implementation.  This field may be
-          set to NULL if no name is available.  If non-NULL, the caller
-          is responsible for disposing of the memory occupied by passing
-          this pointer to ldap_memfree() which is described later in
-          this document.  This value SHOULD match the value of the
-          LDAP_VENDOR_NAME macro described earlier in this document.
-
-ldapai_vendor_version
-          An implementation-specific version number multiplied by 100.
-          For example, if the implementation version is 4.0 then this
 
 
-
-Expires: 23 August 1999                                        [Page 12]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
+Expires: 2 December 1999                                       [Page 12]
 
 
-          field will be set to 400.  If no version information is avail-
-          able, this field will be set to 0.  This value SHOULD match
-          the value of the LDAP_VENDOR_VERSION macro described earlier
-          in this document.
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 9.  LDAP Error Codes
@@ -724,20 +724,21 @@ constant):
            LDAP_LOOP_DETECT (0x36)
            LDAP_NAMING_VIOLATION (0x40)
            LDAP_OBJECT_CLASS_VIOLATION (0x41)
-
-
-
-Expires: 23 August 1999                                        [Page 13]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
            LDAP_NOT_ALLOWED_ON_NONLEAF (0x42)
            LDAP_NOT_ALLOWED_ON_RDN (0x43)
            LDAP_ALREADY_EXISTS (0x44)
            LDAP_NO_OBJECT_CLASS_MODS (0x45)
            LDAP_RESULTS_TOO_LARGE (0x46)                   -- reserved for CLDAP
            LDAP_AFFECTS_MULTIPLE_DSAS (0x47)               -- new in LDAPv3
+
+
+
+Expires: 2 December 1999                                       [Page 13]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
            LDAP_OTHER (0x50)
            LDAP_SERVER_DOWN (0x51)
            LDAP_LOCAL_ERROR (0x52)
@@ -780,20 +781,20 @@ allowing various options to be set after initialization.
 
 Use of the following routine is deprecated:
 
-
-
-
-Expires: 23 August 1999                                        [Page 14]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
         LDAP *ldap_open(
                 const char      *hostname,
                 int             portno
         );
 Unlike ldap_init(), ldap_open() attempts to make a server connection
 before returning to the caller.
+
+
+
+Expires: 2 December 1999                                       [Page 14]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 Parameters are:
 
@@ -837,19 +838,21 @@ type was a structure exposed to the caller, and various fields in the
 structure could be set to control aspects of the session, such as size
 and time limits on searches.
 
-
-
-Expires: 23 August 1999                                        [Page 15]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 In the interest of insulating callers from inevitable changes to this
 structure, these aspects of the session are now accessed through a pair
 of accessor functions, described below.
 
 ldap_get_option() is used to access the current value of various
 session-wide parameters. ldap_set_option() is used to set the value of
+
+
+
+Expires: 2 December 1999                                       [Page 15]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 these parameters.  Note that some options are READ-ONLY and cannot be
 set; it is an error to call ldap_set_option() and attempt to set a
 READ-ONLY option.
@@ -871,8 +874,8 @@ request that caused the referrals to be returned.
                    const void      *invalue
            );
 
-   #define LDAP_OPT_ON     ((void *)1)
-   #define LDAP_OPT_OFF    ((void *)0)
+           #define LDAP_OPT_ON     ((void *)1)
+           #define LDAP_OPT_OFF    ((void *)0)
 
 
 Parameters are:
@@ -893,18 +896,19 @@ option The name of the option being accessed or set. This parameter
 
       Type for outvalue parameter: LDAPAPIInfo *
 
-
-
-Expires: 23 August 1999                                        [Page 16]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
       Description:
            Used to retrieve some basic information about the LDAP API
            implementation at execution time.  See the section "Retriev-
            ing Information About the API Implementation" above for more
            information.  This option is READ-ONLY and cannot be set.
+
+
+
+Expires: 2 December 1999                                       [Page 16]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
       LDAP_OPT_DESC (0x01)
          Type for invalue parameter: not applicable (option is READ-
@@ -948,20 +952,21 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
          Type for outvalue parameter: int *
 
          Description:
-
-
-
-Expires: 23 August 1999                                        [Page 17]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
               A limit on the number of seconds to spend on a search. A
               value of LDAP_NO_LIMIT (0) means no limit.  This value is
               passed to the server in the search request only; it does
               not affect how long the C LDAP API implementation itself
               will wait locally for search results.  The timeout parame-
               ter passed to ldap_search_ext_s() or ldap_result() -- both
+
+
+
+Expires: 2 December 1999                                       [Page 17]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
               of which are described later in this document -- can be
               used to specify both a local and server side time limit.
 
@@ -1004,20 +1009,21 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
          Description:
               This option indicates the version of the LDAP protocol
-
-
-
-Expires: 23 August 1999                                        [Page 18]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
               used when communicating with the primary LDAP server. It
               must be one of the constants LDAP_VERSION2 (2) or
               LDAP_VERSION3 (3).  If no version is set the default is
               LDAP_VERSION2 (2).
 
       LDAP_OPT_SERVER_CONTROLS (0x12)
+
+
+
+Expires: 2 December 1999                                       [Page 18]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
          Type for invalue parameter: LDAPControl **
 
          Type for outvalue parameter: LDAPControl ***
@@ -1060,20 +1066,21 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
               ldap_init() for the allowed syntax.
 
       LDAP_OPT_ERROR_NUMBER (0x31)
-
-
-
-Expires: 23 August 1999                                        [Page 19]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
          Type for invalue parameter: int *
 
          Type for outvalue parameter: int *
 
          Description:
               The code of the most recent LDAP error that occurred for
+
+
+
+Expires: 2 December 1999                                       [Page 19]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
               this session.
 
       LDAP_OPT_ERROR_STRING (0x32)
@@ -1114,16 +1121,6 @@ values below 0x1000 and above 0x7FFF that are not defined in this docu-
 ment are reserved and MUST NOT be used.
 
 
-
-
-
-
-
-Expires: 23 August 1999                                        [Page 20]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 10.3.  Working With Controls
 
 LDAPv3 operations can be extended through the use of controls.  Controls
@@ -1132,6 +1129,15 @@ These controls are referred to as server controls.
 
 The LDAP API also supports a client-side extension mechanism through the
 use of client controls. These controls affect the behavior of the LDAP
+
+
+
+Expires: 2 December 1999                                       [Page 20]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 API only and are never sent to a server.  A common data structure is
 used to represent both types of controls:
 
@@ -1173,13 +1179,6 @@ which case any controls set for the session through the use of
 ldap_set_option() are ignored. Control lists are represented as a NULL-
 terminated array of pointers to ldapcontrol structures.
 
-
-
-Expires: 23 August 1999                                        [Page 21]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 Server controls are defined by LDAPv3 protocol extension documents; for
 example, a control has been proposed to support server-side sorting of
 search results [7].
@@ -1187,6 +1186,13 @@ search results [7].
 One client control is defined in this document (described in the follow-
 ing section).  Other client controls may be defined in future revisions
 of this document or in documents that extend this API.
+
+
+
+Expires: 2 December 1999                                       [Page 21]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 10.3.1.  A Client Control That Governs Referral Processing
@@ -1228,14 +1234,6 @@ The following functions are used to authenticate an LDAP client to an
 LDAP directory server.
 
 The ldap_sasl_bind() and ldap_sasl_bind_s() functions can be used to do
-
-
-
-Expires: 23 August 1999                                        [Page 22]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 general and extensible authentication over LDAP through the use of the
 Simple Authentication Security Layer [8].  The routines both take the dn
 to bind as, the method to use, as a dotted-string representation of an
@@ -1245,6 +1243,15 @@ request simple authentication, or the simplified routines
 ldap_simple_bind() or ldap_simple_bind_s() can be used.
 
            int ldap_sasl_bind(
+
+
+
+Expires: 2 December 1999                                       [Page 22]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
                    LDAP                    *ld,
                    const char              *dn,
                    const char              *mechanism,
@@ -1284,14 +1291,6 @@ ldap_simple_bind() or ldap_simple_bind_s() can be used.
            int ldap_bind_s( LDAP *ld, const char *dn, const char *cred,
                    int method );
 
-
-
-
-Expires: 23 August 1999                                        [Page 23]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
            int ldap_kerberos_bind( LDAP *ld, const char *dn );
 
            int ldap_kerberos_bind_s( LDAP *ld, const char *dn );
@@ -1301,6 +1300,14 @@ Parameters are:
 ld           The session handle.
 
 dn           The name of the entry to bind as.
+
+
+
+Expires: 2 December 1999                                       [Page 23]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 mechanism    Either LDAP_SASL_SIMPLE (NULL) to get simple authentica-
              tion, or a text string identifying the SASL method.
@@ -1340,14 +1347,6 @@ can be used to obtain the result of the bind.
 The ldap_simple_bind() function initiates a simple asynchronous bind
 operation and returns the message id of the operation initiated.  A sub-
 sequent call to ldap_result(), described below, can be used to obtain
-
-
-
-Expires: 23 August 1999                                        [Page 24]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 the result of the bind. In case of error, ldap_simple_bind() will return
 -1, setting the session error parameters in the LDAP structure appropri-
 ately.
@@ -1357,6 +1356,15 @@ both return the result of the operation, either the constant
 LDAP_SUCCESS if the operation was successful, or another LDAP error code
 if it was not. See the section below on error handling for more informa-
 tion about possible errors and how to interpret them.
+
+
+
+
+Expires: 2 December 1999                                       [Page 24]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 Note that if an LDAPv2 server is contacted, no other operations over the
 connection should be attempted before a bind call has successfully com-
@@ -1396,14 +1404,6 @@ unbind operation.  All three of the unbind functions return LDAP_SUCCESS
 (or another LDAP error code if the request cannot be sent to the LDAP
 server).  After a call to one of the unbind functions, the session han-
 dle ld is invalid and it is illegal to make any further LDAP API calls
-
-
-
-Expires: 23 August 1999                                        [Page 25]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 using ld.
 
 The ldap_unbind() and ldap_unbind_s() functions behave identically.  The
@@ -1412,6 +1412,15 @@ included explicitly, but note that since there is no server response to
 an unbind request there is no way to receive a response to a server con-
 trol sent with an unbind request.
 
+
+
+
+
+
+Expires: 2 December 1999                                       [Page 25]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 10.6.  Searching
@@ -1452,14 +1461,6 @@ variations.
                    LDAP            *ld,
                    const char      *base,
                    int             scope,
-
-
-
-Expires: 23 August 1999                                        [Page 26]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    const char      *filter,
                    char            **attrs,
                    int             attrsonly
@@ -1470,6 +1471,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
                    const char      *base,
                    int             scope,
                    const char      *filter,
+
+
+
+Expires: 2 December 1999                                       [Page 26]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
                    char            **attrs,
                    int             attrsonly,
                    LDAPMessage     **res
@@ -1508,14 +1518,6 @@ attrs        A NULL-terminated array of strings indicating which attri-
              this parameter causes all available user attributes to be
              retrieved.  The special constant string LDAP_NO_ATTRS
              ("1.1") can be used as the only string in the array to
-
-
-
-Expires: 23 August 1999                                        [Page 27]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
              indicate that no attribute types should be returned by the
              server.  The special constant string LDAP_ALL_USER_ATTRS
              ("*") can be used in the attrs array along with the names
@@ -1526,6 +1528,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 attrsonly    A boolean value that should be zero if both attribute types
              and values are to be returned, non-zero if only types are
              wanted.
+
+
+
+Expires: 2 December 1999                                       [Page 27]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 timeout      For the ldap_search_st() function, this specifies the local
              search timeout value (if it is NULL, the timeout is infin-
@@ -1564,14 +1574,6 @@ LDAP_OPT_SIZELIMIT
              value from the session handle is ignored when using the
              ldap_search_ext() or ldap_search_ext_s() functions.
 
-
-
-
-Expires: 23 August 1999                                        [Page 28]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 LDAP_OPT_TIMELIMIT
              A limit on the number of seconds to spend on the search. A
              value of LDAP_NO_LIMIT (0) means no limit.  Note that the
@@ -1583,6 +1585,15 @@ LDAP_OPT_DEREF
              (0x01), LDAP_DEREF_FINDING (0x02), or LDAP_DEREF_ALWAYS
              (0x03), specifying how aliases should be handled during the
              search. The LDAP_DEREF_SEARCHING value means aliases should
+
+
+
+Expires: 2 December 1999                                       [Page 28]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
              be dereferenced during the search but not when locating the
              base object of the search. The LDAP_DEREF_FINDING value
              means aliases should be dereferenced when locating the base
@@ -1619,26 +1630,27 @@ longer in use by calling ldap_msgfree(), described later.
 The ldap_search_ext() and ldap_search_ext_s() functions support LDAPv3
 server controls, client controls, and allow varying size and time limits
 to be easily specified for each search operation.  The ldap_search_st()
-function is identical to ldap_search_s() except that it takes an
-
-
-
-Expires: 23 August 1999                                        [Page 29]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
-additional parameter specifying a local timeout for the search.  The
-local search timeout is used to limit the amount of time the API imple-
-mentation will wait for a search to complete.  After the local search
-timeout expires, the API implementation will send an abandon operation
-to abort the search operation.
+function is identical to ldap_search_s() except that it takes an addi-
+tional parameter specifying a local timeout for the search.  The local
+search timeout is used to limit the amount of time the API implementa-
+tion will wait for a search to complete.  After the local search timeout
+expires, the API implementation will send an abandon operation to abort
+the search operation.
 
 10.7.  Reading an Entry
 
 LDAP does not support a read operation directly. Instead, this operation
 is emulated by a search with base set to the DN of the entry to read,
 scope set to LDAP_SCOPE_BASE, and filter set to "(objectclass=*)" or
+
+
+
+Expires: 2 December 1999                                       [Page 29]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 NULL. attrs contains the list of attributes to return.
 
 
@@ -1676,14 +1688,6 @@ assertion against an LDAP entry.  There are four variations:
 
            int ldap_compare(
                    LDAP            *ld,
-
-
-
-Expires: 23 August 1999                                        [Page 30]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    const char      *dn,
                    const char      *attr,
                    const char      *value
@@ -1695,6 +1699,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
                    const char      *attr,
                    const char      *value
            );
+
+
+
+Expires: 2 December 1999                                       [Page 30]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 Parameters are:
 
@@ -1732,14 +1744,6 @@ below, can be used to obtain the result of the compare.
 Similar to ldap_compare_ext(), the ldap_compare() function initiates an
 asynchronous compare operation and returns the message id of the opera-
 tion initiated.  As for ldap_compare_ext(), a subsequent call to
-
-
-
-Expires: 23 August 1999                                        [Page 31]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 ldap_result(), described below, can be used to obtain the result of the
 bind. In case of error, ldap_compare() will return -1, setting the ses-
 sion error parameters in the LDAP structure appropriately.
@@ -1752,6 +1756,13 @@ sible errors and how to interpret them.
 
 The ldap_compare_ext() and ldap_compare_ext_s() functions support LDAPv3
 server controls and client controls.
+
+
+
+Expires: 2 December 1999                                       [Page 31]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 10.10.  Modifying an entry
@@ -1788,14 +1799,6 @@ are four variations:
            );
 
            int ldap_modify(
-
-
-
-Expires: 23 August 1999                                        [Page 32]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    LDAP            *ld,
                    const char      *dn,
                    LDAPMod         **mods
@@ -1810,6 +1813,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 Parameters are:
 
 ld           The session handle.
+
+
+
+Expires: 2 December 1999                                       [Page 32]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 dn           The name of the entry to modify.
 
@@ -1845,13 +1856,6 @@ mod_vals     The values (if any) to add, delete, or replace. Only one of
 For LDAP_MOD_ADD modifications, the given values are added to  the
 entry, creating the attribute if necessary.
 
-
-
-Expires: 23 August 1999                                        [Page 33]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 For LDAP_MOD_DELETE modifications, the given values are deleted from the
 entry, removing the attribute if no values remain. If the entire attri-
 bute is to  be deleted, the mod_vals field should be set to NULL.
@@ -1866,6 +1870,15 @@ tion and returns the constant LDAP_SUCCESS if the request was success-
 fully sent, or another LDAP error code if not.  See the section below on
 error handling for more information about possible errors and how to
 interpret them.  If successful, ldap_modify_ext() places the message id
+
+
+
+Expires: 2 December 1999                                       [Page 33]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 of the request in *msgidp. A subsequent call to ldap_result(), described
 below, can be used to obtain the result of the modify.
 
@@ -1900,14 +1913,6 @@ cated.
 
            int ldap_rename(
                    LDAP            *ld,
-
-
-
-Expires: 23 August 1999                                        [Page 34]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    const char      *dn,
                    const char      *newrdn,
                    const char      *newparent,
@@ -1922,6 +1927,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
                    const char      *dn,
                    const char      *newrdn,
                    const char      *newparent,
+
+
+
+Expires: 2 December 1999                                       [Page 34]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
                    int             deleteoldrdn,
                    LDAPControl     **serverctrls,
                    LDAPControl     **clientctrls
@@ -1956,14 +1970,6 @@ Parameters are:
 
 ld           The session handle.
 
-
-
-
-Expires: 23 August 1999                                        [Page 35]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 dn           The name of the entry whose DN is to be changed.
 
 newrdn       The new RDN to give the entry.
@@ -1978,6 +1984,15 @@ newparent    The new parent, or superior entry.  If this parameter is
 deleteoldrdn This parameter only has meaning on the rename routines if
              newrdn is different than the old RDN. It is a boolean
              value, if non-zero indicating that the old RDN value(s)
+
+
+
+Expires: 2 December 1999                                       [Page 35]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
              should be removed, if zero indicating that the old RDN
              value(s) should be retained as non-distinguished values of
              the entry.
@@ -2012,14 +2027,6 @@ server controls and client controls.
 The following functions are used to add entries to the LDAP directory.
 There are four variations:
 
-
-
-
-Expires: 23 August 1999                                        [Page 36]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
            int ldap_add_ext(
                    LDAP            *ld,
                    const char      *dn,
@@ -2034,6 +2041,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
                    const char      *dn,
                    LDAPMod         **attrs,
                    LDAPControl     **serverctrls,
+
+
+
+Expires: 2 December 1999                                       [Page 36]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
                    LDAPControl     **clientctrls
            );
 
@@ -2068,14 +2084,6 @@ clientctrls  List of client controls.
 msgidp       This result parameter will be set to the message id of the
              request if the ldap_add_ext() call succeeds.
 
-
-
-
-Expires: 23 August 1999                                        [Page 37]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 Note that the parent of the entry being added must already exist or the
 parent must be empty (i.e., equal to the root DN) for an add to succeed.
 
@@ -2090,6 +2098,15 @@ can be used to obtain the result of the add.
 Similar to ldap_add_ext(), the ldap_add() function initiates an asyn-
 chronous add operation and returns the message id of the operation ini-
 tiated.  As for ldap_add_ext(), a subsequent call to ldap_result(),
+
+
+
+Expires: 2 December 1999                                       [Page 37]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 described below, can be used to obtain the result of the add. In case of
 error, ldap_add() will return -1, setting the session error parameters
 in the LDAP structure appropriately.
@@ -2125,14 +2142,6 @@ directory.  There are four variations:
                    LDAPControl     **clientctrls
            );
 
-
-
-Expires: 23 August 1999                                        [Page 38]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
-
            int ldap_delete(
                    LDAP            *ld,
                    const char      *dn
@@ -2146,6 +2155,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 Parameters are:
 
 ld           The session handle.
+
+
+
+Expires: 2 December 1999                                       [Page 38]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 dn           The name of the entry to delete.
 
@@ -2181,13 +2198,6 @@ the operation was successful, or another LDAP error code if it was not.
 See the section below on error handling for more information about pos-
 sible errors and how to interpret them.
 
-
-
-Expires: 23 August 1999                                        [Page 39]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 The ldap_delete_ext() and ldap_delete_ext_s() functions support LDAPv3
 server controls and client controls.
 
@@ -2200,8 +2210,17 @@ general protocol extensibility mechanism.
 
            int ldap_extended_operation(
                    LDAP            *ld,
-                   const char      *exoid,
-                   struct berval   *exdata,
+                   const char      *requestoid,
+                   struct berval   *requestdata,
+
+
+
+Expires: 2 December 1999                                       [Page 39]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
                    LDAPControl     **serverctrls,
                    LDAPControl     **clientctrls,
                    int             *msgidp
@@ -2209,8 +2228,8 @@ general protocol extensibility mechanism.
 
            int ldap_extended_operation_s(
                    LDAP            *ld,
-                   const char      *exoid,
-                   struct berval   *exdata,
+                   const char      *requestoid,
+                   struct berval   *requestdata,
                    LDAPControl     **serverctrls,
                    LDAPControl     **clientctrls,
                    char            **retoidp,
@@ -2235,16 +2254,8 @@ msgidp       This result parameter will be set to the message id of the
 
 retoidp      Pointer to a character string that will be set to an allo-
              cated, dotted-OID text string returned by the server.  This
-             string should be disposed of using the ldap_memfree()
-
-
-
-Expires: 23 August 1999                                        [Page 40]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
-             function.  If no OID was returned, *retoidp is set to NULL.
+             string should be disposed of using the ldap_memfree() func-
+             tion.  If no OID was returned, *retoidp is set to NULL.
 
 retdatap     Pointer to a berval structure pointer that will be set an
              allocated copy of the data returned by the server.  This
@@ -2258,6 +2269,15 @@ tion below on error handling for more information about possible errors
 and how to interpret them.  If successful, ldap_extended_operation()
 places the message id of the request in *msgidp. A subsequent call to
 ldap_result(), described below, can be used to obtain the result of the
+
+
+
+Expires: 2 December 1999                                       [Page 40]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 extended operation which can be passed to ldap_parse_extended_result()
 to obtain the OID and data contained in the response.
 
@@ -2292,14 +2312,6 @@ The following calls are used to abandon an operation in progress:
 
 ld           The session handle.
 
-
-
-
-Expires: 23 August 1999                                        [Page 41]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 msgid        The message id of the request to be abandoned.
 
 serverctrls  List of LDAP server controls.
@@ -2314,6 +2326,14 @@ for more information about possible errors and how to interpret them.
 ldap_abandon() is identical to ldap_abandon_ext() except that it does
 not accept client or server controls and it returns zero if the abandon
 was successful, -1 otherwise.
+
+
+
+Expires: 2 December 1999                                       [Page 41]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 After a successful call to ldap_abandon() or ldap_abandon_ext(), results
 with the given message id are never returned from a subsequent call to
@@ -2348,14 +2368,6 @@ returns the message ID of an LDAP message.
                    int             msgid,
                    int             all,
                    struct timeval  *timeout,
-
-
-
-Expires: 23 August 1999                                        [Page 42]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    LDAPMessage     **res
            );
 
@@ -2371,6 +2383,15 @@ ld       The session handle.
 
 msgid    The message id of the operation whose results are to be
          returned, or the constant LDAP_RES_ANY (-1) if any result is
+
+
+
+Expires: 2 December 1999                                       [Page 42]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
          desired.
 
 all      Specifies how many messages will be retrieved in a single call
@@ -2404,14 +2425,6 @@ constants.
              LDAP_RES_SEARCH_RESULT (0x65)
              LDAP_RES_MODIFY (0x67)
              LDAP_RES_ADD (0x69)
-
-
-
-Expires: 23 August 1999                                        [Page 43]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
              LDAP_RES_DELETE (0x6B)
              LDAP_RES_MODDN (0x6D)
              LDAP_RES_COMPARE (0x6F)
@@ -2427,6 +2440,15 @@ the value zero is returned.
 
 ldap_msgtype() returns the type of the LDAP message it is passed as a
 parameter. The type will be one of the types listed above, or -1 on
+
+
+
+Expires: 2 December 1999                                       [Page 43]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 error.
 
 ldap_msgid() returns the message ID associated with the LDAP message
@@ -2460,14 +2482,6 @@ result information from SASL Bind and Extended Operations respectively.
            );
 
            int ldap_parse_extended_result(
-
-
-
-Expires: 23 August 1999                                        [Page 44]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    LDAP            *ld,
                    LDAPMessage     *res,
                    char            **retoidp,
@@ -2483,6 +2497,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
                    LDAP            *ld,
                    LDAPMessage     *res,
                    int             freeit
+
+
+
+Expires: 2 December 1999                                       [Page 44]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
            );
 
            void ldap_perror( LDAP *ld, const char *msg );
@@ -2516,14 +2539,6 @@ errmsgp      This result parameter will be filled in with the contents
 referralsp   This result parameter will be filled in with the contents
              of the referrals field from the LDAPMessage message, indi-
              cating zero or more alternate LDAP servers where the
-
-
-
-Expires: 23 August 1999                                        [Page 45]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
              request should be retried.  The referrals array should be
              freed by calling ldap_value_free() which is described later
              in this document.  NULL may be passed to ignore this field.
@@ -2539,6 +2554,15 @@ freeit       A boolean that determines whether the res parameter is
              tion.  This is provided as a convenience; you can also use
              ldap_msgfree() to free the result later.  If freeit is
              non-zero, the entire chain of messages represented by res
+
+
+
+Expires: 2 December 1999                                       [Page 45]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
              is disposed of.
 
 servercredp  For SASL bind results, this result parameter will be filled
@@ -2572,14 +2596,6 @@ the result was successfully parsed and another LDAP error code if not.
 Note that the LDAP error code that indicates the outcome of the opera-
 tion performed by the server is placed in the errcodep
 ldap_parse_result() parameter.  If a chain of messages that contains
-
-
-
-Expires: 23 August 1999                                        [Page 46]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 more than one result message is passed to these routines they always
 operate on the first result in the chain.
 
@@ -2595,6 +2611,15 @@ static data.
 The ldap_first_message() and ldap_next_message() routines are used to
 step through the list of messages in a result chain returned by
 ldap_result().  For search operations, the result chain may actually
+
+
+
+Expires: 2 December 1999                                       [Page 46]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 include referral messages, entry messages, and result messages.
 ldap_count_messages() is used to count the number of messages returned.
 The ldap_msgtype() function, described above, can be used to distinguish
@@ -2630,12 +2655,6 @@ ldap_first_entry(), ldap_next_entry(), ldap_first_reference(),
 ldap_next_reference().
 
 
-
-Expires: 23 August 1999                                        [Page 47]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 15.  Parsing Search Results
 
 The following calls are used to parse the entries and references
@@ -2645,6 +2664,17 @@ described below. Routines are provided to step through the entries and
 references returned, step through the attributes of an entry, retrieve
 the name of an entry, and retrieve the values associated with a given
 attribute in an entry.
+
+
+
+
+
+
+
+Expires: 2 December 1999                                       [Page 47]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 15.1.  Stepping Through a List of Entries or References
@@ -2684,14 +2714,6 @@ ref    The reference returned by a previous call to
 
 ldap_first_entry(), ldap_next_entry(), ldap_first_reference() and
 ldap_next_reference() all return NULL when no more entries or references
-
-
-
-Expires: 23 August 1999                                        [Page 48]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 exist in the result set to be returned.  NULL is also returned if an
 error occurs while stepping through the entries or references, in which
 case the error parameters in the session handle ld will be set to indi-
@@ -2702,6 +2724,15 @@ of entries. It can also be used to count the number of entries that
 remain in a chain if called with a message, entry or reference returned
 by ldap_first_message(), ldap_next_message(), ldap_first_entry(),
 ldap_next_entry(), ldap_first_reference(), ldap_next_reference().
+
+
+
+
+Expires: 2 December 1999                                       [Page 48]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 ldap_count_references() returns the number of references contained in a
 chain of search results. It can also be used to count the number of
@@ -2741,13 +2772,6 @@ ptr    In ldap_first_attribute(), the address of a pointer used inter-
        structure that is described in more detail later in this document
        in the section "Encoded ASN.1 Value Manipulation".
 
-
-
-Expires: 23 August 1999                                        [Page 49]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 mem    A pointer to memory allocated by the LDAP library, such as the
        attribute type names returned by ldap_first_attribute() and
        ldap_next_attribute, or the DN returned by ldap_get_dn().  If mem
@@ -2757,6 +2781,15 @@ ldap_first_attribute() and ldap_next_attribute() will return NULL when
 the end of the attributes is reached, or if there is an error, in which
 case the error parameters in the session handle ld will be set to indi-
 cate the error.
+
+
+
+
+Expires: 2 December 1999                                       [Page 49]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 Both routines return a pointer to an allocated buffer containing the
 current attribute name. This should be freed when no longer in use by
@@ -2797,13 +2830,6 @@ ldap_value_free() and ldap_value_free_len() are used to free the values.
 
            int ldap_count_values( char **vals );
 
-
-
-Expires: 23 August 1999                                        [Page 50]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
            int ldap_count_values_len( struct berval **vals );
 
            void ldap_value_free( char **vals );
@@ -2813,6 +2839,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 Parameters are:
 
 ld     The session handle.
+
+
+
+Expires: 2 December 1999                                       [Page 50]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 entry  The entry from which to retrieve values, as returned by
        ldap_first_entry() or ldap_next_entry().
@@ -2852,14 +2886,6 @@ a more "user friendly" format.
 
            char **ldap_explode_rdn( const char *rdn, int notypes );
 
-
-
-
-Expires: 23 August 1999                                        [Page 51]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
            char *ldap_dn2ufn( const char *dn );
 
 Parameters are:
@@ -2870,6 +2896,14 @@ entry   The entry whose name is to be retrieved, as returned by
         ldap_first_entry() or ldap_next_entry().
 
 dn      The dn to explode, such as returned by ldap_get_dn().
+
+
+
+Expires: 2 December 1999                                       [Page 51]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 rdn     The rdn to explode, such as returned in the components of the
         array returned by ldap_explode_dn().
@@ -2908,14 +2942,6 @@ entry.
 
 
            int ldap_get_entry_controls(
-
-
-
-Expires: 23 August 1999                                        [Page 52]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    LDAP            *ld,
                    LDAPMessage     *entry,
                    LDAPControl     ***serverctrlsp
@@ -2927,6 +2953,14 @@ ld           The session handle.
 
 entry        The entry to extract controls from, as returned by
              ldap_first_entry() or ldap_next_entry().
+
+
+
+Expires: 2 December 1999                                       [Page 52]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 serverctrlsp This result parameter will be filled in with an allocated
              array of controls copied out of entry. The control array
@@ -2964,14 +2998,6 @@ referralsp   This result parameter will be filled in with an allocated
              array of character strings.  The elements of the array are
              the referrals (typically LDAP URLs) contained in ref.  The
              array should be freed when no longer in used by calling
-
-
-
-Expires: 23 August 1999                                        [Page 53]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
              ldap_value_free().  If referralsp is NULL, the referral
              URLs are not returned.
 
@@ -2984,6 +3010,15 @@ freeit       A boolean that determines whether the ref parameter is
              disposed of or not.  Pass any non-zero value to have this
              routine free ref after extracting the requested informa-
              tion.  This is provided as a convenience; you can also use
+
+
+
+Expires: 2 December 1999                                       [Page 53]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
              ldap_msgfree() to free the result later.
 
 ldap_parse_reference() returns an LDAP error code that indicates whether
@@ -3005,29 +3040,23 @@ implementation of BER.
 16.1.  General
 
            struct berval {
-                   unsigned long   bv_len;
+                   ber_len_t       bv_len;
                    char            *bv_val;
            };
 
-A struct berval contains a sequence of bytes and an indication of its
-length.  The bv_val is not necessarily zero-terminated.  bv_len must
-always be a nonnegative number.  Applications may allocate their own
-berval structures.
+As defined earlier in the section "Common Data Structures", a struct
+berval contains an arbitrary sequence of bytes and an indication of its
+length.  The bv_len element is an unsigned integer.  The bv_val is not
+necessarily zero-terminated.  Applications may allocate their own berval
+structures.
 
-As defined earlier, the BerElement  structure is an opaque structure:
+As defined earlier in the section "Common Data Structures", the BerEle-
+ment structure is an opaque structure:
 
            typedef struct berelement BerElement;
 
 It contains not only a copy of the encoded value, but also state infor-
 mation used in encoding or decoding.  Applications cannot allocate their
-
-
-
-Expires: 23 August 1999                                        [Page 54]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 own BerElement structures.  The internal state is neither thread-
 specific nor locked, so two threads should not manipulate the same
 BerElement value simultaneously.
@@ -3038,6 +3067,15 @@ A single BerElement value cannot be used for both encoding and decoding.
 
 ber_bvfree() frees a berval returned from this API.  Both the bv->bv_val
 string and the berval itself are freed.  Applications should not use
+
+
+
+Expires: 2 December 1999                                       [Page 54]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 ber_bvfree() with bervals which the application has allocated.
 
            void ber_bvecfree( struct berval **bv );
@@ -3076,14 +3114,6 @@ One option is defined and must always be supplied:
 When this option is present, lengths will always be encoded in the
 minimum number of octets.  Note that this option does not cause values
 of sets to be rearranged in tag and byte order or default values to be
-
-
-
-Expires: 23 August 1999                                        [Page 55]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 removed, so these functions are not sufficient for generating DER output
 as defined in X.509 and X.680.  If the caller takes responsibility for
 ordering values of sets correctly and removing default values, DER out-
@@ -3093,6 +3123,15 @@ Unrecognized option bits are ignored.
 
 The BerElement returned by ber_alloc_t() is initially empty.  Calls to
 ber_printf() will append bytes to the end of the ber_alloc_t().
+
+
+
+
+Expires: 2 December 1999                                       [Page 55]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
            int ber_printf( BerElement *ber, const char *fmt, ... )
 
@@ -3108,13 +3147,13 @@ character in fmt refers to an argument to ber_printf().
 
 The format string can contain the following format characters:
 
-'t'     Tag.  The next argument is an int specifying the tag to override
-        the next element to be written to the ber.  This works across
-        calls.  The int value must contain the tag class, constructed
-        bit, and tag value.  For example, a tag of "[3]" for a con-
-        structed type is 0xA3.  All implementations must support tags
-        that fit in a single octet (i.e., where the tag value is less
-        than 32) and they may support larger tags.
+'t'     Tag.  The next argument is a ber_tag_t specifying the tag to
+        override the next element to be written to the ber.  This works
+        across calls.  The integer tag value must contain the tag class,
+        constructed bit, and tag value.  For example, a tag of "[3]" for
+        a constructed type is 0xA3.  All implementations must support
+        tags that fit in a single octet (i.e., where the tag value is
+        less than 32) and they may support larger tags.
 
 'b'     Boolean.  The next argument is an int, containing either 0 for
         FALSE or 0xff for TRUE.  A boolean element is output.  If this
@@ -3132,14 +3171,6 @@ The format string can contain the following format characters:
         primitive form.  If this format character is not preceded by the
         't' format modifier, the tag 0x03 is used for the element.
 
-
-
-
-Expires: 23 August 1999                                        [Page 56]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 'n'     Null.  No argument is required.  An ASN.1 NULL element is out-
         put.  If this format character is not preceded by the 't' format
         modifier, the tag 0x05 is used for the element.
@@ -3150,6 +3181,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
         element is output, in primitive form.  If this format character
         is not preceded by the 't' format modifier, the tag 0x04 is used
         for the element.
+
+
+
+Expires: 2 December 1999                                       [Page 56]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 's'     Octet string.  The next argument is a char * pointing to a
         zero-terminated string.  An octet string element in primitive
@@ -3189,13 +3228,6 @@ either later in the format string, or in the format string of a subse-
 quent call to ber_printf() for that BerElement.  The same applies to the
 '[' and ']' format characters.
 
-
-
-Expires: 23 August 1999                                        [Page 57]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 Sequences and sets nest, and implementations of this API must maintain
 internal state to be able to properly calculate the lengths.
 
@@ -3205,6 +3237,15 @@ The ber_flatten routine allocates a struct berval whose contents are a
 BER encoding taken from the ber argument. The bvPtr pointer points to
 the returned berval, which must be freed using ber_bvfree().  This rou-
 tine returns 0 on success and -1 on error.
+
+
+
+
+Expires: 2 December 1999                                       [Page 57]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 The ber_flatten API call is not present in U-M LDAP 3.3.
 
@@ -3244,14 +3285,6 @@ The following is an example of encoding the following ASN.1 data type:
            }
 
            if (ber_printf(ber,"}") == -1) {
-
-
-
-Expires: 23 August 1999                                        [Page 58]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    goto done;
            }
 
@@ -3263,12 +3296,20 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
       }
 
 
+
+
+Expires: 2 December 1999                                       [Page 58]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 16.4.  Decoding
 
 The following two symbols are available to applications.
 
-           #define LBER_ERROR   0xffffffffUL
-           #define LBER_DEFAULT 0xffffffffUL
+           #define LBER_ERROR   (ber_tag_t)0xffffffff
+           #define LBER_DEFAULT (ber_tag_t)0xffffffff
 
            BerElement *ber_init( const struct berval *bv );
 
@@ -3276,7 +3317,7 @@ The ber_init function constructs a BerElement and returns a new BerEle-
 ment containing a copy of the data in the bv argument.  ber_init returns
 the NULL pointer on error.
 
-           unsigned long ber_scanf( BerElement *ber, const char *fmt, ... );
+           ber_tag_t ber_scanf( BerElement *ber, const char *fmt, ... );
 
 The ber_scanf() routine is used to decode a BER element in much the same
 way that sscanf() works.  One important difference, though, is that some
@@ -3301,13 +3342,6 @@ contain the following characters:
         carded during the decoding.  This format cannot be used with
         octet strings which could contain null bytes.
 
-
-
-Expires: 23 August 1999                                        [Page 59]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 'O'     Octet string.  A struct berval ** argument should be supplied,
         which upon return points to an allocated struct berval contain-
         ing the octet string and its length.  ber_bvfree() must be
@@ -3318,6 +3352,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 'b'     Boolean.  A pointer to an int should be supplied. The int value
         stored will be 0 for FALSE or nonzero for TRUE.  The tag of the
         element must indicate the primitive form but is otherwise
+
+
+
+Expires: 2 December 1999                                       [Page 59]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
         ignored during the decoding.
 
 'i'     Integer.  A pointer to an int should be supplied. The int value
@@ -3327,12 +3370,12 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
         not be stored in an int.
 
 'B'     Bitstring.  A char ** argument should be supplied which will
-        point to the allocated bits, followed by an unsigned long *
-        argument, which will point to the length (in bits) of the bit-
-        string returned.  ldap_memfree must be called to free the bit-
-        string.  The tag of the element must indicate the primitive form
-        (constructed bitstrings are not supported) but is otherwise
-        ignored during the decoding.
+        point to the allocated bits, followed by a ber_len_t * argument,
+        which will point to the length (in bits) of the bitstring
+        returned.  ldap_memfree must be called to free the bitstring.
+        The tag of the element must indicate the primitive form (con-
+        structed bitstrings are not supported) but is otherwise ignored
+        during the decoding.
 
 'n'     Null.  No argument is required.  The element is verified to have
         a zero-length value and is skipped.  The tag is ignored.
@@ -3356,14 +3399,6 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
         required.
 
 '{'     Begin sequence.  No argument is required.  The initial sequence
-
-
-
-Expires: 23 August 1999                                        [Page 60]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
         tag and length are skipped.
 
 '}'     End sequence.  No argument is required.
@@ -3373,14 +3408,24 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
 ']'     End set.  No argument is required.
 
-           unsigned long ber_peek_tag( BerElement *ber, unsigned long *lenPtr );
+           ber_tag_t ber_peek_tag( const BerElement *ber,
+
+
+
+Expires: 2 December 1999                                       [Page 60]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
+               ber_len_t *lenPtr );
 
 ber_peek_tag() returns the tag of the next element to be parsed in the
 BerElement argument.  The length of this element is stored in the
 *lenPtr argument.  LBER_DEFAULT is returned if there is no further data
 to be read.  The ber argument is not modified.
 
-           unsigned long ber_skip_tag( BerElement *ber, unsigned long *lenPtr );
+           ber_tag_t ber_skip_tag( BerElement *ber, ber_len_t *lenPtr );
 
 ber_skip_tag() is similar to ber_peek_tag(), except that the state
 pointer in the BerElement argument is advanced past the first tag and
@@ -3389,11 +3434,11 @@ tine should only be used with constructed types and situations when a
 BER encoding is used as the value of an OCTET STRING.  The length of the
 value is stored in *lenPtr.
 
-           unsigned long ber_first_element( BerElement *ber,
-                   unsigned long *lenPtr, char **opaquePtr );
+           ber_tag_t ber_first_element( BerElement *ber,
+                   ber_len_t *lenPtr, char **opaquePtr );
 
-           unsigned long ber_next_element( BerElement *ber,
-                   unsigned long *lenPtr, char *opaque );
+           ber_tag_t ber_next_element( BerElement *ber,
+                   ber_len_t *lenPtr, char *opaque );
 
 ber_first_element() and ber_next_element() are used to traverse a SET,
 SET OF, SEQUENCE or SEQUENCE OF data value. ber_first_element() calls
@@ -3412,14 +3457,6 @@ as arguments to ber_next_element(), as shown in the example below.
 
 The following is an example of decoding an ASN.1 data type:
 
-
-
-
-Expires: 23 August 1999                                        [Page 61]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
       Example2Request ::= SEQUENCE {
            dn    OCTET STRING, -- must be printable
            scope ENUMERATED { b (0), s (1), w (2) },
@@ -3429,6 +3466,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
            tonly BOOLEAN,
            attrs SEQUENCE OF OCTET STRING, -- must be printable
            [0] SEQUENCE OF SEQUENCE {
+
+
+
+Expires: 2 December 1999                                       [Page 61]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
               type  OCTET STRING -- must be printable,
               crit  BOOLEAN DEFAULT FALSE,
               value OCTET STRING
@@ -3439,7 +3485,8 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
       int decode_example2(struct berval *bv)
       {
            BerElement *ber;
-           unsigned long len, res;
+           ber_len_t len;
+           ber_tag_t res;
            int scope, ali, size, time, tonly;
            char *dn = NULL, **attrs = NULL;
            int i,rc = 0;
@@ -3468,23 +3515,25 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
            }
            ldap_memfree(attrs);
 
-
-
-
-Expires: 23 August 1999                                        [Page 62]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
            if (ber_peek_tag(ber,&len) == TAG_CONTROL_LIST) {
                    char *opaque;
-                   unsigned long tag;
+                   ber_tag_t tag;
 
                    for (tag = ber_first_element(ber,&len,&opaque);
                         tag != LBER_DEFAULT;
                         tag = ber_next_element (ber,&len,opaque)) {
 
-                           unsigned long ttag, tlen;
+
+
+
+Expires: 2 December 1999                                       [Page 62]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
+                           ber_len_t tlen;
+                           ber_tag_t ttag;
                            char *type;
                            int crit;
                            struct berval *value;
@@ -3525,19 +3574,19 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
            ber_scanf(ber,"}");
 
-
-
-Expires: 23 August 1999                                        [Page 63]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
-
            ber_free(ber,1);
 
            return rc;
        }
 
+
+
+
+
+Expires: 2 December 1999                                       [Page 63]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 17.  Security Considerations
@@ -3579,16 +3628,8 @@ such copies and derivative works.  However, this document itself may not
 be modified in any way, such as by removing the copyright notice or
 references to the Internet Society or other Internet organizations,
 except as needed for the  purpose of developing Internet standards in
-which case the procedures for copyrights defined in the Internet
-
-
-
-Expires: 23 August 1999                                        [Page 64]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
-Standards process must be followed, or as required to translate it into
+which case the procedures for copyrights defined in the Internet Stan-
+dards process must be followed, or as required to translate it into
 languages other than English.
 
 The limited permissions granted above are perpetual and will not be
@@ -3596,6 +3637,15 @@ revoked by the Internet Society or its successors or assigns.
 
 This document and the information contained herein is provided on an "AS
 IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK
+
+
+
+Expires: 2 December 1999                                       [Page 64]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
 FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
 LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
 INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FIT-
@@ -3636,14 +3686,6 @@ NESS FOR A PARTICULAR PURPOSE.
      tls-04.txt>, November 1998.
 
 [10] "UTF-8, a transformation format of Unicode and ISO 10646", RFC
-
-
-
-Expires: 23 August 1999                                        [Page 65]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
      2044, October 1996.
 
 [11] "IP Version 6 Addressing Architecture,", RFC 1884, December 1995.
@@ -3651,6 +3693,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 [12] "Character Mnemonics and Character Sets," RFC 1345, June 1992.
 
 [13] "Programming Languages - C", ANSI/ISO Standard 9899, revised 1997.
+
+
+
+
+Expires: 2 December 1999                                       [Page 65]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 21.  Authors' Addresses
@@ -3692,14 +3742,6 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    1 Microsoft Way
    Redmond, WA 98052
    USA
-
-
-
-Expires: 23 August 1999                                        [Page 66]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
    +1 425 882-8080
    anoopa@microsoft.com
 
@@ -3708,6 +3750,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
    #include <stdio.h>
    #include <ldap.h>
+
+
+
+
+Expires: 2 December 1999                                       [Page 66]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
    main()
    {
@@ -3748,14 +3799,6 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
                    /* print its name */
                    dn = ldap_get_dn( ld, e );
                    printf( "dn: %s\n", dn );
-
-
-
-Expires: 23 August 1999                                        [Page 67]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
                    ldap_memfree( dn );
 
                    /* print each attribute */
@@ -3765,6 +3808,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
                            /* print each value */
                            vals = ldap_get_values( ld, e, a );
+
+
+
+Expires: 2 December 1999                                       [Page 67]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
                            for ( i = 0; vals[i] != NULL; i++ ) {
                                    printf( "\t\tvalue: %s\n", vals[i] );
                            }
@@ -3804,14 +3856,6 @@ tures, unions, and typedefs:
 The following 3 prefixes are used in this specification to name #defined
 macros:
    LDAP
-
-
-
-Expires: 23 August 1999                                        [Page 68]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
    LBER_
    mod_
 
@@ -3820,8 +3864,17 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
 As the LDAP protocol is extended, this C LDAP API will need to be
 extended as well.  For example, an LDAPv3 control extension has already
-been defined for server-side sorting of search results [7].  This appen-
-dix summarizes the requirements for extending this API.
+been defined for server-side sorting of search results [7].  This
+
+
+
+Expires: 2 December 1999                                       [Page 68]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
+appendix summarizes the requirements for extending this API.
 
 24.1.  Compatibility
 
@@ -3854,19 +3907,9 @@ That is, extensions should define a macro of the form:
 
    #define LDAP_API_FEATURE_x level
 
-so that applications can detect the presence or absense of the extension
+so that applications can detect the presence or absence of the extension
 at compile time and also test the version or level of the extension pro-
 vided by an API implementation.
-
-
-
-
-
-
-Expires: 23 August 1999                                        [Page 69]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
 
 24.5.  Runtime Information
 
@@ -3878,6 +3921,15 @@ Info structure following a successful call to ldap_get_option() with an
 option parameter value of LDAP_OPT_API_INFO.  In addition, information
 about the extension should be available via a call to ldap_get_option()
 with an option parameter value of LDAP_OPT_API_FEATURE_INFO.
+
+
+
+
+Expires: 2 December 1999                                       [Page 69]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
 24.6.  Values Used for Session Handle Options
 
@@ -3916,14 +3968,6 @@ The following new error code macros were introduced to support LDAPv3:
    LDAP_CONFIDENTIALITY_REQUIRED
    LDAP_SASL_BIND_IN_PROGRESS
    LDAP_AFFECTS_MULTIPLE_DSAS
-
-
-
-Expires: 23 August 1999                                        [Page 70]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
    LDAP_CONNECT_ERROR
    LDAP_NOT_SUPPORTED
    LDAP_CONTROL_NOT_FOUND
@@ -3931,6 +3975,17 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    LDAP_MORE_RESULTS_TO_RETURN
    LDAP_CLIENT_LOOP
    LDAP_REFERRAL_LIMIT_EXCEEDED
+
+
+
+
+
+
+
+Expires: 2 December 1999                                       [Page 70]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
 
 
 25.3.  Freeing of String Data with ldap_memfree()
@@ -3972,18 +4027,28 @@ parameter called deleteoldrdn.  This does not match the great majority
 of implementations, so in this specification the deleteoldrdn parameter
 was removed from ldap_modrdn() and ldap_modrdn_s().  Two additional
 functions that support deleteoldrdn and are widely implemented as well
-
-
-
-Expires: 23 August 1999                                        [Page 71]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
 were added to this specification: ldap_modrdn2() and ldap_modrdn2_s().
 
 
-25.7.  API Specification Clarified
+25.7.  Changes to the berval structure
+
+In RFC 1823, the bv_len element of the berval structure was defined as
+an unsigned long.  In this specification, the type is implementation-
+specific, although it must be an unsigned integral type that is at least
+32 bits in size.  See the appendix "Data Types and Legacy
+
+
+
+Expires: 2 December 1999                                       [Page 71]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
+Implementations" for additional considerations.
+
+
+25.8.  API Specification Clarified
 
 RFC 1823 left many things unspecified, including behavior of various
 memory disposal functions when a NULL pointer is presented, requirements
@@ -3991,7 +4056,7 @@ for header files, values of many macros, and so on.  This specification
 is more complete and generally tighter than the one in RFC 1823.
 
 
-25.8.  Deprecated Functions
+25.9.  Deprecated Functions
 
 A number of functions that are in RFC 1823 are labeled as "deprecated"
 in this specification.  In most cases, a replacement that provides
@@ -4023,20 +4088,104 @@ are:
            Use ldap_parse_result() instead.
 
 
-26.  Appendix E - Changes Made Since Last Document Revision
+26.  Appendix E - Data Types and Legacy Implementations
+
+The data types associated with the length of a ber value (ber_len_t) and
+the tag (ber_tag_t) have been defined in this specification as unsigned
+integral types of implementation-specific size.  This was done so that
+
+
+
+Expires: 2 December 1999                                       [Page 72]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
+source and binary compatibility of the C LDAP API can be maintained
+across ILP32 environments (where int, long, and pointers are all 32 bits
+in size) and LP64 environments (where ints remain 32 bits but longs and
+pointers grow to 64 bits).
+
+In older implementations of the C LDAP API, such as those based on RFC
+1823, implementors may have chosen to use an unsigned long for these
+types.  If a long data type was used, a port of an application to a 64-
+bit operating system using the LP64 data model would find the size of
+the BER length and tag types used by the C LDAP API to increase.  Also,
+if the legacy implementation had chosen to implement the types as an
+unsigned int, adoption of a specification that mandated use of unsigned
+longs would cause a source incompatibility in an LP64 application.  By
+using an implementation-specific data type, the C LDAP API implementa-
+tion is free to choose the correct data type and the ability to maintain
+source compatibility.
+
+For example, suppose a legacy implementation chose to define the return
+value of ber_skip_tag() as an unsigned long but wishes to have the
+library return a 32-bit quantity in both ILP32 and LP64 data models.
+The following typedefs for ber_tag_t will provide a fixed sized data
+structure while preserving existing ILP32 source -- all without generat-
+ing compiler warnings:
+           #if defined(_LP64)
+               typedef unsigned int ber_tag_t;
+           #else
+               typedef unsigned long ber_tag_t;
+           #endif
+The above assumes that the the preprocessor symbol _LP64 is defined if
+and only if the code is being compiled in an LP64 environment.  Similar
+code can be used to define an appropriate ber_len_t type.
+
+
+27.  Appendix F - Changes Made Since Last Document Revision
 
 The previous version of this document was draft-ietf-ldapext-ldap-c-
-api-01.txt, dated 7 August 1998.  This appendix lists all of the changes
-made to that document to produce the one you are reading now.
+api-02.txt, dated 23 February, 1999.  This appendix lists all of the
+changes made to that document to produce this one.
+
+27.1.  API Changes
+
+   Types: added the ber_len_t and ber_tag_t implementation-specific
+   unsigned integral data types to support source and binary compatibil-
+   ity between ILP32 and LP64 environments.  Changes were made to the
+   "Common Data Structures" and "Encoded ASN.1 Value Manipulation" sec-
+   tions of this document.
 
 
 
-Expires: 23 August 1999                                        [Page 72]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
 
 
-26.1.  API Changes
+Expires: 2 December 1999                                       [Page 73]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
+
+27.2.  Editorial Changes
+
+   General: Added Appendix E - Data Types and Legacy Implementations;
+   moved list of recent document changes to Appendices F and G.
+
+   "Retrieving Information During Execution" section: removed misplaced
+   ldapai_vendor_name and ldapai_vendor_version from the LDAPAPI-
+   FeatureInfo structure description.
+
+   "Extended Operations" section: changed the names of the "requestoid"
+   and "requestdata" parameters in the function prototypes to match the
+   parameter descriptions.  The old names were "exoid" and "exdata."
+
+   Appendix D - "Appendix D - Known Incompatibilities with RFC 1823 ":
+   Added note about changes to the berval structure.
+
+
+28.  Appendix G - Changes Made Since draft-ietf-ldapext-ldap-c-api-
+01.txt
+
+The version of this document that preceded draft-ietf-ldapext-ldap-c-
+api-02.txt was draft-ietf-ldapext-ldap-c-api-01.txt, dated 7 August
+1998.  This appendix lists all of the changes made to that document to
+produce draft-ietf-ldapext-ldap-c-api-02.txt.
+
+
+28.1.  API Changes
 
    General: added the 'const' keyword to function prototypes where
    appropriate.
@@ -4046,18 +4195,26 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
       "Header File Requirements"
       "A Client Control That Governs Referral Processing"
 
-   "Retrieving Information at Compile Time" section: added
-   LDAP_VERSION_MIN, LDAP_VERSION_MAX, LDAP_VENDOR_NAME, and
-   LDAP_VENDOR_VERSION macros.  Corrected LDAP_API_VERSION example code
-   to use >= instead of >.  Added note about what value to use for
-   LDAP_API_VERSION prior to publication of this draft as an RFC (2000 +
-   draft revision number).
+
+   LDAP_VERSION_MAX, LDAP_VENDOR_NAME, and LDAP_VENDOR_VERSION macros.
+   Corrected LDAP_API_VERSION example code to use >= instead of >.
+   Added note about what value to use for LDAP_API_VERSION prior to pub-
+   lication of this draft as an RFC (2000 + draft revision number).
 
    "Retrieving Information During Execution" section: added
    LDAP_API_INFO_VERSION macro and clarified the text to explain the
    behavior when there is a mismatch between LDAPAPIInfo structure ver-
    sions.  Added LDAP_OPT_API_FEATURE_INFO to allow applications to
    retrieve version information about API extended features.
+
+
+
+
+Expires: 2 December 1999                                       [Page 74]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
    "LDAP Session Handle Options" section:  Added macro definitions for
    LDAP_OPT_ON and LDAP_OPT_OFF and changed the "invalue" type for
@@ -4085,13 +4242,6 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    "Stepping Through the Attributes of an Entry" section:  added
    requirement that ldap_memfree() accept a NULL "mem" parameter.
 
-
-
-Expires: 23 August 1999                                        [Page 73]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
    "Encoded ASN.1 Value Manipulation - Encoding" section: added note
    that implementations may support tags with a value larger than 32
    (but this is not required).
@@ -4102,7 +4252,7 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    "unsigned long" value.
 
 
-26.2.  Editorial changes
+28.2.  Editorial changes
 
 
    Removed section: "Appendix - Outstanding Issues."
@@ -4113,6 +4263,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
    General: replaced all occurrences of "LDAP C API" with "C LDAP API"
    for consistency.
+
+
+
+
+Expires: 2 December 1999                                       [Page 75]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
    "Status of Memo" section: added a statement that this document is in
    full conformance with all provisions of Section 10 of RFC2026.  Also
@@ -4141,13 +4300,6 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    it is defined before it is used.  Added reference back to "Header
    File Requirements" for "struct timeval" related considerations.
 
-
-
-Expires: 23 August 1999                                        [Page 74]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
    "Initializing an LDAP Session" section: moved note about ldap_open()
    attempting to make a server connection closer to the ldap_open()
    function prototype.  Added note that using literal IPv6 addresses in
@@ -4168,6 +4320,15 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    that server controls that are marked critical should not be used with
    unbind and abandon operations since those two operations have no
    server response.
+
+
+
+
+Expires: 2 December 1999                                       [Page 76]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
    "Closing the session" section: made it clear that all open connec-
    tions associated with a session handle are closed when any of the
@@ -4196,14 +4357,6 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    References" to the section name to better reflect its contents.
    Added missing description of "ref" parameter.  Added mention of
    ldap_first_reference() and ldap_next_reference() in sentence about
-
-
-
-Expires: 23 August 1999                                        [Page 75]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
    function return values.
 
    "Stepping Through the Attributes of an Entry" section:  added forward
@@ -4225,6 +4378,14 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
    mention of sequences from the discussion of the LBER_USE_DER option.
    Fixed some truncated sentences (by adding some missing '\' characters
    to the nroff document source).
+
+
+
+Expires: 2 December 1999                                       [Page 77]
+
+
+C LDAP API        C LDAP Application Program Interface       2 June 1999
+
 
    "Encoded ASN.1 Value Manipulation - Encoding Example" section:  sim-
    plified the error handling in the example code through the use of a
@@ -4251,18 +4412,10 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
    "Acknowledgements" section: added the mention of Chris Weider.
    Rephrased the text that gives credit to the National Science Founda-
-   tion (it now says "The original material upon which this
-
-
-
-Expires: 23 August 1999                                        [Page 76]
-
-C LDAP API        C LDAP Application Program Interface  23 February 1999
-
-
-   specification is based was supported by ..." instead of "This origi-
-   nal material upon which this revision is based was based upon work
-   supported by ..."
+   tion (it now says "The original material upon which this specifica-
+   tion is based was supported by ..." instead of "This original
+   material upon which this revision is based was based upon work sup-
+   ported by ..."
 
    In the "Bibliography" section:  Added a reference to RFC 1345 and
    ANSI/ISO C.  Updated the LDAPv3 TLS and Sorting references to point
@@ -4285,31 +4438,6 @@ C LDAP API        C LDAP Application Program Interface  23 February 1999
 
 
 
+Expires: 2 December 1999                                       [Page 78]
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Expires: 23 August 1999                                        [Page 77]
-
