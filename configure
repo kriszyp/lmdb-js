@@ -67,13 +67,13 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-cleartext	  enable cleartext passwords (yes)"
 ac_help="$ac_help
-    --enable-crypt	  enable crypt(3) passwords (auto)"
+    --enable-crypt	  enable crypt(3) passwords (no)"
 ac_help="$ac_help
     --enable-dynamic	  enable linking built binaries with dynamic libs (no)"
 ac_help="$ac_help
     --enable-kpasswd	  enable Kerberos password verification (no)"
 ac_help="$ac_help
-    --enable-lmpasswd	  enable LAN Manager passwords (auto)"
+    --enable-lmpasswd	  enable LAN Manager passwords (no)"
 ac_help="$ac_help
     --enable-spasswd	  enable (Cyrus) SASL password verification (no)"
 ac_help="$ac_help
@@ -1612,7 +1612,7 @@ if test "${enable_crypt+set}" = set; then
 	ol_enable_crypt="$ol_arg"
 
 else
-  	ol_enable_crypt="auto"
+  	ol_enable_crypt="no"
 fi
 # end --enable-crypt
 # OpenLDAP --enable-dynamic
@@ -1672,7 +1672,7 @@ if test "${enable_lmpasswd+set}" = set; then
 	ol_enable_lmpasswd="$ol_arg"
 
 else
-  	ol_enable_lmpasswd="auto"
+  	ol_enable_lmpasswd="no"
 fi
 # end --enable-lmpasswd
 # OpenLDAP --enable-spasswd

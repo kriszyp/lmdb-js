@@ -148,10 +148,10 @@ AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs], no)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
-OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], auto)dnl
+OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
 OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
 OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
-OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], auto)dnl
+OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
