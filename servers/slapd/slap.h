@@ -1685,6 +1685,10 @@ typedef struct req_add_s {
 	Modifications *rs_modlist;	/* FIXME: temporary */
 } req_add_s;
 
+typedef struct req_delete_s {
+	struct berval rd_csn;
+} req_delete_s;
+
 typedef struct req_abandon_s {
 	ber_int_t rs_msgid;
 } req_abandon_s;
@@ -2062,6 +2066,7 @@ typedef struct slap_op {
 		req_add_s oq_add;
 		req_bind_s oq_bind;
 		req_compare_s oq_compare;
+		req_delete_s oq_delete;
 		req_modify_s oq_modify;
 		req_modrdn_s oq_modrdn;
 		req_search_s oq_search;
@@ -2075,6 +2080,7 @@ typedef struct slap_op {
 #define oq_add o_request.oq_add
 #define oq_bind o_request.oq_bind
 #define oq_compare o_request.oq_compare
+#define oq_delete o_request.oq_delete
 #define oq_modify o_request.oq_modify
 #define oq_modrdn o_request.oq_modrdn
 #define oq_search o_request.oq_search
@@ -2109,6 +2115,7 @@ typedef struct slap_op {
 #define orc_ava oq_compare.rs_ava
 #define ora_e oq_add.rs_e
 #define ora_modlist oq_add.rs_modlist
+#define ord_csn oq_delete.rd_csn
 #define orn_msgid oq_abandon.rs_msgid
 #define orm_modlist oq_modify.rs_modlist
 #define orm_increment oq_modify.rs_increment

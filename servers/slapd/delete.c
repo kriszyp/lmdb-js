@@ -228,12 +228,11 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			struct berval	org_dn = BER_BVNULL;
 			struct berval	org_ndn = BER_BVNULL;
 			int		org_managedsait;
+			char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 			slap_callback 	cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			if ( !repl_user ) {
-				struct berval csn = { 0 , NULL };
-				char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+				slap_get_csn( op, csnbuf, sizeof(csnbuf), &op->ord_csn, 1 );
 			}
 
 #ifdef SLAPD_MULTIMASTER

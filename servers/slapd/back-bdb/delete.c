@@ -19,8 +19,6 @@
 #include <stdio.h>
 #include <ac/string.h>
 
-#include "lutil.h"
-
 #include "back-bdb.h"
 #include "external.h"
 
@@ -49,8 +47,6 @@ bdb_delete( Operation *op, SlapReply *rs )
 	EntryInfo   *suffix_ei;
 	Entry       *ctxcsn_e;
 	int         ctxcsn_added = 0;
-	char		csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
-	struct berval	csn;
 
 	LDAPControl **preread_ctrl = NULL;
 	LDAPControl *ctrls[SLAP_MAX_RESPONSE_CONTROLS];
@@ -68,8 +64,6 @@ bdb_delete( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n",
 		op->o_req_dn.bv_val, 0, 0 );
 #endif
-
-	slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 
 	if( 0 ) {
 retry:	/* transaction retry */
@@ -591,9 +585,9 @@ retry:	/* transaction retry */
 				if( (void *) e->e_attrs != (void *) (e+1)) {
 					attr_delete( &e->e_attrs, slap_schema.si_ad_entryCSN );
 					attr_merge_normalize_one( e, slap_schema.si_ad_entryCSN,
-					&csn, NULL );
+					&op->ord_csn, NULL );
 				} else {
-					a->a_vals[0] = csn;
+					a->a_vals[0] = op->ord_csn;
 				}
 			} else {
 				/* Hm, the entryCSN ought to exist. ??? */
