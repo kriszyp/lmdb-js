@@ -32,7 +32,6 @@ Large projects
 --------------
 Redesign slapd memory allocation fault handling
 Perform a security audit (and fix any hole found)
-Implement LCUP
 
 
 Medium projects
@@ -41,17 +40,19 @@ Implement LDAP Transactions
 Implement authPassword (RFC 3112)
 Implement localization
 Implement Proxy Authorization Group extension
-Implement Proxy Authorization Control extension
+Implement LCUP
 Add LDIFv1 control support
 Update to latest autoconf and friends
 
 
 Small projects
 --------------
+Populate matchingRuleUse attribute in the subschema
 Implement -E/-e extensions options
 Implement -V version options
-Implement simple paged results control
-Add no-op control support to ldap client tools
+Implement Proxy Authorization Control extension
+Complete Simple Paged Results Control
+Add No-Op Control support to ldap client tools
 Add tests to test suite (ACI, moddn, manageDSAit, etc.)
 Add support for Cyrus pwcheckd/saslauthd
 Create ldapbind (from ldapcompare?) to support bind operations
