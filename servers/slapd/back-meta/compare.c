@@ -258,7 +258,9 @@ finish:;
 		ldap_back_dn_massage( &dc, &matched, &mmatch );
 	}
 
-	rs->sr_err = rres;
+	if ( rres != LDAP_SUCCESS ) {
+		rs->sr_err = rres;
+	}
 	rs->sr_matched = mmatch.bv_val;
 	send_ldap_result( op, rs );
 	rs->sr_matched = NULL;
