@@ -236,6 +236,8 @@ ldap_back_map_attrs(
 			i++;
 		}
 	}
+	na[i] = NULL;
+
 	return(na);
 }
 

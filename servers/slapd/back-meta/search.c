@@ -347,7 +347,7 @@ meta_back_search(
 		if ( mapped_filter == NULL ) {
 			mapped_filter = ( char * )mfilter.bv_val;
 		} else {
-			ber_memfree( mfilter.bv_val );
+			free( mfilter.bv_val );
 		}
 		mfilter.bv_val = NULL;
 		mfilter.bv_len = 0;
@@ -641,6 +641,9 @@ meta_send_entry(
 	while ( ber_scanf( &ber, "{o", &a ) != LBER_ERROR ) {
 		ldap_back_map( &li->targets[ target ]->at_map, 
 				&a, &mapped, 1 );
+		if ( mapped.bv_val != a.bv_val ) {
+			free( a.bv_val );
+		}
 		if ( mapped.bv_val == NULL ) {
 			continue;
 		}
@@ -668,9 +671,16 @@ meta_send_entry(
 			}
 		}
 
+		/* no subschemaSubentry */
+		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
+			ch_free(attr);
+			continue;
+		}
+
 		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR ) {
 			attr->a_vals = &dummy;
-		} else if ( strcasecmp( mapped.bv_val, "objectClass" ) == 0 ) {
+		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
+				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			int i, last;
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
