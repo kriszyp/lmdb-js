@@ -675,7 +675,7 @@ backend_attribute(
 	Entry	*target,
 	const char	*e_ndn,
 	AttributeDescription *entry_at,
-	const char ***vals
+	struct berval ***vals
 )
 {
 	if( target == NULL || strcmp( target->e_ndn, e_ndn ) != 0 ) {

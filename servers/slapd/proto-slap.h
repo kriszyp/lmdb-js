@@ -179,7 +179,7 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((Backend *be,
 	Entry *target,
 	const char *e_ndn,
 	AttributeDescription *entry_at,
-	const char ***vals
+	struct berval ***vals
 ));
 
 LDAP_SLAPD_F (Attribute *) backend_operational( Backend *, Entry * );

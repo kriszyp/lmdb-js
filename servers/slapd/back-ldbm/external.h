@@ -85,7 +85,7 @@ extern int	ldbm_back_attribute LDAP_P(( BackendDB *bd,
 	Entry *target,
 	const char* e_ndn,
 	AttributeDescription* entry_at,
-	const char ***vals));
+	struct berval ***vals));
 
 
 /* hooks for slap tools */

@@ -444,7 +444,6 @@ typedef struct slap_mr_assertion {
 /*
  * represents a search filter
  */
-
 typedef struct slap_filter {
 	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
 #define SLAPD_FILTER_COMPUTED	((ber_tag_t) -1)
@@ -567,7 +566,6 @@ typedef struct slap_ldap_modlist {
 /*
  * represents an access control list
  */
-
 typedef enum slap_access_e {
 	ACL_INVALID_ACCESS = -1,
 	ACL_NONE = 0,
@@ -586,7 +584,7 @@ typedef enum slap_control_e {
 } slap_control_t;
 
 typedef enum slap_style_e {
-	ACL_STYLE_REGEX,
+	ACL_STYLE_REGEX = 0,
 	ACL_STYLE_BASE,
 	ACL_STYLE_ONE,
 	ACL_STYLE_SUBTREE,
@@ -934,7 +932,7 @@ struct slap_backend_info {
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e, const char *edn,
 		AttributeDescription *entry_at,
-		const char ***vals ));
+		struct berval ***vals ));
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));
@@ -979,7 +977,6 @@ struct slap_backend_info {
 /*
  * represents an operation pending from an ldap client
  */
-
 typedef struct slap_op {
 	ber_int_t	o_opid;		/* id of this operation		  */
 	ber_int_t	o_msgid;	/* msgid of the request		  */
@@ -1030,7 +1027,6 @@ typedef struct slap_op {
 /*
  * represents a connection from an ldap client
  */
-
 typedef struct slap_conn {
 	int			c_struct_state; /* structure management state */
 	int			c_conn_state;	/* connection state */
