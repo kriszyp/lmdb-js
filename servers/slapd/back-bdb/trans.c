@@ -9,6 +9,7 @@
 #include "back-bdb.h"
 #include "external.h"
 #include "lber_pvt.h"
+#include "lutil.h"
 
 
 /* Congestion avoidance code
@@ -25,7 +26,7 @@ bdb_trans_backoff( int num_retries )
 	unsigned long max_key = -1;
 	struct timeval timeout;
 
-	lutil_entropy( &key, sizeof( unsigned long ));
+	lutil_entropy( (unsigned char *) &key, sizeof( unsigned long ));
 
 	for ( i = 0; i < num_retries; i++ ) {
 		if ( i >= 5 ) break;

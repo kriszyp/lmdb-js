@@ -29,10 +29,6 @@
 #include <slap.h>
 #include <slapi.h>
 
-#ifdef _SPARC  
-#include <sys/systeminfo.h>
-#endif
-
 #include <netdb.h>
 
 /*
@@ -922,6 +918,139 @@ slapi_dn_issuffix(
 #endif /* LDAP_SLAPI */
 }
 
+int
+slapi_dn_isparent(
+	const char	*parentdn,
+	const char	*childdn )
+{
+#ifdef LDAP_SLAPI
+	struct berval	assertedParentDN, normalizedAssertedParentDN;
+	struct berval	childDN, normalizedChildDN;
+	struct berval	normalizedParentDN;
+	int		match;
+
+	assert( parentdn != NULL );
+	assert( childdn != NULL );
+
+	assertedParentDN.bv_val = (char *)parentdn;
+	assertedParentDN.bv_len = strlen( parentdn );
+
+	if ( dnNormalize( 0, NULL, NULL, &assertedParentDN,
+		&normalizedAssertedParentDN, NULL ) != LDAP_SUCCESS )
+	{
+		return 0;
+	}
+
+	childDN.bv_val = (char *)childdn;
+	childDN.bv_len = strlen( childdn );
+
+	if ( dnNormalize( 0, NULL, NULL, &childDN,
+		&normalizedChildDN, NULL ) != LDAP_SUCCESS )
+	{
+		slapi_ch_free( (void **)&normalizedAssertedParentDN.bv_val );
+		return 0;
+	}
+
+	dnParent( &normalizedChildDN, &normalizedParentDN );
+
+	if ( dnMatch( &match, 0, slap_schema.si_syn_distinguishedName, NULL,
+		&normalizedParentDN, (void *)&normalizedAssertedParentDN ) != LDAP_SUCCESS )
+	{
+		match = -1;
+	}
+
+	slapi_ch_free( (void **)&normalizedAssertedParentDN.bv_val );
+	slapi_ch_free( (void **)&normalizedChildDN.bv_val );
+
+	return ( match == 0 );
+#else
+	return 0;
+#endif /* LDAP_SLAPI */
+}
+
+/*
+ * Returns DN of the parent entry, or NULL if the DN is
+ * an empty string or NULL, or has no parent.
+ */
+char *
+slapi_dn_parent( const char *_dn )
+{
+#ifdef LDAP_SLAPI
+	struct berval	dn, prettyDN;
+	struct berval	parentDN;
+
+	if ( _dn == NULL ) {
+		return NULL;
+	}
+
+	dn.bv_val = (char *)_dn;
+	dn.bv_len = strlen( _dn );
+
+	if ( dn.bv_len == 0 ) {
+		return NULL;
+	}
+
+	if ( dnPretty( NULL, &dn, &prettyDN, NULL ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	dnParent( &prettyDN, &parentDN ); /* in-place */
+
+	slapi_ch_free( (void **)&prettyDN.bv_val );
+
+	if ( parentDN.bv_len == 0 ) {
+		return NULL;
+	}
+
+	return slapi_ch_strdup( parentDN.bv_val );
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
+/*
+ * Returns DN of the parent entry; or NULL if the DN is
+ * an empty string, if the DN has no parent, or if the
+ * DN is the suffix of the backend database
+ */
+char *slapi_dn_beparent( Slapi_PBlock *pb, const char *_dn )
+{
+#ifdef LDAP_SLAPI
+	Backend 	*be;
+	struct berval	dn, prettyDN;
+	struct berval	normalizedDN, parentDN;
+
+	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void **)&be ) != 0 )
+		be = NULL;
+
+	dn.bv_val = (char *)_dn;
+	dn.bv_len = strlen( _dn );
+
+	if ( dnPrettyNormal( NULL, &dn, &prettyDN, &normalizedDN, NULL ) != LDAP_SUCCESS ) {
+		return NULL;
+	}
+
+	if ( be != NULL && be_issuffix( be, &normalizedDN ) ) {
+		slapi_ch_free( (void **)&prettyDN.bv_val );
+		slapi_ch_free( (void **)&normalizedDN.bv_val );
+		return NULL;
+	}
+
+	dnParent( &prettyDN, &parentDN );
+
+	slapi_ch_free( (void **)&prettyDN.bv_val );
+	slapi_ch_free( (void **)&normalizedDN.bv_val );
+
+	if ( parentDN.bv_len == 0 ) {
+		return NULL;
+	}
+
+	return slapi_ch_strdup( parentDN.bv_val );
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
 char *
 slapi_dn_ignore_case( char *dn )
 {       
@@ -1273,7 +1402,7 @@ slapi_register_supported_saslmechanism( char *mechanism )
 {
 #ifdef LDAP_SLAPI
 	/* FIXME -- can not add saslmechanism to OpenLDAP dynamically */
-	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SASL",
+	slapi_log_error( SLAPI_LOG_FATAL, "slapi_register_supported_saslmechanism",
 			"OpenLDAP does not support dynamic registration of SASL mechanisms\n" );
 #endif /* LDAP_SLAPI */
 }
@@ -1283,7 +1412,7 @@ slapi_get_supported_saslmechanisms( void )
 {
 #ifdef LDAP_SLAPI
 	/* FIXME -- can not get the saslmechanism without a connection. */
-	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SASL",
+	slapi_log_error( SLAPI_LOG_FATAL, "slapi_get_supported_saslmechanisms",
 			"can not get the SASL mechanism list "
 			"without a connection\n" );
 	return NULL;
@@ -1442,6 +1571,60 @@ slapi_send_ldap_search_entry(
 #endif /* LDAP_SLAPI */
 }
 
+int 
+slapi_send_ldap_search_reference(
+	Slapi_PBlock	*pb,
+	Slapi_Entry	*e,
+	struct berval	**references,
+	LDAPControl	**ectrls, 
+	struct berval	**v2refs
+	)
+{
+#ifdef LDAP_SLAPI
+	Operation	*pOp;
+	SlapReply	rs = { REP_SEARCHREF };
+	int		rc;
+
+	rs.sr_err = LDAP_SUCCESS;
+	rs.sr_matched = NULL;
+	rs.sr_text = NULL;
+
+	rc = bvptr2obj( references, &rs.sr_ref );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	rs.sr_ctrls = ectrls;
+	rs.sr_attrs = NULL;
+	rs.sr_entry = e;
+
+	if ( v2refs != NULL ) {
+		rc = bvptr2obj( v2refs, &rs.sr_v2ref );
+		if ( rc != LDAP_SUCCESS ) {
+			slapi_ch_free( (void **)&rs.sr_ref );
+			return rc;
+		}
+	} else {
+		rs.sr_v2ref = NULL;
+	}
+
+	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&pOp ) != 0 ) {
+		return LDAP_OTHER;
+	}
+
+	rc = send_search_reference( pOp, &rs );
+
+	if ( rs.sr_ref != NULL )
+		slapi_ch_free( (void **)&rs.sr_ref );
+
+	if ( rs.sr_v2ref != NULL )
+		slapi_ch_free( (void **)&rs.sr_v2ref );
+
+	return rc;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
 
 Slapi_Filter *
 slapi_str2filter( char *str ) 
@@ -1930,24 +2113,6 @@ slapi_get_hostname( void )
 {
 #ifdef LDAP_SLAPI
 	char		*hn = NULL;
-
-	/*
-	 * FIXME: I'd prefer a different check ...
-	 */
-#if defined _SPARC 
-	hn = (char *)slapi_ch_malloc( MAX_HOSTNAME );
-	if ( hn == NULL) {
-		slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SYSINFO",
-				"can't malloc memory for hostname\n" );
-		hn = NULL;
-		
-	} else if ( sysinfo( SI_HOSTNAME, hn, MAX_HOSTNAME ) < 0 ) {
-		slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SYSINFO",
-				"can't get hostname\n" );
-		slapi_ch_free( (void **)&hn );
-		hn = NULL;
-	}
-#else /* !_SPARC */
 	static int	been_here = 0;   
 	static char	*static_hn = NULL;
 
@@ -1955,8 +2120,8 @@ slapi_get_hostname( void )
 	if ( !been_here ) {
 		static_hn = (char *)slapi_ch_malloc( MAX_HOSTNAME );
 		if ( static_hn == NULL) {
-			slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SYSINFO",
-					"can't malloc memory for hostname\n" );
+			slapi_log_error( SLAPI_LOG_FATAL, "slapi_get_hostname",
+					"Cannot allocate memory for hostname\n" );
 			static_hn = NULL;
 			ldap_pvt_thread_mutex_unlock( &slapi_hn_mutex );
 
@@ -1965,7 +2130,7 @@ slapi_get_hostname( void )
 		} else { 
 			if ( gethostname( static_hn, MAX_HOSTNAME ) != 0 ) {
 				slapi_log_error( SLAPI_LOG_FATAL,
-						"SLAPI_SYSINFO",
+						"SLAPI",
 						"can't get hostname\n" );
 				slapi_ch_free( (void **)&static_hn );
 				static_hn = NULL;
@@ -1981,7 +2146,6 @@ slapi_get_hostname( void )
 	ldap_pvt_thread_mutex_unlock( &slapi_hn_mutex );
 	
 	hn = ch_strdup( static_hn );
-#endif /* !_SPARC */
 
 	return hn;
 #else /* LDAP_SLAPI */
@@ -2244,13 +2408,15 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 		0 );
 	if ( connAuthType != NULL ) {
 		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHMETHOD, (void *)connAuthType);
+		/* slapi_pblock_set dups this itself */
+		slapi_ch_free( (void **)&connAuthType );
 		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
 
 	if ( conn->c_authz.sai_dn.bv_val != NULL ) {
-		char *connDn = slapi_ch_strdup(conn->c_authz.sai_dn.bv_val);
-		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)connDn);
+		/* slapi_pblock_set dups this itself */
+		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)conn->c_authz.sai_dn.bv_val);
 		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
@@ -3405,7 +3571,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 	}
 
 	if ( !access_allowed( op, e, desc, NULL, ACL_READ, &c->cac_acl_state) ) {
-		slapi_log_error( SLAPI_LOG_ACL, "SLAPI_COMPUTE",
+		slapi_log_error( SLAPI_LOG_ACL, "slapi_x_compute_output_ber",
 			"acl: access to attribute %s not allowed\n",
 			desc->ad_cname.bv_val );
 		return 0;
@@ -3413,7 +3579,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 
 	rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname );
 	if (rc == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "SLAPI_COMPUTE",
+		slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
 			"ber_printf failed\n");
 		return 1;
 	}
@@ -3422,15 +3588,15 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
 			if ( !access_allowed( op, e,
 				desc, &a->a_vals[i], ACL_READ, &c->cac_acl_state)) {
-				slapi_log_error( SLAPI_LOG_ACL, "SLAPI_COMPUTE",
-					"slapi_x_compute_output_ber: conn %lu "
+				slapi_log_error( SLAPI_LOG_ACL, "slapi_x_compute_output_ber",
+					"conn %lu "
 					"acl: access to %s, value %d not allowed\n",
 					op->o_connid, desc->ad_cname.bv_val, i  );
 				continue;
 			}
 	
 			if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
-				slapi_log_error( SLAPI_LOG_BER, "SLAPI_COMPUTE",
+				slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
 					"ber_printf failed\n");
 				return 1;
 			}
@@ -3438,7 +3604,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 	}
 
 	if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
-		slapi_log_error( SLAPI_LOG_BER, "SLAPI_COMPUTE",
+		slapi_log_error( SLAPI_LOG_BER, "slapi_x_compute_output_ber",
 			"ber_printf failed\n" );
 		return 1;
 	}
@@ -3741,8 +3907,6 @@ int slapi_x_access_allowed( Operation *op,
 		return 1;
 	}
 
-	slapi_x_pblock_set_operation( op->o_pb, op );
-
 	switch ( access ) {
 	case ACL_WRITE:
 		slap_access |= SLAPI_ACL_ADD | SLAPI_ACL_DELETE | SLAPI_ACL_WRITE;
@@ -3765,6 +3929,8 @@ int slapi_x_access_allowed( Operation *op,
 		/* nothing to do; allowed access */
 		return 1;
 	}
+
+	slapi_x_pblock_set_operation( op->o_pb, op );
 
 	rc = 1; /* default allow policy */
 

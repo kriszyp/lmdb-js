@@ -153,6 +153,7 @@ int ldbm_modify_internal(
 
 			rc = modify_add_values( e, mod, get_permissiveModify( op ),
 						text, textbuf, textlen );
+			mod->sm_op = SLAP_MOD_SOFTADD;
 			if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
 				rc = LDAP_SUCCESS;
 			}
@@ -335,6 +336,8 @@ ldbm_back_modify(
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		free( (char *)rs->sr_matched );
 
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return rs->sr_err;
 	}
 
@@ -357,7 +360,8 @@ ldbm_back_modify(
 		send_ldap_result( op, rs );
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		goto error_return;
 	}
 	
@@ -381,6 +385,7 @@ ldbm_back_modify(
 		goto error_return;
 	}
 
+	rs->sr_text = NULL;
 	send_ldap_error( op, rs, LDAP_SUCCESS,
 		NULL );
 
@@ -392,5 +397,6 @@ ldbm_back_modify(
 error_return:;
 	cache_return_entry_w( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
+	rs->sr_text = NULL;
 	return rs->sr_err;
 }

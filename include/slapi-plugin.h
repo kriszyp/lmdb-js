@@ -49,6 +49,9 @@ int slapi_attr_get_values( Slapi_Attr *attr, struct berval ***vals );
 char *slapi_dn_normalize( char *dn );
 char *slapi_dn_normalize_case( char *dn );
 int slapi_dn_issuffix( char *dn, char *suffix );
+char *slapi_dn_beparent( Slapi_PBlock *pb, const char *dn );
+char *slapi_dn_parent( const char *dn );
+int slapi_dn_isparent( const char *parentdn, const char *childdn );
 char *slapi_dn_ignore_case( char *dn );
 
 /* DS 5.x SLAPI */
@@ -181,6 +184,8 @@ void slapi_send_ldap_result( Slapi_PBlock *pb, int err, char *matched,
 	char *text, int nentries, struct berval **urls );
 int slapi_send_ldap_search_entry( Slapi_PBlock *pb, Slapi_Entry *e,
 	LDAPControl **ectrls, char **attrs, int attrsonly );
+int slapi_send_ldap_search_reference( Slapi_PBlock *pb, Slapi_Entry *e,
+	struct berval **urls, LDAPControl **ectrls, struct berval **v2refs );
 
 /* filter routines */
 Slapi_Filter *slapi_str2filter( char *str );

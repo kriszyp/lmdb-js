@@ -433,6 +433,7 @@ ldap_sasl_interactive_bind_s(
 	void *defaults )
 {
 	int rc;
+	char *smechs = NULL;
 
 #if defined( LDAP_R_COMPILE ) && defined( HAVE_CYRUS_SASL )
 	ldap_pvt_thread_mutex_lock( &ldap_int_sasl_mutex );
@@ -448,9 +449,14 @@ ldap_sasl_interactive_bind_s(
 		goto done;
 	} else
 #endif
-	if( mechs == NULL || *mechs == '\0' ) {
-		char *smechs;
 
+#ifdef HAVE_CYRUS_SASL
+	if( mechs == NULL || *mechs == '\0' ) {
+		mechs = ld->ld_options.ldo_def_sasl_mech;
+	}
+#endif
+		
+	if( mechs == NULL || *mechs == '\0' ) {
 		rc = ldap_pvt_sasl_getmechs( ld, &smechs );
 		if( rc != LDAP_SUCCESS ) {
 			goto done;
@@ -488,6 +494,7 @@ done:
 #if defined( LDAP_R_COMPILE ) && defined( HAVE_CYRUS_SASL )
 	ldap_pvt_thread_mutex_unlock( &ldap_int_sasl_mutex );
 #endif
+	if ( smechs ) LDAP_FREE( smechs );
 
 	return rc;
 }

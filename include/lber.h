@@ -25,6 +25,7 @@
 #define _LBER_H
 
 #include <lber_types.h>
+#include <string.h>
 
 LDAP_BEGIN_DECL
 

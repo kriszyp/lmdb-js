@@ -679,7 +679,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto modrdn_return;
 	}
 
-	build_new_dn( &new_dn, new_pdn, &op->oq_modrdn.rs_newrdn );
+	build_new_dn( &new_dn, new_pdn, &op->oq_modrdn.rs_newrdn, NULL );
 	rs->sr_err = dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn,
 		op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {

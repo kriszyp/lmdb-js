@@ -156,6 +156,9 @@ extern char * slapi_esc_dn_normalize( char *dn );
 extern char * slapi_esc_dn_normalize_case( char *dn );
 extern int slapi_dn_isroot( Slapi_PBlock *pb, char *dn );
 extern int slapi_dn_issuffix( char *dn, char *suffix );
+char *slapi_dn_beparent( Slapi_PBlock *pb, const char *dn );
+char *slapi_dn_parent( const char *dn );
+int slapi_dn_isparent( const char *parentdn, const char *childdn );
 extern char *slapi_dn_ignore_case( char *dn );
 extern char *slapi_get_hostname();
 extern void slapi_register_supported_saslmechanism( char *mechanism );
@@ -165,6 +168,9 @@ extern int slapi_send_ldap_extended_response(Connection *conn, Operation *op,
 			int errornum, char *respName, struct berval *response);
 extern int slapi_send_ldap_search_entry( Slapi_PBlock *pb, Slapi_Entry *e, 
 			LDAPControl **ectrls, char **attrs, int attrsonly ); 
+extern int slapi_send_ldap_search_reference( Slapi_PBlock *pb, Slapi_Entry *e,
+	struct berval **references, LDAPControl **ectrls, struct berval **v2refs );
+
 extern void slapi_register_supported_control(char *controloid, 
 					unsigned long controlops);
 extern int slapi_get_supported_controls(char ***ctrloidsp, unsigned long **ctrlopsp);

@@ -1218,7 +1218,10 @@ loop_continue:
 			/* free reader lock */
 			if (!IS_PSEARCH) {
 				bdb_cache_return_entry_r( bdb->bi_dbenv,
-					&bdb->bi_cache, e , &lock);
+					&bdb->bi_cache, e , &lock );
+				if ( sop->o_nocaching ) {
+					bdb_cache_delete_entry( bdb, ei, locker, &lock );
+				}
 			}
 			e = NULL;
 			rs->sr_entry = NULL;

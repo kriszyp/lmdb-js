@@ -50,7 +50,8 @@ ldbm_back_compare(
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		free( (char *)rs->sr_matched );
-
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return( 1 );
 	}
 
@@ -72,7 +73,8 @@ ldbm_back_compare(
 		send_ldap_result( op, rs );
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		rs->sr_err = 1;
 		goto return_results;
 	}

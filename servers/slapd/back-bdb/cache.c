@@ -23,12 +23,25 @@ static void	bdb_lru_print(Cache *cache);
 #endif
 
 static EntryInfo *
-bdb_cache_entryinfo_new( )
+bdb_cache_entryinfo_new( Cache *cache )
 {
-	EntryInfo *ei;
+	EntryInfo *ei = NULL;
 
-	ei = ch_calloc(1, sizeof(struct bdb_entry_info));
-	ldap_pvt_thread_mutex_init( &ei->bei_kids_mutex );
+	if ( cache->c_eifree ) {
+		ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
+		if ( cache->c_eifree ) {
+			ei = cache->c_eifree;
+			cache->c_eifree = ei->bei_lrunext;
+		}
+		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
+	}
+	if ( ei ) {
+		ei->bei_lrunext = NULL;
+		ei->bei_state = 0;
+	} else {
+		ei = ch_calloc(1, sizeof(struct bdb_entry_info));
+		ldap_pvt_thread_mutex_init( &ei->bei_kids_mutex );
+	}
 
 	return ei;
 }
@@ -200,7 +213,7 @@ bdb_entryinfo_add_internal(
 
 	*res = NULL;
 
-	ei2 = bdb_cache_entryinfo_new();
+	ei2 = bdb_cache_entryinfo_new( &bdb->bi_cache );
 
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 	bdb_cache_entryinfo_lock( ei->bei_parent );
@@ -356,7 +369,7 @@ hdb_cache_find_parent(
 		ei2 = ein;
 
 		/* Create a new node for the current ID */
-		ein = bdb_cache_entryinfo_new();
+		ein = bdb_cache_entryinfo_new( &bdb->bi_cache );
 		ein->bei_id = ei.bei_id;
 		ein->bei_kids = ei.bei_kids;
 		ein->bei_nrdn = ei.bei_nrdn;
@@ -516,6 +529,23 @@ bdb_cache_lru_add(
 	}
 	LRU_ADD( &bdb->bi_cache, ei );
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
+}
+
+EntryInfo *
+bdb_cache_find_info(
+	struct bdb_info *bdb,
+	ID id
+)
+{
+	EntryInfo ei, *ei2;
+
+	ei.bei_id = id;
+
+	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
+	ei2 = (EntryInfo *) avl_find( bdb->bi_cache.c_idtree,
+					(caddr_t) &ei, bdb_id_cmp );
+	ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
+	return ei2;
 }
 
 /*
@@ -683,7 +713,7 @@ bdb_cache_children(
 	}
 	rc = bdb_dn2id_children( op, txn, e );
 	if ( rc == DB_NOTFOUND ) {
-		BEI(e)->bei_state |= CACHE_ENTRY_NO_KIDS;
+		BEI(e)->bei_state |= CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 	}
 	return rc;
 }
@@ -716,8 +746,9 @@ bdb_cache_add(
 	rc = bdb_entryinfo_add_internal( bdb, &ei, &new );
 	new->bei_e = e;
 	e->e_private = new;
-	new->bei_state = CACHE_ENTRY_NO_KIDS;
+	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
 	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
+	if (eip->bei_parent) eip->bei_parent->bei_state &= ~CACHE_ENTRY_NO_GRANDKIDS;
 
 	/* set lru mutex */
 	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
@@ -890,15 +921,36 @@ bdb_cache_delete(
 
 void
 bdb_cache_delete_cleanup(
+	Cache *cache,
 	Entry *e
 )
 {
-	bdb_cache_entryinfo_unlock( BEI(e) );
-	bdb_cache_entryinfo_destroy( e->e_private );
+	EntryInfo *ei = BEI(e);
+
+	ei->bei_e = NULL;
 	e->e_private = NULL;
 	bdb_entry_return( e );
+
+	free( ei->bei_nrdn.bv_val );
+	ei->bei_nrdn.bv_val = NULL;
+#ifdef BDB_HIER
+	free( ei->bei_rdn.bv_val );
+	ei->bei_rdn.bv_val = NULL;
+	ei->bei_modrdns = 0;
+	ei->bei_ckids = 0;
+	ei->bei_dkids = 0;
+#endif
+	ei->bei_parent = NULL;
+	ei->bei_kids = NULL;
+	ei->bei_lruprev = NULL;
+
+	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
+	ei->bei_lrunext = cache->c_eifree;
+	cache->c_eifree = ei;
+	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
+	bdb_cache_entryinfo_unlock( ei );
 }
-	
+
 static int
 bdb_cache_delete_internal(
     Cache	*cache,
@@ -1078,3 +1130,24 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 	return 0;
 }
 #endif
+
+void
+bdb_cache_delete_entry(
+	struct bdb_info *bdb,
+	EntryInfo *ei,
+	u_int32_t locker,
+	DB_LOCK *lock )
+{
+	ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
+	if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, ei, 1, 1, lock ) == 0 ) {
+		if ( ei->bei_e && !(ei->bei_state & CACHE_ENTRY_NOT_LINKED )) {
+			LRU_DELETE( &bdb->bi_cache, ei );
+			ei->bei_e->e_private = NULL;
+			bdb_entry_return( ei->bei_e );
+			ei->bei_e = NULL;
+			--bdb->bi_cache.c_cursize;
+		}
+		bdb_cache_entry_db_unlock( bdb->bi_dbenv, lock );
+	}
+	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
+}

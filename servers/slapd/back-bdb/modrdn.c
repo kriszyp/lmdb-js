@@ -92,7 +92,6 @@ retry:	/* transaction retry */
 #else
 		Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn: retrying...\n", 0, 0, 0 );
 #endif
-
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
 			LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -110,8 +109,8 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
-		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
+		bdb_trans_backoff( ++num_retries );
 	}
 
 	/* begin transaction */
@@ -665,7 +664,7 @@ retry:	/* transaction retry */
 	}
 
 	/* Build target dn and make sure target entry doesn't exist already. */
-	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
+	if (!new_dn.bv_val) build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
 
 	if (!new_ndn.bv_val) {
 		struct berval bv = {0, NULL};
@@ -961,6 +960,7 @@ retry:	/* transaction retry */
 	} else {
 		char gid[DB_XIDDATASIZE];
 
+		memset( gid, 0, sizeof(gid) );
 		snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
 			bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
 
@@ -1052,9 +1052,15 @@ done:
 		Modifications *tmp;
 		for (; mod; mod=tmp ) {
 			tmp = mod->sml_next;
+			/* slap_modrdn2mods does things one way,
+			 * slap_mods_opattrs does it differently
+			 */
+			if ( mod->sml_op != SLAP_MOD_SOFTADD &&
+				mod->sml_op != LDAP_MOD_DELETE ) break;
 			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
 			free( mod );
 		}
+		slap_mods_free( mod );
 	}
 
 	/* LDAP v3 Support */

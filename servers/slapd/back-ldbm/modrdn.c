@@ -104,7 +104,8 @@ ldbm_back_modrdn(
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		free( (char *)rs->sr_matched );
-
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return rs->sr_err;
 	}
 
@@ -146,6 +147,8 @@ ldbm_back_modrdn(
 		send_ldap_result( op, rs );
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		goto return_results;
 	}
 
@@ -469,7 +472,7 @@ ldbm_back_modrdn(
 	}
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
-	build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn ); 
+	build_new_dn( &new_dn, new_parent_dn, &op->oq_modrdn.rs_newrdn, NULL ); 
 	dnNormalize( 0, NULL, NULL, &new_dn, &new_ndn, NULL );
 
 #ifdef NEW_LOGGING
@@ -633,6 +636,7 @@ ldbm_back_modrdn(
 	}
 
 	rs->sr_err = LDAP_SUCCESS;
+	rs->sr_text = NULL;
 	send_ldap_result( op, rs );
 	rc = 0;
 	cache_entry_commit( e );
@@ -651,10 +655,16 @@ return_results:
 	if ( mod != NULL ) {
 		Modifications *tmp;
 		for (; mod; mod = tmp ) {
+			/* slap_modrdn2mods does things one way,
+			 * slap_mods_opattrs does it differently
+			 */
+			if ( mod->sml_op != SLAP_MOD_SOFTADD &&
+				mod->sml_op != LDAP_MOD_DELETE ) break;
 			if ( mod->sml_nvalues ) free( mod->sml_nvalues[0].bv_val );
 			tmp = mod->sml_next;
 			free( mod );
 		}
+		slap_mods_free( mod );
 	}
 
 	/* LDAP v3 Support */
@@ -677,5 +687,6 @@ return_results:
 		entry_free( e );
 	}
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
+	rs->sr_text = NULL;
 	return( rc );
 }

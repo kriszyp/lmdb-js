@@ -87,6 +87,7 @@ typedef struct bdb_entry_info {
 #define	CACHE_ENTRY_DELETED	1
 #define	CACHE_ENTRY_NO_KIDS	2
 #define	CACHE_ENTRY_NOT_LINKED	4
+#define CACHE_ENTRY_NO_GRANDKIDS	8
 
 	/*
 	 * remaining fields require backend cache lock to access
@@ -113,6 +114,7 @@ typedef struct bdb_cache {
 	int             c_maxsize;
 	int             c_cursize;
 	EntryInfo	c_dntree;
+	EntryInfo	*c_eifree;	/* free list */
 	Avlnode         *c_idtree;
 	EntryInfo	*c_lruhead;	/* lru - add accessed entries here */
 	EntryInfo	*c_lrutail;	/* lru - rem lru entries from here */
@@ -141,6 +143,7 @@ struct bdb_info {
 
 	int			bi_ndatabases;
 	struct bdb_db_info **bi_databases;
+	ldap_pvt_thread_mutex_t	bi_database_mutex;
 	int		bi_db_opflags;	/* db-specific flags */
 
 	slap_mask_t	bi_defaultmask;
@@ -182,7 +185,7 @@ struct bdb_op_info {
 	int		boi_acl_cache;
 };
 
-#define	DB_OPEN(db, txn, file, name, type, flags, mode) \
+#define	DB_OPEN(db, file, name, type, flags, mode) \
 	(db)->open(db, file, name, type, flags, mode)
 
 #if DB_VERSION_MAJOR < 4
@@ -213,8 +216,8 @@ struct bdb_op_info {
 /* BDB 4.1.17 adds txn arg to db->open */
 #if DB_VERSION_MINOR > 1 || DB_VERSION_PATCH >= 17
 #undef DB_OPEN
-#define	DB_OPEN(db, txn, file, name, type, flags, mode) \
-	(db)->open(db, txn, file, name, type, flags, mode)
+#define	DB_OPEN(db, file, name, type, flags, mode) \
+	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)
 #endif
 
 #endif

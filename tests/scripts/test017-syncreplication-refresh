@@ -28,7 +28,11 @@ mkdir $R1REPLDIR
 
 SAVE=$BACKEND
 if test $BACKEND = ldbm; then
-	BACKEND=bdb
+	if test $SYNCREPL = no; then
+		echo "Sync replication requires back-bdb or back-hdb"
+		exit 0
+	fi
+	BACKEND=$SYNCREPL
 fi
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF

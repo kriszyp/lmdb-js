@@ -33,12 +33,17 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
-struct berval *
-slap_get_commit_csn( Operation *op )
+const struct berval slap_ldapsync_bv = BER_BVC("ldapsync");
+const struct berval slap_ldapsync_cn_bv = BER_BVC("cn=ldapsync");
+
+void
+slap_get_commit_csn( Operation *op, struct berval *csn )
 {
-	struct berval *max_committed_csn = NULL;
 	struct slap_csn_entry *csne = NULL, *committed_csne = NULL;
 	int i = 0;
+
+	csn->bv_val = NULL;
+	csn->bv_len = 0;
 
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
@@ -61,10 +66,8 @@ slap_get_commit_csn( Operation *op )
 	ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
 
 	if ( committed_csne ) {
-		max_committed_csn = ber_dupbv( NULL, committed_csne->csn );
+		ber_dupbv( csn, committed_csne->csn );
 	}
-
-	return max_committed_csn;
 }
 
 void
@@ -90,6 +93,12 @@ void
 slap_graduate_commit_csn( Operation *op )
 {
 	struct slap_csn_entry *csne = NULL;
+
+	if ( op == NULL )
+		return;
+
+	if ( op->o_bd == NULL )
+		return;
 
 	ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
 
@@ -132,12 +141,9 @@ slap_create_context_csn_entry(
 
 	attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
 
-	bv.bv_val = "subentry";
-	bv.bv_len = sizeof("subentry")-1;
+	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &ocbva[1], NULL );
 
-	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &bv, NULL );
-
-	attr_merge_one( e, slap_schema.si_ad_cn, &slap_ldapsync_bv, NULL );
+	attr_merge_one( e, slap_schema.si_ad_cn, (struct berval *)&slap_ldapsync_bv, NULL );
 
 	if ( context_csn ) {
 		attr_merge_one( e, slap_schema.si_ad_contextCSN,
@@ -148,7 +154,7 @@ slap_create_context_csn_entry(
 	bv.bv_len = sizeof("{}")-1;
 	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
 
-	build_new_dn( &e->e_name, &be->be_nsuffix[0], &slap_ldapsync_cn_bv );
+	build_new_dn( &e->e_name, &be->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv, NULL );
 	ber_dupbv( &e->e_nname, &e->e_name );
 
 	return e;
@@ -179,12 +185,12 @@ slap_get_csn(
 {
 	struct	slap_csn_entry *pending;
 
+	if ( csn == NULL )
+		return LDAP_OTHER;
+
 	if ( manage_ctxcsn ) {
 		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
 	}
-
-	if ( csn == NULL )
-		return LDAP_OTHER;
 
 	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
 	csn->bv_val = csnbuf;

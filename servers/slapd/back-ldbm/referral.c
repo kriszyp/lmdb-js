@@ -79,6 +79,8 @@ ldbm_back_referrals(
 		}
 
 		if ( rs->sr_matched ) free( (char *)rs->sr_matched );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 		return rs->sr_err;
 	}
 
@@ -111,6 +113,8 @@ ldbm_back_referrals(
 		}
 
 		if( refs != NULL ) ber_bvarray_free( refs );
+		rs->sr_ref = NULL;
+		rs->sr_matched = NULL;
 	}
 
 	cache_return_entry_r( &li->li_cache, e );

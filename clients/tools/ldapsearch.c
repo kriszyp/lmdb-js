@@ -995,7 +995,7 @@ done:
 	return( rc );
 }
 
-#if 1
+#ifdef OLD_WAY
 /* This is the original version, the old way of doing things. */
 static void
 print_entry(
@@ -1161,10 +1161,10 @@ print_entry(
 	{
 		if (bv.bv_val == NULL) break;
 
-		if ( attrsonly || !bvals ) {
+		if ( attrsonly ) {
 			write_ldif( LDIF_PUT_NOVALUE, bv.bv_val, NULL, 0 );
 
-		} else {
+		} else if ( bvals ) {
 			for ( i = 0; bvals[i].bv_val != NULL; i++ ) {
 				if ( vals2tmp > 1 || ( vals2tmp
 					&& ldif_is_not_printable( bvals[i].bv_val, bvals[i].bv_len ) ))

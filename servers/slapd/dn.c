@@ -14,10 +14,8 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "ldap_pvt.h"
-
 #include "slap.h"
-
+#include "ldap_pvt.h" /* must be after slap.h, to get ldap_bv2dn_x() & co */
 #include "lutil.h"
 
 /*
@@ -819,7 +817,8 @@ rdnValidate( struct berval *rdn )
 void
 build_new_dn( struct berval * new_dn,
 	struct berval * parent_dn,
-	struct berval * newrdn )
+	struct berval * newrdn,
+	void *memctx )
 {
 	char *ptr;
 
@@ -829,7 +828,7 @@ build_new_dn( struct berval * new_dn,
 	}
 
 	new_dn->bv_len = parent_dn->bv_len + newrdn->bv_len + 1;
-	new_dn->bv_val = (char *) ch_malloc( new_dn->bv_len + 1 );
+	new_dn->bv_val = (char *) sl_malloc( new_dn->bv_len + 1, memctx );
 
 	ptr = lutil_strcopy( new_dn->bv_val, newrdn->bv_val );
 	*ptr++ = ',';

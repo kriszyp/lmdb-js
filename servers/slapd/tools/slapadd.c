@@ -268,7 +268,6 @@ main( int argc, char **argv )
 	if ( SLAP_LASTMOD(be) && update_ctxcsn == SLAP_TOOL_CTXCSN_BATCH && csn.bv_len > 0 ) {
 		Entry *ctxcsn_e;
 		ID	ctxcsn_id;
-		struct berval	ctxcsn_rdn = { 0, NULL };
 		struct berval	ctxcsn_ndn = { 0, NULL };
 		int ret;
 		struct berval bvtext;
@@ -278,8 +277,7 @@ main( int argc, char **argv )
 		bvtext.bv_val = textbuf;
 		bvtext.bv_val[0] = '\0';
 
-		ber_str2bv( "cn=ldapsync", strlen( "cn=ldapsync" ), 0, &ctxcsn_rdn );
-		build_new_dn( &ctxcsn_ndn, &be->be_nsuffix[0], &ctxcsn_rdn );
+		build_new_dn( &ctxcsn_ndn, &be->be_nsuffix[0], (struct berval *)&slap_ldapsync_cn_bv, NULL );
 		ctxcsn_id = be->be_dn2id_get( be, &ctxcsn_ndn );
 		
 		if ( ctxcsn_id == NOID ) {

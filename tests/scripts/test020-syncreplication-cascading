@@ -40,7 +40,11 @@ mkdir $P3REPLDIR
 
 SAVE=$BACKEND
 if test $BACKEND = ldbm; then
-	BACKEND=bdb
+	if test $SYNCREPL = no; then
+		echo "Sync replication requires back-bdb or back-hdb"
+		exit 0
+	fi
+	BACKEND=$SYNCREPL
 fi
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
@@ -78,7 +82,13 @@ if test $RC != 0 ; then
 fi
 
 SAVE=$BACKEND
-BACKEND=bdb
+if test $BACKEND = ldbm; then
+	if test $SYNCREPL = no; then
+		echo "Sync replication requires back-bdb or back-hdb"
+		exit 0
+	fi
+	BACKEND=$SYNCREPL
+fi
 echo "Starting R1 slave slapd on TCP/IP port $R1SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $R1SRSLAVECONF > $R1REPLCONF
 $SLAPD -f $R1REPLCONF -h $R1SLAVEURI -d $LVL $TIMING > $R1SLAVELOG 2>&1 &
@@ -129,7 +139,13 @@ echo "Waiting for the R2 slave to replicate..."
 sleep 10
 
 SAVE=$BACKEND
-BACKEND=bdb
+if test $BACKEND = ldbm; then
+	if test $SYNCREPL = no; then
+		echo "Sync replication requires back-bdb or back-hdb"
+		exit 0
+	fi
+	BACKEND=$SYNCREPL
+fi
 echo "Starting P1 slave slapd on TCP/IP port $P1SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $P1SRSLAVECONF > $P1REPLCONF
 $SLAPD -f $P1REPLCONF -h $P1SLAVEURI -d $LVL $TIMING > $P1SLAVELOG 2>&1 &

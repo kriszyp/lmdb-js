@@ -134,7 +134,8 @@ ldbm_back_add(
 
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
-
+			rs->sr_ref = NULL;
+			rs->sr_matched = NULL;
 			return rs->sr_err;
 		}
 
@@ -220,6 +221,8 @@ ldbm_back_add(
 
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
+			rs->sr_ref = NULL;
+			rs->sr_matched = NULL;
 			return rs->sr_err;
 		}
 
@@ -408,6 +411,7 @@ ldbm_back_add(
 	}
 
 	rs->sr_err = LDAP_SUCCESS;
+	rs->sr_text = NULL;
 	send_ldap_result( op, rs );
 
 	/* marks the entry as committed, so it is added to the cache;

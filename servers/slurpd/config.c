@@ -64,8 +64,10 @@ slurpd_read_config(
     FILE	*fp;
     char	*line;
 
+	if ( cargv == NULL ) {
 	cargv = ch_calloc( ARGS_STEP + 1, sizeof(*cargv) );
 	cargv_size = ARGS_STEP + 1;
+	}
 
 #ifdef NEW_LOGGING
     LDAP_LOG ( CONFIG, ARGS, 

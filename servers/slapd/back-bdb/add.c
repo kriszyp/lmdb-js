@@ -37,7 +37,7 @@ bdb_add(Operation *op, SlapReply *rs )
 
 	Operation* ps_list;
 	int		rc;
-	EntryInfo	*suffix_ei;
+	EntryInfo	*suffix_ei = NULL;
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
 
@@ -102,8 +102,8 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
-		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
+		bdb_trans_backoff( ++num_retries );
 	}
 
 	/* begin transaction */
@@ -506,6 +506,7 @@ retry:	/* transaction retry */
 	} else {
 		char gid[DB_XIDDATASIZE];
 
+		memset( gid, 0, sizeof(gid) );
 		snprintf( gid, sizeof( gid ), "%s-%08lx-%08lx",
 			bdb_uuid.bv_val, (long) op->o_connid, (long) op->o_opid );
 

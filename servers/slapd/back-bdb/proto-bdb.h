@@ -55,7 +55,6 @@ int bdb_get_commit_csn LDAP_P(( Operation *op, SlapReply *rs,
 int
 bdb_db_cache(
     Backend	*be,
-    DB_TXN *tid,
     const char *name,
 	DB **db );
 
@@ -420,10 +419,12 @@ void bdb_unlocked_cache_return_entry_rw( Cache *cache, Entry *e, int rw );
 #define bdb_cache_delete			BDB_SYMBOL(cache_delete)
 #define bdb_cache_delete_cleanup		BDB_SYMBOL(cache_delete_cleanup)
 #define bdb_cache_find_id			BDB_SYMBOL(cache_find_id)
+#define bdb_cache_find_info			BDB_SYMBOL(cache_find_info)
 #define bdb_cache_find_ndn			BDB_SYMBOL(cache_find_ndn)
 #define bdb_cache_modify			BDB_SYMBOL(cache_modify)
 #define bdb_cache_modrdn			BDB_SYMBOL(cache_modrdn)
 #define bdb_cache_release_all		BDB_SYMBOL(cache_release_all)
+#define bdb_cache_delete_entry		BDB_SYMBOL(cache_delete_entry)
 
 int bdb_cache_children(
 	Operation *op,
@@ -459,6 +460,10 @@ int bdb_cache_find_ndn(
 	struct berval   *ndn,
 	EntryInfo	**res
 );
+EntryInfo * bdb_cache_find_info(
+	struct bdb_info *bdb,
+	ID id
+);
 int bdb_cache_find_id(
 	Operation *op,
 	DB_TXN	*tid,
@@ -476,9 +481,16 @@ int bdb_cache_delete(
 	DB_LOCK	*lock
 );
 void bdb_cache_delete_cleanup(
+	Cache	*cache,
 	Entry	*e
 );
 void bdb_cache_release_all( Cache *cache );
+void bdb_cache_delete_entry(
+	struct bdb_info *bdb,
+	EntryInfo *ei,
+	u_int32_t locker,
+	DB_LOCK *lock
+);
 
 #ifdef BDB_HIER
 int hdb_cache_load(
@@ -495,6 +507,10 @@ int bdb_cache_entry_db_relock(
 	EntryInfo *ei,
 	int rw,
 	int tryOnly,
+	DB_LOCK *lock );
+
+int bdb_cache_entry_db_unlock(
+	DB_ENV *env,
 	DB_LOCK *lock );
 
 #ifdef BDB_REUSE_LOCKERS
