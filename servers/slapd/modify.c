@@ -37,7 +37,7 @@ do_modify(
     Operation	*op
 )
 {
-	char		*dn, *ndn;
+	char		*dn, *ndn = NULL;
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -274,7 +274,7 @@ do_modify(
 
 cleanup:
 	free( dn );
-	free( ndn );
+	if( ndn != NULL ) free( ndn );
 	if ( modlist != NULL )
 		slap_modlist_free( modlist );
 	if ( mods != NULL )

@@ -31,7 +31,7 @@ do_delete(
     Operation	*op
 )
 {
-	char	*dn, *ndn, *text;
+	char	*dn, *ndn = NULL, *text;
 	Backend	*be;
 	int rc;
 
@@ -133,7 +133,7 @@ do_delete(
 			NULL, "Function not implemented", NULL, NULL );
 	}
 cleanup:
-	free( ndn );
+	if( ndn != NULL ) free( ndn );
 	free( dn );
 	return rc;
 }

@@ -44,7 +44,7 @@ do_modrdn(
     Operation	*op
 )
 {
-	char	*dn, *ndn, *newrdn;
+	char	*dn, *ndn = NULL, *newrdn;
 	ber_int_t	deloldrdn;
 	Backend	*be;
 	/* Vars for LDAP v3 newSuperior support */
@@ -245,7 +245,7 @@ do_modrdn(
 
 cleanup:
 	free( dn );
-	free( ndn );
+	if( ndn != NULL ) free( ndn );
 	free( newrdn );	
 	if ( newSuperior != NULL )
 		free( newSuperior );
