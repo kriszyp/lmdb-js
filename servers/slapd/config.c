@@ -204,6 +204,7 @@ read_config( char *fname )
 
 		/* set database suffix */
 		} else if ( strcasecmp( cargv[0], "suffix" ) == 0 ) {
+			Backend *tmp_be;
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
 		    "%s: line %d: missing dn in \"suffix <dn>\" line\n",
@@ -218,6 +219,14 @@ read_config( char *fname )
 				Debug( LDAP_DEBUG_ANY,
 "%s: line %d: suffix line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
+			} else if ( ( tmp_be = select_backend( cargv[1] ) ) == be ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: suffix already served by this backend (ignored)\n",
+				    fname, lineno, 0 );
+			} else if ( tmp_be  != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: suffix already served by a preceeding backend \"%s\" (ignored)\n",
+				    fname, lineno, tmp_be->be_suffix[0] );
 			} else {
 				char *dn = ch_strdup( cargv[1] );
 				(void) dn_normalize( dn );
@@ -225,6 +234,60 @@ read_config( char *fname )
 				(void) str2upper( dn );
 				charray_add( &be->be_nsuffix, dn );
 				free( dn );
+			}
+
+		/* set database suffixAlias */
+		} else if ( strcasecmp( cargv[0], "suffixAlias" ) == 0 ) {
+			Backend *tmp_be;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: missing alias and aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
+					fname, lineno, 0 );
+				return( 1 );
+			} else if ( cargc < 3 ) {
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: missing aliased_dn in \"suffixAlias <alias> <aliased_dn>\" line\n",
+				fname, lineno, 0 );
+				return( 1 );
+			} else if ( cargc > 3 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: extra cruft in suffixAlias line (ignored)\n",
+				fname, lineno, 0 );
+			}
+
+			if ( be == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: suffixAlias line"
+					" must appear inside a database definition (ignored)\n",
+					fname, lineno, 0 );
+			} else if ( (tmp_be = select_backend( cargv[1] )) != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: suffixAlias served by"
+					"  a preceeding backend \"%s\" (ignored)\n",
+					fname, lineno, tmp_be->be_suffix[0] );
+
+			} else if ( (tmp_be = select_backend( cargv[2] )) != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: suffixAlias derefs to differnet backend"
+					"  a preceeding backend \"%s\" (ignored)\n",
+					fname, lineno, tmp_be->be_suffix[0] );
+
+			} else {
+				char *alias, *aliased_dn;
+
+				alias = ch_strdup( cargv[1] );
+				(void) dn_normalize( alias );
+
+				aliased_dn = ch_strdup( cargv[2] );
+				(void) dn_normalize( aliased_dn );
+
+				(void) dn_normalize_case( alias );
+				(void) dn_normalize_case( aliased_dn );
+				charray_add( &be->be_suffixAlias, alias );
+				charray_add( &be->be_suffixAlias, aliased_dn );
+
+				free(alias);
+				free(aliased_dn);
 			}
 
                /* set max deref depth */

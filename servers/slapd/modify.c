@@ -172,6 +172,9 @@ do_modify(
 		return rc;
 	}
 
+	/* deref suffix alias if appropriate */
+	ndn = suffix_alias( be, ndn );
+
 	/*
 	 * do the modify if 1 && (2 || 3)
 	 * 1) there is a modify function implemented in this backend;

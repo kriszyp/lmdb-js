@@ -351,6 +351,11 @@ char *scherr2str LDAP_P((int code));
 Filter * str2filter LDAP_P(( char *str ));
 
 /*
+ * suffixalias.c
+ */
+char *suffix_alias LDAP_P(( Backend *be, char *ndn ));
+
+/*
  * value.c
  */
 

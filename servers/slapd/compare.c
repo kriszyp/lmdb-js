@@ -97,6 +97,9 @@ do_compare(
 		return 1;
 	}
 
+	/* deref suffix alias if appropriate */
+	ndn = suffix_alias( be, ndn );
+
 	if ( be->be_compare ) {
 		(*be->be_compare)( be, conn, op, ndn, &ava );
 	} else {

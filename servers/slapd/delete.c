@@ -81,6 +81,9 @@ do_delete(
 		return rc;
 	}
 
+	/* deref suffix alias if appropriate */
+	ndn = suffix_alias( be, ndn );
+
 	/*
 	 * do the delete if 1 && (2 || 3)
 	 * 1) there is a delete function implemented in this backend;

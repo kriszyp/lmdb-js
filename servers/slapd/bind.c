@@ -281,6 +281,9 @@ do_bind(
 		/* alias suffix */
 		char *edn;
 
+		/* deref suffix alias if appropriate */
+		ndn = suffix_alias( be, ndn );
+
 		if ( (*be->be_bind)( be, conn, op, ndn, method, mech, &cred, &edn ) == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 

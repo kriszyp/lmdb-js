@@ -200,6 +200,9 @@ do_search(
 		goto return_results;
 	}
 
+	/* deref the base if needed */
+	base = suffix_alias( be, base );
+
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
 		(*be->be_search)( be, conn, op, base, scope, deref, sizelimit,

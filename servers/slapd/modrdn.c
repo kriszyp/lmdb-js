@@ -187,7 +187,6 @@ do_modrdn(
 		return rc;
 	}
 
-
 	/* Make sure that the entry being changed and the newSuperior are in 
 	 * the same backend, otherwise we return an error.
 	 */
@@ -208,7 +207,13 @@ do_modrdn(
 
 			return rc;
 		}
+
+		/* deref suffix alias if appropriate */
+		nnewSuperior = suffix_alias( be, nnewSuperior );
 	}
+
+	/* deref suffix alias if appropriate */
+	ndn = suffix_alias( be, ndn );
 
 	/*
 	 * do the add if 1 && (2 || 3)

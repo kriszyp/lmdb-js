@@ -416,6 +416,7 @@ struct slap_backend_db {
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
 	char	**be_nsuffix;	/* the normalized DN suffixes in this backend */
+	char	**be_suffixAlias; /* pairs of DN suffix aliases and deref values */
 	char	*be_root_dn;	/* the magic "root" dn for this db 	*/
 	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
 	char	*be_root_pw;	/* the magic "root" password for this db	*/
