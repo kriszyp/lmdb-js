@@ -696,6 +696,61 @@ UTF8StringNormalize(
 	return LDAP_SUCCESS;
 }
 
+#if UTF8MATCH
+/* Returns Unicode cannonically normalized copy of a substring assertion
+ * Skipping attribute description */
+SubstringsAssertion *
+UTF8SubstringsassertionNormalize(
+	SubstringsAssertion *sa,
+	char casefold )
+{
+	SubstringsAssertion *nsa;
+	int i;
+
+	nsa = (SubstringsAssertion *)ch_calloc( 1, sizeof(SubstringsAssertion) );
+	if( nsa == NULL ) {
+		return NULL;
+	}
+
+	if( sa->sa_initial != NULL ) {
+		nsa->sa_initial = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val, casefold ) );
+		if( nsa->sa_initial == NULL ) {
+			goto err;
+		}
+	}
+
+	if( sa->sa_any != NULL ) {
+		for( i=0; sa->sa_any[i] != NULL; i++ ) {
+			/* empty */
+		}
+		nsa->sa_any = (struct berval **)ch_malloc( (i + 1) * sizeof(struct berval *) );
+		for( i=0; sa->sa_any[i] != NULL; i++ ) {
+			nsa->sa_any[i] = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val, casefold ) );
+			if( nsa->sa_any[i] == NULL ) {
+				goto err;
+			}
+		}
+		nsa->sa_any[i] = NULL;
+	}
+
+	if( sa->sa_final != NULL ) {
+		nsa->sa_final = ber_bvstr( UTF8normalize( sa->sa_final->bv_val, casefold ) );
+		if( nsa->sa_final == NULL ) {
+			goto err;
+		}
+	}
+
+	return nsa;
+
+err:
+	ch_free( nsa->sa_final );
+	ber_bvecfree( nsa->sa_any );
+	ch_free( nsa->sa_initial );
+	ch_free( nsa );
+	return NULL;
+}
+#endif
+
 #if defined(SLAPD_APPROX_MULTISTRING)
 
 #if defined(SLAPD_APPROX_INITIALS)
@@ -1454,7 +1509,7 @@ int caseExactSubstringsFilter(
 	void * assertValue,
 	struct berval ***keysp )
 {
-	SubstringsAssertion *sa = assertValue;
+	SubstringsAssertion *sa;
 	char pre;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
@@ -1463,6 +1518,16 @@ int caseExactSubstringsFilter(
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
+
+#if UTF8MATCH
+        sa = UTF8SubstringsassertionNormalize( assertValue, UTF8_NOCASEFOLD );
+#else
+        sa = assertValue;
+#endif
+	if( sa == NULL ) {
+                *keysp = NULL;
+                return LDAP_SUCCESS;
+        }
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
@@ -1505,12 +1570,7 @@ int caseExactSubstringsFilter(
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-#if UTF8MATCH
-		value = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val,
-			UTF8_NOCASEFOLD ) );
-#else
 		value = sa->sa_initial;
-#endif
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -1530,9 +1590,6 @@ int caseExactSubstringsFilter(
 			value->bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-#if UTF8MATCH
-		ber_bvfree( value );
-#endif
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
@@ -1546,12 +1603,7 @@ int caseExactSubstringsFilter(
 				continue;
 			}
 
-#if UTF8MATCH
-    		value = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val,
-				UTF8_NOCASEFOLD ) );
-#else
 			value = sa->sa_any[i];
-#endif
 
 			for(j=0;
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
@@ -1575,9 +1627,6 @@ int caseExactSubstringsFilter(
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
-#if UTF8MATCH
-			ber_bvfree( value );
-#endif
 		}
 	}
 
@@ -1585,12 +1634,7 @@ int caseExactSubstringsFilter(
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-#if UTF8MATCH
-		value = ber_bvstr( UTF8normalize( sa->sa_final->bv_val,
-			UTF8_NOCASEFOLD ) );
-#else
 		value = sa->sa_final;
-#endif
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -1610,9 +1654,6 @@ int caseExactSubstringsFilter(
 			&value->bv_val[value->bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
-#if UTF8MATCH
-		ber_bvfree( value );
-#endif
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
@@ -1623,6 +1664,12 @@ int caseExactSubstringsFilter(
 		ch_free( keys );
 		*keysp = NULL;
 	}
+#if UTF8MATCH
+	ch_free( sa->sa_final );
+	ber_bvecfree( sa->sa_any );
+	ch_free( sa->sa_initial );
+	ch_free( sa );
+#endif
 
 	return LDAP_SUCCESS;
 }
@@ -2130,7 +2177,7 @@ int caseIgnoreSubstringsFilter(
 	void * assertValue,
 	struct berval ***keysp )
 {
-	SubstringsAssertion *sa = assertValue;
+	SubstringsAssertion *sa;
 	char pre;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
@@ -2139,6 +2186,16 @@ int caseIgnoreSubstringsFilter(
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval *value;
 	struct berval digest;
+
+#if UTF8MATCH
+	sa = UTF8SubstringsassertionNormalize( assertValue, UTF8_CASEFOLD );
+#else
+	sa = assertValue;
+#endif
+	if( sa == NULL ) {
+		*keysp = NULL;
+		return LDAP_SUCCESS;
+	}
 
 	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
@@ -2182,7 +2239,7 @@ int caseIgnoreSubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 #if UTF8MATCH
-		value = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val, UTF8_CASEFOLD ) );
+		value = sa->sa_initial;
 #else
 		value = ber_bvdup( sa->sa_initial );
 		ldap_pvt_str2upper( value->bv_val );
@@ -2206,7 +2263,9 @@ int caseIgnoreSubstringsFilter(
 			value->bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
+#if !UTF8MATCH
 		ber_bvfree( value );
+#endif
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
@@ -2221,7 +2280,7 @@ int caseIgnoreSubstringsFilter(
 			}
 
 #if UTF8MATCH
-			value = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val, UTF8_CASEFOLD ) );
+			value = sa->sa_any[i];
 #else
 			value = ber_bvdup( sa->sa_any[i] );
 			ldap_pvt_str2upper( value->bv_val );
@@ -2249,7 +2308,9 @@ int caseIgnoreSubstringsFilter(
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 
+#if !UTF8MATCH
 			ber_bvfree( value );
+#endif
 		}
 	}
 
@@ -2258,7 +2319,7 @@ int caseIgnoreSubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 #if UTF8MATCH
-		value = ber_bvstr( UTF8normalize( sa->sa_final->bv_val, UTF8_CASEFOLD ) );
+		value = sa->sa_final;
 #else
 		value = ber_bvdup( sa->sa_final );
 		ldap_pvt_str2upper( value->bv_val );
@@ -2282,7 +2343,9 @@ int caseIgnoreSubstringsFilter(
 			&value->bv_val[value->bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
+#if !UTF8MATCH
 		ber_bvfree( value );
+#endif
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
@@ -2293,6 +2356,12 @@ int caseIgnoreSubstringsFilter(
 		ch_free( keys );
 		*keysp = NULL;
 	}
+#if UTF8MATCH
+	ch_free( sa->sa_final );
+	ber_bvecfree( sa->sa_any );
+	ch_free( sa->sa_initial );
+	ch_free( sa );
+#endif
 
 	return LDAP_SUCCESS;
 }
