@@ -107,6 +107,8 @@ LDAP_BEGIN_DECL
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
 #define SLAPD_ACI_ATTR			"OpenLDAPaci"
 
+#define SLAPD_OCTETSTRING_SYNTAX "1.3.6.1.4.1.1466.115.121.1.40"
+
 /* change this to "OpenLDAPset" */
 #define SLAPD_ACI_SET_ATTR		"template"
 

@@ -256,6 +256,12 @@ schema_prep( void )
 		}
 	}
 
+	slap_at_undefined.sat_syntax = syn_find( SLAPD_OCTETSTRING_SYNTAX );
+	if( slap_at_undefined.sat_syntax == NULL ) {
+		fprintf( stderr,
+			"No octetString syntax \"" SLAPD_OCTETSTRING_SYNTAX "\"\n" );
+		return LDAP_INVALID_SYNTAX;
+	}
 	slap_schema.si_at_undefined = &slap_at_undefined;
 
 	++schema_init_done;
