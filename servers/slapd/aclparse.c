@@ -203,14 +203,14 @@ parse_acl(
 				b->a_dnattr = ch_strdup( right );
 
 #ifdef SLAPD_ACLGROUPS
-			} else if ( strcasecmp( left, "group" ) == 0 ) {
+			} else if ( strncasecmp( left, "group", sizeof("group")-1 ) == 0 ) {
                                 char *name = NULL;
                                 char *value = NULL;
 				regtest(fname, lineno, right);
 
                                 /* format of string is "group/objectClassValue/groupAttrName"
                                  */
-                                if ((value = strchr(right, '/')) != NULL) {
+                                if ((value = strchr(left, '/')) != NULL) {
                                         *value++ = '\0';
                                         if (value && *value && (name = strchr(value, '/')) != NULL) 
                                             *name++ = '\0';
