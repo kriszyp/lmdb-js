@@ -1618,6 +1618,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			if test $ol_cv_cthread_all_load = yes ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -all_load"
 				ol_link_threads=mach
+				ol_with_threads=found
 			fi
 		fi
 
@@ -1636,6 +1637,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		if test $ol_link_threads = yes ; then
 			LTHREAD_LIBS="-lthreads"
 			ol_link_threads=mach
+			ol_with_threads=found
 		else
 			AC_MSG_ERROR([could not link with Mach CThreads])
 		fi
@@ -1664,6 +1666,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			AC_DEFINE(HAVE_GNU_PTH,1,[if you have GNU Pth])
 			LTHREAD_LIBS="$LTHREAD_LIBS -lpth"
 			ol_link_threads=pth
+			ol_with_threads=found
 
 			if test $ol_with_yielding_select = auto ; then
 				ol_with_yielding_select=yes
