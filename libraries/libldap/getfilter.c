@@ -40,7 +40,6 @@ ldap_init_getfilter( char *fname )
     int 		eof;
     LDAPFiltDesc	*lfdp;
 
-
     if (( fp = fopen( fname, "r" )) == NULL ) {
 	return( NULL );
     }
@@ -89,7 +88,6 @@ ldap_init_getfilter_buf( char *buf, long buflen )
     int				tokcnt, i;
 	int				rc;
 	regex_t			re;
-
 
     if (( lfdp = (LDAPFiltDesc *)calloc( 1, sizeof( LDAPFiltDesc))) == NULL ) {
 	return( NULL );
