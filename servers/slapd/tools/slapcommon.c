@@ -26,6 +26,7 @@ int		verbose		= 0;
 int		continuemode = 0;
 int		nosubordinates = 0;
 int		dryrun = 0;
+struct berval	sub_ndn = { 0, NULL };
 
 char	*ldiffile	= NULL;
 FILE	*ldiffp		= NULL;
@@ -82,6 +83,7 @@ slap_tool_init(
 {
 	char *options;
 	struct berval base = { 0, NULL };
+	char *subtree = NULL;
 	int rc, i, dbnum;
 	int mode = SLAP_TOOL_MODE;
 
@@ -106,7 +108,7 @@ slap_tool_init(
 		break;
 
 	case SLAPCAT:
-		options = "b:cd:f:l:n:v";
+		options = "b:cd:f:l:n:s:v";
 		break;
 
 	default:
@@ -143,6 +145,10 @@ slap_tool_init(
 
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg ) - 1;
+			break;
+
+		case 's':	/* dump subtree */
+			subtree = strdup( optarg );
 			break;
 
 		case 't':	/* turn on truncate */
@@ -227,6 +233,22 @@ slap_tool_init(
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_prep failed!\n", progname );
 		exit( EXIT_FAILURE );
+	}
+
+	if( subtree ) {
+		struct berval val;
+		val.bv_val = subtree;
+		val.bv_len = strlen( subtree );
+		rc = dnNormalize( 0, NULL, NULL, &val, &sub_ndn, NULL );
+		if( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "Invalid subtree DN '%s'\n", optarg );
+			exit( EXIT_FAILURE );
+		}
+
+		if( base.bv_val == NULL && dbnum == -1 )
+			base = val;
+		else
+			free( subtree );
 	}
 
 	if( base.bv_val != NULL ) {

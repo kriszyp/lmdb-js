@@ -27,6 +27,7 @@ extern	int		verbose;
 extern	int		continuemode;
 extern	int		nosubordinates;
 extern	int		dryrun;
+extern	struct berval	sub_ndn;
 
 extern	char	*ldiffile;
 extern	FILE	*ldiffp;

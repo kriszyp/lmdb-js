@@ -47,6 +47,12 @@ main( int argc, char **argv )
 		char *data;
 		int len;
 		Entry* e = be->be_entry_get( be, id );
+		op.o_bd = be;
+
+		if( sub_ndn.bv_len && !dnIsSuffix( &e->e_nname, &sub_ndn ) ) {
+			be_entry_release_r( &op, e );
+			continue;
+		}
 
 		if( verbose ) {
 			printf( "# id=%08lx\n", (long) id );
@@ -60,7 +66,6 @@ main( int argc, char **argv )
 		}
 
 		data = entry2str( e, &len );
-		op.o_bd = be;
 		be_entry_release_r( &op, e );
 
 		if ( data == NULL ) {
