@@ -43,6 +43,10 @@ ldapdelete \- LDAP delete entry tool
 [\c
 .BR \-x ]
 [\c
+.BR \-I ]
+[\c
+.BR \-Q ]
+[\c
 .BI \-X \ authzid\fR]
 [\c
 .BI \-Y \ mech\fR]
@@ -132,7 +136,7 @@ Specify an alternate TCP port where the ldap server is listening.
 .BI \-P \ 2\fR\||\|\fI3
 Specify the LDAP protocol version to use.
 .TP
-.BI \-r
+.B \-r
 Do a recursive delete.  If the DN specified isn't a leaf, its
 children, and all their children are deleted down the tree.  No
 verification is done, so if you add this switch, ldapdelete will
@@ -140,6 +144,13 @@ happily delete large portions of your tree.  Use with care.
 .TP
 .BI \-O \ security-properties
 Specify SASL security properties.
+.TP
+.B \-I
+Enable SASL Interactive mode.  Always prompt.  Default is to prompt
+only as needed.
+.TP
+.B \-Q
+Enable SASL Quiet mode.  Never prompt.
 .TP
 .BI \-U \ username
 Specify the username for SASL bind. The syntax of the username depends on the

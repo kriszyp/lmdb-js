@@ -55,6 +55,10 @@ ldapsearch \- LDAP search tool
 [\c
 .BR \-O \ security-properties ]
 [\c
+.BR \-I ]
+[\c
+.BR \-Q ]
+[\c
 .BI \-U \ username\fR]
 [\c
 .BR \-x ]
@@ -227,6 +231,13 @@ the root user may override.
 .TP
 .BI \-O \ security-properties
 Specify SASL security properties.
+.TP
+.B \-I
+Enable SASL Interactive mode.  Always prompt.  Default is to prompt
+only as needed.
+.TP
+.B \-Q
+Enable SASL Quiet mode.  Never prompt.
 .TP
 .BI \-U \ username
 Specify the username for SASL bind. The syntax of the username depends on the
