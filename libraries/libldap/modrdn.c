@@ -43,10 +43,10 @@
  */
 
 int
-ldap_rename2( LDAP *ld,\
-	      char *dn,\
-	      char *newrdn,\
-	      int deleteoldrdn,\
+ldap_rename2( LDAP *ld,
+	      char *dn,
+	      char *newrdn,
+	      int deleteoldrdn,
 	      char *newSuperior )
 {
 	BerElement	*ber;
@@ -70,14 +70,14 @@ ldap_rename2( LDAP *ld,\
 
 	if( newSuperior != NULL ) {
 
-	    if ( ber_printf( ber, "{it{ssbts}}",\
-			     ++ld->ld_msgid,\
-			     LDAP_REQ_MODRDN,\
-			     dn,\
-			     newrdn,\
-			     deleteoldrdn,\
-			     LDAP_TAG_NEWSUPERIOR,\
-			     newSuperior )\
+	    if ( ber_printf( ber, "{it{ssbts}}",
+			     ++ld->ld_msgid,
+			     LDAP_REQ_MODRDN,
+			     dn,
+			     newrdn,
+			     deleteoldrdn,
+			     LDAP_TAG_NEWSUPERIOR,
+			     newSuperior )
 		 == -1 ) {
 
 		ld->ld_errno = LDAP_ENCODING_ERROR;
@@ -150,22 +150,22 @@ ldap_modrdn( LDAP *ld, char *dn, char *newrdn )
 }
 
 int
-ldap_rename2_s( LDAP *ld, char *dn, char *newrdn, int deleteoldrdn,\
+ldap_rename2_s( LDAP *ld, char *dn, char *newrdn, int deleteoldrdn,
 		char *newSuperior )
 {
 	int		msgid;
 	LDAPMessage	*res;
 
 
-	if ( (msgid = ldap_rename2( ld,\
-				    dn,\
-				    newrdn,\
-				    deleteoldrdn,\
-				    newSuperior ))\
+	if ( (msgid = ldap_rename2( ld,
+				    dn,
+				    newrdn,
+				    deleteoldrdn,
+				    newSuperior ))
 	     == -1 )
 		return( ld->ld_errno );
 
-	if ( ldap_result( ld, msgid, 1, (struct timeval *) NULL, &res )\
+	if ( ldap_result( ld, msgid, 1, (struct timeval *) NULL, &res )
 	     == -1 )
 		return( ld->ld_errno );
 
