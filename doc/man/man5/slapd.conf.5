@@ -1076,7 +1076,11 @@ This option is only applicable in a slave
 It specifies the DN allowed to make changes to the replica (typically,
 this is the DN
 .BR slurpd (8)
-binds as when making changes to the replica).
+binds as when making changes to the replica).  Generally, this DN
+.I should not
+be the same as the
+.B rootdn
+of the master database.
 .TP
 .B updateref <url>
 Specify the referral to pass back when
