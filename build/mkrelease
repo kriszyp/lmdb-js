@@ -15,9 +15,9 @@ if test $# != 3 ; then
 	exit 1
 fi
 
-CVSTAG=$1
-shift
 RELNAME=opendlap-$1
+shift
+CVSTAG=$1
 shift
 
 if test -e $RELNAME ; then
