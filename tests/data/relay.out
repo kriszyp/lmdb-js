@@ -4,7 +4,6 @@ objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
 objectClass: dcObject
-objectClass: OpenLDAPorg
 dc: example
 l: Anytown, Michigan
 st: Michigan
@@ -15,7 +14,6 @@ description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
-OpenLDAPtime: 20050304001801.234Z
 
 dn: ou=People,dc=example,dc=com
 objectClass: organizationalUnit
@@ -417,7 +415,6 @@ objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
 objectClass: uidObject
-objectClass: OpenLDAPorg
 uid: example
 l: Anytown, Michigan
 st: Michigan
@@ -428,7 +425,6 @@ description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
-OpenLDAPtime: 20050304001801.234Z
 
 dn: ou=People,o=Example,c=US
 objectClass: organizationalUnit
@@ -830,7 +826,6 @@ objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
 objectClass: dcObject
-objectClass: OpenLDAPorg
 dc: example
 l: Anytown, Michigan
 st: Michigan
@@ -841,7 +836,6 @@ description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
-OpenLDAPtime: 20050304001801.234Z
 
 dn: ou=People,o=Esempio,c=IT
 objectClass: organizationalUnit
@@ -1243,7 +1237,6 @@ objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
 objectClass: dcObject
-objectClass: OpenLDAPorg
 dc: example
 l: Anytown, Michigan
 st: Michigan
@@ -1254,7 +1247,6 @@ description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
-OpenLDAPtime: 20050304001801.234Z
 
 dn: ou=People,o=Beispiel,c=DE
 objectClass: organizationalUnit
@@ -1656,7 +1648,6 @@ objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
 objectClass: uidObject
-objectClass: OpenLDAPorg
 uid: example
 l: Anytown, Michigan
 st: Michigan
@@ -1667,7 +1658,6 @@ description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
-OpenLDAPtime: 20050304001801.234Z
 
 dn: ou=People,o=Example,c=US
 objectClass: organizationalUnit
@@ -2083,7 +2073,6 @@ objectClass: top
 objectClass: organization
 objectClass: domainRelatedObject
 objectClass: dcObject
-objectClass: OpenLDAPorg
 dc: example
 l: Anytown, Michigan
 st: Michigan
@@ -2094,7 +2083,6 @@ description: The Example, Inc. at Anytown
 postalAddress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephoneNumber: +1 313 555 1817
 associatedDomain: example.com
-OpenLDAPtime: 20050304001801.234Z
 
 dn: ou=People,o=Esempio,c=IT
 objectClass: organizationalUnit

@@ -5,7 +5,6 @@ objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
 objectclass: dcobject
-objectclass: OpenLDAPorg
 dc: example
 l: Anytown, Michigan
 st: Michigan
@@ -16,7 +15,6 @@ description: The Example, Inc. at Anytown
 postaladdress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephonenumber: +1 313 555 1817
 associateddomain: example.com
-OpenLDAPtime: 20050304001801.234Z
 
 dn: ou=People,dc=example,dc=com
 objectclass: organizationalUnit
