@@ -122,7 +122,7 @@ int slap_bv2ad(
 		if ( options != NULL )
 			i = options - name;
 		else
-			i = strlen(name);
+			i = bv->bv_len - (name - bv->bv_val);
 
 		if( i == sizeof("binary")-1 && strncasecmp( name, "binary", i) == 0 ) {
 			if( slap_ad_is_binary( &desc ) ) {

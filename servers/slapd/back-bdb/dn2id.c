@@ -32,7 +32,7 @@ bdb_dn2id_add(
 	assert( e->e_id != NOID );
 
 	DBTzero( &key );
-	key.size = strlen( e->e_ndn ) + 2;
+	key.size = e->e_nname.bv_len + 2;
 	buf = ch_malloc( key.size );
 	key.data = buf;
 	buf[0] = DN_BASE_PREFIX;
@@ -121,7 +121,7 @@ bdb_dn2id_delete(
 		e->e_ndn, e->e_id, 0 );
 
 	DBTzero( &key );
-	key.size = strlen( e->e_ndn ) + 2;
+	key.size = e->e_nname.bv_len + 2;
 	buf = ch_malloc( key.size );
 	key.data = buf;
 	key.flags = DB_DBT_USERMEM;
