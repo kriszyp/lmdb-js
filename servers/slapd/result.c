@@ -165,6 +165,38 @@ static long send_ldap_ber(
 	return bytes;
 }
 
+static int
+send_ldap_controls( BerElement *ber, LDAPControl **c )
+{
+	int rc;
+	if( c == NULL ) return 0;
+
+	rc = ber_printf( ber, "t{"/*}*/, LDAP_TAG_CONTROLS );
+	if( rc == -1 ) return rc;
+
+	for( ; *c != NULL; c++) {
+		rc = ber_printf( ber, "{s" /*}*/, (*c)->ldctl_oid );
+
+		if( (*c)->ldctl_iscritical ) {
+			rc = ber_printf( ber, "b",
+				(ber_int_t) (*c)->ldctl_iscritical ) ;
+			if( rc == -1 ) return rc;
+		}
+
+		if( (*c)->ldctl_value.bv_val != NULL ) {
+			rc = ber_printf( ber, "O", &((*c)->ldctl_value)); 
+			if( rc == -1 ) return rc;
+		}
+
+		rc = ber_printf( ber, /*{*/"N}" );
+		if( rc == -1 ) return rc;
+	}
+
+	rc = ber_printf( ber, /*{*/"N}" );
+
+	return rc;
+}
+
 static void
 send_ldap_response(
     Connection	*conn,
@@ -217,7 +249,6 @@ send_ldap_response(
 			ref[0].bv_val ? ref[0].bv_val : "NULL",
 			NULL, NULL );
 #endif
-
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -275,8 +306,17 @@ send_ldap_response(
 	}
 
 	if( rc != -1 ) {
-		rc = ber_printf( ber, /*"{{"*/ "N}N}" );
+		rc = ber_printf( ber, /*"{"*/ "N}" );
 	}
+
+	if( rc != -1 && ctrls != NULL ) {
+		rc = send_ldap_controls( ber, ctrls );
+	}
+
+	if( rc != -1 ) {
+		rc = ber_printf( ber, /*"{"*/ "N}" );
+	}
+
 #ifdef LDAP_CONNECTIONLESS
 	if( conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1 ) {
 		rc = ber_printf( ber, /*"{"*/ "N}" );
@@ -1049,7 +1089,15 @@ send_search_entry(
 	}
 
 	attrs_free( aa );
-	rc = ber_printf( ber, /*{{{*/ "}N}N}" );
+	rc = ber_printf( ber, /*{{*/ "}N}" );
+
+	if( rc != -1 && ctrls != NULL ) {
+		rc = send_ldap_controls( ber, ctrls );
+	}
+
+	if( rc != -1 ) {
+		rc = ber_printf( ber, /*{*/ "N}" );
+	}
 
 #ifdef LDAP_CONNECTIONLESS
 	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2 && rc != -1)
@@ -1197,8 +1245,17 @@ send_search_reference(
 
 	ber_init_w_nullc( ber, LBER_USE_DER );
 
-	rc = ber_printf( ber, "{it{W}N}", op->o_msgid,
+	rc = ber_printf( ber, "{it{W}" /*"}"*/ , op->o_msgid,
 		LDAP_RES_SEARCH_REFERENCE, refs );
+
+	if( rc != -1 && ctrls != NULL ) {
+		rc = send_ldap_controls( ber, ctrls );
+	}
+
+	if( rc != -1 ) {
+		rc = ber_printf( ber, /*"{"*/ "N}", op->o_msgid,
+			LDAP_RES_SEARCH_REFERENCE, refs );
+	}
 
 	if ( rc == -1 ) {
 #ifdef NEW_LOGGING
