@@ -112,10 +112,6 @@ LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
 
 LIBSLAPD_F (void) attr_free LDAP_P(( Attribute *a ));
 LIBSLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
-LIBSLAPD_F (char *) attr_normalize LDAP_P(( char *s ));
-LIBSLAPD_F (int) attr_merge_fast LDAP_P(( Entry *e, const char *type,
-	struct berval **vals, int  nvals, int  naddvals, int  *maxvals,
-	Attribute ***a ));
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e,
@@ -125,8 +121,12 @@ LIBSLAPD_F (Attribute *) attrs_find LDAP_P(( Attribute *a, AttributeDescription 
 LIBSLAPD_F (Attribute *) attr_find LDAP_P(( Attribute *a, AttributeDescription *desc ));
 LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, AttributeDescription *desc ));
 #else
+LIBSLAPD_F (char *) attr_normalize LDAP_P(( char *s ));
 LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e, const char *type,
 	struct berval **vals ));
+LIBSLAPD_F (int) attr_merge_fast LDAP_P(( Entry *e, const char *type,
+	struct berval **vals, int  nvals, int  naddvals, int  *maxvals,
+	Attribute ***a ));
 LIBSLAPD_F (Attribute *) attr_find LDAP_P(( Attribute *a, const char *type ));
 LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, const char *type ));
 LIBSLAPD_F (int) attr_syntax LDAP_P(( const char *type ));
@@ -143,6 +143,7 @@ LIBSLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
 LIBSLAPD_F (int) get_ava LDAP_P((
 	BerElement *ber,
 	AttributeAssertion **ava,
+	unsigned usage,
 	char **text ));
 LIBSLAPD_F (void) ava_free LDAP_P((
 	AttributeAssertion *ava,
@@ -662,11 +663,19 @@ LIBSLAPD_F (char *) suffix_alias LDAP_P(( Backend *be, char *ndn ));
  * value.c
  */
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F (int) value_normalize LDAP_P((
+	AttributeDescription *ad,
+	unsigned usage,
+	struct berval *val,
+	char ** text ));
+#else
 LIBSLAPD_F (int) value_add_fast LDAP_P(( struct berval ***vals, struct berval **addvals, int nvals, int naddvals, int *maxvals ));
 LIBSLAPD_F (int) value_add LDAP_P(( struct berval ***vals, struct berval **addvals ));
 LIBSLAPD_F (void) value_normalize LDAP_P(( char *s, int syntax ));
 LIBSLAPD_F (int) value_cmp LDAP_P(( struct berval *v1, struct berval *v2, int syntax, int normalize ));
 LIBSLAPD_F (int) value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax, int normalize ));
+#endif
 
 /*
  * user.c

@@ -94,10 +94,14 @@ get_filter(
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		err = get_ava( ber, &f->f_ava, SLAP_MR_EQUALITY, text );
+#else
+		err = get_ava( ber, &f->f_ava, text );
+#endif
+		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
-
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		assert( f->f_ava != NULL );
@@ -127,7 +131,12 @@ get_filter(
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		err = get_ava( ber, &f->f_ava, SLAP_MR_ORDERING, text );
+#else
+		err = get_ava( ber, &f->f_ava, text );
+#endif
+		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
 
@@ -152,9 +161,15 @@ get_filter(
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		err = get_ava( ber, &f->f_ava, SLAP_MR_ORDERING, text );
+#else
+		err = get_ava( ber, &f->f_ava, text );
+#endif
+		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
+
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		*fstr = ch_malloc( sizeof("(<=)")
@@ -214,7 +229,12 @@ get_filter(
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
 
-		if ( (err = get_ava( ber, &f->f_ava, text )) != LDAP_SUCCESS ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		err = get_ava( ber, &f->f_ava, SLAP_MR_APPROX, text );
+#else
+		err = get_ava( ber, &f->f_ava, text );
+#endif
+		if ( err != LDAP_SUCCESS ) {
 			break;
 		}
 

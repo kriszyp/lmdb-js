@@ -33,6 +33,7 @@ int
 get_ava(
     BerElement	*ber,
     AttributeAssertion	**ava,
+	unsigned usage,
 	char **text
 )
 {
@@ -56,6 +57,16 @@ get_ava(
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( type.bv_val );
 		ber_bvfree( value );
+		ch_free( aa );
+		return rc;
+	}
+
+	rc = value_normalize( aa->aa_desc, usage, value, text );
+
+	if( rc != LDAP_SUCCESS ) {
+		ch_free( type.bv_val );
+		ber_bvfree( value );
+		ad_free( aa->aa_desc, 1 );
 		ch_free( aa );
 		return rc;
 	}

@@ -105,6 +105,15 @@ do_compare(
 		    text, NULL, NULL );
 		goto cleanup;
 	}
+
+	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &text );
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc, NULL,
+		    text, NULL, NULL );
+		goto cleanup;
+	}
+
 	ava.aa_value = &value;
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",

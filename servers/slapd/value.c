@@ -19,38 +19,6 @@
 #include "slap.h"
 
 int
-value_add_fast( 
-    struct berval	***vals,
-    struct berval	**addvals,
-    int			nvals,
-    int			naddvals,
-    int			*maxvals
-)
-{
-	int	need, i, j;
-
-	if ( *maxvals == 0 ) {
-		*maxvals = 1;
-	}
-	need = nvals + naddvals + 1;
-	while ( *maxvals < need ) {
-		*maxvals *= 2;
-		*vals = (struct berval **) ch_realloc( (char *) *vals,
-		    *maxvals * sizeof(struct berval *) );
-	}
-
-	for ( i = 0, j = 0; i < naddvals; i++ ) {
-		if ( addvals[i]->bv_len > 0 ) {
-			(*vals)[nvals + j] = ber_bvdup( addvals[i] );
-			if( (*vals)[nvals + j] != NULL ) j++;
-		}
-	}
-	(*vals)[nvals + j] = NULL;
-
-	return( 0 );
-}
-
-int
 value_add( 
     struct berval	***vals,
     struct berval	**addvals
@@ -86,6 +54,52 @@ value_add(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	/* not yet implemented */
 #else
+int
+value_add_fast( 
+    struct berval	***vals,
+    struct berval	**addvals,
+    int			nvals,
+    int			naddvals,
+    int			*maxvals
+)
+{
+	int	need, i, j;
+
+	if ( *maxvals == 0 ) {
+		*maxvals = 1;
+	}
+	need = nvals + naddvals + 1;
+	while ( *maxvals < need ) {
+		*maxvals *= 2;
+		*vals = (struct berval **) ch_realloc( (char *) *vals,
+		    *maxvals * sizeof(struct berval *) );
+	}
+
+	for ( i = 0, j = 0; i < naddvals; i++ ) {
+		if ( addvals[i]->bv_len > 0 ) {
+			(*vals)[nvals + j] = ber_bvdup( addvals[i] );
+			if( (*vals)[nvals + j] != NULL ) j++;
+		}
+	}
+	(*vals)[nvals + j] = NULL;
+
+	return( 0 );
+}
+#endif
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+int
+value_normalize(
+	AttributeDescription *ad,
+	unsigned usage,
+	struct berval *val,
+	char **text )
+{
+	/* not yet implemented */
+	return LDAP_SUCCESS;
+}
+
+#else
 void
 value_normalize(
     char	*s,
@@ -112,7 +126,11 @@ value_normalize(
 	}
 	*d = '\0';
 }
+#endif
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	/* not yet implemented */
+#else
 int
 value_cmp(
     struct berval	*v1,
