@@ -687,8 +687,12 @@ parse_idassert(
 			return 1;
 		}
 
-		if ( strcasecmp( argv[1], "self" ) == 0 ) {
-			/* will proxyAuthz as (rewritten) client's identity */
+		if ( strcasecmp( argv[1], "none" ) == 0 ) {
+			/* will proxyAuthz as client's identity only if bound */
+			li->idassert_mode = LDAP_BACK_IDASSERT_NONE;
+
+		} else if ( strcasecmp( argv[1], "self" ) == 0 ) {
+			/* will proxyAuthz as client's identity */
 			li->idassert_mode = LDAP_BACK_IDASSERT_SELF;
 
 		} else if ( strcasecmp( argv[1], "anonymous" ) == 0 ) {
