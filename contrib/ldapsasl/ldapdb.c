@@ -204,6 +204,7 @@ static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
 {
     ldapctx tmp, *p;
     const char *s;
+    unsigned len;
 
     if(!out_version || !plug) return SASL_BADPARAM;
 
@@ -213,11 +214,14 @@ static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
     if(!tmp.uri) return SASL_BADPARAM;
 
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_id",
-    	(const char **)&tmp.id.bv_val, (unsigned *)&tmp.id.bv_len);
+    	(const char **)&tmp.id.bv_val, &len);
+    tmp.id.bv_len = len;
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_pw",
-    	(const char **)&tmp.pw.bv_val, (unsigned *)&tmp.pw.bv_len);
+    	(const char **)&tmp.pw.bv_val, &len);
+    tmp.pw.bv_len = len;
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech",
-    	(const char **)&tmp.mech.bv_val, (unsigned *)&tmp.mech.bv_len);
+    	(const char **)&tmp.mech.bv_val, &len);
+    tmp.mech.bv_len = len;
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_rc", &s, NULL);
     if(s && setenv("LDAPRC", s, 1)) return SASL_BADPARAM;
 
