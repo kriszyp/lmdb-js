@@ -103,8 +103,9 @@ int slap_bv2ad(
 	desc.ad_cname = *bv;
 	name = bv->bv_val;
 	options = strchr(name, ';');
-	if (options != NULL)
+	if (options != NULL) {
 		desc.ad_cname.bv_len = options - name;
+	}
 	desc.ad_type = at_bvfind( &desc.ad_cname );
 	if( desc.ad_type == NULL ) {
 		*text = "attribute type undefined";
@@ -114,6 +115,11 @@ int slap_bv2ad(
 	desc.ad_flags = SLAP_DESC_NONE;
 	desc.ad_lang.bv_len = 0;
 	desc.ad_lang.bv_val = NULL;
+
+	if( is_at_operational( desc.ad_type ) && options != NULL ) {
+		*text = "operational attribute with options undefined";
+		return rtn;
+	}
 
 	/* parse options in place */
 	for( ; options != NULL; ) {
