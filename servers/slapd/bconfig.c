@@ -1088,7 +1088,10 @@ config_generic(ConfigArgs *c) {
 			/* Record this load on the current path */
 			{
 				struct berval bv;
-				ber_str2bv(c->line, 0, 1, &bv);
+				char *ptr = c->line + STRLENOF('moduleload');
+				while (!isspace(*ptr)) ptr++;
+				while (isspace(*ptr)) ptr++;
+				ber_str2bv(ptr, 0, 1, &bv);
 				ber_bvarray_add( &modcur->mp_loads, &bv );
 			}
 			break;
@@ -2776,7 +2779,7 @@ read_config(const char *fname, const char *dir) {
 	if ( config_setup_ldif( be, dir ))
 		return 1;
 
-#if 0	/* not yet */
+#ifdef	SLAP_USE_CONFDIR
 	/* If we read the config from back-ldif, nothing to do here */
 	if ( cfb->cb_got_ldif )
 		return 0;
@@ -3562,7 +3565,7 @@ config_back_db_open( BackendDB *be )
 
 	/* Create schema nodes... cn=schema will contain the hardcoded core
 	 * schema, read-only. Child objects will contain runtime loaded schema
-	 * files.  FIXME
+	 * files.
 	 */
 	rdn = schema_rdn;
 	e = config_alloc_entry( ceparent, &rdn );
@@ -3591,7 +3594,7 @@ config_back_db_open( BackendDB *be )
 #ifdef SLAPD_MODULES
 	/* Create Module nodes... */
 	if ( modpaths.mp_loads ) {
-		ceprev = config_build_includes( &c, ceparent, op, &rs );
+		ceprev = config_build_modules( &c, ceparent, op, &rs );
 	}
 #endif
 

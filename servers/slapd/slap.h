@@ -69,6 +69,8 @@ LDAP_BEGIN_DECL
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 
+#define	SLAP_USE_CONFDIR	/* partially implemented */
+
 #ifdef ENABLE_REWRITE
 #define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
 #endif
