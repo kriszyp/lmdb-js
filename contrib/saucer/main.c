@@ -83,7 +83,7 @@ int		do_command(char *cmd);
 void		do_commands(FILE *file);
 int		is_whitespace(register char *s);
 char		*make_dn(char *dn, int relative);
-void		show_syntax(int cmdnum);
+void		show_syntax(unsigned int cmdnum);
 char		*skip_to_char(register char *s, register int c);
 char		*skip_to_whitespace(register char *s);
 char		*skip_whitespace(register char *s);
@@ -122,7 +122,7 @@ int bind_user(void)
 
 int cmd_help(char **cmdargv, int cmdargc)
 {
-	int		i;
+	unsigned int	i;
 
 	if (cmdargc == 2) {
 		for (i = 0; i < sizeof(cmdtable) / sizeof(cmdtable[0]); i++)
@@ -394,7 +394,6 @@ int cmd_set(char **cmdargv, int cmdargc)
 int cmd_show(char **cmdargv, int cmdargc)
 {
 	char		*dn      = NULL;
-	LDAPMessage	*entry;
 	int			errflag  = 0;
 	int			i;
 	static const char *const opts[] = { "absolute" };
@@ -662,7 +661,6 @@ int main(int argc, char **argv)
 char *make_dn(char *dn, int relative)
 {
 	static char	dn_buf[DN_MAXLEN];
-	char		*s;
 
 	if (!dn)
 		dn = "";
@@ -676,7 +674,7 @@ char *make_dn(char *dn, int relative)
 	return strcat(strcat(strcpy(dn_buf, dn), ", "), default_dn);
 }
 
-void show_syntax(int cmdnum)
+void show_syntax(unsigned int cmdnum)
 {
 	printf("Syntax: %s %s\n", cmdtable[cmdnum].cmd, cmdtable[cmdnum].help_msg);
 }
