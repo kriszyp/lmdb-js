@@ -17,29 +17,17 @@
 
 /* for the cache of attribute information (which are indexed, etc.) */
 typedef struct bdb_attrinfo {
-#ifdef SLAPD_USE_AD
-	AttributeDescription *ai_desc; /* attribute description cn;lang-en	*/
-#else
-	char *ai_desc;
-#endif
+	AttributeDescription *ai_desc; /* attribute description cn;lang-en */
 	slap_mask_t ai_indexmask;	/* how the attr is indexed	*/
 } AttrInfo;
 
 static int
 ainfo_type_cmp(
-#ifdef SLAPD_USE_AD
 	AttributeDescription *desc,
-#else
-    char		*desc,
-#endif
     AttrInfo	*a
 )
 {
-#ifdef SLAPD_USE_AD
-	return ad_cmp( desc, a->ai_desc );
-#else
-	return( strcasecmp( desc, a->ai_desc ) );
-#endif
+	return desc - a->ai_desc;
 }
 
 static int
@@ -48,21 +36,13 @@ ainfo_cmp(
     AttrInfo	*b
 )
 {
-#ifdef SLAPD_USE_AD
-	return ad_cmp( a->ai_desc, b->ai_desc );
-#else
-	return( strcasecmp( a->ai_desc, b->ai_desc ) );
-#endif
+	return a->ai_desc - b->ai_desc;
 }
 
 void
 bdb_attr_mask(
     struct bdb_info	*bdb,
-#ifdef SLAPD_USE_AD
-	AttributeDescription *desc,
-#else
-    const char *desc,
-#endif
+    AttributeDescription *desc,
     slap_mask_t *indexmask )
 {
 	AttrInfo	*a;
@@ -210,12 +190,7 @@ bdb_attr_index_config(
 #endif
 
 
-#ifdef SLAPD_USE_AD
 		a->ai_desc = ad;
-#else
-		a->ai_desc = ch_strdup( ad->ad_cname.bv_val );
-#endif
-
 		a->ai_indexmask = mask;
 
 		rc = avl_insert( &bdb->bi_attrs, (caddr_t) a,
@@ -236,20 +211,9 @@ bdb_attr_index_config(
 	return LDAP_SUCCESS;
 }
 
-
-static void
-ainfo_free( void *attr )
-{
-	AttrInfo *ai = attr;
-#ifndef SLAPD_USE_AD
-	free( ai->ai_desc );
-#endif
-	free( ai );
-}
-
 void
 bdb_attr_index_destroy( Avlnode *tree )
 {
-	avl_free( tree, ainfo_free );
+	avl_free( tree, free );
 }
 

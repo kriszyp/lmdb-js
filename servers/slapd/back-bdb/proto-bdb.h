@@ -30,11 +30,7 @@ Entry *bdb_deref_internal_r LDAP_P((
  */
 
 void bdb_attr_mask( struct bdb_info *bdb,
-#ifdef SLAPD_USE_AD
 	AttributeDescription *desc,
-#else
-    const char *desc,
-#endif
 	slap_mask_t *indexmask );
 
 int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
@@ -122,6 +118,7 @@ void bdb_errcall( const char *pfx, char * msg );
  */
 int bdb_filter_candidates(
 	Backend	*be,
+	ID *range,
 	Filter	*f,
 	ID *ids );
 
@@ -221,7 +218,7 @@ bdb_index_param LDAP_P((
 	int ftype,
 	DB **db,
 	slap_mask_t *mask,
-	struct berval **prefix ));
+	struct berval *prefix ));
 
 extern int
 bdb_index_values LDAP_P((

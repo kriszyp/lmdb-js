@@ -203,7 +203,7 @@ presence_candidates(
 	DB *db;
 	int rc;
 	slap_mask_t mask;
-	struct berval *prefix;
+	struct berval prefix = {0};
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_presence_candidates\n", 0, 0, 0 );
 	BDB_IDL_ZERO( ids );
@@ -227,7 +227,7 @@ presence_candidates(
 		goto done;
 	}
 
-	if( prefix == NULL ) {
+	if( prefix.bv_val == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_presense_candidates: no prefix\n",
 			0, 0, 0 );
@@ -235,7 +235,7 @@ presence_candidates(
 		goto done;
 	}
 
-	rc = bdb_key_read( be, db, prefix, ids );
+	rc = bdb_key_read( be, db, NULL, &prefix, ids );
 
 	if( rc == DB_NOTFOUND ) {
 		rc = 0;
@@ -254,7 +254,6 @@ presence_candidates(
 		(long) BDB_IDL_LAST(ids) );
 
 done:
-	ber_bvfree( prefix );
 	return rc;
 }
 
@@ -270,7 +269,7 @@ equality_candidates(
 	int rc;
 	char *dbname;
 	slap_mask_t mask;
-	struct berval *prefix;
+	struct berval prefix = {0};
 	struct berval **keys = NULL;
 	MatchingRule *mr;
 
@@ -290,12 +289,10 @@ equality_candidates(
 
 	mr = ava->aa_desc->ad_type->sat_equality;
 	if( !mr ) {
-		ber_bvfree( prefix );
 		return 0;
 	}
 
 	if( !mr->smr_filter ) {
-		ber_bvfree( prefix );
 		return 0;
 	}
 
@@ -304,11 +301,9 @@ equality_candidates(
 		mask,
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
-		prefix,
+		&prefix,
 		ava->aa_value,
 		&keys );
-
-	ber_bvfree( prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -328,7 +323,7 @@ equality_candidates(
 		ID save[BDB_IDL_UM_SIZE];
 		ID tmp[BDB_IDL_UM_SIZE];
 
-		rc = bdb_key_read( be, db, keys[i], tmp );
+		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -376,7 +371,7 @@ approx_candidates(
 	int rc;
 	char *dbname;
 	slap_mask_t mask;
-	struct berval *prefix;
+	struct berval prefix = {0};
 	struct berval **keys = NULL;
 	MatchingRule *mr;
 
@@ -399,12 +394,10 @@ approx_candidates(
 	}
 
 	if( !mr ) {
-		ber_bvfree( prefix );
 		return idl;
 	}
 
 	if( !mr->smr_filter ) {
-		ber_bvfree( prefix );
 		return idl;
 	}
 
@@ -413,11 +406,9 @@ approx_candidates(
 		mask,
 		ava->aa_desc->ad_type->sat_syntax,
 		mr,
-		prefix,
+		&prefix,
 		ava->aa_value,
 		&keys );
-
-	ber_bvfree( prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -444,7 +435,7 @@ approx_candidates(
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = bdb_key_read( be, db, keys[i], tmp );
+		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
@@ -491,7 +482,7 @@ substring_candidates(
 	int i;
 	int rc;
 	slap_mask_t mask;
-	struct berval *prefix;
+	struct berval prefix = {0};
 	struct berval **keys = NULL;
 	MatchingRule *mr;
 
@@ -514,19 +505,16 @@ substring_candidates(
 		Debug( LDAP_DEBUG_ANY,
 			"<= substrings_candidates: not indexed\n",
 			0, 0, 0 );
-		ber_bvfree( prefix );
 		return idl;
 	}
 
 	mr = sub->sa_desc->ad_type->sat_substr;
 
 	if( !mr ) {
-		ber_bvfree( prefix );
 		return idl;
 	}
 
 	if( !mr->smr_filter ) {
-		ber_bvfree( prefix );
 		return idl;
 	}
 
@@ -535,11 +523,9 @@ substring_candidates(
 		mask,
 		sub->sa_desc->ad_type->sat_syntax,
 		mr,
-		prefix,
+		&prefix,
 		sub,
 		&keys );
-
-	ber_bvfree( prefix );
 
 	if( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -568,7 +554,7 @@ substring_candidates(
 		ID_BLOCK *save;
 		ID_BLOCK *tmp;
 
-		rc = bdb_key_read( be, db, keys[i], &tmp );
+		rc = bdb_key_read( be, db, NULL, keys[i], &tmp );
 
 		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
