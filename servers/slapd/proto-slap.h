@@ -12,6 +12,7 @@ LDAP_BEGIN_DECL
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 LIBSLAPD_F( struct slap_internal_schema ) slap_schema;
+LIBSLAPD_F( int ) schema_init_done;
 
 LIBSLAPD_F (int) slap_str2ad LDAP_P((
 	const char *,
