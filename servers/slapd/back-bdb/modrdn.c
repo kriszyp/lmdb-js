@@ -478,21 +478,12 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef BDB_USE_BINARY_RW
 	/* Binary format uses a single contiguous block, cannot
 	 * free individual fields. Leave new_dn/new_ndn set so
 	 * they can be individually freed later.
 	 */
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
-#else
-	free( e->e_dn );
-	free( e->e_ndn );
-	e->e_dn = new_dn;
-	e->e_ndn = new_ndn;
-	new_dn = NULL;
-	new_ndn = NULL;
-#endif
 
 	/* add new one */
 	rc = bdb_dn2id_add( be, ltid, e->e_ndn, e->e_id );
@@ -520,10 +511,6 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 	
-	/* NOTE: after this you must not free new_dn or new_ndn!
-	 * They are used by cache.
-	 */
-
 	/* id2entry index */
 	rc = bdb_id2entry_update( be, ltid, e );
 	if ( rc != 0 ) {

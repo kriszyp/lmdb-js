@@ -380,194 +380,28 @@ entry_id_cmp( Entry *e1, Entry *e2 )
 
 #ifdef SLAPD_BDB
 
-/* a LBER encoded entry looks like:
- *
- *	 entry :== SEQUENCE {
- *			dn		DistinguishedName,
- *			ndn		NormalizedDistinguishedName,
- *			attrs	SEQUENCE OF SEQUENCE {
- *				type	AttributeType,
- *				values	SET OF AttributeValue
- *			}
- *	 }
- *
- * Encoding/Decoding of LBER should be much faster than LDIF
+/* Flatten an Entry into a buffer. The buffer contents become a direct
+ * copy of the entry, with all pointers converted to offsets from the
+ * beginning of the buffer. We do this by first walking through all
+ * the fields of the Entry, adding up their sizes. Then a single chunk
+ * of memory is malloc'd and the entry is copied. We differentiate between
+ * fixed size fields and variable-length content when tallying up the
+ * entry size, so that we can stick all of the variable-length stuff
+ * into the back half of the buffer.
  */
-
-int entry_decode( struct berval *bv, Entry **entry )
+int entry_encode(Entry *e, struct berval **bv)
 {
-	int rc;
-	BerElement	*ber;
-	Entry		*e;
-	ber_tag_t	tag;
-	ber_len_t	len;
-	char *last;
+	int siz = sizeof(Entry);
+	int len, dnlen;
+	int i, j;
+	Entry *f;
+	Attribute *a, *b;
+	struct berval **bvl, *bz;
+	char *ptr, *base, *data;
 
-	assert( bv != NULL );
-	assert( entry != NULL );
-
-	ber = ber_init( bv );
-	if( ber == NULL ) {
-		assert( 0 );	/* XXYYZ: Temporary assert */
-
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "entry_decode: ber_init failed\n" ));
-#else
-		Debug( LDAP_DEBUG_ANY,
-		    "<= entry_decode: ber_init failed\n",
-		    0, 0, 0 );
-#endif
-		return LDAP_LOCAL_ERROR;
-	}
-
-	/* initialize reader/writer lock */
-	e = (Entry *) ch_malloc( sizeof(Entry) );
-
-	if( e == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "entry_decode: entry allocation failed.\n" ));
-#else
-		Debug( LDAP_DEBUG_ANY,
-		    "<= entry_decode: entry allocation failed\n",
-		    0, 0, 0 );
-#endif
-		return LDAP_LOCAL_ERROR;
-	}
-
-	/* initialize entry */
-	e->e_id = NOID;
-	e->e_dn = NULL;
-	e->e_ndn = NULL;
-	e->e_attrs = NULL;
-	e->e_private = NULL;
-
-	tag = ber_scanf( ber, "{aa" /*"}"*/, &e->e_dn, &e->e_ndn );
-	if( tag == LBER_ERROR ) {
-		free( e );
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
-		   "entry_decode: \"%s\"\n", e->e_dn ));
-#else
-	Debug( LDAP_DEBUG_TRACE,
-	    "entry_decode: \"%s\"\n",
-	    e->e_dn, 0, 0 );
-#endif
-	/* get the attrs */
-	for ( tag = ber_first_element( ber, &len, &last );
-		tag != LBER_DEFAULT;
-	    tag = ber_next_element( ber, &len, last ) )
-	{
-		struct berval *type;
-		struct berval **vals;
-		AttributeDescription *ad;
-		const char *text;
-
-		tag = ber_scanf( ber, "{O{V}}", &type, &vals );
-
-		if ( tag == LBER_ERROR ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "entry_decode: decoding error (%s)\n", e->e_dn ));
-#else
-			Debug( LDAP_DEBUG_ANY, "entry_decode: decoding error\n", 0, 0, 0 );
-#endif
-			entry_free( e );
-			return LDAP_PROTOCOL_ERROR;
-		}
-
-		if ( vals == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "entry_decode: no values for type %s\n", type ));
-#else
-			Debug( LDAP_DEBUG_ANY, "entry_decode: no values for type %s\n",
-				type, 0, 0 );
-#endif
-			ber_bvfree( type );
-			entry_free( e );
-			return LDAP_PROTOCOL_ERROR;
-		}
-
-		ad = NULL;
-		rc = slap_bv2ad( type, &ad, &text );
-
-		if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "entry_decode: str2ad(%s): %s\n", type->bv_val, text ));
-#else
-			Debug( LDAP_DEBUG_TRACE,
-				"<= entry_decode: str2ad(%s): %s\n", type->bv_val, text, 0 );
-#endif
-			rc = slap_bv2undef_ad( type, &ad, &text );
-
-			if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-					   "entry_decode:  str2undef_ad(%s): %s\n", type->bv_val, text));
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"<= entry_decode: str2undef_ad(%s): %s\n",
-						type->bv_val, text, 0 );
-#endif
-				ber_bvfree( type );
-				ber_bvecfree( vals );
-				entry_free( e );
-				return rc;
-			}
-		}
-
-		rc = attr_merge( e, ad, vals );
-
-		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-				   "entry_decode:  attr_merge failed\n"));
-#else
-			Debug( LDAP_DEBUG_ANY,
-			    "<= entry_decode: attr_merge failed\n", 0, 0, 0 );
-#endif
-			ber_bvfree( type );
-			ber_bvecfree( vals );
-			entry_free( e );
-			return LDAP_LOCAL_ERROR;
-		}
-
-		free( type );
-		ber_bvecfree( vals );
-	}
-
-	rc = ber_scanf( ber, /*"{"*/  "}" );
-	if( rc < 0 ) {
-		entry_free( e );
-		return LDAP_PROTOCOL_ERROR;
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
-		   "entry_decode:  %s\n", e->e_dn ));
-#else
-	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s)\n",
-		e->e_dn, 0, 0 );
-#endif
-
-	*entry = e;
-	return LDAP_SUCCESS;
-}
-
-int entry_encode(
-	Entry *e,
-	struct berval **bv )
-{
-	int rc = -1;
-	Attribute *a;
-	BerElement *ber;
-	
+	*bv = ch_malloc(sizeof(struct berval));
+	/* Compress any white space in the DN */
+	dn_validate(e->e_dn);
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
 		"entry_encode: id: 0x%08lx  \"%s\"\n",
@@ -576,44 +410,161 @@ int entry_encode(
 	Debug( LDAP_DEBUG_TRACE, "=> entry_encode(0x%08lx): %s\n",
 		(long) e->e_id, e->e_dn, 0 );
 #endif
-	ber = ber_alloc_t( LBER_USE_DER );
-	if( ber == NULL ) {
-		goto done;
+	dnlen = strlen(e->e_dn);
+	/* The dn and ndn are always the same length */
+	len = dnlen + dnlen + 2;	/* two trailing NUL bytes */
+	for (a=e->e_attrs; a; a=a->a_next) {
+		/* For AttributeDesc, we only store the attr name */
+		siz += sizeof(Attribute);
+		len += a->a_desc->ad_cname.bv_len+1;
+		for (i=0; a->a_vals[i]; i++) {
+			siz += sizeof(struct berval *);
+			siz += sizeof(struct berval);
+			len += a->a_vals[i]->bv_len + 1;
+		}
+		siz += sizeof(struct berval *);	/* NULL pointer at end */
 	}
+	(*bv)->bv_len = siz + len;
+	(*bv)->bv_val = ch_malloc(siz+len);
+	base = (*bv)->bv_val;
+	ptr = base + siz;
+	f = (Entry *)base;
+	data = (char *)(f+1);
+	f->e_id = e->e_id;
+	f->e_dn = (char *)(ptr-base);
+	memcpy(ptr, e->e_dn, dnlen);
+	ptr += dnlen;
+	*ptr++ = '\0';
+	f->e_ndn = (char *)(ptr-base);
+	memcpy(ptr, e->e_ndn, dnlen);
+	ptr += dnlen;
+	*ptr++ = '\0';
+	f->e_attrs = e->e_attrs ? (Attribute *)sizeof(Entry) : NULL;
+	f->e_private = NULL;
+	for (a=e->e_attrs; a; a=a->a_next) {
+		b = (Attribute *)data;
+		data = (char *)(b+1);
+		b->a_desc = (AttributeDescription *)(ptr-base);
+		memcpy(ptr, a->a_desc->ad_cname.bv_val,
+			a->a_desc->ad_cname.bv_len);
+		ptr += a->a_desc->ad_cname.bv_len;
+		*ptr++ = '\0';
+		if (a->a_vals) {
+		    bvl = (struct berval **)data;
+		    b->a_vals = (struct berval **)(data-base);
+		    for (i=0; a->a_vals[i]; i++);
+		    data = (char *)(bvl+i+1);
+		    bz = (struct berval *)data;
+		    for (j=0; j<i; j++) {
+			    bz->bv_len = a->a_vals[j]->bv_len;
+			    if (a->a_vals[j]->bv_val) {
+				bz->bv_val = (char *)(ptr-base);
+				memcpy(ptr, a->a_vals[j]->bv_val, bz->bv_len);
+			    } else {
+			    	bz->bv_val = NULL;
+			    }
+			    ptr += bz->bv_len;
+			    *ptr++ = '\0';
+			    bvl[j] = (struct berval *)(data-base);
+			    bz++;
+			    data = (char *)bz;
+		    }
+		    bvl[j] = NULL;
+		} else {
+		    b->a_vals = NULL;
+		}
 
-	rc = ber_printf( ber, "{ss{" /*"}}"*/, e->e_dn, e->e_ndn );
-	if( rc < 0 ) {
-		goto done;
+		if (a->a_next)
+		    b->a_next = (Attribute *)(data-base);
+		else
+		    b->a_next = NULL;
 	}
+	return 0;
+}
 
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		rc = ber_printf( ber, "{O{V}}",
-			&a->a_desc->ad_cname,
-			a->a_vals );
-		if( rc < 0 ) {
-			goto done;
+/* Retrieve an Entry that was stored using entry_encode above.
+ * All we have to do is add the buffer address to all of the
+ * stored offsets. We also must lookup the stored attribute names
+ * to get AttributeDescriptions. To detect if the attributes of
+ * an Entry are later modified, we also store the address of the
+ * end of this block in e_private.
+ *
+ * Note: everything is stored in a single contiguous block, so
+ * you can not free individual attributes or names from this
+ * structure. Attempting to do so will likely corrupt memory.
+ */
+int entry_decode(struct berval *bv, Entry **e)
+{
+	int i;
+	long base;
+	Attribute *a;
+	Entry *x = (Entry *)bv->bv_val;
+	char *type;
+	const char *text;
+	AttributeDescription *ad;
+
+	base = (long)bv->bv_val;
+	x->e_dn += base;
+	x->e_ndn += base;
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
+		   "entry_decode: \"%s\"\n", x->e_dn ));
+#else
+	Debug( LDAP_DEBUG_TRACE,
+	    "entry_decode: \"%s\"\n",
+	    x->e_dn, 0, 0 );
+#endif
+	x->e_private = bv->bv_val + bv->bv_len;
+	if (x->e_attrs)
+		x->e_attrs = (Attribute *)((long)x->e_attrs+base);
+	for (a=x->e_attrs; a; a=a->a_next) {
+		if (a->a_next)
+			a->a_next = (Attribute *)((long)a->a_next+base);
+		ad = NULL;
+		type = (char *)a->a_desc+base;
+		i = slap_str2ad( type, &ad, &text );
+
+		if( i != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+				   "entry_decode: str2ad(%s): %s\n", type, text ));
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"<= entry_decode: str2ad(%s): %s\n", type, text, 0 );
+#endif
+			i = slap_str2undef_ad( type, &ad, &text );
+
+			if( i != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
+					   "entry_decode:  str2undef_ad(%s): %s\n", type, text));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"<= entry_decode: str2undef_ad(%s): %s\n",
+						type, text, 0 );
+#endif
+				return i;
+			}
+		}
+		a->a_desc = ad;
+		if (a->a_vals) {
+			a->a_vals = (struct berval **)((long)a->a_vals+base);
+			for (i=0; a->a_vals[i]; i++) {
+				a->a_vals[i] = (struct berval *)
+					((long)a->a_vals[i]+base);
+				if (a->a_vals[i]->bv_val)
+				    a->a_vals[i]->bv_val += base;
+			}
 		}
 	}
-
-	rc = ber_printf( ber, /*"{{"*/ "}}" );
-	if( rc < 0 ) {
-		goto done;
-	}
-
-	rc = ber_flatten( ber, bv );
-
-done:
-	ber_free( ber, 1 );
-	if( rc ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			"entry_encode: id=0x%08lx  failed (%d)\n",
-			(long) e->e_id, rc ));
+	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL1,
+		   "entry_decode:  %s\n", x->e_dn ));
 #else
-		Debug( LDAP_DEBUG_ANY, "=> entry_encode(0x%08lx): failed (%d)\n",
-			(long) e->e_id, rc, 0 );
+	Debug(LDAP_DEBUG_TRACE, "<= entry_decode(%s)\n",
+		x->e_dn, 0, 0 );
 #endif
-	}
-	return rc;
+	*e = x;
+	return 0;
 }
 #endif
