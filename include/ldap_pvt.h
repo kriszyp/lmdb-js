@@ -145,6 +145,10 @@ LDAP_F (int) ldap_open_internal_connection LDAP_P((
 	struct ldap **ldp, ber_socket_t *fdp ));
 
 /* search.c */
+LDAP_F( int ) ldap_pvt_put_filter LDAP_P((
+	BerElement *ber,
+	const char *str ));
+
 LDAP_F( char * )
 ldap_pvt_find_wildcard LDAP_P((	const char *s ));
 
