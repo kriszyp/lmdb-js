@@ -8,7 +8,9 @@
 #include <ac/ctype.h>
 #include <ac/socket.h>
 
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
 
 #include "slap.h"
 
