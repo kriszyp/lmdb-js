@@ -702,6 +702,7 @@ filter_free( Filter *f )
 		if ( f->f_sub_final != NULL ) {
 			ber_bvfree( f->f_sub_final );
 		}
+		ch_free( f->f_sub );
 		break;
 
 	case LDAP_FILTER_AND:
