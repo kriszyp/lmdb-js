@@ -471,8 +471,8 @@ typedef struct slap_object_class {
 	struct slap_object_class	**soc_sups;
 	AttributeType				**soc_required;
 	AttributeType				**soc_allowed;
-	ObjectClassSchemaCheckFN	*sco_check;
-	slap_mask_t					sco_flags;
+	ObjectClassSchemaCheckFN	*soc_check;
+	slap_mask_t					soc_flags;
 #define soc_oid				soc_oclass.oc_oid
 #define soc_names			soc_oclass.oc_names
 #define soc_desc			soc_oclass.oc_desc
@@ -485,6 +485,14 @@ typedef struct slap_object_class {
 
 	struct slap_object_class	*soc_next;
 } ObjectClass;
+
+#define	SLAP_OC_ALIAS		0x01
+#define	SLAP_OC_REFERRAL	0x02
+#define	SLAP_OC_SUBENTRY	0x04
+#define	SLAP_OC_DYNAMICOBJECT	0x08
+#define	SLAP_OC_COLLECTIVEATTRIBUTES	0x10
+#define	SLAP_OC__MASK		0x1F
+#define	SLAP_OC__END		0x20
 
 #ifdef LDAP_EXTENDED_SCHEMA
 /*
@@ -745,6 +753,8 @@ typedef struct slap_entry {
 #define e_ndn e_nname.bv_val
 
 	Attribute	*e_attrs;	/* list of attributes + values */
+
+	slap_mask_t	e_ocflags;
 
 	/* for use by the backend for any purpose */
 	void*	e_private;

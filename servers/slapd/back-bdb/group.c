@@ -145,7 +145,7 @@ bdb_group(
 		goto return_results;
 	}
 
-	if( !is_entry_objectclass( e, group_oc ) ) {
+	if( !is_entry_objectclass( e, group_oc, 0 ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
 			"bdb_group: failed to find %s in objectClass.\n",

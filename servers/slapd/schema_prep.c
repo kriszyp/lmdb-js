@@ -141,12 +141,12 @@ static struct slap_schema_oc_map {
 			"DESC 'RFC2256: an alias' "
 			"SUP top STRUCTURAL "
 			"MUST aliasedObjectName )",
-		aliasObjectClass, 0,
+		aliasObjectClass, SLAP_OC_ALIAS,
 		offsetof(struct slap_internal_schema, si_oc_alias) },
 	{ "referral", "( 2.16.840.1.113730.3.2.6 NAME 'referral' "
 			"DESC 'namedref: named subordinate referral' "
 			"SUP top STRUCTURAL MUST ref )",
-		referralObjectClass, 0,
+		referralObjectClass, SLAP_OC_REFERRAL,
 		offsetof(struct slap_internal_schema, si_oc_referral) },
 	{ "LDAProotDSE", "( 1.3.6.1.4.1.4203.1.4.1 "
 			"NAME ( 'OpenLDAProotDSE' 'LDAProotDSE' ) "
@@ -165,7 +165,7 @@ static struct slap_schema_oc_map {
 		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
 			"matchingRuleUse ) )",
-		subentryObjectClass, 0,
+		subentryObjectClass, SLAP_OC_SUBENTRY,
 		offsetof(struct slap_internal_schema, si_oc_subschema) },
 	{ "monitor", "( 1.3.6.1.4.1.4203.666.3.2 NAME 'monitor' "
 		"DESC 'OpenLDAP system monitoring' "
@@ -175,13 +175,13 @@ static struct slap_schema_oc_map {
 	{ "collectiveAttributes", "( 2.5.20.2 "
 			"NAME 'collectiveAttributes' "
 			"AUXILIARY )",
-		subentryObjectClass, 0,
+		subentryObjectClass, SLAP_OC_COLLECTIVEATTRIBUTES,
 		offsetof(struct slap_internal_schema, si_oc_collectiveAttributes) },
 	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
 			"NAME 'dynamicObject' "
 			"DESC 'RFC2589: Dynamic Object' "
 			"SUP top AUXILIARY )",
-		dynamicObjectClass, 0,
+		dynamicObjectClass, SLAP_OC_DYNAMICOBJECT,
 		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
 	{ NULL, NULL, NULL, 0, 0 }
 };
@@ -732,10 +732,10 @@ slap_schema_check( void )
 
 		if( oc_map[i].ssom_check ) {
 			/* install check routine */
-			(*ocp)->sco_check = oc_map[i].ssom_check;
+			(*ocp)->soc_check = oc_map[i].ssom_check;
 		}
 		/* install flags */
-		(*ocp)->sco_flags |= oc_map[i].ssom_flags;
+		(*ocp)->soc_flags |= oc_map[i].ssom_flags;
 	}
 
 	++schema_init_done;

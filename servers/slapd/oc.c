@@ -48,7 +48,8 @@ int is_object_subclass(
 
 int is_entry_objectclass(
 	Entry*	e,
-	ObjectClass *oc )
+	ObjectClass *oc,
+	int set_flags )
 {
 	Attribute *attr;
 	struct berval *bv;
@@ -57,6 +58,10 @@ int is_entry_objectclass(
 
 	if( e == NULL || oc == NULL ) {
 		return 0;
+	}
+
+	if( set_flags && ( e->e_ocflags & SLAP_OC__END )) {
+		return (e->e_ocflags & oc->soc_flags);
 	}
 
 	/*
@@ -84,13 +89,15 @@ int is_entry_objectclass(
 	for( bv=attr->a_vals; bv->bv_val; bv++ ) {
 		ObjectClass *objectClass = oc_bvfind( bv );
 
-		if( objectClass == oc ) {
+		if ( objectClass == oc && !set_flags ) {
 			return 1;
 		}
+
+		e->e_ocflags |= objectClass->soc_flags;
 	}
+	e->e_ocflags |= SLAP_OC__END;	/* We've finished this */
 
-	return 0;
-
+	return (e->e_ocflags & oc->soc_flags);
 }
 
 

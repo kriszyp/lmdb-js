@@ -129,7 +129,7 @@ meta_back_group(
 			/*
 			 * Now we can check for the group objectClass value
 			 */
-			if ( !is_entry_objectclass( target, group_oc ) ) {
+			if ( !is_entry_objectclass( target, group_oc, 0 ) ) {
 				return 1;
 			}
 

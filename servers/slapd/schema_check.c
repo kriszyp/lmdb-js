@@ -219,8 +219,8 @@ entry_schema_check(
 			return LDAP_OBJECT_CLASS_VIOLATION;
 		}
 
-		if ( oc->sco_check ) {
-			int rc = (oc->sco_check)( be, e, oc,
+		if ( oc->soc_check ) {
+			int rc = (oc->soc_check)( be, e, oc,
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 				return rc;

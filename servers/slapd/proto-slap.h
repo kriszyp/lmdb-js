@@ -622,17 +622,22 @@ LDAP_SLAPD_F (int) is_object_subclass LDAP_P((
 	ObjectClass *sup ));
 
 LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
-	Entry *, ObjectClass *oc ));
+	Entry *, ObjectClass *oc, int set_flags ));
 #define is_entry_alias(e)		\
-	is_entry_objectclass((e), slap_schema.si_oc_alias)
+	((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_ALIAS) : \
+	is_entry_objectclass((e), slap_schema.si_oc_alias, 1)
 #define is_entry_referral(e)	\
-	is_entry_objectclass((e), slap_schema.si_oc_referral)
+	((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_REFERRAL) : \
+	is_entry_objectclass((e), slap_schema.si_oc_referral, 1)
 #define is_entry_subentry(e)	\
-	is_entry_objectclass((e), slap_schema.si_oc_subentry)
+	((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_SUBENTRY) : \
+	is_entry_objectclass((e), slap_schema.si_oc_subentry, 1)
 #define is_entry_collectiveAttributes(e)	\
-	is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributes)
+	((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_COLLECTIVEATTRIBUTES) : \
+	is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributes, 1)
 #define is_entry_dynamicObject(e)	\
-	is_entry_objectclass((e), slap_schema.si_oc_dynamicObject)
+	((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) : \
+	is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1)
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 
