@@ -1,0 +1,895 @@
+
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Standard Track                   OpenLDAP Foundation
+Expires in six months                               17 October 2004
+Obsoletes: RFC 2252, RFC 2256
+
+
+                      LDAP X.509 Certificate Schema
+                    <draft-zeilenga-ldap-x509-00.txt>
+
+
+Status of this Memo
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as an Standard Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extensions mailing list
+  <ldapext@ietf.org>.  Please send editorial comments directly to the
+  author <Kurt@OpenLDAP.org>.
+
+  This document is intended to be published in conjunction to the
+  revised LDAP TS [Roadmap] when, in conjunction with this document,
+  obsoletes RFC 2252 and RFC 2256 in their entirety.
+
+  By submitting this Internet-Draft, I accept the provisions of Section
+  4 of RFC 3667.  By submitting this Internet-Draft, I certify that any
+  applicable patent or other IPR claims of which I am aware have been
+  disclosed, or will be disclosed, and any of which I become aware will
+  be disclosed, in accordance with RFC 3668.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups. Note that other
+  groups may also distribute working documents as Internet-Drafts.
+
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time. It is inappropriate to use Internet-Drafts as reference material
+  or to cite them other than as "work in progress."
+
+  The list of current Internet-Drafts can be accessed at
+  <http://www.ietf.org/ietf/1id-abstracts.txt>.  The list of
+  Internet-Draft Shadow Directories can be accessed at
+  <http://www.ietf.org/shadow.html>.
+
+  Copyright (C) The Internet Society (2004).  All Rights Reserved.
+
+  Please see the Full Copyright section near the end of this document
+  for more information.
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 1]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+Abstract
+
+  This document describes schema for representing X.509 certificates,
+  X.521 security information, and related elements in directories
+  accessible using the Lightweight Directory Access Protocol (LDAP).
+  The LDAP definitions for these X.509 and X.521 schema elements
+  replaces those provided in RFC 2252 and RFC 2256.
+
+
+1. Background and Intended Use
+
+  This document provides LDAP schema definitions for a subset of
+  elements specified in X.509 [X.509] and X.521 [X.521], including
+  attribute types for certificates, cross certificate pairs, and
+  certificate revocation lists; matching rules to be used with these
+  attribute types; and related object classes.  LDAP syntax definitions
+  are also provided for associated assertion and attribute values.
+
+  As the semantics of these elements are as defined in X.509 and X.521,
+  knowledge of X.509 and X.521 is necessary to make use of the LDAP
+  schema definitions provided herein.
+
+  This document, together with [Roadmap], obsoletes RFC 2252 and RFC
+  2256 in their entirety.  The changes made since RFC 2252 and RFC 2256
+  include:
+    - addition of pkiUser, pkiCA, and deltaCRL classes;
+    - updated of attribute types to include equality matching rules in
+      accordance with their X.500 specifications;
+    - addition of certificate, certificate pair, certificate list, and
+      algorithm identifer matching rules; and
+    - addition of LDAP syntax for assertion syntaxes for these matching
+      rules.
+
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in BCP 14 [RFC2119].
+
+  Schema definitions are provided using LDAP description formats
+  [Models].  Definitions provided here are formatted (line wrapped) for
+  readability.
+
+
+2. Syntaxes
+
+  This section describes various syntaxes used to transfer certificates
+  and related data types in LDAP.
+
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 2]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+2.1. Certificate
+
+     ( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'X.509 Certificate' )
+
+  A value of this syntax is an X.509 Certificate [Section 7, X.509].
+
+  Due to changes made to the ASN.1 definition of a Certificate made
+  through time, no LDAP-specific encoding is defined for this syntax.
+  Values of this syntax are to encoded using DER [X.690] and MUST only
+  be transferred using the ;binary transfer option [Binary].  That is,
+  by requesting and returning values using attribute descriptions such
+  as "userCertificate;binary".
+
+  As values of this syntax contain digitally-signed data, values of this
+  syntax, and the form of the value, MUST be preserved as presented.
+
+
+2.2. CertificateList
+
+       ( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'X.509 Certificate List' )
+
+  A value of this syntax is an X.509 CertificateList [Section 7.3,
+  X.509].
+
+  Due to changes made to the ASN.1 definition of a CertificateList made
+  through time, no LDAP-specific encoding is defined for this syntax.
+  Values of this syntax are to encoded using DER [X.690] and MUST only
+  be transferred using the ;binary transfer option [Binary].  That is,
+  by requesting and returning values using attribute descriptions such
+  as "certificateRevocationList;binary".
+
+  As values of this syntax contain digitally-signed data, values of this
+  syntax, and the form of the value, MUST be preserved as presented.
+
+
+2.3. CertificatePair
+
+       ( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'X.509 Certificate Pair' )
+
+  A value of this syntax is an X.509 CertificatePair [Section 11.2.3,
+  X.509].
+
+  Due to changes made to the ASN.1 definition of an X.509
+  CertificatePair made through time, no LDAP-specific encoding is
+  defined for this syntax.  Values of this syntax are to encoded using
+  DER [X.690] and MUST only be transferred using the ;binary transfer
+  option [Binary].  That is, by requesting and returning values using
+  attribute descriptions such as "crossCertificatePair;binary".
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 3]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+  As values of this syntax contain digitally-signed data, values of this
+  syntax, and the form of the value, MUST be preserved as presented.
+
+2.4 SupportedAlgorithm
+
+       ( 1.3.6.1.4.1.1466.115.121.1.49
+            DESC 'X.508 Supported Algorithm' )
+
+  A value of this syntax is an X.509 SupportedAlgorithm [Section 11.2.7,
+  X.509].
+
+  Due to changes made to the ASN.1 definition of an X.509
+  SupportedAlgorithm made through time, no LDAP-specific encoding is
+  defined for this syntax.  Values of this syntax are to encoded using
+  DER [X.690] and MUST only be transferred using the ;binary transfer
+  option [Binary].  That is, by requesting and returning values using
+  attribute descriptions such as "supportedAlgorithms;binary".
+
+  As values of this syntax contain digitally-signed data, values of this
+  syntax, and the form of the value, MUST be preserved as presented.
+
+
+2.5. CertificateExactAssertion
+
+       ( IANA-ASSIGNED-OID.1 DESC 'X.509 Certificate Exact Assertion' )
+
+  A value of this syntax is an X.509 CertificateExactAssertion [Section
+  11.3.1, X.509].
+
+  The LDAP-specific encoding used for this syntax is described by the
+  following ABNF [RFC2234]:
+
+      certificateExactAssertion = serialNumber DOLLAR issuer
+      serialNumber = number
+      issuer = distinguishedName
+
+  where <number> and <DOLLAR> are as given in [Models] and
+  <distinguishedName> is as given in [LDAPDN].
+
+  Example: 10$cn=Example$CA,dc=example,dc=com
+
+  Note: DOLLAR ('$') characters may appear in the <issuer> production.
+
+
+2.6. CertificateAssertion
+
+       ( IANA-ASSIGNED-OID.2 DESC 'X.509 Certificate Assertion' )
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 4]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+  A value of this syntax is an X.509 CertificateAssertion [Section
+  11.3.2, X.509].
+
+  Values of this syntax are to be encoded using GSER [RFC3641].
+  Appendix A.1 provides an equivalent ABNF grammar for this syntax.
+
+
+2.7. CertificatePairExactAssertion
+
+       ( IANA-ASSIGNED-OID.3
+            DESC 'X.509 Certificate Pair Exact Assertion' )
+
+  A value of this syntax is an X.509 CertificatePairExactAssertion
+  [Section 11.3.3, X.509].
+
+  Values of this syntax are to be encoded using GSER [RFC3641].
+  Appendix A.2 provides an equivalent ABNF grammar for this syntax.
+
+
+2.8. CertificatePairAssertion
+
+       ( IANA-ASSIGNED-OID.4 DESC 'X.509 Certificate Pair Assertion' )
+
+  A value of this syntax is an X.509 CertificatePairAssertion [Section
+  11.3.4, X.509].
+
+  Values of this syntax are to be encoded using GSER [RFC3641].
+  Appendix A.3 provides an equivalent ABNF grammar for this syntax.
+
+
+2.9. CertificateListExactAssertion
+
+       ( IANA-ASSIGNED-OID.5
+            DESC 'X.509 Certificate List Exact Assertion' )
+
+  A value of this syntax is an X.509 CertificateListExactAssertion
+  [Section 11.3.5, X.509].
+
+  Values of this syntax are to be encoded using GSER [RFC3641].
+  Appendix A.4 provides an equivalent ABNF grammar for this syntax.
+
+
+2.10. CertificateListAssertion
+
+       ( IANA-ASSIGNED-OID.6 DESC 'X.509 Certificate List Assertion' )
+
+  A value of this syntax is an X.509 CertificateListAssertion [Section
+  11.3.6, X.509].
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 5]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+  Values of this syntax are to be encoded using GSER [RFC3641].
+  Appendix A.5 provides an equivalent ABNF grammar for this syntax.
+
+
+2.11 AlgorithmIdentifier
+
+       ( IANA-ASSIGNED-OID.7 DESC 'X.509 Algorithm Identifier' )
+
+  A value of this syntax is an X.509 AlgorithmIdentifier [Section 7,
+  X.509].
+
+  Values of this syntax are to be encoded using GSER [RFC3641].
+  Appendix A.6 provides an equivalent ABNF grammar for this syntax.
+
+
+3. Matching Rules
+
+  This section introduces a set of certificate and related matching
+  rules for use in LDAP.  These rules are intended to act in accordance
+  with their X.500 counterparts.
+
+
+3.1. certificateExactMatch
+
+  The certificateExactMatch matching rule compares the presented
+  certificate exact assertion value with an attribute value of the
+  certificate syntax as described in Section 11.3.1 of [X.509].
+
+       ( 2.5.13.34 NAME 'certificateExactMatch'
+            DESC 'X.509 Certificate Exact Match'
+            SYNTAX IANA-ASSIGNED-OID.1 )
+
+
+3.2. certificateMatch
+
+  The certificateMatch matching rule compares the presented certificate
+  assertion value with an attribute value of the certificate syntax as
+  described in Section 11.3.2 of [X.509].
+
+       ( 2.5.13.35 NAME 'certificateMatch'
+            DESC 'X.509 Certificate Match'
+            SYNTAX IANA-ASSIGNED-OID.2 )
+
+
+3.3. certificatePairExactMatch
+
+  The certificatePairExactMatch matching rule compares the presented
+  certificate pair exact assertion value with an attribute value of the
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 6]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+  certificate pair syntax as described in Section 11.3.3 of [X.509].
+
+       ( 2.5.13.36 NAME 'certificatePairExactMatch'
+            DESC 'X.509 Certificate Pair Exact Match'
+            SYNTAX IANA-ASSIGNED-OID.3 )
+
+
+3.4. certificatePairMatch
+
+  The certificatePairMatch matching rule compares the presented
+  certificate pair assertion value with an attribute value of the
+  certificate pair syntax as described in Section 11.3.4 of [X.509].
+
+       ( 2.5.13.37 NAME 'certificatePairMatch'
+            DESC 'X.509 Certificate Pair Match'
+            SYNTAX IANA-ASSIGNED-OID.4 )
+
+
+3.5. certificateListExactMatch
+
+  The certificateListExactMatch matching rule compares the presented
+  certificate list exact assertion value with an attribute value of the
+  certificate pair syntax as described in Section 11.3.5 of [X.509].
+
+       ( 2.5.13.38 NAME 'certificateListExactMatch'
+            DESC 'X.509 Certificate List Exact Match'
+            SYNTAX IANA-ASSIGNED-OID.5 )
+
+
+3.6. certificateListMatch
+
+  The certificateListMatch matching rule compares the presented
+  certificate list assertion value with an attribute value of the
+  certificate pair syntax as described in Section 11.3.6 of [X.509].
+
+       ( 2.5.13.39 NAME 'certificateListMatch'
+            DESC 'X.509 Certificate List Match'
+            SYNTAX IANA-ASSIGNED-OID.6 )
+
+
+3.7. algorithmIdentifierMatch
+
+  The algorithmIdentifierMatch mating rule compares a presented
+  algorithm identifier with an attribute value of supported algorithm as
+  described in Section 11.3.7 of [X.509].
+
+       ( 2.5.13.40 NAME 'algorithmIdentifier'
+            DESC 'X.509 Algorithm Identifier Match'
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 7]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+            SYNTAX IANA-ASSIGNED-OID.7 )
+
+
+4. Attribute Types
+
+  This section details a set of certificate and related attribute types
+  for use in LDAP.
+
+
+4.1. userCertificate
+
+  The userCertificate attribute holds the X.509 certificates issued to
+  the user by one or more certificate authorities, as discussed in
+  Section 11.2.1 of [X.509].
+
+       ( 2.5.4.36 NAME 'userCertificate'
+            DESC 'X.509 user certificate'
+            EQUALITY certificateExactMatch
+            SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
+
+  As required by this attribute type's syntax, values of this attribute
+  are requested and transferred using the attribute description
+  "userCertificate;binary".
+
+
+4.2. cACertificate
+
+  The cACertificate attribute holds the X.509 certificates issued to the
+  certificate authority (CA), as discussed in Section 11.2.2 of [X.509].
+
+       ( 2.5.4.37 NAME 'cACertificate'
+            DESC 'X.509 CA certificate'
+            EQUALITY certificateExactMatch
+            SYNTAX 1.3.6.1.4.1.1466.115.121.1.8 )
+
+  As required by this attribute type's syntax, values of this attribute
+  are requested and transferred using the attribute description
+  "cACertificate;binary".
+
+
+4.3. crossCertificatePair
+
+  The crossCertificatePair attribute holds an X.509 certificate pair, as
+  discussed in Section 11.2.3 of [X.509].
+
+       ( 2.5.4.40 NAME 'crossCertificatePair'
+            DESC 'X.509 cross certificate pair'
+            EQUALITY certificatePairExactMatch
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 8]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+            SYNTAX 1.3.6.1.4.1.1466.115.121.1.10 )
+
+  As required by this attribute type's syntax, values of this attribute
+  are requested and transferred using the attribute description
+  "crossCertificatePair;binary".
+
+
+4.4. certificateRevocationList
+
+  The certificateRevocationList attribute holds certificate lists, as
+  discussed in 11.2.4 of [X.509].
+
+       ( 2.5.4.39 NAME 'certificateRevocationList'
+            DESC 'X.509 certificate revocation list'
+            EQUALITY certificateListExactMatch
+            SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
+
+  As required by this attribute type's syntax, values of this attribute
+  are requested and transferred using the attribute description
+  "certificateRevocationList;binary".
+
+
+4.5. authorityRevocationList
+
+  The authorityRevocationList attribute holds certificate lists, as
+  discussed in 11.2.5 of [X.509].
+
+       ( 2.5.4.38 NAME 'authorityRevocationList'
+            DESC 'X.509 authority revocation list'
+            EQUALITY certificateListExactMatch
+            SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
+
+  As required by this attribute type's syntax, values of this attribute
+  are requested and transferred using the attribute description
+  "authorityRevocationList;binary".
+
+
+4.6. deltaRevocationList
+
+  The deltaRevocationList attribute holds certificate lists, as
+  discussed in 11.2.6 of [X.509].
+
+       ( 2.5.4.53 NAME 'deltaRevocationList'
+            DESC 'X.509 delta revocation list'
+            EQUALITY certificateListExactMatch
+            SYNTAX 1.3.6.1.4.1.1466.115.121.1.9 )
+
+  As required by this attribute type's syntax, values of this attribute
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00              [Page 9]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+  MUST be requested and transferred using the attribute description
+  "deltaRevocationList;binary".
+
+
+4.7. supportedAlgorithms
+
+  The supportedAlgorithms attribute holds supported algorithms, as
+  discussed in 11.2.7 of [X.509].
+
+       ( 2.5.4.52 NAME 'supportedAlgorithms'
+            DESC 'X.509 supported algorithms'
+            EQUALITY algorithmIdentifierMatch
+            SYNTAX 1.3.6.1.4.1.1466.115.121.1.49 )
+
+  As required by this attribute type's syntax, values of this attribute
+  MUST be requested and transferred using the attribute description
+  "supportedAlgorithms;binary".
+
+
+5. Object Classes
+
+  This section details a set of certificate-related object classes for
+  use in LDAP.
+
+
+5.1. pkiUser
+
+  This object class is used in augment entries for objects that may be
+  subject to certificates, as defined in Section 11.1.1 of [X.509].
+
+       ( 2.5.6.21 NAME 'pkiUser'
+            DESC 'X.509 PKI User'
+            SUP top AUXILIARY
+            MAY userCertificate )
+
+
+5.2. pkiCA
+
+  This object class is used to augment entries for objects which act as
+  certificate authorities, as defined in Section 11.1.2 of [X.509]
+
+       ( 2.5.6.22 NAME 'pkiCA'
+            DESC 'X.509 PKI Certificate Authority'
+            SUP top AUXILIARY
+            MAY ( cACertificate $ certificateRevocationList $
+                 authorityRevocationList $ crossCertificatePair ) )
+
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00             [Page 10]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+5.3. cRLDistributionPoint
+
+  This class is used to represent objects which act as CRL distribution
+  points, as discussed in Section 11.1.3 of [X.509].
+
+       ( 2.5.6.19 NAME 'cRLDistributionPoint'
+            DESC 'X.509 CRL distribution point'
+            SUP top STRUCTURAL
+            MUST cn
+            MAY ( certificateRevocationList $
+                 authorityRevocationList $ deltaRevocationList ) )
+
+
+5.4 deltaCRL
+
+  The deltaCRL object class is used to augment entries no hold delta
+  revocation lists, as discussed in Section 11.1.4 of [X.509].
+
+       ( 2.5.6.23 NAME 'deltaCRL'
+            DESC 'X.509 delta CRL'
+            SUP top AUXILIARY
+            MAY deltaRevocationList )
+
+
+5.5. strongAuthenticationUser
+
+  This object class is used to augment entries for objects participating
+  in certificate-based authentication, as defined in Section 6.15 of
+  [X.521].  This object class is deprecated in favor of pkiUser.
+
+       ( 2.5.6.15 NAME 'strongAuthenticationUser'
+            DESC 'X.521 strong authentication user'
+            SUP top AUXILIARY
+            MUST userCertificate )
+
+
+5.6. userSecurityInformation
+
+  This object class is used to augment entries with needed additional
+  associated security information, as defined in Section 6.16 of
+  [X.521].
+
+       ( 2.5.6.18 NAME 'userSecurityInformation'
+            DESC 'X.521 user security information'
+            SUP top AUXILIARY
+            MAY ( supportedAlgorithms ) )
+
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00             [Page 11]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+5.7. certificationAuthority
+
+  This object class is used to augment entries for objects which act as
+  certificate authorities, as defined in Section 6.17 of [X.521].  This
+  object class is deprecated in favor of pkiCA.
+
+       ( 2.5.6.16 NAME 'certificationAuthority'
+            DESC 'X.509 certificate authority'
+            SUP top AUXILIARY
+            MUST ( authorityRevocationList $
+                 certificateRevocationList $ cACertificate )
+            MAY crossCertificatePair )
+
+
+5.8. certificationAuthority-V2
+
+  This object class is used to augment entries for objects which act as
+  certificate authorities, as defined in Section 6.18 of [X.521].  This
+  object class is deprecated in favor of pkiCA.
+
+       ( 2.5.6.16.2 NAME 'certificationAuthority-V2'
+            DESC 'X.509 certificate authority, version 2'
+            SUP certificationAuthority AUXILIARY
+            MAY deltaRevocationList )
+
+
+6. Security Considerations
+
+  The directory administrator is to use the server's access control
+  facilities to restrict access as desired.
+
+  General LDAP security considerations [Roadmap] apply.
+
+
+7. IANA Considerations
+
+7.1. Object Identifier Registration
+
+  It is requested that IANA register upon Standards Action an LDAP
+  Object Identifier for use in this technical specification.
+
+      Subject: Request for LDAP OID Registration
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+      Comments:
+          Identifies the LDAP X.509 Certificate schema elements
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00             [Page 12]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+7.2. Registration of the descriptor
+
+  It is requested that IANA update upon Standards Action the LDAP
+  Descriptor registry as indicated below.
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): see table
+      Object Identifier: see table
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Usage: see table
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+
+      algorithmIdentifierMatch     R 2.5.13.40
+      authorityRevocationList      A 2.5.4.38 *
+      cACertificate                A 2.5.4.37 *
+      cRLDistributionPoint         O 2.5.6.19 *
+      certificateExactMatch        R 2.5.13.34
+      certificateListExactMatch    R 2.5.13.38
+      certificateListMatch         R 2.5.13.39
+      certificateMatch             R 2.5.13.35
+      certificatePairExactMatch    R 2.5.13.36
+      certificatePairMatch         R 2.5.13.37
+      certificateRevocationList    A 2.5.4.39 *
+      certificationAuthority       O 2.5.6.16 *
+      certificationAuthority-V2    O 2.5.6.16.2 *
+      crossCertificatePair         A 2.5.4.40 *
+      deltaCRL                     O 2.5.6.23
+      deltaRevocationList          A 2.5.4.53 *
+      pkiCA                        O 2.5.6.22
+      pkiUser                      O 2.5.6.21
+      strongAuthenticationUser     O 2.5.6.15 *
+      supportedAlgorithms          A 2.5.4.52 *
+      userCertificate              A 2.5.4.36 *
+      userSecurityInformation      O 2.5.6.18 *
+
+      * Updates previous registration
+
+
+8. Acknowledgments
+
+  This document is based upon X.509, a product of the ITU-T.  A number
+  of LDAP schema definitions were based on those found RFC 2252 and RFC
+  2256, both products of the IETF ASID WG.
+
+  Additional material was borrowed from prior works by David Chadwick
+  and/or Steven Legg to refine LDAP X.509 Schema.
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00             [Page 13]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+9. Author's Address
+
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+
+  Email: Kurt@OpenLDAP.org
+
+
+10. Normative References
+
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+
+  [RFC2234]     Crocker, D. and P. Overell, "Augmented BNF for Syntax
+                Specifications: ABNF", RFC 2234, November 1997.
+
+  [RFC3641]     Legg, S., "Generic String Encoding Rules for ASN.1
+                Types", RFC 3641, October 2003.
+
+  [Roadmap]     Zeilenga, K. (editor), "LDAP: Technical Specification
+                Road Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in
+                progress.
+
+  [Models]      Zeilenga, K. (editor), "LDAP: Directory Information
+                Models", draft-ietf-ldapbis-models-xx.txt, a work in
+                progress.
+
+  [Binary]      Legg, S., "Lightweight Directory Access Protocol (LDAP):
+                The Binary Encoding Option",
+                draft-legg-ldap-binary-xx.txt, a work in progress.
+
+  [X.509]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The
+                Directory: Authentication Framework", X.509(2000).
+
+  [X.521]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The
+                Directory: Selected Object Classes", X.521(2000).
+
+  [X.680]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "Abstract
+                Syntax Notation One (ASN.1) - Specification of Basic
+                Notation", X.680(1997) (also ISO/IEC 8824-1:1998).
+
+  [X.690]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "Specification
+                of ASN.1 encoding rules: Basic Encoding Rules (BER),
+                Canonical Encoding Rules (CER), and Distinguished
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00             [Page 14]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+                Encoding Rules (DER)", X.690(1997) (also ISO/IEC
+                8825-1:1998).
+
+
+11. Informative References
+
+  [RFC3383]     Zeilenga, K., "IANA Considerations for LDAP", BCP 64
+                (also RFC 3383), September 2002.
+
+  [RFC3642]     Legg, S., "Common Elements of GSER Encodings", RFC 3642,
+                October 2003.
+
+  [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP",
+                draft-ietf-ldapbis-bcp64-xx.txt, a work in progress.
+
+
+Appendix A.
+
+  This appendix is informative.
+
+  This appendix, once written, will provide ABNF [RFC2234] grammars for
+  GSER-based LDAP-specific encodings specified in this document.  These
+  grammars where produced using, and rely on, Common Elements for GSER
+  Encodings [RFC3342].
+
+
+
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  Intellectual Property Rights or other rights that might be claimed to
+  pertain to the implementation or use of the technology described in
+  this document or the extent to which any license under such rights
+  might or might not be available; nor does it represent that it has
+  made any independent effort to identify any such rights.  Information
+  on the procedures with respect to rights in RFC documents can be found
+  in BCP 78 and BCP 79.
+
+  Copies of IPR disclosures made to the IETF Secretariat and any
+  assurances of licenses to be made available, or the result of an
+  attempt made to obtain a general license or permission for the use of
+  such proprietary rights by implementers or users of this specification
+  can be obtained from the IETF on-line IPR repository at
+  http://www.ietf.org/ipr.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights that may cover technology that may be required to implement
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00             [Page 15]
+
+INTERNET-DRAFT              LDAP X.509 Schema            17 October 2004
+
+
+  this standard.  Please address the information to the IETF at
+  ietf-ipr@ietf.org.
+
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2004).  This document is subject
+  to the rights, licenses and restrictions contained in BCP 78, and
+  except as set forth therein, the authors retain all their rights.
+
+  This document and the information contained herein are provided on an
+  "AS IS" basis and THE CONTRIBUTOR, THE ORGANIZATION HE/SHE REPRESENTS
+  OR IS SPONSORED BY (IF ANY), THE INTERNET SOCIETY AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-x509-00             [Page 16]
+
+
