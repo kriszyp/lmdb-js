@@ -179,7 +179,7 @@ int value_find_ex(
 {
 	int	i;
 	int rc;
-	struct berval nval;
+	struct berval nval = { 0, NULL };
 	struct berval nval_tmp;
 	MatchingRule *mr = ad->ad_type->sat_equality;
 
