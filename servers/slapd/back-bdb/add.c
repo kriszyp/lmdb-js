@@ -380,6 +380,38 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	/* This is the first add to a root DB, need to make the suffix glue */
+	if ( pdn.bv_len == 0 && ei->bei_id == 0 ) {
+		Entry e_root = {0};
+		e_root.e_name.bv_val = "";
+		e_root.e_nname.bv_val = "";
+		e_root.e_id = 1;
+		rs->sr_err = bdb_dn2id_add( op, lt2, ei, &e_root );
+
+		/* Just give up on any failure. */
+		if ( rs->sr_err ) {
+			rs->sr_err = LDAP_OTHER;
+			goto return_results;
+		}
+
+		/* Get a new ID for the actual entry */
+		if ( op->oq_add.rs_e->e_id == 1 ) {
+			rs->sr_err = bdb_next_id( op->o_bd, NULL, &op->oq_add.rs_e->e_id );
+			if (rs->sr_err) {
+				rs->sr_err = LDAP_OTHER;
+				goto return_results;
+			}
+		}
+
+		/* Get new EntryInfo */
+		rs->sr_err = bdb_dn2entry( op, ltid, &op->ora_e->e_nname, &ei,
+		1, locker, &lock );
+		if (rs->sr_err != DB_NOTFOUND) {
+			rs->sr_err = LDAP_OTHER;
+			goto return_results;
+		}
+	}
+
 	/* dn2id index */
 	rs->sr_err = bdb_dn2id_add( op, lt2, ei, op->oq_add.rs_e );
 	if ( rs->sr_err != 0 ) {
