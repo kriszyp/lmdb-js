@@ -110,7 +110,7 @@ IAB|Internet Architecture Board|http://www.iab.org/
 IETF|Internet Engineering Task Force|http://www.ietf.org/
 IESG|Internet Engineering Steering Group|http://www.ietf.org/iesg/
 IRTF|Internet Research Task Force|http://www.irtf.org/
-ISO|International Standards Organisation|http://www.iso.ch/
+ISO|International Standards Organisation|http://www.iso.org/
 ITU|International Telephone Union|http://www.itu.int/
 RFC|RFC Editor|http://www.rfc-editor.org/
 OpenSSL|OpenSSL|http://www.openssl.org/
@@ -122,8 +122,8 @@ GNU|GNU Not Unix|http://www.gnu.org/
 
 !block products; data
 Name|Jump
-Berkeley DB|http://www.sleepycat.com/
-CVS|http://www.cyclic.com/
+Berkeley DB|http://www.sleepycat.com/products/transactional.shtml
+CVS|http://www.cvshome.org/
 Cyrus|http://asg.web.cmu.edu/cyrus/
 GNU|http://www.gnu.org/software/
 GDBM|http://www.gnu.org/software/gdbm/
@@ -131,10 +131,10 @@ Heimdal|http://www.pdc.kth.se/heimdal/
 MIT Kerberos|http://web.mit.edu/kerberos/www/
 OpenLDAP|http://www.openldap.org/software/
 OpenSSL|http://www.openssl.org/
-Perl|http://www.perl.com/
+Perl|http://www.perl.org/
 SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
 SQL|http://www.jcc.com/SQLPages/jccs_sql.htm
-TCL|http://tcl.activestate.com/
+TCL|http://www.tcl.tk/
 !endblock
 
 # Internet and X.500 terms
@@ -225,4 +225,5 @@ RFC3377|PS|Lightweight Directory Access Protocol (v3): Technical Specification|h
 RFC3383|BCP|Internet Assigned Numbers Authority (IANA) Considerations for the Lightweight Directory Access Protocol (LDAP)|http://www.rfc-editor.org/rfc/rfc3383.txt
 RFC3384|INFO|Lightweight Directory Access Protocol (version 3) Replication Requirements|http://www.rfc-editor.org/rfc/rfc3384.txt
 RFC3494|INFO|Lightweight Directory Access Protocol version 2 (LDAPv2) to Historic Status|http://www.rfc-editor.org/rfc/rfc3494.txt
+RFC4013|PS|SASLprep: Stringprep Profile for User Names and Passwords
 !endblock
