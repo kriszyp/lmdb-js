@@ -567,6 +567,11 @@ int parseValuesReturnFilter (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( ctrl->ldctl_value.bv_len == 0 ) {
+		*text = "valuesreturnfilter control value is empty";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
 	ber = ber_init( &(ctrl->ldctl_value) );
 	if (ber == NULL) {
 		*text = "internal error";
