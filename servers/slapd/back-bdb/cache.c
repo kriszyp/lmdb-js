@@ -744,6 +744,8 @@ bdb_cache_add(
 	if ( eip->bei_dkids ) eip->bei_dkids++;
 #endif
 	rc = bdb_entryinfo_add_internal( bdb, &ei, &new );
+	/* bdb_csn_commit can cause this when adding the database root entry */
+	if ( new->bei_e ) bdb_entry_return( new->bei_e );
 	new->bei_e = e;
 	e->e_private = new;
 	new->bei_state = CACHE_ENTRY_NO_KIDS | CACHE_ENTRY_NO_GRANDKIDS;
