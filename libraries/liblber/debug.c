@@ -77,7 +77,7 @@ int lutil_mnem2subsys( const char *subsys )
     return -1;
 }
 
-void lutil_set_all_backends( level )
+void lutil_set_all_backends( int level )
 {
     int i;
 
