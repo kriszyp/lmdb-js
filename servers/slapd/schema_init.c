@@ -1218,7 +1218,12 @@ int caseExactIndexer(
 	mlen = strlen( mr->smr_oid );
 
 	for( i=0; values[i] != NULL; i++ ) {
-		struct berval *value = values[i];
+		struct berval *value;
+#if UTF8MATCH
+		value = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_NOCASEFOLD ) );
+#else
+		value = values[i];
+#endif
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1232,6 +1237,10 @@ int caseExactIndexer(
 		HASH_Update( &HASHcontext,
 			value->bv_val, value->bv_len );
 		HASH_Final( HASHdigest, &HASHcontext );
+
+#if UTF8MATCH
+		ber_bvfree( value );
+#endif
 
 		keys[i] = ber_bvdup( &digest );
 	}
@@ -1263,7 +1272,11 @@ int caseExactFilter(
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
 
+#if UTF8MATCH
+        value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val, UTF8_NOCASEFOLD ) );
+#else
 	value = (struct berval *) assertValue;
+#endif	
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
@@ -1282,6 +1295,10 @@ int caseExactFilter(
 
 	keys[0] = ber_bvdup( &digest );
 	keys[1] = NULL;
+
+#if UTF8MATCH
+	ber_bvfree( value );
+#endif
 
 	*keysp = keys;
 	return LDAP_SUCCESS;
@@ -1357,8 +1374,13 @@ int caseExactSubstringsIndexer(
 		ber_len_t j,max;
 		struct berval *value;
 
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+
+#if UTF8MATCH
+                value = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_NOCASEFOLD ) );
+#else
 		value = values[i];
-		if( value->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+#endif
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
 			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
@@ -1435,6 +1457,11 @@ int caseExactSubstringsIndexer(
 			}
 
 		}
+
+#if UTF8MATCH
+		ber_bvfree( value );
+#endif
+
 	}
 
 	if( nkeys > 0 ) {
@@ -1508,7 +1535,11 @@ int caseExactSubstringsFilter(
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
+#if UTF8MATCH
+                value = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val, UTF8_NOCASEFOLD ) );
+#else
 		value = sa->sa_initial;
+#endif
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -1528,6 +1559,9 @@ int caseExactSubstringsFilter(
 			value->bv_val, klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
+#if UTF8MATCH
+		ber_bvfree( value );
+#endif
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
@@ -1541,7 +1575,11 @@ int caseExactSubstringsFilter(
 				continue;
 			}
 
+#if UTF8MATCH
+                        value = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val, UTF8_NOCASEFOLD ) );
+#else
 			value = sa->sa_any[i];
+#endif
 
 			for(j=0;
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
@@ -1564,6 +1602,10 @@ int caseExactSubstringsFilter(
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
+
+#if UTF8MATCH
+			ber_bvfree( value );
+#endif
 		}
 	}
 
@@ -1571,7 +1613,11 @@ int caseExactSubstringsFilter(
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
+#if UTF8MATCH
+                value = ber_bvstr( UTF8normalize( sa->sa_final->bv_val, UTF8_NOCASEFOLD ) );
+#else
 		value = sa->sa_final;
+#endif
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -1591,6 +1637,9 @@ int caseExactSubstringsFilter(
 			&value->bv_val[value->bv_len-klen], klen );
 		HASH_Final( HASHdigest, &HASHcontext );
 
+#if UTF8MATCH
+		ber_bvfree( value );
+#endif
 		keys[nkeys++] = ber_bvdup( &digest );
 	}
 
@@ -1815,9 +1864,13 @@ int caseIgnoreIndexer(
 	mlen = strlen( mr->smr_oid );
 
 	for( i=0; values[i] != NULL; i++ ) {
-		struct berval *value = ber_bvdup( values[i] );
+		struct berval *value;
+#if UTF8MATCH
+		value = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_CASEFOLD ) );
+#else
+		value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
-
+#endif
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
 			HASH_Update( &HASHcontext,
@@ -1863,8 +1916,12 @@ int caseIgnoreFilter(
 	slen = strlen( syntax->ssyn_oid );
 	mlen = strlen( mr->smr_oid );
 
+#if UTF8MATCH
+	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val, UTF8_CASEFOLD ) );
+#else
 	value = ber_bvdup( (struct berval *) assertValue );
 	ldap_pvt_str2upper( value->bv_val );
+#endif
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
@@ -1963,8 +2020,12 @@ int caseIgnoreSubstringsIndexer(
 
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
+#if UTF8MATCH
+		value = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_CASEFOLD ) );
+#else
 		value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
+#endif
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
 			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
@@ -2116,8 +2177,12 @@ int caseIgnoreSubstringsFilter(
 		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
+#if UTF8MATCH
+		value = ber_bvstr( UTF8normalize( sa->sa_initial->bv_val, UTF8_CASEFOLD ) );
+#else
 		value = ber_bvdup( sa->sa_initial );
 		ldap_pvt_str2upper( value->bv_val );
+#endif
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
@@ -2151,8 +2216,12 @@ int caseIgnoreSubstringsFilter(
 				continue;
 			}
 
+#if UTF8MATCH
+			value = ber_bvstr( UTF8normalize( sa->sa_any[i]->bv_val, UTF8_CASEFOLD ) );
+#else
 			value = ber_bvdup( sa->sa_any[i] );
 			ldap_pvt_str2upper( value->bv_val );
+#endif
 
 			for(j=0;
 				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
@@ -2184,8 +2253,12 @@ int caseIgnoreSubstringsFilter(
 		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
+#if UTF8MATCH
+		value = ber_bvstr( UTF8normalize( sa->sa_final->bv_val, UTF8_CASEFOLD ) );
+#else
 		value = ber_bvdup( sa->sa_final );
 		ldap_pvt_str2upper( value->bv_val );
+#endif
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
