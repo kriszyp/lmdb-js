@@ -18,13 +18,31 @@
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
 
-#undef IDL_DEBUG
-#ifdef IDL_DEBUG
-void idl_dump( ID *ids )
+#ifndef IDL_DEBUG
+	/* enable basic checks for now */
+#define IDL_DEBUG 1
+#endif
+
+#if IDL_DEBUG > 0
+static void idl_check( ID *ids )
+{
+	if( BDB_IDL_IS_RANGE( ids ) ) {
+		assert( ids[1] <= ids[2] );
+	} else {
+		ID i;
+		for( i=1; i < ids[0]; i++ ) {
+			assert( ids[i+1] > ids[i] );
+		}
+	}
+}
+
+#if IDL_DEBUG > 1
+static void idl_dump( ID *ids )
 {
 	if( BDB_IDL_IS_RANGE( ids ) ) {
 		Debug( LDAP_DEBUG_ANY,
-			"IDL: range %ld - %ld\n", (long) ids[0], 0, 0 );
+			"IDL: range %ld - %ld\n",
+			(long) ids[1], (long) idl[2], 0 );
 
 	} else {
 		ID i;
@@ -39,11 +57,18 @@ void idl_dump( ID *ids )
 
 		Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
 	}
+
+	idl_check( ids );
 }
-#endif
+#endif /* IDL_DEBUG > 1 */
+#endif /* IDL_DEBUG > 0 */
 
 unsigned bdb_idl_search( ID *ids, ID id )
 {
+#if IDL_DEBUG > 0
+	idl_check( ids );
+#endif
+
 #undef IDL_BINARY_SEARCH
 #ifdef IDL_BINARY_SEARCH
 	/*
@@ -95,9 +120,11 @@ static int idl_insert( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
 
-#ifdef IDL_DEBUG
+#if IDL_DEBUG > 1
 	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", id, x, 0 );
 	idl_dump( ids );
+#elif IDL_DEBUG > 0
+	idl_check( ids );
 #endif
 
 	assert( x > 0 );
@@ -129,8 +156,10 @@ static int idl_insert( ID *ids, ID id )
 		ids[x] = id;
 	}
 
-#ifdef IDL_DEBUG
+#if IDL_DEBUG > 1
 	idl_dump( ids );
+#elif IDL_DEBUG > 0
+	idl_check( ids );
 #endif
 
 	return 0;
@@ -140,9 +169,11 @@ static int idl_delete( ID *ids, ID id )
 {
 	unsigned x = bdb_idl_search( ids, id );
 
-#ifdef IDL_DEBUG
+#if IDL_DEBUG > 1
 	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", id, x, 0 );
 	idl_dump( ids );
+#elif IDL_DEBUG > 0
+	idl_check( ids );
 #endif
 
 	assert( x > 0 );
@@ -165,8 +196,10 @@ static int idl_delete( ID *ids, ID id )
 		AC_MEMCPY( &ids[x], &ids[x+1], (1+ids[0]-x) * sizeof(ID) );
 	}
 
-#ifdef IDL_DEBUG
+#if IDL_DEBUG > 1
 	idl_dump( ids );
+#elif IDL_DEBUG > 0
+	idl_check( ids );
 #endif
 
 	return 0;
