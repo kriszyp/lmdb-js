@@ -231,6 +231,9 @@ ldap_pvt_tls_init_def_ctx( void )
 			goto error_exit;
 		}
 
+		SSL_CTX_set_session_id_context( tls_def_ctx,
+			"OpenLDAP", sizeof("OpenLDAP")-1 );
+
 		if ( tls_opt_ciphersuite &&
 			!SSL_CTX_set_cipher_list( tls_def_ctx, ciphersuite ) )
 		{
@@ -884,7 +887,6 @@ ldap_pvt_tls_get_my_dn( void *s, struct berval *dn, LDAPDN_rewrite_dummy *func, 
 	
 	xn = X509_get_subject_name(x);
 	rc = ldap_X509dn2bv(xn, dn, (LDAPDN_rewrite_func *)func, flags );
-	X509_free(x);
 	return rc;
 }
 
