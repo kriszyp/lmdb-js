@@ -470,11 +470,13 @@ do_add( Connection *conn, Operation *op )
 #endif /* SLAPD_MULTIMASTER */
 		}
 	} else {
+#ifdef LDAP_SLAPI
 	    rc = doPreAddPluginFNs( be, pb );
 	    if ( rc != LDAP_SUCCESS ) {
 		/* plugin will have sent result */
 		goto done;
 	    }
+#endif
 #ifdef NEW_LOGGING
 	    LDAP_LOG( OPERATION, INFO, 
 		       "do_add: conn %d	 no backend support\n", conn->c_connid, 0, 0 );
