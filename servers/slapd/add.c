@@ -203,7 +203,7 @@ do_add( Connection *conn, Operation *op )
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	be = select_backend( e->e_ndn, manageDSAit );
+	be = select_backend( e->e_ndn, manageDSAit, 0 );
 	if ( be == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
 			NULL, e->e_dn, LDAP_SCOPE_DEFAULT );

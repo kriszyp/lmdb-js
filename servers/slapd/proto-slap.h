@@ -152,7 +152,8 @@ LDAP_SLAPD_F (BackendDB *) backend_db_init LDAP_P(( const char *type ));
 
 LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
 	const char * dn,
-	int manageDSAit ));
+	int manageDSAit,
+	int noSubordinates ));
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be, const char *suffix ));
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be, const char *ndn ));

@@ -101,7 +101,6 @@ static BackendInfo binfo[] = {
 #if defined(SLAPD_PRIVATE) && !defined(SLAPD_PRIVATE_DYNAMIC)
 	{"private",	private_back_initialize},
 #endif
-	{"glue",	glue_back_initialize},
 	{NULL}
 };
 
@@ -516,7 +515,8 @@ be_db_close( void )
 Backend *
 select_backend(
 	const char * dn,
-	int manageDSAit )
+	int manageDSAit,
+	int noSubs )
 {
 	int	i, j, len, dnlen;
 	Backend *be = NULL;
@@ -526,6 +526,10 @@ select_backend(
 		for ( j = 0; backends[i].be_nsuffix != NULL &&
 		    backends[i].be_nsuffix[j] != NULL; j++ )
 		{
+			if ((backends[i].be_glueflags&SLAP_GLUE_SUBORDINATE)&&
+				noSubs)
+			  	continue;
+
 			len = backends[i].be_nsuffix[j]->bv_len;
 
 			if ( len > dnlen ) {
@@ -997,7 +1001,8 @@ backend_group(
 	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend(gr_ndn, 0);
+		be = select_backend(gr_ndn, 0,
+			(be->be_glueflags & SLAP_GLUE_INSTANCE));
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;
@@ -1055,7 +1060,8 @@ backend_attribute(
 	if( target == NULL || strcmp( target->e_ndn, e_ndn ) != 0 ) {
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend(e_ndn, 0);
+		be = select_backend(e_ndn, 0,
+			(be->be_glueflags & SLAP_GLUE_INSTANCE));
 
 		if (be == NULL) {
 			return LDAP_NO_SUCH_OBJECT;

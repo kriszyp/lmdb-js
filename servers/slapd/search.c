@@ -267,7 +267,7 @@ do_search(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( nbase, manageDSAit )) == NULL ) {
+	if ( (be = select_backend( nbase, manageDSAit, 1 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
 			NULL, base, scope );
 

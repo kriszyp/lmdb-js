@@ -24,6 +24,7 @@ char	*conffile	= SLAPD_DEFAULT_CONFIGFILE;
 int		truncatemode = 0;
 int		verbose		= 0;
 int		continuemode = 0;
+int	nosubs		= 0;
 
 char	*ldiffile	= NULL;
 FILE	*ldiffp		= NULL;
@@ -195,6 +196,13 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	rc = glue_sub_init();
+
+	if (rc != 0 ) {
+		fprintf( stderr, "Subordinate configuration error\n" );
+		exit( EXIT_FAILURE );
+	}
+
 	rc = schema_prep();
 
 	if (rc != 0 ) {
@@ -211,7 +219,7 @@ slap_tool_init(
 			exit( EXIT_FAILURE );
 		}
 
-		be = select_backend( tbase, 0 );
+		be = select_backend( tbase, 0, 0 );
 		free( tbase );
 
 		if( be == NULL ) {
@@ -219,9 +227,21 @@ slap_tool_init(
 				progname, base );
 			exit( EXIT_FAILURE );
 		}
+		/* If the named base is a glue master, operate on the
+		 * entire context
+		 */
+		if (be->be_glueflags & SLAP_GLUE_INSTANCE)
+			nosubs = 1;
 
 	} else if ( dbnum == -1 ) {
 		be = &backends[dbnum=0];
+		/* If just doing the first by default and it is a
+		 * glue subordinate, find the master.
+		 */
+		while (be->be_glueflags & SLAP_GLUE_SUBORDINATE) {
+			nosubs = 1;
+			be++;
+		}
 
 	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr,

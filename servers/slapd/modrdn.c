@@ -249,7 +249,7 @@ do_modrdn(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( ndn, manageDSAit )) == NULL ) {
+	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
 			NULL, dn, LDAP_SCOPE_DEFAULT );
 
@@ -278,7 +278,7 @@ do_modrdn(
 	 * the same backend, otherwise we return an error.
 	 */
 	if( newSuperior != NULL ) {
-		newSuperior_be = select_backend( nnewSuperior, 0 );
+		newSuperior_be = select_backend( nnewSuperior, 0, 0 );
 
 		if ( newSuperior_be != be ) {
 			/* newSuperior is in same backend */

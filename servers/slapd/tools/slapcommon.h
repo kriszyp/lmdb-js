@@ -25,6 +25,7 @@ extern	Backend *be;
 extern	int		appendmode;
 extern	int		verbose;
 extern	int		continuemode;
+extern	int	nosubs;
 
 extern	char	*ldiffile;
 extern	FILE	*ldiffp;

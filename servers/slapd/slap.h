@@ -997,8 +997,9 @@ struct slap_backend_db {
 	struct berval **be_update_refs;	/* where to refer modifying clients to */
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 
-#define	SLAP_GLUE_SUBORDINATE	0x01	/* child of a glue hierarchy */
-#define	SLAP_GLUE_INSTANCE	0x02	/* a glue backend */
+#define	SLAP_GLUE_INSTANCE	0x01	/* a glue backend */
+#define	SLAP_GLUE_SUBORDINATE	0x02	/* child of a glue hierarchy */
+#define	SLAP_GLUE_LINKED	0x04	/* child is connected to parent */
 
 	int	be_glueflags;	/* */
 

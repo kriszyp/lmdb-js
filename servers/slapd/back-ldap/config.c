@@ -137,7 +137,7 @@ ldap_back_db_config(
 			return( 1 );
 		}
 		
-		tmp_be = select_backend( argv[1], 0 );
+		tmp_be = select_backend( argv[1], 0, 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, "%s: line %d: suffix already in use"
 				       " by another backend in"
@@ -147,7 +147,7 @@ ldap_back_db_config(
 			return( 1 );						
 		}
 
-		tmp_be = select_backend( argv[2], 0 );
+		tmp_be = select_backend( argv[2], 0, 0 );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr, "%s: line %d: massaged suffix"
 				       " already in use by another backend in" 

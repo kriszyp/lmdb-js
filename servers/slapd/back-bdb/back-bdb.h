@@ -17,7 +17,7 @@ LDAP_BEGIN_DECL
 
 #define BDB_FILTER_INDICES 1
 /* #define BDB_IDL_MULTI		1 */
-/* #define BDB_HIER		1 */
+#define BDB_HIER		1
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'

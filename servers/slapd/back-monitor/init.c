@@ -385,7 +385,7 @@ monitor_back_open(
 	 */
 	ndn = ch_strdup( SLAPD_MONITOR_DN );
 	dn_normalize( ndn );
-	be = select_backend( ndn , 0 );
+	be = select_backend( ndn , 0, 0 );
 	ch_free( ndn );
 	if ( be == NULL ) {
 #ifdef NEW_LOGGING

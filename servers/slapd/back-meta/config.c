@@ -213,7 +213,7 @@ meta_back_db_config(
 		 * uri MUST be a branch of suffix!
 		 */
 #if 0 /* too strict a constraint */
-		if ( select_backend( li->targets[ i ]->suffix, 0 ) != be ) {
+		if ( select_backend( li->targets[ i ]->suffix, 0, 0 ) != be ) {
 			fprintf( stderr,
 	"%s: line %d: <naming context> of URI does not refer to current backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -224,7 +224,7 @@ meta_back_db_config(
 		/*
 		 * uri MUST be a branch of a suffix!
 		 */
-		if ( select_backend( li->targets[ i ]->suffix, 0 ) == NULL ) {
+		if ( select_backend( li->targets[ i ]->suffix, 0, 0 ) == NULL ) {
 			fprintf( stderr,
 	"%s: line %d: <naming context> of URI does not resolve to a backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -419,7 +419,7 @@ meta_back_db_config(
 			return 1;
 		}
 		
-		tmp_be = select_backend( argv[ 1 ], 0 );
+		tmp_be = select_backend( argv[ 1 ], 0, 0 );
 		if ( tmp_be != NULL && tmp_be != be ) {
 			fprintf( stderr, 
 	"%s: line %d: suffix already in use by another backend in"
@@ -428,7 +428,7 @@ meta_back_db_config(
 			return 1;						
 		}
 
-		tmp_be = select_backend( argv[ 2 ], 0 );
+		tmp_be = select_backend( argv[ 2 ], 0, 0 );
 		if ( tmp_be != NULL ) {
 			fprintf( stderr,
 	"%s: line %d: massaged suffix already in use by another backend in" 

@@ -48,6 +48,7 @@ char		*ldap_srvtab = "";
 char		*default_passwd_hash;
 char		*default_search_base = NULL;
 char		*default_search_nbase = NULL;
+int		num_subs = 0;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
@@ -824,6 +825,23 @@ read_config( const char *fname )
 				return( 1 );
 			}
 
+		/* mark this as a subordinate database */
+		} else if ( strcasecmp( cargv[0], "subordinate" ) == 0 ) {
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+					   "%s: line %d: subordinate keyword must appear inside a database "
+					   "definition (ignored).\n", fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+"%s: line %d: suffix line must appear inside a database definition (ignored)\n",
+				    fname, lineno, 0 );
+#endif
+			} else {
+				be->be_glueflags |= SLAP_GLUE_SUBORDINATE;
+				num_subs++;
+			}
+
 		/* set database suffix */
 		} else if ( strcasecmp( cargv[0], "suffix" ) == 0 ) {
 			Backend *tmp_be;
@@ -877,7 +895,7 @@ read_config( const char *fname )
 				return( 1 );
 #endif /* SLAPD_MONITOR_DN */
 
-			} else if ( ( tmp_be = select_backend( cargv[1], 0 ) ) == be ) {
+			} else if ( ( tmp_be = select_backend( cargv[1], 0, 0 ) ) == be ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					   "%s: line %d: suffix already served by this backend "
@@ -1008,7 +1026,7 @@ read_config( const char *fname )
 					fname, lineno, 0 );
 #endif
 
-			} else if ( (tmp_be = select_backend( cargv[1], 0 )) != NULL ) {
+			} else if ( (tmp_be = select_backend( cargv[1], 0, 0 )) != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					   "%s: line %d: suffixAlias served by a preceeding "
@@ -1022,7 +1040,7 @@ read_config( const char *fname )
 #endif
 
 
-			} else if ( (tmp_be = select_backend( cargv[2], 0 )) != NULL ) {
+			} else if ( (tmp_be = select_backend( cargv[2], 0, 0 )) != NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
 					   "%s: line %d: suffixAlias derefs to a different backend "

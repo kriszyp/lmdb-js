@@ -57,7 +57,7 @@ add_replica_suffix(
 	int 	rc = 0;
 
 	if ( dn_normalize( nsuffix ) != NULL ) {
-		if ( select_backend( nsuffix, 0 ) == be ) {
+		if ( select_backend( nsuffix, 0, 0 ) == be ) {
 			charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
 		} else {
 			rc = 1;

@@ -381,6 +381,18 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
+	if ( glue_sub_init( ) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			   "main: subordinate config error\n"));
+#else
+		Debug( LDAP_DEBUG_ANY,
+		    "subordinate config error\n",
+		    0, 0, 0 );
+#endif
+		goto destroy;
+	}
+
 	if ( schema_prep( ) != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,

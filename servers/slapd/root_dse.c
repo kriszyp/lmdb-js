@@ -70,7 +70,7 @@ root_dse_info(
 	attr_merge( e, ad_objectClass, vals );
 
 	for ( i = 0; i < nbackends; i++ ) {
-		if ( backends[i].be_glueflags )
+		if ( backends[i].be_glueflags & SLAP_GLUE_SUBORDINATE )
 			continue;
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
 			val.bv_val = backends[i].be_suffix[j];
