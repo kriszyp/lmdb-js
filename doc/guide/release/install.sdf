@@ -15,8 +15,6 @@ the instructions in this file before attempting to build the
 software.
 
 It is also recommended you review
-{{The OpenLDAP Administrator's Guide}}
-({{URL:http://www.openldap.org/doc/admin/}}),
 the {{Frequently Asked Questions}} ({{URL:http://www.openldap.org/faq/}})
 pages, in particular the
 {{Installation section}} ({{URL:http://www.openldap.org/faq/index.cgi?file=8}})
