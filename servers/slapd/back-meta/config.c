@@ -512,87 +512,11 @@ meta_back_db_config(
 
 	/* objectclass/attribute mapping */
 	} else if ( strcasecmp( argv[ 0 ], "map" ) == 0 ) {
-		struct ldapmap *map;
-		struct ldapmapping *mapping;
-		char *src, *dst;
 		int 		i = li->ntargets-1;
 
-		if ( i < 0 ) {
-			fprintf( stderr,
-	"%s: line %d: need \"uri\" directive first\n",
-				fname, lineno );
-		}
-		
-
-		if ( argc < 3 || argc > 4 ) {
-			fprintf( stderr,
-	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
-				fname, lineno );
-			return 1;
-		}
-
-		if ( strcasecmp( argv[ 1 ], "objectClass" ) == 0 ) {
-			map = &li->targets[ i ]->oc_map;
-		} else if ( strcasecmp( argv[ 1 ], "attribute" ) == 0 ) {
-			map = &li->targets[ i ]->at_map;
-		} else {
-			fprintf( stderr,
-	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
-				fname, lineno );
-			return 1;
-		}
-
-		if ( strcmp( argv[ 2 ], "*" ) == 0 ) {
-			if ( argc < 4 || strcmp( argv[ 3 ], "*" ) == 0 ) {
-				map->drop_missing = ( argc < 4 );
-				return 0;
-			}
-			src = dst = argv[ 3 ];
-		} else if ( argc < 4 ) {
-			src = "";
-			dst = argv[ 2 ];
-		} else {
-			src = argv[ 2 ];
-			dst = ( strcmp( argv[ 3 ], "*" ) == 0 ? src : argv[ 3 ] );
-		}
-
-		if ( ( map == &li->targets[ i ]->at_map )
-			&& ( strcasecmp( src, "objectclass" ) == 0
-				|| strcasecmp( dst, "objectclass" ) == 0 ) ) {
-			fprintf( stderr,
-	"%s: line %d: objectclass attribute cannot be mapped\n",
-				fname, lineno );
-		}
-
-		mapping = ch_calloc( 2, sizeof( struct ldapmapping ) );
-		if ( mapping == NULL ) {
-			fprintf( stderr,
-				"%s: line %d: out of memory\n",
-				fname, lineno );
-			return 1;
-		}
-		ber_str2bv( src, 0, 1, &mapping->src );
-		ber_str2bv( dst, 0, 1, &mapping->dst );
-		mapping[ 1 ].src = mapping->dst;
-		mapping[ 1 ].dst = mapping->src;
-
-		if ( (*src != '\0' &&
-			  avl_find( map->map, ( caddr_t )mapping,
-				mapping_cmp ) != NULL)
-			|| avl_find( map->remap, ( caddr_t )&mapping[ 1 ],
-				mapping_cmp ) != NULL) {
-			fprintf( stderr,
-	"%s: line %d: duplicate mapping found (ignored)\n",
-				fname, lineno );
-			return 0;
-		}
-
-		if ( *src != '\0' )
-			avl_insert( &map->map, ( caddr_t )mapping,
-						mapping_cmp, mapping_dup );
-		avl_insert( &map->remap, ( caddr_t )&mapping[ 1 ],
-					mapping_cmp, mapping_dup );
-
+		return ldap_back_map_config( &li->targets[ i ]->oc_map, 
+				&li->targets[ i ]->at_map,
+				fname, lineno, argc, argv );
 	/* anything else */
 	} else {
 		fprintf( stderr,

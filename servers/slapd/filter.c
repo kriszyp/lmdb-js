@@ -26,10 +26,6 @@ static int	get_substring_filter(
 	Filter *f,
 	const char **text );
 
-static int filter_escape_value(
-	struct berval *in,
-	struct berval *out );
-
 static void simple_vrFilter2bv(
 	ValuesReturnFilter *f,
 	struct berval *fstr );
@@ -797,7 +793,8 @@ filter2bv( Filter *f, struct berval *fstr )
 	}
 }
 
-static int filter_escape_value(
+int
+filter_escape_value(
 	struct berval *in,
 	struct berval *out )
 {

@@ -239,80 +239,8 @@ ldap_back_db_config(
 		
 	/* objectclass/attribute mapping */
 	} else if ( strcasecmp( argv[0], "map" ) == 0 ) {
-		struct ldapmap *map;
-		struct ldapmapping *mapping;
-		char *src, *dst;
-
-		if ( argc < 3 || argc > 4 ) {
-			fprintf( stderr,
-	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
-				fname, lineno );
-			return( 1 );
-		}
-
-		if ( strcasecmp( argv[1], "objectclass" ) == 0 ) {
-			map = &li->oc_map;
-		} else if ( strcasecmp( argv[1], "attribute" ) == 0 ) {
-			map = &li->at_map;
-		} else {
-			fprintf( stderr, "%s: line %d: syntax is "
-				"\"map {objectclass | attribute} [<local> | *] "
-				"{<foreign> | *}\"\n",
-				fname, lineno );
-			return( 1 );
-		}
-
-		if ( strcmp( argv[2], "*" ) == 0 ) {
-			if ( argc < 4 || strcmp( argv[3], "*" ) == 0 ) {
-				map->drop_missing = ( argc < 4 );
-				return 0;
-			}
-			src = dst = argv[3];
-		} else if ( argc < 4 ) {
-			src = "";
-			dst = argv[2];
-		} else {
-			src = argv[2];
-			dst = ( strcmp( argv[3], "*" ) == 0 ? src : argv[3] );
-		}
-
-		if ( ( map == &li->at_map )
-			&& ( strcasecmp( src, "objectclass" ) == 0
-				|| strcasecmp( dst, "objectclass" ) == 0 ) )
-		{
-			fprintf( stderr,
-				"%s: line %d: objectclass attribute cannot be mapped\n",
-				fname, lineno );
-		}
-
-		mapping = (struct ldapmapping *)ch_calloc( 2,
-			sizeof(struct ldapmapping) );
-		if ( mapping == NULL ) {
-			fprintf( stderr,
-				"%s: line %d: out of memory\n",
-				fname, lineno );
-			return( 1 );
-		}
-		ber_str2bv( src, 0, 1, &mapping->src );
-		ber_str2bv( dst, 0, 1, &mapping->dst );
-		mapping[1].src = mapping->dst;
-		mapping[1].dst = mapping->src;
-
-		if ( (*src != '\0' &&
-			  avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL) ||
-			avl_find( map->remap, (caddr_t)&mapping[1], mapping_cmp ) != NULL)
-		{
-			fprintf( stderr,
-				"%s: line %d: duplicate mapping found (ignored)\n",
-				fname, lineno );
-			return 0;
-		}
-
-		if ( *src != '\0' )
-			avl_insert( &map->map, (caddr_t)mapping,
-						mapping_cmp, mapping_dup );
-		avl_insert( &map->remap, (caddr_t)&mapping[1],
-					mapping_cmp, mapping_dup );
+		return ldap_back_map_config( &li->oc_map, &li->at_map,
+				fname, lineno, argc, argv );
 
 	/* anything else */
 	} else {
@@ -321,6 +249,162 @@ ldap_back_db_config(
 		    fname, lineno, argv[0] );
 	}
 	return 0;
+}
+
+int
+ldap_back_map_config(
+		struct ldapmap	*oc_map,
+		struct ldapmap	*at_map,
+		const char	*fname,
+		int		lineno,
+		int		argc,
+		char		**argv )
+{
+	struct ldapmap		*map;
+	struct ldapmapping	*mapping;
+	char			*src, *dst;
+	int			is_oc = 0;
+
+	if ( argc < 3 || argc > 4 ) {
+		fprintf( stderr,
+	"%s: line %d: syntax is \"map {objectclass | attribute} [<local> | *] {<foreign> | *}\"\n",
+			fname, lineno );
+		return 1;
+	}
+
+	if ( strcasecmp( argv[1], "objectclass" ) == 0 ) {
+		map = oc_map;
+		is_oc = 1;
+
+	} else if ( strcasecmp( argv[1], "attribute" ) == 0 ) {
+		map = at_map;
+
+	} else {
+		fprintf( stderr, "%s: line %d: syntax is "
+			"\"map {objectclass | attribute} [<local> | *] "
+			"{<foreign> | *}\"\n",
+			fname, lineno );
+		return 1;
+	}
+
+	if ( strcmp( argv[2], "*" ) == 0 ) {
+		if ( argc < 4 || strcmp( argv[3], "*" ) == 0 ) {
+			map->drop_missing = ( argc < 4 );
+			return 0;
+		}
+		src = dst = argv[3];
+
+	} else if ( argc < 4 ) {
+		src = "";
+		dst = argv[2];
+
+	} else {
+		src = argv[2];
+		dst = ( strcmp( argv[3], "*" ) == 0 ? src : argv[3] );
+	}
+
+	if ( ( map == at_map )
+			&& ( strcasecmp( src, "objectclass" ) == 0
+			|| strcasecmp( dst, "objectclass" ) == 0 ) )
+	{
+		fprintf( stderr,
+			"%s: line %d: objectclass attribute cannot be mapped\n",
+			fname, lineno );
+	}
+
+	mapping = (struct ldapmapping *)ch_calloc( 2,
+		sizeof(struct ldapmapping) );
+	if ( mapping == NULL ) {
+		fprintf( stderr,
+			"%s: line %d: out of memory\n",
+			fname, lineno );
+		return 1;
+	}
+	ber_str2bv( src, 0, 1, &mapping->src );
+	ber_str2bv( dst, 0, 1, &mapping->dst );
+	mapping[1].src = mapping->dst;
+	mapping[1].dst = mapping->src;
+
+	/*
+	 * schema check
+	 */
+	if ( is_oc ) {
+		if ( src[0] != '\0' ) {
+			if ( oc_bvfind( &mapping->src ) == NULL ) {
+				fprintf( stderr,
+	"%s: line %d: warning, source objectClass '%s' "
+	"should be defined in schema\n",
+					fname, lineno, src );
+
+				/*
+				 * FIXME: this should become an err
+				 */
+			}
+		}
+
+		if ( oc_bvfind( &mapping->dst ) == NULL ) {
+			fprintf( stderr,
+	"%s: line %d: warning, destination objectClass '%s' "
+	"is not defined in schema\n",
+				fname, lineno, dst );
+		}
+	} else {
+		int			rc;
+		const char		*text = NULL;
+		AttributeDescription	*ad = NULL;
+
+		if ( src[0] != '\0' ) {
+			rc = slap_bv2ad( &mapping->src, &ad, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				fprintf( stderr,
+	"%s: line %d: warning, source attributeType '%s' "
+	"should be defined in schema\n",
+					fname, lineno, src );
+
+				/*
+				 * FIXME: this should become an err
+				 */
+			}
+
+			ad = NULL;
+		}
+
+		rc = slap_bv2ad( &mapping->dst, &ad, &text );
+		if ( rc != LDAP_SUCCESS ) {
+			fprintf( stderr,
+	"%s: line %d: warning, destination attributeType '%s' "
+	"is not defined in schema\n",
+				fname, lineno, dst );
+		}
+	}
+
+	if ( (src[0] != '\0' && avl_find( map->map, (caddr_t)mapping, mapping_cmp ) != NULL)
+			|| avl_find( map->remap, (caddr_t)&mapping[1], mapping_cmp ) != NULL)
+	{
+		fprintf( stderr,
+			"%s: line %d: duplicate mapping found (ignored)\n",
+			fname, lineno );
+		/* FIXME: free stuff */
+		goto error_return;
+	}
+
+	if ( src[0] != '\0' ) {
+		avl_insert( &map->map, (caddr_t)mapping,
+					mapping_cmp, mapping_dup );
+	}
+	avl_insert( &map->remap, (caddr_t)&mapping[1],
+				mapping_cmp, mapping_dup );
+
+	return 0;
+
+error_return:;
+	if ( mapping ) {
+		ch_free( mapping->src.bv_val );
+		ch_free( mapping->dst.bv_val );
+		ch_free( mapping );
+	}
+
+	return 1;
 }
 
 static int
@@ -504,6 +588,15 @@ suffix_massage_config(
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 
+#if 0
+	/*
+	 * FIXME: this is no longer required since now we map filters
+	 * based on the parsed filter structure, so we can deal directly
+	 * with attribute types and values.  The rewriteContext 
+	 * "searchFilter" now refers to the value of attrbutes
+	 * with DN syntax.
+	 */
+
 	/*
 	 * the filter should be rewritten as
 	 * 
@@ -580,6 +673,7 @@ suffix_massage_config(
 		}
 	}
 #endif /* rewrite filters */
+#endif
 
 #if 0 /*  "matched" is not normalized */
 	rargv[ 0 ] = "rewriteContext";

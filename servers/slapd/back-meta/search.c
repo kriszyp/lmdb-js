@@ -207,7 +207,7 @@ meta_back_search(
 		char 	*realbase = ( char * )base->bv_val;
 		int 	realscope = scope;
 		ber_len_t suffixlen;
-		char	*mapped_filter, **mapped_attrs;
+		char	**mapped_attrs;
 
 		if ( lsc->candidate != META_CANDIDATE ) {
 			msgid[ i ] = -1;
@@ -311,7 +311,8 @@ meta_back_search(
 			rc = -1;
 			goto finish;
 		}
-	
+
+#if 0
 		/*
 		 * Rewrite the search filter, if required
 		 */
@@ -367,7 +368,12 @@ meta_back_search(
 		}
 		mfilter.bv_val = NULL;
 		mfilter.bv_len = 0;
+#endif
 	
+		rc = ldap_back_filter_map_rewrite_( li->targets[ i ]->rwinfo, conn,
+			&li->targets[ i ]->at_map, &li->targets[ i ]->oc_map, 
+			filter, &mfilter, BACKLDAP_MAP );
+
 		/*
 		 * Maps required attributes
 		 */
@@ -386,14 +392,14 @@ meta_back_search(
 		 * Starts the search
 		 */
 		msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
-				mapped_filter, mapped_attrs, attrsonly ); 
+				mfilter.bv_val, mapped_attrs, attrsonly ); 
 		if ( mapped_attrs ) {
 			free( mapped_attrs );
 			mapped_attrs = NULL;
 		}
-		if ( mapped_filter != filterstr->bv_val ) {
-			free( mapped_filter );
-			mapped_filter = NULL;
+		if ( mfilter.bv_val != filterstr->bv_val ) {
+			free( mfilter.bv_val );
+			mfilter.bv_val = NULL;
 		}
 		if ( mbase != realbase ) {
 			free( mbase );
@@ -782,9 +788,11 @@ meta_send_entry(
 
 		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
 				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
-			int i, last;
+			int		last;
+
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
-			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
+
+			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
 				ldap_back_map( &li->targets[ target]->oc_map,
 						bv, &mapped, BACKLDAP_REMAP );
 				if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
@@ -795,7 +803,7 @@ meta_send_entry(
 					}
 					*bv = attr->a_vals[ last ];
 					attr->a_vals[ last ].bv_val = NULL;
-					i--;
+					bv--;
 
 				} else if ( mapped.bv_val != bv->bv_val ) {
 					free( bv->bv_val );
@@ -815,8 +823,11 @@ meta_send_entry(
 		 */
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
-			int i;
-			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
+			int		last;
+
+			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
+
+			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
 				char *newval;
 
 				switch ( rewrite_session( li->targets[ target ]->rwinfo,
@@ -847,7 +858,15 @@ meta_send_entry(
 					break;
 
 				case REWRITE_REGEXEC_UNWILLING:
-					
+					LBER_FREE(bv->bv_val);
+					bv->bv_val = NULL;
+					if (--last < 0)
+						goto next_attr;
+					*bv = attr->a_vals[last];
+					attr->a_vals[last].bv_val = NULL;
+					bv--;
+					break;
+
 				case REWRITE_REGEXEC_ERR:
 					/*
 					 * FIXME: better give up,
@@ -858,6 +877,8 @@ meta_send_entry(
 				}
 			}
 		}
+next_attr:;
+
 		*attrp = attr;
 		attrp = &attr->a_next;
 	}

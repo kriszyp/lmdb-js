@@ -106,6 +106,7 @@ extern int ldap_back_conn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_dup( void *c1, void *c2 );
 extern void ldap_back_conn_free( void *c );
 
+/* attributeType/objectClass mapping */
 int mapping_cmp (const void *, const void *);
 int mapping_dup (void *, void *);
 
@@ -130,6 +131,27 @@ ldap_back_map_attrs(
 
 extern void mapping_free ( void *mapping );
 
+extern int ldap_back_map_config(
+		struct ldapmap	*oc_map,
+		struct ldapmap	*at_map,
+		const char	*fname,
+		int		lineno,
+		int		argc,
+		char		**argv );
+
+extern int
+ldap_back_filter_map_rewrite_(
+#ifdef ENABLE_REWRITE
+		struct rewrite_info	*info,
+		void			*cookie,
+#endif /* ENABLE_REWRITE */
+		struct ldapmap		*at_map,
+		struct ldapmap		*oc_map,
+		Filter			*f,
+		struct berval		*fstr,
+		int			remap );
+
+/* suffix massaging by means of librewrite */
 #ifdef ENABLE_REWRITE
 extern int suffix_massage_config( struct rewrite_info *info,
 		struct berval *pvnc, struct berval *nvnc,

@@ -537,6 +537,8 @@ LDAP_SLAPD_F (void) vrFilter_free LDAP_P(( ValuesReturnFilter *f ));
 LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( ValuesReturnFilter *f, struct berval *fstr ));
 
 LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));
+LDAP_SLAPD_F (int) filter_escape_value LDAP_P(( struct berval *in, 
+	struct berval *out ));
 
 /*
  * filterentry.c

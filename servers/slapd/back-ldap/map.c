@@ -175,6 +175,10 @@ ldap_back_map_filter(
 				tmp.bv_val = q;
 				ldap_back_map(at_map, &tmp, &m, remap);
 				if (m.bv_val == NULL || m.bv_val[0] == '\0') {
+					/*
+					 * FIXME: are we sure we need to search 
+					 * oc_map if at_map fails?
+					 */
 					ldap_back_map(oc_map, &tmp, &m, remap);
 					if (m.bv_val == NULL || m.bv_val[0] == '\0') {
 						m = tmp;
@@ -244,3 +248,392 @@ ldap_back_map_attrs(
 	return(na);
 }
 
+#ifdef ENABLE_REWRITE
+
+static int
+map_attr_value_(
+		struct rewrite_info	*info,
+		void			*cookie,
+		struct ldapmap		*at_map,
+		struct ldapmap		*oc_map,
+		AttributeDescription 	*ad,
+		struct berval		*mapped_attr,
+		struct berval		*value,
+		struct berval		*mapped_value,
+		int			remap )
+{
+	struct berval		vtmp;
+	int			freeval = 0;
+
+	ldap_back_map( at_map, &ad->ad_cname, mapped_attr, remap );
+	if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0') {
+		/*
+		 * FIXME: are we sure we need to search oc_map if at_map fails?
+		 */
+		ldap_back_map( oc_map, &ad->ad_cname, mapped_attr, remap );
+		if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0' ) {
+			*mapped_attr = ad->ad_cname;
+		}
+	}
+
+	if ( value == NULL ) {
+		return 0;
+	}
+
+	if ( strcmp( ad->ad_type->sat_syntax->ssyn_oid, SLAPD_DN_SYNTAX ) == 0 )
+	{
+	 	switch ( rewrite_session( info, "searchFilter",
+ 					value->bv_val, cookie, &vtmp.bv_val ) ) {
+		case REWRITE_REGEXEC_OK:
+			if ( vtmp.bv_val == NULL ) {
+				vtmp = *value;
+			} else {
+				vtmp.bv_len = strlen( vtmp.bv_val );
+				freeval = 1;
+			}
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_LDAP, DETAIL1, 
+				"[rw] searchFilter: \"%s\" -> \"%s\"\n", 
+				value->bv_val, vtmp.bv_val, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ARGS, "rw> searchFilter: \"%s\" -> \"%s\"\n%s",
+					value->bv_val, vtmp.bv_val, "" );
+#endif /* !NEW_LOGGING */
+			break;
+
+		
+		case REWRITE_REGEXEC_UNWILLING:
+			return -1;
+
+		case REWRITE_REGEXEC_ERR:
+			return -1;
+		}
+
+	} else if ( ad == slap_schema.si_ad_objectClass || ad == slap_schema.si_ad_structuralObjectClass ) {
+		ldap_back_map( oc_map, value, &vtmp, remap );
+		if ( vtmp.bv_val == NULL || vtmp.bv_val[0] == '\0' ) {
+			vtmp = *value;
+		}
+		
+	} else {
+		vtmp = *value;
+	}
+
+	filter_escape_value( &vtmp, mapped_value );
+
+	if ( freeval ) {
+		ber_memfree( vtmp.bv_val );
+	}
+	
+	return 0;
+}
+
+#define map_attr_value(at_map, oc_map, ad, mapped_attr, value, mapped_value, remap) \
+	map_attr_value_(info, cookie, (at_map), (oc_map), (ad), (mapped_attr), (value), (mapped_value), (remap))
+#define ldap_back_filter_map_rewrite(at_map, oc_map, f, fstr, remap) \
+	ldap_back_filter_map_rewrite_(info, cookie, (at_map), (oc_map), (f), (fstr), (remap))
+
+#else /* ! ENABLE_REWRITE */
+
+static int
+map_attr_value_(
+		struct ldapmap		*at_map,
+		struct ldapmap		*oc_map,
+		AttributeDescription 	*ad,
+		struct berval		*mapped_attr,
+		struct berval		*value,
+		struct berval		*mapped_value,
+		int			remap )
+{
+	struct berval		vtmp;
+
+	ldap_back_map( at_map, &ad->ad_cname, mapped_attr, remap );
+	if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0') {
+		/*
+		 * FIXME: are we sure we need to search oc_map if at_map fails?
+		 */
+		ldap_back_map( oc_map, &ad->ad_cname, mapped_attr, remap );
+		if ( mapped_attr->bv_val == NULL || mapped_attr->bv_val[0] == '\0' ) {
+			*mapped_attr = ad->ad_cname;
+		}
+	}
+
+	if ( value == NULL ) {
+		return 0;
+	}
+
+	if ( strcmp( ad->ad_type->sat_syntax->ssyn_oid, SLAPD_DN_SYNTAX ) == 0 )
+	{
+		/* FIXME: use suffix massage capabilities */
+		vtmp = *value;
+
+	} else if ( ad == slap_schema.si_ad_objectClass || ad == slap_schema.si_ad_structuralObjectClass ) {
+		ldap_back_map( oc_map, value, &vtmp, remap );
+		if ( vtmp.bv_val == NULL || vtmp.bv_val[0] == '\0' ) {
+			vtmp = *value;
+		}
+		
+	} else {
+		vtmp = *value;
+	}
+
+	filter_escape_value( &vtmp, mapped_value );
+
+	return 0;
+}
+
+#define map_attr_value(at_map, oc_map, ad, mapped_attr, value, mapped_value, remap) \
+	map_attr_value_((at_map), (oc_map), (ad), (mapped_attr), (value), (mapped_value), (remap))
+#define ldap_back_filter_map_rewrite(at_map, oc_map, f, fstr, remap) \
+	ldap_back_filter_map_rewrite_((at_map), (oc_map), (f), (fstr), (remap))
+
+#endif /* ! ENABLE_REWRITE */
+
+int
+ldap_back_filter_map_rewrite_(
+#ifdef ENABLE_REWRITE
+		struct rewrite_info	*info,
+		void			*cookie,
+#endif /* ENABLE_REWRITE */
+		struct ldapmap		*at_map,
+		struct ldapmap		*oc_map,
+		Filter			*f,
+		struct berval		*fstr,
+		int			remap )
+{
+	int		i;
+	Filter		*p;
+	struct berval	atmp;
+	struct berval	vtmp;
+	ber_len_t	len;
+
+	if ( f == NULL ) {
+		ber_str2bv( "No filter!", sizeof("No filter!")-1, 1, fstr );
+		return -1;
+	}
+
+	switch ( f->f_choice ) {
+	case LDAP_FILTER_EQUALITY:
+		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap ) )
+		{
+			return -1;
+		}
+
+		fstr->bv_len = atmp.bv_len + vtmp.bv_len
+			+ ( sizeof("(=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
+			atmp.bv_val, vtmp.bv_val );
+
+		ber_memfree( vtmp.bv_val );
+		break;
+
+	case LDAP_FILTER_GE:
+		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
+				&f->f_av_value, &vtmp, remap ) )
+		{
+			return -1;
+		}
+
+		fstr->bv_len = atmp.bv_len + vtmp.bv_len
+			+ ( sizeof("(>=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
+			atmp.bv_val, vtmp.bv_val );
+
+		ber_memfree( vtmp.bv_val );
+		break;
+
+	case LDAP_FILTER_LE:
+		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap ) )
+		{
+			return -1;
+		}
+
+		fstr->bv_len = atmp.bv_len + vtmp.bv_len
+			+ ( sizeof("(<=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
+			atmp.bv_val, vtmp.bv_val );
+
+		ber_memfree( vtmp.bv_val );
+		break;
+
+	case LDAP_FILTER_APPROX:
+		if ( map_attr_value( at_map, oc_map, f->f_av_desc, &atmp,
+					&f->f_av_value, &vtmp, remap ) )
+		{
+			return -1;
+		}
+
+		fstr->bv_len = atmp.bv_len + vtmp.bv_len
+			+ ( sizeof("(~=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
+			atmp.bv_val, vtmp.bv_val );
+
+		ber_memfree( vtmp.bv_val );
+		break;
+
+	case LDAP_FILTER_SUBSTRINGS:
+		if ( map_attr_value( at_map, oc_map, f->f_sub_desc, &atmp,
+					NULL, NULL, remap ) )
+		{
+			return -1;
+		}
+
+		/* cannot be a DN ... */
+
+		fstr->bv_len = atmp.bv_len + ( sizeof("(=*)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 128 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
+			atmp.bv_val );
+
+		if ( f->f_sub_initial.bv_val != NULL ) {
+			len = fstr->bv_len;
+
+			filter_escape_value( &f->f_sub_initial, &vtmp );
+
+			fstr->bv_len += vtmp.bv_len;
+			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+
+			snprintf( &fstr->bv_val[len - 2], vtmp.bv_len + 3,
+				/* "(attr=" */ "%s*)",
+				vtmp.bv_val );
+
+			ber_memfree( vtmp.bv_val );
+		}
+
+		if ( f->f_sub_any != NULL ) {
+			for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
+				len = fstr->bv_len;
+				filter_escape_value( &f->f_sub_any[i], &vtmp );
+
+				fstr->bv_len += vtmp.bv_len + 1;
+				fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+
+				snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
+					/* "(attr=[init]*[any*]" */ "%s*)",
+					vtmp.bv_val );
+				ber_memfree( vtmp.bv_val );
+			}
+		}
+
+		if ( f->f_sub_final.bv_val != NULL ) {
+			len = fstr->bv_len;
+
+			filter_escape_value( &f->f_sub_final, &vtmp );
+
+			fstr->bv_len += vtmp.bv_len;
+			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+
+			snprintf( &fstr->bv_val[len - 1], vtmp.bv_len + 3,
+				/* "(attr=[init*][any*]" */ "%s)",
+				vtmp.bv_val );
+
+			ber_memfree( vtmp.bv_val );
+		}
+
+		break;
+
+	case LDAP_FILTER_PRESENT:
+		if ( map_attr_value( at_map, oc_map, f->f_desc, &atmp,
+					NULL, NULL, remap ) )
+		{
+			return -1;
+		}
+
+		fstr->bv_len = atmp.bv_len + ( sizeof("(=*)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
+			atmp.bv_val );
+		break;
+
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+	case LDAP_FILTER_NOT:
+		fstr->bv_len = sizeof("(%)") - 1;
+		fstr->bv_val = malloc( fstr->bv_len + 128 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
+			f->f_choice == LDAP_FILTER_AND ? '&' :
+			f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
+
+		for ( p = f->f_list; p != NULL; p = p->f_next ) {
+			len = fstr->bv_len;
+
+			if ( ldap_back_filter_map_rewrite( at_map, oc_map, p, &vtmp, remap ) )
+			{
+				return -1;
+			}
+			
+			fstr->bv_len += vtmp.bv_len;
+			fstr->bv_val = ch_realloc( fstr->bv_val, fstr->bv_len + 1 );
+
+			snprintf( &fstr->bv_val[len-1], vtmp.bv_len + 2, 
+				/*"("*/ "%s)", vtmp.bv_val );
+
+			ch_free( vtmp.bv_val );
+		}
+
+		break;
+
+	case LDAP_FILTER_EXT: {
+		if ( f->f_mr_desc ) {
+			if ( map_attr_value( at_map, oc_map, f->f_mr_desc, &atmp,
+						&f->f_mr_value, &vtmp, remap ) )
+			{
+				return -1;
+			}
+
+		} else {
+			atmp.bv_len = 0;
+			atmp.bv_val = "";
+			
+			filter_escape_value( &f->f_mr_value, &vtmp );
+		}
+			
+
+		fstr->bv_len = atmp.bv_len +
+			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
+			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
+			vtmp.bv_len + ( sizeof("(:=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
+			atmp.bv_val,
+			f->f_mr_dnattrs ? ":dn" : "",
+			f->f_mr_rule_text.bv_len ? ":" : "",
+			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
+			vtmp.bv_val );
+		ber_memfree( vtmp.bv_val );
+		} break;
+
+	case SLAPD_FILTER_COMPUTED:
+		ber_str2bv(
+			f->f_result == LDAP_COMPARE_FALSE ? "(?=false)" :
+			f->f_result == LDAP_COMPARE_TRUE ? "(?=true)" :
+			f->f_result == SLAPD_COMPARE_UNDEFINED ? "(?=undefined)" :
+			"(?=error)",
+			f->f_result == LDAP_COMPARE_FALSE ? sizeof("(?=false)")-1 :
+			f->f_result == LDAP_COMPARE_TRUE ? sizeof("(?=true)")-1 :
+			f->f_result == SLAPD_COMPARE_UNDEFINED ? sizeof("(?=undefined)")-1 :
+			sizeof("(?=error)")-1,
+			1, fstr );
+		break;
+
+	default:
+		ber_str2bv( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr );
+		break;
+	}
+
+	return 0;
+}
