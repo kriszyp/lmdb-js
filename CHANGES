@@ -5,11 +5,12 @@ OpenLDAP 2.2.24 Release
 	Fixed slapd syncrepl consumer unclean shutdown (ITS#3546)
 	Fixed slapd syncrepl provider sessionlog (ITS#3571)
 	Fixed slapd connection_abandon processing (ITS#3534, 3546, 3571)
-	Added libldap fast synchronous search result processing
 	Fixed libldap fdset re-init for restart (ITS#3524)
+	Added libldap fast synchronous search result processing
 	Build Environment
 		Updated BDB version check (ITS#3581)
 	Documentation
+		Add slapd-hdb(5)
 		Updated slapd(8) (ITS#3591)
 		Updated README
 

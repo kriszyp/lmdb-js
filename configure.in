@@ -740,9 +740,13 @@ AC_CHECK_HEADERS(	\
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+AC_CHECK_FUNCS( sigaction sigset )
+
 dnl HP-UX requires -lV3
 dnl this is not needed on newer versions of HP-UX
-AC_CHECK_LIB(V3, sigset)
+if test $ac_cv_func_sigaction = no && test $ac_cv_func_sigaction = no ; then
+	AC_CHECK_LIB(V3, sigset)
+fi
 
 dnl The following is INTENTIONALLY scripted out because shell does not
 dnl support variable names with the '@' character, which is what
@@ -2220,6 +2224,12 @@ AC_DEFINE(LBER_TAG_T,long)
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.
 AC_FUNC_MEMCMP
+
+if test $ac_cv_func_memcmp_clean = no ; then
+	AC_DEFINE(NEED_MEMCMP_REPLACEMENT,1,
+		[define if memcmp is not 8-bit clean or is otherwise broken])
+fi
+
 dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
 AC_FUNC_STRFTIME
 dnl AM_FUNC_STRTOD
@@ -2278,9 +2288,7 @@ AC_CHECK_FUNCS(		\
 	setsid			\
 	setuid			\
 	seteuid			\
-	sigaction		\
 	signal			\
-	sigset			\
 	strdup			\
 	strerror		\
 	strpbrk			\
