@@ -19,10 +19,15 @@ void ldap_perror( LDAP *ld, const char *s )
 int ldap_result2error( LDAP *ld, LDAPMessage *res, int freeit )
 .SH DESCRIPTION
 These routines provide interpretation of the various error codes
-returned by the LDAP protocol and LDAP library routines, and assigned
-to the
-.I ld_errno
-field in the \fIld\fP structure.
+returned by the LDAP protocol and LDAP library routines or associated
+with an LDAP session.  The error code associated with an LDAP session
+is accessible using
+.BR ldap_get_option (3)
+and
+.BR ldap_set_option (3)
+with the
+.B LDAP_OPT_ERROR_NUMBER
+option.
 .LP
 The
 .B ldap_result2error()
