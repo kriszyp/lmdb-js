@@ -355,9 +355,8 @@ do_modify(
 	 * Calling slapi_x_modifications2ldapmods() destroyed modlist so
 	 * we don't need to free it.
 	 */
-	if ( rs->sr_err == 0 ) {
-		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
-		modlist = slapi_x_ldapmods2modifications( modv );
+	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
+	modlist = slapi_x_ldapmods2modifications( modv );
 
 	/*
 	 * NB: it is valid for the plugin to return no modifications
@@ -367,11 +366,10 @@ do_modify(
 	 * then slapi_x_ldapmods2modifications() above will return
 	 * NULL).
 	 */
-		if ( modlist == NULL ) {
-			rs->sr_err = LDAP_SUCCESS;
-			send_ldap_result( op, rs );
-			goto cleanup;
-		}
+	if ( modlist == NULL ) {
+		rs->sr_err = LDAP_SUCCESS;
+		send_ldap_result( op, rs );
+		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
