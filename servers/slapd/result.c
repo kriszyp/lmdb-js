@@ -211,31 +211,71 @@ static long send_ldap_ber(
 }
 
 static int
-send_ldap_controls( BerElement *ber, LDAPControl **c )
+send_ldap_control( BerElement *ber, LDAPControl *c )
 {
 	int rc;
+
+	assert( c != NULL );
+
+	rc = ber_printf( ber, "{s" /*}*/, c->ldctl_oid );
+
+	if( c->ldctl_iscritical ) {
+		rc = ber_printf( ber, "b",
+			(ber_int_t) c->ldctl_iscritical ) ;
+		if( rc == -1 ) return rc;
+	}
+
+	if( c->ldctl_value.bv_val != NULL ) {
+		rc = ber_printf( ber, "O", &c->ldctl_value ); 
+		if( rc == -1 ) return rc;
+	}
+
+	rc = ber_printf( ber, /*{*/"N}" );
+	if( rc == -1 ) return rc;
+
+	return 0;
+}
+
+static int
+send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
+{
+	int rc;
+#ifdef LDAP_SLAPI
+	LDAPControl **sctrls = NULL;
+
+	/*
+	 * Retrieve any additional controls that may be set by the
+	 * plugin.
+	 */
+
+	if ( slapi_pblock_get( o->o_pb, SLAPI_RESCONTROLS, &sctrls ) != 0 ) {
+		sctrls = NULL;
+	}
+
+	if ( c == NULL && sctrls == NULL ) return 0;
+#else
 	if( c == NULL ) return 0;
+#endif /* LDAP_SLAPI */
 
 	rc = ber_printf( ber, "t{"/*}*/, LDAP_TAG_CONTROLS );
 	if( rc == -1 ) return rc;
 
+#ifdef LDAP_SLAPI
+	if ( c != NULL )
+#endif /* LDAP_SLAPI */
 	for( ; *c != NULL; c++) {
-		rc = ber_printf( ber, "{s" /*}*/, (*c)->ldctl_oid );
-
-		if( (*c)->ldctl_iscritical ) {
-			rc = ber_printf( ber, "b",
-				(ber_int_t) (*c)->ldctl_iscritical ) ;
-			if( rc == -1 ) return rc;
-		}
-
-		if( (*c)->ldctl_value.bv_val != NULL ) {
-			rc = ber_printf( ber, "O", &((*c)->ldctl_value)); 
-			if( rc == -1 ) return rc;
-		}
-
-		rc = ber_printf( ber, /*{*/"N}" );
+		rc = send_ldap_control( ber, *c );
 		if( rc == -1 ) return rc;
 	}
+
+#ifdef LDAP_SLAPI
+	if ( sctrls != NULL ) {
+		for ( c = sctrls; *c != NULL; c++ ) {
+			rc = send_ldap_control( ber, *c );
+			if( rc == -1 ) return rc;
+		}
+	}
+#endif /* LDAP_SLAPI */
 
 	rc = ber_printf( ber, /*{*/"N}" );
 
@@ -351,8 +391,8 @@ send_ldap_response(
 		rc = ber_printf( ber, /*"{"*/ "N}" );
 	}
 
-	if( rc != -1 && rs->sr_ctrls != NULL ) {
-		rc = send_ldap_controls( ber, rs->sr_ctrls );
+	if( rc != -1 ) {
+		rc = send_ldap_controls( op, ber, rs->sr_ctrls );
 	}
 
 	if( rc != -1 ) {
@@ -1172,8 +1212,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	attrs_free( aa );
 	rc = ber_printf( ber, /*{{*/ "}N}" );
 
-	if( rc != -1 && rs->sr_ctrls != NULL ) {
-		rc = send_ldap_controls( ber, rs->sr_ctrls );
+	if( rc != -1 ) {
+		rc = send_ldap_controls( op, ber, rs->sr_ctrls );
 	}
 
 	if( rc != -1 ) {
@@ -1396,8 +1436,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	rc = ber_printf( ber, "{it{W}" /*"}"*/ , op->o_msgid,
 		LDAP_RES_SEARCH_REFERENCE, rs->sr_ref );
 
-	if( rc != -1 && rs->sr_ctrls != NULL ) {
-		rc = send_ldap_controls( ber, rs->sr_ctrls );
+	if( rc != -1 ) {
+		rc = send_ldap_controls( op, ber, rs->sr_ctrls );
 	}
 
 	if( rc != -1 ) {
