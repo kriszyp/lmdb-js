@@ -14,7 +14,7 @@
 ## <http://www.OpenLDAP.org/license.html>.
 all: guide.html index.html
 
-sdf-src: Makefile \
+sdf-src: \
 	../plain.sdf \
 	../preamble.sdf \
 	abstract.sdf \
@@ -56,3 +56,11 @@ guide.html: guide.sdf sdf-src sdf-img
 
 index.html: index.sdf sdf-src sdf-img
 	sdf -2topics index.sdf
+
+admin.html: admin.sdf sdf-src sdf-img
+	sdf -DPDF -2html admin.sdf
+
+guide.pdf: admin.html
+	htmldoc --book --duplex --bottom 36 --top 36 \
+		--toclevels 2 \
+		-f guide.pdf admin.html
