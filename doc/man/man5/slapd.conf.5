@@ -179,13 +179,14 @@ disables acceptance of anonymous bind requests.
 .B bind_simple
 disables simple (bind) authentication.
 .B bind_simple_unprotected
-disables simple (bind) authentication when integrity and/or confidentiality
-protections (e.g. TLS) are not in place.  The level of protection required
-is determined by the
+disables simple (bind) authentication when confidentiality
+protection (e.g. TLS) is not in place.  The level of confidential
+protection to require can be adjusted using the
 .I overall security strength factor
-(as set by the
+using the
 .B security
-directive).
+directive.  If this factor is not set (or set to integrity only),
+any confidentiality protection is sufficient.
 .B bind_krbv4
 disables Kerberos V4 (bind) authentication.
 .B tls_2_anon
