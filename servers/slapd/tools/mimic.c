@@ -13,9 +13,8 @@
 
 #include "../slap.h"
 
-#ifdef WIN32
+/* needed by WIN32 and back-monitor */
 time_t starttime;
-#endif
 
 /* because Versionstr is used in back-monitor */
 const char Versionstr[] = "";

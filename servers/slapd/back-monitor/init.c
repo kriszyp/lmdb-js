@@ -132,7 +132,7 @@ struct monitorsubsys monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_OPS, SLAPD_MONITOR_OPS_NAME,
 		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
-		MONITOR_F_NONE,
+		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_ops_init,
 		monitor_subsys_ops_update,
 		NULL,   /* create */
@@ -140,9 +140,17 @@ struct monitorsubsys monitor_subsys[] = {
        	}, { 
 		SLAPD_MONITOR_SENT, SLAPD_MONITOR_SENT_NAME,
 		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
-		MONITOR_F_NONE,
+		MONITOR_F_PERSISTENT_CH,
 		monitor_subsys_sent_init,
 		monitor_subsys_sent_update,
+		NULL,   /* create */
+		NULL,	/* modify */
+       	}, { 
+		SLAPD_MONITOR_TIME, SLAPD_MONITOR_TIME_NAME,
+		{ 0L, NULL }, { 0L, NULL }, { 0L, NULL },
+		MONITOR_F_PERSISTENT_CH,
+		monitor_subsys_time_init,
+		monitor_subsys_time_update,
 		NULL,   /* create */
 		NULL,	/* modify */
 	}, { -1, NULL }

@@ -162,6 +162,13 @@ struct monitorinfo {
 #define SLAPD_MONITOR_SENT_DN	\
 	SLAPD_MONITOR_SENT_RDN "," SLAPD_MONITOR_DN
 
+#define SLAPD_MONITOR_TIME		12
+#define SLAPD_MONITOR_TIME_NAME		"Time"
+#define SLAPD_MONITOR_TIME_RDN  \
+	"cn=" SLAPD_MONITOR_TIME_NAME
+#define SLAPD_MONITOR_TIME_DN   \
+	SLAPD_MONITOR_TIME_RDN "," SLAPD_MONITOR_DN
+
 #define SLAPD_MONITOR_OBJECTCLASSES \
 	"objectClass: top\n" \
 	"objectClass: monitor\n" \

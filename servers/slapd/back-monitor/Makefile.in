@@ -4,12 +4,12 @@ SRCS = init.c search.c compare.c modify.c bind.c \
 	operational.c \
 	cache.c entry.c \
 	backend.c database.c thread.c conn.c rww.c log.c \
-	operation.c sent.c listener.c
+	operation.c sent.c listener.c time.c
 OBJS = init.lo search.lo compare.lo modify.lo bind.lo \
 	operational.lo \
 	cache.lo entry.lo \
 	backend.lo database.lo thread.lo conn.lo rww.lo log.lo \
-	operation.lo sent.lo listener.lo
+	operation.lo sent.lo listener.lo time.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
