@@ -813,6 +813,22 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			if test $ol_with_yielding_select = auto ; then
 				ol_with_yielding_select=yes
 			fi
+
+			AC_CACHE_CHECK([for misplaced posix thread in headers],
+				[ol_cv_header_misplaced_pthreads], [
+				AC_TRY_COMPILE([
+#include <sys/types.h>
+typedef double pthread_t;
+				], [
+				pthread_t thread = 0.0;
+				],
+				[ol_cv_header_misplaced_pthreads=no],
+				[ol_cv_header_misplaced_pthreads=yes])
+			])
+
+			if test "$ol_cv_header_misplaced_pthreads" = yes ; then
+				AC_MSG_ERROR([pthread types are misplaced, use --with-threads=posix]);
+			fi
 		fi
 	fi
 
@@ -960,7 +976,7 @@ typedef double pthread_t;
 	])
 
 	if test "$ol_cv_header_misplaced_pthreads" = yes ; then
-		AC_MSG_ERROR([pthread types are misplaced.]);
+		AC_MSG_ERROR([pthread types are misplaced, use --with-threads=posix]);
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
