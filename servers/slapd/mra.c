@@ -219,7 +219,7 @@ get_mra(
 		 */
 		if ( ma->ma_desc == NULL ) {
 			mra_free( ma, 1 );
-			*text = "matching rule not recognized";
+			*text = "no matching rule or type";
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 #endif /* !SLAP_X_MRA_MATCH_DNATTRS */
@@ -232,6 +232,7 @@ get_mra(
 			ma->ma_rule = ma->ma_desc->ad_type->sat_equality;
 
 		} else {
+			*text = "no appropriate rule to use for type";
 			mra_free( ma, 1 );
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
@@ -247,6 +248,7 @@ get_mra(
 
 	} else {
 		mra_free( ma, 1 );
+		*text = "no appropriate matching rule";
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 #endif
@@ -254,14 +256,9 @@ get_mra(
 #ifdef SLAP_X_MRA_MATCH_DNATTRS
 	if ( ma->ma_desc != NULL ) {
 #endif /* SLAP_X_MRA_MATCH_DNATTRS */
-		/* check to see if the matching rule is appropriate for
-	 	  the syntax of the attribute.  This check will need
-		   to be extended to support other kinds of extensible
-		   matching rules */
-		if( strcmp( ma->ma_rule->smr_syntax->ssyn_oid,
-			ma->ma_desc->ad_type->sat_syntax->ssyn_oid ) != 0 )
-		{
+		if( !mr_usable_with_at( ma->ma_rule, ma->ma_desc->ad_type ) ) {
 			mra_free( ma, 1 );
+			*text = "matching rule use with this attribute not appropriate";
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
