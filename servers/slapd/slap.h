@@ -757,6 +757,7 @@ struct slap_backend_db {
 #define		be_release	bd_info->bi_entry_release_rw
 #define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_group	bd_info->bi_acl_group
+#define		be_attribute	bd_info->bi_acl_attribute
 
 #define		be_controls	bd_info->bi_controls
 
@@ -929,6 +930,11 @@ struct slap_backend_info {
 		Entry *e, const char *bdn, const char *edn,
 		ObjectClass *group_oc,
 		AttributeDescription *group_at ));
+	int	(*bi_acl_attribute)  LDAP_P((Backend *bd,
+		struct slap_conn *c, struct slap_op *o,
+		Entry *e, const char *edn,
+		AttributeDescription *entry_at,
+		const char ***vals ));
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

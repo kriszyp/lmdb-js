@@ -80,6 +80,13 @@ extern int	ldbm_back_group LDAP_P(( BackendDB *bd,
 	ObjectClass* group_oc,
 	AttributeDescription* group_at));
 
+extern int	ldbm_back_attribute LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
+	Entry *target,
+	const char* e_ndn,
+	AttributeDescription* entry_at,
+	const char ***vals));
+
 
 /* hooks for slap tools */
 extern int ldbm_tool_entry_open LDAP_P(( BackendDB *be, int mode ));

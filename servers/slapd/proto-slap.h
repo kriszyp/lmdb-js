@@ -173,6 +173,15 @@ LDAP_SLAPD_F (int) backend_group LDAP_P((Backend *be,
 	AttributeDescription *group_at
 ));
 
+LDAP_SLAPD_F (int) backend_attribute LDAP_P((Backend *be,
+	Connection *conn,
+	Operation *op,
+	Entry *target,
+	const char *e_ndn,
+	AttributeDescription *entry_at,
+	const char ***vals
+));
+
 LDAP_SLAPD_F (Attribute *) backend_operational( Backend *, Entry * );
 
 

@@ -667,6 +667,35 @@ backend_group(
 	return LDAP_UNWILLING_TO_PERFORM;
 }
 
+int 
+backend_attribute(
+	Backend	*be,
+	Connection *conn,
+	Operation *op,
+	Entry	*target,
+	const char	*e_ndn,
+	AttributeDescription *entry_at,
+	const char ***vals
+)
+{
+	if( target == NULL || strcmp( target->e_ndn, e_ndn ) != 0 ) {
+		/* we won't attempt to send it to a different backend */
+		
+		be = select_backend(e_ndn);
+
+		if (be == NULL) {
+			return LDAP_NO_SUCH_OBJECT;
+		}
+	} 
+
+	if( be->be_attribute ) {
+		return be->be_attribute( be, conn, op, target, e_ndn,
+			entry_at, vals );
+	}
+
+	return LDAP_UNWILLING_TO_PERFORM;
+}
+
 Attribute *backend_operational(
 	Backend *be,
 	Entry *e )
