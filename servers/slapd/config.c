@@ -2788,9 +2788,7 @@ add_syncrepl(
 	si->si_schemachecking = 0;
 	ber_str2bv( "(objectclass=*)", sizeof("(objectclass=*)")-1, 0,
 		&si->si_filterstr );
-	if ( be->be_suffix && be->be_suffix[0].bv_val ) {
-		ber_dupbv( &si->si_base, &be->be_nsuffix[0] );
-	}
+	si->si_base.bv_val = NULL;
 	si->si_scope = LDAP_SCOPE_SUBTREE;
 	si->si_attrsonly = 0;
 	si->si_attrs = (char **) ch_calloc( 1, sizeof( char * ));
@@ -3003,7 +3001,9 @@ parse_syncrepl_line(
 		{
 			struct berval bv;
 			val = cargv[ i ] + sizeof( SEARCHBASESTR );
-			ch_free( si->si_base.bv_val );
+			if ( si->si_base.bv_val ) {
+				ch_free( si->si_base->bv_val );
+			}
 			ber_str2bv( val, 0, 0, &bv );
 			if ( dnNormalize( 0, NULL, NULL, &bv, &si->si_base, NULL )) {
 				fprintf( stderr, "Invalid base DN \"%s\"\n", val );
