@@ -10,6 +10,7 @@ OpenLDAP 2.1.10 Engineering
 	Fixed ldapsearch empty baseObject bug
 	Fixed libldap_r thread stack size
 	Fixed libldap SASL/EXTERNAL handling
+	Fixed liblber ber_get_next assert bug (ITS#2246)
 	Updated ldapdelete/ldapmodrdn continue error handling
 	Added back-bdb IDL slab cache  (ITS#2183)
 	Removed lint, etc.
