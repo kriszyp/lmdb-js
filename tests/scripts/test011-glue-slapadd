@@ -47,8 +47,6 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
-test $KILLSERVERS != no && kill -HUP $KILLPIDS
-
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	exit $RC
@@ -65,8 +63,28 @@ if test $? != 0 ; then
 	echo "comparison failed - database was not created correctly"
 	echo $SEARCHFLT $LDIFFLT
 	$DIFF $SEARCHFLT $LDIFFLT
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
 	exit 1
 fi
+
+echo "Testing sizelimit..."
+$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 -s one -z 2 > $SEARCHOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "sizelimit not detected at end of search."
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+$LDAPSEARCH -b "$BASEDN" -h $LOCALHOST -p $PORT1 -z 9 objectclass=OpenLDAPPerson > $SEARCHOUT 2>&1
+RC=$?
+if test $RC = 0 ; then
+	echo "sizelimit not detected at middle of search."
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
 exit 0
