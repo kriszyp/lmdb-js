@@ -931,6 +931,11 @@
 /* define to support dynamic TCL backend */
 #undef SLAPD_TCL_DYNAMIC
 
+/* define to support SQL backend */
+#undef SLAPD_SQL
+
+/* define to support dynamic SQL backend */
+#undef SLAPD_SQL_DYNAMIC
 
 /* begin of postamble */
 

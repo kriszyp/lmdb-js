@@ -141,6 +141,7 @@ OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(quipu,[    --enable-quipu	build quipu migration tools], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	enable per-object ACIs], no)dnl
+OL_ARG_ENABLE(discreteaci,[    --enable-discreteaci	enable discrete rights in ACIs], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
 OL_ARG_ENABLE(dynamic,[    --enable-dynamic	enable linking built binaries with dynamic libs], no)dnl
 
@@ -170,6 +171,9 @@ OL_ARG_WITH(shell_module,[      --with-shell-module	module type], static,
 	[static dynamic])
 OL_ARG_ENABLE(tcl,[    --enable-tcl	enable tcl backend], no)dnl
 OL_ARG_WITH(tcl_module,[      --with-tcl-module	module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(sql,[    --enable-sql	enable sql backend], no)dnl
+OL_ARG_WITH(sql_module,[      --with-sql-module	module type], static,
 	[static dynamic])
 
 dnl ----------------------------------------------------------------
@@ -220,6 +224,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_tcl = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-tcl argument])
 	fi
+	if test $ol_enable_sql = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-sql argument])
+	fi
 	if test $ol_enable_modules = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
 	fi
@@ -240,6 +247,9 @@ if test $ol_enable_slapd = no ; then
 	fi
 	if test $ol_enable_aci = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
+	fi
+	if test $ol_enable_discreteaci = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-discreteaci argument])
 	fi
 	if test $ol_with_ldbm_api != auto ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-api argument])
@@ -268,6 +278,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_with_tcl_module != static ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-tcl-module argument])
 	fi
+	if test $ol_with_sql_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-sql-module argument])
+	fi
 	if test $ol_enable_slurpd = yes ; then
 		AC_MSG_ERROR([slurpd requires slapd])
 	fi
@@ -280,6 +293,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_perl=no
 	ol_enable_shell=no
 	ol_enable_tcl=no
+	ol_enable_sql=no
 
 	ol_enable_modules=no
 	ol_enable_multimaster=no
@@ -287,6 +301,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_quipu=no
 	ol_enable_rlookups=no
 	ol_enable_aci=no
+	ol_enable_discreteaci=no
 	ol_enable_wrappers=no
 	ol_enable_dynamic=no
 
@@ -300,6 +315,7 @@ if test $ol_enable_slapd = no ; then
 	ol_with_perl_module=static
 	ol_with_shell_module=static
 	ol_with_tcl_module=static
+	ol_with_sql_module=static
 
 	ol_enable_slurpd=no
 
@@ -327,7 +343,8 @@ elif test $ol_enable_ldbm = no ; then
 		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
-		$ol_enable_tcl = no ; then
+		$ol_enable_tcl = no -a \
+		$ol_enable_sql = no ; then
 		AC_MSG_ERROR([slapd requires a backend])
 	fi
 
@@ -415,6 +432,7 @@ BUILD_PERL=no
 BUILD_QUIPU=no
 BUILD_SHELL=no
 BUILD_TCL=no
+BUILD_SQL=no
 BUILD_THREAD=no
 
 BUILD_BDB2_DYNAMIC=static
@@ -424,6 +442,7 @@ BUILD_PASSWD_DYNAMIC=static
 BUILD_PERL_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
 BUILD_TCL_DYNAMIC=static
+BUILD_SQL_DYNAMIC=static
 
 SLAPD_MODULES_LDFLAGS=
 SLAPD_MODULES_CPPFLAGS=
@@ -432,6 +451,10 @@ SLAPD_MODULES_LIST=
 SLAPD_PERL_LDFLAGS=
 MOD_PERL_LDFLAGS=
 PERL_CPPFLAGS=
+
+SLAPD_SQL_LDFLAGS=
+SLAPD_SQL_LIBS=
+SLAPD_SQL_INCLUDES=
 
 MOD_TCL_LIB=
 KRB4_LIBS=
@@ -620,6 +643,7 @@ else
 	ol_with_perl_module=static
 	ol_with_shell_module=static
 	ol_with_tcl_module=static
+	ol_with_sql_module=static
 fi
 
 dnl ----------------------------------------------------------------
@@ -2201,6 +2225,9 @@ fi
 if test "$ol_enable_aci" != no ; then
 	AC_DEFINE(SLAPD_ACI_ENABLED,1,[define to support per-object ACIs])
 fi
+if test "$ol_enable_discreteaci" != no ; then
+	AC_DEFINE(SLAPD_ACI_DISCRETE_RIGHTS,1,[define to support discrete rights in ACIs])
+fi
 
 if test "$ol_link_modules" != no ; then
 	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
@@ -2299,6 +2326,20 @@ if test "$ol_enable_tcl" != no ; then
 	fi
 fi
 
+if test "$ol_enable_sql" != no ; then
+	AC_DEFINE(SLAPD_SQL,1,[define to support SQL backend])
+	BUILD_SLAPD=yes
+	BUILD_SQL=yes
+	SLAPD_SQL_LIBS=-liodbc
+	if test "$ol_with_sql_module" != static; then
+		AC_DEFINE(SLAPD_SQL_DYNAMIC,1,
+			[define to support dynamic SQL backend])
+		BUILD_SQL=mod
+		BUILD_SQL_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-sql/back_sql.la"
+	fi
+fi
+
 if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
@@ -2343,6 +2384,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_QUIPU)
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_TCL)
+  AC_SUBST(BUILD_SQL)
   AC_SUBST(BUILD_BDB2_DYNAMIC)
   AC_SUBST(BUILD_LDAP_DYNAMIC)
   AC_SUBST(BUILD_LDBM_DYNAMIC)
@@ -2350,6 +2392,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_PERL_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
   AC_SUBST(BUILD_TCL_DYNAMIC)
+  AC_SUBST(BUILD_SQL_DYNAMIC)
 AC_SUBST(BUILD_SLURPD)
 
 AC_SUBST(LDAP_LIBS)
@@ -2379,6 +2422,10 @@ AC_SUBST(SASL_LIBS)
 AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
+
+AC_SUBST(SLAPD_SQL_LDFLAGS)
+AC_SUBST(SLAPD_SQL_LIBS)
+AC_SUBST(SLAPD_SQL_INCLUDES)
 
 dnl ----------------------------------------------------------------
 dnl final output
@@ -2420,6 +2467,7 @@ servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefi
 servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
 servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
 servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
+servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
 servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \

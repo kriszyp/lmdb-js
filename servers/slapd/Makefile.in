@@ -36,20 +36,24 @@ LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
 SLAPD_MODULES=@SLAPD_MODULES_LIST@
+
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
 # $(LTHREAD_LIBS) must be last
 XLIBS = libbackends.a -lavl -lldbm -lldif -llutil -lldap_r -llber
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
-	$(SLAPD_PERL_LDFLAGS) $(SECURITY_LIBS) \
-	$(LDIF_LIBS) $(LUTIL_LIBS)
+	 $(SECURITY_LIBS) \
+	 $(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
 all-local-srv: all-cffiles
+
+NT_GEN_DEFS = -DLIBLUTIL_DECL=dllexport -DLIBAVL_DECL=dllexport \
+	      -DLIBLDBM_DECL=dllexport -DLIBLDIF_DECL=dllexport
 
 NT_DYN_DEFS  = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
 

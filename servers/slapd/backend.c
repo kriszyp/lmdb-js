@@ -42,6 +42,9 @@
 #ifdef SLAPD_NTDOMAIN
 #include "back-domain/external.h"
 #endif
+#ifdef SLAPD_SQL
+#include "back-sql/external.h"
+#endif
 
 static BackendInfo binfo[] = {
 #if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
@@ -67,6 +70,9 @@ static BackendInfo binfo[] = {
 #endif
 #if defined(SLAPD_NTDOMAIN) && !defined(SLAPD_NTDOMAIN_DYNAMIC)
 	{"ntdom",	domain_back_initialize},
+#endif
+#if defined(SLAPD_SQL) && !defined(SLAPD_SQL_DYNAMIC)
+	{"sql",		sql_back_initialize},
 #endif
 	{NULL}
 };
