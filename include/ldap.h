@@ -525,7 +525,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_OTHER					0x50
 
-/* LCUP operation codes (113-117) */
+/* LCUP operation codes (113-117) - not implemented */
 #define LDAP_CUP_RESOURCES_EXHAUSTED	0x71
 #define LDAP_CUP_SECURITY_VIOLATION		0x72
 #define LDAP_CUP_INVALID_DATA			0x73
