@@ -57,8 +57,7 @@ do_compare(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a{ao}}", &dn, &ava.ava_type,
-	    &ava.ava_value ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -74,12 +73,24 @@ do_compare(
 		goto cleanup;
 	}
 
+	if ( get_ava( op->o_ber, &ava ) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
+	}
+
+	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		return -1;
+	}
+
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
 	} 
-
-	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    dn, ava.ava_type, ava.ava_value.bv_val );
