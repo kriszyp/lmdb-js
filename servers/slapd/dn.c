@@ -28,8 +28,6 @@
 #define INQUOTEDVALUE	7
 #define B4SEPARATOR		8
 
-#define UTF8DN 1
-
 /*
  * dn_validate - validate and compress dn.  the dn is
  * compressed in place are returned if valid.
@@ -104,7 +102,7 @@ dn_validate( char *dn_in )
 			if ( *s == '"' ) {
 				state = INQUOTEDVALUE;
 				*d++ = *s;
-			} else if ( ! ASCII_SPACE( *s ) ) { 
+			} else if ( ! ASCII_SPACE( *s ) ) {
 				state = INVALUE;
 				*d++ = *s;
 			}
@@ -121,7 +119,8 @@ dn_validate( char *dn_in )
 					*d++ = ',';
 				}
 			} else if ( gotesc && !RDN_NEEDSESCAPE( *s ) &&
-			    !RDN_SEPARATOR( *s ) ) {
+				!RDN_SEPARATOR( *s ) )
+			{
 				*--d = *s;
 				d++;
 			} else if( !ASCII_SPACE( *s ) || !ASCII_SPACE( *(d - 1) ) ) {
@@ -154,11 +153,11 @@ dn_validate( char *dn_in )
 			dn = NULL;
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				   "dn_validate: unknown state %d for dn \"%s\".\n",
-				   state, dn_in ));
+				"dn_validate: unknown state %d for dn \"%s\".\n",
+				state, dn_in ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-			    "dn_validate - unknown state %d\n", state, 0, 0 );
+				"dn_validate - unknown state %d\n", state, 0, 0 );
 #endif
 			break;
 		}
@@ -204,13 +203,6 @@ char *
 dn_normalize( char *dn )
 {
 	char *out;
-	/* upper case it */
-#ifndef UTF8DN
-	ldap_pvt_str2upper( dn );
-	/* validate and compress dn */
-	out = dn_validate( dn );
-#else
-	/* enabling this might require reindexing */
 	struct berval *bvdn, *nbvdn;
 
 	out = NULL;
@@ -225,7 +217,6 @@ dn_normalize( char *dn )
 	}
 	bvdn->bv_val = NULL; /* prevent bvfree from freeing dn */
 	ber_bvfree( bvdn );
-#endif
 
 	return( out );
 }
@@ -236,8 +227,8 @@ dn_normalize( char *dn )
 
 char *
 dn_parent(
-    Backend	*be,
-    const char	*dn
+	Backend	*be,
+	const char	*dn
 )
 {
 	const char	*s;
@@ -288,9 +279,9 @@ dn_parent(
 	return ch_strdup( "" );
 }
 
-char * dn_rdn( 
-    Backend	*be,
-    const char	*dn_in )
+char * dn_rdn(
+	Backend	*be,
+	const char	*dn_in )
 {
 	char	*dn, *s;
 	int	inquote;
@@ -345,7 +336,7 @@ char * dn_rdn(
  */
 char **dn_subtree(
 	Backend	*be,
-    const char	*dn )
+	const char	*dn )
 {
 	char *child, *parent;
 	char **subtree = NULL;
@@ -367,14 +358,14 @@ char **dn_subtree(
 
 
 /*
- * dn_issuffix - tells whether suffix is a suffix of dn.  both dn
+ * dn_issuffix - tells whether suffix is a suffix of dn. Both dn
  * and suffix must be normalized.
  */
 
 int
 dn_issuffix(
-    const char	*dn,
-    const char	*suffix
+	const char	*dn,
+	const char	*suffix
 )
 {
 	int	dnlen, suffixlen;
@@ -396,9 +387,9 @@ dn_issuffix(
 /*
  * get_next_substring(), rdn_attr_type(), rdn_attr_value(), and
  * build_new_dn().
- * 
+ *
  * Copyright 1999, Juan C. Gomez, All rights reserved.
- * This software is not subject to any license of Silicon Graphics 
+ * This software is not subject to any license of Silicon Graphics
  * Inc. or Purdue University.
  *
  * Redistribution and use in source and binary forms are permitted
@@ -409,12 +400,12 @@ dn_issuffix(
 
 /* get_next_substring:
  *
- * Gets next substring in s, using d (or the end of the string '\0') as a 
- * string delimiter, and places it in a duplicated memory space. Leading 
+ * Gets next substring in s, using d (or the end of the string '\0') as a
+ * string delimiter, and places it in a duplicated memory space. Leading
  * spaces are ignored. String s **must** be null-terminated.
- */ 
+ */
 
-static char * 
+static char *
 get_next_substring( const char * s, char d )
 {
 
@@ -437,7 +428,6 @@ get_next_substring( const char * s, char d )
 		*/
 
 		*str++ = *s++;
-	    
 	}
 	
 	*str = '\0';
@@ -451,8 +441,8 @@ get_next_substring( const char * s, char d )
  *
  * Given a string (i.e. an rdn) of the form:
  *	 "attribute_type = attribute_value"
- * this function returns the type of an attribute, that is the 
- * string "attribute_type" which is placed in newly allocated 
+ * this function returns the type of an attribute, that is the
+ * string "attribute_type" which is placed in newly allocated
  * memory. The returned string will be null-terminated.
  */
 
@@ -466,12 +456,12 @@ char * rdn_attr_type( const char * s )
  *
  * Given a string (i.e. an rdn) of the form:
  *	 "attribute_type = attribute_value"
- * this function returns "attribute_type" which is placed in newly allocated 
- * memory. The returned string will be null-terminated and may contain 
+ * this function returns "attribute_type" which is placed in newly allocated
+ * memory. The returned string will be null-terminated and may contain
  * spaces (i.e. "John Doe\0").
  */
 
-char * 
+char *
 rdn_attr_value( const char * rdn )
 {
 
@@ -489,9 +479,9 @@ rdn_attr_value( const char * rdn )
 /* rdn_attrs:
  *
  * Given a string (i.e. an rdn) of the form:
- *       "attribute_type=attribute_value[+attribute_type=attribute_value[...]]"
- * this function stores the types of the attributes in ptypes, that is the 
- * array of strings "attribute_type" which is placed in newly allocated 
+ *   "attribute_type=attribute_value[+attribute_type=attribute_value[...]]"
+ * this function stores the types of the attributes in ptypes, that is the
+ * array of strings "attribute_type" which is placed in newly allocated
  * memory, and the values of the attributes in pvalues, that is the
  * array of strings "attribute_value" which is placed in newly allocated
  * memory. Returns 0 on success, -1 on failure.
@@ -531,7 +521,7 @@ rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
 		/* type should be fine */
 		charray_add_n( ptypes, p[0], ( s-p[0] ) );
 
-		/* value needs to be unescaped 
+		/* value needs to be unescaped
 		 * (maybe this should be moved to ldap_explode_rdn?) */
 		for ( e = d = s + 1; e[0]; e++ ) {
 			if ( *e != '\\' ) {
@@ -550,11 +540,11 @@ rdn_attrs( const char * rdn_in, char ***ptypes, char ***pvalues)
 
 
 /* rdn_validate:
- * 
- * 1 if rdn is a legal rdn; 
+ *
+ * 1 if rdn is a legal rdn;
  * 0 otherwise (including a sequence of rdns)
  *
- * note: got it from dn_rdn; it should be rewritten 
+ * note: got it from dn_rdn; it should be rewritten
  * according to dn_validate
  */
 int
@@ -606,10 +596,10 @@ rdn_validate( const char * rdn )
 
 /* build_new_dn:
  *
- * Used by ldbm/bdb2_back_modrdn to create the new dn of entries being
+ * Used by ldbm/bdb2 back_modrdn to create the new dn of entries being
  * renamed.
  *
- * new_dn = parent (p_dn)  + separator(s) + rdn (newrdn) + null.
+ * new_dn = parent (p_dn) + separator(s) + rdn (newrdn) + null.
  */
 
 void
@@ -619,12 +609,12 @@ build_new_dn( char ** new_dn,
 	const char * newrdn )
 {
 
-    if ( p_dn == NULL ) {
-	*new_dn = ch_strdup( newrdn );
-	return;
-    }
-    
-    *new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );
+	if ( p_dn == NULL ) {
+		*new_dn = ch_strdup( newrdn );
+		return;
+	}
+
+	*new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );
 
 	strcpy( *new_dn, newrdn );
 	strcat( *new_dn, "," );
