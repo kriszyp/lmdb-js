@@ -20,7 +20,7 @@ id2entry_add( Backend *be, Entry *e )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
 	Datum		key, data;
-	int		len, rc;
+	int		len, rc, flags;
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2entry_add( %d, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
@@ -39,8 +39,10 @@ id2entry_add( Backend *be, Entry *e )
 	data.dptr = entry2str( e, &len, 1 );
 	data.dsize = len + 1;
 
-	/* store it - LDBM_SYNC ensures id2entry is always consistent */
-	rc = ldbm_cache_store( db, key, data, LDBM_REPLACE|LDBM_SYNC );
+	/* store it */
+	flags = LDBM_REPLACE;
+	if ( li->li_flush_wrt ) flags |= LDBM_SYNC;
+	rc = ldbm_cache_store( db, key, data, flags );
 
 	pthread_mutex_unlock( &entry2str_mutex );
 
