@@ -27,7 +27,7 @@
  * e.g. "ou=People,dc=openldap,dc=org" => "People, openldap.org" */
 #define DC_IN_UFN
 
-static char *dn2dn( const char *dnin, unsigned fin, unsigned fout );
+static int dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout );
 
 /* from libraries/libldap/schema.c */
 extern char * parse_numericoid(const char **sp, int *code, const int flags);
@@ -163,9 +163,13 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 	LDAP_VFREE( vals );
 	return ufn;
 #else /* USE_LDAP_DN_PARSING */
+	char	*out = NULL;
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
-	return dn2dn( dn, LDAP_DN_FORMAT_LDAP, LDAP_DN_FORMAT_UFN );
+	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, &out, LDAP_DN_FORMAT_UFN );
+	
+	return( out );
 #endif /* USE_LDAP_DN_PARSING */
 }
 
@@ -337,9 +341,13 @@ ldap_dn2dcedn( LDAP_CONST char *dn )
 	
 	return dce;
 #else /* USE_LDAP_DN_PARSING */
+	char	*out = NULL;
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2dcedn\n", 0, 0, 0 );
 
-	return dn2dn( dn, LDAP_DN_FORMAT_LDAP, LDAP_DN_FORMAT_DCE );
+	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, &out, LDAP_DN_FORMAT_DCE );
+
+	return( out );
 #endif /* USE_LDAP_DN_PARSING */
 }
 
@@ -389,18 +397,27 @@ ldap_dcedn2dn( LDAP_CONST char *dce )
 
 	return dn;
 #else /* USE_LDAP_DN_PARSING */
+	char	*out = NULL;
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_dcedn2dn\n", 0, 0, 0 );
 
-	return dn2dn( dce, LDAP_DN_FORMAT_DCE, LDAP_DN_FORMAT_LDAPV3 );
+	( void )dn2dn( dce, LDAP_DN_FORMAT_DCE, &out, LDAP_DN_FORMAT_LDAPV3 );
+
+	return( out );
 #endif /* USE_LDAP_DN_PARSING */
 }
 
 char *
 ldap_dn2ad_canonical( LDAP_CONST char *dn )
 {
+	char	*out = NULL;
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ad_canonical\n", 0, 0, 0 );
 
-	return dn2dn( dn, LDAP_DN_FORMAT_LDAP, LDAP_DN_FORMAT_AD_CANONICAL );
+	( void )dn2dn( dn, LDAP_DN_FORMAT_LDAP, 
+		       &out, LDAP_DN_FORMAT_AD_CANONICAL );
+
+	return( out );
 }
 
 #ifndef USE_LDAP_DN_PARSING	/* deprecated */
@@ -537,6 +554,20 @@ explode_name( const char *name, int notypes, int is_type )
 }
 #endif /* !USE_LDAP_DN_PARSING */
 
+int
+ldap_dn_normalize( const char *in, unsigned iflags, char **out, unsigned oflags ) 
+{
+	assert( out );
+
+#ifdef USE_LDAP_DN_PARSING
+	Debug( LDAP_DEBUG_TRACE, "ldap_dn_normalize\n", 0, 0, 0 );
+
+	return dn2dn( in, iflags, out, oflags);
+#else /* !USE_LDAP_DN_PARSING */
+	return( LDAP_OTHER );
+#endif /* !USE_LDAP_DN_PARSING */
+}
+
 /*
  * helper that changes the string representation of dnin
  * from ( fin & LDAP_DN_FORMAT_MASK ) to ( fout & LDAP_DN_FORMAT_MASK )
@@ -554,26 +585,30 @@ explode_name( const char *name, int notypes, int is_type )
  * 	LDAP_DN_FORMAT_UFN		(rfc 1781, partial and with extensions)
  * 	LDAP_DN_FORMAT_AD_CANONICAL	(?)
  */
-static char *
-dn2dn( const char *dnin, unsigned fin, unsigned fout )
+static int
+dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 {
-	char	*dnout = NULL;
+	int	rc;
 	LDAPDN	*tmpDN = NULL;
 
-	if( dnin == NULL ) {
-		return NULL;
+	assert( dnout );
+
+	*dnout = NULL;
+
+	if ( dnin == NULL ) {
+		return( LDAP_SUCCESS );
 	}
 
-	if ( ldap_str2dn( dnin , &tmpDN, fin ) != LDAP_SUCCESS ) {
-		return NULL;
+	rc = ldap_str2dn( dnin , &tmpDN, fin );
+	if ( rc != LDAP_SUCCESS ) {
+		return( rc );
 	}
 
-	/* don't care about the result ... */
-	ldap_dn2str( tmpDN, &dnout, fout );
+	rc = ldap_dn2str( tmpDN, dnout, fout );
 
 	ldapava_free_dn( tmpDN );
 
-	return dnout;
+	return( rc );
 }
 
 /* States */
