@@ -1,6 +1,7 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.21 Engineering
+OpenLDAP 2.0.21 Release
+	Fix slapd empty string indexing/filtering handling (ITS#1507)
 	Changed slapd ACL selfwrite replace logic (ITS#1530)
 	Build environment
 		Updated IPv6 configuration argument handling
