@@ -70,13 +70,11 @@ ldap_ld_free(
 {
 	LDAPMessage	*lm, *next;
 	int		err = LDAP_SUCCESS;
-	LDAPRequest	*lr, *nextlr;
 
-		/* free LDAP structure and outstanding requests/responses */
-		for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
-			nextlr = lr->lr_next;
-			ldap_free_request( ld, lr );
-		}
+	/* free LDAP structure and outstanding requests/responses */
+	while ( ld->ld_requests != NULL ) {
+		ldap_free_request( ld, ld->ld_requests );
+	}
 
 		/* free and unbind from all open connections */
 		while ( ld->ld_conns != NULL ) {
