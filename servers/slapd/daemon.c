@@ -159,7 +159,7 @@ slapd_daemon_task(
 #elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
 #else
-	dtblsize = FD_SETSIZE
+	dtblsize = FD_SETSIZE;
 #endif
 
 #ifdef FD_SETSIZE
@@ -167,6 +167,15 @@ slapd_daemon_task(
 		dtblsize = FD_SETSIZE;
 	}
 #endif	/* !FD_SETSIZE */
+
+#ifdef HAVE_WINSOCK
+	{
+		WORD    vers = MAKEWORD( 2, 0);
+		int     err;
+		WSADATA wsaData;
+		err = WSAStartup( vers, &wsaData );
+	}
+#endif
 
 	connections_init();
 
@@ -431,7 +440,16 @@ slapd_daemon_task(
 
 #ifdef LDAP_DEBUG
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
-
+#ifdef HAVE_WINSOCK
+		for ( i = 0; i < readfds.fd_count; i++ )
+		{
+			Debug( LDAP_DEBUG_CONNS, " %d%s", readfds.fd_array[i], "r" );
+		}
+		for ( i = 0; i < writefds.fd_count; i++ )
+		{
+			Debug( LDAP_DEBUG_CONNS, " %d%s", writefds.fd_array[i], "w" );
+		}
+#else
 		for ( i = 0; i < nfds; i++ ) {
 			int	a, r, w;
 
@@ -442,16 +460,31 @@ slapd_daemon_task(
 				    r ? "r" : "", w ? "w" : "" );
 			}
 		}
-
+#endif
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
 #endif
 
 		/* loop through the writers */
+#ifdef HAVE_WINSOCK
+		for ( i = 0; i < writefds.fd_count; i++ ) {
+			if ( writefds.fd_array[i] == tcps ) {
+				continue;
+			}
+			Debug( LDAP_DEBUG_CONNS,
+				"daemon: signalling write waiter on %d\n",
+				writefds.fd_array[i], 0, 0 );
+			assert( FD_ISSET( 0, &slap_daemon.sd_actives) );
+
+			slapd_clr_write( writefds.fd_array[i], 0 );
+			if ( connection_write( writefds.fd_array[i] ) < 0 ) {
+				FD_CLR( writefds.fd_array[i], &readfds );
+				slapd_close( writefds.fd_array[i] );
+			}
+#else
 		for ( i = 0; i < nfds; i++ ) {
 			if ( i == tcps ) {
 				continue;
 			}
-
 			if ( FD_ISSET( i, &writefds ) ) {
 				Debug( LDAP_DEBUG_CONNS,
 				    "daemon: signaling write waiter on %d\n", i, 0, 0 );
@@ -466,8 +499,23 @@ slapd_daemon_task(
 					slapd_close( i );
 				}
 			}
-		}
+#endif
 
+		}
+#ifdef HAVE_WINSOCK
+		for ( i = 0; i < readfds.fd_count; i++ ) {
+			if ( readfds.fd_array[i] == tcps ) {
+				continue;
+			}
+			Debug ( LDAP_DEBUG_CONNS,
+				"daemon: read activity on %d\n", readfds.fd_array[i], 0, 0 );
+			assert( FD_ISSET( readfds.fd_array[i], &slap_daemon.sd_actives) );
+
+			if ( connection_read( readfds.fd_array[i] ) < 0 ) {
+				slapd_close( i );
+			}
+		}
+#else
 		for ( i = 0; i < nfds; i++ ) {
 			if ( i == tcps ) {
 				continue;
@@ -484,7 +532,7 @@ slapd_daemon_task(
 				}
 			}
 		}
-
+#endif
 		ldap_pvt_thread_yield();
 	}
 

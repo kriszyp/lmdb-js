@@ -12,7 +12,9 @@
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
 #include "slap.h"
 
 FILE *

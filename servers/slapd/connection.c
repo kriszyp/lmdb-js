@@ -10,6 +10,10 @@
 
 #include "slap.h"
 
+#ifdef HAVE_WINSOCK
+#define EWOULDBLOCK WSAEWOULDBLOCK
+#endif
+
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
@@ -28,6 +32,7 @@ static long conn_nextid = 0;
 #define SLAP_C_BINDING			0x3	/* binding */
 #define SLAP_C_CLOSING			0x4	/* closing */
 
+void slapd_remove(int s);
 static Connection* connection_get( int s );
 
 static int connection_input( Connection *c );
@@ -67,6 +72,9 @@ int connections_init(void)
 		return -1;
 	}
 
+	for ( i = 0; i < dtblsize; i++ )
+		memset( &connections[i], 0, sizeof(Connection) );
+
 	/*
 	 * per entry initialization of the Connection array initialization
 	 * will be done by connection_init()
@@ -96,24 +104,24 @@ static Connection* connection_get( int s )
 		int i;
 
 		for(i=0; i<dtblsize; i++) {
-			if( connections[i].c_struct_state == SLAP_C_STRUCT_UNINITIALIZED ) {
+			if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
 				assert( connections[i].c_conn_state == SLAP_C_INVALID );
-				assert( connections[s].c_sb.sb_sd == 0 );
+				assert( connections[i].c_sb.sb_sd == 0 );
 				break;
 			}
 
-			if( connections[i].c_struct_state == SLAP_C_STRUCT_UNUSED ) {
+			if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
 				assert( connections[i].c_conn_state == SLAP_C_INVALID );
-				assert( connections[s].c_sb.sb_sd == -1 );
+				assert( connections[i].c_sb.sb_sd == -1 );
 				continue;
 			}
 
-			assert( connections[i].c_struct_state == SLAP_C_STRUCT_USED );
+			assert( connections[i].c_struct_state == SLAP_C_USED );
 			assert( connections[i].c_conn_state != SLAP_C_INVALID );
-			assert( connections[s].c_sb.sb_sd != -1 );
+			assert( connections[i].c_sb.sb_sd != -1 );
 
 			if( connections[i].c_sb.sb_sd == s ) {
-				c = &connections[s];
+				c = &connections[i];
 				break;
 			}
 		}
@@ -163,116 +171,116 @@ long connection_init(
 	{
 		int i;
 
-		for( i=0; i < dtblsize; i++ {
-			if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
-				assert( connections[i].c_sb.sb_sd == 0 );
-				c = &connections[i];
-				break;
-			}
+        for( i=0; i < dtblsize; i++) {
+            if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
+                assert( connections[i].c_sb.sb_sd == 0 );
+                c = &connections[i];
+                break;
+            }
 
-			if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
-				assert( connections[i].c_sb.sb_sd == -1 );
-				c = &connections[i];
-				break;
-			}
+            if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
+                assert( connections[i].c_sb.sb_sd == -1 );
+                c = &connections[i];
+                break;
+            }
 
-			assert( connections[i].c_struct_state == SLAP_C_USED );
-			assert( connections[i].c_conn_state != SLAP_C_INVALID );
-			assert( connections[i].c_sb.sb_sd != -1 );
-		}
+            assert( connections[i].c_struct_state == SLAP_C_USED );
+            assert( connections[i].c_conn_state != SLAP_C_INVALID );
+            assert( connections[i].c_sb.sb_sd != -1 );
+        }
 
-		if( c == NULL ) {
-			ldap_pvt_thread_mutex_unlock( &connections_mutex );
-			return -1;
-		}
-	}
+        if( c == NULL ) {
+            ldap_pvt_thread_mutex_unlock( &connections_mutex );
+            return -1;
+        }
+    }
 #endif
 
-	assert( c != NULL );
-	assert( c->c_struct_state != SLAP_C_USED );
-	assert( c->c_conn_state == SLAP_C_INVALID );
+    assert( c != NULL );
+    assert( c->c_struct_state != SLAP_C_USED );
+    assert( c->c_conn_state == SLAP_C_INVALID );
 
-	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
-		c->c_dn = NULL;
-		c->c_cdn = NULL;
-		c->c_client_name = NULL;
-		c->c_client_addr = NULL;
-		c->c_ops = NULL;
-		c->c_pending_ops = NULL;
+    if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
+        c->c_dn = NULL;
+        c->c_cdn = NULL;
+        c->c_client_name = NULL;
+        c->c_client_addr = NULL;
+        c->c_ops = NULL;
+        c->c_pending_ops = NULL;
 
-		lber_pvt_sb_init( &c->c_sb );
+        lber_pvt_sb_init( &c->c_sb );
 
-		/* should check status of thread calls */
-		ldap_pvt_thread_mutex_init( &c->c_mutex );
-		ldap_pvt_thread_mutex_init( &c->c_write_mutex );
-		ldap_pvt_thread_cond_init( &c->c_write_cv );
+        /* should check status of thread calls */
+        ldap_pvt_thread_mutex_init( &c->c_mutex );
+        ldap_pvt_thread_mutex_init( &c->c_write_mutex );
+        ldap_pvt_thread_cond_init( &c->c_write_cv );
 
-		c->c_struct_state = SLAP_C_UNUSED;
-	}
+        c->c_struct_state = SLAP_C_UNUSED;
+    }
 
-	ldap_pvt_thread_mutex_lock( &c->c_mutex );
+    ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
-	assert( c->c_struct_state == SLAP_C_UNUSED );
-	assert(	c->c_dn == NULL );
-	assert(	c->c_cdn == NULL );
-	assert( c->c_client_name == NULL );
-	assert( c->c_client_addr == NULL );
-	assert( c->c_ops == NULL );
-	assert( c->c_pending_ops == NULL );
+    assert( c->c_struct_state == SLAP_C_UNUSED );
+    assert(	c->c_dn == NULL );
+    assert(	c->c_cdn == NULL );
+    assert( c->c_client_name == NULL );
+    assert( c->c_client_addr == NULL );
+    assert( c->c_ops == NULL );
+    assert( c->c_pending_ops == NULL );
 
-	c->c_client_name = ch_strdup( name == NULL ? "" : name );
-	c->c_client_addr = ch_strdup( addr );
+    c->c_client_name = ch_strdup( name == NULL ? "" : name );
+    c->c_client_addr = ch_strdup( addr );
 
-	c->c_n_ops_received = 0;
+    c->c_n_ops_received = 0;
 #ifdef LDAP_COUNTERS
-	c->c_n_ops_executing = 0;
-	c->c_n_ops_pending = 0;
-	c->c_n_ops_completed = 0;
+    c->c_n_ops_executing = 0;
+    c->c_n_ops_pending = 0;
+    c->c_n_ops_completed = 0;
 #endif
 
-	c->c_starttime = slap_get_time();
+    c->c_starttime = slap_get_time();
 
-	lber_pvt_sb_set_desc( &c->c_sb, s );
-	lber_pvt_sb_set_io( &c->c_sb, &lber_pvt_sb_io_tcp, NULL );
+    lber_pvt_sb_set_desc( &c->c_sb, s );
+    lber_pvt_sb_set_io( &c->c_sb, &lber_pvt_sb_io_tcp, NULL );
 
-	if( lber_pvt_sb_set_nonblock( &c->c_sb, 1 ) < 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"connection_init(%d, %s, %s): set nonblocking failed\n",
-			s, c->c_client_name, c->c_client_addr);
-	}
+    if( lber_pvt_sb_set_nonblock( &c->c_sb, 1 ) < 0 ) {
+        Debug( LDAP_DEBUG_ANY,
+            "connection_init(%d, %s, %s): set nonblocking failed\n",
+            s, c->c_client_name, c->c_client_addr);
+    }
 
-	id = c->c_connid = conn_nextid++;
+    id = c->c_connid = conn_nextid++;
 
-	c->c_conn_state = SLAP_C_INACTIVE;
-	c->c_struct_state = SLAP_C_USED;
+    c->c_conn_state = SLAP_C_INACTIVE;
+    c->c_struct_state = SLAP_C_USED;
 
-	ldap_pvt_thread_mutex_unlock( &c->c_mutex );
-	ldap_pvt_thread_mutex_unlock( &connections_mutex );
+    ldap_pvt_thread_mutex_unlock( &c->c_mutex );
+    ldap_pvt_thread_mutex_unlock( &connections_mutex );
 
-	return id;
+    return id;
 }
 
 static void
 connection_destroy( Connection *c )
 {
-	assert( connections != NULL );
-	assert( c != NULL );
-	assert( c->c_struct_state != SLAP_C_UNUSED );
-	assert( c->c_conn_state != SLAP_C_INVALID );
-	assert( c->c_ops == NULL );
+    assert( connections != NULL );
+    assert( c != NULL );
+    assert( c->c_struct_state != SLAP_C_UNUSED );
+    assert( c->c_conn_state != SLAP_C_INVALID );
+    assert( c->c_ops == NULL );
 
-	c->c_struct_state = SLAP_C_UNUSED;
-	c->c_conn_state = SLAP_C_INVALID;
+    c->c_struct_state = SLAP_C_UNUSED;
+    c->c_conn_state = SLAP_C_INVALID;
 
-	c->c_version = 0;
-	c->c_protocol = 0;
+    c->c_version = 0;
+    c->c_protocol = 0;
 
-	c->c_starttime = 0;
+    c->c_starttime = 0;
 
-	if(c->c_dn != NULL) {
-		free(c->c_dn);
-		c->c_dn = NULL;
-	}
+    if(c->c_dn != NULL) {
+        free(c->c_dn);
+        c->c_dn = NULL;
+    }
 	if(c->c_cdn != NULL) {
 		free(c->c_cdn);
 		c->c_cdn = NULL;
@@ -632,7 +640,6 @@ connection_input(
 
 			return -1;
 		}
-
 		return 1;
 	}
 
@@ -692,7 +699,7 @@ connection_resched( Connection *conn )
 
 	if( conn->c_conn_state != SLAP_C_ACTIVE ) {
 		/* other states need different handling */
-		return;
+		return 0;
 	}
 
 	for( op = slap_op_pop( &conn->c_pending_ops );
@@ -705,6 +712,7 @@ connection_resched( Connection *conn )
 			break;
 		}
 	}
+	return 0;
 }
 
 static int connection_op_activate( Connection *conn, Operation *op )

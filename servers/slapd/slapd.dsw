@@ -3,7 +3,31 @@ Microsoft Developer Studio Workspace File, Format Version 5.00
 
 ###############################################################################
 
+Project: "backbdb2"=".\back-bdb2\backbdb2.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "backldbm"=".\back-ldbm\backldbm.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libavl"=..\..\libraries\libavl\libavl.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -27,7 +51,67 @@ Package=<4>
 
 ###############################################################################
 
+Project: "libldap"=..\..\libraries\libldap\libldap.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
 Project: "libldap_r"=..\..\libraries\libldap_r\libldap_r.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libldbm"=..\..\libraries\libldbm\libldbm.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libldif"=..\..\libraries\libldif\libldif.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "liblutil"=..\..\libraries\liblutil\liblutil.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "regex"=..\..\libraries\regex\regex.dsp - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -48,13 +132,28 @@ Package=<5>
 Package=<4>
 {{{
     Begin Project Dependency
-    Project_Dep_Name backldbm
+    Project_Dep_Name libavl
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblber
     End Project Dependency
     Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name regex
+    End Project Dependency
+    Begin Project Dependency
     Project_Dep_Name libldap_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name backldbm
     End Project Dependency
 }}}
 

@@ -70,7 +70,7 @@ main( int argc, char **argv )
 {
 	int		i;
 	int		inetd = 0;
-	int		status, rc;
+	int		rc;
 	struct sockaddr_in	bind_addr, *slapd_addr;
 	int		udp;
 #ifdef LOG_LOCAL4
@@ -97,7 +97,11 @@ main( int argc, char **argv )
 #endif
 		switch ( i ) {
 		case 'a':	/* bind address */
+#ifdef HAVE_WINSOCK
+			if(!(bind_addr.sin_addr.S_un.S_addr = inet_addr(optarg))) {
+#else
 			if(!inet_aton(optarg, &bind_addr.sin_addr)) {
+#endif
 				fprintf(stderr, "invalid address (%s) for -a option", optarg);
 			}
             break;
@@ -153,7 +157,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'p': {	/* port on which to listen */
-				int port = atoi( optarg );
+				short port = (short)atoi( optarg );
 				if(! port ) {
 					fprintf(stderr, "-p %s must be numeric\n", optarg);
 				} else {
@@ -230,6 +234,7 @@ main( int argc, char **argv )
 	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
 
+#ifndef WIN32
 	if(!inetd) {
 #ifdef LDAP_DEBUG
 		lutil_detach( ldap_debug, 0 );
@@ -237,6 +242,7 @@ main( int argc, char **argv )
 		lutil_detach( 0, 0 );
 #endif
 	}
+#endif /* WIN32 */
 
 	if ( slap_startup(-1)  != 0 ) {
 		rc = 1;
