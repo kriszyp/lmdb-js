@@ -11,7 +11,7 @@ using namespace std;
 
 LDAPUrlList::LDAPUrlList(){
     DEBUG(LDAP_DEBUG_CONSTRUCT," LDAPUrlList::LDAPUrlList()" << endl);
-    m_urls=UrlList();
+    m_urls=LDAPUrlList::ListType();
 }
 
 LDAPUrlList::LDAPUrlList(const LDAPUrlList& urls){

@@ -9,14 +9,14 @@
 #include <list>
 #include <LDAPUrl.h>
 
-typedef std::list<LDAPUrl> UrlList;
-
 /**
  * This container class is used to store multiple LDAPUrl-objects.
  */
 class LDAPUrlList{
+    typedef std::list<LDAPUrl> ListType;
+
     public:
-	typedef UrlList::const_iterator const_iterator;
+	typedef ListType::const_iterator const_iterator;
 
         /**
          * Constructs an empty list.
@@ -72,6 +72,6 @@ class LDAPUrlList{
         void add(const LDAPUrl& url);
 
     private :
-        UrlList m_urls;
+        ListType m_urls;
 };
 #endif //LDAP_URL_LIST_H

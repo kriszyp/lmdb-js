@@ -12,12 +12,12 @@ StringList::StringList(){
 }
 
 StringList::StringList(const StringList& sl){
-    m_data= ListType(sl.m_data);
+    m_data= StringList::ListType(sl.m_data);
 }
 
 StringList::StringList(char** values){
     if(values == 0){
-        m_data=ListType();
+        m_data=StringList::ListType();
     }else{
         char** i;
         for(i=values; *i != 0; i++){

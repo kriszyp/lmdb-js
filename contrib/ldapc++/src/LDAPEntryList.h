@@ -10,8 +10,6 @@
 
 class LDAPEntry;
    
-typedef std::list<LDAPEntry> EntryList;
-
 /**
  * For internal use only.
  * 
@@ -19,8 +17,10 @@ typedef std::list<LDAPEntry> EntryList;
  * LDAPEntry-Objects
  */
 class LDAPEntryList{
+    typedef std::list<LDAPEntry> ListType;
+
     public:
-	typedef EntryList::const_iterator const_iterator;
+	typedef ListType::const_iterator const_iterator;
 
         /**
          * Copy-Constructor
@@ -63,6 +63,6 @@ class LDAPEntryList{
         void addEntry(const LDAPEntry& e);
 
     private:
-        EntryList m_entries;
+        ListType m_entries;
 };
 #endif // LDAP_ENTRY_LIST_H
