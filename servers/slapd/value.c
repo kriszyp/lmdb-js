@@ -339,7 +339,7 @@ value_match(
 		}
 	}
 
-	if ( SLAP_IS_MR_VALUE_SYNTAX_NONCONVERTED_MATCH( flags ) &&
+	if ( SLAP_IS_MR_ATTRIBUTE_SYNTAX_NONCONVERTED_MATCH( flags ) &&
 		mr->smr_convert )
 	{
 		rc = (mr->smr_convert)( v2, &nv2 );
@@ -348,7 +348,7 @@ value_match(
 		}
 
 		/* let smr_match know we've converted the value */
-		flags |= SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH;
+		flags |= SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH;
 	}
 
 	rc = (mr->smr_match)( match, flags,
@@ -379,7 +379,7 @@ int value_find_ex(
 	}
 
 	/* Take care of this here or ssyn_normalize later will hurt */
-	if ( SLAP_IS_MR_VALUE_SYNTAX_NONCONVERTED_MATCH( flags )
+	if ( SLAP_IS_MR_ATTRIBUTE_SYNTAX_NONCONVERTED_MATCH( flags )
 		&& mr->smr_convert )
 	{
 		rc = (mr->smr_convert)( val, &nval );
@@ -388,11 +388,12 @@ int value_find_ex(
 		}
 
 		/* let value_match know we've done the version */
-		flags |= SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH;
+		flags |= SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH;
 	}
 
-	if( !(flags & SLAP_MR_VALUE_NORMALIZED_MATCH) &&
-		mr->smr_syntax->ssyn_normalize ) {
+	if( !(flags & SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH) &&
+		mr->smr_syntax->ssyn_normalize )
+	{
 		struct berval nval_tmp = { 0, NULL };
 
 		rc = mr->smr_syntax->ssyn_normalize(

@@ -90,7 +90,7 @@ objectSubClassMatch(
 		return SLAPD_COMPARE_UNDEFINED;
 	}
 
-	if( SLAP_IS_MR_VALUE_SYNTAX_MATCH( flags ) ) {
+	if( SLAP_IS_MR_ATTRIBUTE_SYNTAX_MATCH( flags ) ) {
 		*matchp = ( asserted != oc );
 	} else {
 		*matchp = !is_object_subclass( asserted, oc );

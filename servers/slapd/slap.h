@@ -428,28 +428,44 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0040U )
 
 /*
- * normally the provided value is expected to conform to
+ * normally the asserted value is expected to conform to
  * assertion syntax specified in the matching rule, however
  * at times (such as during individual value modification),
- * the provided value is expected to conform to the
+ * the asserted value is expected to conform to the
  * attribute's value syntax.
  */
-#define SLAP_MR_ASSERTION_SYNTAX_MATCH			0x0000U
-#define SLAP_MR_VALUE_SYNTAX_MATCH				0x0001U
-#define SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH	0x0003U
-#define SLAP_MR_VALUE_NORMALIZED_MATCH	0x0004U
+#define SLAP_MR_ASSERTION_SYNTAX_MATCH				0x0000U
+#define SLAP_MR_ATTRIBUTE_SYNTAX_MATCH				0x0001U
+
+/* For SLAP_MR_ATTRIBUTE_SYNTAX_MATCHes, this flag indicates
+ * that the asserted value of the attribute syntax has been
+ * converted to the assertion syntax.  (Not sure why we just
+ * don't clear the SLAP_MR_ATTRIBUTE_SYNTAX_MATCH flag instead.)
+ */
+#define SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH	0x0002U
+
+/* either or both the asserted value or attribute value
+ * may be provided in normalized form
+ */
+#define SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH		0x0004U
+#define SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH	0x0008U
 
 #define SLAP_IS_MR_ASSERTION_SYNTAX_MATCH( usage ) \
-	(!((usage) & SLAP_MR_VALUE_SYNTAX_MATCH))
-#define SLAP_IS_MR_VALUE_SYNTAX_MATCH( usage ) \
-	((usage) & SLAP_MR_VALUE_SYNTAX_MATCH)
+	(!((usage) & SLAP_MR_ATTRIBUTE_SYNTAX_MATCH))
+#define SLAP_IS_MR_ATTRIBUTE_SYNTAX_MATCH( usage ) \
+	((usage) & SLAP_MR_ATTRIBUTE_SYNTAX_MATCH)
 
-#define SLAP_IS_MR_VALUE_SYNTAX_CONVERTED_MATCH( usage ) \
-	(((usage) & SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH) \
-		== SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH)
-#define SLAP_IS_MR_VALUE_SYNTAX_NONCONVERTED_MATCH( usage ) \
-	(((usage) & SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH) \
-		== SLAP_MR_VALUE_SYNTAX_MATCH)
+#define SLAP_IS_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH( usage ) \
+	(((usage) & SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH) \
+		== SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH)
+#define SLAP_IS_MR_ATTRIBUTE_SYNTAX_NONCONVERTED_MATCH( usage ) \
+	(((usage) & SLAP_MR_ATTRIBUTE_SYNTAX_CONVERTED_MATCH) \
+		== SLAP_MR_ATTRIBUTE_SYNTAX_MATCH)
+
+#define SLAP_IS_MR_ASSERTED_VALUE_NORMALIZED_MATCH( usage ) \
+	((usage) & SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH )
+#define SLAP_IS_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH( usage ) \
+	((usage) & SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH )
 
 	Syntax					*smr_syntax;
 	slap_mr_convert_func	*smr_convert;

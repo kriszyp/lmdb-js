@@ -135,7 +135,7 @@ modify_check_duplicates(
 				int match;
 
 				rc = (*mr->smr_match)( &match,
-					SLAP_MR_VALUE_SYNTAX_MATCH,
+					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
 					ad->ad_type->sat_syntax,
 					mr, &nmods[ i ], &nvals[ j ] );
 				if ( rc != LDAP_SUCCESS ) {
@@ -173,7 +173,7 @@ modify_check_duplicates(
 			int match;
 
 			rc = (*mr->smr_match)( &match,
-				SLAP_MR_VALUE_SYNTAX_MATCH,
+				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
 				ad->ad_type->sat_syntax,
 				mr, &nmods[ i ], &nmods[ j ] );
 			if ( rc != LDAP_SUCCESS ) {
@@ -230,7 +230,7 @@ modify_check_duplicates(
 				int match;
 
 				rc = (*mr->smr_match)( &match,
-					SLAP_MR_VALUE_SYNTAX_MATCH,
+					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
 					ad->ad_type->sat_syntax,
 					mr, &nmods[ i ], &asserted );
 				if ( rc != LDAP_SUCCESS ) {
@@ -405,7 +405,7 @@ modify_add_values(
 					int	match;
 
 					rc = value_match( &match, mod->sm_desc, mr,
-						SLAP_MR_VALUE_SYNTAX_MATCH,
+						SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
 						&a->a_vals[ i ], &asserted, text );
 
 					if( rc == LDAP_SUCCESS && match == 0 ) {
@@ -567,7 +567,7 @@ modify_delete_values(
 			}
 
 			rc = (*mr->smr_match)( &match,
-				SLAP_MR_VALUE_SYNTAX_MATCH,
+				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
 				a->a_desc->ad_type->sat_syntax,
 				mr, &nvals[ j ], &asserted );
 

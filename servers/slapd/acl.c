@@ -889,7 +889,9 @@ dn_match_cleanup:;
 				at = attrs_find( at->a_next, b->a_dn_at ) )
 			{
 				if( value_find_ex( b->a_dn_at,
-					SLAP_MR_VALUE_NORMALIZED_MATCH, at->a_vals, &bv ) == 0 ) {
+					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH, at->a_vals, &bv )
+					== 0 )
+				{
 					/* found it */
 					match = 1;
 					break;
@@ -902,8 +904,8 @@ dn_match_cleanup:;
 				 */
 				if ( b->a_dn_self ) {
 					/* check if the target is an attribute. */
-					if ( val == NULL )
-						continue;
+					if ( val == NULL ) continue;
+
 					/* target is attribute, check if the attribute value
 					 * is the op dn.
 					 */

@@ -308,7 +308,6 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 	a = attr_find( e->e_attrs, mod->sm_desc );
 
 	if ( a != NULL ) {
-		
 		/* "description" SHOULD have appropriate rules ... */
 		if ( mr == NULL || !mr->smr_match ) {
 			return LDAP_INAPPROPRIATE_MATCHING;
@@ -321,10 +320,10 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			struct berval asserted;
 
 			rc = value_normalize( mod->sm_desc,
-					SLAP_MR_EQUALITY,
-					&mod->sm_bvalues[i],
-					&asserted,
-					&text );
+				SLAP_MR_EQUALITY,
+				&mod->sm_bvalues[i],
+				&asserted,
+				&text );
 
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -333,8 +332,8 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
-						SLAP_MR_VALUE_SYNTAX_MATCH,
-						&a->a_vals[j], &asserted, &text );
+					SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
+					&a->a_vals[j], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
 					free( asserted.bv_val );
@@ -412,8 +411,8 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 			int match;
 			int rc = value_match( &match, mod->sm_desc, mr,
-					SLAP_MR_VALUE_SYNTAX_MATCH,
-					&a->a_vals[j], &asserted, &text );
+				SLAP_MR_ATTRIBUTE_SYNTAX_MATCH,
+				&a->a_vals[j], &asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 ) {
 				continue;
