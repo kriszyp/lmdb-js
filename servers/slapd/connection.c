@@ -1465,7 +1465,8 @@ connection_input(
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 
 	op->o_conn = conn;
-	op->vrFilter = NULL;
+	op->o_assertion = NULL;
+	op->o_vrFilter = NULL;
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	op->o_pagedresults_state = conn->c_pagedresults_state;
 #endif
