@@ -20,6 +20,38 @@
 
 #include <ldap_schema.h>
 
+
+static LDAP_CONST char *
+choose_name( char *names[], LDAP_CONST char *fallback )
+{
+	return( (names != NULL && names[0] != NULL) ? names[0] : fallback );
+}
+
+LDAP_CONST char *
+ldap_syntax2name( LDAP_SYNTAX * syn )
+{
+	return( syn->syn_oid );
+}
+
+LDAP_CONST char *
+ldap_matchingrule2name( LDAP_MATCHING_RULE * mr )
+{
+	return( choose_name( mr->mr_names, mr->mr_oid ) );
+}
+
+LDAP_CONST char *
+ldap_attributetype2name( LDAP_ATTRIBUTE_TYPE * at )
+{
+	return( choose_name( at->at_names, at->at_oid ) );
+}
+
+LDAP_CONST char *
+ldap_objectclass2name( LDAP_OBJECT_CLASS * oc )
+{
+	return( choose_name( oc->oc_names, oc->oc_oid ) );
+}
+
+
 /*
  * When pretty printing the entities we will be appending to a buffer.
  * Since checking for overflow, realloc'ing and checking if no error

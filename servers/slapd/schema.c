@@ -1190,24 +1190,21 @@ static void
 oc_print( ObjectClass *oc )
 {
 	int	i;
+	const char *mid;
 
-	if ( oc->soc_names && oc->soc_names[0] ) {
-		printf( "objectclass %s\n", oc->soc_names[0] );
-	} else {
-		printf( "objectclass %s\n", oc->soc_oid );
-	}
+	printf( "objectclass %s\n", ldap_objectclass2name( &oc->soc_oclass ) );
 	if ( oc->soc_required != NULL ) {
-		printf( "\trequires %s", oc->soc_required[0] );
-		for ( i = 1; oc->soc_required[i] != NULL; i++ ) {
-			printf( ",%s", oc->soc_required[i] );
-		}
+		mid = "\trequires ";
+		for ( i = 0; oc->soc_required[i] != NULL; i++, mid = "," )
+			printf( "%s%s", mid,
+			        ldap_attributetype2name( &oc->soc_required[i]->sat_atype ) );
 		printf( "\n" );
 	}
 	if ( oc->soc_allowed != NULL ) {
-		printf( "\tallows %s", oc->soc_allowed[0] );
-		for ( i = 1; oc->soc_allowed[i] != NULL; i++ ) {
-			printf( ",%s", oc->soc_allowed[i] );
-		}
+		mid = "\tallows ";
+		for ( i = 0; oc->soc_allowed[i] != NULL; i++, mid = "," )
+			printf( "%s%s", mid,
+			        ldap_attributetype2name( &oc->soc_allowed[i]->sat_atype ) );
 		printf( "\n" );
 	}
 }

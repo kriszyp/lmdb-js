@@ -86,6 +86,22 @@ typedef struct ldap_objectclass {
 #define LDAP_SCHEMA_STRUCTURAL			1
 #define LDAP_SCHEMA_AUXILIARY			2
 
+LDAP_F( LDAP_CONST char * )
+ldap_syntax2name LDAP_P((
+	LDAP_SYNTAX * syn ));
+
+LDAP_F( LDAP_CONST char * )
+ldap_matchingrule2name LDAP_P((
+	LDAP_MATCHING_RULE * mr ));
+
+LDAP_F( LDAP_CONST char * )
+ldap_attributetype2name LDAP_P((
+	LDAP_ATTRIBUTE_TYPE * at ));
+
+LDAP_F( LDAP_CONST char * )
+ldap_objectclass2name LDAP_P((
+	LDAP_OBJECT_CLASS * oc ));
+
 LDAP_F( void )
 ldap_syntax_free LDAP_P((
 	LDAP_SYNTAX * syn ));
