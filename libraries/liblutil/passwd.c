@@ -42,6 +42,9 @@
 #ifdef HAVE_PWD_H
 #	include <pwd.h>
 #endif
+#ifdef HAVE_AIX_SECURITY
+#	include <userpw.h>
+#endif
 
 #include <lber.h>
 
@@ -162,8 +165,8 @@ static const struct pw_scheme pw_schemes[] =
 
 #ifdef SLAPD_CRYPT
 	{ {sizeof("{CRYPT}")-1, "{CRYPT}"},	chk_crypt, hash_crypt },
-# if defined( HAVE_GETSPNAM ) \
-  || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
+#endif
+# if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
 	{ {sizeof("{UNIX}")-1, "{UNIX}"},	chk_unix, NULL },
 # endif
 #endif
@@ -833,8 +836,7 @@ static int chk_crypt(
 	return strcmp( passwd->bv_val, cr ) ? 1 : 0;
 }
 
-# if defined( HAVE_GETSPNAM ) \
-  || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
+# if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
 static int chk_unix(
 	const struct pw_scheme *sc,
 	const struct berval * passwd,
@@ -862,18 +864,6 @@ static int chk_unix(
 		return -1;	/* passwd must behave like a string */
 	}
 
-#  ifdef HAVE_GETSPNAM
-	{
-		struct spwd *spwd = getspnam(passwd->bv_val);
-
-		if(spwd == NULL) {
-			return -1;	/* not found */
-		}
-
-		pw = spwd->sp_pwdp;
-	}
-
-#  else
 	{
 		struct passwd *pwd = getpwnam(passwd->bv_val);
 
@@ -882,6 +872,23 @@ static int chk_unix(
 		}
 
 		pw = pwd->pw_passwd;
+	}
+#  ifdef HAVE_GETSPNAM
+	{
+		struct spwd *spwd = getspnam(passwd->bv_val);
+
+		if(spwd != NULL) {
+			pw = spwd->sp_pwdp;
+		}
+	}
+#  endif
+#  ifdef HAVE_AIX_SECURITY
+	{
+		struct userpw *upw = getuserpw(passwd->bv_val);
+
+		if (upw != NULL) {
+			pw = upw->upw_passwd;
+		}
 	}
 #  endif
 

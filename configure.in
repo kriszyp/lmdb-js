@@ -481,6 +481,7 @@ SASL_LIBS=
 TERMCAP_LIBS=
 TLS_LIBS=
 MODULES_LIBS=
+AUTH_LIBS=
 
 dnl ================================================================
 dnl Checks for programs
@@ -632,6 +633,13 @@ if test "${ol_cv_mkdep}" = no ; then
 	# this will soon become an error
 	AC_MSG_WARN([do not know how to generate dependencies])
 fi
+
+dnl ----------------------------------------------------------------
+dnl Check for AIX security library
+AC_CHECK_LIB(s, afopen, [
+	AUTH_LIBS=-ls
+	AC_DEFINE(HAVE_AIX_SECURITY,1,[define if you have AIX security lib])
+])
 
 dnl ----------------------------------------------------------------
 dnl Check for module support
@@ -2457,6 +2465,7 @@ AC_SUBST(SASL_LIBS)
 AC_SUBST(TERMCAP_LIBS)
 AC_SUBST(TLS_LIBS)
 AC_SUBST(MODULES_LIBS)
+AC_SUBST(AUTH_LIBS)
 
 AC_SUBST(SLAPD_SQL_LDFLAGS)
 AC_SUBST(SLAPD_SQL_LIBS)

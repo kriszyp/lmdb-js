@@ -598,6 +598,9 @@
 /* defined to be the EXE extension */
 #undef EXEEXT
 
+/* define if you have AIX security lib */
+#undef HAVE_AIX_SECURITY
+
 /* define if you have libtool -ltdl */
 #undef HAVE_LIBLTDL
 
