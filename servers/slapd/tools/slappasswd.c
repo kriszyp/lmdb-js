@@ -130,8 +130,6 @@ main( int argc, char *argv[] )
 		passwd.bv_len = strlen(passwd.bv_val);
 	}
 
-	lutil_passwd_init();
-
 	hash = lutil_passwd_hash( &passwd, scheme, &text );
 
 	if( hash == NULL || hash->bv_val == NULL ) {
