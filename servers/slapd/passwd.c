@@ -44,8 +44,8 @@ int passwd_extop(
 {
 	struct berval id = {0, NULL}, hash, *rsp = NULL;
 	req_pwdexop_s *qpw = &op->oq_pwdexop;
+	req_extended_s qext = op->oq_extended;
 	Modifications *ml;
-	Operation op2;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
 	int i, nhash;
@@ -208,27 +208,27 @@ int passwd_extop(
 		rs->sr_err = LDAP_OTHER;
 
 	} else {
-		op2 = *op;
-		op2.o_tag = LDAP_REQ_MODIFY;
-		op2.o_callback = &cb2;
-		op2.orm_modlist = qpw->rs_mods;
+		slap_callback *sc = op->o_callback;
+
+		op->o_tag = LDAP_REQ_MODIFY;
+		op->o_callback = &cb2;
+		op->orm_modlist = qpw->rs_mods;
 		cb2.sc_private = qpw;	/* let Modify know this was pwdMod,
 					 * if it cares... */
 
-		rs->sr_err = slap_mods_opattrs( &op2, ml, qpw->rs_modtail, &rs->sr_text,
+		rs->sr_err = slap_mods_opattrs( op, ml, qpw->rs_modtail, &rs->sr_text,
 			NULL, 0, 1 );
 		
 		if ( rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = op2.o_bd->be_modify( &op2, rs );
-			/* FIXME: in case it got rewritten... */
-			op->o_req_dn = op2.o_req_dn;
-			op->o_req_ndn = op2.o_req_ndn;
+			rs->sr_err = op->o_bd->be_modify( op, rs );
 		}
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_rspdata = rsp;
 		} else if ( rsp ) {
 			ber_bvfree( rsp );
 		}
+		op->o_tag = LDAP_REQ_EXTENDED;
+		op->o_callback = sc;
 	}
 	slap_mods_free( qpw->rs_mods );
 	if ( rsp ) {
@@ -236,6 +236,7 @@ int passwd_extop(
 	}
 
 	rc = rs->sr_err;
+	op->oq_extended = qext;
 
 error_return:;
 	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
