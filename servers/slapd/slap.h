@@ -443,7 +443,7 @@ typedef struct slap_matching_rule {
 	/*
 	 * null terminated list of syntaxes compatible with this syntax
 	 * note: when MS_EXT is set, this MUST NOT contain the assertion
-     * syntax of the rule.  When MS_EXT is not set, it MAY.
+	 * syntax of the rule.  When MS_EXT is not set, it MAY.
 	 */
 	Syntax					**smr_compat_syntaxes;
 
@@ -1237,7 +1237,7 @@ struct slap_backend_db {
 #define SLAP_RESTRICT_OP_SEARCH		0x0080U
 
 #define SLAP_RESTRICT_OP_READS	\
-	( SLAP_RESTRICT_OP_COMPARE    \
+	( SLAP_RESTRICT_OP_COMPARE	\
 	| SLAP_RESTRICT_OP_SEARCH )
 #define SLAP_RESTRICT_OP_WRITES	\
 	( SLAP_RESTRICT_OP_ADD    \
@@ -1279,7 +1279,7 @@ struct slap_backend_db {
 	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
 	struct berval be_rootndn;	/* the magic "root" normalized name (DN) for this db */
 	struct berval be_rootpw;	/* the magic "root" password for this db	*/
-	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
+	unsigned int be_max_deref_depth; /* limit for depth of an alias deref  */
 #define be_sizelimit	be_def_limit.lms_s_soft
 #define be_timelimit	be_def_limit.lms_t_soft
 	struct slap_limits_set be_def_limit; /* default limits */
@@ -1352,13 +1352,13 @@ typedef int (BI_op_abandon) LDAP_P((BackendDB *bd,
 		ber_int_t msgid));
 
 typedef int (BI_op_extended) LDAP_P((
-    BackendDB		*be,
-    struct slap_conn	*conn,
-    struct slap_op		*op,
+	BackendDB		*be,
+	struct slap_conn	*conn,
+	struct slap_op		*op,
 	const char		*reqoid,
-    struct berval * reqdata,
+	struct berval * reqdata,
 	char		**rspoid,
-    struct berval ** rspdata,
+	struct berval ** rspdata,
 	LDAPControl *** rspctrls,
 	const char **	text,
 	BerVarray *refs ));
@@ -1587,9 +1587,13 @@ typedef struct slap_op {
 
 #ifdef LDAP_CLIENT_UPDATE
 	char o_clientupdate;
-	ber_int_t o_clientupdatetype;
-	ber_int_t o_clientupdateinterval;
-	struct berval* o_clientupdatestate;
+	char o_clientupdate_type;
+#define SLAP_LCUP_NONE				(0x0)
+#define SLAP_LCUP_SYNC 				(0x1)
+#define SLAP_LCUP_PERSIST			(0x2)
+#define SLAP_LCUP_SYNC_AND_PERSIST	(0x3)
+	ber_int_t o_clientupdate_interval;
+	struct berval* o_clientupdate_state;
 #endif
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1698,7 +1702,7 @@ typedef struct slap_conn {
 			fprintf( stderr, (fmt), (connid), (opid), (arg1), (arg2), (arg3) );\
 		if ( ldap_syslog & (level) ) \
 			syslog( ldap_syslog_level, (fmt), (connid), (opid), (arg1), \
-			        (arg2), (arg3) ); \
+				(arg2), (arg3) ); \
 	} while (0)
 #else
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )

@@ -126,10 +126,6 @@ int get_ctrls(
 	int rc = LDAP_SUCCESS;
 	const char *errmsg = NULL;
 
-#ifdef LDAP_CLIENT_UPDATE
-	op->o_clientupdatetype = -1;
-#endif
-
 	len = ber_pvt_ber_remaining(ber);
 
 	if( len == 0) {
@@ -624,7 +620,7 @@ static int parseClientUpdate (
 	struct berval scheme = { 0, NULL };
 	struct berval cookie = { 0, NULL };
 
-	if ( op->o_noop != SLAP_NO_CONTROL ) {
+	if ( op->o_clientupdate != SLAP_NO_CONTROL ) {
 		*text = "LCUP client update control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -656,9 +652,17 @@ static int parseClientUpdate (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( type != SYNCHRONIZE_ONLY &&
-	     type != SYNCHRONIZE_AND_PERSIST &&
-	     type != PERSIST_ONLY ) {
+	switch( type ) {
+	case LDAP_CUP_SYNC_ONLY:
+		type = SLAP_LCUP_SYNC;
+		break;
+	case LDAP_CUP_SYNC_AND_PERSIST:
+		type = SLAP_LCUP_SYNC_AND_PERSIST;
+		break;
+	case LDAP_CUP_PERSIST_ONLY:
+		type = SLAP_LCUP_PERSIST;
+		break;
+	default:
 		*text = "LCUP client update control : unknown update type";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -676,12 +680,12 @@ static int parseClientUpdate (
 		
 		if ( interval <= 0 ) {
 			/* server chooses interval */
-			interval = LDAP_LCUP_DEFAULT_SEND_COOKIE_INTERVAL;
+			interval = LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL;
 		}
-	}
-	else {
+
+	} else {
 		/* server chooses interval */
-		interval = LDAP_LCUP_DEFAULT_SEND_COOKIE_INTERVAL;
+		interval = LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL;
 	}
 
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_DEFAULT ) {
@@ -710,12 +714,12 @@ static int parseClientUpdate (
 	}
 #endif
 
-	op->o_clientupdatestate = ber_dupbv(NULL, &cookie);
+	op->o_clientupdate_state = ber_dupbv(NULL, &cookie);
 
 	(void) ber_free( ber, 1 );
 
-	op->o_clientupdatetype = type;
-	op->o_clientupdateinterval = interval;
+	op->o_clientupdate_type = (char) type;
+	op->o_clientupdate_interval = interval;
 
 	op->o_clientupdate = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
