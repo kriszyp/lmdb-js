@@ -11,6 +11,7 @@ if test "$BACKEND" = "bdb2" ; then
 	MASTERCONF=$DATADIR/slapd-bdb2-repl-master.conf
 	SLAVECONF=$DATADIR/slapd-bdb2-repl-slave.conf
 	REFSLAVECONF=$DATADIR/slapd-bdb2-ref-slave.conf
+	SCHEMACONF=$DATADIR/slapd-bdb2-schema.conf
 	TIMING="-t"
 else
 	CONF=$DATADIR/slapd.conf
@@ -20,6 +21,7 @@ else
 	MASTERCONF=$DATADIR/slapd-repl-master.conf
 	SLAVECONF=$DATADIR/slapd-repl-slave.conf
 	REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
+	SCHEMACONF=$DATADIR/slapd-schema.conf
 fi
 
 TOOLARGS="-x $LDAP_TOOLARGS"
