@@ -91,50 +91,69 @@ static const struct ldaperror ldap_errlist[] = {
 	{-1, 0 }
 };
 
-char *
-ldap_err2string( int err )
+static struct ldaperror *ldap_int_error( int err )
 {
 	int	i;
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_err2string\n", 0, 0, 0 );
 
 	for ( i = 0; ldap_errlist[i].e_code != -1; i++ ) {
 		if ( err == ldap_errlist[i].e_code )
-			return( ldap_errlist[i].e_reason );
+			return (struct ldaperror *) &ldap_errlist[i];
 	}
 
-	return( "Unknown error" );
+	return NULL;
 }
 
-/* depreciated */
-void
-ldap_perror( LDAP *ld, LDAP_CONST char *s )
+char *
+ldap_err2string( int err )
 {
-	int	i;
+	struct ldaperror *e;
+	
+	Debug( LDAP_DEBUG_TRACE, "ldap_err2string\n", 0, 0, 0 );
 
+	e = ldap_int_error( err );
+
+	return ( e != NULL ) ? e->e_reason : "Unknown error";
+}
+
+/* deprecated */
+void
+ldap_perror( LDAP *ld, LDAP_CONST char *str )
+{
+	char *s;
+	struct ldaperror *e;
 	Debug( LDAP_DEBUG_TRACE, "ldap_perror\n", 0, 0, 0 );
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( s );
+
+	s = ( str != NULL ) ? (char *) str : "ldap_perror";
 
 	if ( ld == NULL ) {
 		perror( s );
 		return;
 	}
 
-	for ( i = 0; ldap_errlist[i].e_code != -1; i++ ) {
-		if ( ld->ld_errno == ldap_errlist[i].e_code ) {
-			fprintf( stderr, "%s: %s\n", s,
-			    ldap_errlist[i].e_reason );
-			if ( ld->ld_matched != NULL && *ld->ld_matched != '\0' )
-				fprintf( stderr, "%s: matched: %s\n", s,
-				    ld->ld_matched );
-			if ( ld->ld_error != NULL && *ld->ld_error != '\0' )
-				fprintf( stderr, "%s: additional info: %s\n",
-				    s, ld->ld_error );
-			fflush( stderr );
-			return;
-		}
+	e = ldap_int_error( ld->ld_errno );
+
+	if ( e != NULL ) {
+		fprintf( stderr, "%s: %s\n",
+			s, e->e_reason );
+	} else {
+		fprintf( stderr, "%s: unknown LDAP error number %d\n",
+			s, ld->ld_errno );
 	}
 
-	fprintf( stderr, "%s: Not an LDAP errno %d\n", s, ld->ld_errno );
+	if ( ld->ld_matched != NULL ) {
+		fprintf( stderr, "\tmatched: \"%s\"\n",
+			ld->ld_matched );
+	}
+
+	if ( ld->ld_error != NULL ) {
+		fprintf( stderr, "\tadditional info: %s\n",
+		    ld->ld_error );
+	}
+
 	fflush( stderr );
 }
 
@@ -148,7 +167,11 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_result2error\n", 0, 0, 0 );
 
-	if ( r == NULLMSG )
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( r != NULL );
+
+	if ( ld == NULL || r == NULLMSG )
 		return( LDAP_PARAM_ERROR );
 
 	for ( lm = r; lm->lm_chain != NULL; lm = lm->lm_chain )
@@ -164,11 +187,12 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 	}
 
 	ber = *(lm->lm_ber);
-	if ( ld->ld_version == LDAP_VERSION2 ) {
+
+	if ( ld->ld_version < LDAP_VERSION2 ) {
+		rc = ber_scanf( &ber, "{ia}", &along, &ld->ld_error );
+	} else {
 		rc = ber_scanf( &ber, "{iaa}", &along, &ld->ld_matched,
 		    &ld->ld_error );
-	} else {
-		rc = ber_scanf( &ber, "{ia}", &along, &ld->ld_error );
 	}
 
 	if ( rc == LBER_ERROR ) {
