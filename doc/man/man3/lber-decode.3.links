@@ -6,6 +6,7 @@ ber_get_int.3
 ber_get_stringa.3
 ber_get_stringb.3
 ber_get_null.3
+ber_get_enum.3
 ber_get_boolean.3
 ber_get_bitstring.3
 ber_first_element.3

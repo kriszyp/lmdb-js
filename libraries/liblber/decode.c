@@ -229,6 +229,14 @@ ber_get_int(
 }
 
 ber_tag_t
+ber_get_enum(
+	BerElement *ber,
+	ber_int_t *num )
+{
+	ber_get_int( ber, num );
+}
+
+ber_tag_t
 ber_get_stringb(
 	BerElement *ber,
 	char *buf,

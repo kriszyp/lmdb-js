@@ -3,7 +3,7 @@
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ber_get_next, ber_skiptag, ber_peek_tag, ber_scanf, ber_get_int, ber_get_stringb, ber_get_stringa, ber_get_null, ber_get_boolean, ber_get_bitstring, ber_first_element, ber_next_element \- LBER simplified Basic Encoding Rules library routines for decoding
+ber_get_next, ber_skip_tag, ber_peek_tag, ber_scanf, ber_get_int, ber_get_enum, ber_get_stringb, ber_get_stringa, ber_get_null, ber_get_boolean, ber_get_bitstring, ber_first_element, ber_next_element \- LBER simplified Basic Encoding Rules library routines for decoding
 .SH SYNOPSIS
 .nf
 .ft B
@@ -46,7 +46,15 @@ ber_tag_t ber_scanf(
 .LP
 .nf
 .ft B
-ber_tag_t ber_get_int(ber, num)
+ber_tag_t ber_get_int(
+	BerElement \(**ber,
+	ber_int_t \(**num);
+.ft
+.fi
+.LP
+.nf
+.ft B
+ber_tag_t ber_get_enum(
 	BerElement \(**ber,
 	ber_int_t \(**num);
 .ft
@@ -166,7 +174,7 @@ characters.
 Octet string.  A char ** should be supplied.  Memory is allocated,
 filled with the contents of the octet string, null-terminated, and
 returned in the parameter.
-The caller should free the returned ber_val using ber_memfree();
+The caller should free the returned ber_val using ber_memfree().
 .TP
 .SM s
 Octet string.  A char * buffer should be supplied, followed by a pointer
@@ -178,10 +186,18 @@ set to the actual size of the octet string.
 Octet string.  A struct ber_val ** should be supplied, which upon return
 points to a dynamically allocated struct berval containing the octet string
 and its length.
-The caller should free the returned structure using ber_bvfree();
+The caller should free the returned structure using ber_bvfree().
+.TP
+.SM o
+Octet string.  A struct ber_val * should be supplied, which upon return
+points containing the dynamically allocated octet string and its length.
+The caller should free the returned octet string using ber_memfree().
 .TP
 .SM b
 Boolean.  A pointer to a ber_int_t should be supplied.
+.TP
+.SM e
+Enumeration.  A pointer to a ber_int_t should be supplied.
 .TP
 .SM i
 Integer.  A pointer to a ber_int_t should be supplied.
@@ -200,6 +216,8 @@ it is recognized.
 Sequence of octet strings.  A char *** should be supplied, which upon
 return points to a dynamically allocated null-terminated array of char *'s
 containing the octet strings.  NULL is returned if the sequence is empty.
+The caller should free the returned array and octet strings using
+ber_memvfree().
 .TP
 .SM V
 Sequence of octet strings with lengths.
@@ -208,7 +226,16 @@ return points to a dynamically allocated null-terminated array of
 struct berval *'s
 containing the octet strings and their lengths.
 NULL is returned if the sequence is empty.  
-The caller should free the returned structures using ber_bvecfree();
+The caller should free the returned structures using ber_bvecfree().
+.TP
+.SM l
+Length of the next element.  A pointer to a ber_len_t should be supplied.
+.TP
+.SM t
+Tag of the next element.  A pointer to a ber_tag_t should be supplied.
+.TP
+.SM T
+Skip element and return its tag.  A pointer to a ber_tag_t should be supplied.
 .TP
 .SM x
 Skip element.  The next element is skipped.
@@ -240,24 +267,26 @@ string value plus a terminating NULL byte.
 .LP
 The ber_get_stringa() routine is used to dynamically allocate space into
 which an octet string is read.
-The caller should free the returned string using ber_memfree();
+The caller should free the returned string using ber_memfree().
 .LP
 The ber_get_stringal() routine is used to dynamically allocate space
 into which an octet string and its length are read.  It takes a
 struct berval **, and returns the result in this parameter.
-The caller should free the returned structure using ber_bvfree();
+The caller should free the returned structure using ber_bvfree().
 .LP
 The ber_get_null() routine is used to read a NULL element.  It returns
 the tag of the element it skips over.
 .LP
-The ber_get_boolean() routine is used to read a boolean value.  It is called
-the same way that ber_get_int() is called.
+The ber_get_boolean() routine is used to read a boolean value.
+It is called the same way that ber_get_int() is called.
+.LP
+The ber_get_enum() routine is used to read a enumeration value.
+It is called the same way that ber_get_int() is called.
 .LP
 The ber_get_bitstringa() routine is used to read a bitstring value.  It
 takes a char ** which will hold the dynamically allocated bits, followed by an
-unsigned long *, which will point to the length (in bits) of the
-bitstring returned.
-The caller should free the returned string using ber_memfree();
+ber_len_t *, which will point to the length (in bits) of the bitstring returned.
+The caller should free the returned string using ber_memfree().
 .LP
 The ber_first_element() routine is used to return the tag and length
 of the first element in a set or sequence.  It also returns in \fIcookie\fP
@@ -291,12 +320,12 @@ the following ASN.1 object:
 The element can be decoded using ber_scanf() as follows.
 .LP
 .nf
-      ber_int_t    scope, ali, size, time, attrsonly;
+      ber_int_t    scope, deref, size, time, attrsonly;
       char   *dn, **attrs;
       ber_tag_t tag;
 
-      tag = ber_scanf( ber, "{aiiiib{v}}",
-          &dn, &scope, &ali,
+      tag = ber_scanf( ber, "{aeeiib{v}}",
+          &dn, &scope, &deref,
           &size, &time, &attrsonly, &attrs );
 
       if( tag == LBER_ERROR ) {
@@ -304,6 +333,9 @@ The element can be decoded using ber_scanf() as follows.
       } else {
               /* success */
       }
+
+      ber_memfree( dn );
+      ber_memvfree( attrs );
 .fi
 .SH ERRORS
 If an error occurs during decoding, generally these routines return
@@ -322,8 +354,8 @@ which must be freed by the caller using supplied deallocation routines.
 .BR ldap-sync (3)
 .BR ldap-async (3)
 .LP
-Yeong, W., Howes, T., and Hardcastle-Kille, S., "Lightweight Directory Access
-Protocol", OSI-DS-26, April 1992.
+Yeong, W., Howes, T., and Hardcastle-Kille, S.,
+"Lightweight Directory Access Protocol", OSI-DS-26, April 1992.
 .LP
 Information Processing - Open Systems Interconnection - Model and Notation -
 Service Definition - Specification of Basic Encoding Rules for Abstract

@@ -201,6 +201,11 @@ ber_get_int LDAP_P((
 	ber_int_t *num ));
 
 LIBLBER_F( ber_tag_t )
+ber_get_enum LDAP_P((
+	BerElement *ber,
+	ber_int_t *num ));
+
+LIBLBER_F( ber_tag_t )
 ber_get_stringb LDAP_P((
 	BerElement *ber,
 	char *buf,

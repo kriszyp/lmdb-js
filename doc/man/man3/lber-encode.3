@@ -3,7 +3,7 @@
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ber_alloc, ber_flush, ber_printf, ber_put_int, ber_put_ostring, ber_put_string, ber_put_null, ber_put_boolean, ber_put_bitstring, ber_start_seq, ber_start_set, ber_put_seq, ber_put_set \- LBER simplified Basic Encoding Rules library routines for encoding
+ber_alloc_t, ber_flush, ber_printf, ber_put_int, ber_put_enum, ber_put_ostring, ber_put_string, ber_put_null, ber_put_boolean, ber_put_bitstring, ber_start_seq, ber_start_set, ber_put_seq, ber_put_set \- LBER simplified Basic Encoding Rules library routines for encoding
 .SH SYNOPSIS
 .nf
 .ft B
@@ -37,6 +37,15 @@ int ber_printf(
 .nf
 .ft B
 int ber_put_int(
+	BerElement *ber,
+	ber_int_t num,
+	ber_tag_t tag);
+.ft
+.fi
+.LP
+.nf
+.ft B
+int ber_put_enum(
 	BerElement *ber,
 	ber_int_t num,
 	ber_tag_t tag);
@@ -140,7 +149,8 @@ applications that need more control than ber_printf() provides.  In
 general, these routines return the length of the element encoded, or
 -1 if an error occurred.
 .LP
-The ber_alloc_t() routine is used to allocate a new BER element.  The
+The ber_alloc_t() routine is used to allocate a new BER element.  It
+should be called with an argument of LBER_USE_DER.  The
 ber_flush() routine is used to actually write the element to a socket
 (or file) descriptor, once it has been fully encoded (using ber_printf()
 and friends).  The \fIsb\fP structure contains the descriptor and a
@@ -162,6 +172,10 @@ The format string can contain the following characters:
 Boolean.  An ber_int_t parameter should be supplied.  A boolean element
 is output.
 .TP
+.SM e
+Enumeration.  An ber_int_t parameter should be supplied.  An
+enumeration element is output.
+.TP
 .SM i
 Integer.  An ber_int_t parameter should be supplied.  An integer element
 is output.
@@ -178,6 +192,10 @@ Null.  No parameter is required.  A null element is output.
 Octet string.  A char * is supplied, followed by the length of the
 string pointed to.  An octet string element is output.
 .TP
+.SM O
+Octet string.  A struct berval * is supplied.
+An octet string element is output.
+.TP
 .SM s
 Octet string.  A null-terminated string is supplied.  An octet string
 element is output, not including the trailing NULL octet.
@@ -189,6 +207,11 @@ is provided.  This works across calls.
 .SM v
 Several octet strings.  A null-terminated array of char *'s is
 supplied.  Note that a construct like '{v}' is required to get
+an actual SEQUENCE OF octet strings.
+.TP
+.SM V
+Several octet strings.  A null-terminated array of struct berval *'s
+is supplied.  Note that a construct like '{V}' is required to get
 an actual SEQUENCE OF octet strings.
 .TP
 .SM {
@@ -206,6 +229,9 @@ End set.  No parameter is required.
 .LP
 The ber_put_int() routine writes the integer element \fInum\fP to
 the BER element \fIber\fP.
+.LP
+The ber_put_enum() routine writes the enumberation element
+\fInum\fP to the BER element \fIber\fP.
 .LP
 The ber_put_boolean() routine writes the boolean value given by
 \fIbool\fP to the BER element.
@@ -263,13 +289,15 @@ can be achieved like so:
       int rc;
       ber_int_t    scope, ali, size, time, attrsonly;
       char   *dn, **attrs;
+      BerElement *ber;
 
       /* ... fill in values ... */
+
       ber = ber_alloc_t( LBER_USE_DER );
 
       if ( ber == NULL ) {
 		/* error */
-     }
+      }
 
       rc = ber_printf( ber, "{siiiib{v}}", dn, scope, ali,
           size, time, attrsonly, attrs );
@@ -294,8 +322,8 @@ The return values for all of these functions are declared in the
 .BR ldap-sync (3)
 .BR ldap-parse (3)
 .LP
-Yeong, W., Howes, T., and Hardcastle-Kille, S., "Lightweight Directory Access
-Protocol", OSI-DS-26, April 1992.
+Yeong, W., Howes, T., and Hardcastle-Kille, S.,
+"Lightweight Directory Access Protocol", OSI-DS-26, April 1992.
 .LP
 Information Processing - Open Systems Interconnection - Model and Notation -
 Service Definition - Specification of Basic Encoding Rules for Abstract
