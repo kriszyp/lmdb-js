@@ -1,8 +1,6 @@
 /* $OpenLDAP$ */
 #include "portable.h"
 
-#include <windows.h>
-
 #ifdef HAVE_WINSOCK2
 #include <winsock2.h>
 #elif HAVE_WINSOCK
@@ -91,6 +89,8 @@ char *ber_pvt_wsa_last_errstring( void )
 {
 	return ber_pvt_wsa_err2string( WSAGetLastError() );
 }
+
+#include <windows.h>
 
 char *GetErrorString( int err )
 {
