@@ -29,7 +29,8 @@ modify_check_duplicates(
 	const char	**text,
 	char *textbuf, size_t textlen )
 {
-	int		i, j, rc = LDAP_SUCCESS;
+	int		i, j, numvals = 0, nummods,
+			rc = LDAP_SUCCESS;
 	BerVarray	nvals = NULL, nmods;
 
 	/*
@@ -39,15 +40,13 @@ modify_check_duplicates(
 	 *   - count the new values
 	 *   
 	 *   - if the existing values are less than the new ones {
-	 *       // current code
-	 *       - normalize the existing values
+	 *       - normalize all the existing values
 	 *       - for each new value {
 	 *           - normalize
 	 *           - check with existing
 	 *           - cross-check with already normalized new vals
 	 *       }
 	 *   } else {
-	 *       // to be implemented
 	 *       - for each new value {
 	 *           - normalize
 	 *           - cross-check with already normalized new vals
@@ -68,11 +67,16 @@ modify_check_duplicates(
 	 * performances should not change; they will in case of error.
 	 */
 
-	if ( vals ) {
-		for ( j = 0; vals[ j ].bv_val != NULL; j++ )
-			/* count existing values */ ;
+	for ( nummods = 0; mods[ nummods ].bv_val != NULL; nummods++ )
+		/* count new values */ ;
 
-		nvals = ch_calloc( j + 1, sizeof( struct berval ) );
+	if ( vals ) {
+		for ( numvals = 0; vals[ numvals ].bv_val != NULL; numvals++ )
+			/* count existing values */ ;
+	}
+
+	if ( numvals > 0 && numvals < nummods ) {
+		nvals = ch_calloc( numvals + 1, sizeof( struct berval ) );
 
 		/* normalize the existing values first */
 		for ( j = 0; vals[ j ].bv_val != NULL; j++ ) {
@@ -90,13 +94,15 @@ modify_check_duplicates(
 		nvals[ j ].bv_val = NULL;
 	}
 
-	for ( i = 0; mods[ i ].bv_val != NULL; i++ )
-		/* count new values */ ;
-
-	nmods = ch_calloc( i + 1, sizeof( struct berval ) );
+	/*
+	 * If the existing values are less than the new values,
+	 * it is more convenient to normalize all the existing
+	 * values and test each new value against them first,
+	 * then to other already normalized values
+	 */
+	nmods = ch_calloc( nummods + 1, sizeof( struct berval ) );
 
 	for ( i = 0; mods[ i ].bv_val != NULL; i++ ) {
-
 		rc = value_normalize( ad, SLAP_MR_EQUALITY,
 			&mods[ i ], &nmods[ i ], text );
 
@@ -105,7 +111,7 @@ modify_check_duplicates(
 			goto return_results;
 		}
 
-		if ( vals ) {
+		if ( numvals > 0 && numvals < nummods ) {
 			for ( j = 0; nvals[ j ].bv_val; j++ ) {
 #ifdef QUICK_DIRTY_DUPLICATE_CHECK
 				if ( bvmatch( &nmods[ i ], &nvals[ j ] ) ) {
@@ -132,7 +138,7 @@ modify_check_duplicates(
 				}
 			}
 		}
-
+	
 		for ( j = 0; j < i; j++ ) {
 #ifdef QUICK_DIRTY_DUPLICATE_CHECK
 			if ( bvmatch( &nmods[ i ], &nmods[ j ] ) ) {
@@ -160,6 +166,51 @@ modify_check_duplicates(
 		}
 	}
 	nmods[ i ].bv_val = NULL;
+
+	/*
+	 * if new values are more than existing values, it is more
+	 * convenient to normalize and check all new values first,
+	 * then check each new value against existing values, which 
+	 * can be normalized in place
+	 */
+
+	if ( numvals >= nummods ) {
+		for ( j = 0; vals[ j ].bv_val; j++ ) {
+			struct berval	asserted;
+
+			rc = value_normalize( ad, SLAP_MR_EQUALITY,
+				&vals[ j ], &asserted, text );
+
+			if ( rc != LDAP_SUCCESS ) {
+				goto return_results;
+			}
+
+			for ( i = 0; nmods[ i ].bv_val; i++ ) {
+#ifdef QUICK_DIRTY_DUPLICATE_CHECK
+				if ( bvmatch( &nmods[ i ], &asserted ) ) {
+#else /* !QUICK_DIRTY_DUPLICATE_CHECK */
+				int match;
+
+				rc = (mr->smr_match)( &match,
+					SLAP_MR_VALUE_SYNTAX_MATCH,
+					ad->ad_type->sat_syntax,
+					mr, &nmods[ i ], &asserted );
+				if ( rc != LDAP_SUCCESS ) {
+					goto return_results;
+				}
+
+				if ( match == 0 ) {
+#endif /* !QUICK_DIRTY_DUPLICATE_CHECK */
+					snprintf( textbuf, textlen,
+						"%s: value #%d provided more than once",
+						ad->ad_cname.bv_val, j );
+					rc = LDAP_TYPE_OR_VALUE_EXISTS;
+					goto return_results;
+				}
+			}
+
+		}
+	}
 
 return_results:;
 	if ( nvals ) {
@@ -371,7 +422,11 @@ modify_delete_values(
 		return LDAP_NO_SUCH_ATTRIBUTE;
 	}
 
-	/* find each value to delete */
+	/* find each value to delete
+	 *
+	 * FIXME: need to optimize this operation too,
+	 * see modify_check_duplicates()
+	 */
 	for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 		int rc;
 		struct berval asserted;
