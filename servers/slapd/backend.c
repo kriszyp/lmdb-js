@@ -631,7 +631,11 @@ backend_group(
 #ifdef SLAPD_SCHEMA_DN
 Attribute *backend_subschemasubentry( Backend *be )
 {
+	/*
+	 * This routine returns points to STATIC data!!!
+	 */
 	/* should be backend specific */
+
 	static struct berval ss_val = {
 		sizeof(SLAPD_SCHEMA_DN)-1,
 		SLAPD_SCHEMA_DN };
@@ -639,7 +643,9 @@ Attribute *backend_subschemasubentry( Backend *be )
 	static Attribute ss_attr = {
 		"subschemasubentry",
 		ss_vals,
+#ifdef SLAPD_SCHEMA_COMPAT
 		SYNTAX_DN | SYNTAX_CIS,
+#endif
 		NULL
 	};
 

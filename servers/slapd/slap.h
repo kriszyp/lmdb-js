@@ -199,7 +199,7 @@ typedef struct slap_attribute_type {
 #define sat_syntax_oid		sat_atype.at_syntax_oid
 #define sat_single_value	sat_atype.at_single_value
 #define sat_collective		sat_atype.at_collective
-#define sat_no_user_mods	sat_atype.at_no_user_mods
+#define sat_no_user_mod		sat_atype.at_no_user_mod
 #define sat_usage		sat_atype.at_usage
 } AttributeType;
 

@@ -125,12 +125,19 @@ test_ava_filter(
 		return( -1 );
 	}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	if ( a->a_syntax == 0 ) {
 		a->a_syntax = attr_syntax( ava->ava_type );
 	}
+#endif
+
 	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+#ifdef SLAPD_SCHEMA_COMPAT
 		rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
 		    3 );
+#else
+		rc = 0;
+#endif
 
 		switch ( type ) {
 		case LDAP_FILTER_EQUALITY:
@@ -340,11 +347,13 @@ test_substring_filter(
 		return( -1 );
 	}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	if ( a->a_syntax & SYNTAX_BIN ) {
 		Debug( LDAP_DEBUG_FILTER, "test_substring_filter bin attr\n",
 		    0, 0, 0 );
 		return( -1 );
 	}
+#endif
 
 	/*
 	 * construct a regular expression corresponding to the
@@ -418,7 +427,10 @@ test_substring_filter(
 			strcpy( tmp, val->bv_val );
 			realval = tmp;
 		}
+
+#ifdef SLAPD_SCHEMA_COMPAT
 		value_normalize( realval, a->a_syntax );
+#endif
 
 		rc = !regexec(&re, realval, 0, NULL, 0);
 

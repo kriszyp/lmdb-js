@@ -83,6 +83,7 @@ value_add(
 	return( 0 );
 }
 
+#ifdef SLAPD_SCHEMA_COMPAT
 void
 value_normalize(
     char	*s,
@@ -176,3 +177,4 @@ value_find(
 
 	return( 1 );
 }
+#endif

@@ -1629,10 +1629,12 @@ int is_entry_objectclass(
 	bv.bv_val = (char *) oc;
 	bv.bv_len = strlen( bv.bv_val );
 
+#ifdef SLAPD_SCHEMA_COMPAT
 	if( value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
 		/* entry is not of this objectclass */
 		return 0;
 	}
+#endif
 
 	return 1;
 }

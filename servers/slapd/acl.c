@@ -403,18 +403,28 @@ acl_mask(
 			bv.bv_len = strlen( bv.bv_val );
 
 			/* see if asker is listed in dnattr */ 
-			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL &&
-				value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0 )
+			if ( (at = attr_find( e->e_attrs, b->a_dn_at )) != NULL
+#ifdef SLAPD_SCHEMA_COMPAT
+				&& value_find( at->a_vals, &bv, at->a_syntax, 3 ) == 0
+#endif
+			)
 			{
 				if ( b->a_dn_self && 
-					(val == NULL || value_cmp( &bv, val, at->a_syntax, 2 )) )
+					(val == NULL
+#ifdef SLAPD_SCHEMA_COMPAT
+					|| value_cmp( &bv, val, at->a_syntax, 2 )
+#endif
+					) )
 				{
 					continue;
 				}
 
 			/* asker not listed in dnattr - check for self access */
-			} else if ( ! b->a_dn_self || val == NULL ||
-				value_cmp( &bv, val, at->a_syntax, 2 ) != 0 )
+			} else if ( ! b->a_dn_self || val == NULL
+#ifdef SLAPD_SCHEMA_COMPAT
+				|| value_cmp( &bv, val, at->a_syntax, 2 ) != 0
+#endif
+			)
 			{
 				continue;
 			}

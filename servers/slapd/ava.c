@@ -26,7 +26,9 @@ get_ava(
 		return( -1 );
 	}
 	attr_normalize( ava->ava_type );
+#ifdef SLAPD_SCHEMA_COMPAT
 	value_normalize( ava->ava_value.bv_val, attr_syntax( ava->ava_type ) );
+#endif
 
 	return( LDAP_SUCCESS );
 }
