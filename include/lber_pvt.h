@@ -86,7 +86,8 @@ ber_pvt_socket_set_nonblock LDAP_P(( ber_socket_t sd, int nb ));
 #define ber_bvchr(bv,c) \
 	memchr( (bv)->bv_val, (c), (bv)->bv_len )
 
-#define BER_BVC(x) { sizeof( (x) ) - 1, (x) }
+#define BER_BVC(x)	{ sizeof( (x) ) - 1, (x) }
+#define BER_BVNULL	{ 0L, NULL }
 
 LDAP_END_DECL
 
