@@ -448,7 +448,7 @@ void display_search_results(LDAPMessage *result)
 	for (entry = ldap_first_entry(ld, result); entry; entry = ldap_next_entry(ld, entry)) {
 		if (s = ldap_get_dn(ld, entry)) {
 			printf("  %s\n", s);
-			free(s);
+			ldap_memfree(s);
 		}
 
 		/* Make one pass to calculate the length of the longest attribute name */
