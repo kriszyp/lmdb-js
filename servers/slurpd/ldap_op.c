@@ -89,8 +89,10 @@ do_ldap(
     while ( retry > 0 ) {
 	if ( ri->ri_ldp == NULL ) {
 	    rc = do_bind( ri, &lderr );
+
 	    if ( rc != BIND_OK ) {
-		return DO_LDAP_ERR_RETRYABLE;
+			(void) do_unbind( ri );
+			return DO_LDAP_ERR_RETRYABLE;
 	    }
 	}
 
