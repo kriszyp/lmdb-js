@@ -24,7 +24,7 @@
 #include "slap.h"
 
 int
-get_limits( 
+limits_get( 
 	Operation		*op,
 	struct berval		*ndn, 
 	struct slap_limits_set 	**limit
@@ -165,7 +165,7 @@ get_limits(
 }
 
 static int
-add_limits(
+limits_add(
 	Backend 	        *be,
 	unsigned		flags,
 	const char		*pattern,
@@ -267,7 +267,7 @@ add_limits(
 }
 
 int
-parse_limits(
+limits_parse(
 	Backend     *be,
 	const char  *fname,
 	int         lineno,
@@ -539,7 +539,7 @@ no_ad:;
 
 	/* get the limits */
 	for ( i = 2; i < argc; i++ ) {
-		if ( parse_limit( argv[i], &limit ) ) {
+		if ( limits_parse_one( argv[i], &limit ) ) {
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( CONFIG, CRIT, 
@@ -572,7 +572,7 @@ no_ad:;
 		limit.lms_s_hard = limit.lms_s_soft;
 	}
 	
-	rc = add_limits( be, flags, pattern, group_oc, group_ad, &limit );
+	rc = limits_add( be, flags, pattern, group_oc, group_ad, &limit );
 	if ( rc ) {
 
 #ifdef NEW_LOGGING
@@ -592,7 +592,7 @@ no_ad:;
 }
 
 int
-parse_limit(
+limits_parse_one(
 	const char 		*arg,
 	struct slap_limits_set 	*limit
 )
@@ -764,6 +764,82 @@ parse_limit(
 			
 		} else {
 			return( 1 );
+		}
+	}
+
+	return 0;
+}
+
+
+int
+limits_check( Operation *op, SlapReply *rs )
+{
+	/* allow root to set no limit */
+	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
+		op->ors_limit = NULL;
+
+		if ( op->ors_tlimit == 0 ) {
+			op->ors_tlimit = -1;
+		}
+
+		if ( op->ors_slimit == 0 ) {
+			op->ors_slimit = -1;
+		}
+
+	/* if not root, get appropriate limits */
+	} else {
+		( void ) limits_get( op, &op->o_ndn, &op->ors_limit );
+
+		assert( op->ors_limit != NULL );
+
+		/* if no limit is required, use soft limit */
+		if ( op->ors_tlimit <= 0 ) {
+			op->ors_tlimit = op->ors_limit->lms_t_soft;
+
+		/* if requested limit higher than hard limit, abort */
+		} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+			/* no hard limit means use soft instead */
+			if ( op->ors_limit->lms_t_hard == 0
+					&& op->ors_limit->lms_t_soft > -1
+					&& op->ors_tlimit > op->ors_limit->lms_t_soft ) {
+				op->ors_tlimit = op->ors_limit->lms_t_soft;
+
+			/* positive hard limit means abort */
+			} else if ( op->ors_limit->lms_t_hard > 0 ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;
+				return -1;
+			}
+	
+			/* negative hard limit means no limit */
+		}
+	
+		/* if no limit is required, use soft limit */
+		if ( op->ors_slimit <= 0 ) {
+			if ( get_pagedresults( op ) && op->ors_limit->lms_s_pr != 0 ) {
+				op->ors_slimit = op->ors_limit->lms_s_pr;
+			} else {
+				op->ors_slimit = op->ors_limit->lms_s_soft;
+			}
+
+		/* if requested limit higher than hard limit, abort */
+		} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+			/* no hard limit means use soft instead */
+			if ( op->ors_limit->lms_s_hard == 0
+					&& op->ors_limit->lms_s_soft > -1
+					&& op->ors_slimit > op->ors_limit->lms_s_soft ) {
+				op->ors_slimit = op->ors_limit->lms_s_soft;
+
+			/* positive hard limit means abort */
+			} else if ( op->ors_limit->lms_s_hard > 0 ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;	
+				return -1;
+			}
+		
+			/* negative hard limit means no limit */
 		}
 	}
 

@@ -397,77 +397,8 @@ do_search(
 	}
 #endif /* LDAP_SLAPI */
 
-	/* allow root to set no limit */
-	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
-		op->ors_limit = NULL;
-
-		if ( op->ors_tlimit == 0 ) {
-			op->ors_tlimit = -1;
-		}
-
-		if ( op->ors_slimit == 0 ) {
-			op->ors_slimit = -1;
-		}
-
-	/* if not root, get appropriate limits */
-	} else {
-		( void ) get_limits( op, &op->o_ndn, &op->ors_limit );
-
-		assert( op->ors_limit != NULL );
-
-		/* if no limit is required, use soft limit */
-		if ( op->ors_tlimit <= 0 ) {
-			op->ors_tlimit = op->ors_limit->lms_t_soft;
-
-		/* if requested limit higher than hard limit, abort */
-		} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
-			/* no hard limit means use soft instead */
-			if ( op->ors_limit->lms_t_hard == 0
-					&& op->ors_limit->lms_t_soft > -1
-					&& op->ors_tlimit > op->ors_limit->lms_t_soft ) {
-				op->ors_tlimit = op->ors_limit->lms_t_soft;
-
-			/* positive hard limit means abort */
-			} else if ( op->ors_limit->lms_t_hard > 0 ) {
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_ldap_result( op, rs );
-				rs->sr_err = LDAP_SUCCESS;
-				goto return_results;
-			}
-	
-			/* negative hard limit means no limit */
-		}
-	
-		/* if no limit is required, use soft limit */
-		if ( op->ors_slimit <= 0 ) {
-			if ( get_pagedresults( op ) && op->ors_limit->lms_s_pr != 0 ) {
-				op->ors_slimit = op->ors_limit->lms_s_pr;
-			} else {
-				op->ors_slimit = op->ors_limit->lms_s_soft;
-			}
-
-		/* if requested limit higher than hard limit, abort */
-		} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
-			/* no hard limit means use soft instead */
-			if ( op->ors_limit->lms_s_hard == 0
-					&& op->ors_limit->lms_s_soft > -1
-					&& op->ors_slimit > op->ors_limit->lms_s_soft ) {
-				op->ors_slimit = op->ors_limit->lms_s_soft;
-
-			/* positive hard limit means abort */
-			} else if ( op->ors_limit->lms_s_hard > 0 ) {
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_ldap_result( op, rs );
-				rs->sr_err = LDAP_SUCCESS;	
-				goto return_results;
-			}
-		
-			/* negative hard limit means no limit */
-		}
-	}
-
 	/* actually do the search and send the result(s) */
-	if ( op->o_bd->be_search ) {
+	if ( op->o_bd->be_search && limits_check( op, rs ) == 0 ) {
 		(op->o_bd->be_search)( op, rs );
 	} else {
 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
