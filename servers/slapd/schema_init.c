@@ -61,7 +61,7 @@
 
 #define integerOrderingMatch			integerMatch
 #define integerFirstComponentMatch		NULL
-#define integerIndexer				octetStringMatch
+#define integerIndexer				octetStringIndexer
 #define integerFilter				octetStringFilter
 
 #define generalizedTimeMatch			caseIgnoreIA5Match
