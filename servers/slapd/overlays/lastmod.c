@@ -1,0 +1,847 @@
+/* lastmod.c - returns last modification info */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2004 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* ACKNOWLEDGEMENTS:
+ * This work was initially developed by Pierangelo Masarati for inclusion in
+ * OpenLDAP Software.
+ */
+
+#include "portable.h"
+
+#ifdef SLAPD_OVER_LASTMOD
+
+#include <stdio.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
+#include "slap.h"
+#include "lutil.h"
+
+typedef struct lastmod_info_t {
+	struct berval		lmi_rdnvalue;
+	Entry			*lmi_e;
+	ldap_pvt_thread_mutex_t	lmi_entry_mutex;
+} lastmod_info_t;
+
+struct lastmod_schema_t {
+	ObjectClass		*lms_oc_lastmod;
+	AttributeDescription	*lms_ad_lastmodDN;
+	AttributeDescription	*lms_ad_lastmodType;
+} lastmod_schema;
+
+enum lastmodType_e {
+	LASTMOD_ADD = 0,
+	LASTMOD_DELETE,
+	LASTMOD_EXOP,
+	LASTMOD_MODIFY,
+	LASTMOD_MODRDN,
+	LASTMOD_UNKNOWN
+};
+
+struct berval lastmodType[] = {
+	BER_BVC( "add" ),
+	BER_BVC( "delete" ),
+	BER_BVC( "exop" ),
+	BER_BVC( "modify" ),
+	BER_BVC( "modrdn" ),
+	BER_BVC( "unknown" ),
+	BER_BVNULL
+};
+
+static struct m_s {
+	char	*name;
+	char	*schema;
+	slap_mask_t flags;
+	int	offset;
+} moc[] = {
+	{ "lastmod", "( 1.3.6.1.4.1.4203.666.3.100001 "
+		"NAME 'lastmod' "
+		"DESC 'OpenLDAP per-database last modification monitoring' "
+		"SUP top STRUCTURAL "
+		"MUST cn "
+		"MAY ( "
+			"lastmodDN "
+			"$ lastmodType "
+			"$ description "
+			"$ seeAlso "
+		") )", SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		offsetof(struct lastmod_schema_t, lms_oc_lastmod) },
+	{ NULL }
+}, mat[] = {
+	{ "lastmodDN", "( 1.3.6.1.4.1.4203.666.1.100001 "
+		"NAME 'lastmodDN' "
+		"DESC 'DN of last modification' "
+		"EQUALITY distinguishedNameMatch "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )", SLAP_AT_HIDE,
+		offsetof(struct lastmod_schema_t, lms_ad_lastmodDN) },
+	{ "lastmodType", "( 1.3.6.1.4.1.4203.666.1.100002 "
+		"NAME 'lastmodType' "
+		"DESC 'Type of last modification' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
+		"EQUALITY caseIgnoreMatch "
+		"SINGLE-VALUE "
+		"NO-USER-MODIFICATION "
+		"USAGE directoryOperation )", SLAP_AT_HIDE,
+		offsetof(struct lastmod_schema_t, lms_ad_lastmodType) },
+	{ NULL }
+};
+
+static const struct berval *write_exop[] = {
+	&slap_EXOP_MODIFY_PASSWD,
+	NULL
+};
+
+static int
+lastmod_search( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+
+#if 0
+	/* FIXME: can't restore the correct bd_info otherwise 
+	 * backend_operational() screws things up */
+	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+#endif
+	ldap_pvt_thread_mutex_lock( &lmi->lmi_entry_mutex );
+	rs->sr_attrs = op->ors_attrs;
+	rs->sr_flags = 0;
+	rs->sr_entry = lmi->lmi_e;
+	rs->sr_err = send_search_entry( op, rs );
+	rs->sr_entry = NULL;
+	rs->sr_flags = 0;
+	rs->sr_attrs = NULL;
+	ldap_pvt_thread_mutex_unlock( &lmi->lmi_entry_mutex );
+
+	send_ldap_result( op, rs );
+
+	return 0;
+}
+
+static int
+lastmod_compare( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+	Attribute		*a;
+
+	ldap_pvt_thread_mutex_lock( &lmi->lmi_entry_mutex );
+	if ( get_assert( op ) &&
+		( test_filter( op, lmi->lmi_e, get_assertion( op )) != LDAP_COMPARE_TRUE ))
+	{
+		rs->sr_err = LDAP_ASSERTION_FAILED;
+		goto return_results;
+	}
+
+	rs->sr_err = access_allowed( op, lmi->lmi_e, op->oq_compare.rs_ava->aa_desc,
+		&op->oq_compare.rs_ava->aa_value, ACL_COMPARE, NULL );
+	if ( ! rs->sr_err ) {
+		rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+		goto return_results;
+	}
+
+	rs->sr_err = LDAP_NO_SUCH_ATTRIBUTE;
+
+	for ( a = attr_find( lmi->lmi_e->e_attrs, op->oq_compare.rs_ava->aa_desc );
+		a != NULL;
+		a = attr_find( a->a_next, op->oq_compare.rs_ava->aa_desc ))
+	{
+		rs->sr_err = LDAP_COMPARE_FALSE;
+
+		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
+			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+			a->a_nvals, &op->oq_compare.rs_ava->aa_value, op->o_tmpmemctx ) == 0 )
+		{
+			rs->sr_err = LDAP_COMPARE_TRUE;
+			break;
+		}
+	}
+
+return_results:;
+	ldap_pvt_thread_mutex_unlock( &lmi->lmi_entry_mutex );
+	send_ldap_result( op, rs );
+
+	if( rs->sr_err == LDAP_COMPARE_FALSE || rs->sr_err == LDAP_COMPARE_TRUE ) {
+		rs->sr_err = LDAP_SUCCESS;
+	}
+
+	return rs->sr_err;
+}
+
+static int
+lastmod_exop( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+
+	/* Temporary */
+
+	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+	rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+	rs->sr_text = "not allowed within namingContext";
+	send_ldap_result( op, rs );
+	rs->sr_text = NULL;
+	
+	return -1;
+}
+
+static int
+lastmod_op_func( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+	unsigned		i;
+
+	if ( dn_match( &op->o_req_ndn, &lmi->lmi_e->e_nname ) ) {
+		switch ( op->o_tag ) {
+		case LDAP_REQ_SEARCH:
+			if ( op->ors_scope != LDAP_SCOPE_BASE ) {
+				goto return_referral;
+			}
+			/* process */
+			return lastmod_search( op, rs );
+
+		case LDAP_REQ_COMPARE:
+			return lastmod_compare( op, rs );
+
+		case LDAP_REQ_EXTENDED:
+			/* if write, reject; otherwise process */
+			for ( i = 0; write_exop[ i ] != NULL; i++ ) {
+				if ( ber_bvcmp( write_exop[ i ], &op->oq_extended.rs_reqoid ) == 0 ) {
+					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+					rs->sr_text = "not allowed within namingContext";
+					goto return_error;
+				}
+			}
+			return lastmod_exop( op, rs );
+
+		default:
+			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "not allowed within namingContext";
+			goto return_error;
+		}
+	}
+
+	if ( dnIsSuffix( &op->o_req_ndn, &lmi->lmi_e->e_nname ) ) {
+		goto return_referral;
+	}
+
+	return SLAP_CB_CONTINUE;
+
+return_referral:;
+	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+	rs->sr_ref = referral_rewrite( default_referral,
+			NULL, &op->o_req_dn, op->ors_scope );
+
+	if (!rs->sr_ref) rs->sr_ref = default_referral;
+	rs->sr_err = LDAP_REFERRAL;
+	send_ldap_result( op, rs );
+
+	if (rs->sr_ref != default_referral)
+	ber_bvarray_free( rs->sr_ref );
+	rs->sr_ref = NULL;
+
+	return -1;
+
+return_error:;
+	op->o_bd->bd_info = (BackendInfo *)on->on_info;
+	send_ldap_result( op, rs );
+	rs->sr_text = NULL;
+
+	return -1;
+}
+
+static int
+lastmod_update( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+	Attribute		*a;
+	Modifications		*ml = NULL;
+	struct berval		bv_modifyTimestamp = BER_BVNULL,
+				bv_nmodifyTimestamp = BER_BVNULL,
+				bv_modifiersName = BER_BVNULL,
+				bv_nmodifiersName = BER_BVNULL,
+				bv_name = BER_BVNULL,
+				bv_nname = BER_BVNULL;
+	enum lastmodType_e	lmt = LASTMOD_UNKNOWN;
+	Entry			*e = NULL;
+	int			rc = -1;
+
+	/* FIXME: timestamp? modifier? */
+	switch ( op->o_tag ) {
+	case LDAP_REQ_ADD:
+		lmt = LASTMOD_ADD;
+		e = op->ora_e;
+		a = attr_find( e->e_attrs, slap_schema.si_ad_modifiersName );
+		if ( a != NULL ) {
+			ber_dupbv( &bv_modifiersName, &a->a_vals[0] );
+			ber_dupbv( &bv_nmodifiersName, &a->a_nvals[0] );
+		}
+		a = attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp );
+		if ( a != NULL ) {
+			ber_dupbv( &bv_modifyTimestamp, &a->a_vals[0] );
+			if ( a->a_nvals && !BER_BVISNULL( &a->a_nvals[0] ) ) {
+				ber_dupbv( &bv_nmodifyTimestamp, &a->a_nvals[0] );
+			} else {
+				ber_dupbv( &bv_nmodifyTimestamp, &a->a_vals[0] );
+			}
+		}
+		ber_dupbv( &bv_name, &e->e_name );
+		ber_dupbv( &bv_nname, &e->e_nname );
+		break;
+
+	case LDAP_REQ_DELETE:
+	{
+		struct tm	*tm;
+#ifdef HAVE_GMTIME_R
+		struct tm	tm_buf;
+#endif
+		char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+		time_t		currtime;
+
+		lmt = LASTMOD_DELETE;
+
+		/* best guess */
+		currtime = slap_get_time();
+
+#ifndef HAVE_GMTIME_R
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+		tm = gmtime( &currtime );
+#else /* HAVE_GMTIME_R */
+		tm = gmtime_r( &currtime, &tm_buf );
+#endif /* HAVE_GMTIME_R */
+		lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
+#ifndef HAVE_GMTIME_R
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
+
+		ber_str2bv( tmbuf, 0, 1, &bv_modifyTimestamp );
+		ber_dupbv( &bv_nmodifyTimestamp, &bv_modifyTimestamp );
+
+		/* best guess */
+		ber_dupbv( &bv_modifiersName, &op->o_dn );
+		ber_dupbv( &bv_nmodifiersName, &op->o_ndn );
+
+		ber_dupbv( &bv_name, &op->o_req_dn );
+		ber_dupbv( &bv_nname, &op->o_req_ndn );
+		break;
+	}
+
+	case LDAP_REQ_MODIFY:
+		lmt = LASTMOD_MODIFY;
+
+		for ( ml = op->orm_modlist; ml; ml = ml->sml_next ) {
+			if ( ad_cmp( ml->sml_desc , slap_schema.si_ad_modifiersName ) == 0 ) {
+				ber_dupbv( &bv_modifiersName, &ml->sml_values[0] );
+				ber_dupbv( &bv_nmodifiersName, &ml->sml_nvalues[0] );
+
+				if ( !BER_BVISNULL( &bv_modifyTimestamp ) ) {
+					break;
+				}
+
+			} else if ( ad_cmp( ml->sml_desc, slap_schema.si_ad_modifyTimestamp ) == 0 ) {
+				ber_dupbv( &bv_modifyTimestamp, &ml->sml_values[0] );
+				if ( ml->sml_nvalues && !BER_BVISNULL( &ml->sml_nvalues[0] ) ) {
+					ber_dupbv( &bv_nmodifyTimestamp, &ml->sml_nvalues[0] );
+				} else {
+					ber_dupbv( &bv_nmodifyTimestamp, &ml->sml_values[0] );
+				}
+
+				if ( !BER_BVISNULL( &bv_modifiersName ) ) {
+					break;
+				}
+			}
+		}
+
+		ber_dupbv( &bv_name, &op->o_req_dn );
+		ber_dupbv( &bv_nname, &op->o_req_ndn );
+		break;
+
+	case LDAP_REQ_MODRDN:
+		lmt = LASTMOD_MODRDN;
+		e = NULL;
+		if ( on->on_info->oi_orig->bi_entry_get_rw ) {
+			BackendInfo	*bi = op->o_bd->bd_info;
+			struct berval	dn = BER_BVNULL;
+
+			if ( op->orr_nnewSup && !BER_BVISNULL( op->orr_nnewSup ) ) {
+				build_new_dn( &dn, op->orr_nnewSup, &op->orr_nnewrdn, NULL );
+
+			} else {
+				struct berval	pdn;
+
+				dnParent( &op->o_req_ndn, &pdn );
+				build_new_dn( &dn, &pdn, &op->orr_nnewrdn, NULL );
+			}
+
+			op->o_bd->bd_info = (BackendInfo *)on->on_info->oi_orig;
+			if ( (*op->o_bd->bd_info->bi_entry_get_rw)( op, &dn, NULL, NULL, 0, &e ) == LDAP_SUCCESS ) {
+				a = attr_find( e->e_attrs, slap_schema.si_ad_modifiersName );
+				if ( a != NULL ) {
+					ber_dupbv( &bv_modifiersName, &a->a_vals[0] );
+					ber_dupbv( &bv_nmodifiersName, &a->a_nvals[0] );
+				}
+				a = attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp );
+				if ( a != NULL ) {
+					ber_dupbv( &bv_modifyTimestamp, &a->a_vals[0] );
+					if ( a->a_nvals && !BER_BVISNULL( &a->a_nvals[0] ) ) {
+						ber_dupbv( &bv_nmodifyTimestamp, &a->a_nvals[0] );
+					} else {
+						ber_dupbv( &bv_nmodifyTimestamp, &a->a_vals[0] );
+					}
+				}
+
+				ber_dupbv( &bv_name, &e->e_name );
+				ber_dupbv( &bv_nname, &e->e_nname );
+
+				(*op->o_bd->bd_info->bi_entry_release_rw)( op, e, 0 );
+			}
+
+			ch_free( dn.bv_val );
+			op->o_bd->bd_info = bi;
+		}
+		break;
+
+	default:
+		return -1;
+	}
+	
+	ldap_pvt_thread_mutex_lock( &lmi->lmi_entry_mutex );
+
+#if 0
+	fprintf( stderr, "### lastmodDN: %s %s\n", bv_name.bv_val, bv_nname.bv_val );
+#endif
+
+	a = attr_find( lmi->lmi_e->e_attrs, lastmod_schema.lms_ad_lastmodDN );
+	if ( a == NULL ) {
+		goto error_return;
+	}
+	ch_free( a->a_vals[0].bv_val );
+	a->a_vals[0] = bv_name;
+	ch_free( a->a_nvals[0].bv_val );
+	a->a_nvals[0] = bv_nname;
+
+#if 0
+	fprintf( stderr, "### lastmodType: %s %s\n", lastmodType[ lmt ].bv_val, lastmodType[ lmt ].bv_val );
+#endif
+
+	a = attr_find( lmi->lmi_e->e_attrs, lastmod_schema.lms_ad_lastmodType );
+	if ( a == NULL ) {
+		goto error_return;
+	} 
+	ch_free( a->a_vals[0].bv_val );
+	ber_dupbv( &a->a_vals[0], &lastmodType[ lmt ] );
+	ch_free( a->a_nvals[0].bv_val );
+	ber_dupbv( &a->a_vals[0], &lastmodType[ lmt ] );
+
+#if 0
+	fprintf( stderr, "### modifiersName: %s %s\n", bv_modifiersName.bv_val, bv_nmodifiersName.bv_val );
+#endif
+
+	a = attr_find( lmi->lmi_e->e_attrs, slap_schema.si_ad_modifiersName );
+	if ( a == NULL ) {
+		goto error_return;
+	} 
+	ch_free( a->a_vals[0].bv_val );
+	a->a_vals[0] = bv_modifiersName;
+	ch_free( a->a_nvals[0].bv_val );
+	a->a_nvals[0] = bv_nmodifiersName;
+
+#if 0
+	fprintf( stderr, "### modifyTimestamp: %s %s\n", bv_nmodifyTimestamp.bv_val, bv_modifyTimestamp.bv_val );
+#endif
+
+	a = attr_find( lmi->lmi_e->e_attrs, slap_schema.si_ad_modifyTimestamp );
+	if ( a == NULL ) {
+		goto error_return;
+	} 
+	ch_free( a->a_vals[0].bv_val );
+	a->a_vals[0] = bv_modifyTimestamp;
+	ch_free( a->a_nvals[0].bv_val );
+	a->a_nvals[0] = bv_nmodifyTimestamp;
+
+	rc = 0;
+
+error_return:;
+	ldap_pvt_thread_mutex_unlock( &lmi->lmi_entry_mutex );
+	
+	return rc;
+}
+
+static int
+lastmod_response( Operation *op, SlapReply *rs )
+{
+	unsigned int	i;
+
+	if ( rs->sr_err != LDAP_SUCCESS ) {
+		return SLAP_CB_CONTINUE;
+	}
+
+	switch ( op->o_tag ) {
+	case LDAP_REQ_ADD:
+	case LDAP_REQ_MODIFY:
+	case LDAP_REQ_MODRDN:
+	case LDAP_REQ_DELETE:
+		/* FIXME: exop? */
+		break;
+
+	case LDAP_REQ_EXTENDED:
+		/* if write, process */
+		for ( i = 0; write_exop[ i ] != NULL; i++ ) {
+			if ( ber_bvcmp( write_exop[ i ], &op->oq_extended.rs_reqoid ) == 0 ) {
+				goto process;
+			}
+		}
+		/* fall thru */
+
+	default:
+		return SLAP_CB_CONTINUE;
+	}
+
+process:;
+	if ( rs->sr_err == LDAP_SUCCESS ) {
+		/* FIXME: ignore errors */
+		(void)lastmod_update( op, rs );
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+lastmod_db_init(
+	BackendDB *be
+)
+{
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	lastmod_info_t		*lmi;
+
+	if ( lastmod_schema.lms_oc_lastmod == NULL ) {
+		int			i;
+		const char 		*text;
+
+		/* schema integration */
+		for ( i = 0; mat[i].name; i++ ) {
+			LDAPAttributeType	*at;
+			int			code;
+			const char		*err;
+			AttributeDescription	**ad;
+	
+			at = ldap_str2attributetype( mat[i].schema, &code,
+				&err, LDAP_SCHEMA_ALLOW_ALL );
+			if ( !at ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
+					"in AttributeType '%s' %s before %s\n",
+					mat[i].name, ldap_scherr2str(code), err );
+#else
+				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
+					"in AttributeType '%s' %s before %s\n",
+					mat[i].name, ldap_scherr2str(code), err );
+#endif
+				return -1;
+			}
+	
+			if ( at->at_oid == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
+					"null OID for attributeType '%s'\n",
+					mat[i].name, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
+					"null OID for attributeType '%s'\n",
+					mat[i].name, 0, 0 );
+#endif
+				return -1;
+			}
+	
+			code = at_add(at, &err);
+			if ( code ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
+					"%s in attributeType '%s'\n",
+					scherr2str(code), mat[i].name, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
+					"%s in attributeType '%s'\n",
+					scherr2str(code), mat[i].name, 0 );
+#endif
+				return -1;
+			}
+			ldap_memfree(at);
+	
+			ad = ((AttributeDescription **)&(((char *)&lastmod_schema)[mat[i].offset]));
+			ad[0] = NULL;
+			if ( slap_str2ad( mat[i].name, ad, &text ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT,
+					"lastmod_init: %s\n", text, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"lastmod_init: %s\n", text, 0, 0 );
+#endif
+				return -1;
+			}
+	
+			(*ad)->ad_type->sat_flags |= mat[i].flags;
+		}
+
+		for ( i = 0; moc[i].name; i++ ) {
+			LDAPObjectClass		*oc;
+			int			code;
+			const char		*err;
+			ObjectClass		*Oc;
+	
+			oc = ldap_str2objectclass(moc[i].schema, &code, &err,
+					LDAP_SCHEMA_ALLOW_ALL );
+			if ( !oc ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT,
+					"unable to parse lastmod objectClass '%s': "
+					"%s before %s\n" , moc[i].name,
+					ldap_scherr2str(code), err );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"unable to parse lastmod objectClass '%s': "
+					"%s before %s\n" , moc[i].name,
+					ldap_scherr2str(code), err );
+#endif
+				return -1;
+			}
+
+			if ( oc->oc_oid == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT,
+					"objectClass '%s' has no OID\n" ,
+					moc[i].name, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"objectClass '%s' has no OID\n" ,
+					moc[i].name, 0, 0 );
+#endif
+				return -1;
+			}
+
+			code = oc_add(oc, 0, &err);
+			if ( code ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT,
+					"objectClass '%s': %s \"%s\"\n" ,
+					moc[i].name, scherr2str(code), err );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"objectClass '%s': %s \"%s\"\n" ,
+					moc[i].name, scherr2str(code), err );
+#endif
+				return -1;
+			}
+	
+			ldap_memfree(oc);
+	
+			Oc = oc_find( moc[i].name );
+			if ( Oc == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, CRIT, "lastmod_init: "
+						"unable to find objectClass %s "
+						"(just added)\n", moc[i].name, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "lastmod_init: "
+						"unable to find objectClass %s "
+						"(just added)\n", moc[i].name, 0, 0 );
+#endif
+				return -1;
+			}
+
+			Oc->soc_flags |= moc[i].flags;
+
+			((ObjectClass **)&(((char *)&lastmod_schema)[moc[i].offset]))[0] = Oc;
+		}
+	}
+
+	lmi = (lastmod_info_t *)ch_malloc(sizeof(lastmod_info_t));
+	memset(lmi, 0, sizeof(lastmod_info_t));
+	on->on_bi.bi_private = lmi;
+
+	return 0;
+}
+
+static int
+lastmod_db_config(
+    BackendDB	*be,
+    const char	*fname,
+    int		lineno,
+    int		argc,
+    char	**argv
+)
+{
+	slap_overinst		*on = (slap_overinst *) be->bd_info;
+	lastmod_info_t		*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+
+	if ( strcasecmp( argv[ 0 ], "lastmod-rdnvalue" ) == 0 ) {
+		if ( lmi->lmi_rdnvalue.bv_val ) {
+			/* already defined! */
+			ch_free( lmi->lmi_rdnvalue.bv_val );
+		}
+
+		ber_str2bv( argv[ 1 ], 0, 1, &lmi->lmi_rdnvalue );
+
+	} else {
+		return SLAP_CONF_UNKNOWN;
+	}
+
+	return 0;
+}
+
+static int
+lastmod_db_open(
+	BackendDB *be
+)
+{
+	slap_overinst	*on = (slap_overinst *) be->bd_info;
+	lastmod_info_t	*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+	char		buf[ 8192 ];
+	struct tm		*tms;
+#ifdef HAVE_GMTIME_R
+	struct tm		tm_buf;
+#endif
+	static char		tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
+
+	if ( !SLAP_LASTMOD( be ) ) {
+		fprintf( stderr, "set \"lastmod on\" to make this overlay effective\n" );
+		return -1;
+	}
+
+	/*
+	 * Start
+	 */
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+	tms = gmtime( &starttime );
+#else /* HAVE_GMTIME_R */
+	tms = gmtime_r( &starttime, &tm_buf );
+#endif /* HAVE_GMTIME_R */
+	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
+#ifndef HAVE_GMTIME_R
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+#endif
+
+	if ( BER_BVISNULL( &lmi->lmi_rdnvalue ) ) {
+		ber_str2bv( "Lastmod", 0, 1, &lmi->lmi_rdnvalue );
+	}
+
+	snprintf( buf, sizeof( buf ),
+			"dn: cn=%s,%s\n"
+			"objectClass: %s\n"
+			"structuralObjectClass: %s\n"
+			"cn: %s\n"
+			"description: This object contains the last modification to this database\n"
+			"%s: cn=%s,%s\n"
+			"%s: %s\n"
+			"createTimestamp: %s\n"
+			"creatorsName: %s\n"
+			"modifyTimestamp: %s\n"
+			"modifiersName: %s\n"
+			"hasSubordinates: FALSE\n",
+			lmi->lmi_rdnvalue.bv_val, be->be_suffix[0].bv_val,
+			lastmod_schema.lms_oc_lastmod->soc_cname.bv_val,
+			lastmod_schema.lms_oc_lastmod->soc_cname.bv_val,
+			lmi->lmi_rdnvalue.bv_val,
+			lastmod_schema.lms_ad_lastmodDN->ad_cname.bv_val, lmi->lmi_rdnvalue.bv_val, be->be_suffix[0].bv_val,
+			lastmod_schema.lms_ad_lastmodType->ad_cname.bv_val, lastmodType[ LASTMOD_ADD ].bv_val,
+			tmbuf,
+			BER_BVISNULL( &be->be_rootdn ) ? "" : be->be_rootdn.bv_val,
+			tmbuf,
+			BER_BVISNULL( &be->be_rootdn ) ? "" : be->be_rootdn.bv_val );
+
+#if 0
+	fprintf( stderr, "# entry:\n%s\n", buf );
+	fflush( stderr );
+#endif
+
+	lmi->lmi_e = str2entry( buf );
+	if ( lmi->lmi_e == NULL ) {
+		return -1;
+	}
+
+	ldap_pvt_thread_mutex_init( &lmi->lmi_entry_mutex );
+
+	return 0;
+}
+
+static int
+lastmod_db_destroy(
+	BackendDB *be
+)
+{
+	slap_overinst	*on = (slap_overinst *) be->bd_info;
+	lastmod_info_t	*lmi = (lastmod_info_t *)on->on_bi.bi_private;
+
+	if ( lmi ) {
+		if ( !BER_BVISNULL( &lmi->lmi_rdnvalue ) ) {
+			ch_free( lmi->lmi_rdnvalue.bv_val );
+		}
+
+		if ( lmi->lmi_e ) {
+			entry_free( lmi->lmi_e );
+
+			ldap_pvt_thread_mutex_destroy( &lmi->lmi_entry_mutex );
+		}
+
+		ch_free( lmi );
+	}
+
+	return 0;
+}
+
+/* This overlay is set up for dynamic loading via moduleload. For static
+ * configuration, you'll need to arrange for the slap_overinst to be
+ * initialized and registered by some other function inside slapd.
+ */
+
+static slap_overinst 		lastmod;
+
+int
+lastmod_init()
+{
+	memset( &lastmod, 0, sizeof( slap_overinst ) );
+	lastmod.on_bi.bi_type = "lastmod";
+	lastmod.on_bi.bi_db_init = lastmod_db_init;
+	lastmod.on_bi.bi_db_config = lastmod_db_config;
+	lastmod.on_bi.bi_db_destroy = lastmod_db_destroy;
+	lastmod.on_bi.bi_db_open = lastmod_db_open;
+
+	lastmod.on_bi.bi_op_add = lastmod_op_func;
+	lastmod.on_bi.bi_op_compare = lastmod_op_func;
+	lastmod.on_bi.bi_op_delete = lastmod_op_func;
+	lastmod.on_bi.bi_op_modify = lastmod_op_func;
+	lastmod.on_bi.bi_op_modrdn = lastmod_op_func;
+	lastmod.on_bi.bi_op_search = lastmod_op_func;
+	lastmod.on_bi.bi_extended = lastmod_op_func;
+
+	lastmod.on_response = lastmod_response;
+
+	return overlay_register( &lastmod );
+}
+
+#if SLAPD_OVER_LASTMOD == SLAPD_MOD_DYNAMIC
+int
+init_module(int argc, char *argv[])
+{
+	return lastmod_init();
+}
+#endif /* SLAPD_OVER_LASTMOD == SLAPD_MOD_DYNAMIC */
+
+#endif /* defined(SLAPD_OVER_LASTMOD) */
