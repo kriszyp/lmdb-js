@@ -43,7 +43,8 @@
  */
 
 int
-monitor_back_bind(
+monitor_back_bind( Operation *op, SlapReply *rs )
+	/*
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
@@ -52,29 +53,29 @@ monitor_back_bind(
 	int		method,
 	struct berval	*cred,
 	struct berval	*edn
-				    
-)
+) */
 {
 #if 0	/* not used yet */
-	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
+	struct monitorinfo	*mi
+		= (struct monitorinfo *) op->o_bd->be_private;
 #endif
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_MON, ENTRY,
-		"monitor_back_bind: dn: %s.\n", dn->bv_val, 0, 0 );
+	LDAP_LOG( BACK_MON, ENTRY, "monitor_back_bind: dn: %s.\n",
+			op->o_req_dn.bv_val, 0, 0 );
 #else
-	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n%s%s", 
-			dn->bv_val, "", "");
+	Debug(LDAP_DEBUG_ARGS, "==> monitor_back_bind: dn: %s\n", 
+			op->o_req_dn.bv_val, 0, 0 );
 #endif
 	
-	if ( method == LDAP_AUTH_SIMPLE 
-			&& be_isroot_pw( be, conn, ndn, cred ) ) {
-		ber_dupbv( edn, be_root_dn( be ) );
+	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE 
+			&& be_isroot_pw( op ) ) {
+		ber_dupbv( &op->oq_bind.rb_edn, be_root_dn( op->o_bd ) );
 		return( 0 );
 	}
 
-	send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
-				NULL, NULL, NULL, NULL );
+	rs->sr_err = LDAP_INVALID_CREDENTIALS;
+	send_ldap_result( op, rs );
 
 	return( 1 );
 }
