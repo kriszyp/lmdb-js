@@ -253,7 +253,6 @@ backsql_init_search(
 		}
 	}
 
-	bsi->bsi_abandon = 0;
 	bsi->bsi_id_list = NULL;
 	bsi->bsi_id_listtail = &bsi->bsi_id_list;
 	bsi->bsi_n_candidates = 0;
@@ -1464,6 +1463,12 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_oc_get_candidates(): oc=\"%s\"\n",
 			BACKSQL_OC_NAME( oc ), 0, 0 );
 
+	/* check for abandon */
+	if ( op->o_abandon ) {
+		bsi->bsi_status = SLAPD_ABANDON;
+		return BACKSQL_AVL_STOP;
+	}
+
 	if ( bsi->bsi_n_candidates == -1 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
 			"unchecked limit has been overcome\n", 0, 0, 0 );
@@ -1943,6 +1948,12 @@ backsql_search( Operation *op, SlapReply *rs )
 		 */
 		avl_apply( bi->sql_oc_by_oc, backsql_oc_get_candidates,
 				&bsi, BACKSQL_AVL_STOP, AVL_INORDER );
+
+		/* check for abandon */
+		if ( op->o_abandon ) {
+			rs->sr_err = SLAPD_ABANDON;
+			goto send_results;
+		}
 	}
 
 	if ( op->ors_limit != NULL	/* isroot == FALSE */
@@ -1973,7 +1984,8 @@ backsql_search( Operation *op, SlapReply *rs )
 
 		/* check for abandon */
 		if ( op->o_abandon ) {
-			break;
+			rs->sr_err = SLAPD_ABANDON;
+			goto send_results;
 		}
 
 		/* check time limit */
@@ -2229,7 +2241,9 @@ end_of_search:;
 	}
 
 send_results:;
-	send_ldap_result( op, rs );
+	if ( rs->sr_err != SLAPD_ABANDON ) {
+		send_ldap_result( op, rs );
+	}
 
 	entry_clean( &base_entry );
 
@@ -2282,7 +2296,8 @@ done:;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_search()\n", 0, 0, 0 );
-	return 0;
+
+	return rs->sr_err;
 }
 
 /* return LDAP_SUCCESS IFF we can retrieve the specified entry.
