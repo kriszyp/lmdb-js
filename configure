@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.348 2001/01/18 17:40:26 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.349 2001/01/18 21:18:14 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -27,109 +27,109 @@ ac_default_prefix=/usr/local
 ac_help="$ac_help
   --with-subdir=DIR change default subdirectory used for installs"
 ac_help="$ac_help
-  --enable-debug 	  enable debugging (yes)"
+  --enable-debug 	  enable debugging [yes]"
 ac_help="$ac_help
-  --enable-syslog	  enable syslog support (auto)"
+  --enable-syslog	  enable syslog support [auto]"
 ac_help="$ac_help
-  --enable-proctitle	  enable proctitle support (yes)"
+  --enable-proctitle	  enable proctitle support [yes]"
 ac_help="$ac_help
-  --enable-cache	  enable caching (yes)"
+  --enable-cache	  enable caching (experimental) [no]"
 ac_help="$ac_help
-  --enable-referrals	  enable V2 Referrals extension (yes)"
+  --enable-referrals	  enable V2 Referrals (experimental) [no]"
 ac_help="$ac_help
-  --enable-kbind	  enable V2 Kerberos IV bind (no)"
+  --enable-kbind	  enable V2 Kerberos IV bind (deprecated) [no]"
 ac_help="$ac_help
-  --enable-ipv6 	  enable IPv6 support (auto)"
+  --enable-ipv6 	  enable IPv6 support [auto]"
 ac_help="$ac_help
-  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support (auto)"
+  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support [auto]"
 ac_help="$ac_help
-  --enable-x-compile	  enable cross compiling (no)"
+  --enable-x-compile	  enable cross compiling [no]"
 ac_help="$ac_help
-  --with-cyrus-sasl	  with Cyrus SASL support (auto)"
+  --with-cyrus-sasl	  with Cyrus SASL support [auto]"
 ac_help="$ac_help
-  --with-fetch		  with fetch URL support (auto)"
+  --with-fetch		  with fetch URL support [auto]"
 ac_help="$ac_help
-  --with-kerberos	  with support (auto)"
+  --with-kerberos	  with support [auto]"
 ac_help="$ac_help
-  --with-readline	  with readline support (auto)"
+  --with-readline	  with readline support [auto]"
 ac_help="$ac_help
-  --with-threads	  with threads (auto)"
+  --with-threads	  with threads [auto]"
 ac_help="$ac_help
-  --with-tls		  with TLS/SSL support (auto)"
+  --with-tls		  with TLS/SSL support [auto]"
 ac_help="$ac_help
-  --with-yielding-select  with implicitly yielding select (auto)"
+  --with-yielding-select  with implicitly yielding select [auto]"
 ac_help="$ac_help
 SLAPD (Standalone LDAP Daemon) Options:"
 ac_help="$ac_help
-  --enable-slapd	  enable building slapd (yes)"
+  --enable-slapd	  enable building slapd [yes]"
 ac_help="$ac_help
-    --enable-aci	  enable per-object ACIs (no)"
+    --enable-aci	  enable per-object ACIs (experimental) [no]"
 ac_help="$ac_help
-    --enable-cleartext	  enable cleartext passwords (yes)"
+    --enable-cleartext	  enable cleartext passwords [yes]"
 ac_help="$ac_help
-    --enable-crypt	  enable crypt(3) passwords (no)"
+    --enable-crypt	  enable crypt(3) passwords [no]"
 ac_help="$ac_help
-    --enable-dynamic	  enable linking built binaries with dynamic libs (no)"
+    --enable-dynamic	  enable linking built binaries with dynamic libs [no]"
 ac_help="$ac_help
-    --enable-kpasswd	  enable Kerberos password verification (no)"
+    --enable-kpasswd	  enable Kerberos password verification [no]"
 ac_help="$ac_help
-    --enable-lmpasswd	  enable LAN Manager passwords (no)"
+    --enable-lmpasswd	  enable LAN Manager passwords [no]"
 ac_help="$ac_help
-    --enable-spasswd	  enable (Cyrus) SASL password verification (no)"
+    --enable-spasswd	  enable (Cyrus) SASL password verification [no]"
 ac_help="$ac_help
-    --enable-modules	  enable dynamic module support (no)"
+    --enable-modules	  enable dynamic module support [no]"
 ac_help="$ac_help
-    --enable-phonetic	  enable phonetic/soundex (no)"
+    --enable-phonetic	  enable phonetic/soundex [no]"
 ac_help="$ac_help
-    --enable-rlookups	  enable reverse lookups (no)"
+    --enable-rlookups	  enable reverse lookups [no]"
 ac_help="$ac_help
-  --enable-slp            enable SLPv2 support (no)"
+  --enable-slp            enable SLPv2 support [no]"
 ac_help="$ac_help
-    --enable-wrappers	  enable tcp wrapper support (no)"
+    --enable-wrappers	  enable tcp wrapper support [no]"
 ac_help="$ac_help
-    --enable-bdb	  enable Berkeley DB backend (no)"
+    --enable-bdb	  enable Berkeley DB backend [no]"
 ac_help="$ac_help
-    --with-bdb-module  module type (static)"
+    --with-bdb-module  module type [static]"
 ac_help="$ac_help
-    --enable-dnssrv	  enable dnssrv backend (no)"
+    --enable-dnssrv	  enable dnssrv backend [no]"
 ac_help="$ac_help
-    --with-dnssrv-module  module type (static)"
+    --with-dnssrv-module  module type [static]"
 ac_help="$ac_help
-    --enable-ldap	  enable ldap backend (no)"
+    --enable-ldap	  enable ldap backend [no]"
 ac_help="$ac_help
-    --with-ldap-module	  module type (static)"
+    --with-ldap-module	  module type [static]"
 ac_help="$ac_help
-    --enable-ldbm	  enable ldbm backend (yes)"
+    --enable-ldbm	  enable ldbm backend [yes]"
 ac_help="$ac_help
-    --with-ldbm-api       with LDBM API (auto)"
+    --with-ldbm-api       with LDBM API [auto]"
 ac_help="$ac_help
-    --with-ldbm-module	  module type (static)"
+    --with-ldbm-module	  module type [static]"
 ac_help="$ac_help
-    --with-ldbm-type	  use LDBM type (auto)"
+    --with-ldbm-type	  use LDBM type [auto]"
 ac_help="$ac_help
-    --enable-passwd	  enable passwd backend (no)"
+    --enable-passwd	  enable passwd backend [no]"
 ac_help="$ac_help
-    --with-passwd-module  module type (static)"
+    --with-passwd-module  module type [static]"
 ac_help="$ac_help
-    --enable-perl	  enable perl backend (no)"
+    --enable-perl	  enable perl backend [no]"
 ac_help="$ac_help
-    --with-perl-module	  module type (static)"
+    --with-perl-module	  module type [static]"
 ac_help="$ac_help
-    --enable-shell	  enable shell backend (no)"
+    --enable-shell	  enable shell backend [no]"
 ac_help="$ac_help
-    --with-shell-module	  module type (static)"
+    --with-shell-module	  module type [static]"
 ac_help="$ac_help
-    --enable-sql	  enable sql backend (no)"
+    --enable-sql	  enable sql backend [no]"
 ac_help="$ac_help
-    --with-sql-module	  module type (static)"
+    --with-sql-module	  module type [static]"
 ac_help="$ac_help
-    --enable-tcl	  enable tcl backend (no)"
+    --enable-tcl	  enable tcl backend [no]"
 ac_help="$ac_help
-    --with-tcl-module	  module type (static)"
+    --with-tcl-module	  module type [static]"
 ac_help="$ac_help
 SLURPD (Replication Daemon) Options:"
 ac_help="$ac_help
-  --enable-slurpd	  enable building slurpd (auto)"
+  --enable-slurpd	  enable building slurpd [auto]"
 ac_help="$ac_help
 Library Generation & Linking Options"
 ac_help="$ac_help
@@ -1275,7 +1275,7 @@ if test "${enable_cache+set}" = set; then
 	ol_enable_cache="$ol_arg"
 
 else
-  	ol_enable_cache="yes"
+  	ol_enable_cache="no"
 fi
 # end --enable-cache
 # OpenLDAP --enable-referrals
@@ -1295,7 +1295,7 @@ if test "${enable_referrals+set}" = set; then
 	ol_enable_referrals="$ol_arg"
 
 else
-  	ol_enable_referrals="yes"
+  	ol_enable_referrals="no"
 fi
 # end --enable-referrals
 # OpenLDAP --enable-kbind
