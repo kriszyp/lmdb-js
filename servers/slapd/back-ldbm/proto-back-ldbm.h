@@ -127,6 +127,16 @@ int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID 
 #ifdef HAVE_KERBEROS
 /* krbv4_ldap_auth LDAP_P(( Backend *be, struct berval *cred, AUTH_DAT *ad )); */
 #endif
+ 
+/*
+ * modify.c
+ * These prototypes are placed here because they are used by modify and
+ * modify rdn which are implemented in different files. 
+ */
+
+int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 
 /*
  * nextid.c
