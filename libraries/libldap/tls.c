@@ -940,6 +940,15 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 					{
 						break;
 					}
+
+#if 0
+					/* Is this a RFC 2549 style wildcard match? */
+					if ((*sn == '.') && domain && (len2 == sl) &&
+						!strncasecmp(domain, sn, len2))
+					{
+						break;
+					}
+#endif
 				}
 			}
 
