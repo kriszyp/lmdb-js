@@ -59,10 +59,10 @@ monitor_subsys_conn_init(
 	if ( monitor_cache_get( mi,
 			&monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn, &e_conn ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
@@ -87,10 +87,10 @@ monitor_subsys_conn_init(
 	e = str2entry( buf );
 	if ( e == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to create entry 'cn=Total,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
@@ -117,10 +117,10 @@ monitor_subsys_conn_init(
 
 	if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to add entry 'cn=Total,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
@@ -145,10 +145,10 @@ monitor_subsys_conn_init(
 	e = str2entry( buf );
 	if ( e == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to create entry 'cn=Current,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
@@ -175,10 +175,10 @@ monitor_subsys_conn_init(
 
 	if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_conn_init: "
 			"unable to add entry 'cn=Current,%s'\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
@@ -210,12 +210,12 @@ monitor_subsys_conn_update(
 	assert( mi );
 	assert( e );
 	
-	if ( strncasecmp( e->e_ndn, "CN=TOTAL", 
-				sizeof("CN=TOTAL")-1 ) == 0 ) {
+	if ( strncasecmp( e->e_ndn, "cn=total", 
+				sizeof("cn=total")-1 ) == 0 ) {
 		n = connections_nextid();
 
-	} else if ( strncasecmp( e->e_ndn, "CN=CURRENT", 
-				sizeof("CN=CURRENT")-1 ) == 0 ) {
+	} else if ( strncasecmp( e->e_ndn, "cn=current", 
+				sizeof("cn=current")-1 ) == 0 ) {
 		Connection	*c;
 		int		connindex;
 
@@ -273,12 +273,11 @@ conn_create(
 
 	if ( e == NULL) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_conn_create: "
 			"unable to create entry "
 			"'cn=" CONN_CN_PREFIX " %ld,%s' entry\n",
-			c->c_connid, 
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val ));
+			c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_create: "
@@ -293,10 +292,10 @@ conn_create(
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	
 	ltm = gmtime( &c->c_starttime );
-	strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+	lutil_gentime( buf2, sizeof(buf2), ltm );
 			
 	ltm = gmtime( &c->c_activitytime );
-	strftime( buf3, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
+	lutil_gentime( buf3, sizeof(buf2), ltm );
 			
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 

@@ -75,10 +75,10 @@ monitor_subsys_ops_init(
 	if ( monitor_cache_get( mi,
 			&monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn, &e_op ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to get entry '%s'\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
@@ -105,11 +105,11 @@ monitor_subsys_ops_init(
 	e = str2entry( buf );
 	if ( e == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to create entry 'cn=%s,%s'\n",
 			bv_initiated.bv_val,
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
@@ -136,11 +136,11 @@ monitor_subsys_ops_init(
 
 	if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to add entry 'cn=%s,%s'\n",
 			bv_initiated.bv_val,
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
@@ -172,12 +172,12 @@ monitor_subsys_ops_init(
 		e = str2entry( buf );
 		if ( e == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor_subsys_ops_init: "
 				"unable to create entry 'cn=%s,cn=%s,%s'\n",
 				bv_op[ i ].bv_val,
 				bv_initiated.bv_val,
-				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_ops_init: "
@@ -204,12 +204,12 @@ monitor_subsys_ops_init(
 
 		if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor_subsys_ops_init: "
 				"unable to add entry 'cn=%s,cn=%s,%s'\n",
 				bv_op[ i ].bv_val,
 				bv_initiated.bv_val,
-				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_ops_init: "
@@ -241,11 +241,11 @@ monitor_subsys_ops_init(
 	e = str2entry( buf );
 	if ( e == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to create entry 'cn=%s,%s'\n",
 			bv_completed.bv_val,
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
@@ -271,11 +271,11 @@ monitor_subsys_ops_init(
 
 	if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"monitor_subsys_ops_init: "
 			"unable to add entry 'cn=%s,%s'\n",
 			bv_completed.bv_val,
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
@@ -307,12 +307,12 @@ monitor_subsys_ops_init(
 		e = str2entry( buf );
 		if ( e == NULL ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor_subsys_ops_init: "
 				"unable to create entry 'cn=%s,cn=%s,%s'\n",
 				bv_op[ i ].bv_val,
 				bv_completed.bv_val,
-				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_ops_init: "
@@ -338,12 +338,12 @@ monitor_subsys_ops_init(
 
 		if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor_subsys_ops_init: "
 				"unable to add entry 'cn=%s,cn=%s,%s'\n",
 				bv_op[ i ].bv_val,
 				bv_completed.bv_val,
-				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_ops_init: "

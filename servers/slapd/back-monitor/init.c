@@ -236,8 +236,8 @@ monitor_back_db_init(
 	 */
 	if ( be_monitor ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-			"only one monitor backend is allowed\n" ));
+		LDAP_LOG( OPERATION, CRIT,
+			"only one monitor backend is allowed\n" , 0, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"only one monitor backend is allowed\n%s%s%s",
@@ -256,8 +256,8 @@ monitor_back_db_init(
 	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-			"monitor DN \"" SLAPD_MONITOR_DN "\" backend is allowed\n" ));
+		LDAP_LOG( OPERATION, CRIT,
+			"monitor DN \"" SLAPD_MONITOR_DN "\" backend is allowed\n" , 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor DN \"" SLAPD_MONITOR_DN "\" backend is allowed\n",
@@ -275,8 +275,8 @@ monitor_back_db_init(
 
 	if ( slap_str2ad( "description", &monitor_ad_desc, &text ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-			"monitor_back_db_init: %s\n", text ));
+		LDAP_LOG( OPERATION, CRIT,
+			"monitor_back_db_init: %s\n", text, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_backend_init: %s\n%s%s", 
@@ -302,9 +302,9 @@ monitor_back_db_init(
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor RDN \"%s\" is invalid\n", 
-				dn.bv_val ));
+				dn.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor RDN \"%s\" is invalid\n", 
@@ -322,9 +322,9 @@ monitor_back_db_init(
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"monitor DN \"%s\" is invalid\n", 
-				dn.bv_val ));
+				dn.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"monitor DN \"%s\" is invalid\n", 
@@ -344,9 +344,9 @@ monitor_back_db_init(
 		
 		if ( e == NULL) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"unable to create '%s' entry\n", 
-				monitor_subsys[ i ].mss_dn.bv_val ));
+				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to create '%s' entry\n", 
@@ -364,9 +364,9 @@ monitor_back_db_init(
 
 		if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			LDAP_LOG( OPERATION, CRIT,
 				"unable to add entry '%s' to cache\n",
-				monitor_subsys[ i ].mss_dn.bv_val ));
+				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"unable to add entry '%s' to cache\n",
@@ -392,9 +392,9 @@ monitor_back_db_init(
 	e = str2entry( buf );
 	if ( e == NULL) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"unable to create '%s' entry\n",
-			SLAPD_MONITOR_DN ));
+			SLAPD_MONITOR_DN, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to create '%s' entry\n%s%s",
@@ -412,9 +412,9 @@ monitor_back_db_init(
 	}
 	if ( attr_merge( e, monitor_ad_desc, bv ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"unable to add description to '%s' entry\n",
-			SLAPD_MONITOR_DN ));
+			SLAPD_MONITOR_DN, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to add description to '%s' entry\n%s%s",
@@ -432,9 +432,9 @@ monitor_back_db_init(
 
 	if ( monitor_cache_add( mi, e ) ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+		LDAP_LOG( OPERATION, CRIT,
 			"unable to add entry '%s' to cache\n",
-			SLAPD_MONITOR_DN ));
+			SLAPD_MONITOR_DN, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to add entry '%s' to cache\n%s%s",
@@ -465,8 +465,8 @@ monitor_back_open(
 	rc = dnNormalize2( NULL, &dn, &ndn );
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-			"monitor DN \"" SLAPD_MONITOR_DN "\" is invalid\n" ));
+		LDAP_LOG( OPERATION, CRIT,
+			"monitor DN \"" SLAPD_MONITOR_DN "\" is invalid\n" , 0, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor DN \"" SLAPD_MONITOR_DN "\" is invalid\n",
@@ -480,8 +480,8 @@ monitor_back_open(
 
 	if ( be == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
-			"unable to get monitor backend\n" ));
+		LDAP_LOG( OPERATION, CRIT,
+			"unable to get monitor backend\n" , 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to get monitor backend\n", 0, 0, 0 );
@@ -523,8 +523,8 @@ monitor_back_db_config(
 )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-		"line %d of file '%s' will be ignored\n", lineno, fname ));
+	LDAP_LOG( CONFIG, INFO,
+		"line %d of file '%s' will be ignored\n", lineno, fname, 0 );
 #else
 	Debug( LDAP_DEBUG_CONFIG, 
 		"line %d of file '%s' will be ignored\n%s", lineno, fname, "" );
