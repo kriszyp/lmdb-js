@@ -396,7 +396,7 @@ ber_flatten LDAP_P((
 
 LDAP_F( int )
 ber_get_option LDAP_P((
-	void *item,
+	LDAP_CONST void *item,
 	int option,
 	void *outvalue));
 

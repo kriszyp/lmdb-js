@@ -36,7 +36,7 @@
  * modrdn when the new rdn was already an attribute value itself.
  * JCG 05/1999 (gomez@engr.sgi.com)
  */
-#define LDAP_MOD_SOFTADD	0x04
+#define LDAP_MOD_SOFTADD	0x1000
 
 #define DN_DNS	0
 #define DN_X500	1

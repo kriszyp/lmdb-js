@@ -14,12 +14,12 @@ struct lber_options ber_int_options = {
 
 int
 ber_get_option(
-	void	*item,
+	LDAP_CONST void	*item,
 	int		option,
 	void	*outvalue)
 {
-	BerElement *ber;
-	Sockbuf *sb;
+	LDAP_CONST BerElement *ber;
+	LDAP_CONST Sockbuf *sb;
 
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
@@ -37,8 +37,8 @@ ber_get_option(
 		return LBER_OPT_ERROR;
 	}
 
-	ber = (BerElement *) item;
-	sb = (Sockbuf *) item;
+	ber = item;
+	sb = item;
 
 	switch(option) {
 	case LBER_OPT_BER_OPTIONS:
@@ -115,8 +115,8 @@ ber_set_option(
 		return LBER_OPT_ERROR;
 	}
 
-	ber = (BerElement *) item;
-	sb = (Sockbuf *) item;
+	ber = item;
+	sb = item;
 
 	switch(option) {
 	case LBER_OPT_BER_OPTIONS:

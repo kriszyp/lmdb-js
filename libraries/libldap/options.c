@@ -77,11 +77,11 @@ static const LDAPAPIFeatureInfo features[] = {
 
 int
 ldap_get_option(
-	LDAP	*ld,
+	LDAP_CONST LDAP	*ld,
 	int		option,
 	void	*outvalue)
 {
-	struct ldapoptions *lo;
+	LDAP_CONST struct ldapoptions *lo;
 
 	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
 		ldap_int_initialize();

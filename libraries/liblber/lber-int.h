@@ -216,8 +216,8 @@ ber_pvt_sb_init LDAP_P(( Sockbuf *sb ));
 
 LDAP_F(	int )
 ber_pvt_sb_destroy LDAP_P(( Sockbuf *sb ));
-#ifdef USE_SASL
 
+#ifdef USE_SASL
 LDAP_F( int )
 ber_pvt_sb_set_sec LDAP_P(( Sockbuf *sb, Sockbuf_Sec *sec, void *arg ));
 
