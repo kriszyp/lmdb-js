@@ -94,10 +94,10 @@ char *
 (ldap_pvt_strdup)( const char *s )
 {
 	char    *p;
-	int	len = strlen( s ) + 1;
+	size_t	len = strlen( s ) + 1;
 
 	if ( (p = (char *) malloc( len )) == NULL ) {
-		return( (char *)0 );
+		return( NULL );
 	}
 
 	memcpy( p, s, len );
