@@ -8,3 +8,10 @@ Transport Layer Security {{TERM:TLS}} framework to provide
 integrity and confidentiality protections and to support
 LDAP authentication via SASL EXTERNAL. 
 
+TLS uses {{TERM:X.509}} certificates to carry client and server
+identities. All servers are required to have valid certificates,
+whereas client certificates are optional. Clients must have a
+valid certificate in order to authenticate using the SASL EXTERNAL
+mechanism.
+
+

@@ -113,19 +113,20 @@ H3: Database Software
 
 OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:LDBM}},
 requires a compatible database package for entry storage.  LDBM
-is compatible with {{ORG[expand]Sleepy}}'s {{PRD:BerkeleyDB}} (recommended)
+is compatible with {{ORG[expand]Sleepycat}}'s {{PRD:BerkeleyDB}} (recommended)
 or the {{ORG[expand]FSF}}'s {{PRD:GNU}} Database Manager ({{PRD:GDBM}}).
 If neither of these packages are available at configure time,
-you will not be able build {{slapd}}(8) with primary database backend.
+you will not be able build {{slapd}}(8) with a primary database backend.
 
 Your operating system may provide one or both of these packages in
 the base system or as an optional software component.  If not,
 you'll have to obtain and install one of these packages yourself.
 
-{{PRD:BerkeleyDB}} is available from {{ORG[expand]Sleepy}}'s
+{{PRD:BerkeleyDB}} is available from {{ORG[expand]Sleepycat}}'s
 download page {{URL: http://www.sleepycat.com/download.html}}.
 There are several versions available.  At the time of this writing,
-the latest release, version 3.3, is recommended. 
+the latest release, version 4.0, is recommended. This package
+is required if you wish to use the {{TERM:BDB}} database backend.
 
 {{PRD:GDBM}} is available from {{ORG:FSF}}'s download site
 {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}.

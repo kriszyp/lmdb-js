@@ -188,7 +188,7 @@ with slurpd}} chapter of this document for information regarding
 replication.
 
 
-H2: What the difference between LDAPv2 and LDAPv3?
+H2: What is the difference between LDAPv2 and LDAPv3?
 
 LDAPv3 was developed in late 1990's to replace LDAPv2.
 LDAPv3 adds the following features to LDAP:
@@ -245,7 +245,9 @@ different backend databases you can choose from. They include
 {{TERM:LDBM}}, a high-performance disk-based embedded database;
 SHELL, a database interface to arbitrary shell scripts; and PASSWD,
 a simple password file database.  LDBM utilizes either {{PRD:BerkeleyDB}}
-or {{PRD:GDBM}}.
+or {{PRD:GDBM}}. There is also a new {{TERM:BDB}} backend database
+which uses BerkeleyDB directly, instead of the generic API that
+LDBM uses, and delivers even greater performance.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to
 serve multiple databases at the same time. This means that a single

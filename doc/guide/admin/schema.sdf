@@ -477,9 +477,9 @@ E:	objectIdentifier <name> { <oid> | <name>[:<suffix>] }
 The following demonstrates definition of a set of OID macros
 and their use in defining schema elements:
 
->	objectIdentifier myOID	1.1
->	objectIdentifier mySNMP	myOrgOID:1
->	objectIdentifier myLDAP	myOrgOID:2
+>	objectIdentifier myOrgOID	1.1
+>	objectIdentifier myOrgSNMP	myOrgOID:1
+>	objectIdentifier myOrgLDAP	myOrgOID:2
 >	objectIdentifier myAttributeType	myOrgLDAP:1
 >	objectIdentifier myObjectClass	myOrgLDAP:2
 >	attributetype ( myAttributeType:3 NAME 'myPhotoURI'
@@ -488,5 +488,5 @@ and their use in defining schema elements:
 >	objectclass ( myObjectClass:1 NAME 'myPhotoObject'
 >		DESC 'mixin myPhoto'
 >		AUXILIARY
->		MAY myPhoto )
+>		MAY myPhotoURI )
 
