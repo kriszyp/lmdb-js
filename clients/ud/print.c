@@ -544,7 +544,6 @@ time2text( char *ldtimestr, int dateonly )
     struct tm		t;
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
-    char		timebuf[32];
 	int ndigits;
 
 	if (strlen( ldtimestr ) < 12 ) {
@@ -611,22 +610,13 @@ int	dmsize[] = {
 /*
  * Y2K YEAR
  */
-	/* per POSIX tm_year should be offset by 1900 */
+	/* per STDC & POSIX tm_year *should* be offset by 1900 */
 #define YEAR_POSIX(y)		((y) + 1900)
 
 	/*
 	 * year is < 1900, year is offset by 1900
 	 */
 #define YEAR_CAREFUL(y)		((y) < 1900 ? (y) + 1900 : (y))
-
-	/*
-	** if year is < 1990 and < 70 must be offset by 2000 as Unix epoch
-	** started in 1970.  if year is < 1990 but >= 70, offset by 1900.
-	** if year is >= 1900, it must be the real year.
-	*/ 
-#define YEAR_PEDANTIC(y)		((y) < 1900 \
-						? ((y) < 70 ? (y) + 2000 ? (y) + 1900) \
-						: (y))
 
 #define YEAR(y) YEAR_CAREFUL(y)
 
