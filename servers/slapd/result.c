@@ -618,7 +618,7 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	 * should just set SLAPI_RESULT_CODE rather than sending a
 	 * result if they wish to change the result.
 	 */
-	if ( op->o_pb != NULL ) {
+	if ( op->o_callback == NULL && op->o_pb != NULL ) {
 		slapi_int_pblock_set_operation( op->o_pb, op );
 		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE,
 			(void *)rs->sr_err );

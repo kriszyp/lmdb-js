@@ -1,13 +1,16 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.24 Engineering
+OpenLDAP 2.2.24 Release
 	Fixed slapd "chldren:" typo (ITS#3560)
 	Fixed slapd syncrepl consumer unclean shutdown (ITS#3546)
 	Fixed slapd syncrepl provider sessionlog (ITS#3571)
 	Fixed slapd connection_abandon processing (ITS#3534, 3546, 3571)
 	Fixed slapd callback cleanup processing (ITS#3596)
-	FIxed slapd default password hash to use SSHA (ITS#3557)
+	Fixed slapd default password hash to use SSHA (ITS#3557)
 	Fixed slap tool log initialization (ITS#3579)
+	Fixed slapi modify/increment support (ITS#3522)
+	Fixed slapi plugins called multiple times with glue (ITS#3529)
+	Fixed slapi 64-bit portability (ITS#3556)
 	Fixed back-bdb IDL cache crash (ITS#3527)
 	Fixed back-bdb initialization message (ITS#3533)
 	Fixed back-hdb dn2id crash (ITS#3559)
