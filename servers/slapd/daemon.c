@@ -144,7 +144,7 @@ slapd_daemon(
 #else
 	(void) SIGNAL( SIGUSR1, (void *) do_nothing );
 #endif
-#ifdef SIGSTKFLT
+#ifdef SIGUNUSED
 	(void) SIGNAL( SIGUNUSED, (void *) set_shutdown );
 #else
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
