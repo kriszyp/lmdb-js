@@ -897,6 +897,12 @@ slap_sasl_authorize(
 	/* Skip PROP_CONN */
 	prop_getnames( props, slap_propnames+1, auxvals );
 	
+	/* Should not happen */
+	if ( !auxvals[0].values ) {
+		sasl_seterror( sconn, 0, "invalid authcid" );
+		return SASL_NOAUTHZ;
+	}
+
 	AC_MEMCPY( &authcDN, auxvals[0].values[0], sizeof(authcDN) );
 
 	/* Nothing to do if no authzID was given */
