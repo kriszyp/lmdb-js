@@ -123,6 +123,7 @@ bdb_group(
 	 */
 	rc = 1;
 
+#ifdef BDB_ALIASES
 	if( is_entry_alias( e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -133,6 +134,7 @@ bdb_group(
 #endif
 		goto return_results;
 	}
+#endif
 
 	if( is_entry_referral( e ) ) {
 #ifdef NEW_LOGGING

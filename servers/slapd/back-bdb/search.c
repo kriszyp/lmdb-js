@@ -315,22 +315,26 @@ bdb_search(
 			goto loop_continue;
 		}
 
+#ifdef BDB_SUBENTRIES
 		if ( is_entry_subentry( e ) ) {
 			if( scope != LDAP_SCOPE_BASE ) {
 				if(!get_subentries_visibility( op )) {
 					/* only subentries are visible */
 					goto loop_continue;
 				}
+
 			} else if ( get_subentries( op ) &&
 				!get_subentries_visibility( op ))
 			{
 				/* only subentries are visible */
 				goto loop_continue;
 			}
+
 		} else if ( get_subentries_visibility( op )) {
 			/* only subentries are visible */
 			goto loop_continue;
 		}
+#endif
 
 #ifdef BDB_ALIASES
 		if ( deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
@@ -545,15 +549,18 @@ static int search_candidates(
 	ID	*ids )
 {
 	int rc;
-	Filter		f, scopef, sf, rf, xf;
+	Filter		f, scopef, rf, xf;
 	ID		tmp[BDB_IDL_UM_SIZE];
 	AttributeAssertion aa_ref;
+#ifdef BDB_SUBENTRIES
+	Filter	sf;
 	AttributeAssertion aa_subentry;
-	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+#endif
 #ifdef BDB_ALIASES
 	Filter	af;
 	AttributeAssertion aa_alias;
 #endif
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 
 	/*
 	 * This routine takes as input a filter (user-filter)
@@ -606,6 +613,7 @@ static int search_candidates(
 	scopef.f_dn = &e->e_nname;
 	scopef.f_next = xf.f_or == filter ? filter : &xf ;
 
+#ifdef BDB_SUBENTRIES
 	if( get_subentries_visibility( op ) ) {
 		struct berval bv_subentry = { sizeof("SUBENTRY")-1, "SUBENTRY" };
 		sf.f_choice = LDAP_FILTER_EQUALITY;
@@ -615,17 +623,9 @@ static int search_candidates(
 		sf.f_next = scopef.f_next;
 		scopef.f_next = &sf;
 	}
-
-#ifdef BDB_FILTER_INDICES
-	rc = bdb_filter_candidates( be, &f, ids, tmp );
-#else
-	/* FIXME: Original code:
-	BDB_IDL_ID( bdb, ids, e->e_id );
-	* this is a hack to make "" base work; when bdb_filter_candidates
-	* is used this should not be needed any more */
-	BDB_IDL_ID( bdb, ids, (e->e_id == NOID ? 1 : e->e_id) );
-	rc = 0;
 #endif
+
+	rc = bdb_filter_candidates( be, &f, ids, tmp );
 
 	Debug(LDAP_DEBUG_TRACE,
 		"bdb_search_candidates: id=%ld first=%ld last=%ld\n",

@@ -30,7 +30,9 @@ bdb_add(
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
+#ifdef BDB_SUBENTRIES
 	int subentry;
+#endif
 #if 0
 	u_int32_t	lockid;
 	DB_LOCK		lock;
@@ -47,7 +49,9 @@ bdb_add(
 		goto return_results;
 	}
 
+#ifdef BDB_SUBENTRIES
 	subentry = is_entry_subentry( e );
+#endif
 
 	/*
 	 * acquire an ID outside of the operation transaction
@@ -186,6 +190,7 @@ retry:	/* transaction retry */
 			goto return_results;;
 		}
 
+#ifdef BDB_SUBENTRIES
 		if ( is_entry_subentry( p ) ) {
 			/* parent is a subentry, don't allow add */
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is subentry\n",
@@ -194,7 +199,8 @@ retry:	/* transaction retry */
 			text = "parent is a subentry";
 			goto return_results;;
 		}
-
+#endif
+#ifdef BDB_ALIASES
 		if ( is_entry_alias( p ) ) {
 			/* parent is an alias, don't allow add */
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is alias\n",
@@ -203,6 +209,7 @@ retry:	/* transaction retry */
 			text = "parent is an alias";
 			goto return_results;;
 		}
+#endif
 
 		if ( is_entry_referral( p ) ) {
 			/* parent is a referral, don't allow add */
@@ -221,10 +228,12 @@ retry:	/* transaction retry */
 			goto done;
 		}
 
+#ifdef BDB_SUBENTRIES
 		if ( subentry ) {
 			/* FIXME: */
 			/* parent must be an administrative point of the required kind */
 		}
+#endif
 
 		/* free parent and reader lock */
 		bdb_cache_return_entry_r( &bdb->bi_cache, p );
@@ -269,6 +278,7 @@ retry:	/* transaction retry */
 			}
 		}
 
+#ifdef BDB_SUBENTRIES
 		if( subentry ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_add: no parent, cannot add subentry\n",
@@ -277,6 +287,7 @@ retry:	/* transaction retry */
 			text = "no parent, cannot add subentry";
 			goto return_results;;
 		}
+#endif
 #if 0
 		if ( ltid ) {
 			DBT obj;

@@ -109,7 +109,20 @@ bdb_bind(
 	ber_dupbv( edn, &e->e_name );
 
 	/* check for deleted */
+#ifdef BDB_SUBENTRIES
+	if ( is_entry_subentry( e ) ) {
+		/* entry is an subentry, don't allow bind */
+		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
+			0, 0 );
 
+		send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
+			NULL, NULL, NULL, NULL );
+
+		goto done;
+	}
+#endif
+
+#ifdef BDB_ALIASES
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
@@ -120,6 +133,7 @@ bdb_bind(
 
 		goto done;
 	}
+#endif
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */

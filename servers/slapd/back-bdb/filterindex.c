@@ -13,8 +13,6 @@
 #include "back-bdb.h"
 #include "idl.h"
 
-#ifdef BDB_FILTER_INDICES
-
 static int presence_candidates(
 	Backend *be,
 	AttributeDescription *desc,
@@ -563,4 +561,3 @@ substring_candidates(
 	return( 0 );
 }
 
-#endif

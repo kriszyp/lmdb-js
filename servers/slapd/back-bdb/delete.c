@@ -233,8 +233,7 @@ retry:	/* transaction retry */
 	}
 
 	if ( !manageDSAit && is_entry_referral( e ) ) {
-		/* parent is a referral, don't allow add */
-		/* parent is an alias, don't allow add */
+		/* entry is a referral, don't allow delete */
 		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 

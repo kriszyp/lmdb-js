@@ -15,7 +15,6 @@
 
 LDAP_BEGIN_DECL
 
-#define BDB_FILTER_INDICES 1
 #define BDB_IDL_MULTI		1
 /* #define BDB_HIER		1 */
 

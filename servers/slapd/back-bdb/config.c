@@ -121,7 +121,6 @@ bdb_db_config(
 		}
 		bdb->bi_dbenv_mode = strtol( argv[1], NULL, 0 );
 
-#if BDB_FILTER_INDICES
 	/* attribute to index */
 	} else if ( strcasecmp( argv[0], "index" ) == 0 ) {
 		int rc;
@@ -139,7 +138,6 @@ bdb_db_config(
 		rc = bdb_attr_index_config( bdb, fname, lineno, argc - 1, &argv[1] );
 
 		if( rc != LDAP_SUCCESS ) return 1;
-#endif
 
 	/* size of the cache in entries */
          } else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {

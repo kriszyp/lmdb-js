@@ -142,18 +142,27 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
+#ifdef BDB_SUBENTRIES
+	if( is_entry_subentries( e ) ) {
+		/* entry is an alias, don't allow operation */
+		*text = "authorization entry is subentry";
+		rc = LDAP_OTHER;
+		goto done;
+	}
+#endif
+#ifdef BDB_ALIASES
 	if( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow operation */
 		*text = "authorization entry is alias";
 		rc = LDAP_ALIAS_PROBLEM;
 		goto done;
 	}
-
+#endif
 
 	if( is_entry_referral( e ) ) {
 		/* entry is an referral, don't allow operation */
 		*text = "authorization entry is referral";
-		rc = LDAP_OPERATIONS_ERROR;
+		rc = LDAP_OTHER;
 		goto done;
 	}
 
