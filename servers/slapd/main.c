@@ -360,6 +360,7 @@ int main( int argc, char **argv )
 #endif
 
 	extops_init();
+ 	slap_op_init();
 
 #ifdef SLAPD_MODULES
 	if ( module_init() != 0 ) {
@@ -573,6 +574,8 @@ destroy:
 #ifdef SLAPD_MODULES
 	module_kill();
 #endif
+
+	slap_op_destroy();
 
 	extops_kill();
 
