@@ -604,10 +604,6 @@ int slap_sasl_regexp_rewrite_config(
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
-#ifdef SLAP_AUTH_REWRITE
-	return slap_sasl_regexp_rewrite_config( "sasl-regexp", 0,
-			match, replace, AUTHID_CONTEXT );
-#else /* ! SLAP_AUTH_REWRITE */
 	int rc;
 	SaslRegexp_t *reg;
 
@@ -618,6 +614,13 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 
 	reg->sr_match = ch_strdup( match );
 	reg->sr_replace = ch_strdup( replace );
+
+#ifdef SLAP_AUTH_REWRITE
+	rc = slap_sasl_regexp_rewrite_config( "sasl-regexp", 0,
+			match, replace, AUTHID_CONTEXT );
+	if ( rc == LDAP_SUCCESS ) nSaslRegexp++;
+	return rc;
+#else /* ! SLAP_AUTH_REWRITE */
 
 	/* Precompile matching pattern */
 	rc = regcomp( &reg->sr_workspace, reg->sr_match, REG_EXTENDED|REG_ICASE );
@@ -635,6 +638,35 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	nSaslRegexp++;
 	return( LDAP_SUCCESS );
 #endif /* ! SLAP_AUTH_REWRITE */
+}
+
+void slap_sasl_regexp_unparse( BerVarray *out )
+{
+	int i;
+	struct berval bv;
+	BerVarray bva = NULL;
+	char ibuf[32], *ptr;
+	struct berval idx;
+
+	if ( !nSaslRegexp ) return;
+
+	idx.bv_val = ibuf;
+	bva = ch_malloc( (nSaslRegexp+1) * sizeof(struct berval) );
+	BER_BVZERO(bva+nSaslRegexp);
+	for ( i=0; i<nSaslRegexp; i++ ) {
+		idx.bv_len = sprintf( idx.bv_val, "{%d}", i);
+		bva[i].bv_len = idx.bv_len + strlen( SaslRegexp[i].sr_match ) +
+			strlen( SaslRegexp[i].sr_replace ) + 5;
+		bva[i].bv_val = ch_malloc( bva[i].bv_len+1 );
+		ptr = lutil_strcopy( bva[i].bv_val, ibuf );
+		*ptr++ = '"';
+		ptr = lutil_strcopy( ptr, SaslRegexp[i].sr_match );
+		ptr = lutil_strcopy( ptr, "\" \"" );
+		ptr = lutil_strcopy( ptr, SaslRegexp[i].sr_replace );
+		*ptr++ = '"';
+		*ptr = '\0';
+	}
+	*out = bva;
 }
 
 /* Perform replacement on regexp matches */

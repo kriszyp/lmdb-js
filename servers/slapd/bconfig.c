@@ -88,9 +88,9 @@ static struct oc_info {
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( olcAccess $ olcDatabase $ olcLastMod $ olcLimits $ "
-		 "olcMaxDerefDepth $ olcReadOnly $ olcReplica $ olcReplogFile $ "
-		 "olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ olcSchemaDN $ "
-		 "olcSecurity $ olcSizeLimit $ olcSuffix $ olcSyncrepl $ "
+		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
+		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
+		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSuffix $ olcSyncrepl $ "
 		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef ) )", &cfOc_database },
 	{ "( OLcfgOc:6 "
 		"NAME 'olcIncludeFile' "

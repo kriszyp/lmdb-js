@@ -286,6 +286,8 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_X_CONN_SSF			1303
 #define SLAPI_X_CONN_SASL_CONTEXT		1304
 
+#define SLAPI_X_CONFIG_ARGV	1400
+
 #define SLAPD_AUTH_NONE   "none"
 #define SLAPD_AUTH_SIMPLE "simple"
 #define SLAPD_AUTH_SSL    "SSL"

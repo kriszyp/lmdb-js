@@ -993,7 +993,8 @@ config_generic(ConfigArgs *c) {
 			c->value_string = ch_strdup( slap_sasl_getpolicy());
 			break;
 		case CFG_AZREGEXP:
-			rc = 1;
+			slap_sasl_regexp_unparse( &c->rvalue_vals );
+			if ( !c->rvalue_vals ) rc = 1;
 			break;
 #ifdef HAVE_CYRUS_SASL
 		case CFG_SASLSECP: {
@@ -1107,7 +1108,8 @@ config_generic(ConfigArgs *c) {
 #endif
 #ifdef LDAP_SLAPI
 		case CFG_PLUGIN:	/* FIXME */
-			rc = 1;
+			slapi_int_plugin_unparse( c->be, &c->rvalue_vals );
+			if ( !c->rvalue_vals ) rc = 1;
 			break;
 #endif
 #ifdef SLAP_AUTH_REWRITE

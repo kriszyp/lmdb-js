@@ -64,8 +64,6 @@ static Slapi_PBlock *pGPlugins = NULL;
 static Slapi_PBlock *
 plugin_pblock_new(
 	int type, 
-	const char *path, 
-	const char *initfunc, 
 	int argc, 
 	char *argv[] ) 
 {
@@ -73,6 +71,9 @@ plugin_pblock_new(
 	Slapi_PluginDesc *pPluginDesc = NULL;
 	lt_dlhandle	hdLoadHandle;
 	int		rc;
+	char **av2 = NULL, **ppPluginArgv;
+	char *path = argv[2];
+	char *initfunc = argv[3];
 
 	pPlugin = slapi_pblock_new();
 	if ( pPlugin == NULL ) {
@@ -90,7 +91,23 @@ plugin_pblock_new(
 		goto done;
 	}
 
-	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGV, (void *)argv );
+	av2 = ldap_charray_dup( argv );
+	if ( !av2 ) {
+		rc = LDAP_NO_MEMORY;
+		goto done;
+	}
+
+	if ( argc > 0 ) {
+		ppPluginArgv = &av2[4];
+	} else {
+		ppPluginArgv = NULL;
+	}
+	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_ARGV, (void *)ppPluginArgv );
+	if ( rc != 0 ) { 
+		goto done;
+	}
+
+	rc = slapi_pblock_set( pPlugin, SLAPI_X_CONFIG_ARGV, (void *)av2 );
 	if ( rc != 0 ) { 
 		goto done;
 	}
@@ -114,6 +131,9 @@ done:
 	if ( rc != 0 && pPlugin != NULL ) {
 		slapi_pblock_destroy( pPlugin );
 		pPlugin = NULL;
+		if ( av2 ) {
+			ldap_charray_free( av2 );
+		}
 	}
 
 	return pPlugin;
@@ -681,7 +701,6 @@ slapi_int_read_config(
 {
 	int		iType = -1;
 	int		numPluginArgc = 0;
-	char		**ppPluginArgv = NULL;
 
 	if ( argc < 4 ) {
 		fprintf( stderr,
@@ -707,11 +726,6 @@ slapi_int_read_config(
 	}
 	
 	numPluginArgc = argc - 4;
-	if ( numPluginArgc > 0 ) {
-		ppPluginArgv = &argv[4];
-	} else {
-		ppPluginArgv = NULL;
-	}
 
 	if ( iType == SLAPI_PLUGIN_PREOPERATION ||
 		  	iType == SLAPI_PLUGIN_EXTENDEDOP ||
@@ -720,8 +734,7 @@ slapi_int_read_config(
 		int rc;
 		Slapi_PBlock *pPlugin;
 
-		pPlugin = plugin_pblock_new( iType, argv[2], argv[3], 
-					numPluginArgc, ppPluginArgv );
+		pPlugin = plugin_pblock_new( iType, numPluginArgc, argv );
 		if (pPlugin == NULL) {
 			return 1;
 		}
@@ -745,6 +758,38 @@ slapi_int_read_config(
 	}
 
 	return 0;
+}
+
+void
+slapi_int_plugin_unparse(
+	Backend *be,
+	BerVarray *out
+)
+{
+	Slapi_PBlock *pp;
+	int i, j, rc;
+	char **argv, ibuf[32], *ptr;
+	struct berval idx, bv;
+
+	*out = NULL;
+	idx.bv_val = ibuf;
+	i = 0;
+	for ( pp=be->be_pb; pp; slapi_pblock_get( pp, SLAPI_IBM_PBLOCK, &pp ) ) {
+		slapi_pblock_get( pp, SLAPI_X_CONFIG_ARGV, &argv );
+		idx.bv_len = sprintf( idx.bv_val, "{%d}", i );
+		bv.bv_len = idx.bv_len;
+		for (j=0; argv[j]; j++) {
+			bv.bv_len += strlen(argv[j]);
+			if ( j ) bv.bv_len++;
+		}
+		bv.bv_val = ch_malloc( bv.bv_len + 1 );
+		ptr = lutil_strcopy( bv.bv_val, ibuf );
+		for (j=0; argv[j]; j++) {
+			if ( j ) *ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, argv[j] );
+		}
+		ber_bvarray_add( out, &bv );
+	}
 }
 
 int

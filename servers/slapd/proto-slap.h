@@ -1173,6 +1173,7 @@ LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 	struct berval *authzid ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
+LDAP_SLAPD_F (void) slap_sasl_regexp_unparse LDAP_P(( BerVarray *bva ));
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
 LDAP_SLAPD_F (const char *) slap_sasl_getpolicy LDAP_P(( void ));
 #ifdef SLAP_AUTH_REWRITE
