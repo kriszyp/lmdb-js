@@ -788,17 +788,21 @@ approxMatch(
 	len = 0;
 	while ( nextchunk < ((struct berval *)assertedValue)->bv_len ) {
 		len = strcspn( assertv + nextchunk, SLAPD_APPROX_DELIMITER);
+		if( len == 0 ) {
+			nextchunk++;
+			continue;
+		}
 #if defined(SLAPD_APPROX_INITIALS)
-		if( len <= 1 ) {
+		else if( len == 1 ) {
 			/* Single letter words need to at least match one word's initial */
 			for( i=nextavail; i<count; i++ )
-				if( !strncasecmp( assertv+nextchunk, words[i], 1 ))
+				if( !strncasecmp( assertv+nextchunk, words[i], 1 )) {
+					nextavail=i+1;
 					break;
+				}
 		}
-
-		else
 #endif
-		{
+		else {
 			/* Isolate the next word in the asserted value and phonetic it */
 			assertv[nextchunk+len] = '\0';
 			val = phonetic( assertv + nextchunk );
