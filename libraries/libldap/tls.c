@@ -24,7 +24,9 @@
 #include <ldap_pvt_thread.h>
 #endif
 
-#ifdef HAVE_SSL_H
+#ifdef HAVE_OPENSSL_SSL_H
+#include <openssl/ssl.h>
+#elif defined( HAVE_SSL_H )
 #include <ssl.h>
 #endif
 

@@ -4731,7 +4731,7 @@ fi
 ol_link_tls=no
 if test $ol_with_tls != no ; then
 	
-	for ac_hdr in ssl.h
+	for ac_hdr in openssl/ssl.h ssl.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
@@ -4772,7 +4772,7 @@ fi
 done
 
 	
-	if test $ac_cv_header_ssl_h = yes ; then
+	if test $ac_cv_header_openssl_ssl_h = yes -o $ac_cv_header_ssl_h = yes ; then
 		echo $ac_n "checking for SSLeay_add_ssl_algorithms in -lssl""... $ac_c" 1>&6
 echo "configure:4778: checking for SSLeay_add_ssl_algorithms in -lssl" >&5
 ac_lib_var=`echo ssl'_'SSLeay_add_ssl_algorithms | sed 'y%./+-%__p_%'`
