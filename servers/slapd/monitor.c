@@ -162,10 +162,11 @@ monitor_info( Connection *conn, Operation *op )
 	attr_merge( e, "bytessent", vals );
 
 	pthread_mutex_lock( &currenttime_mutex );
-	ltm = localtime( &currenttime );
 #ifdef LDAP_Y2K
+	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
 #else
+	ltm = localtime( &currenttime );
 	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
 #endif
 	pthread_mutex_unlock( &currenttime_mutex );
@@ -174,10 +175,11 @@ monitor_info( Connection *conn, Operation *op )
 	attr_merge( e, "currenttime", vals );
 
 	pthread_mutex_lock( &currenttime_mutex );
-	ltm = localtime( &starttime );
 #ifdef LDAP_Y2K
+	ltm = gmtime( &starttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
 #else
+	ltm = localtime( &starttime );
 	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
 #endif
 	pthread_mutex_unlock( &currenttime_mutex );
