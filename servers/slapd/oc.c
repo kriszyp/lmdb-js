@@ -205,6 +205,11 @@ oc_index_cmp(
     struct oindexrec	*oir2
 )
 {
+	assert( oir1->oir_name );
+	assert( oir1->oir_oc );
+	assert( oir2->oir_name );
+	assert( oir2->oir_oc );
+
 	return (strcasecmp( oir1->oir_name, oir2->oir_name ));
 }
 
@@ -214,18 +219,27 @@ oc_index_name_cmp(
     struct oindexrec	*oir
 )
 {
+	assert( oir->oir_name );
+	assert( oir->oir_oc );
+
 	return (strcasecmp( name, oir->oir_name ));
 }
 
 ObjectClass *
 oc_find( const char *ocname )
 {
-	struct oindexrec	*oir = NULL;
+	struct oindexrec	*oir;
 
-	if ( (oir = (struct oindexrec *) avl_find( oc_index, ocname,
-            (AVL_CMP) oc_index_name_cmp )) != NULL ) {
+	oir = (struct oindexrec *) avl_find( oc_index, ocname,
+            (AVL_CMP) oc_index_name_cmp );
+
+	if ( oir != NULL ) {
+		assert( oir->oir_name );
+		assert( oir->oir_oc );
+
 		return( oir->oir_oc );
 	}
+
 	return( NULL );
 }
 
@@ -377,34 +391,51 @@ oc_insert(
 			ch_calloc( 1, sizeof(struct oindexrec) );
 		oir->oir_name = soc->soc_oid;
 		oir->oir_oc = soc;
+
+		assert( oir->oir_name );
+		assert( oir->oir_oc );
+
 		if ( avl_insert( &oc_index, (caddr_t) oir,
 				 (AVL_CMP) oc_index_cmp,
-				 (AVL_DUP) avl_dup_error ) ) {
+				 (AVL_DUP) avl_dup_error ) )
+		{
 			*err = soc->soc_oid;
+			ldap_memfree(oir->oir_name);
 			ldap_memfree(oir);
 			return SLAP_SCHERR_DUP_CLASS;
 		}
+
 		/* FIX: temporal consistency check */
-		oc_find(oir->oir_name);
+		assert( oc_find(oir->oir_name) != NULL );
 	}
+
 	if ( (names = soc->soc_names) ) {
 		while ( *names ) {
 			oir = (struct oindexrec *)
 				ch_calloc( 1, sizeof(struct oindexrec) );
 			oir->oir_name = ch_strdup(*names);
 			oir->oir_oc = soc;
+
+			assert( oir->oir_name );
+			assert( oir->oir_oc );
+
 			if ( avl_insert( &oc_index, (caddr_t) oir,
 					 (AVL_CMP) oc_index_cmp,
-					 (AVL_DUP) avl_dup_error ) ) {
+					 (AVL_DUP) avl_dup_error ) )
+			{
 				*err = *names;
+				ldap_memfree(oir->oir_name);
 				ldap_memfree(oir);
 				return SLAP_SCHERR_DUP_CLASS;
 			}
+
 			/* FIX: temporal consistency check */
-			oc_find(oir->oir_name);
+			assert( oc_find(oir->oir_name) != NULL );
+
 			names++;
 		}
 	}
+
 	return 0;
 }
 
