@@ -15,9 +15,9 @@
 #include <ldap_utf8.h>
 #include <ldap_pvt_uc.h>
 
-#define	malloc(x)	ber_memalloc(x)
-#define	realloc(x,y)	ber_memrealloc(x,y)
-#define	free(x)		ber_memfree(x)
+#define	malloc(x)	ber_memalloc_x(x,ctx)
+#define	realloc(x,y)	ber_memrealloc_x(x,y,ctx)
+#define	free(x)		ber_memfree_x(x,ctx)
 
 int ucstrncmp(
 	const ldap_unicode_t *u1,
@@ -95,7 +95,8 @@ void ucstr2upper(
 struct berval * UTF8bvnormalize(
 	struct berval *bv,
 	struct berval *newbv,
-	unsigned flags )
+	unsigned flags,
+	void *ctx )
 {
 	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
 	char *out, *outtmp, *s;
@@ -114,7 +115,7 @@ struct berval * UTF8bvnormalize(
 	len = bv->bv_len;
 
 	if ( len == 0 ) {
-		return ber_dupbv( newbv, bv );
+		return ber_dupbv_x( newbv, bv, ctx );
 	}
 	
 	/* FIXME: Should first check to see if string is already in
@@ -146,7 +147,7 @@ struct berval * UTF8bvnormalize(
 			}
 
 			if ( i == len ) {
-				return ber_str2bv( s, len, 1, newbv );
+				return ber_str2bv_x( s, len, 1, newbv, ctx );
 			}
 				
 			outsize = len + 7;
@@ -212,7 +213,7 @@ struct berval * UTF8bvnormalize(
 			p++;
                 }
 		/* normalize ucs of length p - ucs */
-		uccompatdecomp( ucs, p - ucs, &ucsout, &ucsoutlen );    
+		uccompatdecomp( ucs, p - ucs, &ucsout, &ucsoutlen, ctx );
 		if ( approx ) {
 			for ( j = 0; j < ucsoutlen; j++ ) {
 				if ( ucsout[j] < 0x80 ) {
@@ -273,7 +274,8 @@ struct berval * UTF8bvnormalize(
 int UTF8bvnormcmp(
 	struct berval *bv1,
 	struct berval *bv2,
-	unsigned flags )
+	unsigned flags,
+	void *ctx )
 {
 	int i, l1, l2, len, ulen, res = 0;
 	char *s1, *s2, *done;
@@ -376,7 +378,7 @@ int UTF8bvnormcmp(
 			return l1 > l2 ? 1 : -1; /* what to do??? */
 		}
 	} else {
-		uccompatdecomp( ucs, ulen, &ucsout1, &l1 );
+		uccompatdecomp( ucs, ulen, &ucsout1, &l1, ctx );
 		l1 = uccanoncomp( ucsout1, l1 );
 	}
 
@@ -395,7 +397,7 @@ int UTF8bvnormcmp(
 		ucsout2 = ucs;
 		l2 = ulen;
 	} else {
-		uccompatdecomp( ucs, ulen, &ucsout2, &l2 );
+		uccompatdecomp( ucs, ulen, &ucsout2, &l2, ctx );
 		l2 = uccanoncomp( ucsout2, l2 );
 		free( ucs );
 	}

@@ -273,7 +273,7 @@ ucdecomp_hangul LDAP_P((unsigned long code, unsigned long *num,
  */
 LDAP_LUNICODE_F (int)
 uccanondecomp LDAP_P((const unsigned long *in, int inlen,
-		     unsigned long **out, int *outlen));
+		     unsigned long **out, int *outlen, void *ctx));
   
 /*  
  * Equivalent to uccanondecomp() except that it includes compatibility
@@ -281,7 +281,7 @@ uccanondecomp LDAP_P((const unsigned long *in, int inlen,
  */
 LDAP_LUNICODE_F (int)
 uccompatdecomp LDAP_P((const unsigned long *in, int inlen,
-		     unsigned long **out, int *outlen));
+		     unsigned long **out, int *outlen, void *ctx));
   
 /**************************************************************************
  *

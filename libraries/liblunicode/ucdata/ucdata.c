@@ -899,14 +899,14 @@ ucdecomp_hangul(unsigned long code, unsigned long *num, unsigned long decomp[])
 /* mode == 0 for canonical, mode == 1 for compatibility */
 static int
 uccanoncompatdecomp(const unsigned long *in, int inlen,
-		    unsigned long **out, int *outlen, short mode)
+		    unsigned long **out, int *outlen, short mode, void *ctx)
 {
     int l, size;
 	unsigned i, j, k;
     unsigned long num, class, *decomp, hangdecomp[3];
 
-    size = inlen;
-    *out = (unsigned long *) malloc(size * sizeof(**out));
+    size = inlen * 2;
+    *out = (unsigned long *) ber_memalloc_x(size * sizeof(**out), ctx);
     if (*out == NULL)
         return *outlen = -1;
 
@@ -915,7 +915,7 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
 	if (mode ? uckdecomp(in[j], &num, &decomp) : ucdecomp(in[j], &num, &decomp)) {
             if ( size - i < num) {
                 size = inlen + i - j + num - 1;
-                *out = (unsigned long *) realloc(*out, size * sizeof(**out));
+                *out = (unsigned long *) ber_memrealloc_x(*out, size * sizeof(**out), ctx );
                 if (*out == NULL)
                     return *outlen = -1;
             }
@@ -935,7 +935,7 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
         } else if (ucdecomp_hangul(in[j], &num, hangdecomp)) {
             if (size - i < num) {
                 size = inlen + i - j + num - 1;
-                *out = (unsigned long *) realloc(*out, size * sizeof(**out));
+                *out = (unsigned long *) ber_memrealloc_x(*out, size * sizeof(**out), ctx);
                 if (*out == NULL)
                     return *outlen = -1;
             }
@@ -946,7 +946,7 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
         } else {
             if (size - i < 1) {
                 size = inlen + i - j;
-                *out = (unsigned long *) realloc(*out, size * sizeof(**out));
+                *out = (unsigned long *) ber_memrealloc_x(*out, size * sizeof(**out), ctx);
                 if (*out == NULL)
                     return *outlen = -1;
             }
@@ -968,16 +968,16 @@ uccanoncompatdecomp(const unsigned long *in, int inlen,
 
 int
 uccanondecomp(const unsigned long *in, int inlen,
-              unsigned long **out, int *outlen)
+              unsigned long **out, int *outlen, void *ctx)
 {
-    return uccanoncompatdecomp(in, inlen, out, outlen, 0);
+    return uccanoncompatdecomp(in, inlen, out, outlen, 0, ctx);
 }
 
 int
 uccompatdecomp(const unsigned long *in, int inlen,
-	       unsigned long **out, int *outlen)
+	       unsigned long **out, int *outlen, void *ctx)
 {
-    return uccanoncompatdecomp(in, inlen, out, outlen, 1);
+    return uccanoncompatdecomp(in, inlen, out, outlen, 1, ctx);
 }
 
 /**************************************************************************

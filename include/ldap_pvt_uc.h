@@ -147,12 +147,14 @@ LDAP_LUNICODE_F(void) ucstr2upper(
 LDAP_LUNICODE_F(struct berval *) UTF8bvnormalize(
 	struct berval *,
 	struct berval *,
-	unsigned );
+	unsigned,
+	void *memctx );
 
 LDAP_LUNICODE_F(int) UTF8bvnormcmp(
 	struct berval *,
 	struct berval *,
-	unsigned );
+	unsigned,
+	void *memctx );
 
 LDAP_END_DECL
 

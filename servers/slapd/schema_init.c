@@ -1008,7 +1008,7 @@ UTF8StringNormalize(
 	flags |= ( ( use & SLAP_MR_EQUALITY_APPROX ) == SLAP_MR_EQUALITY_APPROX )
 		? LDAP_UTF8_APPROX : 0;
 
-	val = UTF8bvnormalize( val, &tmp, flags );
+	val = UTF8bvnormalize( val, &tmp, flags, ctx );
 	if( val == NULL ) {
 		return LDAP_OTHER;
 	}
