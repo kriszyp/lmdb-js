@@ -47,6 +47,23 @@ filter_candidates(
 
 	result = NULL;
 	switch ( f->f_choice ) {
+	case SLAPD_FILTER_COMPUTED:
+		switch( f->f_result ) {
+		case SLAPD_COMPARE_UNDEFINED:
+		/* This technically is not the same as FALSE, but it
+		 * certainly will produce no matches. list_candidates
+		 * will take care of ignoring this filter.
+		 */
+		/* FALLTHRU */
+		case LDAP_COMPARE_FALSE:
+			result = NULL;
+			break;
+		case LDAP_COMPARE_TRUE:
+			result = idl_allids( op->o_bd );
+			break;
+		}
+		break;
+
 	case SLAPD_FILTER_DN_ONE:
 #ifdef NEW_LOGGING
 		LDAP_LOG( FILTER, DETAIL1, 
@@ -692,6 +709,10 @@ list_candidates(
 
 	idl = NULL;
 	for ( f = flist; f != NULL; f = f->f_next ) {
+		if ( f->f_choice == SLAPD_FILTER_COMPUTED &&
+		     f->f_result == SLAPD_COMPARE_UNDEFINED ) {
+			continue;
+		}
 		if ( (tmp = filter_candidates( op, f )) == NULL &&
 		    ftype == LDAP_FILTER_AND ) {
 #ifdef NEW_LOGGING
