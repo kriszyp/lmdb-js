@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* backend.c - routines for dealing with back-end databases */
@@ -12,10 +12,12 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
-
 #include <sys/stat.h>
 
 #include "slap.h"
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 #include "lutil.h"
 #include "lber_pvt.h"
 
@@ -686,12 +688,52 @@ backend_unbind(
 	Operation    *op
 )
 {
-	int	i;
+	int		i;
+#if defined( LDAP_SLAPI )
+	Slapi_PBlock *pb = op->o_pb;
+
+	int     rc;
+	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_operation_set_pb( pb, op );
+#endif /* defined( LDAP_SLAPI ) */
 
 	for ( i = 0; i < nbackends; i++ ) {
+#if defined( LDAP_SLAPI )
+		slapi_pblock_set( pb, SLAPI_BACKEND, (void *)&backends[i] );
+		rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
+				(Slapi_PBlock *)pb );
+		if ( rc != 0 ) {
+			/*
+			 * A preoperation plugin failure will abort the
+			 * entire operation.
+			 */
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, "do_bind: Unbind preoperation plugin "
+					"failed\n", 0, 0, 0);
+#else
+			Debug(LDAP_DEBUG_TRACE, "do_bind: Unbind preoperation plugin "
+					"failed.\n", 0, 0, 0);
+#endif
+			return 0;
+		}
+#endif /* defined( LDAP_SLAPI ) */
+
 		if ( backends[i].be_unbind ) {
 			(*backends[i].be_unbind)( &backends[i], conn, op );
 		}
+
+#if defined( LDAP_SLAPI )
+		if ( doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
+				(Slapi_PBlock *)pb ) != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, "do_unbind: Unbind postoperation plugins "
+					"failed\n", 0, 0, 0);
+#else
+			Debug(LDAP_DEBUG_TRACE, "do_unbind: Unbind postoperation plugins "
+					"failed.\n", 0, 0, 0);
+#endif
+		}
+#endif /* defined( LDAP_SLAPI ) */
 	}
 
 	return 0;
@@ -827,6 +869,15 @@ backend_check_restrictions(
 				break;
 			}
 		}
+
+#ifdef LDAP_EXOP_X_CANCEL
+		{
+			struct berval bv = BER_BVC( LDAP_EXOP_X_CANCEL );
+			if ( bvmatch( opdata, &bv ) ) {
+				break;
+			}
+		}
+#endif
 
 		/* treat everything else as a modify */
 		opflag = SLAP_RESTRICT_OP_MODIFY;

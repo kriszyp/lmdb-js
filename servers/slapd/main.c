@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -17,6 +17,9 @@
 #include "ldap_pvt.h"
 
 #include "slap.h"
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 #include "lutil.h"
 #include "ldif.h"
 
@@ -81,7 +84,7 @@ static STRDISP	syslog_types[] = {
 	{ "LOCAL5", sizeof("LOCAL5"), LOG_LOCAL5 },
 	{ "LOCAL6", sizeof("LOCAL6"), LOG_LOCAL6 },
 	{ "LOCAL7", sizeof("LOCAL7"), LOG_LOCAL7 },
-	{ NULL }
+	{ NULL, 0, 0 }
 };
 
 static int   cnvt_str2int( char *, STRDISP_P, int );
@@ -156,7 +159,6 @@ int main( int argc, char **argv )
 		leakfile = stderr;
 	}
 #endif
-
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	{
@@ -325,7 +327,6 @@ int main( int argc, char **argv )
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 #endif
 
-
 	if( serverName == NULL ) {
 		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
 			serverName = argv[0];
@@ -404,6 +405,20 @@ int main( int argc, char **argv )
 	rc = 0;
 	(void) ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &rc );
 #endif
+
+#ifdef LDAP_SLAPI
+	if ( slapi_init() != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT, "main: slapi initialization error\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+		    "slapi initialization error\n",
+		    0, 0, 0 );
+#endif
+
+		goto destroy;
+	}
+#endif /* LDAP_SLAPI */
 
 	if ( read_config( configfile, 0 ) != 0 ) {
 		rc = 1;

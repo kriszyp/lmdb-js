@@ -26,14 +26,16 @@
  * Uses the pointer to the ObjectClass structure
  */
 static int
-backsql_cmp_oc( backsql_oc_map_rec *m1, backsql_oc_map_rec *m2 )
+backsql_cmp_oc( const void *v_m1, const void *v_m2 )
 {
+	const backsql_oc_map_rec *m1 = v_m1, *m2 = v_m2;
 	return ( m1->oc < m2->oc ? -1 : ( m1->oc > m2->oc ? 1 : 0 ) );
 }
 
 static int
-backsql_cmp_oc_id( backsql_oc_map_rec *m1, backsql_oc_map_rec *m2 )
+backsql_cmp_oc_id( const void *v_m1, const void *v_m2 )
 {
+	const backsql_oc_map_rec *m1 = v_m1, *m2 = v_m2;
 	return ( m1->id < m2->id ? -1 : ( m1->id > m2->id ? 1 : 0 ) );
 }
 
@@ -41,8 +43,9 @@ backsql_cmp_oc_id( backsql_oc_map_rec *m1, backsql_oc_map_rec *m2 )
  * Uses the pointer to the AttributeDescription structure
  */
 static int
-backsql_cmp_attr( backsql_at_map_rec *m1, backsql_at_map_rec *m2 )
+backsql_cmp_attr( const void *v_m1, const void *v_m2 )
 {
+	const backsql_at_map_rec *m1 = v_m1, *m2 = v_m2;
 	return ( m1->ad < m2->ad ? -1 : ( m1->ad > m2->ad ? 1 : 0 ) );
 }
 
@@ -116,8 +119,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	at_map->param_order = 0;
 	at_map->expect_return = 0;
 	backsql_make_attr_query( oc_map, at_map );
-	avl_insert( &oc_map->attrs, at_map, 
-			(AVL_CMP)backsql_cmp_attr, NULL );
+	avl_insert( &oc_map->attrs, at_map, backsql_cmp_attr, NULL );
 
 	at_map = (backsql_at_map_rec *)ch_calloc( 1, 
 			sizeof( backsql_at_map_rec ) );
@@ -145,8 +147,7 @@ backsql_add_sysmaps( backsql_oc_map_rec *oc_map )
 	at_map->param_order = 0;
 	at_map->expect_return = 0;
 	backsql_make_attr_query( oc_map, at_map );
-	avl_insert( &oc_map->attrs, at_map, 
-			(AVL_CMP)backsql_cmp_attr, NULL );
+	avl_insert( &oc_map->attrs, at_map, backsql_cmp_attr, NULL );
 
 	return 1;
 }
@@ -259,10 +260,8 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		 */
 
 		oc_map->attrs = NULL;
-		avl_insert( &si->oc_by_oc, oc_map,
-				(AVL_CMP)backsql_cmp_oc, NULL );
-		avl_insert( &si->oc_by_id, oc_map,
-				(AVL_CMP)backsql_cmp_oc_id, NULL );
+		avl_insert( &si->oc_by_oc, oc_map, backsql_cmp_oc, NULL );
+		avl_insert( &si->oc_by_id, oc_map, backsql_cmp_oc_id, NULL );
 		oc_id = oc_map->id;
 		Debug( LDAP_DEBUG_TRACE, "load_schema_map(): "
 			"objectClass '%s': keytbl='%s' keycol='%s'\n",
@@ -367,8 +366,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 			Debug( LDAP_DEBUG_TRACE, "load_schema_map(): "
 				"preconstructed query '%s'\n",
 				at_map->query, 0, 0 );
-			avl_insert( &oc_map->attrs, at_map, 
-					(AVL_CMP)backsql_cmp_attr, NULL );
+			avl_insert( &oc_map->attrs, at_map, backsql_cmp_attr, NULL );
 		}
 		backsql_FreeRow( &at_row );
 		SQLFreeStmt( at_sth, SQL_CLOSE );
@@ -393,8 +391,7 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 #endif /* BACKSQL_TRACE */
 
 	tmp.oc = oc;
-	res = (backsql_oc_map_rec *)avl_find( si->oc_by_oc, &tmp,
-			(AVL_CMP)backsql_cmp_oc );
+	res = (backsql_oc_map_rec *)avl_find( si->oc_by_oc, &tmp, backsql_cmp_oc );
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
@@ -425,8 +422,7 @@ backsql_name2oc( backsql_info *si, struct berval *oc_name )
 		return NULL;
 	}
 
-	res = (backsql_oc_map_rec *)avl_find( si->oc_by_oc, &tmp,
-			(AVL_CMP)backsql_cmp_oc );
+	res = (backsql_oc_map_rec *)avl_find( si->oc_by_oc, &tmp, backsql_cmp_oc );
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
@@ -453,7 +449,7 @@ backsql_id2oc( backsql_info *si, unsigned long id )
 
 	tmp.id = id;
 	res = (backsql_oc_map_rec *)avl_find( si->oc_by_id, &tmp,
-			(AVL_CMP)backsql_cmp_oc_id );
+			backsql_cmp_oc_id );
 
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
@@ -482,7 +478,7 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 
 	tmp.ad = ad;
 	res = (backsql_at_map_rec *)avl_find( objclass->attrs, &tmp,
-			(AVL_CMP)backsql_cmp_attr );
+			backsql_cmp_attr );
 
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
@@ -518,7 +514,7 @@ backsql_name2at( backsql_oc_map_rec* objclass, struct berval *attr )
 	}
 
 	res = (backsql_at_map_rec *)avl_find( objclass->attrs, &tmp,
-			(AVL_CMP)backsql_cmp_attr );
+			backsql_cmp_attr );
 
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
@@ -535,8 +531,9 @@ backsql_name2at( backsql_oc_map_rec* objclass, struct berval *attr )
 }
 
 static void
-backsql_free_attr( backsql_at_map_rec *at )
+backsql_free_attr( void *v_at )
 {
+	backsql_at_map_rec *at = v_at;
 	Debug( LDAP_DEBUG_TRACE, "==>free_attr(): '%s'\n", 
 			at->ad->ad_cname.bv_val, 0, 0 );
 	ch_free( at->sel_expr.bv_val );
@@ -567,11 +564,12 @@ backsql_free_attr( backsql_at_map_rec *at )
 }
 
 static void
-backsql_free_oc( backsql_oc_map_rec *oc )
+backsql_free_oc( void *v_oc )
 {
+	backsql_oc_map_rec *oc = v_oc;
 	Debug( LDAP_DEBUG_TRACE, "==>free_oc(): '%s'\n", 
 			BACKSQL_OC_NAME( oc ), 0, 0 );
-	avl_free( oc->attrs, (AVL_FREE)backsql_free_attr );
+	avl_free( oc->attrs, backsql_free_attr );
 	ch_free( oc->keytbl.bv_val );
 	ch_free( oc->keycol.bv_val );
 	if ( oc->create_proc != NULL ) {
@@ -592,8 +590,8 @@ int
 backsql_destroy_schema_map( backsql_info *si )
 {
 	Debug( LDAP_DEBUG_TRACE, "==>destroy_schema_map()\n", 0, 0, 0 );
-	avl_free( si->oc_by_oc, NULL );
-	avl_free( si->oc_by_id, (AVL_FREE)backsql_free_oc );
+	avl_free( si->oc_by_oc, 0 );
+	avl_free( si->oc_by_id, backsql_free_oc );
 	Debug( LDAP_DEBUG_TRACE, "<==destroy_schema_map()\n", 0, 0, 0 );
 	return 0;
 }

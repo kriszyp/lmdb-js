@@ -1,7 +1,7 @@
 /* oc.c - object class routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -75,7 +75,7 @@ int is_entry_objectclass(
 
 	if( set_flags && ( e->e_ocflags & SLAP_OC__END )) {
 		/* flags are set, use them */
-		return e->e_ocflags & oc->soc_flags & SLAP_OC__MASK;
+		return (e->e_ocflags & oc->soc_flags & SLAP_OC__MASK) != 0;
 	}
 
 	/*
@@ -114,7 +114,7 @@ int is_entry_objectclass(
 	/* mark flags as set */
 	e->e_ocflags |= SLAP_OC__END;
 
-	return e->e_ocflags & oc->soc_flags & SLAP_OC__MASK;
+	return (e->e_ocflags & oc->soc_flags & SLAP_OC__MASK) != 0;
 }
 
 
@@ -124,13 +124,15 @@ struct oindexrec {
 };
 
 static Avlnode	*oc_index = NULL;
-static ObjectClass *oc_list = NULL;
+static LDAP_SLIST_HEAD(OCList, slap_object_class) oc_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&oc_list);
 
 static int
 oc_index_cmp(
-    struct oindexrec	*oir1,
-    struct oindexrec	*oir2 )
+	const void *v_oir1,
+	const void *v_oir2 )
 {
+	const struct oindexrec *oir1 = v_oir1, *oir2 = v_oir2;
 	int i = oir1->oir_name.bv_len - oir2->oir_name.bv_len;
 	if (i)
 		return i;
@@ -139,9 +141,11 @@ oc_index_cmp(
 
 static int
 oc_index_name_cmp(
-    struct berval	*name,
-    struct oindexrec	*oir )
+	const void *v_name,
+	const void *v_oir )
 {
+	const struct berval    *name = v_name;
+	const struct oindexrec *oir  = v_oir;
 	int i = name->bv_len - oir->oir_name.bv_len;
 	if (i)
 		return i;
@@ -164,8 +168,7 @@ oc_bvfind( struct berval *ocname )
 {
 	struct oindexrec	*oir;
 
-	oir = (struct oindexrec *) avl_find( oc_index, ocname,
-            (AVL_CMP) oc_index_name_cmp );
+	oir = avl_find( oc_index, ocname, oc_index_name_cmp );
 
 	if ( oir != NULL ) {
 		return( oir->oir_oc );
@@ -329,12 +332,13 @@ oc_add_sups(
 void
 oc_destroy( void )
 {
-	ObjectClass *o, *n;
+	ObjectClass *o;
 
 	avl_free(oc_index, ldap_memfree);
-	for (o=oc_list; o; o=n)
-	{
-		n = o->soc_next;
+	while( !LDAP_SLIST_EMPTY(&oc_list) ) {
+		o = LDAP_SLIST_FIRST(&oc_list);
+		LDAP_SLIST_REMOVE_HEAD(&oc_list, soc_next);
+
 		if (o->soc_sups) ldap_memfree(o->soc_sups);
 		if (o->soc_required) ldap_memfree(o->soc_required);
 		if (o->soc_allowed) ldap_memfree(o->soc_allowed);
@@ -348,15 +352,10 @@ oc_insert(
     const char		**err
 )
 {
-	ObjectClass	**ocp;
 	struct oindexrec	*oir;
 	char			**names;
 
-	ocp = &oc_list;
-	while ( *ocp != NULL ) {
-		ocp = &(*ocp)->soc_next;
-	}
-	*ocp = soc;
+	LDAP_SLIST_INSERT_HEAD( &oc_list, soc, soc_next );
 
 	if ( soc->soc_oid ) {
 		oir = (struct oindexrec *)
@@ -369,8 +368,7 @@ oc_insert(
 		assert( oir->oir_oc );
 
 		if ( avl_insert( &oc_index, (caddr_t) oir,
-				 (AVL_CMP) oc_index_cmp,
-				 (AVL_DUP) avl_dup_error ) )
+		                 oc_index_cmp, avl_dup_error ) )
 		{
 			*err = soc->soc_oid;
 			ldap_memfree(oir);
@@ -393,8 +391,7 @@ oc_insert(
 			assert( oir->oir_oc );
 
 			if ( avl_insert( &oc_index, (caddr_t) oir,
-					 (AVL_CMP) oc_index_cmp,
-					 (AVL_DUP) avl_dup_error ) )
+			                 oc_index_cmp, avl_dup_error ) )
 			{
 				*err = *names;
 				ldap_memfree(oir);
@@ -489,7 +486,7 @@ oc_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( oc = oc_list; oc; oc = oc->soc_next ) {
+	LDAP_SLIST_FOREACH( oc, &oc_list, soc_next ) {
 		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
 
 		if ( ldap_objectclass2bv( &oc->soc_oclass, vals ) == NULL ) {

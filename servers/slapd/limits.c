@@ -1,6 +1,6 @@
 /* limits.c - routines to handle regex-based size and time limits */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -563,7 +563,6 @@ parse_limit(
 					}
 				}
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 			} else if ( strncasecmp( arg, "pr", sizeof( "pr" ) - 1 ) == 0 ) {
 				arg += sizeof( "pr" ) - 1;
 				if ( arg[0] != '=' ) {
@@ -581,7 +580,6 @@ parse_limit(
 						return( 1 );
 					}
 				}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 				
 			} else {
 				return( 1 );

@@ -1,7 +1,7 @@
 /* schema_check.c - routines to enforce schema definitions */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -52,11 +52,9 @@ entry_schema_check(
 	int subentry = is_entry_subentry( e );
 	int collectiveSubentry = 0;
 
-#if 0
 	if( subentry ) {
 		collectiveSubentry = is_entry_collectiveAttributeSubentry( e );
 	}
-#endif
 
 	*text = textbuf;
 
@@ -214,9 +212,57 @@ entry_schema_check(
 
 	} else if ( sc != oc ) {
 		snprintf( textbuf, textlen, 
-			"structural object class modification from '%s' to '%s' not allowed",
+			"structural object class modification "
+			"from '%s' to '%s' not allowed",
 			asc->a_vals[0].bv_val, nsc.bv_val );
 		return LDAP_NO_OBJECT_CLASS_MODS;
+	}
+
+	{	/* naming check */
+		LDAPRDN *rdn;
+		const char *p;
+		ber_len_t cnt;
+
+		/*
+		 * Get attribute type(s) and attribute value(s) of our RDN
+		 */
+		if ( ldap_bv2rdn( &e->e_name, &rdn, (char **)&p,
+			LDAP_DN_FORMAT_LDAP ) )
+		{
+			*text = "unrecongized attribute type(s) in RDN";
+			return LDAP_INVALID_DN_SYNTAX;
+		}
+
+		/* Check that each AVA of the RDN is present in the entry */
+		/* FIXME: Should also check that each AVA lists a distinct type */
+		for ( cnt = 0; rdn[0][cnt]; cnt++ ) {
+			LDAPAVA *ava = rdn[0][cnt];
+			AttributeDescription *desc = NULL;
+			Attribute *attr;
+			const char *errtext;
+
+			rc = slap_bv2ad( &ava->la_attr, &desc, &errtext );
+			if ( rc != LDAP_SUCCESS ) {
+				snprintf( textbuf, textlen, "%s (in RDN)", errtext );
+				return rc;
+			}
+
+			/* find the naming attribute */
+			attr = attr_find( e->e_attrs, desc );
+			if ( attr == NULL ) {
+				snprintf( textbuf, textlen, 
+					"naming attribute '%s' is not present in entry",
+					ava->la_attr );
+				return LDAP_NO_SUCH_ATTRIBUTE;
+			}
+
+			if ( value_find( desc, attr->a_vals, &ava->la_value ) != 0 ) {
+				snprintf( textbuf, textlen, 
+					"value of naming attribute '%s' is not present in entry",
+					ava->la_attr );
+				return LDAP_NO_SUCH_ATTRIBUTE;
+			}
+		}
 	}
 
 #ifdef SLAP_EXTENDED_SCHEMA

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -43,9 +43,7 @@ extern BI_acl_attribute	ldbm_back_attribute;
 
 extern BI_operational	ldbm_back_operational;
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 extern BI_has_subordinates	ldbm_back_hasSubordinates;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 /* hooks for slap tools */
 extern BI_tool_entry_open	ldbm_tool_entry_open;

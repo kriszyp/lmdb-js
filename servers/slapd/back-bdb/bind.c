@@ -1,7 +1,7 @@
 /* bind.c - bdb backend bind routine */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -302,6 +302,6 @@ done:
 
 	LOCK_ID_FREE(bdb->bi_dbenv, locker);
 
-	/* front end with send result on success (rc==0) */
+	/* front end will send result on success (rc==0) */
 	return rc;
 }

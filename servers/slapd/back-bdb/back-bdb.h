@@ -1,7 +1,7 @@
 /* back-bdb.h - bdb back-end header file */
 /* $OpenLDAP$ */
 /*
- * Copyright 2000-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2000-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -63,7 +63,9 @@ LDAP_BEGIN_DECL
 /* The default search IDL stack cache depth */
 #define DEFAULT_SEARCH_STACK_DEPTH	16
 
-/* for the (expermental) IDL cache */
+/* for the IDL cache */
+#define SLAP_IDL_CACHE	1
+
 #ifdef SLAP_IDL_CACHE
 typedef struct bdb_idl_cache_entry_s {
 	struct berval kstr;
@@ -130,7 +132,7 @@ struct bdb_info {
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	LDAP_LIST_HEAD(pl, slap_op) psearch_list;
 #endif
 #ifdef SLAP_IDL_CACHE
@@ -153,7 +155,8 @@ struct bdb_info {
 struct bdb_op_info {
 	BackendDB*	boi_bdb;
 	DB_TXN*		boi_txn;
-	int			boi_err;
+	u_int32_t	boi_err;
+	u_int32_t	boi_locker;
 };
 
 #define	DB_OPEN(db, file, name, type, flags, mode) \

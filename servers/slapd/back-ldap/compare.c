@@ -1,7 +1,7 @@
 /* compare.c - ldap backend compare function */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* This is an altered version */
@@ -100,13 +100,20 @@ ldap_back_compare(
 	}
 #endif /* !ENABLE_REWRITE */
 
-	ldap_back_map(&li->oc_map, &ava->aa_desc->ad_cname, &mapped_oc, 0);
-	if (mapped_oc.bv_val == NULL)
-		return( -1 );
-
-	ldap_back_map(&li->at_map, &ava->aa_value, &mapped_at, 0);
-	if (mapped_at.bv_val == NULL)
-		return( -1 );
+	if ( ava->aa_desc == slap_schema.si_ad_objectClass ) {
+		ldap_back_map(&li->oc_map, &ava->aa_desc->ad_cname, &mapped_oc,
+				BACKLDAP_MAP);
+		if (mapped_oc.bv_val == NULL || mapped_oc.bv_val[0] == '\0') {
+			return( -1 );
+		}
+		
+	} else {
+		ldap_back_map(&li->at_map, &ava->aa_value, &mapped_at, 
+				BACKLDAP_MAP);
+		if (mapped_at.bv_val == NULL || mapped_at.bv_val[0] == '\0') {
+			return( -1 );
+		}
+	}
 
 	ldap_compare_s( lc->ld, mdn.bv_val, mapped_oc.bv_val, mapped_at.bv_val );
 

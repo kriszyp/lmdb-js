@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -42,7 +42,7 @@ send_ldap_disconnect(
 }
 
 void
-send_ldap_extended(
+slap_send_ldap_extended(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
@@ -50,6 +50,22 @@ send_ldap_extended(
     const char	*text,
 	BerVarray refs,
     const char	*rspoid,
+	struct berval *rspdata,
+	LDAPControl **ctrls
+)
+{
+	assert(0);
+}
+
+void
+slap_send_ldap_intermediate_resp(
+	Connection  *conn,
+	Operation   *op,
+	ber_int_t   err,
+	const char  *matched,
+	const char  *text,
+	BerVarray refs,
+	const char  *rspoid,
 	struct berval *rspdata,
 	LDAPControl **ctrls
 )
@@ -73,7 +89,7 @@ send_ldap_sasl(
 }
 
 void
-send_ldap_result(
+slap_send_ldap_result(
 	Connection  *conn, 
 	Operation   *op,
 	ber_int_t     err,
@@ -87,7 +103,7 @@ send_ldap_result(
 }
 
 void
-send_search_result(
+slap_send_search_result(
 	Connection  *conn, 
 	Operation   *op,
 	ber_int_t     err,
@@ -102,7 +118,7 @@ send_search_result(
 }
 
 int
-send_search_entry(
+slap_send_search_entry(
 	Backend *be,
 	Connection  *conn, 
 	Operation   *op,
@@ -116,7 +132,8 @@ send_search_entry(
 	return -1;
 }
 
-int send_search_reference(
+int
+slap_send_search_reference(
 	Backend *be,
 	Connection  *conn, 
 	Operation   *op,
@@ -268,5 +285,28 @@ slap_modrdn2mods(
 	Modifications	**pmod )
 {
 	return 0;
+}
+
+int
+slap_mods2entry(
+	Modifications *mods,
+	Entry **e,
+	int repl_user,
+	const char **text,
+	char *textbuf, size_t textlen )
+{
+	return 0;
+}
+
+int slap_sasl_getdn( Connection *conn, char *id, int len,
+	char *user_realm, struct berval *dn, int flags )
+{
+	return -1;
+}
+
+int slap_sasl_authorized( Connection *conn,
+	struct berval *authcDN, struct berval *authzDN )
+{
+	return -1;
 }
 

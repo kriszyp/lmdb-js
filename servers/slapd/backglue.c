@@ -1,7 +1,7 @@
 /* backglue.c - backend glue routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 2001-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 2001-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 
+#include <ac/string.h>
 #include <ac/socket.h>
 
 #define SLAPD_TOOLS
@@ -275,6 +276,31 @@ glue_back_sendentry (
 }
 
 static int
+glue_back_sendreference (
+	BackendDB *be,
+	Connection *c,
+	Operation *op,
+	Entry *e,
+	BerVarray bv,
+	LDAPControl **ctrls,
+	BerVarray *v2
+)
+{
+	slap_callback *tmp = op->o_callback;
+	glue_state *gs = tmp->sc_private;
+	int rc;
+
+	op->o_callback = gs->prevcb;
+	if (op->o_callback && op->o_callback->sc_sendreference) {
+		rc = op->o_callback->sc_sendreference( be, c, op, e, bv, ctrls, v2 );
+	} else {
+		rc = send_search_reference( be, c, op, e, bv, ctrls, v2 );
+	}
+	op->o_callback = tmp;
+	return rc;
+}
+
+static int
 glue_back_search (
 	BackendDB *b0,
 	Connection *conn,
@@ -295,7 +321,7 @@ glue_back_search (
 	BackendDB *be;
 	int i, rc = 0, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
-	glue_state gs = {0};
+	glue_state gs = {0, 0, 0, NULL, 0, NULL, NULL};
 	slap_callback cb;
 
 	cb.sc_response = glue_back_response;
@@ -379,7 +405,23 @@ glue_back_search (
 					s2limit, t2limit, filter, filterstr,
 					attrs, attrsonly);
 			}
+
+			switch ( gs.err ) {
+
+			/*
+			 * Add errors that should result in dropping
+			 * the search
+			 */
+			case LDAP_SIZELIMIT_EXCEEDED:
+			case LDAP_TIMELIMIT_EXCEEDED:
+			case LDAP_ADMINLIMIT_EXCEEDED:
+				goto end_of_loop;
+			
+			default:
+				break;
+			}
 		}
+end_of_loop:;
 		break;
 	}
 	op->o_callback = gs.prevcb;

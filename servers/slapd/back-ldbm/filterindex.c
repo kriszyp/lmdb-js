@@ -1,7 +1,7 @@
 /* filterindex.c - generate the list of candidate entries from a filter */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -219,7 +219,7 @@ presence_candidates(
 	int rc;
 	char *dbname;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( FILTER, ENTRY, "presence_candidates: enter\n", 0, 0, 0 );
@@ -333,7 +333,7 @@ equality_candidates(
 	int rc;
 	char *dbname;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 	struct berval *keys = NULL;
 	MatchingRule *mr;
 
@@ -507,7 +507,7 @@ approx_candidates(
 	int rc;
 	char *dbname;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 	struct berval *keys = NULL;
 	MatchingRule *mr;
 
@@ -742,7 +742,7 @@ substring_candidates(
 	int rc;
 	char *dbname;
 	slap_mask_t mask;
-	struct berval prefix = {0};
+	struct berval prefix = {0, NULL};
 	struct berval *keys = NULL;
 	MatchingRule *mr;
 

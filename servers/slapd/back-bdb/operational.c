@@ -1,6 +1,6 @@
 /* operational.c - bdb backend operational attributes function */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -77,6 +77,7 @@ retry:	/* transaction retry */
 
 	opinfo.boi_bdb = be;
 	opinfo.boi_txn = ltid;
+	opinfo.boi_locker = TXN_ID ( ltid );
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* at.c - routines for dealing with attribute types */
@@ -49,14 +49,17 @@ struct aindexrec {
 };
 
 static Avlnode	*attr_index = NULL;
-static AttributeType *attr_list = NULL;
+static LDAP_SLIST_HEAD(ATList, slap_attribute_type) attr_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&attr_list);
 
 static int
 attr_index_cmp(
-    struct aindexrec	*air1,
-    struct aindexrec	*air2
+    const void	*v_air1,
+    const void	*v_air2
 )
 {
+	const struct aindexrec	*air1 = v_air1;
+	const struct aindexrec	*air2 = v_air2;
 	int i = air1->air_name.bv_len - air2->air_name.bv_len;
 	if (i)
 		return i;
@@ -65,10 +68,12 @@ attr_index_cmp(
 
 static int
 attr_index_name_cmp(
-    struct berval	*type,
-    struct aindexrec	*air
+    const void	*v_type,
+    const void	*v_air
 )
 {
+    const struct berval    *type = v_type;
+    const struct aindexrec *air  = v_air;
 	int i = type->bv_len - air->air_name.bv_len;
 	if (i)
 		return i;
@@ -96,8 +101,7 @@ at_bvfind(
 {
 	struct aindexrec *air;
 
-	air = (struct aindexrec *) avl_find( attr_index, name,
-            (AVL_CMP) attr_index_name_cmp );
+	air = avl_find( attr_index, name, attr_index_name_cmp );
 
 	return air != NULL ? air->air_at : NULL;
 }
@@ -194,18 +198,22 @@ at_find_in_list(
 void
 at_destroy( void )
 {
-	AttributeType *a, *n;
+	AttributeType *a;
 	avl_free(attr_index, ldap_memfree);
 
-	for (a=attr_list; a; a=n) {
-		n = a->sat_next;
+	while( !LDAP_SLIST_EMPTY(&attr_list) ) {
+		a = LDAP_SLIST_FIRST(&attr_list);
+		LDAP_SLIST_REMOVE_HEAD(&attr_list, sat_next);
+
 		if (a->sat_subtypes) ldap_memfree(a->sat_subtypes);
 		ad_destroy(a->sat_ad);
 		ldap_pvt_thread_mutex_destroy(&a->sat_ad_mutex);
 		ldap_attributetype_free((LDAPAttributeType *)a);
 	}
-	if ( slap_schema.si_at_undefined )
+
+	if ( slap_schema.si_at_undefined ) {
 		ad_destroy(slap_schema.si_at_undefined->sat_ad);
+	}
 }
 
 int
@@ -213,7 +221,7 @@ at_start( AttributeType **at )
 {
 	assert( at );
 
-	*at = attr_list;
+	*at = LDAP_SLIST_FIRST(&attr_list);
 
 	return (*at != NULL);
 }
@@ -225,9 +233,9 @@ at_next( AttributeType **at )
 
 #if 1	/* pedantic check */
 	{
-		AttributeType *tmp;
+		AttributeType *tmp = NULL;
 
-		for ( tmp = attr_list; tmp; tmp = tmp->sat_next ) {
+		LDAP_SLIST_FOREACH(tmp,&attr_list,sat_next) {
 			if ( tmp == *at ) {
 				break;
 			}
@@ -237,7 +245,7 @@ at_next( AttributeType **at )
 	}
 #endif
 
-	*at = (*at)->sat_next;
+	*at = LDAP_SLIST_NEXT(*at,sat_next);
 
 	return (*at != NULL);
 }
@@ -250,15 +258,10 @@ at_insert(
     const char		**err
 )
 {
-	AttributeType		**atp;
 	struct aindexrec	*air;
 	char			**names;
 
-	atp = &attr_list;
-	while ( *atp != NULL ) {
-		atp = &(*atp)->sat_next;
-	}
-	*atp = sat;
+	LDAP_SLIST_INSERT_HEAD( &attr_list, sat, sat_next );
 
 	if ( sat->sat_oid ) {
 		air = (struct aindexrec *)
@@ -267,8 +270,7 @@ at_insert(
 		air->air_name.bv_len = strlen(sat->sat_oid);
 		air->air_at = sat;
 		if ( avl_insert( &attr_index, (caddr_t) air,
-				 (AVL_CMP) attr_index_cmp,
-				 (AVL_DUP) avl_dup_error ) ) {
+		                 attr_index_cmp, avl_dup_error ) ) {
 			*err = sat->sat_oid;
 			ldap_memfree(air);
 			return SLAP_SCHERR_ATTR_DUP;
@@ -285,8 +287,7 @@ at_insert(
 			air->air_name.bv_len = strlen(*names);
 			air->air_at = sat;
 			if ( avl_insert( &attr_index, (caddr_t) air,
-					 (AVL_CMP) attr_index_cmp,
-					 (AVL_DUP) avl_dup_error ) ) {
+			                 attr_index_cmp, avl_dup_error ) ) {
 				*err = *names;
 				ldap_memfree(air);
 				return SLAP_SCHERR_ATTR_DUP;
@@ -377,9 +378,6 @@ at_add(
 			/* collective attributes cannot be single-valued */
 			return SLAP_SCHERR_ATTR_BAD_USAGE;
 		}
-
-		/* collective attributes not supported */
-		return SLAP_SCHERR_NOT_SUPPORTED;
 	}
 
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
@@ -570,9 +568,9 @@ at_add(
 
 #ifdef LDAP_DEBUG
 static int
-at_index_printnode( struct aindexrec *air )
+at_index_printnode( void *v_air, void *ignore )
 {
-
+	struct aindexrec *air = v_air;
 	printf("%s = %s\n",
 		air->air_name.bv_val,
 		ldap_attributetype2str(&air->air_at->sat_atype) );
@@ -583,8 +581,7 @@ static void
 at_index_print( void )
 {
 	printf("Printing attribute type index:\n");
-	(void) avl_apply( attr_index, (AVL_APPLY) at_index_printnode,
-		0, -1, AVL_INORDER );
+	(void) avl_apply( attr_index, at_index_printnode, 0, -1, AVL_INORDER );
 }
 #endif
 
@@ -598,7 +595,7 @@ at_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( at = attr_list; at; at = at->sat_next ) {
+	LDAP_SLIST_FOREACH(at,&attr_list,sat_next) {
 		if( at->sat_flags & SLAP_AT_HIDE ) continue;
 
 		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {

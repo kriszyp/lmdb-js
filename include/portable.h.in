@@ -164,6 +164,9 @@
 /* Define if you have the getpassphrase function.  */
 #undef HAVE_GETPASSPHRASE
 
+/* Define if you have the getpeereid function.  */
+#undef HAVE_GETPEEREID
+
 /* Define if you have the getpwnam function.  */
 #undef HAVE_GETPWNAM
 
@@ -232,6 +235,9 @@
 
 /* Define if you have the send function.  */
 #undef HAVE_SEND
+
+/* Define if you have the sendmsg function.  */
+#undef HAVE_SENDMSG
 
 /* Define if you have the sendto function.  */
 #undef HAVE_SENDTO
@@ -542,6 +548,9 @@
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
 
+/* Define if you have the <sys/ucred.h> header file.  */
+#undef HAVE_SYS_UCRED_H
+
 /* Define if you have the <sys/un.h> header file.  */
 #undef HAVE_SYS_UN_H
 
@@ -695,15 +704,6 @@
 /* define to support LAN Manager passwords */
 #undef SLAPD_LMHASH
 
-/* set to the number of arguments ctime_r() expects */
-#undef CTIME_R_NARGS
-
-/* set to the number of arguments gethostbyname_r() expects */
-#undef GETHOSTBYNAME_R_NARGS
-
-/* set to the number of arguments gethostbyaddr_r() expects */
-#undef GETHOSTBYADDR_R_NARGS
-
 /* if you have NT Threads */
 #undef HAVE_NT_THREADS
 
@@ -745,6 +745,15 @@
 
 /* define if you have (or want) no threads */
 #undef NO_THREADS
+
+/* set to the number of arguments ctime_r() expects */
+#undef CTIME_R_NARGS
+
+/* set to the number of arguments gethostbyname_r() expects */
+#undef GETHOSTBYNAME_R_NARGS
+
+/* set to the number of arguments gethostbyaddr_r() expects */
+#undef GETHOSTBYADDR_R_NARGS
 
 /* define if Berkeley DB has DB_THREAD support */
 #undef HAVE_BERKELEY_DB_THREAD
@@ -886,9 +895,6 @@
 
 /* define this to add syslog code */
 #undef LDAP_SYSLOG
-
-/* define this to remove -lldap cache support */
-#undef LDAP_NOCACHE
 
 /* define this for LDAP process title support */
 #undef LDAP_PROCTITLE

@@ -1,7 +1,7 @@
 /* syntax.c - routines to manage syntax definitions */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -22,24 +22,26 @@ struct sindexrec {
 };
 
 static Avlnode	*syn_index = NULL;
-static Syntax *syn_list = NULL;
+static LDAP_SLIST_HEAD(SyntaxList, slap_syntax) syn_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&syn_list);
 
 static int
 syn_index_cmp(
-    struct sindexrec	*sir1,
-    struct sindexrec	*sir2
+	const void *v_sir1,
+	const void *v_sir2
 )
 {
+	const struct sindexrec *sir1 = v_sir1, *sir2 = v_sir2;
 	return (strcmp( sir1->sir_name, sir2->sir_name ));
 }
 
 static int
 syn_index_name_cmp(
-    const char		*name,
-    struct sindexrec	*sir
+	const void *name,
+	const void *sir
 )
 {
-	return (strcmp( name, sir->sir_name ));
+	return (strcmp( name, ((const struct sindexrec *)sir)->sir_name ));
 }
 
 Syntax *
@@ -47,8 +49,7 @@ syn_find( const char *synname )
 {
 	struct sindexrec	*sir = NULL;
 
-	if ( (sir = (struct sindexrec *) avl_find( syn_index, synname,
-	    (AVL_CMP) syn_index_name_cmp )) != NULL ) {
+	if ( (sir = avl_find( syn_index, synname, syn_index_name_cmp )) != NULL ) {
 		return( sir->sir_syn );
 	}
 	return( NULL );
@@ -59,20 +60,23 @@ syn_find_desc( const char *syndesc, int *len )
 {
 	Syntax		*synp;
 
-	for (synp = syn_list; synp; synp = synp->ssyn_next)
-		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{')))
+	LDAP_SLIST_FOREACH(synp, &syn_list, ssyn_next) {
+		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{' /*'}'*/ ))) {
 			return synp;
+		}
+	}
 	return( NULL );
 }
 
 void
 syn_destroy( void )
 {
-	Syntax *s, *n;
+	Syntax *s;
 
 	avl_free(syn_index, ldap_memfree);
-	for (s=syn_list; s; s=n) {
-		n = s->ssyn_next;
+	while( !LDAP_SLIST_EMPTY(&syn_list) ) {
+		s = LDAP_SLIST_FIRST(&syn_list);
+		LDAP_SLIST_REMOVE_HEAD(&syn_list, ssyn_next);
 		ldap_syntax_free((LDAPSyntax *)s);
 	}
 }
@@ -83,15 +87,10 @@ syn_insert(
     const char		**err
 )
 {
-	Syntax		**synp;
 	struct sindexrec	*sir;
 
-	synp = &syn_list;
-	while ( *synp != NULL ) {
-		synp = &(*synp)->ssyn_next;
-	}
-	*synp = ssyn;
-
+	LDAP_SLIST_INSERT_HEAD( &syn_list, ssyn, ssyn_next );
+ 
 	if ( ssyn->ssyn_oid ) {
 		sir = (struct sindexrec *)
 			SLAP_CALLOC( 1, sizeof(struct sindexrec) );
@@ -107,8 +106,7 @@ syn_insert(
 		sir->sir_name = ssyn->ssyn_oid;
 		sir->sir_syn = ssyn;
 		if ( avl_insert( &syn_index, (caddr_t) sir,
-				 (AVL_CMP) syn_index_cmp,
-				 (AVL_DUP) avl_dup_error ) ) {
+		                 syn_index_cmp, avl_dup_error ) ) {
 			*err = ssyn->ssyn_oid;
 			ldap_memfree(sir);
 			return SLAP_SCHERR_SYN_DUP;
@@ -142,7 +140,7 @@ syn_add(
 
 	AC_MEMCPY( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
 
-	ssyn->ssyn_next = NULL;
+	LDAP_SLIST_NEXT(ssyn,ssyn_next) = NULL;
 
 	/*
 	 * note: ssyn_bvoid uses the same memory of ssyn_syn.syn_oid;
@@ -216,7 +214,7 @@ syn_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( syn = syn_list; syn; syn = syn->ssyn_next ) {
+	LDAP_SLIST_FOREACH(syn, &syn_list, ssyn_next ) {
 		if ( ! syn->ssyn_validate ) {
 			/* skip syntaxes without validators */
 			continue;

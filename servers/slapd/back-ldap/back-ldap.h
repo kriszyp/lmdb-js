@@ -1,7 +1,7 @@
 /* back-ldap.h - ldap backend header file */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* This is an altered version */
@@ -106,6 +106,8 @@ int mapping_dup (void *, void *);
 void ldap_back_map_init ( struct ldapmap *lm, struct ldapmapping ** );
 void ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *m,
 	int remap );
+#define BACKLDAP_MAP	0
+#define BACKLDAP_REMAP	1
 char *
 ldap_back_map_filter(
 		struct ldapmap *at_map,
@@ -120,7 +122,7 @@ ldap_back_map_attrs(
 		int remap
 );
 
-extern void mapping_free ( struct ldapmapping *mapping );
+extern void mapping_free ( void *mapping );
 
 #ifdef ENABLE_REWRITE
 extern int suffix_massage_config( struct rewrite_info *info,
@@ -131,4 +133,4 @@ extern int ldap_dnattr_rewrite( struct rewrite_info *rwinfo, BerVarray a_vals, v
 
 LDAP_END_DECL
 
-#endif
+#endif /* SLAPD_LDAP_H */

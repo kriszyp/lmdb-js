@@ -1,7 +1,7 @@
 /* bind.c - decode an ldap bind operation and pass it to a backend db */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -26,6 +26,10 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
+
 
 int
 do_bind(
@@ -47,6 +51,10 @@ do_bind(
 	struct berval cred = { 0, NULL };
 	Backend *be = NULL;
 
+#ifdef LDAP_SLAPI
+	Slapi_PBlock *pb = op->o_pb;
+#endif
+
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_bind: conn %d\n", conn->c_connid, 0, 0 );
 #else
@@ -62,7 +70,7 @@ do_bind(
 	/* log authorization identity demotion */
 	if ( conn->c_dn.bv_len ) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu AUTHZ anonymous mech=implicit ssf=0",
+			"conn=%lu op=%lu BIND anonymous mech=implicit ssf=0",
 			op->o_connid, op->o_opid, 0, 0, 0 );
 	}
 
@@ -97,8 +105,8 @@ do_bind(
 	 *	}
 	 *
 	 *	SaslCredentials ::= SEQUENCE {
-     *		mechanism	    LDAPString,
-     *		credentials	    OCTET STRING OPTIONAL
+	 *		mechanism	    LDAPString,
+	 *		credentials	    OCTET STRING OPTIONAL
 	 *	}
 	 */
 
@@ -325,18 +333,23 @@ do_bind(
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=%s ssf=%d\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=%d\n",
 				op->o_connid, op->o_opid,
-				conn->c_dn.bv_val, conn->c_authmech.bv_val, ssf );
+				conn->c_dn.bv_val ? conn->c_dn.bv_val : "<empty>",
+				conn->c_authmech.bv_val, ssf );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
-				conn->c_authmech.bv_val, conn->c_dn.bv_val, ssf );
+				conn->c_authmech.bv_val,
+				conn->c_dn.bv_val ? conn->c_dn.bv_val : "<empty>",
+				ssf );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
-				conn->c_authmech.bv_val, conn->c_dn.bv_val, ssf );
+				conn->c_authmech.bv_val,
+				conn->c_dn.bv_val ? conn->c_dn.bv_val : "<empty>",
+				ssf );
 #endif
 
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
@@ -526,6 +539,69 @@ do_bind(
 		goto cleanup;
 	}
 
+#if defined( LDAP_SLAPI )
+	slapi_x_backend_set_pb( pb, be );
+	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_operation_set_pb( pb, op );
+	slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+	slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
+	slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&cred );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_BIND_FN, pb );
+	if ( rc != SLAPI_BIND_SUCCESS ) {
+		/*
+		 * Binding is a special case for SLAPI plugins. It is
+		 * possible for a bind plugin to be successful *and*
+		 * abort further processing; this means it has handled
+		 * a bind request authoritatively. If we have reached
+		 * here, a result has been sent to the client (XXX
+		 * need to check with Sun whether SLAPI_BIND_ANONYMOUS
+		 * means a result has been sent).
+		 */
+		int ldapRc;
+
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&ldapRc ) != 0 )
+			ldapRc = LDAP_OTHER;
+
+		edn.bv_val = NULL;
+		edn.bv_len = 0;
+		if ( rc != SLAPI_BIND_FAIL && ldapRc == LDAP_SUCCESS ) {
+			/* Set the new connection DN. */
+			if ( rc != SLAPI_BIND_ANONYMOUS ) {
+				slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&edn.bv_val );
+			}
+			rc = dnPrettyNormal( NULL, &edn, &pdn, &ndn );
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+			conn->c_dn = pdn;
+			conn->c_ndn = ndn;
+			pdn.bv_val = NULL;
+			pdn.bv_len = 0;
+			ndn.bv_val = NULL;
+			ndn.bv_len = 0;
+			if ( conn->c_dn.bv_len != 0 ) {
+				ber_len_t max = sockbuf_max_incoming_auth;
+				ber_sockbuf_ctrl( conn->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+			}
+			/* log authorization identity */
+			Statslog( LDAP_DEBUG_STATS,
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=simple (SLAPI) ssf=0\n",
+				op->o_connid, op->o_opid,
+				conn->c_dn.bv_val, 0, 0 );
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		}
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, "do_bind: Bind preoperation plugin returned %d\n",
+				rc, 0, 0);
+#else
+		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind preoperation plugin returned %d.\n",
+				rc, 0, 0);
+#endif
+		rc = ldapRc;
+		goto cleanup;
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 	if ( be->be_bind ) {
 		int ret;
 
@@ -562,7 +638,7 @@ do_bind(
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=simple ssf=0\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=simple ssf=0\n",
 				op->o_connid, op->o_opid,
 				conn->c_dn.bv_val, conn->c_authmech.bv_val, 0 );
 
@@ -591,6 +667,18 @@ do_bind(
 			NULL, "operation not supported within namingContext",
 			NULL, NULL );
 	}
+
+#if defined( LDAP_SLAPI )
+	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_BIND_FN, pb ) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, "do_bind: Bind postoperation plugins failed\n",
+				0, 0, 0);
+#else
+		Debug(LDAP_DEBUG_TRACE, "do_bind: Bind postoperation plugins failed.\n",
+				0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
 	conn->c_sasl_bindop = NULL;

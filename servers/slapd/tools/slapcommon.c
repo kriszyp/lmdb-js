@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* slapcommon.c - common routine for the slap tools */
@@ -123,6 +123,7 @@ slap_tool_init(
 		case 'b':
 			base.bv_val = strdup( optarg );
 			base.bv_len = strlen( base.bv_val );
+			break;
 
 		case 'c':	/* enable continue mode */
 			continuemode++;
@@ -190,14 +191,14 @@ slap_tool_init(
 		
 	rc = slap_init( mode, progname );
 
-	if (rc != 0 ) {
+	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_init failed!\n", progname );
 		exit( EXIT_FAILURE );
 	}
 
 	rc = slap_schema_init();
 
-	if (rc != 0 ) {
+	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
 		exit( EXIT_FAILURE );
 	}
@@ -216,14 +217,14 @@ slap_tool_init(
 
 	rc = glue_sub_init();
 
-	if (rc != 0 ) {
+	if ( rc != 0 ) {
 		fprintf( stderr, "Subordinate configuration error\n" );
 		exit( EXIT_FAILURE );
 	}
 
 	rc = slap_schema_check();
 
-	if (rc != 0 ) {
+	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_prep failed!\n", progname );
 		exit( EXIT_FAILURE );
 	}

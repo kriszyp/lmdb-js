@@ -242,7 +242,7 @@ static int module_unload (module_loaded_t *module)
 		}
 
 		/* call module's terminate routine, if present */
-		if (terminate = lt_dlsym(module->lib, "term_module")) {
+		if ((terminate = lt_dlsym(module->lib, "term_module"))) {
 			terminate();
 		}
 

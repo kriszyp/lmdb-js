@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -23,14 +23,7 @@
 
 #include "slap.h"
 
-#ifdef HAVE_CYRUS_SASL
 #include <limits.h>
-
-#ifdef HAVE_SASL_SASL_H
-#include <sasl/sasl.h>
-#else
-#include <sasl.h>
-#endif
 
 #include <ldap_pvt.h>
 
@@ -348,6 +341,12 @@ void slap_cb_null_sresult( Connection *conn, Operation *o, ber_int_t err,
 {
 }
 
+int slap_cb_null_sreference( BackendDB *db, Connection *conn, Operation *o, 
+	Entry *e, BerVarray r, LDAPControl **c, BerVarray *v2)
+{
+	return 0;
+}
+
 /* This callback actually does some work...*/
 static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 	Entry *e, AttributeName *an, int ao, LDAPControl **c)
@@ -360,8 +359,8 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 		ndn->bv_val = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( TRANSPORT, DETAIL1,
-		    "slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
+		LDAP_LOG( TRANSPORT, DETAIL1,
+			"slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"slap_sasl2dn: search DN returned more than 1 entry\n", 0,0,0 );
@@ -373,108 +372,6 @@ static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
 	return 0;
 }
 
-/*
- * Given a SASL name (e.g. "UID=name,cn=REALM,cn=MECH,cn=AUTH")
- * return the LDAP DN to which it matches. The SASL regexp rules in the config
- * file turn the SASL name into an LDAP URI. If the URI is just a DN (or a
- * search with scope=base), just return the URI (or its searchbase). Otherwise
- * an internal search must be done, and if that search returns exactly one
- * entry, return the DN of that one entry.
- */
-
-void slap_sasl2dn( Connection *conn,
-	struct berval *saslname, struct berval *sasldn )
-{
-	int rc;
-	Backend *be = NULL;
-	struct berval dn = { 0, NULL };
-	int scope = LDAP_SCOPE_BASE;
-	Filter *filter = NULL;
-	slap_callback cb = {slap_cb_null_response, slap_cb_null_sresult, sasl_sc_sasl2dn, NULL};
-	Operation op = {0};
-	struct berval regout = { 0, NULL };
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl2dn: converting SASL name %s to DN.\n",
-		saslname->bv_val, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "==>slap_sasl2dn: "
-		"converting SASL name %s to a DN\n",
-		saslname->bv_val, 0,0 );
-#endif
-
-	sasldn->bv_val = NULL;
-	sasldn->bv_len = 0;
-	cb.sc_private = sasldn;
-
-	/* Convert the SASL name into a minimal URI */
-	if( !slap_sasl_regexp( saslname, &regout ) ) {
-		goto FINISHED;
-	}
-
-	rc = slap_parseURI( &regout, &dn, &scope, &filter );
-	if( regout.bv_val ) ch_free( regout.bv_val );
-	if( rc != LDAP_SUCCESS ) {
-		goto FINISHED;
-	}
-
-	/* Must do an internal search */
-	be = select_backend( &dn, 0, 1 );
-
-	/* Massive shortcut: search scope == base */
-	if( scope == LDAP_SCOPE_BASE ) {
-		*sasldn = dn;
-		dn.bv_len = 0;
-		dn.bv_val = NULL;
-		goto FINISHED;
-	}
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( TRANSPORT, DETAIL1, 
-		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		dn.bv_val, scope, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE,
-		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		dn.bv_val, scope, 0 );
-#endif
-
-	if(( be == NULL ) || ( be->be_search == NULL)) {
-		goto FINISHED;
-	}
-	suffix_alias( be, &dn );
-
-	op.o_tag = LDAP_REQ_SEARCH;
-	op.o_protocol = LDAP_VERSION3;
-	op.o_ndn = *saslname;
-	op.o_callback = &cb;
-	op.o_time = slap_get_time();
-	op.o_do_not_cache = 1;
-	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
-
-	(*be->be_search)( be, conn, &op, NULL, &dn,
-		scope, LDAP_DEREF_NEVER, 1, 0,
-		filter, NULL, NULL, 1 );
-	
-FINISHED:
-	if( sasldn->bv_len ) {
-		conn->c_authz_backend = be;
-	}
-	if( dn.bv_len ) ch_free( dn.bv_val );
-	if( filter ) filter_free( filter );
-
-#ifdef NEW_LOGGING
-	LDAP_LOG( TRANSPORT, ENTRY, 
-		"slap_sasl2dn: Converted SASL name to %s\n",
-		sasldn->bv_len ? sasldn->bv_val : "<nothing>", 0, 0 );
-#else
-	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
-		sasldn->bv_len ? sasldn->bv_val : "<nothing>", 0, 0 );
-#endif
-
-	return;
-}
 
 typedef struct smatch_info {
 	struct berval *dn;
@@ -512,7 +409,12 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	Filter *filter=NULL;
 	regex_t reg;
 	smatch_info sm;
-	slap_callback cb = { slap_cb_null_response, slap_cb_null_sresult, sasl_sc_smatch, NULL };
+	slap_callback cb = {
+		slap_cb_null_response,
+		slap_cb_null_sresult,
+		sasl_sc_smatch,
+		NULL
+	};
 	Operation op = {0};
 
 #ifdef NEW_LOGGING
@@ -655,7 +557,109 @@ COMPLETE:
 
 	return( rc );
 }
-#endif	/* HAVE_CYRUS_SASL */
+
+/*
+ * Given a SASL name (e.g. "UID=name,cn=REALM,cn=MECH,cn=AUTH")
+ * return the LDAP DN to which it matches. The SASL regexp rules in the config
+ * file turn the SASL name into an LDAP URI. If the URI is just a DN (or a
+ * search with scope=base), just return the URI (or its searchbase). Otherwise
+ * an internal search must be done, and if that search returns exactly one
+ * entry, return the DN of that one entry.
+ */
+void slap_sasl2dn( Connection *conn,
+	struct berval *saslname, struct berval *sasldn )
+{
+	int rc;
+	Backend *be = NULL;
+	struct berval dn = { 0, NULL };
+	int scope = LDAP_SCOPE_BASE;
+	Filter *filter = NULL;
+	slap_callback cb = { slap_cb_null_response,
+		slap_cb_null_sresult, sasl_sc_sasl2dn, slap_cb_null_sreference, NULL};
+	Operation op = {0};
+	struct berval regout = { 0, NULL };
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl2dn: converting SASL name %s to DN.\n",
+		saslname->bv_val, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "==>slap_sasl2dn: "
+		"converting SASL name %s to a DN\n",
+		saslname->bv_val, 0,0 );
+#endif
+
+	sasldn->bv_val = NULL;
+	sasldn->bv_len = 0;
+	cb.sc_private = sasldn;
+
+	/* Convert the SASL name into a minimal URI */
+	if( !slap_sasl_regexp( saslname, &regout ) ) {
+		goto FINISHED;
+	}
+
+	rc = slap_parseURI( &regout, &dn, &scope, &filter );
+	if( regout.bv_val ) ch_free( regout.bv_val );
+	if( rc != LDAP_SUCCESS ) {
+		goto FINISHED;
+	}
+
+	/* Must do an internal search */
+	be = select_backend( &dn, 0, 1 );
+
+	/* Massive shortcut: search scope == base */
+	if( scope == LDAP_SCOPE_BASE ) {
+		*sasldn = dn;
+		dn.bv_len = 0;
+		dn.bv_val = NULL;
+		goto FINISHED;
+	}
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( TRANSPORT, DETAIL1, 
+		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
+		dn.bv_val, scope, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE,
+		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
+		dn.bv_val, scope, 0 );
+#endif
+
+	if(( be == NULL ) || ( be->be_search == NULL)) {
+		goto FINISHED;
+	}
+	suffix_alias( be, &dn );
+
+	op.o_tag = LDAP_REQ_SEARCH;
+	op.o_protocol = LDAP_VERSION3;
+	op.o_ndn = conn->c_ndn;
+	op.o_callback = &cb;
+	op.o_time = slap_get_time();
+	op.o_do_not_cache = 1;
+	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
+
+	(*be->be_search)( be, conn, &op, NULL, &dn,
+		scope, LDAP_DEREF_NEVER, 1, 0,
+		filter, NULL, NULL, 1 );
+	
+FINISHED:
+	if( sasldn->bv_len ) {
+		conn->c_authz_backend = be;
+	}
+	if( dn.bv_len ) ch_free( dn.bv_val );
+	if( filter ) filter_free( filter );
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( TRANSPORT, ENTRY, 
+		"slap_sasl2dn: Converted SASL name to %s\n",
+		sasldn->bv_len ? sasldn->bv_val : "<nothing>", 0, 0 );
+#else
+	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
+		sasldn->bv_len ? sasldn->bv_val : "<nothing>", 0, 0 );
+#endif
+
+	return;
+}
 
 
 /* Check if a bind can SASL authorize to another identity.
@@ -667,7 +671,6 @@ int slap_sasl_authorized( Connection *conn,
 {
 	int rc = LDAP_INAPPROPRIATE_AUTH;
 
-#ifdef HAVE_CYRUS_SASL
 	/* User binding as anonymous */
 	if ( authzDN == NULL ) {
 		rc = LDAP_SUCCESS;
@@ -680,11 +683,18 @@ int slap_sasl_authorized( Connection *conn,
 		authcDN->bv_val, authzDN->bv_val, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	   "==>slap_sasl_authorized: can %s become %s?\n", authcDN->bv_val, authzDN->bv_val, 0 );
+	   "==>slap_sasl_authorized: can %s become %s?\n",
+		authcDN->bv_val, authzDN->bv_val, 0 );
 #endif
 
 	/* If person is authorizing to self, succeed */
 	if ( dn_match( authcDN, authzDN ) ) {
+		rc = LDAP_SUCCESS;
+		goto DONE;
+	}
+
+	/* Allow the manager to authorize as any DN. */
+	if( be_isroot( conn->c_authz_backend, authcDN )) {
 		rc = LDAP_SUCCESS;
 		goto DONE;
 	}
@@ -710,7 +720,6 @@ int slap_sasl_authorized( Connection *conn,
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 DONE:
-#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, RESULTS, "slap_sasl_authorized: return %d\n", rc,0,0 );

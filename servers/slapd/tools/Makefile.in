@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
 ## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 #-----------------------------------------------------------------------------
 # Portions Copyright (c) 1995 Regents of the University of Michigan.
@@ -27,7 +27,7 @@ XLIBS = $(SLAPD_L) $(LDBM_LIBS)
 XXLIBS = $(SLAPD_LIBS) \
 	$(LDBM_LIBS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
-XXXLIBS = $(MODULES_LIBS) $(LTHREAD_LIBS)
+XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
 STATIC_DEPENDS=@SLAPD_NO_STATIC@ ../libbackends.a
 
@@ -44,7 +44,8 @@ SLAPD_OBJS = ../config.o ../ch_malloc.o ../cr.o ../backend.o \
 		../entry.o ../dn.o ../filter.o ../str2filter.o ../ava.o \
 		../init.o ../controls.o ../kerberos.o ../passwd.o \
 		../index.o ../extended.o ../starttls.o ../sets.o ../mra.o \
-		../referral.o ../backglue.o ../oidm.o ../mods.o
+		../referral.o ../backglue.o ../oidm.o ../mods.o ../operation.o \
+		../cancel.o
 
 SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
 

@@ -1,7 +1,7 @@
 /* schema_init.c - init builtin schema */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -320,6 +320,20 @@ static struct slap_schema_oc_map {
 		"MUST cn )",
 		0, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_monitor) },
+#ifdef LDAP_DEVEL
+	{ "collectiveAttributeSubentry", "( 2.5.17.2 "
+			"NAME 'collectiveAttributeSubentry' "
+			"AUXILIARY )",
+		subentryObjectClass,
+		SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY|SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		offsetof(struct slap_internal_schema, si_oc_collectiveAttributeSubentry) },
+	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
+			"NAME 'dynamicObject' "
+			"DESC 'RFC2589: Dynamic Object' "
+			"SUP top AUXILIARY )",
+		dynamicObjectClass, SLAP_OC_DYNAMICOBJECT,
+		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
+#endif
 	{ NULL, NULL, NULL, 0, 0 }
 };
 
@@ -411,6 +425,23 @@ static struct slap_schema_ad_map {
 		NULL, 0,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_subschemaSubentry) },
+#ifdef LDAP_DEVEL
+	{ "collectiveAttributeSubentries", "( 2.5.18.12 "
+			"NAME 'collectiveAttributeSubentries' "
+			"EQUALITY distinguishedNameMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 "
+			"NO-USER-MODIFICATION USAGE directoryOperation )",
+		NULL, SLAP_AT_HIDE,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_collectiveSubentries) },
+	{ "collectiveExclusions", "( 2.5.18.7 NAME 'collectiveExclusions' "
+			"EQUALITY objectIdentifierMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 "
+			"USAGE directoryOperation )",
+		NULL, SLAP_AT_HIDE,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_collectiveExclusions) },
+#endif
 
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
 			"DESC 'LCUP/LDUP: UUID of the entry' "
@@ -660,6 +691,24 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_aci) },
 #endif
 
+#ifdef LDAP_DEVEL
+	{ "entryTtl", "( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl' "
+			"DESC 'RFC2589: entry time-to-live' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE "
+			"NO-USER-MODIFICATION USAGE dSAOperation )",
+		dynamicAttribute, 0,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_entryTtl) },
+	{ "dynamicSubtrees", "( 1.3.6.1.4.1.1466.101.119.4 "
+			"NAME 'dynamicSubtrees' "
+			"DESC 'RFC2589: dynamic subtrees' "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION "
+			"USAGE dSAOperation )",
+		rootDseAttribute, 0,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_dynamicSubtrees) },
+#endif
+
 	/* userApplication attributes (which system schema depends upon) */
 	{ "distinguishedName", "( 2.5.4.49 NAME 'distinguishedName' "
 			"DESC 'RFC2256: common supertype of DN attributes' "
@@ -721,13 +770,13 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
 
-	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, 0 }
+	{ NULL, NULL, NULL, 0, NULL, NULL, NULL, NULL, NULL, 0 }
 };
 
 static AttributeType slap_at_undefined = {
 	{ "1.1.1", NULL, NULL, 1, NULL,
 		NULL, NULL, NULL, NULL,
-		0, 0, 0, 1, 3 }, /* LDAPAttributeType */
+		0, 0, 0, 1, 3, NULL }, /* LDAPAttributeType */
 	{ sizeof("UNDEFINED")-1, "UNDEFINED" }, /* cname */
 	NULL, /* sup */
 	NULL, /* subtypes */
@@ -735,7 +784,7 @@ static AttributeType slap_at_undefined = {
 	NULL, /* syntax (this may need to be defined) */
 	(AttributeTypeSchemaCheckFN *) 0, /* schema check function */
 	SLAP_AT_ABSTRACT|SLAP_AT_FINAL,	/* mask */
-	NULL, /* next */
+	{ NULL }, /* next */
 	NULL /* attribute description */
 	/* mutex (don't know how to initialize it :) */
 };
@@ -1189,4 +1238,30 @@ static int administrativeRoleAttribute (
 		"attribute \"%s\" not supported!",
 		attr->a_desc->ad_cname.bv_val );
 	return LDAP_OBJECT_CLASS_VIOLATION;
+}
+
+static int dynamicAttribute (
+	Backend *be,
+	Entry *e,
+	Attribute *attr,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	*text = textbuf;
+
+	if( !SLAP_DYNAMIC(be) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" not supported in context",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	if( !is_entry_dynamicObject( e ) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" only allowed in dynamic object",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	return LDAP_SUCCESS;
 }

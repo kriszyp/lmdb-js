@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* root_dse.c - Provides the ROOT DSA-Specific Entry
  *
- * Copyright 1999-2002 The OpenLDAP Foundation.
+ * Copyright 1999-2003 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -13,9 +13,13 @@
 #include "portable.h"
 
 #include <stdio.h>
+
 #include <ac/string.h>
 
 #include "slap.h"
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 #include <ldif.h>
 #include "lber_pvt.h"
 
@@ -133,6 +137,14 @@ root_dse_info(
 		if( attr_merge( e, ad_supportedExtension, vals ) )
 			return LDAP_OTHER;
 	}
+
+#ifdef LDAP_SLAPI
+	/* netscape supportedExtension */
+	for ( i = 0; (bv = ns_get_supported_extop(i)) != NULL; i++ ) {
+		vals[0] = *bv;
+		attr_merge( e, ad_supportedExtension, vals );
+	}
+#endif /* LDAP_SLAPI */
 
 	/* supportedFeatures */
 	if( attr_merge( e, ad_supportedFeatures, supportedFeatures ) )

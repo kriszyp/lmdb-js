@@ -1,6 +1,6 @@
 /* database.c - deals with database subsystem */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -76,6 +76,17 @@ monitor_subsys_database_init(
 	}
 
 	if ( slap_str2ad( "seeAlso", &ad_seeAlso, &text ) != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT,
+			"monitor_subsys_database_init: "
+			"unable to find 'seeAlso' attribute description\n",
+			0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_database_init: "
+			"unable to find 'seeAlso' attribute description\n",
+			0, 0, 0 );
+#endif
 		return( -1 );
 	}
 

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #ifndef PROTO_SLAP_H
@@ -78,13 +78,21 @@ LDAP_SLAPD_F (int) slap_bv2undef_ad LDAP_P((
 	AttributeDescription **ad,
 	const char **text ));
 
-LDAP_SLAPD_F (AttributeDescription *) ad_find_lang LDAP_P((
+LDAP_SLAPD_F (AttributeDescription *) ad_find_tags LDAP_P((
 	AttributeType *type,
-	struct berval *lang ));
+	struct berval *tags ));
 
 LDAP_SLAPD_F (AttributeName *) str2anlist LDAP_P(( AttributeName *an,
 	char *str, const char *brkstr ));
-LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));	
+LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));
+LDAP_SLAPD_F (int) ad_define_option LDAP_P(( const char *name,
+	const char *fname, int lineno ));
+
+/*
+ * add.c
+ */
+LDAP_SLAPD_F (int) slap_mods2entry LDAP_P(( Modifications *mods, Entry **e,
+	int repl_user, const char **text, char *textbuf, size_t textlen ));
 
 /*
  * at.c
@@ -271,6 +279,8 @@ LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 
 LDAP_SLAPD_F (char *) get_supported_ctrl LDAP_P((int index));
 
+LDAP_SLAPD_F (slap_mask_t) get_supported_ctrl_mask LDAP_P((int index));
+
 /*
  * config.c
  */
@@ -435,8 +445,8 @@ LDAP_SLAPD_F (int) entry_encode LDAP_P(( Entry *e, struct berval *bv ));
 
 LDAP_SLAPD_F (void) entry_free LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) entry_cmp LDAP_P(( Entry *a, Entry *b ));
-LDAP_SLAPD_F (int) entry_dn_cmp LDAP_P(( Entry *a, Entry *b ));
-LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( Entry *a, Entry *b ));
+LDAP_SLAPD_F (int) entry_dn_cmp LDAP_P(( const void *v_a, const void *v_b ));
+LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( const void *v_a, const void *v_b ));
 
 /*
  * extended.c
@@ -465,6 +475,11 @@ LDAP_SLAPD_F (int) extops_kill LDAP_P(( void ));
 LDAP_SLAPD_F (struct berval *) get_supported_extop LDAP_P((int index));
 
 /*
+ *  * cancel.c
+ *   */
+LDAP_SLAPD_F ( SLAP_EXTOP_MAIN_FN ) cancel_extop;
+
+/*
  * filter.c
  */
 LDAP_SLAPD_F (int) get_filter LDAP_P((
@@ -483,9 +498,7 @@ LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Connection *conn, BerElement *ber,
 LDAP_SLAPD_F (void) vrFilter_free LDAP_P(( ValuesReturnFilter *f ));
 LDAP_SLAPD_F (void) vrFilter2bv LDAP_P(( ValuesReturnFilter *f, struct berval *fstr ));
 
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 LDAP_SLAPD_F (int) filter_has_subordinates LDAP_P(( Filter *filter ));
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 
 /*
  * filterentry.c
@@ -582,16 +595,19 @@ LDAP_SLAPD_F( int ) slap_mods_opattrs(
  */
 LDAP_SLAPD_F( int ) modify_check_duplicates(
 	AttributeDescription *ad, MatchingRule *mr, 
-	BerVarray vals, BerVarray mods,
+	BerVarray vals, BerVarray mods, int permissive, 
 	const char **text, char *textbuf, size_t textlen );
 LDAP_SLAPD_F( int ) modify_add_values( Entry *e,
 	Modification *mod,
+	int permissive,
 	const char **text, char *textbuf, size_t textlen );
 LDAP_SLAPD_F( int ) modify_delete_values( Entry *e,
 	Modification *mod,
+	int permissive,
 	const char **text, char *textbuf, size_t textlen );
 LDAP_SLAPD_F( int ) modify_replace_values( Entry *e,
 	Modification *mod,
+	int permissive,
 	const char **text, char *textbuf, size_t textlen );
 
 LDAP_SLAPD_F( void ) slap_mod_free( Modification *mod, int freeit );
@@ -671,20 +687,25 @@ LDAP_SLAPD_F (int) is_object_subclass LDAP_P((
 LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	Entry *, ObjectClass *oc, int set_flags ));
 #define is_entry_alias(e)		\
-	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_ALIAS) : \
-	is_entry_objectclass((e), slap_schema.si_oc_alias, 1))
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_ALIAS) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_alias, 1))
 #define is_entry_referral(e)	\
-	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_REFERRAL) : \
-	is_entry_objectclass((e), slap_schema.si_oc_referral, 1))
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_REFERRAL) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_referral, 1))
 #define is_entry_subentry(e)	\
-	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_SUBENTRY) : \
-	is_entry_objectclass((e), slap_schema.si_oc_subentry, 1))
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_SUBENTRY) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_subentry, 1))
 #define is_entry_collectiveAttributeSubentry(e)	\
-	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY) : \
-	is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributeSubentry, 1))
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_collectiveAttributeSubentry, 1))
 #define is_entry_dynamicObject(e)	\
-	(((e)->e_ocflags & SLAP_OC__END) ? ((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) : \
-	is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1))
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1))
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 
@@ -775,7 +796,7 @@ LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op,
 /*
  * result.c
  */
-LDAP_SLAPD_F (void) send_ldap_result LDAP_P((
+LDAP_SLAPD_F (void) slap_send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
 	BerVarray refs,
@@ -793,7 +814,14 @@ LDAP_SLAPD_F (void) send_ldap_disconnect LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *text ));
 
-LDAP_SLAPD_F (void) send_ldap_extended LDAP_P((
+LDAP_SLAPD_F (void) slap_send_ldap_extended LDAP_P((
+	Connection *conn, Operation *op,
+	ber_int_t err, const char *matched,
+	const char *text, BerVarray refs,
+	const char *rspoid, struct berval *rspdata,
+	LDAPControl **ctrls ));
+
+LDAP_SLAPD_F (void) slap_send_ldap_intermediate_resp LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text, BerVarray refs,
@@ -805,20 +833,20 @@ LDAP_SLAPD_F (void) send_ldap_partial LDAP_P((
 	const char *rspoid, struct berval *rspdata,
 	LDAPControl **ctrls ));
 
-LDAP_SLAPD_F (void) send_search_result LDAP_P((
+LDAP_SLAPD_F (void) slap_send_search_result LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched, const char *text,
 	BerVarray refs,
 	LDAPControl **ctrls,
 	int nentries ));
 
-LDAP_SLAPD_F (int) send_search_reference LDAP_P((
+LDAP_SLAPD_F (int) slap_send_search_reference LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, BerVarray refs,
 	LDAPControl **ctrls,
 	BerVarray *v2refs ));
 
-LDAP_SLAPD_F (int) send_search_entry LDAP_P((
+LDAP_SLAPD_F (int) slap_send_search_entry LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
 	Entry *e, AttributeName *attrs, int attrsonly,
 	LDAPControl **ctrls ));
@@ -877,6 +905,9 @@ LDAP_SLAPD_F (int) slap_sasl_config(
 	const char *fname,
 	int lineno );
 
+LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn,
+	char *id, int len,
+	char *user_realm, struct berval *dn, int flags );
 
 /*
  * saslauthz.c
@@ -894,6 +925,7 @@ LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
 LDAP_SLAPD_F (slap_response) slap_cb_null_response;
 LDAP_SLAPD_F (slap_sresult) slap_cb_null_sresult;
+LDAP_SLAPD_F (slap_sendreference) slap_cb_null_sreference;
 
 
 /*

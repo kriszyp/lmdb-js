@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -27,6 +27,9 @@
 
 #include "ldap_pvt.h"
 #include "slap.h"
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 
 int
 do_modify(
@@ -43,6 +46,10 @@ do_modify(
 	Modifications	**modtail = &modlist;
 #ifdef LDAP_DEBUG
 	Modifications *tmp;
+#endif
+#ifdef LDAP_SLAPI
+	LDAPMod		**modv = NULL;
+	Slapi_PBlock *pb = op->o_pb;
 #endif
 	Backend		*be;
 	int rc;
@@ -118,7 +125,7 @@ do_modify(
 		mod->sml_type = tmp.sml_type;
 		mod->sml_bvalues = tmp.sml_bvalues;
 		mod->sml_desc = NULL;
-		mod->sml_next =NULL;
+		mod->sml_next = NULL;
 		*modtail = mod;
 
 		switch( mop ) {
@@ -265,8 +272,32 @@ do_modify(
 	}
 #endif
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
+	if ( StatslogTest( LDAP_DEBUG_STATS ) ) {
+		char abuf[BUFSIZ/2], *ptr = abuf;
+		int len = 0;
+
+		Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD dn=\"%s\"\n",
+			op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
+
+		for ( tmp = modlist; tmp != NULL; tmp = tmp->sml_next ) {
+			if (len + 1 + tmp->sml_type.bv_len > sizeof(abuf)) {
+				Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+				    op->o_connid, op->o_opid, abuf, 0, 0 );
+	    			len = 0;
+				ptr = abuf;
+			}
+			if (len) {
+				*ptr++ = ' ';
+				len++;
+			}
+			ptr = lutil_strcopy(ptr, tmp->sml_type.bv_val);
+			len += tmp->sml_type.bv_len;
+		}
+		if (len) {
+			Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu MOD attr=%s\n",
+	    			op->o_connid, op->o_opid, abuf, 0, 0 );
+		}
+	}
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -302,6 +333,48 @@ do_modify(
 
 	/* deref suffix alias if appropriate */
 	suffix_alias( be, &ndn );
+
+#if defined( LDAP_SLAPI )
+	slapi_x_backend_set_pb( pb, be );
+	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_operation_set_pb( pb, op );
+	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+	modv = slapi_x_modifications2ldapmods( &modlist );
+	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+	if ( rc != 0 ) {
+		/*
+		 * A preoperation plugin failure will abort the
+		 * entire operation.
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, "do_modify: modify preoperation plugin "
+				"failed\n", 0, 0, 0 );
+#else
+		Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
+				0, 0, 0);
+#endif
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0) {
+			rc = LDAP_OTHER;
+		}
+		ldap_mods_free( modv, 1 );
+		modv = NULL;
+		goto cleanup;
+	}
+
+	/*
+	 * It's possible that the preoperation plugin changed the
+	 * modification array, so we need to convert it back to
+	 * a Modification list.
+	 *
+	 * Calling slapi_x_modifications2ldapmods() destroyed modlist so
+	 * we don't need to free it.
+	 */
+	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
+	modlist = slapi_x_ldapmods2modifications( modv );
+#endif /* defined( LDAP_SLAPI ) */
 
 	/*
 	 * do the modify if 1 && (2 || 3)
@@ -380,11 +453,25 @@ do_modify(
 			NULL, NULL );
 	}
 
+#if defined( LDAP_SLAPI )
+	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
+				"failed\n", 0, 0, 0 );
+#else
+		Debug(LDAP_DEBUG_TRACE, "do_modify: modify postoperation plugins "
+				"failed.\n", 0, 0, 0);
+#endif
+	}
+#endif /* defined( LDAP_SLAPI ) */
+
 cleanup:
 	free( pdn.bv_val );
 	free( ndn.bv_val );
-	if ( modlist != NULL )
-		slap_mods_free( modlist );
+	if ( modlist != NULL ) slap_mods_free( modlist );
+#if defined( LDAP_SLAPI )
+	if ( modv != NULL ) slapi_x_free_ldapmods( modv );
+#endif
 	return rc;
 }
 
@@ -437,10 +524,10 @@ int slap_mods_check(
 			return LDAP_UNDEFINED_TYPE;
 		}
 
-		if( slap_ad_is_lang_range( ad )) {
+		if( slap_ad_is_tag_range( ad )) {
 			/* attribute requires binary transfer */
 			snprintf( textbuf, textlen,
-				"%s: inappropriate use of language range option",
+				"%s: inappropriate use of tag range option",
 				ml->sml_type.bv_val );
 			*text = textbuf;
 			return LDAP_UNDEFINED_TYPE;
@@ -679,3 +766,4 @@ int slap_mods_opattrs(
 	*modtail = NULL;
 	return LDAP_SUCCESS;
 }
+

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -25,12 +25,13 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
-static int slap_mods2entry(
-	Modifications *mods,
-	Entry **e,
-	int repl_user,
-	const char **text,
-	char *textbuf, size_t textlen );
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+static Slapi_PBlock *initAddPlugin( Backend *be, Connection *conn, Operation *op,
+	struct berval *dn, Entry *e, int manageDSAit );
+static int doPreAddPluginFNs( Backend *be, Slapi_PBlock *pb );
+static void doPostAddPluginFNs( Backend *be, Slapi_PBlock *pb );
+#endif /* LDAP_SLAPI */
 
 int
 do_add( Connection *conn, Operation *op )
@@ -48,6 +49,9 @@ do_add( Connection *conn, Operation *op )
 	const char *text;
 	int			rc = LDAP_SUCCESS;
 	int	manageDSAit;
+#ifdef LDAP_SLAPI
+	Slapi_PBlock	*pb = NULL;
+#endif /* LDAP_SLAPI */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_add: conn %d enter\n", conn->c_connid,0,0 );
@@ -228,6 +232,10 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	}
 
+#ifdef LDAP_SLAPI
+	pb = initAddPlugin( be, conn, op, &dn, e, manageDSAit );
+#endif /* LDAP_SLAPI */
+
 	/*
 	 * do the add if 1 && (2 || 3)
 	 * 1) there is an add function implemented in this backend;
@@ -279,6 +287,18 @@ do_add( Connection *conn, Operation *op )
 				goto done;
 			}
 
+#ifdef LDAP_SLAPI
+			/*
+			 * Call the preoperation plugin here, because the entry
+			 * will actually contain something.
+			 */
+			rc = doPreAddPluginFNs( be, pb );
+			if ( rc != LDAP_SUCCESS ) {
+				/* plugin will have sent result */
+				goto done;
+			}
+#endif /* LDAP_SLAPI */
+
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if ( !repl_user )
@@ -292,18 +312,39 @@ do_add( Connection *conn, Operation *op )
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			BerVarray defref = be->be_update_refs
+			BerVarray defref;
+			BerVarray ref;
+#ifdef LDAP_SLAPI
+			/*
+			 * SLAPI_ADD_ENTRY will be empty, but this may be acceptable
+			 * on replicas (for now, it involves the minimum code intrusion).
+			 */
+			rc = doPreAddPluginFNs( be, pb );
+			if ( rc != LDAP_SUCCESS ) {
+				/* plugin will have sent result */
+				goto done;
+			}
+#endif /* LDAP_SLAPI */
+
+			defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
-			BerVarray ref = referral_rewrite( defref,
+			ref = referral_rewrite( defref,
 				NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );
 
 			if ( ref ) ber_bvarray_free( ref );
-#endif
+#endif /* SLAPD_MULTIMASTER */
 		}
 	} else {
+#ifdef LDAP_SLAPI
+	    rc = doPreAddPluginFNs( be, pb );
+	    if ( rc != LDAP_SUCCESS ) {
+		/* plugin will have sent result */
+		goto done;
+	    }
+#endif
 #ifdef NEW_LOGGING
 	    LDAP_LOG( OPERATION, INFO, 
 		       "do_add: conn %d	 no backend support\n", conn->c_connid, 0, 0 );
@@ -313,6 +354,10 @@ do_add( Connection *conn, Operation *op )
 	    send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			      NULL, "operation not supported within namingContext", NULL, NULL );
 	}
+
+#ifdef LDAP_SLAPI
+	doPostAddPluginFNs( be, pb );
+#endif /* LDAP_SLAPI */
 
 done:
 	if( modlist != NULL ) {
@@ -325,7 +370,8 @@ done:
 	return rc;
 }
 
-static int slap_mods2entry(
+int
+slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
 	int repl_user,
@@ -413,7 +459,7 @@ static int slap_mods2entry(
 				char		textbuf[ SLAP_TEXT_BUFLEN ]  = { '\0' };
 				
 				rc = modify_check_duplicates( mods->sml_desc, mr,
-						NULL, mods->sml_bvalues,
+						NULL, mods->sml_bvalues, 0,
 						&text, textbuf, sizeof( textbuf ) );
 
 				if ( rc != LDAP_SUCCESS ) {
@@ -439,3 +485,65 @@ static int slap_mods2entry(
 
 	return LDAP_SUCCESS;
 }
+
+#ifdef LDAP_SLAPI
+static Slapi_PBlock *initAddPlugin( Backend *be, Connection *conn, Operation *op,
+	struct berval *dn, Entry *e, int manageDSAit )
+{
+	Slapi_PBlock *pb;
+
+	pb = op->o_pb;
+
+	slapi_x_backend_set_pb( pb, be );
+	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_operation_set_pb( pb, op );
+
+	slapi_pblock_set( pb, SLAPI_ADD_TARGET, (void *)dn->bv_val );
+	slapi_pblock_set( pb, SLAPI_ADD_ENTRY, (void *)e );
+	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+
+	return pb;
+}
+
+static int doPreAddPluginFNs( Backend *be, Slapi_PBlock *pb )
+{
+	int rc;
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_ADD_FN, pb );
+	if ( rc != 0 ) {
+		/*
+		 * A preoperation plugin failure will abort the
+		 * entire operation.
+		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, "do_add: add preoperation plugin failed\n",
+				0, 0, 0);
+#else
+		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
+				0, 0, 0);
+		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0 )
+			rc = LDAP_OTHER;
+#endif
+	} else {
+		rc = LDAP_SUCCESS;
+	}
+
+	return rc;
+}
+
+static void doPostAddPluginFNs( Backend *be, Slapi_PBlock *pb )
+{
+	int rc;
+
+	rc = doPluginFNs( be, SLAPI_PLUGIN_POST_ADD_FN, pb );
+	if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, "do_add: add postoperation plugin failed\n",
+				0, 0, 0);
+#else
+		Debug(LDAP_DEBUG_TRACE, "do_add: add preoperation plugin failed.\n",
+				0, 0, 0);
+#endif
+	}
+}
+#endif /* LDAP_SLAPI */

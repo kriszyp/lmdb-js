@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -395,22 +395,31 @@ long connection_init(
 	if( c == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, INFO, 
-			   "connection_init: skt %d	 connection table full (%d/%d)\n",
-			   s, i, dtblsize );
+			   "connection_init: skt %d connection table full "
+			   "(%d/%d)\n", s, i, dtblsize );
 #else
 		Debug( LDAP_DEBUG_ANY,
-				"connection_init(%d): connection table full (%d/%d)\n",
-				s, i, dtblsize);
+				"connection_init(%d): connection table full "
+				"(%d/%d)\n", s, i, dtblsize);
 #endif
 	    ldap_pvt_thread_mutex_unlock( &connections_mutex );
 	    return -1;
 	}
-    }
+    	}
 #endif
 
-    assert( c != NULL );
+	assert( c != NULL );
 
 	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
+		c->c_send_ldap_result = slap_send_ldap_result;
+		c->c_send_search_entry = slap_send_search_entry;
+		c->c_send_search_result = slap_send_search_result;
+		c->c_send_search_reference = slap_send_search_reference;
+		c->c_send_ldap_extended = slap_send_ldap_extended;
+#ifdef LDAP_RES_INTERMEDIATE_RESP
+		c->c_send_ldap_intermediate_resp = slap_send_ldap_intermediate_resp;
+#endif
+
 		c->c_authmech.bv_val = NULL;
 		c->c_authmech.bv_len = 0;
 		c->c_dn.bv_val = NULL;
@@ -1018,6 +1027,18 @@ operations_error:
 #endif /* SLAPD_MONITOR */
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
+#ifdef LDAP_EXOP_X_CANCEL
+	if ( arg->co_op->o_cancel == LDAP_CANCEL_REQ ) {
+		arg->co_op->o_cancel = LDAP_TOO_LATE;
+	}
+
+	while ( arg->co_op->o_cancel != LDAP_CANCEL_NONE &&
+		arg->co_op->o_cancel != LDAP_CANCEL_DONE )
+	{
+		ldap_pvt_thread_yield();
+	}
+#endif
+
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	conn->c_n_ops_executing--;
@@ -1025,12 +1046,26 @@ operations_error:
 
 	LDAP_STAILQ_REMOVE( &conn->c_ops, arg->co_op, slap_op, o_next);
 	LDAP_STAILQ_NEXT(arg->co_op, o_next) = NULL;
+
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
+	if ( arg->co_op->o_cancel == LDAP_CANCEL_ACK )
+		goto co_op_free;
+#endif
 #ifdef LDAP_CLIENT_UPDATE
-	if ( !( arg->co_op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
-#endif /* LDAP_CLIENT_UPDATE */
-	{
-		slap_op_free( arg->co_op );
-	}
+	if ( ( arg->co_op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
+		goto no_co_op_free;
+#endif
+#ifdef LDAP_SYNC
+	if ( ( arg->co_op->o_sync_mode & SLAP_SYNC_PERSIST ) )
+		goto no_co_op_free;
+#endif
+
+co_op_free:
+
+	slap_op_free( arg->co_op );
+
+no_co_op_free:
+
 	arg->co_op = NULL;
 	arg->co_conn = NULL;
 	free( (char *) arg );
@@ -1400,14 +1435,49 @@ connection_input(
 
 	op->o_conn = conn;
 	op->vrFilter = NULL;
+#ifdef LDAP_CONTROL_PAGEDRESULTS
 	op->o_pagedresults_state = conn->c_pagedresults_state;
+#endif
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
 	if (cdn ) {
 	    ber_str2bv( cdn, 0, 1, &op->o_dn );
 	    op->o_protocol = LDAP_VERSION2;
 	}
+	if (conn->c_is_udp) {
+		int rc;
+
+		op->o_res_ber = ber_alloc_t( LBER_USE_DER );
+		if (op->o_res_ber == NULL)
+			return 1;
+
+		rc = ber_write(op->o_res_ber, (char *)&op->o_peeraddr, sizeof(struct sockaddr), 0);
+		if (rc != sizeof(struct sockaddr)) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONNECTION, INFO, 
+				"connection_input: conn %lu  ber_write failed\n",
+				conn->c_connid, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "ber_write failed\n", 0, 0, 0 );
 #endif
+			return 1;
+		}
+
+		if (conn->c_protocol == LDAP_VERSION2) {
+			rc = ber_printf(op->o_res_ber, "{i{" /*}}*/, op->o_msgid);
+			if (rc == -1) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONNECTION, INFO, 
+					"connection_input: conn %lu  put outer sequence failed\n",
+					conn->c_connid, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "ber_write failed\n", 0, 0, 0 );
+#endif
+				return rc;
+			}
+		}
+	}
+#endif /* LDAP_CONNECTIONLESS */
 
 	if ( conn->c_conn_state == SLAP_C_BINDING
 		|| conn->c_conn_state == SLAP_C_CLOSING )

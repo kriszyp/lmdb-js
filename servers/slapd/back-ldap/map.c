@@ -1,6 +1,6 @@
 /* map.c - ldap backend mapping routines */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* This is an altered version */
@@ -97,7 +97,7 @@ ldap_back_map ( struct ldapmap *map, struct berval *s, struct berval *bv,
 	Avlnode *tree;
 	struct ldapmapping *mapping, fmapping;
 
-	if (remap)
+	if (remap == BACKLDAP_REMAP)
 		tree = map->remap;
 	else
 		tree = map->map;
@@ -174,10 +174,11 @@ ldap_back_map_filter(
 				tmp.bv_len = p - q;
 				tmp.bv_val = q;
 				ldap_back_map(at_map, &tmp, &m, remap);
-				if (m.bv_val == NULL)
+				if (m.bv_val == NULL || m.bv_val[0] == '\0') {
 					ldap_back_map(oc_map, &tmp, &m, remap);
-				if (m.bv_val == NULL) {
-					m = tmp;
+					if (m.bv_val == NULL || m.bv_val[0] == '\0') {
+						m = tmp;
+					}
 				}
 				extra += p - q;
 				plen = m.bv_len;
@@ -233,7 +234,7 @@ ldap_back_map_attrs(
 
 	for (i = j = 0; an[i].an_name.bv_val; i++) {
 		ldap_back_map(at_map, &an[i].an_name, &mapped, remap);
-		if (mapped.bv_val != NULL)
+		if (mapped.bv_val != NULL && mapped.bv_val != '\0')
 			na[j++] = mapped.bv_val;
 	}
 	if (j == 0 && i != 0)

@@ -1,7 +1,7 @@
 /* add.c - ldap backend add function */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* This is an altered version */
@@ -138,8 +138,9 @@ ldap_back_add(
 			continue;
 		}
 
-		ldap_back_map(&li->at_map, &a->a_desc->ad_cname, &mapped, 0);
-		if (mapped.bv_val == NULL) {
+		ldap_back_map(&li->at_map, &a->a_desc->ad_cname, &mapped,
+				BACKLDAP_MAP);
+		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 			continue;
 		}
 

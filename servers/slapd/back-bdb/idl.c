@@ -1,7 +1,7 @@
 /* idl.c - ldap id list handling routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -17,6 +17,44 @@
 #define IDL_MIN(x,y)	( x < y ? x : y )
 
 #define IDL_CMP(x,y)	( x < y ? -1 : ( x > y ? 1 : 0 ) )
+
+#ifdef SLAP_IDL_CACHE
+#define IDL_LRU_DELETE( bdb, e ) do { 					\
+	if ( e->idl_lru_prev != NULL ) {				\
+		e->idl_lru_prev->idl_lru_next = e->idl_lru_next; 	\
+	} else {							\
+		bdb->bi_idl_lru_head = e->idl_lru_next;			\
+	}								\
+	if ( e->idl_lru_next != NULL ) {				\
+		e->idl_lru_next->idl_lru_prev = e->idl_lru_prev;	\
+	} else {							\
+		bdb->bi_idl_lru_tail = e->idl_lru_prev;			\
+	}								\
+} while ( 0 )
+
+#define IDL_LRU_ADD( bdb, e ) do {					\
+	e->idl_lru_next = bdb->bi_idl_lru_head;				\
+	if ( e->idl_lru_next != NULL ) {				\
+		e->idl_lru_next->idl_lru_prev = (e);			\
+	}								\
+	(bdb)->bi_idl_lru_head = (e);					\
+	e->idl_lru_prev = NULL;						\
+	if ( (bdb)->bi_idl_lru_tail == NULL ) {				\
+		(bdb)->bi_idl_lru_tail = (e);				\
+	}								\
+} while ( 0 )
+
+static int
+bdb_idl_entry_cmp( const void *v_idl1, const void *v_idl2 )
+{
+	const bdb_idl_cache_entry_t *idl1 = v_idl1, *idl2 = v_idl2;
+	int rc;
+
+	if ((rc = idl1->db - idl2->db )) return rc;
+	if ((rc = idl1->kstr.bv_len - idl2->kstr.bv_len )) return rc;
+	return ( memcmp ( idl1->kstr.bv_val, idl2->kstr.bv_val , idl1->kstr.bv_len ) );
+}
+#endif
 
 #if IDL_DEBUG > 0
 static void idl_check( ID *ids )
@@ -262,30 +300,59 @@ bdb_idl_fetch_key(
 	size_t len;
 	int rc2;
 	int flags = bdb->bi_db_opflags | DB_MULTIPLE;
-
-	/* buf must be large enough to grab the entire IDL in one
-	 * get(), otherwise BDB 4 will leak resources on subsequent
-	 * get's. We can safely call get() twice - once for the data,
-	 * and once to get the DB_NOTFOUND result meaning there's
-	 * no more data. See ITS#2040 for details. This bug is fixed
-	 * in BDB 4.1 so a smaller buffer will work if stack space is
-	 * too limited.
-	 */
-	ID buf[BDB_IDL_DB_SIZE*5];
-
-	{
-		char buf[16];
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ARGS,
-			"bdb_idl_fetch_key: %s\n", 
-			bdb_show_key( key, buf ), 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ARGS,
-			"bdb_idl_fetch_key: %s\n", 
-			bdb_show_key( key, buf ), 0, 0 );
+#ifdef SLAP_IDL_CACHE
+	bdb_idl_cache_entry_t idl_tmp;
 #endif
-	}
+
+	/* If using BerkeleyDB 4.0, the buf must be large enough to
+	 * grab the entire IDL in one get(), otherwise BDB will leak
+	 * resources on subsequent get's.  We can safely call get()
+	 * twice - once for the data, and once to get the DB_NOTFOUND
+	 * result meaning there's no more data. See ITS#2040 for details.
+	 * This bug is fixed in BDB 4.1 so a smaller buffer will work if
+	 * stack space is too limited.
+	 *
+	 * configure now requires Berkeley DB 4.1.
+	 */
+#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 0)
+#	define BDB_ENOUGH 5
+#else
+#	define BDB_ENOUGH 1
+#endif
+	ID buf[BDB_IDL_DB_SIZE*BDB_ENOUGH];
+
+	char keybuf[16];
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( INDEX, ARGS,
+		"bdb_idl_fetch_key: %s\n", 
+		bdb_show_key( key, keybuf ), 0, 0 );
+#else
+	Debug( LDAP_DEBUG_ARGS,
+		"bdb_idl_fetch_key: %s\n", 
+		bdb_show_key( key, keybuf ), 0, 0 );
+#endif
+
 	assert( ids != NULL );
+
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_entry_t *matched_idl_entry;
+		DBT2bv( key, &idl_tmp.kstr );
+		idl_tmp.db = db;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+		                              bdb_idl_entry_cmp );
+		if ( matched_idl_entry != NULL ) {
+			BDB_IDL_CPY( ids, matched_idl_entry->idl );
+			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			IDL_LRU_ADD( bdb, matched_idl_entry );
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+			return LDAP_SUCCESS;
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
 
 	DBTzero( &data );
 
@@ -293,8 +360,7 @@ bdb_idl_fetch_key(
 	data.ulen = sizeof(buf);
 	data.flags = DB_DBT_USERMEM;
 
-	if ( tid )
-		flags |= DB_RMW;
+	if ( tid ) flags |= DB_RMW;
 
 	rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
 	if( rc != 0 ) {
@@ -308,6 +374,7 @@ bdb_idl_fetch_key(
 #endif
 		return rc;
 	}
+
 	rc = cursor->c_get( cursor, key, &data, flags | DB_SET );
 	if (rc == 0) {
 		i = ids;
@@ -346,6 +413,7 @@ bdb_idl_fetch_key(
 		}
 		data.size = BDB_IDL_SIZEOF(ids);
 	}
+
 	rc2 = cursor->c_close( cursor );
 	if (rc2) {
 #ifdef NEW_LOGGING
@@ -358,6 +426,7 @@ bdb_idl_fetch_key(
 #endif
 		return rc2;
 	}
+
 	if( rc == DB_NOTFOUND ) {
 		return rc;
 
@@ -400,6 +469,45 @@ bdb_idl_fetch_key(
 		return -1;
 	}
 
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_entry_t *ee;
+		ee = (bdb_idl_cache_entry_t *) ch_malloc(
+			sizeof( bdb_idl_cache_entry_t ) );
+		ee->db = db;
+		ee->idl = (ID*) ch_malloc( BDB_IDL_SIZEOF ( ids ) );
+		ee->idl_lru_prev = NULL;
+		ee->idl_lru_next = NULL;
+		BDB_IDL_CPY( ee->idl, ids );
+		ber_dupbv( &ee->kstr, &idl_tmp.kstr );
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		if ( avl_insert( &bdb->bi_idl_tree, (caddr_t) ee,
+			bdb_idl_entry_cmp, avl_dup_error ))
+		{
+			ch_free( ee->kstr.bv_val );
+			ch_free( ee->idl );
+			ch_free( ee );
+		} else {
+			IDL_LRU_ADD( bdb, ee );
+			if ( ++bdb->bi_idl_cache_size > bdb->bi_idl_cache_max_size ) {
+				int i = 0;
+				while ( bdb->bi_idl_lru_tail != NULL && i < 10 ) {
+					ee = bdb->bi_idl_lru_tail;
+					avl_delete( &bdb->bi_idl_tree, (caddr_t) ee,
+					            bdb_idl_entry_cmp );
+					IDL_LRU_DELETE( bdb, ee );
+					i++;
+					--bdb->bi_idl_cache_size;
+					ch_free( ee->kstr.bv_val );
+					ch_free( ee->idl );
+					ch_free( ee );
+				}
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
+
 	return rc;
 }
 
@@ -433,6 +541,27 @@ bdb_idl_insert_key(
 	}
 
 	assert( id != NOID );
+
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_size ) {
+		bdb_idl_cache_entry_t *matched_idl_entry, idl_tmp;
+		DBT2bv( key, &idl_tmp.kstr );
+		idl_tmp.db = db;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+		                              bdb_idl_entry_cmp );
+		if ( matched_idl_entry != NULL ) {
+			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
+			            bdb_idl_entry_cmp );
+			--bdb->bi_idl_cache_size;
+			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			free( matched_idl_entry->kstr.bv_val );
+			free( matched_idl_entry->idl );
+			free( matched_idl_entry );
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
 
 	DBTzero( &data );
 	data.size = sizeof( ID );
@@ -624,6 +753,27 @@ bdb_idl_delete_key(
 #endif
 	}
 	assert( id != NOID );
+
+#ifdef SLAP_IDL_CACHE
+	if ( bdb->bi_idl_cache_max_size ) {
+		bdb_idl_cache_entry_t *matched_idl_entry, idl_tmp;
+		DBT2bv( key, &idl_tmp.kstr );
+		idl_tmp.db = db;
+		ldap_pvt_thread_mutex_lock( &bdb->bi_idl_tree_mutex );
+		matched_idl_entry = avl_find( bdb->bi_idl_tree, &idl_tmp,
+		                              bdb_idl_entry_cmp );
+		if ( matched_idl_entry != NULL ) {
+			avl_delete( &bdb->bi_idl_tree, (caddr_t) matched_idl_entry,
+			            bdb_idl_entry_cmp );
+			--bdb->bi_idl_cache_size;
+			IDL_LRU_DELETE( bdb, matched_idl_entry );
+			free( matched_idl_entry->kstr.bv_val );
+			free( matched_idl_entry->idl );
+			free( matched_idl_entry );
+		}
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_idl_tree_mutex );
+	}
+#endif
 
 	DBTzero( &data );
 	data.data = &tmp;
@@ -1007,3 +1157,4 @@ ID bdb_idl_next( ID *ids, ID *cursor )
 
 	return NOID;
 }
+

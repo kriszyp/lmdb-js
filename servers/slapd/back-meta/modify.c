@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  *
  * Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
@@ -158,8 +158,9 @@ meta_back_modify(
 		}
 
 		ldap_back_map( &li->targets[ candidate ]->at_map,
-				&ml->sml_desc->ad_cname, &mapped, 0 );
-		if ( mapped.bv_val == NULL ) {
+				&ml->sml_desc->ad_cname, &mapped,
+				BACKLDAP_MAP );
+		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
 			continue;
 		}
 

@@ -799,9 +799,11 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	return ( query->bv_val == NULL ? 1 : 0 );
 }
 
-int
-backsql_oc_get_candidates( backsql_oc_map_rec *oc, backsql_srch_info *bsi )
+static int
+backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 {
+	backsql_oc_map_rec *oc  = v_oc;
+	backsql_srch_info  *bsi = v_bsi;
 	struct berval		query;
 	SQLHSTMT		sth;
 	RETCODE			rc;
@@ -1128,7 +1130,7 @@ backsql_search(
 	 */
 	srch_info.n_candidates = ( isroot ? -2 : limit->lms_s_unchecked == -1 
 			? -2 : limit->lms_s_unchecked );
-	avl_apply( bi->oc_by_oc, (AVL_APPLY)backsql_oc_get_candidates,
+	avl_apply( bi->oc_by_oc, backsql_oc_get_candidates,
 			&srch_info, BACKSQL_STOP, AVL_INORDER );
 	if ( !isroot && limit->lms_s_unchecked != -1 ) {
 		if ( srch_info.n_candidates == -1 ) {

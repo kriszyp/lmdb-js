@@ -1,7 +1,7 @@
 /* id2entry.c - routines to deal with the id2entry database */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -153,7 +153,6 @@ int bdb_id2entry_rw(
 				free ( (*e)->e_private );
 			bdb_entry_return( *e );
 			*e = NULL;
-			ch_free( data.data );
 		}
 		rc = ret;
 	}

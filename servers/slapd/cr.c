@@ -1,7 +1,7 @@
 /* cr.c - content rule routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -24,13 +24,16 @@ struct cindexrec {
 };
 
 static Avlnode	*cr_index = NULL;
-static ContentRule *cr_list = NULL;
+static LDAP_SLIST_HEAD(CRList, slap_content_rule) cr_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&cr_list);
 
 static int
 cr_index_cmp(
-    struct cindexrec	*cir1,
-    struct cindexrec	*cir2 )
+    const void	*v_cir1,
+    const void	*v_cir2 )
 {
+	const struct cindexrec	*cir1 = v_cir1;
+	const struct cindexrec	*cir2 = v_cir2;
 	int i = cir1->cir_name.bv_len - cir2->cir_name.bv_len;
 	if (i)
 		return i;
@@ -39,9 +42,11 @@ cr_index_cmp(
 
 static int
 cr_index_name_cmp(
-    struct berval	*name,
-    struct cindexrec	*cir )
+    const void	*v_name,
+    const void	*v_cir )
 {
+	const struct berval    *name = v_name;
+	const struct cindexrec *cir  = v_cir;
 	int i = name->bv_len - cir->cir_name.bv_len;
 	if (i)
 		return i;
@@ -64,8 +69,7 @@ cr_bvfind( struct berval *crname )
 {
 	struct cindexrec	*cir;
 
-	cir = (struct cindexrec *) avl_find( cr_index, crname,
-            (AVL_CMP) cr_index_name_cmp );
+	cir = avl_find( cr_index, crname, cr_index_name_cmp );
 
 	if ( cir != NULL ) {
 		return( cir->cir_cr );
@@ -74,20 +78,32 @@ cr_bvfind( struct berval *crname )
 	return( NULL );
 }
 
+static int
+cr_destroy_one( ContentRule *c )
+{
+	assert( c != NULL );
+
+	if (c->scr_auxiliaries) ldap_memfree(c->scr_auxiliaries);
+	if (c->scr_required) ldap_memfree(c->scr_required);
+	if (c->scr_allowed) ldap_memfree(c->scr_allowed);
+	if (c->scr_precluded) ldap_memfree(c->scr_precluded);
+	ldap_contentrule_free((LDAPContentRule *)c);
+
+	return 0;
+}
+
 void
 cr_destroy( void )
 {
-	ContentRule *c, *n;
+	ContentRule *c;
 
 	avl_free(cr_index, ldap_memfree);
-	for (c=cr_list; c; c=n)
-	{
-		n = c->scr_next;
-		if (c->scr_auxiliaries) ldap_memfree(c->scr_auxiliaries);
-		if (c->scr_required) ldap_memfree(c->scr_required);
-		if (c->scr_allowed) ldap_memfree(c->scr_allowed);
-		if (c->scr_precluded) ldap_memfree(c->scr_precluded);
-		ldap_contentrule_free((LDAPContentRule *)c);
+
+	while( !LDAP_SLIST_EMPTY(&cr_list) ) {
+		c = LDAP_SLIST_FIRST(&cr_list);
+		LDAP_SLIST_REMOVE_HEAD(&cr_list, scr_next);
+
+		cr_destroy_one( c );
 	}
 }
 
@@ -97,15 +113,10 @@ cr_insert(
     const char		**err
 )
 {
-	ContentRule	**crp;
 	struct cindexrec	*cir;
 	char			**names;
 
-	crp = &cr_list;
-	while ( *crp != NULL ) {
-		crp = &(*crp)->scr_next;
-	}
-	*crp = scr;
+	LDAP_SLIST_INSERT_HEAD(&cr_list, scr, scr_next);
 
 	if ( scr->scr_oid ) {
 		cir = (struct cindexrec *)
@@ -118,8 +129,7 @@ cr_insert(
 		assert( cir->cir_cr );
 
 		if ( avl_insert( &cr_index, (caddr_t) cir,
-				 (AVL_CMP) cr_index_cmp,
-				 (AVL_DUP) avl_dup_error ) )
+		                 cr_index_cmp, avl_dup_error ) )
 		{
 			*err = scr->scr_oid;
 			ldap_memfree(cir);
@@ -142,8 +152,7 @@ cr_insert(
 			assert( cir->cir_cr );
 
 			if ( avl_insert( &cr_index, (caddr_t) cir,
-					 (AVL_CMP) cr_index_cmp,
-					 (AVL_DUP) avl_dup_error ) )
+			                 cr_index_cmp, avl_dup_error ) )
 			{
 				*err = *names;
 				ldap_memfree(cir);
@@ -396,7 +405,7 @@ cr_schema_info( Entry *e )
 
 	vals[1].bv_val = NULL;
 
-	for ( cr = cr_list; cr; cr = cr->scr_next ) {
+	LDAP_SLIST_FOREACH(cr, &cr_list, scr_next) {
 		if ( ldap_contentrule2bv( &cr->scr_crule, vals ) == NULL ) {
 			return -1;
 		}

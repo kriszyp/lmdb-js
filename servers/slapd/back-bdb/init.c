@@ -1,7 +1,7 @@
 /* init.c - initialize bdb backend */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -95,7 +95,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	LDAP_LIST_INIT (&bdb->psearch_list);
 #endif
 
@@ -126,7 +126,7 @@ bdb_bt_compare(
 	c = curkey->data;
 
 #ifdef WORDS_BIGENDIAN
-	for( i = 0; i < sizeof(ID); i++)
+	for( i = 0; i < (int)sizeof(ID); i++)
 #else
 	for( i = sizeof(ID)-1; i >= 0; i--)
 #endif
@@ -157,6 +157,18 @@ bdb_db_open( BackendDB *be )
 		be->be_suffix[0].bv_val, 0, 0 );
 #endif
 
+#ifndef BDB_MULTIPLE_SUFFIXES
+	if ( be->be_suffix[1].bv_val ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_BDB, ARGS, 
+		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
+#else
+	Debug( LDAP_DEBUG_ARGS,
+		"bdb_db_open: only one suffix allowed\n", 0, 0, 0 );
+#endif
+		return -1;
+	}
+#endif
 	/* we should check existance of dbenv_home and db_directory */
 
 	rc = db_env_create( &bdb->bi_dbenv, 0 );
@@ -522,14 +534,13 @@ bdb_initialize(
 {
 	static char *controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
+		LDAP_CONTROL_NOOP,
+#ifdef LDAP_CONTROL_PAGEDRESULTS
+		LDAP_CONTROL_PAGEDRESULTS,
+#endif
+ 		LDAP_CONTROL_VALUESRETURNFILTER,
 #ifdef LDAP_CONTROL_SUBENTRIES
 		LDAP_CONTROL_SUBENTRIES,
-#endif
-#ifdef LDAP_CONTROL_NOOP
-		LDAP_CONTROL_NOOP,
-#endif
-#ifdef LDAP_CONTROL_VALUESRETURNFILTER
- 		LDAP_CONTROL_VALUESRETURNFILTER,
 #endif
 #ifdef LDAP_CLIENT_UPDATE
 		LDAP_CONTROL_CLIENT_UPDATE,
@@ -642,9 +653,7 @@ bdb_initialize(
 
 	bi->bi_chk_referrals = bdb_referrals;
 	bi->bi_operational = bdb_operational;
-#ifdef SLAP_X_FILTER_HASSUBORDINATES
 	bi->bi_has_subordinates = bdb_hasSubordinates;
-#endif /* SLAP_X_FILTER_HASSUBORDINATES */
 	bi->bi_entry_release_rw = bdb_entry_release;
 
 	/*

@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  *
  * Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
@@ -113,6 +113,7 @@ meta_back_compare(
 		struct berval mapped_value = ava->aa_value;
 
 		if ( lsc->candidate != META_CANDIDATE ) {
+			msgid[ i ] = -1;
 			continue;
 		}
 
@@ -152,13 +153,12 @@ meta_back_compare(
 		/*
 		 * if attr is objectClass, try to remap the value
 		 */
-		if ( ava->aa_desc->ad_type->sat_oid 
-			== slap_schema.si_ad_objectClass->ad_type->sat_oid ) {
+		if ( ava->aa_desc == slap_schema.si_ad_objectClass ) {
 			ldap_back_map( &li->targets[ i ]->oc_map,
-					&ava->aa_value, &mapped_value, 0 );
+					&ava->aa_value, &mapped_value,
+					BACKLDAP_MAP );
 
-			if ( mapped_value.bv_val == NULL ) {
-				lsc->candidate = META_NOT_CANDIDATE;
+			if ( mapped_value.bv_val == NULL || mapped_value.bv_val[0] == '\0' ) {
 				continue;
 			}
 		/*
@@ -166,9 +166,9 @@ meta_back_compare(
 		 */
 		} else {
 			ldap_back_map( &li->targets[ i ]->at_map,
-				&ava->aa_desc->ad_cname, &mapped_attr, 0 );
-			if ( mapped_attr.bv_val == NULL ) {
-				lsc->candidate = META_NOT_CANDIDATE;
+				&ava->aa_desc->ad_cname, &mapped_attr,
+				BACKLDAP_MAP );
+			if ( mapped_attr.bv_val == NULL || mapped_attr.bv_val[0] == '\0' ) {
 				continue;
 			}
 		}
@@ -180,11 +180,6 @@ meta_back_compare(
 		 */
 		msgid[ i ] = ldap_compare( lc->conns[ i ].ld, mdn,
 				mapped_attr.bv_val, mapped_value.bv_val );
-		if ( msgid[ i ] == -1 ) {
-			lsc->candidate = META_NOT_CANDIDATE;
-			continue;
-		}
-
 		if ( mdn != dn->bv_val ) {
 			free( mdn );
 		}
@@ -193,6 +188,10 @@ meta_back_compare(
 		}
 		if ( mapped_value.bv_val != ava->aa_value.bv_val ) {
 			free( mapped_value.bv_val );
+		}
+
+		if ( msgid[ i ] == -1 ) {
+			continue;
 		}
 
 		++candidates;
@@ -210,7 +209,7 @@ meta_back_compare(
 			int lrc;
 			LDAPMessage *res = NULL;
 
-			if ( lsc->candidate != META_CANDIDATE ) {
+			if ( msgid[ i ] == -1 ) {
 				continue;
 			}
 
@@ -267,10 +266,11 @@ meta_back_compare(
 					last = i;
 					break;
 				}
-				lsc->candidate = META_NOT_CANDIDATE;
+				msgid[ i ] = -1;
 				--candidates;
+
 			} else {
-				lsc->candidate = META_NOT_CANDIDATE;
+				msgid[ i ] = -1;
 				--candidates;
 				if ( res ) {
 					ldap_msgfree( res );

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -663,9 +663,6 @@ static int slap_open_listener(
 		return -1;
 #endif
 	} else {
-#ifdef LDAP_CONNECTIONLESS
-		l.sl_is_udp = ( tmp == LDAP_PROTO_UDP );
-#endif
 		if( lud->lud_host == NULL || lud->lud_host[0] == '\0'
 			|| strcmp(lud->lud_host, "*") == 0 )
 		{
@@ -674,6 +671,9 @@ static int slap_open_listener(
 			err = slap_get_listener_addresses(lud->lud_host, port, &sal);
 		}
 	}
+#ifdef LDAP_CONNECTIONLESS
+	l.sl_is_udp = ( tmp == LDAP_PROTO_UDP );
+#endif
 
 #if defined(LDAP_PF_LOCAL) || defined(SLAP_X_LISTENER_MOD)
 	if ( lud->lud_exts ) {
@@ -1203,9 +1203,6 @@ slapd_daemon_task(
 		fd_set			writefds;
 		Sockaddr		from;
 
-#if defined(SLAPD_RLOOKUPS)
-		struct hostent		*hp;
-#endif
 		struct timeval		zero;
 		struct timeval		*tvp;
 
@@ -1558,6 +1555,19 @@ slapd_daemon_task(
 			case AF_LOCAL:
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
 				ssf = LDAP_PVT_SASL_LOCAL_SSF;
+				{
+					uid_t uid;
+					gid_t gid;
+
+					if( getpeereid( s, &uid, &gid ) == 0 ) {
+						authid = ch_malloc(
+							sizeof("uidNumber=4294967295+gidNumber=4294967295,"
+								"cn=peercred,cn=external,cn=auth"));
+						sprintf(authid, "uidNumber=%d+gidNumber=%d,"
+							"cn=peercred,cn=external,cn=auth",
+							(int) uid, (int) gid);
+					}
+				}
 				dnsname = "local";
 				break;
 #endif /* LDAP_PF_LOCAL */
@@ -1681,8 +1691,7 @@ slapd_daemon_task(
 			}
 
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%ld fd=%ld ACCEPT from %s "
-				"(%s)\n",
+				"conn=%ld fd=%ld ACCEPT from %s (%s)\n",
 				id, (long) s,
 				peername,
 				slap_listeners[l]->sl_name.bv_val,

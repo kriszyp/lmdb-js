@@ -1,7 +1,7 @@
 /* idl.c - ldap id list handling routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -258,6 +258,8 @@ idl_fetch(
 		idl_free( tmp[i] );
 	}
 	free( (char *) tmp );
+
+	assert( ID_BLOCK_NIDS(idl) == nids );
 
 #ifdef LDBM_DEBUG_IDL
 	idl_check(idl);

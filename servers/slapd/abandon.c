@@ -1,7 +1,7 @@
 /* abandon.c - decode and handle an ldap abandon operation */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -109,7 +109,7 @@ do_abandon(
 
 done:
 
-#if LDAP_CLIENT_UPDATE
+#ifdef LDAP_CLIENT_UPDATE
 	for ( i = 0; i < nbackends; i++ ) {
 		if ( strncmp( backends[i].be_type, "bdb", 3 ) ) continue;
 		if ( bdb_abandon( &backends[i], conn, id ) == LDAP_SUCCESS ) {

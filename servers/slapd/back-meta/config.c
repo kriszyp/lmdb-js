@@ -1,5 +1,5 @@
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  *
  * Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
@@ -73,6 +73,7 @@
 
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
+#include "../../../libraries/libldap/ldap-int.h"
 #include "back-meta.h"
 
 static struct metatarget *
@@ -121,8 +122,7 @@ meta_back_db_config(
 #if 0
 		int 		j;
 #endif /* uncomment if uri MUST be a branch of suffix */
-		LDAPURLDesc 	*ludp;
-		char 		*last;
+		LDAPURLDesc 	*ludp, *tmpludp;
 		struct berval	dn;
 		int		rc;
 		
@@ -157,7 +157,7 @@ meta_back_db_config(
 		/*
 		 * uri MUST be legal!
 		 */
-		if ( ldap_url_parse( argv[ 1 ], &ludp ) != LDAP_SUCCESS ) {
+		if ( ldap_url_parselist_ext( &ludp, argv[ 1 ], "\t" ) != LDAP_SUCCESS ) {
 			fprintf( stderr,
 	"%s: line %d: unable to parse URI"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -191,10 +191,25 @@ meta_back_db_config(
 			return( 1 );
 		}
 
-		li->targets[ i ]->uri = ch_strdup( argv[ 1 ] );
-		last = strstr( li->targets[ i ]->uri, ludp->lud_dn );
-		assert( last != NULL );
-		last[ 0 ] = '\0';
+		ludp->lud_dn[ 0 ] = '\0';
+
+		for ( tmpludp = ludp->lud_next; tmpludp; tmpludp = tmpludp->lud_next ) {
+			if ( tmpludp->lud_dn != NULL && tmpludp->lud_dn[ 0 ] != '\0' ) {
+				fprintf( stderr, "%s: line %d: "
+						"multiple URIs must have no DN part\n",
+					fname, lineno, argv[ 1 ] );
+				return( 1 );
+
+			}
+		}
+
+		li->targets[ i ]->uri = ldap_url_list2urls( ludp );
+		ldap_free_urllist( ludp );
+		if ( li->targets[ i ]->uri == NULL) {
+			fprintf( stderr, "%s: line %d: no memory?\n",
+					fname, lineno );
+			return( 1 );
+		}
 		
 		/*
 		 * uri MUST be a branch of suffix!
@@ -238,8 +253,6 @@ meta_back_db_config(
 			}
 		}
 #endif
-		
-		ldap_free_urldesc( ludp );
 
 #if 0
 		fprintf(stderr, "%s: line %d: URI \"%s\", suffix \"%s\"\n",
@@ -343,6 +356,16 @@ meta_back_db_config(
 		}
 		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->bindpw );
 		
+	/* save bind creds for referral rebinds? */
+	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
+		if (argc != 1) {
+			fprintf( stderr,
+	"%s: line %d: rebind-as-user takes no arguments\n",
+			    fname, lineno );
+			return( 1 );
+		}
+		li->savecred = 1;
+	
 	/* name to use as pseudo-root dn */
 	} else if ( strcasecmp( argv[ 0 ], "pseudorootdn" ) == 0 ) {
 		int 		i = li->ntargets-1;

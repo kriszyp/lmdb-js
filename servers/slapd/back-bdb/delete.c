@@ -1,7 +1,7 @@
 /* delete.c - bdb backend delete routine */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -35,7 +35,7 @@ bdb_delete(
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 
-	u_int32_t	locker;
+	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 #if 0
 	u_int32_t	lockid;
@@ -44,7 +44,7 @@ bdb_delete(
 
 	int		noop = 0;
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 	Operation* ps_list;
 #endif
 
@@ -104,6 +104,7 @@ retry:	/* transaction retry */
 
 	opinfo.boi_bdb = be;
 	opinfo.boi_txn = ltid;
+	opinfo.boi_locker = locker;
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
@@ -493,13 +494,13 @@ retry:	/* transaction retry */
 return_results:
 	send_ldap_result( conn, op, rc, NULL, text, NULL, NULL );
 
-#ifdef LDAP_CLIENT_UPDATE
+#if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
         if ( rc == LDAP_SUCCESS && !noop ) {
 		LDAP_LIST_FOREACH( ps_list, &bdb->psearch_list, link ) {
-			bdb_psearch( be, conn, op, ps_list, e, LCUP_PSEARCH_BY_DELETE );
+			bdb_psearch( be, conn, op, ps_list, e, LDAP_PSEARCH_BY_DELETE );
 		}
 	}
-#endif /* LDAP_CLIENT_UPDATE */
+#endif
 
 	if(rc == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();

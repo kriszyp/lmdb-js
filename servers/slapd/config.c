@@ -1,7 +1,7 @@
 /* config.c - configuration file handling routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -18,6 +18,9 @@
 #include "lutil.h"
 #include "ldap_pvt.h"
 #include "slap.h"
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
 
 #define ARGS_STEP	512
 
@@ -30,7 +33,9 @@ struct slap_limits_set deflimit = {
 
 	SLAPD_DEFAULT_SIZELIMIT,	/* backward compatible limits */
 	0,
-	-1				/* no limit on unchecked size */
+	-1,				/* no limit on unchecked size */
+	0,				/* page limit */
+	0				/* hide number of entries left */
 };
 
 AccessControl	*global_acl = NULL;
@@ -63,11 +68,7 @@ char   *slapd_args_file = NULL;
 
 char   *strtok_quote_ptr;
 
-#ifdef SLAPD_RLOOKUPS
-int use_reverse_lookup = 1;
-#else /* !SLAPD_RLOOKUPS */
 int use_reverse_lookup = 0;
-#endif /* !SLAPD_RLOOKUPS */
 
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
@@ -559,12 +560,10 @@ read_config( const char *fname, int depth )
 
 			lutil_salt_format( cargv[1] );
 
-#ifdef HAVE_CYRUS_SASL
 		/* SASL config options */
 		} else if ( strncasecmp( cargv[0], "sasl", 4 ) == 0 ) {
 			if ( slap_sasl_config( cargc, cargv, line, fname, lineno ) )
 				return 1;
-#endif /* HAVE_CYRUS_SASL */
 
 		} else if ( strcasecmp( cargv[0], "schemadn" ) == 0 ) {
 			struct berval dn;
@@ -962,20 +961,6 @@ read_config( const char *fname, int depth )
 			Backend *tmp_be;
 			struct berval alias, palias, nalias;
 			struct berval aliased, paliased, naliased;
-
-			if( 1 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT, 
-					"%s: line %d: suffixAlias is no longer supported.\n",
-					fname, lineno, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: suffixAlias is no longer supported.\n",
-					fname, lineno, 0 );
-#endif
-
-				return( 1 );
-			}
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -1703,6 +1688,13 @@ read_config( const char *fname, int depth )
 
 			}
 
+		/* define attribute option(s) */
+		} else if ( strcasecmp( cargv[0], "attributeoptions" ) == 0 ) {
+			ad_define_option( NULL, NULL, 0 );
+			for ( i = 1; i < cargc; i++ )
+				if ( ad_define_option( cargv[i], fname, lineno ) != 0 )
+					return 1;
+
 		/* turn on/off schema checking */
 		} else if ( strcasecmp( cargv[0], "schemacheck" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -2324,6 +2316,74 @@ read_config( const char *fname, int depth )
 		   		fname, lineno, 0 );
 #endif
 #endif /* !SLAPD_RLOOKUPS */
+
+		/* Netscape plugins */
+		} else if ( strcasecmp( cargv[0], "plugin" ) == 0 ) {
+#if defined( LDAP_SLAPI )
+
+#ifdef notdef /* allow global plugins, too */
+			/*
+			 * a "plugin" line must be inside a database
+			 * definition, since we implement pre-,post- 
+			 * and extended operation plugins
+			 */
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: plugin line must appear "
+					"inside a database definition.\n",
+					fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: plugin "
+				    "line must appear inside a database "
+				    "definition\n", fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+#endif /* notdef */
+
+			if ( netscape_plugin( be, fname, lineno, cargc, cargv ) 
+					!= LDAP_SUCCESS ) {
+				return( 1 );
+			}
+
+#else /* !defined( LDAP_SLAPI ) */
+#ifdef NEW_LOGGING
+			LDAP_LOG( CONFIG, INFO, 
+				"%s: line %d: SLAPI not supported.\n",
+				fname, lineno, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "%s: line %d: SLAPI "
+			    "not supported.\n", fname, lineno, 0 );
+#endif
+			return( 1 );
+			
+#endif /* !defined( LDAP_SLAPI ) */
+
+		/* Netscape plugins */
+		} else if ( strcasecmp( cargv[0], "pluginlog" ) == 0 ) {
+#if defined( LDAP_SLAPI )
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: missing file name "
+					"in pluginlog <filename> line.\n",
+					fname, lineno, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY, 
+					"%s: line %d: missing file name "
+					"in pluginlog <filename> line.\n",
+					fname, lineno, 0 );
+#endif
+				return( 1 );
+			}
+
+			if ( slapi_log_file != NULL ) {
+				ch_free( slapi_log_file );
+			}
+
+			slapi_log_file = ch_strdup( cargv[1] );
+#endif /* !defined( LDAP_SLAPI ) */
 
 		/* pass anything else to the current backend info/db config routine */
 		} else {
