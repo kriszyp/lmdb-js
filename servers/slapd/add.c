@@ -286,7 +286,7 @@ do_add( Connection *conn, Operation *op )
 				if ( !repl_user )
 #endif
 				{
-					replog( be, op, e->e_dn, e );
+					replog( be, op, e->e_dn, e->e_ndn, e );
 				}
 				be_entry_release_w( be, conn, op, e );
 				e = NULL;

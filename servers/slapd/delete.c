@@ -170,7 +170,7 @@ do_delete(
 				if (be->be_update_ndn == NULL || !repl_user )
 #endif
 				{
-					replog( be, op, dn, NULL );
+					replog( be, op, dn, ndn, NULL );
 				}
 			}
 #ifndef SLAPD_MULTIMASTER

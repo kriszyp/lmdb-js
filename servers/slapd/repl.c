@@ -75,6 +75,7 @@ replog(
     Backend	*be,
     Operation *op,
     char	*dn,
+    char	*ndn,
     void	*change
 )
 {
@@ -100,16 +101,6 @@ replog(
 		return;
 	}
 
-	tmp = ch_strdup( dn );
-	if ( dn_normalize( tmp ) == NULL ) {
-		/* something has gone really bad */
-		ch_free( tmp );
-
-		lock_fclose( fp, lfp );
-		ldap_pvt_thread_mutex_unlock( &replog_mutex );
-		return;
-	}
-
 	for ( i = 0; be->be_replica != NULL && be->be_replica[i] != NULL;
 	    i++ ) {
 		/* check if dn's suffix matches legal suffixes, if any */
@@ -117,7 +108,7 @@ replog(
 			int j;
 
 			for ( j = 0; be->be_replica[i]->ri_nsuffix[j]; j++ ) {
-				if ( dn_issuffix( tmp, be->be_replica[i]->ri_nsuffix[j] ) ) {
+				if ( dn_issuffix( ndn, be->be_replica[i]->ri_nsuffix[j] ) ) {
 					break;
 				}
 			}
@@ -134,7 +125,6 @@ replog(
 #endif
 	}
 
-	ch_free( tmp );
 #ifdef NO_LOG_WHEN_NO_REPLICAS
 	if ( count == 0 ) {
 		/* if no replicas matched, drop the log 

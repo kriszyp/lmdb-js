@@ -364,7 +364,7 @@ do_modify(
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
-				replog( be, op, dn, mods );
+				replog( be, op, dn, ndn, mods );
 			}
 
 #ifndef SLAPD_MULTIMASTER

@@ -516,7 +516,7 @@ LDAP_SLAPD_F (char *) phonetic LDAP_P(( char *s ));
  */
 LDAP_SLAPD_F (int) add_replica_info LDAP_P(( Backend *be, const char *host ));
 LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be, int nr, const char *suffix ));
-LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op, char *dn, void *change ));
+LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op, char *dn, char *ndn, void *change ));
 
 /*
  * referral.c

@@ -321,7 +321,7 @@ do_modrdn(
 				moddn.deloldrdn = deloldrdn;
 				moddn.newsup = newSuperior;
 
-				replog( be, op, dn, &moddn );
+				replog( be, op, dn, ndn, &moddn );
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {

@@ -162,7 +162,7 @@ ldbm_back_exop_passwd(
 			rc = LDAP_OTHER;
 		}
 
-		replog( be, op, e->e_dn, &ml );
+		replog( be, op, e->e_dn, e->e_ndn, &ml );
 	}
 	
 done:
