@@ -33,7 +33,7 @@ typedef struct avlnode {
 #define NULLAVL	((Avlnode *) NULL)
 
 /* balance factor values */
-#define LH 	-1
+#define LH 	(-1)
 #define EH 	0
 #define RH 	1
 
@@ -79,7 +79,7 @@ avl_apply LDAP_P((Avlnode *, IFP, caddr_t, int, int));
 #define AVL_INORDER	2
 #define AVL_POSTORDER	3
 /* what apply returns if it ran out of nodes */
-#define AVL_NOMORE	-6
+#define AVL_NOMORE	(-6)
 
 LDAP_END_DECL
 

@@ -464,7 +464,7 @@ char *cp;
 	return(tmp);
 }
 
-char * code_to_str(i)
+char * code_to_str(int i)
 {
 	switch(i) {
 	case LDAP_MOD_ADD : return("ADD");

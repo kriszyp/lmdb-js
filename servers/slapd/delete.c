@@ -20,6 +20,7 @@
 #include "slap.h"
 
 extern Backend	*select_backend();
+extern char     *suffixAlias();
 
 extern char	*default_referral;
 
@@ -64,6 +65,9 @@ do_delete(
 		    default_referral );
 		return;
 	}
+
+        /* alias suffix if approp */
+        dn = suffixAlias ( dn, op, be );
 
 	/*
 	 * do the delete if 1 && (2 || 3)

@@ -778,15 +778,16 @@ char	*query;
 
 		e = ldap_first_entry( ld, res );
 		oc = ldap_get_values( ld, e, "objectClass" );
-		if ( isnonleaf( ld, oc, dn ) ) {
-			dn = ldap_get_dn( ld, e );
+		dn = ldap_get_dn( ld, e );
 
+		if ( isnonleaf( ld, oc, dn ) ) {
 			rc = do_menu( ld, fp, dn );
 
 			free( dn );
 			return( rc );
 		}
 
+		free( dn );
 		ldap_value_free( oc );
 	}
 

@@ -22,6 +22,7 @@
 #include "slap.h"
 
 extern Backend	*select_backend();
+extern char	*suffixAlias();
 
 extern char	*default_referral;
 
@@ -146,13 +147,20 @@ do_bind(
 			free( cred.bv_val );
 		}
 		if ( cred.bv_len == 0 ) {
-			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL );
+		} else if ( default_referral && *default_referral ) {
+			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS,
+				NULL, default_referral );
 		} else {
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
-			    default_referral );
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, default_referral );
 		}
 		return;
 	}
+
+        /* alias suffix */
+        dn = suffixAlias ( dn, op, be );
 
 	if ( be->be_bind != NULL ) {
 		if ( (*be->be_bind)( be, conn, op, dn, method, &cred ) == 0 ) {

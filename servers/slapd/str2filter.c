@@ -17,7 +17,7 @@ static int	str2subvals();
 Filter *
 str2filter( char *str )
 {
-	Filter	*f;
+	Filter	*f = NULL;
 	char	*end;
 
 	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );

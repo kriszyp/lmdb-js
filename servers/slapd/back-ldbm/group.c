@@ -17,7 +17,7 @@ extern Attribute        *attr_find();
 #ifdef SLAPD_ACLGROUPS
 /* return 0 IFF edn is a value in uniqueMember attribute
  * of entry with bdn AND that entry has an objectClass
- * value of groupOfUniqueNames
+ * value of groupOfNames
  */
 int
 ldbm_back_group(
@@ -30,7 +30,7 @@ ldbm_back_group(
         Entry        *e;
         char        *matched;
         Attribute   *objectClass;
-        Attribute   *uniqueMember;
+        Attribute   *member;
         int          rc;
 
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: bdn: %s\n", bdn, 0, 0 ); 
@@ -47,39 +47,40 @@ ldbm_back_group(
 
         /* check for deleted */
 
-        /* find it's objectClass and uniqueMember attribute values
+        /* find it's objectClass and member attribute values
          * make sure this is a group entry
-         * finally test if we can find edn in the uniqueMember attribute value list *
+         * finally test if we can find edn in the member attribute value list *
          */
         
         rc = 1;
         if ((objectClass = attr_find(e->e_attrs, "objectclass")) == NULL)  {
             Debug( LDAP_DEBUG_TRACE, "<= ldbm_back_group: failed to find objectClass\n", 0, 0, 0 ); 
         }
-        else if ((uniqueMember = attr_find(e->e_attrs, "uniquemember")) == NULL) {
-            Debug( LDAP_DEBUG_TRACE, "<= ldbm_back_group: failed to find uniqueMember\n", 0, 0, 0 ); 
+        else if ((member = attr_find(e->e_attrs, "member")) == NULL) {
+            Debug( LDAP_DEBUG_TRACE, "<= ldbm_back_group: failed to find member\n", 0, 0, 0 ); 
         }
         else {
             struct berval bvObjectClass;
-            struct berval bvUniqueMembers;
+            struct berval bvMembers;
 
-            Debug( LDAP_DEBUG_ARGS, "<= ldbm_back_group: found objectClass and uniqueMembers\n", 0, 0, 0 ); 
+            Debug( LDAP_DEBUG_ARGS, "<= ldbm_back_group: found objectClass and members\n", 0, 0, 0 ); 
 
-            bvObjectClass.bv_val = "groupofuniquenames";
+            bvObjectClass.bv_val = "groupofnames";
             bvObjectClass.bv_len = strlen( bvObjectClass.bv_val );         
-            bvUniqueMembers.bv_val = edn;
-            bvUniqueMembers.bv_len = strlen( edn );         
+            bvMembers.bv_val = edn;
+            bvMembers.bv_len = strlen( edn );         
 
             if (value_find(objectClass->a_vals, &bvObjectClass, SYNTAX_CIS, 1) != 0) {
-                Debug( LDAP_DEBUG_TRACE, "<= ldbm_back_group: failed to find objectClass in groupOfUniqueNames\n", 
+                Debug( LDAP_DEBUG_TRACE,
+					"<= ldbm_back_group: failed to find objectClass in groupOfNames\n", 
                         0, 0, 0 ); 
             }
-            else if (value_find(uniqueMember->a_vals, &bvUniqueMembers, SYNTAX_CIS, 1) != 0) {
-                Debug( LDAP_DEBUG_ACL, "<= ldbm_back_group: %s not in %s: groupOfUniqueNames\n", 
+            else if (value_find(Member->a_vals, &bvMembers, SYNTAX_CIS, 1) != 0) {
+                Debug( LDAP_DEBUG_ACL, "<= ldbm_back_group: %s not in %s: groupOfNames\n", 
                         edn, bdn, 0 ); 
             }
             else {
-                Debug( LDAP_DEBUG_ACL, "<= ldbm_back_group: %s is in %s: groupOfUniqueNames\n", 
+                Debug( LDAP_DEBUG_ACL, "<= ldbm_back_group: %s is in %s: groupOfNames\n", 
                         edn, bdn, 0 ); 
                 rc = 0;
             }

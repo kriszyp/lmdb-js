@@ -366,7 +366,7 @@ acl_access_allowed(
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
-			 * the values in the attribute uniquegroup
+			 * the values in the attribute group
 			 */
 			Debug( LDAP_DEBUG_ARGS, "<= check a_group: %s\n",
 				b->a_group, 0, 0);

@@ -212,4 +212,9 @@ int value_ncmp LDAP_P(( struct berval *v1, struct berval *v2, int syntax, int le
 int value_find LDAP_P(( struct berval **vals, struct berval *v, int syntax,
 	int normalize ));
 
+/*
+ * suffixAlias.c
+ */
+char *suffixAlias LDAP_P(( char *dn, Operation *op, Backend *be ));
+
 #endif /* _proto_slap */

@@ -6,6 +6,20 @@
 LDAP_BEGIN_DECL
 
 /*
+ * alias.c
+ */
+Entry *derefAlias_r LDAP_P((
+	Backend     *be,
+	Connection	*conn,
+	Operation	*op,
+	Entry       *e ));
+char *derefDN LDAP_P((
+	Backend     *be,
+	Connection  *conn,
+	Operation   *op,
+	char        *dn ));
+
+/*
  * attr.c
  */
 
@@ -45,7 +59,6 @@ int ldbm_cache_delete LDAP_P(( struct dbcache *db, Datum key ));
 int dn2id_add LDAP_P(( Backend *be, char *dn, ID id ));
 ID dn2id LDAP_P(( Backend *be, char *dn ));
 int dn2id_delete LDAP_P(( Backend *be, char *dn ));
-/*Entry * dn2entry LDAP_P(( Backend *be, char *dn, char **matched ));*/
 Entry * dn2entry_r LDAP_P(( Backend *be, char *dn, char **matched ));
 Entry * dn2entry_w LDAP_P(( Backend *be, char *dn, char **matched ));
 

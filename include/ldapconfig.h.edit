@@ -284,6 +284,8 @@ Please try again later.\r\n"
  */
 	/* location of the default slapd config file */
 #define SLAPD_DEFAULT_CONFIGFILE	"%SYSCONFDIR%/slapd.conf"
+	/* default max deref depth for aliases */
+#define SLAPD_DEFAULT_MAXDEREFDEPTH	15	
 	/* default sizelimit on number of entries from a search */
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */

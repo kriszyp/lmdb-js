@@ -171,6 +171,7 @@ LDAP_F int ber_printf LDAP_P(( BerElement *ber, char *fmt, ... ));
 /*
  * in io.c:
  */
+
 LDAP_F long ber_read LDAP_P(( BerElement *ber, char *buf, unsigned long len ));
 LDAP_F long ber_write LDAP_P(( BerElement *ber, char *buf, unsigned long len,
 	int nosos ));
