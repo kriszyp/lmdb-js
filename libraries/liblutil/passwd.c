@@ -65,6 +65,10 @@
 static const unsigned char crypt64[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./";
 
+#ifdef SLAPD_CRYPT
+static const char *salt_format = NULL;
+#endif
+
 struct pw_scheme;
 
 typedef int (*PASSWD_CHK_FUNC)(
@@ -1188,7 +1192,7 @@ static struct berval *hash_crypt(
 	const struct berval *passwd )
 {
 	struct berval hash;
-	unsigned char salt[9];	/* salt suitable for anything */
+	unsigned char salt[32];	/* salt suitable for most anything */
 	int i;
 
 	for( i=0; i<passwd->bv_len; i++) {
@@ -1201,14 +1205,22 @@ static struct berval *hash_crypt(
 		return NULL;	/* passwd must behave like a string */
 	}
 
-	if( lutil_entropy( salt, 8) < 0 ) {
+	if( lutil_entropy( salt, sizeof( salt ) ) < 0 ) {
 		return NULL; 
 	}
 
-	for( i=0; i<8; i++ ) {
+	for( i=0; i< ( sizeof(salt) - 1 ); i++ ) {
 		salt[i] = crypt64[ salt[i] % (sizeof(crypt64)-1) ];
 	}
-	salt[8] = '\0';
+	salt[sizeof( salt ) - 1 ] = '\0';
+
+	if( salt_format != NULL ) {
+		/* copy the salt we made into entropy before snprintfing
+		   it back into the salt */
+		char entropy[sizeof(salt)];
+		strcpy( entropy, salt );
+		snprintf( salt, sizeof(entropy), salt_format, entropy );
+	}
 
 	hash.bv_val = crypt( passwd->bv_val, salt );
 
@@ -1223,3 +1235,20 @@ static struct berval *hash_crypt(
 	return pw_string( scheme, &hash );
 }
 #endif
+
+int lutil_salt_format(const char *format)
+{
+#ifdef SLAPD_CRYPT
+	if (format) {
+		if (salt_format)
+			free(salt_format);
+		salt_format = strdup(format);
+	} else {  // unset if they pass in NULL
+		if (salt_format)
+			free(salt_format);
+		salt_format = NULL;
+	}
+#endif
+
+	return 0;
+}
