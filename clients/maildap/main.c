@@ -439,7 +439,7 @@ get_config_line( FILE *cf, int *lineno)
 			continue;
 		if ( strspn( buf, " \t\n" ) == len )
 			continue;
-		if ( buf[len-2] == '\\' ) {
+		if ( len >= 2 && buf[len-2] == '\\' ) {
 			pos = len - 2;
 			room = sizeof(buf) - pos;
 			continue;

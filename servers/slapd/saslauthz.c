@@ -164,7 +164,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	reg->sr_offset[0] = -2;
 	n = 1;
 	for ( c = reg->sr_replace;	 *c;  c++ ) {
-		if ( *c == '\\' ) {
+		if ( *c == '\\' && c[1] ) {
 			c++;
 			continue;
 		}
