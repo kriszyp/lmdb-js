@@ -201,82 +201,7 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	}
 
-	/*
-	 * is objectClass special?
-	 */
-
-	/* look for objectClass attribute */
-	for ( mod = modlist; mod; mod = mod->sml_next ) {
-		AttributeDescription	*mod_desc = NULL;
-
-		rc = slap_bv2ad( &mod->sml_type, &mod_desc, &text );
-		if ( rc != LDAP_SUCCESS ) {
-			send_ldap_result( conn, op, rc,
-					NULL, text, NULL, NULL );
-			goto done;
-		}
-
-		if ( mod_desc == slap_schema.si_ad_objectClass ) {
-			break;
-		}
-	}
-
-	if ( mod == NULL ) {
-		send_ldap_result( conn, op, 
-				rc = LDAP_OBJECT_CLASS_VIOLATION,
-				NULL, "objectClass missing", 
-				NULL, NULL );
-		goto done;
-	}
-
-	/* look for special objectClass */
-	for ( cnt = 0; mod->sml_bvalues[ cnt ].bv_val; cnt++ ) {
-		ObjectClass	*oc;
-
-		oc = oc_bvfind( &mod->sml_bvalues[ cnt ] );
-
-		if ( oc == NULL ) {
-			send_ldap_result( conn, op, 
-					rc = LDAP_OBJECT_CLASS_VIOLATION,
-					NULL, "undefined objectClass", 
-					NULL, NULL );
-			goto done;
-		}
-
-		/*
-		 * check for special objectClasses: alias, to allow
-		 *
-		 * dn: DC=alias,DC=example,DC=net
-		 * aliasedObjectName: DC=aliased,DC=example,DC=net
-		 * objectClass: alias
-		 */
-		if ( oc == slap_schema.si_oc_alias ) {
-			break;
-		}
-
-		/*
-		 * FIXME: a referral should be implemented
-		 * as exemplified in RFC3296:
-		 *
-		 *       dn: DC=sub,DC=example,DC=net
-		 *       dc: sub
-		 *       ref: ldap://B/DC=sub,DC=example,DC=net 
-		 *       objectClass: referral
-		 *       objectClass: extensibleObject 
-		 *
-		 * in this case there would be no need to treat
-		 * the "referral" objectClass as special.
-		 */
-		if ( oc == slap_schema.si_oc_referral ) {
-			break;
-		}
-	}
-
-	/*
-	 * if not special
-	 */
 	if ( mod->sml_bvalues[ cnt ].bv_val == NULL ) {
-
 		/*
 		 * Get attribute type(s) and attribute value(s) of our rdn,
 		 */
@@ -325,10 +250,10 @@ do_add( Connection *conn, Operation *op )
 #ifdef BAILOUT
 				/* bail out */
 				send_ldap_result( conn, op, 
-						rc = LDAP_NO_SUCH_ATTRIBUTE,
-						NULL,
-						"attribute in RDN not listed in entry", 
-						NULL, NULL );
+					rc = LDAP_NO_SUCH_ATTRIBUTE,
+					NULL,
+					"RDN attribute value assertion not present in entry", 
+					NULL, NULL );
 				goto done;
 	
 #else /* ! BAILOUT */
