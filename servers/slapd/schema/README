@@ -10,7 +10,6 @@ cosine.schema           COSINE Pilot
 duaconf.schema          Client Configuration (experimental)
 inetorgperson.schema    InetOrgPerson
 java.schema             Java Object (RFC 2713)
-krb5-kdc.schema         Kerberos V KDC (experimental)
 microsoft.ext.schema    Microsoft (FYI)
 microsoft.schema        Microsoft (FYI)
 microsoft.std.schema    Microsoft (FYI)
