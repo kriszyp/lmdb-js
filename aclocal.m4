@@ -2335,7 +2335,7 @@ openedition*)
   need_version=no
   shlibpath_overrides_runpath=yes
   shlibpath_var=LIBPATH
-  postinstall_cmds="rm \$destdir/\$linkname; cp \$linkname \$destdir"
+  postinstall_cmds="rm \$destdir/\$linkname; cp \$linkname \$destdir; chmod a+x \$lib"
   # the library's exports are in libname.x; this is the file that must
   # actually be linked with to use a DLL.
   library_names_spec="\${libname}\${release}.so\$versuffix \${libname}.x"
