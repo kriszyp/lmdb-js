@@ -231,7 +231,6 @@ It can have the forms
 	anonymous
 	users
 	self
-	creator
 
 	dn[.<dnstyle>[,<modifier>]]=<DN>
 	dnattr=<attrname>
@@ -288,12 +287,6 @@ The keyword
 .B self
 means access to an entry is allowed to the entry itself (e.g. the entry
 being accessed and the requesting entry must be the same).
-.LP
-The keyword
-.B creator
-means access to an entry is allowed to the identity set in the 
-.B creatorsName
-operational attribute, if present.
 .LP
 The statement
 .B dn=<DN>
