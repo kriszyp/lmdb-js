@@ -15,6 +15,9 @@
 
 #include "ldap-int.h"
 
+#if 0
+/* this should wait for UTF-8 routines */
+
 #define B4LEADTYPE		0
 #define B4TYPE			1
 #define INOIDTYPE		2
@@ -331,3 +334,5 @@ char * ldap_dn_rdn(
 
 	return( rdn );
 }
+
+#endif
