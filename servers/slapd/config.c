@@ -513,6 +513,7 @@ read_config( char *fname )
 		}
 	}
 	fclose( fp );
+	return( 0 );
 }
 
 static int
