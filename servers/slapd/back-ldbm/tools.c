@@ -199,6 +199,9 @@ int ldbm_tool_index_attr(
 	static DBCache *db = NULL;
 	int indexmask, syntaxmask;
 	char * at_cn;
+#ifndef SLAPD_SCHEMA_COMPAT
+	AttributeType *at;
+#endif
 
 	assert( slapMode & SLAP_TOOL_MODE );
 
@@ -214,18 +217,16 @@ int ldbm_tool_index_attr(
 		return 0;
 	}
 #else
-	{
-		AttributeType *at = at_find( type );
+	at = at_find( type );
 
-		if( at == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-		    	"<= index_attr NULL (could not find attribute type %s)\n",
-				type, 0, 0 );
-			return 0;
-		}
-
-		at_cn = at_canonical_name( at );
+	if( at == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+	    	"<= index_attr NULL (could not find attribute type %s)\n",
+			type, 0, 0 );
+		return 0;
 	}
+
+	at_cn = at_canonical_name( at );
 
 	if( at_cn ) {
 		Debug( LDAP_DEBUG_ANY, "<= index_attr NULL (attribute type %s (%s) has no canonical name)\n",
