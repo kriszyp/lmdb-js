@@ -536,9 +536,9 @@ ber_get_next(
 			}
 			ber->ber_tag = tag;
 			ber->ber_ptr = (char *)p;
-		}
 
-		if (i == 1) continue;
+			if (i == 1) continue;
+		}
 
 		/* Now look for the length */
 		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
