@@ -871,14 +871,14 @@ int ldap_int_tblsize = 0;
 void
 ldap_int_ip_init( void )
 {
-	int tblsize;
-
 #if defined( HAVE_SYSCONF )
-	tblsize = sysconf( _SC_OPEN_MAX );
+	long tblsize = sysconf( _SC_OPEN_MAX );
+	if( tblsize > INT_MAX ) tblsize = INT_MAX;
+
 #elif defined( HAVE_GETDTABLESIZE )
-	tblsize = getdtablesize();
+	int tblsize = getdtablesize();
 #else
-	tblsize = FD_SETSIZE;
+	int tblsize = FD_SETSIZE;
 #endif /* !USE_SYSCONF */
 
 #ifdef FD_SETSIZE
