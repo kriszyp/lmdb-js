@@ -3427,6 +3427,202 @@ integerBitOrMatch(
 	return LDAP_SUCCESS;
 }
 
+#ifdef HAVE_TLS
+#include <openssl/x509.h>
+#include <openssl/err.h>
+char digit[] = "0123456789";
+
+/*
+ * Next function returns a string representation of a ASN1_INTEGER.
+ * It works for unlimited lengths.
+ */
+
+static struct berval *
+asn1_integer2str(ASN1_INTEGER *a)
+{
+	char buf[256];
+	char *p;
+  
+	/* We work backwards, make it fill from the end of buf */
+	p = buf + sizeof(buf) - 1;
+	*p = '\0';
+
+	if ( a == NULL || a->length == 0 ) {
+		*--p = '0';
+	} else {
+		int i;
+		int n = a->length;
+		int base = 0;
+		unsigned int *copy;
+
+		/* We want to preserve the original */
+		copy = ch_malloc(n*sizeof(unsigned int));
+		for (i = 0; i<n; i++) {
+			copy[i] = a->data[i];
+		}
+
+		/* 
+		 * base indicates the index of the most significant
+		 * byte that might be nonzero.  When it goes off the
+		 * end, we now there is nothing left to do.
+		 */
+		while (base < n) {
+			unsigned int carry;
+			unsigned int temp;
+
+			carry = 0;
+			for (i = base; i<n; i++ ) {
+				copy[i] += carry*256;
+				carry = copy[i] % 10;
+				copy[i] /= 10;
+			}
+			if (p <= buf+1) {
+				/*
+				 * Way too large, we need to leave
+				 * room for sign if negative
+				 */
+			  return NULL;
+			}
+			*--p = digit[carry];
+			if (copy[base] == 0)
+				base++;
+		}
+		free(copy);
+	}
+
+	if ( a->type == V_ASN1_NEG_INTEGER ) {
+		*--p = '-';
+	}
+
+	return ber_bvstrdup(p);
+}
+
+static struct berval *
+dn_openssl2ldap(X509_NAME *name)
+{
+	char issuer_dn[1024];
+	BIO *bio;
+
+	bio = BIO_new(BIO_s_mem());
+	if ( !bio ) {
+		fprintf(stderr, ERR_error_string(ERR_get_error(),NULL));
+		/* ERR_print_errors(bio_err); */
+		return NULL;
+	}
+	X509_NAME_print_ex(bio, name, 0, XN_FLAG_RFC2253);
+
+	BIO_gets(bio, issuer_dn, 1024);
+
+	BIO_free(bio);
+	return ber_bvstrdup(issuer_dn);
+}
+
+static int
+serial_and_issuer_parse(
+	struct berval *assertion,
+	struct berval **serial,
+	struct berval **issuer_dn
+)
+{
+	char *begin;
+	char *end;
+	char *p;
+	char *q;
+
+	begin = assertion->bv_val;
+	end = assertion->bv_val+assertion->bv_len-1;
+	for (p=begin; p<=end && *p != '$'; p++)
+		;
+	if ( p > end )
+		return LDAP_INVALID_SYNTAX;
+
+	/* p now points at the $ sign, now use begin and end to delimit the
+	   serial number */
+	while (ASCII_SPACE(*begin++))
+		;
+	end = p;
+	while (ASCII_SPACE(*end--))
+		;
+
+	q = ch_malloc( (end-begin+1)+1 );
+	AC_MEMCPY( q, begin, end-begin+1 );
+	q[end-begin+1] = '\0';
+	*serial = ber_bvstr(q);
+
+	/* now extract the issuer, remember p was at the dollar sign */
+	begin = p+1;
+	end = assertion->bv_val+assertion->bv_len-1;
+	while (ASCII_SPACE(*begin++))
+		;
+	/* should we trim spaces at the end too? is it safe always? */
+
+	q = ch_malloc( (end-begin+1)+1 );
+	AC_MEMCPY( q, begin, end-begin+1 );
+	q[end-begin+1] = '\0';
+	*issuer_dn = ber_bvstr(q);
+
+	return LDAP_SUCCESS;
+}
+
+static int
+certificateExactMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	X509 *xcert;
+	unsigned char *p = value->bv_val;
+	struct berval *serial;
+	struct berval *issuer_dn;
+	struct berval *asserted_serial;
+	struct berval *asserted_issuer_dn;
+	int ret;
+
+	xcert = d2i_X509(NULL, &p, value->bv_len);
+	if ( !xcert ) {
+		ERR_error_string(ERR_get_error(),NULL);
+	}
+
+	serial = asn1_integer2str(xcert->cert_info->serialNumber);
+	issuer_dn = dn_openssl2ldap(X509_get_issuer_name(xcert));
+
+	X509_free(xcert);
+
+	serial_and_issuer_parse(assertedValue,
+				&asserted_serial,
+				&asserted_issuer_dn);
+
+	ret = integerMatch(
+		matchp,
+		flags,
+		slap_schema.si_syn_integer,
+		slap_schema.si_mr_integerMatch,
+		serial,
+		asserted_serial);
+	if ( ret == LDAP_SUCCESS ) {
+		if ( *matchp == 0 ) {
+			ret = dnMatch(
+				matchp,
+				flags,
+				slap_schema.si_syn_distinguishedName,
+				slap_schema.si_mr_distinguishedNameMatch,
+				issuer_dn,
+				asserted_issuer_dn);
+		}
+	}
+
+	ber_bvfree(serial);
+	ber_bvfree(issuer_dn);
+	ber_bvfree(asserted_serial);
+	ber_bvfree(asserted_issuer_dn);
+
+	return ret;
+}
+#endif
+
 static int
 check_time_syntax (struct berval *val,
 	int start,
@@ -3905,6 +4101,13 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
 		0, bootParameterValidate, NULL, NULL},
 
+#ifdef HAVE_TLS
+	/* From PKIX */
+	/* These OIDs are not published yet, but have been assigned */
+	{"( 1.3.6.1.4.1.1466.115.121.1.9999 DESC 'Serial Number and Issuer' )",
+		0, NULL, NULL, NULL},
+#endif
+
 	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		0, UTF8StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
@@ -3942,7 +4145,6 @@ struct mrule_defs_rec {
  * 2.5.13.31	directoryStringFirstComponentMatch
  * 2.5.13.32	wordMatch
  * 2.5.13.33	keywordMatch
- * 2.5.13.34	certificateExactMatch
  * 2.5.13.35	certificateMatch
  * 2.5.13.36	certificatePairExactMatch
  * 2.5.13.37	certificatePairMatch
@@ -4168,6 +4370,15 @@ struct mrule_defs_rec mrule_defs[] = {
 		NULL, NULL,
 		objectIdentifierFirstComponentMatch, NULL, NULL,
 		NULL},
+
+#ifdef HAVE_TLS
+	{"( 2.5.13.34 NAME 'certificateExactMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.9999 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT,
+		NULL, NULL,
+		certificateExactMatch, NULL, NULL,
+		NULL},
+#endif
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",

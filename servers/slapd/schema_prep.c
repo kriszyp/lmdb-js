@@ -228,6 +228,28 @@ static AttributeType slap_at_undefined = {
 	NULL  /* next */
 };
 
+struct slap_schema_mr_map {
+	char *ssmm_name;
+	size_t ssmm_offset;
+} mr_map[] = {
+	{ "distinguishedNameMatch",
+		offsetof(struct slap_internal_schema, si_mr_distinguishedNameMatch) },
+	{ "integerMatch",
+		offsetof(struct slap_internal_schema, si_mr_integerMatch) },
+	{ NULL, 0 }
+};
+
+struct slap_schema_syn_map {
+	char *sssm_name;
+	size_t sssm_offset;
+} syn_map[] = {
+	{ "1.3.6.1.4.1.1466.115.121.1.12",
+		offsetof(struct slap_internal_schema, si_syn_distinguishedName) },
+	{ "1.3.6.1.4.1.1466.115.121.1.27",
+		offsetof(struct slap_internal_schema, si_syn_integer) },
+	{ NULL, 0 }
+};
+
 int
 schema_prep( void )
 {
@@ -280,6 +302,34 @@ schema_prep( void )
 		return LDAP_INVALID_SYNTAX;
 	}
 	slap_schema.si_at_undefined = &slap_at_undefined;
+
+	for( i=0; mr_map[i].ssmm_name; i++ ) {
+		MatchingRule ** mrp = (MatchingRule **)
+			&(((char *) &slap_schema)[mr_map[i].ssmm_offset]);
+
+		*mrp = mr_find( mr_map[i].ssmm_name );
+
+		if( *mrp == NULL ) {
+			fprintf( stderr,
+				"No matching rule \"%s\" defined in schema\n",
+				mr_map[i].ssmm_name );
+			return LDAP_INAPPROPRIATE_MATCHING;
+		}
+	}
+
+	for( i=0; syn_map[i].sssm_name; i++ ) {
+		Syntax ** synp = (Syntax **)
+			&(((char *) &slap_schema)[syn_map[i].sssm_offset]);
+
+		*synp = syn_find( syn_map[i].sssm_name );
+
+		if( *synp == NULL ) {
+			fprintf( stderr,
+				"No syntax \"%s\" defined in schema\n",
+				syn_map[i].sssm_name );
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
 
 	++schema_init_done;
 	return LDAP_SUCCESS;

@@ -489,6 +489,14 @@ struct slap_internal_schema {
 
 	/* Undefined Attribute Type */
 	AttributeType	*si_at_undefined;
+
+	/* Matching Rules */
+	MatchingRule	*si_mr_distinguishedNameMatch;
+	MatchingRule	*si_mr_integerMatch;
+
+	/* Syntaxes */
+	Syntax		*si_syn_distinguishedName;
+	Syntax		*si_syn_integer;
 };
 
 typedef struct slap_attr_assertion {
