@@ -6,9 +6,11 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted only as authorized by the OpenLDAP
- * Public License.  A copy of this license is available at
- * http://www.OpenLDAP.org/license.html or in file LICENSE in the
- * top-level directory of the distribution.
+ * Public License.
+ *
+ * A copy of this license is available in file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 
 #ifndef _AC_SIGNAL_H

@@ -1,7 +1,17 @@
+/* detach.c -- routines to daemonize a process */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
 /*
  * Copyright (c) 1990, 1994 Regents of the University of Michigan.
@@ -13,6 +23,9 @@
  * may not be used to endorse or promote products derived from this
  * software without specific prior written permission. This software
  * is provided ``as is'' without express or implied warranty.
+ */
+/* This work was originally developed by the University of Michigan
+ * and distributed as part of U-MICH LDAP.
  */
 
 #include "portable.h"

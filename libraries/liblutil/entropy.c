@@ -1,7 +1,22 @@
+/* entropy.c -- routines for providing pseudo-random data */
 /* $OpenLDAP$ */
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1999-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1999-2003 Kurt D. Zeilenga.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* This work was initially developed by Kurt D. Zeilenga for
+ * inclusion in OpenLDAP Software based, in part, on publically
+ * available works (as noted below).
  */
 
 #include "portable.h"

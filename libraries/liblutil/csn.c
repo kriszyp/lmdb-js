@@ -1,20 +1,32 @@
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+/* csn.c - Change Sequence Number routines */
+/* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 2000-2003 The OpenLDAP Foundation.
+ * Portions Copyright 2000-2003 Kurt D. Zeilenga.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
  */
-/* Portions
- * Copyright 2000, John E. Schimmel, All rights reserved.
+/* Portions Copyright 2000, John E. Schimmel, All rights reserved.
  * This software is not subject to any license of Mirapoint, Inc.
  *
  * This is free software; you can redistribute and use it
  * under the same terms as OpenLDAP itself.
  */
-/* Adapted for incorporatation into OpenLDAP by Kurt Zeilenga */
+/* This work was developed by John E. Schimmel and adapted for
+ * inclusion in OpenLDAP Software by Kurt D. Zeilenga.
+ */
 
-/*
- * This file contains routines to generate a change sequence number.  Every
- * add, delete, and modification is given a unique identifier for use in
- * resolving conflicts during replication operations.
+/* This file contains routines to generate a change sequence number.
+ * Every add, delete, and modification is given a unique identifier
+ * for use in resolving conflicts during replication operations.
  *
  * These routines are (loosly) based upon draft-ietf-ldup-model-03.txt,
  * A WORK IN PROGRESS.  The format will likely change.

@@ -1,8 +1,40 @@
-/*
- * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
- * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
- */
+/* ldapcompare.c -- LDAP compare tool */
 /* $OpenLDAP$ */
+/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
+ *
+ * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Portions Copyright 1998-2003 Kurt D. Zeilenga.
+ * Portions Copyright 1998-2001 Net Boolean Incorporated.
+ * Portions Copyright 2001-2003 IBM Corporation.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted only as authorized by the OpenLDAP
+ * Public License.
+ *
+ * A copy of this license is available in the file LICENSE in the
+ * top-level directory of the distribution or, alternatively, at
+ * <http://www.OpenLDAP.org/license.html>.
+ */
+/* Portions Copyright (c) 1992-1996 Regents of the University of Michigan.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is given
+ * to the University of Michigan at Ann Arbor.  The name of the
+ * University may not be used to endorse or promote products derived
+ * from this software without specific prior written permission.  This
+ * software is provided ``as is'' without express or implied warranty.
+ */
+/* Portions Copyright 2002, F5 Networks, Inc, All rights reserved.
+ * This software is not subject to any license of F5 Networks.
+ * This is free software; you can redistribute and use it
+ * under the same terms as OpenLDAP itself.
+ */
+/* This work was originally developed by Jeff Costlow (F5 Networks)
+ * based, in part, on existing LDAP tools.  Adaption for inclusion
+ * into OpenLDAP Software by Kurt D. Zeilenga.
+ */
 
 #include "portable.h"
 
