@@ -24,7 +24,6 @@ static int search_candidates(
 	SlapReply *rs,
 	Entry *e,
 	u_int32_t locker,
-	DB_LOCK *lock,
 	ID	*ids );
 static void send_pagerequest_response( 
 	Operation *op,
@@ -45,6 +44,7 @@ static Entry * deref_base (
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct berval ndn;
 	unsigned x;
+	DB_LOCK lockr;
 
 	rs->sr_err = LDAP_ALIAS_DEREF_PROBLEM;
 	rs->sr_text = "maximum deref depth exceeded";
@@ -69,18 +69,19 @@ static Entry * deref_base (
 			e = NULL;
 			break;
 		}
-		rs->sr_err = bdb_dn2entry_r( be, NULL, &ndn, &e, NULL, 0, locker, lock );
+		rs->sr_err = bdb_dn2entry_r( be, NULL, &ndn, &e, NULL, 0, locker, &lockr );
 		if (!e) {
 			rs->sr_err = LDAP_ALIAS_PROBLEM;
 			rs->sr_text = "aliasedObject not found";
 			break;
 		}
+		bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, *matched, lock);
+		*lock = lockr;
 		if (!is_entry_alias(e)) {
 			rs->sr_err = LDAP_SUCCESS;
 			rs->sr_text = NULL;
 			break;
 		}
-		bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, *matched, lock);
 	}
 	return e;
 }
@@ -90,7 +91,6 @@ static int search_aliases(
 	SlapReply *rs,
 	Entry *e,
 	u_int32_t locker,
-	DB_LOCK *lock,
 	Filter *sf,
 	ID *ids,
 	ID *stack
@@ -103,6 +103,8 @@ static int search_aliases(
 	struct berval bv_alias = { sizeof("alias")-1, "alias" };
 	AttributeAssertion aa_alias;
 	Filter	af;
+	DB_LOCK locka, lockr;
+	int first = 1;
 
 	aliases = stack;
 	curscop = aliases + BDB_IDL_UM_SIZE;
@@ -119,6 +121,7 @@ static int search_aliases(
 	af.f_next = NULL;
 
 	/* Find all aliases in database */
+	BDB_IDL_ALL( bdb, aliases );
 	rs->sr_err = bdb_filter_candidates( op->o_bd, &af, aliases, curscop, visited );
 	if (rs->sr_err != LDAP_SUCCESS) {
 		return rs->sr_err;
@@ -126,37 +129,42 @@ static int search_aliases(
 	oldsubs[0] = 1;
 	oldsubs[1] = e->e_id;
 
-	BDB_IDL_ZERO(ids);
-	BDB_IDL_ZERO(visited);
+	BDB_IDL_ZERO( ids );
+	BDB_IDL_ZERO( visited );
 	BDB_IDL_ZERO( newsubs );
 
 	ido = bdb_idl_first( oldsubs, &cursoro );
 
 	for (;;) {
 		BDB_IDL_CPY( curscop, aliases );
+		BDB_IDL_ALL( bdb, subscop );
 		rs->sr_err = bdb_filter_candidates( op->o_bd, sf, subscop, NULL, NULL );
-		bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, lock);
+		if (first) {
+			first = 0;
+		} else {
+			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &locka);
+		}
 		rs->sr_err = bdb_idl_intersection(curscop, subscop);
 
 		for (ida = bdb_idl_first(curscop, &cursora); ida != NOID;
 			ida = bdb_idl_next(curscop, &cursora)) {
-			rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ida, &a, locker, lock);
+			rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ida, &a, locker, &lockr);
 			if (rs->sr_err != LDAP_SUCCESS) {
 				continue;
 			}
 			if (!is_entry_alias(a)) {
-				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, a, lock);
+				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, a, &lockr);
 				continue;
 			}
 			BDB_IDL_ZERO(tmp);
-			a = deref_base( op->o_bd, rs, a, &matched, locker, lock, tmp, visited );
+			a = deref_base( op->o_bd, rs, a, &matched, locker, &lockr, tmp, visited );
 			if (a) {
 				if (bdb_idl_insert(subscop, a->e_id) == 0 && op->ors_scope == LDAP_SCOPE_SUBTREE) {
 					bdb_idl_insert(newsubs, a->e_id);
 				}
-				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, a, lock);
+				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, a, &lockr);
 			} else if (matched) {
-				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, matched, lock);
+				bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, matched, &lockr);
 			}
 		}
 		bdb_idl_union( ids, subscop );
@@ -169,7 +177,7 @@ nextido:
 			BDB_IDL_ZERO(newsubs);
 			ido = bdb_idl_first( oldsubs, &cursoro );
 		}
-		rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ido, &e, locker, lock);
+		rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ido, &e, locker, &locka);
 		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
 		sf->f_dn = &e->e_nname;
 	}
@@ -555,7 +563,8 @@ dn2entry_retry:
 		rs->sr_err = base_candidate( op->o_bd, e, candidates );
 
 	} else {
-		rs->sr_err = search_candidates( op, sop, rs, e, locker, &lock, candidates );
+		BDB_IDL_ALL( bdb, candidates );
+		rs->sr_err = search_candidates( op, sop, rs, e, locker, candidates );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -806,7 +815,11 @@ id2entry_retry:
 #ifdef BDB_ALIASES
 		/* aliases were already dereferenced in candidate list */
 		if ( (sop->ors_deref & LDAP_DEREF_SEARCHING) && is_entry_alias(e)) {
-			goto loop_continue;
+			/* but if the search base is an alias, and we didn't
+			 * deref it when finding, return it.
+			 */
+			if ( (sop->ors_deref & LDAP_DEREF_FINDING) || !bvmatch(&e->e_nname, &op->o_req_ndn))
+				goto loop_continue;
 		}
 #endif
 		/*
@@ -1310,7 +1323,6 @@ static int search_candidates(
 	SlapReply *rs,
 	Entry *e,
 	u_int32_t locker,
-	DB_LOCK *lock,
 	ID	*ids )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
@@ -1396,7 +1408,7 @@ static int search_candidates(
 	}
 
 	if( op->ors_deref & LDAP_DEREF_SEARCHING ) {
-		rc = search_aliases( op, rs, e, locker, lock, &scopef, ids, stack );
+		rc = search_aliases( op, rs, e, locker, &scopef, ids, stack );
 	} else {
 		rc = bdb_filter_candidates( op->o_bd, &scopef, ids, stack, stack+BDB_IDL_UM_SIZE );
 	}
