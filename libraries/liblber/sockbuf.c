@@ -211,17 +211,15 @@ ber_pvt_sb_grow_buffer( Sockbuf_Buf *buf, ber_len_t minsize )
 	assert( buf != NULL );
 
 	for ( pw = MIN_BUFF_SIZE; pw < minsize; pw <<= 1 ) {
-		if (pw > MAX_BUFF_SIZE)
-      return -1;
-   }
+		if (pw > MAX_BUFF_SIZE) return -1;
+	}
 
 	if ( buf->buf_size < pw ) {
 		p = LBER_REALLOC( buf->buf_base, pw );
-		if ( p == NULL )
-			return -1;
+		if ( p == NULL ) return -1;
 		buf->buf_base = p;
 		buf->buf_size = pw;
-   }
+	}
 	return 0;
 }
 
