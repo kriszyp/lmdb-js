@@ -398,123 +398,137 @@ bdb_idl_insert_key(
 	DBTzero( &data );
 #ifdef BDB_IDL_MULTI
 	{
-		ID buf[BDB_IDL_DB_SIZE];
 		DBC *cursor;
-		ID lo, hi;
+		ID lo, hi, tmp;
 		char *err;
 
 		data.size = sizeof( ID );
 		data.ulen = data.size;
 		data.flags = DB_DBT_USERMEM;
 
-		rc = bdb_idl_fetch_key( be, db, tid, key, buf );
-		if ( rc && rc != DB_NOTFOUND )
-			return rc;
-
-		/* If it never existed, or there's room in the current key,
-		 * just store it.
-		 */
-		if ( rc == DB_NOTFOUND || ( !BDB_IDL_IS_RANGE(buf) &&
-			BDB_IDL_N(buf) < BDB_IDL_DB_MAX ) ) {
-			data.data = &id;
-			rc = db->put( db, tid, key, &data, DB_NODUPDATA );
-		} else if ( BDB_IDL_IS_RANGE(buf) ) {
-			/* If it's a range and we're outside the boundaries,
-			 * rewrite the range boundaries.
-			 */
-			if ( id < BDB_IDL_RANGE_FIRST(buf) ||
-				id > BDB_IDL_RANGE_LAST(buf) ) {
-				rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
-				if ( rc != 0 ) {
+		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
+		if ( rc != 0 ) {
 #ifdef NEW_LOGGING
-					LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "bdb_idl_insert_key: cursor failed: %s (%d)\n", db_strerror(rc), rc ));
+			LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "bdb_idl_insert_key: cursor failed: %s (%d)\n", db_strerror(rc), rc ));
 #else
-					Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-						"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
 #endif
-					return rc;
-				}
-				if ( id < BDB_IDL_RANGE_FIRST(buf) ) {
-					data.data = buf+1;
-				} else {
-					data.data = buf+2;
-				}
-				rc = cursor->c_get( cursor, key, &data, DB_GET_BOTH | DB_RMW );
+			return rc;
+		}
+		data.data = &tmp;
+		/* Fetch the first data item for this key, to see if it
+		 * exists and if it's a range.
+		 */
+		rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
+		err = "c_get";
+		if ( rc == 0 ) {
+			if ( tmp != 0 ) {
+				/* not a range, count the number of items */
+				db_recno_t count;
+				rc = cursor->c_count( cursor, &count, 0 );
 				if ( rc != 0 ) {
-					err = "c_get";
+					err = "c_count";
+					goto fail;
+				}
+				if ( count >= BDB_IDL_DB_SIZE ) {
+				/* No room, convert to a range */
+					lo = tmp;
+					data.data = &hi;
+					rc = cursor->c_get( cursor, key, &data, DB_LAST );
+					if ( rc != 0 ) {
+						err = "c_get last";
+						goto fail;
+					}
+					if ( id < lo )
+						lo = id;
+					else if ( id > hi )
+						hi = id;
+					rc = db->del( db, tid, key, 0 );
+					if ( rc != 0 ) {
+						err = "del";
+						goto fail;
+					}
+					data.data = &id;
+					id = 0;
+					rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+					if ( rc != 0 ) {
+						err = "c_put 0";
+						goto fail;
+					}
+					id = lo;
+					rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
+					if ( rc != 0 ) {
+						err = "c_put lo";
+						goto fail;
+					}
+					id = hi;
+					rc = cursor->c_put( cursor, key, &data, DB_KEYLAST );
+					if ( rc != 0 ) {
+						err = "c_put hi";
+						goto fail;
+					}
+				} else {
+				/* There's room, just store it */
+					goto put1;
+				}
+			} else {
+				/* It's a range, see if we need to rewrite
+				 * the boundaries
+				 */
+				hi = id;
+				data.data = &lo;
+				rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
+				if ( rc != 0 ) {
+					err = "c_get lo";
+					goto fail;
+				}
+				if ( id > lo ) {
+					data.data = &hi;
+					rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
+					if ( rc != 0 ) {
+						err = "c_get hi";
+						goto fail;
+					}
+				}
+				if ( id < lo || id > hi ) {
+					/* Delete the current lo/hi */
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del";
+						goto fail;
+					}
+					data.data = &id;
+					rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+					if ( rc != 0 ) {
+						err = "c_put lo/hi";
+						goto fail;
+					}
+				}
+			}
+		} else if ( rc == DB_NOTFOUND ) {
+put1:			data.data = &id;
+			rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+			/* Don't worry if it's already there */
+			if ( rc != 0 && rc != DB_KEYEXIST ) {
+				err = "c_put id";
+				goto fail;
+			}
+		} else {
+			/* initial c_get failed, nothing was done */
 fail:
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "bdb_idl_insert_key: %s failed: %s (%d)\n", err, db_strerror(rc), rc ));
+			LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "bdb_idl_insert_key: %s failed: %s (%d)\n", err, db_strerror(rc), rc ));
 #else
-				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-						"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+				"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
 #endif
-					if ( cursor ) cursor->c_close( cursor );
-					return rc;
-				}
-				data.data = &id;
-				/* We should have been able to just overwrite the old
-				 * value with the new, but apparently we have to delete
-				 * it first.
-				 */
-				rc = cursor->c_del( cursor, 0 );
-				if ( rc ) {
-					err = "c_del";
-					goto fail;
-				}
-				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
-				if ( rc ) {
-					err = "c_put";
-					goto fail;
-				}
-				rc = cursor->c_close( cursor );
-				if ( rc ) {
-					cursor = NULL;
-					err = "c_close";
-					goto fail;
-				}
-			}
-		} else {		/* convert to a range */
-			lo = BDB_IDL_FIRST(buf);
-			hi = BDB_IDL_LAST(buf);
-
-			if (id < lo)
-				lo = id;
-			else if (id > hi)
-				hi = id;
-
-			cursor = NULL;
-
-			/* Delete all of the old IDL so we can replace with a range */
-			rc = db->del( db, tid, key, 0 );
-			if ( rc ) {
-				err = "del";
-				goto fail;
-			}
-
-			/* Write the range */
-			data.data = &id;
-			id = 0;
-			rc = db->put( db, tid, key, &data, 0 );
-			if ( rc ) {
-				err = "put #1";
-				goto fail;
-			}
-			id = lo;
-			rc = db->put( db, tid, key, &data, 0 );
-			if ( rc ) {
-				err = "put #2";
-				goto fail;
-			}
-			id = hi;
-			rc = db->put( db, tid, key, &data, 0 );
-			if ( rc ) {
-				err = "put #3";
-				goto fail;
-			}
+			cursor->c_close( cursor );
+			return rc;
 		}
+		rc = cursor->c_close( cursor );
 	}
-#else
+#else	/* !BDB_IDL_MULTI */
 	data.data = ids;
 	data.ulen = sizeof ids;
 	data.flags = DB_DBT_USERMEM;
@@ -644,17 +658,105 @@ bdb_idl_delete_key(
 #ifdef BDB_IDL_MULTI
 	{
 		DBC *cursor;
+		ID lo, hi, tmp;
+		char *err;
 
-		data.data = &id;
+		data.data = &tmp;
 		data.size = sizeof( id );
 		data.ulen = data.size;
 		data.flags = DB_DBT_USERMEM;
 
 		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
-		rc = cursor->c_get( cursor, key, &data, bdb->bi_db_opflags |
-			DB_GET_BOTH | DB_RMW  );
-		if (rc == 0)
-			rc = cursor->c_del( cursor, 0 );
+		if ( rc != 0 ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "bdb_idl_delete_key: cursor failed: %s (%d)\n", db_strerror(rc), rc ));
+#else
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
+				"cursor failed: %s (%d)\n", db_strerror(rc), rc, 0 );
+#endif
+			return rc;
+		}
+		/* Fetch the first data item for this key, to see if it
+		 * exists and if it's a range.
+		 */
+		rc = cursor->c_get( cursor, key, &data, DB_SET | DB_RMW );
+		err = "c_get";
+		if ( rc == 0 ) {
+			if ( tmp != 0 ) {
+				/* Not a range, just delete it */
+				data.data = &id;
+				rc = cursor->c_get( cursor, key, &data, 
+					DB_GET_BOTH | DB_RMW  );
+				if ( rc == 0 ) {
+					rc = cursor->c_del( cursor, 0 );
+					if ( rc != 0 ) {
+						err = "c_del id";
+						goto fail;
+					}
+				}
+			} else {
+				/* It's a range, see if we need to rewrite
+				 * the boundaries
+				 */
+				hi = 0;
+				data.data = &lo;
+				rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
+				if ( rc != 0 ) {
+					err = "c_get lo";
+					goto fail;
+				}
+				if ( id > lo ) {
+					data.data = &hi;
+					rc = cursor->c_get( cursor, key, &data, DB_NEXT_DUP );
+					if ( rc != 0 ) {
+						err = "c_get hi";
+						goto fail;
+					}
+				}
+				if ( id == lo || id == hi ) {
+					if ( id == lo ) {
+						id++;
+						lo = id;
+					} else if ( id == hi ) {
+						id--;
+						hi = id;
+					}
+					if ( lo >= hi ) {
+					/* The range has collapsed... */
+						rc = db->del( db, tid, key, 0 );
+						if ( rc != 0 ) {
+							err = "del";
+							goto fail;
+						}
+					} else {
+						rc = cursor->c_del( cursor, 0 );
+						if ( rc != 0 ) {
+							err = "c_del";
+							goto fail;
+						}
+					}
+					if ( lo <= hi ) {
+						data.data = &id;
+						rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+						if ( rc != 0 ) {
+							err = "c_put lo/hi";
+							goto fail;
+						}
+					}
+				}
+			}
+		} else {
+			/* initial c_get failed, nothing was done */
+fail:
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "bdb_idl_delete_key: %s failed: %s (%d)\n", err, db_strerror(rc), rc ));
+#else
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
+				"%s failed: %s (%d)\n", err, db_strerror(rc), rc );
+#endif
+			cursor->c_close( cursor );
+			return rc;
+		}
 		rc = cursor->c_close( cursor );
 	}
 #else
