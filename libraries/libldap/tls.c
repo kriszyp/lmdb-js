@@ -1069,9 +1069,11 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	assert( ssl != NULL );
 
 	/* 
-	 * compare host with name(s) in certificate 
+	 * compare host with name(s) in certificate. avoid NULL host
 	 */
 
+	if( host == NULL )
+		host = "localhost";
 	ld->ld_errno = ldap_pvt_tls_check_hostname( ssl, host );
 	if (ld->ld_errno != LDAP_SUCCESS) {
 		return ld->ld_errno;
