@@ -58,6 +58,8 @@ Port slurpd to NT
 
 Small projects
 --------------
+Add compare of RootDSE, cn=schema, etc.
+Add user configurable attributes to RootDSE
 Update LDBM to support Sleepycat BerkeleyDB 3
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
 Extend gateways to support tcp_wrappers
