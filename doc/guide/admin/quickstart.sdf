@@ -28,46 +28,67 @@ there, and untar it. For example:
 .{{EX:cd ldap}}
 
 + {{B: Configure the software}}.
-. You will have to edit two files to configure things for your site.
+. You will need to run the configure script to configure slapd.
 
-.{{EX:vi Make-common}}
-.{{EX:vi include/ldapconfig.h.edit}}
+.{{EX:./configure}}
 
-. Read the comments in Make-common and configure things
-appropriately. If you have the Berkeley DB package installed, or the
-GDBM package, you should set the LDBMBACKEND variable
-accordingly. Otherwise, the defaults should be OK to get you started.
+. Configure accepts many command line options that enable or disable
+optional features in slapd.  Usually the defaults are okay, but you
+may want to change them.  To get a complete list of options that configure 
+accepts, use the --help option.
 
-. In the include/ldapconfig.h.edit file, be sure to set the DEFAULT_BASE
-and LDAPHOST variables to something appropriate for your site.
-Other than that, the defaults should work OK.
+.{{EX:./configure --help}}
 
-+ {{B:Install the software}}.
-. From the top level LDAP source directory, type:
+. Once OpenLDAP has been configured, it needs to be compiled.  
+You'll need to make dependencies and then compile the software.
+For example:
 
-.{{EX: su}}
-.{{EX: make install}}
+.{{EX:make depend}}
+.{{EX:make}}
 
-. Examine the output of this command carefully to ensure everything is
-installed properly.
+. Once OpenLDAP is compiled you need to install it.  By default OpenLDAP 
+is installed into /usr/local.  This is typically done as root.
 
+.{{EX:su root}}
+.{{EX:make install}}
 
-+ {{B:Make a configuration file}}.
-. Create a file called myslapd.conf and
-enter the following lines into it. See Section 5 for more details on this
-file.
++ {{B:Edit the configuration file}}.
+. Use this section as a brief guide.  For more details on the configuration
+file, see chapter 5.
 
-.{{EX:referral ldap://ldap.openldap.org}}
-.{{EX:database ldbm}}
-.{{EX:suffix "o=<YOUR ORGANIZATION>, c=US"}}
-.{{EX:rootdn "cn=<YOUR NAME>, o=<YOUR ORGANIZATION>, c=US"}}
-.{{EX:rootpw secret}}
+. Now we need to edit the default configuration file that was installed
+earlier.  By default the configuration file for slapd is located at
+{{FILE:/usr/local/etc/openldap/slapd.conf}}.  If you specified the --prefix
+option when you ran configure, then replace {{FILE:/usr/local}} with the
+value you gave as the prefix. 
 
-.Be sure to replace "<YOUR ORGANIZATION>" with the name of your
-organization and "<YOUR NAME>" with your name. If you are not in
-the US, replace "US" with your two-letter country code. The rootdn
-and rootpw lines are only required if later you want to easily add or
-modify entries via LDAP.
+. For example, if you ran configure as
+.{{EX:./configure --prefix=/opt/ldap}}
+. You would find your configuration file in {{FILE:/opt/ldap/etc/openldap/slapd.conf}}. 
+
+. Now look in the configuration file for a line that begins with 
+.{{EX:database          ldbm}}  
+
+. This marks the begining of the database configuration for slapd.  Everything 
+you will need to change for this example is located after the line begining with
+.{{EX:database          ldbm}} 
+
+. Listed below are the default settings for the database in {{FILE:slapd.conf}}.
+Lines that begin with a # are considered to be comments by slapd, they have
+been removed from the listing below to save space.
+
+.{{EX:suffix          "dc=my-domain, dc=com"}}
+.{{EX:rootdn          "cn=Manager, dc=my-domain, dc=com"}}
+.{{EX:rootpw          secret}}
+.{{EX:directory       /usr/local/var/openldap-ldbm}}
+
+. Now we need to replace all of the references to my-domain with the correct
+value.  For example, if your domain is example.net we might use the following.
+
+.{{EX:suffix          "dc=example, dc=net"}}
+.{{EX:rootdn          "cn=Manager, dc=example, dc=net"}}
+.{{EX:rootpw          secret}}
+.{{EX:directory       /usr/local/var/openldap-ldbm}}
 
 + {{B:Create a database}}.
 . This is a two-step process. Step A is to create
@@ -75,39 +96,54 @@ a file (we'll call it myldif) containing the entries you want your database
 to contain. Use the following example as a guide, or see Section 7.3 for
 more details.
 
-.{{EX:dn: o=<YOUR ORGANIZATION>, c=US}}
-.{{EX:o: <YOUR ORGANIZATION>}}
+.{{EX:dn: dc=example, dc=net}}
+.{{EX:objectclass: dcObject}}
 .{{EX:objectclass: organization}}
+.{{EX:o: Example Net Inc.}}
+.{{EX:dc: example}}
 .
-.{{EX:dn: cn=<YOUR NAME>, o=<YOUR ORGANIZATION>, c=US}}
-.{{EX:cn: <YOUR NAME>}}
-.{{EX:sn: <YOUR LAST NAME>}}
-.{{EX:mail: <YOUR EMAIL ADDRESS>}}
+.{{EX:dn: cn=Bob Smith, dc=example, dc=net}}
 .{{EX:objectclass: person}}
+.{{EX:cn: Bob Smith}}
+.{{EX:sn: Smith}}
+
+.Remember to replace dc=example,dc=net with the correct values for your
+site, and to put your name instead of Bob's.
 
 .You can include additional entries and attributes in this file if you want,
 or add them later via LDAP.
 
 .Step B is to run this file through a tool to create the slapd database.
 
-.{{EX:$(ETCDIR)/ldif2ldbm -f myslapd.conf -i myldif}}
+.First we'll need to start slapd.
+To do this just run slapd.
+.{{EX:/usr/local/libexec/slapd}}
 
-.Where myslapd.conf is the configuration file you made in step 6, and
-myldif is the file you made in step 7A above. By default, the database
-files will be created in /usr/tmp. You may specify an alternate directory
-via the directory option in the slapd.conf file.
+.At this point the LDAP server is up and running, but there isn't any data
+in the directory.  We can use ldapadd to populate the directory.
+Again remember to replace dc=example,dc=net with the correct values for your
+site.  By default ldapadd is installed as /usr/local/bin/ldapadd.
+
+.{{EX:ldapadd -x -D"cn=Manager,dc=example,dc=net" -w secret -f myldif}}
+
+.Where myldif is the file you made in step 7A above. By default, the database
+files will be created in /usr/local/var/openldap-ldbm. You may specify an
+alternate directory via the directory option in the slapd.conf file.
 
 + {{B:See if it works}}.
-. You can use any LDAP client to do this, but our
-example uses the ldapsearch tool.
+. Now we're ready to try everything out.  
 
-.{{EX:ldapsearch -h 127.0.0.1 -b 'o=<YOUR ORGANIZATION>, c=US' 'objectclass=*'}}
+. You can use any LDAP client to do this, but our
+example uses the ldapsearch tool.  Remember to replace dc=example,dc=net with
+the correct values for your site.
+
+.{{EX:ldapsearch -b 'dc=example,dc=net' '(objectclass=*)'}}
 
 . This command will search for and retrieve every entry in the database.
 Note the use of single quotes around the filter, which prevents the "*"
 from being interpreted by the shell.
 
-. You are now ready to add more entries (e.g., using {{I:ldapadd}}(3) or
+. You are now ready to add more entries (e.g., using {{I:ldapadd}}(1) or
 another LDAP client), experiment with various configuration options,
 backend arrangements, etc. Note that by default, the {{I:slapd}} database
 grants {{EX:READ}} access to everybody. So if you want to add or modify
