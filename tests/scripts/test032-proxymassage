@@ -179,6 +179,7 @@ description: ...and modified as ldap://ldap.example.com:389/ou=Referrals,${BASED
 -
 EOMODS
 
+RC=$?
 if test $RC != 0 ; then
 	echo "Modify failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
