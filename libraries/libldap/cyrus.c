@@ -57,22 +57,29 @@ int ldap_int_sasl_init( void )
 	};
 
 #ifdef HAVE_SASL_VERSION
-#define SASL_BUILD_VERSION ((SASL_VERSION_MAJOR << 24) |\
-	(SASL_VERSION_MINOR << 16) | SASL_VERSION_STEP)
-
+	/* stringify the version number, sasl.h doesn't do it for us */
+#define VSTR0(maj, min, pat)	#maj "." #min "." #pat
+#define VSTR(maj, min, pat)	VSTR0(maj, min, pat)
+#define SASL_VERSION_STRING	VSTR(SASL_VERSION_MAJOR, SASL_VERSION_MINOR, \
+				SASL_VERSION_STEP)
 	{ int rc;
 	sasl_version( NULL, &rc );
 	if ( ((rc >> 16) != ((SASL_VERSION_MAJOR << 8)|SASL_VERSION_MINOR)) ||
 		(rc & 0xffff) < SASL_VERSION_STEP) {
+		char version[sizeof("xxx.xxx.xxxxx")];
+		sprintf( version, "%d.%d.%d", rc >> 24, rc >> 16 * 0xff,
+			rc & 0xffff );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, INFO,
-		"ldap_int_sasl_init: SASL version mismatch, got %x, wanted %x.\n",
-			rc, SASL_BUILD_VERSION, 0 );
+		"ldap_int_sasl_init: SASL library version mismatch:"
+		" expected " SASL_VERSION_STRING ","
+		" got %s\n", version, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-		"ldap_int_sasl_init: SASL version mismatch, got %x, wanted %x.\n",
-			rc, SASL_BUILD_VERSION, 0 );
+		"ldap_int_sasl_init: SASL library version mismatch:"
+		" expected " SASL_VERSION_STRING ","
+		" got %s\n", version, 0, 0 );
 #endif
 		return -1;
 	}

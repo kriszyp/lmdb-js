@@ -615,13 +615,14 @@ bdb_initialize(
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_BDB, ERR, 
-				"bdb_db_initialize: version mismatch: "
-				"\texpected: %s \tgot: %s\n", DB_VERSION_STRING, version, 0 );
+				"bdb_initialize: BDB library version mismatch:"
+				" expected " DB_VERSION_STRING ","
+				" got %s\n", version, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"bdb_initialize: version mismatch\n"
-				"\texpected: " DB_VERSION_STRING "\n"
-				"\tgot: %s \n", version, 0, 0 );
+				"bdb_initialize: BDB library version mismatch:"
+				" expected " DB_VERSION_STRING ","
+				" got %s\n", version, 0, 0 );
 #endif
 		}
 
