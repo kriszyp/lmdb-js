@@ -36,6 +36,8 @@ void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 /*
  * ctxcsn.c
  */
+#define bdb_csn_commit				BDB_SYMBOL(csn_commit)
+
 int bdb_csn_commit LDAP_P(( Operation *op, SlapReply *rs, DB_TXN *tid,
 						EntryInfo *ei, EntryInfo **suffix_ei, Entry **ctxcsn_e,
 						int *ctxcsn_added, u_int32_t locker ));
@@ -561,6 +563,7 @@ bdb_send_ldap_intermediate(
 /*
  * trans.c
  */
+#define bdb_trans_backoff			BDB_SYMBOL(trans_backoff)
 
 void
 bdb_trans_backoff( int num_retries );
