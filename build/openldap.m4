@@ -333,12 +333,9 @@ AC_DEFUN([OL_BERKELEY_DB_THREAD],
 main()
 {
 	int rc;
-	u_int32_t flags = DB_CREATE | DB_INIT_CDB | DB_INIT_MPOOL |
+	u_int32_t flags = DB_CREATE |
 #ifdef DB_PRIVATE
 		DB_PRIVATE |
-#endif
-#ifdef DB_MPOOL_PRIVATE
-		DB_MPOOL_PRIVATE |
 #endif
 		DB_THREAD;
 
@@ -351,17 +348,6 @@ main()
 		printf("BerkeleyDB: %s\n", db_strerror(rc) );
 		return rc;
 	}
-
-#if 0
-#ifdef DB_CDB_ALLDB
-	rc = env->set_flags( env, DB_CDB_ALLDB, 1 );
-
-	if( rc ) {
-		printf("BerkeleyDB: %s\n", db_strerror(rc) );
-		return rc;
-	}
-#endif
-#endif
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
 	rc = env->open( env, NULL, flags, 0 );
@@ -415,8 +401,7 @@ if test $ac_cv_header_db_h = yes; then
 	OL_BERKELEY_DB_LINK
 	if test "$ol_cv_lib_db" != no ; then
 		ol_cv_berkeley_db=yes
-dnl		Don't support Concurrent DB API
-dnl		OL_BERKELEY_DB_THREAD
+		OL_BERKELEY_DB_THREAD
 	fi
 fi
 ])

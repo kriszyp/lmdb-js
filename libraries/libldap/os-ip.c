@@ -337,6 +337,8 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 		for( sai=res; sai != NULL; sai=sai->ai_next) {
 			if( sai->ai_addr == NULL ) {
+				osip_debug(ld, "ldap_connect_to_host: getaddrinfo "
+					"ai_addr is NULL?\n", 0, 0, 0);
 				continue;
 			}
 

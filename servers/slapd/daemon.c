@@ -399,6 +399,14 @@ static int slap_get_listener_addresses(
 
 		for ( sai=res; sai; sai=sai->ai_next ) {
 			if( sai->ai_addr == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
+					"slap_get_listener_addresses: "
+					"getaddrinfo ai_addr is NULL?\n" ));
+#else
+				Debug( LDAP_DEBUG_ANY, "slap_get_listener_addresses: "
+					"getaddrinfo ai_addr is NULL?\n", 0, 0, 0 );
+#endif
 				freeaddrinfo(res);
 				goto errexit;
 			}

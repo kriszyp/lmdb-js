@@ -733,6 +733,9 @@
 /* define if you have (or want) no threads */
 #undef NO_THREADS
 
+/* define if Berkeley DB has DB_THREAD support */
+#undef HAVE_BERKELEY_DB_THREAD
+
 /* define this if Berkeley DB is available */
 #undef HAVE_BERKELEY_DB
 
