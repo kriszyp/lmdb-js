@@ -64,6 +64,7 @@ LDAP_F(LDAP_OBJECT_CLASS *) ldap_str2objectclass LDAP_P(( char * s, int * code, 
 LDAP_F(LDAP_ATTRIBUTE_TYPE *) ldap_str2attributetype LDAP_P(( char * s, int * code, char ** errp ));
 LDAP_F( char *) ldap_objectclass2str LDAP_P(( LDAP_OBJECT_CLASS * oc ));
 LDAP_F( char *) ldap_attributetype2str LDAP_P(( LDAP_ATTRIBUTE_TYPE * at ));
+LDAP_F( char *) ldap_scherr2str LDAP_P(( int code ));
 
 LDAP_END_DECL
 
