@@ -170,5 +170,8 @@ int bdb_entry_release(
 	Entry *e,
 	int rw )
 {
-	return bdb_entry_return( be, e );
+	if (o && o->o_tag == LDAP_REQ_ADD)
+		entry_free(e);
+	else
+		return bdb_entry_return( be, e );
 }
