@@ -412,7 +412,7 @@ If specified multiple times, each {{TERM:URL}} is provided.
 
 \Example:
 
->	update	ldap://master.example.net
+>	updateref	ldap://master.example.net
 
 
 H3: LDBM Backend-Specific Directives
