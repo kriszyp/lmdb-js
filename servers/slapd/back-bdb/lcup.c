@@ -658,23 +658,10 @@ dn2entry_retry:
 						const char *text = NULL;
 						LDAPControl *ctrls[2];
 						struct berval *bv;
-
-						BerElement *ber = ber_alloc_t( LBER_USE_DER );
-
-						if ( ber == NULL ) {
-#ifdef NEW_LOGGING
-							LDAP_LOG ( OPERATION, RESULTS, 
-								"bdb_search: ber_alloc_t failed\n",
-								0, 0, 0 );
-#else
-							Debug( LDAP_DEBUG_TRACE,
-								"bdb_search: ber_alloc_t failed\n",
-								0, 0, 0 );
-#endif
-							send_ldap_result( ps_conn, ps_op, rc=LDAP_OTHER,
-								NULL, "internal error", NULL, NULL );
-							goto done;
-						}
+						char berbuf[LBER_ELEMENT_SIZEOF];
+						BerElement *ber = (BerElement *)berbuf;
+						
+						ber_init2( ber, NULL, LBER_USE_DER );
 
 						LDAP_LIST_FIRST(&ps_op->psearch_spec)->entry_count++;
 
@@ -758,16 +745,17 @@ dn2entry_retry:
 
 						ctrls[0]->ldctl_oid = LDAP_CONTROL_ENTRY_UPDATE;
 						ctrls[0]->ldctl_iscritical = ps_op->o_clientupdate;
-						ret = ber_flatten( ber, &bv );
+						ret = ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 );
 
 						if ( ret < 0 ) {
+							ber_free_buf( ber );
 #ifdef NEW_LOGGING
 							LDAP_LOG ( OPERATION, RESULTS, 
-								"bdb_search: ber_flatten failed\n",
+								"bdb_search: ber_flatten2 failed\n",
 								0, 0, 0 );
 #else
 							Debug( LDAP_DEBUG_TRACE,
-								"bdb_search: ber_flatten failed\n",
+								"bdb_search: ber_flatten2 failed\n",
 								0, 0, 0 );
 #endif
 							send_ldap_result( ps_conn, ps_op, rc=LDAP_OTHER,
@@ -775,15 +763,11 @@ dn2entry_retry:
 							goto done;
 						}
 
-						ber_dupbv( &ctrls[0]->ldctl_value, bv );
-						
 						result = send_search_entry( be, ps_conn, ps_op,
 							e, attrs, attrsonly, ctrls);
 
-						ch_free( ctrls[0]->ldctl_value.bv_val );
+						ber_free_buf( ber );
 						ch_free( ctrls[0] );
-						ber_free( ber, 1 );
-						ber_bvfree( bv );
 
 						if ( psearch_type == LCUP_PSEARCH_BY_MODIFY ) {
 							struct psid_entry* psid_e;

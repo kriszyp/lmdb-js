@@ -654,24 +654,10 @@ id2entry_retry:
 							int res;
 							const char *text = NULL;
 							LDAPControl *ctrls[2];
-							struct berval *bv;
+							char berbuf[LBER_ELEMENT_SIZEOF];
+							BerElement *ber = (BerElement *)berbuf;
 
-							BerElement *ber = ber_alloc_t( LBER_USE_DER );
-
-							if ( ber == NULL ) {
-#ifdef NEW_LOGGING
-								LDAP_LOG ( OPERATION, RESULTS, 
-									"bdb_search: ber_alloc_t failed\n",
-									0, 0, 0 );
-#else
-								Debug( LDAP_DEBUG_TRACE,
-									"bdb_search: ber_alloc_t failed\n",
-									0, 0, 0 );
-#endif
-								send_ldap_result( conn, op, rc=LDAP_OTHER,
-									NULL, "internal error", NULL, NULL );
-								goto done;
-							}
+							ber_init2( ber, 0, LBER_USE_DER );
 
 							entry_count++;
 
@@ -733,16 +719,16 @@ id2entry_retry:
 
 							ctrls[0]->ldctl_oid = LDAP_CONTROL_ENTRY_UPDATE;
 							ctrls[0]->ldctl_iscritical = op->o_clientupdate;
-							ret = ber_flatten( ber, &bv );
-
+							ret = ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 );
 							if ( ret < 0 ) {
+								ber_free_buf( ber );
 #ifdef NEW_LOGGING
 								LDAP_LOG ( OPERATION, RESULTS, 
-									"bdb_search: ber_flatten failed\n",
+									"bdb_search: ber_flatten2 failed\n",
 									0, 0, 0 );
 #else
 								Debug( LDAP_DEBUG_TRACE,
-									"bdb_search: ber_flatten failed\n",
+									"bdb_search: ber_flatten2 failed\n",
 									0, 0, 0 );
 #endif
 								send_ldap_result( conn, op, rc=LDAP_OTHER,
@@ -750,15 +736,11 @@ id2entry_retry:
 								goto done;
 							}
 
-							ber_dupbv( &ctrls[0]->ldctl_value, bv );
-							
 							result = send_search_entry( be, conn, op,
 								e, attrs, attrsonly, ctrls);
 
-							ch_free( ctrls[0]->ldctl_value.bv_val );
+							ber_free_buf( ber );
 							ch_free( ctrls[0] );
-							ber_free( ber, 1 );
-							ber_bvfree( bv );
 						} else
 #endif /* LDAP_CLIENT_UPDATE */
 						{
@@ -817,21 +799,10 @@ loop_continue:
 	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
 		int ret;
 		LDAPControl *ctrls[2];
-		BerElement *ber = ber_alloc_t( LBER_USE_DER );
-		struct berval *bv;
+		char berbuf[LBER_ELEMENT_SIZEOF];
+		BerElement *ber = (BerElement *)berbuf;
 
-		if ( ber == NULL ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG ( OPERATION, RESULTS, 
-				"bdb_search: ber_alloc_t failed\n", 0, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE, "bdb_search: ber_alloc_t failed\n",
-				0, 0, 0 );
-#endif
-			send_ldap_result( conn, op, rc=LDAP_OTHER,
-				NULL, "internal error", NULL, NULL );
-			goto done;
-		}
+		ber_init2( ber, NULL, LBER_USE_DER );
 
 		ctrls[0] = ch_malloc ( sizeof ( LDAPControl ) );
 		ctrls[1] = NULL;
@@ -841,14 +812,15 @@ loop_continue:
 
 		ctrls[0]->ldctl_oid = LDAP_CONTROL_CLIENT_UPDATE_DONE;
 		ctrls[0]->ldctl_iscritical = op->o_clientupdate;
-		ret = ber_flatten( ber, &bv );
+		ret = ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 );
 
 		if ( ret < 0 ) {
+			ber_free_buf( ber );
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, RESULTS, 
-				"bdb_search: ber_flatten failed\n", 0, 0, 0 );
+				"bdb_search: ber_flatten2 failed\n", 0, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_TRACE, "bdb_search: ber_flatten failed\n",
+			Debug( LDAP_DEBUG_TRACE, "bdb_search: ber_flatten2 failed\n",
 				0, 0, 0 );
 #endif
 			send_ldap_result( conn, op, rc=LDAP_OTHER,
@@ -856,18 +828,14 @@ loop_continue:
 			goto done;
 		}
 
-		ber_dupbv( &ctrls[0]->ldctl_value, bv );
-
 		send_search_result( conn, op,
 			v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
 			NULL, NULL, v2refs, ctrls, nentries );
 
 		ch_free( latest_entrycsn_bv.bv_val );
 		latest_entrycsn_bv.bv_val = NULL;
-		ch_free( ctrls[0]->ldctl_value.bv_val );
 		ch_free( ctrls[0] );
-		ber_free( ber, 1 );
-		ber_bvfree( bv );
+		ber_free_buf( ber );
 	} else
 #endif /* LDAP_CLIENT_UPDATE */
 	{
@@ -1135,8 +1103,9 @@ send_pagerequest_response(
 	int		tentries )
 {
 	LDAPControl	ctrl, *ctrls[2];
-	BerElement	*ber;
-	struct berval	*bvalp, cookie = { 0, NULL };
+	char berbuf[LBER_ELEMENT_SIZEOF];
+	BerElement	*ber = (BerElement *)berbuf;
+	struct berval	cookie = { 0, NULL };
 	PagedResultsCookie respcookie;
 
 #ifdef NEW_LOGGING
@@ -1153,9 +1122,7 @@ send_pagerequest_response(
 	ctrls[0] = &ctrl;
 	ctrls[1] = NULL;
 
-	if (( ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
-		goto done;
-	}
+	ber_init2( ber, NULL, LBER_USE_DER );
 
 	respcookie = ( PagedResultsCookie )lastid;
 	conn->c_pagedresults_state.ps_cookie = respcookie;
@@ -1168,12 +1135,11 @@ send_pagerequest_response(
 	 */
 	ber_printf( ber, "{iO}", tentries, &cookie ); 
 
-	if ( ber_flatten( ber, &bvalp ) == LBER_ERROR ) {
+	if ( ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 ) == LBER_ERROR ) {
 		goto done;
 	}
 
 	ctrls[0]->ldctl_oid = LDAP_CONTROL_PAGEDRESULTS;
-	ctrls[0]->ldctl_value = ( *bvalp );
 	ctrls[0]->ldctl_iscritical = 0;
 
 	send_search_result( conn, op,
@@ -1181,9 +1147,6 @@ send_pagerequest_response(
 		NULL, NULL, NULL, ctrls, nentries );
 
 done:
-	(void) ber_free( ber, 1 );
-	if ( ctrls[0]->ldctl_value.bv_val ) {
-		ch_free( ctrls[0]->ldctl_value.bv_val );
-	}
+	(void) ber_free_buf( ber );
 }			
 
