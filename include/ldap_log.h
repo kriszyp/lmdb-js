@@ -17,18 +17,6 @@
 
 LDAP_BEGIN_DECL
 
-/* debugging stuff */
-#ifdef LDAP_DEBUG
-
-#ifndef ldap_debug
-extern int	ldap_debug;
-#endif /* !ldap_debug */
-
-#ifdef LDAP_SYSLOG
-extern int	ldap_syslog;
-extern int	ldap_syslog_level;
-#endif /* LDAP_SYSLOG */
-
 #define LDAP_DEBUG_TRACE	0x0001
 #define LDAP_DEBUG_PACKETS	0x0002
 #define LDAP_DEBUG_ARGS		0x0004
@@ -44,6 +32,18 @@ extern int	ldap_syslog_level;
 
 #define LDAP_DEBUG_NONE		0x8000
 #define LDAP_DEBUG_ANY		-1
+
+/* debugging stuff */
+#ifdef LDAP_DEBUG
+
+#ifndef ldap_debug
+extern int	ldap_debug;
+#endif /* !ldap_debug */
+
+#ifdef LDAP_SYSLOG
+extern int	ldap_syslog;
+extern int	ldap_syslog_level;
+#endif /* LDAP_SYSLOG */
 
 /* this doesn't below as part of ldap.h */
 #ifdef LDAP_SYSLOG
