@@ -188,10 +188,6 @@ SOURCE=.\md5.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\nt_err.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ntservice.c
 # End Source File
 # Begin Source File

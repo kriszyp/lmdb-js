@@ -211,6 +211,10 @@ SOURCE=.\memory.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\nt_err.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\options.c
 # End Source File
 # Begin Source File
