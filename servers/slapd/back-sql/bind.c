@@ -70,7 +70,7 @@ int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
      return 1;
     }
     
-   if ( ! access_allowed( be, conn, op, e,password, NULL, ACL_AUTH ) )
+   if ( ! access_allowed( be, conn, op, e, password, NULL, ACL_AUTH, NULL ) )
     {
      send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, NULL, NULL, NULL, NULL );
      return 1;
