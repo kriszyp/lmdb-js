@@ -378,6 +378,9 @@ glue_op_search ( Operation *op, SlapReply *rs )
 			case LDAP_TIMELIMIT_EXCEEDED:
 			case LDAP_ADMINLIMIT_EXCEEDED:
 			case LDAP_NO_SUCH_OBJECT:
+#ifdef LDAP_CONTROL_X_CHAINING_BEHAVIOR
+			case LDAP_CANNOT_CHAIN:
+#endif /* LDAP_CONTROL_X_CHAINING_BEHAVIOR */
 				goto end_of_loop;
 			
 			default:
