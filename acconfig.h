@@ -95,6 +95,19 @@
 #define LDAP_DEBUG
 #endif
 
+#ifdef HAVE_EBCDIC 
+/* ASCII/EBCDIC converting replacements for stdio funcs
+ * vsnprintf and snprintf are used too, but they are already
+ * checked by the configure script
+ */
+#define fputs lutil_fputs
+#define fgets lutil_fgets
+#define printf lutil_printf
+#define fprintf lutil_fprintf
+#define vfprintf lutil_vfprintf
+#define vsprintf lutil_vsprintf
+#endif
+
 #include "ldap_cdefs.h"
 #include "ldap_features.h"
 
