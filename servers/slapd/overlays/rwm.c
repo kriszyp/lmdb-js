@@ -96,6 +96,7 @@ rwm_op_add( Operation *op, SlapReply *rs )
 				i;
 	Attribute		**ap = NULL;
 	char			*olddn = op->o_req_dn.bv_val;
+	int			isupdate;
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "addDN" );
@@ -118,11 +119,12 @@ rwm_op_add( Operation *op, SlapReply *rs )
 	}
 
 	/* Count number of attributes in entry */ 
+	isupdate = be_shadow_update( op );
 	for ( i = 0, ap = &op->oq_add.rs_e->e_attrs; *ap; ) {
 		struct berval	mapped;
 		Attribute	*a;
 
-		if ( (*ap)->a_desc->ad_type->sat_no_user_mod ) {
+		if ( !isupdate && (*ap)->a_desc->ad_type->sat_no_user_mod ) {
 			goto next_attr;
 		}
 
@@ -340,6 +342,7 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
+	int			isupdate;
 	Modifications		**mlp;
 	int			rc;
 
@@ -355,11 +358,12 @@ rwm_op_modify( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
+	isupdate = be_shadow_update( op );
 	for ( mlp = &op->oq_modify.rs_modlist; *mlp; ) {
 		int		is_oc = 0;
 		Modifications	*ml;
 
-		if ( (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
+		if ( !isupdate && (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
 			goto next_mod;
 		}
 
@@ -745,6 +749,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 	dncookie		dc;
 	int			rc;
 	Attribute		**ap;
+	int			isupdate;
 
 	/*
 	 * Rewrite the dn attrs, if needed
@@ -770,6 +775,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 	 * an error (because multiple instances of attrs in 
 	 * response are not valid), or merge the values (what
 	 * about duplicate values?) */
+	isupdate = be_shadow_update( op );
 	for ( ap = a_first; *ap; ) {
 		struct ldapmapping	*m;
 		int			drop_missing;
@@ -787,7 +793,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 			goto cleanup_attr;
 		}
 
-		if ( (*ap)->a_desc->ad_type->sat_no_user_mod 
+		if ( !isupdate && (*ap)->a_desc->ad_type->sat_no_user_mod 
 			&& (*ap)->a_desc->ad_type != slap_schema.si_at_undefined )
 		{
 			goto next_attr;

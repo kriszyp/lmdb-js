@@ -34,16 +34,17 @@
 int
 meta_back_modify( Operation *op, SlapReply *rs )
 {
-	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn 	*lc;
-	int			rc = 0;
-	LDAPMod			**modv = NULL;
-	LDAPMod			*mods = NULL;
-	Modifications		*ml;
-	int			candidate = -1, i;
-	struct berval		mdn = BER_BVNULL;
-	struct berval		mapped;
-	dncookie		dc;
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn	*lc;
+	int		rc = 0;
+	LDAPMod		**modv = NULL;
+	LDAPMod		*mods = NULL;
+	Modifications	*ml;
+	int		candidate = -1, i;
+	int		isupdate;
+	struct berval	mdn = BER_BVNULL;
+	struct berval	mapped;
+	dncookie	dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
 			&op->o_req_ndn, &candidate );
@@ -94,10 +95,11 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 
 	dc.ctx = "modifyAttrDN";
+	isupdate = be_shadow_update( op );
 	for ( i = 0, ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		int j;
 
-		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
+		if ( !isupdate && ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 

@@ -35,13 +35,14 @@
 int
 meta_back_add( Operation *op, SlapReply *rs )
 {
-	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
-	struct metaconn *lc;
-	int i, candidate = -1;
-	Attribute *a;
-	LDAPMod **attrs;
-	struct berval mdn = BER_BVNULL, mapped;
-	dncookie dc;
+	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
+	struct metaconn	*lc;
+	int		i, candidate = -1;
+	int		isupdate;
+	Attribute	*a;
+	LDAPMod		**attrs;
+	struct berval	mdn = BER_BVNULL, mapped;
+	dncookie	dc;
 
 	Debug(LDAP_DEBUG_ARGS, "==> meta_back_add: %s\n",
 			op->o_req_dn.bv_val, 0, 0 );
@@ -81,10 +82,11 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/* Create array of LDAPMods for ldap_add() */
 	attrs = ch_malloc( sizeof( LDAPMod * )*i );
 
+	isupdate = be_shadow_update( op );
 	for ( i = 0, a = op->ora_e->e_attrs; a; a = a->a_next ) {
 		int j;
 
-		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
+		if ( !isupdate && a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
