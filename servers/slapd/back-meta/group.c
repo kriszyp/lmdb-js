@@ -145,7 +145,7 @@ meta_back_group(
 			attr = attr_find( target->e_attrs, group_at );
 			if ( attr != NULL ) {
 				rc = value_find_ex( group_at,
-					SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH,
+					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 					attr->a_vals, op_ndn );
 				if ( rc != LDAP_SUCCESS ) {
 					return 1;

@@ -82,7 +82,7 @@ ldap_back_group(
 			 * attribute has not been required
 			 */
 			if ((attr = attr_find(target->e_attrs, group_at)) != NULL) {
-				if( value_find_ex( group_at, SLAP_MR_VALUE_NORMALIZED_MATCH,
+				if( value_find_ex( group_at, SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 					attr->a_vals, op_ndn ) != LDAP_SUCCESS )
 					return(1);
 				return(0);
