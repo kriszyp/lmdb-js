@@ -873,12 +873,14 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 	LDAPRDN		*newRDN = NULL;
 	
 	assert( str );
-	assert( rdn );
+	assert( rdn || flags & LDAP_DN_SKIP );
 	assert( n );
 
 	Debug( LDAP_DEBUG_TRACE, "=> ldap_str2rdn(%s,%u)\n%s", str, flags, "" );
 
-	*rdn = NULL;
+	if ( rdn ) {
+		*rdn = NULL;
+	}
 	*n = NULL;
 
 	switch ( LDAP_DN_FORMAT( flags ) ) {
@@ -995,13 +997,22 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			if ( type == NULL ) {
 				goto parsing_error;
 			}
-			attrType = LDAP_MALLOC( sizeof( struct berval ) );
-			if ( attrType== NULL ) {
-				rc = LDAP_NO_MEMORY;
-				goto parsing_error;
+
+			if ( flags & LDAP_DN_SKIP ) {
+				/*
+				 * FIXME: hack for skipping a rdn; 
+				 * need a cleaner solution
+				 */
+				LDAP_FREE( type );
+
+			} else {
+				attrType = ber_bvstr( type );
+				if ( attrType == NULL ) {
+					rc = LDAP_NO_MEMORY;
+					goto parsing_error;
+				}
 			}
-			attrType->bv_val = type;
-			attrType->bv_len = strlen( type );
+
 			attrTypeEncoding = LDAP_AVA_BINARY;
 
 			state = B4AVAEQUALS;
@@ -1053,6 +1064,20 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 				goto parsing_error;
 			}
 			
+			attrTypeEncoding = LDAP_AVA_STRING;
+
+			/*
+			 * here we need to decide whether to use it as is 
+			 * or turn it in OID form; as a consequence, we
+			 * need to decide whether to binary encode the value
+			 */
+			
+			state = B4AVAEQUALS;
+
+			if ( flags & LDAP_DN_SKIP ) {
+				break;
+			}
+
 			assert( attrType == NULL );
 			attrType = LDAP_MALLOC( sizeof( struct berval ) );
 			if ( attrType == NULL ) {
@@ -1065,15 +1090,7 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 				goto parsing_error;
 			}
 			attrType->bv_len = len;
-			attrTypeEncoding = LDAP_AVA_STRING;
 
-			/*
-			 * here we need to decide whether to use it as is 
-			 * or turn it in OID form; as a consequence, we
-			 * need to decide whether to binary encode the value
-			 */
-			
-			state = B4AVAEQUALS;
 			break;
 		}
 				
@@ -1209,26 +1226,29 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			break;
 
 		case GOTAVA: {
-			LDAPAVA *ava;
-			LDAPRDN *rdn;
 			int	rdnsep = 0;
 
-			/*
-			 * we accept empty values
-			 */
-			ava = ldapava_new( attrType, attrValue, 
-					attrValueEncoding );
-			if ( ava == NULL ) {
-				rc = LDAP_NO_MEMORY;
-				goto parsing_error;
-			}
+			if ( !( flags & LDAP_DN_SKIP ) ) {
+				LDAPAVA *ava;
+				LDAPRDN *rdn;
 
-			rdn = ldapava_append_to_rdn( newRDN, ava );
-			if ( rdn == NULL ) {
-				rc = LDAP_NO_MEMORY;
-				goto parsing_error;
+				/*
+				 * we accept empty values
+				 */
+				ava = ldapava_new( attrType, attrValue, 
+						attrValueEncoding );
+				if ( ava == NULL ) {
+					rc = LDAP_NO_MEMORY;
+					goto parsing_error;
+				}
+
+				rdn = ldapava_append_to_rdn( newRDN, ava );
+				if ( rdn == NULL ) {
+					rc = LDAP_NO_MEMORY;
+					goto parsing_error;
+				}
+				newRDN = rdn;
 			}
-			newRDN = rdn;
 			
 			/* 
 			 * if we got an AVA separator ('+', or ',' for DCE ) 
@@ -1294,7 +1314,9 @@ return_result:;
 
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2rdn(%*s)=%d\n", 
 			*n - p, str, rc );
-	*rdn = newRDN;
+	if ( rdn ) {
+		*rdn = newRDN;
+	}
 	
 	return( rc );
 }
@@ -1394,6 +1416,11 @@ str2strval( const char *str, struct berval **val, const char **next, unsigned fl
 		}
 	}
 
+	*next = p;
+	if ( flags & LDAP_DN_SKIP ) {
+		return( 0 );
+	}
+
 	/*
 	 * FIXME: test memory?
 	 */
@@ -1441,9 +1468,6 @@ str2strval( const char *str, struct berval **val, const char **next, unsigned fl
 		( *val )->bv_val[ d ] = '\0';
 		assert( strlen( ( *val )->bv_val ) == len );
 	}
-
-
-	*next = p;
 
 	return( 0 );
 }
@@ -1501,7 +1525,11 @@ DCE2strval( const char *str, struct berval **val, const char **next, unsigned fl
 		}
 	}
 
-
+	*next = p;
+	if ( flags & LDAP_DN_SKIP ) {
+		return( 0 );
+	}
+	
 	len = ( endPos ? endPos : p ) - startPos - escapes;
 	*val = LDAP_MALLOC( sizeof( struct berval ) );
 	( *val )->bv_len = len;
@@ -1527,8 +1555,6 @@ DCE2strval( const char *str, struct berval **val, const char **next, unsigned fl
 		( *val )->bv_val[ d ] = '\0';
 		assert( strlen( ( *val )->bv_val ) == len );
 	}
-	
-	*next = p;
 	
 	return( 0 );
 }
@@ -1582,6 +1608,11 @@ IA52strval( const char *str, struct berval **val, const char **next, unsigned fl
 		/* no op */
 	}
 
+	*next = p;
+	if ( flags & LDAP_DN_SKIP ) {
+		return( 0 );
+	}
+
 	*val = LDAP_MALLOC( sizeof( struct berval ) );
 	len = ( endPos ? endPos : p ) - startPos - escapes;
 	( *val )->bv_len = len;
@@ -1601,7 +1632,6 @@ IA52strval( const char *str, struct berval **val, const char **next, unsigned fl
 		( *val )->bv_val[ d ] = '\0';
 		assert( strlen( ( *val )->bv_val ) == len );
 	}
-	*next = p;
 
 	return( 0 );
 }
@@ -1669,6 +1699,11 @@ quotedIA52strval( const char *str, struct berval **val, const char **next, unsig
 		/* no op */
 	}
 
+	*next = p;
+	if ( flags & LDAP_DN_SKIP ) {
+		return( 0 );
+	}
+
 	len = endPos - startPos - escapes;
 	assert( len >= 0 );
 	*val = LDAP_MALLOC( sizeof( struct berval ) );
@@ -1691,8 +1726,6 @@ quotedIA52strval( const char *str, struct berval **val, const char **next, unsig
 		( *val )->bv_val[ d ] = '\0';
 		assert( strlen( ( *val )->bv_val ) == len );
 	}
-
-	*next = p;
 
 	return( 0 );
 }
@@ -1811,6 +1844,11 @@ hexstr2binval( const char *str, struct berval **val, const char **next, unsigned
 
 end_of_value:;
 
+	*next = p;
+	if ( flags & LDAP_DN_SKIP ) {
+		return( 0 );
+	}
+
 	len = ( ( endPos ? endPos : p ) - startPos ) / 2;
 	/* must be even! */
 	assert( 2 * len == (ber_len_t) (( endPos ? endPos : p ) - startPos ));
@@ -1836,7 +1874,6 @@ end_of_value:;
 	}
 
 	( *val )->bv_val[ d ] = '\0';
-	*next = p;
 
 	return( 0 );
 }

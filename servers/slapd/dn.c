@@ -714,7 +714,8 @@ dn_rdnlen(
 	Backend		*be,
 	struct berval	*dn_in )
 {
-	struct berval	rdn;
+	int		rc;
+	char		*p;
 
 	assert( dn_in );
 
@@ -730,13 +731,13 @@ dn_rdnlen(
 		return 0;
 	}
 
-	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
+	rc = ldap_str2rdn( dn_in->bv_val, NULL, &p, 
+			LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
+	if ( rc != LDAP_SUCCESS ) {
 		return 0;
 	}
 
-	free( rdn.bv_val );
-
-	return rdn.bv_len;
+	return p - dn_in->bv_val;
 }
 
 /*
