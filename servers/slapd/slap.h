@@ -1299,9 +1299,6 @@ typedef struct syncinfo_s {
         void            *ctx;
         int             id;
         char            *masteruri;
-		struct berval	*master_bv;
-        char            *mastername;
-        int             masterport;
         int             type;
 		struct berval	updatedn;	
         char            *binddn;
@@ -1318,7 +1315,7 @@ typedef struct syncinfo_s {
         int             scope;
         int             deref;
         int             slimit;
-        int             tlimit;
+		int				tlimit;
         Filter          *filter;
         char            *filterstr;
         char            **attrs;

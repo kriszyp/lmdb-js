@@ -375,7 +375,7 @@ do_modrdn(
 			BerVarray defref = NULL;
 #ifdef LDAP_SYNCREPL
 			if ( op->o_bd->syncinfo ) {
-				defref = op->o_bd->syncinfo->master_bv;
+				defref = op->o_bd->syncinfo->masteruri;
 			} else
 #endif
 			{
