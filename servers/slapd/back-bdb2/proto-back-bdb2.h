@@ -148,7 +148,7 @@ int bdb2i_index_add_values LDAP_P(( BackendDB *be, char *type, struct berval **v
  * These prototypes are placed here because they are used by modify and
  * modify rdn which are implemented in different files. 
  *
- * We need bdb2i_internal_modify here because of LDAP modrdn & modify use 
+ * We need bdb2i_back_modify_internal here because of LDAP modrdn & modify use 
  * it. If we do not add this, there would be a bunch of code replication 
  * here and there and of course the likelihood of bugs increases.
  * Juan C. Gomez (gomez@engr.sgi.com) 05/18/99
@@ -158,7 +158,7 @@ int bdb2i_index_add_values LDAP_P(( BackendDB *be, char *type, struct berval **v
 int bdb2i_add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int bdb2i_delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int bdb2i_replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int bdb2i_modify_internal LDAP_P((Backend *be, Connection *conn, Operation *op,
+int bdb2i_back_modify_internal LDAP_P((Backend *be, Connection *conn, Operation *op,
 			         char *dn, LDAPModList *mods, Entry *e));
 /*
  * nextid.c
