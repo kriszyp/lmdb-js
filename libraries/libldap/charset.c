@@ -5,13 +5,7 @@
  *  charset.c
  */
 
-#if defined( DOS ) || defined( _WIN32 )
-/*
- * This MUST precede "#ifdef STR_TRANSLATION"
- * because STR_TRANSLATION and friends are defined in msdos.h.
- */
-#include "msdos.h"
-#endif /* DOS */
+#include "portable.h"
 
 #ifdef STR_TRANSLATION
 
@@ -20,19 +14,16 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #endif
 
 #include <stdio.h>
-#include <string.h>
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 ) && !defined(VMS)
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
@@ -159,7 +150,7 @@ ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <ac/string.h>
 
 /* Character set used: ISO 8859-1, ISO 8859-2, ISO 8859-3, ... */
 /* #define  ISO_8859      1 */
@@ -171,17 +162,10 @@ ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 typedef unsigned char  Byte;
 typedef struct { Byte  a, b; } Couple;
 
-#ifdef NEEDPROTOS
-static Byte *c_to_hh( Byte *o, Byte c );
-static Byte *c_to_cc( Byte *o, Couple *cc, Byte c );
-static int hh_to_c( Byte *h );
-static Byte *cc_to_t61( Byte *o, Byte *s );
-#else /* NEEDPROTOS */
-static Byte *c_to_hh();
-static Byte *c_to_cc();
-static int hh_to_c();
-static Byte *cc_to_t61();
-#endif /* NEEDPROTOS */
+static Byte *c_to_hh LDAP_P(( Byte *o, Byte c ));
+static Byte *c_to_cc LDAP_P(( Byte *o, Couple *cc, Byte c ));
+static int hh_to_c LDAP_P(( Byte *h ));
+static Byte *cc_to_t61 LDAP_P(( Byte *o, Byte *s ));
 
 /*
    Character choosed as base in diacritics alone: NO-BREAK SPACE.

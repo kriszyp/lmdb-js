@@ -18,13 +18,15 @@
  * feedback to the users.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
+
+#include <ac/unistd.h>
+#include <ac/string.h>
 
 #include "slurp.h"
 #include "globals.h"
-#include "portable.h"
 
 #define FC_DIRBAD	1
 #define FC_DIRUNREAD	2
@@ -37,11 +39,7 @@
 /*
  * Forward declarations
  */
-#ifdef NEEDPROTOS
-static unsigned int filecheck( char * );
-#else /* NEEDPROTOS */
-static unsigned int filecheck();
-#endif /* NEEDPROTOS */
+static unsigned int filecheck LDAP_P(( char * ));
 
 
 

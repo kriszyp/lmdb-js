@@ -1,9 +1,12 @@
 /* attr.c - backend routines for dealing with attributes */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -141,7 +144,7 @@ attr_index_config(
 			a->ai_indexmask |= INDEX_FROMINIT;
 		}
 
-		switch (avl_insert( &li->li_attrs, a, ainfo_cmp, ainfo_dup )) {
+		switch (avl_insert( &li->li_attrs, (caddr_t) a, ainfo_cmp, ainfo_dup )) {
 		case 1:		/* duplicate - updating init version */
 			free( a->ai_type );
 			free( (char *) a );

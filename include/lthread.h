@@ -3,11 +3,49 @@
 #ifndef _LTHREAD_H
 #define _LTHREAD_H
 
-#if defined ( THREAD_NEXT_CTHREADS )
+#include "portable.h"
 
-#define _THREAD
+#if defined( HAVE_PTHREADS )
+/**********************************
+ *                                *
+ * definitions for POSIX Threads  *
+ *                                *
+ **********************************/
+
+#include <pthread.h>
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+
+LDAP_BEGIN_DECL
+
+#if defined( HAVE_DCE )
+#define pthread_attr_init( a )		pthread_attr_create( a )
+#define pthread_attr_destroy( a )	pthread_attr_delete( a )
+#define pthread_attr_setdetachstate( a, b ) \
+					pthread_attr_setdetach_np( a, b )
+
+#elif !defined(HAVE_PTHREADS_D4)
+#define pthread_mutexattr_default	NULL
+#define pthread_condattr_default	NULL
+
+#ifdef HAVE_SCHED_YIELD
+#define pthread_yield sched_yield
+#endif
+#endif
+
+LDAP_END_DECL
+
+#elif defined ( HAVE_MACH_CTHREADS )
+/**********************************
+ *                                *
+ * definitions for Mach CThreads  *
+ *                                *
+ **********************************/
 
 #include <mach/cthreads.h>
+
+LDAP_BEGIN_DECL
 
 typedef cthread_fn_t	VFP;
 typedef int		pthread_attr_t;
@@ -36,17 +74,64 @@ typedef struct mutex pthread_mutex_t;
 typedef int	pthread_condattr_t;
 typedef struct condition pthread_cond_t;
 
-#elif defined( THREAD_SUNOS4_LWP )
-/***********************************
- *                                 *
- * thread definitions for sunos4   *
- *                                 *
- ***********************************/
+LDAP_END_DECL
 
-#define _THREAD
+#elif defined( HAVE_THR )
+/**************************************
+ *                                    *
+ * thread definitions for Solaris LWP *
+ *                                    *
+ **************************************/
+
+#include <thread.h>
+#include <synch.h>
+
+LDAP_BEGIN_DECL
+
+typedef void	*(*VFP)();
+
+/* default attr states */
+#define pthread_mutexattr_default	NULL
+#define pthread_condattr_default	NULL
+
+/* thread state - joinable or not */
+#define PTHREAD_CREATE_JOINABLE 0
+#define PTHREAD_CREATE_DETACHED THR_DETACHED
+/* thread scope - who is in scheduling pool */
+#define PTHREAD_SCOPE_PROCESS   0
+#define PTHREAD_SCOPE_SYSTEM    THR_BOUND
+/* mutex and condition variable scope - process or system */
+#define PTHREAD_SHARE_PRIVATE   USYNC_THREAD
+#define PTHREAD_SHARE_PROCESS   USYNC_PROCESS
+
+
+#if !defined(__SunOS_5_6)
+/* thread attributes and thread type */
+typedef int		pthread_attr_t;
+typedef thread_t	pthread_t;
+
+/* mutex attributes and mutex type */
+typedef int	pthread_mutexattr_t;
+typedef mutex_t	pthread_mutex_t;
+
+/* condition variable attributes and condition variable type */
+typedef int     pthread_condattr_t;
+typedef cond_t	pthread_cond_t;
+#endif /* ! sunos56 */
+
+LDAP_END_DECL
+
+#elif defined( HAVE_LWP )
+/*************************************
+ *                                   *
+ * thread definitions for SunOS LWP  *
+ *                                   *
+ *************************************/
 
 #include <lwp/lwp.h>
 #include <lwp/stackdep.h>
+
+LDAP_BEGIN_DECL
 
 typedef void	*(*VFP)();
 
@@ -80,110 +165,9 @@ typedef struct lwpcv {
 	cv_t		lcv_cv;
 } pthread_cond_t;
 
-#else /* end sunos4 */
+LDAP_END_DECL
 
-#if defined( THREAD_SUNOS5_LWP )
-/***********************************
- *                                 *
- * thread definitions for sunos5   *
- *                                 *
- ***********************************/
-
-#define _THREAD
-
-#include <thread.h>
-#include <synch.h>
-
-typedef void	*(*VFP)();
-
-/* sunos5 threads are preemptive */
-#define PTHREAD_PREEMPTIVE	1
-
-#if !defined(__SunOS_5_6)
-/* thread attributes and thread type */
-typedef int		pthread_attr_t;
-typedef thread_t	pthread_t;
-#endif /* ! sunos56 */
-
-/* default attr states */
-#define pthread_mutexattr_default	NULL
-#define pthread_condattr_default	NULL
-
-/* thread state - joinable or not */
-#define PTHREAD_CREATE_JOINABLE 0
-#define PTHREAD_CREATE_DETACHED THR_DETACHED
-/* thread scope - who is in scheduling pool */
-#define PTHREAD_SCOPE_PROCESS   0
-#define PTHREAD_SCOPE_SYSTEM    THR_BOUND
-
-#if !defined(__SunOS_5_6)
-/* mutex attributes and mutex type */
-typedef int	pthread_mutexattr_t;
-typedef mutex_t	pthread_mutex_t;
-#endif /* ! sunos56 */
-
-/* mutex and condition variable scope - process or system */
-#define PTHREAD_SHARE_PRIVATE   USYNC_THREAD
-#define PTHREAD_SHARE_PROCESS   USYNC_PROCESS
-
-#if !defined(__SunOS_5_6)
-/* condition variable attributes and condition variable type */
-typedef int     pthread_condattr_t;
-typedef cond_t	pthread_cond_t;
-#endif /* ! sunos56 */
-
-#else /* end sunos5 */
-
-#if defined( THREAD_MIT_PTHREADS )
-/***********************************
- *                                 *
- * definitions for mit pthreads    *
- *                                 *
- ***********************************/
-
-#define _THREAD
-
-#include <pthread.h>
-
-#else /* end mit pthreads */
-
-#if defined( THREAD_DCE_PTHREADS )
-/***********************************
- *                                 *
- * definitions for mit pthreads    *
- *                                 *
- ***********************************/
-
-#define _THREAD
-
-#include <pthread.h>
-
-/* dce threads are preemptive */
-#define PTHREAD_PREEMPTIVE	1
-
-#define pthread_attr_init( a )		pthread_attr_create( a )
-#define pthread_attr_destroy( a )	pthread_attr_delete( a )
-#define pthread_attr_setdetachstate( a, b ) \
-					pthread_attr_setdetach_np( (a), (b) )
-
-#else /* end dce pthreads */
-
-#if defined( POSIX_THREADS )
-
-#define _THREAD
-
-#include <pthread.h>
-
-#define pthread_mutexattr_default	NULL
-#define pthread_condattr_default	NULL
-
-#endif /* posix threads */
-#endif /* dce pthreads */
-#endif /* mit pthreads */
-#endif /* sunos5 */
-#endif /* sunos4 */
-
-#ifndef _THREAD
+#else
 
 /***********************************
  *                                 *
@@ -191,6 +175,17 @@ typedef cond_t	pthread_cond_t;
  * underlying library support      *
  *                                 *
  ***********************************/
+
+LDAP_BEGIN_DECL
+
+#ifndef NO_THREADS
+#define NO_THREADS 1
+#endif
+
+#ifndef PREEMPTIVE_THREADS
+/* treat no threads as preemptive */
+#define PREEMPTIVE_THREADS 1
+#endif
 
 typedef void	*(*VFP)();
 
@@ -220,6 +215,8 @@ typedef int	pthread_mutex_t;
 /* condition variable attributes and condition variable type */
 typedef int     pthread_condattr_t;
 typedef int	pthread_cond_t;
+
+LDAP_END_DECL
 
 #endif /* no threads support */
 #endif /* _LTHREAD_H */

@@ -1,9 +1,12 @@
 /* index.c - routines for dealing with attribute indexes */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -105,7 +108,7 @@ index_read(
 	char		*realval, *tmpval;
 	char		buf[BUFSIZ];
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 #endif
 
@@ -179,7 +182,7 @@ add_value(
 	char	*realval, *tmpval, *s;
 	char	buf[BUFSIZ];
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &key, 0, sizeof( key ) );
 #endif
 

@@ -1,3 +1,5 @@
+#include "portable.h"
+
 #ifndef NOSETPROCTITLE
 /*
  * Copyright (c) 1990,1991 Regents of the University of Michigan.

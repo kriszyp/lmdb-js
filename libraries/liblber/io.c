@@ -11,50 +11,29 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <unistd.h>
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS || _WIN32 */
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#ifdef PCNFS
-#include <tklib.h>
-#endif /* PCNFS */
-#endif /* MACOS */
-
-#ifndef VMS
-#include <memory.h>
+#ifdef HAVE_IO_H
+#include <io.h>
 #endif
-#include <string.h>
+
 #include "lber.h"
 
-#ifdef _WIN32
-#include <winsock.h>
-#include <io.h>
-#endif /* _WIN32 */
-
-#ifdef NEEDPROTOS
-static int ber_realloc( BerElement *ber, unsigned long len );
-static int ber_filbuf( Sockbuf *sb, long len );
-static long BerRead( Sockbuf *sb, char *buf, long len );
+static int ber_realloc LDAP_P(( BerElement *ber, unsigned long len ));
+static int ber_filbuf LDAP_P(( Sockbuf *sb, long len ));
+static long BerRead LDAP_P(( Sockbuf *sb, char *buf, long len ));
 #ifdef PCNFS
-static int BerWrite( Sockbuf *sb, char *buf, long len );
+static int BerWrite LDAP_P(( Sockbuf *sb, char *buf, long len ));
 #endif /* PCNFS */
-#else
-int ber_filbuf();
-long BerRead();
-static int ber_realloc();
-#endif /* NEEDPROTOS */
 
 #define bergetc( sb, len )    ( sb->sb_ber.ber_end > sb->sb_ber.ber_ptr ? \
 			  (unsigned char)*sb->sb_ber.ber_ptr++ : \
@@ -130,9 +109,9 @@ int
 ber_filbuf( Sockbuf *sb, long len )
 {
 	short	rc;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	int	addrlen;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 	if ( sb->sb_ber.ber_buf == NULL ) {
 		if ( (sb->sb_ber.ber_buf = (char *) malloc( READBUFSIZ )) ==
@@ -143,7 +122,7 @@ ber_filbuf( Sockbuf *sb, long len )
 	}
 
 	if ( sb->sb_naddr > 0 ) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		rc = udp_read(sb, sb->sb_ber.ber_buf, READBUFSIZ, addrlen );
 #ifdef LDAP_DEBUG
 		if ( lber_debug ) {
@@ -153,14 +132,13 @@ ber_filbuf( Sockbuf *sb, long len )
 				lber_bprint( sb->sb_ber.ber_buf, rc );
 		}
 #endif /* LDAP_DEBUG */
-#else /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
 		rc = -1;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	} else {
 		rc = read( sb->sb_sd, sb->sb_ber.ber_buf,
-		    ((sb->sb_options & LBER_NO_READ_AHEAD) &&
-		    (len < READBUFSIZ)) ?
-		    len : READBUFSIZ );
+			((sb->sb_options & LBER_NO_READ_AHEAD) && (len < READBUFSIZ)) ?
+				len : READBUFSIZ );
 	}
 
 	if ( rc > 0 ) {
@@ -185,7 +163,7 @@ BerRead( Sockbuf *sb, char *buf, long len )
 				break;
 			return( c );
 		}
-		*buf++ = c;
+		*buf++ = (char) c;
 		nread++;
 		len--;
 	}
@@ -315,17 +293,18 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	nwritten = 0;
 	do {
 		if (sb->sb_naddr > 0) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			rc = udp_write( sb, ber->ber_buf + nwritten,
 			    (size_t)towrite );
-#else /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
 			rc = -1;
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 			if ( rc <= 0 )
 				return( -1 );
+
 			/* fake error if write was not atomic */
 			if (rc < towrite) {
-#if !defined( MACOS ) && !defined( DOS )
+#ifdef EMSGSIZE
 			    errno = EMSGSIZE;
 #endif
 			    return( -1 );
@@ -355,7 +334,7 @@ ber_alloc_t( int options )
 	if ( (ber = (BerElement *) calloc( 1, sizeof(BerElement) )) == NULLBER )
 		return( NULLBER );
 	ber->ber_tag = LBER_DEFAULT;
-	ber->ber_options = options;
+	ber->ber_options = (char) options;
 
 	return( ber );
 }
@@ -391,7 +370,7 @@ ber_init( BerElement *ber, int options )
 {
 	(void) memset( (char *)ber, '\0', sizeof( BerElement ));
 	ber->ber_tag = LBER_DEFAULT;
-	ber->ber_options = options;
+	ber->ber_options = (char) options;
 }
 
 
@@ -543,7 +522,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 			    noctets ) {
 				return( LBER_DEFAULT );
 			}
-			*len = LBER_NTOHL( netlen );
+			*len = AC_NTOHL( netlen );
 		} else {
 			*len = lc;
 		}
@@ -562,7 +541,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 #endif /* DOS && !_WIN32 */
 
 		if ( ( sb->sb_options & LBER_MAX_INCOMING_SIZE ) &&
-		    *len > sb->sb_max_incoming ) {
+		    *len > (unsigned long) sb->sb_max_incoming ) {
 			return( LBER_DEFAULT );
 		}
 

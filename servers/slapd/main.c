@@ -1,12 +1,11 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "slap.h"
 #include "ldapconfig.h"
 
@@ -182,27 +181,27 @@ main( argc, argv )
 		pthread_attr_init( &attr );
 		pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 
-#ifndef THREAD_MIT_PTHREADS
+#if !defined(HAVE_PTHREADS_D4) && !defined(HAVE_DCE)
 		/* POSIX_THREADS or compatible
 		 * This is a draft 10 or standard pthreads implementation
 		 */
-		if ( pthread_create( &listener_tid, &attr, (void *) slapd_daemon,
+		if ( pthread_create( &listener_tid, &attr, slapd_daemon,
 		    (void *) port ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "listener pthread_create failed\n", 0, 0, 0 );
 			exit( 1 );
 		}
-#else	/* !THREAD_MIT_PTHREADS */
+#else	/* draft4 */
 		/*
 		 * This is a draft 4 or earlier pthreads implementation
 		 */
-		if ( pthread_create( &listener_tid, attr, (void *) slapd_daemon,
+		if ( pthread_create( &listener_tid, attr, slapd_daemon,
 		    (void *) port ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "listener pthread_create failed\n", 0, 0, 0 );
 			exit( 1 );
 		}
-#endif	/* !THREAD_MIT_PTHREADS */
+#endif	/* !draft4 */
 		pthread_attr_destroy( &attr );
 		pthread_join( listener_tid, (void *) &status );
 		pthread_exit( 0 );
@@ -234,7 +233,7 @@ main( argc, argv )
 #endif
 		flen = sizeof(from);
 		if ( getpeername( 0, (struct sockaddr *) &from, &flen ) == 0 ) {
-#ifdef REVERSE_LOOKUP
+#ifdef SLAPD_RLOOKUPS
 			hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
 			    sizeof(from.sin_addr.s_addr), AF_INET );
 #else

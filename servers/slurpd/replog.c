@@ -15,53 +15,39 @@
  * replog.c - routines which read and write replication log files.
  */
 
+#include "portable.h"
 
-#include <errno.h>
 #include <stdio.h>
-#include <syslog.h>
-#include <sys/time.h>
-#include <sys/types.h>
+
+#include <ac/errno.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
 
-#include "portable.h"
 #include "slurp.h"
 #include "globals.h"
 
 /*
  * Externs
  */
-#ifdef NEEDPROTOS
-extern FILE *lock_fopen( char *, char *, FILE ** );
-extern char *ch_malloc( unsigned long );
-#else /* NEEDPROTOS */
-extern FILE *lock_fopen();
-extern char *ch_malloc();
-#endif /* NEEDPROTOS */
+extern FILE *lock_fopen LDAP_P(( char *, char *, FILE ** ));
+extern char *ch_malloc LDAP_P(( unsigned long ));
 
 /*
  * Forward declarations
  */
-#ifdef NEEDPROTOS
-int file_nonempty( char * );
-#else /* NEEDPROTOS */
-int file_nonempty();
-#endif /* NEEDPROTOS */
+int file_nonempty LDAP_P(( char * ));
 
-
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif
 
 /*
  * Forward declarations
  */
 static int duplicate_replog( char *, char * );
-
-
 
 
 /*

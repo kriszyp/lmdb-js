@@ -10,14 +10,18 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
+
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/wait.h>
+
 #include <sys/resource.h>
-#include <sys/wait.h>
-#include <signal.h>
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
@@ -28,6 +32,12 @@ extern int verbose;
 extern LDAP *ld;
 
 extern LDAPMessage *find();
+
+static int load_editor();
+static int modifiable();
+static int print_attrs_and_values();
+static int ovalues();
+static int write_entry();
 
 static char *entry_temp_file;
 
@@ -42,8 +52,6 @@ char *who;
 	char *dn, **rdns;			/* distinguished name */
 	char name[MED_BUF_SIZE];		/* entry to modify */
 	extern int bind_status;
-	static int load_editor();
-	static int write_entry();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -110,7 +118,6 @@ static load_editor()
 	static char template[MED_BUF_SIZE];
 	extern char * mktemp();
 	extern int isgroup(), fatal();
-	static int print_attrs_and_values();
 	int pid;
 	int status;
 	int rc;
@@ -168,16 +175,16 @@ static load_editor()
 	}
 	if ((pid = fork()) == 0) {	
 		/* child - edit the Directory entry */
-		(void) signal(SIGINT, SIG_IGN);
+		(void) SIGNAL(SIGINT, SIG_IGN);
 		(void) execlp(editor, editor, entry_temp_file, NULL);
 		/*NOTREACHED*/
 		(void) fatal(editor);	
 	}
 	else if (pid > 0) {
 		/* parent - wait until the child proc is done editing */
-		handler = signal(SIGINT, SIG_IGN);
+		handler = SIGNAL(SIGINT, SIG_IGN);
 		(void) wait(&status);
-		(void) signal(SIGINT, handler);
+		(void) SIGNAL(SIGINT, handler);
 	}
 	else {
 		fatal("fork");
@@ -191,7 +198,6 @@ FILE *fp;
 struct attribute attrs[];
 short flag;
 {
-	static int modifiable();
 	register int i, j;
 
 	for (i = 0; attrs[i].quipu_name != NULL; i++) {
@@ -238,7 +244,6 @@ static write_entry()
 	LDAPMod *mods[MAX_ATTRS + 1];
 	LDAPMod *modp = NULL;
 
-	static int ovalues();
 	extern char * code_to_str();
 	extern void free_mod_struct();
 

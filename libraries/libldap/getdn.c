@@ -5,26 +5,19 @@
  *  getdn.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -252,19 +245,3 @@ ldap_is_dns_dn( char *dn )
 	    strchr( dn, ',' ) == NULL );
 }
 
-
-#if defined( ultrix ) || defined( NeXT )
-
-char *strdup( char *s )
-{
-	char	*p;
-
-	if ( (p = (char *) malloc( strlen( s ) + 1 )) == NULL )
-		return( NULL );
-
-	strcpy( p, s );
-
-	return( p );
-}
-
-#endif /* ultrix */

@@ -1,0 +1,112 @@
+##
+## Makefile.in for slapd
+##
+PROGRAMS=slapd
+XPROGRAMS=libbackends.a .backend
+SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
+		attr.c entry.c config.c backend.c result.c operation.c \
+		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
+		value.c ava.c bind.c unbind.c abandon.c filterentry.c \
+		phonetic.c acl.c str2filter.c aclparse.c init.c \
+		detach.c repl.c lock.c \
+		suffixAlias.c schema.c schemaparse.c monitor.c configinfo.c
+OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
+		attr.o entry.o config.o backend.o result.o operation.o \
+		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
+		value.o ava.o bind.o unbind.o abandon.o filterentry.o \
+		phonetic.o acl.o str2filter.o aclparse.o init.o \
+		detach.o repl.o lock.o \
+		suffixalias.o schema.o schemaparse.o monitor.o configinfo.o
+
+LDAP_INCDIR= ../../include
+LDAP_LIBDIR= ../../libraries
+
+BUILD_OPT = "--enable-slapd"
+BUILD_SRV = @BUILD_SLAPD@
+
+all-local: FORCE
+	$(MAKE) $(MFLAGS) backendslib
+	$(MAKE) $(MFLAGS) slapd
+	(cd tools; $(MAKE) $(MFLAGS) all)
+
+XLIBS = @SLAPD_LIBS@ libbackends.a \
+	-lavl -llutil -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ @LUTIL_LIBS@
+
+slapd: version.o
+	$(CC) $(LDFLGS) -o $@ $(OBJS) version.o $(LIBS)
+
+backendslib:	FORCE
+	@for i in back-*; do \
+		if [ -d $$i ]; then \
+			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
+			( cd $$i; $(MAKE) $(MFLAGS) all ); \
+		fi; \
+	done; \
+	echo " "; \
+	$(MAKE) $(MFLAGS) libbackends.a
+
+libbackends.a: .backend
+	@$(RM) -r tmp
+	@$(MKDIR) tmp
+	@-for i in back-*/*.a; do \
+		( \
+		  cd tmp; \
+		  $(AR) x ../$$i; \
+		  pre=`echo $$i | sed -e 's/\/.*$$//' -e 's/back-//'`; \
+		  for j in *.o; do \
+			mv $$j $${pre}$$j; \
+		  done; \
+		  $(AR) ruv libbackends.a *.o 2>&1 | grep -v truncated; \
+		  $(RM) *.o __.SYMDEF; \
+		  echo "added backend library $$i"; \
+		); \
+	done
+	@mv -f tmp/libbackends.a ./libbackends.a
+	@$(RM) -r tmp
+	@if [ ! -z "$(RANLIB)" ]; then \
+		$(RANLIB) libbackends.a; \
+	fi
+	@ls -l libbackends.a
+
+version.c: libbackends.a $(OBJS) $(LDAP_LIBDEPEND) \
+		$(LDAP_LIBDIR)/libldbm.a \
+		$(LDAP_LIBDIR)/libavl.a \
+		$(LDAP_LIBDIR)/libldif.a \
+		$(LDAP_LIBDIR)/liblutil.a \
+		$(LDAP_LIBDIR)/liblthread.a 
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< $(srcdir)/Version.c > $@)
+
+clean-local: FORCE
+	@for i in back-* tools; do \
+		if [ -d $$i ]; then \
+			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
+			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
+		fi; \
+	done
+
+install-local: install-slapd install-conf install-tools
+
+install-slapd: FORCE
+	@-$(MKDIR) $(libexecdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
+
+install-conf: FORCE
+	@-$(MKDIR) -p $(sysconfdir)
+	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' slapd.conf > /tmp/slapd.$$
+	-$(MV) $(sysconfdir)/slapd.conf $(sysconfdir)/slapd.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(sysconfdir)/slapd.conf
+	$(RM) -f /tmp/slapd.$$
+	-$(MV) $(sysconfdir)/slapd.at.conf $(sysconfdir)/slapd.at.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.at.conf $(sysconfdir)
+	-$(MV) $(sysconfdir)/slapd.oc.conf $(sysconfdir)/slapd.oc.conf-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.oc.conf $(sysconfdir)
+
+install-tools: FORCE
+	@-$(MKDIR) $(sbindir)
+	(cd tools; $(MAKE) $(MFLAGS) install)
+

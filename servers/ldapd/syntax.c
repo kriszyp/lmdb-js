@@ -10,17 +10,21 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/ds_search.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
@@ -544,7 +548,7 @@ int
 encode_attrs( BerElement *ber, Attr_Sequence as )
 {
 	PS		ps;
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	extern int	ldap_compat;
 #endif
 
@@ -555,7 +559,7 @@ encode_attrs( BerElement *ber, Attr_Sequence as )
 	if ( str_setup( ps, NULLCP, 0, 0 ) == NOTOK )
 		return( -1 );
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	if ( ber_printf( ber, "t{", ldap_compat == 20 ? OLD_LBER_SEQUENCE :
 	    LBER_SEQUENCE ) == -1 ) {
 #else
@@ -570,7 +574,7 @@ encode_attrs( BerElement *ber, Attr_Sequence as )
 		AttrT_print( ps, as->attr_type, EDBOUT );
 		*ps->ps_ptr = '\0';
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		if ( ber_printf( ber, "t{st[", ldap_compat == 20 ?
 		    OLD_LBER_SEQUENCE : LBER_SEQUENCE, ps->ps_base,
 		    ldap_compat == 20 ? OLD_LBER_SET : LBER_SET ) == -1 ) {

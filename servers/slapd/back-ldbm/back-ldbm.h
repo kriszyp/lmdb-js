@@ -5,9 +5,11 @@
 
 #include "ldbm.h"
 
+LDAP_BEGIN_DECL
+
 #define DEFAULT_CACHE_SIZE	1000
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 #	define DEFAULT_DBCACHE_SIZE (100 * DEFAULT_DB_PAGE_SIZE)
 #else
 #	define DEFAULT_DBCACHE_SIZE 100000
@@ -114,8 +116,8 @@ struct ldbminfo {
 	pthread_cond_t		li_dbcache_cv;
 };
 
-#ifdef NEEDPROTOS
 #include "proto-back-ldbm.h"
-#endif
+
+LDAP_END_DECL
 
 #endif /* _back_ldbm_h_ */

@@ -16,35 +16,26 @@
  *	Simon Fraser University, Academic Computing Services
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#if defined(NeXT)
 #include <stdlib.h>
-#include <sys/file.h>
-#else NeXT
-#include <unistd.h>
-#endif NeXT
-#include <pwd.h>
-#include <string.h>
-#ifndef DOS
-#if defined( NeXT ) || defined( ultrix ) || defined( osf1 ) || (defined(SunOS) && SunOS < 40)
-#include <sgtty.h>
-#else /* defined( NeXT ) || defined( ultrix ) etc. */
-#include <termios.h>
-#endif /* defined( NeXT ) || defined( ultrix ) etc. */
-#endif /* !DOS */
-#if defined( aix ) || defined( __NetBSD__ ) \
-	|| defined( __FreeBSD__ ) || defined( linux )
-#include <sys/ioctl.h>
-#endif /* aix || __NetBSD__ */
-#include <ctype.h>
-#include <signal.h>
 #include <setjmp.h>
-#include <memory.h>
+#include <pwd.h>
+
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/termios.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
-#include "portable.h"
 #include "ud.h"
 
 #ifndef lint
@@ -279,7 +270,7 @@ do_commands()
 	printf(" Thank you!\n");
 	
 	ldap_unbind(ld);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
 	exit(0);
@@ -541,7 +532,7 @@ initialize_client()
 	char *term;				/* for tty set-up */
 	char *config;				/* config file to use */
 	static char bp[1024];			/* for tty set-up */
-	extern SIG_FN attn();			/* ^C signal handler */
+	extern RETSIGTYPE attn();			/* ^C signal handler */
 	extern char *getenv();
 	extern void Free();
 
@@ -666,12 +657,12 @@ initialize_client()
 	lpp = DEFAULT_TTY_HEIGHT;
 	col_size = DEFAULT_TTY_WIDTH;
 
-	(void) signal(SIGINT, attn);
+	(void) SIGNAL (SIGINT, attn);
 
-#if !defined(DOS) && !defined(NOTERMCAP)
+#ifndef NO_TERMCAP
 	{
 	struct winsize win;			/* for tty set-up */
-	extern SIG_FN chwinsz();		/* WINSZ signal handler */
+	extern RETSIGTYPE chwinsz();		/* WINSZ signal handler */
 
 	if (((term = getenv("TERM")) == NULL) || (tgetent(bp, term) <= 0))
 		return;
@@ -691,54 +682,36 @@ initialize_client()
 				col_size = DEFAULT_TTY_WIDTH;
 		}
 	}
-	(void) signal(SIGWINCH, chwinsz);
+	(void) SIGNAL (SIGWINCH, chwinsz);
 
 	}
 #endif
 }
 
-SIG_FN attn()
+RETSIGTYPE attn()
 {
 	fflush(stderr);
 	fflush(stdout);
 	printf("\n\n  INTERRUPTED!\n");
-#if defined(DOS) || defined(SYSV)
-	(void) signal(SIGINT, attn);
-#endif
+
+	(void) SIGNAL (SIGINT, attn);
+
 	longjmp(env, 1);
 }
 
-#if !defined(DOS) && !defined(NOTERMCAP)
-SIG_FN chwinsz() 
+#ifndef NO_TERMCAP
+RETSIGTYPE chwinsz() 
 {
 	struct winsize win;
 
-	(void) signal(SIGWINCH, SIG_IGN);
+	(void) SIGNAL (SIGWINCH, SIG_IGN);
 	if (ioctl(fileno(stdout), TIOCGWINSZ, &win) != -1) {
 		if (win.ws_row != 0)
 			lpp = win.ws_row;
 		if (win.ws_col != 0)
 			col_size = win.ws_col;
 	}
-	(void) signal(SIGWINCH, chwinsz);
+
+	(void) SIGNAL (SIGWINCH, chwinsz);
 }
 #endif
-
-#if defined(NO_CACHE)
-
-void ldap_uncache_entry( LDAP *ld, char *dn )
-{
-
-}
-
-int ldap_enable_cache( LDAP *ld, long timeout, long maxmem )
-{
-  return 0;
-}
-
-void ldap_flush_cache( LDAP *ld )
-{
-
-}
-
-#endif /* NO_CACHE */

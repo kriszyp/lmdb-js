@@ -18,30 +18,29 @@
  */
 
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
 
 #include "../slapd/slap.h"
 #include "slurp.h"
 #include "globals.h"
 
 /* externs */
-extern char *str_getline( char **next );
-extern void ch_free( char *p );
-
-#ifndef	SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
+extern char *str_getline LDAP_P(( char **next ));
+extern void ch_free LDAP_P(( char *p ));
 
 /* Forward references */
-static Rh 	*get_repl_hosts( char *, int *, char ** );
-static int	gettype( char * );
-static int	getchangetype( char *);
-static int	Re_parse( Re *re, char *replbuf );
-static void 	Re_dump( Re *re, FILE *fp );
-static void	warn_unknown_replica( char *, int port );
+static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));
+static int	gettype LDAP_P(( char * ));
+static int	getchangetype LDAP_P(( char * ));
+static int	Re_parse LDAP_P(( Re *re, char *replbuf ));
+static void 	Re_dump LDAP_P(( Re *re, FILE *fp ));
+static void	warn_unknown_replica LDAP_P(( char *, int port ));
 
 /* Globals, scoped within this file */
 static int	nur = 0;	/* Number of unknown replicas */
@@ -82,10 +81,10 @@ Re_free(
 		"Warning: freeing re (dn: %s) with nonzero refcnt\n",
 		re->re_dn, 0, 0 );
     }
-#if !defined( THREAD_SUNOS4_LWP )
+#if !defined( HAVE_LWP )
     /* This seems to have problems under SunOS lwp */
     pthread_mutex_destroy( &re->re_mutex );
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_LWP */
     ch_free( re->re_timestamp );
     if (( rh = re->re_replicas ) != NULL ) {
 	for ( i = 0; rh[ i ].rh_hostname != NULL; i++ ) {

@@ -1,0 +1,49 @@
+## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, See COPYRIGHT file
+##
+## include Makefile.in for OpenLDAP
+
+all-local: ldapconfig.h FORCE
+
+install-local: FORCE
+		-$(MKDIR) -p $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 lber.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 ldap_cdefs.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 disptmpl.h $(includedir)
+		$(INSTALL) $(INSTALLFLAGS) -m 644 srchpref.h $(includedir)
+
+clean-local: FORCE 
+	$(RM) ldapconfig.h
+
+veryclean-local: clean-local FORCE
+	$(RM) portable.h
+
+depend-local: ldapconfig.h FORCE
+
+ldapconfig.h: $(srcdir)/ldapconfig.h.edit Makefile
+	@$(RM) $@
+	@echo "Making ldapconfig.h"
+	@echo "/*" > $@;  \
+	echo " * This file was automatically generated.  Do not edit it." >> $@; \
+	echo " * Instead, edit the file ldapconfig.h.edit.  See the LDAP" >> $@; \
+	echo " * INSTALL file for more information." >> $@; \
+	echo " */ " >> $@; \
+	echo "" >> $@; \
+	$(SED) \
+			-e 's;%SYSCONFDIR%;$(sysconfdir);' \
+			-e 's;%BINDIR%;$(bindir);' \
+			-e 's;%SBINDIR%;$(sbindir);' \
+			-e 's;%LIBEXECDIR%;$(libexecdir);' \
+			-e 's;%RUNDIR%;$(localstatedir);' \
+			-e 's;%EDITOR%;$(EDITOR);' \
+			-e 's;%FINGER%;$(FINGER);' \
+			-e 's;%SENDMAIL%;$(SENDMAIL);' \
+			 $(srcdir)/ldapconfig.h.edit >> $@; \
+	$(CHMOD) 444 $@
+
+all-common:			all-local
+install-common:		all-common install-local
+clean-common:		clean-local
+veryclean-common:	veryclean-local
+depend-common:		depend-local

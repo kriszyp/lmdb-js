@@ -1,18 +1,17 @@
 /* kerberos.c - ldbm backend kerberos bind routines */
 
+#include "portable.h"
+
+#ifdef HAVE_KERBEROS
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/krb.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
-
-#ifdef KERBEROS
-#ifdef KERBEROS_V
-#include <kerberosIV/krb.h>
-#else
-#include <krb.h>
-#endif /* KERBEROS_V */
 
 #define LDAP_KRB_PRINCIPAL	"ldapserver"
 

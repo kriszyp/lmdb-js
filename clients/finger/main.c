@@ -10,33 +10,27 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#ifdef aix
-#include <sys/select.h>
-#endif /* aix */
 #include <signal.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#include <sys/resource.h>
 
 #include "lber.h"
 #include "ldap.h"
 #include "disptmpl.h"
 
-#include "portable.h"
 #include "ldapconfig.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
 
 int	dosyslog = 1;
 char	*ldaphost = LDAPHOST;
@@ -176,11 +170,13 @@ static do_query()
 		exit( 1 );
 	}
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	tblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	tblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	tblsize = FD_SETSIZE;
+#endif
 
 #ifdef FD_SETSIZE
 	if (tblsize > FD_SETSIZE) {

@@ -31,6 +31,8 @@
  *
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 
 #include "slurp.h"
@@ -38,15 +40,7 @@
 
 
 /* externs */
-#ifdef NEEDPROTOS
-extern void Re_dump( Re *re );
-#else /* NEEDPROTOS */
-extern void Re_dump();
-#endif /* NEEDPROTOS */
-
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
+extern void Re_dump LDAP_P(( Re *re ));
 
 /*
  * Lock the replication queue.
@@ -58,9 +52,6 @@ Rq_lock(
 {
     return( pthread_mutex_lock( &rq->rq_mutex ));
 }
-
-
-
 
 
 /*
@@ -89,8 +80,6 @@ Rq_gethead(
 }
 
 
-
-
 /*
  * Return the next item in the queue.  Callers should lock the queue before
  * calling this routine.
@@ -106,8 +95,6 @@ Rq_getnext(
 	return( re->re_getnext( re ));
     }
 }
-
-
 
 
 /*
@@ -142,8 +129,6 @@ Rq_delhead(
     rq->rq_nre--;	/* decrement count of Re's in queue */
     return( rc );
 }
-
-
 
 
 /* 
@@ -209,8 +194,6 @@ Rq_add(
 }
 
 
-
-
 /*
  * Garbage-collect the replication queue.  Locking is handled internally.
  */
@@ -232,7 +215,6 @@ Rq_gc(
     rq->rq_unlock( rq ); 
     return;
 }
-
 
 
 /*
@@ -266,7 +248,6 @@ Rq_dump(
     fclose( fp );
     return;
 }
-
 
 
 /*
@@ -315,8 +296,6 @@ Rq_write(
     rq->rq_unlock( rq );
     return 0;
 }
-
-
 
 
 /*
@@ -389,8 +368,6 @@ Rq_getcount(
     rq->rq_unlock( rq );
     return count;
 }
-
-
 
 
 /* 

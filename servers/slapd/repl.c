@@ -1,11 +1,15 @@
 /* repl.c - log modifications for replication purposes */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include <sys/file.h>
-#include <sys/socket.h>
-#include <slap.h>
+
+#include "slap.h"
 
 extern pthread_mutex_t	replog_mutex;
 extern pthread_mutex_t	entry2str_mutex;

@@ -12,10 +12,13 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 
 extern Backend	*select_backend();
@@ -51,7 +54,7 @@ do_bind(
 	 *	}
 	 */
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	/*
 	 * in version 3.0 there is an extra SEQUENCE tag after the
 	 * BindRequest SEQUENCE tag.
@@ -80,13 +83,13 @@ do_bind(
 		    "decoding error" );
 		return;
 	}
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		switch ( method ) {
 		case LDAP_AUTH_SIMPLE_30:
 			method = LDAP_AUTH_SIMPLE;
 			break;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		case LDAP_AUTH_KRBV41_30:
 			method = LDAP_AUTH_KRBV41;
 			break;

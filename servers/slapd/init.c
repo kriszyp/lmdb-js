@@ -1,13 +1,13 @@
 /* init.c - initialize various things */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "portable.h"
 #include "slap.h"
 

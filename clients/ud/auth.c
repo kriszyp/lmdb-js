@@ -10,23 +10,20 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 #include <pwd.h>
-#include <string.h>
-#include <time.h>
-#include <ctype.h>
-#ifdef KERBEROS
-#include <sys/types.h>
-#ifdef KERBEROS_V
-#include <kerberosIV/krb.h>
-#else
-#include <krb.h>
-#endif /* KERBEROS_V */
-#endif /* KERBEROS */
+
+#include <ac/ctype.h>
+#include <ac/krb.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include <lber.h>
 #include <ldap.h>
 #include <ldapconfig.h>
+
 #include "ud.h"
 
 extern LDAP *ld;		/* our LDAP descriptor */
@@ -37,11 +34,13 @@ extern char *mygetpass();	/* getpass() passwds are too short */
 extern int debug;		/* debug flag */
 #endif
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 static char tktpath[20];	/* ticket file path */
 static int kinit();
 static int valid_tgt();
 #endif
+
+static void set_bound_dn();
 
 auth(who, implicit)
 char *who;
@@ -54,7 +53,7 @@ int implicit;
 	int name_provided;	/* was a name passed in? */
 	struct passwd *pw;	/* for getting user id */
 	char uidname[20];
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	char **krbnames;	/* for kerberos names */
 	int kinited, ikrb;
 	char buf[5];
@@ -71,7 +70,6 @@ int implicit;
 	extern void printbase();	/* used to pretty-print a base */
 	extern int bind_status;
 	extern void Free();
-	static void set_bound_dn();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -136,7 +134,7 @@ int implicit;
 	rdns = ldap_explode_dn(Entry.DN, TRUE);
 	printf("  Authenticating to the directory as \"%s\"...\n", *rdns );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	/*
 	 * First, if the user has a choice of auth methods, ask which
 	 * one they want to use.  if they want kerberos, ask which
@@ -235,7 +233,7 @@ int implicit;
 			(void) ldap_value_free(rdns);
 			return(0);
 		}
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	}
 	(void) ldap_value_free(krbnames);
 #endif
@@ -245,13 +243,13 @@ int implicit;
 		if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			fprintf(stderr, "  Entry has no password\n");
 		else if (ld->ld_errno == LDAP_INVALID_CREDENTIALS)
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");
 			} else {
 #endif
 				fprintf(stderr, "  The password you provided is incorrect.\n");
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			}
 #endif
 		else
@@ -280,12 +278,12 @@ int implicit;
 	return(0);
 }
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"
 
-str2upper( s )
+static void str2upper( s )
     char	*s;
 {
 	char	*p;
@@ -313,12 +311,12 @@ static valid_tgt( names )
 			return( 0 );
 		}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 		/*
 		 * realm must be uppercase for krb_ routines
 		 */
 		str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 		/*
 		* check ticket file for a valid ticket granting ticket
@@ -357,7 +355,7 @@ krbgetpass( user, inst, realm, pw, key )
 		return(-1);
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	strcpy( lcrealm, realm );
 	for ( p = lcrealm; *p != '\0'; ++p ) {
 		if ( isupper( *p )) {
@@ -366,9 +364,9 @@ krbgetpass( user, inst, realm, pw, key )
 	}
 
 	ka_StringToKey( passwd, lcrealm, key );
-#else /* AFSKERBEROS */
+#else /* HAVE_AFS_KERBEROS */
 	string_to_key( passwd, key );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	return( 0 );
 }
@@ -388,12 +386,12 @@ static kinit( kname )
 		return( -1 );
 	}
 
-#ifdef AFSKERBEROS
+#ifdef HAVE_AFS_KERBEROS
 	/*
 	 * realm must be uppercase for krb_ routines
 	 */
 	str2upper( realm );
-#endif /* AFSKERBEROS */
+#endif /* HAVE_AFS_KERBEROS */
 
 	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,
 	    DEFAULT_TKT_LIFE, krbgetpass, NULL, NULL );
@@ -413,7 +411,7 @@ static kinit( kname )
 	return( 0 );
 }
 
-destroy_tickets()
+void destroy_tickets(void)
 {
 	if ( *tktpath != '\0' ) {
 		unlink( tktpath );
@@ -421,8 +419,7 @@ destroy_tickets()
 }
 #endif
 
-static void set_bound_dn(s)
-char *s;
+static void set_bound_dn(char *s)
 {
 	extern void Free();
 	extern char *bound_dn;

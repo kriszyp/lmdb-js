@@ -16,11 +16,25 @@ MAKING AND INSTALLING THE DISTRIBUTION
     You should be able to make and install the distribution with a pretty
     standard default configuration by typing the following commands
 
-	% cp Make-common.dist to Make-common
-		Note: if using gmake, instead copy Make-common.gmake to Make-common
-		Edit Make-common as desired.
+	% ./configure --help
+		This will list the available options.
+		The configure script will also use your environmental
+		variables for determining compiler/linker options.
+		These environment variables are used:
+			CC			C compiler	(cc, ecgs)
+			CFLAGS		C Flags		(-ansi)
+			CPPFLAGS	CPP Flags	(-I -D)
+			LDFLAGS		LDFLAGS		(-L -l)
+
+	% [env settings] ./configure [options]
+		this will configure the build system
+
+	% make depend
+		this will create dependency information
+
 	% make 
 		this will build the system
+
 	% su
 	# make install
 
@@ -28,27 +42,7 @@ MAKING AND INSTALLING THE DISTRIBUTION
     works.
 
     You will probably want to do a little configuration to suit your
-    site, though.  There are two files you might want to edit:
-
-	Make-common.dist
-		contains distribution defaults.  This file is used to
-		contruct Make-common and should not be edited except to
-		add new features/options to the distribution.
-	
-	Make-common.gmake
-		contains distribution defaults (with GNU make compatibility).
-		This file can be used to contruct Make-common and should not
-		be edited except to add new features/options to the distribution.
-
-	Make-common
-		contains default definitions for where things will be
-		installed, where to find various things, etc.  These defaults
-		are used in absense of platform-specific defaults.  You may
-		hardcode settings in Make-common if you desire.  You will
-		need to edit this file to enable optional features.
-
-	build/*/Make-platform
-		contains platform-specific defaults.
+    site, though.  There are one file you might want to edit:
 
 	include/ldapconfig.h.edit
 		This file contains #defines used by many parts of the

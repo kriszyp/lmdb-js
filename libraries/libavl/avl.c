@@ -11,35 +11,38 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #ifndef lint
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 static char avl_version[] = "AVL library version 1.0\n";
 #endif
 
-#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+
 #include "avl.h"
 
 #define ROTATERIGHT(x)	{ \
 	Avlnode *tmp;\
-	if ( *x == NULL || (*x)->avl_left == NULL ) {\
+	if ( *(x) == NULL || (*(x))->avl_left == NULL ) {\
 		(void) printf("RR error\n"); exit(1); \
 	}\
-	tmp = (*x)->avl_left;\
-	(*x)->avl_left = tmp->avl_right;\
-	tmp->avl_right = *x;\
-	*x = tmp;\
+	tmp = (*(x))->avl_left;\
+	(*(x))->avl_left = tmp->avl_right;\
+	tmp->avl_right = *(x);\
+	*(x) = tmp;\
 }
 #define ROTATELEFT(x)	{ \
 	Avlnode *tmp;\
-	if ( *x == NULL || (*x)->avl_right == NULL ) {\
+	if ( *(x) == NULL || (*(x))->avl_right == NULL ) {\
 		(void) printf("RL error\n"); exit(1); \
 	}\
-	tmp = (*x)->avl_right;\
-	(*x)->avl_right = tmp->avl_left;\
+	tmp = (*(x))->avl_right;\
+	(*(x))->avl_right = tmp->avl_left;\
 	tmp->avl_left = *x;\
-	*x = tmp;\
+	*(x) = tmp;\
 }
 
 /*

@@ -17,20 +17,19 @@
  * to a replica LDAP server.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/unistd.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
-
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
-
 
 /*
  * Write a replication record to a reject file.  The reject file has the

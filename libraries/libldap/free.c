@@ -6,26 +6,18 @@
  *           link in lots of extra code when not using certain features
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1994 The Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
-
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <stdlib.h>
-#endif /* DOS */
-#endif /* MACOS */
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"

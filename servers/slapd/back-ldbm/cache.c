@@ -1,9 +1,12 @@
 /* cache.c - routines to maintain an in-core cache of entries */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
 #include "slap.h"
+
 #include "back-ldbm.h"
 
 static int	cache_delete_entry_internal();
@@ -132,8 +135,9 @@ cache_add_entry_lock(
 	/* set cache mutex */
 	pthread_mutex_lock( &cache->c_mutex );
 
-	if ( avl_insert( &cache->c_dntree, e, cache_entrydn_cmp, avl_dup_error )
-	    != 0 ) {
+	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
+		cache_entrydn_cmp, avl_dup_error ) != 0 )
+	{
 		Debug( LDAP_DEBUG_TRACE,
 			"====> cache_add_entry lock: entry %20s id %d already in dn cache\n",
 		    e->e_dn, e->e_id, 0 );
@@ -144,15 +148,17 @@ cache_add_entry_lock(
 	}
 
 	/* id tree */
-	if ( avl_insert( &cache->c_idtree, e, cache_entryid_cmp, avl_dup_error )
-	    != 0 ) {
+	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
+		cache_entryid_cmp, avl_dup_error ) != 0 )
+	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> entry %20s id %d already in id cache\n",
 		    e->e_dn, e->e_id, 0 );
 
 		/* delete from dn tree inserted above */
-		if ( avl_delete( &cache->c_dntree, e, cache_entrydn_cmp )
-		    == NULL ) {
+		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
+			cache_entrydn_cmp ) == NULL )
+		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
 		}
@@ -226,9 +232,9 @@ cache_find_entry_dn2id(
 
 	e.e_dn = dn;
 
-	if ( (ep = (Entry *) avl_find( cache->c_dntree, &e, cache_entrydn_cmp ))
-		!= NULL ) {
-
+	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
+		cache_entrydn_cmp )) != NULL )
+	{
 		Debug(LDAP_DEBUG_TRACE, "====> cache_find_entry_dn2id: found dn: %s\n",
 			dn, 0, 0);
 
@@ -307,9 +313,9 @@ cache_find_entry_id(
 
 	e.e_id = id;
 
-	if ( (ep = (Entry *) avl_find( cache->c_idtree, &e, cache_entryid_cmp ))
-		!= NULL ) {
-
+	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
+		cache_entryid_cmp )) != NULL )
+	{
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_dn2id: found id: %ld rw: %d\n",
 			id, rw, 0);
@@ -407,12 +413,16 @@ cache_delete_entry_internal(
 )
 {
 	/* dn tree */
-	if ( avl_delete( &cache->c_dntree, e, cache_entrydn_cmp ) == NULL ) {
+	if ( avl_delete( &cache->c_dntree, (caddr_t) e, cache_entrydn_cmp )
+		== NULL )
+	{
 		return( -1 );
 	}
 
 	/* id tree */
-	if ( avl_delete( &cache->c_idtree, e, cache_entryid_cmp ) == NULL ) {
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, cache_entryid_cmp )
+		== NULL )
+	{
 		return( -1 );
 	}
 

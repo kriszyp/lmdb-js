@@ -12,6 +12,12 @@
  is provided ``as is'' without express or implied warranty.
 */
 
+#ifndef SHELLUTIL_H
+#define SHELLUTIL_H
+
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
 
 #define MAXLINELEN	512
 
@@ -69,7 +75,7 @@ struct ldentry {
 
 
 #ifdef LDAP_DEBUG
-void debug_printf();
+void debug_printf LDAP_P((char *, ...));
 #else /* LDAP_DEBUG */
 #define debug_printf()
 #endif /* LDAP_DEBUG */
@@ -94,3 +100,6 @@ char *estrdup( char *s );
  */
 extern int	debugflg;
 extern char	*progname;
+
+LDAP_END_DECL
+#endif

@@ -13,29 +13,20 @@
 #ifndef _LDAP_H
 #define _LDAP_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <ldap_cdefs.h>
 
-
-#ifdef WINSOCK
-#include "msdos.h"
-#include <winsock.h>
-#endif
-
-#if !defined( NEEDPROTOS ) && defined(__STDC__)
-#define NEEDPROTOS	1
-#endif
+LDAP_BEGIN_DECL
 
 #define LDAP_PORT	389
 #define LDAP_VERSION1	1
 #define LDAP_VERSION2	2
+#define LDAP_VERSION3	3
 #define LDAP_VERSION	LDAP_VERSION2
 
-#define COMPAT20
-#define COMPAT30
-#if defined(COMPAT20) || defined(COMPAT30)
-#define COMPAT
+#define LDAP_COMPAT20
+#define LDAP_COMPAT30
+#if defined(LDAP_COMPAT20) || defined(LDAP_COMPAT30)
+#define LDAP_COMPAT
 #endif
 
 #define LDAP_MAX_ATTR_LEN	100
@@ -46,7 +37,8 @@ extern int	ldap_debug;
 #ifdef LDAP_SYSLOG
 extern int	ldap_syslog;
 extern int	ldap_syslog_level;
-#endif
+#endif /* LDAP_SYSLOG */
+
 #define LDAP_DEBUG_TRACE	0x001
 #define LDAP_DEBUG_PACKETS	0x002
 #define LDAP_DEBUG_ARGS		0x004
@@ -61,6 +53,7 @@ extern int	ldap_syslog_level;
 #define LDAP_DEBUG_PARSE	0x800
 #define LDAP_DEBUG_ANY		0xffff
 
+/* this doesn't below as part of ldap.h */
 #ifdef LDAP_SYSLOG
 #define Debug( level, fmt, arg1, arg2, arg3 )	\
 	{ \
@@ -453,12 +446,8 @@ typedef struct ldap {
 	int		ld_cldaptimeout;/* time between retries */
 	int		ld_refhoplimit;	/* limit on referral nesting */
 	unsigned long	ld_options;	/* boolean options */
-#ifdef LDAP_DNS
 #define LDAP_OPT_DNS		0x00000001	/* use DN & DNS */
-#endif /* LDAP_DNS */
-#ifdef LDAP_REFERRALS
 #define LDAP_OPT_REFERRALS	0x00000002	/* chase referrals */
-#endif /* LDAP_REFERRALS */
 #define LDAP_OPT_RESTART	0x00000004	/* restart if EINTR occurs */
 
 	/* do not mess with the rest though */
@@ -512,83 +501,264 @@ typedef struct ldap_url_desc {
 #define LDAP_URL_ERR_BADSCOPE	3	/* URL scope string is invalid */
 #define LDAP_URL_ERR_MEM	4	/* can't allocate memory space */
 
+/* this typedef is never used, only exists to rid of declaration
+ in function param list warning */
+typedef struct timeval LDAPtv;
 
-#ifndef NEEDPROTOS
-extern LDAP *ldap_open();
-extern LDAP *ldap_init();
-#ifdef STR_TRANSLATION
-extern void ldap_set_string_translators();
-#ifdef LDAP_CHARSET_8859
-extern int ldap_t61_to_8859();
-extern int ldap_8859_to_t61();
-#endif /* LDAP_CHARSET_8859 */
-#endif /* STR_TRANSLATION */
-extern LDAPMessage *ldap_first_entry();
-extern LDAPMessage *ldap_next_entry();
-extern char *ldap_get_dn();
-extern char *ldap_dn2ufn();
-extern char **ldap_explode_dn();
-extern char *ldap_first_attribute();
-extern char *ldap_next_attribute();
-extern char **ldap_get_values();
-extern struct berval **ldap_get_values_len();
-extern void ldap_value_free();
-extern void ldap_value_free_len();
-extern int ldap_count_values();
-extern int ldap_count_values_len();
-extern char *ldap_err2string();
-extern void ldap_getfilter_free();
-extern LDAPFiltDesc *ldap_init_getfilter();
-extern LDAPFiltDesc *ldap_init_getfilter_buf();
-extern LDAPFiltInfo *ldap_getfirstfilter();
-extern LDAPFiltInfo *ldap_getnextfilter();
-extern void ldap_setfilteraffixes();
-extern void ldap_build_filter();
-extern void ldap_flush_cache();
-extern void ldap_set_cache_options();
-extern void ldap_uncache_entry();
-extern void ldap_uncache_request();
-extern char *ldap_friendly_name();
-extern void ldap_free_friendlymap();
-extern LDAP *cldap_open();
-extern void cldap_setretryinfo();
-extern void cldap_close();
-extern LDAPFiltDesc *ldap_ufn_setfilter();
-extern int ldap_ufn_timeout();
-extern int ldap_sort_entries();
-extern int ldap_sort_values();
-extern int ldap_sort_strcasecmp();
-void ldap_free_urldesc();
-void ldap_set_rebind_proc();
-void ldap_enable_translation();
+/*
+ * in abandon.c:
+ */
+LDAP_F int ldap_abandon LDAP_P(( LDAP *ld, int msgid ));
+
+/*
+ * in add.c:
+ */
+LDAP_F int ldap_add LDAP_P(( LDAP *ld, char *dn, LDAPMod **attrs ));
+LDAP_F int ldap_add_s LDAP_P(( LDAP *ld, char *dn, LDAPMod **attrs ));
+
+/*
+ * in bind.c:
+ */
+LDAP_F int ldap_bind LDAP_P(( LDAP *ld, char *who, char *passwd, int authmethod ));
+LDAP_F int ldap_bind_s LDAP_P(( LDAP *ld, char *who, char *cred, int method ));
+LDAP_F void ldap_set_rebind_proc LDAP_P(( LDAP *ld,
+	int (*rebindproc) LDAP_P(( LDAP *ld, char **dnp, char **passwdp, int *authmethodp, int freeit ))
+));
+
+/*
+ * in sbind.c:
+ */
+LDAP_F int ldap_simple_bind LDAP_P(( LDAP *ld, char *who, char *passwd ));
+LDAP_F int ldap_simple_bind_s LDAP_P(( LDAP *ld, char *who, char *passwd ));
+
+/*
+ * in kbind.c:
+ */
+LDAP_F int ldap_kerberos_bind_s LDAP_P(( LDAP *ld, char *who ));
+LDAP_F int ldap_kerberos_bind1 LDAP_P(( LDAP *ld, char *who ));
+LDAP_F int ldap_kerberos_bind1_s LDAP_P(( LDAP *ld, char *who ));
+LDAP_F int ldap_kerberos_bind2 LDAP_P(( LDAP *ld, char *who ));
+LDAP_F int ldap_kerberos_bind2_s LDAP_P(( LDAP *ld, char *who ));
+ 
+
+/*
+ * in cache.c
+ */
+LDAP_F int ldap_enable_cache LDAP_P(( LDAP *ld, long timeout, long maxmem ));
+LDAP_F void ldap_disable_cache LDAP_P(( LDAP *ld ));
+LDAP_F void ldap_set_cache_options LDAP_P(( LDAP *ld, unsigned long opts ));
+LDAP_F void ldap_destroy_cache LDAP_P(( LDAP *ld ));
+LDAP_F void ldap_flush_cache LDAP_P(( LDAP *ld ));
+LDAP_F void ldap_uncache_entry LDAP_P(( LDAP *ld, char *dn ));
+LDAP_F void ldap_uncache_request LDAP_P(( LDAP *ld, int msgid ));
+
+/*
+ * in compare.c:
+ */
+LDAP_F int ldap_compare LDAP_P(( LDAP *ld, char *dn, char *attr, char *value ));
+LDAP_F int ldap_compare_s LDAP_P(( LDAP *ld, char *dn, char *attr, char *value ));
+
+/*
+ * in delete.c:
+ */
+LDAP_F int ldap_delete LDAP_P(( LDAP *ld, char *dn ));
+LDAP_F int ldap_delete_s LDAP_P(( LDAP *ld, char *dn ));
+
+/*
+ * in error.c:
+ */
+LDAP_F int ldap_result2error LDAP_P(( LDAP *ld, LDAPMessage *r, int freeit ));
+LDAP_F char *ldap_err2string LDAP_P(( int err ));
+LDAP_F void ldap_perror LDAP_P(( LDAP *ld, char *s ));
+
+/*
+ * in modify.c:
+ */
+LDAP_F int ldap_modify LDAP_P(( LDAP *ld, char *dn, LDAPMod **mods ));
+LDAP_F int ldap_modify_s LDAP_P(( LDAP *ld, char *dn, LDAPMod **mods ));
+
+/*
+ * in modrdn.c:
+ */
+LDAP_F int ldap_modrdn LDAP_P(( LDAP *ld, char *dn, char *newrdn ));
+LDAP_F int ldap_modrdn_s LDAP_P(( LDAP *ld, char *dn, char *newrdn ));
+LDAP_F int ldap_modrdn2 LDAP_P(( LDAP *ld, char *dn, char *newrdn,
+	int deleteoldrdn ));
+LDAP_F int ldap_modrdn2_s LDAP_P(( LDAP *ld, char *dn, char *newrdn,
+	int deleteoldrdn));
+
+/*
+ * in open.c:
+ */
+LDAP_F LDAP *ldap_open LDAP_P(( char *host, int port ));
+LDAP_F LDAP *ldap_init LDAP_P(( char *defhost, int defport ));
+
+/*
+ * in getentry.c:
+ */
+LDAP_F LDAPMessage *ldap_first_entry LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+LDAP_F LDAPMessage *ldap_next_entry LDAP_P(( LDAP *ld, LDAPMessage *entry ));
+LDAP_F int ldap_count_entries LDAP_P(( LDAP *ld, LDAPMessage *chain ));
+
+/*
+ * in addentry.c
+ */
+LDAP_F LDAPMessage *ldap_delete_result_entry LDAP_P(( LDAPMessage **list,
+	LDAPMessage *e ));
+LDAP_F void ldap_add_result_entry LDAP_P(( LDAPMessage **list, LDAPMessage *e ));
+
+/*
+ * in getdn.c
+ */
+LDAP_F char *ldap_get_dn LDAP_P(( LDAP *ld, LDAPMessage *entry ));
+LDAP_F char *ldap_dn2ufn LDAP_P(( char *dn ));
+LDAP_F char **ldap_explode_dn LDAP_P(( char *dn, int notypes ));
+LDAP_F char **ldap_explode_dns LDAP_P(( char *dn ));
+LDAP_F int ldap_is_dns_dn LDAP_P(( char *dn ));
+
+/*
+ * in getattr.c
+ */
+LDAP_F char *ldap_first_attribute LDAP_P(( LDAP *ld, LDAPMessage *entry,
+	BerElement **ber ));
+LDAP_F char *ldap_next_attribute LDAP_P(( LDAP *ld, LDAPMessage *entry,
+	BerElement *ber ));
+
+/*
+ * in getvalues.c
+ */
+LDAP_F char **ldap_get_values LDAP_P(( LDAP *ld, LDAPMessage *entry, char *target ));
+LDAP_F struct berval **ldap_get_values_len LDAP_P(( LDAP *ld, LDAPMessage *entry,
+	char *target ));
+LDAP_F int ldap_count_values LDAP_P(( char **vals ));
+LDAP_F int ldap_count_values_len LDAP_P(( struct berval **vals ));
+LDAP_F void ldap_value_free LDAP_P(( char **vals ));
+LDAP_F void ldap_value_free_len LDAP_P(( struct berval **vals ));
+
+/*
+ * in result.c:
+ */
+LDAP_F int ldap_result LDAP_P(( LDAP *ld, int msgid, int all,
+	struct timeval *timeout, LDAPMessage **result ));
+LDAP_F int ldap_msgfree LDAP_P(( LDAPMessage *lm ));
+LDAP_F int ldap_msgdelete LDAP_P(( LDAP *ld, int msgid ));
+
+/*
+ * in search.c:
+ */
+LDAP_F int ldap_search LDAP_P(( LDAP *ld, char *base, int scope, char *filter,
+	char **attrs, int attrsonly ));
+LDAP_F int ldap_search_s LDAP_P(( LDAP *ld, char *base, int scope, char *filter,
+	char **attrs, int attrsonly, LDAPMessage **res ));
+LDAP_F int ldap_search_st LDAP_P(( LDAP *ld, char *base, int scope, char *filter,
+    char **attrs, int attrsonly, struct timeval *timeout, LDAPMessage **res ));
+
+/*
+ * in ufn.c
+ */
+LDAP_F int ldap_ufn_search_c LDAP_P(( LDAP *ld, char *ufn, char **attrs,
+	int attrsonly, LDAPMessage **res, int (*cancelproc)( void *cl ),
+	void *cancelparm ));
+LDAP_F int ldap_ufn_search_ct LDAP_P(( LDAP *ld, char *ufn, char **attrs,
+	int attrsonly, LDAPMessage **res, int (*cancelproc)( void *cl ),
+	void *cancelparm, char *tag1, char *tag2, char *tag3 ));
+LDAP_F int ldap_ufn_search_s LDAP_P(( LDAP *ld, char *ufn, char **attrs,
+	int attrsonly, LDAPMessage **res ));
+LDAP_F LDAPFiltDesc *ldap_ufn_setfilter LDAP_P(( LDAP *ld, char *fname ));
+LDAP_F void ldap_ufn_setprefix LDAP_P(( LDAP *ld, char *prefix ));
+LDAP_F int ldap_ufn_timeout LDAP_P(( void *tvparam ));
 
 
-#if defined(ultrix) || defined(VMS) || defined( nextstep )
-extern char *strdup();
-#endif
+/*
+ * in unbind.c
+ */
+LDAP_F int ldap_unbind LDAP_P(( LDAP *ld ));
+LDAP_F int ldap_unbind_s LDAP_P(( LDAP *ld ));
 
-#else /* NEEDPROTOS */
-#if !defined(MACOS) && !defined(DOS) && !defined(_WIN32) && !defined(WINSOCK)
-#include <sys/types.h>
-#include <time.h>
-#include <sys/time.h>
-#endif
-#if defined(WINSOCK)
-#include "proto-ld.h"
-#else
-#include "proto-ldap.h"
-#endif
 
-#ifdef VMS
-extern char *strdup( const char *s );
-#endif
-#if defined(ultrix) || defined( nextstep )
-extern char *strdup();
-#endif
+/*
+ * in getfilter.c
+ */
+LDAP_F LDAPFiltDesc *ldap_init_getfilter LDAP_P(( char *fname ));
+LDAP_F LDAPFiltDesc *ldap_init_getfilter_buf LDAP_P(( char *buf, long buflen ));
+LDAP_F LDAPFiltInfo *ldap_getfirstfilter LDAP_P(( LDAPFiltDesc *lfdp, char *tagpat,
+	char *value ));
+LDAP_F LDAPFiltInfo *ldap_getnextfilter LDAP_P(( LDAPFiltDesc *lfdp ));
+LDAP_F void ldap_setfilteraffixes LDAP_P(( LDAPFiltDesc *lfdp, char *prefix, char *suffix ));
+LDAP_F void ldap_build_filter LDAP_P(( char *buf, unsigned long buflen,
+	char *pattern, char *prefix, char *suffix, char *attr,
+	char *value, char **valwords ));
 
-#endif /* NEEDPROTOS */
+/*
+ * in free.c
+ */
+LDAP_F void ldap_getfilter_free LDAP_P(( LDAPFiltDesc *lfdp ));
+LDAP_F void ldap_mods_free LDAP_P(( LDAPMod **mods, int freemods ));
 
-#ifdef __cplusplus
-}
-#endif
+/*
+ * in friendly.c
+ */
+LDAP_F char *ldap_friendly_name LDAP_P(( char *filename, char *uname,
+	FriendlyMap **map ));
+LDAP_F void ldap_free_friendlymap LDAP_P(( FriendlyMap **map ));
+
+
+/*
+ * in cldap.c
+ */
+LDAP_F LDAP *cldap_open LDAP_P(( char *host, int port ));
+LDAP_F void cldap_close LDAP_P(( LDAP *ld ));
+LDAP_F int cldap_search_s LDAP_P(( LDAP *ld, char *base, int scope, char *filter,
+	char **attrs, int attrsonly, LDAPMessage **res, char *logdn ));
+LDAP_F void cldap_setretryinfo LDAP_P(( LDAP *ld, int tries, int timeout ));
+
+
+/*
+ * in sort.c
+ */
+LDAP_F int ldap_sort_entries LDAP_P(( LDAP *ld,
+	LDAPMessage **chain, char *attr, int (*cmp) () ));
+LDAP_F int ldap_sort_values LDAP_P(( LDAP *ld,
+	char **vals, int (*cmp) LDAP_P((const void *, const void *)) ));
+LDAP_F int ldap_sort_strcasecmp LDAP_P(( char **a, char **b ));
+
+
+/*
+ * in url.c
+ */
+LDAP_F int ldap_is_ldap_url LDAP_P(( char *url ));
+LDAP_F int ldap_url_parse LDAP_P(( char *url, LDAPURLDesc **ludpp ));
+LDAP_F void ldap_free_urldesc LDAP_P(( LDAPURLDesc *ludp ));
+LDAP_F int ldap_url_search LDAP_P(( LDAP *ld, char *url, int attrsonly ));
+LDAP_F int ldap_url_search_s LDAP_P(( LDAP *ld, char *url, int attrsonly,
+	LDAPMessage **res ));
+LDAP_F int ldap_url_search_st LDAP_P(( LDAP *ld, char *url, int attrsonly,
+	struct timeval *timeout, LDAPMessage **res ));
+
+
+/*
+ * in charset.c
+ */
+LDAP_F void ldap_set_string_translators LDAP_P(( LDAP *ld,
+	BERTranslateProc encode_proc, BERTranslateProc decode_proc ));
+LDAP_F int ldap_translate_from_t61 LDAP_P(( LDAP *ld, char **bufp,
+	unsigned long *lenp, int free_input ));
+LDAP_F int ldap_translate_to_t61 LDAP_P(( LDAP *ld, char **bufp,
+	unsigned long *lenp, int free_input ));
+LDAP_F void ldap_enable_translation LDAP_P(( LDAP *ld, LDAPMessage *entry,
+	int enable ));
+
+LDAP_F int ldap_t61_to_8859 LDAP_P(( char **bufp, unsigned long *buflenp,
+	int free_input ));
+LDAP_F int ldap_8859_to_t61 LDAP_P(( char **bufp, unsigned long *buflenp,
+	int free_input ));
+
+
+/*
+ * in msdos/winsock/wsa.c
+ */
+LDAP_F void ldap_memfree LDAP_P(( void *p ));
+
+LDAP_END_DECL
+
 #endif /* _LDAP_H */

@@ -14,16 +14,17 @@
  * lock.c - routines to open and apply an advisory lock to a file
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/time.h>
-#include <sys/types.h>
+
+#include <ac/socket.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <sys/file.h>
 #include <sys/param.h>
-#include <sys/socket.h>
-#include "portable.h"
-#ifdef USE_LOCKF
-#include <unistd.h>
-#endif
+
 #include "../slapd/slap.h"
 
 
@@ -48,11 +49,12 @@ lock_fopen(
 	}
 
 	/* acquire the lock */
-#ifdef USE_LOCKF
-	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 ) {
+#ifdef HAVE_FLOCK
+	while ( flock( fileno( *lfp ), LOCK_EX ) != 0 ) 
 #else
-	while ( flock( fileno( *lfp ), LOCK_EX ) != 0 ) {
+	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 )
 #endif
+	{
 		;	/* NULL */
 	}
 
@@ -60,10 +62,10 @@ lock_fopen(
 	if ( (fp = fopen( fname, type )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"Error: could not open \"%s\"\n", fname, 0, 0 );
-#ifdef USE_LOCKF
-		lockf( fileno( *lfp ), F_ULOCK, 0 );
-#else
+#ifdef HAVE_FLOCK
 		flock( fileno( *lfp ), LOCK_UN );
+#else
+		lockf( fileno( *lfp ), F_ULOCK, 0 );
 #endif
 		return( NULL );
 	}
@@ -80,10 +82,10 @@ lock_fclose(
 )
 {
 	/* unlock */
-#ifdef USE_LOCKF
-	lockf( fileno( lfp ), F_ULOCK, 0 );
-#else
+#ifdef HAVE_FLOCK
 	flock( fileno( lfp ), LOCK_UN );
+#else
+	lockf( fileno( lfp ), F_ULOCK, 0 );
 #endif
 	fclose( lfp );
 

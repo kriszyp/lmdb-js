@@ -15,16 +15,18 @@
 #ifndef _SLURPD_H_
 #define _SLURPD_H_
 
+#include "portable.h"
+
 #define LDAP_SYSLOG
 
-#include <syslog.h>
-#include <errno.h>
-#include <sys/types.h>
+#include <ac/syslog.h>
+#include <ac/errno.h>
+
 #include <sys/param.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "lthread.h"
-#include "portable.h"
 #include "ldapconfig.h"
 #include "ldif.h"
 
@@ -135,6 +137,7 @@
 #define	RETRY_SLEEP_TIME		60
 
 
+LDAP_BEGIN_DECL
 
 /*
  * ****************************************************************************
@@ -317,7 +320,7 @@ typedef struct st {
     int		(*st_unlock)();		/* read status info from disk */
 } St;
 
-#if defined( THREAD_SUNOS4_LWP )
+#if defined( HAVE_LWP )
 typedef struct tl {
     thread_t	tl_tid; 	/* thread being managed */
     time_t	tl_wake;	/* time thread should be resumed */
@@ -328,22 +331,18 @@ typedef struct tsl {
     tl_t	*tsl_list;
     mon_t	tsl_mon;
 } tsl_t;
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_LWP */
 
     
 
 /* 
  * Public functions used to instantiate and initialize queue objects.
  */
-#ifdef NEEDPROTOS
-extern int Ri_init( Ri **ri );
-extern int Rq_init( Rq **rq );
-extern int Re_init( Re **re );
-#else /* NEEDPROTOS */
-extern int Ri_init();
-extern int Rq_init();
-extern int Re_init();
-#endif /* NEEDPROTOS */
+extern int Ri_init LDAP_P(( Ri **ri ));
+extern int Rq_init LDAP_P(( Rq **rq ));
+extern int Re_init LDAP_P(( Re **re ));
+
+LDAP_END_DECL
 
 #endif /* _SLURPD_H_ */
 

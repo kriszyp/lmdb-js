@@ -1,8 +1,11 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "ldbm.h"
 #include "../slap.h"
 
@@ -24,7 +27,7 @@ main( argc, argv )
 	char		*file, *s;
 	int		printid = 1;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;
 #endif
 
@@ -46,7 +49,7 @@ main( argc, argv )
 
         last.dptr = NULL;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
         for ( key = ldbm_firstkey( dbp, &cursorp ); key.dptr != NULL;
             key = ldbm_nextkey( dbp, last, cursorp ) )
 #else

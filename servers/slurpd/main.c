@@ -15,6 +15,8 @@
  * main.c - main routine for slurpd.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
 
 #include "slurp.h"
@@ -26,9 +28,10 @@ extern void		fm();
 extern int		start_replica_thread( Ri * );
 extern Globals		*init_globals();
 extern int		sanity();
-#if defined( THREAD_SUNOS4_LWP )
+
+#if defined( HAVE_LWP )
 extern void		start_lwp_scheduler();
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_LWP */
 
 main(
     int		argc,
@@ -39,11 +42,11 @@ main(
     int			status;
     int			i;
 
-#ifndef _THREAD
+#ifdef NO_THREADS
     /* Haven't yet written the non-threaded version */
     fprintf( stderr, "slurpd currently requires threads support\n" );
     exit( 1 );
-#endif /* !_THREAD */
+#else
 
     /* 
      * Create and initialize globals.  init_globals() also initializes
@@ -93,21 +96,20 @@ main(
      * and if not in one-shot mode.
      */
 #ifdef LDAP_DEBUG
-    if (( ldap_debug == 0 )  && !sglob->one_shot_mode ) {
+    if (( ldap_debug == 0 )  && !sglob->one_shot_mode )
 #else /* LDAP_DEBUG */
-    if ( !sglob->one_shot_mode ) {
+    if ( !sglob->one_shot_mode )
 #endif /* LDAP_DEBUG */
-	detach();
+	{
+		detach();
     }
 
-#ifdef _THREAD
-
-#if defined( THREAD_SUNOS4_LWP )
+#if defined( HAVE_LWP )
     /*
      * Need to start a scheduler thread under SunOS 4
      */
     start_lwp_scheduler();
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_LWP */
 
 
     /*
@@ -121,35 +123,37 @@ main(
      * Start the main file manager thread (in fm.c).
      */
     pthread_attr_init( &attr );
-#ifndef THREAD_MIT_PTHREADS
+
+#if !defined(HAVE_PTHREADS_D4) && !defined(HAVE_DCE)
     /* POSIX_THREADS or compatible
      * This is a draft 10 or standard pthreads implementation
      */
-    if ( pthread_create( &(sglob->fm_tid), &attr, (void *) fm, (void *) NULL )
+    if ( pthread_create( &(sglob->fm_tid), &attr, fm, (void *) NULL )
 	    != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
 		0, 0, 0 );
 	exit( 1 );
 
     }
-#else /* !THREAD_MIT_PTHREADS */
+#else /* !PTHREADS_FINAL */
     /*
      * This is a draft 4 or earlier pthreads implementation
      */
-    if ( pthread_create( &(sglob->fm_tid), attr, (void *) fm, (void *) NULL )
+    if ( pthread_create( &(sglob->fm_tid), attr, fm, (void *) NULL )
 	    != 0 ) {
 	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
 		0, 0, 0 );
 	exit( 1 );
 
     }
-#endif /* !THREAD_MIT_PTHREADS */
+#endif /* !PTHREADS_FINAL */
+
     pthread_attr_destroy( &attr );
 
     /*
      * Wait for the fm thread to finish.
      */
-#ifdef POSIX_THREADS
+#ifdef HAVE_PTHREADS_FINAL
     pthread_join( sglob->fm_tid, (void *) NULL );
 #else
     pthread_join( sglob->fm_tid, (void *) &status );
@@ -158,7 +162,7 @@ main(
      * Wait for the replica threads to finish.
      */
     for ( i = 0; sglob->replicas[ i ] != NULL; i++ ) {
-#ifdef POSIX_THREADS
+#ifdef HAVE_PTHREADS_FINAL
 	pthread_join( sglob->replicas[ i ]->ri_tid, (void *) NULL );
 #else
 	pthread_join( sglob->replicas[ i ]->ri_tid, (void *) &status );
@@ -168,12 +172,5 @@ main(
     sglob->slurpd_shutdown = 1;
     pthread_exit( 0 );
 
-#else /* !_THREAD */
-    /*
-     * Non-threaded case.
-     */
-    exit( 0 );
-
-#endif /* !_THREAD */
-    
+#endif /* !NO_THREADS */
 }

@@ -10,24 +10,22 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifdef KERBEROS
+#include "portable.h"
+
+#ifdef HAVE_KERBEROS
 
 #include <stdio.h>
-#include <sys/types.h>
-#ifdef KERBEROS_V
-#include <kerberosIV/krb.h>
-#else
-#include <krb.h>
-#endif /* KERBEROS_V */
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
+
+#include <ac/krb.h>
+#include <ac/socket.h>
+
 #include <quipu/bind.h>
 #if ISODEPACKAGE == IC
 #include <quipu/DAS-types.h>
 #else
 #include <pepsy/DAS-types.h>
 #endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"

@@ -1,6 +1,6 @@
 #! /bin/sh
 
-RP500=ETCDIR/rp500
+RP500=%LIBEXECDIR%/rp500
 
 NAME="$1"
 if [ -z "$NAME" ]; then

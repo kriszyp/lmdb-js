@@ -5,37 +5,25 @@
  *  abandon.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
-#if !defined( MACOS ) && !defined( DOS )
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
-
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS */
-
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef NEEDPROTOS
-static int do_abandon( LDAP *ld, int origid, int msgid );
-#else /* NEEDPROTOS */
-static int do_abandon();
-#endif /* NEEDPROTOS */
+static int do_abandon LDAP_P(( LDAP *ld, int origid, int msgid ));
+
 /*
  * ldap_abandon - perform an ldap (and X.500) abandon operation. Parameters:
  *
@@ -111,18 +99,18 @@ do_abandon( LDAP *ld, int origid, int msgid )
 			err = -1;
 			ld->ld_errno = LDAP_NO_MEMORY;
 		} else {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			if ( ld->ld_sb.sb_naddr > 0 ) {
 				err = ber_printf( ber, "{isti}",
 				    ++ld->ld_msgid, ld->ld_cldapdn,
 				    LDAP_REQ_ABANDON, msgid );
 			} else {
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 				err = ber_printf( ber, "{iti}", ++ld->ld_msgid,
 				    LDAP_REQ_ABANDON, msgid );
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			}
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 			if ( err == -1 ) {
 				ld->ld_errno = LDAP_ENCODING_ERROR;

@@ -10,25 +10,22 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/wait.h>
-#include <signal.h>
+
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/wait.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#ifdef __hpux
-#include <syslog.h>
-#else
-#include <sys/syslog.h>
-#endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
@@ -74,7 +71,7 @@ client_request(
 	static int	bound;
 	extern char	*bound_dn, *bound_pw;
 	struct PSAPaddr	*psap_cpy();
-#ifdef COMPAT
+#ifdef LDAP_COMPAT
 	extern int	ldap_compat;
 #endif
 
@@ -92,7 +89,7 @@ client_request(
 		log_and_exit( 1 );
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( udp && dosyslog ) {
 		syslog( LOG_INFO, "UDP request from unknown (%s)",
 		    inet_ntoa( ((struct sockaddr_in *)
@@ -105,7 +102,7 @@ client_request(
 		trace_ber( tag, len, ber.ber_buf, stderr, 1, 1 );
 #endif
 
-#ifdef COMPAT
+#ifdef LDAP_COMPAT
 	/*
 	 * This tag should be a normal SEQUENCE tag.  In release 2.0 this
 	 * tag is 0x10.  In the new stuff this is 0x30.  To distinguish
@@ -159,7 +156,7 @@ client_request(
 		return;
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( udp ) {
 		char	*logdn = NULL;
 
@@ -172,16 +169,16 @@ client_request(
 		    free( logdn );
 		}
 	}
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( ldap_compat == 30 )
 		tag = ber_skip_tag( &ber, &len );
 	else
 #endif
 		tag = ber_peek_tag( &ber, &len );
 	if ( !udp && bound == 0 && tag != LDAP_REQ_BIND
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	    && tag != OLD_LDAP_REQ_BIND
 #endif
 	    ) {
@@ -191,7 +188,7 @@ client_request(
 		return;
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if (udp && tag != LDAP_REQ_SEARCH && tag != LDAP_REQ_ABANDON ) {
 		send_ldap_result( clientsb, tag, msgid, LDAP_OPERATIONS_ERROR,
 		    NULL, "Only search is supported over UDP/CLDAP" );
@@ -216,7 +213,7 @@ client_request(
 	copyofber = ber_dup( &ber );
 
 	m = add_msg( msgid, tag, copyofber, dsaconn, udp,
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		(struct sockaddr *)clientsb->sb_fromaddr );
 #else
 		NULL );
@@ -257,17 +254,17 @@ do_request(
 	Debug( LDAP_DEBUG_TRACE, "do_request\n", 0, 0, 0 );
 
 	switch ( m->m_msgtype ) {
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_BIND:
 #endif
 	case LDAP_REQ_BIND:
 		resp_required = do_bind( clientsb, m, ber, bound );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_UNBIND:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_REQ_UNBIND_30:
 #endif
 	case LDAP_REQ_UNBIND:
@@ -275,55 +272,55 @@ do_request(
 		log_and_exit( 0 );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_ADD:
 #endif
 	case LDAP_REQ_ADD:
 		resp_required = do_add( clientsb, m, ber );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_DELETE:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_REQ_DELETE_30:
 #endif
 	case LDAP_REQ_DELETE:
 		resp_required = do_delete( clientsb, m, ber );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_MODRDN:
 #endif
 	case LDAP_REQ_MODRDN:
 		resp_required = do_modrdn( clientsb, m, ber );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_MODIFY:
 #endif
 	case LDAP_REQ_MODIFY:
 		resp_required = do_modify( clientsb, m, ber );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_COMPARE:
 #endif
 	case LDAP_REQ_COMPARE:
 		resp_required = do_compare( clientsb, m, ber );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_SEARCH:
 #endif
 	case LDAP_REQ_SEARCH:
 		resp_required = do_search( clientsb, m, ber );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_REQ_ABANDON:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_REQ_ABANDON_30:
 #endif
 	case LDAP_REQ_ABANDON:

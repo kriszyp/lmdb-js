@@ -11,45 +11,32 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#ifdef STDC_HEADERS
 #include <stdarg.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined(NeXT) || defined(VMS) || defined(__FreeBSD__)
-#include <stdlib.h>
-#else /* next || vms || freebsd */
-#include <malloc.h>
-#endif /* next || vms || freebsd */
-#if defined( BC31 ) || defined( _WIN32 )
-#include <stdarg.h>
-#else /* BC31 || _WIN32 */
+#else
 #include <varargs.h>
-#endif /* BC31 || _WIN32 */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#ifdef PCNFS
-#include <tklib.h>
-#endif /* PCNFS */
-#endif /* MACOS */
-#ifndef VMS
-#include <memory.h>
 #endif
-#include <string.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "lber.h"
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
+static int ber_put_len LDAP_P(( BerElement *ber,
+	unsigned long len, int nosos ));
 
-#ifdef NEEDPROTOS
-static int ber_put_len( BerElement *ber, unsigned long len, int nosos );
-static int ber_start_seqorset( BerElement *ber, unsigned long tag );
-static int ber_put_seqorset( BerElement *ber );
-static int ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag );
-#endif /* NEEDPROTOS */
+static int ber_start_seqorset LDAP_P(( BerElement *ber,
+	unsigned long tag ));
+
+static int ber_put_seqorset LDAP_P(( BerElement *ber ));
+
+static int ber_put_int_or_enum LDAP_P(( BerElement *ber,
+	long num, unsigned long tag ));
 
 
 static int
@@ -77,7 +64,7 @@ ber_put_tag( BerElement	*ber, unsigned long tag, int nosos )
 
 	taglen = ber_calc_taglen( tag );
 
-	ntag = LBER_HTONL( tag );
+	ntag = AC_HTONL( tag );
 
 	return( ber_write( ber, ((char *) &ntag) + sizeof(long) - taglen,
 	    taglen, nosos ) );
@@ -123,7 +110,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 	 */
 
 	if ( len <= 127 ) {
-		netlen = LBER_HTONL( len );
+		netlen = AC_HTONL( len );
 		return( ber_write( ber, (char *) &netlen + sizeof(long) - 1,
 		    1, nosos ) );
 	}
@@ -140,7 +127,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 		if ( len & mask )
 			break;
 	}
-	lenlen = ++i;
+	lenlen = (unsigned char) ++i;
 	if ( lenlen > 4 )
 		return( -1 );
 	lenlen |= 0x80;
@@ -150,7 +137,7 @@ ber_put_len( BerElement *ber, unsigned long len, int nosos )
 		return( -1 );
 
 	/* write the length itself */
-	netlen = LBER_HTONL( len );
+	netlen = AC_HTONL( len );
 	if ( ber_write( ber, (char *) &netlen + (sizeof(long) - i), i, nosos )
 	    != i )
 		return( -1 );
@@ -201,7 +188,7 @@ ber_put_int_or_enum( BerElement *ber, long num, unsigned long tag )
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
 		return( -1 );
 	i++;
-	netnum = LBER_HTONL( num );
+	netnum = AC_HTONL( num );
 	if ( ber_write( ber, (char *) &netnum + (sizeof(long) - i), i, 0 )
 	   != i )
 		return( -1 );
@@ -257,7 +244,7 @@ ber_put_ostring( BerElement *ber, char *str, unsigned long len,
 #endif /* STR_TRANSLATION */
 
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ||
-		ber_write( ber, str, len, 0 ) != len ) {
+		(unsigned long) ber_write( ber, str, len, 0 ) != len ) {
 		rc = -1;
 	} else {
 		/* return length of tag + length + contents */
@@ -293,7 +280,7 @@ ber_put_bitstring( BerElement *ber, char *str,
 		return( -1 );
 
 	len = ( blen + 7 ) / 8;
-	unusedbits = len * 8 - blen;
+	unusedbits = (unsigned char) ((len * 8) - blen);
 	if ( (lenlen = ber_put_len( ber, len + 1, 0 )) == -1 )
 		return( -1 );
 
@@ -409,7 +396,7 @@ ber_put_seqorset( BerElement *ber )
 	 */
 
 	len = (*sos)->sos_clen;
-	netlen = LBER_HTONL( len );
+	netlen = AC_HTONL( len );
 	if ( sizeof(long) > 4 && len > 0xFFFFFFFFL )
 		return( -1 );
 
@@ -458,12 +445,14 @@ ber_put_seqorset( BerElement *ber )
 
 		/* the tag */
 		taglen = ber_calc_taglen( (*sos)->sos_tag );
-		ntag = LBER_HTONL( (*sos)->sos_tag );
+		ntag = AC_HTONL( (*sos)->sos_tag );
 		SAFEMEMCPY( (*sos)->sos_first, (char *) &ntag +
 		    sizeof(long) - taglen, taglen );
 
 		if ( ber->ber_options & LBER_USE_DER ) {
-			ltag = (lenlen == 1) ? len : 0x80 + (lenlen - 1);
+			ltag = (lenlen == 1)
+				? (unsigned char) len
+				: 0x80 + (lenlen - 1);
 		}
 
 		/* one byte of length length */
@@ -519,31 +508,31 @@ ber_put_set( BerElement *ber )
 
 /* VARARGS */
 int
-ber_printf(
-#if defined( MACOS ) || defined( _WIN32 ) || defined( BC31 )
-	BerElement *ber, char *fmt, ... )
-#else /* MACOS || _WIN32 || BC31 */
-	va_alist )
+ber_printf
+#ifdef STDC_HEADERS
+	( BerElement *ber, char *fmt, ... )
+#else
+	( va_alist )
 va_dcl
-#endif /* MACOS || _WIN32 || BC31 */
+#endif
 {
 	va_list		ap;
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( BC31 )
+#ifndef STDC_HEADERS
 	BerElement	*ber;
 	char		*fmt;
-#endif /* !MACOS && !_WIN32 && !BC31 */
+#endif
 	char		*s, **ss;
 	struct berval	**bv;
 	int		rc, i;
 	unsigned long	len;
 
-#if defined( MACOS ) || defined( _WIN32 ) || defined( BC31 )
+#ifdef STDC_HEADERS 
 	va_start( ap, fmt );
-#else /* MACOS || _WIN32 || BC31 */
+#else
 	va_start( ap );
 	ber = va_arg( ap, BerElement * );
 	fmt = va_arg( ap, char * );
-#endif /* MACOS || _WIN32 || BC31 */
+#endif
 
 	for ( rc = 0; *fmt && rc != -1; fmt++ ) {
 		switch ( *fmt ) {
@@ -625,9 +614,9 @@ va_dcl
 			break;
 
 		default:
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 			rc = -1;
 			break;
 		}

@@ -10,24 +10,27 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
-#include <memory.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <syslog.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/wait.h>
+
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
+#endif
+
 #include <sys/resource.h>
-#include <sys/wait.h>
-#include <sys/socket.h>
 #include <sysexits.h>
-#include <ldapconfig.h>
-#include "portable.h"
 
 #include "lber.h"
 #include "ldap.h"
+#include <ldapconfig.h>
 
 #define USER		0
 #define GROUP_ERRORS	1
@@ -921,14 +924,14 @@ send_message( to )
     char	**to;
 {
 	int	pid;
-#ifndef USE_WAITPID
+#ifndef HAVE_WAITPID
 	WAITSTATUSTYPE  status;
 #endif
 
 
 	/* parent */
 	if ( pid = fork() ) {
-#ifdef USE_WAITPID
+#ifdef HAVE_WAITPID
 		waitpid( pid, (int *) NULL, 0 );
 #else
 		wait4( pid, &status, WAIT_FLAGS, 0 );
@@ -953,7 +956,7 @@ send_group( group, ngroup )
 	char	**argv;
 	int	argc;
 	char	*iargv[7];
-#ifndef USE_WAITPID
+#ifndef HAVE_WAITPID
 	WAITSTATUSTYPE  status;
 #endif
 
@@ -976,7 +979,7 @@ send_group( group, ngroup )
 
 		/* parent */
 		if ( pid = fork() ) {
-#ifdef USE_WAITPID
+#ifdef HAVE_WAITPID
 			waitpid( pid, (int *) NULL, 0 );
 #else
 			wait4( pid, &status, WAIT_FLAGS, 0 );

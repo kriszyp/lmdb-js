@@ -1,0 +1,15 @@
+##
+## LIBAVL
+##
+
+SRCS = avl.c testavl.c
+XSRCS = version.c
+OBJS = avl.o
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
+LIBRARY = libavl.a
+XPROGRAMS	= testavl
+
+testavl:	$(LIBRARY) testavl.o

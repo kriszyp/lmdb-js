@@ -1,12 +1,15 @@
 /* search.c - /etc/passwd backend search function */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <pwd.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include <pwd.h>
+
 #include "slap.h"
 
 extern time_t		currenttime;

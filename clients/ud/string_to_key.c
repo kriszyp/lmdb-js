@@ -1,4 +1,6 @@
-#if defined(KERBEROS) && !defined(openbsd)
+#include "portable.h"
+
+#if defined(HAVE_KERBEROS) && !defined(openbsd)
 /*
  * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $
  * $Author: kurt $
@@ -24,35 +26,19 @@
  *	spm	8/85	MIT project athena
  */
 
-#ifdef KERBEROS_V
-#include <kerberosIV/mit-copyright.h>
-#include <kerberosIV/des.h>
-#else
-#include <mit-copyright.h>
-#include <des.h>
-#endif /* KERBEROS_V */
-
 #include <stdio.h>
-
-/* #include "des_internal.h" */
-#if 1
-#ifdef KERBEROS_V
-#include <kerberosIV/krb.h>
-#else
-#include <krb.h>
-#endif /* KERBEROS_V */
-#endif /* 1 */
+#include <ac/krb.h>
 
 extern int des_debug;
 extern int des_debug_print();
 extern void des_fixup_key_parity();
 
-#ifndef AFSKERBEROS
+#ifndef HAVE_AFS_KERBEROS
 #define WORLDPEACEINOURTIME
 #endif
 
 #if defined(WORLDPEACEINOURTIME) /* Use original, not ifs version */
-#ifndef KERBEROS_V
+#ifndef HAVE_KERBEROS_V
 /*
  * convert an arbitrary length string to a DES key
  */
@@ -139,7 +125,7 @@ des_string_to_key(str,key)
 		*((unsigned long *) key+1));
 }
 
-#endif /* KERBEROS_V */
+#endif /* HAVE_KERBEROS_V */
 #else /* Use ifs version */
 
 #if 0

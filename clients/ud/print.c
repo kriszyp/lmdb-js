@@ -10,15 +10,17 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
-#include <time.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "ud.h"
 
 #ifdef DEBUG
@@ -31,6 +33,9 @@ extern LDAP *ld;
 extern void * Malloc();
 extern void Free();
 extern char * my_ldap_dn2ufn();
+
+static char *time2text();
+static long		gtime();
 
 /*
  *  When displaying entries, display only these attributes, and in this
@@ -191,7 +196,6 @@ print_an_entry()
 	char is_a_group, **order;
 	char *sub_list[MAX_VALUES], buf[SMALL_BUF_SIZE];
 	extern int col_size, isaurl(), isadn();
-	static char *time2text();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -555,7 +559,6 @@ time2text( char *ldtimestr, int dateonly )
     struct tm		t;
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
-    static long		gtime();
 
     memset( (char *)&t, 0, sizeof( struct tm ));
     if ( strlen( ldtimestr ) < 13 ) {
@@ -595,9 +598,7 @@ time2text( char *ldtimestr, int dateonly )
 
 /* gtime.c - inverse gmtime */
 
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( DOS )
-#include <sys/time.h>
-#endif /* !MACOS */
+#include <ac/time.h>
 
 /* gtime(): the inverse of localtime().
 	This routine was supplied by Mike Accetta at CMU many years ago.

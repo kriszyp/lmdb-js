@@ -1,15 +1,24 @@
 /* attr.c - routines for dealing with attributes */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <fcntl.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/param.h>
-#include <sys/stat.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
+#include <sys/stat.h>
+
 #include "slap.h"
 
 extern char	**charray_dup();
@@ -298,7 +307,7 @@ attr_syntax_config(
 	a->asi_names = charray_dup( argv );
 	argv[lasti] = save;
 
-	switch ( avl_insert( &attr_syntaxes, a, attr_syntax_cmp,
+	switch ( avl_insert( &attr_syntaxes, (caddr_t) a, attr_syntax_cmp,
 	    attr_syntax_dup ) ) {
 	case -1:	/* duplicate - different syntaxes */
 		Debug( LDAP_DEBUG_ARGS, "%s: line %d: duplicate attribute\n",

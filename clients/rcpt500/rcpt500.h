@@ -6,6 +6,10 @@
  * All Rights Reserved
  */
 
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
+
 struct msginfo {
     char	*msg_subject;
     char	*msg_replyto;	/* actually could be from From: line */
@@ -16,8 +20,8 @@ struct msginfo {
 };
 
 struct command {
-    char        *cmd_text;              /* text for command, e.g. "HELP" */
-    int        (*cmd_handler)();        /* pointer to handler function */
+	char	*cmd_text;					/* text for command, e.g. "HELP" */
+	int		(*cmd_handler)LDAP_P(());	/* pointer to handler function */
 };
 
 
@@ -27,10 +31,12 @@ struct command {
 /*
  * functions
  */
-int	help_cmd();
-int	query_cmd();
+int	help_cmd LDAP_P(());
+int	query_cmd LDAP_P(());
 
 /*
  * externs
  */
 extern struct command cmds[];
+
+LDAP_END_DECL

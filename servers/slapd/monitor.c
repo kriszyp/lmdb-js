@@ -17,11 +17,14 @@
  *	Added locking of currenttime_mutex to protect call(s) to localtime().
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "slap.h"
 #include "ldapconfig.h"
 
@@ -192,7 +195,7 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "nbackends", vals );
 
-#ifdef THREAD_SUNOS5_LWP
+#ifdef HAVE_LWP_THR
 	sprintf( buf, "%d", thr_getconcurrency() );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );

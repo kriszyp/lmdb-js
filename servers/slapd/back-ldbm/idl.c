@@ -1,10 +1,12 @@
 /* idl.c - ldap id list handling routines */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#ifdef CLDAP
-#include <sys/socket.h>
-#endif
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "ldapconfig.h"
 #include "back-ldbm.h"
@@ -59,7 +61,7 @@ idl_fetch_one(
 	char	*kstr;
 	int	i, nids;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &k2, 0, sizeof( k2 ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -86,7 +88,7 @@ idl_fetch(
 	char	*kstr;
 	int	i, nids;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &k2, 0, sizeof( k2 ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
@@ -180,7 +182,7 @@ idl_store(
 	Datum	data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &data, 0, sizeof( data ) );
 #endif
 
@@ -302,7 +304,7 @@ idl_insert_key(
 	char	*kstr;
 	Datum	k2;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &k2, 0, sizeof( k2 ) );
 #endif
 

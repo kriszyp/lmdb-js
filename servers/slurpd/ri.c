@@ -17,33 +17,23 @@
  */
 
 
+#include "portable.h"
 
 #include <stdio.h>
-#include <signal.h>
+#include <ac/signal.h>
 
 #include "slurp.h"
 #include "globals.h"
 
 
 /* External references */
-#ifdef NEEDPROTOS
-extern void write_reject( Ri *, Re *, int, char * );
-extern void do_nothing();
-#else /* NEEDPROTOS */
-extern void write_reject();
-extern void do_nothing();
-#endif /* NEEDPROTOS */
+extern void write_reject LDAP_P(( Ri *, Re *, int, char * ));
+extern void do_nothing LDAP_P(());
 
 /* Forward references */
-#ifdef NEEDPROTOS
-static int ismine( Ri  *, Re  * );
-static int isnew( Ri  *, Re  * );
-void tsleep( time_t );
-#else /* NEEDPROTOS */
-static int ismine();
-static int isnew();
-void tsleep();
-#endif /* NEEDPROTOS */
+static int ismine LDAP_P(( Ri  *, Re  * ));
+static int isnew LDAP_P(( Ri  *, Re  * ));
+void tsleep LDAP_P(( time_t ));
 
 
 /*
@@ -60,10 +50,10 @@ Ri_process(
     int		rc ;
     char	*errmsg;
 
-#ifdef SIGSTKFLT
-    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#ifdef HAVE_LINUX_THREADS
+    (void) SIGNAL( SIGSTKFLT, do_nothing );
 #else
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+    (void) SIGNAL( SIGUSR1, do_nothing );
 #endif
     (void) SIGNAL( SIGPIPE, SIG_IGN );
     if ( ri == NULL ) {
@@ -161,12 +151,12 @@ Ri_wake(
     if ( ri == NULL ) {
 	return;
     }
-#ifdef SIGSTKFLT
+#ifdef HAVE_LINUX_THREADS
     pthread_kill( ri->ri_tid, SIGSTKFLT );
-    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+    (void) SIGNAL( SIGSTKFLT, do_nothing );
 #else
     pthread_kill( ri->ri_tid, SIGUSR1 );
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+    (void) SIGNAL( SIGUSR1, do_nothing );
 #endif
 }
 

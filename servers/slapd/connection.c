@@ -1,11 +1,13 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
-#include <signal.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "slap.h"
 
 extern Operation	*op_add();
@@ -16,10 +18,6 @@ extern long		ops_initiated;
 extern long		ops_completed;
 extern pthread_mutex_t	ops_mutex;
 extern pthread_t	listener_tid;
-#ifndef SYSERRLIST_IN_STDIO
-extern int		sys_nerr;
-extern char		*sys_errlist[];
-#endif
 
 struct co_arg {
 	Connection	*co_conn;
@@ -50,7 +48,7 @@ connection_operation( struct co_arg *arg )
 		do_bind( arg->co_conn, arg->co_op );
 		break;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_REQ_UNBIND_30:
 #endif
 	case LDAP_REQ_UNBIND:
@@ -61,7 +59,7 @@ connection_operation( struct co_arg *arg )
 		do_add( arg->co_conn, arg->co_op );
 		break;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_REQ_DELETE_30:
 #endif
 	case LDAP_REQ_DELETE:
@@ -84,7 +82,7 @@ connection_operation( struct co_arg *arg )
 		do_search( arg->co_conn, arg->co_op );
 		break;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_REQ_ABANDON_30:
 #endif
 	case LDAP_REQ_ABANDON:
@@ -175,7 +173,7 @@ connection_activity(
 		return;
 	}
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		(void) ber_skip_tag( ber, &len );
 	}
@@ -203,30 +201,30 @@ connection_activity(
 
 	pthread_attr_init( &attr );
 	pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
-#ifndef THREAD_MIT_PTHREADS
+#if !defined(HAVE_PTHREADS_D4) && !defined(HAVE_DCE)
 	/* POSIX_THREADS or compatible
 	 * This is a draft 10 or standard pthreads implementation
 	 */
 	if ( pthread_create( &arg->co_op->o_tid, &attr,
-	    (void *) connection_operation, (void *) arg ) != 0 ) {
+	    connection_operation, (void *) arg ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
 	} else {
 		pthread_mutex_lock( &active_threads_mutex );
 		active_threads++;
 		pthread_mutex_unlock( &active_threads_mutex );
 	}
-#else	/* !THREAD_MIT_PTHREAD */
+#else	/* pthread draft4  */
 	/*
 	 * This is a draft 4 or earlier pthreads implementation
 	 */
 	if ( pthread_create( &arg->co_op->o_tid, attr,
-	    (void *) connection_operation, (void *) arg ) != 0 ) {
+	    connection_operation, (void *) arg ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
 	} else {
 		pthread_mutex_lock( &active_threads_mutex );
 		active_threads++;
 		pthread_mutex_unlock( &active_threads_mutex );
 	}
-#endif	/* !THREAD_MIT_PTHREAD */
+#endif	/* pthread draft4 */
 	pthread_attr_destroy( &attr );
 }

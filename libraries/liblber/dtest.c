@@ -11,40 +11,43 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
-#else /* MACOS */
-#include <sys/types.h>
-#include <sys/socket.h>
 #endif /* MACOS */
+
 #include "lber.h"
 
-static usage( char *name )
+static void usage( char *name )
 {
 	fprintf( stderr, "usage: %s fmt\n", name );
 }
 
 main( int argc, char **argv )
 {
-	long		i, i2, num;
+	long		i;
 	unsigned long	len;
 	int		tag;
-	char		*str, *s1, *s2;
 	BerElement	ber;
 	Sockbuf		sb;
 	extern char	*optarg;
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
 #endif /* MACOS */
 
-	bzero( &sb, sizeof(sb) );
+	memset( &sb, 0, sizeof(sb) );
 	sb.sb_sd = 0;
 	sb.sb_ber.ber_buf = NULL;
+
 	if ( (tag = ber_get_next( &sb, &len, &ber )) == -1 ) {
 		perror( "ber_get_next" );
 		exit( 1 );

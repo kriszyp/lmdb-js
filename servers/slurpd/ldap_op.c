@@ -14,49 +14,41 @@
  * ldap_op.c - routines to perform LDAP operations
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
+#include "portable.h"
 
-#ifdef KERBEROS
-#ifdef KERBEROS_V
-#include <kerberosIV/krb.h>
-#else
-#include <krb.h>
-#endif /* KERBEROS_V */
-#endif /* KERBEROS */
+#include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include <ac/krb.h>
 
 #include <lber.h>
 #include <ldap.h>
 
-#include "portable.h"
 #include "slurp.h"
 
 /* Forward references */
-static int get_changetype( char * );
-static struct berval **make_singlevalued_berval( char	*, int );
-static int op_ldap_add( Ri *, Re *, char ** );
-static int op_ldap_modify( Ri *, Re *, char ** );
-static int op_ldap_delete( Ri *, Re *, char ** );
-static int op_ldap_modrdn( Ri *, Re *, char ** );
-static LDAPMod *alloc_ldapmod();
-static void free_ldapmod( LDAPMod * );
-static void free_ldmarr( LDAPMod ** );
-static int getmodtype( char * );
-static void dump_ldm_array( LDAPMod ** );
-static char **read_krbnames( Ri * );
-static void upcase( char * );
-static int do_bind( Ri *, int * );
-static int do_unbind( Ri * );
+static int get_changetype LDAP_P(( char * ));
+static struct berval **make_singlevalued_berval LDAP_P(( char	*, int ));
+static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_delete LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char ** ));
+static LDAPMod *alloc_ldapmod LDAP_P(());
+static void free_ldapmod LDAP_P(( LDAPMod * ));
+static void free_ldmarr LDAP_P(( LDAPMod ** ));
+static int getmodtype LDAP_P(( char * ));
+static void dump_ldm_array LDAP_P(( LDAPMod ** ));
+static char **read_krbnames LDAP_P(( Ri * ));
+static void upcase LDAP_P(( char * ));
+static int do_bind LDAP_P(( Ri *, int * ));
+static int do_unbind LDAP_P(( Ri * ));
 
 
 /* External references */
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
-
-extern char *ch_malloc( unsigned long );
+extern char *ch_malloc LDAP_P(( unsigned long ));
 
 static char *kattrs[] = {"kerberosName", NULL };
 static struct timeval kst = {30L, 0L};
@@ -590,7 +582,7 @@ do_bind(
     int		rc;
     int		ldrc;
     char	msgbuf[ 1024];
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     int retval = 0;
     int kni, got_tgt;
     char **krbnames;
@@ -598,7 +590,7 @@ do_bind(
     char realm[ REALM_SZ ];
     char name[ ANAME_SZ ];
     char instance[ INST_SZ ];
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
     *lderr = 0;
 
@@ -637,12 +629,12 @@ do_bind(
 
     switch ( ri->ri_bind_method ) {
     case AUTH_KERBEROS:
-#ifndef KERBEROS
+#ifndef HAVE_KERBEROS
 	Debug( LDAP_DEBUG_ANY,
 	    "Error: Kerberos bind for %s:%d, but not compiled w/kerberos\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
 	return( BIND_ERR_KERBEROS_FAILED );
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 	/*
 	 * Bind using kerberos.
 	 * If "bindprincipal" was given in the config file, then attempt
@@ -718,7 +710,7 @@ kexit:	if ( krbnames != NULL ) {
 	}
 	return( retval);
 	break;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
     case AUTH_SIMPLE:
 	/*
 	 * Bind with a plaintext password.

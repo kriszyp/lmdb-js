@@ -1,0 +1,27 @@
+## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+##
+## tests Makefile.in for OpenLDAP
+
+
+SCRIPTSDIR=./scripts
+
+all-local:	FORCE
+	@echo "Initiating LDAP tests..."; \
+	$(MKDIR) -p test-db test-repl ; \
+	$(SCRIPTSDIR)/all $(SCRIPTSDIR)
+
+clean-local:	FORCE
+	$(RM) test-db/[!C]* test-repl/[!C]* *core
+
+veryclean-local:	clean
+
+depend-local:	FORCE
+
+install-local:	FORCE
+
+all-common:			all-local
+install-common:		install-local
+clean-common:		clean-local
+veryclean-common:	veryclean-local
+depend-common:		depend-local

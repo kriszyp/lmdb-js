@@ -16,18 +16,14 @@
  * writing status information to disk.
  */
 
-
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
-
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
 
 /*
  * Add information about replica host specified by Ri to list

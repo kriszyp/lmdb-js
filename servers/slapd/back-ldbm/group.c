@@ -1,9 +1,12 @@
 /* compare.c - ldbm backend compare routine */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
@@ -11,8 +14,8 @@
 extern Attribute        *attr_find();
 
 
-#ifdef ACLGROUP
-/* return 0 IFF edn is a value in member attribute
+#ifdef SLAPD_ACLGROUPS
+/* return 0 IFF edn is a value in uniqueMember attribute
  * of entry with bdn AND that entry has an objectClass
  * value of groupOfNames
  */

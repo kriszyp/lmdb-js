@@ -3,39 +3,61 @@
 #ifndef _LDBM_H_
 #define _LDBM_H_
 
-#ifdef LDBM_USE_GDBM
+#ifdef LDBM_USE_DBBTREE
 
 /*****************************************************************
  *                                                               *
- * use gdbm if possible                                          *
+ * use berkeley db btree package                                 *
  *                                                               *
  *****************************************************************/
 
-#include <gdbm.h>
+#include <sys/types.h>
+#include <limits.h>
+#include <fcntl.h>
 
-typedef datum		Datum;
+#ifdef HAVE_DB185_H
+#	include <db_185.h>
+#else
+#	include <db.h>
+#	ifdef HAVE_BERKELEY_DB2
+#		define R_NOOVERWRITE DB_NOOVERWRITE
+#		define DEFAULT_DB_PAGE_SIZE 1024
+#	endif
+#endif
 
-typedef GDBM_FILE	LDBM;
 
-extern gdbm_error	gdbm_errno;
+typedef DBT	Datum;
+#define dsize	size
+#define dptr	data
+
+typedef DB	*LDBM;
+
+#define DB_TYPE		DB_BTREE
 
 /* for ldbm_open */
-#define LDBM_READER	GDBM_READER
-#define LDBM_WRITER	GDBM_WRITER
-#define LDBM_WRCREAT	GDBM_WRCREAT
-#define LDBM_NEWDB	GDBM_NEWDB
-#define LDBM_FAST	GDBM_FAST
+#ifdef HAVE_BERKELEY_DB2
+#	define LDBM_READER	DB_RDONLY
+#	define LDBM_WRITER	0x00000      /* hopefully */
+#	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
+#	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
+#else
+#	define LDBM_READER	O_RDONLY
+#	define LDBM_WRITER	O_RDWR
+#	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
+#	define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
+#endif
 
-#define LDBM_SUFFIX	".gdbm"
+#  define LDBM_FAST	0
+
+#define LDBM_SUFFIX	".dbb"
+#define LDBM_ORDERED	1
 
 /* for ldbm_insert */
-#define LDBM_INSERT	GDBM_INSERT
-#define LDBM_REPLACE	GDBM_REPLACE
+#define LDBM_INSERT	R_NOOVERWRITE
+#define LDBM_REPLACE	0
 #define LDBM_SYNC	0x80000000
 
-#else /* end of gdbm */
-
-#ifdef LDBM_USE_DBHASH
+#elif defined( LDBM_USE_DBHASH )
 
 /*****************************************************************
  *                                                               *
@@ -47,7 +69,7 @@ extern gdbm_error	gdbm_errno;
 #include <limits.h>
 #include <fcntl.h>
 
-#ifdef LDBM_USE_DB2_COMPAT185
+#ifdef HAVE_DB185_H
 #	include <db_185.h>
 #else
 #	include <db.h>
@@ -86,69 +108,38 @@ typedef DB	*LDBM;
 #define LDBM_REPLACE	0
 #define LDBM_SYNC	0x80000000
 
-extern int	errno;
-
-#else /* end of db hash */
-
-#ifdef LDBM_USE_DBBTREE
+#elif defined( HAVE_GDBM )
 
 /*****************************************************************
  *                                                               *
- * use berkeley db btree package                                 *
+ * use gdbm if possible                                          *
  *                                                               *
  *****************************************************************/
 
-#include <sys/types.h>
-#include <limits.h>
-#include <fcntl.h>
+#include <gdbm.h>
 
-#ifdef LDBM_USE_DB2_COMPAT185
-#	include <db_185.h>
-#else
-#	include <db.h>
-#	ifdef LDBM_USE_DB2
-#		define R_NOOVERWRITE DB_NOOVERWRITE
-#		define DEFAULT_DB_PAGE_SIZE 1024
-#	endif
-#endif
+typedef datum		Datum;
 
+typedef GDBM_FILE	LDBM;
 
-typedef DBT	Datum;
-#define dsize	size
-#define dptr	data
-
-typedef DB	*LDBM;
-
-#define DB_TYPE		DB_BTREE
+extern gdbm_error	gdbm_errno;
 
 /* for ldbm_open */
-#ifdef LDBM_USE_DB2
-#	define LDBM_READER	DB_RDONLY
-#	define LDBM_WRITER	0x00000      /* hopefully */
-#	define LDBM_WRCREAT	(DB_NOMMAP|DB_CREATE|DB_THREAD)
-#	define LDBM_NEWDB	(DB_TRUNCATE|DB_CREATE|DB_THREAD)
-#else
-#	define LDBM_READER	O_RDONLY
-#	define LDBM_WRITER	O_RDWR
-#	define LDBM_WRCREAT	(O_RDWR|O_CREAT)
-#	define LDBM_NEWDB	(O_RDWR|O_TRUNC|O_CREAT)
-#endif
+#define LDBM_READER	GDBM_READER
+#define LDBM_WRITER	GDBM_WRITER
+#define LDBM_WRCREAT	GDBM_WRCREAT
+#define LDBM_NEWDB	GDBM_NEWDB
+#define LDBM_FAST	GDBM_FAST
 
-#  define LDBM_FAST	0
-
-#define LDBM_SUFFIX	".dbb"
-#define LDBM_ORDERED	1
+#define LDBM_SUFFIX	".gdbm"
 
 /* for ldbm_insert */
-#define LDBM_INSERT	R_NOOVERWRITE
-#define LDBM_REPLACE	0
+#define LDBM_INSERT	GDBM_INSERT
+#define LDBM_REPLACE	GDBM_REPLACE
 #define LDBM_SYNC	0x80000000
 
-extern int	errno;
 
-#else /* end of db btree */
-
-#ifdef LDBM_USE_NDBM
+#elif defined( HAVE_NDBM )
 
 /*****************************************************************
  *                                                               *
@@ -157,7 +148,8 @@ extern int	errno;
  *****************************************************************/
 
 #include <ndbm.h>
-#ifndef O_RDONLY
+
+#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
 
@@ -179,10 +171,7 @@ typedef DBM	*LDBM;
 #define LDBM_REPLACE	DBM_REPLACE
 #define LDBM_SYNC	0
 
-#endif /* ndbm */
-#endif /* db hash */
-#endif /* db btree */
-#endif /* gdbm */
+#endif
 
 int	ldbm_errno( LDBM ldbm );
 LDBM	ldbm_open( char *name, int rw, int mode, int dbcachesize );
@@ -194,7 +183,7 @@ Datum	ldbm_fetch( LDBM ldbm, Datum key );
 int	ldbm_store( LDBM ldbm, Datum key, Datum data, int flags );
 int	ldbm_delete( LDBM ldbm, Datum key );
 
-#if LDBM_USE_DB2
+#if HAVE_BERKELEY_DB2
 	void   *ldbm_malloc( size_t size );
 	Datum	ldbm_firstkey( LDBM ldbm, DBC **dbch );
 	Datum	ldbm_nextkey( LDBM ldbm, Datum key, DBC *dbcp );

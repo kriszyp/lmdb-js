@@ -5,49 +5,32 @@
  *  getfilter.c -- optional add-on to libldap
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <regex.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/regex.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <sys/errno.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
+#endif
 
 #include "lber.h"
 #include "ldap.h"
 
-#ifdef NEEDPROTOS
-static int break_into_words( char *str, char *delims, char ***wordsp );
-int next_line_tokens( char **bufp, long *blenp, char ***toksp );
-void free_strarray( char **sap );
-#else /* NEEDPROTOS */
-static int break_into_words();
-int next_line_tokens();
-void free_strarray();
-#endif /* NEEDPROTOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-extern int	errno;
-#endif
+static int break_into_words LDAP_P(( char *str, char *delims, char ***wordsp ));
+int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
+void free_strarray LDAP_P(( char **sap ));
 
 #define FILT_MAX_LINE_LEN	1024
 
@@ -138,16 +121,14 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	    nextflp->lfl_tag = strdup( tag );
 	    nextflp->lfl_pattern = tok[ 0 ];
 	    if ( (rc = regcomp( &re, nextflp->lfl_pattern, 0 )) != 0 ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));
 		ldap_getfilter_free( lfdp );
 		fprintf( stderr, "bad regular expresssion %s, %s\n",
 			nextflp->lfl_pattern, error );
-#if !defined( MACOS ) && !defined( DOS )
 		errno = EINVAL;
-#endif
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		free_strarray( tok );
 		return( NULL );
 	    }
@@ -196,9 +177,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		    } else {
 			free_strarray( tok );
 			ldap_getfilter_free( lfdp );
-#if !defined( MACOS ) && !defined( DOS )
 			errno = EINVAL;
-#endif
 			return( NULL );
 		    }
 		    free( tok[ 2 ] );
@@ -215,9 +194,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	default:
 	    free_strarray( tok );
 	    ldap_getfilter_free( lfdp );
-#if !defined( MACOS ) && !defined( DOS )
 	    errno = EINVAL;
-#endif
 	    return( NULL );
 	}
     }
@@ -409,14 +386,16 @@ ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
 		*f++ = *p;
 	    }
 		
-	    if ( f - filtbuf > buflen ) {
+	    if ( (unsigned long) (f - filtbuf) > buflen ) {
 		/* sanity check */
 		--f;
 		break;
 	    }
 	}
 
-	if ( suffix != NULL && ( f - filtbuf ) < buflen ) {
+	if ( suffix != NULL && (
+		(unsigned long) ( f - filtbuf ) < buflen ) )
+	{
 	    strcpy( f, suffix );
 	} else {
 	    *f = '\0';

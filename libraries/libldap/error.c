@@ -1,14 +1,11 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -83,7 +80,7 @@ ldap_err2string( int err )
 	return( "Unknown error" );
 }
 
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 void
 ldap_perror( LDAP *ld, char *s )
 {
@@ -122,7 +119,7 @@ ldap_perror( LDAP *ld, char *s )
 {
 }
 
-#endif /* NO_USERINTERFACE */
+#endif /* !LDAP_LIBUI */
 
 
 int

@@ -1,22 +1,29 @@
 /* ldbmcache.c - maintain a cache of open ldbm files */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/param.h>
-#include <sys/stat.h>
-#include <errno.h>
 #include "portable.h"
-#include "slap.h"
-#include "ldapconfig.h"
-#include "back-ldbm.h"
 
-#ifndef SYSERRLIST_IN_STDIO
+#include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include <sys/stat.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
+#include "slap.h"
+#include "back-ldbm.h"
+#include "ldapconfig.h"
+
+#ifdef DECL_SYS_ERRLIST
 extern int		sys_nerr;
 extern char		*sys_errlist[];
 #endif
+
 extern time_t		currenttime;
 extern pthread_mutex_t	currenttime_mutex;
 
@@ -176,7 +183,7 @@ ldbm_cache_fetch(
 )
 {
 	Datum	data;
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	memset( &data, 0, sizeof( data ) );
 #endif
 

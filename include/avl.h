@@ -15,9 +15,13 @@
 #ifndef _AVL
 #define _AVL
 
+#include <ldap_cdefs.h>
+
 /*
  * this structure represents a generic avl tree node.
  */
+
+LDAP_BEGIN_DECL
 
 typedef struct avlnode {
 	caddr_t		avl_data;
@@ -36,13 +40,39 @@ typedef struct avlnode {
 /* avl routines */
 #define avl_getone(x)	((x) == 0 ? 0 : (x)->avl_data)
 #define avl_onenode(x)	((x) == 0 || ((x)->avl_left == 0 && (x)->avl_right == 0))
-extern int		avl_insert();
-extern caddr_t		avl_delete();
-extern caddr_t		avl_find();
-extern caddr_t		avl_getfirst();
-extern caddr_t		avl_getnext();
-extern int		avl_dup_error();
-extern int		avl_apply();
+
+/* looks like this function pointer is not used consistently */
+/* typedef int	(*IFP)LDAP_P((caddr_t, caddr_t)); */
+typedef int	(*IFP)();
+
+LDAP_F int
+avl_free LDAP_P(( Avlnode *root, IFP dfree ));
+
+LDAP_F int
+avl_insert LDAP_P((Avlnode **, caddr_t, IFP, IFP));
+
+LDAP_F caddr_t
+avl_delete LDAP_P((Avlnode **, caddr_t, IFP));
+
+LDAP_F caddr_t
+avl_find LDAP_P((Avlnode *, caddr_t, IFP));
+
+LDAP_F caddr_t
+avl_getfirst LDAP_P((Avlnode *));
+
+#ifdef AVL_REENTRANT
+LDAP_F caddr_t
+avl_getnext LDAP_P((Avlnode *, caddr_t ));
+#else
+LDAP_F caddr_t
+avl_getnext LDAP_P((void));
+#endif
+
+LDAP_F int
+avl_dup_error LDAP_P((void));
+
+LDAP_F int
+avl_apply LDAP_P((Avlnode *, IFP, caddr_t, int, int));
 
 /* apply traversal types */
 #define AVL_PREORDER	1
@@ -51,6 +81,6 @@ extern int		avl_apply();
 /* what apply returns if it ran out of nodes */
 #define AVL_NOMORE	(-6)
 
-typedef int	(*IFP)();
+LDAP_END_DECL
 
 #endif /* _AVL */

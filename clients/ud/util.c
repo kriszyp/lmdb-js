@@ -10,40 +10,24 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <signal.h>
-#include <string.h>
-#ifdef DOS
-#include <malloc.h>
-#endif
-#include <memory.h>
-#if defined( NeXT )
 #include <stdlib.h>
-#endif
-#include <ctype.h>
-#include <time.h>
-#include <errno.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/signal.h>
+#include <ac/string.h>
+#include <ac/termios.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>
-
 #include <ldapconfig.h>
 
-#if !defined(DOS) && !defined( VMS)
-#include <sys/types.h>
-#endif
-#include "portable.h"
-#ifdef USE_TERMIOS
-#include <termios.h>
-#else /* USE_TERMIOS */
-#include <sgtty.h>
-#endif /* USE_TERMIOS */
-
 #include "ud.h"
-
-#if defined(VMS)
-#define getch getchar
-#endif
 
 #ifdef DEBUG
 extern int debug;
@@ -77,7 +61,7 @@ char *prompt;
 	register char *p;
 	register int c;
 	FILE *fi;
-	SIG_FN (*sig)();
+	RETSIGTYPE (*sig)();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -96,7 +80,7 @@ char *prompt;
 		fi = stdin;
 	else
 		setbuf(fi, (char *)NULL);
-	sig = signal(SIGINT, SIG_IGN);
+	sig = SIGNAL (SIGINT, SIG_IGN);
 	if (fi != stdin) {
 		if (GETATTR(fileno(fi), &ttyb) < 0)
 			perror("GETATTR");
@@ -150,7 +134,7 @@ char *prompt;
 		if (SETATTR(fileno(fi), &ttyb) < 0)
 			perror("SETATTR");
 	}
-	(void) signal(SIGINT, sig);
+	(void) SIGNAL (SIGINT, sig);
 	if (fi != stdin)
 		(void) fclose(fi);
 	else
@@ -233,7 +217,7 @@ char *s;
 {
 	if (errno != 0)
 		perror(s);
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	destroy_tickets();
 #endif
 	exit(-1);
@@ -597,13 +581,15 @@ unsigned int size;
 void Free(ptr)
 char *ptr;
 {
-	extern int free();
-
+#ifndef STDC_HEADERS
 	if (free(ptr) < 0) {
 		perror("free");
 		exit(-1);
 		/*NOTREACHED*/
 	}
+#else
+	free(ptr);
+#endif
 	return;
 }
 

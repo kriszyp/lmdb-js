@@ -5,36 +5,21 @@
  *  kbind.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include "msdos.h"
-#endif /* DOS */
-
-#ifdef KERBEROS_V
-#include <kerberosIV/krb.h>
-#else
-#include <krb.h>
-#endif /* KERBEROS_V */
-
-#include <stdlib.h>
-#if !defined(DOS) && !defined( _WIN32 )
-#include <sys/types.h>
-#endif /* !DOS && !_WIN32 */
-#include <sys/time.h>
-#include <sys/socket.h>
-#endif /* MACOS */
+#include <ac/krb.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -118,11 +103,11 @@ ldap_kerberos_bind1( LDAP *ld, char *dn )
 
 	free( cred );
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
 	}
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 
 	/* send the message */
 	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
@@ -270,10 +255,10 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_kerberosv4_credentials\n", 0, 0, 0 );
 
 	if ( (err = krb_get_tf_realm( tkt_string(), realm )) != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_get_tf_realm failed (%s)\n",
 		    krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
 		return( NULL );
 	}
@@ -286,9 +271,9 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 
 	if ( (err = krb_mk_req( &ktxt, service, krbinstance, realm, 0 ))
 	    != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_mk_req failed (%s)\n", krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
 		return( NULL );
 	}
@@ -305,4 +290,4 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 }
 
 #endif /* !AUTHMAN */
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */

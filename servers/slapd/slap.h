@@ -3,11 +3,14 @@
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
 
-#define LDAP_SYSLOG
+#include "portable.h"
 
-#include <syslog.h>
+#include <stdlib.h>
+
 #include <sys/types.h>
-#include <regex.h>
+#include <ac/syslog.h>
+#include <ac/regex.h>
+
 #undef NDEBUG
 #include <assert.h>
 
@@ -26,6 +29,8 @@
 #define UNDEFINED 0
 
 #define MAXREMATCHES 10
+
+LDAP_BEGIN_DECL
 
 /*
  * represents an attribute value assertion (i.e., attr=value)
@@ -134,7 +139,7 @@ struct access {
 	char		*a_dnattr;
 	long		a_access;
 
-#ifdef ACLGROUP
+#ifdef SLAPD_ACLGROUPS
     char		*a_group;
 #endif
 
@@ -208,7 +213,7 @@ typedef struct backend {
 	IFP	be_init;	/* backend init routine			   */
 	IFP	be_close;	/* backend close routine		   */
 
-#ifdef ACLGROUP
+#ifdef SLAPD_ACLGROUPS
 	IFP	be_group;	/* backend group member test               */
 #endif
 } Backend;
@@ -230,7 +235,7 @@ typedef struct op {
 					/* LDAP_AUTH_*			  */
 	int		o_opid;		/* id of this operation		  */
 	int		o_connid;	/* id of conn initiating this op  */
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	int		o_cldap;	/* != 0 if this came in via CLDAP */
 	struct sockaddr	o_clientaddr;	/* client address if via CLDAP	  */
 	char		o_searchbase;	/* search base if via CLDAP	  */
@@ -252,7 +257,7 @@ typedef struct conn {
 	char		*c_dn;		/* current DN bound to this conn  */
 	pthread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */
 	int		c_authtype;	/* auth method used to bind c_dn  */
-#ifdef COMPAT
+#ifdef LDAP_COMPAT
 	int		c_version;	/* for compatibility w/2.0, 3.0	  */
 #endif
 	char		*c_addr;	/* address of client on this conn */
@@ -284,8 +289,8 @@ typedef struct conn {
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #endif
 
-#ifdef NEEDPROTOS
 #include "proto-slap.h"
-#endif
+
+LDAP_END_DECL
 
 #endif /* _slap_h_ */

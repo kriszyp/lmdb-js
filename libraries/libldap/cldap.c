@@ -5,30 +5,21 @@
  *  cldap.c - synchronous, retrying interface to the cldap protocol
  */
 
+#include "portable.h"
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include "msdos.h"
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#endif /* DOS */
-#endif /* MACOS */
+
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -36,10 +27,6 @@ static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the Universi
 
 #define DEF_CLDAP_TIMEOUT	3
 #define DEF_CLDAP_TRIES		4
-
-#ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK	((unsigned long) 0x7f000001)
-#endif
 
 
 struct cldap_retinfo {
@@ -49,17 +36,14 @@ struct cldap_retinfo {
 	long		cri_timeout;
 };
 
-#ifdef NEEDPROTOS
-static int add_addr( LDAP *ld, struct sockaddr *sap );
-static int cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
-	struct cldap_retinfo *crip, char *base );
-static int cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
-	LDAPMessage **res, char *base );
-#else /* NEEDPROTOS */
-static int add_addr();
-static int cldap_result();
-static int cldap_parsemsg();
-#endif /* NEEDPROTOS */
+static int add_addr LDAP_P((
+	LDAP *ld, struct sockaddr *sap ));
+static int cldap_result LDAP_P((
+	LDAP *ld, int msgid, LDAPMessage **res,
+	struct cldap_retinfo *crip, char *base ));
+static int cldap_parsemsg LDAP_P((
+	LDAP *ld, int msgid, BerElement *ber,
+	LDAPMessage **res, char *base ));
 
 /*
  * cldap_open - initialize and connect to an ldap server.  A magic cookie to
@@ -240,7 +224,7 @@ cldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
 		attrsonly )) == -1 ) {
 		    return( ld->ld_errno );
 	    }
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	    if ( ld->ld_cache != NULL && ld->ld_responses != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "cldap_search_s res from cache\n",
 			0, 0, 0 );
@@ -248,7 +232,7 @@ cldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
 		ld->ld_responses = ld->ld_responses->lm_next;
 		return( ldap_result2error( ld, *res, 0 ));
 	    }
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 	    ret = cldap_result( ld, msgid, res, &cri, base );
 	} while (ret == -1);
 
@@ -504,11 +488,11 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	}
 #endif /* LDAP_DEBUG */
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	    if ( ld->ld_cache != NULL ) {
 		ldap_add_result_to_cache( ld, ldm );
 	    }
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 
 	if ( chain == NULL ) {
 	    chain = ldm;
@@ -534,4 +518,4 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
     *res = chain;
     return(( *res == NULLMSG ) ? rc : ldap_result2error( ld, *res, 0 ));
 }
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */

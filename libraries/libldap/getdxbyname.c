@@ -1,47 +1,27 @@
-#ifdef LDAP_DNS
 /*
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
  *
  * ldap_getdxbyname - retrieve DX records from the DNS (from TXT records for now)
  */
+
+#include "portable.h"
+
+#ifdef LDAP_DNS
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-
-#ifdef MACOS
 #include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <resolv.h>
-#endif
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
-
-
-#ifdef NEEDPROTOS
-static char ** decode_answer( unsigned char *answer, int len );
-#else /* NEEDPROTOS */
-static char **decode_answer();
-#endif /* NEEDPROTOS */
-
-extern int h_errno;
-extern char *h_errlist[];
-
+static char ** decode_answer LDAP_P(( unsigned char *answer, int len ));
 
 #define MAX_TO_SORT	32
 

@@ -13,27 +13,23 @@
 */
 
 
-#include <sys/types.h>
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #include <pwd.h>
-#include <varargs.h>
+
+#include <ac/string.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "shellutil.h"
 #include "passwd-shell.h"
 
 
-#ifdef LDAP_DEBUG
-void debug_printf();
-#else /* LDAP_DEBUG */
-#define debug_printf()
-#endif /* LDAP_DEBUG */
-
-
-static void pwdfile_search( struct ldop *op, FILE *ofp );
-static struct ldentry *pw2entry( struct ldop *op, struct passwd *pw );
+static void pwdfile_search LDAP_P(( struct ldop *op, FILE *ofp ));
+static struct ldentry *pw2entry LDAP_P(( struct ldop *op, struct passwd *pw ));
 
 static char	tmpbuf[ MAXLINELEN * 2 ];
 
