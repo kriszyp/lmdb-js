@@ -507,10 +507,10 @@ main( int argc, char *argv[] )
 	if( want_oldpw && oldpw == NULL ) {
 		/* prompt for old password */
 		char *ckoldpw;
-		newpw = strdup(getpassphrase("Old password: "));
+		oldpw = strdup(getpassphrase("Old password: "));
 		ckoldpw = getpassphrase("Re-enter old password: ");
 
-		if( newpw== NULL || ckoldpw == NULL ||
+		if( oldpw== NULL || ckoldpw == NULL ||
 			strncmp( oldpw, ckoldpw, strlen(oldpw) ))
 		{
 			fprintf( stderr, "passwords do not match\n" );
