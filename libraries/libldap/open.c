@@ -1,52 +1,42 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  open.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
+#include <limits.h>
 
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
+#include <ac/stdlib.h>
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#include <stdlib.h>
-#endif /* DOS */
+#include <ac/param.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#ifndef VMS
-#include <sys/param.h>
-#endif
-#include <netinet/in.h>
-#endif
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef LDAP_DEBUG
-int	ldap_debug;
-#endif
+int ldap_open_defconn( LDAP *ld )
+{
+	ld->ld_defconn = ldap_new_connection( ld,
+		ld->ld_options.ldo_defludp, 1, 1, NULL );
 
-#ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK	((unsigned long) 0x7f000001)
-#endif
+	if( ld->ld_defconn == NULL ) {
+		ld->ld_errno = LDAP_SERVER_DOWN;
+		return -1;
+	}
 
-#ifndef MAXHOSTNAMELEN
-#define MAXHOSTNAMELEN  64
-#endif
-
+	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
+	return 0;
+}
 
 /*
  * ldap_open - initialize and connect to an ldap server.  A magic cookie to
@@ -59,168 +49,374 @@ int	ldap_debug;
  */
 
 LDAP *
-ldap_open( char *host, int port )
+ldap_open( LDAP_CONST char *host, int port )
 {
+	int rc;
 	LDAP		*ld;
-#ifdef LDAP_REFERRALS
-	LDAPServer	*srv;
-#endif /* LDAP_REFERRALS */
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_open(%s, %d)\n",
+		host, port, 0 );
 
-	if (( ld = ldap_init( host, port )) == NULL ) {
+	ld = ldap_init( host, port );
+	if ( ld == NULL ) {
 		return( NULL );
 	}
 
-#ifdef LDAP_REFERRALS
-	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
-	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-	    strdup( ld->ld_defhost )) == NULL )) {
-		ldap_ld_free( ld, 0 );
-		return( NULL );
+	rc = ldap_open_defconn( ld );
+
+	if( rc < 0 ) {
+		ldap_ld_free( ld, 0, NULL, NULL );
+		ld = NULL;
 	}
-	srv->lsrv_port = ld->ld_defport;
 
-	if (( ld->ld_defconn = new_connection( ld, &srv, 1,1,0 )) == NULL ) {
-		if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
-		free( (char *)srv );
-		ldap_ld_free( ld, 0 );
-		return( NULL );
-	}
-	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
+	Debug( LDAP_DEBUG_TRACE, "ldap_open: %s\n",
+		ld == NULL ? "succeeded" : "failed", 0, 0 );
 
-#else /* LDAP_REFERRALS */
-	if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
-	    ld->ld_defport, &ld->ld_host, 0 ) < 0 ) {
-		ldap_ld_free( ld, 0 );
-		return( NULL );
-	}
-#endif /* LDAP_REFERRALS */
-
-	Debug( LDAP_DEBUG_TRACE, "ldap_open successful, ld_host is %s\n",
-		( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
-
-	return( ld );
+	return ld;
 }
 
+
+
+int
+ldap_create( LDAP **ldp )
+{
+	LDAP			*ld;
+	struct ldapoptions	*gopts;
+
+	*ldp = NULL;
+	/* Get pointer to global option structure */
+	if ( (gopts = LDAP_INT_GLOBAL_OPT()) == NULL) {
+		return LDAP_NO_MEMORY;
+	}
+
+	/* Initialize the global options, if not already done. */
+	if( gopts->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(gopts, NULL);
+		if ( gopts->ldo_valid != LDAP_INITIALIZED )
+			return LDAP_LOCAL_ERROR;
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_create\n", 0, 0, 0 );
+
+	if ( (ld = (LDAP *) LDAP_CALLOC( 1, sizeof(LDAP) )) == NULL ) {
+		return( LDAP_NO_MEMORY );
+	}
+   
+	/* copy the global options */
+	AC_MEMCPY(&ld->ld_options, gopts, sizeof(ld->ld_options));
+
+	ld->ld_valid = LDAP_VALID_SESSION;
+
+	/* but not pointers to malloc'ed items */
+	ld->ld_options.ldo_sctrls = NULL;
+	ld->ld_options.ldo_cctrls = NULL;
+
+#ifdef HAVE_CYRUS_SASL
+	ld->ld_options.ldo_def_sasl_mech = gopts->ldo_def_sasl_mech
+		? LDAP_STRDUP( gopts->ldo_def_sasl_mech ) : NULL;
+	ld->ld_options.ldo_def_sasl_realm = gopts->ldo_def_sasl_realm
+		? LDAP_STRDUP( gopts->ldo_def_sasl_realm ) : NULL;
+	ld->ld_options.ldo_def_sasl_authcid = gopts->ldo_def_sasl_authcid
+		? LDAP_STRDUP( gopts->ldo_def_sasl_authcid ) : NULL;
+	ld->ld_options.ldo_def_sasl_authzid = gopts->ldo_def_sasl_authzid
+		? LDAP_STRDUP( gopts->ldo_def_sasl_authzid ) : NULL;
+#endif
+
+	ld->ld_options.ldo_defludp = ldap_url_duplist(gopts->ldo_defludp);
+
+	if ( ld->ld_options.ldo_defludp == NULL ) {
+		LDAP_FREE( (char*)ld );
+		return LDAP_NO_MEMORY;
+	}
+
+	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
+		ldap_free_urllist( ld->ld_options.ldo_defludp );
+		LDAP_FREE( (char*) ld );
+		return LDAP_NO_MEMORY;
+	}
+
+	ld->ld_lberoptions = LBER_USE_DER;
+
+	ld->ld_sb = ber_sockbuf_alloc( );
+	if ( ld->ld_sb == NULL ) {
+		ldap_free_urllist( ld->ld_options.ldo_defludp );
+		LDAP_FREE( (char*) ld );
+		return LDAP_NO_MEMORY;
+	}
+
+	*ldp = ld;
+	return LDAP_SUCCESS;
+}
 
 /*
  * ldap_init - initialize the LDAP library.  A magic cookie to be used for
  * future communication is returned on success, NULL on failure.
- * "defhost" may be a space-separated list of hosts or IP addresses
+ * "host" may be a space-separated list of hosts or IP addresses
  *
  * Example:
  *	LDAP	*ld;
- *	ld = ldap_open( default_hostname, default_port );
+ *	ld = ldap_init( host, port );
  */
 LDAP *
-ldap_init( char *defhost, int defport )
+ldap_init( LDAP_CONST char *defhost, int defport )
 {
-	LDAP			*ld;
+	LDAP *ld;
+	int rc;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
+	rc = ldap_create(&ld);
+	if ( rc != LDAP_SUCCESS )
+		return NULL;
 
+	if (defport != 0)
+		ld->ld_options.ldo_defport = defport;
 
-	if ( (ld = (LDAP *) calloc( 1, sizeof(LDAP) )) == NULL ) {
-		return( NULL );
+	if (defhost != NULL) {
+		rc = ldap_set_option(ld, LDAP_OPT_HOST_NAME, defhost);
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_ld_free(ld, 1, NULL, NULL);
+			return NULL;
+		}
 	}
-
-#ifdef LDAP_REFERRALS
-	if (( ld->ld_selectinfo = new_select_info()) == NULL ) {
-		free( (char*)ld );
-		return( NULL );
-	}
-	ld->ld_options = LDAP_OPT_REFERRALS;
-#endif /* LDAP_REFERRALS */
-
-	if ( defhost != NULL &&
-	    ( ld->ld_defhost = strdup( defhost )) == NULL ) {
-#ifdef LDAP_REFERRALS
-		free_select_info( ld->ld_selectinfo );
-#endif /* LDAP_REFERRALS */
-		free( (char*)ld );
-		return( NULL );
-	}
-
-
-	ld->ld_defport = ( defport == 0 ) ? LDAP_PORT : defport;
-	ld->ld_version = LDAP_VERSION;
-	ld->ld_lberoptions = LBER_USE_DER;
-	ld->ld_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;
-
-#if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )
-	ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;
-#if LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET
-	ldap_set_string_translators( ld, ldap_8859_to_t61, ldap_t61_to_8859 );
-#endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
-#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
 	return( ld );
 }
 
 
 int
-open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
-	char **krbinstancep, int async )
+ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 {
-	int 			rc, port;
-	char			*p, *q, *r;
-	char			*curhost, hostname[ 2*MAXHOSTNAMELEN ];
+	int rc;
+	LDAP *ld;
 
-	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
+	*ldp = NULL;
+	rc = ldap_create(&ld);
+	if ( rc != LDAP_SUCCESS )
+		return rc;
 
-	defport = htons( defport );
-
-	if ( host != NULL ) {
-		for ( p = host; p != NULL && *p != '\0'; p = q ) {
-			if (( q = strchr( p, ' ' )) != NULL ) {
-				strncpy( hostname, p, q - p );
-				hostname[ q - p ] = '\0';
-				curhost = hostname;
-				while ( *q == ' ' ) {
-				    ++q;
-				}
-			} else {
-				curhost = p;	/* avoid copy if possible */
-				q = NULL;
-			}
-
-			if (( r = strchr( curhost, ':' )) != NULL ) {
-			    if ( curhost != hostname ) {
-				strcpy( hostname, curhost );	/* now copy */
-				r = hostname + ( r - curhost );
-				curhost = hostname;
-			    }
-			    *r++ = '\0';
-			    port = htons( (short)atoi( r ));
-			} else {
-			    port = defport;   
-			}
-
-			if (( rc = connect_to_host( sb, curhost, 0L,
-			    port, async )) != -1 ) {
-				break;
-			}
+	if (url != NULL) {
+		rc = ldap_set_option(ld, LDAP_OPT_URI, url);
+		if ( rc != LDAP_SUCCESS ) {
+			ldap_ld_free(ld, 1, NULL, NULL);
+			return rc;
 		}
-	} else {
-		rc = connect_to_host( sb, NULL, htonl( INADDR_LOOPBACK ),
-		    defport, async );
+#ifdef LDAP_CONNECTIONLESS
+		if (ldap_is_ldapc_url(url))
+			LDAP_IS_UDP(ld) = 1;
+#endif
 	}
 
-	if ( rc == -1 ) {
+	*ldp = ld;
+	return LDAP_SUCCESS;
+}
+
+int
+ldap_int_open_connection(
+	LDAP *ld,
+	LDAPConn *conn,
+	LDAPURLDesc *srv,
+	int async )
+{
+	int rc = -1;
+#ifdef HAVE_CYRUS_SASL
+	char *sasl_host = NULL;
+	int sasl_ssf = 0;
+#endif
+	char *host;
+	int port, proto;
+	long addr;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n", 0, 0, 0 );
+
+	switch ( proto = ldap_pvt_url_scheme2proto( srv->lud_scheme ) ) {
+		case LDAP_PROTO_TCP:
+			port = srv->lud_port;
+
+			addr = 0;
+			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
+				host = NULL;
+				addr = htonl( INADDR_LOOPBACK );
+			} else {
+				host = srv->lud_host;
+			}
+
+			if( !port ) {
+				if( strcmp(srv->lud_scheme, "ldaps") == 0 ) {
+					port = LDAPS_PORT;
+				} else {
+					port = LDAP_PORT;
+				}
+			}
+
+			rc = ldap_connect_to_host( ld, conn->lconn_sb,
+				proto, host, addr, port, async );
+
+			if ( rc == -1 ) return rc;
+
+#ifdef LDAP_DEBUG
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+				LBER_SBIOD_LEVEL_PROVIDER, (void *)"tcp_" );
+#endif
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_tcp,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
+#ifdef HAVE_CYRUS_SASL
+			sasl_host = ldap_host_connected_to( conn->lconn_sb );
+#endif
+			break;
+#ifdef LDAP_CONNECTIONLESS
+
+		case LDAP_PROTO_UDP:
+			port = srv->lud_port;
+
+			addr = 0;
+			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
+				host = NULL;
+				addr = htonl( INADDR_LOOPBACK );
+			} else {
+				host = srv->lud_host;
+			}
+
+			if( !port ) port = LDAP_PORT;
+
+			LDAP_IS_UDP(ld) = 1;
+			rc = ldap_connect_to_host( ld, conn->lconn_sb,
+				proto, host, addr, port, async );
+
+			if ( rc == -1 ) return rc;
+#ifdef LDAP_DEBUG
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+				LBER_SBIOD_LEVEL_PROVIDER, (void *)"udp_" );
+#endif
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_udp,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+			break;
+#endif
+		case LDAP_PROTO_IPC:
+#ifdef LDAP_PF_LOCAL
+			/* only IPC mechanism supported is PF_LOCAL (PF_UNIX) */
+			rc = ldap_connect_to_path( ld, conn->lconn_sb,
+				srv->lud_host, async );
+			if ( rc == -1 ) return rc;
+#ifdef LDAP_DEBUG
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+				LBER_SBIOD_LEVEL_PROVIDER, (void *)"ipc_" );
+#endif
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_fd,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
+#ifdef HAVE_CYRUS_SASL
+			sasl_host = ldap_host_connected_to( conn->lconn_sb );
+			sasl_ssf = LDAP_PVT_SASL_LOCAL_SSF;
+#endif
+			break;
+#endif /* LDAP_PF_LOCAL */
+		default:
+			return -1;
+			break;
+	}
+
+	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
+		LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+		INT_MAX, (void *)"ldap_" );
+#endif
+
+#ifdef LDAP_CONNECTIONLESS
+	if( proto == LDAP_PROTO_UDP )
+		return 0;
+#endif
+
+#ifdef HAVE_CYRUS_SASL
+	/* establish Cyrus SASL context prior to starting TLS so
+		that SASL EXTERNAL might be used */
+	if( sasl_host != NULL ) {
+		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
+		LDAP_FREE( sasl_host );
+	}
+#endif
+
+#ifdef HAVE_TLS
+	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
+		strcmp( srv->lud_scheme, "ldaps" ) == 0 )
+	{
+		++conn->lconn_refcnt;	/* avoid premature free */
+
+		rc = ldap_int_tls_start( ld, conn, srv );
+
+		--conn->lconn_refcnt;
+
+		if (rc != LDAP_SUCCESS) {
+			return -1;
+		}
+	}
+#endif
+
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
+	if ( conn->lconn_krbinstance == NULL ) {
+		char *c;
+		conn->lconn_krbinstance = ldap_host_connected_to( conn->lconn_sb );
+
+		if( conn->lconn_krbinstance != NULL && 
+		    ( c = strchr( conn->lconn_krbinstance, '.' )) != NULL ) {
+			*c = '\0';
+		}
+	}
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
+
+	return( 0 );
+}
+
+
+int ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
+{
+	int rc;
+	LDAPConn *c;
+	LDAPRequest *lr;
+
+	rc = ldap_create( ldp );
+	if( rc != LDAP_SUCCESS ) {
+		*ldp = NULL;
 		return( rc );
 	}
 
-	if ( krbinstancep != NULL ) {
-#ifdef KERBEROS
-		if (( *krbinstancep = host_connected_to( sb )) != NULL &&
-		    ( p = strchr( *krbinstancep, '.' )) != NULL ) {
-			*p = '\0';
-		}
-#else /* KERBEROS */
-		krbinstancep = NULL;
-#endif /* KERBEROS */
+	/* Make it appear that a search request, msgid 0, was sent */
+	lr = (LDAPRequest *)LDAP_CALLOC( 1, sizeof( LDAPRequest ));
+	if( lr == NULL ) {
+		ldap_unbind( *ldp );
+		*ldp = NULL;
+		return( LDAP_NO_MEMORY );
 	}
+	memset(lr, 0, sizeof( LDAPRequest ));
+	lr->lr_msgid = 0;
+	lr->lr_status = LDAP_REQST_INPROGRESS;
+	lr->lr_res_errno = LDAP_SUCCESS;
+	(*ldp)->ld_requests = lr;
 
-	return( 0 );
+	/* Attach the passed socket as the *LDAP's connection */
+	c = ldap_new_connection( *ldp, NULL, 1, 0, NULL);
+	if( c == NULL ) {
+		ldap_unbind( *ldp );
+		*ldp = NULL;
+		return( LDAP_NO_MEMORY );
+	}
+	ber_sockbuf_ctrl( c->lconn_sb, LBER_SB_OPT_SET_FD, fdp );
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( c->lconn_sb, &ber_sockbuf_io_debug,
+		LBER_SBIOD_LEVEL_PROVIDER, (void *)"int_" );
+#endif
+	ber_sockbuf_add_io( c->lconn_sb, &ber_sockbuf_io_tcp,
+	  LBER_SBIOD_LEVEL_PROVIDER, NULL );
+	(*ldp)->ld_defconn = c;
+
+	/* Add the connection to the *LDAP's select pool */
+	ldap_mark_select_read( *ldp, c->lconn_sb );
+	ldap_mark_select_write( *ldp, c->lconn_sb );
+
+	/* Make this connection an LDAP V3 protocol connection */
+	rc = LDAP_VERSION3;
+	ldap_set_option( *ldp, LDAP_OPT_PROTOCOL_VERSION, &rc );
+
+	return( LDAP_SUCCESS );
 }
