@@ -88,8 +88,8 @@ do_delete(
 
 	if( *ndn == '\0' ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
-			   "do_delete: conn %d  Attempt to delete root DSE.\n", conn->c_connid ));
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: conn %d: "
+			"Attempt to delete root DSE.\n", conn->c_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY, "do_delete: root dse!\n", 0, 0, 0 );
 #endif
@@ -97,6 +97,21 @@ do_delete(
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "cannot delete the root DSE", NULL, NULL );
 		goto cleanup;
+
+#ifdef SLAPD_SCHEMA_DN
+	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_INFO, "do_delete: conn %d: "
+			"Attempt to delete subschema subentry.\n", conn->c_connid ));
+#else
+		Debug( LDAP_DEBUG_ANY, "do_delete: subschema subentry!\n", 0, 0, 0 );
+#endif
+		/* protocolError would likely be a more appropriate error */
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "cannot delete the root DSE", NULL, NULL );
+		goto cleanup;
+
+#endif
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",

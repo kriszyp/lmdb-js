@@ -186,8 +186,18 @@ do_add( Connection *conn, Operation *op )
 	if( e->e_ndn == NULL || *e->e_ndn == '\0' ) {
 		/* protocolError may be a more appropriate error */
 		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
-			NULL, "root DSE exists", NULL, NULL );
+			NULL, "root DSE already exists",
+			NULL, NULL );
 		goto done;
+
+#if defined( SLAPD_SCHEMA_DN )
+	} else if ( strcasecmp( ndn, SLAPD_SCHEMA_DN ) == 0 ) {
+		/* protocolError may be a more appropriate error */
+		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
+			NULL, "subschema subentry already exists",
+			NULL, NULL );
+		goto done;
+#endif
 	}
 
 	manageDSAit = get_manageDSAit( op );
