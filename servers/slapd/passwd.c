@@ -32,6 +32,8 @@ int passwd_extop(
 	Operation *op,
 	SlapReply *rs )
 {
+	struct berval tmpbv, id, old, new;
+	
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
 	if( op->o_dn.bv_len == 0 ) {
@@ -39,9 +41,33 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
+	/* FIXME: need to parse the reqdata to determine the backend
+	 * of the DN the passwd_extop () will apply to; this, on turn,
+	 * requires to duplicate the reqdata because slap_passwd_parse()
+	 * apparently alters it!
+	 *
+	 * Maybe we can make a lightweight version of slap_passwd_parse()
+	 * that extracts the DN with no impact on the reqdata value?
+	 */
+	ber_dupbv_x( &tmpbv, op->oq_extended.rs_reqdata, op->o_tmpmemctx );
+	rs->sr_err = slap_passwd_parse( &tmpbv, &id, &old, &new, &rs->sr_text );
+	if (rs->sr_err != LDAP_SUCCESS) {
+		ber_memfree_x( tmpbv.bv_val, op->o_tmpmemctx );
+		return rs->sr_err;
+	}
+	
 	ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-	op->o_bd = op->o_conn->c_authz_backend;
+	/* FIXME: we select the appropriate backend based on the DN
+	 * in the reqdata
+	 */
+	if ( id.bv_len ) {
+		op->o_bd = select_backend( &id, 0, 0 );
+		
+	} else {
+		op->o_bd = op->o_conn->c_authz_backend;
+	}
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+	ber_memfree_x( tmpbv.bv_val, op->o_tmpmemctx );
 
 	if( op->o_bd && !op->o_bd->be_extended ) {
 		rs->sr_text = "operation not supported for current user";
