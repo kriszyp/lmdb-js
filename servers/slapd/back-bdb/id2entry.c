@@ -32,7 +32,9 @@ static int bdb_id2entry_put(
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
 	struct berval bv;
-	int rc;
+	char buf[sizeof(ID)];
+	ID tmp;
+	int i, rc;
 #ifdef BDB_HIER
 	struct berval odn, ondn;
 
@@ -44,8 +46,15 @@ static int bdb_id2entry_put(
 	e->e_nname = slap_empty_bv;
 #endif
 	DBTzero( &key );
-	key.data = (char *) &e->e_id;
+	key.data = buf;
 	key.size = sizeof(ID);
+
+	/* Set key in BigEndian order */
+	tmp = e->e_id;
+	for ( i=sizeof(ID)-1; i>=0; i-- ) {
+		buf[i] = tmp & 0xff;
+		tmp >>= 8;
+	}
 
 	rc = entry_encode( e, &bv );
 #ifdef BDB_HIER
@@ -96,13 +105,20 @@ int bdb_id2entry(
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key, data;
 	struct berval bv;
-	int rc = 0, ret = 0;
+	char buf[sizeof(ID)];
+	ID tmp;
+	int i, rc = 0, ret = 0;
 
 	*e = NULL;
 
 	DBTzero( &key );
-	key.data = (char *) &id;
+	key.data = buf;
 	key.size = sizeof(ID);
+	tmp = id;
+	for ( i=sizeof(ID)-1; i>=0; i-- ) {
+		buf[i] = tmp & 0xff;
+		tmp >>= 8;
+	}
 
 	DBTzero( &data );
 	data.flags = DB_DBT_MALLOC;
@@ -138,11 +154,18 @@ int bdb_id2entry_delete(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_id2entry->bdi_db;
 	DBT key;
-	int rc;
+	char buf[sizeof(ID)];
+	ID tmp;
+	int i, rc;
 
 	DBTzero( &key );
-	key.data = (char *) &e->e_id;
+	key.data = buf;
 	key.size = sizeof(ID);
+	tmp = e->e_id;
+	for ( i=sizeof(ID)-1; i>=0; i-- ) {
+		buf[i] = tmp & 0xff;
+		tmp >>= 8;
+	}
 
 	/* delete from database */
 	rc = db->del( db, tid, &key, 0 );
