@@ -10,7 +10,7 @@ postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann
  Arbor, MI 48103-4943
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 userpassword:: YmplbnNlbg==
-mail: bjensen@mailgw.umich.edu
+mail: bjensen@mailgw.example.com
 homepostaladdress: 123 Wesley $ Ann Arbor, MI 48103
 description: Mythical manager of the rsdd unix project
 drink: water
@@ -33,7 +33,7 @@ drink: Iced Tea
 description: Hiker, biker
 title: Director, Embedded Systems
 postaladdress: Info Tech Division $ 535 W. William St. $ Ann Arbor, MI 48103
-mail: bjorn@mailgw.umich.edu
+mail: bjorn@mailgw.example.com
 homephone: +1 313 555 5444
 pager: +1 313 555 4474
 facsimiletelephonenumber: +1 313 555 2177
@@ -114,7 +114,7 @@ homephone: +1 313 555 4772
 description: Outstanding
 title: Mad Cow Researcher, UM Alumni Association
 pager: +1 313 555 3923
-mail: jaj@mail.alumni.umich.edu
+mail: jaj@mail.alumni.example.com
 facsimiletelephonenumber: +1 313 555 4332
 telephonenumber: +1 313 555 0895
 
@@ -262,7 +262,7 @@ description: The University of Michigan at Ann Arbor
 postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
  09 $ US
 telephonenumber: +1 313 764-1817
-associateddomain: umich.edu
+associateddomain: example.com
 
 dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
