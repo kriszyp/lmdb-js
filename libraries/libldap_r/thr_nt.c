@@ -35,7 +35,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void *),
 	void *arg)
 {
-	unsigned long tid
+	unsigned long tid;
 	HANDLE thd;
 
 	thd = _beginthreadex( NULL, 0,
