@@ -33,13 +33,6 @@ static ID_BLOCK	*substring_candidates( Backend *be, Filter *f );
 static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type,
 	struct berval *val, int prepost );
 
-/*
- * test_filter - test a filter against a single entry.
- * returns	0	filter matched
- *		-1	filter did not match
- *		>0	an ldap error code
- */
-
 ID_BLOCK *
 filter_candidates(
     Backend	*be,

@@ -32,7 +32,7 @@ do_search(
     Operation	*op	/* info about the op to which we're responding */
 )
 {
-	int		i, err;
+	int		i;
 	ber_int_t		scope, deref, attrsonly;
 	ber_int_t		sizelimit, timelimit;
 	char		*base = NULL, *nbase = NULL, *fstr = NULL;
@@ -76,12 +76,12 @@ do_search(
 	 */
 
 	/* baseObject, scope, derefAliases, sizelimit, timelimit, attrsOnly */
-	if ( ber_scanf( op->o_ber, "{aiiiib",
+	if ( ber_scanf( op->o_ber, "{aiiiib" /*}*/,
 		&base, &scope, &deref, &sizelimit,
 	    &timelimit, &attrsonly ) == LBER_ERROR ) {
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		rc = -1;
+		rc = SLAPD_DISCONNECT;
 		goto return_results;
 	}
 
@@ -91,9 +91,8 @@ do_search(
 	case LDAP_SCOPE_SUBTREE:
 		break;
 	default:
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "invalid scope", NULL, NULL );
-		rc = -1;
 		goto return_results;
 	}
 
@@ -104,18 +103,16 @@ do_search(
 	case LDAP_DEREF_ALWAYS:
 		break;
 	default:
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "invalid deref", NULL, NULL );
-		rc = -1;
 		goto return_results;
 	}
 
 	nbase = ch_strdup( base );
 
 	if( dn_normalize( nbase ) == NULL ) {
-		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX,
 			NULL, "invalid DN", NULL, NULL );
-		rc = -1;
 		goto return_results;
 	}
 
@@ -124,15 +121,14 @@ do_search(
 	    attrsonly);
 
 	/* filter - returns a "normalized" version */
-	if ( (err = get_filter( conn, op->o_ber, &filter, &fstr )) != 0 ) {
-		if( err == -1 ) {
+	if ( (rc = get_filter( conn, op->o_ber, &filter, &fstr )) != LDAP_SUCCESS ) {
+		if( rc == SLAPD_DISCONNECT ) {
 			send_ldap_disconnect( conn, op,
-				LDAP_PROTOCOL_ERROR, "decode error" );
+				LDAP_PROTOCOL_ERROR, "decode filter error" );
 		} else {
-			send_ldap_result( conn, op, err,
-				NULL, "Bad search filter", NULL, NULL );
+			send_ldap_result( conn, op, rc,
+				NULL, "bad search filter", NULL, NULL );
 		}
-		rc = -1;
 		goto return_results;
 	}
 
@@ -141,8 +137,8 @@ do_search(
 	/* attributes */
 	if ( ber_scanf( op->o_ber, /*{*/ "{v}}", &attrs ) == LBER_ERROR ) {
 		send_ldap_disconnect( conn, op,
-			LDAP_PROTOCOL_ERROR, "decoding error" );
-		rc = -1;
+			LDAP_PROTOCOL_ERROR, "decoding attrs error" );
+		rc = SLAPD_DISCONNECT;
 		goto return_results;
 	}
 

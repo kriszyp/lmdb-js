@@ -18,13 +18,6 @@ static ID_BLOCK	*list_candidates( BackendDB *be, Filter *flist, int ftype );
 static ID_BLOCK	*substring_candidates( BackendDB *be, Filter *f );
 static ID_BLOCK	*substring_comp_candidates( BackendDB *be, char *type, char *val, int prepost );
 
-/*
- * test_filter - test a filter against a single entry.
- * returns	0	filter matched
- *		-1	filter did not match
- *		>0	an ldap error code
- */
-
 ID_BLOCK *
 bdb2i_filter_candidates(
     BackendDB	*be,

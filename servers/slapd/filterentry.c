@@ -53,9 +53,10 @@ static int	test_presence_filter(Backend *be,
 /*
  * test_filter - test a filter against a single entry.
  * returns:
- *		LDAP_COMPARE_TRUE	filter matched
- *		LDAP_COMPARE_FALSE	filter did not match
- *	or an ldap error code
+ *		LDAP_COMPARE_TRUE		filter matched
+ *		LDAP_COMPARE_FALSE		filter did not match
+ *		SLAPD_COMPARE_UNDEFINED	filter is undefined
+ *	or an ldap result code indicating error
  */
 
 int
@@ -72,6 +73,17 @@ test_filter(
 	Debug( LDAP_DEBUG_FILTER, "=> test_filter\n", 0, 0, 0 );
 
 	switch ( f->f_choice ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	case SLAPD_FILTER_COMPUTED:
+		Debug( LDAP_DEBUG_FILTER, "    COMPUTED %s (%d)\n",
+			f->f_result == LDAP_COMPARE_FALSE ? "false" :
+			f->f_result == LDAP_COMPARE_TRUE ? "true" :
+			f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" : "error",
+			f->f_result, 0 );
+		rc = f->f_result;
+		break;
+#endif
+
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "    EQUALITY\n", 0, 0, 0 );
 #ifdef SLAPD_SCHEMA_NOT_COMPAT

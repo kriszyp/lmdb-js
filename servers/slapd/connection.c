@@ -781,7 +781,7 @@ connection_operation( void *arg_v )
 		break;
 	}
 
-	if( rc == -1 ) tag = LBER_ERROR;
+	if( rc == SLAPD_DISCONNECT ) tag = LBER_ERROR;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_completed++;

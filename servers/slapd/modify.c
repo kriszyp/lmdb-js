@@ -83,7 +83,7 @@ do_modify(
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		return SLAPD_DISCONNECT;
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
@@ -113,7 +113,7 @@ do_modify(
 		{
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding modlist error" );
-			rc = -1;
+			rc = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
 

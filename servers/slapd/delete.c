@@ -55,7 +55,7 @@ do_delete(
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		return SLAPD_DISCONNECT;
 	}
 
 	ndn = ch_strdup( dn );

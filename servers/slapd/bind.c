@@ -147,7 +147,7 @@ do_bind(
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR,
     		"decoding error" );
-		rc = -1;
+		rc = SLAPD_DISCONNECT;
 		goto cleanup;
 	}
 
@@ -181,7 +181,7 @@ do_bind(
 				(unsigned long) version, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "sasl bind requires LDAPv3" );
-			rc = -1;
+			rc = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
 

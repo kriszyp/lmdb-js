@@ -62,8 +62,12 @@ LDAP_BEGIN_DECL
 
 #define MAXREMATCHES 10
 
-/* psuedo error code to indicating abandoned operation */
-#define SLAPD_ABANDON -1
+/* psuedo error code indicating disconnect */
+#define SLAPD_DISCONNECT -1
+
+/* psuedo error code indicating abandoned operation */
+#define SLAPD_ABANDON -2
+
 
 /* We assume "C" locale, that is US-ASCII */
 #define ASCII_SPACE(c)	( (c) == ' ' )
@@ -332,10 +336,15 @@ typedef struct slap_mra {
 /*
  * represents a search filter
  */
+
 typedef struct slap_filter {
-	ber_tag_t	f_choice;	/* values taken from ldap.h */
+	ber_tag_t	f_choice;	/* values taken from ldap.h, plus: */
+#define SLAPD_FILTER_COMPUTED ((ber_tag_t) 0x01U)
 
 	union f_un_u {
+		/* precomputed result */
+		ber_int_t f_un_result;
+
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		/* DN */
 		char *f_un_dn;
@@ -351,9 +360,6 @@ typedef struct slap_filter {
 
 		/* matching rule assertion */
 		MatchingRuleAssertion *f_un_mra;
-
-		/* and, or, not */
-		struct slap_filter *f_un_complex;
 
 #define f_dn			f_un.f_un_dn
 #define f_desc			f_un.f_un_desc
@@ -380,9 +386,6 @@ typedef struct slap_filter {
 		/* extensible */
 		Mra		f_un_fra;	
 
-		/* and, or, not, list */
-		struct slap_filter	*f_un_complex;
-
 		/* substrings */
 		struct sub {
 			char	*f_un_sub_type;
@@ -407,8 +410,12 @@ typedef struct slap_filter {
 #define f_sub_any	f_un.f_un_sub.f_un_sub_any
 #define f_sub_final	f_un.f_un_sub.f_un_sub_final
 #endif
+
+		/* and, or, not */
+		struct slap_filter *f_un_complex;
 	} f_un;
 
+#define f_result	f_un.f_un_result
 #define f_and		f_un.f_un_complex
 #define f_or		f_un.f_un_complex
 #define f_not		f_un.f_un_complex
@@ -416,6 +423,9 @@ typedef struct slap_filter {
 
 	struct slap_filter	*f_next;
 } Filter;
+
+/* compare routines can return undefined */
+#define SLAPD_COMPARE_UNDEFINED	((ber_tag_t) -1)
 
 /*
  * represents an attribute (description + values)
