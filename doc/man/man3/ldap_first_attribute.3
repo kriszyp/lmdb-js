@@ -1,4 +1,4 @@
-.TH LDAP_FIRST_ATTRIBUTE 3 "4 October 2000" "OpenLDAP LDVERSION"
+.TH LDAP_FIRST_ATTRIBUTE 3 "23 July 2001" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -10,18 +10,12 @@ ldap_first_attribute, ldap_next_attribute \- step through LDAP entry attributes
 #include <ldap.h>
 .LP
 .ft B
-char *ldap_first_attribute(ld, entry, berptr)
-.ft
-LDAP *ld;
-LDAPMessage *entry;
-BerElement **berptr;
+char *ldap_first_attribute(
+	LDAP *ld, LDAPMessage entry, BerElement **berptr )
 .LP
 .ft B
-char *ldap_next_attribute(ld, entry, ber)
-.ft
-LDAP *ld;
-LDAPMessage *entry;
-BerElement *ber;
+char *ldap_next_attribute(
+	LDAP *ld, LDAPMessage entry, BerElement *ber )
 .SH DESCRIPTION
 The
 .B ldap_first_attribute()
@@ -64,7 +58,9 @@ for a description of possible error codes.
 .SH NOTES
 The
 .B ldap_first_attribute()
-routine dyanamically allocated memory that must be freed by the caller via
+and
+.B ldap_next_attribute()
+return dyanamically allocated memory that must be freed by the caller via
 .BR ldap_memfree (3).   
 .SH SEE ALSO
 .BR ldap(3),
