@@ -236,7 +236,7 @@ do_modrdn(
 		goto cleanup;
 	}
 
-	if( rdnValidate( &op->orr_newrdn ) != LDAP_SUCCESS ) {
+	if( rdn_validate( &op->orr_newrdn ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"do_modrdn: invalid rdn (%s).\n", op->orr_newrdn.bv_val, 0, 0 );

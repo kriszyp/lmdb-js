@@ -443,10 +443,17 @@ LDAP_SLAPD_V (int) slapd_register_slp;
 LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 
 	struct berval *val ));
+LDAP_SLAPD_F (int) rdnValidate LDAP_P((
+	Syntax *syntax, 
+	struct berval *val ));
 
 LDAP_SLAPD_F (slap_mr_normalize_func) dnNormalize;
 
+LDAP_SLAPD_F (slap_mr_normalize_func) rdnNormalize;
+
 LDAP_SLAPD_F (slap_syntax_transform_func) dnPretty;
+
+LDAP_SLAPD_F (slap_syntax_transform_func) rdnPretty;
 
 LDAP_SLAPD_F (int) dnPrettyNormal LDAP_P(( 
 	Syntax *syntax, 
@@ -463,13 +470,21 @@ LDAP_SLAPD_F (int) dnMatch LDAP_P((
 	struct berval *value, 
 	void *assertedValue ));
 
+LDAP_SLAPD_F (int) rdnMatch LDAP_P(( 
+	int *matchp, 
+	slap_mask_t flags, 
+	Syntax *syntax, 
+	MatchingRule *mr,
+	struct berval *value, 
+	void *assertedValue ));
+
 LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 	const struct berval *dn, const struct berval *suffix ));
 
 LDAP_SLAPD_F (int) dnExtractRdn LDAP_P((
 	struct berval *dn, struct berval *rdn, void *ctx ));
 
-LDAP_SLAPD_F (int) rdnValidate LDAP_P(( struct berval * rdn ));
+LDAP_SLAPD_F (int) rdn_validate LDAP_P(( struct berval * rdn ));
 
 LDAP_SLAPD_F (int) dn_rdnlen LDAP_P(( Backend *be, struct berval *dn ));
 

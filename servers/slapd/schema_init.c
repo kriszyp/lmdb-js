@@ -3034,6 +3034,10 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		0, countryStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
 		0, dnValidate, dnPretty},
+
+	{"( 1.2.36.79672281.1.5.0 DESC 'RDN' )",
+		0, rdnValidate, rdnPretty},
+
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
@@ -3237,6 +3241,12 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
 		NULL, dnNormalize, dnMatch,
+		octetStringIndexer, octetStringFilter,
+		NULL },
+	{"( 1.2.36.79672281.1.13.3 NAME 'rdnMatch' "
+		"SYNTAX 1.2.36.79672281.1.5.0 )",
+		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
+		NULL, rdnNormalize, rdnMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
