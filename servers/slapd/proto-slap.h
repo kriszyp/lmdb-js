@@ -347,6 +347,8 @@ LDAP_SLAPD_F (int) dnMatch LDAP_P((
 	struct berval *value, 
 	void *assertedValue ));
 
+#define SLAP_DN_MIGRATION
+#ifdef SLAP_DN_MIGRATION
 LDAP_SLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
@@ -364,6 +366,8 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P(( char ** new_dn,
 	const char *e_dn,
 	const char * p_dn,
 	const char * newrdn ));
+#endif
+
 /*
  * entry.c
  */

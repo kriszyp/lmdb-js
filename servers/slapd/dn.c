@@ -458,38 +458,48 @@ dnMatch(
 	return( LDAP_SUCCESS );
 }
 
+#ifdef SLAP_DN_MIGRATION
+/*
+ * these routines are provided for migration purposes only!
+ *	dn_validate is deprecated in favor of dnValidate
+ *	dn_normalize is deprecated in favor of dnNormalize
+ *	strcmp/strcasecmp for DNs is deprecated in favor of dnMatch
+ *
+ * other routines are likewise deprecated but may not yet have
+ * replacement functions.
+ */
+
 /*
  * dn_validate - validate and compress dn.  the dn is
  * compressed in place are returned if valid.
  */
-
 char *
-dn_validate( char *dn_in )
+dn_validate( char *dn )
 {
-	struct berval	val, *normalized;
+	struct berval val, *pretty;
 	int		rc;
 
-	if ( dn_in == NULL || dn_in[ 0 ] == '\0' ) {
-		return( dn_in );
+	if ( dn == NULL || dn[0] == '\0' ) {
+		return dn;
 	}
 
-	val.bv_val = dn_in;
-	val.bv_len = strlen( dn_in );
+	val.bv_val = dn;
+	val.bv_len = strlen( dn );
 
-	rc = dnPretty( NULL, &val, &normalized );
+	rc = dnPretty( NULL, &val, &pretty );
 	if ( rc != LDAP_SUCCESS ) {
-		return( NULL );
+		return NULL;
 	}
 
-	if ( val.bv_len < normalized->bv_len ) {
-		ber_bvfree( normalized );
-		return( NULL );
+	if ( val.bv_len < pretty->bv_len ) {
+		ber_bvfree( pretty );
+		return NULL;
 	}
 
-	AC_MEMCPY( dn_in, normalized->bv_val, normalized->bv_len + 1 );
-	ber_bvfree( normalized );
+	AC_MEMCPY( dn, pretty->bv_val, pretty->bv_len + 1 );
+	ber_bvfree( pretty );
 
-	return( dn_in );
+	return dn;
 }
 
 /*
@@ -497,15 +507,14 @@ dn_validate( char *dn_in )
  * in a hash database.	this involves normalizing the case as well as
  * the format.	the dn is normalized in place as well as returned if valid.
  */
-
 char *
 dn_normalize( char *dn )
 {
 	struct berval	val, *normalized;
 	int		rc;
 
-	if ( dn == NULL || dn[ 0 ] == '\0' ) {
-		return( dn );
+	if ( dn == NULL || dn[0] == '\0' ) {
+		return dn;
 	}
 
 	val.bv_val = dn;
@@ -513,19 +522,20 @@ dn_normalize( char *dn )
 
 	rc = dnNormalize( NULL, &val, &normalized );
 	if ( rc != LDAP_SUCCESS ) {
-		return( NULL );
+		return NULL;
 	}
 
 	if ( val.bv_len < normalized->bv_len ) {
 		ber_bvfree( normalized );
-		return( NULL );
+		return NULL;
 	}
 
 	AC_MEMCPY( dn, normalized->bv_val, normalized->bv_len + 1 );
 	ber_bvfree( normalized );
 
-	return( dn );
+	return dn;
 }
+
 
 /*
  * dn_parent - return the dn's parent, in-place
@@ -960,3 +970,5 @@ build_new_dn( char ** new_dn,
 	strcat( *new_dn, "," );
 	strcat( *new_dn, p_dn );
 }
+
+#endif /* SLAP_DN_MIGRATION */
