@@ -3,7 +3,8 @@
 ##
 SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c
 OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o
-#XLIBS	= -llber -lldap
+
+XLIBS	= $(KRB_LIBS)
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

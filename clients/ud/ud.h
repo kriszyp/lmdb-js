@@ -261,7 +261,7 @@ void print_one_URL	LDAP_P(( char *s, int l_lead, char *tag, int u_lead ));
 /* in string_to_key.c: */
 #if defined(HAVE_KERBEROS) && !defined(openbsd) && defined(_AC_KRB_H)
 #if defined(HAVE_AFS_KERBEROS) || !defined(HAVE_KERBEROS_V)
-int  des_string_to_key	LDAP_P(( char *str, des_cblock *key ));
+void  des_string_to_key	LDAP_P(( char *str, des_cblock *key ));
 #endif
 #if defined(HAVE_AFS_KERBEROS)
 void ka_StringToKey LDAP_P(( char *str, char *cell, des_cblock *key ));

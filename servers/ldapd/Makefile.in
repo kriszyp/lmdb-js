@@ -18,7 +18,7 @@ LDAP_LIBDIR= ../../libraries
 BUILD_OPT = "--enable-ldapd"
 BUILD_SRV = @BUILD_LDAPD@
 
-XLIBS= @LDAPD_LIBS@ -llutil @LUTIL_LIBS@
+XLIBS= @LDAPD_LIBS@ $(KRB_LIBS) -llutil @LUTIL_LIBS@
 
 ldapd:	version.o
 	$(LDLINK) -o $@ $(OBJS) version.o $(LIBS)

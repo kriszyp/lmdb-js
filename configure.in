@@ -334,8 +334,9 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 			ol_link_kerberos=yes
 
 			AC_DEFINE(HAVE_KERBEROS)
-
 			KRB_LIBS="-lkrb -ldes"
+
+			AC_CHECK_FUNCS(des_string_to_key)
 		fi
 	fi
 fi
