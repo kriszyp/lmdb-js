@@ -9,6 +9,13 @@
  * given to IBM Corporation. This software is provided ``as is'' 
  * without express or implied warranty.
  */
+/*
+ * Portions (C) Copyright PADL Software Pty Ltd.
+ * Redistribution and use in source and binary forms are permitted
+ * provided that this notice is preserved and that due credit is 
+ * given to PADL Software Pty Ltd. This software is provided ``as is'' 
+ * without express or implied warranty.
+ */
 
 #include "portable.h"
 #include "slapi_common.h"
@@ -1246,6 +1253,8 @@ int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
+
+	return rc;
 #else
 	return -1;
 #endif /* defined(LDAP_SLAPI) */
@@ -1934,7 +1943,11 @@ void slapi_valueset_free(Slapi_ValueSet *vs)
 {
 #ifdef LDAP_SLAPI
 	if ( vs != NULL ) {
-		ber_bvarray_free( *vs );
+		BerVarray vp = *vs;
+
+		ber_bvarray_free( vp );
+		slapi_ch_free( (void **)&vp );
+
 		*vs = NULL;
 	}
 #endif
@@ -2037,3 +2050,204 @@ void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2)
 #endif
 }
 
+/*
+ * Attribute sets are an OpenLDAP extension for the 
+ * virtual operational attribute coalescing plugin 
+ */
+Slapi_AttrSet *slapi_x_attrset_new( void )
+{
+#ifdef LDAP_SLAPI
+	Slapi_AttrSet *a;
+
+	/*
+	 * Like a Slapi_ValueSet, a Slapi_AttrSet is a container
+	 * for objects: we need this because it may be initially
+	 * empty.
+	 */
+	a = (Slapi_AttrSet *)slapi_ch_malloc( sizeof( *a ) );
+	*a = NULL;
+
+	return a;
+#else
+	return NULL;
+#endif
+}
+
+Slapi_AttrSet *slapi_x_attrset_init( Slapi_AttrSet *as, Slapi_Attr *a )
+{
+#ifdef LDAP_SLAPI
+	*as = a;
+	a->a_next = NULL;
+
+	return as;
+#else
+	return NULL;
+#endif
+}
+
+void slapi_x_attrset_free( Slapi_AttrSet **pAs )
+{
+#ifdef LDAP_SLAPI
+	Slapi_AttrSet *as = *pAs;
+
+	if ( as != NULL ) {
+		attrs_free( *as );
+		slapi_ch_free( (void **)&as );
+		*pAs = NULL;
+	}
+#endif
+}
+
+Slapi_AttrSet *slapi_x_attrset_dup( Slapi_AttrSet *as )
+{
+#ifdef LDAP_SLAPI
+	Slapi_AttrSet *newAs = slapi_x_attrset_new();
+	
+	if ( *as != NULL )
+		*newAs = attrs_dup( *as );
+
+	return newAs;
+#else
+	return NULL;
+#endif
+}
+
+int slapi_x_attrset_add_attr( Slapi_AttrSet *as, Slapi_Attr *a )
+{
+#ifdef LDAP_SLAPI
+	Slapi_Attr *nextAttr;
+
+	if ( as == NULL || a == NULL )
+		return -1;
+
+	if ( *as == NULL ) {
+		/* First attribute */
+		nextAttr = NULL;
+		(*as) = a;
+	} else {
+		/* Non-first attribute */
+		nextAttr = (*as)->a_next;
+		(*as)->a_next = a;
+	}
+
+	a->a_next = nextAttr;
+
+	return 0;
+#else
+	return -1;
+#endif
+}
+
+int slapi_x_attrset_add_attr_copy( Slapi_AttrSet *as, Slapi_Attr *a )
+{
+#ifdef LDAP_SLAPI
+	Slapi_Attr *adup;
+
+	adup = slapi_attr_dup( a );
+	return slapi_x_attrset_add_attr( as, adup );
+#else
+	return -1;
+#endif
+}
+
+int slapi_x_attrset_find( Slapi_AttrSet *as, const char *type, Slapi_Attr **attr )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad;
+	const char *text;
+
+	if ( as == NULL || *as == NULL ) {
+		return -1;
+	}
+
+	if ( slap_str2ad( type, &ad, &text ) != LDAP_SUCCESS ) {
+		return -1;
+	}
+	*attr = attrs_find( *as, ad );
+	return ( *attr == NULL ) ? -1 : 0;
+#else
+	return -1;
+#endif
+}
+
+int slapi_x_attrset_merge( Slapi_AttrSet *as, const char *type, Slapi_ValueSet *vals )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad;
+	Slapi_AttrSet *a;
+	const char *text;
+
+	if ( vals == NULL || *vals == NULL ) {
+		/* Must have something to add. */
+		return -1;
+	}
+
+	if ( slap_str2ad( type, &ad, &text ) != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	for ( a = as; *a != NULL; a = &(*a)->a_next ) {
+		if ( ad_cmp( (*a)->a_desc, ad ) == 0 ) {
+			break;
+		}
+	}
+
+	if ( *a == NULL ) {
+		*a = (Slapi_Attr *) slapi_ch_malloc( sizeof(Attribute) );
+		(*a)->a_desc = ad;
+		(*a)->a_vals = NULL;
+		(*a)->a_next = NULL;
+		(*a)->a_flags = 0;
+	}
+
+	return value_add ( &(*a)->a_vals, *vals );
+#else
+	return -1;
+#endif
+}
+
+int slapi_x_attrset_merge_bervals( Slapi_AttrSet *as, const char *type, struct berval **vals )
+{
+#ifdef LDAP_SLAPI
+	BerVarray vp;
+	int rc;
+
+	if ( bvptr2obj( vals, &vp ) != LDAP_SUCCESS ) {
+		return -1;
+	}
+	rc = slapi_x_attrset_merge( as, type, &vp );
+	slapi_ch_free( (void **)&vp );
+
+	return rc;
+#else
+	return -1;
+#endif
+}
+
+int slapi_x_attrset_delete( Slapi_AttrSet *as, const char *type )
+{
+#ifdef LDAP_SLAPI
+	AttributeDescription *ad;
+	const char *text;
+
+	if ( as == NULL ) {
+		return -1;
+	}
+
+	if ( *as == NULL ) {
+		return -1;
+	}
+
+	if ( slap_str2ad( type, &ad, &text ) != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	if ( attr_delete( as, ad ) != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	return 0;
+#else
+	return -1;
+#endif
+}

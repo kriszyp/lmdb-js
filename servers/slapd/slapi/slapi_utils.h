@@ -55,6 +55,18 @@ Slapi_Entry *slapi_entry_alloc();
 void slapi_entry_free( Slapi_Entry *e );
 int slapi_attr_get_values( Slapi_Attr *attr, struct berval ***vals );
 
+/* OpenLDAP AttrSet extensions for virtual attribute service */
+Slapi_AttrSet *slapi_x_attrset_new( void );
+Slapi_AttrSet *slapi_x_attrset_init( Slapi_AttrSet *as, Slapi_Attr *a );
+void slapi_x_attrset_free( Slapi_AttrSet **as );
+Slapi_AttrSet *slapi_x_attrset_dup( Slapi_AttrSet *as );
+int slapi_x_attrset_add_attr( Slapi_AttrSet *as, Slapi_Attr *a );
+int slapi_x_attrset_add_attr_copy( Slapi_AttrSet *as, Slapi_Attr *a );
+int slapi_x_attrset_find( Slapi_AttrSet *as, const char *type, Slapi_Attr **attr );
+int slapi_x_attrset_merge( Slapi_AttrSet *as, const char *type, Slapi_ValueSet *vals );
+int slapi_x_attrset_merge_bervals( Slapi_AttrSet *as, const char *type, struct berval **vals );
+int slapi_x_attrset_delete( Slapi_AttrSet *as, const char *type );
+
 /* DS 5.x SLAPI */
 Slapi_Attr *slapi_attr_new( void );
 Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type );

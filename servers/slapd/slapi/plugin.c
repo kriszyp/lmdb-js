@@ -619,6 +619,8 @@ netscape_plugin(
 		iType = SLAPI_PLUGIN_POSTOPERATION;
 	} else if ( strcasecmp( argv[1], "extendedop" ) == 0 ) {
 		iType = SLAPI_PLUGIN_EXTENDEDOP;
+	} else if ( strcasecmp( argv[1], "opattrsp" ) == 0 ) {
+		iType = SLAPI_PLUGIN_OPATTR_SP;
 	} else {
 		fprintf( stderr, "%s: line %d: invalid plugin type \"%s\".\n",
 				fname, lineno, argv[1] );
@@ -634,7 +636,8 @@ netscape_plugin(
 
 	if ( iType == SLAPI_PLUGIN_PREOPERATION ||
 		  	iType == SLAPI_PLUGIN_EXTENDEDOP ||
-			iType == SLAPI_PLUGIN_POSTOPERATION ) {
+			iType == SLAPI_PLUGIN_POSTOPERATION ||
+			iType == SLAPI_PLUGIN_OPATTR_SP ) {
 		int rc;
 		Slapi_PBlock *pPlugin;
 
