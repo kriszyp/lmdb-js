@@ -218,8 +218,6 @@ int main( int argc, char **argv )
 				MAIN_RETURN(rc);
 			}
 		}
-
-		goto unrecognized_server_name;
 	}
 
 #ifdef HAVE_NT_SERVICE_MANAGER
@@ -417,7 +415,6 @@ int main( int argc, char **argv )
 			/* issue error */
 			serverName = optarg;
 			serverNamePrefix = "slap";
-unrecognized_server_name:;
 			fprintf( stderr, "program name \"%s%s\" unrecognized; "
 					"aborting...\n", serverNamePrefix, serverName );
 			/* FALLTHRU */
