@@ -411,14 +411,14 @@ bdb_db_open( BackendDB *be )
 			path,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
-			bdbi_databases[i].flags | flags | DB_AUTO_COMMIT,
+			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
 #else
 		rc = DB_OPEN( db->bdi_db,
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
-			bdbi_databases[i].flags | flags | DB_AUTO_COMMIT,
+			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
 #endif
 
