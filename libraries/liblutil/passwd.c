@@ -113,8 +113,7 @@ static int chk_crypt(
 	const struct berval *passwd,
 	const struct berval *cred );
 
-#if defined( HAVE_GETSPNAM ) \
-  || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
+#if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
 static int chk_unix(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
