@@ -281,7 +281,8 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 	}
 
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
-		int rc;
+		int		rc;
+		struct berval	cred = BER_BVC("");
 
 		/*
 		 * Not a candidate or something wrong with this target ...
@@ -328,7 +329,8 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			lsc->cred.bv_len = 0;
 		}
 
-		rc = ldap_bind_s( lsc->ld, 0, NULL, LDAP_AUTH_SIMPLE );
+		rc = ldap_sasl_bind_s(lsc->ld, "", LDAP_SASL_SIMPLE, &cred,
+				op->o_ctrls, NULL, NULL);
 		if ( rc != LDAP_SUCCESS ) {
 			
 #ifdef NEW_LOGGING
