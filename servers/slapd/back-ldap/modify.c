@@ -120,7 +120,7 @@ ldap_back_modify(
 		if ( ml->sml_values != NULL ) {
 			if ( is_oc ) {
 				for (j = 0; ml->sml_values[j].bv_val; j++);
-				mods[i].mod_values = (struct berval **)ch_malloc((j+1) *
+				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
 					sizeof(struct berval *));
 				for (j = 0; ml->sml_values[j].bv_val; j++) {
 					ldap_back_map(&li->rwmap.rwm_oc,
@@ -129,7 +129,7 @@ ldap_back_modify(
 					if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 						continue;
 					}
-					mods[i].mod_values[j] = &mapped;
+					mods[i].mod_bvalues[j] = &mapped;
 				}
 				mods[i].mod_values[j] = NULL;
 
@@ -144,10 +144,10 @@ ldap_back_modify(
 				}
 
 				for (j = 0; ml->sml_values[j].bv_val; j++);
-				mods[i].mod_values = (struct berval **)ch_malloc((j+1) *
+				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
 					sizeof(struct berval *));
 				for (j = 0; ml->sml_values[j].bv_val; j++)
-					mods[i].mod_values[j] = &ml->sml_values[j];
+					mods[i].mod_bvalues[j] = &ml->sml_values[j];
 				mods[i].mod_values[j] = NULL;
 			}
 

@@ -119,14 +119,14 @@ meta_back_modify( Operation *op, SlapReply *rs )
 
 		if ( ml->sml_values != NULL ){
 			for (j = 0; ml->sml_values[ j ].bv_val; j++);
-			mods[ i ].mod_values = (struct berval **)ch_malloc((j+1) *
+			mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
 				sizeof(struct berval *));
 			for (j = 0; ml->sml_values[ j ].bv_val; j++)
-				mods[ i ].mod_values[ j ] = &ml->sml_values[j];
-			mods[ i ].mod_values[ j ] = NULL;
+				mods[ i ].mod_bvalues[ j ] = &ml->sml_values[j];
+			mods[ i ].mod_bvalues[ j ] = NULL;
 
 		} else {
-			mods[ i ].mod_values = NULL;
+			mods[ i ].mod_bvalues = NULL;
 		}
 
 		i++;
