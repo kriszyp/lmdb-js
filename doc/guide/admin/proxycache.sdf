@@ -81,7 +81,7 @@ H3: Defining attribute sets
 
 Used to associate a set of attributes to an index. Each attribute
 set is associated with an index number from 0 to <numattrsets>-1.
-These indices are used by the addtemplate directive to define
+These indices are used by the proxyTemplate directive to define
 cacheable templates.
 
 H3: Specifying cacheable templates 
@@ -115,4 +115,33 @@ at server {{EX:ldap.example.com}}.
 >	index       objectClass eq
 >	index       cn,sn,uid,mail  pres,eq,sub
 
+
+H: Cacheable Queries
+
+A LDAP search query is cacheable when its filter matches one of the
+templates as defined in the "proxyTemplate" statements and when it references
+only the attributes specified in the corresponding attribute set. 
+In the example above the attribute set number 0 defines that only the
+attributes: {{EX:mail postaladdress telephonenumber}} are cached for the following
+proxyTemplates.
+
+H4: Examples:
+
+>	Filter: (&(sn=Richard*)(givenName=jack)) 
+>	Attrs: mail telephoneNumber
+
+    is cacheable, because it matches the template {{EX:(&(sn=)(givenName=))}} and its
+    attributes are contained in proxyAttrset 0.
+
+>	Filter: (&(sn=Richard*)(telephoneNumber))
+>	Attrs: givenName 
+
+    is not cacheable, because the filter does not match the template,
+    nor is the attribute givenName stored in the cache
+
+>	Filter: (|(sn=Richard*)(givenName=jack))
+>	Attrs: mail telephoneNumber
+
+    is not cacheable, because the filter does not match the template ( logical
+    OR "|" condition instead of logical AND "&" )
 
