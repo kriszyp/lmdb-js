@@ -1863,7 +1863,8 @@ null_callback(
 	if ( rs->sr_err != LDAP_SUCCESS &&
 		rs->sr_err != LDAP_REFERRAL &&
 		rs->sr_err != LDAP_ALREADY_EXISTS &&
-		rs->sr_err != LDAP_NO_SUCH_OBJECT )
+		rs->sr_err != LDAP_NO_SUCH_OBJECT &&
+		rs->sr_err != LDAP_NOT_ALLOWED_ON_NONLEAF )
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
