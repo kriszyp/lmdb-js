@@ -194,6 +194,7 @@ proc ldap:search { args } {
 NOTE: Newlines in the return value is acceptible in search entries (ie.
 when returning base64 encoded binary entries).
 
+
 -------------------------------------
 Synopsis of Builtin Commands and Vars
 -------------------------------------
@@ -203,4 +204,3 @@ ldap:debug <msg>
   Allows you to send debug messages through OpenLDAP's native debuging
   system, this is sent as a LDAP_DEBUG_ANY and will be logged. Useful for
   debugging scripts or logging bind failures.
-

@@ -1,6 +1,6 @@
 /* modrdn.c - tcl modify rdn routines
  *
- * $Id: tcl_modrdn.c,v 1.3 1999/02/18 01:18:39 bcollins Exp $
+ * $Id: tcl_modrdn.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -55,7 +55,7 @@ tcl_back_modrdn (
 
 	if (code != TCL_OK) {
 		err = LDAP_OPERATIONS_ERROR;
-		Debug (LDAP_DEBUG_ANY, "tcl_modrdn_error: %s\n", results,
+		Debug (LDAP_DEBUG_SHELL, "tcl_modrdn_error: %s\n", results,
 			0, 0);
 	} else {
 		interp_send_results (be, conn, op, results, NULL, 0);

@@ -1,6 +1,6 @@
 /* result.c - tcl backend utility functions
  *
- * $Id: tcl_util.c,v 1.3 1999/02/18 01:18:39 bcollins Exp $
+ * $Id: tcl_util.c,v 1.4 1999/02/19 06:55:20 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -75,7 +75,7 @@ interp_send_results (
 				break;
 			}
 			if ((e = str2entry (buf)) == NULL) {
-				Debug (LDAP_DEBUG_ANY,
+				Debug (LDAP_DEBUG_SHELL,
 					"str2entry(%s) failed\n",
 					buf, 0, 0);
 			} else {
@@ -159,7 +159,7 @@ tcl_ldap_debug (
 )
 {
 	if (argv[1] != NULL) {
-		Debug (LDAP_DEBUG_ANY, "tcl_debug: %s\n", argv[1], 0, 0);
+		Debug (LDAP_DEBUG_SHELL, "tcl_debug: %s\n", argv[1], 0, 0);
 	}
 	return TCL_OK;
 }
@@ -174,16 +174,16 @@ readtclscript (
 
 	f = fopen (script, "r");
 	if (f == NULL) {
-		Debug (LDAP_DEBUG_ANY, "Could not open scriptpath %s\n", script,
+		Debug (LDAP_DEBUG_SHELL, "Could not open scriptpath %s\n", script,
 			0, 0);
 		return;
 	}
 	fclose (f);
 	code = Tcl_EvalFile (my_tcl, script);
 	if (code != TCL_OK) {
-		Debug (LDAP_DEBUG_ANY, "%s: %s\n", script,
+		Debug (LDAP_DEBUG_SHELL, "%s: %s\n", script,
 			Tcl_GetVar (my_tcl, "errorInfo", TCL_GLOBAL_ONLY), 0);
-		Debug (LDAP_DEBUG_ANY, "%s: error at line\n", script,
+		Debug (LDAP_DEBUG_SHELL, "%s: error at line\n", script,
 			my_tcl->errorLine, 0);
 		return;
 	}
