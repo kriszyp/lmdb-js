@@ -143,15 +143,14 @@ ldap_back_db_open( BackendDB *be )
 	{
 		struct berval	filter,
 				base = BER_BVC( "cn=Databases,cn=Monitor" );
-		const char	*text;
 		struct berval	vals[ 2 ];
 		Attribute	a = { 0 };
 
-		filter.bv_len = STRLENOF( "(&(namingContexts=)(monitoredInfo=ldap))" )
+		filter.bv_len = STRLENOF( "(&(namingContexts:distinguishedNameMatch:=)(monitoredInfo=ldap))" )
 			+ be->be_nsuffix[ 0 ].bv_len;
 		filter.bv_val = ch_malloc( filter.bv_len + 1 );
 		snprintf( filter.bv_val, filter.bv_len + 1,
-				"(&(namingContexts=%s)(monitoredInfo=ldap))",
+				"(&(namingContexts:distinguishedNameMatch:=%s)(monitoredInfo=ldap))",
 				be->be_nsuffix[ 0 ].bv_val );
 
 		a.a_desc = slap_schema.si_ad_labeledURI;
@@ -162,6 +161,8 @@ ldap_back_db_open( BackendDB *be )
 		if ( monitor_back_register_entry_attrs( NULL, &a, NULL, &base, LDAP_SCOPE_SUBTREE, &filter ) ) {
 			/* error */
 		}
+
+		ch_free( filter.bv_val );
 	}
 #endif /* SLAPD_MONITOR */
 

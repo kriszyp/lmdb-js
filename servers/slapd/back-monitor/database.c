@@ -257,7 +257,7 @@ monitor_subsys_database_init(
 			}
 		}
 
-#if 0 // defined(SLAPD_LDAP) 
+#if defined(SLAPD_LDAP) 
 		if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
 			struct ldapinfo		*li = (struct ldapinfo *)be->be_private;
 			struct berval		bv;
