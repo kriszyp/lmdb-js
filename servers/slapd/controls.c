@@ -154,14 +154,11 @@ register_supported_control(const char *controloid,
 	struct slap_control *sc;
 	int i;
 
-	if ( controloid == NULL ) {
-		return LDAP_PARAM_ERROR;
-	}
+	if ( controloid == NULL ) return LDAP_PARAM_ERROR;
 
 	sc = (struct slap_control *)SLAP_MALLOC( sizeof( *sc ) );
-	if ( sc == NULL ) {
-		return LDAP_NO_MEMORY;
-	}
+	if ( sc == NULL ) return LDAP_NO_MEMORY;
+
 	sc->sc_oid = ch_strdup( controloid );
 	sc->sc_mask = controlmask;
 	if ( controlexops != NULL ) {
@@ -179,28 +176,39 @@ register_supported_control(const char *controloid,
 	if ( slap_known_controls == NULL ) {
 		slap_known_controls = (char **)SLAP_MALLOC( 2 * sizeof(char *) );
 		if ( slap_known_controls == NULL ) {
-			if ( sc->sc_extendedops != NULL ) ldap_charray_free( sc->sc_extendedops );
+			if ( sc->sc_extendedops != NULL ) {
+				ldap_charray_free( sc->sc_extendedops );
+			}
 			ch_free( sc );
 			return LDAP_NO_MEMORY;
 		}
 		slap_known_controls[0] = ch_strdup( sc->sc_oid );
 		slap_known_controls[1] = NULL;
+
 	} else {
-		for ( i = 0; slap_known_controls[i] != NULL; i++ )
-			;
-		slap_known_controls = (char **)SLAP_REALLOC( slap_known_controls, (i + 2) * sizeof(char *) );
-		if ( slap_known_controls == NULL ) {
-			if ( sc->sc_extendedops != NULL ) ldap_charray_free( sc->sc_extendedops );
+		char **new_known_controls;
+
+		for ( i = 0; slap_known_controls[i] != NULL; i++ ) {
+			/* EMPTY */ ;
+		}
+
+		new_known_controls = (char **)SLAP_REALLOC(
+			slap_known_controls, (i + 2) * sizeof(char *) );
+
+		if ( new_known_controls == NULL ) {
+			if ( sc->sc_extendedops != NULL ) {
+				ldap_charray_free( sc->sc_extendedops );
+			}
 			ch_free( sc );
 			return LDAP_NO_MEMORY;
 		}
+		slap_known_controls = new_known_controls;
 		slap_known_controls[i++] = ch_strdup( sc->sc_oid );
 		slap_known_controls[i] = NULL;
 	}
 
 	LDAP_SLIST_NEXT( sc, sc_next ) = NULL;
 	LDAP_SLIST_INSERT_HEAD( &controls_list, sc, sc_next );
-
 	return LDAP_SUCCESS;
 }
 
@@ -219,8 +227,7 @@ slap_controls_init( void )
 		rc = register_supported_control( control_defs[i].sc_oid,
 			control_defs[i].sc_mask, control_defs[i].sc_extendedops,
 			control_defs[i].sc_parse );
-		if ( rc != LDAP_SUCCESS )
-			break;
+		if ( rc != LDAP_SUCCESS ) break;
 	}
 
 	return rc;
@@ -607,8 +614,8 @@ int get_ctrls(
 				}
 
 				rc = sc->sc_parse( op, rs, c );
-				assert( rc != LDAP_UNAVAILABLE_CRITICAL_EXTENSION );
 				if ( rc ) {
+					assert( rc != LDAP_UNAVAILABLE_CRITICAL_EXTENSION );
 					rs->sr_err = rc;
 					goto return_results;
 				}

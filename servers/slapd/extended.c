@@ -235,7 +235,9 @@ fe_extended( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_SLAPI
-	slapi_int_get_extop_plugin( &op->ore_reqoid, &funcAddr ); /* NS-SLAPI extended operation */
+    /* NS-SLAPI extended operation */
+	slapi_int_get_extop_plugin( &op->ore_reqoid, &funcAddr );
+
 	if( !funcAddr && !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
 #else
 	if( !(ext = find_extop(supp_ext_list, &op->ore_reqoid )))
@@ -256,9 +258,11 @@ fe_extended( Operation *op, SlapReply *rs )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, DETAIL1, 
-		"do_extended: conn %d  oid=%s\n.", op->o_connid, op->ore_reqoid.bv_val, 0 );
+		"do_extended: conn %d  oid=%s\n.",
+		op->o_connid, op->ore_reqoid.bv_val, 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", op->ore_reqoid.bv_val, 0 ,0 );
+	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n",
+		op->ore_reqoid.bv_val, 0 ,0 );
 #endif
 
 #if defined(LDAP_SLAPI)
@@ -321,8 +325,9 @@ done2:;
 		if ( rs->sr_rspdata != NULL ) {
 			ber_bvfree( rs->sr_rspdata );
 		}
-	} else { /* start of OpenLDAP extended operation */
+	} else
 #endif /* defined( LDAP_SLAPI ) */
+	{ /* start of OpenLDAP extended operation */
 		rs->sr_err = (ext->ext_main)( op, rs );
 
 		if( rs->sr_err != SLAPD_ABANDON ) {
@@ -351,9 +356,7 @@ done2:;
 		if ( rs->sr_rspdata != NULL ) {
 			ber_bvfree( rs->sr_rspdata );
 		}
-#ifdef LDAP_SLAPI
 	} /* end of OpenLDAP extended operation */
-#endif /* LDAP_SLAPI */
 
 done:;
 	return rs->sr_err;
