@@ -1628,6 +1628,7 @@ AC_CHECK_FUNCS(		\
 	flock			\
 	getdtablesize	\
 	gethostname		\
+	getpass			\
 	getpwuid		\
 	gettimeofday	\
 	lockf			\

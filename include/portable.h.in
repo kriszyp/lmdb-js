@@ -231,6 +231,9 @@
 /* Define if you have the getopt function.  */
 #undef HAVE_GETOPT
 
+/* Define if you have the getpass function.  */
+#undef HAVE_GETPASS
+
 /* Define if you have the getpwuid function.  */
 #undef HAVE_GETPWUID
 
