@@ -126,13 +126,13 @@ struct ldap_tmplitem {
 #define NULLTMPLITEM	((struct ldap_tmplitem *)0)
 
 #define LDAP_SET_TMPLITEM_APPDATA( ti, datap )	\
-	(ti)->ti_appdata = (void *)(datap)
+	( (ti)->ti_appdata = (void *)(datap) )
 
 #define LDAP_GET_TMPLITEM_APPDATA( ti, type )	\
-	(type)((ti)->ti_appdata)
+	( (type)((ti)->ti_appdata) )
 
 #define LDAP_IS_TMPLITEM_OPTION_SET( ti, option )	\
-	(((ti)->ti_options & option ) != 0 )
+	( ((ti)->ti_options & (option) ) != 0 )
 
 
 /*
@@ -202,13 +202,13 @@ struct ldap_disptmpl {
 #define NULLDISPTMPL	((struct ldap_disptmpl *)0)
 
 #define LDAP_SET_DISPTMPL_APPDATA( dt, datap )	\
-	(dt)->dt_appdata = (void *)(datap)
+	( (dt)->dt_appdata = (void *)(datap) )
 
 #define LDAP_GET_DISPTMPL_APPDATA( dt, type )	\
-	(type)((dt)->dt_appdata)
+	( (type)((dt)->dt_appdata) )
 
 #define LDAP_IS_DISPTMPL_OPTION_SET( dt, option )	\
-	(((dt)->dt_options & option ) != 0 )
+	( ((dt)->dt_options & (option) ) != 0 )
 
 #define LDAP_TMPL_ERR_VERSION	1
 #define LDAP_TMPL_ERR_MEM	2

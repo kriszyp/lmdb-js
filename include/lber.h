@@ -168,12 +168,12 @@ extern void ber_init();
  * SAFEMEMCPY is an overlap-safe copy from s to d of n bytes
  */
 #ifdef MACOS
-#define SAFEMEMCPY( d, s, n )	BlockMoveData( (Ptr)s, (Ptr)d, n )
+#define SAFEMEMCPY( d, s, n )	BlockMoveData( (Ptr)(s), (Ptr)(d), (n) )
 #else /* MACOS */
 #ifdef sunos4
-#define SAFEMEMCPY( d, s, n )	bcopy( s, d, n )
+#define SAFEMEMCPY( d, s, n )	bcopy( (s), (d), (n) )
 #else /* sunos4 */
-#define SAFEMEMCPY( d, s, n )	memmove( d, s, n )
+#define SAFEMEMCPY( d, s, n )	memmove( (d), (s), (n) )
 #endif /* sunos4 */
 #endif /* MACOS */
 

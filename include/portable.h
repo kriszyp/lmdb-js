@@ -134,7 +134,7 @@
  * compilers don't like recursive macros, so ignore the problem if __STDC__
  * is not defined.
  */
-#define select(a,b,c,d,e) select(a, (int *)b, (int *)c, (int *)d, e)
+#define select(a,b,c,d,e) select((a),(int *)(b),(int *)(c),(int *)(d),(e))
 #endif /* hpux && __STDC__ */
 
 
@@ -171,11 +171,11 @@
  * toupper and tolower macros are different under bsd and sys v
  */
 #if defined( SYSV ) && !defined( hpux )
-#define TOUPPER(c)	(isascii(c) && islower(c) ? _toupper(c) : c)
-#define TOLOWER(c)	(isascii(c) && isupper(c) ? _tolower(c) : c)
+#define TOUPPER(c)	(isascii(c) && islower(c) ? _toupper(c) : (c))
+#define TOLOWER(c)	(isascii(c) && isupper(c) ? _tolower(c) : (c))
 #else
-#define TOUPPER(c)	(isascii(c) && islower(c) ? toupper(c) : c)
-#define TOLOWER(c)	(isascii(c) && isupper(c) ? tolower(c) : c)
+#define TOUPPER(c)	(isascii(c) && islower(c) ? toupper(c) : (c))
+#define TOLOWER(c)	(isascii(c) && isupper(c) ? tolower(c) : (c))
 #endif
 
 /*
@@ -186,16 +186,16 @@
 #define TERMFLAG_TYPE int
 #define GETATTR( fd, tiop )	ioctl((fd), TIOCGETP, (caddr_t)(tiop))
 #define SETATTR( fd, tiop )	ioctl((fd), TIOCSETP, (caddr_t)(tiop))
-#define GETFLAGS( tio )		(tio).sg_flags
-#define SETFLAGS( tio, flags )	(tio).sg_flags = (flags)
+#define GETFLAGS( tio )		((tio).sg_flags)
+#define SETFLAGS( tio, flags )	((tio).sg_flags = (flags))
 #else
 #define USE_TERMIOS
 #define TERMIO_TYPE struct termios
 #define TERMFLAG_TYPE tcflag_t
 #define GETATTR( fd, tiop )	tcgetattr((fd), (tiop))
 #define SETATTR( fd, tiop )	tcsetattr((fd), TCSANOW /* 0 */, (tiop))
-#define GETFLAGS( tio )		(tio).c_lflag
-#define SETFLAGS( tio, flags )	(tio).c_lflag = (flags)
+#define GETFLAGS( tio )		((tio).c_lflag)
+#define SETFLAGS( tio, flags )	((tio).c_lflag = (flags))
 #endif
 
 
