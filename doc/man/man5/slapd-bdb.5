@@ -18,12 +18,12 @@ It makes extensive use of indexing and caching to speed data access.
 It is noted that these options are intended to complement
 Berkeley DB configuration options set in the environment's
 .B DB_CONFIG
-file.  See Berkeley DB documentation for
-details on
+file.  See Berkeley DB documentation for details on
 .B DB_CONFIG
-configuration options.  Where there is overlap, settings in
-.B DB_CONFIG
-take precedence.
+configuration options.
+.\" Where there is overlap, settings in
+.\" .B DB_CONFIG
+.\" take precedence.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -38,21 +38,23 @@ manual page.
 Specify the size in entries of the in-memory cache maintained 
 by the BDB backend database instance.
 The default is 1000 entries.
-.TP
-.B checkpoint <kbyte> <min>
-Specify the frequency for checkpointing the database transaction log.
-A checkpoint operation flushes the database buffers to disk and writes
-a checkpoint record in the log.
-The checkpoint will occur if either <kbyte> data has been written or
-<min> minutes have passed since the last checkpoint.
-Both arguments default to zero, in which case they are ignored.
-See the Berkeley DB reference guide for more details.
-.TP
-.B dbnosync
-Specify that on-disk database contents should not be immediately
-synchronized with in memory changes.
-Enabling this option may improve performance at the expense of data
-security.
+.\" .TP
+.\" Undocumented option, should use DB_CONFIG instead
+.\" .B checkpoint <kbyte> <min>
+.\" Specify the frequency for checkpointing the database transaction log.
+.\" A checkpoint operation flushes the database buffers to disk and writes
+.\" a checkpoint record in the log.
+.\" The checkpoint will occur if either <kbyte> data has been written or
+.\" <min> minutes have passed since the last checkpoint.
+.\" Both arguments default to zero, in which case they are ignored.
+.\" See the Berkeley DB reference guide for more details.
+.\" .TP
+.\" Undocumented option, should use DB_CONFIG instead
+.\" .B dbnosync
+.\" Specify that on-disk database contents should not be immediately
+.\" synchronized with in memory changes.
+.\" Enabling this option may improve performance at the expense of data
+.\" security.
 .TP
 .B directory <directory>
 Specify the directory where the BDB files containing this database and
@@ -124,12 +126,13 @@ allocations can have a major negative impact on server performance,
 but specifying too much stack will also consume a great deal of memory.
 Each search stack uses 512K bytes per level. The default stack depth
 is 16, thus 8MB per thread is used.
-.TP
-.B shm_key <integer>
-Specify a key for a shared memory BDB environment. By default the
-BDB environment uses memory mapped files. If a non-zero value is
-specified, it will be used as the key to identify a shared memory
-region that will house the environment.
+.\" .TP
+.\" Undocumented option, should use DB_CONFIG instead
+.\" .B shm_key <integer>
+.\" Specify a key for a shared memory BDB environment. By default the
+.\" BDB environment uses memory mapped files. If a non-zero value is
+.\" specified, it will be used as the key to identify a shared memory
+.\" region that will house the environment.
 .TP
 .B sessionlog <sid> <limit>
 Specify a session log store for the syncrepl replication provider
