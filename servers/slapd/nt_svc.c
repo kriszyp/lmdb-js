@@ -20,8 +20,6 @@
 #define SCM_NOTIFICATION_INTERVAL	5000
 #define THIRTY_SECONDS				(30 * 1000)
 
-#define SERVICE_NAME		"OpenLDAP"
-
 ldap_pvt_thread_cond_t	started_event,		stopped_event;
 ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
 
@@ -61,12 +59,15 @@ void main( DWORD argc, LPTSTR *argv )
 	if ( argc > 1 ) {
 		if ( _stricmp( "install", argv[1] ) == 0 ) 
 		{
+			char *svcName = SERVICE_NAME;
+			if ( (argc > 2) && (argv[2] != NULL) )
+				svcName = argv[2];
 			if ( (length = GetModuleFileName(NULL, filename, sizeof( filename ))) == 0 ) 
 			{
 				fputs( "unable to retrieve file name for the service.\n", stderr  );
 				return;
 			}
-			if ( !srv_install(SERVICE_NAME, filename) ) 
+			if ( !srv_install(svcName, filename) ) 
 			{
 				fputs( "service failed installation ...\n", stderr  );
 				return;
@@ -77,12 +78,15 @@ void main( DWORD argc, LPTSTR *argv )
 
 		if ( _stricmp( "remove", argv[1] ) == 0 ) 
 		{
+			char *svcName = SERVICE_NAME;
+			if ( (argc > 2) && (argv[2] != NULL) )
+				svcName = argv[2];
 			if ( (length = GetModuleFileName(NULL, filename, sizeof( filename ))) == 0 ) 
 			{
 				fputs( "unable to retrieve file name for the service.\n", stderr  );
 				return;
 			}
-			if ( !srv_remove(SERVICE_NAME, filename) ) 
+			if ( !srv_remove(svcName, filename) ) 
 			{
 				fputs( "failed to remove the service ...\n", stderr  );
 				return;
