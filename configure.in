@@ -16,7 +16,6 @@ dnl that causes an "internal 2K buffer" error on HPUX when run
 dnl with /bin/sh.  Autoconf 2.10 seems to be okay.
 AC_PREREQ(2.10)dnl Required Autoconf version
 
-AC_CONFIG_AUX_DIR(build)
 AC_CONFIG_HEADER(include/portable.h)dnl
 
 dnl
@@ -518,9 +517,38 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 				thr_setconcurrency \
 			)
 
+			AC_MSG_CHECKING([if pthread_create() works])
+			AC_CACHE_VAL(ol_cv_pthread_create_works,[
+			AC_TRY_RUN([
+#include <stdlib.h>
+#include <pthread.h>
+static int g = 0;
+
+static void task(void *p) {
+	return g++;
+}
+
+int main(argc, argv)
+	int argc;
+	char **argv;
+{
+	pthread_t t;
+	exit(pthread_create(&t, NULL, (void *) task, NULL));
+}],
+				[ol_cv_pthread_create_works=yes],
+				[ol_cv_pthread_create_works=no],
+				[dnl assume yes
+				ol_cv_pthread_create_works=yes])])
+			AC_MSG_RESULT($ol_cv_pthread_create_works)
+
+			if test $ol_cv_pthread_create_works = no ; then
+				AC_MSG_ERROR([pthread.h and pthread_create are not compatible])
+			fi
+
 			dnl Check if select causes an yield
 			if test $ol_with_yielding_select = auto ; then
-				AC_MSG_CHECKING([if select yields])
+				AC_MSG_CHECKING([if select yields when using pthreads])
+				AC_CACHE_VAL(ol_cv_pthread_select_yields,[
 				AC_TRY_RUN([
 #include <sys/types.h>
 #include <sys/time.h>
@@ -588,12 +616,13 @@ int main(argc, argv)
 #endif
 #endif
 	exit(0);
-}
-				], [ol_pthread_select_yields=yes], [ol_pthread_select_yields=no], [
-				AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])])
-				AC_MSG_RESULT($ol_pthread_select_yields)
+}],
+				[ol_cv_pthread_select_yields=yes],
+				[ol_cv_pthread_select_yields=no], [
+				AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])])])
+				AC_MSG_RESULT($ol_cv_pthread_select_yields)
 
-				if test $ol_pthread_select_yields = yes ; then
+				if test $ol_cv_pthread_select_yields = yes ; then
 					ol_with_yielding_select=yes
 				fi
 			fi
