@@ -28,7 +28,7 @@
 #include <console.h>
 #endif /* MACOS */
 
-#include "lber-int.h"
+#include <lber.h>
 
 static void usage( char *name )
 {
@@ -47,7 +47,8 @@ main( int argc, char **argv )
 	Sockbuf		*sb;
 
 	/* enable debugging */
-	ber_int_debug = -1;
+	int ival = -1;
+	ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ival );
 
 	if ( argc < 2 ) {
 		usage( argv[0] );
