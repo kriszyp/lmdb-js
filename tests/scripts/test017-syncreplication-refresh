@@ -121,13 +121,13 @@ drink: Mad Dog 20/20
 
 dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
-delete: member
-member: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
-member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+delete: uniquemember
+uniquemember: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
+uniquemember: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 -
-add: member
-member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
-member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+add: uniquemember
+uniquemember: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+uniquemember: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
@@ -172,6 +172,13 @@ dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=Univers
 changetype: delete
 
 EOMODS
+
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapmodify failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
 
 echo "Waiting 90 seconds for syncrepl to receive changes..."
 sleep 90
