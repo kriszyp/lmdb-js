@@ -65,9 +65,7 @@ RETCODE backsql_Prepare(SQLHDBC dbh,SQLHSTMT *sth,char* query,int timeout)
  //Debug(LDAP_DEBUG_TRACE,"==>_SQLPrepare()\n", 0,0,0);
  SQLGetInfo(dbh,SQL_DRIVER_NAME,drv_name,30,&len);
  //Debug(LDAP_DEBUG_TRACE,"_SQLPrepare(): driver name='%s'\n", drv_name,0,0);
- for (i=0;i<30 && drv_name[i];i++)
-  drv_name[i]=ldap_pvt_str2upper(drv_name[i]);
- if (!strncmp(drv_name,"SQLSRV32.DLL",30))
+ if (!strncmp(ldap_pvt_str2upper(drv_name),"SQLSRV32.DLL",30))
   {
    //stupid default result set in MS SQL Server does not support multiple active statements
    //on the same connection -- so we are trying to make it not to use default result set...
