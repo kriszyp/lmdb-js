@@ -77,7 +77,7 @@
 
 /* String rewrite library */
 #include "rewrite.h"
-
+#include "cache.h"
 LDAP_BEGIN_DECL
 
 struct slap_conn;
@@ -145,6 +145,12 @@ struct metainfo {
 	int			defaulttarget;
 #define META_DEFAULT_TARGET_NONE	-1
 	struct metatarget	**targets;
+
+#ifdef LDAP_CACHING 
+	struct rewrite_info	*rwinfo;
+	cache_manager		*cm; 
+	Backend			*glue_be; 
+#endif /* LDAP_CACHING */
 
 	struct metadncache	cache;
 	

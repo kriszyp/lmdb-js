@@ -129,6 +129,16 @@ meta_back_search(
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
+#ifdef LDAP_CACHING
+	cache_manager*  cm = li->cm;
+
+ 	if (cm->caching) {
+ 		return meta_back_cache_search(be, conn, op, base, nbase, 
+					scope, deref, slimit, tlimit,
+					filter, filterstr, attrs, attrsonly); 
+	}
+#endif /* LDAP_CACHING */
+	
 	/*
 	 * controls are set in ldap_back_dobind()
 	 * 

@@ -730,6 +730,11 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_entryCSN;
 	AttributeDescription *si_ad_superiorUUID;
 
+#ifdef LDAP_CACHING
+	/* LDAP cache specific operational attribute */
+	AttributeDescription *si_ad_queryid;
+#endif /* LDAP_CACHING */
+
 	/* root DSE attribute descriptions */
 	AttributeDescription *si_ad_altServer;
 	AttributeDescription *si_ad_namingContexts;
@@ -1825,6 +1830,10 @@ typedef struct slap_op {
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
 	ValuesReturnFilter *vrFilter; /* Structure represents ValuesReturnFilter */
+
+#ifdef LDAP_CACHING 
+ 	char		o_caching_on; 
+#endif /*LDAP_CACHING */ 
 
 #ifdef LDAP_SLAPI
 	void    *o_pb;                  /* NS-SLAPI plugin */

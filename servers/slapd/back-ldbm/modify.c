@@ -65,8 +65,8 @@ int ldbm_modify_internal(
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: add\n", 0, 0, 0);
 #endif
 
-			rc = modify_add_values( e, mod, get_permissiveModify(op),
-				text, textbuf, textlen );
+			rc = modify_add_values( e, mod, get_permissiveModify( op ),
+						text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, INFO, 
@@ -85,8 +85,8 @@ int ldbm_modify_internal(
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: delete\n", 0, 0, 0);
 #endif
 
-			rc = modify_delete_values( e, mod, get_permissiveModify(op),
-				text, textbuf, textlen );
+			rc = modify_delete_values( e, mod, get_permissiveModify( op ),
+							text, textbuf, textlen );
 			assert( rc != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -106,8 +106,8 @@ int ldbm_modify_internal(
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: replace\n", 0, 0, 0);
 #endif
 
-			rc = modify_replace_values( e, mod, get_permissiveModify(op),
-				text, textbuf, textlen );
+			rc = modify_replace_values( e, mod, get_permissiveModify( op ),
+							text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_LDBM, INFO, 
@@ -132,8 +132,8 @@ int ldbm_modify_internal(
 			 */
 			mod->sm_op = LDAP_MOD_ADD;
 
-			rc = modify_add_values( e, mod, get_permissiveModify(op),
-				text, textbuf, textlen );
+			rc = modify_add_values( e, mod, get_permissiveModify( op ),
+						text, textbuf, textlen );
 			if ( rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
 				rc = LDAP_SUCCESS;
 			}
@@ -190,7 +190,17 @@ int ldbm_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
+#ifndef LDAP_CACHING
 	rc = entry_schema_check( be, e, save_attrs, text, textbuf, textlen );
+#else /* LDAP_CACHING */
+	if ( !op->o_caching_on ) {
+		rc = entry_schema_check( be, e, save_attrs,
+				text, textbuf, textlen );
+	} else {
+		rc = LDAP_SUCCESS; 
+	}
+#endif /* LDAP_CACHING */
+
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, ERR, 
@@ -322,7 +332,12 @@ ldbm_back_modify(
 		return( -1 );
 	}
 
-    if ( !manageDSAit && is_entry_referral( e ) ) {
+#ifndef LDAP_CACHING
+	if ( !manageDSAit && is_entry_referral( e ) )
+#else /* LDAP_CACHING */
+	if ( !op->o_caching_on && !manageDSAit && is_entry_referral( e ) )
+#endif /* LDAP_CACHING */
+	{
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		BerVarray refs = get_entry_referrals( be,

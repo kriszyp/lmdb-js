@@ -475,6 +475,18 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_superiorUUID) },
 
+#ifdef LDAP_CACHING 
+	/* LDAP cache specific operation attribute */
+	{ "queryid", "( 2.5.18.16 NAME 'queryid' "   
+			"DESC 'list of queries the entry belongs to' "
+			"EQUALITY octetStringMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"NO-USER-MODIFICATION USAGE directoryOperation )",
+		NULL, 0, /* SLAP_AT_HIDE or SLAP_AT_NONE ? */
+		NULL, NULL, NULL, NULL, NULL, 
+		offsetof(struct slap_internal_schema, si_ad_queryid) },
+#endif /* LDAP_CACHING */
+
 	/* root DSE attributes */
 	{ "altServer", "( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer' "
 			"DESC 'RFC2252: alternative servers' "

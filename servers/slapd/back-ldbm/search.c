@@ -54,6 +54,10 @@ ldbm_back_search(
 	int		manageDSAit = get_manageDSAit( op );
 	int		cscope = LDAP_SCOPE_DEFAULT;
 
+#ifdef LDAP_CACHING
+	Entry 		cache_base_entry; 
+#endif /* LDAP_CACHING */
+
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 		
@@ -66,6 +70,7 @@ ldbm_back_search(
 	/* grab giant lock for reading */
 	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
 
+#ifndef LDAP_CACHING
 	if ( nbase->bv_len == 0 ) {
 		/* DIT root special case */
 		e = (Entry *) &slap_entry_root;
@@ -73,8 +78,28 @@ ldbm_back_search(
 		/* need normalized dn below */
 		ber_dupbv( &realbase, &e->e_nname );
 
+#else /* LDAP_CACHING */
+	if ( op->o_caching_on || nbase->bv_len == 0 ) {
+		if (nbase->bv_len == 0) {
+		    e = (Entry *) &slap_entry_root;
+		    /* need normalized dn below */
+		    ber_dupbv( &realbase, &e->e_nname );
+		} else {
+			if ((scope == LDAP_SCOPE_BASE) 
+    					&& (e = dn2entry_r( be, nbase, &matched )))
+    			{
+				candidates = base_candidate(be,e);
+				cache_return_entry_r( &li->li_cache, e );
+				goto searchit;
+    			}
+    			cache_base_entry.e_nname = *nbase;
+    			e = &cache_base_entry;
+		}
+#endif /* LDAP_CACHING */
+
 		candidates = search_candidates( be, e, filter,
-		    scope, deref, manageDSAit || get_domainScope(op) );
+	    			scope, deref,
+				manageDSAit || get_domainScope(op) );
 
 		goto searchit;
 		
@@ -203,17 +228,37 @@ searchit:
 		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
 			0, 0, 0 );
 #endif
+#ifdef LDAP_CACHING
+                if ( op->o_caching_on ) {
+			ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
+		}
+#endif /* LDAP_CACHING */
 
 		send_search_result( conn, op,
 			LDAP_SUCCESS,
 			NULL, NULL, NULL, NULL, 0 );
+
+#ifdef LDAP_CACHING
+                if ( op->o_caching_on ) {
+			ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
+		}
+#endif /* LDAP_CACHING */
 
 		rc = 1;
 		goto done;
 	}
 
 	/* if not root, get appropriate limits */
-	if ( be_isroot( be, &op->o_ndn ) ) {
+#ifndef LDAP_CACHING
+	if ( be_isroot( be, &op->o_ndn ) )
+#else /* LDAP_CACHING */
+ 	if ( op->o_caching_on || be_isroot( be, &op->o_ndn ) )
+#endif /* LDAP_CACHING */
+	{
+		/*
+		 * FIXME: I'd consider this dangerous if someone
+		 * uses isroot for anything but handling limits
+		 */
 		isroot = 1;
 	} else {
 		( void ) get_limits( be, &op->o_ndn, &limit );
@@ -328,6 +373,10 @@ searchit:
 			goto loop_continue;
 		}
 
+#ifdef LDAP_CACHING
+                if ( !op->o_caching_on ) {
+#endif /* LDAP_CACHING */
+
 		if ( deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;
 			int err;
@@ -425,6 +474,10 @@ searchit:
 			goto loop_continue;
 		}
 
+#ifdef LDAP_CACHING
+		}
+#endif /* LDAP_CACHING */
+
 		/* if it matches the filter and scope, send it */
 		result = test_filter( be, conn, op, e, filter );
 
@@ -459,8 +512,23 @@ searchit:
 				}
 
 				if (e) {
+
+#ifdef LDAP_CACHING
+ 					if ( op->o_caching_on ) {
+ 						ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
+ 						cache_return_entry_r( &li->li_cache, e );
+ 					}
+#endif /* LDAP_CACHING */
+
 					result = send_search_entry(be, conn, op,
 						e, attrs, attrsonly, NULL);
+
+#ifdef LDAP_CACHING
+					if ( op->o_caching_on ) {
+						ldap_pvt_thread_rdwr_rlock( &li->li_giant_rwlock );
+					}
+#endif /* LDAP_CACHING */
+
 
 					switch (result) {
 					case 0:		/* entry sent ok */
@@ -501,7 +569,13 @@ searchit:
 loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
+#ifndef LDAP_CACHING
 			cache_return_entry_r( &li->li_cache, e );
+#else /* LDAP_CACHING */
+ 			if ( !op->o_caching_on ) {
+				cache_return_entry_r( &li->li_cache, e );
+			}
+#endif /* LDAP_CACHING */
 		}
 
 		ldap_pvt_thread_yield();

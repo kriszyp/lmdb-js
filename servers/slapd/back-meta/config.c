@@ -73,7 +73,7 @@
 
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
-#undef ldap_debug	/* silence a warning in ldap-int.h */
+#undef ldap_debug       /* silence a warning in ldap-int.h */
 #include "../../../libraries/libldap/ldap-int.h"
 #include "back-meta.h"
 
@@ -503,9 +503,17 @@ meta_back_db_config(
 		int 		i = li->ntargets-1;
 
 		if ( i < 0 ) {
+#ifndef LDAP_CACHING
 			fprintf( stderr,
 	"%s: line %d: need \"uri\" directive first\n",
 				fname, lineno );
+#else /* LDAP_CACHING */
+ 			if ( strcasecmp( argv[0], "rewriteEngine" ) == 0 ) {
+				li->rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+			}
+			return rewrite_parse(li->rwinfo, fname, lineno,
+					argc, argv); 
+#endif /* LDAP_CACHING */
 		}
 		
  		return rewrite_parse( li->targets[ i ]->rwinfo, fname, lineno,
@@ -520,6 +528,12 @@ meta_back_db_config(
 				fname, lineno, argc, argv );
 	/* anything else */
 	} else {
+#ifdef LDAP_CACHING
+		if ( meta_back_cache_config( be, fname, lineno, argc, argv ) == 0 ) {
+			return 0;
+		}
+#endif /* LDAP_CACHING */
+
 		fprintf( stderr,
 	"%s: line %d: unknown directive \"%s\" in meta database definition"
 	" (ignored)\n",

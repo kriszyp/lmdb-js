@@ -1,0 +1,1724 @@
+/*
+ * Copyright (c) 2003 by International Business Machines, Inc.
+ *
+ * International Business Machines, Inc. (hereinafter called IBM) grants
+ * permission under its copyrights to use, copy, modify, and distribute this
+ * Software with or without fee, provided that the above copyright notice and
+ * all paragraphs of this notice appear in all copies, and that the name of IBM
+ * not be used in connection with the marketing of any product incorporating
+ * the Software or modifications thereof, without specific, written prior
+ * permission.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", AND IBM DISCLAIMS ALL WARRANTIES,
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+ * PARTICULAR PURPOSE.  IN NO EVENT SHALL IBM BE LIABLE FOR ANY SPECIAL,
+ * DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER ARISING
+ * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE, EVEN
+ * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
+ *
+ * 
+ * This software is based on the backends back-ldap and back-meta, implemented
+ * by Howard Chu <hyc@highlandsun.com>, Mark Valence
+ * <kurash@sassafras.com>, Pierangelo Masarati <ando@sys-net.it> and other
+ * contributors. 
+ *
+ * The original copyright statements follow. 
+ * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ *
+ * Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
+ *
+ * This work has been developed to fulfill the requirements
+ * of SysNet s.n.c. <http:www.sys-net.it> and it has been donated
+ * to the OpenLDAP Foundation in the hope that it may be useful
+ * to the Open Source community, but WITHOUT ANY WARRANTY.
+ *
+ * Permission is granted to anyone to use this software for any purpose
+ * on any computer system, and to alter it and redistribute it, subject
+ * to the following restrictions:
+ *
+ * 1. The author and SysNet s.n.c. are not responsible for the consequences
+ *    of use of this software, no matter how awful, even if they arise from 
+ *    flaws in it.
+ *
+ * 2. The origin of this software must not be misrepresented, either by
+ *    explicit claim or by omission.  Since few users ever read sources,
+ *    credits should appear in the documentation.
+ *
+ * 3. Altered versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.  Since few users
+ *    ever read sources, credits should appear in the documentation.
+ *    SysNet s.n.c. cannot be responsible for the consequences of the
+ *    alterations.
+ *
+ * 4. This notice may not be removed or altered.
+ *
+ *
+ * This software is based on the backend back-ldap, implemented
+ * by Howard Chu <hyc@highlandsun.com>, and modified by Mark Valence
+ * <kurash@sassafras.com>, Pierangelo Masarati <ando@sys-net.it> and other
+ * contributors. The contribution of the original software to the present
+ * implementation is acknowledged in this copyright statement.
+ *
+ * A special acknowledgement goes to Howard for the overall architecture
+ * (and for borrowing large pieces of code), and to Mark, who implemented
+ * from scratch the attribute/objectclass mapping.
+ *
+ * The original copyright statement follows.
+ *
+ * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
+ *
+ * Permission is granted to anyone to use this software for any purpose
+ * on any computer system, and to alter it and redistribute it, subject
+ * to the following restrictions:
+ *
+ * 1. The author is not responsible for the consequences of use of this
+ *    software, no matter how awful, even if they arise from flaws in it.
+ *
+ * 2. The origin of this software must not be misrepresented, either by
+ *    explicit claim or by omission.  Since few users ever read sources,
+ *    credits should appear in the documentation.
+ *
+ * 3. Altered versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.  Since few users
+ *    ever read sources, credits should appear in the
+ *    documentation.
+ *
+ * 4. This notice may not be removed or altered.
+ *                
+ */
+#include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "lutil.h"
+#include "slap.h"
+#include "../back-ldap/back-ldap.h"
+#include "back-meta.h"
+#include "ldap_pvt.h"
+#undef ldap_debug	/* silence a warning in ldap-int.h */
+#include "ldap_log.h"
+#include "../../../libraries/libldap/ldap-int.h"
+#include <sys/time.h>
+
+#ifdef LDAP_CACHING 
+static Entry* 
+meta_create_entry(
+	Backend 	*be,
+	struct metaconn *lc,
+	int 		target,
+	LDAPMessage 	*e,
+	struct exception* result
+); 
+
+static int
+is_one_level_rdn(
+	const char	*rdn,
+	int		from
+);
+
+static struct metaconn*  
+metaConnect(
+	struct metainfo* li, 
+	Connection* conn, 
+	Operation* op, 
+	int op_type, 
+	struct berval* nbase, 
+	struct exception* result 
+);
+
+static void
+add_filter_attrs(
+	AttributeName** newattrs, 
+	AttributeName* attrs, 
+	AttributeName* filter_attrs
+);
+
+static int 
+handleLdapResult(
+	struct metaconn* lc, 
+	Operation* op, 
+	int* msgid, Backend* be, 
+	AttributeName* attrs, 
+	int attrsonly, 
+	int candidates, 
+	int cacheable, 
+	Entry*** entry_array, 
+	int curr_limit, 
+	int slimit,
+	struct exception* result
+);
+
+static Entry* 
+get_result_entry(
+	Backend* be,
+	struct metaconn* lc, 
+	struct metasingleconn* lsc, 
+	int* msgid,
+	int i, 
+	struct timeval* tv, 
+	struct exception* result
+); 
+
+static void
+rewriteSession(
+	struct rewrite_info* info, 
+	const char* rewriteContext, 
+	const char* string, 
+	const void* cookie,  
+	char** base, 
+	struct exception* result
+);
+
+static int 
+get_attr_set(
+	AttributeName* attrs, 
+	query_manager* qm, 
+	int num
+);
+
+static int 
+attrscmp(
+	AttributeName* attrs_in, 
+	AttributeName* attrs
+);
+
+static char* 
+cache_entries(
+	Entry** entry_array, 
+	cache_manager* cm, 
+	Backend* be, 
+	Connection* conn, 
+	struct exception* result
+); 
+
+static int 
+is_temp_answerable(
+	int attr_set, 
+	struct berval* tempstr, 
+	query_manager* qm, 
+	int template_id
+);
+
+static void
+consistency_check(
+	Backend* be,
+	Backend* glue_be, 
+	Connection* conn
+); 
+
+static int
+cache_back_sentry(
+	Backend* be, 
+	Connection* conn,
+	Operation* op, 
+	Entry* e, 
+	AttributeName* attrs, 
+	int attrsonly, 
+	LDAPControl** ctrls
+);
+
+int
+meta_back_cache_search(
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	struct berval	*base,
+	struct berval	*nbase,
+	int		scope,
+	int		deref,
+	int		slimit,
+	int		tlimit,
+	Filter		*filt,
+	struct berval	*filterstr,
+	AttributeName	*attributes,
+	int		attrsonly
+)
+{
+	struct metainfo		*li = ( struct metainfo * )be->be_private;
+	struct metaconn 	*lc;
+	struct metasingleconn 	*lsc;
+	cache_manager*		cm = li->cm; 
+	query_manager*		qm = cm->qm; 
+
+	time_t			curr_time; 
+
+	int count, rc = 0, *msgid = NULL; 
+	char *mbase = NULL;
+	char *cbase = NULL; 
+	char *uuid; 
+	    
+	int i = -1, last = 0, candidates = 0, op_type;
+
+	struct berval 	mfilter;
+	struct berval	*cachebase = NULL;  
+	struct berval	*ncachebase = NULL;  
+	struct berval	cache_suffix; 
+	struct berval 	tempstr = {0, 0}; 
+
+	AttributeName	*filter_attrs = NULL; 
+	AttributeName	*new_attrs = NULL; 
+	AttributeName	*attrs = NULL; 
+
+	Entry       	*e;
+	Entry		**entry_array = NULL;
+
+	Query		query; 
+
+	int 		attr_set = -1; 
+	int 		template_id = -1; 
+	int 		answerable = 0; 
+	int 		cacheable = 0; 
+	int 		num_entries = 0;
+	int		curr_limit;
+	int		fattr_cnt=0; 
+
+   
+	struct exception result[1]; 
+
+	Filter* filter = str2filter(filterstr->bv_val); 
+	slap_callback cb = {NULL, NULL, cache_back_sentry, NULL}; 
+
+	cb.sc_private = be; 
+
+	if (attributes) {
+		for ( count=0; attributes[ count ].an_name.bv_val; count++ )
+			;
+		attrs = (AttributeName*)malloc( ( count + 1 ) *
+						sizeof(AttributeName));
+		for ( count=0; attributes[ count ].an_name.bv_val; count++ ) {
+			ber_dupbv(&attrs[ count ].an_name,
+						&attributes[ count ].an_name);
+			attrs[count].an_desc = attributes[count].an_desc; 
+		}
+		attrs[ count ].an_name.bv_val = NULL;
+		attrs[ count ].an_name.bv_len = 0;
+	}
+
+	result->type = SUCCESS; 
+	result->rc = 0; 
+	ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
+	cm->threads++; 
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_META, DETAIL1, "Threads++ = %d\n", cm->threads, 0, 0 );
+#else /* !NEW_LOGGING */
+	Debug( LDAP_DEBUG_ANY, "Threads++ = %d\n", cm->threads, 0, 0 );
+#endif /* !NEW_LOGGING */
+	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
+    
+	filter2template(filter, &tempstr, &filter_attrs, &fattr_cnt, result);  
+	if (result->type != SUCCESS) 
+		goto Catch; 
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_META, DETAIL1, "query template of incoming query = %s\n",
+					tempstr.bv_val, 0, 0 );
+#else /* !NEW_LOGGING */
+	Debug( LDAP_DEBUG_ANY, "query template of incoming query = %s\n",
+					tempstr.bv_val, 0, 0 );
+#endif /* !NEW_LOGGING */
+	curr_limit = cm->num_entries_limit ;
+
+	/* find attr set */	
+	attr_set = get_attr_set(attrs, qm, cm->numattrsets); 
+    
+	query.filter = filter; 
+	query.attrs = attrs; 
+	query.base = *base; 
+	query.scope = scope; 
+
+	/* check for query containment */
+	if (attr_set > -1) {
+		for (i=0; i<cm->numtemplates; i++) {
+			/* find if template i can potentially answer tempstr */
+			if (!is_temp_answerable(attr_set, &tempstr, qm, i)) 
+				continue; 
+			if (attr_set == qm->templates[i].attr_set_index) {
+				cacheable = 1; 
+				template_id = i; 
+			}
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL2,
+					"Entering QC, querystr = %s\n",
+			 		filterstr->bv_val, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_NONE, "Entering QC, querystr = %s\n",
+			 			filterstr->bv_val, 0, 0 );
+#endif /* !NEW_LOGGING */
+			answerable = (*(qm->qcfunc))(qm, &query, i);
+
+			if (answerable)
+				break;
+		}
+	}
+
+	if (answerable) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL1, "QUERY ANSWERABLE\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_ANY, "QUERY ANSWERABLE\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		rewriteSession(li->rwinfo, "cacheBase", nbase->bv_val,
+					conn, &cbase, result); 
+		if (result->type != SUCCESS) { 
+			ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
+			goto Catch; 
+		}
+		cachebase = ber_str2bv(cbase, strlen(cbase), 0, NULL);  
+		dnNormalize(NULL, cachebase, &ncachebase); 
+	
+		op->o_caching_on = 1; 	
+		op->o_callback = &cb; 
+		li->glue_be->be_search(li->glue_be, conn, op, cachebase,
+				ncachebase, scope, deref, slimit, tlimit,
+				filter, filterstr, attrs, attrsonly);
+
+		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
+	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL1, "QUERY NOT ANSWERABLE\n",
+					0, 0, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_ANY, "QUERY NOT ANSWERABLE\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+
+		if ( scope == LDAP_SCOPE_BASE ) {
+			op_type = META_OP_REQUIRE_SINGLE;
+		} else {
+			op_type = META_OP_ALLOW_MULTIPLE;
+		}
+
+		lc = metaConnect(li, conn, op, op_type, nbase, result);
+
+		if (result->type != SUCCESS) 
+			goto Catch; 
+
+		ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
+		if (cm->num_cached_queries >= cm->max_queries) {
+			cacheable = 0; 
+		}
+		ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
+		
+		if (cacheable) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"QUERY TEMPLATE CACHEABLE\n",
+					0, 0, 0);
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "QUERY TEMPLATE CACHEABLE\n",
+					0, 0, 0);
+#endif /* !NEW_LOGGING */
+			add_filter_attrs(&new_attrs, attrs, filter_attrs);
+		} else {
+			new_attrs = attrs; 
+		}
+
+		free(filter_attrs); 
+	
+		/*
+		 * Array of message id of each target
+		 */
+		msgid = ch_calloc( sizeof( int ), li->ntargets );
+		if ( msgid == NULL ) {
+			result->type = CONN_ERR; 
+			goto Catch; 
+		}
+
+		/*
+		if (slimit > 0 &&  (slimit <= cm->num_entries_limit))  
+			slimit = cm->num_entries_limit; 
+		*/
+
+		/*
+		 * Inits searches
+		 */
+
+		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
+			char 	*realbase = ( char * )base->bv_val;
+			int 	realscope = scope;
+			ber_len_t suffixlen;
+			char	*mapped_filter, **mapped_attrs;
+
+			/* FIXME: Check for more than one targets */
+			if ( meta_back_is_candidate(
+					&li->targets[i]->suffix, nbase ))
+				lsc->candidate = META_CANDIDATE; 
+
+			if ( lsc->candidate != META_CANDIDATE ) 
+				continue;
+
+			if ( deref != -1 ) {
+				ldap_set_option( lsc->ld, LDAP_OPT_DEREF,
+						( void * )&deref);
+			}
+			if ( tlimit != -1 ) {
+				ldap_set_option( lsc->ld, LDAP_OPT_TIMELIMIT,
+						( void * )&tlimit);
+			}
+			if ( slimit != -1 ) {
+				ldap_set_option( lsc->ld, LDAP_OPT_SIZELIMIT,
+						( void * )&slimit);
+			}
+
+			/*
+			 * modifies the base according to the scope, if required
+			 */
+			suffixlen = li->targets[ i ]->suffix.bv_len;
+			if ( suffixlen > nbase->bv_len ) {
+				switch ( scope ) {
+				case LDAP_SCOPE_SUBTREE:
+					/*
+					 * make the target suffix the new base
+					 * FIXME: this is very forgiving,
+					 * because illegal bases may be turned
+					 * into the suffix of the target.
+					 */
+					if ( dnIsSuffix(
+						&li->targets[ i ]->suffix,
+						nbase ) ) {
+						realbase =
+						li->targets[i]->suffix.bv_val;
+					} else {
+						/*
+						 * this target is no longer
+						 * candidate
+						 */
+						lsc->candidate =
+							META_NOT_CANDIDATE;
+						continue;
+					}
+					break;
+
+				case LDAP_SCOPE_ONELEVEL:
+					if ( is_one_level_rdn(
+						li->targets[ i ]->suffix.bv_val,
+					       	suffixlen - nbase->bv_len - 1 )
+						&& dnIsSuffix(
+						&li->targets[ i ]->suffix,
+						nbase ) ) {
+						/*
+						 * if there is exactly one
+						 * level, make the target suffix
+						 * the new base, and make scope
+						 * "base"
+						 */
+						realbase =
+						li->targets[i]->suffix.bv_val;
+						realscope = LDAP_SCOPE_BASE;
+						break;
+					} /* else continue with the next case */
+				case LDAP_SCOPE_BASE:
+					/*
+					 * this target is no longer candidate
+					 */
+					lsc->candidate = META_NOT_CANDIDATE;
+					continue;
+				}
+			}
+
+			/*
+			 * Rewrite the search base, if required
+			 */
+
+			rewriteSession(li->targets[i]->rwinfo, "searchBase",
+					realbase, conn, &mbase, result); 
+
+			if (result->type != SUCCESS)
+				goto Catch; 
+
+			if ( mbase == NULL ) {
+				mbase = realbase;
+			}
+
+			/*
+			 * Rewrite the search filter, if required
+			 */
+			rewriteSession( li->targets[i]->rwinfo, "searchFilter",
+					filterstr->bv_val, conn,
+					&mfilter.bv_val, result);
+			if (result->type != SUCCESS) 
+				goto Catch; 
+
+			if ( mfilter.bv_val != NULL && mfilter.bv_val[ 0 ]
+								!= '\0') {
+				mfilter.bv_len = strlen( mfilter.bv_val );
+			} else {
+				if ( mfilter.bv_val != NULL ) {
+					free( mfilter.bv_val );
+				}
+				mfilter = *filterstr;
+			}
+
+			/*
+			 * Maps attributes in filter
+			 */
+			mapped_filter = ldap_back_map_filter(
+					&li->targets[i]->at_map,
+					&li->targets[i]->oc_map, &mfilter, 0 );
+			if ( mapped_filter == NULL ) {
+				mapped_filter = ( char * )mfilter.bv_val;
+			} else {
+				if ( mfilter.bv_val != filterstr->bv_val ) {
+					free( mfilter.bv_val );
+				}
+			}
+			mfilter.bv_val = NULL;
+			mfilter.bv_len = 0;
+
+			/*
+			 * Maps required attributes
+			 */
+			mapped_attrs = ldap_back_map_attrs(
+					&li->targets[ i ]->at_map,
+					new_attrs, 0 );
+			if ( mapped_attrs == NULL && new_attrs) {
+				for ( count=0;
+				      new_attrs[ count ].an_name.bv_val;
+				      count++)
+					;
+				mapped_attrs = ch_malloc( ( count + 1 ) *
+							sizeof(char *));
+				for ( count=0;
+				      new_attrs[ count ].an_name.bv_val;
+				      count++ ) {
+					mapped_attrs[ count ] =
+						new_attrs[count].an_name.bv_val;
+				}
+				mapped_attrs[ count ] = NULL;
+			}
+
+			/*
+			 * Starts the search
+			 */
+			msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
+						mapped_filter, mapped_attrs,
+						attrsonly ); 
+			if ( msgid[ i ] == -1 ) {
+				lsc->candidate = META_NOT_CANDIDATE;
+				continue;
+			}
+
+			if ( mapped_attrs ) {
+				free( mapped_attrs );
+				mapped_attrs = NULL;
+			}
+
+			if ( mapped_filter != filterstr->bv_val ) {
+				free( mapped_filter );
+				mapped_filter = NULL;
+			}
+
+			if ( mbase != realbase ) {
+				free( mbase );
+				mbase = NULL;
+			}
+
+			++candidates;
+		}
+
+		num_entries = handleLdapResult(lc, op, msgid, be, attrs,
+				attrsonly, candidates, cacheable, &entry_array,
+				curr_limit, slimit, result); 
+
+		if (result->type != SUCCESS) 
+			goto Catch; 
+		if (cacheable && (num_entries <= curr_limit)) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"QUERY CACHEABLE\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "QUERY CACHEABLE\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			uuid = cache_entries(entry_array, cm, li->glue_be,
+							conn, result); 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"Added query %s UUID %s ENTRIES %d\n",
+					filterstr->bv_val, uuid, num_entries );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+					"Added query %s UUID %s ENTRIES %d\n",
+					filterstr->bv_val, uuid, num_entries );
+#endif /* !NEW_LOGGING */
+	    
+			if (result->type != SUCCESS) 
+				goto Catch; 
+			(*(qm->addfunc))(qm, &query, template_id, uuid, result); 
+			if (result->type != SUCCESS) 
+				goto Catch; 
+			filter = 0; 
+			attrs = 0; 
+		}
+	}
+
+Catch: 
+	switch (result->type) {
+		case SUCCESS: 
+			rc=0; 
+			break; 
+		case FILTER_ERR: 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"Invalid template error\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "Invalid template error\n",
+					0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			break; 
+		case CONN_ERR: 
+			rc = -1; 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Could not connect to a remote server\n",
+				0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Could not connect to a remote server\n",
+				0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			send_ldap_result(conn, op, LDAP_OTHER,  
+					NULL, "Connection error",
+					NULL, NULL );
+			break; 
+		case RESULT_ERR: 
+			rc = -1; 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Error in handling ldap_result\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Error in handling ldap_result\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			break; 
+		case REWRITING_ERR: 
+			rc = -1; 
+			if (result->rc == REWRITE_REGEXEC_UNWILLING) {
+				send_ldap_result( conn, op,
+						LDAP_UNWILLING_TO_PERFORM,
+						NULL, "Unwilling to perform",
+						NULL, NULL );
+			} else {
+				send_ldap_result( conn, op, LDAP_OTHER,
+						NULL, "Rewrite error",
+						NULL, NULL );
+			}
+			break; 
+		case MERGE_ERR: 
+			rc = -1; 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Error in merging entry \n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Error in merging entry \n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			break; 
+		case REMOVE_ERR: 
+			rc = -1; 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"Error in removing query \n",
+					0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "Error in removing query \n",
+					0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			break; 
+		default:
+			/* assert(0); */
+	}
+
+	ldap_pvt_thread_mutex_lock(&cm->consistency_mutex); 
+	curr_time = slap_get_time(); 
+	if (curr_time - cm->consistency_time > cm->consistency_cycle_time) {
+		cm->consistency_time = curr_time; 
+		consistency_check(be, li->glue_be, conn); 
+	}	
+	ldap_pvt_thread_mutex_unlock(&cm->consistency_mutex); 
+
+	if ( msgid ) {
+		ch_free( msgid );
+	}
+	if (entry_array)  {
+		for (i=0; (e = entry_array[i]); i++) {
+			entry_free(e); 
+		}
+		free(entry_array);
+	}
+	if (filter) 
+		filter_free(filter);
+
+	if (new_attrs) {
+		if (new_attrs != attrs) 
+			free(new_attrs); 
+	}
+
+	if (attrs)
+		free(attrs); 
+
+	if (tempstr.bv_val ) {
+		free(tempstr.bv_val);
+	}
+	ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
+	cm->threads--; 
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_META, DETAIL1, "Threads-- = %d\n", cm->threads, 0, 0 ); 
+#else /* !NEW_LOGGING */
+	Debug( LDAP_DEBUG_ANY, "Threads-- = %d\n", cm->threads, 0, 0 ); 
+#endif /* !NEW_LOGGING */
+	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
+	return rc;
+}
+
+
+static Entry* 
+meta_create_entry (
+	Backend 		*be,
+	struct metaconn		*lc,
+	int 			target,
+	LDAPMessage	 	*e,
+	struct exception*	result
+)
+{
+	struct metainfo 	*li = ( struct metainfo * )be->be_private;
+	struct berval		a, mapped;
+	Entry* 			ent;
+	BerElement 		ber = *e->lm_ber;
+	Attribute 		*attr, **attrp;
+	struct berval 		dummy = { 0, NULL };
+	struct berval 		*bv, bdn;
+	const char 		*text;
+        char* 			ename = NULL; 
+	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
+		result->type = CREATE_ENTRY_ERR;  	
+		return NULL; 
+	}
+	ent = (Entry*)malloc(sizeof(Entry)); 
+
+	/*
+	 * Rewrite the dn of the result, if needed
+	 */
+	rewriteSession( li->targets[ target ]->rwinfo, "searchResult",
+			bdn.bv_val, lc->conn, &ent->e_name.bv_val, result );  
+
+	if (result->type != SUCCESS) {
+		return NULL; 
+	}
+	if ( ent->e_name.bv_val == NULL ) {
+		ber_dupbv(&(ent->e_name), &bdn);
+	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL1,
+			"[rw] searchResult[%d]: \"%s\" -> \"%s\"\n",
+			target, bdn.bv_val, ent->e_name.bv_val );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_ARGS, "rw> searchResult[%d]: \"%s\""
+			" -> \"%s\"\n",
+			target, bdn.bv_val, ent->e_name.bv_val );
+#endif /* !NEW_LOGGING */
+		ent->e_name.bv_len = strlen( ent->e_name.bv_val );
+	}
+        	
+	/*
+	 * Note: this may fail if the target host(s) schema differs
+	 * from the one known to the meta, and a DN with unknown
+	 * attributes is returned.
+	 * 
+	 * FIXME: should we log anything, or delegate to dnNormalize2?
+	 */
+	dnNormalize2( NULL, &ent->e_name, &ent->e_nname ); 
+
+	/*
+	if ( dnNormalize2( NULL, &ent->e_name, &ent->e_nname ) != LDAP_SUCCESS ) {
+		return LDAP_INVALID_DN_SYNTAX;
+	}
+	*/
+
+	/*
+	 * cache dn
+	 */
+	if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
+		meta_dncache_update_entry( &li->cache, &ent->e_nname, target );
+	}
+
+	ent->e_id = 0;
+	ent->e_attrs = 0;
+	ent->e_private = 0;
+        ent->e_bv.bv_val = 0; 
+
+	attrp = &ent->e_attrs;
+
+	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
+		ldap_back_map( &li->targets[ target ]->at_map, &a, &mapped, 1 );
+		if ( mapped.bv_val == NULL ) {
+			continue;
+		}
+		attr = ( Attribute * )ch_malloc( sizeof( Attribute ) );
+		if ( attr == NULL ) {
+			continue;
+		}
+		attr->a_flags = 0;
+		attr->a_next = 0;
+		attr->a_desc = NULL;
+		if ( slap_bv2ad( &mapped, &attr->a_desc, &text ) != LDAP_SUCCESS) {
+			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text ) 
+					!= LDAP_SUCCESS) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( BACK_META, DETAIL1,
+					"slap_bv2undef_ad(%s): %s\n",
+					mapped.bv_val, text, 0 );
+#else /* !NEW_LOGGING */
+				Debug( LDAP_DEBUG_ANY,
+					"slap_bv2undef_ad(%s): "
+					"%s\n%s", mapped.bv_val, text, "" );
+#endif /* !NEW_LOGGING */
+				ch_free( attr );
+				continue;
+			}
+		}
+
+		/* no subschemaSubentry */
+		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
+			ch_free(attr);
+			continue;
+		}
+
+		if ( ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR 
+				|| attr->a_vals == NULL ) {
+			attr->a_vals = &dummy;
+		} else if ( attr->a_desc == slap_schema.si_ad_objectClass ||
+				attr->a_desc ==
+				slap_schema.si_ad_structuralObjectClass) {
+			int i, last;
+			for ( last = 0; attr->a_vals[ last ].bv_val; ++last )
+				;
+			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++,i++ ) {
+				ldap_back_map( &li->targets[ target]->oc_map,
+						bv, &mapped, 1 );
+				if ( mapped.bv_val == NULL ) {
+					free( bv->bv_val );
+					bv->bv_val = NULL;
+					if ( --last < 0 ) {
+						break;
+					}
+					*bv = attr->a_vals[ last ];
+					attr->a_vals[ last ].bv_val = NULL;
+					i--;
+				} else if ( mapped.bv_val != bv->bv_val ) {
+					free( bv->bv_val );
+					ber_dupbv( bv, &mapped );
+				}
+			}
+		/*
+		 * It is necessary to try to rewrite attributes with
+		 * dn syntax because they might be used in ACLs as
+		 * members of groups; since ACLs are applied to the
+		 * rewritten stuff, no dn-based subecj clause could
+		 * be used at the ldap backend side (see
+		 * http://www.OpenLDAP.org/faq/data/cache/452.html)
+		 * The problem can be overcome by moving the dn-based
+		 * ACLs to the target directory server, and letting
+		 * everything pass thru the ldap backend.
+		 */
+		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
+				SLAPD_DN_SYNTAX ) == 0 ) {
+			int i;
+			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++,i++ ) {
+				char *newval;
+				rewriteSession(li->targets[ target ]->rwinfo,
+						"searchResult", bv->bv_val,
+						lc->conn, &newval, result); 
+				if (result->type != SUCCESS) {
+					/* FIXME : Handle error */
+					result->type = SUCCESS; 
+				} else {
+					/* left as is */
+					if ( newval == NULL ) {
+						break;
+					}
+#ifdef NEW_LOGGING
+					LDAP_LOG( BACK_META, DETAIL1,
+						"[rw] searchResult on "
+						"attr=%s: \"%s\" -> \"%s\"\n",
+						attr->a_desc->ad_type->
+						sat_cname.bv_val,
+						bv->bv_val, newval );
+#else /* !NEW_LOGGING */
+					Debug( LDAP_DEBUG_ARGS,
+						"rw> searchResult on attr=%s:"
+						" \"%s\" -> \"%s\"\n",
+						attr->a_desc->ad_type->
+						sat_cname.bv_val,
+						bv->bv_val, newval );
+#endif /* !NEW_LOGGING */
+					free( bv->bv_val );
+					bv->bv_val = newval;
+					bv->bv_len = strlen( newval );
+				}
+			}
+		}
+		*attrp = attr;
+		attrp = &attr->a_next;
+	}
+	return ent; 
+}
+
+static int
+is_one_level_rdn(
+	const char 	*rdn,
+	int 		from
+)
+{
+	for ( ; from--; ) {
+		if ( DN_SEPARATOR( rdn[ from ] ) ) {
+			return 0;
+		}
+	}
+	return 1;
+}
+
+static struct metaconn*  
+metaConnect(
+	struct metainfo* li, 
+	Connection* conn, 
+	Operation* op, 
+	int op_type, 
+	struct berval* nbase, 
+	struct exception* result)
+{
+	struct metaconn* lc; 
+	result->type = SUCCESS; 
+	lc = meta_back_getconn( li, conn, op, op_type, nbase, NULL );
+	if (!lc) {
+		result->type = CONN_ERR; 
+		return 0; 
+	}
+	return lc; 
+}
+
+static void
+add_filter_attrs(
+	AttributeName** new_attrs, 
+	AttributeName* attrs, 
+	AttributeName* filter_attrs )
+{
+	struct berval all_user = { sizeof(LDAP_ALL_USER_ATTRIBUTES) -1,
+				   LDAP_ALL_USER_ATTRIBUTES };
+
+	struct berval all_op = { sizeof(LDAP_ALL_OPERATIONAL_ATTRIBUTES) -1,
+					LDAP_ALL_OPERATIONAL_ATTRIBUTES}; 
+
+	int alluser = 0; 
+	int allop = 0; 
+	int i; 
+	int count; 
+
+	/* duplicate attrs */
+	for (count=0; attrs[count].an_name.bv_val; count++) 
+		;
+	*new_attrs =  (AttributeName*)(malloc((count+1)*sizeof(AttributeName))); 
+	for (i=0; i<count; i++) {
+		/*
+		ber_dupbv(&((*new_attrs)[i].an_name), &(attrs[i].an_name)); 
+		*/
+		(*new_attrs)[i].an_name = attrs[i].an_name; 
+		(*new_attrs)[i].an_desc = attrs[i].an_desc;  
+	}
+	(*new_attrs)[count].an_name.bv_val = NULL; 
+	(*new_attrs)[count].an_name.bv_len = 0; 
+
+
+	if ((*new_attrs)[0].an_name.bv_val == NULL) {
+		*new_attrs = (AttributeName*)(malloc(2*sizeof(AttributeName))); 
+		(*new_attrs)[0].an_name.bv_val = "*"; 
+		(*new_attrs)[0].an_name.bv_len = 1; 
+		(*new_attrs)[1].an_name.bv_val = NULL; 
+		(*new_attrs)[1].an_name.bv_len = 0; 
+		alluser = 1; 
+		count = 1; 
+	} else {
+		alluser = an_find(*new_attrs, &all_user); 
+		allop = an_find(*new_attrs, &all_op); 
+	}
+
+	for ( i=0; filter_attrs[i].an_name.bv_val; i++ ) {
+		if ( an_find(*new_attrs, &filter_attrs[i].an_name ))
+			continue; 
+		if ( is_at_operational(filter_attrs[i].an_desc->ad_type)
+						&& allop )
+			continue; 
+		else if (alluser) 
+			continue; 
+		*new_attrs = (AttributeName*)(realloc(*new_attrs,
+					(count+2)*sizeof(AttributeName))); 
+		(*new_attrs)[count].an_name.bv_val =
+				filter_attrs[i].an_name.bv_val; 
+		(*new_attrs)[count].an_name.bv_len =
+				filter_attrs[i].an_name.bv_len; 
+		(*new_attrs)[count].an_desc = filter_attrs[i].an_desc; 
+		(*new_attrs)[count+1].an_name.bv_val = NULL; 
+		(*new_attrs)[count+1].an_name.bv_len = 0; 
+		count++; 
+	}
+}
+
+static int 
+handleLdapResult(
+	struct metaconn* lc,
+	Operation* op, 
+	int* msgid, Backend* be, 
+	AttributeName* attrs, 
+	int attrsonly, 
+	int candidates, 
+	int cacheable, 
+	Entry*** entry_array, 
+	int curr_limit, 
+	int slimit,
+	struct exception* result)
+{
+	Entry  *entry;
+	char *match = NULL, *err = NULL, *cache_ename = NULL;
+	int sres; 
+	int mres = LDAP_SUCCESS; 
+	int num_entries = 0, count, i, rc;     
+	struct timeval tv = {0, 0}; 
+	struct metasingleconn* lsc; 
+	struct metainfo 	*li = ( struct metainfo * )be->be_private;
+	result->rc = 0; 
+	result->type = SUCCESS; 
+
+	for ( count = 0, rc = 0; candidates > 0; ) {
+		int ab, gotit = 0;
+
+		/* check for abandon */
+		ab = op->o_abandon;
+
+		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); lsc++, i++ ) {
+			if ( lsc->candidate != META_CANDIDATE ) {
+				continue;
+			}
+
+			if ( ab ) {
+				ldap_abandon( lsc->ld, msgid[ i ] );
+				result->type = ABANDON_ERR;
+				break; 
+			}
+
+			if ( slimit > 0 && num_entries == slimit ) {
+				result->type = SLIMIT_ERR; 
+				break; 
+			}
+
+			if ((entry = get_result_entry(be, lc, lsc,
+						msgid, i, &tv, result))) { 
+				send_search_entry( be, lc->conn, op, entry,
+						attrs, attrsonly, NULL );
+				if ((cacheable) &&
+						(num_entries < curr_limit))  {
+					rewriteSession( li->rwinfo,
+							"cacheResult",
+							entry->e_name.bv_val,
+							lc->conn,
+							&cache_ename, result );  
+					free(entry->e_name.bv_val); 
+					if (result->type != SUCCESS) {
+						return 0; 
+					}
+					ber_str2bv(cache_ename,
+						strlen(cache_ename),
+						0, &entry->e_name); 
+					ber_dupbv(&entry->e_nname,
+						&entry->e_name); 
+					*entry_array = (Entry**)realloc(
+							*entry_array,
+							(( num_entries+2 ) *
+							 sizeof( Entry* )));
+					(*entry_array)[num_entries] = entry;	
+					(*entry_array)[num_entries+1] = NULL;
+				}
+				num_entries++; 
+				gotit = 1; 
+			} else if (result->type == REWRITING_ERR) {
+				return 0; 
+			} else if (result->type == TIMEOUT_ERR) {
+				result->type = SUCCESS; 
+				continue;  
+			} else if (result->type == CREATE_ENTRY_ERR) {
+				break; 
+			} else if (result->rc == -1) {
+				break; 
+			} else {
+				sres = ldap_back_map_result(result->rc);
+				if (mres == LDAP_SUCCESS &&
+						sres != LDAP_SUCCESS) {
+					mres = sres; 
+					ldap_get_option(lsc->ld,
+						LDAP_OPT_ERROR_STRING, &err);
+					ldap_get_option(lsc->ld,
+						LDAP_OPT_MATCHED_DN, &match);
+				}
+				lsc->candidate = META_NOT_CANDIDATE; 
+				candidates--; 
+				result->type = SUCCESS; 
+			}
+		}
+		switch (result->type) {
+		case RESULT_ERR: 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"ldap_result error, rc = -1\n",
+					0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "ldap_result error, rc = -1\n",
+					0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			send_search_result( lc->conn, op, LDAP_OTHER, NULL,
+					NULL, NULL, NULL, num_entries );
+			return 0; 
+		case CREATE_ENTRY_ERR: 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"Error in parsing result \n",
+					0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "Error in parsing result \n",
+					0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			send_search_result( lc->conn, op, LDAP_OTHER, NULL,
+					NULL, NULL, NULL, num_entries );
+			result->type = RESULT_ERR; 
+			return 0; 
+		case SLIMIT_ERR: 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1, "Size limit exceeded \n",
+					0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "Size limit exceeded \n",
+					0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			send_search_result( lc->conn, op,
+					LDAP_SIZELIMIT_EXCEEDED,
+					NULL, NULL, NULL, NULL, num_entries );
+			result->type = RESULT_ERR; 
+			return 0; 
+		case ABANDON_ERR: 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"search operation abandoned \n",
+					0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "search operation abandoned \n",
+					0, 0, 0 );
+#endif /* !NEW_LOGGING */
+			result->type = RESULT_ERR; 
+			return 0; 
+		default:
+			/* assert( 0 ); */
+		}
+		if ( gotit == 0 ) {
+			tv.tv_sec = 0;
+			tv.tv_usec = 100000;
+			ldap_pvt_thread_yield();
+		} else {
+			tv.tv_sec = 0;
+			tv.tv_usec = 0;
+		}
+	}
+
+	send_search_result( lc->conn, op, mres, match, err,
+				NULL, NULL, num_entries );
+
+	if (err) 
+		free(err); 
+
+	if (match) 
+		free(match); 
+    
+	result->type = (mres == LDAP_SUCCESS) ? SUCCESS : RESULT_ERR; 
+	return num_entries; 
+}
+
+static Entry* 
+get_result_entry(
+	Backend* be, 
+	struct metaconn* lc, 
+	struct metasingleconn* lsc, 
+	int* msgid,
+	int i, 
+	struct timeval* tv, 
+	struct exception* result)
+{
+	Entry* entry; 
+	LDAPMessage	*res, *e; 
+	int rc; 
+	int sres = LDAP_SUCCESS; 
+
+	rc = ldap_result( lsc->ld, msgid[ i ],
+			0, tv, &res );
+
+	if ( rc == 0 ) {
+		result->type = TIMEOUT_ERR; 
+		return NULL; 
+	} else if ( rc == -1 ) {
+		result->rc = -1; 
+		result->type = RESULT_ERR; 
+		return NULL; 
+	} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
+		e = ldap_first_entry( lsc->ld, res );
+		entry = meta_create_entry(be, lc, i, e, result);  
+		if (!entry) {
+			return NULL; 
+		}    
+		ldap_msgfree( res );
+		result->type = SUCCESS; 
+		return entry; 
+	} else {
+		sres = ldap_result2error( lsc->ld,
+				res, 1 );
+		result->rc = sres; 
+		result->type = RESULT_ERR; 
+		return NULL; 
+	}
+}	
+
+static void
+rewriteSession(
+	struct rewrite_info* info, 
+	const char* rewriteContext, 
+	const char* string, 
+	const void* cookie,  
+	char** base, 
+	struct exception* result)
+{
+	int rc = rewrite_session(info, rewriteContext, string, cookie, base); 
+	if (rc != REWRITE_REGEXEC_OK) {
+		result->rc = rc; 
+		result->type = REWRITING_ERR; 
+
+		if (strcmp(rewriteContext, "searchBase") == 0) 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Problem in rewriting search base\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Problem in rewriting search base\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		if (strcmp(rewriteContext, "searchFilter") == 0) 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Problem in rewriting search filter\n",
+				0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Problem in rewriting search filter\n",
+				0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		if (strcmp(rewriteContext, "searchResult") == 0) 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Problem in rewriting DN, or DN syntax "
+				"attributes of search result\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Problem in rewriting DN, or DN syntax "
+				"attributes of search result\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		if (strcmp(rewriteContext, "cacheBase") == 0) 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Problem in rewriting search base with "
+				"cache base\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Problem in rewriting search base with "
+				"cache base\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		if (strcmp(rewriteContext, "cacheResult") == 0) 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Problem in rewriting DN for cached entries\n",
+				0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Problem in rewriting DN for cached entries\n",
+				0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		if (strcmp(rewriteContext, "cacheReturn") == 0) 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"Problem in rewriting DN for answerable "
+				"entries\n", 0, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"Problem in rewriting DN for answerable "
+				"entries\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+	} else {
+		result->type = SUCCESS;
+	}
+}
+
+static int 
+get_attr_set(
+	AttributeName* attrs, 
+	query_manager* qm, 
+	int num )
+{
+	int i; 
+	for (i=0; i<num; i++) {
+		if (attrscmp(attrs, qm->attr_sets[i].attrs)) 
+			return i;
+	}
+	return -1; 
+}
+
+static int 
+attrscmp(
+	AttributeName* attrs_in, 
+	AttributeName* attrs)
+{
+	int i, count1, count2; 
+	if ((attrs_in==NULL) || (attrs==NULL)) 
+		return 1; 
+	for ( count1=0;
+	      attrs_in && attrs_in[count1].an_name.bv_val != NULL;
+	      count1++ )
+		;
+	for ( count2=0;
+	      attrs && attrs[count2].an_name.bv_val != NULL;
+	      count2++) 
+		;
+	if ( count1 != count2 )
+		return 0; 
+
+	for ( i=0; i<count1; i++ ) {
+		if ( !an_find(attrs, &attrs_in[i].an_name ))
+			return 0; 
+	}
+	return 1; 
+}
+
+static char* 
+cache_entries(
+	Entry** entry_array, 
+	cache_manager* cm, 
+	Backend* be, 
+	Connection* conn, 
+	struct exception* result)
+{
+	int i; 
+	int return_val; 
+	int cache_size; 
+	Entry* e; 
+	struct berval query_uuid; 
+	struct berval crp_uuid; 
+	char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ], *crpid; 
+	char crpuuid[40]; 
+	query_manager* qm = cm->qm;
+    
+	result->type = SUCCESS; 
+	query_uuid.bv_len = lutil_uuidstr(uuidbuf, sizeof(uuidbuf)); 
+	query_uuid.bv_val = ch_strdup(uuidbuf);
+
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_META, DETAIL1, "UUID for query being added = %s\n",
+			uuidbuf, 0, 0 );
+#else /* !NEW_LOGGING */
+	Debug( LDAP_DEBUG_ANY, "UUID for query being added = %s\n",
+			uuidbuf, 0, 0 );
+#endif /* !NEW_LOGGING */
+	
+	for ( i=0; ( entry_array && (e=entry_array[i]) ); i++ ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL2, "LOCKING REMOVE MUTEX\n",
+				0, 0, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_NONE, "LOCKING REMOVE MUTEX\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		ldap_pvt_thread_mutex_lock(&cm->remove_mutex); 
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL2, "LOCKED REMOVE MUTEX\n", 0, 0, 0);
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_NONE, "LOCKED REMOVE MUTEX\n", 0, 0, 0);
+#endif /* !NEW_LOGGING */
+		if ( cm->cache_size > (cm->thresh_hi) ) {
+			while(cm->cache_size > (cm->thresh_lo)) {
+				crpid = cache_replacement(qm);
+				if (crpid == NULL) {
+					result->type = REMOVE_ERR; 
+				} else {
+					strcpy(crpuuid, crpid); 
+					crp_uuid.bv_val = crpuuid; 
+					crp_uuid.bv_len = strlen(crpuuid); 
+#ifdef NEW_LOGGING
+					LDAP_LOG( BACK_META, DETAIL1,
+						"Removing query UUID %s\n",
+						crpuuid, 0, 0 );
+#else /* !NEW_LOGGING */
+					Debug( LDAP_DEBUG_ANY,
+						"Removing query UUID %s\n",
+						crpuuid, 0, 0 );
+#endif /* !NEW_LOGGING */
+					return_val = remove_query_data(be, conn,
+							&crp_uuid, result); 
+#ifdef NEW_LOGGING
+					LDAP_LOG( BACK_META, DETAIL1,
+						"QUERY REMOVED, SIZE=%d\n",
+						return_val, 0, 0);
+#else /* !NEW_LOGGING */
+					Debug( LDAP_DEBUG_ANY,
+						"QUERY REMOVED, SIZE=%d\n",
+						return_val, 0, 0);
+#endif /* !NEW_LOGGING */
+					ldap_pvt_thread_mutex_lock(
+							&cm->cache_mutex ); 
+					cm->total_entries -= result->rc; 
+					cm->num_cached_queries--; 
+#ifdef NEW_LOGGING
+					LDAP_LOG( BACK_META, DETAIL1,
+						"STORED QUERIES = %d\n",
+						cm->num_cached_queries, 0, 0 );
+#else /* !NEW_LOGGING */
+					Debug( LDAP_DEBUG_ANY,
+						"STORED QUERIES = %d\n",
+						cm->num_cached_queries, 0, 0 );
+#endif /* !NEW_LOGGING */
+					ldap_pvt_thread_mutex_unlock(
+							&cm->cache_mutex );
+ 					cm->cache_size = (return_val >
+						cm->cache_size) ?
+					       	0 : (cm->cache_size-return_val);
+#ifdef NEW_LOGGING
+					LDAP_LOG( BACK_META, DETAIL1,
+						"QUERY REMOVED, CACHE SIZE="
+						"%d bytes %d entries\n",
+						cm->cache_size,
+						cm->total_entries, 0 );
+#else /* !NEW_LOGGING */
+					Debug( LDAP_DEBUG_ANY,
+						"QUERY REMOVED, CACHE SIZE="
+						"%d bytes %d entries\n",
+						cm->cache_size,
+						cm->total_entries, 0 );
+#endif /* !NEW_LOGGING */
+				}
+			}
+		}
+		return_val = merge_entry(be, conn, e, &query_uuid, result);
+		cm->cache_size += return_val;
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL1,
+			"ENTRY ADDED/MERGED, CACHE SIZE=%d bytes\n",
+			cm->cache_size, 0, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_ANY,
+			"ENTRY ADDED/MERGED, CACHE SIZE=%d bytes\n",
+			cm->cache_size, 0, 0 );
+#endif /* !NEW_LOGGING */
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL2, "UNLOCKING REMOVE MUTEX\n",
+				0, 0, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_NONE, "UNLOCKING REMOVE MUTEX\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		ldap_pvt_thread_mutex_unlock(&cm->remove_mutex); 
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL2, "UNLOCKED REMOVE MUTEX\n",
+				0, 0, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_NONE, "UNLOCKED REMOVE MUTEX\n", 0, 0, 0 );
+#endif /* !NEW_LOGGING */
+		if (result->type != SUCCESS) 
+			return 0; 
+		ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
+		cm->total_entries += result->rc; 
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_META, DETAIL1,
+			"ENTRY ADDED/MERGED, SIZE=%d, CACHED ENTRIES=%d\n",
+			return_val, cm->total_entries, 0 );
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_ANY,
+			"ENTRY ADDED/MERGED, SIZE=%d, CACHED ENTRIES=%d\n",
+			return_val, cm->total_entries, 0 );
+#endif /* !NEW_LOGGING */
+		ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
+	}
+	ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
+	cm->num_cached_queries++; 
+#ifdef NEW_LOGGING
+	LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %d\n",
+			cm->num_cached_queries, 0, 0 );
+#else /* !NEW_LOGGING */
+	Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %d\n",
+			cm->num_cached_queries, 0, 0 );
+#endif /* !NEW_LOGGING */
+	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
+
+	return query_uuid.bv_val; 
+}
+
+static int 
+is_temp_answerable(
+	int attr_set, 
+	struct berval* tempstr, 
+	query_manager* qm, 
+	int template_id )
+{
+	int i; 
+	int* id_array; 
+	char* str;
+	int result = 0; 
+	i = qm->templates[template_id].attr_set_index; 
+	str = qm->templates[template_id].querystr; 
+
+	if (attr_set == i) {
+		result = 1; 
+	} else { 
+		id_array = qm->attr_sets[attr_set].ID_array;    
+
+		while (*id_array != -1) {
+			if (*id_array == i) 
+				result = 1; 
+			id_array++; 
+		}
+	}
+	if (!result) 
+		return 0; 
+	if (strcasecmp(str, tempstr->bv_val) == 0)  
+		return 1; 
+	return 0; 
+}
+
+static void 
+consistency_check(Backend* be, Backend* glue_be, Connection* conn)
+{
+	struct metainfo *li = ( struct metainfo * )be->be_private;
+	cache_manager* 	cm = li->cm; 
+	query_manager* qm = cm->qm; 
+	CachedQuery* query, *query_prev; 
+	time_t curr_time; 
+	struct berval uuid;  
+	struct exception result; 
+	int i, return_val; 
+	QueryTemplate* templ; 
+    
+      
+	for (i=0; qm->templates[i].querystr; i++) {
+		templ = qm->templates + i; 
+		query = templ->query_last; 
+		curr_time = slap_get_time(); 
+		ldap_pvt_thread_mutex_lock(&cm->remove_mutex); 
+		while (query && (query->expiry_time < curr_time)) {
+			ldap_pvt_thread_mutex_lock(&qm->lru_mutex); 
+			remove_query(qm, query); 
+			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex); 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1, "Lock CR index = %d\n",
+					i, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "Lock CR index = %d\n",
+					i, 0, 0 );
+#endif /* !NEW_LOGGING */
+			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);  
+			remove_from_template(query, templ); 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"TEMPLATE %d QUERIES-- %d\n",
+					i, templ->no_of_queries, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "TEMPLATE %d QUERIES-- %d\n",
+					i, templ->no_of_queries, 0 );
+#endif /* !NEW_LOGGING */
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1, "Unlock CR index = %d\n",
+					i, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "Unlock CR index = %d\n",
+					i, 0, 0 );
+#endif /* !NEW_LOGGING */
+			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);  
+			uuid.bv_val = query->q_uuid; 
+			uuid.bv_len = strlen(query->q_uuid); 
+			return_val = remove_query_data(glue_be, conn,
+						&uuid, &result); 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+					"STALE QUERY REMOVED, SIZE=%d\n",
+					return_val, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "STALE QUERY REMOVED, SIZE=%d\n",
+						return_val, 0, 0 );
+#endif /* !NEW_LOGGING */
+			ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
+			cm->total_entries -= result.rc; 
+			cm->num_cached_queries--; 
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %d\n",
+					cm->num_cached_queries, 0, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %d\n",
+					cm->num_cached_queries, 0, 0 );
+#endif /* !NEW_LOGGING */
+			ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
+			cm->cache_size = (return_val > cm->cache_size) ?
+						0: (cm->cache_size-return_val);
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"STALE QUERY REMOVED, CACHE SIZE=%d bytes %d "
+				"entries\n", cm->cache_size,
+				cm->total_entries, 0 );
+#else /* !NEW_LOGGING */
+			Debug( LDAP_DEBUG_ANY,
+				"STALE QUERY REMOVED, CACHE SIZE=%d bytes %d "
+				"entries\n", cm->cache_size,
+				cm->total_entries, 0 );
+#endif /* !NEW_LOGGING */
+			query_prev = query; 
+			query = query->prev; 
+			free_query(query_prev); 
+		}
+		ldap_pvt_thread_mutex_unlock(&cm->remove_mutex); 
+	}
+}
+
+static int
+cache_back_sentry(
+	Backend* glue_be, 
+	Connection* conn,
+	Operation* op, 
+	Entry* e, 
+	AttributeName* attrs, 
+	int attrsonly, 
+	LDAPControl** ctrls )
+{ 
+	slap_callback* cb = op->o_callback; 
+	Backend* be = (Backend*)(cb->sc_private); 
+	struct metainfo	*li = ( struct metainfo * )be->be_private;
+ 
+	char* ename = NULL; 
+	struct exception result; 
+	struct berval dn; 
+	struct berval ndn; 
+
+	dn = e->e_name; 
+	ndn = e->e_nname; 
+
+	rewriteSession( li->rwinfo,
+		"cacheReturn", e->e_name.bv_val, conn, &ename, &result );  
+	ber_str2bv(ename, strlen(ename), 0, &e->e_name); 
+	ber_dupbv(&e->e_nname, &e->e_name); 
+
+	op->o_callback = NULL; 
+	send_search_entry(be, conn, op, e, attrs, attrsonly, ctrls); 
+ 
+	e->e_name = dn; 
+	e->e_nname = ndn; 
+
+	op->o_callback = cb; 
+	return 0;  
+}
+#endif
