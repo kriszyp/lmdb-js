@@ -53,7 +53,7 @@ BDB2SRCS =
 QUIPUSRCS	= edb2ldif.c ldapsyntax.c chlog2replog.c
 SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../module.o ../aclparse.o ../filterentry.o \
-		../schema.o ../schema_check.o ../schema_init.o ../schema_parse.o \
+		../schema.o ../schema_check.o ../schema_init.o ../schema_prep.o \
 		../schemaparse.o ../ad.o ../at.o ../mr.o ../oc.o ../syntax.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
