@@ -20,7 +20,6 @@ int lutil_entropy( char *buf, int nbytes )
 	if( nbytes < 0 ) return -1;
 	if( nbytes == 0 ) return 0;
 
-#undef URANDOM_DEVICE
 #ifdef URANDOM_DEVICE
 	/* Linux and *BSD offer a urandom device */
 	{
