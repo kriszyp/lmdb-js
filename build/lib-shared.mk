@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998-2003 The OpenLDAP Foundation.
+## Copyright 1998-2004 The OpenLDAP Foundation.
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms, with or without

@@ -1,7 +1,7 @@
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
- * Copyright 1998-2003 The OpenLDAP Foundation.
+ * Copyright 1998-2004 The OpenLDAP Foundation.
  * Portions Copyright 2003 Mark Benson.
  * Portions Copyright 2002 John Morrissey.
  * All rights reserved.
