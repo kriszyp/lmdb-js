@@ -12,12 +12,6 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-# FIXME: temporary! bdb doesn't work
-if test "$BACKEND" != "ldbm" ; then
-	echo "Test does not support $BACKEND"
-	exit 0
-fi
-
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
