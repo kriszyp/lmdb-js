@@ -1,6 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.13 Engineering
+	Fixed slapd substring filter_free bug
 	Fixed ldapdelete -c handling (ITS#1071)
 
 OpenLDAP 2.0.12 Release
@@ -8,7 +9,7 @@ OpenLDAP 2.0.12 Release
 	Fixed slapd modlist2mods error text bug
 	Fixed slapd numericString bugs (ITS#1182,1254)
 	Fixed slapd empty rootdn bug (ITS#1172)
-	Fixed slapd passwd modify replication
+	Fixed slapd passwd modify replication (ITS#1237)
 	Fixed slapd textbuf bugs (ITS#1275)
 	Fixed ldapmodrdn SASL auth bug (ITS#1179)
 	Fixed slapadd already exists bug (ITS#1191)
