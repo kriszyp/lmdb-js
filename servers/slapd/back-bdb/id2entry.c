@@ -262,7 +262,7 @@ int bdb_entry_release(
 			boi = (struct bdb_op_info *)o->o_private;
 		}
 		/* lock is freed with txn */
-		if ( boi && boi->boi_txn ) {
+		if ( !boi || boi->boi_txn ) {
 			bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
 		} else {
 			bdb_cache_return_entry_rw( bdb->bi_dbenv, &bdb->bi_cache, e, rw, &boi->boi_lock );
