@@ -405,6 +405,11 @@ at_add(
 			return SLAP_SCHERR_ATTR_BAD_USAGE;
 		}
 
+		if ( supsat->sat_obsolete && !sat->sat_obsolete ) {
+			/* subtypes must be obsolete if super is */
+			return SLAP_SCHERR_ATTR_BAD_SUP;
+		}
+
 		if ( sat->sat_flags & SLAP_AT_FINAL ) {
 			/* cannot subtype a "final" attribute type */
 			return SLAP_SCHERR_ATTR_BAD_SUP;

@@ -161,6 +161,23 @@ entry_schema_check(
 		return LDAP_OTHER;
 	}
 
+	if( sc->soc_obsolete ) {
+		snprintf( textbuf, textlen, 
+			"structuralObjectClass '%s' is OBSOLETE",
+			asc->a_vals[0].bv_val );
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, INFO, 
+			"entry_schema_check: dn (%s), %s\n", e->e_dn, textbuf, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"entry_check_schema(%s): %s\n",
+			e->e_dn, textbuf, 0 );
+#endif
+
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
 	/* find the object class attribute */
 	aoc = attr_find( e->e_attrs, ad_objectClass );
 	if ( aoc == NULL ) {
@@ -208,8 +225,25 @@ entry_schema_check(
 	assert( !cr || !strcmp( cr->scr_oid, sc->soc_oid ) );
 
 	/* check that the entry has required attrs of the content rule */
-	if( cr && cr->scr_required ) {
-		for( i=0; cr->scr_required[i]; i++ ) {
+	if( cr ) {
+		if( cr->scr_obsolete ) {
+			snprintf( textbuf, textlen, 
+				"content rule '%s' is obsolete",
+				ldap_contentrule2name( &cr->scr_crule ));
+
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO, 
+				"entry_schema_check: dn=\"%s\" %s", e->e_dn, textbuf, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"Entry (%s): %s\n",
+				e->e_dn, textbuf, 0 );
+#endif
+
+			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
+
+		if( cr->scr_required ) for( i=0; cr->scr_required[i]; i++ ) {
 			at = cr->scr_required[i];
 
 			for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
@@ -237,10 +271,8 @@ entry_schema_check(
 				return LDAP_OBJECT_CLASS_VIOLATION;
 			}
 		}
-	}
 
-	if( cr && cr->scr_precluded ) {
-		for( i=0; cr->scr_precluded[i]; i++ ) {
+		if( cr->scr_precluded ) for( i=0; cr->scr_precluded[i]; i++ ) {
 			at = cr->scr_precluded[i];
 
 			for ( a = e->e_attrs; a != NULL; a = a->a_next ) {

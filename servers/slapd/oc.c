@@ -289,6 +289,11 @@ oc_add_sups(
 				return SLAP_SCHERR_CLASS_BAD_SUP;
 			}
 
+			if( soc1->soc_obsolete && !soc->soc_obsolete ) {
+				*err = *sups1;
+				return SLAP_SCHERR_CLASS_BAD_SUP;
+			}
+
 			if( soc->soc_flags & SLAP_OC_OPERATIONAL ) (*op)++;
 
 			if ( add_sups ) {
