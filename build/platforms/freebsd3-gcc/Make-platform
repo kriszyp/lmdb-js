@@ -2,11 +2,10 @@
 # LDAP FreeBSD GNU C Make-platform file
 #
 
-
 #
 # add any platform-specific overrides below here
 #
-EXTRACFLAGS=-O -g
+
 LDBMBACKEND=-DLDBM_USE_DBBTREE
 LDBMINCLUDE=-I/usr/include
 
@@ -18,7 +17,6 @@ LDAP_RUNDIR=/var/run
 
 MANCOMPRESS=gzip
 MANCOMPRESSSUFFIX=.gz
-
 
 #
 # LDAP has a problem with the idea of implicit vs. explicit yields
@@ -34,6 +32,11 @@ THREADS= -DPOSIX_THREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
 # use special gcc flag to include libc_r.a
 THREADSLIB= -pthread
 #THREADSLIB= -lc_r
+
+# if you built/installed with -DNOLIBC_R, you'll need uncomment
+# out the following
+#THREADS= -DNO_THREADS -DPTHREAD_PREEMPTIVE
+#THREADSLIB=
 
 # crypt(3) is in a separate library
 LDAP_CRYPT_LIB= -lcrypt

@@ -28,7 +28,8 @@ MANCOMPRESSSUFFIX=.gz
 # OpenLDAP is compatible with this version, uncomment the following
 # options:
 #
-#THREADS= -DPOSIX_THREADS -D_THREAD_SAFE -DPTHREAD_PREEMPTIVE
+#THREADS= -DPOSIX_THREADS -D_THREAD_SAFE \
+#	-DPTHREAD_PREEMPTIVE -DSCHED_YIELD_MISSING
 #THREADSLIB= -lc_r
 #
 # Some versions of FreeBSD support the gcc option "-pthread" to
