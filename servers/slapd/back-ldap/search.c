@@ -380,7 +380,7 @@ ldap_send_entry(
 	struct berval *bv, bdn;
 	const char *text;
 
-	if ( ber_scanf( &ber, "{o", &bdn ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{o{", &bdn ) == LBER_ERROR ) {
 		return;
 	}
 #ifdef ENABLE_REWRITE
@@ -423,7 +423,7 @@ ldap_send_entry(
 	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
-	while ( ber_scanf( &ber, "{{o", &a ) != LBER_ERROR ) {
+	while ( ber_scanf( &ber, "{o", &a ) != LBER_ERROR ) {
 		ldap_back_map(&li->at_map, &a, &mapped, 1);
 		if (mapped.bv_val == NULL)
 			continue;
@@ -449,19 +449,20 @@ ldap_send_entry(
 				continue;
 			}
 		}
+		free( a.bv_val );
 		if (ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR ) {
 			attr->a_vals = &dummy;
 		} else if ( strcasecmp( mapped.bv_val, "objectclass" ) == 0 ) {
 			int i, last;
 			for ( last = 0; attr->a_vals[last].bv_val; last++ ) ;
-			for ( i = 0; ( bv = &attr->a_vals[i] ); i++ ) {
+			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map(&li->oc_map, bv, &mapped, 1);
 				if (mapped.bv_val == NULL) {
-					free(attr->a_vals[i].bv_val);
-					attr->a_vals[i].bv_val = NULL;
+					free(bv->bv_val);
+					bv->bv_val = NULL;
 					if (--last < 0)
 						break;
-					attr->a_vals[i] = attr->a_vals[last];
+					*bv = attr->a_vals[last];
 					attr->a_vals[last].bv_val = NULL;
 					i--;
 				} else if ( mapped.bv_val != bv->bv_val ) {

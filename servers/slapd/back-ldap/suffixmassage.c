@@ -60,7 +60,7 @@ ldap_back_dn_massage(
 		res->bv_len = 0;
 		return;
 	}
-        if ( li == NULL ) {
+        if ( li == NULL || li->suffix_massage == NULL ) {
 		*res = *dn;
 		return;
 	}
@@ -74,7 +74,7 @@ ldap_back_dn_massage(
 	}
 
         for ( i = 0;
-                li->suffix_massage != NULL && li->suffix_massage[i] != NULL;
+                li->suffix_massage[i] != NULL;
                 i += 4 ) {
                 int aliasLength = li->suffix_massage[i+src]->bv_len;
                 int diff = dn->bv_len - aliasLength;
