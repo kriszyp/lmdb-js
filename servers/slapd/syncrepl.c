@@ -1141,8 +1141,9 @@ syncrepl_entry(
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
 
-	op->ors_tlimit = 0;
-	op->ors_slimit = 0;
+	op->o_time = slap_get_time();
+	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_slimit = 1;
 
 	/* set callback function */
 	op->o_callback = &cb;
@@ -1373,8 +1374,9 @@ syncrepl_del_nonpresent(
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->ors_scope = si->si_scope;
 	op->ors_deref = LDAP_DEREF_NEVER;
-	op->ors_slimit = 0;
-	op->ors_tlimit = 0;
+	op->o_time = slap_get_time();
+	op->ors_tlimit = SLAP_NO_LIMIT;
+	op->ors_slimit = SLAP_NO_LIMIT;
 	op->ors_attrsonly = 0;
 	op->ors_attrs = NULL;
 	op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
@@ -1871,13 +1873,23 @@ dn_callback(
 		if ( si->si_syncUUID_ndn.bv_val != NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR,
-				"dn_callback : multiple entries match dn\n", 0, 0, 0 );
+				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"dn_callback : multiple entries match dn\n", 0, 0, 0 );
+				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
 #endif
 		} else {
 			ber_dupbv_x( &si->si_syncUUID_ndn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
+		}
+	} else if ( rs->sr_type == REP_RESULT ) {
+		if ( rs->sr_err == LDAP_SIZELIMIT_EXCEEDED ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR,
+				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"dn_callback : consistency error - entryUUID is not unique\n", 0, 0, 0 );
+#endif
 		}
 	}
 
