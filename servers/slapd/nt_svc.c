@@ -2,24 +2,6 @@
 // nt_main.c
 #include "portable.h"
 
-#ifdef HAVE_NT_SERVICE_MANAGER
-
-#include <stdio.h>
-#include <ac/string.h>
-
-#include "slap.h"
-
-ldap_pvt_thread_cond_t	started_event,		stopped_event;
-ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
-
-
-/* in main.c */
-void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
-
-/* in ntservice.c */
-int srv_install( char* service, char* filename );
-int srv_remove ( char* service, char* filename );
-
 static void stubs()
 {
     ldap_add_s(NULL, NULL, NULL);
@@ -39,6 +21,24 @@ static void stubs()
     ldap_search(NULL, NULL, 0, NULL, NULL, 0);
     ldap_unbind(NULL);
 }
+
+#ifdef HAVE_NT_SERVICE_MANAGER
+
+#include <stdio.h>
+#include <ac/string.h>
+
+#include "slap.h"
+
+ldap_pvt_thread_cond_t	started_event,		stopped_event;
+ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
+
+
+/* in main.c */
+void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
+
+/* in ntservice.c */
+int srv_install( char* service, char* filename );
+int srv_remove ( char* service, char* filename );
 
 int main( int argc, LPTSTR *argv )
 {
