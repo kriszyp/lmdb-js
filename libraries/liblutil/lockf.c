@@ -7,14 +7,14 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  */
-/* File locking methods */
+/* Simple file locking method for systems without */
 
 #include "portable.h"
 
 #include <stdio.h>
 #include <ac/unistd.h>
 
-#if defined(NEED_FCNTL_LOCKING)
+#ifdef NEED_SIMPLE_LOCKING
 
 int lutil_lockf ( FILE *fp ) {
 	struct flock file_lock;
@@ -36,4 +36,4 @@ int lutil_unlockf ( FILE *fp ) {
 	return ( fcntl( fileno(fp), F_SETLK, &file_lock ) );
 }
 
-#endif /* !HAVE_FILE_LOCKING */
+#endif /* NEED_SIMPLE_LOCKING */

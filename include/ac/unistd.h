@@ -85,6 +85,7 @@ extern char* getpass LDAP_P((const char *getpass));
 
 #if !defined( ldap_lockf )
 	/* use some simplistic locking method */
+#	define NEED_SIMPLE_LOCKING
 #	include <lutil_lockf.h>
 #	define ldap_lockf(x)	lutil_lockf(x)
 #	define ldap_unlockf(x)	lutil_unlockf(x)
