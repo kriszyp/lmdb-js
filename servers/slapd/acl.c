@@ -1348,7 +1348,14 @@ acl_check_modlist(
 		case LDAP_MOD_ADD:
 			assert( mlist->sml_bvalues != NULL );
 
-			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ ) {
+#ifdef SLAP_NVALUES
+			for ( bv = mlist->sml_nvalues
+					? mlist->sml_nvalues : mlist->sml_values;
+				bv->bv_val != NULL; bv++ )
+#else
+			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ )
+#endif
+			{
 				if ( ! access_allowed( be, conn, op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
@@ -1366,7 +1373,14 @@ acl_check_modlist(
 				}
 				break;
 			}
-			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ ) {
+#ifdef SLAP_NVALUES
+			for ( bv = mlist->sml_nvalues
+					? mlist->sml_nvalues : mlist->sml_values;
+				bv->bv_val != NULL; bv++ )
+#else
+			for ( bv = mlist->sml_bvalues; bv->bv_val != NULL; bv++ )
+#endif
+			{
 				if ( ! access_allowed( be, conn, op, e,
 					mlist->sml_desc, bv, ACL_WRITE, &state ) )
 				{
