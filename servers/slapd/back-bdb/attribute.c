@@ -45,21 +45,21 @@ bdb_attribute(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_BDB, ARGS, 
-		"bdb_attribute: gr dn: \"%s\"\n", entry_ndn->bv_val, 0, 0 );
+		"bdb_attribute: gr ndn: \"%s\"\n", entry_ndn->bv_val, 0, 0 );
 	LDAP_LOG( BACK_BDB, ARGS, 
 		"bdb_attribute: at: \"%s\"\n", entry_at_name, 0, 0);
-	LDAP_LOG( BACK_BDB, ARGS, "bdb_attribute: tr dn: \"%s\"\n",
+	LDAP_LOG( BACK_BDB, ARGS, "bdb_attribute: tr ndn: \"%s\"\n",
 		target ? target->e_ndn : "", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS,
-		"=> bdb_attribute: gr dn: \"%s\"\n",
+		"=> bdb_attribute: gr ndn: \"%s\"\n",
 		entry_ndn->bv_val, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_attribute: at: \"%s\"\n", 
 		entry_at_name, 0, 0 ); 
 
 	Debug( LDAP_DEBUG_ARGS,
-		"=> bdb_attribute: tr dn: \"%s\"\n",
+		"=> bdb_attribute: tr ndn: \"%s\"\n",
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 

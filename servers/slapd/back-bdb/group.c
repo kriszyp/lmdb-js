@@ -73,7 +73,7 @@ bdb_group(
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_group: tr ndn: \"%s\"\n",
-		target->e_ndn, 0, 0 ); 
+		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
 	if( op ) boi = (struct bdb_op_info *) op->o_private;
@@ -95,7 +95,7 @@ bdb_group(
 		}
 	}
 
-	if (dn_match(&target->e_name, gr_ndn)) {
+	if ( target != NULL && dn_match( &target->e_nname, gr_ndn )) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING
