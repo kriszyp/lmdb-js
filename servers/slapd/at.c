@@ -402,7 +402,6 @@ at_add(
 	Syntax		*syn;
 	int		code;
 	char			*cname;
-	LDAP_SCHEMA_EXTENSION_ITEM	**ext;
 
 	if ( at->at_names && at->at_names[0] ) {
 		cname = at->at_names[0];
@@ -448,8 +447,6 @@ at_add(
 		sat->sat_equality = sat->sat_sup->sat_equality;
 		sat->sat_ordering = sat->sat_sup->sat_ordering;
 		sat->sat_substr = sat->sat_sup->sat_substr;
-		sat->sat_binary = sat->sat_sup->sat_binary;
-		sat->sat_not_h_r = sat->sat_sup->sat_not_h_r;
 	}
 
 	if ( at->at_syntax_oid ) {
@@ -522,22 +519,6 @@ at_add(
 		} else {
 			*err = sat->sat_substr_oid;
 			return SLAP_SCHERR_MR_NOT_FOUND;
-		}
-	}
-
-	if ( sat->sat_extensions ) {
-		for ( ext = sat->sat_extensions; *ext; ext++ ) {
-			if ( strcmp((*ext)->lsei_name, "X-BINARY-TRANSFER-REQUIRED") == 0 &&
-			     (*ext)->lsei_values &&
-			     (*ext)->lsei_values[0] &&
-			     strcasecmp((*ext)->lsei_values[0], "true") == 0 ) {
-				sat->sat_binary = 1;
-			} else if ( strcmp((*ext)->lsei_name, "X-NOT-HUMAN-READABLE") == 0 &&
-			     (*ext)->lsei_values &&
-			     (*ext)->lsei_values[0] &&
-			     strcasecmp((*ext)->lsei_values[0], "true") == 0 ) {
-				sat->sat_not_h_r = 1;
-			}  
 		}
 	}
 
