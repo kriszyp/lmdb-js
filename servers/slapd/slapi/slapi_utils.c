@@ -635,8 +635,8 @@ slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **val
 	}
 
 	if ( vals[0] == NULL ) {
-		/* SLAPI doco says LDAP_OPERATIONS_ERROR */
-		return attr_delete( &e->e_attrs, mod.sm_desc ) ? LDAP_OPERATIONS_ERROR : LDAP_SUCCESS;
+		/* SLAPI doco says LDAP_OPERATIONS_ERROR but LDAP_OTHER is better */
+		return attr_delete( &e->e_attrs, mod.sm_desc ) ? LDAP_OTHER : LDAP_SUCCESS;
 	}
 
 	rc = bvptr2obj( vals, &mod.sm_bvalues );

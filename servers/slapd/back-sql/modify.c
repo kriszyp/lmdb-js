@@ -701,7 +701,7 @@ backsql_modrdn(
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"newSuperior is equal to entry being moved "
 			"- aborting\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "newSuperior is equal to old DN",
 				NULL, NULL );
 		goto modrdn_return;

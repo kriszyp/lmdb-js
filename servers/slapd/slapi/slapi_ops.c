@@ -545,7 +545,7 @@ slapi_delete_internal(
 				}
 				rc = LDAP_SUCCESS;
 			} else {
-				rc = LDAP_OPERATIONS_ERROR;
+				rc = LDAP_OTHER;
 			}
         	} else {
 			rc = LDAP_REFERRAL;
@@ -708,7 +708,6 @@ slapi_add_internal(
  *				 of an entry in the backend directly
  * Return values : LDAP_SUCCESS
  *                 LDAP_PARAM_ERROR
- *                 LDAP_OPERATIONS_ERROR
  *                 LDAP_NO_MEMORY
  *                 LDAP_OTHER
  *                 LDAP_UNWILLING_TO_PERFORM
@@ -823,7 +822,7 @@ slapi_modrdn_internal(
 				rc = LDAP_SUCCESS;
 
 			} else {
-				rc = LDAP_OPERATIONS_ERROR;
+				rc = LDAP_OTHER;
 			}
 
 		} else {
@@ -867,7 +866,6 @@ cleanup:
  * Return values : LDAP_SUCCESS
  *                 LDAP_PARAM_ERROR
  *                 LDAP_NO_MEMORY
- *                 LDAP_OPERATIONS_ERROR
  *                 LDAP_OTHER
  *                 LDAP_UNWILLING_TO_PERFORM
 */
@@ -1039,7 +1037,7 @@ slapi_modify_internal(
 				}
 				rc = LDAP_SUCCESS;
 			} else {
-				rc = LDAP_OPERATIONS_ERROR;
+				rc = LDAP_OTHER;
 			}
 		} else {
 			rc = LDAP_REFERRAL;
@@ -1213,7 +1211,7 @@ slapi_search_internal_bind(
 		if ( rc == 0 ) {
 			rc = LDAP_SUCCESS;
 		} else {
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 		}
 	} else {
 		rc = LDAP_UNWILLING_TO_PERFORM;
