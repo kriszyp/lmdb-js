@@ -36,9 +36,14 @@
 #define SLAPD_TOOLS
 #include "slap.h"
 
-typedef struct glueinfo {
+typedef struct gluenode {
 	BackendDB *be;
 	char *pdn;
+} gluenode;
+
+typedef struct glueinfo {
+	int nodes;
+	gluenode n[1];
 } glueinfo;
 
 /* Just like select_backend, but only for our backends */
@@ -48,47 +53,14 @@ glue_back_select (
 	const char *dn
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) be->be_private;
+	glueinfo *gi = (glueinfo *) be->be_private;
 	int i;
 
 	for (i = 0; be->be_nsuffix[i]; i++) {
 		if (dn_issuffix (dn, be->be_nsuffix[i]->bv_val))
-			return gi[i].be;
+			return gi->n[i].be;
 	}
 	return NULL;
-}
-
-static int
-glue_back_open (
-	BackendInfo *bi
-)
-{
-	static int glueOpened = 0;
-
-	if (glueOpened)
-		return 0;
-	glueOpened = 1;
-	/* Make sure all backends get started when we got selected
-	 * by a tool
-	 */
-	if (slapMode == SLAP_TOOL_MODE)
-		backend_startup (NULL);
-	return 0;
-}
-
-static int
-glue_back_close (
-	BackendInfo *bi
-)
-{
-	static int glueClosed = 0;
-
-	if (glueClosed)
-		return 0;
-	glueClosed = 1;
-	if (slapMode == SLAP_TOOL_MODE)
-		backend_shutdown (NULL);
-	return 0;
 }
 
 static int
@@ -96,7 +68,7 @@ glue_back_db_open (
 	BackendDB *be
 )
 {
-	struct glueinfo *gi;
+	glueinfo *gi;
 	int i, j, k;
 	int ok;
 
@@ -106,14 +78,18 @@ glue_back_db_open (
 	if (be->be_private)
 		return 0;
 
-	for (i = 0; be->be_suffix[i]; i++);
+	for (i = 0; be->be_nsuffix[i]; i++);
 
-	gi = (struct glueinfo *) ch_calloc (i, sizeof (struct glueinfo));
+	gi = (struct glueinfo *) ch_calloc (1, sizeof (glueinfo) +
+		(i-1) * sizeof (gluenode) );
 
 	be->be_private = gi;
 
 	if (!gi)
 		return 1;
+
+	gi->nodes = i;
+	be->be_glueflags = SLAP_GLUE_INSTANCE;
 
 	/*
 	 * For each of our suffixes, find the real backend that handles this 
@@ -136,16 +112,41 @@ glue_back_db_open (
 				}
 			}
 			if (ok) {
-				gi[i].be = &backends[j];
-				gi[i].pdn = dn_parent (NULL,
+				gi->n[i].be = &backends[j];
+				gi->n[i].pdn = dn_parent (NULL,
 						 be->be_nsuffix[i]->bv_val);
+				if (i < gi->nodes - 1)
+					gi->n[i].be->be_glueflags =
+						SLAP_GLUE_SUBORDINATE;
 				break;
 			}
+		}
+	}
+
+	/* If we were invoked in tool mode, open all the underlying backends */
+	if (slapMode & SLAP_TOOL_MODE) {
+		for (i = 0; be->be_nsuffix[i]; i++) {
+			backend_startup (gi->n[i].be);
 		}
 	}
 	return 0;
 }
 
+static int
+glue_back_db_close (
+	BackendDB *be
+)
+{
+	glueinfo *gi = (glueinfo *) be->be_private;
+
+	if (slapMode & SLAP_TOOL_MODE) {
+		int i;
+		for (i = 0; be->be_nsuffix[i]; i++) {
+			backend_shutdown (gi->n[i].be);
+		}
+	}
+	return 0;
+}
 int
 glue_back_db_destroy (
 	BackendDB *be
@@ -262,7 +263,7 @@ glue_back_search (
 	int attrsonly
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
 	BackendDB *be;
 	int i, rc, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
@@ -296,9 +297,8 @@ glue_back_search (
 		/*
 		 * Execute in reverse order, most general first 
 		 */
-		for (i = 0; b0->be_nsuffix[i]; i++);
-		for (--i; i >= 0; i--) {
-			if (!gi[i].be->be_search)
+		for (i = gi->nodes-1; i >= 0; i--) {
+			if (!gi->n[i].be->be_search)
 				continue;
 			if (tlimit) {
 				t2limit = stoptime - slap_get_time ();
@@ -320,8 +320,8 @@ glue_back_search (
 				rc = 0;
 				goto done;
 			}
-			if (!strcmp (gi[i].pdn, ndn)) {
-				be = gi[i].be;
+			if (!strcmp (gi->n[i].pdn, ndn)) {
+				be = gi->n[i].be;
 				rc = be->be_search (be, conn, op,
 						    b0->be_suffix[i],
 						  b0->be_nsuffix[i]->bv_val,
@@ -329,7 +329,7 @@ glue_back_search (
 					s2limit, t2limit, filter, filterstr,
 						    attrs, attrsonly);
 			} else if (dn_issuffix (ndn, b0->be_nsuffix[i]->bv_val)) {
-				be = gi[i].be;
+				be = gi->n[i].be;
 				rc = be->be_search (be, conn, op,
 						    dn, ndn, scope, deref,
 					s2limit, t2limit, filter, filterstr,
@@ -346,9 +346,8 @@ glue_back_search (
 		/*
 		 * Execute in reverse order, most general first 
 		 */
-		for (i = 0; b0->be_nsuffix[i]; i++);
-		for (--i; i >= 0; i--) {
-			if (!gi[i].be->be_search)
+		for (i = gi->nodes-1; i >= 0; i--) {
+			if (!gi->n[i].be->be_search)
 				continue;
 			if (tlimit) {
 				t2limit = stoptime - slap_get_time ();
@@ -371,13 +370,13 @@ glue_back_search (
 				goto done;
 			}
 			if (dn_issuffix (ndn, b0->be_nsuffix[i]->bv_val)) {
-				be = gi[i].be;
+				be = gi->n[i].be;
 				rc = be->be_search (be, conn, op,
 						    dn, ndn, scope, deref,
 					s2limit, t2limit, filter, filterstr,
 						    attrs, attrsonly);
 			} else if (dn_issuffix (b0->be_nsuffix[i]->bv_val, ndn)) {
-				be = gi[i].be;
+				be = gi->n[i].be;
 				rc = be->be_search (be, conn, op,
 						    b0->be_suffix[i],
 						  b0->be_nsuffix[i]->bv_val,
@@ -645,14 +644,14 @@ glue_tool_entry_close (
 	BackendDB *b0
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
 	int i, rc = 0;
 
 	i = glueBack;
 	if (i >= 0) {
-		if (!gi[i].be->be_entry_close)
+		if (!gi->n[i].be->be_entry_close)
 			return 0;
-		rc = gi[i].be->be_entry_close (gi[i].be);
+		rc = gi->n[i].be->be_entry_close (gi->n[i].be);
 		glueBack = -1;
 	}
 	return rc;
@@ -663,25 +662,24 @@ glue_tool_entry_first (
 	BackendDB *b0
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
 	int i;
 
 	/* If we're starting from scratch, start at the most general */
 	if (glueBack == -1) {
-		for (i = 0; b0->be_nsuffix[i]; i++);
-		for (--i; i >= 0; i--) {
-			if (gi[i].be->be_entry_open &&
-			    gi[i].be->be_entry_first)
+		for (i = gi->nodes-1; i >= 0; i--) {
+			if (gi->n[i].be->be_entry_open &&
+			    gi->n[i].be->be_entry_first)
 				break;
 		}
 	} else {
 		i = glueBack;
 	}
-	if (gi[i].be->be_entry_open (gi[i].be, glueMode) != 0)
+	if (gi->n[i].be->be_entry_open (gi->n[i].be, glueMode) != 0)
 		return NOID;
 	glueBack = i;
 
-	return gi[i].be->be_entry_first (gi[i].be);
+	return gi->n[i].be->be_entry_first (gi->n[i].be);
 }
 
 ID
@@ -689,15 +687,15 @@ glue_tool_entry_next (
 	BackendDB *b0
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
 	int i, rc;
 
 	i = glueBack;
-	rc = gi[i].be->be_entry_next (gi[i].be);
+	rc = gi->n[i].be->be_entry_next (gi->n[i].be);
 
 	/* If we ran out of entries in one database, move on to the next */
 	if (rc == NOID) {
-		gi[i].be->be_entry_close (gi[i].be);
+		gi->n[i].be->be_entry_close (gi->n[i].be);
 		i--;
 		glueBack = i;
 		if (i < 0)
@@ -714,9 +712,10 @@ glue_tool_entry_get (
 	ID id
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
+	int i = glueBack;
 
-	return gi[glueBack].be->be_entry_get (gi[glueBack].be, id);
+	return gi->n[i].be->be_entry_get (gi->n[i].be, id);
 }
 
 ID
@@ -725,7 +724,7 @@ glue_tool_entry_put (
 	Entry *e
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
 	BackendDB *be;
 	int i, rc;
 
@@ -739,15 +738,15 @@ glue_tool_entry_put (
 		if (rc != 0)
 			return NOID;
 		glueBack = i;
-	} else if (be != gi[i].be) {
+	} else if (be != gi->n[i].be) {
 		/* If this entry belongs in a different branch than the
 		 * previous one, close the current database and open the
 		 * new one.
 		 */
-		gi[i].be->be_entry_close (gi[i].be);
+		gi->n[i].be->be_entry_close (gi->n[i].be);
 		glueBack = -1;
 		for (i = 0; b0->be_nsuffix[i]; i++)
-			if (gi[i].be == be)
+			if (gi->n[i].be == be)
 				break;
 		rc = be->be_entry_open (be, glueMode);
 		if (rc != 0)
@@ -763,13 +762,13 @@ glue_tool_entry_reindex (
 	ID id
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
 	int i = glueBack;
 
-	if (!gi[i].be->be_entry_reindex)
+	if (!gi->n[i].be->be_entry_reindex)
 		return -1;
 
-	return gi[i].be->be_entry_reindex (gi[i].be, id);
+	return gi->n[i].be->be_entry_reindex (gi->n[i].be, id);
 }
 
 int
@@ -777,13 +776,13 @@ glue_tool_sync (
 	BackendDB *b0
 )
 {
-	struct glueinfo *gi = (struct glueinfo *) b0->be_private;
+	glueinfo *gi = (glueinfo *) b0->be_private;
 	int i;
 
 	/* just sync everyone */
 	for (i = 0; b0->be_nsuffix[i]; i++)
-		if (gi[i].be->be_sync)
-			gi[i].be->be_sync (gi[i].be);
+		if (gi->n[i].be->be_sync)
+			gi->n[i].be->be_sync (gi->n[i].be);
 	return 0;
 }
 
@@ -792,15 +791,15 @@ glue_back_initialize (
 	BackendInfo *bi
 )
 {
-	bi->bi_open = glue_back_open;
+	bi->bi_open = 0;
 	bi->bi_config = 0;
-	bi->bi_close = glue_back_close;
+	bi->bi_close = 0;
 	bi->bi_destroy = 0;
 
 	bi->bi_db_init = 0;
 	bi->bi_db_config = 0;
 	bi->bi_db_open = glue_back_db_open;
-	bi->bi_db_close = 0;
+	bi->bi_db_close = glue_back_db_close;
 	bi->bi_db_destroy = glue_back_db_destroy;
 
 	bi->bi_op_bind = glue_back_bind;
