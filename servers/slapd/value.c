@@ -53,6 +53,38 @@ value_add(
 	return LDAP_SUCCESS;
 }
 
+int
+value_validate(
+	MatchingRule *mr,
+	struct berval *in,
+	const char **text )
+{
+	int rc;
+
+	if( mr == NULL ) {
+		*text = "inappropriate matching request";
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	if( mr->smr_syntax == NULL ) {
+		*text = "no assertion syntax";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	if( ! mr->smr_syntax->ssyn_validate ) {
+		*text = "no syntax validator";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	rc = (mr->smr_syntax->ssyn_validate)( mr->smr_syntax, in );
+
+	if( rc != LDAP_SUCCESS ) {
+		*text = "value is invalid";
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return LDAP_SUCCESS;
+}
 
 int
 value_normalize(
