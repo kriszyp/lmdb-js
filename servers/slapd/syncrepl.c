@@ -471,7 +471,7 @@ do_syncrepl(
 				NULL, -1, &msgid );
 
         if( rc != LDAP_SUCCESS ) {
-                fprintf( stderr, "syncrepl: ldap_search_ext (%d)\n",
+                fprintf( stderr, "syncrepl: ldap_search_ext: %s (%d)\n",
 		                        ldap_err2string( rc ), rc );
                 return NULL;
 	}
