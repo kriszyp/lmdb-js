@@ -33,11 +33,11 @@ int ldbm_modify_internal(
     Operation	*op,
     const char	*dn,
     Modifications	*modlist,
-    Entry	*e 
+    Entry	*e,
+	const char **text 
 )
 {
 	int rc, err;
-	const char *text;
 	Modification	*mod;
 	Modifications	*ml;
 	Attribute	*save_attrs;
@@ -55,14 +55,26 @@ int ldbm_modify_internal(
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
 			err = add_values( e, mod, op->o_ndn );
+
+			if( err != LDAP_SUCCESS ) {
+				*text = "modify: add values failed";
+			}
 			break;
 
 		case LDAP_MOD_DELETE:
 			err = delete_values( e, mod, op->o_ndn );
+			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
+			if( err != LDAP_SUCCESS ) {
+				*text = "modify: delete values failed";
+			}
 			break;
 
 		case LDAP_MOD_REPLACE:
 			err = replace_values( e, mod, op->o_ndn );
+			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
+			if( err != LDAP_SUCCESS ) {
+				*text = "modify: replace values failed";
+			}
 			break;
 
 		case SLAP_MOD_SOFTADD:
@@ -75,7 +87,14 @@ int ldbm_modify_internal(
  			if ( err == LDAP_TYPE_OR_VALUE_EXISTS ) {
  				err = LDAP_SUCCESS;
  			}
+
+			if( err != LDAP_SUCCESS ) {
+				*text = "modify: (soft)add values failed";
+			}
  			break;
+
+		default:
+			err = LDAP_OTHER;
 		}
 
 		if ( err != LDAP_SUCCESS ) {
@@ -97,12 +116,12 @@ int ldbm_modify_internal(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( e, save_attrs, &text );
+	rc = entry_schema_check( e, save_attrs, text );
 	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
-			text, 0, 0 );
+			*text, 0, 0 );
 		return rc;
 	}
 
@@ -215,6 +234,7 @@ ldbm_back_modify(
 	Entry		*matched;
 	Entry		*e;
 	int		manageDSAit = get_manageDSAit( op );
+	const char *text;
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
@@ -262,12 +282,12 @@ ldbm_back_modify(
 	}
 	
 	/* Modify the entry */
-	rc = ldbm_modify_internal( be, conn, op, ndn, modlist, e );
+	rc = ldbm_modify_internal( be, conn, op, ndn, modlist, e, &text );
 
 	if( rc != LDAP_SUCCESS ) {
 		if( rc != SLAPD_ABANDON ) {
 			send_ldap_result( conn, op, rc,
-		   		NULL, NULL, NULL, NULL );
+		   		NULL, text, NULL, NULL );
 		}
 
 		goto error_return;

@@ -278,7 +278,6 @@ attr_delete(
 )
 {
 	Attribute	**a;
-	Attribute	*save;
 
 	for ( a = attrs; *a != NULL; a = &(*a)->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -287,18 +286,14 @@ attr_delete(
 		if ( strcasecmp( (*a)->a_type, type ) == 0 )
 #endif
 		{
-			break;
+			Attribute	*save = *a;
+			*a = (*a)->a_next;
+			attr_free( save );
+
+			return 0;
 		}
 	}
 
-	if ( *a == NULL ) {
-		return( 1 );
-	}
-
-	save = *a;
-	*a = (*a)->a_next;
-	attr_free( save );
-
-	return( 0 );
+	return 1;
 }
 

@@ -56,6 +56,7 @@ ldbm_back_modrdn(
 	Entry		*matched;
 	int			rootlock = 0;
 	int			rc = -1;
+	const char *text;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
 	char		*new_rdn_val = NULL;	/* Val of new rdn */
 	char		*new_rdn_type = NULL;	/* Type of new rdn */
@@ -359,7 +360,6 @@ ldbm_back_modrdn(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 		{
 			int rc;
-			const char *text;
 
 			mod[0].sml_desc = NULL;
 			rc = slap_str2ad( new_rdn_type, &mod[0].sml_desc, &text );
@@ -407,7 +407,6 @@ ldbm_back_modrdn(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			{
 				int rc;
-				const char *text;
 
 				mod[1].sml_desc = NULL;
 				rc = slap_str2ad( old_rdn_type, &mod[1].sml_desc, &text );
@@ -468,12 +467,12 @@ ldbm_back_modrdn(
 	}
 
 	/* modify memory copy of entry */
-	rc = ldbm_modify_internal( be, conn, op, dn, &mod[0], e );
+	rc = ldbm_modify_internal( be, conn, op, dn, &mod[0], e, &text );
 
 	if( rc != LDAP_SUCCESS ) {
 		if( rc != SLAPD_ABANDON ) {
 			send_ldap_result( conn, op, rc,
-				NULL, NULL, NULL, NULL );
+				NULL, text, NULL, NULL );
 		}
 	    
 	    goto return_results;

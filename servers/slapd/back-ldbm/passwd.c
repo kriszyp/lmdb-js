@@ -136,7 +136,7 @@ ldbm_back_exop_passwd(
 		ml.sml_next = NULL;
 
 		rc = ldbm_modify_internal( be,
-			conn, op, op->o_ndn, &ml, e );
+			conn, op, op->o_ndn, &ml, e, text );
 
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
 		ch_free(ml.ml_type);

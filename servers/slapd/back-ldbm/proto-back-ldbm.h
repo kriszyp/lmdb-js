@@ -168,7 +168,8 @@ extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
 /* returns LDAP error code indicating error OR SLAPD_ABANDON */
 int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,
-	const char *dn, Modifications *mods, Entry *e ));
+	const char *dn, Modifications *mods, Entry *e,
+	const char ** ));
 
 #ifdef HAVE_CYRUS_SASL
 /*
