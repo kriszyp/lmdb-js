@@ -315,17 +315,28 @@ set_socket( int port )
                 exit( EXIT_FAILURE );
         }
 
+#ifdef SO_REUSEADDR
         /* set option so clients can't keep us from coming back up */
-	one = 1;
+		one = 1;
         if ( setsockopt( s, SOL_SOCKET, SO_REUSEADDR, (char *) &one,
 	    sizeof(one) ) < 0 ) {
                 perror( "setsockopt" );
                 exit( EXIT_FAILURE );
         }
+#endif
+#ifdef SO_KEEPALIVE
+		/* enable keep alives */
+		one = 1;
+        if ( setsockopt( s, SOL_SOCKET, SO_KEEPALIVE, (char *) &one,
+	    sizeof(one) ) < 0 ) {
+                perror( "setsockopt" );
+                exit( EXIT_FAILURE );
+        }
+#endif
 
         /* bind to a name */
         addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
         addr.sin_port = htons( port );
         if ( bind( s, (struct sockaddr *) &addr, sizeof(addr) ) ) {
                 perror( "bind" );
