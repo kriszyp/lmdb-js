@@ -82,6 +82,12 @@ root_dse_info(
 
 	/* supportedLDAPVersion */
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
+		if (( global_disallows & SLAP_DISALLOW_BIND_V2 ) &&
+			( i < LDAP_VERSION3 ) )
+		{
+			/* version 2 and lower are disallowed */
+			continue;
+		}
 		sprintf(buf,"%d",i);
 		val.bv_val = buf;
 		val.bv_len = strlen( val.bv_val );
