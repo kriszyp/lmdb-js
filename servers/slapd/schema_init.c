@@ -1842,7 +1842,7 @@ integerNormalize(
 {
 	int negative;
 	struct berval *newval;
-	char *p, *q;
+	char *p;
 
 	p = val->bv_val;
 
