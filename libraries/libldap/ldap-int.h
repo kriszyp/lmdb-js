@@ -242,12 +242,7 @@ BerElement *ldap_build_search_req( LDAP *ld, char *base, int scope,
 /*
  * in strdup.c
  */
-#ifdef HAVE_STRDUP
-#define      ldap_strdup(s)	strdup(s)
-extern char *strdup();
-#else
-extern char *ldap_strdup LDAP_P(( const char * ));
-#endif
+char *ldap_strdup LDAP_P(( const char * ));
 
 /*
  * in unbind.c
