@@ -373,8 +373,8 @@ ldbm_back_modrdn(
 
 		val.bv_val = new_rdn_vals[a_cnt];
 		val.bv_len = strlen( val.bv_val );
-		if ( ! access_allowed( be, conn, op, p, 
-				mod_tmp->sml_desc, &val, ACL_WRITE ) ) {
+		if ( ! access_allowed( be, conn, op, e, 
+				desc, &val, ACL_WRITE ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_back_modrdn: access not allowed "
 				"to attr \"%s\"\n%s%s",
@@ -431,8 +431,8 @@ ldbm_back_modrdn(
 
 			val.bv_val = old_rdn_vals[d_cnt];
 			val.bv_len = strlen( val.bv_val );
-			if ( ! access_allowed( be, conn, op, p, 
-					mod_tmp->sml_desc, &val, ACL_WRITE ) ) {
+			if ( ! access_allowed( be, conn, op, e, 
+					desc, &val, ACL_WRITE ) ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"ldbm_back_modrdn: access not allowed "
 					"to attr \"%s\"\n%s%s",

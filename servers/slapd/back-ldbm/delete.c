@@ -93,7 +93,7 @@ ldbm_back_delete(
 	}
 
 	/* delete from parent's id2children entry */
-	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
+	if( (pdn = dn_parent( be, e->e_ndn )) != NULL && pdn[ 0 ] != '\0' ) {
 		if( (p = dn2entry_w( be, pdn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: parent does not exist\n",
@@ -117,7 +117,7 @@ ldbm_back_delete(
 
 	} else {
 		/* no parent, must be root to delete */
-		if( ! be_isroot( be, op->o_ndn ) ) {
+		if( ! be_isroot( be, op->o_ndn ) && ! be_issuffix( be, "" )  ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: no parent & not root\n",
 				0, 0, 0);
