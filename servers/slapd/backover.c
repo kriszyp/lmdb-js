@@ -483,8 +483,6 @@ overlay_config( BackendDB *be, const char *ov )
 		oi->oi_bi = *be->bd_info;
 
 		/* Save a pointer to ourself in bi_private.
-		 * This allows us to keep working in conjunction
-		 * with backglue...
 		 */
 		oi->oi_bi.bi_private = oi;
 		oi->oi_list = NULL;

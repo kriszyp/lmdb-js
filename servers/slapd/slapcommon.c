@@ -388,13 +388,6 @@ slap_tool_init(
 		break;
 	}
 
-	rc = glue_sub_init();
-
-	if ( rc != 0 ) {
-		fprintf( stderr, "Subordinate configuration error\n" );
-		exit( EXIT_FAILURE );
-	}
-
 	rc = slap_schema_check();
 
 	if ( rc != 0 ) {

@@ -647,13 +647,6 @@ unhandled_option:;
 		}
 	}
 
-	if ( glue_sub_init( ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "subordinate config error\n",
-		    0, 0, 0 );
-		goto destroy;
-	}
-
 	if ( slap_schema_check( ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "schema prep error\n",
