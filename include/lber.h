@@ -105,6 +105,7 @@ typedef int (*BERTranslateProc) LDAP_P((
 #define LBER_OPT_LOG_PRINT_FN	0x8001
 #define LBER_OPT_MEMORY_FNS		0x8002
 #define LBER_OPT_ERROR_FN		0x8003
+#define LBER_OPT_LOG_PRINT_FILE		0x8004
 
 typedef int* (*BER_ERRNO_FN) LDAP_P(( void ));
 

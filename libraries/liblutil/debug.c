@@ -29,12 +29,14 @@
 
 #include "ldap_log.h"
 #include "ldap_defaults.h"
+#include "lber.h"
 
 static FILE *log_file;
 
 int lutil_debug_file( FILE *file )
 {
 	log_file = file;
+	ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, file );
 
 	return 0;
 }
@@ -57,9 +59,10 @@ void (lutil_debug)( int level, int debug, const char *fmt, ... )
 
 		if ( log_file == NULL )
 			return;
+
+	    ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, file );
 	}
 #endif
-
 	va_start( vl, fmt );
 
 #ifdef HAVE_VSNPRINTF

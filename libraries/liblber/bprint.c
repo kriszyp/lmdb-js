@@ -15,6 +15,15 @@
 #include "lber-int.h"
 
 /*
+ * We don't just set ber_pvt_err_file to stderr here, because in NT,
+ * stderr is a symbol imported from a DLL. As such, the compiler
+ * doesn't recognize the symbol as having a constant address. Thus
+ * we set ber_pvt_err_file to stderr later, when it first gets
+ * referenced.
+ */
+FILE *ber_pvt_err_file;
+
+/*
  * ber errno
  */
 BER_ERRNO_FN ber_int_errno_fn;
@@ -38,8 +47,19 @@ ber_error_print( char *data )
 {
 	assert( data != NULL );
 
+	if (!ber_pvt_err_file)
+	    ber_pvt_err_file = stderr;
+
+	fputs( data, ber_pvt_err_file );
+
+	/* Print to both streams */
+	if (ber_pvt_err_file != stderr)
+	{
 	fputs( data, stderr );
 	fflush( stderr );
+	}
+
+	fflush( ber_pvt_err_file );
 }
 
 BER_LOG_PRINT_FN ber_pvt_log_print = ber_error_print;
