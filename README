@@ -1,3 +1,12 @@
+OpenLDAP Devel README
+	OpenLDAP -devel is for the development of OpenLDAP.  As such,
+	it changes often.  These changes include changes in functionality
+	and unproven bug fixes.  Many of these changes will cause
+	previous working programs to fail.
+
+	Client developers seeking a stable development platform
+	should use -stable.
+
 OpenLDAP 1.0 README
 
     This is the OpenLDAP version 1.0 distribution.
