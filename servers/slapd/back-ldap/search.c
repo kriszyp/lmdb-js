@@ -468,7 +468,7 @@ ldap_build_entry(
 
 		/* no subschemaSubentry */
 		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
-			BerVarray vals;
+			ber_len_t	len;
 
 			/* 
 			 * We eat target's subschemaSubentry because
@@ -476,10 +476,8 @@ ldap_build_entry(
 			 * to resolve to the appropriate backend;
 			 * later, the local subschemaSubentry is
 			 * added.
-			 *
-			 * FIXME: is there a better means to eat
-			 * undesired  values? */
-			(void)ber_scanf( &ber, "[W]", &vals );
+			 */
+			ber_skip_tag( &ber, &len );
 
 			ch_free(attr);
 			continue;
