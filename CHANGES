@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.20 Engineering
+OpenLDAP 2.2.20 Release
 	Fixed slapd sanity check on protocol in authz-regexp URI (ITS#3411)
 	Fixed slapd ID to DN mapping when values need DN escaping (ITS#3419)
 	Fixed slapd sl_realloc memory overrun (ITS#3420, #3404, #3296)
