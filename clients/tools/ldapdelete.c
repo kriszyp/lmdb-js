@@ -286,8 +286,12 @@ static int deletechildren(
 	int entries;
 	int rc;
 	static char *attrs[] = { LDAP_NO_ATTRS, NULL };
+	LDAPControl c, *ctrls[2];
+	BerElement *ber = NULL;
+	LDAPMessage *res_se;
 
 	if ( verbose ) printf ( _("deleting children of: %s\n"), dn );
+
 	/*
 	 * Do a one level search at dn for children.  For each, delete its children.
 	 */
@@ -344,5 +348,73 @@ static int deletechildren(
 	}
 
 	ldap_msgfree( res );
+
+	/*
+	 * Do a one level search at dn for subentry children.
+	 */
+
+	if ((ber = ber_alloc_t(LBER_USE_DER)) == NULL) {
+		return EXIT_FAILURE;
+	}
+	rc = ber_printf( ber, "b", 1 );
+	if ( rc == -1 ) {
+		ber_free( ber, 1 );
+		fprintf( stderr, _("Subentries control encoding error!\n"));
+		return EXIT_FAILURE;
+	}
+	if ( ber_flatten2( ber, &c.ldctl_value, 0 ) == -1 ) {
+		return EXIT_FAILURE;
+	}
+	c.ldctl_oid = LDAP_CONTROL_SUBENTRIES;
+	c.ldctl_iscritical = 1;
+	ctrls[0] = &c;
+	ctrls[1] = NULL;
+
+	rc = ldap_search_ext_s( ld, dn, LDAP_SCOPE_ONELEVEL, NULL, attrs, 1,
+		ctrls, NULL, NULL, -1, &res_se );
+	if ( rc != LDAP_SUCCESS ) {
+		ldap_perror( ld, "ldap_search" );
+		return( rc );
+	}
+	ber_free( ber, 1 );
+
+	entries = ldap_count_entries( ld, res_se );
+
+	if ( entries > 0 ) {
+		int i;
+
+		for (e = ldap_first_entry( ld, res_se ), i = 0; e != NULL;
+			e = ldap_next_entry( ld, e ), i++ )
+		{
+			char *dn = ldap_get_dn( ld, e );
+
+			if( dn == NULL ) {
+				ldap_perror( ld, "ldap_prune" );
+				ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+				ber_memfree( dn );
+				return rc;
+			}
+
+			if ( verbose ) {
+				printf( _("\tremoving %s\n"), dn );
+			}
+
+			rc = ldap_delete_s( ld, dn );
+			if ( rc == -1 ) {
+				ldap_perror( ld, "ldap_delete" );
+				ber_memfree( dn );
+				return rc;
+
+			}
+			
+			if ( verbose ) {
+				printf( _("\t%s removed\n"), dn );
+			}
+
+			ber_memfree( dn );
+		}
+	}
+
+	ldap_msgfree( res_se );
 	return rc;
 }
