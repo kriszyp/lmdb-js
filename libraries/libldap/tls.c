@@ -130,7 +130,7 @@ ldap_pvt_tls_init_def_ctx( void )
 		if ( !SSL_CTX_set_cipher_list( tls_def_ctx,
 			"RC4+RSA:HIGH:MEDIUM:LOW:EXP:+SSLv2:+EXP" ) ) {
 			Debug( LDAP_DEBUG_ANY,
-			       "TLS: could not set cipher list.\n", 0, 0 );
+			       "TLS: could not set cipher list.\n", 0, 0, 0 );
 			tls_report_error();
 			goto error_exit;
 		}
