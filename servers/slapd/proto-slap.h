@@ -274,7 +274,7 @@ LDAP_SLAPD_F (int) get_manageDSAit LDAP_P(( Operation *op ));
  */
 
 LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname ));
-
+LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 
 /*
  * index.c

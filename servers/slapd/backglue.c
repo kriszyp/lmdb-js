@@ -611,6 +611,7 @@ glue_back_referrals (
 	return rc;
 }
 
+int
 glue_tool_entry_open (
 	BackendDB *b0,
 	int mode
