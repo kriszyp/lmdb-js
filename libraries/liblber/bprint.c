@@ -136,47 +136,52 @@ ber_bprint(
 	LDAP_CONST char *data,
 	ber_len_t len )
 {
-    static const char	hexdig[] = "0123456789abcdef";
-#define BPLEN	48
-    char	out[ BPLEN ];
-    char	buf[ BPLEN + sizeof("\t%s\n") ];
-    int		i = 0;
+	static const char	hexdig[] = "0123456789abcdef";
+#define BP_OFFSET 8
+#define BP_GRAPH 60
+#define BP_LEN	80
+	char	line[ BP_LEN ];
+	ber_len_t i;
 
 	assert( data != NULL );
 
-    memset( out, '\0', BPLEN );
-    for ( ;; ) {
-	if ( len < 1 ) {
-	    sprintf( buf, "\t%s\n", ( i == 0 ) ? "(end)" : out );
-		(*ber_pvt_log_print)( buf );
-	    break;
+	/* in case len is zero */
+	line[0] = '\n';
+	line[1] = '\0';
+	
+	for ( i = 0 ; i < len ; i++ ) {
+		int n = i % 16;
+		int off;
+
+		if( !n ) {
+			if( i ) (*ber_pvt_log_print)( line );
+			memset( line, ' ', sizeof(line)-2 );
+			line[sizeof(line)-2] = '\n';
+			line[sizeof(line)-1] = '\0';
+
+			off = i % 0x0ffffU;
+
+			line[ 2 ] = hexdig[ ( off & 0xf000U ) >> 12 ];
+			line[ 3 ] = hexdig[ ( off & 0x0f00U ) >>  8 ];
+			line[ 4 ] = hexdig[ ( off & 0x00f0U ) >>  4 ];
+			line[ 5 ] = hexdig[ ( off & 0x000fU ) ];
+			line[ 6 ] = ':';
+		}
+
+		off = BP_OFFSET + n*3;
+		line[ off   ] = hexdig[ ( data[i] & 0xf0U ) >> 4 ];
+		line[ off+1 ] = hexdig[ data[i] & 0x0fU ];
+		
+		off = BP_GRAPH + n;
+
+		if ( isprint( data[i] )) {
+			line[ BP_GRAPH + n ] = data[i];
+		} else {
+			line[ BP_GRAPH + n ] = '.';
+		}
 	}
 
-#ifndef LDAP_HEX
-	if ( isgraph( (unsigned char)*data )) {
-	    out[ i ] = ' ';
-	    out[ i+1 ] = *data;
-	} else {
-#endif
-	    out[ i ] = hexdig[ ( *data & 0xf0U ) >> 4 ];
-	    out[ i+1 ] = hexdig[ *data & 0x0fU ];
-#ifndef LDAP_HEX
-	}
-#endif
-	i += 2;
-	len--;
-	data++;
-
-	if ( i > BPLEN - 2 ) {
-		char data[128 + BPLEN];
-	    sprintf( data, "\t%s\n", out );
-		(*ber_pvt_log_print)(data);
-	    memset( out, '\0', BPLEN );
-	    i = 0;
-	    continue;
-	}
-	out[ i++ ] = ' ';
-    }
+	(*ber_pvt_log_print)( line );
 }
 
 int
