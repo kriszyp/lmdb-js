@@ -243,7 +243,12 @@ do_add( Operation *op, SlapReply *rs )
 	if ( op->o_bd->be_add ) {
 		/* do the update here */
 		int repl_user = be_isupdate(op->o_bd, &op->o_ndn );
-#ifndef SLAPD_MULTIMASTER
+#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+		if ( !op->o_bd->syncinfo &&
+						( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
+		if ( !op->o_bd->syncinfo )	/* LDAP_SYNCREPL overrides MM */
+#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
 #endif
 		{
@@ -252,7 +257,7 @@ do_add( Operation *op, SlapReply *rs )
 			size_t textlen = sizeof textbuf;
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
-				textbuf, textlen, NULL );
+										  textbuf, textlen, NULL );
 
 			if( rs->sr_err != LDAP_SUCCESS ) {
 				send_ldap_result( op, rs );
@@ -306,9 +311,9 @@ do_add( Operation *op, SlapReply *rs )
 				e = NULL;
 			}
 
-#ifndef SLAPD_MULTIMASTER
+#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
 		} else {
-			BerVarray defref;
+			BerVarray defref = NULL;
 #ifdef LDAP_SLAPI
 			/*
 			 * SLAPI_ADD_ENTRY will be empty, but this may be acceptable
@@ -321,8 +326,16 @@ do_add( Operation *op, SlapReply *rs )
 			}
 #endif /* LDAP_SLAPI */
 
-			defref = op->o_bd->be_update_refs
-				? op->o_bd->be_update_refs : default_referral;
+#ifdef LDAP_SYNCREPL
+			if ( op->o_bd->syncinfo ) {
+				defref = op->o_bd->syncinfo->master_bv;
+			} else
+#endif
+			{
+				defref = op->o_bd->be_update_refs
+							? op->o_bd->be_update_refs : default_referral;
+			}
+
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
 					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );

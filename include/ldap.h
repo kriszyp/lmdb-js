@@ -200,6 +200,7 @@ typedef struct ldapcontrol {
 #ifdef LDAP_DEVEL
 #define LDAP_CLIENT_UPDATE 1
 #define LDAP_SYNC 2
+#define LDAP_SYNCREPL 1
 #endif
 
 #ifdef LDAP_CLIENT_UPDATE

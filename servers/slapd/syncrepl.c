@@ -320,8 +320,8 @@ do_syncrepl(
 
 	op.o_tmpmemctx = NULL; /* FIXME : to use per-thread mem context */
 	op.o_tag = LDAP_REQ_SEARCH;
-	op.o_dn = be->be_rootdn;
-	op.o_ndn = be->be_rootndn;
+	op.o_dn = si->updatedn;
+	op.o_ndn = si->updatedn;
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_managedsait = 1;

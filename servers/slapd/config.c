@@ -2727,8 +2727,9 @@ add_syncrepl(
 #define GOT_TYPE		0x0200
 #define GOT_INTERVAL	0x0400
 #define GOT_LASTMOD		0x0800
+#define GOT_UPDATEDN	0x1000
 
-#define GOT_ALL			0x0FFF
+#define GOT_ALL			0x1FFF
 
 static int
 parse_syncrepl_line(
@@ -2772,6 +2773,11 @@ parse_syncrepl_line(
 				si->masterport = 0;
 			}
 			si->mastername = strdup( val );
+			si->master_bv = (BerVarray) ch_calloc( 2, sizeof (struct berval ));
+			ber_str2bv( si->masteruri, strlen(si->masteruri), 0,
+							&si->master_bv[0] );
+			si->master_bv[1].bv_len = 0;
+			si->master_bv[1].bv_val = NULL;
 			gots |= GOT_HOST;
 		} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( TLSSTR );
@@ -2781,7 +2787,18 @@ parse_syncrepl_line(
 				si->tls = TLS_ON;
 			}
 		} else if ( !strncasecmp( cargv[ i ],
-				"binddn", sizeof( BINDDNSTR ) - 1 ) ) {
+				UPDATEDNSTR, sizeof( UPDATEDNSTR ) - 1 ) ) {
+			char *str;
+			struct berval updatedn = {0, NULL};
+			val = cargv[ i ] + sizeof( UPDATEDNSTR );
+			str = strdup( val );
+			ber_str2bv( str, strlen(str), 1, &updatedn );
+			dnNormalize( 0, NULL, NULL, &updatedn, &si->updatedn, NULL );
+			ch_free( str );
+			ch_free( updatedn.bv_val );
+			gots |= GOT_UPDATEDN;
+		} else if ( !strncasecmp( cargv[ i ],
+				BINDDNSTR, sizeof( BINDDNSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( BINDDNSTR );
 			si->binddn = strdup( val );
 			gots |= GOT_DN;
@@ -2934,6 +2951,7 @@ parse_syncrepl_line(
 			} else if ( !strncasecmp( val, "refreshAndPersist", sizeof( "refreshAndPersist" ) - 1 )) {
 				gots |= GOT_INTERVAL;
 				si->type = LDAP_SYNC_REFRESH_AND_PERSIST;
+				si->interval = 0;
 			} else {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 								 "unknown sync type \"%s\"\n", val);
@@ -2943,8 +2961,11 @@ parse_syncrepl_line(
 				INTERVALSTR, sizeof( INTERVALSTR ) - 1 ) ) {
 			val = cargv[ i ] + sizeof( INTERVALSTR );
 			gots |= GOT_INTERVAL;
-			si->interval = atoi( val );
-			if ( si->interval <= 0 ) {
+			if ( gots & GOT_TYPE && si->type == LDAP_SYNC_REFRESH_AND_PERSIST )
+				si->interval = 0;
+			else
+				si->interval = atoi( val );
+			if ( si->interval < 0 ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 								 "invalid interval \"%d\"\n", si->interval);
 				return 1;

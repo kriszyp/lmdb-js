@@ -1286,9 +1286,11 @@ typedef struct syncinfo_s {
         void            *ctx;
         int             id;
         char            *masteruri;
+		struct berval	*master_bv;
         char            *mastername;
         int             masterport;
         int             type;
+		struct berval	updatedn;	
         char            *binddn;
         int             bindmethod;
         char            *passwd;
@@ -1298,7 +1300,7 @@ typedef struct syncinfo_s {
         char            *authzId;
         char            *srvtab;
         char            *saslmech;
-        int             interval;
+        time_t			interval;
         char            *base;
         int             scope;
         int             deref;
@@ -1327,6 +1329,7 @@ typedef struct syncinfo_s {
 #define IDSTR           "id"
 #define MASTERSTR       "master"
 #define SUFFIXSTR       "suffix"
+#define UPDATEDNSTR		"updatedn"
 #define BINDDNSTR       "binddn"
 #define BINDMETHSTR     "bindmethod"
 #define SIMPLESTR       "simple"

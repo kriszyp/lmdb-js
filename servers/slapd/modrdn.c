@@ -353,7 +353,12 @@ do_modrdn(
 	if ( op->o_bd->be_modrdn ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
-#ifndef SLAPD_MULTIMASTER
+#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+		if ( !op->o_bd->syncinfo &&
+					( !op->o_bd->be_update_ndn.bv_len || repl_user ))
+#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
+		if ( !op->o_bd->syncinfo )  /* LDAP_SYNCREPL overrides MM */
+#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
 #endif
 		{
@@ -365,10 +370,18 @@ do_modrdn(
 			) {
 				replog( op );
 			}
-#ifndef SLAPD_MULTIMASTER
+#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
 		} else {
-			BerVarray defref = op->o_bd->be_update_refs
-				? op->o_bd->be_update_refs : default_referral;
+			BerVarray defref = NULL;
+#ifdef LDAP_SYNCREPL
+			if ( op->o_bd->syncinfo ) {
+				defref = op->o_bd->syncinfo->master_bv;
+			} else
+#endif
+			{
+				defref = op->o_bd->be_update_refs
+						? op->o_bd->be_update_refs : default_referral;
+			}
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
 					NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
