@@ -69,4 +69,5 @@ ltest:	$(XLIBS) test.o
 install-local: $(CFFILES) FORCE
 	-$(MKDIR) $(DESTDIR)$(libdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
+	$(LTFINISH) $(DESTDIR)$(libdir)
 
