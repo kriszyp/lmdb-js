@@ -6,6 +6,7 @@ OpenLDAP 2.2.24 Engineering
 	Fixed slapd syncrepl provider sessionlog (ITS#3571)
 	Fixed slapd connection_abandon processing (ITS#3534, 3546, 3571)
 	Fixed slapd callback cleanup processing (ITS#3596)
+	FIxed slapd default password hash to use SSHA (ITS#3557)
 	Fixed slap tool log initialization (ITS#3579)
 	Fixed back-bdb IDL cache crash (ITS#3527)
 	Fixed back-bdb initialization message (ITS#3533)
