@@ -943,6 +943,26 @@ a non-default
 .B TLSVerifyClient
 setting must be chosen to enable SASL EXTERNAL authentication.
 .RE
+.TP
+.B TLSCRLCheck <level>
+Specifies if the Certificate Revocation List (CRL) of the CA should be 
+used to verify if the client certicates have not been revoked. This
+requires
+.B TLSCACertificatePath
+parameter to be set.
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B none
+No CRL checks are performed
+.TP
+.B peer
+Check the CRL of the peer certificate
+.TP
+.B all
+Check the CRL for a whole certificate chain
+.RE
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the specified backend.  They are supported by every

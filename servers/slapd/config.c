@@ -1936,6 +1936,10 @@ restrict_unknown:;
 
 			if ( rc )
 				return rc;
+		} else if ( !strcasecmp( cargv[0], "TLSCRLCheck" ) ) {
+			rc = ldap_int_tls_config( NULL,
+						LDAP_OPT_X_TLS_CRLCHECK,
+						cargv[1] );
 
 #endif
 

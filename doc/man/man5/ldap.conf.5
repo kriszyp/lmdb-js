@@ -257,6 +257,26 @@ These keywords are equivalent. The server certificate is requested. If no
 certificate is provided, or a bad certificate is provided, the session
 is immediately terminated. This is the default setting.
 .RE
+.TP
+.B TLS_CRLCHECK <level>
+Specifies if the Certificate Revocation List (CRL) of the CA should be 
+used to verify if the server certicates have not been revoked. This
+requires
+.B TLS_CACERTDIR
+parameter to be set.
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B none
+No CRL checks are performed
+.TP
+.B peer
+Check the CRL of the peer certificate
+.TP
+.B all
+Check the CRL for a whole certificate chain
+.RE
 .SH "ENVIRONMENT VARIABLES"
 .TP
 LDAPNOINIT
