@@ -570,7 +570,7 @@ meta_send_entry(
 {
 	struct metainfo 	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct berval		a, mapped;
-	Entry 			ent;
+	Entry 			ent = {0};
 	BerElement 		ber = *e->lm_ber;
 	Attribute 		*attr, **attrp;
 	struct berval 		dummy = { 0, NULL };
@@ -616,9 +616,6 @@ meta_send_entry(
 				&ent.e_nname, target );
 	}
 
-	ent.e_id = 0;
-	ent.e_attrs = 0;
-	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
 	dc.ctx = "searchAttrDN";

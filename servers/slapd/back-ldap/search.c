@@ -216,7 +216,7 @@ fail:;
 			ldap_pvt_thread_yield();
 
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
-			Entry ent;
+			Entry ent = {0};
 			struct berval bdn;
 			e = ldap_first_entry(lc->ld,res);
 			if ( ldap_build_entry(op, e, &ent, &bdn,
@@ -413,10 +413,6 @@ ldap_build_entry(
 		return LDAP_INVALID_DN_SYNTAX;
 	}
 	
-	ent->e_id = 0;
-	ent->e_attrs = 0;
-	ent->e_ocflags = 0;
-	ent->e_private = 0;
 	attrp = &ent->e_attrs;
 
 #ifdef ENABLE_REWRITE
