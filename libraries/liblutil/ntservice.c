@@ -3,7 +3,12 @@
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-/* ntservice.c */
+
+/*
+ * NT Service manager utilities for OpenLDAP services
+ *	these should NOT be slapd specific, but are
+ */
+
 #include "portable.h"
 
 #ifdef HAVE_NT_SERVICE_MANAGER

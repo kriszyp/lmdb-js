@@ -942,7 +942,7 @@ static struct berval *hash_sha1(
 	const struct berval  *passwd )
 {
 	lutil_SHA1_CTX  SHA1context;
-	unsigned char   SHA1digest[20];
+	unsigned char   SHA1digest[LUTIL_SHA1_BYTES];
 	struct berval digest;
 	digest.bv_val = SHA1digest;
 	digest.bv_len = sizeof(SHA1digest);
@@ -960,7 +960,7 @@ static struct berval *hash_smd5(
 	const struct berval  *passwd )
 {
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 	unsigned char   saltdata[4];
 	struct berval digest;
 	struct berval salt;
@@ -989,7 +989,7 @@ static struct berval *hash_md5(
 	const struct berval  *passwd )
 {
 	lutil_MD5_CTX   MD5context;
-	unsigned char   MD5digest[16];
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
 
 	struct berval digest;
 
