@@ -561,6 +561,10 @@ main( int argc, char **argv )
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 
+#ifdef NEW_LOGGING
+    lutil_log_initialize( argc, argv );
+#endif
+
     if ( !not ) {
 	if( ( ldaphost != NULL || ldapport ) && ( ldapuri == NULL ) ) {
 		if ( verbose ) {
