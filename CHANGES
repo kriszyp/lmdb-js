@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.5 Engineering
+OpenLDAP 2.2.5 Release
 	Fixed slapd filter bug (ITS#2901)
 	Fixed slapd/syncrepl shutdown bug (ITS#2910)
 	Fixed back-glue sizeExceeded bug (ITS#2888)
