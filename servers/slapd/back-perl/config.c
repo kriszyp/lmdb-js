@@ -60,15 +60,16 @@ perl_back_db_config(
 
 		if (SvTRUE(ERRSV)) {
 			fprintf(stderr , "Error %s\n", SvPV(ERRSV,  na)) ;
+		}
 #else
-		snprintf( eval_str, EVAL_BUF_SIZE, "%s", argv[1] );
-
-		perl_require_pv( strcat( eval_str, ".pm" ));
+		snprintf( eval_str, EVAL_BUF_SIZE, "%s.pm", argv[1] );
+		perl_require_pv( eval_str );
 
 		if (SvTRUE(GvSV(errgv))) {
 			fprintf(stderr , "Error %s\n", SvPV(GvSV(errgv), na)) ;
+		}
 #endif /* PERL_IS_5_6 */
-		} else {
+		else {
 			dSP; ENTER; SAVETMPS;
 			PUSHMARK(sp);
 			XPUSHs(sv_2mortal(newSVpv(argv[1], 0)));
@@ -105,6 +106,8 @@ perl_back_db_config(
 #else
 		loc_sv = perl_eval_pv( eval_str, 0 );
 #endif
+
+		/* XXX loc_sv return value is ignored. */
 
 	} else if ( strcasecmp( argv[0], "filterSearchResults" ) == 0 ) {
 		perl_back->pb_filter_search_results = 1;
