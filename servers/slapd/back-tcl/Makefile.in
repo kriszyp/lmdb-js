@@ -28,7 +28,6 @@ LIBBASE = back_tcl
 MODLIBS = @MOD_TCL_LIB@
 
 XDEFS = $(MODULES_CPPFLAGS)
-XLDFLAGS = $(MODULES_LDFLAGS)
 XINCPATH = -I.. -I$(srcdir)/..
 
 all-local-lib:	../.backend

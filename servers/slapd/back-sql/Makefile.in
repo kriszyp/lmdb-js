@@ -16,7 +16,6 @@ LIBBASE = back_sql
 
 XINCPATH = -I.. -I$(srcdir)/.. $(SLAPD_SQL_INCLUDES)
 XDEFS = $(MODULES_CPPFLAGS)
-XLDFLAGS = $(MODULES_LDFLAGS)
 
 all-local-lib:	../.backend
 

@@ -28,7 +28,6 @@ MODLIBS = @MOD_PERL_LDFLAGS@
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(PERL_CPPFLAGS) $(MODULES_CPPFLAGS)
-XLDFLAGS = $(MODULES_LDFLAGS)
 
 all-local-lib:	../.backend
 

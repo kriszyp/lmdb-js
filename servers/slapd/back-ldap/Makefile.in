@@ -16,7 +16,6 @@ LIBBASE = back_ldap
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
-XLDFLAGS = $(MODULES_LDFLAGS)
 
 all-local-lib:	../.backend
 

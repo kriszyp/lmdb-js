@@ -33,7 +33,6 @@ LIBBASE = back_ldbm
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
-XLDFLAGS = $(MODULES_LDFLAGS)
 
 all-local-lib:	../.backend
 

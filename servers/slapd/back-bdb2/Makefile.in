@@ -22,7 +22,6 @@ LIBBASE = back_bdb2
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
-XLDFLAGS = $(MODULES_LDFLAGS)
 
 all-local-lib:	../.backend
 
