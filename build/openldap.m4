@@ -3,7 +3,6 @@ dnl COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 dnl
 dnl OpenLDAP Autoconf Macros
 dnl
-dnl builtin(include, build/libtool.m4)dnl
 dnl --------------------------------------------------------------------
 dnl Restricted form of AC_ARG_ENABLE that limits user options
 dnl
