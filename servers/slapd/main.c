@@ -49,12 +49,6 @@ static int   cnvt_str2int();
 
 #endif  /* LOG_LOCAL4 */
 
-/*
- * the server's name must be accessible from the daemon module,
- * to construct the pid/args file names
- */
-char  *serverName = NULL;
-
 
 static void
 usage( char *name )
@@ -79,6 +73,7 @@ main( int argc, char **argv )
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
 	char		*configfile;
+	char        *serverName;
 
 	configfile = SLAPD_DEFAULT_CONFIGFILE;
 	port = LDAP_PORT;

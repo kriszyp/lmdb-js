@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5 "22 September 1998" "OpenLDAP LDVERSION"
+.TH SLAPD.CONF 5 "20 January 1999" "OpenLDAP LDVERSION"
 .SH NAME
 slapd.conf \- configuration file for slapd, the stand-alone LDAP daemon
 .SH SYNOPSIS
@@ -110,6 +110,19 @@ any other access line.  The default behavior is to grant read access.
 .B include <filename>
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
+.TP
+.B pidfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's process ID ( see
+.BR getpid (2)
+) if started without the debugging command line option.
+.TP
+.B argsfile <filename>
+The ( absolute ) name of a file that will hold the 
+.B slapd
+server's command line options
+if started without the debugging command line option.
 .TP
 .B loglevel <integer>
 Specify the level at which debugging statements and operation 
