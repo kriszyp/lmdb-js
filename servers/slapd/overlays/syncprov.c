@@ -1002,7 +1002,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 done:
 	if ( op->o_tag != LDAP_REQ_ADD ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
-		be_entry_release_r( op, e );
+		be_entry_release_rw( op, e, 0 );
 		op->o_bd->bd_info = (BackendInfo *)on;
 	}
 	if ( freefdn ) {
@@ -1671,7 +1671,7 @@ syncprov_search_response( Operation *op, SlapReply *rs )
 
 					if ( e ) {
 						op->o_bd->bd_info = (BackendInfo *)on->on_info;
-						be_entry_release_r( op, e );
+						be_entry_release_rw( op, e, 0 );
 						op->o_bd->bd_info = (BackendInfo *)on;
 					}
 					ch_free( sr );
@@ -2045,7 +2045,7 @@ syncprov_db_open(
 			si->si_ctxcsnbuf[si->si_ctxcsn.bv_len] = '\0';
 			strcpy( ctxcsnbuf, si->si_ctxcsnbuf );
 		}
-		be_entry_release_r( op, e );
+		be_entry_release_rw( op, e, 0 );
 		op->o_bd->bd_info = (BackendInfo *)on;
 		op->o_req_dn = be->be_suffix[0];
 		op->o_req_ndn = be->be_nsuffix[0];

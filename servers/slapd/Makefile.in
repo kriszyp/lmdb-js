@@ -313,6 +313,8 @@ libbackends.a: .backend
 liboverlays.a: FORCE
 	@cd overlays; $(MAKE) $(MFLAGS) all
 
+backend.c: backend.h
+
 version.c: Makefile
 	@-$(RM) $@
 	$(MKVERSION) -s -n Versionstr slapd > $@
