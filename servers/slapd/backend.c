@@ -728,9 +728,25 @@ be_isroot_dn( Backend *be, struct berval *ndn )
 }
 
 int
-be_isupdate( Operation *op )
+be_sync_update( Operation *op )
 {
-	return ( be_isupdate_dn( op->o_bd, &op->o_ndn ));
+	return ( SLAP_SYNC_SHADOW( op->o_bd ) && syncrepl_isupdate( op ) );
+}
+
+int
+be_slurp_update( Operation *op )
+{
+	return ( SLAP_SLURP_SHADOW( op->o_bd ) && be_isupdate_dn( op->o_bd, &op->o_ndn ));
+}
+
+int
+be_shadow_update( Operation *op )
+{
+#if 0
+	return ( be_sync_update( op ) || be_slurp_update( op ) );
+#endif
+	/* NOTE: this is slightly more efficient */
+	return ( SLAP_SHADOW( op->o_bd ) && ( syncrepl_isupdate( op ) || be_isupdate_dn( op->o_bd, &op->o_ndn ) ) );
 }
 
 int

@@ -1450,9 +1450,9 @@ struct slap_backend_db {
 #define SLAP_DBFLAG_NOLASTMOD		0x0001U
 #define SLAP_DBFLAG_NO_SCHEMA_CHECK	0x0002U
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
-#define	SLAP_DBFLAG_GLUE_SUBORDINATE 0x0020U	/* child of a glue hierarchy */
+#define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_DBFLAG_SHADOW			0x8000U /* a shadow */
+#define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
 #define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
 #define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */
 	slap_mask_t	be_flags;
@@ -1468,6 +1468,8 @@ struct slap_backend_db {
 #define	SLAP_GLUE_LINKED(be)		\
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_LINKED)
 #define SLAP_SHADOW(be)				(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SHADOW)
+#define SLAP_SYNC_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SYNC_SHADOW)
+#define SLAP_SLURP_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SLURP_SHADOW)
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U

@@ -249,7 +249,7 @@ ldbm_back_modrdn(
 		isroot = be_isroot( op );
 		if ( ! isroot ) {
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-				|| be_isupdate( op ) || syncrepl_isupdate( op ) ) {
+				|| be_shadow_update( op ) ) {
 				int	can_access;
 				p = (Entry *)&slap_entry_root;
 				
@@ -424,7 +424,7 @@ ldbm_back_modrdn(
 
 			if ( ! isroot ) {
 				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-					|| be_isupdate( op ) || syncrepl_isupdate( op )) {
+					|| be_shadow_update( op ) ) {
 					int	can_access;
 					np = (Entry *)&slap_entry_root;
 				

@@ -247,7 +247,7 @@ ldbm_back_add(
 	} else {
 		assert( pdn.bv_val == NULL || *pdn.bv_val == '\0' );
 
-		if (( !be_isroot(op) && !be_isupdate(op) && !syncrepl_isupdate(op))
+		if (( !be_isroot(op) && !be_shadow_update(op) )
 			&& !is_entry_glue( op->oq_add.rs_e ))
 		{
 			ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
