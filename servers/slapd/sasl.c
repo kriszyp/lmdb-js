@@ -830,7 +830,7 @@ slap_sasl_canonicalize(
 	 * conflict with slap_sasl_authorize's use of this temp var.
 	 */
 	if ( flags == SASL_CU_AUTHID ) {
-		conn->c_sasl_dn.bv_val = in;
+		conn->c_sasl_dn.bv_val = (char *) in;
 	} else if ( flags == SASL_CU_AUTHZID && conn->c_sasl_dn.bv_val ) {
 		rc = strcmp( in, conn->c_sasl_dn.bv_val );
 		conn->c_sasl_dn.bv_val = NULL;
