@@ -254,7 +254,15 @@ bdb2i_index_add_values(
 	if ( indexmask == 0 ) {
 		return( 0 );
 	}
+
 	at_cn = at_canonical_name(type);
+
+	if ( at_cn == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= bdb2i_index_add_values no canonical name for type \"%s\"\n",
+			type != NULL ? type : "(NULL)", 0, 0 );
+		return( -1 );
+	}
 
 	if ( (db = bdb2i_cache_open( be, at_cn, BDB2_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {

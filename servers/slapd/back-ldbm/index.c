@@ -314,12 +314,18 @@ index_change_values(
 
 	at_cn = at_canonical_name( type );
 
+	if ( at_cn == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= index_change_values no canonical name for type \"%s\"\n",
+			type != NULL ? type : "(NULL)", 0, 0 );
+		return( -1 );
+	}
+
 	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, mode ))
 	     == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		       "<= index_change_values (couldn't open(%s%s),md=%s)\n",
-		       at_cn,
-		       LDBM_SUFFIX,
+		       at_cn, LDBM_SUFFIX,
 		       ((mode==LDBM_WRCREAT)?"LDBM_WRCREAT":"LDBM_WRITER") );
 		return( -1 );
 	}
