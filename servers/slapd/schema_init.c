@@ -2752,9 +2752,9 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
 		0, printableStringValidate, NULL},
-	{"( 1.3.6.1.4.1.1466.115.121.1.45 DESC 'SubtreeSpecification' "
-		/*X_BINARY*/ X_NOT_H_R ")",
-		/*SLAP_SYNTAX_BINARY|*/ SLAP_SYNTAX_BER, berValidate, NULL},
+	{"( 1.3.6.1.4.1.1466.115.121.1.45 DESC 'SubtreeSpecification' )",
+#define subtreeStringValidate UTF8StringValidate /* FIXME */
+		0, subtreeSpecificationValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
