@@ -1795,24 +1795,35 @@ typedef struct slap_op {
 	struct berval	o_req_ndn;
 
 	union o_req_u {
-		req_bind_s or_bind;
-		req_search_s or_search;
-		req_compare_s or_compare;
-		req_modrdn_s or_modrdn;
-		req_add_s or_add;
-		req_abandon_s or_abandon;
-		req_abandon_s or_cancel;
-		req_extended_s or_extended;
+		req_bind_s oq_bind;
+		req_search_s oq_search;
+		req_compare_s oq_compare;
+		req_modrdn_s oq_modrdn;
+		req_add_s oq_add;
+		req_abandon_s oq_abandon;
+		req_abandon_s oq_cancel;
+		req_extended_s oq_extended;
 	} o_request;
 
 /* short hands for union members */
-#define o_bind o_request.or_bind
+#define o_bind o_request.oq_bind
 /* ... */
 
 /* short hands for inner request members */
 #define o_bind_edn o_bind.rb_edn
 /* ... */
 
+	struct o_rep_s {
+		ber_tag_t or_tag;
+		ber_int_t or_err;
+		const char *or_matched;
+		const char *or_text;
+		BerVarray or_ref;
+		const char *or_resoid;
+		struct berval *or_resdata;
+		struct berval *or_sasldata;
+		LDAPControl **or_ctrls;
+	} o_response;
 #else
 	char *		o_extendedop;	/* extended operation OID */
 #endif
