@@ -353,14 +353,6 @@ do_search(
 	slapi_pblock_set( pb, SLAPI_SEARCH_ATTRSONLY, (void *)attrsonly );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(1) );
 
-	/*
-	 * XXX FIXME: do we call this here? Awaiting clarification
-	 * from Sun.
-	 *
-	 * Rewrite filter for any computed attributes.
-	 */
-	doPluginFNs( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
-
 	rc = doPluginFNs( be, SLAPI_PLUGIN_PRE_SEARCH_FN, pb );
 	if ( rc != 0 ) {
 		/*
@@ -378,6 +370,8 @@ do_search(
 			rc = LDAP_OTHER;
 		return rc;
 	}
+
+	doPluginFNs( be, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, pb );
 #endif /* defined( LDAP_SLAPI ) */
 
 	/* actually do the search and send the result(s) */
