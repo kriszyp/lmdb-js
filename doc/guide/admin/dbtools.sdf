@@ -83,9 +83,9 @@ attributes the following index configuration lines could be
 used.
 
 >	index cn,sn,uid
->	index objectclass pres,eq
+>	index objectClass pres,eq
 
-See Section 4 on the configuration file for more details on
+See {{SECT:The slapd Configuration File}} section for more details on
 this option. Once you have configured things to your liking,
 start up slapd, connect with your LDAP client, and start
 adding entries. For example, to add a the organizational entry
@@ -157,9 +157,9 @@ For example:
 >	index objectClass eq
 
 This would create presence, equality and approximate
-indexes for the cn, sn, and uid attributes and an equality
-index for the objectClass attribute. See the configuration
-file section for more information on this option.
+indexes for the {{EX:cn}}, {{EX:sn}}, and {{EX:uid}} attributes
+and an equality index for the {{EX:objectClass}} attribute. See
+the configuration file section for more information on this option.
 
 H3: The {{EX:slapadd}} program
 
@@ -175,7 +175,8 @@ The arguments have the following meanings:
 >	-l <inputfile>
 
 Specifies the LDIF input file containing the entries to add in
-text form (described below in Section 8.3).
+text form (described below in the {{SECT:The LDIF text entry format}}
+section).
 
 >	-f <slapdconfigfile>
 
@@ -185,7 +186,8 @@ create the indexes, what indexes to create, etc.
 >	-d <debuglevel>
 
 Turn on debugging, as specified by {{EX:<debuglevel>}}. The
-debug levels are the same as for slapd (see Section 6.1).
+debug levels are the same as for slapd.  See
+the {{SECT:Command-Line Options}} section in {{SECT:Running slapd}}.
 
 > 	-n <databasenumber>
 
@@ -207,7 +209,7 @@ H3: The {{EX:slapindex}} program
 
 Sometimes it may be necessary to regenerate indices (such
 as after modifying {{slapd.conf}}(5)). This is possible using
-the {{slapindex}}(8) program. {{EX:slapindex}} is invoked
+the {{slapindex}}(8) program.  {{slapindex}} is invoked
 like this
 
 >	slapindex -f <slapdconfigfile>
@@ -228,11 +230,12 @@ The program is invoked like this:
 >	slapcat -l <filename> -f <slapdconfigfile>
 >		[-d <debuglevel>] [-n <databasenumber>|-b <suffix>]
 
-where -n or -b is used to select the database in the slapd.conf(5)
+where -n or -b is used to select the database in the {{slapd.conf}}(5)
 specified using -f. The corresponding LDIF output is written to
 standard output or to the file specified using the -l option.
 
 
+!if 0
 H3: The {{EX:ldif}} program
 
 The {{ldif}}(1) program is used to convert arbitrary data values to
@@ -260,12 +263,17 @@ converting binary data such as a {{EX:jpegPhoto}} or {{EX:audio}}
 attribute.  For example:
 
 >	ldif -b jpegPhoto < photo.jpeg
+!endif
 
 
 H2: The LDIF text entry format
 
-The LDAP Data Interchange Format (LDIF) is used to represent LDAP
-entries in a simple text format. The basic form of an entry is:
+The {{TERM[expand]LDIF}} (LDIF) is used to represent LDAP
+entries in a simple text format.  This section provides a brief
+description of the LDIF entry format which complements {{ldif}}(5)
+and the technical specification {{REF:RFC2849}}.
+
+The basic form of an entry is:
 
 >	# comment
 >	dn: <distinguished name>
@@ -298,13 +306,20 @@ Multiple attribute values are specified on separate lines. e.g.,
 >	cn: Barbara J Jensen
 >	cn: Babs Jensen
 
-If an {{EX:<attrvalue>}} contains a non-printing character, or
-begins with a space or a colon '{{EX::}}', the {{EX:<attrdesc>}} is followed
-by a double colon and the value is encoded in base 64
-notation. e.g., the value {{EX:" begins with a space"}} would be
+If an {{EX:<attrvalue>}} contains non-printing characters or begins
+with a space, a colon ('{{EX::}}'), or a less than ('{{EX:<}}'),
+the {{EX:<attrdesc>}} is followed by a double colon and the base64
+encoding of the value.
+For example, the value "{{EX: begins with a space}}" would be
 encoded like this:
 
 >	cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
+
+You can also specify a {{TERM:URL}} containing the attribute value.
+For example, the following specifies the {{EX:jpegPhoto}} value
+should be obtained from the file {{F:/path/to/file.jpeg}}.
+
+>	cn:< file://path/to/file.jpeg
 
 Multiple entries within the same LDIF file are separated by
 blank lines. Here's an example of an LDIF file containing
@@ -314,32 +329,32 @@ three entries.
 >	dn: cn=Barbara J Jensen, dc=example, dc=com
 >	cn: Barbara J Jensen
 >	cn: Babs Jensen
->	objectclass: person
+>	objectClass: person
 >	sn: Jensen
 >
 >	# Second Entry
 >	dn: cn=Bjorn J Jensen, dc=example, dc=com
 >	cn: Bjorn J Jensen
 >	cn: Bjorn Jensen
->	objectclass: person
->	sn: Jensen
->
->	# Third Entry
->	dn: cn=Jennifer J Jensen, dc=example, dc=com
->	cn: Jennifer J Jensen
->	cn: Jennifer Jensen
->	objectclass: person
+>	objectClass: person
 >	sn: Jensen
 >	# Base64 encoded JPEG photo
 >	jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
 >	A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
 >	ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
+>
+>	# Third Entry
+>	dn: cn=Jennifer J Jensen, dc=example, dc=com
+>	cn: Jennifer J Jensen
+>	cn: Jennifer Jensen
+>	objectClass: person
+>	sn: Jensen
+>	# JPEG photo from file
+>	jpegPhoto:< file://path/to/file.jpeg
 
-Notice that the {{EX:jpegPhoto}} in Jennifer's entry is
-encoded using base 64. The {{ldif}}(1) program (described in
-{{SECT:The {{EX:ldif}} program}} section above) can be used to
-produce an attribute-description/base64-value pair suitable for
-inclusion in an LDIF file.
+Notice that the {{EX:jpegPhoto}} in Bjorn's entry is base 64 encoded
+and the {{EX:jpegPhoto}} in Jennifer's entry is obtained from the
+location indicated by the URL.
 
 Note: Trailing spaces are not trimmed from values in an
 LDIF file. Nor are multiple internal spaces compressed. If
