@@ -515,7 +515,8 @@ int ldap_int_sasl_close( LDAP *ld, LDAPConn *lc )
 
 	if( ctx != NULL ) {
 		sasl_dispose( &ctx );
-		if ( lc->lconn_sasl_sockctx && ctx != lc->lconn_sasl_sockctx ) {
+		if ( lc->lconn_sasl_sockctx &&
+			lc->lconn_sasl_authctx != lc->lconn_sasl_sockctx ) {
 			ctx = lc->lconn_sasl_sockctx;
 			sasl_dispose( &ctx );
 		}
