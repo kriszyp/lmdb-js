@@ -24,7 +24,7 @@
  * is preserved.
  */
 /* Portions Copyright (C) The Internet Society (1997)
- * ASN.1 fragments are from RFC 2251; see RFC for full legal notices.
+ * ASN.1 fragments are from RFC 2251; see RFC 2251 for full legal notices.
  */
 
 /* ACKNOWLEDGEMENTS:
