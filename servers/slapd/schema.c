@@ -164,6 +164,7 @@ static char *oc_operational_attrs[] = {
 	"supportedControl",
 	"supportedSASLMechanisms",
 	"supportedLDAPversion",
+	"supportedACIMechanisms",
 	"subschemaSubentry",		/* NO USER MOD */
 	NULL
 
