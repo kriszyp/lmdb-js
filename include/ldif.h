@@ -28,7 +28,7 @@ LDAP_BEGIN_DECL
 
 extern int ldif_debug;
 
-#define LINE_WIDTH      76      /* maximum length of LDIF lines */
+#define LDIF_LINE_WIDTH      76      /* maximum length of LDIF lines */
 
 /*
  * Macro to calculate maximum number of bytes that the base64 equivalent
@@ -45,7 +45,7 @@ extern int ldif_debug;
  */
 #define LDIF_SIZE_NEEDED(tlen,vlen) \
     ((tlen) + 4 + LDIF_BASE64_LEN(vlen) \
-    + ((LDIF_BASE64_LEN(vlen) + (tlen) + 3) / LINE_WIDTH * 2 ))
+    + ((LDIF_BASE64_LEN(vlen) + (tlen) + 3) / LDIF_LINE_WIDTH * 2 ))
 
 LDAP_F int
 ldif_parse_line LDAP_P(( char *line, char **type, char **value, int *vlen));

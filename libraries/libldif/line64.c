@@ -228,7 +228,7 @@ ldif_put_type_and_value( char **out, char *t, char *val, int vlen )
 				b64 = 1;
 				break;
 			}
-			if ( len > LINE_WIDTH ) {
+			if ( len > LDIF_LINE_WIDTH ) {
 				*(*out)++ = '\n';
 				*(*out)++ = ' ';
 				len = 1;
@@ -249,7 +249,7 @@ ldif_put_type_and_value( char **out, char *t, char *val, int vlen )
 			bits |= (byte[2] & 0xff);
 
 			for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
-				if ( len > LINE_WIDTH ) {
+				if ( len > LDIF_LINE_WIDTH ) {
 					*(*out)++ = '\n';
 					*(*out)++ = ' ';
 					len = 1;
@@ -274,7 +274,7 @@ ldif_put_type_and_value( char **out, char *t, char *val, int vlen )
 			bits |= (byte[2] & 0xff);
 
 			for ( i = 0; i < 4; i++, len++, bits <<= 6 ) {
-				if ( len > LINE_WIDTH ) {
+				if ( len > LDIF_LINE_WIDTH ) {
 					*(*out)++ = '\n';
 					*(*out)++ = ' ';
 					len = 1;
