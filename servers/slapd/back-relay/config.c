@@ -27,11 +27,11 @@
 
 int
 relay_back_db_config(
-    BackendDB	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
+	BackendDB	*be,
+	const char	*fname,
+	int		lineno,
+	int		argc,
+	char		**argv
 )
 {
 	relay_back_info *ri = (struct relay_back_info *)be->be_private;
@@ -110,7 +110,7 @@ relay_back_db_config(
 				return 1;
 			}
 
-			cargv[ 0 ] = "suffixmassage";
+			cargv[ 0 ] = "rwm-suffixmassage";
 			cargv[ 1 ] = be->be_suffix[0].bv_val;
 			cargv[ 2 ] = pdn.bv_val;
 			cargv[ 3 ] = NULL;

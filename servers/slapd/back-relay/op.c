@@ -40,11 +40,11 @@ relay_back_swap_bd( struct slap_op *op, struct slap_rep *rs )
 static void
 relay_back_add_cb( slap_callback *cb, struct slap_op *op )
 {
-		cb->sc_next = op->o_callback;
-		cb->sc_response = relay_back_swap_bd;
-		cb->sc_cleanup = relay_back_swap_bd;
-		cb->sc_private = op->o_bd;
-		op->o_callback = cb;
+	cb->sc_next = op->o_callback;
+	cb->sc_response = relay_back_swap_bd;
+	cb->sc_cleanup = relay_back_swap_bd;
+	cb->sc_private = op->o_bd;
+	op->o_callback = cb;
 }
 
 static BackendDB *
@@ -83,7 +83,7 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 		} else {
 			/* NOTE: err is LDAP_INVALID_CREDENTIALS for bind,
 			 * LDAP_NO_SUCH_OBJECT for other operations.
-			 * noSuchObject is not allowed to be returned by bind */
+			 * noSuchObject cannot be returned by bind */
 			rs->sr_err = err;
 			send_ldap_result( op, rs );
 		}
