@@ -149,7 +149,7 @@ bdb_bind(
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
 		/* check for root dn/passwd */
-		if ( be_isroot_pw( be, conn, dn, cred ) ) {
+		if ( be_isroot_pw( be, conn, ndn, cred ) ) {
 			/* front end will send result */
 			if(*edn != NULL) free( *edn );
 			*edn = ch_strdup( be_root_dn( be ) );
