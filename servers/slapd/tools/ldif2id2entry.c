@@ -19,7 +19,7 @@
 int
 main( int argc, char **argv )
 {
-	int		i, stop;
+	int		stop;
 	char		*buf;
 	char		line[BUFSIZ], idbuf[BUFSIZ];
 	int      	lmax, lcur;

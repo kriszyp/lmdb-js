@@ -20,7 +20,7 @@
 int
 main( int argc, char **argv )
 {
-	int		i, stop;
+	int		stop;
 	char		*linep, *buf;
 	char		line[BUFSIZ];
 	int		lineno, elineno;

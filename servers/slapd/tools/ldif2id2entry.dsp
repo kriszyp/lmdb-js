@@ -141,6 +141,14 @@ LINK32=link.exe
 # Name "ldif2id2entry - Win32 Single Release"
 # Begin Source File
 
+SOURCE=.\ldif2common.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldif2common.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\ldif2id2entry.c
 # End Source File
 # Begin Source File

@@ -141,6 +141,14 @@ LINK32=link.exe
 # Name "ldif2index - Win32 Single Release"
 # Begin Source File
 
+SOURCE=.\ldif2common.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\ldif2common.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\ldif2index.c
 # End Source File
 # Begin Source File
