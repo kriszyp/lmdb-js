@@ -12,6 +12,14 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
+# DUA schema from draft-joslin-config-schema (a work in progress)
+
+# Contents of this file are subject to change (including deletion)
+# without notice.
+#
+# Not recommended for production use!
+# Use with extreme caution!
+
 ## Notes:
 ## - The matching rule for attributes followReferrals and dereferenceAliases
 ##   has been changed to booleanMatch since their syntax is boolean
