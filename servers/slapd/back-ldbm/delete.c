@@ -53,6 +53,7 @@ ldbm_back_delete(
 		goto return_results;
 	}
 
+#define SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL 1
 #ifdef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
 	if ( ! access_allowed( be, conn, op, e, "entry", NULL, op->o_dn,
 	    ACL_WRITE ) ) {
