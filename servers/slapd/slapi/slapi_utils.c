@@ -2265,6 +2265,14 @@ static int initConnectionPB( Slapi_PBlock *pb, Connection *conn )
 	}
 
 	rc = slapi_pblock_set(pb, SLAPI_X_CONN_SSF, (void *)conn->c_ssf);
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+
+	rc = slapi_pblock_set(pb, SLAPI_X_CONN_SASL_CONTEXT,
+		( conn->c_sasl_authctx != NULL ? conn->c_sasl_authctx :
+						 conn->c_sasl_sockctx ) );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
 
 	return rc;
 }
