@@ -60,7 +60,7 @@ void (lutil_debug)( int level, int debug, const char *fmt, ... )
 		if ( log_file == NULL )
 			return;
 
-	    ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, file );
+	    ber_set_option( NULL, LBER_OPT_LOG_PRINT_FILE, log_file );
 	}
 #endif
 	va_start( vl, fmt );
