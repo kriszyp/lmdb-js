@@ -822,10 +822,11 @@ sb_debug_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	if (sbiod->sbiod_sb->sb_debug & LDAP_DEBUG_PACKETS)
 	{
 	    if ( ret < 0 ) {
+	    	int err = errno;
 		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			"%sread: want=%ld error=%s\n", (char *)sbiod->sbiod_pvt,
 			(long)len, STRERROR( errno ) );
-
+		errno = err;
 	    } else {
 		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			"%sread: want=%ld, got=%ld\n", (char *)sbiod->sbiod_pvt,
@@ -846,11 +847,12 @@ sb_debug_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len )
 	if (sbiod->sbiod_sb->sb_debug & LDAP_DEBUG_PACKETS)
 	{
 	    if ( ret < 0 ) {
+	    	int err = errno;
 		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			"%swrite: want=%ld error=%s\n",
 			(char *)sbiod->sbiod_pvt, (long)len,
 			STRERROR( errno ) );
-
+		errno = err;
 	    } else {
 		ber_log_printf( LDAP_DEBUG_PACKETS, sbiod->sbiod_sb->sb_debug,
 			"%swrite: want=%ld, written=%ld\n",
