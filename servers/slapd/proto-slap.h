@@ -641,8 +641,8 @@ LDAP_SLAPD_F (int) register_syntax LDAP_P((
 	char *desc,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
-	slap_syntax_transform_func *ber2str,
-	slap_syntax_transform_func *str2ber ));
+	slap_syntax_transform_func *normalize,
+	slap_syntax_transform_func *pretty ));
 
 LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
 	char * desc,
