@@ -24,6 +24,7 @@
 #define DIRSEP "\\"
 
 #if defined( _DEBUG ) && !defined( LDAP_DEBUG )
+#define LDAP_MEMORY_DEBUG 1
 #define LDAP_DEBUG 1
 #endif
 
@@ -51,6 +52,8 @@ typedef char * caddr_t;
 #define LOG_DEBUG 0
 #define openlog( a, b )
 #define closelog()
+
+#define FD_SETSIZE 1024
 
 /* we have NT threads */
 #ifdef _MT
@@ -226,7 +229,7 @@ typedef char * caddr_t;
 /* #undef LDAP_CONNECTIONLESS */
 
 /* define this to add debugging code */
-#define LDAP_DEBUG 1
+/* #undef LDAP_DEBUG */
 
 /* define this to remove -lldap cache support */
 /* #undef LDAP_NOCACHE */
@@ -712,6 +715,7 @@ typedef char * caddr_t;
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
 #endif
+#include <ac/assert.h>
 
 #if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
 #define LDAP_TEST
@@ -722,7 +726,5 @@ typedef char * caddr_t;
 
 #include "ldap_cdefs.h"
 #include "ldap_features.h"
-
-#include <ac/assert.h>
 
 #endif /* _LDAP_PORTABLE_H */
