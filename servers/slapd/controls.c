@@ -120,7 +120,7 @@ static struct slap_control control_defs[] = {
 		parseSubentries, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 	{ LDAP_CONTROL_NOOP,
-		SLAP_CTRL_ACCESS, NULL,
+		SLAP_CTRL_HIDE|SLAP_CTRL_ACCESS, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 	{ LDAP_CONTROL_SYNC,
 		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
