@@ -18,7 +18,7 @@ XXLIBS	= $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c \
 	ldpversion.c ldwversion.c ldcversion.c
 
-PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd \
+PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn \
 	ldappasswd ldapwhoami ldapcompare
 
 
@@ -42,11 +42,6 @@ ldapwhoami:	ldwversion.o
 
 ldapcompare: ldcversion.o
 	$(LTLINK) -o $@ ldapcompare.o common.o ldcversion.o $(LIBS)
-
-ldapadd:	ldapmodify
-	@-$(RM) $@$(EXEEXT)
-	$(LN_H) ldapmodify$(EXEEXT) ldapadd$(EXEEXT)
-
 
 ldsversion.c: ldapsearch.o common.o $(XLIBS)
 	@-$(RM) $@
