@@ -1035,6 +1035,7 @@ syncrepl_entry(
 	Backend *be = op->o_bd;
 	slap_callback	cb;
 	struct berval	*syncuuid_bv = NULL;
+	struct berval	syncUUID_strrep = { 0, NULL };
 
 	SlapReply	rs = {REP_RESULT};
 	Filter f = {0};
@@ -1057,12 +1058,8 @@ syncrepl_entry(
 	f.f_choice = LDAP_FILTER_EQUALITY;
 	f.f_ava = &ava;
 	ava.aa_desc = slap_schema.si_ad_entryUUID;
-	rc = asserted_value_validate_normalize(
-		ava.aa_desc, ad_mr(ava.aa_desc, SLAP_MR_EQUALITY),
-		SLAP_MR_EQUALITY, syncUUID, &ava.aa_value, &text, op->o_tmpmemctx );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
+	slap_uuidstr_from_normalized( &syncUUID_strrep, syncUUID, op->o_tmpmemctx );
+	ava.aa_value = *syncUUID;
 	op->ors_filter = &f;
 
 	op->ors_filterstr.bv_len = (sizeof("entryUUID=")-1) + syncUUID->bv_len;
@@ -1207,8 +1204,8 @@ syncrepl_entry(
 
 done :
 
-	if ( ava.aa_value.bv_val ) {
-		ber_memfree_x( ava.aa_value.bv_val, op->o_tmpmemctx );
+	if ( syncUUID_strrep.bv_val ) {
+		ber_memfree_x( syncUUID_strrep.bv_val, op->o_tmpmemctx );
 	}
 	if ( si->si_syncUUID_ndn.bv_val ) {
 		ber_memfree_x( si->si_syncUUID_ndn.bv_val, op->o_tmpmemctx );

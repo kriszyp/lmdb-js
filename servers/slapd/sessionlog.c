@@ -116,7 +116,7 @@ slap_add_session_log(
 
 	slog_e = (struct slog_entry *) ch_calloc (1, sizeof( struct slog_entry ));
 	a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
-	ber_dupbv( &slog_e->sl_uuid, &a->a_vals[0] );
+	ber_dupbv( &slog_e->sl_uuid, &a->a_nvals[0] );
 	ber_dupbv( &slog_e->sl_name, &e->e_name );
 	ber_dupbv( &slog_e->sl_csn,  &op->o_sync_csn );
 	LDAP_STAILQ_INSERT_TAIL( &sop->o_sync_slog_list, slog_e, sl_link );

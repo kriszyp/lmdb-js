@@ -64,7 +64,7 @@ slap_build_sync_state_ctrl(
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
 		if ( desc == slap_schema.si_ad_entryUUID ) {
-			ber_dupbv( &entryuuid_bv, &a->a_vals[0] );
+			ber_dupbv( &entryuuid_bv, &a->a_nvals[0] );
 		}
 	}
 
