@@ -60,7 +60,7 @@ Small projects
 --------------
 Add IPv6 support
 Add IPSEC SASL/EXTERNAL support
-Add tests to test suite (subtyping, subclassing, etc)
+Add tests to test suite (ACI, moddn, manageDSAit, subtyping, subclassing, etc)
 Add compare of RootDSE, cn=schema, etc.
 Add user configurable attributes to RootDSE
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
