@@ -145,6 +145,11 @@ static char *oc_operational_attrs[] = {
 	"dITContentRules",
 	"nameForms",
 	"ldapSyntaxes",
+	"namingContexts",
+	"supportedExtension",
+	"supportedControl",
+	"supportedSASLMechanisms",
+	"supportedLDAPversion",
 	NULL
 
 };

@@ -91,7 +91,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
 		val.bv_val = supportedSASLMechanisms[i];
 		val.bv_len = strlen( val.bv_val );
-		attr_merge( e, "supportedSASLMechanism", vals );
+		attr_merge( e, "supportedSASLMechanisms", vals );
 	}
 
 	if ( default_referral != NULL ) {
@@ -99,7 +99,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	}
 
 	send_search_entry( &backends[0], conn, op,
-		e, attrs, attrsonly, 1, NULL );
+		e, attrs, attrsonly, 0, NULL );
 	send_search_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL, 1 );
 

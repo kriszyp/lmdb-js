@@ -497,9 +497,6 @@ AC_AIX
 AC_ISC_POSIX
 AC_MINIX
 
-dnl BeOS requires -lbe -lroot -lnet
-AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot -lnet"], :, [-lroot -lnet])
-
 dnl Checks for system services
 AC_CYGWIN
 AC_MINGW32
@@ -507,6 +504,9 @@ AC_EXEEXT
 AC_OBJEXT
 
 AC_DEFINE_UNQUOTED( EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
+
+dnl BeOS requires -lbe -lroot -lnet
+AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot -lnet"], :, [-lroot -lnet])
 
 dnl OpenLDAP requires STDC features
 AM_PROG_CC_STDC
@@ -523,6 +523,7 @@ if test "${ol_cv_mkdep}" = no ; then
 	AC_MSG_WARN([do not know how to generate dependencies])
 fi
 
+dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
 dnl Find socket()
