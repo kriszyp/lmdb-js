@@ -163,6 +163,7 @@ static int
 oc_create_required(
     ObjectClass		*soc,
     char		**attrs,
+	int			*op,
     const char		**err )
 {
 	char		**attrs1;
@@ -178,6 +179,9 @@ oc_create_required(
 				*err = *attrs1;
 				return SLAP_SCHERR_ATTR_NOT_FOUND;
 			}
+
+			if( is_at_operational( sat )) (*op)++;
+
 			if ( at_find_in_list(sat, soc->soc_required) < 0) {
 				if ( at_append_to_list(sat, &soc->soc_required) ) {
 					*err = *attrs1;
@@ -201,6 +205,7 @@ static int
 oc_create_allowed(
     ObjectClass		*soc,
     char		**attrs,
+	int			*op,
     const char		**err )
 {
 	char		**attrs1;
@@ -214,6 +219,9 @@ oc_create_allowed(
 				*err = *attrs1;
 				return SLAP_SCHERR_ATTR_NOT_FOUND;
 			}
+
+			if( is_at_operational( sat )) (*op)++;
+
 			if ( at_find_in_list(sat, soc->soc_required) < 0 &&
 			     at_find_in_list(sat, soc->soc_allowed) < 0 ) {
 				if ( at_append_to_list(sat, &soc->soc_allowed) ) {
@@ -231,6 +239,7 @@ static int
 oc_add_sups(
     ObjectClass		*soc,
     char			**sups,
+	int			*op,
     const char		**err )
 {
 	int		code;
@@ -274,16 +283,19 @@ oc_add_sups(
 				return SLAP_SCHERR_CLASS_BAD_USAGE;
 			}
 
-			if ( add_sups )
+			if( soc->soc_flags & SLAP_OC_OPERATIONAL ) (*op)++;
+
+			if ( add_sups ) {
 				soc->soc_sups[nsups] = soc1;
+			}
 
-			code = oc_add_sups( soc, soc1->soc_sup_oids, err );
+			code = oc_add_sups( soc, soc1->soc_sup_oids, op, err );
 			if ( code ) return code;
 
-			code = oc_create_required( soc, soc1->soc_at_oids_must, err );
+			code = oc_create_required( soc, soc1->soc_at_oids_must, op, err );
 			if ( code ) return code;
 
-			code = oc_create_allowed( soc, soc1->soc_at_oids_may, err );
+			code = oc_create_allowed( soc, soc1->soc_at_oids_may, op, err );
 			if ( code ) return code;
 
 			nsups++;
@@ -382,11 +394,13 @@ oc_insert(
 int
 oc_add(
     LDAPObjectClass	*oc,
+	int user,
     const char		**err
 )
 {
 	ObjectClass	*soc;
 	int		code;
+	int		op = 0;
 
 	if ( oc->oc_names != NULL ) {
 		int i;
@@ -419,18 +433,20 @@ oc_add(
 	{
 		/* structural object classes implicitly inherit from 'top' */
 		static char *top_oids[] = { SLAPD_TOP_OID, NULL };
-		code = oc_add_sups( soc, top_oids, err );
+		code = oc_add_sups( soc, top_oids, &op, err );
 	} else {
-		code = oc_add_sups( soc, soc->soc_sup_oids, err );
+		code = oc_add_sups( soc, soc->soc_sup_oids, &op, err );
 	}
 
 	if ( code != 0 ) return code;
 
-	code = oc_create_required( soc, soc->soc_at_oids_must, err );
+	code = oc_create_required( soc, soc->soc_at_oids_must, &op, err );
 	if ( code != 0 ) return code;
 
-	code = oc_create_allowed( soc, soc->soc_at_oids_may, err );
+	code = oc_create_allowed( soc, soc->soc_at_oids_may, &op, err );
 	if ( code != 0 ) return code;
+
+	if( user && op ) return SLAP_SCHERR_CLASS_OPERATIONAL;
 
 	code = oc_insert(soc,err);
 	return code;

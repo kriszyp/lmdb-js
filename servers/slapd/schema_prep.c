@@ -162,28 +162,29 @@ static struct slap_schema_oc_map {
 			"NAME 'extensibleObject' "
 			"DESC 'RFC2252: extensible object' "
 			"SUP top AUXILIARY )",
-		0, 0, offsetof(struct slap_internal_schema, si_oc_extensibleObject) },
+		0, SLAP_OC_OPERATIONAL,
+		offsetof(struct slap_internal_schema, si_oc_extensibleObject) },
 	{ "alias", "( 2.5.6.1 NAME 'alias' "
 			"DESC 'RFC2256: an alias' "
 			"SUP top STRUCTURAL "
 			"MUST aliasedObjectName )",
-		aliasObjectClass, SLAP_OC_ALIAS,
+		aliasObjectClass, SLAP_OC_ALIAS|SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_alias) },
 	{ "referral", "( 2.16.840.1.113730.3.2.6 NAME 'referral' "
 			"DESC 'namedref: named subordinate referral' "
 			"SUP top STRUCTURAL MUST ref )",
-		referralObjectClass, SLAP_OC_REFERRAL,
+		referralObjectClass, SLAP_OC_REFERRAL|SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_referral) },
 	{ "LDAProotDSE", "( 1.3.6.1.4.1.4203.1.4.1 "
 			"NAME ( 'OpenLDAProotDSE' 'LDAProotDSE' ) "
 			"DESC 'OpenLDAP Root DSE object' "
 			"SUP top STRUCTURAL MAY cn )",
-		rootDseObjectClass, 0,
+		rootDseObjectClass, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_rootdse) },
 	{ "subentry", "( 2.5.20.0 NAME 'subentry' "
 			"SUP top STRUCTURAL "
 			"MUST ( cn $ subtreeSpecification ) )",
-		subentryObjectClass, SLAP_OC_SUBENTRY,
+		subentryObjectClass, SLAP_OC_SUBENTRY|SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_subentry) },
 	{ "subschema", "( 2.5.20.1 NAME 'subschema' "
 		"DESC 'RFC2252: controlling subschema (sub)entry' "
@@ -191,17 +192,19 @@ static struct slap_schema_oc_map {
 		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
 			"matchingRuleUse ) )",
-		subentryObjectClass, 0,
+		subentryObjectClass, SLAP_OC_OPERATIONAL,
 		offsetof(struct slap_internal_schema, si_oc_subschema) },
 	{ "monitor", "( 1.3.6.1.4.1.4203.666.3.2 NAME 'monitor' "
 		"DESC 'OpenLDAP system monitoring' "
 		"STRUCTURAL "
 		"MUST cn )",
-		0, 0, offsetof(struct slap_internal_schema, si_oc_monitor) },
+		0, SLAP_OC_OPERATIONAL,
+		offsetof(struct slap_internal_schema, si_oc_monitor) },
 	{ "collectiveAttributeSubentry", "( 2.5.20.2 "
 			"NAME 'collectiveAttributeSubentry' "
 			"AUXILIARY )",
-		subentryObjectClass, SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY|SLAP_OC_HIDE,
+		subentryObjectClass,
+		SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY|SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_collectiveAttributeSubentry) },
 	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
 			"NAME 'dynamicObject' "
@@ -307,14 +310,14 @@ static struct slap_schema_ad_map {
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
 	{ "entryCSN", "( 1.3.6.1.4.1.4203.666.1.7 NAME 'entryCSN' "
 			"DESC 'LCUP/LDUP: change sequence number' "
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
-		NULL, 0, NULL, NULL, NULL,
+		NULL, SLAP_AT_HIDE, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
 
 	/* root DSE attributes */
@@ -715,7 +718,7 @@ slap_schema_load( void )
 				return LDAP_OTHER;
 			}
 
-			code = oc_add(oc,&err);
+			code = oc_add(oc,0,&err);
 			if ( code ) {
 				fprintf( stderr, "slap_schema_load: "
 					"%s: %s: \"%s\"\n",

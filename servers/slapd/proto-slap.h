@@ -626,6 +626,7 @@ LDAP_SLAPD_F (void) mra_free LDAP_P((
 /* oc.c */
 LDAP_SLAPD_F (int) oc_add LDAP_P((
 	LDAPObjectClass *oc,
+	int user,
 	const char **err));
 LDAP_SLAPD_F (void) oc_destroy LDAP_P(( void ));
 

@@ -26,6 +26,7 @@ static char *const err2text[SLAP_SCHERR_LAST+1] = {
 	"Out of memory",
 	"ObjectClass not found",
 	"ObjectClass inappropriate SUPerior",
+	"ObjectClass operational",
 	"AttributeType not found",
 	"AttributeType inappropriate USAGE",
 	"Duplicate objectClass",
@@ -118,7 +119,7 @@ parse_oc(
 		return 1;
 	}
 
-	code = oc_add(oc,&err);
+	code = oc_add(oc,1,&err);
 	if ( code ) {
 		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);

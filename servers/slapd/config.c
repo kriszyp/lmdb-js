@@ -1651,7 +1651,6 @@ read_config( const char *fname )
 				       "%s: line %d: old objectclass format not supported.\n",
 				       fname, lineno, 0 );
 #endif
-
 			}
 
 		/* specify an attribute type */
