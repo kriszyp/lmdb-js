@@ -30,9 +30,11 @@ OpenLDAP 2.0 Projects
 		schema rules
 	clients
 		update to use ldap_*_ext routines
+		remove use of deprecated routines
 		add -C/-CC/-R referral chasing options
 	SLAPD/SLURD Admin Guide
 	Update manual pages
+
 
 Other projects:
 
@@ -60,7 +62,6 @@ Port slurpd to NT
 
 Small projects
 --------------
-Create ldapurl (from ldapsearch?) to support searching by URL
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
 Extend gateways to support tcp_wrappers
 Extend slapd/tcp_wrapper to support identd
