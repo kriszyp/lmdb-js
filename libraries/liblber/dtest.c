@@ -24,7 +24,7 @@
 #include <console.h>
 #endif /* MACOS */
 
-#include "lber-int.h"
+#include <lber.h>
 
 static void usage( char *name )
 {
@@ -37,29 +37,33 @@ main( int argc, char **argv )
 	long		i;
 	unsigned long	len;
 	int		tag;
-	BerElement	ber;
-	Sockbuf		sb;
+	BerElement	*ber;
+	Sockbuf		*sb;
 
 #ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
 #endif /* MACOS */
 
-	memset( &sb, 0, sizeof(sb) );
-	sb.sb_sd = 0;
-	sb.sb_ber.ber_buf = NULL;
+	sb = lber_sockbuf_alloc_fd( fileno(stdin) );
 
-	if ( (tag = ber_get_next( &sb, &len, &ber )) == -1 ) {
+	if( (ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
+		perror( "ber_alloc_t" );
+		exit( 1 );
+	}
+
+	if ( (tag = ber_get_next( sb, &len, ber )) == -1 ) {
 		perror( "ber_get_next" );
 		exit( 1 );
 	}
 	printf( "message has tag 0x%x and length %ld\n", tag, len );
 
-	if ( ber_scanf( &ber, "i", &i ) == -1 ) {
+	if ( ber_scanf( ber, "i", &i ) == -1 ) {
 		fprintf( stderr, "ber_scanf returns -1\n" );
 		exit( 1 );
 	}
 	printf( "got int %ld\n", i );
 
+	lber_sockbuf_free( sb );
 	return( 0 );
 }

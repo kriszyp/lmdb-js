@@ -40,6 +40,7 @@ Modify libraries to use application specified logging routines
 Modify libraries to use application specified memory allocation routines
 Extend configure.in to support autodetect of ISODE features.
 Port slurpd to NT
+Update manual page
 
 
 Small projects

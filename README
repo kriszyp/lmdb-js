@@ -9,7 +9,7 @@ OpenLDAP Devel README
 		guidelines for developers
 
 	Client developers seeking a stable development platform
-	should use -stable.
+	should use -stable or the latest OpenLDAP release.
 
 
 OpenLDAP 1.1 README

@@ -24,11 +24,6 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 
 #include "ldap-int.h"
 
-#ifdef LDAP_DEBUG
-int	ldap_debug;
-#endif
-
-
 /*
  * ldap_open - initialize and connect to an ldap server.  A magic cookie to
  * be used for future communication is returned on success, NULL on failure.

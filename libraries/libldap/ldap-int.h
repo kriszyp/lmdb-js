@@ -13,7 +13,11 @@
 #endif
 
 #include "../liblber/lber-int.h"
+
+#define ldap_debug	(openldap_ldap_global_options.ldo_debug)
+
 #include "ldap_log.h"
+
 #include "ldap.h"
 
 LDAP_BEGIN_DECL
@@ -70,6 +74,8 @@ struct ldapoptions {
 	int		ldo_deref;
 	int		ldo_timelimit;
 	int		ldo_sizelimit;
+
+	int		ldo_debug;
 
 	char*	ldo_defbase;
 	char*	ldo_defhost;

@@ -81,6 +81,7 @@ LDAPFiltDesc *lfdp;		/* LDAP filter descriptor */
 #ifdef DEBUG
 int debug;			/* debug flag */
 #endif
+int ldebug;			/* library debug flag */
 
 
 int
@@ -95,14 +96,11 @@ main( int argc, char **argv )
 	while ((c = getopt(argc, argv, "c:d:Df:l:p:s:u:vV")) != -1) {
 		switch (c) {
 		case 'l' :
-#ifdef LDAP_DEBUG
-			ldap_debug = (int) strtol(optarg, (char **) NULL, 0);
-			lber_debug = ldap_debug;
-#endif
+			ldebug |= (int) strtol(optarg, (char **) NULL, 0);
 			break;
 		case 'd' :
 #ifdef DEBUG
-			debug = (int) strtol(optarg, (char **) NULL, 0);
+			debug |= (int) strtol(optarg, (char **) NULL, 0);
 #endif
 			break;
 		case 's' :
@@ -549,6 +547,12 @@ initialize_client( void )
 	if (debug & D_TRACE)
 		printf("->initialize_client()\n");
 #endif
+
+	if (ldebug) {
+		lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldebug);
+		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldebug);
+	}
+
 	/*
 	 *  A per-user config file has precedence over any system-wide
 	 *  config file, if one exists.

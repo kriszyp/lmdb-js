@@ -17,6 +17,8 @@
 
 LDAP_BEGIN_DECL
 
+extern int ldif_debug;
+
 #define LINE_WIDTH      76      /* maximum length of LDIF lines */
 
 /*

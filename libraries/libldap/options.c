@@ -178,6 +178,10 @@ ldap_get_option(
 		}
 		break;
 
+	case LDAP_OPT_DEBUG_LEVEL:
+		* (int *) outvalue = lo->ldo_debug;
+		break;
+
 	default:
 		/* bad param */
 		break;
@@ -320,6 +324,10 @@ ldap_set_option(
 
 			ld->ld_error = err;
 		} return 0;
+
+	case LDAP_OPT_DEBUG_LEVEL:
+		lo->ldo_debug = * (int *) invalue;
+		return 0;
 
 	default:
 		/* bad param */

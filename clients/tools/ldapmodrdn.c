@@ -35,10 +35,10 @@ main(int argc, char **argv)
     char		*usage = "usage: %s [-nvkWc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
-    int			rc, i, remove, havedn, authmethod, want_bindpw;
+    int			rc, i, remove, havedn, authmethod, want_bindpw, debug;
 
     infile = NULL;
-    not = contoper = verbose = remove = want_bindpw = 0;
+    not = contoper = verbose = remove = want_bindpw = debug = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
@@ -72,11 +72,7 @@ main(int argc, char **argv)
 	    passwd = strdup( optarg );
 	    break;
 	case 'd':
-#ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
-#else /* LDAP_DEBUG */
-	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
-#endif /* LDAP_DEBUG */
+	    debug |= atoi( optarg );
 	    break;
 	case 'f':	/* read from file */
 	    infile = strdup( optarg );
@@ -128,13 +124,21 @@ main(int argc, char **argv)
 	fp = stdin;
     }
 
+	if ( debug ) {
+		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
+		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+	}
+
     if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
 	perror( "ldap_open" );
 	exit( 1 );
     }
 
 	/* this seems prudent */
-	ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_NEVER);
+	{
+		int deref = LDAP_DEREF_NEVER;
+		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
+	}
 
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");

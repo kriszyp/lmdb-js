@@ -17,9 +17,15 @@
 #include <assert.h>
 
 #include "avl.h"
+
+#ifndef ldap_debug
+#define ldap_debug slap_debug
+#endif
+
+#include "ldap_log.h"
+
 #include "../../libraries/liblber/lber-int.h"
 #include "ldap.h"
-#include "ldap_log.h"
 
 #include "lthread.h"
 #include "lthread_rdwr.h"
@@ -38,6 +44,8 @@
 #define MAXREMATCHES 10
 
 LDAP_BEGIN_DECL
+
+extern int slap_debug;
 
 struct op;
 struct conn;

@@ -10,23 +10,13 @@ ber_get_next, ber_skiptag, ber_peek_tag, ber_scanf, ber_get_int, ber_get_stringb
 .LP
 .nf
 .ft B
-typedef struct berelement {
-    char *ber_buf;
-    char *ber_ptr;
-    char *ber_end;
-    struct seqorset *ber_sos;
-    int ber_tag;
-    int ber_usertag;
-} BerElement;
+typedef struct berelement BerElement;
 .ft
 .fi
 .LP
 .nf
 .ft B
-typedef struct sockbuf {
-    int sb_sd;
-    BerElement sb_ber;
-} Sockbuf;
+typedef struct sockbuf Sockbuf;
 .ft
 .fi
 .LP

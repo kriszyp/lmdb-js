@@ -834,7 +834,7 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 	if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
 		Debug( LDAP_DEBUG_ANY, "re_encode_request new request is:\n",
 		    0, 0, 0 );
-		ber_dump( ber, 0 );
+		lber_log_dump( LDAP_DEBUG_BER, ldap_debug, ber, 0 );
 	}
 #endif /* LDAP_DEBUG */
 

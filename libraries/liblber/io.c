@@ -124,14 +124,15 @@ ber_filbuf( Sockbuf *sb, long len )
 	if ( sb->sb_naddr > 0 ) {
 #ifdef LDAP_CONNECTIONLESS
 		rc = udp_read(sb, sb->sb_ber.ber_buf, READBUFSIZ, addrlen );
-#ifdef LDAP_DEBUG
-		if ( lber_debug ) {
-			fprintf( stderr, "ber_filbuf udp_read %d bytes\n",
-				rc );
-			if ( lber_debug > 1 && rc > 0 )
-				lber_bprint( sb->sb_ber.ber_buf, rc );
+
+		if ( sb->sb_debug ) {
+			lber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
+				"ber_filbuf udp_read %d bytes\n",
+					rc );
+			if ( rc > 0 )
+				lber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
+					sb->sb_ber.ber_buf, rc );
 		}
-#endif /* LDAP_DEBUG */
 #else /* LDAP_CONNECTIONLESS */
 		rc = -1;
 #endif /* LDAP_CONNECTIONLESS */
@@ -272,15 +273,15 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	}
 	towrite = ber->ber_ptr - ber->ber_rwptr;
 
-#ifdef LDAP_DEBUG
-	if ( lber_debug ) {
-		fprintf( stderr, "ber_flush: %ld bytes to sd %ld%s\n", towrite,
+	if ( sb->sb_debug ) {
+		lber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
+			"ber_flush: %ld bytes to sd %ld%s\n", towrite,
 		    (long) sb->sb_sd, ber->ber_rwptr != ber->ber_buf ? " (re-flush)"
 		    : "" );
-		if ( lber_debug > 1 )
-			lber_bprint( ber->ber_rwptr, towrite );
+		lber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
+			ber->ber_rwptr, towrite );
 	}
-#endif
+
 #if !defined(MACOS) && !defined(DOS)
 	if ( sb->sb_options & (LBER_TO_FILE | LBER_TO_FILE_ONLY) ) {
 		rc = write( sb->sb_fd, ber->ber_buf, towrite );
@@ -334,7 +335,8 @@ ber_alloc_t( int options )
 	if ( (ber = (BerElement *) calloc( 1, sizeof(BerElement) )) == NULLBER )
 		return( NULLBER );
 	ber->ber_tag = LBER_DEFAULT;
-	ber->ber_options = (char) options;
+	ber->ber_options = options;
+	ber->ber_debug = lber_int_debug;
 
 	return( ber );
 }
@@ -461,45 +463,6 @@ ber_reset( BerElement *ber, int was_writing )
 	ber->ber_rwptr = NULL;
 }
 
-
-#ifdef LDAP_DEBUG
-
-void
-ber_dump( BerElement *ber, int inout )
-{
-	fprintf( stderr, "ber_dump: buf 0x%lx, ptr 0x%lx, end 0x%lx\n",
-	    (long) ber->ber_buf,
-		(long) ber->ber_ptr,
-		(long) ber->ber_end );
-	if ( inout == 1 ) {
-		fprintf( stderr, "          current len %ld, contents:\n",
-		    (long) (ber->ber_end - ber->ber_ptr) );
-		lber_bprint( ber->ber_ptr, ber->ber_end - ber->ber_ptr );
-	} else {
-		fprintf( stderr, "          current len %ld, contents:\n",
-		    (long) (ber->ber_ptr - ber->ber_buf) );
-		lber_bprint( ber->ber_buf, ber->ber_ptr - ber->ber_buf );
-	}
-}
-
-void
-ber_sos_dump( Seqorset *sos )
-{
-	fprintf( stderr, "*** sos dump ***\n" );
-	while ( sos != NULLSEQORSET ) {
-		fprintf( stderr, "ber_sos_dump: clen %ld first 0x%lx ptr 0x%lx\n",
-		    (long) sos->sos_clen, (long) sos->sos_first, (long) sos->sos_ptr );
-		fprintf( stderr, "              current len %ld contents:\n",
-		    (long) (sos->sos_ptr - sos->sos_first) );
-		lber_bprint( sos->sos_first, sos->sos_ptr - sos->sos_first );
-
-		sos = sos->sos_next;
-	}
-	fprintf( stderr, "*** end dump ***\n" );
-}
-
-#endif
-
 /* return the tag - LBER_DEFAULT returned means trouble */
 static unsigned long
 get_tag( Sockbuf *sb )
@@ -544,10 +507,10 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	long		noctets;
 	unsigned int	diff;
 
-#ifdef LDAP_DEBUG
-	if ( lber_debug )
-		fprintf( stderr, "ber_get_next\n" );
-#endif
+	if ( ber->ber_debug ) {
+		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+			"ber_get_next\n" );
+	}
 
 	/*
 	 * Any ber element looks like this: tag length contents.
@@ -638,16 +601,47 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 		ber->ber_rwptr += rc;
 	} while ( toread > 0 );
 
-#ifdef LDAP_DEBUG
-	if ( lber_debug ) {
-		fprintf( stderr, "ber_get_next: tag 0x%lx len %ld contents:\n",
+	if ( ber->ber_debug ) {
+		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+			"ber_get_next: tag 0x%lx len %ld contents:\n",
 		    tag, ber->ber_len );
-		if ( lber_debug > 1 )
-			ber_dump( ber, 1 );
+
+		lber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
 	}
-#endif
 
 	*len = ber->ber_len;
 	ber->ber_rwptr = NULL;
 	return( ber->ber_tag );
+}
+
+Sockbuf *lber_sockbuf_alloc( void )
+{
+	Sockbuf *sb = calloc(1, sizeof(Sockbuf));
+	sb->sb_debug = lber_int_debug;
+	return sb;
+}
+
+Sockbuf *lber_sockbuf_alloc_fd( int fd )
+{
+	Sockbuf *sb = lber_sockbuf_alloc();
+	sb->sb_sd = fd;
+
+	return sb;
+}
+
+void lber_sockbuf_free( Sockbuf *sb )
+{
+	if(sb == NULL) return;
+
+	free(sb);
+}
+
+int lber_sockbuf_get_option( Sockbuf *sb, int opt, void *outvalue )
+{
+	return LBER_OPT_ERROR;
+}
+
+int lber_sockbuf_set_option( Sockbuf *sb, int opt, void *invalue )
+{
+	return LBER_OPT_ERROR;
 }

@@ -87,14 +87,15 @@ main( int argc, char **argv )
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
     int			rc, i, first, scope, deref, attrsonly;
-    int			referrals, timelimit, sizelimit, authmethod, want_bindpw;
+    int			referrals, timelimit, sizelimit, debug;
+	int			authmethod, want_bindpw;
     LDAP		*ld;
 
     infile = NULL;
     deref = verbose = allow_binary = not = vals2tmp =
 	    attrsonly = ldif = want_bindpw = 0;
     referrals = (int) LDAP_OPT_ON;
-    sizelimit = timelimit = 0;
+    sizelimit = timelimit = debug = 0;
     scope = LDAP_SCOPE_SUBTREE;
     authmethod = LDAP_AUTH_SIMPLE;
 
@@ -107,11 +108,7 @@ main( int argc, char **argv )
 	    ++verbose;
 	    break;
 	case 'd':
-#ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
-#else /* LDAP_DEBUG */
-	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
-#endif /* LDAP_DEBUG */
+	    debug |= atoi( optarg );
 	    break;
 	case 'k':	/* use kerberos bind */
 #ifdef HAVE_KERBEROS
@@ -246,6 +243,12 @@ main( int argc, char **argv )
     if ( verbose ) {
 	printf( "ldap_open( %s, %d )\n", ldaphost, ldapport );
     }
+
+	if ( debug ) {
+		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
+		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+		ldif_debug = debug;
+	}
 
     if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
 	perror( ldaphost );

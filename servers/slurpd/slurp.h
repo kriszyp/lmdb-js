@@ -19,13 +19,15 @@
 #define LDAP_SYSLOG 1
 #endif
 
-#include <ac/syslog.h>
 #include <ac/errno.h>
+#include <ac/syslog.h>
 
 #include <sys/param.h>
 
 #include "lber.h"
 #include "ldap.h"
+
+#define ldap_debug slurp_debug
 #include "ldap_log.h"
 
 #include "lthread.h"

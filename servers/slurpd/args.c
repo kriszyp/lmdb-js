@@ -65,8 +65,8 @@ doargs(
 
     while ( (i = getopt( argc, argv, "hd:f:r:t:k:o" )) != EOF ) {
 	switch ( i ) {
-#ifdef LDAP_DEBUG
 	case 'd':	/* turn on debugging */
+#ifdef LDAP_DEBUG
 	    if ( optarg[0] == '?' ) {
 		printf( "Debug levels:\n" );
 		printf( "\tLDAP_DEBUG_TRACE\t%d\n",
@@ -89,14 +89,13 @@ doargs(
 			LDAP_DEBUG_ANY );
 		return( -1 );
 	    } else {
-		ldap_debug = atoi( optarg );
+		ldap_debug |= atoi( optarg );
 	    }
-	    break;
 #else /* LDAP_DEBUG */
-	case 'd':	/* can't enable debugging - not built with debug code */
+		/* can't enable debugging - not built with debug code */
 	    fprintf( stderr, "must compile with LDAP_DEBUG for debugging\n" );
-	    break;
 #endif /* LDAP_DEBUG */
+	    break;
 	case 'f':	/* slapd config file */
 	    g->slapd_configfile = strdup( optarg );
 	    break;
@@ -139,6 +138,10 @@ doargs(
     /* Set location/name of the slurpd status file */
     sprintf( g->slurpd_status_file, "%s/%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_STATUS_FILE );
+
+	lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug);
+	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldap_debug);
+	ldif_debug = ldap_debug;
 
 #ifdef LOG_LOCAL4
     openlog( g->myname, OPENLOG_OPTIONS, LOG_LOCAL4 );

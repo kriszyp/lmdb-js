@@ -16,12 +16,14 @@
  * read-only global variables or variables only written by the listener
  * thread (after they are initialized) - no need to protect them with a mutex.
  */
-int		ldap_debug = 0;
+int		slap_debug = 0;
+
 #ifdef LDAP_DEBUG
 int		ldap_syslog = LDAP_DEBUG_STATS;
 #else
 int		ldap_syslog;
 #endif
+
 int		ldap_syslog_level = LOG_DEBUG;
 int		udp;
 char		*default_referral;
@@ -107,8 +109,7 @@ main( int argc, char **argv )
 				    LDAP_DEBUG_ANY );
 				exit( 0 );
 			} else {
-				ldap_debug |= atoi( optarg );
-				lber_debug = (ldap_debug & LDAP_DEBUG_BER);
+				slap_debug |= atoi( optarg );
 			}
 			break;
 #else
@@ -143,6 +144,10 @@ main( int argc, char **argv )
 			exit( 1 );
 		}
 	}
+
+	lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
+	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
+	ldif_debug = slap_debug;
 
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 

@@ -487,7 +487,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
 	    fprintf( stderr, "cldap_parsemsg add message id %d type %d:\n",
 		    ldm->lm_msgid, ldm->lm_msgtype  );
-	    ber_dump( ldm->lm_ber, 1 );
+	    lber_log_dump( LDAP_DEBUG_BER, ldap_debug, ldm->lm_ber, 1 );
 	}
 #endif /* LDAP_DEBUG */
 

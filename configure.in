@@ -42,7 +42,6 @@ OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
 ol_enable_syslog=no
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
-OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
 OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DNS  extension], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl

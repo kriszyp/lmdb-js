@@ -37,7 +37,10 @@
 
 #include "lber.h"
 #include "ldap.h"
+
+#define ldap_debug debug
 #include "ldap_log.h"
+
 #include "lutil.h"
 
 #include "disptmpl.h"
@@ -110,12 +113,7 @@ main (int  argc, char **argv )
 			break;
 
 		case 'd':	/* debugging level */
-			debug = atoi( optarg );
-#ifdef LDAP_DEBUG
-			ldap_debug = debug;
-#else
-			fprintf( stderr, "warning: ldap debugging requires LDAP_DEBUG\n" );
-#endif
+			debug |= atoi( optarg );
 			break;
 
 		case 'f':	/* ldap filter file */
@@ -194,6 +192,12 @@ main (int  argc, char **argv )
 	else
 		myname = strdup( myname + 1 );
 
+
+	if ( debug ) {
+		lber_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
+		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
+	}
+	
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL3
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL3 );

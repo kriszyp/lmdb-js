@@ -68,7 +68,7 @@ main( int argc, char **argv )
 {
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;
-    int			rc, i, use_ldif, authmethod, want_bindpw;
+    int			rc, i, use_ldif, authmethod, want_bindpw, debug;
     char		*usage = "usage: %s [-abcknrvWF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
 
     if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
@@ -79,7 +79,7 @@ main( int argc, char **argv )
     new = ( strcmp( prog, "ldapadd" ) == 0 );
 
     infile = NULL;
-    not = verbose = valsfromfiles = want_bindpw = 0;
+    not = verbose = valsfromfiles = want_bindpw = debug = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 
     while (( i = getopt( argc, argv, "WFabckKnrtvh:p:D:w:d:f:" )) != EOF ) {
@@ -123,12 +123,7 @@ main( int argc, char **argv )
 	    passwd = strdup( optarg );
 	    break;
 	case 'd':
-#ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
-#else /* LDAP_DEBUG */
-	    fprintf( stderr, "%s: compile with -DLDAP_DEBUG for debugging\n",
-		    prog );
-#endif /* LDAP_DEBUG */
+	    debug |= atoi( optarg );
 	    break;
 	case 'f':	/* read from file */
 	    infile = strdup( optarg );
@@ -165,6 +160,11 @@ main( int argc, char **argv )
 	fp = stdin;
     }
 
+	if ( debug ) {
+		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
+		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+		ldif_debug = debug;
+	}
 
     if ( !not ) {
 	if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
@@ -173,7 +173,10 @@ main( int argc, char **argv )
 	}
 
 	/* this seems prudent */
-	ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_NEVER);
+	{
+		int deref = LDAP_DEREF_NEVER;
+		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
+	}
 
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");

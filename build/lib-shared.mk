@@ -3,7 +3,8 @@
 ## Makefile Template for Shared Libraries
 ##
 
-LINK    = $(LTLINK) -version-info $(LIBVERSION)
+LTVERSION = -version-info $(LIBVERSION)
+LINK    = $(LTLINK)
 COMPILE = $(LIBTOOL) --mode=compile $(CC) $(CFLAGS) -c
 MKDEPFLAG = -l
 

@@ -85,16 +85,15 @@ LDAP_BEGIN_DECL
 /*	for LDAPv2 compatibility */
 #define LDAP_OPT_DNS				0x1001	/* use DN & DNS */
 
+/* OpenLDAP specific options */
+#define LDAP_OPT_DEBUG_LEVEL		0x4001	/* OpenLDAP - debug level */
+
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
 #define LDAP_OPT_OFF	((void *) 0)
 
 #define LDAP_OPT_SUCCESS	0
 #define	LDAP_OPT_ERROR		(-1)
-
-#ifdef LDAP_DEBUG
-extern int ldap_debug;
-#endif
 
 #define LDAP_API_INFO_VERSION	1
 typedef struct ldapapiinfo {

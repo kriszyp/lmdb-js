@@ -55,33 +55,42 @@ LDAP_BEGIN_DECL
 #define OLD_LBER_SEQUENCE	0x10L	/* w/o constructed bit - broken */
 #define OLD_LBER_SET		0x11L	/* w/o constructed bit - broken */
 
-/* get/set options for BerElement */
-#define LBER_SOCKBUF_OPT_TO_FILE				0x01
-#define LBER_SOCKBUF_OPT_TO_FILE_ONLY			0x02
-#define	LBER_SOCKBUF_OPT_TO_MAX_INCOMING_SIZE	0x04
-#define LBER_SOCKBUF_OPT_TO_NO_READ_AHEAD		0x08
-#define LBER_SOCKBUF_OPT_TO_DESC				0x10
-#define	LBER_SOCKBUF_OPT_TO_COPYDESC			0x20
-#define LBER_SOCKBUF_OPT_TO_READFN				0x40
-#define LBER_SOCKBUF_OPT_TO_WRITE_FN			0x80
-
-/* LBER on/off values */
-#define LBER_OPT_ON ((void *) 1)
-#define LBER_OPT_OFF ((void *) 0)
-
 typedef int (*BERTranslateProc) LDAP_P(( char **bufp,
 	unsigned long *buflenp,
 	int free_input ));
 
+/* LBER BerElement options */
 #define LBER_USE_DER		0x01
 #define LBER_USE_INDEFINITE_LEN	0x02
 #define LBER_TRANSLATE_STRINGS	0x04
+
+/* get/set options for BerElement */
+#define LBER_OPT_BER_OPTIONS	0x01
+#define LBER_OPT_BER_DEBUG		0x02
+#define LBER_OPT_DEBUG_LEVEL	LBER_OPT_BER_DEBUG
+
+/* LBER Sockbuf options */ 
+#define LBER_TO_FILE           0x01	/* to a file referenced by sb_fd   */
+#define LBER_TO_FILE_ONLY      0x02	/* only write to file, not network */
+#define LBER_MAX_INCOMING_SIZE 0x04	/* impose limit on incoming stuff  */
+#define LBER_NO_READ_AHEAD     0x08	/* read only as much as requested  */
+
+/* get/set options for Sockbuf */
+#define LBER_OPT_SOCKBUF_DESC		0x1000
+#define LBER_OPT_SOCKBUF_OPTIONS	0x1001
+#define LBER_OPT_SOCKBUF_DEBUG		0x1002
+
+/* on/off values */
+#define LBER_OPT_ON		((void *) 1)
+#define LBER_OPT_OFF	((void *) 0)
+
+#define LBER_OPT_SUCCESS	0
+#define LBER_OPT_ERROR		(-1)
 
 typedef struct berelement BerElement;
 #define NULLBER	((BerElement *) 0)
 
 typedef struct sockbuf Sockbuf;
-#define READBUFSIZ	8192
 
 typedef struct seqorset Seqorset;
 #define NULLSEQORSET ((Seqorset *) 0)
@@ -92,16 +101,16 @@ struct berval {
 	char		*bv_val;
 };
 
-#ifdef LDAP_DEBUG
-extern int lber_debug;
-#endif
-
 /*
  * in bprint.c:
  */
 LDAP_F void ber_print_error LDAP_P(( char *data ));
 LDAP_F void ber_bprint LDAP_P(( char *data, int len ));
-#define lber_bprint(d,l)	ber_bprint((d),(l))
+#define lber_bprint(d,l)       ber_bprint((d),(l))
+
+LDAP_F void ber_dump LDAP_P(( BerElement *ber, int inout ));
+LDAP_F void ber_sos_dump LDAP_P(( Seqorset *sos ));
+
 
 /*
  * in decode.c:
@@ -160,18 +169,32 @@ LDAP_F BerElement *ber_alloc LDAP_P(( void ));
 LDAP_F BerElement *der_alloc LDAP_P(( void ));
 LDAP_F BerElement *ber_alloc_t LDAP_P(( int options ));
 LDAP_F BerElement *ber_dup LDAP_P(( BerElement *ber ));
-LDAP_F void ber_dump LDAP_P(( BerElement *ber, int inout ));
-LDAP_F void ber_sos_dump LDAP_P(( Seqorset *sos ));
 LDAP_F unsigned long ber_get_next LDAP_P(( Sockbuf *sb, unsigned long *len,
 	BerElement *ber ));
 LDAP_F void ber_init_w_nullc LDAP_P(( BerElement *ber, int options ));
 LDAP_F void ber_reset LDAP_P(( BerElement *ber, int was_writing ));
 
 /*
- * LDAP draft-ietf-ldapext-ldap-c-api-01 routines
+ * LBER draft-ietf-ldapext-ldap-c-api-01 routines
  */
 LDAP_F BerElement *ber_init LDAP_P(( struct berval *bv ));
 LDAP_F int ber_flatten LDAP_P(( BerElement *ber, struct berval **bvPtr ));
+
+/*
+ * LBER ber accessor functions
+ */
+LDAP_F int
+lber_get_option LDAP_P((void *item, int option, void *outvalue));
+
+LDAP_F int
+lber_set_option LDAP_P((void *item, int option, void *invalue));
+
+/*
+ * LBER Sockbuf functions
+ */
+LDAP_F Sockbuf *lber_sockbuf_alloc LDAP_P((void));
+LDAP_F Sockbuf *lber_sockbuf_alloc_fd LDAP_P((int fd));
+LDAP_F void lber_sockbuf_free LDAP_P((Sockbuf *sb));
 
 LDAP_END_DECL
 

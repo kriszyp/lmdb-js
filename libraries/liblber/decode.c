@@ -23,10 +23,6 @@
 
 #include "lber-int.h"
 
-#ifdef LDAP_DEBUG
-int	lber_debug;
-#endif
-
 static int ber_getnint LDAP_P(( BerElement *ber, long *num, int len ));
 
 /* return the tag - LBER_DEFAULT returned means trouble */
@@ -398,12 +394,11 @@ va_dcl
 	fmt = va_arg( ap, char * );
 #endif
 
-#ifdef LDAP_DEBUG
-	if ( lber_debug & 64 ) {
-		fprintf( stderr, "ber_scanf fmt (%s) ber:\n", fmt );
-		ber_dump( ber, 1 );
+	if ( ber->ber_debug ) {
+		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+			"ber_scanf fmt (%s) ber:\n", fmt );
+		lber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
 	}
-#endif
 
 	for ( rc = 0; *fmt && rc != LBER_DEFAULT; fmt++ ) {
 		switch ( *fmt ) {
@@ -548,9 +543,10 @@ va_dcl
 			break;
 
 		default:
-#ifdef LDAP_LIBUI
-			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* LDAP_LIBUI */
+			if( ber->ber_debug ) {
+				lber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
+					"ber_scanf: unknown fmt %c\n", *fmt );
+			}
 			rc = LBER_DEFAULT;
 			break;
 		}

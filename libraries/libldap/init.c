@@ -286,6 +286,8 @@ void openldap_ldap_initialize( void )
 	gopts.ldo_timelimit = LDAP_NO_LIMIT;
 	gopts.ldo_sizelimit = LDAP_NO_LIMIT;
 
+	gopts.ldo_debug = 0;
+
 	gopts.ldo_defhost = ldap_strdup("localhost");
 	gopts.ldo_defport = LDAP_PORT;
 

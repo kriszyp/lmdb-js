@@ -27,9 +27,10 @@
 #include <ac/string.h>
 #include <ac/ctype.h>
 
-#include "../slapd/slap.h"
 #include "slurp.h"
 #include "globals.h"
+
+#include "../slapd/slap.h"
 
 /* Forward references */
 static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));

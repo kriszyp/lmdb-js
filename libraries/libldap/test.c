@@ -295,9 +295,11 @@ main( int argc, char **argv )
 		case 'd':
 #ifdef LDAP_DEBUG
 			ldap_debug = atoi( optarg );
+#ifdef LBER_DEBUG
 			if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
 				lber_debug = ldap_debug;
 			}
+#endif
 #else
 			printf( "Compile with -DLDAP_DEBUG for debugging\n" );
 #endif
@@ -477,9 +479,11 @@ main( int argc, char **argv )
 #ifdef LDAP_DEBUG
 			getline( line, sizeof(line), stdin, "debug level? " );
 			ldap_debug = atoi( line );
+#ifdef LBER_DEBUG
 			if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
 				lber_debug = ldap_debug;
 			}
+#endif
 #else
 			printf( "Compile with -DLDAP_DEBUG for debugging\n" );
 #endif

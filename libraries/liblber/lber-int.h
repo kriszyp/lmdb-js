@@ -14,21 +14,30 @@
 #define _LBER_INT_H
 
 #include "lber.h"
+#include "ldap_log.h"
 
 LDAP_BEGIN_DECL
 
+#define LBER_ITEM_BERELEMENT 1
+#define LBER_ITEM_SOCKBUF 2
+
+extern int lber_int_debug;
+
 struct berelement {
+	short		ber_item_type; 	/* always LBER_ITEM_BERELEMENT */
+	short		ber_options;
+	int			ber_debug;
+
+	int			ber_usertag;
+
+	unsigned long	ber_tag;
+	unsigned long	ber_len;
+
 	char		*ber_buf;
 	char		*ber_ptr;
 	char		*ber_end;
+
 	struct seqorset	*ber_sos;
-	unsigned long	ber_tag;
-	unsigned long	ber_len;
-	int		ber_usertag;
-	char		ber_options;
-#define LBER_USE_DER		0x01
-#define LBER_USE_INDEFINITE_LEN	0x02
-#define LBER_TRANSLATE_STRINGS	0x04
 	char		*ber_rwptr;
 	BERTranslateProc ber_encode_translate_proc;
 	BERTranslateProc ber_decode_translate_proc;
@@ -36,26 +45,26 @@ struct berelement {
 #define NULLBER	((BerElement *) 0)
 
 struct sockbuf {
+	short		sb_item_type; 	/* always LBER_ITEM_SOCKBUF */
+	short		sb_options;	/* to support copying ber elements */
+	int			sb_debug;
+
+	int			sb_fd;
 #ifndef MACOS
 	int		sb_sd;
 #else /* MACOS */
 	void		*sb_sd;
 #endif /* MACOS */
+
+	long		sb_max_incoming;
+
 	BerElement	sb_ber;
 
-	int		sb_naddr;	/* > 0 implies using CLDAP (UDP) */
+	int			sb_naddr;	/* > 0 implies using CLDAP (UDP) */
 	void		*sb_useaddr;	/* pointer to sockaddr to use next */
 	void		*sb_fromaddr;	/* pointer to message source sockaddr */
 	void		**sb_addrs;	/* actually an array of pointers to
 						sockaddrs */
-
-	int		sb_options;	/* to support copying ber elements */
-#define LBER_TO_FILE		0x01	/* to a file referenced by sb_fd   */
-#define LBER_TO_FILE_ONLY	0x02	/* only write to file, not network */
-#define LBER_MAX_INCOMING_SIZE	0x04	/* impose limit on incoming stuff  */
-#define LBER_NO_READ_AHEAD	0x08	/* read only as much as requested  */
-	int		sb_fd;
-	long		sb_max_incoming;
 };
 #define READBUFSIZ	8192
 
@@ -68,5 +77,31 @@ struct seqorset {
 	struct seqorset	*sos_next;
 };
 #define NULLSEQORSET	((Seqorset *) 0)
+
+/*
+ * bprint.c
+ */
+LDAP_F int lber_log_printf LDAP_P((
+	int errlvl,
+	int loglvl,
+	char *fmt,
+	... ));
+
+LDAP_F int lber_log_bprint LDAP_P((
+	int errlvl,
+	int loglvl,
+	char *data,
+	int len ));
+
+LDAP_F int lber_log_dump LDAP_P((
+	int errlvl,
+	int loglvl,
+	BerElement *ber,
+	int inout ));
+
+LDAP_F int lber_log_sos_dump LDAP_P((
+	int errlvl,
+	int loglvl,
+	Seqorset *sos ));
 
 #endif /* _LBER_INT_H */

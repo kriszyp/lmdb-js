@@ -201,7 +201,8 @@ be_isroot( Backend *be, char *dn )
 		return( 0 );
 	}
 
-	return( be->be_rootdn ? strcasecmp( be->be_rootdn, dn ) == 0
+	return( be->be_rootdn != NULL
+		? strcasecmp( be->be_rootdn, dn ) == 0
 	    : 0 );
 }
 

@@ -388,6 +388,7 @@ main (int argc, char *argv[])
 	int		hashtype = HASHTYPE_CRYPT;
 	int		i, j;
 	int		ldapport = 0;
+	int		debug = 0;
 	int		scope = LDAP_SCOPE_SUBTREE;
 	int		sizelimit = LDAP_NO_LIMIT;
 	int		timelimit = LDAP_NO_LIMIT;
@@ -423,11 +424,7 @@ main (int argc, char *argv[])
 			break;
 
 		case 'd':	/* debugging option */
-#ifdef LDAP_DEBUG
-			ldap_debug = lber_debug = atoi (optarg);	/* */
-#else
-			fprintf (stderr, "compile with -DLDAP_DEBUG for debugging\n");
-#endif
+			debug |= atoi (optarg);
 			break;
 
 		case 'E':	/* prompt for new password */
@@ -565,6 +562,11 @@ main (int argc, char *argv[])
 		}
 	}
 
+	if ( debug ) {
+		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
+		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
+	}
+
 	/* connect to server */
 	if ((ld = ldap_open (ldaphost, ldapport)) == NULL)
 	{
@@ -575,6 +577,13 @@ main (int argc, char *argv[])
 	/* set options */
 	ldap_set_option (ld, LDAP_OPT_TIMELIMIT, (void *)&timelimit);
 	ldap_set_option (ld, LDAP_OPT_SIZELIMIT, (void *)&sizelimit);
+
+	/* this seems prudent */
+	{
+		int deref = LDAP_DEREF_NEVER;
+		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
+	}
+
 
 	/* authenticate to server */
 	if (ldap_bind_s (ld, binddn, bindpw, authmethod) != LDAP_SUCCESS)

@@ -16,7 +16,7 @@
 #include <console.h>
 #endif /* HAVE_CONSOLE_H */
 
-#include "lber-int.h"
+#include <lber.h>
 
 static void usage( char *name )
 {
@@ -30,30 +30,31 @@ main( int argc, char **argv )
 	int		i, len;
 	char	*s, *p;
 #endif
-	int		num;
+	int			fd, num;
 	Seqorset	*sos = NULLSEQORSET;
 	BerElement	*ber;
-	Sockbuf		sb;
+	Sockbuf		*sb;
 
 	if ( argc < 2 ) {
 		usage( argv[0] );
 		exit( 1 );
 	}
 
-	memset( &sb, 0, sizeof(sb) );
-	sb.sb_sd = 1;
-	sb.sb_ber.ber_buf = NULL;
 
 #ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
 
-       if (( sb.sb_sd = open( "lber-test", O_WRONLY|O_CREAT|O_TRUNC|O_BINARY ))
+	if (( fd = open( "lber-test", O_WRONLY|O_CREAT|O_TRUNC|O_BINARY ))
 		< 0 ) {
 	    perror( "open" );
 	    exit( 1 );
 	}
+#else
+	fd = fileno(stdout);
 #endif /* MACOS */
+
+	sb = lber_sockbuf_alloc_fd( fd );
 
 	if ( (ber = ber_alloc()) == NULLBER ) {
 		perror( "ber_alloc" );
@@ -66,7 +67,7 @@ main( int argc, char **argv )
 		exit( 1 );
 	}
 
-	if ( ber_flush( &sb, ber, 1 ) == -1 ) {
+	if ( ber_flush( sb, ber, 1 ) == -1 ) {
 		perror( "ber_flush" );
 		exit( 1 );
 	}
@@ -166,5 +167,6 @@ main( int argc, char **argv )
 
 #endif
 
+	lber_sockbuf_free( sb );
 	return( 0 );
 }

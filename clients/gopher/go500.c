@@ -37,7 +37,10 @@
 #include "ldapconfig.h"
 #include "lber.h"
 #include "ldap.h"
+
+#define ldap_debug debug
 #include "ldap_log.h"
+
 #include "lutil.h"
 
 #include "disptmpl.h"
@@ -96,7 +99,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'd':	/* debug level */
-			debug = atoi( optarg );
+			debug |= atoi( optarg );
 			break;
 
 		case 'f':	/* ldap filter file */
@@ -156,7 +159,6 @@ main( int argc, char **argv )
 	}
 #endif	/* FD_SETSIZE*/
 
-
 	/* detach if stderr is redirected or no debugging */
 	if ( inetd == 0 )
 		lutil_detach( debug && !isatty( 1 ), 1 );
@@ -166,6 +168,11 @@ main( int argc, char **argv )
 	else
 		myname = strdup( myname + 1 );
 
+	if ( debug ) {
+		lber_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
+		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
+	}
+	
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL3
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL3 );

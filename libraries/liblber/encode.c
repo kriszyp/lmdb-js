@@ -609,9 +609,10 @@ va_dcl
 			break;
 
 		default:
-#ifdef LDAP_LIBUI
-			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* LDAP_LIBUI */
+			if( ber->ber_debug ) {
+				lber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
+					"ber_printf: unknown fmt %c\n", *fmt );
+			}
 			rc = -1;
 			break;
 		}

@@ -10,9 +10,11 @@
 #include <ac/socket.h>
 #include <ac/time.h>
 
+int ldif_debug = 0;
+
+#define ldap_debug	ldif_debug
 #include "ldap_log.h"
 #include "ldif.h"
-
 
 #define RIGHT2			0x03
 #define RIGHT4			0x0f
