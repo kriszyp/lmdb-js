@@ -141,7 +141,7 @@ monitor_subsys_database_init(
 		bi = be->bd_info;
 
 		if ( strcmp( be->bd_info->bi_type, "over" ) == 0 ) {
-			oi = (slap_overinfo *)be->bd_info;
+			oi = (slap_overinfo *)be->bd_info->bi_private;
 			bi = oi->oi_orig;
 		}
 
