@@ -1000,10 +1000,11 @@ LDAP_SLAPD_F (int) overlay_init( void );
 LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) passwd_extop;
 
 LDAP_SLAPD_F (int) slap_passwd_check(
-	Connection			*conn,
-	Attribute			*attr,
+	Operation		*op,
+	Entry			*e,
+	Attribute		*a,
 	struct berval		*cred,
-	const char			**text );
+	const char		**text );
 
 LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
@@ -1015,18 +1016,18 @@ LDAP_SLAPD_F (void) slap_passwd_hash(
 LDAP_SLAPD_F (void) slap_passwd_hash_type(
 	struct berval		*cred,
 	struct berval		*hash,
-	char				*htype,
+	char			*htype,
 	const char		**text );
 
 LDAP_SLAPD_F (struct berval *) slap_passwd_return(
 	struct berval		*cred );
 
 LDAP_SLAPD_F (int) slap_passwd_parse(
-	struct berval *reqdata,
-	struct berval *id,
-	struct berval *oldpass,
-	struct berval *newpass,
-	const char **text );
+	struct berval		*reqdata,
+	struct berval		*id,
+	struct berval		*oldpass,
+	struct berval		*newpass,
+	const char		**text );
 
 /*
  * phonetic.c

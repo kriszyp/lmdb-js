@@ -384,25 +384,37 @@ struct berval * slap_passwd_return(
 	return bv;
 }
 
+/*
+ * if "e" is provided, access to each value of the password is checked first
+ */
 int
 slap_passwd_check(
-	Connection *conn,
-	Attribute *a,
-	struct berval *cred,
-	const char **text )
+	Operation	*op,
+	Entry		*e,
+	Attribute	*a,
+	struct berval	*cred,
+	const char	**text )
 {
-	int result = 1;
-	struct berval *bv;
+	int			result = 1;
+	struct berval		*bv;
+	AccessControlState	acl_state = ACL_STATE_INIT;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #ifdef SLAPD_SPASSWD
-	lutil_passwd_sasl_conn = conn->c_sasl_authctx;
+	lutil_passwd_sasl_conn = op->o_conn->c_sasl_authctx;
 #endif
 #endif
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
-		if( !lutil_passwd( bv, cred, NULL, text ) ) {
+		/* if e is provided, check access */
+		if ( e && access_allowed( op, e, a->a_desc, bv,
+					ACL_AUTH, &acl_state ) == 0 )
+		{
+			continue;
+		}
+		
+		if ( !lutil_passwd( bv, cred, NULL, text ) ) {
 			result = 0;
 			break;
 		}
