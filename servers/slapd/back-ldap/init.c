@@ -147,6 +147,7 @@ ldap_back_conn_free(
 		ch_free( lc->bound_dn.bv_val );
 	}
 	if ( lc->cred.bv_val ) {
+		memset( lc->cred.bv_val, 0, lc->cred.bv_len );
 		ch_free( lc->cred.bv_val );
 	}
 	if ( lc->local_dn.bv_val ) {

@@ -106,8 +106,10 @@ ldap_back_bind(
 		mdn.bv_val = NULL;
 
 		if ( li->savecred ) {
-			if ( lc->cred.bv_val )
+			if ( lc->cred.bv_val ) {
+				memset( lc->cred.bv_val, 0, lc->cred.bv_len );
 				ch_free( lc->cred.bv_val );
+			}
 			ber_dupbv( &lc->cred, &op->oq_bind.rb_cred );
 			ldap_set_rebind_proc( lc->ld, ldap_back_rebind, lc );
 		}
