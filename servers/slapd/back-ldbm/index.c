@@ -39,7 +39,7 @@ static slap_mask_t index_mask(
 		/* has language tag */
 		attr_mask( be->be_private, desc->ad_type->sat_ad, &mask );
 
-		if( !( mask & SLAP_INDEX_NOLANG ) ) {
+		if( mask && ( mask ^ SLAP_INDEX_NOLANG ) ) {
 			*atname = desc->ad_type->sat_cname;
 			*dbname = desc->ad_type->sat_cname.bv_val;
 			return mask;
@@ -47,25 +47,18 @@ static slap_mask_t index_mask(
 	}
 
 	/* see if supertype defined mask for its subtypes */
-	for( at = desc->ad_type; at != NULL ; at = at->sat_sup ) {
+	for( at = desc->ad_type->sat_sup; at != NULL ; at = at->sat_sup ) {
 		/* If no AD, we've never indexed this type */
 		if (!at->sat_ad)
 			continue;
 		
 		attr_mask( be->be_private, at->sat_ad, &mask );
 
-		if( mask & SLAP_INDEX_AUTO_SUBTYPES ) {
+		if( mask && ( mask ^ SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = desc->ad_type->sat_cname;
 			*dbname = at->sat_cname.bv_val;
 			return mask;
 		}
-		if( !( mask & SLAP_INDEX_NOSUBTYPES ) ) {
-			*atname = at->sat_cname;
-			*dbname = at->sat_cname.bv_val;
-			return mask;
-		}
-
-		if( mask ) break;
 	}
 
 	return 0;
@@ -264,7 +257,7 @@ static int index_at_values(
 
 	if( mask ) {
 		*dbnamep = type->sat_cname.bv_val;
-	} else if ( tmpmask & SLAP_INDEX_AUTO_SUBTYPES ) {
+	} else if ( tmpmask ^ SLAP_INDEX_NOSUBTYPES ) {
 		mask = tmpmask;
 	}
 
@@ -273,6 +266,7 @@ static int index_at_values(
 			&type->sat_cname,
 			vals, id, op,
 			mask );
+		*maskp = mask;
 	}
 
 	if( lang->bv_len ) {
