@@ -109,6 +109,9 @@ bdb_db_cache(
 	file = ch_malloc( strlen( name ) + sizeof(BDB_SUFFIX) );
 	sprintf( file, "%s" BDB_SUFFIX, name );
 
+#ifdef HAVE_EBCDIC
+	__atoe( file );
+#endif
 	rc = DB_OPEN( db->bdi_db,
 		file, name,
 		DB_HASH, bdb->bi_db_opflags | DB_CREATE | DB_THREAD,

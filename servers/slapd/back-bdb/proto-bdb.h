@@ -343,6 +343,12 @@ int bdb_cache_delete_entry(
 );
 void bdb_cache_release_all( Cache *cache );
 
+#ifdef HAVE_EBCDIC
+char *ebcdic_dberror( int rc );
+
+#define db_strerror(x)	ebcdic_dberror(x)
+#endif
+
 LDAP_END_DECL
 
 #endif /* _PROTO_BDB_H */

@@ -173,6 +173,9 @@ bdb_db_open( BackendDB *be )
 	int rc, i;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	u_int32_t flags;
+#ifdef HAVE_EBCDIC
+	char path[MAXPATHLEN];
+#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_BDB, ARGS, 
@@ -284,10 +287,19 @@ bdb_db_open( BackendDB *be )
 		bdb->bi_dbenv_home, 0, 0);
 #endif
 
+#ifdef HAVE_EBCDIC
+	strcpy( path, bdb->bi_dbenv_home );
+	__atoe( path );
+	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
+		path,
+		flags,
+		bdb->bi_dbenv_mode );
+#else
 	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
 		bdb->bi_dbenv_home,
 		flags,
 		bdb->bi_dbenv_mode );
+#endif
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_BDB, ERR, 
@@ -362,12 +374,23 @@ bdb_db_open( BackendDB *be )
 				BDB_PAGESIZE );
 		}
 
+#ifdef HAVE_EBCDIC
+		strcpy( path, bdbi_databases[i].file );
+		__atoe( path );
+		rc = DB_OPEN( db->bdi_db, 
+			path,
+		/*	bdbi_databases[i].name, */ NULL,
+			bdbi_databases[i].type,
+			bdbi_databases[i].flags | flags,
+			bdb->bi_dbenv_mode );
+#else
 		rc = DB_OPEN( db->bdi_db, 
 			bdbi_databases[i].file,
 		/*	bdbi_databases[i].name, */ NULL,
 			bdbi_databases[i].type,
 			bdbi_databases[i].flags | flags,
 			bdb->bi_dbenv_mode );
+#endif
 
 		if( rc != 0 ) {
 #ifdef NEW_LOGGING
@@ -543,6 +566,17 @@ bdb_initialize(
 	{	/* version check */
 		int major, minor, patch;
 		char *version = db_version( &major, &minor, &patch );
+#ifdef HAVE_EBCDIC
+		char v2[1024];
+
+		/* All our stdio does an ASCII to EBCDIC conversion on
+		 * the output. Strings from the BDB library are already
+		 * in EBCDIC; we have to go back and forth...
+		 */
+		strcpy( v2, version );
+		__etoa( v2 );
+		version = v2;
+#endif
 
 		if( major != DB_VERSION_MAJOR ||
 			minor != DB_VERSION_MINOR ||
