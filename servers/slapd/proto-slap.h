@@ -239,11 +239,15 @@ LDAP_SLAPD_F (void) ch_free LDAP_P(( void * ));
  */
 
 LDAP_SLAPD_F (void) charray_add LDAP_P(( char ***a, const char *s ));
+LDAP_SLAPD_F (void) charray_add_n LDAP_P(( char ***a, const char *s, int l ));
 LDAP_SLAPD_F (void) charray_merge LDAP_P(( char ***a, char **s ));
 LDAP_SLAPD_F (void) charray_free LDAP_P(( char **array ));
 LDAP_SLAPD_F (int) charray_inlist LDAP_P(( char **a, const char *s ));
 LDAP_SLAPD_F (char **) charray_dup LDAP_P(( char **a ));
 LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr ));
+LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
+LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
+	
 
 /*
  * controls.c
@@ -318,6 +322,7 @@ LDAP_SLAPD_F (int) dn_issuffix LDAP_P(( const char *dn, const char *suffix ));
 LDAP_SLAPD_F (int) rdn_validate LDAP_P(( const char* str ));
 LDAP_SLAPD_F (char *) rdn_attr_value LDAP_P(( const char * rdn ));
 LDAP_SLAPD_F (char *) rdn_attr_type LDAP_P(( const char * rdn ));
+LDAP_SLAPD_F (int) rdn_attrs LDAP_P(( const char * rdn, char ***ptypes, char ***pvals ));
 
 LDAP_SLAPD_F (void) build_new_dn LDAP_P(( char ** new_dn,
 	const char *e_dn,

@@ -87,7 +87,8 @@ LDAP_BEGIN_DECL
 	|| (c) == '(' || (c) == ')' || !ASCII_PRINTABLE(c) )
 
 #define DN_SEPARATOR(c)	((c) == ',' || (c) == ';')
-#define RDN_SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
+#define RDN_ATTRTYPEANDVALUE_SEPARATOR(c) ((c) == '+') /* RFC 2253 */
+#define RDN_SEPARATOR(c) (DN_SEPARATOR(c) || RDN_ATTRTYPEANDVALUE_SEPARATOR(c))
 #define RDN_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
 #define DESC_LEADCHAR(c)	( ASCII_ALPHA(c) )
