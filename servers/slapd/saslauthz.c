@@ -45,6 +45,14 @@ int slap_parseURI( char *uri, char **searchbase, int *scope, Filter **filter )
 	Debug( LDAP_DEBUG_TRACE, "slap_parseURI: parsing %s\n", uri, 0, 0 );
 
 	/* If it does not look like a URI, assume it is a DN */
+	if( !strncasecmp( uri, "dn:", 3 ) ) {
+		uri += 3;
+		uri += strspn( uri, " " );
+		*searchbase = ch_strdup( uri );
+		dn_normalize( *searchbase );
+		*scope = LDAP_SCOPE_BASE;
+		return( LDAP_SUCCESS );
+	}
 	if( strncasecmp( uri, "ldap://", 7 ) ) {
 		*searchbase = ch_strdup( uri );
 		dn_normalize( *searchbase );
@@ -251,7 +259,7 @@ char *slap_sasl_regexp( char *saslname )
 
 
 /*
- * Given a SASL name (e.g. "UID=name+cn=REALM,cn=MECH,cn=AUTHZ")
+ * Given a SASL name (e.g. "UID=name,cn=REALM,cn=MECH,cn=AUTHZID")
  * return the LDAP DN to which it matches. The SASL regexp rules in the config
  * file turn the SASL name into an LDAP URI. If the URI is just a DN (or a
  * search with scope=base), just return the URI (or its searchbase). Otherwise
@@ -259,7 +267,6 @@ char *slap_sasl_regexp( char *saslname )
  * entry, return the DN of that one entry.
  */
 
-static
 char *slap_sasl2dn( char *saslname )
 {
 	char *uri=NULL, *searchbase=NULL, *DN=NULL;
@@ -346,6 +353,8 @@ FINISHED:
  * URI, just strcmp the rule (or its searchbase) to the *assertDN. Otherwise,
  * the rule must be used as an internal search for entries. If that search
  * returns the *assertDN entry, the match is successful.
+ *
+ * The assertDN should not have the dn: prefix
  */
 
 static
@@ -358,6 +367,7 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	Connection *conn=NULL;
 	LDAP *client=NULL;
 	LDAPMessage *res=NULL, *msg;
+	regex_t reg;
 
 
 	Debug( LDAP_DEBUG_TRACE,
@@ -370,7 +380,12 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
 		dn_normalize( searchbase );
-		if( strcmp( searchbase, assertDN ) == 0 )
+		rc = regcomp(&reg, searchbase, REG_EXTENDED|REG_ICASE|REG_NOSUB);
+		if ( rc == 0 ) {
+			rc = regexec(&reg, assertDN, 0, NULL, 0);
+			regfree( &reg );
+		}
+		if ( rc == 0 )
 			rc = LDAP_SUCCESS;
 		else
 			rc = LDAP_INAPPROPRIATE_AUTH;
@@ -440,6 +455,8 @@ CONCLUDED:
  * based on authorization rules. The rules are stored in the *searchDN, in the
  * attribute named by *attr. If any of those rules map to the *assertDN, the
  * authorization is approved.
+ *
+ * DN's passed in should have a dn: prefix
  */
 
 static int
@@ -458,13 +475,13 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
-	rc = backend_attribute( NULL, NULL, NULL, NULL, searchDN, ad, &vals );
+	rc = backend_attribute( NULL, NULL, NULL, NULL, searchDN+3, ad, &vals );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i] != NULL; i++ ) {
-		rc = slap_sasl_match( vals[i]->bv_val, assertDN, authc );
+		rc = slap_sasl_match( vals[i]->bv_val, assertDN+3, authc );
 		if ( rc == LDAP_SUCCESS )
 			goto COMPLETE;
 	}
@@ -487,50 +504,28 @@ COMPLETE:
 
 
 
-/* Check if a bind can SASL authorize to another identity. */
+/* Check if a bind can SASL authorize to another identity.
+   Accepts authorization DN's with "dn:" prefix */
 
-int slap_sasl_authorized( Connection *conn,
-	const char *authcid, const char *authzid )
+int slap_sasl_authorized( char *authcDN, char *authzDN )
 {
 	int rc;
-	char *saslname=NULL,*authcDN=NULL,*realm=NULL, *authzDN=NULL;
 
 #ifdef HAVE_CYRUS_SASL
-	Debug( LDAP_DEBUG_TRACE,
-	   "==>slap_sasl_authorized: can %s become %s?\n", authcid, authzid, 0 );
-
-	/* Create a complete SASL name for the SASL regexp patterns */
-
-	sasl_getprop( conn->c_sasl_context, SASL_REALM, (void **)&realm );
-
-	/* Allocate space */
-	rc = strlen("uid=,cn=,cn=,cn=AUTHZ ");
-	if ( realm ) rc += strlen( realm );
-	if ( authcid ) rc += strlen( authcid );
-	rc += strlen( conn->c_sasl_bind_mech );
-	saslname = ch_malloc( rc );
-
-	/* Build the SASL name with whatever we have, and normalize it */
-	saslname[0] = '\0';
-	rc = 0;
-	if ( authcid )
-		rc += sprintf( saslname+rc, "%sUID=%s", rc?",":"", authcid);
-	if ( realm )
-		rc += sprintf( saslname+rc, "%sCN=%s", rc?",":"", realm);
-	if ( conn->c_sasl_bind_mech )
-		rc += sprintf( saslname+rc, "%sCN=%s", rc?",":"",
-		   conn->c_sasl_bind_mech);
-	sprintf( saslname+rc, "%sCN=AUTHZ", rc?",":"");
-	dn_normalize( saslname );
-
-	authcDN = slap_sasl2dn( saslname );
-	if( authcDN == NULL )
+	/* User binding as anonymous */
+	if ( authzDN == NULL ) {
+		rc = LDAP_SUCCESS;
 		goto DONE;
+	}
 
-	/* Normalize the name given by the clientside of the connection */
-	authzDN = ch_strdup( authzid );
-	dn_normalize( authzDN );
+	Debug( LDAP_DEBUG_TRACE,
+	   "==>slap_sasl_authorized: can %s become %s?\n", authcDN, authzDN, 0 );
 
+	/* If person is authorizing to self, succeed */
+	if ( !strcmp( authcDN, authzDN ) ) {
+		rc = LDAP_SUCCESS;
+		goto DONE;
+	}
 
 	/* Check source rules */
 	rc = slap_sasl_check_authz( authcDN, authzDN, SASL_AUTHZ_SOURCE_ATTR,
@@ -548,9 +543,6 @@ int slap_sasl_authorized( Connection *conn,
 	rc = LDAP_INAPPROPRIATE_AUTH;
 
 DONE:
-	if( saslname ) ch_free( saslname );
-	if( authcDN ) ch_free( authcDN );
-	if( authzDN ) ch_free( authzDN );
 	Debug( LDAP_DEBUG_TRACE, "<== slap_sasl_authorized: return %d\n",rc,0,0 );
 	return( rc );
 }

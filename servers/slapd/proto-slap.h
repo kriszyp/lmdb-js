@@ -572,10 +572,10 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 /*
  * saslauthz.c
  */
+LDAP_SLAPD_F (char *) slap_sasl2dn LDAP_P((	char *saslname ));
 LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
-	Connection *conn,
-	const char *authcid,
-	const char *authzid ));
+	char *authcid,
+	char *authzid ));
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
 
