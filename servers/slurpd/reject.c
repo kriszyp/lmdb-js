@@ -63,7 +63,7 @@ write_reject(
     if ( access( rejfile, F_OK ) < 0 ) {
 	/* Doesn't exist - try to create */
 	int rjfd;
-	if (( rjfd = open( rejfile, O_RDWR | O_APPEND | O_CREAT,
+	if (( rjfd = open( rejfile, O_RDWR|O_APPEND|O_CREAT|O_EXCL,
 		S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP )) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( SLURPD, ERR, "write_reject: "
