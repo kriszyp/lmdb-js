@@ -225,7 +225,7 @@ do_syncrepl(
 	Modifications	*modlist = NULL;
 
 	char syncrepl_cbuf[sizeof(CN_STR SYNCREPL_STR)];
-	struct berval syncrepl_cn_bv = {sizeof(syncrepl_cbuf)-1, syncrepl_cbuf};
+	struct berval syncrepl_cn_bv;
 
 	const char		*text;
 	int				match;
@@ -398,8 +398,9 @@ do_syncrepl(
 
 	/* get syncrepl cookie of shadow replica from subentry */
 
-	snprintf(syncrepl_cbuf, sizeof(syncrepl_cbuf), CN_STR "syncrepl%d",
-		si->id );
+	syncrepl_cn_bv.bv_val = syncrepl_cbuf;
+	syncrepl_cn_bv.bv_len = snprintf(syncrepl_cbuf, sizeof(syncrepl_cbuf),
+		CN_STR "syncrepl%d", si->id );
 	build_new_dn( &op.o_req_ndn, &si->base, &syncrepl_cn_bv, op.o_tmpmemctx );
 	op.o_req_dn = op.o_req_ndn;
 
