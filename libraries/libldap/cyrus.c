@@ -529,6 +529,7 @@ ldap_int_sasl_bind(
 	sasl_ssf_t		*ssf = NULL;
 	sasl_conn_t	*ctx;
 	sasl_interact_t *prompts = NULL;
+	const void *promptresult = NULL;
 	unsigned credlen;
 	struct berval ccred;
 	ber_socket_t		sd;
@@ -589,6 +590,8 @@ ldap_int_sasl_bind(
 			&credlen,
 			&mech );
 
+		if( promptresult == NULL && prompts != NULL ) prompts->result = NULL;
+
 		if( pmech == NULL && mech != NULL ) {
 			pmech = mech;
 
@@ -603,6 +606,7 @@ ldap_int_sasl_bind(
 			int res;
 			if( !interact ) break;
 			res = (interact)( ld, flags, defaults, prompts );
+			promptresult = prompts->result;
 			if( res != LDAP_SUCCESS ) break;
 		}
 	} while ( saslrc == SASL_INTERACT );
@@ -678,6 +682,8 @@ ldap_int_sasl_bind(
 				(SASL_CONST char **)&ccred.bv_val,
 				&credlen );
 
+			if( promptresult == NULL && prompts != NULL ) prompts->result = NULL;
+
 #ifdef NEW_LOGGING
 				LDAP_LOG ( TRANSPORT, DETAIL1, 
 					"ldap_int_sasl_bind: sasl_client_step: %d\n", saslrc,0,0 );
@@ -690,6 +696,7 @@ ldap_int_sasl_bind(
 				int res;
 				if( !interact ) break;
 				res = (interact)( ld, flags, defaults, prompts );
+				promptresult = prompts->result;
 				if( res != LDAP_SUCCESS ) break;
 			}
 		} while ( saslrc == SASL_INTERACT );
@@ -749,11 +756,7 @@ ldap_int_sasl_bind(
 	}
 
 done:
-	if( interact ) {
-		/* cleanup */
-		(void) (interact)( NULL, 0, NULL, prompts );
-	}
-
+	LDAP_FREE((void*)promptresult);
 	return rc;
 }
 

@@ -190,15 +190,13 @@ int lutil_sasl_interact(
 {
 	sasl_interact_t *interact = in;
 
-	if( interact && interact->result ) {
+	if( interact->result ) {
 		/* we have results from a previous interaction */
-		free( interact->result );
+		free( (void *)interact->result );
 		interact->result = NULL;
 	}
 
-	if( ld == NULL ) {
-		return LDAP_SUCCESS;
-	}
+	if( ld == NULL ) return LDAP_PARAM_ERROR;
 
 	if( flags == LDAP_SASL_INTERACTIVE ) {
 		fputs( "SASL Interaction\n", stderr );
