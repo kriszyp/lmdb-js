@@ -153,6 +153,10 @@ typedef long slap_index;
 #define SLAP_INDEX_CONT_PREFIX		'.'		/* prefix for continuation keys */
 #define SLAP_INDEX_UNKNOWN_PREFIX	'?'		/* prefix for unknown keys */
 
+#define SLAP_SYNTAX_MATCHINGRULES_OID	"1.3.6.1.4.1.1466.115.121.1.30"
+#define SLAP_SYNTAX_ATTRIBUTETYPES_OID	"1.3.6.1.4.1.1466.115.121.1.3"
+#define SLAP_SYNTAX_OBJECTCLASSES_OID	"1.3.6.1.4.1.1466.115.121.1.37"
+
 /*
  * represents schema information for a database
  */
