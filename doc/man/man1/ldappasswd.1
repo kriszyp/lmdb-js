@@ -30,7 +30,7 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-W \ newpasswd\fR]
 [\c
-.BI \-w \ passwd\fR]
+.BR \-w \ [\fIpasswd\fR] ]
 [\c
 .BI \-z \ searchsize\fR]
 [\fIfilter\fR]
@@ -45,6 +45,8 @@ and should not be installed as such.
 .B ldappasswd
 works by specifying a single target dn or by using a search filter.
 Matching entries will be modified with the new password.
+If the new password is not specified on the command line, the user
+will be prompted to enter it.
 The new password will be hashed using
 .I crypt
 or any other supported hashing algorithm.
@@ -96,16 +98,19 @@ Specify the scope of the search. The default is
 .IR base .
 .TP
 .B \-t \fR[\fItargetdn\fR]
-Specify the target dn to modify. If an argument is not given, the target dn will be the binddn.
+Specify the target dn to modify.
+If an argument is not given, the target dn will be the binddn.
 .TP
 .B \-v
 The more v's the more verbose.
 .TP
 .BI \-W \ newpasswd
 Specify the new password.
+If this argument is not given, the user will be prompted to enter the new password.
 .TP
-.BI \-w \ passwd
+.BR \-w \ [\fIpasswd\fR]
 Use \fIpasswd\fP as the password for simple authentication.
+If \fIpasswd\fR is not supplied, the user will be prompted to enter one.
 .TP
 .BI \-z \ searchsize
 Specify a maximum query size.
