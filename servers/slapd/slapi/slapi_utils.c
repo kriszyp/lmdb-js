@@ -4012,3 +4012,62 @@ int slapi_int_access_allowed( Operation *op,
 #endif /* LDAP_SLAPI */
 }
 
+/*
+ * There is no documentation for this.
+ */
+int slapi_rdn2typeval( char *rdn, char **type, struct berval *bv )
+{
+#ifdef LDAP_SLAPI
+	LDAPRDN lrdn;
+	LDAPAVA *ava;
+	int rc;
+	char *p;
+
+	*type = NULL;
+
+	bv->bv_len = 0;
+	bv->bv_val = NULL;
+
+	rc = ldap_str2rdn( rdn, &lrdn, &p, LDAP_DN_FORMAT_LDAPV3 );
+	if ( rc != LDAP_SUCCESS ) {
+		return -1;
+	}
+
+	if ( lrdn[1] != NULL ) {
+		return -1; /* not single valued */
+	}
+
+	ava = lrdn[0];
+
+	*type = slapi_ch_strdup( ava->la_attr.bv_val );
+	ber_dupbv( bv, &ava->la_value );
+
+	ldap_rdnfree(lrdn);
+
+	return 0;
+#else
+	return -1;
+#endif /* LDAP_SLAPI */
+}
+
+char *slapi_dn_plus_rdn( const char *dn, const char *rdn )
+{
+#ifdef LDAP_SLAPI
+	struct berval new_dn, parent_dn, newrdn;
+
+	new_dn.bv_val = NULL;
+
+	parent_dn.bv_val = (char *)dn;
+	parent_dn.bv_len = strlen( dn );
+
+	newrdn.bv_val = (char *)rdn;
+	newrdn.bv_len = strlen( rdn );
+
+	build_new_dn( &new_dn, &parent_dn, &newrdn, NULL );
+
+	return new_dn.bv_val;
+#else
+	return NULL;
+#endif /* LDAP_SLAPI */
+}
+
