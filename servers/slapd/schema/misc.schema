@@ -27,7 +27,7 @@ attribute ( 2.16.840.1.113730.3.1.47 NAME 'mailRoutingAddress'
 
 objectclass ( 2.16.840.1.113730.3.2.3 NAME 'mailRecipient'
 	SUP top AUXILIARY
-	MAY	( cn $ mail $ mailAlternateAddress $ mailHost $ mailRoutingAddress )
+	MAY	( cn $ mail $ mailAlternateAddress $ mailHost $ mailRoutingAddress ))
 
 #objectclass ( 2.16.840.1.113730.3.2.[[TBD]] NAME 'inetLocalMailRecipient'
 #	SUP top AUXILIARY
