@@ -113,7 +113,7 @@ LDAP_F (int) ldap_pvt_unhex( int c );
 #define LDAP_OIDCHAR(c)		( LDAP_DIGIT(c) || (c) == '.' )
 
 #define LDAP_LEADATTRCHAR(c)	( LDAP_LEADKEYCHAR(c) || LDAP_LEADOIDCHAR(c) )
-#define LDAP_ATTRCHAR(c)		( LDAP_KEYCHAR((c)) || (c) == '.' )
+#define LDAP_ATTRCHAR(c)		( LDAP_KEYCHAR(c) || LDAP_OIDCHAR(c) )
 
 #define LDAP_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
