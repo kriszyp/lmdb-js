@@ -165,8 +165,6 @@ ldap_sync_search(
 	return rc;
 }
 
-static const Listener dummy_list = { {0, ""}, {0, ""} };
-
 static int
 do_syncrep1(
 	Operation *op,
@@ -809,25 +807,12 @@ do_syncrepl(
 		return NULL;
 	}
 
-	conn.c_connid = -1;
-	conn.c_send_ldap_result = slap_send_ldap_result;
-	conn.c_send_search_entry = slap_send_search_entry;
-	conn.c_send_search_reference = slap_send_search_reference;
-	conn.c_listener = (Listener *)&dummy_list;
-	conn.c_peer_name = slap_empty_bv;
-
-	/* set memory context */
-	op.o_tmpmemctx = sl_mem_create( SLMALLOC_SLAB_SIZE, ctx );
-	op.o_tmpmfuncs = &sl_mfuncs;
+	connection_fake_init( &conn, &op, ctx );
 
 	op.o_dn = si->si_updatedn;
 	op.o_ndn = si->si_updatedn;
-	op.o_time = slap_get_time();
-	op.o_threadctx = ctx;
 	op.o_managedsait = 1;
 	op.o_bd = si->si_be;
-	op.o_conn = &conn;
-	op.o_connid = op.o_conn->c_connid;
 
 	op.o_sync_state.ctxcsn = NULL;
 	op.o_sync_state.sid = -1;
@@ -854,7 +839,7 @@ do_syncrepl(
 			 */
 			if ( rc == LDAP_SUCCESS ) {
 				if ( first ) {
-					rc = connection_client_setup( s, (Listener *)&dummy_list, do_syncrepl,
+					rc = connection_client_setup( s, do_syncrepl,
 						arg );
 				} else {
 					connection_client_enable( s );

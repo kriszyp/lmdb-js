@@ -65,7 +65,7 @@ static struct sockaddr_in	bind_addr;
 #endif
 
 typedef int (MainFunc) LDAP_P(( int argc, char *argv[] ));
-extern MainFunc slapadd, slapcat, slapindex, slappasswd;
+extern MainFunc slapadd, slapcat, slapdn, slapindex, slappasswd, slaptest;
 
 static struct {
 	char *name;
@@ -73,8 +73,10 @@ static struct {
 } tools[] = {
 	{"slapadd", slapadd},
 	{"slapcat", slapcat},
+	{"slapdn", slapdn},
 	{"slapindex", slapindex},
 	{"slappasswd", slappasswd},
+	{"slaptest", slaptest},
 	{NULL, NULL}
 };
 
@@ -116,7 +118,9 @@ static int   cnvt_str2int( char *, STRDISP_P, int );
 
 #endif	/* LOG_LOCAL4 */
 
-static int check_config = 0;
+#define CHECK_NONE	0x00
+#define CHECK_CONFIG	0x01
+static int check = CHECK_NONE;
 static int version = 0;
 
 static void
@@ -127,7 +131,7 @@ usage( char *name )
 	fprintf( stderr,
 		"\t-4\t\tIPv4 only\n"
 		"\t-6\t\tIPv6 only\n"
-		"\t-T (a|c|i|p)\tRun in Tool mode\n"
+		"\t-T {acdipt}\tRun in Tool mode\n"
 		"\t-c cookie\tSync cookie of consumer\n"
 		"\t-d level\tDebug level" "\n"
 		"\t-f filename\tConfiguration file\n"
@@ -143,7 +147,6 @@ usage( char *name )
 		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
 		"\t-s level\tSyslog level\n"
-		"\t-t\t\tCheck configuration file and exit\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\t\tUser (id or name) to run as\n"
 		"\t-V\t\tprint version info (-VV only)\n"
@@ -266,7 +269,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:f:h:s:n:t:T:V"
+			     "c:d:f:h:s:n:tT:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -370,8 +373,12 @@ int main( int argc, char **argv )
 			break;
 
 		case 't':
-			check_config++;
+			/* deprecated; use slaptest instead */
+			fprintf( stderr, "option -t deprecated; "
+				"use slaptest command instead\n" );
+			check |= CHECK_CONFIG;
 			break;
+
 		case 'V':
 			version++;
 			break;
@@ -431,7 +438,7 @@ int main( int argc, char **argv )
 	Debug( LDAP_DEBUG_ANY, "%s", Versionstr, 0, 0 );
 #endif
 
-	if( !check_config && slapd_daemon_init( urls ) != 0 ) {
+	if( check == CHECK_NONE && slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
 		goto stop;
@@ -532,17 +539,21 @@ int main( int argc, char **argv )
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
 
-		if ( check_config ) {
+		if ( check & CHECK_CONFIG ) {
 			fprintf( stderr, "config check failed\n" );
 		}
 
 		goto destroy;
 	}
 
-	if ( check_config ) {
-		rc = 0;
+	if ( check & CHECK_CONFIG ) {
 		fprintf( stderr, "config check succeeded\n" );
-		goto destroy;
+
+		check &= ~CHECK_CONFIG;
+		if ( check == CHECK_NONE ) {
+			rc = 0;
+			goto destroy;
+		}
 	}
 
 	if ( glue_sub_init( ) != 0 ) {

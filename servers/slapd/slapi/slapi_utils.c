@@ -1573,6 +1573,7 @@ slapi_send_ldap_search_entry(
 	rs.sr_attrs = an;
 	rs.sr_entry = e;
 	rs.sr_v2ref = NULL;
+	rs.sr_flags = 0;
 
 	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&pOp ) != 0 ) {
 		return LDAP_OTHER;

@@ -81,6 +81,9 @@
 #if defined(SLAPD_PERL) && !defined(SLAPD_PERL_DYNAMIC)
 #include "back-perl/external.h"
 #endif
+#if defined(SLAPD_RELAY) && !defined(SLAPD_RELAY_DYNAMIC)
+#include "back-relay/external.h"
+#endif
 #if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
 #include "back-shell/external.h"
 #endif
@@ -124,6 +127,9 @@ static BackendInfo binfo[] = {
 #endif
 #if defined(SLAPD_PERL) && !defined(SLAPD_PERL_DYNAMIC)
 	{"perl",	perl_back_initialize},
+#endif
+#if defined(SLAPD_RELAY) && !defined(SLAPD_RELAY_DYNAMIC)
+	{"relay",	relay_back_initialize},
 #endif
 #if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
 	{"shell",	shell_back_initialize},
@@ -1283,6 +1289,14 @@ backend_group(
 						case LDAP_SCOPE_SUBTREE:
 							if ( !dnIsSuffix( op_ndn, &nbase )) goto loopit;
 							break;
+#ifdef LDAP_SCOPE_SUBORDINATE
+						case LDAP_SCOPE_SUBORDINATE:
+							if ( dn_match( &nbase, op_ndn ) &&
+								!dnIsSuffix(op_ndn, &nbase ))
+							{
+								goto loopit;
+							}
+#endif
 						}
 						filter = str2filter_x( op, ludp->lud_filter );
 						if ( filter ) {

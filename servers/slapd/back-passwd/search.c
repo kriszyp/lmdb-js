@@ -131,6 +131,7 @@ passwd_back_search(
 			if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 				rs->sr_entry = e;
 				rs->sr_attrs = op->ors_attrs;
+				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				send_search_entry( op, rs );
 			}
 		}
@@ -174,6 +175,7 @@ passwd_back_search(
 
 					rs->sr_entry = e;
 					rs->sr_attrs = op->ors_attrs;
+					rs->sr_flags = REP_ENTRY_MODIFIABLE;
 					send_search_entry( op, rs );
 				}
 
@@ -233,6 +235,7 @@ passwd_back_search(
 		if ( test_filter( op, e, op->ors_filter ) == LDAP_COMPARE_TRUE ) {
 			rs->sr_entry = e;
 			rs->sr_attrs = op->ors_attrs;
+			rs->sr_flags = REP_ENTRY_MODIFIABLE;
 			send_search_entry( op, rs );
 		}
 

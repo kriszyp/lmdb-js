@@ -49,24 +49,29 @@ usage( int tool, const char *progname )
 {
 	char *options = NULL;
 	fprintf( stderr,
-		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]\n"
-			"\t[-n databasenumber | -b suffix]", progname );
+		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]\n",
+		progname );
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "\n\t[-l ldiffile] [-u] [-p [-w] | -r [-i syncreplidlist] [-w]]\n";
+		options = "\t[-n databasenumber | -b suffix]\n"
+			"\t[-l ldiffile] [-u] [-p [-w] | -r [-i syncreplidlist] [-w]]\n";
 		break;
 
 	case SLAPCAT:
-		options = "\t[-l ldiffile] [-m] [-k]\n";
+		options = "\t[-n databasenumber | -b suffix] [-l ldiffile] [-m] [-k]\n";
+		break;
+
+	case SLAPDN:
+		options = "\tDN [...]\n";
 		break;
 
 	case SLAPINDEX:
-		options = "\n";
+		options = "\t[-n databasenumber | -b suffix]\n";
 		break;
 	}
 
-	if( options != NULL ) {
+	if ( options != NULL ) {
 		fputs( options, stderr );
 	}
 	exit( EXIT_FAILURE );
@@ -110,14 +115,19 @@ slap_tool_init(
 		options = "b:cd:f:i:l:n:prtuvWw";
 		break;
 
-	case SLAPINDEX:
-		options = "b:cd:f:n:v";
-		mode |= SLAP_TOOL_READMAIN;
-		break;
-
 	case SLAPCAT:
 		options = "b:cd:f:kl:mn:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
+		break;
+
+	case SLAPDN:
+	case SLAPTEST:
+		options = "d:f:v";
+		break;
+
+	case SLAPINDEX:
+		options = "b:cd:f:n:v";
+		mode |= SLAP_TOOL_READMAIN;
 		break;
 
 	default:
@@ -223,16 +233,38 @@ slap_tool_init(
 		}
 	}
 
-	if ( ( argc != optind ) || (dbnum >= 0 && base.bv_val != NULL ) ) {
-		usage( tool, progname );
-	}
-
-	if ( replica_promotion && replica_demotion ) {
-		usage( tool, progname );
-	} else if ( !replica_promotion && !replica_demotion ) {
-		if ( update_ctxcsn != SLAP_TOOL_CTXCSN_KEEP ) {
+	switch ( tool ) {
+	case SLAPADD:
+	case SLAPCAT:
+	case SLAPINDEX:
+		if ( ( argc != optind ) || (dbnum >= 0 && base.bv_val != NULL ) ) {
 			usage( tool, progname );
 		}
+
+		if ( replica_promotion && replica_demotion ) {
+			usage( tool, progname );
+
+		} else if ( !replica_promotion && !replica_demotion ) {
+			if ( update_ctxcsn != SLAP_TOOL_CTXCSN_KEEP ) {
+				usage( tool, progname );
+			}
+		}
+		break;
+
+	case SLAPDN:
+		if ( argc == optind ) {
+			usage( tool, progname );
+		}
+		break;
+
+	case SLAPTEST:
+		if ( argc != optind ) {
+			usage( tool, progname );
+		}
+		break;
+
+	default:
+		break;
 	}
 
 	if ( ldiffile == NULL ) {
@@ -279,9 +311,19 @@ slap_tool_init(
 
 	ldap_syslog = 0;
 
-	if ( !nbackends ) {
-		fprintf( stderr, "No databases found in config file\n" );
-		exit( EXIT_FAILURE );
+	switch ( tool ) {
+	case SLAPADD:
+	case SLAPCAT:
+	case SLAPINDEX:
+		if ( !nbackends ) {
+			fprintf( stderr, "No databases found "
+					"in config file\n" );
+			exit( EXIT_FAILURE );
+		}
+		break;
+
+	default:
+		break;
 	}
 
 	rc = glue_sub_init();
@@ -296,6 +338,15 @@ slap_tool_init(
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: slap_schema_prep failed!\n", progname );
 		exit( EXIT_FAILURE );
+	}
+
+	switch ( tool ) {
+	case SLAPDN:
+	case SLAPTEST:
+		return;
+
+	default:
+		break;
 	}
 
 	if( subtree ) {

@@ -347,6 +347,14 @@ searchit:
 			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
+#ifdef LDAP_SCOPE_SUBORDINATE
+			} else if ( !scopeok
+				&& op->ors_scope == LDAP_SCOPE_SUBORDINATE )
+			{
+				scopeok = !dn_match( &e->e_nname, &realbase )
+					&& dnIsSuffix( &e->e_nname, &realbase );
+#endif
+
 			} else {
 				scopeok = 1;
 			}
@@ -403,6 +411,14 @@ searchit:
 			{
 				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
+#ifdef LDAP_SCOPE_SUBORDINATE
+			} else if ( !scopeok &&
+				op->ors_scope == LDAP_SCOPE_SUBORDINATE )
+			{
+				scopeok = !dn_match( &e->e_nname, &realbase )
+					&& dnIsSuffix( &e->e_nname, &realbase );
+#endif
+
 			} else {
 				scopeok = 1;
 			}
@@ -418,6 +434,7 @@ searchit:
 				}
 
 				if (e) {
+					rs->sr_flags = 0;
 					result = send_search_entry( op, rs );
 
 					switch (result) {

@@ -23,8 +23,11 @@
 enum slaptool {
 	SLAPADD=1,	/* LDIF -> database tool */
 	SLAPCAT,	/* database -> LDIF tool */
+	SLAPDN,		/* DN check w/ syntax tool */
 	SLAPINDEX,	/* database index tool */
-	SLAPPASSWD	/* password generation tool */
+	SLAPPASSWD,	/* password generation tool */
+	SLAPTEST,	/* slapd.conf test tool */
+	SLAPLAST
 };
 
 #define SLAP_TOOL_CTXCSN_KEEP	0

@@ -70,15 +70,62 @@ ldap_back_db_config(
 
 	/* URI of server to query (preferred over "server" directive) */
 	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
+		LDAPURLDesc	*lud, tmplud;
+
 		if (argc != 2) {
-			fprintf( stderr,
-	"%s: line %d: missing address in \"uri <address>\" line\n",
-			    fname, lineno );
+			fprintf( stderr, "%s: line %d: "
+				"missing uri "
+				"in \"uri <uri>\" line\n",
+				fname, lineno );
 			return( 1 );
 		}
-		if (li->url != NULL)
-			ch_free(li->url);
-		li->url = ch_strdup(argv[1]);
+		if ( li->url != NULL ) {
+			ch_free( li->url );
+		}
+
+		if ( ldap_url_parse( argv[ 1 ], &lud ) != LDAP_URL_SUCCESS ) {
+			fprintf( stderr, "%s: line %d: "
+				"unable to parse uri \"%s\" "
+				"in \"uri <uri>\" line\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+
+		if ( ( lud->lud_dn != NULL && lud->lud_dn[0] != '\0' )
+				|| lud->lud_attrs != NULL
+				|| lud->lud_filter != NULL
+				|| lud->lud_exts != NULL )
+		{
+			fprintf( stderr, "%s: line %d: "
+				"warning, only protocol, "
+				"host and port allowed "
+				"in \"uri <uri>\" line\n",
+				fname, lineno );
+		}
+
+#if 0
+		tmplud = *lud;
+		tmplud.lud_dn = NULL;
+		tmplud.lud_attrs = NULL;
+		tmplud.lud_filter = NULL;
+		if ( !ldap_is_ldapi_url( argv[ 1 ] ) ) {
+			tmplud.lud_exts = NULL;
+			tmplud.lud_crit_exts = 0;
+		}
+		
+		li->url = ldap_url_desc2str( &tmplud );
+		if ( li->url == NULL ) {
+			fprintf( stderr, "%s: line %d: "
+				"unable to rebuild uri \"%s\" "
+				"in \"uri <uri>\" line\n",
+				fname, lineno, argv[ 1 ] );
+			return 1;
+		}
+#else
+		li->url = ch_strdup( argv[ 1 ] );
+#endif
+
+		ldap_free_urldesc( lud );
 
 	/* name to use for ldap_back_group */
 	} else if ( strcasecmp( argv[0], "binddn" ) == 0 ) {

@@ -1339,6 +1339,7 @@ backsql_search( Operation *op, SlapReply *rs )
 			{
 				rs->sr_attrs = op->ors_attrs;
 				rs->sr_entry = entry;
+				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				sres = send_search_entry( op, rs );
 				rs->sr_entry = NULL;
 				rs->sr_attrs = NULL;
