@@ -1066,7 +1066,7 @@ list_groups( char *who )
 
 	/* lookup the groups belonging to this person */
 	sprintf(filter, "owner=%s", dn);
-	Free(dn);
+	ldap_memfree(dn);
 	search_attrs[0] = "cn";
 	search_attrs[1] = NULL;
 	if ((rc = ldap_search_s(ld, UD_WHERE_ALL_GROUPS_LIVE, LDAP_SCOPE_SUBTREE, 
@@ -1199,7 +1199,7 @@ list_memberships( char *who )
 
 	/* lookup the groups belonging to this person */
 	sprintf(filter, "member=%s", dn);
-	Free(dn);
+	ldap_memfree(dn);
 	search_attrs[0] = "cn";
 	search_attrs[1] = NULL;
 	ldap_msgfree(mp);

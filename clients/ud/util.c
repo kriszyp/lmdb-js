@@ -579,16 +579,7 @@ Malloc( unsigned int size )
 void
 Free( void *ptr )
 {
-#if 0
-	if (free(ptr) < 0) {
-		perror("free");
-		exit(-1);
-		/*NOTREACHED*/
-	}
-#else
 	free(ptr);
-#endif
-	return;
 }
 
 char *

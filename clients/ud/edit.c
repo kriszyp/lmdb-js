@@ -93,7 +93,7 @@ edit( char *who )
 	}
 	dn = ldap_get_dn(ld, ldap_first_entry(ld, mp));
 	rdns = ldap_explode_dn(dn, TRUE);
-	Free(dn);
+	ldap_memfree(dn);
 	if (verbose) {
 		printf("\n  Editing directory entry \"%s\"...\n", *rdns);
 	}

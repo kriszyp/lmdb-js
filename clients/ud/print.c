@@ -415,7 +415,7 @@ clear_entry( void )
 		printf(" Clearing entry \"%s\"\n", Entry.name);
 #endif
 	if (Entry.DN != NULL)
-		Free(Entry.DN);
+		ldap_memfree(Entry.DN);
 	if (Entry.name != NULL)
 		Free(Entry.name);
 	Entry.may_join = FALSE;

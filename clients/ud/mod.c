@@ -147,7 +147,7 @@ modify( char *who )
 		parse_answer(mp);
 		(void) ldap_msgfree(mp);
 	}
-	(void) Free(dn);
+	ldap_memfree(dn);
 	ldap_value_free(rdns);
 	return;
 }
@@ -483,7 +483,7 @@ mail_is_good:
 			}
 			tmp = ldap_get_dn(ld, elmp);
 			strcpy(buffer, tmp);
-			Free(tmp);
+			ldap_memfree(tmp);
 			(void) ldap_msgfree(lmp);
 			break;
 		}

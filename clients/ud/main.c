@@ -485,7 +485,7 @@ change_base( int type, char **base, char *s )
 			if (j == 0) {
 				(void) ldap_msgfree(mp);
 				for (i = 0; i < matches; i++)
-					Free(choices[i]);
+					ldap_memfree(choices[i]);
 				return;
 			}
 			if ((j < 1) || (j >= i))
@@ -495,7 +495,7 @@ change_base( int type, char **base, char *s )
 				printbase(output_string, *base);
 				(void) ldap_msgfree(mp);
 				for (i = 0; choices[i] != NULL; i++)
-					Free(choices[i]);
+					ldap_memfree(choices[i]);
 				return;
 			}
 		}

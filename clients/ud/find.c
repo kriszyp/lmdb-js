@@ -223,7 +223,7 @@ find( char *who, int quiet )
 		} else if (matches == 1) {
 			dn = ldap_get_dn(ld, ldap_first_entry(ld, res));
 			rc = ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res);
-			Free(dn);
+			ldap_memfree(dn);
 			if (rc != LDAP_SUCCESS) {
 				int ld_errno = 0;
 				ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
@@ -291,7 +291,7 @@ find( char *who, int quiet )
 				fetch_buffer(response, sizeof(response), stdin);
 				if ((response[0] == 'n') || (response[0] == 'N'))
 				{
-					Free(dn);
+					ldap_memfree(dn);
 					return(NULL);
 				}
 			}
@@ -314,7 +314,7 @@ find( char *who, int quiet )
 				ldap_msgfree(res);
 				res = NULL;
 			}
-			Free(dn);
+			ldap_memfree(dn);
 			return(res);
 		}
 		else if (matches > 0) {
