@@ -109,13 +109,11 @@ cat << _EOF_ >> $TMP
 
 _EOF_
 
-# If your compiler doesn't have -M, add it.  If you can't, the next two
-# lines will try and replace the "cc -M".  The real problem is that this
-# hack can't deal with anything that requires a search path, and doesn't
-# even try for anything using bracket (<>) syntax.
-#
-# egrep '^#include[ 	]*".*"' /dev/null $* |
-# sed -e 's/:[^"]*"\([^"]*\)".*/: \1/' -e 's/\.c/.o/' |
+# If your compiler doesn't have -M, you may be able to use -E instead.
+# The preprocessor must generate lines of the form
+#   #.* [0-9]* "dependent file" .*
+# This script will parse out the "dependent file"s to generate the
+# dependency list.
 
 if test "x$SRCDIR" = "x" ; then
 	files=$*
@@ -143,6 +141,38 @@ cat << _EOF_ >> $TMP
 
 _EOF_
 
+case $MKDEP_CFLAGS in
+# Using regular preprocessor output
+	-E*)
+FLAGS=""
+FILES=""
+for i in $files; do
+	case $i in
+	-*)	FLAGS="$FLAGS $i" ;;
+	*)	FILES="$FILES $i" ;;
+	esac
+done
+for i in $FILES; do
+	$MKDEP_CC $MKDEP_CFLAGS $FLAGS $i | egrep '^#.*"' > $TMP.sed
+awk '
+BEGIN {
+	file = "'$i'"
+	n = split(file, parts, "/")
+	filenm = substr(parts[n], 0, length(parts[n])-1) "o"
+}
+{
+	dep = split($3, parts, "\"")
+	dep = parts[2]
+	if (dep ~ "^\./.*") dep = substr(dep, 3, length(dep)-2)
+	if (( noslash == "yes") && (dep ~ /^\// )) continue
+	if (deps[dep] == 0) printf "%s: %s\n", filenm, dep
+	deps[dep] = 1
+}' noslash="$NOSLASH" $TMP.sed >> $TMP
+done
+	;;
+
+	*)
+# Using -M or some other specific dependency-generating option
 $MKDEP_CC $MKDEP_CFLAGS $files | \
 	sed -e 's; \./; ;g' -e 's/ :/:/' | \
 	$SED > $TMP.sed
@@ -170,6 +200,8 @@ $1 !~ /:$/ {
 	}
 }
 ' noslash="$NOSLASH" $TMP.sed >> $TMP
+	;;
+esac
 
 
 cat << _EOF_ >> $TMP
