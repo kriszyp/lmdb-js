@@ -39,7 +39,7 @@ objectClass ( OpenLDAPobjectClass:3
 	NAME 'OpenLDAPorg'
 	DESC 'OpenLDAP Organizational Object'
 	SUP organization
-	MAY ( buildingName $ displayName $ labeledURI $ OpenLDAPtime ) )
+	MAY ( buildingName $ displayName $ labeledURI ) )
 
 objectClass ( OpenLDAPobjectClass:4
 	NAME 'OpenLDAPou'
@@ -52,7 +52,7 @@ objectClass ( OpenLDAPobjectClass:5
 	DESC 'OpenLDAP Person'
 	SUP ( pilotPerson $ inetOrgPerson )
 	MUST ( uid $ cn )
-	MAY ( givenName $ labeledURI $ o ) )
+	MAY ( givenName $ labeledURI $ o $ OpenLDAPtime ) )
 
 objectClass ( OpenLDAPobjectClass:6
 	NAME 'OpenLDAPdisplayableObject'
