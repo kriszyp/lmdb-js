@@ -409,7 +409,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 				bsi, 0, AVL_INORDER );
 	}
 
-	if ( attr_merge_one( bsi->e, ad_oc, &bsi->oc->oc->soc_cname ) ) {
+	if ( attr_mergeit_one( bsi->e, ad_oc, &bsi->oc->oc->soc_cname ) ) {
 		entry_free( e );
 		return NULL;
 	}
@@ -436,7 +436,7 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 
 		if ( bsi->bsi_flags | BSQL_SF_ALL_OPER 
 				|| an_find( bsi->attrs, &AllOper ) ) {
-			if ( attr_merge_one( bsi->e, ad_soc, &soc ) ) {
+			if ( attr_mergeit_one( bsi->e, ad_soc, &soc ) ) {
 				entry_free( e );
 				return NULL;
 			}

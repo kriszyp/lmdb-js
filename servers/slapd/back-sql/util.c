@@ -255,7 +255,7 @@ backsql_entry_addattr(
 		return 0;
 	}
 
-	rc = attr_merge_one( e, ad, at_val );
+	rc = attr_mergeit_one( e, ad, at_val );
 
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
