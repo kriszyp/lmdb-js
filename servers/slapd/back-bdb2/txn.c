@@ -272,7 +272,8 @@ bdb2i_txn_close_files( BackendDB *be )
 
 	}
 
-	ldbm_close( head->nextidFile );
+	if ( head->nextidFile )
+		ldbm_close( head->nextidFile );
 
 }
 
