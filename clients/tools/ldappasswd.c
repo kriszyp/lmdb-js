@@ -44,7 +44,7 @@ usage(const char *s)
 "  -h host    LDAP server(s)\n"
 "  -H URI     LDAP Uniform Resource Indentifier(s)\n"
 "  -I         use SASL Interactive mode\n"
-"  -n         show what would be done but don't actually search\n"
+"  -n         show what would be done but don't actually update\n"
 "  -O props   SASL security properties\n"
 "  -p port    port on LDAP server\n"
 "  -Q         use SASL Quiet mode\n"

@@ -539,7 +539,7 @@ main( int argc, char **argv )
 
 		ld = ldap_init( ldaphost, ldapport );
 		if( ld == NULL ) {
-			perror("ldapsearch: ldap_init");
+			perror("ldapcompare: ldap_init");
 			return EXIT_FAILURE;
 		}
 
