@@ -874,8 +874,7 @@ int slap_mods_opattrs(
 		timestamp.bv_len = strlen(timebuf);
 
 		if( op->o_dn.bv_len == 0 ) {
-			name.bv_val = SLAPD_ANONYMOUS;
-			name.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
+			BER_BVSTR( &name, SLAPD_ANONYMOUS );
 			nname = name;
 		} else {
 			name = op->o_dn;

@@ -237,11 +237,9 @@ slapadd( int argc, char **argv )
 			timestamp.bv_val = timebuf;
 			timestamp.bv_len = strlen(timebuf);
 
-			if ( be->be_rootndn.bv_len == 0 ) {
-				name.bv_val = SLAPD_ANONYMOUS;
-				name.bv_len = sizeof(SLAPD_ANONYMOUS) - 1;
-				nname.bv_val = SLAPD_ANONYMOUS;
-				nname.bv_len = sizeof(SLAPD_ANONYMOUS) - 1;
+			if ( BER_BVISEMPTY( &be->be_rootndn ) ) {
+				BER_BVSTR( &name, SLAPD_ANONYMOUS );
+				nname = name;
 			} else {
 				name = be->be_rootdn;
 				nname = be->be_rootndn;
