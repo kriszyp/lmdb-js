@@ -85,12 +85,47 @@ The next section after that describes the second step of mapping
 authentication identities to DN's.
 
 
-H3: Kerberos V4
+H3: GSSAPI and Kerberos V
+
+This section describes the use of the SASL GSSAPI mechanism and
+Kerberos V with OpenLDAP.  It will be assumed that you have Kerberos
+V deployed, you familiar with the operation of the system and that
+your users are trained its use.  General information about Kerberos
+is available at {{URL:http://web.mit.edu/kerberos/www/}}.
+
+To use GSSAPI mechanism with {{slapd}}(8) one must create a service
+key with a principal for {{ldap}} service within realm for the host
+on which the service runs.  For example, if your run {{slapd}} on
+{{EX:directory.example.com}} and your realm is {{EX:EXAMPLE.COM}},
+you need to create a service key with the principal:
+
+>	ldap/directory.example.com@EXAMPLE.COM
+
+When {{slapd}}(8) runs, it must have access to this key.  This is
+generally done by placing the key into a keytab such as
+{{FILE:/etc/krb5.keytab}}.
+
+To use the GSSAPI mechanism to authenticate to the directory, the
+user obtain a Ticket Granting Ticket (TGT) prior to running the
+LDAP client.  When using OpenLDAP client tools, the user may mandate
+use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
+command option.
+
+For the purposes of authentication and authorization, {{slapd}}(8)
+associated the non-mapped authentication DN of
+
+>	uid=user@REALM,cn=GSSAPI,cn=authzid
+
+for the GSSAPI principal "user@REALM".  The may be subsequently
+mapped as detailed below.
+
+
+H3: KERBEROS_V4
 
 This section describes the use of the SASL KERBEROS_V4 mechanism
 with OpenLDAP.  It will be assumed that you are familiar with the
-workings of Kerberos V4 security system, and that your site has
-either Kerberos V4 deployed.  Your users should be familiar with
+workings of Kerberos IV security system, and that your site has
+either Kerberos IV deployed.  Your users should be familiar with
 authentication policy, are aware of how to receive credentials in
 a Kerberos ticket cache, and how to refresh expired credentials.
 
@@ -172,7 +207,7 @@ in your directory tree, and the tree does not start at cn=authzid.
 But if your site has a clear mapping between the "username" and an
 LDAP entry for the person, you will be able to configure your LDAP
 server to automatically map a user's authentication username to
-their {{authentication DN.}}
+their {{authentication DN}}.
 
 The LDAP administrator will need to tell the slapd server how to
 map an authentication request DN to a user's authentication DN.
