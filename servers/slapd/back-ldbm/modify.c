@@ -42,6 +42,8 @@ int ldbm_modify_internal(
 	Modifications	*ml;
 	Attribute	*save_attrs;
 
+	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal:\n", 0, 0, 0);
+
 	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
@@ -54,6 +56,7 @@ int ldbm_modify_internal(
 
 		switch ( mod->sm_op ) {
 		case LDAP_MOD_ADD:
+			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: add\n", 0, 0, 0);
 			err = add_values( e, mod, op->o_ndn );
 
 			if( err != LDAP_SUCCESS ) {
@@ -62,6 +65,7 @@ int ldbm_modify_internal(
 			break;
 
 		case LDAP_MOD_DELETE:
+			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: delete\n", 0, 0, 0);
 			err = delete_values( e, mod, op->o_ndn );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
@@ -70,6 +74,7 @@ int ldbm_modify_internal(
 			break;
 
 		case LDAP_MOD_REPLACE:
+			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: replace\n", 0, 0, 0);
 			err = replace_values( e, mod, op->o_ndn );
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
@@ -78,6 +83,7 @@ int ldbm_modify_internal(
 			break;
 
 		case SLAP_MOD_SOFTADD:
+			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: softadd\n", 0, 0, 0);
  			/* Avoid problems in index_add_mods()
  			 * We need to add index if necessary.
  			 */
@@ -94,6 +100,9 @@ int ldbm_modify_internal(
  			break;
 
 		default:
+			Debug(LDAP_DEBUG_ANY, "ldbm_modify_internal: invalid op %d\n",
+				mod->sm_op, 0, 0);
+			*text = "Invalid modify operation";
 			err = LDAP_OTHER;
 		}
 
@@ -234,7 +243,7 @@ ldbm_back_modify(
 	Entry		*matched;
 	Entry		*e;
 	int		manageDSAit = get_manageDSAit( op );
-	const char *text;
+	const char *text = NULL;
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
@@ -296,7 +305,7 @@ ldbm_back_modify(
 	/* change the entry itself */
 	if ( id2entry_add( be, e ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, NULL, NULL, NULL );
+			NULL, "id2entry failure", NULL, NULL );
 		goto error_return;
 	}
 
@@ -388,7 +397,7 @@ delete_values(
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			int match;
-			const char *text;
+			const char *text = NULL;
 			int rc = value_match( &match, mod->sm_desc,
 				mod->sm_desc->ad_type->sat_equality,
 				mod->sm_bvalues[i], a->a_vals[j], &text );

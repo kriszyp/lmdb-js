@@ -29,7 +29,7 @@ ldbm_back_add(
 	Entry		*p = NULL;
 	int			rootlock = 0;
 	int			rc; 
-	const char	*text;
+	const char	*text = NULL;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *children = slap_schema.si_ad_children;
 #else

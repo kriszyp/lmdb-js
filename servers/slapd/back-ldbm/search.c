@@ -43,7 +43,7 @@ ldbm_back_search(
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		rc, err;
-	const char *text;
+	const char *text = NULL;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
 	ID		id, cursor;

@@ -56,7 +56,7 @@ ldbm_back_modrdn(
 	Entry		*matched;
 	int			rootlock = 0;
 	int			rc = -1;
-	const char *text;
+	const char *text = NULL;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
 	char		*new_rdn_val = NULL;	/* Val of new rdn */
 	char		*new_rdn_type = NULL;	/* Type of new rdn */
