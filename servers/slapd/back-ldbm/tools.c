@@ -290,10 +290,8 @@ int ldbm_tool_entry_reindex(
 		id, e->e_dn, 0 );
 #endif
 
-	rc = dn2id_add( be, e->e_ndn, e->e_id );
-	if( rc == 0 ) {
-		rc = index_entry_add( be, e, e->e_attrs );
-	}
+	dn2id_add( be, e->e_ndn, e->e_id );
+	rc = index_entry_add( be, e, e->e_attrs );
 
 	entry_free( e );
 
