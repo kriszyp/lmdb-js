@@ -2492,9 +2492,14 @@ aci_mask(
 		return 0;
 	}
 
+	/* note: this may fail if a DN contains a valid '#' (unescaped) */
+#if 0
 	if ( aci_get_part( aci, 4, '#', &sdn ) < 0 ) {
 		return 0;
 	}
+#endif
+	sdn.bv_val = type.bv_val + type.bv_len + STRLENOF( "#" );
+	sdn.bv_len = aci->bv_len - ( sdn.bv_val - aci->bv_val );
 
 	if ( ber_bvstrcasecmp( &aci_bv_access_id, &type ) == 0 ) {
 		struct berval ndn;
