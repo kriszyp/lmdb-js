@@ -59,6 +59,8 @@ be submitted using the {{ORG:OpenLDAP}}
 
 P2[notoc] About this document
 
-This document was produced using the
-{{Simple Document Format}} ({{URL:http://www.mincom.com/mtr/sdf/}})
-documentation system developed by {{Ian Clatworthy}}.
+This document was produced using the {{Simple Document Format}}
+({{URL:http://www.mincom.com/mtr/sdf/}}) documentation system
+developed by {{Ian Clatworthy}}.  Tools for {{SDF}} are available
+from CPAN ({{URL:http://search.cpan.org/search?query=SDF}}).
+
