@@ -322,82 +322,85 @@ ldap_pvt_inet_aton( const char *host, struct in_addr *in)
 int
 ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	int proto,
-	const char *host,
-	unsigned long address, int port, int async )
+	const char *host, int port,
+	int async )
 {
 	ber_socket_t		s = AC_SOCKET_INVALID;
 	int			rc, i, use_hp = 0;
 	struct hostent		*hp = NULL;
-#if !defined( HAVE_GETADDRINFO ) || !defined( HAVE_INET_NTOP )
+#if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+	char serv[7];
+	int err;
+	struct addrinfo hints, *res, *sai;
+#else
 	struct hostent he_buf;
+	struct in_addr in;
 #endif
-	char   			*ha_buf=NULL, *p, *q;
-	int			socktype;
+	char   	*ha_buf=NULL, *p, *q;
+	int		socktype;
 
+	if( host == NULL ) host = "localhost";
 	
 	switch(proto) {
 	case LDAP_PROTO_TCP: socktype = SOCK_STREAM;
-		osip_debug(ld, "ldap_connect_to_host: TCP %s:%d\n",host,port,0);
+		osip_debug( ld,
+			"ldap_connect_to_host: TCP %s:%d\n",
+			host, port, 0);
 		break;
 	case LDAP_PROTO_UDP: socktype = SOCK_DGRAM;
-		osip_debug(ld, "ldap_connect_to_host: UDP %s:%d\n",host,port,0);
+		osip_debug( ld,
+			"ldap_connect_to_host: UDP %s:%d\n",
+			host, port, 0);
 		break;
-
 	default:
-		osip_debug(ld, "ldap_connect_to_host: unknown proto: %d\n",
-			proto, 0, 0);
+		osip_debug( ld, "ldap_connect_to_host: unknown proto: %d\n",
+			proto, 0, 0 );
 		return -1;
 	}
 
-	if (host != NULL) {
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
-		char serv[7];
-		int err;
-		struct addrinfo hints, *res, *sai;
-
-		memset( &hints, '\0', sizeof(hints) );
-		hints.ai_family = ldap_int_inet4or6;
-		hints.ai_socktype = socktype;
-
-		snprintf(serv, sizeof serv, "%d", port );
+	memset( &hints, '\0', sizeof(hints) );
+	hints.ai_family = ldap_int_inet4or6;
+	hints.ai_socktype = socktype;
+	snprintf(serv, sizeof serv, "%d", port );
 
 #ifdef LDAP_R_COMPILE
-		/* most getaddrinfo(3) use non-threadsafe resolver libraries */
-		ldap_pvt_thread_mutex_lock(&ldap_int_resolv_mutex);
+	/* most getaddrinfo(3) use non-threadsafe resolver libraries */
+	ldap_pvt_thread_mutex_lock(&ldap_int_resolv_mutex);
 #endif
 
-		err = getaddrinfo( host, serv, &hints, &res );
+	err = getaddrinfo( host, serv, &hints, &res );
 
 #ifdef LDAP_R_COMPILE
-		ldap_pvt_thread_mutex_unlock(&ldap_int_resolv_mutex);
+	ldap_pvt_thread_mutex_unlock(&ldap_int_resolv_mutex);
 #endif
 
-		if ( err != 0 ) {
-			osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n",
-				AC_GAI_STRERROR(err), 0, 0);
-			return -1;
+	if ( err != 0 ) {
+		osip_debug(ld, "ldap_connect_to_host: getaddrinfo failed: %s\n",
+			AC_GAI_STRERROR(err), 0, 0);
+		return -1;
+	}
+	rc = -1;
+
+	for( sai=res; sai != NULL; sai=sai->ai_next) {
+		if( sai->ai_addr == NULL ) {
+			osip_debug(ld, "ldap_connect_to_host: getaddrinfo "
+				"ai_addr is NULL?\n", 0, 0, 0);
+			continue;
 		}
-		rc = -1;
 
-		for( sai=res; sai != NULL; sai=sai->ai_next) {
-			if( sai->ai_addr == NULL ) {
-				osip_debug(ld, "ldap_connect_to_host: getaddrinfo "
-					"ai_addr is NULL?\n", 0, 0, 0);
-				continue;
-			}
+		/* we assume AF_x and PF_x are equal for all x */
+		s = ldap_int_socket( ld, sai->ai_family, socktype );
+		if ( s == AC_SOCKET_INVALID ) {
+			continue;
+		}
 
-			/* we assume AF_x and PF_x are equal for all x */
-			s = ldap_int_socket( ld, sai->ai_family, socktype );
-			if ( s == AC_SOCKET_INVALID ) {
-				continue;
-			}
+		if ( ldap_int_prepare_socket(ld, s, proto ) == -1 ) {
+			ldap_pvt_close_socket(ld, s);
+			break;
+		}
 
-			if ( ldap_int_prepare_socket(ld, s, proto ) == -1 ) {
-				ldap_pvt_close_socket(ld, s);
-				break;
-			}
-
-			switch (sai->ai_family) {
+		switch (sai->ai_family) {
 #ifdef LDAP_PF_INET6
 			case AF_INET6: {
 				char addr[INET6_ADDRSTRLEN];
@@ -416,39 +419,36 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 				osip_debug(ld, "ldap_connect_to_host: Trying %s:%s\n", 
 					addr, serv, 0);
 			} break;
-			}
-
-			rc = ldap_pvt_connect(ld, s, sai->ai_addr, sai->ai_addrlen, async);
-			if ( (rc == 0) || (rc == -2) ) {
-				ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &s );
-				break;
-			}
-			ldap_pvt_close_socket(ld, s);
 		}
-		freeaddrinfo(res);
-		return rc;
+
+		rc = ldap_pvt_connect( ld, s,
+			sai->ai_addr, sai->ai_addrlen, async );
+		if ( (rc == 0) || (rc == -2) ) {
+			ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &s );
+			break;
+		}
+		ldap_pvt_close_socket(ld, s);
+	}
+	freeaddrinfo(res);
 
 #else
-		struct in_addr in;
-		if (! inet_aton( host, &in) ) {
-			int local_h_errno;
-			rc = ldap_pvt_gethostbyname_a(host, &he_buf, &ha_buf,
-					&hp, &local_h_errno);
+	if (! inet_aton( host, &in ) ) {
+		int local_h_errno;
+		rc = ldap_pvt_gethostbyname_a( host, &he_buf, &ha_buf,
+			&hp, &local_h_errno );
 
-			if ( (rc < 0) || (hp == NULL) ) {
+		if ( (rc < 0) || (hp == NULL) ) {
 #ifdef HAVE_WINSOCK
-				ldap_pvt_set_errno( WSAGetLastError() );
+			ldap_pvt_set_errno( WSAGetLastError() );
 #else
-				/* not exactly right, but... */
-				ldap_pvt_set_errno( EHOSTUNREACH );
+			/* not exactly right, but... */
+			ldap_pvt_set_errno( EHOSTUNREACH );
 #endif
-				if (ha_buf) LDAP_FREE(ha_buf);
-				return -1;
-			}
-			use_hp = 1;
+			if (ha_buf) LDAP_FREE(ha_buf);
+			return -1;
 		}
-		address = in.s_addr;
-#endif
+
+		use_hp = 1;
 	}
 
 	rc = s = -1;
@@ -470,7 +470,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons((short) port);
 		p = (char *)&sin.sin_addr;
-		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&address;
+		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&in.s_addr;
 		AC_MEMCPY(p, q, sizeof(sin.sin_addr) );
 
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
@@ -491,6 +491,8 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 			break;
 	}
 	if (ha_buf) LDAP_FREE(ha_buf);
+#endif
+
 	return rc;
 }
 

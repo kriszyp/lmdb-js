@@ -242,7 +242,6 @@ ldap_int_open_connection(
 #endif
 	char *host;
 	int port, proto;
-	long addr;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( CONNECTION, ENTRY, "ldap_int_open_connection\n", 0, 0, 0 );
@@ -254,10 +253,8 @@ ldap_int_open_connection(
 		case LDAP_PROTO_TCP:
 			port = srv->lud_port;
 
-			addr = 0;
 			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
 				host = NULL;
-				addr = htonl( INADDR_LOOPBACK );
 			} else {
 				host = srv->lud_host;
 			}
@@ -271,7 +268,7 @@ ldap_int_open_connection(
 			}
 
 			rc = ldap_connect_to_host( ld, conn->lconn_sb,
-				proto, host, addr, port, async );
+				proto, host, port, async );
 
 			if ( rc == -1 ) return rc;
 
@@ -291,10 +288,8 @@ ldap_int_open_connection(
 		case LDAP_PROTO_UDP:
 			port = srv->lud_port;
 
-			addr = 0;
 			if ( srv->lud_host == NULL || *srv->lud_host == 0 ) {
 				host = NULL;
-				addr = htonl( INADDR_LOOPBACK );
 			} else {
 				host = srv->lud_host;
 			}
@@ -303,7 +298,7 @@ ldap_int_open_connection(
 
 			LDAP_IS_UDP(ld) = 1;
 			rc = ldap_connect_to_host( ld, conn->lconn_sb,
-				proto, host, addr, port, async );
+				proto, host, port, async );
 
 			if ( rc == -1 ) return rc;
 #ifdef LDAP_DEBUG

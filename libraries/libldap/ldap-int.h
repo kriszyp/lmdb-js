@@ -433,10 +433,10 @@ LDAP_F (int) ldap_int_open_connection( LDAP *ld,
  * in os-ip.c
  */
 LDAP_V (int) ldap_int_tblsize;
-LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest, const struct timeval *tm );
+LDAP_F (int) ldap_int_timeval_dup( struct timeval **dest,
+	const struct timeval *tm );
 LDAP_F (int) ldap_connect_to_host( LDAP *ld, Sockbuf *sb,
-	int proto, const char *host, unsigned long address, int port,
-	int async );
+	int proto, const char *host, int port, int async );
 
 #if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) || \
 	defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
