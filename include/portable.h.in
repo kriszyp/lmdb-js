@@ -212,6 +212,9 @@
 /* Define if you have the pthread_kill function.  */
 #undef HAVE_PTHREAD_KILL
 
+/* Define if you have the pthread_kill_other_threads_np function.  */
+#undef HAVE_PTHREAD_KILL_OTHER_THREADS_NP
+
 /* Define if you have the pthread_rwlock_destroy function.  */
 #undef HAVE_PTHREAD_RWLOCK_DESTROY
 

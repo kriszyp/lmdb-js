@@ -532,7 +532,7 @@ acl_mask(
 		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
-			int match = 0;
+			int rc, match = 0;
 			const char *text;
 			const char *desc = b->a_dn_at->ad_cname->bv_val;
 
@@ -555,21 +555,41 @@ acl_mask(
 			}
 
 			if( match ) {
-				if ( b->a_dn_self && (val == NULL
-					|| value_match( &match, b->a_dn_at,
-						b->a_dn_at->ad_type->sat_equality, val, &bv, &text ) )
-						!= LDAP_SUCCESS
-					|| match )
-				{
-					continue;
+				/* have a dnattr match. if this is a self clause then
+				 * the target must also match the op dn.
+				 */
+				if ( b->a_dn_self ) {
+					/* check if the target is an attribute. */
+					if ( val == NULL )
+						continue;
+					/* target is attribute, check if the attribute value
+					 * is the op dn.
+					 */
+					rc = value_match(	&match, b->a_dn_at,
+										b->a_dn_at->ad_type->sat_equality,
+										val, &bv, &text );
+					/* on match error or no match, fail the ACL clause */
+					if (rc != LDAP_SUCCESS || match != 0 )
+						continue;
 				}
-			} else if ( ! b->a_dn_self || val == NULL
-				|| value_match( &match, b->a_dn_at,
-					b->a_dn_at->ad_type->sat_equality, val, &bv, &text )
-					!= LDAP_SUCCESS
-				|| match )
-			{
-				continue;
+			} else {
+				/* no dnattr match, check if this is a self clause */
+				if ( ! b->a_dn_self )
+					continue;
+				/* this is a self clause, check if the target is an
+				 * attribute.
+				 */
+				if ( val == NULL )
+					continue;
+				/* target is attribute, check if the attribute value
+				 * is the op dn.
+				 */
+				rc = value_match(	&match, b->a_dn_at,
+									b->a_dn_at->ad_type->sat_equality,
+									val, &bv, &text );
+				/* on match error or no match, fail the ACL clause */
+				if (rc != LDAP_SUCCESS || match != 0 )
+					continue;
 			}
 		}
 

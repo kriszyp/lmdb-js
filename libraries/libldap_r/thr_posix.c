@@ -41,6 +41,10 @@ ldap_int_thread_initialize( void )
 int
 ldap_int_thread_destroy( void )
 {
+#ifdef HAVE_PTHREAD_KILL_OTHER_THREADS_NP
+	/* LinuxThreads: kill clones */
+	pthread_kill_other_threads_np();
+#endif
 	return 0;
 }
 
