@@ -924,24 +924,23 @@ rdn_validate( const char *rdn )
  */
 
 void
-build_new_dn( char ** new_dn,
-	const char * entry_dn,
-	const char * parent_dn,
-	const char * newrdn )
+build_new_dn( struct berval * new_dn,
+	struct berval * parent_dn,
+	struct berval * newrdn )
 {
 	char *ptr;
 
 	if ( parent_dn == NULL ) {
-		*new_dn = ch_strdup( newrdn );
+		ber_dupbv( new_dn, newrdn );
 		return;
 	}
 
-	*new_dn = (char *) ch_malloc(
-		strlen( parent_dn ) + strlen( newrdn ) + 2 );
+	new_dn->bv_len = parent_dn->bv_len + newrdn->bv_len + 1;
+	new_dn->bv_val = (char *) ch_malloc( new_dn->bv_len + 1 );
 
-	ptr = slap_strcopy( *new_dn, newrdn );
+	ptr = slap_strcopy( new_dn->bv_val, newrdn->bv_val );
 	*ptr++ = ',';
-	strcpy( ptr, parent_dn );
+	strcpy( ptr, parent_dn->bv_val );
 }
 
 #endif /* SLAP_DN_MIGRATION */

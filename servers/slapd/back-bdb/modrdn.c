@@ -29,8 +29,8 @@ bdb_modrdn(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	AttributeDescription *children = slap_schema.si_ad_children;
-	char		*p_dn = NULL, *p_ndn = NULL;
-	char		*new_dn = NULL, *new_ndn = NULL;
+	struct berval	p_dn, p_ndn;
+	struct berval	new_dn = {0, NULL}, *new_ndn = NULL;
 	int		isroot = -1;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
@@ -41,8 +41,6 @@ bdb_modrdn(
 	DB_TXN *	ltid = NULL;
 	struct bdb_op_info opinfo;
 
-	struct berval bv;
-
 	ID			id;
 	char		**new_rdn_vals = NULL;	/* Vals of new rdn */
 	char		**new_rdn_types = NULL;	/* Types of new rdn */
@@ -52,9 +50,9 @@ bdb_modrdn(
 	char		**old_rdn_vals = NULL;	/* Old rdn attribute values */
 
 	Entry		*np = NULL;				/* newSuperior Entry */
-	char		*np_dn = NULL;			/* newSuperior dn */
-	char		*np_ndn = NULL;			/* newSuperior ndn */
-	char		*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
+	struct berval	*np_dn = NULL;			/* newSuperior dn */
+	struct berval	*np_ndn = NULL;			/* newSuperior ndn */
+	struct berval	*new_parent_dn = NULL;	/* np_dn, p_dn, or NULL */
 
 	/* Used to interface with bdb_modify_internal() */
 	Modifications	*mod = NULL;		/* Used to delete old rdn */
@@ -164,16 +162,14 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	p_ndn = dn_parent( be, e->e_ndn );
-	np_ndn = p_ndn;
-	if ( p_ndn != NULL && p_ndn[ 0 ] != '\0' ) {
+	p_ndn.bv_val = dn_parent( be, e->e_ndn );
+	p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
+	np_ndn = &p_ndn;
+	if ( p_ndn.bv_len != 0 ) {
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
-		bv.bv_val = p_ndn;
-		bv.bv_len = strlen( p_ndn );
-
-		rc = bdb_dn2entry( be, ltid, &bv, &p, NULL, 0 );
+		rc = bdb_dn2entry( be, ltid, &p_ndn, &p, NULL, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -208,13 +204,14 @@ retry:	/* transaction retry */
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: wr to children of entry %s OK\n",
-			p_ndn, 0, 0 );
+			p_ndn.bv_val, 0, 0 );
 		
-		p_dn = dn_parent( be, e->e_dn );
+		p_dn.bv_val = dn_parent( be, e->e_dn );
+		p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: parent dn=%s\n",
-			p_dn, 0, 0 );
+			p_dn.bv_val, 0, 0 );
 
 	} else {
 		/* no parent, modrdn entry directly under root */
@@ -245,7 +242,8 @@ retry:	/* transaction retry */
 					"bdb_modrdn: wr to children of entry \"\" OK\n",
 					0, 0, 0 );
 		
-				p_dn = "";
+				p_dn.bv_val = "";
+				p_dn.bv_len = 0;
 
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: parent dn=\"\"\n",
@@ -262,7 +260,7 @@ retry:	/* transaction retry */
 		}
 	}
 
-	new_parent_dn = p_dn;	/* New Parent unless newSuperior given */
+	new_parent_dn = &p_dn;	/* New Parent unless newSuperior given */
 
 	if ( newSuperior != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, 
@@ -270,17 +268,14 @@ retry:	/* transaction retry */
 			newSuperior->bv_val, 0, 0 );
 
 		if ( newSuperior->bv_len ) {
-			np_dn = ch_strdup( newSuperior->bv_val );
-			np_ndn = ch_strdup( np_dn );
-			(void) dn_normalize( np_ndn );
+			np_dn = newSuperior;
+			np_ndn = nnewSuperior;
 
 			/* newSuperior == oldParent?, if so ==> ERROR */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			bv.bv_val = np_ndn;
-			bv.bv_len = strlen( np_ndn );
-			rc = bdb_dn2entry( be, ltid, &bv, &np, NULL, 0 );
+			rc = bdb_dn2entry( be, ltid, nnewSuperior, &np, NULL, 0 );
 
 			switch( rc ) {
 			case 0:
@@ -298,7 +293,7 @@ retry:	/* transaction retry */
 			if( np == NULL) {
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: newSup(ndn=%s) not here!\n",
-					np_ndn, 0, 0);
+					np_ndn->bv_val, 0, 0);
 				rc = LDAP_OTHER;
 				goto return_results;
 			}
@@ -339,7 +334,7 @@ retry:	/* transaction retry */
 				isroot = be_isroot( be, &op->o_ndn );
 			}
 			
-			np_dn = ch_strdup( "" );
+			np_dn = NULL;
 
 			/* no parent, modrdn entry directly under root */
 			if ( ! isroot ) {
@@ -390,17 +385,14 @@ retry:	/* transaction retry */
 	}
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
-	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn->bv_val ); 
+	build_new_dn( &new_dn, new_parent_dn, newrdn ); 
 
-	new_ndn = ch_strdup( new_dn );
-	(void) dn_normalize( new_ndn );
+	dnNormalize( NULL, &new_dn, &new_ndn );
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
 		new_ndn, 0, 0 );
 
-	bv.bv_val = new_ndn;
-	bv.bv_len = strlen( new_ndn );
-	rc = bdb_dn2id ( be, ltid, &bv, &id );
+	rc = bdb_dn2id ( be, ltid, new_ndn, &id );
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
@@ -560,7 +552,7 @@ retry:	/* transaction retry */
 	}
 	
 	/* delete old one */
-	rc = bdb_dn2id_delete( be, ltid, p_ndn, e );
+	rc = bdb_dn2id_delete( be, ltid, p_ndn.bv_val, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -576,13 +568,11 @@ retry:	/* transaction retry */
 	 * free individual fields. Leave new_dn/new_ndn set so
 	 * they can be individually freed later.
 	 */
-	e->e_dn = new_dn;
-	e->e_name.bv_len = strlen( new_dn );
-	e->e_ndn = new_ndn;
-	e->e_nname.bv_len = strlen( new_ndn );
+	e->e_name = new_dn;
+	e->e_nname = *new_ndn;
 
 	/* add new one */
-	rc = bdb_dn2id_add( be, ltid, np_ndn, e );
+	rc = bdb_dn2id_add( be, ltid, np_ndn->bv_val, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -651,10 +641,8 @@ return_results:
 	}
 
 done:
-	if( new_dn != NULL ) free( new_dn );
-	if( new_ndn != NULL ) free( new_ndn );
-
-	if( np_ndn == p_ndn ) np_ndn = NULL;
+	if( new_dn.bv_val != NULL ) free( new_dn.bv_val );
+	if( new_ndn != NULL ) ber_bvfree( new_ndn );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_types != NULL ) charray_free(new_rdn_types);
@@ -665,9 +653,6 @@ done:
 	if( mod != NULL ) slap_mods_free(mod);
 
 	/* LDAP v3 Support */
-	if ( np_dn != NULL ) free( np_dn );
-	if ( np_ndn != NULL ) free( np_ndn );
-
 	if( np != NULL ) {
 		/* free new parent and writer lock */
 		bdb_entry_return( be, np );
