@@ -1151,29 +1151,43 @@ int slapi_x_backend_set_pb( Slapi_PBlock *pb, Backend *be )
 }
 
 #if defined(LDAP_SLAPI)
-static char *Authorization2AuthType( AuthorizationInformation *authz, int is_tls )
+/*
+ * If oldStyle is TRUE, then a value suitable for setting to
+ * the deprecated SLAPI_CONN_AUTHTYPE value is returned 
+ * (pointer to static storage).
+ *
+ * If oldStyle is FALSE, then a value suitable for setting to
+ * the new SLAPI_CONN_AUTHMETHOD will be returned, which is
+ * a pointer to allocated memory and will include the SASL
+ * mechanism (if any).
+ */
+static char *Authorization2AuthType( AuthorizationInformation *authz, int is_tls, int oldStyle )
 {
 	size_t len;
 	char *authType;
 
 	switch ( authz->sai_method ) {
-	case LDAP_AUTH_SASL: 
-		len = sizeof(SLAPD_AUTH_SASL) + authz->sai_mech.bv_len;
-		authType = slapi_ch_malloc( len );
-		snprintf( authType, len, "%s%s", SLAPD_AUTH_SASL, authz->sai_mech.bv_val );
+	case LDAP_AUTH_SASL:
+		if ( oldStyle ) {
+			authType = SLAPD_AUTH_SASL;
+		} else {
+			len = sizeof(SLAPD_AUTH_SASL) + authz->sai_mech.bv_len;
+			authType = slapi_ch_malloc( len );
+			snprintf( authType, len, "%s%s", SLAPD_AUTH_SASL, authz->sai_mech.bv_val );
+		}
 		break;
 	case LDAP_AUTH_SIMPLE:
-		authType = slapi_ch_strdup( SLAPD_AUTH_SIMPLE );
+		authType = oldStyle ? SLAPD_AUTH_SIMPLE : slapi_ch_strdup( SLAPD_AUTH_SIMPLE );
 		break;
 	case LDAP_AUTH_NONE:
-		authType = slapi_ch_strdup( SLAPD_AUTH_NONE );
+		authType = oldStyle ? SLAPD_AUTH_NONE : slapi_ch_strdup( SLAPD_AUTH_NONE );
 		break;
 	default:
 		authType = NULL;
 		break;
 	}
 	if ( is_tls && authType == NULL ) {
-		authType = slapi_ch_strdup( SLAPD_AUTH_SSL );
+		authType = oldStyle ? SLAPD_AUTH_SSL : slapi_ch_strdup( SLAPD_AUTH_SSL );
 	}
 
 	return authType;
@@ -1209,16 +1223,22 @@ int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	connAuthType = Authorization2AuthType( &conn->c_authz, conn->c_is_tls );
+	/* Returns pointer to static string */
+	connAuthType = Authorization2AuthType( &conn->c_authz, conn->c_is_tls, 1 );
 	if ( connAuthType != NULL ) {
 		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHTYPE, (void *)connAuthType);
 		if ( rc != LDAP_SUCCESS )
 			return rc;
+	}
 
+	/* Returns pointer to allocated string */
+	connAuthType = Authorization2AuthType( &conn->c_authz, conn->c_is_tls, 0 );
+	if ( connAuthType != NULL ) {
 		rc = slapi_pblock_set(pb, SLAPI_CONN_AUTHMETHOD, (void *)connAuthType);
 		if ( rc != LDAP_SUCCESS )
 			return rc;
 	}
+
 	if ( conn->c_authz.sai_dn.bv_val != NULL ) {
 		char *connDn = slapi_ch_strdup(conn->c_authz.sai_dn.bv_val);
 		rc = slapi_pblock_set(pb, SLAPI_CONN_DN, (void *)connDn);
@@ -1282,7 +1302,7 @@ int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op )
 	if ( rc != LDAP_SUCCESS )
 		return rc;
 
-	opAuthType = Authorization2AuthType( &op->o_authz, op->o_conn->c_is_tls );
+	opAuthType = Authorization2AuthType( &op->o_authz, op->o_conn->c_is_tls, 1 );
 	if (opAuthType != NULL) {
 		rc = slapi_pblock_set( pb, SLAPI_OPERATION_AUTHTYPE, (void *)opAuthType );
 		if ( rc != LDAP_SUCCESS )
