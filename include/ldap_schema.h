@@ -33,9 +33,15 @@ LDAP_BEGIN_DECL
 #define LDAP_SCHERR_DUPOPT		9
 #define LDAP_SCHERR_EMPTY		10
 
+typedef struct ldap_schema_extension_item {
+	char *lsei_name;
+	char **lsei_values;
+} LDAP_SCHEMA_EXTENSION_ITEM;
+
 typedef struct ldap_syntax {
 	char *syn_oid;		/* REQUIRED */
 	char *syn_desc;		/* OPTIONAL */
+	LDAP_SCHEMA_EXTENSION_ITEM **syn_extensions; /* OPTIONAL */
 } LDAP_SYNTAX;
 
 typedef struct ldap_matchingrule {
@@ -44,6 +50,7 @@ typedef struct ldap_matchingrule {
 	char *mr_desc;		/* OPTIONAL */
 	int  mr_obsolete;	/* OPTIONAL */
 	char *mr_syntax_oid;	/* REQUIRED */
+	LDAP_SCHEMA_EXTENSION_ITEM **mr_extensions; /* OPTIONAL */
 } LDAP_MATCHING_RULE;
 
 typedef struct ldap_attributetype {
@@ -62,6 +69,7 @@ typedef struct ldap_attributetype {
 	int  at_no_user_mod;	/* 0=no, 1=yes */
 	int  at_usage;		/* 0=userApplications, 1=directoryOperation,
 				   2=distributedOperation, 3=dSAOperation */
+	LDAP_SCHEMA_EXTENSION_ITEM **at_extensions; /* OPTIONAL */
 } LDAP_ATTRIBUTE_TYPE;
 
 typedef struct ldap_objectclass {
@@ -73,6 +81,7 @@ typedef struct ldap_objectclass {
 	int  oc_kind;		/* 0=ABSTRACT, 1=STRUCTURAL, 2=AUXILIARY */
 	char **oc_at_oids_must;	/* OPTIONAL */
 	char **oc_at_oids_may;	/* OPTIONAL */
+	LDAP_SCHEMA_EXTENSION_ITEM **oc_extensions; /* OPTIONAL */
 } LDAP_OBJECT_CLASS;
 
 #define LDAP_SCHEMA_NO				0

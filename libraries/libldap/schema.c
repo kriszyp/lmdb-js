@@ -268,6 +268,22 @@ print_noidlen(safe_string *ss, char *s, int l)
 	return(ret);
 }
 
+static int
+print_extensions(safe_string *ss, LDAP_SCHEMA_EXTENSION_ITEM **extensions)
+{
+	LDAP_SCHEMA_EXTENSION_ITEM **ext;
+
+	if ( extensions ) {
+		print_whsp(ss);
+		for ( ext = extensions; *ext != NULL; ext++ ) {
+			print_literal(ss, (*ext)->lsei_name);
+			print_whsp(ss);
+			print_qdescrs(ss, (*ext)->lsei_values);
+			print_whsp(ss);
+		}
+	}
+}
+
 char *
 ldap_syntax2str( const LDAP_SYNTAX * syn )
 {
@@ -290,6 +306,9 @@ ldap_syntax2str( const LDAP_SYNTAX * syn )
 	}
 
 	print_whsp(ss);
+
+	print_extensions(ss, syn->syn_extensions);
+
 	print_literal(ss,")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
@@ -336,6 +355,9 @@ ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
 	}
 
 	print_whsp(ss);
+
+	print_extensions(ss, mr->mr_extensions);
+
 	print_literal(ss,")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
@@ -412,6 +434,9 @@ ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 	}
 
 	print_whsp(ss);
+
+	print_extensions(ss, oc->oc_extensions);
+
 	print_literal(ss,")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
@@ -512,6 +537,9 @@ ldap_attributetype2str( const LDAP_ATTRIBUTE_TYPE * at )
 	}
 	
 	print_whsp(ss);
+
+	print_extensions(ss, at->at_extensions);
+
 	print_literal(ss,")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
@@ -936,11 +964,60 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 	}
 }
 
+static int
+add_extension(LDAP_SCHEMA_EXTENSION_ITEM ***extensions,
+	      char * name, char ** values)
+{
+	int n;
+	LDAP_SCHEMA_EXTENSION_ITEM **tmp, *ext;
+
+	ext = LDAP_CALLOC(1, sizeof(LDAP_SCHEMA_EXTENSION_ITEM));
+	if ( !ext )
+		return 1;
+	ext->lsei_name = name;
+	ext->lsei_values = values;
+
+	if ( !*extensions ) {
+		*extensions =
+		  LDAP_CALLOC(2, sizeof(LDAP_SCHEMA_EXTENSION_ITEM *));
+		if ( !*extensions )
+		  return 1;
+		n = 0;
+	} else {
+		for ( n=0; (*extensions)[n] != NULL; n++ )
+	  		;
+		tmp = LDAP_REALLOC(*extensions,
+				   (n+2)*sizeof(LDAP_SCHEMA_EXTENSION_ITEM *));
+		if ( !tmp )
+			return 1;
+		*extensions = tmp;
+	}
+	(*extensions)[n] = ext;
+	(*extensions)[n+1] = NULL;
+	return 0;
+}
+
+static void
+free_extensions(LDAP_SCHEMA_EXTENSION_ITEM **extensions)
+{
+	LDAP_SCHEMA_EXTENSION_ITEM **ext;
+
+	if ( extensions ) {
+		for ( ext = extensions; *ext != NULL; ext++ ) {
+			LDAP_FREE((*ext)->lsei_name);
+			LDAP_VFREE((*ext)->lsei_values);
+			LDAP_FREE(*ext);
+		}
+		LDAP_FREE(extensions);
+	}
+}
+
 void
 ldap_syntax_free( LDAP_SYNTAX * syn )
 {
 	LDAP_FREE(syn->syn_oid);
 	LDAP_FREE(syn->syn_desc);
+	free_extensions(syn->syn_extensions);
 	LDAP_FREE(syn);
 }
 
@@ -1054,6 +1131,7 @@ ldap_matchingrule_free( LDAP_MATCHING_RULE * mr )
 	LDAP_VFREE(mr->mr_names);
 	LDAP_FREE(mr->mr_desc);
 	LDAP_FREE(mr->mr_syntax_oid);
+	free_extensions(mr->mr_extensions);
 	LDAP_FREE(mr);
 }
 
@@ -1242,6 +1320,7 @@ ldap_attributetype_free(LDAP_ATTRIBUTE_TYPE * at)
 	LDAP_FREE(at->at_ordering_oid);
 	LDAP_FREE(at->at_substr_oid);
 	LDAP_FREE(at->at_syntax_oid);
+	free_extensions(at->at_extensions);
 	LDAP_FREE(at);
 }
 
@@ -1262,7 +1341,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 	int seen_syntax = 0;
 	int seen_usage = 0;
 	LDAP_ATTRIBUTE_TYPE * at;
-	char ** ssdummy;
+	char ** ext_vals;
 	const char * savepos;
 
 	if ( !s ) {
@@ -1545,11 +1624,18 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 				LDAP_FREE(sval);
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_attributetype_free(at);
+					return NULL;
+				}
+				if ( add_extension(&at->at_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_attributetype_free(at);
 					return NULL;
 				}
@@ -1580,6 +1666,7 @@ ldap_objectclass_free(LDAP_OBJECT_CLASS * oc)
 	LDAP_VFREE(oc->oc_sup_oids);
 	LDAP_VFREE(oc->oc_at_oids_must);
 	LDAP_VFREE(oc->oc_at_oids_may);
+	free_extensions(oc->oc_extensions);
 	LDAP_FREE(oc);
 }
 
