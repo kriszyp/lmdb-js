@@ -44,7 +44,7 @@ sl_mem_init()
 	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &sl_bmf );
 }
 
-void
+void *
 sl_mem_create(
 	ber_len_t size,
 	void *ctx
@@ -68,6 +68,7 @@ sl_mem_create(
 	}
 	sh->h_last = sh->h_base;
 	sh->h_end = sh->h_base + size;
+	return sh;
 }
 
 void *
@@ -76,14 +77,12 @@ sl_malloc(
     void *ctx
 )
 {
-	struct slab_heap *sh = NULL;
+	struct slab_heap *sh = ctx;
 	int pad = 2*sizeof(int)-1;
 	ber_len_t *new;
 
 	/* ber_set_option calls us like this */
 	if (!ctx) return ber_memalloc_x( size, NULL );
-
-	ldap_pvt_thread_pool_getkey( ctx, sl_mem_init, (void **)&sh, NULL );
 
 	/* round up to doubleword boundary */
 	size += pad + sizeof( ber_len_t );
@@ -122,12 +121,10 @@ sl_calloc( ber_len_t n, ber_len_t size, void *ctx )
 void *
 sl_realloc( void *ptr, ber_len_t size, void *ctx )
 {
-	struct slab_heap *sh = NULL;
+	struct slab_heap *sh = ctx;
 	int pad = 2*sizeof(int)-1;
 	ber_len_t *p = (ber_len_t *)ptr;
 	ber_len_t *new;
-
-	ldap_pvt_thread_pool_getkey( ctx, sl_mem_init, (void **)&sh, NULL );
 
 	if ( ptr == NULL ) return sl_malloc( size, ctx );
 
@@ -163,9 +160,7 @@ sl_realloc( void *ptr, ber_len_t size, void *ctx )
 void
 sl_free( void *ptr, void *ctx )
 {
-	struct slab_heap *sh = NULL;
-
-	ldap_pvt_thread_pool_getkey( ctx, sl_mem_init, (void **)&sh, NULL );
+	struct slab_heap *sh = ctx;
 
 	if ( ptr < sh->h_base || ptr >= sh->h_end ) {
 #ifdef NEW_LOGGING

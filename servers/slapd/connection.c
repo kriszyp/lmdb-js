@@ -888,6 +888,7 @@ connection_operation( void *ctx, void *arg_v )
 	ber_tag_t oldtag = tag;
 #endif /* SLAPD_MONITOR */
 	Connection *conn = op->o_conn;
+	void *memctx;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_initiated++;
@@ -915,9 +916,9 @@ connection_operation( void *ctx, void *arg_v )
 	 */
 #define	SLAB_SIZE	1048576
 	if ( tag == LDAP_REQ_SEARCH ) {
-		sl_mem_create( SLAB_SIZE, ctx );
-		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, ctx );
-		op->o_tmpmemctx = ctx;
+		memctx = sl_mem_create( SLAB_SIZE, ctx );
+		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, memctx );
+		op->o_tmpmemctx = memctx;
 		op->o_tmpalloc = sl_malloc;
 		op->o_tmpfree = sl_free;
 	} else {
