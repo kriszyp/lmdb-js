@@ -533,6 +533,8 @@ int ad_inlist(
 		/*
 		 * EXTENSION: see if requested description is @objectClass
 		 * if so, return attributes which the class requires/allows
+		 * else if requested description is !objectClass, return
+		 * attributes which the class does not require/allow
 		 */
 		oc = attrs->an_oc;
 		if( oc == NULL && attrs->an_name.bv_val ) {

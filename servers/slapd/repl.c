@@ -359,9 +359,6 @@ replog1(
 						if ( an->an_oc ) {
 							int i;
 
-							/* FIXME: need to 
-							 * handle 
-							 * an_oc_exclude */
 							for ( i=0; a->a_vals[i].bv_val; i++ ) {
 								if ( an->an_oc_exclude ) {
 									if ( a->a_vals[i].bv_len != an->an_name.bv_len
