@@ -37,7 +37,7 @@
 
 #include "ldap_rq.h"
 
-static int
+static void
 syncrepl_del_nonpresent( syncinfo_t *, LDAP *, Operation * );
 
 static void
@@ -1041,7 +1041,7 @@ syncrepl_entry(
 	}
 }
 
-static int
+static void
 syncrepl_del_nonpresent(
 	syncinfo_t *si,
 	LDAP *ld,
@@ -1105,6 +1105,8 @@ syncrepl_del_nonpresent(
 		ch_free( op->o_req_ndn.bv_val );
 	filter_free( op->ors_filter );
 	ch_free( op->ors_filterstr.bv_val );
+
+	return;
 }
 
 
