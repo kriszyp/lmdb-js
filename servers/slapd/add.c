@@ -44,6 +44,7 @@ do_add( Connection *conn, Operation *op )
 	Modifications *mods = NULL;
 	const char *text;
 	int			rc = LDAP_SUCCESS;
+	int	manageDSAit;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 
@@ -149,12 +150,15 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	}
 
+	manageDSAit = get_manageDSAit( op ) &&
+		is_entry_referral( e );
+
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	be = select_backend( e->e_ndn );
+	be = select_backend( e->e_ndn, manageDSAit );
 	if ( be == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );

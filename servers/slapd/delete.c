@@ -35,6 +35,7 @@ do_delete(
 	const char *text;
 	Backend	*be;
 	int rc;
+	int manageDSAit;
 
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 
@@ -76,12 +77,14 @@ do_delete(
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
 		op->o_connid, op->o_opid, dn, 0, 0 );
 
+	manageDSAit = get_manageDSAit( op );
+
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( ndn )) == NULL ) {
+	if ( (be = select_backend( ndn, manageDSAit )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		goto cleanup;

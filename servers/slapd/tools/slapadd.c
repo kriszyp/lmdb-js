@@ -78,7 +78,8 @@ main( int argc, char **argv )
 		}
 
 		/* check backend */
-		if( select_backend( e->e_ndn ) != be ) {
+		if( select_backend( e->e_ndn, is_entry_referral(e) ) != be )
+		{
 			fprintf( stderr, "%s: database (%s) not configured to "
 				"hold dn=\"%s\" (line=%d)\n",
 				progname,

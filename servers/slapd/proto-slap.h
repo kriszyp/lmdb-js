@@ -147,7 +147,9 @@ LDAP_SLAPD_F (int) backend_destroy LDAP_P((void));
 LDAP_SLAPD_F (BackendInfo *) backend_info LDAP_P(( const char *type ));
 LDAP_SLAPD_F (BackendDB *) backend_db_init LDAP_P(( const char *type ));
 
-LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P(( const char * dn ));
+LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
+	const char * dn,
+	int manageDSAit ));
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be, const char *suffix ));
 LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be, const char *ndn ));
@@ -607,8 +609,8 @@ LDAP_SLAPD_F (int) register_syntax LDAP_P((
 	char *desc,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
-	slap_syntax_transform_func *ber2str,
-	slap_syntax_transform_func *str2ber ));
+	slap_syntax_transform_func *normalize,
+	slap_syntax_transform_func *pretty ));
 
 LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
 	char * desc,
