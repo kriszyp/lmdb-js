@@ -10,16 +10,16 @@ OpenLDAP LDAP (libldap, -lldap)
 .nf
 .B #include <ldap.h>
 .sp
-.BI "int ldap_add(LDAP *" ld ", const char *" dn ", LDAPMOD *" attrs "[]);"
+.BI "int ldap_add(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[]);"
 .sp
 .BI "int ldap_add_s(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[]);"
 .sp
-.BI "int ldap_add_ext(LDAP *" ld ", const char *" dn ", LDAPMOD *" attrs "[],"
+.BI "int ldap_add_ext(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[],"
 .RS
 .BI "LDAPControl *" sctrls "[], LDAPControl *" cctrls "[], int *" msgidp ");"
 .RE
 .sp
-.BI "int ldap_add_ext_s(LDAP *" ld ", const char *" dn ", LDAPMOD *" attrs "[],"
+.BI "int ldap_add_ext_s(LDAP *" ld ", const char *" dn ", LDAPMod *" attrs "[],"
 .RS
 .BI "LDAPControl *" sctrls "[], LDAPControl *" cctrls "[]);"
 .RE
