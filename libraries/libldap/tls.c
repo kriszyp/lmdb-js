@@ -211,6 +211,7 @@ alloc_handle( Sockbuf *sb, void *ctx_arg )
 		return NULL;
 	}
 
+	sb->sb_iodata = ssl;
 	SSL_set_fd( ssl, ber_pvt_sb_get_desc( sb ) );
 	return ssl;
 }
@@ -296,14 +297,7 @@ ldap_pvt_tls_accept( Sockbuf *sb, void *ctx_arg )
 	err = SSL_accept( ssl );
 
 	if ( err <= 0 ) {
-		if (
-#ifdef EWOULDBLOCK
-		    (errno==EWOULDBLOCK) ||
-#endif
-#ifdef EAGAIN
-		    (errno==EAGAIN) ||
-#endif
-		    (0)) {
+		if ( !SSL_want_nothing( ssl ) ) {
 			update_flags( sb, ssl );
 			return 1;
 		}
