@@ -45,7 +45,7 @@ bdb2i_back_modrdn_internal(
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
 	char		*new_rdn_val = NULL;	/* Val of new rdn */
 	char		*new_rdn_type = NULL;	/* Type of new rdn */
-	char		*old_rdn;		/* Old rdn's attr type & val */
+	char		*old_rdn = NULL;    	/* Old rdn's attr type & val */
 	char		*old_rdn_type = NULL;	/* Type of old rdn attr. */
 	char		*old_rdn_val = NULL;	/* Old rdn attribute value */
 	struct berval	add_bv;			/* Stores new rdn att */
