@@ -113,7 +113,7 @@ ISO|International Organization for Standardization|http://www.iso.ch/
 ITU|International Telephone Union|http://www.itu.int/
 RFC|RFC Editor|http://www.rfc-editor.org/
 OpenSSL|OpenSSL|http://www.openssl.org/
-Cyrus|Cyrus|http://asg.web.cmu.edu/cyrus/
+Cyrus|Cyrus Electronic Mail Project|http://asg.web.cmu.edu/cyrus/
 Sleepy|Sleepycat Software|http://www.sleepycat.com/
 FSF|Free Software Foundation|http://www.fsf.org/
 GNU|GNU Not Unix|http://www.gnu.org/
@@ -131,7 +131,7 @@ MIT Kerberos|http://web.mit.edu/kerberos/www/
 OpenLDAP|http://www.openldap.org/software/
 OpenSSL|http://www.openssl.org/
 Perl|http://www.perl.com/
-SASL|http://asg.web.cmu.edu/sasl/
+SASL|http://asg.web.cmu.edu/sasl/sasl-library.html
 SQL|http://www.jcc.com/SQLPages/jccs_sql.htm
 TCL|http://tcl.activestate.com/
 !endblock
