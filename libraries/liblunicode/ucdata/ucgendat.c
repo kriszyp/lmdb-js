@@ -805,9 +805,8 @@ read_cdata(FILE *in)
     char line[512], *s, *e;
 
     lineno = skip = 0;
-    while (!feof(in)) {
-		if( !fgets(line, sizeof(line), in)) break;
-		if( (s=strchr(line, '\n')) ) *s = '\0';
+    while (fgets(line, sizeof(line), in)) {
+	if( (s=strchr(line, '\n')) ) *s = '\0';
         lineno++;
 
         /*
@@ -1165,9 +1164,8 @@ read_compexdata(FILE *in)
 
     (void) memset((char *) compexs, 0, sizeof(unsigned long) << 11);
 
-    while (!feof(in)) {
-		if( !fgets(line, sizeof(line), in)) break;
-		if( (s=strchr(line, '\n')) ) *s = '\0';
+    while (fgets(line, sizeof(line), in)) {
+	if( (s=strchr(line, '\n')) ) *s = '\0';
         /*
          * Skip blank lines and lines that start with a '#'.
          */
@@ -1272,7 +1270,7 @@ write_cdata(char *opath)
     /*
      * Write the header.
      */
-    fwrite((char *) hdr, sizeof(ac_uint4), 2, out);
+    fwrite((char *) hdr, sizeof(ac_uint2), 2, out);
 
     /*
      * Write the byte count.
