@@ -232,7 +232,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			AttributeDescription	*ad;
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr;
-			struct berval		bv;
+			struct berval		bv = { 0, NULL };
 
 			assert( ava );
 
