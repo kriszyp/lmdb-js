@@ -46,12 +46,10 @@
 LIBLDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str, const char *delim,
 					   char **pos ));
 
-LIBLDAP_F(char *) ldap_pvt_strdup LDAP_P(( const char * s ));
-
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */
 #	undef strdup
-#	define strdup(s) ldap_pvt_strdup(s)
+#	define strdup(s) ber_strdup(s)
 #else
 	/* some systems fail to declare strdup */
 	LIBC_F(char *) (strdup)();

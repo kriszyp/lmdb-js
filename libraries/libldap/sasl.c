@@ -742,12 +742,12 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, char **pmechlist )
 	mechlist = array2str( values );
 	if ( mechlist == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
-		ldap_value_free( values );
+		LDAP_VFREE( values );
 		ldap_msgfree( res );
 		return ld->ld_errno;
 	} 
 
-	ldap_value_free( values );
+	LDAP_VFREE( values );
 	ldap_msgfree( res );
 
 	*pmechlist = mechlist;

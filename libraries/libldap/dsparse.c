@@ -39,9 +39,8 @@ static int next_line LDAP_P(( char **bufp, ber_len_t *blenp, char **linep ));
 static char *next_token LDAP_P(( char ** sp ));
 
 
-
 int
-next_line_tokens( char **bufp, ber_len_t *blenp, char ***toksp )
+ldap_int_next_line_tokens( char **bufp, ber_len_t *blenp, char ***toksp )
 {
     char	*p, *line, *token, **toks;
     int		rc, tokcnt;
@@ -72,7 +71,7 @@ next_line_tokens( char **bufp, ber_len_t *blenp, char ***toksp )
 
     if ( tokcnt == 1 && strcasecmp( toks[ 0 ], "END" ) == 0 ) {
 	tokcnt = 0;
-	free_strarray( toks );
+	LDAP_VFREE( toks );
 	toks = NULL;
     }
 
@@ -194,18 +193,4 @@ next_token( char **sp )
     }
 
     return( LDAP_STRDUP( tokstart ));
-}
-
-
-void
-free_strarray( char **sap )
-{
-    int		i;
-
-    if ( sap != NULL ) {
-	for ( i = 0; sap[ i ] != NULL; ++i ) {
-	    LBER_FREE( sap[ i ] );
-	}
-	LBER_FREE( (char *)sap );
-    }
 }

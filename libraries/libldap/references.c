@@ -132,7 +132,7 @@ free_and_return:
 		*referralsp = refs;
 
 	} else {
-		ldap_value_free( refs );
+		LDAP_VFREE( refs );
 	}
 
 	if( freeit ) {

@@ -102,7 +102,7 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
     fip = NULL;
     tag = NULL;
 
-    while ( buflen > 0 && ( tokcnt = next_line_tokens( &buf, &buflen, &tok ))
+    while ( buflen > 0 && ( tokcnt = ldap_int_next_line_tokens( &buf, &buflen, &tok ))
 	    > 0 ) {
 
 	switch( tokcnt ) {
@@ -131,7 +131,7 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 			nextflp->lfl_pattern, error );
 		errno = EINVAL;
 #endif /* LDAP_LIBUI */
-		free_strarray( tok );
+		LDAP_VFREE( tok );
 		return( NULL );
 	    }
 		regfree(&re);
@@ -157,7 +157,7 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 		if (( nextfip = (LDAPFiltInfo *)LDAP_CALLOC( 1,
 			sizeof( LDAPFiltInfo ))) == NULL ) {
 		    ldap_getfilter_free( lfdp );
-		    free_strarray( tok );
+		    LDAP_VFREE( tok );
 		    return( NULL );
 		}
 		if ( fip == NULL ) {	/* first one */
@@ -177,7 +177,7 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 		    } else if ( strcasecmp( tok[ 2 ], "base" ) == 0 ) {
 			nextfip->lfi_scope = LDAP_SCOPE_BASE;
 		    } else {
-			free_strarray( tok );
+			LDAP_VFREE( tok );
 			ldap_getfilter_free( lfdp );
 			errno = EINVAL;
 			return( NULL );
@@ -194,7 +194,7 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 	    break;
 
 	default:
-	    free_strarray( tok );
+	    LDAP_VFREE( tok );
 	    ldap_getfilter_free( lfdp );
 	    errno = EINVAL;
 	    return( NULL );

@@ -22,7 +22,7 @@ static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
 static void		at_usage(void)     LDAP_GCCATTR((noreturn));
 
 static char *const err2text[] = {
-	"Unknown Error",
+	"Success",
 	"Out of memory",
 	"ObjectClass not found",
 	"AttributeType not found",
@@ -40,8 +40,8 @@ static char *const err2text[] = {
 char *
 scherr2str(int code)
 {
-	if ( code < 1 || code >= (sizeof(err2text)/sizeof(char *)) ) {
-		return err2text[0];
+	if ( code < 0 || code >= (sizeof(err2text)/sizeof(char *)) ) {
+		return "Unknown error";
 	} else {
 		return err2text[code];
 	}
@@ -206,17 +206,18 @@ parse_oc(
 static void
 oc_usage( void )
 {
-	fprintf( stderr, "ObjectClassDescription = \"(\" whsp\n");
-	fprintf( stderr, "  numericoid whsp      ; ObjectClass identifier\n");
-	fprintf( stderr, "  [ \"NAME\" qdescrs ]\n");
-	fprintf( stderr, "  [ \"DESC\" qdstring ]\n");
-	fprintf( stderr, "  [ \"OBSOLETE\" whsp ]\n");
-	fprintf( stderr, "  [ \"SUP\" oids ]       ; Superior ObjectClasses\n");
-	fprintf( stderr, "  [ ( \"ABSTRACT\" / \"STRUCTURAL\" / \"AUXILIARY\" ) whsp ]\n");
-	fprintf( stderr, "                       ; default structural\n");
-	fprintf( stderr, "  [ \"MUST\" oids ]      ; AttributeTypes\n");
-	fprintf( stderr, "  [ \"MAY\" oids ]       ; AttributeTypes\n");
-	fprintf( stderr, "whsp \")\"\n");
+	fprintf( stderr,
+		"ObjectClassDescription = \"(\" whsp\n"
+		"  numericoid whsp                 ; ObjectClass identifier\n"
+		"  [ \"NAME\" qdescrs ]\n"
+		"  [ \"DESC\" qdstring ]\n"
+		"  [ \"OBSOLETE\" whsp ]\n"
+		"  [ \"SUP\" oids ]                ; Superior ObjectClasses\n"
+		"  [ ( \"ABSTRACT\" / \"STRUCTURAL\" / \"AUXILIARY\" ) whsp ]\n"
+		"                                  ; default structural\n"
+		"  [ \"MUST\" oids ]               ; AttributeTypes\n"
+		"  [ \"MAY\" oids ]                ; AttributeTypes\n"
+		"  whsp \")\"\n" );
 	exit( EXIT_FAILURE );
 }
 
@@ -224,26 +225,27 @@ oc_usage( void )
 static void
 at_usage( void )
 {
-	fprintf( stderr, "AttributeTypeDescription = \"(\" whsp\n");
-	fprintf( stderr, "  numericoid whsp      ; AttributeType identifier\n");
-	fprintf( stderr, "  [ \"NAME\" qdescrs ]             ; name used in AttributeType\n");
-	fprintf( stderr, "  [ \"DESC\" qdstring ]            ; description\n");
-	fprintf( stderr, "  [ \"OBSOLETE\" whsp ]\n");
-	fprintf( stderr, "  [ \"SUP\" woid ]                 ; derived from this other\n");
-	fprintf( stderr, "                                 ; AttributeType\n");
-	fprintf( stderr, "  [ \"EQUALITY\" woid ]            ; Matching Rule name\n");
-        fprintf( stderr, "  [ \"ORDERING\" woid ]            ; Matching Rule name\n");
-	fprintf( stderr, "  [ \"SUBSTR\" woid ]              ; Matching Rule name\n");
-	fprintf( stderr, "  [ \"SYNTAX\" whsp noidlen whsp ] ; see section 4.3\n");
-	fprintf( stderr, "  [ \"SINGLE-VALUE\" whsp ]        ; default multi-valued\n");
-	fprintf( stderr, "  [ \"COLLECTIVE\" whsp ]          ; default not collective\n");
-	fprintf( stderr, "  [ \"NO-USER-MODIFICATION\" whsp ]; default user modifiable\n");
-	fprintf( stderr, "  [ \"USAGE\" whsp AttributeUsage ]; default userApplications\n");
-	fprintf( stderr, "                                 ; userApplications\n");
-	fprintf( stderr, "                                 ; directoryOperation\n");
-	fprintf( stderr, "                                 ; distributedOperation\n");
-	fprintf( stderr, "                                 ; dSAOperation\n");
-	fprintf( stderr, "whsp \")\"\n");
+	fprintf( stderr,
+		"AttributeTypeDescription = \"(\" whsp\n"
+		"  numericoid whsp      ; AttributeType identifier\n"
+		"  [ \"NAME\" qdescrs ]             ; name used in AttributeType\n"
+		"  [ \"DESC\" qdstring ]            ; description\n"
+		"  [ \"OBSOLETE\" whsp ]\n"
+		"  [ \"SUP\" woid ]                 ; derived from this other\n"
+		"                                   ; AttributeType\n"
+		"  [ \"EQUALITY\" woid ]            ; Matching Rule name\n"
+		"  [ \"ORDERING\" woid ]            ; Matching Rule name\n"
+		"  [ \"SUBSTR\" woid ]              ; Matching Rule name\n"
+		"  [ \"SYNTAX\" whsp noidlen whsp ] ; see section 4.3\n"
+		"  [ \"SINGLE-VALUE\" whsp ]        ; default multi-valued\n"
+		"  [ \"COLLECTIVE\" whsp ]          ; default not collective\n"
+		"  [ \"NO-USER-MODIFICATION\" whsp ]; default user modifiable\n"
+		"  [ \"USAGE\" whsp AttributeUsage ]; default userApplications\n"
+		"                                   ; userApplications\n"
+		"                                   ; directoryOperation\n"
+		"                                   ; distributedOperation\n"
+		"                                   ; dSAOperation\n"
+		"  whsp \")\"\n");
 	exit( EXIT_FAILURE );
 }
 

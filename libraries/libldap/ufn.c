@@ -185,7 +185,7 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 
 			if ( err == -1 || err == LDAP_USER_CANCELLED ) {
 				if ( dns != NULL ) {
-					ldap_value_free( dns );
+					LDAP_VFREE( dns );
 					dns = NULL;
 				}
 				return( err );
@@ -198,7 +198,7 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 				goto tryagain;
 			} else {
 				if ( dns != NULL ) {
-					ldap_value_free( dns );
+					LDAP_VFREE( dns );
 					dns = NULL;
 				}
 				return( err );
@@ -209,7 +209,7 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 		if ( phase == 1 )
 			phase++;
 		if ( dns != NULL ) {
-			ldap_value_free( dns );
+			LDAP_VFREE( dns );
 			dns = NULL;
 		}
 	}
@@ -246,7 +246,7 @@ ldap_ufn_search_ct(
 		    attrsonly, res, cancelproc, cancelparm, tag1, tag2, tag3 );
 
 		if ( ldap_count_entries( ld, *res ) > 0 ) {
-			ldap_value_free( ufncomp );
+			LDAP_VFREE( ufncomp );
 			return( err );
 		} else {
 			ldap_msgfree( *res );
@@ -255,21 +255,21 @@ ldap_ufn_search_ct(
 	}
 
 	if ( ld->ld_ufnprefix == NULL ) {
-		ldap_value_free( ufncomp );
+		LDAP_VFREE( ufncomp );
 		return( err );
 	}
 
 	/* if that failed, or < 2 components, use the prefix */
 	if ( (prefixcomp = ldap_explode_dn( ld->ld_ufnprefix, 0 )) == NULL ) {
-		ldap_value_free( ufncomp );
+		LDAP_VFREE( ufncomp );
 		return( ld->ld_errno = LDAP_LOCAL_ERROR );
 	}
 	for ( pcomp = 0; prefixcomp[pcomp] != NULL; pcomp++ )
 		;	/* NULL */
 	if ( (pbuf = (char *) LDAP_MALLOC( strlen( ld->ld_ufnprefix ) + 1 ))
 	    == NULL ) {	
-		ldap_value_free( ufncomp );
-		ldap_value_free( prefixcomp );
+		LDAP_VFREE( ufncomp );
+		LDAP_VFREE( prefixcomp );
 		return( ld->ld_errno = LDAP_NO_MEMORY );
 	}
 
@@ -293,8 +293,8 @@ ldap_ufn_search_ct(
 		}
 	}
 
-	ldap_value_free( ufncomp );
-	ldap_value_free( prefixcomp );
+	LDAP_VFREE( ufncomp );
+	LDAP_VFREE( prefixcomp );
 	LDAP_FREE( pbuf );
 
 	return( err );

@@ -98,20 +98,6 @@ char *(ldap_pvt_strtok)( char *str, const char *delim, char **pos )
 }
 
 char *
-(ldap_pvt_strdup)( const char *s )
-{
-	char    *p;
-	size_t	len = strlen( s ) + 1;
-
-	if ( (p = (char *) malloc( len )) == NULL ) {
-		return( NULL );
-	}
-
-	memcpy( p, s, len );
-	return( p );
-}
-
-char *
 ldap_pvt_str2upper( char *str )
 {
 	char    *s;

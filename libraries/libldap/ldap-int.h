@@ -356,8 +356,7 @@ LIBLDAP_F (int) ldap_int_put_controls LDAP_P((
 /*
  * in dsparse.c
  */
-LIBLDAP_F (int) next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
-LIBLDAP_F (void) free_strarray LDAP_P(( char **sap ));
+LIBLDAP_F (int) ldap_int_next_line_tokens LDAP_P(( char **bufp, ber_len_t *blenp, char ***toksp ));
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 /*

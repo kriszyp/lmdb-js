@@ -67,7 +67,7 @@ ldap_int_timeval_dup( struct timeval **dest, const struct timeval *src )
 		return 0;
 	}
 
-	new = (struct timeval *) malloc(sizeof(struct timeval));
+	new = (struct timeval *) LDAP_MALLOC(sizeof(struct timeval));
 
 	if( new == NULL ) {
 		*dest = NULL;

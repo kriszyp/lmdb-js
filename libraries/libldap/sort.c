@@ -135,7 +135,7 @@ ldap_sort_entries(
 		*ep = et[i].et_msg;
 		ep = &(*ep)->lm_chain;
 
-		ldap_value_free( et[i].et_vals );
+		LDAP_VFREE( et[i].et_vals );
 	}
 	*ep = last;
 	LDAP_FREE( (char *) et );

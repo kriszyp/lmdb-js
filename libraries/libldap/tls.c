@@ -566,7 +566,7 @@ ldap_pvt_tls_connect( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 			return 1;
 		if ((err = ERR_peek_error())) {
 			char buf[256];
-			ld->ld_error = ldap_strdup(ERR_error_string(err, buf));
+			ld->ld_error = LDAP_STRDUP(ERR_error_string(err, buf));
 		}
 		Debug( LDAP_DEBUG_ANY,"TLS: can't connect.\n",0,0,0);
 		ber_sockbuf_remove_io( sb, &ldap_pvt_sockbuf_io_tls,

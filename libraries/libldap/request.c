@@ -419,7 +419,7 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		if( lc->lconn_rebind_queue != NULL) {
 			int i;
 			for( i = 0; lc->lconn_rebind_queue[i] != NULL; i++) {
-				free_strarray(lc->lconn_rebind_queue[i]);
+				LDAP_VFREE(lc->lconn_rebind_queue[i]);
 			}
 			LDAP_FREE( lc->lconn_rebind_queue);
 		}
@@ -723,7 +723,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **errstrp, 
 
 			if( lc->lconn_rebind_queue != NULL) {
 				/* Release resources of previous list */
-				free_strarray(refarray);
+				LDAP_VFREE(refarray);
 				refarray = NULL;
 				ldap_free_urllist(srv);
 				srv = NULL;
@@ -747,7 +747,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **errstrp, 
 		}
 	} /* end for loop */
 done:
-	free_strarray(refarray);
+	LDAP_VFREE(refarray);
 	ldap_free_urllist(srv);
 	LDAP_FREE( *errstrp );
 	

@@ -111,13 +111,13 @@ ldap_init_searchprefs_buf(
 
     *solistp = prevso = NULL;
 
-    if ( next_line_tokens( &buf, &buflen, &toks ) != 2 ||
+    if ( ldap_int_next_line_tokens( &buf, &buflen, &toks ) != 2 ||
 	    strcasecmp( toks[ 0 ], "version" ) != 0 ) {
-	free_strarray( toks );
+	LDAP_VFREE( toks );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     version = atoi( toks[ 1 ] );
-    free_strarray( toks );
+    LDAP_VFREE( toks );
     if ( version != LDAP_SEARCHPREF_VERSION &&
 	    version != LDAP_SEARCHPREF_VERSION_ZERO ) {
 	return( LDAP_SEARCHPREF_ERR_VERSION );
@@ -250,14 +250,14 @@ read_next_searchobj(
     /*
      * Object type prompt comes first
      */
-    if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) != 1 ) {
-	free_strarray( toks );
+    if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) != 1 ) {
+	LDAP_VFREE( toks );
 	return( tokcnt == 0 ? 0 : LDAP_SEARCHPREF_ERR_SYNTAX );
     }
 
     if (( so = (struct ldap_searchobj *)LDAP_CALLOC( 1,
 	    sizeof( struct ldap_searchobj ))) == NULL ) {
-	free_strarray( toks );
+	LDAP_VFREE( toks );
 	return(  LDAP_SEARCHPREF_ERR_MEM );
     }
     so->so_objtypeprompt = toks[ 0 ];
@@ -267,8 +267,8 @@ read_next_searchobj(
      * if this is post-version zero, options come next
      */
     if ( soversion > LDAP_SEARCHPREF_VERSION_ZERO ) {
-	if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) < 1 ) {
-	    free_strarray( toks );
+	if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) < 1 ) {
+	    LDAP_VFREE( toks );
 	    ldap_free_searchprefs( so );
 	    return( LDAP_SEARCHPREF_ERR_SYNTAX );
 	}
@@ -279,14 +279,14 @@ read_next_searchobj(
 		}
 	    }
 	}
-	free_strarray( toks );
+	LDAP_VFREE( toks );
     }
 
     /*
      * "Fewer choices" prompt is next
      */
-    if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) != 1 ) {
-	free_strarray( toks );
+    if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) != 1 ) {
+	LDAP_VFREE( toks );
 	ldap_free_searchprefs( so );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
@@ -296,8 +296,8 @@ read_next_searchobj(
     /*
      * Filter prefix for "More Choices" searching is next
      */
-    if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) != 1 ) {
-	free_strarray( toks );
+    if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) != 1 ) {
+	LDAP_VFREE( toks );
 	ldap_free_searchprefs( so );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
@@ -307,8 +307,8 @@ read_next_searchobj(
     /*
      * "Fewer Choices" filter tag comes next
      */
-    if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) != 1 ) {
-	free_strarray( toks );
+    if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) != 1 ) {
+	LDAP_VFREE( toks );
 	ldap_free_searchprefs( so );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
@@ -318,8 +318,8 @@ read_next_searchobj(
     /*
      * Selection (disambiguation) attribute comes next
      */
-    if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) != 1 ) {
-	free_strarray( toks );
+    if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) != 1 ) {
+	LDAP_VFREE( toks );
 	ldap_free_searchprefs( so );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
@@ -329,8 +329,8 @@ read_next_searchobj(
     /*
      * Label for selection (disambiguation) attribute
      */
-    if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) != 1 ) {
-	free_strarray( toks );
+    if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) != 1 ) {
+	LDAP_VFREE( toks );
 	ldap_free_searchprefs( so );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
@@ -340,8 +340,8 @@ read_next_searchobj(
     /*
      * Search scope is next
      */
-    if (( tokcnt = next_line_tokens( bufp, blenp, &toks )) != 1 ) {
-	free_strarray( toks );
+    if (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) != 1 ) {
+	LDAP_VFREE( toks );
 	ldap_free_searchprefs( so );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
@@ -355,22 +355,22 @@ read_next_searchobj(
 	ldap_free_searchprefs( so );
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
-    free_strarray( toks );
+    LDAP_VFREE( toks );
 
 
     /*
      * "More Choices" search option list comes next
      */
     sa = &( so->so_salist );
-    while (( tokcnt = next_line_tokens( bufp, blenp, &toks )) > 0 ) {
+    while (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) > 0 ) {
 	if ( tokcnt < 5 ) {
-	    free_strarray( toks );
+	    LDAP_VFREE( toks );
 	    ldap_free_searchprefs( so );
 	    return( LDAP_SEARCHPREF_ERR_SYNTAX );
 	}
 	if (( *sa = ( struct ldap_searchattr * ) LDAP_CALLOC( 1,
 		sizeof( struct ldap_searchattr ))) == NULL ) {
-	    free_strarray( toks );
+	    LDAP_VFREE( toks );
 	    ldap_free_searchprefs( so );
 	    return(  LDAP_SEARCHPREF_ERR_MEM );
 	}
@@ -395,15 +395,15 @@ read_next_searchobj(
      * Match types are last
      */
     sm = &( so->so_smlist );
-    while (( tokcnt = next_line_tokens( bufp, blenp, &toks )) > 0 ) {
+    while (( tokcnt = ldap_int_next_line_tokens( bufp, blenp, &toks )) > 0 ) {
 	if ( tokcnt < 2 ) {
-	    free_strarray( toks );
+	    LDAP_VFREE( toks );
 	    ldap_free_searchprefs( so );
 	    return( LDAP_SEARCHPREF_ERR_SYNTAX );
 	}
 	if (( *sm = ( struct ldap_searchmatch * ) LDAP_CALLOC( 1,
 		sizeof( struct ldap_searchmatch ))) == NULL ) {
-	    free_strarray( toks );
+	    LDAP_VFREE( toks );
 	    ldap_free_searchprefs( so );
 	    return(  LDAP_SEARCHPREF_ERR_MEM );
 	}

@@ -1961,7 +1961,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp, const int 
 }
 
 static char *const err2text[] = {
-	"",
+	"Success",
 	"Out of memory",
 	"Unexpected token",
 	"Missing opening parenthesis",
@@ -1977,7 +1977,7 @@ static char *const err2text[] = {
 char *
 ldap_scherr2str(int code)
 {
-	if ( code < 1 || code >= (sizeof(err2text)/sizeof(char *)) ) {
+	if ( code < 0 || code >= (sizeof(err2text)/sizeof(char *)) ) {
 		return "Unknown error";
 	} else {
 		return err2text[code];
