@@ -3,7 +3,7 @@
 
 H1: Using SASL
 
-This chapter details how to make use of SASL to provide auth
+This chapter details how to make use of SASL to provide authentication.
 OpenLDAP clients and servers are capable of providing authentication
 via the {{TERM[expand]SASL}} ({{TERM:SASL}}) system, which is
 explained in {{REF:RFC2222}}. There are several industry standard
@@ -20,7 +20,7 @@ themselves and then switch their identity to that of another user
 or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
-Administrators}} provided with the {{PRD:Cyrus}} {{PRD:SASL}}
+Administrators}}, provided with the {{PRD:Cyrus}} {{PRD:SASL}}
 package (in {{FILE:doc/sysadmin.html}}).
 
 Note that in the following text the term {{user}} is used to describe
@@ -36,9 +36,9 @@ is an application entity.
 H2: Security Considerations
 
 SASL offers many different authentication mechanisms.  This section
-breifly outlines security considerations.
+briefly outlines security considerations.
 
-Some mechanisms, such as PLAIN and LOGIN, offer no security over
+Some mechanisms, such as PLAIN and LOGIN, offer no greater security over
 LDAP "simple" authentication.  Like "simple" authentication, such
 mechanisms should not be used unless you have adequate security
 protections in place.  It is recommended that these mechanism be
@@ -48,10 +48,10 @@ PLAIN and LOGIN are not discussed further in this document.
 The DIGEST-MD5 mechanism is the mandatory-to-implement authentication
 mechanism for LDAPv3.  Though DIGEST-MD5 is not a strong authentication
 mechanism in comparison with trusted third party authentication
-systems (such as Kerberos or public key systems), it does offer
+systems (such as Kerberos or public key systems), yet it does offer
 significant protections against a number of attacks.  Unlike the
 CRAM-MD5 mechanism, it prevents chosen plaintext attacks.  DIGEST-MD5
-is favored over weaker and even more dangerous use of plaintext
+is favored over the weaker and even more dangerous use of plaintext
 password mechanisms.  The CRAM-MD5 mechanism is deprecated in favor
 of DIGEST-MD5.  Use of {{SECT:DIGEST-MD5}} is discussed below.
 
@@ -94,17 +94,17 @@ H3: GSSAPI
 
 This section describes the use of the SASL GSSAPI mechanism and
 Kerberos V with OpenLDAP. It will be assumed that you have Kerberos
-V deployed, you familiar with the operation of the system and that
+V deployed, you are familiar with the operation of the system, and that
 your users are trained its use.  This section also assumes you have
-familiarized yourself with the use of the GSSAPI mechanism by read
+familiarized yourself with the use of the GSSAPI mechanism by reading
 {{Configuring GSSAPI and Cyrus SASL}} (provided with Cyrus SASL in
 the {{FILE:doc/gssapi}} file) and successfully experimented with
 the Cyrus provided sample_server and sample_client applications.
 General information about Kerberos is available at
 {{URL:http://web.mit.edu/kerberos/www/}}.
 
-To use GSSAPI mechanism with {{slapd}}(8) one must create a service
-key with a principal for {{ldap}} service within realm for the host
+To use the GSSAPI mechanism with {{slapd}}(8) one must create a service
+key with a principal for {{ldap}} service within the realm for the host
 on which the service runs.  For example, if your run {{slapd}} on
 {{EX:directory.example.com}} and your realm is {{EX:EXAMPLE.COM}},
 you need to create a service key with the principal:
@@ -116,7 +116,7 @@ generally done by placing the key into a keytab, such as
 {{FILE:/etc/krb5.keytab}}.
 
 To use the GSSAPI mechanism to authenticate to the directory, the
-user obtain a Ticket Granting Ticket (TGT) prior to running the
+user obtains a Ticket Granting Ticket (TGT) prior to running the
 LDAP client.  When using OpenLDAP client tools, the user may mandate
 use of the GSSAPI mechanism by specifying {{EX:-Y GSSAPI}} as a
 command option.
@@ -144,7 +144,7 @@ H3: KERBEROS_V4
 This section describes the use of the SASL KERBEROS_V4 mechanism
 with OpenLDAP.  It will be assumed that you are familiar with the
 workings of Kerberos IV security system, and that your site has
-either Kerberos IV deployed.  Your users should be familiar with
+Kerberos IV deployed.  Your users should be familiar with
 authentication policy, are aware of how to receive credentials in
 a Kerberos ticket cache, and how to refresh expired credentials.
 
@@ -166,7 +166,7 @@ file on the server will have a service key
 
 >	ldap.directory@EXAMPLE.COM
 
-When a LDAP client is authenticating a user to the directory using
+When an LDAP client is authenticating a user to the directory using
 the KERBEROS_IV mechanism, it will request a session key for that
 same principal, either from the ticket cache or by obtaining a new
 one from the Kerberos server.  This will require the TGT to be
