@@ -624,7 +624,7 @@ ldap_add_s LDAP_P((
 
 
 /*
- * in saslbind.c:
+ * in sasl.c:
  */
 LDAP_F( int )
 ldap_sasl_bind LDAP_P((
@@ -634,7 +634,7 @@ ldap_sasl_bind LDAP_P((
 	struct berval	*cred,
 	LDAPControl		**serverctrls,
 	LDAPControl		**clientctrls,
-	int				msgidp ));
+	int				*msgidp ));
 
 LDAP_F( int )
 ldap_sasl_bind_s LDAP_P((
@@ -823,14 +823,25 @@ ldap_delete_s LDAP_P((
  * in error.c:
  */
 LDAP_F( int )
-ldap_result2error LDAP_P((	/* deprecated */
-	LDAP *ld,
-	LDAPMessage *r,
-	int freeit ));
+ldap_parse_result LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	int				*errcodep,
+	char			**matcheddnp,
+	char			**errmsgp,
+	char			***referralsp,
+	LDAPControl		***serverctrls,
+	int				freeit ));
 
 LDAP_F( char *)
 ldap_err2string LDAP_P((
 	int err ));
+
+LDAP_F( int )
+ldap_result2error LDAP_P((	/* deprecated */
+	LDAP *ld,
+	LDAPMessage *r,
+	int freeit ));
 
 LDAP_F( void )
 ldap_perror LDAP_P((	/* deprecated */
@@ -1137,17 +1148,6 @@ ldap_result LDAP_P((
 	int all,
 	struct timeval *timeout,
 	LDAPMessage **result ));
-
-LDAP_F( int )
-ldap_parse_result LDAP_P((
-	LDAP			*ld,
-	LDAPMessage		*res,
-	int				*errcodep,
-	char			**matcheddnp,
-	char			**errmsgp,
-	char			***referralsp,
-	LDAPControl		***serverctrls,
-	int				freeit ));
 
 LDAP_F( int )
 ldap_msgtype LDAP_P((
