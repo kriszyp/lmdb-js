@@ -329,6 +329,7 @@ monitor_back_db_open(
 				"$ postalCode "
 #endif
 				"$ seeAlso "
+				"$ labeledURI "
 				"$ monitoredInfo "
 				"$ managedInfo "
 				"$ monitorOverlay "
@@ -460,6 +461,7 @@ monitor_back_db_open(
 		{ NULL, NULL, 0, -1 },	/* description */
 		{ NULL, NULL, 0, -1 },	/* seeAlso */
 		{ NULL, NULL, 0, -1 },	/* l */
+		{ NULL, NULL, 0, -1 },	/* labeledURI */
 #endif /* INTEGRATE_CORE_SCHEMA */
 		{ NULL, NULL, 0, -1 }
 	}, mat_core[] = {
@@ -480,6 +482,12 @@ monitor_back_db_open(
 			"DESC 'RFC2256: locality which this object resides in' "
 			"SUP name )", 0,
 			offsetof(struct monitorinfo, mi_ad_l) },
+		{ "labeledURI", "( 1.3.6.1.4.1.250.1.57 "
+			"NAME 'labeledURI' "
+			"DESC 'RFC2079: Uniform Resource Identifier with optional label' "
+			"EQUALITY caseExactMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", 0,
+			offsetof(struct monitorinfo, mi_ad_labeledURI) },
 		{ NULL, NULL, 0, -1 }
 	};
 	
