@@ -78,6 +78,34 @@ int ldap_pvt_url_scheme2proto( const char *scheme )
 	return -1;
 }
 
+int ldap_pvt_url_scheme_port( const char *scheme, int port )
+{
+	assert( scheme );
+
+	if( port ) return port;
+	if( scheme == NULL ) return port;
+
+	if( strcmp("ldap", scheme) == 0 ) {
+		return LDAP_PORT;
+	}
+
+	if( strcmp("ldapi", scheme) == 0 ) {
+		return -1;
+	}
+
+	if( strcmp("ldaps", scheme) == 0 ) {
+		return LDAPS_PORT;
+	}
+
+#ifdef LDAP_CONNECTIONLESS
+	if( strcmp("cldap", scheme) == 0 ) {
+		return LDAP_PORT;
+	}
+#endif
+
+	return -1;
+}
+
 int
 ldap_pvt_url_scheme2tls( const char *scheme )
 {

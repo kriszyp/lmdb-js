@@ -452,9 +452,13 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 
 	for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
 		lcu = lc->lconn_server;
-		lcu_port = lcu->lud_port ? lcu->lud_port : LDAP_PORT;
+		lcu_port = ldap_pvt_url_scheme_port( lcu->lud_scheme,
+			lcu->lud_port );
+
 		for ( lsu = srv; lsu != NULL; lsu = lsu->lud_next ) {
-			lsu_port = lsu->lud_port ? lsu->lud_port : LDAP_PORT;
+			lsu_port = ldap_pvt_url_scheme_port( lsu->lud_scheme,
+				lsu->lud_port );
+
 			if ( lcu->lud_host != NULL && *lcu->lud_host != '\0'
 			    && lsu->lud_host != NULL && *lsu->lud_host != '\0'
 				&& strcasecmp( lsu->lud_host, lcu->lud_host ) == 0
