@@ -251,6 +251,10 @@ do_bind(
 			conn->c_dn = edn;
 			conn->c_authmech = mech;
 			if( ssf ) conn->c_sasl_layers++;
+			conn->c_sasl_ssf = ssf;
+			if( ssf > conn->c_ssf ) {
+				conn->c_ssf = ssf;
+			}
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {

@@ -125,6 +125,18 @@ recommended that
 directives be used instead.
 .RE
 .TP
+.B disallow <features>
+Specify a set of features (separated by white space) to disallow.
+.B bind_v2
+disables acceptance of LDAPv2 bind requests.
+.B bind_anon
+disables acceptance of anonymous bind requests.
+.B bind_anon_cred
+disables anonymous bind creditials are not empty (e.g. when
+DN is empty).
+.B bind_anon_dn
+disables anonymous bind when DN is not empty.
+.TP
 .B idletimeout <integer>
 Specify the number of seconds to wait before forcibly closing
 an idle client connections.  A idletimeout of 0 disables this
@@ -228,6 +240,28 @@ Specify the referral to pass back when
 .BR slapd (8)
 cannot find a local database to handle a request.
 If specified multiple times, each url is provided.
+.TP
+.B require <conditions>
+Specify a set of conditions (separated by white space) to require.
+The directive may be specified globally and/or per-database.
+.B bind
+requires bind operation prior to directory operations.
+.B LDAPv3
+requires session to be using LDAP version 3.
+.B authc
+requires authentication prior to directory operations.
+.B SASL
+requires SASL authentication prior to directory operations.
+.B strong
+requires strong authentication prior to directory operations.
+Currently
+.B SASL
+and
+.B strong
+conditions are currently same.
+.B none
+may be used to require no conditions (useful for clearly globally
+set conditions within a particular database).
 .TP
 .B sasl-realm <string>
 Used to specify Cyrus SASL realm.

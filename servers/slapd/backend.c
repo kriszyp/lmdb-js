@@ -733,7 +733,7 @@ backend_check_restrictions(
 			if( op->o_authmech == NULL ||
 				op->o_dn == NULL || *op->o_dn == '\0' )
 			{
-				*text = "SASL authentication required";
+				*text = "strong authentication required";
 				return LDAP_STRONG_AUTH_REQUIRED;
 			}
 		}
