@@ -44,6 +44,6 @@ attributetype ( 1.3.6.1.4.1.4203.666.1.37
 	syntax 1.3.6.1.4.1.1466.115.121.1.24
 	single-value )
 
-objectClass ( 1.3.6.1.4.1.4203.666.1.37
+objectClass ( 1.3.6.1.4.1.4203.666.1.38
 	name 'testPerson' sup OpenLDAPperson
 	may testTime )

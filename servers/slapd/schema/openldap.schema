@@ -28,13 +28,6 @@ objectIdentifier OpenLDAP OpenLDAProot:1
 objectIdentifier OpenLDAPattributeType OpenLDAP:3
 objectIdentifier OpenLDAPobjectClass OpenLDAP:4
 
-attributeType ( OpenLDAPattributeType:6
-	NAME 'OpenLDAPtime'
-	EQUALITY generalizedTimeMatch
-	ORDERING generalizedTimeOrderingMatch
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
-	SINGLE-VALUE )
-
 objectClass ( OpenLDAPobjectClass:3
 	NAME 'OpenLDAPorg'
 	DESC 'OpenLDAP Organizational Object'
@@ -52,7 +45,7 @@ objectClass ( OpenLDAPobjectClass:5
 	DESC 'OpenLDAP Person'
 	SUP ( pilotPerson $ inetOrgPerson )
 	MUST ( uid $ cn )
-	MAY ( givenName $ labeledURI $ o $ OpenLDAPtime ) )
+	MAY ( givenName $ labeledURI $ o ) )
 
 objectClass ( OpenLDAPobjectClass:6
 	NAME 'OpenLDAPdisplayableObject'
