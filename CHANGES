@@ -1,3 +1,29 @@
+OpenLDAP Change Log
 
-Changes are tracked via CVS.
+Changes included in OpenLDAP Stable 
+	CVS Tag: OPENLDAP_STABLE 
+	Fixed gmake RUNDIR not defaulting problem. 
 
+Changes included in OpenLDAP 1.0.1 
+CVS Tag: OPENLDAP_STABLE_980907 
+	Added GNU Make Support 
+	Added OpenBSD Support 
+	Added FreeBSD 2.x vs 3.x detection 
+	Fixed slapd LDAP_TCP_WRAPPER build problem 
+	Fixed slapd NO_THREADS busy loop problem 
+	Fixed slurpd NULL termination problem 
+	Fixed misc build/install problems 
+	Removed junked binary files from repository/distribution 
+
+Changes included in OpenLDAP 1.0 
+CVS Tag: OPENLDAP_1-0 
+	Added TCP Wrapper support to slapd 
+	Added POSIX Threads (final) support 
+	Added ACL enhancements including 
+		Access by Groups 
+		POSIX regex support 
+	platform updates, and 
+	numerous bug fixes and build changes. 
+
+Base Version: University of Michigan LDAP v3.3 
+CVS Tag: UMICH_3_3 
