@@ -427,7 +427,7 @@ slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value )
 {
 #ifdef LDAP_SLAPI
 	struct berval bv;
-	AttributeDescription *ad;
+	AttributeDescription *ad = NULL;
 	const char *text;
 	int rc;
 	Attribute *attr;
@@ -777,7 +777,7 @@ int
 slapi_entry_attr_replace_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals )
 {
 #ifdef LDAP_SLAPI
-	AttributeDescription *ad;
+	AttributeDescription *ad = NULL;
 	const char *text;
 	int rc;
 	BerVarray bv;
@@ -3202,7 +3202,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 	Connection *conn = NULL;
 	Operation *op = NULL;
 	BerElement *ber;
-	AttributeDescription *desc;
+	AttributeDescription *desc = NULL;
 	int rc;
 	int i;
 
