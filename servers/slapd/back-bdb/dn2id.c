@@ -117,6 +117,7 @@ bdb_dn2id_delete(
 	DBTzero( &key );
 	key.size = strlen( dn ) + 2;
 	key.data = ch_malloc( key.size );
+	key.flags = DB_DBT_USERMEM;
 	((char *)key.data)[0] = DN_BASE_PREFIX;
 	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
 

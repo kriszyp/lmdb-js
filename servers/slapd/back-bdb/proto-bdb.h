@@ -167,6 +167,11 @@ int bdb_id2entry(
  */
 unsigned bdb_idl_search( ID *ids, ID id );
 
+int bdb_bt_compare(
+	DB *db,
+	const DBT *a,
+	const DBT *b );
+
 int bdb_idl_fetch_key(
 	BackendDB *be,
 	DB *db,

@@ -227,13 +227,44 @@ bdb_idl_fetch_key(
 	assert( ids != NULL );
 
 	DBTzero( &data );
+
+#ifdef BDB_IDL_MULTI
+	{
+		ID buf[BDB_IDL_UM_SIZE];
+		ID *i, *j;
+		void *ptr;
+		size_t len;
+		data.data = buf;
+		data.ulen = BDB_IDL_UM_SIZEOF;
+		data.flags = DB_DBT_USERMEM;
+		rc = db->get( db, tid, key, &data, bdb->bi_db_opflags |
+			DB_MULTIPLE );
+		if (rc == 0) {
+			DB_MULTIPLE_INIT( ptr, &data );
+			i = ids;
+			while (ptr) {
+				DB_MULTIPLE_NEXT(ptr, &data, j, len);
+				if (j) {
+					++i;
+					AC_MEMCPY( i, j, sizeof(ID) );
+				}
+			}
+			if (ids[1] == 0) {
+				BDB_IDL_RANGE( ids, ids[2], ids[3] );
+			} else {
+				ids[0] = (i - ids);
+			}
+			data.size = BDB_IDL_SIZEOF(ids);
+		}
+	}
+#else
 	data.data = ids;
 	data.ulen = BDB_IDL_UM_SIZEOF;
 	data.flags = DB_DBT_USERMEM;
-
 	/* fetch it */
 	rc = db->get( db, tid, key, &data, bdb->bi_db_opflags );
 
+#endif
 	if( rc == DB_NOTFOUND ) {
 		return rc;
 
@@ -271,8 +302,10 @@ bdb_idl_insert_key(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int	rc;
-	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
+#ifndef BDB_IDL_MULTI
+	ID ids[BDB_IDL_DB_SIZE];
+#endif
 
 	/* for printable keys only */
 	Debug( LDAP_DEBUG_ARGS,
@@ -281,6 +314,12 @@ bdb_idl_insert_key(
 
 	assert( id != NOID );
 
+	DBTzero( &data );
+#ifdef BDB_IDL_MULTI
+	data.data = &id;
+	data.size = sizeof(id);
+	data.flags = DB_DBT_USERMEM;
+#else
 	data.data = ids;
 	data.ulen = sizeof ids;
 	data.flags = DB_DBT_USERMEM;
@@ -340,9 +379,12 @@ bdb_idl_insert_key(
 
 		data.size = BDB_IDL_SIZEOF( ids );
 	}
+#endif
 
 	/* store the key */
 	rc = db->put( db, tid, key, &data, 0 );
+
+	if( rc == DB_KEYEXIST ) rc = 0;
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
@@ -362,8 +404,10 @@ bdb_idl_delete_key(
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int	rc;
-	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
+#ifndef BDB_IDL_MULTI
+	ID ids[BDB_IDL_DB_SIZE];
+#endif
 
 	/* for printable keys only */
 	Debug( LDAP_DEBUG_ARGS,
@@ -372,6 +416,23 @@ bdb_idl_delete_key(
 
 	assert( id != NOID );
 
+	DBTzero( &data );
+#ifdef BDB_IDL_MULTI
+	{
+		DBC *cursor;
+
+		data.data = &id;
+		data.size = sizeof( id );
+		data.ulen = data.size;
+		data.flags = DB_DBT_USERMEM;
+
+		rc = db->cursor( db, tid, &cursor, bdb->bi_db_opflags );
+		rc = cursor->c_get( cursor, key, &data, bdb->bi_db_opflags |
+			DB_GET_BOTH | DB_RMW  );
+		rc = cursor->c_del( cursor, 0 );
+		rc = cursor->c_close( cursor );
+	}
+#else
 	data.data = ids;
 	data.ulen = sizeof( ids );
 	data.flags = DB_DBT_USERMEM;
@@ -428,6 +489,8 @@ bdb_idl_delete_key(
 
 	/* store the key */
 	rc = db->put( db, tid, key, &data, 0 );
+
+#endif /* BDB_IDL_MULTI */
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
