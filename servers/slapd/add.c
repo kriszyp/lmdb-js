@@ -238,12 +238,11 @@ do_add( Connection *conn, Operation *op )
 		}
 
 		if (mod == NULL) {
+#define BAILOUT
 #ifdef BAILOUT
-			/* for now, bail out; we might end up
-			 * adding the missing value, as iPlanet
-			 * allegedly does */
+			/* bail out */
 			send_ldap_result( conn, op, 
-					rc = LDAP_CONSTRAINT_VIOLATION,
+					rc = LDAP_NO_SUCH_ATTRIBUTE,
 					NULL,
 					"attribute in RDN not listed in entry", 
 					NULL, NULL );
@@ -252,6 +251,7 @@ do_add( Connection *conn, Operation *op )
 #else /* ! BAILOUT */
 			struct berval	bv;
 
+			/* add attribute type and value to modlist */
 			mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 		
 			mod->sml_op = LDAP_MOD_ADD;
@@ -299,15 +299,18 @@ do_add( Connection *conn, Operation *op )
 		/* not found? */
 		if (mod->sml_bvalues[ i ].bv_val == NULL) {
 #ifdef BAILOUT
+			/* bailout */
 			send_ldap_result( conn, op, 
-					rc = LDAP_CONSTRAINT_VIOLATION,
+					rc = LDAP_NO_SUCH_ATTRIBUTE,
 					NULL,
 					"value in RDN not listed in entry", 
 					NULL, NULL );
 			goto done;
+
 #else /* ! BAILOUT */
 			struct berval	bv;
 
+			/* add attribute type and value to modlist */
 			ber_dupbv( &bv, &rdn[ 0 ][ a_cnt ]->la_value );
 			ber_bvarray_add( &mod->sml_bvalues, &bv );
 			continue;
