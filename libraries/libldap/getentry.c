@@ -99,7 +99,7 @@ ldap_get_entry_controls(
 	assert( sctrls != NULL );
 
 	if ( ld == NULL || sctrls == NULL ||
-		entry == NULL || entry->lm_msgtype == LDAP_RES_SEARCH_ENTRY )
+		entry == NULL || entry->lm_msgtype != LDAP_RES_SEARCH_ENTRY )
 	{
 		return LDAP_PARAM_ERROR;
 	}

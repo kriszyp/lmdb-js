@@ -42,6 +42,7 @@ homephone: +1 313 555 5444
 pager: +1 313 555 4474
 facsimiletelephonenumber: +1 313 555 2177
 telephonenumber: +1 313 555 0355
+
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 member: cn=Manager, o=University of Michigan, c=US
 member: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=Un
@@ -122,6 +123,7 @@ pager: +1 313 555 3923
 mail: jaj@mail.alumni.umich.edu
 facsimiletelephonenumber: +1 313 555 4332
 telephonenumber: +1 313 555 0895
+
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 member: cn=Manager, o=University of Michigan, c=US
 member: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=Un
@@ -167,6 +169,7 @@ owner: cn=Manager, o=University of Michigan, c=US
 description: All Alumni Assoc Staff
 cn: Alumni Assoc Staff
 objectclass: groupofnames
+
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 member: cn=Manager, o=University of Michigan, c=US
 member: cn=Barbara Jensen, ou=Information Technology Division, ou=People, o=Un
@@ -263,3 +266,4 @@ postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
  09 $ US
 telephonenumber: +1 313 764-1817
 associateddomain: umich.edu
+

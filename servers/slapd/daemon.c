@@ -247,9 +247,9 @@ static Listener * open_listener( const char* url )
 #  ifdef LDAP_PF_UNIX
 	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
-			err = getaddrinfo(NULL, "/tmp/.ldap-sock", &hints, &res);
+			err = getaddrinfo(NULL, LDAPI_SOCK, &hints, &res);
 			if (!err)
-				unlink( "/tmp/.ldap-sock" );
+				unlink( LDAPI_SOCK );
 		} else {
 			err = getaddrinfo(NULL, lud->lud_host, &hints, &res);
 			if (!err)
@@ -297,7 +297,7 @@ static Listener * open_listener( const char* url )
 
 		/* hack: overload the host to be the path */
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
-			strcpy( l.sl_sa.sa_un_addr.sun_path, "/tmp/.ldap-sock" );
+			strcpy( l.sl_sa.sa_un_addr.sun_path, LDAPI_SOCK );
 		} else {
 			if ( strlen(lud->lud_host) > (sizeof(l.sl_sa.sa_un_addr.sun_path) - 1) ) {
 				Debug( LDAP_DEBUG_ANY,

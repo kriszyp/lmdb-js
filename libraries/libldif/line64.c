@@ -314,18 +314,15 @@ ldif_sput(
 	/* prefix */
 	switch( type ) {
 	case LDIF_PUT_COMMENT:
-		if( name != NULL ) break;
-
 		*(*out)++ = '#';
 		len++;
 
 		if( vlen ) {
 			*(*out)++ = ' ';
 			len++;
-			break;
 		}
 
-		/* no value, fall-thru */
+		break;
 
 	case LDIF_PUT_SEP:
 		*(*out)++ = '\n';

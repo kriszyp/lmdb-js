@@ -75,7 +75,7 @@ usage( const char *s )
 "	-M\t\tenable Manage DSA IT control (-MM to make it critical)\n"
 "	-n\t\tshow what would be done but don't actually do it\n"
 "	-p port\t\tport on LDAP server\n"
-"	-P version\tprocotol version (2 or 3)\n"
+"	-P version\tprocotol version (default: 3)\n"
 "	-r\t\tremove old RDN\n"
 "	-s newsuperior\tnew superior entry\n"
 "	-U user\t\tSASL authentication identity (username)\n"
@@ -341,19 +341,18 @@ main(int argc, char **argv)
 	return( EXIT_FAILURE );
     }
 
-	/* this seems prudent */
-	{
-		int deref = LDAP_DEREF_NEVER;
-		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
-	}
 	/* don't chase referrals */
 	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
+	if (version == -1 ) {
+		version = 3;
+	}
 
-	if (version != -1 &&
-		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
+	if( ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version )
+		!= LDAP_OPT_SUCCESS )
 	{
-		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
+		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n",
+			version );
 	}
 
 	if ( use_tls && ldap_start_tls_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {

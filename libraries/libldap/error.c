@@ -92,7 +92,7 @@ static const struct ldaperror ldap_errlist[] = {
 	{LDAP_CLIENT_LOOP,				"Client Loop" },
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	"Referral Limit Exceeded" },
 
-	{-1, 0 }
+	{-1, NULL }
 };
 
 static const struct ldaperror *
@@ -150,7 +150,7 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 	}
 
 	if ( ld->ld_matched != NULL && ld->ld_matched[0] != '\0' ) {
-		fprintf( stderr, "\tmatched: \"%s\"\n",
+		fprintf( stderr, "\tmatched DN: \"%s\"\n",
 			ld->ld_matched );
 	}
 

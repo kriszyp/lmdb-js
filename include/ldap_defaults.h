@@ -35,6 +35,11 @@
 #define LDAP_USERRC_FILE "ldaprc"
 #define LDAP_ENV_PREFIX "LDAP"
 
+/* default ldapi:// socket */
+#define LDAPI_SOCK LDAP_TMPDIR LDAP_DIRSEP ".ldapi_sock"
+
+/* default file: URI prefix */
+#define LDAP_FILE_URI_PREFIX "file://" LDAP_TMPDIR LDAP_DIRSEP
 
 /*
  * SHARED DEFINITIONS - other things you can change

@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
 #
-# Strip operational attributes
+# Strip comments
 #
-egrep -iv '^modifiersname:|^modifytimestamp:|^creatorsname:|^createtimestamp'
+egrep -iv '^#'

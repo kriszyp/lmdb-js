@@ -22,6 +22,13 @@
 #define LDAP_DIRSEP "\\"
 #endif
 
+/* directory for temporary files */
+#if defined( _P_tmpdir )
+#define LDAP_TMPDIR _P_tmpdir
+#else
+#define LDAP_TMPDIR "\\"
+#endif
+
 /* directories */
 #ifndef LDAP_PREFIX
 #define LDAP_PREFIX			"C:\\OpenLDAP"

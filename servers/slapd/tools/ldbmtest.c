@@ -506,7 +506,7 @@ edit_entry( char c, Datum *data )
 	WAITSTATUSTYPE	status;
 #endif
 
-	strcpy( tmpname, "/tmp/dbtestXXXXXX" );
+	strcpy( tmpname, LDAP_TMPDIR LDAP_DEFSEP "dbtestXXXXXX" );
 #ifndef HAVE_MKSTEMP
 	if ( (fd = open( mktemp( tmpname ), O_RDWR|O_CREAT|O_EXCL, 0600 )) == -1 ) {
 		perror( tmpname );

@@ -164,7 +164,7 @@ auth( char *who, int implicit )
 
 		/* if we're running as a server (e.g., out of inetd) */
 		if ( ! isatty( 1 ) ) {
-			strcpy( tktpath, "/tmp/ud_tktXXXXXX" );
+			strcpy( tktpath, LDAP_TMPDIR LDAP_DEFSEP "ud_tktXXXXXX" );
 			mktemp( tktpath );
 			krb_set_tkt_string( tktpath );
 		}

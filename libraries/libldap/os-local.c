@@ -33,6 +33,7 @@
 #endif /* HAVE_IO_H */
 
 #include "ldap-int.h"
+#include "ldap_defaults.h"
 
 /* int ldap_int_tblsize = 0; */
 
@@ -191,7 +192,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 	}
 
 	if ( path == NULL || path[0] == '\0' ) {
-		path = "/tmp/.ldap-sock";
+		path = LDAPI_SOCK;
 	} else {
 		if ( strlen(path) > (sizeof( server.sun_path ) - 1) ) {
 			ldap_pvt_set_errno( ENAMETOOLONG );

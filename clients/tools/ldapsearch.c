@@ -30,63 +30,72 @@
 #include <ldap.h>
 
 #include "ldif.h"
+#include "lutil.h"
 #include "ldap_defaults.h"
 
 static void
 usage( const char *s )
 {
 	fprintf( stderr,
-"usage: %s [options] filter [attributes...]\nwhere:\n"
-"	filter\tRFC-1558 compliant LDAP search filter\n"
-"	attributes\twhitespace-separated list of attributes to retrieve\n"
-"\t\t1.1		-- no attributes\n"
-"\t\t*		  -- all user attributes\n"
-"\t\t+		  -- all operational attributes\n"
-"\t\tempty list -- all non-operational attributes\n"
+"usage: %s [options] [filter [attributes...]]\nwhere:\n"
+"\tfilter\tRFC-2254 compliant LDAP search filter\n"
+"\tattributes\twhitespace-separated list of attribute descriptions\n"
+"\t  which may include:\n"
+"\t\t1.1 -- no attributes\n"
+"\t\t*   -- all user attributes\n"
+"\t\t+   -- all operational attributes\n"
 "options:\n"
-"	-a deref\tone of `never', `always', `search', or `find' (alias\n"
-"		\tdereferencing)\n"
-"	-A\t\tretrieve attribute names only (no values)\n"
-"	-b basedn\tbase dn for search\n"
-"	-d level\tset LDAP debugging level to `level'\n"
-"	-D binddn\tbind DN\n"
-"	-E\t\trequest SASL privacy (-EE to make it critical)\n"
-"	-f file\t\tperform sequence of searches listed in `file'\n"
-"	-h host\t\tLDAP server\n"
-"	-I\t\trequest SASL integrity checking (-II to make it\n"
-"		\tcritical)\n"
-"	-k\t\tuse Kerberos authentication\n"
-"	-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
-"	-l limit\ttime limit (in seconds) for search\n"
-"	-L\t\tprint entries in LDIF format (default)\n"
-"	-LL\t\tprint entries in LDIF format without comments\n"
-"	-LLL\t\tprint entries in LDIF format without comments and\n"
-"		\tversion\n"
-"	-M\t\tenable Manage DSA IT control (-MM to make critical)\n"
-"	-n\t\tshow what would be done but don't actually search\n"
-"	-p port\t\tport on LDAP server\n"
-"	-P version\tprocotol version (2 or 3)\n"
-"	-R\t\tdo not automatically follow referrals\n"
-"	-s scope\tone of base, one, or sub (search scope)\n"
-"	-S attr\t\tsort the results by attribute `attr'\n"
-"	-t\t\twrite binary values to files in TMPDIR\n"
-"	-tt\t\twrite all values to files in TMPDIR\n"
-"	-T path\t\twrite files to directory specified by path (default:\n"
-"		\t\"/tmp\")\n"
-"	-u\t\tinclude User Friendly entry names in the output\n"
-"	-U user\t\tSASL authentication identity (username)\n"
-"	-v\t\trun in verbose mode (diagnostics to standard output)\n"
-"	-V prefix\tURL prefix for files (default: \"file://tmp/\")\n"
-"	-w passwd\tbind passwd (for simple authentication)\n"
-"	-W\t\tprompt for bind passwd\n"
-"	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
-"	-Y mech\t\tSASL mechanism\n"
-"	-z limit\tsize limit (in entries) for search\n"
-"	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
-,		s );
+"\t-a deref\tdereference aliases: never (default), always, search, or find\n"
+"\t-A\t\tretrieve attribute names only (no values)\n"
+"\t-b basedn\tbase dn for search\n"
+"\t-d level\tset LDAP debugging level to `level'\n"
+"\t-D binddn\tbind DN\n"
+"\t-E\t\trequest SASL privacy (-EE to make it critical)\n"
+"\t-f file\t\tperform sequence of searches listed in `file'\n"
+"\t-h host\t\tLDAP server\n"
+"\t-I\t\trequest SASL integrity checking (-II to make it\n"
+"\t\t\tcritical)\n"
+"\t-k\t\tuse Kerberos authentication\n"
+"\t-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
+"\t-l limit\ttime limit (in seconds) for search\n"
+"\t-L\t\tprint responses in LDIFv1 format\n"
+"\t-LL\t\tprint responses in LDIF format without comments\n"
+"\t-LLL\t\tprint responses in LDIF format without comments\n"
+"\t\t\tand version\n"
+"\t-M\t\tenable Manage DSA IT control (-MM to make critical)\n"
+"\t-n\t\tshow what would be done but don't actually search\n"
+"\t-p port\t\tport on LDAP server\n"
+"\t-P version\tprocotol version (default: 3)\n"
+"\t-R\t\tdo not automatically follow referrals\n"
+"\t-s scope\tone of base, one, or sub (search scope)\n"
+"\t-S attr\t\tsort the results by attribute `attr'\n"
+"\t-t\t\twrite binary values to files in temporary directory\n"
+"\t-tt\t\twrite all values to files in temporary directory\n"
+"\t-T path\t\twrite files to directory specified by path (default:\n"
+"\t\t\t\"" LDAP_TMPDIR "\")\n"
+"\t-u\t\tinclude User Friendly entry names in the output\n"
+"\t-U user\t\tSASL authentication identity (username)\n"
+"\t-v\t\trun in verbose mode (diagnostics to standard output)\n"
+"\t-V prefix\tURL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
+"\t-w passwd\tbind passwd (for simple authentication)\n"
+"\t-W\t\tprompt for bind passwd\n"
+"\t-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"\t-Y mech\t\tSASL mechanism\n"
+"\t-z limit\tsize limit (in entries) for search\n"
+"\t-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
+, s );
 
 	exit( EXIT_FAILURE );
 }
+
+static void print_entry LDAP_P((
+	LDAP	*ld,
+	LDAPMessage	*entry,
+	int		attrsonly));
+
+static void print_reference(
+	LDAP *ld,
+	LDAPMessage *reference );
 
 static void print_extended(
 	LDAP *ld,
@@ -96,14 +105,13 @@ static void print_partial(
 	LDAP *ld,
 	LDAPMessage *partial );
 
-static void print_reference(
+static int print_result(
 	LDAP *ld,
-	LDAPMessage *reference );
+	LDAPMessage *result,
+	int search );
 
-static void print_entry LDAP_P((
-	LDAP	*ld,
-	LDAPMessage	*entry,
-	int		attrsonly));
+static void print_ctrls(
+	LDAPControl **ctrls );
 
 static int write_ldif LDAP_P((
 	int type,
@@ -119,9 +127,6 @@ static int dosearch LDAP_P((
 	int		attrsonly,
 	char	*filtpatt,
 	char	*value));
-
-#define TMPDIR "/tmp"
-#define URLPRE "file:/tmp/"
 
 static char *tmpdir = NULL;
 static char *urlpre = NULL;
@@ -140,13 +145,12 @@ static int	sasl_privacy = 0;
 #endif
 static int	use_tls = 0;
 static char	*sortattr = NULL;
-static int	skipsortattr = 0;
 static int	verbose, not, includeufn, vals2tmp, ldif;
 
 int
 main( int argc, char **argv )
 {
-	char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
+	char		*infile, *filtpattern, **attrs, line[BUFSIZ];
 	FILE		*fp = NULL;
 	int			rc, i, first, scope, deref, attrsonly, manageDSAit;
 	int			referrals, timelimit, sizelimit, debug;
@@ -198,7 +202,7 @@ main( int argc, char **argv )
 	case 'u':	/* include UFN */
 		++includeufn;
 		break;
-	case 't':	/* write attribute values to /tmp files */
+	case 't':	/* write attribute values to TMPDIR files */
 		++vals2tmp;
 		break;
 	case 'M':
@@ -243,11 +247,11 @@ main( int argc, char **argv )
 		}
 		break;
 		
-	case 'T':	/* field separator */
+	case 'T':	/* tmpdir */
 		if( tmpdir ) free( tmpdir );
 		tmpdir = strdup( optarg );
 		break;
-	case 'V':	/* field separator */
+	case 'V':	/* uri prefix */
 		if( urlpre ) free( urlpre );
 		urlpre = strdup( optarg );
 		break;
@@ -257,7 +261,7 @@ main( int argc, char **argv )
 	case 'h':	/* ldap host */
 		ldaphost = strdup( optarg );
 		break;
-	case 'b':	/* searchbase */
+	case 'b':	/* search base */
 		base = strdup( optarg );
 		break;
 	case 'D':	/* bind DN */
@@ -369,9 +373,6 @@ main( int argc, char **argv )
 	}
 	}
 
-	/* no alternative format */
-	if( ldif == 0 ) ldif = 1;
-
 	if ( ( authmethod == LDAP_AUTH_KRBV4 ) || ( authmethod ==
 			LDAP_AUTH_KRBV41 ) ) {
 		if( version > LDAP_VERSION2 ) {
@@ -405,28 +406,15 @@ main( int argc, char **argv )
 	}
 
 	if ( argc - optind < 1 ) {
-		usage( argv[ 0 ] );
+		filtpattern = "(objectclass=*)";
+	} else {
+		filtpattern = strdup( argv[optind++] );
 	}
 
-	filtpattern = strdup( argv[ optind ] );
-
-	if ( argv[ optind + 1 ] == NULL ) {
+	if ( argv[optind] == NULL ) {
 		attrs = NULL;
 	} else if ( sortattr == NULL || *sortattr == '\0' ) {
-		attrs = &argv[ optind + 1 ];
-	} else {
-		for ( i = optind + 1; i < argc; i++ ) {
-			if ( strcasecmp( argv[ i ], sortattr ) == 0 ) {
-				break;
-			}
-		}
-		if ( i == argc ) {
-			skipsortattr = 1;
-			argv[ optind ] = sortattr;
-		} else {
-			optind++;
-		}
-		attrs = &argv[ optind ];
+		attrs = &argv[optind];
 	}
 
 	if ( infile != NULL ) {
@@ -443,7 +431,7 @@ main( int argc, char **argv )
 		&& (tmpdir = getenv("TMP")) == NULL
 		&& (tmpdir = getenv("TEMP")) == NULL )
 	{
-		tmpdir = "/tmp";
+		tmpdir = LDAP_TMPDIR;
 	}
 
 	if( urlpre == NULL ) {
@@ -603,7 +591,7 @@ main( int argc, char **argv )
 	}
 
 	if ( verbose ) {
-		fprintf( stderr, "filter%s: %s\nreturning: ",
+		fprintf( stderr, "filter%s: %s\nrequesting: ",
 			infile != NULL ? " pattern" : "",
 			filtpattern );
 
@@ -618,11 +606,11 @@ main( int argc, char **argv )
 	}
 
 	if (ldif < 3 ) {
-		printf( "version: 2\n\n");
+		printf( "version: %d\n\n", ldif ? 1 : 2 );
 	}
 
 	if (ldif < 2 ) {
-		printf( "#\n# filter%s: %s\n# returning: ",
+		printf( "#\n# filter%s: %s\n# requesting: ",
 			infile != NULL ? " pattern" : "",
 			filtpattern );
 
@@ -633,6 +621,12 @@ main( int argc, char **argv )
 				printf( "%s ", attrs[ i ] );
 			}
 		}
+
+		if ( manageDSAit ) {
+			printf("\n# with manageDSAit %scontrol",
+				manageDSAit > 1 ? "critical " : "" );
+		}
+
 		printf( "\n#\n\n" );
 	}
 
@@ -642,7 +636,7 @@ main( int argc, char **argv )
 	} else {
 		rc = 0;
 		first = 1;
-		while ( rc == 0 && fgets( line, sizeof( line ), fp ) != NULL ) {
+		while ( rc == 0 && fgets( line, sizeof( line ), fp ) != NULL ) { 
 			line[ strlen( line ) - 1 ] = '\0';
 			if ( !first ) {
 				putchar( '\n' );
@@ -688,7 +682,7 @@ static int dosearch(
 			fprintf( stderr, "filter is: (%s)\n", filter );
 		}
 
-		if( ldif == 1 ) {
+		if( ldif < 2 ) {
 			printf( "#\n# filter: %s\n#\n", filter );
 		}
 
@@ -697,7 +691,7 @@ static int dosearch(
 	}
 
 	if ( not ) {
-		return( LDAP_SUCCESS );
+		return LDAP_SUCCESS;
 	}
 
 	msgid = ldap_search( ld, base, scope, filter, attrs, attrsonly );
@@ -723,55 +717,37 @@ static int dosearch(
 			msg != NULL;
 			msg = ldap_next_message( ld, msg ) )
 		{
-			nresponses++;
+			if( nresponses++ ) putchar('\n');
 
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
-				if( nresponses > 1 ) putchar('\n');
 				nentries++;
 				print_entry( ld, msg, attrsonly );
 				break;
 
 			case LDAP_RES_SEARCH_REFERENCE:
-				if( nresponses > 1 ) putchar('\n');
 				nreferences++;
 				print_reference( ld, msg );
 				break;
 
 			case LDAP_RES_EXTENDED:
-				if( nresponses > 1 ) putchar('\n');
 				nextended++;
 				print_extended( ld, msg );
-
-				rc = ldap_result2error( ld, msg, 0 );
-
-				if( rc != LDAP_SUCCESS ) {
-					ldap_perror( ld, "ldap_search" );
-				}
 
 				if( ldap_msgid( msg ) == 0 ) {
 					/* unsolicited extended operation */
 					goto done;
 				}
-
 				break;
 
 			case LDAP_RES_EXTENDED_PARTIAL:
-				if( nresponses > 1 ) putchar('\n');
 				npartial++;
 				print_partial( ld, msg );
 				break;
 
 			case LDAP_RES_SEARCH_RESULT:
-				/* if( nresponses > 1 ) putchar('\n'); */
-				rc = ldap_result2error( ld, msg, 0 );
-
-				if( rc != LDAP_SUCCESS ) {
-					ldap_perror( ld, "ldap_search" );
-				}
-
+				rc = print_result( ld, msg, 1 );
 				goto done;
-
 			}
 		}
 
@@ -784,99 +760,15 @@ static int dosearch(
 	}
 
 done:
-	if ( verbose ) {
-		printf( "%d responses\n", nresponses );
+	if ( ldif < 2 ) {
+		printf( "\n# numResponses: %d\n", nresponses );
+		if( nentries ) printf( "# numEntries: %d\n", nentries );
+		if( nextended ) printf( "# numExtended: %d\n", nextended );
+		if( npartial ) printf( "# numPartial: %d\n", npartial );
+		if( nreferences ) printf( "# numReferences: %d\n", nreferences );
 	}
 
 	return( rc );
-}
-
-
-static void print_reference(
-	LDAP *ld,
-	LDAPMessage *reference )
-{
-	int rc, i;
-	char **refs = NULL;
-
-	if( ldif == 1 ) {
-		printf("# search reference\n");
-	}
-
-	rc = ldap_parse_reference( ld, reference, &refs, NULL, 0 );
-
-	for( i=0; refs[i] != NULL; i++ ) {
-		write_ldif( LDIF_PUT_VALUE, "ref", refs[i], strlen(refs[i]) );
-	}
-
-	ber_memvfree( (void **) refs );
-
-	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_reference");
-		exit( EXIT_FAILURE );
-	}
-}
-
-static void print_extended(
-	LDAP *ld,
-	LDAPMessage *extended )
-{
-	char rst[16];
-	int rc;
-	char *retoid = NULL;
-	struct berval *retdata = NULL;
-
-	if( ldif == 1 ) {
-		printf("# extended result response\n");
-	}
-
-	rc = ldap_parse_extended_result( ld, extended,
-		&retoid, &retdata, 0 );
-
-	write_ldif( LDIF_PUT_VALUE, "extended",
-		retoid, retoid ? strlen(retoid) : 0 );
-
-	if(retdata) {
-		write_ldif( LDIF_PUT_BINARY, "data", 
-			retdata->bv_val, retdata->bv_len );
-	}
-
-	sprintf( rst, "%ld", (long) rst );
-	write_ldif( LDIF_PUT_VALUE, "result", rst, strlen(rst));
-
-	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_extended_result");
-		exit( EXIT_FAILURE );
-	}
-}
-
-static void print_partial(
-	LDAP *ld,
-	LDAPMessage *partial )
-{
-	int rc;
-	char *retoid = NULL;
-	struct berval *retdata = NULL;
-
-	if( ldif == 1 ) {
-		printf("# extended partial response\n");
-	}
-
-	rc = ldap_parse_extended_partial( ld, partial,
-		&retoid, &retdata, NULL, 0 );
-
-	write_ldif( LDIF_PUT_VALUE, "partial",
-		retoid, retoid ? strlen(retoid) : 0 );
-
-	if(retdata) {
-		write_ldif( LDIF_PUT_BINARY, "data", 
-			retdata->bv_val, retdata->bv_len );
-	}
-
-	if( rc != LDAP_SUCCESS ) {
-		ldap_perror(ld, "ldap_parse_extended_partial");
-		exit( EXIT_FAILURE );
-	}
 }
 
 static void
@@ -888,33 +780,39 @@ print_entry(
 	char		*a, *dn, *ufn;
 	char	tmpfname[ 256 ];
 	char	url[ 256 ];
-	int			i;
+	int			i, rc;
 	BerElement		*ber = NULL;
 	struct berval	**bvals;
+	LDAPControl **ctrls = NULL;
 	FILE		*tmpfp;
 
 	dn = ldap_get_dn( ld, entry );
 	ufn = NULL;
 
-	if ( ldif == 1 ) {
+	if ( ldif < 2 ) {
 		ufn = ldap_dn2ufn( dn );
 		write_ldif( LDIF_PUT_COMMENT, NULL, ufn, ufn ? strlen( ufn ) : 0 );
 	}
-	if ( ldif ) {
-		write_ldif( LDIF_PUT_VALUE, "dn", dn, dn ? strlen( dn ) : 0);
-	} else {
-		printf( "%s\n", dn );
+	write_ldif( LDIF_PUT_VALUE, "dn", dn, dn ? strlen( dn ) : 0);
+
+	rc = ldap_get_entry_controls( ld, entry, &ctrls );
+
+	if( rc != LDAP_SUCCESS ) {
+		fprintf(stderr, "print_entry: %d\n", rc );
+		ldap_perror( ld, "ldap_get_entry_controls" );
+		exit( EXIT_FAILURE );
+	}
+
+	if( ctrls ) {
+		print_ctrls( ctrls );
+		ldap_controls_free( ctrls );
 	}
 
 	if ( includeufn ) {
 		if( ufn == NULL ) {
 			ufn = ldap_dn2ufn( dn );
 		}
-		if ( ldif ) {
-			write_ldif( LDIF_PUT_VALUE, "ufn", ufn, ufn ? strlen( ufn ) : 0 );
-		} else {
-			printf( "%s\n", ufn );
-		}
+		write_ldif( LDIF_PUT_VALUE, "ufn", ufn, ufn ? strlen( ufn ) : 0 );
 	}
 
 	if( ufn != NULL ) ldap_memfree( ufn );
@@ -923,16 +821,8 @@ print_entry(
 	for ( a = ldap_first_attribute( ld, entry, &ber ); a != NULL;
 		a = ldap_next_attribute( ld, entry, ber ) )
 	{
-		if ( skipsortattr && strcasecmp( a, sortattr ) == 0 ) {
-			continue;
-		}
-
 		if ( attrsonly ) {
-			if ( ldif ) {
-				write_ldif( LDIF_PUT_NOVALUE, a, NULL, 0 );
-			} else {
-				printf( "%s\n", a );
-			}
+			write_ldif( LDIF_PUT_NOVALUE, a, NULL, 0 );
 
 		} else if (( bvals = ldap_get_values_len( ld, entry, a )) != NULL ) {
 			for ( i = 0; bvals[i] != NULL; i++ ) {
@@ -989,6 +879,241 @@ print_entry(
 	}
 }
 
+static void print_reference(
+	LDAP *ld,
+	LDAPMessage *reference )
+{
+	int rc;
+	char **refs = NULL;
+	LDAPControl **ctrls;
+
+	if( ldif < 2 ) {
+		printf("# search reference\n");
+	}
+
+	rc = ldap_parse_reference( ld, reference, &refs, &ctrls, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror(ld, "ldap_parse_reference");
+		exit( EXIT_FAILURE );
+	}
+
+	if( refs ) {
+		int i;
+		for( i=0; refs[i] != NULL; i++ ) {
+			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+				"ref", refs[i], strlen(refs[i]) );
+		}
+		ber_memvfree( (void **) refs );
+	}
+
+	if( ctrls ) {
+		print_ctrls( ctrls );
+		ldap_controls_free( ctrls );
+	}
+}
+
+static void print_extended(
+	LDAP *ld,
+	LDAPMessage *extended )
+{
+	int rc;
+	char *retoid = NULL;
+	struct berval *retdata = NULL;
+
+	if( ldif < 2 ) {
+		printf("# extended result response\n");
+	}
+
+	rc = ldap_parse_extended_result( ld, extended,
+		&retoid, &retdata, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror(ld, "ldap_parse_extended_result");
+		exit( EXIT_FAILURE );
+	}
+
+	write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+		"extended", retoid, retoid ? strlen(retoid) : 0 );
+	ber_memfree( retoid );
+
+	if(retdata) {
+		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
+			"data", retdata->bv_val, retdata->bv_len );
+		ber_bvfree( retdata );
+	}
+
+	print_result( ld, extended, 0 );
+}
+
+static void print_partial(
+	LDAP *ld,
+	LDAPMessage *partial )
+{
+	int rc;
+	char *retoid = NULL;
+	struct berval *retdata = NULL;
+	LDAPControl **ctrls = NULL;
+
+	if( ldif < 2 ) {
+		printf("# extended partial response\n");
+	}
+
+	rc = ldap_parse_extended_partial( ld, partial,
+		&retoid, &retdata, &ctrls, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror(ld, "ldap_parse_extended_partial");
+		exit( EXIT_FAILURE );
+	}
+
+	write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+		"partial", retoid, retoid ? strlen(retoid) : 0 );
+
+	ber_memfree( retoid );
+
+	if( retdata ) {
+		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
+			"data", 
+			retdata->bv_val, retdata->bv_len );
+
+		ber_bvfree( retdata );
+	}
+
+	if( ctrls ) {
+		print_ctrls( ctrls );
+		ldap_controls_free( ctrls );
+	}
+}
+
+static int print_result(
+	LDAP *ld,
+	LDAPMessage *result, int search )
+{
+	char rst[BUFSIZ];
+	int rc;
+	int err;
+	char *matcheddn = NULL;
+	char *text = NULL;
+	char **refs = NULL;
+	LDAPControl **ctrls = NULL;
+
+	if( search ) {
+		if ( ldif < 2 ) {
+			printf("# search result\n");
+		}
+		if ( ldif < 1 ) {
+			printf("%s: %d\n", "search", ldap_msgid(result) );
+		}
+	}
+
+	rc = ldap_parse_result( ld, result,
+		&err, &matcheddn, &text, &refs, &ctrls, 0 );
+
+	if( rc != LDAP_SUCCESS ) {
+		ldap_perror(ld, "ldap_parse_result");
+		exit( EXIT_FAILURE );
+	}
+
+
+	if( !ldif ) {
+		printf( "result: %d %s\n", err, ldap_err2string(err) );
+
+	} else if ( err != LDAP_SUCCESS ) {
+		fprintf( stderr, "%s (%d)\n", ldap_err2string(err), err );
+	}
+
+	if( matcheddn && *matcheddn ) {
+		if( !ldif ) {
+			write_ldif( LDIF_PUT_VALUE,
+				"matchedDN", matcheddn, strlen(matcheddn) );
+		} else {
+			fprintf( stderr, "Matched DN: %s\n", matcheddn );
+		}
+
+		ber_memfree( matcheddn );
+	}
+
+	if( text && *text ) {
+		if( !ldif ) {
+			write_ldif( LDIF_PUT_TEXT, "text",
+				text, strlen(text) );
+		} else {
+			fprintf( stderr, "Additional information: %s\n", text );
+		}
+
+		ber_memfree( text );
+	}
+
+	if( refs ) {
+		int i;
+		for( i=0; refs[i] != NULL; i++ ) {
+			if( !ldif ) {
+				write_ldif( LDIF_PUT_VALUE, "ref", refs[i], strlen(refs[i]) );
+			} else {
+				fprintf( stderr, "Referral: %s", refs[i] );
+			}
+		}
+
+		ber_memvfree( (void **) refs );
+	}
+
+	if( ctrls ) {
+		print_ctrls( ctrls );
+		ldap_controls_free( ctrls );
+	}
+
+	return err;
+}
+
+void print_ctrls( LDAPControl **ctrls ) {
+	int i;
+	for(i=0; ctrls[i] != NULL; i++ ) {
+		/* control: OID criticality base64value */
+		struct berval *b64 = NULL;
+		ber_len_t len;
+		char *str;
+			
+		len = strlen( ctrls[i]->ldctl_oid );
+
+		/* add enough for space after OID and the critical value itself */
+		len += ctrls[i]->ldctl_iscritical
+			? sizeof("true") : sizeof("false");
+
+		/* convert to base64 */
+		if( ctrls[i]->ldctl_value.bv_len ) {
+			b64 = ber_memalloc( sizeof(struct berval) );
+			
+			b64->bv_len = LUTIL_BASE64_ENCODE_LEN(
+				ctrls[i]->ldctl_value.bv_len ) + 1;
+			b64->bv_val = ber_memalloc( b64->bv_len + 1 );
+
+			b64->bv_len = lutil_b64_ntop(
+				ctrls[i]->ldctl_value.bv_val, ctrls[i]->ldctl_value.bv_len,
+				b64->bv_val, b64->bv_len );
+		}
+
+		if( b64 ) {
+			len += 1 + b64->bv_len;
+		}
+
+		str = malloc( len + 1 );
+		strcpy( str, ctrls[i]->ldctl_oid );
+		strcat( str, ctrls[i]->ldctl_iscritical
+			? " true" : " false" );
+
+		if( b64 ) {
+			strcat(str, " ");
+			strcat(str, b64->bv_val );
+		}
+
+		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			"control", str, len );
+
+		free( str );
+		ber_bvfree( b64 );
+	}
+}
 
 static int
 write_ldif( int type, char *name, char *value, ber_len_t vallen )

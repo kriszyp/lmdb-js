@@ -3,7 +3,7 @@ ldapdelete        *DE   I K M  P    U WXYZ  cd f h  k  n p     vw
 ldapmodify        *DEF  I K M  P    U WXYZabcd f h  k  n p r t vw
 ldapmodrdn        *DE   I K M  P    U WXYZ  cd f h  k  n p rs  vw
 ldappasswd      A *DE   I         S U WXYZa  d   h          s  vw    
-ldapsearch      AB*DEF  I KLM  P RSTUVWXYZab*d f h  kl n p  stuvw  z
+ldapsearch      A *DE   I KLM  P RSTUVWXYZab*d f h  kl n p  stuvw  z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -44,7 +44,6 @@ ud                 D                 V      cd f     l  p   s uv
 
 	/* to be implemented */
 	-C Chase Referrals
-	-c Chase Search Rerefences
 
 * LDAPv2+ Only
 	-K LDAPv2 Kerberos Bind (Step 1 only) (depecated)

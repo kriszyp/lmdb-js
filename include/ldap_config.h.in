@@ -26,6 +26,13 @@
 #endif
 #endif
 
+/* directory for temporary files */
+#if defined( _P_tmpdir )
+#define LDAP_TMPDIR _P_tmpdir
+#else
+#define LDAP_TMPDIR LDAP_DIRSEP "tmp"
+#endif
+
 /* directories */
 #ifndef LDAP_BINDIR
 #define LDAP_BINDIR			"%BINDIR%"
