@@ -137,6 +137,35 @@ int connections_shutdown(void)
 	return 0;
 }
 
+/*
+ * Timeout idle connections.
+ */
+int connections_timeout_idle(time_t now)
+{
+	int i = 0;
+	int connindex;
+	Connection* c;
+
+	ldap_pvt_thread_mutex_lock( &connections_mutex );
+
+ 	for( c = connection_first( &connindex );
+		c != NULL;
+		c = connection_next( c, &connindex ) )
+	{
+		if( difftime( c->c_activitytime+global_idletimeout, now) < 0 ) {
+			/* close it */
+			connection_closing( c );
+			connection_close( c );
+			i++;
+		}
+	}
+	connection_done( c );
+
+	ldap_pvt_thread_mutex_unlock( &connections_mutex );
+
+	return i;
+}
+
 static Connection* connection_get( ber_socket_t s )
 {
 	/* connections_mutex should be locked by caller */

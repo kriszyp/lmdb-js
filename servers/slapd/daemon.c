@@ -330,8 +330,13 @@ slapd_daemon_task(
 		ber_socket_t i;
 		int ns;
 		ber_socket_t nfds;
-		int ebadf = 0;
 #define SLAPD_EBADF_LIMIT 10
+		int ebadf = 0;
+
+#define SLAPD_IDLE_CHECK_LIMIT 4
+		time_t	last_idle_check = slap_get_time();
+		time_t	now;
+
 
 		fd_set			readfds;
 		fd_set			writefds;
@@ -345,6 +350,12 @@ slapd_daemon_task(
 
 		char	*client_name;
 		char	*client_addr;
+
+		if( global_idletimeout > 0 &&
+			difftime( last_idle_check+global_idletimeout, now ) < 0 )
+		{
+			connections_timeout_idle(now);
+		}
 
 		FD_ZERO( &writefds );
 		FD_ZERO( &readfds );

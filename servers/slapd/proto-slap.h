@@ -128,6 +128,7 @@ int read_config LDAP_P(( char *fname ));
 int connections_init LDAP_P((void));
 int connections_shutdown LDAP_P((void));
 int connections_destroy LDAP_P((void));
+int connections_timeout_idle LDAP_P((time_t));
 
 long connection_init LDAP_P((
 	ber_socket_t s,
