@@ -105,7 +105,8 @@ doargs(
 	    rflag++;
 	    break;
 	case 't':	/* dir to use for our copies of replogs */
-	    g->slurpd_rdir = strdup( optarg );
+	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + strlen("/replica") + 1);
+	    sprintf(g->slurpd_rdir, "%s/replica", optarg);
 	    break;
 	case 'k':	/* name of kerberos srvtab file */
 #ifdef HAVE_KERBEROS
