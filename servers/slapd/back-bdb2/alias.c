@@ -226,7 +226,7 @@ static char* get_alias_dn(
 	/* 
 	 * aliasedObjectName should be SINGLE-VALUED with a single value. 
 	 */			
-	if ( a->a_vals[0] == NULL || a->a_vals[0]->bv_val != NULL ) {
+	if ( a->a_vals[0] == NULL || a->a_vals[0]->bv_val == NULL ) {
 		/*
 		 * there was an aliasedobjectname defined but no data.
 		 */
