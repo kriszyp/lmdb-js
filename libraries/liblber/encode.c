@@ -174,12 +174,13 @@ ber_put_int_or_enum(
 {
 	int	i, sign;
 	ber_len_t	len, lenlen, taglen;
-	ber_int_t	netnum, mask;
+	ber_uint_t	unum, netnum, mask;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
 	sign = (num < 0);
+	unum = num;     /* Bit fiddling should be done with unsigned values */
 
 	/*
 	 * high bit is set - look for first non-all-one byte
@@ -190,11 +191,11 @@ ber_put_int_or_enum(
 
 		if ( sign ) {
 			/* not all ones */
-			if ( (num & mask) != mask )
+			if ( (unum & mask) != mask )
 				break;
 		} else {
 			/* not all zero */
-			if ( num & mask )
+			if ( unum & mask )
 				break;
 		}
 	}
@@ -203,7 +204,7 @@ ber_put_int_or_enum(
 	 * we now have the "leading byte".  if the high bit on this
 	 * byte matches the sign bit, we need to "back up" a byte.
 	 */
-	mask = (num & (0x80U << (i * 8)));
+	mask = (unum & (0x80U << (i * 8)));
 	if ( (mask && !sign) || (sign && !mask) )
 		i++;
 
@@ -215,7 +216,7 @@ ber_put_int_or_enum(
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
 		return( -1 );
 	i++;
-	netnum = LBER_INT_HTON( num );
+	netnum = LBER_INT_HTON( unum );
 	if ( ber_write( ber, (char *) &netnum + (sizeof(ber_int_t) - i), i, 0 )
 	   != i )
 		return( -1 );
