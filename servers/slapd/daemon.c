@@ -1357,8 +1357,8 @@ slapd_daemon_task(
 				ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 				ldap_pvt_thread_pool_submit( &connection_pool,
 											rtask->routine, (void *) rtask );
+				ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 			}
-			ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 			rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
 		}
 		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
