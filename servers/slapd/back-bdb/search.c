@@ -524,7 +524,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		ei_root.bei_e = &e_root;
 		ei_root.bei_parent = &ei_root;
 		e_root.e_private = &ei_root;
-		e_root.e_id = 1;
+		e_root.e_id = 0;
 		e_root.e_nname.bv_val="";
 		e_root.e_name.bv_val="";
 		ei = &ei_root;
@@ -988,7 +988,7 @@ id2entry_retry:
 #endif
 		case LDAP_SCOPE_SUBTREE: {
 			EntryInfo *tmp;
-			for (tmp = BEI(e); tmp->bei_parent;
+			for (tmp = BEI(e); tmp;
 				 tmp = tmp->bei_parent ) {
 				if ( tmp->bei_id == base.e_id ) {
 					scopeok = 1;

@@ -290,6 +290,16 @@ bdb_cache_find_ndn(
 		ptr = ndn->bv_val + ndn->bv_len - op->o_bd->be_nsuffix[0].bv_len;
 		ei.bei_nrdn.bv_val = ptr;
 		ei.bei_nrdn.bv_len = op->o_bd->be_nsuffix[0].bv_len;
+		/* Skip to next rdn if suffix is empty */
+		if ( ei.bei_nrdn.bv_len == 0 ) {
+			for (ptr = ei.bei_nrdn.bv_val - 2; ptr > ndn->bv_val
+				&& !DN_SEPARATOR(*ptr); ptr--) /* empty */;
+			if ( ptr >= ndn->bv_val ) {
+				if (DN_SEPARATOR(*ptr)) ptr++;
+				ei.bei_nrdn.bv_len = ei.bei_nrdn.bv_val - ptr;
+				ei.bei_nrdn.bv_val = ptr;
+			}
+		}
 		eip = &bdb->bi_cache.c_dntree;
 	}
 	
