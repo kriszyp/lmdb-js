@@ -59,8 +59,7 @@ int passwd_extop(
 		BerVarray defref = NULL;
 		if ( op->o_bd->syncinfo ) {
 			defref = op->o_bd->syncinfo->provideruri_bv;
-		} else
-		{
+		} else {
 			defref = referral_rewrite( op->o_bd->be_update_refs,
 				NULL, NULL, LDAP_SCOPE_DEFAULT );
 		}

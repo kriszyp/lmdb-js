@@ -40,12 +40,11 @@ ldbm_back_exop_passwd(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDBM, ENTRY,
-		   "ldbm_back_exop_passwd: \"%s\"\n", id.bv_val ? id.bv_val : "", 0,0 );
+		"ldbm_back_exop_passwd: \"%s\"\n", id.bv_val ? id.bv_val : "", 0,0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> ldbm_back_exop_passwd: \"%s\"\n",
 		id.bv_val ? id.bv_val : "", 0, 0 );
 #endif
-
 
 	if( rc != LDAP_SUCCESS ) {
 		goto done;

@@ -212,7 +212,8 @@ retry:	/* transaction retry */
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ERR, 
-			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n", db_strerror(rs->sr_err), rs->sr_err, 0 );
+			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n",
+			db_strerror(rs->sr_err), rs->sr_err, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_exop_passwd: txn_begin(2) failed: %s (%d)\n",
@@ -222,6 +223,7 @@ retry:	/* transaction retry */
 		rs->sr_text = "internal error";
 		goto done;
 	}
+
 	{
 		Modifications ml;
 		struct berval vals[2];
