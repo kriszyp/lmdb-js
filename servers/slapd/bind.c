@@ -68,7 +68,7 @@ do_bind(
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d BIND dn=\"%s\" method=%d\n",
 	    conn->c_connid, op->o_opid, ndn, method, 0 );
 
-	if ( version != LDAP_VERSION2 ) {
+	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 		if ( cdn != NULL ) {
 			free( cdn );
 		}

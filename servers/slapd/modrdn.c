@@ -76,29 +76,23 @@ do_modrdn(
 
 	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
 
-		if ( conn->c_protocol == LDAP_VERSION2 ) {
+		if ( conn->c_protocol ==  0 ) {
+			/*
+			 * Promote to LDAPv3
+			 */
+			conn->c_protocol = LDAP_VERSION3;
 
+		} else if ( conn->c_protocol < LDAP_VERSION3 ) {
 			/* Conection record indicates v2 but field 
 			 * newSuperior is present: report error.
 			 */
 			Debug( LDAP_DEBUG_ANY,
-			       "modrdn(v2) has field newSuperior!\n",
+			       "modrdn(v2): invalid field newSuperior!\n",
 			       0, 0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 					  NULL, "" );
 			return;
-
-		} else if ( conn->c_protocol ==  0 ) {
-
-			/* The other side is talking v3 but did not Bind as v3
-			 * so we accept this and set the connection record
-			 * accordingly.
-			 */
-		    
-			conn->c_protocol = LDAP_VERSION3;
-
-		}/* else if ( conn->c_protocol ==  0 ) */
-
+		}
 
 		if ( ber_scanf( op->o_ber, /*{*/ "a}", &newSuperior ) 
 		     == LBER_ERROR ) {

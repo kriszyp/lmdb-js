@@ -69,6 +69,6 @@ void (lutil_debug)( int level, int debug, const char *fmt, ... )
 		fflush( log_file );
 	}
 
-    puts(buffer );
+    fputs( buffer, stderr );
 	va_end( vl );
 }
