@@ -1412,9 +1412,9 @@ struct slap_backend_db {
 
 #define		be_extended	bd_info->bi_extended
 
+#define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_fetch	bd_info->bi_entry_get_rw
 #define		be_release	bd_info->bi_entry_release_rw
-#define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_group	bd_info->bi_acl_group
 #define		be_attribute	bd_info->bi_acl_attribute
 #define		be_operational	bd_info->bi_operational
@@ -1689,10 +1689,10 @@ typedef int (BI_op_delete) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_abandon) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_cancel) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_extended) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_chk_referrals) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_entry_release_rw) LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e ));
-typedef int (BI_chk_referrals) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs, int opattrs, Attribute **ap ));
 typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op, Entry *e, int *hasSubs ));
 
@@ -1787,9 +1787,9 @@ struct slap_backend_info {
 	BI_op_extended	*bi_extended;
 
 	/* Auxilary Functions */
+	BI_chk_referrals	*bi_chk_referrals;
 	BI_entry_get_rw		*bi_entry_get_rw;
 	BI_entry_release_rw	*bi_entry_release_rw;
-	BI_chk_referrals	*bi_chk_referrals;
 
 	BI_operational	*bi_operational;
 	BI_has_subordinates	*bi_has_subordinates;
