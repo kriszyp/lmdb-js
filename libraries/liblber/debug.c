@@ -302,3 +302,19 @@ void (lutil_debug)( int debug, int level, const char *fmt, ... )
 	fputs( buffer, stderr );
 	va_end( vl );
 }
+
+#if defined(HAVE_EBCDIC) && defined(LDAP_SYSLOG)
+void eb_syslog( int pri, const char *fmt, ... )
+{
+	char buffer[4096];
+	va_list vl;
+
+	va_start( vl, fmt );
+	vsnprintf( buffer, sizeof(buffer), fmt, vl );
+	buffer[sizeof(buffer)-1] = '\0';
+
+	__atoe(buffer);
+	syslog( pri, "%s", buffer );
+	va_end( vl );
+}
+#endif
