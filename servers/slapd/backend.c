@@ -191,8 +191,8 @@ int backend_startup(Backend *be)
 	if(be != NULL) {
 		/* startup a specific backend database */
 		Debug( LDAP_DEBUG_TRACE,
-			"backend_startup: starting database\n",
-			0, 0, 0 );
+			"backend_startup: starting \"%s\"\n",
+			be->be_suffix[0], 0, 0 );
 
 		if ( be->bd_info->bi_open ) {
 			rc = be->bd_info->bi_open( be->bd_info );

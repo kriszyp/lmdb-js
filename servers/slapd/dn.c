@@ -218,11 +218,11 @@ dn_parent(
 	}
 
 	if( *dn == '\0' ) {
-		return( NULL );
+		return NULL;
 	}
 
 	if ( be != NULL && be_issuffix( be, dn ) ) {
-		return( NULL );
+		return NULL;
 	}
 
 	/*
@@ -246,12 +246,12 @@ dn_parent(
 			if ( *s == '"' ) {
 				inquote = 1;
 			} else if ( DN_SEPARATOR( *s ) ) {
-				return( ch_strdup( &s[1] ) );
+				return ch_strdup( &s[1] );
 			}
 		}
 	}
 
-	return( ch_strdup( "" ) );
+	return ch_strdup( "" );
 }
 
 char * dn_rdn( 

@@ -50,7 +50,7 @@ ldbm_back_extended(
 		}
 	}
 
-	*text = ch_strdup("not supported within naming context");
+	*text = "not supported within naming context";
 	return LDAP_OPERATIONS_ERROR;
 }
 

@@ -905,7 +905,7 @@ struct slap_conn;
 struct slap_op;
 
 typedef int (*SLAP_EXTENDED_FN) LDAP_P((
-    Backend		*be,
+    BackendDB		*be,
     struct slap_conn		*conn,
     struct slap_op		*op,
 	const char		*reqoid,
