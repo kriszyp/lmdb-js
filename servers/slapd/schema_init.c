@@ -238,21 +238,23 @@ dnValidate(
 	return rc;
 }
 
-static int
+int
 dnNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval **normalized )
 {
-	struct berval *out = ber_bvdup( val );
+	struct berval *out;
 
-	if( out->bv_len != 0 ) {
+	if ( val->bv_len != 0 ) {
 		char *dn;
 #ifdef USE_DN_NORMALIZE
-		dn = dn_normalize( out->bv_val );
+		out = ber_bvstr( UTF8normalize( val->bv_val, UTF8_CASEFOLD ) );
 #else
-		dn = dn_validate( out->bv_val );
+		out = ber_bvdup( val );
+		ldap_pvt_str2upper( out->bv_val );
 #endif
+		dn = dn_validate( out->bv_val );
 
 		if( dn == NULL ) {
 			ber_bvfree( out );
@@ -261,6 +263,8 @@ dnNormalize(
 
 		out->bv_val = dn;
 		out->bv_len = strlen( dn );
+	} else {
+		out = ber_bvdup( val );
 	}
 
 	*normalized = out;
