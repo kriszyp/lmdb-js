@@ -753,38 +753,39 @@ put_simple_filter(
 
 			if( dn == NULL ) {
 				if(! ldap_is_attr_desc( str ) ) goto done;
-				break;
-			}
+			} else {
 
-			*dn++ = '\0';
-			rule = strchr( dn, ':' );
+				*dn++ = '\0';
+				rule = strchr( dn, ':' );
 
-			if( rule == NULL ) {
-				/* one colon */
-				if ( strcmp(dn, "dn") == 0 ) {
-					/* must have attribute */
-					if( !ldap_is_attr_desc( str ) ) {
+				if( rule == NULL ) {
+					/* one colon */
+					if ( strcmp(dn, "dn") == 0 ) {
+						/* must have attribute */
+						if( !ldap_is_attr_desc( str ) ) {
+							goto done;
+						}
+
+						rule = "";
+
+					} else {
+					  rule = dn;
+					  dn = NULL;
+					}
+				
+				} else {
+					/* two colons */
+					*rule++ = '\0';
+
+					if ( strcmp(dn, "dn") != 0 ) {
+						/* must have "dn" */
 						goto done;
 					}
-
-					rule = "";
-
-				} else {
-					rule = dn;
-					dn = NULL;
 				}
-				
-			} else {
-				/* two colons */
-				*rule++ = '\0';
 
-				if ( strcmp(dn, "dn") != 0 ) {
-					/* must have "dn" */
-					goto done;
-				}
 			}
 
-			if ( *str == '\0' && *rule == '\0' ) {
+			if ( *str == '\0' && ( !rule || *rule == '\0' ) ) {
 				/* must have either type or rule */
 				goto done;
 			}
@@ -793,13 +794,13 @@ put_simple_filter(
 				goto done;
 			}
 
-			if ( *rule != '\0' && !ldap_is_attr_oid( rule ) ) {
+			if ( rule && *rule != '\0' && !ldap_is_attr_oid( rule ) ) {
 				goto done;
 			}
 
 			rc = ber_printf( ber, "t{" /*}*/, ftype );
 
-			if( rc != -1 && *rule != '\0' ) {
+			if( rc != -1 && rule && *rule != '\0' ) {
 				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_OID, rule );
 			}
 			if( rc != -1 && *str != '\0' ) {
@@ -818,7 +819,7 @@ put_simple_filter(
 				}
 			}
 		}
-		break;
+		goto done;
 
 	default:
 		if ( ldap_pvt_find_wildcard( value ) == NULL ) {
