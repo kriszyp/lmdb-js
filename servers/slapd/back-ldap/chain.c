@@ -362,6 +362,12 @@ end_of_searchref:;
 	    	break;
 	case LDAP_REQ_EXTENDED:
 		rc = lback->bi_extended( op, rs );
+		/* FIXME: ldap_back_extended() by design 
+		 * doesn't send result; frontend is expected
+		 * to send it... */
+		if ( rc != SLAPD_ABANDON ) {
+			send_ldap_extended( op, rs );
+		}
 		break;
 	default:
 		rc = SLAP_CB_CONTINUE;

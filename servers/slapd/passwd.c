@@ -113,6 +113,11 @@ int passwd_extop(
 		goto error_return;
 	}
 
+	/* check for referrals */
+	if ( backend_check_referrals( op, rs ) != LDAP_SUCCESS ) {
+		rc = rs->sr_err;
+		goto error_return;
+	}
 
 #ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */

@@ -217,6 +217,28 @@ for P in $PORT1 $PORT2 ; do
 	fi
 done
 
+NEWPW=newsecret
+echo "Using ldappasswd on second server with scope on first server..."
+$LDAPPASSWD -h $LOCALHOST -p $PORT2 \
+	-w secret -s $NEWPW \
+	-D "$MANAGERDN" "$BJORNSDN" >> $TESTOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldappasswd failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Binding with newly changed password on first server..."
+$LDAPWHOAMI -h $LOCALHOST -p $PORT1 \
+	-D "$BJORNSDN" -w $NEWPW
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapwhoami failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo ">>>>> Test succeeded"
