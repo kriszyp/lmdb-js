@@ -32,7 +32,8 @@
 #define	SASL_CONST
 #endif
 
-#include <ldap_pvt.h>
+#include "ldap_pvt.h"
+#include "lber_pvt.h"
 
 /* Flags for telling slap_sasl_getdn() what type of identity is being passed */
 #define FLAG_GETDN_AUTHCID 2
