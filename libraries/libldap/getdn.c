@@ -471,7 +471,8 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 	( LDAP_DN_RDN_SEP(c) || LDAP_DN_AVA_SEP(c) )
 #define LDAP_DN_NE(c) \
 	( LDAP_DN_RDN_SEP_V2(c) || LDAP_DN_AVA_SEP(c) \
-	  || LDAP_DN_QUOTES(c) || (c) == '<' || (c) == '>' )
+	  || LDAP_DN_AVA_EQUALS(c) || LDAP_DN_QUOTES(c) \
+	  || (c) == '<' || (c) == '>' )
 #define LDAP_DN_MAYESCAPE(c) \
 	( LDAP_DN_ESCAPE(c) || LDAP_DN_NE(c) \
 	  || LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) )
