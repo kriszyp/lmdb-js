@@ -261,7 +261,7 @@ int ldap_domain2hostlist(
 		/* weight = (p[2] << 8) | p[3]; */
 		port = (p[4] << 8) | p[5];
 
-		buflen = strlen(host) + sizeof(":65355");
+		buflen = strlen(host) + sizeof(":65355 ");
 		hostlist = (char *) LDAP_REALLOC(hostlist, cur + buflen);
 		if (hostlist == NULL) {
 		    rc = LDAP_NO_MEMORY;
