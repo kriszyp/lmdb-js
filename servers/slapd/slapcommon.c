@@ -117,7 +117,7 @@ slap_tool_init(
 	int truncatemode = 0;
 
 #ifdef CSRIMALLOC
-	leakfilename = malloc( strlen( progname ) + STRLEOF( ".leak" ) - 1 );
+	leakfilename = malloc( strlen( progname ) + STRLENOF( ".leak" ) + 1 );
 	sprintf( leakfilename, "%s.leak", progname );
 	if( ( leakfile = fopen( leakfilename, "w" )) == NULL ) {
 		leakfile = stderr;
