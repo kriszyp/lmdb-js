@@ -820,8 +820,6 @@ ldap_msgfree( LDAPMessage *lm )
 	LDAPMessage	*next;
 	int		type = 0;
 
-	assert( lm != NULL );
-
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgfree\n", 0, 0, 0 );
 
 	for ( ; lm != NULL; lm = next ) {
