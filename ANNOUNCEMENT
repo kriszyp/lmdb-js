@@ -46,8 +46,9 @@ A N N O U N C E M E N T -- OpenLDAP 2.2
 
 ACKNOWLEDGEMENTS
 
-    OpenLDAP Software is developed by a team of volunteers whose use
-    the Internet to coordinate their activities.   The project is
+    OpenLDAP Software is developed by the OpenLDAP Project.  The
+    Project consists of a team of volunteers whose use the
+    Internet to coordinate their activities.  The Project is
     managed by the OpenLDAP Foundation.
 
     OpenLDAP Software is derived from University of Michigan LDAP,
@@ -102,3 +103,9 @@ SUPPORTED PLATFORMS
     ported (in part or in whole) to other platforms including
     Apple MacOS X, IBM zOS, and Microsoft Windows 2000.
 
+---
+OpenLDAP is a registered trademark of the OpenLDAP Foundation.
+
+Copyright 1999-2003 The OpenLDAP Foundation, Redwood City,
+California, USA.  All Rights Reserved.  Permission to copy and
+distribute verbatim copies of this document is granted.

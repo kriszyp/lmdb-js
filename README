@@ -1,83 +1,81 @@
 OpenLDAP 2.2 README
-
     For a description of what this distribution contains, see the
     ANNOUNCEMENT file in this directory.  For a description of
     changes from previous releases, see the CHANGES file in this
     directory.
 
     This is 2.2 release, it includes significant changes from
-	prior releases.
+    prior releases.
 
 REQUIRED SOFTWARE
-	Build OpenLDAP requires a number of software packages to be
-	preinstalled.  Additional information regarding prerequisite
-	software can be found in the OpenLDAP Administrator's Guide.
+    Build OpenLDAP requires a number of software packages to be
+    preinstalled.  Additional information regarding prerequisite
+    software can be found in the OpenLDAP Administrator's Guide.
 
-	Base system (libraries and tools):
-		Standard C compiler (required)
-		Cyrus SASL 2.1.3+ (recommended)
-		OpenSSL 0.9 (recommended)
-		POSIX REGEX software (required)
+    Base system (libraries and tools):
+        Standard C compiler (required)
+        Cyrus SASL 2.1.16+ (recommended)
+        OpenSSL 0.9 (recommended)
+        POSIX REGEX software (required)
 
-	SLAPD:
-		BDB backend requires Sleepycat Berkeley DB 4.1
-		LDBM backend requires a compatible database manager
-			[Berkeley DB, GDBM, etc.]
+    SLAPD:
+        BDB backend requires Sleepycat Berkeley DB 4.2
+        LDBM backend requires a compatible database manager
+            [Berkeley DB, GDBM, etc.]
 
-	SLURPD:
-		LTHREAD compatible thread package
-			[POSIX threads, Mach Cthreads, select others]
+    SLURPD:
+        LTHREAD compatible thread package
+            [POSIX threads, Mach Cthreads, select others]
 
-	CLIENTS/CONTRIB ware:
-		Depends on package.  See per package README.
+    CLIENTS/CONTRIB ware:
+        Depends on package.  See per package README.
 
 
 MAKING AND INSTALLING THE DISTRIBUTION
-	Please see the INSTALL file for basic instructions.  More
-	detailed instructions can be found in the OpenLDAP
-	Admnistrator's Guide (see DOCUMENTATION section).
+    Please see the INSTALL file for basic instructions.  More
+    detailed instructions can be found in the OpenLDAP
+    Admnistrator's Guide (see DOCUMENTATION section).
 
 
 DOCUMENTATION
-	There are man pages for most programs in the distribution and
-	routines in the various libraries.  See ldap(3) for details.
+    There are man pages for most programs in the distribution and
+    routines in the various libraries.  See ldap(3) for details.
 
-	The OpenLDAP website is available and contains the latest LDAP
-	news, releases announcements, pointers to other LDAP resources,
-	etc..  It is located at:
-		http://www.OpenLDAP.org/
+    The OpenLDAP website is available and contains the latest LDAP
+    news, releases announcements, pointers to other LDAP resources,
+    etc..  It is located at:
+        http://www.OpenLDAP.org/
 
-	The OpenLDAP Administrator's Guide and other documentation
-	is available at:
-		http://www.openldap.org/doc/
+    The OpenLDAP Administrator's Guide and other documentation
+    is available at:
+        http://www.openldap.org/doc/
 
-	The OpenLDAP Software FAQ is available at:
-		http://www.openldap.org/faq/index.cgi
+    The OpenLDAP Software FAQ is available at:
+        http://www.openldap.org/faq/index.cgi
 
 
 SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
-	OpenLDAP is user supported.  If you have problems, please
-	review the OpenLDAP FAQ <http://www.openldap.org/faq/> and
-	archives of the OpenLDAP-software and OpenLDAP-bugs mailing
-	lists <http://www.openldap.org/lists/>.  If you cannot find
-	the answer, please enquire on the OpenLDAP-software list.
+    OpenLDAP is user supported.  If you have problems, please
+    review the OpenLDAP FAQ <http://www.openldap.org/faq/> and
+    archives of the OpenLDAP-software and OpenLDAP-bugs mailing
+    lists <http://www.openldap.org/lists/>.  If you cannot find
+    the answer, please enquire on the OpenLDAP-software list.
 
-	Issues, such as bug reports, should be reported using our
-	our Issue Tracking System <http://www.OpenLDAP.org/its/> or
-	by sending mail to <OpenLDAP-its@OpenLDAP.org>.  Do not use
-	this system for software enquiries.  Please direct these
-	to an appropriate mailing list.
+    Issues, such as bug reports, should be reported using our
+    our Issue Tracking System <http://www.OpenLDAP.org/its/>.
+    Do not use this system for software enquiries.  Please
+    direct these to an appropriate mailing list.
 
 
 CONTRIBUTING
-
-	See http://www.openldap.org/devel/contributing.html for how to
-	contribute code or documentation to OpenLDAP.  Use the Issue Tracking
-	System <http://www.openldap.org/its/> to submit contributions.
-	While you are encouraged to coordinate and discuss the development
-	activities on the openldap-devel@openldap.org mailing list prior
-	to submission, it is noted that contributions must be submitted
-	using the Issue Tracking System to be considered.
+    See <http://www.openldap.org/devel/contributing.html> for
+    information regarding how to contribute code or documentation
+    to the OpenLDAP Project for inclusion in OpenLDAP Software.
+    While you are encouraged to coordinate and discuss the
+    development activities on the <openldap-devel@openldap.org>
+    mailing list prior to submission, it is noted that
+    contributions must be submitted using the Issue Tracking
+    System <http://www.openldap.org/its/> to be considered.
 
 ---
 $OpenLDAP$
