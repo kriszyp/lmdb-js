@@ -10,12 +10,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
-extern int strcasecmp(const char *, const char *);
 
 #include "lber.h"
 #include "ldap.h"

@@ -7,7 +7,6 @@
 
 #include <ac/string.h>
 #include <sys/types.h>
-extern char *strdup (const char *);
 
 #include "avl.h"
 

@@ -17,9 +17,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pwd.h>
 
 #include <ac/string.h>
+#include <ac/unistd.h>
+
+#include <pwd.h>
 
 #include <lber.h>
 #include <ldap.h>
@@ -39,8 +41,6 @@ main( int argc, char **argv )
 {
     int			c, errflg;
     struct ldop		op;
-    extern int		optind;
-    extern char		*optarg;
 
     if (( progname = strrchr( argv[ 0 ], '/' )) == NULL ) {
 	progname = estrdup( argv[ 0 ] );

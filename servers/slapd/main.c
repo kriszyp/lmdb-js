@@ -68,7 +68,6 @@ main( int argc, char **argv )
 	char		*myname;
 	Backend		*be = NULL;
 	FILE		*fp = NULL;
-	extern char	*optarg;
 
 	configfile = SLAPD_DEFAULT_CONFIGFILE;
 	port = LDAP_PORT;

@@ -8,7 +8,6 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
 
 #include <sys/stat.h>
 
@@ -277,9 +276,6 @@ main( int argc, char **argv )
 	char		*copyfname = NULL;
 	int		copyoptions = 0;
 	LDAPURLDesc	*ludp;
-
-	extern char	*optarg;
-	extern int	optind;
 
 	host = NULL;
 	port = LDAP_PORT;

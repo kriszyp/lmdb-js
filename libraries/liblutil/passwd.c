@@ -16,7 +16,6 @@
 #include "lutil_md5.h"
 #include "lutil_sha1.h"
 #include "lutil.h"
-extern char *crypt (const char *, const char *);
 
 /*
  */

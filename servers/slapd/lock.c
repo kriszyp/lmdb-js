@@ -8,7 +8,6 @@
 #include <ac/socket.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
-extern int flock ();
 
 #include <sys/file.h>
 #include <sys/param.h>

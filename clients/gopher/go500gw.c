@@ -23,15 +23,17 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-extern int strcasecmp(const char *, const char *);
 
 #include <ac/setproctitle.h>
-
-#include <sys/resource.h>
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
+
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
+
 
 #include "lber.h"
 #include "ldap.h"
@@ -94,7 +96,6 @@ main (int  argc, char **argv )
 	struct hostent		*hp;
 	struct sockaddr_in	from;
 	int			fromlen;
-	extern char		*optarg;
 
 #if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */

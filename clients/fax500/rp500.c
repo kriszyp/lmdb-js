@@ -11,20 +11,25 @@
  */
 
 #include "portable.h"
-#include "fax500.h"
 
 #include <stdlib.h>
-#include <signal.h>
 
+#include <ac/signal.h>
 #include <ac/socket.h>
+#include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 #include <ac/wait.h>
 
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 #include <lber.h>
 #include <ldap.h>
+
+#include "fax500.h"
 
 #include <ldapconfig.h>
 
@@ -61,8 +66,6 @@ main( int argc, char **argv )
 	static char	*attrs[] = { "title", "o", "ou", "postalAddress",
 					"telephoneNumber", "mail",
 					"facsimileTelephoneNumber", NULL };
-	extern char	*optarg;
-	extern int	optind;
 
 	while ( (i = getopt( argc, argv, "ab:d:f:x:z:" )) != EOF ) {
 		switch( i ) {

@@ -21,8 +21,6 @@
 #include <ac/time.h>
 #include <ac/wait.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
-extern char * mktemp(char *);
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>

@@ -14,7 +14,6 @@
 #include <sys/resource.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-extern int mkstemp (char *);
 
 #ifdef HAVE_FCNTL_H
 #include <fcntl.h>
@@ -66,7 +65,6 @@ main( int argc, char **argv )
 	IDList		*idl;
 	Backend		*tbe;
 	int		i;
-	extern char	*optarg;
 
 #ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;

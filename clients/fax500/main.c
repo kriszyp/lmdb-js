@@ -11,28 +11,31 @@
  */
 
 #include "portable.h"
-#include "fax500.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <ac/socket.h>
+#include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
 #include <ac/wait.h>
 #include <ac/unistd.h>
 #include <ac/errno.h>
-extern int	optind, errno;
-extern char	*optarg;
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
+
 #include <sysexits.h>
 
 #include "lber.h"
 #include "ldap.h"
+
+#include "fax500.h"
 
 #include <ldapconfig.h>
 

@@ -21,8 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <setjmp.h>
-extern char *strdup (const char *);
-extern char *getenv(const char *);
 
 #ifdef HAVE_PWD_H
 #include <pwd.h>
@@ -88,7 +86,6 @@ int debug;			/* debug flag */
 int
 main( int argc, char **argv )
 {
-	extern char *optarg;			/* for parsing argv */
 	register int c;				/* for parsing argv */
 	register char *cp;			/* for parsing Version */
 

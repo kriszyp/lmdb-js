@@ -2,15 +2,15 @@
 
 #ifndef HAVE_TEMPNAM
 
-#include <stdlib.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <ac/string.h>
-extern char *mktemp (char *);
+#include <ac/unistd.h>
 
 #include "lutil.h"
 
 char *
-tempnam( char *dir, char *pfx )
+tempnam( const char *dir, const char *pfx )
 {
     char	*s;
 
@@ -41,4 +41,4 @@ tempnam( char *dir, char *pfx )
     return( s );
 }
 
-#endif /* nextstep */
+#endif /* TEMPNAM */

@@ -10,6 +10,7 @@
 
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #ifdef HAVE_CONSOLE_H
 #include <console.h>
@@ -32,7 +33,6 @@ main( int argc, char **argv )
 	Seqorset	*sos = NULLSEQORSET;
 	BerElement	*ber;
 	Sockbuf		sb;
-	extern char	*optarg;
 
 	if ( argc < 2 ) {
 		usage( argv[0] );

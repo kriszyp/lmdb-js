@@ -23,9 +23,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-extern char *strdup (const char *);
-extern int strcasecmp(const char *, const char *);
-extern int gethostname (char *, int);
 
 #include <ac/setproctitle.h>
 
@@ -33,7 +30,9 @@ extern int gethostname (char *, int);
 #include <sys/param.h>
 #endif
 
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 #include "ldapconfig.h"
 #include "lber.h"
@@ -83,7 +82,6 @@ main( int argc, char **argv )
 	struct hostent		*hp;
 	struct sockaddr_in	from;
 	int			fromlen;
-	extern char		*optarg;
 
 #if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
@@ -559,7 +557,7 @@ do_search( LDAP *ld, FILE *fp, char *buf )
 static int
 entry2textwrite( void *fp, char *buf, int len )
 {
-        return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
+	return( fwrite( buf, len, 1, (FILE *)fp ) == 0 ? -1 : len );
 }
 
 static void

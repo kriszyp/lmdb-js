@@ -19,7 +19,6 @@
 #include <ac/ctype.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
 
 #include <lber.h>
 #include <ldap.h>

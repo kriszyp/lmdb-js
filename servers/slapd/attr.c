@@ -9,6 +9,7 @@
 #endif
 
 #include <ac/ctype.h>
+#include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -20,8 +21,6 @@
 #include <sys/stat.h>
 
 #include "slap.h"
-
-extern int	errno;
 
 void
 attr_free( Attribute *a )

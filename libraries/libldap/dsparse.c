@@ -23,7 +23,6 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
-extern char *strdup (const char *);
 
 #ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>

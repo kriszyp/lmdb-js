@@ -14,19 +14,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <signal.h>
 
+#include <ac/ctype.h>
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-extern char *strdup (const char *);
-extern int strcasecmp(const char *, const char *);
 
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 #include "lber.h"
 #include "ldap.h"
@@ -66,7 +66,6 @@ main( int argc, char **argv )
 	struct sockaddr_in	peername;
 	int			peernamelen;
 	int			interactive = 0;
-	extern char		*optarg;
 
 	deref = FINGER_DEREF;
 	while ( (i = getopt( argc, argv, "f:ilp:t:x:p:c:" )) != EOF ) {

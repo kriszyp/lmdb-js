@@ -473,7 +473,8 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	unsigned long	tag = 0, netlen, toread;
 	unsigned char	lc;
 	long		rc;
-	unsigned int	noctets, diff;
+	int			noctets;
+	unsigned int	diff;
 
 #ifdef LDAP_DEBUG
 	if ( lber_debug )

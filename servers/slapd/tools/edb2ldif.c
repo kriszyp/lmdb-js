@@ -16,8 +16,10 @@
 #include <stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/errno.h>
 #include <ac/dirent.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -88,8 +90,6 @@ main( int argc, char **argv )
     char	*usage = "usage: %s [-d] [-o] [-r] [-v] [-b basedn] [-a addvalsfile] [-f fileattrdir] [-i ignoreattr...] [edbfile...]\n";
     char	edbfile[ MAXNAMLEN ], *basedn;
     int		c, rc, errflg, ignore_count, recurse;
-    extern int  optind;
-    extern char	*optarg;
     extern char	dsa_mode;
 #ifdef HAVE_FILE_ATTR_DIR
     extern char	*file_attr_directory;
@@ -856,10 +856,6 @@ free_edbmap( struct edbmap *edbmap )
 static void
 print_err( char *msg )
 {
-    extern int	sys_nerr;
-    extern char	*sys_errlist[];
-    extern int	errno;
-
 #ifdef LDAP_DEBUG
     if ( debugflg ) {
 	fprintf( stderr, "print_err( \"%s\" )\n", msg );

@@ -4,6 +4,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
 
 #include "ldapconfig.h"
 #include "../slap.h"
@@ -61,7 +62,6 @@ main( int argc, char **argv )
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
-	extern char	*optarg;
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;

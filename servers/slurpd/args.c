@@ -21,6 +21,7 @@
 
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #include <lber.h>
 #include <ldap.h>
@@ -54,7 +55,6 @@ doargs(
 )
 {
     int		i;
-    extern char	*optarg;
     int		rflag = 0;
 
     if ( (g->myname = strrchr( argv[0], '/' )) == NULL ) {

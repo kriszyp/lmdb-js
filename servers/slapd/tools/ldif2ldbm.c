@@ -73,7 +73,6 @@ main( int argc, char **argv )
 	struct berval	bv;
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
-	extern char	*optarg;
 
 	sbindir = DEFAULT_SBINDIR;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;

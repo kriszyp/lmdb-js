@@ -6,9 +6,6 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
-extern int strcasecmp(const char *, const char *);
-extern char *mktemp(char *);
 
 #include <lber.h>
 #include <ldap.h>
@@ -91,8 +88,6 @@ main( int argc, char **argv )
     int			rc, i, first, scope, kerberos, deref, attrsonly;
     int			referrals, timelimit, sizelimit, authmethod;
     LDAP		*ld;
-    extern char		*optarg;
-    extern int		optind;
 
     infile = NULL;
     deref = verbose = allow_binary = not = kerberos = vals2tmp =

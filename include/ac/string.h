@@ -31,6 +31,8 @@
 	int		strcmp(), strncmp();
 	int		strcasecmp(), strncasecmp();
 	char	*strdup();
+	char	*strtok();
+	char	*strpbrk();
 	int		memcmp();
 #	endif
 

@@ -18,18 +18,13 @@
 
 #include <stdio.h>
 
-#ifdef STDC_HEADERS
 #include <stdlib.h>
-#include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
+#include <ac/stdarg.h>
 
 #include <pwd.h>
 
-#include <ac/string.h>
 #include <ac/ctype.h>
-extern long int random (void);
+#include <ac/string.h>
 
 #include <lber.h>
 #include <ldap.h>

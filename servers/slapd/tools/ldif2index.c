@@ -4,6 +4,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
 
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
@@ -57,7 +58,6 @@ main( int argc, char **argv )
 	Backend		*be = NULL;
 	struct berval	bv;
 	struct berval	*vals[2];
-	extern char	*optarg;
 
 	inputfile = NULL;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;

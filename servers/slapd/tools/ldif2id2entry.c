@@ -4,7 +4,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
-extern int strcasecmp(const char *, const char *);
+#include <ac/unistd.h>
 
 #include "ldapconfig.h"
 #include "../slap.h"
@@ -59,7 +59,6 @@ main( int argc, char **argv )
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
 	FILE		*fp;
-	extern char	*optarg;
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;

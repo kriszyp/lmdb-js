@@ -19,7 +19,6 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
-extern char *strdup (const char *);
 
 #include "ldap-int.h"
 

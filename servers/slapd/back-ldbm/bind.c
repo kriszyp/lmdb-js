@@ -8,7 +8,6 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
-extern char *crypt ();
 
 #include "slap.h"
 #include "back-ldbm.h"

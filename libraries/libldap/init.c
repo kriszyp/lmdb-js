@@ -7,7 +7,6 @@
 #include <ac/string.h>
 #include <ac/ctype.h>
 #include <ac/time.h>
-extern char *strdup (const char *);
 
 #include "ldap-int.h"
 #include "ldapconfig.h"

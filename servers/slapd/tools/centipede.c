@@ -9,9 +9,6 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>		/* get link(), unlink() */
-extern char *strdup (const char *);
-extern char *strtok (char *, const char *);
-extern char *strpbrk (const char *, const char *);
 
 #include <lber.h>
 #include <ldap.h>
@@ -89,8 +86,6 @@ main( int argc, char **argv )
 	char		buf[BUFSIZ];
 	int			i, j, k, count;
 	char		*s;
-	extern int	optind;
-	extern char	*optarg;
 
 	ldapsrcurl = NULL;
 	ldapdesturl = NULL;

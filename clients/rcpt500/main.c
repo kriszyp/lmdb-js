@@ -14,8 +14,7 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
-extern char *strdup (const char *);
-extern char *strstr (const char *, const char *);
+#include <ac/unistd.h>
 
 #include "ldapconfig.h"
 #include "rcpt500.h"
@@ -56,9 +55,6 @@ main( int argc, char **argv )
     struct msginfo	msg;
     int			c, errflg;
     char		*replytext;
-
-    extern int		optind;
-    extern char		*optarg;
 
     *reply = '\0';
 

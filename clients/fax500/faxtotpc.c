@@ -19,8 +19,14 @@
  */
 
 #include "portable.h"
-#include "fax500.h"
+
+#include <stdio.h>
 #include <sys/types.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+
+#include "fax500.h"
 
 #define	TPCDOMAIN	"tpc.int"
 

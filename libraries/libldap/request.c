@@ -19,7 +19,6 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
 
 #include "ldap-int.h"
 
@@ -213,8 +212,6 @@ ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 
 	if ( ber_flush( lc->lconn_sb, ber, 0 ) != 0 ) {
 #ifdef notyet
-		extern int	errno;
-
 		if ( errno == EWOULDBLOCK ) {
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;

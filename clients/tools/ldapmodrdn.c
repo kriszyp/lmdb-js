@@ -8,7 +8,6 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
 
 #include <lber.h>
 #include <ldap.h>
@@ -37,9 +36,6 @@ main(int argc, char **argv)
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
     int			rc, i, kerberos, remove, havedn, authmethod;
-
-    extern char	*optarg;
-    extern int	optind;
 
     infile = NULL;
     kerberos = not = contoper = verbose = remove = 0;

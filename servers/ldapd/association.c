@@ -18,7 +18,6 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
-extern int errno;
 
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>

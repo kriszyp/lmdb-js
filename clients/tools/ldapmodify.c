@@ -8,7 +8,6 @@
 #include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
 
 #include <sys/stat.h>
 
@@ -71,9 +70,6 @@ main( int argc, char **argv )
     FILE		*fp;
     int			rc, i, kerberos, use_ldif, authmethod;
     char		*usage = "usage: %s [-abcknrvF] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n";
-
-    extern char	*optarg;
-    extern int	optind;
 
     if (( prog = strrchr( argv[ 0 ], '/' )) == NULL ) {
 	prog = argv[ 0 ];

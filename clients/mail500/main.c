@@ -14,22 +14,21 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
 #include <ac/wait.h>
 #include <ac/unistd.h>
-extern char *strdup (const char *);
-extern int	optind, errno;
-extern char	*optarg;
 
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 
+#ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
+#endif
 
 #include <sysexits.h>
 
@@ -145,10 +144,10 @@ static char **get_attributes_mail_dn( LDAPMessage *e, char *attr1, char *attr2 )
 static char *canonical( char *s );
 static int  connect_to_x500( void );
 
-void do_group_errors( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
-void do_group_request( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
-void do_group_owner( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
-void add_member( char *gdn, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr, char **suppress );
+static void do_group_errors( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
+static void do_group_request( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
+static void do_group_owner( LDAPMessage *e, char *dn, char ***to, int *nto, Error **err, int *nerr );
+static void add_member( char *gdn, char *dn, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr, char **suppress );
 
 int
 main ( int argc, char **argv )
@@ -915,7 +914,7 @@ do_group_members(
 	}
 }
 
-void
+static void
 add_member(
 	char	*gdn,
 	char	*dn,
@@ -985,7 +984,7 @@ add_member(
 	free( ndn );
 }
 
-void
+static void
 do_group_request(
 	LDAPMessage *e,
 	char	*dn,
@@ -1007,7 +1006,7 @@ do_group_request(
 	}
 }
 
-void
+static void
 do_group_errors(
 	LDAPMessage *e,
 	char	*dn,
@@ -1029,7 +1028,7 @@ do_group_errors(
 	}
 }
 
-void
+static void
 do_group_owner(
 	LDAPMessage *e,
 	char	*dn,

@@ -117,8 +117,6 @@ main( int argc, char **argv )
 #ifdef LDAP_PROCTITLE
 	char			title[80];
 #endif
-	extern char		*optarg;
-	extern int		optind;
 
 #ifdef VMS
 	/* Pick up socket from inetd-type server on VMS */
