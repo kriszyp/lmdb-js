@@ -316,10 +316,11 @@ bdb2i_check_additional_attr_index( struct ldbminfo *li )
 	struct dirent  *file;
 
 	if ( ( datadir = opendir( li->li_directory ) ) == NULL ) {
+		int err = errno;
 
 		Debug( LDAP_DEBUG_ANY,
 	"bdb2i_check_additional_attr_index(): ERROR while opening datadir: %s\n",
-				strerror( errno ), 0, 0 );
+				strerror( err ), 0, 0 );
 		return( 1 );
 
 	}
@@ -689,8 +690,9 @@ bdb2i_start_transction( DB_TXNMGR *txmgr )
 	txn_do_abort = 0;
 
 	if (( rc = txn_begin( txmgr, NULL, &txnid )) != 0 ) {
+		int err = errno;
 		Debug( LDAP_DEBUG_ANY, "bdb2i_start_transction failed: %d: errno=%s\n",
-					rc, strerror( errno ), 0 );
+					rc, strerror( err ), 0 );
 
 		if ( txnid != NULL )
 			(void) txn_abort( txnid );

@@ -61,11 +61,11 @@ bdb2i_enter_backend_rw( DB_LOCK *lock, int writer )
 						writer ? "write" : "read", 0, 0 );
 					break;
 
-				default:
+				default: 
+					ret = errno;
 					Debug( LDAP_DEBUG_ANY,
 						"bdb2i_enter_backend() -- %s lock returned ERROR: %s\n",
-						writer ? "write" : "read", strerror( errno ), 0 );
-					ret = errno;
+						writer ? "write" : "read", strerror( ret ), 0 );
 					break;
 
 			}
@@ -130,10 +130,10 @@ bdb2i_leave_backend_rw( DB_LOCK lock, int writer )
 					break;
 
 				default:
+					ret_lock = errno;
 					Debug( LDAP_DEBUG_ANY,
 						"bdb2i_leave_backend() -- %s lock returned ERROR: %s\n",
-						writer ? "write" : "read", strerror( errno ), 0 );
-					ret_lock = errno;
+						writer ? "write" : "read", strerror( ret_lock ), 0 );
 					break;
 			
 			}

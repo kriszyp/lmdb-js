@@ -92,10 +92,11 @@ ldbm_cache_open(
 
 	if ( (li->li_dbcache[i].dbc_db = ldbm_open( buf, flags, li->li_mode,
 	    li->li_dbcachesize )) == NULL ) {
+		int err = errno;
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= ldbm_cache_open NULL \"%s\" errno %d reason \"%s\")\n",
-		    buf, errno, errno > -1 && errno < sys_nerr ?
-		    sys_errlist[errno] : "unknown" );
+		    buf, err, err > -1 && err < sys_nerr ?
+		    sys_errlist[err] : "unknown" );
 		ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 		return( NULL );
 	}
