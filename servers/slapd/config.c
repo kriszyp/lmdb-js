@@ -603,7 +603,11 @@ strtok_quote( char *line, char *sep )
 			break;
 
 		case '\\':
-			SAFEMEMCPY( next, next + 1, strlen( next + 1 ) + 1 );
+			if ( next[1] ) {
+				SAFEMEMCPY( next,
+					    next + 1, strlen( next + 1 ) + 1 );
+				next++;	/* dont parse the escaped character */
+			}
 			break;
 
 		default:
