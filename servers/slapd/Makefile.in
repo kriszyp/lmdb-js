@@ -84,7 +84,7 @@ version.c: libbackends.a $(OBJS) $(LDAP_LIBDEPEND) \
 
 clean-local: FORCE
 	@for i in back-* tools; do \
-		if [ -d $$i ] ; then \
+		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
 		fi; \

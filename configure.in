@@ -196,9 +196,6 @@ TERMCAP_LIBS=
 dnl ----------------------------------------------------------------
 dnl Checks for programs
 
-AC_PROG_CC
-AC_PROG_GCC_TRADITIONAL
-
 AC_PROG_LN_S
 AC_PROG_INSTALL
 AC_PROG_RANLIB
@@ -208,6 +205,14 @@ AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
+
+dnl Checks the compiler and UNIX Variants
+AC_PROG_CC
+AC_PROG_GCC_TRADITIONAL
+
+AC_AIX
+AC_ISC_POSIX
+AC_MINIX
 
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
@@ -737,6 +742,10 @@ AC_STRUCT_TM
 
 dnl AC_C_BIGENDIAN
 AC_C_CONST
+
+dnl AC_CHECK_SIZEOF(short) 
+dnl AC_CHECK_SIZEOF(int) 
+dnl AC_CHECK_SIZEOF(long)
 
 dnl ----------------------------------------------------------------
 dnl Checks for library functions.

@@ -107,7 +107,7 @@ clean-local: FORCE
 	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) edb2-vers.c *.o a.out core
 
 depend-local: FORCE
-	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_ISODE= ;\
+	@DEPEND=no ; DEPEND_LDBM= ; DEPEND_ISODE= ; \
 	if [ "$(BUILD_LDBM)" = "yes" ]; then \
         DEPEND_LDBM="$(SRCS)"; \
 		DEPEND=yes ; \
@@ -117,26 +117,26 @@ depend-local: FORCE
 		DEPEND=yes ; \
     fi; \
 	if [ "$$DEPEND" = "yes" ]; then \
-    	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE $$DEPEND_LDBM \
+    	$(MKDEP) $(DEFS) $(DEFINES) $$DEPEND_ISODE $$DEPEND_LDBM; \
 	else \
-		exit 0 ; \
+		exit 0; \
 	fi
 
 install-local: install-ldbm install-isode FORCE
 
 install-ldbm: FORCE
-	@-$(MKDIR) -p $(sbindir)
+	@-$(MKDIR) -p $(sbindir) 
 	@if [ "$(BUILD_LDBM)" = "yes" ]; then \
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	\
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	\
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	\
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	\
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	\
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	\
-		$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	\
-		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	\
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(sbindir)	; \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(sbindir)	; \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(sbindir)	; \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(sbindir)	; \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(sbindir)	; \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)	; \
+		$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(sbindir)	; \
 	else \
-		exit 0; \
+		exit 0 ; \
 	fi
 
 install-isode: FORCE
@@ -145,7 +145,7 @@ install-isode: FORCE
 		$(INSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
 		$(INSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir); \
 	else \
-		exit 0; \
+		exit 0 ; \
 	fi
 
 all-common: all-local FORCE

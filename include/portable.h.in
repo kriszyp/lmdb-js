@@ -15,6 +15,13 @@
 #define _LDAP_PORTABLE_H
 
 
+/* Define if on AIX 3.
+   System headers sometimes define this.
+   We just want to avoid a redefinition error message.  */
+#ifndef _ALL_SOURCE
+#undef _ALL_SOURCE
+#endif
+
 /* Define to empty if the keyword does not work.  */
 #undef const
 
@@ -43,6 +50,9 @@
 /* Define if you have the wait3 system call.  */
 #undef HAVE_WAIT3
 
+/* Define if on MINIX.  */
+#undef _MINIX
+
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef mode_t
 
@@ -51,6 +61,13 @@
 
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #undef pid_t
+
+/* Define if the system does not provide POSIX.1 features except
+   with this defined.  */
+#undef _POSIX_1_SOURCE
+
+/* Define if you need to in order for stat and other things to work.  */
+#undef _POSIX_SOURCE
 
 /* Define as the return type of signal handlers (int or void).  */
 #undef RETSIGTYPE

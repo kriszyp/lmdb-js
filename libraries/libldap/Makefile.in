@@ -38,8 +38,8 @@ install-local: $(LIBRARY) $(CFFILES) FORCE
 	-$(MKDIR) -p $(sysconfdir)
 	@for i in $(CFFILES); do \
 		echo "installing $$i in $(sysconfdir)"; \
-		if test -f $(sysconfdir)$$i; then \
-			$(MV) $(sysconfdir)/$$i $(sysconfdir)/$$i- ; \
-		fi ; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir) ; \
+		if test -f $(sysconfdir)/$$i; then \
+			$(MV) $(sysconfdir)/$$i $(sysconfdir)/$$i-; \
+		fi; \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $$i $(sysconfdir); \
 	done

@@ -4,8 +4,12 @@
  * All rights reserved.
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
+
 #ifdef MACOS
 #include <stdlib.h>
 #include <unix.h>
@@ -15,6 +19,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #endif /* MACOS */
+
 #include "lber.h"
 
 static usage( char *name )

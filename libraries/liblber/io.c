@@ -19,7 +19,7 @@
 
 #include <ac/string.h>
 #include <ctype.h>
-#include <unistd.h>
+#include <ac/unistd.h>
 
 #if defined( DOS ) || defined( _WIN32 )
 #include "msdos.h"

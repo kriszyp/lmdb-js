@@ -11,18 +11,20 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <ac/string.h>
 
 #ifdef MACOS
-#include <stdlib.h>
 #include <console.h>
 #else /* MACOS */
 #include <sys/types.h>
 #include <sys/socket.h>
 #endif /* MACOS */
+
 #include "lber.h"
 
 static usage( char *name )

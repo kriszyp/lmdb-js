@@ -40,8 +40,6 @@
 #include "msdos.h"
 #endif /* DOS */
 
-#include <string.h>
-
 #include "lber.h"
 
 #ifdef LDAP_DEBUG

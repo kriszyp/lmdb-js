@@ -11,14 +11,18 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #ifndef lint
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 static char avl_version[] = "AVL library version 1.0\n";
 #endif
 
-#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+
 #include "avl.h"
 
 #define ROTATERIGHT(x)	{ \
