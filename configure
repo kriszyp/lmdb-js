@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.363 2001/07/14 15:34:32 ando Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.365 2001/09/16 20:20:29 kurt Exp  
 
 # Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -36,9 +36,9 @@ ac_help="$ac_help
 ac_help="$ac_help
   --enable-cache	  enable caching (experimental) [no]"
 ac_help="$ac_help
-  --enable-referrals	  enable V2 Referrals (experimental) [no]"
+  --enable-referrals	  enable LDAPv2+ Referrals (experimental) [no]"
 ac_help="$ac_help
-  --enable-kbind	  enable V2 Kerberos IV bind (deprecated) [no]"
+  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (deprecated) [no]"
 ac_help="$ac_help
   --enable-ipv6 	  enable IPv6 support [auto]"
 ac_help="$ac_help
@@ -52,7 +52,7 @@ ac_help="$ac_help
 ac_help="$ac_help
   --with-fetch		  with fetch URL support [auto]"
 ac_help="$ac_help
-  --with-kerberos	  with support [auto]"
+  --with-kerberos	  with Kerberos support [auto]"
 ac_help="$ac_help
   --with-readline	  with readline support [auto]"
 ac_help="$ac_help
@@ -5137,7 +5137,7 @@ else
   rm -rf conftest*
   ol_cv_winsock=no
 fi
-rm -f conftest*]
+rm -f conftest*
 fi
 
 echo "$ac_t""$ol_cv_winsock" 1>&6
@@ -12755,7 +12755,7 @@ fi
 
 echo "$ac_t""$ol_cv_header_db1" 1>&6
 
-	if test ol_cv_header_db1=yes ; then
+	if test $ol_cv_header_db1 = yes ; then
 		ol_cv_lib_db=no
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (default)""... $ac_c" 1>&6
