@@ -1,7 +1,8 @@
-LDAP rcpt500 mail query server README
+OpenLDAP rcpt500 mail query server README
 
 OVERVIEW
-This is a mail-query server that answers X.500 white pages queries.
+
+This is a mail-query server that answers LDAP white pages queries.
 It is designed to be run out of your mail systems alias file, or the
 equivalent.  It expects to be fed the entire contents (including
 headers) of an RFC822 message via standard input.  It parses the
@@ -17,25 +18,25 @@ reply is sent to the sender of the message in response to the command.
 The help command returns the contents of the file rcpt500.help.  You
 can modify the contents as appropriate for your local site.
 
-The query command performs a series of X.500 searches to try to find
+The query command performs a series of LDAP searches to try to find
 a person that matches the object of the query.  If more than one
 X.500 entry matches, a list is returned.  If exactly one is matched,
 detailed information is returned. Here is an example message and rcpt500
 generated reply:
 
 Query message:
-	Mail x500-query@umich.edu
+	Mail ldap-query@example.com
 	Subject: find tim howes
 	.
 
 Reply from rcpt500:
-    Message-Id: <199209161526.AA12041@umich.edu>
+    Message-Id: <199209161526.AA12041@example.com>
     Date: Wed, 16 Sep 1992 11:26:17 -0400
-    From: "X.500 Query Program" <X500-Query@umich.edu>
+    From: "LDAP Query Program" <ldap-query@example.com>
     Subject: Re: find tim howes
     In-Reply-To: Your message of "Wed, 16 Sep 1992 11:26:12 -0400"
-		 <199209161526.AA26144@terminator.cc.umich.edu>
-    To: "Mark Smith" <mcs@terminator.cc.umich.edu>
+		 <199209161526.AA26144@terminator.cc.example.com>
+    To: "Mark Smith" <mcs@terminator.cc.example.com>
 
     One exact match was found for 'tim howes':
     "Timothy A Howes, Information Technology Division, Faculty and Staff"
@@ -60,7 +61,7 @@ Reply from rcpt500:
 			tim
 
 If you want to try out rcpt500 yourself before installing it at your site,
-send a message to x500-query@umich.edu (we have a server running
+send a message to ldap-query@umich.edu (we have a server running
 there that serves University of Michigan white pages information).
 
 
@@ -77,18 +78,18 @@ You will then need to set up an alias that your users can send mail
 to that will feed the messages to rcpt500.  At our site, we run sendmail
 so the alias is in /usr/lib/aliases and looks like:
 
-	x500-query:     "|/usr/local/etc/rcpt500 -l"
+	ldap-query:     "|/usr/local/etc/rcpt500 -l"
 
 The available command line options for rcpt500 are:
     -l			enable logging of requests via the syslog
 			  LOG_DAEMON facility
     -h ldaphost		specify LDAP server host to connect to
-    -b searchbase	specify starting point of X.500 searches
+    -b searchbase	specify starting point of LDAP searches
     -a			don't deference aliases during searches
     -s stripcount	remove "stripcount" DN components from user
 			  friendly form names that are displayed
     -z sizelimit	return at most "sizelimit" entries
-    -u dapuser		DN to bind to X.500 as when searching
+    -u dapuser		DN to bind to LDAP as when searching
 
 The search and display behavior is defined in the ldapfilter.conf and
 ldaptemplates.conf files.
@@ -106,6 +107,6 @@ FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 
 	    OpenLDAP-its@OpenLDAP.org
 
-    Additional mailing lists are available.  Please see:
+    Mailing lists are available.  Please see:
 
 	    http://www.OpenLDAP.com/lists/

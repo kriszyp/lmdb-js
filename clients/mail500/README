@@ -1,5 +1,5 @@
-This is the README file for mail500, a mailer that does X.500 lookups
-via LDAP.
+This is the README file for mail500, a mailer that does directory
+lookups via LDAP.  The name is historical and refers to X.500.
 
 If you are planning to run mail500 at your site, there are several
 things you will have to tailor in main.c:
@@ -15,8 +15,8 @@ mail500 is designed to be invoked as a mailer (e.g., from sendmail),
 similar to the way /bin/mail works.  It takes a few required arguments
 and then a list of addresses to deliver to.  It expects to find the
 message to deliver on its standard input.  It looks up the addresses in
-X.500 to figure out where to route the mail, and then execs sendmail to
-do the actual delivery.  It supports simple aliases, groups, and
+directory to figure out where to route the mail, and then execs sendmail
+to do the actual delivery.  It supports simple aliases, groups, and
 mailing lists, the details of which are given below.
 
 *** HOW IT WORKS (from the sendmail side): ***
@@ -24,18 +24,17 @@ mailing lists, the details of which are given below.
 The idea is that you might have a rule like this in your sendmail.cf
 file somewhere in rule set 0:
 
-R$*<@umich.edu>$*	$#mail500$@umich.edu$:<$1>
+R$*<@example.com>$*	$#mail500$@example.com$:<$1>
 
-This rule says that any address that ends in @umich.edu will cause
-the mail500 mailer to be called to deliver the mail.  You probably
-also want to do something to prevent addresses like terminator!tim@umich.edu
-or tim%terminator.rs.itd.umich.edu@umich.edu from being passed to mail500.
-At U-M, we do this by adding rules like this to rule set 9 where we
-strip off our local names:
+This rule says that any address that ends in @example.com will cause the
+mail500 mailer to be called to deliver the mail.  You probably also want
+to do something to prevent addresses like uuhost!user@example.com or
+user%host@example.com from being passed to mail500.  This can be done by
+adding rules like this to rule set 9 where we strip off our local names:
 
-R<@umich.edu>$*:$*                 $>10<@>$1:$2
-R$+%$+<@umich.edu>                 $>10$1%$2<@>
-R$+!$+<@umich.edu>                 $>10$1!$2<@>
+R<@example.com>$*:$*                 $>10<@>$1:$2
+R$+%$+<@example.com>                 $>10$1%$2<@>
+R$+!$+<@example.com>                 $>10$1!$2<@>
 
 See the sample sendmail.cf in this directory for more details.
 For sendmail 8.9 (and later) users can use MAILER(mail500) if
@@ -72,34 +71,33 @@ deliver the mail.
 *** HOW IT WORKS (from the mail500 side): ***
 
 When mail500 gets invoked with one or more names to which to
-deliver mail, it searches for each name in X.500.  Where it searches,
+deliver mail, it searches for each name in LDAP.  Where it searches,
 and what kind(s) of search(es) it does are compile-time configurable
-by changing the base array in main.c.  For example, the configuration
-we use at U-M is like this:
+by changing the base array in main.c.  The configuration:
 
 	Base    base[] =
-		{ "ou=People, dc=OpenLDAP, dc=org", 0
+		{ "ou=People, dc=example, dc=com", 0
 			"uid=%s", "cn=%s", NULL,
-		  "ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org", 1
+		  "ou=System Groups, ou=Groups, dc=example, dc=com", 1
 			"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
-		  "ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org", 1
+		  "ou=User Groups, ou=Groups, dc=example, dc=com", 1
 			"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
 		  NULL
 		};
 
-which means that in delivering mail to "name" mail500 would do the
+means that in delivering mail to "name" mail500 would do the
 the following searches, stopping if it found anything at any step:
 
-	Search (18) [2]: dc=org@dc=OpenLDAP@ou=People
+	Search (18) [2]: dc=com@dc=example@ou=People
 	Search subtree (uid=name)
-	Search (18) [3]: dc=org@dc=OpenLDAP@ou=People
+	Search (18) [3]: dc=com@dc=example@ou=People
 	Search subtree (cn=name)
 
-	Search (18) [4]: dc=org@dc=OpenLDAP@ou=Groups@ou=System Groups
+	Search (18) [4]: dc=com@dc=example@ou=Groups@ou=System Groups
 	Search subtree & ((cn=name)(associatedDomain=OpenLDAP.org))
 
-	Search (18) [5]: dc=org@dc=OpenLDAP@ou=Groups@ou=User Groups
-	Search subtree & ((cn=name)(associatedDomain=OpenLDAP.org))
+	Search (18) [5]: dc=com@dc=example@ou=Groups@ou=User Groups
+	Search subtree & ((cn=name)(associatedDomain=example.com))
 
 Notice that when specifying a filter %s is replaced by the name,
 or user portion of the address while %h is replaced by whatever is
@@ -108,7 +106,7 @@ of the address).
 
 You can also specify whether you want search results that matched
 because the entry's RDN matched the search to be given preference
-or not.  At U-M, we only give such preference in the mail group
+or not.  We only give such preference in the mail group
 portion of the searches.  Beware with this option:  the algorithm
 used to decide whether an entry's RDN matched the search is very
 simple-minded, and may not always be correct.
@@ -118,17 +116,17 @@ array can be as large as you want), and an arbitrary limit of 2 filters
 for each base.  If you want more than that, simply changing the 3 in
 the typedef for Base should do the trick.
 
-*** HOW IT WORKS (from the X.500 side): ***
+*** HOW IT WORKS (from the LDAP side): ***
 
-In X.500, there are several new attribute types and one new object
+In LDAP, there are several new attribute types and one new object
 class defined that mail500 makes use of.  At its most basic, for normal
 entries mail500 will deliver to the value(s) listed in the
-rfc822Mailbox attribute of the entry.  For example, at U-M my entry has
+rfc822Mailbox attribute of the entry.  For example, an entry has
 the attribute
 
-	mail= tim@terminator.rs.itd.umich.edu
+	mail: user@example.com
 
-So mail sent to tim@umich.edu will be delivered via mail500 to that
+So mail sent to user@example.com will be delivered via mail500 to that
 address.  If there were multiple values for the mail attribute, multiple
 copies of the mail would be sent.
 
@@ -136,7 +134,7 @@ A new object class, rfc822MailGroup, and several new attributes have
 been defined to handle email groups/mailing lists.  To use this, you
 will need to add this to your local oidtable.oc:
 
-	# object class for representing rfc 822 mailgroups
+	# object class for representing RFC 822 mailgroups
 	rfc822MailGroup:        umichObjectClass.2 : \
 		top : \
 		cn : \
@@ -159,9 +157,9 @@ And you will need to add these to your local oidtable.at:
 	requestsTo:		umichAttributeType.31	: DN
 
 The idea was to define a kind of hybrid mail group that could handle
-people who were in X.500 or not.  So, for example, members of a group
-can be specified via the member attribute (for X.500 members) or the
-rfc822MailBox attribute (for non-X.500 members).  Similarly for the
+people who were in LDAP or not.  So, for example, members of a group
+can be specified via the member attribute (for LDAP members) or the
+rfc822MailBox attribute (for non-LDAP members).  Similarly for the
 errorsTo and rfc822ErrorsTo, and the requestsTo and rfc822RequestsTo
 attributes.
 
@@ -169,7 +167,7 @@ To create a real mailing list, with a list maintainer, all you have to
 do is create an rfc822MailGroup and fill in the errorsTo or
 rfc822ErrorsTo attributes (or both).  That will cause any errors
 encountered when delivering mail to the group to go to the addresses
-listed (or X.500 entry via it's mail attribute).
+listed (or LDAP entry via it's mail attribute).
 
 If you fill in the requestsTo or rfc822RequestsTo (or both) attributes,
 mail sent to groupname-request will be sent to the addresses listed

@@ -26,8 +26,8 @@ main( int argc, char **argv )
 
 	slap_tool_init( "slapadd", SLAPADD, argc, argv );
 
-	if( !be->be_entry_open &&
-		!be->be_entry_close &&
+	if( !be->be_entry_open ||
+		!be->be_entry_close ||
 		!be->be_entry_put )
 	{
 		fprintf( stderr, "%s: database doesn't support necessary operations.\n",

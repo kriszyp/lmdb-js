@@ -2,9 +2,6 @@ OpenLDAP 2.0 Gamma README
 	This is an gamma release of OpenLDAP 2.0.  It is provided
 	for testing purposes only.  It is not for general use.
 
-	The OpenLDAP Developer's FAQ is available at:
-		http://www.openldap.org/faq/index.cgi?file=4
-
 	Testers should provide feedback regarding this release using
 	the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
 	Developer's wishing to contribute changes should work with latest
@@ -47,7 +44,6 @@ DOCUMENTATION
 
 	Additional documentation can be found in the doc directory.
 		doc/devel   Developer Information
-		doc/drafts  LDAP-related IETF drafts
 		doc/install Installation and Integration
 		doc/man     Raw man(1) pages
 		doc/rfcs    LDAP-related Request for Comments
@@ -60,7 +56,7 @@ DOCUMENTATION
 	A draft of the "OpenLDAP Administrator's Guide" is available at:
 		http://www.openldap.org/devel/admin/
 
-	The OpenLDAP 2.0 Software FAQ is available at:
+	The OpenLDAP Software FAQ is available at:
 		http://www.openldap.org/faq/index.cgi
 
 
@@ -73,7 +69,7 @@ SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 	Issues, such as bug reports, should be reported using our
 	our Issue Tracking System <http://www.OpenLDAP.com/its/> or
 	by sending mail to OpenLDAP-its@OpenLDAP.org.  Do not use
-	this system for general or software equiries.  Please direct
+	this system for general or software enquiries.  Please direct
 	these to the appropriate mailing list.
 
 ---
