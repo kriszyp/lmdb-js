@@ -8,6 +8,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <limits.h>
 
 #include <ac/ctype.h>
 #include <ac/errno.h>
