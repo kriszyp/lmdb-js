@@ -223,7 +223,7 @@ attrs_find(
 )
 {
 	for ( ; a != NULL; a = a->a_next ) {
-		if ( is_ad_subtype( a->a_desc, desc ) == 0 ) {
+		if ( is_ad_subtype( a->a_desc, desc ) ) {
 			return( a );
 		}
 	}

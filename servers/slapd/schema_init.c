@@ -307,30 +307,35 @@ IA5StringNormalize(
 
 static int
 caseExactIA5Match(
+	int *match,
 	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
 	void *assertedValue )
 {
-	return strcmp( value->bv_val,
+	*match = strcmp( value->bv_val,
 		((struct berval *) assertedValue)->bv_val );
+	return LDAP_SUCCESS;
 }
 
 static int
 caseIgnoreIA5Match(
+	int *match,
 	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
 	void *assertedValue )
 {
-	return strcasecmp( value->bv_val,
+	*match = strcasecmp( value->bv_val,
 		((struct berval *) assertedValue)->bv_val );
+	return LDAP_SUCCESS;
 }
 
 static int
 objectClassMatch(
+	int *match,
 	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
@@ -340,7 +345,8 @@ objectClassMatch(
 	ObjectClass *oc = oc_find( value->bv_val );
 	ObjectClass *asserted = oc_find( ((struct berval *) assertedValue)->bv_val );
 
-	return oc == NULL || oc != asserted;
+	*match = ( oc == NULL || oc != asserted );
+	return LDAP_SUCCESS;
 }
 
 struct syntax_defs_rec {

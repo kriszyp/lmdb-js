@@ -191,6 +191,7 @@ typedef int slap_mr_normalize_func LDAP_P((
 
 /* Match (compare) function */
 typedef int slap_mr_match_func LDAP_P((
+	int *match,
 	unsigned use,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,

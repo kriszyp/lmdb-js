@@ -253,34 +253,39 @@ test_ava_filter(
 #endif
 
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-			int rc;
+			int ret;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+			int rc;
 			const char *text;
 
-			rc = value_match( a->a_desc, mr,
+			rc = value_match( &ret, a->a_desc, mr,
 				a->a_vals[i], ava->aa_value,
 				&text );
+
+			if( rc != LDAP_SUCCESS ) {
+				return rc;
+			}
 #else
-			rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
+			ret = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
 				3 );
 #endif
 
 			switch ( type ) {
 			case LDAP_FILTER_EQUALITY:
 			case LDAP_FILTER_APPROX:
-				if ( rc == 0 ) {
+				if ( ret == 0 ) {
 					return LDAP_COMPARE_TRUE;
 				}
 				break;
 
 			case LDAP_FILTER_GE:
-				if ( rc >= 0 ) {
+				if ( ret >= 0 ) {
 					return LDAP_COMPARE_TRUE;
 				}
 				break;
 
 			case LDAP_FILTER_LE:
-				if ( rc <= 0 ) {
+				if ( ret <= 0 ) {
 					return LDAP_COMPARE_TRUE;
 				}
 				break;

@@ -686,6 +686,7 @@ LIBSLAPD_F (int) value_normalize LDAP_P((
 	struct berval **out,
 	const char ** text ));
 LIBSLAPD_F (int) value_match LDAP_P((
+	int *match,
 	AttributeDescription *ad,
 	MatchingRule *mr,
 	struct berval *v1,

@@ -177,15 +177,27 @@ value_normalize(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 int
 value_match(
+	int *match,
 	AttributeDescription *ad,
 	MatchingRule *mr,
 	struct berval *v1, /* (unnormalized) stored value */
 	struct berval *v2, /* (normalized) asserted value */
 	const char ** text )
 {
-	/* not yet implemented */
-	return 0;
+	int rc;
+	int usage = 0;
+
+	if( !mr->smr_match ) {
+		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	rc = (mr->smr_match)( match, usage,
+		ad->ad_type->sat_syntax,
+		mr, v1, v2 );
+	
+	return rc;
 }
+
 #else
 int
 value_cmp(
@@ -256,7 +268,11 @@ value_find(
 
 	for ( i = 0; vals[i] != NULL; i++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		if ( value_match( ad, mr, vals[i], val, text ) == 0 )
+		int rc;
+		int match;
+		rc = value_match( &match, ad, mr, vals[i], val, text );
+
+		if( rc == LDAP_SUCCESS && match == 0 )
 #else
 		if ( value_cmp( vals[i], v, syntax, normalize ) == 0 )
 #endif
