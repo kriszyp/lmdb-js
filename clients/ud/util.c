@@ -44,6 +44,10 @@ printbase( char *lead, char *s )
 	if (debug & D_TRACE)
 		printf("->printbase(%s, %s)\n", lead, s);
 #endif
+	if (lead == NULL) {
+		printf("root");
+		return;
+	}
 	if (s == NULL) {
 		printf("%sroot\n", lead);
 		return;
