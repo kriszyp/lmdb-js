@@ -15,7 +15,6 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
-#include "../../libraries/libldap/ldap-int.h"
 
 struct mindexrec {
 	struct berval	mir_name;
@@ -280,33 +279,6 @@ mru_destroy( void )
 	}
 }
 
-/*
- * Appends a string to an array of char *,
- * and returns the newly allocated char **.
- * Maybe we can find a substitute, or borrow
- * a helper from somewhere else
- */
-static char **
-ch_append( char **array, char *value )
-{
-	int	cnt;
-	char	**tmp;
-
-	if ( array == NULL ) {
-		cnt = 0;
-	} else {
-		for ( cnt = 0; array[ cnt ]; cnt++ )
-			/* NO OP */ ;
-	}
-
-	tmp = LDAP_REALLOC( array, ( cnt + 2 ) * sizeof( char * ) );
-
-	tmp[ cnt++ ] = ch_strdup( value );
-	tmp[ cnt ] = NULL;
-
-	return tmp;
-}
-
 int
 matching_rule_use_init( void )
 {
@@ -335,6 +307,8 @@ matching_rule_use_init( void )
 
 		AttributeType	*at;
 		MatchingRuleUse	_mru, *mru = &_mru;
+
+		char		**applies_oids = NULL;
 
 		mr->smr_mru = NULL;
 
@@ -397,8 +371,8 @@ matching_rule_use_init( void )
 								at->sat_oid,
 								at->sat_cname.bv_val, 0 );
 #endif
-						mru->smru_applies_oids
-							= ch_append( mru->smru_applies_oids, at->sat_oid );
+						ldap_charray_add( &applies_oids,
+								at->sat_oid );
 					}
 				}
 
@@ -423,8 +397,8 @@ matching_rule_use_init( void )
 								at->sat_oid,
 								at->sat_cname.bv_val, 0 );
 #endif
-						mru->smru_applies_oids
-							= ch_append( mru->smru_applies_oids, at->sat_oid );
+						ldap_charray_add( &applies_oids,
+								at->sat_oid );
 					}
 				}
 			}
@@ -452,8 +426,8 @@ matching_rule_use_init( void )
 							at->sat_oid,
 							at->sat_cname.bv_val, 0 );
 #endif
-					mru->smru_applies_oids
-						= ch_append( mru->smru_applies_oids, at->sat_oid );
+					ldap_charray_add( &applies_oids,
+							at->sat_oid );
 				}
 			}
 			break;
@@ -480,8 +454,8 @@ matching_rule_use_init( void )
 							at->sat_oid,
 							at->sat_cname.bv_val, 0 );
 #endif
-					mru->smru_applies_oids
-						= ch_append( mru->smru_applies_oids, at->sat_oid );
+					ldap_charray_add( &applies_oids,
+							at->sat_oid );
 				}
 			}
 			break;
@@ -505,7 +479,8 @@ matching_rule_use_init( void )
 		 * by any attributeType are not listed as
 		 * matchingRuleUse
 		 */
-		if ( mru->smru_applies_oids != NULL ) {
+		if ( applies_oids != NULL ) {
+			mru->smru_applies_oids = applies_oids;
 #ifdef NEW_LOGGING
 			{
 				char	*str = ldap_matchingruleuse2str( &mru->smru_mruleuse );
@@ -520,10 +495,14 @@ matching_rule_use_init( void )
 			}
 #endif
 
-			mru = (MatchingRuleUse *)LDAP_MALLOC( sizeof( MatchingRuleUse ) );
+			mru = (MatchingRuleUse *)ber_memalloc( sizeof( MatchingRuleUse ) );
+			/* call-forward from MatchingRule to MatchingRuleUse */
 			mr->smr_mru = mru;
+			/* copy static data to newly allocated struct */
 			*mru = _mru;
+			/* append the struct pointer to the end of the list */
 			*mru_ptr = mru;
+			/* update the list head pointer */
 			mru_ptr = &mru->smru_next;
 		}
 	}
