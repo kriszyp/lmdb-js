@@ -129,9 +129,7 @@ main(
 	/* destroy the thread package */
 	ldap_pvt_thread_destroy();
 
-    Debug( LDAP_DEBUG_ANY, "slurpd: terminating normally\n", 0, 0, 0 );
-    sglob->slurpd_shutdown = 1;
-
+    Debug( LDAP_DEBUG_ANY, "slurpd: terminated.\n", 0, 0, 0 );
 	return 0;
 #endif /* !NO_THREADS */
 }
