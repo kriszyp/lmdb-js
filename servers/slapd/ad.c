@@ -137,7 +137,7 @@ int slap_bv2ad(
 	assert( ad != NULL );
 	assert( *ad == NULL ); /* temporary */
 
-	if( bv == NULL || bv->bv_len == 0 ) {
+	if( bv == NULL || BER_BVISNULL( bv ) || BER_BVISEMPTY( bv ) ) {
 		*text = "empty attribute description";
 		return rtn;
 	}
