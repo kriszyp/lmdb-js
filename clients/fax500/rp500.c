@@ -110,6 +110,10 @@ main( int argc, char **argv )
 		exit( -1 );
 	}
 
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
 	if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
 		perror( "ldap_open" );
 		exit( -1 );

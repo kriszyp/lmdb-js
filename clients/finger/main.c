@@ -123,6 +123,10 @@ main( int argc, char **argv )
 	else
 		myname = strdup( myname + 1 );
 
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL4
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL4 );

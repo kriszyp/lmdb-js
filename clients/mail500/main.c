@@ -16,6 +16,7 @@
 #include <stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
@@ -165,6 +166,10 @@ main ( int argc, char **argv )
 		myname = strdup( argv[0] );
 	else
 		myname = strdup( myname + 1 );
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
 #ifdef LOG_MAIL
 	openlog( myname, OPENLOG_OPTIONS, LOG_MAIL );

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 
@@ -116,6 +117,10 @@ main( int argc, char **argv )
 		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
 		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
 	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
     if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
 	perror( "ldap_open" );

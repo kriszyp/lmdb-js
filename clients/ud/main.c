@@ -150,6 +150,10 @@ main( int argc, char **argv )
 	printf(Version);
 	fflush( stdout );
 
+#ifdef SIGPIPE
+	(void) SIGNAL (SIGPIPE, SIG_IGN);
+#endif
+
 	initialize_client();
 	initialize_attribute_strings();
 

@@ -192,12 +192,15 @@ main (int  argc, char **argv )
 	else
 		myname = strdup( myname + 1 );
 
-
 	if ( debug ) {
 		lber_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
 		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
 	}
 	
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL3
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL3 );
