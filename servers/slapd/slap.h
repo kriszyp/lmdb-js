@@ -234,7 +234,9 @@ typedef struct slap_ssf_set {
 #define SLAP_SCHERR_SYN_NOT_FOUND	13
 #define SLAP_SCHERR_MR_INCOMPLETE	14
 #define SLAP_SCHERR_NOT_SUPPORTED	15
-#define SLAP_SCHERR_BAD_DESCR	16
+#define SLAP_SCHERR_BAD_DESCR		16
+#define SLAP_SCHERR_OIDM			17
+#define SLAP_SCHERR_LAST			SLAP_SCHERR_OIDM
 
 typedef union slap_sockaddr {
 	struct sockaddr sa_addr;

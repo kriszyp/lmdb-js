@@ -408,6 +408,39 @@ static struct slap_schema_syn_map {
 int
 slap_schema_load( void )
 {
+	int i;
+	for( i=0; ad_map[i].ssam_name; i++ ) {
+		if( ad_map[i].ssam_defn != NULL ) {
+			LDAPAttributeType *at;
+			int		code;
+			const char	*err;
+
+			at = ldap_str2attributetype( ad_map[i].ssam_defn,
+				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
+			if ( !at ) {
+				fprintf( stderr,
+					"slap_schema_load: %s: %s before %s\n",
+					 ad_map[i].ssam_name, ldap_scherr2str(code), err );
+				return code;
+			}
+
+			if ( at->at_oid == NULL ) {
+				fprintf( stderr, "slap_schema_load: "
+					"attributeType \"%s\" has no OID\n",
+					ad_map[i].ssam_name );
+				return LDAP_OTHER;
+			}
+
+			code = at_add( at, &err );
+			if ( code ) {
+				fprintf( stderr, "slap_schema_load: "
+					"%s: %s: \"%s\"\n",
+					 ad_map[i].ssam_name, scherr2str(code), err );
+				return code;
+			}
+			ldap_memfree( at );
+		}
+	}
 	return LDAP_SUCCESS;
 }
 

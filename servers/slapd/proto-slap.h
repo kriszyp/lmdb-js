@@ -572,6 +572,14 @@ LDAP_SLAPD_F (void) mra_free LDAP_P((
 	int freeit ));
 
 /*
+ * oidm.c
+ */
+LDAP_SLAPD_F(char *) oidm_find(char *oid);
+LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
+LDAP_SLAPD_F (int) parse_oidm LDAP_P((
+	const char *fname, int lineno, int argc, char **argv ));
+
+/*
  * operation.c
  */
 
@@ -718,7 +726,6 @@ LDAP_SLAPD_F (int) syn_schema_info( Entry *e );
  */
 
 LDAP_SLAPD_F (void) oc_destroy LDAP_P(( void ));
-LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) at_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) ad_destroy LDAP_P(( AttributeDescription * ));
 LDAP_SLAPD_F (void) mr_destroy LDAP_P(( void ));
@@ -851,8 +858,6 @@ LDAP_SLAPD_F (int) parse_oc LDAP_P((
 	const char *fname, int lineno, char *line, char **argv ));
 LDAP_SLAPD_F (int) parse_at LDAP_P((
 	const char *fname, int lineno, char *line, char **argv ));
-LDAP_SLAPD_F (int) parse_oidm LDAP_P((
-	const char *fname, int lineno, int argc, char **argv ));
 LDAP_SLAPD_F (char *) scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
 LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
 	char delim ));

@@ -274,7 +274,35 @@ at_add(
 	MatchingRule	*mr;
 	Syntax		*syn;
 	int		code;
-	char			*cname;
+	char	*cname;
+	char	*oid;
+
+	if ( !OID_LEADCHAR( at->at_oid[0] )) {
+		/* Expand OID macros */
+		oid = oidm_find( at->at_oid );
+		if ( !oid ) {
+			*err = at->at_oid;
+			return SLAP_SCHERR_OIDM;
+		}
+		if ( oid != at->at_oid ) {
+			ldap_memfree( at->at_oid );
+			at->at_oid = oid;
+		}
+	}
+
+	if ( at->at_syntax_oid && !OID_LEADCHAR( at->at_syntax_oid[0] )) {
+		/* Expand OID macros */
+		oid = oidm_find( at->at_syntax_oid );
+		if ( !oid ) {
+			*err = at->at_syntax_oid;
+			return SLAP_SCHERR_OIDM;
+		}
+		if ( oid != at->at_syntax_oid ) {
+			ldap_memfree( at->at_syntax_oid );
+			at->at_syntax_oid = oid;
+		}
+
+	}
 
 	if ( at->at_names && at->at_names[0] ) {
 		int i;
