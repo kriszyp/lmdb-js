@@ -753,7 +753,7 @@ UTF8StringNormalize(
 
 	flags = SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactMatch )
 		? LDAP_UTF8_NOCASEFOLD : LDAP_UTF8_CASEFOLD;
-	flags |= ( use & SLAP_MR_EQUALITY_APPROX == SLAP_MR_EQUALITY_APPROX )
+	flags |= ( ( use & SLAP_MR_EQUALITY_APPROX ) == SLAP_MR_EQUALITY_APPROX )
 		? LDAP_UTF8_APPROX : 0;
 
 	val = UTF8bvnormalize( val, &tmp, flags );
