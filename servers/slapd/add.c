@@ -142,6 +142,13 @@ do_add( Connection *conn, Operation *op )
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, e->e_ndn, 0, 0 );
 
+	if( e->e_ndn == NULL || *e->e_ndn == '\0' ) {
+		/* protocolError may be a more appropriate error */
+		send_ldap_result( conn, op, rc = LDAP_ALREADY_EXISTS,
+			NULL, "root DSE exists", NULL, NULL );
+		goto done;
+	}
+
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"

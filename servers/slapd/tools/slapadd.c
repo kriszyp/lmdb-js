@@ -67,6 +67,16 @@ main( int argc, char **argv )
 			break;
 		}
 
+		/* make sure the DN is valid */
+		if( e->e_ndn == '\0' ) {
+			fprintf( stderr, "%s: empty dn=\"%s\" (line=%d)\n",
+				progname, e->e_dn, lineno );
+			rc = EXIT_FAILURE;
+			entry_free( e );
+			if( continuemode ) continue;
+			break;
+		}
+
 		if( !noschemacheck ) {
 			/* check schema */
 			const char *text;

@@ -9,6 +9,7 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd IPv6 issues (ITS#716)
 	Fixed slapd MIT KPASSWD Compatibility (ITS#715)
 	Fixed slapd time syntax routines (ITS#713)
+	Updated slapd inappropriate root DSE op handling
 	Build Environment
 		Fixed Kerberos detection (ITS#717)
 	Documentation
