@@ -977,11 +977,17 @@ re_encode_request( LDAP *ld,
 		/* search requests need to be re-scope-ed */
 		rc = ber_scanf( &tmpber, "{ae" /*"}"*/, &orig_dn, &scope );
 
-		if( srv->lud_scope == LDAP_SCOPE_DEFAULT &&
-			scope != LDAP_SCOPE_SUBTREE )
-		{
+		if( srv->lud_scope != LDAP_SCOPE_DEFAULT ) {
+			/* use the scope provided in reference */
+			scope = srv->lud_scope;
+
+		} else if ( scope != LDAP_SCOPE_SUBTREE ) {
+			/* use scope implied by previous operation */
+			/*   base -> base */
+			/*   one -> base */
+			/*   subtree -> subtree */
 			scope = LDAP_SCOPE_BASE;
-		} 
+		}
 
 	} else {
 		rc = ber_scanf( &tmpber, "{a" /*}*/, &orig_dn );
