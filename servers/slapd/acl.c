@@ -555,7 +555,7 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_dn_at != NULL && op->o_ndn != NULL ) {
+		if ( b->a_dn_at != NULL ) {
 			Attribute	*at;
 			struct berval	bv;
 			int rc, match = 0;
@@ -563,6 +563,10 @@ acl_mask(
 			const char *attr = b->a_dn_at->ad_cname->bv_val;
 
 			assert( attr != NULL );
+
+			if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+				continue;
+			}
 
 			Debug( LDAP_DEBUG_ACL, "<= check a_dn_at: %s\n",
 				attr, 0, 0);
@@ -621,8 +625,12 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_group_pat != NULL && op->o_ndn != NULL ) {
+		if ( b->a_group_pat != NULL ) {
 			char buf[1024];
+
+			if( op->o_ndn == NULL || op->o_ndn[0] == '\0' ) {
+				continue;
+			}
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of

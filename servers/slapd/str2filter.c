@@ -247,7 +247,7 @@ str2subvals( const char *in, Filter *f )
 	val = freeme = ch_strdup( in );
 	gotstar = 0;
 
-	while ( *val ) {
+	while ( val && *val ) {
 		if ( (nextstar = ldap_pvt_find_wildcard( val )) != NULL )
 			*nextstar++ = '\0';
 
