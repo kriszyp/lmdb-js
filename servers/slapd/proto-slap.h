@@ -558,6 +558,8 @@ LDAP_SLAPD_F (int) dnPrettyNormalDN LDAP_P(( Syntax *syntax, struct berval *val,
 #define dnNormalDN(syntax, val, dn, ctx) \
 	dnPrettyNormalDN((syntax),(val),(dn), 0, ctx)
 
+typedef int (SLAP_CERT_MAP_FN) LDAP_P(( void *ssl, struct berval *dn ));
+LDAP_SLAPD_F (int) register_certificate_map_function LDAP_P(( SLAP_CERT_MAP_FN *fn ));
 
 /*
  * entry.c

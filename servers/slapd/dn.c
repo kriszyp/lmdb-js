@@ -1357,6 +1357,20 @@ dnIsOneLevelRDN( struct berval *rdn )
 	return 1;
 }
 
+static SLAP_CERT_MAP_FN *DNX509PeerNormalizeCertMap = NULL;
+
+int register_certificate_map_function(SLAP_CERT_MAP_FN *fn)
+{
+#ifdef HAVE_TLS
+	if ( DNX509PeerNormalizeCertMap == NULL ) {
+		DNX509PeerNormalizeCertMap = fn;
+		return 0;
+	}
+#endif
+
+	return -1;
+}
+
 #ifdef HAVE_TLS
 /*
  * Convert an X.509 DN into a normalized LDAP DN
@@ -1379,7 +1393,16 @@ dnX509normalize( void *x509_name, struct berval *out )
 int
 dnX509peerNormalize( void *ssl, struct berval *dn )
 {
-	return ldap_pvt_tls_get_peer_dn( ssl, dn,
-		(LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
+	int rc = LDAP_INVALID_CREDENTIALS;
+
+	if ( DNX509PeerNormalizeCertMap != NULL )
+		rc = (*DNX509PeerNormalizeCertMap)( ssl, dn );
+
+	if ( rc != LDAP_SUCCESS ) {
+		rc = ldap_pvt_tls_get_peer_dn( ssl, dn,
+			(LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
+	}
+
+	return rc;
 }
 #endif
