@@ -190,8 +190,7 @@ usage( char *name )
 		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tService name\n"
-		"\t-o <option>[=value]\n"
-		"\t\t\tGeneric means to specify options; see slapd(8) for details\n"
+		"\t-o <opt>[=val]\tGeneric means to specify options; details in slapd(8)\n"
 #ifdef HAVE_CHROOT
 		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
@@ -405,9 +404,14 @@ int main( int argc, char **argv )
 
 			for ( i = 0; !BER_BVISNULL( &option_helpers[i].oh_name ); i++ ) {
 				if ( ber_bvstrcasecmp( &option_helpers[i].oh_name, &opt ) == 0 ) {
-					if ( option_helpers[i].oh_fnc( val, option_helpers[i].oh_arg ) == -1 ) {
-						goto destroy;
+					assert( option_helpers[i].oh_fnc != NULL );
+					if ( (*option_helpers[i].oh_fnc)( val, option_helpers[i].oh_arg ) == -1 ) {
+						/* we assume the option parsing helper
+						 * issues appropriate and self-explanatory
+						 * error messages... */
+						goto stop;
 					}
+					break;
 				}
 			}
 
