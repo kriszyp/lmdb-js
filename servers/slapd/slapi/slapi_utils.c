@@ -309,7 +309,12 @@ slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type )
 	}
 
 	if ( attr->a_vals != NULL && attr->a_vals[0].bv_len != 0 ) {
-		return (char *)slapi_value_get_string( attr->a_vals );
+		const char *p;
+
+		p = slapi_value_get_string( &attr->a_vals[0] );
+		if ( p != NULL ) {
+			return slapi_ch_strdup( (char *)p );
+		}
 	}
 
 	return NULL;
