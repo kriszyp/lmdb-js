@@ -224,16 +224,20 @@ o: example
 
 #  UID=jsmith, O=example, C=US       // spaces
 #  UID=jsmith;O=example;C=US         // semi-colons
-#  <UID=jsmith,O=example,C=US>       // brackets         [AoOn]
 dn: UID=jsmith, O=example, C=US
 objectClass: inetOrgPerson
 cn: J. Smith
 sn: Smith
 uid: jsmith
 seeAlso: UID=jsmith;O=example;C=US
-manager: <UID=jsmith,O=example,C=US>
 description: UID=jsmith, O=example, C=US
 description: UID=jsmith;O=example;C=US
+
+#  <UID=jsmith,O=example,C=US>       // brackets         [AoOn]
+dn: cn=LDAPv2,O=example,C=US
+objectClass: groupOfNames
+cn: LDAPv2
+member: <UID=jsmith,O=example,C=US>
 description: <UID=jsmith,O=example,C=US>
 
 #  CN="John Smith",O=example,C=US    // quotes
