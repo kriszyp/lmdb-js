@@ -42,10 +42,10 @@ ldbm_back_bind(
 #endif
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	static AttributeDescription *userPassword = NULL;
+	static AttributeDescription *password = NULL;
 	static AttributeDescription *entry = NULL;
 #else
-	static const char *userPassword = "userpassword";
+	static const char *password = "userpassword";
 	static const char *entry = "entry";
 #endif
 
@@ -192,7 +192,7 @@ ldbm_back_bind(
 		}
 
 		if ( ! access_allowed( be, conn, op, e,
-			userPassword, NULL, ACL_AUTH ) )
+			password, NULL, ACL_AUTH ) )
 		{
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
@@ -200,7 +200,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( (a = attr_find( e->e_attrs, userPassword )) == NULL ) {
+		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
 			    NULL, NULL, NULL, NULL );
 
