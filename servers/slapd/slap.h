@@ -1,4 +1,8 @@
 /* slap.h - stand alone ldap server include file */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_

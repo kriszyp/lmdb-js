@@ -295,6 +295,7 @@ open_listener(
 #endif
 
 #ifdef SO_REUSEADDR
+	/* enable address reuse */
 	tmp = 1;
 	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_REUSEADDR,
 		(char *) &tmp, sizeof(tmp) ) == -1 )
@@ -308,6 +309,7 @@ open_listener(
 	}
 #endif
 #ifdef SO_KEEPALIVE
+	/* enable keep alives */
 	tmp = 1;
 	if ( setsockopt( l.sl_sd, SOL_SOCKET, SO_KEEPALIVE,
 		(char *) &tmp, sizeof(tmp) ) == -1 )
@@ -321,6 +323,7 @@ open_listener(
 	}
 #endif
 #ifdef TCP_NODELAY
+	/* enable no delay */
 	tmp = 1;
 	if ( setsockopt( l.sl_sd, IPPROTO_TCP, TCP_NODELAY,
 		(char *)&tmp, sizeof(tmp) ) )
