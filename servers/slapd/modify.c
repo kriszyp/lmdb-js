@@ -549,9 +549,10 @@ int slap_mods_opattrs(
 	Modifications **modtail,
 	const char **text )
 {
-	struct berval name, timestamp;
+	struct berval name, timestamp, csn;
 	time_t now = slap_get_time();
 	char timebuf[22];
+	char csnbuf[128];
 	struct tm *ltm;
 	Modifications *mod;
 
@@ -564,7 +565,11 @@ int slap_mods_opattrs(
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	ltm = gmtime( &now );
 	strftime( timebuf, sizeof(timebuf), "%Y%m%d%H%M%SZ", ltm );
+
+	csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), 0, 0 );
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+	csn.bv_val = csnbuf;
+
 	timestamp.bv_val = timebuf;
 	timestamp.bv_len = strlen(timebuf);
 
@@ -577,6 +582,22 @@ int slap_mods_opattrs(
 	}
 
 	if( op->o_tag == LDAP_REQ_ADD ) {
+		struct berval uuid;
+		char uuidbuf[64];
+
+		uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+		uuid.bv_val = uuidbuf;
+		
+		mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
+		mod->sml_op = mop;
+		mod->sml_desc = slap_schema.si_ad_entryUUID;
+		mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+		mod->sml_bvalues[0] = ber_bvdup( &uuid );
+		mod->sml_bvalues[1] = NULL;
+		assert( mod->sml_bvalues[0] );
+		*modtail = mod;
+		modtail = &mod->sml_next;
+
 		mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_desc = slap_schema.si_ad_creatorsName;
@@ -600,8 +621,18 @@ int slap_mods_opattrs(
 
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
 	mod->sml_op = mop;
+	mod->sml_desc = slap_schema.si_ad_entryCSN;
+	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof(struct berval *) );
+	mod->sml_bvalues[0] = ber_bvdup( &csn );
+	mod->sml_bvalues[1] = NULL;
+	assert( mod->sml_bvalues[0] );
+	*modtail = mod;
+	modtail = &mod->sml_next;
+
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
+	mod->sml_op = mop;
 	mod->sml_desc = slap_schema.si_ad_modifiersName;
-	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof(struct berval *) );
 	mod->sml_bvalues[0] = ber_bvdup( &name );
 	mod->sml_bvalues[1] = NULL;
 	assert( mod->sml_bvalues[0] );
@@ -611,7 +642,7 @@ int slap_mods_opattrs(
 	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
 	mod->sml_op = mop;
 	mod->sml_desc = slap_schema.si_ad_modifyTimestamp;
-	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof(struct berval *) );
 	mod->sml_bvalues[0] = ber_bvdup( &timestamp );
 	mod->sml_bvalues[1] = NULL;
 	assert( mod->sml_bvalues[0] );

@@ -153,6 +153,10 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
 
 	/* user entry operational attributes */
+	{ "entryUUID", NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
+	{ "entryCSN", NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
 	{ "creatorsName", NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_creatorsName) },
 	{ "createTimestamp", NULL, NULL, NULL,

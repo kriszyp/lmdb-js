@@ -473,6 +473,8 @@ struct slap_internal_schema {
 
 	/* operational attribute descriptions */
 	AttributeDescription *si_ad_structuralObjectClass;
+	AttributeDescription *si_ad_entryUUID;
+	AttributeDescription *si_ad_entryCSN;
 	AttributeDescription *si_ad_creatorsName;
 	AttributeDescription *si_ad_createTimestamp;
 	AttributeDescription *si_ad_modifiersName;
@@ -544,7 +546,6 @@ typedef struct slap_mr_assertion {
 	struct berval			*ma_value;	/* required */
 } MatchingRuleAssertion;
 
-
 /*
  * represents a search filter
  */
@@ -553,7 +554,6 @@ typedef struct slap_filter {
 #define SLAPD_FILTER_COMPUTED	((ber_tag_t) -1)
 #define SLAPD_FILTER_DN_ONE		((ber_tag_t) -2)
 #define SLAPD_FILTER_DN_SUBTREE	((ber_tag_t) -3)
-
 
 	union f_un_u {
 		/* precomputed result */

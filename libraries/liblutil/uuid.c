@@ -182,6 +182,7 @@ lutil_uuidstr( char *buf, size_t len )
 	uuid_t uu = {0};
 	unsigned rc;
 	char *s;
+	size_t l;
 
 	uuid_create( &uu, &rc );
 	if ( rc != uuid_s_ok ) {
@@ -192,15 +193,17 @@ lutil_uuidstr( char *buf, size_t len )
 	if ( rc != uuid_s_ok ) {
 		return 0;
 	}
-	if ( strlen( s ) >= len ) {
+
+	l = strlen( s );
+	if ( l >= len ) {
 		free( s );
 		return 0;
 	}
 
-	strncpy( buf, s, len );
+	strncpy( buf, s, l );
 	free( s );
 
-	return 1;
+	return l;
 
 #else
 	struct timeval tv;
@@ -243,7 +246,7 @@ lutil_uuidstr( char *buf, size_t len )
 		(unsigned) nl[2], (unsigned) nl[3],
 		(unsigned) nl[4], (unsigned) nl[5] );
 
-	return (t1 < len) ? 1 : 0;
+	return (t1 < len) ? t1 : 0;
 #endif
 }
 
