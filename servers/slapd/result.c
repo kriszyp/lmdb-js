@@ -25,22 +25,24 @@ static char *v2ref( struct berval **ref, const char *text )
 	char *v2;
 
 	if(ref == NULL) {
-	    if (text)
-		return ch_strdup(text);
-	    else
-		return NULL;
+		if (text) {
+			return ch_strdup(text);
+		} else {
+			return NULL;
+		}
 	}
 	
-	if (text) {
+	if ( text != NULL ) {
 		len = strlen( text );
 		if (text[len-1] != '\n') {
 		    i = 1;
 		}
 	}
+
 	v2 = ch_malloc( len+i+sizeof("Referral:") );
-	if (text) {
+	if( text != NULL ) {
 		strcpy(v2, text);
-		if (i) {
+		if( i ) {
 			v2[len++] = '\n';
 		}
 	}
@@ -263,10 +265,12 @@ send_ldap_response(
 
 	ber = ber_alloc_t( LBER_USE_DER );
 
-	Debug( LDAP_DEBUG_TRACE, "send_ldap_response: msgid=%ld tag=%ld err=%ld\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"send_ldap_response: msgid=%ld tag=%ld err=%ld\n",
 		(long) msgid, (long) tag, (long) err );
+
 	if( ref ) {
-		Debug( LDAP_DEBUG_ARGS, "send_ldap_response: ref=%s\n",
+		Debug( LDAP_DEBUG_ARGS, "send_ldap_response: ref=\"%s\"\n",
 			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
 			NULL, NULL );
 	}
@@ -396,13 +400,16 @@ send_ldap_result(
 
 	assert( !LDAP_API_ERROR( err ) );
 
-	Debug( LDAP_DEBUG_TRACE, "send_ldap_result: conn=%ld op=%ld p=%d\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"send_ldap_result: conn=%ld op=%ld p=%d\n",
 		(long) op->o_connid, (long) op->o_opid, op->o_protocol );
-	Debug( LDAP_DEBUG_ARGS, "send_ldap_result: %d:%s:%s\n",
+	Debug( LDAP_DEBUG_ARGS,
+		"send_ldap_result: err=%d matched=\"%s\" text=\"%s\"\n",
 		err, matched ?  matched : "", text ? text : "" );
 
 	if( ref ) {
-		Debug( LDAP_DEBUG_ARGS, "send_ldap_result: referral: %s\n",
+		Debug( LDAP_DEBUG_ARGS,
+			"send_ldap_result: referral=\"%s\"\n",
 			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
 			NULL, NULL );
 	}
@@ -487,7 +494,7 @@ send_ldap_extended(
 	ber_int_t msgid;
 
 	Debug( LDAP_DEBUG_TRACE,
-		"send_ldap_extended %ld:%s (%ld)\n",
+		"send_ldap_extended err=%ld oid=%s len=%ld\n",
 		(long) err,
 		rspoid ? rspoid : "",
 		rspdata != NULL ? (long) rspdata->bv_len : (long) 0 );
@@ -518,7 +525,8 @@ send_search_result(
 	char *tmp = NULL;
 	assert( !LDAP_API_ERROR( err ) );
 
-	Debug( LDAP_DEBUG_TRACE, "send_ldap_search_result %d:%s:%s\n",
+	Debug( LDAP_DEBUG_TRACE,
+		"send_search_result: err=%d matched=\"%s\" text=\"%s\"\n",
 		err, matched ?  matched : "", text ? text : "" );
 
 	assert( err != LDAP_PARTIAL_RESULTS );
@@ -583,12 +591,15 @@ send_search_entry(
 
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
-	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: \"%s\"\n", e->e_dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,
+		"=> send_search_entry: dn=\"%s\"%s\n",
+		e->e_dn, attrsonly ? " (attrsOnly)" : "", 0 );
 
 	if ( ! access_allowed( be, conn, op, e,
 		ad_entry, NULL, ACL_READ ) )
 	{
-		Debug( LDAP_DEBUG_ACL, "acl: access to entry not allowed\n",
+		Debug( LDAP_DEBUG_ACL,
+			"send_search_entry: access to entry not allowed\n",
 		    0, 0, 0 );
 		return( 1 );
 	}
@@ -824,7 +835,9 @@ send_search_reference(
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
-	Debug( LDAP_DEBUG_TRACE, "=> send_search_reference (%s)\n", e->e_dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,
+		"=> send_search_reference: dn=\"%s\"\n",
+		e->e_dn, 0, 0 );
 
 	if ( ! access_allowed( be, conn, op, e,
 		ad_entry, NULL, ACL_READ ) )
