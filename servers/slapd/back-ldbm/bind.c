@@ -49,7 +49,8 @@ ldbm_back_bind(
 	LDAP_LOG( BACK_LDBM, ENTRY, 
 		"ldbm_back_bind: dn: %s.\n", op->o_req_dn.bv_val, 0, 0 );
 #else
-	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
+	Debug(LDAP_DEBUG_ARGS,
+		"==> ldbm_back_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
 #endif
 
 	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE && be_isroot_pw( op ) ) {
@@ -114,13 +115,18 @@ ldbm_back_bind(
 		/* entry is an alias, don't allow bind */
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, INFO, 
-			"ldbm_back_bind: entry (%s) is an alias.\n", e->e_name.bv_val, 0, 0 );
+			"ldbm_back_bind: entry (%s) is an alias.\n",
+			e->e_name.bv_val, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
-		    0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
 #endif
+
+#if 1
+		rc = LDAP_INVALID_CREDENTIALS;
+#else
 		rs->sr_text = "entry is alias";
 		rc = LDAP_ALIAS_PROBLEM;
+#endif
 		goto return_results;
 	}
 
@@ -135,7 +141,6 @@ ldbm_back_bind(
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
 #endif
-
 
 		if( rs->sr_ref != NULL ) {
 			rc = LDAP_REFERRAL;
@@ -153,17 +158,27 @@ ldbm_back_bind(
 		if ( ! access_allowed( op, e,
 			password, NULL, ACL_AUTH, NULL ) )
 		{
+#if 1
+			rc = LDAP_INVALID_CREDENTIALS;
+#else
 			rc = LDAP_INSUFFICIENT_ACCESS;
+#endif
 			goto return_results;
 		}
 
 		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
 			/* stop front end from sending result */
+#if 1
+			rc = LDAP_INVALID_CREDENTIALS;
+#else
 			rc = LDAP_INAPPROPRIATE_AUTH;
+#endif
 			goto return_results;
 		}
 
-		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 ) {
+		if ( slap_passwd_check( op->o_conn,
+			a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 )
+		{
 			/* stop front end from sending result */
 			rc = LDAP_INVALID_CREDENTIALS;
 			goto return_results;
@@ -174,7 +189,9 @@ ldbm_back_bind(
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	case LDAP_AUTH_KRBV41:
-		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad ) != LDAP_SUCCESS ) {
+		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad )
+			!= LDAP_SUCCESS )
+		{
 			rc = LDAP_INVALID_CREDENTIALS;
 			goto return_results;
 		}
@@ -213,15 +230,10 @@ ldbm_back_bind(
 		}
 		rc = 0;
 		break;
-
-	case LDAP_AUTH_KRBV42:
-		rs->sr_text = "Kerberos bind step 2 not supported";
-		/* stop front end from sending result */
-		rc = LDAP_UNWILLING_TO_PERFORM;
-		goto return_results;
 #endif
 
 	default:
+		assert( 0 ); /* should not be reachable */
 		rs->sr_text = "authentication method not supported";
 		rc = LDAP_STRONG_AUTH_NOT_SUPPORTED;
 		goto return_results;
