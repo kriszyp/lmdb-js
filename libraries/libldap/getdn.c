@@ -3291,3 +3291,108 @@ return_results:;
 	return( rc );
 }
 
+#ifdef HAVE_TLS
+#include <openssl/x509.h>
+#include <openssl/err.h>
+
+/* Convert a structured DN from an X.509 certificate into an LDAPV3 DN.
+ * x509_name must be an (X509_NAME *). If func is non-NULL, the
+ * constructed DN will use numeric OIDs to identify attributeTypes,
+ * and the func() will be invoked to rewrite the DN with the given
+ * flags.
+ *
+ * Otherwise the DN will use shortNames as defined in the OpenSSL
+ * library.
+ *
+ * It's preferable to let slapd do the OID to attributeType mapping,
+ * because the OpenSSL tables are known to have many typos in versions
+ * up to (at least) 0.9.6c. However, the LDAP client has no schema tables,
+ * so we're forced to use OpenSSL's mapping there.
+ *  -- Howard Chu 2002-04-18
+ */
+
+int
+ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
+	unsigned flags )
+{
+	LDAPDN	*newDN = NULL;
+	LDAPRDN	*newRDN = NULL;
+	X509_NAME_ENTRY *ne;
+	ASN1_OBJECT *obj;
+	ASN1_STRING *str;
+	char oidbuf[2048];
+	int i, j, nrdns, rc = LDAP_NO_MEMORY;
+
+	struct berval	Type;
+	struct berval	Val;
+
+	assert( bv );
+	bv->bv_len = 0;
+	bv->bv_val = NULL;
+
+	nrdns = X509_NAME_entry_count( x509_name );
+	newDN = (LDAPDN *)LDAP_MALLOC( sizeof(LDAPDN) + sizeof(LDAPRDN *)
+					* (nrdns+1) );
+	if ( newDN == NULL )
+		return LDAP_NO_MEMORY;
+	
+	newDN[0] = (LDAPRDN**)(newDN+1);
+
+	/* Retrieve RDNs in reverse order; LDAP is backwards from X.500.
+	 * The OpenSSL library appears to allow only 1 AVA per RDN.
+	 */
+	for ( i = nrdns - 1, j = 0; i >= 0; i--, j++ ) {
+		newDN[0][j] = NULL;
+		ne = X509_NAME_get_entry( x509_name, i );
+		obj = X509_NAME_ENTRY_get_object( ne );
+		str = X509_NAME_ENTRY_get_data( ne );
+
+		if ( !func ) {
+			int n = OBJ_obj2nid( obj );
+
+			if (n == NID_undef)
+				goto get_oid;
+			Type.bv_val = (char *)OBJ_nid2sn( n );
+			Type.bv_len = strlen( Type.bv_val );
+		} else {
+get_oid:		Type.bv_val = oidbuf;
+			Type.bv_len = OBJ_obj2txt( oidbuf, sizeof( oidbuf ), obj, 1 );
+		}
+		Val.bv_len = str->length;
+		Val.bv_val = str->data;
+
+		newRDN = (LDAPRDN *)LDAP_MALLOC( sizeof(LDAPRDN) + sizeof(LDAPAVA *) * 2);
+		if ( newRDN == NULL )
+			goto nomem;
+
+		newRDN[0] = (LDAPAVA**)(newRDN+1);
+		newRDN[0][0] = ldapava_new( &Type, &Val, LDAP_AVA_STRING );
+		if ( newRDN[0][0] == NULL )
+			goto nomem;
+
+		newRDN[0][1] = NULL;
+		newDN[0][j] = newRDN;
+		newRDN = NULL;
+	}
+	newDN[0][j] = NULL;
+
+	if ( func ) {
+		rc = func( newDN, flags );
+		if ( rc != LDAP_SUCCESS )
+			goto nomem;
+	}
+
+	rc = ldap_dn2bv( newDN, bv, LDAP_DN_FORMAT_LDAPV3 );
+	ldap_dnfree( newDN );
+
+	return rc;
+
+nomem:
+	if ( newRDN )
+		LDAP_FREE( newRDN );
+	if ( newDN )
+		ldap_dnfree( newDN );
+	return rc;
+}
+#endif /* HAVE_TLS */
+

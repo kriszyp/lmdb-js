@@ -788,6 +788,23 @@ ldap_pvt_tls_get_strength( void *s )
 }
 
 
+char *
+ldap_pvt_tls_get_my_dn( void *s, LDAPDN_rewrite_dummy *func, unsigned flags )
+{
+	X509 *x;
+	X509_NAME *xn;
+	struct berval dn;
+
+	x = SSL_get_certificate((SSL *)s);
+
+	if (!x) return NULL;
+    
+	xn = X509_get_subject_name(x);
+	ldap_X509dn2bv(xn, &dn, (LDAPDN_rewrite_func *)func, flags );
+	X509_free(x);
+	return dn.bv_val;
+}
+
 static X509 *
 tls_get_cert( SSL *s )
 {
@@ -803,42 +820,20 @@ tls_get_cert( SSL *s )
 }
 
 char *
-ldap_pvt_tls_get_peer( void *s )
-{
-    X509 *x;
-    X509_NAME *xn;
-    char buf[2048], *p;
-
-
-    x = tls_get_cert((SSL *)s);
-
-    if (!x)
-    	return NULL;
-    
-    xn = X509_get_subject_name(x);
-    p = LDAP_STRDUP(X509_NAME_oneline(xn, buf, sizeof(buf)));
-    X509_free(x);
-    return p;
-}
-
-char *
-ldap_pvt_tls_get_peer_dn( void *s )
+ldap_pvt_tls_get_peer_dn( void *s, LDAPDN_rewrite_dummy *func, unsigned flags )
 {
 	X509 *x;
 	X509_NAME *xn;
-	char buf[2048], *p, *dn;
+	struct berval dn;
 
 	x = tls_get_cert((SSL *)s);
 
 	if (!x) return NULL;
     
 	xn = X509_get_subject_name(x);
-	p = X509_NAME_oneline(xn, buf, sizeof(buf));
-
-	dn = ldap_dcedn2dn( p );
-
+	ldap_X509dn2bv(xn, &dn, (LDAPDN_rewrite_func *)func, flags);
 	X509_free(x);
-	return dn;
+	return dn.bv_val;
 }
 
 char *
@@ -983,7 +978,7 @@ ldap_pvt_tls_check_hostname( void *s, const char *name_in )
 const char *
 ldap_pvt_tls_get_peer_issuer( void *s )
 {
-#if 0	/* currently unused; see ldap_pvt_tls_get_peer() if needed */
+#if 0	/* currently unused; see ldap_pvt_tls_get_peer_dn() if needed */
     X509 *x;
     X509_NAME *xn;
     char buf[2048], *p;
@@ -1256,9 +1251,10 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 
 		/* we need to let SASL know */
 		ssf = ldap_pvt_tls_get_strength( ssl );
-		authid = ldap_pvt_tls_get_peer( ssl );
+		authid = ldap_pvt_tls_get_my_dn( ssl, NULL, 0 );
 
 		(void) ldap_int_sasl_external( ld, conn, authid, ssf );
+		LDAP_FREE( authid );
 	}
 
 	return LDAP_SUCCESS;

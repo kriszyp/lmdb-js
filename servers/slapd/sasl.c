@@ -173,22 +173,17 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 
 	/* An authcID needs to be converted to authzID form */
 	if( flags & FLAG_GETDN_AUTHCID ) {
-		if( sasl_external_x509dn_convert
-			&& conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
-			&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) 
-			&& id[0] == '/' )
-		{
-			/* check SASL external for X.509 style DN and */
-			/* convert to dn:<dn> form, result is normalized */
-			dnDCEnormalize( id, dn );
+		if( conn->c_is_tls && conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
+			&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) ) {
+			/* X.509 DN is already normalized */
 			do_norm = 0;
 			is_dn = SET_DN;
 
 		} else {
 			/* convert to u:<username> form */
-			ber_str2bv( id, len, 1, dn );
 			is_dn = SET_U;
 		}
+		ber_str2bv( id, len, 1, dn );
 	}
 	if( !is_dn ) {
 		if( !strncasecmp( id, "u:", sizeof("u:")-1 )) {
@@ -449,9 +444,8 @@ slap_sasl_authorize(
 		equal = !strcmp( auth_identity, requested_user );
 
 	/* If using SASL-EXTERNAL, don't modify the ID in any way */
-	if ( conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
-		&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) 
-			&& auth_identity[0] == '/' ) {
+	if ( conn->c_is_tls && conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
+		&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) ) {
 		ext = 1;
 		realm = NULL;
 	} else {
@@ -582,9 +576,8 @@ slap_sasl_authorize(
 
 	/* Convert the identities to DN's. If no authzid was given, client will
 	   be bound as the DN matching their username */
-	if ( conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
-		&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) 
-			&& authcid[0] == '/' ) {
+	if ( conn->c_is_tls && conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
+		&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) ) {
 		ext = 1;
 		xrealm = NULL;
 	} else {
@@ -1083,13 +1076,7 @@ int slap_sasl_bind(
 
 	if ( sc == SASL_OK ) {
 		char *username = NULL;
-		char *realm = NULL;
 
-#if SASL_VERSION_MAJOR >= 2
-		sc = sasl_getprop( ctx, SASL_DEFUSERREALM, (const void **)&realm );
-#else
-		sc = sasl_getprop( ctx, SASL_REALM, (void **)&realm );
-#endif
 		sc = sasl_getprop( ctx,
 			SASL_USERNAME, (SASL_CONST void **)&username );
 

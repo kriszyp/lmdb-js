@@ -619,6 +619,9 @@ ldap_int_sasl_bind(
 
 	if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 		ld->ld_errno = sasl_err2ldap( saslrc );
+#if SASL_VERSION_MAJOR >= 2
+		ld->ld_error = (char *)sasl_errdetail( ctx );
+#endif
 		return ld->ld_errno;
 	}
 
@@ -712,6 +715,9 @@ ldap_int_sasl_bind(
 
 		if ( (saslrc != SASL_OK) && (saslrc != SASL_CONTINUE) ) {
 			ld->ld_errno = sasl_err2ldap( saslrc );
+#if SASL_VERSION_MAJOR >= 2
+			ld->ld_error = (char *)sasl_errdetail( ctx );
+#endif
 			return ld->ld_errno;
 		}
 	} while ( rc == LDAP_SASL_BIND_IN_PROGRESS );
@@ -721,6 +727,9 @@ ldap_int_sasl_bind(
 	}
 
 	if ( saslrc != SASL_OK ) {
+#if SASL_VERSION_MAJOR >= 2
+		ld->ld_error = (char *)sasl_errdetail( ctx );
+#endif
 		return ld->ld_errno = sasl_err2ldap( saslrc );
 	}
 
@@ -779,6 +788,8 @@ ldap_int_sasl_external(
    
 #if SASL_VERSION_MAJOR >= 2
 	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL, &ssf );
+	if ( sc == SASL_OK )
+		sc = sasl_setprop( ctx, SASL_AUTH_EXTERNAL, authid );
 #else
 	memset( &extprops, '\0', sizeof(extprops) );
 	extprops.ssf = ssf;
