@@ -503,7 +503,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				pp->pwdCheckModule, err, 0 );
 			ok = LDAP_OTHER; /* internal error */
 		} else {
-			int (*prog)( char *passwd, char **text, Attribute *attrs );
+			int (*prog)( char *passwd, char **text, Entry *ent );
 
 			if ((prog = lt_dlsym( mod, "check_password" )) == NULL) {
 				err = lt_dlerror();
@@ -516,7 +516,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				char *txt = NULL;
 
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
-				ok = prog( cred->bv_val, &txt, e ? e->e_attrs : NULL );
+				ok = prog( cred->bv_val, &txt, e );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
 				if (txt) {
 					Debug(LDAP_DEBUG_ANY,
