@@ -699,7 +699,9 @@ int main(argc, argv)
 #if HAVE_PTHREADS_D4
 	pthread_create(NULL,pthread_attr_default,NULL,NULL);
 #else
-	pthread_create(NULL,NULL,NULL,NULL);
+	pthread_t t;
+	pthread_create(&t,NULL,NULL,NULL);
+	pthread_detach(t);
 #endif
 ],
 					[ol_cv_kthread_flag=yes], [ol_cv_kthread_flag=no])
