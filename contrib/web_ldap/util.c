@@ -16,6 +16,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
 
 #include <ac/string.h>
 #include <ac/ctype.h>
