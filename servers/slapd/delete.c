@@ -206,6 +206,7 @@ do_delete(
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			if ( !repl_user ) {
 				struct berval csn = { 0 , NULL };
@@ -213,15 +214,14 @@ do_delete(
 				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 			}
 
-			repstamp( op );
-			if ( (op->o_bd->be_delete)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
+			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
 #endif
-				{
-					replog( op );
-				}
+			{
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
 			}
+			op->o_bd->be_delete( op, rs );
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;

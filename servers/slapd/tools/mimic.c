@@ -62,6 +62,14 @@ slap_null_cb(
 	assert(0);
 }
 
+int
+slap_replog_cb(
+    Operation	*op, SlapReply *rs
+)
+{
+	assert(0);
+}
+
 void
 slap_send_ldap_extended(
     Operation	*op, SlapReply *rs
@@ -192,11 +200,6 @@ const char * connection_state2str( int state )
 {
 	assert(0);
 	return NULL;
-}
-
-void repstamp( Operation *op )
-{
-	assert(0);
 }
 
 void replog( Operation *op )

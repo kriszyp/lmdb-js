@@ -472,6 +472,7 @@ do_modify(
 			int update = op->o_bd->be_update_ndn.bv_len;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
 				textbuf, textlen, NULL );
@@ -498,15 +499,15 @@ do_modify(
 			}
 
 			op->orm_modlist = modlist;
-			repstamp( op );
-			if ( (op->o_bd->be_modify)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
-				&& !repl_user
+			if ( !repl_user )
 #endif
-			) {
+			{
 				/* but we log only the ones not from a replicator user */
-				replog( op );
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
 			}
+			op->o_bd->be_modify( op, rs );
 
 #ifndef SLAPD_MULTIMASTER
 		/* send a referral */

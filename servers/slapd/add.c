@@ -261,6 +261,7 @@ do_add( Operation *op, SlapReply *rs )
 			int update = op->o_bd->be_update_ndn.bv_len;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			rs->sr_err = slap_mods_check( modlist, update, &rs->sr_text,
 										  textbuf, textlen, NULL );
@@ -308,14 +309,14 @@ do_add( Operation *op, SlapReply *rs )
 #endif /* LDAP_SLAPI */
 
 			op->ora_e = e;
-			repstamp( op );
-			if ( (op->o_bd->be_add)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if ( !repl_user )
+			if ( !repl_user )
 #endif
-				{
-					replog( op );
-				}
+			{
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
+			}
+			if ( (op->o_bd->be_add)( op, rs ) == 0 ) {
 				be_entry_release_w( op, e );
 				e = NULL;
 			}

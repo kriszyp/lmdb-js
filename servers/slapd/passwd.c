@@ -37,6 +37,7 @@ int passwd_extop(
 	Modifications ml, **modtail;
 	Operation op2;
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
+	slap_callback cb2 = { &cb, slap_replog_cb, NULL, NULL };
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
@@ -156,7 +157,7 @@ int passwd_extop(
 
 	op2 = *op;
 	op2.o_tag = LDAP_REQ_MODIFY;
-	op2.o_callback = &cb;
+	op2.o_callback = &cb2;
 	op2.o_req_dn = dn;
 	op2.o_req_ndn = ndn;
 	op2.orm_modlist = &ml;
@@ -166,11 +167,9 @@ int passwd_extop(
 		NULL, 0 );
 	
 	if ( rs->sr_err == LDAP_SUCCESS ) {
-		repstamp( &op2 );
 		rs->sr_err = op2.o_bd->be_modify( &op2, rs );
 	}
 	if ( rs->sr_err == LDAP_SUCCESS ) {
-		replog( &op2 );
 		rs->sr_rspdata = rsp;
 	} else if ( rsp ) {
 		ber_bvfree( rsp );

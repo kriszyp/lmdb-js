@@ -362,15 +362,17 @@ do_modrdn(
 		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 			op->orr_deleteoldrdn = deloldrdn;
-			repstamp( op );
-			if ( (op->o_bd->be_modrdn)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
-				&& ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
+			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
 #endif
-			) {
-				replog( op );
+			{
+				cb.sc_next = op->o_callback;
+				op->o_callback = &cb;
 			}
+			op->o_bd->be_modrdn( op, rs );
+
 #ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;

@@ -559,12 +559,9 @@ slapi_delete_internal(
 	if ( op->o_bd->be_delete ) {
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
-			if ( log_change ) repstamp( op );
-			if ( (*op->o_bd->be_delete)( op, &rs ) == 0 ) {
-				if ( log_change ) {
-					replog( op );
-				}
-			} else {
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			if ( log_change ) op->o_callback = &cb;
+			if ( (*op->o_bd->be_delete)( op, &rs ) ) {
 				rs.sr_err = LDAP_OTHER;
 			}
         	} else {
@@ -641,11 +638,9 @@ slapi_add_entry_internal_locked(
 	if ( op->o_bd->be_add ) {
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
-			if ( log_changes ) repstamp( op );
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			if ( log_changes ) op->o_callback = &cb;
 			if ( (*op->o_bd->be_add)( op, &rs ) == 0 ) {
-				if ( log_changes ) {
-					replog( op );
-				}
 				be_entry_release_w( op, *e );
 				*e = NULL;
 			}
@@ -834,12 +829,9 @@ slapi_modrdn_internal(
 	if ( op->o_bd->be_modrdn ) {
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
-			if ( log_change ) repstamp( op );
-			if ( (*op->o_bd->be_modrdn)( op, &rs ) == 0 ) {
-				if ( log_change ) {
-					replog( op );
-				}
-			} else {
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+			if ( log_change ) op->o_callback = &cb;
+			if ( (*op->o_bd->be_modrdn)( op, &rs ) ) {
 				rs.sr_err = LDAP_OTHER;
 			}
 		} else {
@@ -1032,6 +1024,7 @@ slapi_modify_internal(
 			const char *text = NULL;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof( textbuf );
+			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 
 			rs.sr_err = slap_mods_check( modlist, update,
 					&text, textbuf, textlen, NULL );
@@ -1047,12 +1040,8 @@ slapi_modify_internal(
 					goto cleanup;
 				}
 			}
-			if ( log_change ) repstamp( op );
-			if ( (*op->o_bd->be_modify)( op, &rs ) == 0 ) {
-				if ( log_change ) {
-					replog( op );
-				}
-			} else {
+			if ( log_change ) op->o_callback = &cb;
+			if ( (*op->o_bd->be_modify)( op, &rs ) ) {
 				rs.sr_err = LDAP_OTHER;
 			}
 		} else {
