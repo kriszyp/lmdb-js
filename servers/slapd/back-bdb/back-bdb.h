@@ -9,9 +9,8 @@
 #define _BACK_BDB_H_
 
 #include <portable.h>
-#include <db.h>
-
 #include "slap.h"
+#include <db.h>
 
 LDAP_BEGIN_DECL
 
