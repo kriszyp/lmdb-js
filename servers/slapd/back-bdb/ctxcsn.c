@@ -46,7 +46,6 @@ bdb_csn_commit(
 	struct berval	ctxcsn_rdn = { 0, NULL };
 	struct berval	ctxcsn_ndn = { 0, NULL };
 	EntryInfo		*ctxcsn_ei = NULL;
-	EntryInfo		eip;
 	DB_LOCK			ctxcsn_lock;
 	struct berval	*max_committed_csn = NULL;
 	DB_LOCK			suffix_lock;
@@ -58,6 +57,7 @@ bdb_csn_commit(
 	Modifications	*ml, *mlnext, *mod, *modlist;
 	Modifications	**modtail = &modlist;
 	struct berval	*csnbva = NULL;
+	EntryInfo		*eip = NULL;
 
 	if ( ei ) {
 		e = ei->bei_e;
@@ -67,12 +67,10 @@ bdb_csn_commit(
 	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
 
 	rc = bdb_dn2entry( op, tid, &ctxcsn_ndn, &ctxcsn_ei,
-							   0, locker, &ctxcsn_lock );
+							   1, locker, &ctxcsn_lock );
 
-	if ( ctxcsn_ei ) {
-		*ctxcsn_e = ctxcsn_ei->bei_e;
-		bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ctxcsn_ei, 1, 0, &ctxcsn_lock );
-	}
+	*ctxcsn_e = ctxcsn_ei->bei_e;
+	bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ctxcsn_ei, 1, 0, &ctxcsn_lock );
 
 	max_committed_csn = slap_get_commit_csn( op );
 
@@ -149,24 +147,13 @@ bdb_csn_commit(
 		}
 		break;
 	case DB_NOTFOUND:
-		if ( op->o_tag == LDAP_REQ_ADD ) {
-			if ( !be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname )) {
-				rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
-										0, locker, &suffix_lock );
-				eip.bei_id = (*suffix_ei)->bei_id;
-			} else {
-				*suffix_ei = NULL;
-				eip.bei_id = op->oq_add.rs_e->e_id;
-			}
+		if ( op->o_tag == LDAP_REQ_ADD &&
+						be_issuffix( op->o_bd, &op->oq_add.rs_e->e_nname )) {
+			*suffix_ei = NULL;
+			eip = (EntryInfo *) ch_calloc( 1, sizeof( EntryInfo ));
+			eip->bei_id = op->oq_add.rs_e->e_id;
 		} else {
-			if ( !be_issuffix( op->o_bd, &e->e_nname )) {
-				rc = bdb_dn2entry( op, tid, &op->o_bd->be_nsuffix[0], suffix_ei,
-										0, locker, &suffix_lock );
-				eip.bei_id = (*suffix_ei)->bei_id;
-			} else {
-				*suffix_ei = ei;
-				eip.bei_id = e->e_id;
-			}
+			eip = *suffix_ei = ctxcsn_ei;
 		}
 
 		/* This serializes add. But this case is very rare : only once. */
@@ -189,7 +176,7 @@ bdb_csn_commit(
 		(*ctxcsn_e)->e_id = ctxcsn_id;
 		*ctxcsn_added = 1;
 
-		ret = bdb_dn2id_add( op, tid, &eip, *ctxcsn_e );
+		ret = bdb_dn2id_add( op, tid, eip, *ctxcsn_e );
 		switch ( ret ) {
 		case 0 :
 			break;
@@ -205,6 +192,11 @@ bdb_csn_commit(
 			rs->sr_text = "context csn store failed";
 			return BDB_CSN_ABORT;
 		}
+
+		if ( *suffix_ei == NULL ) {
+			ch_free( eip );
+		}
+
 		ret = bdb_id2entry_add( op->o_bd, tid, *ctxcsn_e );
 		switch ( ret ) {
 		case 0 :
