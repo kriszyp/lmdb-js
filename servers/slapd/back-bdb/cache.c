@@ -88,7 +88,7 @@ bdb_cache_entry_db_relock(
 	rc = env->lock_vec(env, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
 		list, 2, NULL );
 
-	if (rc) {
+	if (rc && !tryOnly) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
 			"bdb_cache_entry_db_relock: entry %ld, rw %d, rc %d\n",
@@ -128,7 +128,7 @@ bdb_cache_entry_db_lock( DB_ENV *env, u_int32_t locker, EntryInfo *ei,
 
 	rc = LOCK_GET(env, locker, tryOnly ? DB_LOCK_NOWAIT : 0,
 					&lockobj, db_rw, lock);
-	if (rc) {
+	if (rc && !tryOnly) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CACHE, DETAIL1, 
 			"bdb_cache_entry_db_lock: entry %ld, rw %d, rc %d\n",
