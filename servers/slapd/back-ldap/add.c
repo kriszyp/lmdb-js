@@ -95,6 +95,9 @@ ldap_back_add(
 	/* Create array of LDAPMods for ldap_add() */
 	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
 
+#ifdef ENABLE_REWRITE
+	dc.ctx = "addAttrDN";
+#endif
 	for (i=0, a=op->oq_add.rs_e->e_attrs; a; a=a->a_next) {
 		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
@@ -154,9 +157,6 @@ ldap_dnattr_rewrite(
 {
 	struct berval bv;
 
-#ifdef ENABLE_REWRITE
-	dc->ctx="dnAttr";
-#endif
 	for ( ; a_vals->bv_val != NULL; a_vals++ ) {
 		ldap_back_dn_massage( dc, a_vals, &bv );
 

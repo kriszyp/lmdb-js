@@ -421,6 +421,9 @@ ldap_build_entry(
 	ent->e_private = 0;
 	attrp = &ent->e_attrs;
 
+#ifdef ENABLE_REWRITE
+	dc.ctx = "searchAttrDN";
+#endif
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		ldap_back_map(&li->at_map, &a, &mapped, BACKLDAP_REMAP);
 		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0')

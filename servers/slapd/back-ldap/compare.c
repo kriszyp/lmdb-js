@@ -95,7 +95,7 @@ ldap_back_compare(
 		}
 		if (op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
 #ifdef ENABLE_REWRITE
-			dc.ctx = "dnAttr";
+			dc.ctx = "compareAttrDN";
 #endif
 			ldap_back_dn_massage( &dc, &op->orc_ava->aa_value, &mapped_val );
 			if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {

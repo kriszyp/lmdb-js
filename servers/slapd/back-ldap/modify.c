@@ -97,6 +97,9 @@ ldap_back_modify(
 		goto cleanup;
 	}
 
+#ifdef ENABLE_REWRITE
+	dc.ctx = "modifyAttrDN";
+#endif
 	for (i=0, ml=op->oq_modify.rs_modlist; ml; ml=ml->sml_next) {
 		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
