@@ -182,10 +182,10 @@ int bdb_tool_next_id(
 		} else if ( hole ) {
 			if ( nholes == nhmax - 1 ) {
 				if ( holes == hbuf ) {
-					holes = malloc( nhmax * sizeof(ID) * 2 );
+					holes = ch_malloc( nhmax * sizeof(ID) * 2 );
 					AC_MEMCPY( holes, hbuf, sizeof(hbuf) );
 				} else {
-					holes = realloc( holes, nhmax * sizeof(ID) * 2 );
+					holes = ch_realloc( holes, nhmax * sizeof(ID) * 2 );
 				}
 				nhmax *= 2;
 			}

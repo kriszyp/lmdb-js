@@ -107,7 +107,7 @@ void slapd_slp_init( const char* urls ) {
 		if( strcmp( slapd_srvurls[i], "ldap:///" ) == 0) {
 			char *host = ldap_pvt_get_fqdn( NULL );
 			if ( host != NULL ) {
-				slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
+				slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
 					strlen( host ) +
 					sizeof( LDAP_SRVTYPE_PREFIX ) );
 				strcpy( lutil_strcopy(slapd_srvurls[i],
@@ -119,7 +119,7 @@ void slapd_slp_init( const char* urls ) {
 		} else if ( strcmp( slapd_srvurls[i], "ldaps:///" ) == 0) {
 			char *host = ldap_pvt_get_fqdn( NULL );
 			if ( host != NULL ) {
-				slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
+				slapd_srvurls[i] = (char *) ch_realloc( slapd_srvurls[i],
 					strlen( host ) +
 					sizeof( LDAPS_SRVTYPE_PREFIX ) );
 				strcpy( lutil_strcopy(slapd_srvurls[i],
