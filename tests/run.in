@@ -100,13 +100,13 @@ else
 	exit 1;
 fi
 
-if test ! -e testdata/test.ldif ; then
+if test ! -r testdata/test.ldif ; then
 	${LN_S} ${SRCDIR}/data testdata
 fi
-if test ! -e schema/core.schema ; then
+if test ! -r schema/core.schema ; then
 	${LN_S} ${TOPSRCDIR}/servers/slapd/schema schema
 fi
-if test ! -e ucdata/UnicodeData.txt ; then
+if test ! -r ucdata/UnicodeData.txt ; then
 	${LN_S} ../libraries/liblunicode ucdata
 fi
 
