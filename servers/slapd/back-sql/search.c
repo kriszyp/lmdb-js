@@ -323,6 +323,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	ber_len_t		len = 0;
 	/* TimesTen */
 	int			rc = 0;
+	struct berval		*filter_value = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_process_filter()\n", 0, 0, 0 );
 	if ( f == NULL || f->f_choice == SLAPD_FILTER_COMPUTED ) {
@@ -460,6 +461,15 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
+		filter_value = &f->f_av_value;
+		goto equality_match;
+
+		/* fail over next case */
+		
+	case LDAP_FILTER_EXT:
+		filter_value = &f->f_mra->ma_value;
+
+equality_match:;
 		/*
 		 * maybe we should check type of at->sel_expr here somehow,
 		 * to know whether upper_func is applicable, but for now
@@ -491,7 +501,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 
 			backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len,
 					"bl",
-					&f->f_av_value, 
+					filter_value, 
 					(ber_len_t)sizeof( /* (' */ "')" ) - 1,
 						/* (' */ "')" );
 
@@ -503,7 +513,7 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 					'(',
 					&at->sel_expr,
 					(ber_len_t)sizeof( "='" ) - 1, "='",
-					&f->f_av_value,
+					filter_value,
 					(ber_len_t)sizeof( /* (' */ "')" ) - 1,
 						/* (' */ "')" );
 		}
@@ -543,6 +553,67 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	case LDAP_FILTER_SUBSTRINGS:
 		backsql_process_sub_filter( bsi, f );
 		break;
+
+	case LDAP_FILTER_APPROX:
+		/* we do our best */
+
+		/*
+		 * maybe we should check type of at->sel_expr here somehow,
+		 * to know whether upper_func is applicable, but for now
+		 * upper_func stuff is made for Oracle, where UPPER is
+		 * safely applicable to NUMBER etc.
+		 */
+		if ( bsi->bi->upper_func.bv_val ) {
+			size_t	start;
+
+			if ( at->sel_expr_u.bv_val ) {
+				backsql_strfcat( &bsi->flt_where,
+						&bsi->fwhere_len, "cbl",
+						'(',
+						&at->sel_expr_u, 
+						(ber_len_t)sizeof( " LIKE '%" ) - 1,
+							" LIKE '%" );
+			} else {
+				backsql_strfcat( &bsi->flt_where,
+						&bsi->fwhere_len, "cbcbl",
+						'(' /* ) */ ,
+						&bsi->bi->upper_func,
+						'(' /* ) */ ,
+						&at->sel_expr,
+						(ber_len_t)sizeof( /* ( */ ") LIKE '%" ) - 1,
+							/* ( */ ") LIKE '%" );
+			}
+
+			start = bsi->flt_where.bv_len;
+
+			backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len,
+					"bl",
+					&f->f_av_value, 
+					(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
+						/* (' */ "%')" );
+
+			ldap_pvt_str2upper( &bsi->flt_where.bv_val[ start ] );
+
+		} else {
+			backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len,
+					"cblbl",
+					'(',
+					&at->sel_expr,
+					(ber_len_t)sizeof( " LIKE '%" ) - 1,
+						" LIKE '%",
+					&f->f_av_value,
+					(ber_len_t)sizeof( /* (' */ "%')" ) - 1,
+						/* (' */ "%')" );
+		}
+		break;
+
+	default:
+		/* unhandled filter type; should not happen */
+		assert( 0 );
+		backsql_strfcat( &bsi->flt_where, &bsi->fwhere_len, "l",
+				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+		break;
+
 	}
 
 done:
@@ -665,8 +736,26 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		break;
 
 	case LDAP_SCOPE_SUBTREE:
+		if ( bsi->bi->upper_func.bv_val ) {
+      			backsql_strfcat( &bsi->join_where, &bsi->jwhere_len, 
+					"blbcb",
+					&bsi->bi->upper_func,
+					(ber_len_t)sizeof( "(ldap_entries.dn) LIKE " ) - 1,
+						"(ldap_entries.dn) LIKE ",
+					&bsi->bi->upper_func_open,
+					'?', 
+					&bsi->bi->upper_func_close );
+		} else {
+			backsql_strfcat( &bsi->join_where, &bsi->jwhere_len,
+					"l",
+					(ber_len_t)sizeof( "ldap_entries.dn LIKE ?" ) - 1,
+						"ldap_entries.dn LIKE ?" );
+		}
+
+#if 0
 		backsql_strfcat( &bsi->join_where, &bsi->jwhere_len, "b",
 				&bsi->bi->subtree_cond );
+#endif
 		break;
 
 	default:
