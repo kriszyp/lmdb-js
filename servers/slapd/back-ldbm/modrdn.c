@@ -614,28 +614,46 @@ ldbm_back_modrdn(
     		goto return_results;
 	}
 	
-	/* add new one */
-	if ( dn2id_add( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"DN index add failed" );
-		goto return_results;
-	}
+	/*
+	 * NOTE: the backend MUST delete then add the entry,
+	 *		otherwise indexing may get hosed
+	 * FIXME: if a new ID was used, the add could be done first.
+	 *		that would be safer.
+	 */
+
 	/* delete old one */
 	if ( dn2id_delete( op->o_bd, &old_ndn, e->e_id ) != 0 ) {
-		/* undo add of new one */
-		dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"DN index delete fail" );
+		goto return_results;
+	}
+
+	/* add new one */
+	if ( dn2id_add( op->o_bd, &e->e_nname, e->e_id ) != 0 ) {
+		/* try to repair old entry - probably hopeless */
+        if( dn2id_add( op->o_bd, &old_ndn, e->e_id) != 0 ) {
+			send_ldap_error( op, rs, LDAP_OTHER,
+				"DN index add and repair failed" );
+		} else {
+			send_ldap_error( op, rs, LDAP_OTHER,
+				"DN index add failed" );
+		}
 		goto return_results;
 	}
 
 	/* id2entry index */
 	if ( id2entry_add( op->o_bd, e ) != 0 ) {
 		/* Try to undo */
-		dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
-		dn2id_add( op->o_bd, &old_ndn, e->e_id );
-		send_ldap_error( op, rs, LDAP_OTHER,
-			"entry update failed" );
+		int rc;
+		rc = dn2id_delete( op->o_bd, &e->e_nname, e->e_id );
+		rc |= dn2id_add( op->o_bd, &old_ndn, e->e_id );
+		if( rc ) {
+			send_ldap_error( op, rs, LDAP_OTHER,
+				"entry update and repair failed" );
+		} else {
+			send_ldap_error( op, rs, LDAP_OTHER,
+				"entry update failed" );
+		}
 		goto return_results;
 	}
 
