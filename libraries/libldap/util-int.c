@@ -95,9 +95,7 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 #define BUFSTART 1024
 #define BUFMAX (32*1024)
 
-#if defined( NEED_SAFE_REALLOC )
 static char *safe_realloc( char **buf, int len );
-#endif
 
 #if !defined(HAVE_GETHOSTBYNAME_R) && defined(LDAP_R_COMPILE)
 static int copy_hostent( struct hostent *res, char **buf, struct hostent * src );
