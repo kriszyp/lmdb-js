@@ -221,23 +221,23 @@ oc_add_sups(
 	int		code;
 	ObjectClass	*soc1;
 	int		nsups;
-	char		**sups1;
+	char	**sups1;
 	int		add_sups = 0;
 
 	if ( sups ) {
 		if ( !soc->soc_sups ) {
 			/* We are at the first recursive level */
 			add_sups = 1;
-			nsups = 0;
+			nsups = 1;
 			sups1 = sups;
 			while ( *sups1 ) {
 				nsups++;
 				sups1++;
 			}
-			nsups++;
 			soc->soc_sups = (ObjectClass **)ch_calloc(nsups,
 					  sizeof(ObjectClass *));
 		}
+
 		nsups = 0;
 		sups1 = sups;
 		while ( *sups1 ) {
@@ -245,6 +245,18 @@ oc_add_sups(
 			if ( !soc1 ) {
 				*err = *sups1;
 				return SLAP_SCHERR_CLASS_NOT_FOUND;
+			}
+
+			/* check object class usage
+			 * abstract classes can only sup abstract classes 
+			 * structural classes can not sup auxiliary classes
+			 * auxiliary classes can not sup structural classes
+			 */
+			if( soc->soc_kind != soc1->soc_kind
+				&& soc1->soc_kind != LDAP_SCHEMA_ABSTRACT )
+			{
+				*err = *sups1;
+				return SLAP_SCHERR_CLASS_BAD_USAGE;
 			}
 
 			if ( add_sups )
@@ -263,6 +275,7 @@ oc_add_sups(
 			sups1++;
 		}
 	}
+
 	return 0;
 }
 
@@ -356,6 +369,7 @@ oc_add(
 	} else {
 		code = oc_add_sups( soc, soc->soc_sup_oids, err );
 	}
+
 	if ( code != 0 ) return code;
 
 	code = oc_create_required( soc, soc->soc_at_oids_must, err );
