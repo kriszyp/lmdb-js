@@ -75,7 +75,7 @@ int ber_pvt_snprintf( char *str, size_t n, const char *fmt, ... )
 	va_end( ap );
 	return res;
 }
-#endif /* !HAVE_VSNPRINTF */
+#endif /* !HAVE_SNPRINTF */
 
 #ifdef HAVE_EBCDIC
 /* stdio replacements with ASCII/EBCDIC translation for OS/390.
