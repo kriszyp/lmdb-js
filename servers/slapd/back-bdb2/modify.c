@@ -314,7 +314,9 @@ bdb2i_replace_values(
 {
 	(void) attr_delete( &e->e_attrs, mod->mod_type );
 
-	if ( attr_merge( e, mod->mod_type, mod->mod_bvalues ) != 0 ) {
+	if ( mod->bvalues != NULL &&
+		attr_merge( e, mod->mod_type, mod->mod_bvalues ) != 0 )
+	{
 		return( LDAP_CONSTRAINT_VIOLATION );
 	}
 
