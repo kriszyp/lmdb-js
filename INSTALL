@@ -22,7 +22,7 @@ these steps:
  1. untar the distribution and cd to the top:
 
 	% tar xfz openldap-VERSION.tgz
-	% cd ldap
+	% cd openldap-VERSION
 
     If you are reading this file, you probably have already done this!
 
@@ -165,10 +165,11 @@ Supported Environmental Variables
 
 * Including alternative compilers
 	Use the CC environment variable to tell configure to
-	use a specific compiler.  For example, to use ecgs
-	instead of the compiler configure choose, use:
+	use a specific compiler.  For example, to use GNU
+	C Compiler instead of the compiler configure choose,
+	use:
 
-	[env] CC=egcc ./configure 
+	[env] CC=gcc ./configure 
 
 	You can also use CC use specific flags with the
 	specified compiler.  For example, to require strict
