@@ -196,13 +196,25 @@ SOURCE=.\slapdmsg.mc
 
 !IF  "$(CFG)" == "liblutil - Win32 Release"
 
+# Begin Custom Build - Building slapd message file
+IntDir=.\Release\liblutil
+InputPath=.\slapdmsg.mc
+
+"slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	mkdir $(IntDir) 
+	mc -v slapdmsg.mc -r $(IntDir) 
+	rc /v /r $(IntDir)\slapdmsg.rc 
+	
+# End Custom Build
+
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Debug"
 
-# Begin Custom Build
+# Begin Custom Build - Building slapd message file
 IntDir=.\Debug\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	mkdir $(IntDir) 
 	mc -v slapdmsg.mc -r $(IntDir) 
 	rc /v /r $(IntDir)\slapdmsg.rc 
 	
@@ -210,17 +222,29 @@ InputPath=.\slapdmsg.mc
 
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Single Debug"
 
-# Begin Custom Build
+# Begin Custom Build - Building slapd message file
 IntDir=.\SDebug\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	mkdir $(IntDir) 
 	mc -v slapdmsg.mc -r $(IntDir) 
-	rc /v /r $(IntDir)slapdmsg.rc 
+	rc /v /r $(IntDir)\slapdmsg.rc 
 	
 # End Custom Build
 
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Single Release"
+
+# Begin Custom Build - Building slapd message file
+IntDir=.\SRelease\liblutil
+InputPath=.\slapdmsg.mc
+
+"slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
+	mkdir $(IntDir) 
+	mc -v slapdmsg.mc -r $(IntDir) 
+	rc /v /r $(IntDir)\slapdmsg.rc 
+	
+# End Custom Build
 
 !ENDIF 
 
