@@ -153,7 +153,7 @@ do_extended(
 		&rspoid, &rspdata, &rspctrls, &text, &refs );
 
 	if( rc != SLAPD_ABANDON ) {
-		if (rc == LDAP_REFERRAL) {
+		if (rc == LDAP_REFERRAL && refs == NULL ) {
 			refs = default_referral;
 		}
 
