@@ -615,6 +615,12 @@ modify_delete_values(
 
 		if ( j != k ) {
 			a->a_vals[ j ] = a->a_vals[ k ];
+#ifdef SLAP_NVALUES
+			if (a->a_nvals) {
+				free( a->a_nvals[j].bv_val );
+				a->a_nvals[ j ] = a->a_nvals[ k ];
+			}
+#endif
 		}
 
 		if ( a->a_vals[ k ].bv_val == NULL ) {
@@ -622,6 +628,9 @@ modify_delete_values(
 		}
 	}
 	a->a_vals[ j ].bv_val = NULL;
+#ifdef SLAP_NVALUES
+	a->a_nvals[ j ].bv_val = NULL;
+#endif
 
 	assert( i == k - j );
 
