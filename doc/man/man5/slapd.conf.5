@@ -158,6 +158,27 @@ feature.  The default is 0.
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
 .TP
+.B limits [dn[.{exact|regex}]=]<pattern> <limit> [<limit> [...]]
+Specify time and size limits based on the distinguished name that
+initiated an operation.
+The argument
+.BR pattern
+contains the DN the limits are applied to.
+It is a distinguished name in case of
+.BR exact
+match, or an Extended Regex pattern in case of
+.BR regex
+match (the default).
+The
+.BR limit
+argument(s) take the form
+.BR <name>=<value>
+where the currently supported names are "size" and "time", whose values
+are the maximum number of entries that are returned by a search
+and the number of seconds slapd will spend answering a search request.  
+In case of no match, the global limits are used.
+This feature is currently exploited by the ldbm backend only.
+.TP
 .B loglevel <integer>
 Specify the level at which debugging statements and operation 
 statistics should be syslogged (currently logged to the
