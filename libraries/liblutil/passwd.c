@@ -328,7 +328,8 @@ lutil_passwd(
 
 #ifdef SLAPD_CLEARTEXT
 	if( is_allowed_scheme("{CLEARTEXT}", schemes ) ) {
-		return passwd->bv_len == cred->bv_len
+		return (( passwd->bv_len == cred->bv_len ) &&
+				( passwd->bv_val[0] != '{' /*'}'*/ ))
 			? memcmp( passwd->bv_val, cred->bv_val, passwd->bv_len )
 			: 1;
 	}

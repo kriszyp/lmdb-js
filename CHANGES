@@ -1,17 +1,19 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.3 Engineering
+OpenLDAP 2.1.3 Release
 	Fixed slapd structuralObjectClass lastmod bug (ITS#1904)
 	Fixed slapd krbName bug (ITS#1913)
 	Fixed slapd schema error alignment bug
 	Fixed slapd excessive DN logging (ITS#1901)
 	Fixed slapd matched values malloc bug (ITS#1931)
+	Fixed slapd TLS data ready bug
 	Updated slapd SASL proxy policy code
 	Updated slapd require "strong" check
 	Added slapd disallow bind_simple_unprotected directive
 	Added slapd SASL setpass support
 	Added slapd IPv4/v6 only options
 	Updated back-bdb entry locking
+	Fixed liblutil passwd cleartext bug
 	Fixed back-ldap/meta mapping bug (ITS#1787)
 	Added back-monitor added monitorContext support
 	Fixed back-perl ad_cname bug (ITS#1882)
