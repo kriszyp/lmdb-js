@@ -709,8 +709,8 @@ tool_conn_setup( int not, void (*private_setup)( LDAP * ) )
 		rc = ldap_initialize( &ld, ldapuri );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr,
-				"Could not create LDAP session handle (%d): %s\n",
-				rc, ldap_err2string(rc) );
+				"Could not create LDAP session handle for URI=%s %d): %s\n",
+				ldapuri, rc, ldap_err2string(rc) );
 			exit( EXIT_FAILURE );
 		}
 
