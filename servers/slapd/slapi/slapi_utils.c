@@ -2975,7 +2975,7 @@ int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all )
 	}
 
 	if ( notify_all ) {
-		return ldap_pvt_thread_cond_braodcast( &cvar->cond );
+		return ldap_pvt_thread_cond_broadcast( &cvar->cond );
 	}
 
 	return ldap_pvt_thread_cond_signal( &cvar->cond );
