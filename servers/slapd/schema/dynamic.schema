@@ -1,0 +1,69 @@
+# $OpenLDAP$
+#
+# LDAPv3: Extensions for Dynamic Directory Services (RFC2589)
+#
+
+# 5. Schema Additions
+# 
+#    All dynamic entries must have the dynamicObject value in their
+#    objectClass attribute.  This object class is defined as follows
+#    (using the ObjectClassDescription notation of [2]):
+# 
+#    ( 1.3.6.1.4.1.1466.101.119.2 NAME 'dynamicObject'
+#      DESC 'This class, if present in an entry, indicates that this entry
+#            has a limited lifetime and may disappear automatically when
+#            its time-to-live has reached 0.  There are no mandatory
+#            attributes of this class, however if the client has not
+#            supplied a value for the entryTtl attribute, the server will
+#            provide one.'
+#      SUP top AUXILIARY )
+# 
+objectclass ( 1.3.6.1.4.1.1466.101.119.2 NAME 'dynamicObject'
+	DESC 'RFC2589 dynamic object'
+	SUP top AUXILIARY )
+
+
+#    Furthermore, the dynamic entry must have the following operational
+#    attribute.  It is described using the AttributeTypeDescription
+#    notation of [2]:
+# 
+#    ( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl'
+#      DESC 'This operational attribute is maintained by the server and
+#            appears to be present in every dynamic entry.  The attribute
+#            is not present when the entry does not contain the
+#            dynamicObject object class. The value of this attribute is
+#            the time in seconds that the entry will continue to exist
+#            before disappearing from the directory.  In the absence of
+#            intervening refresh operations, the values returned by
+#            reading the attribute in two successive searches are
+#            guaranteed to be nonincreasing.  The smallest permissible
+#            value is 0, indicating that the entry may disappear without
+#            warning.  The attribute is marked NO-USER-MODIFICATION since
+#            it may only be changed using the refresh operation.'
+#      SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE
+#      NO-USER-MODIFICATION USAGE dSAOperation )
+# 
+attributetype ( 1.3.6.1.4.1.1466.101.119.3 NAME 'entryTtl'
+	DESC 'RFC2589 dynamic entry time-to-live'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE
+	NO-USER-MODIFICATION USAGE dSAOperation )
+
+
+#    To allow servers to support dynamic entries in only a part of the
+#    DIT, the following operational attribute is defined.   It is
+#    described using the AttributeTypeDescription notation of [2]:
+# 
+#    ( 1.3.6.1.4.1.1466.101.119.4 NAME 'dynamicSubtrees'
+#      DESC 'This operational attribute is maintained by the server and is
+#            present in the Root DSE, if the server supports the dynamic
+#            extensions described in this memo. The attribute contains a
+#            list of all the subtrees in this directory for which the
+#            server supports the dynamic extensions.'
+#      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION
+#      USAGE dSAOperation )
+# 
+attributetype ( 1.3.6.1.4.1.1466.101.119.4 NAME 'dynamicSubtrees'
+	DESC 'RFC2589 dynamic subtrees'
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 NO-USER-MODIFICATION
+	USAGE dSAOperation )
+
