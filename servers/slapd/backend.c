@@ -953,6 +953,28 @@ backend_group(
 	AttributeDescription *group_at
 )
 {
+	GroupAssertion *g;
+	int len = strlen(gr_ndn);
+	int i;
+
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+	i = op->o_abandon;
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+	if (i)
+		return SLAPD_ABANDON;
+
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	for (g = conn->c_groups; g; g=g->next) {
+		if (g->be != be || g->oc != group_oc || g->at != group_at ||
+		    g->len != len)
+			continue;
+		if (strcmp( g->ndn, gr_ndn ) == 0)
+			break;
+	}
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	if (g)
+		return g->res;
+
 	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
 		/* we won't attempt to send it to a different backend */
 		
@@ -964,9 +986,25 @@ backend_group(
 	} 
 
 	if( be->be_group ) {
-		return be->be_group( be, conn, op,
+		int res = be->be_group( be, conn, op,
 			target, gr_ndn, op_ndn,
 			group_oc, group_at );
+		
+		if (op->o_tag != LDAP_REQ_BIND) {
+			g = ch_malloc(sizeof(GroupAssertion) + len);
+			g->be = be;
+			g->oc = group_oc;
+			g->at = group_at;
+			g->res = res;
+			g->len = len;
+			strcpy(g->ndn, gr_ndn);
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+			g->next = conn->c_groups;
+			conn->c_groups = g;
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+		}
+
+		return res;
 	}
 
 	return LDAP_UNWILLING_TO_PERFORM;

@@ -408,6 +408,7 @@ long connection_init(
 		c->c_authmech = NULL;
 		c->c_dn = NULL;
 		c->c_cdn = NULL;
+		c->c_groups = NULL;
 
 		c->c_listener_url = NULL;
 		c->c_peer_domain = NULL;
@@ -444,6 +445,7 @@ long connection_init(
 	assert( c->c_authmech == NULL );
     assert(	c->c_dn == NULL );
     assert(	c->c_cdn == NULL );
+    assert( c->c_groups == NULL );
     assert( c->c_listener_url == NULL );
     assert( c->c_peer_domain == NULL );
     assert( c->c_peer_name == NULL );
@@ -573,6 +575,17 @@ void connection2anonymous( Connection *c )
 
 	c->c_authc_backend = NULL;
 	c->c_authz_backend = NULL;
+    
+    {
+	GroupAssertion *g, *n;
+	for (g = c->c_groups; g; g=n)
+	{
+	    n = g->next;
+	    free(g);
+	}
+	c->c_groups = NULL;
+    }
+
 }
 
 static void
