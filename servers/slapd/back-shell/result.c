@@ -43,8 +43,10 @@ read_and_send_results(
 		}
 		len = strlen( line );
 		while ( bp + len - buf > bsize ) {
+			size_t offset = bp - buf;
 			bsize += BUFSIZ;
 			buf = (char *) ch_realloc( buf, bsize );
+			bp = &buf[offset];
 		}
 		strcpy( bp, line );
 		bp += len;

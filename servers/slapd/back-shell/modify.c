@@ -44,7 +44,7 @@ shell_back_modify(
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn );
 	for ( ; ml != NULL; ml = ml->ml_next ) {
-		switch ( ml->ml_op & ~LDAP_MOD_BVALUES ) {
+		switch ( ml->ml_op ) {
 		case LDAP_MOD_ADD:
 			fprintf( wfp, "add: %s\n", ml->ml_type );
 			break;
@@ -70,5 +70,4 @@ shell_back_modify(
 	read_and_send_results( be, conn, op, rfp, NULL, 0 );
 	fclose( rfp );
 	return( 0 );
-
 }
