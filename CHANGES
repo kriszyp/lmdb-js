@@ -1,11 +1,13 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.17 Engineering
+	Fixed libldap_r thread pool context bug (ITS#2404)
 	Fixed libldap T.61 convert bug (ITS#2388)
 	Fixed libldap h_errno bug
 	Fixed slapd cn=# bug (ITS#2387)
 	Fixed slapd naming violation error checks
 	Fixed slapd modify password uninit free bug (ITS#2390)
+	Fixed slapd request flooding bug (ITS#2389)
 	Fixed slurpd one shot mode (ITS#2385)
 	Removed lint (ITS#2382)
 	Documentation
