@@ -6,6 +6,7 @@ OpenLDAP 2.1.14 Engineering
 	Fixed back-bdb bdb_cache_find_entry* retry bug
 	Fixed back-bdb log message bug
 	Fixed back-bdb group/atttribute txn code (ITS#2122)
+	Fixed back-bdb modrdn subtree rename bug (ITS#2336)
 	Fixed client tools krb4 handling
 	Updated slapadd to complain about holes in the DIT
 	Build Environment
