@@ -776,9 +776,13 @@ else
     hardcode_shlibpath_var=no
     ;;
 
-  # FreeBSD 3, at last, uses gcc -shared to do shared libraries.
-  freebsd3*)
-  freebsd*)
+  freebsd1*)
+    ld_shlibs=no
+    can_build_shared=no
+    ;;
+
+  # FreeBSD 3 and greater uses gcc -shared to do shared libraries.
+  freebsd* )
     archive_cmds='$CC -shared -o $lib$libobjs'
     hardcode_libdir_flag_spec='-R$libdir'
     hardcode_direct=yes
@@ -1131,7 +1135,10 @@ freebsd2*)
   shlibpath_var=LD_LIBRARY_PATH
   ;;
 
-freebsd3*)
+freebsd1*)
+  dynamic_linker=no
+  ;;
+
 freebsd*)
   version_type=freebsd
   library_names_spec='${libname}${release}.so.$versuffix $libname.so'
