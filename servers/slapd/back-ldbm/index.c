@@ -231,7 +231,7 @@ index_add_values(
 
 	Debug( LDAP_DEBUG_TRACE, "=> index_add_values( \"%s\", %ld )\n", type,
 	    id, 0 );
-
+	attr_normalize(type);
 	attr_masks( be->be_private, type, &indexmask, &syntax );
 	if ( indexmask == 0 ) {
 		return( 0 );
