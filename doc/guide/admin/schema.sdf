@@ -469,7 +469,7 @@ H3: OID Macros
 To ease the management and use of OIDs, {{slapd}}(8) supports
 {{Object Identifier}} macros.  The {{EX:objectIdentifier}} is used
 to equate a macro (name) with a OID.  The OID may possibly be derived
-from a previously defined OID macro.   The {{slapd.conf(5)}} syntax
+from a previously defined OID macro.   The {{slapd.conf}}(5) syntax
 is:
 
 E:	objectIdentifier <name> { <oid> | <name>[:<suffix>] }
