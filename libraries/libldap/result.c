@@ -1,88 +1,50 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  result.c - wait for an ldap result
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+/*
+ * LDAPv3 (RFC2251)
+ *	LDAPResult ::= SEQUENCE {
+ *		resultCode		ENUMERATED { ... },
+ *		matchedDN		LDAPDN,
+ *		errorMessage	LDAPString,
+ *		referral		Referral OPTIONAL
+ *	}
+ *	Referral ::= SEQUENCE OF LDAPURL	(one or more)
+ *	LDAPURL ::= LDAPString				(limited to URL chars)
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include <time.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <time.h>
-#include "msdos.h"
-#ifdef PCNFS
-#include <tklib.h>
-#include <tk_errno.h>
-#include <bios.h>
-#endif /* PCNFS */
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/errno.h>
-#ifdef _AIX
-#include <sys/select.h>
-#endif /* _AIX */
-#include "portable.h"
-#endif /* DOS */
-#endif /* MACOS */
-#ifdef VMS
-#include "ucx_select.h"
-#endif
-#include "lber.h"
-#include "ldap.h"
+
+#include <ac/stdlib.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include "ldap-int.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
 
-#ifdef NEEDPROTOS
-static int ldap_abandoned( LDAP *ld, int msgid );
-static int ldap_mark_abandoned( LDAP *ld, int msgid );
-static int wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
-	LDAPMessage **result );
-#ifdef LDAP_REFERRALS
-static int read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb, LDAPConn *lc,
-	LDAPMessage **result );
-static int build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr );
-static void merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr );
-#else /* LDAP_REFERRALS */
-static int read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
-	LDAPMessage **result );
-#endif /* LDAP_REFERRALS */
-#if defined( CLDAP ) || !defined( LDAP_REFERRALS )
-static int ldap_select1( LDAP *ld, struct timeval *timeout );
-#endif
-#else /* NEEDPROTOS */
-static int ldap_abandoned();
-static int ldap_mark_abandoned();
-static int wait4msg();
-static int read1msg();
-#ifdef LDAP_REFERRALS
-static int build_result_ber();
-static void merge_error_info();
-#endif /* LDAP_REFERRALS */
-#if defined( CLDAP ) || !defined( LDAP_REFERRALS )
-static int ldap_select1();
-#endif
-#endif /* NEEDPROTOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-extern int	errno;
-#endif
+static int ldap_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
+static int ldap_mark_abandoned LDAP_P(( LDAP *ld, ber_int_t msgid ));
+static int wait4msg LDAP_P(( LDAP *ld, ber_int_t msgid, int all, struct timeval *timeout,
+	LDAPMessage **result ));
+static ber_tag_t try_read1msg LDAP_P(( LDAP *ld, ber_int_t msgid,
+	int all, Sockbuf *sb, LDAPConn *lc, LDAPMessage **result ));
+static ber_tag_t build_result_ber LDAP_P(( LDAP *ld, BerElement **bp, LDAPRequest *lr ));
+static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
 
 
 /*
@@ -100,10 +62,28 @@ extern int	errno;
  *	ldap_result( s, msgid, all, timeout, result )
  */
 int
-ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
+ldap_result(
+	LDAP *ld,
+	int msgid,
+	int all,
+	struct timeval *timeout,
 	LDAPMessage **result )
 {
 	LDAPMessage	*lm, *lastlm, *nextlm;
+
+	assert( ld != NULL );
+	assert( result != NULL );
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_result\n", 0, 0, 0 );
+
+	if( ld == NULL ) {
+		return -1;
+	}
+
+	if( result == NULL ) {
+		ld->ld_errno = LDAP_PARAM_ERROR;
+		return -1;
+	}
 
 	/*
 	 * First, look through the list of responses we have received on
@@ -112,17 +92,15 @@ ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	 * wait until it arrives or timeout occurs.
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_result\n", 0, 0, 0 );
-
-	*result = NULLMSG;
-	lastlm = NULLMSG;
-	for ( lm = ld->ld_responses; lm != NULLMSG; lm = nextlm ) {
+	*result = NULL;
+	lastlm = NULL;
+	for ( lm = ld->ld_responses; lm != NULL; lm = nextlm ) {
 		nextlm = lm->lm_next;
 
 		if ( ldap_abandoned( ld, lm->lm_msgid ) ) {
 			ldap_mark_abandoned( ld, lm->lm_msgid );
 
-			if ( lastlm == NULLMSG ) {
+			if ( lastlm == NULL ) {
 				ld->ld_responses = lm->lm_next;
 			} else {
 				lastlm->lm_next = nextlm;
@@ -138,37 +116,37 @@ ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
 
 			if ( all == 0
 			    || (lm->lm_msgtype != LDAP_RES_SEARCH_RESULT
+			    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE	/* LDAPv3 */
 			    && lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY) )
 				break;
 
-			for ( tmp = lm; tmp != NULLMSG; tmp = tmp->lm_chain ) {
+			for ( tmp = lm; tmp != NULL; tmp = tmp->lm_chain ) {
 				if ( tmp->lm_msgtype == LDAP_RES_SEARCH_RESULT )
 					break;
 			}
 
-			if ( tmp == NULLMSG ) {
-				return( wait4msg( ld, msgid, all, timeout,
-				    result ) );
+			if ( tmp == NULL ) {
+				lm = NULL;
 			}
 
 			break;
 		}
 		lastlm = lm;
 	}
-	if ( lm == NULLMSG ) {
+	if ( lm == NULL ) {
 		return( wait4msg( ld, msgid, all, timeout, result ) );
 	}
 
-	if ( lastlm == NULLMSG ) {
-		ld->ld_responses = (all == 0 && lm->lm_chain != NULLMSG
+	if ( lastlm == NULL ) {
+		ld->ld_responses = (all == 0 && lm->lm_chain != NULL
 		    ? lm->lm_chain : lm->lm_next);
 	} else {
-		lastlm->lm_next = (all == 0 && lm->lm_chain != NULLMSG
+		lastlm->lm_next = (all == 0 && lm->lm_chain != NULL
 		    ? lm->lm_chain : lm->lm_next);
 	}
 	if ( all == 0 )
-		lm->lm_chain = NULLMSG;
-	lm->lm_next = NULLMSG;
+		lm->lm_chain = NULL;
+	lm->lm_next = NULL;
 
 	*result = lm;
 	ld->ld_errno = LDAP_SUCCESS;
@@ -176,15 +154,21 @@ ldap_result( LDAP *ld, int msgid, int all, struct timeval *timeout,
 }
 
 static int
-wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
+wait4msg(
+	LDAP *ld,
+	ber_int_t msgid,
+	int all,
+	struct timeval *timeout,
 	LDAPMessage **result )
 {
 	int		rc;
 	struct timeval	tv, *tvp;
-	long		start_time, tmp_time;
-#ifdef LDAP_REFERRALS
+	time_t		start_time = 0;
+	time_t		tmp_time;
 	LDAPConn	*lc, *nextlc;
-#endif /* LDAP_REFERRALS */
+
+	assert( ld != NULL );
+	assert( result != NULL );
 
 #ifdef LDAP_DEBUG
 	if ( timeout == NULL ) {
@@ -192,7 +176,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 		    0, 0, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "wait4msg (timeout %ld sec, %ld usec)\n",
-		    timeout->tv_sec, timeout->tv_usec, 0 );
+		       (long) timeout->tv_sec, (long) timeout->tv_usec, 0 );
 	}
 #endif /* LDAP_DEBUG */
 
@@ -201,44 +185,20 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	} else {
 		tv = *timeout;
 		tvp = &tv;
-		start_time = (long)time( NULL );
+		start_time = time( NULL );
 	}
 		    
 	rc = -2;
 	while ( rc == -2 ) {
-#ifndef LDAP_REFERRALS
-		/* hack attack */
-		if ( ld->ld_sb.sb_ber.ber_ptr >= ld->ld_sb.sb_ber.ber_end ) {
-			rc = ldap_select1( ld, tvp );
-
-#if !defined( MACOS ) && !defined( DOS )
-			if ( rc == 0 || ( rc == -1 && (( ld->ld_options &
-			    LDAP_OPT_RESTART ) == 0 || errno != EINTR ))) {
-#else
-			if ( rc == -1 || rc == 0 ) {
-#endif
-				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
-				    LDAP_TIMEOUT);
-				return( rc );
-			}
-
-		}
-		if ( rc == -1 ) {
-			rc = -2;	/* select interrupted: loop */
-		} else {
-			rc = read1msg( ld, msgid, all, &ld->ld_sb, result );
-		}
-#else /* !LDAP_REFERRALS */
 #ifdef LDAP_DEBUG
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
-			dump_connection( ld, ld->ld_conns, 1 );
-			dump_requests_and_responses( ld );
+			ldap_dump_connection( ld, ld->ld_conns, 1 );
+			ldap_dump_requests_and_responses( ld );
 		}
 #endif /* LDAP_DEBUG */
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-			if ( lc->lconn_sb->sb_ber.ber_ptr <
-			    lc->lconn_sb->sb_ber.ber_end ) {
-				rc = read1msg( ld, msgid, all, lc->lconn_sb,
+			if ( ber_pvt_sb_data_ready(lc->lconn_sb) ) {
+				rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
 				    lc, result );
 				break;
 			}
@@ -248,7 +208,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			rc = do_ldap_select( ld, tvp );
 
 
-#if defined( LDAP_DEBUG ) && !defined( MACOS ) && !defined( DOS )
+#ifdef LDAP_DEBUG
 			if ( rc == -1 ) {
 			    Debug( LDAP_DEBUG_TRACE,
 				    "do_ldap_select returned -1: errno %d\n",
@@ -256,12 +216,10 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			}
 #endif
 
-#if !defined( MACOS ) && !defined( DOS )
-			if ( rc == 0 || ( rc == -1 && (( ld->ld_options &
-			    LDAP_OPT_RESTART ) == 0 || errno != EINTR ))) {
-#else
-			if ( rc == -1 || rc == 0 ) {
-#endif
+			if ( rc == 0 || ( rc == -1 && (
+				!LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART)
+				|| errno != EINTR )))
+			{
 				ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 				    LDAP_TIMEOUT);
 				return( rc );
@@ -276,18 +234,17 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 					nextlc = lc->lconn_next;
 					if ( lc->lconn_status ==
 					    LDAP_CONNST_CONNECTED &&
-					    is_read_ready( ld,
+					    ldap_is_read_ready( ld,
 					    lc->lconn_sb )) {
-						rc = read1msg( ld, msgid, all,
+						rc = try_read1msg( ld, msgid, all,
 						    lc->lconn_sb, lc, result );
 					}
 				}
 			}
 		}
-#endif /* !LDAP_REFERRALS */
 
 		if ( rc == -2 && tvp != NULL ) {
-			tmp_time = (long)time( NULL );
+			tmp_time = time( NULL );
 			if (( tv.tv_sec -=  ( tmp_time - start_time )) <= 0 ) {
 				rc = 0;	/* timed out */
 				ld->ld_errno = LDAP_TIMEOUT;
@@ -295,7 +252,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 			}
 
 			Debug( LDAP_DEBUG_TRACE, "wait4msg:  %ld secs to go\n",
-				tv.tv_sec, 0, 0 );
+			       (long) tv.tv_sec, 0, 0 );
 			start_time = tmp_time;
 		}
 	}
@@ -304,71 +261,104 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 }
 
 
-static int
-read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
-#ifdef LDAP_REFERRALS
+static ber_tag_t
+try_read1msg(
+	LDAP *ld,
+	ber_int_t msgid,
+	int all,
+	Sockbuf *sb,
     LDAPConn *lc,
-#endif /* LDAP_REFERRALS */
-    LDAPMessage **result )
+	LDAPMessage **result )
 {
-	BerElement	ber;
+	BerElement	*ber;
 	LDAPMessage	*new, *l, *prev, *tmp;
-	long		id;
-	unsigned long	tag, len;
+	ber_int_t	id;
+	ber_tag_t	tag;
+	ber_len_t	len;
 	int		foundit = 0;
-#ifdef LDAP_REFERRALS
 	LDAPRequest	*lr;
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
-	unsigned long	lderr;
-#endif /* LDAP_REFERRALS */
+	ber_int_t	lderr;
 
+	assert( ld != NULL );
+	assert( lc != NULL );
+	
 	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
 
-	ber_init( &ber, 0 );
-	set_ber_options( ld, &ber );
+    if ( lc->lconn_ber == NULL ) {
+		lc->lconn_ber = ldap_alloc_ber_with_options(ld);
+
+		if( lc->lconn_ber == NULL ) {
+			return -1;
+		}
+    }
+
+	ber = lc->lconn_ber;
+	assert( BER_VALID (ber) );
 
 	/* get the next message */
-	if ( (tag = ber_get_next( sb, &len, &ber ))
+	errno = 0;
+	if ( (tag = ber_get_next( sb, &len, ber ))
 	    != LDAP_TAG_MESSAGE ) {
-		ld->ld_errno = (tag == LBER_DEFAULT ? LDAP_SERVER_DOWN :
-		    LDAP_LOCAL_ERROR);
-		return( -1 );
+		if ( tag == LBER_DEFAULT) {
+#ifdef LDAP_DEBUG		   
+			Debug( LDAP_DEBUG_CONNS,
+			      "ber_get_next failed.\n", 0, 0, 0 );
+#endif		   
+#ifdef EWOULDBLOCK			
+			if (errno==EWOULDBLOCK) return -2;
+#endif
+#ifdef EAGAIN
+			if (errno == EAGAIN) return -2;
+#endif
+			ld->ld_errno = LDAP_SERVER_DOWN;
+			return -1;
+		}
+		ld->ld_errno = LDAP_LOCAL_ERROR;
+		return -1;
 	}
 
+	/*
+     * We read a complete message.
+	 * The connection should no longer need this ber.
+	 */
+    lc->lconn_ber = NULL;
+
 	/* message id */
-	if ( ber_get_int( &ber, &id ) == LBER_ERROR ) {
+	if ( ber_get_int( ber, &id ) == LBER_ERROR ) {
+		ber_free( ber, 1 );
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( -1 );
 	}
 
 	/* if it's been abandoned, toss it */
-	if ( ldap_abandoned( ld, (int)id ) ) {
-		free( ber.ber_buf );	/* gack! */
+	if ( ldap_abandoned( ld, id ) ) {
+		ber_free( ber, 1 );
 		return( -2 );	/* continue looking */
 	}
 
-#ifdef LDAP_REFERRALS
-	if (( lr = find_request_by_msgid( ld, id )) == NULL ) {
+	if (( lr = ldap_find_request_by_msgid( ld, id )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
-		    id, 0, 0 );
-		free( ber.ber_buf );	/* gack! */
+		    (long) id, 0, 0 );
+		ber_free( ber, 1 );
 		return( -2 );	/* continue looking */
 	}
-	Debug( LDAP_DEBUG_TRACE, "got %s msgid %ld, original id %d\n",
-	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : "result", id,
-	    lr->lr_origid );
-	id = lr->lr_origid;
-#endif /* LDAP_REFERRALS */
 
 	/* the message type */
-	if ( (tag = ber_peek_tag( &ber, &len )) == LBER_ERROR ) {
+	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free( ber, 1 );
 		return( -1 );
 	}
 
-#ifdef LDAP_REFERRALS
+	Debug( LDAP_DEBUG_TRACE, "ldap_read: %s msgid %ld, original id %ld\n",
+	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : 
+		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
+		(long) id, (long) lr->lr_origid );
+
+	id = lr->lr_origid;
 	refer_cnt = 0;
 	hadref = simple_request = 0;
 	rc = -2;	/* default is to keep looking (no response found) */
@@ -376,15 +366,16 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 
 	if ( tag != LDAP_RES_SEARCH_ENTRY ) {
 		if ( ld->ld_version >= LDAP_VERSION2 &&
-			    ( lr->lr_parent != NULL ||
-			    ( ld->ld_options & LDAP_OPT_REFERRALS ) != 0 )) {
-			tmpber = ber;	/* struct copy */
+			( lr->lr_parent != NULL ||
+			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ) )
+		{
+			tmpber = *ber;	/* struct copy */
 			if ( ber_scanf( &tmpber, "{iaa}", &lderr,
 			    &lr->lr_res_matched, &lr->lr_res_error )
 			    != LBER_ERROR ) {
 				if ( lderr != LDAP_SUCCESS ) {
 					/* referrals are in error string */
-					refer_cnt = chase_referrals( ld, lr,
+					refer_cnt = ldap_chase_referrals( ld, lr,
 					    &lr->lr_res_error, &hadref );
 				}
 
@@ -409,8 +400,8 @@ Debug( LDAP_DEBUG_TRACE,
 		    "read1msg:  %d new referrals\n", refer_cnt, 0, 0 );
 
 		if ( refer_cnt != 0 ) {	/* chasing referrals */
-			free( ber.ber_buf );	/* gack! */
-			ber.ber_buf = NULL;
+			ber_free( ber, 1 );
+			ber = NULL;
 			if ( refer_cnt < 0 ) {
 				return( -1 );	/* fatal error */
 			}
@@ -421,8 +412,8 @@ Debug( LDAP_DEBUG_TRACE,
 				simple_request = ( hadref ? 0 : 1 );
 			} else {
 				/* request with referrals or child request */
-				free( ber.ber_buf );	/* gack! */
-				ber.ber_buf = NULL;
+				ber_free( ber, 1 );
+				ber = NULL;
 			}
 
 			while ( lr->lr_parent != NULL ) {
@@ -438,52 +429,48 @@ Debug( LDAP_DEBUG_TRACE,
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
 				Debug( LDAP_DEBUG_ANY, "request %ld done\n",
-				    id, 0, 0 );
+				    (long) id, 0, 0 );
 Debug( LDAP_DEBUG_TRACE,
 "res_errno: %d, res_error: <%s>, res_matched: <%s>\n",
 lr->lr_res_errno, lr->lr_res_error ? lr->lr_res_error : "",
 lr->lr_res_matched ? lr->lr_res_matched : "" );
 				if ( !simple_request ) {
-					if ( ber.ber_buf != NULL ) {
-						free( ber.ber_buf ); /* gack! */
-						ber.ber_buf = NULL;
-					}
+					ber_free( ber, 1 );
+					ber = NULL;
 					if ( build_result_ber( ld, &ber, lr )
 					    == LBER_ERROR ) {
-						ld->ld_errno = LDAP_NO_MEMORY;
 						rc = -1; /* fatal error */
 					}
 				}
 
-				free_request( ld, lr );
+				ldap_free_request( ld, lr );
 			}
 
 			if ( lc != NULL ) {
-				free_connection( ld, lc, 0, 1 );
+				ldap_free_connection( ld, lc, 0, 1 );
 			}
 		}
 	}
 
-	if ( ber.ber_buf == NULL ) {
+	if ( ber == NULL ) {
 		return( rc );
 	}
 
-#endif /* LDAP_REFERRALS */
 	/* make a new ldap message */
-	if ( (new = (LDAPMessage *) calloc( 1, sizeof(LDAPMessage) ))
+	if ( (new = (LDAPMessage *) LDAP_CALLOC( 1, sizeof(LDAPMessage) ))
 	    == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( -1 );
 	}
 	new->lm_msgid = (int)id;
 	new->lm_msgtype = tag;
-	new->lm_ber = ber_dup( &ber );
+	new->lm_ber = ber;
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 		if ( ld->ld_cache != NULL ) {
-			add_result_to_cache( ld, new );
+			ldap_add_result_to_cache( ld, new );
 		}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 
 	/* is this the one we're looking for? */
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {
@@ -504,15 +491,15 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	 * search response.
 	 */
 
-	prev = NULLMSG;
-	for ( l = ld->ld_responses; l != NULLMSG; l = l->lm_next ) {
+	prev = NULL;
+	for ( l = ld->ld_responses; l != NULL; l = l->lm_next ) {
 		if ( l->lm_msgid == new->lm_msgid )
 			break;
 		prev = l;
 	}
 
 	/* not part of an existing search response */
-	if ( l == NULLMSG ) {
+	if ( l == NULL ) {
 		if ( foundit ) {
 			*result = new;
 			ld->ld_errno = LDAP_SUCCESS;
@@ -524,11 +511,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		return( -2 );	/* continue looking */
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "adding response id %d type %d:\n",
-	    new->lm_msgid, new->lm_msgtype, 0 );
+	Debug( LDAP_DEBUG_TRACE, "adding response id %ld type %ld:\n",
+	    (long) new->lm_msgid, (long) new->lm_msgtype, 0 );
 
 	/* part of a search response - add to end of list of entries */
-	for ( tmp = l; tmp->lm_chain != NULLMSG &&
+	for ( tmp = l; tmp->lm_chain != NULL &&
 	    tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY;
 	    tmp = tmp->lm_chain )
 		;	/* NULL */
@@ -536,45 +523,80 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 	/* return the whole chain if that's what we were looking for */
 	if ( foundit ) {
-		if ( prev == NULLMSG )
+		if ( prev == NULL )
 			ld->ld_responses = l->lm_next;
 		else
 			prev->lm_next = l->lm_next;
 		*result = l;
 		ld->ld_errno = LDAP_SUCCESS;
+#ifdef LDAP_WORLD_P16
+		/*
+		 * XXX questionable fix; see text for [P16] on
+		 * http://www.critical-angle.com/ldapworld/patch/
+		 *
+		 * inclusion of this patch causes searchs to hang on
+		 * multiple platforms
+		 */
+		return( l->lm_msgtype );
+#else	/* LDAP_WORLD_P16 */
 		return( tag );
+#endif	/* !LDAP_WORLD_P16 */
 	}
 
 	return( -2 );	/* continue looking */
 }
 
 
-#ifdef LDAP_REFERRALS
-static int
-build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
+static ber_tag_t
+build_result_ber( LDAP *ld, BerElement **bp, LDAPRequest *lr )
 {
-	unsigned long	len;
-	long		along;
+	ber_len_t	len;
+	ber_int_t	tag;
+	ber_int_t	along;
+	BerElement *ber;
 
-	ber_init( ber, 0 );
-	set_ber_options( ld, ber );
+	*bp = NULL;
+	ber = ldap_alloc_ber_with_options( ld );
+
+	if( ber == NULL ) {
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return LBER_ERROR;
+	}
+
 	if ( ber_printf( ber, "{it{ess}}", lr->lr_msgid,
-	    (long)lr->lr_res_msgtype, lr->lr_res_errno,
+	    lr->lr_res_msgtype, lr->lr_res_errno,
 	    lr->lr_res_matched ? lr->lr_res_matched : "",
-	    lr->lr_res_error ? lr->lr_res_error : "" ) == LBER_ERROR ) {
+	    lr->lr_res_error ? lr->lr_res_error : "" ) == -1 ) {
+
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free(ber, 1);
 		return( LBER_ERROR );
 	}
 
 	ber_reset( ber, 1 );
+
 	if ( ber_skip_tag( ber, &len ) == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free(ber, 1);
 		return( LBER_ERROR );
 	}
 
 	if ( ber_get_int( ber, &along ) == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free(ber, 1);
 		return( LBER_ERROR );
 	}
 
-	return( ber_peek_tag( ber, &len ));
+	tag = ber_peek_tag( ber, &len );
+
+	if ( tag == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free(ber, 1);
+		return( LBER_ERROR );
+	}
+
+	*bp = ber;
+	return tag;
 }
 
 
@@ -587,20 +609,20 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 	if ( lr->lr_res_errno == LDAP_PARTIAL_RESULTS ) {
 		parentr->lr_res_errno = lr->lr_res_errno;
 		if ( lr->lr_res_error != NULL ) {
-			(void)append_referral( ld, &parentr->lr_res_error,
+			(void)ldap_append_referral( ld, &parentr->lr_res_error,
 			    lr->lr_res_error );
 		}
 	} else if ( lr->lr_res_errno != LDAP_SUCCESS &&
 	    parentr->lr_res_errno == LDAP_SUCCESS ) {
 		parentr->lr_res_errno = lr->lr_res_errno;
 		if ( parentr->lr_res_error != NULL ) {
-			free( parentr->lr_res_error );
+			LDAP_FREE( parentr->lr_res_error );
 		}
 		parentr->lr_res_error = lr->lr_res_error;
 		lr->lr_res_error = NULL;
-		if ( NAME_ERROR( lr->lr_res_errno )) {
+		if ( LDAP_NAME_ERROR( lr->lr_res_errno )) {
 			if ( parentr->lr_res_matched != NULL ) {
-				free( parentr->lr_res_matched );
+				LDAP_FREE( parentr->lr_res_matched );
 			}
 			parentr->lr_res_matched = lr->lr_res_matched;
 			lr->lr_res_matched = NULL;
@@ -614,103 +636,24 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 	    parentr->lr_res_error : "", parentr->lr_res_matched ?
 	    parentr->lr_res_matched : "" );
 }
-#endif /* LDAP_REFERRALS */
 
 
 
-#if defined( CLDAP ) || !defined( LDAP_REFERRALS )
-#if !defined( MACOS ) && !defined( DOS ) && !defined( _WIN32 )
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
+int
+ldap_msgtype( LDAPMessage *lm )
 {
-	fd_set		readfds;
-	static int	tblsize;
-
-	if ( tblsize == 0 ) {
-#ifdef USE_SYSCONF
-		tblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
-		tblsize = getdtablesize();
-#endif /* USE_SYSCONF */
-	}
-
-	FD_ZERO( &readfds );
-	FD_SET( ld->ld_sb.sb_sd, &readfds );
-
-	return( select( tblsize, &readfds, 0, 0, timeout ) );
+	assert( lm != NULL );
+	return ( lm == NULL ) ? lm->lm_msgtype : -1;
 }
-#endif /* !MACOS */
 
 
-#ifdef MACOS
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
+int
+ldap_msgid( LDAPMessage *lm )
 {
-	return( tcpselect( ld->ld_sb.sb_sd, timeout ));
+	assert( lm != NULL );
+
+	return ( lm == NULL ) ? lm->lm_msgid : -1;
 }
-#endif /* MACOS */
-
-
-#if ( defined( DOS ) && defined( WINSOCK )) || defined( _WIN32 )
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-    fd_set          readfds;
-    int             rc;
-
-    FD_ZERO( &readfds );
-    FD_SET( ld->ld_sb.sb_sd, &readfds );
-
-    rc = select( 1, &readfds, 0, 0, timeout );
-    return( rc == SOCKET_ERROR ? -1 : rc );
-}
-#endif /* WINSOCK || _WIN32 */
-
-
-#ifdef DOS
-#ifdef PCNFS
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-	fd_set	readfds;
-	int	res;
-
-	FD_ZERO( &readfds );
-	FD_SET( ld->ld_sb.sb_sd, &readfds );
-
-	res = select( FD_SETSIZE, &readfds, NULL, NULL, timeout );
-	if ( res == -1 && errno == EINTR) {
-		/* We've been CTRL-C'ed at this point.  It'd be nice to
-		   carry on but PC-NFS currently won't let us! */
-		printf("\n*** CTRL-C ***\n");
-		exit(-1);
-	}
-	return( res );
-}
-#endif /* PCNFS */
-
-#ifdef NCSA
-static int
-ldap_select1( LDAP *ld, struct timeval *timeout )
-{
-	int rc;
-	clock_t	endtime;
-
-	if ( timeout != NULL ) {
-		endtime = timeout->tv_sec * CLK_TCK +
-			timeout->tv_usec * CLK_TCK / 1000000 + clock();
-	}
-
-	do {
-		Stask();
-		rc = netqlen( ld->ld_sb.sb_sd );
-	} while ( rc <= 0 && ( timeout == NULL || clock() < endtime ));
-
-	return( rc > 0 ? 1 : 0 );
-}
-#endif /* NCSA */
-#endif /* DOS */
-#endif /* !LDAP_REFERRALS */
 
 
 int
@@ -719,13 +662,15 @@ ldap_msgfree( LDAPMessage *lm )
 	LDAPMessage	*next;
 	int		type = 0;
 
+	assert( lm != NULL );
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgfree\n", 0, 0, 0 );
 
-	for ( ; lm != NULLMSG; lm = next ) {
+	for ( ; lm != NULL; lm = next ) {
 		next = lm->lm_chain;
 		type = lm->lm_msgtype;
 		ber_free( lm->lm_ber, 1 );
-		free( (char *) lm );
+		LDAP_FREE( (char *) lm );
 	}
 
 	return( type );
@@ -741,19 +686,21 @@ ldap_msgdelete( LDAP *ld, int msgid )
 {
 	LDAPMessage	*lm, *prev;
 
+	assert( ld != NULL );
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_msgdelete\n", 0, 0, 0 );
 
-	prev = NULLMSG;
-	for ( lm = ld->ld_responses; lm != NULLMSG; lm = lm->lm_next ) {
+	prev = NULL;
+	for ( lm = ld->ld_responses; lm != NULL; lm = lm->lm_next ) {
 		if ( lm->lm_msgid == msgid )
 			break;
 		prev = lm;
 	}
 
-	if ( lm == NULLMSG )
+	if ( lm == NULL )
 		return( -1 );
 
-	if ( prev == NULLMSG )
+	if ( prev == NULL )
 		ld->ld_responses = lm->lm_next;
 	else
 		prev->lm_next = lm->lm_next;
@@ -769,7 +716,7 @@ ldap_msgdelete( LDAP *ld, int msgid )
  * return 1 if message msgid is waiting to be abandoned, 0 otherwise
  */
 static int
-ldap_abandoned( LDAP *ld, int msgid )
+ldap_abandoned( LDAP *ld, ber_int_t msgid )
 {
 	int	i;
 
@@ -785,7 +732,7 @@ ldap_abandoned( LDAP *ld, int msgid )
 
 
 static int
-ldap_mark_abandoned( LDAP *ld, int msgid )
+ldap_mark_abandoned( LDAP *ld, ber_int_t msgid )
 {
 	int	i;
 
@@ -807,15 +754,23 @@ ldap_mark_abandoned( LDAP *ld, int msgid )
 }
 
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 int
 cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 {
-	int		rc;
-	unsigned long	tag, len;
+	int	rc;
+	ber_tag_t	tag;
+	ber_len_t	len;
 
-	if ( ld->ld_sb.sb_ber.ber_ptr >= ld->ld_sb.sb_ber.ber_end ) {
-		rc = ldap_select1( ld, timeout );
+	if ( ! ber_pvt_sb_data_ready(&ld->ld_sb) ) {
+		/* restored from ldap_select1() in result.c version 1.24 */
+		fd_set	readfds;
+		if ( ldap_int_tblsize == 0 )
+			ldap_int_ip_init();
+		FD_ZERO( &readfds );
+		FD_SET( ber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
+		rc = select( ldap_int_tblsize, &readfds, 0, 0, timeout );
+
 		if ( rc == -1 || rc == 0 ) {
 			ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :
 			    LDAP_TIMEOUT);
@@ -831,6 +786,6 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 		return( -1 );
 	}
 
-	return( tag );
+	return( 0 );
 }
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */

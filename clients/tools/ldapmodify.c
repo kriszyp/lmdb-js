@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -60,7 +61,7 @@ static LDAP	*ld;
 #define T_NEWSUPSTR		"newsuperior"
 
 
-static void usage LDAP_P(( const char *prog ));
+static void usage LDAP_P(( const char *prog )) LDAP_GCCATTR((noreturn));
 static int process_ldapmod_rec LDAP_P(( char *rbuf ));
 static int process_ldif_rec LDAP_P(( char *rbuf, int count ));
 static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,
@@ -251,6 +252,8 @@ main( int argc, char **argv )
 		int deref = LDAP_DEREF_NEVER;
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
 	}
+	/* don't chase referrals */
+	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");
@@ -460,6 +463,7 @@ process_ldif_rec( char *rbuf, int count )
 		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPREPLACESTR ) == 0 ) {
 		modop = LDAP_MOD_REPLACE;
+		addmodifyop( &pmods, modop, value, NULL, 0 );
 		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPDELETESTR ) == 0 ) {
 		modop = LDAP_MOD_DELETE;

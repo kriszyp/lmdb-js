@@ -1,166 +1,157 @@
 /* test.c - lber encoding test program */
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* Portions
  * Copyright (c) 1990 Regents of the University of Michigan.
  * All rights reserved.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include <unix.h>
-#include <fcntl.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
-#else /* MACOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* MACOS */
+#endif /* HAVE_CONSOLE_H */
+
 #include "lber.h"
 
-static usage( char *name )
+static void usage( char *name )
 {
 	fprintf( stderr, "usage: %s fmtstring\n", name );
 }
 
+static char* getbuf() {
+	char *p;
+	static char buf[128];
+
+	if ( fgets( buf, sizeof(buf), stdin ) == NULL )
+		return NULL;
+
+	if ( (p = strchr( buf, '\n' )) != NULL )
+		*p = '\0';
+
+	return buf;
+}
+
+int
 main( int argc, char **argv )
 {
-	int		i, num, len;
-	char		*s, *p;
-	Seqorset	*sos = NULLSEQORSET;
+	char	*s;
+
+	int			fd, rc;
 	BerElement	*ber;
-	Sockbuf		sb;
-	extern char	*optarg;
+	Sockbuf		*sb;
+
+	/* enable debugging */
+	int ival = -1;
+	ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ival );
 
 	if ( argc < 2 ) {
 		usage( argv[0] );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
 
-	bzero( &sb, sizeof(sb) );
-	sb.sb_sd = 1;
-	sb.sb_ber.ber_buf = NULL;
-
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
 
-       if (( sb.sb_sd = open( "lber-test", O_WRONLY|O_CREAT|O_TRUNC|O_BINARY ))
+	if (( fd = open( "lber-test", O_WRONLY|O_CREAT|O_TRUNC|O_BINARY ))
 		< 0 ) {
 	    perror( "open" );
-	    exit( 1 );
+	    return( EXIT_FAILURE );
 	}
-#endif /* MACOS */
 
-	if ( (ber = ber_alloc()) == NULLBER ) {
+#else
+	fd = fileno(stdout);
+#endif
+
+	sb = ber_sockbuf_alloc_fd( fd );
+
+	if( sb == NULL ) {
+		perror( "ber_sockbuf_alloc_fd" );
+		return( EXIT_FAILURE );
+	}
+
+	if ( (ber = ber_alloc_t( LBER_USE_DER )) == NULL ) {
 		perror( "ber_alloc" );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
 
-	num = 7;
-	if ( ber_printf( ber, "{ti}", 0x1f44, num ) == -1 ) {
-		fprintf( stderr, "ber_printf returns -1" );
-		exit( 1 );
+	fprintf(stderr, "encode: start\n" );
+	if( ber_printf( ber, "{" /*}*/ ) ) {
+		perror( "ber_printf {" /*}*/ );
+		return( EXIT_FAILURE );
 	}
 
-	if ( ber_flush( &sb, ber, 1 ) == -1 ) {
-		perror( "ber_flush" );
-		exit( 1 );
-	}
-#ifdef notdef
 	for ( s = argv[1]; *s; s++ ) {
-		if ( fgets( buf, sizeof(buf), stdin ) == NULL )
-			break;
-		if ( (p = strchr( buf, '\n' )) != NULL )
-			*p = '\0';
+		char *buf;
+		char fmt[2];
 
+		fmt[0] = *s;
+		fmt[1] = '\0';
+
+		fprintf(stderr, "encode: %s\n", fmt );
 		switch ( *s ) {
 		case 'i':	/* int */
 		case 'b':	/* boolean */
-			i = atoi( buf );
-			if ( ber_printf( ber, "i", i ) == -1 ) {
-				fprintf( stderr, "ber_printf i\n" );
-				exit( 1 );
-			}
-			break;
-
 		case 'e':	/* enumeration */
-			i = va_arg( ap, int );
-			rc = ber_put_enum( ber, i, (char)ber->ber_tag );
+			buf = getbuf();
+			rc = ber_printf( ber, fmt, atoi(buf) );
 			break;
 
 		case 'n':	/* null */
-			rc = ber_put_null( ber, (char)ber->ber_tag );
+		case '{':	/* begin sequence */
+		case '}':	/* end sequence */
+		case '[':	/* begin set */
+		case ']':	/* end set */
+			rc = ber_printf( ber, fmt );
 			break;
 
 		case 'o':	/* octet string (non-null terminated) */
-			s = va_arg( ap, char * );
-			len = va_arg( ap, int );
-			rc = ber_put_ostring( ber, s, len, (char)ber->ber_tag );
+		case 'B':	/* bit string */
+			buf = getbuf();
+			rc = ber_printf( ber, fmt, buf, strlen(buf) );
 			break;
 
 		case 's':	/* string */
-			s = va_arg( ap, char * );
-			rc = ber_put_string( ber, s, (char)ber->ber_tag );
-			break;
-
-		case 'B':	/* bit string */
-			s = va_arg( ap, char * );
-			len = va_arg( ap, int );	/* in bits */
-			rc = ber_put_bitstring( ber, s, len, (char)ber->ber_tag );
-			break;
-
 		case 't':	/* tag for the next element */
-			ber->ber_tag = va_arg( ap, int );
-			ber->ber_usertag = 1;
-			break;
-
-		case 'v':	/* vector of strings */
-			if ( (ss = va_arg( ap, char ** )) == NULL )
-				break;
-			for ( i = 0; ss[i] != NULL; i++ ) {
-				if ( (rc = ber_put_string( ber, ss[i],
-				    (char)ber->ber_tag )) == -1 )
-					break;
-			}
-			break;
-
-		case 'V':	/* sequences of strings + lengths */
-			if ( (bv = va_arg( ap, struct berval ** )) == NULL )
-				break;
-			for ( i = 0; bv[i] != NULL; i++ ) {
-				if ( (rc = ber_put_ostring( ber, bv[i]->bv_val,
-				    bv[i]->bv_len, (char)ber->ber_tag )) == -1 )
-					break;
-			}
-			break;
-
-		case '{':	/* begin sequence */
-			rc = ber_start_seq( ber, (char)ber->ber_tag );
-			break;
-
-		case '}':	/* end sequence */
-			rc = ber_put_seqorset( ber );
-			break;
-
-		case '[':	/* begin set */
-			rc = ber_start_set( ber, (char)ber->ber_tag );
-			break;
-
-		case ']':	/* end set */
-			rc = ber_put_seqorset( ber );
+			buf = getbuf();
+			rc = ber_printf( ber, fmt, buf );
 			break;
 
 		default:
-#ifndef NO_USERINTERFACE
-			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* NO_USERINTERFACE */
+			fprintf( stderr, "encode: unknown fmt %c\n", *fmt );
 			rc = -1;
 			break;
 		}
+
+		if( rc == -1 ) {
+			perror( "ber_printf" );
+			return( EXIT_FAILURE );
 		}
 	}
 
-#endif
+	fprintf(stderr, "encode: end\n" );
+	if( ber_printf( ber, /*{*/ "}" ) == -1 ) {
+		perror( /*{*/ "ber_printf }" );
+		return( EXIT_FAILURE );
+	}
 
-	return( 0 );
+	if ( ber_flush( sb, ber, 1 ) == -1 ) {
+		perror( "ber_flush" );
+		return( EXIT_FAILURE );
+	}
+
+	ber_sockbuf_free( sb );
+	return( EXIT_SUCCESS );
 }

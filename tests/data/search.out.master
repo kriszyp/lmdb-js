@@ -262,23 +262,17 @@ objectclass: rfc822mailgroup
 dn: ou=Alumni Association, ou=People, o=University of Michigan, c=US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: Alumni Association
 
 dn: ou=Groups, o=University of Michigan, c=US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: Groups
 
 dn: ou=Information Technology Division, ou=People, o=University of Michigan, c
  =US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: Information Technology Divisio
 
 dn: cn=ITD Staff,ou=Groups,o=University of Michigan,c=US
@@ -302,16 +296,12 @@ labeledurl: http://www.itd.umich.edu ITD Home Page
 dn: ou=People, o=University of Michigan, c=US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: People
 
 dn: o=University of Michigan, c=US
 objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 l: Ann Arbor, Michigan
 st: Michigan
 streetaddress: 535 West William St.

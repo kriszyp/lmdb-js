@@ -1,37 +1,35 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  addentry.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
 
-#include "lber.h"
-#include "ldap.h"
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap-int.h"
 
 LDAPMessage *
 ldap_delete_result_entry( LDAPMessage **list, LDAPMessage *e )
 {
 	LDAPMessage	*tmp, *prev = NULL;
+
+	assert( list != NULL );
+	assert( e != NULL );
 
 	for ( tmp = *list; tmp != NULL && tmp != e; tmp = tmp->lm_chain )
 		prev = tmp;
@@ -51,6 +49,9 @@ ldap_delete_result_entry( LDAPMessage **list, LDAPMessage *e )
 void
 ldap_add_result_entry( LDAPMessage **list, LDAPMessage *e )
 {
+	assert( list != NULL );
+	assert( e != NULL );
+
 	e->lm_chain = *list;
 	*list = e;
 }

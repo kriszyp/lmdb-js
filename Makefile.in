@@ -1,0 +1,30 @@
+# $OpenLDAP$
+# Master Makefile for OpenLDAP
+##
+## Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+## All rights reserved.
+##
+## Redistribution and use in source and binary forms are permitted only
+## as authorized by the OpenLDAP Public License.  A copy of this
+## license is available at http://www.OpenLDAP.org/license.html or
+## in file LICENSE in the top-level directory of the distribution.
+##
+
+SUBDIRS= include libraries clients servers tests doc
+CLEANDIRS= contrib
+INSTALLDIRS= 
+
+makefiles:	FORCE
+	./config.status
+
+# force a make all before make install
+#	only done at the top-level
+install-common: all FORCE
+
+clean-local: FORCE
+	$(RM) config.log
+
+veryclean-local: FORCE
+	$(RM) config.cache config.status libtool stamp-h stamp-h.in
+
+distclean: veryclean FORCE

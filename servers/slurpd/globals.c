@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -55,6 +56,7 @@ init_globals( void )
     g->slurpd_replogfile[ 0 ] = '\0';
     g->slurpd_status_file[ 0 ] = '\0';
     g->one_shot_mode = 0;
+    g->no_detach = 0;
     g->myname = NULL;
     g->srpos = 0L;
     if ( St_init( &(g->st)) < 0 ) {

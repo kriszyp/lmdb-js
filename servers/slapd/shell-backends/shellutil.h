@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  shellutil.h
 
@@ -12,6 +13,12 @@
  is provided ``as is'' without express or implied warranty.
 */
 
+#ifndef SHELLUTIL_H
+#define SHELLUTIL_H
+
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
 
 #define MAXLINELEN	512
 
@@ -49,7 +56,7 @@ struct ldop {
 #define LDOP_SEARCH	0x01
     char	**ldop_suffixes;
     char	*ldop_dn;
-    union {
+    union ldapop_params_u {
 		    struct ldsrchparms LDsrchparams;
 	  }	ldop_params;
 #define ldop_srch	ldop_params.LDsrchparams
@@ -69,9 +76,9 @@ struct ldentry {
 
 
 #ifdef LDAP_DEBUG
-void debug_printf();
+void	debug_printf(const char *, ...) LDAP_GCCATTR((format(printf, 1, 2)));
 #else /* LDAP_DEBUG */
-#define debug_printf()
+#define	debug_printf	(void) /* Ignore "arguments" */
 #endif /* LDAP_DEBUG */
 
 /*
@@ -88,9 +95,14 @@ void add_strval( char ***sp, char *val );
 char *ecalloc( unsigned nelem, unsigned elsize );
 void *erealloc( void *s, unsigned size );
 char *estrdup( char *s );
+extern void dump_ldop (struct ldop *op);
+
 
 /*
  * global variables
  */
 extern int	debugflg;
 extern char	*progname;
+
+LDAP_END_DECL
+#endif

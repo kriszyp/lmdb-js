@@ -1,14 +1,18 @@
 /* abandon.c - shell backend abandon function */
+/* $OpenLDAP$ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <signal.h>
+
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 #include "shell.h"
 
-void
+int
 shell_back_abandon(
     Backend	*be,
     Connection	*conn,
@@ -18,34 +22,42 @@ shell_back_abandon(
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
-	int			pid;
+	pid_t			pid;
 	Operation		*o;
 
 	/* no abandon command defined - just kill the process handling it */
 	if ( si->si_abandon == NULL ) {
-		pthread_mutex_lock( &conn->c_opsmutex );
+		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 		pid = -1;
 		for ( o = conn->c_ops; o != NULL; o = o->o_next ) {
 			if ( o->o_msgid == msgid ) {
-				pid = o->o_private;
+				pid = (pid_t) o->o_private;
 				break;
 			}
 		}
-		pthread_mutex_unlock( &conn->c_opsmutex );
+		if( pid == -1 ) {
+			for ( o = conn->c_pending_ops; o != NULL; o = o->o_next ) {
+				if ( o->o_msgid == msgid ) {
+					pid = (pid_t) o->o_private;
+					break;
+				}
+			}
+		}
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		if ( pid != -1 ) {
-			Debug( LDAP_DEBUG_ARGS, "shell killing pid %d\n", pid,
-			    0, 0 );
+			Debug( LDAP_DEBUG_ARGS, "shell killing pid %d\n",
+			       (int) pid, 0, 0 );
 			kill( pid, SIGTERM );
 		} else {
 			Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n",
 			    msgid, 0, 0 );
 		}
-		return;
+		return 0;
 	}
 
 	if ( forkandexec( si->si_abandon, &rfp, &wfp ) == -1 ) {
-		return;
+		return 0;
 	}
 
 	/* write out the request to the abandon process */
@@ -56,4 +68,6 @@ shell_back_abandon(
 
 	/* no result from abandon */
 	fclose( rfp );
+
+	return 0;
 }

@@ -1,4 +1,5 @@
 /* slap.h - stand alone ldap server include file */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -6,6 +7,8 @@
 
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
+
+#include "ldap_defaults.h"
 
 #include <ac/stdlib.h>
 
@@ -95,6 +98,8 @@ LDAP_BEGIN_DECL
 #define SLAP_SCHERR_MR_NOT_FOUND	10
 #define SLAP_SCHERR_SYN_NOT_FOUND	11
 #define SLAP_SCHERR_MR_INCOMPLETE	12
+
+#define SLAPD_ACI_DEFAULT_ATTR		"aci"
 
 extern int slap_debug;
 
@@ -270,6 +275,10 @@ typedef struct slap_access {
 
 	char		*a_domain_pat;
 	char		*a_sockurl_pat;
+
+#ifdef SLAPD_ACI_ENABLED
+	char		*a_aci_at;
+#endif
 
 	/* ACL Groups */
 	char		*a_group_pat;
@@ -497,7 +506,7 @@ struct slap_backend_info {
 	 */
 	int (*bi_init)	LDAP_P((BackendInfo *bi));
 	int	(*bi_config) LDAP_P((BackendInfo *bi,
-		char *fname, int lineno, int argc, char **argv ));
+		const char *fname, int lineno, int argc, char **argv ));
 	int (*bi_open) LDAP_P((BackendInfo *bi));
 	int (*bi_close) LDAP_P((BackendInfo *bi));
 	int (*bi_destroy) LDAP_P((BackendInfo *bi));
@@ -525,7 +534,7 @@ struct slap_backend_info {
 	 */
 	int (*bi_db_init) LDAP_P((Backend *bd));
 	int	(*bi_db_config) LDAP_P((Backend *bd,
-		char *fname, int lineno, int argc, char **argv ));
+		const char *fname, int lineno, int argc, char **argv ));
 	int (*bi_db_open) LDAP_P((Backend *bd));
 	int (*bi_db_close) LDAP_P((Backend *bd));
 	int (*bi_db_destroy) LDAP_P((Backend *db));
@@ -567,8 +576,8 @@ struct slap_backend_info {
 	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
 
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
-		Entry *e, char *bdn, char *edn,
-		char *objectclassValue, char *groupattrName ));
+		Entry *e, const char *bdn, const char *edn,
+		const char *objectclassValue, const char *groupattrName ));
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

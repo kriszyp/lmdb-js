@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -22,7 +23,7 @@ AccessControl * acl_get_applicable LDAP_P(( Backend *be,
 	char *attr, int nmatches, regmatch_t *matches ));
 
 int acl_access_allowed LDAP_P((
-	AccessControl *a, Backend *be, Connection *conn, Entry *e,
+	AccessControl *a, char *attr, Backend *be, Connection *conn, Entry *e,
 	struct berval *val, Operation *op, int  access, char *edn,
 	regmatch_t *matches ));
 
@@ -36,7 +37,10 @@ int acl_check_modlist LDAP_P(( Backend *be,
  * aclparse.c
  */
 
-void parse_acl LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
+void parse_acl LDAP_P(( Backend *be,
+	const char *fname,
+	int lineno,
+	int argc, char **argv ));
 char * access2str LDAP_P(( int access ));
 int str2access LDAP_P(( char *str ));
 
@@ -50,10 +54,10 @@ char * attr_normalize LDAP_P(( char *s ));
 int attr_merge_fast LDAP_P(( Entry *e, char *type, struct berval **vals, int  nvals,
 	int  naddvals, int  *maxvals, Attribute ***a ));
 int attr_merge LDAP_P(( Entry *e, char *type, struct berval **vals ));
-Attribute * attr_find LDAP_P(( Attribute *a, char *type ));
-int attr_delete LDAP_P(( Attribute **attrs, char *type ));
+Attribute * attr_find LDAP_P(( Attribute *a, const char *type ));
+int attr_delete LDAP_P(( Attribute **attrs, const char *type ));
 int attr_syntax LDAP_P(( char *type ));
-void attr_syntax_config LDAP_P(( char *fname, int lineno, int argc, char **argv ));
+void attr_syntax_config LDAP_P(( const char *fname, int lineno, int argc, char **argv ));
 AttributeType * at_find LDAP_P(( const char *name ));
 int at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **list ));
 int at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
@@ -84,14 +88,14 @@ int backend_startup LDAP_P((Backend *be));
 int backend_shutdown LDAP_P((Backend *be));
 int backend_destroy LDAP_P((void));
 
-BackendInfo * backend_info LDAP_P(( char *type ));
-BackendDB * backend_db_init LDAP_P(( char *type ));
+BackendInfo * backend_info LDAP_P(( const char *type ));
+BackendDB * backend_db_init LDAP_P(( const char *type ));
 
-BackendDB * select_backend LDAP_P(( char * dn ));
+BackendDB * select_backend LDAP_P(( const char * dn ));
 
-int be_issuffix LDAP_P(( Backend *be, char *suffix ));
-int be_isroot LDAP_P(( Backend *be, char *ndn ));
-int be_isroot_pw LDAP_P(( Backend *be, char *ndn, struct berval *cred ));
+int be_issuffix LDAP_P(( Backend *be, const char *suffix ));
+int be_isroot LDAP_P(( Backend *be, const char *ndn ));
+int be_isroot_pw LDAP_P(( Backend *be, const char *ndn, struct berval *cred ));
 char* be_root_dn LDAP_P(( Backend *be ));
 int be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
 #define be_entry_release_r( be, e ) be_entry_release_rw( be, e, 0 )
@@ -105,8 +109,10 @@ extern int	backend_connection_destroy LDAP_P((Connection *conn));
 
 extern int	backend_group LDAP_P((Backend *be,
 	Entry *target,
-	char *gr_ndn, char *op_ndn,
-	char *objectclassValue, char *groupattrName));
+	const char *gr_ndn,
+	const char *op_ndn,
+	const char *objectclassValue,
+	const char *groupattrName));
 
 #ifdef SLAPD_SCHEMA_DN
 /* temporary extern for temporary routine*/
@@ -142,12 +148,12 @@ void   ch_free LDAP_P(( void * ));
  * charray.c
  */
 
-void charray_add LDAP_P(( char ***a, char *s ));
+void charray_add LDAP_P(( char ***a, const char *s ));
 void charray_merge LDAP_P(( char ***a, char **s ));
 void charray_free LDAP_P(( char **array ));
-int charray_inlist LDAP_P(( char **a, char *s ));
+int charray_inlist LDAP_P(( char **a, const char *s ));
 char ** charray_dup LDAP_P(( char **a ));
-char ** str2charray LDAP_P(( char *str, char *brkstr ));
+char ** str2charray LDAP_P(( const char *str, const char *brkstr ));
 char * charray2str LDAP_P(( char **a ));
 
 /*
@@ -164,7 +170,7 @@ int get_manageDSAit LDAP_P(( Operation *op ));
  * config.c
  */
 
-int read_config LDAP_P(( char *fname ));
+int read_config LDAP_P(( const char *fname ));
 
 /*
  * connection.c
@@ -184,7 +190,7 @@ long connection_init LDAP_P((
 
 void connection_closing LDAP_P(( Connection *c ));
 int connection_state_closing LDAP_P(( Connection *c ));
-char *connection_state2str LDAP_P(( int state ));
+const char *connection_state2str LDAP_P(( int state )) LDAP_GCCATTR((const));
 
 int connection_write LDAP_P((ber_socket_t s));
 int connection_read LDAP_P((ber_socket_t s));
@@ -201,20 +207,21 @@ void connection_done LDAP_P((Connection *));
 
 char * dn_normalize LDAP_P(( char *dn ));
 char * dn_normalize_case LDAP_P(( char *dn ));
-char * dn_parent LDAP_P(( Backend *be, char *dn ));
-char ** dn_subtree LDAP_P(( Backend *be, char *dn ));
+char * dn_parent LDAP_P(( Backend *be, const char *dn ));
+char ** dn_subtree LDAP_P(( Backend *be, const char *dn ));
 char * dn_rdn LDAP_P(( Backend *be, char *dn ));
 int dn_issuffix LDAP_P(( char *dn, char *suffix ));
 #ifdef DNS_DN
 int dn_type LDAP_P(( char *dn ));
 #endif
-char * str2upper LDAP_P(( char *str ));
-char * str2lower LDAP_P(( char *str ));
 int rdn_validate LDAP_P(( const char* str ));
 char * rdn_attr_value LDAP_P(( char * rdn ));
 char * rdn_attr_type LDAP_P(( char * rdn ));
-void build_new_dn LDAP_P(( char ** new_dn, char *e_dn, char * p_dn,
-			   char * newrdn ));
+
+void build_new_dn LDAP_P(( char ** new_dn,
+	const char *e_dn,
+	const char * p_dn,
+	const char * newrdn ));
 /*
  * entry.c
  */
@@ -248,7 +255,7 @@ int test_filter LDAP_P(( Backend *be, Connection *conn, Operation *op, Entry *e,
  * lock.c
  */
 
-FILE * lock_fopen LDAP_P(( char *fname, char *type, FILE **lfp ));
+FILE * lock_fopen LDAP_P(( const char *fname, const char *type, FILE **lfp ));
 int lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
 
 /*
@@ -310,17 +317,17 @@ struct berval **get_entry_referrals LDAP_P((
 
 void send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
-	int err, char *matched, char *text,
+	int err, const char *matched, const char *text,
 	struct berval **refs,
 	LDAPControl **ctrls ));
 
 void send_ldap_disconnect LDAP_P((
 	Connection *conn, Operation *op,
-	int err, char *text ));
+	int err, const char *text ));
 
 void send_search_result LDAP_P((
 	Connection *conn, Operation *op,
-	int err, char *matched, char *text,
+	int err, const char *matched, const char *text,
 	struct berval **refs,
 	LDAPControl **ctrls,
 	int nentries ));
@@ -352,9 +359,9 @@ int sasl_destroy(void);
  */
 
 int oc_schema_check LDAP_P(( Entry *e ));
-int oc_check_operational_attr LDAP_P(( char *type ));
-int oc_check_usermod_attr LDAP_P(( char *type ));
-int oc_check_no_usermod_attr LDAP_P(( char *type ));
+int oc_check_operational_attr LDAP_P(( const char *type ));
+int oc_check_usermod_attr LDAP_P(( const char *type ));
+int oc_check_no_usermod_attr LDAP_P(( const char *type ));
 ObjectClass *oc_find LDAP_P((const char *ocname));
 int oc_add LDAP_P((LDAP_OBJECT_CLASS *oc, const char **err));
 Syntax *syn_find LDAP_P((const char *synname));
@@ -362,10 +369,13 @@ Syntax *syn_find_desc LDAP_P((const char *syndesc, int *slen));
 int syn_add LDAP_P((LDAP_SYNTAX *syn, slap_syntax_check_func *check, const char **err));
 MatchingRule *mr_find LDAP_P((const char *mrname));
 int mr_add LDAP_P((LDAP_MATCHING_RULE *mr, slap_mr_normalize_func *normalize, slap_mr_compare_func *compare, const char **err));
+int case_ignore_normalize LDAP_P((struct berval *val, struct berval **normalized));
+int register_syntax LDAP_P((char *desc,	slap_syntax_check_func *check ));
+int register_matching_rule LDAP_P((char * desc,	slap_mr_normalize_func *normalize, slap_mr_compare_func *compare));
 void schema_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
 int schema_init LDAP_P((void));
 
-int is_entry_objectclass LDAP_P(( Entry *, char* objectclass ));
+int is_entry_objectclass LDAP_P(( Entry *, const char* objectclass ));
 #define is_entry_alias(e)		is_entry_objectclass((e), "ALIAS")
 #define is_entry_referral(e)	is_entry_objectclass((e), "REFERRAL")
 
@@ -374,12 +384,12 @@ int is_entry_objectclass LDAP_P(( Entry *, char* objectclass ));
  * schemaparse.c
  */
 
-void parse_oc_old LDAP_P(( Backend *be, char *fname, int lineno, int argc, char **argv ));
-void parse_oc LDAP_P(( char *fname, int lineno, char *line, char **argv ));
-void parse_at LDAP_P(( char *fname, int lineno, char *line, char **argv ));
-void parse_oidm LDAP_P(( char *fname, int lineno, int argc, char **argv ));
-char *scherr2str LDAP_P((int code));
-int dscompare LDAP_P(( char *s1, char *s2del, char delim ));
+void parse_oc_old LDAP_P(( Backend *be, const char *fname, int lineno, int argc, char **argv ));
+void parse_oc LDAP_P(( const char *fname, int lineno, char *line, char **argv ));
+void parse_at LDAP_P(( const char *fname, int lineno, char *line, char **argv ));
+void parse_oidm LDAP_P(( const char *fname, int lineno, int argc, char **argv ));
+char *scherr2str LDAP_P((int code)) LDAP_GCCATTR((const));
+int dscompare LDAP_P(( const char *s1, const char *s2del, char delim ));
 /*
  * str2filter.c
  */
@@ -423,6 +433,7 @@ extern int		defsize;
 extern int		deftime;
 extern int		g_argc;
 extern int		global_default_access;
+extern int		global_readonly;
 extern int		global_lastmod;
 extern int		global_idletimeout;
 extern int		global_schemacheck;
@@ -478,8 +489,8 @@ extern void slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 
 extern void slapd_remove LDAP_P((ber_socket_t s, int wake));
 
-extern void	slap_set_shutdown LDAP_P((int sig));
-extern void	slap_do_nothing   LDAP_P((int sig));
+extern RETSIGTYPE slap_sig_shutdown LDAP_P((int sig));
+extern RETSIGTYPE slap_sig_wake LDAP_P((int sig));
 
 extern void	config_info LDAP_P((
 	Connection *conn,

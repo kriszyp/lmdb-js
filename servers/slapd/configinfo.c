@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -21,7 +22,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 
 #if defined( SLAPD_CONFIG_DN )

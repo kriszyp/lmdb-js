@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -10,6 +11,8 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#ifndef SLURPD_GLOBALS_H
+#define SLURPD_GLOBALS_H 1
 
 /*
  * globals.h - definition of structure holding global data.
@@ -17,15 +20,17 @@
 
 #include "slurp.h"
 
+LDAP_BEGIN_DECL
+
 typedef struct globals {
     /* Thread ID for file manager thread */
-    pthread_t fm_tid;
+    ldap_pvt_thread_t fm_tid;
     /* The name of the slapd config file (which is also our config file) */
     char *slapd_configfile;
     /* How long the master slurpd sleeps when there's no work to do */
     int	no_work_interval;
     /* We keep running until slurpd_shutdown is nonzero.  HUP signal set this */
-    int	slurpd_shutdown;
+    sig_atomic_t slurpd_shutdown;
     /* Number of replicas we're servicing */
     int num_replicas;
     /* Array of pointers to replica info */
@@ -40,25 +45,27 @@ typedef struct globals {
     char slurpd_replogfile[ MAXPATHLEN ];
     /* Non-zero if we were given a replog file to process on command-line */
     int	one_shot_mode;
+    /* Non-zero if we should not detach the process */
+    int no_detach;
     /* Name of program */
     char *myname;
     /* Current offset into slurpd replica logfile */
     off_t srpos;
     /* mutex to serialize access to reject file */
-    pthread_mutex_t rej_mutex;
+    ldap_pvt_thread_mutex_t rej_mutex;
     /* pointer to status struct */
     St	*st;
     /* Pointer to replication queue */
     Rq *rq;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     /* Default name of kerberos srvtab file */
     char *default_srvtab;
-#endif /* KERBEROS */
-#if defined( THREAD_SUNOS4_LWP )
-    tl_t *tsl_list;
-    mon_t tsl_mon;
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_KERBEROS */
 } Globals;
 
 
 extern Globals *sglob;
+
+LDAP_END_DECL
+
+#endif /* SLURPD_GLOBALS_H */

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -31,21 +32,16 @@
  *
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/unistd.h>		/* get ftruncate() */
 
 #include "slurp.h"
 #include "globals.h"
-
-
-/* externs */
-#ifdef NEEDPROTOS
-extern void Re_dump( Re *re );
-#else /* NEEDPROTOS */
-extern void Re_dump();
-#endif /* NEEDPROTOS */
-
-
-extern char *sys_errlist[];
 
 
 /*
@@ -56,11 +52,8 @@ Rq_lock(
     Rq	*rq
 )
 {
-    return( pthread_mutex_lock( &rq->rq_mutex ));
+    return( ldap_pvt_thread_mutex_lock( &rq->rq_mutex ));
 }
-
-
-
 
 
 /*
@@ -71,7 +64,7 @@ Rq_unlock(
     Rq	*rq
 )
 {
-    return( pthread_mutex_unlock( &rq->rq_mutex ));
+    return( ldap_pvt_thread_mutex_unlock( &rq->rq_mutex ));
 }
 
 
@@ -89,8 +82,6 @@ Rq_gethead(
 }
 
 
-
-
 /*
  * Return the next item in the queue.  Callers should lock the queue before
  * calling this routine.
@@ -106,8 +97,6 @@ Rq_getnext(
 	return( re->re_getnext( re ));
     }
 }
-
-
 
 
 /*
@@ -142,8 +131,6 @@ Rq_delhead(
     rq->rq_nre--;	/* decrement count of Re's in queue */
     return( rc );
 }
-
-
 
 
 /* 
@@ -200,15 +187,13 @@ Rq_add(
     /* Increment count of items in queue */
     rq->rq_nre++;
     /* wake up any threads waiting for more work */
-    pthread_cond_broadcast( &rq->rq_more );
+    ldap_pvt_thread_cond_broadcast( &rq->rq_more );
 
     /* ... and unlock the queue */
     rq->rq_unlock( rq );
 
     return 0;
 }
-
-
 
 
 /*
@@ -232,7 +217,6 @@ Rq_gc(
     rq->rq_unlock( rq ); 
     return;
 }
-
 
 
 /*
@@ -266,7 +250,6 @@ Rq_dump(
     fclose( fp );
     return;
 }
-
 
 
 /*
@@ -317,8 +300,6 @@ Rq_write(
 }
 
 
-
-
 /*
  * Check to see if the private slurpd replication log needs trimming.
  * The current criteria are:
@@ -335,8 +316,6 @@ Rq_needtrim(
 )
 {
     int		rc = 0;
-    Re		*re;
-    int		nzrc = 0;	/* nzrc is count of entries with refcnt == 0 */
     time_t	now;
 
     if ( rq == NULL ) {
@@ -391,8 +370,6 @@ Rq_getcount(
 }
 
 
-
-
 /* 
  * Allocate and initialize an Rq object.
  */
@@ -421,8 +398,8 @@ Rq_init(
     (*rq)->rq_getcount = Rq_getcount;
 
     /* Initialize private data */
-    pthread_mutex_init( &((*rq)->rq_mutex), pthread_mutexattr_default );
-    pthread_cond_init( &((*rq)->rq_more), pthread_condattr_default );
+    ldap_pvt_thread_mutex_init( &((*rq)->rq_mutex) );
+    ldap_pvt_thread_cond_init( &((*rq)->rq_more) );
     (*rq)->rq_head = NULL;
     (*rq)->rq_tail = NULL;
     (*rq)->rq_nre = 0;
@@ -431,4 +408,3 @@ Rq_init(
 
     return 0;
 }
-

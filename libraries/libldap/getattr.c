@@ -1,42 +1,41 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  getattr.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/stdlib.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "ldap-int.h"
 
 char *
 ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 {
-	long	len;
+	char *attr;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 
-	if ( (*ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( entry != NULL );
+	assert( ber != NULL );
+
+	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+		*ber = NULL;
 		return( NULL );
 	}
 
@@ -48,33 +47,36 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
 	 * positioned right before the next attribute type/value sequence.
 	 */
 
-	len = LDAP_MAX_ATTR_LEN;
-	if ( ber_scanf( *ber, "{x{{sx}", ld->ld_attrbuffer, &len )
+	if ( ber_scanf( *ber, "{x{{ax}" /*}}*/, &attr )
 	    == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( *ber, 0 );
+		*ber = NULL;
 		return( NULL );
 	}
 
-	return( ld->ld_attrbuffer );
+	return( attr );
 }
 
 /* ARGSUSED */
 char *
 ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 {
-	long	len;
+	char *attr;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
 
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( entry != NULL );
+	assert( ber != NULL );
+
 	/* skip sequence, snarf attribute type, skip values */
-	len = LDAP_MAX_ATTR_LEN;
-	if ( ber_scanf( ber, "{sx}", ld->ld_attrbuffer, &len ) 
+	if ( ber_scanf( ber, "{ax}", &attr ) 
 	    == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		ber_free( ber, 0 );
 		return( NULL );
 	}
 
-	return( ld->ld_attrbuffer );
+	return( attr );
 }

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -16,18 +17,16 @@
  * writing status information to disk.
  */
 
-
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
+
+#include <ac/stdlib.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
-
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
 
 /*
  * Add information about replica host specified by Ri to list
@@ -46,20 +45,19 @@ St_add(
     }
 
     /* Serialize access to the St struct */
-    pthread_mutex_lock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_lock( &(st->st_mutex ));
 
     st->st_nreplicas++;
     ind = st->st_nreplicas - 1;
     st->st_data = ( Stel ** ) ch_realloc( st->st_data, 
 	    ( st->st_nreplicas * sizeof( Stel * )));
     if ( st->st_data == NULL ) {
-	pthread_mutex_unlock( &(st->st_mutex ));
+	ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 	return NULL;
     }
-    st->st_data[ ind ]  = ( Stel * ) ch_malloc( st->st_data,
-	    sizeof( Stel ));
+    st->st_data[ ind ]  = ( Stel * ) ch_malloc( sizeof( Stel ) );
     if ( st->st_data[ ind ] == NULL ) {
-	pthread_mutex_unlock( &(st->st_mutex ));
+	ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 	return NULL;
     }
 
@@ -68,7 +66,7 @@ St_add(
     memset( st->st_data[ ind ]->last, 0, sizeof( st->st_data[ ind ]->last )); 
     st->st_data[ ind ]->seq = 0;
 
-    pthread_mutex_unlock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
     return st->st_data[ ind ];
 }
 
@@ -89,7 +87,7 @@ St_write (
     if ( st == NULL ) {
 	return -1;
     }
-    pthread_mutex_lock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_lock( &(st->st_mutex ));
     if ( st->st_fp == NULL ) {
 	/* Open file */
 	if (( rc = acquire_lock( sglob->slurpd_status_file, &(st->st_fp),
@@ -99,7 +97,7 @@ St_write (
 			"Error: cannot open status file \"%s\": %s\n",
 			sglob->slurpd_status_file, sys_errlist[ errno ], 0 );
 		st->st_err_logged = 1;
-		pthread_mutex_unlock( &(st->st_mutex ));
+		ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 		return -1;
 	    }
 	} else {
@@ -117,7 +115,7 @@ St_write (
     }
     fflush( st->st_fp );
 
-    pthread_mutex_unlock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 
     return 0;
 }
@@ -139,10 +137,10 @@ St_update(
 	return -1;
     }
 
-    pthread_mutex_lock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_lock( &(st->st_mutex ));
     strcpy( stel->last, re->re_timestamp );
     stel->seq = re->re_seq;
-    pthread_mutex_unlock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
     return 0;
 }
 
@@ -168,7 +166,7 @@ St_read(
     if ( st == NULL ) {
 	return -1;
     }
-    pthread_mutex_lock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_lock( &(st->st_mutex ));
     if ( access( sglob->slurpd_status_file, F_OK ) < 0 ) {
 	/*
 	 * File doesn't exist, so create it and return.
@@ -176,16 +174,17 @@ St_read(
 	if (( fp = fopen( sglob->slurpd_status_file, "w" )) == NULL ) {
 	    Debug( LDAP_DEBUG_ANY, "Error: cannot create status file \"%s\"\n",
 		    sglob->slurpd_status_file, 0, 0 );
-	    pthread_mutex_unlock( &(st->st_mutex ));
+	    ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 	    return -1;
 	}
 	(void) fclose( fp );
-	pthread_mutex_unlock( &(st->st_mutex ));
+	ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 	Debug( LDAP_DEBUG_ARGS, "No status file found, defaulting values\n",
 		0, 0, 0 );
 	return 0;
     }
     if (( rc = acquire_lock( sglob->slurpd_status_file, &fp, &lfp)) < 0 ) {
+	ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
 	return 0;
     }
     while ( fgets( buf, sizeof( buf ), fp ) != NULL ) {
@@ -235,12 +234,12 @@ St_read(
 	}
     }
     (void) relinquish_lock( sglob->slurpd_status_file, fp, lfp);
-    pthread_mutex_unlock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
     return 0;
 
 bad:
     (void) relinquish_lock( sglob->slurpd_status_file, fp, lfp);
-    pthread_mutex_unlock( &(st->st_mutex ));
+    ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));
     return -1;
 }
     
@@ -255,7 +254,7 @@ St_lock(
     St *st
 )
 {
-    return( pthread_mutex_lock( &st->st_mutex ));
+    return( ldap_pvt_thread_mutex_lock( &st->st_mutex ));
 }
 
 
@@ -269,7 +268,7 @@ St_unlock(
     St *st
 )
 {
-    return( pthread_mutex_unlock( &st->st_mutex ));
+    return( ldap_pvt_thread_mutex_unlock( &st->st_mutex ));
 }
 
 
@@ -292,7 +291,7 @@ St_init(
 	return -1;
     }
 
-    pthread_mutex_init( &((*st)->st_mutex), pthread_mutexattr_default );
+    ldap_pvt_thread_mutex_init( &((*st)->st_mutex) );
     (*st)->st_data = NULL;
     (*st)->st_fp = NULL;
     (*st)->st_lfp = NULL;

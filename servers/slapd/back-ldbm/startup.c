@@ -1,4 +1,5 @@
 /* startup.c - startup ldbm backend */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -12,7 +13,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -49,7 +49,7 @@ ldbm_back_startup(
 #else
 	struct ldbminfo  *li = (struct ldbminfo *) be->be_private;
 	DB_ENV           *dbEnv = &li->li_db_env;
-	int    envFlags = DB_CREATE | DB_THREAD;
+	u_int32_t    envFlags = DB_CREATE | DB_THREAD;
 	int    err      = 0;
 	char   *home;
 

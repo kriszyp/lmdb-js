@@ -255,6 +255,10 @@ InputPath=.\slapdmsg.mc
 # End Source File
 # Begin Source File
 
+SOURCE=.\sockpair.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\utils.c
 # End Source File
 # End Target

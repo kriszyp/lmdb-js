@@ -1,4 +1,14 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted only
+ * as authorized by the OpenLDAP Public License.  A copy of this
+ * license is available at http://www.OpenLDAP.org/license.html or
+ * in file LICENSE in the top-level directory of the distribution.
+ */
+/* Portions
  * Copyright (c) 1993, 1994 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -17,10 +27,9 @@
 #ifndef _SRCHPREF_H
 #define _SRCHPREF_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <ldap_cdefs.h>
 
+LDAP_BEGIN_DECL
 
 struct ldap_searchattr {
 	char				*sa_attrlabel;
@@ -52,15 +61,13 @@ struct ldap_searchobj {
 	struct ldap_searchobj		*so_next;
 };
 
-#define NULLSEARCHOBJ			((struct ldap_searchobj *)0)
-
 /*
  * global search object options
  */
 #define LDAP_SEARCHOBJ_OPT_INTERNAL	0x00000001
 
 #define LDAP_IS_SEARCHOBJ_OPTION_SET( so, option )	\
-	(((so)->so_options & option ) != 0 )
+	(((so)->so_options & (option) ) != 0 )
 
 #define LDAP_SEARCHPREF_VERSION_ZERO	0
 #define LDAP_SEARCHPREF_VERSION		1
@@ -71,36 +78,26 @@ struct ldap_searchobj {
 #define LDAP_SEARCHPREF_ERR_FILE	4
 
 
-#ifndef NEEDPROTOS
-int			ldap_init_searchprefs();
-int			ldap_init_searchprefs_buf();
-void			ldap_free_searchprefs();
-struct ldap_searchobj	*ldap_first_searchobj();
-struct ldap_searchobj	*ldap_next_searchobj();
+LDAP_F( int )
+ldap_init_searchprefs LDAP_P(( char *file,
+	struct ldap_searchobj **solistp ));
 
-#else /* !NEEDPROTOS */
+LDAP_F( int )
+ldap_init_searchprefs_buf LDAP_P(( char *buf,
+	ber_len_t buflen,
+	struct ldap_searchobj **solistp ));
 
-LDAPFUNCDECL int
-ldap_init_searchprefs( char *file, struct ldap_searchobj **solistp );
+LDAP_F( void )
+ldap_free_searchprefs LDAP_P(( struct ldap_searchobj *solist ));
 
-LDAPFUNCDECL int
-ldap_init_searchprefs_buf( char *buf, long buflen,
-	struct ldap_searchobj **solistp );
+LDAP_F( struct ldap_searchobj * )
+ldap_first_searchobj LDAP_P(( struct ldap_searchobj *solist ));
 
-LDAPFUNCDECL void
-ldap_free_searchprefs( struct ldap_searchobj *solist );
-
-LDAPFUNCDECL struct ldap_searchobj *
-ldap_first_searchobj( struct ldap_searchobj *solist );
-
-LDAPFUNCDECL struct ldap_searchobj *
-ldap_next_searchobj( struct ldap_searchobj *sollist,
-	struct ldap_searchobj *so );
-
-#endif /* !NEEDPROTOS */
+LDAP_F( struct ldap_searchobj * )
+ldap_next_searchobj LDAP_P(( struct ldap_searchobj *sollist,
+	struct ldap_searchobj *so ));
 
 
-#ifdef __cplusplus
-}
-#endif
+LDAP_END_DECL
+
 #endif /* _SRCHPREF_H */

@@ -1,4 +1,9 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  * Copyright (c) 1993, 1994 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -15,42 +20,28 @@
  * 7 March 1994 by Mark C Smith
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#include <stdlib.h>
-#endif /* DOS */
-#endif /* MACOS */
+#endif
 
-#include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
 
-#ifndef NEEDPROTOS
-int next_line_tokens();
-void free_strarray();
-static int next_line();
-static char *next_token();
-#else /* !NEEDPROTOS */
-int next_line_tokens( char **bufp, long *blenp, char ***toksp );
-void free_strarray( char **sap );
-static int next_line( char **bufp, long *blenp, char **linep );
-static char *next_token( char ** sp );
-#endif /* !NEEDPROTOS */
+static int next_line LDAP_P(( char **bufp, ber_len_t *blenp, char **linep ));
+static char *next_token LDAP_P(( char ** sp ));
 
 
 
 int
-next_line_tokens( char **bufp, long *blenp, char ***toksp )
+next_line_tokens( char **bufp, ber_len_t *blenp, char ***toksp )
 {
     char	*p, *line, *token, **toks;
     int		rc, tokcnt;
@@ -61,18 +52,18 @@ next_line_tokens( char **bufp, long *blenp, char ***toksp )
 	return( rc );
     }
 
-    if (( toks = (char **)calloc( 1, sizeof( char * ))) == NULL ) {
-	free( line );
+    if (( toks = (char **)LDAP_CALLOC( 1, sizeof( char * ))) == NULL ) {
+	LBER_FREE( line );
 	return( -1 );
     }
     tokcnt = 0;
 
     p = line;
     while (( token = next_token( &p )) != NULL ) {
-	if (( toks = (char **)realloc( toks, ( tokcnt + 2 ) *
+	if (( toks = (char **)LDAP_REALLOC( toks, ( tokcnt + 2 ) *
 		sizeof( char * ))) == NULL ) {
-	    free( (char *)toks );
-	    free( line );
+	    LBER_FREE( (char *)toks );
+	    LBER_FREE( line );
 	    return( -1 );
 	}
 	toks[ tokcnt ] = token;
@@ -85,11 +76,11 @@ next_line_tokens( char **bufp, long *blenp, char ***toksp )
 	toks = NULL;
     }
 
-    free( line );
+    LBER_FREE( line );
 
     if ( tokcnt == 0 ) {
 	if ( toks != NULL ) {
-	    free( (char *)toks );
+	    LBER_FREE( (char *)toks );
 	}
     } else {
 	*toksp = toks;
@@ -100,10 +91,10 @@ next_line_tokens( char **bufp, long *blenp, char ***toksp )
 
 
 static int
-next_line( char **bufp, long *blenp, char **linep )
+next_line( char **bufp, ber_len_t *blenp, char **linep )
 {
     char	*linestart, *line, *p;
-    long	plen;
+    ber_slen_t	plen;
 
     linestart = *bufp;
     p = *bufp;
@@ -141,7 +132,7 @@ next_line( char **bufp, long *blenp, char **linep )
 	return( 0 );	/* end of file */
     }
 
-    if (( line = malloc( p - linestart )) == NULL ) {
+    if (( line = LDAP_MALLOC( p - linestart )) == NULL ) {
 	*linep = NULL;
 	return( -1 );	/* fatal error */
     }
@@ -165,7 +156,7 @@ next_token( char **sp )
 
     p = *sp;
 
-    while ( isspace( *p )) {		/* skip leading white space */
+    while ( isspace( (unsigned char) *p )) {	/* skip leading white space */
 	++p;
     }
 
@@ -180,7 +171,7 @@ next_token( char **sp )
     t = tokstart = p;
 
     for ( ;; ) {
-	if ( *p == '\0' || ( isspace( *p ) && !in_quote )) {
+	if ( *p == '\0' || ( isspace( (unsigned char) *p ) && !in_quote )) {
 	    if ( *p != '\0' ) {
 		++p;
 	    }
@@ -202,7 +193,7 @@ next_token( char **sp )
 	return( NULL );
     }
 
-    return( strdup( tokstart ));
+    return( LDAP_STRDUP( tokstart ));
 }
 
 
@@ -213,8 +204,8 @@ free_strarray( char **sap )
 
     if ( sap != NULL ) {
 	for ( i = 0; sap[ i ] != NULL; ++i ) {
-	    free( sap[ i ] );
+	    LBER_FREE( sap[ i ] );
 	}
-	free( (char *)sap );
+	LBER_FREE( (char *)sap );
     }
 }

@@ -1,66 +1,46 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1993 The Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  cache.c - local caching support for LDAP
  */
 
-#ifndef NO_CACHE
-
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1993 The Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include <time.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#ifdef WINSOCK
-#include <time.h>
-#endif /* WINSOCK */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
-#include "lber.h"
-#include "ldap.h"
+
+#include <ac/stdlib.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "ldap-int.h"
 
-#ifdef NEEDPROTOS
-static int		cache_hash( BerElement *ber );
-static LDAPMessage	*msg_dup( LDAPMessage *msg );
-static int		request_cmp( BerElement	*req1, BerElement *req2 );
-static int		chain_contains_dn( LDAPMessage *msg, char *dn );
-static long		msg_size( LDAPMessage *msg );
-static void		check_cache_memused( LDAPCache *lc );
-static void		uncache_entry_or_req( LDAP *ld, char *dn, int msgid );
-#else /* NEEDPROTOS */
-static int		cache_hash();
-static LDAPMessage	*msg_dup();
-static int		request_cmp();
-static int		chain_contains_dn();
-static long		msg_size();
-static void		check_cache_memused();
-static void		uncache_entry_or_req();
-#endif /* NEEDPROTOS */
+#ifndef LDAP_NOCACHE
 
+static int		cache_hash LDAP_P(( BerElement *ber ));
+static LDAPMessage	*msg_dup LDAP_P(( LDAPMessage *msg ));
+static int		request_cmp LDAP_P(( BerElement	*req1, BerElement *req2 ));
+static int		chain_contains_dn LDAP_P(( LDAPMessage *msg, LDAP_CONST char *dn ));
+static ber_len_t	msg_size LDAP_P(( LDAPMessage *msg ));
+static void		check_cache_memused LDAP_P(( LDAPCache *lc ));
+static void		uncache_entry_or_req LDAP_P(( LDAP *ld, LDAP_CONST char *dn, ber_int_t msgid ));
+
+#endif
 
 int
-ldap_enable_cache( LDAP *ld, long timeout, long maxmem )
+ldap_enable_cache( LDAP *ld, long timeout, ber_len_t maxmem )
 {
-	if ( ld->ld_cache == NULLLDCACHE ) {
-		if (( ld->ld_cache = (LDAPCache *)malloc( sizeof( LDAPCache )))
-		    == NULLLDCACHE ) {
+#ifndef LDAP_NOCACHE
+	if ( ld->ld_cache == NULL ) {
+		if (( ld->ld_cache = (LDAPCache *)LDAP_MALLOC( sizeof( LDAPCache )))
+		    == NULL ) {
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return( -1 );
 		}
@@ -73,15 +53,20 @@ ldap_enable_cache( LDAP *ld, long timeout, long maxmem )
 	check_cache_memused( ld->ld_cache );
 	ld->ld_cache->lc_enabled = 1;
 	return( 0 );
+#else 
+	return( -1 );
+#endif
 }
 
 
 void
 ldap_disable_cache( LDAP *ld )
 {
-	if ( ld->ld_cache != NULLLDCACHE ) {
+#ifndef LDAP_NOCACHE
+	if ( ld->ld_cache != NULL ) {
 		ld->ld_cache->lc_enabled = 0;
 	}
+#endif
 }
 
 
@@ -89,96 +74,108 @@ ldap_disable_cache( LDAP *ld )
 void
 ldap_set_cache_options( LDAP *ld, unsigned long opts )
 {
-	if ( ld->ld_cache != NULLLDCACHE ) {
+#ifndef LDAP_NOCACHE
+	if ( ld->ld_cache != NULL ) {
 		ld->ld_cache->lc_options = opts;
 	}
+#endif
 }
 	
 
 void
 ldap_destroy_cache( LDAP *ld )
 {
-	if ( ld->ld_cache != NULLLDCACHE ) {
+#ifndef LDAP_NOCACHE
+	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
-		free( (char *)ld->ld_cache );
-		ld->ld_cache = NULLLDCACHE;
+		LDAP_FREE( (char *)ld->ld_cache );
+		ld->ld_cache = NULL;
 	}
+#endif
 }
 
 
 void
 ldap_flush_cache( LDAP *ld )
 {
+#ifndef LDAP_NOCACHE
 	int		i;
 	LDAPMessage	*m, *next;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_flush_cache\n", 0, 0, 0 );
 
-	if ( ld->ld_cache != NULLLDCACHE ) {
+	if ( ld->ld_cache != NULL ) {
 		/* delete all requests in the queue */
-		for ( m = ld->ld_cache->lc_requests; m != NULLMSG; m = next ) {
+		for ( m = ld->ld_cache->lc_requests; m != NULL; m = next ) {
 			next = m->lm_next;
 			ldap_msgfree( m );
 		}
-		ld->ld_cache->lc_requests = NULLMSG;
+		ld->ld_cache->lc_requests = NULL;
 
 		/* delete all messages in the cache */
 		for ( i = 0; i < LDAP_CACHE_BUCKETS; ++i ) {
 			for ( m = ld->ld_cache->lc_buckets[ i ];
-			    m != NULLMSG; m = next ) {
+			    m != NULL; m = next ) {
 				next = m->lm_next;
 				ldap_msgfree( m );
 			}
-			ld->ld_cache->lc_buckets[ i ] = NULLMSG;
+			ld->ld_cache->lc_buckets[ i ] = NULL;
 		}
 		ld->ld_cache->lc_memused = sizeof( LDAPCache );
 	}
+#endif
 }
 
 
 void
 ldap_uncache_request( LDAP *ld, int msgid )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_request %d ld_cache %x\n",
-	    msgid, ld->ld_cache, 0 );
+#ifndef LDAP_NOCACHE
+	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_request %d ld_cache %lx\n",
+	    msgid, (long) ld->ld_cache, 0 );
 
 	uncache_entry_or_req( ld, NULL, msgid );
+#endif
 }
 
 
 void
-ldap_uncache_entry( LDAP *ld, char *dn )
+ldap_uncache_entry( LDAP *ld, LDAP_CONST char *dn )
 {
-	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %x\n",
-	    dn, ld->ld_cache, 0 );
+#ifndef LDAP_NOCACHE
+	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %lx\n",
+	    dn, (long) ld->ld_cache, 0 );
 
 	uncache_entry_or_req( ld, dn, 0 );
+#endif
 }
 
 
+#ifndef LDAP_NOCACHE
+
 static void
 uncache_entry_or_req( LDAP *ld,
-	char *dn,		/* if non-NULL, uncache entry */
-	int msgid )		/* request to uncache (if dn == NULL) */
+	const char *dn,		/* if non-NULL, uncache entry */
+	ber_int_t msgid )		/* request to uncache (if dn == NULL) */
 {
 	int		i;
 	LDAPMessage	*m, *prev, *next;
 
 	Debug( LDAP_DEBUG_TRACE,
-	    "ldap_uncache_entry_or_req  dn %s  msgid %d  ld_cache %x\n",
-	    dn, msgid, ld->ld_cache );
+	    "ldap_uncache_entry_or_req  dn %s  msgid %ld  ld_cache %lx\n",
+	    dn, (long) msgid, (long) ld->ld_cache );
 
-	if ( ld->ld_cache == NULLLDCACHE ) {
+	if ( ld->ld_cache == NULL ) {
 	    return;
 	}
 
 	/* first check the request queue */
-	prev = NULLMSG;
-	for ( m = ld->ld_cache->lc_requests; m != NULLMSG; m = next ) {
+	prev = NULL;
+	for ( m = ld->ld_cache->lc_requests; m != NULL; m = next ) {
 		next = m->lm_next;
 		if (( dn != NULL && chain_contains_dn( m, dn )) ||
 			( dn == NULL && m->lm_msgid == msgid )) {
-			if ( prev == NULLMSG ) {
+			if ( prev == NULL ) {
 				ld->ld_cache->lc_requests = next;
 			} else {
 				prev->lm_next = next;
@@ -192,13 +189,13 @@ uncache_entry_or_req( LDAP *ld,
 
 	/* now check the rest of the cache */
 	for ( i = 0; i < LDAP_CACHE_BUCKETS; ++i ) {
-		prev = NULLMSG;
-		for ( m = ld->ld_cache->lc_buckets[ i ]; m != NULLMSG;
+		prev = NULL;
+		for ( m = ld->ld_cache->lc_buckets[ i ]; m != NULL;
 		    m = next ) {
 			next = m->lm_next;
 			if (( dn != NULL && chain_contains_dn( m, dn )) ||
 				( dn == NULL && m->lm_msgid == msgid )) {
-				if ( prev == NULLMSG ) {
+				if ( prev == NULL ) {
 					ld->ld_cache->lc_buckets[ i ] = next;
 				} else {
 					prev->lm_next = next;
@@ -212,32 +209,34 @@ uncache_entry_or_req( LDAP *ld,
 	}
 }
 
+#endif
 
 void
-add_request_to_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
+ldap_add_request_to_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 {
+#ifndef LDAP_NOCACHE
 	LDAPMessage	*new;
-	long		len;
+	ber_len_t	len;
 
-	Debug( LDAP_DEBUG_TRACE, "add_request_to_cache\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_add_request_to_cache\n", 0, 0, 0 );
 
 	ld->ld_errno = LDAP_SUCCESS;
-	if ( ld->ld_cache == NULLLDCACHE ||
+	if ( ld->ld_cache == NULL ||
 	    ( ld->ld_cache->lc_enabled == 0 )) {
 		return;
 	}
 
-	if (( new = (LDAPMessage *) calloc( 1, sizeof(LDAPMessage) ))
+	if (( new = (LDAPMessage *) LDAP_CALLOC( 1, sizeof(LDAPMessage) ))
 	    != NULL ) {
-		if (( new->lm_ber = alloc_ber_with_options( ld )) == NULLBER ) {
-			free( (char *)new );
+		if (( new->lm_ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
+			LDAP_FREE( (char *)new );
 			return;
 		}
 		len = request->ber_ptr - request->ber_buf;
-		if (( new->lm_ber->ber_buf = (char *) malloc( (size_t)len ))
+		if (( new->lm_ber->ber_buf = (char *) ber_memalloc( (size_t)len ))
 		    == NULL ) {
 			ber_free( new->lm_ber, 0 );
-			free( (char *)new );
+			LDAP_FREE( (char *)new );
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return;
 		}
@@ -252,25 +251,28 @@ add_request_to_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 	} else {
 		ld->ld_errno = LDAP_NO_MEMORY;
 	}
+#endif
 }
 
 
 void
-add_result_to_cache( LDAP *ld, LDAPMessage *result )
+ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 {
+#ifndef LDAP_NOCACHE
 	LDAPMessage	*m, **mp, *req, *new, *prev;
 	int		err, keep;
 
-	Debug( LDAP_DEBUG_TRACE, "add_result_to_cache: id %d, type %d\n", 
-		result->lm_msgid, result->lm_msgtype, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_add_result_to_cache: id %ld, type %ld\n", 
+		(long) result->lm_msgid, (long) result->lm_msgtype, 0 );
 
-	if ( ld->ld_cache == NULLLDCACHE ||
+	if ( ld->ld_cache == NULL ||
 	    ( ld->ld_cache->lc_enabled == 0 )) {
 		Debug( LDAP_DEBUG_TRACE, "artc: cache disabled\n", 0, 0, 0 );
 		return;
 	}
 
 	if ( result->lm_msgtype != LDAP_RES_SEARCH_ENTRY &&
+	    result->lm_msgtype != LDAP_RES_SEARCH_REFERENCE &&
 	    result->lm_msgtype != LDAP_RES_SEARCH_RESULT &&
 	    result->lm_msgtype != LDAP_RES_COMPARE ) {
 		/*
@@ -286,7 +288,7 @@ add_result_to_cache( LDAP *ld, LDAPMessage *result )
 	 * result to it.  if this result completes the results for the
 	 * request, add the request/result chain to the cache proper.
 	 */
-	prev = NULLMSG;
+	prev = NULL;
 	for ( m = ld->ld_cache->lc_requests; m != NULL; m = m->lm_next ) {
 		if ( m->lm_msgid == result->lm_msgid ) {
 			break;
@@ -294,12 +296,12 @@ add_result_to_cache( LDAP *ld, LDAPMessage *result )
 		prev = m;
 	}
 
-	if ( m != NULLMSG ) {	/* found request; add to end of chain */
+	if ( m != NULL ) {	/* found request; add to end of chain */
 		req = m;
-		for ( ; m->lm_chain != NULLMSG; m = m->lm_chain )
+		for ( ; m->lm_chain != NULL; m = m->lm_chain )
 			;
-		if (( new = msg_dup( result )) != NULLMSG ) {
-			new->lm_chain = NULLMSG;
+		if (( new = msg_dup( result )) != NULL ) {
+			new->lm_chain = NULL;
 			m->lm_chain = new;
 			Debug( LDAP_DEBUG_TRACE,
 			    "artc: result added to cache request chain\n",
@@ -330,7 +332,7 @@ add_result_to_cache( LDAP *ld, LDAPMessage *result )
 				keep = 1;
 			}
 
-			if ( prev == NULLMSG ) {
+			if ( prev == NULL ) {
 				ld->ld_cache->lc_requests = req->lm_next;
 			} else {
 				prev->lm_next = req->lm_next;
@@ -358,6 +360,7 @@ add_result_to_cache( LDAP *ld, LDAPMessage *result )
 		Debug( LDAP_DEBUG_TRACE, "artc: msgid not in request list\n",
 		    0, 0, 0 );
 	}
+#endif
 }
 
 
@@ -369,16 +372,17 @@ add_result_to_cache( LDAP *ld, LDAPMessage *result )
  * will find them.
  */
 int
-check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
+ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 {
+#ifndef LDAP_NOCACHE
 	LDAPMessage	*m, *new, *prev, *next;
 	BerElement	reqber;
 	int		first, hash;
-	unsigned long	validtime;
+	time_t	c_time;
 
-	Debug( LDAP_DEBUG_TRACE, "check_cache\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_check_cache\n", 0, 0, 0 );
 
-	if ( ld->ld_cache == NULLLDCACHE ||
+	if ( ld->ld_cache == NULL ||
 	    ( ld->ld_cache->lc_enabled == 0 )) {
 		return( -1 );
 	}
@@ -386,14 +390,14 @@ check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 	reqber.ber_buf = reqber.ber_ptr = request->ber_buf;
 	reqber.ber_end = request->ber_ptr;
 
-	validtime = (long)time( NULL ) - ld->ld_cache->lc_timeout;
+	c_time = time( NULL );
 
-	prev = NULLMSG;
+	prev = NULL;
 	hash = cache_hash( &reqber );
-	for ( m = ld->ld_cache->lc_buckets[ hash ]; m != NULLMSG; m = next ) {
-		Debug( LDAP_DEBUG_TRACE,"cc: examining id %d,type %d\n",
-		    m->lm_msgid, m->lm_msgtype, 0 );
-		if ( m->lm_time < validtime ) {
+	for ( m = ld->ld_cache->lc_buckets[ hash ]; m != NULL; m = next ) {
+		Debug( LDAP_DEBUG_TRACE,"cc: examining id %ld,type %ld\n",
+		    (long) m->lm_msgid, (long) m->lm_msgtype, 0 );
+		if ( difftime(c_time, m->lm_time) > ld->ld_cache->lc_timeout ) {
 			/* delete expired message */
 			next = m->lm_next;
 			if ( prev == NULL ) {
@@ -415,7 +419,7 @@ check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 		}
 	}
 
-	if ( m == NULLMSG ) {
+	if ( m == NULL ) {
 		return( -1 );
 	}
 
@@ -423,13 +427,13 @@ check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 	 * add duplicates of responses to incoming queue
 	 */
 	first = 1;
-	for ( m = m->lm_chain; m != NULLMSG; m = m->lm_chain ) {
-		if (( new = msg_dup( m )) == NULLMSG ) {
+	for ( m = m->lm_chain; m != NULL; m = m->lm_chain ) {
+		if (( new = msg_dup( m )) == NULL ) {
 			return( -1 );
 		}
 
 		new->lm_msgid = ld->ld_msgid;
-		new->lm_chain = NULLMSG;
+		new->lm_chain = NULL;
 		if ( first ) {
 			new->lm_next = ld->ld_responses;
 			ld->ld_responses = new;
@@ -438,20 +442,24 @@ check_cache( LDAP *ld, unsigned long msgtype, BerElement *request )
 			prev->lm_chain = new;
 		}
 		prev = new;
-		Debug( LDAP_DEBUG_TRACE, "cc: added type %d\n",
-		    new->lm_msgtype, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "cc: added type %ld\n",
+		    (long) new->lm_msgtype, 0, 0 );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "cc: result returned from cache\n", 0, 0, 0 );
 	return( 0 );
+#else
+	return( -1 );
+#endif
 }
 
+#ifndef LDAP_NOCACHE
 
 static int
 cache_hash( BerElement *ber )
 {
 	BerElement	bercpy;
-	unsigned long	len;
+	ber_len_t	len;
 
 	/*
          * just take the length of the packet and mod with # of buckets
@@ -474,20 +482,20 @@ static LDAPMessage *
 msg_dup( LDAPMessage *msg )
 {
 	LDAPMessage	*new;
-	long		len;
+	ber_len_t	len;
 
-	if (( new = (LDAPMessage *)malloc( sizeof(LDAPMessage))) != NULL ) {
+	if (( new = (LDAPMessage *)LDAP_MALLOC( sizeof(LDAPMessage))) != NULL ) {
 		*new = *msg;	/* struct copy */
-		if (( new->lm_ber = ber_dup( msg->lm_ber )) == NULLBER ) {
-			free( (char *)new );
-			return( NULLMSG );
+		if (( new->lm_ber = ber_dup( msg->lm_ber )) == NULL ) {
+			LDAP_FREE( (char *)new );
+			return( NULL );
 		}
 		len = msg->lm_ber->ber_end - msg->lm_ber->ber_buf;
-		if (( new->lm_ber->ber_buf = (char *) malloc(
+		if (( new->lm_ber->ber_buf = (char *) ber_memalloc(
 		    (size_t)len )) == NULL ) {
 			ber_free( new->lm_ber, 0 );
-			free( (char *)new );
-			return( NULLMSG );
+			LDAP_FREE( (char *)new );
+			return( NULL );
 		}
 		SAFEMEMCPY( new->lm_ber->ber_buf, msg->lm_ber->ber_buf,
 		    (size_t)len );
@@ -503,7 +511,7 @@ msg_dup( LDAPMessage *msg )
 static int
 request_cmp( BerElement *req1, BerElement *req2 )
 {
-	unsigned long	len;
+	ber_len_t	len;
 	BerElement	r1, r2;
 
 	r1 = *req1;	/* struct copies */
@@ -524,7 +532,9 @@ request_cmp( BerElement *req1, BerElement *req2 )
 	/*
 	 * check remaining length and bytes if necessary
 	 */
-	if (( len = r1.ber_end - r1.ber_ptr ) != r2.ber_end - r2.ber_ptr ) {
+	if (( len = r1.ber_end - r1.ber_ptr ) !=
+		(ber_len_t) (r2.ber_end - r2.ber_ptr) )
+	{
 		return( -1 );	/* different lengths */
 	}
 	return( memcmp( r1.ber_ptr, r2.ber_ptr, (size_t)len ));
@@ -532,11 +542,11 @@ request_cmp( BerElement *req1, BerElement *req2 )
 
 
 static int
-chain_contains_dn( LDAPMessage *msg, char *dn )
+chain_contains_dn( LDAPMessage *msg, const char *dn )
 {
 	LDAPMessage	*m;
 	BerElement	ber;
-	long		msgid;
+	ber_int_t		msgid;
 	char		*s;
 	int		rc;
 
@@ -545,9 +555,9 @@ chain_contains_dn( LDAPMessage *msg, char *dn )
 	 * first check the base or dn of the request
 	 */
 	ber = *msg->lm_ber;	/* struct copy */
-	if ( ber_scanf( &ber, "{i{a", &msgid, &s ) != LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{i{a" /*}}*/, &msgid, &s ) != LBER_ERROR ) {
 	    rc = ( strcasecmp( dn, s ) == 0 ) ? 1 : 0;
-	    free( s );
+	    LDAP_FREE( s );
 	    if ( rc != 0 ) {
 		return( rc );
 	    }
@@ -561,14 +571,14 @@ chain_contains_dn( LDAPMessage *msg, char *dn )
 	 * now check the dn of each search result
 	 */
 	rc = 0;
-	for ( m = msg->lm_chain; m != NULLMSG && rc == 0 ; m = m->lm_chain ) {
+	for ( m = msg->lm_chain; m != NULL && rc == 0 ; m = m->lm_chain ) {
 		if ( m->lm_msgtype != LDAP_RES_SEARCH_ENTRY ) {
 			continue;
 		}
 		ber = *m->lm_ber;	/* struct copy */
-		if ( ber_scanf( &ber, "{a", &s ) != LBER_ERROR ) {
+		if ( ber_scanf( &ber, "{a" /*}*/, &s ) != LBER_ERROR ) {
 			rc = ( strcasecmp( dn, s ) == 0 ) ? 1 : 0;
-			free( s );
+			LDAP_FREE( s );
 		}
 	}
 
@@ -576,14 +586,14 @@ chain_contains_dn( LDAPMessage *msg, char *dn )
 }
 
 
-static long
+static ber_len_t
 msg_size( LDAPMessage *msg )
 {
 	LDAPMessage	*m;
-	long		size;
+	ber_len_t	size;
 
 	size = 0;
-	for ( m = msg; m != NULLMSG; m = m->lm_chain ) {
+	for ( m = msg; m != NULL; m = m->lm_chain ) {
 		size += ( sizeof( LDAPMessage ) + m->lm_ber->ber_end -
 		    m->lm_ber->ber_buf );
 	}
@@ -609,27 +619,28 @@ check_cache_memused( LDAPCache *lc )
  *    } while ( cache size is > SIZE_FACTOR * lc_maxmem )
  */
 	int		i;
-	unsigned long	remove_threshold, validtime;
+	unsigned long	remove_threshold;
+	time_t c_time;
 	LDAPMessage	*m, *prev, *next;
 
 	Debug( LDAP_DEBUG_TRACE, "check_cache_memused: %ld bytes in use (%ld max)\n",
 	    lc->lc_memused, lc->lc_maxmem, 0 );
 
-	if ( lc->lc_maxmem <= sizeof( LDAPCache )
+	if ( (unsigned) lc->lc_maxmem <= sizeof( LDAPCache )
 	    || lc->lc_memused <= lc->lc_maxmem * SIZE_FACTOR ) {
 		return;
 	}
 
 	remove_threshold = lc->lc_timeout;
 	while ( lc->lc_memused > lc->lc_maxmem * SIZE_FACTOR ) {
-		validtime = (long)time( NULL ) - remove_threshold;
+		c_time = time( NULL );
 		for ( i = 0; i < LDAP_CACHE_BUCKETS; ++i ) {
-			prev = NULLMSG;
-			for ( m = lc->lc_buckets[ i ]; m != NULLMSG;
+			prev = NULL;
+			for ( m = lc->lc_buckets[ i ]; m != NULL;
 			    m = next ) {
 				next = m->lm_next;
-				if ( m->lm_time < validtime ) {
-					if ( prev == NULLMSG ) {
+				if ( difftime(c_time, m->lm_time) > remove_threshold) {
+					if ( prev == NULL ) {
 						lc->lc_buckets[ i ] = next;
 					} else {
 						prev->lm_next = next;

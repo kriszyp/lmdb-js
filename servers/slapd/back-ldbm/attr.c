@@ -1,4 +1,5 @@
 /* attr.c - backend routines for dealing with attributes */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -88,7 +89,7 @@ attr_masks(
 void
 attr_index_config(
     struct ldbminfo	*li,
-    char		*fname,
+    const char		*fname,
     int			lineno,
     int			argc,
     char		**argv,

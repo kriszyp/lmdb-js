@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -32,7 +33,6 @@
 
 static char	*binddn = NULL;
 static char	*passwd = NULL;
-static char	*base = NULL;
 static char	*ldaphost = NULL;
 static int	ldapport = 0;
 static int	not, verbose, contoper;
@@ -210,6 +210,9 @@ main(int argc, char **argv)
 		int deref = LDAP_DEREF_NEVER;
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
 	}
+	/* don't chase referrals */
+	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
+
 
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");

@@ -1,28 +1,44 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1993 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  sbind.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
+/*
+ *	BindRequest ::= SEQUENCE {
+ *		version		INTEGER,
+ *		name		DistinguishedName,	 -- who
+ *		authentication	CHOICE {
+ *			simple		[0] OCTET STRING -- passwd
+#ifdef HAVE_KERBEROS
+ *			krbv42ldap	[1] OCTET STRING
+ *			krbv42dsa	[2] OCTET STRING
 #endif
+ *			sasl		[3] SaslCredentials	-- LDAPv3
+ *		}
+ *	}
+ *
+ *	BindResponse ::= SEQUENCE {
+ *		COMPONENTS OF LDAPResult,
+ *		serverSaslCreds		OCTET STRING OPTIONAL -- LDAPv3
+ *	}
+ *
+ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
 
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#if !defined( MACOS ) && !defined( DOS )
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
-
-#include "lber.h"
-#include "ldap.h"
 #include "ldap-int.h"
 
 
@@ -37,50 +53,32 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
  */
 
 int
-ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
+ldap_simple_bind(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *passwd )
 {
-	BerElement	*ber;
-
-	/*
-	 * The bind request looks like this:
-	 *	BindRequest ::= SEQUENCE {
-	 *		version		INTEGER,
-	 *		name		DistinguishedName,	 -- who
-	 *		authentication	CHOICE {
-	 *			simple		[0] OCTET STRING -- passwd
-	 *		}
-	 *	}
-	 * all wrapped up in an LDAPMessage sequence.
-	 */
+	int rc;
+	int msgid;
+	struct berval cred;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_simple_bind\n", 0, 0, 0 );
 
-	if ( dn == NULL )
-		dn = "";
-	if ( passwd == NULL )
-		passwd = "";
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 
-	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
-		return( -1 );
+	if ( passwd != NULL ) {
+		cred.bv_val = (char *) passwd;
+		cred.bv_len = strlen( passwd );
+	} else {
+		cred.bv_val = "";
+		cred.bv_len = 0;
 	}
 
-	/* fill it in */
-	if ( ber_printf( ber, "{it{ists}}", ++ld->ld_msgid, LDAP_REQ_BIND,
-	    ld->ld_version, dn, LDAP_AUTH_SIMPLE, passwd ) == -1 ) {
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( -1 );
-	}
+	rc = ldap_sasl_bind( ld, dn, LDAP_SASL_SIMPLE, &cred,
+		NULL, NULL, &msgid );
 
-#ifndef NO_CACHE
-	if ( ld->ld_cache != NULL ) {
-		ldap_flush_cache( ld );
-	}
-#endif /* !NO_CACHE */
-
-	/* send the message */
-	return( send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return rc == LDAP_SUCCESS ? msgid : -1;
 }
 
 /*
@@ -95,18 +93,20 @@ ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
  */
 
 int
-ldap_simple_bind_s( LDAP *ld, char *dn, char *passwd )
+ldap_simple_bind_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 {
-	int		msgid;
-	LDAPMessage	*result;
+	struct berval cred;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_simple_bind_s\n", 0, 0, 0 );
 
-	if ( (msgid = ldap_simple_bind( ld, dn, passwd )) == -1 )
-		return( ld->ld_errno );
+	if ( passwd != NULL ) {
+		cred.bv_val = (char *) passwd;
+		cred.bv_len = strlen( passwd );
+	} else {
+		cred.bv_val = "";
+		cred.bv_len = 0;
+	}
 
-	if ( ldap_result( ld, msgid, 1, (struct timeval *) 0, &result ) == -1 )
-		return( ld->ld_errno );	/* ldap_result sets ld_errno */
-
-	return( ldap_result2error( ld, result, 1 ) );
+	return ldap_sasl_bind_s( ld, dn, LDAP_SASL_SIMPLE, &cred,
+		NULL, NULL, NULL );
 }

@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* result.c - tcl backend utility functions
- *
- * $Id: tcl_util.c,v 1.9 1999/08/17 17:01:02 kdz Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

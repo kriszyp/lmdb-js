@@ -1,4 +1,5 @@
 /* ldbm.c - ldap dbm compatibility routines */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -114,7 +115,7 @@ DB_ENV           *ldbm_Env = NULL;
 int ldbm_initialize( void )
 {
 	int     err;
-	int     envFlags;
+	u_int32_t	envFlags;
 
 	if(ldbm_initialized++) return 1;
 
@@ -441,12 +442,16 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 #ifdef HAVE_ST_BLKSIZE
 	if ( dbcachesize > 0 && stat( name, &st ) == 0 ) {
-		dbcachesize = (dbcachesize / st.st_blksize);
+		dbcachesize /= st.st_blksize;
+		if( dbcachesize == 0 ) dbcachesize = 1;
 		gdbm_setopt( db, GDBM_CACHESIZE, &dbcachesize, sizeof(int) );
 	}
 #else
-	dbcachesize = (dbcachesize / 4096);
-	gdbm_setopt( db, GDBM_CACHESIZE, &dbcachesize, sizeof(int) );
+	if ( dbcachesize > 0 ) {
+		dbcachesize /= 4096;
+		if( dbcachesize == 0 ) dbcachesize = 1;
+		gdbm_setopt( db, GDBM_CACHESIZE, &dbcachesize, sizeof(int) );
+	}
 #endif
 
 	LDBM_UNLOCK;

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -143,6 +144,15 @@ do_add( Connection *conn, Operation *op )
 		send_ldap_result( conn, op, LDAP_REFERRAL, NULL,
 		    NULL, default_referral, NULL );
 		return rc;
+	}
+
+	if ( global_readonly || be->be_readonly ) {
+		Debug( LDAP_DEBUG_ANY, "do_add: database is read-only\n",
+		       0, 0, 0 );
+		entry_free( e );
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+		                  NULL, "database is read-only", NULL, NULL );
+		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
 	/*

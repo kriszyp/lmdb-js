@@ -1,4 +1,5 @@
 /* modrdn.c - ldbm backend modrdn routine */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -46,13 +47,13 @@ ldbm_back_modrdn(
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
 	Entry		*e, *p = NULL;
-	Entry		*matched = NULL;
+	Entry		*matched;
 	int			rootlock = 0;
 	int			rc = -1;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
 	char		*new_rdn_val = NULL;	/* Val of new rdn */
 	char		*new_rdn_type = NULL;	/* Type of new rdn */
-	char		*old_rdn;		/* Old rdn's attr type & val */
+	char		*old_rdn = NULL;    	/* Old rdn's attr type & val */
 	char		*old_rdn_type = NULL;	/* Type of old rdn attr. */
 	char		*old_rdn_val = NULL;	/* Old rdn attribute value */
 	/* Added to support newSuperior */ 
@@ -133,7 +134,7 @@ ldbm_back_modrdn(
 		 * children.
 		 */
 
-		if( (p = dn2entry_w( be, p_ndn, &matched )) == NULL) {
+		if( (p = dn2entry_w( be, p_ndn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -195,7 +196,7 @@ ldbm_back_modrdn(
 		/* newSuperior == entry being moved?, if so ==> ERROR */
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-		if( (np = dn2entry_w( be, np_ndn, &matched )) == NULL) {
+		if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
 			       np_ndn, 0, 0);
@@ -205,7 +206,7 @@ ldbm_back_modrdn(
 		}
 
 		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%d\n",
+		       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
 		       np, np->e_id, 0 );
 	    
 		/* check newSuperior for "children" acl */
@@ -261,6 +262,14 @@ ldbm_back_modrdn(
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
 	       new_ndn, 0, 0 );
 
+	/* check for abandon */
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+	if ( op->o_abandon ) {
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+		goto return_results;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 	if (dn2id ( be, new_ndn ) != NOID) {
 		send_ldap_result( conn, op, LDAP_ALREADY_EXISTS,
 			NULL, NULL, NULL, NULL );
@@ -270,35 +279,6 @@ ldbm_back_modrdn(
 	Debug( LDAP_DEBUG_TRACE,
 	       "ldbm_back_modrdn: new ndn=%s does not exist\n",
 	       new_ndn, 0, 0 );
-
-	/* check for abandon */
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-	if ( op->o_abandon ) {
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		goto return_results;
-	}
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-
-	/* delete old one */
-	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-	}
-
-	(void) cache_delete_entry( &li->li_cache, e );
-	free( e->e_dn );
-	free( e->e_ndn );
-	e->e_dn = new_dn;
-	e->e_ndn = new_ndn;
-
-	/* add new one */
-	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-	}
-
 
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
@@ -438,12 +418,44 @@ ldbm_back_modrdn(
 	}
 #endif
 
+	/* check for abandon */
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+	if ( op->o_abandon ) {
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+		goto return_results;
+	}
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+
+	/* delete old one */
+	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+		goto return_results;
+	}
+
+	(void) cache_delete_entry( &li->li_cache, e );
+
+	/* XXX: there is no going back! */
+
+	free( e->e_dn );
+	free( e->e_ndn );
+	e->e_dn = new_dn;
+	e->e_ndn = new_ndn;
+	new_dn = NULL;
+	new_ndn = NULL;
+
+	/* add new one */
+	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			NULL, NULL, NULL, NULL );
+		goto return_results;
+	}
+
 	/* modify memory copy of entry */
 	if ( ldbm_modify_internal( be, conn, op, dn, &mod[0], e )
 	     != 0 ) {
 	    
 	    goto return_results;
-	    
 	}
 	
 	(void) cache_update_entry( &li->li_cache, e );
@@ -457,27 +469,19 @@ ldbm_back_modrdn(
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 			NULL, NULL, NULL, NULL );
-		goto return_results_after;
+		goto return_results;
 	}
 
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
 	rc = 0;
-	goto return_results_after;	
 
 return_results:
 	if( new_dn != NULL ) free( new_dn );
 	if( new_ndn != NULL ) free( new_ndn );
 
-return_results_after:
-	/* NOTE:
-	 * new_dn and new_ndn are not deallocated because they are used by
-	 * the cache entry.
-	 */
 	if( p_dn != NULL ) free( p_dn );
 	if( p_ndn != NULL ) free( p_ndn );
-
-	if( matched != NULL ) free( matched );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_type != NULL ) free(new_rdn_type);

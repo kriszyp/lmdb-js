@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1995 Regents of the University of Michigan.
  * All rights reserved.
@@ -17,7 +18,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 
 
@@ -125,6 +125,7 @@ do_search(
 			send_ldap_result( conn, op, err,
 				NULL, "Bad search filter", NULL, NULL );
 		}
+		rc = -1;
 		goto return_results;
 	}
 

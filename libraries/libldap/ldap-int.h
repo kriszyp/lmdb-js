@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -299,7 +300,8 @@ void ldap_int_utils_init LDAP_P(( void ));
 /*
  * in print.c
  */
-int ldap_log_printf LDAP_P((LDAP *ld, int level, const char *fmt, ...));
+int ldap_log_printf LDAP_P((LDAP *ld, int level, const char *fmt, ...))
+                    LDAP_GCCATTR((format(printf, 3, 4)));
 
 /*
  * in cache.c

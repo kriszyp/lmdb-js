@@ -1,4 +1,5 @@
 /* dn2id.c - routines to deal with the dn2id index */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -18,7 +19,7 @@
 int
 dn2id_add(
     Backend	*be,
-    char	*dn,
+    const char	*dn,
     ID		id
 )
 {
@@ -28,6 +29,7 @@ dn2id_add(
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id_add( \"%s\", %ld )\n", dn, id, 0 );
+	assert( id != NOID );
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
@@ -87,7 +89,6 @@ dn2id_add(
 
 			charray_free( subtree );
 		}
-
 	}
 
 	ldbm_cache_close( be, db );
@@ -99,7 +100,7 @@ dn2id_add(
 ID
 dn2id(
     Backend	*be,
-    char	*dn
+    const char	*dn
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -142,6 +143,8 @@ dn2id(
 
 	(void) memcpy( (char *) &id, data.dptr, sizeof(ID) );
 
+	assert( id != NOID );
+
 	ldbm_datum_free( db->dbc_db, data );
 
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld\n", id, 0, 0 );
@@ -151,7 +154,7 @@ dn2id(
 ID_BLOCK *
 dn2idl(
     Backend	*be,
-    char	*dn,
+    const char	*dn,
 	int		prefix
 )
 {
@@ -187,14 +190,17 @@ dn2idl(
 int
 dn2id_delete(
     Backend	*be,
-    char	*dn
+    const char	*dn,
+	ID id
 )
 {
 	DBCache	*db;
 	Datum		key;
 	int		rc;
 
-	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\" )\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> dn2id_delete( \"%s\", %ld )\n", dn, id, 0 );
+
+	assert( id != NOID );
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 	    == NULL ) {
@@ -202,6 +208,44 @@ dn2id_delete(
 		    "<= dn2id_delete could not open dn2id%s\n", LDBM_SUFFIX,
 		    0, 0 );
 		return( -1 );
+	}
+
+
+	{
+		char *pdn = dn_parent( NULL, dn );
+
+		if( pdn != NULL ) {
+			ldbm_datum_init( key );
+			key.dsize = strlen( pdn ) + 2;
+			key.dptr = ch_malloc( key.dsize );
+			sprintf( key.dptr, "%c%s", DN_ONE_PREFIX, pdn );
+
+			(void) idl_delete_key( be, db, key, id );
+
+			free( key.dptr );
+			free( pdn );
+		}
+	}
+
+	{
+		char **subtree = dn_subtree( NULL, dn );
+
+		if( subtree != NULL ) {
+			int i;
+			for( i=0; subtree[i] != NULL; i++ ) {
+				ldbm_datum_init( key );
+				key.dsize = strlen( subtree[i] ) + 2;
+				key.dptr = ch_malloc( key.dsize );
+				sprintf( key.dptr, "%c%s",
+					DN_SUBTREE_PREFIX, subtree[i] );
+
+				(void) idl_delete_key( be, db, key, id );
+
+				free( key.dptr );
+			}
+
+			charray_free( subtree );
+		}
 	}
 
 	ldbm_datum_init( key );
@@ -228,12 +272,11 @@ dn2id_delete(
 Entry *
 dn2entry_rw(
     Backend	*be,
-    char	*dn,
+    const char	*dn,
     Entry	**matched,
     int         rw
 )
 {
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	ID		id;
 	Entry		*e = NULL;
 	char		*pdn;

@@ -1,4 +1,5 @@
 /* testavl.c - Test Tim Howes AVL code */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

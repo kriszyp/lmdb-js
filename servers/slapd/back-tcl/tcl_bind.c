@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* bind.c - tcl bind routines
- *
- * $Id: tcl_bind.c,v 1.8 1999/08/02 23:38:43 hallvard Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

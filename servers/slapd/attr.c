@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -22,7 +23,7 @@
 #include <sys/param.h>
 #endif
 
-#include "ldap_defaults.h"
+#include "ldap_pvt.h"
 #include "slap.h"
 
 #ifdef LDAP_DEBUG
@@ -67,6 +68,8 @@ Attribute *attr_dup( Attribute *a )
 
 		for( i=0; a->a_vals[i] != NULL; i++ ) {
 			tmp->a_vals[i] = ber_bvdup( a->a_vals[i] );
+
+			if( tmp->a_vals[i] == NULL ) break;
 		}
 
 		tmp->a_vals[i] = NULL;
@@ -109,7 +112,7 @@ attr_normalize( char *s )
 {
 	assert( s != NULL );
 
-	return( str2lower( s ) );
+	return( ldap_pvt_str2lower( s ) );
 }
 
 /*
@@ -191,7 +194,7 @@ attr_merge(
 Attribute *
 attr_find(
     Attribute	*a,
-    char	*type
+    const char	*type
 )
 {
 	for ( ; a != NULL; a = a->a_next ) {
@@ -213,7 +216,7 @@ attr_find(
 int
 attr_delete(
     Attribute	**attrs,
-    char	*type
+    const char	*type
 )
 {
 	Attribute	**a;
@@ -261,7 +264,7 @@ attr_syntax( char *type )
 
 void
 attr_syntax_config(
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv
@@ -693,8 +696,8 @@ at_schema_info( Entry *e )
 		val.bv_val = ldap_attributetype2str( &at->sat_atype );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging at [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging at [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "attributeTypes", vals );
 			ldap_memfree( val.bv_val );
 		} else {

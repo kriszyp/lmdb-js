@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
@@ -167,7 +168,7 @@ typedef struct ldapcontrol {
 #define LDAP_CHASE_SUBORDINATE_REFERRALS	0x0020
 #define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040
 
-#define LDAP_CONTROL_MANAGEDSAIT "2.16.16.840.1.113730.3.4.2"
+#define LDAP_CONTROL_MANAGEDSAIT "2.16.840.1.113730.3.2.6"
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_DISCONNECT	"1.3.6.1.4.1.1466.20036"
@@ -869,6 +870,27 @@ ldap_modify_s LDAP_P((
  * in modrdn.c:
  */
 LDAP_F( int )
+ldap_rename LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	int *msgidp ));
+
+LDAP_F( int )
+ldap_rename_s LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
+
+LDAP_F( int )
 ldap_rename_ext LDAP_P((
 	LDAP			*ld,
 	LDAP_CONST char	*dn,
@@ -1034,38 +1056,38 @@ ldap_add_result_entry LDAP_P((
 /*
  * in getdn.c
  */
-LDAP_F( char *)
+LDAP_F( char * )
 ldap_get_dn LDAP_P((
 	LDAP *ld,
 	LDAPMessage *entry ));
 
-LDAP_F( char *)
+LDAP_F( char * )
 ldap_dn2ufn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char **)
+LDAP_F( char ** )
 ldap_explode_dn LDAP_P((
 	LDAP_CONST char *dn,
 	int notypes ));
 
-LDAP_F( char **)
+LDAP_F( char ** )
 ldap_explode_rdn LDAP_P((
 	LDAP_CONST char *rdn,
 	int notypes ));
 
-LDAP_F( char *)
-ldap_parent_dn LDAP_P((	/* new (from slapd) */
+LDAP_F( char * )
+ldap_parent_dn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char *)
-ldap_relative_dn LDAP_P((	/* new (from slapd) */
+LDAP_F( char * )
+ldap_relative_dn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char *)
-ldap_normalize_dn LDAP_P((	/* new (from slapd) */
+LDAP_F( char * )
+ldap_normalize_dn LDAP_P((
 	LDAP_CONST char *dn ));
 
-LDAP_F( char **)
+LDAP_F( char ** )
 ldap_explode_dns LDAP_P(( /* deprecated */
 	LDAP_CONST char *dn ));
 

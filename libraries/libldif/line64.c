@@ -1,4 +1,5 @@
 /* line64.c - routines for dealing with the slapd line format */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -110,6 +111,9 @@ ldif_parse_line(
 	}
 	*s++ = '\0';
 
+	url = 0;
+	b64 = 0;
+
 	if ( *s == '\0' ) {
 		/* no value */
 		value = NULL;
@@ -117,9 +121,6 @@ ldif_parse_line(
 		goto done;
 	}
 		
-	url = 0;
-	b64 = 0;
-
 	if ( *s == '<' ) {
 		s++;
 		url = 1;
@@ -341,11 +342,12 @@ ldif_sput(
 			len++;
 		}
 
-#ifdef LDAP_DEBUG
-	} else {
-		assert( type == LDIF_PUT_COMMENT );
-#endif
 	}
+#ifdef LDAP_DEBUG
+	else {
+		assert( type == LDIF_PUT_COMMENT );
+	}
+#endif
 
 	switch( type ) {
 	case LDIF_PUT_NOVALUE:
@@ -552,7 +554,7 @@ ldif_read_record(
 	char        **bufp,     /* ptr to malloced output buffer           */
 	int         *buflenp )  /* ptr to length of *bufp                  */
 {
-	char        linebuf[BUFSIZ], *line;
+	char        linebuf[BUFSIZ], *line, *nbufp;
 	ber_len_t   lcur = 0, len, linesize;
 	int         last_ch = '\n', found_entry = 0, stop;
 
@@ -588,7 +590,8 @@ ldif_read_record(
 		}
 
 		if ( *buflenp - lcur <= len ) {
-			char *nbufp = ber_memrealloc( *bufp, *buflenp += len + BUFSIZ );
+			*buflenp += len + BUFSIZ;
+			nbufp = ber_memrealloc( *bufp, *buflenp );
 			if( nbufp == NULL ) {
 				return 0;
 			}

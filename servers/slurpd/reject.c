@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -17,20 +18,18 @@
  * to a replica LDAP server.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
-#include <sys/types.h>
+
+#include <ac/errno.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
-
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
-
 
 /*
  * Write a replication record to a reject file.  The reject file has the
@@ -52,7 +51,7 @@ write_reject(
     FILE	*rfp, *lfp;
     int		rc;
 
-    pthread_mutex_lock( &sglob->rej_mutex );
+    ldap_pvt_thread_mutex_lock( &sglob->rej_mutex );
     sprintf( rejfile, "%s/%s:%d.rej", sglob->slurpd_rdir,
 	    ri->ri_hostname, ri->ri_port );
 
@@ -64,7 +63,7 @@ write_reject(
 	    Debug( LDAP_DEBUG_ANY,
 		"Error: write_reject: Cannot create \"%s\": %s\n",
 		rejfile, sys_errlist[ errno ], 0 );
-	    pthread_mutex_unlock( &sglob->rej_mutex );
+	    ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
 	    return;
 	} else {
 	    close( rjfd );
@@ -90,7 +89,7 @@ write_reject(
 		"Error: ldap operation failed, data written to \"%s\"\n",
 		rejfile, 0, 0 );
     }
-    pthread_mutex_unlock( &sglob->rej_mutex );
+    ldap_pvt_thread_mutex_unlock( &sglob->rej_mutex );
     return;
 }
 

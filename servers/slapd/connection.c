@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -35,7 +36,9 @@ static unsigned long conn_nextid = 0;
 #define SLAP_C_BINDING			0x03	/* binding */
 #define SLAP_C_CLOSING			0x04	/* closing */
 
-char* connection_state2str( int state ) {
+const char *
+connection_state2str( int state )
+{
 	switch( state ) {
 	case SLAP_C_INVALID:	return "!";		
 	case SLAP_C_INACTIVE:	return "|";		
@@ -348,8 +351,6 @@ long connection_init(
 #endif
 
     assert( c != NULL );
-    assert( c->c_struct_state != SLAP_C_USED );
-    assert( c->c_conn_state == SLAP_C_INVALID );
 
     if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
         c->c_dn = NULL;
@@ -370,6 +371,7 @@ long connection_init(
 #endif
 
         c->c_sb = ber_sockbuf_alloc( );
+		c->c_currentber = NULL;
 
         /* should check status of thread calls */
         ldap_pvt_thread_mutex_init( &c->c_mutex );
@@ -395,6 +397,7 @@ long connection_init(
 #ifdef HAVE_CYRUS_SASL
 	assert( c->c_sasl_context == NULL );
 #endif
+	assert( c->c_currentber == NULL );
 
 	c->c_listener_url = ch_strdup( url  );
 	c->c_peer_domain = ch_strdup( dnsname  );
@@ -501,6 +504,11 @@ connection_destroy( Connection *c )
 		c->c_sasl_context = NULL;
 	}
 #endif
+
+	if ( c->c_currentber != NULL ) {
+		ber_free( c->c_currentber, 1 );
+		c->c_currentber = NULL;
+	}
 
 	if ( ber_pvt_sb_in_use(c->c_sb) ) {
 		int sd = ber_pvt_sb_get_desc(c->c_sb);
@@ -916,8 +924,7 @@ connection_input(
 
 		Debug( LDAP_DEBUG_TRACE,
 			"ber_get_next on fd %d failed errno=%d (%s)\n",
-			ber_pvt_sb_get_desc( conn->c_sb ), err,
-			err > -1 && err < sys_nerr ?  sys_errlist[err] : "unknown" );
+			ber_pvt_sb_get_desc( conn->c_sb ), err, STRERROR(err) );
 		Debug( LDAP_DEBUG_TRACE,
 			"\t*** got %ld of %lu so far\n",
 			(long)(conn->c_currentber->ber_rwptr - conn->c_currentber->ber_buf),

@@ -1,0 +1,58 @@
+#! /bin/sh
+# $OpenLDAP$
+## Copyright 1998,1999 The OpenLDAP Foundation
+## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+## of this package for details.
+#
+# Create a version.c file
+#
+PACKAGE=OpenLDAP
+VERSION=unknown
+SYMBOL=__Version
+static=static
+const=const
+while :
+	do case "$1" in
+		-p)
+			PACKAGE=$2
+			shift; shift ;;
+		-v)
+			VERSION=$2
+			shift; shift ;;
+
+		-c)
+			const=
+			shift ;;
+		-n)
+			SYMBOL=$2
+			shift; shift ;;
+		-s)
+			static=
+			shift ;;
+
+#		-*) shift ;;
+		*)
+			break ;;
+	esac
+done
+
+if test $# != 1 ; then
+	echo 'usage: mkversion [-c] [-s] [-p package] [-v version] application'
+	exit 1
+fi
+
+APPLICATION=$1
+WHEN=`date`
+WHOWHERE="$USER@`uname -n`:`pwd`"
+
+cat << __EOF__
+/*
+ * Copyright 1998,1999 The OpenLDAP Foundation
+ * COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+ * of this package for details.
+ */
+
+$static $const char $SYMBOL[] =
+"@(#) \$$PACKAGE: $APPLICATION $VERSION ($WHEN) \$\n\t$WHOWHERE\n";
+
+__EOF__

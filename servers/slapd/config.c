@@ -1,4 +1,5 @@
 /* config.c - configuration file handling routines */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -15,7 +16,7 @@
 #include <ac/ctype.h>
 #include <ac/socket.h>
 
-#include "ldap_defaults.h"
+#include "ldap_pvt.h"
 #include "slap.h"
 
 #define MAXARGS	100
@@ -27,6 +28,7 @@ int		defsize = SLAPD_DEFAULT_SIZELIMIT;
 int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
 int		global_default_access = ACL_READ;
+int		global_readonly = 0;
 char		*replogfile;
 int		global_lastmod = ON;
 int		global_idletimeout = 0;
@@ -43,7 +45,7 @@ static int	fp_parse_line(char *line, int *argcp, char **argv);
 static char	*strtok_quote(char *line, char *sep);
 
 int
-read_config( char *fname )
+read_config( const char *fname )
 {
 	FILE	*fp;
 	char	*line, *savefname, *saveline;
@@ -131,9 +133,6 @@ read_config( char *fname )
 			}
 			bi = NULL;
 			be = backend_db_init( cargv[1] );
-
- 		/* assign a default depth limit for alias deref */
-		be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
@@ -235,7 +234,7 @@ read_config( char *fname )
 				char *dn = ch_strdup( cargv[1] );
 				(void) dn_normalize( dn );
 				charray_add( &be->be_suffix, dn );
-				(void) str2upper( dn );
+				(void) ldap_pvt_str2upper( dn );
 				charray_add( &be->be_nsuffix, dn );
 				free( dn );
 			}
@@ -368,9 +367,7 @@ read_config( char *fname )
 				return( 1 );
 			}
 			if ( be == NULL ) {
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: readonly line must appear inside a database definition (ignored)\n",
-				    fname, lineno, 0 );
+				global_readonly = (strcasecmp( cargv[1], "on" ) == 0);
 			} else {
 				if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 					be->be_readonly = 1;

@@ -1,6 +1,5 @@
-/*
- * Generic socket.h
- */
+/* Generic socket.h */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
@@ -67,8 +66,15 @@
 #define MAXHOSTNAMELEN  64
 #endif
 
+#undef	sock_errno
+#undef	sock_errstr
+#define sock_errno()	errno
+#define sock_errstr(e)	STRERROR(e)
+
 #ifdef HAVE_WINSOCK
-#	define tcp_close( s )		closesocket( s );
+#	define tcp_close( s )		closesocket( s )
+#	define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
+#	define tcp_write( s, buf, len )	send( s, buf, len, 0 )
 #	define ioctl( s, c, a )		ioctlsocket( (s), (c), (a) )
 #	define ioctl_t				u_long
 #	define AC_SOCKET_INVALID	((unsigned int) ~0)
@@ -77,15 +83,28 @@
 #define EINPROGRESS WSAEINPROGRESS
 #define ETIMEDOUT	WSAETIMEDOUT
 
+#undef	sock_errno
+#undef	sock_errstr
+#define	sock_errno()	WSAGetLastError()
+#define	sock_errstr(e)	WSAGetErrorString(e)
+
+extern char* WSAGetErrorString LDAP_P((int));
+
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
+#	define tcp_read( s, buf, len )	tcpread( s, buf, len )
+#	define tcp_write( s, buf, len )	tcpwrite( s, buf, len )
 
 #elif DOS
 #	ifdef PCNFS
 #		define tcp_close( s )	close( s )
+#		define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
+#		define tcp_write( s, buf, len )	send( s, buf, len, 0 )
 #	endif /* PCNFS */
 #	ifdef NCSA
 #		define tcp_close( s )	do { netclose( s ); netshut() } while(0)
+#		define tcp_read( s, buf, len )	nread( s, buf, len )
+#		define tcp_write( s, buf, len )	netwrite( s, buf, len )
 #	endif /* NCSA */
 
 #elif HAVE_CLOSESOCKET
@@ -93,6 +112,17 @@
 
 #else
 #	define tcp_close( s )		close( s )
+#	define tcp_read( s, buf, len)	read( s, buf, len )
+#	define tcp_write( s, buf, len)	write( s, buf, len )
+
+#ifdef HAVE_PIPE
+/*
+ * Only use pipe() on systems where file and socket descriptors 
+ * are interchangable
+ */
+#define USE_PIPE HAVE_PIPE
+#endif
+
 #endif /* MACOS */
 
 #ifndef ioctl_t
@@ -101,6 +131,9 @@
 
 #ifndef AC_SOCKET_INVALID
 #	define AC_SOCKET_INVALID	(-1)
+#endif
+#ifndef AC_SOCKET_ERROR
+#	define AC_SOCKET_ERROR		(-1)
 #endif
 
 #if !defined( HAVE_INET_ATON ) && !defined( inet_aton )

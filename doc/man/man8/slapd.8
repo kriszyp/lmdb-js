@@ -1,16 +1,21 @@
-.TH SLAPD 8C "6 November 1995" "U-M LDAP LDVERSION"
+.TH SLAPD 8C "3 April 1999" "OpenLDAP LDVERSION"
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
-.B ETCDIR/slapd [\-d debug\-level]
-.B [\-f slapd\-config\-file] [\-p port\-number]
-.B [\-s syslog\-level] [\-i]
+.B LIBEXECDIR/slapd 
+.B [\-f slapd\-config\-file]
+.B [\-h URLs]
+.B [\-d debug\-level]
+.B [\-p port\-number]
+.B [\-P tls\-port\-number]
+.B [\-s syslog\-level] [\-l syslog\-local\-user]
+.B [\-u user] [\-g group]
 .B 
 .SH DESCRIPTION
 .LP
 .B Slapd
 is the stand-alone LDAP daemon. It listens for LDAP connections on
-port 389, responding
+any number of ports (default 389), responding
 to the LDAP operations it receives over these connections.
 .B slapd
 is typically invoked at boot time, usually out of
@@ -18,10 +23,22 @@ is typically invoked at boot time, usually out of
 Upon startup,
 .B slapd
 normally forks and disassociates itself from the invoking tty.
+If configured in
+.BR ETCDIR/slapd.conf ,
+the
+.B slapd
+process will print its process ID ( see
+.BR getpid (2)
+) to a 
+.B .pid
+file, as well as the command line options during invocation to an
+.B .args
+file ( see 
+.BR slapd.conf (5)
+).
 If the
 .B \-d
-flag is given and debugging is set to some non-zero
-value,
+flag is given, even with a zero argument,
 .B slapd
 will not fork and disassociate from the invoking tty.
 .LP
@@ -41,7 +58,7 @@ See "The SLAPD and SLURPD Administrator's Guide" for more details on
 .BI \-d " debug\-level"
 Turn on debugging as defined by
 .I debug\-level.
-If this option is specified,
+If this option is specified, even with a zero argument,
 .B slapd
 will not fork or disassociate from the invoking terminal.  Some general
 operation and status messages are printed for any value of \fIdebug\-level\fP.
@@ -55,21 +72,76 @@ at what level debugging statements should be logged to the
 .BR syslog (8)
 facility.
 .TP
+.BI \-l " syslog\-local\-user"
+Selects the local user of the
+.BR syslog (8)
+facility. Values can be 
+.BR LOCAL0 , 
+.BR LOCAL1 , 
+and so on, up to 
+.BR LOCAL7 . 
+The default is
+.BR LOCAL4 .
+However, this option is only permitted on systems that support
+local users with the 
+.BR syslog (8)
+facility.
+.TP
 .BI \-f " slapd\-config\-file"
 Specifies the slapd configuration file. The default is
 .BR ETCDIR/slapd.conf .
 .TP
+.BI \-h " URLlist"
+.B slapd
+will serve
+.B ldap:///
+(LDAP over TCP on all interfaces on default LDAP port).  As such,
+it will bind to INADDR_ANY, port 389.
+The
+.B \-h
+option may be used to specify LDAP (and LDAPS) URLs to serve.
+For example, if slapd is given
+.B \-h " ldap://127.0.0.1:9009/ ldaps:///", 
+It will bind 127.0.0.1:9009 for LDAP and INADDR_ANY:636 for LDAP over TLS.
+A space separated list of URLs is expected.  The URLS should be of
+LDAP (ldap://) or, if supported, LDAP over TLS (ldaps://) type without
+a DN or other optional parameters.  Hosts may be specified in either
+Internet '.' format (preferred) or by name.  Ports, if specfied,
+must be numeric.
+.TP
 .BI \-p " port\-number"
 .B slapd
-will listen on the default LDAP port (389) unless this option is given
-to override the default.
+will use on the default port (389) for LDAP URLs unless this
+option is given to override the default.
+A numeric port number is expected.
 .TP
-.B \-i
-This option tells
+.BI \-P " tls\-port\-number"
 .B slapd
-that it is being run from
-.BR inetd(8) ,
-the Internet protocol daemon.
+will use on the default port (636) for LDAPS (LDAP over TLS) URLs
+unless this option is given to override the default.  A numeric port
+number is expected.
+.TP
+.BI \-P " port\-number"
+Changes the port where 
+.B slapd
+will expect LDAP over raw TLS connections.  If this option is not given,
+the default port for this purpose (636) will be used.  A numeric port
+number is expected.
+.TP
+.BI \-u " user"
+.B slapd
+will run slapd with the specified user name or id, and that user's
+supplementary group access list as set with initgroups(3).  The group ID
+is also changed to this user's gid, unless the -g option is used to
+override.
+.TP
+.BI \-g " group"
+.B slapd
+will run with the specified group name or id.
+.LP
+Note that on some systems, running as a non-privileged user will prevent
+passwd back-ends from accessing the encrypted passwords.  Note also that
+any shell back-ends will run as the specified non-privileged user.
 .SH EXAMPLES
 To start 
 .I slapd
@@ -78,7 +150,7 @@ the LDAP databases defined in the default config file, just type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd
+	LIBEXECDIR/slapd
 .ft
 .fi
 .LP
@@ -89,7 +161,7 @@ on voluminous debugging which will be printed on standard error, type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd -f /usr/local/slapd/slapd.conf -d 255
+	LIBEXECDIR/slapd -f ETCDIR/slapd.conf -d 255
 .ft
 .fi
 .LP
@@ -102,3 +174,8 @@ on voluminous debugging which will be printed on standard error, type:
 .SH BUGS
 When using the LDBM database backend, the Modify RDN operation does not
 update the attribute values in the entry that are affected by the change.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

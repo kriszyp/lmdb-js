@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* modify.c - tcl modify routines
- *
- * $Id: tcl_modify.c,v 1.7 1999/08/02 23:38:43 hallvard Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

@@ -1,4 +1,5 @@
 /* close.c - close bdb2 backend database */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

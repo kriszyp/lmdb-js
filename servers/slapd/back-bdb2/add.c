@@ -1,4 +1,5 @@
 /* add.c - ldap bdb2 back-end add routine */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 
@@ -243,7 +244,7 @@ bdb2i_back_add_internal(
 	if ( bdb2i_id2entry_add( be, e ) != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb2i_id2entry_add failed\n", 0,
 		    0, 0 );
-		(void) bdb2i_dn2id_delete( be, e->e_ndn );
+		(void) bdb2i_dn2id_delete( be, e->e_ndn, e->e_id );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
  			NULL, NULL, NULL, NULL );
 

@@ -1,4 +1,5 @@
 /* result.c - routines to send ldap results, errors, and referrals */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 
@@ -12,7 +13,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 
 /* we need LBER internals */
@@ -79,13 +79,13 @@ static void trim_refs_urls(
 	if( refs == NULL ) return;
 
 	for( i=0; refs[i] != NULL; i++ ) {
-		if(	refs[i]->bv_len > sizeof("ldap://") &&
+		if(	refs[i]->bv_len > sizeof("ldap://")-1 &&
 			strncasecmp( refs[i]->bv_val, "ldap://",
 				sizeof("ldap://")-1 ) == 0 )
 		{
 			unsigned j;
-			for( j=sizeof("ldap://"); j<refs[i]->bv_len ; j++ ) {
-				if( refs[i]->bv_val[j] = '/' ) {
+			for( j=sizeof("ldap://")-1; j<refs[i]->bv_len ; j++ ) {
+				if( refs[i]->bv_val[j] == '/' ) {
 					refs[i]->bv_val[j] = '\0';
 					refs[i]->bv_len = j;
 					break;
@@ -169,10 +169,11 @@ static long send_ldap_ber(
 		if ( connection_state_closing( conn ) ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+
 			return 0;
 		}
 
-		if ( ber_flush( conn->c_sb, ber, 1 ) == 0 ) {
+		if ( ber_flush( conn->c_sb, ber, 0 ) == 0 ) {
 			break;
 		}
 
@@ -185,14 +186,14 @@ static long send_ldap_ber(
 		 */
 
 		Debug( LDAP_DEBUG_CONNS, "ber_flush failed errno=%d reason=\"%s\"\n",
-		    err, err > -1 && err < sys_nerr ? sys_errlist[err]
-		    : "unknown", 0 );
+		    err, STRERROR(err), 0 );
 
 		if ( err != EWOULDBLOCK && err != EAGAIN ) {
 			connection_closing( conn );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+
 			return( -1 );
 		}
 
@@ -217,10 +218,10 @@ send_ldap_response(
 	ber_tag_t	tag,
 	ber_int_t	msgid,
     ber_int_t	err,
-    char	*matched,
-    char	*text,
+    const char	*matched,
+    const char	*text,
 	struct berval	**ref,
-	char	*resoid,
+	const char	*resoid,
 	struct berval	*resdata,
 	LDAPControl **ctrls
 )
@@ -273,11 +274,13 @@ send_ldap_response(
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+		ber_free( ber, 1 );
 		return;
 	}
 
 	/* send BER */
 	bytes = send_ldap_ber( conn, ber );
+	ber_free( ber, 1 );
 
 	if ( bytes < 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -299,7 +302,7 @@ send_ldap_disconnect(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
-    char	*text
+    const char	*text
 )
 {
 	ber_tag_t tag;
@@ -353,8 +356,8 @@ send_ldap_result(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
-    char	*matched,
-    char	*text,
+    const char	*matched,
+    const char	*text,
 	struct berval **ref,
 	LDAPControl **ctrls
 )
@@ -381,7 +384,8 @@ send_ldap_result(
 			err = LDAP_NO_SUCH_OBJECT;
 		} else if ( op->o_protocol < LDAP_VERSION3 ) {
 			err = LDAP_PARTIAL_RESULTS;
-			tmp = text = v2ref( ref );
+			tmp = v2ref( ref );
+			text = tmp;
 			ref = NULL;
 		}
 	}
@@ -420,8 +424,8 @@ send_search_result(
     Connection	*conn,
     Operation	*op,
     ber_int_t	err,
-    char	*matched,
-	char	*text,
+    const char	*matched,
+	const char	*text,
     struct berval **refs,
 	LDAPControl **ctrls,
     int		nentries
@@ -445,7 +449,8 @@ send_search_result(
 			err = LDAP_PARTIAL_RESULTS;
 		}
 
-		tmp = text = v2ref( refs );
+		tmp = v2ref( refs );
+		text = tmp;
 		refs = NULL;
 
 	} else {
@@ -463,7 +468,7 @@ send_search_result(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		ber_pvt_sb_udp_set_dst( &conn->c_sb, &op->o_clientaddr );
+		ber_pvt_sb_udp_set_dst( conn->c_sb, &op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),
@@ -570,7 +575,7 @@ send_search_entry(
 		acl = acl_get_applicable( be, op, e, a->a_type,
 			MAXREMATCHES, matches );
 
-		if ( ! acl_access_allowed( acl, be, conn, e,
+		if ( ! acl_access_allowed( acl, a->a_type, be, conn, e,
 			NULL, op, ACL_READ, edn, matches ) ) 
 		{
 			continue;
@@ -587,7 +592,7 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 				if ( a->a_syntax & SYNTAX_DN && 
-					! acl_access_allowed( acl, be, conn, e, a->a_vals[i], op,
+					! acl_access_allowed( acl, a->a_type, be, conn, e, a->a_vals[i], op,
 						ACL_READ, edn, matches) )
 				{
 					continue;
@@ -645,7 +650,7 @@ send_search_entry(
 		acl = acl_get_applicable( be, op, e, a->a_type,
 			MAXREMATCHES, matches );
 
-		if ( ! acl_access_allowed( acl, be, conn, e,
+		if ( ! acl_access_allowed( acl, a->a_type, be, conn, e,
 			NULL, op, ACL_READ, edn, matches ) ) 
 		{
 			continue;
@@ -662,7 +667,7 @@ send_search_entry(
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 				if ( a->a_syntax & SYNTAX_DN && 
-					! acl_access_allowed( acl, be, conn, e, a->a_vals[i], op,
+					! acl_access_allowed( acl, a->a_type, be, conn, e, a->a_vals[i], op,
 						ACL_READ, edn, matches) )
 				{
 					continue;
@@ -700,6 +705,7 @@ send_search_entry(
 	}
 
 	bytes = send_ldap_ber( conn, ber );
+	ber_free( ber, 1 );
 
 	if ( bytes < 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -799,6 +805,7 @@ send_search_reference(
 	}
 
 	bytes = send_ldap_ber( conn, ber );
+	ber_free( ber, 1 );
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;

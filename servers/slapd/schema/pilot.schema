@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 # These come from RFC1274 and are in ASN.1 syntax.  They have been
 # translated with some imagination.  Only attributes and classes we
 # already had are here.  In general, the matching rules in the

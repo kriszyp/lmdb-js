@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1999 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
@@ -160,7 +161,7 @@ ldap_matchingrule2str LDAP_P((
 
 LDAP_F( char *)
 ldap_scherr2str LDAP_P((
-	int code ));
+	int code )) LDAP_GCCATTR((const));
 
 LDAP_END_DECL
 

@@ -1,55 +1,40 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  ufn.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
 
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/stdlib.h>
 
-#include "lber.h"
-#include "ldap.h"
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#ifdef NEEDPROTOS
-typedef int (*cancelptype)( void *cancelparm );
-#else /* NEEDPROTOS */
-typedef int (*cancelptype)();
-#endif /* NEEDPROTOS */
+#include "ldap-int.h"
+#include "ldap_defaults.h"
 
-#ifdef NEEDPROTOS
-static int ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, 
+typedef int (*cancelptype) LDAP_P(( void *cancelparm ));
+
+/* local functions */
+static int ldap_ufn_search_ctx LDAP_P(( LDAP *ld, char **ufncomp, int ncomp, 
 	char *prefix, char **attrs, int attrsonly, LDAPMessage **res, 
 	cancelptype cancelproc, void *cancelparm, char *tag1, char *tag2,
-	char *tag3 );
-static LDAPMessage *ldap_msg_merge( LDAP *ld, LDAPMessage *a, LDAPMessage *b );
-static LDAPMessage *ldap_ufn_expand( LDAP *ld, cancelptype cancelproc,
+	char *tag3 ));
+static LDAPMessage *ldap_msg_merge LDAP_P(( LDAP *ld, LDAPMessage *a, LDAPMessage *b ));
+static LDAPMessage *ldap_ufn_expand LDAP_P(( LDAP *ld, cancelptype cancelproc,
 	void *cancelparm, char **dns, char *filter, int scope,
-	char **attrs, int aonly, int *err );
-LDAPFiltDesc *ldap_ufn_setfilter( LDAP *ld, char *fname );
-#else /* NEEDPROTOS */
-static LDAPMessage *ldap_msg_merge();
-static LDAPMessage *ldap_ufn_expand();
-LDAPFiltDesc *ldap_ufn_setfilter();
-#endif /* NEEDPROTOS */
+	char **attrs, int aonly, int *err ));
 
 /*
  * ldap_ufn_search_ctx - do user friendly searching; provide cancel feature;
@@ -63,8 +48,8 @@ LDAPFiltDesc *ldap_ufn_setfilter();
  *	attrsonly	1 => attributes only 0 => attributes and values
  *	res		will contain the result of the search
  *	cancelproc	routine that returns non-zero if operation should be
- *			cancelled.  This can be NULL.  If it is non-NULL, the
- *			routine will be called periodically.
+ *			cancelled.  This can be a null function pointer.  If
+ *			it is not 0, the routine will be called periodically.
  *	cancelparm	void * that is passed to cancelproc
  *	tag[123]	the ldapfilter.conf tag that will be used in phases
  *			1, 2, and 3 of the search, respectively
@@ -83,13 +68,12 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 	char **attrs, int attrsonly, LDAPMessage **res, cancelptype cancelproc,
 	void *cancelparm, char *tag1, char *tag2, char *tag3 )
 {
-	char		*dn, *ftag;
-	char		**dns;
-	int		max, i, err, scope, phase, tries;
+	char		*dn, *ftag = NULL;
+	char		**dns = NULL;
+	int		max, i, err, scope = 0, phase, tries;
 	LDAPFiltInfo	*fi;
 	LDAPMessage	*tmpcand;
 	LDAPMessage	*candidates;
-	LDAPMessage	*ldap_msg_merge(), *ldap_ufn_expand();
 	static char	*objattrs[] = { "objectClass", NULL };
 
 	/* 
@@ -115,7 +99,8 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 
 			if ( (quote = strrchr( ufncomp[ncomp], '"' )) != NULL )
 				*quote = '\0';
-			strcpy( ufncomp[ncomp], ufncomp[ncomp] + 1 );
+			SAFEMEMCPY( ufncomp[ncomp], ufncomp[ncomp] + 1,
+				    strlen( ufncomp[ncomp] + 1 ) + 1 );
 		}
 		if ( ncomp == 0 )
 			phase = 3;
@@ -142,11 +127,11 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 
 		if ( candidates == NULL ) {
 			if ( prefix != NULL ) {
-				if ( (dns = (char **) malloc( sizeof(char *)
+				if ( (dns = (char **) LDAP_MALLOC( sizeof(char *)
 				    * 2 )) == NULL ) {
 					return( ld->ld_errno = LDAP_NO_MEMORY );
 				}
-				dns[0] = strdup( prefix );
+				dns[0] = LDAP_STRDUP( prefix );
 				dns[1] = NULL;
 			} else {
 				dns = NULL;
@@ -161,14 +146,14 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 					continue;
 
 				if ( dns == NULL ) {
-					if ( (dns = (char **) malloc(
+					if ( (dns = (char **) LDAP_MALLOC(
 					    sizeof(char *) * 8 )) == NULL ) {
 						ld->ld_errno = LDAP_NO_MEMORY;
 						return( LDAP_NO_MEMORY );
 					}
 					max = 8;
 				} else if ( i >= max ) {
-					if ( (dns = (char **) realloc( dns,
+					if ( (dns = (char **) LDAP_REALLOC( dns,
 					    sizeof(char *) * 2 * max ))
 					    == NULL )
 					{
@@ -234,13 +219,14 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 }
 
 int
-ldap_ufn_search_ct( LDAP *ld, char *ufn, char **attrs, int attrsonly,
+ldap_ufn_search_ct(
+	LDAP *ld, LDAP_CONST char *ufn, char **attrs, int attrsonly,
 	LDAPMessage **res, cancelptype cancelproc, void *cancelparm,
 	char *tag1, char *tag2, char *tag3 )
 {
 	char	**ufncomp, **prefixcomp;
 	char	*pbuf;
-	int	ncomp, pcomp, i, err;
+	int	ncomp, pcomp, i, err = 0;
 
 	/* initialize the getfilter stuff if it's not already */
 	if ( ld->ld_filtd == NULL && ldap_ufn_setfilter( ld, FILTERFILE )
@@ -280,7 +266,7 @@ ldap_ufn_search_ct( LDAP *ld, char *ufn, char **attrs, int attrsonly,
 	}
 	for ( pcomp = 0; prefixcomp[pcomp] != NULL; pcomp++ )
 		;	/* NULL */
-	if ( (pbuf = (char *) malloc( strlen( ld->ld_ufnprefix ) + 1 ))
+	if ( (pbuf = (char *) LDAP_MALLOC( strlen( ld->ld_ufnprefix ) + 1 ))
 	    == NULL ) {	
 		ldap_value_free( ufncomp );
 		ldap_value_free( prefixcomp );
@@ -309,7 +295,7 @@ ldap_ufn_search_ct( LDAP *ld, char *ufn, char **attrs, int attrsonly,
 
 	ldap_value_free( ufncomp );
 	ldap_value_free( prefixcomp );
-	free( pbuf );
+	LDAP_FREE( pbuf );
 
 	return( err );
 }
@@ -319,7 +305,8 @@ ldap_ufn_search_ct( LDAP *ld, char *ufn, char **attrs, int attrsonly,
  * ldapfilter.conf tags.
  */
 int
-ldap_ufn_search_c( LDAP *ld, char *ufn, char **attrs, int attrsonly,
+ldap_ufn_search_c(
+	LDAP *ld, LDAP_CONST char *ufn, char **attrs, int attrsonly,
 	LDAPMessage **res, cancelptype cancelproc, void *cancelparm )
 {
 	return( ldap_ufn_search_ct( ld, ufn, attrs, attrsonly, res, cancelproc,
@@ -330,7 +317,8 @@ ldap_ufn_search_c( LDAP *ld, char *ufn, char **attrs, int attrsonly,
  * same as ldap_ufn_search_c without the cancel function
  */
 int
-ldap_ufn_search_s( LDAP *ld, char *ufn, char **attrs, int attrsonly,
+ldap_ufn_search_s(
+	LDAP *ld, LDAP_CONST char *ufn, char **attrs, int attrsonly,
 	LDAPMessage **res )
 {
 	struct timeval	tv;
@@ -444,7 +432,7 @@ ldap_ufn_expand( LDAP *ld, cancelptype cancelproc, void *cancelparm,
 
 		do {
 			*err = ldap_result( ld, msgid, 1, &tv, &tmpres );
-			if ( *err == 0 && cancelproc != NULL &&
+			if ( *err == 0 && cancelproc != 0 &&
 			    (*cancelproc)( cancelparm ) != 0 ) {
 				ldap_abandon( ld, msgid );
 				*err = LDAP_USER_CANCELLED;
@@ -476,7 +464,7 @@ ldap_ufn_expand( LDAP *ld, cancelptype cancelproc, void *cancelparm,
  */
 
 LDAPFiltDesc *
-ldap_ufn_setfilter( LDAP *ld, char *fname )
+ldap_ufn_setfilter( LDAP *ld, LDAP_CONST char *fname )
 {
 	if ( ld->ld_filtd != NULL )
 		ldap_getfilter_free( ld->ld_filtd );
@@ -485,12 +473,12 @@ ldap_ufn_setfilter( LDAP *ld, char *fname )
 }
 
 void
-ldap_ufn_setprefix( LDAP *ld, char *prefix )
+ldap_ufn_setprefix( LDAP *ld, LDAP_CONST char *prefix )
 {
 	if ( ld->ld_ufnprefix != NULL )
-		free( ld->ld_ufnprefix );
+		LDAP_FREE( ld->ld_ufnprefix );
 
-	ld->ld_ufnprefix = strdup( prefix );
+	ld->ld_ufnprefix = LDAP_STRDUP( prefix );
 }
 
 int

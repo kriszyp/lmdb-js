@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -31,7 +32,6 @@
 #include <io.h>
 #endif
 
-#include "ldap_defaults.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 

@@ -1,4 +1,5 @@
 /* search.c - ldbm backend search function */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -317,7 +318,8 @@ loop_continue:
 	rc = 0;
 
 done:
-	idl_free( candidates );
+	if( candidates != NULL )
+		idl_free( candidates );
 
 	ber_bvecfree( v2refs );
 	if( realbase ) free( realbase );
@@ -352,7 +354,6 @@ search_candidates(
 	int		manageDSAit
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID_BLOCK		*candidates;
 	Filter		*f, *rf, *af, *lf;
 

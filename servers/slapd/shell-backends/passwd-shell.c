@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  passwd-shell.c - /etc/passwd shell-based backend for standalone ldap server
 

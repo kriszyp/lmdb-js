@@ -1,4 +1,5 @@
 /* dn.c - routines for dealing with distinguished names */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -12,6 +13,8 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+
+#include "ldap_pvt.h"
 
 #include "slap.h"
 
@@ -181,7 +184,7 @@ dn_normalize( char *dn )
 char *
 dn_normalize_case( char *dn )
 {
-	str2upper( dn );
+	ldap_pvt_str2upper( dn );
 
 	/* normalize format */
 	dn = dn_normalize( dn );
@@ -197,10 +200,10 @@ dn_normalize_case( char *dn )
 char *
 dn_parent(
     Backend	*be,
-    char	*dn
+    const char	*dn
 )
 {
-	char	*s;
+	const char	*s;
 	int	inquote;
 
 	if( dn == NULL ) {
@@ -219,6 +222,7 @@ dn_parent(
 		return( NULL );
 	}
 
+#ifdef DNS_DN
 	/*
 	 * no =, assume it is a dns name, like blah@some.domain.name
 	 * if the blah@ part is there, return some.domain.name.  if
@@ -236,6 +240,7 @@ dn_parent(
 			return( ch_strdup( &s[1] ) );
 		}
 	}
+#endif
 
 	/*
 	 * else assume it is an X.500-style name, which looks like
@@ -345,21 +350,19 @@ char * dn_rdn(
  */
 char **dn_subtree(
 	Backend	*be,
-    char	*dn )
+    const char	*dn )
 {
 	char *child, *parent;
 	char **subtree = NULL;
 	
-	child = dn;
+	child = ch_strdup( dn );
 
 	do {
 		charray_add( &subtree, child );
 
 		parent = dn_parent( be, child );
 
-		if( child != dn ) {
-			free( child );
-		}
+		free( child );
 
 		child = parent;
 	} while ( child != NULL );
@@ -408,33 +411,6 @@ dn_type( char *dn )
 	return( strchr( dn, '=' ) == NULL ? DN_DNS : DN_X500 );
 }
 #endif
-
-char *
-str2upper( char *str )
-{
-	char    *s;
-
-	/* normalize case */
-	for ( s = str; *s; s++ ) {
-		*s = TOUPPER( (unsigned char) *s );
-	}
-
-	return( str );
-}
-
-char *
-str2lower( char *str )
-{
-	char    *s;
-
-	/* normalize case */
-	for ( s = str; *s; s++ ) {
-		*s = TOLOWER( (unsigned char) *s );
-	}
-
-	return( str );
-}
-
 
 /*
  * get_next_substring(), rdn_attr_type(), rdn_attr_value(), and
@@ -551,7 +527,10 @@ int rdn_validate( const char * rdn )
  */
 
 void
-build_new_dn( char ** new_dn, char *e_dn, char * p_dn, char * newrdn )
+build_new_dn( char ** new_dn,
+	const char *e_dn,
+	const char * p_dn,
+	const char * newrdn )
 {
 
     if ( p_dn == NULL ) {

@@ -1,4 +1,5 @@
 /* acl.c - routines to parse and check acl's */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -19,14 +20,14 @@
 static void		split(char *line, int splitchar, char **left, char **right);
 static void		acl_append(AccessControl **l, AccessControl *a);
 static void		access_append(Access **l, Access *a);
-static void		acl_usage(void);
+static void		acl_usage(void) LDAP_GCCATTR((noreturn));
 #ifdef LDAP_DEBUG
 static void		print_acl(AccessControl *a);
 static void		print_access(Access *b);
 #endif
 
 static int
-regtest(char *fname, int lineno, char *pat) {
+regtest(const char *fname, int lineno, char *pat) {
 	int e;
 	regex_t re;
 
@@ -64,7 +65,7 @@ regtest(char *fname, int lineno, char *pat) {
 	if ( size >= (sizeof(buf)-1) ) {
 		fprintf( stderr,
 			"%s: line %d: regular expression \"%s\" too large\n",
-			fname, lineno, pat, 0 );
+			fname, lineno, pat );
 		acl_usage();
 	}
 
@@ -84,7 +85,7 @@ regtest(char *fname, int lineno, char *pat) {
 void
 parse_acl(
     Backend	*be,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv
@@ -106,6 +107,11 @@ parse_acl(
 				acl_usage();
 			}
 			a = (AccessControl *) ch_calloc( 1, sizeof(AccessControl) );
+			a->acl_filter = NULL;
+			a->acl_dn_pat = NULL;
+			a->acl_attrs  = NULL;
+			a->acl_access = NULL;
+			a->acl_next   = NULL;
 			for ( ++i; i < argc; i++ ) {
 				if ( strcasecmp( argv[i], "by" ) == 0 ) {
 					i--;
@@ -135,20 +141,7 @@ parse_acl(
 					}
 
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
-					int e;
-
-					if ((e = regcomp(&a->acl_dn_re, right,
-						REG_EXTENDED|REG_ICASE))) {
-						char buf[512];
-						regerror(e, &a->acl_dn_re, buf, sizeof(buf));
-						fprintf( stderr,
-				"%s: line %d: regular expression \"%s\" bad because of %s\n",
-							fname, lineno, right, buf );
-						acl_usage();
-
-					} else {
 						a->acl_dn_pat = ch_strdup( right );
-					}
 
 				} else if ( strncasecmp( left, "attr", 4 ) == 0 ) {
 					char	**alist;
@@ -161,6 +154,19 @@ parse_acl(
 					fprintf( stderr,
 						"%s: line %d: expecting <what> got \"%s\"\n",
 					    fname, lineno, left );
+					acl_usage();
+				}
+			}
+
+			if ( a->acl_dn_pat != NULL ) {
+				int e = regcomp( &a->acl_dn_re, a->acl_dn_pat,
+				                 REG_EXTENDED | REG_ICASE );
+				if ( e ) {
+					char buf[512];
+					regerror( e, &a->acl_dn_re, buf, sizeof(buf) );
+					fprintf( stderr,
+				"%s: line %d: regular expression \"%s\" bad because of %s\n",
+					         fname, lineno, right, buf );
 					acl_usage();
 				}
 			}
@@ -321,6 +327,23 @@ parse_acl(
 					continue;
 				}
 
+#ifdef SLAPD_ACI_ENABLED
+				if ( strcasecmp( left, "aci" ) == 0 ) {
+					if( b->a_aci_at != NULL ) {
+						fprintf( stderr,
+							"%s: line %d: aci attribute already specified.\n",
+							fname, lineno );
+						acl_usage();
+					}
+
+					if ( right != NULL && *right != '\0' )
+						b->a_aci_at = ch_strdup( right );
+					else
+						b->a_aci_at = ch_strdup( SLAPD_ACI_DEFAULT_ATTR );
+					continue;
+				}
+#endif
+
 				/* get <access> */
 				if ( ACL_IS_INVALID(ACL_SET(b->a_access, str2access( left ))) ) {
 					fprintf( stderr,
@@ -441,6 +464,9 @@ acl_usage( void )
 			"\t[group[/<objectclass>[/<attrname>]]=<regex>]\n"
 			"\t[peername=<regex>] [sockname=<regex>]\n"
 			"\t[domain=<regex>] [sockurl=<regex>]\n"
+#ifdef SLAPD_ACI_ENABLED
+			"\t[aci=<attrname>]\n"
+#endif
 		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
 		);
 	exit( EXIT_FAILURE );
@@ -527,6 +553,12 @@ print_access( Access *b )
 	if ( b->a_sockurl_pat != NULL ) {
 		fprintf( stderr, " sockurl=%s", b->a_sockurl_pat );
 	}
+
+#ifdef SLAPD_ACI_ENABLED
+	if ( b->a_aci_at != NULL ) {
+		fprintf( stderr, " aci=%s", b->a_aci_at );
+	}
+#endif
 
 	fprintf( stderr, "\n" );
 }

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -21,7 +22,7 @@
 #define DEFSEP		"="
 
 static void
-usage( char *s )
+usage( const char *s )
 {
 	fprintf( stderr,
 "usage: %s [options] filter [attributes...]\nwhere:\n"
@@ -561,7 +562,8 @@ static int dosearch(
 }
 
 
-void print_entry(
+static void
+print_entry(
 	LDAP	*ld,
 	LDAPMessage	*entry,
 	int		attrsonly)
@@ -679,7 +681,7 @@ void print_entry(
 }
 
 
-int
+static int
 write_ldif( int type, char *name, char *value, ber_len_t vallen )
 {
 	char	*ldif;

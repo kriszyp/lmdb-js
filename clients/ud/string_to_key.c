@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 #include "portable.h"
 
 #if defined(HAVE_KERBEROS) && !defined(openbsd)

@@ -1,4 +1,5 @@
 /* operation.c - routines to deal with pending ldap operations */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -96,7 +97,7 @@ slap_op_remove( Operation **olist, Operation *op )
 
 	if ( *tmp == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %ld\n",
-		    op->o_msgid, 0, 0 );
+		       (long) op->o_msgid, 0, 0 );
 		return -1; 
 	}
 

@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 SRCS	= search.c config.c init.c
 OBJS	= search.lo config.lo init.lo
 

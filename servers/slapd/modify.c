@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -123,6 +124,9 @@ do_modify(
 		    (*modtail)->ml_op != LDAP_MOD_DELETE &&
 		    (*modtail)->ml_op != LDAP_MOD_REPLACE )
 		{
+			Debug( LDAP_DEBUG_ANY,
+				"do_modify: invalid modify operation (%ld)\n",
+				(long) (*modtail)->ml_op, 0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "unrecognized modify operation", NULL, NULL );
 			free( ndn );
@@ -130,11 +134,16 @@ do_modify(
 			return LDAP_PROTOCOL_ERROR;
 		}
 
-		if ( (*modtail)->ml_bvalues == NULL
-			&& (*modtail)->ml_op != LDAP_MOD_DELETE )
+		if ( (*modtail)->ml_bvalues == NULL && (
+			(*modtail)->ml_op != LDAP_MOD_REPLACE &&
+			(*modtail)->ml_op != LDAP_MOD_DELETE ) )
 		{
+			Debug( LDAP_DEBUG_ANY,
+				"do_modify: invalid modify operation (%ld) without values\n",
+				(long) (*modtail)->ml_op, 0, 0 );
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-			    NULL, "unrecognized modify operation", NULL, NULL );
+			    NULL, "unrecognized modify operation without values",
+				NULL, NULL );
 			free( ndn );
 			modlist_free( modlist );
 			return LDAP_PROTOCOL_ERROR;
@@ -176,6 +185,14 @@ do_modify(
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		return rc;
+	}
+
+	if ( global_readonly || be->be_readonly ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: database is read-only\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+		                  NULL, "database is read-only", NULL, NULL );
+		goto done;
 	}
 
 	/* deref suffix alias if appropriate */
@@ -235,6 +252,7 @@ do_modify(
 		    NULL, "Function not implemented", NULL, NULL );
 	}
 
+done:
 	free( ndn );
 	modlist_free( modlist );
 	return rc;

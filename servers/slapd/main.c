@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -15,7 +16,6 @@
 #include <ac/signal.h>
 #include <ac/errno.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 #include "lutil.h"
 
@@ -75,15 +75,15 @@ typedef struct _str2intDispatch {
 
 /* table to compute syslog-options to integer */
 static STRDISP  syslog_types[] = {
-    { "LOCAL0",         6, LOG_LOCAL0 },
-    { "LOCAL1",         6, LOG_LOCAL1 },
-    { "LOCAL2",         6, LOG_LOCAL2 },
-    { "LOCAL3",         6, LOG_LOCAL3 },
-    { "LOCAL4",         6, LOG_LOCAL4 },
-    { "LOCAL5",         6, LOG_LOCAL5 },
-    { "LOCAL6",         6, LOG_LOCAL6 },
-    { "LOCAL7",         6, LOG_LOCAL7 },
-    { NULL }
+	{ "LOCAL0", sizeof("LOCAL0"), LOG_LOCAL0 },
+	{ "LOCAL1", sizeof("LOCAL1"), LOG_LOCAL1 },
+	{ "LOCAL2", sizeof("LOCAL2"), LOG_LOCAL2 },
+	{ "LOCAL3", sizeof("LOCAL3"), LOG_LOCAL3 },
+	{ "LOCAL4", sizeof("LOCAL4"), LOG_LOCAL4 },
+	{ "LOCAL5", sizeof("LOCAL5"), LOG_LOCAL5 },
+	{ "LOCAL6", sizeof("LOCAL6"), LOG_LOCAL6 },
+	{ "LOCAL7", sizeof("LOCAL7"), LOG_LOCAL7 },
+	{ NULL }
 };
 
 static int   cnvt_str2int( char *, STRDISP_P, int );
@@ -133,7 +133,7 @@ void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
 int main( int argc, char **argv )
 #endif
 {
-	int		i;
+	int		i, no_detach = 0;
 	int		rc;
 	char *urls = NULL;
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
@@ -173,7 +173,11 @@ int main( int argc, char **argv )
 	{
 		int *i;
 		char *newConfigFile;
-		if ( is_NT_Service ) CommenceStartupProcessing( NTservice, slap_set_shutdown );
+
+		if ( is_NT_Service ) {
+			CommenceStartupProcessing( NTservice, slap_sig_shutdown );
+		}
+
 		i = (int*)getRegParam( NULL, "Port" );
 		if ( i != NULL )
 		{
@@ -226,19 +230,20 @@ int main( int argc, char **argv )
 			     )) != EOF ) {
 		switch ( i ) {
 		case 'h':	/* listen URLs */
+			if ( urls != NULL ) free( urls );
 			urls = ch_strdup( optarg );
             break;
 
+		case 'd':	/* set debug level and 'do not detach' flag */
+			no_detach = 1;
 #ifdef LDAP_DEBUG
-		case 'd':	/* turn on debugging */
 			slap_debug |= atoi( optarg );
-			break;
 #else
-		case 'd':	/* turn on debugging */
-			fprintf( stderr,
-			    "must compile with LDAP_DEBUG for debugging\n" );
-			break;
+			if ( atoi( optarg ) != 0 )
+				fputs( "must compile with LDAP_DEBUG for debugging\n",
+				       stderr );
 #endif
+			break;
 
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );
@@ -365,30 +370,27 @@ int main( int argc, char **argv )
 	ldap_pvt_tls_init_def_ctx();
 #endif
 
-	(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
-	(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
+	(void) SIGNAL( LDAP_SIGUSR1, slap_sig_wake );
+	(void) SIGNAL( LDAP_SIGUSR2, slap_sig_shutdown );
+
 #ifdef SIGPIPE
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
 #endif
 #ifdef SIGHUP
-	(void) SIGNAL( SIGHUP, slap_set_shutdown );
+	(void) SIGNAL( SIGHUP, slap_sig_shutdown );
 #endif
-	(void) SIGNAL( SIGINT, slap_set_shutdown );
-	(void) SIGNAL( SIGTERM, slap_set_shutdown );
+	(void) SIGNAL( SIGINT, slap_sig_shutdown );
+	(void) SIGNAL( SIGTERM, slap_sig_shutdown );
 #ifdef LDAP_SIGCHLD
 	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
 #ifdef SIGBREAK
 	/* SIGBREAK is generated when Ctrl-Break is pressed. */
-	(void) SIGNAL( SIGBREAK, slap_set_shutdown );
+	(void) SIGNAL( SIGBREAK, slap_sig_shutdown );
 #endif
 
 #ifndef HAVE_WINSOCK
-#ifdef LDAP_DEBUG
-		lutil_detach( ldap_debug, 0 );
-#else
-		lutil_detach( 0, 0 );
-#endif
+		lutil_detach( no_detach, 0 );
 #endif /* HAVE_WINSOCK */
 
 #ifdef CSRIMALLOC

@@ -1,4 +1,5 @@
 /* bind.c - decode an ldap bind operation and pass it to a backend db */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -35,7 +36,8 @@ do_bind(
 	ber_int_t		version;
 	ber_tag_t method;
 	char		*mech;
-	char		*dn, *ndn;
+	char		*dn;
+	char *ndn;
 	ber_tag_t	tag;
 	int			rc = LDAP_SUCCESS;
 	struct berval	cred;

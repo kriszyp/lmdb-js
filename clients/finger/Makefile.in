@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 SRCS=	main.c
 XSRCS=	version.c
 OBJS=	main.o

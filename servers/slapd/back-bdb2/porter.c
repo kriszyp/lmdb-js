@@ -1,4 +1,5 @@
 /* porter.c - port functions of the bdb2 backend */
+/* $OpenLDAP$ */
 
 #include "portable.h"
 

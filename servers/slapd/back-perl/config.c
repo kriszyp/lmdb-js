@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
  *
@@ -30,7 +31,7 @@
 int
 perl_back_db_config(
 	 BackendDB *be,
-	 char *fname,
+	 const char *fname,
 	 int lineno,
 	 int argc,
 	 char **argv

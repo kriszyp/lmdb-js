@@ -1,4 +1,5 @@
 /* delete.c - ldbm backend delete routine */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -24,7 +25,7 @@ ldbm_back_delete(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	Entry	*matched = NULL;
+	Entry	*matched;
 	char	*pdn = NULL;
 	Entry	*e, *p = NULL;
 	int rootlock = 0;
@@ -104,7 +105,7 @@ ldbm_back_delete(
 
 	/* delete from parent's id2children entry */
 	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
-		if( (p = dn2entry_w( be, pdn, &matched )) == NULL) {
+		if( (p = dn2entry_w( be, pdn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: parent does not exist\n",
 				0, 0, 0);
@@ -141,7 +142,7 @@ ldbm_back_delete(
 	}
 
 	/* delete from dn2id mapping */
-	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
+	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
@@ -179,8 +180,6 @@ return_results:;
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
-
-	if ( matched != NULL ) free(matched);
 
 	return rc;
 }

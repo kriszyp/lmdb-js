@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -16,8 +17,6 @@
 
 #include "slap.h"
 #include "lutil.h"
-
-#include "ldap_defaults.h"
 
 #ifdef SLAPD_LDAP
 #include "back-ldap/external.h"
@@ -277,8 +276,6 @@ int backend_shutdown( Backend *be )
 
 	/* close each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
-		BackendInfo  *bi;
-
 		if ( backendDB[i].bd_info->bi_db_close ) {
 			backendDB[i].bd_info->bi_db_close(
 				&backendDB[i] );
@@ -287,7 +284,7 @@ int backend_shutdown( Backend *be )
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_close: bi_close %s failed!\n",
-				bi->bi_type, 0, 0 );
+				backendDB[i].be_type, 0, 0 );
 		}
 	}
 
@@ -339,7 +336,7 @@ int backend_destroy(void)
 	return 0;
 }
 
-BackendInfo* backend_info(char *type)
+BackendInfo* backend_info(const char *type)
 {
 	int i;
 
@@ -356,7 +353,7 @@ BackendInfo* backend_info(char *type)
 
 BackendDB *
 backend_db_init(
-    char	*type
+    const char	*type
 )
 {
 	Backend	*be;
@@ -379,6 +376,9 @@ backend_db_init(
 	be->bd_info = bi;
 	be->be_sizelimit = defsize;
 	be->be_timelimit = deftime;
+
+ 	/* assign a default depth limit for alias deref */
+	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
 
 	be->be_realm = global_realm != NULL
 		? ch_strdup( global_realm ) : NULL;
@@ -410,7 +410,7 @@ be_db_close( void )
 }
 
 Backend *
-select_backend( char * dn )
+select_backend( const char * dn )
 {
 	int	i, j, len, dnlen;
 
@@ -452,7 +452,7 @@ select_backend( char * dn )
 int
 be_issuffix(
     Backend	*be,
-    char	*suffix
+    const char	*suffix
 )
 {
 	int	i;
@@ -467,7 +467,7 @@ be_issuffix(
 }
 
 int
-be_isroot( Backend *be, char *ndn )
+be_isroot( Backend *be, const char *ndn )
 {
 	int rc;
 
@@ -491,7 +491,7 @@ be_root_dn( Backend *be )
 }
 
 int
-be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
+be_isroot_pw( Backend *be, const char *ndn, struct berval *cred )
 {
 	int result;
 
@@ -578,10 +578,10 @@ int
 backend_group(
 	Backend	*be,
 	Entry	*target,
-	char	*gr_ndn,
-	char	*op_ndn,
-	char	*objectclassValue,
-	char	*groupattrName
+	const char	*gr_ndn,
+	const char	*op_ndn,
+	const char	*objectclassValue,
+	const char	*groupattrName
 )
 {
 	if (be->be_group)

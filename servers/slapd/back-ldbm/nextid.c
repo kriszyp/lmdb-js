@@ -1,4 +1,5 @@
 /* nextid.c - keep track of the next id to be given out */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -21,7 +22,6 @@
 static ID
 next_id_read( Backend *be )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID id = NOID;
 	Datum key, data;
 	DBCache *db;

@@ -1,4 +1,5 @@
 /* config.c - ldbm backend configuration file routine */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -18,7 +19,7 @@
 int
 ldbm_back_db_config(
     Backend	*be,
-    char	*fname,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv

@@ -2,8 +2,6 @@ dn: o=University of Michigan, c=US
 objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 l: Ann Arbor, Michigan
 st: Michigan
 streetaddress: 535 West William St.
@@ -21,30 +19,22 @@ associateddomain: umich.edu
 dn: ou=People, o=University of Michigan, c=US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: People
 
 dn: ou=Groups, o=University of Michigan, c=US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: Groups
 
 dn: ou=Alumni Association, ou=People, o=University of Michigan, c=US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: Alumni Association
 
 dn: ou=Information Technology Division, ou=People, o=University of Michigan, c
  =US
 objectclass: top
 objectclass: organizationalUnit
-objectclass: quipuObject
-objectclass: quipuNonLeafObject
 ou: Information Technology Divisio
 
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
@@ -333,7 +323,6 @@ telephonenumber: +1 313 555 9394
 dn: cn=Manager, o=University of Michigan, c=US
 objectclass: top
 objectclass: person
-objectclass: quipuObject
 objectclass: kerberosSecurityObject
 cn: Manager
 cn: Directory Manager

@@ -1,4 +1,5 @@
 #! /bin/sh
+# $OpenLDAP$
 
 # disable LDAP initialization
 LDAPNOINIT=true; export LDAPNOINIT

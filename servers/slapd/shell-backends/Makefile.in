@@ -1,0 +1,22 @@
+# $OpenLDAP$
+
+PROGRAMS = passwd-shell
+
+SRCS = passwd-shell.c shellutil.c
+XSRCS = pwd-version.c
+OBJS = passwd-shell.o shellutil.o
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-shell"
+BUILD_SRV = @BUILD_SHELL@
+
+all-local-srv: $(PROGRAMS)
+
+passwd-shell:	pwd-version.o
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) pwd-version.o $(LIBS)
+
+pwd-version.c: $(OBJS) $(LDAP_LIBDEPEND)
+	@-$(RM) $@
+	$(MKVERSION) passwd-shell > $@

@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 SRCS = idl.c add.c search.c cache.c dbcache.c dn2id.c entry.c id2entry.c \
 		index.c id2children.c nextid.c abandon.c compare.c group.c \
 		modify.c modrdn.c delete.c init.c config.c bind.c attr.c \

@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -83,6 +84,15 @@ do_delete(
 			NULL, NULL, default_referral, NULL );
 		free( ndn );
 		return rc;
+	}
+
+	if ( global_readonly || be->be_readonly ) {
+		Debug( LDAP_DEBUG_ANY, "do_delete: database is read-only\n",
+		       0, 0, 0 );
+		free( ndn );
+		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+		                  NULL, "database is read-only", NULL, NULL );
+		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
 	/* deref suffix alias if appropriate */

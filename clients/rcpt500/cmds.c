@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * cmds.c: command table for rcpt500 (X.500 email query responder)
  *
@@ -6,7 +7,9 @@
  * All Rights Reserved
  */
 
-#include <stdio.h>
+#include "portable.h"
+
+#include <ac/stdlib.h>
 #include "rcpt500.h"
 
 struct command cmds[] = {

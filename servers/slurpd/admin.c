@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1996 Regents of the University of Michigan.
  * All rights reserved.
@@ -15,9 +16,11 @@
  * reconfiguration of slurpd.
  */
 
+#include "portable.h"
 
 #include <stdio.h>
-#include <signal.h>
+
+#include <ac/signal.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -33,9 +36,9 @@
  * slurpd receives a USR2 signal, it will dump its replication 
  * queue to the disk file given by SLURPD_DUMPFILE.
  */
-void
-do_admin()
+RETSIGTYPE
+do_admin( int sig )
 {
     sglob->rq->rq_dump( sglob->rq );
-    (void) SIGNAL( SIGUSR2, (void *) do_admin );
+    (void) SIGNAL( sig, do_admin );
 }

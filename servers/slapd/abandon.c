@@ -1,4 +1,5 @@
 /* abandon.c - decode and handle an ldap abandon operation */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -99,7 +100,7 @@ done:
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon: op=%ld %sfound\n",
-		id, notfound ? "not " : "", 0 );
+	       (long) id, notfound ? "not " : "", 0 );
 
 	return LDAP_SUCCESS;
 }

@@ -1,4 +1,5 @@
 /* idl.c - ldap id list handling routines */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -11,7 +12,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -79,10 +79,11 @@ idl_fetch_one(
 		return NULL;
 	}
 
-	idl = idl_dup( (ID_BLOCK *) data.dptr);
+	idl = idl_dup((ID_BLOCK *) data.dptr);
+
 	ldbm_datum_free( db->dbc_db, data );
 
-	return( idl );
+	return idl;
 }
 
 
@@ -470,7 +471,8 @@ idl_insert_key(
 		rc = idl_change_first( be, db, key, idl, i, k2, tmp );
 		break;
 
-	case 2:		/* id not inserted - already there */
+	case 2:		/* id not inserted - already there, do nothing */
+		rc = 0;
 		break;
 
 	case 3:		/* id not inserted - block is full */
@@ -491,7 +493,8 @@ idl_insert_key(
 				Debug( LDAP_DEBUG_ANY,
 				    "idl_fetch_one (%s) returns NULL\n",
 				    k2.dptr, 0, 0 );
-				break;
+				/* split the original block */
+				goto split;
 			}
 
 			switch ( (rc = idl_insert( &tmp2, id,
@@ -517,13 +520,18 @@ idl_insert_key(
 			case 3:		/* split the original block */
 				break;
 			}
+
 			idl_free( tmp2 );
 		}
 
+split:
 		/*
 		 * must split the block, write both new blocks + update
 		 * and write the indirect header block.
 		 */
+
+		rc = 0;	/* optimistic */
+
 
 		/* count how many indirect blocks *//* XXX linear count XXX */
 		for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ )
@@ -651,8 +659,8 @@ idl_insert( ID_BLOCK **idl, ID id, unsigned int maxids )
 	}
 
 	/* make a slot for the new id */
-	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i), &ID_BLOCK_ID(*idl, i+1), 
-		ID_BLOCK_NIDS(*idl) - i );
+	SAFEMEMCPY( &ID_BLOCK_ID(*idl, i+1), &ID_BLOCK_ID(*idl, i),
+	            (ID_BLOCK_NIDS(*idl) - i) * sizeof(ID) );
 
 	ID_BLOCK_ID(*idl, i) = id;
 	ID_BLOCK_NIDS(*idl)++;
@@ -674,7 +682,7 @@ idl_delete_key (
 )
 {
 	Datum  data;
-	ID_BLOCK *idl, *tmp;
+	ID_BLOCK *idl;
 	unsigned i;
 	int j, nids;
 	char	*kstr;
@@ -725,6 +733,7 @@ idl_delete_key (
 
 	for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) 
 	{
+		ID_BLOCK *tmp;
 		ldbm_datum_init( data );
 		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 			ID_BLOCK_ID(idl, j), key.dptr );

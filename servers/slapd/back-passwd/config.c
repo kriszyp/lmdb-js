@@ -1,16 +1,21 @@
 /* config.c - passwd backend configuration file routine */
+/* $OpenLDAP$ */
+
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include "portable.h"
-#include "slap.h"
 
-passwd_back_config(
-    Backend	*be,
-    char	*fname,
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "slap.h"
+#include "external.h"
+
+int
+passwd_back_db_config(
+    BackendDB	*be,
+    const char	*fname,
     int		lineno,
     int		argc,
     char	**argv
@@ -23,9 +28,9 @@ passwd_back_config(
 			fprintf( stderr,
 		"%s: line %d: missing filename in \"file <filename>\" line\n",
 			    fname, lineno );
-			exit( 1 );
+			return( 1 );
 		}
-		be->be_private = strdup( argv[1] );
+		be->be_private = ch_strdup( argv[1] );
 #else /* HAVE_SETPWFILE */
 		fprintf( stderr,
     "%s: line %d: ignoring \"file\" option (not supported on this platform)\n",
@@ -38,4 +43,6 @@ passwd_back_config(
 "%s: line %d: unknown directive \"%s\" in passwd database definition (ignored)\n",
 		    fname, lineno, argv[0] );
 	}
+
+	return( 0 );
 }

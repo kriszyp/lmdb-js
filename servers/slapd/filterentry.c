@@ -1,4 +1,5 @@
 /* filterentry.c - apply a filter to an entry */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -283,18 +284,24 @@ test_filter_list(
 }
 
 static void
-strcpy_special( char *d, char *s )
+strcpy_regex( char *d, char *s )
 {
 	for ( ; *s; s++ ) {
 		switch ( *s ) {
+		case '^':
 		case '.':
-		case '\\':
 		case '[':
-		case ']':
+		case ']': /* ? */
+		case '$':
+		case '(':
+		case ')': /* ? */
+		case '|':
 		case '*':
 		case '+':
-		case '^':
-		case '$':
+		case '?':
+		case '{':
+		case '}': /* ? */
+		case '\\':
 			*d++ = '\\';
 			/* FALL */
 		default:
@@ -356,7 +363,7 @@ test_substring_filter(
 			    0, 0, 0 );
 			return( -1 );
 		}
-		strcpy_special( p, f->f_sub_initial );
+		strcpy_regex( p, f->f_sub_initial );
 		p = strchr( p, '\0' );
 	}
 	if ( f->f_sub_any != NULL ) {
@@ -369,7 +376,7 @@ test_substring_filter(
 			}
 			strcpy( p, ".*" );
 			p = strchr( p, '\0' );
-			strcpy_special( p, f->f_sub_any[i] );
+			strcpy_regex( p, f->f_sub_any[i] );
 			p = strchr( p, '\0' );
 		}
 	}
@@ -382,7 +389,7 @@ test_substring_filter(
 		}
 		strcpy( p, ".*" );
 		p = strchr( p, '\0' );
-		strcpy_special( p, f->f_sub_final );
+		strcpy_regex( p, f->f_sub_final );
 		p = strchr( p, '\0' );
 		strcpy( p, "$" );
 	}
@@ -390,7 +397,7 @@ test_substring_filter(
 	/* compile the regex */
 	Debug( LDAP_DEBUG_FILTER, "test_substring_filter: regcomp pat: %s\n",
 		pat, 0, 0 );
-	if ((rc = regcomp(&re, pat, 0))) {
+	if ((rc = regcomp(&re, pat, REG_EXTENDED|REG_NOSUB))) {
 		char error[512];
 
 		regerror(rc, &re, error, sizeof(error));

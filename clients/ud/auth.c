@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1991, 1992 Regents of the University of Michigan.
  * All rights reserved.
@@ -294,17 +295,6 @@ auth( char *who, int implicit )
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"
 
-static void
-str2upper( char *s )
-{
-	char	*p;
-
-	for ( p = s; *p != '\0'; ++p ) {
-		*p = TOUPPER( (unsigned char) *p );
-	}
-}
-
-
 static int
 valid_tgt( char **names )
 {
@@ -324,7 +314,7 @@ valid_tgt( char **names )
 		/*
 		 * realm must be uppercase for krb_ routines
 		 */
-		str2upper( realm );
+		ldap_pvt_str2upper( realm );
 #endif /* HAVE_AFS_KERBEROS */
 
 		/*
@@ -395,7 +385,7 @@ kinit( char *kname )
 	/*
 	 * realm must be uppercase for krb_ routines
 	 */
-	str2upper( realm );
+	ldap_pvt_str2upper( realm );
 #endif /* HAVE_AFS_KERBEROS */
 
 	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,

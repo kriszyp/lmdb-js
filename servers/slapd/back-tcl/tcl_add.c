@@ -1,6 +1,5 @@
+/* $OpenLDAP$ */
 /* add.c - tcl add routine
- *
- * $Id: tcl_add.c,v 1.7 1999/08/02 23:38:43 hallvard Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *

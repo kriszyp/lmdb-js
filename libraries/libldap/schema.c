@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -1260,9 +1261,6 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 	int seen_substr = 0;
 	int seen_syntax = 0;
 	int seen_usage = 0;
-	int seen_kind = 0;
-	int seen_must = 0;
-	int seen_may = 0;
 	LDAP_ATTRIBUTE_TYPE * at;
 	char ** ssdummy;
 	const char * savepos;
@@ -1837,7 +1835,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 	}
 }
 
-static char *err2text[] = {
+static char *const err2text[] = {
 	"",
 	"Out of memory",
 	"Unexpected token",

@@ -1,38 +1,33 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  friendly.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
+#include <ac/stdlib.h>
 
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS */
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#if !defined( MACOS ) && !defined( DOS )
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
-
-#include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
 
 char *
-ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
+ldap_friendly_name(
+	LDAP_CONST char *filename,
+	/* LDAP_CONST */ char *uname,
+	LDAPFriendlyMap **map )
 {
 	int	i, entries;
 	FILE	*fp;
@@ -40,9 +35,7 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 	char	buf[BUFSIZ];
 
 	if ( map == NULL ) {
-#if !defined( MACOS ) && !defined( DOS )
 		errno = EINVAL;
-#endif
 		return( uname );
 	}
 
@@ -57,8 +50,8 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 		}
 		rewind( fp );
 
-		if ( (*map = (FriendlyMap *) malloc( (entries + 1) *
-		    sizeof(FriendlyMap) )) == NULL ) {
+		if ( (*map = (LDAPFriendlyMap *) LDAP_MALLOC( (entries + 1) *
+		    sizeof(LDAPFriendlyMap) )) == NULL ) {
 			fclose( fp );
 			return( uname );
 		}
@@ -94,37 +87,37 @@ ldap_friendly_name( char *filename, char *uname, FriendlyMap **map )
 				}
 			}
 
-			(*map)[i].f_unfriendly = strdup( buf );
-			(*map)[i].f_friendly = strdup( s );
+			(*map)[i].lf_unfriendly = LDAP_STRDUP( buf );
+			(*map)[i].lf_friendly   = LDAP_STRDUP( s );
 			i++;
 		}
 
 		fclose( fp );
-		(*map)[i].f_unfriendly = NULL;
+		(*map)[i].lf_unfriendly = NULL;
 	}
 
-	for ( i = 0; (*map)[i].f_unfriendly != NULL; i++ ) {
-		if ( strcasecmp( uname, (*map)[i].f_unfriendly ) == 0 )
-			return( (*map)[i].f_friendly );
+	for ( i = 0; (*map)[i].lf_unfriendly != NULL; i++ ) {
+		if ( strcasecmp( uname, (*map)[i].lf_unfriendly ) == 0 )
+			return( (*map)[i].lf_friendly );
 	}
 	return( uname );
 }
 
 
 void
-ldap_free_friendlymap( FriendlyMap **map )
+ldap_free_friendlymap( LDAPFriendlyMap **map )
 {
-	struct friendly* pF = *map;
+	LDAPFriendlyMap* pF = *map;
 
 	if ( pF == NULL )
 		return;
 
-	while ( pF->f_unfriendly )
+	while ( pF->lf_unfriendly )
 	{
-		free( pF->f_unfriendly );
-		free( pF->f_friendly );
+		LDAP_FREE( pF->lf_unfriendly );
+		LDAP_FREE( pF->lf_friendly );
 		pF++;
 	}
-	free( *map );
+	LDAP_FREE( *map );
 	*map = NULL;
 }

@@ -1,40 +1,31 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  charset.c
  */
 
-#if defined( DOS ) || defined( _WIN32 )
-/*
- * This MUST precede "#ifdef STR_TRANSLATION"
- * because STR_TRANSLATION and friends are defined in msdos.h.
- */
-#include "msdos.h"
-#endif /* DOS */
+#include "portable.h"
 
 #ifdef STR_TRANSLATION
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
-
 #include <stdio.h>
-#include <string.h>
 
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#endif /* MACOS */
+#include <ac/stdlib.h>
 
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 ) && !defined(VMS)
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#include "lber.h"
-#include "ldap.h"
+
 #include "ldap-int.h"
 
 
@@ -50,9 +41,9 @@ ldap_set_string_translators( LDAP *ld, BERTranslateProc encode_proc,
 void
 ldap_enable_translation( LDAP *ld, LDAPMessage *entry, int enable )
 {
-	char	*optionsp;
+	unsigned short	*optionsp;
 
-	optionsp = ( entry == NULLMSG ) ? &ld->ld_lberoptions :
+	optionsp = ( entry == NULL ) ? &ld->ld_lberoptions :
 	    &entry->lm_ber->ber_options;
 		
 	if ( enable ) {
@@ -64,10 +55,10 @@ ldap_enable_translation( LDAP *ld, LDAPMessage *entry, int enable )
 
 
 int
-ldap_translate_from_t61( LDAP *ld, char **bufp, unsigned long *lenp,
+ldap_translate_from_t61( LDAP *ld, char **bufp, ber_len_t *lenp,
     int free_input )
 {
-	if ( ld->ld_lber_decode_translate_proc == NULL ) {
+	if ( ld->ld_lber_decode_translate_proc == 0 ) {
 		return( LDAP_SUCCESS );
 	}
 	    
@@ -76,10 +67,10 @@ ldap_translate_from_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 
 
 int
-ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
+ldap_translate_to_t61( LDAP *ld, char **bufp, ber_len_t *lenp,
     int free_input )
 {
-	if ( ld->ld_lber_encode_translate_proc == NULL ) {
+	if ( ld->ld_lber_encode_translate_proc == 0 ) {
 		return( LDAP_SUCCESS );
 	}
 	    
@@ -158,8 +149,8 @@ ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <ac/stdlib.h>
+#include <ac/string.h>
 
 /* Character set used: ISO 8859-1, ISO 8859-2, ISO 8859-3, ... */
 /* #define  ISO_8859      1 */
@@ -171,17 +162,12 @@ ldap_translate_to_t61( LDAP *ld, char **bufp, unsigned long *lenp,
 typedef unsigned char  Byte;
 typedef struct { Byte  a, b; } Couple;
 
-#ifdef NEEDPROTOS
-static Byte *c_to_hh( Byte *o, Byte c );
-static Byte *c_to_cc( Byte *o, Couple *cc, Byte c );
-static int hh_to_c( Byte *h );
-static Byte *cc_to_t61( Byte *o, Byte *s );
-#else /* NEEDPROTOS */
-static Byte *c_to_hh();
-static Byte *c_to_cc();
-static int hh_to_c();
-static Byte *cc_to_t61();
-#endif /* NEEDPROTOS */
+/* Prototypes without LDAP_P():
+ * 'Byte' in definition incompatible with unprototyped declaration. */
+static Byte *c_to_hh   ( Byte *o, Byte c );
+static Byte *c_to_cc   ( Byte *o, const Couple *cc, Byte c );
+static int   hh_to_c   ( const Byte *h );
+static Byte *cc_to_t61 ( Byte *o, const Byte *s );
 
 /*
    Character choosed as base in diacritics alone: NO-BREAK SPACE.
@@ -189,7 +175,7 @@ static Byte *cc_to_t61();
 */
 #define  ALONE  0xA0
 
-static Couple diacritic[16] = {
+static const Couple diacritic[16] = {
 #if (ISO_8859 == 1) || (ISO_8859 == 9)
 	{0,0},       {'`',0},     {0xb4,0},    {'^',0},
 	{'~',0},     {0xaf,0},    {'(',ALONE}, {'.',ALONE},
@@ -224,7 +210,7 @@ static Couple diacritic[16] = {
        L,   N,   O,   R,   S,   T,   U,   W,   Y,   Z.
    -----------------------------------------------------------------------
 */
-static int letter_w_diacritic[16][38] = {
+static const int letter_w_diacritic[16][38] = {
 #if (ISO_8859 == 1)
 	0,   0,   0,   0,   0,   0,   0,   0,   0,
 	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -686,7 +672,7 @@ static int letter_w_diacritic[16][38] = {
 /*
 --- T.61 characters [0xA0 .. 0xBF] -----------------
 */
-static Couple trans_t61a_iso8859[32] = {
+static const Couple trans_t61a_iso8859[32] = {
 #if (ISO_8859 == 1) || (ISO_8859 == 9)
 	{'N','S'}, {0xa1,0},  {0xa2,0},  {0xa3,0},
 	{'D','O'}, {0xa5,0},  {'C','u'}, {0xa7,0},
@@ -738,7 +724,7 @@ static Couple trans_t61a_iso8859[32] = {
 /*
 --- T.61 characters [0xE0 .. 0xFF] -----------------
 */
-static Couple trans_t61b_iso8859[48] = {
+static const Couple trans_t61b_iso8859[48] = {
 #if (ISO_8859 == 1)
 	{'-','M'}, {0xb9,0},  {0xae,0},  {0xa9,0},
 	{'T','M'}, {'M','8'}, {0xac,0},  {0xa6,0},
@@ -837,7 +823,7 @@ static Couple trans_t61b_iso8859[48] = {
 --- ISO 8859-n characters <0xA0 .. 0xFF> -------------------
 */
 #if (ISO_8859 == 1)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xa1,0},     {0xa2,0},     {0xa3,0},
 	{0xa8,0},     {0xa5,0},     {0xd7,0},     {0xa7,0},
 	{0xc8,ALONE}, {0xd3,0},     {0xe3,0},     {0xab,0},
@@ -864,7 +850,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc2,'y'},   {0xfc,0},     {0xc8,'y'}
 };
 #elif (ISO_8859 == 2)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xce,'A'},   {0xc6,ALONE}, {0xe8,0},
 	{0xa8,0},     {0xcf,'L'},   {0xc2,'S'},   {0xa7,0},
 	{0xc8,ALONE}, {0xcf,'S'},   {0xcb,'S'},   {0xcf,'T'},
@@ -891,7 +877,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc2,'y'},   {0xcb,'t'},   {0xc7,ALONE}
 };
 #elif (ISO_8859 == 3)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xe4,0},     {0xc6,ALONE}, {0xa3,0},
 	{0xa8,0},     {0,0},        {0xc3,'H'},   {0xa7,0},
 	{0xc8,ALONE}, {0xc7,'I'},   {0xcb,'S'},   {0xc6,'G'},
@@ -918,7 +904,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc6,'u'},   {0xc3,'s'},   {0xc7,ALONE}
 };
 #elif (ISO_8859 == 4)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xce,'A'},   {0xf0,0},     {0xcb,'R'},
 	{0xa8,0},     {0xc4,'I'},   {0xcb,'L'},   {0xa7,0},
 	{0xc8,ALONE}, {0xcf,'S'},   {0xc5,'E'},   {0xcb,'G'},
@@ -945,7 +931,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc4,'u'},   {0xc5,'u'},   {0xc7,ALONE}
 };
 #elif (ISO_8859 == 9)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xa1,0},     {0xa2,0},     {0xa3,0},
 	{0xa8,0},     {0xa5,0},     {0xd7,0},     {0xa7,0},
 	{0xc8,ALONE}, {0xd3,0},     {0xe3,0},     {0xab,0},
@@ -972,7 +958,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xf5,0},     {0xcb,'s'},   {0xc8,'y'}
 };
 #elif (ISO_8859 == 10)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xce,'A'},   {0xc5,'E'},   {0xcb,'G'},
 	{0xc5,'I'},   {0xc4,'I'},   {0xcb,'K'},   {0xa7,0},
 	{0xcb,'L'},   {0xe2,0},     {0xcf,'S'},   {0xed,0},
@@ -1017,7 +1003,7 @@ c_to_hh( Byte *o, Byte c )
 
 
 static Byte *
-c_to_cc( Byte *o, Couple *cc, Byte c )
+c_to_cc( Byte *o, const Couple *cc, Byte c )
 {
   if ( (*cc).a != 0 ) {
     if ( (*cc).b == 0 )
@@ -1037,13 +1023,12 @@ c_to_cc( Byte *o, Couple *cc, Byte c )
 /* --- routine to convert from T.61 to ISO 8859-n --- */
 
 int
-ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
+ldap_t61_to_8859( char **bufp, ber_len_t *buflenp, int free_input )
 {
   Byte		*s, *oo, *o;
   unsigned int  n;
   int           c;
-  unsigned long len;
-  Couple        *cc;
+  ber_len_t len;
 
   Debug( LDAP_DEBUG_TRACE, "ldap_t61_to_8859 input length: %ld\n",
 	*buflenp, 0, 0 );
@@ -1051,7 +1036,7 @@ ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
   len = *buflenp;
   s = (Byte *) *bufp;
 
-  if ( (o = oo = (Byte *)malloc( 2 * len + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * len + 64 )) == NULL ) {
         return( 1 );
   }
 
@@ -1153,13 +1138,13 @@ ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
   len = o - oo;
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, len )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, len )) == NULL ) {
+    LDAP_FREE( o );
     return( 1 );
   }
 
   if ( free_input ) {
-    free( *bufp );
+    LDAP_FREE( *bufp );
   }
   *bufp = (char *) oo;
   *buflenp = len;
@@ -1168,7 +1153,7 @@ ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
 
 
 static int
-hh_to_c( Byte *h )
+hh_to_c( const Byte *h )
 {
   Byte c;
 
@@ -1189,7 +1174,7 @@ hh_to_c( Byte *h )
 
 
 static Byte *
-cc_to_t61( Byte *o, Byte *s )
+cc_to_t61( Byte *o, const Byte *s )
 {
   int n, c = 0;
 
@@ -1575,12 +1560,12 @@ cc_to_t61( Byte *o, Byte *s )
 /* --- routine to convert from ISO 8859-n to T.61 --- */
 
 int
-ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input )
+ldap_8859_to_t61( char **bufp, ber_len_t *buflenp, int free_input )
 {
   Byte		*s, *oo, *o, *aux;
   int		c;
-  unsigned long len; 
-  Couple	*cc;
+  ber_len_t len; 
+  const Couple	*cc;
 
   Debug( LDAP_DEBUG_TRACE, "ldap_8859_to_t61 input length: %ld\n",
 	*buflenp, 0, 0 );
@@ -1588,7 +1573,7 @@ ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input )
   len = *buflenp;
   s = (Byte *) *bufp;
 
-  if ( (o = oo = (Byte *)malloc( 2 * len + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * len + 64 )) == NULL ) {
         return( 1 );
   }
 
@@ -1667,13 +1652,13 @@ ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input )
   len = o - oo;
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, len )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, len )) == NULL ) {
+    LDAP_FREE( o );
     return( 1 );
   }
 
   if ( free_input ) {
-    free( *bufp );
+    LDAP_FREE( *bufp );
   }
   *bufp = (char *) oo;
   *buflenp = len;
@@ -1692,7 +1677,7 @@ char	*s;
 
   while ( *s ) {
     if ( *s == '\\' ) {
-      if ( (c = hh_to_c( ++s )) != -1 ) {
+      if ( (c = hh_to_c( (Byte *) ++s )) != -1 ) {
 	*o++ = c;
 	s += 2;
       } else
@@ -1706,12 +1691,12 @@ char	*s;
 /* --- routine to convert 8bits characters to the "escaped" (\hh) form --- */
 
 char *convert_8bit_to_escaped( s )
-Byte  *s;
+const Byte  *s;
 {
   Byte	*o, *oo;
   Byte	n;
 
-  if ( (o = oo = (Byte *)malloc( 2 * strlen( s ) + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * strlen( s ) + 64 )) == NULL ) {
         return( NULL );
   }
 
@@ -1730,8 +1715,8 @@ Byte  *s;
 
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, strlen( o ) + 1 )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, strlen( o ) + 1 )) == NULL ) {
+    LDAP_FREE( o );
     return( NULL );
   }
 
@@ -1747,7 +1732,7 @@ Byte  *s;
    that conversion is language dependent.
 */
 
-static Couple last_t61_printabled[32] = {
+static const Couple last_t61_printabled[32] = {
 	{0,0},     {'A','E'}, {'D',0},   {0,0},
 	{'H',0},   {0,0},     {'I','J'}, {'L',0},
 	{'L',0},   {'O',0},   {'O','E'}, {0,0},
@@ -1763,9 +1748,9 @@ Byte  *s;
 {
   Byte   *o, *oo;
   Byte   n;
-  Couple *cc;
+  const Couple *cc;
 
-  if ( (o = oo = (Byte *)malloc( 2 * strlen( s ) + 64 )) == NULL ) {
+  if ( (o = oo = (Byte *)LDAP_MALLOC( 2 * strlen( s ) + 64 )) == NULL ) {
         return( NULL );
   }
 
@@ -1808,8 +1793,8 @@ Byte  *s;
 
   o = oo;
 
-  if ( (oo = (Byte *)realloc( o, strlen( o ) + 1 )) == NULL ) {
-    free( o );
+  if ( (oo = (Byte *)LDAP_REALLOC( o, strlen( o ) + 1 )) == NULL ) {
+    LDAP_FREE( o );
     return( NULL );
   }
 

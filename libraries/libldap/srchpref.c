@@ -1,4 +1,9 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* Portions
  * Copyright (c) 1993, 1994 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -13,50 +18,38 @@
  * 17 May 1994 by Gordon Good
  */
 
-#include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdlib.h>
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/file.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
+#include "portable.h"
 
-#include "lber.h"
-#include "ldap.h"
+#include <stdio.h>
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+
+#include "ldap-int.h"
 #include "srchpref.h"
 
-#ifndef NEEDPROTOS
-int next_line_tokens();
-void free_strarray();
-static void free_searchobj();
-static int read_next_searchobj();
-#else /* !NEEDPROTOS */
-int next_line_tokens( char **bufp, long *blenp, char ***toksp );
-void free_strarray( char **sap );
-static void free_searchobj( struct ldap_searchobj *so );
-static int read_next_searchobj( char **bufp, long *blenp,
-	struct ldap_searchobj **sop, int soversion );
-#endif /* !NEEDPROTOS */
+#include "ldap-int.h"
+
+static void free_searchobj LDAP_P(( struct ldap_searchobj *so ));
+static int read_next_searchobj LDAP_P(( char **bufp, ber_len_t *blenp,
+	struct ldap_searchobj **sop, int soversion ));
 
 
-static char		*sobjoptions[] = {
+static const char *const	sobjoptions[] = {
     "internal",
     NULL
 };
 
 
-static unsigned long	sobjoptvals[] = {
+static const unsigned long	sobjoptvals[] = {
     LDAP_SEARCHOBJ_OPT_INTERNAL,
 };
 
@@ -85,7 +78,7 @@ ldap_init_searchprefs( char *file, struct ldap_searchobj **solistp )
 	return( LDAP_SEARCHPREF_ERR_FILE );
     }
 
-    if (( buf = malloc( (size_t)len )) == NULL ) {
+    if (( buf = LDAP_MALLOC( (size_t)len )) == NULL ) {
 	fclose( fp );
 	return( LDAP_SEARCHPREF_ERR_MEM );
     }
@@ -95,26 +88,28 @@ ldap_init_searchprefs( char *file, struct ldap_searchobj **solistp )
     fclose( fp );
 
     if ( rlen != len && !eof ) {	/* error:  didn't get the whole file */
-	free( buf );
+	LDAP_FREE( buf );
 	return( LDAP_SEARCHPREF_ERR_FILE );
     }
 
     rc = ldap_init_searchprefs_buf( buf, rlen, solistp );
-    free( buf );
+    LDAP_FREE( buf );
 
     return( rc );
 }
 
 
 int
-ldap_init_searchprefs_buf( char *buf, long buflen,
+ldap_init_searchprefs_buf(
+	char *buf,
+	ber_len_t buflen,
 	struct ldap_searchobj **solistp )
 {
-    int				rc, version;
+    int				rc = -1, version;
     char			**toks;
     struct ldap_searchobj	*prevso, *so;
 
-    *solistp = prevso = NULLSEARCHOBJ;
+    *solistp = prevso = NULL;
 
     if ( next_line_tokens( &buf, &buflen, &toks ) != 2 ||
 	    strcasecmp( toks[ 0 ], "version" ) != 0 ) {
@@ -129,8 +124,8 @@ ldap_init_searchprefs_buf( char *buf, long buflen,
     }
 
     while ( buflen > 0 && ( rc = read_next_searchobj( &buf, &buflen, &so,
-	    version )) == 0 && so != NULLSEARCHOBJ ) {
-	if ( prevso == NULLSEARCHOBJ ) {
+	    version )) == 0 && so != NULL ) {
+	if ( prevso == NULL ) {
 	    *solistp = so;
 	} else {
 	    prevso->so_next = so;
@@ -167,40 +162,40 @@ free_searchobj( struct ldap_searchobj *so )
 {
     if ( so != NULL ) {
 	if ( so->so_objtypeprompt != NULL ) {
-	    free(  so->so_objtypeprompt );
+	    LDAP_FREE(  so->so_objtypeprompt );
 	}
 	if ( so->so_prompt != NULL ) {
-	    free(  so->so_prompt );
+	    LDAP_FREE(  so->so_prompt );
 	}
 	if ( so->so_filterprefix != NULL ) {
-	    free(  so->so_filterprefix );
+	    LDAP_FREE(  so->so_filterprefix );
 	}
 	if ( so->so_filtertag != NULL ) {
-	    free(  so->so_filtertag );
+	    LDAP_FREE(  so->so_filtertag );
 	}
 	if ( so->so_defaultselectattr != NULL ) {
-	    free(  so->so_defaultselectattr );
+	    LDAP_FREE(  so->so_defaultselectattr );
 	}
 	if ( so->so_defaultselecttext != NULL ) {
-	    free(  so->so_defaultselecttext );
+	    LDAP_FREE(  so->so_defaultselecttext );
 	}
 	if ( so->so_salist != NULL ) {
 	    struct ldap_searchattr *sa, *nextsa;
 	    for ( sa = so->so_salist; sa != NULL; sa = nextsa ) {
 		nextsa = sa->sa_next;
 		if ( sa->sa_attrlabel != NULL ) {
-		    free( sa->sa_attrlabel );
+		    LDAP_FREE( sa->sa_attrlabel );
 		}
 		if ( sa->sa_attr != NULL ) {
-		    free( sa->sa_attr );
+		    LDAP_FREE( sa->sa_attr );
 		}
 		if ( sa->sa_selectattr != NULL ) {
-		    free( sa->sa_selectattr );
+		    LDAP_FREE( sa->sa_selectattr );
 		}
 		if ( sa->sa_selecttext != NULL ) {
-		    free( sa->sa_selecttext );
+		    LDAP_FREE( sa->sa_selecttext );
 		}
-		free( sa );
+		LDAP_FREE( sa );
 	    }
 	}
 	if ( so->so_smlist != NULL ) {
@@ -208,15 +203,15 @@ free_searchobj( struct ldap_searchobj *so )
 	    for ( sm = so->so_smlist; sm != NULL; sm = nextsm ) {
 		nextsm = sm->sm_next;
 		if ( sm->sm_matchprompt != NULL ) {
-		    free( sm->sm_matchprompt );
+		    LDAP_FREE( sm->sm_matchprompt );
 		}
 		if ( sm->sm_filter != NULL ) {
-		    free( sm->sm_filter );
+		    LDAP_FREE( sm->sm_filter );
 		}
-		free( sm );
+		LDAP_FREE( sm );
 	    }
 	}
-	free( so );
+	LDAP_FREE( so );
     }
 }
 
@@ -232,13 +227,16 @@ ldap_first_searchobj( struct ldap_searchobj *solist )
 struct ldap_searchobj *
 ldap_next_searchobj( struct ldap_searchobj *solist, struct ldap_searchobj *so )
 {
-    return( so == NULLSEARCHOBJ ? so : so->so_next );
+    return( so == NULL ? so : so->so_next );
 }
 
 
 
 static int
-read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
+read_next_searchobj(
+	char **bufp,
+	ber_len_t *blenp,
+	struct ldap_searchobj **sop,
 	int soversion )
 {
     int				i, j, tokcnt;
@@ -257,13 +255,13 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( tokcnt == 0 ? 0 : LDAP_SEARCHPREF_ERR_SYNTAX );
     }
 
-    if (( so = (struct ldap_searchobj *)calloc( 1,
+    if (( so = (struct ldap_searchobj *)LDAP_CALLOC( 1,
 	    sizeof( struct ldap_searchobj ))) == NULL ) {
 	free_strarray( toks );
 	return(  LDAP_SEARCHPREF_ERR_MEM );
     }
     so->so_objtypeprompt = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * if this is post-version zero, options come next
@@ -293,7 +291,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_prompt = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Filter prefix for "More Choices" searching is next
@@ -304,7 +302,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_filterprefix = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * "Fewer Choices" filter tag comes next
@@ -315,7 +313,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_filtertag = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Selection (disambiguation) attribute comes next
@@ -326,7 +324,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_defaultselectattr = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Label for selection (disambiguation) attribute
@@ -337,7 +335,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	return( LDAP_SEARCHPREF_ERR_SYNTAX );
     }
     so->so_defaultselecttext = toks[ 0 ];
-    free( (char *)toks );
+    LDAP_FREE( (char *)toks );
 
     /*
      * Search scope is next
@@ -370,7 +368,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	    ldap_free_searchprefs( so );
 	    return( LDAP_SEARCHPREF_ERR_SYNTAX );
 	}
-	if (( *sa = ( struct ldap_searchattr * ) calloc( 1,
+	if (( *sa = ( struct ldap_searchattr * ) LDAP_CALLOC( 1,
 		sizeof( struct ldap_searchattr ))) == NULL ) {
 	    free_strarray( toks );
 	    ldap_free_searchprefs( so );
@@ -387,8 +385,8 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 		( *sa )->sa_matchtypebitmap |= (1 << j);
 	    }
 	}
-	free( toks[ 2 ] );
-	free( ( char * ) toks );
+	LDAP_FREE( toks[ 2 ] );
+	LDAP_FREE( ( char * ) toks );
 	sa = &(( *sa )->sa_next);
     }
     *sa = NULL;
@@ -403,7 +401,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	    ldap_free_searchprefs( so );
 	    return( LDAP_SEARCHPREF_ERR_SYNTAX );
 	}
-	if (( *sm = ( struct ldap_searchmatch * ) calloc( 1,
+	if (( *sm = ( struct ldap_searchmatch * ) LDAP_CALLOC( 1,
 		sizeof( struct ldap_searchmatch ))) == NULL ) {
 	    free_strarray( toks );
 	    ldap_free_searchprefs( so );
@@ -411,7 +409,7 @@ read_next_searchobj( char **bufp, long *blenp, struct ldap_searchobj **sop,
 	}
 	( *sm )->sm_matchprompt = toks[ 0 ];
 	( *sm )->sm_filter = toks[ 1 ];
-	free( ( char * ) toks );
+	LDAP_FREE( ( char * ) toks );
 	sm = &(( *sm )->sm_next );
     }
     *sm = NULL;

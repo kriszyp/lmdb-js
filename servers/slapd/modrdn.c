@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -111,16 +112,20 @@ do_modrdn(
 			       0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
+			free( ndn );
+			free( newrdn );
 			return -1;
 		}
 
 		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
 		     == LBER_ERROR ) {
 
-		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
+		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
 			   0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
+			free( ndn );
+			free( newrdn );
 		    return -1;
 		}
 
@@ -131,9 +136,7 @@ do_modrdn(
 				newSuperior, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
 				"invalid (new superior) DN", NULL, NULL );
-			free( ndn );
-			free( newrdn );
-			return rc;
+			goto done;
 		}
 
 	}
@@ -155,11 +158,9 @@ do_modrdn(
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( ndn );
-		free( newrdn );	
-		free( newSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		/* get_ctrls has sent results.  Now clean up. */
+		goto done;
 	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
@@ -179,6 +180,14 @@ do_modrdn(
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		return rc;
+	}
+
+	if ( global_readonly || be->be_readonly ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: database is read-only\n",
+		       0, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+		                  NULL, "database is read-only", NULL, NULL );
+		goto done;
 	}
 
 	/* Make sure that the entry being changed and the newSuperior are in 
@@ -247,6 +256,7 @@ do_modrdn(
 			NULL, "Function not implemented", NULL, NULL );
 	}
 
+done:
 	free( ndn );
 	free( newrdn );	
 	free( newSuperior );

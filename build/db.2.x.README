@@ -1,0 +1,29 @@
+Berkeley DB version 2.x and OpenLDAP running threads
+====================================================
+
+Special care has to be taken when building Berkeley DB 2.x
+for use with OpenLDAP as an slapd backend.  If OpenLDAP is used
+with threads, so must Berkeley DB.   If OpenLDAP is built without
+threads, so must Berkeley DB.  In general, you should use
+the latest Sleepycat version.
+
+The configuration tool of Sleepycat's Berkeley DB will automatically
+set appropriate options on IRIX, OSF/1, and SUN Solaris platforms
+(version 2.3.16), as well as FreeBSD (version 2.7.5).  The options
+must be manually defined on other plaforms, e.g. on LINUX.
+
+On PC-LINUX (kernel version 2.0.35, linux kernel threads as imple-
+mented by libpthreads.so.1.60.4) with gcc as the standard compiler
+the environment variable CPPFLAGS must define -D_REENTRANT, while
+building the Berkeley DB package.
+
+DO NOT USE THE -ansi CFLAG, SINCE THEN THE DB PACKAGE'S CONFIGURE
+CANNOT FIND THE X86/GCC SPINLOCKS, WHICH ARE NEEDED FOR THREAD-
+SUPPORT WITH THE BERKELEY DB.
+
+Please check carefully if your platform is not mentioned above.
+
+The OpenLDAP configure tool will most probably find the correct
+configuration itself.   No special action has to be taken
+while building the OpenLDAP package.
+

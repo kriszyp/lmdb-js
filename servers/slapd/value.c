@@ -1,4 +1,5 @@
 /* value.c - routines for dealing with values */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -41,6 +42,7 @@ value_add_fast(
 	for ( i = 0, j = 0; i < naddvals; i++, j++ ) {
 		if ( addvals[i]->bv_len > 0 ) {
 			(*vals)[nvals + j] = ber_bvdup( addvals[i] );
+			if( (*vals)[nvals + j] == NULL ) break;
 		}
 	}
 	(*vals)[nvals + j] = NULL;
@@ -72,7 +74,8 @@ value_add(
 
 	for ( i = 0, j = 0; i < nn; i++ ) {
 		if ( addvals[i]->bv_len > 0 ) {
-			(*vals)[n + j++] = ber_bvdup( addvals[i] );
+			(*vals)[n + j] = ber_bvdup( addvals[i] );
+			if( (*vals)[n + j++] == NULL ) break;
 		}
 	}
 	(*vals)[n + j] = NULL;
@@ -137,6 +140,7 @@ value_cmp(
 		rc = strcmp( v1->bv_val, v2->bv_val );
 		break;
 
+	default:        /* Unknown syntax */
 	case SYNTAX_BIN:
 		rc = (v1->bv_len == v2->bv_len
 		      ? memcmp( v1->bv_val, v2->bv_val, v1->bv_len )

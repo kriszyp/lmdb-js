@@ -1,3 +1,4 @@
+dnl $OpenLDAP$
 dnl
 dnl Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
 dnl 
@@ -6,6 +7,18 @@ dnl as authorized by the OpenLDAP Public License.  A copy of this
 dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
 dnl
+define([AC_INIT_BINSH],
+[[#! /bin/sh
+# $]OpenLDAP[$
+# from] translit([$OpenLDAP$], $")] [
+
+# Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
+# 
+# Redistribution and use in source and binary forms are permitted only
+# as authorized by the OpenLDAP Public License.  A copy of this
+# license is available at http://www.OpenLDAP.org/license.html or
+# in file LICENSE in the top-level directory of the distribution.
+])dnl
 
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
@@ -71,7 +84,7 @@ dnl ol_enable_syslog=no
 OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DNS  extension], no)dnl
+OL_ARG_ENABLE(dns,[  --enable-dns		enable V2 DX Referrals extension], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable V2 Referrals extension], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
@@ -80,17 +93,17 @@ OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 dnl General "with" options
 OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
 
-OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl  with Cyrus SASL support],
+OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	with Cyrus SASL support],
 	auto, [auto yes no] )
-OL_ARG_WITH(fetch,[  --with-fetch  with fetch URL support],
+OL_ARG_WITH(fetch,[  --with-fetch		with fetch URL support],
 	auto, [auto yes no] )
 OL_ARG_WITH(kerberos,[  --with-kerberos	with Kerberos support],
 	auto, [auto k5 k4 afs yes no])
-OL_ARG_WITH(readline,[  --with-readline  with readline support],
+OL_ARG_WITH(readline,[  --with-readline	with readline support],
 	auto, [auto yes no] )
 OL_ARG_WITH(threads,[  --with-threads	use threads],
-	auto, [auto posix mach lwp yes no manual] )
-OL_ARG_WITH(tls,[  --with-tls  with TLS/SSL support],
+	auto, [auto posix mach pth lwp yes no manual] )
+OL_ARG_WITH(tls,[  --with-tls		with TLS/SSL support],
 	auto, [auto ssleay openssl yes no] )
 OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
 	auto, [auto yes no manual] )
@@ -98,7 +111,7 @@ OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding s
 dnl Server options
 
 dnl SLAPD OPTIONS
-AC_ARG_WITH(xxslapdoptions,[SLAPD Options:])
+AC_ARG_WITH(xxslapdoptions,[SLAPD (Standalone LDAP Daemon) Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
@@ -107,6 +120,8 @@ OL_ARG_ENABLE(multimaster,[    --enable-multimaster	enable multimaster replicati
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(quipu,[    --enable-quipu	build quipu migration tools], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
+OL_ARG_ENABLE(aci,[    --enable-aci	enable per-object ACIs], no)dnl
+OL_ARG_ENABLE(discreteaci,[    --enable-discreteaci	enable discrete rights in ACIs], no)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
 
 dnl SLAPD Backend options
@@ -117,10 +132,10 @@ OL_ARG_ENABLE(ldap,[    --enable-ldap	enable ldap backend], no)dnl
 OL_ARG_WITH(ldap_module,[      --with-ldap-module	module type], static,
 	[static dynamic])
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	enable ldbm backend], yes)dnl
-OL_ARG_WITH(ldbm_module,[      --with-ldbm-module	module type], static,
-	[static dynamic])
 OL_ARG_WITH(ldbm_api,[      --with-ldbm-api	use LDBM API], auto,
 	[auto db2 db mdbm gdbm ndbm manual])
+OL_ARG_WITH(ldbm_module,[      --with-ldbm-module	module type], static,
+	[static dynamic])
 OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	use LDBM type], auto,
 	[auto btree hash])
 
@@ -138,7 +153,7 @@ OL_ARG_WITH(tcl_module,[      --with-tcl-module	module type], static,
 	[static dynamic])
 
 dnl SLURPD OPTIONS
-AC_ARG_WITH(xxslurpdoptions,[SLURPD Options:])
+AC_ARG_WITH(xxslurpdoptions,[SLURPD (Replication Daemon) Options:])
 OL_ARG_ENABLE(slurpd,[  --enable-slurpd	enable building slurpd], auto)dnl
 
 AC_ARG_WITH(xxliboptions,[Library Generation & Linking Options])
@@ -199,6 +214,12 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_rlookups = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rlookups argument])
 	fi
+	if test $ol_enable_aci = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
+	fi
+	if test $ol_enable_discreteaci = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-discreteaci argument])
+	fi
 	if test $ol_with_ldbm_api != auto ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-api argument])
 	fi
@@ -244,6 +265,8 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_phonetic=no
 	ol_enable_quipu=no
 	ol_enable_rlookups=no
+	ol_enable_aci=no
+	ol_enable_discreteaci=no
 	ol_enable_wrappers=no
 
 	ol_with_ldbm_api=no
@@ -386,7 +409,6 @@ dnl Checks for programs
 dnl AC_PROG_INSTALL
 
 AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
-
 
 dnl
 dnl Determine which C translator to use
@@ -583,7 +605,6 @@ AC_CHECK_HEADERS(	\
 	resolv.h		\
 	sgtty.h			\
 	shadow.h		\
-	stdarg.h		\
 	stddef.h		\
 	string.h		\
 	strings.h		\
@@ -613,9 +634,7 @@ dnl		-lsocket [ -lnsl_s | -lnsl ]
 dnl		-linet
 
 AC_CHECK_FUNC(socket, :, [	
-dnl
 dnl hopefully we won't include too many libraries
-dnl
 	AC_CHECK_LIB(socket, main)
 	AC_CHECK_LIB(net, main)
 	AC_CHECK_LIB(net, socket)
@@ -625,14 +644,19 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
+dnl require select
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
+dnl AC_CHECK_FUNCS(socketpair)
 
 dnl Select arg types
 dnl (if this detection becomes permenent, it and the select() detection
 dnl should be done before the yielding select test) 
 AC_FUNC_SELECT_ARGTYPES
 
+dnl check to see if system call automatically restart
+dnl AC_SYS_RESTARTABLE_SYSCALLS
 
+dnl require POSIX regex
 AC_CHECK_HEADERS( regex.h )
 if test "$ac_cv_header_regex_h" != yes ; then
 	AC_MSG_ERROR([POSIX regex.h required.])
@@ -643,7 +667,6 @@ OL_POSIX_REGEX
 if test "$ol_cv_c_posix_regex" = no ; then
 	AC_MSG_ERROR([broken POSIX regex!])
 fi
-
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
@@ -849,7 +872,7 @@ ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = posix ; then
 
-	AC_CHECK_HEADERS(pthread.h sched.h)
+	AC_CHECK_HEADERS(pthread.h)
 
 	if test $ac_cv_header_pthread_h = yes ; then
 		OL_POSIX_THREAD_VERSION
@@ -868,6 +891,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		ol_with_threads=found
 
 		OL_HEADER_LINUX_THREADS
+		OL_HEADER_GNU_PTH_PTHREAD_H
+
+		if test $ol_cv_header_gnu_pth_pthread_h = no ; then
+			AC_CHECK_HEADERS(sched.h)
+		fi
 
 		dnl Now the hard part, how to link?
 		dnl
@@ -1185,6 +1213,26 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 
 	if test $ol_with_threads = mach ; then
 		AC_MSG_ERROR([could not locate Mach CThreads])
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = pth ; then
+
+	AC_CHECK_HEADERS(pth.h)
+
+	if test $ac_cv_header_pth_h = yes ; then
+		AC_CHECK_LIB(pth, pth_version, [have_pth=yes], [have_pth=no])
+
+		if test $have_pth = yes ; then
+			AC_DEFINE(HAVE_GNU_PTH,1,[if you have GNU Pth])
+			LTHREAD_LIBS="$LTHREAD_LIBS -lpth"
+			ol_link_threads=pth
+
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=yes
+			fi
+		fi
 	fi
 fi
 
@@ -1766,6 +1814,7 @@ AC_CHECK_FUNCS(		\
 	memcpy			\
 	memmove			\
 	mkstemp			\
+	pipe			\
 	read			\
 	recv			\
 	recvfrom		\
@@ -1775,6 +1824,7 @@ AC_CHECK_FUNCS(		\
 	setsid			\
 	setuid			\
 	seteuid			\
+	sigaction		\
 	signal			\
 	sigset			\
 	snprintf		\
@@ -1849,6 +1899,12 @@ if test "$ol_enable_phonetic" != no ; then
 fi
 if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
+fi
+if test "$ol_enable_aci" != no ; then
+	AC_DEFINE(SLAPD_ACI_ENABLED,1,[define to support per-object ACIs])
+fi
+if test "$ol_enable_discreteaci" != no ; then
+	AC_DEFINE(SLAPD_ACI_DISCRETE_RIGHTS,1,[define to support discrete rights in ACIs])
 fi
 
 if test "$ol_link_modules" != no ; then

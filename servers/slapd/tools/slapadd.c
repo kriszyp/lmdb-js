@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -36,6 +37,7 @@ main( int argc, char **argv )
 
 	buf = NULL;
 	lmax = 0;
+	lineno = 0;
 
 	if( be->be_entry_open( be, 1 ) != 0 ) {
 		fprintf( stderr, "%s: could not open database.\n",
@@ -68,7 +70,7 @@ main( int argc, char **argv )
 
 			/* check schema */
 			if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
-				fprintf( stderr, "%s: entry dn=\"%s\" violates schema violation (line=%d)\n",
+				fprintf( stderr, "%s: schema violation in entry dn=\"%s\" (line=%d)\n",
 					progname, e->e_dn, lineno );
 				rc = EXIT_FAILURE;
 				entry_free( e );

@@ -1,4 +1,5 @@
 /* schema.c - routines to enforce schema definitions */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -12,7 +13,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 
 static char *	oc_check_required(Entry *e, char *ocname);
@@ -28,8 +28,10 @@ int
 oc_schema_check( Entry *e )
 {
 	Attribute	*a, *aoc;
+	ObjectClass *oc;
 	int		i;
 	int		ret = 0;
+
 
 	/* find the object class attribute - could error out here */
 	if ( (aoc = attr_find( e->e_attrs, "objectclass" )) == NULL ) {
@@ -40,13 +42,21 @@ oc_schema_check( Entry *e )
 
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
-		char *s = oc_check_required( e, aoc->a_vals[i]->bv_val );
-
-		if (s != NULL) {
+		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-			    "Entry (%s), oc \"%s\" requires attr \"%s\"\n",
-			    e->e_dn, aoc->a_vals[i]->bv_val, s );
-			ret = 1;
+				"Objectclass \"%s\" not defined",
+				aoc->a_vals[i]->bv_val, 0, 0 );
+		}
+		else
+		{
+			char *s = oc_check_required( e, aoc->a_vals[i]->bv_val );
+
+			if (s != NULL) {
+				Debug( LDAP_DEBUG_ANY,
+					"Entry (%s), oc \"%s\" requires attr \"%s\"\n",
+					e->e_dn, aoc->a_vals[i]->bv_val, s );
+				ret = 1;
+			}
 		}
 	}
 
@@ -180,7 +190,7 @@ static char *oc_no_usermod_attrs[] = {
  * check to see if attribute is 'operational' or not.
  */
 int
-oc_check_operational_attr( char *type )
+oc_check_operational_attr( const char *type )
 {
 	return charray_inlist( oc_operational_attrs, type )
 		|| charray_inlist( oc_usermod_attrs, type )
@@ -191,7 +201,7 @@ oc_check_operational_attr( char *type )
  * check to see if attribute can be user modified or not.
  */
 int
-oc_check_usermod_attr( char *type )
+oc_check_usermod_attr( const char *type )
 {
 	return charray_inlist( oc_usermod_attrs, type );
 }
@@ -200,7 +210,7 @@ oc_check_usermod_attr( char *type )
  * check to see if attribute is 'no user modification' or not.
  */
 int
-oc_check_no_usermod_attr( char *type )
+oc_check_no_usermod_attr( const char *type )
 {
 	return charray_inlist( oc_no_usermod_attrs, type );
 }
@@ -434,13 +444,14 @@ oc_add_sups(
 			code = oc_add_sups(soc,soc1->soc_sup_oids, err);
 			if ( code )
 				return code;
-			
-			if ( code = oc_create_required(soc,
-				soc1->soc_at_oids_must,err) )
+
+			code = oc_create_required(soc,soc1->soc_at_oids_must,err);
+			if ( code )
 				return code;
-			if ( code = oc_create_allowed(soc,
-				soc1->soc_at_oids_may,err) )
+			code = oc_create_allowed(soc,soc1->soc_at_oids_may,err);
+			if ( code )
 				return code;
+
 			nsups++;
 			sups1++;
 		}
@@ -511,11 +522,11 @@ oc_add(
 
 	soc = (ObjectClass *) ch_calloc( 1, sizeof(ObjectClass) );
 	memcpy( &soc->soc_oclass, oc, sizeof(LDAP_OBJECT_CLASS));
-	if ( code = oc_add_sups(soc,soc->soc_sup_oids,err) )
+	if ( (code = oc_add_sups(soc,soc->soc_sup_oids,err)) != 0 )
 		return code;
-	if ( code = oc_create_required(soc,soc->soc_at_oids_must,err) )
+	if ( (code = oc_create_required(soc,soc->soc_at_oids_must,err)) != 0 )
 		return code;
-	if ( code = oc_create_allowed(soc,soc->soc_at_oids_may,err) )
+	if ( (code = oc_create_allowed(soc,soc->soc_at_oids_may,err)) != 0 )
 		return code;
 	code = oc_insert(soc,err);
 	return code;
@@ -565,7 +576,7 @@ syn_find_desc( const char *syndesc, int *len )
 	Syntax		*synp;
 
 	for (synp = syn_list; synp; synp = synp->ssyn_next)
-		if ((*len = dscompare( synp->ssyn_syn.syn_desc, (char *)syndesc, '{')))
+		if ((*len = dscompare( synp->ssyn_syn.syn_desc, syndesc, '{')))
 			return synp;
 	return( NULL );
 }
@@ -1056,8 +1067,8 @@ syn_schema_info( Entry *e )
 		val.bv_val = ldap_syntax2str( &syn->ssyn_syn );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging syn [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "ldapSyntaxes", vals );
 			ldap_memfree( val.bv_val );
 		} else {
@@ -1081,8 +1092,8 @@ mr_schema_info( Entry *e )
 		val.bv_val = ldap_matchingrule2str( &mr->smr_mrule );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging mr [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging mr [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "matchingRules", vals );
 			ldap_memfree( val.bv_val );
 		} else {
@@ -1106,8 +1117,8 @@ oc_schema_info( Entry *e )
 		val.bv_val = ldap_objectclass2str( &oc->soc_oclass );
 		if ( val.bv_val ) {
 			val.bv_len = strlen( val.bv_val );
-			Debug( LDAP_DEBUG_TRACE, "Merging oc [%d] %s\n",
-			       val.bv_len, val.bv_val, 0 );
+			Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
+			       (long) val.bv_len, val.bv_val, 0 );
 			attr_merge( e, "objectClasses", vals );
 			ldap_memfree( val.bv_val );
 		} else {
@@ -1225,7 +1236,7 @@ oc_print( ObjectClass *oc )
 
 int is_entry_objectclass(
 	Entry*	e,
-	char*	oc)
+	const char*	oc)
 {
 	Attribute *attr;
 	struct berval bv;
@@ -1243,7 +1254,7 @@ int is_entry_objectclass(
 		return 0;
 	}
 
-	bv.bv_val = oc;
+	bv.bv_val = (char *) oc;
 	bv.bv_len = strlen( bv.bv_val );
 
 	if( value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {

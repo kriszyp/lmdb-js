@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -123,7 +124,7 @@ decode_answer( unsigned char *answer, ber_len_t len )
 	rr_len = _getshort( p );
 	p += INT16SZ;
 	if ( class == C_IN && type == T_TXT ) {
-	    int 	i, n, pref, txt_len;
+	    int 	pref, txt_len;
 	    char	*q, *r;
 
 	    q = (char *)p;

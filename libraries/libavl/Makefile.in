@@ -1,0 +1,18 @@
+# $OpenLDAP$
+##
+## LIBAVL
+##
+
+SRCS = avl.c testavl.c
+XSRCS = version.c
+OBJS = avl.o
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
+LIBRARY = libavl.a
+PROGRAMS	= testavl
+XLIBS = -lavl
+
+testavl:	$(LIBRARY) testavl.o
+	$(LTLINK) $(LDFLAGS) -o $@ testavl.o $(LIBS)

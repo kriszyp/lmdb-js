@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 PROGRAMS= mail500
 
 SRCS=	main.c

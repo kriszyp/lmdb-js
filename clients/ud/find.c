@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright (c) 1991, 1992, 1993 
  * Regents of the University of Michigan.  All rights reserved.
@@ -10,31 +11,30 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
+
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include "ud.h"
 
-extern char *search_base;	/* search base */
-extern int verbose;		/* verbose mode flag */
-extern LDAP *ld;		/* our ldap descriptor */
-	
 static int num_picked = 0;	/* used when user picks entry at More prompt */
 
-#ifdef DEBUG
-extern int debug;		/* debug flag */
-#endif
 
-vrfy(dn)
-char *dn;
+int
+vrfy( char *dn )
 {
 	LDAPMessage *results;
 	static char *attrs[2] = { "objectClass", NULL };
+	int ld_errno = 0;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -43,9 +43,12 @@ char *dn;
 	/* verify that this DN exists in the directory */
 	(void) ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", attrs, TRUE, &results);
 	(void) ldap_msgfree(results);
-	if ((ld->ld_errno == LDAP_NO_SUCH_OBJECT) || (ld->ld_errno == LDAP_INVALID_DN_SYNTAX))
+
+	ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
+	if ((ld_errno == LDAP_NO_SUCH_OBJECT) || (ld_errno == LDAP_INVALID_DN_SYNTAX))
 		return(0);
-	else if (ld->ld_errno == LDAP_SUCCESS)
+	else if (ld_errno == LDAP_SUCCESS)
 		return(1);
 	else {
 		ldap_perror(ld, "ldap_search");
@@ -54,11 +57,8 @@ char *dn;
 }
 	
 
-static LDAPMessage * disambiguate( result, matches, read_attrs, who )
-LDAPMessage *result;
-int matches;
-char **read_attrs;
-char *who;
+static LDAPMessage *
+disambiguate( LDAPMessage *result, int matches, char **read_attrs, char *who )
 {
 	int choice;			/* entry that user chooses */
 	int i;
@@ -66,18 +66,21 @@ char *who;
 	char response[SMALL_BUF_SIZE];	/* results from user */
 	char *name = NULL;		/* DN to lookup */
 	LDAPMessage *mp;
-	extern void Free();
+	int ld_errno = 0;
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
 		printf("->disambiguate(%x, %d, %x, %s)\n", result, matches, 
 							read_attrs, who);
 #endif
+
+	ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+
 	/*
 	 *  If we are here, it means that we got back multiple answers.
 	 */
-	if ((ld->ld_errno == LDAP_TIMELIMIT_EXCEEDED)
-	    || (ld->ld_errno == LDAP_SIZELIMIT_EXCEEDED)) {
+	if ((ld_errno == LDAP_TIMELIMIT_EXCEEDED)
+	    || (ld_errno == LDAP_SIZELIMIT_EXCEEDED)) {
 		if (verbose) {
 			printf("  Your query was too general and a limit was exceeded.  The results listed\n");
 			printf("  are not complete.  You may want to try again with a more refined query.\n\n");
@@ -150,9 +153,8 @@ char *who;
 	}
 }
 
-LDAPMessage * find(who, quiet)
-char *who;
-int quiet;
+LDAPMessage *
+find( char *who, int quiet )
 {
 	register int i, j, k;		/* general ints */
 	int matches;			/* from ldap_count_entries() */
@@ -166,9 +168,6 @@ int quiet;
 	char response[SMALL_BUF_SIZE];
 	char *cp, *dn, **rdns;
 	LDAPFiltInfo *fi;
-	extern LDAPFiltDesc *lfdp;		/* LDAP filter descriptor */
-	extern struct attribute attrlist[];	/* complete list of attrs */
-	extern void Free();
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -203,39 +202,45 @@ int quiet;
 	 *  here.  If we don't find it, treat it as NOT a UFN.
 	 */
 	if (strchr(who, ',') != NULL) {
-		int	savederef;
+		int	savederef, deref;
 #ifdef DEBUG
 		if (debug & D_FIND)
 			printf("\"%s\" appears to be a UFN\n", who);
 #endif
-		savederef = ld->ld_deref;
-		ld->ld_deref = LDAP_DEREF_FINDING;
+		ldap_get_option(ld, LDAP_OPT_DEREF, &savederef);
+		deref = LDAP_DEREF_FINDING;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &deref);
+
 		if ((rc = ldap_ufn_search_s(ld, who, search_attrs, FALSE, &res)) !=
 		    LDAP_SUCCESS && rc != LDAP_SIZELIMIT_EXCEEDED &&
 		    rc != LDAP_TIMELIMIT_EXCEEDED) {
 			ldap_perror(ld, "ldap_ufn_search_s");
-			ld->ld_deref = savederef;
+			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 			return(NULL);
 		}
 		if ((matches = ldap_count_entries(ld, res)) < 0) {
 			ldap_perror(ld, "ldap_count_entries");
-			ld->ld_deref = savederef;
+			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 			return(NULL);
 		} else if (matches == 1) {
-			if (ldap_search_s(ld, ldap_get_dn(ld, ldap_first_entry(ld, res)), LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res) != LDAP_SUCCESS) {
-				if (ld->ld_errno == LDAP_UNAVAILABLE)
-					printf("  Could not contact the X.500 server to find \"%s\".\n", who);
+			dn = ldap_get_dn(ld, ldap_first_entry(ld, res));
+			rc = ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res);
+			ldap_memfree(dn);
+			if (rc != LDAP_SUCCESS) {
+				int ld_errno = 0;
+				ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+				if (ld_errno == LDAP_UNAVAILABLE)
+					printf("  Could not contact the LDAP server to find \"%s\".\n", who);
 				else
 					ldap_perror(ld, "ldap_search_s");
 				return(NULL);
 			}
-			ld->ld_deref = savederef;
+			ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 			return(res);
 		} else if (matches > 1 ) {
-			return( disambiguate( ld, res, matches, read_attrs,
-			    who ) );
+			return disambiguate( res, matches, read_attrs, who );
 		}
-		ld->ld_deref = savederef;
+		ldap_set_option(ld, LDAP_OPT_DEREF, &savederef);
 	}
 
 	/*
@@ -287,7 +292,10 @@ int quiet;
 				fflush(stdout);
 				fetch_buffer(response, sizeof(response), stdin);
 				if ((response[0] == 'n') || (response[0] == 'N'))
+				{
+					ldap_memfree(dn);
 					return(NULL);
+				}
 			}
 #ifdef DEBUG
 			if (debug & D_FIND) {
@@ -306,9 +314,9 @@ int quiet;
 			if (ldap_search_s(ld, dn, LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res) != LDAP_SUCCESS) {
 				ldap_perror(ld, "ldap_search_s");
 				ldap_msgfree(res);
-				return(NULL);
+				res = NULL;
 			}
-			Free(dn);
+			ldap_memfree(dn);
 			return(res);
 		}
 		else if (matches > 0) {
@@ -322,8 +330,8 @@ int quiet;
 	return(NULL);
 }
 
-pick_one(i)
-int i;
+int
+pick_one( int i )
 {
 	int n;
 	char user_pick[SMALL_BUF_SIZE];
@@ -348,13 +356,10 @@ int i;
 	/* NOTREACHED */
 }
 
-print_list(list, names, matches)
-LDAPMessage *list;
-char *names[];
-int *matches;
+void
+print_list( LDAPMessage *list, char **names, int *matches )
 {
 	char **rdns, **cpp;
-	extern int lpp;
 	char resp[SMALL_BUF_SIZE];
 	register LDAPMessage *ep;
 	register int i = 1;
@@ -398,9 +403,8 @@ again:
 	return;
 }
 
-find_all_subscribers(sub, group)
-char *sub[];
-char *group;
+int
+find_all_subscribers( char **sub, char *group )
 {
 	int count;
 	LDAPMessage *result;
@@ -416,7 +420,9 @@ char *group;
 
 	sprintf(filter, "%s=%s", "memberOfGroup", group);
 	if (ldap_search_s(ld, search_base, LDAP_SCOPE_SUBTREE, filter, attributes, FALSE, &result) != LDAP_SUCCESS) {
-		if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
+		int ld_errno = 0;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		if (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			return(0);
 		ldap_perror(ld, "ldap_search_s");
 		return(0);
@@ -443,9 +449,8 @@ char *group;
 	return(count);
 }
 
-char * fetch_boolean_value(who, attr)
-char *who;
-struct attribute attr;
+char *
+fetch_boolean_value( char *who, struct attribute attr )
 {
 	LDAPMessage *result;		/* from the search below */
 	register LDAPMessage *ep;	/* entry pointer */
@@ -458,7 +463,9 @@ struct attribute attr;
 #endif
 	attributes[0] = attr.quipu_name;
 	if (ldap_search_s(ld, who, LDAP_SCOPE_BASE, "objectClass=*", attributes, FALSE, &result) != LDAP_SUCCESS) {
-		if (ld->ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
+		int ld_errno = 0;
+		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+		if (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			return("FALSE");
 		ldap_perror(ld, "ldap_search_s");
 		ldap_msgfree(result);

@@ -1,3 +1,5 @@
+# $OpenLDAP$
+
 PROGRAMS= rp500 fax500 xrpcomp.tmp
 
 SRCS= main.c faxtotpc.c rp500.c

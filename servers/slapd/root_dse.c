@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /* root_dse.c - Provides the ROOT DSA-Specific Entry
  *
  * Copyright 1999 The OpenLDAP Foundation.
@@ -15,7 +16,6 @@
 
 #include <ac/string.h>
 
-#include "ldap_defaults.h"
 #include "slap.h"
 
 void

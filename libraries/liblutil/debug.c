@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -33,7 +34,7 @@ static FILE *log_file;
 
 int lutil_debug_file( FILE *file )
 {
-	log_file = log_file;
+	log_file = file;
 
 	return 0;
 }

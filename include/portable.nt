@@ -1,0 +1,759 @@
+/* $OpenLDAP$ */
+/* include/portable.h.nt -- manually updated of MS NT (MS VC5) */
+/* synced with portable.h.in 1.24 */
+/*
+ * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms are permitted only
+ * as authorized by the OpenLDAP Public License.  A copy of this
+ * license is available at http://www.OpenLDAP.org/license.html or
+ * in file LICENSE in the top-level directory of the distribution.
+ */
+
+#ifndef _LDAP_PORTABLE_H
+#define _LDAP_PORTABLE_H
+
+/* end of preamble */
+
+/* --------------------------------------------------- */
+/* begin of MSVC5 specific entries */
+
+#define OPENLDAP_PACKAGE "OpenLDAP"
+#define OPENLDAP_VERSION "-devel"
+#define EXEEXT ".exe"
+#define LDAP_DIRSEP "\\"
+
+/* don't suck in all of the win32 api */
+#define WIN32_LEAN_AND_MEAN
+
+#ifdef _WINNT
+/* WindowsNT specific features */
+#define HAVE_NT_SERVICE_MANAGER 1
+#define HAVE_NT_EVENT_LOG 1
+
+#elif _WIN95
+/* Windows95 specific features */
+#endif
+
+#if defined( _DEBUG ) && !defined( LDAP_DEBUG )
+/* #define LDAP_MEMORY_DEBUG 1 */
+#define LDAP_DEBUG 1
+#endif
+
+/* we installed Henry Spencer's REGEX */
+#define HAVE_REGEX_H 1
+
+/* win32 specific stuff */
+#define sleep _sleep
+
+#define strcasecmp	stricmp
+#define strncasecmp	strnicmp
+#define strdup		_strdup
+
+#define	snprintf	_snprintf
+#define vsnprintf	_vsnprintf
+/* #define vsprintf	_vsprintf */
+
+/* define type for caddr_t */
+typedef char * caddr_t;
+
+#define ssize_t signed int
+
+#define LOG_DEBUG 0
+#define openlog( a, b )
+#define closelog()
+
+#define FD_SETSIZE 1024
+
+/* we have NT threads */
+#ifdef _MT
+#define HAVE_NT_THREADS 1
+#else
+#define NO_THREADS 1
+#endif
+
+/* we have spawnlp instead of fork/execlp */
+#define HAVE_SPAWNLP 1
+
+/* we have winsock2 */
+#define HAVE_WINSOCK2 1
+
+/* we have winsock */
+#define HAVE_WINSOCK 1
+
+/* we have <conio.h> */
+#define HAVE_CONIO_H 1
+
+/* we have <direct.h> */
+#define HAVE_DIRECT_H 1
+
+/* we have <io.h> */
+#define HAVE_IO_H 1
+
+/* we have <process.h> */
+#define HAVE_PROCESS_H 1
+
+#define LDAP_SIGUSR1	SIGILL
+#define LDAP_SIGUSR2	SIGTERM
+
+#define MAXPATHLEN _MAX_PATH
+
+/* end of MSVC5 specific entries */
+/* --------------------------------------------------- */
+
+/* Define if on AIX 3.
+   System headers sometimes define this.
+   We just want to avoid a redefinition error message.  */
+#ifndef _ALL_SOURCE
+/* #undef _ALL_SOURCE */
+#endif
+
+/* Define to empty if the keyword does not work.  */
+/* #undef const */
+
+/* Define to the type of elements in the array set by `getgroups'.
+   Usually this is either `int' or `gid_t'.  */
+/* #undef GETGROUPS_T */
+
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#define gid_t long
+
+/* Define if you don't have vprintf but do have _doprnt.  */
+/* #undef HAVE_DOPRNT */
+
+/* Define if your struct stat has st_blksize.  */
+/* #undef HAVE_ST_BLKSIZE */
+
+/* Define if you have the strftime function.  */
+#define HAVE_STRFTIME 1
+
+/* Define if you have <sys/wait.h> that is POSIX.1 compatible.  */
+/* #undef HAVE_SYS_WAIT_H */
+
+/* Define if you have the vprintf function.  */
+#define HAVE_VPRINTF 1
+
+/* Define if on MINIX.  */
+/* #undef _MINIX */
+
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#define mode_t int
+
+/* Define to `long' if <sys/types.h> doesn't define.  */
+/* #undef off_t */
+
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#define pid_t int
+
+/* Define if the system does not provide POSIX.1 features except
+   with this defined.  */
+/* #undef _POSIX_1_SOURCE */
+
+/* Define if you need to in order for stat and other things to work.  */
+/* #undef _POSIX_SOURCE */
+
+/* Define as the return type of signal handlers (int or void).  */
+#define RETSIGTYPE void
+
+/* Define to `unsigned' if <sys/types.h> doesn't define.  */
+/* #undef size_t */
+
+/* Define if you have the ANSI C header files.  */
+#define STDC_HEADERS 1
+
+/* Define if you can safely include both <sys/time.h> and <time.h>.  */
+/* #undef TIME_WITH_SYS_TIME */
+
+/* Define if your <sys/time.h> declares struct tm.  */
+/* #undef TM_IN_SYS_TIME */
+
+/* Define to `int' if <sys/types.h> doesn't define.  */
+#define uid_t long
+
+/* Define if your processor stores words with the most significant
+   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
+/* #undef WORDS_BIGENDIAN */
+
+/* define this if needed to get reentrant functions */
+#ifndef REENTRANT
+/* #undef REENTRANT */
+#endif
+#ifndef _REENTRANT
+/* #undef _REENTRANT */
+#endif
+
+/* define this if needed to get threadsafe functions */
+#ifndef THREADSAFE
+/* #undef THREADSAFE */
+#endif
+#ifndef _THREADSAFE
+/* #undef _THREADSAFE */
+#endif
+#ifndef THREAD_SAFE
+/* #undef THREAD_SAFE */
+#endif
+#ifndef _THREAD_SAFE
+/* #undef _THREAD_SAFE */
+#endif
+
+/* define this if toupper() requires tolower() */
+#define C_UPPER_LOWER 1
+
+/* define this to the number of arguments ctime_r() expects */
+/* #undef CTIME_R_NARGS */
+
+/* define this if sys_errlist is not defined in stdio.h or errno.h */
+/* #undef DECL_SYS_ERRLIST */
+
+/* define this if sys_errlist is available */
+#define HAVE_SYS_ERRLIST 1 
+
+/* define if you have berkeley db */
+/* #undef HAVE_BERKELEY_DB */
+
+/* define if you have berkeley db2 */
+#define HAVE_BERKELEY_DB2 1
+
+/* define if you have crypt */
+/* #undef HAVE_CRYPT */
+
+/* define if you have GDBM */
+/* #undef HAVE_GDBM */
+
+/* define if you have NDBM */
+/* #undef HAVE_NDBM */
+
+/* define if you have res_search() */
+#ifdef __notdef__
+/* see second res_search define */
+/* #undef HAVE_RES_SEARCH */
+#endif
+
+/* define if you have sched_yield() */
+#ifdef __notdef__
+/* see second sched_yield define */
+/* #undef HAVE_SCHED_YIELD */
+#endif
+
+/* define if you have setproctitle() */
+/* #undef HAVE_SETPROCTITLE */
+
+/* define this for connectionless LDAP support */
+/* #undef LDAP_CONNECTIONLESS */
+
+/* define this to add debugging code */
+/* #undef LDAP_DEBUG */
+
+/* define this to remove -lldap cache support */
+/* #undef LDAP_NOCACHE */
+
+/* define this for LDAP process title support */
+/* #undef LDAP_PROCTITLE */
+
+/* define this for LDAP User Interface support */
+/* #undef LDAP_LIBUI */
+
+/* define this to add syslog code */
+/* #undef LDAP_SYSLOG */
+
+/* define this to use DBBTREE w/ LDBM backend */
+#define LDBM_USE_DBBTREE 1
+
+/* define this to use DBHASH w/ LDBM backend */
+/* #undef LDBM_USE_DBHASH */
+
+/* define this for ACL Group support */
+#define SLAPD_ACLGROUPS 1
+
+/* define this to use SLAPD Berkeley DB2 backend */
+/* #define SLAPD_BDB2 1 */
+
+/* define this for ClearText password support */
+#define SLAPD_CLEARTEXT 1
+
+/* define this for crypt(3) password support */
+/* #undef SLAPD_CRYPT */
+
+/* define this to use SLAPD LDAP backend */
+/* #undef SLAPD_LDAP */
+
+/* define this to use SLAPD LDBM backend */
+#define SLAPD_LDBM 1
+
+/* define this to use SLAPD passwd backend */
+/* #undef SLAPD_PASSWD */
+
+/* define this to use SLAPD perl backend */
+/* #undef SLAPD_PERL */
+
+/* define this for phonetic support */
+/* #undef SLAPD_PHONETIC */
+
+/* define this for Reverse Lookup support */
+#define SLAPD_RLOOKUPS 1
+
+/* define this for per-object ACIs */
+/* #undef SLAPD_ACI_ENABLED */
+
+/* define this for discrete rights in ACIs */
+/* #undef SLAPD_ACI_DISCRETE_RIGHTS */
+
+/* define this to use SLAPD shell backend */
+/* #undef SLAPD_SHELL */
+
+/* define this to be empty if your compiler doesn't support volatile */
+/* #undef volatile */
+
+/* define this if sig_atomic_t isn't defined in signal.h */
+/* #undef sig_atomic_t */
+
+/* define this if socklen_t isn't defined in sys/types.h or sys/socket.h */
+#define socklen_t int
+
+/* These are defined in ldap_features.h */
+/*
+ LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
+ LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
+ LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+ LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+*/
+
+/* The number of bytes in a int.  */ 
+#define SIZEOF_INT 4
+
+/* The number of bytes in a long.  */ 
+#define SIZEOF_LONG 4
+  
+/* The number of bytes in a short.  */
+#define SIZEOF_SHORT 2
+
+/* Define if you have the bcopy function.  */
+/* #undef HAVE_BCOPY */
+
+/* Define if you have the ctime_r function.  */
+/* #undef HAVE_CTIME_R */
+
+/* Define if you have the flock function.  */
+/* #undef HAVE_FLOCK */
+
+/* Define if you have the getdtablesize function.  */
+/* #undef HAVE_GETDTABLESIZE */
+
+/* Define if you have the gethostbyaddr_r function.  */
+/* #undef HAVE_GETHOSTBYADDR_R */
+
+/* Define if you have the gethostbyname_r function.  */
+/* #undef HAVE_GETHOSTBYNAME_R */
+
+/* Define if you have the gethostname function.  */
+#define HAVE_GETHOSTNAME 1
+
+/* define if you have the getopt function */
+/* #undef HAVE_GETOPT */
+
+/* Define if you have the getpwuid function.  */
+/* #undef HAVE_GETPWUID */
+
+/* Define if you have the gettimeofday function.  */
+/* #undef HAVE_GETTIMEOFDAY */
+
+/* Define if you have the lockf function.  */
+/* #undef HAVE_LOCKF */
+
+/* Define if you have the memcpy function.  */
+#define HAVE_MEMCPY 1
+
+/* Define if you have the memmove function.  */
+#define HAVE_MEMMOVE 1
+
+/* Define if you have the mkstemp function.  */
+/* #undef HAVE_MKSTEMP */
+
+/* Define if you have the pthread_getconcurrency function.  */
+/* #undef HAVE_PTHREAD_GETCONCURRENCY */
+
+/* Define if you have the pthread_kill function.  */
+/* #undef HAVE_PTHREAD_KILL */
+
+/* Define if you have the pthread_setconcurrency function.  */
+/* #undef HAVE_PTHREAD_SETCONCURRENCY */
+
+/* Define if you have the pthread_yield function.  */
+/* #undef HAVE_PTHREAD_YIELD */
+
+/* Define if you have the res_search function.  */
+/* #undef HAVE_RES_SEARCH */
+
+/* Define if you have the sched_yield function.  */
+/* #undef HAVE_SCHED_YIELD */
+
+/* Define if you have the select function.  */
+#define HAVE_SELECT 1
+
+/* Define if you have the setpwfile function.  */
+/* #undef HAVE_SETPWFILE */
+
+/* Define if you have the setsid function.  */
+/* #undef HAVE_SETSID */
+
+/* Define if you have the signal function.  */
+#define HAVE_SIGNAL 1
+
+/* Define if you have the sigset function.  */
+/* #undef HAVE_SIGSET */
+
+/* Define if you have the snprintf function.  */
+/* #undef HAVE_SNPRINTF */
+
+/* Define if you have the socket function.  */
+#define HAVE_SOCKET 1
+
+/* Define if you have the strdup function.  */
+#define HAVE_STRDUP 1
+
+/* Define if you have the strerror function.  */
+#define HAVE_STRERROR 1
+
+/* Define if you have the strpbrk function.  */
+#define HAVE_STRPBRK 1
+
+/* Define if you have the strrchr function.  */
+#define HAVE_STRRCHR 1
+
+/* Define if you have the strsep function.  */
+/* #undef HAVE_STRSEP */
+
+/* Define if you have the strspn function.  */
+#define HAVE_STRSPN 1
+
+/* Define if you have the strstr function.  */
+#define HAVE_STRSTR 1
+
+/* Define if you have the strtok function.  */
+#define HAVE_STRTOK 1
+
+/* Define if you have the strtok_r function.  */
+/* #undef HAVE_STRTOK_R */
+
+/* Define if you have the strtol function.  */
+#define HAVE_STRTOL 1
+
+/* Define if you have the strtoul function.  */
+#define HAVE_STRTOUL 1
+
+/* Define if you have the sysconf function.  */
+/* #undef HAVE_SYSCONF */
+
+/* Define if you have the tempnam function.  */
+/* #undef HAVE_TEMPNAM */
+
+/* Define if you have the thr_getconcurrency function.  */
+/* #undef HAVE_THR_GETCONCURRENCY */
+
+/* Define if you have the thr_setconcurrency function.  */
+/* #undef HAVE_THR_SETCONCURRENCY */
+
+/* Define if you have the thr_yield function.  */
+/* #undef HAVE_THR_YIELD */
+
+/* Define if you have the vsnprintf function.  */
+#define HAVE_VSNPRINTF 1
+
+/* Define if you have the vsprintf function.  */
+#define HAVE_VSPRINTF 1
+
+/* Define if you have the waitpid function.  */
+/* #undef HAVE_WAITPID 1 */
+
+/* Define if you have the <arpa/nameser.h> header file.  */
+/* #undef HAVE_ARPA_NAMESER_H */
+
+/* Define if you have the <crypt.h> header file.  */
+/* #undef HAVE_CRYPT_H */
+
+/* Define if you have the <db.h> header file.  */
+#define HAVE_DB_H 1
+
+/* Define if you have the <db_185.h> header file.  */
+/* #undef HAVE_DB_185_H */
+
+/* Define if you have the <des.h> header file.  */
+/* #undef HAVE_DES_H */
+
+/* Define if you have the <dirent.h> header file.  */
+/* #undef HAVE_DIRENT_H */
+
+/* Define if you have the <dmalloc.h> header file.  */
+/* #undef HAVE_DMALLOC_H */
+
+/* Define if you have the <errno.h> header file.  */
+#define HAVE_ERRNO_H 1
+
+/* Define if you have the <fcntl.h> header file.  */
+#define HAVE_FCNTL_H 1
+
+/* Define if you have the <filio.h> header file.  */
+/* #undef HAVE_FILIO_H */
+
+/* Define if you have the <gdbm.h> header file.  */
+/* #undef HAVE_GDBM_H */
+
+/* Define if you have the <getopt.h> header file.  */
+/* #undef HAVE_GETOPT_H */
+
+/* Define if you have the <kerberosIV/des.h> header file.  */
+/* #undef HAVE_KERBEROSIV_DES_H */
+
+/* Define if you have the <kerberosIV/krb.h> header file.  */
+/* #undef HAVE_KERBEROSIV_KRB_H */
+
+/* Define if you have the <krb.h> header file.  */
+/* #undef HAVE_KRB_H */
+
+/* Define if you have the <libutil.h> header file.  */
+/* #undef HAVE_LIBUTIL_H */
+
+/* Define if you have the <limits.h> header file.  */
+#define HAVE_LIMITS_H 1
+
+/* Define if you have the <lwp/lwp.h> header file.  */
+/* #undef HAVE_LWP_LWP_H */
+
+/* Define if you have the <mach/cthreads.h> header file.  */
+/* #undef HAVE_MACH_CTHREADS_H */
+
+/* Define if you have the <malloc.h> header file.  */
+#define HAVE_MALLOC_H 1
+
+/* Define if you have the <memory.h> header file.  */
+/* #define HAVE_MEMORY_H */
+
+/* Define if you have the <ncurses.h> header file.  */
+/* #undef HAVE_NCURSES_H */
+
+/* Define if you have the <ndbm.h> header file.  */
+/* #undef HAVE_NDBM_H */
+
+/* Define if you have the <ndir.h> header file.  */
+/* #undef HAVE_NDIR_H */
+
+/* Define if you have the <psap.h> header file.  */
+/* #undef HAVE_PSAP_H */
+
+/* Define if you have the <pthread.h> header file.  */
+/* #undef HAVE_PTHREAD_H */
+
+/* Define if you have the <pwd.h> header file.  */
+/* #undef HAVE_PWD_H */
+
+/* Define if you have the <regex.h> header file.  */
+/* #undef HAVE_REGEX_H */
+
+/* Define if you have the <resolv.h> header file.  */
+/* #undef HAVE_RESOLV_H */
+
+/* Define if you have the <sched.h> header file.  */
+/* #undef HAVE_SCHED_H */
+
+/* Define if you have the <sgtty.h> header file.  */
+/* #undef HAVE_SGTTY_H */
+
+/* Define if you have the <stdarg.h> header file.  */
+#define HAVE_STDARG_H 1
+
+/* Define if you have the <stddef.h> header file.  */
+#define HAVE_STDDEF_H 1
+
+/* Define if you have the <string.h> header file.  */
+#define HAVE_STRING_H 1
+
+/* Define if you have the <strings.h> header file.  */
+/* #undef HAVE_STRINGS_H */
+
+/* Define if you have the <synch.h> header file.  */
+/* #undef HAVE_SYNCH_H */
+
+/* Define if you have the <sys/dir.h> header file.  */
+/* #undef HAVE_SYS_DIR_H */
+
+/* Define if you have the <sys/errno.h> header file.  */
+/* #undef HAVE_SYS_ERRNO_H */
+
+/* Define if you have the <sys/file.h> header file.  */
+/* #undef HAVE_SYS_FILE_H */
+
+/* Define if you have the <sys/filio.h> header file.  */
+/* #undef HAVE_SYS_FILIO_H */
+
+/* Define if you have the <sys/ioctl.h> header file.  */
+/* #undef HAVE_SYS_IOCTL_H */
+
+/* Define if you have the <sys/ndir.h> header file.  */
+/* #undef HAVE_SYS_NDIR_H */
+
+/* Define if you have the <sys/param.h> header file.  */
+/* #undef HAVE_SYS_PARAM_H */
+
+/* Define if you have the <sys/resource.h> header file.  */
+/* #undef HAVE_SYS_RESOURCE_H */
+
+/* Define if you have the <sys/socket.h> header file.  */
+/* #undef HAVE_SYS_SOCKET_H */
+
+/* Define if you have the <sys/syslog.h> header file.  */
+/* #undef HAVE_SYS_SYSLOG_H */
+
+/* Define if you have the <sys/time.h> header file.  */
+/* #undef HAVE_SYS_TIME_H */
+
+/* Define if you have the <sys/types.h> header file.  */
+#define HAVE_SYS_TYPES_H 1
+
+/* Define if you have the <sysexits.h> header file.  */
+/* #undef HAVE_SYSEXITS_H */
+
+/* Define if you have the <syslog.h> header file.  */
+/* #undef HAVE_SYSLOG_H */
+
+/* Define if you have the <tcpd.h> header file.  */
+/* #undef HAVE_TCPD_H */
+
+/* Define if you have the <termcap.h> header file.  */
+/* #undef HAVE_TERMCAP_H */
+
+/* Define if you have the <termios.h> header file.  */
+/* #undef HAVE_TERMIOS_H */
+
+/* Define if you have the <thread.h> header file.  */
+/* #undef HAVE_THREAD_H */
+
+/* Define if you have the <unistd.h> header file.  */
+/* #undef HAVE_UNISTD_H */
+
+/* Define if you have the V3 library (-lV3).  */
+/* #undef HAVE_LIBV3 */
+
+/* Define if you have the bind library (-lbind).  */
+/* #undef HAVE_LIBBIND */
+
+/* Define if you have the dmalloc library (-ldmalloc).  */
+/* #undef HAVE_LIBDMALLOC */
+
+/* Define if you have the gen library (-lgen).  */
+/* #undef HAVE_LIBGEN */
+
+/* Define if you have the inet library (-linet).  */
+/* #undef HAVE_LIBINET */
+
+/* Define if you have the net library (-lnet).  */
+/* #undef HAVE_LIBNET */
+
+/* Define if you have the nsl library (-lnsl).  */
+/* #undef HAVE_LIBNSL */
+
+/* Define if you have the nsl_s library (-lnsl_s).  */
+/* #undef HAVE_LIBNSL_S */
+
+/* Define if you have the resolv library (-lresolv).  */
+/* #undef HAVE_LIBRESOLV */
+
+/* Define if you have the socket library (-lsocket).  */
+/* #undef HAVE_LIBSOCKET */
+
+/* define if you have -lxtpp */
+/* #undef HAVE_XTPP */
+
+/* define if you have -ldsap */
+/* #undef HAVE_DSAP */
+
+/* define if you have -lisode */
+/* #undef HAVE_ISODE */
+
+/* define if you have -lpp */
+/* #undef HAVE_PP */
+
+/* define if you have Kerberos des_debug */
+/* #undef HAVE_DES_DEBUG */
+
+/* define if you have Kerberos */
+/* #undef HAVE_KERBEROS */
+
+/* define if pthreads API compatible with final spec */
+/* #undef HAVE_PTHREADS_FINAL */
+
+/* define if pthreads API compatible with draft4 spec */
+/* #undef HAVE_PTHREADS_D4 */
+
+/* define if you have LinuxThreads */
+/* #undef HAVE_LINUX_THREADS */
+
+/* define if you have POSIX Threads */
+/* #undef HAVE_PTHREADS */
+
+/* define if you have pthread_detach function */
+/* #undef HAVE_PTHREAD_DETACH */
+
+/* define if you have Mach Cthreads */
+/* #undef HAVE_MACH_CTHREADS */
+
+/* if you have Solaris LWP (thr) package */
+/* #undef HAVE_THR */
+
+/* if you have SunOS LWP package */
+/* #undef HAVE_LWP */
+
+/* define if select implicitly yields */
+#define HAVE_YIELDING_SELECT 1
+
+/* define if you have (or want) no threads */
+/* #undef NO_THREADS */
+
+/* define if you have -lwrap */
+/* #undef HAVE_TCPD */
+
+/* define if you have -ltermcap */
+/* #undef HAVE_TERMCAP */
+
+/* define if you have -lncurses */
+/* #undef HAVE_NCURSES */
+
+/* define if you have no termcap support */
+#define NO_TERMCAP 1
+
+/* Define if TIOCGWINSZ requires sys/ioctl.h */
+/* #undef GWINSZ_IN_SYS_IOCTL */
+
+/* define if you have POSIX termios */
+/* #undef HAVE_POSIX_TERMIOS */
+
+/* Define if system has ptrdiff_t type */
+#define HAVE_PTRDIFF_T 1
+
+/* define if cross compiling */
+/* #undef CROSS_COMPILING */
+
+/* begin of postamble */
+
+#ifndef __NEED_PROTOTYPES
+/* force LDAP_P to always include prototypes */
+#define __NEED_PROTOTYPES 1 
+#endif
+
+#ifdef HAVE_STDDEF_H
+#	include <stddef.h>
+#endif
+
+#if defined(LDAP_DEVEL) && !defined(LDAP_TEST)
+#define LDAP_TEST
+#endif
+#if defined(LDAP_TEST) && !defined(LDAP_DEBUG)
+#define LDAP_DEBUG
+#endif
+
+#include "ldap_cdefs.h"
+#include "ldap_features.h"
+
+#include <ac/assert.h>
+
+#endif /* _LDAP_PORTABLE_H */

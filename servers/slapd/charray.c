@@ -1,4 +1,5 @@
 /* charray.c - routines for dealing with char * arrays */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -16,7 +17,7 @@
 void
 charray_add(
     char	***a,
-    char	*s
+    const char	*s
 )
 {
 	int	n;
@@ -80,7 +81,7 @@ charray_free( char **array )
 int
 charray_inlist(
     char	**a,
-    char	*s
+    const char	*s
 )
 {
 	int	i;
@@ -143,15 +144,16 @@ charray2str( char **a )
 
 
 char **
-str2charray( char *str, char *brkstr )
+str2charray( const char *str_in, const char *brkstr )
 {
+	char	*str;
 	char	**res;
 	char	*s;
 	char	*lasts;
 	int	i;
 
 	/* protect the input string from strtok */
-	str = ch_strdup( str );
+	str = ch_strdup( str_in );
 
 	i = 1;
 	for ( s = str; *s; s++ ) {

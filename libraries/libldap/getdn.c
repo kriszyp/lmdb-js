@@ -1,32 +1,29 @@
+/* $OpenLDAP$ */
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*  Portions
  *  Copyright (c) 1994 Regents of the University of Michigan.
  *  All rights reserved.
  *
  *  getdn.c
  */
 
-#ifndef lint 
-static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
+#include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
-#ifdef MACOS
-#include <stdlib.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
 
-#include "lber.h"
-#include "ldap.h"
+#include <ac/stdlib.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include "ldap-int.h"
+
+static char **explode_name( const char *name, int notypes, int is_dn );
 
 char *
 ldap_get_dn( LDAP *ld, LDAPMessage *entry )
@@ -42,7 +39,7 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 	}
 
 	tmp = *entry->lm_ber;	/* struct copy */
-	if ( ber_scanf( &tmp, "{a", &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( &tmp, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( NULL );
 	}
@@ -51,17 +48,25 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 }
 
 char *
-ldap_dn2ufn( char *dn )
+ldap_dn2ufn( LDAP_CONST char *dn )
 {
 	char	*p, *ufn, *r;
 	int	state;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 
-	if ( ldap_is_dns_dn( dn ) || ( p = strchr( dn, '=' )) == NULL )
-		return( strdup( dn ));
+	if( dn == NULL ) {
+		return NULL;
+	}
 
-	ufn = strdup( ++p );
+	if ( ldap_is_dns_dn( dn ) ||
+		( p = strchr( dn, '=' ) ) == NULL )
+	{
+		return( LDAP_STRDUP( dn ) );
+	}
+
+
+	ufn = LDAP_STRDUP( ++p );
 
 #define INQUOTE		1
 #define OUTQUOTE	2
@@ -97,8 +102,8 @@ ldap_dn2ufn( char *dn )
 				char	*rsave = r;
 
 				*r-- = '\0';
-				while ( !isspace( *r ) && *r != ';'
-				    && *r != ',' && r > ufn )
+				while ( !isspace( (unsigned char) *r )
+					&& *r != ';' && *r != ',' && r > ufn )
 					r--;
 				r++;
 
@@ -124,47 +129,75 @@ ldap_dn2ufn( char *dn )
 }
 
 char **
-ldap_explode_dns( char *dn )
+ldap_explode_dns( LDAP_CONST char *dn_in )
 {
-	int	ncomps, maxcomps;
 	char	*s;
 	char	**rdns;
+   	char    *tok_r;
+	char	*dn;
 
-	if ( (rdns = (char **) malloc( 8 * sizeof(char *) )) == NULL ) {
+	int ncomps;
+	int maxcomps = 8;
+
+	if ( (dn = LDAP_STRDUP( dn_in )) == NULL ) {
 		return( NULL );
 	}
 
-	maxcomps = 8;
+	if ( (rdns = (char **) LDAP_MALLOC( maxcomps * sizeof(char *) )) == NULL ) {
+		LDAP_FREE( dn );
+		return( NULL );
+	}
+
 	ncomps = 0;
-	for ( s = strtok( dn, "@." ); s != NULL; s = strtok( NULL, "@." ) ) {
+	for ( s = ldap_pvt_strtok( dn, "@.", &tok_r ); s != NULL; 
+	      s = ldap_pvt_strtok( NULL, "@.", &tok_r ) )
+	{
 		if ( ncomps == maxcomps ) {
 			maxcomps *= 2;
-			if ( (rdns = (char **) realloc( rdns, maxcomps *
-			    sizeof(char *) )) == NULL ) {
-				return( NULL );
+			if ( (rdns = (char **) LDAP_REALLOC( rdns, maxcomps *
+			    sizeof(char *) )) == NULL )
+			{
+				LDAP_FREE( dn );
+				return NULL;
 			}
 		}
-		rdns[ncomps++] = strdup( s );
+		rdns[ncomps++] = LDAP_STRDUP( s );
 	}
+	LDAP_FREE(dn);
+
 	rdns[ncomps] = NULL;
 
+	/* trim rdns */
+	rdns = (char **) LDAP_REALLOC( rdns, (ncomps+1) * sizeof(char*) );
 	return( rdns );
 }
 
 char **
-ldap_explode_dn( char *dn, int notypes )
+ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 {
-	char	*p, *q, *rdnstart, **rdns = NULL;
-	int	state, count = 0, endquote, len;
-
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_dn\n", 0, 0, 0 );
 
 	if ( ldap_is_dns_dn( dn ) ) {
 		return( ldap_explode_dns( dn ) );
 	}
+	return explode_name( dn, notypes, 1 );
+}
 
-	rdnstart = dn;
-	p = dn-1;
+char **
+ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
+{
+	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
+	return explode_name( rdn, notypes, 0 );
+}
+
+static char **
+explode_name( const char *name, int notypes, int is_dn )
+{
+	const char *p, *q;
+	char **parts = NULL;
+	int	state, count = 0, endquote, len;
+
+	p = name-1;
 	state = OUTQUOTE;
 
 	do {
@@ -181,33 +214,41 @@ ldap_explode_dn( char *dn, int notypes )
 			else
 				state = INQUOTE;
 			break;
+		case '+':
+			if (!is_dn)
+				goto end_part;
+			break;
 		case ';':
 		case ',':
+			if (!is_dn)
+				break;
+			goto end_part;
 		case '\0':
+		end_part:
 			if ( state == OUTQUOTE ) {
 				++count;
-				if ( rdns == NULL ) {
-					if (( rdns = (char **)malloc( 8
+				if ( parts == NULL ) {
+					if (( parts = (char **)LDAP_MALLOC( 8
 						 * sizeof( char *))) == NULL )
 						return( NULL );
 				} else if ( count >= 8 ) {
-					if (( rdns = (char **)realloc( rdns,
+					if (( parts = (char **)LDAP_REALLOC( parts,
 						(count+1) * sizeof( char *)))
 						== NULL )
 						return( NULL );
 				}
-				rdns[ count ] = NULL;
+				parts[ count ] = NULL;
 				endquote = 0;
 				if ( notypes ) {
-					for ( q = rdnstart;
+					for ( q = name;
 					    q < p && *q != '='; ++q ) {
 						;
 					}
 					if ( q < p ) {
-						rdnstart = ++q;
+						name = ++q;
 					}
-					if ( *rdnstart == '"' ) {
-						++rdnstart;
+					if ( *name == '"' ) {
+						++name;
 					}
 					
 					if ( *(p-1) == '"' ) {
@@ -216,12 +257,12 @@ ldap_explode_dn( char *dn, int notypes )
 					}
 				}
 
-				len = p - rdnstart;
-				if (( rdns[ count-1 ] = (char *)calloc( 1,
+				len = p - name;
+				if (( parts[ count-1 ] = (char *)LDAP_CALLOC( 1,
 				    len + 1 )) != NULL ) {
-				    	SAFEMEMCPY( rdns[ count-1 ], rdnstart,
+				    	SAFEMEMCPY( parts[ count-1 ], name,
 					    len );
-					rdns[ count-1 ][ len ] = '\0';
+					parts[ count-1 ][ len ] = '\0';
 				}
 
 				/*
@@ -232,38 +273,24 @@ ldap_explode_dn( char *dn, int notypes )
 				if ( endquote == 1 )
 					p++;
 
-				rdnstart = *p ? p + 1 : p;
-				while ( isspace( *rdnstart ))
-					++rdnstart;
+				name = *p ? p + 1 : p;
+				while ( isascii( *name ) && isspace( *name ) )
+					++name;
 			}
 			break;
 		}
 	} while ( *p );
 
-	return( rdns );
+	return( parts );
 }
 
 
 int
-ldap_is_dns_dn( char *dn )
+ldap_is_dns_dn( LDAP_CONST char *dn )
 {
-	return( dn[ 0 ] != '\0' && strchr( dn, '=' ) == NULL &&
-	    strchr( dn, ',' ) == NULL );
+	return( dn[ 0 ] != '\0'
+		&& strchr( dn, '=' ) == NULL
+		&& strchr( dn, ',' ) == NULL
+		&& strchr( dn, ';' ) == NULL );
 }
 
-
-#if defined( ultrix ) || defined( NeXT )
-
-char *strdup( char *s )
-{
-	char	*p;
-
-	if ( (p = (char *) malloc( strlen( s ) + 1 )) == NULL )
-		return( NULL );
-
-	strcpy( p, s );
-
-	return( p );
-}
-
-#endif /* ultrix */
