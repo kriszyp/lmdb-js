@@ -1,0 +1,9 @@
+2) must add alias handling
+3) must set time limit when preparing all queries, and check size limit
+7) MOST important, probably - fix BUGS (see ...)     
+8) make an utility, which, given objectclass,name of attribute for RDN, and
+   base DN, adds appropriate records to ldap_entries for all data in your
+   RDBMS (until then, you have no automated way to fill in ldap_entries except
+   executing something like "insert into ldap_entries (dn,keyval,...) values
+     (select concat(...,<base>) as dn,id as keyval, ... from ...)")
+     
