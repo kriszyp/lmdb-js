@@ -2086,7 +2086,7 @@ TLS_LIBS=
 
 ol_aix_threads=no
 case "$target" in
-*-*-aix*) 	if test -z "CC" ; then
+*-*-aix*) 	if test -z "$CC" ; then
 		case "$ol_with_threads" in
 		auto | yes |  posix) ol_aix_threads=yes ;;
 		esac
