@@ -76,7 +76,6 @@
        ** In OpenLDAP 2.x-devel, its 2000 + the draft number, ie 2002.
        ** This section is for OPENLDAP.
        */
-#define ldap_attributefree(p) ldap_memfree(p)
 #define ldap_memfree(p) free(p)
 #ifdef LDAP_OPT_ERROR_NUMBER
 #define ldap_get_lderrno(ld)	(ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &lderrno), lderrno)
@@ -89,7 +88,6 @@
        /*
        ** Netscape SDK w/ ldap_set_option, ldap_get_option
        */
-#define ldap_attributefree(p) ldap_memfree(p)
 #define LDAP_ERR_STRING(ld)  \
 	ldap_err2string(ldap_get_lderrno(ldap))
 #else
@@ -99,7 +97,6 @@
 #define ldap_memfree(p) free(p)
 #define ldap_ber_free(p, n) ber_free(p, n)
 #define ldap_value_free_len(bvals) ber_bvecfree(bvals)
-#define ldap_attributefree(p) 
 #define ldap_get_lderrno(ld) (ld->ld_errno)
 #define LDAP_ERR_STRING(ld)  \
 	ldap_err2string(ld->ld_errno)
@@ -206,6 +203,7 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
 					      attributeDataObj, 
 					      singleAttributeValueObj) 
 		  == TCL_ERROR) {
+		    ldap_ber_free(ber, 0);
 		    return TCL_ERROR;
 		}
 	    }
@@ -221,8 +219,8 @@ LDAP_ProcessOneSearchResult (interp, ldap, entry, destArrayNameObj, evalCodeObj)
 	    }
 	    Tcl_DecrRefCount (attributeNameObj);
 	}
-	ldap_attributefree(attributeName);
     }
+    ldap_ber_free(ber, 0);
     return Tcl_EvalObj (interp, evalCodeObj);
 }
 
