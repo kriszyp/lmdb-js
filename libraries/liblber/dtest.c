@@ -26,7 +26,7 @@
 
 #ifdef HAVE_CONSOLE_H
 #include <console.h>
-#endif /* MACOS */
+#endif
 
 #include <lber.h>
 
@@ -58,7 +58,7 @@ main( int argc, char **argv )
 #ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	cshow( stdout );
-#endif /* MACOS */
+#endif
 
 	sb = ber_sockbuf_alloc_fd( fileno(stdin) );
 

@@ -71,7 +71,7 @@ main( int argc, char **argv )
 
 #else
 	fd = fileno(stdout);
-#endif /* MACOS */
+#endif
 
 	sb = ber_sockbuf_alloc_fd( fd );
 
@@ -128,9 +128,7 @@ main( int argc, char **argv )
 			break;
 
 		default:
-#ifdef LDAP_LIBUI
-			fprintf( stderr, "unknown fmt %c\n", *fmt );
-#endif /* LDAP_LIBUI */
+			fprintf( stderr, "encode: unknown fmt %c\n", *fmt );
 			rc = -1;
 			break;
 		}
