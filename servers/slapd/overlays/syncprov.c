@@ -780,6 +780,68 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	return rs.sr_err;
 }
 
+static void
+syncprov_free_syncop( syncops *so )
+{
+	syncres *sr, *srnext;
+
+	ldap_pvt_thread_mutex_lock( &so->s_mutex );
+	so->s_inuse--;
+	if ( so->s_inuse > 0 ) {
+		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
+		return;
+	}
+	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
+	filter_free( so->s_op->ors_filter );
+	ch_free( so->s_op );
+	ch_free( so->s_base.bv_val );
+	for ( sr=so->s_res; sr; sr=srnext ) {
+		srnext = sr->s_next;
+		ch_free( sr );
+	}
+	ldap_pvt_thread_mutex_destroy( &so->s_mutex );
+	ch_free( so );
+}
+
+static int
+syncprov_drop_psearch( syncops *so )
+{
+	ldap_pvt_thread_mutex_lock( &so->s_op->o_conn->c_mutex );
+	so->s_op->o_conn->c_n_ops_executing--;
+	so->s_op->o_conn->c_n_ops_completed++;
+	ldap_pvt_thread_mutex_unlock( &so->s_op->o_conn->c_mutex );
+	syncprov_free_syncop( so );
+}
+
+static int
+syncprov_op_abandon( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	syncprov_info_t		*si = on->on_bi.bi_private;
+	syncops *so, *soprev;
+
+	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
+	for ( so=si->si_ops, soprev = (syncops *)&si->si_ops; so;
+		soprev=so, so=so->s_next ) {
+		if ( so->s_op->o_connid == op->o_connid &&
+			so->s_op->o_msgid == op->orn_msgid ) {
+				so->s_op->o_abandon = 1;
+				soprev->s_next = so->s_next;
+				break;
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
+	if ( so ) {
+		/* Is this really a Cancel exop? */
+		if ( op->o_tag != LDAP_REQ_ABANDON ) {
+			rs->sr_err = LDAP_CANCELLED;
+			send_ldap_result( so->s_op, rs );
+		}
+		syncprov_drop_psearch( so );
+	}
+	return SLAP_CB_CONTINUE;
+}
+
 /* Find which persistent searches are affected by this operation */
 static void
 syncprov_matchops( Operation *op, opcookie *opc, int saveit )
@@ -788,7 +850,7 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	syncprov_info_t		*si = on->on_bi.bi_private;
 
 	fbase_cookie fc;
-	syncops *ss;
+	syncops *ss, *sprev, *snext;
 	Entry *e;
 	Attribute *a;
 	int rc;
@@ -824,17 +886,28 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 	}
 
 	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-	for (ss = si->si_ops; ss; ss=ss->s_next)
+	for (ss = si->si_ops, sprev = (syncops *)&si->si_ops; ss;
+		sprev = ss, ss=snext)
 	{
 		syncmatches *sm;
 		int found = 0;
 
+		snext = ss->s_next;
 		/* validate base */
 		fc.fss = ss;
 		fc.fbase = 0;
 		fc.fscope = 0;
+
+		/* If the base of the search is missing, signal a refresh */
 		rc = syncprov_findbase( op, &fc );
-		if ( rc != LDAP_SUCCESS ) continue;
+		if ( rc != LDAP_SUCCESS ) {
+			SlapReply rs = {REP_RESULT};
+			send_ldap_error( ss->s_op, &rs, LDAP_SYNC_REFRESH_REQUIRED,
+				"search base has changed" );
+			sprev->s_next = snext;
+			syncprov_drop_psearch( ss );
+			continue;
+		}
 
 		/* If we're sending results now, look for this op in old matches */
 		if ( !saveit ) {
@@ -875,29 +948,6 @@ syncprov_matchops( Operation *op, opcookie *opc, int saveit )
 		be_entry_release_r( op, e );
 		op->o_bd->bd_info = (BackendInfo *)on;
 	}
-}
-
-static void
-syncprov_free_syncop( syncops *so )
-{
-	syncres *sr, *srnext;
-
-	ldap_pvt_thread_mutex_lock( &so->s_mutex );
-	so->s_inuse--;
-	if ( so->s_inuse > 0 ) {
-		ldap_pvt_thread_mutex_unlock( &so->s_mutex );
-		return;
-	}
-	ldap_pvt_thread_mutex_unlock( &so->s_mutex );
-	filter_free( so->s_op->ors_filter );
-	ch_free( so->s_op );
-	ch_free( so->s_base.bv_val );
-	for ( sr=so->s_res; sr; sr=srnext ) {
-		srnext = sr->s_next;
-		ch_free( sr );
-	}
-	ldap_pvt_thread_mutex_destroy( &so->s_mutex );
-	ch_free( so );
 }
 
 static int
@@ -996,39 +1046,6 @@ syncprov_op_response( Operation *op, SlapReply *rs )
 			}
 		}
 
-	}
-	return SLAP_CB_CONTINUE;
-}
-
-static int
-syncprov_op_abandon( Operation *op, SlapReply *rs )
-{
-	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
-	syncprov_info_t		*si = on->on_bi.bi_private;
-	syncops *so, *soprev;
-
-	ldap_pvt_thread_mutex_lock( &si->si_ops_mutex );
-	for ( so=si->si_ops, soprev = (syncops *)&si->si_ops; so;
-		soprev=so, so=so->s_next ) {
-		if ( so->s_op->o_connid == op->o_connid &&
-			so->s_op->o_msgid == op->orn_msgid ) {
-				so->s_op->o_abandon = 1;
-				soprev->s_next = so->s_next;
-				break;
-		}
-	}
-	ldap_pvt_thread_mutex_unlock( &si->si_ops_mutex );
-	if ( so ) {
-		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-		op->o_conn->c_n_ops_executing--;
-		op->o_conn->c_n_ops_completed++;
-		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
-		/* Is this really a Cancel exop? */
-		if ( op->o_tag != LDAP_REQ_ABANDON ) {
-			rs->sr_err = LDAP_CANCELLED;
-			send_ldap_result( so->s_op, rs );
-		}
-		syncprov_free_syncop( so );
 	}
 	return SLAP_CB_CONTINUE;
 }
