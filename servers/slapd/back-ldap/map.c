@@ -541,6 +541,8 @@ ldap_dnattr_rewrite(
 	struct berval	bv;
 	int		i, last;
 
+	assert( a_vals != NULL );
+
 	for ( last = 0; a_vals[last].bv_val != NULL; last++ );
 	last--;
 
@@ -582,6 +584,8 @@ ldap_dnattr_result_rewrite(
 {
 	struct berval	bv;
 	int		i, last;
+
+	assert( a_vals != NULL );
 
 	for ( last = 0; a_vals[last].bv_val; last++ );
 	last--;

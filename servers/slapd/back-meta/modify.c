@@ -90,17 +90,26 @@ meta_back_modify( Operation *op, SlapReply *rs )
 
 	dc.ctx = "modifyAttrDN";
 	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
-		int j;
+		int	j, is_oc = 0;
 
 		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map( &li->targets[ candidate ]->rwmap.rwm_at,
-				&ml->sml_desc->ad_cname, &mapped,
-				BACKLDAP_MAP );
-		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
-			continue;
+		if ( ml->sml_desc == slap_schema.si_ad_objectClass 
+				|| ml->sml_desc == slap_schema.si_ad_structuralObjectClass )
+		{
+			is_oc = 1;
+			mapped = ml->sml_desc->ad_cname;
+
+		} else {
+			ldap_back_map(&li->targets[ candidate ]->rwmap.rwm_at,
+					&ml->sml_desc->ad_cname,
+					&mapped, BACKLDAP_MAP);
+			if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' )
+			{
+				continue;
+			}
 		}
 
 		modv[ i ] = &mods[ i ];
@@ -112,18 +121,39 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		 * to allow their use in ACLs at the back-ldap
 		 * level.
 		 */
-		if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
-			( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
-		}
+		if ( ml->sml_values != NULL ) {
+			if ( is_oc ) {
+				for (j = 0; ml->sml_values[j].bv_val; j++);
+				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+					sizeof(struct berval *));
+				for (j = 0; ml->sml_values[j].bv_val; j++) {
+					ldap_back_map(&li->targets[ candidate ]->rwmap.rwm_oc,
+							&ml->sml_values[j],
+							&mapped, BACKLDAP_MAP);
+					if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
+						continue;
+					}
+					mods[i].mod_bvalues[j] = &mapped;
+				}
+				mods[i].mod_bvalues[j] = NULL;
 
-		if ( ml->sml_values != NULL ){
-			for (j = 0; ml->sml_values[ j ].bv_val; j++);
-			mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
-				sizeof(struct berval *));
-			for (j = 0; ml->sml_values[ j ].bv_val; j++)
-				mods[ i ].mod_bvalues[ j ] = &ml->sml_values[j];
-			mods[ i ].mod_bvalues[ j ] = NULL;
+			} else {
+				if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
+						SLAPD_DN_SYNTAX ) == 0 )
+				{
+					( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
+					if ( ml->sml_values == NULL ) {
+						continue;
+					}
+				}
+
+				for (j = 0; ml->sml_values[ j ].bv_val; j++);
+				mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+					sizeof(struct berval *));
+				for (j = 0; ml->sml_values[ j ].bv_val; j++)
+					mods[ i ].mod_bvalues[ j ] = &ml->sml_values[j];
+				mods[ i ].mod_bvalues[ j ] = NULL;
+			}
 
 		} else {
 			mods[ i ].mod_bvalues = NULL;
