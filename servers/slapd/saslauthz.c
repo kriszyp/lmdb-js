@@ -977,16 +977,16 @@ exact_match:
 		 * we need to append the <assertDN> so that the <group_dn> is searched
 		 * with scope "base", and the filter ensures that <assertDN> is
 		 * member of the group */
-		tmp = ch_realloc( op.ors_filterstr.bv_val,
-				op.ors_filterstr.bv_len + assertDN->bv_len + STRLENOF( /* (( */ "))" ) + 1 );
+		tmp = ch_realloc( op.ors_filterstr.bv_val, op.ors_filterstr.bv_len +
+			assertDN->bv_len + STRLENOF( /*"(("*/ "))" ) + 1 );
 		if ( tmp == NULL ) {
 			rc = LDAP_NO_MEMORY;
 			goto CONCLUDED;
 		}
 		op.ors_filterstr.bv_val = tmp;
 		
-		tmp = lutil_strcopy( &tmp[ op.ors_filterstr.bv_len ], assertDN->bv_val );
-		tmp = lutil_strcopy( tmp, /* (( */ "))" );
+		tmp = lutil_strcopy( &tmp[op.ors_filterstr.bv_len], assertDN->bv_val );
+		tmp = lutil_strcopy( tmp, /*"(("*/ "))" );
 
 		/* pass opx because str2filter_x may (and does) use o_tmpmfuncs */
 		op.ors_filter = str2filter_x( opx, op.ors_filterstr.bv_val );
@@ -1246,10 +1246,18 @@ FINISHED:
 	if( !BER_BVISEMPTY( sasldn ) ) {
 		opx->o_conn->c_authz_backend = op.o_bd;
 	}
-	if( !BER_BVISNULL( &op.o_req_dn ) ) slap_sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
-	if( !BER_BVISNULL( &op.o_req_ndn ) ) slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
-	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
-	if( !BER_BVISNULL( &op.ors_filterstr ) ) ch_free( op.ors_filterstr.bv_val );
+	if( !BER_BVISNULL( &op.o_req_dn ) ) {
+		slap_sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
+	}
+	if( !BER_BVISNULL( &op.o_req_ndn ) ) {
+		slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
+	}
+	if( op.oq_search.rs_filter ) {
+		filter_free_x( opx, op.oq_search.rs_filter );
+	}
+	if( !BER_BVISNULL( &op.ors_filterstr ) ) {
+		ch_free( op.ors_filterstr.bv_val );
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
