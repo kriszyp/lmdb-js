@@ -161,7 +161,7 @@ ldap_back_conn_cmp(
 	/* For shared sessions, conn is NULL. Only explicitly
 	 * bound sessions will have non-NULL conn.
 	 */
-	return lc1->conn - lc2->conn;
+	return (unsigned)lc1->conn - (unsigned)lc2->conn;
 }
 
 /*
