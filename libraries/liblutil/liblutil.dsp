@@ -160,6 +160,10 @@ SOURCE=.\getpass.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\hash.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldap_cdefs.h
 # End Source File
 # Begin Source File
