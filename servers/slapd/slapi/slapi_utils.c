@@ -3380,19 +3380,19 @@ LDAPMod **slapi_int_modifications2ldapmods(Modifications **pmodlist)
 		if ( ml->sml_values != NULL ) {
 			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ )
 				;
-			modp->mod_values = (struct berval **)ch_malloc( (j + 1) *
+			modp->mod_bvalues = (struct berval **)ch_malloc( (j + 1) *
 				sizeof(struct berval *) );
 			for( j = 0; ml->sml_values[j].bv_val != NULL; j++ ) {
 				/* Take ownership of original values. */
-				modp->mod_values[j] = (struct berval *)ch_malloc( sizeof(struct berval) );
-				modp->mod_values[j]->bv_len = ml->sml_values[j].bv_len;
-				modp->mod_values[j]->bv_val = ml->sml_values[j].bv_val;
+				modp->mod_bvalues[j] = (struct berval *)ch_malloc( sizeof(struct berval) );
+				modp->mod_bvalues[j]->bv_len = ml->sml_values[j].bv_len;
+				modp->mod_bvalues[j]->bv_val = ml->sml_values[j].bv_val;
 				ml->sml_values[j].bv_len = 0;
 				ml->sml_values[j].bv_val = NULL;
 			}
-			modp->mod_values[j] = NULL;
+			modp->mod_bvalues[j] = NULL;
 		} else {
-			modp->mod_values = NULL;
+			modp->mod_bvalues = NULL;
 		}
 		i++;
 	}
@@ -3438,7 +3438,7 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 		mod->sml_next = NULL;
 
 		if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
-			for( i = 0, bvp = (*modp)->mod_values; bvp != NULL && *bvp != NULL; bvp++, i++ )
+			for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ )
 				;
 		} else {
 			for( i = 0, p = (*modp)->mod_values; p != NULL && *p != NULL; p++, i++ )
@@ -3452,7 +3452,7 @@ Modifications *slapi_int_ldapmods2modifications (LDAPMod **mods)
 
 			/* NB: This implicitly trusts a plugin to return valid modifications. */
 			if ( (*modp)->mod_op & LDAP_MOD_BVALUES ) {
-				for( i = 0, bvp = (*modp)->mod_values; bvp != NULL && *bvp != NULL; bvp++, i++ ) {
+				for( i = 0, bvp = (*modp)->mod_bvalues; bvp != NULL && *bvp != NULL; bvp++, i++ ) {
 					mod->sml_values[i].bv_val = (*bvp)->bv_val;
 					mod->sml_values[i].bv_len = (*bvp)->bv_len;
 				}
