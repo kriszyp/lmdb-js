@@ -102,7 +102,7 @@ relay_back_db_open( Backend *be )
 		assert( ri->ri_bd );
 
 		/* inherit controls */
-		if ( ri->ri_bd ) {
+		if ( ri->ri_bd->be_controls ) {
 			be->be_controls = ldap_charray_dup( ri->ri_bd->be_controls );
 		}
 
