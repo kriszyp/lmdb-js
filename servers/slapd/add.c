@@ -38,10 +38,10 @@ do_add( Connection *conn, Operation *op )
 	Backend		*be;
 	Modifications	*modlist = NULL;
 	Modifications	**modtail = &modlist;
-	Modifications	tmp;
+	Modifications	tmp, *mod;
 	const char *text;
 	LDAPRDN		*rdn = NULL;
-	int		a_cnt;
+	int		cnt;
 	int			rc = LDAP_SUCCESS;
 	int	manageDSAit;
 
@@ -194,127 +194,193 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	/*
-	 * Get attribute type(s) and attribute value(s) of our rdn,
+	 * is objectClass special?
 	 */
-	if ( ldap_bv2rdn( &e->e_name, &rdn, (char **)&text,
-		LDAP_DN_FORMAT_LDAP ) )
-	{
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX,
-			NULL, "unknown type(s) used in RDN",
-			NULL, NULL );
-		goto done;
-	}
 
-	/* Check for RDN attrs in entry */
-	for ( a_cnt = 0; rdn[ 0 ][ a_cnt ]; a_cnt++ ) {
-		AttributeDescription	*desc = NULL;
-		Modifications 		*mod;
-		MatchingRule		*mr;
-		int			i;
+	/* look for objectClass attribute */
+	for ( mod = modlist; mod; mod = mod->sml_next ) {
+		AttributeDescription	*mod_desc = NULL;
 
-		rc = slap_bv2ad( &rdn[ 0 ][ a_cnt ]->la_attr, 
-				&desc, &text );
-
+		rc = slap_bv2ad( &mod->sml_type, &mod_desc, &text );
 		if ( rc != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, rc,
 					NULL, text, NULL, NULL );
 			goto done;
 		}
 
-		for (mod = modlist; mod; mod = mod->sml_next) {
-			AttributeDescription	*mod_desc = NULL;
+		if ( mod_desc == slap_schema.si_ad_objectClass ) {
+			break;
+		}
+	}
 
-			rc = slap_bv2ad( &mod->sml_type, 
-					&mod_desc, &text );
+	if ( mod == NULL ) {
+		send_ldap_result( conn, op, 
+				rc = LDAP_OBJECT_CLASS_VIOLATION,
+				NULL, "objectClass missing", 
+				NULL, NULL );
+		goto done;
+	}
+
+	/* look for special objectClass */
+	for ( cnt = 0; mod->sml_bvalues[ cnt ].bv_val; cnt++ ) {
+		ObjectClass	*oc;
+
+		oc = oc_bvfind( &mod->sml_bvalues[ cnt ] );
+
+		if ( oc == NULL ) {
+			send_ldap_result( conn, op, 
+					rc = LDAP_OBJECT_CLASS_VIOLATION,
+					NULL, "undefined objectClass", 
+					NULL, NULL );
+			goto done;
+		}
+
+		/* check for special objectClass */
+		if ( oc == slap_schema.si_oc_alias ) {
+			break;
+		}
+
+		if ( oc == slap_schema.si_oc_referral ) {
+			break;
+		}
+
+		if ( oc == slap_schema.si_oc_extensibleObject ) {
+			break;
+		}
+	}
+
+	/*
+	 * if not special
+	 */
+	if ( mod->sml_bvalues[ cnt ].bv_val == NULL ) {
+
+		/*
+		 * Get attribute type(s) and attribute value(s) of our rdn,
+		 */
+		if ( ldap_bv2rdn( &e->e_name, &rdn, (char **)&text,
+			LDAP_DN_FORMAT_LDAP ) )
+		{
+			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX,
+				NULL, "unknown type(s) used in RDN",
+				NULL, NULL );
+			goto done;
+		}
+
+		/* Check for RDN attrs in entry */
+		for ( cnt = 0; rdn[ 0 ][ cnt ]; cnt++ ) {
+			AttributeDescription	*desc = NULL;
+			MatchingRule		*mr;
+			int			i;
+	
+			rc = slap_bv2ad( &rdn[ 0 ][ cnt ]->la_attr, 
+					&desc, &text );
+	
 			if ( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
 						NULL, text, NULL, NULL );
 				goto done;
 			}
-
-			if (mod_desc == desc) {
-				break;
+	
+			for (mod = modlist; mod; mod = mod->sml_next) {
+				AttributeDescription	*mod_desc = NULL;
+	
+				rc = slap_bv2ad( &mod->sml_type, 
+						&mod_desc, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					send_ldap_result( conn, op, rc,
+							NULL, text, NULL, NULL );
+					goto done;
+				}
+	
+				if (mod_desc == desc) {
+					break;
+				}
 			}
-		}
-
-		if (mod == NULL) {
+	
+			if (mod == NULL) {
+				struct berval	bv;
+	
 #define BAILOUT
 #ifdef BAILOUT
-			/* bail out */
-			send_ldap_result( conn, op, 
-					rc = LDAP_NO_SUCH_ATTRIBUTE,
-					NULL,
-					"attribute in RDN not listed in entry", 
-					NULL, NULL );
-			goto done;
-
+				/* bail out */
+				send_ldap_result( conn, op, 
+						rc = LDAP_NO_SUCH_ATTRIBUTE,
+						NULL,
+						"attribute in RDN not listed in entry", 
+						NULL, NULL );
+				goto done;
+	
 #else /* ! BAILOUT */
-			struct berval	bv;
-
-			/* add attribute type and value to modlist */
-			mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
-		
-			mod->sml_op = LDAP_MOD_ADD;
-			mod->sml_next = NULL;
-			mod->sml_desc = NULL;
-
-			ber_dupbv( &mod->sml_type,
-					&rdn[ 0 ][ a_cnt ]->la_attr );
-
-			mod->sml_bvalues = NULL;
-			ber_dupbv( &bv, &rdn[ 0 ][ a_cnt ]->la_value );
-			ber_bvarray_add( &mod->sml_bvalues, &bv );
-
-			*modtail = mod;
-			modtail = &mod->sml_next;
-			continue;
-#endif /* ! BAILOUT */
-		}
-
-		mr = desc->ad_type->sat_equality;
-		if (mr == NULL || !mr->smr_match ) {
-			/* brrrr ... */
-			continue;
-		}
-
-		for (i = 0; mod->sml_bvalues[ i ].bv_val; i++) {
-			int		match = 0;
+				/* add attribute type and value to modlist */
+				mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
 			
-			rc = value_match(&match, desc, mr,
-					SLAP_MR_VALUE_SYNTAX_MATCH,
-					&mod->sml_bvalues[ i ],
-					&rdn[ 0 ][ a_cnt ]->la_value, &text);
-
-			if ( rc != LDAP_SUCCESS ) {
-				send_ldap_result( conn, op, rc,
-						NULL, text, NULL, NULL);
+				mod->sml_op = LDAP_MOD_ADD;
+				mod->sml_next = NULL;
+				mod->sml_desc = NULL;
+	
+				ber_dupbv( &mod->sml_type,
+						&rdn[ 0 ][ cnt ]->la_attr );
+	
+				mod->sml_bvalues = NULL;
+				ber_dupbv( &bv, &rdn[ 0 ][ cnt ]->la_value );
+				ber_bvarray_add( &mod->sml_bvalues, &bv );
+	
+				*modtail = mod;
+				modtail = &mod->sml_next;
+				continue;
+#endif /* ! BAILOUT */
+			}
+	
+			mr = desc->ad_type->sat_equality;
+			if (mr == NULL || !mr->smr_match ) {
+				/* bail out */
+				send_ldap_result( conn, op, 
+						rc = LDAP_INVALID_SYNTAX,
+						NULL,
+						"attribute in RDN lacks matching rule", 
+						NULL, NULL );
 				goto done;
 			}
-
-			if (match == 0) {
-				break;
+	
+			for (i = 0; mod->sml_bvalues[ i ].bv_val; i++) {
+				int		match = 0;
+				
+				rc = value_match(&match, desc, mr,
+						SLAP_MR_VALUE_SYNTAX_MATCH,
+						&mod->sml_bvalues[ i ],
+						&rdn[ 0 ][ cnt ]->la_value, &text);
+	
+				if ( rc != LDAP_SUCCESS ) {
+					send_ldap_result( conn, op, rc,
+							NULL, text, NULL, NULL);
+					goto done;
+				}
+	
+				if (match == 0) {
+					break;
+				}
 			}
-		}
-
-		/* not found? */
-		if (mod->sml_bvalues[ i ].bv_val == NULL) {
+	
+			/* not found? */
+			if (mod->sml_bvalues[ i ].bv_val == NULL) {
 #ifdef BAILOUT
-			/* bailout */
-			send_ldap_result( conn, op, 
-					rc = LDAP_NO_SUCH_ATTRIBUTE,
-					NULL,
-					"value in RDN not listed in entry", 
-					NULL, NULL );
-			goto done;
-
+				/* bailout */
+				send_ldap_result( conn, op, 
+						rc = LDAP_NO_SUCH_ATTRIBUTE,
+						NULL,
+						"value in RDN not listed in entry", 
+						NULL, NULL );
+				goto done;
+	
 #else /* ! BAILOUT */
-			struct berval	bv;
-
-			/* add attribute type and value to modlist */
-			ber_dupbv( &bv, &rdn[ 0 ][ a_cnt ]->la_value );
-			ber_bvarray_add( &mod->sml_bvalues, &bv );
-			continue;
+				struct berval	bv;
+	
+				/* add attribute type and value to modlist */
+				ber_dupbv( &bv, &rdn[ 0 ][ cnt ]->la_value );
+				ber_bvarray_add( &mod->sml_bvalues, &bv );
+				continue;
 #endif /* ! BAILOUT */
+			}
 		}
 	}
 
@@ -606,3 +672,4 @@ slap_mods2entry(
 
 	return LDAP_SUCCESS;
 }
+
