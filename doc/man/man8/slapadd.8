@@ -32,7 +32,9 @@ As
 is designed to accept LDIF in database order, as produced by
 .BR slapcat (8),
 it does not verify that superior entries exist before
-adding an entry. 
+adding an entry, does not perform all user and system
+schema checks, and does not maintain operational
+attributes (such as createTimeStamp and modifiersName). 
 .SH OPTIONS
 .TP
 .B \-v
