@@ -321,6 +321,7 @@ LDAP_SLAPD_F (int) dn_match LDAP_P(( const char *val, const char *asserted ));
 LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (char **) dn_subtree LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (char *) dn_rdn LDAP_P(( Backend *be, const char *dn ));
+LDAP_SLAPD_F (int) dn_rdnlen LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (int) dn_issuffix LDAP_P(( const char *dn, const char *suffix ));
 LDAP_SLAPD_F (int) rdn_validate LDAP_P(( const char* str ));
 LDAP_SLAPD_F (char *) rdn_attr_value LDAP_P(( const char * rdn ));

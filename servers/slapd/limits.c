@@ -75,16 +75,13 @@ get_limits(
 
 			/* in case of (sub)match ... */
 			if ( strcmp( lm[0]->lm_dn_pat->bv_val, &ndn[d] ) == 0 ) {
-				/* check for exacctly one rdn in case of ONE */
+				/* check for exactly one rdn in case of ONE */
 				if ( lm[0]->lm_type == SLAP_LIMITS_ONE ) {
-					char *rdn;
-					
 					/*
 					 * if ndn is more that one rdn
 					 * below dn_pat, continue
 					 */
-					rdn = dn_rdn( NULL, ndn );
-					if ( strlen( rdn ) != d - 1 ) {
+					if ( dn_rdnlen( NULL, ndn ) != d - 1 ) {
 						break;
 					}
 				}

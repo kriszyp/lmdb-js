@@ -369,7 +369,7 @@ dn_parent(
 	return "";
 }
 
-char * dn_rdn(
+int dn_rdnlen(
 	Backend	*be,
 	const char	*dn_in )
 {
@@ -377,7 +377,7 @@ char * dn_rdn(
 	int	inquote;
 
 	if( dn_in == NULL ) {
-		return NULL;
+		return 0;
 	}
 
 	while(*dn_in && ASCII_SPACE(*dn_in)) {
@@ -385,14 +385,14 @@ char * dn_rdn(
 	}
 
 	if( *dn_in == '\0' ) {
-		return( NULL );
+		return( 0 );
 	}
 
 	if ( be != NULL && be_issuffix( be, dn_in ) ) {
-		return( NULL );
+		return( 0 );
 	}
 
-	dn = ch_strdup( dn_in );
+	dn = dn_in;
 
 	inquote = 0;
 
@@ -411,15 +411,26 @@ char * dn_rdn(
 			if ( *s == '"' ) {
 				inquote = 1;
 			} else if ( DN_SEPARATOR( *s ) ) {
-				*s = '\0';
-				return( dn );
+				break;
 			}
 		}
 	}
 
-	return( dn );
+	return( s - dn );
 }
 
+char * dn_rdn(
+	Backend	*be,
+	const char	*dn_in )
+{
+	char *rdn;
+	int i = dn_rdnlen( be, dn_in );
+
+	rdn = ch_malloc( i + 1 );
+	strncpy(rdn, dn_in, i);
+	rdn[i] = '\0';
+	return rdn;
+}
 
 /*
  * return a charray of all subtrees to which the DN resides in

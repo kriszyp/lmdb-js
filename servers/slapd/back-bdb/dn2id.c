@@ -678,31 +678,23 @@ bdb_dn2id_add(
 	int		rc, rlen, nrlen;
 	DBT		key, data;
 	DB *db = bdb->bi_id2parent->bdi_db;
-	char		*nrdn = dn_rdn( be, e->e_ndn );
-	char		*rdn;
 	diskNode *d;
 	idNode *n;
 
-	if (nrdn == NULL) {
-		nrdn = "";
-		rdn = "";
-	} else {
-		rdn = dn_rdn( be, e->e_dn );
-	}
+	nrlen = dn_rdnlen( be, e->e_ndn );
+	rlen = dn_rdnlen( be, e->e_dn );
 
-	nrlen = strlen(nrdn);
-	rlen = strlen(rdn);
 	d = ch_malloc(sizeof(diskNode) + rlen + nrlen + 2);
 	d->rdn.bv_len = rlen;
 	d->nrdn.bv_len = nrlen;
 	d->rdn.bv_val = (char *)(d+1);
-	d->nrdn.bv_val = bdb_strcopy(d->rdn.bv_val, rdn) + 1;
-	strcpy(d->nrdn.bv_val, nrdn);
+	d->nrdn.bv_val = d->rdn.bv_val + rlen + 1;
+	strncpy(d->rdn.bv_val, e->e_dn, rlen);
+	d->rdn.bv_val[rlen] = '\0';
+	strncpy(d->nrdn.bv_val, e->e_ndn, nrlen);
+	d->nrdn.bv_val[nrlen] = '\0';
 	d->rdn.bv_val -= (long)d;
 	d->nrdn.bv_val -= (long)d;
-
-	if (nrdn[0]) free(nrdn);
-	if (rdn[0]) free(rdn);
 
 	if (pdn) {
 		bdb_dn2id(be, txn, pdn, &d->parent);
