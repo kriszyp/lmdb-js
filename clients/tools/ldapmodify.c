@@ -210,9 +210,6 @@ main( int argc, char **argv )
 	/* strncmp instead of strcmp since NT binaries carry .exe extension */
 	ldapadd = ( strncasecmp( prog, "ldapadd", sizeof("ldapadd")-1 ) == 0 );
 
-	/* Print usage when no parameters */
-	if( argc < 2 ) usage();
-
 	tool_args( argc, argv );
 
 	if ( argc != optind ) usage();
