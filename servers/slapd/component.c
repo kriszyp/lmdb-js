@@ -95,11 +95,8 @@ get_comp_filter ( Operation* op, struct berval* bv, ComponentFilter** filt,
 static void
 eat_whsp( ComponentAssertionValue* cav )
 {
-	int count = 0;
-	for ( ; ; ) {
-		if ( cav->cav_ptr[count++] == ' ' ) cav->cav_ptr++;
-		else break;
-	}
+	while ( ( cav->cav_ptr <= cav->cav_end ) && ( *cav->cav_ptr == ' ' ) )
+               cav->cav_ptr++;
 }
 
 static int
