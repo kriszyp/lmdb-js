@@ -38,7 +38,7 @@ bdb_exop_passwd(
 	struct berval *id = NULL;
 	struct berval *new = NULL;
 
-	char *dn;
+	struct berval *dn;
 
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
@@ -73,12 +73,12 @@ bdb_exop_passwd(
 		goto done;
 	}
 
-	dn = id ? id->bv_val : op->o_dn.bv_val;
+	dn = id ? id : &op->o_dn;
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_exop_passwd: \"%s\"%s\n",
-		dn, id ? " (proxy)" : "", 0 );
+		dn->bv_val, id ? " (proxy)" : "", 0 );
 
-	if( dn == NULL || dn[0] == '\0' ) {
+	if( dn->bv_len == 0 ) {
 		*text = "No password is associated with the Root DSE";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;

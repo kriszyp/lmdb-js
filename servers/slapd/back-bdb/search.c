@@ -78,7 +78,7 @@ bdb_search(
 	} else
 #endif
 	{
-		rc = bdb_dn2entry( be, NULL, nbase->bv_val, &e, &matched, 0 );
+		rc = bdb_dn2entry( be, NULL, nbase, &e, &matched, 0 );
 	}
 
 	switch(rc) {

@@ -58,7 +58,7 @@ bdb_db_cache(
  * dn2entry.c
  */
 int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
-	const char *dn, Entry **e, Entry **matched, int flags ));
+	struct berval *dn, Entry **e, Entry **matched, int flags ));
 
 /*
  * dn2id.c
@@ -66,13 +66,13 @@ int bdb_dn2entry LDAP_P(( BackendDB *be, DB_TXN *tid,
 int bdb_dn2id(
 	BackendDB *be,
 	DB_TXN *tid,
-	const char *dn,
+	struct berval *dn,
 	ID *id );
 
 int bdb_dn2id_matched(
 	BackendDB *be,
 	DB_TXN *tid,
-	const char *dn,
+	struct berval *dn,
 	ID *id,
 	char **matchedDN );
 
@@ -91,12 +91,12 @@ int bdb_dn2id_delete(
 int bdb_dn2id_children(
 	BackendDB *be,
 	DB_TXN *tid,
-	const char *dn );
+	struct berval *dn );
 
 int
 bdb_dn2idl(
 	BackendDB	*be,
-	const char	*dn,
+	struct berval	*dn,
 	int prefix,
 	ID *ids );
 

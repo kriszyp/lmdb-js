@@ -93,13 +93,17 @@ retry:	rc = txn_abort( ltid );
 	 * If the parent does not exist, only allow the "root" user to
 	 * add the entry.
 	 */
-	pdn = dn_parent( be, e->e_ndn );
+	pdn = dn_parent( be, e->e_nname.bv_val );
 
 	if( pdn != NULL && *pdn != '\0' ) {
 		Entry *matched = NULL;
+		struct berval pbv;
+
+		pbv.bv_val = pdn;
+		pbv.bv_len = e->e_nname.bv_len - (pdn - e->e_nname.bv_val);
 
 		/* get parent */
-		rc = bdb_dn2entry( be, ltid, pdn, &p, &matched, 0 );
+		rc = bdb_dn2entry( be, ltid, &pbv, &p, &matched, 0 );
 
 		switch( rc ) {
 		case 0:

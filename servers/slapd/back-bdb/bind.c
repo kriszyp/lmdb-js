@@ -43,7 +43,7 @@ bdb_bind(
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
 
 	/* get entry */
-	rc = bdb_dn2entry( be, NULL, ndn->bv_val, &e, &matched, 0 );
+	rc = bdb_dn2entry( be, NULL, ndn, &e, &matched, 0 );
 
 	switch(rc) {
 	case DB_NOTFOUND:

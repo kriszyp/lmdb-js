@@ -71,7 +71,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry for read/modify/write */
-	rc = bdb_dn2entry( be, ltid, ndn->bv_val, &e, &matched, DB_RMW );
+	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, DB_RMW );
 
 	switch( rc ) {
 	case 0:
@@ -120,8 +120,12 @@ retry:	/* transaction retry */
 	pdn = dn_parent( be, ndn->bv_val );
 
 	if( pdn != NULL && *pdn != '\0' ) {
+		struct berval pbv;
+
+		pbv.bv_len = ndn->bv_len - (pdn - ndn->bv_val);
+		pbv.bv_val = pdn;
 		/* get parent */
-		rc = bdb_dn2entry( be, ltid, pdn, &p, NULL, 0 );
+		rc = bdb_dn2entry( be, ltid, &pbv, &p, NULL, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -208,7 +212,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	rc = bdb_dn2id_children( be, ltid, e->e_ndn );
+	rc = bdb_dn2id_children( be, ltid, &e->e_nname );
 	if( rc != DB_NOTFOUND ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:

@@ -105,7 +105,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry( be, ltid, ndn->bv_val, &e, &matched, 0 );
+	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, 0 );
 
 	switch( rc ) {
 	case 0:

@@ -194,7 +194,7 @@ int
 bdb_dn2id(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*dn,
+	struct berval	*dn,
 	ID *id )
 {
 	int		rc;
@@ -202,13 +202,13 @@ bdb_dn2id(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id( \"%s\" )\n", dn->bv_val, 0, 0 );
 
 	DBTzero( &key );
-	key.size = strlen( dn ) + 2;
+	key.size = dn->bv_len + 2;
 	key.data = ch_malloc( key.size );
 	((char *)key.data)[0] = DN_BASE_PREFIX;
-	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
 
 	/* store the ID */
 	DBTzero( &data );
@@ -235,7 +235,7 @@ int
 bdb_dn2id_matched(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*in,
+	struct berval	*in,
 	ID *id,
 	char **matchedDN )
 {
@@ -243,14 +243,16 @@ bdb_dn2id_matched(
 	DBT		key, data;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
-	const char *dn = in;
+	char 		*buf, *dn;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_matched( \"%s\" )\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_matched( \"%s\" )\n", in->bv_val, 0, 0 );
 
 	DBTzero( &key );
-	key.size = strlen( dn ) + 2;
-	key.data = ch_malloc( key.size );
-	((char *)key.data)[0] = DN_BASE_PREFIX;
+	key.size = in->bv_len + 2;
+	buf = ch_malloc( key.size );
+	key.data = buf;
+	dn = buf+1;
+	AC_MEMCPY( dn, in->bv_val, key.size - 1 );
 
 	/* store the ID */
 	DBTzero( &data );
@@ -261,7 +263,7 @@ bdb_dn2id_matched(
 	*matchedDN = NULL;
 
 	while(1) {
-		AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+		dn[-1] = DN_BASE_PREFIX;
 
 		*id = NOID;
 
@@ -278,8 +280,9 @@ bdb_dn2id_matched(
 				break;
 			}
 
+			key.size -= pdn - dn;
 			dn = pdn;
-			key.size = strlen( dn ) + 2;
+			key.data = pdn - 1;
 
 		} else if ( rc == 0 ) {
 			if( data.size != sizeof( ID ) ) {
@@ -289,7 +292,7 @@ bdb_dn2id_matched(
 					(long) sizeof(ID), (long) data.size, 0 );
 			}
 
-			if( in != dn ) {
+			if( dn != buf+1 ) {
 				*matchedDN = (char *) dn;
 			}
 
@@ -306,7 +309,7 @@ bdb_dn2id_matched(
 		}
 	}
 
-	ch_free( key.data );
+	ch_free( buf );
 	return rc;
 }
 
@@ -314,7 +317,7 @@ int
 bdb_dn2id_children(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char *dn )
+	struct berval *dn )
 {
 	int		rc;
 	DBT		key, data;
@@ -323,13 +326,13 @@ bdb_dn2id_children(
 	ID		id;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_children( %s )\n",
-		dn, 0, 0 );
+		dn->bv_val, 0, 0 );
 
 	DBTzero( &key );
-	key.size = strlen( dn ) + 2;
+	key.size = dn->bv_len + 2;
 	key.data = ch_malloc( key.size );
 	((char *)key.data)[0] = DN_ONE_PREFIX;
-	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
 
 	/* we actually could do a empty get... */
 	DBTzero( &data );
@@ -352,7 +355,7 @@ bdb_dn2id_children(
 int
 bdb_dn2idl(
 	BackendDB	*be,
-	const char	*dn,
+	struct berval	*dn,
 	int prefix,
 	ID *ids )
 {
@@ -361,19 +364,19 @@ bdb_dn2idl(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 
-	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", dn, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2idl( \"%s\" )\n", dn->bv_val, 0, 0 );
 
-	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn))
+	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn->bv_val))
 	{
 		BDB_IDL_ALL(bdb, ids);
 		return 0;
 	}
 
 	DBTzero( &key );
-	key.size = strlen( dn ) + 2;
+	key.size = dn->bv_len + 2;
 	key.data = ch_malloc( key.size );
 	((char *)key.data)[0] = prefix;
-	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+	AC_MEMCPY( &((char *)key.data)[1], dn->bv_val, key.size - 1 );
 
 	rc = bdb_idl_fetch_key( be, db, NULL, &key, ids );
 
@@ -562,8 +565,6 @@ int bdb_build_tree(
 	 * Note that this code always uses be_suffix[0], so defining
 	 * multiple suffixes for a single backend won't work!
 	 */
-	bdb->bi_sufflen = be->be_suffix[0]->bv_len;
-
 	rdns = ldap_explode_dn(be->be_nsuffix[0]->bv_val, 0);
 	for (i=0; rdns[i]; i++);
 	bdb->bi_nrdns = i;
@@ -603,16 +604,18 @@ int bdb_fix_dn(
 	
 	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
 	o = bdb_find_id_node(id, bdb->bi_tree);
-	rlen = bdb->bi_sufflen + 1;
+	rlen = be->be_suffix[0]->bv_len + 1;
 	nrlen = be->be_nsuffix[0]->bv_len + 1;
 	for (n = o; n; n=n->i_parent) {
 		rlen += n->i_rdn->rdn.bv_len + 1;
 		nrlen += n->i_rdn->nrdn.bv_len + 1;
 	}
-	e->e_dn = ch_malloc(rlen + nrlen);
-	e->e_ndn = e->e_dn + rlen;
-	ptr = e->e_dn;
-	nptr = e->e_ndn;
+	e->e_name.bv_len = rlen - 1;
+	e->e_nname.bv_len = nrlen - 1;
+	e->e_name.bv_val = ch_malloc(rlen + nrlen);
+	e->e_nname.bv_val = e->e_name.bv_val + rlen;
+	ptr = e->e_name.bv_val;
+	nptr = e->e_nname.bv_val;
 	for (n = o; n; n=n->i_parent) {
 		ptr = slap_strcopy(ptr, n->i_rdn->rdn.bv_val);
 		*ptr++ = ',';
@@ -739,7 +742,7 @@ int
 bdb_dn2id_matched(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*in,
+	struct berval	*in,
 	ID *id,
 	char **matchedDN )
 {
@@ -752,12 +755,12 @@ bdb_dn2id_matched(
 		return DB_NOTFOUND;
 
 	p = bdb->bi_troot;
-	if (be_issuffix(be, in)) {
+	if (be_issuffix(be, in->bv_val)) {
 		*id = p->i_id;
 		return 0;
 	}
 
-	rdns = ldap_explode_dn(in, 0);
+	rdns = ldap_explode_dn(in->bv_val, 0);
 	for (i=0; rdns[i]; i++);
 	i -= bdb->bi_nrdns;
 	if (i < 0)
@@ -796,7 +799,7 @@ int
 bdb_dn2id(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*dn,
+	struct berval	*dn,
 	ID *id )
 {
 	return bdb_dn2id_matched(be, txn, dn, id, NULL);
@@ -806,7 +809,7 @@ int
 bdb_dn2id_children(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char *dn )
+	struct berval	*dn )
 {
 	int		rc;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -860,7 +863,7 @@ insert_sub(
 int
 bdb_dn2idl(
 	BackendDB	*be,
-	const char	*dn,
+	struct berval	*dn,
 	int prefix,
 	ID *ids )
 {
@@ -869,7 +872,7 @@ bdb_dn2idl(
 	ID		id;
 	idNode		*n;
 
-	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn)) {
+	if (prefix == DN_SUBTREE_PREFIX && be_issuffix(be, dn->bv_val)) {
 		BDB_IDL_ALL(bdb, ids);
 		return 0;
 	}

@@ -21,7 +21,7 @@ int
 bdb_dn2entry(
 	BackendDB	*be,
 	DB_TXN *tid,
-	const char *dn,
+	struct berval *dn,
 	Entry **e,
 	Entry **matched,
 	int flags )
@@ -31,7 +31,7 @@ bdb_dn2entry(
 	char	*matchedDN = NULL;
 
 	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry(\"%s\")\n",
-		dn, 0, 0 );
+		dn->bv_val, 0, 0 );
 
 	*e = NULL;
 
