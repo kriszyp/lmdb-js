@@ -21,6 +21,14 @@
 #include "ldap_defaults.h"
 #include "slap.h"
 
+char *supportedControls[] = {
+	NULL
+};
+
+char *supportedExtensions[] = {
+	NULL
+};
+
 #if defined( SLAPD_MONITOR_DN )
 
 void

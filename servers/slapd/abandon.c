@@ -19,7 +19,7 @@
 
 #include "slap.h"
 
-void
+int
 do_abandon(
     Connection	*conn,
     Operation	*op
@@ -28,6 +28,7 @@ do_abandon(
 	ber_int_t		id;
 	Operation	*o;
 	Operation	**oo;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_abandon\n", 0, 0, 0 );
 
@@ -39,13 +40,13 @@ do_abandon(
 
 	if ( ber_scanf( op->o_ber, "i", &id ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_abandon: ber_scanf failed\n", 0, 0 ,0 );
-		return;
+		return LDAP_PROTOCOL_ERROR;
 	}
 
 #ifdef GET_CTRLS
-	if( get_ctrls( conn, op, 0 ) == -1 ) {
+	if( (rc = get_ctrls( conn, op, 0 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_abandon: get_ctrls failed\n", 0, 0 ,0 );
-		return;
+		return rc;
 	} 
 #endif
 
@@ -88,4 +89,5 @@ do_abandon(
 
 found_it:
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+	return LDAP_SUCCESS;
 }

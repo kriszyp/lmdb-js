@@ -18,7 +18,7 @@
 
 #include "slap.h"
 
-void
+int
 do_compare(
     Connection	*conn,
     Operation	*op
@@ -27,6 +27,7 @@ do_compare(
 	char	*ndn;
 	Ava	ava;
 	Backend	*be;
+	int rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
 
@@ -45,16 +46,16 @@ do_compare(
 	if ( ber_scanf( op->o_ber, "{a{ao}}", &ndn, &ava.ava_type,
 	    &ava.ava_value ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
-		return;
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
+		return rc;
 	}
 
 #ifdef GET_CTRLS
-	if( get_ctrls( conn, op, 1 ) == -1 ) {
+	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		free( ndn );
 		ava_free( &ava, 0 );
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
-		return;
+		return rc;
 	} 
 #endif
 
@@ -77,9 +78,9 @@ do_compare(
 		free( ndn );
 		ava_free( &ava, 0 );
 
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
-		return;
+		return 1;
 	}
 
 	/* alias suffix if approp */
@@ -88,10 +89,12 @@ do_compare(
 	if ( be->be_compare ) {
 		(*be->be_compare)( be, conn, op, ndn, &ava );
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
 	free( ndn );
 	ava_free( &ava, 0 );
+
+	return rc;
 }

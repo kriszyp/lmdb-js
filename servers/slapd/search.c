@@ -21,7 +21,7 @@
 #include "slap.h"
 
 
-void
+int
 do_search(
     Connection	*conn,	/* where to send results 		       */
     Operation	*op	/* info about the op to which we're responding */
@@ -34,6 +34,7 @@ do_search(
 	Filter		*filter = NULL;
 	char		**attrs = NULL;
 	Backend		*be;
+	int			rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 
@@ -62,14 +63,16 @@ do_search(
 	 */
 
 	/* baseObject, scope, derefAliases, sizelimit, timelimit, attrsOnly */
-	if ( ber_scanf( op->o_ber, "{aiiiib", &base, &scope, &deref, &sizelimit,
+	if ( ber_scanf( op->o_ber, "{aiiiib",
+		&base, &scope, &deref, &sizelimit,
 	    &timelimit, &attrsonly ) == LBER_ERROR ) {
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
 		goto return_results;
 	}
+
 	if ( scope != LDAP_SCOPE_BASE && scope != LDAP_SCOPE_ONELEVEL
 	    && scope != LDAP_SCOPE_SUBTREE ) {
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 		    "Unknown search scope" );
 		goto return_results;
 	}
@@ -89,16 +92,18 @@ do_search(
 
 	/* attributes */
 	if ( ber_scanf( op->o_ber, /*{*/ "{v}}", &attrs ) == LBER_ERROR ) {
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
 		goto return_results;
 	}
 
 #ifdef GET_CTRLS
-	if( get_ctrls( conn, op, 1 ) == -1 ) {
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
 		goto return_results;
 	} 
 #endif
+
+	rc = 0;
 
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
 
@@ -149,7 +154,7 @@ do_search(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( base )) == NULL ) {
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
 
 		goto return_results;
@@ -163,7 +168,7 @@ do_search(
 		(*be->be_search)( be, conn, op, base, scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
@@ -174,4 +179,6 @@ return_results:;
 	if ( attrs != NULL ) {
 		charray_free( attrs );
 	}
+
+	return rc;
 }

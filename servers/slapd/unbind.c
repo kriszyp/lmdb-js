@@ -22,7 +22,7 @@
 #include "slap.h"
 
 
-void
+int
 do_unbind(
     Connection	*conn,
     Operation	*op
@@ -41,4 +41,6 @@ do_unbind(
 
 	/* pass the unbind to all backends */
 	backend_unbind( conn, op );
+
+	return 0;
 }

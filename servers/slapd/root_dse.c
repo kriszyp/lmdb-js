@@ -59,7 +59,8 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 #endif
 
 #if defined( SLAPD_SCHEMA_DN )
-	val.bv_val = ch_strdup( SLAPD_SCHEMA_DN );
+	strcpy( buf, SLAPD_SCHEMA_DN );
+	val.bv_val = buf;
 	val.bv_len = strlen( val.bv_val );
 	attr_merge( e, "namingContexts", vals );
 	attr_merge( e, "subschemaSubentry", vals );
@@ -67,17 +68,40 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 #endif
 
 	/* altServer unsupported */
-	/* supportedExtension: no extensions supported */
-	/* supportedControl: no controls supported */
-	/* supportedSASLMechanism: not yet */
 
+	/* supportedControl */
+	for ( i=0; supportedControls[i] != NULL; i++ ) {
+		strcpy( buf, supportedControls[i] );
+		val.bv_val = buf;
+		val.bv_len = strlen( buf );
+		attr_merge( e, "supportedControl", vals );
+	}
+
+	/* supportedExtension */
+	for ( i=0; supportedExtensions[i] != NULL; i++ ) {
+		strcpy( buf, supportedExtensions[i] );
+		val.bv_val = buf;
+		val.bv_len = strlen( buf );
+		attr_merge( e, "supportedExtension", vals );
+	}
+
+	/* supportedLDAPVersion */
 	for ( i=LDAP_VERSION_MIN; i<=LDAP_VERSION_MAX; i++ ) {
 		sprintf(buf,"%d",i);
 		val.bv_val = buf;
 		val.bv_len = strlen( buf );
 		attr_merge( e, "supportedLDAPVersion", vals );
 	}
-	
+
+	/* supportedSASLMechanism */
+	for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
+		strcpy( buf, supportedSASLMechanisms[i] );
+		val.bv_val = buf;
+		val.bv_len = strlen( buf );
+		attr_merge( e, "supportedSASLMechanism", vals );
+	}
+
+
 	send_search_entry( &backends[0], conn, op, e, attrs, attrsonly );
 	send_ldap_search_result( conn, op, LDAP_SUCCESS, NULL, NULL, 1 );
 

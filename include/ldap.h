@@ -141,16 +141,16 @@ typedef struct ldapcontrol {
 	char			ldctl_iscritical;
 } LDAPControl;
 
-/* LDAP "Standard" Controls */
-
+/* LDAP Controls */
 	/* chase referrals controls */
 #define LDAP_CONTROL_REFERRALS	"1.2.840.113666.1.4.616"
 #define LDAP_CHASE_SUBORDINATE_REFERRALS	0x0020
 #define LDAP_CHASE_EXTERNAL_REFERRALS	0x0040
 
-/* LDAP "Extension" Controls */
+/* LDAP Unsolicited Notifications */
+#define	LDAP_NOTICE_DISCONNECT	"1.3.6.1.4.1.1466.20036"
 
-/* LDAP "Private/Experiemental" Controls */
+/* LDAP Extended Operations */
 
 
 /* 
@@ -289,6 +289,8 @@ typedef struct ldapmod {
  * possible error codes we can return
  */
 
+#define LDAP_RANGE(n,x,y)	(((x) >= (n)) && ((n) <= (y)))
+
 #define LDAP_SUCCESS			0x00
 #define LDAP_OPERATIONS_ERROR		0x01
 #define LDAP_PROTOCOL_ERROR		0x02
@@ -307,6 +309,8 @@ typedef struct ldapmod {
 #define LDAP_CONFIDENTIALITY_REQUIRED	0x0d /* LDAPv3 */
 #define	LDAP_SASL_BIND_IN_PROGRESS	0x0e /* LDAPv3 */	
 
+#define LDAP_ATTR_ERROR(n)	LDAP_RANGE((n),0x10,0x15) /* 16-21 */
+
 #define LDAP_NO_SUCH_ATTRIBUTE		0x10
 #define LDAP_UNDEFINED_TYPE		0x11
 #define LDAP_INAPPROPRIATE_MATCHING	0x12
@@ -314,21 +318,28 @@ typedef struct ldapmod {
 #define LDAP_TYPE_OR_VALUE_EXISTS	0x14
 #define LDAP_INVALID_SYNTAX		0x15
 
+#define LDAP_NAME_ERROR(n)	LDAP_RANGE((n),0x20,0x24) /* 32-34,36 */
+
 #define LDAP_NO_SUCH_OBJECT		0x20
 #define LDAP_ALIAS_PROBLEM		0x21
 #define LDAP_INVALID_DN_SYNTAX		0x22
 #define LDAP_IS_LEAF			0x23 /* not LDAPv3 */
 #define LDAP_ALIAS_DEREF_PROBLEM	0x24
 
-#define LDAP_NAME_ERROR(n)	(((int)(n) & 0x00f0) == 0x0020)
+#define LDAP_SECURITY_ERROR(n)	LDAP_RANGE((n),0x30,0x32) /* 48-50 */
 
 #define LDAP_INAPPROPRIATE_AUTH		0x30
 #define LDAP_INVALID_CREDENTIALS	0x31
 #define LDAP_INSUFFICIENT_ACCESS	0x32
+
+#define LDAP_SERVICE_ERROR(n)	LDAP_RANGE((n),0x33,0x36) /* 51-54 */
+
 #define LDAP_BUSY			0x33
 #define LDAP_UNAVAILABLE		0x34
 #define LDAP_UNWILLING_TO_PERFORM	0x35
 #define LDAP_LOOP_DETECT		0x36
+
+#define LDAP_UPDATE_ERROR(n)	LDAP_RANGE((n),0x40,0x47) /* 64-69,71 */
 
 #define LDAP_NAMING_VIOLATION		0x40
 #define LDAP_OBJECT_CLASS_VIOLATION	0x41
@@ -339,9 +350,10 @@ typedef struct ldapmod {
 #define LDAP_RESULTS_TOO_LARGE		0x46 /* CLDAP */
 #define LDAP_AFFECTS_MULTIPLE_DSAS	0x47 /* LDAPv3 */
 
-#define LDAP_CLIENT_ERROR(n)	( (int)(n) >= 0x50 )
-
 #define LDAP_OTHER			0x50
+
+#define LDAP_API_ERROR(n)		LDAP_RANGE((n),0x51,0xff) /* 81+ */
+
 #define LDAP_SERVER_DOWN		0x51
 #define LDAP_LOCAL_ERROR		0x52
 #define LDAP_ENCODING_ERROR		0x53

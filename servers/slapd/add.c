@@ -22,7 +22,7 @@
 
 static void	add_created_attrs(Operation *op, Entry *e);
 
-void
+int
 do_add( Connection *conn, Operation *op )
 {
 	BerElement	*ber = op->o_ber;
@@ -31,6 +31,7 @@ do_add( Connection *conn, Operation *op )
 	ber_tag_t	tag;
 	Entry		*e;
 	Backend		*be;
+	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
 
@@ -51,7 +52,7 @@ do_add( Connection *conn, Operation *op )
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 		    "decoding error" );
-		return;
+		return LDAP_PROTOCOL_ERROR;
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
@@ -75,7 +76,7 @@ do_add( Connection *conn, Operation *op )
 			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
 			    NULL, "decoding error" );
 			entry_free( e );
-			return;
+			return LDAP_PROTOCOL_ERROR;
 		}
 
 		if ( vals == NULL ) {
@@ -85,7 +86,7 @@ do_add( Connection *conn, Operation *op )
 			    NULL );
 			free( type );
 			entry_free( e );
-			return;
+			return LDAP_PROTOCOL_ERROR;
 		}
 
 		attr_merge( e, type, vals );
@@ -99,14 +100,14 @@ do_add( Connection *conn, Operation *op )
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 		    "decoding error" );
-		return;
+		return LDAP_PROTOCOL_ERROR;
 	}
 
 #ifdef GET_CTRLS
-	if( get_ctrls( conn, op, 1 ) == -1 ) {
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		entry_free( e );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		return;
+		return rc;
 	} 
 #endif
 
@@ -123,7 +124,7 @@ do_add( Connection *conn, Operation *op )
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
-		return;
+		return rc;
 	}
 
 	/*
@@ -149,15 +150,17 @@ do_add( Connection *conn, Operation *op )
 
 		} else {
 			entry_free( e );
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 			    default_referral );
 		}
 	} else {
 	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
+
+	return rc;
 }
 
 static void

@@ -218,6 +218,9 @@ int load_module LDAP_P(( const char* file_name, int argc, char *argv[] ));
 /*
  * monitor.c
  */
+extern char *supportedExtensions[];
+extern char *supportedControls[];
+extern char *supportedSASLMechanisms[];
 
 void monitor_info LDAP_P(( Connection *conn, Operation *op ));
 
@@ -386,15 +389,17 @@ extern void	slap_do_nothing   LDAP_P((int sig));
 
 extern void	config_info LDAP_P((Connection *conn, Operation *op));
 extern void	root_dse_info LDAP_P((Connection *conn, Operation *op, char **attrs, int attrsonly));
-extern void	do_abandon LDAP_P((Connection *conn, Operation *op));
-extern void	do_add LDAP_P((Connection *conn, Operation *op));
-extern void	do_bind LDAP_P((Connection *conn, Operation *op));
-extern void	do_compare LDAP_P((Connection *conn, Operation *op));
-extern void	do_delete LDAP_P((Connection *conn, Operation *op));
-extern void	do_modify LDAP_P((Connection *conn, Operation *op));
-extern void	do_modrdn LDAP_P((Connection *conn, Operation *op));
-extern void	do_search LDAP_P((Connection *conn, Operation *op));
-extern void	do_unbind LDAP_P((Connection *conn, Operation *op));
+
+extern int	do_abandon LDAP_P((Connection *conn, Operation *op));
+extern int	do_add LDAP_P((Connection *conn, Operation *op));
+extern int	do_bind LDAP_P((Connection *conn, Operation *op));
+extern int	do_compare LDAP_P((Connection *conn, Operation *op));
+extern int	do_delete LDAP_P((Connection *conn, Operation *op));
+extern int	do_modify LDAP_P((Connection *conn, Operation *op));
+extern int	do_modrdn LDAP_P((Connection *conn, Operation *op));
+extern int	do_search LDAP_P((Connection *conn, Operation *op));
+extern int	do_unbind LDAP_P((Connection *conn, Operation *op));
+extern int	do_exop LDAP_P((Connection *conn, Operation *op));
 
 extern int send_search_entry LDAP_P((Backend *be, Connection *conn, Operation *op, Entry *e, char **attrs, int attrsonly));
 extern int str2result LDAP_P(( char *s, int *code, char **matched, char **info ));

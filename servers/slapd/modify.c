@@ -22,7 +22,7 @@
 
 static void	modlist_free(LDAPModList *ml);
 
-void
+int
 do_modify(
     Connection	*conn,
     Operation	*op
@@ -38,6 +38,7 @@ do_modify(
 	LDAPModList *tmp;
 #endif
 	Backend		*be;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
 
@@ -62,8 +63,8 @@ do_modify(
 
 	if ( ber_scanf( op->o_ber, "{a" /*}*/, &ndn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
-		return;
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
+		return rc;
 	}
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", ndn, 0, 0 );
@@ -86,13 +87,13 @@ do_modify(
 		    &(*modtail)->ml_type, &(*modtail)->ml_bvalues )
 		    == LBER_ERROR )
 		{
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 			    "decoding error" );
 			free( ndn );
 			free( *modtail );
 			*modtail = NULL;
 			modlist_free( modlist );
-			return;
+			return rc;
 		}
 
 		(*modtail)->ml_op = mop;
@@ -101,21 +102,21 @@ do_modify(
 		    (*modtail)->ml_op != LDAP_MOD_DELETE &&
 		    (*modtail)->ml_op != LDAP_MOD_REPLACE )
 		{
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 			    "unrecognized modify operation" );
 			free( ndn );
 			modlist_free( modlist );
-			return;
+			return rc;
 		}
 
 		if ( (*modtail)->ml_bvalues == NULL
 			&& (*modtail)->ml_op != LDAP_MOD_DELETE )
 		{
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 			    "no values given" );
 			free( ndn );
 			modlist_free( modlist );
-			return;
+			return rc;
 		}
 		attr_normalize( (*modtail)->ml_type );
 
@@ -134,11 +135,11 @@ do_modify(
 #endif
 
 #ifdef  GET_CTRLS
-	if( get_ctrls( conn, op, 1 ) == -1 ) {
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		free( ndn );
 		modlist_free( modlist );
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
-		return;
+		return rc;
 	} 
 #endif
 
@@ -153,9 +154,9 @@ do_modify(
 	if ( (be = select_backend( ndn )) == NULL ) {
 		free( ndn );
 		modlist_free( modlist );
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
-		return;
+		return rc;
 	}
 
 	/* alias suffix if approp */
@@ -178,16 +179,17 @@ do_modify(
 
 		/* send a referral */
 		} else {
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 			    default_referral );
 		}
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
 	free( ndn );
 	modlist_free( modlist );
+	return rc;
 }
 
 static void

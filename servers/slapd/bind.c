@@ -21,7 +21,13 @@
 
 #include "slap.h"
 
-void
+char *supportedSASLMechanisms[] = {
+	"X-CRAM-MD5",
+	"X-DIGEST-MD5",
+	NULL
+};
+
+int
 do_bind(
     Connection	*conn,
     Operation	*op
@@ -32,7 +38,8 @@ do_bind(
 	ber_tag_t method;
 	char		*mech;
 	char		*cdn, *ndn;
-	ber_tag_t	rc;
+	ber_tag_t	tag;
+	int			rc;
 	struct berval	cred;
 	Backend		*be;
 
@@ -57,43 +64,43 @@ do_bind(
 	 *	}
 	 */
 
-	rc = ber_scanf( ber, "{iat" /*}*/, &version, &cdn, &method );
+	tag = ber_scanf( ber, "{iat" /*}*/, &version, &cdn, &method );
 
-	if ( rc == LBER_ERROR ) {
+	if ( tag == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 		    "decoding error" );
 		goto cleanup;
 	}
 
 	if( method != LDAP_AUTH_SASL ) {
-		rc = ber_scanf( ber, /*{*/ "o}", &cred );
+		tag = ber_scanf( ber, /*{*/ "o}", &cred );
 
 	} else {
-		rc = ber_scanf( ber, "{a" /*}*/, &mech );
+		tag = ber_scanf( ber, "{a" /*}*/, &mech );
 
-		if ( rc != LBER_ERROR ) {
+		if ( tag != LBER_ERROR ) {
 			ber_len_t len;
-			rc = ber_peek_tag( ber, &len );
+			tag = ber_peek_tag( ber, &len );
 
-			if ( rc == LDAP_TAG_LDAPCRED ) { 
-				rc = ber_scanf( ber, "o", &cred );
+			if ( tag == LDAP_TAG_LDAPCRED ) { 
+				tag = ber_scanf( ber, "o", &cred );
 			}
 
-			if ( rc != LBER_ERROR ) {
-				rc = ber_scanf( ber, /*{{*/ "}}" );
+			if ( tag != LBER_ERROR ) {
+				tag = ber_scanf( ber, /*{{*/ "}}" );
 			}
 		}
 	}
 
-	if ( rc == LBER_ERROR ) {
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+	if ( tag == LBER_ERROR ) {
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
     		"decoding error" );
 		goto cleanup;
 	}
 
 #ifdef GET_CTRLS
-	if( get_ctrls( conn, op, 1 ) == -1 ) {
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
 	} 
@@ -114,7 +121,7 @@ do_bind(
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 		Debug( LDAP_DEBUG_ANY, "unknown version %d\n", version, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 		    "version not supported" );
 		goto cleanup;
 	}
@@ -123,7 +130,7 @@ do_bind(
 		if ( version < LDAP_VERSION3 ) {
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%d\n",
 				version, 0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 				"sasl bind requires LDAPv3" );
 			goto cleanup;
 		}
@@ -132,19 +139,17 @@ do_bind(
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: no sasl mechanism provided\n",
 				version, 0, 0 );
-			/* XXYYZ need to check this return code */
-			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, "no sasl mechanism provided." );
+			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
+				NULL, "no sasl mechanism provided" );
 			goto cleanup;
 		}
 
-		if( 1 ) {
+		if( !charray_inlist( supportedSASLMechanisms, mech ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"do_bind: sasl mechanism \"%s\" not supported.\n",
 				mech, 0, 0 );
-			/* XXYYZ need to check this return code */
-			send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, "no sasl mechanism provided." );
+			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
+				NULL, "sasl mechanism not supported" );
 			goto cleanup;
 		}
 	}
@@ -198,12 +203,13 @@ do_bind(
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL );
 		} else if ( default_referral && *default_referral ) {
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS,
+			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS,
 				NULL, default_referral );
 		} else {
-			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
 				NULL, default_referral );
 		}
+
 		goto cleanup;
 	}
 
@@ -249,7 +255,7 @@ do_bind(
 		}
 
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
@@ -266,4 +272,6 @@ cleanup:
 	if ( cred.bv_val != NULL ) {
 		free( cred.bv_val );
 	}
+
+	return rc;
 }

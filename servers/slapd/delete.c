@@ -19,7 +19,7 @@
 
 #include "slap.h"
 
-void
+int
 do_delete(
     Connection	*conn,
     Operation	*op
@@ -27,6 +27,7 @@ do_delete(
 {
 	char	*ndn;
 	Backend	*be;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
 
@@ -38,15 +39,15 @@ do_delete(
 
 	if ( ber_scanf( op->o_ber, "a", &ndn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
-		return;
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
+		return rc;
 	}
 
 #ifdef GET_CTRLS
-	if( get_ctrls( conn, op, 1 ) == -1 ) {
+	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
 		free( ndn );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		return;
+		return rc;
 	} 
 #endif
 
@@ -63,9 +64,9 @@ do_delete(
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
 		free( ndn );
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
-		return;
+		return rc;
 	}
 
 	/* alias suffix if approp */
@@ -86,13 +87,14 @@ do_delete(
 				replog( be, LDAP_REQ_DELETE, ndn, NULL, 0 );
 			}
 		} else {
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 			    default_referral );
 		}
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
 	free( ndn );
+	return rc;
 }

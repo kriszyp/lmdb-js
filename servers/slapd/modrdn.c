@@ -32,7 +32,7 @@
 
 #include "slap.h"
 
-void
+int
 do_modrdn(
     Connection	*conn,
     Operation	*op
@@ -46,6 +46,7 @@ do_modrdn(
 	char    *nnewSuperior = NULL;
 	Backend	*newSuperior_be = NULL;
 	ber_len_t	length;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
 
@@ -63,15 +64,15 @@ do_modrdn(
 	if ( ber_scanf( op->o_ber, "{aab", &ndn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
-		return;
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL, "" );
+		return rc;
 	}
 
 	/* Check for newSuperior parameter, if present scan it */
 
 	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
 
-		if ( op->o_protocol ==  0 ) {
+		if ( op->o_protocol == 0 ) {
 			/*
 			 * Promote to LDAPv3
 			 */
@@ -87,9 +88,9 @@ do_modrdn(
 			Debug( LDAP_DEBUG_ANY,
 			       "modrdn(v2): invalid field newSuperior!\n",
 			       0, 0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 					  NULL, "" );
-			return;
+			return rc;
 		}
 
 		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
@@ -97,9 +98,9 @@ do_modrdn(
 
 		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\"}) failed\n",
 			   0, 0, 0 );
-		    send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+		    send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 				      "" );
-		    return;
+		    return rc;
 
 		}
 
@@ -115,18 +116,18 @@ do_modrdn(
 		free( newrdn );	
 		free( newSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR, NULL,
 		    "decoding error" );
-		return;
+		return rc;
 	}
 
 #ifdef  GET_CTRLS
-	if( get_ctrls( conn, op, 1 ) == -1 ) {
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		free( ndn );
 		free( newrdn );	
 		free( newSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
-		return;
+		return rc;
 	} 
 #endif
 
@@ -155,7 +156,7 @@ do_modrdn(
 			free( nnewSuperior );
 			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
 					  default_referral );
-			return;
+			return 0;
 		}
 	}
 
@@ -175,9 +176,9 @@ do_modrdn(
 		free( newrdn );	
 		free( newSuperior );
 		free( nnewSuperior );
-		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+		send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 		    default_referral );
-		return;
+		return rc;
 	}
 
 	/* Make sure that the entry being changed and the newSuperior are in 
@@ -194,10 +195,10 @@ do_modrdn(
 		free( newSuperior );
 		free( nnewSuperior );
 		
-		send_ldap_result( conn, op, LDAP_AFFECTS_MULTIPLE_DSAS,
+		send_ldap_result( conn, op, rc = LDAP_AFFECTS_MULTIPLE_DSAS,
 				  NULL, "" );
 	    
-		return;
+		return rc;
 
 	}
 
@@ -218,16 +219,16 @@ do_modrdn(
 		{
 			if ( (*be->be_modrdn)( be, conn, op, ndn, newrdn,
 			    deloldrdn, newSuperior ) == 0 ) {
-			        /* XXX: MAY NEEED TO ADD newSuperior HERE */
+			        /* XXX: MAY NEED TO ADD newSuperior HERE */
 				replog( be, LDAP_REQ_MODRDN, ndn, newrdn,
 				    deloldrdn );
 			}
 		} else {
-			send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
+			send_ldap_result( conn, op, rc = LDAP_PARTIAL_RESULTS, NULL,
 			    default_referral );
 		}
 	} else {
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
@@ -235,4 +236,5 @@ do_modrdn(
 	free( newrdn );	
 	free( newSuperior );
 	free( nnewSuperior );
+	return rc;
 }

@@ -31,6 +31,8 @@ send_ldap_result2(
 	ber_tag_t	tag;
 	ber_len_t	bytes;
 
+	assert( !LDAP_API_ERROR( err ) );
+
 	if ( err == LDAP_PARTIAL_RESULTS && (text == NULL || *text == '\0') )
 		err = LDAP_NO_SUCH_OBJECT;
 
@@ -154,6 +156,8 @@ send_ldap_result(
     char	*text
 )
 {
+	assert( !LDAP_API_ERROR( err ) );
+
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
 		ber_pvt_sb_udp_set_dst( &conn->c_sb, &op->o_clientaddr );
