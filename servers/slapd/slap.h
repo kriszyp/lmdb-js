@@ -1691,16 +1691,16 @@ typedef struct rep_extended_s {
 
 typedef struct rep_search_s {
 	Entry *r_entry;
-	int r_attr_flags;
-#define SLAP_ATTRS_UNDEFINED	(0)
-#define SLAP_OPATTRS_NO		(0x01)
-#define SLAP_OPATTRS_YES	(0x02)
-#define SLAP_USERATTRS_NO	(0x10)
-#define SLAP_USERATTRS_YES	(0x20)
+	slap_mask_t r_attr_flags;
+#define SLAP_ATTRS_UNDEFINED	(0x00U)
+#define SLAP_OPATTRS_NO		(0x01U)
+#define SLAP_OPATTRS_YES	(0x02U)
+#define SLAP_USERATTRS_NO	(0x10U)
+#define SLAP_USERATTRS_YES	(0x20U)
 #define SLAP_OPATTRS_MASK(f)	( (f) & (SLAP_OPATTRS_NO|SLAP_OPATTRS_YES) )
-#define SLAP_OPATTRS(f)		( (f) & SLAP_OPATTRS_YES )
+#define SLAP_OPATTRS(f)		( ( (f) & SLAP_OPATTRS_YES ) == SLAP_OPATTRS_YES )
 #define SLAP_USERATTRS_MASK(f)	( (f) & (SLAP_USERATTRS_NO|SLAP_USERATTRS_YES) )
-#define SLAP_USERATTRS(f)	( (f) & SLAP_USERATTRS_YES )
+#define SLAP_USERATTRS(f)	( ( (f) & SLAP_USERATTRS_YES ) == SLAP_USERATTRS_YES )
 	Attribute *r_operational_attrs;
 	AttributeName *r_attrs;
 	int r_nentries;

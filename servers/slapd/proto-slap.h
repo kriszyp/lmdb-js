@@ -974,6 +974,7 @@ LDAP_SLAPD_F (int) slap_read_controls LDAP_P(( Operation *op, SlapReply *rs,
 LDAP_SLAPD_F (int) str2result LDAP_P(( char *s,
 	int *code, char **matched, char **info ));
 LDAP_SLAPD_F (int) slap_map_api2result LDAP_P(( SlapReply *rs ));
+LDAP_SLAPD_F (slap_mask_t) slap_attr_flags LDAP_P(( AttributeName *an ));
 
 LDAP_SLAPD_V( const struct berval ) slap_dummy_bv;
 

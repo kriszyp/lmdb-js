@@ -786,15 +786,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	/* FIXME: maybe we could se this flag at the operation level;
 	 * however, in principle the caller of send_search_entry() may
 	 * change the attribute list at each call */
-	if ( rs->sr_attrs == NULL ) {
-		rs->sr_attr_flags = ( SLAP_OPATTRS_NO | SLAP_USERATTRS_YES );
-
-	} else {
-		rs->sr_attr_flags |= an_find( rs->sr_attrs, &AllOper ) ?
-			SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
-		rs->sr_attr_flags |= an_find( rs->sr_attrs, &AllUser ) ?
-			SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
-	}
+	rs->sr_attr_flags = slap_attr_flags( rs->sr_attrs );
 
 	rc = backend_operational( op, rs );
 	if ( rc ) {
@@ -1836,5 +1828,22 @@ slap_map_api2result( SlapReply *rs )
 		if ( LDAP_API_ERROR(rs->sr_err) ) return LDAP_OTHER;
 		return rs->sr_err;
 	}
+}
+
+
+slap_mask_t
+slap_attr_flags( AttributeName *an )
+{
+	slap_mask_t	flags = SLAP_ATTRS_UNDEFINED;
+
+	if ( an == NULL ) {
+		flags |= ( SLAP_OPATTRS_NO | SLAP_USERATTRS_YES );
+
+	} else {
+		flags |= an_find( an, &AllOper ) ?  SLAP_OPATTRS_YES : SLAP_OPATTRS_NO;
+		flags |= an_find( an, &AllUser ) ?  SLAP_USERATTRS_YES : SLAP_USERATTRS_NO;
+	}
+
+	return flags;
 }
 
