@@ -22,7 +22,7 @@ LDAP_BEGIN_DECL
 /*
  * bprint.c
  */
-extern BER_LOG_PRINT_FN ber_pvt_log_print;
+LDAP_F( BER_LOG_PRINT_FN ) ber_pvt_log_print;
 
 LDAP_F( int )
 ber_pvt_log_printf LDAP_P((

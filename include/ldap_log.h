@@ -72,7 +72,7 @@ extern int	ldap_syslog_level;
 			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) ); \
 	} while ( 0 )
 #else /* !WINSOCK */
-extern void Debug( int level, const char* fmt, ... );
+LDAP_F(void) Debug LDAP_P(( int level, const char* fmt, ... ));
 #endif /* !WINSOCK */
 #endif /* LDAP_SYSLOG */
 #else /* LDAP_DEBUG */
