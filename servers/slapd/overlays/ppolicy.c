@@ -40,7 +40,7 @@
 /* Per-instance configuration information */
 typedef struct pp_info {
 	struct berval def_policy;	/* DN of default policy subentry */
-	int hide_lockout;		/* omit AccountLocked result? */
+	int use_lockout;		/* send AccountLocked result? */
 } pp_info;
 
 /* Our per-connection info - note, it is not per-instance, it is 
@@ -1050,7 +1050,7 @@ ppolicy_bind( Operation *op, SlapReply *rs )
 		if ( rc ) {
 			pp_info *pi = on->on_bi.bi_private;
 			/* This will be the Draft 8 response, Unwilling is bogus */
-			if ( !pi->hide_lockout ) ppb->pErr = PP_accountLocked;
+			if ( pi->use_lockout ) ppb->pErr = PP_accountLocked;
 			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
 			return rs->sr_err;
 		}
@@ -1771,13 +1771,13 @@ ppolicy_config(
 			return 1;
 		}
 		return 0;
-	} else if ( strcasecmp( argv[0], "ppolicy_hide_lockout" ) == 0 ) {
+	} else if ( strcasecmp( argv[0], "ppolicy_use_lockout" ) == 0 ) {
 		if ( argc != 1 ) {
-			fprintf( stderr, "%s: line %d: ppolicy_hide_lockout "
+			fprintf( stderr, "%s: line %d: ppolicy_use_lockout "
 				"takes no arguments\n", fname, lineno );
 			return ( 1 );
 		}
-		pi->hide_lockout = 1;
+		pi->use_lockout = 1;
 	}
 	return SLAP_CONF_UNKNOWN;
 }

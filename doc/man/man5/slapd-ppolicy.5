@@ -25,9 +25,9 @@ policies, and there is no limit to the number of password policies
 that may be created.
 
 .SH CONFIGURATION
-There is one
+These 
 .B slapd.conf
-configuration option for the ppolicy overlay. It should appear
+configuration options apply to the ppolicy overlay. They should appear
 after the
 .B overlay
 directive.
@@ -36,6 +36,22 @@ directive.
 Specify the DN of the pwdPolicy object to use when no specific policy is
 set on a given user's entry. If there is no specific policy for an entry
 and no default is given, then no policies will be enforced.
+.TP
+.B ppolicy_use_lockout
+A client will always receive an LDAP
+.B InvalidCredentials
+response when
+Binding to a locked account. By default, when a Password Policy control
+was provided on the Bind request, a Password Policy response will be
+included with no special error code set. This option changes the
+Password Policy response to include the
+.B AccountLocked
+error code. Note
+that sending the
+.B AccountLocked
+error code provides useful information
+to an attacker; sites that are sensitive to security issues should not
+enable this option.
 
 .SH OBJECT CLASS
 The 
