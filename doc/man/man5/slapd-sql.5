@@ -97,8 +97,7 @@ The default is
 .B "DELETE FROM ldap_entries WHERE id=?"
 
 These four options specify SQL query templates for loading schema mapping
-metainformation,
-adding and deleting entries to ldap_entries, etc.
+metainformation, adding and deleting entries to ldap_entries, etc.
 All these and subtree_cond should have the given default values.
 For the current value it is recommended to look at the sources,
 or in the log output when slapd starts with "-d 5" or greater.
@@ -114,7 +113,7 @@ Set this directive to
 if 
 .B upper_func
 needs an explicit cast when applied to literal strings.  The form
-.B cast (<arg> as varchar(<max DN length>))
+.B CAST (<arg> AS VARCHAR(<max DN length>))
 is used, where
 .B <max DN length>
 is builtin.
@@ -130,11 +129,11 @@ to be used to concatenate strings.  The
 MUST contain two question marks, '?', that will be replaced 
 by the two strings that must be concatenated.  The default value is
 .BR "CONCAT(?,?)";
-a form that is known to be highly portable is 
+a form that is known to be highly portable (IBM db2, PostgreSQL) is 
 .BR "?||?",
 but an explicit cast may be required when operating on literal strings:
-.BR "cast(?||? as varchar(<length>))".
-On some RDBMSes the form
+.BR "CAST(?||? AS VARCHAR(<length>))".
+On some RDBMSes (IBM db2, MSSQL) the form
 .B "?+?"
 is known to work.
 Carefully check the documentation of your RDBMS or stay with the examples
@@ -164,9 +163,20 @@ and may change in future releases.
 .B fail_if_no_mapping { yes | no }
 When set to
 .B yes
-it forces write operations to fail if no appropriate mapping between LDAP
-attributes and SQL data is available.  The default behavior is to ignore
-those changes that cannot be mapped correctly.
+it forces
+.I attribute 
+write operations to fail if no appropriate mapping between LDAP attributes 
+and SQL data is available.
+The default behavior is to ignore those changes that cannot be mapped 
+correctly.
+It has no impact on objectClass mapping, i.e. if the
+.I structuralObjectClass
+of an entry cannot be mapped to SQL by looking up its name 
+in ldap_oc_mappings, an 
+.I add
+operation will fail regardless of the
+.B fail_if_no_mapping
+switch; see section "METAINFORMATION USED" for details.
 This is
 .B experimental 
 and may change in future releases.
@@ -183,7 +193,7 @@ generating sample database for Oracle, MS SQL Server, mySQL and more
 The first thing that one must arrange is what set of LDAP
 object classes can present your RDBMS information.
 .LP
-The easiest way is to create an objectclass for each entity you had in
+The easiest way is to create an objectClass for each entity you had in
 ER-diagram when designing your relational schema.
 Any relational schema, no matter how normalized it is, was designed
 after some model of your application's domain (for instance, accounts,
