@@ -38,6 +38,30 @@
 
 #define SASLREGEX_REPLACE 10
 
+#define LDAP_X_SCOPE_EXACT	((ber_int_t) 0x0010)
+#define LDAP_X_SCOPE_REGEX	((ber_int_t) 0x0020)
+#define LDAP_X_SCOPE_EXACTREGEX	(LDAP_X_SCOPE_EXACT|LDAP_X_SCOPE_REGEX)
+
+/*
+ * IDs in DN form can now have a type specifier, that influences
+ * how they are used in related operations.
+ *
+ * syntax:
+ *
+ * dn[.{exact|regex}]:<val>
+ *
+ * dn.exact:	the value must pass normalization and is used 
+ *		in exact DN match.
+ * dn.regex:	the value is treated as a regular expression 
+ *		in matching DN values in saslAuthz{To|From}
+ *		attributes.
+ * dn:		for backwards compatibility reasons, the value 
+ *		is treated as a regular expression, and thus 
+ *		it is not normalized nor validated; it is used
+ *		in exact or regex comparisons based on the 
+ *		context.
+ */
+
 typedef struct sasl_regexp {
   char *sr_match;							/* regexp match pattern */
   char *sr_replace; 						/* regexp replace pattern */
@@ -100,17 +124,41 @@ static int slap_parseURI( Operation *op, struct berval *uri,
 #endif
 
 	/* If it does not look like a URI, assume it is a DN */
-	if( !strncasecmp( uri->bv_val, "dn:", sizeof("dn:")-1 ) ) {
-		bv.bv_val = uri->bv_val + sizeof("dn:")-1;
+	/* explicitly set to exact: will skip regcomp/regexec */
+	if( !strncasecmp( uri->bv_val, "dn.exact:", sizeof("dn.exact:")-1 ) ) {
+		bv.bv_val = uri->bv_val + sizeof("dn.exact:")-1;
 		bv.bv_val += strspn( bv.bv_val, " " );
 
-is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
+is_dn_exact:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
 		if( rc == LDAP_SUCCESS ) {
-			*scope = LDAP_SCOPE_BASE;
+			*scope = LDAP_X_SCOPE_EXACT;
 		}
+
 		return( rc );
+
+	/* unqualified: to be liberal, it will be regcomp'd/regexec'd */
+	} else if( !strncasecmp( uri->bv_val, "dn:", sizeof("dn:")-1 ) ) {
+		bv.bv_val = uri->bv_val + sizeof("dn:")-1;
+		bv.bv_val += strspn( bv.bv_val, " " );
+
+is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
+
+		ber_dupbv_x( nbase, &bv, op->o_tmpmemctx );
+		*scope = LDAP_X_SCOPE_EXACTREGEX;
+		return LDAP_SUCCESS;
+
+	/* explicitly set to regex: it will be regcomp'd/regexec'd */
+	} else if ( !strncasecmp( uri->bv_val, "dn.regex:", sizeof("dn.regex:")-1 ) ) {
+		bv.bv_val = uri->bv_val + sizeof("dn.regex:")-1;
+		bv.bv_val += strspn( bv.bv_val, " " );
+
+is_dn_regex:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
+
+		ber_dupbv_x( nbase, &bv, op->o_tmpmemctx );
+		*scope = LDAP_X_SCOPE_REGEX;
+		return LDAP_SUCCESS;
 	}
 
 	rc = ldap_url_parse( uri->bv_val, &ludp );
@@ -159,7 +207,7 @@ done:
 	} else {
 		/* Don't free these, return them to caller */
 		ludp->lud_filter = NULL;
-		ludp->lud_dn= NULL;
+		ludp->lud_dn = NULL;
 	}
 
 	ldap_free_urldesc( ludp );
@@ -432,7 +480,18 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
 	/* Massive shortcut: search scope == base */
-	if( op.oq_search.rs_scope == LDAP_SCOPE_BASE ) {
+	switch ( op.oq_search.rs_scope ) {
+	case LDAP_SCOPE_BASE:
+	case LDAP_X_SCOPE_EXACT:
+		if ( dn_match( &op.o_req_ndn, assertDN ) ) {
+			rc = LDAP_SUCCESS;
+		} else {
+			rc = LDAP_INAPPROPRIATE_AUTH;
+		}
+		goto CONCLUDED;
+
+	case LDAP_X_SCOPE_REGEX:
+	case LDAP_X_SCOPE_EXACTREGEX:
 		rc = regcomp(&reg, op.o_req_ndn.bv_val,
 			REG_EXTENDED|REG_ICASE|REG_NOSUB);
 		if ( rc == 0 ) {
@@ -445,6 +504,9 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 			rc = LDAP_INAPPROPRIATE_AUTH;
 		}
 		goto CONCLUDED;
+
+	default:
+		break;
 	}
 
 	/* Must run an internal search. */
@@ -621,11 +683,21 @@ void slap_sasl2dn( Operation *opx,
 	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 
 	/* Massive shortcut: search scope == base */
-	if( op.oq_search.rs_scope == LDAP_SCOPE_BASE ) {
+	switch ( op.oq_search.rs_scope ) {
+	case LDAP_SCOPE_BASE:
+	case LDAP_X_SCOPE_EXACT:
+	case LDAP_X_SCOPE_EXACTREGEX:
 		*sasldn = op.o_req_ndn;
 		op.o_req_ndn.bv_len = 0;
 		op.o_req_ndn.bv_val = NULL;
+		/* intentionally continue to next case */
+
+	case LDAP_X_SCOPE_REGEX:
+		/* illegal */
 		goto FINISHED;
+
+	default:
+		break;
 	}
 
 #ifdef NEW_LOGGING
