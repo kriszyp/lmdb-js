@@ -532,6 +532,8 @@ ldbm_back_modrdn(
 			"type(s)/values(s) of newrdn\n", 
 			0, 0, 0 );
 #endif
+		send_ldap_error( op, rs, LDAP_INVALID_DN_SYNTAX,
+				    "unknown type(s) used in RDN" );
 		goto return_results;		
 	}
 
@@ -564,6 +566,8 @@ ldbm_back_modrdn(
 				"the old_rdn type(s)/value(s)\n", 
 				0, 0, 0 );
 #endif
+			send_ldap_error( op, rs, LDAP_OTHER,
+				    "cannot parse RDN from old DN" );
 			goto return_results;		
 		}
 	}
@@ -576,6 +580,7 @@ ldbm_back_modrdn(
 #endif
 	
 	if ( slap_modrdn2mods( op, rs, e, old_rdn, new_rdn, &mod ) != LDAP_SUCCESS ) {
+		send_ldap_result( op, rs );
 		goto return_results;
 	}
 
@@ -616,16 +621,14 @@ ldbm_back_modrdn(
 	}
 
 	/* modify memory copy of entry */
-	rc_id = ldbm_modify_internal( op, &mod[0], e,
+	rs->sr_err = ldbm_modify_internal( op, &mod[0], e,
 		&rs->sr_text, textbuf, textlen );
-	switch ( rc_id ) {
+	switch ( rs->sr_err ) {
 	case LDAP_SUCCESS:
 		break;
 
 	case SLAPD_ABANDON:
 		/* too late ... */
-		rs->sr_err = rc_id;
-		send_ldap_result( op, rs );
 		goto return_results;
 	
 	default:
@@ -634,6 +637,7 @@ ldbm_back_modrdn(
 			/* we already are in trouble ... */
 			;
 		}
+		send_ldap_result( op, rs );
     		goto return_results;
 	}
 	
