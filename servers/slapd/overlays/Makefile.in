@@ -20,7 +20,7 @@ SRCS = overlays.c \
 	pcache.c \
 	rwm.c rwmconf.c rwmdn.c rwmmap.c
 OBJS = overlays.lo \
-	chain.c \
+	chain.lo \
 	denyop.lo \
 	dyngroup.lo \
 	pcache.lo \
