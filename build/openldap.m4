@@ -55,7 +55,6 @@ dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
 ])dnl
 dnl
 dnl ====================================================================
-dnl
 dnl check if hard links are supported.
 dnl
 AC_DEFUN([OL_PROG_LN_H], [# test for ln hardlink support
@@ -79,6 +78,51 @@ else
 fi
 AC_SUBST(LN_H)dnl
 ])dnl
+dnl
+dnl ====================================================================
+dnl OpenLDAP version of STDC header check
+AC_DEFUN(OL_HEADER_STDC,
+[AC_REQUIRE_CPP()dnl
+AC_CACHE_CHECK(for ANSI C header files, ol_cv_header_stdc,
+[AC_TRY_CPP([#include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
+#include <float.h>], ol_cv_header_stdc=yes, ol_cv_header_stdc=no)
+
+if test $ol_cv_header_stdc = yes; then
+  # SunOS 4.x string.h does not declare mem*, contrary to ANSI.
+AC_EGREP_HEADER(memchr, string.h, , ol_cv_header_stdc=no)
+fi
+
+if test $ol_cv_header_stdc = yes; then
+  # ISC 2.0.2 stdlib.h does not declare free, contrary to ANSI.
+AC_EGREP_HEADER(free, stdlib.h, , ol_cv_header_stdc=no)
+fi
+
+if test $ol_cv_header_stdc = yes; then
+  # /bin/cc in Irix-4.0.5 gets non-ANSI ctype macros unless using -ansi.
+AC_TRY_RUN([#include <ctype.h>
+#ifndef EBCDIC
+#	define ISLOWER(c) ('a' <= (c) && (c) <= 'z')
+#	define TOUPPER(c) (ISLOWER(c) ? 'A' + ((c) - 'a') : (c))
+#else
+#	define ISLOWER(c) (('a' <= (c) && (c) <= 'i') \
+		|| ('j' <= (c) && (c) <= 'r') \
+		|| ('s' <= (c) && (c) <= 'z'))
+#	define TOUPPER(c)	(ISLOWER(c) ? ((c) | 0x40) : (c))
+#endif
+#define XOR(e, f) (((e) && !(f)) || (!(e) && (f)))
+int main () { int i; for (i = 0; i < 256; i++)
+if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
+exit (0); }
+], , ol_cv_header_stdc=no, :)
+fi])
+if test $ol_cv_header_stdc = yes; then
+  AC_DEFINE(STDC_HEADERS)
+fi
+# disable autoconf test
+ac_cv_header_stdc=disable
+])
 dnl
 dnl ====================================================================
 dnl Check if db.h is Berkeley DB2

@@ -1540,7 +1540,7 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Checks for header files.
-AC_HEADER_STDC
+OL_HEADER_STDC
 
 if test $ac_cv_header_stdc != yes; then
 	AC_MSG_WARN([could not Standard C compliant headers])
