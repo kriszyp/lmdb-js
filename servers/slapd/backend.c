@@ -13,6 +13,8 @@
 #include "slap.h"
 #include "lutil.h"
 
+#include "ldap_defaults.h"
+
 #ifdef SLAPD_LDAP
 #include "back-ldap/external.h"
 #endif
@@ -595,3 +597,22 @@ backend_group(
 	else
 		return(1);
 }
+
+#ifdef SLAPD_SCHEMA_DN
+Attribute *backend_subschemasubentry( Backend *be )
+{
+	/* should be backend specific */
+	static struct berval ss_val = {
+		sizeof(SLAPD_SCHEMA_DN)-1,
+		SLAPD_SCHEMA_DN };
+	static struct berval *ss_vals[2] = { &ss_val, NULL };
+	static Attribute ss_attr = {
+		"subschemasubentry",
+		ss_vals,
+		SYNTAX_DN | SYNTAX_CIS,
+		NULL
+	};
+
+	return &ss_attr;
+}
+#endif

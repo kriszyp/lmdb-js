@@ -504,22 +504,6 @@ send_search_entry(
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: \"%s\"\n", e->e_dn, 0, 0 );
 
-#if defined( SLAPD_SCHEMA_DN )
-	{
-		/* this could be backend specific */
-		struct berval val;
-		struct berval *vals[2];
-
-		vals[0] = &val;
-		vals[1] = NULL;
-
-		val.bv_val = SLAPD_SCHEMA_DN;
-		val.bv_len = strlen( val.bv_val );
-
-		attr_merge( e, "subschemaSubentry", vals );
-	}
-#endif
-
 	if ( ! access_allowed( be, conn, op, e,
 		"entry", NULL, ACL_READ ) )
 	{
@@ -625,6 +609,82 @@ send_search_entry(
 			goto error_return;
 		}
 	}
+
+#ifdef SLAPD_SCHEMA_DN
+	a = backend_subschemasubentry( be );
+	
+	do {
+		regmatch_t       matches[MAXREMATCHES];
+
+		if ( attrs == NULL ) {
+			/* all addrs request, skip operational attributes */
+			if( !opattrs && oc_check_operational_attr( a->a_type ) ) {
+				continue;
+			}
+
+		} else {
+			/* specific addrs requested */
+			if ( allattrs ) {
+				/* user requested all user attributes */
+				/* if operational, make sure it's in list */
+
+				if( oc_check_operational_attr( a->a_type )
+					&& !charray_inlist( attrs, a->a_type ) )
+				{
+					continue;
+				}
+
+			} else if ( !charray_inlist( attrs, a->a_type ) ) {
+				continue;
+			}
+		}
+
+		acl = acl_get_applicable( be, op, e, a->a_type,
+			MAXREMATCHES, matches );
+
+		if ( ! acl_access_allowed( acl, be, conn, e,
+			NULL, op, ACL_READ, edn, matches ) ) 
+		{
+			continue;
+		}
+
+		if (( rc = ber_printf( ber, "{s[" /*]}*/ , a->a_type )) == -1 ) {
+			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+			ber_free( ber, 1 );
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			    NULL, "encoding type error", NULL, NULL );
+			goto error_return;
+		}
+
+		if ( ! attrsonly ) {
+			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+				if ( a->a_syntax & SYNTAX_DN && 
+					! acl_access_allowed( acl, be, conn, e, a->a_vals[i], op,
+						ACL_READ, edn, matches) )
+				{
+					continue;
+				}
+
+				if (( rc = ber_printf( ber, "O", a->a_vals[i] )) == -1 ) {
+					Debug( LDAP_DEBUG_ANY,
+					    "ber_printf failed\n", 0, 0, 0 );
+					ber_free( ber, 1 );
+					send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+						NULL, "encoding value error", NULL, NULL );
+					goto error_return;
+				}
+			}
+		}
+
+		if (( rc = ber_printf( ber, /*{[*/ "]}" )) == -1 ) {
+			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+			ber_free( ber, 1 );
+			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			    NULL, "encode end error", NULL, NULL );
+			goto error_return;
+		}
+	} while (0);
+#endif
 
 	rc = ber_printf( ber, /*{{{*/ "}}}" );
 

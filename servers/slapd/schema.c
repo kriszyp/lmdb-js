@@ -14,6 +14,7 @@
 static char *	oc_check_required(Entry *e, char *ocname);
 static int		oc_check_allowed(char *type, struct berval **ocl);
 
+
 /*
  * oc_check - check that entry e conforms to the schema required by
  * its object class(es). returns 0 if so, non-zero otherwise.

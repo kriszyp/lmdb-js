@@ -99,6 +99,12 @@ extern int	backend_group LDAP_P((Backend *be,
 	char *gr_ndn, char *op_ndn,
 	char *objectclassValue, char *groupattrName));
 
+#ifdef SLAPD_SCHEMA_DN
+/* temporary extern for temporary routine*/
+extern Attribute *backend_subschemasubentry( Backend * );
+#endif
+
+
 /*
  * ch_malloc.c
  */
