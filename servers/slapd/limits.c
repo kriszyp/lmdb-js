@@ -559,6 +559,8 @@ no_ad:;
 
 	/*
 	 * sanity checks ...
+	 *
+	 * FIXME: add warnings?
 	 */
 	if ( limit.lms_t_hard > 0 && 
 			( limit.lms_t_hard < limit.lms_t_soft 
@@ -574,17 +576,31 @@ no_ad:;
 
 	/*
 	 * defaults ...
+	 * 
+	 * lms_t_hard:
+	 * 	-1	=> no limits
+	 * 	0	=> same as soft
+	 * 	> 0	=> limit (in seconds)
+	 *
+	 * lms_s_hard:
+	 * 	-1	=> no limits
+	 * 	0	0> same as soft
+	 * 	> 0	=> limit (in entries)
+	 *
+	 * lms_s_pr_total:
+	 * 	-2	=> disable the control
+	 * 	-1	=> no limits
+	 * 	0	=> same as soft
+	 * 	> 0	=> limit (in entries)
+	 *
+	 * lms_s_pr:
+	 * 	-1	=> no limits
+	 * 	0	=> no limits?
+	 * 	> 0	=> limit size (in entries)
 	 */
-	if ( limit.lms_t_hard == 0 ) {
-		limit.lms_t_hard = limit.lms_t_soft;
-	}
-
-	if ( limit.lms_s_hard == 0 ) {
-		limit.lms_s_hard = limit.lms_s_soft;
-	}
-
-	if ( limit.lms_s_pr_total == 0 ) {
-		limit.lms_s_pr_total = limit.lms_s_hard;
+	if ( limit.lms_s_pr_total > 0 &&
+			limit.lms_s_pr > limit.lms_s_pr_total ) {
+		limit.lms_s_pr = limit.lms_s_pr_total;
 	}
 
 	rc = limits_add( be, flags, pattern, group_oc, group_ad, &limit );
@@ -903,29 +919,29 @@ limits_check( Operation *op, SlapReply *rs )
 		assert( op->ors_limit != NULL );
 
 		/* if no limit is required, use soft limit */
-		if ( op->ors_tlimit <= 0 ) {
+		if ( op->ors_tlimit == 0 ) {
 			op->ors_tlimit = op->ors_limit->lms_t_soft;
 
+		/* limit required: check if legal */
 		} else {
-			/* no hard limit means use soft instead */
 			if ( op->ors_limit->lms_t_hard == 0 ) {
-				if ( op->ors_limit->lms_t_soft > -1
-						&& op->ors_tlimit > op->ors_limit->lms_t_soft ) {
+				if ( op->ors_limit->lms_t_soft > 0
+						&& ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_soft ) ) {
 					op->ors_tlimit = op->ors_limit->lms_t_soft;
 				}
 
-			/* -1 means no hard limit */
-			} else if ( op->ors_limit->lms_t_hard == -1 ) {
-				op->ors_tlimit = -1;
-		
-			/* error if exceeding hard limit */	
-			} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_ldap_result( op, rs );
-				rs->sr_err = LDAP_SUCCESS;
-				return -1;
+			} else if ( op->ors_limit->lms_t_hard > 0 ) {
+				if ( op->ors_tlimit < 0 || op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+					/* error if exceeding hard limit */
+					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+					send_ldap_result( op, rs );
+					rs->sr_err = LDAP_SUCCESS;
+					return -1;
+				}
 			}
 		}
+
+		/* else leave as is */
 
 		/* don't even get to backend if candidate check is disabled */
 		if ( op->ors_limit->lms_s_unchecked == 0 ) {
@@ -938,6 +954,7 @@ limits_check( Operation *op, SlapReply *rs )
 		/* if paged results is requested */	
 		if ( get_pagedresults( op ) ) {
 			int	slimit = -2;
+			int	pr_total;
 
 			/* paged results is not allowed */
 			if ( op->ors_limit->lms_s_pr_total == -2 ) {
@@ -947,49 +964,74 @@ limits_check( Operation *op, SlapReply *rs )
 				rs->sr_err = LDAP_SUCCESS;
 				rs->sr_text = NULL;
 				return -1;
+			}
+			
+			if ( op->ors_limit->lms_s_pr > 0 && op->o_pagedresults_size > op->ors_limit->lms_s_pr ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				rs->sr_text = "illegal pagedResults page size";
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;
+				rs->sr_text = NULL;
+				return -1;
+			}
 
-			} else if ( op->ors_limit->lms_s_pr_total == -1 ) {
+			if ( op->ors_limit->lms_s_pr_total == 0 ) {
+				if ( op->ors_limit->lms_s_hard == 0 ) {
+					pr_total = op->ors_limit->lms_s_soft;
+				} else {
+					pr_total = op->ors_limit->lms_s_hard;
+				}
+			} else {
+				pr_total = op->ors_limit->lms_s_pr_total;
+			}
+
+			if ( op->ors_limit->lms_s_pr_total == -1 ) {
 				slimit = -1;
+
+			} else if ( pr_total > 0 && ( op->ors_slimit == -1 || op->ors_slimit > pr_total ) ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;
+				return -1;
 	
 			} else {
 				/* if no limit is required, use soft limit */
 				int	total;
-				int	slimit2 = -1;
+				int	slimit2;
 
 				/* first round of pagedResults: set count to any appropriate limit */
 
 				/* if the limit is set, check that it does not violate any limit */
 				if ( op->ors_slimit > 0 ) {
 					slimit2 = op->ors_slimit;
-					if ( op->ors_slimit > op->ors_limit->lms_s_pr_total ) {
-						rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-						send_ldap_result( op, rs );
-						rs->sr_err = LDAP_SUCCESS;
-						return -1;
-					}
+
+				} else if ( op->ors_slimit == 0 ) {
+					slimit2 = pr_total;
 
 				} else {
-					slimit2 = op->ors_limit->lms_s_pr_total;
+					slimit2 = -1;
 				}
 
 				total = slimit2 - op->o_pagedresults_state.ps_count;
 
-				if ( total >= 0 && op->ors_limit->lms_s_pr > 0 ) {
-					/* use the smallest limit set by total/per page */
-					if ( total < op->ors_limit->lms_s_pr ) {
-						slimit = total;
+				if ( total >= 0 ) {
+					if ( op->ors_limit->lms_s_pr > 0 ) {
+						/* use the smallest limit set by total/per page */
+						if ( total < op->ors_limit->lms_s_pr ) {
+							slimit = total;
+	
+						} else {
+							/* use the perpage limit if any 
+							 * NOTE: + 1 because the given value must be legal */
+							slimit = op->ors_limit->lms_s_pr + 1;
+						}
 
 					} else {
-						/* use the perpage limit if any 
-						 * NOTE: + 1 because the given value must be legal */
-						slimit = op->ors_limit->lms_s_pr + 1;
+						/* use the total limit if any */
+						slimit = total;
 					}
 
-				} else if ( total >= 0 ) {
-					/* use the total limit if any */
-					slimit = total;
-
-				} else if ( op->ors_limit->lms_s_pr != 0 ) {
+				} else if ( op->ors_limit->lms_s_pr > 0 ) {
 					/* use the perpage limit if any 
 					 * NOTE: + 1 because the given value must be legal */
 					slimit = op->ors_limit->lms_s_pr + 1;
@@ -1020,29 +1062,32 @@ limits_check( Operation *op, SlapReply *rs )
 				op->ors_slimit = op->ors_limit->lms_s_hard;
 			}
 
+		/* no limit requested: use soft, whatever it is */
 		} else if ( op->ors_slimit == 0 ) {
 			op->ors_slimit = op->ors_limit->lms_s_soft;
 
+		/* limit requested: check if legal */
 		} else {
-			/* no hard limit means use soft instead */
+			/* hard limit as soft (traditional behavior) */
 			if ( op->ors_limit->lms_s_hard == 0 ) {
-				if ( op->ors_limit->lms_s_soft > -1
+				if ( op->ors_limit->lms_s_soft > 0
 						&& op->ors_slimit > op->ors_limit->lms_s_soft ) {
 					op->ors_slimit = op->ors_limit->lms_s_soft;
 				}
 
-			/* -1 means no hard limit */
-			} else if ( op->ors_limit->lms_s_hard == -1 ) {
-				op->ors_slimit = -1;
-					
-			/* error if exceeding hard limit */	
-			} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_ldap_result( op, rs );
-				rs->sr_err = LDAP_SUCCESS;
-				return -1;
+			/* explicit hard limit: error if violated */
+			} else if ( op->ors_limit->lms_s_hard > 0 ) {
+				if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+					/* if limit exceeds hard, error */
+					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+					send_ldap_result( op, rs );
+					rs->sr_err = LDAP_SUCCESS;
+					return -1;
+				}
 			}
 		}
+
+		/* else leave as is */
 	}
 
 	return 0;
