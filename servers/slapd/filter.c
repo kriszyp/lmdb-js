@@ -1,9 +1,12 @@
 /* filter.c - routines for parsing and dealing with filters */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 
 static int	get_filter_list();
@@ -54,7 +57,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 	err = 0;
 	*fstr = NULL;
 	f->f_choice = ber_peek_tag( ber, &len );
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		switch ( f->f_choice ) {
 		case LDAP_FILTER_EQUALITY:
@@ -135,6 +138,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
 		if ( (err = get_filter_list( conn, ber, &f->f_and, &ftmp ))
 		    == 0 ) {
+			if (ftmp == NULL) ftmp = strdup("");
 			*fstr = ch_malloc( 4 + strlen( ftmp ) );
 			sprintf( *fstr, "(&%s)", ftmp );
 			free( ftmp );
@@ -145,6 +149,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		Debug( LDAP_DEBUG_FILTER, "OR\n", 0, 0, 0 );
 		if ( (err = get_filter_list( conn, ber, &f->f_or, &ftmp ))
 		    == 0 ) {
+			if (ftmp == NULL) ftmp = strdup("");
 			*fstr = ch_malloc( 4 + strlen( ftmp ) );
 			sprintf( *fstr, "(|%s)", ftmp );
 			free( ftmp );
@@ -155,6 +160,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		Debug( LDAP_DEBUG_FILTER, "NOT\n", 0, 0, 0 );
 		(void) ber_skip_tag( ber, &len );
 		if ( (err = get_filter( conn, ber, &f->f_not, &ftmp )) == 0 ) {
+			if (ftmp == NULL) ftmp = strdup("");
 			*fstr = ch_malloc( 4 + strlen( ftmp ) );
 			sprintf( *fstr, "(!%s)", ftmp );
 			free( ftmp );
@@ -189,7 +195,7 @@ get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr )
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_filter_list\n", 0, 0, 0 );
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		(void) ber_skip_tag( ber, &len );
 	}
@@ -230,7 +236,7 @@ get_substring_filter(
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( conn->c_version == 30 ) {
 		(void) ber_skip_tag( ber, &len );
 	}
@@ -248,7 +254,7 @@ get_substring_filter(
 	sprintf( *fstr, "(%s=", f->f_sub_type );
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) ) {
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( conn->c_version == 30 ) {
 			rc = ber_scanf( ber, "{a}", &val );
 		} else
@@ -266,7 +272,7 @@ get_substring_filter(
 		value_normalize( val, syntax );
 
 		switch ( tag ) {
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_INITIAL_30:
 #endif
 		case LDAP_SUBSTRING_INITIAL:
@@ -280,7 +286,7 @@ get_substring_filter(
 			strcat( *fstr, val );
 			break;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_ANY_30:
 #endif
 		case LDAP_SUBSTRING_ANY:
@@ -292,7 +298,7 @@ get_substring_filter(
 			strcat( *fstr, val );
 			break;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_FINAL_30:
 #endif
 		case LDAP_SUBSTRING_FINAL:
@@ -385,63 +391,63 @@ filter_print( Filter *f )
 	Filter	*p;
 
 	if ( f == NULL ) {
-		printf( "NULL" );
+		fprintf( stderr, "NULL" );
 	}
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-		printf( "(%s=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_GE:
-		printf( "(%s>=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s>=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_LE:
-		printf( "(%s<=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s<=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_APPROX:
-		printf( "(%s~=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s~=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		printf( "(%s=", f->f_sub_type );
+		fprintf( stderr, "(%s=", f->f_sub_type );
 		if ( f->f_sub_initial != NULL ) {
-			printf( "%s", f->f_sub_initial );
+			fprintf( stderr, "%s", f->f_sub_initial );
 		}
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
-				printf( "*%s", f->f_sub_any[i] );
+				fprintf( stderr, "*%s", f->f_sub_any[i] );
 			}
 		}
 		charray_free( f->f_sub_any );
 		if ( f->f_sub_final != NULL ) {
-			printf( "*%s", f->f_sub_final );
+			fprintf( stderr, "*%s", f->f_sub_final );
 		}
 		break;
 
 	case LDAP_FILTER_PRESENT:
-		printf( "%s=*", f->f_type );
+		fprintf( stderr, "%s=*", f->f_type );
 		break;
 
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
-		printf( "(%c", f->f_choice == LDAP_FILTER_AND ? '&' :
+		fprintf( stderr, "(%c", f->f_choice == LDAP_FILTER_AND ? '&' :
 		    f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			filter_print( p );
 		}
-		printf( ")" );
+		fprintf( stderr, ")" );
 		break;
 
 	default:
-		printf( "unknown type %d", f->f_choice );
+		fprintf( stderr, "unknown type %d", f->f_choice );
 		break;
 	}
 }

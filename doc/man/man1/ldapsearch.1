@@ -1,4 +1,4 @@
-.TH LDAPSEARCH 1 "29 March 1996" "U-M LDAP LDVERSION"
+.TH LDAPSEARCH 1 "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldapsearch \- ldap search tool
 .SH SYNOPSIS
@@ -164,7 +164,7 @@ base object for the search.  The default is to never dereference aliases.
 wait at most \fItimelimit\fP seconds for a search to complete.
 .TP
 .B \-z sizelimit
-retrieve at most \fIsizelimit\fP seconds for a search to complete.
+retrieve at most \fIsizelimit\fP entries for a search.
 .SH OUTPUT FORMAT
 If one or more entries are found, each entry is written to standard output
 in the form:
@@ -289,3 +289,8 @@ Howes, T.,
 .SM RFC
 1558,
 University of Michigan, December 1993.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

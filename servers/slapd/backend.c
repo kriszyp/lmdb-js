@@ -1,14 +1,18 @@
 /* backend.c - routines for dealing with back-end databases */
 
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include <sys/stat.h>
+
 #include "slap.h"
 
-#ifdef LDAP_LDBM
+#ifdef SLAPD_LDBM
 extern int	ldbm_back_bind();
 extern int	ldbm_back_unbind();
 extern int	ldbm_back_search();
@@ -21,14 +25,15 @@ extern int	ldbm_back_abandon();
 extern int	ldbm_back_config();
 extern int	ldbm_back_init();
 extern int	ldbm_back_close();
+extern int      ldbm_back_group();
 #endif
 
-#ifdef LDAP_PASSWD
+#ifdef SLAPD_PASSWD
 extern int	passwd_back_search();
 extern int	passwd_back_config();
 #endif
 
-#ifdef LDAP_SHELL
+#ifdef SLAPD_SHELL
 extern int	shell_back_bind();
 extern int	shell_back_unbind();
 extern int	shell_back_search();
@@ -72,7 +77,7 @@ new_backend(
 	be->be_timelimit = deftime;
 	foundit = 0;
 
-#ifdef LDAP_LDBM
+#ifdef SLAPD_LDBM
 	if ( strcasecmp( type, "ldbm" ) == 0 ) {
 		be->be_bind = ldbm_back_bind;
 		be->be_unbind = ldbm_back_unbind;
@@ -86,12 +91,15 @@ new_backend(
 		be->be_config = ldbm_back_config;
 		be->be_init = ldbm_back_init;
 		be->be_close = ldbm_back_close;
+#ifdef SLAPD_ACLGROUPS
+		be->be_group = ldbm_back_group;
+#endif
 		be->be_type = "ldbm";
 		foundit = 1;
 	}
 #endif
 
-#ifdef LDAP_PASSWD
+#ifdef SLAPD_PASSWD
 	if ( strcasecmp( type, "passwd" ) == 0 ) {
 		be->be_bind = NULL;
 		be->be_unbind = NULL;
@@ -105,12 +113,15 @@ new_backend(
 		be->be_config = passwd_back_config;
 		be->be_init = NULL;
 		be->be_close = NULL;
+#ifdef SLAPD_ACLGROUPS
+		be->be_group = NULL;
+#endif
 		be->be_type = "passwd";
 		foundit = 1;
 	}
 #endif
 
-#ifdef LDAP_SHELL
+#ifdef SLAPD_SHELL
 	if ( strcasecmp( type, "shell" ) == 0 ) {
 		be->be_bind = shell_back_bind;
 		be->be_unbind = shell_back_unbind;
@@ -124,6 +135,9 @@ new_backend(
 		be->be_config = shell_back_config;
 		be->be_init = shell_back_init;
 		be->be_close = NULL;
+#ifdef SLAPD_ACLGROUPS
+		be->be_group = NULL;
+#endif
 		be->be_type = "shell";
 		foundit = 1;
 	}
@@ -149,7 +163,20 @@ select_backend( char * dn )
 	dnlen = strlen( dn );
 	for ( i = 0; i < nbackends; i++ ) {
 		for ( j = 0; backends[i].be_suffix != NULL &&
-		    backends[i].be_suffix[j] != NULL; j++ ) {
+		    backends[i].be_suffix[j] != NULL; j++ )
+		{
+#ifdef LDAP_ALLOW_NULL_SEARCH_BASE
+			/* Add greg@greg.rim.or.jp
+			 * It's quick hack for cheap client
+			 * Some browser offer a NULL base at ldap_search
+			 */
+			if(dnlen == 0) {
+				Debug( LDAP_DEBUG_TRACE,
+					"select_backend: use default backend\n", 0, 0, 0 );
+				return (&backends[i]);
+			}
+#endif /* LDAP_ALLOW_NULL_SEARCH_BASE */
+
 			len = strlen( backends[i].be_suffix[j] );
 
 			if ( len > dnlen ) {
@@ -162,6 +189,27 @@ select_backend( char * dn )
 			}
 		}
 	}
+
+        /* if no proper suffix could be found then check for aliases */
+        for ( i = 0; i < nbackends; i++ ) {
+                for ( j = 0; 
+		      backends[i].be_suffixAlias != NULL && 
+                      backends[i].be_suffixAlias[j] != NULL; 
+		      j += 2 )
+                {
+                        len = strlen( backends[i].be_suffixAlias[j] );
+
+                        if ( len > dnlen ) {
+                                continue;
+                        }
+
+                        if ( strcasecmp( backends[i].be_suffixAlias[j],
+                            dn + (dnlen - len) ) == 0 ) {
+                                return( &backends[i] );
+                        }
+                }
+        }
+
 
 	return( NULL );
 }
@@ -231,3 +279,14 @@ be_unbind(
 		}
 	}
 }
+
+#ifdef SLAPD_ACLGROUPS
+int 
+be_group(Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName)
+{
+        if (be->be_group)
+                return(be->be_group(be, bdn, edn, objectclassValue, groupattrName));
+        else
+                return(1);
+}
+#endif

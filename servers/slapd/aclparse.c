@@ -1,18 +1,18 @@
 /* acl.c - routines to parse and check acl's */
 
-
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include "regex.h"
-#include "slap.h"
 #include "portable.h"
 
+#include <stdio.h>
+
+#include <ac/ctype.h>
+#include <ac/regex.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/unistd.h>
+
+#include "slap.h"
+
 extern Filter		*str2filter();
-extern char		*re_comp();
 extern struct acl	*global_acl;
 extern char		**str2charray();
 extern char		*dn_upcase();
@@ -25,6 +25,62 @@ static void		acl_usage();
 static void		print_acl();
 static void		print_access();
 #endif
+
+int
+regtest(char *fname, int lineno, char *pat) {
+	int e;
+	regex_t re;
+
+	char buf[512];
+	int size;
+
+	char *sp;
+	char *dp;
+	int  flag;
+
+	sp = pat;
+	dp = buf;
+	size = 0;
+	buf[0] = '\0';
+
+	for (size = 0, flag = 0; (size < sizeof(buf)) && *sp; sp++) {
+		if (flag) {
+			if (*sp == '$'|| (*sp >= '0' && *sp <= '9')) {
+				*dp++ = *sp;
+				size++;
+			}
+			flag = 0;
+
+		} else {
+			if (*sp == '$') {
+				flag = 1;
+			} else {
+				*dp++ = *sp;
+				size++;
+			}
+		}
+	}
+
+	*dp = '\0';
+	if ( size >= (sizeof(buf)-1) ) {
+		fprintf( stderr,
+			"%s: line %d: regular expression \"%s\" too large\n",
+			fname, lineno, pat, 0 );
+		acl_usage();
+	}
+
+	if ((e = regcomp(&re, buf, REG_EXTENDED|REG_ICASE))) {
+		char error[512];
+		regerror(e, &re, error, sizeof(error));
+		fprintf( stderr,
+			"%s: line %d: regular expression \"%s\" bad because of %s\n",
+			fname, lineno, pat, error );
+		acl_usage();
+		return(0);
+	}
+	regfree(&re);
+	return(1);
+}
 
 void
 parse_acl(
@@ -58,6 +114,17 @@ parse_acl(
 				}
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
+					int e;
+					if ((e = regcomp( &a->acl_dnre, ".*",
+						REG_EXTENDED|REG_ICASE)))
+					{
+						char buf[512];
+						regerror(e, &a->acl_dnre, buf, sizeof(buf));
+						fprintf( stderr,
+							"%s: line %d: regular expression \"%s\" bad because of %s\n",
+							fname, lineno, right, buf );
+						acl_usage();
+					}
 					a->acl_dnpat = strdup( ".*" );
 					continue;
 				}
@@ -79,14 +146,19 @@ parse_acl(
 						acl_usage();
 					}
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
-					if ( (e = re_comp( right )) != NULL ) {
+					int e;
+					if ((e = regcomp(&a->acl_dnre, right,
+						REG_EXTENDED|REG_ICASE))) {
+						char buf[512];
+						regerror(e, &a->acl_dnre, buf, sizeof(buf));
 						fprintf( stderr,
-		"%s: line %d: regular expression \"%s\" bad because of %s\n",
-						    fname, lineno, right, e );
+				"%s: line %d: regular expression \"%s\" bad because of %s\n",
+							fname, lineno, right, buf );
 						acl_usage();
+
+					} else {
+						a->acl_dnpat = dn_upcase(strdup( right ));
 					}
-					a->acl_dnpat = dn_upcase( strdup(
-					    right ) );
 				} else if ( strncasecmp( left, "attr", 4 )
 				    == 0 ) {
 					char	**alist;
@@ -96,7 +168,7 @@ parse_acl(
 					free( alist );
 				} else {
 					fprintf( stderr,
-				"%s: line %d: expecting <what> got \"%s\"\n",
+						"%s: line %d: expecting <what> got \"%s\"\n",
 					    fname, lineno, left );
 					acl_usage();
 				}
@@ -106,7 +178,7 @@ parse_acl(
 		} else if ( strcasecmp( argv[i], "by" ) == 0 ) {
 			if ( a == NULL ) {
 				fprintf( stderr,
-	"%s: line %d: to clause required before by clause in access line\n",
+					"%s: line %d: to clause required before by clause in access line\n",
 				    fname, lineno );
 				acl_usage();
 			}
@@ -131,38 +203,55 @@ parse_acl(
 			} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
 				b->a_dnpat = strdup( "self" );
 			} else if ( strcasecmp( left, "dn" ) == 0 ) {
-				if ( (e = re_comp( right )) != NULL ) {
-					fprintf( stderr,
-			"%s: line %d: regular expression \"%s\" bad: %s\n",
-					    fname, lineno, right, e );
-					acl_usage();
-				}
+				regtest(fname, lineno, right);
 				b->a_dnpat = dn_upcase( strdup( right ) );
-			} else if ( strcasecmp( left, "dnattr" )
-			    == 0 ) {
+			} else if ( strcasecmp( left, "dnattr" ) == 0 ) {
 				b->a_dnattr = strdup( right );
-			} else if ( strcasecmp( left, "domain" )
-			    == 0 ) {
-				char	*s;
 
-				if ( (e = re_comp( right )) != NULL ) {
-					fprintf( stderr,
-			"%s: line %d: regular expression \"%s\" bad: %s\n",
-					    fname, lineno, right, e );
-					acl_usage();
-				}
+#ifdef SLAPD_ACLGROUPS
+			} else if ( strcasecmp( left, "group" ) == 0 ) {
+                                char *name = NULL;
+                                char *value = NULL;
+				regtest(fname, lineno, right);
+
+                                /* format of string is "group/objectClassValue/groupAttrName"
+                                 */
+                                if ((value = strchr(right, '/')) != NULL) {
+                                        *value++ = '\0';
+                                        if (value && *value && (name = strchr(value, '/')) != NULL) 
+                                            *name++ = '\0';
+                                }
+
+				b->a_group = dn_upcase(strdup( right ));
+
+                                if (value && *value) {
+                                        b->a_objectclassvalue = strdup(value);
+                                        *--value = '/';
+                                }
+                                else
+                                        b->a_objectclassvalue = strdup("groupOfNames");
+
+                                if (name && *name) {
+                                        b->a_groupattrname = strdup(name);
+                                        *--name = '/';
+                                }
+                                else
+                                        b->a_groupattrname = strdup("member");
+
+
+
+#endif /* SLAPD_ACLGROUPS */
+			} else if ( strcasecmp( left, "domain" ) == 0 ) {
+				char	*s;
+				regtest(fname, lineno, right);
 				b->a_domainpat = strdup( right );
+
 				/* normalize the domain */
 				for ( s = b->a_domainpat; *s; s++ ) {
 					*s = TOLOWER( *s );
 				}
 			} else if ( strcasecmp( left, "addr" ) == 0 ) {
-				if ( (e = re_comp( right )) != NULL ) {
-					fprintf( stderr,
-			"%s: line %d: regular expression \"%s\" bad: %s\n",
-					    fname, lineno, right, e );
-					acl_usage();
-				}
+				regtest(fname, lineno, right);
 				b->a_addrpat = strdup( right );
 			} else {
 				fprintf( stderr,
@@ -198,16 +287,19 @@ parse_acl(
 
 	/* if we have no real access clause, complain and do nothing */
 	if ( a == NULL ) {
-	
 			fprintf( stderr,
-		    "%s: line %d: warning: no access clause(s) specified in access line\n",
+				"%s: line %d: warning: no access clause(s) specified in access line\n",
 			    fname, lineno );
 
 	} else {
+
+                if (ldap_debug&LDAP_DEBUG_ACL)
+                    print_acl(a);
+
 	
 		if ( a->acl_access == NULL ) {
 			fprintf( stderr,
-		    "%s: line %d: warning: no by clause(s) specified in access line\n",
+		    	"%s: line %d: warning: no by clause(s) specified in access line\n",
 			    fname, lineno );
 		}
 
@@ -326,15 +418,24 @@ print_access( struct access *b )
 {
 	printf( "\tby" );
 	if ( b->a_dnpat != NULL ) {
-		printf( " dn=%s", b->a_dnpat );
+		fprintf( stderr, " dn=%s", b->a_dnpat );
 	} else if ( b->a_addrpat != NULL ) {
-		printf( " addr=%s", b->a_addrpat );
+		fprintf( stderr, " addr=%s", b->a_addrpat );
 	} else if ( b->a_domainpat != NULL ) {
-		printf( " domain=%s", b->a_domainpat );
+		fprintf( stderr, " domain=%s", b->a_domainpat );
 	} else if ( b->a_dnattr != NULL ) {
-		printf( " dnattr=%s", b->a_dnattr );
+		fprintf( stderr, " dnattr=%s", b->a_dnattr );
 	}
-	printf( " %s\n", access2str( b->a_access ) );
+#ifdef SLAPD_ACLGROUPS
+        else if ( b->a_group != NULL ) {
+                fprintf( stderr, " group: %s", b->a_group );
+                if ( b->a_objectclassvalue )
+                        fprintf( stderr, " objectClassValue: %s", b->a_objectclassvalue );
+                if ( b->a_groupattrname )
+                        fprintf( stderr, " groupAttrName: %s", b->a_groupattrname );
+        }
+#endif
+	fprintf( stderr, "\n" );
 }
 
 static void
@@ -344,33 +445,34 @@ print_acl( struct acl *a )
 	struct access	*b;
 
 	if ( a == NULL ) {
-		printf( "NULL\n" );
+		fprintf( stderr, "NULL\n" );
 	}
-	printf( "access to" );
+	fprintf( stderr, "ACL: access to" );
 	if ( a->acl_filter != NULL ) {
-		printf( " filter=" );
+		fprintf(  stderr," filter=" );
 		filter_print( a->acl_filter );
 	}
 	if ( a->acl_dnpat != NULL ) {
-		printf( " dn=" );
-		printf( a->acl_dnpat );
+		fprintf( stderr, " dn=" );
+		fprintf( stderr, a->acl_dnpat );
 	}
 	if ( a->acl_attrs != NULL ) {
 		int	first = 1;
 
-		printf( " attrs=" );
+		fprintf( stderr, "\n attrs=" );
 		for ( i = 0; a->acl_attrs[i] != NULL; i++ ) {
 			if ( ! first ) {
-				printf( "," );
+				fprintf( stderr, "," );
 			}
-			printf( a->acl_attrs[i] );
+			fprintf( stderr, a->acl_attrs[i] );
 			first = 0;
 		}
 	}
-	printf( "\n" );
+	fprintf( stderr, "\n" );
 	for ( b = a->acl_access; b != NULL; b = b->a_next ) {
 		print_access( b );
 	}
+	fprintf( stderr, "\n" );
 }
 
-#endif
+#endif /* LDAP_DEBUG */

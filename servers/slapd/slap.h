@@ -3,13 +3,22 @@
 #ifndef _SLDAPD_H_
 #define _SLDAPD_H_
 
-#define LDAP_SYSLOG
+#include "portable.h"
 
-#include <syslog.h>
+#include <stdlib.h>
+
+#include <sys/types.h>
+#include <ac/syslog.h>
+#include <ac/regex.h>
+
+#undef NDEBUG
+#include <assert.h>
+
 #include "avl.h"
 #include "lber.h"
 #include "ldap.h"
 #include "lthread.h"
+#include "lthread_rdwr.h"
 #include "ldif.h"
 
 #define DN_DNS	0
@@ -17,6 +26,11 @@
 
 #define ON	1
 #define OFF	(-1)
+#define UNDEFINED 0
+
+#define MAXREMATCHES 10
+
+LDAP_BEGIN_DECL
 
 /*
  * represents an attribute value assertion (i.e., attr=value)
@@ -103,6 +117,9 @@ typedef struct entry {
 	ID		e_id;		/* id of this entry - this should */
 					/* really be private to back-ldbm */
 	char		e_state;	/* for the cache		  */
+
+	pthread_rdwr_t	e_rdwr;	/* reader/writer lock             */
+
 #define ENTRY_STATE_DELETED	1
 #define ENTRY_STATE_CREATING	2
 	int		e_refcnt;	/* # threads ref'ing this entry   */
@@ -121,6 +138,13 @@ struct access {
 	char		*a_domainpat;
 	char		*a_dnattr;
 	long		a_access;
+
+#ifdef SLAPD_ACLGROUPS
+        char		*a_group;
+        char		*a_objectclassvalue;
+        char		*a_groupattrname;
+#endif
+
 #define ACL_NONE	0x01
 #define ACL_COMPARE	0x02
 #define ACL_SEARCH	0x04
@@ -134,6 +158,7 @@ struct access {
 struct acl {
 	/* "to" part: the entries this acl applies to */
 	Filter		*acl_filter;
+	regex_t		acl_dnre;
 	char		*acl_dnpat;
 	char		**acl_attrs;
 
@@ -160,9 +185,11 @@ struct objclass {
 
 typedef struct backend {
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
+        char    **be_suffixAlias;       /* the DN suffix aliases of data in this backend */
 	char	*be_rootdn;	/* the magic "root" dn for this db   	   */
 	char	*be_rootpw;	/* the magic "root" password for this db   */
 	int	be_readonly;	/* 1 => db is in "read only" mode	   */
+        int     be_maxDerefDepth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
 	struct acl *be_acl;	/* access control list for this backend	   */
@@ -187,6 +214,10 @@ typedef struct backend {
 	IFP	be_config;	/* backend config routine	   	   */
 	IFP	be_init;	/* backend init routine			   */
 	IFP	be_close;	/* backend close routine		   */
+
+#ifdef SLAPD_ACLGROUPS
+	IFP	be_group;	/* backend group member test               */
+#endif
 } Backend;
 
 /*
@@ -199,12 +230,14 @@ typedef struct op {
 	unsigned long	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 	char		*o_dn;		/* dn bound when op was initiated */
+        char            *o_suffix;      /* suffix if aliased              */
+        char            *o_suffixAliased;       /* pending suffix translation     */
 	int		o_authtype;	/* auth method used to bind dn	  */
 					/* values taken from ldap.h	  */
 					/* LDAP_AUTH_*			  */
 	int		o_opid;		/* id of this operation		  */
 	int		o_connid;	/* id of conn initiating this op  */
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	int		o_cldap;	/* != 0 if this came in via CLDAP */
 	struct sockaddr	o_clientaddr;	/* client address if via CLDAP	  */
 	char		o_searchbase;	/* search base if via CLDAP	  */
@@ -226,7 +259,7 @@ typedef struct conn {
 	char		*c_dn;		/* current DN bound to this conn  */
 	pthread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */
 	int		c_authtype;	/* auth method used to bind c_dn  */
-#ifdef COMPAT
+#ifdef LDAP_COMPAT
 	int		c_version;	/* for compatibility w/2.0, 3.0	  */
 #endif
 	char		*c_addr;	/* address of client on this conn */
@@ -258,8 +291,8 @@ typedef struct conn {
 #define Statslog( level, fmt, connid, opid, arg1, arg2, arg3 )
 #endif
 
-#ifdef NEEDPROTOS
 #include "proto-slap.h"
-#endif
+
+LDAP_END_DECL
 
 #endif /* _slap_h_ */

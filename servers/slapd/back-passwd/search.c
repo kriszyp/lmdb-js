@@ -1,12 +1,15 @@
 /* search.c - /etc/passwd backend search function */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <pwd.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
+#include <pwd.h>
+
 #include "slap.h"
 
 extern time_t		currenttime;
@@ -80,14 +83,6 @@ passwd_back_search(
 		}
 		pthread_mutex_unlock( &op->o_abandonmutex );
 
-		/* check size limit */
-		if ( --slimit == -1 ) {
-			send_ldap_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
-			    NULL, NULL );
-			endpwent();
-			return( 0 );
-		}
-
 		/* check time limit */
 		pthread_mutex_lock( &currenttime_mutex );
 		time( &currenttime );
@@ -103,6 +98,14 @@ passwd_back_search(
 		e = pw2entry( be, pw );
 
 		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+			/* check size limit */
+			if ( --slimit == -1 ) {
+				send_ldap_result( conn, op, LDAP_SIZELIMIT_EXCEEDED,
+				    NULL, NULL );
+				endpwent();
+				return( 0 );
+			}
+
 			send_search_entry( be, conn, op, e, attrs, attrsonly );
 		}
 
