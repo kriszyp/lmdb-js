@@ -38,7 +38,8 @@ dnssrv_back_search(
 	char *domain = NULL;
 	char *hostlist = NULL;
 	char **hosts = NULL;
-	char *refdn, *nrefdn;
+	char *refdn;
+	struct berval *nrefdn = NULL;
 	struct berval **urls = NULL;
 
 	assert( get_manageDSAit( op ) );
@@ -107,12 +108,22 @@ dnssrv_back_search(
 			NULL, "DNS SRV problem processing manageDSAit control",
 			NULL, NULL );
 		goto done;
+
+	} else {
+		struct berval bv;
+		bv.bv_val = refdn;
+		bv.bv_len = strlen( refdn );
+
+		rc = dnNormalize( NULL, &bv, &nrefdn );
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "DNS SRV problem processing manageDSAit control",
+				NULL, NULL );
+			goto done;
+		}
 	}
 
-	nrefdn = ch_strdup( refdn );
-	dn_normalize(nrefdn);
-
-	if( strcmp( nrefdn, ndn->bv_val ) != 0 ) {
+	if( strcmp( nrefdn->bv_val, ndn->bv_val ) != 0 ) {
 		/* requested dn is subordinate */
 
 		Debug( LDAP_DEBUG_TRACE,
@@ -211,7 +222,7 @@ dnssrv_back_search(
 	}
 
 	free( refdn );
-	free( nrefdn );
+	ber_bvfree( nrefdn );
 
 done:
 	if( domain != NULL ) ch_free( domain );

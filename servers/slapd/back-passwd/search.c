@@ -328,10 +328,11 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 		attr_merge(e, ad_description, vals);
 
 		s = strchr(val.bv_val, ',');
-		if (s)
-			*s = '\0';
+		if (s) *s = '\0';
+
 		s = strchr(val.bv_val, '&');
 		if (s) {
+			char buf[256];
 			int i = s - val.bv_val;
 			strncpy(buf, val.bv_val, i);
 			s = buf+i;
