@@ -25,21 +25,21 @@ shell_back_abandon(
 	pid_t			pid;
 	Operation		*o;
 
-	/* no abandon command defined - just kill the process handling it */
 	if ( si->si_abandon == NULL ) {
-		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-		pid = -1;
-		LDAP_STAILQ_FOREACH( o, &op->o_conn->c_ops, o_next ) {
-			if ( o->o_msgid == op->oq_abandon.rs_msgid ) {
-				pid = (pid_t) o->o_private;
-				break;
-			}
+		return 0;
+	}
+
+	pid = -1;
+	LDAP_STAILQ_FOREACH( o, &op->o_conn->c_ops, o_next ) {
+		if ( o->o_msgid == op->oq_abandon.rs_msgid ) {
+			pid = (pid_t) o->o_private;
+			break;
 		}
-		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 	}
 
 	if ( pid == -1 ) {
-		Debug( LDAP_DEBUG_ARGS, "shell could not find op %d\n", op->oq_abandon.rs_msgid, 0, 0 );
+		Debug( LDAP_DEBUG_ARGS, "shell could not find op %ld\n",
+		       (long) op->oq_abandon.rs_msgid, 0, 0 );
 		return 0;
 	}
 
