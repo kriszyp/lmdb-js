@@ -103,7 +103,7 @@ lutil_progname LDAP_P((
 
 /* sockpair.c */
 LDAP_LUTIL_F( int )
-lutil_pair( LBER_SOCKET_T sd[2] );
+lutil_pair( ber_socket_t sd[2] );
 
 LDAP_END_DECL
 
