@@ -666,8 +666,8 @@ connection_destroy( Connection *c )
 		slapd_remove( sd, 0 );
 
 		Statslog( LDAP_DEBUG_STATS,
-		    "conn=%lu fd=%d closed\n",
-			connid, sd, 0, 0, 0 );
+		    "conn=%lu fd=%ld closed\n",
+			connid, (long) sd, 0, 0, 0 );
 	}
 
 	ber_sockbuf_free( c->c_sb );

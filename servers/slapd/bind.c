@@ -64,7 +64,7 @@ do_bind(
 	/* log authorization identity demotion */
 	if ( op->o_conn->c_dn.bv_len ) {
 		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu BIND anonymous mech=implicit ssf=0",
+			"conn=%lu op=%lu BIND anonymous mech=implicit ssf=0\n",
 			op->o_connid, op->o_opid, 0, 0, 0 );
 	}
 
