@@ -108,7 +108,7 @@ static const unsigned long item_opt_vals[] = {
 };
 
 
-void
+static void
 dump_tmpl( struct ldap_disptmpl *tmpl )
 {
     struct ldap_tmplitem	*rowp, *colp;
@@ -226,7 +226,7 @@ dump_tmpl( struct ldap_disptmpl *tmpl )
 }
 
 
-void
+static void
 dump_srchpref( struct ldap_searchobj *so )
 {
     int i;

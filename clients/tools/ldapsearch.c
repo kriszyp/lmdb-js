@@ -1291,7 +1291,9 @@ static int print_result(
 	return err;
 }
 
-void print_ctrls( LDAPControl **ctrls ) {
+static void print_ctrls(
+	LDAPControl **ctrls )
+{
 	int i;
 	for(i=0; ctrls[i] != NULL; i++ ) {
 		/* control: OID criticality base64value */
