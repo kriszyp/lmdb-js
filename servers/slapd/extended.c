@@ -49,12 +49,9 @@ typedef struct extensions_list_t {
 
 extensions_list_t *supp_ext_list = NULL;
 
-#define MAX_SUPP_EXT_TRACKED	64
-int supp_ext_count = 0;
-char *supportedExtensions[MAX_SUPP_EXT_TRACKED] = { NULL };
-
 extensions_list_t *find_extension (extensions_list_t *list, char *oid);
 int extensions_callback (extensions_cookie_t *cookie, int msg, int arg, void *argp);
+
 #else
 
 char *supportedExtensions[] = {
@@ -62,6 +59,24 @@ char *supportedExtensions[] = {
 };
 #endif
 
+
+char *
+get_supported_extension (int index)
+{
+#ifdef SLAPD_EXTERNAL_EXTENSIONS
+	extensions_list_t *ext;
+
+	/* linear scan is slow, but this way doesn't force a
+	 * big change on root_dse.c, where this routine is used.
+	 */
+	for (ext = supp_ext_list; ext != NULL && --index >= 0; ext = ext->next) ;
+	if (ext == NULL)
+		return(NULL);
+	return(ext->oid);
+#else
+	return(supportedExtensions[index]);
+#endif
+}
 
 int
 do_extended(
@@ -215,20 +230,6 @@ load_extension (
 		free(ext->oid);
 		free(ext);
 		return(-1);
-	}
-
-	/* supportedExtensions must be maintained for the root DSE.
-	 * Unfortunately, this global var is declared extern char *[],
-	 * which means it cannot grow dynamically.  So, for now it is
-	 * a char *[n], and only (n-1) oids are tracked.  In the off
-	 * chance that this is too few, the extensions will still be
-	 * loaded, but not reported in root DSE info.  To increase
-	 * the maximum, change MAX_SUPP_EXT_TRACKED and recompile or
-	 * fix root_dse.c to use something other than a static array.
-	 */
-	if (supp_ext_count < (MAX_SUPP_EXT_TRACKED - 1)) {
-		supportedExtensions[supp_ext_count++] = ch_strdup(ext->oid);
-		supportedExtensions[supp_ext_count] = NULL;
 	}
 
 	ext->next = supp_ext_list;
