@@ -380,8 +380,8 @@ int bdb_search( Operation *op, SlapReply *rs )
 	AttributeName	*attrs;
 
 #ifdef LDAP_SYNC
-	Filter 		cookief, csnfnot, csnfeq, csnfand, csnfge;
-	AttributeAssertion aa_ge, aa_eq;
+	Filter 		cookief, csnfnot, csnfeq, csnfand, csnfge, omitcsnf, omitcsnfle;
+	AttributeAssertion aa_ge, aa_eq, aa_le;
 	int		entry_count = 0;
 #if 0
 	struct berval	entrycsn_bv = { 0, NULL };
@@ -1230,13 +1230,18 @@ loop_continue:
 	if (!IS_PSEARCH) {
 #ifdef LDAP_SYNC
 	if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
+		rs->sr_err = LDAP_SUCCESS;
+		rs->sr_rspoid = LDAP_SYNC_INFO;
+		rs->sr_ctrls = NULL;
+		bdb_send_ldap_intermediate( sop, rs,
+			LDAP_SYNC_STATE_MODE_DONE, &latest_entrycsn_bv );
+
+		/* If changelog is supported, this is where to process it */
+
 		if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
 			/* refreshAndPersist mode */
-			rs->sr_err = LDAP_SUCCESS;
-			rs->sr_rspoid = LDAP_SYNC_INFO;
-			rs->sr_ctrls = NULL;
 			bdb_send_ldap_intermediate( sop, rs,
-				LDAP_SYNC_REFRESH_DONE, &latest_entrycsn_bv );
+				LDAP_SYNC_LOG_MODE_DONE, &latest_entrycsn_bv );
 		} else {
 			/* refreshOnly mode */
 			bdb_build_sync_done_ctrl( sop, rs, ctrls,

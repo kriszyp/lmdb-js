@@ -247,6 +247,8 @@ do_syncrepl(
 		return NULL;
 	}
 
+	si->sync_mode = LDAP_SYNC_STATE_MODE;
+
 	/* Init connection to master */
 
 	rc = ldap_initialize( &ld, si->provideruri );
@@ -538,7 +540,8 @@ do_syncrepl(
 					if ( syncCookie.bv_len ) {
 						syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie);
 					}
-					syncrepl_del_nonpresent( ld, &op );
+					if ( si->sync_mode == LDAP_SYNC_STATE_MODE )
+						syncrepl_del_nonpresent( ld, &op );
 					if ( ctrl_ber )
 						ber_free( ctrl_ber, 1 );
 					goto done;
@@ -553,9 +556,15 @@ do_syncrepl(
 					res_ber = ber_init( retdata );
 					ber_scanf( res_ber, "{e" /*"}"*/, &syncstate );
 
-					if ( syncstate == LDAP_SYNC_REFRESH_DONE ) {
+					if ( syncstate == LDAP_SYNC_STATE_MODE_DONE ) {
 						syncrepl_del_nonpresent( ld, &op );
-					} else if ( syncstate != LDAP_SYNC_NEW_COOKIE ) {
+						si->sync_mode = LDAP_SYNC_LOG_MODE;
+					} else if ( syncstate == LDAP_SYNC_LOG_MODE_DONE ) {
+						si->sync_mode = LDAP_SYNC_PERSIST_MODE;
+					} else if ( syncstate == LDAP_SYNC_REFRESH_DONE ) {
+						si->sync_mode = LDAP_SYNC_PERSIST_MODE;
+					} else if ( syncstate != LDAP_SYNC_NEW_COOKIE ||
+								syncstate != LDAP_SYNC_LOG_MODE_DONE ) {
 #ifdef NEW_LOGGING
 						LDAP_LOG( OPERATION, ERR,
 							"do_syncrepl : unknown sync info\n", 0, 0, 0 );
@@ -986,7 +995,7 @@ syncrepl_entry(
 	cb.sc_response = null_callback;
 	cb.sc_private = si;
 
-	if ( rc == LDAP_SUCCESS && si->syncUUID_ndn ) {
+	if ( rc == LDAP_SUCCESS && si->syncUUID_ndn && si->sync_mode != LDAP_SYNC_LOG_MODE ) {
 		op->o_req_dn = *si->syncUUID_ndn;
 		op->o_req_ndn = *si->syncUUID_ndn;
 		op->o_tag = LDAP_REQ_DELETE;
@@ -1062,7 +1071,13 @@ syncrepl_entry(
 		}
 
 	case LDAP_SYNC_DELETE :
-		/* Already deleted */
+		if ( si->sync_mode == LDAP_SYNC_LOG_MODE ) {
+			op->o_req_dn = *si->syncUUID_ndn;
+			op->o_req_ndn = *si->syncUUID_ndn;
+			op->o_tag = LDAP_REQ_DELETE;
+			rc = be->be_delete( op, &rs );
+		}
+		/* Already deleted otherwise */
 		return 1;
 
 	default :
