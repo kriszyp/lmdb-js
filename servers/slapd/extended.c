@@ -33,10 +33,11 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "lber_pvt.h"
+
 #ifdef LDAP_SLAPI
 #include "slapi.h"
 #endif
-#include "lber_pvt.h"
 
 #define UNSUPPORTED_EXTENDEDOP "unsupported extended operation"
 

@@ -15,11 +15,12 @@
 #include <sys/stat.h>
 
 #include "slap.h"
+#include "lutil.h"
+#include "lber_pvt.h"
+
 #ifdef LDAP_SLAPI
 #include "slapi.h"
 #endif
-#include "lutil.h"
-#include "lber_pvt.h"
 
 /*
  * If a module is configured as dynamic, its header should not
