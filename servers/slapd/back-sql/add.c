@@ -889,7 +889,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
 
 	/* check schema */
-	if ( global_schemacheck ) {
+	if ( SLAPD_GLOBAL(schemachecking) ) {
 		char		textbuf[ SLAP_TEXT_BUFLEN ] = { '\0' };
 
 		rs->sr_err = entry_schema_check( op->o_bd, op->oq_add.rs_e,
