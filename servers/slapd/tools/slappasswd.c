@@ -28,7 +28,7 @@ static void
 usage(const char *s)
 {
 	fprintf(stderr,
-		"Usage: %s [options] dn\n"
+		"Usage: %s [options]\n"
 		"  -h hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
 		"  -v\t\tincrease verbosity\n"
@@ -48,9 +48,6 @@ main( int argc, char *argv[] )
 	int		version = -1;
 	struct berval passwd;
 	struct berval *hash = NULL;
-
-	if (argc == 1)
-		usage (argv[0]);
 
 	while( (i = getopt( argc, argv,
 		"d:h:s:v" )) != EOF )
@@ -87,8 +84,8 @@ main( int argc, char *argv[] )
 	if( newpw == NULL ) {
 		/* prompt for new password */
 		char *cknewpw;
-		newpw = strdup(getpass("New password: "));
-		cknewpw = getpass("Re-enter new password: ");
+		newpw = strdup(getpassphrase("New password: "));
+		cknewpw = getpassphrase("Re-enter new password: ");
 
 		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
 			fprintf( stderr, "passwords do not match\n" );
