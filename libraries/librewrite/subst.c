@@ -36,7 +36,7 @@ rewrite_subst_compile(
 )
 {
 	size_t subs_len;
-	struct berval **subs = NULL;
+	struct berval **subs = NULL, **tmps;
 	struct rewrite_submatch **submatch = NULL;
 
 	struct rewrite_subst *s = NULL;
@@ -65,12 +65,13 @@ rewrite_subst_compile(
 
 		nsub++;
 		
-		subs = (struct berval **)realloc( subs,
+		tmps = (struct berval **)realloc( subs,
 				sizeof( struct berval * )*( nsub + 1 ) );
-		if ( subs == NULL ) {
+		if ( tmps == NULL ) {
 			/* cleanup */
 			return NULL;
 		}
+		subs = tmps;
 		subs[ nsub ] = NULL;
 		
 		/*
@@ -102,17 +103,20 @@ rewrite_subst_compile(
 		 */
 		if ( isdigit( p[ 1 ] ) ) {
 			int d = p[ 1 ] - '0';
+			struct rewrite_submatch **tmpsm;
 
 			/*
 			 * Add a new value substitution scheme
 			 */
-			submatch = realloc( submatch, 
+			tmpsm = realloc( submatch, 
 	sizeof( struct rewrite_submatch * )*( nsub + 1 ) );
-			if ( submatch == NULL ) {
+			if ( tmpsm == NULL ) {
 				/* cleanup */
 				return NULL;
 			}
+			submatch = tmpsm;
 			submatch[ nsub ] = NULL;
+			
 			submatch[ nsub - 1 ] = 
 	calloc( sizeof(  struct rewrite_submatch ), 1 );
 			if ( submatch[ nsub - 1 ] == NULL ) {
@@ -151,6 +155,7 @@ rewrite_subst_compile(
 		 */
 		} else if ( p[ 1 ] == '{' ) {
 			struct rewrite_map *map;
+			struct rewrite_submatch **tmpsm;
 
 			map = rewrite_map_parse( info, p + 2, &begin );
 			if ( map == NULL ) {
@@ -162,12 +167,13 @@ rewrite_subst_compile(
 			/*
 			 * Add a new value substitution scheme
 			 */
-			submatch = realloc( submatch,
+			tmpsm = realloc( submatch,
 					sizeof( struct rewrite_submatch * )*( nsub + 1 ) );
-			if ( submatch == NULL ) {
+			if ( tmpsm == NULL ) {
 				/* cleanup */
 				return NULL;
 			}
+			submatch = tmpsm;
 			submatch[ nsub ] = NULL;
 			submatch[ nsub - 1 ] =
 				calloc( sizeof(  struct rewrite_submatch ), 1 );
@@ -186,15 +192,16 @@ rewrite_subst_compile(
 	/*
 	 * Last part of string
 	 */
-	subs = realloc( subs, sizeof( struct berval *)*( nsub + 2 ) );
-	if ( subs == NULL ) {
+	tmps = realloc( subs, sizeof( struct berval *)*( nsub + 2 ) );
+	if ( tmps == NULL ) {
 		/*
 		 * XXX need to free the value subst stuff!
 		 */
 		free( submatch );
 		return NULL;
 	}
-	
+
+	subs = tmps;
 	subs[ nsub + 1 ] = NULL;
 	l = p - begin;
 	if ( l > 0 ) {
