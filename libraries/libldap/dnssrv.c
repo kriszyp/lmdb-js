@@ -43,8 +43,8 @@ int ldap_dn2domain(
 	LDAPRDN *rdn = NULL;
 	LDAPAVA *ava = NULL;
 	struct berval domain = { 0, NULL };
-	static struct berval DC = BER_BVC("DC");
-	static struct berval DCOID = BER_BVC("0.9.2342.19200300.100.1.25");
+	const static struct berval DC = BER_BVC("DC");
+	const static struct berval DCOID = BER_BVC("0.9.2342.19200300.100.1.25");
 
 	assert( dn_in != NULL );
 	assert( domainp != NULL );
