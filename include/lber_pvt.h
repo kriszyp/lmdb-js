@@ -83,6 +83,9 @@ ber_pvt_socket_set_nonblock LDAP_P(( ber_socket_t sd, int nb ));
 #define ber_strccmp(s,c) \
 	( (s)[0] == (c) && (s)[1] == '\0' )
 
+LBER_F( char * )
+ber_bvchr LDAP_P(( struct berval *bv, char c ));
+
 LDAP_END_DECL
 
 #endif

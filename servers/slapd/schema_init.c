@@ -529,13 +529,7 @@ UTF8StringNormalize(
 
 	/* Ignore initial whitespace */
 	/* All space is ASCII. All ASCII is 1 byte */
-	while ( ASCII_SPACE( *p ) ) {
-		p++;
-	}
-
-	if( *p == '\0' ) {
-		return LDAP_INVALID_SYNTAX;
-	}
+	for ( ; p < val->bv_val + val->bv_len && ASCII_SPACE( p[ 0 ] ); p++ );
 
 	ber_mem2bv( p, val->bv_len - (p - val->bv_val), 1, normalized );
 	e = normalized->bv_val + val->bv_len - (p - val->bv_val);
@@ -1046,7 +1040,7 @@ caseExactIgnoreSubstringsMatch(
 	struct berval left = { 0, NULL };
 	int i;
 	ber_len_t inlen=0;
-	char *nav;
+	char *nav = NULL;
 	unsigned casefold;
 
 	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
@@ -1083,7 +1077,7 @@ caseExactIgnoreSubstringsMatch(
 			goto done;
 		}
 
-		match = strncmp( sub->sa_initial.bv_val, left.bv_val,
+		match = memcmp( sub->sa_initial.bv_val, left.bv_val,
 			sub->sa_initial.bv_len );
 
 		if( match != 0 ) {
@@ -1101,7 +1095,7 @@ caseExactIgnoreSubstringsMatch(
 			goto done;
 		}
 
-		match = strncmp( sub->sa_final.bv_val,
+		match = memcmp( sub->sa_final.bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final.bv_len],
 			sub->sa_final.bv_len );
 
@@ -1129,9 +1123,9 @@ retry:
 				continue;
 			}
 
-			p = strchr( left.bv_val, *sub->sa_any[i].bv_val );
+			p = ber_bvchr( &left, *sub->sa_any[i].bv_val );
 
-			if( p == NULL ) {
+			if ( p == NULL ) {
 				match = 1;
 				goto done;
 			}
@@ -1160,7 +1154,7 @@ retry:
 				goto done;
 			}
 
-			match = strncmp( left.bv_val,
+			match = memcmp( left.bv_val,
 				sub->sa_any[i].bv_val,
 				sub->sa_any[i].bv_len );
 
