@@ -116,10 +116,10 @@ monitor_subsys_log_init(
 	/* initialize the debug level(s) */
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
 
-		if ( monitor_ad_normalize ) {
+		if ( monitor_ad_desc->ad_type->sat_equality->smr_normalize ) {
 			int	rc;
 
-			rc = monitor_ad_normalize(
+			rc = (*monitor_ad_desc->ad_type->sat_equality->smr_normalize)(
 					0,
 					monitor_ad_desc->ad_type->sat_syntax,
 					monitor_ad_desc->ad_type->sat_equality,
@@ -167,7 +167,8 @@ monitor_subsys_log_modify(
 		 */
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {
 			( void ) attr_delete( &e->e_attrs, mod->sm_desc );
-			rc = attr_mergeit( e, mod->sm_desc, mod->sm_bvalues );
+			rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues,
+					mod->sm_nvalues );
 			if ( rc != 0 ) {
 				rc = LDAP_OTHER;
 				break;
@@ -374,10 +375,10 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* no - add them */
-	if ( attr_merge( e, mod->sm_desc, mod->sm_bvalues,
-				mod->sm_nvalues ) != 0 ) {
+	rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues, mod->sm_nvalues );
+	if ( rc != LDAP_SUCCESS ) {
 		/* this should return result of attr_mergeit */
-		return LDAP_OTHER;
+		return rc;
 	}
 
 	return LDAP_SUCCESS;
@@ -499,10 +500,12 @@ replace_values( Entry *e, Modification *mod, int *newlevel )
 		return rc;
 	}
 
-	if ( mod->sm_bvalues != NULL &&
-		attr_merge( e, mod->sm_desc, mod->sm_bvalues,
-		       mod->sm_nvalues	) != 0 ) {
-		return LDAP_OTHER;
+	if ( mod->sm_bvalues != NULL ) {
+		rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues,
+		       mod->sm_nvalues );
+		if ( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
 	}
 
 	return LDAP_SUCCESS;

@@ -152,7 +152,7 @@ monitor_subsys_database_init(
 					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
-				attr_mergeit_one( e, ad_seeAlso, &bv );
+				attr_merge_normalize_one( e, ad_seeAlso, &bv );
 				break;
 			}
 		}
@@ -239,7 +239,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
-		attr_mergeit_one( e_database, monitor_ad_desc, &bv );
+		attr_merge_normalize_one( e_database, monitor_ad_desc, &bv );
 
 		i++;
 

@@ -115,28 +115,12 @@ monitor_subsys_readw_update_internal(
 	}
 
 	if ( b == NULL || b[0].bv_val == NULL ) {
-		struct berval bv, nbv;
+		struct berval bv;
 
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
 
-		nbv.bv_val = NULL;
-		if ( monitor_ad_normalize ) {
-			int	rc;
-
-			rc = monitor_ad_normalize(
-					0,
-					monitor_ad_desc->ad_type->sat_syntax,
-					monitor_ad_desc->ad_type->sat_equality,
-					&bv, &nbv );
-			if ( rc ) {
-				return( -1 );
-			}
-		}
-
-		attr_merge_one( e, monitor_ad_desc, &bv,
-				nbv.bv_val ? &nbv : NULL );
-		ch_free( nbv.bv_val );
+		attr_merge_normalize_one( e, monitor_ad_desc, &bv );
 	}
 
 	return( 0 );

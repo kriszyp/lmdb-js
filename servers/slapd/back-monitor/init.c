@@ -44,7 +44,6 @@
  * used by many functions to add description to entries
  */
 AttributeDescription *monitor_ad_desc = NULL;
-slap_mr_normalize_func *monitor_ad_normalize = NULL;
 BackendDB *be_monitor = NULL;
 
 /*
@@ -301,10 +300,6 @@ monitor_back_db_init(
 		return( -1 );
 	}
 
-	if ( monitor_ad_desc->ad_type->sat_equality ) {
-		monitor_ad_normalize = monitor_ad_desc->ad_type->sat_equality->smr_normalize;
-	}
-
 	/*	
 	 * Create all the subsystem specific entries
 	 */
@@ -429,7 +424,7 @@ monitor_back_db_init(
 	} else {
 		bv.bv_len = strlen( Versionstr );
 	}
-	if ( attr_merge_one( e, monitor_ad_desc, &bv, NULL ) ) {
+	if ( attr_merge_normalize_one( e, monitor_ad_desc, &bv ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
 			"unable to add description to '%s' entry\n",

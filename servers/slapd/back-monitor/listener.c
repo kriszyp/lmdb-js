@@ -122,54 +122,22 @@ monitor_subsys_listener_init(
 
 #ifdef HAVE_TLS
 		if ( l[i]->sl_is_tls ) {
-			struct berval bv, nbv;
+			struct berval bv;
 
 			bv.bv_val = "TLS";
 			bv.bv_len = sizeof("TLS")-1;
 
-			nbv.bv_val = NULL;
-			if ( monitor_ad_normalize ) {
-				int	rc;
-
-				rc = monitor_ad_normalize(
-						0,
-						monitor_ad_desc->ad_type->sat_syntax,
-						monitor_ad_desc->ad_type->sat_equality,
-						&bv, &nbv );
-				if ( rc ) {
-					return( -1 );
-				}
-			}
-
-			attr_merge_one( e, monitor_ad_desc, &bv,
-					nbv.bv_val ? &nbv : NULL );
-			ch_free( nbv.bv_val );
+			attr_merge_normalize_one( e, monitor_ad_desc, &bv );
 		}
 #endif /* HAVE_TLS */
 #ifdef LDAP_CONNECTIONLESS
 		if ( l[i]->sl_is_udp ) {
-			struct berval bv, nbv;
+			struct berval bv;
 
 			bv.bv_val = "UDP";
 			bv.bv_len = sizeof("UDP")-1;
 
-			nbv.bv_val = NULL;
-			if ( monitor_ad_normalize ) {
-				int	rc;
-
-				rc = monitor_ad_normalize(
-						0,
-						monitor_ad_desc->ad_type->sat_syntax,
-						monitor_ad_desc->ad_type->sat_equality,
-						&bv, &nbv );
-				if ( rc ) {
-					return( -1 );
-				}
-			}
-
-			attr_merge_one( e, monitor_ad_desc, &bv,
-					nbv.bv_val ? &nbv : NULL );
-			ch_free( nbv.bv_val );
+			attr_merge_normalize_one( e, monitor_ad_desc, &bv );
 		}
 #endif /* HAVE_TLS */
 

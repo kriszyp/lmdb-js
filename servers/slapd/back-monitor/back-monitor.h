@@ -203,7 +203,6 @@ struct monitorsubsys {
 extern struct monitorsubsys monitor_subsys[];
 
 extern AttributeDescription *monitor_ad_desc;
-extern slap_mr_normalize_func *monitor_ad_normalize;
 extern BackendDB *be_monitor;
 
 /*
