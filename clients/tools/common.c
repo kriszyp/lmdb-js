@@ -790,6 +790,9 @@ tool_bind( LDAP *ld )
 		int msgid, err;
 		LDAPMessage *result;
 		LDAPControl **ctrls;
+		char msgbuf[256];
+
+		msgbuf[0] = 0;
 
 		if (( msgid = ldap_bind( ld, binddn, passwd.bv_val, authmethod )) == -1 )
 		{
@@ -811,25 +814,29 @@ tool_bind( LDAP *ld )
 #ifdef LDAP_CONTROL_PASSWORDPOLICYREQUEST
 		if ( ctrls && ppolicy ) {
 			LDAPControl *ctrl;
-			int expire, grace;
+			int expire, grace, len = 0;
 			LDAPPasswordPolicyError pErr = -1;
 			
 			ctrl = ldap_find_control( LDAP_CONTROL_PASSWORDPOLICYRESPONSE, ctrls );
 			if ( ctrl && ldap_parse_passwordpolicy_control( ld, ctrl,
 				&expire, &grace, &pErr ) == LDAP_SUCCESS ) {
-				if ( expire >= 0 ) {
-					fprintf( stderr, "Password expires in %d seconds\n", expire );
-				} else if ( grace >= 0 ) {
-					fprintf( stderr, "Password expired, %d grace logins remain\n", grace );
-				}
 				if ( pErr != PP_noError ){
-					fprintf( stderr, "%s\n", ldap_passwordpolicy_err2txt( pErr ) );
+					msgbuf[0] = ';';
+					msgbuf[1] = ' ';
+					strcpy( msgbuf+2, ldap_passwordpolicy_err2txt( pErr ));
+					len = strlen( msgbuf );
+				}
+				if ( expire >= 0 ) {
+					sprintf( msgbuf+len, " (Password expires in %d seconds)", expire );
+				} else if ( grace >= 0 ) {
+					sprintf( msgbuf+len, " (Password expired, %d grace logins remain)", grace );
 				}
 			}
 		}
 #endif
-		if ( err != LDAP_SUCCESS ) {
-			fprintf( stderr, "ldap_bind: %s\n", ldap_err2string( err ));
+		if ( err != LDAP_SUCCESS || msgbuf[0] ) {
+			fprintf( stderr, "ldap_bind: %s%s\n", ldap_err2string( err ),
+				msgbuf );
 			exit( EXIT_FAILURE );
 		}
 	}
