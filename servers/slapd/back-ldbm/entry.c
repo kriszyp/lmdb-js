@@ -28,8 +28,13 @@ ldbm_back_entry_release_rw(
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	/* free entry and reader or writer lock */
-	cache_return_entry_rw( &li->li_cache, e, rw ); 
+	if ( slapMode == SLAP_SERVER_MODE ) {
+		/* free entry and reader or writer lock */
+		cache_return_entry_rw( &li->li_cache, e, rw ); 
+	} else {
+		
+		entry_free( e );
+	}
 
 	return 0;
 }
