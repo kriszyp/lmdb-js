@@ -168,7 +168,6 @@ slapiConnectionInit(
 	c->c_dn.bv_len = 0;
 	c->c_ndn.bv_val = NULL;
 	c->c_ndn.bv_len = 0;
-	c->c_groups = NULL;
 
 	c->c_listener = &slap_unknown_listener;
 	ber_dupbv( &c->c_peer_domain, (struct berval *)&slap_unknown_bv );

@@ -69,6 +69,15 @@ slap_op_free( Operation *op )
 		free( op->o_sync_state.bv_val );
 	}
 
+	{
+		GroupAssertion *g, *n;
+		for (g = op->o_groups; g; g=n) {
+			n = g->ga_next;
+			free(g);
+		}
+		op->o_groups = NULL;
+	}
+
 #if defined( LDAP_SLAPI )
 	if ( op->o_pb != NULL ) {
 		slapi_pblock_destroy( (Slapi_PBlock *)op->o_pb );

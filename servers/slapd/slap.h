@@ -1824,6 +1824,19 @@ struct slap_csn_entry {
 };
 
 /*
+ * Caches the result of a backend_group check for ACL evaluation
+ */
+typedef struct slap_gacl {
+	struct slap_gacl *ga_next;
+	Backend *ga_be;
+	ObjectClass *ga_oc;
+	AttributeDescription *ga_at;
+	int ga_res;
+	ber_len_t ga_len;
+	char ga_ndn[1];
+} GroupAssertion;
+
+/*
  * represents an operation pending from an ldap client
  */
 typedef struct slap_op {
@@ -1901,7 +1914,8 @@ typedef struct slap_op {
 #define SLAP_CANCEL_ACK					0x02
 #define SLAP_CANCEL_DONE				0x03
 
-	char o_do_not_cache;	/* don't cache from this op */
+	GroupAssertion *o_groups;
+	char o_do_not_cache;	/* don't cache groups from this op */
 	char o_is_auth_check;	/* authorization in progress */
 
 #define SLAP_NO_CONTROL 0
@@ -2025,19 +2039,6 @@ typedef void (SEND_LDAP_INTERMEDIATE)(
 #define send_ldap_intermediate( op, rs ) \
 	(op->o_conn->c_send_ldap_intermediate)( op, rs )
 
-/*
- * Caches the result of a backend_group check for ACL evaluation
- */
-typedef struct slap_gacl {
-	struct slap_gacl *ga_next;
-	Backend *ga_be;
-	ObjectClass *ga_oc;
-	AttributeDescription *ga_at;
-	int ga_res;
-	ber_len_t ga_len;
-	char ga_ndn[1];
-} GroupAssertion;
-
 typedef struct slap_listener Listener;
 
 /*
@@ -2070,7 +2071,6 @@ typedef struct slap_conn {
 	Backend *c_authz_backend;
 
 	AuthorizationInformation c_authz;
-	GroupAssertion *c_groups;
 
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
 
