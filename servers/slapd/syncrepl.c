@@ -44,10 +44,6 @@
 
 #include "ldap_rq.h"
 
-#ifdef LDAP_SLAPI
-#include "slapi.h"
-#endif
-
 #define SYNCREPL_STR	"syncreplxxx"
 #define CN_STR	"cn="
 
@@ -397,12 +393,6 @@ do_syncrepl(
 	op.o_bd = be;
 	op.o_conn = &conn;
 	op.o_connid = op.o_conn->c_connid;
-#if defined( LDAP_SLAPI )
-	if ( slapi_plugins_used ) {
-		op.o_pb = slapi_pblock_new();
-		slapi_x_create_object_extensions( SLAPI_X_EXT_OPERATION, &op );
-	}
-#endif /* defined( LDAP_SLAPI ) */
 
 	/* get syncrepl cookie of shadow replica from subentry */
 
@@ -645,13 +635,6 @@ do_syncrepl(
 	}
 
 done:
-#if defined( LDAP_SLAPI )
-	if ( op.o_pb ) {
-		slapi_pblock_destroy( op.o_pb );
-		slapi_x_free_object_extensions( SLAPI_X_EXT_OPERATION, &op );
-	}
-#endif /* defined( LDAP_SLAPI ) */
-
 	if ( syncCookie.bv_val )
 		ch_free( syncCookie.bv_val );
 	if ( syncCookie_req.bv_val )
