@@ -183,6 +183,7 @@ do_extended(
 
 	op->o_bd = frontendDB;
 	rs->sr_err = frontendDB->be_extended( op, rs );
+
 done:
 	return rs->sr_err;
 }
