@@ -372,14 +372,7 @@ bdb_dn2idl(
 	((char *)key.data)[0] = prefix;
 	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
 
-	/* store the ID */
-	DBTzero( &data );
-	data.data = ids;
-	data.ulen = BDB_IDL_UM_SIZEOF;	
-	data.flags = DB_DBT_USERMEM;
-
-	/* fetch it */
-	rc = db->get( db, NULL, &key, &data, bdb->bi_db_opflags );
+	rc = bdb_idl_fetch_key( be, db, NULL, &key, ids );
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
