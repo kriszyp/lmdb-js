@@ -28,6 +28,10 @@ main( int argc, char **argv )
 
 #ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;
+
+    memset( &key, 0, sizeof( key ));
+    memset( &last, 0, sizeof( last ));
+    memset( &data, 0, sizeof( data ));
 #endif
 
 	if ( argc < 2 || argc > 3 || ( argc == 3 && strcmp( argv[1], "-n" )

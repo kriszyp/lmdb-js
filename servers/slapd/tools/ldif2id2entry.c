@@ -141,6 +141,9 @@ main( int argc, char **argv )
 		int		vlen;
 		Datum		key, data;
 
+        memset( &key, 0, sizeof( key ));
+        memset( &data, 0, sizeof( data ));
+
 		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
 			int     len, idlen;
 

@@ -68,6 +68,11 @@ main( int argc, char **argv )
 
 #ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;
+
+    memset( &savekey, 0, sizeof( savekey ));
+    memset( &key, 0, sizeof( key ));
+    memset( &data, 0, sizeof( data ));
+    memset( &last, 0, sizeof( last ));
 #endif
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
