@@ -27,7 +27,7 @@ bdb_add(Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	struct berval	pdn;
-	Entry		*p;
+	Entry		*p = NULL;
 	EntryInfo	*ei;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
