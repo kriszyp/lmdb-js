@@ -543,7 +543,7 @@ static Listener * slap_open_listener(
 
 	case AF_INET: {
 		char *s;
-#ifdef HAVE_GETADDRINFO		
+#if defined( HAVE_GETADDRINFO ) && defined( INET_NTOP )
 		char addr[INET_ADDRSTRLEN];
 		inet_ntop( AF_INET, &((struct sockaddr_in *)*sal)->sin_addr,
 			   addr, sizeof(addr) );

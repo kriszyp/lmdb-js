@@ -362,33 +362,39 @@ long connection_init(
 
     assert( c != NULL );
 
-    if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
+	if( c->c_struct_state == SLAP_C_UNINITIALIZED ) {
 		c->c_authmech = NULL;
-        c->c_dn = NULL;
-        c->c_cdn = NULL;
+		c->c_dn = NULL;
+		c->c_cdn = NULL;
 
 		c->c_listener_url = NULL;
 		c->c_peer_domain = NULL;
-        c->c_peer_name = NULL;
-        c->c_sock_name = NULL;
+		c->c_peer_name = NULL;
+		c->c_sock_name = NULL;
 
-        c->c_ops = NULL;
-        c->c_pending_ops = NULL;
+		c->c_ops = NULL;
+		c->c_pending_ops = NULL;
 
 		c->c_sasl_bind_mech = NULL;
 		c->c_sasl_context = NULL;
 		c->c_sasl_extra = NULL;
 
-        c->c_sb = ber_sockbuf_alloc( );
+		c->c_sb = ber_sockbuf_alloc( );
+
+		{
+			ber_len_t max = sockbuf_max_incoming;
+			ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+		}
+
 		c->c_currentber = NULL;
 
-        /* should check status of thread calls */
-        ldap_pvt_thread_mutex_init( &c->c_mutex );
-        ldap_pvt_thread_mutex_init( &c->c_write_mutex );
-        ldap_pvt_thread_cond_init( &c->c_write_cv );
+		/* should check status of thread calls */
+		ldap_pvt_thread_mutex_init( &c->c_mutex );
+		ldap_pvt_thread_mutex_init( &c->c_write_mutex );
+		ldap_pvt_thread_cond_init( &c->c_write_cv );
 
-        c->c_struct_state = SLAP_C_UNUSED;
-    }
+		c->c_struct_state = SLAP_C_UNUSED;
+	}
 
     ldap_pvt_thread_mutex_lock( &c->c_mutex );
 
@@ -576,8 +582,14 @@ connection_destroy( Connection *c )
 			c->c_connid, sd, 0, 0, 0 );
 	}
 
-   	ber_sockbuf_free( c->c_sb );
+	ber_sockbuf_free( c->c_sb );
+
 	c->c_sb = ber_sockbuf_alloc( );
+
+	{
+		ber_len_t max = sockbuf_max_incoming;
+		ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_MAX_INCOMING, &max );
+	}
 
     c->c_conn_state = SLAP_C_INVALID;
     c->c_struct_state = SLAP_C_UNUSED;
