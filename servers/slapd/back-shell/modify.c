@@ -27,6 +27,8 @@ shell_back_modify(
 {
 	Modification *mod;
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
+	Entry e;
 	FILE			*rfp, *wfp;
 	int			i;
 
@@ -34,6 +36,23 @@ shell_back_modify(
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "modify not implemented", NULL, NULL );
 		return( -1 );
+	}
+
+	e.e_id = NOID;
+	e.e_name = *dn;
+	e.e_nname = *ndn;
+	e.e_attrs = NULL;
+	e.e_ocflags = 0;
+	e.e_bv.bv_len = 0;
+	e.e_bv.bv_val = NULL;
+	e.e_private = NULL;
+
+	if ( ! access_allowed( be, conn, op, &e,
+		entry, NULL, ACL_WRITE, NULL ) )
+	{
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
+			NULL, NULL, NULL, NULL );
+		return -1;
 	}
 
 	if ( (op->o_private = (void *) forkandexec( si->si_modify, &rfp, &wfp ))
