@@ -126,7 +126,7 @@ fail:;
 					goto retry;
 				}
 			}
-			rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDERR );
+			rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_DONTSEND );
 			ldap_back_freeconn( op, lc );
 			lc = NULL;
 			goto finish;
