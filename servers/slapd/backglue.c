@@ -46,14 +46,13 @@ typedef struct glueinfo {
 } glueinfo;
 
 static int glueMode;
-static int glueBack;
+static BackendDB *glueBack;
 
 /* Just like select_backend, but only for our backends */
 static BackendDB *
 glue_back_select (
 	BackendDB *be,
-	const char *dn,
-	int *idx
+	const char *dn
 )
 {
 	glueinfo *gi = (glueinfo *) be->be_private;
@@ -65,8 +64,6 @@ glue_back_select (
 
 	for (i = 0; i<gi->nodes; i++) {
 		if (dn_issuffixbv (&bv, gi->n[i].be->be_nsuffix[0])) {
-			if (idx)
-				*idx = i;
 			return gi->n[i].be;
 		}
 	}
@@ -280,7 +277,7 @@ glue_back_search (
 
 	switch (scope) {
 	case LDAP_SCOPE_BASE:
-		be = glue_back_select (b0, ndn, NULL);
+		be = glue_back_select (b0, ndn);
 
 		if (be && be->be_search) {
 			rc = be->be_search (be, conn, op, dn, ndn, scope,
@@ -382,7 +379,7 @@ glue_back_bind (
 	BackendDB *be;
 	int rc;
  
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_bind) {
 		conn->c_authz_backend = be;
@@ -408,7 +405,7 @@ glue_back_compare (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_compare) {
 		rc = be->be_compare (be, conn, op, dn, ndn, ava);
@@ -433,7 +430,7 @@ glue_back_modify (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_modify) {
 		rc = be->be_modify (be, conn, op, dn, ndn, mod);
@@ -460,7 +457,7 @@ glue_back_modrdn (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_modrdn) {
 		rc = be->be_modrdn (be, conn, op, dn, ndn, newrdn, del, newsup);
@@ -483,7 +480,7 @@ glue_back_add (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, e->e_ndn, NULL);
+	be = glue_back_select (b0, e->e_ndn);
 
 	if (be && be->be_add) {
 		rc = be->be_add (be, conn, op, e);
@@ -507,7 +504,7 @@ glue_back_delete (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_delete) {
 		rc = be->be_delete (be, conn, op, dn, ndn);
@@ -531,7 +528,7 @@ glue_back_release_rw (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, e->e_ndn, NULL);
+	be = glue_back_select (b0, e->e_ndn);
 
 	if (be && be->be_release) {
 		rc = be->be_release (be, conn, op, e, rw);
@@ -557,7 +554,7 @@ glue_back_group (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_group) {
 		rc = be->be_group (be, conn, op, target, ndn, ondn, oc, ad);
@@ -581,7 +578,7 @@ glue_back_attribute (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_attribute) {
 		rc = be->be_attribute (be, conn, op, target, ndn, ad, vals);
@@ -604,7 +601,7 @@ glue_back_referrals (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn, NULL);
+	be = glue_back_select (b0, ndn);
 
 	if (be && be->be_chk_referrals) {
 		rc = be->be_chk_referrals (be, conn, op, dn, ndn, text);
@@ -624,7 +621,7 @@ glue_tool_entry_open (
 	 */
 
 	glueMode = mode;
-	glueBack = -1;
+	glueBack = NULL;
 
 	return 0;
 }
@@ -634,15 +631,12 @@ glue_tool_entry_close (
 	BackendDB *b0
 )
 {
-	glueinfo *gi = (glueinfo *) b0->be_private;
-	int i, rc = 0;
+	int rc = 0;
 
-	i = glueBack;
-	if (i >= 0) {
-		if (!gi->n[i].be->be_entry_close)
+	if (glueBack) {
+		if (!glueBack->be_entry_close)
 			return 0;
-		rc = gi->n[i].be->be_entry_close (gi->n[i].be);
-		glueBack = -1;
+		rc = glueBack->be_entry_close (glueBack);
 	}
 	return rc;
 }
@@ -656,20 +650,20 @@ glue_tool_entry_first (
 	int i;
 
 	/* If we're starting from scratch, start at the most general */
-	if (glueBack == -1) {
+	if (!glueBack) {
 		for (i = gi->nodes-1; i >= 0; i--) {
 			if (gi->n[i].be->be_entry_open &&
-			    gi->n[i].be->be_entry_first)
+			    gi->n[i].be->be_entry_first) {
+			    	glueBack = gi->n[i].be;
 				break;
+			}
 		}
-	} else {
-		i = glueBack;
-	}
-	if (gi->n[i].be->be_entry_open (gi->n[i].be, glueMode) != 0)
-		return NOID;
-	glueBack = i;
 
-	return gi->n[i].be->be_entry_first (gi->n[i].be);
+	}
+	if (!glueBack || glueBack->be_entry_open (glueBack, glueMode) != 0)
+		return NOID;
+
+	return glueBack->be_entry_first (glueBack);
 }
 
 ID
@@ -678,20 +672,25 @@ glue_tool_entry_next (
 )
 {
 	glueinfo *gi = (glueinfo *) b0->be_private;
-	int i, rc;
+	int i;
+	ID rc;
 
-	i = glueBack;
-	rc = gi->n[i].be->be_entry_next (gi->n[i].be);
+	rc = glueBack->be_entry_next (glueBack);
 
 	/* If we ran out of entries in one database, move on to the next */
 	if (rc == NOID) {
-		gi->n[i].be->be_entry_close (gi->n[i].be);
-		i--;
-		glueBack = i;
-		if (i < 0)
+		glueBack->be_entry_close (glueBack);
+		for (i=0; i<gi->nodes; i++) {
+			if (gi->n[i].be == glueBack)
+				break;
+		}
+		if (i == 0) {
+			glueBack = NULL;
 			rc = NOID;
-		else
+		} else {
+			glueBack = gi->n[i-1].be;
 			rc = glue_tool_entry_first (b0);
+		}
 	}
 	return rc;
 }
@@ -702,10 +701,7 @@ glue_tool_entry_get (
 	ID id
 )
 {
-	glueinfo *gi = (glueinfo *) b0->be_private;
-	int i = glueBack;
-
-	return gi->n[i].be->be_entry_get (gi->n[i].be, id);
+	return glueBack->be_entry_get (glueBack, id);
 }
 
 ID
@@ -714,29 +710,28 @@ glue_tool_entry_put (
 	Entry *e
 )
 {
-	glueinfo *gi = (glueinfo *) b0->be_private;
 	BackendDB *be;
-	int i, rc;
+	int rc;
 
-	be = glue_back_select (b0, e->e_ndn, &i);
+	be = glue_back_select (b0, e->e_ndn);
 	if (!be->be_entry_put)
 		return NOID;
 
-	if (glueBack < 0) {
+	if (!glueBack) {
 		rc = be->be_entry_open (be, glueMode);
 		if (rc != 0)
 			return NOID;
-	} else if (i != glueBack) {
+	} else if (be != glueBack) {
 		/* If this entry belongs in a different branch than the
 		 * previous one, close the current database and open the
 		 * new one.
 		 */
-		gi->n[glueBack].be->be_entry_close (gi->n[glueBack].be);
+		glueBack->be_entry_close (glueBack);
 		rc = be->be_entry_open (be, glueMode);
 		if (rc != 0)
 			return NOID;
 	}
-	glueBack = i;
+	glueBack = be;
 	return be->be_entry_put (be, e);
 }
 
@@ -746,13 +741,10 @@ glue_tool_entry_reindex (
 	ID id
 )
 {
-	glueinfo *gi = (glueinfo *) b0->be_private;
-	int i = glueBack;
-
-	if (!gi->n[i].be->be_entry_reindex)
+	if (!glueBack->be_entry_reindex)
 		return -1;
 
-	return gi->n[i].be->be_entry_reindex (gi->n[i].be, id);
+	return glueBack->be_entry_reindex (glueBack, id);
 }
 
 int
@@ -784,25 +776,23 @@ glue_sub_init( )
 	/* While there are subordinate backends, search backwards through the
 	 * backends and connect them to their superior.
 	 */
-	for (i = nBackendDB - 1; cont && i>=0; i--) {
-		if (backendDB[i].be_glueflags & SLAP_GLUE_SUBORDINATE) {
+	for (i = nBackendDB - 1, b1=&backendDB[i]; cont && i>=0; b1--,i--) {
+		if (b1->be_glueflags & SLAP_GLUE_SUBORDINATE) {
 			/* The last database cannot be a subordinate of noone */
 			if (i == nBackendDB - 1)
-				backendDB[i].be_glueflags ^= SLAP_GLUE_SUBORDINATE;
+				b1->be_glueflags ^= SLAP_GLUE_SUBORDINATE;
 			continue;
 		}
-		b1 = &backendDB[i];
 		gi = NULL;
-		for (j = i-1; j>=0; j--) {
-			if (!(backendDB[j].be_glueflags & SLAP_GLUE_SUBORDINATE))
+		for (j = i-1, be=&backendDB[j]; j>=0; be--,j--) {
+			if (!(be->be_glueflags & SLAP_GLUE_SUBORDINATE))
 				continue;
 			/* We will only link it once */
-			if (backendDB[j].be_glueflags & SLAP_GLUE_LINKED)
+			if (be->be_glueflags & SLAP_GLUE_LINKED)
 				continue;
-			if (!dn_issuffixbv(backendDB[j].be_nsuffix[0],
-				backendDB[i].be_nsuffix[0]))
+			if (!dn_issuffixbv(be->be_nsuffix[0],
+				b1->be_nsuffix[0]))
 				continue;
-			be = &backendDB[j];
 			cont--;
 			be->be_glueflags |= SLAP_GLUE_LINKED;
 			if (gi == NULL) {
