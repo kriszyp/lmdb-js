@@ -80,7 +80,7 @@ static int	fp_parse_line(int lineno, char *line);
 static char	*strtok_quote(char *line, char *sep);
 static int      load_ucdata(char *path);
 
-static void     add_syncrepl LDAP_P(( Backend *, char **, int ));
+static int     add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int      parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
 
 int
@@ -1748,7 +1748,22 @@ read_config( const char *fname, int depth )
 		/* list of sync replication information in this backend (slave only) */
 		} else if ( strcasecmp( cargv[0], "syncrepl" ) == 0 ) {
 
-			add_syncrepl( be, cargv, cargc );
+			if ( be == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					    "%s: line %d: syncrepl line must appear inside "
+					    "a database definition.\n", fname, lineno, 0);
+#else
+				Debug( LDAP_DEBUG_ANY,
+					    "%s: line %d: syncrepl line must appear inside "
+					    "a database definition.\n", fname, lineno, 0);
+#endif
+				return 1;
+			} else {
+				if ( add_syncrepl( be, cargv, cargc )) {
+					return 1;
+				}
+			}
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
@@ -2376,7 +2391,7 @@ read_config( const char *fname, int depth )
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, INFO, 
 					"%s: line %d: plugin line must appear "
-					"inside a database definition.\n",
+					"insid a database definition.\n",
 					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: plugin "
@@ -2729,7 +2744,7 @@ config_destroy( )
 	acl_destroy( global_acl, NULL );
 }
 
-static void
+static int
 add_syncrepl(
 	Backend *be,
 	char    **cargv,
@@ -2738,7 +2753,29 @@ add_syncrepl(
 {
 	syncinfo_t *si;
 
+	if ( be->syncinfo ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( CONFIG, INFO, 
+			    "add_syncrepl: multiple syncrepl lines in a database "
+				"definition are yet to be supported.\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			    "add_syncrepl: multiple syncrepl lines in a database "
+				"definition are yet to be supported.\n", 0, 0, 0 );
+#endif
+		return 1;
+	}
+
 	si = be->syncinfo = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
+
+	if ( si == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( CONFIG, ERR, "out of memory in add_syncrepl\n", 0, 0,0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "out of memory in add_syncrepl\n", 0, 0, 0 );
+#endif
+		return 1;
+	}
 
 	si->tls = TLS_OFF;
 	if ( be->be_rootndn.bv_val )
@@ -2765,15 +2802,6 @@ add_syncrepl(
 	si->presentlist = NULL;
 	LDAP_LIST_INIT( &si->nonpresentlist );
 
-	if ( si == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( CONFIG, ERR, "out of memory in add_syncrepl\n", 0, 0,0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "out of memory in add_syncrepl\n", 0, 0, 0 );
-#endif
-		exit( EXIT_FAILURE );
-	}
-
 	if ( parse_syncrepl_line( cargv, cargc, si ) < 0 ) {
 		/* Something bad happened - back out */
 #ifdef NEW_LOGGING
@@ -2783,6 +2811,7 @@ add_syncrepl(
 #endif
 		free( si );
 		be->syncinfo = NULL;
+		return 1;
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( CONFIG, RESULTS,
@@ -2797,6 +2826,7 @@ add_syncrepl(
 			be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
 		}
 		si->be = be;
+		return 0;
 	}
 }
 
