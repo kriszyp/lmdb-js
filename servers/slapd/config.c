@@ -2184,13 +2184,13 @@ read_config( const char *fname, int depth )
 			}
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 				if ( be ) {
-					SLAP_DBFALGS(be) &= ~SLAP_DBFLAG_NOLASTMOD;
+					SLAP_DBFLAGS(be) &= ~SLAP_DBFLAG_NOLASTMOD;
 				} else {
 					lastmod = 1;
 				}
 			} else {
 				if ( be ) {
-					SLAP_DBFALGS(be) |= SLAP_DBFLAG_NOLASTMOD;
+					SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
 				} else {
 					lastmod = 0;
 				}
