@@ -22,7 +22,7 @@
 
 /*
  * This file controls defaults for OpenLDAP package.
- * You should not change any of these settings.
+ * You probably do not need to edit the defaults provided by this file.
  */
 
 #ifndef _LDAP_DEFAULTS_H
@@ -35,12 +35,6 @@
 #define LDAP_USERRC_FILE "ldaprc"
 #define LDAP_ENV_PREFIX "LDAP"
 
-
-/*********************************************************************
- *                                                                   *
- * You probably do not need to edit anything below this point        *
- *                                                                   *
- *********************************************************************/
 
 /*
  * SHARED DEFINITIONS - other things you can change
