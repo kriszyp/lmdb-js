@@ -64,7 +64,7 @@ if test $WAIT != 0 ; then
     read foo
 fi
 
-echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
+echo "Starting sub-slave slapd on TCP/IP port $SLAVEPORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SUBSLAVECONF > $REPLCONF
 $SLAPD -f $REPLCONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
@@ -85,7 +85,7 @@ for i in 0 1 2 3 4 5; do
 	sleep 5
 done
 
-echo "Using ldapsearch to check that slave slapd is running..."
+echo "Using ldapsearch to check that sub-slave slapd is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT \
 		'objectclass=*' > /dev/null 2>&1
@@ -227,7 +227,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Using ldapsearch to read all the entries from the slave..."
+echo "Using ldapsearch to read all the entries from the sub-slave..."
 $LDAPSEARCH -S "" -b "ou=Groups, $BASEDN" -h $LOCALHOST -p $SLAVEPORT \
 	'objectclass=*' > $SLAVEOUT 2>&1
 RC=$?
@@ -245,16 +245,17 @@ kill -KILL $SLURPPID
 SEARCHOUT=$SUBMASTEROUT
 LDIF=$SLAVEOUT
 
-echo "Filtering master ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT | $STRIPATTR "description" > $SEARCHFLT
-echo "Filtering slave ldapsearch results..."
+echo "Filtering master subtree ldapsearch results..."
+. $LDIFFILTER < $SEARCHOUT > $SUBFLT0
+. $STRIPATTR "description" < $SUBFLT0 > $SEARCHFLT
+echo "Filtering sub-slave ldapsearch results..."
 . $LDIFFILTER < $LDIF > $LDIFFLT
 
-echo "Comparing retrieved entries from master and slave..."
+echo "Comparing retrieved subtree entries from master and sub-slave..."
 $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
-	echo "test failed - master and slave databases differ"
+	echo "test failed - master and sub-slave subtree databases differ"
 	exit 1
 fi
 
@@ -263,18 +264,18 @@ SEARCHOUT=$MASTEROUT
 echo "Filtering remaining data"
 . $LDIFFILTER < $SEARCHOUT | $STRIPATTR "description" > $SEARCHFLT
 
-echo "Stripping slave entries from master output..."
-$DIFF $SEARCHFLT $LDIFFLT | $UNDIFFFILTER > $SUBFLT
+echo "Stripping sub-slave entries from master output..."
+$DIFF $SEARCHFLT $LDIFFLT | $UNDIFFFILTER > $SUBFLT1
 
 echo "Stripping subtree entries from master output..."
 . $SUBFILTER 'ou=Groups,[ ]?o=University of Michigan,[ ]?c=US' < $SEARCHOUT \
 	| $STRIPATTR "description" > $SUBFLT2
 
-echo "Comparing master minus subtree and master minus slave..."
-$BCMP $SUBFLT $SUBFLT2 > $CMPOUT
+echo "Comparing master minus subtree and master minus sub-slave..."
+$BCMP $SUBFLT1 $SUBFLT2 > $CMPOUT
 
 if test $? != 0 ; then
-	echo "test failed - master and slave databases differ"
+	echo "test failed - master and sub-slave databases differ"
 	exit 1
 fi
 
