@@ -2325,7 +2325,9 @@ printableStringValidate(
 	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
-		if( !isprint(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
+		if( !SLAP_PRINTABLE(val->bv_val[i]) ) {
+			return LDAP_INVALID_SYNTAX;
+		}
 	}
 
 	return LDAP_SUCCESS;

@@ -101,6 +101,11 @@ LDAP_BEGIN_DECL
 #define AD_LEADCHAR(c)	( ATTR_CHAR(c) )
 #define AD_CHAR(c)		( ATTR_CHAR(c) || (c) == ';' )
 
+#define SLAP_PRINTABLE(c)	( ASCII_ALNUM(c) || (c) == '\'' || \
+	(c) == '(' || (c) == ')' || (c) == '+' || (c) == ',' || \
+	(c) == '-' || (c) == '.' || (c) == '/' || (c) == ':' || \
+	(c) == '?' || (c) == ' ' )
+
 /* must match in schema_init.c */
 #define SLAPD_DN_SYNTAX			"1.3.6.1.4.1.1466.115.121.1.12"
 #define SLAPD_NAMEUID_SYNTAX		"1.3.6.1.4.1.1466.115.121.1.34"
