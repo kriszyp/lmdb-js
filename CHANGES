@@ -5,6 +5,7 @@ OpenLDAP 2.0.X Engineering
 	Fixed -lldap abandon unsent op bug (ITS#837)
 	Fixed -lldap URL search w/o host bug (ITS#843)
 	Fixed -lldap referral handling bugs (ITS#799 ITS#817)
+	Fixed ldappasswd old passwd encoding bug
 	Fixed slapd spasswd mutex bug
 	Fixed slapd ACL nameuid bug
 	Fixed slapd SASL layering bug
