@@ -7,7 +7,7 @@
 ##
 
 all-common: FORCE
-	@if [ "$(BUILD_SRV)" = "yes" ]; then \
+	@if test "$(BUILD_SRV)" = "yes" ; then \
 		$(MAKE) $(MFLAGS) all-srv; \
 	else \
 		echo "run configure with $(BUILD_OPT) to build $(PROGRAMS)"; \
@@ -17,28 +17,28 @@ clean-common: clean-srv FORCE
 veryclean-common: veryclean-srv FORCE
 
 lint-common: FORCE
-	@if [ "$(BUILD_SRV)" = "yes" ]; then \
+	@if test "$(BUILD_SRV)" = "yes" ; then \
 		$(MAKE) $(MFLAGS) lint-srv; \
 	else \
 		echo "run configure with $(BUILD_OPT) to lint $(PROGRAMS)"; \
 	fi
 
 5lint-common: FORCE
-	@if [ "$(BUILD_SRV)" = "yes" ]; then \
+	@if test "$(BUILD_SRV)" = "yes" ; then \
 		$(MAKE) $(MFLAGS) 5lint-srv; \
 	else \
 		echo "run configure with $(BUILD_OPT) to 5lint $(PROGRAMS)"; \
 	fi
 
 depend-common: FORCE
-	@if [ "$(BUILD_SRV)" = "yes" ]; then \
+	@if test "$(BUILD_SRV)" = "yes" ; then \
 		$(MAKE) $(MFLAGS) depend-srv; \
 	else \
 		echo "run configure with $(BUILD_OPT) to depend $(PROGRAMS)"; \
 	fi
 
 install-common: FORCE
-	@if [ "$(BUILD_SRV)" = "yes" ]; then \
+	@if test "$(BUILD_SRV)" = "yes" ; then \
 		$(MAKE) $(MFLAGS) install-srv; \
 	else \
 		echo "run configure with $(BUILD_OPT) to install $(PROGRAMS)"; \

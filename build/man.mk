@@ -33,7 +33,7 @@ install-common:
 		echo "installing $(MANDIR)/$$page"; \
 		$(RM) $(MANDIR)/$$page; \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$page.$(TMP_SUFFIX) $(MANDIR)/$$page; \
-		if [ -f "$(srcdir)/$$page.links" ]; then \
+		if test -f "$(srcdir)/$$page.links" ; then \
 			for link in `$(CAT) $(srcdir)/$$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
 				$(LN_S) -f $$page $(MANDIR)/$$link; \
