@@ -47,7 +47,6 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 	 */
 
 	f = (Filter *) ch_malloc( sizeof(Filter) );
-	*filt = f;
 	f->f_next = NULL;
 
 	err = 0;
@@ -175,6 +174,8 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		if ( *fstr != NULL ) {
 			free( *fstr );
 		}
+	} else {
+		*filt = f;
 	}
 
 	Debug( LDAP_DEBUG_FILTER, "end get_filter %d\n", err, 0, 0 );
