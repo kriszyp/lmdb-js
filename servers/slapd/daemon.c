@@ -177,17 +177,14 @@ static void slapd_close(ber_socket_t s) {
 }
 
 
-static Listener *
-open_listener(
-	const char* url,
-	int port,
-	int tls_port )
+static Listener * open_listener( const char* url )
 {
 	int	tmp, rc;
 	Listener l;
 	Listener *li;
 	LDAPURLDesc *lud;
 	char *s;
+	int port;
 
 	rc = ldap_url_parse( url, &lud );
 
@@ -208,14 +205,14 @@ open_listener(
 	}
 
 	if(! lud->lud_port ) {
-		lud->lud_port = port;
+		lud->lud_port = LDAP_PORT;
 	}
 
 #else
 	l.sl_is_tls = lud->lud_ldaps;
 
 	if(! lud->lud_port ) {
-		lud->lud_port = lud->lud_ldaps ? tls_port : port;
+		lud->lud_port = lud->lud_ldaps ? LDAPS_PORT : LDAP_PORT;
 	}
 #endif
 
@@ -333,7 +330,7 @@ open_listener(
 static int sockinit(void);
 static int sockdestroy(void);
 
-int slapd_daemon_init(char *urls, int port, int tls_port )
+int slapd_daemon_init( char *urls )
 {
 	int i, rc;
 	char **u;
@@ -342,8 +339,8 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	assert( tls_port == 0 );
 #endif
 
-	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s (%d/%d)\n",
-		urls ? urls : "<null>", port, tls_port );
+	Debug( LDAP_DEBUG_ARGS, "daemon_init: %s\n",
+		urls ? urls : "<null>", 0, 0 );
 
 	if( (rc = sockinit()) != 0 ) {
 		return rc;
@@ -408,7 +405,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 	slap_listeners = ch_malloc( (i+1)*sizeof(Listener *) );
 
 	for(i = 0; u[i] != NULL; i++ ) {
-		slap_listeners[i] = open_listener( u[i], port, tls_port );
+		slap_listeners[i] = open_listener( u[i] );
 
 		if( slap_listeners[i] == NULL ) {
 			charray_free( u );

@@ -31,11 +31,11 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -f $CONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -f $CONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -f $REFSLAVECONF -p $SLAVEPORT -d $LVL $TIMING > $SLAVELOG 2>&1 &
+$SLAPD -f $REFSLAVECONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Testing for master slapd..."

@@ -9,8 +9,6 @@ slapd \- Stand-alone LDAP Daemon
 .B [\-f slapd\-config\-file]
 .B [\-h URLs]
 .B [\-d debug\-level]
-.B [\-p port\-number]
-.B [\-P tls\-port\-number]
 .B [\-s syslog\-level] [\-l syslog\-local\-user]
 .B [\-u user] [\-g group]
 .B 
@@ -111,25 +109,6 @@ LDAP (ldap://) or, if supported, LDAP over TLS (ldaps://) type without
 a DN or other optional parameters.  Hosts may be specified in either
 Internet '.' format (preferred) or by name.  Ports, if specfied,
 must be numeric.
-.TP
-.BI \-p " port\-number"
-.B slapd
-will use on the default port (389) for LDAP URLs unless this
-option is given to override the default.
-A numeric port number is expected.
-.TP
-.BI \-P " tls\-port\-number"
-.B slapd
-will use on the default port (636) for LDAPS (LDAP over TLS) URLs
-unless this option is given to override the default.  A numeric port
-number is expected.
-.TP
-.BI \-P " port\-number"
-Changes the port where 
-.B slapd
-will expect LDAP over raw TLS connections.  If this option is not given,
-the default port for this purpose (636) will be used.  A numeric port
-number is expected.
 .TP
 .BI \-u " user"
 .B slapd

@@ -116,10 +116,6 @@ usage( char *name )
 		"\t-n NTserviceName\tNT service name\n"
 #endif
 
-		"\t-p port\tLDAP Port\n"
-#ifdef HAVE_TLS
-		"\t-P port\tLDAP over TLS Port\n"
-#endif
 		"\t-s level\tSyslog Level\n"
 #ifdef SLAPD_BDB2
 		"\t-t\t\tEnable BDB2 timing\n"
@@ -158,13 +154,6 @@ int main( int argc, char **argv )
 	char        *serverName;
 	int         serverMode = SLAP_SERVER_MODE;
 
-	int port = LDAP_PORT;
-#ifdef HAVE_TLS
-	int tls_port = LDAPS_PORT;
-#else
-	int tls_port = 0;
-#endif
-
 #ifdef CSRIMALLOC
 	FILE *leakfile;
 	if( ( leakfile = fopen( "slapd.leak", "w" )) == NULL ) {
@@ -184,20 +173,6 @@ int main( int argc, char **argv )
 			CommenceStartupProcessing( NTservice, slap_sig_shutdown );
 		}
 
-		i = (int*)getRegParam( NULL, "Port" );
-		if ( i != NULL )
-		{
-			port = *i;
-			Debug ( LDAP_DEBUG_ANY, "new port from registry is: %d\n", port, 0, 0 );
-		}
-#ifdef HAVE_TLS
-		i = (int*)getRegParam( NULL, "TLSPort" );
-		if ( i != NULL )
-		{
-			tls_port = *i;
-			Debug ( LDAP_DEBUG_ANY, "new TLS port from registry is: %d\n", tls_port, 0, 0 );
-		}
-#endif
 		i = (int*)getRegParam( NULL, "DebugLevel" );
 		if ( i != NULL ) 
 		{
@@ -214,7 +189,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:h:p:s:"
+			     "d:f:h:s:"
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
@@ -229,9 +204,6 @@ int main( int argc, char **argv )
 #endif
 #ifdef HAVE_NT_EVENT_LOG
 				 "n:"
-#endif
-#ifdef HAVE_TLS
-			     "P:"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -254,30 +226,6 @@ int main( int argc, char **argv )
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );
 			break;
-
-		case 'p': {	/* port on which to listen */
-				int p = atoi( optarg );
-				if(! p ) {
-					fprintf(stderr, "-p %s must be numeric\n", optarg);
-				} else if( p < 0 || p >= 1<<16) {
-					fprintf(stderr, "-p %s invalid\n", optarg);
-				} else {
-					port = p;
-				}
-			} break;
-
-#ifdef HAVE_TLS
-		case 'P': {	/* port on which to listen for TLS */
-				int p = atoi( optarg );
-				if(! p ) {
-					fprintf(stderr, "-P %s must be numeric\n", optarg);
-				} else if( p < 0 || p >= 1<<16) {
-					fprintf(stderr, "-P %s invalid\n", optarg);
-				} else {
-					tls_port = p;
-				}
-			} break;
-#endif
 
 		case 's':	/* set syslog level */
 			ldap_syslog = atoi( optarg );
@@ -347,7 +295,7 @@ int main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
-	if( slapd_daemon_init( urls, port, tls_port ) != 0 ) {
+	if( slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
 		goto stop;

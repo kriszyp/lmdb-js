@@ -35,11 +35,11 @@ echo "Cleaning up in $REPLDIR..."
 rm -f $REPLDIR/[!C]*
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -f $MASTERCONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -f $MASTERCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -f $SLAVECONF -p $SLAVEPORT -d $LVL $TIMING > $SLAVELOG 2>&1 &
+$SLAPD -f $SLAVECONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Using ldapsearch to check that master slapd is running..."

@@ -596,7 +596,7 @@ LIBSLAPD_F (int)	slap_destroy LDAP_P((void));
 
 struct sockaddr_in;
 
-LIBSLAPD_F (int) slapd_daemon_init( char *urls, int port, int tls_port );
+LIBSLAPD_F (int) slapd_daemon_init( char *urls );
 LIBSLAPD_F (int) slapd_daemon_destroy(void);
 LIBSLAPD_F (int) slapd_daemon(void);
 
