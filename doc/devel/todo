@@ -51,9 +51,7 @@ Small projects
 --------------
 Create ldapurl (from ldapsearch?) to support searching by URL
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
-Extend ldap clients to have -P(rotocol) version flag (2 or 3)
 Extend configure.in to support autodetect of Kerberos features.
 Extend mail500 (and other daemons) to use ldap_getfilter(3)
-Update libldbm to support Sleepcat's Berkeley DB 2.4 
 Add useful information to our FAQ http://www.openldap.org/faq/
 Update any manual page
