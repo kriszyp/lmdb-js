@@ -33,6 +33,10 @@ LDAP_BEGIN_DECL
 #define SUB_PREFIX	'*'	/* prefix for substring keys    */
 #define CONT_PREFIX	'\\'	/* prefix for continuation keys */
 
+/* allow 3 characters per byte + PREFIX + EOS */
+#define CONT_SIZE ( sizeof(long)*3 + 1 + 1 )
+/* #define CONT_POSTFIX	1	*//* postfix original key */
+
 #define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
 
 #define DEFAULT_BLOCKSIZE	8192
