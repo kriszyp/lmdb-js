@@ -214,14 +214,6 @@ done:
 		bdb_entry_return( be, e );
 	}
 
-	if( id.bv_val != NULL ) {
-		free( id.bv_val );
-	}
-
-	if( new.bv_val != NULL ) {
-		free( new.bv_val );
-	}
-
 	if( hash.bv_val != NULL ) {
 		free( hash.bv_val );
 	}

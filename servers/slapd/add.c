@@ -66,7 +66,7 @@ do_add( Connection *conn, Operation *op )
 	 */
 
 	/* get the name */
-	if ( ber_scanf( ber, "{o", /*}*/ &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( ber, "{m", /*}*/ &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_add: conn %d ber_scanf failed\n", conn->c_connid ));
@@ -114,7 +114,7 @@ do_add( Connection *conn, Operation *op )
 	{
 		Modifications *mod;
 
-		rc = ber_scanf( ber, "{o{W}}", &tmp.sml_type, &tmp.sml_bvalues );
+		rc = ber_scanf( ber, "{m{W}}", &tmp.sml_type, &tmp.sml_bvalues );
 
 		if ( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -324,8 +324,6 @@ do_add( Connection *conn, Operation *op )
 	}
 
 done:
-	free( dn.bv_val );
-
 	if( modlist != NULL ) {
 		slap_mods_free( modlist );
 	}

@@ -92,7 +92,7 @@ do_bind(
 	 *	}
 	 */
 
-	tag = ber_scanf( ber, "{iot" /*}*/, &version, &dn, &method );
+	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &method );
 
 	if ( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -110,7 +110,7 @@ do_bind(
 	op->o_protocol = version;
 
 	if( method != LDAP_AUTH_SASL ) {
-		tag = ber_scanf( ber, /*{*/ "o}", &cred );
+		tag = ber_scanf( ber, /*{*/ "m}", &cred );
 
 	} else {
 		tag = ber_scanf( ber, "{a" /*}*/, &mech );
@@ -120,7 +120,7 @@ do_bind(
 			tag = ber_peek_tag( ber, &len );
 
 			if ( tag == LDAP_TAG_LDAPCRED ) { 
-				tag = ber_scanf( ber, "o", &cred );
+				tag = ber_scanf( ber, "m", &cred );
 			} else {
 				tag = LDAP_TAG_LDAPCRED;
 				cred.bv_val = NULL;
@@ -249,7 +249,7 @@ do_bind(
 			goto cleanup;
 		}
 
-		if( mech == NULL || *mech == '\0' ) {
+		if( mech == NULL || mech[0] == '\0' ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_INFO,
 				   "do_bind: conn %d  no SASL mechanism provided\n",
@@ -536,7 +536,6 @@ do_bind(
 	}
 
 cleanup:
-	free( dn.bv_val );
 	if( pdn.bv_val != NULL ) {
 		free( pdn.bv_val );
 	}
@@ -545,9 +544,6 @@ cleanup:
 	}
 	if ( mech != NULL ) {
 		free( mech );
-	}
-	if ( cred.bv_val != NULL ) {
-		free( cred.bv_val );
 	}
 
 	return rc;

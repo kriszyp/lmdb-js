@@ -39,7 +39,7 @@ get_ava(
 	struct berval type, value;
 	AttributeAssertion *aa;
 
-	rc = ber_scanf( ber, "{oo}", &type, &value );
+	rc = ber_scanf( ber, "{mm}", &type, &value );
 
 	if( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -57,16 +57,13 @@ get_ava(
 	aa->aa_value.bv_val = NULL;
 
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
-	ch_free( type.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
-		ch_free( value.bv_val );
 		ch_free( aa );
 		return rc;
 	}
 
 	rc = value_normalize( aa->aa_desc, usage, &value, &aa->aa_value, text );
-	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
 		ch_free( aa );

@@ -75,7 +75,7 @@ do_modify(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{o" /*}*/, &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_modify: ber_scanf failed\n" ));
@@ -106,7 +106,7 @@ do_modify(
 		Modifications tmp, *mod;
 
 
-		if ( ber_scanf( op->o_ber, "{i{o[W]}}", &mop,
+		if ( ber_scanf( op->o_ber, "{i{m[W]}}", &mop,
 		    &tmp.sml_type, &tmp.sml_bvalues )
 		    == LBER_ERROR )
 		{
@@ -395,7 +395,6 @@ do_modify(
 	}
 
 cleanup:
-	free( dn.bv_val );
 	free( pdn.bv_val );
 	free( ndn.bv_val );
 	if ( modlist != NULL )

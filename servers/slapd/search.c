@@ -76,7 +76,7 @@ do_search(
 	 */
 
 	/* baseObject, scope, derefAliases, sizelimit, timelimit, attrsOnly */
-	if ( ber_scanf( op->o_ber, "{oiiiib" /*}*/,
+	if ( ber_scanf( op->o_ber, "{miiiib" /*}*/,
 		&base, &scope, &deref, &sizelimit,
 	    &timelimit, &attrsonly ) == LBER_ERROR )
 	{
@@ -159,7 +159,7 @@ do_search(
 	/* attributes */
 	siz = sizeof(AttributeName);
 	off = 0;
-	if ( ber_scanf( op->o_ber, "{w}}", &an, &siz, off ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{M}}", &an, &siz, off ) == LBER_ERROR ) {
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding attrs error" );
 		rc = SLAPD_DISCONNECT;
@@ -324,15 +324,11 @@ do_search(
 	}
 
 return_results:;
-	free( base.bv_val );
 	if( pbase.bv_val != NULL) free( pbase.bv_val );
 	if( nbase.bv_val != NULL) free( nbase.bv_val );
 
 	if( fstr.bv_val != NULL) free( fstr.bv_val );
 	if( filter != NULL) filter_free( filter );
-	for (i = 0; i<siz; i++ ) {
-		free(an[i].an_name.bv_val);
-	}
 	free(an);
 
 	return rc;

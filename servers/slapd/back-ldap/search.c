@@ -379,7 +379,7 @@ ldap_send_entry(
 	struct berval *bv, bdn;
 	const char *text;
 
-	if ( ber_scanf( &ber, "{o{", &bdn ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
 		return;
 	}
 #ifdef ENABLE_REWRITE
@@ -392,7 +392,6 @@ ldap_send_entry(
 	case REWRITE_REGEXEC_OK:
 		if ( ent.e_name.bv_val == NULL ) {
 			ent.e_name = bdn;
-			
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
@@ -402,8 +401,6 @@ ldap_send_entry(
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult: \"%s\""
  					" -> \"%s\"\n%s", bdn.bv_val, ent.e_dn, "" );
 #endif /* !NEW_LOGGING */
-			free( bdn.bv_val );
-			bdn.bv_val = NULL;
 			ent.e_name.bv_len = strlen( ent.e_name.bv_val );
 		}
 		break;
@@ -422,11 +419,8 @@ ldap_send_entry(
 	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
-	while ( ber_scanf( &ber, "{o", &a ) != LBER_ERROR ) {
+	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		ldap_back_map(&li->at_map, &a, &mapped, 1);
-		if ( mapped.bv_val != a.bv_val) {
-			free( a.bv_val );
-		}
 		if (mapped.bv_val == NULL)
 			continue;
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
@@ -474,7 +468,7 @@ ldap_send_entry(
 					attr->a_vals[last].bv_val = NULL;
 					i--;
 				} else if ( mapped.bv_val != bv->bv_val ) {
-					ch_free(bv->bv_val);
+					free(bv->bv_val);
 					ber_dupbv( bv, &mapped );
 				}
 			}
@@ -520,7 +514,6 @@ ldap_send_entry(
 						attr->a_desc->ad_type->sat_cname.bv_val,
 						bv->bv_val, newval );
 #endif /* !NEW_LOGGING */
-					
 					free( bv->bv_val );
 					bv->bv_val = newval;
 					bv->bv_len = strlen( newval );
@@ -553,9 +546,8 @@ ldap_send_entry(
 		free(attr);
 	}
 	
-	if ( ent.e_dn )
+	if ( ent.e_dn && ent.e_dn != bdn.bv_val )
 		free( ent.e_dn );
 	if ( ent.e_ndn )
 		free( ent.e_ndn );
 }
-

@@ -41,7 +41,7 @@ do_compare(
 	struct berval ndn = { 0, NULL };
 	struct berval desc = { 0, NULL };
 	struct berval value = { 0, NULL };
-	AttributeAssertion ava;
+	AttributeAssertion ava = { 0 };
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
 	const char *text = NULL;
@@ -67,7 +67,7 @@ do_compare(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{o" /*}*/, &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{m" /*}*/, &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_compare: conn %d  ber_scanf failed\n", conn->c_connid ));
@@ -79,7 +79,7 @@ do_compare(
 		return SLAPD_DISCONNECT;
 	}
 
-	if ( ber_scanf( op->o_ber, "{oo}", &desc, &value ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{mm}", &desc, &value ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_compare: conn %d  get ava failed\n", conn->c_connid ));
@@ -274,11 +274,9 @@ do_compare(
 	}
 
 cleanup:
-	free( dn.bv_val );
 	free( pdn.bv_val );
 	free( ndn.bv_val );
-	free( desc.bv_val );
-	free( value.bv_val );
+	if ( ava.aa_value.bv_val ) free( ava.aa_value.bv_val );
 
 	return rc;
 }

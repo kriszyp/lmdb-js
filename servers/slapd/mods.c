@@ -24,8 +24,10 @@ slap_mod_free(
 	int				freeit
 )
 {
+#if 0
 	if ( mod->sm_type.bv_val)
 		free( mod->sm_type.bv_val );
+#endif
 	if ( mod->sm_bvalues != NULL )
 		bvarray_free( mod->sm_bvalues );
 

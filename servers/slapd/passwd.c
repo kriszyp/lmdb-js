@@ -116,7 +116,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "o", id );
+		tag = ber_scanf( ber, "m", id );
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -148,7 +148,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "o", oldpass );
+		tag = ber_scanf( ber, "m", oldpass );
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -180,7 +180,7 @@ int slap_passwd_parse( struct berval *reqdata,
 			goto done;
 		}
 
-		tag = ber_scanf( ber, "o", newpass );
+		tag = ber_scanf( ber, "m", newpass );
 
 		if( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING

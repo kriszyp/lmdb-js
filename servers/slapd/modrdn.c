@@ -83,7 +83,7 @@ do_modrdn(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{oob", &dn, &newrdn, &deloldrdn )
+	if ( ber_scanf( op->o_ber, "{mmb", &dn, &newrdn, &deloldrdn )
 	    == LBER_ERROR )
 	{
 #ifdef NEW_LOGGING
@@ -120,14 +120,14 @@ do_modrdn(
 			goto cleanup;
 		}
 
-		if ( ber_scanf( op->o_ber, "o", &newSuperior ) 
+		if ( ber_scanf( op->o_ber, "m", &newSuperior ) 
 		     == LBER_ERROR ) {
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-				"do_modrdn: ber_scanf(\"a\") failed\n" ));
+				"do_modrdn: ber_scanf(\"m\") failed\n" ));
 #else
-			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
+			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"m\") failed\n",
 				0, 0, 0 );
 #endif
 
@@ -375,15 +375,12 @@ do_modrdn(
 	}
 
 cleanup:
-	free( dn.bv_val );
 	free( pdn.bv_val );
 	free( ndn.bv_val );
 
-	free( newrdn.bv_val );	
 	free( pnewrdn.bv_val );	
 	free( nnewrdn.bv_val );	
 
-	if ( newSuperior.bv_val ) free( newSuperior.bv_val );
 	if ( pnewSuperior.bv_val ) free( pnewSuperior.bv_val );
 	if ( nnewSuperior.bv_val ) free( nnewSuperior.bv_val );
 

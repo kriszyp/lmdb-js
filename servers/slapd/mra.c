@@ -96,7 +96,7 @@ get_mra(
 	}
 
 	if ( tag == LDAP_FILTER_EXT_TYPE ) {
-		rc = ber_scanf( ber, "o", &type );
+		rc = ber_scanf( ber, "m", &type );
 		if ( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
@@ -110,7 +110,6 @@ get_mra(
 		}
 
 		rc = slap_bv2ad( &type, &ma->ma_desc, text );
-		ch_free( type.bv_val );
 
 		if( rc != LDAP_SUCCESS ) {
 			mra_free( ma, 1 );
@@ -146,7 +145,7 @@ get_mra(
 		return SLAPD_DISCONNECT;
 	}
 
-	rc = ber_scanf( ber, "o", &value );
+	rc = ber_scanf( ber, "m", &value );
 
 	if( rc == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -166,7 +165,6 @@ get_mra(
 	 * normalize for the matching rule.
 	 */
 	rc = value_normalize( ma->ma_desc, SLAP_MR_EQUALITY, &value, &ma->ma_value, text );
-	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
 		mra_free( ma, 1 );

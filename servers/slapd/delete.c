@@ -52,7 +52,7 @@ do_delete(
 	 *	DelRequest := DistinguishedName
 	 */
 
-	if ( ber_scanf( op->o_ber, "o", &dn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "m", &dn ) == LBER_ERROR ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
 			"do_delete: conn: %d  ber_scanf failed\n", conn->c_connid ));
@@ -197,7 +197,6 @@ do_delete(
 	}
 
 cleanup:
-	free( dn.bv_val );
 	free( pdn.bv_val );
 	free( ndn.bv_val );
 	return rc;

@@ -204,7 +204,7 @@ get_filter(
 #else
 		Debug( LDAP_DEBUG_FILTER, "PRESENT\n", 0, 0, 0 );
 #endif
-		if ( ber_scanf( ber, "o", &type ) == LBER_ERROR ) {
+		if ( ber_scanf( ber, "m", &type ) == LBER_ERROR ) {
 			err = SLAPD_DISCONNECT;
 			*text = "error decoding filter";
 			break;
@@ -219,12 +219,9 @@ get_filter(
 			f->f_result = LDAP_COMPARE_FALSE;
 			ber_str2bv("(unrecognized=*)",
 				sizeof("(unrecognized=*)")-1, 1, fstr);
-			ch_free( type.bv_val );
 			err = LDAP_SUCCESS;
 			break;
 		}
-
-		ch_free( type.bv_val );
 
 		fstr->bv_len = sizeof("(=*)") - 1 
 			+ f->f_desc->ad_cname.bv_len;
@@ -467,15 +464,13 @@ get_substring_filter(
 #else
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 #endif
-	if ( ber_scanf( ber, "{o" /*}*/, &bv ) == LBER_ERROR ) {
+	if ( ber_scanf( ber, "{m" /*}*/, &bv ) == LBER_ERROR ) {
 		return SLAPD_DISCONNECT;
 	}
 
 	f->f_sub = ch_calloc( 1, sizeof(SubstringsAssertion) );
 	f->f_sub_desc = NULL;
 	rc = slap_bv2ad( &bv, &f->f_sub_desc, text );
-
-	ch_free( bv.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
 		text = NULL;
@@ -500,7 +495,7 @@ get_substring_filter(
 	{
 		unsigned usage;
 
-		rc = ber_scanf( ber, "o", &value );
+		rc = ber_scanf( ber, "m", &value );
 		if ( rc == LBER_ERROR ) {
 			rc = SLAPD_DISCONNECT;
 			goto return_error;
@@ -536,12 +531,10 @@ get_substring_filter(
 				"  unknown substring choice=%ld\n",
 				(long) tag, 0, 0 );
 #endif
-			free( value.bv_val );
 			goto return_error;
 		}
 
 		rc = value_normalize( f->f_sub_desc, usage, &value, &bv, text );
-		free( value.bv_val );
 
 		if( rc != LDAP_SUCCESS ) {
 			goto return_error;
