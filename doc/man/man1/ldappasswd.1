@@ -55,6 +55,8 @@ ldappasswd \- change the password of an LDAP entry
 .SH DESCRIPTION
 .B ldappasswd
 is a tool to set the password of an LDAP user.
+.B ldappasswd
+uses the LDAPv3 Password Modify (RFC 3062) extended operation.
 .LP
 .B ldappasswd
 sets the password of associated with the user [or an optionally
@@ -158,7 +160,7 @@ the command will require the operation to be successful
 .SH SEE ALSO
 .BR ldap_sasl_bind (3)
 .BR ldap_extended_operation (3)
-.BR ldap_start_tls (3)
+.BR ldap_start_tls_s (3)
 .SH AUTHOR
 The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
