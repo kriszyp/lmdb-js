@@ -109,6 +109,7 @@ int ldbm_modify_internal(
 	int err;
 	LDAPMod		*mod;
 	LDAPModList	*ml;
+	Attribute	*a;
 
 	if ( ((be->be_lastmod == ON)
 	      || ((be->be_lastmod == UNDEFINED)&&(global_lastmod == ON)))
@@ -142,6 +143,17 @@ int ldbm_modify_internal(
 			break;
 
 		case LDAP_MOD_REPLACE:
+			/* Need to remove all values from indexes before they
+			 * are lost.
+			 */
+		        if( e->e_attrs
+			    && ((a = attr_find( e->e_attrs, mod->mod_type ))
+			   != NULL) ) {
+
+			    (void) index_delete_values( be, mod->mod_type,
+							a->a_vals, e->e_id );
+			}
+
 			err = replace_values( e, mod, op->o_ndn );
 			break;
 
@@ -339,6 +351,11 @@ replace_values(
     char	*dn
 )
 {
+
+	/* XXX: BEFORE YOU GET RID OF PREVIOUS VALUES REMOVE FROM INDEX
+	 * FILES
+	 */
+
 	(void) attr_delete( &e->e_attrs, mod->mod_type );
 
 	if ( attr_merge( e, mod->mod_type, mod->mod_bvalues ) != 0 ) {

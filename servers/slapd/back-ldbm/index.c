@@ -69,13 +69,19 @@ index_add_mods(
 		LDAPMod *mod = &ml->ml_mod;
 
 		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
-		case LDAP_MOD_ADD:
 		case LDAP_MOD_REPLACE:
+			/* XXX: Delete old index data==>problem when this 
+			 * gets called we lost values already!
+			 */
+		case LDAP_MOD_ADD:
 			rc = index_add_values( be, mod->mod_type,
 			    mod->mod_bvalues, id );
 			break;
-		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there */
 		case LDAP_MOD_DELETE:
+			rc =  index_delete_values( be, mod->mod_type,
+			    mod->mod_bvalues, id );
+			break;
+ 		case LDAP_MOD_SOFTADD:	/* SOFTADD means index was there */
 			rc = 0;
 			break;
 		}
@@ -218,6 +224,21 @@ add_value(
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= add_value %d\n", rc, 0, 0 ); */
 	return( rc );
+}
+
+/* Remove entries from index files */
+
+int
+index_delete_values(
+    Backend		*be,
+    char		*type,
+    struct berval	**vals,
+    ID			id
+)
+{
+
+	return 0;
+
 }
 
 int

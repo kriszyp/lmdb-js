@@ -130,6 +130,7 @@ int index_add_entry LDAP_P(( Backend *be, Entry *e ));
 int index_add_mods LDAP_P(( Backend *be, LDAPModList *ml, ID id ));
 ID_BLOCK * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
 int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id ));
+int index_delete_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id ));
 
 /*
  * kerberos.c
