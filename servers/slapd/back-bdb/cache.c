@@ -37,6 +37,7 @@ bdb_cache_entryinfo_new( Cache *cache )
 	}
 	if ( ei ) {
 		ei->bei_lrunext = NULL;
+		ei->bei_state = 0;
 	} else {
 		ei = ch_calloc(1, sizeof(struct bdb_entry_info));
 		ldap_pvt_thread_mutex_init( &ei->bei_kids_mutex );
