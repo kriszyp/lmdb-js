@@ -43,8 +43,8 @@ contain is spread across many machines, all of which cooperate to
 provide the directory service. Typically a global service defines
 a uniform {{namespace}} which gives the same view of the data no
 matter where you are in relation to the data itself.  The Internet
-{{TERM[expand]DNS}} is an example of a globally distributed directory
-service.
+{{TERM[expand]DNS}} (DNS) is an example of a globally distributed
+directory service.
 
 
 H2: What is LDAP?
@@ -86,7 +86,7 @@ FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
 The tree may also be arranged based upon Internet domain names.
 This naming approach is becoming increasing popular as it allows
-for directory services to be locating using the {{TERM[expand]DNS}}.
+for directory services to be locating using the {{DNS}}.
 Figure 1.2 shows an example LDAP directory tree using domain-based
 naming.
 

@@ -494,11 +494,11 @@ telling what authorizations to deny.
 
 The value(s) in the two attributes are of the same form as the
 output of the replacement pattern of a {{EX:saslRegexp}} directive:
-either a DN or an LDAP URL. For example, if a saslAuthzTo value is
-a DN, that DN is one the authenticated user can authorize to. On
-the other hand, if the {{EX:saslAuthzTo}} value is an LDAP URL,
-the URL is used as an internal search of the LDAP database, and
-the authenticated user can become ANY DN returned by the search.
+either a DN or an LDAP URL. For example, if a {{EX:saslAuthzTo}}
+value is a DN, that DN is one the authenticated user can authorize
+to. On the other hand, if the {{EX:saslAuthzTo}} value is an LDAP
+URL, the URL is used as an internal search of the LDAP database,
+and the authenticated user can become ANY DN returned by the search.
 If an LDAP entry looked like:
 
 >	dn: cn=WebUpdate,dc=example,dc=com
@@ -537,8 +537,8 @@ identity of the form "u:<username>" as an authorization rule.
 
 H4: Policy Configuration
 
-The decision of which type of rules to use, saslAuthzFrom or
-saslAuthzTo, will depend on the site's situation. For example, if
+The decision of which type of rules to use, {{EX:saslAuthzFrom}} or
+{{EX:saslAuthzTo}}, will depend on the site's situation. For example, if
 the set of people who may become a given identity can easily be
 written as a search filter, then a single destination rule could
 be written. If the set of people is not easily defined by a search
@@ -554,8 +554,8 @@ for destination rules, or {{EX:both}} for both source and destination
 rules.
 
 Destination rules are extremely powerful. If ordinary users have
-access to write the saslAuthzTo attribute in their own entries, then
+access to write the {{EX:saslAuthzTo}} attribute in their own entries, then
 they can write rules that would allow them to authorize as anyone else.
-As such, when using destination rules, the saslAuthzTo attribute
+As such, when using destination rules, the {{EX:saslAuthzTo}} attribute
 should be protected with an ACL that only allows privileged users
 to set its values.
