@@ -5,4 +5,5 @@ dnl COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 dnl
 dnl OpenLDAP Autoconf Macros
 dnl
+divert(-1)
 builtin(include, build/openldap.m4)dnl
