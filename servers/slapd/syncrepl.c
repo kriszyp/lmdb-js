@@ -1768,6 +1768,63 @@ slap_create_syncrepl_entry(
 	return e;
 }
 
+struct berval *
+slap_uuidstr_from_normalized(
+	struct berval* uuidstr,
+	struct berval* normalized,
+	void *ctx )
+{
+	struct berval *new;
+	unsigned char nibble;
+	int i, d = 0;
+
+	if ( normalized == NULL )
+		return NULL;
+
+	if ( normalized->bv_len != 16 ) {
+		return NULL;
+	}
+
+	if ( uuidstr ) {
+		new = uuidstr;
+	} else {
+		new = (struct berval *)sl_malloc( sizeof(struct berval), ctx );
+	}
+
+	new->bv_len = 36;
+
+	if (( new->bv_val = sl_malloc( new->bv_len + 1, ctx )) == NULL) {
+		if ( !uuidstr )
+			sl_free( new, ctx );
+		return NULL;
+	}
+
+	for ( i = 0; i < 16; i++ ) {
+		if ( i == 4 || i == 6 || i == 8 || i == 10 ) {
+			new->bv_val[(i<<1)+d] = '-';
+			d += 1;
+		}
+
+		nibble = (normalized->bv_val[i] >> 4) & 0xF;
+		if ( nibble < 10 ) {
+			new->bv_val[(i<<1)+d] = nibble + '0';
+		} else {
+			new->bv_val[(i<<1)+d] = nibble - 10 + 'a';
+		}
+
+		nibble = (normalized->bv_val[i]) & 0xF;
+		if ( nibble < 10 ) {
+			new->bv_val[(i<<1)+d+1] = nibble + '0';
+		} else {
+			new->bv_val[(i<<1)+d+1] = nibble - 10 + 'a';
+		}
+	}
+
+	new->bv_val[new->bv_len] = '\0';
+
+	return new;
+}
+
 static void
 avl_ber_bvfree( void *bv )
 {
