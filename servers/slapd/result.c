@@ -594,10 +594,15 @@ send_search_result(
 		err, matched, text, refs,
 		NULL, NULL, NULL, ctrls );
 
+	{
+	char nbuf[64];
+	sprintf( nbuf, "%ld nentries=%d", (long) err, nentries );
+
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%ld op=%ld SEARCH RESULT tag=%lu err=%ld text=%s\n",
+	    "conn=%ld op=%ld SEARCH RESULT tag=%lu err=%s text=%s\n",
 		(long) op->o_connid, (long) op->o_opid,
-		(unsigned long) tag, (long) err, text ? text : "" );
+		(unsigned long) tag, nbuf, text ? text : "" );
+	}
 
 	if (tmp != NULL) {
 	    ch_free(tmp);
