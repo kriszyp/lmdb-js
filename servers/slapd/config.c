@@ -231,7 +231,7 @@ ConfigTable SystemConfiguration[] = {
 			"DESC 'A type of backend' "
 			"EQUALITY caseIgnoreMatch "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "concurrency", "level", 2, 2, 0, ARG_LONG|ARG_NONZERO|ARG_MAGIC|CFG_CONCUR,
+	{ "concurrency", "level", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_MAGIC|CFG_CONCUR,
 		&config_generic, "( OLcfgAt:10 NAME 'olcConcurrency' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "conn_max_pending", "max", 2, 2, 0, ARG_LONG,
@@ -379,7 +379,7 @@ ConfigTable SystemConfiguration[] = {
 	{ "rootDSE", "file", 2, 2, 0, ARG_MAGIC|CFG_ROOTDSE,
 		&config_generic, "( OLcfgAt:51 NAME 'olcRootDSE' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "rootpw", "password", 2, 2, 0, ARG_DB|ARG_MAGIC,
+	{ "rootpw", "password", 2, 2, 0, ARG_STRING|ARG_DB|ARG_MAGIC,
 		&config_rootpw, "( OLcfgAt:52 NAME 'olcRootPW' "
 			"SYNTAX OMsOctetString )", NULL, NULL },
 	{ "sasl-authz-policy", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
@@ -636,16 +636,16 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 	int rc = 0;
 	struct berval bv;
 	memset(&c->values, 0, sizeof(c->values));
-	c->rvalue_vals = ch_calloc(2,sizeof(struct berval));
+	c->rvalue_vals = NULL;
 	c->rvalue_nvals = NULL;
 	c->emit = 1;
+	c->line="";
+	if ( cf->arg_type & ARG_IGNORED ) {
+		return 1;
+	}
 	if ( cf->arg_type & ARG_MAGIC ) {
-#if 0
 		rc = (*((ConfigDriver*)cf->arg_item))(c);
 		if ( rc ) return rc;
-#else
-		rc = 1;
-#endif
 	} else {
 		switch(cf->arg_type & ARGS_POINTER) {
 		case ARG_ON_OFF:
@@ -663,7 +663,13 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		case ARG_BER_LEN_T: bv.bv_len =sprintf(bv.bv_val, "%l",c->value_ber_t); break;
 		case ARG_ON_OFF: bv.bv_len = sprintf(bv.bv_val, "%s",
 			c->value_int ? "TRUE" : "FALSE"); break;
-		case ARG_STRING: ber_str2bv( c->value_string, 0, 0, &bv); break;
+		case ARG_STRING:
+			if ( c->value_string && c->value_string[0]) {
+				ber_str2bv( c->value_string, 0, 0, &bv);
+			} else {
+				rc = 1;
+			}
+			break;
 		}
 		ber_bvarray_add(&c->rvalue_vals, &bv);
 	}
@@ -713,8 +719,6 @@ read_config(const char *fname, int depth) {
 	}
 	i = init_config_attrs(SystemConfiguration);
 	if ( i ) return i;
-	
-
 	config_back_init( &cf_prv, SystemConfiguration );
 	return read_config_file(fname, depth, NULL);
 }
@@ -876,6 +880,37 @@ config_generic(ConfigArgs *c) {
 	char *p = strchr(c->line,'(' /*')'*/);
 	int i;
 
+	if ( c->emit ) {
+		int rc = 0;
+		switch(c->type) {
+		case CFG_CONCUR:
+			c->value_int = ldap_pvt_thread_get_concurrency();
+			break;
+		case CFG_THREADS:
+			c->value_int = connection_pool_max; break;
+			break;
+		case CFG_RO:
+			c->value_int = (c->be->be_restrictops & SLAP_RESTRICT_OP_WRITES) != 0;
+		case CFG_DEPTH:
+			c->value_int = c->be->be_max_deref_depth;
+			break;
+		case CFG_CHECK:
+			c->value_int = global_schemacheck;
+			break;
+		case CFG_REPLOG:
+			c->value_string = c->be->be_replogfile;
+			break;
+		case CFG_ROOTDSE:
+			c->rvalue_vals = cfn->c_dseFiles;
+			break;
+		case CFG_LASTMOD:
+			c->value_int = (SLAP_NOLASTMOD(c->be) == 0);
+			break;
+		default:
+			rc = 1;
+		}
+		return rc;
+	}
 	switch(c->type) {
 		case CFG_BACKEND:
 			if(!(c->bi = backend_info(c->argv[1]))) {
@@ -887,6 +922,9 @@ config_generic(ConfigArgs *c) {
 
 		case CFG_DATABASE:
 			c->bi = NULL;
+			/* FIXME - config should probably be the
+			 * last backend, not the first.
+			 */
 			if ( !strcasecmp( c->argv[1], "config" )) {
 				c->be = backendDB;
 			} else if(!(c->be = backend_db_init(c->argv[1]))) {
@@ -897,7 +935,7 @@ config_generic(ConfigArgs *c) {
 			break;
 
 		case CFG_CONCUR:
-			ldap_pvt_thread_set_concurrency(c->value_long);
+			ldap_pvt_thread_set_concurrency(c->value_int);
 			break;
 
 		case CFG_THREADS:
@@ -1091,7 +1129,17 @@ config_generic(ConfigArgs *c) {
 int
 config_search_base(ConfigArgs *c) {
 	struct berval dn;
-	int rc;
+
+	if(c->emit) {
+		int rc = 1;
+		if (!BER_BVISEMPTY(&default_search_base)) {
+			ber_bvarray_add(&c->rvalue_vals, &default_search_base);
+			ber_bvarray_add(&c->rvalue_nvals, &default_search_nbase);
+			rc = 0;
+		}
+		return rc;
+	}
+
 	if(c->bi || c->be != frontendDB) {
 		Debug(LDAP_DEBUG_ANY, "%s: defaultSearchBase line must appear "
 			"prior to any backend or database definition\n",
@@ -1116,6 +1164,14 @@ config_search_base(ConfigArgs *c) {
 int
 config_passwd_hash(ConfigArgs *c) {
 	int i;
+	if (c->emit) {
+		struct berval bv;
+		for (i=0; default_passwd_hash && default_passwd_hash[i]; i++) {
+			ber_str2bv(default_passwd_hash[i], 0, 0, &bv);
+			ber_bvarray_add(&c->rvalue_vals, &bv);
+		}
+		return i ? 0 : 1;
+	}
 	if(default_passwd_hash) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"already set default password_hash\n",
@@ -1143,6 +1199,11 @@ int
 config_schema_dn(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
+	if ( c->emit ) {
+		ber_bvarray_add(&c->rvalue_vals, &c->be->be_schemadn);
+		ber_bvarray_add(&c->rvalue_nvals, &c->be->be_schemandn);
+		return 0;
+	}
 	c->be->be_schemadn = c->value_dn;
 	c->be->be_schemandn = c->value_ndn;
 	return(0);
@@ -1153,6 +1214,9 @@ config_sizelimit(ConfigArgs *c) {
 	int i, rc = 0;
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
+	if (c->emit) {
+		return 1;
+	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "size", 4)) {
 			rc = limits_parse_one(c->argv[i], lim);
@@ -1189,6 +1253,9 @@ config_timelimit(ConfigArgs *c) {
 	int i, rc = 0;
 	char *next;
 	struct slap_limits_set *lim = &c->be->be_def_limit;
+	if (c->emit) {
+		return 1;
+	}
 	for(i = 1; i < c->argc; i++) {
 		if(!strncasecmp(c->argv[i], "time", 4)) {
 			rc = limits_parse_one(c->argv[i], lim);
@@ -1222,6 +1289,9 @@ config_timelimit(ConfigArgs *c) {
 
 int
 config_overlay(ConfigArgs *c) {
+	if (c->emit) {
+		return 1;
+	}
 	if(c->argv[1][0] == '-' && overlay_config(c->be, &c->argv[1][1])) {
 		/* log error */
 		Debug(LDAP_DEBUG_ANY, "%s: (optional) %s overlay \"%s\" configuration failed (ignored)\n",
@@ -1237,6 +1307,14 @@ config_suffix(ConfigArgs *c) {
 	Backend *tbe;
 	struct berval pdn, ndn;
 	int rc;
+	if (c->emit) {
+		int i;
+		for (i=0; !BER_BVISNULL(&c->be->be_suffix[i]); i++) {
+			ber_bvarray_add(&c->rvalue_vals, &c->be->be_suffix[i]);
+			ber_bvarray_add(&c->rvalue_nvals, &c->be->be_nsuffix[i]);
+		}
+		return i ? 0 : 1;
+	}
 #ifdef SLAPD_MONITOR_DN
 	if(!strcasecmp(c->argv[1], SLAPD_MONITOR_DN)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1272,6 +1350,11 @@ config_suffix(ConfigArgs *c) {
 
 int
 config_rootdn(ConfigArgs *c) {
+	if (c->emit) {
+		ber_bvarray_add(&c->rvalue_vals, &c->be->be_rootdn);
+		ber_bvarray_add(&c->rvalue_nvals, &c->be->be_rootndn);
+		return 0;
+	}
 	c->be->be_rootdn = c->value_dn;
 	c->be->be_rootndn = c->value_ndn;
 	return(0);
@@ -1279,14 +1362,23 @@ config_rootdn(ConfigArgs *c) {
 
 int
 config_rootpw(ConfigArgs *c) {
-	Backend *tbe = select_backend(&c->be->be_rootndn, 0, 0);
+	Backend *tbe;
+	if (c->emit) {
+		if (!BER_BVISEMPTY(&c->be->be_rootpw)) {
+			c->value_string="*";
+			return 0;
+		}
+		return 1;
+	}
+
+	tbe = select_backend(&c->be->be_rootndn, 0, 0);
 	if(tbe != c->be) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"rootpw can only be set when rootdn is under suffix\n",
 			c->log, 0, 0);
 		return(1);
 	}
-	ber_str2bv(c->argv[1], 0, 1, &c->be->be_rootpw);
+	ber_str2bv(c->value_string, 0, 0, &c->be->be_rootpw);
 	return(0);
 }
 
@@ -1339,6 +1431,9 @@ config_restrict(ConfigArgs *c) {
 		{ NULL,	0 }
 	};
 
+	if (c->emit) {
+		return 1;
+	}
 	for(i = 1; i < c->argc; i++) {
 		j = verb_to_mask(c, restrictable_ops, i);
 		if(restrictable_ops[j].word) {
@@ -1379,6 +1474,9 @@ config_allows(ConfigArgs *c) {
 		{ "update_anon",	SLAP_ALLOW_UPDATE_ANON },
 		{ NULL,	0 }
 	};
+	if (c->emit) {
+		return 1;
+	}
 	i = verbs_to_mask(c, allowable_ops, &allows);
 	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1402,6 +1500,9 @@ config_disallows(ConfigArgs *c) {
 		{ "tls_authc",		SLAP_DISALLOW_TLS_AUTHC },
 		{ NULL, 0 }
 	};
+	if (c->emit) {
+		return 1;
+	}
 	i = verbs_to_mask(c, disallowable_ops, &disallows);
 	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1425,6 +1526,9 @@ config_requires(ConfigArgs *c) {
 		{ "strong",		SLAP_REQUIRE_STRONG },
 		{ NULL, 0 }
 	};
+	if (c->emit) {
+		return 1;
+	}
 	i = verbs_to_mask(c, requires_ops, &requires);
 	if ( i ) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
@@ -1460,6 +1564,10 @@ config_loglevel(ConfigArgs *c) {
 	};
 	ldap_syslog = 0;
 
+	if (c->emit) {
+		return 1;
+	}
+
 	for( i=1; i < c->argc; i++ ) {
 		int	level;
 
@@ -1490,6 +1598,9 @@ config_loglevel(ConfigArgs *c) {
 
 int
 config_syncrepl(ConfigArgs *c) {
+	if (c->emit) {
+		return 1;
+	}
 	if(SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"syncrepl: database already shadowed.\n",
@@ -1505,6 +1616,9 @@ config_syncrepl(ConfigArgs *c) {
 int
 config_referral(ConfigArgs *c) {
 	struct berval vals[2];
+	if (c->emit) {
+		return 1;
+	}
 	if(validate_global_referral(c->argv[1])) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"invalid URL (%s) in \"referral\" line.\n",
@@ -1523,6 +1637,9 @@ config_security(ConfigArgs *c) {
 	slap_ssf_set_t *set = &c->be->be_ssf_set;
 	char *next;
 	int i;
+	if (c->emit) {
+		return 1;
+	}
 	for(i = 1; i < c->argc; i++) {
 		slap_ssf_t *tgt;
 		char *src;
@@ -1577,6 +1694,9 @@ config_replica(ConfigArgs *c) {
 	char *replicahost, *replicalog = NULL;
 	LDAPURLDesc *ludp;
 
+	if (c->emit) {
+		return 1;
+	}
 	if(SLAP_MONITOR(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"\"replica\" should not be used inside monitor database\n",
@@ -1670,6 +1790,14 @@ int
 config_updatedn(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
+	if (c->emit) {
+		if (!BER_BVISEMPTY(&c->be->be_update_ndn)) {
+			ber_bvarray_add(&c->rvalue_vals, &c->be->be_update_ndn);
+			ber_bvarray_add(&c->rvalue_nvals, &c->be->be_update_ndn);
+			return 0;
+		}
+		return 1;
+	}
 	if(SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"updatedn: database already shadowed.\n",
@@ -1695,6 +1823,9 @@ config_updatedn(ConfigArgs *c) {
 int
 config_updateref(ConfigArgs *c) {
 	struct berval vals[2];
+	if (c->emit) {
+		return 1;
+	}
 	if(!SLAP_SHADOW(c->be)) {
 		Debug(LDAP_DEBUG_ANY, "%s: "
 			"updateref line must after syncrepl or updatedn.\n",
@@ -1723,6 +1854,9 @@ config_include(ConfigArgs *c) {
 	ConfigFile *cf = ch_calloc( 1, sizeof(ConfigFile));
 	ConfigFile *cfsave = cfn;
 	ConfigFile *cf2 = NULL;
+	if (c->emit) {
+		return 1;
+	}
 	if ( cfn->c_kids ) {
 		for (cf2=cfn->c_kids; cf2 && cf2->c_sibs; cf2=cf2->c_sibs) ;
 		cf2->c_sibs = cf;
@@ -1745,6 +1879,9 @@ config_include(ConfigArgs *c) {
 int
 config_tls_option(ConfigArgs *c) {
 	int flag;
+	if (c->emit) {
+		return 1;
+	}
 	switch(c->type) {
 	case CFG_TLS_RAND:		flag = LDAP_OPT_X_TLS_RANDOM_FILE;	break;
 	case CFG_TLS_CIPHER:		flag = LDAP_OPT_X_TLS_CIPHER_SUITE;	break;
@@ -1765,6 +1902,9 @@ config_tls_option(ConfigArgs *c) {
 int
 config_tls_verify(ConfigArgs *c) {
 	int i;
+	if (c->emit) {
+		return 1;
+	}
 	if(isdigit((unsigned char)c->argv[1][0])) {
 		i = atoi(c->argv[1]);
 		return(ldap_pvt_tls_set_option(NULL, LDAP_OPT_X_TLS_REQUIRE_CERT, &i));
