@@ -224,8 +224,13 @@ do_compare(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn, manageDSAit )) == NULL ) {
+		struct berval **ref = referral_rewrite( default_referral,
+			NULL, dn, LDAP_SCOPE_DEFAULT );
+
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			NULL, NULL, default_referral, NULL );
+			NULL, NULL, ref ? ref : default_referral, NULL );
+
+		ber_bvecfree( ref );
 		rc = 0;
 		goto cleanup;
 	}

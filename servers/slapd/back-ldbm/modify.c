@@ -46,7 +46,7 @@ int ldbm_modify_internal(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_modify_internal: %s\n", dn ));
+		"ldbm_modify_internal: %s\n", dn ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "ldbm_modify_internal: %s\n", dn, 0, 0);
 #endif
@@ -66,7 +66,7 @@ int ldbm_modify_internal(
 		case LDAP_MOD_ADD:
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				   "ldbm_modify_internal: add\n" ));
+				"ldbm_modify_internal: add\n" ));
 #else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: add\n", 0, 0, 0);
 #endif
@@ -77,8 +77,8 @@ int ldbm_modify_internal(
 				*text = "modify: add values failed";
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-					   "ldbm_modify_internal: failed %d (%s)\n",
-					   err, *text ));
+					"ldbm_modify_internal: failed %d (%s)\n",
+					err, *text ));
 #else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -89,7 +89,7 @@ int ldbm_modify_internal(
 		case LDAP_MOD_DELETE:
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				   "ldbm_modify_internal: delete\n" ));
+				"ldbm_modify_internal: delete\n" ));
 #else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: delete\n", 0, 0, 0);
 #endif
@@ -100,7 +100,7 @@ int ldbm_modify_internal(
 				*text = "modify: delete values failed";
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-					   "ldbm_modify_internal: failed %d (%s)\n", err, *text ));
+					"ldbm_modify_internal: failed %d (%s)\n", err, *text ));
 #else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -111,7 +111,7 @@ int ldbm_modify_internal(
 		case LDAP_MOD_REPLACE:
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				   "ldbm_modify_internal:  replace\n" ));
+				"ldbm_modify_internal:  replace\n" ));
 #else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: replace\n", 0, 0, 0);
 #endif
@@ -122,7 +122,7 @@ int ldbm_modify_internal(
 				*text = "modify: replace values failed";
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-					   "ldbm_modify_internal: failed %d (%s)\n", err, *text ));
+					"ldbm_modify_internal: failed %d (%s)\n", err, *text ));
 #else
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 					err, *text, 0);
@@ -134,7 +134,7 @@ int ldbm_modify_internal(
 		case SLAP_MOD_SOFTADD:
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				   "ldbm_modify_internal: softadd\n" ));
+				"ldbm_modify_internal: softadd\n" ));
 #else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: softadd\n", 0, 0, 0);
 #endif
@@ -165,7 +165,7 @@ int ldbm_modify_internal(
 		default:
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-				   "ldbm_modify_internal: invalid op %d\n", mod->sm_op ));
+				"ldbm_modify_internal: invalid op %d\n", mod->sm_op ));
 #else
 			Debug(LDAP_DEBUG_ANY, "ldbm_modify_internal: invalid op %d\n",
 				mod->sm_op, 0, 0);
@@ -175,7 +175,7 @@ int ldbm_modify_internal(
 			*text = "Invalid modify operation";
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_modify_internal: %d (%s)\n", err, *text ));
+				"ldbm_modify_internal: %d (%s)\n", err, *text ));
 #else
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
 				err, *text, 0);
@@ -208,8 +208,8 @@ int ldbm_modify_internal(
 		e->e_attrs = save_attrs;
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-			   "ldbm_modify_internal: entry failed schema check: %s\n",
-			   *text ));
+			"ldbm_modify_internal: entry failed schema check: %s\n",
+			*text ));
 #else
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check: %s\n",
 			*text, 0, 0 );
@@ -261,7 +261,7 @@ ldbm_back_modify(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_back_modify: enter\n" ));
+		"ldbm_back_modify: enter\n" ));
 #else
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 #endif
@@ -270,25 +270,25 @@ ldbm_back_modify(
 	/* acquire and lock entry */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
-		struct berval **refs = NULL;
+		struct berval **refs;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( be, conn, op, matched,
+					dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		if ( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 
 		return( -1 );
 	}
@@ -297,7 +297,7 @@ ldbm_back_modify(
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,

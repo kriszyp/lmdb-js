@@ -268,9 +268,13 @@ do_search(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( nbase, manageDSAit )) == NULL ) {
-		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			NULL, NULL, default_referral, NULL );
+		struct berval **ref = referral_rewrite( default_referral,
+			NULL, base, scope );
 
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+			NULL, NULL, ref ? ref : default_referral, NULL );
+
+		ber_bvecfree( ref );
 		goto return_results;
 	}
 

@@ -252,8 +252,13 @@ do_modify(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn, manageDSAit )) == NULL ) {
+		struct berval **ref = referral_rewrite( default_referral,
+			NULL, dn, LDAP_SCOPE_DEFAULT );
+
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			NULL, NULL, default_referral, NULL );
+			NULL, NULL, ref ? ref : default_referral, NULL );
+
+		ber_bvecfree( ref );
 		goto cleanup;
 	}
 
@@ -337,9 +342,15 @@ do_modify(
 #ifndef SLAPD_MULTIMASTER
 		/* send a referral */
 		} else {
+			struct berval **defref = be->be_update_refs
+				? be->be_update_refs : default_referral;
+			struct berval **ref = referral_rewrite( defref,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
+
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
-				be->be_update_refs ? be->be_update_refs : default_referral,
-				NULL );
+				ref ? ref : defref, NULL );
+
+			ber_bvecfree( ref );
 #endif
 		}
 	} else {

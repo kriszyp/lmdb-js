@@ -52,6 +52,7 @@ ldbm_back_search(
 	char	*realbase = NULL;
 	int		nentries = 0;
 	int		manageDSAit = get_manageDSAit( op );
+	int		cscope = LDAP_SCOPE_DEFAULT;
 
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
@@ -95,54 +96,73 @@ ldbm_back_search(
 		struct berval **refs = NULL;
 
 		if ( matched != NULL ) {
+			struct berval **erefs;
 			matched_dn = ch_strdup( matched->e_dn );
 
-			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+			erefs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched,
+					base, scope )
 				: NULL;
 
 			cache_return_entry_r( &li->li_cache, matched );
 
+			if( erefs ) {
+				refs = referral_rewrite( erefs, matched_dn,
+					base, scope );
+
+				ber_bvecfree( erefs );
+			}
+
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, base, scope );
 		}
 
 		send_ldap_result( conn, op, err,
 			matched_dn, text, refs, NULL );
 
-		if( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
-
+		ber_bvecfree( refs );
+		free( matched_dn );
 		return 1;
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		char *matched_dn = ch_strdup( e->e_dn );
-		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+		struct berval **erefs = get_entry_referrals( be,
+			conn, op, e, base, scope );
+		struct berval **refs = NULL;
 
 		cache_return_entry_r( &li->li_cache, e );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_search: entry (%s) is a referral.\n",
-			   e->e_dn ));
+			"ldbm_search: entry (%s) is a referral.\n",
+			e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 			"ldbm_search: entry is referral\n",
 			0, 0, 0 );
 #endif
 
+		if( erefs ) {
+			refs = referral_rewrite( erefs, matched_dn,
+				base, scope );
 
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-		    matched_dn, NULL, refs, NULL );
+			ber_bvecfree( erefs );
+		}
 
-		ber_bvecfree( refs );
+		if( refs ) {
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+				matched_dn, NULL, refs, NULL );
+			ber_bvecfree( refs );
+
+		} else {
+			send_ldap_result( conn, op, LDAP_OTHER, matched_dn,
+				"bad referral object", NULL, NULL );
+		}
+
 		free( matched_dn );
-
 		return 1;
 	}
 
@@ -152,9 +172,12 @@ ldbm_back_search(
 	}
 
 	if ( scope == LDAP_SCOPE_BASE ) {
+		cscope = LDAP_SCOPE_BASE;
 		candidates = base_candidate( be, e );
 
 	} else {
+		cscope = ( scope != LDAP_SCOPE_SUBTREE )
+			? LDAP_SCOPE_BASE : LDAP_SCOPE_SUBTREE;
 		candidates = search_candidates( be, e, filter,
 		    scope, deref, manageDSAit );
 	}
@@ -169,12 +192,11 @@ searchit:
 		/* no candidates */
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_search: no candidates\n" ));
+			"ldbm_search: no candidates\n" ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "ldbm_search: no candidates\n",
 			0, 0, 0 );
 #endif
-
 
 		send_search_result( conn, op,
 			LDAP_SUCCESS,
@@ -257,7 +279,7 @@ searchit:
 	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
 	    id = idl_nextid( candidates, &cursor ) )
 	{
-		int		scopeok = 0;
+		int scopeok = 0;
 
 		/* check for abandon */
 		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
@@ -284,13 +306,12 @@ searchit:
 		if ( e == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_search: candidate %ld not found.\n", id ));
+				"ldbm_search: candidate %ld not found.\n", id ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"ldbm_search: candidate %ld not found\n",
 				id, 0, 0 );
 #endif
-
 
 			goto loop_continue;
 		}
@@ -327,10 +348,10 @@ searchit:
 				/* alias is within scope */
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-					   "ldbm_search: \"%s\" in subtree\n", e->e_dn ));
+					"ldbm_search: alias \"%s\" in subtree\n", e->e_dn ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
-					"ldbm_search: \"%s\" in subtree\n",
+					"ldbm_search: alias \"%s\" in subtree\n",
 					e->e_dn, 0, 0 );
 #endif
 
@@ -373,11 +394,13 @@ searchit:
 			}
 
 			if( scopeok ) {
-				struct berval **refs = get_entry_referrals(
-					be, conn, op, e );
+				struct berval **erefs = get_entry_referrals(
+					be, conn, op, e, NULL, cscope );
+				struct berval **refs = referral_rewrite( erefs, e->e_dn,
+					NULL, scope );
 
 				send_search_reference( be, conn, op,
-					e, refs, scope, NULL, &v2refs );
+					e, refs, NULL, &v2refs );
 
 				ber_bvecfree( refs );
 
@@ -452,24 +475,23 @@ searchit:
 			} else {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
-					   "ldbm_search: candidate %ld scope not okay\n", id ));
+					"ldbm_search: candidate entry %ld scope not okay\n", id ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
-					"ldbm_search: candidate %ld scope not okay\n",
+					"ldbm_search: candidate entry %ld scope not okay\n",
 					id, 0, 0 );
 #endif
-
 			}
+
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
-				   "ldbm_search: candidate %ld does not match filter\n", id ));
+				"ldbm_search: candidate entry %ld does not match filter\n", id ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"ldbm_search: candidate %ld does not match filter\n",
+				"ldbm_search: candidate entry %ld does not match filter\n",
 				id, 0, 0 );
 #endif
-
 		}
 
 loop_continue:
@@ -480,6 +502,7 @@ loop_continue:
 
 		ldap_pvt_thread_yield();
 	}
+
 	send_search_result( conn, op,
 		v2refs == NULL ? LDAP_SUCCESS : LDAP_REFERRAL,
 		NULL, NULL, v2refs, NULL, nentries );

@@ -45,7 +45,8 @@ int passwd_extop(
 
 		} else if( conn->c_authz_backend->be_update_ndn != NULL ) {
 			/* we SHOULD return a referral in this case */
-			*refs = conn->c_authz_backend->be_update_refs;
+			*refs = referral_rewrite( conn->c_authz_backend->be_update_refs,
+				NULL, NULL, LDAP_SCOPE_DEFAULT );
 			rc = LDAP_REFERRAL;
 
 		} else {

@@ -430,8 +430,13 @@ do_bind(
 
 	if ( (be = select_backend( ndn, 0 )) == NULL ) {
 		if ( default_referral ) {
+			struct berval **ref = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
+
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-				NULL, NULL, default_referral, NULL );
+				NULL, NULL, ref ? ref : default_referral, NULL );
+
+			ber_bvecfree( ref );
 
 		} else {
 			/* noSuchObject is not allowed to be returned by bind */

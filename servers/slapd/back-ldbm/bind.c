@@ -45,7 +45,7 @@ ldbm_back_bind(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_back_bind: dn: %s.\n", dn ));
+		"ldbm_back_bind: dn: %s.\n", dn ));
 #else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
 #endif
@@ -63,12 +63,15 @@ ldbm_back_bind(
 			matched_dn = ch_strdup( matched->e_dn );
 
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( be, conn, op, matched,
+					dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 
 			cache_return_entry_r( &li->li_cache, matched );
+
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		/* allow noauth binds */
@@ -96,10 +99,8 @@ ldbm_back_bind(
 				NULL, NULL, NULL, NULL );
 		}
 
-		if ( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 		return( rc );
 	}
 
@@ -128,7 +129,7 @@ ldbm_back_bind(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,

@@ -41,20 +41,20 @@ ldbm_back_compare(
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( be, conn, op, matched,
+					dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		if( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 
 		return( 1 );
 	}
@@ -62,7 +62,7 @@ ldbm_back_compare(
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,

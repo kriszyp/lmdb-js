@@ -77,36 +77,36 @@ ldbm_back_modrdn(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_back_modrdn: dn: %s newSuperior=%s\n", 
-		   dn ? dn : "NULL", newSuperior ? newSuperior : "NULL" ));
+		"ldbm_back_modrdn: dn: %s newSuperior=%s\n", 
+		dn ? dn : "NULL", newSuperior ? newSuperior : "NULL" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",
-	       (newSuperior ? newSuperior : "NULL"),
-	       0, 0 );
+	    (newSuperior ? newSuperior : "NULL"),
+	    0, 0 );
 #endif
 
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
-		struct berval** refs = NULL;
+		struct berval** refs;
 
 		if( matched != NULL ) {
 			matched_dn = strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( be, conn, op, matched,
+					dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		if ( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 
 		return( -1 );
 	}
@@ -115,13 +115,13 @@ ldbm_back_modrdn(
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modrdn: entry %s is a referral\n", e->e_dn ));
+			"ldbm_back_modrdn: entry %s is a referral\n", e->e_dn ));
 #else
-		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
+		Debug( LDAP_DEBUG_TRACE, "entry %s is referral\n", e->e_dn,
 		    0, 0 );
 #endif
 
@@ -135,9 +135,9 @@ ldbm_back_modrdn(
 	if ( has_children( be, e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modrdn: entry %s has children\n", e->e_dn ));
+			"ldbm_back_modrdn: entry %s has children\n", e->e_dn ));
 #else
-		Debug( LDAP_DEBUG_TRACE, "entry %s referral\n", e->e_dn,
+		Debug( LDAP_DEBUG_TRACE, "entry %s has children\n", e->e_dn,
 		    0, 0 );
 #endif
 
@@ -154,7 +154,7 @@ ldbm_back_modrdn(
 		if( (p = dn2entry_w( be, p_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_back_modrdn: parent of %s does not exist\n", e->e_ndn ));
+				"ldbm_back_modrdn: parent of %s does not exist\n", e->e_ndn ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
@@ -334,11 +334,11 @@ ldbm_back_modrdn(
 			/* parent is an alias, don't allow add */
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_back_modrdn: entry (%s) is a referral\n",
-				   np->e_dn ));
+				"ldbm_back_modrdn: entry (%s) is a referral\n",
+				np->e_dn ));
 #else
-			Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
-				0, 0 );
+			Debug( LDAP_DEBUG_TRACE, "entry (%s) is referral\n",
+				np->e_dn, 0, 0 );
 #endif
 
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -349,11 +349,11 @@ ldbm_back_modrdn(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "ldbm_back_modrdn: wr to new parent's children OK.\n" ));
+			"ldbm_back_modrdn: wr to new parent's children OK.\n" ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: wr to new parent's children OK\n",
-		       0, 0 , 0 );
+		    "ldbm_back_modrdn: wr to new parent's children OK\n",
+		    0, 0, 0 );
 #endif
 
 		new_parent_dn = np_dn;
@@ -367,10 +367,10 @@ ldbm_back_modrdn(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-		   "ldbm_back_modrdn: new ndn=%s\n", new_ndn ));
+		"ldbm_back_modrdn: new ndn=%s\n", new_ndn ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
-	       new_ndn, 0, 0 );
+	    new_ndn, 0, 0 );
 #endif
 
 	/* check for abandon */

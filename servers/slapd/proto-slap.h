@@ -503,12 +503,24 @@ LDAP_SLAPD_F (int) add_replica_suffix LDAP_P(( Backend *be, int nr, const char *
 LDAP_SLAPD_F (void) replog LDAP_P(( Backend *be, Operation *op, char *dn, void *change ));
 
 /*
- * result.c
+ * referral.c
  */
+LDAP_SLAPD_F (int) validate_global_referral LDAP_P((
+	const char *url ));
 
 LDAP_SLAPD_F (struct berval **) get_entry_referrals LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e ));
+	Entry *e, const char *target, int scope ));
+
+LDAP_SLAPD_F (struct berval **) referral_rewrite LDAP_P((
+	struct berval **refs,
+	const char *base,
+	const char *target,
+	int scope ));
+
+/*
+ * result.c
+ */
 
 LDAP_SLAPD_F (void) send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
@@ -549,7 +561,7 @@ LDAP_SLAPD_F (void) send_search_result LDAP_P((
 
 LDAP_SLAPD_F (int) send_search_reference LDAP_P((
 	Backend *be, Connection *conn, Operation *op,
-	Entry *e, struct berval **refs, int scope,
+	Entry *e, struct berval **refs,
 	LDAPControl **ctrls,
 	struct berval ***v2refs ));
 

@@ -123,20 +123,12 @@ int send_search_reference(
 	Operation   *op,
 	Entry	*e,
 	struct berval **refs,
-	int scope,
 	LDAPControl **ctrls,
 	struct berval ***v2refs
 )
 {
 	assert(0);
 	return -1;
-}
-
-struct berval **get_entry_referrals(
-	Backend *be, Connection *conn, Operation *op, Entry *e )
-{
-	assert(0);
-	return NULL;
 }
 
 int slap_sasl_init(void)

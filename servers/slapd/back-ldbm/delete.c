@@ -36,43 +36,42 @@ ldbm_back_delete(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_back_delete: %s\n", dn ));
+		"ldbm_back_delete: %s\n", dn ));
 #else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_delete: %s\n", dn, 0, 0);
 #endif
 
-
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
-		struct berval **refs = NULL;
+		struct berval **refs;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_delete: no such object %s\n", dn ));
+			"ldbm_back_delete: no such object %s\n", dn ));
 #else
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: no such object %s\n",
 			dn, 0, 0);
 #endif
 
-
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( be, conn, op, matched,
+					dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
+
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		if ( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 
 		return( -1 );
 	}
@@ -81,7 +80,7 @@ ldbm_back_delete(
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,

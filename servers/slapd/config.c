@@ -1487,6 +1487,19 @@ read_config( const char *fname )
 				return( 1 );
 			}
 
+			if( validate_global_referral( cargv[1] ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+					"invalid URL (%s) in \"referral\" line.\n",
+					fname, lineno, cargv[1] ));
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"invalid URL (%s) in \"referral\" line.\n",
+				    fname, lineno, cargv[1] );
+#endif
+				return 1;
+			}
+
 			vals[0]->bv_val = cargv[1];
 			vals[0]->bv_len = strlen( vals[0]->bv_val );
 			value_add( &default_referral, vals );
@@ -1772,12 +1785,12 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-					   "%s: line %d: missing url in \"updateref <ldapurl>\" "
-					   "line.\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+					"missing url in \"updateref <ldapurl>\" line.\n",
+					fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: missing url in \"updateref <ldapurl>\" line\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing url in \"updateref <ldapurl>\" line\n",
 				    fname, lineno, 0 );
 #endif
 
@@ -1785,31 +1798,45 @@ read_config( const char *fname )
 			}
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: updateref line must appear inside "
-					   "a database definition (ignored)\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+					"updateref line must appear inside a database definition "
+					"(ignored)\n", fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: updateref line must appear inside a database definition (ignored)\n",
-				    fname, lineno, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"updateref line must appear inside a database definition "
+					"(ignored)\n", fname, lineno, 0 );
 #endif
+				return 1;
 
 			} else if ( be->be_update_ndn == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO,
-					   "%s: line %d: updateref line must come after updatedn "
-					   "(ignored).\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
+					"updateref line must come after updatedn (ignored).\n",
+					fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY,
-"%s: line %d: updateref line must after updatedn (ignored)\n",
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"updateref line must after updatedn (ignored)\n",
 				    fname, lineno, 0 );
 #endif
-
-			} else {
-				vals[0]->bv_val = cargv[1];
-				vals[0]->bv_len = strlen( vals[0]->bv_val );
-				value_add( &be->be_update_refs, vals );
+				return 1;
 			}
+
+			if( validate_global_referral( cargv[1] ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+					"invalid URL (%s) in \"updateref\" line.\n",
+					fname, lineno, cargv[1] ));
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"invalid URL (%s) in \"updateref\" line.\n",
+				    fname, lineno, cargv[1] );
+#endif
+				return 1;
+			}
+
+			vals[0]->bv_val = cargv[1];
+			vals[0]->bv_len = strlen( vals[0]->bv_val );
+			value_add( &be->be_update_refs, vals );
 
 		/* replication log file to which changes are appended */
 		} else if ( strcasecmp( cargv[0], "replogfile" ) == 0 ) {

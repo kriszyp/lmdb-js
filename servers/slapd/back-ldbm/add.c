@@ -37,11 +37,10 @@ ldbm_back_add(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,"ldbm_back_add: %s\n",
-		   e->e_dn ));
+		e->e_dn ));
 #else
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", e->e_dn, 0, 0);
 #endif
-
 
 	/* nobody else can add until we lock our parent */
 	ldap_pvt_thread_mutex_lock(&li->li_add_mutex);
@@ -62,8 +61,8 @@ ldbm_back_add(
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-			   "ldbm_back_add: entry (%s) failed schema check.\n",
-			   e->e_dn ));
+			"ldbm_back_add: entry (%s) failed schema check.\n",
+			e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry failed schema check: %s\n",
 			text, 0, 0 );
@@ -90,7 +89,7 @@ ldbm_back_add(
 
 		/* get parent with writer lock */
 		if ( (p = dn2entry_w( be, pdn, &matched )) == NULL ) {
-			char *matched_dn;
+			char *matched_dn = NULL;
 			struct berval **refs;
 
 			ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);
@@ -98,33 +97,31 @@ ldbm_back_add(
 			if ( matched != NULL ) {
 				matched_dn = ch_strdup( matched->e_dn );
 				refs = is_entry_referral( matched )
-					? get_entry_referrals( be, conn, op, matched )
+					? get_entry_referrals( be, conn, op, matched,
+						e->e_dn, LDAP_SCOPE_DEFAULT )
 					: NULL;
 				cache_return_entry_r( &li->li_cache, matched );
 
 			} else {
-				matched_dn = NULL;
-				refs = default_referral;
+				refs = referral_rewrite( default_referral,
+					NULL, e->e_dn, LDAP_SCOPE_DEFAULT );
 			}
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-				   "ldbm_back_add: Parent of (%s) does not exist.\n",
-				   e->e_dn ));
+				"ldbm_back_add: Parent of (%s) does not exist.\n",
+				e->e_dn ));
 #else
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0 );
 #endif
 
-
 			send_ldap_result( conn, op, LDAP_REFERRAL, matched_dn,
 				refs == NULL ? "parent does not exist" : "parent is referral",
 				refs, NULL );
 
-			if( matched != NULL ) {
-				ber_bvecfree( refs );
-				free( matched_dn );
-			}
+			ber_bvecfree( refs );
+			free( matched_dn );
 
 			free( pdn );
 			return -1;
@@ -182,7 +179,8 @@ ldbm_back_add(
 			/* parent is a referral, don't allow add */
 			char *matched_dn = ch_strdup( p->e_dn );
 			struct berval **refs = is_entry_referral( p )
-				? get_entry_referrals( be, conn, op, p )
+				? get_entry_referrals( be, conn, op, p,
+					e->e_dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 
 			/* free parent and writer lock */
@@ -289,7 +287,6 @@ ldbm_back_add(
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
 #endif
-
 
 		send_ldap_result( conn, op,
 			rc > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER,

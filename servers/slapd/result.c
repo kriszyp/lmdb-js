@@ -95,87 +95,6 @@ static ber_tag_t req2res( ber_tag_t tag )
 	return tag;
 }
 
-static void trim_refs_urls(
-	struct berval **refs )
-{
-	unsigned i;
-
-	if( refs == NULL ) return;
-
-	for( i=0; refs[i] != NULL; i++ ) {
-		if(	refs[i]->bv_len > sizeof("ldap://")-1 &&
-			strncasecmp( refs[i]->bv_val, "ldap://",
-				sizeof("ldap://")-1 ) == 0 )
-		{
-			unsigned j;
-			for( j=sizeof("ldap://")-1; j<refs[i]->bv_len ; j++ ) {
-				if( refs[i]->bv_val[j] == '/' ) {
-					refs[i]->bv_val[j] = '\0';
-					refs[i]->bv_len = j;
-					break;
-				}
-			}
-		}
-	}
-}
-
-struct berval **get_entry_referrals(
-	Backend *be,
-	Connection *conn,
-	Operation *op,
-	Entry *e )
-{
-	Attribute *attr;
-	struct berval **refs;
-	unsigned i, j;
-
-	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
-
-	attr = attr_find( e->e_attrs, ad_ref );
-
-	if( attr == NULL ) return NULL;
-
-	for( i=0; attr->a_vals[i] != NULL; i++ ) {
-		/* count references */
-	}
-
-	if( i < 1 ) return NULL;
-
-	refs = ch_malloc( (i + 1) * sizeof(struct berval *));
-
-	for( i=0, j=0; attr->a_vals[i] != NULL; i++ ) {
-		unsigned k;
-		struct berval *ref = ber_bvdup( attr->a_vals[i] );
-
-		/* trim the label */
-		for( k=0; k<ref->bv_len; k++ ) {
-			if( isspace(ref->bv_val[k]) ) {
-				ref->bv_val[k] = '\0';
-				ref->bv_len = k;
-				break;
-			}
-		}
-
-		if(	ref->bv_len > 0 ) {
-			refs[j++] = ref;
-
-		} else {
-			ber_bvfree( ref );
-		}
-	}
-
-	refs[j] = NULL;
-
-	if( j == 0 ) {
-		ber_bvecfree( refs );
-		refs = NULL;
-	}
-
-	/* we should check that a referral value exists... */
-
-	return refs;
-}
-
 static long send_ldap_ber(
 	Connection *conn,
 	BerElement *ber )
@@ -503,22 +422,17 @@ send_ldap_result(
 	if( ref ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ARGS,
-			   "send_ldap_result: referral=\"%s\"\n",
-			   ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL" ));
+			"send_ldap_result: referral=\"%s\"\n",
+			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL" ));
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"send_ldap_result: referral=\"%s\"\n",
 			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
 			NULL, NULL );
 #endif
-
 	}
 
 	assert( err != LDAP_PARTIAL_RESULTS );
-
-	if( op->o_tag != LDAP_REQ_SEARCH ) {
-		trim_refs_urls( ref );
-	}
 
 	if ( err == LDAP_REFERRAL ) {
 		if( ref == NULL ) {
@@ -653,8 +567,6 @@ send_search_result(
 
 
 	assert( err != LDAP_PARTIAL_RESULTS );
-
-	trim_refs_urls( refs );
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		/* send references in search results */
@@ -1095,7 +1007,6 @@ send_search_reference(
     Operation	*op,
     Entry	*e,
 	struct berval **refs,
-	int scope,
 	LDAPControl **ctrls,
     struct berval ***v2refs
 )
@@ -1109,8 +1020,8 @@ send_search_reference(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "send_search_reference: conn %d  dn=\"%s\"\n",
-		   op->o_connid, e->e_dn ));
+		"send_search_reference: conn %d  dn=\"%s\"\n",
+		op->o_connid, e->e_dn ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"=> send_search_reference: dn=\"%s\"\n",
@@ -1123,8 +1034,8 @@ send_search_reference(
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
-			   "send_search_reference: conn %d	access to entry %s not allowed\n",
-			   op->o_connid, e->e_dn ));
+			"send_search_reference: conn %d	access to entry %s not allowed\n",
+			op->o_connid, e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to entry not allowed\n",
@@ -1139,8 +1050,8 @@ send_search_reference(
 	{
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "acl", LDAP_LEVEL_INFO,
-			   "send_search_reference: conn %d access to reference not allowed.\n",
-			   op->o_connid ));
+			"send_search_reference: conn %d access to reference not allowed.\n",
+			op->o_connid ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to reference not allowed\n",
@@ -1153,8 +1064,8 @@ send_search_reference(
 	if( refs == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "send_search_reference: null ref in (%s).\n",
-			   op->o_connid, e->e_dn ));
+			"send_search_reference: null ref in (%s).\n",
+			op->o_connid, e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: null ref in (%s)\n", 
@@ -1177,8 +1088,8 @@ send_search_reference(
 	if ( ber == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "send_search_reference: conn %d ber_alloc failed\n",
-			   op->o_connid ));
+			"send_search_reference: conn %d ber_alloc failed\n",
+			op->o_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: ber_alloc failed\n", 0, 0, 0 );
@@ -1195,8 +1106,8 @@ send_search_reference(
 	if ( rc == -1 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_ERR,
-			   "send_search_reference: conn %d	ber_printf failed.\n",
-			   op->o_connid ));
+			"send_search_reference: conn %d	ber_printf failed.\n",
+			op->o_connid ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"send_search_reference: ber_printf failed\n", 0, 0, 0 );
@@ -1218,15 +1129,14 @@ send_search_reference(
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
 	Statslog( LDAP_DEBUG_STATS2, "conn=%ld op=%ld REF dn=\"%s\"\n",
-	    (long) conn->c_connid, (long) op->o_opid, e->e_dn, 0, 0 );
+		(long) conn->c_connid, (long) op->o_opid, e->e_dn, 0, 0 );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_ENTRY,
-		   "send_search_reference: conn %d exit.\n", op->o_connid ));
+		"send_search_reference: conn %d exit.\n", op->o_connid ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 #endif
-
 
 	return 0;
 }

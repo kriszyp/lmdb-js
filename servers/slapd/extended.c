@@ -187,12 +187,15 @@ do_extended(
 		&rspoid, &rspdata, &rspctrls, &text, &refs );
 
 	if( rc != SLAPD_ABANDON ) {
-		if (rc == LDAP_REFERRAL) {
-			refs = default_referral;
+		if ( rc == LDAP_REFERRAL && refs == NULL ) {
+			refs = referral_rewrite( default_referral,
+				NULL, NULL, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_extended( conn, op, rc, NULL, text, refs,
 			rspoid, rspdata, rspctrls );
+
+		ber_bvecfree( refs );
 	}
 
 	if ( rspoid != NULL ) {
