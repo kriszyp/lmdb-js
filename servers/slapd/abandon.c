@@ -114,11 +114,8 @@ do_abandon( Operation *op, SlapReply *rs )
 done:
 
 	op->orn_msgid = id;
-	for ( i = 0; i < nbackends; i++ ) {
-		op->o_bd = &backends[i];
 
-		if( op->o_bd->be_abandon ) op->o_bd->be_abandon( op, rs );
-	}
+	fe_op_abandon( op, rs );
 
 	ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
@@ -130,5 +127,19 @@ done:
 	Debug( LDAP_DEBUG_TRACE, "do_abandon: op=%ld %sfound\n",
 		(long) id, o ? "" : "not ", 0 );
 #endif
+	return LDAP_SUCCESS;
+}
+
+int fe_op_abandon( Operation *op, SlapReply *rs )
+{
+	int i;
+
+	for ( i = 0; i < nbackends; i++ ) {
+		op->o_bd = &backends[i];
+		if ( op->o_bd->be_abandon ) {
+			(void)op->o_bd->be_abandon( op, rs );
+		}
+	}
+
 	return LDAP_SUCCESS;
 }

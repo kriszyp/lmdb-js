@@ -1294,6 +1294,7 @@ LDAP_SLAPD_V (struct berval)	NoAttrs;
  * operations
  */
 LDAP_SLAPD_F (int) do_abandon LDAP_P((Operation *op, SlapReply *rs));
+LDAP_SLAPD_F (int) fe_op_abandon LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_add LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_bind LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_compare LDAP_P((Operation *op, SlapReply *rs));
