@@ -44,9 +44,9 @@ extern void Re_dump( Re *re );
 extern void Re_dump();
 #endif /* NEEDPROTOS */
 
-#if !(defined(BSD) && (BSD >= 199306))
+#ifndef	SYSERRLIST_IN_STDIO
 extern char *sys_errlist[];
-#endif
+#endif /* SYSERRLIST_IN_STDIO
 
 /*
  * Lock the replication queue.
