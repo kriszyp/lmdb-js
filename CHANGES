@@ -1,5 +1,9 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.12 Release
+	Build Environment
+		Update version number
+
 OpenLDAP 2.1.11 Release
 	Fixed slapd ocflags bug (ITS#2186)
 	Fixed slapd objectIdentifierFirstComponentMatch bug
