@@ -74,7 +74,7 @@ int bdb_dn2id_matched(
 	DB_TXN *tid,
 	struct berval *dn,
 	ID *id,
-	char **matchedDN );
+	ID *id2 );
 
 int bdb_dn2id_add(
 	BackendDB *be,

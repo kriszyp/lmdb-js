@@ -237,7 +237,7 @@ bdb_dn2id_matched(
 	DB_TXN *txn,
 	struct berval	*in,
 	ID *id,
-	char **matchedDN )
+	ID *id2 )
 {
 	int		rc;
 	DBT		key, data;
@@ -259,8 +259,6 @@ bdb_dn2id_matched(
 	data.data = id;
 	data.ulen = sizeof(ID);
 	data.flags = DB_DBT_USERMEM;
-
-	*matchedDN = NULL;
 
 	while(1) {
 		dn[-1] = DN_BASE_PREFIX;
@@ -293,12 +291,12 @@ bdb_dn2id_matched(
 			}
 
 			if( dn != buf+1 ) {
-				*matchedDN = (char *) dn;
+				*id2 = *id;
 			}
 
 			Debug( LDAP_DEBUG_TRACE,
 				"<= bdb_dn2id_matched: id=0x%08lx: %s %s\n",
-				(long) *id, *matchedDN == NULL ? "entry" : "matched", dn );
+				(long) *id, *id2 == 0 ? "entry" : "matched", dn );
 			break;
 
 		} else {
@@ -343,6 +341,7 @@ bdb_dn2id_children(
 	data.dlen = sizeof(id);
 
 	rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
+	free( key.data );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %schildren (%d)\n",
 		dn,
@@ -742,7 +741,7 @@ bdb_dn2id_matched(
 	DB_TXN *txn,
 	struct berval	*in,
 	ID *id,
-	char **matchedDN )
+	ID *id2 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int		i;
@@ -761,8 +760,10 @@ bdb_dn2id_matched(
 	rdns = ldap_explode_dn(in->bv_val, 0);
 	for (i=0; rdns[i]; i++);
 	i -= bdb->bi_nrdns;
-	if (i < 0)
+	if (i < 0) {
+		charray_free(rdns);
 		return -1;
+	}
 	n = p;
 	ldap_pvt_thread_rdwr_rlock(&bdb->bi_tree_rdwr);
 	for (--i; i>=0; i--) {
@@ -773,22 +774,12 @@ bdb_dn2id_matched(
 		p = n;
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
+	charray_free(rdns);
 
 	if (n) {
 		*id = n->i_id;
-	} else if (matchedDN) {
-		int len = 0, j;
-		char *ptr;
-		++i;
-		for (j=i; rdns[j]; j++)
-			len += strlen(rdns[j]) + 1;
-		ptr = ch_malloc(len);
-		*matchedDN = ptr;
-		for (;rdns[i]; i++) {
-			ptr = slap_strcopy(ptr, rdns[i]);
-			*ptr++ = ',';
-		}
-		ptr[-1] = '\0';
+	} else if (id2) {
+		*id2 = p->i_id;
 	}
 	return n ? 0 : DB_NOTFOUND;
 }

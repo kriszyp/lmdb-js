@@ -27,8 +27,7 @@ bdb_dn2entry(
 	int flags )
 {
 	int rc;
-	ID		id;
-	char	*matchedDN = NULL;
+	ID		id, id2 = 0;
 
 	Debug(LDAP_DEBUG_TRACE, "bdb_dn2entry(\"%s\")\n",
 		dn->bv_val, 0, 0 );
@@ -37,7 +36,7 @@ bdb_dn2entry(
 
 	if( matched != NULL ) {
 		*matched = NULL;
-		rc = bdb_dn2id_matched( be, tid, dn, &id, &matchedDN );
+		rc = bdb_dn2id_matched( be, tid, dn, &id, &id2 );
 	} else {
 		rc = bdb_dn2id( be, tid, dn, &id );
 	}
@@ -46,10 +45,10 @@ bdb_dn2entry(
 		return rc;
 	}
 
-	if( matchedDN == NULL ) {
+	if( id2 == 0 ) {
 		rc = bdb_id2entry( be, tid, id, e );
 	} else {
-		rc = bdb_id2entry( be, tid, id, matched );
+		rc = bdb_id2entry( be, tid, id2, matched );
 	}
 
 	return rc;

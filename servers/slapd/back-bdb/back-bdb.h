@@ -103,7 +103,6 @@ struct bdb_info {
 	ldap_pvt_thread_rdwr_t	bi_tree_rdwr;
 	void		*bi_troot;
 	int		bi_nrdns;
-	int		bi_sufflen;
 #endif
 
 	int		bi_txn;
