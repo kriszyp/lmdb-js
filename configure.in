@@ -2491,10 +2491,10 @@ if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then
 	LIBSRCS="$LIBSRCS stdio.c"
 	LIBOBJS="$LIBOBJS stdio.o"
 	if test "$ac_cv_func_snprintf" != yes; then
-		AC_DEFINE(snprintf, lutil_snprintf, [define to snprintf routine])
+		AC_DEFINE(snprintf, ber_pvt_snprintf, [define to snprintf routine])
 	fi
 	if test "$ac_cv_func_vsnprintf" != yes; then
-		AC_DEFINE(vsnprintf, lutil_vsnprintf, [define to snprintf routine])
+		AC_DEFINE(vsnprintf, ber_pvt_vsnprintf, [define to snprintf routine])
 	fi
 fi
 

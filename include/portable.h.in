@@ -1030,12 +1030,12 @@
  * vsnprintf and snprintf are used too, but they are already
  * checked by the configure script
  */
-#define fputs lutil_fputs
-#define fgets lutil_fgets
-#define printf lutil_printf
-#define fprintf lutil_fprintf
-#define vfprintf lutil_vfprintf
-#define vsprintf lutil_vsprintf
+#define fputs ber_pvt_fputs
+#define fgets ber_pvt_fgets
+#define printf ber_pvt_printf
+#define fprintf ber_pvt_fprintf
+#define vfprintf ber_pvt_vfprintf
+#define vsprintf ber_pvt_vsprintf
 #endif
 
 #include "ldap_cdefs.h"

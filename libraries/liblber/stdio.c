@@ -10,8 +10,6 @@
 #include <ac/stdarg.h>
 #include <ac/string.h>
 
-#include <lutil.h>
-
 #if !defined(HAVE_VSNPRINTF) && !defined(HAVE_EBCDIC)
 /* Write at most n characters to the buffer in str, return the
  * number of chars written or -1 if the buffer would have been
@@ -35,7 +33,7 @@
  * version of vsnprintf there.
  */
 #include <ac/signal.h>
-int lutil_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
+int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 {
 	int fds[2], res;
 	FILE *f;
@@ -62,7 +60,7 @@ int lutil_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 #endif
 
 #ifndef HAVE_SNPRINTF
-int lutil_snprintf( char *str, size_t n, const char *fmt, ... )
+int ber_pvt_snprintf( char *str, size_t n, const char *fmt, ... )
 {
 	va_list ap;
 	int res;
@@ -91,14 +89,14 @@ int lutil_snprintf( char *str, size_t n, const char *fmt, ... )
 #undef fputs
 #undef fgets
 
-char *lutil_fgets( char *s, int n, FILE *fp )
+char *ber_pvt_fgets( char *s, int n, FILE *fp )
 {
 	s = (char *)fgets( s, n, fp );
 	if ( s ) __etoa( s );
 	return s;
 }
 
-int lutil_fputs( const char *str, FILE *fp )
+int ber_pvt_fputs( const char *str, FILE *fp )
 {
 	char buf[8192];
 
@@ -116,7 +114,7 @@ int lutil_fputs( const char *str, FILE *fp )
  * may need to be extended to recognize other qualifiers but so
  * far this seems to be enough.
  */
-int lutil_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
+int ber_pvt_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 {
 	char *ptr, *pct, *s2, *f2, *end;
 	char fm2[64];
@@ -137,7 +135,7 @@ int lutil_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 			if (rem < 1) return -1;
 			if (rem < len) len = rem;
 		}
-		s2 = lutil_strncopy( s2, ptr, len );
+		s2 = ber_pvt_strncopy( s2, ptr, len );
 		/* Did we cheat the length above? If so, bail out */
 		if (len < pct-ptr) return -1;
 		for (pct++, f2 = fm2+1; isdigit(*pct);) *f2++ = *pct++;
@@ -172,17 +170,17 @@ int lutil_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 		rem = end-s2;
 		if (rem > 0) {
 			len = strlen(ptr);
-			s2 = lutil_strncopy( s2, ptr, rem );
+			s2 = ber_pvt_strncopy( s2, ptr, rem );
 			rem -= len;
 		}
 		if (rem < 0) return -1;
 	} else {
-		s2 = lutil_strcopy( s2, ptr );
+		s2 = ber_pvt_strcopy( s2, ptr );
 	}
 	return s2 - str;
 }
 
-int lutil_vsprintf( char *str, const char *fmt, va_list ap )
+int ber_pvt_vsprintf( char *str, const char *fmt, va_list ap )
 {
 	return vsnprintf( str, 0, fmt, ap );
 }
@@ -192,7 +190,7 @@ int lutil_vsprintf( char *str, const char *fmt, va_list ap )
  * Hopefully we never try to write something bigger than this
  * in a log msg...
  */
-int lutil_vfprintf( FILE *fp, const char *fmt, va_list ap )
+int ber_pvt_vfprintf( FILE *fp, const char *fmt, va_list ap )
 {
 	char buf[8192];
 	int res;
@@ -204,24 +202,24 @@ int lutil_vfprintf( FILE *fp, const char *fmt, va_list ap )
 	return res;
 }
 
-int lutil_printf( const char *fmt, ... )
+int ber_pvt_printf( const char *fmt, ... )
 {
 	va_list ap;
 	int res;
 
 	va_start( ap, fmt );
-	res = lutil_vfprintf( stdout, fmt, ap );
+	res = ber_pvt_vfprintf( stdout, fmt, ap );
 	va_end( ap );
 	return res;
 }
 
-int lutil_fprintf( FILE *fp, const char *fmt, ... )
+int ber_pvt_fprintf( FILE *fp, const char *fmt, ... )
 {
 	va_list ap;
 	int res;
 
 	va_start( ap, fmt );
-	res = lutil_vfprintf( fp, fmt, ap );
+	res = ber_pvt_vfprintf( fp, fmt, ap );
 	va_end( ap );
 	return res;
 }

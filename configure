@@ -22256,13 +22256,13 @@ if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then
 	LIBOBJS="$LIBOBJS stdio.o"
 	if test "$ac_cv_func_snprintf" != yes; then
 		cat >> confdefs.h <<\EOF
-#define snprintf lutil_snprintf
+#define snprintf ber_pvt_snprintf
 EOF
 
 	fi
 	if test "$ac_cv_func_vsnprintf" != yes; then
 		cat >> confdefs.h <<\EOF
-#define vsnprintf lutil_vsnprintf
+#define vsnprintf ber_pvt_vsnprintf
 EOF
 
 	fi
