@@ -1,11 +1,15 @@
 
-A bug in Sleepycat´s Berkeley DB (version 2.3.16 up to 2.6.4 beta), was
-detected, that caused failure during opening of database files when
-running a threaded slapd on a linux box.
+A bug in Sleepycat´s Berkeley DB (version 2.3.16 up to 2.6.4 beta),
+was detected, that caused failure during opening of database files
+when running a threaded slapd on a linux box, kernel version 2.0.35,
+gcc 2.7.2.1, linux threads via libpthreads.so.1.60.4.
+
+THE BUG OCCURS ONLY WHEN SLAPD IS RUN WITH THREADS ENABLED AND MAY
+ONLY OCCUR ON THE PLATFORM SPECIFIED.
 
 Apply the supported patch at the root directory of Sleepycat´s code.
 Since the bug was reported to Sleepycat, it may not appear in DB
 versions, later than 2.6.4 beta.
 
-Jan 5 1999, /KSp (ksp@openldap.org)
+Jan 7 1999, /KSp (ksp@openldap.org)
 
