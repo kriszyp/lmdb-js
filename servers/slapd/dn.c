@@ -882,7 +882,12 @@ int
 dnX509normalize( void *x509_name, struct berval *out )
 {
 	/* Invoke the LDAP library's converter with our schema-rewriter */
-	return ldap_X509dn2bv( x509_name, out, LDAPDN_rewrite, 0 );
+	int rc = ldap_X509dn2bv( x509_name, out, LDAPDN_rewrite, 0 );
+
+	Debug( LDAP_DEBUG_TRACE,
+		"dnX509Normalize: <%s>\n", out->bv_val, 0, 0 );
+
+	return rc;
 }
 
 /*
