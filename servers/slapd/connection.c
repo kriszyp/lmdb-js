@@ -1151,7 +1151,7 @@ operations_error:
 	{
 		slap_sl_mem_detach( ctx, memctx );
 
-	} else if (( op->o_sync_slog_size != -1 )) {
+	} else if ( op->o_sync_slog_size != -1 ) {
 		slap_sl_mem_detach( ctx, memctx );
 		LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 		LDAP_STAILQ_NEXT(op, o_next) = NULL;
