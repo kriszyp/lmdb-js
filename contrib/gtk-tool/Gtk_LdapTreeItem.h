@@ -12,6 +12,7 @@
 #include "icons/alias_node.h"
 #include "icons/rfc822mailgroup_node.h"
 #include "icons/general_node.h"
+#include "icons/monitor.h"
 
 #define ROOT_NODE 1
 #define BRANCH_NODE 2
@@ -25,6 +26,7 @@ public:
 	char *dn;
 	char *rdn;
 	char *objectClass;
+	char *aliasedObjectName;
 	LDAP *ld;
 	LDAPMessage *result_identifier;
 	My_Window *par;
@@ -34,6 +36,7 @@ public:
 	Gtk_LdapTreeItem(char *c, My_Window *w, LDAP *ld);
 	Gtk_LdapTreeItem(GtkTreeItem *t);
 	~Gtk_LdapTreeItem();
+	gchar* getAttribute(char *c);
 	Gtk_LdapTree* getSubtree(LDAP *ld, int i);
 	void setType(int t);
 	int getDetails();

@@ -1,4 +1,13 @@
 ChangeLog for gtk-tool
+03/01/2000 - Pele
+	* Fixed localtime() bug in Linux ?;)
+
+03/01/19100 - Pele
+	* Auto-select the first server if any supplied as arguments
+	* A visual bug in the former (deselect a bit messy)
+	* Follow aliases (not tested with leaf nodes though)
+	* "Show Debug Info" in "Options" menu
+
 28/12/1999 - Pele
 	* Updated Gtk-- API from 1.0 to 1.1
 	* Added -d switch (for debugging info)

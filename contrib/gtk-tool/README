@@ -1,6 +1,6 @@
-README for gtk-tool v0.6a
+README for gtk-tool v0.7a
 
-This package has been tested and run with the latest Gtk+/Gtk--
+This package has been tested and run with the latest Gtk+1.2/Gtk--1.1
 OpenLDAP 2.0-devel. It should also compile (i.e. it is backward-compatible) with
 the U-MICH (old) API but it has not been tested (read compiled) - however the siplicity of the "problem" and a few ifdefs lead me to believe everything should
 be allright with gtk-tool now. This thing doesn't run as it should, please
@@ -26,6 +26,7 @@ i.e.:
 
 etc...
 It does not accept -b switch as it no longer needs it to aquire databases.
+There's also a -d <level> switch (try it with -d 1) for all the debug info.
 But please feel free to add whatever else you consider neccessary to 
 understanding how this thing works. Enjoy, and I hope this can be useful to 
 you in some miniscule way.

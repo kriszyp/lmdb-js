@@ -2,20 +2,17 @@ LOADS!!!
 
 Please someone test this with old U-MICH API - hopefully all is as it should be.
 
-Odd behaviour with tabbed panes - labels misteriously dissapear after you
-select a node for the second time 'round. Anyone any ideas on this?
-
 Priorities:
 	Now that we have cn=config we can start using ldap_get_option propperly
 	and be able to run/stop server from the gtk-tool. Other things like
 	new entries would now come in handy.
 	Implement searches
-	port to autoconf (anyone? it should be easy)
+	Integrate with OpenLDAP build - autoconf stuff (anyone?)
 
 Optional:
 	comments in the source code	
 	port it to NT so we can use it with the NT port of OpenLDAP
-	(is there a NT port of Gtk+?)
+	(they say that there is an NT port of Gtk+?)
 
 Pele
 pele@openldap.org

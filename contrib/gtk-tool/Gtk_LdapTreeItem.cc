@@ -29,6 +29,7 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 	if (counter <= 0) return NULL;
 	if (this->gtkobj()->subtree != NULL) {
 		//return (Gtk_LdapTree *)GTK_TREE(this->gtkobj()->subtree);
+		debug("This item has a subtree\n");
 		return (Gtk_LdapTree *)this->get_subtree(); //gtkobj()->subtree);
 	}
 	counter--;
@@ -40,7 +41,11 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 	int entriesCount = 0, error;
 
 	this->ld = ld;
-	error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_ONELEVEL, "objectclass=*", NULL, 0, &r_i);
+	if (this->dn == "cn=config" || this->dn == "cn=monitor") error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &r_i);
+	else {
+		if (strcasecmp(this->objectClass,"alias") == 0) error = ldap_search_s(this->ld, this->getAttribute("aliasedobjectname"), LDAP_SCOPE_ONELEVEL, "objectclass=*", NULL, 0, &r_i);
+		else error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_ONELEVEL, "objectclass=*", NULL, 0, &r_i);
+	}
 //	printf("%s\n", ldap_err2string(error));
 	entriesCount = ldap_count_entries(this->ld, r_i);
 	debug("%i results\n", entriesCount);
@@ -51,9 +56,9 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 		tree->set_view_lines(false);
 		entry = ldap_first_entry(this->ld, r_i);
 	//	float i = 1;
-	//	float percent = 100/entriesCount;
-	//	cout << "percent is " << percent << endl;
-	//	this->par->progress.update(0);
+		gfloat percent = 100/entriesCount;
+		cout << "percent is " << percent << endl;
+	//	this->par->progress.set_percentage(percent/100);
 	//	this->par->progress.show();
 		while (entry != NULL) {
 			subtreeitem = new Gtk_LdapTreeItem(ldap_get_dn(this->ld, entry), this->par, this->ld);
@@ -114,6 +119,8 @@ void Gtk_LdapTreeItem::setType(int t) {
 	else if (strcasecmp(this->objectClass,"rfc822mailgroup") == 0)
 		//xpm_icon=new Gtk_Pixmap(*xpm_label, rfc822mailgroup_node);
 		xpm_icon=new Gtk_Pixmap(rfc822mailgroup_node);
+	else if (strcasecmp(this->objectClass,"LDAPsubentry") == 0)
+		xpm_icon=new Gtk_Pixmap(monitor);
 	else //xpm_icon=new Gtk_Pixmap(*xpm_label, general_node);
 		xpm_icon=new Gtk_Pixmap(general_node);
 	label = new Gtk_Label(this->rdn);
@@ -150,6 +157,25 @@ int Gtk_LdapTreeItem::showDetails() {
 	return 0;
 }
 
+char* Gtk_LdapTreeItem::getAttribute(char *c) {
+	int entriesCount, error;
+	BerElement *ber;
+	LDAPMessage *entry;
+	char *attribute, **values;
+	error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &this->result_identifier);
+	entriesCount = ldap_count_entries(this->ld, this->result_identifier);
+	if (entriesCount == 0) return 0;
+	for (entry = ldap_first_entry(ld, result_identifier); entry != NULL; entry = ldap_next_entry(ld, result_identifier)) {
+		for (attribute = ldap_first_attribute(ld, entry, &ber); attribute != NULL; attribute = ldap_next_attribute(ld, entry, ber)) {
+			values = ldap_get_values(ld, entry, attribute);
+			if (strcasecmp(attribute, "aliasedobjectname") == 0) {
+				this->aliasedObjectName = strdup(values[0]);
+			}
+		}
+	}
+	return this->aliasedObjectName;
+}
+
 int Gtk_LdapTreeItem::getDetails() {
 	debug("Gtk_LdapTreeItem::getDetails()\n");
 	int error, entriesCount;
@@ -160,7 +186,6 @@ int Gtk_LdapTreeItem::getDetails() {
 	Gtk_CList *table;
 	Gtk_Label *label;
 	GList *child_list;
-//	Gtk_Notebook *g;
 	Gtk_Viewport *viewport;
 	error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &this->result_identifier);
 	entriesCount = ldap_count_entries(this->ld, this->result_identifier);

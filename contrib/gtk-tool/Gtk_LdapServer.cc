@@ -32,31 +32,18 @@ void Gtk_LdapServer::setType(int t) {
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
 	char *c = NULL;
-	if (this->get_child() != NULL) {
-		this->remove();
-		/*
-		//xpm_label = new Gtk_HBox(GTK_HBOX(this->get_child()->gtkobj()));
-		xpm_label = new Gtk_HBox(this->get_child());
-		xpm_label->remove_c(xpm_label->children()->nth_data(0));
-		xpm_label->remove_c(xpm_label->children()->nth_data(0));
-		*/
-	}
+	if (this->get_child() != NULL) this->remove();
 	xpm_label = new Gtk_HBox();
 	debug(this->hostname);
 	if (strcasecmp(this->hostname,"localhost") == 0)
-		//xpm_icon=new Gtk_Pixmap(*xpm_label, local_server);
 		xpm_icon=new Gtk_Pixmap(local_server);
-	else //xpm_icon=new Gtk_Pixmap(*xpm_label, remote_server);
-		xpm_icon=new Gtk_Pixmap(remote_server);
+	else xpm_icon=new Gtk_Pixmap(remote_server);
 //	sprintf(c, "%s:%i", this->hostname, this->port);
 //	printf("%s\n", c);
 	label = new Gtk_Label(this->hostname);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
 	xpm_label->pack_start(*label, false, false, 1);
 	if (this->get_child() == NULL) this->add(*xpm_label);
-	//label->show();
-	//xpm_label->show();
-	//xpm_icon->show();
 	this->show_all();
 }
 
@@ -67,18 +54,57 @@ int Gtk_LdapServer::showDetails() {
 		debug("Have a notebook here");
 		if (par->viewport2->get_child() != NULL) {
 			debug(" and viewport has children");
-			par->viewport2->remove(); //par->viewport2->get_child());
+			par->viewport2->remove();
 			debug(" which have been removed\n");
 		}
 		else debug(" and viewport without children\n");
 		par->viewport2->add(*this->notebook);
-		//this->notebook->show();
-		//par->viewport2->show();
-		//return 0;
 	}
 	this->show_all();
 	debug("done\n");
 	return 0;
+}
+
+int Gtk_LdapServer::getMonitor() {
+	debug("Gtk_LdapServer::getMonitor()\n");
+	int error, entriesCount;
+	LDAPMessage *entry, *result_identifier;
+	BerElement *ber;
+	char *attribute, **t;
+
+	if ((this->ld = ldap_open(this->hostname, this->port)) == NULL) {
+		perror("connection");
+	}
+
+	error = ldap_search_s(this->ld, "cn=monitor", LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &result_identifier);	
+	entriesCount = ldap_count_entries(this->ld, result_identifier);
+	if (entriesCount == 0) {
+		return 0;
+	}
+
+	debug("%i tree(s)\n", entriesCount);
+	for (entry = ldap_first_entry(this->ld, result_identifier); entry != NULL; entry = ldap_next_entry(this->ld, result_identifier)) {
+		for (attribute = ldap_first_attribute(this->ld, entry, &ber); attribute != NULL; attribute = ldap_next_attribute(this->ld, entry, ber)) {
+			debug("Attrib: %s\n", attribute);
+			if (strcasecmp(attribute, "database") == 0) {
+				debug("have database here\n");
+				this->databases = NULL;
+				t = ldap_get_values(this->ld, entry, attribute);
+				for (int i=0; i<ldap_count_values(t); i++) {
+					this->databases = g_list_append(this->databases, strdup(t[i]));
+				}
+				ldap_value_free(t);
+				debug("databases loaded\n");
+				GList *t;
+				for (int i=0;i>g_list_length(this->databases);i++) {
+					t = g_list_nth(this->databases, i);
+					debug("database(%i) %s\n", i, (char*) t->data);
+				}	
+			}
+		}
+		debug("entry done\n");
+	}
+	return entriesCount;
 }
 
 int Gtk_LdapServer::getConfig() {
@@ -98,31 +124,30 @@ int Gtk_LdapServer::getConfig() {
 		return 0;
 	}
 
-	debug("%i entry\n", entriesCount);
+//	debug("%i tree(s)\n", entriesCount);
 	for (entry = ldap_first_entry(this->ld, result_identifier); entry != NULL; entry = ldap_next_entry(this->ld, result_identifier)) {
 		for (attribute = ldap_first_attribute(this->ld, entry, &ber); attribute != NULL; attribute = ldap_next_attribute(this->ld, entry, ber)) {
 			debug("Attrib: %s\n", attribute);
 			if (strcasecmp(attribute, "database") == 0) {
 				debug("have database here\n");
-				//this->databases = new GList<char>;
 				this->databases = NULL;
 				t = ldap_get_values(this->ld, entry, attribute);
 				for (int i=0; i<ldap_count_values(t); i++) {
 					this->databases = g_list_append(this->databases, strdup(t[i]));
-					//this->databases->push_back(*strdup(t[i]));
 				}
+			this->databases = g_list_append(this->databases, "ldbm : cn=config");
+			this->databases = g_list_append(this->databases, "ldbm : cn=monitor");
 				ldap_value_free(t);
 				debug("databases loaded\n");
 				GList *t;
-				for (int i=0;i>g_list_length(this->databases);i++) {
+				for (int i=0;i<g_list_length(this->databases);i++) {
 					t = g_list_nth(this->databases, i);
-//					debug("database(%i) %s\n", i, ((gchar*) t->data));
+					debug("database(%i) %s\n", i, (char*) t->data);
 				}	
 			}
 		}
 		debug("entry done\n");
 	}
-//	debug("got %i entries\n", entriesCount);
 	return entriesCount;
 }
 
@@ -208,7 +233,7 @@ int Gtk_LdapServer::getOptions() {
 	Gtk_HScale *scale;
 	Gtk_Adjustment *adjustment;
 	char *description = NULL, *s_value = NULL;
-	int i_value;
+//	int i_value;
 	string label_string;
 
 	int things[10] = {
@@ -236,6 +261,7 @@ int Gtk_LdapServer::getOptions() {
 	table = new Gtk_Table(10, 1, TRUE);
 
 	for (int i=0; i<10; i++) {
+		int i_value;
 	//	debug("%i\n", i);
 		hbox = new Gtk_HBox(TRUE, 2);
 		hbox->set_border_width(2);
@@ -283,7 +309,7 @@ int Gtk_LdapServer::getOptions() {
 			case 3:
 				ldap_get_option(this->ld, things[i], &i_value);
 				debug("i_value: %s\n", i_value);
-				adjustment = new Gtk_Adjustment(i_value, 1.0, 20.0, 1.0, 1.0, 0.0);
+				adjustment = new Gtk_Adjustment(i_value, 0.0, 20.0, 1.0, 1.0, 0.0);
 				scale = new Gtk_HScale(*adjustment);
 				scale->set_update_policy(GTK_UPDATE_CONTINUOUS);
 				scale->set_value_pos(GTK_POS_TOP);
@@ -358,7 +384,7 @@ Gtk_Tree* Gtk_LdapServer::getSubtree() {
 		subtree = treeitem->getSubtree(this->ld, 1);
 		debug("inserting %s into %s\n", treeitem->rdn, this->hostname);
 		tree->append(*treeitem);
-		treeitem->set_subtree(*subtree);
+		if (subtree != NULL) treeitem->set_subtree(*subtree);
 		treeitem->show();
 	//	tree->show();
 	}

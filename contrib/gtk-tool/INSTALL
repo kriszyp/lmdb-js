@@ -1,13 +1,13 @@
 Please read this carefully
 
 To copile gtk-tool, although OpenLDAP in itself is a very out-of-the-box 
-straightforward piece of code to compile gtk-tool isn't. You will require the
-latest Gtk+/Gtk-- CVS trees on your machine - as of 11 February 1999 so your 
-last weeks' checkout is more than likely allready useless - not my problem, they
-promise API freezes and then don't stick to it...what can I say...a hint for
-the gtk people - Java 1.1
+straightforward piece of code to compile gtk-tool isn't. You will require following:
+
+	Gtk+1.2.x
+	Gtk--1.1.x 
 
 So, latest gtk stuff and if you successfully compiled and installed all that it should be easy. If you didn't I really hope you can take some comfort in that I have provided you with some snapshots of what the thing actually looks like. I hope in the near future I would be able to provide you with a static binary..next week perhaps..I don't know, I'm looking for a job right now so no promises...
+(I'm no longer looking for a job but the situation with spare time seems even worse - I wish I could do this full-time guys, I really do...)
 
 Pele
 pele@openldap.org

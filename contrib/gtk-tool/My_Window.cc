@@ -35,22 +35,22 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	menuitem->activate.connect(slot(this,&My_Window::addServer));
 	//connect_to_method(menuitem->activate, this, &addServer);
 	sub_menu->append(*menuitem);
-	menuitem->show();
+//	menuitem->show();
 	new_menu = new Gtk_MenuItem("New...");
 	new_menu->set_submenu(*sub_menu);
-	sub_menu->show();
+//	sub_menu->show();
 	menu->append(*new_menu);
-	new_menu->show();
+//	new_menu->show();
 
 	menuitem = new Gtk_MenuItem("Quit");
 	menuitem->activate.connect(Gtk_Main::quit.slot());	
 	menu->append(*menuitem);
-	menuitem->show();
+//	menuitem->show();
 	this->menubar = new Gtk_MenuBar();
 	file_menu = new Gtk_MenuItem("File (?)");
 	file_menu->set_submenu(*menu);
 	this->menubar->append(*file_menu);
-	menu->show();
+//	menu->show();
 
 	menu = new Gtk_Menu();
 	check_menuitem = new Gtk_CheckMenuItem("Show Debug Info");
@@ -61,29 +61,32 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	options_menu = new Gtk_MenuItem("Options");
 	options_menu->set_submenu(*menu);
 	this->menubar->append(*options_menu);
-	menu->show();
+//	menu->show();
 	
-	file_menu->show();
-	options_menu->show();
+//	file_menu->show();
+//	options_menu->show();
 
 //	top_hbox->pack_start(*this->menubar, TRUE, TRUE, 1);
-	this->menubar->show();
+//	this->menubar->show();
 	this->urlfield = new Gtk_Entry();
 	top_hbox->pack_start(*this->urlfield, TRUE, TRUE, 1);
-	this->urlfield->show();
+//	this->urlfield->show();
 	this->display_button = new Gtk_Button("Query Server");
 	this->display_button->clicked.connect(slot(this, &My_Window::getHost));
 	//connect_to_method(this->display_button->clicked, this, &getHost);
 	top_hbox->pack_end(*this->display_button, FALSE, FALSE, 1);
-	this->display_button->show();
+//	this->display_button->show();
 
 	this->status = new Gtk_Statusbar();
+//	this->progress = new Gtk_ProgressBar();
+//	this->status->add(*progress);
+//	this->progress->show();
 
 	bottom_hbox = new Gtk_VBox();
 	bottom_hbox->pack_start(*pane, TRUE, TRUE, 1);
 	bottom_hbox->pack_end(*status, FALSE, TRUE, 1);
 	pane->show();
-	status->show();
+//	status->show();
 
 	main_hbox = new Gtk_VBox();
 	main_hbox->pack_start(*this->menubar, FALSE, FALSE, 1);
@@ -94,6 +97,7 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	this->add(*main_hbox);
 	this->destroy.connect(Gtk_Main::quit.slot());	
 	main_hbox->show();
+//	this->show_all();
 }
 
 My_Window::~My_Window() {
@@ -157,6 +161,7 @@ void My_Window::getHost() {
 	tree->show();
 	this->viewport->show();
 	this->scroller->show();
+	treeitem->select();
 }
 
 void My_Window::setDebug() {

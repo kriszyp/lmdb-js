@@ -5,9 +5,10 @@ void Gtk_LdapTree::show_impl() {
 	Gtk_LdapTree *tree;
 	Gtk_LdapTreeItem *item = NULL;
 	Gtk_LdapTree::ItemList &items = this->tree();
-	Gtk_LdapTree::ItemList::iterator i = items.begin();
+	Gtk_LdapTree::ItemList::iterator i; // = items.begin();
 	debug("iterator\n");
-	for (i=items.begin(); i!=items.end();i++) {
+	for (i=items.begin(); i!=items.end();++i) {
+//	while (i!=items.end()) {
 		item = (Gtk_LdapTreeItem *)(*i);
 		debug("new item\n");
 		debug("#%s#\n", item->dn);

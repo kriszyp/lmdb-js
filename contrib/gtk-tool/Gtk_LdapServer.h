@@ -36,6 +36,7 @@ public:
 	Gtk_LdapServer(GtkTreeItem *t);
 	~Gtk_LdapServer();
 	void setType(int t);
+	int getMonitor();
 	int getConfig();
 	Gtk_Tree* getSubtree();
 #ifndef LDAP_GET_OPT

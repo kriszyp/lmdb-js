@@ -11,7 +11,7 @@ int debug_level = 0;
 int main(int argc, char **argv) {
 	My_Window *window;
 	Gtk_LdapItem *treeresult;
-	Gtk_Tree *tree, *subtree;
+	Gtk_Tree *tree = NULL, *subtree = NULL;
 	Gtk_Tree *machine, *machinetree;
 	Gtk_LdapServer *server;
 	Gtk_Viewport *viewport;
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 				port = atoi(optarg); break;
 			case 'h':
 	                default:
-				fprintf(stderr, "Usage: %s ([-s server[:port]])*\n", argv[0]);
+				fprintf(stderr, "Usage: %s [-d level] [-s server[:port]]*\n", argv[0]);
 				exit(-1);
 		}
 		fprintf(stderr,"b");
@@ -54,7 +54,6 @@ int main(int argc, char **argv) {
 			fprintf(stderr,"Why isn't your LDAP_OPT_HOST_NAME defined?\n");
 #endif
 			fprintf(stderr,"Supply me with a host please (hint: use -s)\n");
-		//	exit(1);
 		}
 	} else {	
 		for (int f=0; f<g_list_length(hosts); f++) {
@@ -67,7 +66,6 @@ int main(int argc, char **argv) {
 
 	window = new My_Window(GTK_WINDOW_TOPLEVEL);
 
-//	viewport = new Gtk_Viewport();
 	if (hosts!=NULL) {
 		tree = new Gtk_Tree();
 		for (int f=0; f<g_list_length(hosts); f++) {
@@ -82,17 +80,24 @@ int main(int argc, char **argv) {
 			server->show();
 		}
 		window->viewport->add(*tree);
-		tree->show();
+//		tree->show();
 	}
 
-//	window->scroller->add(viewport);
-	window->viewport->show();
-	window->scroller->show();
+//	window->viewport->show();
+//	window->scroller->show();
+
+	//Select first server
+	if (tree != NULL) {
+		Gtk_LdapTree::ItemList &items = tree->tree();
+		Gtk_LdapTree::ItemList::iterator i = items.begin();
+		server = (Gtk_LdapServer *)(* i);
+		server->select_impl();
+	}
 
 	window->set_title("gtk-tool");
 	window->activate();
 	window->set_usize(600, 500);
-	window->show();
+	window->show_all();
 
 	m.run();
 	return 0;

@@ -16,7 +16,7 @@ public:
 	Gtk_InputDialog *dialog;
 	Gtk_Paned *pane;
 	Gtk_MenuBar *menubar;
-//	Gtk_ProgressBar progress;
+//	Gtk_ProgressBar *progress;
 	Gtk_Statusbar *status;
 	My_Window(GtkWindowType t);
 	~My_Window();
