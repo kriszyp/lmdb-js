@@ -49,9 +49,7 @@ passwd_back_initialize(
 	bi->bi_op_delete = 0;
 	bi->bi_op_abandon = 0;
 
-#ifdef SLAPD_ACLGROUPS
 	bi->bi_acl_group = 0;
-#endif
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

@@ -353,7 +353,7 @@ acl_access_allowed(
 
 			return ACL_GRANT(b->a_access, access );
 		}
-#ifdef SLAPD_ACLGROUPS
+
 		if ( b->a_group != NULL && op->o_ndn != NULL ) {
 			char buf[1024];
 
@@ -374,7 +374,6 @@ acl_access_allowed(
 				return ACL_GRANT(b->a_access, access );
 			}
 		}
-#endif /* SLAPD_ACLGROUPS */
 	}
 
 	Debug( LDAP_DEBUG_ACL,

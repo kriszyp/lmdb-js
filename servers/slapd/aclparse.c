@@ -204,39 +204,38 @@ parse_acl(
 			} else if ( strcasecmp( left, "dnattr" ) == 0 ) {
 				b->a_dnattr = ch_strdup( right );
 
-#ifdef SLAPD_ACLGROUPS
 			} else if ( strncasecmp( left, "group", sizeof("group")-1 ) == 0 ) {
-                                char *name = NULL;
-                                char *value = NULL;
+				char *name = NULL;
+				char *value = NULL;
 
-                                /* format of string is "group/objectClassValue/groupAttrName"
-                                 */
-                                if ((value = strchr(left, '/')) != NULL) {
-                                        *value++ = '\0';
-                                        if (value && *value && (name = strchr(value, '/')) != NULL) 
-                                            *name++ = '\0';
-                                }
+				/* format of string is "group/objectClassValue/groupAttrName" */
+				if ((value = strchr(left, '/')) != NULL) {
+					*value++ = '\0';
+					if (value && *value
+						&& (name = strchr(value, '/')) != NULL)
+					{
+						*name++ = '\0';
+					}
+				}
 
 				regtest(fname, lineno, right);
 				b->a_group = dn_upcase(ch_strdup( right ));
 
-                                if (value && *value) {
-                                        b->a_group_oc = ch_strdup(value);
-                                        *--value = '/';
-                                }
-                                else
-                                        b->a_group_oc = ch_strdup("groupOfNames");
+				if (value && *value) {
+					b->a_group_oc = ch_strdup(value);
+					*--value = '/';
+				} else {
+					b->a_group_oc = ch_strdup("groupOfNames");
 
-                                if (name && *name) {
-                                        b->a_group_at = ch_strdup(name);
-                                        *--name = '/';
-                                }
-                                else
-                                        b->a_group_at = ch_strdup("member");
+					if (name && *name) {
+						b->a_group_at = ch_strdup(name);
+						*--name = '/';
 
+					} else {
+						b->a_group_at = ch_strdup("member");
+					}
+				}
 
-
-#endif /* SLAPD_ACLGROUPS */
 			} else if ( strcasecmp( left, "domain" ) == 0 ) {
 				char	*s;
 				regtest(fname, lineno, right);
@@ -321,10 +320,8 @@ access2str( int access )
 
 	if ( ACL_IS_NONE(access) ) {
 		strcat( buf, "none" );
-#ifdef SLAPD_ACLAUTH
 	} else if ( ACL_IS_AUTH(access) ) {
 		strcat( buf, "auth" );
-#endif
 	} else if ( ACL_IS_COMPARE(access) ) {
 		strcat( buf, "compare" );
 	} else if ( ACL_IS_SEARCH(access) ) {
@@ -354,10 +351,8 @@ str2access( char *str )
 
 	if ( strcasecmp( str, "none" ) == 0 ) {
 		ACL_SET_NONE(access);
-#ifdef SLAPD_ACLAUTH
 	} else if ( strcasecmp( str, "auth" ) == 0 ) {
 		ACL_SET_AUTH(access);
-#endif
 	} else if ( strcasecmp( str, "compare" ) == 0 ) {
 		ACL_SET_COMPARE(access);
 	} else if ( strcasecmp( str, "search" ) == 0 ) {
@@ -383,14 +378,8 @@ acl_usage( void )
 		"<attr> ::= <attrname> | entry | children\n"
 		"<who> ::= * | anonymous | self | dn=<regex> | addr=<regex>\n"
 			"\t| domain=<regex> | dnattr=<dnattrname>\n"
-#ifdef SLAPD_ACLGROUPS
 			"\t| group[/<objectclass>[/<attrname>]]=<regex>\n"
-#endif
-#ifdef SLAPD_ACLAUTH
 		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
-#else
-		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
-#endif
 		);
 	exit( 1 );
 }
@@ -448,16 +437,15 @@ print_access( struct access *b )
 		fprintf( stderr, " domain=%s", b->a_domainpat );
 	} else if ( b->a_dnattr != NULL ) {
 		fprintf( stderr, " dnattr=%s", b->a_dnattr );
-	}
-#ifdef SLAPD_ACLGROUPS
-        else if ( b->a_group != NULL ) {
-                fprintf( stderr, " group: %s", b->a_group );
-                if ( b->a_group_oc )
-                        fprintf( stderr, " objectClass: %s", b->a_group_oc );
-                if ( b->a_group_at )
-                        fprintf( stderr, " attributeType: %s", b->a_group_at );
-        }
-#endif
+	} else if ( b->a_group != NULL ) {
+		fprintf( stderr, " group: %s", b->a_group );
+		if ( b->a_group_oc ) {
+			fprintf( stderr, " objectClass: %s", b->a_group_oc );
+			if ( b->a_group_at ) {
+				fprintf( stderr, " attributeType: %s", b->a_group_at );
+			}
+		}
+    }
 	fprintf( stderr, "\n" );
 }
 

@@ -93,7 +93,6 @@ OL_ARG_ENABLE(ldapd,[  --enable-ldapd	enable building ldapd], no)dnl
 dnl SLAPD OPTIONS
 AC_ARG_WITH(xxslapdoptions,[SLAPD Options:])
 OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
-OL_ARG_ENABLE(aclgroups,[    --enable-aclgroups	enable ACL group support], auto)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
@@ -173,9 +172,6 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_tcl = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-tcl argument])
 	fi
-	if test $ol_enable_aclgroups = yes ; then
-		AC_MSG_WARN([slapd disabled, ignoring --enable-aclgroups argument])
-	fi
 	if test $ol_enable_modules = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
 	fi
@@ -228,7 +224,6 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_shell=no
 	ol_enable_tcl=no
 
-	ol_enable_aclgroups=no
 	ol_enable_modules=no
 	ol_enable_phonetic=no
 	ol_enable_rlookups=no
@@ -1812,9 +1807,6 @@ if test "$ol_enable_cldap" != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1)
 fi
 
-if test "$ol_enable_aclgroups" != no ; then
-	AC_DEFINE(SLAPD_ACLGROUPS,1)
-fi
 if test "$ol_enable_crypt" != no ; then
 	AC_DEFINE(SLAPD_CRYPT,1)
 fi

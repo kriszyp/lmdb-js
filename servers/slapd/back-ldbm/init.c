@@ -51,9 +51,7 @@ ldbm_back_initialize(
 	bi->bi_op_abandon = ldbm_back_abandon;
 
 	bi->bi_entry_release_rw = ldbm_back_entry_release_rw;
-#ifdef SLAPD_ACLGROUPS
 	bi->bi_acl_group = ldbm_back_group;
-#endif
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

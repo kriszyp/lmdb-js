@@ -190,9 +190,6 @@
 /* define this if you want no thread support */
 #undef NO_THREADS
 
-/* define this for ACL Group support */
-#undef SLAPD_ACLGROUPS
-
 /* define this to use SLAPD Berkeley DB2 backend */
 #undef SLAPD_BDB2
 

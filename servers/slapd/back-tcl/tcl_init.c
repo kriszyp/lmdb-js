@@ -1,6 +1,6 @@
 /* tcl_init.c - tcl backend initialization
  *
- * $Id: tcl_init.c,v 1.7 1999/06/23 10:31:37 bastiaan Exp $
+ * $Id: tcl_init.c,v 1.8 1999/06/24 15:06:42 bastiaan Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -73,9 +73,7 @@ tcl_back_initialize (
 	bi->bi_op_delete = tcl_back_delete;
 	bi->bi_op_abandon = tcl_back_abandon;
 
-#ifdef SLAPD_ACLGROUPS
 	bi->bi_acl_group = 0;
-#endif
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

@@ -599,7 +599,6 @@ backend_connection_destroy(
 	return 0;
 }
 
-#ifdef SLAPD_ACLGROUPS
 int 
 backend_group(
 	Backend	*be,
@@ -616,4 +615,3 @@ backend_group(
 	else
 		return(1);
 }
-#endif

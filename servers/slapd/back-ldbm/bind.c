@@ -124,7 +124,6 @@ ldbm_back_bind(
 
 	/* check for deleted */
 
-#ifdef SLAPD_ACLAUTH
 	if ( ! access_allowed( be, conn, op, e,
 		"entry", NULL, ACL_AUTH ) )
 	{
@@ -132,7 +131,6 @@ ldbm_back_bind(
 		rc = 1;
 		goto return_results;
 	}
-#endif
 
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
@@ -153,7 +151,6 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-#ifdef SLAPD_ACLAUTH
 		if ( ! access_allowed( be, conn, op, e,
 			"userpassword", NULL, ACL_AUTH ) )
 		{
@@ -161,7 +158,6 @@ ldbm_back_bind(
 			rc = 1;
 			goto return_results;
 		}
-#endif
 
 		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
@@ -186,7 +182,6 @@ ldbm_back_bind(
 
 #ifdef HAVE_KERBEROS
 	case LDAP_AUTH_KRBV41:
-#ifdef SLAPD_ACLAUTH
 		if ( ! access_allowed( be, conn, op, e,
 			"krbname", NULL, ACL_AUTH ) )
 		{
@@ -194,15 +189,17 @@ ldbm_back_bind(
 			rc = 1;
 			goto return_results;
 		}
-#endif
+
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 			    NULL, NULL );
 			rc = 0;
 			goto return_results;
 		}
+
 		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
 		    : "", ad.pinst, ad.prealm );
+
 		if ( (a = attr_find( e->e_attrs, "krbname" )) == NULL ) {
 			/*
 			 * no krbName values present:  check against DN

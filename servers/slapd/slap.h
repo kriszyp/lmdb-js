@@ -176,17 +176,17 @@ typedef struct entry {
 
 /* the "by" part */
 struct access {
-#define ACL_NONE	0x0001
-/* #define SLAPD_ACLAUTH 1 */
-#ifdef SLAPD_ACLAUTH
-#define ACL_AUTH	0x0002
-#endif
-#define ACL_COMPARE	0x0004
-#define ACL_SEARCH	0x0008
-#define ACL_READ	0x0010
-#define ACL_WRITE	0x0020
-#define ACL_SELF	0x4000
-#define ACL_INVALID	-1
+
+#define ACL_NONE		0x0001
+#define ACL_AUTH		0x0002
+#define ACL_COMPARE		0x0004
+#define ACL_SEARCH		0x0008
+#define ACL_READ		0x0010
+#define ACL_WRITE		0x0020
+#define ACL_PRIV_MASK	0x00ff
+
+#define ACL_SELF		0x4000
+#define ACL_INVALID		(-1)
 
 #define ACL_IS(a,lvl)	(((a) & (lvl)) == (lvl))
 
@@ -197,8 +197,7 @@ struct access {
 #define ACL_IS_READ(a)		ACL_IS((a),ACL_READ)
 #define ACL_IS_WRITE(a)		ACL_IS((a),ACL_WRITE)
 #define ACL_IS_SELF(a)		ACL_IS((a),ACL_SELF)
-#define ACL_IS_INVALID(a)	ACL_IS((a),ACL_INVALID)
-
+#define ACL_IS_INVALID(a)	((a) == ACL_INVALID)
 
 #define ACL_CLR(a)			((a) = 0)
 #define ACL_SET(a,lvl)		((a) |= (lvl))
@@ -209,13 +208,10 @@ struct access {
 #define ACL_SET_READ(a)		ACL_SET((a),ACL_READ)
 #define ACL_SET_WRITE(a)	ACL_SET((a),ACL_WRITE)
 #define ACL_SET_SELF(a)		ACL_SET((a),ACL_SELF)
-#define ACL_SET_INVALID(a)	ACL_SET((a),ACL_INVALID)
+#define ACL_SET_INVALID(a)	((a) = ACL_INVALID)
 
-#define ACL_PRIV_MASK	0x00ff
-#define	ACL_PRIV(a)		((a) & ACL_PRIV_MASK)
+#define	ACL_PRIV(a)			((a) & ACL_PRIV_MASK)
 #define ACL_GRANT(a,lvl)	(ACL_PRIV(a) >= (lvl))
-#define ACL_TEST
-
 
 	int			a_access;
 
@@ -224,11 +220,11 @@ struct access {
 	char		*a_domainpat;
 	char		*a_dnattr;
 
-#ifdef SLAPD_ACLGROUPS
-        char		*a_group;
-        char		*a_group_oc;
-        char		*a_group_at;
-#endif
+	/* ACL Groups */
+	char		*a_group;
+	char		*a_group_oc;
+	char		*a_group_at;
+
 	struct access	*a_next;
 };
 
@@ -497,11 +493,10 @@ struct backend_info {
 
 	/* Auxilary Functions */
 	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
-#ifdef SLAPD_ACLGROUPS
+
 	int	(*bi_acl_group)  LDAP_P((Backend *bd,
 		Entry *e, char *bdn, char *edn,
 		char *objectclassValue, char *groupattrName ));
-#endif
 
 	int	(*bi_connection_init) LDAP_P((BackendDB *bd,
 		struct slap_conn *c));

@@ -12,7 +12,6 @@
 #include "proto-back-bdb2.h"
 
 
-#ifdef SLAPD_ACLGROUPS
 /* return 0 IFF op_dn is a value in member attribute
  * of entry with gr_dn AND that entry has an objectClass
  * value of groupOfNames
@@ -156,5 +155,4 @@ bdb2_back_group(
 	return( ret );
 }
 
-#endif /* SLAPD_ACLGROUPS */
 

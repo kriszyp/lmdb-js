@@ -12,7 +12,6 @@
 #include "proto-back-ldbm.h"
 
 
-#ifdef SLAPD_ACLGROUPS
 /* return 0 IFF op_dn is a value in member attribute
  * of entry with gr_dn AND that entry has an objectClass
  * value of groupOfNames
@@ -122,5 +121,4 @@ ldbm_back_group(
 	Debug( LDAP_DEBUG_ARGS, "ldbm_back_group: rc: %d\n", rc, 0, 0 ); 
 	return(rc);
 }
-#endif /* SLAPD_ACLGROUPS */
 
