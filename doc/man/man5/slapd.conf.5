@@ -473,6 +473,11 @@ server private key that matches the certificate stored in the
 .B TLSCertificateFile
 file.  Currently, the private key must not be protected with a password, so
 it is of critical importance that it is protected carefully. 
+.TP
+.B TLSRandFile <filename>
+Specifies the file to obtain random bits from when /dev/[u]random
+is not available.  Generally set to the name of the EGD/PRNGD socket.
+The environment variable RANDFILE can also be used to specify the filename.
 .SH GENERAL BACKEND OPTIONS
 Options in this section only apply to the configuration file section
 for the backend in which they are defined.  They are supported by every
