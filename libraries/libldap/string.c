@@ -4,6 +4,11 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+/*
+ * Locale-specific 1-byte character versions
+ * See utf-8.c for UTF-8 versions
+ */
+
 #include "portable.h"
 
 #include <ac/stdlib.h>

@@ -165,22 +165,22 @@ ldap_charray_dup( char **a )
 }
 
 char **
-ldap_str2charray( char *str, char *brkstr )
+ldap_str2charray( const char *str_in, const char *brkstr )
 {
 	char	**res;
-	char	*s;
+	char	*str, *s;
 	char	*lasts;
 	int	i;
 
 	/* protect the input string from strtok */
-	str = LDAP_STRDUP( str );
+	str = LDAP_STRDUP( str_in );
 	if( str == NULL ) {
 		return NULL;
 	}
 
 	i = 1;
 	for ( s = str; *s; s++ ) {
-		if ( strchr( brkstr, *s ) != NULL ) {
+		if ( ldap_utf8_strchr( brkstr, s ) != NULL ) {
 			i++;
 		}
 	}
@@ -194,9 +194,9 @@ ldap_str2charray( char *str, char *brkstr )
 
 	i = 0;
 
-	for ( s = ldap_pvt_strtok( str, brkstr, &lasts );
+	for ( s = ldap_utf8_strtok( str, brkstr, &lasts );
 		s != NULL;
-		s = ldap_pvt_strtok( NULL, brkstr, &lasts ) )
+		s = ldap_utf8_strtok( NULL, brkstr, &lasts ) )
 	{
 		res[i] = LDAP_STRDUP( s );
 
