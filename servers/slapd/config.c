@@ -185,6 +185,7 @@ typedef struct {
 } OidRec;
 
 static OidRec OidMacros[] = {
+	/* OpenLDAProot:666.11.1 */
 	{ "OLcfg", "1.3.6.1.4.1.4203.666.11.1" },
 	{ "OLcfgAt", "OLcfg:3" },
 	{ "OLcfgOc", "OLcfg:4" },
@@ -1009,8 +1010,10 @@ config_generic(ConfigArgs *c) {
 		case CFG_DEPTH:
 			c->value_int = c->be->be_max_deref_depth;
 			break;
-		case CFG_OID:	/* FIXME */
-			rc = 1;
+		case CFG_OID:
+			oidm_unparse( &c->rvalue_vals );
+			if ( !c->rvalue_vals )
+				rc = 1;
 			break;
 		case CFG_CHECK:
 			c->value_int = global_schemacheck;

@@ -986,6 +986,7 @@ LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
  */
 LDAP_SLAPD_F(char *) oidm_find(char *oid);
 LDAP_SLAPD_F (void) oidm_destroy LDAP_P(( void ));
+LDAP_SLAPD_F (void) oidm_unparse LDAP_P(( BerVarray *bva ));
 LDAP_SLAPD_F (int) parse_oidm LDAP_P((
 	const char *fname, int lineno, int argc, char **argv ));
 

@@ -23,6 +23,7 @@
 #include <ac/socket.h>
 
 #include "slap.h"
+#include "lutil.h"
 
 static LDAP_SLIST_HEAD(OidMacroList, slap_oid_macro) om_list
 	= LDAP_SLIST_HEAD_INITIALIZER(om_list);
@@ -42,14 +43,14 @@ oidm_find(char *oid)
 	}
 
 	LDAP_SLIST_FOREACH( om, &om_list, som_next ) {
-		char **names = om->som_names;
+		BerVarray names = om->som_names;
 
 		if( names == NULL ) {
 			continue;
 		}
 
-		for( ; *names != NULL ; names++ ) {
-			int pos = dscompare(*names, oid, ':');
+		for( ; !BER_BVISNULL( names ) ; names++ ) {
+			int pos = dscompare(names->bv_val, oid, ':');
 
 			if( pos ) {
 				int suflen = strlen(oid + pos);
@@ -81,7 +82,8 @@ oidm_destroy()
 		om = LDAP_SLIST_FIRST( &om_list );
 		LDAP_SLIST_REMOVE_HEAD( &om_list, som_next );
 
-		ldap_charray_free(om->som_names);
+		ber_bvarray_free(om->som_names);
+		ber_bvarray_free(om->som_subs);
 		free(om->som_oid.bv_val);
 		free(om);
 		
@@ -97,6 +99,7 @@ parse_oidm(
 {
 	char *oid;
 	OidMacro *om;
+	struct berval bv;
 
 	if (argc != 3) {
 		fprintf( stderr, "%s: line %d: too many arguments\n",
@@ -122,7 +125,11 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 
 	LDAP_SLIST_NEXT( om, som_next ) = NULL;
 	om->som_names = NULL;
-	ldap_charray_add( &om->som_names, argv[1] );
+	om->som_subs = NULL;
+	ber_str2bv( argv[1], 0, 1, &bv );
+	ber_bvarray_add( &om->som_names, &bv );
+	ber_str2bv( argv[2], 0, 1, &bv );
+	ber_bvarray_add( &om->som_subs, &bv );
 	om->som_oid.bv_val = oidm_find( argv[2] );
 
 	if (!om->som_oid.bv_val) {
@@ -139,4 +146,38 @@ usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 
 	LDAP_SLIST_INSERT_HEAD( &om_list, om, som_next );
 	return 0;
+}
+
+void oidm_unparse( BerVarray *res )
+{
+	OidMacro *om;
+	int i, j, num;
+	struct berval bv, *bva = NULL, idx;
+	char ibuf[32], *ptr;
+
+	/* count the result size */
+	i = 0;
+	LDAP_SLIST_FOREACH( om, &om_list, som_next ) {
+		for ( j=0; !BER_BVISNULL(&om->som_names[j]); j++ );
+		i += j;
+	}
+	num = i;
+	bva = ch_malloc( (num+1) * sizeof(struct berval) );
+	BER_BVZERO( bva+num );
+	idx.bv_val = ibuf;
+	LDAP_SLIST_FOREACH( om, &om_list, som_next ) {
+		for ( j=0; !BER_BVISNULL(&om->som_names[j]); j++ );
+		for ( i=num-j, j=0; i<num; i++,j++ ) {
+			idx.bv_len = sprintf(idx.bv_val, "{%d}", i );
+			bva[i].bv_len = idx.bv_len + om->som_names[j].bv_len +
+				om->som_subs[j].bv_len + 1;
+			bva[i].bv_val = ch_malloc( bva[i].bv_len + 1 );
+			ptr = lutil_strcopy( bva[i].bv_val, ibuf );
+			ptr = lutil_strcopy( ptr, om->som_names[j].bv_val );
+			*ptr++ = ' ';
+			ptr = lutil_strcopy( ptr, om->som_subs[j].bv_val );
+		}
+		num -= j;
+	}
+	*res = bva;
 }

@@ -319,7 +319,8 @@ extern int slap_inet4or6;
 
 typedef struct slap_oid_macro {
 	struct berval som_oid;
-	char **som_names;
+	BerVarray som_names;
+	BerVarray som_subs;
 	LDAP_SLIST_ENTRY(slap_oid_macro) som_next;
 } OidMacro;
 
