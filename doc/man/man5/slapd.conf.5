@@ -238,7 +238,10 @@ Specify the DN of an entry that is not subject to access control
 or administrative limit restrictions for operations on this database.
 .TP
 .B rootpw <password>
-Specify a password for the rootdn.
+Specify a password (or hash of the password) for the rootdn.
+This option accepts all password formats known to the server
+including \fB{SHA}\fP, \fB{MD5}\fP, \fB{CRYPT}\fP, and cleartext.  
+Cleartext passwords are not recommended.
 .TP
 .B suffix <dn suffix>
 Specify the DN suffix of queries that will be passed to this 
