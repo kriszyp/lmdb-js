@@ -727,6 +727,7 @@ LDAP_SLAPD_F (int) passwd_extop LDAP_P((
 	struct berval *** refs ));
 
 LDAP_SLAPD_F (int) slap_passwd_check(
+	Connection			*conn,
 	Attribute			*attr,
 	struct berval		*cred );
 
@@ -804,8 +805,8 @@ LDAP_SLAPD_F (ldap_pvt_thread_pool_t)	connection_pool;
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	entry2str_mutex;
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	replog_mutex;
 
-#ifdef SLAPD_CRYPT
-LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	crypt_mutex;
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
+LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	passwd_mutex;
 #endif
 LDAP_SLAPD_F (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 

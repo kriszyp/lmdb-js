@@ -516,14 +516,17 @@ be_isroot_pw( Backend *be, const char *ndn, struct berval *cred )
 		return 0;
 	}
 
-#ifdef SLAPD_CRYPT
-	ldap_pvt_thread_mutex_lock( &crypt_mutex );
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+	ldap_pvt_thread_mutex_lock( &passwd_mutex );
+#ifdef SLAPD_SPASSWD
+	lutil_passwd_sasl_conn = conn->c_sasl_context;
+#endif
 #endif
 
 	result = lutil_passwd( &be->be_root_pw, cred, NULL );
 
-#ifdef SLAPD_CRYPT
-	ldap_pvt_thread_mutex_unlock( &crypt_mutex );
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_PASSWD )
+	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 #endif
 
 	return result == 0;
