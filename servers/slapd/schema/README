@@ -8,13 +8,13 @@ cosine.schema           COSINE Pilot
 inetorgperson.schema    InetOrgPerson
 java.schema             Java Object (RFC 2713)
 krb5-kdc.schema         Kerberos V KDC
-microsoft.ext.schema    Microsoft
-microsoft.schema        Microsoft
-microsoft.std.schema    Microsoft
-misc.schema             misc/experimental
-nadf.schema             North American Directory Forum schema
+microsoft.ext.schema    Microsoft (FYI)
+microsoft.schema        Microsoft (FYI)
+microsoft.std.schema    Microsoft (FYI)
+misc.schema             misc (experimental)
+nadf.schema             North American Directory Forum schema (obsolete)
 nis.schema              Network Information Service
-openldap.schema         OpenLDAP Project
+openldap.schema         OpenLDAP Project (FYI)
 vendor.schema           Vendor Information (RFC 3045) schema
 
 Additional "generally useful" schema definitions can be submitted
