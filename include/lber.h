@@ -90,6 +90,7 @@ LDAP_BEGIN_DECL
 #define LBER_OPT_BER_REMAINING_BYTES	0x03
 #define LBER_OPT_BER_TOTAL_BYTES		0x04
 #define LBER_OPT_BER_BYTES_TO_WRITE		0x05
+#define LBER_OPT_BER_MEMCTX				0x06
 
 #define LBER_OPT_DEBUG_LEVEL	LBER_OPT_BER_DEBUG
 #define LBER_OPT_REMAINING_BYTES	LBER_OPT_BER_REMAINING_BYTES
@@ -109,16 +110,16 @@ typedef int* (*BER_ERRNO_FN) LDAP_P(( void ));
 
 typedef void (*BER_LOG_PRINT_FN) LDAP_P(( LDAP_CONST char *buf ));
 
-typedef void* (*BER_MEMALLOC_FN)	LDAP_P(( ber_len_t size ));
-typedef void* (*BER_MEMCALLOC_FN)	LDAP_P(( ber_len_t n, ber_len_t size ));
-typedef void* (*BER_MEMREALLOC_FN)	LDAP_P(( void *p, ber_len_t size ));
-typedef void  (*BER_MEMFREE_FN)		LDAP_P(( void *p ));
+typedef void* (BER_MEMALLOC_FN)	LDAP_P(( ber_len_t size, void *ctx ));
+typedef void* (BER_MEMCALLOC_FN)	LDAP_P(( ber_len_t n, ber_len_t size, void *ctx ));
+typedef void* (BER_MEMREALLOC_FN)	LDAP_P(( void *p, ber_len_t size, void *ctx ));
+typedef void  (BER_MEMFREE_FN)		LDAP_P(( void *p, void *ctx ));
 
 typedef struct lber_memory_fns {
-	BER_MEMALLOC_FN	bmf_malloc;
-	BER_MEMCALLOC_FN bmf_calloc;
-	BER_MEMREALLOC_FN bmf_realloc;
-	BER_MEMFREE_FN bmf_free;
+	BER_MEMALLOC_FN	*bmf_malloc;
+	BER_MEMCALLOC_FN *bmf_calloc;
+	BER_MEMREALLOC_FN *bmf_realloc;
+	BER_MEMFREE_FN *bmf_free;
 } BerMemoryFunctions;
 
 /* LBER Sockbuf_IO options */
@@ -596,6 +597,63 @@ ber_bvarray_free LDAP_P(( BerVarray p ));
 
 LBER_F( int )
 ber_bvarray_add LDAP_P(( BerVarray *p, BerValue *bv ));
+
+LBER_F( void * )
+ber_memalloc_x LDAP_P((
+	ber_len_t s, void *ctx));
+
+LBER_F( void * )
+ber_memrealloc_x LDAP_P((
+	void* p,
+	ber_len_t s, void *ctx ));
+
+LBER_F( void * )
+ber_memcalloc_x LDAP_P((
+	ber_len_t n,
+	ber_len_t s, void *ctx ));
+
+LBER_F( void )
+ber_memfree_x LDAP_P((
+	void* p, void *ctx ));
+
+LBER_F( void )
+ber_memvfree_x LDAP_P((
+	void** vector, void *ctx ));
+
+LBER_F( void )
+ber_bvfree_x LDAP_P((
+	struct berval *bv, void *ctx ));
+
+LBER_F( void )
+ber_bvecfree_x LDAP_P((
+	struct berval **bv, void *ctx ));
+
+LBER_F( int )
+ber_bvecadd_x LDAP_P((
+	struct berval ***bvec,
+	struct berval *bv, void *ctx ));
+
+LBER_F( struct berval * )
+ber_dupbv_x LDAP_P((
+	struct berval *dst, struct berval *src, void *ctx ));
+
+LBER_F( struct berval * )
+ber_str2bv_x LDAP_P((
+	LDAP_CONST char *, ber_len_t len, int dup, struct berval *bv, void *ctx));
+
+LBER_F( struct berval * )
+ber_mem2bv_x LDAP_P((
+	LDAP_CONST char *, ber_len_t len, int dup, struct berval *bv, void *ctx));
+
+LBER_F( char * )
+ber_strdup_x LDAP_P((
+	LDAP_CONST char *, void *ctx ));
+
+LBER_F( void )
+ber_bvarray_free_x LDAP_P(( BerVarray p, void *ctx ));
+
+LBER_F( int )
+ber_bvarray_add_x LDAP_P(( BerVarray *p, BerValue *bv, void *ctx ));
 
 #define ber_bvcmp(v1,v2) \
 	((v1)->bv_len < (v2)->bv_len \
