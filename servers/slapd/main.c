@@ -200,10 +200,11 @@ main( int argc, char **argv )
 
 		time( &starttime );
 
-		if ( pthread_create( &listener_tid, NULL, slapd_daemon,
-		    (void *) port ) != 0 ) {
+		if ( status = pthread_create( &listener_tid, NULL,
+			slapd_daemon, (void *) port ) != 0 )
+		{
 			Debug( LDAP_DEBUG_ANY,
-			    "listener pthread_create failed\n", 0, 0, 0 );
+			    "listener pthread_create failed (%d)\n", status, 0, 0 );
 			exit( 1 );
 		}
 
