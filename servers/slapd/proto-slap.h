@@ -345,9 +345,8 @@ LDAP_SLAPD_F (void) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
 /*
  * dn.c
  */
-#define dn_match(dn1, dn2) \
-	(((dn1)->bv_len == (dn2)->bv_len) \
-	 && (strcmp((dn1)->bv_val, (dn2)->bv_val) == 0))
+
+#define dn_match(dn1, dn2) 	( ber_cmp((dn1), (dn2)) == 0 )
 
 LDAP_SLAPD_F (int) dnValidate LDAP_P((
 	Syntax *syntax, 

@@ -16,6 +16,26 @@
 #include "slap.h"
 #include "sets.h"
 
+
+/*
+ * speed up compares
+ */
+static struct berval 
+	aci_bv_entry 		= { sizeof("entry") - 1, 	"entry" },
+	aci_bv_br_entry		= { sizeof("[entry]") - 1,	"[entry]" },
+	aci_bv_br_all		= { sizeof("[all]") - 1,	"[all]" },
+	aci_bv_access_id 	= { sizeof("access-id") - 1, 	"access-id" },
+	aci_bv_anonymous	= { sizeof("anonymous") - 1,	"anonymous" },
+	aci_bv_users		= { sizeof("users") - 1,	"users" },
+	aci_bv_self 		= { sizeof("self") - 1, 	"self" },
+	aci_bv_dnattr 		= { sizeof("dnattr") - 1, 	"dnattr" },
+	aci_bv_group		= { sizeof("group") - 1, 	"group" },
+	aci_bv_role		= { sizeof("role") - 1, 	"role" },
+	aci_bv_set		= { sizeof("set") - 1, 		"set" },
+	aci_bv_set_ref		= { sizeof("set-ref") - 1,	"set-ref"},
+	aci_bv_grant		= { sizeof("grant") - 1,	"grant" },
+	aci_bv_deny		= { sizeof("deny") - 1,		"deny" };
+
 static AccessControl * acl_get(
 	AccessControl *ac, int *count,
 	Backend *be, Operation *op,
@@ -511,31 +531,28 @@ acl_mask(
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( b->a_dn_pat.bv_len == sizeof("anonymous") -1 &&
-			    strcmp( b->a_dn_pat.bv_val, "anonymous" ) == 0 ) {
-				if (op->o_ndn.bv_len != 0 ) {
+			if ( ber_cmp( &b->a_dn_pat, &aci_bv_anonymous ) == 0 ) {
+				if ( op->o_ndn.bv_len != 0 ) {
 					continue;
 				}
 
-			} else if ( b->a_dn_pat.bv_len == sizeof("users") - 1 &&
-			    strcmp( b->a_dn_pat.bv_val, "users" ) == 0 ) {
-				if (op->o_ndn.bv_len == 0 ) {
+			} else if ( ber_cmp( &b->a_dn_pat, &aci_bv_users ) == 0 ) {
+				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 
-			} else if ( b->a_dn_pat.bv_len == sizeof("self") - 1 &&
-			    strcmp( b->a_dn_pat.bv_val, "self" ) == 0 ) {
-				if( op->o_ndn.bv_len == 0 ) {
+			} else if ( ber_cmp( &b->a_dn_pat, &aci_bv_self ) == 0 ) {
+				if ( op->o_ndn.bv_len == 0 ) {
 					continue;
 				}
 				
-				if ( e->e_dn == NULL || strcmp( e->e_ndn, op->o_ndn.bv_val ) != 0 ) {
+				if ( e->e_dn == NULL || !dn_match( &e->e_nname, &op->o_ndn ) ) {
 					continue;
 				}
 
 			} else if ( b->a_dn_style == ACL_STYLE_REGEX ) {
 				if ( b->a_dn_pat.bv_len != 1 || 
-				    strcmp( b->a_dn_pat.bv_val, "*" ) != 0 ) {
+				    ber_charcmp( &b->a_dn_pat, '*' ) != 0 ) {
 					int ret = regex_matches( b->a_dn_pat.bv_val,
 						op->o_ndn.bv_val, e->e_ndn, matches );
 
@@ -1369,7 +1386,7 @@ aci_list_map_rights(
 static int
 aci_list_has_attr(
 	struct berval *list,
-	const char *attr,
+	const struct berval *attr,
 	struct berval *val )
 {
 	struct berval bv, left, right;
@@ -1379,13 +1396,13 @@ aci_list_has_attr(
 		if (aci_get_part(&bv, 0, '=', &left) < 0
 			|| aci_get_part(&bv, 1, '=', &right) < 0)
 		{
-			if (aci_strbvcmp(attr, &bv) == 0)
+			if (ber_casecmp(attr, &bv) == 0)
 				return(1);
 		} else if (val == NULL) {
-			if (aci_strbvcmp(attr, &left) == 0)
+			if (ber_casecmp(attr, &left) == 0)
 				return(1);
 		} else {
-			if (aci_strbvcmp(attr, &left) == 0) {
+			if (ber_casecmp(attr, &left) == 0) {
 				/* this is experimental code that implements a
 				 * simple (prefix) match of the attribute value.
 				 * the ACI draft does not provide for aci's that
@@ -1403,7 +1420,7 @@ aci_list_has_attr(
 				if (aci_get_part(&right, 0, '*', &left) < 0
 					|| right.bv_len <= left.bv_len)
 				{
-					if (aci_strbvcmp(val->bv_val, &right) == 0)
+					if (ber_casecmp(val, &right) == 0)
 						return(1);
 				} else if (val->bv_len >= left.bv_len) {
 					if (strncasecmp( val->bv_val, left.bv_val, left.bv_len ) == 0)
@@ -1418,7 +1435,7 @@ aci_list_has_attr(
 static slap_access_t
 aci_list_get_attr_rights(
 	struct berval *list,
-	const char *attr,
+	const struct berval *attr,
 	struct berval *val )
 {
     struct berval bv;
@@ -1440,7 +1457,7 @@ aci_list_get_attr_rights(
 static int
 aci_list_get_rights(
 	struct berval *list,
-	const char *attr,
+	const struct berval *attr,
 	struct berval *val,
 	slap_access_t *grant,
 	slap_access_t *deny )
@@ -1449,8 +1466,9 @@ aci_list_get_rights(
     slap_access_t *mask;
     int i, found;
 
-	if (attr == NULL || *attr == 0 || strcasecmp(attr, "entry") == 0) {
-		attr = "[entry]";
+	if (attr == NULL || attr->bv_len == 0 
+			|| ber_casecmp( attr, &aci_bv_entry ) == 0) {
+		attr = &aci_bv_br_entry;
 	}
 
 	found = 0;
@@ -1460,9 +1478,9 @@ aci_list_get_rights(
 	for (i = 0; aci_get_part(list, i, '$', &perm) >= 0; i++) {
 		if (aci_get_part(&perm, 0, ';', &actn) < 0)
 			continue;
-		if (aci_strbvcmp( "grant", &actn ) == 0) {
+		if (ber_casecmp( &aci_bv_grant, &actn ) == 0) {
 			mask = grant;
-		} else if (aci_strbvcmp( "deny", &actn ) == 0) {
+		} else if (ber_casecmp( &aci_bv_deny, &actn ) == 0) {
 			mask = deny;
 		} else {
 			continue;
@@ -1470,7 +1488,7 @@ aci_list_get_rights(
 
 		found = 1;
 		*mask |= aci_list_get_attr_rights(&perm, attr, val);
-		*mask |= aci_list_get_attr_rights(&perm, "[all]", NULL);
+		*mask |= aci_list_get_attr_rights(&perm, &aci_bv_br_all, NULL);
 	}
 	return(found);
 }
@@ -1565,9 +1583,9 @@ aci_mask(
 {
     struct berval bv, perms, sdn;
 	int rc;
-	char *attr = desc->ad_cname.bv_val;
+		
 
-	assert( attr != NULL );
+	assert( desc->ad_cname.bv_val != NULL );
 
 	/* parse an aci of the form:
 		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
@@ -1588,7 +1606,7 @@ aci_mask(
 
 	/* check that the scope is "entry" */
 	if (aci_get_part(aci, 1, '#', &bv) < 0
-		|| aci_strbvcmp( "entry", &bv ) != 0)
+		|| ber_casecmp( &aci_bv_entry, &bv ) != 0)
 	{
 		return(0);
 	}
@@ -1598,7 +1616,7 @@ aci_mask(
 		return(0);
 
 	/* check if any permissions allow desired access */
-	if (aci_list_get_rights(&perms, attr, val, grant, deny) == 0)
+	if (aci_list_get_rights(&perms, &desc->ad_cname, val, grant, deny) == 0)
 		return(0);
 
 	/* see if we have a DN match */
@@ -1608,29 +1626,27 @@ aci_mask(
 	if (aci_get_part(aci, 4, '#', &sdn) < 0)
 		return(0);
 
-	if (aci_strbvcmp( "access-id", &bv ) == 0) {
+	if (ber_casecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
 		rc = 1;
 		if ( dnNormalize2(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
-			if (strcasecmp(op->o_ndn.bv_val, ndn.bv_val) != 0)
+			if (!dn_match( &op->o_ndn, &ndn))
 				rc = 0;
 			free(ndn.bv_val);
 		}
 		return(rc);
 	}
 
-	if (aci_strbvcmp( "self", &bv ) == 0) {
+	if (ber_casecmp( &aci_bv_self, &bv ) == 0) {
 		if (dn_match(&op->o_ndn, &e->e_nname))
 			return(1);
 
-	} else if (aci_strbvcmp( "dnattr", &bv ) == 0) {
-		char *dnattr = aci_bvstrdup(&sdn);
+	} else if (ber_casecmp( &aci_bv_dnattr, &bv ) == 0) {
 		Attribute *at;
 		AttributeDescription *ad = NULL;
 		const char *text;
 
-		rc = slap_str2ad( dnattr, &ad, &text );
-		ch_free( dnattr );
+		rc = slap_bv2ad( &sdn, &ad, &text );
 
 		if( rc != LDAP_SUCCESS ) {
 			return 0;
@@ -1653,19 +1669,19 @@ aci_mask(
 		return rc;
 
 
-	} else if (aci_strbvcmp( "group", &bv ) == 0) {
+	} else if (ber_casecmp( &aci_bv_group, &bv ) == 0) {
 		if (aci_group_member(&sdn, &GroupClass, &GroupAttr, be, e, conn, op, matches))
 			return(1);
 
-	} else if (aci_strbvcmp( "role", &bv ) == 0) {
+	} else if (ber_casecmp( &aci_bv_role, &bv ) == 0) {
 		if (aci_group_member(&sdn, &RoleClass, &RoleAttr, be, e, conn, op, matches))
 			return(1);
 
-	} else if (aci_strbvcmp( "set", &bv ) == 0) {
+	} else if (ber_casecmp( &aci_bv_set, &bv ) == 0) {
 		if (aci_match_set(&sdn, be, e, conn, op, 0))
 			return(1);
 
-	} else if (aci_strbvcmp( "set-ref", &bv ) == 0) {
+	} else if (ber_casecmp( &aci_bv_set_ref, &bv ) == 0) {
 		if (aci_match_set(&sdn, be, e, conn, op, 1))
 			return(1);
 
