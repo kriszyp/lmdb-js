@@ -240,7 +240,6 @@ get_filter(
 		}
 
 		assert( f->f_mra != NULL );
-
 		break;
 
 	default:
@@ -269,6 +268,7 @@ get_filter(
 		} else {
 			free(f);
 		}
+
 	} else {
 		*filt = f;
 	}
@@ -576,109 +576,6 @@ filter_free( Filter *f )
 
 	free( f );
 }
-
-#ifdef LDAP_DEBUG
-void
-filter_print( Filter *f )
-{
-	int	i;
-	Filter	*p;
-	struct berval escaped;
-
-	if ( f == NULL ) {
-		fprintf( stderr, "No filter!" );
-	}
-
-	switch ( f->f_choice ) {
-	case LDAP_FILTER_EQUALITY:
-		filter_escape_value( &f->f_av_value, &escaped );
-		fprintf( stderr, "(%s=%s)",
-			f->f_av_desc->ad_cname.bv_val,
-			escaped.bv_val );
-		ber_memfree( escaped.bv_val );
-		break;
-
-	case LDAP_FILTER_GE:
-		filter_escape_value( &f->f_av_value, &escaped );
-		fprintf( stderr, "(%s>=%s)",
-			f->f_av_desc->ad_cname.bv_val,
-			escaped.bv_val );
-		ber_memfree( escaped.bv_val );
-		break;
-
-	case LDAP_FILTER_LE:
-		filter_escape_value( &f->f_av_value, &escaped );
-		fprintf( stderr, "(%s<=%s)",
-			f->f_ava->aa_desc->ad_cname.bv_val,
-			escaped.bv_val );
-		ber_memfree( escaped.bv_val );
-		break;
-
-	case LDAP_FILTER_APPROX:
-		filter_escape_value( &f->f_av_value, &escaped );
-		fprintf( stderr, "(%s~=%s)",
-			f->f_ava->aa_desc->ad_cname.bv_val,
-			escaped.bv_val );
-		ber_memfree( escaped.bv_val );
-		break;
-
-	case LDAP_FILTER_SUBSTRINGS:
-		fprintf( stderr, "(%s=" /*)*/,
-			f->f_sub_desc->ad_cname.bv_val );
-		if ( f->f_sub_initial.bv_val != NULL ) {
-			filter_escape_value( &f->f_sub_initial, &escaped );
-			fprintf( stderr, "%s",
-				escaped.bv_val );
-			ber_memfree( escaped.bv_val );
-		}
-		if ( f->f_sub_any != NULL ) {
-			for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
-				filter_escape_value( &f->f_sub_any[i], &escaped );
-				fprintf( stderr, "*%s",
-					escaped.bv_val );
-				ber_memfree( escaped.bv_val );
-			}
-		}
-		if ( f->f_sub_final.bv_val != NULL ) {
-			filter_escape_value( &f->f_sub_final, &escaped );
-			fprintf( stderr,
-				"*%s", escaped.bv_val );
-			ber_memfree( escaped.bv_val );
-		}
-		fprintf( stderr, /*(*/ ")" );
-		break;
-
-	case LDAP_FILTER_PRESENT:
-		fprintf( stderr, "(%s=*)",
-			f->f_desc->ad_cname.bv_val );
-		break;
-
-	case LDAP_FILTER_AND:
-	case LDAP_FILTER_OR:
-	case LDAP_FILTER_NOT:
-		fprintf( stderr, "(%c" /*)*/,
-			f->f_choice == LDAP_FILTER_AND ? '&' :
-			f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
-		for ( p = f->f_list; p != NULL; p = p->f_next ) {
-			filter_print( p );
-		}
-		fprintf( stderr, /*(*/ ")" );
-		break;
-
-	case SLAPD_FILTER_COMPUTED:
-		fprintf( stderr, "(?=%s)",
-			f->f_result == LDAP_COMPARE_FALSE ? "false" :
-			f->f_result == LDAP_COMPARE_TRUE ? "true" :
-			f->f_result == SLAPD_COMPARE_UNDEFINED ? "undefined" :
-			"error" );
-		break;
-
-	default:
-		fprintf( stderr, "(unknown-filter=%lu)", f->f_choice );
-		break;
-	}
-}
-#endif /* ldap_debug */
 
 void
 filter2bv( Filter *f, struct berval *fstr )

@@ -1485,10 +1485,11 @@ print_acl( Backend *be, AccessControl *a )
 	}
 
 	if ( a->acl_filter != NULL ) {
+		struct berval bv = { 0, NULL };
 		to++;
-		fprintf( stderr, " filter=" );
-		filter_print( a->acl_filter );
-		fprintf( stderr, "\n" );
+		filter2bv( a->acl_filter, &bv );
+		fprintf( stderr, " filter=%s\n", bv.bv_val );
+		ch_free( bv.bv_val );
 	}
 
 	if ( a->acl_attrs != NULL ) {

@@ -461,7 +461,6 @@ LDAP_SLAPD_F (int) get_filter LDAP_P((
 	const char **text ));
 
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));
-LDAP_SLAPD_F (void) filter_print LDAP_P(( Filter *f ));
 LDAP_SLAPD_F (void) filter2bv LDAP_P(( Filter *f, struct berval *bv ));
 
 /*
