@@ -269,6 +269,7 @@ static int is_allowed_scheme(
 static struct berval *passwd_scheme(
 	const struct pw_scheme *scheme,
 	const struct berval * passwd,
+	struct berval *bv,
 	const char** allowed )
 {
 	if( !is_allowed_scheme( scheme->name.bv_val, allowed ) ) {
@@ -277,10 +278,6 @@ static struct berval *passwd_scheme(
 
 	if( passwd->bv_len >= scheme->name.bv_len ) {
 		if( strncasecmp( passwd->bv_val, scheme->name.bv_val, scheme->name.bv_len ) == 0 ) {
-			struct berval *bv = ber_memalloc( sizeof(struct berval) );
-
-			if( bv == NULL ) return NULL;
-
 			bv->bv_val = &passwd->bv_val[scheme->name.bv_len];
 			bv->bv_len = passwd->bv_len - scheme->name.bv_len;
 
@@ -310,18 +307,12 @@ lutil_passwd(
 
 	for( i=0; pw_schemes[i].name.bv_val != NULL; i++ ) {
 		if( pw_schemes[i].chk_fn ) {
+			struct berval x;
 			struct berval *p = passwd_scheme( &pw_schemes[i],
-				passwd, schemes );
+				passwd, &x, schemes );
 
 			if( p != NULL ) {
-				int rc = (pw_schemes[i].chk_fn)( &pw_schemes[i], p, cred );
-
-				/* only free the berval structure as the bv_val points
-				 * into passwd->bv_val
-				 */
-				ber_memfree( p );
-				
-				return rc;
+				return (pw_schemes[i].chk_fn)( &pw_schemes[i], p, cred );
 			}
 		}
 	}
