@@ -443,26 +443,26 @@ ldap_sasl_interactive_bind_s(
 		 * ask all the time. No, we don't ever actually bind, but I'll
 		 * let the final bind handler take care of saving the cdn.
 		 */
-		rc = ldap_simple_bind(ld, dn, NULL);
-		return rc < 0 ? rc : 0;
+		rc = ldap_simple_bind( ld, dn, NULL );
+		rc = rc < 0 ? rc : 0;
+		goto done;
 	} else
 #endif
 	if( mechs == NULL || *mechs == '\0' ) {
 		char *smechs;
 
 		rc = ldap_pvt_sasl_getmechs( ld, &smechs );
-
 		if( rc != LDAP_SUCCESS ) {
 			goto done;
 		}
 
 #ifdef NEW_LOGGING
 		LDAP_LOG ( TRANSPORT, DETAIL1, 
-			"ldap_interactive_sasl_bind_s: server supports: %s\n", 
+			"ldap_sasl_interactive_bind_s: server supports: %s\n", 
 			smechs, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"ldap_interactive_sasl_bind_s: server supports: %s\n",
+			"ldap_sasl_interactive_bind_s: server supports: %s\n",
 			smechs, 0, 0 );
 #endif
 
@@ -471,10 +471,11 @@ ldap_sasl_interactive_bind_s(
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG ( TRANSPORT, DETAIL1, 
-			"ldap_interactive_sasl_bind_s: user selected: %s\n", mechs, 0, 0 );
+			"ldap_sasl_interactive_bind_s: user selected: %s\n",
+			mechs, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"ldap_interactive_sasl_bind_s: user selected: %s\n",
+			"ldap_sasl_interactive_bind_s: user selected: %s\n",
 			mechs, 0, 0 );
 #endif
 	}
