@@ -308,11 +308,6 @@ idl_store(
 	flags = LDBM_REPLACE;
 	rc = ldbm_cache_store( db, key, data, flags );
 
-#ifdef LDBM_DEBUG
-	Statslog( LDAP_DEBUG_STATS, "<= idl_store(): rc=%d\n",
-		rc, 0, 0, 0, 0 );
-#endif
-
 	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */
 	return( rc );
 }
