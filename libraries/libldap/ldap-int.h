@@ -58,6 +58,9 @@
 #include "ldap_log.h"
 
 #undef Debug
+
+#ifdef LDAP_DEBUG
+
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
 	do { if ( ldap_debug & level ) \
 	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) ); \
@@ -65,6 +68,13 @@
 
 #define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 )\
 	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
+
+#else
+
+#define Debug( level, fmt, arg1, arg2, arg3 )                 ((void)0)
+#define LDAP_Debug( subsystem, level, fmt, arg1, arg2, arg3 ) ((void)0)
+
+#endif /* LDAP_DEBUG */
 
 #include "ldap.h"
 

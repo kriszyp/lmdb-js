@@ -139,6 +139,9 @@ LDAP_BEGIN_DECL
 
 #ifdef NEW_LOGGING
 extern int ldap_loglevels[LDAP_SUBSYS_NUM];
+
+#ifdef LDAP_DEBUG
+
 #define LDAP_LOG(a, b, fmt, arg1, arg2, arg3) do {\
 	if (ldap_loglevels[LDAP_SUBSYS_##a] >= LDAP_LEVEL_##b || \
 		ldap_loglevels[LDAP_SUBSYS_GLOBAL] >= LDAP_LEVEL_##b)\
@@ -150,10 +153,13 @@ extern int ldap_loglevels[LDAP_SUBSYS_NUM];
 	(ldap_loglevels[LDAP_SUBSYS_##a] >= LDAP_LEVEL_##b || \
 	 ldap_loglevels[LDAP_SUBSYS_GLOBAL] >= LDAP_LEVEL_##b)
 
-#endif /* LDAP_LOG */
+#endif /* LDAP_DEBUG */
+
+#endif /* NEW_LOGGING */
 
 #ifndef LDAP_LOG
 #define LDAP_LOG(a, b, fmt, arg1, arg2, arg3)
+#define LDAP_LOGS_TEST(a, b) 0
 #endif
 
 LDAP_LUTIL_F(int) lutil_mnem2level LDAP_P(( const char *level ));
