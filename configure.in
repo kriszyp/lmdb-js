@@ -149,6 +149,7 @@ OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], auto)dnl
 OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
+OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], auto)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
 dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
@@ -375,6 +376,12 @@ if test $ol_enable_slurpd = yes ; then
 	dnl SLURPD was specifically enabled
 	if test $ol_with_threads = no ; then
 		AC_MSG_ERROR([slurpd requires threads])
+	fi
+fi
+
+if test $ol_enable_lmpasswd = yes ; then
+	if test $ol_with_tls = no ; then
+		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
 	fi
 fi
 
@@ -1071,6 +1078,16 @@ elif test $ol_with_tls = auto ; then
 
 elif test $ol_with_tls != no ; then
 	AC_ERROR([Could not locate TLS/SSL package])
+fi
+
+dnl ----------------------------------------------------------------
+dnl LAN Manger password checking requires DES from OpenSSL
+if test $ol_enable_lmhash != no; then
+	if test $ol_link_tls != yes ; then
+		AC_ERROR([LAN Manager passwords require OpenSSL])
+	fi
+
+	AC_DEFINE(SLAPD_LMHASH, 1, [define to support LAN Manager passwords])
 fi
 
 dnl ----------------------------------------------------------------
