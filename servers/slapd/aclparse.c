@@ -103,7 +103,7 @@ regtest(const char *fname, int lineno, char *pat) {
 	}
 
 	*dp = '\0';
-	if ( size >= (sizeof(buf)-1) ) {
+	if ( size >= (sizeof(buf) - 1) ) {
 		fprintf( stderr,
 			"%s: line %d: regular expression \"%s\" too large\n",
 			fname, lineno, pat );
@@ -362,7 +362,7 @@ parse_acl(
 							|| strcmp(right, "^.*$$") == 0 )
 						{
 							a->acl_dn_pat.bv_val = ch_strdup( "*" );
-							a->acl_dn_pat.bv_len = sizeof("*")-1;
+							a->acl_dn_pat.bv_len = STRLENOF("*");
 
 						} else {
 							acl_regex_normalized_dn( right, &a->acl_dn_pat );
@@ -474,12 +474,11 @@ parse_acl(
 				}
 			}
 
-			if ( a->acl_dn_pat.bv_len != 0 &&
-				strcmp(a->acl_dn_pat.bv_val, "*") == 0 )
+			if ( !BER_BVISNULL( &a->acl_dn_pat ) && 
+					ber_bvccmp( &a->acl_dn_pat, '*' ) )
 			{
 				free( a->acl_dn_pat.bv_val );
-				a->acl_dn_pat.bv_val = NULL;
-				a->acl_dn_pat.bv_len = 0;
+				BER_BVZERO( &a->acl_dn_pat );
 			}
 			
 			if( a->acl_dn_pat.bv_len != 0 ||
@@ -634,15 +633,15 @@ parse_acl(
 					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( argv[i], "anonymous" ) == 0 ) {
-					ber_str2bv("anonymous", sizeof("anonymous")-1, 1, &bv);
+					ber_str2bv("anonymous", STRLENOF( "anonymous" ), 1, &bv);
 					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
-					ber_str2bv("self", sizeof("self")-1, 1, &bv);
+					ber_str2bv("self", STRLENOF( "self" ), 1, &bv);
 					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( argv[i], "users" ) == 0 ) {
-					ber_str2bv("users", sizeof("users")-1, 1, &bv);
+					ber_str2bv("users", STRLENOF( "users" ), 1, &bv);
 					sty = ACL_STYLE_REGEX;
 
 				} else if ( strcasecmp( left, "dn" ) == 0 ) {
@@ -651,18 +650,18 @@ parse_acl(
 						if( right == NULL ) {
 							/* no '=' */
 							ber_str2bv("users",
-								sizeof("users")-1,
+								STRLENOF( "users" ),
 								1, &bv);
 						} else if (*right == '\0' ) {
 							/* dn="" */
 							ber_str2bv("anonymous",
-								sizeof("anonymous")-1,
+								STRLENOF( "anonymous" ),
 								1, &bv);
 						} else if ( strcmp( right, "*" ) == 0 ) {
 							/* dn=* */
 							/* any or users?  users for now */
 							ber_str2bv("users",
-								sizeof("users")-1,
+								STRLENOF( "users" ),
 								1, &bv);
 						} else if ( strcmp( right, ".+" ) == 0
 							|| strcmp( right, "^.+" ) == 0
@@ -672,7 +671,7 @@ parse_acl(
 							|| strcmp( right, "^.+$$" ) == 0 )
 						{
 							ber_str2bv("users",
-								sizeof("users")-1,
+								STRLENOF( "users" ),
 								1, &bv);
 						} else if ( strcmp( right, ".*" ) == 0
 							|| strcmp( right, "^.*" ) == 0
@@ -682,7 +681,7 @@ parse_acl(
 							|| strcmp( right, "^.*$$" ) == 0 )
 						{
 							ber_str2bv("*",
-								sizeof("*")-1,
+								STRLENOF( "*" ),
 								1, &bv);
 
 						} else {
@@ -782,7 +781,7 @@ parse_acl(
 					continue;
 				}
 
-				if ( strncasecmp( left, "group", sizeof("group")-1 ) == 0 ) {
+				if ( strncasecmp( left, "group", STRLENOF( "group" ) ) == 0 ) {
 					char *name = NULL;
 					char *value = NULL;
 
@@ -1965,7 +1964,7 @@ print_access( Access *b )
 	fprintf( stderr, "\tby" );
 
 	if ( b->a_dn_pat.bv_len != 0 ) {
-		if( strcmp(b->a_dn_pat.bv_val, "*") == 0 ||
+		if ( ber_bvccmp( &b->a_dn_pat, '*' ) ||
 			strcmp(b->a_dn_pat.bv_val, "users") == 0 ||
 			strcmp(b->a_dn_pat.bv_val, "anonymous") == 0 ||
 			strcmp(b->a_dn_pat.bv_val, "self") == 0 )
