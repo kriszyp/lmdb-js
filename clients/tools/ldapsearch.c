@@ -572,8 +572,6 @@ main( int argc, char **argv )
 
 	prog = lutil_progname( "ldapsearch", argc, argv );
 
-	lutil_log_initialize(argc, argv);
-
 	if((def_tmpdir = getenv("TMPDIR")) == NULL &&
 	   (def_tmpdir = getenv("TMP")) == NULL &&
 	   (def_tmpdir = getenv("TEMP")) == NULL )

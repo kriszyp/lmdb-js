@@ -1345,25 +1345,6 @@ restrict_unknown:;
 			if( value_add( &default_referral, vals ) )
 				return LDAP_OTHER;
 
-		/* start of a new database definition */
-		} else if ( strcasecmp( cargv[0], "debug" ) == 0 ) {
-                        int level;
-			if ( cargc < 3 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: Error in debug directive, \"debug subsys level\"\n",
-					fname, lineno, 0 );
-				return( 1 );
-			}
-                        level = strtol( cargv[2], &next, 10 );
-			if ( next == NULL || next[0] != '\0' ){
-				Debug( LDAP_DEBUG_ANY,
-					   "%s: line %d: unable to parse level \"%s\" in debug directive, "
-					   "\"debug <subsys> <level>\"\n", fname, lineno , cargv[2] );
-				return( 1 );
-			}
-
-                        if ( level <= 0 ) level = lutil_mnem2level( cargv[2] );
-                        lutil_set_debug_level( cargv[1], level );
 		/* specify an Object Identifier macro */
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
 			rc = parse_oidm( fname, lineno, cargc, cargv );

@@ -32,36 +32,6 @@
 LDAP_BEGIN_DECL
 
 /*
- * While it's not important that the subsystem number are
- * contiguous, it is important that the LDAP_SUBSYS_NUM accurately
- * reflect the number of subsystems and LDAP_SUBSYS_MAX reflect
- * the largest subsystem number.
- */
-#define LDAP_SUBSYS_NUM 20
-#define LDAP_SUBSYS_MAX 19
-
-#define LDAP_SUBSYS_GLOBAL      0
-#define LDAP_SUBSYS_OPERATION   1
-#define LDAP_SUBSYS_TRANSPORT   2
-#define LDAP_SUBSYS_CONNECTION  3
-#define LDAP_SUBSYS_FILTER      4
-#define LDAP_SUBSYS_BER         5
-#define LDAP_SUBSYS_CONFIG      6
-#define LDAP_SUBSYS_ACL         7
-#define LDAP_SUBSYS_CACHE       8
-#define LDAP_SUBSYS_INDEX      	9
-#define LDAP_SUBSYS_LDIF       	10
-#define LDAP_SUBSYS_TOOLS      	11
-#define LDAP_SUBSYS_SLAPD      	12
-#define LDAP_SUBSYS_SLURPD     	13
-#define LDAP_SUBSYS_BACKEND     14
-#define LDAP_SUBSYS_BACK_BDB 	15
-#define LDAP_SUBSYS_BACK_LDBM 	16
-#define LDAP_SUBSYS_BACK_LDAP 	17
-#define LDAP_SUBSYS_BACK_META 	18
-#define LDAP_SUBSYS_BACK_MON 	19
-
-/*
  * debug reporting levels.
  *
  * They start with the syslog levels, and
@@ -103,7 +73,6 @@ LDAP_BEGIN_DECL
 
 /* debugging stuff */
 #ifdef LDAP_DEBUG
-
     /*
      * This is a bogus extern declaration for the compiler. No need to ensure
      * a 'proper' dllimport.
@@ -146,41 +115,12 @@ LDAP_BEGIN_DECL
 
 #endif /* LDAP_DEBUG */
 
-#ifdef NEW_LOGGING
-extern int ldap_loglevels[LDAP_SUBSYS_NUM];
-
-#ifdef LDAP_DEBUG
-
-#define LDAP_LOG(a, b, fmt, arg1, arg2, arg3) do {\
-	if (ldap_loglevels[LDAP_SUBSYS_##a] >= LDAP_LEVEL_##b || \
-		ldap_loglevels[LDAP_SUBSYS_GLOBAL] >= LDAP_LEVEL_##b)\
-		   lutil_log (LDAP_SUBSYS_##a, LDAP_LEVEL_##b, fmt, arg1, arg2, arg3); \
-	} while (0)
-
-
-#define LDAP_LOGS_TEST(a, b) \
-	(ldap_loglevels[LDAP_SUBSYS_##a] >= LDAP_LEVEL_##b || \
-	 ldap_loglevels[LDAP_SUBSYS_GLOBAL] >= LDAP_LEVEL_##b)
-
-#endif /* LDAP_DEBUG */
-
-#endif /* NEW_LOGGING */
-
 #ifndef LDAP_LOG
 #define LDAP_LOG(a, b, fmt, arg1, arg2, arg3)
 #define LDAP_LOGS_TEST(a, b) 0
 #endif
 
-LDAP_LUTIL_F(int) lutil_mnem2level LDAP_P(( const char *level ));
-LDAP_LUTIL_F(void) lutil_log_initialize LDAP_P((
-	int argc, char **argv ));
-LDAP_LUTIL_F(int) lutil_set_debug_level LDAP_P((
-	const char *subsys, int level ));
-LDAP_LUTIL_F(void) lutil_log LDAP_P((
-	const int subsys, int level, const char *fmt, ... ));
-
 LDAP_LUTIL_F(int) lutil_debug_file LDAP_P(( FILE *file ));
-
 
 LDAP_LUTIL_F(void) lutil_debug LDAP_P((
 	int debug, int level,

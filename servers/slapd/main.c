@@ -501,7 +501,6 @@ unhandled_option:;
 
 	(void) ldap_pvt_thread_initialize();
 
-	lutil_set_debug_level( "slapd", slap_debug );
 	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
 	ldif_debug = slap_debug;
