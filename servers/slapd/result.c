@@ -268,6 +268,11 @@ send_ldap_response(
 
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_response: msgid=%ld tag=%ld err=%ld\n",
 		(long) msgid, (long) tag, (long) err );
+	if( ref ) {
+		Debug( LDAP_DEBUG_ARGS, "send_ldap_response: ref=%s\n",
+			ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
+			NULL, NULL );
+	}
 
 	if ( ber == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "ber_alloc failed\n", 0, 0, 0 );
@@ -286,9 +291,14 @@ send_ldap_response(
 			matched == NULL ? "" : matched,
 			text == NULL ? "" : text );
 
-		if( rc != -1 && ref != NULL ) {
-			rc = ber_printf( ber, "t{V}",
-				LDAP_TAG_REFERRAL, ref );
+		if( rc != -1 ) {
+			if ( ref != NULL ) {
+				assert( err == LDAP_REFERRAL );
+				rc = ber_printf( ber, "t{V}",
+					LDAP_TAG_REFERRAL, ref );
+			} else {
+				assert( err != LDAP_REFERRAL );
+			}
 		}
 
 		if( rc != -1 && sasldata != NULL ) {
@@ -412,6 +422,11 @@ send_ldap_result(
 		(long) op->o_connid, (long) op->o_opid, op->o_protocol );
 	Debug( LDAP_DEBUG_ARGS, "send_ldap_result: %d:%s:%s\n",
 		err, matched ?  matched : "", text ? text : "" );
+	if( ref ) {
+	Debug( LDAP_DEBUG_ARGS, "send_ldap_result: referral: %s\n",
+		ref[0] && ref[0]->bv_val ? ref[0]->bv_val : "NULL",
+		NULL, NULL );
+	}
 
 	assert( err != LDAP_PARTIAL_RESULTS );
 
@@ -656,7 +671,7 @@ send_search_entry(
 		goto error_return;
 	}
 
-	rc = ber_printf( ber, "{it{s{", op->o_msgid,
+	rc = ber_printf( ber, "{it{s{" /*}}}*/, op->o_msgid,
 		LDAP_RES_SEARCH_ENTRY, e->e_dn );
 
 	if ( rc == -1 ) {
