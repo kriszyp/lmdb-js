@@ -814,6 +814,19 @@ read_config( const char *fname )
                         if ( level <= 0 ) level = lutil_mnem2level( cargv[2] );
                         lutil_set_debug_level( cargv[1], level );
 		/* specify an Object Identifier macro */
+#ifdef NEW_LOGGING
+                } else if ( strcasecmp( cargv[0], "logfile" ) == 0 ) {
+                        FILE *logfile;
+                        if ( cargc < 2 ) {
+                            Debug( LDAP_DEBUG_ANY,
+                                   "%s: line %d: Error in logfile directive, \"logfile filename\"\n",
+                                   fname, lineno, 0 );
+                            return( 1 );
+                        }
+                        logfile = fopen( cargv[1], "w" );
+                        if ( logfile != NULL ) lutil_debug_file( logfile );
+
+#endif
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
 			parse_oidm( fname, lineno, cargc, cargv );
 
