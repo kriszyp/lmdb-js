@@ -183,8 +183,10 @@ syn_schema_info( Entry *e )
 			return -1;
 		}
 		val.bv_len = strlen( val.bv_val );
+#if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );
+#endif
 		attr_merge( e, ad_ldapSyntaxes, vals );
 		ldap_memfree( val.bv_val );
 	}

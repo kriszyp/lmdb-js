@@ -126,7 +126,7 @@ UTF8StringNormalize(
 	*q = '\0';
 
 	newval->bv_len = q - newval->bv_val;
-	normalized = &newval;
+	*normalized = newval;
 
 	return 0;
 }
@@ -300,7 +300,7 @@ IA5StringNormalize(
 	*q = '\0';
 
 	newval->bv_len = q - newval->bv_val;
-	normalized = &newval;
+	*normalized = newval;
 
 	return 0;
 }

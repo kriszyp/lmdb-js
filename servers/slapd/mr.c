@@ -211,8 +211,10 @@ int mr_schema_info( Entry *e )
 		}
 
 		val.bv_len = strlen( val.bv_val );
+#if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging mr [%ld] %s\n",
 	       (long) val.bv_len, val.bv_val, 0 );
+#endif
 		attr_merge( e, ad_matchingRules, vals );
 		ldap_memfree( val.bv_val );
 	}
