@@ -116,6 +116,10 @@ Attribute *attrs_dup( Attribute *a )
 /*
  * attr_merge - merge the given type and value with the list of
  * attributes in attrs.
+ *
+ * For SLAP_NVALUES: nvals must be NULL if the attribute has no
+ * normalizer. In this case, a->a_nvals will be set equal to a->a_vals.
+ *
  * returns	0	everything went ok
  *		-1	trouble
  */
