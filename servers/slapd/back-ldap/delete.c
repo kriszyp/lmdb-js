@@ -42,9 +42,9 @@ ldap_back_delete(
 	int		do_retry = 1;
 	int		rc = LDAP_SUCCESS;
 
-	lc = ldap_back_getconn( op, rs );
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
 	
-	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
+	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		rc = -1;
 		goto cleanup;
 	}
@@ -60,10 +60,10 @@ ldap_back_delete(
 retry:
 	rs->sr_err = ldap_delete_ext( lc->lc_ld, op->o_req_ndn.bv_val,
 			ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
+	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry (lc, op, rs ) ) {
+		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}

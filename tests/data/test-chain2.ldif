@@ -81,3 +81,8 @@ cn: Dir Man
 sn: Manager
 description: Manager of the directory
 userpassword:: c2VjcmV0
+
+dn: ou=Other,dc=example,dc=com
+objectclass: organizationalUnit
+ou: Other
+

@@ -90,11 +90,22 @@ struct ldapinfo {
 	/* end of ID assert stuff */
 
 	ldap_pvt_thread_mutex_t		conn_mutex;
-	int		savecred;
+	unsigned	flags;
+#define LDAP_BACK_F_NONE		0x00U
+#define LDAP_BACK_F_SAVECRED		0x01U
+#define LDAP_BACK_F_USE_TLS		0x02U
+#define LDAP_BACK_F_TLS_CRITICAL	( 0x04U | LDAP_BACK_F_USE_TLS )
 	Avlnode		*conntree;
 
 	int		rwm_started;
 };
+
+typedef enum ldap_back_send_t {
+	LDAP_BACK_DONTSEND		= 0x00,
+	LDAP_BACK_SENDOK		= 0x01,
+	LDAP_BACK_SENDERR		= 0x02,
+	LDAP_BACK_SENDRESULT		= (LDAP_BACK_SENDOK|LDAP_BACK_SENDERR)
+} ldap_back_send_t;
 
 LDAP_END_DECL
 

@@ -43,8 +43,8 @@ ldap_back_modrdn(
 	int		rc = LDAP_SUCCESS;
 	char		*newSup = NULL;
 
-	lc = ldap_back_getconn( op, rs );
-	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
+	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return( -1 );
 	}
 
@@ -67,10 +67,10 @@ retry:
 	rs->sr_err = ldap_rename( lc->lc_ld, op->o_req_ndn.bv_val,
 			op->orr_newrdn.bv_val, newSup,
 			op->orr_deleteoldrdn, ctrls, NULL, &msgid );
-	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
+	rc = ldap_back_op_result( lc, op, rs, msgid, LDAP_BACK_SENDRESULT );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry( lc, op, rs ) ) {
+		if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 			goto retry;
 		}
 	}

@@ -213,6 +213,27 @@ ldap_back_db_config(
 		li->url = ch_strdup( argv[ 1 ] );
 #endif
 
+	/* start tls */
+	} else if ( strcasecmp( argv[0], "start-tls" ) == 0 ) {
+		if ( argc != 1 ) {
+			fprintf( stderr,
+	"%s: line %d: start-tls takes no arguments\n",
+					fname, lineno );
+			return( 1 );
+		}
+		li->flags |= LDAP_BACK_F_TLS_CRITICAL;
+	
+	/* try start tls */
+	} else if ( strcasecmp( argv[0], "try-start-tls" ) == 0 ) {
+		if ( argc != 1 ) {
+			fprintf( stderr,
+	"%s: line %d: try-start-tls takes no arguments\n",
+					fname, lineno );
+			return( 1 );
+		}
+		li->flags &= ~LDAP_BACK_F_TLS_CRITICAL;
+		li->flags |= LDAP_BACK_F_USE_TLS;
+	
 	/* name to use for ldap_back_group */
 	} else if ( strcasecmp( argv[0], "acl-authcdn" ) == 0
 			|| strcasecmp( argv[0], "binddn" ) == 0 )
@@ -272,7 +293,7 @@ ldap_back_db_config(
 					fname, lineno );
 			return( 1 );
 		}
-		li->savecred = 1;
+		li->flags |= LDAP_BACK_F_SAVECRED;
 	
 	/* intercept exop_who_am_i? */
 	} else if ( strcasecmp( argv[0], "proxy-whoami" ) == 0 ) {
@@ -360,8 +381,8 @@ ldap_back_exop_whoami(
 
 		ctrls[0] = &c;
 		op2.o_ndn = op->o_conn->c_ndn;
-		lc = ldap_back_getconn(&op2, rs);
-		if (!lc || !ldap_back_dobind( lc, op, rs )) {
+		lc = ldap_back_getconn(&op2, rs, LDAP_BACK_SENDERR);
+		if (!lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR )) {
 			return -1;
 		}
 		c.ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
@@ -379,7 +400,7 @@ retry:
 					&rs->sr_err);
 				if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 					do_retry = 0;
-					if ( ldap_back_retry( lc, op, rs ) )
+					if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) )
 						goto retry;
 				}
 				ldap_back_freeconn( op, lc );

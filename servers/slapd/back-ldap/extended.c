@@ -56,8 +56,8 @@ ldap_back_extended(
 			 * called twice; maybe we could avoid the 
 			 * ldap_back_dobind() call inside each extended()
 			 * call ... */
-			lc = ldap_back_getconn( op, rs );
-			if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
+			lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
+			if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 				return -1;
 			}
 
@@ -99,8 +99,8 @@ ldap_back_exop_passwd(
 	int		rc, isproxy;
 	int		do_retry = 1;
 
-	lc = ldap_back_getconn( op, rs );
-	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
+	lc = ldap_back_getconn( op, rs, LDAP_BACK_SENDERR );
+	if ( !lc || !ldap_back_dobind( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 		return -1;
 	}
 
@@ -154,7 +154,7 @@ retry:
 		rs->sr_err = slap_map_api2result( rs );
 		if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry(lc, op, rs ) ) {
+			if ( ldap_back_retry( lc, op, rs, LDAP_BACK_SENDERR ) ) {
 				goto retry;
 			}
 		}
