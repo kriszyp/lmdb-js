@@ -65,7 +65,7 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 		/* We must receive a valid descriptor, it must be a pipe,
 		 * and it must only be accessible by its owner.
 		 */
-		dummy = fstat( fd, &st );
+		dummy = fstat( fd[0], &st );
 		close(fd[0]);
 		if( dummy == 0 && S_ISFIFO(st.st_mode) &&
 			((st.st_mode & (S_IRWXG|S_IRWXO)) == 0))
