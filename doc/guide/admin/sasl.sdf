@@ -233,15 +233,15 @@ their {{authentication DN}}.
 
 The LDAP administrator will need to tell the slapd server how to
 map an authentication request DN to a user's authentication DN.
-This is done by adding one or more {{EX:saslRegexp}} directives to
+This is done by adding one or more {{EX:sasl-regexp}} directives to
 the {{slapd.conf}}(5) file.  This directive takes two arguments:
 
->	saslRegexp   <search pattern>   <replacement pattern>
+>	sasl-regexp   <search pattern>   <replacement pattern>
 
 The authentication request DN is compared to the search pattern
 using the regular expression functions {{regcomp}}() and {{regexec}}(),
 and if it matches, it is rewritten as the replacement pattern. If
-there are multiple {{EX:saslRegexp}} directives, only the first
+there are multiple {{EX:sasl-regexp}} directives, only the first
 whose search pattern matches the authentication identity is used.
 The string that is output from the replacement pattern should be
 the authentication DN of the user, in a legitimate LDAP DN format.
@@ -271,16 +271,16 @@ and the user's actual LDAP entry is
 
 >	uid=adamson,ou=person,dc=example,dc=com
 
-The {{EX:saslRegexp}} directive in {{slapd.conf}}(5) could be
+The {{EX:sasl-regexp}} directive in {{slapd.conf}}(5) could be
 written
 
->	saslRegexp 
+>	sasl-regexp 
 >	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth
 >	  uid=$1,ou=person,dc=example,dc=com
 
 An even more lenient rule could be written as
 
->	saslRegexp
+>	sasl-regexp
 >	  uid=(.*),.*cn=auth 
 >	  uid=$1,ou=person,dc=example,dc=com
 
@@ -291,7 +291,7 @@ several strict directives than one lenient directive which has
 security holes. If there is only one authentication mechanism in
 place at your site, and zero or one realms in use, you might be
 able to map between authentication identities and LDAP DN's with
-a single {{EX:saslRegexp}} directive.
+a single {{EX:sasl-regexp}} directive.
 
 Some sites may have people's DN's spread to multiple areas of the
 LDAP tree, such as if there were an ou=accounting tree and an
@@ -308,14 +308,14 @@ like
 In this case, the information in the authentication identity can
 only be used to search for the user's DN, not derive it directly.
 For both of these situations, and others, the replacement pattern
-in the {{EX:saslRegexp}} directives will need to produce an LDAP
+in the {{EX:sasl-regexp}} directives will need to produce an LDAP
 URL, described in the next section.
 
 
 H3: Performing searches for a person's DN
 
 When there is not enough information in the authentication identity
-to derive a person's authentication DN directly, the {{EX:saslRegexp}}
+to derive a person's authentication DN directly, the {{EX:sasl-regexp}}
 directives in the {{slapd.conf}}(5) file will need to produce an
 LDAP URL.  This URL will then be used to perform an internal search
 of the LDAP database to find the person's authentication DN.
@@ -337,10 +337,10 @@ string.
 
 Suppose that the person in the example from above did in fact have
 an authentication username of "adamson" and that information was
-kept in the attribute "uid" in their LDAP entry. The {{EX:saslRegexp}}
+kept in the attribute "uid" in their LDAP entry. The {{EX:sasl-regexp}}
 directive might be written as
 
->	saslRegexp 
+>	sasl-regexp 
 >	  uid=(.*),cn=example.com,cn=kerberos_v4,cn=auth  
 >	  ldap://localhost/ou=person,dc=example,dc=com??sub?uid=$1
 
@@ -455,7 +455,7 @@ an {{authorization request DN}} of the form
 >	uid=<username>,cn=<realm>,cn=<mechanism>,cn=auth
 
 That authorization request DN is then run through the same
-{{EX:saslRegexp}} process to convert it into a legitimate authorization
+{{EX:sasl-regexp}} process to convert it into a legitimate authorization
 DN from the database. If it cannot be converted due to a failed
 search from an LDAP URL, the authorization request fails with
 "inappropriate access".  Otherwise, the DN string is now a legitimate
@@ -493,7 +493,7 @@ only specify that a request be allowed; there are no negative rules
 telling what authorizations to deny.
 
 The value(s) in the two attributes are of the same form as the
-output of the replacement pattern of a {{EX:saslRegexp}} directive:
+output of the replacement pattern of a {{EX:sasl-regexp}} directive:
 either a DN or an LDAP URL. For example, if a {{EX:saslAuthzTo}}
 value is a DN, that DN is one the authenticated user can authorize
 to. On the other hand, if the {{EX:saslAuthzTo}} value is an LDAP
