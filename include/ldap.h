@@ -193,15 +193,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
 #endif
 
-#ifdef LDAP_DEVEL
 #define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"
-#endif
-
-#ifdef LDAP_DEVEL
-#define LDAP_CLIENT_UPDATE 1
-#define LDAP_SYNC 2
-#define LDAP_SYNCREPL 1
-#endif
 
 #ifdef LDAP_CLIENT_UPDATE
 #define LDAP_CONTROL_CLIENT_UPDATE		"1.3.6.1.4.1.4203.666.5.3"
@@ -210,7 +202,11 @@ typedef struct ldapcontrol {
 #define LDAP_CUP_COOKIE_OID				"1.3.6.1.4.1.4203.666.10.1"
 #endif
 
+#ifdef LDAP_DEVEL
+#define LDAP_SYNC 2
+#endif
 #ifdef LDAP_SYNC
+#define LDAP_SYNCREPL 1
 #define LDAP_CONTROL_SYNC		"1.3.6.1.4.1.4203.666.5.6"
 #define LDAP_CONTROL_SYNC_STATE	"1.3.6.1.4.1.4203.666.5.7"
 #define LDAP_CONTROL_SYNC_DONE	"1.3.6.1.4.1.4203.666.5.8"
@@ -230,10 +226,9 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
-#ifdef LDAP_DEVEL
+/* controls for MSAD compatibility */
 #define LDAP_CONTROL_X_DOMAIN_SCOPE "1.2.840.113556.1.4.1339"
 #define LDAP_CONTROL_X_PERMISSIVE_MODIFY "1.2.840.113556.1.4.1413"
-#endif
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036"
@@ -249,10 +244,7 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
 #define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
-
-#ifdef LDAP_DEVEL
 #define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
-#endif
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OPERATIONAL_ATTRS "1.3.6.1.4.1.4203.1.5.1"  /* + */
@@ -339,9 +331,7 @@ typedef struct ldapcontrol {
 #define LDAP_RES_COMPARE	((ber_tag_t) 0x6fU)	/* application + constructed */
 #define LDAP_RES_EXTENDED	((ber_tag_t) 0x78U)	/* V3: application + constructed */
 #define LDAP_RES_EXTENDED_PARTIAL	((ber_tag_t) 0x79U)	/* V3+: application + constructed */
-#ifdef LDAP_DEVEL
 #define LDAP_RES_INTERMEDIATE_RESP	((ber_tag_t) 0x7aU)
-#endif
 
 #define LDAP_RES_ANY			(-1)
 #define LDAP_RES_UNSOLICITED	(0)
