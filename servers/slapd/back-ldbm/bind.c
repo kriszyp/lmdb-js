@@ -269,7 +269,7 @@ return_results:;
 	cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
-	/* front end with send result on success (rc==0) */
+	/* front end will send result on success (rc==0) */
 	return( rc );
 }
 

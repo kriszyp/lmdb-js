@@ -302,6 +302,6 @@ done:
 
 	LOCK_ID_FREE(bdb->bi_dbenv, locker);
 
-	/* front end with send result on success (rc==0) */
+	/* front end will send result on success (rc==0) */
 	return rc;
 }
