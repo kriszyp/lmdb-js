@@ -8,6 +8,7 @@ Changes included in OpenLDAP 1.2.11 Release Engineering
 		non-zero number of items to process with only one replica.
 	Fixed strdup use in libldap/request.c
 	Fixed NULL prefix bug in libldap/ufn.c
+	Fixed slapd_shutdown extern reference bug (ITS#527)
 	Build Environment
 		Changed LDBM directory to $localstatedir/openldap-ldbm
 
