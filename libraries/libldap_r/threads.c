@@ -54,6 +54,8 @@ ldap_pvt_thread_list ldap_pvt_thread_pool_list = NULL;
 ldap_pvt_thread_mutex_t ldap_pvt_thread_pool_mutex;
 #endif
 
+int ldap_pvt_thread_pool_startup ( void );
+int ldap_pvt_thread_pool_shutdown ( void );
 void *ldap_pvt_thread_pool_wrapper( ldap_pvt_thread_pool_t pool );
 void *ldap_pvt_thread_enlist( ldap_pvt_thread_list *list, void *elem );
 void *ldap_pvt_thread_delist( ldap_pvt_thread_list *list, void *elem );
@@ -448,9 +450,6 @@ ldap_pvt_thread_pool_wrapper ( ldap_pvt_thread_pool_t pool )
 			 * only die if there are other open threads (i.e.,
 			 * always have at least one thread open).
 			 */
-			ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
-			ldap_pvt_thread_yield();
-			ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
 			if (pool->ltp_state == LDAP_PVT_THREAD_POOL_RUNNING)
 				ldap_pvt_thread_cond_wait(&pool->ltp_cond, &pool->ltp_mutex);
