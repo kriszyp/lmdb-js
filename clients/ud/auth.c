@@ -236,7 +236,7 @@ auth( char *who, int implicit )
 		authmethod = LDAP_AUTH_SIMPLE;
 		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
-			passwd = mygetpass(prompt);
+			passwd = getpass(prompt);
 		} while (passwd != NULL && *passwd == '\0');
 		if (passwd == NULL) {
 			(void) ldap_value_free(rdns);

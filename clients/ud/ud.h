@@ -278,7 +278,6 @@ void ka_StringToKey LDAP_P(( char *str, char *cell, des_cblock *key ));
 #endif
 
 /* in util.c: */
-char *mygetpass	LDAP_P(( char *prompt ));
 void printbase	LDAP_P(( char *lead, char *s ));
 void fetch_buffer	LDAP_P(( char *buffer, int length, FILE *where ));
 void fatal	LDAP_P(( char *s ));
