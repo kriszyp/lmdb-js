@@ -180,7 +180,7 @@ libbackends.a: .backend
 			mv $$j $${pre}$$j; \
 		  done; \
 		  $(AR) ruv libbackends.a *.o 2>&1 | grep -v truncated; \
-		  $(RM) *.o __.SYMDEF; \
+		  $(RM) *.o __.SYMDEF  ________64ELEL_ ; \
 		  echo "added backend library $$i"; \
 		); \
 	done
