@@ -95,15 +95,14 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "ldap_pvt.h"
 #include "lutil.h"
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
-#include "ldap_pvt.h"
 #undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "ldap_log.h"
 #include "../../../libraries/libldap/ldap-int.h"
-#include <sys/time.h>
 
 #ifdef LDAP_CACHING 
 static Entry* 
@@ -255,10 +254,10 @@ meta_back_cache_search(
 	int i = -1, last = 0, candidates = 0, op_type;
 
 	struct berval 	mfilter;
-	struct berval	*cachebase = NULL;  
-	struct berval	*ncachebase = NULL;  
+	struct berval	cachebase = { 0L, NULL };  
+	struct berval	ncachebase = { 0L, NULL };  
 	struct berval	cache_suffix; 
-	struct berval 	tempstr = {0, 0}; 
+	struct berval 	tempstr = { 0L, NULL }; 
 
 	AttributeName	*filter_attrs = NULL; 
 	AttributeName	*new_attrs = NULL; 
@@ -362,20 +361,30 @@ meta_back_cache_search(
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY, "QUERY ANSWERABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
-		rewriteSession(li->rwinfo, "cacheBase", nbase->bv_val,
+		rewriteSession(li->rwinfo, "cacheBase", base->bv_val,
 					conn, &cbase, result); 
 		if (result->type != SUCCESS) { 
 			ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
 			goto Catch; 
 		}
-		cachebase = ber_str2bv(cbase, strlen(cbase), 0, NULL);  
-		dnNormalize(NULL, cachebase, &ncachebase); 
+		if ( cbase == NULL ) {
+			cachebase = *base;
+		} else {
+			cachebase.bv_val = cbase;
+			cachebase.bv_len = strlen(cbase);
+		}
+		dnNormalize(NULL, &cachebase, &ncachebase); 
 	
 		op->o_caching_on = 1; 	
 		op->o_callback = &cb; 
-		li->glue_be->be_search(li->glue_be, conn, op, cachebase,
-				ncachebase, scope, deref, slimit, tlimit,
+		li->glue_be->be_search(li->glue_be, conn, op, &cachebase,
+				&ncachebase, scope, deref, slimit, tlimit,
 				filter, filterstr, attrs, attrsonly);
+		ber_memfree( ncachebase.bv_val );
+		if ( cachebase.bv_val != base->bv_val ) {
+			/* free only if rewritten */
+			free( cachebase.bv_val );
+		}
 
 		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
 	} else {
@@ -655,7 +664,7 @@ meta_back_cache_search(
 		}
 	}
 
-Catch: 
+Catch:;
 	switch (result->type) {
 		case SUCCESS: 
 			rc=0; 
@@ -730,6 +739,7 @@ Catch:
 			break; 
 		default:
 			/* assert(0); */
+			break;
 	}
 
 	ldap_pvt_thread_mutex_lock(&cm->consistency_mutex); 
@@ -1218,6 +1228,7 @@ handleLdapResult(
 			return 0; 
 		default:
 			/* assert( 0 ); */
+			break;
 		}
 		if ( gotit == 0 ) {
 			tv.tv_sec = 0;
