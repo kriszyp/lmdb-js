@@ -1,4 +1,9 @@
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
 #ifndef _LDAP_EXTERNAL_H
 #define _LDAP_EXTERNAL_H
 

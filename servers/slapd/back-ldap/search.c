@@ -1,6 +1,10 @@
 /* search.c - ldap backend search function */
 /* $OpenLDAP$ */
-
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* This is an altered version */
 /*
  * Copyright 1999, Howard Chu, All rights reserved. <hyc@highlandsun.com>
  * 
@@ -164,6 +168,7 @@ ldap_send_entry(
 		if (attr == NULL)
 			continue;
 		attr->a_next = 0;
+		attr->a_desc = NULL;
 		slap_str2ad(a, &attr->a_desc, &text);
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
 		if (!attr->a_vals)
