@@ -328,13 +328,13 @@ struct berval **get_entry_referrals LDAP_P((
 
 void send_ldap_result LDAP_P((
 	Connection *conn, Operation *op,
-	int err, const char *matched, const char *text,
+	ber_int_t err, const char *matched, const char *text,
 	struct berval **refs,
 	LDAPControl **ctrls ));
 
 void send_ldap_disconnect LDAP_P((
 	Connection *conn, Operation *op,
-	int err, const char *text ));
+	ber_int_t err, const char *text ));
 
 void send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
@@ -344,7 +344,7 @@ void send_ldap_extended LDAP_P((
 
 void send_search_result LDAP_P((
 	Connection *conn, Operation *op,
-	int err, const char *matched, const char *text,
+	ber_int_t err, const char *matched, const char *text,
 	struct berval **refs,
 	LDAPControl **ctrls,
 	int nentries ));

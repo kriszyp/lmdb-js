@@ -43,7 +43,7 @@ void
 send_ldap_result(
 	Connection  *conn, 
 	Operation   *op,
-	int     err,
+	ber_int_t     err,
 	const char    *matched,
 	const char    *text,
 	struct berval **refs,
@@ -57,7 +57,7 @@ void
 send_search_result(
 	Connection  *conn, 
 	Operation   *op,
-	int     err,
+	ber_int_t     err,
 	const char    *matched,
 	const char    *text,
 	struct berval **refs,
