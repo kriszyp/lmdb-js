@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: external.h,v 1.3 1999/02/16 23:26:05 bcollins Exp $
  */
 
 #ifndef _TCL_EXTERNAL_H
@@ -14,6 +14,7 @@ extern int	tcl_back_destroy LDAP_P(( BackendInfo *bi ));
 
 extern int	tcl_back_db_init LDAP_P(( BackendDB *bd ));
 extern int	tcl_back_db_open LDAP_P(( BackendDB *bd ));
+extern int	tcl_back_db_close LDAP_P(( BackendDB *bd ));
 extern int	tcl_back_db_destroy LDAP_P(( BackendDB *bd ));
 
 extern int	tcl_back_db_config LDAP_P(( BackendDB *bd,
