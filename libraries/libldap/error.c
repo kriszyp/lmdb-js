@@ -159,7 +159,7 @@ ldap_err2string( int err )
 
 	e = ldap_int_error( err );
 
-	return e ? e->e_reason : "Unknown error";
+	return e ? e->e_reason : _("Unknown error");
 }
 
 /* deprecated */
@@ -182,21 +182,21 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 
 	fprintf( stderr, "%s: %s (%d)\n",
 		str ? str : "ldap_perror",
-		e ? e->e_reason : "unknown LDAP result code",
+		e ? e->e_reason : _("unknown LDAP result code"),
 		ld->ld_errno );
 
 	if ( ld->ld_matched != NULL && ld->ld_matched[0] != '\0' ) {
-		fprintf( stderr, "\tmatched DN: %s\n", ld->ld_matched );
+		fprintf( stderr, _("\tmatched DN: %s\n"), ld->ld_matched );
 	}
 
 	if ( ld->ld_error != NULL && ld->ld_error[0] != '\0' ) {
-		fprintf( stderr, "\tadditional info: %s\n", ld->ld_error );
+		fprintf( stderr, _("\tadditional info: %s\n"), ld->ld_error );
 	}
 
 	if ( ld->ld_referrals != NULL && ld->ld_referrals[0] != NULL) {
-		fprintf( stderr, "\treferrals:\n" );
+		fprintf( stderr, _("\treferrals:\n") );
 		for (i=0; ld->ld_referrals[i]; i++) {
-			fprintf( stderr, "\t\t%s\n", ld->ld_referrals[i] );
+			fprintf( stderr, _("\t\t%s\n"), ld->ld_referrals[i] );
 		}
 	}
 
