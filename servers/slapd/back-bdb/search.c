@@ -1944,7 +1944,7 @@ static int search_candidates(
 
 #ifdef BDB_SUBENTRIES
 	if( get_subentries_visibility( op ) ) {
-		struct berval bv_subentry = BER_BVC( "SUBENTRY" );
+		struct berval bv_subentry = BER_BVC( "subentry" );
 		sf.f_choice = LDAP_FILTER_EQUALITY;
 		sf.f_ava = &aa_subentry;
 		sf.f_av_desc = slap_schema.si_ad_objectClass;
