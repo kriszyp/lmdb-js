@@ -313,6 +313,8 @@ bdb_drop_psearch( Operation *op, ber_int_t msgid )
 			}
 		}
 	}
+
+	return NULL;
 }
 
 int
