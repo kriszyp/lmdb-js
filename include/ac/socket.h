@@ -1,6 +1,5 @@
-/*
- * Generic socket.h
- */
+/* Generic socket.h */
+/* $Id$ */
 /*
  * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
