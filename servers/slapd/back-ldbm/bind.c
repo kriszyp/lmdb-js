@@ -37,6 +37,7 @@ ldbm_back_bind(
 	Entry		*matched;
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char		krbname[MAX_K_NAME_SZ + 1];
+	AttributeDescription *krbattr = slap_schema.si_ad_krbName;
 	AUTH_DAT	ad;
 #endif
 
@@ -185,7 +186,7 @@ ldbm_back_bind(
 		}
 
 		if ( ! access_allowed( be, conn, op, e,
-			"krbname", NULL, ACL_AUTH ) )
+			krbattr, NULL, ACL_AUTH ) )
 		{
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
@@ -196,7 +197,7 @@ ldbm_back_bind(
 		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
 		    : "", ad.pinst, ad.prealm );
 
-		if ( (a = attr_find( e->e_attrs, "krbname" )) == NULL ) {
+		if ( (a = attr_find( e->e_attrs, krbattr )) == NULL ) {
 			/*
 			 * no krbname values present:  check against DN
 			 */
@@ -215,7 +216,7 @@ ldbm_back_bind(
 			krbval.bv_val = krbname;
 			krbval.bv_len = strlen( krbname );
 
-			if ( value_find( a->a_vals, &krbval, a->a_syntax, 3 ) != 0 ) {
+			if ( value_find( a->a_desc, a->a_vals, &krbval ) != 0 ) {
 				send_ldap_result( conn, op,
 				    LDAP_INVALID_CREDENTIALS,
 					NULL, NULL, NULL, NULL );

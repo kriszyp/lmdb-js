@@ -1,7 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.X Engineering
-	Fixed clients & -lldap KBIND (ITS#717)
+	Fixed KBIND (ITS#717)
 	Fixed clients/tools -R handling
 	Fixed ldappasswd -A -S crash (ITS#714)
 	Fixed ldappasswd user argument usage
