@@ -7,6 +7,9 @@ dnl as authorized by the OpenLDAP Public License.  A copy of this
 dnl license is available at http://www.OpenLDAP.org/license.html or
 dnl in file LICENSE in the top-level directory of the distribution.
 dnl
+dnl ----------------------------------------------------------------
+dnl Redefine AC_INIT_BINSH to provide RCS IDs and copyright notice
+dnl at top of generated configure script.  Prints simple copyright.
 define([AC_INIT_BINSH],
 [[#! /bin/sh
 # $]OpenLDAP[$
@@ -18,7 +21,12 @@ define([AC_INIT_BINSH],
 # as authorized by the OpenLDAP Public License.  A copy of this
 # license is available at http://www.OpenLDAP.org/license.html or
 # in file LICENSE in the top-level directory of the distribution.
+
+echo "Copyright 1998-1999 The OpenLDAP Foundation,  All Rights Reserved."
+echo "Copying restrictions apply, see COPYRIGHT file."
+
 ])dnl
+dnl ----------------------------------------------------------------
 
 dnl Disable config.cache!
 define([AC_CACHE_LOAD], )dnl
@@ -32,6 +40,8 @@ OL_VERSION=`cat $ac_aux_dir/version`
 if test -z "$OL_VERSION"; then
 	AC_MSG_ERROR([could not determine version])
 fi
+
+echo "Configuring OpenLDAP $OL_VERSION ..."
 
 dnl ----------------------------------------------------------------
 dnl Determine host platform
