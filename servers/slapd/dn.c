@@ -347,8 +347,24 @@ char **dn_subtree(
 	Backend	*be,
     char	*dn )
 {
-	/* not yet implemented */
-	return NULL;
+	char *child, *parent;
+	char **subtree = NULL;
+	
+	child = dn;
+
+	do {
+		charray_add( &subtree, child );
+
+		parent = dn_parent( be, child );
+
+		if( child != dn ) {
+			free( child );
+		}
+
+		child = parent;
+	} while ( child != NULL );
+
+	return subtree;
 }
 
 
