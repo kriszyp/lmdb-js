@@ -499,7 +499,12 @@ filter_oc_success:;
 #endif
 	}
 
-	backsql_strfcat( &bsi->bsi_flt_where, "c", '(' );
+	/* apply extra level of parens only if required */
+	done = 0;
+	if ( at->bam_next ) {
+		backsql_strfcat( &bsi->bsi_flt_where, "c", '(' );
+		done = 1;
+	}
 next:;
 	if ( backsql_process_filter_attr( bsi, f, at ) == -1 ) {
 		return -1;
@@ -511,7 +516,9 @@ next:;
 		at = at->bam_next;
 		goto next;
 	}
-	backsql_strfcat( &bsi->bsi_flt_where, "c", ')' );
+	if ( done ) {
+		backsql_strfcat( &bsi->bsi_flt_where, "c", ')' );
+	}
 
 done:;
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_process_filter()\n", 0, 0, 0 );
