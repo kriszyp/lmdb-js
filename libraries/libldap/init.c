@@ -72,6 +72,11 @@ static void openldap_ldap_init_w_conf(const char *file)
 	char *cmd, *opt;
 	char *start, *end;
 
+	if (file == NULL) {
+		/* no file name */
+		return;
+	}
+
 	fp = fopen(file, "r");
 	if(fp == NULL) {
 		/* could not open file */
@@ -165,18 +170,25 @@ static void openldap_ldap_init_w_conf(const char *file)
 
 static void openldap_ldap_init_w_userconf(const char *file)
 {
-    if (file[file[0] == '.'] != '/') {
-	char *home = getenv("HOME");
+	char *home;
 	char *path;
-	
+
+	if (file == NULL) {
+		/* no file name */
+		return;
+	}
+
+	home = getenv("HOME");
+
 	if (home != NULL) {
 		path = malloc(strlen(home) + strlen(file) + 3);
 	} else {
 		path = malloc(strlen(file) + 3);
 	}
 
-
 	if(home != NULL && path != NULL) {
+		/* we assume UNIX path syntax is used... */
+
 		/* try ~/file */
 		sprintf(path, "%s/%s", home, file);
 		openldap_ldap_init_w_conf(path);
@@ -185,8 +197,10 @@ static void openldap_ldap_init_w_userconf(const char *file)
 		sprintf(path, "%s/.%s", home, file);
 		openldap_ldap_init_w_conf(path);
 	}
-	free(path);
-    }
+
+	if(path != NULL) {
+		free(path);
+	}
 
 	/* try file */
 	openldap_ldap_init_w_conf(file);
