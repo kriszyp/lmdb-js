@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 
+#include <ac/stdlib.h>
 #include <ac/ctype.h>
 #include <ac/string.h>
 
@@ -25,7 +26,6 @@ lutil_get_filed_password(
 	const char *filename,
 	struct berval *passwd )
 {
-	int rc;
 	size_t nread, nleft, nr;
 	FILE *f = fopen( filename, "r" );
 
