@@ -169,7 +169,6 @@ dnssrv_back_search(
 		send_ldap_error( op, rs, LDAP_SUCCESS, NULL );
 
 	} else {
-		struct berval	vals[2];
 		Entry *e = ch_calloc( 1, sizeof(Entry) );
 		AttributeDescription *ad_objectClass
 			= slap_schema.si_ad_objectClass;
@@ -182,38 +181,33 @@ dnssrv_back_search(
 		e->e_attrs = NULL;
 		e->e_private = NULL;
 
-		vals[1].bv_val = NULL;
-
-		BER_BVSTR( &vals[0], "top" );
-		attr_mergeit( e, ad_objectClass, &slap_schema.si_oc_top->soc_cname );
-
-		BER_BVSTR( &vals[0], "referral" );
-		attr_mergeit( e, ad_objectClass, &slap_schema.si_oc_referral->soc_cname );
-
-		BER_BVSTR( &vals[0], "extensibleObject" );
-		attr_mergeit( e, ad_objectClass, &slap_schema.si_oc_extensibleObject->soc_cname );
+		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_top->soc_cname );
+		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_referral->soc_cname );
+		attr_mergeit_one( e, ad_objectClass, &slap_schema.si_oc_extensibleObject->soc_cname );
 
 		if ( ad_dc ) {
-			char *p;
-			vals[0].bv_val = ch_strdup( domain );
+			char		*p;
+			struct berval	bv;
 
-			p = strchr( vals[0].bv_val, '.' );
+			bv.bv_val = domain;
+
+			p = strchr( bv.bv_val, '.' );
 					
-			if ( p == vals[0].bv_val ) {
-				vals[0].bv_val[1] = '\0';
+			if ( p == bv.bv_val ) {
+				bv.bv_len = 1;
 
 			} else if ( p != NULL ) {
-				*p = '\0';
+				bv.bv_len = p - bv.bv_val;
 			}
 
-			vals[0].bv_len = strlen( vals[0].bv_val );
-			attr_mergeit( e, ad_dc, vals );
+			attr_mergeit_one( e, ad_dc, &bv );
 		}
 
 		if ( ad_associatedDomain ) {
-			vals[0].bv_val = domain;
-			vals[0].bv_len = strlen(domain);
-			attr_mergeit( e, ad_associatedDomain, vals );
+			struct berval	bv;
+
+			ber_str2bv( domain, 0, 0, &bv );
+			attr_mergeit_one( e, ad_associatedDomain, &bv );
 		}
 
 		attr_mergeit( e, ad_ref, urls );
