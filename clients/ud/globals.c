@@ -14,8 +14,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ac/time.h>		/* portable.h+ldap.h needs time_t */
-#include <lber.h>
+#include <ac/time.h>		/* ldap.h needs time_t */
 #include <ldap.h>
 #include "ud.h"
 
