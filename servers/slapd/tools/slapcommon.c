@@ -92,7 +92,8 @@ slap_tool_init(
 		break;
 
 	default:
-		fprintf( stderr, "%s: unknown tool mode (%d)\n", tool );
+		fprintf( stderr, "%s: unknown tool mode (%d)\n",
+		         progname, tool );
 		exit( EXIT_FAILURE );
 	}
 
