@@ -43,6 +43,12 @@
 extern int h_errno;
 #endif
 
+#ifdef HAVE_HSTRERROR
+# define HSTRERROR(e)	hstrerror(e)
+#else
+# define HSTRERROR(e)	hp_strerror(e)
+#endif
+
 #ifndef LDAP_R_COMPILE
 # undef HAVE_REENTRANT_FUNCTIONS
 # undef HAVE_CTIME_R
@@ -189,7 +195,7 @@ int ldap_pvt_gethostbyname_a(
 #endif	
 }
 
-#ifndef GETNAMEINFO
+#if !defined( GETNAMEINFO ) && !defined( HAVE_HERROR )
 static const char *
 hp_strerror( int err )
 {
@@ -249,7 +255,7 @@ int ldap_pvt_get_hname(
 		alen = sizeof(sin->sin_addr);
 	} else {
 		rc = NO_RECOVERY;
-		*err = (char *)hp_strerror( rc );
+		*err = (char *)HSTRERROR( rc );
 		return rc;
 	}
 #if defined( HAVE_GETHOSTBYADDR_R )
@@ -281,7 +287,7 @@ int ldap_pvt_get_hname(
 	if (hp) {
 		strncpy( name, hp->h_name, namelen );
 	} else {
-		*err = (char *)hp_strerror( h_errno );
+		*err = (char *)HSTRERROR( h_errno );
 	}
 	LDAP_FREE(buf);
 #else /* HAVE_GETHOSTBYADDR_R */
