@@ -102,24 +102,8 @@ GDecComponentBits ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		return LDAP_DECODING_ERROR;
 	}
 	k->value = result.value;
+	k->comp_desc = get_component_description (BASICTYPE_BITSTRING);
 
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc ) {
-		if ( k ) CompFree( mem_op,  k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBits;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBits;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBits;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBits;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_BITSTRING;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentBits;
- 
-	/* Real Decoding code need to be followed */
 	return LDAP_SUCCESS;
 }
 
@@ -163,22 +147,7 @@ BDecComponentBits ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 	}
 
 	k->value = result;
-
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree( mem_op,  k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBits;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBits;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBits;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBits;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_BITSTRING;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentBits;
+	k->comp_desc = get_component_description (BASICTYPE_BITSTRING);
  
 	return LDAP_SUCCESS;
 }
@@ -226,22 +195,7 @@ GDecComponentBMPString ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded,
 	}
 
 	k->value = result.value;
-
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBMPString;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBMPString;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBMPString;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBMPString;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_BMP_STR;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentBMPString;
+	k->comp_desc = get_component_description (BASICTYPE_BMP_STR);
  
 	return LDAP_SUCCESS;
 
@@ -287,22 +241,7 @@ BDecComponentBMPString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void
 	}
 
 	k->value = result;
-
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBMPString;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBMPString;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBMPString;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentBMPString;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_BMP_STR;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentBMPString;
+	k->comp_desc = get_component_description (BASICTYPE_BMP_STR);
  
 	return LDAP_SUCCESS;
 
@@ -350,22 +289,7 @@ GDecComponentUTF8String ( void* mem_op, GenBuf *b, void *v,
 	}
 	
 	k->value = result.value;
-
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree( mem_op,  k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentUTF8String;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentUTF8String;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentUTF8String;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentUTF8String;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_UTF8_STR;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentUTF8String;
+	k->comp_desc = get_component_description (BASICTYPE_UTF8_STR);
  
 	return LDAP_SUCCESS;
 }
@@ -409,22 +333,9 @@ BDecComponentUTF8String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len,
 	}
 
 	k->value = result;
+	k->comp_desc = get_component_description (BASICTYPE_UTF8_STR);
 
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentUTF8String;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentUTF8String;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentUTF8String;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentUTF8String;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_UTF8_STR;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentUTF8String;
+	return LDAP_SUCCESS;
 }
 
 /*
@@ -470,22 +381,7 @@ GDecComponentTeletexString  ( void* mem_op, GenBuf *b, void *v,
 	}
 
 	k->value = result.value;
-
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentTeletexString;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentTeletexString;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentTeletexString;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentTeletexString;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_VIDEOTEX_STR;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentTeletexString;
+	k->comp_desc = get_component_description (BASICTYPE_VIDEOTEX_STR);
  
 	return LDAP_SUCCESS;
 }
@@ -553,22 +449,7 @@ GDecComponentBool ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 	}
 
 	k->value = result.value;
-
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBool;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBool;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBool;
-	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_BOOLEAN;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentBool;
+	k->comp_desc = get_component_description (BASICTYPE_BOOLEAN);
  
         return LDAP_SUCCESS;
 }
@@ -611,23 +492,8 @@ BDecComponentBool ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 	}
 
 	k->value = result;
+	k->comp_desc = get_component_description (BASICTYPE_BOOLEAN);
 
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentBool;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentBool;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentBool;
-	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_BOOLEAN;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentBool;
- 
         return LDAP_SUCCESS;
 }
 
@@ -706,8 +572,6 @@ GDecComponentEnum ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentEnum;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentEnum;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
 	k->comp_desc->cd_extract_i = NULL;
 	k->comp_desc->cd_type = ASN_BASIC;
 	k->comp_desc->cd_type_id = BASICTYPE_ENUMERATED;
@@ -765,8 +629,6 @@ BDecComponentEnum ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentEnum;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentEnum;
 	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
         k->comp_desc->cd_extract_i = NULL;
         k->comp_desc->cd_type = ASN_BASIC;
         k->comp_desc->cd_type_id = BASICTYPE_ENUMERATED;
@@ -836,8 +698,6 @@ BDecComponentIA5String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentIA5String;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentIA5String;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentIA5String;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
         k->comp_desc->cd_extract_i = NULL;
         k->comp_desc->cd_type = ASN_BASIC;
         k->comp_desc->cd_type_id = BASICTYPE_IA5_STR;
@@ -910,22 +770,7 @@ GDecComponentInt( void* mem_op, GenBuf * b, void *v, AsnLen *bytesDecoded, int m
 		return LDAP_DECODING_ERROR;
 	}
 	k->value = result.value;
-
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentInt;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
-	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_INTEGER;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentInt;
+	k->comp_desc = get_component_description (BASICTYPE_INTEGER );
 
         return LDAP_SUCCESS;
 }
@@ -965,21 +810,7 @@ BDecComponentInt ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 	}
 	k->value = result;
 
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentInt;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentInt;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentInt;
-	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_INTEGER;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentInt;
+	k->comp_desc = get_component_description (BASICTYPE_INTEGER );
         
         return LDAP_SUCCESS;
 }
@@ -1055,8 +886,6 @@ GDecComponentNull ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentNull;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentNull;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentNull;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
 	k->comp_desc->cd_extract_i = NULL;
 	k->comp_desc->cd_type = ASN_BASIC;
 	k->comp_desc->cd_type_id = BASICTYPE_NULL;
@@ -1115,8 +944,6 @@ BDecComponentNull ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentNull;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentNull;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentNull;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
 	k->comp_desc->cd_extract_i = NULL;
 	k->comp_desc->cd_type = ASN_BASIC;
 	k->comp_desc->cd_type_id = BASICTYPE_NULL;
@@ -1171,8 +998,6 @@ BDecComponentNumericString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, 
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentNumericString;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentNumericString;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentNumericString;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
         k->comp_desc->cd_extract_i = NULL;
         k->comp_desc->cd_type = ASN_BASIC;
         k->comp_desc->cd_type_id = BASICTYPE_NUMERIC_STR;
@@ -1266,8 +1091,6 @@ GDecComponentOcts ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOcts;
 	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOcts;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOcts;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
 	k->comp_desc->cd_extract_i = NULL;
 	k->comp_desc->cd_type = ASN_BASIC;
 	k->comp_desc->cd_type_id = BASICTYPE_OCTETSTRING;
@@ -1324,8 +1147,6 @@ BDecComponentOcts ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
         k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOcts;
         k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOcts;
 	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOcts;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
         k->comp_desc->cd_extract_i = NULL;
         k->comp_desc->cd_type = ASN_BASIC;
         k->comp_desc->cd_type_id = BASICTYPE_OCTETSTRING;
@@ -1448,22 +1269,7 @@ GDecComponentOid ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int m
 		}
 	}
 	k->value = result.value;
-
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentOid;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOid;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOid;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOid;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_OID;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentOid;
+	k->comp_desc = get_component_description (BASICTYPE_OID);
 
 	return LDAP_SUCCESS;
 }
@@ -1507,21 +1313,8 @@ BDecComponentOid ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v,
 	}
 	k->value = result;
 
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentOid;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentOid;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentOid;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentOid;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_OID;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentOid;
+	k->comp_desc = get_component_description (BASICTYPE_OID);
+
 	return LDAP_SUCCESS;
 }
 
@@ -1565,21 +1358,8 @@ BDecComponentPrintableString( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len,
 	}
 	k->value = result;
 
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentPrintableString;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentPrintableString;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentPrintableString;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentPrintableString;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_PRINTABLE_STR;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentPrintableString;
+	k->comp_desc = get_component_description (BASICTYPE_PRINTABLE_STR);
+
 	return LDAP_SUCCESS;
 }
 
@@ -1645,22 +1425,7 @@ GDecComponentReal ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int 
 		return LDAP_DECODING_ERROR;
 	}
 	k->value = result.value;
-
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentReal;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentReal;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentReal;
-	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_REAL;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentReal;
+	k->comp_desc = get_component_description (BASICTYPE_REAL);
 
         return LDAP_SUCCESS;
 }
@@ -1702,22 +1467,7 @@ BDecComponentReal ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *v, 
 		return LDAP_DECODING_ERROR;
 	}
 	k->value = result;
-
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentReal;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentReal;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentReal;
-	k->comp_desc->cd_free = (comp_free_func*)NULL;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_REAL;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentReal;
+	k->comp_desc = get_component_description (BASICTYPE_REAL);
 
         return LDAP_SUCCESS;
 }
@@ -1789,23 +1539,8 @@ GDecComponentRelativeOid ( void* mem_op, GenBuf *b,void *v, AsnLen *bytesDecoded
 		return LDAP_DECODING_ERROR;
 	}
 	k->value = result.value;
+	k->comp_desc = get_component_description (BASICTYPE_OID);
 
-	k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentRelativeOid;
-	k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentRelativeOid;
-	k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentRelativeOid;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentRelativeOid;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-	k->comp_desc->cd_extract_i = NULL;
-	k->comp_desc->cd_type = ASN_BASIC;
-	k->comp_desc->cd_type_id = BASICTYPE_OID;
-	k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentRelativeOid;
-	
 	return LDAP_SUCCESS;
 }
 
@@ -1846,22 +1581,8 @@ BDecComponentRelativeOid ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, vo
 		return LDAP_DECODING_ERROR;
 	}
 	k->value = result;
+	k->comp_desc = get_component_description (BASICTYPE_OID);
 
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentRelativeOid;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentRelativeOid;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentRelativeOid;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentRelativeOid;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_RELATIVE_OID;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentRelativeOid;
 	return LDAP_SUCCESS;
 }
 
@@ -1932,22 +1653,8 @@ BDecComponentUniversalString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len
 		return LDAP_DECODING_ERROR;
 	}
 	k->value = result;
+	k->comp_desc = get_component_description (BASICTYPE_UNIVERSAL_STR);
 
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentUniversalString;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentUniversalString;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentUniversalString;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentUniversalString;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_UNIVERSAL_STR;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentUniversalString;
 	return LDAP_SUCCESS;
 }
 
@@ -1984,22 +1691,8 @@ BDecComponentVisibleString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, 
 		rc = BDecVisibleStringContent ( mem_op, b, tagId, len, &result, bytesDecoded );
 	}
 	k->value = result;
+	k->comp_desc = get_component_description (BASICTYPE_VISIBLE_STR);
 
-        k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
-	if ( !k->comp_desc )  {
-		if ( k ) CompFree ( mem_op, k );
-		return LDAP_DECODING_ERROR;
-	}
-	k->comp_desc->cd_gser_encoder = (encoder_func*)GEncComponentVisibleString;
-        k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentVisibleString;
-        k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentVisibleString;
-	k->comp_desc->cd_free = (comp_free_func*)FreeComponentVisibleString;
-	k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-	k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
-        k->comp_desc->cd_extract_i = NULL;
-        k->comp_desc->cd_type = ASN_BASIC;
-        k->comp_desc->cd_type_id = BASICTYPE_VISIBLE_STR;
-        k->comp_desc->cd_all_match = (allcomponent_matching_func*)MatchingComponentVisibleString;
 	return LDAP_SUCCESS;
 }
 
@@ -2109,8 +1802,6 @@ BEncComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentAny;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentAny;
 		k->comp_desc->cd_free = (comp_free_func*)FreeComponentAny;
-		k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-		k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
 		k->comp_desc->cd_extract_i = NULL;
 		k->comp_desc->cd_type = ASN_BASIC;
 		k->comp_desc->cd_type_id = BASICTYPE_ANY;
@@ -2140,15 +1831,7 @@ BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
         }
 	
 	if ((result->cai != NULL) && (result->cai->BER_Decode != NULL)) {
-#if 0
-		result->value = (void*) CompAlloc ( mem_op, result->cai->size );
-		if ( !result->value ) return 0;
-#endif
 		result->cai->BER_Decode ( mem_op, b, (ComponentSyntaxInfo*)&result->value, (int*)bytesDecoded, DEC_ALLOC_MODE_0 );
-#if 0
-		rc = BDecComponentTop( result->cai->BER_Decode, mem_op, 0, 0, &result->value, bytesDecoded, DEC_ALLOC_MODE_0 );
-		if ( rc != LDAP_SUCCESS ) return rc;
-#endif
 
 		k->comp_desc = CompAlloc( mem_op, sizeof( ComponentDesc ) );
 		if ( !k->comp_desc )  {
@@ -2159,8 +1842,6 @@ BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesD
 		k->comp_desc->cd_gser_decoder = (gser_decoder_func*)GDecComponentAny;
 		k->comp_desc->cd_ber_decoder = (ber_decoder_func*)BDecComponentAny;
 		k->comp_desc->cd_free = (comp_free_func*)FreeComponentAny;
-		k->comp_desc->cd_pretty = (slap_syntax_transform_func*)NULL;
-		k->comp_desc->cd_validate = (slap_syntax_validate_func*)NULL;
 		k->comp_desc->cd_extract_i = NULL;
 		k->comp_desc->cd_type = ASN_BASIC;
 		k->comp_desc->cd_type_id = BASICTYPE_ANY;

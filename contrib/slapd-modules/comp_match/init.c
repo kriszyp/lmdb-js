@@ -171,6 +171,7 @@ init_component_description_table () {
 			syn = NULL;
 		asntype_to_compType_mapping_tbl[id].ac_comp_type.ct_syntax = syn;
 
+		/* Initialize Component Descriptions of primitive ASN.1 types */
 		asntype_to_compdesc_mapping_tbl[id].atcd_cd.cd_comp_type = (AttributeType*)&asntype_to_compType_mapping_tbl[id].ac_comp_type;
 	}
 }
@@ -803,12 +804,12 @@ int init_module(int argc, char *argv[]) {
 	/*
 	 * Initialize function pointers in slapd
 	 */
-	attr_converter = comp_convert_attr_to_comp;
-	assert_converter = comp_convert_assert_to_comp;
-	component_destructor = comp_free_component;
-	test_components = comp_test_components;
+	attr_converter = (convert_attr_to_comp_func*)comp_convert_attr_to_comp;
+	assert_converter = (convert_assert_to_comp_func*)comp_convert_assert_to_comp;
+	component_destructor = (free_component_func*)comp_free_component;
+	test_components = (test_component_func*)comp_test_components;
 	nibble_mem_allocator = (free_nibble_func*)comp_nibble_memory_allocator;
-	nibble_mem_free = comp_nibble_memory_free;
+	nibble_mem_free = (free_nibble_func*)comp_nibble_memory_free;
 	is_aliased_attribute = (test_membership_func*)comp_is_aliased_attribute;
 	get_component_description = (get_component_info_func*)comp_get_component_description;
 	component_encoder = (component_encoder_func*)comp_component_encoder;
