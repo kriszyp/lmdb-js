@@ -1480,7 +1480,6 @@ typedef BackendDB Backend;
  * syncinfo structure for syncrepl
  */
 
-#define SLAP_SYNC_SID_SIZE	3
 #define SLAP_SYNC_RID_SIZE	3
 #define SLAP_SYNCUUID_SET_SIZE 256
 
@@ -1504,19 +1503,20 @@ LDAP_STAILQ_HEAD( slap_sync_cookie_s, sync_cookie );
 typedef struct syncinfo_s {
         struct slap_backend_db *si_be;
         long				si_rid;
-        struct berval			si_provideruri;
+        struct berval		si_provideruri;
 		slap_bindconf		si_bindconf;
-		int					si_schemachecking;
         struct berval		si_filterstr;
         struct berval		si_base;
         int					si_scope;
         int					si_attrsonly;
+		char				*si_anfile;
 		AttributeName		*si_anlist;
 		AttributeName		*si_exanlist;
 		char 				**si_attrs;
+		char				**si_exattrs;
 		int					si_allattrs;
 		int					si_allopattrs;
-		char				**si_exattrs;
+		int					si_schemachecking;
         int					si_type;
         time_t				si_interval;
 		time_t				*si_retryinterval;
@@ -1754,7 +1754,6 @@ typedef struct req_search_s {
 	AttributeName *rs_attrs;
 	Filter *rs_filter;
 	struct berval rs_filterstr;
-	int rs_post_search_id;
 } req_search_s;
 
 typedef struct req_compare_s {
@@ -2242,7 +2241,6 @@ typedef struct slap_op {
 #define ors_attrs oq_search.rs_attrs
 #define ors_filter oq_search.rs_filter
 #define ors_filterstr oq_search.rs_filterstr
-#define ors_post_search_id oq_search.rs_post_search_id
 
 #define orr_newrdn oq_modrdn.rs_newrdn
 #define orr_nnewrdn oq_modrdn.rs_nnewrdn

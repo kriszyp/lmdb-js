@@ -99,6 +99,7 @@ int read_config_file(const char *fname, int depth, ConfigArgs *cf);
 
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
+static void syncrepl_unparse LDAP_P (( syncinfo_t *, struct berval *));
 
 /* All of these table entries and handlers really belong
  * in back-config, only the parser/table engine belongs here.
@@ -1809,6 +1810,12 @@ config_loglevel(ConfigArgs *c) {
 static int
 config_syncrepl(ConfigArgs *c) {
 	if (c->emit) {
+		if ( c->be->be_syncinfo ) {
+			struct berval bv;
+			syncrepl_unparse( c->be->be_syncinfo, &bv ); 
+			ber_bvarray_add( &c->rvalue_vals, &bv );
+			return 0;
+		}
 		return 1;
 	}
 	if(SLAP_SHADOW(c->be)) {
@@ -1948,7 +1955,7 @@ static cf_aux_table bindkey[] = {
 	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 0, NULL },
 	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 0, NULL },
 	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 1, NULL },
-	{ BER_BVNULL, 0, NULL }
+	{ BER_BVNULL, 0, 0, NULL }
 };
 
 int bindconf_parse( char *word, slap_bindconf *bc ) {
@@ -2039,6 +2046,18 @@ void bindconf_free( slap_bindconf *bc ) {
 	}
 }
 
+static char *
+anlist_unparse( AttributeName *an, char *ptr ) {
+	int comma = 0;
+
+	for (; !BER_BVISNULL( &an->an_name ); an++) {
+		if ( comma ) *ptr++ = ',';
+		ptr = lutil_strcopy( ptr, an->an_name.bv_val );
+		comma = 1;
+	}
+	return ptr;
+}
+
 static void
 replica_unparse( struct slap_replica_info *ri, struct berval *bv )
 {
@@ -2077,17 +2096,15 @@ replica_unparse( struct slap_replica_info *ri, struct berval *bv )
 		}
 	}
 	if ( ri->ri_attrs ) {
-		int comma = 0;
 		ptr = lutil_strcopy( ptr, "attr" );
 		if ( ri->ri_exclude ) *ptr++ = '!';
 		*ptr++ = '=';
-		for (i=0; !BER_BVISNULL( &ri->ri_attrs[i].an_name ); i++) {
-			if ( comma ) *ptr++ = ',';
-			ptr = lutil_strcopy( ptr, ri->ri_attrs[i].an_name.bv_val );
-		}
+		ptr = anlist_unparse( ri->ri_attrs, ptr );
 	}
-	if ( bc.bv_val )
+	if ( bc.bv_val ) {
 		strcpy( ptr, bc.bv_val );
+		ch_free( bc.bv_val );
+	}
 }
 
 static int
@@ -2623,7 +2640,6 @@ add_syncrepl(
 /* FIXME: undocumented */
 #define OLDAUTHCSTR		"bindprincipal"
 #define EXATTRSSTR		"exattrs"
-#define MANAGEDSAITSTR		"manageDSAit"
 #define RETRYSTR		"retry"
 
 /* FIXME: unused */
@@ -2633,7 +2649,7 @@ add_syncrepl(
 #define LMREQSTR		"req"
 #define SRVTABSTR		"srvtab"
 #define SUFFIXSTR		"suffix"
-#define UPDATEDNSTR		"updatedn"
+#define MANAGEDSAITSTR		"manageDSAit"
 
 /* mandatory */
 #define GOT_ID			0x0001
@@ -2641,6 +2657,20 @@ add_syncrepl(
 
 /* check */
 #define GOT_ALL			(GOT_ID|GOT_PROVIDER)
+
+static struct {
+	struct berval key;
+	int val;
+} scopes[] = {
+	{ BER_BVC("base"), LDAP_SCOPE_BASE },
+	{ BER_BVC("one"), LDAP_SCOPE_ONELEVEL },
+#ifdef LDAP_SCOPE_SUBORDINATE
+	{ BER_BVC("children"), LDAP_SCOPE_SUBORDINATE },
+	{ BER_BVC("subordinate"), 0 },
+#endif
+	{ BER_BVC("sub"), LDAP_SCOPE_SUBTREE },
+	{ BER_BVNULL, 0 }
+};
 
 static int
 parse_syncrepl_line(
@@ -2710,20 +2740,17 @@ parse_syncrepl_line(
 		} else if ( !strncasecmp( cargv[ i ], SCOPESTR "=",
 					STRLENOF( SCOPESTR "=" ) ) )
 		{
+			int j;
 			val = cargv[ i ] + STRLENOF( SCOPESTR "=" );
-			if ( !strncasecmp( val, "base", STRLENOF( "base" ) )) {
-				si->si_scope = LDAP_SCOPE_BASE;
-			} else if ( !strncasecmp( val, "one", STRLENOF( "one" ) )) {
-				si->si_scope = LDAP_SCOPE_ONELEVEL;
-#ifdef LDAP_SCOPE_SUBORDINATE
-			} else if ( !strcasecmp( val, "subordinate" ) ||
-				!strcasecmp( val, "children" ))
-			{
-				si->si_scope = LDAP_SCOPE_SUBORDINATE;
-#endif
-			} else if ( !strncasecmp( val, "sub", STRLENOF( "sub" ) )) {
-				si->si_scope = LDAP_SCOPE_SUBTREE;
-			} else {
+			for ( j=0; !BER_BVISNULL(&scopes[j].key); j++ ) {
+				if (!strncasecmp( val, scopes[j].key.bv_val,
+					scopes[j].key.bv_len )) {
+					while (!scopes[j].val) j--;
+					si->si_scope = scopes[j].val;
+					break;
+				}
+			}
+			if ( BER_BVISNULL(&scopes[j].key) ) {
 				fprintf( stderr, "Error: parse_syncrepl_line: "
 					"unknown scope \"%s\"\n", val);
 				return -1;
@@ -2744,7 +2771,7 @@ parse_syncrepl_line(
 					ch_free( attr_fname );
 					return -1;
 				}
-				ch_free( attr_fname );
+				si->si_anfile = attr_fname;
 			} else {
 				char *str, *s, *next;
 				char delimstr[] = " ,\t";
@@ -2935,6 +2962,119 @@ parse_syncrepl_line(
 	}
 
 	return 0;
+}
+
+
+
+static void
+syncrepl_unparse( syncinfo_t *si, struct berval *bv )
+{
+	struct berval bc;
+	char buf[BUFSIZ*2], *ptr;
+	int i, len;
+
+	bindconf_unparse( &si->si_bindconf, &bc );
+	ptr = buf;
+	ptr += sprintf( ptr, "syncrepl " IDSTR "=%03d " PROVIDERSTR "=%s",
+		si->si_rid, si->si_provideruri.bv_val );
+	if ( !BER_BVISNULL( &bc )) {
+		ptr = lutil_strcopy( ptr, bc.bv_val );
+		free( bc.bv_val );
+	}
+	if ( !BER_BVISEMPTY( &si->si_filterstr )) {
+		ptr = lutil_strcopy( ptr, " " FILTERSTR "=\"" );
+		ptr = lutil_strcopy( ptr, si->si_filterstr.bv_val );
+		*ptr++ = '"';
+	}
+	if ( !BER_BVISNULL( &si->si_base )) {
+		ptr = lutil_strcopy( ptr, " " SEARCHBASESTR "=\"" );
+		ptr = lutil_strcopy( ptr, si->si_base.bv_val );
+		*ptr++ = '"';
+	}
+	for (i=0; !BER_BVISNULL(&scopes[i].key);i++) {
+		if ( si->si_scope == scopes[i].val ) {
+			ptr = lutil_strcopy( ptr, " " SCOPESTR "=" );
+			ptr = lutil_strcopy( ptr, scopes[i].key.bv_val );
+			break;
+		}
+	}
+	if ( si->si_attrsonly ) {
+		ptr = lutil_strcopy( ptr, " " ATTRSONLYSTR "=yes" );
+	}
+	if ( si->si_anfile ) {
+		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=:include:" );
+		ptr = lutil_strcopy( ptr, si->si_anfile );
+	} else if ( si->si_allattrs || si->si_allopattrs ||
+		( si->si_anlist && !BER_BVISNULL(&si->si_anlist[0].an_name) )) {
+		char *old;
+		ptr = lutil_strcopy( ptr, " " ATTRSSTR "=\"" );
+		old = ptr;
+		ptr = anlist_unparse( si->si_anlist, ptr );
+		if ( si->si_allattrs ) {
+			if ( old != ptr ) *ptr++ = ',';
+			*ptr++ = '*';
+		}
+		if ( si->si_allopattrs ) {
+			if ( old != ptr ) *ptr++ = ',';
+			*ptr++ = '+';
+		}
+		*ptr++ = '"';
+	}
+	if ( si->si_exanlist && !BER_BVISNULL(&si->si_exanlist[0].an_name) ) {
+		ptr = lutil_strcopy( ptr, " " EXATTRSSTR "=" );
+		ptr = anlist_unparse( si->si_exanlist, ptr );
+	}
+	ptr = lutil_strcopy( ptr, " " SCHEMASTR "=" );
+	ptr = lutil_strcopy( ptr, si->si_schemachecking ? "on" : "off" );
+	
+	ptr = lutil_strcopy( ptr, " " TYPESTR "=" );
+	ptr = lutil_strcopy( ptr, si->si_type == LDAP_SYNC_REFRESH_AND_PERSIST ?
+		"refreshAndPersist" : "refreshOnly" );
+
+	if ( si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
+		int dd, hh, mm, ss;
+
+		dd = si->si_interval;
+		ss = dd % 60;
+		dd /= 60;
+		mm = dd % 60;
+		dd /= 60;
+		hh = dd % 24;
+		dd /= 24;
+		ptr = lutil_strcopy( ptr, " " INTERVALSTR "=" );
+		ptr += sprintf( ptr, "%02d:%02d:%02d:%02d", dd, hh, mm, ss );
+	} else if ( si->si_retryinterval ) {
+		int space=0;
+		ptr = lutil_strcopy( ptr, " " RETRYSTR "=\"" );
+		for (i=0; si->si_retryinterval[i]; i++) {
+			if ( space ) *ptr++ = ' ';
+			space = 1;
+			ptr += sprintf( ptr, "%d", si->si_retryinterval[i] );
+			if ( si->si_retrynum_init[i] == -1 )
+				*ptr++ = '+';
+			else
+				ptr += sprintf( ptr, "%d", si->si_retrynum_init );
+		}
+		*ptr++ = '"';
+	}
+
+#if 0 /* FIXME: unused in syncrepl.c, should remove it */
+	ptr = lutil_strcopy( ptr, " " MANAGEDSAITSTR "=" );
+	ptr += sprintf( ptr, "%d", si->si_manageDSAit );
+#endif
+
+	if ( si->si_slimit ) {
+		ptr = lutil_strcopy( ptr, " " SLIMITSTR "=" );
+		ptr += sprintf( ptr, "%d", si->si_slimit );
+	}
+
+	if ( si->si_tlimit ) {
+		ptr = lutil_strcopy( ptr, " " TLIMITSTR "=" );
+		ptr += sprintf( ptr, "%d", si->si_tlimit );
+	}
+	bc.bv_len = ptr - buf;
+	bc.bv_val = buf;
+	ber_dupbv( bv, &bc );
 }
 
 char **
