@@ -1090,7 +1090,6 @@ put_simple_vrFilter(
 
 		{
 			char *rule = strchr( str, ':' );
-			*rule++ = '\0';
 
 			if( rule == NULL ) {
 				/* must have attribute */
@@ -1098,6 +1097,8 @@ put_simple_vrFilter(
 					goto done;
 				}
 				rule = "";
+			} else {
+				*rule++ = '\0';
 			}
 
 			if ( *str == '\0' && ( !rule || *rule == '\0' ) ) {
