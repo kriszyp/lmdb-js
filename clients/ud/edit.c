@@ -14,8 +14,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/wait.h>
@@ -172,16 +172,16 @@ static load_editor()
 	}
 	if ((pid = fork()) == 0) {	
 		/* child - edit the Directory entry */
-		(void) signal(SIGINT, SIG_IGN);
+		(void) SIGNAL(SIGINT, SIG_IGN);
 		(void) execlp(editor, editor, entry_temp_file, NULL);
 		/*NOTREACHED*/
 		(void) fatal(editor);	
 	}
 	else if (pid > 0) {
 		/* parent - wait until the child proc is done editing */
-		handler = signal(SIGINT, SIG_IGN);
+		handler = SIGNAL(SIGINT, SIG_IGN);
 		(void) wait(&status);
-		(void) signal(SIGINT, handler);
+		(void) SIGNAL(SIGINT, handler);
 	}
 	else {
 		fatal("fork");

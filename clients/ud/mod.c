@@ -13,13 +13,10 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
-#ifndef __STDC__
-#include <memory.h>
-#endif
-#include <sys/types.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include <lber.h>
 #include <ldap.h>

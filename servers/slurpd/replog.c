@@ -17,16 +17,17 @@
 
 #include "portable.h"
 
-#include <errno.h>
 #include <stdio.h>
-#include <syslog.h>
+
+#include <ac/errno.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
 #include <ac/time.h>
-#include <sys/types.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
 #include <sys/param.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <ac/string.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -42,10 +43,6 @@ extern char *ch_malloc LDAP_P(( unsigned long ));
  */
 int file_nonempty LDAP_P(( char * ));
 
-
-#ifdef DECL_SYS_ERRLIST
-extern char *sys_errlist[];
-#endif
 
 /*
  * Forward declarations

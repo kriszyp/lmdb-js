@@ -18,7 +18,8 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <signal.h>
+
+#include <ac/signal.h>
 
 #include "slurp.h"
 #include "globals.h"

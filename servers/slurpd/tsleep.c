@@ -25,13 +25,14 @@
  */
 
 #include "portable.h"
+
 #include <stdio.h>
 
 #include "slurp.h"
 #include "globals.h"
 
 
-#if defined( THREAD_SUNOS4_LWP )
+#if defined( HAVE_LWP )
 
 extern stkalign_t *get_stack( int * );
 extern void free_stack( int );
@@ -141,7 +142,7 @@ start_lwp_scheduler()
 }
 
 
-#else /* THREAD_SUNOS4_LWP */
+#else /* !HAVE_LWP */
 
 /*
  * Here we assume we have fully preemptive threads, and that sleep()
@@ -154,7 +155,7 @@ tsleep(
 {
     sleep( interval );
 }
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* !HAVE_LWP */
 
 
 

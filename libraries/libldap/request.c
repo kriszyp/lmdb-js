@@ -32,7 +32,7 @@ static void free_servers LDAP_P(( LDAPServer *srvlist ));
 
 
 #ifdef LDAP_DNS
-#tatic LDAPServer *dn2servers LDAP_P(( LDAP *ld, char *dn ));
+static LDAPServer *dn2servers LDAP_P(( LDAP *ld, char *dn ));
 #endif /* LDAP_DNS */
 
 #ifdef LDAP_REFERRALS

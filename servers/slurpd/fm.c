@@ -17,8 +17,9 @@
 #include "portable.h"
 
 #include <stdio.h>
+
 #include <ac/string.h>
-#include <sys/signal.h>
+#include <ac/signal.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -39,11 +40,6 @@ static char *get_record LDAP_P(( FILE * ));
 static void populate_queue LDAP_P(( char *f ));
 static void set_shutdown LDAP_P((void));
 void do_nothing LDAP_P((void));
-
-#ifdef DECL_SYS_ERRLIST
-extern char *sys_errlist[];
-#endif /* DECL_SYS_ERRLIST */
-
 
 
 /*
@@ -67,14 +63,11 @@ fm(
      * SIG(UNUSED|USR2) - causes slurpd to read its administrative interface file.
      *           (not yet implemented).
      */
-#ifdef SIGSTKFLT
+#ifdef HAVE_LINUX_THREADS
     (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
-#else
-    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
-#endif
-#ifdef SIGUNUSED
     (void) SIGNAL( SIGUNUSED, (void *) do_admin );
 #else
+    (void) SIGNAL( SIGUSR1, (void *) do_nothing );
     (void) SIGNAL( SIGUSR2, (void *) do_admin );
 #endif
     (void) SIGNAL( SIGTERM, (void *) set_shutdown );
@@ -154,7 +147,7 @@ set_shutdown()
     int	i;
 
     sglob->slurpd_shutdown = 1;				/* set flag */
-#ifdef SIGSTKFLT
+#ifdef HAVE_LINUX_THREADS
     pthread_kill( sglob->fm_tid, SIGSTKFLT );	/* wake up file mgr */
 #else
     pthread_kill( sglob->fm_tid, SIGUSR1 );		/* wake up file mgr */
@@ -179,7 +172,7 @@ set_shutdown()
 void
 do_nothing()
 {
-#ifdef SIGSTKFLT
+#ifdef HAVE_LINUX_THREADS
     (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
 #else
     (void) SIGNAL( SIGUSR1, (void *) do_nothing );

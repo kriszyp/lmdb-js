@@ -63,7 +63,7 @@ start_replica_thread(
     pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 #endif
 
-#ifndef THREAD_MIT_PTHREADS
+#if !defined(HAVE_PTHREAD_D4) && !defined(HAVE_DCE)
     /* POSIX_THREADS or compatible
      * This is a draft 10 or standard pthreads implementation
      */
@@ -74,7 +74,7 @@ start_replica_thread(
 	pthread_attr_destroy( &attr );
 	return -1;
     }
-#else	/* !THREAD_MIT_PTHREADS */
+#else	/* !final */
     /*
      * This is a draft 4 or earlier pthreads implementation
      */
@@ -85,7 +85,8 @@ start_replica_thread(
 	pthread_attr_destroy( &attr );
 	return -1;
     }
-#endif	/* !THREAD_MIT_PTHREADS */
+#endif	/* !final */
+
     pthread_attr_destroy( &attr );
     return 0;
 }

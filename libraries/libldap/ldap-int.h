@@ -32,14 +32,14 @@ void ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
 int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *request ));
 
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 /*
  * in kerberos.c
  */
 char *ldap_get_kerberosv4_credentials LDAP_P(( LDAP *ld, char *who, char *service,
         int *len ));
 
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
 
 /*
@@ -56,9 +56,9 @@ int ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address, int po
 	int async );
 void ldap_close_connection( Sockbuf *sb );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 char *ldap_host_connected_to( Sockbuf *sb );
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
 #ifdef LDAP_REFERRALS
 int do_ldap_select( LDAP *ld, struct timeval *timeout );

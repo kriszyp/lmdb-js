@@ -20,14 +20,10 @@
 
 #include <stdio.h>
 #include <ac/string.h>
-#include <unistd.h>
+#include <ac/unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
-
-#ifdef DECL_SYS_ERRLIST
-extern char *sys_errlist[];
-#endif /* DECL_SYS_ERRLIST */
 
 /*
  * Add information about replica host specified by Ri to list

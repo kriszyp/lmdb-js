@@ -18,9 +18,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
 
 #include <lber.h>
 #include <ldap.h>
@@ -31,19 +31,11 @@
 #define MAXARGS	100
 
 /* Forward declarations */
-#ifdef NEEDPROTOS
-static void	add_replica( char **, int );
-static int	parse_replica_line( char **, int, Ri *);
-static void	parse_line( char *, int *, char ** );
-static char	*getline( FILE * );
-static char	*strtok_quote( char *, char * );
-#else /* NEEDPROTOS */
-static void	add_replica();
-static int	parse_replica_line();
-static void	parse_line();
-static char	*getline();
-static char	*strtok_quote();
-#endif /* NEEDPROTOS */
+static void	add_replica LDAP_P(( char **, int ));
+static int	parse_replica_line LDAP_P(( char **, int, Ri *));
+static void	parse_line LDAP_P(( char *, int *, char ** ));
+static char	*getline LDAP_P(( FILE * ));
+static char	*strtok_quote LDAP_P(( char *, char * ));
 
 /* current config file line # */
 static int	lineno;
@@ -359,13 +351,13 @@ parse_replica_line(
 		strlen( BINDMETHSTR ))) {
 	    val = cargv[ i ] + strlen( BINDMETHSTR ) + 1;
 	    if ( !strcasecmp( val, KERBEROSSTR )) {
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		ri->ri_bind_method = AUTH_KERBEROS;
 		if ( ri->ri_srvtab == NULL ) {
 		    ri->ri_srvtab = strdup( sglob->default_srvtab );
 		}
 		gots |= GOT_METHOD;
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 	    fprintf( stderr, "Error: a bind method of \"kerberos\" was\n" );
 	    fprintf( stderr, "specified in the slapd configuration file,\n" );
 	    fprintf( stderr, "but slurpd was not built with kerberos.\n" );
@@ -373,7 +365,7 @@ parse_replica_line(
 	    fprintf( stderr, "kerberos support if you wish to use\n" );
 	    fprintf( stderr, "bindmethod=kerberos\n" );
 	    exit( 1 );
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 	    } else if ( !strcasecmp( val, SIMPLESTR )) {
 		ri->ri_bind_method = AUTH_SIMPLE;
 		gots |= GOT_METHOD;

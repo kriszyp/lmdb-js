@@ -45,7 +45,7 @@ ldap_bind( LDAP *ld, char *dn, char *passwd, int authmethod )
 	 *		name		DistinguishedName,	 -- who
 	 *		authentication	CHOICE {
 	 *			simple		[0] OCTET STRING -- passwd
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	 *			krbv42ldap	[1] OCTET STRING
 	 *			krbv42dsa	[2] OCTET STRING
 #endif
@@ -60,7 +60,7 @@ ldap_bind( LDAP *ld, char *dn, char *passwd, int authmethod )
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind( ld, dn, passwd ) );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	case LDAP_AUTH_KRBV41:
 		return( ldap_kerberos_bind1( ld, dn ) );
 
@@ -97,7 +97,7 @@ ldap_bind_s( LDAP *ld, char *dn, char *passwd, int authmethod )
 	case LDAP_AUTH_SIMPLE:
 		return( ldap_simple_bind_s( ld, dn, passwd ) );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	case LDAP_AUTH_KRBV4:
 		return( ldap_kerberos_bind_s( ld, dn ) );
 

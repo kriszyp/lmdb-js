@@ -14,7 +14,7 @@
  * globals.c - initialization code for global data
  */
 
-#include <portable.h>
+#include "portable.h"
 
 #include <stdio.h>
 
@@ -62,13 +62,13 @@ Globals *init_globals()
 	fprintf( stderr, "Cannot initialize queue\n" );
 	exit( 1 );
     }
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     g->default_srvtab = SRVTAB;
-#endif /* KERBEROS */
-#if defined( THREAD_SUNOS4_LWP )
+#endif /* HAVE_KERBEROS */
+#if defined( HAVE_LWP )
     g->tsl_list = NULL;
     mon_create( &g->tsl_mon ); 
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_LWP */
 
     return g;
 }

@@ -208,14 +208,14 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 	}
 
 	if ( krbinstancep != NULL ) {
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		if (( *krbinstancep = ldap_host_connected_to( sb )) != NULL &&
 		    ( p = strchr( *krbinstancep, '.' )) != NULL ) {
 			*p = '\0';
 		}
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 		krbinstancep = NULL;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 	}
 
 	return( 0 );

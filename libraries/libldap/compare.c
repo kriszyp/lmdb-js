@@ -59,7 +59,7 @@ ldap_compare( LDAP *ld, char *dn, char *attr, char *value )
 		return( -1 );
 	}
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		if ( ldap_check_cache( ld, LDAP_REQ_COMPARE, ber ) == 0 ) {
 			ber_free( ber, 1 );
@@ -68,7 +68,7 @@ ldap_compare( LDAP *ld, char *dn, char *attr, char *value )
 		}
 		ldap_add_request_to_cache( ld, LDAP_REQ_COMPARE, ber );
 	}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 
 	/* send the message */
 	return ( ldap_send_initial_request( ld, LDAP_REQ_COMPARE, dn, ber ));

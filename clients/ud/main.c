@@ -20,10 +20,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
 #include <setjmp.h>
 #include <pwd.h>
 
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/termios.h>
 #include <ac/time.h>
@@ -657,7 +657,7 @@ initialize_client()
 	lpp = DEFAULT_TTY_HEIGHT;
 	col_size = DEFAULT_TTY_WIDTH;
 
-	(void) signal(SIGINT, attn);
+	(void) SIGNAL (SIGINT, attn);
 
 #ifndef NO_TERMCAP
 	{
@@ -682,7 +682,7 @@ initialize_client()
 				col_size = DEFAULT_TTY_WIDTH;
 		}
 	}
-	(void) signal(SIGWINCH, chwinsz);
+	(void) SIGNAL (SIGWINCH, chwinsz);
 
 	}
 #endif
@@ -694,7 +694,7 @@ RETSIGTYPE attn()
 	fflush(stdout);
 	printf("\n\n  INTERRUPTED!\n");
 
-	(void) signal(SIGINT, attn);
+	(void) SIGNAL (SIGINT, attn);
 
 	longjmp(env, 1);
 }
@@ -704,7 +704,7 @@ RETSIGTYPE chwinsz()
 {
 	struct winsize win;
 
-	(void) signal(SIGWINCH, SIG_IGN);
+	(void) SIGNAL (SIGWINCH, SIG_IGN);
 	if (ioctl(fileno(stdout), TIOCGWINSZ, &win) != -1) {
 		if (win.ws_row != 0)
 			lpp = win.ws_row;
@@ -712,6 +712,6 @@ RETSIGTYPE chwinsz()
 			col_size = win.ws_col;
 	}
 
-	(void) signal(SIGWINCH, chwinsz);
+	(void) SIGNAL (SIGWINCH, chwinsz);
 }
 #endif

@@ -245,19 +245,3 @@ ldap_is_dns_dn( char *dn )
 	    strchr( dn, ',' ) == NULL );
 }
 
-
-#if defined( ultrix ) || defined( NeXT )
-
-char *strdup( char *s )
-{
-	char	*p;
-
-	if ( (p = (char *) malloc( strlen( s ) + 1 )) == NULL )
-		return( NULL );
-
-	strcpy( p, s );
-
-	return( p );
-}
-
-#endif /* ultrix */

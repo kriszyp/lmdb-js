@@ -74,10 +74,10 @@ ldap_ld_free( LDAP *ld, int close )
 		ldap_msgfree( lm );
 	}
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL )
 		ldap_destroy_cache( ld );
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 	if ( ld->ld_error != NULL )
 		free( ld->ld_error );
 	if ( ld->ld_matched != NULL )

@@ -134,9 +134,6 @@ is provided ``as is'' without express or implied warranty.
 /* define if you have Sun LWP (SunOS style) */
 #undef HAVE_LWP
 
-/* define if you have Sun LWP (Solaris style) */
-#undef HAVE_LWP_THR
-
 /* define if you have -lncurses */
 #undef HAVE_NCURSES
 
@@ -160,6 +157,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* define if you have -ltermcap */
 #undef HAVE_TERMCAP
+
+/* define if you have Sun LWP (Solaris style) */
+#undef HAVE_THR
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
@@ -307,6 +307,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the sysconf function.  */
 #undef HAVE_SYSCONF
+
+/* Define if you have the tempnam function.  */
+#undef HAVE_TEMPNAM
 
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID

@@ -35,9 +35,6 @@
 /* define if you have Sun LWP (SunOS style) */
 #undef HAVE_LWP
 
-/* define if you have Sun LWP (Solaris style) */
-#undef HAVE_LWP_THR
-
 /* define if you have -lncurses */
 #undef HAVE_NCURSES
 
@@ -61,6 +58,9 @@
 
 /* define if you have -ltermcap */
 #undef HAVE_TERMCAP
+
+/* define if you have Sun LWP (Solaris style) */
+#undef HAVE_THR
 
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS

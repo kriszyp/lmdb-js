@@ -13,8 +13,8 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ctype.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/time.h>
 

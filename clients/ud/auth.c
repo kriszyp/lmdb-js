@@ -14,11 +14,11 @@
 
 #include <stdio.h>
 #include <pwd.h>
-#include <time.h>
-#include <ctype.h>
 
-#include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/krb.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include <lber.h>
 #include <ldap.h>

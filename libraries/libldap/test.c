@@ -1,33 +1,17 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#ifdef THINK_C
-#include <console.h>
-#include <unix.h>
-#include <fcntl.h>
-#endif /* THINK_C */
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#if defined( WINSOCK ) || defined( _WIN32 )
-#include "console.h"
-#endif /* WINSOCK */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
 #include <sys/file.h>
-#ifndef VMS
 #include <fcntl.h>
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
 
 #include "lber.h"
 #include "ldap.h"
@@ -47,7 +31,7 @@ static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm, char *s ));
 static void print_search_entry LDAP_P(( LDAP *ld, LDAPMessage *res ));
 static void free_list LDAP_P(( char **list ));
 
-#define NOCACHEERRMSG	"don't compile with -DNO_CACHE if you desire local caching"
+#define NOCACHEERRMSG	"don't compile with -DLDAP_NOCACHE if you desire local caching"
 
 char *dnsuffix;
 
@@ -243,7 +227,7 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 	static char	dn[256], passwd[256];
 
 	if ( !freeit ) {
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		getline( dn, sizeof(dn), stdin,
 		    "re-bind method (0->simple, 1->krbv41, 2->krbv42, 3->krbv41&2)? " );
 		if (( *authmethodp = atoi( dn )) == 3 ) {
@@ -251,9 +235,9 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 		} else {
 			*authmethodp |= 0x80;
 		}
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 		*authmethodp = LDAP_AUTH_SIMPLE;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
 		getline( dn, sizeof(dn), stdin, "re-bind dn? " );
 		strcat( dn, dnsuffix );
@@ -440,13 +424,13 @@ main(
 			break;
 
 		case 'b':	/* asynch bind */
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			getline( line, sizeof(line), stdin,
 			    "method (0->simple, 1->krbv41, 2->krbv42)? " );
 			method = atoi( line ) | 0x80;
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -466,7 +450,7 @@ main(
 			break;
 
 		case 'B':	/* synch bind */
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			getline( line, sizeof(line), stdin,
 			    "method 0->simple 1->krbv41 2->krbv42 3->krb? " );
 			method = atoi( line );
@@ -474,9 +458,9 @@ main(
 				method = LDAP_AUTH_KRBV4;
 			else
 				method = method | 0x80;
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -749,9 +733,9 @@ main(
 			break;
 
 		case 'e':	/* enable cache */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "Cache timeout (secs)? " );
 			i = atoi( line );
 			getline( line, sizeof(line), stdin, "Maximum memory to use (bytes)? " );
@@ -760,25 +744,25 @@ main(
 			} else {
 				printf( "ldap_enable_cache failed\n" ); 
 			}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case 'x':	/* uncache entry */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "DN? " );
 			ldap_uncache_entry( ld, line );
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case 'X':	/* uncache request */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "request msgid? " );
 			ldap_uncache_request( ld, atoi( line ));
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case 'o':	/* set ldap options */
@@ -833,9 +817,9 @@ main(
 			break;
 
 		case 'O':	/* set cache options */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "cache errors (0=smart, 1=never, 2=always)?" );
 			switch( atoi( line )) {
 			case 0:
@@ -852,7 +836,7 @@ main(
 			default:
 				printf( "not a valid cache option\n" );
 			}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case '?':	/* help */

@@ -3,28 +3,17 @@
  * 12 April 1994 by Mark C Smith
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/file.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
 
-#ifdef VMS
-#include <sys/socket.h>
-#endif /* VMS */
+#include <sys/file.h>
 
 #include "lber.h"
 #include "ldap.h"

@@ -14,13 +14,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <signal.h>
 
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/termios.h>
 #include <ac/time.h>
-#include <ac/errno.h>
 #include <ac/unistd.h>
 
 #include <lber.h>
@@ -80,7 +80,7 @@ char *prompt;
 		fi = stdin;
 	else
 		setbuf(fi, (char *)NULL);
-	sig = signal(SIGINT, SIG_IGN);
+	sig = SIGNAL (SIGINT, SIG_IGN);
 	if (fi != stdin) {
 		if (GETATTR(fileno(fi), &ttyb) < 0)
 			perror("GETATTR");
@@ -134,7 +134,7 @@ char *prompt;
 		if (SETATTR(fileno(fi), &ttyb) < 0)
 			perror("SETATTR");
 	}
-	(void) signal(SIGINT, sig);
+	(void) SIGNAL (SIGINT, sig);
 	if (fi != stdin)
 		(void) fclose(fi);
 	else

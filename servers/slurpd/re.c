@@ -21,9 +21,10 @@
 #include "portable.h"
 
 #include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
 #include <ac/string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
 
 #include "../slapd/slap.h"
 #include "slurp.h"
@@ -32,10 +33,6 @@
 /* externs */
 extern char *str_getline LDAP_P(( char **next ));
 extern void ch_free LDAP_P(( char *p ));
-
-#ifdef	DECL_SYS_ERRLIST
-extern char *sys_errlist[];
-#endif /* DECL_SYS_ERRLIST */
 
 /* Forward references */
 static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));
@@ -84,10 +81,10 @@ Re_free(
 		"Warning: freeing re (dn: %s) with nonzero refcnt\n",
 		re->re_dn, 0, 0 );
     }
-#if !defined( THREAD_SUNOS4_LWP )
+#if !defined( HAVE_LWP )
     /* This seems to have problems under SunOS lwp */
     pthread_mutex_destroy( &re->re_mutex );
-#endif /* THREAD_SUNOS4_LWP */
+#endif /* HAVE_LWP */
     ch_free( re->re_timestamp );
     if (( rh = re->re_replicas ) != NULL ) {
 	for ( i = 0; rh[ i ].rh_hostname != NULL; i++ ) {

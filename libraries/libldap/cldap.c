@@ -228,7 +228,7 @@ cldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
 		attrsonly )) == -1 ) {
 		    return( ld->ld_errno );
 	    }
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	    if ( ld->ld_cache != NULL && ld->ld_responses != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "cldap_search_s res from cache\n",
 			0, 0, 0 );
@@ -236,7 +236,7 @@ cldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
 		ld->ld_responses = ld->ld_responses->lm_next;
 		return( ldap_result2error( ld, *res, 0 ));
 	    }
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 	    ret = cldap_result( ld, msgid, res, &cri, base );
 	} while (ret == -1);
 
@@ -492,11 +492,11 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	}
 #endif /* LDAP_DEBUG */
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	    if ( ld->ld_cache != NULL ) {
 		ldap_add_result_to_cache( ld, ldm );
 	    }
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 
 	if ( chain == NULL ) {
 	    chain = ldm;

@@ -438,11 +438,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	new->lm_msgtype = tag;
 	new->lm_ber = ber_dup( &ber );
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 		if ( ld->ld_cache != NULL ) {
 			ldap_add_result_to_cache( ld, new );
 		}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 
 	/* is this the one we're looking for? */
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {

@@ -14,8 +14,9 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <time.h>
+
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include <lber.h>
 #include <ldap.h>

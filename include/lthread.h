@@ -78,7 +78,7 @@ typedef struct condition pthread_cond_t;
 
 LDAP_END_DECL
 
-#elif defined( HAVE_LWP_THR )
+#elif defined( HAVE_THR )
 /**************************************
  *                                    *
  * thread definitions for Solaris LWP *
@@ -177,6 +177,10 @@ LDAP_END_DECL
  * underlying library support      *
  *                                 *
  ***********************************/
+
+#ifndef NO_THREADS
+#define NO_THREADS 1
+#endif
 
 LDAP_BEGIN_DECL
 

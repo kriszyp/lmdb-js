@@ -459,8 +459,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 		AC_CHECK_LIB(thread, thr_create, [have_lwp=yes], [have_lwp=no])
 
 		if test $have_lwp = yes ; then
-			AC_DEFINE(HAVE_LWP)
-			AC_DEFINE(HAVE_LWP_THR)
+			AC_DEFINE(HAVE_THR)
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 
 			if test $ol_with_preemptive = auto ; then

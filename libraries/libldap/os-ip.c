@@ -146,7 +146,7 @@ ldap_close_connection( Sockbuf *sb )
 }
 
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {
@@ -175,7 +175,7 @@ ldap_host_connected_to( Sockbuf *sb )
 
 	return( NULL );
 }
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
 
 #ifdef LDAP_REFERRALS

@@ -172,7 +172,7 @@ pthread_cond_broadcast( pthread_cond_t *cv )
 	return( 0 );
 }
 
-#elif defined( HAVE_LWP_THR )
+#elif defined( HAVE_THR )
 
 /*******************
  *                 *

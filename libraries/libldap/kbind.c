@@ -11,7 +11,7 @@
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,11 +103,11 @@ ldap_kerberos_bind1( LDAP *ld, char *dn )
 
 	free( cred );
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
 	}
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 
 	/* send the message */
 	return ( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
@@ -290,4 +290,4 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 }
 
 #endif /* !AUTHMAN */
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */

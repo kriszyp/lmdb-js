@@ -69,11 +69,11 @@ ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
 		return( -1 );
 	}
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
 	}
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 
 	/* send the message */
 	return( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));

@@ -20,18 +20,16 @@
 #include "portable.h"
 
 #include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/unistd.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
-
-#ifdef DECL_SYS_ERRLIST
-extern char *sys_errlist[];
-#endif /* DECL_SYS_ERRLIST */
-
 
 /*
  * Write a replication record to a reject file.  The reject file has the
