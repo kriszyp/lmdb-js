@@ -1096,7 +1096,7 @@ AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
 	dnl check for vsnprintf
-	AC_CHECK_FUNCS(vsnprintf)
+	AC_CHECK_FUNCS(vsnprintf vsprintf)
 fi
 
 AC_FUNC_WAIT3
@@ -1142,71 +1142,71 @@ OL_SYS_ERRLIST
 dnl ----------------------------------------------------------------
 dnl Sort out defines
 
-if test $ol_enable_debug != no ; then
+if test "$ol_enable_debug" != no ; then
 	AC_DEFINE(LDAP_DEBUG,1)
 fi
-dnl	if test $ol_enable_syslog != no ; then
+dnl	if test "$ol_enable_syslog" != no ; then
 dnl		AC_DEFINE(LDAP_SYSLOG,1)
 dnl	fi
-if test $ol_enable_libui = yes ; then
+if test "$ol_enable_libui" = yes ; then
 	AC_DEFINE(LDAP_LIBUI,1)
 fi
-if test $ol_enable_cache = no ; then
+if test "$ol_enable_cache" = no ; then
 	AC_DEFINE(LDAP_NOCACHE,1)
 fi
-if test $ol_enable_dns != no ; then
+if test "$ol_enable_dns" != no ; then
 	AC_DEFINE(LDAP_DNS,1)
 fi
-if test $ol_enable_proctitle != no ; then
+if test "$ol_enable_proctitle" != no ; then
 	AC_DEFINE(LDAP_PROCTITLE,1)
 fi
-if test $ol_enable_referrals != no ; then
+if test "$ol_enable_referrals" != no ; then
 	AC_DEFINE(LDAP_REFERRALS,1)
 fi
-if test $ol_enable_cldap != no ; then
+if test "$ol_enable_cldap" != no ; then
 	AC_DEFINE(LDAP_CONNECTIONLESS,1)
 fi
 
-if test $ol_enable_aclgroups != no ; then
+if test "$ol_enable_aclgroups" != no ; then
 	AC_DEFINE(SLAPD_ACLGROUPS,1)
 fi
-if test $ol_enable_crypt != no ; then
+if test "$ol_enable_crypt" != no ; then
 	AC_DEFINE(SLAPD_CRYPT,1)
 fi
-if test $ol_enable_cleartext != no ; then
+if test "$ol_enable_cleartext" != no ; then
 	AC_DEFINE(SLAPD_CLEARTEXT,1)
 fi
-if test $ol_enable_phonetic != no ; then
+if test "$ol_enable_phonetic" != no ; then
 	AC_DEFINE(SLAPD_PHONETIC,1)
 fi
-if test $ol_enable_rlookups != no ; then
+if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1)
 fi
 
-if test $ol_link_ldbm != no ; then
+if test "$ol_link_ldbm" != no ; then
 	AC_DEFINE(SLAPD_LDBM,1)
 	BUILD_SLAPD=yes
 	BUILD_LDBM=yes
 fi
 
-if test $ol_enable_passwd != no ; then
+if test "$ol_enable_passwd" != no ; then
 	AC_DEFINE(SLAPD_PASSWD,1)
 	BUILD_SLAPD=yes
 	BUILD_PASSWD=yes
 fi
 
-if test $ol_enable_shell != no ; then
+if test "$ol_enable_shell" != no ; then
 	AC_DEFINE(SLAPD_SHELL,1)
 	BUILD_SLAPD=yes
 	BUILD_SHELL=yes
 fi
 
-if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
+if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
 fi
 
-if test $ol_link_isode != no ; then
+if test "$ol_link_isode" != no ; then
 	BUILD_LDAPD=yes
 fi
 

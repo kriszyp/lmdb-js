@@ -2,7 +2,7 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.1.1
 	CVS Tag: OPENLDAP_REL_ENG_1_1
-	Updated INSTALL, hints, and devel documents.
+	Updated INSTALL, README, hints, and devel documents.
 	Updated slapd/ldif2dbm to disable write sync'ing
 	Fixed slapd & slurpd syslogging (ITS#6)
 	Fixed libldif/line64 analyzed 3 not 4 bug
@@ -10,11 +10,13 @@ Changes included in OpenLDAP 1.1.1
 	Fixed slapd/back-ldbm/cache.c delete_internal dntree/idtree bug
 	Fixed slapd/tools DB2 uninitialized Datum bugs
 	Fixed slapd/back-ldbm search realbase free bug (ITS#12)
+	Fixed slapd/back-ldbm kerberos bind rc bug (ITS#17)
 	Build environment (autoconf)
 		Fix --enable-wrappers (ITS#9)
 		Fix --without-SERVER-COMPONENTS
 		Fix library make clean
 		Fix ltconfig for Solaris ProC and FreeBSD elf
+		Fix make veryclean
 
 Changes included in OpenLDAP 1.1.0
 	CVS Tag: OPENLDAP_REL_ENG_1_1_0

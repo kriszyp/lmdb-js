@@ -432,6 +432,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF
 
+/* Define if you have the vsprintf function.  */
+#undef HAVE_VSPRINTF
+
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID
 
