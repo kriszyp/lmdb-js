@@ -277,7 +277,7 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}

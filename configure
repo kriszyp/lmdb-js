@@ -12050,7 +12050,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12131,7 +12131,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12212,7 +12212,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12293,7 +12293,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12374,7 +12374,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12506,7 +12506,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12587,7 +12587,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12668,7 +12668,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12749,7 +12749,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
@@ -12830,7 +12830,7 @@ int main() {
 		{
 			printf("Berkeley DB version mismatch\n"
 				"\texpected: %s\n\tgot: %s\n",
-				DB_VERSION, version);
+				DB_VERSION_STRING, version);
 			return 1;
 		}
 	}
