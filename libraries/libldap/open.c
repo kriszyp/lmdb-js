@@ -53,31 +53,9 @@ ldap_open( char *host, int port )
 		return( NULL );
 	}
 
-#ifdef LDAP_REFERRALS
-	if (( srv = (LDAPServer *)calloc( 1, sizeof( LDAPServer ))) ==
-	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
-	    ldap_strdup( ld->ld_defhost )) == NULL )) {
-		if(srv != NULL) free( (char*) srv );
-		ldap_ld_free( ld, 0 );
+	if ( ldap_delayed_open( ld ) < 0 ) {
 		return( NULL );
 	}
-	srv->lsrv_port = ld->ld_defport;
-
-	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL ) {
-		if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
-		free( (char *)srv );
-		ldap_ld_free( ld, 0 );
-		return( NULL );
-	}
-	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
-
-#else /* LDAP_REFERRALS */
-	if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
-	    ld->ld_defport, &ld->ld_host, 0 ) < 0 ) {
-		ldap_ld_free( ld, 0 );
-		return( NULL );
-	}
-#endif /* LDAP_REFERRALS */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open successful, ld_host is %s\n",
 		( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );

@@ -71,16 +71,14 @@ ldap_set_ber_options( LDAP *ld, BerElement *ber )
 #endif /* STR_TRANSLATION */
 }
 
-
 int
-ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
-	BerElement *ber )
+ldap_delayed_open( LDAP *ld )
 {
 #if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
 	LDAPServer	*servers, *srv;
 #endif /* LDAP_REFERRALS || LDAP_DNS */
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_delayed_open\n", 0, 0, 0 );
 
 	if ( ld->ld_sb.sb_sd == -1 ) {
 		/* not connected yet */
@@ -116,12 +114,24 @@ ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 			return( -1 );
 		}
 #endif /* LDAP_REFERRALS */
-
-		Debug( LDAP_DEBUG_TRACE,
-			"ldap_delayed_open successful, ld_host is %s\n",
-			( ld->ld_host == NULL ) ? "(null)" : ld->ld_host, 0, 0 );
 	}
 
+	return( 0 );
+}
+
+int
+ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
+	BerElement *ber )
+{
+#if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
+	LDAPServer	*servers, *srv;
+#endif /* LDAP_REFERRALS || LDAP_DNS */
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
+
+	if ( ldap_delayed_open( ld ) < 0 ) {
+		return( -1 );
+	}
 
 #if !defined( LDAP_REFERRALS ) && !defined( LDAP_DNS )
 

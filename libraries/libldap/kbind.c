@@ -261,6 +261,10 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 		return( NULL );
 	}
 
+	if ( ldap_delayed_open( ld ) < 0 ) {
+		return( NULL );
+	}
+
 #ifdef LDAP_REFERRALS
 	krbinstance = ld->ld_defconn->lconn_krbinstance;
 #else /* LDAP_REFERRALS */

@@ -5,6 +5,7 @@ Changes included in OpenLDAP 1.2.10 Release Engineering
 	Add slapd -DSLAPD_UNDEFINED_OC_IS_NOT_EXTENSIBLE macro disable
 		undefined object classes implies extensible object behavior.
 	Add GNU Pth support (ITS#453)
+	Fixed -lldap Kerberos bind to work ldap_init() (ITS#426)
 	Changed -lldap to ignore space in filter: ( !(foo=bar)) (ITS#459)
 	Fixed multiple password support (ITS#464)
 	Fixed back-ldbm/bind invalid credentials vs no such object bug 
