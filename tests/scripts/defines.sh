@@ -13,9 +13,11 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-MONITORDB=${AC_MONITOR-no}
+MONITORDB=${AC_monitor-no}
 BACKLDAP=${AC_ldap-ldapno}
 BACKRELAY=${AC_relay-relayno}
+BACKSQL=${AC_sql-sqlno}
+RDBMS=${SLAPD_USE_SQL-rdbmsno}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}
@@ -70,6 +72,7 @@ LDAPGLUECONF1=$DATADIR/slapd-ldapglue.conf
 LDAPGLUECONF2=$DATADIR/slapd-ldapgluepeople.conf
 LDAPGLUECONF3=$DATADIR/slapd-ldapgluegroups.conf
 RWMCONF=$DATADIR/slapd-relay.conf
+SQLCONF=$DATADIR/slapd-sql.conf
 
 CONF1=$TESTDIR/slapd.1.conf
 CONF2=$TESTDIR/slapd.2.conf
@@ -218,6 +221,8 @@ IDASSERTOUT=$DATADIR/idassert.out
 LDAPGLUEOUT=$DATADIR/ldapglue.out
 LDAPGLUEANONYMOUSOUT=$DATADIR/ldapglueanonymous.out
 RELAYOUT=$DATADIR/relay.out
+SQLMASTER=$DATADIR/sqlmaster.out
+SQLMODS=$DATADIR/sqlmods.out
 
 # Just in case we linked the binaries dynamically
 LD_LIBRARY_PATH=`pwd`/../libraries:${LD_LIBRARY_PATH} export LD_LIBRARY_PATH

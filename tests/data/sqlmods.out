@@ -1,0 +1,35 @@
+# refldap://localhost/o=example,c=ru??sub
+
+dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+objectClass: inetOrgPerson
+cn: Torvlobnor Puzdoy
+telephoneNumber: 545-4563
+sn: Torvlobnor Puzdoy
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+
+dn: cn=Mitya Kovalev,o=Example,c=RU
+objectClass: inetOrgPerson
+cn: Mitya Kovalev
+telephoneNumber: 332-2334
+telephoneNumber: 222-3234
+sn: Mitya Kovalev
+documentIdentifier: documentTitle=book1,o=Example,c=RU
+documentIdentifier: documentTitle=book2,o=Example,c=RU
+
+dn: documentTitle=book2,o=Example,c=RU
+objectClass: document
+description: abstract2
+documentTitle: book2
+documentAuthor: cn=Mitya Kovalev,o=Example,c=RU
+
+dn: documentTitle=book1,o=Example,c=RU
+objectClass: document
+description: abstract1
+documentTitle: book1
+documentAuthor: cn=Mitya Kovalev,o=Example,c=RU
+documentAuthor: cn=Torvlobnor Puzdoy,o=Example,c=RU
+
+dn: o=Example,c=RU
+objectClass: organization
+o: Example
+

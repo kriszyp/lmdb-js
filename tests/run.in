@@ -22,22 +22,29 @@ LN_S="@LN_S@"
 
 export SRCDIR TOPSRCDIR LN_S
 
+# backends
 AC_bdb=@BUILD_BDB@
 AC_hdb=@BUILD_HDB@
-AC_ldbm=@BUILD_LDBM@
 AC_ldap=ldap@BUILD_LDAP@
+AC_ldbm=@BUILD_LDBM@
+AC_monitor=@BUILD_MONITOR@
 AC_relay=relay@BUILD_RELAY@
+AC_sql=sql@BUILD_SQL@
+
+# overlays
 AC_pcache=pcache@BUILD_PROXYCACHE@
 AC_ppolicy=ppolicy@BUILD_PPOLICY@
 AC_refint=refint@BUILD_REFINT@
 AC_unique=unique@BUILD_UNIQUE@
 AC_rwm=rwm@BUILD_RWM@
-AC_MONITOR=@BUILD_MONITOR@
+
+# misc
 AC_WITH_SASL=@WITH_SASL@
 AC_WITH_TLS=@WITH_TLS@
 
-export AC_MONITOR AC_WITH_SASL AC_WITH_TLS AC_ldap AC_relay
+export AC_bdb AC_hdb AC_ldap AC_ldbm AC_monitor AC_relay AC_sql 
 export AC_pcache AC_ppolicy AC_refint AC_unique AC_rwm
+export AC_WITH_SASL AC_WITH_TLS
 
 if test ! -x ../servers/slapd/slapd ; then
 	echo "Could not locate slapd(8)"
