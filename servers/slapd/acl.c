@@ -197,7 +197,7 @@ access_allowed(
 		"=> access_allowed: %s access %s by %s\n",
 		access2str( access ),
 		ACL_GRANT(mask, access) ? "granted" : "denied",
-		""/*accessmask2str( mask, accessmaskbuf )*/ );
+		accessmask2str( mask, accessmaskbuf ) );
 
 	return ACL_GRANT(mask, access);
 }
@@ -369,7 +369,7 @@ acl_mask(
 		"=> acl_mask: to %s by \"%s\", (%s) \n",
 		val ? "value" : "all values",
 		op->o_ndn ?  op->o_ndn : "",
-		""/*accessmask2str( *mask, accessmaskbuf )*/ );
+		accessmask2str( *mask, accessmaskbuf ) );
 
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
 		slap_mask_t oldmask, modmask;
@@ -760,7 +760,7 @@ acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] applying %s (%s)\n",
-			i, ""/*accessmask2str( modmask, accessmaskbuf )*/, 
+			i, accessmask2str( modmask, accessmaskbuf ), 
 			b->a_type == ACL_CONTINUE
 				? "continue"
 				: b->a_type == ACL_BREAK
@@ -791,7 +791,7 @@ acl_mask(
 
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_mask: [%d] mask: %s\n",
-			i, ""/*accessmask2str(*mask, accessmaskbuf)*/, 0 );
+			i, accessmask2str(*mask, accessmaskbuf), 0 );
 
 		if( b->a_type == ACL_CONTINUE ) {
 			continue;
@@ -806,7 +806,7 @@ acl_mask(
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
-		""/*accessmask2str(*mask, accessmaskbuf)*/, 0, 0 );
+		accessmask2str(*mask, accessmaskbuf), 0, 0 );
 	return ACL_STOP;
 }
 
