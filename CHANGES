@@ -2,6 +2,8 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP Stable 
 	CVS Tag: OPENLDAP_STABLE 
+	Fixed slapd filter.c to error on stderr
+	Fixed slapd/back-ldbm/group.c member bug
 
 Changes included in OpenLDAP Stable 
 	CVS Tag: OPENLDAP_STABLE_981025 
