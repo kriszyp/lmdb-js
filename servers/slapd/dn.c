@@ -620,15 +620,13 @@ dnParent(
 	const char	*dn, 
 	const char	**pdn )
 {
-	LDAPRDN		*tmpRDN;
 	const char	*p;
 	int		rc;
 
-	rc = ldap_str2rdn( dn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_str2rdn( dn, NULL, &p, LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
-	ldap_rdnfree( tmpRDN );
 
 	assert( DN_SEPARATOR( p[ 0 ] ) );
 	p++;
@@ -715,7 +713,7 @@ dn_rdnlen(
 	struct berval	*dn_in )
 {
 	int		rc;
-	char		*p;
+	const char	*p;
 
 	assert( dn_in );
 
