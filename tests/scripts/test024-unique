@@ -63,7 +63,8 @@ echo "Adding a unique record..."
 
 #$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 #	$TESTOUT 2>&1 << EOTUNIQ1
-$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD << EOTUNIQ1
+$LDAPADD -D "$UNIQUEDN" -h $LOCALHOST -p $PORT1 -w $PASSWD \
+	> /dev/null << EOTUNIQ1
 dn: uid=dave,ou=users,o=unique
 objectClass: inetOrgPerson
 uid: dave
