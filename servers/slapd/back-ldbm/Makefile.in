@@ -18,13 +18,13 @@ SRCS = idl.c add.c search.c cache.c dbcache.c dn2id.c entry.c \
 		compare.c modify.c modrdn.c delete.c init.c \
 		config.c bind.c attr.c filterindex.c close.c \
 		alias.c tools.c key.c extended.c \
-		referral.c operational.c
+		referral.c operational.c ldbm.c
 OBJS = idl.lo add.lo search.lo cache.lo dbcache.lo dn2id.lo entry.lo \
 		id2entry.lo index.lo id2children.lo nextid.lo \
 		compare.lo modify.lo modrdn.lo delete.lo init.lo \
 		config.lo bind.lo attr.lo filterindex.lo close.lo \
 		alias.lo tools.lo key.lo extended.lo \
-		referral.lo operational.lo $(@BUILD_LDBM@_OBJS)
+		referral.lo operational.lo ldbm.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -33,15 +33,12 @@ BUILD_OPT = "--enable-ldbm"
 BUILD_MOD = @BUILD_LDBM@
 BUILD_MOD_DYNAMIC = @BUILD_LDBM_DYNAMIC@
 
-mod_SRCS = ldbm.c
-mod_OBJS = ldbm.lo
-
 mod_DEFS = -DSLAPD_IMPORT
 MOD_DEFS = $(@BUILD_LDBM@_DEFS)
 
 shared_LDAP_LIBS = $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
-NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS) $(LDBM_LIBS)
-UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS) $(LDBM_LIBS)
+NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
 
 LIBBASE = back_ldbm
 
@@ -53,8 +50,5 @@ all-local-lib:	../.backend
 
 ../.backend: lib$(LIBBASE).a
 	@touch $@
-
-ldbm.c : $(srcdir)/../../../libraries/libldbm/ldbm.c
-	$(RM) $@; $(LN_S) $(srcdir)/../../../libraries/libldbm/ldbm.c $@
 
 depend-common: $(XXSRCS)
