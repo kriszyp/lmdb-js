@@ -322,5 +322,5 @@ dnl tests/Makefile:build/top.mk:tests/Makefile.in \
 dnl Makefile:build/top.mk:Makefile.in:build/dir.mk, \
 dnl [date > stamp-h])
 
-AC_OUTPUT( \
-	[date > stamp-h] )
+AC_OUTPUT(
+	,[date > stamp-h])
