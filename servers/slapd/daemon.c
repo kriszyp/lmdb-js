@@ -672,16 +672,13 @@ static int slap_open_listener(
 		}
 	}
 
-#ifdef LDAP_PF_LOCAL
-#ifdef SLAP_X_LISTENER_MOD
+#if defined(LDAP_PF_LOCAL) || defined(SLAP_X_LISTENER_MOD)
 	if ( lud->lud_exts ) {
 		err = get_url_perms( lud->lud_exts, &l.sl_perms, &crit );
-	} else
-#endif /* SLAP_X_LISTENER_MOD */
-	{
+	} else {
 		l.sl_perms = S_IRWXU;
 	}
-#endif /* LDAP_PF_LOCAL */
+#endif /* LDAP_PF_LOCAL || SLAP_X_LISTENER_MOD */
 
 	ldap_free_urldesc( lud );
 	if ( err ) {
