@@ -225,10 +225,12 @@ dn2entry_retry:
 			goto done;
 		}
 
-		if ( slap_passwd_check( conn, a, cred ) != 0 ) {
+		{ const char *err = NULL;
+		if ( slap_passwd_check( conn, a, cred, &err ) != 0 ) {
 			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
-				NULL, NULL, NULL, NULL );
+				NULL, err, NULL, NULL );
 			goto done;
+		}
 		}
 
 		rc = 0;

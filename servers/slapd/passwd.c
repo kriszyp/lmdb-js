@@ -271,7 +271,8 @@ int
 slap_passwd_check(
 	Connection *conn,
 	Attribute *a,
-	struct berval *cred )
+	struct berval *cred,
+	const char **text )
 {
 	int result = 1;
 	struct berval *bv;
@@ -284,7 +285,7 @@ slap_passwd_check(
 #endif
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
-		if( !lutil_passwd( bv, cred, NULL ) ) {
+		if( !lutil_passwd( bv, cred, NULL, text ) ) {
 			result = 0;
 			break;
 		}
@@ -326,7 +327,8 @@ slap_passwd_generate( struct berval *pass )
 void
 slap_passwd_hash(
 	struct berval * cred,
-	struct berval * new )
+	struct berval * new,
+	const char **text )
 {
 	struct berval *tmp;
 #ifdef LUTIL_SHA1_BYTES
@@ -340,7 +342,7 @@ slap_passwd_hash(
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #endif
 
-	tmp = lutil_passwd_hash( cred , hash );
+	tmp = lutil_passwd_hash( cred , hash, text );
 	
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );

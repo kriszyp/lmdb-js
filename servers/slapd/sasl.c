@@ -501,6 +501,7 @@ sasl_cb_checkpass(
 	checkpass_info *ci = tmp->sc_private;
 	Attribute *a;
 	struct berval *bv;
+	const char *text;
 	
 	ci->rc = SASL_NOVERIFY;
 
@@ -510,7 +511,7 @@ sasl_cb_checkpass(
 		NULL, ACL_AUTH, NULL ) ) return 0;
 
 	for ( bv = a->a_vals; bv->bv_val != NULL; bv++ ) {
-		if ( !lutil_passwd( bv, &ci->cred, NULL ) ) {
+		if ( !lutil_passwd( bv, &ci->cred, NULL, &text ) ) {
 			ci->rc = SASL_OK;
 			break;
 		}

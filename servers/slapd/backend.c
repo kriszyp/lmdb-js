@@ -654,6 +654,7 @@ be_isroot_pw( Backend *be,
 	struct berval *cred )
 {
 	int result;
+	char *errmsg;
 
 	if ( ! be_isroot( be, ndn ) ) {
 		return 0;
@@ -670,7 +671,7 @@ be_isroot_pw( Backend *be,
 #endif
 #endif
 
-	result = lutil_passwd( &be->be_rootpw, cred, NULL );
+	result = lutil_passwd( &be->be_rootpw, cred, NULL, NULL );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD

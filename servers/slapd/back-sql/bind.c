@@ -105,10 +105,12 @@ backsql_bind(
 		return 1;
 	}
 
-	if ( slap_passwd_check( conn, a, cred ) != 0 ) {
+	{ const char *err = NULL;
+	if ( slap_passwd_check( conn, a, cred, &err ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
-				NULL, NULL, NULL, NULL );
+				NULL, err, NULL, NULL );
 		return 1;
+	}
 	}
 
 	Debug(LDAP_DEBUG_TRACE,"<==backsql_bind()\n",0,0,0);

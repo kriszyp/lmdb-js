@@ -186,12 +186,14 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( slap_passwd_check( conn, a, cred ) != 0 ) {
+		{ const char *err = NULL;
+		if ( slap_passwd_check( conn, a, cred, &err ) != 0 ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
-				NULL, NULL, NULL, NULL );
+				NULL, err, NULL, NULL );
 			/* stop front end from sending result */
 			rc = 1;
 			goto return_results;
+		}
 		}
 
 		rc = 0;
