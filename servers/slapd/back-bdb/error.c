@@ -15,5 +15,5 @@
 
 void bdb_errcall( const char *pfx, char * msg )
 {
-	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s", pfx, msg, 0 );
+	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s\n", pfx, msg, 0 );
 }

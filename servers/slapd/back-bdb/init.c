@@ -115,11 +115,7 @@ bdb_db_open( BackendDB *be )
 	}
 
 	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_MPOOL | DB_INIT_TXN | 
-		DB_CREATE | DB_RECOVER;
-
-#ifndef NO_THREADS
-	flags |= DB_THREAD;
-#endif
+		DB_THREAD | DB_CREATE | DB_RECOVER;
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0] );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
