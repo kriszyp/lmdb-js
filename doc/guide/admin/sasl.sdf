@@ -16,9 +16,9 @@ default attempt to authenticate the user to the {{slapd}}(8) server
 using SASL. Basic authentication service can be set up by the LDAP
 administrator with a few steps, allowing users to be authenticated
 to the slapd server as their LDAP entry.  With a few extra steps,
-some users and services can be allowed to exploit SASL's authorization
-feature, allowing them to authenticate themselves and then switch
-their identity to that of another user or service.
+some users and services can be allowed to exploit SASL's proxy
+authorization feature, allowing them to authenticate themselves and
+then switch their identity to that of another user or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
 Administrators}}, provided with the {{PRD:Cyrus}} {{PRD:SASL}}
@@ -287,6 +287,12 @@ necessary to specify which one to use, e.g.:
 >       ldapsearch -Y DIGEST-MD5 -U u000997 -b dc=example,dc=com 'cn=andrew*'
 
 
+Note: in each of the above cases, no authorization identity (e.g. {{EX:-X}})
+was provided.   Unless you are attempting {{SECT:SASL Proxy
+Authorization}}, no authorization identity should be specified.
+The server will infer an authorization identity from authentication
+identity (as described below).
+
 
 H3: Mapping Authentication identities to LDAP entries
 
@@ -314,8 +320,13 @@ each of the people that will be authenticating to LDAP, laid out
 in your directory tree, and the tree does not start at cn=auth.
 But if your site has a clear mapping between the "username" and an
 LDAP entry for the person, you will be able to configure your LDAP
-server to automatically map a user's authentication username to
-their {{authentication DN}}.
+server to automatically map a authentication request DN to the
+user's {{authentication DN}}.
+
+Note: it is not required that the authentication request DN nor the
+user's authentication DN resulting from the mapping refer to an
+entry held in the directory.  However, additional capabilities
+become available (see below).
 
 The LDAP administrator will need to tell the slapd server how to
 map an authentication request DN to a user's authentication DN.
@@ -386,8 +397,8 @@ require a separate {{EX:sasl-regexp}} directive for each case, with the
 explicit-realm entry being listed first.
 
 Some sites may have people's DN's spread to multiple areas of the
-LDAP tree, such as if there were an ou=accounting tree and an
-ou=engineering tree, with people interspersed between them. Or
+LDAP tree, such as if there were an {{EX:ou=accounting}} tree and an
+{{EX:ou=engineering}} tree, with people interspersed between them. Or
 there may not be enough information in the authentication identity
 to isolate the DN, such as if the above person's LDAP entry looked
 like
@@ -420,11 +431,11 @@ This contains all of the elements necessary to perform an LDAP
 search:  the name of the server <host>, the LDAP DN search base
 <base>, the LDAP attributes to retrieve <attrs>, the search scope
 <scope> which is one of the three options "base", "one", or "sub",
-and lastly an LDAP search filter <filter>. Since the search is for
-an LDAP DN on the local machine, the <host> portion should be empty.
-The <attrs> field is also ignored since only the DN is of concern.
-These two elements are left in the format of the URL to maintain
-the clarity of what information goes where in the string.
+and lastly an LDAP search filter <filter>.  Since the search is for
+an LDAP DN within the current server, the <host> portion should be
+empty.  The <attrs> field is also ignored since only the DN is of
+concern.  These two elements are left in the format of the URL to
+maintain the clarity of what information goes where in the string.
 
 Suppose that the person in the example from above did in fact have
 an authentication username of "adamson" and that information was
@@ -480,11 +491,11 @@ other entries that happen to refer to the UID.
 See {{slapd.conf}}(5) for more detailed information.
 
 
-H2: SASL Authorization
+H2: SASL Proxy Authorization
 
-The SASL offers a feature known as {{authorization}}, which allows
-an authenticated user to request that they act on the behalf of
-another user.  This step occurs after the user has obtained an
+The SASL offers a feature known as {{proxy authorization}}, which
+allows an authenticated user to request that they act on the behalf
+of another user.  This step occurs after the user has obtained an
 authentication DN, and involves sending an authorization identity
 to the server. The server will then make a decision on whether or
 not to allow the authorization to occur. If it is allowed, the
@@ -501,7 +512,8 @@ into the LDAP database entries. By default, the authorization
 features are disabled, and must be explicitly configured by the
 LDAP administrator before use.
 
-H3: Uses of Authorization
+
+H3: Uses of Proxy Authorization
 
 This sort of service is useful when one entity needs to act on the
 behalf of many other users. For example, users may be directed to
@@ -523,36 +535,37 @@ themself, but that would require the user to have more knowledge
 of LDAP clients, knowledge which the web page provides in an easier
 format.
 
-Authorization can also be used to limit access to an account that
-has greater access to the database. Such an account, perhaps even
-the root DN specified in {{slapd.conf}}(5), can have a strict list
-of people who can authorize to that DN. Changes to the LDAP database
-could then be only allowed by that DN, and in order to become that
-DN, users must first authenticate as one of the persons on the
-list. This allows for better auditing of who made changes to the
-LDAP database.  If people were allowed to authenticate directly to
-the priviliged account, possibly through the {{EX:rootpw}}
+Proxy authorization can also be used to limit access to an account
+that has greater access to the database. Such an account, perhaps
+even the root DN specified in {{slapd.conf}}(5), can have a strict
+list of people who can authorize to that DN. Changes to the LDAP
+database could then be only allowed by that DN, and in order to
+become that DN, users must first authenticate as one of the persons
+on the list. This allows for better auditing of who made changes
+to the LDAP database.  If people were allowed to authenticate
+directly to the priviliged account, possibly through the {{EX:rootpw}}
 {{slapd.conf}}(5) directive or through a {{EX:userPassword}}
 attribute, then auditing becomes more difficult.
 
-Note that after a successful authorization, the original authentication
-DN in the LDAP connection is overwritten by the new DN from the
-authorization request. If a service program is able to authenticate
-itself as its own authentication DN and then authorize to other
-DN's, and it is planning on switching to several different identities
-during one LDAP session, it will need to authenticate itself each
-time before authorizing to another DN. The slapd server does not
-keep record of the service program's ability to switch to other
-DN's.  On authentication mechanisms like Kerberos this will not
-require multiple connections being made to the Kerberos server,
-since the user's TGT and "ldap" session key are valid for multiple
-uses for the several hours of the ticket lifetime.
+Note that after a successful proxy authorization, the original
+authentication DN of the LDAP connection is overwritten by the new
+DN from the authorization request. If a service program is able to
+authenticate itself as its own authentication DN and then authorize
+to other DN's, and it is planning on switching to several different
+identities during one LDAP session, it will need to authenticate
+itself each time before authorizing to another DN (or use a different
+proxy authorization mechanism).  The slapd server does not keep
+record of the service program's ability to switch to other DN's.
+On authentication mechanisms like Kerberos this will not require
+multiple connections being made to the Kerberos server, since the
+user's TGT and "ldap" session key are valid for multiple uses for
+the several hours of the ticket lifetime.
 
 
-H3: Authorization Identities
+H3: SASL Authorization Identities
 
-The authorization identity is sent to the slapd server via the -X
-switch for {{ldapsearch}}(1) and other tools, or in the *authzid
+The SASL authorization identity is sent to the slapd server via the
+-X switch for {{ldapsearch}}(1) and other tools, or in the *authzid
 parameter to the {{lutil_sasl_defaults}}() call. The identity can
 be in one of two forms, either
 
@@ -583,7 +596,7 @@ a {{EX:"dn:"}} prefix, the string after the prefix is already in
 authorization DN form, ready to undergo approval.
 
 
-H3: Authorization rules
+H3: Proxy Authorization Rules
 
 Once slapd has the authorization DN, the actual approval process
 begins. There are two attributes that the LDAP administrator can
@@ -626,7 +639,7 @@ could authorize to any other LDAP entry under the search base
 "dc=example,dc=com" which has an objectClass of "Person".
 
 
-H4: Notes on Authorization rules
+H4: Notes on Proxy Authorization Rules
 
 An LDAP URL in a {{EX:saslAuthzTo}} or {{EX:saslAuthzFrom}} attribute
 will return a set of DNs.  Each DN returned will be checked.
@@ -654,21 +667,21 @@ identity of the form "u:<username>" as an authorization rule.
 
 H4: Policy Configuration
 
-The decision of which type of rules to use, {{EX:saslAuthzFrom}} or
-{{EX:saslAuthzTo}}, will depend on the site's situation. For example, if
-the set of people who may become a given identity can easily be
-written as a search filter, then a single destination rule could
-be written. If the set of people is not easily defined by a search
-filter, and the set of people is small, it may be better to write
-a source rule in the entries of each of those people who should be
-allowed to perform the authorization.
+The decision of which type of rules to use, {{EX:saslAuthzFrom}}
+or {{EX:saslAuthzTo}}, will depend on the site's situation. For
+example, if the set of people who may become a given identity can
+easily be written as a search filter, then a single destination
+rule could be written. If the set of people is not easily defined
+by a search filter, and the set of people is small, it may be better
+to write a source rule in the entries of each of those people who
+should be allowed to perform the proxy authorization.
 
-By default, processing of authorization rules is disabled. The
-{{EX:sasl-authz-policy}} directive must be set in the {{slapd.conf}}(5) file
-to enable authorization. This directive can be set to {{EX:none}}
-for no rules (the default), {{EX:from}} for source rules, {{EX:to}}
-for destination rules, or {{EX:both}} for both source and destination
-rules.
+By default, processing of proxy authorization rules is disabled.
+The {{EX:sasl-authz-policy}} directive must be set in the
+{{slapd.conf}}(5) file to enable authorization. This directive can
+be set to {{EX:none}} for no rules (the default), {{EX:from}} for
+source rules, {{EX:to}} for destination rules, or {{EX:both}} for
+both source and destination rules.
 
 Destination rules are extremely powerful. If ordinary users have
 access to write the {{EX:saslAuthzTo}} attribute in their own entries, then
