@@ -8,6 +8,11 @@ fi
 
 . $SRCDIR/scripts/args.sh
 
+if test "$BACKEND" != "bdb"; then
+	echo "Test only valid for back-bdb"
+	exit 0
+fi
+
 echo "running defines.sh"
 . $SRCDIR/scripts/defines.sh
 
