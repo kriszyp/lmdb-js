@@ -13,6 +13,6 @@ clean-local:	FORCE
 	$(RM) test-db/[!C]* test-repl/[!C]* *core
 
 veryclean-local: FORCE
-	$(RM) data
+	$(RM) -f data
 	$(RM) -r test-db test-repl
 
