@@ -372,7 +372,7 @@ bdb_dn2idl(
 	/* store the ID */
 	DBTzero( &data );
 	data.data = ids;
-	data.ulen = sizeof(ID);
+	data.ulen = BDB_IDL_UM_SIZEOF;	
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch it */
