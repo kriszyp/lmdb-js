@@ -60,6 +60,14 @@ config file, and sends the changes.
 See
 .BR slapd (8)
 for details on the standalone LDAP daemon.
+.LP
+Note that slurpd reads
+.B replication
+directive from
+.BR slapd.conf (5),
+but uses
+.BR ldap.conf (5)
+to obtain other configuration settings (such as TLS settings).
 .SH OPTIONS
 .TP
 .BI \-d " debug\-level"
@@ -151,6 +159,8 @@ on voluminous debugging which will be printed on standard error, type:
 .LP
 .SH "SEE ALSO"
 .BR ldap (3),
+.BR ldap.conf (5),
+.BR slapd.conf (5),
 .BR slapd.replog (5),
 .BR slapd (8)
 .LP
