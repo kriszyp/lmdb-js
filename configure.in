@@ -626,7 +626,13 @@ dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
 dnl (for now, let autoconf sort this out)
 dnl CFLAGS=${CFLAGS-""}
 
-AC_CHECK_PROGS(AR,ar gar,ar)
+if test -z "${AR}"; then
+	AC_CHECK_PROGS(AR,ar gar,missing)
+
+	if test "${AR}" = "missing" ; then
+		AC_MSG_ERROR([Unable to locate ar(1).  Check PATH or set AR.])
+	fi
+fi
 
 AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
