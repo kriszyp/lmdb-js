@@ -40,14 +40,16 @@
 
 int
 value_add( 
-    BerVarray *vals,
-    BerVarray addvals )
+    BerVarray	*vals,
+    BerVarray	addvals )
 {
-	int	n, nn;
-	BerVarray v2;
+	int		n, nn = 0;
+	BerVarray	v2;
 
-	for ( nn = 0; addvals != NULL && addvals[nn].bv_val != NULL; nn++ )
-		;	/* NULL */
+	if ( addvals != NULL ) {
+		for ( ; !BER_BVISNULL( &addvals[nn] ); nn++ )
+			;	/* NULL */
+	}
 
 	if ( *vals == NULL ) {
 		*vals = (BerVarray) SLAP_MALLOC( (nn + 1)
@@ -63,8 +65,9 @@ value_add(
 			return LBER_ERROR_MEMORY;
 		}
 		n = 0;
+
 	} else {
-		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
+		for ( n = 0; !BER_BVISNULL( &(*vals)[n] ); n++ ) {
 			;	/* Empty */
 		}
 		*vals = (BerVarray) SLAP_REALLOC( (char *) *vals,
@@ -81,24 +84,23 @@ value_add(
 		}
 	}
 
-	v2 = *vals + n;
-	for ( ; addvals->bv_val; v2++, addvals++ ) {
-		ber_dupbv(v2, addvals);
-		if (v2->bv_val == NULL) break;
+	v2 = &(*vals)[n];
+	for ( ; !BER_BVISNULL( addvals ); v2++, addvals++ ) {
+		ber_dupbv( v2, addvals );
+		if ( BER_BVISNULL( v2 ) ) break;
 	}
-	v2->bv_val = NULL;
-	v2->bv_len = 0;
+	BER_BVZERO( v2 );
 
 	return LDAP_SUCCESS;
 }
 
 int
 value_add_one( 
-    BerVarray *vals,
-    struct berval *addval )
+    BerVarray		*vals,
+    struct berval	*addval )
 {
-	int	n;
-	BerVarray v2;
+	int		n;
+	BerVarray	v2;
 
 	if ( *vals == NULL ) {
 		*vals = (BerVarray) SLAP_MALLOC( 2 * sizeof(struct berval) );
@@ -113,8 +115,9 @@ value_add_one(
 			return LBER_ERROR_MEMORY;
 		}
 		n = 0;
+
 	} else {
-		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
+		for ( n = 0; !BER_BVISNULL( &(*vals)[n] ); n++ ) {
 			;	/* Empty */
 		}
 		*vals = (BerVarray) SLAP_REALLOC( (char *) *vals,
@@ -131,12 +134,11 @@ value_add_one(
 		}
 	}
 
-	v2 = *vals + n;
+	v2 = &(*vals)[n];
 	ber_dupbv(v2, addval);
 
 	v2++;
-	v2->bv_val = NULL;
-	v2->bv_len = 0;
+	BER_BVZERO( v2 );
 
 	return LDAP_SUCCESS;
 }
