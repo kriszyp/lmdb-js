@@ -3210,6 +3210,36 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
+	{"( 1.3.6.1.4.1.4203.666.4.9 NAME 'dnSubtreeMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
+		SLAP_MR_HIDE | SLAP_MR_EXT, NULL,
+		NULL, dnNormalize, dnRelativeMatch,
+		NULL, NULL,
+		NULL },
+
+#if 0
+	{"( 1.3.6.1.4.1.4203.666.4.8 NAME 'dnOneLevelMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
+		SLAP_MR_HIDE | SLAP_MR_EXT, NULL,
+		NULL, dnNormalize, dnRelativeMatch,
+		NULL, NULL,
+		NULL },
+
+	{"( 1.3.6.1.4.1.4203.666.4.10 NAME 'dnSubordinateMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
+		SLAP_MR_HIDE | SLAP_MR_EXT, NULL,
+		NULL, dnNormalize, dnRelativeMatch,
+		NULL, NULL,
+		NULL },
+
+	{"( 1.3.6.1.4.1.4203.666.4.11 NAME 'dnSuperiorMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
+		SLAP_MR_HIDE | SLAP_MR_EXT, NULL,
+		NULL, dnNormalize, dnRelativeMatch,
+		NULL, NULL,
+		NULL },
+#endif
+
 	{"( 1.2.36.79672281.1.13.3 NAME 'rdnMatch' "
 		"SYNTAX 1.2.36.79672281.1.5.0 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,

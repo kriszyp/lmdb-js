@@ -958,7 +958,54 @@ dnMatch(
 		match, value->bv_val, asserted->bv_val );
 
 	*matchp = match;
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
+}
+
+/*
+ * dnRelativeMatch routine
+ */
+int
+dnRelativeMatch(
+	int *matchp,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match;
+	struct berval *asserted = (struct berval *) assertedValue;
+
+	assert( matchp );
+	assert( value );
+	assert( assertedValue );
+	assert( !BER_BVISNULL( value ) );
+	assert( !BER_BVISNULL( asserted ) );
+
+	if( mr == slap_schema.si_mr_dnSubtreeMatch ) {
+		if( asserted->bv_len > value->bv_len ) {
+			match = -1;
+		} else if ( asserted->bv_len == value->bv_len ) {
+			match = memcmp( value->bv_val, asserted->bv_val, 
+				value->bv_len );
+		} else {
+			if( DN_SEPARATOR(
+				value->bv_val[value->bv_len - asserted->bv_len - 1] ))
+			{
+				match = memcmp(
+					&value->bv_val[value->bv_len - asserted->bv_len],
+					asserted->bv_val, 
+					asserted->bv_len );
+			} else {
+				return 1;
+			}
+		}
+
+		*matchp = match;
+		return LDAP_SUCCESS;
+	}
+
+	return LDAP_OTHER;
 }
 
 int
@@ -988,8 +1035,7 @@ rdnMatch(
 		match, value->bv_val, asserted->bv_val );
 
 	*matchp = match;
-
-	return( LDAP_SUCCESS );
+	return LDAP_SUCCESS;
 }
 
 
@@ -1046,14 +1092,11 @@ dnExtractRdn(
 		return rc;
 	}
 
-	rc = ldap_rdn2bv_x( tmpRDN, rdn, LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY, ctx );
+	rc = ldap_rdn2bv_x( tmpRDN, rdn, LDAP_DN_FORMAT_LDAPV3 | LDAP_DN_PRETTY,
+		ctx );
 
 	ldap_rdnfree_x( tmpRDN, ctx );
-	if ( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
-
-	return LDAP_SUCCESS;
+	return rc;
 }
 
 /*
@@ -1253,7 +1296,6 @@ dnX509normalize( void *x509_name, struct berval *out )
 int
 dnX509peerNormalize( void *ssl, struct berval *dn )
 {
-
 	return ldap_pvt_tls_get_peer_dn( ssl, dn,
 		(LDAPDN_rewrite_dummy *)LDAPDN_rewrite, 0 );
 }

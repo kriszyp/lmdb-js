@@ -506,6 +506,14 @@ LDAP_SLAPD_F (int) dnMatch LDAP_P((
 	struct berval *value, 
 	void *assertedValue ));
 
+LDAP_SLAPD_F (int) dnRelativeMatch LDAP_P(( 
+	int *matchp, 
+	slap_mask_t flags, 
+	Syntax *syntax, 
+	MatchingRule *mr,
+	struct berval *value, 
+	void *assertedValue ));
+
 LDAP_SLAPD_F (int) rdnMatch LDAP_P(( 
 	int *matchp, 
 	slap_mask_t flags, 
