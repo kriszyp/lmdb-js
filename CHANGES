@@ -2,6 +2,7 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
+	Fixed slapd/back-ldbm/cache entry lock assert bugs
 	Build environment
 		Fixed build/man.mk "ln -sf" bug
 

@@ -213,7 +213,7 @@ cache_add_entry_lock(
                     == 0 && cache->c_cursize > cache->c_maxsize ) {
 			e = cache->c_lrutail;
 
-			/* XXX check for writer lock - should also check no readers pending */
+			/* check for active readers/writer lock */
 #ifdef LDAP_DEBUG
 			assert(!ldap_pvt_thread_rdwr_active( &e->e_rdwr ));
 #endif
@@ -386,13 +386,13 @@ cache_delete_entry(
 
 	Debug( LDAP_DEBUG_TRACE, "====> cache_delete_entry:\n", 0, 0, 0 );
 
-	/* XXX check for writer lock - should also check no readers pending */
-#ifdef LDAP_DEBUG
-	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr));
-#endif
-
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
+	/* XXX check for writer lock - should also check no readers pending */
+#ifdef LDAP_DEBUG
+	assert(ldap_pvt_thread_rdwr_writers( &e->e_rdwr ) == 1);
+#endif
 
 	rc = cache_delete_entry_internal( cache, e );
 
