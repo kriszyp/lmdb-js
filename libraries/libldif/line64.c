@@ -143,9 +143,8 @@ ldif_parse_line(
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 				"ldif_parse_line: %s missing base64 value\n", type );
-			value = NULL;
-			vlen = 0;
-			goto done;
+			ber_memfree( freeme );
+			return( -1 );
 		}
 
 		byte = value = s;
@@ -196,9 +195,8 @@ ldif_parse_line(
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 				"ldif_parse_line: %s missing URL value\n", type );
-			value = NULL;
-			vlen = 0;
-			goto done;
+			ber_memfree( freeme );
+			return( -1 );
 		}
 
 		if( ldif_fetch_url( s, &value, &vlen ) ) {
@@ -214,7 +212,6 @@ ldif_parse_line(
 		vlen = (int) (d - s);
 	}
 
-done:
 	type = ber_strdup( type );
 
 	if( type == NULL ) {
@@ -225,7 +222,7 @@ done:
 		return( -1 );
 	}
 
-	if( !url && value != NULL ) {
+	if( !url ) {
 		p = ber_memalloc( vlen + 1 );
 		if( p == NULL ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
