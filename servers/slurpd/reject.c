@@ -17,6 +17,8 @@
  * to a replica LDAP server.
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -27,9 +29,9 @@
 #include "slurp.h"
 #include "globals.h"
 
-#ifndef SYSERRLIST_IN_STDIO
+#ifndef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
+#endif /* DECL_SYS_ERRLIST */
 
 
 /*

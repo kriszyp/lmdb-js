@@ -1,9 +1,19 @@
+
+/* Revision history
+ *
+ * 5-Jun-96	hodges
+ *	Added locking of new_conn_mutex when traversing the c[] array.
+ */
+
+#define DISABLE_BRIDGE /* disable bridge code */
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
-#include <sys/time.h>
+#include <ac/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -12,7 +22,6 @@
 #include <sys/select.h>
 #endif
 #include "slap.h"
-#include "portable.h"
 #include "ldapconfig.h"
 #ifdef NEED_FILIO
 #include <sys/filio.h>
@@ -23,12 +32,20 @@
 #include <unistd.h>
 #endif /* USE_SYSCONF */
 
+#ifdef TCP_WRAPPERS
+#include <tcpd.h>
+
+int allow_severity = LOG_INFO;
+int deny_severity = LOG_NOTICE;
+#endif /* TCP_WRAPPERS */
+
 extern Operation	*op_add();
 
-#ifndef SYSERRLIST_IN_STDIO
+#ifndef DECL_SYS_ERRLIST
 extern int		sys_nerr;
 extern char		*sys_errlist[];
 #endif
+
 extern time_t		currenttime;
 extern pthread_mutex_t	currenttime_mutex;
 extern int		active_threads;
@@ -48,7 +65,7 @@ static void	set_shutdown();
 static void	do_nothing();
 
 void
-daemon(
+slapd_daemon(
     int	port
 )
 {
@@ -64,10 +81,18 @@ daemon(
 	int			on = 1;
 
 #ifdef USE_SYSCONF
-        dtblsize = sysconf( _SC_OPEN_MAX );
+	dtblsize = sysconf( _SC_OPEN_MAX );
 #else /* USE_SYSCONF */
-        dtblsize = getdtablesize();
+	dtblsize = getdtablesize();
 #endif /* USE_SYSCONF */
+	/*
+	 * Add greg@greg.rim.or.jp
+	 */
+#ifdef FD_SETSIZE
+	if(dtblsize > FD_SETSIZE) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif	/* !FD_SETSIZE */
 
 	c = (Connection *) ch_calloc( 1, dtblsize * sizeof(Connection) );
 
@@ -127,9 +152,19 @@ daemon(
 	}
 
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#ifdef linux
+	/*
+	 * LinuxThreads are implemented using SIGUSR1/USR2,
+	 * so we'll use SIGSTKFLT and SIGUNUSED
+	 */
+	(void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+	(void) SIGNAL( SIGUNUSED, (void *) set_shutdown );
+#else /* !linux */
 	(void) SIGNAL( SIGUSR1, (void *) do_nothing );
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
+#endif /* !linux */
 	(void) SIGNAL( SIGTERM, (void *) set_shutdown );
+	(void) SIGNAL( SIGINT, (void *) set_shutdown );
 	(void) SIGNAL( SIGHUP, (void *) set_shutdown );
 
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
@@ -156,6 +191,9 @@ daemon(
 		struct timeval		*tvp;
 		int			len, pid;
 
+		char	*client_name;
+		char	*client_addr;
+
 		FD_ZERO( &writefds );
 		FD_ZERO( &readfds );
 		FD_SET( tcps, &readfds );
@@ -164,6 +202,8 @@ daemon(
 		Debug( LDAP_DEBUG_CONNS,
 		    "listening for connections on %d, activity on:",
 		    tcps, 0, 0 );
+
+		pthread_mutex_lock( &new_conn_mutex );
 		for ( i = 0; i < dtblsize; i++ ) {
 			if ( c[i].c_sb.sb_sd != -1 ) {
 				FD_SET( c[i].c_sb.sb_sd, &readfds );
@@ -176,19 +216,20 @@ daemon(
 			}
 		}
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
+		pthread_mutex_unlock( &new_conn_mutex );
 
 		zero.tv_sec = 0;
 		zero.tv_usec = 0;
 		Debug( LDAP_DEBUG_CONNS, "before select active_threads %d\n",
 		    active_threads, 0, 0 );
-#ifdef PTHREAD_PREEMPTIVE
+#if	defined(PTHREAD_PREEMPTIVE) || defined(NO_THREADS)
 		tvp = NULL;
 #else
 		tvp = active_threads ? &zero : NULL;
 #endif
 		pthread_mutex_unlock( &active_threads_mutex );
 
-		switch ( select( dtblsize, &readfds, &writefds, 0, tvp ) ) {
+		switch ( i = select( dtblsize, &readfds, &writefds, 0, tvp ) ) {
 		case -1:	/* failure - try again */
 			Debug( LDAP_DEBUG_CONNS,
 			    "select failed errno %d (%s)\n",
@@ -203,7 +244,7 @@ daemon(
 			continue;
 
 		default:	/* something happened - deal with it */
-			Debug( LDAP_DEBUG_CONNS, "select activity\n", 0, 0, 0 );
+			Debug( LDAP_DEBUG_CONNS, "select activity on %d descriptors\n", i, 0, 0 );
 			;	/* FALL */
 		}
 		pthread_mutex_lock( &currenttime_mutex );
@@ -225,8 +266,9 @@ daemon(
 			}
 			if ( ioctl( ns, FIONBIO, (caddr_t) &on ) == -1 ) {
 				Debug( LDAP_DEBUG_ANY,
-				    "FIONBIO ioctl on %d faled\n", ns, 0, 0 );
+				    "FIONBIO ioctl on %d failed\n", ns, 0, 0 );
 			}
+
 			c[ns].c_sb.sb_sd = ns;
 			Debug( LDAP_DEBUG_CONNS, "new connection on %d\n", ns,
 			    0, 0 );
@@ -234,43 +276,76 @@ daemon(
 			pthread_mutex_lock( &ops_mutex );
 			c[ns].c_connid = num_conns++;
 			pthread_mutex_unlock( &ops_mutex );
+
 			len = sizeof(from);
+
 			if ( getpeername( ns, (struct sockaddr *) &from, &len )
 			    == 0 ) {
-				char	*s;
-#ifdef REVERSE_LOOKUP
+				char *s;
+				client_addr = inet_ntoa( from.sin_addr );
+
+#if defined(REVERSE_LOOKUP) || defined(TCP_WRAPPERS)
 				hp = gethostbyaddr( (char *)
 				    &(from.sin_addr.s_addr),
 				    sizeof(from.sin_addr.s_addr), AF_INET );
+
+				if(hp) {
+					client_name = hp->h_name;
+
+					/* normalize the domain */
+					for ( s = client_name; *s; s++ ) {
+						*s = TOLOWER( *s );
+					}
+
+				} else {
+					client_name = NULL;
+				}
 #else
-				hp = NULL;
+				client_name = NULL;
 #endif
 
-				Statslog( LDAP_DEBUG_STATS,
-				    "conn=%d fd=%d connection from %s (%s)\n",
-				    c[ns].c_connid, ns, hp == NULL ? "unknown"
-				    : hp->h_name, inet_ntoa( from.sin_addr ),
-				    0 );
-
-				if ( c[ns].c_addr != NULL ) {
-					free( c[ns].c_addr );
-				}
-				c[ns].c_addr = strdup( inet_ntoa(
-				    from.sin_addr ) );
-				if ( c[ns].c_domain != NULL ) {
-					free( c[ns].c_domain );
-				}
-				c[ns].c_domain = strdup( hp == NULL ? "" :
-				    hp->h_name );
-				/* normalize the domain */
-				for ( s = c[ns].c_domain; *s; s++ ) {
-					*s = TOLOWER( *s );
-				}
 			} else {
-				Statslog( LDAP_DEBUG_STATS,
-				    "conn=%d fd=%d connection from unknown\n",
-				    c[ns].c_connid, ns, 0, 0, 0 );
+				client_name = NULL;;
+				client_addr = NULL;
 			}
+
+#ifdef TCP_WRAPPERS
+			if(!hosts_ctl("slapd", client_name, client_addr,
+				STRING_UNKNOWN))
+			{
+				/* DENY ACCESS */
+				Statslog( LDAP_DEBUG_STATS,
+			   	 "conn=%d fd=%d connection from %s (%s) denied.\n",
+			   	 	c[ns].c_connid, ns,
+						client_name == NULL ? "unknown" : client_name,
+						client_addr == NULL ? "unknown" : client_addr,
+			   	  0 );
+
+				close(ns);
+				pthread_mutex_unlock( &new_conn_mutex );
+				continue;
+			}
+#endif /* TCP_WRAPPERS */
+
+			Statslog( LDAP_DEBUG_STATS,
+			    "conn=%d fd=%d connection from %s (%s) accepted.\n",
+			    	c[ns].c_connid, ns,
+					client_name == NULL ? "unknown" : client_name,
+					client_addr == NULL ? "unknown" : client_addr,
+			     0 );
+
+			if ( c[ns].c_addr != NULL ) {
+				free( c[ns].c_addr );
+			}
+			c[ns].c_addr = strdup( client_addr );
+
+			if ( c[ns].c_domain != NULL ) {
+				free( c[ns].c_domain );
+			}
+
+			c[ns].c_domain = strdup( client_name == NULL
+				? "" : client_name );
+
 			pthread_mutex_lock( &c[ns].c_dnmutex );
 			if ( c[ns].c_dn != NULL ) {
 				free( c[ns].c_dn );
@@ -349,15 +424,33 @@ set_shutdown()
 {
 	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal\n", 0, 0, 0 );
 	slapd_shutdown = 1;
+#ifdef linux
+	/*
+	 * LinuxThreads are implemented using SIGUSR1/USR2,
+	 * so we'll use SIGSTKFLT and SIGUNUSED
+	 */
+	pthread_kill( listener_tid, SIGSTKFLT );
+	(void) SIGNAL( SIGUNUSED, (void *) set_shutdown );
+#else /* !linux */
 	pthread_kill( listener_tid, SIGUSR1 );
 	(void) SIGNAL( SIGUSR2, (void *) set_shutdown );
+#endif /* !linux */
 	(void) SIGNAL( SIGTERM, (void *) set_shutdown );
+	(void) SIGNAL( SIGINT, (void *) set_shutdown );
 	(void) SIGNAL( SIGHUP, (void *) set_shutdown );
 }
 
 static void
 do_nothing()
 {
-	Debug( LDAP_DEBUG_TRACE, "slapd got SIGUSR1\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "slapd got do_nothing signal\n", 0, 0, 0 );
+#ifdef linux
+	/*
+	 * LinuxThreads are implemented using SIGUSR1/USR2,
+	 * so we'll use SIGSTKFLT and SIGUNUSED
+	 */
+	(void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#else /* !linux */
 	(void) SIGNAL( SIGUSR1, (void *) do_nothing );
+#endif /* !linux */
 }

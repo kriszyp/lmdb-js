@@ -18,8 +18,11 @@
  */
 
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -28,18 +31,20 @@
 #include "globals.h"
 
 /* externs */
-extern char *str_getline( char **next );
-extern void ch_free( char *p );
+extern char *str_getline LDAP_P(( char **next ));
+extern void ch_free LDAP_P(( char *p ));
 
+#ifndef	DECL_SYS_ERRLIST
 extern char *sys_errlist[];
+#endif /* DECL_SYS_ERRLIST */
 
 /* Forward references */
-static Rh 	*get_repl_hosts( char *, int *, char ** );
-static int	gettype( char * );
-static int	getchangetype( char *);
-static int	Re_parse( Re *re, char *replbuf );
-static void 	Re_dump( Re *re, FILE *fp );
-static void	warn_unknown_replica( char *, int port );
+static Rh 	*get_repl_hosts LDAP_P(( char *, int *, char ** ));
+static int	gettype LDAP_P(( char * ));
+static int	getchangetype LDAP_P(( char * ));
+static int	Re_parse LDAP_P(( Re *re, char *replbuf ));
+static void 	Re_dump LDAP_P(( Re *re, FILE *fp ));
+static void	warn_unknown_replica LDAP_P(( char *, int port ));
 
 /* Globals, scoped within this file */
 static int	nur = 0;	/* Number of unknown replicas */
@@ -182,7 +187,9 @@ Re_parse(
 	    state |= GOT_TIME;
 	    break;
 	case T_DN:
-	    re->re_dn = strdup( value );
+	    re->re_dn = ch_malloc( len + 1 );
+		memcpy( re->re_dn, value, len );
+		re->re_dn[ len ]='\0';
 	    state |= GOT_DN;
 	    break;
 	default:
@@ -222,7 +229,9 @@ Re_parse(
 	    sizeof( Mi ) * ( nml + 2 ));
 	re->re_mods[ nml ].mi_type = strdup( type );
 	if ( value != NULL ) {
-	    re->re_mods[ nml ].mi_val = strdup( value );
+	    re->re_mods[ nml ].mi_val = ch_malloc( len + 1 );
+		memcpy( re->re_mods[ nml ].mi_val, value, len );
+		re->re_mods[ nml ].mi_val[ len ] = '\0';
 	    re->re_mods[ nml ].mi_len = len;
 	} else {
 	    re->re_mods[ nml ].mi_val = NULL;

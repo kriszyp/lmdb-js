@@ -16,18 +16,19 @@
  * writing status information to disk.
  */
 
-
+#define DISABLE_BRIDGE
+#include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <unistd.h>
 
 #include "slurp.h"
 #include "globals.h"
 
-#ifndef SYSERRLIST_IN_STDIO
+#ifndef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
+#endif /* DECL_SYS_ERRLIST */
 
 /*
  * Add information about replica host specified by Ri to list
@@ -56,8 +57,7 @@ St_add(
 	pthread_mutex_unlock( &(st->st_mutex ));
 	return NULL;
     }
-    st->st_data[ ind ]  = ( Stel * ) ch_malloc( st->st_data,
-	    sizeof( Stel ));
+    st->st_data[ ind ]  = ( Stel * ) ch_malloc( sizeof( Stel ) );
     if ( st->st_data[ ind ] == NULL ) {
 	pthread_mutex_unlock( &(st->st_mutex ));
 	return NULL;

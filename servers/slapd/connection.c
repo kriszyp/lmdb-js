@@ -1,11 +1,13 @@
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
+#include <ac/string.h>
+#include <ac/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
 #include <signal.h>
-#include "portable.h"
 #include "slap.h"
 
 extern Operation	*op_add();
@@ -16,7 +18,8 @@ extern long		ops_initiated;
 extern long		ops_completed;
 extern pthread_mutex_t	ops_mutex;
 extern pthread_t	listener_tid;
-#ifndef SYSERRLIST_IN_STDIO
+
+#ifndef DECL_SYS_ERRLIST
 extern int		sys_nerr;
 extern char		*sys_errlist[];
 #endif
@@ -203,6 +206,22 @@ connection_activity(
 
 	pthread_attr_init( &attr );
 	pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
+#ifndef THREAD_MIT_PTHREADS
+	/* POSIX_THREADS or compatible
+	 * This is a draft 10 or standard pthreads implementation
+	 */
+	if ( pthread_create( &arg->co_op->o_tid, &attr,
+	    (void *) connection_operation, (void *) arg ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
+	} else {
+		pthread_mutex_lock( &active_threads_mutex );
+		active_threads++;
+		pthread_mutex_unlock( &active_threads_mutex );
+	}
+#else	/* !THREAD_MIT_PTHREAD */
+	/*
+	 * This is a draft 4 or earlier pthreads implementation
+	 */
 	if ( pthread_create( &arg->co_op->o_tid, attr,
 	    (void *) connection_operation, (void *) arg ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "pthread_create failed\n", 0, 0, 0 );
@@ -211,5 +230,6 @@ connection_activity(
 		active_threads++;
 		pthread_mutex_unlock( &active_threads_mutex );
 	}
+#endif	/* !THREAD_MIT_PTHREAD */
 	pthread_attr_destroy( &attr );
 }

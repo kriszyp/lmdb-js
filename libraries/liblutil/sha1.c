@@ -15,9 +15,8 @@
  *   34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F
  */
 
-#define SHA1HANDSOFF		/* Copies data before messing with it. */
 
-#define LDAP_BRIDGE
+#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <sys/param.h>
@@ -25,6 +24,7 @@
 
 #include "lutil_sha1.h"
 
+#define SHA1HANDSOFF		/* Copies data before messing with it. */
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
 /*

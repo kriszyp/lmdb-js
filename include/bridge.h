@@ -12,8 +12,8 @@
 
 /* This file SHOULD go away !!! */
 
-#ifndef LDAP_BRIDGE
-#define LDAP_BRIDGE
+#ifndef _LDAP_BRIDGE_H
+#define _LDAP_BRIDGE_H
 
 /*
  * portable.h for LDAP -- this is where we define common stuff to make
@@ -122,6 +122,7 @@
 #endif
 #endif NOTDEF
 
+#ifndef DISABLE_BRIDGE 
 /*
  * Are sys_errlist and sys_nerr declared in stdio.h?
  */
@@ -142,6 +143,7 @@
 #define FD_ISSET(n, p)  ((p)->fds_bits[(n)/NFDBITS] & (1 << ((n) % NFDBITS)))
 #define FD_ZERO(p)      bzero((char *)(p), sizeof(*(p)))
 #endif /* FD_SET */
+#endif
 
 #if defined( hpux ) && defined( __STDC__ )
 /*
@@ -209,4 +211,4 @@
 extern char *strdup();
 #endif /* ultrix || nextstep */
 
-#endif /* LDAP_BRIDGE */
+#endif /* _LDAP_BRIDGE_H */

@@ -14,43 +14,49 @@
  * ldap_op.c - routines to perform LDAP operations
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
+#include <ac/time.h>
 #include <sys/types.h>
-#include <sys/time.h>
 
 #ifdef KERBEROS
+#ifdef KERBEROS_V
+#include <kerberosIV/krb.h>
+#else
 #include <krb.h>
+#endif /* KERBEROS_V */
 #endif /* KERBEROS */
 
 #include <lber.h>
 #include <ldap.h>
 
-#include "portable.h"
 #include "slurp.h"
 
 /* Forward references */
-static int get_changetype( char * );
-static struct berval **make_singlevalued_berval( char	*, int );
-static int op_ldap_add( Ri *, Re *, char ** );
-static int op_ldap_modify( Ri *, Re *, char ** );
-static int op_ldap_delete( Ri *, Re *, char ** );
-static int op_ldap_modrdn( Ri *, Re *, char ** );
-static LDAPMod *alloc_ldapmod();
-static void free_ldapmod( LDAPMod * );
-static void free_ldmarr( LDAPMod ** );
-static int getmodtype( char * );
-static void dump_ldm_array( LDAPMod ** );
-static char **read_krbnames( Ri * );
-static void upcase( char * );
-static int do_bind( Ri *, int * );
-static int do_unbind( Ri * );
+static int get_changetype LDAP_P(( char * ));
+static struct berval **make_singlevalued_berval LDAP_P(( char	*, int ));
+static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_delete LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char ** ));
+static LDAPMod *alloc_ldapmod LDAP_P(());
+static void free_ldapmod LDAP_P(( LDAPMod * ));
+static void free_ldmarr LDAP_P(( LDAPMod ** ));
+static int getmodtype LDAP_P(( char * ));
+static void dump_ldm_array LDAP_P(( LDAPMod ** ));
+static char **read_krbnames LDAP_P(( Ri * ));
+static void upcase LDAP_P(( char * ));
+static int do_bind LDAP_P(( Ri *, int * ));
+static int do_unbind LDAP_P(( Ri * ));
 
 
 /* External references */
-#ifndef SYSERRLIST_IN_STDIO
+#ifndef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
+#endif /* DECL_SYS_ERRLIST */
 
 extern char *ch_malloc( unsigned long );
 

@@ -11,7 +11,7 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#define LDAP_BRIDGE /* disable LDAP_BRIDGE code */
+#define DISABLE_BRIDGE /* disable LDAP_BRIDGE code */
 #include "portable.h"
 
 #include <stdio.h>

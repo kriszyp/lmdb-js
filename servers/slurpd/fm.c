@@ -14,49 +14,36 @@
  * fm.c - file management routines.
  */
 
+#define DISABLE_BRIDGE
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <signal.h>
+#include <ac/string.h>
+#include <sys/signal.h>
 
 #include "slurp.h"
 #include "globals.h"
 
-extern void do_admin();
-
-static void set_shutdown();
-void do_nothing();
 
 /*
  * Externs
  */
-#ifdef NEEDPROTOS
-extern int file_nonempty( char * );
-extern int acquire_lock(char *, FILE **, FILE ** );
-extern int relinquish_lock(char *, FILE *, FILE * );
-#else /* NEEDPROTOS */
-extern int file_nonempty();
-extern int acquire_lock();
-extern int relinquish_lock();
-#endif /* NEEDPROTOS */
+extern void do_admin LDAP_P((void));
+extern int file_nonempty LDAP_P(( char * ));
+extern int acquire_lock LDAP_P((char *, FILE **, FILE ** ));
+extern int relinquish_lock LDAP_P((char *, FILE *, FILE * ));
 
 /*
  * Forward references
  */
-#ifdef NEEDPROTOS
-static char *get_record( FILE * );
-static void populate_queue( char *f );
-static void set_shutdown();
-void do_nothing();
-#else /* NEEDPROTOS */
-static char *get_record();
-static void populate_queue();
-static void set_shutdown();
-void do_nothing();
-#endif /* NEEDPROTOS */
+static char *get_record LDAP_P(( FILE * ));
+static void populate_queue LDAP_P(( char *f ));
+static void set_shutdown LDAP_P((void));
+void do_nothing LDAP_P((void));
 
-#ifndef SYSERRLIST_IN_STDIO
+#ifndef DECL_SYS_ERRLIST
 extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
+#endif /* DECL_SYS_ERRLIST */
 
 
 
@@ -77,12 +64,20 @@ fm(
 
     /* Set up our signal handlers:
      * SIG{TERM,INT,HUP} causes a shutdown
-     * SIGUSR1 - does nothing, used to wake up sleeping threads.
-     * SIGUSR2 - causes slurpd to read its administrative interface file.
+     * SIG(STKFLT|USR1) - does nothing, used to wake up sleeping threads.
+     * SIG(UNUSED|USR2) - causes slurpd to read its administrative interface file.
      *           (not yet implemented).
      */
+#ifdef SIGSTKFLT
+    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#else
     (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+#endif
+#ifdef SIGUNUSED
+    (void) SIGNAL( SIGUNUSED, (void *) do_admin );
+#else
     (void) SIGNAL( SIGUSR2, (void *) do_admin );
+#endif
     (void) SIGNAL( SIGTERM, (void *) set_shutdown );
     (void) SIGNAL( SIGINT, (void *) set_shutdown );
     (void) SIGNAL( SIGHUP, (void *) set_shutdown );
@@ -160,7 +155,11 @@ set_shutdown()
     int	i;
 
     sglob->slurpd_shutdown = 1;				/* set flag */
+#ifdef SIGSTKFLT
+    pthread_kill( sglob->fm_tid, SIGSTKFLT );	/* wake up file mgr */
+#else
     pthread_kill( sglob->fm_tid, SIGUSR1 );		/* wake up file mgr */
+#endif
     sglob->rq->rq_lock( sglob->rq );			/* lock queue */
     pthread_cond_broadcast( &(sglob->rq->rq_more) );	/* wake repl threads */
     for ( i = 0; i < sglob->num_replicas; i++ ) {
@@ -181,7 +180,11 @@ set_shutdown()
 void
 do_nothing()
 {
+#ifdef SIGSTKFLT
+    (void) SIGNAL( SIGSTKFLT, (void *) do_nothing );
+#else
     (void) SIGNAL( SIGUSR1, (void *) do_nothing );
+#endif
 }
 
 
