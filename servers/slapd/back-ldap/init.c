@@ -46,14 +46,21 @@ int init_module(int argc, char *argv[]) {
 
 #endif /* SLAPD_LDAP */
 
+static int
+ldap_back_open(
+	BackendInfo *bi
+)
+{
+	bi->bi_controls = slap_known_controls;
+	return 0;
+}
+
 int
 ldap_back_initialize(
     BackendInfo	*bi
 )
 {
-	bi->bi_controls = slap_known_controls;
-
-	bi->bi_open = 0;
+	bi->bi_open = ldap_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = 0;
 	bi->bi_destroy = 0;
