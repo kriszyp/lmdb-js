@@ -97,9 +97,9 @@ ldap_back_dn_massage(
 
 	assert( res );
 
+	res->bv_val = NULL;
+	res->bv_len = 0;
 	if ( dn == NULL ) {
-		res->bv_val = NULL;
-		res->bv_len = 0;
 		return 0;
 	}
 	if ( dc->rwmap == NULL || dc->rwmap->rwm_suffix_massage == NULL ) {
