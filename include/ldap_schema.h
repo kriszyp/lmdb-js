@@ -32,6 +32,11 @@ LDAP_BEGIN_DECL
 #define LDAP_SCHERR_DUPOPT		9
 #define LDAP_SCHERR_EMPTY		10
 
+typedef struct ldap_syntax {
+	char *syn_oid;		/* REQUIRED */
+	char *syn_desc;		/* OPTIONAL */
+} LDAP_SYNTAX;
+
 typedef struct ldap_attributetype {
 	char *at_oid;		/* REQUIRED */
 	char **at_names;	/* OPTIONAL */
@@ -75,8 +80,10 @@ typedef struct ldap_objectclass {
 
 LDAP_F(LDAP_OBJECT_CLASS *) ldap_str2objectclass LDAP_P(( char * s, int * code, char ** errp ));
 LDAP_F(LDAP_ATTRIBUTE_TYPE *) ldap_str2attributetype LDAP_P(( char * s, int * code, char ** errp ));
+LDAP_F(LDAP_SYNTAX *) ldap_str2syntax LDAP_P(( char * s, int * code, char ** errp ));
 LDAP_F( char *) ldap_objectclass2str LDAP_P(( LDAP_OBJECT_CLASS * oc ));
 LDAP_F( char *) ldap_attributetype2str LDAP_P(( LDAP_ATTRIBUTE_TYPE * at ));
+LDAP_F( char *) ldap_syntax2str LDAP_P(( LDAP_SYNTAX * syn ));
 LDAP_F( char *) ldap_scherr2str LDAP_P(( int code ));
 
 LDAP_END_DECL
