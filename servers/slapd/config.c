@@ -1833,6 +1833,34 @@ read_config( const char *fname )
 				replogfile = ch_strdup( cargv[1] );
 			}
 
+		/* file from which to read additional rootdse attrs */
+		} else if ( strcasecmp( cargv[0], "rootdse" ) == 0) {
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+					"missing filename in \"rootDSEfile <filename>\" line.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"missing filename in \"rootDSEfile <filename>\" line.\n",
+				    fname, lineno, 0 );
+#endif
+				return 1;
+			}
+
+			if( read_root_dse_file( cargv[1] ) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT, "%s: line %d: "
+					"could not read \"rootDSEfile <filename>\" line.\n",
+					fname, lineno ));
+#else
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"could not read \"rootDSEfile <filename>\" line\n",
+				    fname, lineno, 0 );
+#endif
+				return 1;
+			}
+
 		/* maintain lastmodified{by,time} attributes */
 		} else if ( strcasecmp( cargv[0], "lastmod" ) == 0 ) {
 			if ( cargc < 2 ) {

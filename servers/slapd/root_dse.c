@@ -22,6 +22,7 @@ static char *supportedFeatures[] = {
 	NULL
 };
 
+static Entry	*usr_attr = NULL;
 
 int
 root_dse_info(
@@ -44,6 +45,8 @@ root_dse_info(
 	AttributeDescription *ad_supportedSASLMechanisms = slap_schema.si_ad_supportedSASLMechanisms;
 	AttributeDescription *ad_supportedFeatures = slap_schema.si_ad_supportedFeatures;
 	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
+
+	Attribute *a;
 
 	vals[0] = &val;
 	vals[1] = NULL;
@@ -123,7 +126,90 @@ root_dse_info(
 		attr_merge( e, ad_ref, default_referral );
 	}
 
+	if( usr_attr != NULL) {
+		for(a = usr_attr->e_attrs; a != NULL; a = a->a_next) {
+			attr_merge( e, a->a_desc, a->a_vals );
+		}
+	}
+
 	*entry = e;
 	return LDAP_SUCCESS;
 }
 
+/*
+ * Read the entries specified in fname and merge the attributes
+ * to the user defined rootDSE. Note thaat if we find any errors
+ * what so ever, we will discard the entire entries, print an
+ * error message and return.
+ */
+int read_root_dse_file( const char *fname )
+{
+	FILE	*fp;
+	char	*line, *savefname, *saveline;
+	int rc = 0, lineno = 0, lmax = 0;
+	char	*buf = NULL;
+
+	Attribute *a;
+
+	if ( (fp = fopen( fname, "r" )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"could not open rootdse attr file \"%s\" - absolute path?\n",
+			fname, 0, 0 );
+		perror( fname );
+		return EXIT_FAILURE;
+	}
+
+	usr_attr = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	usr_attr->e_attrs = NULL;
+
+	while( ldif_read_record( fp, &lineno, &buf, &lmax ) ) {
+		ID id;
+		Entry *e = str2entry( buf );
+
+		if( e == NULL ) {
+			fprintf( stderr, "root_dse: could not parse entry (line=%d)\n",
+				lineno );
+			entry_free( e );
+			entry_free( usr_attr );
+			usr_attr = NULL;
+			return EXIT_FAILURE;
+		}
+
+		if( dn_normalize( e->e_ndn ) == NULL ) {
+			fprintf( stderr, "root_dse: invalid dn=\"%s\" (line=%d)\n",
+				e->e_dn, lineno );
+			entry_free( e );
+			entry_free( usr_attr );
+			usr_attr = NULL;
+			return EXIT_FAILURE;
+		}
+
+		/* make sure the DN is a valid rootdse(rootdse is a null string) */
+		if( strcmp(e->e_ndn, "") != 0 ) {
+			fprintf( stderr,
+				"root_dse: invalid rootDSE - dn=\"%s\" (line=%d)\n",
+				e->e_dn, lineno );
+			entry_free( e );
+			entry_free( usr_attr );
+			usr_attr = NULL;
+			return EXIT_FAILURE;
+		}
+
+		/*
+		 * we found a valid entry, so walk thru all the attributes in the
+		 * entry, and add each attribute type and description to the
+		 * usr_attr entry
+		 */
+
+		for(a = e->e_attrs; a != NULL; a = a->a_next) {
+			attr_merge( usr_attr, a->a_desc, a->a_vals );
+		}
+
+		entry_free( e );
+	}
+
+	ch_free( buf );
+
+	Debug(LDAP_DEBUG_CONFIG,"rootDSE file %s read.\n", fname, 0, 0);
+	return rc;
+}

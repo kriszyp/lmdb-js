@@ -230,7 +230,6 @@ int oc_check_allowed(
 		return LDAP_SUCCESS;
 	}
 
-
 	/*
 	 * All operational attributions are allowed by schema rules.
 	 */

@@ -907,6 +907,9 @@ LDAP_SLAPD_F (int) root_dse_info LDAP_P((
 	Entry **e,
 	const char **text ));
 
+LDAP_SLAPD_F (int) read_root_dse_file LDAP_P((
+	const char *file));
+
 LDAP_SLAPD_F (int) do_abandon LDAP_P((Connection *conn, Operation *op));
 LDAP_SLAPD_F (int) do_add LDAP_P((Connection *conn, Operation *op));
 LDAP_SLAPD_F (int) do_bind LDAP_P((Connection *conn, Operation *op));

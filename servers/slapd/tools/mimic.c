@@ -219,3 +219,7 @@ int get_limits( Backend *be, const char *ndn, struct slap_limits_set **limit )
 	return 0;
 }
 
+int read_root_dse_file ( const char *file )
+{
+	return 0;
+}
