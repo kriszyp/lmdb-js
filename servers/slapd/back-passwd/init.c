@@ -25,7 +25,7 @@
 
 ldap_pvt_thread_mutex_t passwd_mutex;
 
-#ifdef SLAPD_PASSWD_DYNAMIC
+#if SLAPD_PASSWD == SLAPD_MOD_DYNAMIC
 
 int init_module(int argc, char *argv[]) {
     BackendInfo bi;
@@ -38,7 +38,7 @@ int init_module(int argc, char *argv[]) {
     return 0;
 }
 
-#endif /* SLAPD_PASSWD_DYNAMIC */
+#endif /* SLAPD_PASSWD */
 
 int
 passwd_back_initialize(

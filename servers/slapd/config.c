@@ -54,7 +54,8 @@ struct slap_limits_set deflimit = {
 	0,
 	-1,				/* no limit on unchecked size */
 	0,				/* page limit */
-	0				/* hide number of entries left */
+	0,				/* hide number of entries left */
+	0				/* number of total entries returned by pagedResults equal to hard limit */
 };
 
 AccessControl	*global_acl = NULL;
@@ -73,11 +74,11 @@ char		*ldap_srvtab = "";
 char		**default_passwd_hash = NULL;
 int		cargc = 0, cargv_size = 0;
 char	**cargv;
-struct berval default_search_base = { 0, NULL };
-struct berval default_search_nbase = { 0, NULL };
+struct berval default_search_base = BER_BVNULL;
+struct berval default_search_nbase = BER_BVNULL;
 unsigned		num_subordinates = 0;
-struct berval global_schemadn = { 0, NULL };
-struct berval global_schemandn = { 0, NULL };
+struct berval global_schemadn = BER_BVNULL;
+struct berval global_schemandn = BER_BVNULL;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
@@ -1818,7 +1819,7 @@ read_config( const char *fname, int depth )
 				return 1;
 			}
 
-			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
+			SLAP_DBFLAGS(be) |= ( SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SYNC_SHADOW );
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
@@ -2058,7 +2059,7 @@ read_config( const char *fname, int depth )
 				}
 
 			}
-			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
+			SLAP_DBFLAGS(be) |= ( SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SLURP_SHADOW );
 
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
 			if ( cargc < 2 ) {

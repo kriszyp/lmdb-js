@@ -89,7 +89,7 @@ backsql_modify_internal(
 			"mappings for objectClass \"%s\"\n",
 			ad->ad_cname.bv_val, BACKSQL_OC_NAME( oc ), 0 );
 
-		if ( backsql_attr_skip( ad, c_mod->sm_bvalues ) ) {
+		if ( backsql_attr_skip( ad, c_mod->sm_values ) ) {
 			continue;
 		}
 
@@ -179,7 +179,13 @@ del_all:
 				break;
 			}
 
-			rc = backsql_BindParamID( asth, 1, &e_id->keyval );
+#ifdef BACKSQL_ARBITRARY_KEY
+			rc = backsql_BindParamStr( asth, 1,
+					e_id->eid_keyval.bv_val,
+					BACKSQL_MAX_KEY_LEN );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+			rc = backsql_BindParamID( asth, 1, &e_id->eid_keyval );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 			if ( rc != SQL_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
@@ -232,10 +238,18 @@ del_all:
 						pno = 0;
 					}
 					po = ( BACKSQL_IS_DEL( at->bam_param_order ) ) > 0;
+#ifdef BACKSQL_ARBITRARY_KEY
+					SQLBindParameter( sth, pno + 1 + po,
+						SQL_PARAM_INPUT,
+						SQL_C_CHAR, SQL_VARCHAR,
+						0, 0, e_id->eid_keyval.bv_val, 
+						0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 					SQLBindParameter( sth, pno + 1 + po,
 						SQL_PARAM_INPUT,
 						SQL_C_ULONG, SQL_INTEGER,
-						0, 0, &e_id->keyval, 0, 0 );
+						0, 0, &e_id->eid_keyval, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 					/*
 					 * check for syntax needed here 
@@ -304,7 +318,7 @@ add_only:;
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modify_internal(): "
 				"adding new values for attribute \"%s\"\n",
 				at->bam_ad->ad_cname.bv_val, 0, 0 );
-			for ( i = 0, at_val = c_mod->sm_bvalues;
+			for ( i = 0, at_val = c_mod->sm_values;
 					at_val->bv_val != NULL; 
 					i++, at_val++ ) {
 				if ( BACKSQL_IS_ADD( at->bam_expect_return ) ) {
@@ -317,10 +331,17 @@ add_only:;
 	      				pno = 0;
 				}
 				po = ( BACKSQL_IS_ADD( at->bam_param_order ) ) > 0;
+#ifdef BACKSQL_ARBITRARY_KEY
+				SQLBindParameter( sth, pno + 1 + po,
+					SQL_PARAM_INPUT, 
+					SQL_C_CHAR, SQL_VARCHAR,
+					0, 0, e_id->eid_keyval.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 				SQLBindParameter( sth, pno + 1 + po,
 					SQL_PARAM_INPUT, 
 					SQL_C_ULONG, SQL_INTEGER,
-					0, 0, &e_id->keyval, 0, 0 );
+					0, 0, &e_id->eid_keyval, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 				/*
 				 * check for syntax needed here
@@ -377,7 +398,7 @@ add_only:;
 				break;
 			}
 
-			if ( c_mod->sm_bvalues == NULL ) {
+			if ( c_mod->sm_values == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"   backsql_modify_internal(): "
 					"no values given to delete "
@@ -391,7 +412,7 @@ add_only:;
 				"deleting values for attribute \"%s\"\n",
 				at->bam_ad->ad_cname.bv_val, 0, 0 );
 
-			for ( i = 0, at_val = c_mod->sm_bvalues;
+			for ( i = 0, at_val = c_mod->sm_values;
 					at_val->bv_val != NULL;
 					i++, at_val++ ) {
 				if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {
@@ -404,10 +425,17 @@ add_only:;
 					pno = 0;
 				}
 				po = ( BACKSQL_IS_DEL( at->bam_param_order ) ) > 0;
+#ifdef BACKSQL_ARBITRARY_KEY
+				SQLBindParameter( sth, pno + 1 + po,
+					SQL_PARAM_INPUT, 
+					SQL_C_CHAR, SQL_VARCHAR,
+					0, 0, e_id->eid_keyval.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 				SQLBindParameter( sth, pno + 1 + po,
 					SQL_PARAM_INPUT, 
 					SQL_C_ULONG, SQL_INTEGER,
-					0, 0, &e_id->keyval, 0, 0 );
+					0, 0, &e_id->eid_keyval, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 				/*
 				 * check for syntax needed here 
@@ -479,7 +507,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	RETCODE			rc;
 	backsql_oc_map_rec 	*oc = NULL;
 	backsql_at_map_rec	*at_rec = NULL;
-	backsql_entryID		e_id, parent_id;
+	backsql_entryID		parent_id = BACKSQL_ENTRYID_INIT;
 	Entry			p;
 	Attribute		*at;
 	struct berval		*at_val;
@@ -488,6 +516,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	SQLUSMALLINT		pno, po;
 	/* procedure return code */
 	int			prc;
+	struct berval		realdn, realpdn;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_add(): adding entry \"%s\"\n",
 			op->oq_add.rs_e->e_name.bv_val, 0, 0 );
@@ -560,7 +589,17 @@ backsql_add( Operation *op, SlapReply *rs )
 	/*
 	 * Check if entry exists
 	 */
-	rs->sr_err = backsql_dn2id( bi, &e_id, dbh, &op->oq_add.rs_e->e_name );
+	realdn = op->oq_add.rs_e->e_name;
+	if ( backsql_api_dn2odbc( op, rs, &realdn ) ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
+			"backsql_api_dn2odbc failed\n", 
+			0, 0, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+
+	rs->sr_err = backsql_dn2id( bi, NULL, dbh, &realdn );
 	if ( rs->sr_err == LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(): "
 			"entry \"%s\" exists\n",
@@ -573,7 +612,17 @@ backsql_add( Operation *op, SlapReply *rs )
 	 * Check if parent exists
 	 */
 	dnParent( &op->oq_add.rs_e->e_name, &pdn );
-	rs->sr_err = backsql_dn2id( bi, &parent_id, dbh, &pdn );
+	realpdn = pdn;
+	if ( backsql_api_dn2odbc( op, rs, &realpdn ) ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
+			"backsql_api_dn2odbc failed\n", 
+			0, 0, 0 );
+		rs->sr_err = LDAP_OTHER;
+		rs->sr_text = "SQL-backend error";
+		goto done;
+	}
+
+	rs->sr_err = backsql_dn2id( bi, &parent_id, dbh, &realpdn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_add(): "
 			"could not lookup parent entry for new record \"%s\"\n",
@@ -590,13 +639,27 @@ backsql_add( Operation *op, SlapReply *rs )
 			struct berval	dn;
 			char		*matched = NULL;
 
+			if ( realpdn.bv_val != pdn.bv_val ) {
+				ch_free( realpdn.bv_val );
+			}
+
 			dn = pdn;
 			dnParent( &dn, &pdn );
 
 			/*
 			 * Empty DN ("") defaults to LDAP_SUCCESS
 			 */
-			rs->sr_err = backsql_dn2id( bi, &parent_id, dbh, &pdn );
+			realpdn = pdn;
+			if ( backsql_api_dn2odbc( op, rs, &realpdn ) ) {
+				Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
+					"backsql_api_dn2odbc failed\n", 
+					0, 0, 0 );
+				rs->sr_err = LDAP_OTHER;
+				rs->sr_text = "SQL-backend error";
+				goto done;
+			}
+
+			rs->sr_err = backsql_dn2id( bi, NULL, dbh, &realpdn );
 			switch ( rs->sr_err ) {
 			case LDAP_NO_SUCH_OBJECT:
 				if ( pdn.bv_len > 0 ) {
@@ -908,15 +971,27 @@ backsql_add( Operation *op, SlapReply *rs )
 			BACKSQL_MAX_DN_LEN );
 	SQLBindParameter( sth, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
 			0, 0, &oc->bom_id, 0, 0 );
+#ifdef BACKSQL_ARBITRARY_KEY
+	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+			0, 0, parent_id.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &parent_id.id, 0, 0 );
+			0, 0, &parent_id.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 	SQLBindParameter( sth, 4, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
 			0, 0, &new_keyval, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "   backsql_add(): executing \"%s\" for dn \"%s\"\n",
 			bi->insentry_query, op->oq_add.rs_e->e_name.bv_val, 0 );
-	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, parent_id=%ld, "
-			"keyval=%ld\n", oc->bom_id, parent_id.id, new_keyval );
+#ifdef BACKSQL_ARBITRARY_KEY
+	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
+			"parent_id=%s, keyval=%ld\n",
+			oc->bom_id, parent_id.eid_id.bv_val, new_keyval );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	Debug( LDAP_DEBUG_TRACE, "                  for oc_map_id=%ld, "
+			"parent_id=%ld, keyval=%ld\n",
+			oc->bom_id, parent_id.eid_id, new_keyval );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 #ifndef BACKSQL_REALLOC_STMT
 	rc = SQLExecDirect( sth, bi->insentry_query, SQL_NTS );
 #else /* BACKSQL_REALLOC_STMT */
@@ -957,6 +1032,16 @@ backsql_add( Operation *op, SlapReply *rs )
 
 done:;
 	send_ldap_result( op, rs );
+
+	if ( realdn.bv_val != op->oq_add.rs_e->e_name.bv_val ) {
+		ch_free( realdn.bv_val );
+	}
+	if ( realpdn.bv_val != pdn.bv_val ) {
+		ch_free( realpdn.bv_val );
+	}
+	if ( parent_id.eid_dn.bv_val != NULL ) {
+		backsql_free_entryID( &parent_id, 0 );
+	}
 
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_add(): %d%s%s\n",
 			rs->sr_err,

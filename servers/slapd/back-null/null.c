@@ -156,8 +156,8 @@ null_back_initialize(
 	return 0;
 }
 
-#ifdef SLAPD_NULL_DYNAMIC
-int back_null_LTX_init_module(
+#if SLAPD_NULL == SLAPD_MOD_DYNAMIC
+int init_module(
 	int argc,
 	char *argv[] )
 {
@@ -170,4 +170,4 @@ int back_null_LTX_init_module(
     backend_add(&bi);
     return 0;
 }
-#endif /* SLAPD_NULL_DYNAMIC */
+#endif /* SLAPD_NULL */

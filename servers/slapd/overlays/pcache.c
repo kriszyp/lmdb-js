@@ -205,7 +205,7 @@ static int base_scope_compare(
 	int scope_stored,
 	int scope_incoming	)
 {
-	struct berval pdn_incoming = { 0, NULL };
+	struct berval pdn_incoming = BER_BVNULL;
 
 	if (scope_stored < scope_incoming)
 		return 0;
@@ -869,8 +869,8 @@ remove_query_data (
 	op->o_req_ndn = op->o_bd->be_nsuffix[0];
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
 	op->ors_deref = LDAP_DEREF_NEVER;
-	op->ors_slimit = 0;
-	op->ors_tlimit = 0;
+	op->ors_slimit = -1;
+	op->ors_tlimit = -1;
 	op->ors_filter = &filter;
 	op->ors_filterstr.bv_val = filter_str;
 	op->ors_filterstr.bv_len = strlen(filter_str);
@@ -910,7 +910,7 @@ remove_query_data (
 			mod.sml_op = LDAP_MOD_DELETE;
 			mod.sml_desc = ad_queryid;
 			mod.sml_type = ad_queryid->ad_cname;
-			mod.sml_bvalues = vals;
+			mod.sml_values = vals;
 			mod.sml_next = NULL;
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,

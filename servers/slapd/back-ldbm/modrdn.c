@@ -42,8 +42,8 @@ ldbm_back_modrdn(
 	AttributeDescription *entry = slap_schema.si_ad_entry;
 	struct ldbminfo	*li = (struct ldbminfo *) op->o_bd->be_private;
 	struct berval	p_dn, p_ndn;
-	struct berval	new_dn = { 0, NULL}, new_ndn = { 0, NULL };
-	struct berval	old_ndn = { 0, NULL };
+	struct berval	new_dn = BER_BVNULL, new_ndn = BER_BVNULL;
+	struct berval	old_ndn = BER_BVNULL;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
 	/* LDAP v2 supporting correct attribute handling. */
@@ -248,7 +248,8 @@ ldbm_back_modrdn(
 		/* no parent, must be root to modify rdn */
 		isroot = be_isroot( op );
 		if ( ! isroot ) {
-			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op ) ) {
+			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
+				|| be_shadow_update( op ) ) {
 				int	can_access;
 				p = (Entry *)&slap_entry_root;
 				
@@ -422,7 +423,8 @@ ldbm_back_modrdn(
 			}
 
 			if ( ! isroot ) {
-				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op ) ) {
+				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
+					|| be_shadow_update( op ) ) {
 					int	can_access;
 					np = (Entry *)&slap_entry_root;
 				

@@ -341,23 +341,23 @@ limits_parse(
 	} else if ( strcasecmp( pattern, "users" ) == 0 ) {
 		flags = SLAP_LIMITS_USERS;
 		
-	} else if ( strncasecmp( pattern, "dn", sizeof( "dn" ) - 1 ) == 0 ) {
-		pattern += sizeof( "dn" ) - 1;
+	} else if ( strncasecmp( pattern, "dn", STRLENOF( "dn" ) ) == 0 ) {
+		pattern += STRLENOF( "dn" );
 		if ( pattern[0] == '.' ) {
 			pattern++;
-			if ( strncasecmp( pattern, "exact", sizeof( "exact" ) - 1 ) == 0 ) {
+			if ( strncasecmp( pattern, "exact", STRLENOF( "exact" )) == 0 ) {
 				flags = SLAP_LIMITS_EXACT;
-				pattern += sizeof( "exact" ) - 1;
+				pattern += STRLENOF( "exact" );
 
-			} else if ( strncasecmp( pattern, "base", sizeof( "base" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "base", STRLENOF( "base" ) ) == 0 ) {
 				flags = SLAP_LIMITS_BASE;
-				pattern += sizeof( "base" ) - 1;
+				pattern += STRLENOF( "base" );
 
-			} else if ( strncasecmp( pattern, "one", sizeof( "one" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "one", STRLENOF( "one" ) ) == 0 ) {
 				flags = SLAP_LIMITS_ONE;
-				pattern += sizeof( "one" ) - 1;
-				if ( strncasecmp( pattern, "level", sizeof( "level" ) - 1 ) == 0 ) {
-					pattern += sizeof( "level" ) - 1;
+				pattern += STRLENOF( "one" );
+				if ( strncasecmp( pattern, "level", STRLENOF( "level" ) ) == 0 ) {
+					pattern += STRLENOF( "level" );
 
 				} else {
 #ifdef NEW_LOGGING
@@ -373,11 +373,11 @@ limits_parse(
 #endif
 				}
 
-			} else if ( strncasecmp( pattern, "sub", sizeof( "sub" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "sub", STRLENOF( "sub" ) ) == 0 ) {
 				flags = SLAP_LIMITS_SUBTREE;
-				pattern += sizeof( "sub" ) - 1;
-				if ( strncasecmp( pattern, "tree", sizeof( "tree" ) - 1 ) == 0 ) {
-					pattern += sizeof( "tree" ) - 1;
+				pattern += STRLENOF( "sub" );
+				if ( strncasecmp( pattern, "tree", STRLENOF( "tree" ) ) == 0 ) {
+					pattern += STRLENOF( "tree" );
 
 				} else {
 #ifdef NEW_LOGGING
@@ -393,19 +393,19 @@ limits_parse(
 #endif
 				}
 
-			} else if ( strncasecmp( pattern, "children", sizeof( "children" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "children", STRLENOF( "children" ) ) == 0 ) {
 				flags = SLAP_LIMITS_CHILDREN;
-				pattern += sizeof( "children" ) - 1;
+				pattern += STRLENOF( "children" );
 
-			} else if ( strncasecmp( pattern, "regex", sizeof( "regex" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "regex", STRLENOF( "regex" ) ) == 0 ) {
 				flags = SLAP_LIMITS_REGEX;
-				pattern += sizeof( "regex" ) - 1;
+				pattern += STRLENOF( "regex" );
 
 			/* 
 			 * this could be deprecated in favour
 			 * of the pattern = "anonymous" form
 			 */
-			} else if ( strncasecmp( pattern, "anonymous", sizeof( "anonymous" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "anonymous", STRLENOF( "anonymous" ) ) == 0 ) {
 				flags = SLAP_LIMITS_ANONYMOUS;
 				pattern = NULL;
 			}
@@ -456,8 +456,8 @@ limits_parse(
 			}
 		}
 
-	} else if (strncasecmp( pattern, "group", sizeof( "group" ) - 1 ) == 0 ) {
-		pattern += sizeof( "group" ) - 1;
+	} else if (strncasecmp( pattern, "group", STRLENOF( "group" ) ) == 0 ) {
+		pattern += STRLENOF( "group" );
 
 		if ( pattern[0] == '/' ) {
 			struct berval	oc, ad;
@@ -571,7 +571,22 @@ no_ad:;
 			  || limit.lms_s_soft == -1 ) ) {
 		limit.lms_s_hard = limit.lms_s_soft;
 	}
-	
+
+	/*
+	 * defaults ...
+	 */
+	if ( limit.lms_t_hard == 0 ) {
+		limit.lms_t_hard = limit.lms_t_soft;
+	}
+
+	if ( limit.lms_s_hard == 0 ) {
+		limit.lms_s_hard = limit.lms_s_soft;
+	}
+
+	if ( limit.lms_s_pr_total == 0 ) {
+		limit.lms_s_pr_total = limit.lms_s_hard;
+	}
+
 	rc = limits_add( be, flags, pattern, group_oc, group_ad, &limit );
 	if ( rc ) {
 
@@ -600,47 +615,64 @@ limits_parse_one(
 	assert( arg );
 	assert( limit );
 
-	if ( strncasecmp( arg, "time", sizeof( "time" ) - 1 ) == 0 ) {
-		arg += 4;
+	if ( strncasecmp( arg, "time", STRLENOF( "time" ) ) == 0 ) {
+		arg += STRLENOF( "time" );
 
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", sizeof( "soft" ) - 1 ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			if ( strncasecmp( arg, "soft=", STRLENOF( "soft=" ) ) == 0 ) {
+				arg += STRLENOF( "soft=" );
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_t_soft = -1;
+
 				} else {
 					char	*next = NULL;
+					int	soft = strtol( arg, &next, 10 );
 
-					limit->lms_t_soft = 
-						strtol( arg, &next, 10 );
-					if ( next == arg || limit->lms_t_soft < -1 ) {
+					if ( next == arg || next[ 0 ] != '\0' ) {
 						return( 1 );
 					}
+
+					if ( soft < -1 ) {
+						return( 1 );
+					}
+
+					if ( soft == -1 ) {
+						/* FIXME: use "none" instead */
+					}
+
+					limit->lms_t_soft = soft;
 				}
 				
-			} else if ( strncasecmp( arg, "hard", sizeof( "hard" ) - 1 ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "hard=", STRLENOF( "hard=" ) ) == 0 ) {
+				arg += STRLENOF( "hard=" );
 				if ( strcasecmp( arg, "soft" ) == 0 ) {
 					limit->lms_t_hard = 0;
+
 				} else if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_t_hard = -1;
+
 				} else {
 					char	*next = NULL;
+					int	hard = strtol( arg, &next, 10 );
 
-					limit->lms_t_hard = 
-						strtol( arg, &next, 10 );
-					if ( next == arg || limit->lms_t_hard < -1 ) {
+					if ( next == arg || next[ 0 ] != '\0' ) {
 						return( 1 );
 					}
+
+					if ( hard < -1 ) {
+						return( 1 );
+					}
+
+					if ( hard == -1 ) {
+						/* FIXME: use "none" instead */
+					}
+
+					if ( hard == 0 ) {
+						/* FIXME: use "soft" instead */
+					}
+
+					limit->lms_t_hard = hard;
 				}
 				
 			} else {
@@ -665,85 +697,155 @@ limits_parse_one(
 			return( 1 );
 		}
 
-	} else if ( strncasecmp( arg, "size", sizeof( "size" ) - 1 ) == 0 ) {
-		arg += 4;
+	} else if ( strncasecmp( arg, "size", STRLENOF( "size" ) ) == 0 ) {
+		arg += STRLENOF( "size" );
 		
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", sizeof( "soft" ) - 1 ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			if ( strncasecmp( arg, "soft=", STRLENOF( "soft=" ) ) == 0 ) {
+				arg += STRLENOF( "soft=" );
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_soft = -1;
 				} else {
 					char	*next = NULL;
+					int	soft = strtol( arg, &next, 10 );
 
-					limit->lms_s_soft = 
-						strtol( arg, &next, 10 );
-					if ( next == arg || limit->lms_s_soft < -1 ) {
+					if ( next == arg || next[ 0 ] != '\0' ) {
 						return( 1 );
 					}
+
+					if ( soft < -1 ) {
+						return( 1 );
+					}
+
+					if ( soft == -1 ) {
+						/* FIXME: use "none" instead */
+					}
+
+					limit->lms_s_soft = soft;
 				}
 				
-			} else if ( strncasecmp( arg, "hard", sizeof( "hard" ) - 1 ) == 0 ) {
-				arg += 4;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "hard=", STRLENOF( "hard=" ) ) == 0 ) {
+				arg += STRLENOF( "hard=" );
 				if ( strcasecmp( arg, "soft" ) == 0 ) {
 					limit->lms_s_hard = 0;
+
 				} else if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_hard = -1;
+
 				} else {
 					char	*next = NULL;
+					int	hard = strtol( arg, &next, 10 );
 
-					limit->lms_s_hard = 
-						strtol( arg, &next, 10 );
-					if ( next == arg || limit->lms_s_hard < -1 ) {
+					if ( next == arg || next[ 0 ] != '\0' ) {
 						return( 1 );
 					}
+
+					if ( hard < -1 ) {
+						return( 1 );
+					}
+
+					if ( hard == -1 ) {
+						/* FIXME: use "none" instead */
+					}
+
+					if ( hard == 0 ) {
+						/* FIXME: use "soft" instead */
+					}
+
+					limit->lms_s_hard = hard;
 				}
 				
-			} else if ( strncasecmp( arg, "unchecked", sizeof( "unchecked" ) - 1 ) == 0 ) {
-				arg += 9;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "unchecked=", STRLENOF( "unchecked=" ) ) == 0 ) {
+				arg += STRLENOF( "unchecked=" );
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_unchecked = -1;
+
+				} else if ( strcasecmp( arg, "disabled" ) == 0 ) {
+					limit->lms_s_unchecked = 0;
+
 				} else {
 					char	*next = NULL;
+					int	unchecked = strtol( arg, &next, 10 );
 
-					limit->lms_s_unchecked = 
-						strtol( arg, &next, 10 );
-					if ( next == arg || limit->lms_s_unchecked < -1 ) {
+					if ( next == arg || next[ 0 ] != '\0' ) {
 						return( 1 );
 					}
+
+					if ( unchecked < -1 ) {
+						return( 1 );
+					}
+
+					if ( unchecked == -1 ) {
+						/*  FIXME: use "none" instead */
+					}
+
+					limit->lms_s_unchecked = unchecked;
 				}
 
-			} else if ( strncasecmp( arg, "pr", sizeof( "pr" ) - 1 ) == 0 ) {
-				arg += sizeof( "pr" ) - 1;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "pr=", STRLENOF( "pr=" ) ) == 0 ) {
+				arg += STRLENOF( "pr=" );
 				if ( strcasecmp( arg, "noEstimate" ) == 0 ) {
 					limit->lms_s_pr_hide = 1;
+
+				} else if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_s_pr = -1;
+
+				} else if ( strcasecmp( arg, "disabled" ) == 0 ) {
+					limit->lms_s_pr_total = -2;
+
 				} else {
 					char	*next = NULL;
+					int	pr = strtol( arg, &next, 10 );
 
-					limit->lms_s_pr = 
-						strtol( arg, &next, 10 );
-					if ( next == arg || limit->lms_s_pr < -1 ) {
+					if ( next == arg || next[ 0 ] != '\0' ) {
 						return( 1 );
 					}
+
+					if ( pr < -1 ) {
+						return( 1 );
+					}
+
+					if ( pr == -1 ) {
+						/* FIXME: use "none" instead */
+					}
+
+					limit->lms_s_pr = pr;
 				}
-				
+
+			} else if ( strncasecmp( arg, "prtotal=", STRLENOF( "prtotal=" ) ) == 0 ) {
+				arg += STRLENOF( "prtotal=" );
+
+				if ( strcasecmp( arg, "none" ) == 0 ) {
+					limit->lms_s_pr_total = -1;
+
+				} else if ( strcasecmp( arg, "hard" ) == 0 ) {
+					limit->lms_s_pr_total = 0;
+
+				} else {
+					char	*next = NULL;
+					int	total;
+
+					total = strtol( arg, &next, 10 );
+					if ( next == arg || next[ 0 ] != '\0' ) {
+						return( 1 );
+					}
+
+					if ( total < -1 ) {
+						return( 1 );
+					}
+
+					if ( total == -1 ) {
+						/* FIXME: use "none" instead */
+					}
+
+					if ( total == 0 ) {
+						/* FIXME: use "pr=disable" instead */
+					}
+
+					limit->lms_s_pr_total = total;
+				}
+
 			} else {
 				return( 1 );
 			}
@@ -819,13 +921,118 @@ limits_check( Operation *op, SlapReply *rs )
 	
 			/* negative hard limit means no limit */
 		}
+
+		/* don't even get to backend if candidate check is disabled */
+		if ( op->ors_limit->lms_s_unchecked == 0 ) {
+			rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+			send_ldap_result( op, rs );
+			rs->sr_err = LDAP_SUCCESS;
+			return -1;
+		}
+
+		/* if paged results is requested */	
+		if ( get_pagedresults( op ) ) {
+			int	slimit = -2;
+
+			/* paged results is not allowed */
+			if ( op->ors_limit->lms_s_pr_total == -2 ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				rs->sr_text = "pagedResults control not allowed";
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;
+				rs->sr_text = NULL;
+				return -1;
 	
-		/* if no limit is required, use soft limit */
-		if ( op->ors_slimit <= 0 ) {
-			if ( get_pagedresults( op ) && op->ors_limit->lms_s_pr != 0 ) {
-				op->ors_slimit = op->ors_limit->lms_s_pr;
 			} else {
-				op->ors_slimit = op->ors_limit->lms_s_soft;
+				/* if no limit is required, use soft limit */
+				int	total;
+				int	slimit2 = -1;
+
+				/* first round of pagedResults: set count to any appropriate limit */
+
+				/* if the limit is set, check that it does not violate any limit */
+				if ( op->ors_slimit > 0 ) {
+					slimit2 = op->ors_slimit;
+					if ( op->ors_limit->lms_s_pr_total > 0 ) {
+						if ( op->ors_slimit > op->ors_limit->lms_s_pr_total ) {
+							slimit2 = -2;
+						}
+
+					} else if ( op->ors_limit->lms_s_hard > 0 ) {
+						if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+							slimit2 = -2;
+						}
+
+					} else if ( op->ors_limit->lms_s_soft > 0 && op->ors_slimit > op->ors_limit->lms_s_soft ) {
+						if ( op->ors_slimit > op->ors_limit->lms_s_soft ) {
+							slimit2 = -2;
+						}
+					}
+
+					if ( slimit2 == -2 ) {
+						rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+						send_ldap_result( op, rs );
+						rs->sr_err = LDAP_SUCCESS;
+						return -1;
+					}
+
+				} else {
+					if ( op->ors_limit->lms_s_pr_total > 0 ) {
+						slimit2 = op->ors_limit->lms_s_pr_total;
+
+					} else if ( op->ors_limit->lms_s_hard > 0 ) {
+						slimit2 = op->ors_limit->lms_s_hard;
+
+					} else if ( op->ors_limit->lms_s_soft > 0 ) {
+						slimit2 = op->ors_limit->lms_s_soft;
+					}
+				}
+
+				total = slimit2 - op->o_pagedresults_state.ps_count;
+
+				if ( total >= 0 && op->ors_limit->lms_s_pr > 0 ) {
+					/* use the smallest limit set by total/per page */
+					if ( total < op->ors_limit->lms_s_pr ) {
+						slimit = total;
+
+					} else {
+						/* use the perpage limit if any 
+						 * NOTE: + 1 because the given value must be legal */
+						slimit = op->ors_limit->lms_s_pr + 1;
+					}
+
+				} else if ( total >= 0 ) {
+					/* use the total limit if any */
+					slimit = total;
+
+				} else if ( op->ors_limit->lms_s_pr != 0 ) {
+					/* use the perpage limit if any 
+					 * NOTE: + 1 because the given value must be legal */
+					slimit = op->ors_limit->lms_s_pr + 1;
+
+				} else {
+					/* use the standard hard/soft limit if any */
+					slimit = op->ors_limit->lms_s_hard;
+				}
+			}
+		
+			/* if got any limit, use it */
+			if ( slimit != -2 ) {
+				if ( op->ors_slimit <= 0 ) {
+					op->ors_slimit = slimit;
+
+				} else if ( op->ors_slimit - op->o_pagedresults_state.ps_count > slimit ) {
+					rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+					send_ldap_result( op, rs );
+					rs->sr_err = LDAP_SUCCESS;
+					return -1;
+				} else {
+					op->ors_slimit = slimit;
+				}
+
+			} else {
+				/* use the standard hard/soft limit if any */
+				op->ors_slimit = op->ors_limit->lms_s_hard;
 			}
 
 		/* if requested limit higher than hard limit, abort */
@@ -845,6 +1052,9 @@ limits_check( Operation *op, SlapReply *rs )
 			}
 		
 			/* negative hard limit means no limit */
+
+		} else if ( op->ors_slimit == 0 ) {
+			op->ors_slimit = op->ors_limit->lms_s_soft;
 		}
 	}
 

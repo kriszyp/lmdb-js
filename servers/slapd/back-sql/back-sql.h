@@ -94,15 +94,49 @@
 #undef BACKSQL_TRACE
 
 /*
+ * define to enable varchars as unique keys in user tables
+ */
+#undef BACKSQL_ARBITRARY_KEY
+
+/*
+ * API
+ */
+typedef struct backsql_api {
+	char			*ba_name;
+	int 			(*ba_dn2odbc)( Operation *op, SlapReply *rs, struct berval *dn );
+	int 			(*ba_odbc2dn)( Operation *op, SlapReply *rs, struct berval *dn );
+	struct backsql_api *ba_next;
+} backsql_api;
+
+/*
  * Entry ID structure
  */
 typedef struct backsql_entryID {
-	unsigned long		id;
-	unsigned long		keyval;
-	unsigned long		oc_id;
-	struct berval		dn;
-	struct backsql_entryID	*next;
+	/* #define BACKSQL_ARBITRARY_KEY to allow a non-numeric key.
+	 * It is required by some special applications that use
+	 * strings as keys for the main table.
+	 * In this case, #define BACKSQL_MAX_KEY_LEN consistently
+	 * with the key size definition */
+#ifdef BACKSQL_ARBITRARY_KEY
+	struct berval		eid_id;
+	struct berval		eid_keyval;
+#define BACKSQL_MAX_KEY_LEN	64
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	/* The original numeric key is maintained as default. */
+	unsigned long		eid_id;
+	unsigned long		eid_keyval;
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	unsigned long		eid_oc_id;
+	struct berval		eid_dn;
+	struct backsql_entryID	*eid_next;
 } backsql_entryID;
+
+#ifdef BACKSQL_ARBITRARY_KEY
+#define BACKSQL_ENTRYID_INIT { BER_BVNULL, BER_BVNULL, 0, BER_BVNULL, NULL }
+#else /* ! BACKSQL_ARBITRARY_KEY */
+#define BACKSQL_ENTRYID_INIT { 0, 0, 0, BER_BVNULL, NULL }
+#endif /* BACKSQL_ARBITRARY_KEY */
 
 /*
  * "structural" objectClass mapping structure
@@ -201,6 +235,7 @@ typedef struct berbuf {
 
 typedef struct backsql_srch_info {
 	Operation		*bsi_op;
+	SlapReply		*bsi_rs;
 
 	int			bsi_flags;
 #define	BSQL_SF_ALL_OPER		0x0001
@@ -208,6 +243,7 @@ typedef struct backsql_srch_info {
 
 	struct berval		*bsi_base_dn;
 	int			bsi_scope;
+#define BACKSQL_SCOPE_BASE_LIKE		( LDAP_SCOPE_BASE | 0x1000 )
 	Filter			*bsi_filter;
 	int			bsi_slimit,
 				bsi_tlimit;
@@ -253,6 +289,7 @@ typedef struct {
 	char		*has_children_query;
 
 	MatchingRule	*bi_caseIgnoreMatch;
+	MatchingRule	*bi_telephoneNumberMatch;
 
 	struct berval	upper_func;
 	struct berval	upper_func_open;
@@ -282,6 +319,8 @@ typedef struct {
 	((si)->bsql_flags & BSQLF_DONTCHECK_LDAPINFO_DN_RU)
 #define BACKSQL_USE_REVERSE_DN(si) \
 	((si)->bsql_flags & BSQLF_USE_REVERSE_DN)
+#define BACKSQL_CANUPPERCASE(si) \
+	((si)->upper_func.bv_val)
 	
 	struct berval	strcast_func;
 	Avlnode		*db_conns;
@@ -290,6 +329,8 @@ typedef struct {
 	ldap_pvt_thread_mutex_t		dbconn_mutex;
 	ldap_pvt_thread_mutex_t		schema_mutex;
  	SQLHENV		db_env;
+
+	backsql_api	*si_api;
 } backsql_info;
 
 #define BACKSQL_SUCCESS( rc ) \

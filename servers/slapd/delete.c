@@ -45,12 +45,12 @@ do_delete(
     SlapReply	*rs
 )
 {
-	struct berval dn = { 0, NULL };
-	struct berval pdn = { 0, NULL };
-	struct berval org_req_dn = { 0, NULL };
-	struct berval org_req_ndn = { 0, NULL };
-	struct berval org_dn = { 0, NULL };
-	struct berval org_ndn = { 0, NULL };
+	struct berval dn = BER_BVNULL;
+	struct berval pdn = BER_BVNULL;
+	struct berval org_req_dn = BER_BVNULL;
+	struct berval org_req_ndn = BER_BVNULL;
+	struct berval org_dn = BER_BVNULL;
+	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 	int manageDSAit;
 
@@ -208,8 +208,6 @@ do_delete(
 		int repl_user = be_isupdate( op );
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#else
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };

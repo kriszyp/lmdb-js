@@ -343,7 +343,7 @@ do_syncrep1(
 			sc = NULL;
 		} else {
 			/* stored cookie */
-			struct berval newcookie = { 0, NULL };
+			struct berval newcookie = BER_BVNULL;
 			ber_dupbv( &cookie_bv, &cookie[0] );
 			ber_bvarray_add( &si->si_syncCookie.octet_str, &cookie_bv );
 			slap_parse_sync_cookie( &si->si_syncCookie );
@@ -434,10 +434,10 @@ do_syncrep2(
 	Entry		*entry = NULL;
 
 	int		syncstate;
-	struct berval	syncUUID = { 0, NULL };
+	struct berval	syncUUID = BER_BVNULL;
 	struct sync_cookie	syncCookie = { NULL, -1, NULL };
 	struct sync_cookie	syncCookie_req = { NULL, -1, NULL };
-	struct berval		cookie = { 0, NULL };
+	struct berval		cookie = BER_BVNULL;
 
 	int	rc, err, i;
 	ber_len_t	len;
@@ -977,7 +977,7 @@ syncrepl_message_to_entry(
 		mod->sml_next = NULL;
 		mod->sml_desc = NULL;
 		mod->sml_type = tmp.sml_type;
-		mod->sml_bvalues = tmp.sml_bvalues;
+		mod->sml_values = tmp.sml_values;
 		mod->sml_nvalues = NULL;
 
 		*modtail = mod;
@@ -1042,8 +1042,8 @@ syncrepl_entry(
 	Backend *be = op->o_bd;
 	slap_callback	cb = { NULL };
 	struct berval	*syncuuid_bv = NULL;
-	struct berval	syncUUID_strrep = { 0, NULL };
-	struct berval	uuid_bv = { 0, NULL };
+	struct berval	syncUUID_strrep = BER_BVNULL;
+	struct berval	uuid_bv = BER_BVNULL;
 
 	SlapReply	rs = {REP_RESULT};
 	Filter f = {0};
@@ -1052,11 +1052,11 @@ syncrepl_entry(
 	int ret = LDAP_SUCCESS;
 	const char *text;
 
-	struct berval pdn = { 0, NULL };
-	struct berval org_req_dn = { 0, NULL };
-	struct berval org_req_ndn = { 0, NULL };
-	struct berval org_dn = { 0, NULL };
-	struct berval org_ndn = { 0, NULL };
+	struct berval pdn = BER_BVNULL;
+	struct berval org_req_dn = BER_BVNULL;
+	struct berval org_req_ndn = BER_BVNULL;
+	struct berval org_dn = BER_BVNULL;
+	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 
 	if (( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ))
@@ -1197,7 +1197,7 @@ syncrepl_entry(
 					mod->sml_op = LDAP_MOD_REPLACE;
 					mod->sml_desc = slap_schema.si_ad_entryUUID;
 					mod->sml_type = mod->sml_desc->ad_cname;
-					ber_bvarray_add( &mod->sml_bvalues, &uuid_bv );
+					ber_bvarray_add( &mod->sml_values, &uuid_bv );
 					modtail->sml_next = mod;
 					
 					op->o_tag = LDAP_REQ_MODIFY;
@@ -1305,11 +1305,11 @@ syncrepl_del_nonpresent(
 	Modifications **modtail = &modlist;
 	Attribute	*attr;
 
-	struct berval pdn = { 0, NULL };
-	struct berval org_req_dn = { 0, NULL };
-	struct berval org_req_ndn = { 0, NULL };
-	struct berval org_dn = { 0, NULL };
-	struct berval org_ndn = { 0, NULL };
+	struct berval pdn = BER_BVNULL;
+	struct berval org_req_dn = BER_BVNULL;
+	struct berval org_req_ndn = BER_BVNULL;
+	struct berval org_dn = BER_BVNULL;
+	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 
 	op->o_req_dn = si->si_base;
@@ -1360,7 +1360,7 @@ syncrepl_del_nonpresent(
 				mod->sml_op = LDAP_MOD_REPLACE;
 				mod->sml_desc = slap_schema.si_ad_objectClass;
 				mod->sml_type = mod->sml_desc->ad_cname;
-				mod->sml_bvalues = &gcbva[0];
+				mod->sml_values = &gcbva[0];
 				*modtail = mod;
 				modtail = &mod->sml_next;
 
@@ -1368,7 +1368,7 @@ syncrepl_del_nonpresent(
 				mod->sml_op = LDAP_MOD_REPLACE;
 				mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
 				mod->sml_type = mod->sml_desc->ad_cname;
-				mod->sml_bvalues = &gcbva[1];
+				mod->sml_values = &gcbva[1];
 				*modtail = mod;
 				modtail = &mod->sml_next;
 
@@ -1615,7 +1615,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_objectClass;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = ocbva;
+	mod->sml_values = ocbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1628,7 +1628,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_cn;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = cnbva;
+	mod->sml_values = cnbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1638,7 +1638,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_syncreplCookie;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = scbva;
+	mod->sml_values = scbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1646,7 +1646,7 @@ syncrepl_updateCookie(
 	mod->sml_op = LDAP_MOD_REPLACE;
 	mod->sml_desc = slap_schema.si_ad_subtreeSpecification;
 	mod->sml_type = mod->sml_desc->ad_cname;
-	mod->sml_bvalues = ssbva;
+	mod->sml_values = ssbva;
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
@@ -1786,6 +1786,31 @@ done :
 	}
 
 	return;
+}
+
+int
+syncrepl_isupdate( Operation *op )
+{
+	return ( syncrepl_isupdate_dn( op->o_bd, &op->o_ndn ));
+}
+
+int
+syncrepl_isupdate_dn(
+	Backend*		be,
+	struct berval*	ndn
+)
+{
+	syncinfo_t*	si;
+	int			ret = 0;
+
+	if ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
+		LDAP_STAILQ_FOREACH( si, &be->be_syncinfo, si_next ) {
+			if ( ret = dn_match( &si->si_updatedn, ndn )) {
+				return ret;
+			}
+		}
+	}
+	return 0;
 }
 
 static int
@@ -1991,4 +2016,3 @@ avl_ber_bvfree( void *bv )
 	}
 	ch_free ( (char *) bv );
 }
-

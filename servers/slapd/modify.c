@@ -44,7 +44,7 @@ do_modify(
     Operation	*op,
     SlapReply	*rs )
 {
-	struct berval dn = { 0, NULL };
+	struct berval dn = BER_BVNULL;
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -101,9 +101,7 @@ do_modify(
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn.bv_val, 0, 0 );
 #endif
 
-
 	/* collect modifications & save for later */
-
 	for ( tag = ber_first_element( op->o_ber, &len, &last );
 	    tag != LBER_DEFAULT;
 	    tag = ber_next_element( op->o_ber, &len, last ) )
@@ -114,10 +112,10 @@ do_modify(
 		tmp.sml_nvalues = NULL;
 
 		if ( ber_scanf( op->o_ber, "{i{m[W]}}", &mop,
-		    &tmp.sml_type, &tmp.sml_values )
-		    == LBER_ERROR )
+		    &tmp.sml_type, &tmp.sml_values ) == LBER_ERROR )
 		{
-			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR, "decoding modlist error" );
+			send_ldap_discon( op, rs, LDAP_PROTOCOL_ERROR,
+				"decoding modlist error" );
 			rs->sr_err = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
@@ -468,8 +466,6 @@ do_modify(
 		 */
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#else
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;
@@ -541,19 +537,20 @@ do_modify(
 #if defined( LDAP_SLAPI )
 	} /* modlist != NULL */
 
-	if ( pb != NULL && slapi_int_call_plugins( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
+	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
+		SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 )
+	{
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
-				"failed\n", 0, 0, 0 );
+		LDAP_LOG( OPERATION, INFO,
+			"do_modify: modify postoperation plugins failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modify: modify postoperation plugins "
-				"failed.\n", 0, 0, 0);
+		Debug(LDAP_DEBUG_TRACE,
+			"do_modify: modify postoperation plugins failed.\n", 0, 0, 0);
 #endif
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
-
 	slap_graduate_commit_csn( op );
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
@@ -768,6 +765,64 @@ int slap_mods_check(
 				ml->sml_nvalues[nvals].bv_val = NULL;
 				ml->sml_nvalues[nvals].bv_len = 0;
 			}
+
+			if( nvals ) {
+				/* check for duplicates */
+				int		i, j;
+				MatchingRule *mr = ad->ad_type->sat_equality;
+
+				/* check if the values we're adding already exist */
+				if( mr == NULL || !mr->smr_match ) {
+					for ( i = 1; ml->sml_values[i].bv_val != NULL; i++ ) {
+						/* test asserted values against themselves */
+						for( j = 0; j < i; j++ ) {
+							if ( bvmatch( &ml->sml_values[i],
+								&ml->sml_values[j] ) )
+							{
+								/* value exists already */
+								snprintf( textbuf, textlen,
+									"%s: value #%d provided more than once",
+									ml->sml_desc->ad_cname.bv_val, j );
+								*text = textbuf;
+								return LDAP_TYPE_OR_VALUE_EXISTS;
+							}
+						}
+					}
+
+				} else {
+					int rc = LDAP_SUCCESS;
+					int match;
+
+					for ( i = 1; ml->sml_values[i].bv_val != NULL; i++ ) {
+						/* test asserted values against themselves */
+						for( j = 0; j < i; j++ ) {
+							rc = value_match( &match, ml->sml_desc, mr,
+								SLAP_MR_EQUALITY
+									| SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX
+									| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
+									| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
+								ml->sml_nvalues
+									? &ml->sml_nvalues[i]
+									: &ml->sml_values[i],
+								ml->sml_nvalues
+									? &ml->sml_nvalues[j]
+									: &ml->sml_values[j],
+								text );
+							if ( rc == LDAP_SUCCESS && match == 0 ) {
+								/* value exists already */
+								snprintf( textbuf, textlen,
+									"%s: value #%d provided more than once",
+									ml->sml_desc->ad_cname.bv_val, j );
+								*text = textbuf;
+								return LDAP_TYPE_OR_VALUE_EXISTS;
+							}
+						}
+					}
+
+					if ( rc != LDAP_SUCCESS ) return rc;
+				}
+			}
+
 		}
 	}
 

@@ -37,7 +37,9 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 	SQLHDBC			dbh;
 	SQLHSTMT		sth;
 	RETCODE			rc;
-	backsql_entryID		e_id, pe_id, new_pid;
+	backsql_entryID		e_id = BACKSQL_ENTRYID_INIT,
+				pe_id = BACKSQL_ENTRYID_INIT,
+				new_pid = BACKSQL_ENTRYID_INIT;
 	backsql_oc_map_rec	*oc = NULL;
 	struct berval		p_dn, p_ndn,
 				*new_pdn = NULL, *new_npdn = NULL,
@@ -73,8 +75,13 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
+#ifdef BACKSQL_ARBITRARY_KEY
+	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): entry id=%s\n",
+		e_id.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): entry id=%ld\n",
-		e_id.id, 0, 0 );
+		e_id.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
 	if ( backsql_has_children( bi, dbh, &op->o_req_ndn ) == LDAP_COMPARE_TRUE ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -192,8 +199,15 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto modrdn_return;
 	}
 
+#ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
-		"old parent entry id is %ld\n", pe_id.id, 0, 0 );
+		"old parent entry id is %s\n", pe_id.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
+		"old parent entry id is %ld\n", pe_id.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
+
+	backsql_free_entryID( &pe_id, 0 );
 
 	rs->sr_err = backsql_dn2id( bi, &new_pid, dbh, new_npdn );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -204,16 +218,26 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		send_ldap_result( op, rs );
 		goto modrdn_return;
 	}
-	
+
+#ifdef BACKSQL_ARBITRARY_KEY
 	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
-		"new parent entry id=%ld\n", new_pid.id, 0, 0 );
+		"new parent entry id=%s\n", new_pid.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
+	Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
+		"new parent entry id=%ld\n", new_pid.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 
  
 	Debug(	LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
 		"executing delentry_query\n", 0, 0, 0 );
 	SQLAllocStmt( dbh, &sth );
+#ifdef BACKSQL_ARBITRARY_KEY
+	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+			0, 0, e_id.eid_id.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 	SQLBindParameter( sth, 1, SQL_PARAM_INPUT, SQL_C_ULONG, SQL_INTEGER,
-			0, 0, &e_id.id, 0, 0 );
+			0, 0, &e_id.eid_id, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 	rc = SQLExecDirect( sth, bi->delentry_query, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -232,11 +256,18 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		"executing insentry_query\n", 0, 0, 0 );
 	backsql_BindParamStr( sth, 1, new_dn.bv_val, BACKSQL_MAX_DN_LEN );
 	SQLBindParameter( sth, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &e_id.oc_id, 0, 0 );
+			0, 0, &e_id.eid_oc_id, 0, 0 );
+#ifdef BACKSQL_ARBITRARY_KEY
+	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+			0, 0, new_pid.eid_id.bv_val, 0, 0 );
+	SQLBindParameter( sth, 4, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+			0, 0, e_id.eid_keyval.bv_val, 0, 0 );
+#else /* ! BACKSQL_ARBITRARY_KEY */
 	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &new_pid.id, 0, 0 );
+			0, 0, &new_pid.eid_id, 0, 0 );
 	SQLBindParameter( sth, 4, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &e_id.keyval, 0, 0 );
+			0, 0, &e_id.eid_keyval, 0, 0 );
+#endif /* ! BACKSQL_ARBITRARY_KEY */
 	rc = SQLExecDirect( sth, bi->insentry_query, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "   backsql_modrdn(): "
@@ -316,7 +347,7 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto modrdn_return;
 	}
 
-	oc = backsql_id2oc( bi, e_id.oc_id );
+	oc = backsql_id2oc( bi, e_id.eid_oc_id );
 	rs->sr_err = backsql_modify_internal( op, rs, dbh, oc, &e_id, mod );
 
 	if ( rs->sr_err == LDAP_SUCCESS ) {
@@ -346,12 +377,16 @@ modrdn_return:
 	if ( old_rdn != NULL ) {
 		ldap_rdnfree( old_rdn );
 	}
-	if( mod != NULL ) {
+	if ( mod != NULL ) {
 		Modifications *tmp;
 		for (; mod; mod=tmp ) {
 			tmp = mod->sml_next;
 			free( mod );
 		}
+	}
+
+	if ( new_pid.eid_dn.bv_val ) {
+		backsql_free_entryID( &pe_id, 0 );
 	}
 
 	send_ldap_result( op, rs );

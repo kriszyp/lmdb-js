@@ -147,7 +147,7 @@ struct monitorsubsys monitor_subsys[] = {
 	}, { -1, NULL }
 };
 
-#ifdef SLAPD_MONITOR_DYNAMIC
+#if SLAPD_MONITOR == SLAPD_MOD_DYNAMIC
 
 int
 init_module( int argc, char *argv[] )
@@ -161,7 +161,7 @@ init_module( int argc, char *argv[] )
 	return 0;
 }
 
-#endif /* SLAPD_MONITOR_DYNAMIC */
+#endif /* SLAPD_MONITOR */
 
 int
 monitor_back_initialize(
@@ -251,7 +251,7 @@ monitor_back_db_init(
 	be_monitor = be;
 
 	/* indicate system schema supported */
-	SLAP_DBFLAGS(be) |= SLAP_BFLAG_MONITOR;
+	SLAP_BFLAGS(be) |= SLAP_BFLAG_MONITOR;
 
 	dn.bv_val = SLAPD_MONITOR_DN;
 	dn.bv_len = sizeof( SLAPD_MONITOR_DN ) - 1;

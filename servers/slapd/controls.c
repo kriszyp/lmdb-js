@@ -714,7 +714,7 @@ static int parseProxyAuthz (
 	LDAPControl *ctrl )
 {
 	int		rc;
-	struct berval	dn = { 0, NULL };
+	struct berval	dn = BER_BVNULL;
 
 	if ( op->o_proxy_authz != SLAP_NO_CONTROL ) {
 		rs->sr_text = "proxy authorization control specified multiple times";
@@ -840,7 +840,7 @@ static int parsePagedResults (
 	ber_tag_t tag;
 	ber_int_t size;
 	BerElement *ber;
-	struct berval cookie = { 0, NULL };
+	struct berval cookie = BER_BVNULL;
 
 	if ( op->o_pagedresults != SLAP_NO_CONTROL ) {
 		rs->sr_text = "paged results control specified multiple times";
@@ -889,19 +889,21 @@ static int parsePagedResults (
 
 		AC_MEMCPY( &reqcookie, cookie.bv_val, sizeof( reqcookie ));
 
-		if( reqcookie > op->o_pagedresults_state.ps_cookie ) {
+		if ( reqcookie > op->o_pagedresults_state.ps_cookie ) {
 			/* bad cookie */
 			rs->sr_text = "paged results cookie is invalid";
 			return LDAP_PROTOCOL_ERROR;
 
-		} else if( reqcookie < op->o_pagedresults_state.ps_cookie ) {
+		} else if ( reqcookie < op->o_pagedresults_state.ps_cookie ) {
 			rs->sr_text = "paged results cookie is invalid or old";
 			return LDAP_UNWILLING_TO_PERFORM;
 		}
+
 	} else {
 		/* Initial request.  Initialize state. */
 		op->o_pagedresults_state.ps_cookie = 0;
 		op->o_pagedresults_state.ps_id = NOID;
+		op->o_pagedresults_state.ps_count = 0;
 	}
 
 	op->o_pagedresults_size = size;
@@ -919,7 +921,7 @@ static int parseAssert (
 	LDAPControl *ctrl )
 {
 	BerElement	*ber;
-	struct berval	fstr = { 0, NULL };
+	struct berval	fstr = BER_BVNULL;
 	const char *err_msg = "";
 
 	if ( op->o_assert != SLAP_NO_CONTROL ) {
@@ -1094,7 +1096,7 @@ int parseValuesReturnFilter (
 	LDAPControl *ctrl )
 {
 	BerElement	*ber;
-	struct berval	fstr = { 0, NULL };
+	struct berval	fstr = BER_BVNULL;
 	const char *err_msg = "";
 
 	if ( op->o_valuesreturnfilter != SLAP_NO_CONTROL ) {

@@ -1034,7 +1034,6 @@ typedef struct slap_mod {
 	AttributeDescription *sm_desc;
 	struct berval sm_type;
 	BerVarray sm_values;
-#define sm_bvalues sm_values
 	BerVarray sm_nvalues;
 } Modification;
 
@@ -1043,7 +1042,6 @@ typedef struct slap_mod_list {
 #define sml_op		sml_mod.sm_op
 #define sml_desc	sml_mod.sm_desc
 #define	sml_type	sml_mod.sm_type
-#define sml_bvalues	sml_mod.sm_values
 #define sml_values	sml_mod.sm_values
 #define sml_nvalues	sml_mod.sm_nvalues
 	struct slap_mod_list *sml_next;
@@ -1055,7 +1053,6 @@ typedef struct slap_ldap_modlist {
 #define ml_op		ml_mod.mod_op
 #define ml_type		ml_mod.mod_type
 #define ml_values	ml_mod.mod_values
-#define ml_bvalues	ml_mod.mod_values
 } LDAPModList;
 
 /*
@@ -1287,6 +1284,7 @@ struct slap_limits_set {
 	int	lms_s_unchecked;
 	int	lms_s_pr;
 	int	lms_s_pr_hide;
+	int	lms_s_pr_total;
 };
 
 struct slap_limits {
@@ -1452,9 +1450,11 @@ struct slap_backend_db {
 #define SLAP_DBFLAG_NOLASTMOD		0x0001U
 #define SLAP_DBFLAG_NO_SCHEMA_CHECK	0x0002U
 #define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
-#define	SLAP_DBFLAG_GLUE_SUBORDINATE 0x0020U	/* child of a glue hierarchy */
+#define	SLAP_DBFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
 #define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_DBFLAG_SHADOW			0x8000U /* a shadow */
+#define SLAP_DBFLAG_SHADOW		0x8000U /* a shadow */
+#define SLAP_DBFLAG_SYNC_SHADOW		0x1000U /* a sync shadow */
+#define SLAP_DBFLAG_SLURP_SHADOW	0x2000U /* a slurp shadow */
 	slap_mask_t	be_flags;
 #define SLAP_DBFLAGS(be)			((be)->be_flags)
 #define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
@@ -1468,6 +1468,8 @@ struct slap_backend_db {
 #define	SLAP_GLUE_LINKED(be)		\
 	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_LINKED)
 #define SLAP_SHADOW(be)				(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SHADOW)
+#define SLAP_SYNC_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SYNC_SHADOW)
+#define SLAP_SLURP_SHADOW(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SLURP_SHADOW)
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U
@@ -1892,6 +1894,7 @@ typedef struct slap_paged_state {
 	Backend *ps_be;
 	PagedResultsCookie ps_cookie;
 	ID ps_id;
+	int ps_count;
 } PagedResultsState;
 
 #define LDAP_PSEARCH_BY_ADD			0x01

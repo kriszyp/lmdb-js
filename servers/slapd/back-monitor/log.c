@@ -41,21 +41,21 @@ static struct {
 	struct berval s;
 	struct berval n;
 } int_2_level[] = {
-	{ LDAP_DEBUG_TRACE,	BER_BVC("Trace"),	{ 0, NULL } },
-	{ LDAP_DEBUG_PACKETS,	BER_BVC("Packets"),	{ 0, NULL } },
-	{ LDAP_DEBUG_ARGS,	BER_BVC("Args"),	{ 0, NULL } },
-	{ LDAP_DEBUG_CONNS,	BER_BVC("Conns"),	{ 0, NULL } },
-	{ LDAP_DEBUG_BER,	BER_BVC("BER"),	{ 0, NULL } },
-	{ LDAP_DEBUG_FILTER,	BER_BVC("Filter"),	{ 0, NULL } },
-	{ LDAP_DEBUG_CONFIG,	BER_BVC("Config"),	{ 0, NULL } },	/* useless */
-	{ LDAP_DEBUG_ACL,	BER_BVC("ACL"),	{ 0, NULL } },
-	{ LDAP_DEBUG_STATS,	BER_BVC("Stats"),	{ 0, NULL } },
-	{ LDAP_DEBUG_STATS2,	BER_BVC("Stats2"),	{ 0, NULL } },
-	{ LDAP_DEBUG_SHELL,	BER_BVC("Shell"),	{ 0, NULL } },
-	{ LDAP_DEBUG_PARSE,	BER_BVC("Parse"),	{ 0, NULL } },
-	{ LDAP_DEBUG_CACHE,	BER_BVC("Cache"),	{ 0, NULL } },
-	{ LDAP_DEBUG_INDEX,	BER_BVC("Index"),	{ 0, NULL } },
-	{ 0,			{ 0, NULL },	{ 0, NULL } }
+	{ LDAP_DEBUG_TRACE,	BER_BVC("Trace"),	BER_BVNULL },
+	{ LDAP_DEBUG_PACKETS,	BER_BVC("Packets"),	BER_BVNULL },
+	{ LDAP_DEBUG_ARGS,	BER_BVC("Args"),	BER_BVNULL },
+	{ LDAP_DEBUG_CONNS,	BER_BVC("Conns"),	BER_BVNULL },
+	{ LDAP_DEBUG_BER,	BER_BVC("BER"),	BER_BVNULL },
+	{ LDAP_DEBUG_FILTER,	BER_BVC("Filter"),	BER_BVNULL },
+	{ LDAP_DEBUG_CONFIG,	BER_BVC("Config"),	BER_BVNULL },	/* useless */
+	{ LDAP_DEBUG_ACL,	BER_BVC("ACL"),	BER_BVNULL },
+	{ LDAP_DEBUG_STATS,	BER_BVC("Stats"),	BER_BVNULL },
+	{ LDAP_DEBUG_STATS2,	BER_BVC("Stats2"),	BER_BVNULL },
+	{ LDAP_DEBUG_SHELL,	BER_BVC("Shell"),	BER_BVNULL },
+	{ LDAP_DEBUG_PARSE,	BER_BVC("Parse"),	BER_BVNULL },
+	{ LDAP_DEBUG_CACHE,	BER_BVC("Cache"),	BER_BVNULL },
+	{ LDAP_DEBUG_INDEX,	BER_BVC("Index"),	BER_BVNULL },
+	{ 0,			BER_BVNULL,	BER_BVNULL }
 };
 
 static int loglevel2int( struct berval *l );
@@ -79,7 +79,7 @@ monitor_subsys_log_init(
 	struct berval		desc[] = {
 		BER_BVC("This entry allows to set the log level runtime."),
 		BER_BVC("Set the attribute 'managedInfo' to the desired log levels."),
-		{ 0, NULL }
+		BER_BVNULL
 	};
 
 	ldap_pvt_thread_mutex_init( &monitor_log_mutex );
@@ -160,8 +160,7 @@ monitor_subsys_log_modify(
 		 */
 		if ( is_at_operational( mod->sm_desc->ad_type ) ) {
 			( void ) attr_delete( &e->e_attrs, mod->sm_desc );
-			rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues,
-					mod->sm_nvalues );
+			rc = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
 			if ( rc != 0 ) {
 				rc = LDAP_OTHER;
 				break;
@@ -283,10 +282,10 @@ check_constraints( Modification *mod, int *newlevel )
 {
 	int		i;
 
-	for ( i = 0; mod->sm_bvalues && mod->sm_bvalues[i].bv_val != NULL; i++ ) {
+	for ( i = 0; mod->sm_values && mod->sm_values[i].bv_val != NULL; i++ ) {
 		int		l;
 		
-		l = loglevel2int( &mod->sm_bvalues[i] );
+		l = loglevel2int( &mod->sm_values[i] );
 		if ( !l ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
@@ -296,9 +295,9 @@ check_constraints( Modification *mod, int *newlevel )
 		}
 
 		assert( int_2_level[ l ].s.bv_len
-				== mod->sm_bvalues[i].bv_len );
+				== mod->sm_values[i].bv_len );
 		
-		AC_MEMCPY( mod->sm_bvalues[i].bv_val,
+		AC_MEMCPY( mod->sm_values[i].bv_val,
 				int_2_level[ l ].s.bv_val,
 				int_2_level[ l ].s.bv_len );
 
@@ -332,7 +331,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 
-		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
+		for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
 			int rc;
 			int j;
 			const char *text = NULL;
@@ -340,7 +339,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 
 			rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr, SLAP_MR_EQUALITY,
-				&mod->sm_bvalues[i], &asserted, &text, NULL );
+				&mod->sm_values[i], &asserted, &text, NULL );
 
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
@@ -349,8 +348,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 				int match;
 				int rc = value_match( &match, mod->sm_desc, mr,
-					0,
-					&a->a_vals[j], &asserted, &text );
+					0, &a->a_vals[j], &asserted, &text );
 
 				if ( rc == LDAP_SUCCESS && match == 0 ) {
 					free( asserted.bv_val );
@@ -363,7 +361,7 @@ add_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* no - add them */
-	rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues, mod->sm_nvalues );
+	rc = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
 	if ( rc != LDAP_SUCCESS ) {
 		/* this should return result of attr_mergeit */
 		return rc;
@@ -387,7 +385,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 	*newlevel &= ~nl;
 
 	/* delete the entire attribute */
-	if ( mod->sm_bvalues == NULL ) {
+	if ( mod->sm_values == NULL ) {
 		int rc = attr_delete( &e->e_attrs, mod->sm_desc );
 
 		if ( rc ) {
@@ -411,7 +409,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 	}
 
 	/* find each value to delete */
-	for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
+	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
 		int rc;
 		const char *text = NULL;
 
@@ -419,7 +417,7 @@ delete_values( Entry *e, Modification *mod, int *newlevel )
 
 		rc = asserted_value_validate_normalize(
 				mod->sm_desc, mr, SLAP_MR_EQUALITY,
-				&mod->sm_bvalues[i], &asserted, &text, NULL );
+				&mod->sm_values[i], &asserted, &text, NULL );
 
 		if( rc != LDAP_SUCCESS ) return rc;
 
@@ -485,9 +483,8 @@ replace_values( Entry *e, Modification *mod, int *newlevel )
 		return rc;
 	}
 
-	if ( mod->sm_bvalues != NULL ) {
-		rc = attr_merge( e, mod->sm_desc, mod->sm_bvalues,
-		       mod->sm_nvalues );
+	if ( mod->sm_values != NULL ) {
+		rc = attr_merge( e, mod->sm_desc, mod->sm_values, mod->sm_nvalues );
 		if ( rc != LDAP_SUCCESS ) {
 			return rc;
 		}

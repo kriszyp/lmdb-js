@@ -40,7 +40,7 @@ static struct berval
 		BER_BVC( "Search" ),
 		BER_BVC( "Abandon" ),
 		BER_BVC( "Extended" ),
-		{ 0, NULL }
+		BER_BVNULL
 	};
 
 int

@@ -37,7 +37,7 @@
 #include "slap.h"
 #include "shell.h"
 
-#ifdef SLAPD_SHELL_DYNAMIC
+#if SLAPD_SHELL == SLAPD_MOD_DYNAMIC
 
 int init_module(int argc, char *argv[]) {
     BackendInfo bi;
@@ -50,7 +50,7 @@ int init_module(int argc, char *argv[]) {
     return 0;
 }
 
-#endif /* SLAPD_SHELL_DYNAMIC */
+#endif /* SLAPD_SHELL */
 
 int
 shell_back_initialize(

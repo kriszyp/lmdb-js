@@ -241,18 +241,18 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 	rc = backsql_Prepare( dbh, &oc_sth, si->oc_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-			"error preparing oc_query: '%s'\n", 
+			"error preparing oc_query: \"%s\"\n", 
 			si->oc_query, 0, 0 );
 		backsql_PrintErrors( si->db_env, dbh, oc_sth, rc );
 		return LDAP_OTHER;
 	}
-	Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): at_query '%s'\n", 
+	Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): at_query \"%s\"\n", 
 			si->at_query, 0, 0 );
 
 	rc = backsql_Prepare( dbh, &at_sth, si->at_query, 0 );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-			"error preparing at_query: '%s'\n", 
+			"error preparing at_query: \"%s\"\n", 
 			si->at_query, 0, 0 );
 		backsql_PrintErrors( si->db_env, dbh, at_sth, rc );
 		return LDAP_OTHER;
@@ -287,7 +287,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		oc_map->bom_oc = oc_find( oc_row.cols[ 1 ] );
 		if ( oc_map->bom_oc == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-				"objectClass '%s' is not defined in schema\n", 
+				"objectClass \"%s\" is not defined in schema\n", 
 				oc_row.cols[ 1 ], 0, 0 );
 			return LDAP_OTHER;	/* undefined objectClass ? */
 		}
@@ -328,19 +328,19 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		}
 		oc_id = oc_map->bom_id;
 		Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-			"objectClass '%s': keytbl='%s' keycol='%s'\n",
+			"objectClass \"%s\": keytbl=\"%s\" keycol=\"%s\"\n",
 			BACKSQL_OC_NAME( oc_map ),
 			oc_map->bom_keytbl.bv_val, oc_map->bom_keycol.bv_val );
 		if ( oc_map->bom_create_proc ) {
-			Debug( LDAP_DEBUG_TRACE, "create_proc='%s'\n",
+			Debug( LDAP_DEBUG_TRACE, "create_proc=\"%s\"\n",
 				oc_map->bom_create_proc, 0, 0 );
 		}
 		if ( oc_map->bom_create_keyval ) {
-			Debug( LDAP_DEBUG_TRACE, "create_keyval='%s'\n",
+			Debug( LDAP_DEBUG_TRACE, "create_keyval=\"%s\"\n",
 				oc_map->bom_create_keyval, 0, 0 );
 		}
 		if ( oc_map->bom_delete_proc ) {
-			Debug( LDAP_DEBUG_TRACE, "delete_proc='%s'\n", 
+			Debug( LDAP_DEBUG_TRACE, "delete_proc=\"%s\"\n", 
 				oc_map->bom_delete_proc, 0, 0 );
 		}
 		Debug( LDAP_DEBUG_TRACE, "expect_return: "
@@ -369,19 +369,19 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 
 			Debug( LDAP_DEBUG_TRACE, 
 				"attributeType:\n"
-				"\tname='%s'\n"
-				"\tsel_expr='%s'\n"
-				"\tfrom='%s'\n",
+				"\tname=\"%s\"\n"
+				"\tsel_expr=\"%s\"\n"
+				"\tfrom=\"%s\"\n",
 				at_row.cols[ 0 ], at_row.cols[ 1 ],
 				at_row.cols[ 2 ] );
 			Debug( LDAP_DEBUG_TRACE, 
-				"\tjoin_where='%s'\n"
-				"\tadd_proc='%s'\n"
-				"\tdelete_proc='%s'\n",
+				"\tjoin_where=\"%s\"\n"
+				"\tadd_proc=\"%s\"\n"
+				"\tdelete_proc=\"%s\"\n",
 				at_row.cols[ 3 ], at_row.cols[ 4 ],
 				at_row.cols[ 5 ]);
 			/* TimesTen */
-			Debug( LDAP_DEBUG_TRACE, "\tsel_expr_u='%s'\n",
+			Debug( LDAP_DEBUG_TRACE, "\tsel_expr_u=\"%s\"\n",
 					at_row.cols[ 8 ], 0, 0 );
 			at_map = (backsql_at_map_rec *)ch_calloc( 1,
 					sizeof( backsql_at_map_rec ) );
@@ -389,7 +389,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 					&at_map->bam_ad, &text );
 			if ( rc != LDAP_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-					"attribute '%s' for objectClass '%s' "
+					"attribute \"%s\" for objectClass \"%s\" "
 					"is not defined in schema: %s\n", 
 					at_row.cols[ 0 ],
 					BACKSQL_OC_NAME( oc_map ), text );
@@ -429,7 +429,7 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 					NULL, 0 );
 			backsql_make_attr_query( oc_map, at_map );
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-				"preconstructed query '%s'\n",
+				"preconstructed query \"%s\"\n",
 				at_map->bam_query, 0, 0 );
 			at_map->bam_next = NULL;
 			if ( avl_insert( &oc_map->bom_attrs, at_map, backsql_cmp_attr, backsql_dup_attr ) == BACKSQL_DUPLICATE ) {
@@ -469,7 +469,7 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_oc2oc(): "
-		"searching for objectclass with name='%s'\n",
+		"searching for objectclass with name=\"%s\"\n",
 		objclass, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -478,7 +478,7 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
-			"found name='%s', id=%d\n", 
+			"found name=\"%s\", id=%d\n", 
 			BACKSQL_OC_NAME( res ), res->id, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
@@ -496,7 +496,7 @@ backsql_name2oc( backsql_info *si, struct berval *oc_name )
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>oc_with_name(): "
-		"searching for objectclass with name='%s'\n",
+		"searching for objectclass with name=\"%s\"\n",
 		objclass, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -509,7 +509,7 @@ backsql_name2oc( backsql_info *si, struct berval *oc_name )
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
-			"found name='%s', id=%d\n", 
+			"found name=\"%s\", id=%d\n", 
 			BACKSQL_OC_NAME( res ), res->bom_id, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
@@ -537,7 +537,7 @@ backsql_id2oc( backsql_info *si, unsigned long id )
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
-			"found name='%s', id=%d\n",
+			"found name=\"%s\", id=%d\n",
 			BACKSQL_OC_NAME( res ), res->bom_id, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==oc_with_name(): "
@@ -555,7 +555,7 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
  
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_ad2at(): "
-		"searching for attribute '%s' for objectclass '%s'\n",
+		"searching for attribute \"%s\" for objectclass \"%s\"\n",
 		attr, BACKSQL_OC_NAME( objclass ), 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -566,7 +566,7 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 #ifdef BACKSQL_TRACE
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_ad2at(): "
-			"found name='%s', sel_expr='%s'\n",
+			"found name=\"%s\", sel_expr=\"%s\"\n",
 			res->bam_ad->ad_cname.bv_val,
 			res->bam_sel_expr.bv_val, 0 );
 	} else {
@@ -664,7 +664,7 @@ backsql_free_attr( void *v_at )
 {
 	backsql_at_map_rec	*at = v_at;
 	
-	Debug( LDAP_DEBUG_TRACE, "==>free_attr(): '%s'\n", 
+	Debug( LDAP_DEBUG_TRACE, "==>free_attr(): \"%s\"\n", 
 			at->bam_ad->ad_cname.bv_val, 0, 0 );
 	ch_free( at->bam_sel_expr.bv_val );
 	if ( at->bam_from_tbls.bv_val != NULL ) {
@@ -702,7 +702,7 @@ backsql_free_oc( void *v_oc )
 {
 	backsql_oc_map_rec	*oc = v_oc;
 	
-	Debug( LDAP_DEBUG_TRACE, "==>free_oc(): '%s'\n", 
+	Debug( LDAP_DEBUG_TRACE, "==>free_oc(): \"%s\"\n", 
 			BACKSQL_OC_NAME( oc ), 0, 0 );
 	avl_free( oc->bom_attrs, backsql_free_attr );
 	ch_free( oc->bom_keytbl.bv_val );

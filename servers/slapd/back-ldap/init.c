@@ -31,7 +31,7 @@
 #include "slap.h"
 #include "back-ldap.h"
 
-#ifdef SLAPD_LDAP_DYNAMIC
+#if SLAPD_LDAP == SLAPD_MOD_DYNAMIC
 
 int init_module(int argc, char *argv[]) {
     BackendInfo bi;
@@ -44,7 +44,7 @@ int init_module(int argc, char *argv[]) {
     return 0;
 }
 
-#endif /* SLAPD_LDAP_DYNAMIC */
+#endif /* SLAPD_LDAP */
 
 int
 ldap_back_initialize(

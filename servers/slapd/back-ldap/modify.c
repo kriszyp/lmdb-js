@@ -43,7 +43,7 @@ ldap_back_modify(
 	Modifications *ml;
 	int i, j, rc;
 	struct berval mapped;
-	struct berval mdn = { 0, NULL };
+	struct berval mdn = BER_BVNULL;
 	ber_int_t msgid;
 	dncookie dc;
 	int isupdate;
@@ -91,7 +91,7 @@ ldap_back_modify(
 	dc.ctx = "modifyAttrDN";
 #endif
 
-	isupdate = be_isupdate( op );
+	isupdate = be_shadow_update( op );
 	for (i=0, ml=op->oq_modify.rs_modlist; ml; ml=ml->sml_next) {
 		int	is_oc = 0;
 
@@ -117,42 +117,42 @@ ldap_back_modify(
 		mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
 		mods[i].mod_type = mapped.bv_val;
 
-		if ( ml->sml_bvalues != NULL ) {
+		if ( ml->sml_values != NULL ) {
 			if ( is_oc ) {
-				for (j = 0; ml->sml_bvalues[j].bv_val; j++);
-				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+				for (j = 0; ml->sml_values[j].bv_val; j++);
+				mods[i].mod_values = (struct berval **)ch_malloc((j+1) *
 					sizeof(struct berval *));
-				for (j = 0; ml->sml_bvalues[j].bv_val; j++) {
+				for (j = 0; ml->sml_values[j].bv_val; j++) {
 					ldap_back_map(&li->rwmap.rwm_oc,
-							&ml->sml_bvalues[j],
+							&ml->sml_values[j],
 							&mapped, BACKLDAP_MAP);
 					if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 						continue;
 					}
-					mods[i].mod_bvalues[j] = &mapped;
+					mods[i].mod_values[j] = &mapped;
 				}
-				mods[i].mod_bvalues[j] = NULL;
+				mods[i].mod_values[j] = NULL;
 
 			} else {
 				if ( ml->sml_desc->ad_type->sat_syntax ==
 					slap_schema.si_syn_distinguishedName ) {
-					ldap_dnattr_rewrite( &dc, ml->sml_bvalues );
+					ldap_dnattr_rewrite( &dc, ml->sml_values );
 				}
 
-				if ( ml->sml_bvalues == NULL ) {	
+				if ( ml->sml_values == NULL ) {	
 					continue;
 				}
 
-				for (j = 0; ml->sml_bvalues[j].bv_val; j++);
-				mods[i].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+				for (j = 0; ml->sml_values[j].bv_val; j++);
+				mods[i].mod_values = (struct berval **)ch_malloc((j+1) *
 					sizeof(struct berval *));
-				for (j = 0; ml->sml_bvalues[j].bv_val; j++)
-					mods[i].mod_bvalues[j] = &ml->sml_bvalues[j];
-				mods[i].mod_bvalues[j] = NULL;
+				for (j = 0; ml->sml_values[j].bv_val; j++)
+					mods[i].mod_values[j] = &ml->sml_values[j];
+				mods[i].mod_values[j] = NULL;
 			}
 
 		} else {
-			mods[i].mod_bvalues = NULL;
+			mods[i].mod_values = NULL;
 		}
 
 		i++;
@@ -186,7 +186,7 @@ cleanup:;
 		free( mdn.bv_val );
 	}
 	for (i=0; modv[i]; i++) {
-		ch_free(modv[i]->mod_bvalues);
+		ch_free(modv[i]->mod_values);
 	}
 	ch_free( mods );
 	ch_free( modv );

@@ -38,7 +38,7 @@ EXT void boot_DynaLoader LDAP_P((PERL_BACK_BOOT_DYNALOADER_PARAMS));
 PerlInterpreter *PERL_INTERPRETER = NULL;
 ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
-#ifdef SLAPD_PERL_DYNAMIC
+#if SLAPD_PERL == SLAPD_MOD_DYNAMIC
 
 int init_module(int argc, char *argv[])
 {
@@ -52,7 +52,7 @@ int init_module(int argc, char *argv[])
 	return 0;
 }
 
-#endif /* SLAPD_PERL_DYNAMIC */
+#endif /* SLAPD_PERL */
 
 
 /**********************************************************

@@ -209,7 +209,7 @@ It shows some statistics on the data sent by the server:
 
 
 
-TIME SUBSISTEM
+TIME SUBSYSTEM
 
 It contains two subentries with the start time and the current time 
 of the server.

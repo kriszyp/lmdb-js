@@ -373,20 +373,19 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	ID		id, cursor;
 	ID		candidates[BDB_IDL_UM_SIZE];
 	ID		scopes[BDB_IDL_DB_SIZE];
-	Entry		*e = NULL, base;
-	Entry	*matched = NULL;
-	EntryInfo	*ei;
-	struct berval	realbase = { 0, NULL };
+	Entry		*e = NULL, base, e_root = {0};
+	Entry		*matched = NULL;
+	EntryInfo	*ei, ei_root = {0};
+	struct berval	realbase = BER_BVNULL;
 	int		manageDSAit;
 	int		tentries = 0;
 	ID		lastid = NOID;
 	AttributeName	*attrs;
 
-	Filter contextcsnand, contextcsnle, cookief, csnfnot,
-		csnfeq, csnfand, csnfge;
+	Filter		contextcsnand, contextcsnle, cookief, csnfnot,
+			csnfeq, csnfand, csnfge;
 	AttributeAssertion aa_ge, aa_eq, aa_le;
-	int		entry_count = 0;
-	struct berval *search_context_csn = NULL;
+	struct berval	*search_context_csn = NULL;
 	DB_LOCK		ctxcsn_lock;
 	LDAPControl	*ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int		num_ctrls = 0;
@@ -522,7 +521,11 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 
 	if ( sop->o_req_ndn.bv_len == 0 ) {
 		/* DIT root special case */
-		e = (Entry *) &slap_entry_root;
+		ei_root.bei_e = &e_root;
+		ei_root.bei_parent = &ei_root;
+		e_root.e_private = &ei_root;
+		e_root.e_id = 1;
+		ei = &ei_root;
 		rs->sr_err = LDAP_SUCCESS;
 	} else {
 dn2entry_retry:
@@ -558,7 +561,7 @@ dn2entry_retry:
 	}
 
 	if ( e == NULL ) {
-		struct berval matched_dn = { 0, NULL };
+		struct berval matched_dn = BER_BVNULL;
 
 		if ( matched != NULL ) {
 			BerVarray erefs;
@@ -599,7 +602,7 @@ dn2entry_retry:
 		return rs->sr_err;
 	}
 
-	if ( !manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
+	if ( !manageDSAit && e != &e_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn;
 		BerVarray erefs;
@@ -658,7 +661,7 @@ dn2entry_retry:
 	base.e_nname = realbase;
 	base.e_id = e->e_id;
 
-	if ( e != &slap_entry_root ) {
+	if ( e != &e_root ) {
 		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 	}
 	e = NULL;
@@ -751,6 +754,7 @@ dn2entry_retry:
 	if ( get_pagedresults(sop) ) {
 		if ( sop->o_pagedresults_state.ps_cookie == 0 ) {
 			id = 0;
+
 		} else {
 			if ( sop->o_pagedresults_size == 0 ) {
 				rs->sr_err = LDAP_SUCCESS;
@@ -1100,8 +1104,8 @@ id2entry_retry:
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
-            if ( --sop->ors_slimit == -1 &&
-				sop->o_sync_slog_size == -1 )
+			if ( --sop->ors_slimit == -1 &&
+					sop->o_sync_slog_size == -1 )
 			{
 				if (!IS_PSEARCH) {
 					bdb_cache_return_entry_r( bdb->bi_dbenv,
@@ -1263,6 +1267,7 @@ id2entry_retry:
 						rs->sr_attrs = sop->oq_search.rs_attrs;
 						rs->sr_ctrls = NULL;
 						rs->sr_flags = 0;
+						rs->sr_err = LDAP_SUCCESS;
 						result = send_search_entry( sop, rs );
 					}
 				}
@@ -1674,7 +1679,7 @@ send_pagerequest_response(
 	LDAPControl	ctrl, *ctrls[2];
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
-	struct berval	cookie = { 0, NULL };
+	struct berval	cookie = BER_BVNULL;
 	PagedResultsCookie respcookie;
 
 #ifdef NEW_LOGGING
@@ -1695,6 +1700,7 @@ send_pagerequest_response(
 
 	respcookie = ( PagedResultsCookie )lastid;
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
+	op->o_conn->c_pagedresults_state.ps_count = op->o_pagedresults_state.ps_count + rs->sr_nentries;
 	cookie.bv_len = sizeof( respcookie );
 	cookie.bv_val = (char *)&respcookie;
 
@@ -1717,4 +1723,5 @@ send_pagerequest_response(
 
 done:
 	(void) ber_free_buf( ber );
-}			
+}
+

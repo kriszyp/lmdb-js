@@ -119,7 +119,7 @@ backsql_strcat( struct berbuf *dest, ... )
 	va_end( strs );
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_strcat() (dest='%s')\n", 
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_strcat() (dest=\"%s\")\n", 
 			dest, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -230,7 +230,7 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 	va_end( strs );
 
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_strfcat() (dest='%s')\n", 
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_strfcat() (dest=\"%s\")\n", 
 			dest, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -252,7 +252,7 @@ backsql_entry_addattr(
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-		"at_name='%s', at_val='%s'\n", 
+		"at_name=\"%s\", at_val=\"%s\"\n", 
 		at_name->bv_val, at_val->bv_val, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -260,7 +260,7 @@ backsql_entry_addattr(
 	rc = slap_bv2ad( at_name, &ad, &text );
 	if ( rc != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-			"failed to find AttributeDescription for '%s'\n",
+			"failed to find AttributeDescription for \"%s\"\n",
 			at_name->bv_val, 0, 0 );
 		return 0;
 	}
@@ -269,7 +269,7 @@ backsql_entry_addattr(
 
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "
-			"failed to merge value '%s' for attribute '%s'\n",
+			"failed to merge value \"%s\" for attribute \"%s\"\n",
 			at_val->bv_val, at_name->bv_val, 0 );
 		return 0;
 	}
@@ -339,7 +339,7 @@ backsql_merge_from_clause(
 
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_merge_from_clause(): "
-		"dest_from='%s',src_from='%s'\n",
+		"dest_from=\"%s\",src_from=\"%s\"\n",
  		dest_from ? dest_from->bb_val.bv_val : "<NULL>", src_from, 0 );
 #endif /* BACKSQL_TRACE */
 
@@ -355,7 +355,7 @@ backsql_merge_from_clause(
 
 #ifdef BACKSQL_TRACE
 		Debug( LDAP_DEBUG_TRACE, "backsql_merge_from_clause(): "
-			"p='%s' s='%s'\n", p, s, 0 );
+			"p=\"%s\" s=\"%s\"\n", p, s, 0 );
 #endif /* BACKSQL_TRACE */
 
 		if ( res.bb_val.bv_val == NULL ) {
