@@ -547,7 +547,7 @@ LDAP_SLAPD_F (int) slap_sasl_bind LDAP_P((
 	Connection *conn, Operation *op, 
 	const char *dn, const char *ndn,
 	const char *mech, struct berval *cred,
-	char **edn ));
+	char **edn, unsigned long *ssf ));
 
 /* oc.c */
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );

@@ -1074,6 +1074,7 @@ typedef struct slap_conn {
 	int	c_is_tls;		/* true if this LDAP over raw TLS */
 	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
 #endif
+	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
 	void	*c_sasl_context;	/* SASL session context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
 

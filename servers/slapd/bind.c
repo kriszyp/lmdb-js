@@ -186,6 +186,7 @@ do_bind(
 
 	if ( method == LDAP_AUTH_SASL ) {
 		char *edn;
+		unsigned long ssf = 0;
 
 		if ( version < LDAP_VERSION3 ) {
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
@@ -230,12 +231,14 @@ do_bind(
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		edn = NULL;
-		rc = slap_sasl_bind( conn, op, dn, ndn, saslmech, &cred, &edn );
+		rc = slap_sasl_bind( conn, op, dn, ndn, saslmech, &cred,
+			&edn, &ssf );
 
 		if( rc == LDAP_SUCCESS ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 			conn->c_dn = edn;
 			conn->c_authmech = mech;
+			if( ssf ) conn->c_sasl_layers++;
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {

@@ -404,14 +404,8 @@ ldap_int_sasl_open(
 		return ld->ld_errno;
 	}
 
-	rc = sasl_client_new( "ldap", host,
-		session_callbacks,
-#ifdef LDAP_SASL_SECURITY_LAYER
-		SASL_SECURITY_LAYER,
-#else
-		0,
-#endif
-		&ctx );
+	rc = sasl_client_new( "ldap", host, session_callbacks,
+		SASL_SECURITY_LAYER, &ctx );
 
 	if ( rc != SASL_OK ) {
 		ld->ld_errno = sasl_err2ldap( rc );
@@ -636,14 +630,12 @@ ldap_int_sasl_bind(
 				(unsigned long) *ssf );
 		}
 
-#ifdef LDAP_SASL_SECURITY_LAYER
 		if( ssf && *ssf ) {
 			if( flags != LDAP_SASL_QUIET ) {
 				fprintf( stderr, "SASL installing layers\n" );
 			}
 			ldap_pvt_sasl_install( ld->ld_sb, ctx );
 		}
-#endif
 	}
 
 	return rc;

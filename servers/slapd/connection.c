@@ -895,8 +895,9 @@ int connection_read(ber_socket_t s)
 			fd_set rfd;
 
 			Debug( LDAP_DEBUG_TRACE,
-			       "connection_read(%d): TLS accept error error=%d id=%ld, closing\n",
-			       s, rc, c->c_connid );
+				"connection_read(%d): TLS accept error "
+				"error=%d id=%ld, closing\n",
+				s, rc, c->c_connid );
 
 			c->c_needs_tls_accept = 0;
 			/* connections_mutex and c_mutex are locked */
@@ -928,6 +929,28 @@ int connection_read(ber_socket_t s)
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return 0;
+	}
+#endif
+
+#ifdef HAVE_CYRUS_SASL
+	if ( c->c_sasl_layers ) {
+		c->c_sasl_layers = 0;
+
+		rc = ldap_pvt_sasl_install( c->c_sb,  c->c_sasl_context );
+
+		if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"connection_read(%d): SASL install error "
+				"error=%d id=%ld, closing\n",
+				s, rc, c->c_connid );
+
+			/* connections_mutex and c_mutex are locked */
+			connection_closing( c );
+			connection_close( c );
+			connection_return( c );
+			ldap_pvt_thread_mutex_unlock( &connections_mutex );
+			return 0;
+		}
 	}
 #endif
 

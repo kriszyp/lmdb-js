@@ -246,6 +246,8 @@ int slap_sasl_open( Connection *conn )
 	assert( conn->c_sasl_context == NULL );
 	assert( conn->c_sasl_extra == NULL );
 
+	conn->c_sasl_layers = 0;
+
 	session_callbacks =
 		ch_calloc( 3, sizeof(sasl_callback_t));
 	conn->c_sasl_extra = session_callbacks;
@@ -264,14 +266,7 @@ int slap_sasl_open( Connection *conn )
 
 	/* create new SASL context */
 	sc = sasl_server_new( "ldap", sasl_host, global_realm,
-		session_callbacks,
-#ifdef LDAP_SASL_SECURITY_LAYER
-		SASL_SECURITY_LAYER,
-#else
-		0,
-#endif
-		&ctx );
-
+		session_callbacks, SASL_SECURITY_LAYER, &ctx );
 
 	if( sc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_server_new failed: %d\n",
@@ -394,7 +389,8 @@ int slap_sasl_bind(
     const char          *ndn,
     const char          *mech,
     struct berval       *cred,
-	char				**edn )
+	char				**edn,
+	unsigned long		*ssfp )
 {
 	int rc = 1;
 
@@ -406,7 +402,7 @@ int slap_sasl_bind(
 	int sc;
 
 	Debug(LDAP_DEBUG_ARGS,
-		"==> sasl_bind: dn=\"%s\" mech=%s cred->bv_len=%d\n",
+		"==> sasl_bind: dn=\"%s\" mech=%s datalen=%d\n",
 		dn, mech ? mech : "<continuing>", cred ? cred->bv_len : 0 );
 
 	if( ctx == NULL ) {
@@ -467,6 +463,7 @@ int slap_sasl_bind(
 				realm ? realm : "",
 				(unsigned long) ( ssf ? *ssf : 0 ) );
 
+			*ssfp = ssf ? *ssf : 0;
 
 			rc = LDAP_SUCCESS;
 
@@ -544,4 +541,3 @@ char* slap_sasl_secprops( const char *in )
 	return "SASL not supported";
 #endif
 }
-

@@ -232,7 +232,9 @@ ber_pvt_sb_copy_out( Sockbuf_Buf *sbb, char *buf, ber_len_t len )
 
 	assert( buf != NULL );
 	assert( sbb != NULL );
+#if 0
 	assert( sbb->buf_size > 0 );
+#endif
 
 	max = sbb->buf_end - sbb->buf_ptr;
 	max = ( max < len) ? max : len;
