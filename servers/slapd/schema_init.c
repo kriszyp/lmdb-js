@@ -20,10 +20,24 @@
 /* recycled validatation routines */
 #define berValidate						blobValidate
 
+/* unimplemented validators */
+#define bitStringValidate				NULL
+#define booleanValidate					NULL
+
 /* recycled normalization routines */
 #define faxNumberNormalize				numericStringNormalize
 #define phoneNumberNormalize			numericStringNormalize
 #define telexNumberNormalize			numericStringNormalize
+#define integerNormalize				numericStringNormalize
+
+/* unimplemented normalizers */
+#define bitStringNormalize				NULL
+#define booleanNormalize				NULL
+
+/* unimplemented pretters */
+#define booleanPretty					NULL
+#define dnPretty						NULL
+#define integerPretty					NULL
 
 /* recycled matching routines */
 #define caseIgnoreMatch					caseIgnoreIA5Match
@@ -38,6 +52,7 @@
 #define objectIdentifierMatch			numericStringMatch
 #define integerMatch					numericStringMatch
 #define telephoneNumberMatch			numericStringMatch
+#define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
 #define generalizedTimeMatch			numericStringMatch
 #define generalizedTimeOrderingMatch	numericStringMatch
 
@@ -45,7 +60,6 @@
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
 #define bitStringMatch					NULL
-#define telephoneNumberSubstringsMatch	NULL
 #define presentationAddressMatch		NULL
 #define uniqueMemberMatch				NULL
 #define protocolInformationMatch		NULL
@@ -55,8 +69,6 @@
 #define authPasswordMatch				NULL
 
 /* unimplied indexer/filter routines */
-#define dnIndexer						NULL
-#define dnFilter						NULL
 #define caseIgnoreIA5SubstringsIndexer	NULL
 #define caseIgnoreIA5SubstringsFilter	NULL
 
@@ -65,8 +77,8 @@
 #define caseIgnoreFilter				caseIgnoreIA5Filter
 #define caseExactIndexer				caseExactIA5Indexer
 #define caseExactFilter					caseExactIA5Filter
-#define caseExactIA5Indexer				caseIgnoreIA5Indexer
-#define caseExactIA5Filter				caseIgnoreIA5Filter
+#define dnIndexer						caseIgnoreIndexer
+#define dnFilter						caseIgnoreFilter
 
 #define caseIgnoreSubstringsIndexer		caseIgnoreIA5SubstringsIndexer
 #define caseIgnoreSubstringsFilter		caseIgnoreIA5SubstringsFilter
@@ -707,6 +719,104 @@ retry:
 
 done:
 	*matchp = match;
+	return LDAP_SUCCESS;
+}
+
+/* Index generation function */
+int caseExactIA5Indexer(
+	unsigned use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i;
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[16];
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	for( i=0; values[i] != NULL; i++ ) {
+		/* just count them */
+	}
+
+	assert( i > 0 );
+
+	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	for( i=0; values[i] != NULL; i++ ) {
+		struct berval *value = values[i];
+
+		lutil_MD5Init( &MD5context );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			lutil_MD5Update( &MD5context,
+				prefix->bv_val, prefix->bv_len );
+		}
+		lutil_MD5Update( &MD5context,
+			syntax->ssyn_oid, slen );
+		lutil_MD5Update( &MD5context,
+			mr->smr_oid, mlen );
+		lutil_MD5Update( &MD5context,
+			value->bv_val, value->bv_len );
+		lutil_MD5Final( MD5digest, &MD5context );
+
+		keys[i] = ber_bvdup( &digest );
+	}
+
+	keys[i] = NULL;
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+/* Index generation function */
+int caseExactIA5Filter(
+	unsigned use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	struct berval *value;
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	value = (struct berval *) assertValue;
+
+	keys = ch_malloc( sizeof( struct berval * ) * 2 );
+
+	lutil_MD5Init( &MD5context );
+	if( prefix != NULL && prefix->bv_len > 0 ) {
+		lutil_MD5Update( &MD5context,
+			prefix->bv_val, prefix->bv_len );
+	}
+	lutil_MD5Update( &MD5context,
+		syntax->ssyn_oid, slen );
+	lutil_MD5Update( &MD5context,
+		mr->smr_oid, mlen );
+	lutil_MD5Update( &MD5context,
+		value->bv_val, value->bv_len );
+	lutil_MD5Final( MD5digest, &MD5context );
+
+	keys[0] = ber_bvdup( &digest );
+	keys[1] = NULL;
+
+	*keysp = keys;
 	return LDAP_SUCCESS;
 }
 
@@ -1383,9 +1493,9 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' " X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
-		0, NULL, NULL, NULL},
+		0, bitStringValidate, bitStringNormalize, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
-		0, NULL, NULL, NULL},
+		0, booleanValidate, booleanNormalize, booleanPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
 		X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
@@ -1398,7 +1508,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, dnValidate, dnNormalize, NULL},
+		0, dnValidate, dnNormalize, dnPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
@@ -1426,7 +1536,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
 		0, IA5StringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		0, integerValidate, NULL, NULL},
+		0, integerValidate, integerNormalize, integerPretty},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
 		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
