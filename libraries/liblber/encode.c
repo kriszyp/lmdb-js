@@ -315,12 +315,10 @@ ber_put_berval(
 	ber_tag_t tag )
 {
 	assert( ber != NULL );
-	assert( bv != NULL );
-
 	assert( BER_VALID( ber ) );
 
-	if( bv == NULL ) {
-		return -1;
+	if( bv == NULL || bv->bv_len == 0 ) {
+		return ber_put_ostring( ber, "", (ber_len_t) 0, tag );
 	}
 
 	return ber_put_ostring( ber, bv->bv_val, bv->bv_len, tag );
@@ -728,8 +726,8 @@ va_dcl
 			if ( (bvp = va_arg( ap, struct berval ** )) == NULL )
 				break;
 			for ( i = 0; bvp[i] != NULL; i++ ) {
-				if ( (rc = ber_put_ostring( ber, bvp[i]->bv_val,
-				    bvp[i]->bv_len, ber->ber_tag )) == -1 )
+				if ( (rc = ber_put_berval( ber, bvp[i],
+				    ber->ber_tag )) == -1 )
 					break;
 			}
 			break;
