@@ -29,7 +29,7 @@ configuration directive.
 enable verbose mode.
 .TP
 .B \-u
-Generate RFC2307 userPassword values (the default).  Future
+Generate RFC 2307 userPassword values (the default).  Future
 versions of this program may generate alternative syntaxes
 by default.  This option is provided for forward compatibility.
 .TP
@@ -38,7 +38,7 @@ The secret to hash.  If not provided, the user will be prompted
 for the secret to hash.
 .TP
 .BI \-h " scheme"
-If -h is specified, one of the following RFC2307 schemes may
+If -h is specified, one of the following RFC 2307 schemes may
 be specified:
 .IR {CRYPT} ,
 .IR {MD5} ,
@@ -47,21 +47,21 @@ be specified:
 .IR {SHA} .
 The default is 
 .IR {SSHA} .
-.TP
+
 .B {SHA}
 and
 .B {SSHA}
 use the SHA-1 algorithm (FIPS 160-1), the latter with a seed.
-.TP
+
 .B {MD5}
 and
 .B {SMD5}
 use the MD5 algorithm (RFC 1321), the latter with a seed.
-.TP
+
 .B {CRYPT}
 uses the
 .BR crypt (3).
-.TP
+
 .B {CLEARTEXT}
 indicates that the new password should be added to userPassword as
 clear text.
@@ -81,9 +81,11 @@ versions of crypt(3) to use an MD5 algorithm and provides
 provides 31 characters of salt.
 .SH LIMITATIONS
 The practice storing hashed passwords in userPassword violates
-Standard Track (RFC2256) schema specifications and may hinder
-interoperability.  A new attribute type to hold hashed
-passwords is needed.
+Standard Track (RFC 2256) schema specifications and may hinder
+interoperability.  A new attribute type, authPassword, to hold
+hashed passwords has been defined (RFC 3112), but is not yet
+implemented in
+.BR slapd (8).
 .SH "SECURITY CONSIDERATIONS"
 Use of hashed passwords does not protect passwords during
 protocol transfer.  TLS or other eavesdropping protections
@@ -95,6 +97,9 @@ were clear text passwords.
 .BR ldapmodify (1),
 .BR slapd (8)
 .BR slapd.conf (5)
+.B RFC 2307
+.B RFC 2256
+.B RFC 3112
 .LP
 "OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
 .SH ACKNOWLEDGEMENTS
