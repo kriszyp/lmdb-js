@@ -450,10 +450,12 @@ bdb_cache_find_parent(
 			bdb_cache_entryinfo_destroy( ein );
 			ein = (EntryInfo *)avl_find( bdb->bi_cache.c_idtree,
 				(caddr_t) &ei, bdb_id_cmp );
-			bdb_cache_entryinfo_lock( ein );
-			avl_insert( &ein->bei_kids, (caddr_t)ei2, bdb_rdn_cmp,
-				avl_dup_error );
-			bdb_cache_entryinfo_unlock( ein );
+			if ( ei2 ) {
+				bdb_cache_entryinfo_lock( ein );
+				avl_insert( &ein->bei_kids, (caddr_t)ei2,
+					bdb_rdn_cmp, avl_dup_error );
+				bdb_cache_entryinfo_unlock( ein );
+			}
 		}
 
 		/* If this is the first time, save this node
