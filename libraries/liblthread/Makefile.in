@@ -5,3 +5,6 @@ LIBRARY	= liblthread.a
 XSRCS	= version.c
 SRCS	= thread.c stack.c
 OBJS	= thread.o stack.o
+
+XDEFS	= @LTHREAD_DEFS@
+XLIBS	= @LTHREAD_LIBS@
