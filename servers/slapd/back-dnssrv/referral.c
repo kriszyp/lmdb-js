@@ -29,7 +29,7 @@ dnssrv_back_referrals(
 	char *domain = NULL;
 	char *hostlist = NULL;
 	char **hosts = NULL;
-	struct berval **urls = NULL;
+	BVarray urls = NULL;
 
 	if( ndn->bv_len == 0 ) {
 		*text = "DNS SRV operation upon null (empty) DN disallowed";
@@ -74,16 +74,16 @@ dnssrv_back_referrals(
 	}
 
 	for( i=0; hosts[i] != NULL; i++) {
-		struct berval *url = ch_malloc( sizeof( struct berval ) ); 
+		struct berval url;
 
-		url->bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
-		url->bv_val = ch_malloc( url->bv_len + 1 );
+		url.bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
+		url.bv_val = ch_malloc( url.bv_len + 1 );
 
-		strcpy( url->bv_val, "ldap://" );
-		strcpy( &url->bv_val[sizeof("ldap://")-1], hosts[i] );
+		strcpy( url.bv_val, "ldap://" );
+		strcpy( &url.bv_val[sizeof("ldap://")-1], hosts[i] );
 
-		if( ber_bvecadd( &urls, url ) < 0 ) {
-			ber_bvfree( url );
+		if ( bvarray_add( &urls, &url ) < 0 ) {
+			free( url.bv_val );
 			*text = "problem processing DNS SRV records for DN";
 			goto done;
 		}
@@ -92,10 +92,10 @@ dnssrv_back_referrals(
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_protocol,
-		dn->bv_val, urls[0]->bv_val );
+		dn->bv_val, urls[0].bv_val );
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> url=\"%s\"\n",
-		dn->bv_val, urls[0]->bv_val, 0 );
+		dn->bv_val, urls[0].bv_val, 0 );
 
 	send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 		NULL, "DNS SRV generated referrals", urls, NULL );
@@ -104,6 +104,6 @@ done:
 	if( domain != NULL ) ch_free( domain );
 	if( hostlist != NULL ) ch_free( hostlist );
 	if( hosts != NULL ) charray_free( hosts );
-	ber_bvecfree( urls );
+	bvarray_free( urls );
 	return rc;
 }

@@ -29,7 +29,7 @@ dnssrv_back_search(
     int		size,
     int		time,
     Filter	*filter,
-    const char	*filterstr,
+    struct berval	*filterstr,
     AttributeName	*attrs,
     int		attrsonly )
 {
@@ -40,7 +40,7 @@ dnssrv_back_search(
 	char **hosts = NULL;
 	char *refdn;
 	struct berval nrefdn = { 0, NULL };
-	struct berval **urls = NULL;
+	BVarray urls = NULL;
 
 	assert( get_manageDSAit( op ) );
 
@@ -73,19 +73,19 @@ dnssrv_back_search(
 	}
 
 	for( i=0; hosts[i] != NULL; i++) {
-		struct berval *url = ch_malloc( sizeof( struct berval ) ); 
+		struct berval url;
 
-		url->bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
-		url->bv_val = ch_malloc( url->bv_len + 1 );
+		url.bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
+		url.bv_val = ch_malloc( url.bv_len + 1 );
 
-		strcpy( url->bv_val, "ldap://" );
-		strcpy( &url->bv_val[sizeof("ldap://")-1], hosts[i] );
+		strcpy( url.bv_val, "ldap://" );
+		strcpy( &url.bv_val[sizeof("ldap://")-1], hosts[i] );
 
-		if( ber_bvecadd( &urls, url ) < 0 ) {
-			ber_bvfree( url );
+		if( bvarray_add( &urls, &url ) < 0 ) {
+			free( url.bv_val );
 			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "problem processing DNS SRV records for DN",
-				NULL, NULL );
+			NULL, "problem processing DNS SRV records for DN",
+			NULL, NULL );
 			goto done;
 		}
 	}
@@ -93,13 +93,13 @@ dnssrv_back_search(
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
 	    op->o_connid, op->o_opid, op->o_protocol,
-		dn->bv_len ? dn->bv_val : "", urls[0]->bv_val );
+		dn->bv_len ? dn->bv_val : "", urls[0].bv_val );
 
 	Debug( LDAP_DEBUG_TRACE,
 		"DNSSRV: ManageDSAit scope=%d dn=\"%s\" -> url=\"%s\"\n",
 		scope,
 		dn->bv_len ? dn->bv_val : "",
-		urls[0]->bv_val );
+		urls[0].bv_val );
 
 	rc = ldap_domain2dn(domain, &refdn);
 
@@ -141,8 +141,7 @@ dnssrv_back_search(
 			NULL, NULL, NULL, NULL );
 
 	} else {
-		struct berval	val;
-		struct berval	*vals[2];
+		struct berval	vals[2];
 		Entry *e = ch_calloc( 1, sizeof(Entry) );
 		AttributeDescription *ad_objectClass
 			= slap_schema.si_ad_objectClass;
@@ -155,19 +154,18 @@ dnssrv_back_search(
 		e->e_attrs = NULL;
 		e->e_private = NULL;
 
-		vals[0] = &val;
-		vals[1] = NULL;
+		vals[1].bv_val = NULL;
 
-		val.bv_val = "top";
-		val.bv_len = sizeof("top")-1;
+		vals[0].bv_val = "top";
+		vals[0].bv_len = sizeof("top")-1;
 		attr_merge( e, ad_objectClass, vals );
 
-		val.bv_val = "referral";
-		val.bv_len = sizeof("referral")-1;
+		vals[0].bv_val = "referral";
+		vals[0].bv_len = sizeof("referral")-1;
 		attr_merge( e, ad_objectClass, vals );
 
-		val.bv_val = "extensibleObject";
-		val.bv_len = sizeof("extensibleObject")-1;
+		vals[0].bv_val = "extensibleObject";
+		vals[0].bv_len = sizeof("extensibleObject")-1;
 		attr_merge( e, ad_objectClass, vals );
 
 		{
@@ -178,17 +176,17 @@ dnssrv_back_search(
 
 			if( rc == LDAP_SUCCESS ) {
 				char *p;
-				val.bv_val = ch_strdup( domain );
+				vals[0].bv_val = ch_strdup( domain );
 
-				p = strchr( val.bv_val, '.' );
+				p = strchr( vals[0].bv_val, '.' );
 					
-				if( p == val.bv_val ) {
-					val.bv_val[1] = '\0';
+				if( p == vals[0].bv_val ) {
+					vals[0].bv_val[1] = '\0';
 				} else if ( p != NULL ) {
 					*p = '\0';
 				}
 
-				val.bv_len = strlen(val.bv_val);
+				vals[0].bv_len = strlen(vals[0].bv_val);
 				attr_merge( e, ad, vals );
 			}
 		}
@@ -200,8 +198,8 @@ dnssrv_back_search(
 			rc = slap_str2ad( "associatedDomain", &ad, &text );
 
 			if( rc == LDAP_SUCCESS ) {
-				val.bv_val = domain;
-				val.bv_len = strlen(domain);
+				vals[0].bv_val = domain;
+				vals[0].bv_len = strlen(domain);
 				attr_merge( e, ad, vals );
 			}
 		}
@@ -228,6 +226,6 @@ done:
 	if( domain != NULL ) ch_free( domain );
 	if( hostlist != NULL ) ch_free( hostlist );
 	if( hosts != NULL ) charray_free( hosts );
-	if( urls != NULL ) ber_bvecfree( urls );
+	if( urls != NULL ) bvarray_free( urls );
 	return 0;
 }
