@@ -23,7 +23,7 @@ define([AC_INIT_BINSH],
 # in file LICENSE in the top-level directory of the distribution.
 
 echo "Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved."
-echo "Copying restrictions apply, see COPYRIGHT file."
+echo "Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
 dnl ----------------------------------------------------------------
 dnl Disable config.cache!

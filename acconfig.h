@@ -13,11 +13,6 @@
 
 /* end of preamble */
 
-#if !defined(SLAPD_SCHEMA_COMPAT) && !defined(SLAPD_SCHEMA_NOT_COMPAT)
-	/* define SLAPD_SCHEMA_COMPAT if you want old schema codes */
-#define SLAPD_SCHEMA_NOT_COMPAT 1
-#endif
-
 @TOP@
 
 /* define this if needed to get reentrant functions */
