@@ -116,12 +116,7 @@ dnValidate(
 		return( LDAP_SUCCESS );
 	}
 
-	/* FIXME: str2dn should take a bv and handle this */
-	if( strlen( in->bv_val ) != in->bv_len ) {
-		return LDAP_INVALID_SYNTAX;
-	}
-
-	rc = ldap_str2dn( in->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2dn( in, &dn, LDAP_DN_FORMAT_LDAP );
 
 	/*
 	 * Schema-aware validate
@@ -354,7 +349,7 @@ dnNormalize2(
 		/*
 		 * Go to structural representation
 		 */
-		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+		rc = ldap_bv2dn( val, &dn, LDAP_DN_FORMAT_LDAP );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -424,13 +419,8 @@ dnPretty2(
 		LDAPDN		*dn = NULL;
 		int		rc;
 
-		/* FIXME: str2dn should take a bv and handle this */
-		if( strlen( val->bv_val ) != val->bv_len ) {
-			return LDAP_INVALID_SYNTAX;
-		}
-
 		/* FIXME: should be liberal in what we accept */
-		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+		rc = ldap_bv2dn( val, &dn, LDAP_DN_FORMAT_LDAP );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}
@@ -495,7 +485,7 @@ dnPrettyNormal(
 		}
 
 		/* FIXME: should be liberal in what we accept */
-		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
+		rc = ldap_bv2dn( val, &dn, LDAP_DN_FORMAT_LDAP );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_INVALID_SYNTAX;
 		}

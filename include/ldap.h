@@ -1204,6 +1204,12 @@ LDAP_F( void )
 ldap_dnfree LDAP_P(( LDAPDN *dn ));
 
 LDAP_F( int )
+ldap_bv2dn LDAP_P(( 
+	struct berval *bv, 
+	LDAPDN **dn, 
+	unsigned flags ));
+
+LDAP_F( int )
 ldap_str2dn LDAP_P((
 	LDAP_CONST char *str,
 	LDAPDN **dn,

@@ -599,6 +599,23 @@ ldap_dnfree( LDAPDN *dn )
 #define	TMP_RDN_SLOTS	32
 
 int
+ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
+{
+	assert( bv );
+	assert( dn );
+	
+	/* 
+	 * FIXME: ldap_bv2dn() and ldap_str2dn() will be swapped,
+	 * i.e. ldap_str2dn() will become a wrapper for ldap_bv2dn()
+	 */
+	if ( bv->bv_len != strlen( bv->bv_val ) ) {
+		return LDAP_INVALID_DN_SYNTAX;
+	}
+
+	return ldap_str2dn( bv->bv_val, dn, flags );
+}
+
+int
 ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 {
 	const char 	*p;
