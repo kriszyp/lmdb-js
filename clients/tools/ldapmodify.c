@@ -27,7 +27,6 @@
 #include <fcntl.h>
 #endif
 
-#include <lber.h>
 #include <ldap.h>
 
 #include "ldif.h"

@@ -16,7 +16,6 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
-#include <lber.h>
 #include <ldap.h>
 
 static char	*binddn = NULL;
