@@ -700,7 +700,7 @@ int
 config_search_base(ConfigArgs *c) {
 	struct berval dn;
 	int rc;
-	if(c->bi || c->be) {
+	if(c->bi || c->be != frontendDB) {
 		Debug(LDAP_DEBUG_ANY, "%s: line %lu: defaultSearchBase line must appear "
 			"prior to any backend or database definition\n",
 			c->fname, c->lineno, 0);
