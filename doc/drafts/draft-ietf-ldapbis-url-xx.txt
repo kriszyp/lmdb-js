@@ -1,19 +1,15 @@
 
 
-
-
-
-
 Network Working Group                                Mark Smith, Editor
-Request for Comments: DRAFT               Netscape Communications Corp.
+Request for Comments: DRAFT                         Pearl Crescent, LLC
 Obsoletes: RFC 2255                                           Tim Howes
-Expires: 25 April 2004                                    Opsware, Inc.
+Expires: 13 August 2004                                   Opsware, Inc.
 
-                                                        25 October 2003
+                                                       13 February 2004
 
 
                      LDAP: Uniform Resource Locator
-                    <draft-ietf-ldapbis-url-04.txt>
+                    <draft-ietf-ldapbis-url-05.txt>
 
 
 
@@ -42,7 +38,7 @@ Expires: 25 April 2004                                    Opsware, Inc.
    Revision (ldapbis) Working Group mailing list <ietf-
    ldapbis@openldap.org>.
 
-Copyright (C) The Internet Society (2003).  All Rights Reserved.
+Copyright (C) The Internet Society (2004).  All Rights Reserved.
 
 2.  Abstract
 
@@ -57,7 +53,7 @@ Copyright (C) The Internet Society (2003).  All Rights Reserved.
 
 Smith & Howes      Intended Category: Standards Track           [Page 1]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
 
 3.  Table of Contents
@@ -66,16 +62,16 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
 2.     Abstract.......................................................1
 3.     Table of Contents..............................................2
 4.     Introduction...................................................2
-5.     URL Definition.................................................2
-5.1.      Escaping Using the Method.................................4
+5.     URL Definition.................................................3
+5.1.      Escaping Using the % Method.................................4
 6.     Defaults for Fields of the LDAP URL............................5
-7.     Examples.......................................................6
-8.     Security Considerations........................................8
+7.     Examples.......................................................5
+8.     Security Considerations........................................7
 9.     Normative References...........................................8
 10.    Informative References.........................................9
 11.    Intellectual Property Rights...................................9
 12.    Acknowledgements...............................................10
-13.    Authors' Address...............................................10
+13.    Authors' Addresses.............................................10
 14.    Full Copyright Statement.......................................11
 15.    Appendix A: Changes Since RFC 2255.............................11
 15.1.     Technical Changes...........................................11
@@ -105,17 +101,20 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    The key words "MUST", "MAY", and "SHOULD" used in this document are
    to be interpreted as described in [RFC2119].
 
-5.  URL Definition
 
-   An LDAP URL begins with the protocol prefix "ldap" and is defined by
+
+
 
 
 
 Smith & Howes      Intended Category: Standards Track           [Page 2]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
 
+5.  URL Definition
+
+   An LDAP URL begins with the protocol prefix "ldap" and is defined by
    the following grammar, following the ABNF notation defined in
    [RFC2234].
 
@@ -140,7 +139,7 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
        exvalue     = <LDAPString from section 4.1.2 of [Protocol]>
                        ; see the "Escaping Using the % Method" section below.
        oid         = <LDAPOID from section 4.1.2 of [Protocol]>
-       oiddescr    = <name from section 3.3 of [RFC3383]>
+       oiddescr    = <name from section 3.3 of [LDAPIANA]>
 
        EXCLAMATION = %x21 ; exclamation mark ("!")
        ASTERISK    = %x2A ; asterisk ("*")
@@ -162,16 +161,15 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    be returned from the entry or entries.  Individual attrdesc names are
    as defined for AttributeDescription in [Protocol].
 
-   The scope construct is used to specify the scope of the search to
-   perform in the given LDAP server.  The allowable scopes are "base"
-
 
 
 Smith & Howes      Intended Category: Standards Track           [Page 3]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
 
+   The scope construct is used to specify the scope of the search to
+   perform in the given LDAP server.  The allowable scopes are "base"
    for a base object search, "one" for a one-level search, or "sub" for
    a subtree search.
 
@@ -190,24 +188,17 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    character (ASCII 33) is critical. An extension not prefixed with a
    '!' character is non-critical.
 
-   If an extension is supported by the client, the client MUST obey the
-   extension if the extension is critical. The client SHOULD obey
-   supported extensions that are non-critical.
-
-   If an extension is unsupported by the client, the client MUST NOT
-   process the URL if the extension is critical.  If an unsupported
-   extension is non-critical, the client MUST ignore the extension.
-
-   If a critical extension cannot be processed successfully by the
-   client, the client MUST NOT process the URL. If a non-critical
-   extension cannot be processed successfully by the client, the client
-   SHOULD ignore the extension.
+   If an LDAP URL extension is recognized by an implementation, the
+   implementation MUST make use of it.  If an extension is not
+   recognized and is marked critical, the implementation MUST NOT
+   process the URL.  If an extension is not recognized and it not marked
+   critical, the implementation MUST ignore the extension.
 
    The extension type (extype) MAY be specified using the oid form
    (e.g., 1.2.3.4) or the oiddesc form (e.g., myLDAPURLExtension).  Use
    of the oiddesc form SHOULD be restricted to registered object
-   identifier descriptive names.  See [RFC3383] for registration details
-   and usage guidelines for descriptive names.
+   identifier descriptive names.  See [LDAPIANA] for registration
+   details and usage guidelines for descriptive names.
 
    No LDAP URL extensions are defined in this document.  Other documents
    or a future version of this document MAY define one or more
@@ -218,21 +209,20 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    A generated LDAP URL MUST consist only of the restricted set of
    characters included in the uric production that is defined in section
    2 of [RFC2396].  Implementations SHOULD accept other valid UTF-8
-   strings [UTF-8] as input.  An octet MUST be escaped using the %
+   strings [RFC3629] as input.  An octet MUST be escaped using the %
    method described in section 2.4 of [RFC2396] in any of these
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 4]
-
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
-
-
    situations:
 
       The octet is not in the reserved set defined in section 2.2 of
       [RFC2396] or in the unreserved set defined in section 2.3 of
       [RFC2396].
+
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 4]
+
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
+
 
       It is the single Reserved character '?' and occurs inside a dn,
       filter, or other element of an LDAP URL.
@@ -244,7 +234,7 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    Some fields of the LDAP URL are optional, as described above.  In the
    absence of any other specification, the following general defaults
    SHOULD be used when a field is absent.  Note:  other documents MAY
-   specify different defaulting rules; for example, section 4.1.11 of
+   specify different defaulting rules; for example, section 4.1.10 of
    [Protocol] specifies a different rule for determining the correct DN
    to use when it is absent in an LDAP URL that is returned as a
    referral.
@@ -274,6 +264,12 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
       If extensions is omitted, no extensions are assumed.
 
 
+7.  Examples
+
+   The following are some example LDAP URLs using the format defined
+   above.  The first example is an LDAP URL referring to the University
+   of Michigan entry, available from an LDAP server of the client's
+   choosing:
 
 
 
@@ -281,15 +277,8 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
 
 Smith & Howes      Intended Category: Standards Track           [Page 5]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
-
-7.  Examples
-
-   The following are some example LDAP URLs using the format defined
-   above.  The first example is an LDAP URL referring to the University
-   of Michigan entry, available from an LDAP server of the client's
-   choosing:
 
      ldap:///o=University%20of%20Michigan,c=US
 
@@ -332,23 +321,26 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    the LDAP entry named "o=Question?,c=US" is given below, illustrating
    the use of the escaping mechanism on the reserved character '?'.
 
+     ldap://ldap2.example.com/o=Question%3f,c=US?mail
+
+   The next example (which is broken into two lines for readability)
+   illustrates the interaction between the LDAP string representation of
+   filters quoting mechanism and URL quoting mechanisms.
+
+
 
 
 
 Smith & Howes      Intended Category: Standards Track           [Page 6]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
 
-     ldap://ldap2.example.com/o=Question%3f,c=US?mail
+     ldap://ldap3.example.com/o=Babsco,c=US
+             ???(four-octet=%5c00%5c00%5c00%5c04)
 
-   The next example illustrates the interaction between the LDAP string
-   representation of filters quoting mechanism and URL quoting
-   mechanisms.
-
-     ldap://ldap3.example.com/o=Babsco,c=US???(four-octet=%5c00%5c00%5c00%5c04)
-   IP The filter in this example uses the LDAP escaping mechanism of \
-   to encode three zero or null bytes in the value. In LDAP, the filter
+   The filter in this example uses the LDAP escaping mechanism of \ to
+   encode three zero or null bytes in the value. In LDAP, the filter
    would be written as (four-octet=\00\00\00\04). Because the \
    character must be escaped in a URL, the \'s are escaped as %5c in the
    URL encoding.
@@ -388,18 +380,17 @@ name extension (the value associated with the extension is an LDAP DN).
    the e-bindname extension.
 
 
+8.  Security Considerations
+
+   General URL security considerations discussed in [RFC2396] are
+   relevant for LDAP URLs.
 
 
 
 Smith & Howes      Intended Category: Standards Track           [Page 7]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
-
-8.  Security Considerations
-
-   General URL security considerations discussed in [RFC2396] are
-   relevant for LDAP URLs.
 
    The use of security mechanisms when processing LDAP URLs requires
    particular care, since clients may encounter many different servers
@@ -443,50 +434,50 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
 
 9.  Normative References
 
-   [LDAPDN] Zeilenga, K. (editor), "LDAP: String Representation of
+[AuthMeth]  Harrison, R. (editor), "LDAP: Authentication Methods",
+            draft-ietf-ldapbis-authmeth-xx.txt, a work in progress.  a
+            work in progress.
+
+[LDAPDN]    Zeilenga, K. (editor), "LDAP: String Representation of
+            Distinguished Names", draft-ietf-ldapbis-dn-xx.txt, a work
 
 
 
 Smith & Howes      Intended Category: Standards Track           [Page 8]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
 
-   Distinguished Names", draft-ietf-ldapbis-dn-xx.txt, a work in
-   progress.
+            in progress.
 
-   [Filters] Smith, M. and Howes, T., "LDAP: String Representation of
-   Search Filters", draft-ietf-ldapbis-filter-xx.txt, a work in
-   progress.
+[Filters]   Smith, M. and Howes, T., "LDAP: String Representation of
+            Search Filters", draft-ietf-ldapbis-filter-xx.txt, a work in
+            progress.
 
-   [RFC2119] Bradner, S., "Key Words for use in RFCs to Indicate
-   Requirement Levels," RFC 2119, BCP 14, March 1997.
+[LDAPIANA]  Zeilenga, K., "IANA Considerations for LDAP", draft-ietf-
+            ldapbis-bcp64-xx.txt, a work in progress.
 
-   [Protocol] Sermersheim, J. (editor), "LDAP: The Protocol", draft-
-   ietf-ldapbis-protocol-xx.txt, a work in progress.
+[RFC2119]   Bradner, S., "Key Words for use in RFCs to Indicate
+            Requirement Levels," RFC 2119, BCP 14, March 1997.
 
-   [RFC2234] Crocker, D., Overell, P., "Augmented BNF for Syntax
-   Specifications:  ABNF", RFC 2234, November 1997.
+[Protocol]  Sermersheim, J. (editor), "LDAP: The Protocol", draft-ietf-
+            ldapbis-protocol-xx.txt, a work in progress.
 
-   [RFC2396] Berners-Lee, T., Fielding, R., and Masinter, L., "Uniform
-   Resource Identifiers (URI): Generic Syntax", RFC 2396, August 1998.
+[RFC2234]   Crocker, D., Overell, P., "Augmented BNF for Syntax
+            Specifications: ABNF", RFC 2234, November 1997.
 
-   [RFC2732] Hinden, R., Carpenter, B., Masinter, L., "Format for
-   Literal IPv6 Addresses in URL's", RFC 2732, December 1999.
+[RFC2396]   Berners-Lee, T., Fielding, R., and Masinter, L., "Uniform
+            Resource Identifiers (URI): Generic Syntax", RFC 2396,
+            August 1998.
 
-   [RFC3383] Zeilenga, K., "Internet Assigned Numbers Authority (IANA)
-    Considerations for the Lightweight Directory Access Protocol
-   (LDAP)", RFC 3383, September 2002.
+[RFC2732]   Hinden, R., Carpenter, B., Masinter, L., "Format for Literal
+            IPv6 Addresses in URL's", RFC 2732, December 1999.
 
-   [AuthMeth] Harrison, R. (editor), "LDAP: Authentication Methods",
-   draft-ietf-ldapbis-authmeth-xx.txt, a work in progress.  a work in
-   progress.
+[Roadmap]   K. Zeilenga (editor), "LDAP: Technical Specification Road
+            Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in progress.
 
-   [Roadmap] K. Zeilenga (editor), "LDAP: Technical Specification Road
-   Map", draft-ietf-ldapbis-roadmap-xx.txt, a work in progress.
-
-   [UTF-8] Yergeau, F., "UTF-8, a transformation format of ISO 10646",
-   draft-yergeau-rfc2279bis-xx.txt, a work in progress.
+[RFC3629]   Yergeau, F., "UTF-8, a transformation format of ISO 10646",
+            RFC 3629, November 2003.
 
 10.  Informative References
 
@@ -500,19 +491,19 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    this document or the extent to which any license under such rights
    might or might not be available; neither does it represent that it
    has made any effort to identify any such rights.  Information on the
-
-
-
-Smith & Howes      Intended Category: Standards Track           [Page 9]
-
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
-
-
    IETF's procedures with respect to rights in standards-track and
    standards-related documentation can be found in BCP-11.  Copies of
    claims of rights made available for publication and any assurances of
    licenses to be made available, or the result of an attempt made to
    obtain a general license or permission for the use of such
+
+
+
+Smith & Howes      Intended Category: Standards Track           [Page 9]
+
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
+
+
    proprietary rights by implementors or users of this specification can
    be obtained from the IETF Secretariat.
 
@@ -540,15 +531,15 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    Kurt Zeilenga, Jim Sermersheim, and Hallvard Furuseth deserve special
    thanks for their contributions.
 
-13.  Authors' Address
+13.  Authors' Addresses
 
    Mark Smith, Editor
-   Netscape Communications Corp.
-   360 W. Caribbean Drive
-   Sunnyvale, CA 94089
+   Pearl Crescent, LLC
+   447 Marlpool Dr.
+   Saline, MI 48176
    USA
-   +1 650 937-3477
-   MarkCSmithWork@aol.com
+   +1 734 944-2856
+   mcs@pearlcrescent.com
 
    Tim Howes
    Opsware, Inc.
@@ -556,19 +547,22 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    Sunnyvale, CA 94085
    USA
    +1 408 744-7509
+   howes@opsware.com
+
+
+
+
 
 
 
 Smith & Howes      Intended Category: Standards Track          [Page 10]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
-
-   howes@opsware.com
 
 14.  Full Copyright Statement
 
-   Copyright (C) The Internet Society (2003).  All Rights Reserved.
+   Copyright (C) The Internet Society (2004).  All Rights Reserved.
 
    This document and translations of it may be copied and furnished to
    others, and derivative works that comment on or otherwise explain it
@@ -615,18 +609,20 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
 
 
 
+
+
 Smith & Howes      Intended Category: Standards Track          [Page 11]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
 
    Changed the ABNF for ldapurl to group the dn component with the
    preceding slash.
 
    Changed the extype rule to be an LDAPOID from [Protocol] or an OID
-   description from [RFC3383].
+   description from [LDAPIANA].
 
-   Changed the text about extension types so it references [RFC3383].
+   Changed the text about extension types so it references [LDAPIANA].
    Reordered rules to more closely follow the order the elements appear
    in the URL.
 
@@ -661,21 +657,23 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
    break within '!' sequence.  Reworded last paragraph to clarify which
    characters must be URL escaped.   Added text to indicate that LDAP
    URLs are used for references and referrals.  Added text that refers
-   to the ABNF from RFC 2234.
+   to the ABNF from RFC 2234.  Clarified and strengthened the
+   requirements with respect to processing of URLs that contain
+   recognized and unrecognized extensions (the approach now matches that
+   specified in [Protocol] for LDAP controls).
 
    "Defaults for Fields of the LDAP URL" section: added; formed by
    moving text about defaults out of the "URL Definition" section.
-
-   "URL Processing" section: clarified that connections MAY be reused
-   only if the open connection is compatible with the URL.  Added text
 
 
 
 Smith & Howes      Intended Category: Standards Track          [Page 12]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
 
 
+   "URL Processing" section: clarified that connections MAY be reused
+   only if the open connection is compatible with the URL.  Added text
    to indicate that use of security services is encouraged and that they
    SHOULD be used when updates are involved.  Removed "dn" from
    discussion of authentication methods.  Added note that the client MAY
@@ -693,7 +691,7 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
 
    "Security Considerations" section: Added a note about connection
    reuse.  Added a note about using strong authentication methods for
-   updates.  Added a reference to RFC 2829.  Added note that simply
+   updates.  Added a reference to [AuthMeth].  Added note that simply
    opening a connection may violate some users' privacy requirements.
 
    "Acknowledgements" section: added statement about this being an
@@ -702,15 +700,16 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
 
    "Normative References" section: renamed from "References" per new RFC
    guidelines. Changed from [1] style to [Protocol] style throughout the
-   document.  Added references to RFCs 2234, 2829, and 3383.  Updated
-   RFC 1738 references to the appropriate sections within RFC 2396.
-   Updated the references to refer to LDAPBis WG documents. Removed the
-   reference to the LDAP Attribute Syntaxes document and added a
-   reference to the Roadmap document.
+   document.  Added references to RFC 2234, RFC 2732, and RFC 3629.
+   Updated all RFC 1738 references to point to the appropriate sections
+   within RFC 2396.  Updated the LDAP references to refer to LDAPBis WG
+   documents.  Removed the reference to the LDAP Attribute Syntaxes
+   document and added references to the [AuthMeth], [LDAPIANA], and
+   [Roadmap] documents.
 
    "Informative References" section: added for clarity.
 
-   Header and "Authors' Address" sections: added "editor" next to Mark
+   Header and "Authors' Addresses" sections: added "editor" next to Mark
    Smith's name.  Updated affiliation and contact information.
 
    Copyright: updated the year.
@@ -719,51 +718,48 @@ INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
 16.  Appendix B: Changes Since Previous Document Revision
 
    This appendix lists all changes relative to the previously published
-   revision, draft-ietf-ldapbis-url-03.txt.  Note that when appropriate
+   revision, draft-ietf-ldapbis-url-04.txt.  Note that when appropriate
    these changes are also included in Appendix A, but are also included
-   here for the benefit of the people who have already reviewed draft-
-   ietf-ldapbis-url-03.txt. This section will be removed before this
-   document is published as an RFC.
 
 
 
 Smith & Howes      Intended Category: Standards Track          [Page 13]
 
-INTERNET-DRAFT       LDAP: Uniform Resource Locator      25 October 2003
+INTERNET-DRAFT       LDAP: Uniform Resource Locator     13 February 2004
+
+
+   here for the benefit of the people who have already reviewed draft-
+   ietf-ldapbis-url-04.txt. This section will be removed before this
+   document is published as an RFC.
 
 
 16.1.  Technical Changes
 
-   None.
+   Clarified and strengthened the requirements with respect to
+   processing of URLs that contain recognized and unrecognized
+   extensions (the approach now matches that specified in [Protocol] for
+   LDAP controls).
 
 
 16.2.  Editorial Changes
 
-   "URL Definition" section: added comments in the ABNF to point the
-   reader to the "Escaping Using the % Method" section, which was
-   changed into a section of its own to highlight the importance of
-   escaping the URL components correctly.
+   "URL Definition" section: corrected a section reference to
+   [Protocol].
 
-   "Examples" section: changed the name of an attribute used in one
-   example from "int" to "four-octet" to avoid potential confusion.
+   "Examples" section: improved formatting and fixed a typographic error
+   (removed extraneous "IP") in the "four-octet" example.
 
-   Replaced all occurrences of "asterix" with the correctly spelled
-   "asterisk."
+   "Normative References" section: changed the UTF-8 reference to point
+   to RFC 3629, changed the RFC 3383 reference to point to the LDAP IANA
+   Internet Draft, and indented the reference descriptions to enhance
+   readability.
 
-   "Normative References" section: changed UTF-8 reference to point to
-   the UTF-8 Internet Draft; replace [LDAPIANA] Internet Draft reference
-   with a reference to RFC 3383.
+   Authors' Addresses section: New contact information for Mark Smith.
 
-   "Intellectual Property Rights" section: added.
-
-   Author's Addresses section: New email address for Mark Smith.
-
-   "Full Copyright Statement" section: updated text to match latest IETF
-   guidelines.
+   Updated the copyright year to 2004.
 
 
-This Internet Draft expires on 25 April 2004.
-
+This Internet Draft expires on 13 August 2004.
 
 
 
@@ -785,3 +781,4 @@ This Internet Draft expires on 25 April 2004.
 
 Smith & Howes      Intended Category: Standards Track          [Page 14]
 
+

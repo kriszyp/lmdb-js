@@ -6,13 +6,14 @@
 
 INTERNET-DRAFT                              Editor: Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                   30 June 2003
+Expires in six months                               15 February 2004
 Obsoletes: RFC 2251-2256, 2829-2830, 3377
 
 
 
-                  LDAP: Technical Specification Road Map
-                   <draft-ietf-ldapbis-roadmap-03.txt>
+              Lightweight Directory Access Protocol (LDAP):
+                     Technical Specification Road Map
+                   <draft-ietf-ldapbis-roadmap-04.txt>
 
 
 Status of this Memo
@@ -39,7 +40,7 @@ Status of this Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright (C) The Internet Society (2003).  All Rights Reserved.
+  Copyright (C) The Internet Society (2004).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -54,10 +55,9 @@ Abstract
 
 
 
-
 Zeilenga                    LDAP: TS Road Map                   [Page 1]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-04     15 February 2004
 
 
 Conventions
@@ -73,8 +73,8 @@ Conventions
   Directory Access Protocol (LDAP), an Internet Protocol, consists of
   this document and the following documents:
 
-      LDAP: Directory Information Models [Models],
       LDAP: The Protocol [Protocol],
+      LDAP: Directory Information Models [Models],
       LDAP: Authentication Methods and Connection Level Security
             Mechanisms [AuthMeth],
       LDAP: String Representation of Distinguished Names [LDAPDN],
@@ -113,7 +113,7 @@ Conventions
 
 Zeilenga                    LDAP: TS Road Map                   [Page 2]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-04     15 February 2004
 
 
   This technical specification explicitly incorporates portions of
@@ -130,7 +130,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
 
   This technical specification, as defined in Section 1, obsoletes
   entirely the previously defined LDAP technical specification [RFC3377]
-  (which consists of RFC 2251-2256, RFC 2829-2830 and [RFC3377] itself).
+  (which consists of RFC 2251-2256, RFC 2829-2830 and RFC 3377 itself).
   The technical specification was significantly reorganized.
 
   This document replaces RFC 3377 as well as Section 3.3 of RFC 2251.
@@ -149,6 +149,11 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
   A.1 of this document details changes made to RFC 3377.  Appendix A.2
   of this document details changes made to Section 3.3 of RFC 2251.
 
+  Additionally, portions of this technical specification update and/or
+  replace documents not listed above.  These relationships are discussed
+  in the documents detailings these portions of this technical
+  specification.
+
 
 5. Acknowledgments
 
@@ -160,16 +165,17 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
   This document is a product of the IETF LDAPBIS Working Group.
 
 
-6. Author's Address
-
-  Kurt Zeilenga
-  E-mail: <kurt@openldap.org>
-
 
 
 Zeilenga                    LDAP: TS Road Map                   [Page 3]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-04     15 February 2004
+
+
+6. Author's Address
+
+  Kurt Zeilenga
+  E-mail: <kurt@openldap.org>
 
 
 7. References
@@ -182,12 +188,12 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
   [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP", draft-
                 ietf-ldapbis-bcp64-xx.txt, a work in progress.
 
+  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
+                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
+
   [Models]      Zeilenga, K. (editor), "LDAP: Directory Information
                 Models", draft-ietf-ldapbis-models-xx.txt, a work in
                 progress.
-
-  [Protocol]    Sermersheim, J. (editor), "LDAP: The Protocol",
-                draft-ietf-ldapbis-protocol-xx.txt, a work in progress.
 
   [AuthMeth]    Harrison, R. (editor), "LDAP: Authentication Methods and
                 Connection Level Security Mechanisms",
@@ -208,25 +214,24 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
                 draft-ietf-ldapbis-syntaxes-xx.txt, a work in progress.
 
   [LDAPprep]    Zeilenga, K., "LDAP: Internationalized String
-                Preparation", draft-ietf-ldapbis-strpro-xx.txt, a work
+                Preparation", draft-ietf-ldapbis-strprep-xx.txt, a work
                 in progress.
 
   [Schema]      Dally, K. (editor), "LDAP: User Schema",
                 draft-ietf-ldapbis-user-schema-xx.txt, a work in
                 progress.
 
-  [X.500]       International Telecommunication Union -
-                Telecommunication Standardization Sector, "The Directory
-                -- Overview of concepts, models and services,"
-                X.500(1993) (also ISO/IEC 9594-1:1994).
-
-
 
 
 Zeilenga                    LDAP: TS Road Map                   [Page 4]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-04     15 February 2004
 
+
+  [X.500]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Overview of concepts, models and services,"
+                X.500(1993) (also ISO/IEC 9594-1:1994).
 
   [X.501]       International Telecommunication Union -
                 Telecommunication Standardization Sector, "The Directory
@@ -271,19 +276,19 @@ Intellectual Property Rights
   to the implementation or use of the technology described in this
   document or the extent to which any license under such rights might or
   might not be available; neither does it represent that it has made any
-  effort to identify any such rights.  Information on the IETF's
-  procedures with respect to rights in standards-track and
-  standards-related documentation can be found in BCP-11.  Copies of
-  claims of rights made available for publication and any assurances of
-  licenses to be made available, or the result of an attempt made to
 
 
 
 Zeilenga                    LDAP: TS Road Map                   [Page 5]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-04     15 February 2004
 
 
+  effort to identify any such rights.  Information on the IETF's
+  procedures with respect to rights in standards-track and
+  standards-related documentation can be found in BCP-11.  Copies of
+  claims of rights made available for publication and any assurances of
+  licenses to be made available, or the result of an attempt made to
   obtain a general license or permission for the use of such proprietary
   rights by implementors or users of this specification can be obtained
   from the IETF Secretariat.
@@ -298,11 +303,11 @@ INTERNET-DRAFT        draft-ietf-ldapbis-roadmap-03         30 June 2003
 
 Full Copyright
 
-  Copyright (C) The Internet Society (2003). All Rights Reserved.
+  Copyright (C) The Internet Society (2004). All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
-  or assist in its implmentation may be prepared, copied, published and
+  or assist in its implementation may be prepared, copied, published and
   distributed, in whole or in part, without restriction of any kind,
   provided that the above copyright notice and this paragraph are
   included on all such copies and derivative works.  However, this
@@ -312,11 +317,6 @@ Full Copyright
   developing Internet standards in which case the procedures for
   copyrights defined in the Internet Standards process must be followed,
   or as required to translate it into languages other than English.
-
-
-
-
-
 
 
 

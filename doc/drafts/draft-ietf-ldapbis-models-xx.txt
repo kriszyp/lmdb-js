@@ -6,13 +6,13 @@
 
 INTERNET-DRAFT                              Editor: Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                27 October 2003
+Expires in six months                               15 February 2004
 Obsoletes: RFC 2251, RFC 2252, RFC 2256
 
 
 
                     LDAP: Directory Information Models
-                    <draft-ietf-ldapbis-models-09.txt>
+                    <draft-ietf-ldapbis-models-10.txt>
 
 
 
@@ -25,7 +25,7 @@ Status of this Memo
   Distribution of this memo is unlimited.  Technical discussion of this
   document will take place on the IETF LDAP Revision Working Group
   mailing list <ietf-ldapbis@openldap.org>.  Please send editorial
-  comments directly to the author <Kurt@OpenLDAP.org>.
+  comments directly to the editor <Kurt@OpenLDAP.org>.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups.  Note that other
@@ -40,7 +40,7 @@ Status of this Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright (C) The Internet Society (2003).  All Rights Reserved.
+  Copyright (C) The Internet Society (2004).  All Rights Reserved.
 
   Please see the Full Copyright section near the end of this document
   for more information.
@@ -57,7 +57,7 @@ Abstract
 
 Zeilenga                       LDAP Models                      [Page 1]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
 Table of Contents
@@ -80,43 +80,40 @@ Table of Contents
   3.       Directory Administrative and Operational Information  17
   3.1.     Subtrees
   3.2.     Subentries
-  3.3.     The 'objectClass' attribute                           18
-  3.4.     Operational attributes
+  3.3.     The 'objectClass' attribute
+  3.4.     Operational attributes                                18
   4.       Directory Schema                                      21
   4.1.     Schema Definitions                                    22
   4.2.     Subschema Subentries                                  31
-  4.3.     'extensibleObject'                                    34
-  4.4.     Subschema Discovery                                   35
+  4.3.     'extensibleObject'                                    35
+  4.4.     Subschema Discovery
   5.       DSA (Server) Informational Model
   5.1.     Server-specific Data Requirements                     36
   6.       Other Considerations                                  39
   6.1.     Preservation of User Information
-  6.2.     Short Names
-  6.3.     Cache and Shadowing                                   40
+  6.2.     Short Names                                           40
+  6.3.     Cache and Shadowing
   7.       Implementation Guidelines
   7.1.     Server Guidelines
   7.2.     Client Guidelines                                     41
   8.       Security Considerations
-  9.       IANA Considerations
-  10.      Acknowledgments                                       42
-  11.      Author's Address
-  12.      References                                            43
+  9.       IANA Considerations                                   42
+  10.      Acknowledgments                                       43
+  11.      Editor's Address
+  12.      References
   12.1.    Normative References
-  12.2.    Informative References                                44
+  12.2.    Informative References                                45
   Appendix A.  Changes
-  A.1      Changes to RFC 2251                                   44
-  A.2      Changes to RFC 2252                                   46
-  A.3      Changes to RFC 2256                                   48
-  Intellectual Property Rights
+  Intellectual Property Rights                                   49
+  Full Copyright
+
+
 
 
 
 Zeilenga                       LDAP Models                      [Page 2]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
-  Full Copyright                                                 49
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
 1. Introduction
@@ -150,10 +147,10 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Section 4 discusses the subschema information model and subschema
   discovery.  Section 5 discusses the DSA (Server) Informational Model.
 
-  Other X.500 information models, such as access control, collective
-  attribute, distribution knowledge, and replication knowledge
-  information models, may be adapted for use in LDAP.  Specification of
-  how these models apply to LDAP is left to future documents.
+  Other X.500 information models, such as access control distribution
+  knowledge, and replication knowledge information models, may be
+  adapted for use in LDAP.  Specification of how these models apply to
+  LDAP is left to future documents.
 
 
 1.1. Relationship to Other LDAP Specifications
@@ -164,16 +161,16 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   This document obsoletes RFC 2251 sections 3.2 and 3.4, as well as
   portions of sections 4 and 6.  Appendix A.1 summaries changes to these
+  sections.  The remainder of RFC 2251 is obsoleted by the [Protocol],
+  [AuthMeth], and [Roadmap] documents.
+
 
 
 
 Zeilenga                       LDAP Models                      [Page 3]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
-
-  sections.  The remainder of RFC 2251 is obsoleted by the [Protocol],
-  [AuthMeth], and [Roadmap] documents.
 
   This document obsoletes RFC 2252 sections 4, 5 and 7.  Appendix A.2
   summaries changes to these sections.  The remainder of RFC 2252 is
@@ -186,7 +183,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 1.2. Relationship to X.501
 
-  This document includes material, with and without adaptation, from the
+  This document includes material, with and without adaptation, from
   [X.501].  The material in this document takes precedence over that in
   [X.501].
 
@@ -213,49 +210,46 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       keystring = leadkeychar *keychar
       leadkeychar = ALPHA
       keychar = ALPHA / DIGIT / HYPHEN
+      number  = DIGIT / ( LDIGIT 1*DIGIT )
 
-      number = DIGIT / ( LDIGIT 1*DIGIT )
+      ALPHA   = UALPHA / %x61-7A    ; "A"-"Z" / "a"-"z"
+      UALPHA  = %x41-5A             ; "A"-"Z"
+      DIGIT   = %x30 / LDIGIT       ; "0"-"9"
+      LDIGIT  = %x31-39             ; "1"-"9"
+      HEX     = DIGIT / %x41-46 / %x61-66 ; "0"-"9" / "A"-"F" / "a"-"f"
 
-      ALPHA  = %x41-5A / %x61-7A   ; "A"-"Z" / "a"-"z"
-      DIGIT  = %x30 / LDIGIT       ; "0"-"9"
-      LDIGIT = %x31-39             ; "1"-"9"
-
+      SP      = 1*SPACE  ; one or more " "
+      WSP     = 0*SPACE  ; zero or more " "
 
 
 
 Zeilenga                       LDAP Models                      [Page 4]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
-      HEX     = DIGIT / %x41-46 / %x61-66 ; 0-9 / A-F / a-f
+      NULL    = %x00 ; null (0)
+      SPACE   = %x20 ; space (" ")
+      DQUOTE  = %x22 ; quote (""")
+      SHARP   = %x23 ; octothorpe (or sharp sign) ("#")
+      DOLLAR  = %x24 ; dollar sign ("$")
+      SQUOTE  = %x27 ; single quote ("'")
+      LPAREN  = %x28 ; left paren ("(")
+      RPAREN  = %x29 ; right paren (")")
+      PLUS    = %x2B ; plus sign ("+")
+      COMMA   = %x2C ; comma (",")
+      HYPHEN  = %x2D ; hyphen ("-")
+      DOT     = %x2E ; period (".")
+      SEMI    = %x3B ; semicolon (";")
+      LANGLE  = %x3C ; left angle bracket ("<")
+      EQUALS  = %x3D ; equals sign ("=")
+      RANGLE  = %x3E ; right angle bracket (">")
+      ESC     = %x5C ; backslash ("\")
+      USCORE  = %x5F ; underscore ("_")
+      LCURLY  = %x7B ; left curly brace "{"
+      RCURLY  = %x7D ; right curly brace "}"
 
-      SP     = 1*SPACE  ; one or more " "
-      WSP    = 0*SPACE  ; zero or more " "
-
-      NULL   = %x00 ; null (0)
-      SPACE  = %x20 ; space (" ")
-      DQUOTE = %x22 ; quote (""")
-      SHARP  = %x23 ; octothorpe (or sharp sign) ("#")
-      DOLLAR = %x24 ; dollar sign ("$")
-      SQUOTE = %x27 ; single quote ("'")
-      LPAREN = %x28 ; left paren ("(")
-      RPAREN = %x29 ; right paren (")")
-      PLUS   = %x2B ; plus sign ("+")
-      COMMA  = %x2C ; comma (",")
-      HYPHEN = %x2D ; hyphen ("-")
-      DOT    = %x2E ; period (".")
-      SEMI   = %x3B ; semicolon (";")
-      LANGLE = %x3C ; left angle bracket ("<")
-      EQUALS = %x3D ; equals sign ("=")
-      RANGLE = %x3E ; right angle bracket (">")
-      X      = %x58 ; uppercase x ("X")
-      ESC    = %x5C ; backslash ("\")
-      USCORE = %x5F ; underscore ("_")
-      LCURLY = %x7B ; left curly brace "{"
-      RCURLY = %x7D ; right curly brace "}"
-
-      ; Any UTF-8 character
+      ; Any UTF-8 [UTF-8] encoded UCS [ISO10646] character
       UTF8    = UTF1 / UTFMB
       UTFMB   = UTF2 / UTF3 / UTF4
       UTF0    = %x80-BF
@@ -266,30 +260,29 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       UTF4    = %xF0 %x90-BF 2(UTF0) / %xF1-F3 3(UTF0) /
                 %xF4 %x80-8F 2(UTF0)
 
-      ; Any octet
-      OCTET   = %x00-FF
+      OCTET   = %x00-FF ; Any octet
 
   Object identifiers (OIDs) [X.680] are represented in LDAP using a dot-
   decimal format conforming to the ABNF:
 
-      numericoid = number *( DOT number )
+      numericoid = number 1*( DOT number )
 
   Short names, also known as descriptors, are used as more readable
   aliases for object identifiers.  Short names are case insensitive and
-
-
-
-Zeilenga                       LDAP Models                      [Page 5]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   conform to the ABNF:
 
       descr = keystring
 
   Where either an object identifier or a short name may be specified,
   the following production is used:
+
+
+
+
+Zeilenga                       LDAP Models                      [Page 5]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
 
       oid = descr / numericoid
 
@@ -301,10 +294,8 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   identify multiple kinds of objects or when an unambiguous short name
   (descriptor) is not available.
 
-  When the <descr> form is used, the representation SHALL be considered
-  invalid if the usage is not restricted as discussed above or the
-  implementation cannot determine unambiguously which object identifier
-  the <descr> refers to.
+  Implementations SHOULD treat short names (descriptors) used in an
+  unambiguous manner (as discussed above) as unrecognized.
 
   Short Names (descriptors) are discussed further in Section 6.2.
 
@@ -333,13 +324,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   provides alternative naming.  A subentry holds administrative and/or
   operational information.
 
-
-
-Zeilenga                       LDAP Models                      [Page 6]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   The set of entries representing the DIB are organized hierarchically
   in a tree structure known as the Directory Information Tree (DIT).
 
@@ -348,6 +332,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Section 2.3 discusses the structure of entries.
   Section 2.4 discusses object classes.
   Section 2.5 discusses attribute descriptions.
+
+
+
+Zeilenga                       LDAP Models                      [Page 6]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   Section 2.6 discusses alias entries.
 
 
@@ -389,19 +381,21 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   immediate subordinates of the entry's immediate superior (i.e., all
   siblings).
 
+  The following are examples of string representations of RDNs [LDAPDN]:
 
-
-Zeilenga                       LDAP Models                      [Page 7]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
-  The following are example string representations of RDNs [LDAPDN]:
       UID=12345
       OU=Engineering
       CN=Kurt Zeilenga+L=Redwood Shores
 
   The last is an example of a multi-valued RDN.  That is, an RDN
+
+
+
+Zeilenga                       LDAP Models                      [Page 7]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   composed of multiple AVAs.
 
 
@@ -410,7 +404,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   An entry's fully qualified name, known as its Distinguished Name (DN)
   [X.501], is the concatenation of its RDN and its immediate superior's
   DN.  A Distinguished Name unambiguously refers to an entry in the
-  tree.  The following are example string representations of DNs
+  tree.  The following are examples of string representations of DNs
   [LDAPDN]:
 
       UID=nobody@example.com,DC=example,DC=com
@@ -427,7 +421,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 2.3. Structure of an Entry
 
   An entry consists of a set of attributes which hold information about
-  the object which entry represents.  Some attributes represent user
+  the object which the entry represents.  Some attributes represent user
   information and are called user attributes.  Other attributes
   represent operational and/or administrative information and are called
   operational attributes.
@@ -445,21 +439,22 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   subtypes and other functions.  No two values of an attribute may be
   equivalent.
 
-
-
-Zeilenga                       LDAP Models                      [Page 8]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   Two values are considered equivalent if they would match according to
   the equality matching rule of the attribute type.  If the attribute
   type is defined with no equality matching rule, two values are
   equivalent if and only if they are identical.
 
-  For example, the 'givenName' attribute can have can have more than one
+
+
+
+Zeilenga                       LDAP Models                      [Page 8]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
+  For example, a 'givenName' attribute can have can have more than one
   value, they must be Directory Strings, and they are case insensitive.
-  The 'givenName' attribute cannot hold both "John" and "JOHN" as these
+  A 'givenName' attribute cannot hold both "John" and "JOHN" as these
   are equivalent values per the equality matching rule of the attribute
   type.
 
@@ -500,19 +495,19 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   Each object class identifies the set of attributes required to be
   present in entries belonging to the class and the set of attributes
-
-
-
-Zeilenga                       LDAP Models                      [Page 9]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   allowed to be present in entries belonging to the class.  As an entry
   of a class must meet the requirements of each class it belongs to, it
   can be said that an object class inherits the sets of allowed and
   required attributes from its superclasses.  A subclass can identify an
   attribute allowed by its superclass as being required.  If an
+
+
+
+Zeilenga                       LDAP Models                      [Page 9]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   attribute is a member of both sets, it is required to be present.
 
   Each object class is defined to be one of three kinds of object
@@ -537,6 +532,9 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   'top' abstract object class.  Auxiliary object classes do not
   necessarily derive from 'top'.
 
+  The following is the object class definition (see Section 4.1.1) for
+  the 'top' object class:
+
       ( 2.5.6.0 NAME 'top' ABSTRACT MUST objectClass )
 
   All entries belong to the 'top' abstract object class.
@@ -557,14 +555,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       This structural object class is referred to as the structural
       object class of the entry.
 
+      Structural object classes are related to associated entries:
+
 
 
 Zeilenga                       LDAP Models                     [Page 10]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
-
-      Structural object classes are related to associated entries:
 
         - an entry conforming to a structural object class shall
           represent the real-world object constrained by the object
@@ -586,21 +584,20 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Structural object classes cannot subclass auxiliary object classes.
 
   Each entry is said to belong to its structural object class as well as
-  all classes in its structural object class's superclass chain, which
-  always includes 'top'.
+  all classes in its structural object class's superclass chain.
 
 
 2.4.3. Auxiliary Object Classes
 
   Auxiliary object classes are used augment the characteristics of
   entries.  They are commonly used to augment the sets of attributes
-  required and allowed attributes to be present in an entry.  They can
-  be used to describe entries or classes of entries.
+  required and allowed to be present in an entry.  They can be used to
+  describe entries or classes of entries.
 
   Auxiliary object classes cannot subclass structural object classes.
 
   An entry can belong to any subset of the set of auxiliary object
-  classes allowed by the DIT content rule associated with structural
+  classes allowed by the DIT content rule associated with the structural
   object class of the entry.  If no DIT content rule is associated with
   the structural object class of the entry, the entry cannot belong to
   any auxiliary object class.
@@ -612,25 +609,22 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 2.5. Attribute Descriptions
 
   An attribute description is composed of an attribute type (see Section
+  2.5.1) and a set of zero or more attribute options (see Section
+  2.5.2).
+
 
 
 
 Zeilenga                       LDAP Models                     [Page 11]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
-
-  2.5.1) and a set of zero or more attribute options (see Section
-  2.5.2).
 
   An attribute description is represented by the ABNF:
 
       attributedescription = attributetype options
-
       attributetype = oid
-
       options = *( SEMI option )
-
       option = 1*keychar
 
   where <attributetype> identifies the attribute type and each <option>
@@ -645,11 +639,11 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       cn;lang-de;lang-en
       owner
 
-  An attribute description which consisting of an unrecognized attribute
-  type is to be treated as unrecognized.  Servers SHALL treat an
-  attribute description with an unrecognized attribute option as
-  unrecognized.  Clients MAY treat an unrecognized attribute option as a
-  tagging option (see Section 2.5.2.1).
+  An attribute description with an unrecognized attribute type is to be
+  treated as unrecognized.  Servers SHALL treat an attribute description
+  with an unrecognized attribute option as unrecognized.  Clients MAY
+  treat an unrecognized attribute option as a tagging option (see
+  Section 2.5.2.1).
 
   All attributes of an entry must have distinct attribute descriptions.
 
@@ -662,25 +656,28 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   The attribute type indicates whether the attribute is a user attribute
   or an operational attribute.  If operational, the attribute type
-  indicates the operational usage and whether the attribute can
-  modifiable by users or not.  Operational attributes discussed in
+  indicates the operational usage and whether the attribute is
+  modifiable by users or not.  Operational attributes are discussed in
   Section 3.4.
 
-  An attribute type (a subtype) may derive from another attribute type
-  (a direct supertype).   The subtype inherits the matching rules and
+  An attribute type (a subtype) may derive from a more generic attribute
+  type (a direct supertype).  The following restrictions apply to
+  subtyping:
+    - a subtype must have the same usage as its direct supertype,
+    - a subtype's syntax must be the same, or a refine of, its
+      supertype's syntax, and
+    - a subtype must be collective [RFC3671] if its supertype is
+      collective.
 
 
 
 Zeilenga                       LDAP Models                     [Page 12]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
-
-  syntax of its supertype.  An attribute type cannot be a subtype of an
-  attribute of different usage.
 
   An attribute description consisting of a subtype and no options is
-  said to the direct description subtype of the attribute description
+  said to be the direct description subtype of the attribute description
   consisting of the subtype's direct supertype and no options.
 
   Each attribute type is identified by an object identifier (OID) and,
@@ -725,22 +722,23 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   any number of tagging options.  Tagging options are never mutually
   exclusive.
 
+  An attribute description with N tagging options is a direct
+  (description) subtype of all attribute descriptions of the same
+
 
 
 Zeilenga                       LDAP Models                     [Page 13]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
-  An attribute description with N tagging options is considered a direct
-  (description) subtype of all attribute descriptions of the same
   attribute type and all but one of the N options.  If the attribute
-  type has a supertype, then the attribute description is also
-  considered a direct (description) subtype of the attribute description
-  of the supertype and the N tagging options.  That is,
-  'cn;lang-de;lang-en' is considered a direct subtype of 'cn;lang-de',
-  'cn;lang-en', and 'name;lang-de;lang-en' ('cn' is a subtype of 'name',
-  both are defined in [Schema]).
+  type has a supertype, then the attribute description is also a direct
+  (description) subtype of the attribute description of the supertype
+  and the N tagging options.  That is, 'cn;lang-de;lang-en' is a direct
+  (description) subtype of 'cn;lang-de', 'cn;lang-en', and
+  'name;lang-de;lang-en' ('cn' is a subtype of 'name', both are defined
+  in [Schema]).
 
 
 2.5.3. Attribute Description Hierarchies
@@ -780,31 +778,31 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       modification of entry content.
 
       An attribute value stored in a object or alias entry is of
+      precisely one attribute description.  The description is indicated
+      when the value is originally added to the entry.
 
 
 
 Zeilenga                       LDAP Models                     [Page 14]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
-      precisely one attribute description.  The description is indicated
-      when the value is originally added to the entry.
-
-  For the purpose of subschema administration of the entry, a required
-  attribute specification is fulfilled if the entry contains a value of
-  an attribute description belonging to an attribute hierarchy if the
-  attribute type of that description is the same as the required
-  attribute's type.  That is, a "MUST name" specification is fulfilled
-  by 'name' or 'name;x-tag-option', but is not fulfilled by 'CN' nor by
-  'CN;x-tag-option'.  Likewise, an entry may contain a value of an
-  attribute description belonging to an attribute hierarchy if the
-  attribute type of that description is either explicitly included in
-  the definition of an object class to which the entry belongs or
-  allowed by the DIT content rule applicable to that entry.  That is,
-  'name' and 'name;x-tag-option' are allowed by "MAY name" (or by "MUST
-  name"), but 'CN' and 'CN;x-tag-option' are not allowed by "MAY name"
-  (nor by "MUST name").
+  For the purpose of subschema administration of the entry, a
+  specification that an attribute is required is fulfilled if the entry
+  contains a value of an attribute description belonging to an attribute
+  hierarchy where the attribute type of that description is the same as
+  the required attribute's type.  That is, a "MUST name" specification
+  is fulfilled by 'name' or 'name;x-tag-option', but is not fulfilled by
+  'CN' nor by 'CN;x-tag-option' (even though 'CN' is a subtype of
+  'name').  Likewise, an entry may contain a value of an attribute
+  description belonging to an attribute hierarchy where the attribute
+  type of that description is either explicitly included in the
+  definition of an object class to which the entry belongs or allowed by
+  the DIT content rule applicable to that entry.  That is, 'name' and
+  'name;x-tag-option' are allowed by "MAY name" (or by "MUST name"), but
+  'CN' and 'CN;x-tag-option' are not allowed by "MAY name" (nor by "MUST
+  name").
 
   For the purposes of other policy administration, unless stated
   otherwise in the specification of the particular administrative model,
@@ -837,14 +835,15 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       name of some object.  The distinguished name of the alias entry is
       thus also a name for this object.
 
+          NOTE - The name within the 'aliasedObjectName' is said to be
+
 
 
 Zeilenga                       LDAP Models                     [Page 15]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
-          NOTE - The name within the 'aliasedObjectName' is said to be
                  pointed to by the alias.  It does not have to be the
                  distinguished name of any entry.
 
@@ -892,21 +891,21 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   points to.  The 'aliasedObjectName' attribute is known as the
   'aliasedEntryName' attribute in X.500.
 
+      ( 2.5.4.1 NAME 'aliasedObjectName'
 
 
 
 Zeilenga                       LDAP Models                     [Page 16]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
-      ( 2.5.4.1 NAME 'aliasedObjectName'
         EQUALITY distinguishedNameMatch
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
         SINGLE-VALUE )
 
   The 'distinguishedNameMatch' matching rule and the DistinguishedName
-  (1.3.6.1.4.1.1466.115.121.1.12) syntax is defined in [Syntaxes].
+  (1.3.6.1.4.1.1466.115.121.1.12) syntax are defined in [Syntaxes].
 
 
 3. Directory Administrative and Operational Information
@@ -929,10 +928,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       lower boundary, possibly extending to leaves.  A subtree is always
       defined within a context which implicitly bounds the subtree.  For
       example, the vertex and lower boundaries of a subtree defining a
-      replicated area are bounded by a naming context.  Similarly, the
-      scope of a subtree defining a specific administrative area is
-      limited to the context of an enclosing autonomous administrative
-      area.
+      replicated area are bounded by a naming context.
 
 
 3.2. Subentries
@@ -941,24 +937,23 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   to hold information associated with a subtree or subtree refinement"
   [X.501].  Subentries are used in Directory to hold for administrative
   and operational purposes as defined in [X.501].  Their use in LDAP is
-  not detailed in this technical specification, but may be detailed in
-  future documents.
+  detailed in [RFC3672].
 
   The term "(sub)entry" in this specification indicates that servers
-  implementing X.500(93) models are, in accordance with X.500(93), to
-  use a subentry and that other servers are to use an object entry
-  belonging to the appropriate auxiliary class normally used with the
+  implementing X.500(93) models are, in accordance with X.500(93) as
+  described in [RFC3672], to use a subentry and that other servers are
+  to use an object entry belonging to the appropriate auxiliary class
+  normally used with the subentry (e.g., 'subschema' for subschema
+  subentries) to mimic the subentry.  This object entry's RDN SHALL be
+  formed from a value of the 'cn' (commonName) attribute [Schema] (as
+  all subentries are named with 'cn').
+
 
 
 
 Zeilenga                       LDAP Models                     [Page 17]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
-  subentry (e.g., 'subschema' for subschema subentries) to mimic the
-  subentry.  This object entry's RDN SHALL be formed from a value of the
-  'cn' (commonName) attribute [Schema].
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
 3.3. The 'objectClass' attribute
@@ -969,11 +964,11 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         EQUALITY objectIdentifierMatch
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
-  The 'objectIdentifierMatch' matching rule and OBJECT IDENTIFIER
-  (1.3.6.1.4.1.1466.115.121.1.38) syntax is defined in [Syntaxes].
+  The 'objectIdentifierMatch' matching rule and the OBJECT IDENTIFIER
+  (1.3.6.1.4.1.1466.115.121.1.38) syntax are defined in [Syntaxes].
 
   The 'objectClass' attribute specifies the object classes of an entry,
-  which (among other things) is used in conjunction with user and system
+  which (among other things) is used in conjunction with the controlling
   schema to determine the permitted attributes of an entry.  Values of
   this attribute can be modified by clients, but the 'objectClass'
   attribute cannot be removed.
@@ -989,7 +984,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   a subclass of the class 'x-b', adding 'x-a' to 'objectClass' causes
   'x-b' to be implicitly added (if is not already present).
 
-  Servers SHALL restrict modifications of this attribute to prevent a
+  Servers SHALL restrict modifications of this attribute to prevent
   superclasses of remaining 'objectClass' values from being deleted.
   That is, if the auxiliary class 'x-a' is a subclass of the auxiliary
   class 'x-b' and the 'objectClass' attribute contains 'x-a' and 'x-b',
@@ -1005,27 +1000,27 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Directory operational attributes, DSA-shared operational attributes,
   and DSA-specific operational attributes."
 
-
-
-Zeilenga                       LDAP Models                     [Page 18]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   A directory operational attribute is used to represent operational
   and/or administrative information in the Directory Information Model.
   This includes operational attributes maintained by the server (e.g.
   'createTimestamp') as well as operational attributes which hold values
+
+
+
+Zeilenga                       LDAP Models                     [Page 18]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   administrated by the user (e.g. 'ditContentRules').
 
   A DSA-shared operational attribute is used to represent information of
-  the DSA Information Model.  Its values, if shared between DSAs
-  (servers) are identical (except during periods of transient
-  inconsistency).
+  the DSA Information Model which is shared between DSAs.
 
   A DSA-specific operational attribute is used to represent information
-  of the DSA Information Model.  Its values, if shared between DSAs
-  (servers), need not be identical.
+  of the DSA Information Model which is specific to the DSA (though, in
+  some cases, may be derived from information shared between DSAs)
+  (e.g., 'namingContexts').
 
   The DSA Information Model operational attributes are detailed in
   [X.501].
@@ -1036,20 +1031,21 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Not all operational attributes are user modifiable.
 
   Entries may contain, among others, the following operational
-  attributes.
+  attributes:
 
     - creatorsName: the Distinguished Name of the user who added this
-      entry to the directory.
+      entry to the directory,
 
-    - createTimestamp: the time this entry was added to the directory.
+    - createTimestamp: the time this entry was added to the directory,
 
     - modifiersName: the Distinguished Name of the user who last
-      modified this entry.
+      modified this entry, and
 
     - modifyTimestamp: the time this entry was last modified.
 
   Servers SHOULD maintain the 'creatorsName', 'createTimestamp',
-  'modifiersName', and 'modifyTimestamp' for all entries of the DIT.
+  'modifiersName', and 'modifyTimestamp' attributes for all entries of
+  the DIT.
 
 
 3.4.1. 'creatorsName'
@@ -1060,17 +1056,17 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
       ( 2.5.18.3 NAME 'creatorsName'
         EQUALITY distinguishedNameMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+        SINGLE-VALUE NO-USER-MODIFICATION
+        USAGE directoryOperation )
+
 
 
 
 Zeilenga                       LDAP Models                     [Page 19]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
-
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
-        SINGLE-VALUE NO-USER-MODIFICATION
-        USAGE directoryOperation )
 
   The 'distinguishedNameMatch' matching rule and the DistinguishedName
   (1.3.6.1.4.1.1466.115.121.1.12) syntax are defined in [Syntaxes].
@@ -1116,24 +1112,52 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   protocol (e.g., using the Modify operation).  The value is the time
   the entry was last modified.
 
+      ( 2.5.18.2 NAME 'modifyTimestamp'
+        EQUALITY generalizedTimeMatch
+        ORDERING generalizedTimeOrderingMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
 
 
 
 Zeilenga                       LDAP Models                     [Page 20]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
-      ( 2.5.18.2 NAME 'modifyTimestamp'
-        EQUALITY generalizedTimeMatch
-        ORDERING generalizedTimeOrderingMatch
-        SYNTAX 1.3.6.1.4.1.1466.115.121.1.24
         SINGLE-VALUE NO-USER-MODIFICATION
         USAGE directoryOperation )
 
   The 'generalizedTimeMatch' and 'generalizedTimeOrderingMatch' matching
   rules and the GeneralizedTime (1.3.6.1.4.1.1466.115.121.1.24) syntax
   are defined in [Syntaxes].
+
+
+3.4.5. 'structuralObjectClass'
+
+  This attribute indicates the structural object class of the entry.
+
+      ( 2.5.21.9 NAME 'structuralObjectClass'
+        EQUALITY objectIdentifierMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
+        SINGLE-VALUE NO-USER-MODIFICATION
+        USAGE directoryOperation )
+
+  The 'objectIdentifierMatch' matching rule and OBJECT IDENTIFIER
+  (1.3.6.1.4.1.1466.115.121.1.38) syntax is defined in [Syntaxes].
+
+
+3.4.6. 'governingStructureRule'
+
+  This attribute indicates the structure rule governing the entry.
+
+      ( 2.5.21.10 NAME 'governingStructureRule'
+        EQUALITY integerMatch
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
+        SINGLE-VALUE NO-USER-MODIFICATION
+        USAGE directoryOperation )
+
+  The 'integerMatch' matching rule and INTEGER
+  (1.3.6.1.4.1.1466.115.121.1.27) syntax is defined in [Syntaxes].
 
 
 4. Directory Schema
@@ -1147,6 +1171,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       organization into hierarchies to facilitate search and retrieval
       of the information and the ways in which values of attributes may
       be matched in attribute value and matching rule assertions.
+
+
+
+
+Zeilenga                       LDAP Models                     [Page 21]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
 
       NOTE 1 - The schema enables the Directory system to, for example:
 
@@ -1172,14 +1204,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
       c) DIT Content Rule definitions that extend the specification of
          allowable attributes for entries beyond those indicated by the
-
-
-
-Zeilenga                       LDAP Models                     [Page 21]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
          structural object classes of the entries;
 
       d) Object Class definitions that define the basic set of mandatory
@@ -1198,53 +1222,44 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   And in LDAP:
 
-      g) LDAP Syntaxes definitions that define encodings used in LDAP.
+      g) LDAP Syntax definitions that define encodings used in LDAP.
 
 
 4.1. Schema Definitions
 
   Schema definitions in this section are described using ABNF and rely
-  on the common productions specified in Section 1.2 as well as these:
-
-      noidlen = numericoid [ LCURLY len RCURLY ]
-
-      len = number
-
-      oids = oid / ( LPAREN WSP oidlist WSP RPAREN )
-
-      oidlist = oid *( WSP DOLLAR WSP oid )
-
-      extensions = *( SP xstring SP qdstrings )
-
-      xstring = X HYPHEN 1*( ALPHA / HYPHEN / USCORE )
-
-      qdescrs = qdescr / ( LPAREN WSP qdescrlist WSP RPAREN )
-
-      qdescrlist = [ qdescr *( SP qdescr ) ]
-
-      qdescr = SQUOTE descr SQUOTE
-
-      qdstrings = qdstring / ( LPAREN WSP qdstringlist WSP RPAREN )
-
-      qdstringlist = [ qdstring *( SP qdstring ) ]
-
 
 
 
 Zeilenga                       LDAP Models                     [Page 22]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
+  on the common productions specified in Section 1.2 as well as these:
+
+      noidlen = numericoid [ LCURLY len RCURLY ]
+      len = number
+
+      oids = oid / ( LPAREN WSP oidlist WSP RPAREN )
+      oidlist = oid *( WSP DOLLAR WSP oid )
+
+      extensions = *( SP xstring SP qdstrings )
+      xstring = "X" HYPHEN 1*( UALPHA / HYPHEN / USCORE )
+
+      qdescrs = qdescr / ( LPAREN WSP qdescrlist WSP RPAREN )
+      qdescrlist = [ qdescr *( SP qdescr ) ]
+      qdescr = SQUOTE descr SQUOTE
+
+      qdstrings = qdstring / ( LPAREN WSP qdstringlist WSP RPAREN )
+      qdstringlist = [ qdstring *( SP qdstring ) ]
       qdstring = SQUOTE dstring SQUOTE
-
-      dstring = 1*( QS / QQ / QUTF8 )   ; escaped UTF8 string
+      dstring = 1*( QS / QQ / QUTF8 )   ; escaped UTF-8 string
 
       QQ =  ESC %x32 %x37 ; "\27"
-
       QS =  ESC %x35 ( %x43 / %x63 ) ; "\5C" / "\5c"
 
-      ; Any UTF-8 encoded UCS character
+      ; Any UTF-8 encoded Unicode character
       ; except %x27 ("'") and %x5C ("\")
       QUTF8    = QUTF1 / UTFMB
 
@@ -1270,6 +1285,13 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   are followed by <SP> and <qdstrings> tokens.
 
 
+
+
+Zeilenga                       LDAP Models                     [Page 23]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
 4.1.1. Object Class Definitions
 
   Object Class definitions are written according to the ABNF:
@@ -1284,13 +1306,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         [ SP "MUST" SP oids ]      ; attribute types
         [ SP "MAY" SP oids ]       ; attribute types
         extensions WSP RPAREN
-
-
-
-Zeilenga                       LDAP Models                     [Page 23]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
 
     kind = "ABSTRACT" / "STRUCTURAL" / "AUXILIARY"
 
@@ -1325,6 +1340,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         [ SP "SINGLE-VALUE" ]         ; single-value
         [ SP "COLLECTIVE" ]           ; collective
         [ SP "NO-USER-MODIFICATION" ] ; not user modifiable
+
+
+
+Zeilenga                       LDAP Models                     [Page 24]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
         [ SP "USAGE" SP usage ]       ; usage
         extensions WSP RPAREN         ; extensions
 
@@ -1340,34 +1363,27 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
     DESC <qdstring> is a short descriptive string;
     OBSOLETE indicates this attribute type is not active;
     SUP oid specifies the direct supertype of this type;
-
-
-
-Zeilenga                       LDAP Models                     [Page 24]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
     EQUALITY, ORDERING, SUBSTRING provide the oid of the equality,
         ordering, and substrings matching rules, respectively;
     SYNTAX identifies value syntax by object identifier and may suggest
         a minimum upper bound;
-    COLLECTIVE indicates this attribute type is collective [X.501];
+    COLLECTIVE indicates this attribute type is collective
+        [X.501][RFC3671];
     NO-USER-MODIFICATION indicates this attribute type is not user
         modifiable;
     USAGE indicates the application of this attribute type; and
     <extensions> describe extensions.
 
   Each attribute type description must contain at least one of the SUP
-  or SYNTAX fields.
+  or SYNTAX fields.  If no SYNTAX field is provided, the attribute type
+  description takes its value from the supertype.
+
+  If SUP field is provided, the EQUALITY, ORDERING, and SUBSTRING
+  fields, if not specified, take their value from the supertype.
 
   Usage of userApplications, the default, indicates that attributes of
   this type represent user information.  That is, they are user
   attributes.
-
-  COLLECTIVE requires usage userApplications.  Use of collective
-  attribute types in LDAP is not discussed in this technical
-  specification.
 
   A usage of directoryOperation, distributedOperation, or dSAOperation
   indicates that attributes of this type represent operational and/or
@@ -1379,12 +1395,23 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   attribute.  dSAOperation usage indicates that the attribute of this
   type is a DSA-specific operational attribute.
 
+  COLLECTIVE requires usage userApplications.  Use of collective
+
+
+
+Zeilenga                       LDAP Models                     [Page 25]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
+  attribute types in LDAP is discussed in [RFC3671].
+
   NO-USER-MODIFICATION requires an operational usage.
 
   Note that the <AttributeTypeDescription> does not list the matching
   rules which can be used with that attribute type in an extensibleMatch
-  search filter.  This is done using the 'matchingRuleUse' attribute
-  described in Section 4.1.4.
+  search filter [Protocol].  This is done using the 'matchingRuleUse'
+  attribute described in Section 4.1.4.
 
   This document refines the schema description of X.501 by requiring
   that the SYNTAX field in an <AttributeTypeDescription> be a string
@@ -1396,31 +1423,21 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   with a string-based syntax, or the number of bytes in a value for all
   other syntaxes, may be indicated by appending this bound count inside
   of curly braces following the syntax's OBJECT IDENTIFIER in an
-
-
-
-Zeilenga                       LDAP Models                     [Page 25]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   Attribute Type Description.  This bound is not part of the syntax name
   itself.  For instance, "1.3.6.4.1.1466.0{64}" suggests that server
   implementations should allow a string to be 64 characters long,
   although they may allow longer strings.  Note that a single character
   of the Directory String syntax may be encoded in more than one octet
-  since UTF-8 is a variable-length encoding.
+  since UTF-8 [RFC3629] is a variable-length encoding.
 
 
 4.1.3. Matching Rules
 
-  Matching rules are used by servers to compare attribute values against
-  assertion values when performing Search and Compare operations.  They
-  are also used to identify the value to be added or deleted when
-  modifying entries, and are used when comparing a purported
-  distinguished name with the name of an entry.
-
-  A matching rule specifies the syntax of the assertion value.
+  Matching rules are used in performance of attribute value assertions,
+  such as in performance of a Compare operation.  They are also used in
+  evaluation of a Search filters, in determining which individual values
+  are be added or deleted during performance of a Modify operation, and
+  used in comparison of distinguished names
 
   Each matching rule is identified by an object identifier (OID) and,
   optionally, one or more short names (descriptors).
@@ -1435,13 +1452,22 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         SP "SYNTAX" SP numericoid  ; assertion syntax
         extensions WSP RPAREN      ; extensions
 
+
+
+
+Zeilenga                       LDAP Models                     [Page 26]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   where:
     <numericoid> is object identifier assigned to this matching rule;
     NAME <qdescrs> are short names (descriptors) identifying this
         matching rule;
     DESC <qdstring> is a short descriptive string;
     OBSOLETE indicates this matching rule is not active;
-    SYNTAX identifies the assertion syntax by object identifier; and
+    SYNTAX identifies the assertion syntax (the syntax of the assertion
+        value) by object identifier; and
     <extensions> describe extensions.
 
 
@@ -1452,13 +1478,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   Matching rule use descriptions are written according to the following
   ABNF:
-
-
-
-Zeilenga                       LDAP Models                     [Page 26]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
 
     MatchingRuleUseDescription = LPAREN WSP
         numericoid                 ; object identifier
@@ -1485,10 +1504,17 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   LDAP Syntaxes of (attribute and assertion) values are described in
   terms of ASN.1 [X.680] and, optionally, have an octet string encoding
   known as the LDAP-specific encoding.  Commonly, the LDAP-specific
-  encoding is constrained to string of Universal Character Set (UCS)
-  [ISO10646] characters in UTF-8 [UTF-8] form.
+  encoding is constrained to string of Unicode [Unicode] characters in
+  UTF-8 [RFC3629] form.
 
   Each LDAP syntax is identified by an object identifier (OID).
+
+
+
+Zeilenga                       LDAP Models                     [Page 27]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
 
   LDAP syntax definitions are written according to the ABNF:
 
@@ -1507,14 +1533,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   A DIT content rule is a "rule governing the content of entries of a
   particular structural object class" [X.501].
-
-
-
-
-Zeilenga                       LDAP Models                     [Page 27]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
 
   For DIT entries of a particular structural object class, a DIT content
   rule specifies which auxiliary object classes the entries are allowed
@@ -1546,9 +1564,18 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   An entry is governed by (if present and active in the subschema) the
   DIT content rule which applies to the structural object class of the
   entry (see Section 2.4.2).  If no active rule is present for the
+
+
+
+Zeilenga                       LDAP Models                     [Page 28]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   entry's structural object class, the entry's content is governed by
   the structural object class (and possibly other aspects of user and
-  system schema).
+  system schema).  DIT content rules for superclasses of the structural
+  object class of an entry are not applicable to that entry.
 
   DIT content rule descriptions are written according to the ABNF:
 
@@ -1564,14 +1591,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         extensions WSP RPAREN      ; extensions
 
   where:
-
-
-
-Zeilenga                       LDAP Models                     [Page 28]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
     <numericoid> is the object identifier of the structural object class
         associated with this DIT content rule;
     NAME <qdescrs> are short names (descriptors) identifying this DIT
@@ -1588,8 +1607,8 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 4.1.7. DIT Structure Rules and Name Forms
 
-  It is sometimes desirable to regulate where object entries can be
-  placed in the DIT and how they can be named based upon their
+  It is sometimes desirable to regulate where object and alias entries
+  can be placed in the DIT and how they can be named based upon their
   structural object class.
 
 
@@ -1601,6 +1620,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   class, to superior structure rules.  This permits entries of the
   structural object class identified by the name form to exist in the
   DIT as subordinates to entries governed by the indicated superior
+
+
+
+Zeilenga                       LDAP Models                     [Page 29]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   structure rules" [X.501].
 
   DIT structure rule descriptions are written according to the ABNF:
@@ -1615,18 +1642,8 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         extensions WSP RPAREN      ; extensions
 
     ruleids = ruleid / ( LPAREN WSP ruleidlist WSP RPAREN )
-
     ruleidlist = ruleid *( SP ruleid )
-
     ruleid = number
-
-
-
-
-Zeilenga                       LDAP Models                     [Page 29]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
 
   where:
     <ruleid> is the rule identifier of this DIT structure rule;
@@ -1653,12 +1670,19 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   used in the definition of DIT structure rules" [X.501].
 
   Each name form indicates the structural object class to be named,
-  a set of required attribute types, and a set of allowed attributes
-  types.  A particular attribute type cannot be listed in both sets.
+  a set of required attribute types, and a set of allowed attribute
+  types.  A particular attribute type cannot be in both sets.
 
   Entries governed by the form must be named using a value from each
   required attribute type and zero or more values from the allowed
   attribute types.
+
+
+
+Zeilenga                       LDAP Models                     [Page 30]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
 
   Each name form is identified by an object identifier (OID) and,
   optionally, one or more short names (descriptors).
@@ -1676,14 +1700,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         extensions WSP RPAREN      ; extensions
 
   where:
-
-
-
-Zeilenga                       LDAP Models                     [Page 30]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
     <numericoid> is object identifier which identifies this name form;
     NAME <qdescrs> are short names (descriptors) identifying this name
         form;
@@ -1716,6 +1732,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   A server which masters entries and permits clients to modify these
   entries SHALL implement and provide access to these subschema
+
+
+
+Zeilenga                       LDAP Models                     [Page 31]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   (sub)entries including providing a 'subschemaSubentry' attribute in
   each modifiable entry.  This so clients may discover the attributes
   and object classes which are permitted to be present.  It is strongly
@@ -1732,13 +1756,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   The 'distinguishedNameMatch' matching rule and the DistinguishedName
   (1.3.6.1.4.1.1466.115.121.1.12) syntax are defined in [Syntaxes].
-
-
-
-Zeilenga                       LDAP Models                     [Page 31]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
 
   Subschema is held in (sub)entries belonging to the subschema auxiliary
   object class.
@@ -1771,6 +1788,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.37
         USAGE directoryOperation )
 
+
+
+
+Zeilenga                       LDAP Models                     [Page 32]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   The 'objectIdentifierFirstComponentMatch' matching rule and the
   ObjectClassDescription (1.3.6.1.4.1.1466.115.121.1.37) syntax are
   defined in [Syntaxes].
@@ -1788,12 +1813,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   The 'objectIdentifierFirstComponentMatch' matching rule and the
   AttributeTypeDescription (1.3.6.1.4.1.1466.115.121.1.3) syntax are
   defined in [Syntaxes].
-
-
-
-Zeilenga                       LDAP Models                     [Page 32]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 
 4.2.3. 'matchingRules'
@@ -1826,6 +1845,13 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 4.2.5. 'ldapSyntaxes'
 
+
+
+Zeilenga                       LDAP Models                     [Page 33]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   This attribute holds definitions of LDAP syntaxes.
 
       ( 1.3.6.1.4.1.1466.101.120.16 NAME 'ldapSyntaxes'
@@ -1840,18 +1866,11 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 4.2.6. 'dITContentRules'
 
-  This attribute lists DIT Content Rules which are in force.
+  This attribute lists DIT Content Rules which are present in the
+  subschema.
 
       ( 2.5.21.2 NAME 'dITContentRules'
         EQUALITY objectIdentifierFirstComponentMatch
-
-
-
-Zeilenga                       LDAP Models                     [Page 33]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.16
         USAGE directoryOperation )
 
@@ -1862,7 +1881,8 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 4.2.7. 'dITStructureRules'
 
-  This attribute lists DIT Structure Rules which are in force.
+  This attribute lists DIT Structure Rules which present in the
+  subschema.
 
       ( 2.5.21.1 NAME 'dITStructureRules'
         EQUALITY integerFirstComponentMatch
@@ -1880,6 +1900,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
       ( 2.5.21.7 NAME 'nameForms'
         EQUALITY objectIdentifierFirstComponentMatch
+
+
+
+Zeilenga                       LDAP Models                     [Page 34]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.35
         USAGE directoryOperation )
 
@@ -1890,9 +1918,10 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 4.3. 'extensibleObject' object class
 
-  The 'extensibleObject auxiliary object class allows entries belong to
-  it to hold any attribute type.  The set of allowed attributes of this
-  class is implicitly the set of all user attributes.
+  The 'extensibleObject' auxiliary object class allows entries that
+  belong to it to hold any user attribute.  The set of allowed attribute
+  types of this object class is implicitly the set of all attribute
+  types of userApplications usage.
 
       ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
         SUP top AUXILIARY )
@@ -1903,26 +1932,18 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 
 
-Zeilenga                       LDAP Models                     [Page 34]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
-  Note that not all servers will implement this object class, and those
-  which do not will reject requests to add entries which contain this
-  object class, or modify an entry to add this object class.
-
-
 4.4. Subschema Discovery
 
   To discover the DN of the subschema (sub)entry holding the subschema
   controlling a particular entry, a client reads that entry's
   'subschemaSubentry' operational attribute.  To read schema attributes
-  from the subschema (sub)entry, clients MUST issue a base object search
-  where the filter is "(objectClass=subschema)" [Filters] and the list
-  of attributes includes the names of the desired schema attributes (as
-  they are operational).  This filter allows LDAP servers which gateway
-  to X.500 to detect that subentry information is being requested.
+  from the subschema (sub)entry, clients MUST issue a Search operation
+  [Protocol] where baseObject is the DN of the subschema (sub)entry,
+  scope is baseObject, filter is "(objectClass=subschema)" [Filters],
+  and attributes field lists the names of the desired schema attributes
+  (as they are operational).  Note: the "(objectClass=subschema)" filter
+  allows LDAP servers which gateway to X.500 to detect that subentry
+  information is being requested.
 
   Clients SHOULD NOT assume a published subschema is complete nor assume
   the server supports all of the schema elements it publishes nor assume
@@ -1932,7 +1953,18 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 5. DSA (Server) Informational Model
 
   The LDAP protocol assumes there are one or more servers which jointly
-  provide access to a Directory Information Tree (DIT).
+  provide access to a Directory Information Tree (DIT).  The server
+  holding the original information is called the "master" (for that
+  information).  Servers which hold copies of the original information
+
+
+
+Zeilenga                       LDAP Models                     [Page 35]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
+  are referred to as "shadowing" or "caching" servers.
 
   As defined in [X.501]:
 
@@ -1940,8 +1972,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
           DIT to the initial vertex of a naming context; corresponds to
           the distinguished name of that vertex.
 
-      DIB fragment: The portion of the DIB that is held by one master
-          DSA, comprising one or more naming contexts.
+  and:
 
       naming context: A subtree of entries held in a single master DSA.
 
@@ -1956,26 +1987,21 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   values in the root DSE.
 
 
-
-
-
-Zeilenga                       LDAP Models                     [Page 35]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
 5.1. Server-specific Data Requirements
 
   An LDAP server SHALL provide information about itself and other
   information that is specific to each server.  This is represented as a
-  group of attributes located in the root DSE (DSA-Specific Entry),
-  which is named with the zero-length LDAPDN.  These attributes are
-  retrievable, subject to access control and other restrictions, if a
-  client performs a base object search of the root with the filter
-  "(objectClass=*)" [Filters] requesting the desired attributes.  It is
-  noted that root DSE attributes are operational, and like other
-  operational attributes, are not returned in search requests unless
-  requested by name.
+  group of attributes located in the root DSE, which is named with the
+  DN with zero RDNs (whose [LDAPDN] representation is as the zero-length
+  string).
+
+  These attributes are retrievable, subject to access control and other
+  restrictions, if a client performs a Search operation [Protocol] with
+  an empty baseObject, scope of baseObject, the filter "(objectClass=*)"
+  [Filters], and with the attributes field listing the names of the
+  desired attributes.  It is noted that root DSE attributes are
+  operational, and like other operational attributes, are not returned
+  in search requests unless requested by name.
 
   The root DSE SHALL NOT be included if the client performs a subtree
   search starting from the root.
@@ -1985,6 +2011,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   The following attributes of the root DSE are defined in [Syntaxes].
   Additional attributes may be defined in other documents.
+
+
+
+
+Zeilenga                       LDAP Models                     [Page 36]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
 
     - altServer: alternative servers;
 
@@ -1999,34 +2033,28 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
     - supportedSASLMechanisms: recognized Simple Authentication and
       Security Layers (SASL) [SASL] mechanisms.
 
-  The values of these attributes provided may depend on session specific
-  and other factors.  For example, a server supporting the SASL EXTERNAL
-  mechanism might only list "EXTERNAL" when the client's identity has
-  been established by a lower level.  See [AuthMeth].
+  The values provided for these attributes may depend on
+  session-specific and other factors.  For example, a server supporting
+  the SASL EXTERNAL mechanism might only list "EXTERNAL" when the
+  client's identity has been established by a lower level.  See
+  [AuthMeth].
 
   The root DSE may also include a 'subschemaSubentry' attribute.  If so,
-  it refers to the subschema (sub)entry holding schema controlling
-  attributes of the root DSE.  Client SHOULD NOT assume that the
-  subschema (sub)entry controlling the root DSE controls any entry held
-  by the server.  General subschema discovery procedures are provided in
-  Section 4.4.
-
-
-
-
-
-Zeilenga                       LDAP Models                     [Page 36]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+  it refers to the subschema (sub)entry holding the schema controlling
+  the root DSE.  Clients SHOULD NOT assume that this subschema
+  (sub)entry controls other entries held by the server.  General
+  subschema discovery procedures are provided in Section 4.4.
 
 
 5.1.1. 'altServer'
 
-  The 'altServer' attribute lists URLs referring to alternative servers
-  which may be contacted when this server becomes unavailable.  If the
-  server does not know of any other servers which could be used this
-  attribute will be absent.  Clients may cache this information in case
-  their preferred server later becomes unavailable.
+  The 'altServer' attribute lists URIs referring to alternative servers
+  which may be contacted when this server becomes unavailable.  URIs for
+  servers implementing the LDAP are written according to [LDAPURL].
+  Other kinds of URIs may be provided.  If the server does not know of
+  any other servers which could be used this attribute will be absent.
+  Clients may cache this information in case their preferred server
+  later becomes unavailable.
 
       ( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer'
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
@@ -2040,15 +2068,24 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   The 'namingContexts' attribute lists the context prefixes of the
   naming contexts the server masters or shadows (in part or in whole).
+
+
+
+Zeilenga                       LDAP Models                     [Page 37]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   If the server is a first-level DSA [X.501], it should list (in
   addition) an empty string (indicating the root of the DIT).  If the
   server does not master or shadow any information (e.g. it is an LDAP
   gateway to a public X.500 directory) this attribute will be absent.
   If the server believes it masters or shadows the entire directory, the
   attribute will have a single value, and that value will be the empty
-  string (indicating the root of the DIT).  This attribute allows a
-  client to choose suitable base objects for searching when it has
-  contacted a server.
+  string (indicating the root of the DIT).
+
+  This attribute may be used, for example, to select a suitable entry
+  name for subsequent operations with this server.
 
       ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
@@ -2061,20 +2098,12 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 5.1.3. 'supportedControl'
 
   The 'supportedControl' attribute lists object identifiers identifying
-  the request controls the server supports.  If the server does not
-  support any request controls, this attribute will be absent.
-
+  the request controls [Protocol] the server supports.  If the server
+  does not support any request controls, this attribute will be absent.
   Object identifiers identifying response controls need not be listed.
 
   Procedures for registering object identifiers used to discovery of
   protocol mechanisms are detailed in BCP 64 [BCP64bis].
-
-
-
-Zeilenga                       LDAP Models                     [Page 37]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
 
       ( 1.3.6.1.4.1.1466.101.120.13 NAME 'supportedControl'
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
@@ -2087,15 +2116,24 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 5.1.4. 'supportedExtension'
 
   The 'supportedExtension' attribute lists object identifiers
-  identifying the extended operations which the server supports.  If the
-  server does not support any extended operations, this attribute will
-  be absent.
+  identifying the extended operations [Protocol] which the server
+  supports.  If the server does not support any extended operations,
+  this attribute will be absent.
 
-  An extended operation comprises a ExtendedRequest, possibly other PDUs
-  defined by extension, and an ExtendedResponse [Protocol].  The object
-  identifier assigned to the ExtendedRequest is used to identify the
-  extended operation.  Other object identifiers associated with the
-  extended operation need not be listed.
+  An extended operation generally consists of an extended request and an
+  extended response but may also include other protocol data units (such
+  as intermediate responses).  The object identifier assigned to the
+  extended request is used to identify the extended operation.  Other
+
+
+
+Zeilenga                       LDAP Models                     [Page 38]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
+  object identifiers used in the extended operation need not be listed
+  as values of this attribute.
 
   Procedures for registering object identifiers used to discovery of
   protocol mechanisms are detailed in BCP 64 [BCP64bis].
@@ -2124,17 +2162,10 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 5.1.6. 'supportedSASLMechanisms'
 
   The 'supportedSASLMechanisms' attribute lists the SASL mechanisms
-
-
-
-Zeilenga                       LDAP Models                     [Page 38]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
-  [RFC2222] which the server recognizes.  The contents of this attribute
-  may depend on the current session state.  If the server does not
-  support any SASL mechanisms this attribute will not be present.
+  [SASL] which the server recognizes and/or supports [AuthMeth].  The
+  contents of this attribute may depend on the current session state.
+  If the server does not support any SASL mechanisms this attribute will
+  not be present.
 
       ( 1.3.6.1.4.1.1466.101.120.14 NAME 'supportedSASLMechanisms'
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
@@ -2149,14 +2180,22 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 6.1. Preservation of User Information
 
   Syntaxes may be defined which have specific value and/or value form
+
+
+
+Zeilenga                       LDAP Models                     [Page 39]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   (representation) preservation requirements.  For example, a syntax
   containing digitally signed data can mandate the server preserve both
   the value and form of value presented to ensure signature is not
   invalidated.
 
-  Where such requirements have not be explicitly stated, servers SHOULD
-  preserve the value of user information but MAY return the value in a
-  different form.  And where a server is unable (or unwilling) to
+  Where such requirements have not been explicitly stated, servers
+  SHOULD preserve the value of user information but MAY return the value
+  in a different form.  And where a server is unable (or unwilling) to
   preserve the value of user information, the server SHALL ensure that
   an equivalent value (per Section 2.3) is returned.
 
@@ -2180,14 +2219,6 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   Implementations MUST be prepared that the same short name might be
   used in a subschema to refer to the different kinds of schema
-
-
-
-Zeilenga                       LDAP Models                     [Page 39]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   elements.  That is, there might be an object class 'x-fubar' and an
   attribute type 'x-fubar' in a subschema.
 
@@ -2205,6 +2236,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Some servers may hold cache or shadow copies of entries, which can be
   used to answer search and comparison queries, but will return
   referrals or contact other servers if modification operations are
+
+
+
+Zeilenga                       LDAP Models                     [Page 40]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   requested.  Servers that perform shadowing or caching MUST ensure that
   they do not violate any access control constraints placed on the data
   by the originating server.
@@ -2214,7 +2253,7 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 7.1 Server Guidelines
 
-  Servers MUST recognize all attribute types and object classes names
+  Servers MUST recognize all names of attribute types and object classes
   defined in this document but, unless stated otherwise, need not
   support the associated functionality.  Servers SHOULD recognize all
   the names of attribute types and object classes defined in Section 3
@@ -2223,44 +2262,42 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Servers MUST ensure that entries conform to user and system schema
   rules or other data model constraints.
 
-  Servers MAY support the 'extensibleObject' object class.
-
   Servers MAY support DIT Content Rules.  Servers MAY support DIT
   Structure Rules and Name Forms.
 
   Servers MAY support alias entries.
 
+  Servers MAY support the 'extensibleObject' object class.
+
   Servers MAY support subentries.  If so, they MUST do so in accordance
-  with [X.501].  Servers which do not support subentries SHOULD use
+  with [RFC3672].  Servers which do not support subentries SHOULD use
   object entries to mimic subentries as detailed in Section 3.2.
 
   Servers MAY implement additional schema elements.  Servers SHOULD
   provide definitions of all schema elements they support in subschema
-
-
-
-Zeilenga                       LDAP Models                     [Page 40]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   (sub)entries.
 
 
 7.2 Client Guidelines
 
+  In the absence of prior agreements with servers, clients SHOULD NOT
+  assume that servers support any particular schema elements beyond
+  those referenced in Section 7.1.  The client can retrieve subschema
+  information as described in Section 4.4.
+
   Clients MUST NOT display nor attempt to decode as ASN.1, a value if
-  its syntax is not known.  The implementation may attempt to discover
-  the subschema of the source entry, and retrieve the values of
-  'attributeTypes' from the subschema (sub)entry.
+  its syntax is not known.   Clients MUST NOT assume the LDAP-specific
+  string encoding is restricted to a UTF-8 encoded string of Unicode
+  characters or any particular subset of Unicode (such as a printable
+  subset) unless such restriction is explicitly stated.  Clients SHOULD
+  NOT send attribute values in a request that are not valid according to
+  the syntax defined for the attributes.
 
-  Clients MUST NOT assume the LDAP-specific string encoding is
-  restricted to a UTF-8 encoded string of UCS characters or any
-  particular subset of particular subset of UCS (such as a printable
-  subset) unless such restriction is explicitly stated.
 
-  Clients MUST NOT send attribute values in a request that are not valid
-  according to the syntax defined for the attributes.
+
+Zeilenga                       LDAP Models                     [Page 41]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
 8. Security Considerations
@@ -2290,20 +2327,20 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
       Author/Change Controller: IESG
       Comments:
 
-      The following descriptors (short names) should be updated to refer
-      to RFC XXXX.
+      The following descriptors (short names) should be added to
+      the registry.
 
+        NAME                         Type OID
+        ------------------------     ---- -----------------
+        governingStructureRule          A 2.5.21.10
+        structuralObjectClass              A 2.5.21.5
 
-
-Zeilenga                       LDAP Models                     [Page 41]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
+      The following descriptors (short names) should be updated to
+      refer to this RFC.
 
         NAME                         Type OID
         ------------------------     ---- -----------------
         alias                           O 2.5.6.1
-        aliasedEntryName                A 2.5.4.1
         aliasedObjectName               A 2.5.4.1
         altServer                       A 1.3.6.1.4.1.1466.101.120.6
         attributeTypes                  A 2.5.21.5
@@ -2311,6 +2348,14 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
         creatorsName                    A 2.5.18.3
         dITContentRules                 A 2.5.21.2
         dITStructureRules               A 2.5.21.1
+
+
+
+Zeilenga                       LDAP Models                     [Page 42]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
         extensibleObject                O 1.3.6.1.4.1.1466.101.120.111
         ldapSyntaxes                    A 1.3.6.1.4.1.1466.101.120.16
         matchingRuleUse                 A 2.5.21.8
@@ -2338,22 +2383,16 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
   Indexing of Directories (ASID) Working Group.  This document is also
   based in part on "The Directory: Models" [X.501], a product of the
   International Telephone Union (ITU).  Additional text was borrowed
-  from RFC 2253 by Mark Wahl, Tim Howes, and Steve Kille.
+  from RFC 2253 by M. Wahl, T. Howes, and S. Kille.
 
-  This document is a product of the IETF LDAP Revison (LDAPBIS) Working
+  This document is a product of the IETF LDAP Revision (LDAPBIS) Working
   Group.
 
 
-11. Author's Address
+11. Editor's Address
 
   Kurt Zeilenga
   E-mail: <kurt@openldap.org>
-
-
-
-Zeilenga                       LDAP Models                     [Page 42]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
 
 12. References
@@ -2365,6 +2404,22 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
 
   [RFC2234]     Crocker, D. and P. Overell, "Augmented BNF for Syntax
                 Specifications: ABNF", RFC 2234, November 1997.
+
+
+
+Zeilenga                       LDAP Models                     [Page 43]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
+  [RFC3639]     Yergeau, F., "UTF-8, a transformation format of ISO
+                10646", RFC 3639 (also STD 63), November 2003.
+
+  [RFC3671]     Zeilenga, K., "Collective Attributes in LDAP", RFC 3671,
+                December 2003.
+
+  [RFC3672]     Zeilenga, K. and S. Legg, "Subentries in LDAP", RFC
+                3672, December 2003.
 
   [BCP64bis]    Zeilenga, K., "IANA Considerations for LDAP", draft-
                 ietf-ldapbis-bcp64-xx.txt, a work in progress.
@@ -2380,13 +2435,13 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
                 Connection Level Security Mechanisms",
                 draft-ietf-ldapbis-authmeth-xx.txt, a work in progress.
 
-  [LDAPDN]      Zeilenga, K. (editor), "LDAP: String Representation of
-                Distinguished Names", draft-ietf-ldapbis-dn-xx.txt, a
-                work in progress.
-
   [Filters]     Smith, M. (editor), LDAPbis WG, "LDAP: String
                 Representation of Search Filters",
                 draft-ietf-ldapbis-filter-xx.txt, a work in progress.
+
+  [LDAPDN]      Zeilenga, K. (editor), "LDAP: String Representation of
+                Distinguished Names", draft-ietf-ldapbis-dn-xx.txt, a
+                work in progress.
 
   [LDAPURL]     Smith, M. (editor), "LDAP: Uniform Resource Locator",
                 draft-ietf-ldapbis-url-xx.txt, a work in progress.
@@ -2402,25 +2457,21 @@ INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
                 draft-ietf-ldapbis-user-schema-xx.txt, a work in
                 progress.
 
-  [UTF-8]       Yergeau, F., "UTF-8, a transformation format of ISO
-                10646", draft-yergeau-rfc2279bis-xx.txt, a work in
+  [Unicode]     The Unicode Consortium, "The Unicode Standard, Version
+                3.2.0" is defined by "The Unicode Standard, Version 3.0"
+                (Reading, MA, Addison-Wesley, 2000. ISBN 0-201-61633-5),
 
 
 
-Zeilenga                       LDAP Models                     [Page 43]
+Zeilenga                       LDAP Models                     [Page 44]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
-                progress.
-
-  [ISO10646]    International Organization for Standardization,
-                "Universal Multiple-Octet Coded Character Set (UCS) -
-                Architecture and Basic Multilingual Plane", ISO/IEC
-                10646-1 : 1993.
-
-  [ASCII]       Coded Character Set--7-bit American Standard Code for
-                Information Interchange, ANSI X3.4-1986.
+                as amended by the "Unicode Standard Annex #27: Unicode
+                3.1" (http://www.unicode.org/reports/tr27/) and by the
+                "Unicode Standard Annex #28: Unicode 3.2"
+                (http://www.unicode.org/reports/tr28/).
 
   [X.500]       International Telecommunication Union -
                 Telecommunication Standardization Sector, "The Directory
@@ -2461,21 +2512,21 @@ A.1 Changes to RFC 2251
   portions of Section 4 and 6 as summarized below.
 
 
-
-
-Zeilenga                       LDAP Models                     [Page 44]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
 A.1.1 Section 3.2 of RFC 2251
 
   Section 3.2 of RFC 2251 provided a brief introduction to the X.500
   data model, as used by LDAP.  The previous specification relied on
+
+
+
+Zeilenga                       LDAP Models                     [Page 45]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   [X.501] but lacked clarity in how X.500 models are adapted for use by
   LDAP.  This document describes the X.500 data models, as used by LDAP
-  in greater detail, especially in areas where the models require
-  adaptation is needed.
+  in greater detail, especially in areas where adaptation is needed.
 
   Section 3.2.1 of RFC 2251 described an attribute as "a type with one
   or more associated values."  In LDAP, an attribute is better described
@@ -2517,17 +2568,18 @@ A.1.2 Section 3.4 of RFC 2251
 
   - Clarify that not all root DSE attributes are user modifiable.
 
-
-
-Zeilenga                       LDAP Models                     [Page 45]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
   - Remove inconsistent text regarding handling of the
     'subschemaSubentry' attribute within the root DSE.  The previous
     specification stated that the 'subschemaSubentry' attribute held in
     the root DSE referred to "subschema entries (or subentries) known by
+
+
+
+Zeilenga                       LDAP Models                     [Page 46]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
     this server."  This is inconsistent with the attribute intended use
     as well as its formal definition as a single valued attribute
     [X.501].  It is also noted that a simple (possibly incomplete) list
@@ -2572,20 +2624,20 @@ A.2.1 Section 4 of RFC 2252
 
     The <descr> syntax was changed to disallow semicolon (U+003B)
     characters to appear to be consistent its natural language
-
-
-
-Zeilenga                       LDAP Models                     [Page 46]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
     specification "descr is the syntactic representation of an object
     descriptor, which consists of letters and digits, starting with a
     letter."  In a related change, the statement "an
     AttributeDescription can be used as the value in a NAME part of an
+
+
+
+Zeilenga                       LDAP Models                     [Page 47]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
     AttributeTypeDescription" was deleted.  RFC 2252 provided no
-    specification as to the semantics of attribute options appearing in
+    specification of the semantics of attribute options appearing in
     NAME fields.
 
     RFC 2252 stated that the <descr> form of <oid> SHOULD be preferred
@@ -2609,6 +2661,8 @@ A.2.2 Section 5 of RFC 2252
     should publish, in addition to other values, "" indicating the root
     of the DIT.
 
+    The 'altServer' description was clarified.  It may hold any URI.
+
     The 'supportedExtension' description was clarified.  A server need
     only list the OBJECT IDENTIFIERs associated with the extended
     requests of the extended operations it recognizes.
@@ -2616,6 +2670,9 @@ A.2.2 Section 5 of RFC 2252
     The 'supportedControl' description was clarified.  A server need
     only list the OBJECT IDENTIFIERs associated with the request
     controls it recognizes.
+
+    Descriptions for the 'structuralObjectClass' and
+    'governingStructureRule' operational attribute types were added.
 
 
 A.2.3 Section 7 of RFC 2252
@@ -2627,15 +2684,15 @@ A.2.3 Section 7 of RFC 2252
     implementation requirement.  This was incorporated into Section 7 of
     this document.
 
-    The specification of 'extensibleObject' was clarified of how it
 
 
 
-Zeilenga                       LDAP Models                     [Page 47]
+Zeilenga                       LDAP Models                     [Page 48]
 
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
 
 
+    The specification of 'extensibleObject' was clarified of how it
     interacts with precluded attributes.
 
 
@@ -2683,22 +2740,25 @@ Intellectual Property Rights
   copyrights, patents or patent applications, or other proprietary
   rights which may cover technology that may be required to practice
   this standard.  Please address the information to the IETF Executive
+
+
+
+Zeilenga                       LDAP Models                     [Page 49]
+
+INTERNET-DRAFT        draft-ietf-ldapbis-models-10      15 February 2004
+
+
   Director.
 
 
 
-Zeilenga                       LDAP Models                     [Page 48]
-
-INTERNET-DRAFT        draft-ietf-ldapbis-models-09       27 October 2003
-
-
 Full Copyright
 
-  Copyright (C) The Internet Society (2003). All Rights Reserved.
+  Copyright (C) The Internet Society (2004). All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
-  or assist in its implmentation may be prepared, copied, published and
+  or assist in its implementation may be prepared, copied, published and
   distributed, in whole or in part, without restriction of any kind,
   provided that the above copyright notice and this paragraph are
   included on all such copies and derivative works.  However, this
@@ -2739,9 +2799,5 @@ Full Copyright
 
 
 
-
-
-
-
-Zeilenga                       LDAP Models                     [Page 49]
+Zeilenga                       LDAP Models                     [Page 50]
 
