@@ -350,11 +350,19 @@ glue_back_search ( Operation *op, SlapReply *rs )
 				rs->sr_err = op->o_bd->be_search(op, rs);
 
 			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
+				dn_match(&op->o_bd->be_nsuffix[0], &ndn))
+			{
+				rs->sr_err = op->o_bd->be_search( op, rs );
+
+			} else if (scope0 == LDAP_SCOPE_SUBTREE &&
 				dnIsSuffix(&op->o_bd->be_nsuffix[0], &ndn))
 			{
 				op->o_req_dn = op->o_bd->be_suffix[0];
 				op->o_req_ndn = op->o_bd->be_nsuffix[0];
 				rs->sr_err = op->o_bd->be_search( op, rs );
+				if ( rs->sr_err == LDAP_NO_SUCH_OBJECT ) {
+					gs.err = LDAP_SUCCESS;
+				}
 
 			} else if (dnIsSuffix(&ndn, &op->o_bd->be_nsuffix[0])) {
 				rs->sr_err = op->o_bd->be_search( op, rs );
