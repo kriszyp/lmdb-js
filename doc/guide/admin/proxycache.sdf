@@ -102,6 +102,7 @@ at server {{EX:ldap.example.com}}.
  
 >	database 	ldap
 >	suffix 		"dc=example,dc=com" 
+>	rootdn 		"dc=example,dc=com" 
 >	uri    		ldap://ldap.example.com/dc=example%2cdc=com
 >	overlay proxycache
 >	proxycache    bdb 100000 1 1000 100
