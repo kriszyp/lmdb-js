@@ -45,9 +45,6 @@ REQUIRED SOFTWARE
 		LTHREAD compatible thread package
 			(POSIX pthreads, MIT pthreads, Mach Cthreads or Sun LWP)
 
-	LDAPD:
-		ISODE compatible X.500 distribution
-
 	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
 		

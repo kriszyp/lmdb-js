@@ -516,7 +516,7 @@ AC_FUNC_SELECT_ARGTYPES
 # ISODE tests
 ol_link_isode=no
 if test $ol_enable_ldapd != no ; then
-	AC_MSG_WARN([ldapd support deprecated.  Manual intervention required.])
+	AC_MSG_WARN([ldapd is not supported and may suffer from bit rot.])
 
 	dnl look for ISODE libraries
 	AC_CHECK_LIB(xtpp, main, [
