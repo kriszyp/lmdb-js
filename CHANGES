@@ -10,6 +10,7 @@ OpenLDAP 2.2.9 Engineering
 	Fixed slapd duplicate value detection (ITS#3066)
 	Fixed slapd permissive modify control (ITS#3068)
 	Fixed slapd updateref handling
+	Fixed back-bdb paged results bug (ITS#3076)
 	Fixed back-bdb "" suffix bug (ITS#3063)
 	Fixed back-bdb/hdb/ldbm approx w/o index bug (ITS#3062)
 	Fixed back-meta compare return code (ITS#3042)
