@@ -769,6 +769,8 @@ LDAP_SLAPD_F (int) parse_oidm LDAP_P((
 /*
  * operation.c
  */
+LDAP_SLAPD_F (void) slap_op_init LDAP_P(( void ));
+LDAP_SLAPD_F (void) slap_op_destroy LDAP_P(( void ));
 LDAP_SLAPD_F (void) slap_op_free LDAP_P(( Operation *op ));
 LDAP_SLAPD_F (Operation *) slap_op_alloc LDAP_P((
 	BerElement *ber, ber_int_t msgid,
