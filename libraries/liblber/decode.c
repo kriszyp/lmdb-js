@@ -315,6 +315,7 @@ ber_get_stringbvl( bgbvr *b, ber_len_t *rlen )
 	char *last, *orig;
 	struct berval bv, *bvp = NULL;
 
+	/* For rewinding, just like ber_peek_tag() */
 	orig = b->ber->ber_ptr;
 	tag = b->ber->ber_tag;
 
