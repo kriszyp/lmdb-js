@@ -874,6 +874,11 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 	assert( rdn );
 	assert( values );
 
+	if ( types ) {
+		*types = NULL;
+	}
+	*values = NULL;
+
 	rc = ldap_str2rdn( rdn, &tmpRDN, &p, LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
