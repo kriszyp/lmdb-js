@@ -40,6 +40,8 @@ do_add( Connection *conn, Operation *op )
 	Modifications	**modtail = &modlist;
 	Modifications	tmp;
 	const char *text;
+	LDAPRDN		*rdn = NULL;
+	int		a_cnt;
 	int			rc = LDAP_SUCCESS;
 	int	manageDSAit;
 
@@ -189,6 +191,128 @@ do_add( Connection *conn, Operation *op )
 			NULL, "subschema subentry already exists",
 			NULL, NULL );
 		goto done;
+	}
+
+	/*
+	 * Get attribute type(s) and attribute value(s) of our rdn,
+	 */
+	if ( ldap_bv2rdn( &e->e_name, &rdn, (char **)&text,
+		LDAP_DN_FORMAT_LDAP ) )
+	{
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX,
+			NULL, "unknown type(s) used in RDN",
+			NULL, NULL );
+		goto done;
+	}
+
+	/* Check for RDN attrs in entry */
+	for ( a_cnt = 0; rdn[ 0 ][ a_cnt ]; a_cnt++ ) {
+		AttributeDescription	*desc = NULL;
+		Modifications 		*mod;
+		MatchingRule		*mr;
+		int			i;
+
+		rc = slap_bv2ad( &rdn[ 0 ][ a_cnt ]->la_attr, 
+				&desc, &text );
+
+		if ( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+			goto done;
+		}
+
+		for (mod = modlist; mod; mod = mod->sml_next) {
+			AttributeDescription	*mod_desc = NULL;
+
+			rc = slap_bv2ad( &mod->sml_type, 
+					&mod_desc, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+						NULL, text, NULL, NULL );
+				goto done;
+			}
+
+			if (mod_desc == desc) {
+				break;
+			}
+		}
+
+		if (mod == NULL) {
+#ifdef BAILOUT
+			/* for now, bail out; we might end up
+			 * adding the missing value, as iPlanet
+			 * allegedly does */
+			send_ldap_result( conn, op, 
+					rc = LDAP_CONSTRAINT_VIOLATION,
+					NULL,
+					"attribute in RDN not listed in entry", 
+					NULL, NULL );
+			goto done;
+
+#else /* ! BAILOUT */
+			struct berval	bv;
+
+			mod  = (Modifications *) ch_malloc( sizeof(Modifications) );
+		
+			mod->sml_op = LDAP_MOD_ADD;
+			mod->sml_next = NULL;
+			mod->sml_desc = NULL;
+
+			ber_dupbv( &mod->sml_type,
+					&rdn[ 0 ][ a_cnt ]->la_attr );
+
+			mod->sml_bvalues = NULL;
+			ber_dupbv( &bv, &rdn[ 0 ][ a_cnt ]->la_value );
+			ber_bvarray_add( &mod->sml_bvalues, &bv );
+
+			*modtail = mod;
+			modtail = &mod->sml_next;
+			continue;
+#endif /* ! BAILOUT */
+		}
+
+		mr = desc->ad_type->sat_equality;
+		if (mr == NULL || !mr->smr_match ) {
+			/* brrrr ... */
+			continue;
+		}
+
+		for (i = 0; mod->sml_bvalues[ i ].bv_val; i++) {
+			int		match = 0;
+			
+			rc = value_match(&match, desc, mr,
+					SLAP_MR_VALUE_SYNTAX_MATCH,
+					&mod->sml_bvalues[ i ],
+					&rdn[ 0 ][ a_cnt ]->la_value, &text);
+
+			if ( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+						NULL, text, NULL, NULL);
+				goto done;
+			}
+
+			if (match == 0) {
+				break;
+			}
+		}
+
+		/* not found? */
+		if (mod->sml_bvalues[ i ].bv_val == NULL) {
+#ifdef BAILOUT
+			send_ldap_result( conn, op, 
+					rc = LDAP_CONSTRAINT_VIOLATION,
+					NULL,
+					"value in RDN not listed in entry", 
+					NULL, NULL );
+			goto done;
+#else /* ! BAILOUT */
+			struct berval	bv;
+
+			ber_dupbv( &bv, &rdn[ 0 ][ a_cnt ]->la_value );
+			ber_bvarray_add( &mod->sml_bvalues, &bv );
+			continue;
+#endif /* ! BAILOUT */
+		}
 	}
 
 	manageDSAit = get_manageDSAit( op );
