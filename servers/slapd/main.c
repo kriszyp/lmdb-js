@@ -271,7 +271,9 @@ int main( int argc, char **argv )
 
 #ifdef LDAP_CONNECTIONLESS
 		case 'c':	/* do connectionless (udp) */
-			udp = 1;
+			/* udp = 1; */
+			fprintf( stderr, "connectionless support not supported");
+			exit( -1 );
 			break;
 #endif
 
