@@ -312,6 +312,14 @@ SOURCE=.\search.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\sets.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\sets.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\slap.h
 # End Source File
 # Begin Source File

@@ -78,6 +78,9 @@ LDAP_BEGIN_DECL
 #define ASCII_DIGIT(c)	( (c) >= '0' && (c) <= '9' )
 #define ASCII_ALNUM(c)	( ASCII_ALPHA(c) || ASCII_DIGIT(c) )
 
+#define ASCII_PRINTABLE(c) ( (c) >= ' ' && (c) <= '~' )
+#define FILTER_ESCAPE(c) ( (c) == '\\' || (c) == '(' || (c) == ')' || !ASCII_PRINTABLE(c) )
+
 #define DN_SEPARATOR(c)	((c) == ',' || (c) == ';')
 #define RDN_SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
 #define RDN_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')

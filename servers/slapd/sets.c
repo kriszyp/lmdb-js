@@ -5,8 +5,11 @@
  */
 
 #include "portable.h"
+
+#include <stdio.h>
 #include <ac/string.h>
 
+#include "slap.h"
 #include "sets.h"
 
 static char **set_join (char **lset, int op, char **rset);
