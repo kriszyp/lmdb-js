@@ -374,7 +374,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	ID		candidates[BDB_IDL_UM_SIZE];
 	ID		scopes[BDB_IDL_DB_SIZE];
 	Entry		*e = NULL, base, e_root = {0};
-	Entry	*matched = NULL;
+	Entry		*matched = NULL;
 	EntryInfo	*ei, ei_root = {0};
 	struct berval	realbase = BER_BVNULL;
 	int		manageDSAit;
@@ -382,11 +382,10 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	ID		lastid = NOID;
 	AttributeName	*attrs;
 
-	Filter contextcsnand, contextcsnle, cookief, csnfnot,
-		csnfeq, csnfand, csnfge;
+	Filter		contextcsnand, contextcsnle, cookief, csnfnot,
+			csnfeq, csnfand, csnfge;
 	AttributeAssertion aa_ge, aa_eq, aa_le;
-	int		entry_count = 0;
-	struct berval *search_context_csn = NULL;
+	struct berval	*search_context_csn = NULL;
 	DB_LOCK		ctxcsn_lock;
 	LDAPControl	*ctrls[SLAP_MAX_RESPONSE_CONTROLS];
 	int		num_ctrls = 0;
@@ -755,6 +754,7 @@ dn2entry_retry:
 	if ( get_pagedresults(sop) ) {
 		if ( sop->o_pagedresults_state.ps_cookie == 0 ) {
 			id = 0;
+
 		} else {
 			if ( sop->o_pagedresults_size == 0 ) {
 				rs->sr_err = LDAP_SUCCESS;
@@ -1104,8 +1104,8 @@ id2entry_retry:
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
-            if ( --sop->ors_slimit == -1 &&
-				sop->o_sync_slog_size == -1 )
+			if ( --sop->ors_slimit == -1 &&
+					sop->o_sync_slog_size == -1 )
 			{
 				if (!IS_PSEARCH) {
 					bdb_cache_return_entry_r( bdb->bi_dbenv,
@@ -1121,6 +1121,21 @@ id2entry_retry:
 			}
 
 			if ( get_pagedresults(sop) ) {
+				if ( sop->ors_limit	/* isroot == TRUE */
+						&& sop->ors_slimit < sop->o_pagedresults_state.ps_count ) {
+					if (!IS_PSEARCH) {
+						bdb_cache_return_entry_r( bdb->bi_dbenv,
+							&bdb->bi_cache, e, &lock );
+					}
+					e = NULL;
+					rs->sr_entry = NULL;
+					rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+					rs->sr_ref = rs->sr_v2ref;
+					send_ldap_result( sop, rs );
+					rs->sr_err = LDAP_SUCCESS;
+					goto done;
+				}
+
 				if ( rs->sr_nentries >= sop->o_pagedresults_size ) {
 					send_pagerequest_response( sop, rs,
 						lastid, tentries );
@@ -1700,6 +1715,7 @@ send_pagerequest_response(
 
 	respcookie = ( PagedResultsCookie )lastid;
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
+	op->o_conn->c_pagedresults_state.ps_count = op->o_pagedresults_state.ps_count + rs->sr_nentries;
 	cookie.bv_len = sizeof( respcookie );
 	cookie.bv_val = (char *)&respcookie;
 
@@ -1722,4 +1738,5 @@ send_pagerequest_response(
 
 done:
 	(void) ber_free_buf( ber );
-}			
+}
+
