@@ -97,10 +97,20 @@ relay_back_db_open( Backend *be )
 
 	if ( !BER_BVISNULL( &ri->ri_realsuffix ) ) {
 		ri->ri_bd = select_backend( &ri->ri_realsuffix, 0, 1 );
+
 		/* must be there: it was during config! */
 		assert( ri->ri_bd );
 
-		/* FIXME: (somehow) copy supported controls ? */
+		/* inherit controls */
+		if ( ri->ri_bd ) {
+			be->be_controls = ldap_charray_dup( ri->ri_bd->be_controls );
+		}
+
+	} else {
+		/* inherit all? */
+		if ( frontendDB->be_controls ) {
+			be->be_controls = ldap_charray_dup( frontendDB->be_controls );
+		}
 	}
 
 	return 0;
