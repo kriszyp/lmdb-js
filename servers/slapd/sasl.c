@@ -638,7 +638,7 @@ slap_sasl_authorize(
 		return SASL_NOAUTHZ;
 	}
 
-	conn->c_sasl_sdn = authzDN;
+	conn->c_sasl_dn = authzDN;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
