@@ -34,7 +34,6 @@ str2filter( const char *str )
 	Debug( LDAP_DEBUG_FILTER, "str2filter \"%s\"\n", str, 0, 0 );
 #endif
 
-
 	if ( str == NULL || *str == '\0' ) {
 		return( NULL );
 	}
@@ -61,7 +60,6 @@ str2filter( const char *str )
 			    0, 0, 0 );
 #endif
 
-
 			str++;
 			f = str2list( str, LDAP_FILTER_AND );
 			break;
@@ -74,7 +72,6 @@ str2filter( const char *str )
 			Debug( LDAP_DEBUG_FILTER, "put_filter: OR\n",
 			    0, 0, 0 );
 #endif
-
 
 			str++;
 			f = str2list( str, LDAP_FILTER_OR );
@@ -89,7 +86,6 @@ str2filter( const char *str )
 			    0, 0, 0 );
 #endif
 
-
 			str++;
 			f = str2list( str, LDAP_FILTER_NOT );
 			break;
@@ -102,7 +98,6 @@ str2filter( const char *str )
 			Debug( LDAP_DEBUG_FILTER, "str2filter: simple\n",
 			    0, 0, 0 );
 #endif
-
 
 			f = str2simple( str );
 			break;
@@ -118,7 +113,6 @@ str2filter( const char *str )
 		Debug( LDAP_DEBUG_FILTER, "str2filter: default\n", 0, 0,
 		    0 );
 #endif
-
 
 		f = str2simple( str );
 		break;
@@ -146,7 +140,6 @@ str2list( const char *str, unsigned long ftype )
 #else
 	Debug( LDAP_DEBUG_FILTER, "str2list \"%s\"\n", str, 0, 0 );
 #endif
-
 
 	f = (Filter *) ch_calloc( 1, sizeof(Filter) );
 	f->f_choice = ftype;
@@ -197,9 +190,8 @@ str2simple( const char *str )
 	Debug( LDAP_DEBUG_FILTER, "str2simple \"%s\"\n", str, 0, 0 );
 #endif
 
-
 	if ( (s = strchr( str, '=' )) == NULL ) {
-		return( NULL );
+		return NULL;
 	}
 	value = &s[1];
 
@@ -249,10 +241,10 @@ str2simple( const char *str )
 				if ( str2subvals( value, f ) != 0 ) {
 					filter_free( f );
 					*(value-1) = '=';
-					return( NULL );
+					return NULL;
 				}
 				*(value-1) = '=';
-				return( f );
+				return f;
 			}
 		} break;
 	}
@@ -265,6 +257,7 @@ str2simple( const char *str )
 			return NULL;
 		}
 	} else {
+		ber_slen_t len;
 		char *tmp;
 
 		f->f_ava = ch_calloc( 1, sizeof( AttributeAssertion ) );
@@ -277,19 +270,26 @@ str2simple( const char *str )
 		}
 
 		tmp = ch_strdup( value );
-		ldap_pvt_filter_value_unescape( tmp );
+		len = ldap_pvt_filter_value_unescape( tmp );
+		if( len < 0 ) {
+			filter_free( f );
+			*(value-1) = '=';
+			free( tmp );
+			return -1;
+		}
 		ber_str2bv( tmp, 0, 0, &f->f_av_value );
 	}
 
 	*s = savechar;
 	*(value-1) = '=';
 
-	return( f );
+	return f;
 }
 
 static int
 str2subvals( const char *in, Filter *f )
 {
+	ber_slen_t len;
 	char	*nextstar, *val, *freeme;
 	int	gotstar;
 	int final;
@@ -322,7 +322,11 @@ str2subvals( const char *in, Filter *f )
 			*nextstar = '\0';
 		}
 
-		ldap_pvt_filter_value_unescape( val );
+		len = ldap_pvt_filter_value_unescape( val );
+		if( len < 0 ) {
+			free( freeme );
+			return -1;
+		}
 
 		if ( final ) {
 			ber_str2bv( val, 0, 1, &f->f_sub_final );
@@ -331,14 +335,15 @@ str2subvals( const char *in, Filter *f )
 			ber_str2bv( val, 0, 1, &f->f_sub_initial );
 
 		} else {
-			charray_add( (char ***) &f->f_sub_any, (char *) ber_bvstrdup( val ) );
+			charray_add( (char ***) &f->f_sub_any,
+				(char *) ber_bvstrdup( val ) );
 		}
 
 		val = nextstar+1;
 	}
 
 	free( freeme );
-	return( 0 );
+	return 0;
 }
 
 /*
