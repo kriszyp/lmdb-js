@@ -6,9 +6,10 @@ Changes included in OpenLDAP 1.1.x
 	Updated docs
 	Fixed slapd/ldbm/delete initialization bug (ITS#31)
 	Fixed slapd/ldif2ldbm MAXARGS bug (ITS#34)
-	Fixed slapd/delete bugs (ITS#39)
+	Fixed slapd/delete bugs (ITS#38)
 	Fixed slapd/strtok needs mutex bug
 	Fixed slapd/tcpd DoS bug
+	Fixed slapd/tcpd denied cleanup bug (ITS#44)
 	Fixed slapd/add,delete,modrdn parent lock bug
 	Fixed ud bogus msgfree bug (ITS#43)
 	Updated ldap.conf to support LDAPNOINIT
