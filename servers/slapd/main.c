@@ -66,7 +66,7 @@ static struct sockaddr_in	bind_addr;
 
 typedef int (MainFunc) LDAP_P(( int argc, char *argv[] ));
 extern MainFunc slapadd, slapcat, slapdn, slapindex, slappasswd,
-	slaptest, slapauth;
+	slaptest, slapauth, slapacl;
 
 static struct {
 	char *name;
@@ -79,6 +79,7 @@ static struct {
 	{"slappasswd", slappasswd},
 	{"slaptest", slaptest},
 	{"slapauth", slapauth},
+	{"slapacl", slapacl},
 	/* NOTE: new tools must be added in chronological order,
 	 * not in alphabetical order, because for backwards
 	 * compatibility name[4] is used to identify the

@@ -28,6 +28,7 @@ enum slaptool {
 	SLAPPASSWD,	/* password generation tool */
 	SLAPTEST,	/* slapd.conf test tool */
 	SLAPAUTH,	/* test authz-regexp and authc/authz stuff */
+	SLAPACL,	/* test acl */
 	SLAPLAST
 };
 
@@ -51,6 +52,8 @@ typedef struct tool_vars {
 	int tv_dryrun;
 	struct berval tv_sub_ndn;
 	FILE	*tv_ldiffp;
+	struct berval tv_authcDN;
+	struct berval tv_baseDN;
 	struct berval tv_authcID;
 	struct berval tv_authzID;
 } tool_vars;
@@ -72,6 +75,8 @@ extern tool_vars tool_globals;
 #define dryrun tool_globals.tv_dryrun
 #define sub_ndn tool_globals.tv_sub_ndn
 #define ldiffp tool_globals.tv_ldiffp
+#define authcDN tool_globals.tv_authcDN
+#define baseDN tool_globals.tv_baseDN
 #define authcID tool_globals.tv_authcID
 #define authzID tool_globals.tv_authzID
 

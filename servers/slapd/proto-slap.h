@@ -34,11 +34,13 @@ LDAP_BEGIN_DECL
 /*
  * acl.c
  */
-LDAP_SLAPD_F (int) access_allowed LDAP_P((
+LDAP_SLAPD_F (int) access_allowed_mask LDAP_P((
 	Operation *op,
 	Entry *e, AttributeDescription *desc, struct berval *val,
 	slap_access_t access,
-	AccessControlState *state ));
+	AccessControlState *state,
+	slap_mask_t *mask ));
+#define access_allowed(op,e,desc,val,access,state) access_allowed_mask(op,e,desc,val,access,state,NULL)
 LDAP_SLAPD_F (int) acl_check_modlist LDAP_P((
 	Operation *op, Entry *e, Modifications *ml ));
 

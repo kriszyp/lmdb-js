@@ -135,13 +135,14 @@ static int aci_match_set ( struct berval *subj, Operation *op,
  */
 
 int
-access_allowed(
+access_allowed_mask(
 	Operation		*op,
 	Entry		*e,
 	AttributeDescription	*desc,
 	struct berval	*val,
 	slap_access_t	access,
-	AccessControlState *state )
+	AccessControlState *state,
+	slap_mask_t *maskp )
 {
 	int				ret = 1;
 	int				count;
@@ -162,6 +163,7 @@ access_allowed(
 	assert( e != NULL );
 	assert( desc != NULL );
 	assert( access > ACL_NONE );
+	if ( maskp ) ACL_INVALIDATE( *maskp );
 
 	attr = desc->ad_cname.bv_val;
 
@@ -238,6 +240,10 @@ access_allowed(
 		    "<= root access granted\n",
 			0, 0, 0 );
 #endif
+		if ( maskp ) {
+			mask = ACL_LVL_WRITE;
+		}
+
 		goto done;
 	}
 
@@ -278,6 +284,16 @@ access_allowed(
 			op->o_dn.bv_val ? op->o_dn.bv_val : "(anonymous)" );
 #endif
 		ret = be->be_dfltaccess >= access;
+
+		if ( maskp ) {
+			int	i;
+
+			mask = ACL_PRIV_LEVEL;
+			for ( i = ACL_NONE; i <= be->be_dfltaccess; i++ ) {
+				mask |= ACL_ACCESS2PRIV( i );
+			}
+		}
+
 		goto done;
 
 #ifdef notdef
@@ -297,6 +313,16 @@ access_allowed(
 			global_default_access >= access ? "granted" : "denied", op->o_dn.bv_val );
 #endif
 		ret = global_default_access >= access;
+
+		if ( maskp ) {
+			int	i;
+
+			mask = ACL_PRIV_LEVEL;
+			for ( i = ACL_NONE; i <= global_default_access; i++ ) {
+				mask |= ACL_ACCESS2PRIV( i );
+			}
+		}
+
 		goto done;
 #endif
 	}
@@ -420,6 +446,7 @@ done:
 		state->as_recorded |= ACL_STATE_RECORDED;
 	}
 	if (be_null) op->o_bd = NULL;
+	if ( maskp ) *maskp = mask;
 	return ret;
 }
 

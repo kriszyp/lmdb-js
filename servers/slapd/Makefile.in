@@ -13,7 +13,7 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SLAPTOOLS=slapadd slapcat slapdn slapindex slappasswd slaptest slapauth
+SLAPTOOLS=slapadd slapcat slapdn slapindex slappasswd slaptest slapauth slapacl
 PROGRAMS=slapd $(SLAPTOOLS)
 XPROGRAMS=sslapd libbackends.a .backend liboverlays.a
 XSRCS=version.c
@@ -37,7 +37,7 @@ SRCS	= main.c globals.c config.c daemon.c \
 		backglue.c operational.c matchedValues.c cancel.c syncrepl.c \
 		backover.c ctxcsn.c ldapsync.c sessionlog.c \
 		slapadd.c slapcat.c slapcommon.c slapdn.c slapindex.c \
-		slappasswd.c slaptest.c slapauth.c \
+		slappasswd.c slaptest.c slapauth.c slapacl.c \
 		$(@PLAT@_SRCS)
 
 OBJS	= main.o globals.o config.o daemon.o \
@@ -54,7 +54,7 @@ OBJS	= main.o globals.o config.o daemon.o \
 		backglue.o operational.o matchedValues.o cancel.o syncrepl.o \
 		backover.o ctxcsn.o ldapsync.o sessionlog.o \
 		slapadd.o slapcat.o slapcommon.o slapdn.o slapindex.o \
-		slappasswd.o slaptest.o slapauth.o \
+		slappasswd.o slaptest.o slapauth.o slapacl.o \
 		$(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include -I$(srcdir)/slapi

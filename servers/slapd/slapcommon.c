@@ -73,6 +73,10 @@ usage( int tool, const char *progname )
 	case SLAPAUTH:
 		options = "\t[-U authcID] [-X authzID] ID [...]\n";
 		break;
+
+	case SLAPACL:
+		options = "\t[-U authcID | -D authcDN] -b DN attr[/level][:value] [...]\n";
+		break;
 	}
 
 	if ( options != NULL ) {
@@ -138,6 +142,10 @@ slap_tool_init(
 		mode |= SLAP_TOOL_READMAIN;
 		break;
 
+	case SLAPACL:
+		options = "b:D:d:f:U:v";
+		break;
+
 	default:
 		fprintf( stderr, "%s: unknown tool mode (%d)\n",
 		         progname, tool );
@@ -157,6 +165,10 @@ slap_tool_init(
 
 		case 'd':	/* turn on debugging */
 			ldap_debug += atoi( optarg );
+			break;
+
+		case 'D':
+			ber_str2bv( optarg, 0, 0, &authcDN );
 			break;
 
 		case 'f':	/* specify a conf file */
@@ -282,6 +294,16 @@ slap_tool_init(
 		if ( argc != optind ) {
 			usage( tool, progname );
 		}
+		break;
+
+	case SLAPACL:
+		if ( !BER_BVISNULL( &authcDN ) && !BER_BVISNULL( &authcID ) ) {
+			usage( tool, progname );
+		}
+		if ( BER_BVISNULL( &base ) ) {
+			usage( tool, progname );
+		}
+		ber_dupbv( &baseDN, &base );
 		break;
 
 	default:

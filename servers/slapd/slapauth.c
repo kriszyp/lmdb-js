@@ -37,10 +37,10 @@
 static int
 do_check( Connection *c, Operation *op, struct berval *id )
 {
-	struct berval	authcDN;
+	struct berval	authcdn;
 	int		rc;
 
-	rc = slap_sasl_getdn( c, op, id, NULL, &authcDN, SLAP_GETDN_AUTHCID );
+	rc = slap_sasl_getdn( c, op, id, NULL, &authcdn, SLAP_GETDN_AUTHCID );
 	if ( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "ID: <%s> check failed %d (%s)\n",
 				id->bv_val, rc,
@@ -49,7 +49,7 @@ do_check( Connection *c, Operation *op, struct berval *id )
 			
 	} else {
 		if ( !BER_BVISNULL( &authzID ) ) {
-			rc = slap_sasl_authorized( op, &authcDN, &authzID );
+			rc = slap_sasl_authorized( op, &authcdn, &authzID );
 
 			fprintf( stderr,
 					"ID:      <%s>\n"
@@ -57,7 +57,7 @@ do_check( Connection *c, Operation *op, struct berval *id )
 					"authzDN: <%s>\n"
 					"authorization %s\n",
 					id->bv_val,
-					authcDN.bv_val,
+					authcdn.bv_val,
 					authzID.bv_val,
 					rc == LDAP_SUCCESS ? "OK" : "failed" );
 
@@ -65,8 +65,8 @@ do_check( Connection *c, Operation *op, struct berval *id )
 			fprintf( stderr, "ID: <%s> check succeeded\n"
 					"authcID:     <%s>\n",
 					id->bv_val,
-					authcDN.bv_val );
-			op->o_tmpfree( authcDN.bv_val, op->o_tmpmemctx );
+					authcdn.bv_val );
+			op->o_tmpfree( authcdn.bv_val, op->o_tmpmemctx );
 		}
 		rc = 0;
 	}
@@ -96,9 +96,9 @@ slapauth( int argc, char **argv )
 	connection_fake_init( &conn, &op, &conn );
 
 	if ( !BER_BVISNULL( &authzID ) ) {
-		struct berval	authzDN;
+		struct berval	authzdn;
 		
-		rc = slap_sasl_getdn( &conn, &op, &authzID, NULL, &authzDN,
+		rc = slap_sasl_getdn( &conn, &op, &authzID, NULL, &authzdn,
 				SLAP_GETDN_AUTHZID );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "authzID: <%s> check failed %d (%s)\n",
@@ -109,7 +109,7 @@ slapauth( int argc, char **argv )
 			goto destroy;
 		} 
 
-		authzID = authzDN;
+		authzID = authzdn;
 	}
 
 
@@ -120,11 +120,11 @@ slapauth( int argc, char **argv )
 		}
 
 		for ( ; argc--; argv++ ) {
-			struct berval	authzDN;
+			struct berval	authzdn;
 		
 			ber_str2bv( argv[ 0 ], 0, 0, &authzID );
 
-			rc = slap_sasl_getdn( &conn, &op, &authzID, NULL, &authzDN,
+			rc = slap_sasl_getdn( &conn, &op, &authzID, NULL, &authzdn,
 					SLAP_GETDN_AUTHZID );
 			if ( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "authzID: <%s> check failed %d (%s)\n",
@@ -135,7 +135,7 @@ slapauth( int argc, char **argv )
 				goto destroy;
 			}
 
-			authzID = authzDN;
+			authzID = authzdn;
 
 			rc = do_check( &conn, &op, &authcID );
 
