@@ -802,14 +802,6 @@ retry:	/* transaction retry */
 	 * already happened, must free the names. The frees are
 	 * done in bdb_cache_modrdn().
 	 */
-#ifdef BDB_HIER
-	e->e_name.bv_val = ch_malloc(new_dn.bv_len + new_ndn.bv_len + 2);
-	e->e_name.bv_len = new_dn.bv_len;
-	e->e_nname.bv_val = e->e_name.bv_val + new_dn.bv_len + 1;
-	e->e_nname.bv_len = new_ndn.bv_len;
-	strcpy(e->e_name.bv_val, new_dn.bv_val);
-	strcpy(e->e_nname.bv_val, new_ndn.bv_val);
-#else
 	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
 		e->e_bv.bv_val + e->e_bv.bv_len ) {
 		e->e_name.bv_val = NULL;
@@ -819,7 +811,7 @@ retry:	/* transaction retry */
 	e->e_nname = new_ndn;
 	new_dn.bv_val = NULL;
 	new_ndn.bv_val = NULL;
-#endif
+
 	/* add new one */
 	rs->sr_err = bdb_dn2id_add( op->o_bd, lt2, neip ? neip : eip, e,
 		op->o_tmpmemctx );

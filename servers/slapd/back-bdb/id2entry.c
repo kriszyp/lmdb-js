@@ -160,7 +160,6 @@ int bdb_entry_return(
 		attrs_free( e->e_attrs );
 	}
 
-#ifndef BDB_HIER
 	/* See if the DNs were changed by modrdn */
 	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
 		e->e_bv.bv_val + e->e_bv.bv_len ) {
@@ -169,15 +168,12 @@ int bdb_entry_return(
 		e->e_name.bv_val = NULL;
 		e->e_nname.bv_val = NULL;
 	}
+#ifndef BDB_HIER
 	/* In tool mode the e_bv buffer is realloc'd, leave it alone */
 	if( !(slapMode & SLAP_TOOL_MODE) ) {
 		free( e->e_bv.bv_val );
 	}
 #else
-	/* We had to construct the dn and ndn as well, in a single block */
-	if( e->e_name.bv_val ) {
-		free( e->e_name.bv_val );
-	}
 	free( e->e_bv.bv_val );
 #endif
 	free( e );

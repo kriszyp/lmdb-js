@@ -719,15 +719,11 @@ bdb_cache_modrdn(
 		attrs_free( e->e_attrs );
 	}
 	e->e_attrs = new->e_attrs;
-#ifdef BDB_HIER
-	ch_free(e->e_name.bv_val);
-#else
 	if( e->e_nname.bv_val < e->e_bv.bv_val || e->e_nname.bv_val >
 		e->e_bv.bv_val + e->e_bv.bv_len ) {
 		ch_free(e->e_name.bv_val);
 		ch_free(e->e_nname.bv_val);
 	}
-#endif
 	e->e_name = new->e_name;
 	e->e_nname = new->e_nname;
 

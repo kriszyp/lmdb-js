@@ -563,8 +563,8 @@ int hdb_fix_dn(
 
 	e->e_name.bv_len = rlen - 1;
 	e->e_nname.bv_len = nrlen - 1;
-	e->e_name.bv_val = ch_malloc(rlen + nrlen);
-	e->e_nname.bv_val = e->e_name.bv_val + rlen;
+	e->e_name.bv_val = ch_malloc(rlen);
+	e->e_nname.bv_val = ch_malloc(nrlen);
 	ptr = e->e_name.bv_val;
 	nptr = e->e_nname.bv_val;
 	for ( ei = BEI(e); ei && ei->bei_id; ei=ei->bei_parent ) {
