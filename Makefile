@@ -1,7 +1,19 @@
-#
 # You will usually NOT need to edit this file at all:  instead, edit the
 # Make-common file.  See the LDAP INSTALL file for more information.
-#
+#-----------------------------------------------------------------------------
+# Copyright 1998 Net Boolean Incorporated, Redwood City, California, USA
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms are permitted only
+# as authorized by the Net Boolean Public License.  A copy of this
+# license is available at http://www.boolean.net/ldap/license.html or
+# in file LICENSE in the top-level directory of the distribution.
+# 
+# This work is derived from the University of Michigan LDAP v3.3
+# distribution.  Information concerning is available at
+#	http://www.umich.edu/~dirsvcs/ldap/ldap.html.
+# 
+# This work also contains materials derived from public sources.
 #-----------------------------------------------------------------------------
 # Copyright (c) 1994 Regents of the University of Michigan.
 # All rights reserved.
@@ -12,10 +24,8 @@
 # may not be used to endorse or promote products derived from this
 # software without specific prior written permission. This software
 # is provided ``as is'' without express or implied warranty.
-#
-#       LDAP lightweight X.500 Directory access top level makefile
-#
 #-----------------------------------------------------------------------------
+# LDAP lightweight X.500 Directory access top level makefile
 #
 ############################################################################
 #                                                                          #
