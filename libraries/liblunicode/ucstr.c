@@ -41,8 +41,8 @@ int ucstrncasecmp(
 	ber_len_t n )
 {
 	for(; 0 < n; ++u1, ++u2, --n ) {
-		ldap_unicode_t uu1 = uctoupper( *u1 );
-		ldap_unicode_t uu2 = uctoupper( *u2 );
+		ldap_unicode_t uu1 = uctolower( *u1 );
+		ldap_unicode_t uu2 = uctolower( *u2 );
 
 		if( uu1 != uu2 ) {
 			return uu1 < uu2 ? -1 : +1;
@@ -73,9 +73,9 @@ ldap_unicode_t * ucstrncasechr(
 	ber_len_t n,
 	ldap_unicode_t c )
 {
-	c = uctoupper( c );
+	c = uctolower( c );
 	for(; 0 < n; ++u, --n ) {
-		if( uctoupper( *u ) == c ) {
+		if( uctolower( *u ) == c ) {
 			return (ldap_unicode_t *) u;
 		}
 	}
@@ -133,10 +133,10 @@ struct berval * UTF8bvnormalize(
 			outpos = 0;
 
 			for ( i = 1; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
-				out[outpos++] = TOUPPER( s[i-1] );
+				out[outpos++] = TOLOWER( s[i-1] );
 			}
 			if ( i == len ) {
-				out[outpos++] = TOUPPER( s[len - 1] );
+				out[outpos++] = TOLOWER( s[len - 1] );
 				out[outpos] = '\0';
 				return ber_str2bv( out, outpos, 0, newbv);
 			}
@@ -175,7 +175,7 @@ struct berval * UTF8bvnormalize(
 
 	/* convert character before first non-ascii to ucs-4 */
 	if ( i > 0 ) {
-		*p = casefold ? TOUPPER( s[i - 1] ) : s[i - 1];
+		*p = casefold ? TOLOWER( s[i - 1] ) : s[i - 1];
 		p++;
 	}
 
@@ -207,7 +207,7 @@ struct berval * UTF8bvnormalize(
 				i++;
 			}
 			if ( casefold ) {
-				*p = uctoupper( *p );
+				*p = uctolower( *p );
 			}
 			p++;
                 }
@@ -246,15 +246,15 @@ struct berval * UTF8bvnormalize(
 		/* s[i] is ascii */
 		/* finish off everything up to char before next non-ascii */
 		for ( i++; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
-			out[outpos++] = casefold ? TOUPPER( s[i-1] ) : s[i-1];
+			out[outpos++] = casefold ? TOLOWER( s[i-1] ) : s[i-1];
 		}
 		if ( i == len ) {
-			out[outpos++] = casefold ? TOUPPER( s[len - 1] ) : s[len - 1];
+			out[outpos++] = casefold ? TOLOWER( s[len - 1] ) : s[len - 1];
 			break;
 		}
 
 		/* convert character before next non-ascii to ucs-4 */
-		*ucs = casefold ? TOUPPER( s[i - 1] ) : s[i - 1];
+		*ucs = casefold ? TOLOWER( s[i - 1] ) : s[i - 1];
 		p = ucs + 1;
 	}		
 	free( ucs );
@@ -296,8 +296,8 @@ int UTF8bvnormcmp(
 
 	while ( (s1 < done) && LDAP_UTF8_ISASCII(s1) && LDAP_UTF8_ISASCII(s2) ) {
 		if (casefold) {
-			char c1 = TOUPPER(*s1);
-			char c2 = TOUPPER(*s2);
+			char c1 = TOLOWER(*s1);
+			char c2 = TOLOWER(*s2);
 		    	res = c1 - c2;
 		} else {
 			res = *s1 - *s2;

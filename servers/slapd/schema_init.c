@@ -2766,7 +2766,7 @@ static int caseIgnoreIA5Indexer(
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		struct berval value;
 		ber_dupbv( &value, &values[i] );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -2814,7 +2814,7 @@ static int caseIgnoreIA5Filter(
 	mlen = mr->smr_oidlen;
 
 	ber_dupbv( &value, (struct berval *) assertValue );
-	ldap_pvt_str2upper( value.bv_val );
+	ldap_pvt_str2lower( value.bv_val );
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
@@ -2914,7 +2914,7 @@ static int caseIgnoreIA5SubstringsIndexer(
 		if( values[i].bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
 		ber_dupbv( &value, &values[i] );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
 			( value.bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
@@ -3067,7 +3067,7 @@ static int caseIgnoreIA5SubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 		ber_dupbv( &value, &sa->sa_initial );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
@@ -3102,7 +3102,7 @@ static int caseIgnoreIA5SubstringsFilter(
 			}
 
 			ber_dupbv( &value, &sa->sa_any[i] );
-			ldap_pvt_str2upper( value.bv_val );
+			ldap_pvt_str2lower( value.bv_val );
 
 			for(j=0;
 				j <= value.bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
@@ -3135,7 +3135,7 @@ static int caseIgnoreIA5SubstringsFilter(
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 		ber_dupbv( &value, &sa->sa_final );
-		ldap_pvt_str2upper( value.bv_val );
+		ldap_pvt_str2lower( value.bv_val );
 
 		klen = SLAP_INDEX_SUBSTR_MAXLEN < value.bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value.bv_len;
