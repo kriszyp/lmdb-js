@@ -148,10 +148,10 @@ ldbm_back_db_init(
 	li->li_dbwritesync = 1;
 
 	/* default file creation mode */
-	li->li_mode = DEFAULT_MODE;
+	li->li_mode = SLAPD_DEFAULT_DB_MODE;
 
 	/* default database directory */
-	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
+	li->li_directory = ch_strdup( SLAPD_DEFAULT_DB_DIR );
 
 	/* DB_ENV environment pointer for DB3 */
 	li->li_dbenv = 0;
