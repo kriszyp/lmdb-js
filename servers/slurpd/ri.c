@@ -161,7 +161,7 @@ Ri_init(
     Ri	**ri
 )
 {
-    (*ri) = ( Ri * ) malloc( sizeof( Ri ));
+    (*ri) = ( Ri * ) calloc( 1, sizeof( Ri ));
     if ( *ri == NULL ) {
 	return -1;
     }
@@ -172,9 +172,7 @@ Ri_init(
 
     /* Initialize private data */
     (*ri)->ri_hostname = NULL;
-    (*ri)->ri_port = 0;
     (*ri)->ri_ldp = NULL;
-    (*ri)->ri_bind_method = 0;
     (*ri)->ri_bind_dn = NULL;
     (*ri)->ri_password = NULL;
     (*ri)->ri_authcId = NULL;
