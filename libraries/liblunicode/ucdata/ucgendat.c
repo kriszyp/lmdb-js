@@ -112,8 +112,8 @@ static unsigned long decomps_size;
 /*
  * Composition exclusion table stuff.
  */
-#define COMPEX_SET(c) (compexs[(c) >> 15] |= (1 << ((c) & 31)))
-#define COMPEX_TEST(c) (compexs[(c) >> 15] & (1 << ((c) & 31)))
+#define COMPEX_SET(c) (compexs[(c) >> 5] |= (1 << ((c) & 31)))
+#define COMPEX_TEST(c) (compexs[(c) >> 5] & (1 << ((c) & 31)))
 static unsigned long compexs[2048];
 
 /*
