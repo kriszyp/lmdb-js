@@ -976,12 +976,12 @@ process_ldif_rec( char *rbuf, int count )
 		{
 			if( val.bv_len == 0 || atoi(val.bv_val) != 1 ) {
 		    	fprintf( stderr, "%s: invalid version %s, line %d (ignored)\n",
-			   	prog, val.bv_val == NULL ? "(null)" : val.bv_val, linenum );
+			   	prog, val.bv_val, linenum );
 			}
 			version++;
 
 	    } else if ( strcasecmp( type, T_DN_STR ) == 0 ) {
-		if (( dn = ber_strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
+		if (( dn = ber_strdup( val.bv_val )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -1097,7 +1097,7 @@ process_ldif_rec( char *rbuf, int count )
 
 	if ( expect_newrdn ) {
 	    if ( strcasecmp( type, T_NEWRDNSTR ) == 0 ) {
-			if (( newrdn = ber_strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
+			if (( newrdn = ber_strdup( val.bv_val )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -1121,7 +1121,7 @@ process_ldif_rec( char *rbuf, int count )
 	    }
 	} else if ( expect_newsup ) {
 	    if ( strcasecmp( type, T_NEWSUPSTR ) == 0 ) {
-		if (( newsup = ber_strdup( val.bv_val ? val.bv_val : "" )) == NULL ) {
+		if (( newsup = ber_strdup( val.bv_val )) == NULL ) {
 		    perror( "strdup" );
 		    exit( EXIT_FAILURE );
 		}
@@ -1137,7 +1137,7 @@ process_ldif_rec( char *rbuf, int count )
 		    prog, linenum, dn );
 	    rc = LDAP_PARAM_ERROR;
 	} else {
-		addmodifyop( &pmods, modop, type, val.bv_val == NULL ? NULL : &val );
+		addmodifyop( &pmods, modop, type, &val );
 	}
 
 end_line:

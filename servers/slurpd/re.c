@@ -221,14 +221,12 @@ Re_parse(
 			type, 0, 0 );
 #endif
 		free( type );
-		if ( value != NULL )
-			free( value );
+		free( value );
 		return -1;
 	    }
 	}
 	free( type );
-	if ( value != NULL )
-		free( value );
+	free( value );
     }
 
     if ( state != GOT_ALL ) {
@@ -367,8 +365,7 @@ get_repl_hosts(
 	free( type );
 	if ( !repl_ok ) {
 	    warn_unknown_replica( value, port );
-	    if ( value != NULL )
-		free( value );
+	    free( value );
 	    continue;
 	}
 
@@ -387,8 +384,7 @@ get_repl_hosts(
 	rh[ nreplicas ].rh_port = port;
 	nreplicas++;
 
-	if ( value != NULL )
-		free( value );
+	free( value );
     }
 
     if ( nreplicas == 0 ) {
