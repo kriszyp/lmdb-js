@@ -105,7 +105,7 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 	const char *url_tmp;
 	char *url;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse(%s)\n", url, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse(%s)\n", url_in, 0, 0 );
 
 	*ludpp = NULL;	/* pessimistic */
 

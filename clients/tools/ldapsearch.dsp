@@ -81,7 +81,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 oldap32.lib olber32.lib oldif32.lib olutil32.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\Release"
-# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapsearch.exe" /libpath:"..\..\libraries\SRelease"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\SRelease"
 
 !ELSEIF  "$(CFG)" == "ldapsearch - Win32 Release"
 
@@ -106,7 +106,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapsearch.exe" /libpath:"..\..\libraries\SRelease"
-# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapsearch.exe" /libpath:"..\..\libraries\Release"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\libraries\Release"
 
 !ELSEIF  "$(CFG)" == "ldapsearch - Win32 Debug"
 
@@ -123,7 +123,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MTd /W3 /GX /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
+# ADD CPP /nologo /MTd /W2 /GX /Zi /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
 # ADD BASE RSC /l 0x409 /d "NDEBUG"
 # ADD RSC /l 0x409 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -131,7 +131,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapsearch.exe" /libpath:"..\..\libraries\SRelease"
-# ADD LINK32 ws2_32.lib /nologo /subsystem:console /machine:I386 /out:"Release/ldapsearch.exe" /libpath:"..\..\libraries\Debug"
+# ADD LINK32 ws2_32.lib /nologo /subsystem:console /incremental:yes /debug /machine:I386 /libpath:"..\..\libraries\Debug"
 
 !ENDIF 
 
