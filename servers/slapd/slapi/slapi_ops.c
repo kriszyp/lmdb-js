@@ -119,7 +119,7 @@ internal_search_reference(
 	return LDAP_SUCCESS;
 }
 
-static Connection *
+Connection *
 slapi_int_init_connection(
 	char *DN, 
 	int OpType ) 

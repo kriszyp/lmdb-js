@@ -109,7 +109,7 @@ bvptr2obj(
 Slapi_Entry *
 slapi_str2entry(
 	char		*s, 
-	int		check_dup )
+	int		flags )
 {
 #ifdef LDAP_SLAPI
 	Slapi_Entry	*e = NULL;
@@ -524,6 +524,35 @@ slapi_is_rootdse( const char *dn )
 {
 #ifdef LDAP_SLAPI
 	return ( dn == NULL || dn[0] == '\0' );
+#else
+	return 0;
+#endif
+}
+
+int
+slapi_entry_has_children(const Slapi_Entry *e)
+{
+#ifdef LDAP_SLAPI
+	Connection *pConn;
+	Operation *op;
+	int hasSubordinates = 0;
+
+	pConn = slapi_int_init_connection( NULL, LDAP_REQ_SEARCH );
+	if ( pConn == NULL ) {
+		return 0;
+	}
+
+	op = (Operation *)pConn->c_pending_ops.stqh_first;
+	op->o_bd = select_backend( (struct berval *)&e->e_nname, 0, 0 );
+	if ( op->o_bd == NULL ) {
+		return 0;
+	}
+
+	op->o_bd->be_has_subordinates( op, (Entry *)e, &hasSubordinates );
+
+	slapi_int_connection_destroy( &pConn );
+
+	return ( hasSubordinates == LDAP_COMPARE_TRUE );
 #else
 	return 0;
 #endif

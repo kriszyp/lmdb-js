@@ -48,6 +48,8 @@ extern void slapi_entry_attr_set_uint( Slapi_Entry* e, const char *type, unsigne
 extern void slapi_entry_attr_set_long(Slapi_Entry* e, const char *type, long l);
 extern void slapi_entry_attr_set_ulong(Slapi_Entry* e, const char *type, unsigned long l);
 extern int slapi_is_rootdse( const char *dn );
+extern int slapi_entry_has_children(const Slapi_Entry *e);
+
 extern int slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
 extern int slapi_entry_add_values_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
 extern int slapi_entry_add_valueset(Slapi_Entry *e, const char *type, Slapi_ValueSet *vs);
@@ -297,6 +299,7 @@ extern Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
 		int deloldrdn, LDAPControl **controls, int log_change);
 extern char **slapi_get_supported_extended_ops(void);
 extern struct berval *slapi_int_get_supported_extop( int );
+Connection *slapi_int_init_connection(char *DN, int OpType);
 
 /*
  * Was: slapi_cl.h
