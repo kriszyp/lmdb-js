@@ -1816,7 +1816,7 @@ TLS_LIBS=
 
 
 
-if test "$host_os" != "cygwin" ;
+if test "${host_os}" != "cygwin" ; then
 	CC=${CC-"cc"}
 fi
 
