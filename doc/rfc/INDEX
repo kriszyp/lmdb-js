@@ -39,6 +39,7 @@ rfc3673.txt LDAPv3: All Operational Attributes (PS)
 rfc3674.txt Feature Discovery in LDAP (PS)
 rfc3687.txt LDAP Component Matching Rules (PS)
 rfc3698.txt LDAP: Additional Matching Rules (PS)
+rfc3703.txt LDAP: Schema for Policy Core (PS)
 rfc3712.txt LDAP: Schema for Printer Services (I)
 rfc3727.txt ASN.1 Module for LDAP Component Matching Rules (PS)
 
