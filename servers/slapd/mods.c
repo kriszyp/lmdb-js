@@ -315,6 +315,11 @@ modify_add_values(
 
 	/* check if the values we're adding already exist */
 	if( mr == NULL || !mr->smr_match ) {
+#ifdef SLAP_NVALUES
+		/* we should have no normalized values as there is no equality rule */
+		/* assert( mod->sm_nvalues[0].bv_val == NULL); */
+#endif
+
 		if ( a != NULL ) {
 			/* do not allow add of additional attribute
 				if no equality rule exists */
@@ -328,6 +333,11 @@ modify_add_values(
 		for ( i = 0; mod->sm_bvalues[i].bv_val != NULL; i++ ) {
 			/* test asserted values against existing values */
 			if( a ) {
+#ifdef SLAP_NVALUES
+				/* we should have no normalized values as there
+					is no equality rule */
+				assert( a->a_nvals == NULL);
+#endif
 				for( matched = 0, j = 0; a->a_vals[j].bv_val != NULL; j++ ) {
 					if ( bvmatch( &mod->sm_bvalues[i], &a->a_vals[j] ) ) {
 						if ( permissive ) {
@@ -364,6 +374,16 @@ modify_add_values(
 		}
 
 	} else {
+#ifdef SLAP_NVALUES
+		/* no normalization is done in this routine nor
+		 * in the matching routines called by this routine. 
+		 * values are now normalized once on input to the
+		 * server (whether from LDAP or from the underlying
+		 * database).
+		 * This should outperform the old code.  No numbers
+		 * are available yet.
+		 */
+#else
 		/*
 		 * The original code performs ( n ) normalizations 
 		 * and ( n * ( n - 1 ) / 2 ) matches, which hide
@@ -390,6 +410,7 @@ modify_add_values(
 		 * Maybe we could switch to the new algorithm when
 		 * the number of values overcomes a given threshold?
 		 */
+#endif
 
 		int		rc;
 
@@ -502,7 +523,9 @@ modify_delete_values(
 	int		i, j, k, rc = LDAP_SUCCESS;
 	Attribute	*a;
 	MatchingRule 	*mr = mod->sm_desc->ad_type->sat_equality;
+#ifndef SLAP_NVALUES
 	BerVarray	nvals = NULL;
+#endif
 	char		dummy = '\0';
 
 	/*
@@ -548,9 +571,7 @@ modify_delete_values(
 		return LDAP_NO_SUCH_ATTRIBUTE;
 	}
 
-#ifdef SLAP_NVALUES
-	nvals = a->a_nvals;
-#else
+#ifndef SLAP_NVALUES
 	/* find each value to delete */
 	for ( j = 0; a->a_vals[ j ].bv_val != NULL; j++ )
 		/* count existing values */ ;
@@ -579,7 +600,7 @@ modify_delete_values(
 	}
 #endif
 
-	for ( i = 0; mod->sm_bvalues[ i ].bv_val != NULL; i++ ) {
+	for ( i = 0; mod->sm_values[i].bv_val != NULL; i++ ) {
 		int	found = 0;
 #ifndef SLAP_NVALUES
 		struct	berval asserted;
@@ -591,30 +612,37 @@ modify_delete_values(
 		if( rc != LDAP_SUCCESS ) {
 			goto return_results;
 		}
-#endif
 
 		/* search it */
-		for ( j = 0; nvals[ j ].bv_val != NULL; j++ ) {
+		for ( j = 0; nvals[ j ].bv_val != NULL; j++ )
+#else
+		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ )
+#endif
+		{
 			int match;
 
-			if ( nvals[ j ].bv_val == &dummy ) {
+#ifndef SLAP_NVALUES
+			if ( nvals[j].bv_val == &dummy ) {
 				continue;
 			}
 
+#endif
 #ifdef SLAP_NVALUES
 			if( mod->sm_nvalues ) {
+				assert( a->a_nvals );
 				rc = (*mr->smr_match)( &match,
 					SLAP_MR_VALUE_OF_ASSERTION_SYNTAX
 						| SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH
 						| SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH,
 					a->a_desc->ad_type->sat_syntax,
-					mr, &nvals[ j ],
+					mr, &a->a_nvals[j],
 					&mod->sm_nvalues[i] );
 			} else {
+				assert( a->a_nvals == NULL );
 				rc = (*mr->smr_match)( &match,
 					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 					a->a_desc->ad_type->sat_syntax,
-					mr, &nvals[ j ],
+					mr, &a->a_nvals[j],
 					&mod->sm_values[i] );
 			}
 #else
@@ -643,8 +671,17 @@ modify_delete_values(
 			found = 1;
 
 			/* delete value and mark it as dummy */
+#ifdef SLAP_NVALUES
+			free( a->a_vals[j].bv_val );
+			a->a_vals[j].bv_val = &dummy;
+			if( a->a_nvals ) {
+				free( a->a_nvals[j].bv_val );
+				a->a_nvals[j].bv_val = &dummy;
+			}
+#else
 			free( nvals[ j ].bv_val );
 			nvals[ j ].bv_val = &dummy;
+#endif
 
 			break;
 		}
@@ -664,33 +701,49 @@ modify_delete_values(
 	}
 
 	/* compact array skipping dummies */
-	for ( k = 0, j = 0; nvals[ k ].bv_val != NULL; j++, k++ ) {
-
+#ifdef SLAP_NVALUES
+	for ( k = 0, j = 0; a->a_vals[k].bv_val != NULL; k++ )
+#else
+	for ( k = 0, j = 0; nvals[k].bv_val != NULL; j++, k++ )
+#endif
+	{
+#ifdef SLAP_NVALUES
+		/* skip dummies */
+		if( a->a_vals[k].bv_val == &dummy ) {
+			assert( a->a_nvals == NULL || a->a_nvals[k].bv_val == &dummy );
+			continue;
+		}
+#else
 		/* delete and skip dummies */ ;
 		for ( ; nvals[ k ].bv_val == &dummy; k++ ) {
 			free( a->a_vals[ k ].bv_val );
 		}
-
+#endif
 		if ( j != k ) {
 			a->a_vals[ j ] = a->a_vals[ k ];
 #ifdef SLAP_NVALUES
 			if (a->a_nvals) {
-				free( a->a_nvals[j].bv_val );
 				a->a_nvals[ j ] = a->a_nvals[ k ];
 			}
 #endif
 		}
 
+#ifndef SLAP_NVALUES
 		if ( a->a_vals[ k ].bv_val == NULL ) {
 			break;
 		}
-	}
-	a->a_vals[ j ].bv_val = NULL;
-#ifdef SLAP_NVALUES
-	if (a->a_nvals) a->a_nvals[ j ].bv_val = NULL;
+#else
+		j++;
 #endif
+	}
+
+	a->a_vals[j].bv_val = NULL;
+#ifdef SLAP_NVALUES
+	if (a->a_nvals) a->a_nvals[j].bv_val = NULL;
+#else
 
 	assert( i == k - j );
+#endif
 
 	/* if no values remain, delete the entire attribute */
 	if ( a->a_vals[0].bv_val == NULL ) {
@@ -704,6 +757,7 @@ modify_delete_values(
 	}
 
 return_results:;
+#ifndef SLAP_NVALUES
 	if ( nvals ) {
 		/* delete the remaining normalized values */
 		for ( j = 0; nvals[ j ].bv_val != NULL; j++ ) {
@@ -713,6 +767,7 @@ return_results:;
 		}
 		ber_memfree( nvals );
 	}
+#endif
 
 	return rc;
 }
