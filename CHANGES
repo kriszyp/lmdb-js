@@ -22,6 +22,7 @@ OpenLDAP 2.2.16 Engineering
 	Fixed back-monitor syncrepl bug (ITS#3265)
 	Fixed slurpd replog error message bug (ITS#3275)
 	Added slapd syncrepl exattrs (ITS#3289)
+	Updated slapd SLAPI
 	Updated LDAP C++ library
 	Documentation
 		Updated provided RFCs and I-Ds
