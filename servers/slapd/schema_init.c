@@ -84,6 +84,11 @@
 #define integerIndexer					caseIgnoreIA5Indexer
 #define integerFilter					caseIgnoreIA5Filter
 
+#define telephoneNumberIndexer			caseIgnoreIA5Indexer
+#define telephoneNumberFilter			caseIgnoreIA5Filter
+#define telephoneNumberSubstringsIndexer	caseIgnoreIA5SubstringsIndexer
+#define telephoneNumberSubstringsFilter		caseIgnoreIA5SubstringsFilter
+
 static char *strcasechr( const char *str, int c )
 {
 	char *lower = strchr( str, TOLOWER(c) );
@@ -4477,14 +4482,18 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		telephoneNumberMatch, NULL, NULL,
+		telephoneNumberMatch,
+		telephoneNumberIndexer,
+		telephoneNumberFilter,
 		NULL},
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
 		NULL, NULL,
-		telephoneNumberSubstringsMatch, NULL, NULL,
+		telephoneNumberSubstringsMatch,
+		telephoneNumberSubstringsIndexer,
+		telephoneNumberSubstringsFilter,
 		NULL},
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
