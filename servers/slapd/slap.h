@@ -103,6 +103,8 @@ LDAP_BEGIN_DECL
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
 #define SLAPD_ACI_ATTR			"OpenLDAPaci"
 
+#define SLAPD_TOP_OID			"2.5.6.0"
+
 LDAP_SLAPD_F (int) slap_debug;
 
 /*
