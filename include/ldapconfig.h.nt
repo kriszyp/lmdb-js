@@ -16,18 +16,23 @@
 /*
  * config.h for LDAP -- edit this file to customize LDAP client behavior.
  * NO platform-specific definitions should be placed in this file.
- * Note that this is NOT used by the LDAP or LBER libraries.
+ * Note that this IS USED by the LDAP or LBER libraries.
  */
 
 /*
  * SHARED DEFINITIONS - things you should change
  */
+/*
+ * SHARED DEFINITIONS - things you should change
+ */
 #define DEFAULT_BINDIR		"C:\\OpenLDAP\\bin"
 #define DEFAULT_SBINDIR		"C:\\OpenLDAP\\sbin"
-#define DEFAULT_ETCDIR		"C:\\OpenLDAP\\etc"
+#define DEFAULT_DATADIR		"C:\\OpenLDAP\\share"
+#define DEFAULT_SYSCONFDIR	"C:\\OpenLDAP\\etc"
 #define DEFAULT_LIBEXECDIR	"C:\\OpenLDAP\\execdir"
+#define DEFAULT_RUNDIR		"C:\\OpenLDAP\\run"
 
-#define DEFAULT_LDAP_CONF_FILE "c:\\OpenLDAP\\ldap.conf"
+#define DEFAULT_LDAP_CONF_FILE "C:\\OpenLDAP\\ldap.conf"
 #define DEFAULT_LDAP_USERRC_FILE "ldaprc"
 #define DEFAULT_LDAP_ENV_PREFIX "LDAP"
 
@@ -46,10 +51,10 @@
 	/* default count of DN components to show in entry displays */
 #define DEFAULT_RDNCOUNT	2
 	/* default config file locations */
-#define FILTERFILE	"C:\\OpenLDAP\\etc\\ldapfilter.conf"
+#define FILTERFILE		"C:\\OpenLDAP\\etc\\ldapfilter.conf"
 #define TEMPLATEFILE	"C:\\OpenLDAP\\etc\\ldaptemplates.conf"
-#define SEARCHFILE	"C:\\OpenLDAP\\etc\\ldapsearchprefs.conf"
-#define FRIENDLYFILE	"C:\\OpenLDAP\\etc\\ldapfriendly"
+#define SEARCHFILE		"C:\\OpenLDAP\\etc\\ldapsearchprefs.conf"
+#define FRIENDLYFILE	"C:\\OpenLDAP\\share\\ldapfriendly"
 
 /*
  * FINGER DEFINITIONS
@@ -110,7 +115,7 @@ Please try again later.\r\n"
  * GO500GW GOPHER GATEWAY DEFINITIONS
  */
 	/* where the helpfile lives */
-#define GO500GW_HELPFILE	"C:\\OpenLDAP\\etc\\go500gw.help"
+#define GO500GW_HELPFILE	"C:\\OpenLDAP\\share\\go500gw.help"
 	/* port on which to listen */
 #define GO500GW_PORT		7777
 	/* timeout on all searches */
@@ -131,7 +136,7 @@ Please try again later.\r\n"
  * RCPT500 MAIL RESPONDER GATEWAY DEFINITIONS
  */
 	/* where the helpfile lives */
-#define RCPT500_HELPFILE	"C:\\OpenLDAP\\etc\\rcpt500.help"
+#define RCPT500_HELPFILE	"C:\\OpenLDAP\\share\\rcpt500.help"
 	/* maximum number of matches returned */
 #define RCPT500_SIZELIMIT	50
 	/* address replies will appear to come from */
@@ -166,7 +171,7 @@ Please try again later.\r\n"
 	/* ud configuration file */
 #define UD_CONFIG_FILE		"C:\\OpenLDAP\\etc\\ud.conf"
 	/* default editor */
-#define UD_DEFAULT_EDITOR	"C:\\OpenLDAP\\etc"
+#define UD_DEFAULT_EDITOR	"%EDITOR%"
 	/* default bbasename of user config file */
 #define UD_USER_CONFIG_FILE	".udrc"
 	/* default base where groups are created */
@@ -197,6 +202,8 @@ Please try again later.\r\n"
  */
 	/* location of the default slapd config file */
 #define SLAPD_DEFAULT_CONFIGFILE	"C:\\OpenLDAP\\etc\\slapd.conf"
+	/* default max deref depth for aliases */
+#define SLAPD_DEFAULT_MAXDEREFDEPTH	15	
 	/* default sizelimit on number of entries from a search */
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */
