@@ -857,6 +857,10 @@ do_syncrepl(
 
 	connection_fake_init( &conn, &op, ctx );
 
+	/* use global malloc for now */
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
 	op.o_dn = si->si_updatedn;
 	op.o_ndn = si->si_updatedn;
 	op.o_managedsait = 1;
