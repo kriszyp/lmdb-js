@@ -33,7 +33,7 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$PID"
 
-USER="uid=nd, ou=People, o=University of Michigan, c=US"
+USER="uid=nd, ou=People, dc=example, dc=com"
 PASS=testpassword
 
 echo "Using ldapsearch to check that slapd is running..."
@@ -94,7 +94,7 @@ fi
 echo "Testing password expiration..."
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, ou=People, o=University of Michigan, c=US
+dn: uid=nd, dc=example, dc=com
 changetype: modify
 replace: pwdChangedTime
 pwdChangedTime: 20031231000001Z
@@ -136,7 +136,7 @@ fi
 echo "Filling password history..."
 $LDAPMODIFY -v -D "$USER" -h $LOCALHOST -p $PORT1 -w $PASS > \
 	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, ou=People, o=University of Michigan,c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userpassword
 userpassword: testpassword
@@ -144,7 +144,7 @@ userpassword: testpassword
 replace: userpassword
 userpassword: 20urgle12-1
 
-dn: uid=nd, ou=People, o=University of Michigan,c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userpassword
 userpassword: 20urgle12-1
@@ -152,7 +152,7 @@ userpassword: 20urgle12-1
 replace: userpassword
 userpassword: 20urgle12-2
 
-dn: uid=nd, ou=People, o=University of Michigan,c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userpassword
 userpassword: 20urgle12-2
@@ -160,7 +160,7 @@ userpassword: 20urgle12-2
 replace: userpassword
 userpassword: 20urgle12-3
 
-dn: uid=nd, ou=People, o=University of Michigan,c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userpassword
 userpassword: 20urgle12-3
@@ -168,7 +168,7 @@ userpassword: 20urgle12-3
 replace: userpassword
 userpassword: 20urgle12-4
 
-dn: uid=nd, ou=People, o=University of Michigan,c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userpassword
 userpassword: 20urgle12-4
@@ -176,7 +176,7 @@ userpassword: 20urgle12-4
 replace: userpassword
 userpassword: 20urgle12-5
 
-dn: uid=nd, ou=People, o=University of Michigan,c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userpassword
 userpassword: 20urgle12-5
@@ -194,7 +194,7 @@ fi
 echo "Testing password history..."
 $LDAPMODIFY -v -D "$USER" -h $LOCALHOST -p $PORT1 -w 20urgle12-6 > \
 	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, ou=People, o=University of Michigan, c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: userPassword
 userPassword: 20urgle12-6
@@ -214,7 +214,7 @@ echo "Testing forced reset..."
 
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, ou=People, o=University of Michigan, c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 replace: userPassword
 userPassword: testpassword
@@ -250,7 +250,7 @@ echo "Clearing forced reset..."
 
 $LDAPMODIFY -v -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD > \
 	$TESTOUT 2>&1 << EOMODS
-dn: uid=nd, ou=People, o=University of Michigan, c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 changetype: modify
 delete: pwdReset
 

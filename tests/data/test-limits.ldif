@@ -6,17 +6,11 @@ objectclass: organization
 objectclass: domainRelatedObject
 objectclass: dcobject
 dc: example
-l: Ann Arbor, Michigan
+l: Anytown, Michigan
 st: Michigan
 o: Example, Inc.
-o: University of Michigan
-o: UMICH
-o: UM
-o: U-M
-o: U of M
-description: The University of Michigan at Ann Arbor
-postaladdress: University of Michigan $ 535 W. William St. $ Ann Arbor, MI 481
- 09 $ US
+description: Some example company at Anytown in Michigan
+postaladdress: Example, Inc. $ 535 W. William St. $ Anytown, MI 48109 $ US
 telephonenumber: +1 313 764-1817
 associateddomain: example.com
 
