@@ -116,9 +116,7 @@ struct berval {
 	char		*bv_val;
 };
 
-#ifdef LDAP_DEBUG
 extern int lber_debug;
-#endif
 
 /*
  * in bprint.c:
@@ -148,10 +146,8 @@ LDAP_F unsigned long ber_scanf LDAP_P(( BerElement *ber, char *fmt, ... ));
 LDAP_F void ber_bvfree LDAP_P(( struct berval *bv ));
 LDAP_F void ber_bvecfree LDAP_P(( struct berval **bv ));
 LDAP_F struct berval *ber_bvdup LDAP_P(( struct berval *bv ));
-#ifdef STR_TRANSLATION
 LDAP_F void ber_set_string_translators LDAP_P(( BerElement *ber,
 	BERTranslateProc encode_proc, BERTranslateProc decode_proc ));
-#endif /* STR_TRANSLATION */
 
 /*
  * in encode.c
@@ -170,12 +166,7 @@ LDAP_F int ber_start_seq LDAP_P(( BerElement *ber, unsigned long tag ));
 LDAP_F int ber_start_set LDAP_P(( BerElement *ber, unsigned long tag ));
 LDAP_F int ber_put_seq LDAP_P(( BerElement *ber ));
 LDAP_F int ber_put_set LDAP_P(( BerElement *ber ));
-
-#ifdef __STDC__
 LDAP_F int ber_printf LDAP_P(( BerElement *ber, char *fmt, ... ));
-#else
-LDAP_F int ber_printf ( );
-#endif
 
 /*
  * in io.c:
@@ -195,24 +186,6 @@ LDAP_F unsigned long ber_get_next LDAP_P(( Sockbuf *sb, unsigned long *len,
 	BerElement *ber ));
 LDAP_F void ber_init LDAP_P(( BerElement *ber, int options ));
 LDAP_F void ber_reset LDAP_P(( BerElement *ber, int was_writing ));
-
-#if !defined(__alpha) || defined(VMS)
-
-#define LBER_HTONL( l )	htonl( l )
-#define LBER_NTOHL( l )	ntohl( l )
-
-#else /* __alpha */
-/*
- * htonl and ntohl on the DEC Alpha under OSF 1 seem to only swap the
- * lower-order 32-bits of a (64-bit) long, so we define correct versions
- * here.
- */
-#define LBER_HTONL( l )	(((long)htonl( (l) & 0x00000000FFFFFFFF )) << 32 \
-    			| htonl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
-
-#define LBER_NTOHL( l )	(((long)ntohl( (l) & 0x00000000FFFFFFFF )) << 32 \
-    			| ntohl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
-#endif /* __alpha */
 
 LDAP_END_DECL
 

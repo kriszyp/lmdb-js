@@ -14,7 +14,6 @@ BUILD_OPT = "--enable-ldbm"
 BUILD_SRV = @BUILD_LDBM@
 
 XINCPATH = -I.. -I$(srcdir)/..
-XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@ @LUTIL_DEFS@
 
 PROGRAMS = libback-ldbm.a
 

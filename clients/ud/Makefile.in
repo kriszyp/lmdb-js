@@ -9,7 +9,6 @@ PROGRAMS= ud
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XDEFS = $(TERMCAP_DEFS)
 XLIBS = $(TERMCAP_LIBS)
 
 ud : version.o

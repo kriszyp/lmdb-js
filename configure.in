@@ -164,20 +164,13 @@ fi
 AC_MSG_RESULT(done)
 
 ## Initialize vars
-LDAP_DEFS=
 LDAP_LIBS=
-LDBM_DEFS=
 LDBM_LIBS=
-LTHREAD_DEFS=
 LTHREAD_LIBS=
-LUTIL_DEFS=
 LUTIL_LIBS=
 
-LDAPD_DEFS=
 LDAPD_LIBS=
-SLAPD_DEFS=
 SLAPD_LIBS=
-SLURPD_DEFS=
 SLURPD_LIBS=
 
 BUILD_LDAPD=no
@@ -188,9 +181,7 @@ BUILD_LDBM=no
 BUILD_PASSWD=no
 BUILD_SHELL=no
 
-KRB_DEFS=
 KRB_LIBS=
-TERMCAP_DEFS=
 TERMCAP_LIBS=
 
 dnl ----------------------------------------------------------------
@@ -250,7 +241,6 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 ; then
 
 			AC_DEFINE(HAVE_KERBEROS)
 
-			KRB_DEFS="-DKERBEROS"
 			KRB_LIBS="-lkrb4 -lkrb5 -ldes425"
 		fi
 	fi
@@ -267,7 +257,6 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 
 			AC_DEFINE(HAVE_KERBEROS)
 
-			KRB_DEFS="-DKERBEROS"
 			KRB_LIBS="-lkrb -ldes"
 		fi
 	fi
@@ -282,10 +271,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		OL_POSIX_THREAD_VERSION
 
 		if test $ol_cv_pthread_version = final ; then
-			LTHREAD_DEFS="$LTHREAD_DEFS -DPOSIX_THREADS"
+			dnl AC_DEFINE(HAVE_PTHREADS_FINAL)
 		elif test $ol_cv_pthread_version = draft4 ; then
 			AC_DEFINE(HAVE_PTHREADS_D4)
-			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_MIT_PTHREADS"
 		else
 			AC_MSG_ERROR([unknown pthread version])
 		fi
@@ -297,7 +285,6 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 		if test $ol_cv_linux_threads = yes ; then
 			AC_DEFINE(HAVE_LINUX_THREADS,1)
-			LTHREAD_DEFS="$LTHREAD_DEFS -DLINUX_THREADS"
 		fi
 
 		dnl Now the hard part, how to link
@@ -350,7 +337,6 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_CHECK_LIB(pthread, pthread_create, [
 				AC_DEFINE(HAVE_DCE)
 				ol_link_threads=posix
-				LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_DCE_THREADS"
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
 				if test $with_preemptive = auto ; then
 					ol_with_preemptive=yes
@@ -365,7 +351,6 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			dnl save DEFS/LIBS
 			save_CPPFLAGS="$CPPFLAGS"
 			save_LIBS="$LIBS"
-			CPPFLAGS="$LTHREAD_DEFS $CPPFLAGS"
 			LIBS="$LTHREAD_LIBS $LIBS"
 
 			dnl All POSIX Thread (final) implementations should have
@@ -461,8 +446,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = cthreads ; then
 		AC_CHECK_LIB(lwp, cthread_fork, [have_cthreads=yes], [have_cthreads=no])
 
 		if test $have_cthreads = yes ; then
-			AC_DEFINE(HAVE_CTHREADS)
-			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_NEXT_CTHREADS"
+			AC_DEFINE(HAVE_MACH_CTHREADS)
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 		fi
 	fi
@@ -477,7 +461,6 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 		if test $have_lwp = yes ; then
 			AC_DEFINE(HAVE_LWP)
 			AC_DEFINE(HAVE_LWP_THR)
-			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_SUNOS5_LWP"
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 		fi
 	fi
@@ -489,7 +472,6 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 
 		if test $have_lwp = yes ; then
 			AC_DEFINE(HAVE_LWP)
-			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_SUNOS4_LWP"
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
 
 			if test $with_preemptive = auto ; then
@@ -500,7 +482,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 fi
 
 if test $ol_with_preemptive = yes ; then
-	LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_PREEMPTIVE"
+	AC_DEFINE(THREAD_PREEMPTIVE,1)
 fi
 
 if test $ol_with_threads = manual ; then
@@ -528,7 +510,7 @@ if test $ol_link_threads = no ; then
 		$ol_with_threads = no
 	fi
 
-	LTHREAD_DEFS="-DNO_THREADS"
+	AC_DEFINE(NO_THREADS,1)
 	LTHREAD_LIBS=""
 fi
 
@@ -540,12 +522,10 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
 		ol_link_ldbm=db2
 		ol_with_ldbm_api=db2
 
-		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2"
-
 		if test $ol_with_ldbm_type = hash ; then
-			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBHASH"
+			AC_DEFINE(LDBM_USE_DBHASH,1)
 		else
-			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
+			AC_DEFINE(LDBM_USE_DBBTREE,1)
 		fi
 
 		dnl $ol_cv_lib_db2 should be yes or -ldb
@@ -563,14 +543,10 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
 		ol_link_ldbm=db
 		ol_with_ldbm_api=db
 
-		if test $ac_cv_header_db_185_h = yes ; then
-			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2_COMPAT185"
-		fi
-
 		if test $ol_with_ldbm_type = hash ; then
-			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBHASH"
+			AC_DEFINE(LDBM_USE_DBHASH,1)
 		else
-			LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DBBTREE"
+			AC_DEFINE(LDBM_USE_DBBTREE,1)
 		fi
 
 		dnl $ol_cv_lib_db should be yes or -ldb
@@ -602,8 +578,6 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
 		ol_link_ldbm=gdbm
 		ol_with_ldbm_api=gdbm
 
-		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_GDBM"
-
 		if test $ol_cv_lib_gdbm != yes ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_gdbm"
 		fi
@@ -620,8 +594,6 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = ndbm ; then
 		if test $ol_with_ldbm_api = ndbm ; then
 			AC_WARN([Attempting to use NDBM.  Functionality will be limited.])
 		fi
-
-		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_NDBM"
 
 		if test $ol_cv_lib_ndbm != yes ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_ndbm"
@@ -644,8 +616,7 @@ if test $ol_enable_wrappers = yes ; then
 		[have_wrappers=yes], [have_wrappers=no])
 
 	if test $have_wrappers = yes ; then
-dnl		AC_DEFINE(HAVE_TCPD)
-		SLAPD_DEFS="$SLAPD_DEFS -DTCP_WRAPPERS"
+		AC_DEFINE(HAVE_TCPD)
 		SLAPD_LIBS="$SLAPD_LIBS -lwrap"
 	else
 		AC_MSG_WARN(could not find -lwrap)
@@ -682,7 +653,7 @@ if test $ol_link_termcap = no ; then
 fi
 
 if test $ol_link_termcap = no ; then
-	TERMCAP_DEFS="-DNOTERMCAP"
+	AC_DEFINE(NO_TERMCAP,1)
 	TERMCAP_LIBS=
 fi
 
@@ -693,8 +664,7 @@ if test $ol_enable_crypt != no ; then
 			have_crypt=yes], [have_crypt=no])])
 
 	if test $have_crypt = yes ; then
-dnl		AC_DEFINE(HAVE_CRYPT)
-		LUTIL_DEFS="$LUTIL_DEFS -DLDAP_CRYPT"
+		AC_DEFINE(HAVE_CRYPT)
 	else
 		AC_MSG_WARN(could not find crypt)
 		if test $ol_enable_crypt = yes ; then
@@ -789,71 +759,67 @@ dnl ----------------------------------------------------------------
 dnl Sort out defines
 
 if test $ol_enable_debug != no ; then
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
+	AC_DEFINE(LDAP_DEBUG,1)
 fi
 dnl	if test $ol_enable_syslog != no ; then
-dnl		LDAP_DEFS="$LDAP_DEFS -DLDAP_SYSLOG"
+dnl		AC_DEFINE(LDAP_SYSLOG,1)
 dnl	fi
 if test $ol_enable_libui = yes ; then
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_LIBUI"
+	AC_DEFINE(LDAP_LIBUI,1)
 fi
 if test $ol_enable_cache = no ; then
-	LDAP_DEFS="$LDAP_DEFS -DNO_CACHE"
+	AC_DEFINE(LDAP_NOCACHE,1)
 fi
 if test $ol_enable_dns != no ; then
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_DNS"
+	AC_DEFINE(LDAP_DNS,1)
 fi
 if test $ol_enable_referrals != no ; then
-	LDAP_DEFS="$LDAP_DEFS -DLDAP_REFERRALS"
+	AC_DEFINE(LDAP_REFERRALS,1)
 fi
 if test $ol_enable_cldap != no ; then
-	LDAP_DEFS="$LDAP_DEFS -DCLDAP"
+	AC_DEFINE(LDAP_CONNECTIONLESS,1)
 fi
 
 if test $ol_enable_aclgroup != no ; then
 	AC_DEFINE(SLAPD_ACLGROUP,1)
-	SLAPD_DEFS="$SLAPD_DEFS -DACLGROUP"
+fi
+
+if test $ol_enable_crypt != no ; then
+	AC_DEFINE(SLAPD_CRYPT,1)
 fi
 
 if test $ol_enable_md5 != no ; then
-dnl	AC_DEFINE(SLAPD_MD5,1)
-	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_MD5"
+	AC_DEFINE(SLAPD_MD5,1)
 fi
 
 if test $ol_enable_sha1 != no ; then
-dnl	AC_DEFINE(SLAPD_SHA1,1)
-	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_SHA1"
+	AC_DEFINE(SLAPD_SHA1,1)
 fi
 
 if test $ol_enable_phonetic != no ; then
 	AC_DEFINE(SLAPD_PHONETIC,1)
-	SLAPD_DEFS="$SLAPD_DEFS -DSOUNDEX"
 fi
 
 if test $ol_enable_rlookups != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1)
-	SLAPD_DEFS="$SLAPD_DEFS -DREVERSE_LOOKUPS"
 fi
 
 if test $ol_link_ldbm != no ; then
-dnl	AC_DEFINE(SLAPD_LDBM,1)
+	AC_DEFINE(SLAPD_LDBM,1)
 	BUILD_SLAPD=yes
 	BUILD_LDBM=yes
-	LDBM_DEFS="-DLDAP_LDBM $LDBM_DEFS"
 fi
 
 if test $ol_enable_passwd != no ; then
-dnl	AC_DEFINE(SLAPD_PASSWD,1)
+	AC_DEFINE(SLAPD_PASSWD,1)
 	BUILD_SLAPD=yes
 	BUILD_PASSWD=yes
-	SLAPD_DEFS="-DLDAP_PASSWD $SLAPD_DEFS"
 fi
 
 if test $ol_enable_shell != no ; then
-dnl	AC_DEFINE(SLAPD_SHELL,1)
+	AC_DEFINE(SLAPD_SHELL,1)
 	BUILD_SLAPD=yes
 	BUILD_SHELL=yes
-	SLAPD_DEFS="-DLDAP_SHELL $SLAPD_DEFS"
 fi
 
 if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
@@ -871,24 +837,15 @@ AC_SUBST(BUILD_SLAPD)
 AC_SUBST(BUILD_SLURPD)
 
 
-AC_SUBST(LDAP_DEFS)
 AC_SUBST(LDAP_LIBS)
-AC_SUBST(LDAPD_DEFS)
 AC_SUBST(LDAPD_LIBS)
-AC_SUBST(SLAPD_DEFS)
 AC_SUBST(SLAPD_LIBS)
-AC_SUBST(SLURPD_DEFS)
 AC_SUBST(SLURPD_LIBS)
-AC_SUBST(LDBM_DEFS)
 AC_SUBST(LDBM_LIBS)
-AC_SUBST(LTHREAD_DEFS)
 AC_SUBST(LTHREAD_LIBS)
-AC_SUBST(LUTIL_DEFS)
 AC_SUBST(LUTIL_LIBS)
 
-AC_SUBST(KRB_DEFS)
 AC_SUBST(KRB_LIBS)
-AC_SUBST(TERMCAP_DEFS)
 AC_SUBST(TERMCAP_LIBS)
 
 dnl ----------------------------------------------------------------

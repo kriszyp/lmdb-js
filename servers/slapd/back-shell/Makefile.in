@@ -12,7 +12,6 @@ BUILD_SRV = @BUILD_SHELL@
 PROGRAMS =		libback-shell.a
 
 XINCPATH = -I.. -I$(srcdir)/..
-XDEFS = @LTHREAD_DEFS@
 
 all-local:	FORCE
 	$(MAKE) $(MFLAGS) libback-shell.a

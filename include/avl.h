@@ -21,6 +21,8 @@
  * this structure represents a generic avl tree node.
  */
 
+LDAP_BEGIN_DECL
+
 typedef struct avlnode {
 	caddr_t		avl_data;
 	signed char		avl_bf;
@@ -75,5 +77,7 @@ avl_apply LDAP_P((Avlnode *, IFP, caddr_t, int, int));
 #define AVL_POSTORDER	3
 /* what apply returns if it ran out of nodes */
 #define AVL_NOMORE	-6
+
+LDAP_END_DECL
 
 #endif /* _AVL */

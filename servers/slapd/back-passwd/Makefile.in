@@ -10,7 +10,6 @@ BUILD_SRV = @BUILD_PASSWD@
 PROGRAMS= libback-passwd.a
 
 XINCPATH = -I.. -I$(srcdir)/..
-XDEFS = @LTHREAD_DEFS@
 
 all-local: 	FORCE	
 	$(MAKE) $(MFLAGS) libback-passwd.a

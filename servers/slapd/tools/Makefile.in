@@ -44,7 +44,6 @@ build-ldbm: FORCE
 
 ldbm-tools: $(PROGRAMS)
 
-XDEFS = @SLAPD_DEFS@ @LDBM_DEFS@ @LTHREAD_DEFS@
 XLIBS = @SLAPD_LIBS@ -lavl -lldbm @LDBM_LIBS@ -llthread @LTHREAD_LIBS@ -llutil @LUTIL_LIBS@
 
 build-edb2ldif:	FORCE

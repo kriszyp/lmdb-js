@@ -9,4 +9,3 @@ OBJS	= base64.o md5.o sha1.o
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XDEFS	= @LUTIL_DEFS@

@@ -9,13 +9,10 @@
 #undef DECL_SYS_ERRLIST
 
 /* define if you have berkeley db */
-#undef HAVE_BERKELEY_DB2
+#undef HAVE_BERKELEY_DB
 
 /* define if you have berkeley db2 */
 #undef HAVE_BERKELEY_DB2
-
-/* define if you have Mach CThreads */
-#undef HAVE_CTHREADS
 
 /* define if you have crypt */
 #undef HAVE_CRYPT
@@ -44,6 +41,9 @@
 /* define if you have NDBM */
 #undef HAVE_NDBM
 
+/* define if you have Mach CThreads */
+#undef HAVE_MACH_CTHREADS
+
 /* define if you have a preemptive POSIX Threads implementation */
 #undef HAVE_PREEMPTIVE_PTHREADS
 
@@ -56,8 +56,17 @@
 /* define if you have -ltermcap */
 #undef HAVE_TERMCAP
 
+/* define if you have -lwrap */
+#undef HAVE_TCPD
+
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
+
+/* define this to add debugging code */
+#undef LDAP_DEBUG
+
+/* define this for LDAP DNS support */
+#undef LDAP_DNS
 
 /* define this to remove -lldap cache support */
 #undef LDAP_NOCACHE
@@ -65,35 +74,62 @@
 /* define this for LDAP referrals support */
 #undef LDAP_REFERRALS
 
+/* define this for LDAP User Interface support */
+#undef LDAP_LIBUI
+
 /* define this for ACL Group support */
 #undef SLAPD_ACLGROUPS
 
-/* define this for Reverse Lookup support */
-#undef SLAPD_RLOOKUPS
+/* define this for crypt(3) password support */
+#undef SLAPD_CRYPT
+
+/* define this to use SLAPD LDBM backend */
+#undef SLAPD_LDBM
+
+/* define this for MD5 password support */
+#undef SLAPD_MD5
+
+/* define this to use SLAPD passwd backend */
+#undef SLAPD_PASSWD
 
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
 
+/* define this for Reverse Lookup support */
+#undef SLAPD_RLOOKUPS
+
+/* define this for SHA1 password support */
+#undef SLAPD_SHA1
+
 /* define this to use SLAPD shell backend */
-/* #undef SLAPD_SHELL */
+#undef SLAPD_SHELL
 
-/* define this to use SLAPD passwd backend */
-/* #undef SLAPD_PASSWD */
+/* define this to use DB2 in native mode */
+#undef LDBM_USE_DB2
 
-/* define this to use SLAPD LDBM backend */
-/* #undef SLAPD_LDBM */
+/* define this to use DB2 in compat185 mode */
+#undef LDBM_USE_DB2_COMPAT185
 
 /* define this to use DBBTREE w/ LDBM backend */
-/* #undef LDBM_USE_DBBTREE */
+#undef LDBM_USE_DBBTREE
 
 /* define this to use DBHASH w/ LDBM backend */
-/* #undef LDBM_USE_DBHASH */
+#undef LDBM_USE_DBHASH
 
 /* define this to use GDBM w/ LDBM backend */
-/* #undef LDBM_USE_GDBM */
+#undef LDBM_USE_GDBM
 
 /* define this to use NDBM w/ LDBM backend */
-/* #undef LDBM_USE_NDBM */
+#undef LDBM_USE_NDBM
+
+/* define this if you want no termcap support */
+#undef NO_TERMCAP
+
+/* define this if you want no thread support */
+#undef NO_THREADS
+
+/* define this if the thread package is preemptive */
+#undef THREAD_PREEMPTIVE
 
 
 /* Leave that blank line there!!  Autoheader needs it. */

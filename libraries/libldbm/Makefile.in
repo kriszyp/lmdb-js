@@ -10,7 +10,6 @@ OBJS		= ldbm.o
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XDEFS		= @LDBM_DEFS@
 XLIBS		= @LDBM_LIBS@ -lavl
 
 testldbm:	libldbm.a testldbm.o
