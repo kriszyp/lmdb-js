@@ -95,7 +95,7 @@ do_modrdn(
 			 * accordingly.
 			 */
 		    
-			conn->c_protocol == LDAP_VERSION3;
+			conn->c_protocol = LDAP_VERSION3;
 
 		}/* else if ( conn->c_protocol ==  0 ) */
 
