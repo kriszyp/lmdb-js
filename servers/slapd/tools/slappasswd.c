@@ -31,6 +31,7 @@ usage(const char *s)
 		"Usage: %s [options]\n"
 		"  -h hash\tpassword scheme\n"
 		"  -s secret\tnew password\n"
+		"  -c format\tcrypt(3) salt format\n"
 		"  -u\t\tgenerate RFC2307 values (default)\n"
 		"  -v\t\tincrease verbosity\n"
 		, s );
@@ -51,24 +52,28 @@ main( int argc, char *argv[] )
 	struct berval *hash = NULL;
 
 	while( (i = getopt( argc, argv,
-		"d:h:s:vu" )) != EOF )
+		"c:d:h:s:vu" )) != EOF )
 	{
 		switch (i) {
+		case 'c':	/* crypt salt format */
+			scheme = "{CRYPT}";
+			lutil_salt_format( optarg );
+			break;
+
 		case 'h':	/* scheme */
-			scheme = strdup (optarg);
+			scheme = strdup( optarg );
 			break;
 
 		case 's':	/* new password (secret) */
-			newpw = strdup (optarg);
-
 			{
 				char* p;
+				newpw = strdup( optarg );
 
 				for( p = optarg; *p != '\0'; p++ ) {
 					*p = '\0';
 				}
-			}
-			break;
+
+			} break;
 
 		case 'u':	/* RFC2307 userPassword */
 			break;

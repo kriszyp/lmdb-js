@@ -10,6 +10,7 @@ slappasswd \- OpenLDAP password utility
 .B [\-u]
 .B [\-s secret]
 .B [\-h hash]
+.B [\-c salt-format]
 .B 
 .LP
 .SH DESCRIPTION
@@ -21,13 +22,14 @@ suitable for use with
 or
 .BR slapd.conf (5)
 .I rootpw
-coniguration directive.
+configuration directive.
 .SH OPTIONS
 .TP
 .B \-v
 enable verbose mode.
+.TP
 .B \-u
-generate RFC2307 userPassword values (the default).  Future
+Generate RFC2307 userPassword values (the default).  Future
 versions of this program may generate alternative syntaxes
 by default.  This option is provided for forward compatibility.
 .TP
@@ -35,6 +37,7 @@ by default.  This option is provided for forward compatibility.
 The secret to hash.  If not provided, the user will be prompted
 for the secret to hash.
 .TP
+.BI \-h " scheme"
 If -h is specified, one of the following RFC2307 schemes may
 be specified:
 .IR {CRYPT} ,
@@ -44,7 +47,20 @@ be specified:
 .IR {SHA} .
 The default is 
 .IR {SSHA} .
-.LP
+.TP
+.BI \-c " crypt-salt-format"
+Specify the format of the salt passed to
+.BR crypt (3)
+when generating {CRYPT} passwords.  
+This string needs to be in
+.BR sprintf (3)
+format and may include one (and only one) %s conversion.
+This conversion will be substituted with a string random
+characters from [A\-Za\-z0\-9./].  For example, "%.2s"
+provides a two character salt and "$1$%.8s" tells some
+versions of crypt(3) to use an MD5 algorithm and provides
+8 random characters of salt.  The default is "%s", which
+provides 31 characters of salt.
 .SH LIMITATIONS
 The practice storing hashed passwords in userPassword violates
 Standard Track (RFC2256) schema specifications and may hinder

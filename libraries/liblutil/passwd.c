@@ -1239,15 +1239,9 @@ static struct berval *hash_crypt(
 int lutil_salt_format(const char *format)
 {
 #ifdef SLAPD_CRYPT
-	if (format) {
-		if (salt_format)
-			free(salt_format);
-		salt_format = strdup(format);
-	} else {  // unset if they pass in NULL
-		if (salt_format)
-			free(salt_format);
-		salt_format = NULL;
-	}
+	free(salt_format);
+
+	salt_format = format != NULL ? strdup(format) : NULL;
 #endif
 
 	return 0;
