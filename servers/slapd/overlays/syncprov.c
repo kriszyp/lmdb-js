@@ -1536,13 +1536,17 @@ syncprov_detach_op( Operation *op, syncops *so )
 	} else {
 		ptr = (char *)(op2->o_hdr + 1);
 	}
+	op2->o_ndn.bv_len = op->o_ndn.bv_len;
 	op2->o_ndn.bv_val = ptr;
 	ptr = lutil_strcopy(ptr, op->o_ndn.bv_val) + 1;
 	op2->o_dn = op2->o_ndn;
+	op2->o_req_dn.bv_len = op->o_req_dn.bv_len;
 	op2->o_req_dn.bv_val = ptr;
 	ptr = lutil_strcopy(ptr, op->o_req_dn.bv_val) + 1;
+	op2->o_req_ndn.bv_len = op->o_req_ndn.bv_len;
 	op2->o_req_ndn.bv_val = ptr;
 	ptr = lutil_strcopy(ptr, op->o_req_ndn.bv_val) + 1;
+	op2->ors_filterstr.bv_len = op->ors_filterstr.bv_len;
 	op2->ors_filterstr.bv_val = ptr;
 	strcpy( ptr, so->s_filterstr.bv_val );
 	op2->ors_filterstr.bv_len = so->s_filterstr.bv_len;
