@@ -260,7 +260,9 @@ test_ava_filter(
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			int rc;
 
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			rc = 0;
+#else
 			rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
 				3 );
 #endif

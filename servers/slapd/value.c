@@ -128,13 +128,18 @@ value_normalize(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	rc = (mr->smr_normalize)( usage,
-		ad->ad_type->sat_syntax,
-		mr, in, out );
+	if( mr->smr_normalize ) {
+		rc = (mr->smr_normalize)( usage,
+			ad->ad_type->sat_syntax,
+			mr, in, out );
 
-	if( rc != LDAP_SUCCESS ) {
-		*text = "unable to normalize value";
-		return LDAP_INVALID_SYNTAX;
+		if( rc != LDAP_SUCCESS ) {
+			*text = "unable to normalize value";
+			return LDAP_INVALID_SYNTAX;
+		}
+
+	} else {
+		*out = ber_bvdup( in );
 	}
 
 	return LDAP_SUCCESS;
