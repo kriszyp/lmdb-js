@@ -310,6 +310,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 				be_entry_release_w( op, e );
 				e = NULL;
 			}
+			op->ora_e = NULL;
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
