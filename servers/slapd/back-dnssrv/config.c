@@ -46,8 +46,5 @@ dnssrv_back_db_config(
 	}
 
 	/* no configuration options (yet) */
-	{
-		return SLAP_CONF_UNKNOWN;
-	}
-	return 0;
+	return SLAP_CONF_UNKNOWN;
 }

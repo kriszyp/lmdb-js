@@ -39,9 +39,8 @@ dnssrv_back_compare(
 	assert( get_manageDSAit( op ) );
 #endif
 	send_ldap_error( op, rs, LDAP_OTHER,
-			"Operation not supported within naming context" );
+		"Operation not supported within naming context" );
 
 	/* not implemented */
-
 	return 1;
 }
