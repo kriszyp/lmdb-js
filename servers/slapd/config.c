@@ -70,7 +70,7 @@ int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
-char		*default_passwd_hash = NULL;
+char		**default_passwd_hash = NULL;
 int		cargc = 0, cargv_size = 0;
 char	**cargv;
 struct berval default_search_base = { 0, NULL };
@@ -635,21 +635,33 @@ read_config( const char *fname, int depth )
 				return 1;
 
 			}
-
-			if ( lutil_passwd_scheme( cargv[1] ) == 0 ) {
+			for(i = 1; i < cargc; i++) {
+				if ( lutil_passwd_scheme( cargv[i] ) == 0 ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG( CONFIG, CRIT, 
+					   	"%s: line %d: password scheme \"%s\" not available\n",
+					   	fname, lineno, cargv[i] );
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: password scheme \"%s\" not available\n",
+						fname, lineno, cargv[i] );
+#endif
+				} else {
+					ldap_charray_add( &default_passwd_hash, cargv[i] );
+				}
+			}
+			if( !default_passwd_hash ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT, 
-					   "%s: line %d: password scheme \"%s\" not available\n",
-					   fname, lineno, cargv[1] );
+				   	"%s: line %d: no valid hashes found\n",
+				   	fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"%s: line %d: password scheme \"%s\" not available\n",
-					fname, lineno, cargv[1] );
-#endif
+					"%s: line %d: no valid hashes found\n",
+					fname, lineno, 0 );
 				return 1;
+#endif
 			}
-
-			default_passwd_hash = ch_strdup( cargv[1] );
 
 		} else if ( strcasecmp( cargv[0], "password-crypt-salt-format" ) == 0 ) 
 		{
@@ -2774,7 +2786,7 @@ config_destroy( )
 	if ( slapd_pid_file )
 		free ( slapd_pid_file );
 	if ( default_passwd_hash )
-		free( default_passwd_hash );
+		ldap_charray_free( default_passwd_hash );
 	acl_destroy( global_acl, NULL );
 }
 

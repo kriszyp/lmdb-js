@@ -28,6 +28,15 @@
 #include <lber_pvt.h>
 #include <lutil.h>
 
+static const char *defhash[] = {
+#ifdef LUTIL_SHA1_BYTES
+	"{SSHA}",
+#else
+	"{SMD5}",
+#endif
+	NULL
+};
+
 int passwd_extop(
 	Operation *op,
 	SlapReply *rs )
@@ -39,6 +48,8 @@ int passwd_extop(
 	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
 	cb2.sc_next = &cb;
+	int i, nhash;
+	char **hashes;
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
@@ -144,44 +155,58 @@ int passwd_extop(
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
-	slap_passwd_hash( &qpw->rs_new, &hash, &rs->sr_text );
-	if ( rsp ) {
-		free( qpw->rs_new.bv_val );
-	}
-	if ( hash.bv_len == 0 ) {
-		if ( !rs->sr_text ) {
-			rs->sr_text = "password hash failed";
-		}
-		return LDAP_OTHER;
-	}
 	ml = ch_malloc( sizeof(Modifications) );
 	if ( !qpw->rs_modtail ) qpw->rs_modtail = &ml->sml_next;
-	ml->sml_values = ch_malloc( 2*sizeof(struct berval) );
-	ml->sml_values[0] = hash;
-	ml->sml_values[1].bv_val = NULL;
-	ml->sml_desc = slap_schema.si_ad_userPassword;
+
+	if ( default_passwd_hash ) {
+		for ( nhash = 0; default_passwd_hash[nhash]; nhash++ );
+		hashes = default_passwd_hash;
+	} else {
+		nhash = 1;
+		hashes = (char **)defhash;
+	}
+	ml->sml_values = ch_malloc( (nhash+1)*sizeof(struct berval) );
+	for ( i=0; hashes[i]; i++ ) {
+		slap_passwd_hash( hashes[i], &qpw->rs_new, &hash, &rs->sr_text );
+		if ( hash.bv_len == 0 ) {
+			if ( !rs->sr_text ) {
+				rs->sr_text = "password hash failed";
+			}
+			break;
+		}
+		ml->sml_values[i] = hash;
+	}
+	ml->sml_values[i].bv_val = NULL;
 	ml->sml_nvalues = NULL;
+	ml->sml_desc = slap_schema.si_ad_userPassword;
 	ml->sml_op = LDAP_MOD_REPLACE;
 	ml->sml_next = qpw->rs_mods;
 	qpw->rs_mods = ml;
-
-	op2 = *op;
-	op2.o_tag = LDAP_REQ_MODIFY;
-	op2.o_callback = &cb2;
-	op2.orm_modlist = qpw->rs_mods;
-
-	rs->sr_err = slap_mods_opattrs( &op2, ml, qpw->rs_modtail, &rs->sr_text,
-		NULL, 0 );
-	
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		rs->sr_err = op2.o_bd->be_modify( &op2, rs );
+	if ( rsp ) {
+		free( qpw->rs_new.bv_val );
 	}
-	if ( rs->sr_err == LDAP_SUCCESS ) {
-		rs->sr_rspdata = rsp;
-	} else if ( rsp ) {
-		ber_bvfree( rsp );
+	if ( hashes[i] ) {
+		rs->sr_err = LDAP_OTHER;
+	} else {
+
+		op2 = *op;
+		op2.o_tag = LDAP_REQ_MODIFY;
+		op2.o_callback = &cb2;
+		op2.orm_modlist = qpw->rs_mods;
+
+		rs->sr_err = slap_mods_opattrs( &op2, ml, qpw->rs_modtail, &rs->sr_text,
+			NULL, 0 );
+		
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			rs->sr_err = op2.o_bd->be_modify( &op2, rs );
+		}
+		if ( rs->sr_err == LDAP_SUCCESS ) {
+			rs->sr_rspdata = rsp;
+		} else if ( rsp ) {
+			ber_bvfree( rsp );
+		}
 	}
-	slap_mods_free( ml );
+	slap_mods_free( qpw->rs_mods );
 
 	return rs->sr_err;
 }
@@ -410,56 +435,39 @@ slap_passwd_check(
 void
 slap_passwd_generate( struct berval *pass )
 {
-	struct berval *tmp;
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "slap_passwd_generate: begin\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "slap_passwd_generate\n", 0, 0, 0 );
 #endif
+	pass->bv_val = NULL;
+	pass->bv_len = 0;
+
 	/*
 	 * generate passwords of only 8 characters as some getpass(3)
 	 * implementations truncate at 8 characters.
 	 */
-	tmp = lutil_passwd_generate( 8 );
-	if (tmp) {
-		*pass = *tmp;
-		free(tmp);
-	} else {
-		pass->bv_val = NULL;
-		pass->bv_len = 0;
-	}
+	lutil_passwd_generate( pass, 8 );
 }
 
 void
 slap_passwd_hash(
+	char *hash,
 	struct berval * cred,
 	struct berval * new,
 	const char **text )
 {
-	struct berval *tmp;
-#ifdef LUTIL_SHA1_BYTES
-	char* hash = default_passwd_hash ?  default_passwd_hash : "{SSHA}";
-#else
-	char* hash = default_passwd_hash ?  default_passwd_hash : "{SMD5}";
-#endif
-	
+	new->bv_len = 0;
+	new->bv_val = NULL;
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #endif
 
-	tmp = lutil_passwd_hash( cred , hash, text );
+	lutil_passwd_hash( cred , hash, new, text );
 	
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
 #endif
 
-	if( tmp == NULL ) {
-		new->bv_len = 0;
-		new->bv_val = NULL;
-	}
-
-	*new = *tmp;
-	free( tmp );
-	return;
 }

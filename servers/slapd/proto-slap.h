@@ -862,6 +862,7 @@ LDAP_SLAPD_F (int) slap_passwd_check(
 LDAP_SLAPD_F (void) slap_passwd_generate( struct berval * );
 
 LDAP_SLAPD_F (void) slap_passwd_hash(
+	char			*type,
 	struct berval		*cred,
 	struct berval		*hash,
 	const char		**text );
@@ -1210,7 +1211,7 @@ LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
 LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (char *)	global_realm;
-LDAP_SLAPD_V (char *)	default_passwd_hash;
+LDAP_SLAPD_V (char **)	default_passwd_hash;
 LDAP_SLAPD_V (int)		lber_debug;
 LDAP_SLAPD_V (int)		ldap_syslog;
 LDAP_SLAPD_V (struct berval)	default_search_base;
