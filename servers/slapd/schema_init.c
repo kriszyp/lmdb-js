@@ -1273,6 +1273,10 @@ int caseExactSubstringsIndexer(
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
+#if UTF8MATCH
+        struct berval **nvalues;
+#endif
+
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -1283,6 +1287,20 @@ int caseExactSubstringsIndexer(
 	assert( values != NULL && values[0] != NULL );
 
 	nkeys=0;
+
+#if UTF8MATCH
+        /* create normalized copy of values */
+        for( i=0; values[i] != NULL; i++ ) {
+                /* empty */
+        }
+        nvalues = ch_malloc( sizeof( struct berval * ) * (i+1) );
+        for( i=0; values[i] != NULL; i++ ) {
+                nvalues[i] = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_NOCASEFOLD ) );
+        }
+        nvalues[i] = NULL;
+        values = nvalues;
+#endif
+
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
@@ -1332,12 +1350,7 @@ int caseExactSubstringsIndexer(
 
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
-#if UTF8MATCH
-		value = ber_bvstr( UTF8normalize( values[i]->bv_val,
-			UTF8_NOCASEFOLD ) );
-#else
 		value = values[i];
-#endif
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
 			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
@@ -1415,9 +1428,6 @@ int caseExactSubstringsIndexer(
 
 		}
 
-#if UTF8MATCH
-		ber_bvfree( value );
-#endif
 	}
 
 	if( nkeys > 0 ) {
@@ -1427,6 +1437,10 @@ int caseExactSubstringsIndexer(
 		ch_free( keys );
 		*keysp = NULL;
 	}
+
+#if UTF8MATCH
+	ber_bvecfree( nvalues );
+#endif
 
 	return LDAP_SUCCESS;
 }
@@ -1929,6 +1943,10 @@ int caseIgnoreSubstringsIndexer(
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	struct berval **keys;
+#if UTF8MATCH
+	struct berval **nvalues;
+#endif
+
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
 	struct berval digest;
@@ -1939,6 +1957,20 @@ int caseIgnoreSubstringsIndexer(
 	assert( values != NULL && values[0] != NULL );
 
 	nkeys=0;
+
+#if UTF8MATCH
+	/* create normalized copy of values */
+	for( i=0; values[i] != NULL; i++ ) {
+		/* empty */
+	}
+	nvalues = ch_malloc( sizeof( struct berval * ) * (i+1) );
+	for( i=0; values[i] != NULL; i++ ) {
+		nvalues[i] = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_CASEFOLD ) );
+	}
+	nvalues[i] = NULL;
+	values = nvalues;
+#endif
+
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
@@ -1989,7 +2021,7 @@ int caseIgnoreSubstringsIndexer(
 		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
 #if UTF8MATCH
-		value = ber_bvstr( UTF8normalize( values[i]->bv_val, UTF8_CASEFOLD ) );
+		value = values[i];
 #else
 		value = ber_bvdup( values[i] );
 		ldap_pvt_str2upper( value->bv_val );
@@ -2070,8 +2102,9 @@ int caseIgnoreSubstringsIndexer(
 			}
 
 		}
-
+#if !UTF8MATCH
 		ber_bvfree( value );
+#endif
 	}
 
 	if( nkeys > 0 ) {
@@ -2082,6 +2115,9 @@ int caseIgnoreSubstringsIndexer(
 		*keysp = NULL;
 	}
 
+#if UTF8MATCH
+	ber_bvecfree( nvalues );
+#endif
 	return LDAP_SUCCESS;
 }
 
