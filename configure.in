@@ -993,17 +993,19 @@ ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = nt ; then
 
-	dnl Not much to check. If we're in mingw32, we assume win32 threads.
-	if test "$ac_cv_mingw32" = yes ; then
+	OL_NT_THREADS
+
+	if test "$ol_cv_nt_threads" = yes ; then
     	ol_link_threads=nt
     	ol_with_threads=found
     	ol_with_yielding_select=yes
-    	AC_MSG_CHECKING(for NT threads)
-    	AC_MSG_RESULT(yes)
-    	AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT threads])
 
 		AC_DEFINE(HAVE_NT_SERVICE_MANAGER,1,[if you have NT Service Manager])
 		AC_DEFINE(HAVE_NT_EVENT_LOG,1,[if you have NT Event Log])
+	fi
+
+	if test $ol_with_threads = nt ; then
+		AC_MSG_ERROR([could not locate NT Threads])
 	fi
 fi
 

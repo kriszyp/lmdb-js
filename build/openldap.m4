@@ -697,6 +697,22 @@ AC_DEFUN([OL_HEADER_GNU_PTH_PTHREAD_H], [
 		])
 ])dnl
 dnl ====================================================================
+dnl Check for NT Threads
+AC_DEFUN([OL_NT_THREADS], [
+  	AC_CACHE_CHECK([for NT Threads], [ol_cv_nt_threads], [
+		# bogus test
+		if test $ac_cv_mingw32 = yes ; then
+			ol_cv_nt_threads=yes
+		else
+			ol_cv_nt_threads=no
+		fi
+	])
+
+	if test $ol_cv_nt_threads = yes ; then
+		AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT Threads])
+	fi
+])
+dnl ====================================================================
 dnl Check LinuxThreads Header
 dnl
 dnl defines ol_cv_header linux_threads to 'yes' or 'no'
