@@ -34,6 +34,23 @@
 int _trans_argv = 1;
 #endif
 
+#ifdef _WIN32
+/* Some Windows versions accept both forward and backslashes in
+ * directory paths, but we always use backslashes when generating
+ * and parsing...
+ */
+void lutil_slashpath( char *path )
+{
+	char *c, *p;
+
+	p = path;
+	while (( c=strchr( p, '/' ))) {
+		*c++ = '\\';
+		p = c;
+	}
+}
+#endif
+
 char* lutil_progname( const char* name, int argc, char *argv[] )
 {
 	char *progname;
@@ -49,9 +66,9 @@ char* lutil_progname( const char* name, int argc, char *argv[] )
 		_trans_argv = 0;
 	}
 #endif
+	LUTIL_SLASHPATH( argv[0] );
 	progname = strrchr ( argv[0], *LDAP_DIRSEP );
 	progname = progname ? &progname[1] : argv[0];
-
 	return progname;
 }
 
