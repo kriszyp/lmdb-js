@@ -494,7 +494,6 @@ ldap_build_entry(
 
 		/* no subschemaSubentry */
 		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
-			BerVarray	vals;
 
 			/* 
 			 * We eat target's subschemaSubentry because
