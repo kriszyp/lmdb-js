@@ -26,6 +26,7 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/signal.h>
+#include <ac/socket.h>
 
 #include "slurp.h"
 #include "globals.h"
@@ -52,14 +53,12 @@ fm(
 )
 {
     int rc;
+    int i;
+    fd_set readfds;
 
     /* Set up our signal handlers:
      * SIG{TERM,INT,HUP} causes a shutdown
-     * LDAP_SIGUSR1 - does nothing, used to wake up sleeping threads.
-	 * LDAP_SIGUSR2 - causes a shutdown
      */
-    (void) SIGNAL( LDAP_SIGUSR1, do_nothing );
-    (void) SIGNAL( LDAP_SIGUSR2, slurp_set_shutdown );
     (void) SIGNAL( SIGTERM, slurp_set_shutdown );
     (void) SIGNAL( SIGINT, slurp_set_shutdown );
 #ifdef SIGHUP
@@ -89,6 +88,7 @@ fm(
 	populate_queue( sglob->slurpd_replogfile );
     }
 
+    FD_ZERO( &readfds );
 
     while ( !sglob->slurpd_shutdown ) {
 	if ( file_nonempty( sglob->slapd_replogfile )) {
@@ -117,7 +117,13 @@ fm(
 		}
 	    }
 	} else {
-	    ldap_pvt_thread_sleep( sglob->no_work_interval );
+	    struct timeval tv;
+
+    	    FD_SET( sglob->wake_sds[0], &readfds );
+	    tv.tv_sec = sglob->no_work_interval;
+	    tv.tv_usec = 0;
+
+	    rc = select( sglob->wake_sds[0]+1, &readfds, NULL, NULL, &tv );
 	}
 
 	/* Garbage-collect queue */
@@ -143,6 +149,12 @@ fm(
 	    }
 	}
     }
+    sglob->rq->rq_lock( sglob->rq );			/* lock queue */
+    ldap_pvt_thread_cond_broadcast( &(sglob->rq->rq_more) );	/* wake repl threads */
+    for ( i = 0; i < sglob->num_replicas; i++ ) {
+	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
+    }
+    sglob->rq->rq_unlock( sglob->rq );			/* unlock queue */
 #ifdef NEW_LOGGING
 	LDAP_LOG ( SLURPD, RESULTS, "fm: exiting\n", 0, 0, 0 );
 #else
@@ -160,16 +172,9 @@ fm(
 RETSIGTYPE
 slurp_set_shutdown(int sig)
 {
-    int	i;
-
     sglob->slurpd_shutdown = 1;				/* set flag */
-    ldap_pvt_thread_kill( sglob->fm_tid, LDAP_SIGUSR1 );	/* wake up file mgr */
-    sglob->rq->rq_lock( sglob->rq );			/* lock queue */
-    ldap_pvt_thread_cond_broadcast( &(sglob->rq->rq_more) );	/* wake repl threads */
-    for ( i = 0; i < sglob->num_replicas; i++ ) {
-	(sglob->replicas[ i ])->ri_wake( sglob->replicas[ i ]);
-    }
-    sglob->rq->rq_unlock( sglob->rq );			/* unlock queue */
+    tcp_write( sglob->wake_sds[1], "0", 1);		/* wake up file mgr */
+
     (void) SIGNAL_REINSTALL( sig, slurp_set_shutdown );	/* reinstall handlers */
 }
 
