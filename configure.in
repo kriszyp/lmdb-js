@@ -887,9 +887,18 @@ AC_CHECK_FUNCS( poll )
 AC_CHECK_HEADERS( poll.h )
 
 dnl ----------------------------------------------------------------
-AC_CHECK_FUNC(epoll_create, AC_DEFINE(HAVE_EPOLL,1,
-			[define if you have epoll]))
 AC_CHECK_HEADERS( sys/epoll.h )
+if test "${ac_cv_header_sys_epoll_h}" = yes; then
+AC_MSG_CHECKING(for epoll system call)
+AC_TRY_RUN(
+int main(int argc, char *argv[])
+{
+	int epfd = epoll_create(256);
+	exit (epfd == -1 ? 1 : 0);
+}, [AC_MSG_RESULT(yes)
+AC_DEFINE(HAVE_EPOLL,1, [define if your system supports epoll])],
+AC_MSG_RESULT(no),AC_MSG_RESULT(no))
+fi
 
 dnl ----------------------------------------------------------------
 # strerror checks
