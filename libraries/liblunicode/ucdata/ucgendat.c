@@ -804,7 +804,8 @@ read_cdata(FILE *in)
     char line[512], *s, *e;
 
     lineno = skip = 0;
-    while (fscanf(in, "%[^\n]\n", line) != EOF) {
+    while (!feof(in)) {
+		if( fscanf(in, "%[^\n]\n", line) != 1) break;
         lineno++;
 
         /*
@@ -1162,7 +1163,8 @@ read_compexdata(FILE *in)
 
     (void) memset((char *) compexs, 0, sizeof(unsigned long) << 11);
 
-    while (fscanf(in, "%[^\n]\n", line) != EOF) {
+    while (!feof(in)) {
+		if( fscanf(in, "%[^\n]\n", line) != 1) break;
         /*
          * Skip blank lines and lines that start with a '#'.
          */
