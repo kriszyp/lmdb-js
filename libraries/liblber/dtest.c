@@ -90,14 +90,6 @@ main( int argc, char **argv )
 		}
 	}
 
-	if(( tag = ber_get_next( sb, &len, ber) ) == LBER_ERROR ) {
-		perror( "ber_get_next" );
-		return( EXIT_FAILURE );
-	}
-
-	printf("decode: message tag 0x%lx and length %ld\n",
-		tag, len );
-
 	ber_sockbuf_free( sb );
 	return( EXIT_SUCCESS );
 }
