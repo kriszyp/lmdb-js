@@ -556,8 +556,11 @@ LDAP_F (int) ldap_int_sasl_bind LDAP_P((
 	const char *,
 	const char *,
 	LDAPControl **, LDAPControl **,
+
+	/* should be passed in client controls */
+	unsigned flags,
 	LDAP_SASL_INTERACT_PROC *interact,
-	void *defaults));
+	void *defaults ));
 
 /*
  * in tls.c

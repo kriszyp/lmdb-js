@@ -695,10 +695,22 @@ ldap_sasl_bind LDAP_P((
 	LDAPControl		**clientctrls,
 	int				*msgidp ));
 
-/* V3 SASL Interaction Function Callback Prototype */
-/*	when using Cyrus SASL, interact is pointer to sasl_interact_t */
+/* Interaction flags (should be passed about in a control)
+ *  Automatic (default): use defaults, prompt otherwise
+ *  Interactive: prompt always
+ *  Quiet: never prompt
+ */
+#define LDAP_SASL_AUTOMATIC		0U
+#define LDAP_SASL_INTERACTIVE	1U
+#define LDAP_SASL_QUIET			2U
+
+/*
+ * V3 SASL Interaction Function Callback Prototype
+ *	when using Cyrus SASL, interact is pointer to sasl_interact_t
+ *  should likely passed in a control (and provided controls)
+ */
 typedef int (LDAP_SASL_INTERACT_PROC) LDAP_P((
-	LDAP *ld, void* defaults, void *interact ));
+	LDAP *ld, unsigned flags, void* defaults, void *interact ));
 
 LDAP_F( int )
 ldap_sasl_interactive_bind_s LDAP_P((
@@ -707,6 +719,9 @@ ldap_sasl_interactive_bind_s LDAP_P((
 	LDAP_CONST char *saslMechanism,
 	LDAPControl **serverControls,
 	LDAPControl **clientControls,
+
+	/* should be client controls */
+	unsigned flags,
 	LDAP_SASL_INTERACT_PROC *proc,
 	void *defaults ));
 

@@ -410,6 +410,7 @@ ldap_sasl_interactive_bind_s(
 	LDAP_CONST char *mechs,
 	LDAPControl **serverControls,
 	LDAPControl **clientControls,
+	unsigned flags,
 	LDAP_SASL_INTERACT_PROC *interact,
 	void *defaults )
 {
@@ -438,7 +439,7 @@ ldap_sasl_interactive_bind_s(
 
 	rc = ldap_int_sasl_bind( ld, dn, mechs,
 		serverControls, clientControls,
-		interact, defaults );
+		flags, interact, defaults );
 
 	return rc;
 }

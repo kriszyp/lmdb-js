@@ -455,6 +455,7 @@ ldap_int_sasl_bind(
 	const char		*mechs,
 	LDAPControl		**sctrls,
 	LDAPControl		**cctrls,
+	unsigned		flags,
 	LDAP_SASL_INTERACT_PROC *interact,
 	void * defaults )
 {
@@ -519,14 +520,16 @@ ldap_int_sasl_bind(
 		if( pmech == NULL && mech != NULL ) {
 			pmech = mech;
 
-			fprintf(stderr,
-				"SASL/%s authentication started\n",
-				pmech );
+			if( flags != LDAP_SASL_QUIET ) {
+				fprintf(stderr,
+					"SASL/%s authentication started\n",
+					pmech );
+			}
 		}
 
 		if( saslrc == SASL_INTERACT ) {
 			if( !interact ) break;
-			rc = (interact)( ld, defaults, prompts );
+			rc = (interact)( ld, flags, defaults, prompts );
 			if( rc != LDAP_SUCCESS ) {
 				break;
 			}
@@ -575,7 +578,7 @@ ldap_int_sasl_bind(
 			if( saslrc == SASL_INTERACT ) {
 				int res;
 				if( !interact ) break;
-				res = (interact)( ld, defaults, prompts );
+				rc = (interact)( ld, flags, defaults, prompts );
 				if( res != LDAP_SUCCESS ) {
 					break;
 				}
@@ -595,24 +598,30 @@ ldap_int_sasl_bind(
 
 	/* likely should add a quiet option */
 
-	saslrc = sasl_getprop( ctx, SASL_USERNAME, (void **) &data );
-	if( saslrc == SASL_OK ) {
-		fprintf( stderr, "SASL username: %s\n", data );
-	}
+	if( flags != LDAP_SASL_QUIET ) {
+		saslrc = sasl_getprop( ctx, SASL_USERNAME, (void **) &data );
+		if( saslrc == SASL_OK ) {
+			fprintf( stderr, "SASL username: %s\n", data );
+		}
 
-	saslrc = sasl_getprop( ctx, SASL_REALM, (void **) &data );
-	if( saslrc == SASL_OK ) {
-		fprintf( stderr, "SASL realm: %s\n", data );
+		saslrc = sasl_getprop( ctx, SASL_REALM, (void **) &data );
+		if( saslrc == SASL_OK ) {
+			fprintf( stderr, "SASL realm: %s\n", data );
+		}
 	}
 
 	saslrc = sasl_getprop( ctx, SASL_SSF, (void **) &ssf );
 	if( saslrc == SASL_OK ) {
-		fprintf( stderr, "SASL SSF: %lu\n",
-			(unsigned long) *ssf );
+		if( flags != LDAP_SASL_QUIET ) {
+			fprintf( stderr, "SASL SSF: %lu\n",
+				(unsigned long) *ssf );
+		}
 
 #ifdef LDAP_SASL_SECURITY_LAYER
 		if( ssf && *ssf ) {
-			fprintf( stderr, "SASL installing layers\n" );
+			if( flags != LDAP_SASL_QUIET ) {
+				fprintf( stderr, "SASL installing layers\n" );
+			}
 			ldap_pvt_sasl_install( ld->ld_sb, ctx );
 		}
 #endif

@@ -87,7 +87,7 @@ main( int argc, char *argv[] )
 	int		authmethod = -1;
 	int		manageDSAit = 0;
 #ifdef HAVE_CYRUS_SASL
-	unsigned	sasl_flags = LUTIL_SASL_AUTOMATIC;
+	unsigned	sasl_flags = LDAP_SASL_AUTOMATIC;
 	char		*sasl_realm = NULL;
 	char		*sasl_authc_id = NULL;
 	char		*sasl_authz_id = NULL;
@@ -167,6 +167,28 @@ main( int argc, char *argv[] )
 		}
 	    ldaphost = strdup( optarg );
 	    break;
+	case 'I':
+#ifdef HAVE_CYRUS_SASL
+		if( version == LDAP_VERSION2 ) {
+			fprintf( stderr, "%s: -I incompatible with version %d\n",
+				prog, version );
+			return EXIT_FAILURE;
+		}
+		if( authmethod != -1 && authmethod != LDAP_AUTH_SASL ) {
+			fprintf( stderr, "%s: incompatible previous "
+				"authentication choice\n",
+				prog );
+			return EXIT_FAILURE;
+		}
+		authmethod = LDAP_AUTH_SASL;
+		version = LDAP_VERSION3;
+		sasl_flags = LDAP_SASL_INTERACTIVE;
+		break;
+#else
+		fprintf( stderr, "%s: was not compiled with SASL support\n",
+			prog );
+		return( EXIT_FAILURE );
+#endif
 	case 'k':	/* kerberos bind */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		if( version > LDAP_VERSION2 ) {
@@ -290,7 +312,8 @@ main( int argc, char *argv[] )
 		}
 		authmethod = LDAP_AUTH_SASL;
 		version = LDAP_VERSION3;
-		sasl_flags = LUTIL_SASL_QUIET;
+		sasl_flags = LDAP_SASL_QUIET;
+		break;
 #else
 		fprintf( stderr, "%s: was not compiled with SASL support\n",
 			prog );
@@ -566,7 +589,7 @@ main( int argc, char *argv[] )
 			}
 		}
 		
-		defaults = lutil_sasl_defaults( ld, sasl_flags,
+		defaults = lutil_sasl_defaults( ld,
 			sasl_mech,
 			sasl_realm,
 			sasl_authc_id,
@@ -575,7 +598,7 @@ main( int argc, char *argv[] )
 
 		rc = ldap_sasl_interactive_bind_s( ld, binddn,
 			sasl_mech, NULL, NULL,
-			lutil_sasl_interact, defaults );
+			sasl_flags, lutil_sasl_interact, defaults );
 
 		if( rc != LDAP_SUCCESS ) {
 			ldap_perror( ld, "ldap_sasl_interactive_bind_s" );

@@ -20,7 +20,6 @@
 
 
 typedef struct lutil_sasl_defaults_s {
-	unsigned flags;
 	char *mech;
 	char *realm;
 	char *authcid;
@@ -32,7 +31,6 @@ typedef struct lutil_sasl_defaults_s {
 void *
 lutil_sasl_defaults(
 	LDAP *ld,
-	unsigned flags,
 	char *mech,
 	char *realm,
 	char *authcid,
@@ -45,7 +43,6 @@ lutil_sasl_defaults(
 
 	if( defaults == NULL ) return NULL;
 
-	defaults->flags = flags;
 	defaults->mech = mech;
 	defaults->realm = realm;
 	defaults->authcid = authcid;
@@ -69,9 +66,10 @@ lutil_sasl_defaults(
 }
 
 static int interaction(
-	sasl_interact_t *interact, lutilSASLdefaults *defaults )
+	unsigned flags,
+	sasl_interact_t *interact,
+	lutilSASLdefaults *defaults )
 {
-	unsigned flags = defaults ? defaults->flags : 0;
 	const char *dflt = interact->defresult;
 	char input[1024];
 
@@ -103,11 +101,11 @@ static int interaction(
 
 	if( dflt && !*dflt ) dflt = NULL;
 
-	if( flags != LUTIL_SASL_INTERACTIVE && dflt ) {
+	if( flags != LDAP_SASL_INTERACTIVE && dflt ) {
 		goto use_default;
 	}
 
-	if( flags == LUTIL_SASL_QUIET ) {
+	if( flags == LDAP_SASL_QUIET ) {
 		/* don't prompt */
 		return LDAP_OTHER;
 	}
@@ -180,15 +178,18 @@ use_default:
 
 int lutil_sasl_interact(
 	LDAP *ld,
+	unsigned flags,
 	void *defaults,
 	void *in )
 {
 	sasl_interact_t *interact = in;
 
-	fputs( "SASL Interaction\n", stderr );
+	if( flags != LDAP_SASL_QUIET ) {
+		fputs( "SASL Interaction\n", stderr );
+	}
 
 	while( interact->id != SASL_CB_LIST_END ) {
-		int rc = interaction( interact, defaults );
+		int rc = interaction( flags, interact, defaults );
 
 		if( rc )  return rc;
 		interact++;
