@@ -325,6 +325,7 @@ A more complete example of the {{slapd.conf}} content is thus:
 
 >	database bdb
 >	suffix dc=Example,dc=com
+>	rootdn dc=Example,dc=com
 >	directory /var/ldap/db
 >	index objectclass,entryCSN,entryUUID eq
 >
@@ -340,6 +341,12 @@ of {{slapd.conf}} (5) for the replica context.
 The syncrepl engine is backend independent and the directive
 can be defined with any database type.
 
+>	database hdb
+>	suffix dc=Example,dc=com
+>	rootdn dc=Example,dc=com
+>	directory /var/ldap/db
+>	index objectclass,entryCSN,entryUUID eq
+>
 >	syncrepl rid=123
 >		provider=ldap://provider.example.com:389
 >		type=refreshOnly
