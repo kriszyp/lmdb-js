@@ -15,7 +15,7 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-static index_mask(
+static slap_mask_t index_mask(
 	Backend *be,
 	AttributeDescription *desc,
 	char **dbname,
@@ -325,7 +325,7 @@ index_entry(
 
 
 	/* add each attribute to the indexes */
-	for ( ap; ap != NULL; ap = ap->a_next ) {
+	for ( ; ap != NULL; ap = ap->a_next ) {
 		index_values( be, ap->a_desc, ap->a_vals, e->e_id, op );
 	}
 

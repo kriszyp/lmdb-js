@@ -154,7 +154,7 @@ access_allowed(
 	a = NULL;
 	count = 0;
 
-	while( a = acl_get( a, &count, be, op, e, desc, MAXREMATCHES, matches ) )
+	while((a = acl_get( a, &count, be, op, e, desc, MAXREMATCHES, matches )) != NULL)
 	{
 		int i;
 

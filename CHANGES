@@ -3,8 +3,11 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.X Engineering
 	Fixed KBIND (ITS#717)
 	Fixed clients/tools -R handling (ITS#726)
+	Fixed -lldap SASL got_max_ssf bug 
+	Fixed -lldap TCP_NODELAY bug 
 	Fixed -lldap TLS issues (ITS#733)
 	Fixed -lldap_r NT threads (ITS#732)
+	Fixed -llutil sa_flags never set bug
 	Fixed ldappasswd -A -S crash (ITS#714)
 	Fixed ldappasswd user argument usage
 	Fixed slapd disallow bind_anon (ITS#721)
@@ -19,6 +22,7 @@ OpenLDAP 2.0.X Engineering
 	Added slapd syntax/mr routines
 	Added slapd allow/disallow options
 	Added slapd defaultSearchBase and DN verify (ITS#723)
+	Removed lint
 	Build Environment
 		Added test000-rootdse
 		Added Corba & Java Schema

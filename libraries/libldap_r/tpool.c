@@ -120,7 +120,7 @@ ldap_pvt_thread_pool_init (
 	 * but ltp_open_count == 1, so two things happen: 
 	 * 1) the first client connection fails, and 2) when
 	 * slapd is kill'ed, it never terminates since it waits
-	 * for all worker threads to exit.
+	 * for all worker threads to exit. */
 
 	/* start up one thread, just so there is one. no need to
 	 * lock the mutex right now, since no threads are running.
@@ -315,8 +315,8 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 	} while (waiting > 0);
 
-	while (ctx = (ldap_int_thread_ctx_t *)ldap_int_thread_delist(
-		&pool->ltp_pending_list, NULL))
+	while ((ctx = (ldap_int_thread_ctx_t *)ldap_int_thread_delist(
+		&pool->ltp_pending_list, NULL)) != NULL)
 	{
 		free(ctx);
 	}

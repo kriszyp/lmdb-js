@@ -331,7 +331,7 @@ change_base( int type, char **base, char *s )
 {
 	register char *cp;			/* utility pointers */
 	char **rdns;				/* for parsing */
-	char *output_string;			/* for nice output */
+	char *output_string = NULL;		/* for nice output */
 	int num_picked;				/* # of selected base */
 	int j;					/* used with num_picked */
 	int i = 1;				/* index into choices array */

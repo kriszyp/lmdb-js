@@ -61,7 +61,7 @@ int ldbm_modify_internal(
 
 			if( err != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
-					err, text, 0);
+					err, *text, 0);
 				*text = "modify: add values failed";
 			}
 			break;
@@ -72,7 +72,7 @@ int ldbm_modify_internal(
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
-					err, text, 0);
+					err, *text, 0);
 				*text = "modify: delete values failed";
 			}
 			break;
@@ -83,7 +83,7 @@ int ldbm_modify_internal(
 			assert( err != LDAP_TYPE_OR_VALUE_EXISTS );
 			if( err != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
-					err, text, 0);
+					err, *text, 0);
 				*text = "modify: replace values failed";
 			}
 			break;
@@ -102,7 +102,7 @@ int ldbm_modify_internal(
 
 			if( err != LDAP_SUCCESS ) {
 				Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
-					err, text, 0);
+					err, *text, 0);
 				*text = "modify: (soft)add values failed";
 			}
  			break;
@@ -113,7 +113,7 @@ int ldbm_modify_internal(
 			*text = "Invalid modify operation";
 			err = LDAP_OTHER;
 			Debug(LDAP_DEBUG_ARGS, "ldbm_modify_internal: %d %s\n",
-				err, text, 0);
+				err, *text, 0);
 		}
 
 		if ( err != LDAP_SUCCESS ) {
