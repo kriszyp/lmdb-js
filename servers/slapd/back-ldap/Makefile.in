@@ -10,7 +10,7 @@ BUILD_OPT = "--enable-ldap"
 BUILD_LIB = @BUILD_LDAP@
 BUILD_MOD = @BUILD_LDAP_DYNAMIC@
 
-LIBBASE = back-ldap
+LIBBASE = back_ldap
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
