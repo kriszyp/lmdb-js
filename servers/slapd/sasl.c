@@ -463,16 +463,16 @@ int slap_sasl_bind(
 			rc = LDAP_SUCCESS;
 
 			if( username == NULL || (
-				!strncasecmp( username, "anonymous", sizeof("anonyous")-1 ) &&
-				( ( username[sizeof("anonymous")] == '\0' ) ||
-				  ( username[sizeof("anonymous")] == '@' ) ) ) )
+				!strncasecmp( username, "anonymous", sizeof("anonymous")-1 ) &&
+				( username[sizeof("anonymous")-1] == '\0' ||
+				  username[sizeof("anonymous")-1] == '@' ) ) )
 			{
 				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: anonymous\n",
 					0, 0, 0);
 
 			} else if ( username[0] == 'u' && username[1] == ':'
 				&& username[2] != '\0'
-				&& strpbrk( &username[2], "=,;\"\\") == NULL )
+				&& strpbrk( &username[2], "+=,;\"\\ \t") == NULL )
 			{
 				*edn = ch_malloc( sizeof( "uid= + realm=" )
 					+ strlen( &username[2] )
