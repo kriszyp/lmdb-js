@@ -44,6 +44,9 @@ LDAP_BEGIN_DECL
 /* We'll eventually release as 200 */
 #define LDAP_VENDOR_VERSION	190
 
+/* OpenLDAP API Features */
+#define LDAP_API_FEATURE_X_OPENLDAP 1
+
 /* include LDAP_API_FEATURE defines */
 #include <ldap_features.h>
 
