@@ -550,7 +550,7 @@ ldap_build_entry(
 					attr->a_desc->ad_type->sat_syntax,
 					attr->a_desc->ad_type->sat_equality,
 					&attr->a_vals[i], &attr->a_nvals[i],
-					op->o_tmpmemctx );
+					NULL /* op->o_tmpmemctx */ );
 			}
 			attr->a_nvals[i].bv_val = NULL;
 			attr->a_nvals[i].bv_len = 0;
