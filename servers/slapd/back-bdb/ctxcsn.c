@@ -44,7 +44,6 @@ bdb_csn_commit(
 )
 {
 	struct bdb_info	*bdb = (struct bdb_info *) op->o_bd->be_private;
-	struct berval	ctxcsn_rdn = { 0, NULL };
 	struct berval	ctxcsn_ndn = { 0, NULL };
 	EntryInfo		*ctxcsn_ei = NULL;
 	DB_LOCK			ctxcsn_lock;
@@ -55,17 +54,14 @@ bdb_csn_commit(
 	Entry			*e;
 	char			textbuf[SLAP_TEXT_BUFLEN];
 	size_t			textlen = sizeof textbuf;
-	Modifications	*ml, *mlnext, *mod, *modlist;
-	Modifications	**modtail = &modlist;
-	struct berval	*csnbva = NULL;
 	EntryInfo		*eip = NULL;
 
 	if ( ei ) {
 		e = ei->bei_e;
 	}
 
-	ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
-	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
+	build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0],
+		(struct berval *)&slap_ldapsync_cn_bv );
 
 	rc = bdb_dn2entry( op, tid, &ctxcsn_ndn, &ctxcsn_ei,
 							   1, locker, &ctxcsn_lock );
@@ -88,31 +84,24 @@ bdb_csn_commit(
 			ber_bvfree( max_committed_csn );
 			return BDB_CSN_ABORT;
 		} else {
-			csnbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
-			ber_dupbv( &csnbva[0], max_committed_csn );
-			mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-			mod->sml_op = LDAP_MOD_REPLACE;
-			ber_str2bv( "contextCSN", strlen("contextCSN"), 1, &mod->sml_type );
-			mod->sml_bvalues = csnbva;
-			*modtail = mod;
-			modtail = &mod->sml_next;
+			Modifications mod;
+			struct berval modvals[2];
 
-			ret = slap_mods_check( modlist, 1, &rs->sr_text, textbuf, textlen, NULL );
+			modvals[0] = *max_committed_csn;
+			modvals[1].bv_val = NULL;
+			modvals[1].bv_len = 0;
 
-			if ( ret != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR,
-						"bdb_csn_commit: mods check (%s)\n", rs->sr_text, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY,
-						"bdb_csn_commit: mods check (%s)\n", rs->sr_text, 0, 0 );
-#endif
-			}
+			mod.sml_op = LDAP_MOD_REPLACE;
+			mod.sml_bvalues = modvals;
+			mod.sml_desc = slap_schema.si_ad_contextCSN;
+			mod.sml_type = mod.sml_desc->ad_cname;
+			mod.sml_next = NULL;
 
 			bdb_cache_entry_db_relock( bdb->bi_dbenv, locker, ctxcsn_ei, 1, 0, &ctxcsn_lock );
 
-			ret = bdb_modify_internal( op, tid, modlist, *ctxcsn_e,
+			ret = bdb_modify_internal( op, tid, &mod, *ctxcsn_e,
 									&rs->sr_text, textbuf, textlen );								
+			ber_bvfree( max_committed_csn );
 			if ( ret != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, ERR,
@@ -128,11 +117,6 @@ bdb_csn_commit(
 				default:
 					return BDB_CSN_ABORT;
 				}
-			}
-
-			for ( ml = modlist; ml != NULL; ml = mlnext ) {
-				mlnext = ml->sml_next;
-				free( ml );
 			}
 
 			ret = bdb_id2entry_update( op->o_bd, tid, *ctxcsn_e );

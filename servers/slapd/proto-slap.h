@@ -532,6 +532,8 @@ LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
 LDAP_SLAPD_V( const struct berval ) slap_unknown_bv;
 LDAP_SLAPD_V( const struct berval ) slap_true_bv;
 LDAP_SLAPD_V( const struct berval ) slap_false_bv;
+LDAP_SLAPD_V( const struct berval ) slap_ldapsync_bv;
+LDAP_SLAPD_V( const struct berval ) slap_ldapsync_cn_bv;
 
 /*
  * index.c

@@ -110,138 +110,46 @@ slap_graduate_commit_csn( Operation *op )
 	return;
 }
 
+static struct berval ocbva[] = {
+	BER_BVC("top"),
+	BER_BVC("subentry"),
+	BER_BVC("syncProviderSubentry"),
+	{0,NULL}
+};
+
 Entry *
 slap_create_context_csn_entry(
 	Backend *be,
 	struct berval *context_csn
 )
 {
-	Modifications *ml;
-	Modifications *mlnext;
-	Modifications *mod;
-	Modifications *modlist;
-	Modifications **modtail = &modlist;
-
-	struct berval* ocbva = NULL;
-	struct berval* socbva = NULL;
-	struct berval* cnbva = NULL;
-	struct berval* ssbva = NULL;
-	struct berval* scbva = NULL;
-
-	char substr[64];
-	char rdnstr[67];
-	const char	*text;
-	char txtbuf[SLAP_TEXT_BUFLEN];
-	size_t textlen = sizeof txtbuf;
-
 	Entry* e;
 	int rc;
 
-	struct berval sub_bv = { 0, NULL };
-	struct berval psubrdn = { 0, NULL };
-	
-	slap_callback cb;
-	SlapReply	rs = {REP_RESULT};
-
-	struct berval rdn = { 0, NULL };
-	int match = 0;
-	char *def_filter_str = NULL;
-
-	ocbva = ( struct berval * ) ch_calloc( 4, sizeof( struct berval ));
-	socbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
-	cnbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
-	ssbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
-	scbva = ( struct berval * ) ch_calloc( 2, sizeof( struct berval ));
-
-	ber_str2bv( "top", strlen("top"), 1, &ocbva[0] );
-	ber_str2bv( "subentry", strlen("subentry"), 1, &ocbva[1] );
-	ber_str2bv( "syncProviderSubentry",
-			strlen("syncProviderSubentry"), 1, &ocbva[2] );
-
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "objectClass", strlen("objectClass"), 1, &mod->sml_type );
-	mod->sml_bvalues = ocbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	ber_str2bv( "subentry",
-			strlen("subentry"), 1, &socbva[0] );
-
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "structuralObjectClass", strlen("structuralObjectClass"), 1, &mod->sml_type );
-	mod->sml_bvalues = socbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	sprintf( substr, "ldapsync" );
-	sprintf( rdnstr, "cn=%s", substr );
-	ber_str2bv( substr, strlen( substr ), 1, &cnbva[0] );
-	ber_str2bv( rdnstr, strlen( rdnstr ), 1, &psubrdn );
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "cn", strlen("cn"), 1, &mod->sml_type );
-	mod->sml_bvalues = cnbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	if ( context_csn ) {
-		ber_dupbv( &scbva[0], context_csn );
-		mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-		mod->sml_op = LDAP_MOD_REPLACE;
-		ber_str2bv( "contextCSN", strlen("contextCSN"), 1, &mod->sml_type );
-		mod->sml_bvalues = scbva;
-		*modtail = mod;
-		modtail = &mod->sml_next;
-	}
-
-	ber_str2bv( "{}", strlen("{}"), 1, &ssbva[0] );
-	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-	mod->sml_op = LDAP_MOD_REPLACE;
-	ber_str2bv( "subtreeSpecification",
-			strlen("subtreeSpecification"), 1, &mod->sml_type );
-	mod->sml_bvalues = ssbva;
-	*modtail = mod;
-	modtail = &mod->sml_next;
-
-	rc = slap_mods_check( modlist, 1, &text, txtbuf, textlen, NULL );
-
-	if ( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-				"create_context_csn_entry: mods check (%s)\n", text, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "create_context_csn_entry: mods check (%s)\n",
-			 text, 0, 0 );
-#endif
-	}
+	struct berval bv;
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
 
-	build_new_dn( &sub_bv, &be->be_nsuffix[0], &psubrdn );
-	dnPrettyNormal( NULL, &sub_bv, &e->e_name, &e->e_nname, NULL );
-	ch_free( sub_bv.bv_val );
-	ch_free( psubrdn.bv_val );
+	attr_merge( e, slap_schema.si_ad_objectClass, ocbva, NULL );
 
-	e->e_attrs = NULL;
+	bv.bv_val = "subentry";
+	bv.bv_len = sizeof("subentry")-1;
 
-	rc = slap_mods2entry( modlist, &e, 1, 1, &text, txtbuf, textlen );
+	attr_merge_one( e, slap_schema.si_ad_structuralObjectClass, &bv, NULL );
 
-	if( rc != LDAP_SUCCESS ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, ERR,
-				"create_context_csn_entry: mods2entry (%s)\n", text, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "create_context_csn_entry: mods2entry (%s)\n",
-			 text, 0, 0 );
-#endif
+	attr_merge_one( e, slap_schema.si_ad_cn, &slap_ldapsync_bv, NULL );
+
+	if ( context_csn ) {
+		attr_merge_one( e, slap_schema.si_ad_contextCSN,
+			context_csn, NULL );
 	}
 
-	for ( ml = modlist; ml != NULL; ml = mlnext ) {
-		mlnext = ml->sml_next;
-		free( ml );
-	}
+	bv.bv_val = "{}";
+	bv.bv_len = sizeof("{}")-1;
+	attr_merge_one( e, slap_schema.si_ad_subtreeSpecification, &bv, NULL );
+
+	build_new_dn( &e->e_name, &be->be_nsuffix[0], &slap_ldapsync_cn_bv );
+	ber_dupbv( &e->e_name, &e->e_nname );
 
 	return e;
 }
