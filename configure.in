@@ -645,7 +645,7 @@ int main(argc, argv)
 
 	/* make sure pthread_create() isn't just a stub */
 #if HAVE_PTHREADS_D4
-	status = pthread_create(&t, pthread_attr_default, task, NULL));
+	status = pthread_create(&t, pthread_attr_default, task, NULL);
 #else
 	status = pthread_create(&t, NULL, task, NULL);
 #endif
