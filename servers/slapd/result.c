@@ -129,12 +129,12 @@ struct berval **get_entry_referrals(
 	unsigned i, j;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *ref = slap_schema.si_ad_ref;
+	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
 #else
-	static const char *ref = "ref";
+	static const char *ad_ref = "ref";
 #endif
 
-	attr = attr_find( e->e_attrs, ref );
+	attr = attr_find( e->e_attrs, ad_ref );
 
 	if( attr == NULL ) return NULL;
 
@@ -629,15 +629,15 @@ send_search_entry(
 	int		opattrs;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *entry = slap_schema.si_ad_entry;
+	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 #else
-	static const char *entry = "entry";
+	static const char *ad_entry = "entry";
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_entry: \"%s\"\n", e->e_dn, 0, 0 );
 
 	if ( ! access_allowed( be, conn, op, e,
-		entry, NULL, ACL_READ ) )
+		ad_entry, NULL, ACL_READ ) )
 	{
 		Debug( LDAP_DEBUG_ACL, "acl: access to entry not allowed\n",
 		    0, 0, 0 );
@@ -901,17 +901,17 @@ send_search_reference(
 	int bytes;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription *ref = slap_schema.si_ad_ref;
-	AttributeDescription *entry = slap_schema.si_ad_entry;
+	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
+	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 #else
-	static const char *ref = "ref";
-	static const char *entry = "entry";
+	static const char *ad_ref = "ref";
+	static const char *ad_entry = "entry";
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> send_search_reference (%s)\n", e->e_dn, 0, 0 );
 
 	if ( ! access_allowed( be, conn, op, e,
-		entry, NULL, ACL_READ ) )
+		ad_entry, NULL, ACL_READ ) )
 	{
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to entry not allowed\n",
@@ -920,7 +920,7 @@ send_search_reference(
 	}
 
 	if ( ! access_allowed( be, conn, op, e,
-		ref, NULL, ACL_READ ) )
+		ad_ref, NULL, ACL_READ ) )
 	{
 		Debug( LDAP_DEBUG_ACL,
 			"send_search_reference: access to reference not allowed\n",

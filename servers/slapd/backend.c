@@ -657,7 +657,7 @@ Attribute *backend_operational(
 {
 	Attribute *a = ch_malloc( sizeof( Attribute ) );
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	a->a_desc = slap_schema.si_ad_subschemaSubentry;
+	a->a_desc = ad_dup( slap_schema.si_ad_subschemaSubentry );
 #else
 	a->a_type = ch_strdup("subschemasubentry");
 	a->a_syntax = SYNTAX_DN | SYNTAX_CIS;
@@ -665,9 +665,7 @@ Attribute *backend_operational(
 
 	/* Should be backend specific */
 	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
-	a->a_vals[0] = ch_malloc( sizeof( struct berval ) );
-	a->a_vals[0]->bv_val = ch_strdup( SLAPD_SCHEMA_DN );
-	a->a_vals[0]->bv_len = sizeof( SLAPD_SCHEMA_DN ) - 1;
+	a->a_vals[0] = ber_bvstrdup( SLAPD_SCHEMA_DN );
 	a->a_vals[1] = NULL;
 
 	a->a_next = NULL;
