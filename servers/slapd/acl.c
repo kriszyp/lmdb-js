@@ -558,9 +558,9 @@ regex_matches(
 	rc = regexec(&re, str, 0, NULL, 0);
 	regfree( &re );
 
-	Debug( LDAP_DEBUG_ANY,
+	Debug( LDAP_DEBUG_TRACE,
 	    "=> regex_matches: string:   %s\n", str, 0, 0 );
-	Debug( LDAP_DEBUG_ANY,
+	Debug( LDAP_DEBUG_TRACE,
 	    "=> regex_matches: rc: %d %s\n",
 		rc, !rc ? "matches" : "no matches", 0 );
 	return( !rc );

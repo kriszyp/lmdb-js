@@ -106,20 +106,25 @@ install: all $(LDAP_LIBEXECDIR) $(LDAP_LIBEXECDIR)/slapd \
 		$(LDAP_ETCDIR)/slapd.at.conf $(LDAP_ETCDIR)/slapd.oc.conf \
 		install-tools
 
+
 $(LDAP_LIBEXECDIR)/slapd:	slapd
+	@$(MKDIR) $(LDAP_LIBEXECDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 slapd $(LDAP_LIBEXECDIR)
 
 $(LDAP_ETCDIR)/slapd.conf:	slapd.conf
+	@-$(MKDIR) $(LDAP_ETCDIR)
 	$(SED) -e 's;%ETCDIR%;$(LDAP_ETCDIR);' slapd.conf > /tmp/slapd.$$
 	-$(MV) $(LDAP_ETCDIR)/slapd.conf $(LDAP_ETCDIR)/slapd.conf-
 	$(INSTALL) $(INSTALLFLAGS) -m 644 /tmp/slapd.$$ $(LDAP_ETCDIR)/slapd.conf
 	$(RM) -f /tmp/slapd.$$
 
 $(LDAP_ETCDIR)/slapd.at.conf:	slapd.at.conf
+	@-$(MKDIR) $(LDAP_ETCDIR)
 	-$(MV) $(LDAP_ETCDIR)/slapd.at.conf $(LDAP_ETCDIR)/slapd.at.conf-
 	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.at.conf $(LDAP_ETCDIR)
 
 $(LDAP_ETCDIR)/slapd.oc.conf:	slapd.oc.conf
+	@-$(MKDIR) $(LDAP_ETCDIR)
 	-$(MV) $(LDAP_ETCDIR)/slapd.oc.conf $(LDAP_ETCDIR)/slapd.oc.conf-
 	$(INSTALL) $(INSTALLFLAGS) -m 644 slapd.oc.conf $(LDAP_ETCDIR)
 

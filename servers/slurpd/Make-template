@@ -58,10 +58,8 @@ version.c: $(OBJS) $(LDIR)/liblber/liblber.a $(LDIR)/libldap/libldap.a
 
 install: $(LDAP_LIBEXECDIR) $(LDAP_LIBEXECDIR)/slurpd
 
-$(LDAP_LIBEXECDIR): FORCE
-	@-$(MKDIR) $(LDAP_LIBEXECDIR)
-
 $(LDAP_LIBEXECDIR)/slurpd:	slurpd
+	@-$(MKDIR) $(LDAP_LIBEXECDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 slurpd $(LDAP_LIBEXECDIR)
 
 lint:	FORCE
