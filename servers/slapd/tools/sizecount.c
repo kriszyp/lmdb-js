@@ -94,8 +94,8 @@ main( int argc, char **argv )
 					Datum	key, data;
 					char	*w;
 
-                    memset( &key, 0, sizeof( key ));
-                    memset( &data, 0, sizeof( data ));
+					memset( &key, 0, sizeof( key ));
+					memset( &data, 0, sizeof( data ));
 
 					/* update value count */
 					vcount++;
