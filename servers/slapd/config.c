@@ -56,7 +56,6 @@ char		*ldap_srvtab = "";
 char		**default_passwd_hash = NULL;
 struct berval default_search_base = BER_BVNULL;
 struct berval default_search_nbase = BER_BVNULL;
-unsigned		num_subordinates = 0;
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
@@ -140,7 +139,6 @@ enum {
 	CFG_SALT,
 	CFG_LIMITS,
 	CFG_RO,
-	CFG_SUB,
 	CFG_SASLOPT,
 	CFG_REWRITE,
 	CFG_DEPTH,
@@ -192,7 +190,6 @@ ConfigTable SystemConfiguration[] = {
   { "sizelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_SIZE,	&config_sizelimit,		NULL, NULL, NULL },
   { "timelimit",		2,  2,  0,  "limit",	ARG_MAGIC|CFG_TIME,	&config_timelimit,		NULL, NULL, NULL },
   { "limits",			2,  2,  0,  "limits",	ARG_DB|ARG_MAGIC|CFG_LIMITS, &config_generic,		NULL, NULL, NULL },
-  { "subordinate",		1,  1,  0,  "sub",	ARG_DB|ARG_MAGIC|CFG_SUB, &config_generic,		NULL, NULL, NULL },
   { "overlay",			2,  2,  0,  "overlay",	ARG_DB|ARG_MAGIC,	&config_overlay,		NULL, NULL, NULL },
   { "suffix",			2,  2,  0,  "suffix",	ARG_DB|ARG_MAGIC,	&config_suffix,			NULL, NULL, NULL },
   { "maxDerefDepth",		2,  2,  0,  "depth",	ARG_DB|ARG_INT|ARG_MAGIC|CFG_DEPTH, &config_generic,	NULL, NULL, NULL },
@@ -571,11 +568,6 @@ config_generic(ConfigArgs *c) {
 				c->be->be_restrictops |= SLAP_RESTRICT_OP_WRITES;
 			else
 				c->be->be_restrictops &= ~SLAP_RESTRICT_OP_WRITES;
-			break;
-
-		case CFG_SUB:
-			SLAP_DBFLAGS(c->be) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
-			num_subordinates++;
 			break;
 
 		case CFG_SASLOPT:

@@ -1334,8 +1334,6 @@ LDAP_SLAPD_F (int) value_add_one LDAP_P((
 /*
  * Other...
  */
-LDAP_SLAPD_V(unsigned) num_subordinates;
-
 LDAP_SLAPD_V (unsigned int) index_substr_if_minlen;
 LDAP_SLAPD_V (unsigned int) index_substr_if_maxlen;
 LDAP_SLAPD_V (unsigned int) index_substr_any_len;
