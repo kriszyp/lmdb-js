@@ -157,7 +157,7 @@ do_search(
 	Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 
 	Statslog( LDAP_DEBUG_STATS,
-	    "conn=%d op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
+	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    op->o_connid, op->o_opid, base, scope, fstr );
 
 	if ( scope == LDAP_SCOPE_BASE ) {

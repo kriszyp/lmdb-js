@@ -162,7 +162,7 @@ do_modify(
 		return rc;
 	} 
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d MOD dn=\"%s\"\n",
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, ndn, 0, 0 );
 
 	/*

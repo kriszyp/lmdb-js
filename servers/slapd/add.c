@@ -131,7 +131,7 @@ do_add( Connection *conn, Operation *op )
 		return rc;
 	} 
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d ADD dn=\"%s\"\n",
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, e->e_ndn, 0, 0 );
 
 	/*

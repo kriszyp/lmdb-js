@@ -159,8 +159,8 @@ do_bind(
 			version, dn, method );
 	}
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d BIND dn=\"%s\" method=%d\n",
-	    op->o_connid, op->o_opid, ndn, method, 0 );
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d BIND dn=\"%s\" method=%ld\n",
+	    op->o_connid, op->o_opid, ndn, (unsigned long) method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 		Debug( LDAP_DEBUG_ANY, "unknown version %d\n", version, 0, 0 );

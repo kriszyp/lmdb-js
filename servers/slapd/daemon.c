@@ -451,6 +451,7 @@ int slapd_daemon_init(char *urls, int port, int tls_port )
 }
 
 
+int
 slapd_daemon_destroy(void)
 {
 	connections_destroy();
@@ -755,7 +756,7 @@ slapd_daemon_task(
 			}
 
 			Statslog( LDAP_DEBUG_STATS,
-				"daemon: conn=%d fd=%ld connection from %s (%s) accepted.\n",
+				"daemon: conn=%ld fd=%ld connection from %s (%s) accepted.\n",
 				id, (long) s,
 				peername,
 				slap_listeners[l]->sl_name,

@@ -84,7 +84,7 @@ do_compare(
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
 	    ndn, ava.ava_type, ava.ava_value.bv_val );
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d CMP dn=\"%s\" attr=\"%s\"\n",
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
 	    op->o_connid, op->o_opid, ndn, ava.ava_type, 0 );
 
 	/*

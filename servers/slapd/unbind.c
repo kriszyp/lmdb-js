@@ -40,7 +40,7 @@ do_unbind(
 	 *	UnBindRequest ::= NULL
 	 */
 
-	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d UNBIND\n", op->o_connid,
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d UNBIND\n", op->o_connid,
 	    op->o_opid, 0, 0, 0 );
 
 	/* pass the unbind to all backends */

@@ -505,7 +505,7 @@ connection_destroy( Connection *c )
 	   	ber_pvt_sb_close( c->c_sb );
 
 		Statslog( LDAP_DEBUG_STATS,
-		    "conn=%d fd=%d closed.\n",
+		    "conn=%ld fd=%d closed.\n",
 			c->c_connid, sd, 0, 0, 0 );
 	}
 
