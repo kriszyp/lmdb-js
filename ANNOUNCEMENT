@@ -6,14 +6,13 @@ A N N O U N C E M E N T -- OpenLDAP 2.1
 
     This release contains the following major enhancements:
 
-        * Transaction oriented backend
-        * Improved Unicode handlng
+        * Transactional backend
+        * Improved Unicode handling
         * Improved DN handlng
-        * Improved Referral handlng
+        * Improved Referral handling
         * SASL authentication/authorization mapping
         * SASL in-directory storage of authentication secrets
         * Enhanced administrative limits/access controls
-        * LDAP backend (experimental)
         * Meta backend (experimental)
         * Monitor backend (experimental)
         * Virtual "glue" backend (experimental)
@@ -22,7 +21,6 @@ A N N O U N C E M E N T -- OpenLDAP 2.1
         * LDAPv3 extensions, including:
             - Enhanced Language Tag/Range Support
             - 'Who am i?' Extended Operation
-            - 'no-op' Control
 			- 'Matched Values' Control
 
     This release includes the following major components:
