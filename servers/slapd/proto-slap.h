@@ -450,6 +450,7 @@ LDAP_SLAPD_F( int ) slap_modlist2mods(
 
 LDAP_SLAPD_F( int ) slap_mods_opattrs(
 	Operation *op,
+	Modifications *mods,
 	Modifications **modlist,
 	const char **text );
 
@@ -693,14 +694,14 @@ LDAP_SLAPD_F (int) mr_add LDAP_P((LDAPMatchingRule *mr,
 	const char **err));
 
 LDAP_SLAPD_F (int) register_syntax LDAP_P((
-	char *desc,
+	const char *desc,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *normalize,
 	slap_syntax_transform_func *pretty ));
 
 LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
-	char * desc,
+	const char * desc,
 	unsigned usage,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
@@ -727,6 +728,10 @@ LDAP_SLAPD_F (int) entry_schema_check LDAP_P((
 	Entry *e, Attribute *attrs,
 	const char** text,
 	char *textbuf, size_t textlen ));
+LDAP_SLAPD_F (int) mods_structural_class LDAP_P((
+	Modifications *mods,
+	struct berval *oc,
+	const char** text ));
 
 
 /*
@@ -940,8 +945,6 @@ LDAP_SLAPD_F (int)	slap_init LDAP_P((int mode, const char* name));
 LDAP_SLAPD_F (int)	slap_startup LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_shutdown LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_destroy LDAP_P((void));
-
-struct sockaddr_in;
 
 LDAP_SLAPD_F (void) slapd_add_internal(ber_socket_t s);
 LDAP_SLAPD_F (int) slapd_daemon_init( const char *urls );

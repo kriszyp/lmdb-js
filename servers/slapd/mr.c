@@ -165,7 +165,7 @@ mr_add(
 
 int
 register_matching_rule(
-	char * desc,
+	const char * desc,
 	unsigned usage,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,

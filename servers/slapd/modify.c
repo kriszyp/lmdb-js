@@ -348,7 +348,7 @@ do_modify(
 				{
 					/* empty */
 				}
-				rc = slap_mods_opattrs( op, modstail, &text );
+				rc = slap_mods_opattrs( op, mods, modstail, &text );
 
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
@@ -563,6 +563,7 @@ int slap_modlist2mods(
 
 int slap_mods_opattrs(
 	Operation *op,
+	Modifications *mods,
 	Modifications **modtail,
 	const char **text )
 {
@@ -599,17 +600,34 @@ int slap_mods_opattrs(
 	}
 
 	if( op->o_tag == LDAP_REQ_ADD ) {
-		struct berval uuid;
+		struct berval tmpval;
 		char uuidbuf[40];
+		int rc;
 
-		uuid.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
-		uuid.bv_val = uuidbuf;
+		rc = mods_structural_class( mods, &tmpval, text );
+		if( rc != LDAP_SUCCESS ) {
+			return rc;
+		}
+		if ( tmpval.bv_len ) {
+			mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
+			mod->sml_op = mop;
+			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
+			mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+			mod->sml_bvalues[0] = ber_bvdup( &tmpval );
+			mod->sml_bvalues[1] = NULL;
+			assert( mod->sml_bvalues[0] );
+			*modtail = mod;
+			modtail = &mod->sml_next;
+		}
+
+		tmpval.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+		tmpval.bv_val = uuidbuf;
 		
 		mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_desc = slap_schema.si_ad_entryUUID;
 		mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
-		mod->sml_bvalues[0] = ber_bvdup( &uuid );
+		mod->sml_bvalues[0] = ber_bvdup( &tmpval );
 		mod->sml_bvalues[1] = NULL;
 		assert( mod->sml_bvalues[0] );
 		*modtail = mod;

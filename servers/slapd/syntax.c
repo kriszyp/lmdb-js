@@ -36,7 +36,7 @@ syn_index_cmp(
 
 static int
 syn_index_name_cmp(
-    char		*name,
+    const char		*name,
     struct sindexrec	*sir
 )
 {
@@ -150,7 +150,7 @@ syn_add(
 
 int
 register_syntax(
-	char * desc,
+	const char * desc,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
 	slap_syntax_transform_func *normalize,
