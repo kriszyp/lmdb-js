@@ -143,7 +143,7 @@ check_scope( BackendDB *be, AccessControl *a )
 
 	dn = be->be_nsuffix[ 0 ];
 
-	if ( a->acl_dn_pat.bv_len || ( a->acl_dn_style != ACL_STYLE_REGEX ) ) {
+	if ( a->acl_dn_pat.bv_len || a->acl_dn_style != ACL_STYLE_REGEX ) {
 		slap_style_t	style = a->acl_dn_style;
 
 		if ( style == ACL_STYLE_REGEX ) {
