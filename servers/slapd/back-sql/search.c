@@ -1718,6 +1718,13 @@ backsql_search( Operation *op, SlapReply *rs )
 		goto done;
 	}
 
+	if ( ! access_allowed( op, bsi.bsi_e, slap_schema.si_ad_entry, NULL,
+				ACL_DISCLOSE, NULL ) ) {
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		send_ldap_result( op, rs );
+		goto done;
+	}
+
 	bsi.bsi_n_candidates =
 		( op->ors_limit == NULL	/* isroot == TRUE */ ? -2 : 
 		( op->ors_limit->lms_s_unchecked == -1 ? -2 :

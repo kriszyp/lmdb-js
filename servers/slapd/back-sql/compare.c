@@ -109,6 +109,12 @@ backsql_compare( Operation *op, SlapReply *rs )
 	}
 	e = &user_entry;
 
+	if ( ! access_allowed( op, e, slap_schema.si_ad_entry, NULL,
+				ACL_DISCLOSE, NULL ) ) {
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		goto return_results;
+	}
+
 	if ( ! access_allowed( op, e, op->oq_compare.rs_ava->aa_desc, 
 				&op->oq_compare.rs_ava->aa_value,
 				ACL_COMPARE, NULL ) ) {
