@@ -1676,7 +1676,7 @@ char	*s;
 
   while ( *s ) {
     if ( *s == '\\' ) {
-      if ( (c = hh_to_c( ++s )) != -1 ) {
+      if ( (c = hh_to_c( (Byte *) ++s )) != -1 ) {
 	*o++ = c;
 	s += 2;
       } else
