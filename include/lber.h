@@ -83,6 +83,9 @@ typedef struct berelement BerElement;
 typedef struct sockbuf Sockbuf;
 #define READBUFSIZ	8192
 
+typedef struct seqorset Seqorset;
+#define NULLSEQORSET ((Seqorset *) 0)
+
 /* structure for returning a sequence of octet strings + length */
 struct berval {
 	unsigned long	bv_len;

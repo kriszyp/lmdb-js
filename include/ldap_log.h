@@ -63,4 +63,4 @@ extern void Debug( int level, char* fmt, ... );
 
 LDAP_END_DECL
 
-#endif /* _LDAP_H */
+#endif /* _LDAP_LOG_H */

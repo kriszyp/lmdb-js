@@ -5,6 +5,8 @@
  *  ldap-int.h - defines & prototypes internal to the LDAP library
  */
 
+#ifndef	_LDAP_INT_H
+#define	_LDAP_INT_H 1
 
 #include "../liblber/lber-int.h"
 #include "ldap_log.h"
@@ -34,20 +36,20 @@ LDAP_BEGIN_DECL
  * where a response has multiple messages.
  */
 
-typedef struct ldapmsg {
+struct ldapmsg {
 	int		lm_msgid;	/* the message id */
 	int		lm_msgtype;	/* the message type */
 	BerElement	*lm_ber;	/* the ber encoded message contents */
 	struct ldapmsg	*lm_chain;	/* for search - next msg in the resp */
 	struct ldapmsg	*lm_next;	/* next response */
 	unsigned int	lm_time;	/* used to maintain cache */
-} LDAPMessage;
+};
 
 /*
  * structure representing an ldap connection
  */
 
-typedef struct ldap {
+struct ldap {
 	Sockbuf		ld_sb;		/* socket descriptor & buffer */
 	char		*ld_host;
 	int		ld_version;
@@ -95,7 +97,7 @@ typedef struct ldap {
 				char **passwdp, int *authmethodp, int freeit );
 				/* routine to get info needed for re-bind */
 #endif /* LDAP_REFERRALS */
-} LDAP;
+};
 
 /*
  * in cache.c
@@ -210,3 +212,5 @@ int ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input );
 
 LDAP_END_DECL
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
+
+#endif /* _LDAP_INT_H */

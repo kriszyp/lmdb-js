@@ -12,6 +12,11 @@
 
 #include "portable.h"
 
+#if LDAP_VERSION < LDAP_VERSION3
+/* quick fix until we have ldap_set_options */
+#include "../libraries/libldap/ldap-int.h"
+#endif
+
 #ifdef DOS
 #define MAX_VALUES	8
 #else

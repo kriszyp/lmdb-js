@@ -17,6 +17,10 @@
 #include "avl.h"
 #include "lber.h"
 #include "ldap.h"
+#include "ldap_log.h"
+
+#include "../libraries/libldap/ldap-int.h"
+
 #include "lthread.h"
 #include "lthread_rdwr.h"
 #include "ldif.h"

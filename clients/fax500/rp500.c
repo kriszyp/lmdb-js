@@ -26,6 +26,11 @@
 #include <lber.h>
 #include <ldap.h>
 
+#if LDAP_VERSION < LDAP_VERSION3
+/* quick fix until we have ldap_set_options */
+#include "../libraries/libldap/ldap-int.h"
+#endif
+
 #include <ldapconfig.h>
 
 #define DEFAULT_PORT		79

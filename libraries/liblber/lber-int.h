@@ -17,7 +17,7 @@
 
 LDAP_BEGIN_DECL
 
-typedef struct berelement {
+struct berelement {
 	char		*ber_buf;
 	char		*ber_ptr;
 	char		*ber_end;
@@ -32,10 +32,10 @@ typedef struct berelement {
 	char		*ber_rwptr;
 	BERTranslateProc ber_encode_translate_proc;
 	BERTranslateProc ber_decode_translate_proc;
-} BerElement;
+};
 #define NULLBER	((BerElement *) 0)
 
-typedef struct sockbuf {
+struct sockbuf {
 #ifndef MACOS
 	int		sb_sd;
 #else /* MACOS */
@@ -56,17 +56,17 @@ typedef struct sockbuf {
 #define LBER_NO_READ_AHEAD	0x08	/* read only as much as requested  */
 	int		sb_fd;
 	long		sb_max_incoming;
-} Sockbuf;
+};
 #define READBUFSIZ	8192
 
-typedef struct seqorset {
+struct seqorset {
 	BerElement	*sos_ber;
 	unsigned long	sos_clen;
 	unsigned long	sos_tag;
 	char		*sos_first;
 	char		*sos_ptr;
 	struct seqorset	*sos_next;
-} Seqorset;
+};
 #define NULLSEQORSET	((Seqorset *) 0)
 
 #endif /* _LBER_INT_H */

@@ -8,9 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <ac/socket.h>
-#include <ac/string.h>
 #include <ac/ctype.h>
+#include <ac/string.h>
 #include <ac/time.h>
 
 #ifdef HAVE_SYS_FILE_H
@@ -18,7 +17,8 @@
 #endif
 
 #include "lber.h"
-#include "ldap.h"
+#include "ldap-int.h"
+#include "ldap_log.h"
 #include "disptmpl.h"
 
 #include "ldapconfig.h"

@@ -54,8 +54,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_SUCCESS	0
 #define	LDAP_OPT_ERROR		(-1)
 
-LDAP_F int ldap_get_option LDAP_P((LDAP *ld, int option, void *outvalue));
-LDAP_F int ldap_set_option LDAP_P((LDAP *ld, int option, void *invalue));
+extern int ldap_debug;
 
 typedef struct ldapapiinfo {
 	int		ldapai_info_version;		/* version of LDAPAPIInfo (1) */
@@ -72,10 +71,6 @@ typedef struct ldapcontrol {
 	char			ldctl_iscritical;
 } LDAPControl, *PLDAPControl;
 
-LDAP_F void ldap_control_free LDAP_P(( LDAPControl *ctrl ));
-LDAP_F void ldap_controls_free LDAP_P(( LDAPControl **ctrls ));
-
-  
 #define LDAP_MAX_ATTR_LEN	100
 
 /* 
@@ -457,6 +452,12 @@ typedef struct ldap_url_desc {
  in function param list warning */
 typedef struct timeval LDAPtv;
 
+LDAP_F int ldap_get_option LDAP_P((LDAP *ld, int option, void *outvalue));
+LDAP_F int ldap_set_option LDAP_P((LDAP *ld, int option, void *invalue));
+
+LDAP_F void ldap_control_free LDAP_P(( LDAPControl *ctrl ));
+LDAP_F void ldap_controls_free LDAP_P(( LDAPControl **ctrls ));
+  
 /*
  * in abandon.c:
  */
