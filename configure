@@ -8004,69 +8004,6 @@ done
 
 fi
 
-echo $ac_n "checking for wait3 that fills in rusage""... $ac_c" 1>&6
-echo "configure:8009: checking for wait3 that fills in rusage" >&5
-if eval "test \"`echo '$''{'ac_cv_func_wait3_rusage'+set}'`\" = set"; then
-  echo $ac_n "(cached) $ac_c" 1>&6
-else
-  if test "$cross_compiling" = yes; then
-  ac_cv_func_wait3_rusage=no
-else
-  cat > conftest.$ac_ext <<EOF
-#line 8017 "configure"
-#include "confdefs.h"
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <stdio.h>
-/* HP-UX has wait3 but does not fill in rusage at all.  */
-main() {
-  struct rusage r;
-  int i;
-  /* Use a field that we can force nonzero --
-     voluntary context switches.
-     For systems like NeXT and OSF/1 that don't set it,
-     also use the system CPU time.  And page faults (I/O) for Linux.  */
-  r.ru_nvcsw = 0;
-  r.ru_stime.tv_sec = 0;
-  r.ru_stime.tv_usec = 0;
-  r.ru_majflt = r.ru_minflt = 0;
-  switch (fork()) {
-  case 0: /* Child.  */
-    sleep(1); /* Give up the CPU.  */
-    _exit(0);
-  case -1: _exit(0); /* What can we do?  */
-  default: /* Parent.  */
-    wait3(&i, 0, &r);
-    sleep(2); /* Avoid "text file busy" from rm on fast HP-UX machines.  */
-    exit(r.ru_nvcsw == 0 && r.ru_majflt == 0 && r.ru_minflt == 0
-	 && r.ru_stime.tv_sec == 0 && r.ru_stime.tv_usec == 0);
-  }
-}
-EOF
-if { (eval echo configure:8048: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest && (./conftest; exit) 2>/dev/null
-then
-  ac_cv_func_wait3_rusage=yes
-else
-  echo "configure: failed program was:" >&5
-  cat conftest.$ac_ext >&5
-  rm -fr conftest*
-  ac_cv_func_wait3_rusage=no
-fi
-rm -fr conftest*
-fi
-
-fi
-
-echo "$ac_t""$ac_cv_func_wait3_rusage" 1>&6
-if test $ac_cv_func_wait3_rusage = yes; then
-  cat >> confdefs.h <<\EOF
-#define HAVE_WAIT3 1
-EOF
-
-fi
-
-
 for ac_func in \
 	bcopy			\
 	flock			\
@@ -8098,12 +8035,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:8102: checking for $ac_func" >&5
+echo "configure:8039: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 8107 "configure"
+#line 8044 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -8126,7 +8063,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:8130: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:8067: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -8154,12 +8091,12 @@ done
 for ac_func in getopt strdup tempnam
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:8158: checking for $ac_func" >&5
+echo "configure:8095: checking for $ac_func" >&5
 if eval "test \"`echo '$''{'ac_cv_func_$ac_func'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 8163 "configure"
+#line 8100 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -8182,7 +8119,7 @@ $ac_func();
 
 ; return 0; }
 EOF
-if { (eval echo configure:8186: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:8123: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -8212,13 +8149,13 @@ done
 # Check Configuration
 
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:8216: checking declaration of sys_errlist" >&5
+echo "configure:8153: checking declaration of sys_errlist" >&5
 if eval "test \"`echo '$''{'ol_cv_dcl_sys_errlist'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 8222 "configure"
+#line 8159 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -8228,7 +8165,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:8232: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:8169: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 else
@@ -8249,20 +8186,20 @@ if test $ol_cv_dcl_sys_errlist = no ; then
 EOF
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:8253: checking existence of sys_errlist" >&5
+echo "configure:8190: checking existence of sys_errlist" >&5
 	if eval "test \"`echo '$''{'ol_cv_have_sys_errlist'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 8259 "configure"
+#line 8196 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:8266: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
+if { (eval echo configure:8203: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else

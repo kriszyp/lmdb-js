@@ -1166,8 +1166,6 @@ if test $ac_cv_func_vprintf = yes ; then
 	AC_CHECK_FUNCS(vsnprintf vsprintf)
 fi
 
-AC_FUNC_WAIT3
-
 AC_CHECK_FUNCS(		\
 	bcopy			\
 	flock			\
