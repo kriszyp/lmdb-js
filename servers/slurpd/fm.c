@@ -65,8 +65,8 @@ fm(
 #ifdef SIGHUP
     (void) SIGNAL( SIGHUP, slurp_set_shutdown );
 #endif
-#ifdef SIGBREAK
-    (void) SIGNAL( SIGBREAK, slurp_set_shutdown );
+#if defined(SIGBREAK) && defined(HAVE_NT_SERVICE_MANAGER)
+    (void) SIGNAL( SIGBREAK, do_nothing );
 #endif
 
     if ( sglob->one_shot_mode ) {
@@ -161,10 +161,6 @@ RETSIGTYPE
 slurp_set_shutdown(int sig)
 {
     int	i;
-
-#if HAVE_NT_SERVICE_MANAGER && SIGBREAK
-    if (sig == SIGBREAK) return do_nothing( sig );
-#endif
 
     sglob->slurpd_shutdown = 1;				/* set flag */
     ldap_pvt_thread_kill( sglob->fm_tid, LDAP_SIGUSR1 );	/* wake up file mgr */
