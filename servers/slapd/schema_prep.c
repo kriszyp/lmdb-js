@@ -488,7 +488,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2256/2307: password of user' "
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{128} )",
-		NULL, SLAP_AT_FINAL, NULL, NULL, NULL,
+		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_userPassword) },
 
 #ifdef SLAPD_AUTHPASSWD
@@ -497,7 +497,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC3112: authentication password attribute' "
 			"EQUALITY 1.3.6.1.4.1.4203.1.2.2 "
 			"SYNTAX 1.3.6.1.4.1.4203.1.1.2 )",
-		NULL, SLAP_AT_FINAL,
+		NULL, 0,
 		NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_authPassword) },
 	{ "supportedAuthPasswordSchemes", "( 1.3.6.1.4.1.4203.1.3.3 "
@@ -511,7 +511,7 @@ static struct slap_schema_ad_map {
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	{ "krbName", NULL,
-		NULL, SLAP_AT_FINAL, NULL, NULL, NULL,
+		NULL, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_krbName) },
 #endif
 
