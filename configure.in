@@ -639,12 +639,15 @@ dnl hopefully we won't include too many libraries
 
 dnl require select
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
+AC_CHECK_FUNCS(socketpair)
 
 dnl Select arg types
 dnl (if this detection becomes permenent, it and the select() detection
 dnl should be done before the yielding select test) 
 AC_FUNC_SELECT_ARGTYPES
 
+dnl check to see if system call automatically restart
+AC_SYS_RESTARTABLE_SYSCALLS
 
 dnl require POSIX regex
 AC_CHECK_HEADERS( regex.h )
@@ -1844,6 +1847,7 @@ AC_CHECK_FUNCS(		\
 	setsid			\
 	setuid			\
 	seteuid			\
+	sigaction		\
 	signal			\
 	sigset			\
 	snprintf		\

@@ -34,6 +34,10 @@
 /* Define if you don't have vprintf but do have _doprnt.  */
 #undef HAVE_DOPRNT
 
+/* Define if system calls automatically restart after interruption
+   by a signal.  */
+#undef HAVE_RESTARTABLE_SYSCALLS
+
 /* Define if your struct stat has st_blksize.  */
 #undef HAVE_ST_BLKSIZE
 
@@ -261,6 +265,9 @@
 /* Define if you have the setuid function.  */
 #undef HAVE_SETUID
 
+/* Define if you have the sigaction function.  */
+#undef HAVE_SIGACTION
+
 /* Define if you have the signal function.  */
 #undef HAVE_SIGNAL
 
@@ -269,6 +276,9 @@
 
 /* Define if you have the snprintf function.  */
 #undef HAVE_SNPRINTF
+
+/* Define if you have the socketpair function.  */
+#undef HAVE_SOCKETPAIR
 
 /* Define if you have the strdup function.  */
 #undef HAVE_STRDUP
