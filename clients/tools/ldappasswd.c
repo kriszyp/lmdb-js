@@ -194,7 +194,11 @@ hash_crypt (const char *pw_in, Salt * salt)
 		crypted_pw = crypt (pw_in, (char *)lsalt.salt);
 		free (lsalt.salt);
 	}
-	return (STRDUP (crypted_pw));
+
+	if( crypted_pw == NULL || crypted_pw[0] = '\0' )
+		return NULL;
+
+	return STRDUP(crypted_pw);
 }
 #endif
 
@@ -283,10 +287,14 @@ modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 	hashed_pw = hashes[htype].func (newpw, salt->len ? salt : NULL);
 
 	/* return salt back to it's original state */
-	if (want_salt)
-	{
+	if (want_salt) {
 		free (salt->salt);
 		salt->salt = NULL;
+	}
+
+	if( hashed_pw == NULL || hashed_pw[0] == '\0' ) {
+		free( hashed_pw );
+		return 1;
 	}
 
 	buf = (char *)malloc (hashes[htype].namesz + 3 + strlen (hashed_pw));

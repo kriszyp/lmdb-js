@@ -6,6 +6,7 @@ Changes included in OpenLDAP 1.2.12 Engineering
 	Fixed ldapsearch uninitialized fp bug
 	Fixed Pth initialization bug
 	Fixed libldap/add mod_bvalues typo
+	Fixed ldappasswd crypt(3) crash (ITD#598)
 	Build Environment
 		Remove extra Digital UNIX symbol (ITS#590)
 		Ignore make clean rm failure
