@@ -8246,6 +8246,7 @@ libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk:build/lib-static.mk	\
@@ -8397,6 +8398,7 @@ libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
 libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
 libraries/liblthread/Makefile:build/top.mk:libraries/liblthread/Makefile.in:build/lib.mk:build/lib-static.mk	\
