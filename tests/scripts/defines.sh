@@ -22,6 +22,7 @@ BJORNSDN="cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=Univ
 JAJDN="cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US"
 MASTERLOG=$DBDIR/master.log
 SLAVELOG=$DBDIR/slave.log
+SLURPLOG=$DBDIR/slurp.log
 SEARCHOUT=$DBDIR/ldapsearch.out
 MASTEROUT=$DBDIR/master.out
 SLAVEOUT=$DBDIR/slave.out

@@ -48,7 +48,7 @@ for i in 0 1 2 3 4 5; do
 done
 
 echo "Starting slurpd..."
-$SLURPD -f $MASTERCONF -d 4 -t $REPLDIR > /dev/null 2>&1 &
+$SLURPD -f $MASTERCONF -d 4 -t $REPLDIR > $SLURPLOG 2>&1 &
 SLURPPID=$!
 
 echo "Using ldapmodify to populate the database..."
@@ -123,8 +123,8 @@ changetype: delete
 
 EOMODS
 
-echo "Waiting 10 seconds for slurpd to send changes..."
-sleep 10
+echo "Waiting 15 seconds for slurpd to send changes..."
+sleep 15
 
 echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
