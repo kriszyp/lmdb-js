@@ -30,7 +30,7 @@ static const struct ber_mem_hdr ber_int_mem_hdr = { BER_MEM_JUNK };
 #define BER_MEM_VALID(p)	do { \
 		assert( (p) != BER_MEM_BADADDR );	\
 		assert( (p) != (void *) &ber_int_mem_hdr );	\
-	} while(1)
+	} while(0)
 #else
 #define BER_MEM_VALID(p)	/* no-op */
 #endif
