@@ -173,7 +173,14 @@ getAllPluginFuncs(
 	int		numPB = 0;
 	int		rc = LDAP_SUCCESS;
 
-	assert( be );
+	if ( be == NULL ) {
+		/*
+		 * No plugins supported if no backend (yet)
+		 */
+		rc = LDAP_OTHER;
+		goto done;
+	}
+
 	assert( ppFuncPtrs );
 
 	pCurrentPB = (Slapi_PBlock *)(be->be_pb);
