@@ -117,7 +117,7 @@ at server {{EX:ldap.example.com}}.
 >	index       cn,sn,uid,mail  pres,eq,sub
 
 
-H: Cacheable Queries
+H3: Cacheable Queries
 
 A LDAP search query is cacheable when its filter matches one of the
 templates as defined in the "proxyTemplate" statements and when it references
