@@ -750,6 +750,8 @@ exact_match:
 	op.o_conn = opx->o_conn;
 	op.o_connid = opx->o_connid;
 	op.o_req_dn = op.o_req_ndn;
+	op.oq_search.rs_slimit = 1;
+	op.oq_search.rs_tlimit = -1;
 
 	op.o_bd->be_search( &op, &rs );
 
@@ -941,6 +943,7 @@ void slap_sasl2dn( Operation *opx,
 #endif
 	op.oq_search.rs_deref = LDAP_DEREF_NEVER;
 	op.oq_search.rs_slimit = 1;
+	op.oq_search.rs_tlimit = -1;
 	op.oq_search.rs_attrsonly = 1;
 	op.o_req_dn = op.o_req_ndn;
 
