@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 !if OPT_PP_HTML
@@ -12,19 +12,19 @@ H1: OpenLDAP Software Copyrights
 
 H2: OpenLDAP Copyright
 
-[[copyright]] 1998-1999 The OpenLDAP Foundation, Redwood City, California, USA
+[[copyright]] 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
 
-Redistribution and use in source and binary forms are permitted only
-as authorized by the OpenLDAP Public License.  A copy of this
-license is available at {{URL:http://www.OpenLDAP.org/}}
-or in file LICENSE in the top-level directory of the distribution.
+Redistribution and use in source and binary forms are permitted
+only as authorized by the OpenLDAP Public License.  A copy of this
+license is available at {{URL:http://www.OpenLDAP.org/}} or in file
+LICENSE in the top-level directory of the distribution.
 
 Individual files and/or contributed packages may be copyright by
 other parties and their use subject to additional restrictions.
 
 This work is derived from the University of Michigan LDAP v3.3
-distribution.  Information concerning is available at
+distribution.  Information concerning is available at:
 .{{URL:http://www.umich.edu/~dirsvcs/ldap/ldap.html}}.
 
 This work also contains materials derived from public sources.

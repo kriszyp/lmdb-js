@@ -1,5 +1,5 @@
 # $OpenLDAP$
-# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
 # template for plain documents
@@ -12,7 +12,7 @@
 !endmacro
 !macro HTML_FOOTER
 {{INLINE:<SMALL>______<BR>}}
-Copyright 1999, The OpenLDAP Foundation. {{EMAIL:info@openldap.org}}
+Copyright 1999-2000, The OpenLDAP Foundation. {{EMAIL:info@openldap.org}}
 All Rights Reserved.
 {{INLINE:</SMALL>}}
 !endmacro
