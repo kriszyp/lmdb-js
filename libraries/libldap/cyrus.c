@@ -14,6 +14,7 @@
 #include <ac/time.h>
 #include <ac/errno.h>
 #include <ac/ctype.h>
+#include <ac/unistd.h>
 
 #include "ldap-int.h"
 
