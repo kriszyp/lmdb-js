@@ -181,24 +181,17 @@ typedef struct glue_state {
 	char *matched;
 	int nrefs;
 	BerVarray refs;
-	slap_callback *prevcb;
 } glue_state;
 
 static int
 glue_back_response ( Operation *op, SlapReply *rs )
 {
 	glue_state *gs = op->o_callback->sc_private;
-	slap_callback *tmp = op->o_callback;
 
 	switch(rs->sr_type) {
 	case REP_SEARCH:
 	case REP_SEARCHREF:
-		op->o_callback = gs->prevcb;
-		if (op->o_callback && op->o_callback->sc_response) {
-			rs->sr_err = op->o_callback->sc_response( op, rs );
-		} else rs->sr_err = SLAP_CB_CONTINUE;
-		op->o_callback = tmp;
-		return rs->sr_err;
+		return SLAP_CB_CONTINUE;
 
 	default:
 		if (rs->sr_err == LDAP_SUCCESS || gs->err != LDAP_SUCCESS)
@@ -249,14 +242,14 @@ glue_back_search ( Operation *op, SlapReply *rs )
 	glueinfo *gi = (glueinfo *) b0->bd_info;
 	int i;
 	long stoptime = 0;
-	glue_state gs = {0, 0, NULL, 0, NULL, NULL};
-	slap_callback cb = { glue_back_response, NULL };
+	glue_state gs = {0, 0, NULL, 0, NULL};
+	slap_callback cb = { NULL, glue_back_response, NULL, NULL };
 	int scope0, slimit0, tlimit0;
 	struct berval dn, ndn;
 
 	cb.sc_private = &gs;
 
-	gs.prevcb = op->o_callback;
+	cb.sc_next = op->o_callback;
 
 	if (op->ors_tlimit) {
 		stoptime = slap_get_time () + op->ors_tlimit;
@@ -353,7 +346,7 @@ end_of_loop:;
 
 		break;
 	}
-	op->o_callback = gs.prevcb;
+	op->o_callback = cb.sc_next;
 	rs->sr_err = gs.err;
 	rs->sr_matched = gs.matched;
 	rs->sr_ref = gs.refs;

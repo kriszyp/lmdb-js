@@ -134,11 +134,8 @@ over_back_response ( Operation *op, SlapReply *rs )
 	slap_overinst *on = oi->oi_list;
 	int rc = SLAP_CB_CONTINUE;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
-	slap_callback *sc = op->o_callback->sc_private;
-	slap_callback *s0 = op->o_callback;
 
 	op->o_bd = &db;
-	op->o_callback = sc;
 	for (; on; on=on->on_next ) {
 		if ( on->on_response ) {
 			db.bd_info = (BackendInfo *)on;
@@ -146,11 +143,7 @@ over_back_response ( Operation *op, SlapReply *rs )
 			if ( rc != SLAP_CB_CONTINUE ) break;
 		}
 	}
-	if ( sc && (rc == SLAP_CB_CONTINUE) ) {
-		rc = sc->sc_response( op, rs );
-	}
 	op->o_bd = be;
-	op->o_callback = s0;
 	return rc;
 }
 
@@ -169,11 +162,11 @@ over_op_func(
 	slap_overinst *on = oi->oi_list;
 	BI_op_bind **func;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
-	slap_callback cb = {over_back_response, NULL};
+	slap_callback cb = {NULL, over_back_response, NULL, NULL};
 	int rc = SLAP_CB_CONTINUE;
 
 	op->o_bd = &db;
-	cb.sc_private = op->o_callback;
+	cb.sc_next = op->o_callback;
 	op->o_callback = &cb;
 
 	for (; on; on=on->on_next ) {
@@ -194,7 +187,7 @@ over_op_func(
 	if ( rc == SLAP_CB_CONTINUE ) {
 		rc = LDAP_UNWILLING_TO_PERFORM;
 	}
-	op->o_callback = cb.sc_private;
+	op->o_callback = cb.sc_next;
 	return rc;
 }
 

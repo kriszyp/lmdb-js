@@ -434,8 +434,6 @@ do_syncrep2(
 	int	rc, err, i;
 	ber_len_t	len;
 
-	slap_callback	cb;
-
 	int rc_efree;
 
 	struct berval	*psub;
@@ -465,8 +463,6 @@ do_syncrep2(
 #else
 	Debug( LDAP_DEBUG_TRACE, "=>do_syncrep2\n", 0, 0, 0 );
 #endif
-
-	op->o_callback = &cb;
 
 	psub = &si->si_be->be_nsuffix[0];
 
@@ -1039,7 +1035,7 @@ syncrepl_entry(
 )
 {
 	Backend *be = op->o_bd;
-	slap_callback	cb;
+	slap_callback	cb = { NULL };
 	struct berval	*syncuuid_bv = NULL;
 	struct berval	syncUUID_strrep = { 0, NULL };
 
@@ -1226,7 +1222,7 @@ syncrepl_del_nonpresent(
 )
 {
 	Backend* be = op->o_bd;
-	slap_callback	cb;
+	slap_callback	cb = { NULL };
 	SlapReply	rs = {REP_RESULT};
 	struct nonpresent_entry *np_list, *np_prev;
 
@@ -1290,7 +1286,7 @@ syncrepl_add_glue(
 )
 {
 	Backend *be = op->o_bd;
-	slap_callback cb;
+	slap_callback cb = { NULL };
 	Attribute	*a;
 	int	rc;
 	int suffrdns;
@@ -1462,7 +1458,7 @@ syncrepl_updateCookie(
 	struct berval slap_syncrepl_dn_bv = BER_BVNULL;
 	struct berval slap_syncrepl_cn_bv = BER_BVNULL;
 	
-	slap_callback cb;
+	slap_callback cb = { NULL };
 	SlapReply	rs = {REP_RESULT};
 
 	slap_sync_cookie_free( &si->si_syncCookie, 0 );

@@ -454,7 +454,7 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 	int rc; 
 	regex_t reg;
 	smatch_info sm;
-	slap_callback cb = { sasl_sc_smatch, NULL };
+	slap_callback cb = { NULL, sasl_sc_smatch, NULL, NULL };
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
 
@@ -641,7 +641,7 @@ void slap_sasl2dn( Operation *opx,
 	struct berval *saslname, struct berval *sasldn )
 {
 	int rc;
-	slap_callback cb = { sasl_sc_sasl2dn, NULL };
+	slap_callback cb = { NULL, sasl_sc_sasl2dn, NULL, NULL };
 	Operation op = {0};
 	SlapReply rs = {REP_RESULT};
 	struct berval regout = { 0, NULL };

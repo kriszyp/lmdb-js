@@ -153,7 +153,7 @@ merge_entry(
 
 	SlapReply sreply = {REP_RESULT};
 
-	slap_callback cb = { slap_null_cb, NULL };
+	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 
 	attr = e->e_attrs;
 	e->e_attrs = NULL;
@@ -895,7 +895,7 @@ remove_query_data (
 	char			filter_str[64];
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
-	slap_callback cb = { remove_func, NULL };
+	slap_callback cb = { NULL, remove_func, NULL, NULL };
 
 	sreply.sr_entry = NULL;
 	sreply.sr_nentries = 0;
@@ -1051,7 +1051,6 @@ filter2template(
 
 struct search_info {
 	slap_overinst *on;
-	slap_callback *prev;
 	Query query;
 	int template_id;
 	int max;
@@ -1444,11 +1443,12 @@ proxy_cache_search(
 		op->o_tmpfree(op->ors_attrs, op->o_tmpmemctx);
 		add_filter_attrs(op, &op->ors_attrs, query.attrs, filter_attrs);
 		cb = op->o_tmpalloc( sizeof(*cb) + sizeof(*si), op->o_tmpmemctx);
+		cb->sc_next = op->o_callback;
 		cb->sc_response = proxy_cache_response;
+		cb->sc_cleanup = NULL;
 		cb->sc_private = (cb+1);
 		si = cb->sc_private;
 		si->on = on;
-		si->prev = op->o_callback;
 		si->query = query;
 		si->template_id = template_id;
 		si->max = cm->num_entries_limit ;

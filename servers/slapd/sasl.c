@@ -440,7 +440,7 @@ slap_auxprop_lookup(
 	}
 
 	if (doit) {
-		slap_callback cb = { sasl_ap_lookup, NULL };
+		slap_callback cb = { NULL, sasl_ap_lookup, NULL, NULL };
 
 		cb.sc_private = &sl;
 
@@ -487,7 +487,7 @@ slap_auxprop_store(
 	Connection *conn = NULL;
 	const struct propval *pr;
 	Modifications *modlist = NULL, **modtail = &modlist, *mod;
-	slap_callback cb = { slap_null_cb, NULL };
+	slap_callback cb = { NULL, slap_null_cb, NULL, NULL };
 	char textbuf[SLAP_TEXT_BUFLEN];
 	const char *text;
 	size_t textlen = sizeof(textbuf);
@@ -675,7 +675,7 @@ slap_sasl_checkpass(
 
 	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 	if ( op.o_bd && op.o_bd->be_search ) {
-		slap_callback cb = { sasl_cb_checkpass, NULL };
+		slap_callback cb = { NULL, sasl_cb_checkpass, NULL, NULL };
 		SlapReply rs = {REP_RESULT};
 
 		ci.cred.bv_val = (char *)pass;

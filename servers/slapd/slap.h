@@ -1805,7 +1805,9 @@ struct slap_backend_info {
 typedef int (slap_response)( struct slap_op *, struct slap_rep * );
 
 typedef struct slap_callback {
+	struct slap_callback *sc_next;
 	slap_response *sc_response;
+	slap_response *sc_cleanup;
 	void *sc_private;
 } slap_callback;
 

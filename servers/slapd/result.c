@@ -252,8 +252,16 @@ send_ldap_response(
 	int		rc;
 	long	bytes;
 
-	if (op->o_callback && op->o_callback->sc_response) {
-		rc = op->o_callback->sc_response( op, rs );
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; ) {
+			if ( op->o_callback->sc_response ) {
+				rc = op->o_callback->sc_response( op, rs );
+				if ( rc != SLAP_CB_CONTINUE ) break;
+			}
+			op->o_callback = op->o_callback->sc_next;
+		}
+		op->o_callback = sc;
 		if ( rc != SLAP_CB_CONTINUE ) goto cleanup;
 	}
 		
@@ -409,8 +417,18 @@ send_ldap_response(
 
 cleanup:;
 	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
-		free( rs->sr_matched );
+		free( (char *)rs->sr_matched );
 		rs->sr_matched = NULL;
+	}
+
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
 	}
 
 	return;
@@ -659,8 +677,16 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	char **e_flags = NULL;
 
 	rs->sr_type = REP_SEARCH;
-	if (op->o_callback && op->o_callback->sc_response) {
-		rc = op->o_callback->sc_response( op, rs );
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; ) {
+			if ( op->o_callback->sc_response ) {
+				rc = op->o_callback->sc_response( op, rs );
+				if ( rc != SLAP_CB_CONTINUE ) break;
+			}
+			op->o_callback = op->o_callback->sc_next;
+		}
+		op->o_callback = sc;
 		if ( rc != SLAP_CB_CONTINUE ) goto error_return;
 	}
 
@@ -1218,6 +1244,12 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rc = 0;
 
 error_return:;
+	/* FIXME: I think rs->sr_type should be explicitly set to
+	 * REP_SEARCH here. That's what it was when we entered this
+	 * function. send_ldap_error may have changed it, but we
+	 * should set it back so that the cleanup functions know
+	 * what they're doing.
+	 */
 	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH 
 		&& rs->sr_entry 
 		&& (rs->sr_flags & REP_ENTRY_MUSTBEFREED) ) 
@@ -1229,6 +1261,15 @@ error_return:;
 
 	if ( e_flags ) sl_free( e_flags, op->o_tmpmemctx );
 
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
+	}
 	return( rc );
 }
 
@@ -1244,9 +1285,17 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
 	rs->sr_type = REP_SEARCHREF;
-	if (op->o_callback && op->o_callback->sc_response) {
-		rc = op->o_callback->sc_response( op, rs );
-		if ( rc != SLAP_CB_CONTINUE ) return rc;
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; ) {
+			if ( op->o_callback->sc_response ) {
+				rc = op->o_callback->sc_response( op, rs );
+				if ( rc != SLAP_CB_CONTINUE ) break;
+			}
+			op->o_callback = op->o_callback->sc_next;
+		}
+		op->o_callback = sc;
+		if ( rc != SLAP_CB_CONTINUE ) goto rel;
 	}
 
 #ifdef NEW_LOGGING
@@ -1273,7 +1322,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: access to entry not allowed\n",
 		    0, 0, 0 );
 #endif
-		return 1;
+		rc = 1;
+		goto rel;
 	}
 
 	if ( rs->sr_entry && ! access_allowed( op, rs->sr_entry,
@@ -1289,7 +1339,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"to reference not allowed\n",
 		    0, 0, 0 );
 #endif
-		return 1;
+		rc = 1;
+		goto rel;
 	}
 
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
@@ -1303,7 +1354,8 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: domainScope control in (%s)\n", 
 			rs->sr_entry->e_dn, 0, 0 );
 #endif
-		return 0;
+		rc = 0;
+		goto rel;
 	}
 #endif
 
@@ -1317,16 +1369,18 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 			"send_search_reference: null ref in (%s)\n", 
 			rs->sr_entry ? rs->sr_entry->e_dn : "(null)", 0, 0 );
 #endif
-		return 1;
+		rc = 1;
+		goto rel;
 	}
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
+		rc = 0;
 		/* save the references for the result */
 		if( rs->sr_ref[0].bv_val != NULL ) {
 			if( value_add( &rs->sr_v2ref, rs->sr_ref ) )
-				return LDAP_OTHER;
+				rc = LDAP_OTHER;
 		}
-		return 0;
+		goto rel;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1365,7 +1419,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #endif
 		ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode DN error" );
-		return rc;
+		goto rel;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -1393,6 +1447,16 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_reference\n", 0, 0, 0 );
 #endif
 
+rel:
+	if (op->o_callback) {
+		slap_callback *sc = op->o_callback;
+		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+			if ( op->o_callback->sc_cleanup ) {
+				op->o_callback->sc_cleanup( op, rs );
+			}
+		}
+		op->o_callback = sc;
+	}
 	return rc;
 }
 
