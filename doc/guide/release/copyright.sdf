@@ -16,9 +16,13 @@ H2: OpenLDAP Copyright Notice
 All rights reserved.
 
 Redistribution and use in source and binary forms are permitted
-{{only as authorized}} by the OpenLDAP Public License.  A copy of this
-license is available at {{URL:http://www.OpenLDAP.org/license.html}}
-or in file {{F:LICENSE}} in the top-level directory of the distribution.
+{{only as authorized}} by the OpenLDAP Public License.  A copy of
+this license is available at {{URL:http://www.OpenLDAP.org/license.html}}
+or in file {{F:LICENSE}} in the top-level directory of the
+distribution.  The name of the OpenLDAP Foundation may not be used
+to endorse or promote products derived from this work.
+
+OpenLDAP is a trademark of the OpenLDAP Foundation.
 
 Individual files and/or contributed packages may be copyright by
 other parties and their use subject to additional restrictions.

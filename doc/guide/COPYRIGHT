@@ -5,7 +5,11 @@ Redistribution and use in source and binary forms, with or without
 modification, are permitted only as authorized by the OpenLDAP
 Public License.  A copy of this license is available at
 http://www.OpenLDAP.org/license.html or in file LICENSE in the
-top-level directory of the distribution.
+top-level directory of the distribution.  The name of the OpenLDAP
+Foundation may not be used to endorse or promote products derived
+from this work.
+
+OpenLDAP is a registered trademark of the OpenLDAP Foundation.
 
 Individual files and/or contributed packages may be copyright by
 other parties and use subject to additional restrictions.
