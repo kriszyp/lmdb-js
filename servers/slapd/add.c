@@ -241,8 +241,7 @@ do_add( Connection *conn, Operation *op )
 	 */
 	if ( be->be_add ) {
 		/* do the update here */
-		int repl_user = (be->be_update_ndn != NULL &&
-			strcmp( be->be_update_ndn, op->o_ndn ) == 0);
+		int repl_user = be_isupdate(be, op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
 		if ( be->be_update_ndn == NULL || repl_user )
 #endif

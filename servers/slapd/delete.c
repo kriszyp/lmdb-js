@@ -161,14 +161,13 @@ do_delete(
 	if ( be->be_delete ) {
 		/* do the update here */
 #ifndef SLAPD_MULTIMASTER
-		if ( be->be_update_ndn == NULL ||
-			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		int repl_user = be_isupdate( be, op->o_ndn );
+		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
 			if ( (*be->be_delete)( be, conn, op, dn, ndn ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if (be->be_update_ndn == NULL ||
-					strcmp( be->be_update_ndn, op->o_ndn ))
+				if (be->be_update_ndn == NULL || !repl_user )
 #endif
 				{
 					replog( be, op, dn, NULL );

@@ -306,15 +306,14 @@ do_modrdn(
 	if ( be->be_modrdn ) {
 		/* do the update here */
 #ifndef SLAPD_MULTIMASTER
-		if ( be->be_update_ndn == NULL ||
-			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		int repl_user = be_isupdate( be, op->o_ndn );
+		if ( be->be_update_ndn == NULL || repl_user )
 #endif
 		{
 			if ( (*be->be_modrdn)( be, conn, op, dn, ndn, newrdn,
 			    deloldrdn, newSuperior ) == 0
 #ifdef SLAPD_MULTIMASTER
-				&& ( be->be_update_ndn == NULL ||
-					strcmp( be->be_update_ndn, op->o_ndn ) )
+				&& ( be->be_update_ndn == NULL || !repl_user )
 #endif
 			) {
 				struct replog_moddn moddn;

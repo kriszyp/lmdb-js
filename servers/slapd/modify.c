@@ -287,8 +287,7 @@ do_modify(
 	 */
 	if ( be->be_modify ) {
 		/* do the update here */
-		int repl_user = (be->be_update_ndn != NULL &&
-			strcmp( be->be_update_ndn, op->o_ndn ) == 0);
+		int repl_user = be_isupdate( be, op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
 		/* Multimaster slapd does not have to check for replicator dn
 		 * because it accepts each modify request
