@@ -30,12 +30,68 @@
 
 #include "ldap-int.h"
 
+static int int_strspn( const char *str, const char *delim )
+{
+#if defined( HAVE_STRSPN )
+	return strspn( str, delim );
+#else
+	int pos;
+	const char *p=delim;
+	for( pos=0; (*str) ; pos++,str++) {
+		if (*str!=*p)
+			for( p=delim; (*p) ; p++ ) {
+				if (*str==*p)
+					break;
+		  	}
+		if (*p=='\0')
+			return pos;
+	}
+	return pos;
+#endif	
+}
+
+static char *int_strpbrk( const char *str, const char *accept )
+{
+#if defined( HAVE_STRPBRK )
+	return strpbrk( str, accept );
+#else
+	const char *p;
+	for( ; (*str) ; str++ ) {
+		for( p=accept; (*p) ; p++) {
+			if (*str==*p)
+				return str;
+		}
+	}
+	return NULL;
+#endif
+}
+
 char *ldap_int_strtok( char *str, const char *delim, char **pos )
 {
 #ifdef HAVE_STRTOK_R
 	return strtok_r(str, delim, pos);
 #else
-	return strtok(str, delim);
+	char *p;
+
+	if (pos==NULL)
+		return NULL;
+	if (str==NULL) {
+		if (*pos==NULL)
+			return NULL;
+		str=*pos;
+	}
+	/* skip any initial delimiters */
+	str += int_strspn( str, delim );
+	if (*str == '\0')
+		return NULL;
+	p = int_strpbrk( str, delim );
+	if (p==NULL) {
+		*pos = NULL;
+	} else {
+		*p ='\0';
+		*pos = p+1;
+	}
+	return str;
 #endif
 }
 
@@ -50,7 +106,8 @@ char *ldap_int_ctime( const time_t *tp, char *buf )
 	return ctime_r(tp,buf);
 # endif	  
 #else
-	return ctime(tp);
+	memcpy( buf, ctime(tp), 26 );
+	return buf;
 #endif	
 }
 
@@ -66,7 +123,7 @@ static char *safe_realloc( char **buf, int len )
 	} 
 	return tmpbuf;
 }
- 
+
 int ldap_int_gethostbyname_a(
 	const char *name, 
 	struct hostent *resbuf,
@@ -75,28 +132,27 @@ int ldap_int_gethostbyname_a(
 	int *herrno_ptr )
 {
 #ifdef HAVE_GETHOSTBYNAME_R
-	int r;
+	int r=-1;
 	int buflen=BUFSTART;
-
-	if (safe_realloc( buf, buflen)) {
-		for(;buflen<BUFMAX;) {
-			r = gethostbyname_r( name, resbuf, *buf,
-				buflen, result, herrno_ptr );
-#ifdef NETDB_INTERNAL
-			if ((r<0) &&
-				(*herrno_ptr==NETDB_INTERNAL) &&
-				(errno==ERANGE))
-			{
-				if (safe_realloc( buf, buflen*=2 )) {
-						continue;
-				}
-	 		}
-#endif
+	*buf = NULL;
+	for(;buflen<BUFMAX;) {
+		if (safe_realloc( buf, buflen )==NULL)
 			return r;
-		}
+		r = gethostbyname_r( name, resbuf, *buf,
+			buflen, result, herrno_ptr );
+#ifdef NETDB_INTERNAL
+		if ((r<0) &&
+			(*herrno_ptr==NETDB_INTERNAL) &&
+			(errno==ERANGE))
+		{
+			buflen*=2;
+			continue;
+	 	}
+#endif
+		return r;
 	}
-
-#else /* gethostbyname() */
+	return -1;
+#else	
 	*result = gethostbyname( name );
 
 	if (*result!=NULL) {
@@ -104,9 +160,9 @@ int ldap_int_gethostbyname_a(
 	}
 
 	*herrno_ptr = h_errno;
-#endif	
-
+	
 	return -1;
+#endif	
 }
 	 
 int ldap_int_gethostbyaddr_a(
@@ -119,33 +175,33 @@ int ldap_int_gethostbyaddr_a(
 	int *herrno_ptr )
 {
 #ifdef HAVE_GETHOSTBYADDR_R
-	int r;
+	int r=-1;
 	int buflen=BUFSTART;
-	if (safe_realloc( buf, buflen)) {
-		for(;buflen<BUFMAX;) {
-			r = gethostbyaddr_r( addr, len, type,
-				resbuf, *buf, buflen, 
-				result, herrno_ptr );
-#ifdef NETDB_INTERNAL
-			if ((r<0) &&
-				(*herrno_ptr==NETDB_INTERNAL) &&
-				(errno==ERANGE))
-			{
-				if (safe_realloc( buf, buflen*=2))
-					continue;
-	 		}
-#endif
+	*buf = NULL;   
+	for(;buflen<BUFMAX;) {
+		if (safe_realloc( buf, buflen )==NULL)
 			return r;
+		r = gethostbyaddr_r( addr, len, type,
+			resbuf, *buf, buflen, 
+			result, herrno_ptr );
+#ifdef NETDB_INTERNAL
+		if ((r<0) &&
+			(*herrno_ptr==NETDB_INTERNAL) &&
+			(errno==ERANGE))
+		{
+			buflen*=2;
+			continue;
 		}
+#endif
+		return r;
 	}
-
+	return -1;
 #else /* gethostbyaddr() */
 	*result = gethostbyaddr( addr, len, type );
 
 	if (*result!=NULL) {
 		return 0;
 	}
-#endif	
-
 	return -1;
+#endif	
 }
