@@ -128,6 +128,7 @@ int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID 
 ID next_id LDAP_P(( Backend *be ));
 void next_id_return LDAP_P(( Backend *be, ID id ));
 ID next_id_get LDAP_P(( Backend *be ));
+int next_id_save LDAP_P(( Backend *be ));
 
 LDAP_END_DECL
 #endif
