@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.528 2004/04/08 04:23:10 hyc Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.529 2004/04/08 06:55:13 kurt Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -92,9 +92,9 @@ ac_help="$ac_help
 ac_help="$ac_help
     --enable-ldbm	  enable ldbm backend no|yes|mod [no]"
 ac_help="$ac_help
-    --with-ldbm-api       with LDBM API auto|berkeley|bcompat|mdbm|gdbm [auto]"
+      --with-ldbm-api       with LDBM API auto|berkeley|bcompat|mdbm|gdbm [auto]"
 ac_help="$ac_help
-    --with-ldbm-type	  use LDBM type auto|btree|hash [auto]"
+      --with-ldbm-type	  use LDBM type auto|btree|hash [auto]"
 ac_help="$ac_help
     --enable-meta	  enable metadirectory backend no|yes|mod [no]"
 ac_help="$ac_help

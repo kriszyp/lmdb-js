@@ -205,9 +205,9 @@ OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend no|yes|mod], n
 OL_ARG_ENABLE(hdb,[    --enable-hdb	  enable Hierarchical DB backend no|yes|mod], no, [no yes mod])dnl
 OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend no|yes|mod], no, [no yes mod])dnl
 OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend no|yes|mod], no, [no yes mod])dnl
-OL_ARG_WITH(ldbm_api,[    --with-ldbm-api       with LDBM API auto|berkeley|bcompat|mdbm|gdbm], auto,
+OL_ARG_WITH(ldbm_api,[      --with-ldbm-api     with LDBM API auto|berkeley|bcompat|mdbm|gdbm], auto,
 	[auto berkeley bcompat mdbm gdbm])
-OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type auto|btree|hash], auto,
+OL_ARG_WITH(ldbm_type,[      --with-ldbm-type	  use LDBM type auto|btree|hash], auto,
 	[auto btree hash])
 OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend no|yes|mod], no, [no yes mod])dnl
 OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend no|yes|mod], yes, [no yes mod])dnl
