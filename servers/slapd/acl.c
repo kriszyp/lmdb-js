@@ -764,7 +764,7 @@ dn_match_cleanup:;
 					if ( b->a_domain_expand ) {
 						struct berval bv;
 
-						bv.bv_len = sizeof(buf);
+						bv.bv_len = sizeof(buf) - 1;
 						bv.bv_val = buf;
 
 						string_expand(&bv, &b->a_domain_pat, e->e_ndn, matches);
@@ -1670,7 +1670,7 @@ aci_group_member (
 	if (grp_oc != NULL && grp_ad != NULL ) {
 		char buf[ACL_BUF_SIZE];
 		struct berval bv, ndn;
-		bv.bv_len = sizeof( buf );
+		bv.bv_len = sizeof( buf ) - 1;
 		bv.bv_val = (char *)&buf;
 		string_expand(&bv, &subjdn, e->e_ndn, matches);
 		if ( dnNormalize2(NULL, &bv, &ndn) == LDAP_SUCCESS ) {
@@ -1917,7 +1917,7 @@ regex_matches(
 	struct berval bv;
 	int	rc;
 
-	bv.bv_len = sizeof(newbuf);
+	bv.bv_len = sizeof(newbuf) - 1;
 	bv.bv_val = newbuf;
 
 	if(str == NULL) str = "";
