@@ -156,17 +156,18 @@ $1 !~ /:$/ {
 	dep=$0
 }
 /.*/ {
+	if ( length(filenm) < 2 ) next
 	if ( filenm ~ /:.*:$/ ) next
 	split(dep, depends, " ")
 	for(d in depends) {
 		dfile = depends[d]
+		if ( length(dfile) < 2 ) continue
 		if ( dfile ~ /:/ ) continue
 		if (( noslash == "yes") && (dfile ~ /^\// )) continue
-		if ( length(dfile) < 2 ) continue
 		rec = filenm " " dfile
 		print rec
 	}
-    }
+}
 ' noslash="$NOSLASH" $TMP.sed >> $TMP
 
 
