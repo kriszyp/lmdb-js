@@ -32,7 +32,7 @@ static void usage( const char *name )
 
 static char* getbuf( void ) {
 	char *p;
-	static char buf[128];
+	static char buf[1024];
 
 	if ( fgets( buf, sizeof(buf), stdin ) == NULL )
 		return NULL;
