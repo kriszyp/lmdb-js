@@ -850,8 +850,7 @@ dnIsSuffix(
 	}
 
 	/* no rdn separator or escaped rdn separator */
-	if ( d > 1 && ( !DN_SEPARATOR( dn->bv_val[ d - 1 ] ) 
-				|| DN_ESCAPE( dn->bv_val[ d - 2 ] ) ) ) {
+	if ( d > 1 && !DN_SEPARATOR( dn->bv_val[ d - 1 ] ) ) {
 		return 0;
 	}
 

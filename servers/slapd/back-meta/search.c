@@ -784,8 +784,7 @@ is_one_level_rdn(
 )
 {
 	for ( ; from--; ) {
-		if ( DN_SEPARATOR( rdn[ from ] ) 
-				&& ! DN_ESCAPE( rdn[ from ] - 1 ) ) {
+		if ( DN_SEPARATOR( rdn[ from ] ) ) {
 			return 0;
 		}
 	}

@@ -379,7 +379,7 @@ acl_get(
 					if ( dnlen <= patlen )
 						continue;
 
-					if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) || DN_ESCAPE( e->e_ndn[dnlen - patlen - 2] ) )
+					if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
 						continue;
 
 					rdnlen = dn_rdnlen( NULL, &e->e_nname );
@@ -387,13 +387,13 @@ acl_get(
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( dnlen > patlen && ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) || DN_ESCAPE( e->e_ndn[dnlen - patlen - 2] ) ) )
+					if ( dnlen > patlen && !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
 						continue;
 
 				} else if ( a->acl_dn_style == ACL_STYLE_CHILDREN ) {
 					if ( dnlen <= patlen )
 						continue;
-					if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) || DN_ESCAPE( e->e_ndn[dnlen - patlen - 2] ) )
+					if ( !DN_SEPARATOR( e->e_ndn[dnlen - patlen - 1] ) )
 						continue;
 				}
 
@@ -581,7 +581,7 @@ acl_mask(
 					if ( odnlen <= patlen )
 						continue;
 
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn.bv_val[odnlen - patlen - 2] ) )
+					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
 						continue;
 
 					rdnlen = dn_rdnlen( NULL, &op->o_ndn );
@@ -589,13 +589,13 @@ acl_mask(
 						continue;
 
 				} else if ( b->a_dn_style == ACL_STYLE_SUBTREE ) {
-					if ( odnlen > patlen && ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn.bv_val[odnlen - patlen - 2] ) ) )
+					if ( odnlen > patlen && !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
 						continue;
 
 				} else if ( b->a_dn_style == ACL_STYLE_CHILDREN ) {
 					if ( odnlen <= patlen )
 						continue;
-					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) || DN_ESCAPE( op->o_ndn.bv_val[odnlen - patlen - 2] ) )
+					if ( !DN_SEPARATOR( op->o_ndn.bv_val[odnlen - patlen - 1] ) )
 						continue;
 				}
 
