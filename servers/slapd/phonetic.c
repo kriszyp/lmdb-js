@@ -161,8 +161,7 @@ phonetic( char *s )
         return( ch_strdup( phoneme ) );
 }
 
-#else
-#if defined(SLAPD_METAPHONE)
+#elif defined(SLAPD_METAPHONE)
 
 /*
  * Metaphone copied from C Gazette, June/July 1991, pp 56-57,
@@ -432,5 +431,4 @@ phonetic( char *Word )
 	return( ch_strdup( buf ) );
 }
 
-#endif /* metaphone */
-#endif /* SLAPD_PHONETIC */
+#endif /* SLAPD_METAPHONE */
