@@ -320,7 +320,11 @@ typedef struct slap_syntax {
 #define SLAP_SYNTAX_BLOB	0x0001U /* syntax treated as blob (audio) */
 #define SLAP_SYNTAX_BINARY	0x0002U /* binary transfer required (certificate) */
 #define SLAP_SYNTAX_BER		0x0004U /* stored in BER encoding (certificate) */
+#ifdef LDAP_DEVEL
+#define SLAP_SYNTAX_HIDE	0x0000U /* publish everything */
+#else
 #define SLAP_SYNTAX_HIDE	0x8000U /* hide (do not publish) */
+#endif
 
 	slap_syntax_validate_func	*ssyn_validate;
 	slap_syntax_transform_func	*ssyn_pretty;
@@ -417,7 +421,11 @@ typedef struct slap_matching_rule {
 
 	slap_mask_t				smr_usage;
 
+#ifdef LDAP_DEVEL
+#define SLAP_MR_HIDE			0x0000U
+#else
 #define SLAP_MR_HIDE			0x8000U
+#endif
 
 #define SLAP_MR_TYPE_MASK		0x0F00U
 #define SLAP_MR_SUBTYPE_MASK	0x00F0U
@@ -570,7 +578,11 @@ typedef struct slap_attribute_type {
 #define SLAP_AT_NONE		0x0000U
 #define SLAP_AT_ABSTRACT	0x0100U /* cannot be instantiated */
 #define SLAP_AT_FINAL		0x0200U /* cannot be subtyped */
+#ifdef LDAP_DEVEL
+#define SLAP_AT_HIDE		0x0000U /* publish everything */
+#else
 #define SLAP_AT_HIDE		0x8000U /* hide attribute */
+#endif
 	slap_mask_t					sat_flags;
 
 	LDAP_SLIST_ENTRY(slap_attribute_type) sat_next;
@@ -638,7 +650,11 @@ typedef struct slap_object_class {
 #define	SLAP_OC__MASK		0x001F
 #define	SLAP_OC__END		0x0020
 #define SLAP_OC_OPERATIONAL	0x4000
+#ifdef LDAP_DEVEL
+#define SLAP_OC_HIDE		0x0000
+#else
 #define SLAP_OC_HIDE		0x8000
+#endif
 
 /*
  * DIT content rule
@@ -2193,7 +2209,11 @@ enum {
 #define SLAP_SEARCH_MAX_CTRLS   10
 #endif
 
+#ifdef LDAP_DEVEL
+#define SLAP_CTRL_HIDE				0x00000000U
+#else
 #define SLAP_CTRL_HIDE				0x80000000U
+#endif
 
 #define SLAP_CTRL_FRONTEND			0x00800000U
 #define SLAP_CTRL_FRONTEND_SEARCH	0x00010000U	/* for NOOP */

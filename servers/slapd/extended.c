@@ -41,7 +41,11 @@
 
 #define UNSUPPORTED_EXTENDEDOP "unsupported extended operation"
 
+#ifdef LDAP_DEVEL
+#define SLAP_EXOP_HIDE 0x0000
+#else
 #define SLAP_EXOP_HIDE 0x8000
+#endif
 
 static struct extop_list {
 	struct extop_list *next;
