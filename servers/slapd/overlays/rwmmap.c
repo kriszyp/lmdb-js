@@ -470,7 +470,7 @@ rwm_filter_map_rewrite(
  * routines may be macros with args
  */
 int
-ldap_dnattr_rewrite(
+rwm_dnattr_rewrite(
 	dncookie		*dc,
 	BerVarray		a_vals
 )
@@ -512,7 +512,7 @@ ldap_dnattr_rewrite(
 }
 
 int
-ldap_dnattr_result_rewrite(
+rwm_dnattr_result_rewrite(
 	dncookie		*dc,
 	BerVarray		a_vals
 )

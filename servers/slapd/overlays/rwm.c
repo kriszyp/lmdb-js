@@ -428,7 +428,7 @@ rwm_suffixmassage_config(
 	 * The suffix massaging is emulated 
 	 * by means of the rewrite capabilities
 	 */
- 	rc = suffix_massage_config( rwmap->rwm_rw,
+ 	rc = rwm_suffix_massage_config( rwmap->rwm_rw,
 			&pvnc, &nvnc, &prnc, &nrnc );
 	free( nvnc.bv_val );
 	free( pvnc.bv_val );

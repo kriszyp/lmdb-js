@@ -192,7 +192,7 @@ error_return:;
 
 #ifdef ENABLE_REWRITE
 static char *
-suffix_massage_regexize( const char *s )
+rwm_suffix_massage_regexize( const char *s )
 {
 	char *res, *ptr;
 	const char *p, *r;
@@ -222,7 +222,7 @@ suffix_massage_regexize( const char *s )
 }
 
 static char *
-suffix_massage_patternize( const char *s )
+rwm_suffix_massage_patternize( const char *s )
 {
 	ber_len_t	len;
 	char		*res;
@@ -241,7 +241,7 @@ suffix_massage_patternize( const char *s )
 }
 
 int
-suffix_massage_config( 
+rwm_suffix_massage_config( 
 		struct rewrite_info *info,
 		struct berval *pvnc,
 		struct berval *nvnc,
@@ -263,8 +263,8 @@ suffix_massage_config(
 	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 
 	rargv[ 0 ] = "rewriteRule";
-	rargv[ 1 ] = suffix_massage_regexize( pvnc->bv_val );
-	rargv[ 2 ] = suffix_massage_patternize( prnc->bv_val );
+	rargv[ 1 ] = rwm_suffix_massage_regexize( pvnc->bv_val );
+	rargv[ 2 ] = rwm_suffix_massage_patternize( prnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
@@ -277,8 +277,8 @@ suffix_massage_config(
 	rewrite_parse( info, "<suffix massage>", ++line, 2, rargv );
 	
 	rargv[ 0 ] = "rewriteRule";
-	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
-	rargv[ 2 ] = suffix_massage_patternize( pvnc->bv_val );
+	rargv[ 1 ] = rwm_suffix_massage_regexize( prnc->bv_val );
+	rargv[ 2 ] = rwm_suffix_massage_patternize( pvnc->bv_val );
 	rargv[ 3 ] = ":";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );

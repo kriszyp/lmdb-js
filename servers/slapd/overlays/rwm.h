@@ -122,12 +122,12 @@ rwm_filter_map_rewrite(
 
 /* suffix massaging by means of librewrite */
 #ifdef ENABLE_REWRITE
-extern int suffix_massage_config( struct rewrite_info *info,
+extern int rwm_suffix_massage_config( struct rewrite_info *info,
 		struct berval *pvnc, struct berval *nvnc,
 		struct berval *prnc, struct berval *nrnc);
 #endif /* ENABLE_REWRITE */
-extern int ldap_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
-extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
+extern int rwm_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
+extern int rwm_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
 LDAP_END_DECL
 
