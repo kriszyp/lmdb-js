@@ -20,14 +20,16 @@ ldbm_back_add(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*dn = NULL, *pdn = NULL;
+	char		*dn = NULL, *pdn;
 	Entry		*p = NULL;
-	int			rc;
+	int			rootlock = 0;
+	int			rc = -1; 
 
 	dn = dn_normalize( ch_strdup( e->e_dn ) );
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", dn, 0, 0);
 
+	/* nobody else can add until we lock our parent */
 	pthread_mutex_lock(&li->li_add_mutex);
 
 	if ( ( dn2id( be, dn ) ) != NOID ) {
@@ -58,11 +60,10 @@ ldbm_back_add(
 	 */
 
 	if ( (pdn = dn_parent( be, dn )) != NULL ) {
-		char *matched;
-		/* no parent */
+		char *matched = NULL;
 
-		/* get entry with reader lock */
-		if ( (p = dn2entry_r( be, pdn, &matched )) == NULL ) {
+		/* get parent with writer lock */
+		if ( (p = dn2entry_w( be, pdn, &matched )) == NULL ) {
 			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n", 0,
 			    0, 0 );
@@ -75,17 +76,29 @@ ldbm_back_add(
 
 			entry_free( e );
 			free( dn );
+			free( pdn );
 			return -1;
+		}
+
+		/* don't need the add lock anymore */
+		pthread_mutex_unlock(&li->li_add_mutex);
+
+		free(pdn);
+
+		if ( matched != NULL ) {
+			free( matched );
 		}
 
 		if ( ! access_allowed( be, conn, op, p, "children", NULL,
 		    op->o_dn, ACL_WRITE ) )
 		{
-			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 			    0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			    "", "" );
+
+			/* free parent and writer lock */
+			cache_return_entry_w( &li->li_cache, p ); 
 
 			entry_free( e );
 			free( dn );
@@ -93,6 +106,7 @@ ldbm_back_add(
 		}
 
 	} else {
+		/* no parent, must be adding entry to root */
 		if ( ! be_isroot( be, op->o_dn ) ) {
 			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
@@ -104,6 +118,14 @@ ldbm_back_add(
 			free( dn );
 			return -1;
 		}
+
+		/*
+		 * no parent, acquire the root write lock
+		 * and release the add lock.
+		 */
+		pthread_mutex_lock(&li->li_root_mutex);
+		pthread_mutex_unlock(&li->li_add_mutex);
+		rootlock=1;
 	}
 
 	/*
@@ -114,7 +136,13 @@ ldbm_back_add(
 
 	e->e_id = next_id( be );
 	if ( cache_add_entry_lock( &li->li_cache, e, ENTRY_STATE_CREATING ) != 0 ) {
-		pthread_mutex_unlock(&li->li_add_mutex);
+		if( p != NULL) {
+			/* free parent and writer lock */
+			cache_return_entry_w( &li->li_cache, p ); 
+		} else if ( rootlock ) {
+			/* release root lock */
+			pthread_mutex_unlock(&li->li_root_mutex);
+		}
 
 		Debug( LDAP_DEBUG_ANY, "cache_add_entry_lock failed\n", 0, 0,
 		    0 );
@@ -129,6 +157,9 @@ ldbm_back_add(
 		return( -1 );
 	}
 
+	/* acquire writer lock */
+	entry_rdwr_lock(e, 1);
+
 	/*
 	 * add it to the id2children index for the parent
 	 */
@@ -138,7 +169,6 @@ ldbm_back_add(
 		    0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
-		rc = -1;
 		goto return_results;
 	}
 
@@ -153,7 +183,6 @@ ldbm_back_add(
 		    0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
-		rc = -1;
 		goto return_results;
 	}
 
@@ -163,12 +192,8 @@ ldbm_back_add(
 		    0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
-		rc = -1;
 		goto return_results;
 	}
-
-	/* acquire writer lock */
-	entry_rdwr_lock(e, 1);
 
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
@@ -177,7 +202,6 @@ ldbm_back_add(
 		(void) dn2id_delete( be, dn );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 
-		rc = -1;
 		goto return_results;
 	}
 
@@ -185,24 +209,22 @@ ldbm_back_add(
 	rc = 0;
 
 return_results:;
-
 	if ( dn != NULL )
 		free( dn );
-	if ( pdn != NULL )
-		free( pdn );
 
 	cache_set_state( &li->li_cache, e, 0 );
 
-	/* free entry and writer lock */
-	cache_return_entry_w( &li->li_cache, e ); 
-
-	/* free entry and reader lock */
 	if (p != NULL) {
-		cache_return_entry_r( &li->li_cache, p ); 
+		/* free parent and writer lock */
+		cache_return_entry_w( &li->li_cache, p ); 
+
+	} else if ( rootlock ) {
+		/* release root lock */
+		pthread_mutex_unlock(&li->li_root_mutex);
 	}
 
-	/* it might actually be okay to release this lock sooner */
-	pthread_mutex_unlock(&li->li_add_mutex);
+	/* free entry and writer lock */
+	cache_return_entry_w( &li->li_cache, e ); 
 
 	return( rc );
 }
