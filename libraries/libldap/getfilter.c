@@ -78,9 +78,15 @@ ldap_init_getfilter_buf( char *buf, ber_len_t buflen )
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));
 		ldap_getfilter_free( lfdp );
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "getfilter", LDAP_LEVEL_ERR, 
+			"ldap_init_get_filter_buf: bad regular expression %s, %s\n",
+			nextflp->lfl_pattern, error ));
+#else
 		Debug( LDAP_DEBUG_ANY, "ldap_init_get_filter_buf: "
 			"bad regular expression %s, %s\n",
 			nextflp->lfl_pattern, error, 0 );
+#endif
 		errno = EINVAL;
 		LDAP_VFREE( tok );
 		return( NULL );
