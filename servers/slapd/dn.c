@@ -40,8 +40,6 @@ dn_validate( char *dn_in )
 	struct berval	val, *normalized;
 	int		rc;
 
-	fprintf(stderr, ">>> dn_validate: %s\n", dn_in);
-
 	if ( dn_in == NULL || dn_in[ 0 ] == '\0' ) {
 		return( dn_in );
 	}
@@ -61,8 +59,6 @@ dn_validate( char *dn_in )
 
 	AC_MEMCPY( dn_in, normalized->bv_val, normalized->bv_len + 1 );
 	ber_bvfree( normalized );
-
-	fprintf(stderr, "<<< dn_validate: %s\n", dn_in);
 
 	return( dn_in );
 	
@@ -238,8 +234,6 @@ dn_normalize( char *dn )
 	struct berval	val, *normalized;
 	int		rc;
 
-	fprintf(stderr, ">>> dn_normalize: %s\n", dn);
-
 	if ( dn == NULL || dn[ 0 ] == '\0' ) {
 		return( dn );
 	}
@@ -261,8 +255,6 @@ dn_normalize( char *dn )
 	ber_bvfree( normalized );
 
 	( void )ldap_pvt_str2upper( dn );
-
-	fprintf(stderr, "<<< dn_normalize: %s\n", dn);
 
 	return( dn );
 	
