@@ -570,7 +570,7 @@ ldap_pvt_sasl_getmechs ( LDAP *ld, LDAP_CONST char *desired, char **pmechlist )
 		rc = LDAP_INAPPROPRIATE_AUTH;
 
 		for ( p = values; *p != NULL; p++ ) {
-			if ( !strcmp( *p, desired ) == 0 ) {
+			if ( strcmp( *p, desired ) == 0 ) {
 				rc = LDAP_SUCCESS;
 				break;
 			}
