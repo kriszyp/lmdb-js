@@ -91,8 +91,7 @@ int cancel_extop(
 #ifdef LDAP_SYNC
 		for ( i = 0; i < nbackends; i++ ) {
 			Backend *be = &backends[i];
-			if( !be->be_abandon ) continue;
-
+			if( !be->be_cancel ) continue;
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
