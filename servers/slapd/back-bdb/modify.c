@@ -23,6 +23,11 @@
 #include "back-bdb.h"
 #include "external.h"
 
+static struct berval scbva[] = {
+	BER_BVC("glue"),
+	BER_BVNULL
+};
+
 int bdb_modify_internal(
 	Operation *op,
 	DB_TXN *tid,
@@ -56,13 +61,18 @@ int bdb_modify_internal(
 	e->e_attrs = attrs_dup( e->e_attrs );
 
 	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		int match;
 		mod = &ml->sml_mod;
 		switch( mod->sm_op ) {
 		case LDAP_MOD_ADD:
 		case LDAP_MOD_REPLACE:
 			if ( mod->sm_desc == slap_schema.si_ad_structuralObjectClass ) {
-			/* sc modify is internally allowed only to make an entry a glue */
-				glue_attr_delete = 1;
+				value_match( &match, slap_schema.si_ad_structuralObjectClass,
+				slap_schema.si_ad_structuralObjectClass->ad_type->sat_equality,
+				SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+				&mod->sm_values[0], &scbva[0], text );
+				if ( !match )
+					glue_attr_delete = 1;
 			}
 		}
 		if ( glue_attr_delete )
