@@ -1,5 +1,8 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.13 Engineering
+	Fixed pcache CSN pending segfault (ITS#3180)
+
 OpenLDAP 2.2.12 Release
 	Fixed slapd empty DN uniqueMember normalization
 	Fixed slapd empty DN in proxyAuthx control
