@@ -45,6 +45,7 @@
 
 #include "slap.h"
 #include "back-ldap.h"
+#undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "../../../libraries/libldap/ldap-int.h"
 
 static void ldap_send_entry( Backend *be, Operation *op, struct ldapconn *lc,
