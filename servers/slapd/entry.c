@@ -757,7 +757,8 @@ Entry *entry_dup( Entry *e )
 	ber_dupbv( &ret->e_nname, &e->e_nname );
 	ret->e_attrs = attrs_dup( e->e_attrs );
 	ret->e_ocflags = e->e_ocflags;
-	ber_dupbv( &ret->e_bv, &e->e_bv );
+	ret->e_bv.bv_val = NULL;
+	ret->e_bv.bv_len = 0;
 	ret->e_private = NULL;
 }
 
