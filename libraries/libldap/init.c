@@ -59,9 +59,9 @@ static struct ol_attribute {
 		offsetof(struct ldapoptions, ldo_defhost)},
 	{ATTR_INT,		"PORT",			NULL,
 		offsetof(struct ldapoptions, ldo_defport)},
-	{ATTR_BOOL,		"REFERRALS",	(void *) LDAP_BOOL_REFERRALS, 0},
-	{ATTR_BOOL,		"RESTART",		(void *) LDAP_BOOL_RESTART, 0},
-	{ATTR_BOOL,		"DNS",			(void *) LDAP_BOOL_DNS, 0},
+	{ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
+	{ATTR_BOOL,		"RESTART",	NULL,	LDAP_BOOL_RESTART},
+	{ATTR_BOOL,		"DNS",		NULL,	LDAP_BOOL_DNS},
 	{ATTR_NONE,		NULL,		NULL,	0}
 };
 
@@ -130,23 +130,22 @@ static void openldap_ldap_init_w_conf(const char *file)
 				continue;
 			}
 
-			p = &((char *) &gopts)[attrs[i].offset];
-
 			switch(attrs[i].type) {
 			case ATTR_BOOL:
 				if((strcasecmp(opt, "on") == 0) 
 					|| (strcasecmp(opt, "yes") == 0)
 					|| (strcasecmp(opt, "true") == 0))
 				{
-					LDAP_BOOL_SET(&gopts, (int) attrs[i].data);
+					LDAP_BOOL_SET(&gopts, attrs[i].offset);
 
 				} else {
-					LDAP_BOOL_CLR(&gopts, (int) attrs[i].data);
+					LDAP_BOOL_CLR(&gopts, attrs[i].offset);
 				}
 
 				break;
 
 			case ATTR_INT:
+				p = &((char *) &gopts)[attrs[i].offset];
 				* (int*) p = atoi(opt);
 				break;
 
@@ -158,6 +157,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 						kv++) {
 
 						if(strcasecmp(opt, kv->key) == 0) {
+							p = &((char *) &gopts)[attrs[i].offset];
 							* (int*) p = kv->value;
 							break;
 						}
@@ -165,6 +165,7 @@ static void openldap_ldap_init_w_conf(const char *file)
 				} break;
 
 			case ATTR_STRING:
+				p = &((char *) &gopts)[attrs[i].offset];
 				if (* (char**) p != NULL) free(* (char**) p);
 				* (char**) p = strdup(opt);
 				break;
@@ -235,22 +236,21 @@ static void openldap_ldap_init_w_env(const char *prefix)
 			continue;
 		}
 
-		p = &((char *) &gopts)[attrs[i].offset];
-
 		switch(attrs[i].type) {
 		case ATTR_BOOL:
 			if((strcasecmp(value, "on") == 0) 
 				|| (strcasecmp(value, "yes") == 0)
 				|| (strcasecmp(value, "true") == 0))
 			{
-				LDAP_BOOL_SET(&gopts, (int) attrs[i].data);
+				LDAP_BOOL_SET(&gopts, attrs[i].offset);
 
 			} else {
-				LDAP_BOOL_CLR(&gopts, (int) attrs[i].data);
+				LDAP_BOOL_CLR(&gopts, attrs[i].offset);
 			}
 			break;
 
 		case ATTR_INT:
+			p = &((char *) &gopts)[attrs[i].offset];
 			* (int*) p = atoi(value);
 			break;
 
@@ -262,6 +262,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 					kv++) {
 
 					if(strcasecmp(value, kv->key) == 0) {
+						p = &((char *) &gopts)[attrs[i].offset];
 						* (int*) p = kv->value;
 						break;
 					}
@@ -269,6 +270,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 			} break;
 
 		case ATTR_STRING:
+			p = &((char *) &gopts)[attrs[i].offset];
 			if (* (char**) p != NULL) free(* (char**) p);
 			if (*value == '\0') {
 				* (char**) p = NULL;
