@@ -139,6 +139,7 @@ value_cmp(
 		rc = strcmp( v1->bv_val, v2->bv_val );
 		break;
 
+	default:        /* Unknown syntax */
 	case SYNTAX_BIN:
 		rc = (v1->bv_len == v2->bv_len
 		      ? memcmp( v1->bv_val, v2->bv_val, v1->bv_len )
