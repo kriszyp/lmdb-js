@@ -19,31 +19,6 @@
 
 #include "../../libraries/liblber/lber-int.h"
 
-#define SLAP_CTRL_FRONTEND			0x80000000U
-#define SLAP_CTRL_FRONTEND_SEARCH	0x01000000U	/* for NOOP */
-
-#define SLAP_CTRL_OPFLAGS			0x0000FFFFU
-#define SLAP_CTRL_ABANDON			0x00000001U
-#define SLAP_CTRL_ADD				0x00002002U
-#define SLAP_CTRL_BIND				0x00000004U
-#define SLAP_CTRL_COMPARE			0x00001008U
-#define SLAP_CTRL_DELETE			0x00002010U
-#define SLAP_CTRL_MODIFY			0x00002020U
-#define SLAP_CTRL_RENAME			0x00002040U
-#define SLAP_CTRL_SEARCH			0x00001080U
-#define SLAP_CTRL_UNBIND			0x00000100U
-
-#define SLAP_CTRL_INTROGATE	(SLAP_CTRL_COMPARE|SLAP_CTRL_SEARCH)
-#define SLAP_CTRL_UPDATE \
-	(SLAP_CTRL_ADD|SLAP_CTRL_DELETE|SLAP_CTRL_MODIFY|SLAP_CTRL_RENAME)
-#define SLAP_CTRL_ACCESS	(SLAP_CTRL_INTROGATE|SLAP_CTRL_UPDATE)
-
-typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
-	Connection *conn,
-	Operation *op,
-	LDAPControl *ctrl,
-	const char **text ));
-
 static SLAP_CTRL_PARSE_FN parseProxyAuthz;
 static SLAP_CTRL_PARSE_FN parseManageDSAit;
 static SLAP_CTRL_PARSE_FN parseNoOp;
@@ -70,112 +45,286 @@ static char *proxy_authz_extops[] = {
 	NULL
 };
 
+struct slap_control {
+	/*
+	 * Control OID
+	 */
+	char *sc_oid;
+
+	/*
+	 * Operations supported by control
+	 */
+	slap_mask_t sc_mask;
+
+	/*
+	 * Extended operations supported by control
+	 */
+	char **sc_extendedops;
+
+	/*
+	 * Control parsing callback
+	 */
+	SLAP_CTRL_PARSE_FN *sc_parse;
+
+	LDAP_SLIST_ENTRY(slap_control) sc_next;
+};
+
+static LDAP_SLIST_HEAD(ControlsList, slap_control) controls_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&controls_list);
+
 /*
  * all known request control OIDs should be added to this list
  */
-char *slap_known_controls[] = {
-	LDAP_CONTROL_MANAGEDSAIT,
-	LDAP_CONTROL_PROXY_AUTHZ,
+char **slap_known_controls = NULL;
 
-#ifdef LDAP_CONTROL_SUBENTRIES
-	LDAP_CONTROL_SUBENTRIES,
-#endif /* LDAP_CONTROL_SUBENTRIES */
-
-	LDAP_CONTROL_NOOP,
-
-#ifdef LDAP_CONTROL_DUPENT_REQUEST
-	LDAP_CONTROL_DUPENT_REQUEST,
-#endif /* LDAP_CONTROL_DUPENT_REQUEST */
-
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-	LDAP_CONTROL_PAGEDRESULTS,
-#endif
-
-#ifdef LDAP_CONTROL_SORTREQUEST
-	LDAP_CONTROL_SORTREQUEST,
-#endif /* LDAP_CONTROL_SORTREQUEST */
-
-#ifdef LDAP_CONTROL_VLVREQUEST
-	LDAP_CONTROL_VLVREQUEST,
-#endif /* LDAP_CONTROL_VLVREQUEST */
-
-	LDAP_CONTROL_VALUESRETURNFILTER,
-	NULL
-};
-
-static struct slap_control {
-	char *sc_oid;
-	slap_mask_t sc_mask;
-	char **sc_extendedops;
-	SLAP_CTRL_PARSE_FN *sc_parse;
-
-} supportedControls[] = {
+static struct slap_control control_defs[] = {
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
-		parseValuesReturnFilter },
+		parseValuesReturnFilter, NULL },
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 	{ LDAP_CONTROL_PAGEDRESULTS,
 		SLAP_CTRL_SEARCH, NULL,
-		parsePagedResults },
+		parsePagedResults, NULL },
 #endif
 #ifdef LDAP_CONTROL_X_DOMAIN_SCOPE
 	{ LDAP_CONTROL_X_DOMAIN_SCOPE,
 		SLAP_CTRL_FRONTEND|SLAP_CTRL_SEARCH, NULL,
-		parseDomainScope },
+		parseDomainScope, NULL },
 #endif
 #ifdef LDAP_CONTROL_X_PERMISSIVE_MODIFY
 	{ LDAP_CONTROL_X_PERMISSIVE_MODIFY,
 		SLAP_CTRL_MODIFY, NULL,
-		parsePermissiveModify },
+		parsePermissiveModify, NULL },
 #endif
 #ifdef LDAP_CONTROL_SUBENTRIES
 	{ LDAP_CONTROL_SUBENTRIES,
 		SLAP_CTRL_SEARCH, NULL,
-		parseSubentries },
+		parseSubentries, NULL },
 #endif
 	{ LDAP_CONTROL_NOOP,
 		SLAP_CTRL_ACCESS, NULL,
-		parseNoOp },
+		parseNoOp, NULL },
 #ifdef LDAP_CLIENT_UPDATE
 	{ LDAP_CONTROL_CLIENT_UPDATE,
 		SLAP_CTRL_SEARCH, NULL,
-		parseClientUpdate },
+		parseClientUpdate, NULL },
 #endif
 #ifdef LDAP_SYNC
 	{ LDAP_CONTROL_SYNC,
 		SLAP_CTRL_SEARCH, NULL,
-		parseLdupSync },
+		parseLdupSync, NULL },
 #endif
 	{ LDAP_CONTROL_MANAGEDSAIT,
 		SLAP_CTRL_ACCESS, NULL,
-		parseManageDSAit },
+		parseManageDSAit, NULL },
 	{ LDAP_CONTROL_PROXY_AUTHZ,
 		SLAP_CTRL_FRONTEND|SLAP_CTRL_ACCESS, proxy_authz_extops,
-		parseProxyAuthz },
-	{ NULL, 0, NULL, 0 }
+		parseProxyAuthz, NULL },
+	{ NULL, 0, NULL, 0, NULL }
 };
 
-char *
-get_supported_ctrl(int index)
+/*
+ * Register a supported control.
+ *
+ * This can be called by an OpenLDAP plugin or, indirectly, by a
+ * SLAPI plugin calling slapi_register_supported_control().
+ */
+int
+register_supported_control(const char *controloid,
+	slap_mask_t controlmask,
+	char **controlexops,
+	SLAP_CTRL_PARSE_FN *controlparsefn)
 {
-	return supportedControls[index].sc_oid;
+	struct slap_control *sc;
+	int i;
+
+	if ( controloid == NULL ) {
+		return LDAP_PARAM_ERROR;
+	}
+
+	sc = (struct slap_control *)SLAP_MALLOC( sizeof( *sc ) );
+	if ( sc == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+	sc->sc_oid = ch_strdup( controloid );
+	sc->sc_mask = controlmask;
+	if ( controlexops != NULL ) {
+		sc->sc_extendedops = ldap_charray_dup( controlexops );
+		if ( sc->sc_extendedops == NULL ) {
+			ch_free( sc );
+			return LDAP_NO_MEMORY;
+		}
+	} else {
+		sc->sc_extendedops = NULL;
+	}
+	sc->sc_parse = controlparsefn;
+
+	/* Update slap_known_controls, too. */
+	if ( slap_known_controls == NULL ) {
+		slap_known_controls = (char **)SLAP_MALLOC( 2 * sizeof(char *) );
+		if ( slap_known_controls == NULL ) {
+			if ( sc->sc_extendedops != NULL ) ldap_charray_free( sc->sc_extendedops );
+			ch_free( sc );
+			return LDAP_NO_MEMORY;
+		}
+		slap_known_controls[0] = ch_strdup( sc->sc_oid );
+		slap_known_controls[1] = NULL;
+	} else {
+		for ( i = 0; slap_known_controls[i] != NULL; i++ )
+			;
+		slap_known_controls = (char **)SLAP_REALLOC( slap_known_controls, (i + 2) * sizeof(char *) );
+		if ( slap_known_controls == NULL ) {
+			if ( sc->sc_extendedops != NULL ) ldap_charray_free( sc->sc_extendedops );
+			ch_free( sc );
+			return LDAP_NO_MEMORY;
+		}
+		slap_known_controls[i++] = ch_strdup( sc->sc_oid );
+		slap_known_controls[i] = NULL;
+	}
+
+	LDAP_SLIST_NEXT( sc, sc_next ) = NULL;
+	LDAP_SLIST_INSERT_HEAD( &controls_list, sc, sc_next );
+
+	return LDAP_SUCCESS;
 }
 
-slap_mask_t
-get_supported_ctrl_mask(int index)
+/*
+ * One-time initialization of internal controls.
+ */
+int
+slap_controls_init( void )
 {
-	return supportedControls[index].sc_mask;
+	int i, rc;
+	struct slap_control *sc;
+
+	rc = LDAP_SUCCESS;
+
+	for ( i = 0; control_defs[i].sc_oid != NULL; i++ ) {
+		rc = register_supported_control( control_defs[i].sc_oid,
+			control_defs[i].sc_mask, control_defs[i].sc_extendedops,
+			control_defs[i].sc_parse );
+		if ( rc != LDAP_SUCCESS )
+			break;
+	}
+
+	return rc;
 }
 
+/*
+ * Free memory associated with list of supported controls.
+ */
+void
+controls_destroy( void )
+{
+	struct slap_control *sc;
+
+	while ( !LDAP_SLIST_EMPTY(&controls_list) ) {
+		sc = LDAP_SLIST_FIRST(&controls_list);
+		LDAP_SLIST_REMOVE_HEAD(&controls_list, sc_next);
+
+		ch_free( sc->sc_oid );
+		if ( sc->sc_extendedops != NULL ) {
+			ldap_charray_free( sc->sc_extendedops );
+		}
+	}
+}
+
+/*
+ * Format the supportedControl attribute of the root DSE,
+ * detailing which controls are supported by the directory
+ * server.
+ */
+int
+controls_root_dse_info( Entry *e )
+{
+	AttributeDescription *ad_supportedControl
+		= slap_schema.si_ad_supportedControl;
+	struct berval vals[2];
+	struct slap_control *sc;
+
+	vals[1].bv_val = NULL;
+	vals[1].bv_len = 0;
+
+	LDAP_SLIST_FOREACH( sc, &controls_list, sc_next ) {
+		vals[0].bv_val = sc->sc_oid;
+		vals[0].bv_len = strlen( sc->sc_oid );
+#ifdef SLAP_NVALUES
+		if ( attr_merge( e, ad_supportedControl, vals, NULL ) )
+#else
+		if ( attr_merge( e, ad_supportedControl, vals ) )
+#endif /* SLAP_NVALUES */
+			return -1;
+	}
+
+	return 0;
+}
+
+/*
+ * Return a list of OIDs and operation masks for supported
+ * controls. Used by SLAPI.
+ */
+int
+get_supported_controls(char ***ctrloidsp,
+	slap_mask_t **ctrlmasks)
+{
+	int i, n;
+	char **oids;
+	slap_mask_t *masks;
+	int rc;
+	struct slap_control *sc;
+
+	n = 0;
+
+	LDAP_SLIST_FOREACH( sc, &controls_list, sc_next ) {
+		n++;
+	}
+
+	if ( n == 0 ) {
+		*ctrloidsp = NULL;
+		*ctrlmasks = NULL;
+		return LDAP_SUCCESS;
+	}
+
+	oids = (char **)SLAP_MALLOC( (n + 1) * sizeof(char *) );
+	if ( oids == NULL ) {
+		return LDAP_NO_MEMORY;
+	}
+	masks = (slap_mask_t *)SLAP_MALLOC( (n + 1) * sizeof(slap_mask_t) );
+	if  ( masks == NULL ) {
+		ch_free( oids );
+		return LDAP_NO_MEMORY;
+	}
+
+	n = 0;
+
+	LDAP_SLIST_FOREACH( sc, &controls_list, sc_next ) {
+		oids[n] = ch_strdup( sc->sc_oid );
+		masks[n] = sc->sc_mask;
+		n++;
+	}
+	oids[n] = NULL;
+	masks[n] = 0;
+
+	*ctrloidsp = oids;
+	*ctrlmasks = masks;
+
+	return LDAP_SUCCESS;
+}
+
+/*
+ * Find a control given its OID.
+ */
 static struct slap_control *
 find_ctrl( const char *oid )
 {
-	int i;
-	for( i=0; supportedControls[i].sc_oid; i++ ) {
-		if( strcmp( oid, supportedControls[i].sc_oid ) == 0 ) {
-			return &supportedControls[i];
+	struct slap_control *sc;
+
+	LDAP_SLIST_FOREACH( sc, &controls_list, sc_next ) {
+		if ( strcmp( oid, sc->sc_oid ) == 0 ) {
+			return sc;
 		}
 	}
+
 	return NULL;
 }
 

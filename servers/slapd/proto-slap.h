@@ -296,10 +296,15 @@ LDAP_SLAPD_F (int) get_ctrls LDAP_P((
 	Connection *co,
 	Operation *op,
 	int senderrors ));
-
-LDAP_SLAPD_F (char *) get_supported_ctrl LDAP_P((int index));
-
-LDAP_SLAPD_F (slap_mask_t) get_supported_ctrl_mask LDAP_P((int index));
+LDAP_SLAPD_F (int) register_supported_control LDAP_P((
+	const char *controloid,
+	slap_mask_t controlmask,
+	char **controlexops,
+	SLAP_CTRL_PARSE_FN *controlparsefn ));
+LDAP_SLAPD_F (int) slap_controls_init LDAP_P ((void));
+LDAP_SLAPD_F (void) controls_destroy LDAP_P ((void));
+LDAP_SLAPD_F (int) controls_root_dse_info LDAP_P ((Entry *e));
+LDAP_SLAPD_F (int) get_supported_controls LDAP_P (( char ***ctrloidsp, slap_mask_t **ctrlmasks ));
 
 /*
  * config.c
@@ -548,7 +553,7 @@ LDAP_SLAPD_F (int)	slap_startup LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_shutdown LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_destroy LDAP_P((void));
 
-LDAP_SLAPD_V (char *)	slap_known_controls[];
+LDAP_SLAPD_V (char **)	slap_known_controls;
 
 /*
  * kerberos.c

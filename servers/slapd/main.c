@@ -397,6 +397,18 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
+	if ( slap_controls_init( ) != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, CRIT, "main: controls initialization error\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+		    "controls initialization error\n",
+		    0, 0, 0 );
+#endif
+
+		goto destroy;
+	}
+
 #ifdef HAVE_TLS
 	/* Library defaults to full certificate checking. This is correct when
 	 * a client is verifying a server because all servers should have a
@@ -607,6 +619,8 @@ stop:
     closelog();
 #endif
 	slapd_daemon_destroy();
+
+	controls_destroy();
 
 	schema_destroy();
 

@@ -55,8 +55,6 @@ root_dse_info(
 		= slap_schema.si_ad_objectClass;
 	AttributeDescription *ad_namingContexts
 		= slap_schema.si_ad_namingContexts;
-	AttributeDescription *ad_supportedControl
-		= slap_schema.si_ad_supportedControl;
 	AttributeDescription *ad_supportedExtension
 		= slap_schema.si_ad_supportedExtension;
 	AttributeDescription *ad_supportedLDAPVersion
@@ -158,16 +156,8 @@ root_dse_info(
 	/* altServer unsupported */
 
 	/* supportedControl */
-	for ( i=0; (vals[0].bv_val = get_supported_ctrl(i)) != NULL; i++ ) {
-		vals[0].bv_len = strlen( vals[0].bv_val );
-#ifdef SLAP_NVALUES
-		if( attr_merge( e, ad_supportedControl, vals, NULL ) )
-#else
-		if( attr_merge( e, ad_supportedControl, vals ) )
-#endif
-		{
-			return LDAP_OTHER;
-		}
+	if ( controls_root_dse_info( e ) != 0 ) {
+		return LDAP_OTHER;
 	}
 
 	/* supportedExtension */

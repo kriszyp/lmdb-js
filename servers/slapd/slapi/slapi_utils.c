@@ -1129,15 +1129,101 @@ slapi_control_present(
 #endif /* LDAP_SLAPI */
 }
 
+#ifdef LDAP_SLAPI
+static void
+slapControlMask2SlapiControlOp(slap_mask_t slap_mask,
+	unsigned long *slapi_mask)
+{
+	*slapi_mask = SLAPI_OPERATION_NONE;
+
+	if ( slap_mask & SLAP_CTRL_ABANDON ) 
+		*slapi_mask |= SLAPI_OPERATION_ABANDON;
+
+	if ( slap_mask & SLAP_CTRL_ADD )
+		*slapi_mask |= SLAPI_OPERATION_ADD;
+
+	if ( slap_mask & SLAP_CTRL_BIND )
+		*slapi_mask |= SLAPI_OPERATION_BIND;
+
+	if ( slap_mask & SLAP_CTRL_COMPARE )
+		*slapi_mask |= SLAPI_OPERATION_COMPARE;
+
+	if ( slap_mask & SLAP_CTRL_DELETE )
+		*slapi_mask |= SLAPI_OPERATION_DELETE;
+
+	if ( slap_mask & SLAP_CTRL_MODIFY )
+		*slapi_mask |= SLAPI_OPERATION_MODIFY;
+
+	if ( slap_mask & SLAP_CTRL_RENAME )
+		*slapi_mask |= SLAPI_OPERATION_MODDN;
+
+	if ( slap_mask & SLAP_CTRL_SEARCH )
+		*slapi_mask |= SLAPI_OPERATION_SEARCH;
+
+	if ( slap_mask & SLAP_CTRL_UNBIND )
+		*slapi_mask |= SLAPI_OPERATION_UNBIND;
+}
+
+static void
+slapiControlOp2SlapControlMask(unsigned long slapi_mask,
+	slap_mask_t *slap_mask)
+{
+	*slap_mask = 0;
+
+	if ( slapi_mask & SLAPI_OPERATION_BIND )
+		*slap_mask |= SLAP_CTRL_BIND;
+
+	if ( slapi_mask & SLAPI_OPERATION_UNBIND )
+		*slap_mask |= SLAP_CTRL_UNBIND;
+
+	if ( slapi_mask & SLAPI_OPERATION_SEARCH )
+		*slap_mask |= SLAP_CTRL_SEARCH;
+
+	if ( slapi_mask & SLAPI_OPERATION_MODIFY )
+		*slap_mask |= SLAP_CTRL_MODIFY;
+
+	if ( slapi_mask & SLAPI_OPERATION_ADD )
+		*slap_mask |= SLAP_CTRL_ADD;
+
+	if ( slapi_mask & SLAPI_OPERATION_DELETE )
+		*slap_mask |= SLAP_CTRL_DELETE;
+
+	if ( slapi_mask & SLAPI_OPERATION_MODDN )
+		*slap_mask |= SLAP_CTRL_RENAME;
+
+	if ( slapi_mask & SLAPI_OPERATION_COMPARE )
+		*slap_mask |= SLAP_CTRL_COMPARE;
+
+	if ( slapi_mask & SLAPI_OPERATION_ABANDON )
+		*slap_mask |= SLAP_CTRL_ABANDON;
+
+	*slap_mask = SLAP_CTRL_FRONTEND;
+}
+
+static int
+parseSlapiControl(
+	Connection *conn,
+	Operation *op,
+	LDAPControl *ctrl,
+	const char **text)
+{
+	/* Plugins must deal with controls themselves. */
+
+	return LDAP_SUCCESS;
+}
+#endif /* LDAP_SLAPI */
+
 void 
 slapi_register_supported_control(
 	char		*controloid, 
 	unsigned long	controlops )
 {
 #ifdef LDAP_SLAPI
-	/* FIXME -- can not add controls to OpenLDAP dynamically */
-	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_CONTROLS",
-			"OpenLDAP does not support dynamic registration of LDAP controls\n" );
+	slap_mask_t controlmask;
+
+	slapiControlOp2SlapControlMask( controlops, &controlmask );
+
+	register_supported_control( controloid, controlmask, NULL, parseSlapiControl );
 #endif /* LDAP_SLAPI */
 }
 
@@ -1147,64 +1233,19 @@ slapi_get_supported_controls(
 	unsigned long	**ctrlopsp ) 
 {
 #ifdef LDAP_SLAPI
-	int		i, n;
-	int		rc = 1;
-	char		**oids = NULL;
-	unsigned long	*masks = NULL;
+	int i, rc;
 
-	for (n = 0; get_supported_ctrl( n ) != NULL; n++) {
-		; /* count them */
-	}
-	
-	if ( n == 0 ) {
-		/* no controls */
-		*ctrloidsp = NULL;
-		*ctrlopsp = NULL;
-		return LDAP_SUCCESS;
-	}
-
-
-	oids = (char **)slapi_ch_malloc( (n + 1) * sizeof(char *) );
-	if ( oids == NULL ) {
-		rc = LDAP_NO_MEMORY;
-		goto error_return;
-	}
-
-	masks = (unsigned long *)slapi_ch_malloc( n * sizeof(int) );
-	if ( masks == NULL ) {
-		rc = LDAP_NO_MEMORY;
-		goto error_return;
-	}
-
-	for ( i = 0; i < n; i++ ) {
-		/*
-		 * FIXME: Netscape's specification says nothing about
-		 * memory; should we copy the OIDs or return pointers
-		 * to internal values? In OpenLDAP the latter is safe
-		 * since we do not allow to register coltrols runtime
-		 */
-		oids[ i ] = ch_strdup( get_supported_ctrl( i ) );
-		if ( oids[ i ] == NULL ) {
-			rc = LDAP_NO_MEMORY;
-			goto error_return;
-		}
-		masks[ i ] = (unsigned long)get_supported_ctrl_mask( i );
-	}
-
-	*ctrloidsp = oids;
-	*ctrlopsp = masks;
-	return LDAP_SUCCESS;
-
-error_return:
+	rc = get_supported_controls( ctrloidsp, (slap_mask_t **)ctrlopsp );
 	if ( rc != LDAP_SUCCESS ) {
-		for ( i = 0; oids != NULL && oids[ i ] != NULL; i++ ) {
-			ch_free( oids[ i ] );
-		}
-		ch_free( oids );
-		ch_free( masks );
+		return rc;
 	}
 
-	return rc;
+	for ( i = 0; (*ctrloidsp)[i] != NULL; i++ ) {
+		/* In place, naughty. */
+		slapControlMask2SlapiControlOp( (*ctrlopsp)[i], &((*ctrlopsp)[i]) );
+	}
+
+	return LDAP_SUCCESS;
 #else /* LDAP_SLAPI */
 	return 1;
 #endif /* LDAP_SLAPI */
@@ -1241,10 +1282,10 @@ char **
 slapi_get_supported_saslmechanisms( void )
 {
 #ifdef LDAP_SLAPI
-	/* FIXME -- can not get the saslmechanism wihtout a connection. */
+	/* FIXME -- can not get the saslmechanism without a connection. */
 	slapi_log_error( SLAPI_LOG_FATAL, "SLAPI_SASL",
-			"can not get the saslmechanism "
-			"wihtout a connection\n" );
+			"can not get the SASL mechanism list "
+			"without a connection\n" );
 	return NULL;
 #else /* LDAP_SLAPI */
 	return NULL;
