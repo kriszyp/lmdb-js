@@ -65,6 +65,7 @@
 #include <lber.h>
 
 #include "ldap_pvt.h"
+#include "lber_pvt.h"
 
 #include "lutil_md5.h"
 #include "lutil_sha1.h"
@@ -119,6 +120,13 @@ static int chk_sha1(
 
 #ifdef SLAPD_LMHASH
 static int chk_lanman(
+	const struct pw_scheme *scheme,
+	const struct berval *passwd,
+	const struct berval *cred );
+#endif
+
+#ifdef SLAPD_NT_MTA_MD5
+static int chk_nt_mta_md5(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd,
 	const struct berval *cred );
@@ -193,38 +201,42 @@ static struct berval *hash_clear(
 static const struct pw_scheme pw_schemes[] =
 {
 #ifdef LUTIL_SHA1_BYTES
-	{ {sizeof("{SSHA}")-1, "{SSHA}"},	chk_ssha1, hash_ssha1 },
-	{ {sizeof("{SHA}")-1, "{SHA}"},		chk_sha1, hash_sha1 },
+	{ BER_BVC("{SSHA}"),		chk_ssha1, hash_ssha1 },
+	{ BER_BVC("{SHA}"),			chk_sha1, hash_sha1 },
 #endif
 
-	{ {sizeof("{SMD5}")-1, "{SMD5}"},	chk_smd5, hash_smd5 },
-	{ {sizeof("{MD5}")-1, "{MD5}"},		chk_md5, hash_md5 },
+	{ BER_BVC("{SMD5}"),		chk_smd5, hash_smd5 },
+	{ BER_BVC("{MD5}"),			chk_md5, hash_md5 },
 
 #ifdef SLAPD_LMHASH
-	{ {sizeof("{LANMAN}")-1, "{LANMAN}"},	chk_lanman, hash_lanman },
+	{ BER_BVC("{LANMAN}"),		chk_lanman, hash_lanman },
 #endif /* SLAPD_LMHASH */
 
+#ifdef SLAPD_NT_MTA_MD5
+	{ BER_BVC("{NT-MTA-MD5}"),	chk_nt_mta_md5, NULL },
+#endif /* SLAPD_NT_MTA_MD5 */
+
 #ifdef SLAPD_SPASSWD
-	{ {sizeof("{SASL}")-1, "{SASL}"}, chk_sasl, NULL },
+	{ BER_BVC("{SASL}"),		chk_sasl, NULL },
 #endif
 
 #ifdef SLAPD_KPASSWD
-	{ {sizeof("{KERBEROS}")-1, "{KERBEROS}"}, chk_kerberos, NULL },
+	{ BER_BVC("{KERBEROS}"),	chk_kerberos, NULL },
 #endif
 
 #ifdef SLAPD_CRYPT
-	{ {sizeof("{CRYPT}")-1, "{CRYPT}"},	chk_crypt, hash_crypt },
+	{ BER_BVC("{CRYPT}"),		chk_crypt, hash_crypt },
 # if defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD )
-	{ {sizeof("{UNIX}")-1, "{UNIX}"},	chk_unix, NULL },
+	{ BER_BVC("{UNIX}"),		chk_unix, NULL },
 # endif
 #endif
 
 #ifdef SLAPD_CLEARTEXT
 	/* psuedo scheme */
-	{ {0, "{CLEARTEXT}"}, NULL, hash_clear },
+	{ {0, "{CLEARTEXT}"},		NULL, hash_clear },
 #endif
 
-	{ {0, NULL}, NULL, NULL }
+	{ BER_BVNULL, NULL, NULL }
 };
 
 static const struct pw_scheme *get_scheme(
@@ -624,6 +636,54 @@ static int chk_lanman(
 	return memcmp( &hash->bv_val[scheme->name.bv_len], passwd->bv_val, 32);
 }
 #endif /* SLAPD_LMHASH */
+
+#ifdef SLAPD_NT_MTA_MD5
+static int chk_nt_mta_md5(
+	const struct pw_scheme *scheme,
+	const struct berval *passwd,
+	const struct berval *cred )
+{
+	lutil_MD5_CTX MD5context;
+	unsigned char MD5digest[LUTIL_MD5_BYTES], c;
+	char buffer[LUTIL_MD5_BYTES + LUTIL_MD5_BYTES + 1];
+	int i;
+
+	/* hash credentials with salt */
+	lutil_MD5Init(&MD5context);
+	lutil_MD5Update(&MD5context,
+		(const unsigned char *) &passwd->bv_val[32],
+		32 );
+
+	c = 0x59;
+	lutil_MD5Update(&MD5context,
+		(const unsigned char *) &c,
+		1 );
+
+	lutil_MD5Update(&MD5context,
+		(const unsigned char *) cred->bv_val,
+		cred->bv_len );
+
+	c = 0xF7;
+	lutil_MD5Update(&MD5context,
+		(const unsigned char *) &c,
+		1 );
+
+	lutil_MD5Update(&MD5context,
+		(const unsigned char *) &passwd->bv_val[32],
+		32 );
+
+	lutil_MD5Final(MD5digest, &MD5context);
+
+	for( i=0; i < sizeof( MD5digest ); i++ ) {
+		buffer[i+i]   = "0123456789abcdef"[(MD5digest[i]>>4) & 0x0F]; 
+		buffer[i+i+1] = "0123456789abcdef"[ MD5digest[i] & 0x0F]; 
+	}
+
+	/* compare */
+	return memcmp((char *)passwd->bv_val, (char *)buffer, sizeof(buffer))
+		? 1 : 0;
+}
+#endif
 
 #ifdef SLAPD_SPASSWD
 #ifdef HAVE_CYRUS_SASL
@@ -1265,5 +1325,4 @@ static struct berval *hash_clear(
 	return ber_bvdup( (struct berval *) passwd );
 }
 #endif
-
 
