@@ -22,46 +22,76 @@
 #include "ldap-int.h"
 
 char *
-ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **ber )
+ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 {
+	ber_tag_t rc;
+	ber_len_t len;
 	char *attr;
+	BerElement *ber;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_first_attribute\n", 0, 0, 0 );
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( entry != NULL );
-	assert( ber != NULL );
+	assert( berout != NULL );
 
-	if ( (*ber = ldap_alloc_ber_with_options( ld )) == NULL ) {
-		*ber = NULL;
-		return( NULL );
+	ber = ldap_alloc_ber_with_options( ld );
+	if( ber == NULL ) {
+		return NULL;
 	}
 
-	**ber = *entry->lm_ber;
+	*ber = *entry->lm_ber;
 
 	/* 
-	 * Skip past the sequence, dn, sequence of sequence, snarf the
-	 * attribute type, and skip the set of values, leaving us
-	 * positioned right before the next attribute type/value sequence.
+	 * Skip past the sequence, dn, sequence of sequence leaving
+	 * us at the first attribute.
 	 */
 
-	if ( ber_scanf( *ber, "{x{{ax}" /*}}*/, &attr )
-	    == LBER_ERROR ) {
+	rc = ber_scanf( ber, "{xl{" /*}}*/, &attr, &len );
+
+	if( rc == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
-		ber_free( *ber, 0 );
-		*ber = NULL;
-		return( NULL );
+		ber_free( ber, 0 );
+		return  NULL;
 	}
 
-	return( attr );
+#if 0
+	if( len == 0 ) {
+		return NULL;
+	}
+#endif
+	
+	/* set the length to avoid overrun */
+	rc = ber_set_option( ber, LBER_OPT_REMAINING_BYTES, &len );
+
+	if( rc != LBER_OPT_SUCCESS ) {
+		ld->ld_errno = LDAP_LOCAL_ERROR;
+		ber_free( ber, 0 );
+		return NULL;
+	}
+
+	/* snatch the first attribute */
+	rc = ber_scanf( ber, "{ax}", &attr );
+	if( rc == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free( ber, 0 );
+		return NULL;
+	}
+
+	*berout = ber;
+	return attr;
 }
 
 /* ARGSUSED */
 char *
 ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 {
+	ber_tag_t rc;
 	char *attr;
+#if 0
+	ber_len_t len;
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
 
@@ -70,12 +100,23 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	assert( entry != NULL );
 	assert( ber != NULL );
 
-	/* skip sequence, snarf attribute type, skip values */
-	if ( ber_scanf( ber, "{ax}", &attr ) 
-	    == LBER_ERROR ) {
-		ld->ld_errno = LDAP_DECODING_ERROR;
-		return( NULL );
+#if 0
+	rc = ber_get_option( ber, LBER_OPT_REMAINING_BYTES, &len );
+	if( rc != LDAP_OPT_SUCCESS ) {
+		ld->ld_errno = LDAP_LOCAL_ERROR;
+		return NULL;
 	}
 
-	return( attr );
+	/* we're done */
+	if( len == 0 ) return NULL;
+#endif
+
+	/* skip sequence, snarf attribute type, skip values */
+	rc = ber_scanf( ber, "{ax}", &attr ); 
+	if( rc == LBER_ERROR ) {
+		ld->ld_errno = LDAP_DECODING_ERROR;
+		return NULL;
+	}
+
+	return attr;
 }
