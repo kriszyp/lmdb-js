@@ -617,28 +617,6 @@ AC_CHECK_LIB(s, afopen, [
 
 
 dnl ----------------------------------------------------------------
-dnl PF_INET6 support requires getaddrinfo
-dnl PF_LOCAL may use getaddrinfo in available
-AC_CHECK_FUNCS( getaddrinfo )
-
-if test $ac_cv_func_getaddrinfo = no ; then
-	if test $ol_enable_ipv6 = yes ; then
-		AC_MSG_ERROR([IPv6 support requires getaddrinfo()])
-	fi
-	ol_enable_ipv6=no
-fi
-
-if test $ol_enable_local != no ; then
-	AC_CHECK_HEADERS( sys/un.h )
-
-	if test $ol_enable_local = auto ; then
-		ol_enable_local=$ac_cv_header_sys_un_h
-	elif test $ac_cv_header_sys_un_h = no ; then
-		AC_MSG_ERROR([AF_LOCAL domain support requires sys/un.h])
-	fi
-fi
-
-dnl ----------------------------------------------------------------
 dnl Check for module support
 ol_link_modules=no
 if test $ol_enable_modules != no ; then
@@ -828,6 +806,42 @@ fi
 
 if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
 	AC_MSG_ERROR([DNSSRV requires res_query()])
+fi
+
+dnl ----------------------------------------------------------------
+dnl PF_INET6 support requires getaddrinfo and INET6_ADDRSTRLEN
+dnl PF_LOCAL may use getaddrinfo in available
+AC_CHECK_FUNCS( getaddrinfo )
+
+ol_link_ipv6=no
+if test $ac_cv_func_getaddrinfo = no ; then
+	if test $ol_enable_ipv6 = yes ; then
+		AC_MSG_ERROR([IPv6 support requires getaddrinfo()])
+	fi
+else
+	AC_CACHE_CHECK([INET6_ADDRSTRLEN],[ol_cv_inet6_addrslen],[
+		AC_EGREP_CPP(__has_inet6_addrslen__,[
+#			include <net/in.h>
+#			ifdef INET6_ADDRSLEN
+				__has_inet6_addrslen__;
+#			endif
+		], ol_cv_inet6_addrslen=yes, ol_cv_inet6_addrslen)])
+
+	if test $ol_cv_inet6_addrslen = yes ; then
+		ol_link_ipv6=yes
+	else if $ol_enable_ipv6 = yes ; then
+		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
+	fi
+fi
+
+if test $ol_enable_local != no ; then
+	AC_CHECK_HEADERS( sys/un.h )
+
+	if test $ol_enable_local = auto ; then
+		ol_enable_local=$ac_cv_header_sys_un_h
+	elif test $ac_cv_header_sys_un_h = no ; then
+		AC_MSG_ERROR([AF_LOCAL domain support requires sys/un.h])
+	fi
 fi
 
 dnl ----------------------------------------------------------------
@@ -2200,7 +2214,7 @@ fi
 if test "$ol_enable_local" != no; then
 	AC_DEFINE(LDAP_PF_LOCAL,1,[define to support PF_LOCAL])
 fi
-if test "$ol_enable_ipv6" != no; then
+if test "$ol_link_ipv6" != no; then
 	AC_DEFINE(LDAP_PF_INET6,1,[define to support PF_INET6])
 fi
 if test "$ol_enable_cleartext" != no ; then
