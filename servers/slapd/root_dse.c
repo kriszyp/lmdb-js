@@ -17,8 +17,8 @@
 
 #include "slap.h"
 
-void
-root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
+int
+root_dse_info( Entry **entry, char **text )
 {
 	char buf[BUFSIZ];
 	Entry		*e;
@@ -121,12 +121,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		attr_merge( e, ad_ref, default_referral );
 	}
 
-	send_search_entry( &backends[0], conn, op,
-		e, attrs, attrsonly, NULL );
-
-	send_search_result( conn, op, LDAP_SUCCESS,
-		NULL, NULL, NULL, NULL, 1 );
-
-	entry_free( e );
+	*entry = e;
+	return LDAP_SUCCESS;
 }
 

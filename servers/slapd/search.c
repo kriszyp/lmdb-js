@@ -160,29 +160,41 @@ do_search(
 	    op->o_connid, op->o_opid, base, scope, fstr );
 
 	if ( scope == LDAP_SCOPE_BASE ) {
+		Entry *entry = NULL;
+
+		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
+			rc = root_dse_info( &entry, &text );
+		}
+
 #if defined( SLAPD_MONITOR_DN )
-		if ( strcasecmp( nbase, SLAPD_MONITOR_DN ) == 0 ) {
-			monitor_info( conn, op, attrs, attrsonly );
-			goto return_results;
+		else if ( strcasecmp( nbase, SLAPD_MONITOR_DN ) == 0 ) {
+			rc = monitor_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_CONFIG_DN )
-		if ( strcasecmp( nbase, SLAPD_CONFIG_DN ) == 0 ) {
-			config_info( conn, op, attrs, attrsonly );
-			goto return_results;
+		else if ( strcasecmp( nbase, SLAPD_CONFIG_DN ) == 0 ) {
+			rc = config_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_SCHEMA_DN )
-		if ( strcasecmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
-			schema_info( conn, op, attrs, attrsonly );
-			goto return_results;
+		else if ( strcasecmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
+			rc= schema_info( &entry, &text );
 		}
 #endif
 
-		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
-			root_dse_info( conn, op, attrs, attrsonly );
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+			goto return_results;
+
+		} else if ( entry != NULL ) {
+			send_search_entry( &backends[0], conn, op,
+				entry, attrs, attrsonly, NULL );
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL );
+			entry_free( entry );
 			goto return_results;
 		}
 	}

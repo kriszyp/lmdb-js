@@ -666,7 +666,7 @@ struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_entry) },
 	{ "children",
 		offsetof(struct slap_internal_schema, si_ad_children) },
-	{ NULL, NULL }
+	{ NULL, 0 }
 };
 
 #endif

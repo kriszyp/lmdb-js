@@ -361,21 +361,32 @@ get_substring_filter(
 	ber_tag_t	rc;
 	struct berval *val;
 	char		*last;
-	char		*type;
+	struct berval type;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	int		syntax;
-
+#endif
 	*text = "error decoding filter";
 
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 
-	if ( ber_scanf( ber, "{a" /*}*/, &type ) == LBER_ERROR ) {
+	if ( ber_scanf( ber, "{o" /*}*/, &type ) == LBER_ERROR ) {
 		return SLAPD_DISCONNECT;
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
+	rc = slap_bv2ad( &type, &f->f_sub_desc, text );
+
+	ch_free( type.bv_val );
+
+	if( rc != LDAP_SUCCESS ) {
+		text = NULL;
+		f->f_choice = SLAPD_FILTER_COMPUTED;
+		f->f_result = SLAPD_COMPARE_UNDEFINED;
+		*fstr = ch_strdup( "(undefined)" );
+		return LDAP_SUCCESS;
+	}
 #else
-	f->f_sub_type = type;
+	f->f_sub_type = type.bv_val;
 	attr_normalize( f->f_sub_type );
 
 	/* should get real syntax and see if we have a substring matching rule */
@@ -387,7 +398,11 @@ get_substring_filter(
 	f->f_sub_final = NULL;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
+	if( fstr ) {
+		*fstr = ch_malloc( sizeof("(=" /*)*/) +
+			f->f_sub_desc->ad_cname->bv_len );
+		sprintf( *fstr, "(%s=" /*)*/, f->f_sub_desc->ad_cname->bv_val );
+	}
 #else
 	if( fstr ) {
 		*fstr = ch_malloc( strlen( f->f_sub_type ) + 3 );
@@ -412,9 +427,7 @@ get_substring_filter(
 
 		rc = LDAP_PROTOCOL_ERROR;
 
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
-#else
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		/* we should call a substring syntax normalization routine */
 		value_normalize( val->bv_val, syntax );
 		/* this is bogus, value_normalize should take a berval */
@@ -485,7 +498,7 @@ return_error:
 			}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			/* not yet implemented */
+			ad_free( f->f_sub_desc, 1 );
 #else
 			ch_free( f->f_sub_type );
 #endif

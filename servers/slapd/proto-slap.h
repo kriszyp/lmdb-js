@@ -440,11 +440,8 @@ LIBSLAPD_F (void) *module_resolve LDAP_P((
  */
 LIBSLAPD_F (char *) supportedControls[];
 
-LIBSLAPD_F (void) monitor_info LDAP_P((
-	Connection *conn,
-	Operation *op,
-	char ** attrs,
-	int attrsonly ));
+LIBSLAPD_F (int) monitor_info LDAP_P((
+	Entry **entry, char **text ));
 
 /*
  * operation.c
@@ -596,8 +593,7 @@ LIBSLAPD_F (int) register_matching_rule LDAP_P((char * desc,
 	slap_mr_indexer_func *indexer,
 	slap_mr_filter_func *filter	));
 
-LIBSLAPD_F (void) schema_info LDAP_P((Connection *conn, Operation *op,
-	char **attrs, int attrsonly));
+LIBSLAPD_F (int) schema_info LDAP_P(( Entry **entry, char **text ));
 
 LIBSLAPD_F (int) is_entry_objectclass LDAP_P((
 	Entry *, const char* objectclass ));
@@ -788,17 +784,11 @@ LIBSLAPD_F (void) slapd_remove LDAP_P((ber_socket_t s, int wake));
 LIBSLAPD_F (RETSIGTYPE) slap_sig_shutdown LDAP_P((int sig));
 LIBSLAPD_F (RETSIGTYPE) slap_sig_wake LDAP_P((int sig));
 
-LIBSLAPD_F (void) config_info LDAP_P((
-	Connection *conn,
-	Operation *op,
-	char ** attrs,
-	int attrsonly ));
+LIBSLAPD_F (int) config_info LDAP_P((
+	Entry **e, char **text ));
 
-LIBSLAPD_F (void) root_dse_info LDAP_P((
-	Connection *conn,
-	Operation *op,
-	char ** attrs,
-	int attrsonly ));
+LIBSLAPD_F (int) root_dse_info LDAP_P((
+	Entry **e, char **text ));
 
 LIBSLAPD_F (int) do_abandon LDAP_P((Connection *conn, Operation *op));
 LIBSLAPD_F (int) do_add LDAP_P((Connection *conn, Operation *op));

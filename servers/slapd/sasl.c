@@ -197,7 +197,8 @@ int sasl_bind(
 	int sc;
 	int rc = 1;
 
-	Debug(LDAP_DEBUG_ARGS, "==> sasl_bind: dn=%s, mech=%s, cred->bv_len=%d\n",
+	Debug(LDAP_DEBUG_ARGS,
+		"==> sasl_bind: dn=\"%s\" mech=%s cred->bv_len=%d\n",
 		dn, mech, cred ? cred->bv_len : 0 );
 
 	if ( conn->c_sasl_bind_context == NULL ) {

@@ -19,8 +19,8 @@
 
 #if defined( SLAPD_SCHEMA_DN )
 
-void
-schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
+int
+schema_info( Entry **entry, char **text )
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
@@ -60,9 +60,8 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	attr_merge( e, ad_objectClass, vals );
 
 	{
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		int rc;
-		char *text;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
 		AttributeDescription *desc = NULL;
 #else
 		char *desc;
@@ -71,11 +70,9 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		val.bv_val = strchr( rdn, '=' );
 
 		if( val.bv_val == NULL ) {
-			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "improperly configured subschema subentry",
-				NULL, NULL );
 			free( rdn );
-			return;
+			*text = "improperly configured subschema subentry";
+			return LDAP_OTHER;
 		}
 
 		*val.bv_val = '\0';
@@ -85,11 +82,10 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 		rc = slap_str2ad( rdn, &desc, &text );
 
 		if( rc != LDAP_SUCCESS ) {
-			send_ldap_result( conn, op, LDAP_OTHER,
-				NULL, "improperly configured subschema subentry",
-				NULL, NULL );
 			free( rdn );
-			return;
+			entry_free( e );
+			*text = "improperly configured subschema subentry";
+			return LDAP_OTHER;
 		}
 #else
 		desc = rdn;
@@ -106,17 +102,12 @@ schema_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	{
 		/* Out of memory, do something about it */
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, "out of memory", NULL, NULL );
-		return;
+		text = "out of memory";
+		return LDAP_OTHER;
 	}
 	
-	send_search_entry( &backends[0], conn, op,
-		e, attrs, attrsonly, NULL );
-	send_search_result( conn, op, LDAP_SUCCESS,
-		NULL, NULL, NULL, NULL, 1 );
-
-	entry_free( e );
+	*entry = e;
+	return LDAP_SUCCESS;
 }
 #endif
 
