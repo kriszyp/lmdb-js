@@ -266,7 +266,7 @@ ldap_set_option(
 		return 0;
 
 	case LDAP_OPT_REFERRALS:
-		if((int) invalue == (int) LDAP_OPT_ON) {
+		if(invalue == LDAP_OPT_ON) {
 			LDAP_BOOL_SET(lo, LDAP_BOOL_REFERRALS);
 		} else {
 			LDAP_BOOL_CLR(lo, LDAP_BOOL_REFERRALS);
@@ -274,7 +274,7 @@ ldap_set_option(
 		return 0;
 
 	case LDAP_OPT_RESTART:
-		if((int) invalue == (int) LDAP_OPT_ON) {
+		if(invalue == LDAP_OPT_ON) {
 			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
 		} else {
 			LDAP_BOOL_CLR(lo, LDAP_BOOL_RESTART);
