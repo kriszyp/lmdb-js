@@ -12,10 +12,10 @@ OpenLDAP 2.0.8 Release Engineering
 	Build Environment
 		Updated top.mk
 		Added MacOS support
+		Trim experimental options
 	Documentation
 		Updated ldapdelete(1)
 		Updated ldapsearch(1)
-
 
 OpenLDAP 2.0.7 Release
 	Fixed -lldap TLS data ready bug (ITS#821)
