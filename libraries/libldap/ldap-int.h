@@ -557,7 +557,7 @@ LDAP_F (int) ldap_int_tls_config LDAP_P(( LDAP *ld,
 	int option, const char *arg ));
 
 LDAP_F (int) ldap_int_tls_start LDAP_P(( LDAP *ld,
-	LDAPConn *conn ));
+	LDAPConn *conn, LDAPURLDesc *srv ));
 
 LDAP_END_DECL
 
