@@ -678,8 +678,7 @@ send_search_entry(
 	char		*edn;
 	int		userattrs;
 	int		opattrs;
-	static AccessControlState acl_state_init = ACL_STATE_INIT;
-	AccessControlState acl_state;
+	AccessControlState acl_state = ACL_STATE_INIT;
 
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
 
@@ -855,8 +854,6 @@ send_search_entry(
 				}
 			}
 		}
-
-		acl_state = acl_state_init;
 
 		if ( ! access_allowed( be, conn, op, e, desc, NULL,
 			ACL_READ, &acl_state ) )
@@ -1040,8 +1037,6 @@ send_search_entry(
 				}
 			}
 		}
-
-		acl_state = acl_state_init;
 
 		if ( ! access_allowed( be, conn, op, e,	desc, NULL,
 			ACL_READ, &acl_state ) )

@@ -130,6 +130,9 @@ access_allowed(
 	slap_control_t control;
 	const char *attr;
 	regmatch_t matches[MAXREMATCHES];
+	int        st_same_attr = 0;
+	int        st_initialized = 0;
+	static AccessControlState state_init = ACL_STATE_INIT;
 
 	assert( e != NULL );
 	assert( desc != NULL );
@@ -139,7 +142,7 @@ access_allowed(
 
 	assert( attr != NULL );
 
-	if( state && state->as_recorded ) { 
+	if( state && state->as_recorded && state->as_vd_ad==desc) { 
 		if( state->as_recorded & ACL_STATE_RECORDED_NV &&
 			val == NULL )
 		{
@@ -150,6 +153,9 @@ access_allowed(
 		{
 			return state->as_result;
 		}
+		st_same_attr = 1;
+	} if (state) {
+		state->as_vd_ad=desc;
 	}
 
 #ifdef NEW_LOGGING
@@ -246,7 +252,7 @@ access_allowed(
 	ret = 0;
 	control = ACL_BREAK;
 
-	if( state && ( state->as_recorded & ACL_STATE_RECORDED_VD )) {
+	if( st_same_attr ) {
 		assert( state->as_vd_acl != NULL );
 
 		a = state->as_vd_acl;
@@ -288,6 +294,18 @@ access_allowed(
 #else
 			Debug( LDAP_DEBUG_ARGS, "\n", 0, 0, 0 );
 #endif
+		}
+
+		if (state) {
+			if (state->as_vi_acl == a && (state->as_recorded & ACL_STATE_RECORDED_NV)) {
+				Debug( LDAP_DEBUG_ACL, "access_allowed: result from state (%s)\n", attr, 0, 0 );
+				return state->as_result;
+			} else if (!st_initialized) {
+				Debug( LDAP_DEBUG_ACL, "access_allowed: no res from state (%s)\n", attr, 0, 0);
+			    *state = state_init;
+				state->as_vd_ad=desc;
+				st_initialized=1;
+			}
 		}
 
 vd_access:
@@ -342,6 +360,9 @@ vd_access:
 
 done:
 	if( state != NULL ) {
+		/* If not value-dependent, save ACL in case of more attrs */
+		if ( !(state->as_recorded & ACL_STATE_RECORDED_VD) )
+			state->as_vi_acl = a;
 		state->as_recorded |= ACL_STATE_RECORDED;
 		state->as_result = ret;
 	}
@@ -1200,6 +1221,7 @@ acl_check_modlist(
 )
 {
 	struct berval *bv;
+	AccessControlState state = ACL_STATE_INIT;
 
 	assert( be != NULL );
 
@@ -1254,9 +1276,6 @@ acl_check_modlist(
 	}
 
 	for ( ; mlist != NULL; mlist = mlist->sml_next ) {
-		static AccessControlState state_init = ACL_STATE_INIT;
-		AccessControlState state;
-
 		/*
 		 * no-user-modification operational attributes are ignored
 		 * by ACL_WRITE checking as any found here are not provided
@@ -1274,8 +1293,6 @@ acl_check_modlist(
 #endif
 			continue;
 		}
-
-		state = state_init;
 
 		switch ( mlist->sml_op ) {
 		case LDAP_MOD_REPLACE:
