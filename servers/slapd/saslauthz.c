@@ -98,7 +98,7 @@ static int slap_parseURI( struct berval *uri,
 		bv.bv_val = uri->bv_val + sizeof("dn:")-1;
 		bv.bv_val += strspn( bv.bv_val, " " );
 
-is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
+is_dn:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		rc = dnNormalize2( NULL, &bv, searchbase );
 		if( rc == LDAP_SUCCESS ) {

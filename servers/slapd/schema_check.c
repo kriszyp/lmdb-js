@@ -260,10 +260,9 @@ entry_schema_check(
 						if ( xc->soc_kind == LDAP_SCHEMA_AUXILIARY &&
 							is_object_subclass( oc, xc ) )
 						{
-							break;;
+							xc = NULL;
+							break;
 						}
-
-						xc = NULL;
 					}
 				}
 
