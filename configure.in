@@ -640,16 +640,21 @@ int main(argc, argv)
 				fi
 			fi
 
-dnl			dnl check for reentrant/threadsafe functions
-dnl			AC_CHECK_FUNCS(	\
-dnl				feof_unlocked \
-dnl				unlocked_feof \
-dnl				ftrylockfile \
-dnl				flockfile \
-dnl				putc_unlocked \
-dnl				gmtime_r \
-dnl				strtok_r \
-dnl			)
+			dnl check for reentrant/threadsafe functions
+			dnl
+			dnl note: these should only be used when linking
+			dnl       with $LTHREAD_LIBS
+			dnl
+			AC_CHECK_FUNCS(	\
+				feof_unlocked \
+				unlocked_feof \
+				putc_unlocked \
+				unlocked_putc \
+				ftrylockfile \
+				flockfile \
+				gmtime_r \
+				strtok_r \
+			)
 
 			dnl restore flags
 			CPPFLAGS="$save_CPPFLAGS"
