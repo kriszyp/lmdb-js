@@ -550,7 +550,7 @@ slap_modrdn2mods(
 				desc->ad_type->sat_syntax,
 				desc->ad_type->sat_equality,
 				&mod_tmp->sml_values[0],
-				&mod_tmp->sml_nvalues[0], op->o_tmpmemctx );
+				&mod_tmp->sml_nvalues[0], NULL );
 			mod_tmp->sml_nvalues[1].bv_val = NULL;
 		} else {
 			mod_tmp->sml_nvalues = NULL;
