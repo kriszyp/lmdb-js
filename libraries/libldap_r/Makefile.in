@@ -14,7 +14,8 @@ XXSRCS	= apitest.c test.c tmpltest.c extended.c \
 	free.c disptmpl.c srchpref.c dsparse.c tmplout.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
 	request.c getdxbyname.c os-ip.c url.c charset.c \
-	init.c options.c print.c string.c util-int.c schema.c
+	init.c options.c print.c string.c util-int.c schema.c \
+	charray.c digest.c
 SRCS	= thr_posix.c thr_cthreads.c thr_thr.c thr_lwp.c thr_nt.c \
 	thr_sleep.c thr_stub.c rdwr.c
 OBJS	= extended.lo \
@@ -26,7 +27,8 @@ OBJS	= extended.lo \
 	request.lo getdxbyname.lo os-ip.lo url.lo charset.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
 	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
-	thr_sleep.lo thr_stub.lo rdwr.lo	
+	thr_sleep.lo thr_stub.lo rdwr.lo \
+	charray.lo digest.lo
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

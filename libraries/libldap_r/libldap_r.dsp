@@ -144,6 +144,10 @@ SOURCE=..\libldap\cache.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\charray.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\charset.c
 # End Source File
 # Begin Source File
@@ -161,6 +165,10 @@ SOURCE=..\libldap\controls.c
 # Begin Source File
 
 SOURCE=..\libldap\delete.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\libldap\digest.c
 # End Source File
 # Begin Source File
 

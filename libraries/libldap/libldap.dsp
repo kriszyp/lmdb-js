@@ -143,6 +143,10 @@ SOURCE=.\cache.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\charray.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\charset.c
 # End Source File
 # Begin Source File
@@ -160,6 +164,10 @@ SOURCE=.\controls.c
 # Begin Source File
 
 SOURCE=.\delete.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\digest.c
 # End Source File
 # Begin Source File
 

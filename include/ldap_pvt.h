@@ -44,6 +44,35 @@ ldap_pvt_gethostbyaddr_a LDAP_P((
 	struct hostent **result,
 	int *herrno_ptr ));
 
+
+/* charray.c */
+
+LDAP_F( int )
+ldap_charray_add LDAP_P((
+    char	***a,
+    char	*s ));
+
+LDAP_F( int )
+ldap_charray_merge LDAP_P((
+    char	***a,
+    char	**s ));
+
+LDAP_F( void )
+ldap_charray_free LDAP_P(( char **a ));
+
+LDAP_F( int )
+ldap_charray_inlist LDAP_P((
+    char	**a,
+    char	*s ));
+
+LDAP_F( char ** )
+ldap_charray_dup LDAP_P(( char **a ));
+
+LDAP_F( char ** )
+ldap_str2charray LDAP_P((
+	char *str,
+	char *brkstr ));
+
 LDAP_END_DECL
 
 #endif
