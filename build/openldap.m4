@@ -352,6 +352,7 @@ main()
 		return rc;
 	}
 
+#if 0
 #ifdef DB_CDB_ALLDB
 	rc = env->set_flags( env, DB_CDB_ALLDB, 1 );
 
@@ -359,6 +360,7 @@ main()
 		printf("BerkeleyDB: %s\n", db_strerror(rc) );
 		return rc;
 	}
+#endif
 #endif
 
 #if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)

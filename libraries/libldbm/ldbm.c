@@ -224,15 +224,19 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	int     err;
 	u_int32_t	envFlags;
 
-	envFlags = 
+	envFlags = DB_CREATE |
 #if defined( DB_PRIVATE )	/* comment out DB_PRIVATE setting to use */
 	DB_PRIVATE |		/* db_stat to view cache behavior */
 #endif
-#if defined( HAVE_BERKELEY_DB_THREAD )
-	DB_THREAD |
+	DB_USE_ENVIRON;
+
+#ifdef HAVE_BERKELEY_DB_THREAD
+	envFlags |= DB_THREAD | DB_INIT_CDB | DB_INIT_MPOOL;
+#ifdef DB_MPOOL_PRIVATE
+	envFlags |= DB_MPOOL_PRIVATE;
 #endif
-	DB_CREATE;
-	
+#endif
+
 	err = db_env_create( &env, 0 );
 
 	if ( err ) {
@@ -251,7 +255,11 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	if (dbcachesize)
 		env->set_cachesize( env, 0, dbcachesize, 0 );
 
-	envFlags |= DB_INIT_MPOOL | DB_INIT_CDB | DB_USE_ENVIRON;
+#if 0
+#if defined( DB_CDB_ALLDB ) && defined( HAVE_BERKELEY_DB_THREAD )
+	env->set_flags( env, DB_CDB_ALLDB, 1 );
+#endif
+#endif
 
 #if DB_VERSION_MAJOR > 3 || DB_VERSION_MINOR > 0
 	err = env->open( env, home, envFlags, 0 );
