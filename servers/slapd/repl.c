@@ -46,6 +46,30 @@ add_replica_info(
 	return( i );
 }
 
+int
+add_replica_suffix(
+    Backend     *be,
+    int		nr,
+    const char  *suffix
+)
+{
+	char	*nsuffix = ch_strdup( suffix );
+	int 	rc = 0;
+
+	if ( dn_normalize( nsuffix ) != NULL ) {
+		if ( select_backend( nsuffix, 0 ) == be ) {
+			charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
+		} else {
+			rc = 1;
+		}
+	} else {
+		rc = 2;
+	}
+	free( nsuffix );
+
+	return( rc );
+}
+
 void
 replog(
     Backend	*be,

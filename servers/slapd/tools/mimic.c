@@ -171,5 +171,25 @@ void slap_mods_free( Modifications *ml )
 
 int add_replica_info( Backend *be, const char *host )
 {
-	return(0);
+	return 0;
+}
+
+int add_replica_suffix( Backend *be, int nr, const char *suffix )
+{
+	return 0;
+}
+
+int parse_limits( Backend *be, const char *fname, int lineno, int argc, char **argv )
+{
+	return 0;
+}
+
+int parse_limit( const char *arg, struct slap_limits_set *limit )
+{
+	return 0;
+}
+
+int get_limits( Backend *be, const char *ndn, struct slap_limits_set **limit )
+{
+	return 0;
 }

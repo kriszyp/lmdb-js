@@ -953,21 +953,19 @@ read_config( const char *fname )
 				} else {
 					for ( i = 1; i < cargc; i++ ) {
 						if ( strncasecmp( cargv[i], "suffix=", 7 ) == 0 ) {
-							char *nsuffix = ch_strdup( cargv[i] + 7 );
-							if ( dn_normalize( nsuffix ) != NULL ) {
-								if ( select_backend( nsuffix, 0 ) == be ) {
-									charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
-								} else {
-									Debug( LDAP_DEBUG_ANY,
-											"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
-											fname, lineno, cargv[i] + 7 );
-								}
-							} else {
+							switch ( add_replica_suffix( be, nr, cargv[i] + 7 ) ) {
+							case 1:
+								Debug( LDAP_DEBUG_ANY,
+										"%s: line %d: suffix \"%s\" in \"replica\" line is not valid for backend (ignored)\n",
+										fname, lineno, cargv[i] + 7 );
+								break;
+
+							case 2:
 								Debug( LDAP_DEBUG_ANY,
 										 "%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
 										 fname, lineno, 0 );
+								break;
 							}
-							free( nsuffix );
 						}
 					}
 				}
