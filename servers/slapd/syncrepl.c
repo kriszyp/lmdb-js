@@ -1032,6 +1032,11 @@ done:
 	return rc;
 }
 
+static struct berval uuidbva[] = {
+	BER_BVNULL,
+	BER_BVNULL
+};
+
 int
 syncrepl_entry(
 	syncinfo_t* si,
@@ -1185,10 +1190,26 @@ syncrepl_entry(
 
 			if ( rc != LDAP_SUCCESS ) {
 				if ( rc == LDAP_ALREADY_EXISTS ) {
+					Modifications *mod;
+					Modifications *modtail;
+
+					for ( mod = modlist; mod != NULL; mod = mod->sml_next ) {
+						modtail = mod;
+					}
+
+					mod = (Modifications *)ch_calloc(1, sizeof(Modifications));
+					ber_dupbv( &uuidbva[0], syncUUID );
+					mod->sml_op = LDAP_MOD_REPLACE;
+					mod->sml_desc = slap_schema.si_ad_entryUUID;
+					mod->sml_type = mod->sml_desc->ad_cname;
+					mod->sml_bvalues = uuidbva;
+					modtail->sml_next = mod;
+					
 					op->o_tag = LDAP_REQ_MODIFY;
 					op->orm_modlist = modlist;
 					op->o_req_dn = e->e_name;
 					op->o_req_ndn = e->e_nname;
+
 					rc = be->be_modify( op, &rs );
 					if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
