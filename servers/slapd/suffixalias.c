@@ -25,6 +25,8 @@ char *suffixAlias (char *dn, Operation *op, Backend *be)
 {
 	int 	i, dnLength;
 
+	if(dn == NULL) return NULL;
+
 	dnLength = strlen ( dn );
         op->o_suffix = NULL;
         op->o_suffixAliased = NULL;
