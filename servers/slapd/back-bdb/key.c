@@ -53,10 +53,10 @@ bdb_key_read(
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-			"bdb_key_read: %ld candidates\n", BDB_IDL_N(ids) );
+			"bdb_key_read: %ld candidates\n", (long) BDB_IDL_N(ids) ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
-	    	BDB_IDL_N(ids), 0, 0 );
+	    	(long) BDB_IDL_N(ids), 0, 0 );
 #endif
 	}
 
@@ -80,7 +80,7 @@ bdb_key_change(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
 		"key_change: %s ID %lx\n",
-		op == SLAP_INDEX_ADD_OP ? "Add" : "Delete", (long)id ));
+		op == SLAP_INDEX_ADD_OP ? "Add" : "Delete", (long) id ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> key_change(%s,%lx)\n",
 		op == SLAP_INDEX_ADD_OP ? "ADD":"DELETE", (long) id, 0 );

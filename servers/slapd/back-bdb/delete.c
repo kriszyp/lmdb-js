@@ -230,6 +230,22 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	/* delete indices for old attributes */
+	rc = bdb_index_entry_del( be, ltid, e, e->e_attrs );
+	if ( rc != LDAP_SUCCESS ) {
+		switch( rc ) {
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto retry;
+		default:
+			rc = LDAP_OTHER;
+		}
+		Debug( LDAP_DEBUG_ANY, "entry index delete failed!\n",
+			0, 0, 0 );
+		text = "entry index delete failed";
+		goto return_results;
+	}
+
 	/* delete from id2entry */
 	if ( bdb_id2entry_delete( be, ltid, e->e_id ) != 0 ) {
 		switch( rc ) {

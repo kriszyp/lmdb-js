@@ -76,11 +76,13 @@ int bdb_index_param(
 	Backend *be,
 	AttributeDescription *desc,
 	int ftype,
-	char **dbnamep,
+	DB **dbp,
 	slap_mask_t *maskp,
 	struct berval **prefixp )
 {
+	int rc;
 	slap_mask_t mask;
+	DB *db;
 	char *dbname;
 	char *atname;
 
@@ -88,6 +90,12 @@ int bdb_index_param(
 
 	if( mask == 0 ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
+	}
+
+	rc = bdb_db_cache( be, dbname, &db );
+
+	if( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
 
 	switch(ftype) {
@@ -122,7 +130,7 @@ int bdb_index_param(
 	return LDAP_INAPPROPRIATE_MATCHING;
 
 done:
-	*dbnamep = dbname;
+	*dbp = db;
 	*prefixp = ber_bvstrdup( atname );
 	*maskp = mask;
 	return LDAP_SUCCESS;
@@ -358,13 +366,13 @@ bdb_index_entry(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-		"index_entry: %s (%s)%ld\n",
+		"index_entry: %s (%s) %ld\n",
 		op == SLAP_INDEX_ADD_OP ? "add" : "del",
-		e->e_dn, e->e_id ));
+		e->e_dn, (long) e->e_id ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> index_entry_%s( %ld, \"%s\" )\n",
 		op == SLAP_INDEX_ADD_OP ? "add" : "del",
-		e->e_id, e->e_dn );
+		(long) e->e_id, e->e_dn );
 #endif
 
 	/* add each attribute to the indexes */
@@ -380,7 +388,7 @@ bdb_index_entry(
 			Debug( LDAP_DEBUG_TRACE,
 				"<= index_entry_%s( %ld, \"%s\" ) success\n",
 				op == SLAP_INDEX_ADD_OP ? "add" : "del",
-				e->e_id, e->e_dn );
+				(long) e->e_id, e->e_dn );
 #endif
 			return rc;
 		}
@@ -388,11 +396,11 @@ bdb_index_entry(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-		   "index_entry: success\n" ));
+		"index_entry: success\n" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= index_entry_%s( %ld, \"%s\" ) success\n",
 		op == SLAP_INDEX_ADD_OP ? "add" : "del",
-		e->e_id, e->e_dn );
+		(long) e->e_id, e->e_dn );
 #endif
 
 	return LDAP_SUCCESS;

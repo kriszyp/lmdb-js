@@ -42,8 +42,8 @@ LDAP_BEGIN_DECL
 
 #define BDB_SUFFIX		".bdb"
 #define BDB_NEXTID		0
-#define BDB_DN2ID		1
-#define BDB_ID2ENTRY	2
+#define BDB_ID2ENTRY	1
+#define BDB_DN2ID		2
 #define BDB_NDB			3
 
 #define BDB_INDICES		128

@@ -260,7 +260,7 @@ retry:	/* transaction retry */
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: wr to new parent OK np=%p, id=%ld\n",
-			np, np->e_id, 0 );
+			np, (long) np->e_id, 0 );
 
 		/* check newSuperior for "children" acl */
 		if ( !access_allowed( be, conn, op, np, children, NULL, ACL_WRITE ) ) {

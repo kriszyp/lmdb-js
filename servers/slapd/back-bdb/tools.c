@@ -120,7 +120,7 @@ ID bdb_tool_entry_put(
 	assert( slapMode & SLAP_TOOL_MODE );
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_put( %ld, \"%s\" )\n",
-		e->e_id, e->e_dn, 0 );
+		(long) e->e_id, e->e_dn, 0 );
 
 	rc = txn_begin( bdb->bi_dbenv, NULL, &tid, 0 );
 	if( rc != 0 ) {
@@ -222,7 +222,7 @@ int bdb_tool_entry_reindex(
 	 */
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_tool_entry_reindex( %ld, \"%s\" )\n",
-		id, e->e_dn, 0 );
+		(long) id, e->e_dn, 0 );
 
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 

@@ -60,7 +60,7 @@ bdb_referrals(
 
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-				op->o_tag, dn, matched_dn );
+				(long) op->o_tag, dn, matched_dn );
 
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
@@ -93,7 +93,7 @@ bdb_referrals(
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
-			op->o_tag, dn, e->e_dn );
+			(long) op->o_tag, dn, e->e_dn );
 
 		if( refs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,

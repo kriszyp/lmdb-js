@@ -27,7 +27,7 @@
 static void idl_check( ID *ids )
 {
 	if( BDB_IDL_IS_RANGE( ids ) ) {
-		assert( ids[1] <= ids[2] );
+		assert( BDB_IDL_RANGE_FIRST(ids) <= BDB_IDL_RANGE_LAST(ids) );
 	} else {
 		ID i;
 		for( i=1; i < ids[0]; i++ ) {
@@ -41,8 +41,9 @@ static void idl_dump( ID *ids )
 {
 	if( BDB_IDL_IS_RANGE( ids ) ) {
 		Debug( LDAP_DEBUG_ANY,
-			"IDL: range %ld - %ld\n",
-			(long) ids[1], (long) idl[2], 0 );
+			"IDL: range ( %ld - %ld )\n",
+			(long) BDB_IDL_RANGE_FIRST( ids ),
+			(long) BDB_IDL_RANGE_LAST( ids ) );
 
 	} else {
 		ID i;
@@ -52,7 +53,7 @@ static void idl_dump( ID *ids )
 			if( i % 16 == 1 ) {
 				Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
 			}
-			Debug( LDAP_DEBUG_ANY, "  %02lx", ids[i], 0, 0 );
+			Debug( LDAP_DEBUG_ANY, "  %02lx", (long) ids[i], 0, 0 );
 		}
 
 		Debug( LDAP_DEBUG_ANY, "\n", 0, 0, 0 );
@@ -127,7 +128,7 @@ static int idl_insert( ID *ids, ID id )
 	unsigned x = bdb_idl_search( ids, id );
 
 #if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", id, x, 0 );
+	Debug( LDAP_DEBUG_ANY, "insert: %04lx at %d\n", (long) id, x, 0 );
 	idl_dump( ids );
 #elif IDL_DEBUG > 0
 	idl_check( ids );
@@ -176,7 +177,7 @@ static int idl_delete( ID *ids, ID id )
 	unsigned x = bdb_idl_search( ids, id );
 
 #if IDL_DEBUG > 1
-	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", id, x, 0 );
+	Debug( LDAP_DEBUG_ANY, "delete: %04lx at %d\n", (long) id, x, 0 );
 	idl_dump( ids );
 #elif IDL_DEBUG > 0
 	idl_check( ids );
@@ -226,11 +227,35 @@ bdb_idl_fetch_key(
 
 	DBTzero( &data );
 	data.data = ids;
-	data.ulen = BDB_IDL_SIZE * sizeof( ID );
+	data.ulen = BDB_IDL_UM_SIZEOF;
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch it */
 	rc = db->get( db, tid, key, &data, 0 );
+
+	if( rc == DB_NOTFOUND ) {
+		return rc;
+
+	} else if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+			"get failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+		return rc;
+
+	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
+		/* size not multiple of ID size */
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+			"odd size: expected %ld multiple, got %ld\n",
+			(long) sizeof( ID ), (long) data.size, 0 );
+		return -1;
+
+	} else if ( data.size != BDB_IDL_SIZEOF(ids) ) {
+		/* size mismatch */
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
+			"get size mismatch: expected %ld, got %ld\n",
+			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
+		return -1;
+	}
 
 	return rc;
 }
@@ -255,7 +280,7 @@ bdb_idl_insert_key(
 	assert( id != NOID );
 
 	data.data = ids;
-	data.ulen = sizeof( ids );
+	data.ulen = sizeof ids;
 	data.flags = DB_DBT_USERMEM;
 
 	/* fetch the key for read/modify/write */
@@ -267,18 +292,25 @@ bdb_idl_insert_key(
 		data.size = 2 * sizeof( ID );
 
 	} else if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_insert_key: get failed: %s (%d)\n",
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+			"get failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
 
 	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
 		/* size not multiple of ID size */
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_insert_key: odd size: expected %ld multiple, got %ld\n",
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+			"odd size: expected %ld multiple, got %ld\n",
 			(long) sizeof( ID ), (long) data.size, 0 );
 		return -1;
 	
+	} else if ( data.size != BDB_IDL_SIZEOF(ids) ) {
+		/* size mismatch */
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+			"get size mismatch: expected %ld, got %ld\n",
+			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
+		return -1;
+
 	} else if ( BDB_IDL_IS_RANGE(ids) ) {
 		if( id < ids[1] ) {
 			ids[1] = id;
@@ -288,36 +320,25 @@ bdb_idl_insert_key(
 			return 0;
 		}
 
-	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {
-		/* size mismatch */
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_insert_key: get size mismatch: expected %ld, got %ld\n",
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-		return -1;
-
 	} else {
 		rc = idl_insert( ids, id );
 
 		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_idl_insert_key: idl_insert failed (%d)\n",
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+				"idl_insert failed (%d)\n",
 				rc, 0, 0 );
 			return rc;
 		}
 
-		if( BDB_IDL_IS_RANGE( ids ) ) {
-			data.size = BDB_IDL_RANGE_SIZE;
-		} else {
-			data.size = (ids[0]+1) * sizeof( ID );
-		}
+		data.size = BDB_IDL_SIZEOF( ids );
 	}
 
 	/* store the key */
 	rc = db->put( db, tid, key, &data, 0 );
 
 	if( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_insert_key: get failed: %s (%d)\n",
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
+			"put failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 	}
 	return rc;
@@ -350,15 +371,15 @@ bdb_idl_delete_key(
 	rc = db->get( db, tid, key, &data, DB_RMW );
 
 	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_delete_key: get failed: %s (%d)\n",
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
+			"get failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		return rc;
 
 	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
 		/* size not multiple of ID size */
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_delete_key: odd size: expected %ld multiple, got %ld\n",
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
+			"odd size: expected %ld multiple, got %ld\n",
 			(long) sizeof( ID ), (long) data.size, 0 );
 		return -1;
 	
@@ -367,8 +388,8 @@ bdb_idl_delete_key(
 
 	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {
 		/* size mismatch */
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_delete_key: get size mismatch: expected %ld, got %ld\n",
+		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
+			"get size mismatch: expected %ld, got %ld\n",
 			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
 		return -1;
 
@@ -376,8 +397,8 @@ bdb_idl_delete_key(
 		rc = idl_delete( ids, id );
 
 		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_idl_delete_key: idl_delete failed (%d)\n",
+			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
+				"idl_delete failed (%d)\n",
 				rc, 0, 0 );
 			return rc;
 		}
@@ -386,8 +407,8 @@ bdb_idl_delete_key(
 			/* delete the key */
 			rc = db->del( db, tid, key, 0 );
 			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"=> bdb_idl_delete_key: delete failed: %s (%d)\n",
+				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
+					"delete failed: %s (%d)\n",
 					db_strerror(rc), rc, 0 );
 			}
 			return rc;
@@ -509,7 +530,7 @@ bdb_idl_union(
 	ids[0] = 0;
 
 	while( ida != NOID && idb != NOID ) {
-		if( ++ids[0] > BDB_IDL_MAX ) {
+		if( ++ids[0] > BDB_IDL_UM_MAX ) {
 			ids[0] = NOID;
 			ids[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
 			break;

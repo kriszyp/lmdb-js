@@ -113,7 +113,6 @@ void bdb_errcall( const char *pfx, char * msg );
  */
 int bdb_filter_candidates(
 	Backend	*be,
-	ID *range,
 	Filter	*f,
 	ID *ids );
 
@@ -197,7 +196,7 @@ bdb_index_param LDAP_P((
 	Backend *be,
 	AttributeDescription *desc,
 	int ftype,
-	char **dbname,
+	DB **db,
 	slap_mask_t *mask,
 	struct berval **prefix ));
 

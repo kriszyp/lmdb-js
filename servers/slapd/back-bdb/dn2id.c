@@ -26,7 +26,7 @@ bdb_dn2id_add(
 	DB *db = bdb->bi_dn2id->bdi_db;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
-		dn, id, 0 );
+		dn, (long) id, 0 );
 	assert( id != NOID );
 
 	DBTzero( &key );
@@ -294,7 +294,7 @@ bdb_dn2id_matched(
 
 			Debug( LDAP_DEBUG_TRACE,
 				"<= bdb_dn2id_matched: id=0x%08lx: %s %s\n",
-				*id, *matchedDN == NULL ? "entry" : "matched", dn );
+				(long) *id, *matchedDN == NULL ? "entry" : "matched", dn );
 			break;
 
 		} else {
@@ -382,13 +382,14 @@ bdb_dn2idl(
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_dn2idl: get failed: %s (%d)\n",
 			db_strerror( rc ), rc, 0 );
+
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
 			"<= bdb_dn2idl: id=%ld first=%ld last=%ld\n",
-			ids[0], BDB_IDL_FIRST( ids ), BDB_IDL_LAST( ids ) );
+			(long) ids[0],
+			(long) BDB_IDL_FIRST( ids ), (long) BDB_IDL_LAST( ids ) );
 	}
 
 	ch_free( key.data );
 	return rc;
 }
-

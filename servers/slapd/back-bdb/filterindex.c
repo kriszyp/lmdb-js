@@ -98,7 +98,7 @@ bdb_filter_candidates(
 		break;
 
 	case LDAP_FILTER_NOT: {
-			ID tmp[BDB_IDL_SIZE];
+			ID tmp[BDB_IDL_UM_SIZE];
 
 			Debug( LDAP_DEBUG_FILTER, "\tNOT\n", 0, 0, 0 );
 			rc = bdb_filter_candidates( be, range, f->f_not, tmp );
@@ -130,8 +130,9 @@ bdb_filter_candidates(
 
 	Debug( LDAP_DEBUG_FILTER,
 		"<= bdb_filter_candidates: id=%ld first=%ld last=%ld\n",
-		ids[0], ids[1],
-		BDB_IDL_IS_RANGE( ids ) ? ids[2] : ids[ids[0]] );
+		(long) ids[0],
+		(long) BDB_IDL_FIRST( ids ),
+		(long) BDB_IDL_LAST( ids ) );
 
 	return 0;
 }
@@ -156,8 +157,8 @@ list_candidates(
 	}
 
 	for ( f = flist; f != NULL; f = f->f_next ) {
-		ID tmp[BDB_IDL_SIZE];
-		ID result[BDB_IDL_SIZE];
+		ID tmp[BDB_IDL_UM_SIZE];
+		ID result[BDB_IDL_UM_SIZE];
 		rc = bdb_filter_candidates( be, range, f, tmp );
 
 		if ( rc != 0 ) {
@@ -189,7 +190,9 @@ list_candidates(
 
 	Debug( LDAP_DEBUG_FILTER,
 		"<= bdb_list_candidates: id=%ld first=%ld last=%ld\n",
-		ids[0], BDB_IDL_FIRST(ids), BDB_IDL_LAST(ids) );
+		(long) ids[0],
+		(long) BDB_IDL_FIRST(ids),
+		(long) BDB_IDL_LAST(ids) );
 	return 0;
 }
 
@@ -249,7 +252,9 @@ presence_candidates(
 
 	Debug(LDAP_DEBUG_TRACE,
 		"<= bdb_presence_candidates: id=%ld first=%ld last=%ld\n",
-		ids[0], BDB_IDL_FIRST(ids), BDB_IDL_LAST(ids) );
+		(long) ids[0],
+		(long) BDB_IDL_FIRST(ids),
+		(long) BDB_IDL_LAST(ids) );
 
 done:
 	ber_bvfree( prefix );
@@ -323,8 +328,8 @@ equality_candidates(
 	}
 
 	for ( i= 0; keys[i] != NULL; i++ ) {
-		ID save[BDB_IDL_SIZE];
-		ID tmp[BDB_IDL_SIZE];
+		ID save[BDB_IDL_UM_SIZE];
+		ID tmp[BDB_IDL_UM_SIZE];
 
 		rc = bdb_key_read( be, db, keys[i], tmp );
 
@@ -353,8 +358,10 @@ equality_candidates(
 	ber_bvecfree( keys );
 
 	Debug( LDAP_DEBUG_TRACE,
-		"<= bdb_equality_candidates %ld\n",
-		ids[0], BDB_IDL_FIRST(ids), BDB_IDL_LAST(ids) );
+		"<= bdb_equality_candidates id=%ld, first=%ld, last=%ld\n",
+		(long) ids[0],
+		(long) BDB_IDL_FIRST(ids),
+		(long) BDB_IDL_LAST(ids) );
 	return( idl );
 }
 
@@ -467,8 +474,10 @@ approx_candidates(
 
 	ber_bvecfree( keys );
 
-	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld\n",
-		ids[0], BDB_IDL_FIRST(ids), BDB_IDL_LAST(ids) );
+	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld, first=%ld, last=%ld\n",
+		(long) ids[0],
+		(long) BDB_IDL_FIRST(ids),
+		(long) BDB_IDL_LAST(ids) );
 
 	return( idl );
 }
@@ -589,8 +598,10 @@ substring_candidates(
 
 	ber_bvecfree( keys );
 
-	Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates %ld\n",
-		ids[0], BDB_IDL_FIRST(ids), BDB_IDL_LAST(ids) );
+	Debug( LDAP_DEBUG_TRACE, "<= substrings_candidates %ld, first=%ld, last=%ld\n",
+		(long) ids[0],
+		(long) BDB_IDL_FIRST(ids),
+		(long) BDB_IDL_LAST(ids) );
 
 	return( idl );
 }

@@ -49,7 +49,7 @@ bdb_search(
 	const char *text = NULL;
 	time_t		stoptime;
 	ID		id, cursor;
-	ID		candidates[BDB_IDL_SIZE];
+	ID		candidates[BDB_IDL_UM_SIZE];
 	Entry		*e = NULL;
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
@@ -273,7 +273,7 @@ bdb_search(
 				/* only complain for non-range IDLs */
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: candidate %ld not found\n",
-					id, 0, 0 );
+					(long) id, 0, 0 );
 			}
 
 			goto loop_continue;
@@ -397,12 +397,12 @@ bdb_search(
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: %ld scope not okay\n",
-					id, 0, 0 );
+					(long) id, 0, 0 );
 			}
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
 				"bdb_search: %ld does match filter\n",
-				id, 0, 0 );
+				(long) id, 0, 0 );
 		}
 
 loop_continue:
@@ -501,20 +501,17 @@ static int search_candidates(
 
 
 #ifdef BDB_FILTER_INDICES
-	{
-		ID range[3];
-		BDB_IDL_ID( bdb, range, e->e_id );
-		rc = bdb_filter_candidates( be, range, &f, ids );
-	}
+	rc = bdb_filter_candidates( be, &f, ids );
 #else
 	BDB_IDL_ID( bdb, ids, e->e_id );
 	rc = 0;
 #endif
 
 	Debug(LDAP_DEBUG_TRACE,
-		"search_candidates: id=%ld first=%ld last=%ld\n",
-		ids[0], ids[1],
-		BDB_IDL_IS_RANGE( ids ) ? ids[2] : ids[ids[0]] );
+		"bdb_search_candidates: id=%ld first=%ld last=%ld\n",
+		(long) ids[0],
+		(long) BDB_IDL_FIRST(ids),
+		(long) BDB_IDL_LAST(ids) );
 
 	return rc;
 }

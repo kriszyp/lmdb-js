@@ -20,8 +20,8 @@ static struct bdbi_database {
 	int flags;
 } bdbi_databases[] = {
 	{ "nextid" BDB_SUFFIX, "nextid", DB_BTREE, 0 },
-	{ "dn2entry" BDB_SUFFIX, "dn2entry", DB_BTREE, 0 },
 	{ "id2entry" BDB_SUFFIX, "id2entry", DB_BTREE, 0 },
+	{ "dn2id" BDB_SUFFIX, "dn2id", DB_BTREE, 0 },
 	{ NULL, NULL, 0, 0 }
 };
 
