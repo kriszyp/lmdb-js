@@ -15,6 +15,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "ldif.h"
 
 static unsigned char	*ebuf;	/* buf returned by entry2str		 */
 static unsigned char	*ecur;	/* pointer to end of currently used ebuf */

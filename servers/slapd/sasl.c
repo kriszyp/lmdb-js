@@ -9,11 +9,10 @@
 #include <ac/stdlib.h>
 #include <stdio.h>
 
-#include "slap.h"
-#include "proto-slap.h"
-
 #include <lber.h>
 #include <ldap_log.h>
+
+#include "slap.h"
 
 #ifdef HAVE_CYRUS_SASL
 #include <limits.h>
@@ -24,6 +23,7 @@
 #ifdef SLAPD_SPASSWD
 #include <lutil.h>
 #endif
+
 
 static sasl_security_properties_t sasl_secprops;
 

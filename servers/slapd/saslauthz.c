@@ -15,20 +15,15 @@
 #include <ac/stdlib.h>
 #include <stdio.h>
 
-#include "slap.h"
-#include "proto-slap.h"
-
 #include <ac/string.h>
+
+#include "slap.h"
 
 #ifdef HAVE_CYRUS_SASL
 #include <limits.h>
 #include <sasl.h>
 #include <ldap_pvt.h>
 #endif
-
-
-
-
 
 /* URI format:	ldap://<host>/<base>[?[<attrs>][?[<scope>][?[<filter>]]]]   */
 

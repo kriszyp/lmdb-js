@@ -18,6 +18,7 @@
 #endif
 
 #include "slap.h"
+#include "ldif.h"
 
 int
 add_replica_info(
