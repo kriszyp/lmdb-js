@@ -393,6 +393,9 @@
 /* Define if you have the <locale.h> header file.  */
 #undef HAVE_LOCALE_H
 
+/* Define if you have the <ltdl.h> header file.  */
+#undef HAVE_LTDL_H
+
 /* Define if you have the <lwp/lwp.h> header file.  */
 #undef HAVE_LWP_LWP_H
 
@@ -551,6 +554,9 @@
 
 /* Define if you have the inet library (-linet).  */
 #undef HAVE_LIBINET
+
+/* Define if you have the ltdl library (-lltdl).  */
+#undef HAVE_LIBLTDL
 
 /* Define if you have the net library (-lnet).  */
 #undef HAVE_LIBNET
