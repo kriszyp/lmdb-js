@@ -2,9 +2,13 @@ OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.16 Engineering
 	Fixed CR/LF handling (ITS#1328)
-	Fixed slapd/slurpd max args bug (ITS#1343)
+	Fixed slapd/slurpd maxargs bug (ITS#1343)
+	Fixed slapd ManageDSAIT warning
 	Fixed slurpd server down reject fix (ITS#1183)
 	Fixed -llber ber_realloc bug (ITS#1346)
+	Build environment
+		Updated slapd.conf with ACL example
+		Updated pthread detection
 
 OpenLDAP 2.0.15 Release
 	Fixed -lldap TLS external handling

@@ -41,6 +41,11 @@ ldap_pvt_thread_set_concurrency LDAP_P(( int ));
 #define LDAP_PVT_THREAD_CREATE_JOINABLE 0
 #define LDAP_PVT_THREAD_CREATE_DETACHED 1
 
+#ifndef LDAP_PVT_THREAD_STACK_SIZE
+	/* larger stack */
+#define LDAP_PVT_THREAD_STACK_SIZE	(4*1024*1024)
+#endif
+
 LDAP_F( int ) 
 ldap_pvt_thread_create LDAP_P((
 	ldap_pvt_thread_t * thread, 

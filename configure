@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.223.2.32 2001/09/18 16:12:10 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.223.2.33 2001/09/26 19:20:24 kurt Exp  
 
 # Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -7148,48 +7148,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:7193: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:7214: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_create=yes
 else
@@ -7201,7 +7222,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 7205 "configure"
+#line 7226 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7224,49 +7245,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:7270: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:7312: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_create=yes
 else
@@ -7291,7 +7333,7 @@ echo "$ac_t""$ol_cv_pthread_create" 1>&6
 if test "$ol_link_threads" = no ; then
 	# try -kthread
 	echo $ac_n "checking for pthread link with -kthread""... $ac_c" 1>&6
-echo "configure:7295: checking for pthread link with -kthread" >&5
+echo "configure:7337: checking for pthread link with -kthread" >&5
 if eval "test \"\${ol_cv_pthread_kthread+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -7302,7 +7344,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 7306 "configure"
+#line 7348 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7321,48 +7363,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:7366: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:7429: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_kthread=yes
 else
@@ -7374,7 +7437,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 7378 "configure"
+#line 7441 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7397,49 +7460,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:7443: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:7527: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_kthread=yes
 else
@@ -7469,7 +7553,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -pthread
 	echo $ac_n "checking for pthread link with -pthread""... $ac_c" 1>&6
-echo "configure:7473: checking for pthread link with -pthread" >&5
+echo "configure:7557: checking for pthread link with -pthread" >&5
 if eval "test \"\${ol_cv_pthread_pthread+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -7480,7 +7564,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 7484 "configure"
+#line 7568 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7499,48 +7583,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:7544: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:7649: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_pthread=yes
 else
@@ -7552,7 +7657,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 7556 "configure"
+#line 7661 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7575,49 +7680,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:7621: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:7747: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_pthread=yes
 else
@@ -7647,7 +7773,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -pthreads
 	echo $ac_n "checking for pthread link with -pthreads""... $ac_c" 1>&6
-echo "configure:7651: checking for pthread link with -pthreads" >&5
+echo "configure:7777: checking for pthread link with -pthreads" >&5
 if eval "test \"\${ol_cv_pthread_pthreads+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -7658,7 +7784,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 7662 "configure"
+#line 7788 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7677,48 +7803,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:7722: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:7869: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_pthreads=yes
 else
@@ -7730,7 +7877,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 7734 "configure"
+#line 7881 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7753,49 +7900,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:7799: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:7967: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_pthreads=yes
 else
@@ -7825,7 +7993,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -mthreads
 	echo $ac_n "checking for pthread link with -mthreads""... $ac_c" 1>&6
-echo "configure:7829: checking for pthread link with -mthreads" >&5
+echo "configure:7997: checking for pthread link with -mthreads" >&5
 if eval "test \"\${ol_cv_pthread_mthreads+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -7836,7 +8004,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 7840 "configure"
+#line 8008 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7855,48 +8023,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:7900: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:8089: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_mthreads=yes
 else
@@ -7908,7 +8097,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 7912 "configure"
+#line 8101 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -7931,49 +8120,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:7977: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:8187: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_mthreads=yes
 else
@@ -8003,7 +8213,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -thread
 	echo $ac_n "checking for pthread link with -thread""... $ac_c" 1>&6
-echo "configure:8007: checking for pthread link with -thread" >&5
+echo "configure:8217: checking for pthread link with -thread" >&5
 if eval "test \"\${ol_cv_pthread_thread+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -8014,7 +8224,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 8018 "configure"
+#line 8228 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8033,48 +8243,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:8078: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:8309: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_thread=yes
 else
@@ -8086,7 +8317,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 8090 "configure"
+#line 8321 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8109,49 +8340,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:8155: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:8407: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_thread=yes
 else
@@ -8182,7 +8434,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthread -lmach -lexc -lc_r
 	echo $ac_n "checking for pthread link with -lpthread -lmach -lexc -lc_r""... $ac_c" 1>&6
-echo "configure:8186: checking for pthread link with -lpthread -lmach -lexc -lc_r" >&5
+echo "configure:8438: checking for pthread link with -lpthread -lmach -lexc -lc_r" >&5
 if eval "test \"\${ol_cv_pthread_lpthread_lmach_lexc_lc_r+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -8193,7 +8445,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 8197 "configure"
+#line 8449 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8212,48 +8464,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:8257: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:8530: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lpthread_lmach_lexc_lc_r=yes
 else
@@ -8265,7 +8538,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 8269 "configure"
+#line 8542 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8288,49 +8561,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:8334: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:8628: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthread_lmach_lexc_lc_r=yes
 else
@@ -8360,7 +8654,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthread -lmach -lexc
 	echo $ac_n "checking for pthread link with -lpthread -lmach -lexc""... $ac_c" 1>&6
-echo "configure:8364: checking for pthread link with -lpthread -lmach -lexc" >&5
+echo "configure:8658: checking for pthread link with -lpthread -lmach -lexc" >&5
 if eval "test \"\${ol_cv_pthread_lpthread_lmach_lexc+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -8371,7 +8665,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 8375 "configure"
+#line 8669 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8390,48 +8684,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:8435: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:8750: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lpthread_lmach_lexc=yes
 else
@@ -8443,7 +8758,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 8447 "configure"
+#line 8762 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8466,49 +8781,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:8512: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:8848: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthread_lmach_lexc=yes
 else
@@ -8539,7 +8875,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthread -Wl,-woff,85
 	echo $ac_n "checking for pthread link with -lpthread -Wl,-woff,85""... $ac_c" 1>&6
-echo "configure:8543: checking for pthread link with -lpthread -Wl,-woff,85" >&5
+echo "configure:8879: checking for pthread link with -lpthread -Wl,-woff,85" >&5
 if eval "test \"\${ol_cv_pthread_lib_lpthread_woff+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -8550,7 +8886,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 8554 "configure"
+#line 8890 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8569,48 +8905,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:8614: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:8971: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lib_lpthread_woff=yes
 else
@@ -8622,7 +8979,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 8626 "configure"
+#line 8983 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8645,49 +9002,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:8691: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:9069: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lib_lpthread_woff=yes
 else
@@ -8718,7 +9096,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthread
 	echo $ac_n "checking for pthread link with -lpthread""... $ac_c" 1>&6
-echo "configure:8722: checking for pthread link with -lpthread" >&5
+echo "configure:9100: checking for pthread link with -lpthread" >&5
 if eval "test \"\${ol_cv_pthread_lpthread+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -8729,7 +9107,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 8733 "configure"
+#line 9111 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8748,48 +9126,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:8793: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:9192: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lpthread=yes
 else
@@ -8801,7 +9200,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 8805 "configure"
+#line 9204 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8824,49 +9223,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:8870: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:9290: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthread=yes
 else
@@ -8896,7 +9316,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lc_r
 	echo $ac_n "checking for pthread link with -lc_r""... $ac_c" 1>&6
-echo "configure:8900: checking for pthread link with -lc_r" >&5
+echo "configure:9320: checking for pthread link with -lc_r" >&5
 if eval "test \"\${ol_cv_pthread_lc_r+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -8907,7 +9327,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 8911 "configure"
+#line 9331 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -8926,48 +9346,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:8971: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:9412: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lc_r=yes
 else
@@ -8979,7 +9420,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 8983 "configure"
+#line 9424 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9002,49 +9443,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:9048: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:9510: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lc_r=yes
 else
@@ -9075,7 +9537,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -threads
 	echo $ac_n "checking for pthread link with -threads""... $ac_c" 1>&6
-echo "configure:9079: checking for pthread link with -threads" >&5
+echo "configure:9541: checking for pthread link with -threads" >&5
 if eval "test \"\${ol_cv_pthread_threads+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -9086,7 +9548,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 9090 "configure"
+#line 9552 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9105,48 +9567,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:9150: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:9633: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_threads=yes
 else
@@ -9158,7 +9641,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 9162 "configure"
+#line 9645 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9181,49 +9664,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:9227: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:9731: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_threads=yes
 else
@@ -9254,7 +9758,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthreads -lmach -lexc -lc_r
 	echo $ac_n "checking for pthread link with -lpthreads -lmach -lexc -lc_r""... $ac_c" 1>&6
-echo "configure:9258: checking for pthread link with -lpthreads -lmach -lexc -lc_r" >&5
+echo "configure:9762: checking for pthread link with -lpthreads -lmach -lexc -lc_r" >&5
 if eval "test \"\${ol_cv_pthread_lpthreads_lmach_lexc_lc_r+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -9265,7 +9769,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 9269 "configure"
+#line 9773 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9284,48 +9788,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:9329: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:9854: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lpthreads_lmach_lexc_lc_r=yes
 else
@@ -9337,7 +9862,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 9341 "configure"
+#line 9866 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9360,49 +9885,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:9406: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:9952: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthreads_lmach_lexc_lc_r=yes
 else
@@ -9432,7 +9978,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthreads -lmach -lexc
 	echo $ac_n "checking for pthread link with -lpthreads -lmach -lexc""... $ac_c" 1>&6
-echo "configure:9436: checking for pthread link with -lpthreads -lmach -lexc" >&5
+echo "configure:9982: checking for pthread link with -lpthreads -lmach -lexc" >&5
 if eval "test \"\${ol_cv_pthread_lpthreads_lmach_lexc+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -9443,7 +9989,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 9447 "configure"
+#line 9993 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9462,48 +10008,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:9507: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10074: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lpthreads_lmach_lexc=yes
 else
@@ -9515,7 +10082,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 9519 "configure"
+#line 10086 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9538,49 +10105,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:9584: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:10172: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthreads_lmach_lexc=yes
 else
@@ -9610,7 +10198,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthreads -lexc
 	echo $ac_n "checking for pthread link with -lpthreads -lexc""... $ac_c" 1>&6
-echo "configure:9614: checking for pthread link with -lpthreads -lexc" >&5
+echo "configure:10202: checking for pthread link with -lpthreads -lexc" >&5
 if eval "test \"\${ol_cv_pthread_lpthreads_lexc+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -9621,7 +10209,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 9625 "configure"
+#line 10213 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9640,48 +10228,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:9685: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10294: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lpthreads_lexc=yes
 else
@@ -9693,7 +10302,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 9697 "configure"
+#line 10306 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9716,49 +10325,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:9762: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:10392: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lpthreads_lexc=yes
 else
@@ -9789,7 +10419,7 @@ fi
 if test "$ol_link_threads" = no ; then
 	# try -lpthreads
 	echo $ac_n "checking for pthread link with -lpthreads""... $ac_c" 1>&6
-echo "configure:9793: checking for pthread link with -lpthreads" >&5
+echo "configure:10423: checking for pthread link with -lpthreads" >&5
 if eval "test \"\${ol_cv_pthread_lib_lpthreads+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -9800,7 +10430,7 @@ else
 
 		if test "$cross_compiling" = yes; then
   cat > conftest.$ac_ext <<EOF
-#line 9804 "configure"
+#line 10434 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9819,48 +10449,69 @@ int main() {
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 ; return 0; }
 EOF
-if { (eval echo configure:9864: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10515: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_pthread_lib_lpthreads=yes
 else
@@ -9872,7 +10523,7 @@ fi
 rm -f conftest*
 else
   cat > conftest.$ac_ext <<EOF
-#line 9876 "configure"
+#line 10527 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -9895,49 +10546,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:9941: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:10613: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_lib_lpthreads=yes
 else
@@ -9979,12 +10651,12 @@ EOF
 												for ac_func in sched_yield pthread_yield
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:9983: checking for $ac_func" >&5
+echo "configure:10655: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 9988 "configure"
+#line 10660 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -10008,7 +10680,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:10012: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10684: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -10036,7 +10708,7 @@ done
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
 								echo $ac_n "checking for sched_yield in -lrt""... $ac_c" 1>&6
-echo "configure:10040: checking for sched_yield in -lrt" >&5
+echo "configure:10712: checking for sched_yield in -lrt" >&5
 ac_lib_var=`echo rt'_'sched_yield | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10044,7 +10716,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lrt  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 10048 "configure"
+#line 10720 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -10055,7 +10727,7 @@ int main() {
 sched_yield()
 ; return 0; }
 EOF
-if { (eval echo configure:10059: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10731: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -10087,12 +10759,12 @@ fi
 												for ac_func in thr_yield
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:10091: checking for $ac_func" >&5
+echo "configure:10763: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10096 "configure"
+#line 10768 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -10116,7 +10788,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:10120: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10792: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -10150,12 +10822,12 @@ done
 						for ac_func in pthread_kill pthread_rwlock_destroy
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:10154: checking for $ac_func" >&5
+echo "configure:10826: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10159 "configure"
+#line 10831 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -10179,7 +10851,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:10183: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10855: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -10205,13 +10877,13 @@ done
 
 
 									echo $ac_n "checking for pthread_detach with <pthread.h>""... $ac_c" 1>&6
-echo "configure:10209: checking for pthread_detach with <pthread.h>" >&5
+echo "configure:10881: checking for pthread_detach with <pthread.h>" >&5
 if eval "test \"\${ol_cv_func_pthread_detach+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 								cat > conftest.$ac_ext <<EOF
-#line 10215 "configure"
+#line 10887 "configure"
 #include "confdefs.h"
 
 #include <pthread.h>
@@ -10223,7 +10895,7 @@ int main() {
 pthread_detach(NULL);
 ; return 0; }
 EOF
-if { (eval echo configure:10227: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10899: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_func_pthread_detach=yes
 else
@@ -10255,12 +10927,12 @@ EOF
 			
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:10259: checking for $ac_func" >&5
+echo "configure:10931: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10264 "configure"
+#line 10936 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -10284,7 +10956,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:10288: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:10960: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -10313,12 +10985,12 @@ done
 	for ac_func in pthread_kill_other_threads_np
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:10317: checking for $ac_func" >&5
+echo "configure:10989: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10322 "configure"
+#line 10994 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -10342,7 +11014,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:10346: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11018: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -10367,7 +11039,7 @@ fi
 done
 
 	echo $ac_n "checking for LinuxThreads implementation""... $ac_c" 1>&6
-echo "configure:10371: checking for LinuxThreads implementation" >&5
+echo "configure:11043: checking for LinuxThreads implementation" >&5
 if eval "test \"\${ol_cv_sys_linux_threads+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -10380,7 +11052,7 @@ echo "$ac_t""$ol_cv_sys_linux_threads" 1>&6
 	
 	
 	echo $ac_n "checking for LinuxThreads consistency""... $ac_c" 1>&6
-echo "configure:10384: checking for LinuxThreads consistency" >&5
+echo "configure:11056: checking for LinuxThreads consistency" >&5
 if eval "test \"\${ol_cv_linux_threads+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -10405,7 +11077,7 @@ echo "$ac_t""$ol_cv_linux_threads" 1>&6
 			fi
 
 			echo $ac_n "checking if pthread_create() works""... $ac_c" 1>&6
-echo "configure:10409: checking if pthread_create() works" >&5
+echo "configure:11081: checking if pthread_create() works" >&5
 if eval "test \"\${ol_cv_pthread_create_works+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -10414,7 +11086,7 @@ else
   				ol_cv_pthread_create_works=yes
 else
   cat > conftest.$ac_ext <<EOF
-#line 10418 "configure"
+#line 11090 "configure"
 #include "confdefs.h"
 /* pthread test headers */
 #include <pthread.h>
@@ -10437,49 +11109,70 @@ int main(argc, argv)
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 
 }
 
 EOF
-if { (eval echo configure:10483: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:11176: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_create_works=yes
 else
@@ -10501,7 +11194,7 @@ echo "$ac_t""$ol_cv_pthread_create_works" 1>&6
 
 						if test $ol_with_yielding_select = auto ; then
 				echo $ac_n "checking if select yields when using pthreads""... $ac_c" 1>&6
-echo "configure:10505: checking if select yields when using pthreads" >&5
+echo "configure:11198: checking if select yields when using pthreads" >&5
 if eval "test \"\${ol_cv_pthread_select_yields+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -10510,7 +11203,7 @@ else
   ol_cv_pthread_select_yields=cross
 else
   cat > conftest.$ac_ext <<EOF
-#line 10514 "configure"
+#line 11207 "configure"
 #include "confdefs.h"
 
 #include <sys/types.h>
@@ -10586,7 +11279,7 @@ int main(argc, argv)
 	exit(2);
 }
 EOF
-if { (eval echo configure:10590: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:11283: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_pthread_select_yields=no
 else
@@ -10614,7 +11307,7 @@ echo "$ac_t""$ol_cv_pthread_select_yields" 1>&6
 						CPPFLAGS="$save_CPPFLAGS"
 			LIBS="$save_LIBS"
 		else
-			{ echo "configure: error: could not link with POSIX Threads" 1>&2; exit 1; }
+			{ echo "configure: error: could not locate usable POSIX Threads" 1>&2; exit 1; }
 		fi
 	fi
 
@@ -10630,17 +11323,17 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:10634: checking for $ac_hdr" >&5
+echo "configure:11327: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10639 "configure"
+#line 11332 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:10644: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:11337: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -10670,12 +11363,12 @@ done
 		ol_with_threads=found
 
 				echo $ac_n "checking for cthread_fork""... $ac_c" 1>&6
-echo "configure:10674: checking for cthread_fork" >&5
+echo "configure:11367: checking for cthread_fork" >&5
 if eval "test \"\${ac_cv_func_cthread_fork+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10679 "configure"
+#line 11372 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char cthread_fork(); below.  */
@@ -10699,7 +11392,7 @@ f = cthread_fork;
 
 ; return 0; }
 EOF
-if { (eval echo configure:10703: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11396: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_cthread_fork=yes"
 else
@@ -10721,7 +11414,7 @@ fi
 
 		if test $ol_link_threads = no ; then
 									echo $ac_n "checking for cthread_fork with -all_load""... $ac_c" 1>&6
-echo "configure:10725: checking for cthread_fork with -all_load" >&5
+echo "configure:11418: checking for cthread_fork with -all_load" >&5
 if eval "test \"\${ol_cv_cthread_all_load+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -10729,7 +11422,7 @@ else
 								save_LIBS="$LIBS"
 				LIBS="-all_load $LIBS"
 				cat > conftest.$ac_ext <<EOF
-#line 10733 "configure"
+#line 11426 "configure"
 #include "confdefs.h"
 #include <mach/cthreads.h>
 int main() {
@@ -10738,7 +11431,7 @@ int main() {
 					
 ; return 0; }
 EOF
-if { (eval echo configure:10742: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11435: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_cthread_all_load=yes
 else
@@ -10783,17 +11476,17 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:10787: checking for $ac_hdr" >&5
+echo "configure:11480: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10792 "configure"
+#line 11485 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:10797: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:11490: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -10822,7 +11515,7 @@ done
 
 	if test $ac_cv_header_pth_h = yes ; then
 		echo $ac_n "checking for pth_version in -lpth""... $ac_c" 1>&6
-echo "configure:10826: checking for pth_version in -lpth" >&5
+echo "configure:11519: checking for pth_version in -lpth" >&5
 ac_lib_var=`echo pth'_'pth_version | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10830,7 +11523,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lpth  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 10834 "configure"
+#line 11527 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -10841,7 +11534,7 @@ int main() {
 pth_version()
 ; return 0; }
 EOF
-if { (eval echo configure:10845: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11538: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -10885,17 +11578,17 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:10889: checking for $ac_hdr" >&5
+echo "configure:11582: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10894 "configure"
+#line 11587 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:10899: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:11592: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -10923,7 +11616,7 @@ done
 
 	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
 		echo $ac_n "checking for thr_create in -lthread""... $ac_c" 1>&6
-echo "configure:10927: checking for thr_create in -lthread" >&5
+echo "configure:11620: checking for thr_create in -lthread" >&5
 ac_lib_var=`echo thread'_'thr_create | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -10931,7 +11624,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lthread  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 10935 "configure"
+#line 11628 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -10942,7 +11635,7 @@ int main() {
 thr_create()
 ; return 0; }
 EOF
-if { (eval echo configure:10946: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11639: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -10982,12 +11675,12 @@ EOF
 			
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:10986: checking for $ac_func" >&5
+echo "configure:11679: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 10991 "configure"
+#line 11684 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -11011,7 +11704,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:11015: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11708: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -11042,17 +11735,17 @@ done
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:11046: checking for $ac_hdr" >&5
+echo "configure:11739: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11051 "configure"
+#line 11744 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:11056: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:11749: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -11080,7 +11773,7 @@ done
 
 	if test $ac_cv_header_lwp_lwp_h = yes ; then
 		echo $ac_n "checking for lwp_create in -llwp""... $ac_c" 1>&6
-echo "configure:11084: checking for lwp_create in -llwp" >&5
+echo "configure:11777: checking for lwp_create in -llwp" >&5
 ac_lib_var=`echo lwp'_'lwp_create | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -11088,7 +11781,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-llwp  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 11092 "configure"
+#line 11785 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -11099,7 +11792,7 @@ int main() {
 lwp_create()
 ; return 0; }
 EOF
-if { (eval echo configure:11103: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11796: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -11152,17 +11845,17 @@ if test $ol_with_threads = manual ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:11156: checking for $ac_hdr" >&5
+echo "configure:11849: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11161 "configure"
+#line 11854 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:11166: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:11859: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -11191,12 +11884,12 @@ done
 	for ac_func in sched_yield pthread_yield
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:11195: checking for $ac_func" >&5
+echo "configure:11888: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11200 "configure"
+#line 11893 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -11220,7 +11913,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:11224: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:11917: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -11246,12 +11939,12 @@ done
 
 	
 	echo $ac_n "checking for LinuxThreads pthread.h""... $ac_c" 1>&6
-echo "configure:11250: checking for LinuxThreads pthread.h" >&5
+echo "configure:11943: checking for LinuxThreads pthread.h" >&5
 if eval "test \"\${ol_cv_header_linux_threads+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11255 "configure"
+#line 11948 "configure"
 #include "confdefs.h"
 #include <pthread.h>
 EOF
@@ -11281,17 +11974,17 @@ EOF
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:11285: checking for $ac_hdr" >&5
+echo "configure:11978: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11290 "configure"
+#line 11983 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:11295: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:11988: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -11321,17 +12014,17 @@ done
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:11325: checking for $ac_hdr" >&5
+echo "configure:12018: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11330 "configure"
+#line 12023 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:11335: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:12028: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -11361,17 +12054,17 @@ done
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:11365: checking for $ac_hdr" >&5
+echo "configure:12058: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11370 "configure"
+#line 12063 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:11375: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:12068: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -11430,20 +12123,20 @@ EOF
 
 
 			echo $ac_n "checking for thread specific errno""... $ac_c" 1>&6
-echo "configure:11434: checking for thread specific errno" >&5
+echo "configure:12127: checking for thread specific errno" >&5
 if eval "test \"\${ol_cv_errno_thread_specific+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 11440 "configure"
+#line 12133 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 errno = 0;
 ; return 0; }
 EOF
-if { (eval echo configure:11447: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12140: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_errno_thread_specific=yes
 else
@@ -11459,20 +12152,20 @@ fi
 echo "$ac_t""$ol_cv_errno_thread_specific" 1>&6
 
 			echo $ac_n "checking for thread specific h_errno""... $ac_c" 1>&6
-echo "configure:11463: checking for thread specific h_errno" >&5
+echo "configure:12156: checking for thread specific h_errno" >&5
 if eval "test \"\${ol_cv_h_errno_thread_specific+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 11469 "configure"
+#line 12162 "configure"
 #include "confdefs.h"
 #include <netdb.h>
 int main() {
 h_errno = 0;
 ; return 0; }
 EOF
-if { (eval echo configure:11476: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12169: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_h_errno_thread_specific=yes
 else
@@ -11531,17 +12224,17 @@ for ac_hdr in db_185.h db.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:11535: checking for $ac_hdr" >&5
+echo "configure:12228: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 11540 "configure"
+#line 12233 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:11545: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:12238: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -11569,13 +12262,13 @@ done
 
 if test $ac_cv_header_db_185_h = yes -o $ac_cv_header_db_h = yes; then
 	echo $ac_n "checking if Berkeley DB header compatibility""... $ac_c" 1>&6
-echo "configure:11573: checking if Berkeley DB header compatibility" >&5
+echo "configure:12266: checking if Berkeley DB header compatibility" >&5
 if eval "test \"\${ol_cv_header_db1+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 11579 "configure"
+#line 12272 "configure"
 #include "confdefs.h"
 
 #if HAVE_DB_185_H
@@ -11612,7 +12305,7 @@ echo "$ac_t""$ol_cv_header_db1" 1>&6
 		ol_cv_lib_db=no
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (default)""... $ac_c" 1>&6
-echo "configure:11616: checking for Berkeley DB link (default)" >&5
+echo "configure:12309: checking for Berkeley DB link (default)" >&5
 if eval "test \"\${ol_cv_db_none+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11622,7 +12315,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 11626 "configure"
+#line 12319 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -11669,7 +12362,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:11673: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12366: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_none=yes
 else
@@ -11693,7 +12386,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
-echo "configure:11697: checking for Berkeley DB link (-ldb)" >&5
+echo "configure:12390: checking for Berkeley DB link (-ldb)" >&5
 if eval "test \"\${ol_cv_db_db+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11703,7 +12396,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 11707 "configure"
+#line 12400 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -11750,7 +12443,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:11754: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12447: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db=yes
 else
@@ -11774,7 +12467,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb3)""... $ac_c" 1>&6
-echo "configure:11778: checking for Berkeley DB link (-ldb3)" >&5
+echo "configure:12471: checking for Berkeley DB link (-ldb3)" >&5
 if eval "test \"\${ol_cv_db_db3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11784,7 +12477,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 11788 "configure"
+#line 12481 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -11831,7 +12524,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:11835: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12528: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db3=yes
 else
@@ -11855,7 +12548,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb2)""... $ac_c" 1>&6
-echo "configure:11859: checking for Berkeley DB link (-ldb2)" >&5
+echo "configure:12552: checking for Berkeley DB link (-ldb2)" >&5
 if eval "test \"\${ol_cv_db_db2+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11865,7 +12558,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 11869 "configure"
+#line 12562 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -11912,7 +12605,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:11916: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12609: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db2=yes
 else
@@ -11936,7 +12629,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb1)""... $ac_c" 1>&6
-echo "configure:11940: checking for Berkeley DB link (-ldb1)" >&5
+echo "configure:12633: checking for Berkeley DB link (-ldb1)" >&5
 if eval "test \"\${ol_cv_db_db1+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -11946,7 +12639,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 11950 "configure"
+#line 12643 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -11993,7 +12686,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:11997: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12690: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db1=yes
 else
@@ -12028,17 +12721,17 @@ for ac_hdr in db.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:12032: checking for $ac_hdr" >&5
+echo "configure:12725: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 12037 "configure"
+#line 12730 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:12042: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:12735: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -12068,7 +12761,7 @@ if test $ac_cv_header_db_h = yes; then
 	ol_cv_lib_db=no
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (default)""... $ac_c" 1>&6
-echo "configure:12072: checking for Berkeley DB link (default)" >&5
+echo "configure:12765: checking for Berkeley DB link (default)" >&5
 if eval "test \"\${ol_cv_db_none+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12078,7 +12771,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 12082 "configure"
+#line 12775 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -12125,7 +12818,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:12129: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12822: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_none=yes
 else
@@ -12149,7 +12842,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb)""... $ac_c" 1>&6
-echo "configure:12153: checking for Berkeley DB link (-ldb)" >&5
+echo "configure:12846: checking for Berkeley DB link (-ldb)" >&5
 if eval "test \"\${ol_cv_db_db+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12159,7 +12852,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 12163 "configure"
+#line 12856 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -12206,7 +12899,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:12210: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12903: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db=yes
 else
@@ -12230,7 +12923,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb3)""... $ac_c" 1>&6
-echo "configure:12234: checking for Berkeley DB link (-ldb3)" >&5
+echo "configure:12927: checking for Berkeley DB link (-ldb3)" >&5
 if eval "test \"\${ol_cv_db_db3+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12240,7 +12933,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 12244 "configure"
+#line 12937 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -12287,7 +12980,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:12291: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:12984: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db3=yes
 else
@@ -12311,7 +13004,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb2)""... $ac_c" 1>&6
-echo "configure:12315: checking for Berkeley DB link (-ldb2)" >&5
+echo "configure:13008: checking for Berkeley DB link (-ldb2)" >&5
 if eval "test \"\${ol_cv_db_db2+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12321,7 +13014,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 12325 "configure"
+#line 13018 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -12368,7 +13061,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:12372: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13065: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db2=yes
 else
@@ -12392,7 +13085,7 @@ fi
 
 if test $ol_cv_lib_db = no ; then
 	echo $ac_n "checking for Berkeley DB link (-ldb1)""... $ac_c" 1>&6
-echo "configure:12396: checking for Berkeley DB link (-ldb1)" >&5
+echo "configure:13089: checking for Berkeley DB link (-ldb1)" >&5
 if eval "test \"\${ol_cv_db_db1+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12402,7 +13095,7 @@ else
 	LIBS="$ol_DB_LIB $LIBS"
 
 	cat > conftest.$ac_ext <<EOF
-#line 12406 "configure"
+#line 13099 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -12449,7 +13142,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:12453: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13146: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_db_db1=yes
 else
@@ -12475,7 +13168,7 @@ fi
 	if test "$ol_cv_lib_db" != no ; then
 		ol_cv_berkeley_db=yes
 		echo $ac_n "checking for Berkeley DB thread support""... $ac_c" 1>&6
-echo "configure:12479: checking for Berkeley DB thread support" >&5
+echo "configure:13172: checking for Berkeley DB thread support" >&5
 if eval "test \"\${ol_cv_berkeley_db_thread+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12489,7 +13182,7 @@ else
   ol_cv_berkeley_db_thread=cross
 else
   cat > conftest.$ac_ext <<EOF
-#line 12493 "configure"
+#line 13186 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_DB_185_H
@@ -12563,7 +13256,7 @@ main()
 	return rc;
 }
 EOF
-if { (eval echo configure:12567: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:13260: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_berkeley_db_thread=yes
 else
@@ -12627,18 +13320,18 @@ fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = mdbm ; then
 	echo $ac_n "checking for MDBM library""... $ac_c" 1>&6
-echo "configure:12631: checking for MDBM library" >&5
+echo "configure:13324: checking for MDBM library" >&5
 if eval "test \"\${ol_cv_lib_mdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   	ol_LIBS="$LIBS"
 	echo $ac_n "checking for mdbm_set_chain""... $ac_c" 1>&6
-echo "configure:12637: checking for mdbm_set_chain" >&5
+echo "configure:13330: checking for mdbm_set_chain" >&5
 if eval "test \"\${ac_cv_func_mdbm_set_chain+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 12642 "configure"
+#line 13335 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char mdbm_set_chain(); below.  */
@@ -12662,7 +13355,7 @@ f = mdbm_set_chain;
 
 ; return 0; }
 EOF
-if { (eval echo configure:12666: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13359: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_mdbm_set_chain=yes"
 else
@@ -12681,7 +13374,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for mdbm_set_chain in -lmdbm""... $ac_c" 1>&6
-echo "configure:12685: checking for mdbm_set_chain in -lmdbm" >&5
+echo "configure:13378: checking for mdbm_set_chain in -lmdbm" >&5
 ac_lib_var=`echo mdbm'_'mdbm_set_chain | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -12689,7 +13382,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lmdbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 12693 "configure"
+#line 13386 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -12700,7 +13393,7 @@ int main() {
 mdbm_set_chain()
 ; return 0; }
 EOF
-if { (eval echo configure:12704: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13397: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -12735,17 +13428,17 @@ echo "$ac_t""$ol_cv_lib_mdbm" 1>&6
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:12739: checking for $ac_hdr" >&5
+echo "configure:13432: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 12744 "configure"
+#line 13437 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:12749: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:13442: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -12772,7 +13465,7 @@ fi
 done
 
  echo $ac_n "checking for db""... $ac_c" 1>&6
-echo "configure:12776: checking for db" >&5
+echo "configure:13469: checking for db" >&5
 if eval "test \"\${ol_cv_mdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12805,18 +13498,18 @@ fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
 	echo $ac_n "checking for GDBM library""... $ac_c" 1>&6
-echo "configure:12809: checking for GDBM library" >&5
+echo "configure:13502: checking for GDBM library" >&5
 if eval "test \"\${ol_cv_lib_gdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   	ol_LIBS="$LIBS"
 	echo $ac_n "checking for gdbm_open""... $ac_c" 1>&6
-echo "configure:12815: checking for gdbm_open" >&5
+echo "configure:13508: checking for gdbm_open" >&5
 if eval "test \"\${ac_cv_func_gdbm_open+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 12820 "configure"
+#line 13513 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char gdbm_open(); below.  */
@@ -12840,7 +13533,7 @@ f = gdbm_open;
 
 ; return 0; }
 EOF
-if { (eval echo configure:12844: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13537: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_gdbm_open=yes"
 else
@@ -12859,7 +13552,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for gdbm_open in -lgdbm""... $ac_c" 1>&6
-echo "configure:12863: checking for gdbm_open in -lgdbm" >&5
+echo "configure:13556: checking for gdbm_open in -lgdbm" >&5
 ac_lib_var=`echo gdbm'_'gdbm_open | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -12867,7 +13560,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lgdbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 12871 "configure"
+#line 13564 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -12878,7 +13571,7 @@ int main() {
 gdbm_open()
 ; return 0; }
 EOF
-if { (eval echo configure:12882: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13575: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -12913,17 +13606,17 @@ echo "$ac_t""$ol_cv_lib_gdbm" 1>&6
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:12917: checking for $ac_hdr" >&5
+echo "configure:13610: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 12922 "configure"
+#line 13615 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:12927: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:13620: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -12950,7 +13643,7 @@ fi
 done
 
  echo $ac_n "checking for db""... $ac_c" 1>&6
-echo "configure:12954: checking for db" >&5
+echo "configure:13647: checking for db" >&5
 if eval "test \"\${ol_cv_gdbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -12984,18 +13677,18 @@ fi
 
 if test $ol_with_ldbm_api = ndbm ; then
 	echo $ac_n "checking for NDBM library""... $ac_c" 1>&6
-echo "configure:12988: checking for NDBM library" >&5
+echo "configure:13681: checking for NDBM library" >&5
 if eval "test \"\${ol_cv_lib_ndbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   	ol_LIBS="$LIBS"
 	echo $ac_n "checking for dbm_open""... $ac_c" 1>&6
-echo "configure:12994: checking for dbm_open" >&5
+echo "configure:13687: checking for dbm_open" >&5
 if eval "test \"\${ac_cv_func_dbm_open+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 12999 "configure"
+#line 13692 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char dbm_open(); below.  */
@@ -13019,7 +13712,7 @@ f = dbm_open;
 
 ; return 0; }
 EOF
-if { (eval echo configure:13023: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13716: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_dbm_open=yes"
 else
@@ -13038,7 +13731,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for dbm_open in -lndbm""... $ac_c" 1>&6
-echo "configure:13042: checking for dbm_open in -lndbm" >&5
+echo "configure:13735: checking for dbm_open in -lndbm" >&5
 ac_lib_var=`echo ndbm'_'dbm_open | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13046,7 +13739,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lndbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13050 "configure"
+#line 13743 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13057,7 +13750,7 @@ int main() {
 dbm_open()
 ; return 0; }
 EOF
-if { (eval echo configure:13061: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13754: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13077,7 +13770,7 @@ else
   echo "$ac_t""no" 1>&6
 
 			echo $ac_n "checking for dbm_open in -ldbm""... $ac_c" 1>&6
-echo "configure:13081: checking for dbm_open in -ldbm" >&5
+echo "configure:13774: checking for dbm_open in -ldbm" >&5
 ac_lib_var=`echo dbm'_'dbm_open | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13085,7 +13778,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ldbm  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13089 "configure"
+#line 13782 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13096,7 +13789,7 @@ int main() {
 dbm_open()
 ; return 0; }
 EOF
-if { (eval echo configure:13100: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:13793: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13133,17 +13826,17 @@ echo "$ac_t""$ol_cv_lib_ndbm" 1>&6
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:13137: checking for $ac_hdr" >&5
+echo "configure:13830: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 13142 "configure"
+#line 13835 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:13147: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:13840: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -13170,7 +13863,7 @@ fi
 done
 
  echo $ac_n "checking for db""... $ac_c" 1>&6
-echo "configure:13174: checking for db" >&5
+echo "configure:13867: checking for db" >&5
 if eval "test \"\${ol_cv_ndbm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -13223,17 +13916,17 @@ if test $ol_enable_wrappers != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:13227: checking for $ac_hdr" >&5
+echo "configure:13920: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 13232 "configure"
+#line 13925 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:13237: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:13930: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -13264,7 +13957,7 @@ done
 		have_wrappers=no
 	else
 		cat > conftest.$ac_ext <<EOF
-#line 13268 "configure"
+#line 13961 "configure"
 #include "confdefs.h"
 
 int allow_severity = 0;
@@ -13274,7 +13967,7 @@ int main() {
 hosts_access()
 ; return 0; }
 EOF
-if { (eval echo configure:13278: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:13971: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   have_wrappers=yes
 else
@@ -13294,7 +13987,7 @@ EOF
 		WRAP_LIBS="-lwrap"
 
 						echo $ac_n "checking for main in -lnsl""... $ac_c" 1>&6
-echo "configure:13298: checking for main in -lnsl" >&5
+echo "configure:13991: checking for main in -lnsl" >&5
 ac_lib_var=`echo nsl'_'main | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13302,14 +13995,14 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lnsl  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13306 "configure"
+#line 13999 "configure"
 #include "confdefs.h"
 
 int main() {
 main()
 ; return 0; }
 EOF
-if { (eval echo configure:13313: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14006: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13350,12 +14043,12 @@ fi
 
 if test $ol_enable_syslog != no ; then
 	echo $ac_n "checking for openlog""... $ac_c" 1>&6
-echo "configure:13354: checking for openlog" >&5
+echo "configure:14047: checking for openlog" >&5
 if eval "test \"\${ac_cv_func_openlog+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 13359 "configure"
+#line 14052 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char openlog(); below.  */
@@ -13379,7 +14072,7 @@ f = openlog;
 
 ; return 0; }
 EOF
-if { (eval echo configure:13383: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14076: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_openlog=yes"
 else
@@ -13407,7 +14100,7 @@ fi
 ol_link_sql=no
 if test $ol_enable_sql != no ; then
 	echo $ac_n "checking for SQLDriverConnect in -liodbc""... $ac_c" 1>&6
-echo "configure:13411: checking for SQLDriverConnect in -liodbc" >&5
+echo "configure:14104: checking for SQLDriverConnect in -liodbc" >&5
 ac_lib_var=`echo iodbc'_'SQLDriverConnect | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13415,7 +14108,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-liodbc  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13419 "configure"
+#line 14112 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13426,7 +14119,7 @@ int main() {
 SQLDriverConnect()
 ; return 0; }
 EOF
-if { (eval echo configure:13430: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14123: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13451,7 +14144,7 @@ fi
 		ol_link_sql="-liodbc"
 	else
 		echo $ac_n "checking for SQLDriverConnect in -lodbc""... $ac_c" 1>&6
-echo "configure:13455: checking for SQLDriverConnect in -lodbc" >&5
+echo "configure:14148: checking for SQLDriverConnect in -lodbc" >&5
 ac_lib_var=`echo odbc'_'SQLDriverConnect | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13459,7 +14152,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lodbc  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13463 "configure"
+#line 14156 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13470,7 +14163,7 @@ int main() {
 SQLDriverConnect()
 ; return 0; }
 EOF
-if { (eval echo configure:13474: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14167: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13509,17 +14202,17 @@ for ac_hdr in termcap.h ncurses.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:13513: checking for $ac_hdr" >&5
+echo "configure:14206: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 13518 "configure"
+#line 14211 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:13523: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:14216: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -13548,7 +14241,7 @@ done
 
 if test $ol_link_termcap = no ; then
 	echo $ac_n "checking for tputs in -ltermcap""... $ac_c" 1>&6
-echo "configure:13552: checking for tputs in -ltermcap" >&5
+echo "configure:14245: checking for tputs in -ltermcap" >&5
 ac_lib_var=`echo termcap'_'tputs | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13556,7 +14249,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-ltermcap  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13560 "configure"
+#line 14253 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13567,7 +14260,7 @@ int main() {
 tputs()
 ; return 0; }
 EOF
-if { (eval echo configure:13571: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14264: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13600,7 +14293,7 @@ fi
 
 if test $ol_link_termcap = no ; then
 	echo $ac_n "checking for initscr in -lncurses""... $ac_c" 1>&6
-echo "configure:13604: checking for initscr in -lncurses" >&5
+echo "configure:14297: checking for initscr in -lncurses" >&5
 ac_lib_var=`echo ncurses'_'initscr | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13608,7 +14301,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lncurses  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13612 "configure"
+#line 14305 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13619,7 +14312,7 @@ int main() {
 initscr()
 ; return 0; }
 EOF
-if { (eval echo configure:13623: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14316: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13665,17 +14358,17 @@ if test $ol_with_cyrus_sasl != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:13669: checking for $ac_hdr" >&5
+echo "configure:14362: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 13674 "configure"
+#line 14367 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:13679: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:14372: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -13704,7 +14397,7 @@ done
 
 	if test $ac_cv_header_sasl_h = yes ; then
 		echo $ac_n "checking for sasl_client_init in -lsasl""... $ac_c" 1>&6
-echo "configure:13708: checking for sasl_client_init in -lsasl" >&5
+echo "configure:14401: checking for sasl_client_init in -lsasl" >&5
 ac_lib_var=`echo sasl'_'sasl_client_init | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13712,7 +14405,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lsasl  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13716 "configure"
+#line 14409 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13723,7 +14416,7 @@ int main() {
 sasl_client_init()
 ; return 0; }
 EOF
-if { (eval echo configure:13727: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14420: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13804,13 +14497,13 @@ if test $ol_with_fetch != no ; then
 	ol_LIBS=$LIBS
 LIBS="-lfetch -lcom_err $LIBS"
 echo $ac_n "checking fetch(3) library""... $ac_c" 1>&6
-echo "configure:13808: checking fetch(3) library" >&5
+echo "configure:14501: checking fetch(3) library" >&5
 if eval "test \"\${ol_cv_lib_fetch+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 13814 "configure"
+#line 14507 "configure"
 #include "confdefs.h"
 
 #include <sys/param.h>
@@ -13820,7 +14513,7 @@ int main() {
 struct url *u = fetchParseURL("file:///"); 
 ; return 0; }
 EOF
-if { (eval echo configure:13824: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14517: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_lib_fetch=yes
 else
@@ -13858,17 +14551,17 @@ if test $ol_with_readline != no ; then
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
-echo "configure:13862: checking for $ac_hdr" >&5
+echo "configure:14555: checking for $ac_hdr" >&5
 if eval "test \"\${ac_cv_header_$ac_safe+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 13867 "configure"
+#line 14560 "configure"
 #include "confdefs.h"
 #include <$ac_hdr>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:13872: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:14565: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -13899,7 +14592,7 @@ done
 		save_LIBS="$LIBS"
 		LIBS="$TERMCAP_LIBS $LIBS"
 		echo $ac_n "checking for readline in -lreadline""... $ac_c" 1>&6
-echo "configure:13903: checking for readline in -lreadline" >&5
+echo "configure:14596: checking for readline in -lreadline" >&5
 ac_lib_var=`echo readline'_'readline | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -13907,7 +14600,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lreadline  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 13911 "configure"
+#line 14604 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -13918,7 +14611,7 @@ int main() {
 readline()
 ; return 0; }
 EOF
-if { (eval echo configure:13922: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14615: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -13960,12 +14653,12 @@ fi
 
 if test $ol_enable_crypt != no ; then
 	echo $ac_n "checking for crypt""... $ac_c" 1>&6
-echo "configure:13964: checking for crypt" >&5
+echo "configure:14657: checking for crypt" >&5
 if eval "test \"\${ac_cv_func_crypt+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 13969 "configure"
+#line 14662 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char crypt(); below.  */
@@ -13989,7 +14682,7 @@ f = crypt;
 
 ; return 0; }
 EOF
-if { (eval echo configure:13993: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14686: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_crypt=yes"
 else
@@ -14008,7 +14701,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for crypt in -lcrypt""... $ac_c" 1>&6
-echo "configure:14012: checking for crypt in -lcrypt" >&5
+echo "configure:14705: checking for crypt in -lcrypt" >&5
 ac_lib_var=`echo crypt'_'crypt | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -14016,7 +14709,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lcrypt  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 14020 "configure"
+#line 14713 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -14027,7 +14720,7 @@ int main() {
 crypt()
 ; return 0; }
 EOF
-if { (eval echo configure:14031: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14724: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -14070,12 +14763,12 @@ fi
 
 if test $ol_enable_proctitle != no ; then
 	echo $ac_n "checking for setproctitle""... $ac_c" 1>&6
-echo "configure:14074: checking for setproctitle" >&5
+echo "configure:14767: checking for setproctitle" >&5
 if eval "test \"\${ac_cv_func_setproctitle+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14079 "configure"
+#line 14772 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char setproctitle(); below.  */
@@ -14099,7 +14792,7 @@ f = setproctitle;
 
 ; return 0; }
 EOF
-if { (eval echo configure:14103: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14796: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_setproctitle=yes"
 else
@@ -14118,7 +14811,7 @@ else
   echo "$ac_t""no" 1>&6
 
 		echo $ac_n "checking for setproctitle in -lutil""... $ac_c" 1>&6
-echo "configure:14122: checking for setproctitle in -lutil" >&5
+echo "configure:14815: checking for setproctitle in -lutil" >&5
 ac_lib_var=`echo util'_'setproctitle | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -14126,7 +14819,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lutil  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 14130 "configure"
+#line 14823 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -14137,7 +14830,7 @@ int main() {
 setproctitle()
 ; return 0; }
 EOF
-if { (eval echo configure:14141: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:14834: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -14173,12 +14866,12 @@ EOF
 fi
 
 echo $ac_n "checking for ANSI C header files""... $ac_c" 1>&6
-echo "configure:14177: checking for ANSI C header files" >&5
+echo "configure:14870: checking for ANSI C header files" >&5
 if eval "test \"\${ac_cv_header_stdc+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14182 "configure"
+#line 14875 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 #include <stdarg.h>
@@ -14186,7 +14879,7 @@ else
 #include <float.h>
 EOF
 ac_try="$ac_cpp conftest.$ac_ext >/dev/null 2>conftest.out"
-{ (eval echo configure:14190: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
+{ (eval echo configure:14883: \"$ac_try\") 1>&5; (eval $ac_try) 2>&5; }
 ac_err=`grep -v '^ *+' conftest.out | grep -v "^conftest.${ac_ext}\$"`
 if test -z "$ac_err"; then
   rm -rf conftest*
@@ -14203,7 +14896,7 @@ rm -f conftest*
 if test $ac_cv_header_stdc = yes; then
   # SunOS 4.x string.h does not declare mem*, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 14207 "configure"
+#line 14900 "configure"
 #include "confdefs.h"
 #include <string.h>
 EOF
@@ -14221,7 +14914,7 @@ fi
 if test $ac_cv_header_stdc = yes; then
   # ISC 2.0.2 stdlib.h does not declare free, contrary to ANSI.
 cat > conftest.$ac_ext <<EOF
-#line 14225 "configure"
+#line 14918 "configure"
 #include "confdefs.h"
 #include <stdlib.h>
 EOF
@@ -14242,7 +14935,7 @@ if test "$cross_compiling" = yes; then
   :
 else
   cat > conftest.$ac_ext <<EOF
-#line 14246 "configure"
+#line 14939 "configure"
 #include "confdefs.h"
 #include <ctype.h>
 #if ((' ' & 0x0FF) == 0x020)
@@ -14260,7 +14953,7 @@ if (XOR (islower (i), ISLOWER (i)) || toupper (i) != TOUPPER (i)) exit(2);
 exit (0); }
 
 EOF
-if { (eval echo configure:14264: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:14957: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   :
 else
@@ -14284,12 +14977,12 @@ EOF
 fi
 
 echo $ac_n "checking for mode_t""... $ac_c" 1>&6
-echo "configure:14288: checking for mode_t" >&5
+echo "configure:14981: checking for mode_t" >&5
 if eval "test \"\${ac_cv_type_mode_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14293 "configure"
+#line 14986 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -14320,12 +15013,12 @@ EOF
 fi
 
 echo $ac_n "checking for off_t""... $ac_c" 1>&6
-echo "configure:14324: checking for off_t" >&5
+echo "configure:15017: checking for off_t" >&5
 if eval "test \"\${ac_cv_type_off_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14329 "configure"
+#line 15022 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -14356,12 +15049,12 @@ EOF
 fi
 
 echo $ac_n "checking for pid_t""... $ac_c" 1>&6
-echo "configure:14360: checking for pid_t" >&5
+echo "configure:15053: checking for pid_t" >&5
 if eval "test \"\${ac_cv_type_pid_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14365 "configure"
+#line 15058 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -14392,19 +15085,19 @@ EOF
 fi
 
 echo $ac_n "checking for ptrdiff_t""... $ac_c" 1>&6
-echo "configure:14396: checking for ptrdiff_t" >&5
+echo "configure:15089: checking for ptrdiff_t" >&5
 if eval "test \"\${am_cv_type_ptrdiff_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14401 "configure"
+#line 15094 "configure"
 #include "confdefs.h"
 #include <stddef.h>
 int main() {
 ptrdiff_t p
 ; return 0; }
 EOF
-if { (eval echo configure:14408: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15101: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   am_cv_type_ptrdiff_t=yes
 else
@@ -14425,12 +15118,12 @@ EOF
    fi
 
 echo $ac_n "checking return type of signal handlers""... $ac_c" 1>&6
-echo "configure:14429: checking return type of signal handlers" >&5
+echo "configure:15122: checking return type of signal handlers" >&5
 if eval "test \"\${ac_cv_type_signal+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14434 "configure"
+#line 15127 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <signal.h>
@@ -14447,7 +15140,7 @@ int main() {
 int i;
 ; return 0; }
 EOF
-if { (eval echo configure:14451: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15144: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_type_signal=void
 else
@@ -14466,12 +15159,12 @@ EOF
 
 
 echo $ac_n "checking for size_t""... $ac_c" 1>&6
-echo "configure:14470: checking for size_t" >&5
+echo "configure:15163: checking for size_t" >&5
 if eval "test \"\${ac_cv_type_size_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14475 "configure"
+#line 15168 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -14503,12 +15196,12 @@ fi
 
 
 echo $ac_n "checking for ssize_t""... $ac_c" 1>&6
-echo "configure:14507: checking for ssize_t" >&5
+echo "configure:15200: checking for ssize_t" >&5
 if eval "test \"\${ac_cv_type_ssize_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14512 "configure"
+#line 15205 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -14539,12 +15232,12 @@ EOF
 fi
 
 echo $ac_n "checking for caddr_t""... $ac_c" 1>&6
-echo "configure:14543: checking for caddr_t" >&5
+echo "configure:15236: checking for caddr_t" >&5
 if eval "test \"\${ac_cv_type_caddr_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14548 "configure"
+#line 15241 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #if STDC_HEADERS
@@ -14576,12 +15269,12 @@ fi
 
 
 echo $ac_n "checking for socklen_t""... $ac_c" 1>&6
-echo "configure:14580: checking for socklen_t" >&5
+echo "configure:15273: checking for socklen_t" >&5
 if eval "test \"\${ol_cv_type_socklen_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14585 "configure"
+#line 15278 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_SYS_TYPES_H
@@ -14595,7 +15288,7 @@ int main() {
 socklen_t len;
 ; return 0; }
 EOF
-if { (eval echo configure:14599: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15292: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_type_socklen_t=yes
 else
@@ -14616,12 +15309,12 @@ EOF
   fi
  
 echo $ac_n "checking for member st_blksize in aggregate type struct stat""... $ac_c" 1>&6
-echo "configure:14620: checking for member st_blksize in aggregate type struct stat" >&5
+echo "configure:15313: checking for member st_blksize in aggregate type struct stat" >&5
 if eval "test \"\${ac_cv_c_struct_member_st_blksize+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14625 "configure"
+#line 15318 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -14629,7 +15322,7 @@ int main() {
 struct stat foo; foo.st_blksize;
 ; return 0; }
 EOF
-if { (eval echo configure:14633: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15326: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_struct_member_st_blksize=yes
 else
@@ -14651,12 +15344,12 @@ EOF
 fi
 
 echo $ac_n "checking whether time.h and sys/time.h may both be included""... $ac_c" 1>&6
-echo "configure:14655: checking whether time.h and sys/time.h may both be included" >&5
+echo "configure:15348: checking whether time.h and sys/time.h may both be included" >&5
 if eval "test \"\${ac_cv_header_time+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14660 "configure"
+#line 15353 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/time.h>
@@ -14665,7 +15358,7 @@ int main() {
 struct tm *tp;
 ; return 0; }
 EOF
-if { (eval echo configure:14669: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15362: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_header_time=yes
 else
@@ -14686,12 +15379,12 @@ EOF
 fi
 
 echo $ac_n "checking whether struct tm is in sys/time.h or time.h""... $ac_c" 1>&6
-echo "configure:14690: checking whether struct tm is in sys/time.h or time.h" >&5
+echo "configure:15383: checking whether struct tm is in sys/time.h or time.h" >&5
 if eval "test \"\${ac_cv_struct_tm+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14695 "configure"
+#line 15388 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <time.h>
@@ -14699,7 +15392,7 @@ int main() {
 struct tm *tp; tp->tm_sec;
 ; return 0; }
 EOF
-if { (eval echo configure:14703: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15396: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_struct_tm=time.h
 else
@@ -14720,12 +15413,12 @@ EOF
 fi
 
 echo $ac_n "checking for uid_t in sys/types.h""... $ac_c" 1>&6
-echo "configure:14724: checking for uid_t in sys/types.h" >&5
+echo "configure:15417: checking for uid_t in sys/types.h" >&5
 if eval "test \"\${ac_cv_type_uid_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14729 "configure"
+#line 15422 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 EOF
@@ -14754,19 +15447,19 @@ EOF
 fi
 
 echo $ac_n "checking for sig_atomic_t""... $ac_c" 1>&6
-echo "configure:14758: checking for sig_atomic_t" >&5
+echo "configure:15451: checking for sig_atomic_t" >&5
 if eval "test \"\${ol_cv_type_sig_atomic_t+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14763 "configure"
+#line 15456 "configure"
 #include "confdefs.h"
 #include <signal.h>
 int main() {
 sig_atomic_t atomic;
 ; return 0; }
 EOF
-if { (eval echo configure:14770: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15463: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_type_sig_atomic_t=yes
 else
@@ -14790,13 +15483,13 @@ EOF
 
 # test for pw_gecos in struct passwd
 echo $ac_n "checking struct passwd for pw_gecos""... $ac_c" 1>&6
-echo "configure:14794: checking struct passwd for pw_gecos" >&5
+echo "configure:15487: checking struct passwd for pw_gecos" >&5
 if eval "test \"\${ol_cv_struct_passwd_pw_gecos+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 14800 "configure"
+#line 15493 "configure"
 #include "confdefs.h"
 #include <pwd.h>
 int main() {
@@ -14806,7 +15499,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:14810: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15503: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_struct_passwd_pw_gecos=yes
 else
@@ -14828,13 +15521,13 @@ fi
 
 # test for pw_passwd in struct passwd
 echo $ac_n "checking struct passwd for pw_passwd""... $ac_c" 1>&6
-echo "configure:14832: checking struct passwd for pw_passwd" >&5
+echo "configure:15525: checking struct passwd for pw_passwd" >&5
 if eval "test \"\${ol_cv_struct_passwd_pw_passwd+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 14838 "configure"
+#line 15531 "configure"
 #include "confdefs.h"
 #include <pwd.h>
 int main() {
@@ -14844,7 +15537,7 @@ int main() {
 
 ; return 0; }
 EOF
-if { (eval echo configure:14848: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15541: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_struct_passwd_pw_passwd=yes
 else
@@ -14866,7 +15559,7 @@ fi
 
 
 echo $ac_n "checking if toupper() requires islower()""... $ac_c" 1>&6
-echo "configure:14870: checking if toupper() requires islower()" >&5
+echo "configure:15563: checking if toupper() requires islower()" >&5
 if eval "test \"\${ol_cv_c_upper_lower+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -14875,7 +15568,7 @@ else
   ol_cv_c_upper_lower=safe
 else
   cat > conftest.$ac_ext <<EOF
-#line 14879 "configure"
+#line 15572 "configure"
 #include "confdefs.h"
 
 #include <ctype.h>
@@ -14887,7 +15580,7 @@ main()
 		exit(1);
 }
 EOF
-if { (eval echo configure:14891: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:15584: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ol_cv_c_upper_lower=no
 else
@@ -14910,12 +15603,12 @@ EOF
 fi
 
 echo $ac_n "checking for working const""... $ac_c" 1>&6
-echo "configure:14914: checking for working const" >&5
+echo "configure:15607: checking for working const" >&5
 if eval "test \"\${ac_cv_c_const+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14919 "configure"
+#line 15612 "configure"
 #include "confdefs.h"
 
 int main() {
@@ -14964,7 +15657,7 @@ ccp = (char const *const *) p;
 
 ; return 0; }
 EOF
-if { (eval echo configure:14968: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15661: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_const=yes
 else
@@ -14985,12 +15678,12 @@ EOF
 fi
 
 echo $ac_n "checking if compiler understands volatile""... $ac_c" 1>&6
-echo "configure:14989: checking if compiler understands volatile" >&5
+echo "configure:15682: checking if compiler understands volatile" >&5
 if eval "test \"\${ol_cv_c_volatile+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 14994 "configure"
+#line 15687 "configure"
 #include "confdefs.h"
 int x, y, z;
 int main() {
@@ -14999,7 +15692,7 @@ volatile int a; int * volatile b = x ? &y : &z;
       *b = 0;
 ; return 0; }
 EOF
-if { (eval echo configure:15003: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15696: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_c_volatile=yes
 else
@@ -15029,14 +15722,14 @@ EOF
 
 else
 	echo $ac_n "checking whether byte ordering is bigendian""... $ac_c" 1>&6
-echo "configure:15033: checking whether byte ordering is bigendian" >&5
+echo "configure:15726: checking whether byte ordering is bigendian" >&5
 if eval "test \"\${ac_cv_c_bigendian+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_cv_c_bigendian=unknown
 # See if sys/param.h defines the BYTE_ORDER macro.
 cat > conftest.$ac_ext <<EOF
-#line 15040 "configure"
+#line 15733 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/param.h>
@@ -15047,11 +15740,11 @@ int main() {
 #endif
 ; return 0; }
 EOF
-if { (eval echo configure:15051: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15744: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   # It does; now see whether it defined to BIG_ENDIAN or not.
 cat > conftest.$ac_ext <<EOF
-#line 15055 "configure"
+#line 15748 "configure"
 #include "confdefs.h"
 #include <sys/types.h>
 #include <sys/param.h>
@@ -15062,7 +15755,7 @@ int main() {
 #endif
 ; return 0; }
 EOF
-if { (eval echo configure:15066: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15759: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_c_bigendian=yes
 else
@@ -15082,7 +15775,7 @@ if test "$cross_compiling" = yes; then
     { echo "configure: error: can not run test program while cross compiling" 1>&2; exit 1; }
 else
   cat > conftest.$ac_ext <<EOF
-#line 15086 "configure"
+#line 15779 "configure"
 #include "confdefs.h"
 main () {
   /* Are we little or big endian?  From Harbison&Steele.  */
@@ -15095,7 +15788,7 @@ main () {
   exit (u.c[sizeof (long) - 1] == 1);
 }
 EOF
-if { (eval echo configure:15099: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:15792: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_c_bigendian=no
 else
@@ -15121,13 +15814,13 @@ fi
 fi
 
 echo $ac_n "checking size of short""... $ac_c" 1>&6
-echo "configure:15125: checking size of short" >&5 
+echo "configure:15818: checking size of short" >&5 
 if eval "test \"\${ac_cv_sizeof_short+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   for ac_size in 4 8 1 2 16  ; do # List sizes in rough order of prevalence. 
   cat > conftest.$ac_ext <<EOF
-#line 15131 "configure"
+#line 15824 "configure"
 #include "confdefs.h"
 #include "confdefs.h" 
 #include <sys/types.h> 
@@ -15137,7 +15830,7 @@ int main() {
 switch (0) case 0: case (sizeof (short) == $ac_size):;
 ; return 0; }
 EOF
-if { (eval echo configure:15141: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15834: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_sizeof_short=$ac_size
 else
@@ -15160,13 +15853,13 @@ EOF
  
  
 echo $ac_n "checking size of int""... $ac_c" 1>&6
-echo "configure:15164: checking size of int" >&5 
+echo "configure:15857: checking size of int" >&5 
 if eval "test \"\${ac_cv_sizeof_int+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   for ac_size in 4 8 1 2 16  ; do # List sizes in rough order of prevalence. 
   cat > conftest.$ac_ext <<EOF
-#line 15170 "configure"
+#line 15863 "configure"
 #include "confdefs.h"
 #include "confdefs.h" 
 #include <sys/types.h> 
@@ -15176,7 +15869,7 @@ int main() {
 switch (0) case 0: case (sizeof (int) == $ac_size):;
 ; return 0; }
 EOF
-if { (eval echo configure:15180: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15873: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_sizeof_int=$ac_size
 else
@@ -15199,13 +15892,13 @@ EOF
  
  
 echo $ac_n "checking size of long""... $ac_c" 1>&6
-echo "configure:15203: checking size of long" >&5 
+echo "configure:15896: checking size of long" >&5 
 if eval "test \"\${ac_cv_sizeof_long+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   for ac_size in 4 8 1 2 16  ; do # List sizes in rough order of prevalence. 
   cat > conftest.$ac_ext <<EOF
-#line 15209 "configure"
+#line 15902 "configure"
 #include "confdefs.h"
 #include "confdefs.h" 
 #include <sys/types.h> 
@@ -15215,7 +15908,7 @@ int main() {
 switch (0) case 0: case (sizeof (long) == $ac_size):;
 ; return 0; }
 EOF
-if { (eval echo configure:15219: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:15912: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ac_cv_sizeof_long=$ac_size
 else
@@ -15266,7 +15959,7 @@ EOF
 
 
 echo $ac_n "checking for 8-bit clean memcmp""... $ac_c" 1>&6
-echo "configure:15270: checking for 8-bit clean memcmp" >&5
+echo "configure:15963: checking for 8-bit clean memcmp" >&5
 if eval "test \"\${ac_cv_func_memcmp_clean+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
@@ -15274,7 +15967,7 @@ else
   ac_cv_func_memcmp_clean=no
 else
   cat > conftest.$ac_ext <<EOF
-#line 15278 "configure"
+#line 15971 "configure"
 #include "confdefs.h"
 
 main()
@@ -15284,7 +15977,7 @@ main()
 }
 
 EOF
-if { (eval echo configure:15288: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
+if { (eval echo configure:15981: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext} && (./conftest; exit) 2>/dev/null
 then
   ac_cv_func_memcmp_clean=yes
 else
@@ -15302,12 +15995,12 @@ echo "$ac_t""$ac_cv_func_memcmp_clean" 1>&6
 test $ac_cv_func_memcmp_clean = no && LIBOBJS="$LIBOBJS memcmp.${ac_objext}"
 
 echo $ac_n "checking for strftime""... $ac_c" 1>&6
-echo "configure:15306: checking for strftime" >&5
+echo "configure:15999: checking for strftime" >&5
 if eval "test \"\${ac_cv_func_strftime+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15311 "configure"
+#line 16004 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char strftime(); below.  */
@@ -15331,7 +16024,7 @@ f = strftime;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15335: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16028: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_strftime=yes"
 else
@@ -15353,7 +16046,7 @@ else
   echo "$ac_t""no" 1>&6
 # strftime is in -lintl on SCO UNIX.
 echo $ac_n "checking for strftime in -lintl""... $ac_c" 1>&6
-echo "configure:15357: checking for strftime in -lintl" >&5
+echo "configure:16050: checking for strftime in -lintl" >&5
 ac_lib_var=`echo intl'_'strftime | sed 'y%./+-:%__p__%'`
 if eval "test \"\${ac_cv_lib_$ac_lib_var+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
@@ -15361,7 +16054,7 @@ else
   ac_save_LIBS="$LIBS"
 LIBS="-lintl  $LIBS"
 cat > conftest.$ac_ext <<EOF
-#line 15365 "configure"
+#line 16058 "configure"
 #include "confdefs.h"
 /* Override any gcc2 internal prototype to avoid an error.  */
 /* We use char because int might match the return type of a gcc2
@@ -15372,7 +16065,7 @@ int main() {
 strftime()
 ; return 0; }
 EOF
-if { (eval echo configure:15376: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16069: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_lib_$ac_lib_var=yes"
 else
@@ -15400,12 +16093,12 @@ fi
 
 
 echo $ac_n "checking for inet_aton()""... $ac_c" 1>&6
-echo "configure:15404: checking for inet_aton()" >&5
+echo "configure:16097: checking for inet_aton()" >&5
 if eval "test \"\${ol_cv_func_inet_aton+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15409 "configure"
+#line 16102 "configure"
 #include "confdefs.h"
 
 #ifdef HAVE_SYS_TYPES_H
@@ -15427,7 +16120,7 @@ struct in_addr in;
 int rc = inet_aton( "255.255.255.255", &in );
 ; return 0; }
 EOF
-if { (eval echo configure:15431: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16124: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_func_inet_aton=yes
 else
@@ -15449,12 +16142,12 @@ EOF
  
 
 echo $ac_n "checking for _spawnlp""... $ac_c" 1>&6
-echo "configure:15453: checking for _spawnlp" >&5
+echo "configure:16146: checking for _spawnlp" >&5
 if eval "test \"\${ac_cv_func__spawnlp+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15458 "configure"
+#line 16151 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _spawnlp(); below.  */
@@ -15478,7 +16171,7 @@ f = _spawnlp;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15482: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16175: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__spawnlp=yes"
 else
@@ -15502,12 +16195,12 @@ fi
 
 
 echo $ac_n "checking for _snprintf""... $ac_c" 1>&6
-echo "configure:15506: checking for _snprintf" >&5
+echo "configure:16199: checking for _snprintf" >&5
 if eval "test \"\${ac_cv_func__snprintf+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15511 "configure"
+#line 16204 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _snprintf(); below.  */
@@ -15531,7 +16224,7 @@ f = _snprintf;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15535: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16228: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__snprintf=yes"
 else
@@ -15557,12 +16250,12 @@ fi
 
 
 echo $ac_n "checking for _vsnprintf""... $ac_c" 1>&6
-echo "configure:15561: checking for _vsnprintf" >&5
+echo "configure:16254: checking for _vsnprintf" >&5
 if eval "test \"\${ac_cv_func__vsnprintf+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15566 "configure"
+#line 16259 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _vsnprintf(); below.  */
@@ -15586,7 +16279,7 @@ f = _vsnprintf;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15590: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16283: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__vsnprintf=yes"
 else
@@ -15612,12 +16305,12 @@ fi
 
 
 echo $ac_n "checking for vprintf""... $ac_c" 1>&6
-echo "configure:15616: checking for vprintf" >&5
+echo "configure:16309: checking for vprintf" >&5
 if eval "test \"\${ac_cv_func_vprintf+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15621 "configure"
+#line 16314 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char vprintf(); below.  */
@@ -15641,7 +16334,7 @@ f = vprintf;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15645: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16338: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_vprintf=yes"
 else
@@ -15665,12 +16358,12 @@ fi
 
 if test "$ac_cv_func_vprintf" != yes; then
 echo $ac_n "checking for _doprnt""... $ac_c" 1>&6
-echo "configure:15669: checking for _doprnt" >&5
+echo "configure:16362: checking for _doprnt" >&5
 if eval "test \"\${ac_cv_func__doprnt+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15674 "configure"
+#line 16367 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char _doprnt(); below.  */
@@ -15694,7 +16387,7 @@ f = _doprnt;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15698: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16391: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func__doprnt=yes"
 else
@@ -15723,12 +16416,12 @@ if test $ac_cv_func_vprintf = yes ; then
 		for ac_func in vsnprintf vsprintf
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:15727: checking for $ac_func" >&5
+echo "configure:16420: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15732 "configure"
+#line 16425 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -15752,7 +16445,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15756: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16449: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -15831,12 +16524,12 @@ for ac_func in \
 
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:15835: checking for $ac_func" >&5
+echo "configure:16528: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15840 "configure"
+#line 16533 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -15860,7 +16553,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15864: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16557: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -15888,12 +16581,12 @@ done
 for ac_func in getopt tempnam
 do
 echo $ac_n "checking for $ac_func""... $ac_c" 1>&6
-echo "configure:15892: checking for $ac_func" >&5
+echo "configure:16585: checking for $ac_func" >&5
 if eval "test \"\${ac_cv_func_$ac_func+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   cat > conftest.$ac_ext <<EOF
-#line 15897 "configure"
+#line 16590 "configure"
 #include "confdefs.h"
 /* System header to define __stub macros and hopefully few prototypes,
     which can conflict with char $ac_func(); below.  */
@@ -15917,7 +16610,7 @@ f = $ac_func;
 
 ; return 0; }
 EOF
-if { (eval echo configure:15921: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16614: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   eval "ac_cv_func_$ac_func=yes"
 else
@@ -15954,13 +16647,13 @@ fi
 
 # Check Configuration
 echo $ac_n "checking declaration of sys_errlist""... $ac_c" 1>&6
-echo "configure:15958: checking declaration of sys_errlist" >&5
+echo "configure:16651: checking declaration of sys_errlist" >&5
 if eval "test \"\${ol_cv_dcl_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 	cat > conftest.$ac_ext <<EOF
-#line 15964 "configure"
+#line 16657 "configure"
 #include "confdefs.h"
 
 #include <stdio.h>
@@ -15973,7 +16666,7 @@ int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:15977: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+if { (eval echo configure:16670: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
   rm -rf conftest*
   ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes
@@ -15996,20 +16689,20 @@ EOF
 
 
 	echo $ac_n "checking existence of sys_errlist""... $ac_c" 1>&6
-echo "configure:16000: checking existence of sys_errlist" >&5
+echo "configure:16693: checking existence of sys_errlist" >&5
 if eval "test \"\${ol_cv_have_sys_errlist+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
 		cat > conftest.$ac_ext <<EOF
-#line 16006 "configure"
+#line 16699 "configure"
 #include "confdefs.h"
 #include <errno.h>
 int main() {
 char *c = (char *) *sys_errlist
 ; return 0; }
 EOF
-if { (eval echo configure:16013: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+if { (eval echo configure:16706: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
   rm -rf conftest*
   ol_cv_have_sys_errlist=yes
 else
