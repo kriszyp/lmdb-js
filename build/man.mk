@@ -35,11 +35,12 @@ install-common:
 		if [ -f "$$page.links" ]; then \
 			for link in `$(CAT) $$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
-				$(RM) $(INSTDIR)/$$link $(MANDIR)/$$link; \
-				$(LN_S) -sf $$page $(MANDIR)/$$link; \
+				$(LN_S) -f $$page $(MANDIR)/$$link; \
 			done; \
 		fi; \
 	done; \
-	$(RM) $$TMPMAN
 
-Makefile: $(top_srcdir)/build/lib.mk
+clean-common:   FORCE
+	$(RM) *.tmp all-common
+
+Makefile: $(top_srcdir)/build/man.mk
