@@ -92,47 +92,13 @@ ldap_create( LDAP **ldp )
 	/* Initialize the global options, if not already done. */
 	if( gopts->ldo_valid != LDAP_INITIALIZED ) {
 		ldap_int_initialize(gopts, NULL);
+		if ( gopts->ldo_valid != LDAP_INITIALIZED )
+			return LDAP_LOCAL_ERROR;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_create\n", 0, 0, 0 );
 
-#ifdef HAVE_WINSOCK2
-{	WORD wVersionRequested;
-	WSADATA wsaData;
- 
-	wVersionRequested = MAKEWORD( 2, 0 );
-	if ( WSAStartup( wVersionRequested, &wsaData ) != 0 ) {
-		/* Tell the user that we couldn't find a usable */
-		/* WinSock DLL.                                  */
-		return LDAP_LOCAL_ERROR;
-	}
- 
-	/* Confirm that the WinSock DLL supports 2.0.*/
-	/* Note that if the DLL supports versions greater    */
-	/* than 2.0 in addition to 2.0, it will still return */
-	/* 2.0 in wVersion since that is the version we      */
-	/* requested.                                        */
- 
-	if ( LOBYTE( wsaData.wVersion ) != 2 ||
-		HIBYTE( wsaData.wVersion ) != 0 )
-	{
-	    /* Tell the user that we couldn't find a usable */
-	    /* WinSock DLL.                                  */
-	    WSACleanup( );
-	    return LDAP_LOCAL_ERROR; 
-	}
-}	/* The WinSock DLL is acceptable. Proceed. */
-
-#elif HAVE_WINSOCK
-{	WSADATA wsaData;
-	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return LDAP_LOCAL_ERROR;
-	}
-}
-#endif
-
 	if ( (ld = (LDAP *) LDAP_CALLOC( 1, sizeof(LDAP) )) == NULL ) {
-	    WSACleanup( );
 		return( LDAP_NO_MEMORY );
 	}
    
@@ -160,14 +126,12 @@ ldap_create( LDAP **ldp )
 
 	if ( ld->ld_options.ldo_defludp == NULL ) {
 		LDAP_FREE( (char*)ld );
-	    WSACleanup( );
 		return LDAP_NO_MEMORY;
 	}
 
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		ldap_free_urllist( ld->ld_options.ldo_defludp );
 		LDAP_FREE( (char*) ld );
-	    WSACleanup( );
 		return LDAP_NO_MEMORY;
 	}
 
@@ -177,7 +141,6 @@ ldap_create( LDAP **ldp )
 	if ( ld->ld_sb == NULL ) {
 		ldap_free_urllist( ld->ld_options.ldo_defludp );
 		LDAP_FREE( (char*) ld );
-		WSACleanup( );
 		return LDAP_NO_MEMORY;
 	}
 

@@ -55,8 +55,6 @@
 #include <winsock2.h>
 #elif HAVE_WINSOCK
 #include <winsock.h>
-#else
-#define WSACleanup()
 #endif
 
 #ifdef HAVE_PCNFS
