@@ -6,7 +6,7 @@
 
 #if defined( HAVE_PTHREADS )
 
-#ifdef HAVE_DCE
+#ifndef HAVE_PTHREAD_KILL
 /***********************************************************************
  *                                                                     *
  * pthreads package with DCE - no mapping to do (except to create a    *
@@ -20,7 +20,7 @@ pthread_kill( pthread_t tid, int sig )
 {
 	kill( getpid(), sig );
 }
-#endif /* DCE */
+#endif /* HAVE_PTHREAD_KILL */
 
 #elif defined( HAVE_MACH_CTHREADS )
 
