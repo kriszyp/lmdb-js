@@ -271,7 +271,7 @@ int
 ldap_set_option(
 	LDAP	*ld,
 	int		option,
-	void	*invalue)
+	LDAP_CONST void	*invalue)
 {
 	struct ldapoptions *lo;
 
