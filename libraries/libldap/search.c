@@ -31,13 +31,7 @@ static int ldap_is_attr_desc LDAP_P((
 static int hex2value LDAP_P((
 	int c ));
 
-static ber_slen_t filter_value_unescape LDAP_P((
-	char *filter ));
-
 static char *find_right_paren LDAP_P((
-	char *s ));
-
-static char *find_wildcard LDAP_P((
 	char *s ));
 
 static char *put_complex_filter LDAP_P((
@@ -416,8 +410,8 @@ static int hex2value( int c )
 	return -1;
 }
 
-static char *
-find_wildcard( char *s )
+char *
+ldap_pvt_find_wildcard( char *s )
 {
 	for( ; *s != '\0' ; s++ ) {
 		switch( *s ) {
@@ -428,10 +422,6 @@ find_wildcard( char *s )
 			s++; /* skip over escape */
 			if ( *s == '\0' )
 				return NULL;	/* escape at end of string */
-			if( hex2value( s[0] ) >= 0 && hex2value( s[1] ) >= 0 ) {
-				/* skip over lead digit of two hex digit code */
-				s++;
-			}
 		}
 	}
 
@@ -441,8 +431,8 @@ find_wildcard( char *s )
 /* unescape filter value */
 /* support both LDAP v2 and v3 escapes */
 /* output can include nul characters */
-static ber_slen_t
-filter_value_unescape( char *fval )
+ber_slen_t
+ldap_pvt_filter_value_unescape( char *fval )
 {
 	ber_slen_t r, v;
 	int v1, v2;
@@ -805,7 +795,7 @@ put_simple_filter(
 			}
 
 			if( rc != -1 ) {
-				ber_slen_t len = filter_value_unescape( value );
+				ber_slen_t len = ldap_pvt_filter_value_unescape( value );
 
 				if( len >= 0 ) {
 					rc = ber_printf( ber, "totb}",
@@ -819,7 +809,7 @@ put_simple_filter(
 		break;
 
 	default:
-		if ( find_wildcard( value ) == NULL ) {
+		if ( ldap_pvt_find_wildcard( value ) == NULL ) {
 			ftype = LDAP_FILTER_EQUALITY;
 		} else if ( strcmp( value, "*" ) == 0 ) {
 			ftype = LDAP_FILTER_PRESENT;
@@ -834,7 +824,7 @@ put_simple_filter(
 		rc = ber_printf( ber, "ts", ftype, str );
 
 	} else {
-		ber_slen_t len = filter_value_unescape( value );
+		ber_slen_t len = ldap_pvt_filter_value_unescape( value );
 
 		if( len >= 0 ) {
 			rc = ber_printf( ber, "t{so}",
@@ -862,7 +852,7 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 		return( -1 );
 
 	for( ; val != NULL; val=nextstar ) {
-		if ( (nextstar = find_wildcard( val )) != NULL )
+		if ( (nextstar = ldap_pvt_find_wildcard( val )) != NULL )
 			*nextstar++ = '\0';
 
 		if ( gotstar == 0 ) {
@@ -874,7 +864,7 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 		}
 
 		if ( *val != '\0' ) {
-			ber_slen_t len = filter_value_unescape( val );
+			ber_slen_t len = ldap_pvt_filter_value_unescape( val );
 
 			if ( len < 0  ) {
 				return -1;

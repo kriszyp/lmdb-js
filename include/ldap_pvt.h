@@ -16,6 +16,7 @@
 #define _LDAP_PVT_H 1
 
 #include <ldap_cdefs.h>
+#include <lber.h>				/* get ber_slen_t */
 
 LDAP_BEGIN_DECL
 
@@ -97,6 +98,13 @@ int ldap_pvt_unhex( int c );
 #define LDAP_ATTRCHAR(c)		( LDAP_KEYCHAR((c)) || (c) == '.' )
 
 #define LDAP_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
+
+/* search.c */
+LDAP_F( char * )
+ldap_pvt_find_wildcard LDAP_P((	char *s ));
+
+LDAP_F( ber_slen_t )
+ldap_pvt_filter_value_unescape LDAP_P(( char *filter ));
 
 /* string.c */
 LDAP_F( char * )
