@@ -110,6 +110,9 @@ ldif_parse_line(
 	}
 	*s++ = '\0';
 
+	url = 0;
+	b64 = 0;
+
 	if ( *s == '\0' ) {
 		/* no value */
 		value = NULL;
@@ -117,9 +120,6 @@ ldif_parse_line(
 		goto done;
 	}
 		
-	url = 0;
-	b64 = 0;
-
 	if ( *s == '<' ) {
 		s++;
 		url = 1;
