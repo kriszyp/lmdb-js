@@ -16,17 +16,18 @@
 			+ RFC2251-2256
 			+ named referrals
 			+ DNS SRV location
-		* Enhanced Access Control System
 		* SASL support
 		* TLS/SSL support
 		* IPv6 support
+		* LDAP over IPC support
 		* Updated C API 
-		* Additional SLAPD backends:
+		* Enhanced Standalone LDAP Server:
+			+ Updated Access Control System
+			+ Thread Pooling
 			+ DNS SRV referral backend
 			+ LDAP backend
-			+ Perl programmable backend
-			+ SQL programmable backend
-			+ TCL programmable backend
+			+ new (Perl, SQL, TCL) programmable backends
+			+ Better tools
 
 	This release includes the following major components:
 
@@ -36,7 +37,7 @@
 		* -llber - a lightweight BER/DER encoding/decoding library
 		* LDIF tools - data conversion tools for use with slapd
 		* LDAP gateways - finger, gopher, email to LDAP gateways
-		* LDAP mailers - sendmail-compatibile mail delivery agents
+		* LDAP mailer - sendmail-compatibile mail delivery agents
 		* LDAP tools - A collection of command line LDAP utility programs
 
 	In addition, there are some contributed components:
