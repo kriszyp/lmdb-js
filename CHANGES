@@ -1,6 +1,9 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.18 Engineering
+	Fixed -llber ber_bvecadd bug (ITS#1398)
+	Build environment
+		Updated req_query detection
 
 OpenLDAP 2.0.17 Release
 	Fixed ldbm BerkeleyDB2 compat bug (ITS#1390)
