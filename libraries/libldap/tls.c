@@ -645,8 +645,11 @@ sb_tls_bio_read( BIO *b, char *buf, int len )
 	ret = LBER_SBIOD_READ_NEXT( p->sbiod, buf, len );
 
 	BIO_clear_retry_flags( b );
-	if ( ret < 0 && errno == EWOULDBLOCK ) {
-		BIO_set_retry_read( b );
+	if ( ret < 0 ) {
+		int err = errno;
+		if ( err == EAGAIN || err == EWOULDBLOCK ) {
+			BIO_set_retry_read( b );
+		}
 	}
 
 	return ret;
@@ -669,8 +672,11 @@ sb_tls_bio_write( BIO *b, const char *buf, int len )
 	ret = LBER_SBIOD_WRITE_NEXT( p->sbiod, (char *)buf, len );
 
 	BIO_clear_retry_flags( b );
-	if ( ret < 0 && errno == EWOULDBLOCK ) {
-		BIO_set_retry_write( b );
+	if ( ret < 0 ) {
+		int err = errno;
+		if ( err == EAGAIN || err == EWOULDBLOCK ) {
+			BIO_set_retry_write( b );
+		}
 	}
 
 	return ret;
