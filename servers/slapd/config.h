@@ -28,24 +28,26 @@ typedef struct ConfigTable {
 	void *notify;
 } ConfigTable;
 
-#define ARGS_USERLAND	0x0000ffff
-#define ARGS_TYPES	0x00ff0000
-#define ARGS_POINTER	0x001f0000
-#define ARGS_NUMERIC	0x000f0000
-#define ARG_INT		0x00010000
-#define ARG_LONG	0x00020000
-#define ARG_BER_LEN_T	0x00040000
-#define ARG_ON_OFF	0x00080000
-#define ARG_STRING	0x00100000
-#define ARG_DN		0x00200000
-#define ARG_EXISTS	0x00400000	/* XXX not yet */
-#define ARG_IGNORED	0x00800000
+#define ARGS_USERLAND	0x00000fff
+#define ARGS_TYPES	0x000ff000
+#define ARGS_POINTER	0x0001f000
+#define ARGS_NUMERIC	0x0000f000
+#define ARG_INT		0x00001000
+#define ARG_LONG	0x00002000
+#define ARG_BER_LEN_T	0x00004000
+#define ARG_ON_OFF	0x00008000
+#define ARG_STRING	0x00010000
+#define ARG_DN		0x00020000
+#define ARG_EXISTS	0x00040000	/* XXX not yet */
+#define ARG_IGNORED	0x00080000
 
-#define ARGS_SYNTAX	0xff000000
-#define ARG_DB		0x01000000
-#define ARG_PRE_DB	0x02000000
-#define ARG_PAREN	0x04000000
-#define ARG_NONZERO	0x08000000
+#define ARGS_SYNTAX	0xfff00000
+#define ARG_PRE_BI	0x00100000
+#define ARG_PRE_DB	0x00200000
+#define ARG_DB		0x00400000	/* Only applies to DB */
+#define ARG_MAY_DB	0x00800000	/* May apply to DB */
+#define ARG_PAREN	0x01000000
+#define ARG_NONZERO	0x02000000
 #define ARG_UNIQUE	0x10000000
 #define ARG_SPECIAL	0x20000000	/* one special case */
 #define ARG_OFFSET	0x40000000

@@ -190,7 +190,7 @@ static OidRec OidMacros[] = {
 /* alphabetical ordering */
 
 ConfigTable SystemConfiguration[] = {
-	{ "access",	NULL, 0, 0, 0, ARG_MAGIC|CFG_ACL,
+	{ "access",	NULL, 0, 0, 0, ARG_MAY_DB|ARG_MAGIC|CFG_ACL,
 		&config_generic, "( OLcfgAt:1 NAME 'olcAccess' "
 			"DESC 'Access Control List' "
 			"EQUALITY caseIgnoreMatch "
@@ -244,7 +244,7 @@ ConfigTable SystemConfiguration[] = {
 		&config_generic, "( OLcfgAt:13 NAME 'olcDatabase' "
 			"DESC 'The backend type for a database instance' "
 			"SUP olcBackend )", NULL, NULL },
-	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_DN|ARG_MAGIC,
+	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_MAGIC,
 		&config_search_base, "( OLcfgAt:14 NAME 'olcDefaultSearchBase' "
 			"SYNTAX OMsDN )", NULL, NULL },
 	{ "disallows", "features", 2, 0, 8, ARG_PRE_DB|ARG_MAGIC,
@@ -338,7 +338,7 @@ ConfigTable SystemConfiguration[] = {
 	{ "pluginlog", NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, NULL, NULL, NULL },
 #endif
-	{ "readonly", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_RO,
+	{ "readonly", "on|off", 2, 2, 0, ARG_MAY_DB|ARG_ON_OFF|ARG_MAGIC|CFG_RO,
 		&config_generic, "( OLcfgAt:40 NAME 'olcReadOnly' "
 			"SYNTAX OMsBoolean )", NULL, NULL },
 	{ "referral", "url", 2, 2, 0, ARG_MAGIC,
@@ -356,10 +356,10 @@ ConfigTable SystemConfiguration[] = {
 	{ "replicationInterval", NULL, 0, 0, 0, ARG_IGNORED,
 		NULL, "( OLcfgAt:45 NAME 'olcReplicationInterval' "
 			"SYNTAX OMsInteger )", NULL, NULL },
-	{ "replogfile", "filename", 2, 2, 0, ARG_MAGIC|ARG_STRING|CFG_REPLOG,
+	{ "replogfile", "filename", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC|ARG_STRING|CFG_REPLOG,
 		&config_generic, "( OLcfgAt:46 NAME 'olcReplogFile' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "require", "features", 2, 0, 7, ARG_MAGIC,
+	{ "require", "features", 2, 0, 7, ARG_MAY_DB|ARG_MAGIC,
 		&config_requires, "( OLcfgAt:47 NAME 'olcRequires' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
 	{ "restrict", "op_list", 2, 0, 0, ARG_MAGIC,
@@ -411,20 +411,20 @@ ConfigTable SystemConfiguration[] = {
 	{ "schemacheck", "on|off", 2, 2, 0, ARG_ON_OFF|ARG_MAGIC|CFG_CHECK,
 		&config_generic, "( OLcfgAt:57 NAME 'olcSchemaCheck' "
 			"SYNTAX OMsBoolean )", NULL, NULL },
-	{ "schemadn", "dn", 2, 2, 0, ARG_DN|ARG_MAGIC,
+	{ "schemadn", "dn", 2, 2, 0, ARG_MAY_DB|ARG_DN|ARG_MAGIC,
 		&config_schema_dn, "( OLcfgAt:58 NAME 'olcSchemaDN' "
 			"SYNTAX OMsDN )", NULL, NULL },
-	{ "security", "factors", 2, 0, 0, ARG_MAGIC,
+	{ "security", "factors", 2, 0, 0, ARG_MAY_DB|ARG_MAGIC,
 		&config_security, "( OLcfgAt:59 NAME 'olcSecurity' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "sizelimit", "limit",	2, 2, 0, ARG_MAGIC|CFG_SIZE,
+	{ "sizelimit", "limit",	2, 2, 0, ARG_MAY_DB|ARG_MAGIC|CFG_SIZE,
 		&config_sizelimit, "( OLcfgAt:60 NAME 'olcSizeLimit' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "sockbuf_max_incoming", "max", 2, 2, 0, ARG_LONG,
 		&sockbuf_max_incoming, "( OLcfgAt:61 NAME 'olcSockbufMaxIncoming' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 	{ "sockbuf_max_incoming_auth", "max", 2, 2, 0, ARG_LONG,
-		&sockbuf_max_incoming_auth, "( OLcfgAt:62 NAME 'olcSuckbufMaxIncomingAuth' "
+		&sockbuf_max_incoming_auth, "( OLcfgAt:62 NAME 'olcSockbufMaxIncomingAuth' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	{ "srvtab", "file", 2, 2, 0, ARG_STRING,
@@ -440,7 +440,7 @@ ConfigTable SystemConfiguration[] = {
 	{ "threads", "count", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_THREADS,
 		&config_generic, "( OLcfgAt:66 NAME 'olcThreads' "
 			"SYNTAX OMsInteger )", NULL, NULL },
-	{ "timelimit", "limit", 2, 2, 0, ARG_MAGIC|CFG_TIME,
+	{ "timelimit", "limit", 2, 2, 0, ARG_MAY_DB|ARG_MAGIC|CFG_TIME,
 		&config_timelimit, "( OLcfgAt:67 NAME 'olcTimeLimit' "
 			"SYNTAX OMsInteger )", NULL, NULL },
 #ifdef HAVE_TLS
@@ -525,7 +525,12 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 			c->log, Conf[i].name, 0);
 		return(ARG_BAD_CONF);
 	}
-	if((arg_type & ARG_PRE_DB) && c->be) {
+	if((arg_type & ARG_PRE_BI) && c->bi) {
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any backend declaration\n",
+			c->log, Conf[i].name, 0);
+		return(ARG_BAD_CONF);
+	}
+	if((arg_type & ARG_PRE_DB) && c->be && c->be != frontendDB) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any database declaration\n",
 			c->log, Conf[i].name, 0);
 		return(ARG_BAD_CONF);
