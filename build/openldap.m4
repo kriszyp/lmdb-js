@@ -109,7 +109,7 @@ AC_DEFUN([OL_BERKELEY_DB2],
 [AC_REQUIRE([OL_LIB_BERKELEY_DB2])
  AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
  AC_CACHE_CHECK([for Berkeley DB2], [ol_cv_berkeley_db2], [
-	if test $ol_cv_lib_db2 = no -o $ol_cv_header_db2 = no ; then
+	if test "$ol_cv_lib_db2" = no -o "$ol_cv_header_db2" = no ; then
 		ol_cv_berkeley_db2=no
 	else
 		ol_cv_berkeley_db2=yes
@@ -132,7 +132,7 @@ dnl
 AC_DEFUN([OL_HEADER_BERKELEY_DB],
 [AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
 AC_CHECK_HEADERS(db_185.h)
-if test $ol_cv_header_db2 = yes ; then
+if test "$ol_cv_header_db2" = yes ; then
 	dnl db.h is db2! 
 
 	ol_cv_header_db=$ac_cv_header_db_185_h
@@ -175,7 +175,7 @@ AC_DEFUN([OL_BERKELEY_DB],
 [AC_REQUIRE([OL_LIB_BERKELEY_DB])
  AC_REQUIRE([OL_HEADER_BERKELEY_DB])
  AC_CACHE_CHECK([for Berkeley DB], [ol_cv_berkeley_db], [
-	if test $ol_cv_lib_db = no -o $ol_cv_header_db = no ; then
+	if test "$ol_cv_lib_db" = no -o "$ol_cv_header_db" = no ; then
 		ol_cv_berkeley_db=no
 	else
 		ol_cv_berkeley_db=yes

@@ -12,6 +12,8 @@
 #ifndef _LDBM_H_
 #define _LDBM_H_
 
+#include <ldap_cdefs.h>
+
 #ifdef LDBM_USE_DBBTREE
 
 /*****************************************************************
@@ -24,7 +26,7 @@
 #include <limits.h>
 #include <fcntl.h>
 
-#ifdef HAVE_DB185_H
+#ifdef HAVE_DB_185_H
 #	include <db_185.h>
 #else
 #	include <db.h>
@@ -78,7 +80,7 @@ typedef DB	*LDBM;
 #include <limits.h>
 #include <fcntl.h>
 
-#ifdef HAVE_DB185_H
+#ifdef HAVE_DB_185_H
 #	include <db_185.h>
 #else
 #	include <db.h>
@@ -182,6 +184,9 @@ typedef DBM	*LDBM;
 
 #endif
 
+LDAP_BEGIN_DECL
+
+void ldbm_initialize( void );
 int	ldbm_errno( LDBM ldbm );
 LDBM	ldbm_open( char *name, int rw, int mode, int dbcachesize );
 void	ldbm_close( LDBM ldbm );
@@ -204,13 +209,11 @@ int	ldbm_delete( LDBM ldbm, Datum key );
 
 /* initialization of Datum structures */
 #ifdef HAVE_BERKELEY_DB2
-
 #   define ldbm_datum_init(d) ((void)memset(&(d), 0, sizeof(Datum)))
-
 #else
-
 #   define ldbm_datum_init(d) ((void)0)
-
 #endif  /* HAVE_BERKELEY_DB2 */
+
+LDAP_END_DECL
 
 #endif /* _ldbm_h_ */

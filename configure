@@ -5514,7 +5514,7 @@ if eval "test \"`echo '$''{'ol_cv_berkeley_db2'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	if test $ol_cv_lib_db2 = no -o $ol_cv_header_db2 = no ; then
+	if test "$ol_cv_lib_db2" = no -o "$ol_cv_header_db2" = no ; then
 		ol_cv_berkeley_db2=no
 	else
 		ol_cv_berkeley_db2=yes
@@ -5698,7 +5698,7 @@ else
 fi
 done
 
-if test $ol_cv_header_db2 = yes ; then
+if test "$ol_cv_header_db2" = yes ; then
 	
 	ol_cv_header_db=$ac_cv_header_db_185_h
 else
@@ -5713,7 +5713,7 @@ if eval "test \"`echo '$''{'ol_cv_berkeley_db'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
-	if test $ol_cv_lib_db = no -o $ol_cv_header_db = no ; then
+	if test "$ol_cv_lib_db" = no -o "$ol_cv_header_db" = no ; then
 		ol_cv_berkeley_db=no
 	else
 		ol_cv_berkeley_db=yes

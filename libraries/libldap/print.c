@@ -75,13 +75,3 @@ va_dcl
 	(*lber_pvt_log_print)( buf );
 	return 1;
 }
-
-static int lber_log_puts(int errlvl, int loglvl, char *buf)
-{
-	if ( !ldap_log_check( errlvl, loglvl )) {
-		return 0;
-	}
-
-	(*lber_pvt_log_print)( buf );
-	return 1;
-}
