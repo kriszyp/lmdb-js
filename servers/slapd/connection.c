@@ -1257,9 +1257,8 @@ connection_input(
 			inet_ntoa( peeraddr.sa_in_addr.sin_addr ),
 			(unsigned) ntohs( peeraddr.sa_in_addr.sin_port ) );
 		Statslog( LDAP_DEBUG_STATS,
-			    "conn=%ld UDP request from %s (%s) accepted.\n",
-			    conn->c_connid, peername,
-			    conn->c_sock_name, 0, 0 );
+			"conn=%ld UDP request from %s (%s) accepted.\n",
+			conn->c_connid, peername, conn->c_sock_name.bv_val, 0, 0 );
 	}
 #endif
 	tag = ber_get_next( conn->c_sb, &len, conn->c_currentber );
@@ -1350,7 +1349,8 @@ connection_input(
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
 	if (cdn) {
-	    op->o_dn = cdn;
+	    op->o_dn.bv_val = ch_strdup( cdn );
+	    op->o_dn.bv_len = strlen( op->o_dn.bv_val );
 	    op->o_protocol = LDAP_VERSION2;
 	}
 #endif
