@@ -156,7 +156,12 @@ parse_acl(
 						|| strcasecmp( style, "regex" ) == 0 )
 					{
 						a->acl_dn_style = ACL_STYLE_REGEX;
-						if ( strcmp(right, "*") == 0 
+
+						if ( *right == '\0' ) {
+							a->acl_dn_style = ACL_STYLE_BASE;
+							a->acl_dn_pat = ch_strdup( right );
+
+						} else if ( strcmp(right, "*") == 0 
 							|| strcmp(right, ".*") == 0 
 							|| strcmp(right, ".*$") == 0 
 							|| strcmp(right, "^.*") == 0 

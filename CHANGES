@@ -1,5 +1,11 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.23 Engineering
+	Fixed slapd moddn acl bug (ITS#1562) (ITS#1582)
+	Fixed slapd acl regex (to dn="") portability bug (ITS#1579)
+	Documentation
+		Fixed a number of typos (ITS#1578)
+
 OpenLDAP 2.0.22 Release
 	Fixed slapd passwd modify referral bug
 	Fixed back-ldbm index threading bug
