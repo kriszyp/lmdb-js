@@ -355,7 +355,9 @@ matching_rule_use_init( void )
 
 		at = NULL;
 		for ( at_start( &at ); at; at_next( &at ) ) {
-			if( mr->smr_syntax == at->sat_syntax ) {
+			if( mr->smr_syntax == at->sat_syntax ||
+				mr == at->sat_equality )
+			{
 				ldap_charray_add( &applies_oids, at->sat_cname.bv_val );
 			}
 		}
