@@ -120,6 +120,10 @@ get_limits(
 			}
 			break;
 
+		case SLAP_LIMITS_ANY:
+			*limit = &lm[0]->lm_limits;
+			return( 0 );
+
 		default:
 			assert( 0 );	/* unreachable */
 			return( -1 );
@@ -179,6 +183,7 @@ add_limits(
 
 	case SLAP_LIMITS_ANONYMOUS:
 	case SLAP_LIMITS_USERS:
+	case SLAP_LIMITS_ANY:
 		lm->lm_type = type;
 		lm->lm_dn_pat.bv_val = NULL;
 		lm->lm_dn_pat.bv_len = 0;
@@ -264,7 +269,10 @@ parse_limits(
 	 */
 	
 	pattern = argv[1];
-	if ( strcasecmp( pattern, "anonymous" ) == 0 ) {
+	if ( strcmp( pattern, "*" ) == 0) {
+		type = SLAP_LIMITS_ANY;
+
+	} else if ( strcasecmp( pattern, "anonymous" ) == 0 ) {
 		type = SLAP_LIMITS_ANONYMOUS;
 
 	} else if ( strcasecmp( pattern, "users" ) == 0 ) {
@@ -342,6 +350,17 @@ parse_limits(
 
 			/* skip '=' (required) */
 			pattern++;
+
+			/* trim obvious cases */
+			if ( strcmp( pattern, "*" ) == 0 ) {
+				type = SLAP_LIMITS_ANY;
+				pattern = NULL;
+
+			} else if ( ( type == SLAP_LIMITS_REGEX || type == SLAP_LIMITS_UNDEFINED ) 
+					&& strcmp( pattern, ".*" ) == 0 ) {
+				type = SLAP_LIMITS_ANY;
+				pattern = NULL;
+			}
 		}
 	}
 

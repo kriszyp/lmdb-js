@@ -1035,6 +1035,7 @@ struct slap_limits {
 #define SLAP_LIMITS_REGEX	0x0005
 #define SLAP_LIMITS_ANONYMOUS	0x0006
 #define SLAP_LIMITS_USERS	0x0007
+#define SLAP_LIMITS_ANY		0x0008
 	regex_t	lm_dn_regex;		/* regex data for REGEX */
 
 	/*
