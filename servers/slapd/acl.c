@@ -1903,6 +1903,7 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 
 		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ ) {
 			ber_str2bv( ludp->lud_attrs[ nattrs ], 0, 0, &anlist[ nattrs ].an_name );
+			anlist[ nattrs ].an_desc = NULL;
 			rc = slap_bv2ad( &anlist[ nattrs ].an_name,
 					&anlist[ nattrs ].an_desc, &text );
 			if ( rc != LDAP_SUCCESS ) {
@@ -1916,6 +1917,7 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 	}
 
 	anlist[ nattrs ].an_name = *attr;
+	anlist[ nattrs ].an_desc = NULL;
 	rc = slap_bv2ad( &anlist[ nattrs ].an_name,
 			&anlist[ nattrs ].an_desc, &text );
 	if ( rc != LDAP_SUCCESS ) {
