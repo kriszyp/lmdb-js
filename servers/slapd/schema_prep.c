@@ -115,6 +115,9 @@ structuralObjectClassMatch(
 	return LDAP_SUCCESS;
 }
 
+static ObjectClassSchemaCheckFN rootDseObjectClass;
+static ObjectClassSchemaCheckFN subentryObjectClass;
+
 static struct slap_schema_oc_map {
 	char *ssom_name;
 	char *ssom_defn;
@@ -142,8 +145,8 @@ static struct slap_schema_oc_map {
 	{ "LDAProotDSE", "( 1.3.6.1.4.1.4203.1.4.1 "
 			"NAME ( 'OpenLDAProotDSE' 'LDAProotDSE' ) "
 			"DESC 'OpenLDAP Root DSE object' "
-			"SUP top STRUCTURAL MAY cn )",
-		0, offsetof(struct slap_internal_schema, si_oc_rootdse) },
+			"SUP top STRUCTURAL MAY cn )", rootDseObjectClass,
+		offsetof(struct slap_internal_schema, si_oc_rootdse) },
 	{ "subentry", "( 2.5.20.0 NAME 'subentry' "
 			"SUP top STRUCTURAL "
 			"MUST ( cn $ subtreeSpecification ) )",
@@ -153,12 +156,11 @@ static struct slap_schema_oc_map {
 		"AUXILIARY "
 		"MAY ( dITStructureRules $ nameForms $ ditContentRules $ "
 			"objectClasses $ attributeTypes $ matchingRules $ "
-			"matchingRuleUse ) )",
-		0, offsetof(struct slap_internal_schema, si_oc_subschema) },
+			"matchingRuleUse ) )", subentryObjectClass,
+		offsetof(struct slap_internal_schema, si_oc_subschema) },
 	{ "collectiveAttributes", "( 2.5.20.2 "
 			"NAME 'collectiveAttributes' "
-			"AUXILIARY )",
-		0,
+			"AUXILIARY )", subentryObjectClass,
 		offsetof(struct slap_internal_schema, si_oc_collectiveAttributes) },
 	{ NULL, 0 }
 };
@@ -704,6 +706,40 @@ slap_schema_check( void )
 	return LDAP_SUCCESS;
 }
 
+static int rootDseObjectClass (
+	Entry *e,
+	ObjectClass *oc,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	*text = textbuf;
+	if( e->e_nname.bv_len ) {
+		snprintf( textbuf, textlen,
+			"objectClass \"%s\" only allowed in the root DSE",
+			oc->soc_oid );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	/* we should not be called for the root DSE */
+	assert( 0 );
+	return LDAP_SUCCESS;
+}
+
+static int subentryObjectClass (
+	Entry *e,
+	ObjectClass *oc,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	if( !is_entry_subentry( e ) ) {
+		snprintf( textbuf, textlen,
+			"objectClass \"%s\" only allowed in subentries",
+			oc->soc_oid );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+	return LDAP_SUCCESS;
+}
+
 static int rootDseAttribute (
 	Entry *e,
 	Attribute *attr,
@@ -713,7 +749,7 @@ static int rootDseAttribute (
 	*text = textbuf;
 	if( e->e_nname.bv_len ) {
 		snprintf( textbuf, textlen,
-			"attribute \"%s\"only allowed in the root DSE",
+			"attribute \"%s\" only allowed in the root DSE",
 			attr->a_desc->ad_cname.bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
@@ -732,7 +768,7 @@ static int subentryAttribute (
 	*text = textbuf;
 	if( !is_entry_subentry( e ) ) {
 		snprintf( textbuf, textlen,
-			"attribute \"%s\"only allowed in the subentry",
+			"attribute \"%s\" only allowed in the subentry",
 			attr->a_desc->ad_cname.bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
@@ -749,7 +785,7 @@ static int referralAttribute (
 	*text = textbuf;
 	if( !is_entry_referral( e ) ) {
 		snprintf( textbuf, textlen,
-			"attribute \"%s\"only allowed in the referral",
+			"attribute \"%s\" only allowed in the referral",
 			attr->a_desc->ad_cname.bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}

@@ -204,8 +204,16 @@ entry_schema_check(
 #endif
 
 			return LDAP_OBJECT_CLASS_VIOLATION;
+		}
 
-		} else if ( oc->soc_kind == LDAP_SCHEMA_ABSTRACT ) {
+		if ( oc->sco_check ) {
+			int rc = (oc->sco_check)( e, oc,
+				text, textbuf, textlen );
+			if( rc != LDAP_SUCCESS ) {
+				return rc;
+			}
+		}
+		if ( oc->soc_kind == LDAP_SCHEMA_ABSTRACT ) {
 			/* object class is abstract */
 			if ( oc != slap_schema.si_oc_top &&
 				!is_object_subclass( oc, sc ))

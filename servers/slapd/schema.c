@@ -39,16 +39,16 @@ schema_info( Entry **entry, const char **text )
 	(void) dnNormalize2( NULL, &e->e_name, &e->e_nname );
 	e->e_private = NULL;
 
-	vals[0].bv_val = "LDAPsubentry";
-	vals[0].bv_len = sizeof("LDAPsubentry")-1;
+	vals[0].bv_val = "subentry";
+	vals[0].bv_len = sizeof("subentry")-1;
 	attr_merge( e, ad_structuralObjectClass, vals );
 
 	vals[0].bv_val = "top";
 	vals[0].bv_len = sizeof("top")-1;
 	attr_merge( e, ad_objectClass, vals );
 
-	vals[0].bv_val = "LDAPsubentry";
-	vals[0].bv_len = sizeof("LDAPsubentry")-1;
+	vals[0].bv_val = "subentry";
+	vals[0].bv_len = sizeof("subentry")-1;
 	attr_merge( e, ad_objectClass, vals );
 
 	vals[0].bv_val = "subschema";
