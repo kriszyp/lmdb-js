@@ -55,7 +55,7 @@ struct slap_limits_set deflimit = {
 	-1,				/* no limit on unchecked size */
 	0,				/* page limit */
 	0,				/* hide number of entries left */
-	-1				/* unlimited number of total entries returned by paged results */
+	0				/* number of total entries returned by pagedResults equal to hard limit */
 };
 
 AccessControl	*global_acl = NULL;
@@ -1819,7 +1819,7 @@ read_config( const char *fname, int depth )
 				return 1;
 			}
 
-			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
+			SLAP_DBFLAGS(be) |= ( SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SYNC_SHADOW );
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
@@ -2059,7 +2059,7 @@ read_config( const char *fname, int depth )
 				}
 
 			}
-			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
+			SLAP_DBFLAGS(be) |= ( SLAP_DBFLAG_SHADOW | SLAP_DBFLAG_SLURP_SHADOW );
 
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
 			if ( cargc < 2 ) {

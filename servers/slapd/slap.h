@@ -1890,7 +1890,7 @@ typedef struct slap_paged_state {
 	Backend *ps_be;
 	PagedResultsCookie ps_cookie;
 	ID ps_id;
-	unsigned long ps_count;
+	int ps_count;
 } PagedResultsState;
 
 #define LDAP_PSEARCH_BY_ADD			0x01
