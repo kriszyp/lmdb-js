@@ -21,7 +21,6 @@
 
 char *supportedControls[] = {
 	LDAP_CONTROL_MANAGEDSAIT,
-/*	LDAP_CONTROL_X_CHANGE_PASSWD, */
 	NULL
 };
 
