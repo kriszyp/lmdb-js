@@ -1,5 +1,7 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.7 Engineering
+
 OpenLDAP 2.2.6 Release
 	Fixed slapd SASL callback handling (ITS#2926)
 	Fixed slapd backglue sizelimit bug (ITS#2888)
