@@ -91,7 +91,7 @@ ldap_back_modify(
 	dc.ctx = "modifyAttrDN";
 #endif
 
-	isupdate = be_isupdate( op );
+	isupdate = be_isupdate( op ) || syncrepl_isupdate( op );
 	for (i=0, ml=op->oq_modify.rs_modlist; ml; ml=ml->sml_next) {
 		int	is_oc = 0;
 

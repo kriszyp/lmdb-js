@@ -396,7 +396,7 @@ retry:	/* transaction retry */
 		isroot = be_isroot( op );
 		if ( ! isroot ) {
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-				|| be_isupdate( op ) ) {
+				|| be_isupdate( op ) || syncrepl_isupdate( op ) ) {
 
 				p = (Entry *)&slap_entry_root;
 

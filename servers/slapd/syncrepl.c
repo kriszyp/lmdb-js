@@ -1788,6 +1788,31 @@ done :
 	return;
 }
 
+int
+syncrepl_isupdate( Operation *op )
+{
+	return ( syncrepl_isupdate_dn( op->o_bd, &op->o_ndn ));
+}
+
+int
+syncrepl_isupdate_dn(
+	Backend*		be,
+	struct berval*	ndn
+)
+{
+	syncinfo_t*	si;
+	int			ret = 0;
+
+	if ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
+		LDAP_STAILQ_FOREACH( si, &be->be_syncinfo, si_next ) {
+			if ( ret = dn_match( &si->si_updatedn, ndn )) {
+				return ret;
+			}
+		}
+	}
+	return 0;
+}
+
 static int
 dn_callback(
 	Operation*	op,
@@ -1991,4 +2016,3 @@ avl_ber_bvfree( void *bv )
 	}
 	ch_free ( (char *) bv );
 }
-

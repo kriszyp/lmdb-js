@@ -298,8 +298,8 @@ retry:	/* transaction retry */
 		 * no parent!
 		 *  if not attempting to add entry at suffix or with parent ""
 		 */
-		if ((( !be_isroot( op ) && !be_isupdate(op)) || pdn.bv_len > 0 )
-			&& !is_entry_glue( op->oq_add.rs_e ))
+		if ((( !be_isroot( op ) && !be_isupdate(op) && !syncrepl_isupdate(op))
+			|| pdn.bv_len > 0 ) && !is_entry_glue( op->oq_add.rs_e ))
 		{
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, "bdb_add: %s denied\n", 

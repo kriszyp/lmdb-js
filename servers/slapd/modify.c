@@ -468,8 +468,6 @@ do_modify(
 		 */
 #ifndef SLAPD_MULTIMASTER
 		if ( !SLAP_SHADOW(op->o_bd) || repl_user )
-#else
-		if ( LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo ))
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;

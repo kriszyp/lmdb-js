@@ -195,7 +195,8 @@ ldbm_back_delete(
 	} else {
 		/* no parent, must be root to delete */
 		if( ! be_isroot( op ) ) {
-			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op ) ) {
+			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
+				|| be_isupdate( op ) || syncrepl_isupdate( op ) ) {
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( op, p,
