@@ -263,11 +263,15 @@ char	**argv;
 	 * that have exited
 	 */
 	if (!RunFromInetd) {
-#ifdef LDAP_SETPROCTITLE
+#ifdef LDAP_PROCTITLE
 		setproctitle( "initializing" );
 #endif
 #ifndef VMS
-		(void) detach();
+#  ifdef LDAP_DEBUG
+		lutil_detach( ldap_debug, 1 );
+#  else
+		lutil_detach( 0, 1 );
+#  endif
 #endif
 		(void) SIGNAL( SIGCHLD, (void *) wait4child );
 		(void) SIGNAL( SIGINT, (void *) log_and_exit );
@@ -333,7 +337,7 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
-#ifdef LDAP_SETPROCTITLE
+#ifdef LDAP_PROCTITLE
 			sprintf( title, "%s %d\n", hp == NULL ?
 			    inet_ntoa( from.sin_addr ) : hp->h_name, myport );
 			setproctitle( title );
@@ -358,7 +362,7 @@ char	**argv;
 	 * if we are doing CLDAP as well, handle those requests on the fly
 	 */
 
-#ifdef LDAP_SETPROCTITLE
+#ifdef LDAP_PROCTITLE
 #ifdef LDAP_CONNECTIONLESS
         sprintf( title, "listening %s/%s %d", do_tcp ? "tcp" : "",
             do_udp ? "udp" : "", myport );
@@ -439,7 +443,7 @@ char	**argv;
 #ifdef VMS
 		/* This is for debug on terminal on VMS */
 		close( tcps );
-#ifdef LDAP_SETPROCTITLE
+#ifdef LDAP_PROCTITLE
 		setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 		    hp->h_name );
 #endif
@@ -453,7 +457,7 @@ char	**argv;
 		switch( pid = fork() ) {
 		case 0:         /* child */
 			close( tcps );
-#ifdef LDAP_SETPROCTITLE
+#ifdef LDAP_PROCTITLE
                         sprintf( title, "%s (%d)\n", hp == NULL ?
 				inet_ntoa( from.sin_addr ) : hp->h_name,
 				myport );

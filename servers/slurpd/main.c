@@ -21,6 +21,7 @@
 
 #include "slurp.h"
 #include "globals.h"
+#include "lutil.h"
 
 
 extern int		doargs( int, char **, Globals * );
@@ -100,9 +101,7 @@ main(
 #else /* LDAP_DEBUG */
     if ( !sglob->one_shot_mode )
 #endif /* LDAP_DEBUG */
-	{
-		detach();
-    }
+	lutil_detach( 0, 0 );
 
 #if defined( HAVE_LWP )
     /*

@@ -34,6 +34,7 @@
 #include "lber.h"
 #include "ldap.h"
 #include "ldap_log.h"
+#include "lutil.h"
 
 #include "disptmpl.h"
 
@@ -180,7 +181,7 @@ char	**argv;
 
 	/* detach if stderr is redirected or no debugging */
 	if ( inetd == 0 )
-		(void) detach( debug );
+		lutil_detach( debug && !isatty( 1 ), 1 );
 
 	if ( (myname = strrchr( argv[0], '/' )) == NULL )
 		myname = strdup( argv[0] );
