@@ -23,6 +23,7 @@ OpenLDAP 2.1.13 Release
 	Fixed slapd SASL anon bugs (ITS#2268)
 	Fixed back-glue exceeded results bug (ITS#2299)
 	Fixed back-glue search reference bug
+	Fixed slurpd reject filename on Windows (ITS#2319)
 	Fixed slurpd re NULL crash (ITS#2320)
 	Changed slapd DNS reverse lookups default to off
 	Updated slapd to remove pid and args files (ITS#2318)
