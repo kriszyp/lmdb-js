@@ -100,19 +100,22 @@ Specifies the slapd configuration file. The default is
 .B slapd
 will serve
 .B ldap:///
-(LDAP over TCP on all interfaces on default LDAP port).  As such,
-it will bind to INADDR_ANY, port 389.
+(LDAP over TCP on all interfaces on default LDAP port).  That is, 
+it will bind to using INADDR_ANY and port 389.
 The
 .B \-h
 option may be used to specify LDAP (and LDAPS) URLs to serve.
 For example, if slapd is given
-.B \-h " ldap://127.0.0.1:9009/ ldaps:///", 
-It will bind 127.0.0.1:9009 for LDAP and INADDR_ANY:636 for LDAP over TLS.
+.B \-h " ldap://127.0.0.1:9009/ ldaps:/// ldapi:///", 
+It will bind 127.0.0.1:9009 for LDAP, INADDR_ANY:636 for LDAP over TLS,
+and LDAP over IPC (Unix domain sockets).
 A space separated list of URLs is expected.  The URLS should be of
-LDAP (ldap://) or, if supported, LDAP over TLS (ldaps://) type without
-a DN or other optional parameters.  Hosts may be specified in either
-Internet '.' format (preferred) or by name.  Ports, if specfied,
-must be numeric.
+LDAP (ldap://) or LDAP over TLS (ldaps://) or LDAP over IPC (ldapi://)
+scheme without a DN or other optional parameters.  Support for the
+latter two schemes depends on selected configuration options.  Hosts
+may be specified by name or IPv4 and IPv6 address formats.
+Ports, if specfied, must be numeric.  The default ldap:// port is 389
+and the default ldaps:// port is 636.
 .TP
 .BI \-u " user"
 .B slapd
