@@ -23,7 +23,7 @@
  */
 
 void
-ber_pvt_assert( LDAP_CONST char *file, int line, LDAP_CONST char *test )
+ber_pvt_assert( const char *file, int line, const char *test )
 {
 	fprintf(stderr,
 		"Assertion failed: %s, file %s, line %d\n",
