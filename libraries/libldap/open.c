@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -21,6 +21,8 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+
+#include <ac/unistd.h>
 
 #include "ldap-int.h"
 #include "ldap_log.h"

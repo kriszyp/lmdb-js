@@ -1,7 +1,7 @@
 /* Generic socket.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -197,8 +197,12 @@ LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #		define AC_GAI_STRERROR(x)	(gai_strerror((x)))
 #	else
 #		define AC_GAI_STRERROR(x)	(ldap_pvt_gai_strerror((x)))
-		char * ldap_pvt_gai_strerror( int );
+		LDAP_F (char *) ldap_pvt_gai_strerror( int );
 #	endif
+#endif
+
+#ifndef HAVE_GETPEEREID
+LDAP_LUTIL_F( int ) getpeereid( int s, uid_t *, gid_t * );
 #endif
 
 #endif /* _AC_SOCKET_H_ */

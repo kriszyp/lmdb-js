@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -93,12 +93,6 @@ ldap_ld_free(
 		ldap_msgfree( lm );
 	}
 
-#ifndef LDAP_NOCACHE
-	if ( ld->ld_cache != NULL ) {
-		ldap_destroy_cache( ld );
-		ld->ld_cache = NULL;
-	}
-#endif /* !LDAP_NOCACHE */
 
 	if ( ld->ld_error != NULL ) {
 		LDAP_FREE( ld->ld_error );

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-2002 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -468,6 +468,12 @@ LBER_F( int )
 ber_flatten LDAP_P((
 	BerElement *ber,
 	struct berval **bvPtr ));
+
+LBER_F( int )
+ber_flatten2 LDAP_P((
+	BerElement *ber,
+	struct berval *bv,
+	int alloc ));
 
 /*
  * LBER ber accessor functions
