@@ -50,6 +50,7 @@ usage( const char *s )
 "  -a deref   one of never (default), always, search, or find\n"
 "  -A         retrieve attribute names only (no values)\n"
 "  -b basedn  base dn for search\n"
+"  -F prefix  URL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
 "  -LL        print responses in LDIF format without comments\n"
@@ -62,7 +63,6 @@ usage( const char *s )
 "  -T path    write files to directory specified by path (default:\n"
 "             " LDAP_TMPDIR ")\n"
 "  -u         include User Friendly entry names in the output\n"
-"  -V prefix  URL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
 "  -z limit   size limit (in entries) for search\n"
 
 "Common options:\n"
@@ -184,7 +184,7 @@ main( int argc, char **argv )
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
-	while (( i = getopt( argc, argv, "Aa:b:f:Ll:S:s:T:tuV:z:"
+	while (( i = getopt( argc, argv, "Aa:b:F:f:Ll:S:s:T:tuz:"
 		"Cd:D:h:H:IkKMnO:p:P:QR:U:vw:WxX:Y:Z")) != EOF )
 	{
 	switch( i ) {
@@ -216,6 +216,10 @@ main( int argc, char **argv )
 		}
 		infile = strdup( optarg );
 		break;
+	case 'F':	/* uri prefix */
+		if( urlpre ) free( urlpre );
+		urlpre = strdup( optarg );
+		break;
 	case 'l':	/* time limit */
 		timelimit = atoi( optarg );
 		break;
@@ -246,10 +250,6 @@ main( int argc, char **argv )
 	case 'T':	/* tmpdir */
 		if( tmpdir ) free( tmpdir );
 		tmpdir = strdup( optarg );
-		break;
-	case 'V':	/* uri prefix */
-		if( urlpre ) free( urlpre );
-		urlpre = strdup( optarg );
 		break;
 	case 'z':	/* size limit */
 		sizelimit = atoi( optarg );
