@@ -137,6 +137,9 @@ bdb_cache_entryinfo_destroy( EntryInfo *e )
 {
 	ldap_pvt_thread_mutex_destroy( &e->bei_kids_mutex );
 	free( e->bei_nrdn.bv_val );
+#ifdef BDB_HIER
+	free( e->bei_rdn.bv_val );
+#endif
 	free( e );
 	return 0;
 }
