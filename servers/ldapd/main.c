@@ -603,18 +603,31 @@ set_socket(
                 exit( 1 );
         }
 
+#ifdef SO_REUSEADDR
         /* set option so clients can't keep us from coming back up */
-	i = 1;
+		i = 1;
         if ( setsockopt( s, SOL_SOCKET, SO_REUSEADDR, (void *) &i, sizeof(i) )
-	    < 0 ) {
+		    < 0 )
+		{
                 perror( "setsockopt" );
                 exit( 1 );
         }
+#endif
+#ifdef SO_KEEPALIVE
+        /* enable keep alives */
+		i = 1;
+        if ( setsockopt( s, SOL_SOCKET, SO_KEEPALIVE, (void *) &i, sizeof(i) )
+		    < 0 )
+		{
+                perror( "setsockopt" );
+                exit( 1 );
+        }
+#endif
 
         /* bind to a name */
 	(void)memset( (void *)&addr, '\0', sizeof( addr ));
         addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = INADDR_ANY;
+        addr.sin_addr.s_addr = htonl(INADDR_ANY);
         addr.sin_port = htons( port );
         if ( bind( s, (struct sockaddr *) &addr, sizeof(addr) ) ) {
                 perror( "bind" );
