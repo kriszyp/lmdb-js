@@ -81,7 +81,7 @@ bdb_group(
 	if ( txn ) {
 		locker = TXN_ID( txn );
 	} else {
-		LOCK_ID ( bdb->bi_dbenv, &locker );
+		rc = LOCK_ID ( bdb->bi_dbenv, &locker );
 		switch(rc) {
 		case 0:
 			break;
