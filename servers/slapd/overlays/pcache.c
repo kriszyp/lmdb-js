@@ -1072,7 +1072,7 @@ cache_entries(
 	cache_manager *cm = on->on_bi.bi_private;
 	query_manager*		qm = cm->qm;
 	int		i;
-	int		return_val;
+	int		return_val = 0;
 	Entry		*e;
 	struct berval	crp_uuid;
 	char		uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
@@ -1224,7 +1224,7 @@ proxy_cache_response(
 				si->tail = NULL;
 			}
 		}
-	} else if ( rs->sr_type == REP_RESULT && !si->over ) {
+	} else if ( rs->sr_type == REP_RESULT && si->count ) {
 		if ( cache_entries( op, rs, &uuid ) == 0) {
 			qm->addfunc(qm, &si->query, si->template_id, &uuid);
 			/* If the consistency checker suspended itself,
@@ -1608,16 +1608,15 @@ consistency_check(
 		}
 		ldap_pvt_thread_mutex_unlock(&cm->remove_mutex);
 	}
-	/* If there were no queries, defer processing for a while */
-	if ( pause ) {
-		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-		cm->cc_paused = 1;
-		if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
-			ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
-		}
-		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, 1 );
-		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+	if ( ldap_pvt_runqueue_isrunning( &syncrepl_rq, rtask )) {
+		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
 	}
+	/* If there were no queries, defer processing for a while */
+	cm->cc_paused = pause;
+	ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, pause );
+
+	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 	return NULL;
 }
 

@@ -232,9 +232,6 @@ int slap_shutdown( Backend *be )
 		slap_name, 0, 0 );
 #endif
 
-
-	slap_sasl_destroy();
-
 	/* let backends do whatever cleanup they need to do */
 	rc = backend_shutdown( be ); 
 
@@ -262,6 +259,8 @@ int slap_destroy(void)
 
 
 	rc = backend_destroy();
+
+	slap_sasl_destroy();
 
 	entry_destroy();
 

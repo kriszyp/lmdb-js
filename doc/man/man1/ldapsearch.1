@@ -227,6 +227,11 @@ timelimit of
 (zero) removes the
 .B ldap.conf
 limit.
+A timelimit of
+.I none
+uses
+.I maxInt
+(2147483647, RFC 2251) as timelimit.
 A server may impose a maximal timelimit which only
 the root user may override.
 .TP
@@ -237,6 +242,11 @@ of
 (zero) removes the 
 .B ldap.conf
 limit.
+A sizelimit of
+.I none
+uses
+.I maxInt
+(2147483647, RFC 2251) as sizelimit.
 A server may impose a maximal sizelimit which only
 the root user may override.
 .TP

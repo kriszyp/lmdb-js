@@ -348,8 +348,7 @@ find_ctrl( const char *oid )
 
 void slap_free_ctrls(
 	Operation *op,
-	LDAPControl **ctrls
-)
+	LDAPControl **ctrls )
 {
 	int i;
 
@@ -582,8 +581,8 @@ int get_ctrls(
 				if( sc->sc_extendedops != NULL ) {
 					int i;
 					for( i=0; sc->sc_extendedops[i] != NULL; i++ ) {
-						if( strcmp( op->ore_reqoid.bv_val, sc->sc_extendedops[i] )
-							== 0 )
+						if( strcmp( op->ore_reqoid.bv_val,
+							sc->sc_extendedops[i] ) == 0 )
 						{
 							tagmask=0L;
 							break;
@@ -607,7 +606,7 @@ int get_ctrls(
 				}
 
 				rs->sr_err = sc->sc_parse( op, rs, c );
-
+				assert( rs->sr_err != LDAP_UNAVAILABLE_CRITICAL_EXTENSION );
 				if( rs->sr_err != LDAP_SUCCESS ) goto return_results;
 
 				if ( sc->sc_mask & SLAP_CTRL_FRONTEND ) {
@@ -666,7 +665,7 @@ static int parseModifyIncrement (
 	LDAPControl *ctrl )
 {
 #if 0
-	if ( op->o_parseModifyIncrement != SLAP_NO_CONTROL ) {
+	if ( op->o_modifyIncrement != SLAP_NO_CONTROL ) {
 		rs->sr_text = "modifyIncrement control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -678,7 +677,7 @@ static int parseModifyIncrement (
 	}
 
 #if 0
-	op->o_parseModifyIncrement = ctrl->ldctl_iscritical
+	op->o_modifyIncrement = ctrl->ldctl_iscritical
 		? SLAP_CRITICAL_CONTROL
 		: SLAP_NONCRITICAL_CONTROL;
 #endif
@@ -766,13 +765,13 @@ static int parseProxyAuthz (
 			ctrl->ldctl_value.bv_val, ctrl->ldctl_value.bv_len,
 			NULL, &dn, SLAP_GETDN_AUTHZID );
 
-	if( rc != LDAP_SUCCESS ) {
+	/* FIXME: empty DN in proxyAuthz control should be legal... */
+	if( rc != LDAP_SUCCESS /* || !dn.bv_len */ ) {
 		if ( dn.bv_val ) {
 			ch_free( dn.bv_val );
 		}
 		rs->sr_text = "authzId mapping failed";
 		return LDAP_PROXY_AUTHZ_FAILURE;
-
 	}
 
 #ifdef NEW_LOGGING
@@ -800,6 +799,9 @@ static int parseProxyAuthz (
 
 	op->o_dn.bv_val = NULL;
 	op->o_ndn = dn;
+
+	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu PROXYAUTHZ dn=\"%s\"\n",
+	    op->o_connid, op->o_opid, dn.bv_val, 0, 0 );
 
 	/*
 	 * NOTE: since slap_sasl_getdn() returns a normalized dn,
@@ -844,6 +846,11 @@ static int parsePagedResults (
 
 	if ( op->o_pagedresults != SLAP_NO_CONTROL ) {
 		rs->sr_text = "paged results control specified multiple times";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+	if ( op->o_sync != SLAP_NO_CONTROL ) {
+		rs->sr_text = "paged results control specified with sync control";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1282,7 +1289,8 @@ static int parseSearchOptions (
 
 	if ( search_flags & LDAP_SEARCH_FLAG_DOMAIN_SCOPE ) {
 		if ( op->o_domain_scope != SLAP_NO_CONTROL ) {
-			rs->sr_text = "searchOptions control specified multiple times or with domainScope control";
+			rs->sr_text = "searchOptions control specified multiple times "
+				"or with domainScope control";
 			return LDAP_PROTOCOL_ERROR;
 		}
 
@@ -1293,8 +1301,8 @@ static int parseSearchOptions (
 
 	if ( search_flags & ~(LDAP_SEARCH_FLAG_DOMAIN_SCOPE) ) {
 		/* Other search flags not recognised so far */
-		rs->sr_text = "searchOptions contained invalid flag";
-		return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+		rs->sr_text = "searchOptions contained unrecongized flag";
+		return LDAP_UNWILLING_TO_PERFORM;
 	}
 
 	return LDAP_SUCCESS;
@@ -1313,12 +1321,18 @@ static int parseLDAPsync (
 	struct slap_session_entry *se;
 
 	if ( op->o_sync != SLAP_NO_CONTROL ) {
-		rs->sr_text = "LDAP Sync control specified multiple times";
+		rs->sr_text = "Sync control specified multiple times";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	if ( op->o_pagedresults != SLAP_NO_CONTROL ) {
+		rs->sr_text = "Sync control specified with pagedResults control";
+		return LDAP_PROTOCOL_ERROR;
+	}
+
+
 	if ( ctrl->ldctl_value.bv_len == 0 ) {
-		rs->sr_text = "LDAP Sync control value is empty (or absent)";
+		rs->sr_text = "Sync control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1341,7 +1355,7 @@ static int parseLDAPsync (
 	}
 
 	if ( (tag = ber_scanf( ber, "{i" /*}*/, &mode )) == LBER_ERROR ) {
-		rs->sr_text = "LDAP Sync control : mode decoding error";
+		rs->sr_text = "Sync control : mode decoding error";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1353,7 +1367,7 @@ static int parseLDAPsync (
 		mode = SLAP_SYNC_REFRESH_AND_PERSIST;
 		break;
 	default:
-		rs->sr_text = "LDAP Sync control : unknown update mode";
+		rs->sr_text = "Sync control : unknown update mode";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -1362,7 +1376,7 @@ static int parseLDAPsync (
 	if ( tag == LDAP_TAG_SYNC_COOKIE ) {
 		struct berval tmp_bv;	
 		if (( ber_scanf( ber, /*{*/ "o", &tmp_bv )) == LBER_ERROR ) {
-			rs->sr_text = "LDAP Sync control : cookie decoding error";
+			rs->sr_text = "Sync control : cookie decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
 		ber_bvarray_add( &op->o_sync_state.octet_str, &tmp_bv );
@@ -1370,12 +1384,12 @@ static int parseLDAPsync (
 	}
 	if ( tag == LDAP_TAG_RELOAD_HINT ) {
 		if (( ber_scanf( ber, /*{*/ "b", &op->o_sync_rhint )) == LBER_ERROR ) {
-			rs->sr_text = "LDAP Sync control : rhint decoding error";
+			rs->sr_text = "Sync control : rhint decoding error";
 			return LDAP_PROTOCOL_ERROR;
 		}
 	}
 	if (( ber_scanf( ber, /*{*/ "}")) == LBER_ERROR ) {
-			rs->sr_text = "LDAP Sync control : decoding error";
+			rs->sr_text = "Sync control : decoding error";
 			return LDAP_PROTOCOL_ERROR;
 	}
 
