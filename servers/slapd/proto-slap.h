@@ -1123,6 +1123,8 @@ LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
  */
 
 #ifdef LDAP_SYNCREPL
+LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
+
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P(());
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
 #endif

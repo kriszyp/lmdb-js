@@ -354,20 +354,9 @@ int backend_startup(Backend *be)
 
 #ifdef LDAP_SYNCREPL
 		if ( backendDB[i].syncinfo != NULL ) {
-			int ret;
-			ret = ldap_pvt_thread_pool_submit( &syncrepl_pool,
-					do_syncrepl, (void *) &backendDB[i] );
-			if ( ret != 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( BACKEND, CRIT,
-					"syncrepl thread pool submit failed (%d)\n",
-					ret, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY,
-					"ldap_pvt_thread_pool_submit failed (%d) \n",
-					ret, 0, 0 );
-#endif
-			}
+			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].syncinfo;
+			ldap_pvt_runqueue_insert( &syncrepl_rq, si->interval,
+							(void *) &backendDB[i] );
 		}
 #endif
 	}

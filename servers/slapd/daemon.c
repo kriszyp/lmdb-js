@@ -20,6 +20,10 @@
 #include "lutil.h"
 #include "slap.h"
 
+#ifdef LDAP_SYNCREPL
+#include "ldap_rq.h"
+#endif
+
 #ifdef HAVE_TCPD
 #include <tcpd.h>
 #define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
@@ -1212,6 +1216,13 @@ slapd_daemon_task(
 		struct timeval		zero;
 		struct timeval		*tvp;
 
+#ifdef LDAP_SYNCREPL
+		struct timeval		diff;
+		struct timeval		*cat;
+		BackendDB			*db;
+		time_t				tdelta = 1;
+#endif
+
 		if( emfile ) {
 			now = slap_get_time();
 			connections_timeout_idle( now );
@@ -1285,10 +1296,30 @@ slapd_daemon_task(
 
 		at = ldap_pvt_thread_pool_backload(&connection_pool);
 
+#ifdef LDAP_SYNCREPL
+		/* cat is of struct timeval containing the earliest schedule */
+		ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat, &db );
+		if ( cat != NULL ) {
+			diff.tv_sec = cat->tv_sec - slap_get_time();
+			if ( diff.tv_sec == 0 )
+				diff.tv_sec = tdelta;
+		} else {
+			cat = NULL;
+		}
+#endif
+
 #if defined( HAVE_YIELDING_SELECT ) || defined( NO_THREADS )
 		tvp = NULL;
 #else
 		tvp = at ? &zero : NULL;
+#endif
+
+#ifdef LDAP_SYNCREPL
+		if ( cat != NULL ) {
+			if ( tvp == NULL ) {
+				tvp = &diff;
+			}
+		}
 #endif
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
@@ -1353,6 +1384,15 @@ slapd_daemon_task(
 #else
 			Debug( LDAP_DEBUG_CONNS, "daemon: select timeout - yielding\n",
 			    0, 0, 0 );
+#endif
+
+#ifdef LDAP_SYNCREPL
+			if ( cat && cat->tv_sec && cat->tv_sec <= slap_get_time() ) {
+				ldap_pvt_thread_pool_submit( &connection_pool,
+								do_syncrepl, (void *) db );
+				/* FIXME : reschedule upon do_syncrepl termination */
+				ldap_pvt_runqueue_resched( &syncrepl_rq );
+			}
 #endif
 			ldap_pvt_thread_yield();
 			continue;

@@ -35,6 +35,8 @@
 
 #ifdef LDAP_SYNCREPL
 
+#include "ldap_rq.h"
+
 static Entry*
 syncrepl_message_to_entry ( LDAP *, Operation *, LDAPMessage *,
 		Modifications **, int*, struct berval *, struct berval * );
@@ -74,6 +76,8 @@ static AttributeDescription **add_descs;
 static AttributeDescription **add_descs_lastmod;
 static AttributeDescription **del_descs;
 static AttributeDescription **del_descs_lastmod;
+
+struct runqueue_s syncrepl_rq;
 
 void
 init_syncrepl()

@@ -559,4 +559,4 @@ void *ldap_pvt_thread_pool_context( )
 	return thread_keys[i].ctx;
 }
 
-#endif /* LDAP_HAVE_THREAD_POOL */
+#endif /* LDAP_THREAD_HAVE_TPOOL */
