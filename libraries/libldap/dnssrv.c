@@ -174,11 +174,6 @@ int ldap_domain2dn(
 	return LDAP_SUCCESS;
 }
 
-/* Bind 4 interface */
-#ifndef T_SRV
-#	define T_SRV 33
-#endif
-
 /*
  * Lookup and return LDAP servers for domain (using the DNS
  * SRV record _ldap._tcp.domain).
@@ -215,7 +210,15 @@ int ldap_domain2hostlist(
 #ifdef NS_HFIXEDSZ
 	/* Bind 8/9 interface */
     len = res_query(request, ns_c_in, ns_t_srv, reply, sizeof(reply));
+#	ifndef T_SRV
+#		define T_SRV ns_t_srv
+#	endif
 #else
+	/* Bind 4 interface */
+#	ifndef T_SRV
+#		define T_SRV 33
+#	endif
+
     len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
 #endif
     if (len >= 0) {

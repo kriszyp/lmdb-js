@@ -632,6 +632,7 @@ ldap_int_sasl_bind(
 		LDAP_FREE( authid.bv_val );
 	}
 
+#if !defined(_WIN32)
 	/* Check for local */
 	if ( ldap_pvt_url_scheme2proto( ld->ld_defconn->lconn_server->lud_scheme ) == LDAP_PROTO_IPC ) {
 		char authid[sizeof("uidNumber=4294967295+gidNumber=4294967295,"
@@ -641,6 +642,7 @@ ldap_int_sasl_bind(
 			(int) geteuid(), (int) getegid() );
 		(void) ldap_int_sasl_external( ld, ld->ld_defconn, authid, LDAP_PVT_SASL_LOCAL_SSF );
 	}
+#endif
 
 	/* (re)set security properties */
 	sasl_setprop( ctx, SASL_SEC_PROPS,

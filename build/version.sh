@@ -25,7 +25,7 @@ elif test $ol_minor != X ; then
 else
 	ol_version=${ol_major}.${ol_minor}
 	ol_type=Devel
-	ol_api_lib=0:0:0
+	ol_api_lib=0
 fi
 
 ol_string="${ol_package} ${ol_version}-${ol_type}"

@@ -43,7 +43,7 @@ Making and Installing the OpenLDAP Distribution
         LIBS            libraries       -llib
         PATH            command path    /usr/local/bin:/usr/bin:/bin
 
-3.   Configure the build system
+3.   Configure the build system:
 
         % [env settings] ./configure [options]
 
@@ -51,11 +51,11 @@ Making and Installing the OpenLDAP Distribution
      the appropriate settings.  However, you may need to specify
      options and/or environment variables to obtain desired results.
 
-4.   Build dependencies
+4.   Build dependencies:
 
         % make depend
 
-5.   Build the system
+5.   Build the system:
 
         % make
 
@@ -64,7 +64,7 @@ Making and Installing the OpenLDAP Distribution
      may want to consult the Platform Hints subsection of the FAQ if
      you have not done so already.
 
-6.   Test the standalone system
+6.   Test the standalone system:
 
      This step requires the standalone LDAP server, slapd(8), with
      BDB, HDB, and/or LDBM support.
@@ -72,17 +72,17 @@ Making and Installing the OpenLDAP Distribution
         % make test
 
      If all goes well, the system has been built as configured.  If
-     not, return to step 4 after reviewing your configuration
+     not, return to step 2 after reviewing your configuration
      settings.  You may want to consult the Installation section of
      the FAQ if you have not done so already.
 
-7.   install the binaries and man pages.  You may need to be come the
-     super-user (e.g. root) to do this (depending on where you are
-     installing things):
+7.   Install the software.  You may need to be come the super-user
+     (e.g. root) to do this (depending on where you are installing
+     things):
 
         % su root -c 'make install'
 
-8.   That's it!
+8.   That's it.  Enjoy!
 
 See the OpenLDAP Administrator's Guide and the manual pages for the
 individual applications for configuration and use information. You may

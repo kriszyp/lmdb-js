@@ -51,7 +51,7 @@ rewrite_map_parse(
 	 * Go to the end of the map invocation (the right closing brace)
 	 */
 	for ( p = string, cnt = 1; p[ 0 ] != '\0' && cnt > 0; p++ ) {
-		if ( p[ 0 ] == REWRITE_SUBMATCH_ESCAPE ) {
+		if ( IS_REWRITE_SUBMATCH_ESCAPE( p[ 0 ] ) ) {
 			/*
 			 * '%' marks the beginning of a new map
 			 */

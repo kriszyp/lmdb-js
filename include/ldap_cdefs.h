@@ -158,13 +158,9 @@
 #endif
 
 /* LDBM library */
-#if defined(_WIN32) && defined(SLAPD_IMPORT)
-#	define LDAP_LDBM_F(type)	extern __declspec(dllimport) type
-#	define LDAP_LDBM_V(type)	extern __declspec(dllimport) type
-#else
+/* Not exported/imported any more */
 #	define LDAP_LDBM_F(type)	extern type
 #	define LDAP_LDBM_V(type)	extern type
-#endif
 
 /* LDIF library */
 #if defined(_WIN32) && defined(SLAPD_IMPORT)

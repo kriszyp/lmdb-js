@@ -152,7 +152,7 @@ typedef struct lber_memory_fns {
 #define LBER_OPT_SOCKBUF_DEBUG		0x1002
 
 /* on/off values */
-extern char ber_pvt_opt_on;
+LBER_V( char ) ber_pvt_opt_on;
 #define LBER_OPT_ON		((void *) &ber_pvt_opt_on)
 #define LBER_OPT_OFF	((void *) 0)
 
