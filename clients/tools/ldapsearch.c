@@ -1740,13 +1740,17 @@ static void print_extended(
 		exit( EXIT_FAILURE );
 	}
 
-	write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-		"extended", retoid, retoid ? strlen(retoid) : 0 );
+	if ( ldif < 2 ) {
+		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			"extended", retoid, retoid ? strlen(retoid) : 0 );
+	}
 	ber_memfree( retoid );
 
 	if(retdata) {
-		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
-			"data", retdata->bv_val, retdata->bv_len );
+		if ( ldif < 2 ) {
+			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
+				"data", retdata->bv_val, retdata->bv_len );
+		}
 		ber_bvfree( retdata );
 	}
 
@@ -1774,15 +1778,18 @@ static void print_partial(
 		exit( EXIT_FAILURE );
 	}
 
-	write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-		"partial", retoid, retoid ? strlen(retoid) : 0 );
+	if ( ldif < 2 ) {
+		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+			"partial", retoid, retoid ? strlen(retoid) : 0 );
+	}
 
 	ber_memfree( retoid );
 
 	if( retdata ) {
-		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
-			"data", 
-			retdata->bv_val, retdata->bv_len );
+		if ( ldif < 2 ) {
+			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_BINARY,
+				"data", retdata->bv_val, retdata->bv_len );
+		}
 
 		ber_bvfree( retdata );
 	}
@@ -1881,8 +1888,9 @@ static void print_ctrls(
 		struct berval *b64 = NULL;
 		ber_len_t len;
 		char *str;
-			
-		len = strlen( ctrls[i]->ldctl_oid );
+
+		len = ldif ? 2 : 0;
+		len += strlen( ctrls[i]->ldctl_oid );
 
 		/* add enough for space after OID and the critical value itself */
 		len += ctrls[i]->ldctl_iscritical
@@ -1906,7 +1914,12 @@ static void print_ctrls(
 		}
 
 		str = malloc( len + 1 );
-		strcpy( str, ctrls[i]->ldctl_oid );
+		if ( ldif ) {
+			strcpy( str, ": " );
+		} else {
+			str[0] = '\0';
+		}
+		strcat( str, ctrls[i]->ldctl_oid );
 		strcat( str, ctrls[i]->ldctl_iscritical
 			? " true" : " false" );
 
@@ -1915,8 +1928,10 @@ static void print_ctrls(
 			strcat(str, b64->bv_val );
 		}
 
-		write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
-			"control", str, len );
+		if ( ldif < 2 ) {
+			write_ldif( ldif ? LDIF_PUT_COMMENT : LDIF_PUT_VALUE,
+				"control", str, len );
+		}
 
 		free( str );
 		ber_bvfree( b64 );
