@@ -547,8 +547,7 @@ static int chk_smd5(
 	unsigned char *orig_pass = NULL;
 
 	/* safety check */
-	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <
-		sizeof(MD5digest)+SALT_SIZE) {
+	if (LUTIL_BASE64_DECODE_LEN(passwd->bv_len) <= sizeof(MD5digest)) {
 		return LUTIL_PASSWD_ERR;
 	}
 
@@ -560,7 +559,7 @@ static int chk_smd5(
 
 	rc = lutil_b64_pton(passwd->bv_val, orig_pass, passwd->bv_len);
 
-	if (rc < (int)(sizeof(MD5digest)+SALT_SIZE)) {
+	if (rc <= (int)(sizeof(MD5digest))) {
 		ber_memfree(orig_pass);
 		return LUTIL_PASSWD_ERR;
 	}
