@@ -35,12 +35,10 @@
 #define LDAP_X_SCOPE_SUBTREE	((ber_int_t) 0x0040)
 
 /*
- * IDs in DN form can now have a type specifier, that influences
- * how they are used in related operations.
+ * IDs in DNauthzid form can now have a type specifier, that
+ * influences how they are used in related operations.
  *
- * syntax:
- *
- * dn[.{exact|regex}]:<val>
+ * syntax: dn[.{exact|regex}]:<val>
  *
  * dn.exact:	the value must pass normalization and is used 
  *		in exact DN match.
@@ -52,13 +50,22 @@
  *		it is not normalized nor validated; it is used
  *		in exact or regex comparisons based on the 
  *		context.
+ *
+ * IDs in DNauthzid form can now have a type specifier, that
+ * influences how they are used in related operations.
+ *
+ * syntax: u[.mech[/realm]]:<val>
+ * 
+ * where mech is a SIMPLE, AUTHZ, or a SASL mechanism name
+ * and realm is mechanism specific realm (separate to those
+ * which are representable as part of the principal).
  */
 
 typedef struct sasl_regexp {
-  char *sr_match;							/* regexp match pattern */
-  char *sr_replace; 						/* regexp replace pattern */
-  regex_t sr_workspace;						/* workspace for regexp engine */
-  int sr_offset[SASLREGEX_REPLACE+2];		/* offsets of $1,$2... in *replace */
+  char *sr_match;						/* regexp match pattern */
+  char *sr_replace; 					/* regexp replace pattern */
+  regex_t sr_workspace;					/* workspace for regexp engine */
+  int sr_offset[SASLREGEX_REPLACE+2];	/* offsets of $1,$2... in *replace */
 } SaslRegexp_t;
 
 static int nSaslRegexp = 0;
