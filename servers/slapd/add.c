@@ -81,12 +81,6 @@ do_add( Connection *conn, Operation *op )
 	}
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	e->e_name.bv_val = NULL;
-	e->e_name.bv_len = 0;
-	e->e_nname.bv_val = NULL;
-	e->e_nname.bv_len = 0;
-	e->e_attrs = NULL;
-	e->e_private = NULL;
 
 	rc = dnPrettyNormal( NULL, &dn, &e->e_name, &e->e_nname );
 
