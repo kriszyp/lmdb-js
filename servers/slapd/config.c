@@ -1667,8 +1667,8 @@ restrict_unknown:;
 			}
 
 			for( i=1; i < cargc; i++ ) {
-				int	*tgt;
-				char	*src;
+				slap_ssf_t	*tgt;
+				char		*src;
 
 				if ( strncasecmp( cargv[i], "ssf=",
 						STRLENOF("ssf=") ) == 0 )
