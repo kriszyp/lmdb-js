@@ -45,7 +45,7 @@ ldap_alloc_ber_with_options( LDAP *ld )
 {
 	BerElement	*ber;
 
-    	if (( ber = ber_alloc_t( ld->ld_lberoptions )) == NULLBER ) {
+    if (( ber = ber_alloc_t( ld->ld_lberoptions )) == NULLBER ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 #ifdef STR_TRANSLATION
 	} else {
@@ -72,7 +72,10 @@ ldap_set_ber_options( LDAP *ld, BerElement *ber )
 
 
 int
-ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
+ldap_send_initial_request(
+	LDAP *ld,
+	unsigned long msgtype,
+	const char *dn,
 	BerElement *ber )
 {
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) || defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
@@ -81,7 +84,7 @@ ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
-	if ( ! lber_pvt_sb_in_use(&ld->ld_sb ) ) {
+	if ( ! ber_pvt_sb_in_use(&ld->ld_sb ) ) {
 		/* not connected yet */
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
@@ -300,7 +303,7 @@ ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 	 * XXX open connection synchronously for now
 	 */
 	if (( lc = (LDAPConn *)calloc( 1, sizeof( LDAPConn ))) == NULL ||
-	    ( !use_ldsb && ( (sb = lber_pvt_sb_alloc()) == NULL ))) {
+	    ( !use_ldsb && ( (sb = ber_sockbuf_alloc()) == NULL ))) {
 		if ( lc != NULL ) {
 			free( (char *)lc );
 		}
@@ -324,7 +327,7 @@ ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 
 		if ( srv == NULL ) {
 		    if ( !use_ldsb ) {
-			lber_pvt_sb_free( lc->lconn_sb );
+			ber_sockbuf_free( lc->lconn_sb );
 		    }
 		    free( (char *)lc );
 		    ld->ld_errno = LDAP_SERVER_DOWN;
@@ -444,10 +447,10 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		if ( lc->lconn_status == LDAP_CONNST_CONNECTED ) {
 			ldap_mark_select_clear( ld, lc->lconn_sb );
 			if ( unbind ) {
-				ldap_send_unbind( ld, lc->lconn_sb );
+				ldap_send_unbind( ld, lc->lconn_sb, NULL, NULL );
 			}
 			ldap_close_connection( lc->lconn_sb );
-		   	lber_pvt_sb_destroy( lc->lconn_sb );
+		   	ber_pvt_sb_destroy( lc->lconn_sb );
 			ber_clear( &lc->lconn_ber, 1 );
 		}
 		prevlc = NULL;
@@ -468,7 +471,7 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			free( lc->lconn_krbinstance );
 		}
 		if ( lc->lconn_sb != &ld->ld_sb ) {
-			lber_pvt_sb_free( lc->lconn_sb );
+			ber_sockbuf_free( lc->lconn_sb );
 		}
 		free( lc );
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: actually freed\n",
@@ -878,7 +881,7 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 	if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
 		Debug( LDAP_DEBUG_ANY, "re_encode_request new request is:\n",
 		    0, 0, 0 );
-		lber_log_dump( LDAP_DEBUG_BER, ldap_debug, ber, 0 );
+		ber_log_dump( LDAP_DEBUG_BER, ldap_debug, ber, 0 );
 	}
 #endif /* LDAP_DEBUG */
 

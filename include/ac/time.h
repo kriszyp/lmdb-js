@@ -17,13 +17,11 @@
 # include <time.h>
 #elif HAVE_SYS_TIME_H
 # include <sys/time.h>
+# ifdef HAVE_SYS_TIMEB_H
+#  include <sys/timeb.h>
+# endif
 #else
 # include <time.h>
-#endif
-
-#ifdef WIN32
-#include <sys/types.h>
-#include <sys/timeb.h>
 #endif
 
 #endif /* _AC_TIME_H */

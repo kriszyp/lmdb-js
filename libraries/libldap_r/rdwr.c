@@ -27,6 +27,8 @@
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+
 	memset( rw, 0, sizeof(ldap_pvt_thread_rdwr_t) );
 
 	/* we should check return results */
@@ -41,6 +43,9 @@ ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 int 
 ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALID )
 		return LDAP_PVT_THREAD_EINVAL;
 
@@ -71,6 +76,9 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALID )
 		return LDAP_PVT_THREAD_EINVAL;
 
@@ -98,6 +106,9 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALID )
 		return LDAP_PVT_THREAD_EINVAL;
 
@@ -117,6 +128,9 @@ int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALID )
 		return LDAP_PVT_THREAD_EINVAL;
 
@@ -135,6 +149,9 @@ int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALID )
 		return LDAP_PVT_THREAD_EINVAL;
 
@@ -160,6 +177,9 @@ int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALID )
 		return LDAP_PVT_THREAD_EINVAL;
 
@@ -179,6 +199,9 @@ int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALID )
 		return LDAP_PVT_THREAD_EINVAL;
 
@@ -212,16 +235,25 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 
 int ldap_pvt_thread_rdwr_readers(ldap_pvt_thread_rdwr_t *rw)
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	return( rw->ltrw_r_active );
 }
 
 int ldap_pvt_thread_rdwr_writers(ldap_pvt_thread_rdwr_t *rw)
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	return( rw->ltrw_w_active );
 }
 
 int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rw)
 {
+	assert( rw != NULL );
+	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
+
 	return(ldap_pvt_thread_rdwr_readers(rw) +
 	       ldap_pvt_thread_rdwr_writers(rw));
 }

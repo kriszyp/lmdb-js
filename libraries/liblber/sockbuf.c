@@ -45,7 +45,7 @@ static long have_no_read( Sockbuf *sb, void *buf, long len );
 static long have_no_write( Sockbuf *sb, void *buf, long len );
 static int have_no_close( Sockbuf *sb );
 
-static Sockbuf_IO lber_pvt_sb_IO_None=
+static Sockbuf_IO sb_IO_None=
 {
 	NULL,	/* sbi_setup */
 	NULL,	/* sbi_release */
@@ -57,6 +57,8 @@ static Sockbuf_IO lber_pvt_sb_IO_None=
 static void
 update_status( Sockbuf *sb )
 {
+	assert( sb != NULL );
+
    sb->sb_buf_ready = (sb->sb_buf.buf_ptr < sb->sb_buf.buf_end);
 #ifdef USE_SASL   
    sb->sb_sec_ready = ((sb->sb_sec_buf_in.buf_end!=0) &&
@@ -69,9 +71,16 @@ update_status( Sockbuf *sb )
 static int 
 status_is_ok( Sockbuf *sb )
 {
-   int obr = sb->sb_buf_ready;
+	int obr;
 #ifdef USE_SASL
-   int osr = sb->sb_sec_ready;
+	int osr;
+#endif
+
+	assert( sb != NULL );
+
+	obr = sb->sb_buf_ready;
+#ifdef USE_SASL
+	osr = sb->sb_sec_ready;
 #endif
 
    update_status(sb);
@@ -92,6 +101,9 @@ static long
 packet_length( char *buf )
 {
    long size;
+
+   assert( buf != NULL );
+
    size = (((unsigned long)buf[0])<<24)|
      (((unsigned long)buf[1])<<16)|
      (((unsigned long)buf[2])<<8)|
@@ -112,9 +124,11 @@ packet_length( char *buf )
 static int
 grow_buffer( Sockbuf_Buf * buf, long minsize )
 {
-   long pw=MIN_BUF_SIZE;
+   long pw;;
    
-   for(;(pw<minsize);pw<<=1) {
+   assert( buf != NULL );
+
+   for( pw=MIN_BUF_SIZE; pw<minsize; pw<<=1 ) {
       if (pw > MAX_BUF_SIZE) {
 	 /* this could mean that somebody is trying to crash us. */
 	 return -1;
@@ -161,6 +175,9 @@ sockbuf_sec_release( Sockbuf *sb, char *buf, long len )
    char *end;
    long size;
    
+    assert( buf != NULL );
+	assert( sb != NULL );
+
    assert( sb->sb_sec );
    assert( sb->sb_sec->sbs_release );
    assert( sb->sb_sec_buf_in.sb_ptr >= sb->sb_sec_buf_in.sb_end );
@@ -237,6 +254,9 @@ sockbuf_sec_protect( Sockbuf *sb, char *buf, long len )
    long blen;
    long total;
    
+   assert( buf != NULL );
+
+   assert( sb != NULL );
    assert( sb->sb_sec_out.buf_end == 0 );
    assert( sb->sb_sec_out.buf_ptr == 0 );
    
@@ -279,7 +299,12 @@ static long
 sockbuf_copy_out( Sockbuf *sb, char **buf, long len )
 {
    long blen = (sb->sb_buf.buf_end - sb->sb_buf.buf_ptr );
+
+   assert( buf != NULL );
+
+   assert( sb != NULL );
    assert( status_is_ok(sb) );
+
    if (blen) {
       long rlen = (blen<len) ? blen : len;
       memcpy( *buf, sb->sb_buf.buf_base + sb->sb_buf.buf_ptr, rlen );
@@ -297,17 +322,46 @@ sockbuf_copy_out( Sockbuf *sb, char **buf, long len )
    return len;
 }
 
+Sockbuf *ber_sockbuf_alloc( void )
+{
+	Sockbuf *sb = calloc(1, sizeof(Sockbuf));
+
+	if( sb == NULL ) return NULL;
+
+	ber_pvt_sb_init( sb );
+	return sb;
+}
+
+Sockbuf *ber_sockbuf_alloc_fd( int fd )
+{
+	Sockbuf *sb = ber_sockbuf_alloc();
+
+	if( sb == NULL ) return NULL;
+
+	ber_pvt_sb_set_desc( sb, fd );
+   	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
+	return sb;
+}
+
+void ber_sockbuf_free( Sockbuf *sb )
+{
+	assert(sb != NULL);
+	ber_pvt_sb_destroy( sb );
+	free(sb);
+}
 
 long 
-lber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
+ber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
 {
    char *buf;
    long ret;
    
+   assert( buf_arg != NULL );
+   assert( sb != NULL );
    assert( status_is_ok(sb) );
 #if 0
-   /* breaks slapd :-) */
-   assert( lber_pvt_sb_in_use( sb ) );
+   /* breaks slapd :-< */
+   assert( ber_pvt_sb_in_use( sb ) );
 #endif 
 
 #ifdef TEST_PARTIAL_READ
@@ -316,7 +370,8 @@ lber_pvt_sb_read( Sockbuf *sb, void *buf_arg, long len )
       return -1;
    }
 
-   len = (rand() % len)+1;
+   if( len > 0 )
+	   len = (rand() % len)+1;
 #endif   
    
    buf = (char *) buf_arg;
@@ -461,6 +516,9 @@ do_return:
 long sockbuf_do_write( Sockbuf *sb )
 {
    long to_go;
+
+   assert( sb != NULL );
+
    to_go = sb->sb_sec_out.buf_end - sb->sb_sec_out.buf_ptr;
    assert( to_go > 0 );
    /* there is something left of the last time... */
@@ -482,14 +540,14 @@ long sockbuf_do_write( Sockbuf *sb )
 }
 #endif
 
-long lber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
+long ber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
 {
    long ret;
    long len = len_arg;
    assert( status_is_ok(sb) );
 #if 0
    /* unfortunately breaks slapd */
-   assert( lber_pvt_sb_in_use( sb ) );
+   assert( ber_pvt_sb_in_use( sb ) );
 #endif   
 #ifdef TEST_PARTIAL_WRITE
    if ((rand() & 3)==1) { /* 1 out of 4 */
@@ -540,22 +598,25 @@ long lber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
    return ret;
 }
      
-int lber_pvt_sb_close( Sockbuf *sb )
+int ber_pvt_sb_close( Sockbuf *sb )
 {
    int ret;
+
+   assert( sb != NULL );
    assert( sb->sb_io );
    assert( sb->sb_io->sbi_close );
    assert( status_is_ok(sb) );
-   assert( lber_pvt_sb_in_use( sb ) );
+   assert( ber_pvt_sb_in_use( sb ) );
    
    ret = sb->sb_io->sbi_close( sb );
-   lber_pvt_sb_set_desc( sb, -1 );
+   ber_pvt_sb_set_desc( sb, -1 );
 
    return ret;
 }
 
-int lber_pvt_sb_set_readahead( Sockbuf *sb, int rh )
+int ber_pvt_sb_set_readahead( Sockbuf *sb, int rh )
 {
+   assert( sb != NULL );
    assert( status_is_ok(sb) );
    sb->sb_read_ahead = (rh!=0);
    return 0;
@@ -563,8 +624,9 @@ int lber_pvt_sb_set_readahead( Sockbuf *sb, int rh )
 
 #define USE_NONBLOCK
 #ifdef USE_NONBLOCK
-int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
+int ber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
 {
+   assert( sb != NULL );
    assert( status_is_ok(sb) );
    if (nb) {
       sb->sb_non_block = 1;
@@ -577,16 +639,16 @@ int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
       sb->sb_read_ahead = 0;
 #endif
    }
-   if (lber_pvt_sb_in_use(sb)) {
+   if (ber_pvt_sb_in_use(sb)) {
 #if HAVE_FCNTL
-		int flags = fcntl(lber_pvt_sb_get_desc(sb), F_GETFL);
+		int flags = fcntl(ber_pvt_sb_get_desc(sb), F_GETFL);
 		flags |= O_NONBLOCK;
-		return fcntl(lber_pvt_sb_get_desc(sb), F_SETFL, flags);
+		return fcntl(ber_pvt_sb_get_desc(sb), F_SETFL, flags);
 		
 #elif defined( FIONBIO )
 	   /* WINSOCK requires the status to be a long */
 		ioctl_t status = (nb!=0);
-		return ioctl( lber_pvt_sb_get_desc(sb), FIONBIO, &status );
+		return ioctl( ber_pvt_sb_get_desc(sb), FIONBIO, &status );
 #endif /* FIONBIO */
    }
    return 0;
@@ -604,14 +666,18 @@ int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
 static int 
 sockbuf_buf_destroy( Sockbuf_Buf *buf )
 {
+	assert( buf != NULL);
+
    if (buf->buf_base)
      free( buf->buf_base );
    sockbuf_buf_init( buf );
    return 0;
 }
 
-int lber_pvt_sb_init( Sockbuf *sb )
+int ber_pvt_sb_init( Sockbuf *sb )
 {
+	assert( sb != NULL);
+
    sb->sb_item_type=LBER_ITEM_SOCKBUF;
    sb->sb_options = 0;
    sb->sb_debug = 0;
@@ -624,7 +690,7 @@ int lber_pvt_sb_init( Sockbuf *sb )
    sb->sb_non_block = 0;
    sb->sb_fd = -1;
    sb->sb_iodata = NULL;
-   sb->sb_io = &lber_pvt_sb_IO_None;
+   sb->sb_io = &sb_IO_None;
    sb->sb_sd = -1;
 #ifdef DEADWOOD   
    sb->sb_max_incoming = 0;
@@ -640,22 +706,24 @@ int lber_pvt_sb_init( Sockbuf *sb )
    return 0;
 }
    
-int lber_pvt_sb_destroy( Sockbuf *sb )
+int ber_pvt_sb_destroy( Sockbuf *sb )
 {
+	assert( sb != NULL);
 #ifdef USE_SASL
-   lber_pvt_sb_clear_sec(sb);
+   ber_pvt_sb_clear_sec(sb);
    sockbuf_buf_destroy( &(sb->sb_sec_buf_in) );
    sockbuf_buf_destroy( &(sb->sb_sec_buf_out) );
 #endif
-   lber_pvt_sb_clear_io(sb);
+   ber_pvt_sb_clear_io(sb);
    sockbuf_buf_destroy( &(sb->sb_buf) );
-   return lber_pvt_sb_init( sb );
+   return ber_pvt_sb_init( sb );
 }
 
 #ifdef USE_SASL
-int lber_pvt_sb_set_sec( Sockbuf *sb, Sockbuf_Sec * sec, void *arg )
+int ber_pvt_sb_set_sec( Sockbuf *sb, Sockbuf_Sec * sec, void *arg )
 {
    int len;
+	assert( sb != NULL);
    if ((sb->sb_sec) || (sec==NULL))
      return -1;
    
@@ -681,8 +749,10 @@ int lber_pvt_sb_set_sec( Sockbuf *sb, Sockbuf_Sec * sec, void *arg )
    return 0;
 }
 
-int lber_pvt_sb_clear_sec( Sockbuf *sb )
+int ber_pvt_sb_clear_sec( Sockbuf *sb )
 {
+	assert( sb != NULL);
+
    if (sb->sb_buf.buf_ptr!=0)
      return -1;
    if (sb->sb_sec==NULL)
@@ -710,9 +780,10 @@ int lber_pvt_sb_clear_sec( Sockbuf *sb )
 }
 #endif
 
-int lber_pvt_sb_set_io( Sockbuf *sb, Sockbuf_IO *trans, void *arg )
+int ber_pvt_sb_set_io( Sockbuf *sb, Sockbuf_IO *trans, void *arg )
 {
-   assert( sb->sb_io == &lber_pvt_sb_IO_None );
+	assert( sb != NULL);
+   assert( sb->sb_io == &sb_IO_None );
 
    if (trans==NULL)
      return -1;
@@ -725,15 +796,16 @@ int lber_pvt_sb_set_io( Sockbuf *sb, Sockbuf_IO *trans, void *arg )
    return 0;
 }
 
-int lber_pvt_sb_clear_io( Sockbuf *sb )
+int ber_pvt_sb_clear_io( Sockbuf *sb )
 {
-   if (sb->sb_io==&lber_pvt_sb_IO_None)
+	assert( sb != NULL);
+   if (sb->sb_io==&sb_IO_None)
      return -1;
    
    if ((sb->sb_io->sbi_remove) && (sb->sb_io->sbi_remove( sb )<0))
      return -1;
 
-   sb->sb_io = &lber_pvt_sb_IO_None;
+   sb->sb_io = &sb_IO_None;
    
    sb->sb_trans_ready = 0;
    
@@ -747,11 +819,13 @@ int lber_pvt_sb_clear_io( Sockbuf *sb )
 static long
 stream_read( Sockbuf *sb, void *buf, long len )
 {
+	assert( sb != NULL);
+
 #if defined(MACOS)
 /*
  * MacTCP/OpenTransport
  */
-   return tcpread( lber_pvt_sb_get_desc(sb), 0, (unsigned char *)buf, 
+   return tcpread( ber_pvt_sb_get_desc(sb), 0, (unsigned char *)buf, 
 		   len, NULL );
 
 #elif defined( HAVE_PCNFS ) || \
@@ -765,33 +839,36 @@ stream_read( Sockbuf *sb, void *buf, long len )
 /*
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
+   {
    int rc;
-   rc = recv( lber_pvt_sb_get_desc(sb), buf, len, 0 );
+   rc = recv( ber_pvt_sb_get_desc(sb), buf, len, 0 );
 #ifdef HAVE_WINSOCK
    if ( rc < 0 ) errno = WSAGetLastError();
 #endif
    return rc;
-
+   }
 #elif defined( HAVE_NCSA )
 /*
  * NCSA Telnet TCP/IP stack (under DOS)
  */
-   return nread( lber_pvt_sb_get_desc(sb), buf, len );
+   return nread( ber_pvt_sb_get_desc(sb), buf, len );
 
 #else
-   return read( lber_pvt_sb_get_desc(sb), buf, len );
+   return read( ber_pvt_sb_get_desc(sb), buf, len );
 #endif
 }
 
 static long
 stream_write( Sockbuf *sb, void *buf, long len )
 {
+	assert( sb != NULL);
+
 #if defined(MACOS) 
 /*
  * MacTCP/OpenTransport
  */
 #define MAX_WRITE	65535
-   return tcpwrite( lber_pvt_sb_get_desc(sb),
+   return tcpwrite( ber_pvt_sb_get_desc(sb),
 		    (unsigned char *)(buf), 
 		    (len<MAX_WRITE)? len : MAX_WRITE );
 
@@ -806,36 +883,40 @@ stream_write( Sockbuf *sb, void *buf, long len )
 /*
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
+
+   {
    int rc;
-   rc = send( lber_pvt_sb_get_desc(sb), buf, len, 0 );
+   rc = send( ber_pvt_sb_get_desc(sb), buf, len, 0 );
 #ifdef HAVE_WINSOCK
    if ( rc < 0 ) errno = WSAGetLastError();
 #endif
    return rc;
+   }
 
 #elif defined(HAVE_NCSA)
-   return netwrite( lber_pvt_sb_get_desc(sb), buf, len );
+   return netwrite( ber_pvt_sb_get_desc(sb), buf, len );
 
 #elif defined(VMS)
 /*
  * VMS -- each write must be 64K or smaller
  */
 #define MAX_WRITE 65535
-   return write( lber_pvt_sb_get_desc(sb), buf, 
+   return write( ber_pvt_sb_get_desc(sb), buf, 
 		 (len<MAX_WRITE)? len : MAX_WRITE);
 #else
-   return write( lber_pvt_sb_get_desc(sb), buf, len );
+   return write( ber_pvt_sb_get_desc(sb), buf, len );
 #endif   
 }   
    
 static int 
 stream_close( Sockbuf *sb )
 {
-   tcp_close( lber_pvt_sb_get_desc( sb ) );
+	assert( sb != NULL);
+   tcp_close( ber_pvt_sb_get_desc( sb ) );
    return 0;
 }
 
-Sockbuf_IO lber_pvt_sb_io_tcp=
+Sockbuf_IO ber_pvt_sb_io_tcp=
 {
 	NULL,	/* sbi_setup */
 	NULL,	/* sbi_release */
@@ -857,6 +938,7 @@ struct dgram_data
 static int 
 dgram_setup( Sockbuf *sb, void *arg )
 {
+	assert( sb != NULL);
    sb->sb_iodata = malloc( sizeof( struct dgram_data ) );
    if (sb->sb_iodata==NULL)
      return -1;
@@ -867,6 +949,7 @@ dgram_setup( Sockbuf *sb, void *arg )
 static int 
 dgram_release( Sockbuf *sb )
 {
+	assert( sb != NULL);
    free( sb->sb_iodata );
    return 0;
 }
@@ -879,17 +962,20 @@ dgram_read( Sockbuf *sb, void *buf, long len )
    int addrlen;
    struct dgram_data *dd;
    
+	assert( sb != NULL );
+	assert( buf != NULL );
+
    dd = (struct dgram_data *)(sb->sb_iodata);
    
    addrlen = sizeof( struct sockaddr );
-   rc=recvfrom( lber_pvt_sb_get_desc(sb), buf, len, 0, &(dd->src), &addrlen );
+   rc=recvfrom( ber_pvt_sb_get_desc(sb), buf, len, 0, &(dd->src), &addrlen );
    
    if ( sb->sb_debug ) {
-      lber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
+      ber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
 		      "dgram_read udp_read %d bytes\n",
 		      rc );
       if ( rc > 0 )
-	lber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
+	ber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
 			buf, rc );
    }
    return rc;
@@ -905,9 +991,12 @@ dgram_write( Sockbuf *sb, void *buf, long len )
    int rc;
    struct dgram_data *dd;
    
+	assert( sb != NULL );
+	assert( buf != NULL );
+
    dd = (struct dgram_data *)(sb->sb_iodata);
    
-   rc=sendto( lber_pvt_sb_get_desc(sb), buf, len, 0, &(dd->dst),
+   rc=sendto( ber_pvt_sb_get_desc(sb), buf, len, 0, &(dd->dst),
 	     sizeof( struct sockaddr ) );
 
    if ( rc <= 0 )
@@ -929,11 +1018,13 @@ dgram_write( Sockbuf *sb, void *buf, long len )
 static int 
 dgram_close( Sockbuf *sb )
 {
-	tcp_close( lber_pvt_sb_get_desc(sb) );
+	assert( sb != NULL );
+
+	tcp_close( ber_pvt_sb_get_desc(sb) );
 	return 0;
 }
 
-Sockbuf_IO lber_pvt_sb_io_udp=
+Sockbuf_IO ber_pvt_sb_io_udp=
 {
 	dgram_setup,	/* sbi_setup */
 	dgram_release,	/* sbi_release */
@@ -942,19 +1033,21 @@ Sockbuf_IO lber_pvt_sb_io_udp=
 	dgram_close,	/* sbi_close */
 };
 
-int lber_pvt_sb_udp_set_dst(Sockbuf *sb, void *addr )
+int ber_pvt_sb_udp_set_dst(Sockbuf *sb, void *addr )
 {
    struct dgram_data *dd;
-   assert( sb->sb_io == &lber_pvt_sb_io_udp );
+	assert( sb != NULL );
+   assert( sb->sb_io == &ber_pvt_sb_io_udp );
    dd = (struct dgram_data *) (sb->sb_iodata);
    memcpy( &(dd->dst), addr, sizeof( struct sockaddr ) );
    return 0;
 }
 
-void *lber_pvt_sb_udp_get_src( Sockbuf *sb )
+void *ber_pvt_sb_udp_get_src( Sockbuf *sb )
 {
    struct dgram_data *dd;
-   assert( sb->sb_io == &lber_pvt_sb_io_udp );
+	assert( sb != NULL );
+   assert( sb->sb_io == &ber_pvt_sb_io_udp );
    dd = (struct dgram_data *) (sb->sb_iodata);
    return &(dd->src);
 }
@@ -970,7 +1063,8 @@ void *lber_pvt_sb_udp_get_src( Sockbuf *sb )
 static long
 have_no_read( Sockbuf *sb, void *buf, long len )
 {
-   lber_log_printf( LDAP_DEBUG_ANY, lber_int_debug,
+	assert( sb != NULL );
+   ber_log_printf( LDAP_DEBUG_ANY, ber_int_debug,
 		   "warning: reading from uninitialized sockbuf\n");
    errno =  EBADF;
    return -1;
@@ -979,7 +1073,8 @@ have_no_read( Sockbuf *sb, void *buf, long len )
 static long
 have_no_write( Sockbuf *sb, void *buf, long len )
 {
-   lber_log_printf( LDAP_DEBUG_ANY, lber_int_debug,
+	assert( sb != NULL );
+   ber_log_printf( LDAP_DEBUG_ANY, ber_int_debug,
 		   "warning: writing to uninitialized sockbuf\n");
    errno =  EBADF;
    return -1;
@@ -988,6 +1083,7 @@ have_no_write( Sockbuf *sb, void *buf, long len )
 static int 
 have_no_close( Sockbuf *sb )
 {   
+	assert( sb != NULL );
    assert( 0 );
    return -1;
 }

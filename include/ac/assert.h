@@ -25,11 +25,11 @@
  * create a replacement and hope it works
  */
 
-void	lber_pvt_assert(char* file, int line, char* test);
+void	ber_pvt_assert(char* file, int line, char* test);
 #define assert(test) \
 	((test) \
 		? (void)0 \
-		: lber_pvt_assert( __FILE__, __LINE__, LDAP_STRING(test)) )
+		: ber_pvt_assert( __FILE__, __LINE__, LDAP_STRING(test)) )
 
 #endif
 

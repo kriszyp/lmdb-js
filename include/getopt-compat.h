@@ -20,7 +20,11 @@ LDAP_BEGIN_DECL
 extern char *optarg;
 extern int optind, opterr, optopt;
 
-LDAP_F int getopt LDAP_P((int, char * const [], const char *));
+LDAP_F( int )
+getopt LDAP_P((
+	int,
+	char * const [],
+	const char *));
 
 LDAP_END_DECL
 

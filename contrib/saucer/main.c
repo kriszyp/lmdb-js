@@ -613,7 +613,7 @@ int main(int argc, char **argv)
 		case 'd':
 #ifdef LDAP_DEBUG
 			tmp = atoi(optarg);
-			lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &tmp);
+			ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &tmp);
 			ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &tmp);
 #endif
 			break;

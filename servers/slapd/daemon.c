@@ -79,8 +79,8 @@ static void slapd_add(int s) {
 	}
 #endif
 
-	FD_SET( s, &slap_daemon.sd_actives );
-	FD_SET( s, &slap_daemon.sd_readers );
+	FD_SET( (unsigned) s, &slap_daemon.sd_actives );
+	FD_SET( (unsigned) s, &slap_daemon.sd_readers );
 
 	Debug( LDAP_DEBUG_CONNS, "daemon: added %d%s%s\n", s,
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
@@ -101,9 +101,9 @@ void slapd_remove(int s) {
 	    FD_ISSET(s, &slap_daemon.sd_readers) ? "r" : "",
 		FD_ISSET(s, &slap_daemon.sd_writers) ? "w" : "" );
 
-	FD_CLR( s, &slap_daemon.sd_actives );
-	FD_CLR( s, &slap_daemon.sd_readers );
-	FD_CLR( s, &slap_daemon.sd_writers );
+	FD_CLR( (unsigned) s, &slap_daemon.sd_actives );
+	FD_CLR( (unsigned) s, &slap_daemon.sd_readers );
+	FD_CLR( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 }
@@ -111,8 +111,8 @@ void slapd_remove(int s) {
 void slapd_clr_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
-	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_CLR( s, &slap_daemon.sd_writers );
+	assert( FD_ISSET( (unsigned) s, &slap_daemon.sd_actives) );
+	FD_CLR( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -123,7 +123,7 @@ void slapd_set_write(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_SET( s, &slap_daemon.sd_writers );
+	FD_SET( (unsigned) s, &slap_daemon.sd_writers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -134,7 +134,7 @@ void slapd_clr_read(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_CLR( s, &slap_daemon.sd_readers );
+	FD_CLR( (unsigned) s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -145,7 +145,7 @@ void slapd_set_read(int s, int wake) {
 	ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
 
 	assert( FD_ISSET( s, &slap_daemon.sd_actives) );
-	FD_SET( s, &slap_daemon.sd_readers );
+	FD_SET( (unsigned) s, &slap_daemon.sd_readers );
 
 	ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
 
@@ -313,7 +313,7 @@ slapd_daemon_task(
 		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
 
-		FD_SET( tcps, &readfds );
+		FD_SET( (unsigned) tcps, &readfds );
 
 #ifndef HAVE_WINSOCK
 		nfds = slap_daemon.sd_nfds;
@@ -513,7 +513,7 @@ slapd_daemon_task(
 
 			slapd_clr_write( wd, 0 );
 			if ( connection_write( wd ) < 0 ) {
-				FD_CLR( wd, &readfds );
+				FD_CLR( (unsigned) wd, &readfds );
 				slapd_close( wd );
 			}
 		}

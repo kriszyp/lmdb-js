@@ -23,8 +23,8 @@
 
 LDAP_BEGIN_DECL
 
-extern int lber_int_debug;
-#define lber_log_printf lber_pvt_log_printf
+extern int ber_int_debug;
+#define ber_log_printf ber_pvt_log_printf
 
 struct lber_options {
 	short		lbo_item_type;
@@ -88,15 +88,15 @@ typedef struct sockbuf_io Sockbuf_IO;
 typedef struct sockbuf_sec Sockbuf_Sec;
 typedef struct sockbuf_buf Sockbuf_Buf;
 
-#define	lber_pvt_sb_get_desc( sb ) ((sb)->sb_sd)
-#define lber_pvt_sb_set_desc( sb, val ) ((sb)->sb_sd =(val))
-#define lber_pvt_sb_in_use( sb ) ((sb)->sb_sd!=-1)
+#define	ber_pvt_sb_get_desc( sb ) ((sb)->sb_sd)
+#define ber_pvt_sb_set_desc( sb, val ) ((sb)->sb_sd =(val))
+#define ber_pvt_sb_in_use( sb ) ((sb)->sb_sd!=-1)
 
 #ifdef USE_SASL
-#define lber_pvt_sb_data_ready( sb ) \
+#define ber_pvt_sb_data_ready( sb ) \
 (((sb)->sb_buf_ready) || ((sb)->sb_trans_ready) || ((sb)->sb_sec_ready))
 #else
-#define lber_pvt_sb_data_ready( sb ) \
+#define ber_pvt_sb_data_ready( sb ) \
 (((sb)->sb_buf_ready) || ((sb)->sb_trans_ready))
 #endif
 
@@ -154,50 +154,70 @@ struct seqorset {
 /*
  * bprint.c
  */
-LDAP_F int lber_log_bprint LDAP_P((
+LDAP_F( int )
+ber_log_bprint LDAP_P((
 	int errlvl,
 	int loglvl,
-	char *data,
+	const char *data,
 	int len ));
 
-LDAP_F int lber_log_dump LDAP_P((
+LDAP_F( int )
+ber_log_dump LDAP_P((
 	int errlvl,
 	int loglvl,
-	BerElement *ber,
+	const BerElement *ber,
 	int inout ));
 
-LDAP_F int lber_log_sos_dump LDAP_P((
+LDAP_F( int )
+ber_log_sos_dump LDAP_P((
 	int errlvl,
 	int loglvl,
-	Seqorset *sos ));
-
-/* io.c */
-LDAP_F	Sockbuf *lber_pvt_sb_alloc	LDAP_P(( void ));
-LDAP_F	Sockbuf *lber_pvt_sb_alloc_fd	LDAP_P(( int ));
-LDAP_F	Sockbuf *lber_pvt_sb_alloc_fd	LDAP_P(( int ));
-LDAP_F	void	lber_pvt_sb_free	LDAP_P(( Sockbuf * ));
-LDAP_F	int	lber_pvt_sb_get_option	LDAP_P(( Sockbuf *, int, void * ));
-LDAP_F	int	lber_pvt_sb_set_option	LDAP_P(( Sockbuf *, int, void * ));
+	const Seqorset *sos ));
 
 /* sockbuf.c */
 
-LDAP_F	int lber_pvt_sb_init LDAP_P(( Sockbuf *sb ));
-LDAP_F	int lber_pvt_sb_destroy LDAP_P(( Sockbuf *sb ));
-#ifdef USE_SASL
-LDAP_F  int lber_pvt_sb_set_sec LDAP_P(( Sockbuf *sb, Sockbuf_Sec *sec, void *arg ));
-LDAP_F  int lber_pvt_sb_clear_sec LDAP_P(( Sockbuf *sb ));
-#endif
-LDAP_F	int lber_pvt_sb_set_io LDAP_P(( Sockbuf *sb, Sockbuf_IO *layer, void *arg ));
-LDAP_F	int lber_pvt_sb_clear_io LDAP_P(( Sockbuf *sb ));
-LDAP_F	int lber_pvt_sb_close LDAP_P((Sockbuf *sb ));
-LDAP_F  int lber_pvt_sb_set_nonblock LDAP_P(( Sockbuf *sb, int nb ));
-LDAP_F  int lber_pvt_sb_set_readahead LDAP_P(( Sockbuf *sb, int rh ));
-LDAP_F  long lber_pvt_sb_read LDAP_P(( Sockbuf *sb, void *buf, long len ));
-LDAP_F  long lber_pvt_sb_write LDAP_P(( Sockbuf *sb, void *buf, long len ));
-LDAP_F	int lber_pvt_sb_udp_set_dst LDAP_P((Sockbuf *sb, void *addr ));
-LDAP_F	void *lber_pvt_sb_udp_get_src LDAP_P((Sockbuf *sb ));
+LDAP_F( int )
+ber_pvt_sb_init LDAP_P(( Sockbuf *sb ));
 
-extern Sockbuf_IO lber_pvt_sb_io_tcp;
-extern Sockbuf_IO lber_pvt_sb_io_udp;
+LDAP_F(	int )
+ber_pvt_sb_destroy LDAP_P(( Sockbuf *sb ));
+#ifdef USE_SASL
+
+LDAP_F( int )
+ber_pvt_sb_set_sec LDAP_P(( Sockbuf *sb, Sockbuf_Sec *sec, void *arg ));
+
+LDAP_F( int )
+ber_pvt_sb_clear_sec LDAP_P(( Sockbuf *sb ));
+#endif
+
+LDAP_F(	int )
+ber_pvt_sb_set_io LDAP_P(( Sockbuf *sb, Sockbuf_IO *layer, void *arg ));
+
+LDAP_F(	int )
+ber_pvt_sb_clear_io LDAP_P(( Sockbuf *sb ));
+
+LDAP_F(	int )
+ber_pvt_sb_close LDAP_P((Sockbuf *sb ));
+
+LDAP_F( int )
+ber_pvt_sb_set_nonblock LDAP_P(( Sockbuf *sb, int nb ));
+
+LDAP_F( int )
+ber_pvt_sb_set_readahead LDAP_P(( Sockbuf *sb, int rh ));
+
+LDAP_F( long )
+ber_pvt_sb_read LDAP_P(( Sockbuf *sb, void *buf, long len ));
+
+LDAP_F( long )
+ber_pvt_sb_write LDAP_P(( Sockbuf *sb, void *buf, long len ));
+
+LDAP_F(	int )
+ber_pvt_sb_udp_set_dst LDAP_P((Sockbuf *sb, void *addr ));
+
+LDAP_F(	void * )
+ber_pvt_sb_udp_get_src LDAP_P((Sockbuf *sb ));
+
+extern Sockbuf_IO ber_pvt_sb_io_tcp;
+extern Sockbuf_IO ber_pvt_sb_io_udp;
 
 #endif /* _LBER_INT_H */

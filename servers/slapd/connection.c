@@ -10,6 +10,9 @@
 
 #include "slap.h"
 
+/* we need LBER internals */
+#include "../../libraries/liblber/lber-int.h"
+
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
@@ -133,7 +136,8 @@ int connections_shutdown(void)
 	}
 
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
-    return 0;
+
+	return 0;
 }
 
 static Connection* connection_get( int s )
@@ -149,7 +153,7 @@ static Connection* connection_get( int s )
 #ifndef HAVE_WINSOCK
 	assert( connections[s].c_struct_state == SLAP_C_USED );
 	assert( connections[s].c_conn_state != SLAP_C_INVALID );
-	assert( connections[s].c_sb.sb_sd != -1 );
+	assert( !ber_pvt_sb_in_use( connections[i].c_sb ) );
 
 	c = &connections[s];
 #else
@@ -159,21 +163,21 @@ static Connection* connection_get( int s )
 		for(i=0; i<dtblsize; i++) {
 			if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
 				assert( connections[i].c_conn_state == SLAP_C_INVALID );
-				assert( connections[i].c_sb.sb_sd == 0 );
+				assert( connections[i].c_sb == 0 );
 				break;
 			}
 
 			if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
 				assert( connections[i].c_conn_state == SLAP_C_INVALID );
-				assert( connections[i].c_sb.sb_sd == -1 );
+				assert( !ber_pvt_sb_in_use( connections[i].c_sb ) );
 				continue;
 			}
 
 			assert( connections[i].c_struct_state == SLAP_C_USED );
 			assert( connections[i].c_conn_state != SLAP_C_INVALID );
-			assert( connections[i].c_sb.sb_sd != -1 );
+			assert( ber_pvt_sb_in_use( connections[i].c_sb ) );
 
-			if( connections[i].c_sb.sb_sd == s ) {
+			if( ber_pvt_sb_get_desc( connections[i].c_sb ) == s ) {
 				c = &connections[i];
 				break;
 			}
@@ -226,20 +230,20 @@ long connection_init(
 
         for( i=0; i < dtblsize; i++) {
             if( connections[i].c_struct_state == SLAP_C_UNINITIALIZED ) {
-                assert( connections[i].c_sb.sb_sd == 0 );
+                assert( connections[i].c_sb == 0 );
                 c = &connections[i];
                 break;
             }
 
             if( connections[i].c_struct_state == SLAP_C_UNUSED ) {
-                assert( connections[i].c_sb.sb_sd == -1 );
+                assert( !ber_pvt_sb_in_use( connections[i].c_sb ));
                 c = &connections[i];
                 break;
             }
 
             assert( connections[i].c_struct_state == SLAP_C_USED );
             assert( connections[i].c_conn_state != SLAP_C_INVALID );
-            assert( connections[i].c_sb.sb_sd != -1 );
+            assert( ber_pvt_sb_in_use( connections[i].c_sb ));
         }
 
         if( c == NULL ) {
@@ -261,7 +265,7 @@ long connection_init(
         c->c_ops = NULL;
         c->c_pending_ops = NULL;
 
-        lber_pvt_sb_init( &c->c_sb );
+        c->c_sb = ber_sockbuf_alloc( );
 
         /* should check status of thread calls */
         ldap_pvt_thread_mutex_init( &c->c_mutex );
@@ -293,10 +297,10 @@ long connection_init(
 
     c->c_starttime = slap_get_time();
 
-    lber_pvt_sb_set_desc( &c->c_sb, s );
-    lber_pvt_sb_set_io( &c->c_sb, &lber_pvt_sb_io_tcp, NULL );
+    ber_pvt_sb_set_desc( c->c_sb, s );
+    ber_pvt_sb_set_io( c->c_sb, &ber_pvt_sb_io_tcp, NULL );
 
-    if( lber_pvt_sb_set_nonblock( &c->c_sb, 1 ) < 0 ) {
+    if( ber_pvt_sb_set_nonblock( c->c_sb, 1 ) < 0 ) {
         Debug( LDAP_DEBUG_ANY,
             "connection_init(%d, %s, %s): set nonblocking failed\n",
             s, c->c_client_name, c->c_client_addr);
@@ -348,18 +352,18 @@ connection_destroy( Connection *c )
 		c->c_client_addr = NULL;
 	}
 
-	if ( lber_pvt_sb_in_use(&c->c_sb) ) {
-		int sd = lber_pvt_sb_get_desc(&c->c_sb);
+	if ( ber_pvt_sb_in_use(c->c_sb) ) {
+		int sd = ber_pvt_sb_get_desc(c->c_sb);
 
 		slapd_remove( sd );
-	   	lber_pvt_sb_close( &c->c_sb );
+	   	ber_pvt_sb_close( c->c_sb );
 
 		Statslog( LDAP_DEBUG_STATS,
 		    "conn=%d fd=%d closed.\n",
 			c->c_connid, sd, 0, 0, 0 );
 	}
 
-   	lber_pvt_sb_destroy( &c->c_sb );
+   	ber_pvt_sb_destroy( c->c_sb );
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
 }
 
@@ -389,13 +393,13 @@ void connection_closing( Connection *c )
 
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_closing: readying conn=%ld sd=%d for close.\n",
-			c->c_connid, c->c_sb.sb_sd, 0 );
+			c->c_connid, ber_pvt_sb_get_desc( c->c_sb ), 0 );
 
 		/* update state to closing */
 		c->c_conn_state = SLAP_C_CLOSING;
 
 		/* don't listen on this port anymore */
-		slapd_clr_read( c->c_sb.sb_sd, 1 );
+		slapd_clr_read( ber_pvt_sb_get_desc( c->c_sb ), 1 );
 
 		/* shutdown I/O -- not yet implemented */
 
@@ -415,7 +419,7 @@ void connection_closing( Connection *c )
 		}
 
 		/* wake write blocked operations */
-		slapd_clr_write( c->c_sb.sb_sd, 1 );
+		slapd_clr_write( ber_pvt_sb_get_desc(c->c_sb), 1 );
 		ldap_pvt_thread_cond_signal( &c->c_write_cv );
 	}
 }
@@ -430,13 +434,13 @@ static void connection_close( Connection *c )
 	if( c->c_ops != NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_close: deferring conn=%ld sd=%d.\n",
-			c->c_connid, c->c_sb.sb_sd, 0 );
+			c->c_connid, ber_pvt_sb_get_desc( c->c_sb ), 0 );
 
 		return;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "connection_close: conn=%ld sd=%d.\n",
-		c->c_connid, c->c_sb.sb_sd, 0 );
+		c->c_connid, ber_pvt_sb_get_desc( c->c_sb ), 0 );
 
 	connection_destroy( c );
 }
@@ -627,7 +631,7 @@ connection_operation( void *arg_v )
 	if( conn->c_conn_state == SLAP_C_CLOSING ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_operation: attempting closing conn=%ld sd=%d.\n",
-			conn->c_connid, conn->c_sb.sb_sd, 0 );
+			conn->c_connid, ber_pvt_sb_get_desc( conn->c_sb ), 0 );
 
 		connection_close( conn );
 	}
@@ -680,7 +684,7 @@ int connection_read(int s)
 #define CONNECTION_INPUT_LOOP 1
 
 #ifdef DATA_READY_LOOP
-	while(!rc && lber_pvt_sb_data_ready(&c->c_sb))
+	while(!rc && ber_pvt_sb_data_ready(&c->c_sb))
 #elif CONNECTION_INPUT_LOOP
 	while(!rc)
 #endif
@@ -719,14 +723,14 @@ connection_input(
 	}
 
 	errno = 0;
-	if ( (tag = ber_get_next( &conn->c_sb, &len, conn->c_currentber ))
+	if ( (tag = ber_get_next( conn->c_sb, &len, conn->c_currentber ))
 	    != LDAP_TAG_MESSAGE )
 	{
 		int err = errno;
 
 		Debug( LDAP_DEBUG_TRACE,
 			"ber_get_next on fd %d failed errno %d (%s)\n",
-			lber_pvt_sb_get_desc(&conn->c_sb), err,
+			ber_pvt_sb_get_desc( conn->c_sb ), err,
 			err > -1 && err < sys_nerr ?  sys_errlist[err] : "unknown" );
 		Debug( LDAP_DEBUG_TRACE,
 			"\t*** got %ld of %lu so far\n",

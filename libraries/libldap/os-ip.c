@@ -33,7 +33,7 @@
 #include "ldap-int.h"
 
 int
-ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
+ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 	int port, int async )
 /*
  * if host == NULL, connect using address
@@ -140,7 +140,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 		}
 	}
 
-	lber_pvt_sb_set_desc( sb, s );		
+	ber_pvt_sb_set_desc( sb, s );		
 
 	if ( connected ) {
 	   
@@ -167,7 +167,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 void
 ldap_close_connection( Sockbuf *sb )
 {
-	lber_pvt_sb_close( sb );
+	ber_pvt_sb_close( sb );
 }
 
 
@@ -189,7 +189,7 @@ ldap_host_connected_to( Sockbuf *sb )
 	(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
 	len = sizeof( sin );
 
-	if ( getpeername( lber_pvt_sb_get_desc(sb), (struct sockaddr *)&sin, &len ) == -1 ) {
+	if ( getpeername( ber_pvt_sb_get_desc(sb), (struct sockaddr *)&sin, &len ) == -1 ) {
 		return( NULL );
 	}
 
@@ -233,7 +233,7 @@ ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 	
-	if ( !FD_ISSET( lber_pvt_sb_get_desc(sb), &sip->si_writefds )) {
+	if ( !FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_writefds )) {
 		FD_SET( (u_int) sb->sb_sd, &sip->si_writefds );
 	}
 }
@@ -246,7 +246,7 @@ ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	if ( !FD_ISSET( lber_pvt_sb_get_desc(sb), &sip->si_readfds )) {
+	if ( !FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_readfds )) {
 		FD_SET( (u_int) sb->sb_sd, &sip->si_readfds );
 	}
 }
@@ -259,8 +259,8 @@ ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	FD_CLR( (u_int) lber_pvt_sb_get_desc(sb), &sip->si_writefds );
-	FD_CLR( (u_int) lber_pvt_sb_get_desc(sb), &sip->si_readfds );
+	FD_CLR( (u_int) ber_pvt_sb_get_desc(sb), &sip->si_writefds );
+	FD_CLR( (u_int) ber_pvt_sb_get_desc(sb), &sip->si_readfds );
 }
 
 
@@ -271,7 +271,7 @@ ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	return( FD_ISSET( lber_pvt_sb_get_desc(sb), &sip->si_use_writefds ));
+	return( FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_use_writefds ));
 }
 
 
@@ -282,7 +282,7 @@ ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	return( FD_ISSET( lber_pvt_sb_get_desc(sb), &sip->si_use_readfds ));
+	return( FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_use_readfds ));
 }
 
 

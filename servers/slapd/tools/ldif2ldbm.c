@@ -17,16 +17,10 @@
 #include "../back-ldbm/back-ldbm.h"
 #include "ldif.h"
 
+#define INDEXCMD		"ldif2index" EXEEXT
+#define ID2ENTRYCMD		"ldif2id2entry" EXEEXT
+#define ID2CHILDRENCMD		"ldif2id2children" EXEEXT
 
-#ifdef WIN32
-#define INDEXCMD		"ldif2index.exe"
-#define ID2ENTRYCMD		"ldif2id2entry.exe"
-#define ID2CHILDRENCMD		"ldif2id2children.exe"
-#else
-#define INDEXCMD		"ldif2index"
-#define ID2ENTRYCMD		"ldif2id2entry"
-#define ID2CHILDRENCMD		"ldif2id2children"
-#endif
 #define MAXARGS      		100
 
 static void fork_child( char *prog, char *args[] );

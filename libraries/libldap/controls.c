@@ -15,6 +15,102 @@
 
 #include "ldap-int.h"
 
+
+/*
+ * ldap_int_put_controls
+ */
+
+int ldap_int_put_controls(
+	LDAP *ld,
+	LDAPControl **ctrls,
+	BerElement *ber )
+{
+	LDAPControl **c;
+
+	assert( ld != NULL );
+	assert( ber != NULL );
+
+	if( ctrls == NULL ) {
+		/* use default server controls */
+		ctrls = ld->ld_sctrls;
+	}
+
+	if( ctrls == NULL || *ctrls == NULL ) {
+		return LDAP_SUCCESS;
+	}
+
+	if ( ld->ld_version < LDAP_VERSION3 ) {
+		/* LDAPv2 doesn't support controls,
+		 * error if any control is critical
+		 */
+		for( c = ctrls ; *c != NULL; c++ ) {
+			if( (*c)->ldctl_iscritical ) {
+				ld->ld_errno = LDAP_NOT_SUPPORTED;
+				return ld->ld_errno;
+			}
+		}
+
+		return LDAP_SUCCESS;
+	}
+
+	/* Controls are encoded as a sequence of sequences */
+	if( ber_printf( ber, "t{", LDAP_TAG_CONTROLS ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		return ld->ld_errno;
+	}
+
+	for( c = ctrls ; *c != NULL; c++ ) {
+		if ( ber_printf( ber, "{s",
+			(*c)->ldctl_oid ) == -1 )
+		{
+			ld->ld_errno = LDAP_ENCODING_ERROR;
+			return ld->ld_errno;
+		}
+
+		if( (*c)->ldctl_iscritical /* only if true */
+			&&  ( ber_printf( ber, "b",
+				(*c)->ldctl_iscritical ) == -1 ) )
+		{
+			ld->ld_errno = LDAP_ENCODING_ERROR;
+			return ld->ld_errno;
+		}
+
+		if( (*c)->ldctl_value.bv_val != NULL /* only if we have a value */
+			&&  ( ber_printf( ber, "O",
+				&((*c)->ldctl_value) ) == -1 ) )
+		{
+			ld->ld_errno = LDAP_ENCODING_ERROR;
+			return ld->ld_errno;
+		}
+
+
+		if( ber_printf( ber, "}" ) == -1 ) {
+			ld->ld_errno = LDAP_ENCODING_ERROR;
+			return ld->ld_errno;
+		}
+	}
+
+
+	if( ber_printf( ber, "}" ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		return ld->ld_errno;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+int ldap_int_get_controls LDAP_P((
+	BerElement *be,
+	LDAPControl ***ctrls ))
+{
+	assert( be != NULL );
+	assert( ctrls != NULL );
+
+	**ctrls = NULL;
+
+	return LDAP_NOT_SUPPORTED;
+}
+
 /*
  * Free a LDAPControl
  */
@@ -54,7 +150,7 @@ ldap_controls_free( LDAPControl **controls )
 /*
  * Duplicate an array of LDAPControl
  */
-LDAPControl **ldap_controls_dup( LDAPControl **controls )
+LDAPControl **ldap_controls_dup( const LDAPControl **controls )
 {
 	LDAPControl **new;
 	int i;
@@ -96,7 +192,7 @@ LDAPControl **ldap_controls_dup( LDAPControl **controls )
 /*
  * Duplicate a LDAPControl
  */
-LDAPControl *ldap_control_dup( LDAPControl *c )
+LDAPControl *ldap_control_dup( const LDAPControl *c )
 {
 	LDAPControl *new;
 
@@ -145,10 +241,4 @@ LDAPControl *ldap_control_dup( LDAPControl *c )
 
 	new->ldctl_iscritical = c->ldctl_iscritical;
 	return new;
-}
-
-/* get the controls from the BerElement */
-int ldap_get_ber_controls( BerElement *be, LDAPControl ***cp)
-{
-	return LDAP_NOT_SUPPORTED;
 }

@@ -255,7 +255,7 @@ main( int argc, char **argv )
     }
 
 	if ( debug ) {
-		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
+		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
 		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
 		ldif_debug = debug;
 	}
@@ -406,7 +406,7 @@ static int dosearch(
 		    ( *sortattr == '\0' ) ? NULL : sortattr, strcasecmp );
 	    matches = 0;
 	    first = 1;
-	    for ( e = ldap_first_entry( ld, res ); e != NULLMSG;
+	    for ( e = ldap_first_entry( ld, res ); e != NULL;
 		    e = ldap_next_entry( ld, e ) ) {
 		matches++;
 		if ( !first ) {

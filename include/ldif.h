@@ -47,17 +47,26 @@ extern int ldif_debug;
     ((tlen) + 4 + LDIF_BASE64_LEN(vlen) \
     + ((LDIF_BASE64_LEN(vlen) + (tlen) + 3) / LDIF_LINE_WIDTH * 2 ))
 
-LDAP_F int
-ldif_parse_line LDAP_P(( char *line, char **type, char **value, int *vlen));
+LDAP_F( int )
+ldif_parse_line LDAP_P((
+	LDAP_CONST char *line,
+	char **type, char **value, int *vlen));
 
-LDAP_F char *
+LDAP_F( char * )
 ldif_getline LDAP_P(( char **next ));
 
-LDAP_F void
-ldif_put_type_and_value LDAP_P(( char **out, char *t, char *val, int vlen ));
+LDAP_F( void )
+ldif_put_type_and_value LDAP_P((
+	char **out,
+	LDAP_CONST char *t,
+	LDAP_CONST char *val,
+	int vlen ));
 
-LDAP_F char
-*ldif_type_and_value LDAP_P(( char *type, char *val, int vlen ));
+LDAP_F( char * )
+ldif_type_and_value LDAP_P((
+	LDAP_CONST char *type,
+	LDAP_CONST char *val,
+	int vlen ));
 
 
 LDAP_END_DECL

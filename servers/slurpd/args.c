@@ -139,7 +139,7 @@ doargs(
     sprintf( g->slurpd_status_file, "%s/%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_STATUS_FILE );
 
-	lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug);
+	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug);
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldap_debug);
 	ldif_debug = ldap_debug;
 

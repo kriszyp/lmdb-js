@@ -20,13 +20,18 @@
 #include "ldap-int.h"
 
 /*
- * ldap_modify - initiate an ldap (and X.500) modify operation.  Parameters:
+ * ldap_modify_ext - initiate an ldap extended modify operation.
+ *
+ * Parameters:
  *
  *	ld		LDAP descriptor
  *	dn		DN of the object to modify
  *	mods		List of modifications to make.  This is null-terminated
  *			array of struct ldapmod's, specifying the modifications
  *			to perform.
+ *	sctrls	Server Controls
+ *	cctrls	Client Controls
+ *	msgidp	Message ID pointer
  *
  * Example:
  *	LDAPMod	*mods[] = { 
@@ -34,10 +39,15 @@
  *			{ LDAP_MOD_REPLACE, "sn", { "jensen", 0 } },
  *			0
  *		}
- *	msgid = ldap_modify( ld, dn, mods );
+ *	rc=  ldap_modify_ext( ld, dn, mods, sctrls, cctrls, &msgid );
  */
 int
-ldap_modify( LDAP *ld, char *dn, LDAPMod **mods )
+ldap_modify_ext( LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAPMod **mods,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	int *msgidp )
 {
 	BerElement	*ber;
 	int		i, rc;
@@ -60,18 +70,18 @@ ldap_modify( LDAP *ld, char *dn, LDAPMod **mods )
 	 *	}
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_modify\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_modify_ext\n", 0, 0, 0 );
 
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		return( -1 );
+		return( LDAP_NO_MEMORY );
 	}
 
 	if ( ber_printf( ber, "{it{s{", ++ld->ld_msgid, LDAP_REQ_MODIFY, dn )
 	    == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( -1 );
+		return( ld->ld_errno );
 	}
 
 	/* for each modification to be performed... */
@@ -88,32 +98,89 @@ ldap_modify( LDAP *ld, char *dn, LDAPMod **mods )
 		if ( rc == -1 ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
 			ber_free( ber, 1 );
-			return( -1 );
+			return( ld->ld_errno );
 		}
 	}
 
-	if ( ber_printf( ber, "}}}" ) == -1 ) {
+	if ( ber_printf( ber, "}}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( -1 );
+		return( ld->ld_errno );
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return ld->ld_errno;
+	}
+
+	if ( ber_printf( ber, "}" ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( ld->ld_errno );
 	}
 
 	/* send the message */
-	return( ldap_send_initial_request( ld, LDAP_REQ_MODIFY, dn, ber ));
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_MODIFY, dn, ber );
+	return( *msgidp < 0 ? ld->ld_errno : LDAP_SUCCESS );
+}
+
+/*
+ * ldap_modify - initiate an ldap modify operation.
+ *
+ * Parameters:
+ *
+ *	ld		LDAP descriptor
+ *	dn		DN of the object to modify
+ *	mods		List of modifications to make.  This is null-terminated
+ *			array of struct ldapmod's, specifying the modifications
+ *			to perform.
+ *
+ * Example:
+ *	LDAPMod	*mods[] = { 
+ *			{ LDAP_MOD_ADD, "cn", { "babs jensen", "babs", 0 } },
+ *			{ LDAP_MOD_REPLACE, "sn", { "jensen", 0 } },
+ *			0
+ *		}
+ *	msgid = ldap_modify( ld, dn, mods );
+ */
+int
+ldap_modify( LDAP *ld, LDAP_CONST char *dn, LDAPMod **mods )
+{
+	int rc, msgid;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_modify\n", 0, 0, 0 );
+
+	rc = ldap_modify_ext( ld, dn, mods, NULL, NULL, &msgid );
+
+	if ( rc != LDAP_SUCCESS )
+		return -1;
+
+	return msgid;
 }
 
 int
-ldap_modify_s( LDAP *ld, char *dn, LDAPMod **mods )
+ldap_modify_ext_s( LDAP *ld, LDAP_CONST char *dn,
+	LDAPMod **mods, LDAPControl **sctrl, LDAPControl **cctrl )
 {
+	int		rc;
 	int		msgid;
 	LDAPMessage	*res;
 
-	if ( (msgid = ldap_modify( ld, dn, mods )) == -1 )
-		return( ld->ld_errno );
+	rc = ldap_modify_ext( ld, dn, mods, sctrl, cctrl, &msgid );
+
+	if ( rc != LDAP_SUCCESS )
+		return( rc );
 
 	if ( ldap_result( ld, msgid, 1, (struct timeval *) NULL, &res ) == -1 )
 		return( ld->ld_errno );
 
 	return( ldap_result2error( ld, res, 1 ) );
+}
+
+int
+ldap_modify_s( LDAP *ld, LDAP_CONST char *dn, LDAPMod **mods )
+{
+	return ldap_modify_ext_s( ld, dn, mods, NULL, NULL );
 }
 

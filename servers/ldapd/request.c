@@ -88,7 +88,7 @@ client_request(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( udp && dosyslog ) {
-	   	sai = (struct sockaddr_in *)lber_pvt_sb_udp_get_src( &clientsb );
+	   	sai = (struct sockaddr_in *)ber_pvt_sb_udp_get_src( &clientsb );
 		syslog( LOG_INFO, "UDP request from unknown (%s)",
 			inet_ntoa( sai->sin_addr ) );
 	}
@@ -192,7 +192,7 @@ client_request(
 		free( ber.ber_buf );
 		return;
 	}
-	sai = (struct sockaddr_in *) lber_pvt_sb_udp_get_src( &clientsb );
+	sai = (struct sockaddr_in *) ber_pvt_sb_udp_get_src( &clientsb );
    
 	if ( get_cldap_msg( msgid, tag,
 	    (struct sockaddr *)sai ) != NULL ) {

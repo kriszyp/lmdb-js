@@ -1,3 +1,7 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* ldapmodify.c - generic program to modify or add entries using LDAP */
 
 #include "portable.h"
@@ -200,7 +204,7 @@ main( int argc, char **argv )
     }
 
 	if ( debug ) {
-		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
+		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
 		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
 		ldif_debug = debug;
 	}

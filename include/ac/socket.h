@@ -104,4 +104,9 @@
 
 #endif /* __alpha && !VMS */
 
+
+#if defined( WSAEWOULDBLOCK )
+#define EWOULDBLOCK WSAEWOULDBLOCK
+#endif
+
 #endif /* _AC_SOCKET_H_ */

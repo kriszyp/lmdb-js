@@ -35,7 +35,7 @@
  */
 
 int
-ldap_bind( LDAP *ld, char *dn, char *passwd, int authmethod )
+ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmethod )
 {
 	/*
 	 * The bind request looks like this:
@@ -88,7 +88,11 @@ ldap_bind( LDAP *ld, char *dn, char *passwd, int authmethod )
  *	    NULL, LDAP_AUTH_KRBV4 )
  */
 int
-ldap_bind_s( LDAP *ld, char *dn, char *passwd, int authmethod )
+ldap_bind_s(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *passwd,
+	int authmethod )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_bind_s\n", 0, 0, 0 );
 

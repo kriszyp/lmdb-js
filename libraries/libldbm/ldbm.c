@@ -80,26 +80,26 @@ int ldbm_shutdown( void )
 
 #else
 
-#ifndef WIN32
-#ifdef HAVE_SYSLOG
-#include "syslog.h"
-#else
-/* quick hack */
-#define LOG_INFO 1
-extern int syslog(int, char*, ...);
-#endif
-#endif /* WIN32 */
-
 void *
 ldbm_malloc( size_t size )
 {
 	return( calloc( 1, size ));
 }
 
+#ifdef HAVE_SYSLOG
+#ifdef HAVE_SYSLOG_H
+#include "syslog.h"
+#else
+/* quick hack */
+#define LOG_INFO 1
+extern int syslog(int, char*, ...);
+#endif
+#endif /* HAVE_SYSLOG */
+
 static void
 ldbm_db_errcall( const char *prefix, char *message )
 {
-#ifndef WIN32
+#ifdef HAVE_SYSLOG
 	syslog( LOG_INFO, "ldbm_db_errcall(): %s %s", prefix, message );
 #endif
 }

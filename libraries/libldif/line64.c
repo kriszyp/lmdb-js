@@ -51,7 +51,7 @@ static const unsigned char b642nib[0x80] = {
 
 int
 ldif_parse_line(
-    char	*line,
+    LDAP_CONST char	*line,
     char	**type,
     char	**value,
     int		*vlen
@@ -70,7 +70,7 @@ ldif_parse_line(
 	for ( s = line; *s && *s != ':'; s++ )
 		;	/* NULL */
 	if ( *s == '\0' ) {
-		lber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
+		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 			"ldif_parse_line missing ':'\n");
 		return( -1 );
 	}
@@ -98,7 +98,7 @@ ldif_parse_line(
 
 	/* if no value is present, error out */
 	if ( *s == '\0' ) {
-		lber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
+		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
 			"ldif_parse_line missing value\n");
 		return( -1 );
 	}
@@ -118,7 +118,7 @@ ldif_parse_line(
 			for ( i = 0; i < 4; i++ ) {
 				if ( p[i] != '=' && (p[i] & 0x80 ||
 				    b642nib[ p[i] & 0x7f ] > 0x3f) ) {
-					lber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+					ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 "ldif_parse_line: invalid base 64 encoding char (%c) 0x%x\n",
 					    p[i], p[i] );
 					return( -1 );
@@ -198,7 +198,11 @@ ldif_getline( char **next )
 }
 
 void
-ldif_put_type_and_value( char **out, char *t, char *val, int vlen )
+ldif_put_type_and_value(
+	char **out,
+	LDAP_CONST char *t,
+	LDAP_CONST char *val,
+	int vlen )
 {
 	unsigned char	*byte, *p, *stop;
 	unsigned char	buf[3];
@@ -294,7 +298,7 @@ ldif_put_type_and_value( char **out, char *t, char *val, int vlen )
 
 
 char *
-ldif_type_and_value( char *type, char *val, int vlen )
+ldif_type_and_value( LDAP_CONST char *type, LDAP_CONST char *val, int vlen )
 /*
  * return malloc'd, zero-terminated LDIF line
  */
@@ -306,7 +310,7 @@ ldif_type_and_value( char *type, char *val, int vlen )
     if (( buf = (char *) malloc( LDIF_SIZE_NEEDED( tlen, vlen ) + 1 ))
 		== NULL )
 	{
-		lber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
+		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 			"ldif_type_and_value: malloc failed!" );
 		return NULL;
     }

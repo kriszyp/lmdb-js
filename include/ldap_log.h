@@ -39,7 +39,7 @@ LDAP_BEGIN_DECL
 #define LDAP_DEBUG_SHELL	0x0400
 #define LDAP_DEBUG_PARSE	0x0800
 
-#define LDAP_DEBUG_DEPRECIATED	0x1000
+#define LDAP_DEBUG_DEPRECATED	0x1000
 #define LDAP_DEBUG_NONE		0x8000
 #define LDAP_DEBUG_ANY		-1
 
@@ -72,7 +72,7 @@ extern int	ldap_syslog_level;
 			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) ); \
 	} while ( 0 )
 #else /* !WINSOCK */
-extern void Debug( int level, char* fmt, ... );
+extern void Debug( int level, const char* fmt, ... );
 #endif /* !WINSOCK */
 #endif /* LDAP_SYSLOG */
 #else /* LDAP_DEBUG */

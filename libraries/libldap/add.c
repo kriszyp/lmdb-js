@@ -20,7 +20,7 @@
 #include "ldap-int.h"
 
 /*
- * ldap_add - initiate an ldap (and X.500) add operation.  Parameters:
+ * ldap_add - initiate an ldap add operation.  Parameters:
  *
  *	ld		LDAP descriptor
  *	dn		DN of the entry to add
@@ -39,7 +39,47 @@
  *	msgid = ldap_add( ld, dn, attrs );
  */
 int
-ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
+ldap_add( LDAP *ld, LDAP_CONST char *dn, LDAPMod **attrs )
+{
+	int rc;
+	int msgid;
+
+	rc = ldap_add_ext( ld, dn, attrs, NULL, NULL, &msgid );
+
+	if ( rc != LDAP_SUCCESS )
+		return -1;
+
+	return msgid;
+}
+
+
+/*
+ * ldap_add_ext - initiate an ldap extended add operation.  Parameters:
+ *
+ *	ld		LDAP descriptor
+ *	dn		DN of the entry to add
+ *	mods		List of attributes for the entry.  This is a null-
+ *			terminated array of pointers to LDAPMod structures.
+ *			only the type and values in the structures need be
+ *			filled in.
+ *	sctrl	Server Controls
+ *	cctrl	Client Controls
+ *	msgidp	Message ID pointer
+ *
+ * Example:
+ *	LDAPMod	*attrs[] = { 
+ *			{ 0, "cn", { "babs jensen", "babs", 0 } },
+ *			{ 0, "sn", { "jensen", 0 } },
+ *			{ 0, "objectClass", { "person", 0 } },
+ *			0
+ *		}
+ *	rc = ldap_add_ext( ld, dn, attrs, NULL, NULL, &msgid );
+ */
+int
+ldap_add_ext( LDAP *ld, LDAP_CONST char *dn, LDAPMod **attrs,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	int	*msgidp )
 {
 	BerElement	*ber;
 	int		i, rc;
@@ -59,14 +99,17 @@ ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
 
 	/* create a message to send */
 	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		return( -1 );
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return ld->ld_errno;
 	}
 
-	if ( ber_printf( ber, "{it{s{", ++ld->ld_msgid, LDAP_REQ_ADD, dn )
-	    == -1 ) {
+	rc = ber_printf( ber, "{it{s{", /* leave open '}}}' */
+		++ld->ld_msgid, LDAP_REQ_ADD, dn );
+
+	if ( rc == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( -1 );
+		return ld->ld_errno;
 	}
 
 	/* for each attribute in the entry... */
@@ -81,32 +124,64 @@ ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
 		if ( rc == -1 ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
 			ber_free( ber, 1 );
-			return( -1 );
+			return ld->ld_errno;
 		}
 	}
 
-	if ( ber_printf( ber, "}}}" ) == -1 ) {
+	/* close '{{' */
+	if ( ber_printf( ber, "}}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
-		return( -1 );
+		return ld->ld_errno;
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return ld->ld_errno;
+	}
+
+	/* close '{' */
+	if ( ber_printf( ber, "}" ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return ld->ld_errno;
 	}
 
 	/* send the message */
-	return( ldap_send_initial_request( ld, LDAP_REQ_ADD, dn, ber ));
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_ADD, dn, ber );
+
+	if(*msgidp < 0)
+		return ld->ld_errno;
+
+	return LDAP_SUCCESS;
 }
 
 int
-ldap_add_s( LDAP *ld, char *dn, LDAPMod **attrs )
+ldap_add_ext_s(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAPMod **attrs,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
 {
-	int		msgid;
+	int		msgid, rc;
 	LDAPMessage	*res;
 
-	if ( (msgid = ldap_add( ld, dn, attrs )) == -1 )
-		return( ld->ld_errno );
+	rc = ldap_add_ext( ld, dn, attrs, sctrls, cctrls, &msgid );
+
+	if ( rc != LDAP_SUCCESS )
+		return( rc );
 
 	if ( ldap_result( ld, msgid, 1, (struct timeval *) NULL, &res ) == -1 )
 		return( ld->ld_errno );
 
 	return( ldap_result2error( ld, res, 1 ) );
+}
+
+int
+ldap_add_s( LDAP *ld, LDAP_CONST char *dn, LDAPMod **attrs )
+{
+	return ldap_add_ext_s( ld, dn, attrs, NULL, NULL );
 }
 

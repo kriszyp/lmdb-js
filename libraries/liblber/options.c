@@ -8,10 +8,10 @@
 
 #include "lber-int.h"
 
-int lber_int_debug = 0;
+int ber_int_debug = 0;
 
 int
-lber_get_option(
+ber_get_option(
 	void	*item,
 	int		option,
 	void	*outvalue)
@@ -26,7 +26,7 @@ lber_get_option(
 
 	if(item == NULL) {
 		if(option == LBER_OPT_BER_DEBUG) {
-			* (int *) outvalue = lber_int_debug;
+			* (int *) outvalue = ber_int_debug;
 			return LBER_OPT_SUCCESS;
 		}
 
@@ -54,7 +54,7 @@ lber_get_option(
 }
 
 int
-lber_set_option(
+ber_set_option(
 	void	*item,
 	int		option,
 	void	*invalue)
@@ -69,11 +69,11 @@ lber_set_option(
 
 	if(item == NULL) {
 		if(option == LBER_OPT_BER_DEBUG) {
-			lber_int_debug = * (int *) invalue;
+			ber_int_debug = * (int *) invalue;
 			return LBER_OPT_SUCCESS;
 
 		} else if(option == LBER_OPT_LOG_PRINT_FN) {
-			lber_pvt_log_print = (BER_LOG_PRINT_FN) invalue;
+			ber_pvt_log_print = (BER_LOG_PRINT_FN) invalue;
 			return LBER_OPT_SUCCESS;
 		}
 

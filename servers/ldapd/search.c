@@ -700,7 +700,7 @@ search_result(
 			    LDAP_OPERATIONS_ERROR, NULL, "ber_printf" );
 			return;
 		}
-	   	lber_pvt_sb_udp_set_dst( sb, &m->m_clientaddr );
+	   	ber_pvt_sb_udp_set_dst( sb, &m->m_clientaddr );
 
 		if ( ber_flush( sb, ber, 1 ) != 0 ) {
 		    send_ldap_msgresult( sb, SEARCHRESTAG, m, 

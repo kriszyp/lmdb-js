@@ -166,7 +166,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 	while ( rc == -2 ) {
 #ifndef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 		/* hack attack */
-		if ( ! lber_pvt_sb_data_ready(&ld->ld_sb) ) {
+		if ( ! ber_pvt_sb_data_ready(&ld->ld_sb) ) {
 			rc = ldap_select1( ld, tvp );
 
 			if ( rc == 0 || ( rc == -1 && (
@@ -192,7 +192,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 		}
 #endif /* LDAP_DEBUG */
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-			if ( lber_pvt_sb_data_ready(lc->lconn_sb) ) {
+			if ( ber_pvt_sb_data_ready(lc->lconn_sb) ) {
 				rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
 				    lc, result );
 				break;
@@ -578,7 +578,7 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 		}
 		parentr->lr_res_error = lr->lr_res_error;
 		lr->lr_res_error = NULL;
-		if ( NAME_ERROR( lr->lr_res_errno )) {
+		if ( LDAP_NAME_ERROR( lr->lr_res_errno )) {
 			if ( parentr->lr_res_matched != NULL ) {
 				free( parentr->lr_res_matched );
 			}
@@ -622,7 +622,7 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 	}
 
 	FD_ZERO( &readfds );
-	FD_SET( lber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
+	FD_SET( ber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
 
 	return( select( tblsize, &readfds, 0, 0, timeout ) );
 }
@@ -744,7 +744,7 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 	int		rc;
 	unsigned long	tag, len;
 
-	if ( ! lber_pvt_sb_data_ready(&ld->ld_sb) ) {
+	if ( ! ber_pvt_sb_data_ready(&ld->ld_sb) ) {
 		rc = ldap_select1( ld, timeout );
 		if ( rc == -1 || rc == 0 ) {
 			ld->ld_errno = (rc == -1 ? LDAP_SERVER_DOWN :

@@ -80,8 +80,8 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "libldif_"
-# PROP Intermediate_Dir "libldif_"
+# PROP Output_Dir "..\SDebug"
+# PROP Intermediate_Dir "SDebug\libldif"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
@@ -101,8 +101,8 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "libldif0"
-# PROP Intermediate_Dir "libldif0"
+# PROP Output_Dir "..\SRelease"
+# PROP Intermediate_Dir "SRelease\libldif"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
@@ -123,35 +123,11 @@ LIB32=link.exe -lib
 # Name "libldif - Win32 Single Release"
 # Begin Source File
 
-SOURCE=..\..\include\lber.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\lber_pvt.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\ldap_cdefs.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\ldap_features.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\ldap_log.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\include\ldif.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\line64.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\portable.h
 # End Source File
 # End Target
 # End Project

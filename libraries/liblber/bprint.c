@@ -17,26 +17,28 @@
  * Print stuff
  */
 static void
-lber_error_print( char *data )
+ber_error_print( char *data )
 {
+	assert( data != NULL );
+
 	fputs( data, stderr );
 	fflush( stderr );
 }
 
-BER_LOG_PRINT_FN lber_pvt_log_print = lber_error_print;
+BER_LOG_PRINT_FN ber_pvt_log_print = ber_error_print;
 
 /*
  * lber log 
  */
 
-static int lber_log_check( int errlvl, int loglvl )
+static int ber_log_check( int errlvl, int loglvl )
 {
 	return errlvl & loglvl ? 1 : 0;
 }
 
-int lber_pvt_log_printf
+int ber_pvt_log_printf
 #ifdef HAVE_STDARG
-	(int errlvl, int loglvl, char *fmt, ...)
+	(int errlvl, int loglvl, const char *fmt, ...)
 #else
 	( va_alist )
 va_dcl
@@ -58,7 +60,9 @@ va_dcl
 	fmt = va_arg( ap, char * );
 #endif
 
-	if ( !lber_log_check( errlvl, loglvl )) {
+	assert( fmt != NULL );
+
+	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
 	}
 
@@ -69,22 +73,24 @@ va_dcl
 	vsprintf( buf, fmt, ap ); /* hope it's not too long */
 #else
 	/* use doprnt() */
-	chokeme = "choke me! I don't have a doprnt manual handy!";
+#error "vsprintf() required."
 #endif
 
 	va_end(ap);
 
-	(*lber_pvt_log_print)( buf );
+	(*ber_pvt_log_print)( buf );
 	return 1;
 }
 
-static int lber_log_puts(int errlvl, int loglvl, char *buf)
+static int ber_log_puts(int errlvl, int loglvl, char *buf)
 {
-	if ( !lber_log_check( errlvl, loglvl )) {
+	assert( buf != NULL );
+
+	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
 	}
 
-	(*lber_pvt_log_print)( buf );
+	(*ber_pvt_log_print)( buf );
 	return 1;
 }
 
@@ -93,9 +99,14 @@ static int lber_log_puts(int errlvl, int loglvl, char *buf)
  */
 
 int
-lber_log_bprint(int errlvl, int loglvl, char *data, int len )
+ber_log_bprint(int errlvl,
+	int loglvl,
+	const char *data,
+	int len )
 {
-	if ( !lber_log_check( errlvl, loglvl )) {
+	assert( data != NULL );
+
+	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
 	}
 
@@ -104,7 +115,9 @@ lber_log_bprint(int errlvl, int loglvl, char *data, int len )
 }
 
 void
-ber_bprint(char *data, int len )
+ber_bprint(
+	LDAP_CONST char *data,
+	int len )
 {
     static const char	hexdig[] = "0123456789abcdef";
 #define BPLEN	48
@@ -112,11 +125,13 @@ ber_bprint(char *data, int len )
     char	buf[ BPLEN + sizeof("\t%s\n") ];
     int		i = 0;
 
+	assert( data != NULL );
+
     memset( out, 0, BPLEN );
     for ( ;; ) {
 	if ( len < 1 ) {
 	    sprintf( buf, "\t%s\n", ( i == 0 ) ? "(end)" : out );
-		(*lber_pvt_log_print)( buf );
+		(*ber_pvt_log_print)( buf );
 	    break;
 	}
 
@@ -138,7 +153,7 @@ ber_bprint(char *data, int len )
 	if ( i > BPLEN - 2 ) {
 		char data[128 + BPLEN];
 	    sprintf( data, "\t%s\n", out );
-		(*lber_pvt_log_print)(data);
+		(*ber_pvt_log_print)(data);
 	    memset( out, 0, BPLEN );
 	    i = 0;
 	    continue;
@@ -148,9 +163,15 @@ ber_bprint(char *data, int len )
 }
 
 int
-lber_log_dump( int errlvl, int loglvl, BerElement *ber, int inout )
+ber_log_dump(
+	int errlvl,
+	int loglvl,
+	const BerElement *ber,
+	int inout )
 {
-	if ( !lber_log_check( errlvl, loglvl )) {
+	assert( ber != NULL );
+
+	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
 	}
 
@@ -159,16 +180,20 @@ lber_log_dump( int errlvl, int loglvl, BerElement *ber, int inout )
 }
 
 void
-ber_dump( BerElement *ber, int inout )
+ber_dump(
+	LDAP_CONST BerElement *ber,
+	int inout )
 {
 	char buf[132];
+
+	assert( ber != NULL );
 
 	sprintf( buf, "ber_dump: buf 0x%lx, ptr 0x%lx, end 0x%lx\n",
 	    (long) ber->ber_buf,
 		(long) ber->ber_ptr,
 		(long) ber->ber_end );
 
-	(*lber_pvt_log_print)( buf );
+	(*ber_pvt_log_print)( buf );
 
 	if ( inout == 1 ) {
 		sprintf( buf, "          current len %ld, contents:\n",
@@ -184,9 +209,14 @@ ber_dump( BerElement *ber, int inout )
 }
 
 int
-lber_log_sos_dump( int errlvl, int loglvl, Seqorset *sos )
+lber_log_sos_dump(
+	int errlvl,
+	int loglvl,
+	const Seqorset *sos )
 {
-	if ( !lber_log_check( errlvl, loglvl )) {
+	assert( sos != NULL );
+
+	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
 	}
 
@@ -195,26 +225,28 @@ lber_log_sos_dump( int errlvl, int loglvl, Seqorset *sos )
 }
 
 void
-ber_sos_dump( Seqorset *sos )
+ber_sos_dump(
+	LDAP_CONST Seqorset *sos )
 {
 	char buf[132];
 
-	(*lber_pvt_log_print)( "*** sos dump ***\n" );
+	assert( sos != NULL );
+
+	(*ber_pvt_log_print)( "*** sos dump ***\n" );
 
 	while ( sos != NULLSEQORSET ) {
 		sprintf( buf, "ber_sos_dump: clen %ld first 0x%lx ptr 0x%lx\n",
 		    (long) sos->sos_clen, (long) sos->sos_first, (long) sos->sos_ptr );
-		(*lber_pvt_log_print)( buf );
+		(*ber_pvt_log_print)( buf );
 
 		sprintf( buf, "              current len %ld contents:\n",
 		    (long) (sos->sos_ptr - sos->sos_first) );
-		(*lber_pvt_log_print)( buf );
+		(*ber_pvt_log_print)( buf );
 
 		ber_bprint( sos->sos_first, sos->sos_ptr - sos->sos_first );
 
 		sos = sos->sos_next;
 	}
 
-	(*lber_pvt_log_print)( "*** end dump ***\n" );
+	(*ber_pvt_log_print)( "*** end dump ***\n" );
 }
-

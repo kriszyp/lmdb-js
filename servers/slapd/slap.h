@@ -19,7 +19,7 @@
 
 #include "ldap_log.h"
 
-#include "../../libraries/liblber/lber-int.h"
+#include "lber.h"
 #include "ldap.h"
 
 #include "ldap_pvt_thread.h"
@@ -418,7 +418,7 @@ typedef struct slap_conn {
 	int			c_conn_state;	/* connection state */
 
 	ldap_pvt_thread_mutex_t	c_mutex; /* protect the connection */
-	Sockbuf		c_sb;		/* ber connection stuff		  */
+	Sockbuf		*c_sb;			/* ber connection stuff		  */
 
 	/* only can be changed by connect_init */
 	time_t		c_starttime;	/* when the connection was opened */

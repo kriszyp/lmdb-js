@@ -42,7 +42,7 @@ CPP=cl.exe
 # PROP Intermediate_Dir "Release\libldap"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -80,8 +80,8 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "libldap_"
-# PROP Intermediate_Dir "libldap_"
+# PROP Output_Dir "..\SDebug"
+# PROP Intermediate_Dir "SDebug\libldap"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
@@ -101,11 +101,11 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "libldap0"
-# PROP Intermediate_Dir "libldap0"
+# PROP Output_Dir "..\SRelease"
+# PROP Intermediate_Dir "SRelease\libldap"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
-# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -216,18 +216,6 @@ SOURCE=.\init.c
 # Begin Source File
 
 SOURCE=.\kbind.c
-# End Source File
-# Begin Source File
-
-SOURCE="..\liblber\lber-int.h"
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\lber.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\lber_pvt.h
 # End Source File
 # Begin Source File
 

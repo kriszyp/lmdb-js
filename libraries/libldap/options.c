@@ -14,32 +14,65 @@
 #include "ldap-int.h"
 
 static const LDAPAPIFeatureInfo features[] = {
-#ifdef LDAP_API_FEATURE_INFO
-	{"INFO", LDAP_API_FEATURE_INFO},
+#ifdef LDAP_API_FEATURE_X_OPENLDAP
+	{	/* OpenLDAP Extensions API Feature */
+		LDAP_FEATURE_INFO_VERSION,
+		"X_OPENLDAP",
+		LDAP_API_FEATURE_X_OPENLDAP
+	},
 #endif
+
 #ifdef LDAP_API_FEATURE_THREAD_SAFE
-	{"THREAD_SAFE", LDAP_API_FEATURE_THREAD_SAFE},
+	{	/* Basic Thread Safe */
+		LDAP_FEATURE_INFO_VERSION,
+		"THREAD_SAFE",
+		LDAP_API_FEATURE_THREAD_SAFE
+	},
 #endif
 #ifdef LDAP_API_FEATURE_SESSION_THREAD_SAFE
-	{"SESSION_THREAD_SAFE", LDAP_API_FEATURE_SESSION_THREAD_SAFE},
+	{	/* Session Thread Safe */
+		LDAP_FEATURE_INFO_VERSION,
+		"SESSION_THREAD_SAFE",
+		LDAP_API_FEATURE_SESSION_THREAD_SAFE
+	},
 #endif
 #ifdef LDAP_API_FEATURE_OPERATION_THREAD_SAFE
-	{"OPERATION_THREAD_SAFE", LDAP_API_FEATURE_OPERATION_THREAD_SAFE},
+	{	/* Operation Thread Safe */
+		LDAP_FEATURE_INFO_VERSION,
+		"OPERATION_THREAD_SAFE",
+		LDAP_API_FEATURE_OPERATION_THREAD_SAFE
+	},
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
-	{"X_OPENLDAP_REENTRANT", LDAP_API_FEATURE_X_OPENLDAP_REENTRANT},
+	{	/* OpenLDAP Reentrant */
+		LDAP_FEATURE_INFO_VERSION,
+		"X_OPENLDAP_REENTRANT",
+		LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
+	},
 #endif
 #if defined( LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE ) && \
 	defined( LDAP_THREAD_SAFE )
-	{"X_OPENLDAP_THREAD_SAFE", LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE},
+	{	/* OpenLDAP Thread Safe */
+		LDAP_FEATURE_INFO_VERSION,
+		"X_OPENLDAP_THREAD_SAFE",
+		LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
+	},
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	{"X_OPENLDAP_V2_DNS", LDAP_API_FEATURE_X_OPENLDAP_V2_DNS},
+	{	/* DNS */
+		LDAP_FEATURE_INFO_VERSION,
+		"X_OPENLDAP_V2_DNS",
+		LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+	},
 #endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
-	{"X_OPENLDAP_V2_REFERRALS", LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS},
+	{	/* V2 Referrals */
+		LDAP_FEATURE_INFO_VERSION,
+		"X_OPENLDAP_V2_REFERRALS",
+		LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+	},
 #endif
-	{NULL, 0}
+	{0, NULL, 0}
 };
 
 int
@@ -111,7 +144,7 @@ ldap_get_option(
 			break;
 		} 
 
-		* (int *) outvalue = lber_pvt_sb_get_desc( &(ld->ld_sb) );
+		* (int *) outvalue = ber_pvt_sb_get_desc( &(ld->ld_sb) );
 		return 0;
 
 	case LDAP_OPT_DEREF:
@@ -151,13 +184,13 @@ ldap_get_option(
 
 	case LDAP_OPT_SERVER_CONTROLS:
 		* (LDAPControl ***) outvalue =
-			ldap_controls_dup( lo->ldo_server_controls );
+			ldap_controls_dup( lo->ldo_sctrls );
 
 		return 0;
 
 	case LDAP_OPT_CLIENT_CONTROLS:
 		* (LDAPControl ***) outvalue =
-			ldap_controls_dup( lo->ldo_client_controls );
+			ldap_controls_dup( lo->ldo_cctrls );
 
 		return 0;
 
@@ -203,6 +236,13 @@ ldap_get_option(
 			int i;
 
 			if(info == NULL) return -1;
+
+			if(info->ldapaif_info_version != LDAP_FEATURE_INFO_VERSION) {
+				/* api info version mismatch */
+				info->ldapaif_info_version = LDAP_FEATURE_INFO_VERSION;
+				return -1;
+			}
+
 			if(info->ldapaif_name == NULL) return -1;
 
 			for(i=0; features[i].ldapaif_name != NULL; i++) {
@@ -298,17 +338,17 @@ ldap_set_option(
 	case LDAP_OPT_SERVER_CONTROLS: {
 			LDAPControl **controls = (LDAPControl **) invalue;
 
-			ldap_controls_free( lo->ldo_server_controls );
+			ldap_controls_free( lo->ldo_sctrls );
 
 			if( controls == NULL || *controls == NULL ) {
-				lo->ldo_server_controls = NULL;
+				lo->ldo_sctrls = NULL;
 				return 0;
 			}
 				
-			lo->ldo_server_controls =
+			lo->ldo_sctrls =
 				ldap_controls_dup( (LDAPControl **) invalue );
 
-			if(lo->ldo_server_controls == NULL) {
+			if(lo->ldo_sctrls == NULL) {
 				/* memory allocation error ? */
 				break;
 			}
@@ -317,17 +357,17 @@ ldap_set_option(
 	case LDAP_OPT_CLIENT_CONTROLS: {
 			LDAPControl **controls = (LDAPControl **) invalue;
 
-			ldap_controls_free( lo->ldo_client_controls );
+			ldap_controls_free( lo->ldo_cctrls );
 
 			if( controls == NULL || *controls == NULL ) {
-				lo->ldo_client_controls = NULL;
+				lo->ldo_cctrls = NULL;
 				return 0;
 			}
 				
-			lo->ldo_client_controls =
+			lo->ldo_cctrls =
 				ldap_controls_dup( (LDAPControl **) invalue );
 
-			if(lo->ldo_client_controls == NULL) {
+			if(lo->ldo_cctrls == NULL) {
 				/* memory allocation error ? */
 				break;
 			}

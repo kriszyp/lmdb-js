@@ -18,6 +18,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #ifdef HAVE_PSAP_H
 #include <psap.h>
@@ -67,6 +68,6 @@ main( int argc, char **argv )
 	exit( 0 );
 #else
 	fprintf(stderr, "requires ISODE X.500 distribution.\n");
-	exit( 1 );
+	return( EXIT_FAILURE );
 #endif
 }

@@ -31,7 +31,7 @@
  */
 
 int
-ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
+ldap_simple_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 {
 	BerElement	*ber;
 
@@ -89,7 +89,7 @@ ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
  */
 
 int
-ldap_simple_bind_s( LDAP *ld, char *dn, char *passwd )
+ldap_simple_bind_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 {
 	int		msgid;
 	LDAPMessage	*result;

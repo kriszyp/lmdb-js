@@ -21,7 +21,7 @@
 
 #include "ldap-int.h"
 
-static char **explode_name( char *name, int notypes, int is_dn );
+static char **explode_name( LDAP_CONST char *name, int notypes, int is_dn );
 
 char *
 ldap_get_dn( LDAP *ld, LDAPMessage *entry )
@@ -46,7 +46,7 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 }
 
 char *
-ldap_dn2ufn( char *dn )
+ldap_dn2ufn( LDAP_CONST char *dn )
 {
 	char	*p, *ufn, *r;
 	int	state;
@@ -119,37 +119,51 @@ ldap_dn2ufn( char *dn )
 }
 
 char **
-ldap_explode_dns( char *dn )
+ldap_explode_dns( LDAP_CONST char *dn_in )
 {
-	int	ncomps, maxcomps;
 	char	*s;
 	char	**rdns;
    	char    *tok_r;
+	char	*dn;
 
-	if ( (rdns = (char **) malloc( 8 * sizeof(char *) )) == NULL ) {
+	int ncomps;
+	int maxcomps = 8;
+
+	if ( (dn = strdup( dn_in )) == NULL ) {
 		return( NULL );
 	}
 
-	maxcomps = 8;
+	if ( (rdns = (char **) malloc( maxcomps * sizeof(char *) )) == NULL ) {
+		free( dn );
+		return( NULL );
+	}
+
 	ncomps = 0;
 	for ( s = ldap_pvt_strtok( dn, "@.", &tok_r ); s != NULL; 
-	      s = ldap_pvt_strtok( NULL, "@.", &tok_r ) ) {
+	      s = ldap_pvt_strtok( NULL, "@.", &tok_r ) )
+	{
 		if ( ncomps == maxcomps ) {
 			maxcomps *= 2;
 			if ( (rdns = (char **) realloc( rdns, maxcomps *
-			    sizeof(char *) )) == NULL ) {
-				return( NULL );
+			    sizeof(char *) )) == NULL )
+			{
+				free( dn );
+				return NULL;
 			}
 		}
 		rdns[ncomps++] = strdup( s );
 	}
+	free(dn);
+
 	rdns[ncomps] = NULL;
 
+	/* trim rdns */
+	rdns = (char **) realloc( rdns, (ncomps+1) * sizeof(char*) );
 	return( rdns );
 }
 
 char **
-ldap_explode_dn( char *dn, int notypes )
+ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_dn\n", 0, 0, 0 );
 
@@ -160,16 +174,17 @@ ldap_explode_dn( char *dn, int notypes )
 }
 
 char **
-ldap_explode_rdn( char *rdn, int notypes )
+ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
 	return explode_name( rdn, notypes, 0 );
 }
 
 static char **
-explode_name( char *name, int notypes, int is_dn )
+explode_name( LDAP_CONST char *name, int notypes, int is_dn )
 {
-	char	*p, *q, **parts = NULL;
+	const char *p, *q;
+	char **parts = NULL;
 	int	state, count = 0, endquote, len;
 
 	p = name-1;
@@ -261,7 +276,7 @@ explode_name( char *name, int notypes, int is_dn )
 
 
 int
-ldap_is_dns_dn( char *dn )
+ldap_is_dns_dn( LDAP_CONST char *dn )
 {
 	return( dn[ 0 ] != '\0' && strchr( dn, '=' ) == NULL &&
 	    strchr( dn, ',' ) == NULL );

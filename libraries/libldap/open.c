@@ -36,7 +36,7 @@
  */
 
 LDAP *
-ldap_open( char *host, int port )
+ldap_open( LDAP_CONST char *host, int port )
 {
 	LDAP		*ld;
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
@@ -54,7 +54,7 @@ ldap_open( char *host, int port )
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 	    strdup( ld->ld_defhost )) == NULL )) {
 		if(srv != NULL) free( (char*) srv );
-		ldap_ld_free( ld, 0 );
+		ldap_ld_free( ld, 0, NULL, NULL );
 		return( NULL );
 	}
 	srv->lsrv_port = ld->ld_defport;
@@ -62,7 +62,7 @@ ldap_open( char *host, int port )
 	if (( ld->ld_defconn = ldap_new_connection( ld, &srv, 1,1,0 )) == NULL ) {
 		if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
 		free( (char *)srv );
-		ldap_ld_free( ld, 0 );
+		ldap_ld_free( ld, 0, NULL, NULL );
 		return( NULL );
 	}
 	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
@@ -70,7 +70,7 @@ ldap_open( char *host, int port )
 #else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
 	    ld->ld_defport, &ld->ld_host, 0 ) < 0 ) {
-		ldap_ld_free( ld, 0 );
+		ldap_ld_free( ld, 0, NULL, NULL );
 		return( NULL );
 	}
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
@@ -92,7 +92,7 @@ ldap_open( char *host, int port )
  *	ld = ldap_open( host, port );
  */
 LDAP *
-ldap_init( char *defhost, int defport )
+ldap_init( LDAP_CONST char *defhost, int defport )
 {
 	LDAP			*ld;
 
@@ -199,20 +199,20 @@ ldap_init( char *defhost, int defport )
 	/* we'll assume we're talking version 2 for now */
 	ld->ld_version = LDAP_VERSION2;
 
-	lber_pvt_sb_init( &(ld->ld_sb) );
+	ber_pvt_sb_init( &(ld->ld_sb) );
 
 	return( ld );
 }
 
 
 int
-open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
+open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
 	char **krbinstancep, int async )
 {
 	int 			rc = -1;
 	int				port;
-	char			*p, *q, *r;
-	char			*curhost, hostname[ 2*MAXHOSTNAMELEN ];
+	const char		*p, *q;
+	char			*r, *curhost, hostname[ 2*MAXHOSTNAMELEN ];
 
 	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
 
@@ -228,7 +228,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 				    ++q;
 				}
 			} else {
-				curhost = p;	/* avoid copy if possible */
+				curhost = (char *) p;	/* avoid copy if possible */
 				q = NULL;
 			}
 
@@ -258,7 +258,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 		return( rc );
 	}
    
-   	lber_pvt_sb_set_io( sb, &lber_pvt_sb_io_tcp, NULL );
+   	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 
 	if ( krbinstancep != NULL ) {
 #ifdef HAVE_KERBEROS

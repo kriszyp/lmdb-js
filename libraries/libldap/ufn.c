@@ -217,7 +217,8 @@ ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, char *prefix,
 }
 
 int
-ldap_ufn_search_ct( LDAP *ld, char *ufn, char **attrs, int attrsonly,
+ldap_ufn_search_ct(
+	LDAP *ld, LDAP_CONST char *ufn, char **attrs, int attrsonly,
 	LDAPMessage **res, cancelptype cancelproc, void *cancelparm,
 	char *tag1, char *tag2, char *tag3 )
 {
@@ -302,7 +303,8 @@ ldap_ufn_search_ct( LDAP *ld, char *ufn, char **attrs, int attrsonly,
  * ldapfilter.conf tags.
  */
 int
-ldap_ufn_search_c( LDAP *ld, char *ufn, char **attrs, int attrsonly,
+ldap_ufn_search_c(
+	LDAP *ld, LDAP_CONST char *ufn, char **attrs, int attrsonly,
 	LDAPMessage **res, cancelptype cancelproc, void *cancelparm )
 {
 	return( ldap_ufn_search_ct( ld, ufn, attrs, attrsonly, res, cancelproc,
@@ -313,7 +315,8 @@ ldap_ufn_search_c( LDAP *ld, char *ufn, char **attrs, int attrsonly,
  * same as ldap_ufn_search_c without the cancel function
  */
 int
-ldap_ufn_search_s( LDAP *ld, char *ufn, char **attrs, int attrsonly,
+ldap_ufn_search_s(
+	LDAP *ld, LDAP_CONST char *ufn, char **attrs, int attrsonly,
 	LDAPMessage **res )
 {
 	struct timeval	tv;
@@ -459,7 +462,7 @@ ldap_ufn_expand( LDAP *ld, cancelptype cancelproc, void *cancelparm,
  */
 
 LDAPFiltDesc *
-ldap_ufn_setfilter( LDAP *ld, char *fname )
+ldap_ufn_setfilter( LDAP *ld, LDAP_CONST char *fname )
 {
 	if ( ld->ld_filtd != NULL )
 		ldap_getfilter_free( ld->ld_filtd );
@@ -468,7 +471,7 @@ ldap_ufn_setfilter( LDAP *ld, char *fname )
 }
 
 void
-ldap_ufn_setprefix( LDAP *ld, char *prefix )
+ldap_ufn_setprefix( LDAP *ld, LDAP_CONST char *prefix )
 {
 	if ( ld->ld_ufnprefix != NULL )
 		free( ld->ld_ufnprefix );

@@ -19,14 +19,14 @@
 static RETSIGTYPE wait4child( int sig );
 #endif
 
-#ifdef WIN32
-const char Versionstr[] = "OpenLDAP slapd 1.2 for Windows NT";
-#endif
-
 /*
  * when more than one slapd is running on one machine, each one might have
  * it's own LOCAL for syslogging and must have its own pid/args files
  */
+
+#ifndef HAVE_MKVERSION
+const char Versionstr[] = "OpenLDAP Standalone LDAP Server (slapd)";
+#endif
 
 #ifdef LOG_LOCAL4
 
@@ -87,7 +87,9 @@ main( int argc, char **argv )
 	int		inetd = 0;
 	int		rc;
 	int		tcps;
+#ifdef LDAP_CONNECTIONLESS
 	int		udp;
+#endif
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
@@ -109,7 +111,7 @@ main( int argc, char **argv )
 	g_argv = argv;
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:ia:p:s:c"
+			     "d:f:ia:p:s:"
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
@@ -118,6 +120,9 @@ main( int argc, char **argv )
 #endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 			     "u:g:"
+#endif
+#ifdef LDAP_CONNECTIONLESS
+				 "c"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -232,7 +237,7 @@ main( int argc, char **argv )
 		}
 	}
 
-	lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
+	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &slap_debug);
 	ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &slap_debug);
 	ldif_debug = slap_debug;
 

@@ -20,18 +20,30 @@
 
 #include "ldap-int.h"
 
+int
+ldap_unbind_ext(
+	LDAP *ld,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
+{
+	return ldap_ld_free( ld, 1, sctrls, cctrls );
+}
 
 int
 ldap_unbind( LDAP *ld )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_unbind\n", 0, 0, 0 );
 
-	return( ldap_ld_free( ld, 1 ));
+	return( ldap_unbind_ext( ld, NULL, NULL ) );
 }
 
 
 int
-ldap_ld_free( LDAP *ld, int close )
+ldap_ld_free(
+	LDAP *ld,
+	int close,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
 {
 	LDAPMessage	*lm, *next;
 	int		err = LDAP_SUCCESS;
@@ -53,7 +65,7 @@ ldap_ld_free( LDAP *ld, int close )
 		}
 #else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 		if ( close ) {
-			err = ldap_send_unbind( ld, &ld->ld_sb );
+			err = ldap_send_unbind( ld, &ld->ld_sb, sctrls, cctrls );
 			ldap_close_connection( &ld->ld_sb );
 		}
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
@@ -101,7 +113,7 @@ ldap_ld_free( LDAP *ld, int close )
 	if ( ld->ld_options.ldo_defhost != NULL )
 		free( ld->ld_options.ldo_defhost );
 
-	lber_pvt_sb_destroy( &(ld->ld_sb) );   
+	ber_pvt_sb_destroy( &(ld->ld_sb) );   
    
 	free( (char *) ld );
    
@@ -113,12 +125,16 @@ ldap_ld_free( LDAP *ld, int close )
 int
 ldap_unbind_s( LDAP *ld )
 {
-	return( ldap_ld_free( ld, 1 ));
+	return( ldap_unbind_ext( ld, NULL, NULL ) );
 }
 
 
 int
-ldap_send_unbind( LDAP *ld, Sockbuf *sb )
+ldap_send_unbind(
+	LDAP *ld,
+	Sockbuf *sb,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
 {
 	BerElement	*ber;
 
@@ -130,7 +146,20 @@ ldap_send_unbind( LDAP *ld, Sockbuf *sb )
 	}
 
 	/* fill it in */
-	if ( ber_printf( ber, "{itn}", ++ld->ld_msgid,
+	if ( ber_printf( ber, "{itn", ++ld->ld_msgid,
+	    LDAP_REQ_UNBIND ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( ld->ld_errno );
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return ld->ld_errno;
+	}
+
+	if ( ber_printf( ber, "}", ++ld->ld_msgid,
 	    LDAP_REQ_UNBIND ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );

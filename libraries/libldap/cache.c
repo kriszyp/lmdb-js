@@ -25,10 +25,10 @@
 static int		cache_hash LDAP_P(( BerElement *ber ));
 static LDAPMessage	*msg_dup LDAP_P(( LDAPMessage *msg ));
 static int		request_cmp LDAP_P(( BerElement	*req1, BerElement *req2 ));
-static int		chain_contains_dn LDAP_P(( LDAPMessage *msg, char *dn ));
+static int		chain_contains_dn LDAP_P(( LDAPMessage *msg, LDAP_CONST char *dn ));
 static long		msg_size LDAP_P(( LDAPMessage *msg ));
 static void		check_cache_memused LDAP_P(( LDAPCache *lc ));
-static void		uncache_entry_or_req LDAP_P(( LDAP *ld, char *dn, int msgid ));
+static void		uncache_entry_or_req LDAP_P(( LDAP *ld, LDAP_CONST char *dn, int msgid ));
 
 #endif
 
@@ -138,7 +138,7 @@ ldap_uncache_request( LDAP *ld, int msgid )
 
 
 void
-ldap_uncache_entry( LDAP *ld, char *dn )
+ldap_uncache_entry( LDAP *ld, LDAP_CONST char *dn )
 {
 #ifndef LDAP_NOCACHE
 	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %lx\n",
@@ -153,7 +153,7 @@ ldap_uncache_entry( LDAP *ld, char *dn )
 
 static void
 uncache_entry_or_req( LDAP *ld,
-	char *dn,		/* if non-NULL, uncache entry */
+	const char *dn,		/* if non-NULL, uncache entry */
 	int msgid )		/* request to uncache (if dn == NULL) */
 {
 	int		i;
@@ -540,7 +540,7 @@ request_cmp( BerElement *req1, BerElement *req2 )
 
 
 static int
-chain_contains_dn( LDAPMessage *msg, char *dn )
+chain_contains_dn( LDAPMessage *msg, const char *dn )
 {
 	LDAPMessage	*m;
 	BerElement	ber;

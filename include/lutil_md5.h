@@ -35,19 +35,23 @@ struct lutil_MD5Context {
 	unsigned char in[64];
 };
 
-LDAP_F void lutil_MD5Init LDAP_P((
+LDAP_F( void )
+lutil_MD5Init LDAP_P((
 	struct lutil_MD5Context *context));
 
-LDAP_F void lutil_MD5Update LDAP_P((
+LDAP_F( void )
+lutil_MD5Update LDAP_P((
 	struct lutil_MD5Context *context,
 	unsigned char const *buf,
 	unsigned len));
 
-LDAP_F void lutil_MD5Final LDAP_P((
+LDAP_F( void )
+lutil_MD5Final LDAP_P((
 	unsigned char digest[16],
 	struct lutil_MD5Context *context));
 
-LDAP_F void lutil_MD5Transform LDAP_P((
+LDAP_F( void )
+lutil_MD5Transform LDAP_P((
 	uint32 buf[4],
 	const unsigned char in[64]));
 

@@ -1,4 +1,8 @@
 /*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1991, 1992, 1993 
  * Regents of the University of Michigan.  All rights reserved.
  *
@@ -43,18 +47,13 @@
 #include <ldapconfig.h>
 #include "ud.h"
 
-#ifndef lint
-char copyright[] =
-"@(#) Copyright (c) 1991, 1992, 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
-#endif
-
 /*
  *  Used with change_base() to indicate which base we are changing.
  */
 #define BASE_SEARCH     0
 #define BASE_GROUPS     1
 
-#define	iscom(x)	(!strncasecmp(x, cmd, strlen(cmd)))
+#define	iscom(x)	(!strncasecmp((x), cmd, strlen(cmd)))
 
 static char *server = NULL;
 static char *config_file = UD_CONFIG_FILE;
@@ -83,6 +82,9 @@ int debug;			/* debug flag */
 #endif
 int ldebug;			/* library debug flag */
 
+#ifndef HAVE_MKVERSION
+char Version[] = "OpenLDAP UserDirectory (ud)";
+#endif
 
 int
 main( int argc, char **argv )
@@ -552,7 +554,7 @@ initialize_client( void )
 #endif
 
 	if (ldebug) {
-		lber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldebug);
+		ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldebug);
 		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &ldebug);
 	}
 

@@ -57,25 +57,27 @@ do_bind(
 	 */
 
 	{
-	BerElement	tber;
+	BerElement	*tber;
 	unsigned long	tlen, ttag;
 
-	tber = *op->o_ber;
-	ttag = ber_skip_tag( &tber, &tlen );
-	if ( ber_peek_tag( &tber, &tlen ) == LBER_SEQUENCE ) {
-		Debug( LDAP_DEBUG_ANY, "version 3.0 detected\n", 0, 0, 0 );
+	tber = ber_dup( op->o_ber );
+	ttag = ber_skip_tag( tber, &tlen );
+	if ( ber_peek_tag( tber, &tlen ) == LBER_SEQUENCE ) {
+		Debug( LDAP_DEBUG_ANY, "bind: version 3.0 detected\n", 0, 0, 0 );
 		conn->c_version = 30;
 		rc = ber_scanf(ber, "{{iato}}", &version, &cdn, &method, &cred);
 	} else {
 		rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
 	}
+
+	ber_free( tber, 1 );
 	}
 #else
 	rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
 #endif
 
 	if ( rc == LBER_ERROR ) {
-		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "bind: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
 		    "decoding error" );
 		return;

@@ -13,6 +13,9 @@
 
 #include "slap.h"
 
+/* we need LBER internals */
+#include "../../libraries/liblber/lber-int.h"
+
 static void
 send_ldap_result2(
     Connection	*conn,
@@ -102,7 +105,7 @@ send_ldap_result2(
 			return;
 		}
 
-		if ( ber_flush( &conn->c_sb, ber, 1 ) == 0 ) {
+		if ( ber_flush( conn->c_sb, ber, 1 ) == 0 ) {
 			break;
 		}
 
@@ -128,7 +131,7 @@ send_ldap_result2(
 
 		/* wait for socket to be write-ready */
 		conn->c_writewaiter = 1;
-		slapd_set_write( conn->c_sb.sb_sd, 1 );
+		slapd_set_write( ber_pvt_sb_get_desc( conn->c_sb ), 1 );
 
 		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
 		conn->c_writewaiter = 0;
@@ -159,7 +162,7 @@ send_ldap_result(
 {
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		lber_pvt_sb_udp_set_dst( &conn->c_sb, &op->o_clientaddr );
+		ber_pvt_sb_udp_set_dst( &conn->c_sb, &op->o_clientaddr );
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
 		    &op->o_clientaddr)->sin_addr ),
@@ -344,7 +347,7 @@ send_search_entry(
 			return 0;
 		}
 
-		if ( ber_flush( &conn->c_sb, ber, 1 ) == 0 ) {
+		if ( ber_flush( conn->c_sb, ber, 1 ) == 0 ) {
 			break;
 		}
 
@@ -370,7 +373,7 @@ send_search_entry(
 
 		/* wait for socket to be write-ready */
 		conn->c_writewaiter = 1;
-		slapd_set_write( conn->c_sb.sb_sd, 1 );
+		slapd_set_write( ber_pvt_sb_get_desc( conn->c_sb ), 1 );
 
 		ldap_pvt_thread_cond_wait( &conn->c_write_cv, &conn->c_mutex );
 		conn->c_writewaiter = 0;

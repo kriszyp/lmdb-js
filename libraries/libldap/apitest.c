@@ -6,13 +6,8 @@
  * OpenLDAP API Test
  *	Written by: Kurt Zeilenga
  *
- * This program is designed to test API features of libldap.
- *
- * The API specification can be found in:
- *
- *	 draft-api-ldapext-ldap-c-api-01.txt 
- *
- * and discussions on ietf-ldapext mailing list.
+ * This program is designed to test API features of implementations
+ * of the IETF draft specifications.
  *
  */
 #include "portable.h"
@@ -30,52 +25,67 @@ main(int argc, char **argv)
 	int ival;
 	char *sval;
 
+	printf("Compile time API Information\n");
+
 #ifdef LDAP_API_INFO_VERSION
 	api.ldapai_info_version = LDAP_API_INFO_VERSION;
+	printf("  API Info version:  %d\n", (int) api.ldapai_info_version);
 #else
+	api.ldapai_info_version = 1;
+	printf("  API Info version:  unknown\n");
+#endif
+
+#ifdef LDAP_FEATURE_INFO_VERSION
+	printf("  Feature Info version:  %d\n", (int) LDAP_FEATURE_INFO_VERSION);
+#else
+	printf("  Feature Info version:  unknown\n");
 	api.ldapai_info_version = 1;
 #endif
 
-	printf("Compile time API Information\n");
-	printf("  API Info version:  %d\n", api.ldapai_info_version);
-	printf("  API version:       %d\n", LDAP_API_VERSION);
+#ifdef LDAP_API_VERSION
+	printf("  API version:       %d\n", (int) LDAP_API_VERSION);
+#else
+	printf("  API version:       unknown\n");
+#endif
+
 #ifdef LDAP_VERSION
-	printf("  Protocol Version:  %d\n", LDAP_VERSION);
+	printf("  Protocol Version:  %d\n", (int) LDAP_VERSION);
 #else
 	printf("  Protocol Version:  unknown\n");
 #endif
 #ifdef LDAP_VERSION_MIN
-	printf("  Protocol Min:      %d\n", LDAP_VERSION_MIN);
+	printf("  Protocol Min:      %d\n", (int) LDAP_VERSION_MIN);
 #else
 	printf("  Protocol Min:      unknown\n");
 #endif
 #ifdef LDAP_VERSION_MAX
-	printf("  Protocol Max:      %d\n", LDAP_VERSION_MAX);
+	printf("  Protocol Max:      %d\n", (int) LDAP_VERSION_MAX);
 #else
 	printf("  Protocol Max:      unknown\n");
 #endif
 #ifdef LDAP_VENDOR_NAME
-	printf("  Vendor Name:       %s\n", LDAP_VENDOR_NAME);
+	printf("  Vendor Name:       %s\n", (int) LDAP_VENDOR_NAME);
 #else
 	printf("  Vendor Name:       unknown\n");
 #endif
 #ifdef LDAP_VENDOR_VERSION
-	printf("  Vendor Version:    %d\n", LDAP_VENDOR_VERSION);
+	printf("  Vendor Version:    %d\n", (int) LDAP_VENDOR_VERSION);
 #else
 	printf("  Vendor Version:    unknown\n");
 #endif
 
 	if(ldap_get_option(NULL, LDAP_OPT_API_INFO, &api) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(api) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 
 	printf("\nExecution time API Information\n");
 	printf("  API Info version:  %d\n", api.ldapai_info_version);
 
 	if (api.ldapai_info_version != LDAP_API_INFO_VERSION) {
-		printf(" API INFO version mismatch!\n");
-		exit(-1);
+		printf(" API INFO version mismatch: got %d, expected %d\n",
+			api.ldapai_info_version, LDAP_API_INFO_VERSION);
+		return EXIT_FAILURE;
 	}
 
 	printf("  API Version:       %d\n", api.ldapai_api_version);
@@ -89,18 +99,33 @@ main(int argc, char **argv)
 		for(i=0; api.ldapai_extensions[i] != NULL; i++) /* empty */;
 		printf("  Extensions:        %d\n", i);
 		for(i=0; api.ldapai_extensions[i] != NULL; i++) {
-#ifndef LDAP_API_FEATURE_INFO
-			printf("                     %s\n",
-				api.ldapai_extensions[i]);
-#else
+#ifdef LDAP_OPT_API_FEATURE_INFO
 			LDAPAPIFeatureInfo fi;
+			fi.ldapaif_info_version = LDAP_FEATURE_INFO_VERSION;
 			fi.ldapaif_name = api.ldapai_extensions[i];
 			fi.ldapaif_version = 0;
 
-			ldap_get_option(NULL, LDAP_OPT_API_FEATURE_INFO, &fi);
+			if( ldap_get_option(NULL, LDAP_OPT_API_FEATURE_INFO, &fi) == LDAP_SUCCESS ) {
+				if(fi.ldapaif_info_version != LDAP_FEATURE_INFO_VERSION) {
+					printf("                     %s feature info mismatch: got %d, expected %d\n",
+						api.ldapai_extensions[i],
+						LDAP_FEATURE_INFO_VERSION,
+						fi.ldapaif_info_version);
 
-			printf("                     %s (%d)\n",
-				api.ldapai_extensions[i], fi.ldapaif_version);
+				} else {
+					printf("                     %s: version %d\n",
+						fi.ldapaif_name,
+						fi.ldapaif_version);
+				}
+
+			} else {
+				printf("                     %s (NO FEATURE INFO)\n",
+					api.ldapai_extensions[i]);
+			}
+
+#else
+			printf("                     %s\n",
+				api.ldapai_extensions[i]);
 #endif
 		}
 	}
@@ -112,48 +137,47 @@ main(int argc, char **argv)
 
 	if(ldap_get_option(NULL, LDAP_OPT_DEREF, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(api) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 	printf("  DEREF:             %d\n", ival);
 
 	if(ldap_get_option(NULL, LDAP_OPT_SIZELIMIT, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(sizelimit) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 	printf("  SIZELIMIT:         %d\n", ival);
 
 	if(ldap_get_option(NULL, LDAP_OPT_TIMELIMIT, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(timelimit) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 	printf("  TIMELIMIT:         %d\n", ival);
 
 	if(ldap_get_option(NULL, LDAP_OPT_REFERRALS, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(referrals) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 	printf("  REFERRALS:         %s\n",
 		ival == (int) LDAP_OPT_ON ? "on" : "off");
 
 	if(ldap_get_option(NULL, LDAP_OPT_RESTART, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(restart) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 	printf("  RESTART:           %s\n",
 		ival == (int) LDAP_OPT_ON ? "on" : "off");
 
 	if(ldap_get_option(NULL, LDAP_OPT_PROTOCOL_VERSION, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(protocol version) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 	printf("  PROTOCOL VERSION:  %d\n", ival);
 
 	if(ldap_get_option(NULL, LDAP_OPT_HOST_NAME, &sval) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(host name) failed\n", argv[0]);
-		exit(-1);
+		return EXIT_FAILURE;
 	}
 	printf("  HOST NAME:         %s\n", sval);
 
-	exit(0);
-	return 0;
+	return EXIT_SUCCESS;
 }

@@ -8,7 +8,7 @@
  * in file LICENSE in the top-level directory of the distribution.
  */
 /*
- * lber_pvt.h - Header for lber_pvt_ functions. These are meant to be used
+ * lber_pvt.h - Header for ber_pvt_ functions. These are meant to be used
  * 		by the OpenLDAP distribution only.
  */
 
@@ -22,12 +22,13 @@ LDAP_BEGIN_DECL
 /*
  * bprint.c
  */
-extern BER_LOG_PRINT_FN lber_pvt_log_print;
+extern BER_LOG_PRINT_FN ber_pvt_log_print;
 
-LDAP_F int lber_pvt_log_printf LDAP_P((
+LDAP_F( int )
+ber_pvt_log_printf LDAP_P((
 	int errlvl,
 	int loglvl,
-	char *fmt,
+	const char *fmt,
 	... ));
 
 LDAP_END_DECL

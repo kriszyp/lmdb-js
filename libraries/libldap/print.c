@@ -33,7 +33,7 @@ static int ldap_log_check( LDAP *ld, int loglvl )
 
 int ldap_log_printf
 #ifdef HAVE_STDARG
-	( LDAP *ld, int loglvl, char *fmt, ... )
+	( LDAP *ld, int loglvl, const char *fmt, ... )
 #else
 	( va_alist )
 va_dcl
@@ -72,6 +72,6 @@ va_dcl
 
 	va_end(ap);
 
-	(*lber_pvt_log_print)( buf );
+	(*ber_pvt_log_print)( buf );
 	return 1;
 }

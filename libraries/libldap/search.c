@@ -30,7 +30,9 @@ static int put_substring_filter LDAP_P(( BerElement *ber, char *type, char *str 
 static int put_filter_list LDAP_P(( BerElement *ber, char *str ));
 
 /*
- * ldap_search - initiate an ldap (and X.500) search operation.  Parameters:
+ * ldap_search - initiate an ldap search operation.
+ *
+ * Parameters:
  *
  *	ld		LDAP descriptor
  *	base		DN of the base object
@@ -47,7 +49,7 @@ static int put_filter_list LDAP_P(( BerElement *ber, char *str ));
  *	    attrs, attrsonly );
  */
 int
-ldap_search( LDAP *ld, char *base, int scope, char *filter,
+ldap_search( LDAP *ld, LDAP_CONST char *base, int scope, LDAP_CONST char *filter,
 	char **attrs, int attrsonly )
 {
 	BerElement	*ber;
@@ -55,7 +57,7 @@ ldap_search( LDAP *ld, char *base, int scope, char *filter,
 	Debug( LDAP_DEBUG_TRACE, "ldap_search\n", 0, 0, 0 );
 
 	if (( ber = ldap_build_search_req( ld, base, scope, filter, attrs,
-	    attrsonly )) == NULLBER ) {
+	    attrsonly, NULL, NULL )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -76,11 +78,20 @@ ldap_search( LDAP *ld, char *base, int scope, char *filter,
 
 
 BerElement *
-ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
-	char **attrs, int attrsonly )
+ldap_build_search_req(
+	LDAP *ld,
+	LDAP_CONST char *base_in,
+	int scope,
+	LDAP_CONST char *filter_in,
+	char **attrs,
+	int attrsonly,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
 {
 	BerElement	*ber;
 	int		err;
+	char	*base;
+	char	*filter;
 
 	/*
 	 * Create the search request.  It looks like this:
@@ -111,9 +122,11 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 		return( NULLBER );
 	}
 
-	if ( base == NULL ) {
+	if ( base_in == NULL ) {
 		/* no base provided, use session default base */
 		base = ld->ld_options.ldo_defbase;
+	} else {
+		base = (char *) base_in;
 	}
 
 	if ( base == NULL ) {
@@ -141,7 +154,7 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 		return( NULLBER );
 	}
 
-	filter = strdup( filter );
+	filter = strdup( filter_in );
 	err = put_filter( ber, filter );
 	free( filter );
 
@@ -151,7 +164,19 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 		return( NULLBER );
 	}
 
-	if ( ber_printf( ber, "{v}}}", attrs ) == -1 ) {
+	if ( ber_printf( ber, "{v}}", attrs ) == -1 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( NULLBER );
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return( NULLBER );
+	}
+
+	if ( ber_printf( ber, "}", attrs ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( NULLBER );
@@ -519,7 +544,9 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 }
 
 int
-ldap_search_st( LDAP *ld, char *base, int scope, char *filter, char **attrs,
+ldap_search_st(
+	LDAP *ld, LDAP_CONST char *base, int scope,
+	LDAP_CONST char *filter, char **attrs,
 	int attrsonly, struct timeval *timeout, LDAPMessage **res )
 {
 	int	msgid;
@@ -541,8 +568,14 @@ ldap_search_st( LDAP *ld, char *base, int scope, char *filter, char **attrs,
 }
 
 int
-ldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
-	int attrsonly, LDAPMessage **res )
+ldap_search_s(
+	LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPMessage **res )
 {
 	int	msgid;
 

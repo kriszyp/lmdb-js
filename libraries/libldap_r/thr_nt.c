@@ -14,7 +14,6 @@
 #include "ldap_pvt_thread.h"
 
 #if defined( HAVE_NT_THREADS )
-#include <process.h>
 
 int
 ldap_pvt_thread_initialize( void )
@@ -49,7 +48,7 @@ int
 ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	DWORD status;
-	status = WaitForSingleObject( thread, INFINITE );
+	status = WaitForSingleObject( (HANDLE) thread, INFINITE );
 	if (status == WAIT_FAILED) {
 		return -1;
 	}

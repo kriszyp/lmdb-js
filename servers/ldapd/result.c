@@ -280,7 +280,7 @@ send_ldap_msgresult(
 {
 #ifdef LDAP_CONNECTIONLESS
 	if ( m->m_cldap ) {
-	   	lber_pvt_sb_udp_set_dst( &sb, &m->m_clientaddr );
+	   	ber_pvt_sb_udp_set_dst( &sb, &m->m_clientaddr );
 
 		Debug( LDAP_DEBUG_TRACE, "UDP response to %s port %d\n", 
 		    inet_ntoa(((struct sockaddr_in *)
@@ -305,7 +305,7 @@ send_ldap_result(
 	int		rc;
 #ifdef LDAP_CONNECTIONLESS
 	int		cldap;
-	cldap = ( sb->sb_io == &lber_pvt_sb_io_udp );
+	cldap = ( sb->sb_io == &ber_pvt_sb_io_udp );
 #endif
 
 	Debug( LDAP_DEBUG_TRACE, "send_ldap_result\n", 0, 0, 0 );

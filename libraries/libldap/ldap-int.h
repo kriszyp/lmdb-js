@@ -35,6 +35,7 @@ LDAP_BEGIN_DECL
 #define LDAP_URL_PREFIX_LEN     7
 #define LDAP_URL_URLCOLON	"URL:"
 #define LDAP_URL_URLCOLON_LEN	4
+#define NULLLDAPURLDESC ((LDAPURLDesc *)NULL)
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 #define LDAP_REF_STR		"Referral:\n"
@@ -73,7 +74,7 @@ struct ldapmsg {
 	struct ldapmsg	*lm_next;	/* next response */
 	unsigned int	lm_time;	/* used to maintain cache */
 };
-
+#define NULLMSG ((LDAPMessage *)NULL)
 /*
  * structure representing get/set'able options
  * which have global defaults.
@@ -95,8 +96,8 @@ struct ldapoptions {
 	int		ldo_refhoplimit;	/* limit on referral nesting */
 
 	/* LDAPv3 server and client controls */
-	LDAPControl	**ldo_server_controls;
-	LDAPControl **ldo_client_controls;
+	LDAPControl	**ldo_sctrls;
+	LDAPControl **ldo_cctrls;
 	
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
@@ -201,6 +202,9 @@ struct ldap {
 #define ld_cldaptimeout	ld_options.ldo_cldaptimeout
 #define ld_refhoplimit	ld_options.ldo_refhoplimit
 
+#define ld_sctrls		ld_options.ldo_sctrls
+#define ld_cctrls		ld_options.ldo_cctrls
+
 	int		ld_version;		/* version connected at */
 	char	*ld_host;
 	int		ld_port;
@@ -257,7 +261,7 @@ void openldap_ldap_initialize LDAP_P((void));
 /*
  * in print.c
  */
-int ldap_log_printf LDAP_P((LDAP *ld, int level, char *fmt, ...));
+int ldap_log_printf LDAP_P((LDAP *ld, int level, const char *fmt, ...));
 
 /*
  * in cache.c
@@ -270,9 +274,17 @@ int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *reque
 /*
  * in controls.c
  */
-LDAPControl *ldap_control_dup LDAP_P(( LDAPControl *ctrl ));
-LDAPControl **ldap_controls_dup LDAP_P(( LDAPControl **ctrl ));
-int ldap_get_ber_controls LDAP_P(( BerElement *be, LDAPControl ***cp));
+LDAPControl *ldap_control_dup LDAP_P(( const LDAPControl *ctrl ));
+LDAPControl **ldap_controls_dup LDAP_P(( const LDAPControl **ctrls ));
+
+int ldap_int_get_controls LDAP_P((
+	BerElement *be,
+	LDAPControl ***cp));
+
+int ldap_int_put_controls LDAP_P((
+	LDAP *ld,
+	LDAPControl **ctrls,
+	BerElement *ber ));
 
 /*
  * in dsparse.c
@@ -293,14 +305,14 @@ char *ldap_get_kerberosv4_credentials LDAP_P(( LDAP *ld, char *who, char *servic
 /*
  * in open.c
  */
-int open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
+int open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
 	char **krbinstancep, int async );
 
 
 /*
  * in os-ip.c
  */
-int ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address, int port,
+int ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address, int port,
 	int async );
 void ldap_close_connection( Sockbuf *sb );
 
@@ -324,11 +336,12 @@ int ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
  * in request.c
  */
 int ldap_send_initial_request( LDAP *ld, unsigned long msgtype,
-	char *dn, BerElement *ber );
+	const char *dn, BerElement *ber );
 BerElement *ldap_alloc_ber_with_options( LDAP *ld );
 void ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) || defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
+#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS ) \
+	|| defined( LDAP_API_FEATURE_X_OPENLDAP_V2_DNS )
 int ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid,
 	LDAPRequest *parentreq, LDAPServer *srvlist, LDAPConn *lc,
 	int bind );
@@ -356,8 +369,9 @@ LDAP_F int cldap_getmsg	( LDAP *ld, struct timeval *timeout, BerElement *ber );
 /*
  * in search.c
  */
-BerElement *ldap_build_search_req( LDAP *ld, char *base, int scope,
-	char *filter, char **attrs, int attrsonly );
+BerElement *ldap_build_search_req( LDAP *ld, const char *base, int scope,
+	const char *filter, char **attrs, int attrsonly,
+	LDAPControl **sctrls, LDAPControl **cctrls );
 
 /*
  * in strdup.c
@@ -367,14 +381,23 @@ char *ldap_strdup LDAP_P(( const char * ));
 /*
  * in unbind.c
  */
-int ldap_ld_free( LDAP *ld, int close );
-int ldap_send_unbind( LDAP *ld, Sockbuf *sb );
+int ldap_ld_free LDAP_P((
+	LDAP *ld,
+	int close,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
+
+int ldap_send_unbind LDAP_P((
+	LDAP *ld,
+	Sockbuf *sb,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 /*
  * in getdxbyname.c
  */
-char **ldap_getdxbyname( char *domain );
+char **ldap_getdxbyname( const char *domain );
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 #if defined( STR_TRANSLATION ) && defined( LDAP_DEFAULT_CHARSET )

@@ -49,25 +49,25 @@ main( int argc, char **argv )
 	cshow( stdout );
 #endif /* MACOS */
 
-	sb = lber_pvt_sb_alloc_fd( fileno(stdin) );
+	sb = ber_sockbuf_alloc_fd( fileno(stdin) );
 
 	if( (ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 		perror( "ber_alloc_t" );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
 
 	if ( (tag = ber_get_next( sb, &len, ber )) == -1 ) {
 		perror( "ber_get_next" );
-		exit( 1 );
+		return( EXIT_FAILURE );
 	}
 	printf( "message has tag 0x%x and length %ld\n", tag, len );
 
 	if ( ber_scanf( ber, "i", &i ) == LBER_ERROR ) {
 		fprintf( stderr, "ber_scanf returns -1\n" );
-		exit( 1 );
+		exit( EXIT_FAILURE );
 	}
 	printf( "got int %ld\n", i );
 
-	lber_pvt_sb_free( sb );
-	return( 0 );
+	ber_sockbuf_free( sb );
+	return( EXIT_SUCCESS );
 }

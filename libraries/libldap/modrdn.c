@@ -33,21 +33,28 @@
 #include "ldap-int.h"
 
 /*
- * ldap_rename2 - initiate an ldap (and X.500) modifyDN operation. Parameters:
- *	(LDAP V3 MODIFYDN REQUEST)
- *	ld		LDAP descriptor
- *	dn		DN of the object to modify
- *	newrdn		RDN to give the object
+ * ldap_rename - initiate an ldap extended modifyDN operation.
+ *
+ * Parameters:
+ *	ld				LDAP descriptor
+ *	dn				DN of the object to modify
+ *	newrdn			RDN to give the object
  *	deleteoldrdn	nonzero means to delete old rdn values from the entry
- *	newSuperior	DN of the new parent if applicable
+ *	newSuperior		DN of the new parent if applicable
+ *
+ * Returns the LDAP error code.
  */
 
 int
-ldap_rename2( LDAP *ld,
-	      char *dn,
-	      char *newrdn,
-	      int deleteoldrdn,
-	      char *newSuperior )
+ldap_rename(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	int *msgidp )
 {
 	/*
 	 * A modify rdn request looks like this:
@@ -59,48 +66,104 @@ ldap_rename2( LDAP *ld,
 	 *	}
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_rename2\n", 0, 0, 0 );
+	BerElement	*ber;
+	int rc;
 
-	if( newSuperior != NULL ) {
-	    BerElement	*ber;
+	Debug( LDAP_DEBUG_TRACE, "ldap_rename\n", 0, 0, 0 );
 
-	    /* create a message to send */
-	    if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		return( -1 );
-	    }
-
-	    if ( ber_printf( ber, "{it{ssbts}}",
-			     ++ld->ld_msgid,
-			     LDAP_REQ_MODRDN,
-			     dn,
-			     newrdn,
-			     deleteoldrdn,
-			     LDAP_TAG_NEWSUPERIOR,
-			     newSuperior )
-		 == -1 ) {
-
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( -1 );
-
-	    }
-
-	    /* send the message */
-	    return ldap_send_initial_request( ld, LDAP_REQ_MODRDN, dn, ber );
-	    
-	} else {
-
-	    /* If no newSuperior fall through to ldap_modrdn2() */
-
-	    return ldap_modrdn2( ld, dn, newrdn, deleteoldrdn );
-
+	/* create a message to send */
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
+		return( LDAP_NO_MEMORY );
 	}
 
-}/* int ldap_rename2() */
+	if( newSuperior != NULL ) {
+		/* must be version 3 (or greater) */
+		if ( ld->ld_version == 0 ) {
+			ld->ld_version = LDAP_VERSION3;
+		}
+
+		if ( ld->ld_version < LDAP_VERSION3 ) {
+			ld->ld_errno = LDAP_NOT_SUPPORTED;
+			ber_free( ber, 1 );
+			return( ld->ld_errno );
+		}
+
+		rc = ber_printf( ber, "{it{ssbts}", /* leave '}' for later */ 
+			++ld->ld_msgid, LDAP_REQ_MODDN,
+			dn, newrdn, deleteoldrdn,
+			LDAP_TAG_NEWSUPERIOR, newSuperior );
+
+	} else {
+		rc = ber_printf( ber, "{it{ssb}", /* leave '}' for later */ 
+			++ld->ld_msgid, LDAP_REQ_MODDN,
+			dn, newrdn, deleteoldrdn );
+	}
+
+	if ( rc < 0 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( ld->ld_errno );
+	}
+
+	/* Put Server Controls */
+	if( ldap_int_put_controls( ld, sctrls, ber ) != LDAP_SUCCESS ) {
+		ber_free( ber, 1 );
+		return ld->ld_errno;
+	}
+
+	/* close the '{' */
+	rc = ber_printf( ber, "}" );
+	if ( rc < 0 ) {
+		ld->ld_errno = LDAP_ENCODING_ERROR;
+		ber_free( ber, 1 );
+		return( ld->ld_errno );
+	}
+
+	/* send the message */
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_MODRDN, dn, ber );
+	
+	if( *msgidp < 0 ) {
+		return( ld->ld_errno );
+	}
+
+	return LDAP_SUCCESS;
+}
 
 
 /*
- * ldap_modrdn2 - initiate an ldap (and X.500) modifyRDN operation. Parameters:
+ * ldap_rename2 - initiate an ldap (and X.500) modifyDN operation. Parameters:
+ *	(LDAP V3 MODIFYDN REQUEST)
+ *	ld		LDAP descriptor
+ *	dn		DN of the object to modify
+ *	newrdn		RDN to give the object
+ *	deleteoldrdn	nonzero means to delete old rdn values from the entry
+ *	newSuperior	DN of the new parent if applicable
+ *
+ * ldap_rename2 uses a U-Mich Style API.  It returns the msgid.
+ */
+
+int
+ldap_rename2(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior )
+{
+	int msgid;
+	int rc;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_rename2\n", 0, 0, 0 );
+
+	rc = ldap_rename( ld, dn, newrdn, deleteoldrdn, newSuperior,
+		NULL, NULL, &msgid );
+
+	return rc == LDAP_SUCCESS ? msgid : -1;
+}
+
+
+/*
+ * ldap_modrdn2 - initiate an ldap modifyRDN operation. Parameters:
  *
  *	ld		LDAP descriptor
  *	dn		DN of the object to modify
@@ -111,85 +174,71 @@ ldap_rename2( LDAP *ld,
  *	msgid = ldap_modrdn( ld, dn, newrdn );
  */
 int
-ldap_modrdn2( LDAP *ld, char *dn, char *newrdn, int deleteoldrdn )
+ldap_modrdn2( LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn )
 {
-	BerElement	*ber;
+	return ldap_rename2( ld, dn, newrdn, deleteoldrdn, NULL );
+}
 
-	/*
-	 * A modify rdn request looks like this:
-	 *	ModifyRDNRequest ::= SEQUENCE {
-	 *		entry		DistinguishedName,
-	 *		newrdn		RelativeDistinguishedName,
-	 *		deleteoldrdn	BOOLEAN
-	 *	}
-	 */
+int
+ldap_modrdn( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *newrdn )
+{
+	return( ldap_rename2( ld, dn, newrdn, 1, NULL ) );
+}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_modrdn\n", 0, 0, 0 );
 
-	/* create a message to send */
-	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
-		return( -1 );
+int
+ldap_rename_s(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
+{
+	int rc;
+	int msgid;
+	LDAPMessage *res;
+
+	rc = ldap_rename( ld, dn, newrdn, deleteoldrdn,
+		newSuperior, sctrls, cctrls, &msgid );
+
+	if( rc != LDAP_SUCCESS ) {
+		return rc;
 	}
 
-	if ( ber_printf( ber, "{it{ssb}}", ++ld->ld_msgid, LDAP_REQ_MODRDN, dn,
-	    newrdn, deleteoldrdn ) == -1 ) {
-		ld->ld_errno = LDAP_ENCODING_ERROR;
-		ber_free( ber, 1 );
-		return( -1 );
+	rc = ldap_result( ld, msgid, 1, NULL, &res );
+
+	if( rc == -1 ) {
+		return ld->ld_errno;
 	}
 
-	/* send the message */
-	return ( ldap_send_initial_request( ld, LDAP_REQ_MODRDN, dn, ber ));
+	return ldap_result2error( ld, res, 1 );
 }
 
 int
-ldap_modrdn( LDAP *ld, char *dn, char *newrdn )
+ldap_rename2_s(
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior )
 {
-	return( ldap_modrdn2( ld, dn, newrdn, 1 ) );
+	return ldap_rename_s( ld, dn, newrdn, deleteoldrdn, newSuperior, NULL, NULL );
 }
 
 int
-ldap_rename2_s( LDAP *ld, char *dn, char *newrdn, int deleteoldrdn,
-		char *newSuperior )
+ldap_modrdn2_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *newrdn, int deleteoldrdn )
 {
-	int		msgid;
-	LDAPMessage	*res;
-
-
-	if ( (msgid = ldap_rename2( ld,
-				    dn,
-				    newrdn,
-				    deleteoldrdn,
-				    newSuperior ))
-	     == -1 )
-		return( ld->ld_errno );
-
-	if ( ldap_result( ld, msgid, 1, (struct timeval *) NULL, &res )
-	     == -1 )
-		return( ld->ld_errno );
-
-	return( ldap_result2error( ld, res, 1 ) );
-
+	return ldap_rename_s( ld, dn, newrdn, deleteoldrdn, NULL, NULL, NULL );
 }
 
 int
-ldap_modrdn2_s( LDAP *ld, char *dn, char *newrdn, int deleteoldrdn )
+ldap_modrdn_s( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *newrdn )
 {
-	int		msgid;
-	LDAPMessage	*res;
-
-	if ( (msgid = ldap_modrdn2( ld, dn, newrdn, deleteoldrdn )) == -1 )
-		return( ld->ld_errno );
-
-	if ( ldap_result( ld, msgid, 1, (struct timeval *) NULL, &res ) == -1 )
-		return( ld->ld_errno );
-
-	return( ldap_result2error( ld, res, 1 ) );
-}
-
-int
-ldap_modrdn_s( LDAP *ld, char *dn, char *newrdn )
-{
-	return( ldap_modrdn2_s( ld, dn, newrdn, 1 ) );
+	return ldap_rename_s( ld, dn, newrdn, 1, NULL, NULL, NULL );
 }
 

@@ -18,6 +18,12 @@
 /* --------------------------------------------------- */
 /* begin of MSVC5 specific entries */
 
+#define EXEEXT ".exe"
+
+#if defined( _DEBUG ) && !defined( LDAP_DEBUG )
+#define LDAP_DEBUG 1
+#endif
+
 /* MSVC5 doesn't define _STDC_ but supports _STDC_ features */
 #define __NEED_PROTOTYPES 1
 #define HAVE_STDARG 1
@@ -34,17 +40,21 @@
 
 #define	snprintf	_snprintf
 #define vsnprintf	_vsnprintf
-#define vsprintf	_vsprintf
-
+/* #define vsprintf	_vsprintf */
 
 /* define type for caddr_t */
 typedef char * caddr_t;
 
 #define LOG_DEBUG 0
 #define openlog( a, b )
+#define closelog()
 
 /* we have NT threads */
+#ifdef _MT
 #define HAVE_NT_THREADS 1
+#else
+#define NO_THREADS 1
+#endif
 
 /* we have spawnlp instead of fork/execlp */
 #define HAVE_SPAWNLP 1

@@ -23,7 +23,10 @@
 #include "ldap-int.h"
 
 char *
-ldap_friendly_name( char *filename, char *uname, LDAPFriendlyMap **map )
+ldap_friendly_name(
+	LDAP_CONST char *filename,
+	/* LDAP_CONST */ char *uname,
+	LDAPFriendlyMap **map )
 {
 	int	i, entries;
 	FILE	*fp;

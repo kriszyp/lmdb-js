@@ -80,8 +80,8 @@ int
 ldap_sort_entries(
     LDAP	*ld,
     LDAPMessage	**chain,
-    char	*attr,		/* NULL => sort by DN */
-    int		(*cmp) (const char *, const char *)
+    LDAP_CONST char	*attr,		/* NULL => sort by DN */
+    int		(*cmp) (LDAP_CONST  char *, LDAP_CONST char *)
 )
 {
 	int			i, count;

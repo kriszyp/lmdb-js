@@ -18,8 +18,11 @@
 
 LDAP_BEGIN_DECL
 
-LDAP_F int lutil_lockf LDAP_P(( int fd ));
-LDAP_F int lutil_unlockf LDAP_P(( int fd ));
+LDAP_F( int )
+lutil_lockf LDAP_P(( int fd ));
+
+LDAP_F( int )
+lutil_unlockf LDAP_P(( int fd ));
 
 LDAP_END_DECL
 

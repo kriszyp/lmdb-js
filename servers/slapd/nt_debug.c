@@ -1,12 +1,16 @@
-#include <stdio.h>
-#include <stdarg.h>
 
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/stdarg.h>
+#include <ac/string.h>
+
 #include "slap.h"
 
 static FILE *log_file;
 
-void Debug( int level, char *fmt, ... )
+void Debug( int level, const char *fmt, ... )
 {
 	char buffer[4096];
 	va_list vl;

@@ -4,7 +4,7 @@
 
 # TARGTYPE "Win32 (x86) Static Library" 0x0104
 
-CFG=libslapd - Win32 Debug
+CFG=libslapd - Win32 Single Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
@@ -13,12 +13,16 @@ CFG=libslapd - Win32 Debug
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "libslapd.mak" CFG="libslapd - Win32 Debug"
+!MESSAGE NMAKE /f "libslapd.mak" CFG="libslapd - Win32 Single Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
 !MESSAGE "libslapd - Win32 Release" (based on "Win32 (x86) Static Library")
 !MESSAGE "libslapd - Win32 Debug" (based on "Win32 (x86) Static Library")
+!MESSAGE "libslapd - Win32 Single Debug" (based on\
+ "Win32 (x86) Static Library")
+!MESSAGE "libslapd - Win32 Single Release" (based on\
+ "Win32 (x86) Static Library")
 !MESSAGE 
 
 # Begin Project
@@ -35,8 +39,8 @@ CPP=cl.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "libslapd"
-# PROP Intermediate_Dir "libslapd"
+# PROP Output_Dir "Release"
+# PROP Intermediate_Dir "Release\libslapd"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
@@ -56,11 +60,53 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "libslap0"
-# PROP Intermediate_Dir "libslap0"
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "Debug\libslapd"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LIB32=link.exe -lib
+# ADD BASE LIB32 /nologo
+# ADD LIB32 /nologo
+
+!ELSEIF  "$(CFG)" == "libslapd - Win32 Single Debug"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 1
+# PROP BASE Output_Dir "libslap1"
+# PROP BASE Intermediate_Dir "libslap1"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 1
+# PROP Output_Dir "SDebug"
+# PROP Intermediate_Dir "SDebug\libslapd"
+# PROP Target_Dir ""
+# ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
+BSC32=bscmake.exe
+# ADD BASE BSC32 /nologo
+# ADD BSC32 /nologo
+LIB32=link.exe -lib
+# ADD BASE LIB32 /nologo
+# ADD LIB32 /nologo
+
+!ELSEIF  "$(CFG)" == "libslapd - Win32 Single Release"
+
+# PROP BASE Use_MFC 0
+# PROP BASE Use_Debug_Libraries 0
+# PROP BASE Output_Dir "libslap2"
+# PROP BASE Intermediate_Dir "libslap2"
+# PROP BASE Target_Dir ""
+# PROP Use_MFC 0
+# PROP Use_Debug_Libraries 0
+# PROP Output_Dir "SRelease"
+# PROP Intermediate_Dir "SRelease\libslapd"
+# PROP Target_Dir ""
+# ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
+# ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
@@ -74,6 +120,8 @@ LIB32=link.exe -lib
 
 # Name "libslapd - Win32 Release"
 # Name "libslapd - Win32 Debug"
+# Name "libslapd - Win32 Single Debug"
+# Name "libslapd - Win32 Single Release"
 # Begin Source File
 
 SOURCE=.\abandon.c
@@ -188,6 +236,10 @@ SOURCE=.\phonetic.c
 # End Source File
 # Begin Source File
 
+SOURCE=".\proto-slap.h"
+# End Source File
+# Begin Source File
+
 SOURCE=.\repl.c
 # End Source File
 # Begin Source File
@@ -205,6 +257,10 @@ SOURCE=.\schemaparse.c
 # Begin Source File
 
 SOURCE=.\search.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\slap.h
 # End Source File
 # Begin Source File
 

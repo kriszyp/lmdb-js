@@ -35,7 +35,7 @@ main( int argc, char **argv )
 	char	*s, *p;
 #endif
 	int			fd, num;
-	Seqorset	*sos = NULLSEQORSET;
+	Seqorset	*sos = NULL;
 	BerElement	*ber;
 	Sockbuf		*sb;
 
@@ -58,24 +58,26 @@ main( int argc, char **argv )
 	fd = fileno(stdout);
 #endif /* MACOS */
 
-	sb = lber_pvt_sb_alloc_fd( fd );
+	sb = ber_sockbuf_alloc_fd( fd);
 
-	if ( (ber = ber_alloc()) == NULLBER ) {
+	if( sb == NULL ) {
+		perror( "lber_sockbuf_alloc_fd" );
+		exit( 1 );
+	}
+
+	if ( (ber = ber_alloc_t( LBER_USE_DER )) == NULL ) {
 		perror( "ber_alloc" );
 		exit( 1 );
 	}
 
+#ifndef notdef
 	num = 7;
 	if ( ber_printf( ber, "{ti}", 0x1f44, num ) == -1 ) {
 		fprintf( stderr, "ber_printf returns -1" );
 		exit( 1 );
 	}
 
-	if ( ber_flush( sb, ber, 1 ) == -1 ) {
-		perror( "ber_flush" );
-		exit( 1 );
-	}
-#ifdef notdef
+#else
 	for ( s = argv[1]; *s; s++ ) {
 		if ( fgets( buf, sizeof(buf), stdin ) == NULL )
 			break;
@@ -168,9 +170,13 @@ main( int argc, char **argv )
 		}
 		}
 	}
-
 #endif
 
-	lber_pvt_sb_free( sb );
+	if ( ber_flush( sb, ber, 1 ) == -1 ) {
+		perror( "ber_flush" );
+		exit( 1 );
+	}
+
+	ber_sockbuf_free( sb );
 	return( 0 );
 }

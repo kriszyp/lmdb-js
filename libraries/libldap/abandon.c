@@ -20,10 +20,43 @@
 
 #include "ldap-int.h"
 
-static int do_abandon LDAP_P(( LDAP *ld, int origid, int msgid ));
+static int do_abandon LDAP_P((
+	LDAP *ld,
+	int origid,
+	int msgid,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls));
 
 /*
- * ldap_abandon - perform an ldap (and X.500) abandon operation. Parameters:
+ * ldap_abandon_ext - perform an ldap extended abandon operation.
+ *
+ * Parameters:
+ *	ld			LDAP descriptor
+ *	msgid		The message id of the operation to abandon
+ *	scntrls		Server Controls
+ *	ccntrls		Client Controls
+ *
+ * ldap_abandon_ext returns a LDAP error code.
+ *		(LDAP_SUCCESS if everything went ok)
+ *
+ * Example:
+ *	ldap_abandon_ext( ld, msgid, scntrls, ccntrls );
+ */
+int
+ldap_abandon_ext(
+	LDAP *ld,
+	int msgid,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
+{
+	Debug( LDAP_DEBUG_TRACE, "ldap_abandon_ext %d\n", msgid, 0, 0 );
+
+	return do_abandon( ld, msgid, msgid, sctrls, cctrls );
+}
+
+
+/*
+ * ldap_abandon - perform an ldap abandon operation. Parameters:
  *
  *	ld		LDAP descriptor
  *	msgid		The message id of the operation to abandon
@@ -37,12 +70,18 @@ int
 ldap_abandon( LDAP *ld, int msgid )
 {
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon %d\n", msgid, 0, 0 );
-	return( do_abandon( ld, msgid, msgid ));
+	return do_abandon( ld, msgid, msgid, NULL, NULL ) == LDAP_SUCCESS
+		? 0 : -1;
 }
 
 
 static int
-do_abandon( LDAP *ld, int origid, int msgid )
+do_abandon(
+	LDAP *ld,
+	int origid,
+	int msgid,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls)
 {
 	BerElement	*ber;
 	int		i, err, sendabandon;
@@ -67,8 +106,9 @@ do_abandon( LDAP *ld, int origid, int msgid )
 		if ( lr->lr_msgid == msgid ) {	/* this message */
 			break;
 		}
-		if ( lr->lr_origid == msgid ) {	/* child:  abandon it */
-			do_abandon( ld, msgid, lr->lr_msgid );
+		if ( lr->lr_origid == msgid ) {/* child:  abandon it */
+			(void) do_abandon( ld,
+				msgid, lr->lr_msgid, sctrls, cctrls );
 		}
 	}
 
@@ -76,7 +116,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 		if ( origid == msgid && lr->lr_parent != NULL ) {
 			/* don't let caller abandon child requests! */
 			ld->ld_errno = LDAP_PARAM_ERROR;
-			return( -1 );
+			return( LDAP_PARAM_ERROR );
 		}
 		if ( lr->lr_status != LDAP_REQST_INPROGRESS ) {
 			/* no need to send abandon message */
@@ -87,7 +127,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 
 	if ( ldap_msgdelete( ld, msgid ) == 0 ) {
 		ld->ld_errno = LDAP_SUCCESS;
-		return( 0 );
+		return LDAP_SUCCESS;
 	}
 
 	err = 0;
@@ -96,34 +136,57 @@ do_abandon( LDAP *ld, int origid, int msgid )
 		if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 			err = -1;
 			ld->ld_errno = LDAP_NO_MEMORY;
+
 		} else {
 #ifdef LDAP_CONNECTIONLESS
 			if ( ld->ld_cldapnaddr > 0 ) {
-				err = ber_printf( ber, "{isti}",
+				err = ber_printf( ber, "{isti", /* leave open '}' */
 				    ++ld->ld_msgid, ld->ld_cldapdn,
 				    LDAP_REQ_ABANDON, msgid );
-			} else {
+			} else
 #endif /* LDAP_CONNECTIONLESS */
-				err = ber_printf( ber, "{iti}", ++ld->ld_msgid,
+			{
+				err = ber_printf( ber, "{iti",  /* leave open '}' */
+					++ld->ld_msgid,
 				    LDAP_REQ_ABANDON, msgid );
-#ifdef LDAP_CONNECTIONLESS
 			}
-#endif /* LDAP_CONNECTIONLESS */
+
+			if( err == -1 ) {
+				/* encoding error */
+				ld->ld_errno = LDAP_ENCODING_ERROR;
+
+			} else {
+				/* Put Server Controls */
+				if ( ldap_int_put_controls( ld, sctrls, ber )
+					!= LDAP_SUCCESS )
+				{
+					err = -1;
+
+				} else {
+					/* close '{' */
+					err = ber_printf( ber, "}" );
+
+					if( err == -1 ) {
+						/* encoding error */
+						ld->ld_errno = LDAP_ENCODING_ERROR;
+					}
+				}
+			}
 
 			if ( err == -1 ) {
-				ld->ld_errno = LDAP_ENCODING_ERROR;
 				ber_free( ber, 1 );
+
 			} else {
 				/* send the message */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 				if ( lr != NULL ) {
 					sb = lr->lr_conn->lconn_sb;
-				} else {
+				} else
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
+				{
 					sb = &ld->ld_sb;
 				}
-#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
-				sb = &ld->ld_sb;
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
+
 				if ( ber_flush( sb, ber, 1 ) != 0 ) {
 					ld->ld_errno = LDAP_SERVER_DOWN;
 					err = -1;
@@ -150,7 +213,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 		if ( (ld->ld_abandoned = (int *) malloc( 2 * sizeof(int) ))
 		    == NULL ) {
 			ld->ld_errno = LDAP_NO_MEMORY;
-			return( -1 );
+			return( ld->ld_errno );
 		}
 		i = 0;
 	} else {
@@ -159,7 +222,7 @@ do_abandon( LDAP *ld, int origid, int msgid )
 		if ( (ld->ld_abandoned = (int *) realloc( (char *)
 		    ld->ld_abandoned, (i + 2) * sizeof(int) )) == NULL ) {
 			ld->ld_errno = LDAP_NO_MEMORY;
-			return( -1 );
+			return( ld->ld_errno );
 		}
 	}
 	ld->ld_abandoned[i] = msgid;
@@ -168,5 +231,6 @@ do_abandon( LDAP *ld, int origid, int msgid )
 	if ( err != -1 ) {
 		ld->ld_errno = LDAP_SUCCESS;
 	}
-	return( err );
+
+	return( ld->ld_errno );
 }

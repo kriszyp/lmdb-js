@@ -15,13 +15,14 @@
 
 #include "portable.h"
 
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
 
+#include <ac/ctype.h>
 #include <ac/signal.h>
+#include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/time.h>
 #include <ac/unistd.h>
 
 #include <lber.h>
@@ -121,20 +122,15 @@ pw_encode (unsigned char *passwd, Salt * salt, unsigned int len)
 void
 make_salt (Salt * salt, unsigned int len)
 {
-	struct timeval  tv;
 
 	if (!salt)
 		return;
-
-	/* seed random number generator */
-	gettimeofday (&tv, NULL);
-	srand (tv.tv_usec);
 
 	salt->len = len;
 	salt->salt = (unsigned char *)malloc (len);
 
 	for (len = 0; len < salt->len; len++)
-		salt->salt[len] = (tv.tv_usec ^ rand ()) & 0xff;
+		salt->salt[len] = rand () & 0xff;
 }
 
 /*
@@ -561,12 +557,25 @@ main (int argc, char *argv[])
 	}
 
 	if ( debug ) {
-		lber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
+		ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &debug );
 		ldap_set_option( NULL, LDAP_OPT_DEBUG_LEVEL, &debug );
 	}
 
 #ifdef SIGPIPE
 	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+	/* seed random number generator */
+
+#ifdef HAVE_GETTIMEOFDAY
+	/* this is of questionable value
+	 * gettimeofday not provide much usec
+	 */
+	struct timeval  tv;
+	gettimeofday (&tv, NULL);
+	srand (tv.tv_usec);
+#else
+	/* The traditional seed */
+	srand((unsigned)time( NULL ));
 #endif
 
 	/* connect to server */

@@ -171,7 +171,7 @@ main( int argc, char **argv )
 		myname = strdup( myname + 1 );
 
 	if ( debug ) {
-		lber_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
+		ber_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
 		ldap_set_option(NULL, LDAP_OPT_DEBUG_LEVEL, &debug);
 	}
 

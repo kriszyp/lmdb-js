@@ -22,7 +22,7 @@
  * issue for now.
  */
 
-void lber_pvt_assert(char* file, int line, char* test)
+void ber_pvt_assert(char* file, int line, char* test)
 {
 	fprintf(stderr,
 		"Assertion failed: %s, file %s, line %d\n",

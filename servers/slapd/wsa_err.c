@@ -1,3 +1,5 @@
+#include "portable.h"
+
 #include <winsock2.h>
 
 #define __RETSTR( x ) case x: return #x;

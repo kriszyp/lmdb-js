@@ -108,7 +108,7 @@ ldap_err2string( int err )
 
 /* depreciated */
 void
-ldap_perror( LDAP *ld, char *s )
+ldap_perror( LDAP *ld, LDAP_CONST char *s )
 {
 	int	i;
 

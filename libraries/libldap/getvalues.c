@@ -22,7 +22,7 @@
 #include "ldap-int.h"
 
 char **
-ldap_get_values( LDAP *ld, LDAPMessage *entry, char *target )
+ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 {
 	BerElement	ber;
 	char		attr[LDAP_MAX_ATTR_LEN];
@@ -70,7 +70,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, char *target )
 }
 
 struct berval **
-ldap_get_values_len( LDAP *ld, LDAPMessage *entry, char *target )
+ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 {
 	BerElement	ber;
 	char		attr[LDAP_MAX_ATTR_LEN];

@@ -92,7 +92,7 @@ cldap_open( char *host, int port )
     ld->ld_cldapnaddr = 0;
     ld->ld_cldapaddrs = NULL;
 
-    if (lber_pvt_sb_set_io( &(ld->ld_sb), &lber_pvt_sb_io_udp, NULL )<0) {
+    if (ber_pvt_sb_set_io( &(ld->ld_sb), &ber_pvt_sb_io_udp, NULL )<0) {
        ldap_ld_free(ld, 1 );
        return NULL;
     }
@@ -164,7 +164,7 @@ cldap_open( char *host, int port )
 	DO_RETURN( NULL );
     }
 
-    lber_pvt_sb_udp_set_dst( &ld->ld_sb, ld->ld_cldapaddrs[0] );
+    ber_pvt_sb_udp_set_dst( &ld->ld_sb, ld->ld_cldapaddrs[0] );
 
     cldap_setretryinfo( ld, 0, 0 );
 
@@ -219,7 +219,7 @@ cldap_search_s( LDAP *ld, char *base, int scope, char *filter, char **attrs,
 		--ld->ld_msgid;	/* use same id as before */
 	}
 	    
-	lber_pvt_sb_udp_set_dst( &(ld->ld_sb), 
+	ber_pvt_sb_udp_set_dst( &(ld->ld_sb), 
 			ld->ld_cldapaddrs[ cri.cri_useaddr ] );
 
 	Debug( LDAP_DEBUG_TRACE, "cldap_search_s try %d (to %s)\n",
@@ -358,7 +358,7 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	     * got a result: determine which server it came from
 	     * decode into ldap message chain
 	     */
-	    src = (struct sockaddr_in *) lber_pvt_sb_udp_get_src( sb );
+	    src = (struct sockaddr_in *) ber_pvt_sb_udp_get_src( sb );
 		
 	    for ( fromaddr = 0; fromaddr < ld->ld_cldapnaddr; ++fromaddr ) {
 		    if ( memcmp( &((struct sockaddr_in *)
@@ -394,7 +394,7 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	    if ( i == fromaddr ) {
 		continue;
 	    }
-	    lber_pvt_sb_udp_set_dst( sb, ld->ld_cldapaddrs[i] );
+	    ber_pvt_sb_udp_set_dst( sb, ld->ld_cldapaddrs[i] );
 
 	    Debug( LDAP_DEBUG_TRACE, "cldap_result abandoning id %d (to %s)\n",
 		msgid, inet_ntoa( ((struct sockaddr_in *)
@@ -497,7 +497,7 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
 	if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
 	    fprintf( stderr, "cldap_parsemsg add message id %d type %d:\n",
 		    ldm->lm_msgid, ldm->lm_msgtype  );
-	    lber_log_dump( LDAP_DEBUG_BER, ldap_debug, ldm->lm_ber, 1 );
+	    ber_log_dump( LDAP_DEBUG_BER, ldap_debug, ldm->lm_ber, 1 );
 	}
 #endif /* LDAP_DEBUG */
 

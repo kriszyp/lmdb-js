@@ -51,8 +51,11 @@ BerRead( Sockbuf *sb, char *buf, long len )
 	int	c;
 	long	nread = 0;
 
+	assert( sb != NULL );
+	assert( buf != NULL );
+
 	while ( len > 0 ) {
-		if ( (c = lber_pvt_sb_read( sb, buf, len )) <= 0 ) {
+		if ( (c = ber_pvt_sb_read( sb, buf, len )) <= 0 ) {
 			if ( nread > 0 )
 				break;
 			return( c );
@@ -70,6 +73,9 @@ ber_read( BerElement *ber, char *buf, unsigned long len )
 {
 	unsigned long	actuallen, nleft;
 
+	assert( ber != NULL );
+	assert( buf != NULL );
+
 	nleft = ber->ber_end - ber->ber_ptr;
 	actuallen = nleft < len ? nleft : len;
 
@@ -81,8 +87,15 @@ ber_read( BerElement *ber, char *buf, unsigned long len )
 }
 
 long
-ber_write( BerElement *ber, char *buf, unsigned long len, int nosos )
+ber_write(
+	BerElement *ber,
+	LDAP_CONST char *buf,
+	unsigned long len,
+	int nosos )
 {
+	assert( ber != NULL );
+	assert( buf != NULL );
+
 	if ( nosos || ber->ber_sos == NULL ) {
 		if ( ber->ber_ptr + len > ber->ber_end ) {
 			if ( ber_realloc( ber, len ) != 0 )
@@ -110,6 +123,9 @@ ber_realloc( BerElement *ber, unsigned long len )
 	Seqorset	*s;
 	long		off;
 	char		*oldbuf;
+
+	assert( ber != NULL );
+	assert( len > 0 );
 
 	have = (ber->ber_end - ber->ber_buf) / EXBUFSIZ;
 	need = (len < EXBUFSIZ ? 1 : (len + (EXBUFSIZ - 1)) / EXBUFSIZ);
@@ -150,6 +166,8 @@ ber_realloc( BerElement *ber, unsigned long len )
 void
 ber_free( BerElement *ber, int freebuf )
 {
+	assert( ber != NULL );
+
 	if ( freebuf && ber->ber_buf != NULL )
 		free( ber->ber_buf );
 	ber->ber_buf = NULL;
@@ -161,17 +179,20 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 {
 	long	nwritten, towrite, rc;	
 
+	assert( sb != NULL );
+	assert( ber != NULL );
+
 	if ( ber->ber_rwptr == NULL ) {
 		ber->ber_rwptr = ber->ber_buf;
 	}
 	towrite = ber->ber_ptr - ber->ber_rwptr;
 
 	if ( sb->sb_debug ) {
-		lber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
+		ber_log_printf( LDAP_DEBUG_ANY, sb->sb_debug,
 			"ber_flush: %ld bytes to sd %ld%s\n", towrite,
 		    (long) sb->sb_sd, ber->ber_rwptr != ber->ber_buf ? " (re-flush)"
 		    : "" );
-		lber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
+		ber_log_bprint( LDAP_DEBUG_PACKETS, sb->sb_debug,
 			ber->ber_rwptr, towrite );
 	}
 
@@ -186,7 +207,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	
 	nwritten = 0;
 	do {
-		rc = lber_pvt_sb_write( sb, ber->ber_rwptr, towrite );
+		rc = ber_pvt_sb_write( sb, ber->ber_rwptr, towrite );
 		if (rc<=0) {
 			return -1;
 		}
@@ -206,11 +227,14 @@ ber_alloc_t( int options )
 {
 	BerElement	*ber;
 
-	if ( (ber = (BerElement *) calloc( 1, sizeof(BerElement) )) == NULLBER )
+	ber = (BerElement *) calloc( 1, sizeof(BerElement) );
+
+	if ( ber == NULLBER )
 		return( NULLBER );
+
 	ber->ber_tag = LBER_DEFAULT;
 	ber->ber_options = options;
-	ber->ber_debug = lber_int_debug;
+	ber->ber_debug = ber_int_debug;
 
 	return( ber );
 }
@@ -228,12 +252,14 @@ der_alloc( void )
 }
 
 BerElement *
-ber_dup( BerElement *ber )
+ber_dup( LDAP_CONST BerElement *ber )
 {
 	BerElement	*new;
 
-	if ( (new = ber_alloc()) == NULLBER )
-		return( NULLBER );
+	assert( ber != NULL );
+
+	if ( (new = ber_alloc()) == NULL )
+		return( NULL );
 
 	*new = *ber;
 
@@ -245,6 +271,8 @@ ber_dup( BerElement *ber )
 void
 ber_init_w_nullc( BerElement *ber, int options )
 {
+	assert( ber != NULL );
+
 	(void) memset( (char *)ber, '\0', sizeof( BerElement ));
 	ber->ber_tag = LBER_DEFAULT;
 	ber->ber_options = (char) options;
@@ -258,6 +286,8 @@ BerElement *
 ber_init( struct berval *bv )
 {
 	BerElement *ber;
+
+	assert( bv != NULL );
 
 	if ( bv == NULL ) {
 		return NULL;
@@ -288,11 +318,13 @@ ber_init( struct berval *bv )
 ** the returned berval.
 */
 int ber_flatten(
-	BerElement *ber,
+	LDAP_CONST BerElement *ber,
 	struct berval **bvPtr)
 {
 	struct berval *bv;
  
+	assert( bvPtr != NULL );
+
 	if(bvPtr == NULL) {
 		return( -1 );
 	}
@@ -327,6 +359,8 @@ int ber_flatten(
 void
 ber_reset( BerElement *ber, int was_writing )
 {
+	assert( ber != NULL );
+
 	if ( was_writing ) {
 		ber->ber_end = ber->ber_ptr;
 		ber->ber_ptr = ber->ber_buf;
@@ -347,7 +381,9 @@ get_tag( Sockbuf *sb )
 	char		*tagp;
 	unsigned int	i;
 
-	if ( lber_pvt_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
+	assert( sb != NULL );
+
+	if ( ber_pvt_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
 
 	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
@@ -356,7 +392,7 @@ get_tag( Sockbuf *sb )
 	tagp = (char *) &tag;
 	tagp[0] = xbyte;
 	for ( i = 1; i < sizeof(long); i++ ) {
-		if ( lber_pvt_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
+		if ( ber_pvt_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
 			return( LBER_DEFAULT );
 
 		tagp[i] = xbyte;
@@ -375,7 +411,7 @@ get_tag( Sockbuf *sb )
 #endif
 
 /*
- * A rewrite of get_get_next that can safely be called multiple times 
+ * A rewrite of ber_get_next that can safely be called multiple times 
  * for the same packet. It will simply continue were it stopped until
  * a full packet is read.
  */
@@ -383,8 +419,12 @@ get_tag( Sockbuf *sb )
 unsigned long
 ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 {
+	assert( sb != NULL );
+	assert( len != NULL );
+	assert( ber != NULL );
+
 	if ( ber->ber_debug ) {
-		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+		ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 			"ber_get_next\n" );
 	}
 	
@@ -411,7 +451,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	
 	if (PTR_IN_VAR(ber->ber_rwptr, ber->ber_tag)) {
 		if (ber->ber_rwptr == (char *) &ber->ber_tag) {
-			if (lber_pvt_sb_read( sb, ber->ber_rwptr, 1)<=0)
+			if (ber_pvt_sb_read( sb, ber->ber_rwptr, 1)<=0)
 				return LBER_DEFAULT;
 			if ((ber->ber_rwptr[0] & LBER_BIG_TAG_MASK)
 				!= LBER_BIG_TAG_MASK) {
@@ -423,7 +463,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 		}
 		do {
 			/* reading the tag... */
-			if (lber_pvt_sb_read( sb, ber->ber_rwptr, 1)<=0)
+			if (ber_pvt_sb_read( sb, ber->ber_rwptr, 1)<=0)
 				return LBER_DEFAULT;
 			if (! (ber->ber_rwptr[0] & LBER_MORE_TAG_MASK) ) {
 				ber->ber_tag>>=sizeof(ber->ber_tag) -
@@ -438,7 +478,7 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 get_lenbyte:
 	if (ber->ber_rwptr==(char *) &ber->ber_usertag) {
 		unsigned char c;
-		if (lber_pvt_sb_read( sb, (char *) &c, 1)<=0)
+		if (ber_pvt_sb_read( sb, (char *) &c, 1)<=0)
 			return LBER_DEFAULT;
 		if (c & 0x80) {
 			int len = c & 0x7f;
@@ -460,7 +500,7 @@ get_lenbyte:
 		to_go = (char *) &ber->ber_len + sizeof( ber->ber_len ) -
 			ber->ber_rwptr;
 		assert( to_go > 0 );
-		res = lber_pvt_sb_read( sb, ber->ber_rwptr, to_go );
+		res = ber_pvt_sb_read( sb, ber->ber_rwptr, to_go );
 		if (res <=0)
 			return LBER_DEFAULT;
 		ber->ber_rwptr += res;
@@ -498,7 +538,7 @@ fill_buffer:
 		to_go = ber->ber_end - ber->ber_rwptr;
 		assert( to_go > 0 );
 		
-		res = lber_pvt_sb_read( sb, ber->ber_rwptr, to_go );
+		res = ber_pvt_sb_read( sb, ber->ber_rwptr, to_go );
 		if (res<=0)
 			return LBER_DEFAULT;
 		ber->ber_rwptr+=res;
@@ -515,10 +555,10 @@ fill_buffer:
 		ber->ber_rwptr = NULL;
 		*len = ber->ber_len;
 		if ( ber->ber_debug ) {
-			lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+			ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 				"ber_get_next: tag 0x%lx len %ld contents:\n",
 				ber->ber_tag, ber->ber_len );
-			lber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
+			ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
 		}
 		return (ber->ber_tag);
 	}
@@ -528,6 +568,8 @@ fill_buffer:
 
 void	ber_clear( BerElement *ber, int freebuf )
 {
+	assert( ber != NULL );
+
 	if ((freebuf) && (ber->ber_buf))
 		free( ber->ber_buf );
 	ber->ber_buf = NULL;
@@ -535,34 +577,3 @@ void	ber_clear( BerElement *ber, int freebuf )
 	ber->ber_end = NULL;
 }
 
-Sockbuf *lber_pvt_sb_alloc( void )
-{
-	Sockbuf *sb = calloc(1, sizeof(Sockbuf));
-	lber_pvt_sb_init( sb );
-	return sb;
-}
-
-Sockbuf *lber_pvt_sb_alloc_fd( int fd )
-{
-	Sockbuf *sb = lber_pvt_sb_alloc();
-	lber_pvt_sb_set_desc( sb, fd );
-   	lber_pvt_sb_set_io( sb, &lber_pvt_sb_io_tcp, NULL );
-	return sb;
-}
-
-void lber_pvt_sb_free( Sockbuf *sb )
-{
-	if(sb == NULL) return;
-	lber_pvt_sb_destroy( sb );
-	free(sb);
-}
-
-int lber_pvt_sb_get_option( Sockbuf *sb, int opt, void *outvalue )
-{
-	return LBER_OPT_ERROR;
-}
-
-int lber_pvt_sb_set_option( Sockbuf *sb, int opt, void *invalue )
-{
-	return LBER_OPT_ERROR;
-}

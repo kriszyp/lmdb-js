@@ -515,10 +515,10 @@ do_queries(
 		conn_init();
 	}
 
-   	lber_pvt_sb_init( &sb );
-   	lber_pvt_sb_set_desc( &sb, clientsock );
-	lber_pvt_sb_set_io( &sb, (udp) ? &lber_pvt_sb_io_udp :
-					&lber_pvt_sb_io_tcp, NULL );
+   	ber_pvt_sb_init( &sb );
+   	ber_pvt_sb_set_desc( &sb, clientsock );
+	ber_pvt_sb_set_io( &sb, (udp) ? &ber_pvt_sb_io_udp :
+					&ber_pvt_sb_io_tcp, NULL );
 	timeout.tv_sec = idletime;
 	timeout.tv_usec = 0;
 	for ( ;; ) {
@@ -547,7 +547,7 @@ do_queries(
 		 * already waiting for us on the client sock.
 		 */
 
-		if ( ! lber_pvt_sb_data_ready( &sb ) ) {
+		if ( ! ber_pvt_sb_data_ready( &sb ) ) {
 			if ( (rc = select( dtblsize, &readfds, 0, 0,
 			    udp ? 0 : &timeout )) < 1 ) {
 #ifdef LDAP_DEBUG
@@ -573,7 +573,7 @@ do_queries(
 			}
 		}
 
-		if ( lber_pvt_sb_data_ready( &sb ) ||
+		if ( ber_pvt_sb_data_ready( &sb ) ||
 		    FD_ISSET( clientsock, &readfds ) ) {
 			client_request( &sb, conns, udp );
 		} else {

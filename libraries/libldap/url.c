@@ -35,60 +35,65 @@
 
 
 /* local functions */
-static int skip_url_prefix LDAP_P(( char **urlp, int *enclosedp ));
+static const char* skip_url_prefix LDAP_P(( const char *url, int *enclosedp ));
 static void hex_unescape LDAP_P(( char *s ));
 static int unhex( char c );
 
 
 int
-ldap_is_ldap_url( char *url )
+ldap_is_ldap_url( LDAP_CONST char *url )
 {
 	int	enclosed;
 
-	return( url != NULL && skip_url_prefix( &url, &enclosed ));
+	return( url != NULL && skip_url_prefix( url, &enclosed ) != NULL );
 }
 
 
-static int
-skip_url_prefix( char **urlp, int *enclosedp )
+static const char*
+skip_url_prefix( const char *url, int *enclosedp )
 {
 /*
  * return non-zero if this looks like a LDAP URL; zero if not
  * if non-zero returned, *urlp will be moved past "ldap://" part of URL
  */
-	if ( *urlp == NULL ) {
-		return( 0 );
+	char* p;
+
+	if ( url == NULL ) {
+		return( NULL );
 	}
 
+	p = (char *) url;
+
 	/* skip leading '<' (if any) */
-	if ( **urlp == '<' ) {
+	if ( *p == '<' ) {
 		*enclosedp = 1;
-		++*urlp;
+		++p;
 	} else {
 		*enclosedp = 0;
 	}
 
 	/* skip leading "URL:" (if any) */
-	if ( strlen( *urlp ) >= LDAP_URL_URLCOLON_LEN && strncasecmp(
-	    *urlp, LDAP_URL_URLCOLON, LDAP_URL_URLCOLON_LEN ) == 0 ) {
-		*urlp += LDAP_URL_URLCOLON_LEN;
+	if ( strlen( p ) >= LDAP_URL_URLCOLON_LEN
+		&& strncasecmp( p, LDAP_URL_URLCOLON, LDAP_URL_URLCOLON_LEN ) == 0 )
+	{
+		p += LDAP_URL_URLCOLON_LEN;
 	}
 
 	/* check for missing "ldap://" prefix */
-	if ( strlen( *urlp ) < LDAP_URL_PREFIX_LEN ||
-	    strncasecmp( *urlp, LDAP_URL_PREFIX, LDAP_URL_PREFIX_LEN ) != 0 ) {
-		return( 0 );
+	if ( strlen( p ) < LDAP_URL_PREFIX_LEN ||
+	    strncasecmp( p, LDAP_URL_PREFIX, LDAP_URL_PREFIX_LEN ) != 0 ) {
+		return( NULL );
 	}
 
 	/* skip over "ldap://" prefix and return success */
-	*urlp += LDAP_URL_PREFIX_LEN;
-	return( 1 );
+	p += LDAP_URL_PREFIX_LEN;
+	return( p );
 }
 
 
 
 int
-ldap_url_parse( char *url, LDAPURLDesc **ludpp )
+ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 {
 /*
  *  Pick apart the pieces of an LDAP URL.
@@ -97,26 +102,32 @@ ldap_url_parse( char *url, LDAPURLDesc **ludpp )
 	LDAPURLDesc	*ludp;
 	char		*attrs, *p, *q;
 	int		enclosed, i, nattrs;
+	const char *url_tmp;
+	char *url;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_url_parse(%s)\n", url, 0, 0 );
 
 	*ludpp = NULL;	/* pessimistic */
 
-	if ( !skip_url_prefix( &url, &enclosed )) {
+	url_tmp = skip_url_prefix( url_in, &enclosed );
+
+	if ( url_tmp == NULL ) {
 		return( LDAP_URL_ERR_NOTLDAP );
+	}
+
+	/* make working copy of the remainder of the URL */
+	if (( url = strdup( url_tmp )) == NULL ) {
+		return( LDAP_URL_ERR_MEM );
 	}
 
 	/* allocate return struct */
 	if (( ludp = (LDAPURLDesc *)calloc( 1, sizeof( LDAPURLDesc )))
-	    == NULLLDAPURLDESC ) {
+	    == NULLLDAPURLDESC )
+	{
+		free( url );
 		return( LDAP_URL_ERR_MEM );
 	}
 
-	/* make working copy of the remainder of the URL */
-	if (( url = strdup( url )) == NULL ) {
-		ldap_free_urldesc( ludp );
-		return( LDAP_URL_ERR_MEM );
-	}
 
 	if ( enclosed && *((p = url + strlen( url ) - 1)) == '>' ) {
 		*p = '\0';
@@ -239,7 +250,7 @@ ldap_free_urldesc( LDAPURLDesc *ludp )
 
 
 int
-ldap_url_search( LDAP *ld, char *url, int attrsonly )
+ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 {
 	int		err;
 	LDAPURLDesc	*ludp;
@@ -254,7 +265,7 @@ ldap_url_search( LDAP *ld, char *url, int attrsonly )
 	}
 
 	if (( ber = ldap_build_search_req( ld, ludp->lud_dn, ludp->lud_scope,
-	    ludp->lud_filter, ludp->lud_attrs, attrsonly )) == NULLBER ) {
+	    ludp->lud_filter, ludp->lud_attrs, attrsonly, NULL, NULL )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -274,7 +285,7 @@ ldap_url_search( LDAP *ld, char *url, int attrsonly )
 			if ( ludp->lud_port == 0 ) {
 				srv->lsrv_port = openldap_ldap_global_options.ldo_defport;
 			} else {
-				 srv->lsrv_port = ludp->lud_port;
+				srv->lsrv_port = ludp->lud_port;
 			}
 		}
 #else /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
@@ -302,7 +313,7 @@ ldap_url_search( LDAP *ld, char *url, int attrsonly )
 
 
 int
-ldap_url_search_st( LDAP *ld, char *url, int attrsonly,
+ldap_url_search_st( LDAP *ld, LDAP_CONST char *url, int attrsonly,
 	struct timeval *timeout, LDAPMessage **res )
 {
 	int	msgid;
@@ -326,7 +337,8 @@ ldap_url_search_st( LDAP *ld, char *url, int attrsonly,
 
 
 int
-ldap_url_search_s( LDAP *ld, char *url, int attrsonly, LDAPMessage **res )
+ldap_url_search_s(
+	LDAP *ld, LDAP_CONST char *url, int attrsonly, LDAPMessage **res )
 {
 	int	msgid;
 

@@ -38,6 +38,8 @@ ber_get_tag( BerElement *ber )
 	char		*tagp;
 	unsigned int	i;
 
+	assert( ber != NULL );
+
 	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
 
@@ -71,6 +73,9 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 	unsigned char	lc;
 	int		noctets, diff;
 	unsigned long	netlen;
+
+	assert( ber != NULL );
+	assert( len != NULL );
 
 	/*
 	 * Any ber element looks like this: tag length contents.
@@ -116,15 +121,20 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 }
 
 unsigned long
-ber_peek_tag( BerElement *ber, unsigned long *len )
+ber_peek_tag(
+	LDAP_CONST BerElement *ber_in, /* not const per c-api-02 */
+	unsigned long *len )
 {
-	char		*save;
 	unsigned long	tag;
+	BerElement *ber = ber_dup( ber_in );
 
-	save = ber->ber_ptr;
+	if( ber == NULL ) {
+		return LBER_ERROR;
+	}
+
 	tag = ber_skip_tag( ber, len );
-	ber->ber_ptr = save;
 
+	ber_free( ber, 1 );
 	return( tag );
 }
 
@@ -134,6 +144,9 @@ ber_getnint( BerElement *ber, long *num, int len )
 	int	diff, sign, i;
 	long	netnum;
 	char    *p;
+
+	assert( ber != NULL );
+	assert( num != NULL );
 
 	/*
 	 * The tag and length have already been stripped off.  We should
@@ -396,7 +409,9 @@ ber_next_element( BerElement *ber, unsigned long *len, char *last )
 unsigned long
 ber_scanf
 #if HAVE_STDARG
-	( BerElement *ber, char *fmt, ... )
+	( BerElement *ber,
+	LDAP_CONST char *fmt,
+	... )
 #else
 	( va_alist )
 va_dcl
@@ -407,13 +422,15 @@ va_dcl
 	BerElement	*ber;
 	char		*fmt;
 #endif
-	char		*fmt_reset;
+	LDAP_CONST char		*fmt_reset;
 	char		*last;
 	char		*s, **ss, ***sss;
 	struct berval 	***bv, **bvp, *bval;
 	int		*i, j;
 	long		*l;
 	unsigned long	rc, tag, len;
+
+	assert( ber != NULL );
 
 #ifdef HAVE_STDARG
 	va_start( ap, fmt );
@@ -422,18 +439,32 @@ va_dcl
 	ber = va_arg( ap, BerElement * );
 	fmt = va_arg( ap, char * );
 #endif
+
+	assert( ber != NULL );
+	assert( fmt != NULL );
+
 	fmt_reset = fmt;
 
 	if ( ber->ber_debug ) {
-		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+		ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 			"ber_scanf fmt (%s) ber:\n", fmt );
-		lber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
+		ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );
 	}
 
 	for ( rc = 0; *fmt && rc != LBER_DEFAULT; fmt++ ) {
 		/* When this is modified, remember to update
 		 * the error-cleanup code below accordingly. */
 		switch ( *fmt ) {
+		case '!': { /* Hook */
+				BERDecodeCallback *f;
+				void *p;
+
+				f = va_arg( ap, BERDecodeCallback * );
+				p = va_arg( ap, void * );
+
+				rc = (*f)( ber, p, 0 );
+			} break;
+
 		case 'a':	/* octet string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
 			rc = ber_get_stringa( ber, ss );
@@ -576,7 +607,7 @@ va_dcl
 
 		default:
 			if( ber->ber_debug ) {
-				lber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
+				ber_log_printf( LDAP_DEBUG_ANY, ber->ber_debug,
 					"ber_scanf: unknown fmt %c\n", *fmt );
 			}
 			rc = LBER_DEFAULT;
@@ -601,6 +632,16 @@ va_dcl
 
 	    for ( ; fmt_reset < fmt; fmt_reset++ ) {
 		switch ( *fmt_reset ) {
+		case '!': { /* Hook */
+				BERDecodeCallback *f;
+				void *p;
+
+				f = va_arg( ap, BERDecodeCallback * );
+				p = va_arg( ap, void * );
+
+				(void) (*f)( ber, p, 1 );
+			} break;
+
 		case 'a':	/* octet string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
 			if ( *ss ) {
@@ -689,9 +730,8 @@ va_dcl
 void
 ber_bvfree( struct berval *bv )
 {
-#ifdef LBER_ASSERT
 	assert(bv != NULL);			/* bv damn better point to something */
-#endif
+
 	if ( bv->bv_val != NULL )
 		free( bv->bv_val );
 	free( (char *) bv );
@@ -702,18 +742,24 @@ ber_bvecfree( struct berval **bv )
 {
 	int	i;
 
-#ifdef LBER_ASSERT
 	assert(bv != NULL);			/* bv damn better point to something */
-#endif
+
 	for ( i = 0; bv[i] != NULL; i++ )
 		ber_bvfree( bv[i] );
 	free( (char *) bv );
 }
 
 struct berval *
-ber_bvdup( struct berval *bv )
+ber_bvdup(
+	LDAP_CONST struct berval *bv )
 {
 	struct berval	*new;
+
+	assert( bv != NULL );
+
+	if( bv == NULL ) {
+		return NULL;
+	}
 
 	if ( (new = (struct berval *) malloc( sizeof(struct berval) ))
 	    == NULL ) {
@@ -744,6 +790,8 @@ void
 ber_set_string_translators( BerElement *ber, BERTranslateProc encode_proc,
 	BERTranslateProc decode_proc )
 {
+	assert( ber != NULL );
+
     ber->ber_encode_translate_proc = encode_proc;
     ber->ber_decode_translate_proc = decode_proc;
 }

@@ -27,12 +27,15 @@
 
 #include "ldap-int.h"
 
-static int break_into_words LDAP_P(( char *str, char *delims, char ***wordsp ));
+static int break_into_words LDAP_P((
+	/* LDAP_CONST */ char *str,
+	LDAP_CONST char *delims,
+	char ***wordsp ));
 
 #define FILT_MAX_LINE_LEN	1024
 
 LDAPFiltDesc *
-ldap_init_getfilter( char *fname )
+ldap_init_getfilter( LDAP_CONST char *fname )
 {
     FILE		*fp;
     char		*buf;
@@ -205,7 +208,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 
 
 void
-ldap_setfilteraffixes( LDAPFiltDesc *lfdp, char *prefix, char *suffix )
+ldap_setfilteraffixes( LDAPFiltDesc *lfdp, LDAP_CONST char *prefix, LDAP_CONST char *suffix )
 {
     if ( lfdp->lfd_filtprefix != NULL ) {
 	free( lfdp->lfd_filtprefix );
@@ -220,7 +223,10 @@ ldap_setfilteraffixes( LDAPFiltDesc *lfdp, char *prefix, char *suffix )
 
 
 LDAPFiltInfo *
-ldap_getfirstfilter( LDAPFiltDesc *lfdp, char *tagpat, char *value )
+ldap_getfirstfilter(
+	LDAPFiltDesc *lfdp,
+	/* LDAP_CONST */ char *tagpat,
+	/* LDAP_CONST */ char *value )
 {
     LDAPFiltList	*flp;
 	int				rc;
@@ -305,10 +311,18 @@ ldap_getnextfilter( LDAPFiltDesc *lfdp )
 
 
 void
-ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
-	char *prefix, char *suffix, char *attr, char *value, char **valwords )
+ldap_build_filter(
+	char *filtbuf,
+	unsigned long buflen,
+	LDAP_CONST char *pattern,
+	LDAP_CONST char *prefix,
+	LDAP_CONST char *suffix,
+	LDAP_CONST char *attr,
+	LDAP_CONST char *value,
+	char **valwords )
 {
-	char	*p, *f;
+	const char *p;
+	char *f;
 	size_t	slen;
 	int	i, wordcount, wordnum, endwordnum;
 	
@@ -401,7 +415,7 @@ ldap_build_filter( char *filtbuf, unsigned long buflen, char *pattern,
 
 
 static int
-break_into_words( char *str, char *delims, char ***wordsp )
+break_into_words( /* LDAP_CONST */ char *str, LDAP_CONST char *delims, char ***wordsp )
 {
     char	*word, **words;
     int		count;
