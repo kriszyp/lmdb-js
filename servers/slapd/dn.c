@@ -192,8 +192,8 @@ AVA_Sort( LDAPRDN *rdn, int iAVA )
 			}
 
 			ava = rdn[ 0 ][ i ];
-			a = strcmp( ava_in->la_value.bv_val, 
-					ava->la_value.bv_val );
+			a = strcmp( ava_in->la_attr.bv_val, 
+					ava->la_attr.bv_val );
 		}
 
 		/*
