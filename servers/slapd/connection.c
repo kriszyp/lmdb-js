@@ -156,13 +156,15 @@ static Connection* connection_get( int s )
 #ifndef HAVE_WINSOCK
 	c = &connections[s];
 
-	assert( c->c_struct_state == SLAP_C_USED );
+	assert( c->c_struct_state != SLAP_C_UNINITIALIZED );
 
-	ldap_pvt_thread_mutex_lock( &c->c_mutex );
+	if( c->c_struct_state != SLAP_C_USED ) {
+		/* connection must have been closed */
+		assert( c->c_conn_state == SLAP_C_INVALID );
+		assert( !ber_pvt_sb_in_use( c->c_sb ) );
 
-	assert( c->c_struct_state == SLAP_C_USED );
-	assert( c->c_conn_state != SLAP_C_INVALID );
-	assert( ber_pvt_sb_in_use( c->c_sb ) );
+		return NULL;
+	}
 
 #else
 	c = NULL;
@@ -188,7 +190,6 @@ static Connection* connection_get( int s )
 
 			if( ber_pvt_sb_get_desc( connections[i].c_sb ) == s ) {
 				c = &connections[i];
-				ldap_pvt_thread_mutex_lock( &c->c_mutex );
 				break;
 			}
 		}
@@ -196,11 +197,18 @@ static Connection* connection_get( int s )
 #endif
 
 	if( c != NULL ) {
+		ldap_pvt_thread_mutex_lock( &c->c_mutex );
+
 		/* we do this AFTER locking to aid in debugging */
 		Debug( LDAP_DEBUG_TRACE,
 			"connection_get(%d): got connid=%ld\n",
 			s, c->c_connid, 0 );
+
+		assert( c->c_struct_state == SLAP_C_USED );
+		assert( c->c_conn_state != SLAP_C_INVALID );
+		assert( ber_pvt_sb_in_use( c->c_sb ) );
 	}
+
 	return c;
 }
 
