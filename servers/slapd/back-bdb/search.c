@@ -395,6 +395,8 @@ static ID idl_first( ID *ids, ID *cursor )
 	}
 
 	if ( BDB_IS_ALLIDS( ids ) ) {
+		/* XXYYZ: quick hack for testing */
+		ids[1] = 100;
 		return *cursor;
 	}
 
@@ -411,7 +413,7 @@ static ID idl_first( ID *ids, ID *cursor )
 static ID idl_next( ID *ids, ID *cursor )
 {
 	if ( BDB_IS_ALLIDS( ids ) ) {
-		if( ++(*cursor) < ids[1] ) {
+		if( ++(*cursor) <= ids[1] ) {
 			return *cursor;
 		}
 		return NOID;
