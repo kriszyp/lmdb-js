@@ -166,9 +166,9 @@ chkResponseList(
 			}
 
 			for ( tmp = lm; tmp != NULL; tmp = tmp->lm_chain ) {
-				if ( lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY
-				    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE
-					&& lm->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL )
+				if ( tmp->lm_msgtype != LDAP_RES_SEARCH_ENTRY
+				    && tmp->lm_msgtype != LDAP_RES_SEARCH_REFERENCE
+					&& tmp->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL )
 				{
 					break;
 				}
@@ -211,6 +211,7 @@ chkResponseList(
 #endif
     return lm;
 }
+
 static int
 wait4msg(
 	LDAP *ld,
