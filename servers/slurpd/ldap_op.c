@@ -84,47 +84,77 @@ do_ldap(
 		case T_ADDCT:
 			lderr = op_ldap_add( ri, re, errmsg );
 			if ( lderr != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( " ldap_op", LDAP_LEVEL_ERR, "do_ldap: "
+					"Error: ldap_add_s failed adding \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ), re->re_dn ));
+#else
 				Debug( LDAP_DEBUG_ANY,
 					"Error: ldap_add_s failed adding \"%s\": %s\n",
 					*errmsg ? *errmsg : ldap_err2string( lderr ),
 					re->re_dn, 0 );
+#endif
 			}
 			break;
 
 		case T_MODIFYCT:
 			lderr = op_ldap_modify( ri, re, errmsg );
 			if ( lderr != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( " ldap_op", LDAP_LEVEL_ERR, "do_ldap: "
+					"Error: ldap_modify_s failed modifying \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ), re->re_dn ));
+#else
 				Debug( LDAP_DEBUG_ANY,
 					"Error: ldap_modify_s failed modifying \"%s\": %s\n",
 					*errmsg ? *errmsg : ldap_err2string( lderr ),
 					re->re_dn, 0 );
+#endif
 			}
 			break;
 
 		case T_DELETECT:
 			lderr = op_ldap_delete( ri, re, errmsg );
 			if ( lderr != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( " ldap_op", LDAP_LEVEL_ERR, "do_ldap: "
+					"Error: ldap_delete_s failed deleting \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ), re->re_dn ));
+#else
 				Debug( LDAP_DEBUG_ANY,
 					"Error: ldap_delete_s failed deleting \"%s\": %s\n",
 					*errmsg ? *errmsg : ldap_err2string( lderr ),
 					re->re_dn, 0 );
+#endif
 			}
 			break;
 
 		case T_MODRDNCT:
 			lderr = op_ldap_modrdn( ri, re, errmsg );
 			if ( lderr != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( " ldap_op", LDAP_LEVEL_ERR, "do_ldap: "
+					"Error: ldap_modrdn_s failed modifying %s: %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ), re->re_dn ));
+#else
 				Debug( LDAP_DEBUG_ANY,
 					"Error: ldap_modrdn_s failed modifying %s: %s\n",
 					*errmsg ? *errmsg : ldap_err2string( lderr ),
 					re->re_dn, 0 );
+#endif
 			}
 			break;
 
 		default:
+#ifdef NEW_LOGGING
+			LDAP_LOG (( " ldap_op", LDAP_LEVEL_ERR, "do_ldap: "
+				"Error: bad op \"%d\", dn = \"%s\"\n",
+				re->re_changetype, re->re_dn ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"Error: do_ldap: bad op \"%d\", dn = \"%s\"\n",
 				re->re_changetype, re->re_dn, 0 );
+#endif
 			return DO_LDAP_ERR_FATAL;
 		}
 
@@ -190,16 +220,27 @@ op_ldap_add(
 	ldmarr[ nattrs ] = NULL;
 
 	/* Perform the operation */
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ARGS, 
+		"op_ldap_add: replica %s:%d - add dn \"%s\"\n",
+		ri->ri_hostname, ri->ri_port, re->re_dn ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "replica %s:%d - add dn \"%s\"\n",
 		ri->ri_hostname, ri->ri_port, re->re_dn );
+#endif
 	rc = ldap_add_s( ri->ri_ldp, re->re_dn, ldmarr );
 
 	ldap_get_option( ri->ri_ldp, LDAP_OPT_ERROR_NUMBER, &lderr);
 
     } else {
 	*errmsg = "No modifications to do";
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+		"op_ldap_add: Error: no mods to do (%s)!\n", re->re_dn ));
+#else
 	Debug( LDAP_DEBUG_ANY,
 	       "Error: op_ldap_add: no mods to do (%s)!\n", re->re_dn, 0, 0 );
+#endif
     }
     free_ldmarr( ldmarr );
     return( lderr ); 
@@ -235,8 +276,13 @@ op_ldap_modify(
 
     if ( re->re_mods == NULL ) {
 	*errmsg = "No arguments given";
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+		"op_ldap_modify: Error: no arguments\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modify: no arguments\n",
 		0, 0, 0 );
+#endif
 	    return -1;
     }
 
@@ -283,9 +329,14 @@ op_ldap_modify(
 	    break;
 	default:
 	    if ( state == AWAITING_OP ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modify: Error: unknown mod type \"%s\"\n", type ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: op_ldap_modify: unknown mod type \"%s\"\n",
 			type, 0, 0 );
+#endif
 		continue;
 	    }
 
@@ -296,9 +347,16 @@ op_ldap_modify(
 	     * Construct the mod_bvalues part of the ldapmod struct.
 	     */
 	    if ( strcasecmp( type, ldm->mod_type )) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modify: Error: "
+			"malformed modify op, %s: %s (expecting \"%s\")\n", 
+			type, value, ldm->mod_type ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: malformed modify op, %s: %s (expecting %s:)\n",
 			type, value, ldm->mod_type );
+#endif
 		continue;
 	    }
 	    ldm->mod_bvalues = ( struct berval ** )
@@ -316,8 +374,14 @@ op_ldap_modify(
 
     if ( nops > 0 ) {
 	/* Actually perform the LDAP operation */
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_DETAIL1, 
+		"op_ldap_modify: replica %s:%d - modify dn \"%s\"\n", 
+		ri->ri_hostname, ri->ri_port, re->re_dn ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "replica %s:%d - modify dn \"%s\"\n",
 		ri->ri_hostname, ri->ri_port, re->re_dn );
+#endif
 	rc = ldap_modify_s( ri->ri_ldp, re->re_dn, ldmarr );
     }
     free_ldmarr( ldmarr );
@@ -339,8 +403,14 @@ op_ldap_delete(
 {
     int		rc;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ARGS, 
+		"op_ldap_delete: replica %s:%d - delete dn \"%s\"\n",
+	    ri->ri_hostname, ri->ri_port, re->re_dn ));
+#else
     Debug( LDAP_DEBUG_ARGS, "replica %s:%d - delete dn \"%s\"\n",
 	    ri->ri_hostname, ri->ri_port, re->re_dn );
+#endif
     rc = ldap_delete_s( ri->ri_ldp, re->re_dn );
 
     return( rc );
@@ -376,8 +446,13 @@ op_ldap_modrdn(
 
     if ( re->re_mods == NULL ) {
 	*errmsg = "No arguments given";
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+		"op_ldap_modrdn: Error: no arguments\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: no arguments\n",
 		0, 0, 0 );
+#endif
 	    return -1;
     }
 
@@ -387,9 +462,15 @@ op_ldap_modrdn(
     for ( mi = re->re_mods, i = 0; mi[ i ].mi_type != NULL; i++ ) {
 	if ( !strcmp( mi[ i ].mi_type, T_NEWRDNSTR )) {
 		if( state & GOT_NEWRDN ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modrdn: Error: multiple newrdn arg \"%s\"\n",
+			mi[ i ].mi_val ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: op_ldap_modrdn: multiple newrdn arg \"%s\"\n",
 			mi[ i ].mi_val, 0, 0 );
+#endif
 		*errmsg = "Multiple newrdn argument";
 		return -1;
 		}
@@ -399,9 +480,15 @@ op_ldap_modrdn(
 
 	} else if ( !strcmp( mi[ i ].mi_type, T_DELOLDRDNSTR )) {
 		if( state & GOT_DELOLDRDN ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modrdn: Error: multiple deleteoldrdn arg \"%s\"\n",
+			mi[ i ].mi_val ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: op_ldap_modrdn: multiple deleteoldrdn arg \"%s\"\n",
 			mi[ i ].mi_val, 0, 0 );
+#endif
 		*errmsg = "Multiple newrdn argument";
 		return -1;
 		}
@@ -412,18 +499,30 @@ op_ldap_modrdn(
 	    } else if ( !strcmp( mi[ i ].mi_val, "1" )) {
 		drdnflag = 1;
 	    } else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modrdn: Error: bad deleteoldrdn arg \"%s\"\n",
+			mi[ i ].mi_val ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: op_ldap_modrdn: bad deleteoldrdn arg \"%s\"\n",
 			mi[ i ].mi_val, 0, 0 );
+#endif
 		*errmsg = "Incorrect argument to deleteoldrdn";
 		return -1;
 	    }
 
 	} else if ( !strcmp( mi[ i ].mi_type, T_NEWSUPSTR )) {
 		if( state & GOT_NEWSUP ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modrdn: Error: multiple newsuperior arg \"%s\"\n",
+			mi[ i ].mi_val ));
+#else
 		Debug( LDAP_DEBUG_ANY,
 			"Error: op_ldap_modrdn: multiple newsuperior arg \"%s\"\n",
 			mi[ i ].mi_val, 0, 0 );
+#endif
 		*errmsg = "Multiple newsuperior argument";
 		return -1;
 		}
@@ -432,8 +531,14 @@ op_ldap_modrdn(
 	    state |= GOT_NEWSUP;
 
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modrdn: Error: bad type \"%s\"\n",
+			mi[ i ].mi_type ));
+#else
 	    Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: bad type \"%s\"\n",
 		    mi[ i ].mi_type, 0, 0 );
+#endif
 	    *errmsg = "Bad value in replication log entry";
 	    return -1;
 	}
@@ -443,8 +548,13 @@ op_ldap_modrdn(
      * Punt if we don't have all the args.
      */
     if ( !GOT_ALL_MODDN(state) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"op_ldap_modrdn: Error: missing arguments\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Error: op_ldap_modrdn: missing arguments\n",
 		0, 0, 0 );
+#endif
 	*errmsg = "Missing argument: requires \"newrdn\" and \"deleteoldrdn\"";
 	return -1;
     }
@@ -457,9 +567,15 @@ op_ldap_modrdn(
 	buf2 = (char *) ch_malloc( strlen( re->re_dn ) + strlen( mi->mi_val )
 		+ 10 );
 	sprintf( buf2, "(\"%s\" -> \"%s\")", re->re_dn, mi->mi_val );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ARGS, 
+		"op_ldap_modrdn: replica %s - modify rdn %s (flag: %d)\n",
+		buf, buf2, drdnflag ));
+#else
 	Debug( LDAP_DEBUG_ARGS,
 		"replica %s - modify rdn %s (flag: %d)\n",
 		buf, buf2, drdnflag );
+#endif
 	free( buf2 );
     }
 #endif /* LDAP_DEBUG */
@@ -592,9 +708,15 @@ do_unbind(
     if (( ri != NULL ) && ( ri->ri_ldp != NULL )) {
 	rc = ldap_unbind( ri->ri_ldp );
 	if ( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"do_unbind: ldap_unbind failed for %s:%d: %s\n",
+		    ri->ri_hostname, ri->ri_port, ldap_err2string( rc ) ));
+#else
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: do_unbind: ldap_unbind failed for %s:%d: %s\n",
 		    ri->ri_hostname, ri->ri_port, ldap_err2string( rc ) );
+#endif
 	}
 	ri->ri_ldp = NULL;
     }
@@ -625,27 +747,48 @@ do_bind(
     *lderr = 0;
 
     if ( ri == NULL ) {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: null ri ptr\n" ));
+#else
 	Debug( LDAP_DEBUG_ANY, "Error: do_bind: null ri ptr\n", 0, 0, 0 );
+#endif
 	return( BIND_ERR_BADRI );
     }
 
     if ( ri->ri_ldp != NULL ) {
 	ldrc = ldap_unbind( ri->ri_ldp );
 	if ( ldrc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"do_bind: ldap_unbind failed: %s\n", ldap_err2string( ldrc ) ));
+#else
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: do_bind: ldap_unbind failed: %s\n",
 		    ldap_err2string( ldrc ), 0, 0 );
+#endif
 	}
 	ri->ri_ldp = NULL;
     }
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ARGS, 
+		"do_bind: Initializing session to %s:%d\n", 
+	    ri->ri_hostname, ri->ri_port ));
+#else
     Debug( LDAP_DEBUG_ARGS, "Initializing session to %s:%d\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
+#endif
 
     ri->ri_ldp = ldap_init( ri->ri_hostname, ri->ri_port );
     if ( ri->ri_ldp == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, 
+			"do_bind: ldap_init (%s, %d) failed: %s\n",
+			ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] ));
+#else
 		Debug( LDAP_DEBUG_ANY, "Error: ldap_init(%s, %d) failed: %s\n",
 			ri->ri_hostname, ri->ri_port, sys_errlist[ errno ] );
+#endif
 		return( BIND_ERR_OPEN );
     }
 
@@ -655,9 +798,15 @@ do_bind(
 			LDAP_OPT_PROTOCOL_VERSION, &version);
 
 		if( err != LDAP_OPT_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: ",
+				"Error: ldap_set_option(%s, LDAP_OPT_VERSION, 3) failed!\n",
+				ri->ri_hostname ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"Error: ldap_set_option(%s, LDAP_OPT_VERSION, 3) failed!\n",
 				ri->ri_hostname, NULL, NULL );
+#endif
 
 			ldap_unbind( ri->ri_ldp );
 			ri->ri_ldp = NULL;
@@ -674,9 +823,15 @@ do_bind(
 		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_REFERRALS, LDAP_OPT_OFF);
 
 		if( err != LDAP_OPT_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: ",
+				"Error: ldap_set_option(%s, REFERRALS, OFF) failed!\n",
+				ri->ri_hostname ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"Error: ldap_set_option(%s,REFERRALS, OFF) failed!\n",
 				ri->ri_hostname, NULL, NULL );
+#endif
 			ldap_unbind( ri->ri_ldp );
 			ri->ri_ldp = NULL;
 			return BIND_ERR_REFERRALS;
@@ -689,10 +844,17 @@ do_bind(
 		err = ldap_start_tls_s(ri->ri_ldp, NULL, NULL);
 
 		if( err != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: ",
+				"%s: ldap_start_tls failed: %s (%d)\n",
+				ri->ri_tls == TLS_CRITICAL ? "Error" : "Warning",
+				ldap_err2string( err ), err ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"%s: ldap_start_tls failed: %s (%d)\n",
 				ri->ri_tls == TLS_CRITICAL ? "Error" : "Warning",
 				ldap_err2string( err ), err );
+#endif
 
 			if( ri->ri_tls == TLS_CRITICAL ) {
 				ldap_unbind( ri->ri_ldp );
@@ -707,14 +869,26 @@ do_bind(
 	/*
 	 * Bind with a plaintext password.
 	 */
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ARGS, 
+		"do_bind: bind to %s:%d as %s (simple)\n", 
+		ri->ri_hostname, ri->ri_port, ri->ri_bind_dn ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "bind to %s:%d as %s (simple)\n",
 		ri->ri_hostname, ri->ri_port, ri->ri_bind_dn );
+#endif
 	ldrc = ldap_simple_bind_s( ri->ri_ldp, ri->ri_bind_dn,
 		ri->ri_password );
 	if ( ldrc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: "
+		    "Error: ldap_simple_bind_s for %s:%d failed: %s\n",
+		    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ) ));
+#else
 	    Debug( LDAP_DEBUG_ANY,
 		    "Error: ldap_simple_bind_s for %s:%d failed: %s\n",
 		    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
+#endif
 	    *lderr = ldrc;
 		ldap_unbind( ri->ri_ldp );
 		ri->ri_ldp = NULL;
@@ -723,8 +897,14 @@ do_bind(
 	break;
 
 	case AUTH_SASL:
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ARGS, 
+		"do_bind: bind to %s as %s via %s (SASL)\n", 
+		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "bind to %s as %s via %s (SASL)\n",
 		ri->ri_hostname, ri->ri_authcId, ri->ri_saslmech );
+#endif
 
 #ifdef HAVE_CYRUS_SASL
 	if( ri->ri_secprops != NULL ) {
@@ -733,9 +913,15 @@ do_bind(
 			ri->ri_secprops);
 
 		if( err != LDAP_OPT_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: "
+				"Error: ldap_set_option(%s,SECPROPS,\"%s\") failed!\n",
+				ri->ri_hostname, ri->ri_secprops ));
+#else
 			Debug( LDAP_DEBUG_ANY,
 				"Error: ldap_set_option(%s,SECPROPS,\"%s\") failed!\n",
 				ri->ri_hostname, ri->ri_secprops, NULL );
+#endif
 			ldap_unbind( ri->ri_ldp );
 			ri->ri_ldp = NULL;
 			return BIND_ERR_SASL_FAILED;
@@ -751,8 +937,14 @@ do_bind(
 		    ri->ri_saslmech, NULL, NULL,
 		    LDAP_SASL_QUIET, lutil_sasl_interact, defaults );
 		if ( ldrc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: "
+				"Error: LDAP SASL for %s:%d failed: %s\n",
+			    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ) ));
+#else
 			Debug( LDAP_DEBUG_ANY, "Error: LDAP SASL for %s:%d failed: %s\n",
 			    ri->ri_hostname, ri->ri_port, ldap_err2string( ldrc ));
+#endif
 			*lderr = ldrc;
 			ldap_unbind( ri->ri_ldp );
 			ri->ri_ldp = NULL;
@@ -764,18 +956,30 @@ do_bind(
 	}
 	break;
 #else
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: "
+		"Error: do_bind: SASL not supported %s:%d\n",
+		 ri->ri_hostname, ri->ri_port ));
+#else
 	Debug( LDAP_DEBUG_ANY,
 		"Error: do_bind: SASL not supported %s:%d\n",
 		 ri->ri_hostname, ri->ri_port, NULL );
+#endif
 	ldap_unbind( ri->ri_ldp );
 	ri->ri_ldp = NULL;
 	return( BIND_ERR_BAD_ATYPE );
 #endif
 
     default:
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: "
+		"Error: do_bind: unknown auth type \"%d\" for %s:%d\n",
+		ri->ri_bind_method, ri->ri_hostname, ri->ri_port ));
+#else
 	Debug(  LDAP_DEBUG_ANY,
 		"Error: do_bind: unknown auth type \"%d\" for %s:%d\n",
 		ri->ri_bind_method, ri->ri_hostname, ri->ri_port );
+#endif
 	ldap_unbind( ri->ri_ldp );
 	ri->ri_ldp = NULL;
 	return( BIND_ERR_BAD_ATYPE );
@@ -796,9 +1000,15 @@ do_bind(
 		err = ldap_set_option(ri->ri_ldp, LDAP_OPT_SERVER_CONTROLS, &ctrls);
 
 		if( err != LDAP_OPT_SUCCESS ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "ldap_op", LDAP_LEVEL_ERR, "do_bind: "
+				"ldap_set_option(%s, SERVER_CONTROLS, ManageDSAit) failed!\n",
+				ri->ri_hostname ));
+#else
 			Debug( LDAP_DEBUG_ANY, "Error: "
 				"ldap_set_option(%s, SERVER_CONTROLS, ManageDSAit) failed!\n",
 				ri->ri_hostname, NULL, NULL );
+#endif
 			ldap_unbind( ri->ri_ldp );
 			ri->ri_ldp = NULL;
 			return BIND_ERR_MANAGEDSAIT;
@@ -827,6 +1037,17 @@ dump_ldm_array(
 
     for ( i = 0; ldmarr[ i ] != NULL; i++ ) {
 	ldm = ldmarr[ i ];
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_INFO, "dump_ldm_array: "
+		"Trace (%ld): *** ldmarr[ %d ] contents:\n",
+		(long) getpid(), i ));
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_INFO, "dump_ldm_array: "
+		"Trace (%ld): *** ldm->mod_op: %d\n",
+		(long) getpid(), ldm->mod_op ));
+	LDAP_LOG (( "ldap_op", LDAP_LEVEL_INFO, "dump_ldm_array: "
+		"Trace (%ld): *** ldm->mod_type: %s\n",
+		(long) getpid(), ldm->mod_type ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 		"Trace (%ld): *** ldmarr[ %d ] contents:\n",
 		(long) getpid(), i, 0 );
@@ -836,13 +1057,19 @@ dump_ldm_array(
 	Debug( LDAP_DEBUG_TRACE,
 		"Trace (%ld): *** ldm->mod_type: %s\n",
 		(long) getpid(), ldm->mod_type, 0 );
+#endif
 	if ( ldm->mod_bvalues != NULL ) {
 	    for ( j = 0; ( b = ldm->mod_bvalues[ j ] ) != NULL; j++ ) {
 		msgbuf = ch_malloc( b->bv_len + 512 );
 		sprintf( msgbuf, "***** bv[ %d ] len = %ld, val = <%s>",
 			j, b->bv_len, b->bv_val );
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "ldap_op", LDAP_LEVEL_INFO, "dump_ldm_array: "
+			"Trace (%ld):%s\n", (long) getpid(), msgbuf ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"Trace (%ld):%s\n", (long) getpid(), msgbuf, 0 );
+#endif
 		free( msgbuf );
 	    }
 	}
