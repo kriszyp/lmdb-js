@@ -923,12 +923,12 @@ int caseExactIA5SubstringsIndexer(
 		int j,max;
 		struct berval *value;
 
+		value = values[i];
+
 		if( value->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
 
 		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
 			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
-
-		value = values[i];
 
 		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
 			char pre;
