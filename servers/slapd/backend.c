@@ -150,6 +150,14 @@ select_backend( char * dn )
 	for ( i = 0; i < nbackends; i++ ) {
 		for ( j = 0; backends[i].be_suffix != NULL &&
 		    backends[i].be_suffix[j] != NULL; j++ ) {
+			/* Add greg@greg.rim.or.jp
+			 * It's quick hack for cheep client
+			 * Some browser offer a NULL base at ldap_search
+			 */
+			if(dnlen == 0) {
+				Debug( LDAP_DEBUG_TRACE, "select_backend: use default backend\n", 0, 0, 0 );
+				return (&backends[i]);
+			}
 			len = strlen( backends[i].be_suffix[j] );
 
 			if ( len > dnlen ) {

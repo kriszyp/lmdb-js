@@ -20,9 +20,8 @@
  * see Henry Spencer's regexp routines, or GNU Emacs pattern
  * matching module.
  *
- * Modification history:
+ * Vendor Modification history:
  *
- * $Log: regex.c,v $
  * Revision 1.2  1996/04/25  16:24:11  mcs
  * make re_exec() match "" with ".*" and similar patterns
  * hopefully this change doesn't break anything else!
