@@ -375,11 +375,11 @@ get_substring_filter(
 	ber_len_t	len;
 	ber_tag_t	rc;
 	struct berval *value;
-	struct berval *nvalue;
 	char		*last;
 	struct berval type;
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
 	int		syntax;
+	struct berval *nvalue;
 #endif
 	*text = "error decoding filter";
 
