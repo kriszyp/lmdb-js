@@ -240,9 +240,8 @@ modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 	int		want_salt = salt->len && !salted;
 	char	       *buf = NULL;
 	char	       *hashed_pw = NULL;
-	char	       *strvals[2] = {NULL, NULL};
-	LDAPMod		mod;
-	LDAPMod	       *mods[2] = {&mod, NULL};
+	char	       *strvals[2];
+	LDAPMod		mod, *mods[2];
 
 	if (!ld || !targetdn || !newpw)
 		return (1);
@@ -297,9 +296,12 @@ modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 	}
 
 	strvals[0] = buf;
+	strvals[1] = NULL;
 	mod.mod_vals.modv_strvals = strvals;
 	mod.mod_type = pwattr;
 	mod.mod_op = LDAP_MOD_REPLACE;
+	mods[0] = &mod;
+	mods[1] =NULL;
 
 	if (!noupdates && (ret = ldap_modify_s (ld, targetdn, mods)) != LDAP_SUCCESS)
 		ldap_perror (ld, "ldap_modify_s");
