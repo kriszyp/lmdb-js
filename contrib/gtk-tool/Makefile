@@ -1,7 +1,7 @@
 HOME_LOCATION=$(shell pwd)
 CC=	gcc
 CPLUS=	g++
-OPTS=-g #-DDEBUG
+OPTS=-g -DDEBUG
 INCLUDES=`gtkmm-config --cflags` -I.
 LDFLAGS=`gtkmm-config --libs` -L/usr/lib -L/usr/X11/lib -L/usr/local/gnome/lib -L/usr/local/ldap/lib -lldap -llber -L/usr/local/kerberos/lib -lkrb5 -lkrb4
 LIBS=-lXext -lgtkmm -lX11 -lXt -lXxf86dga

@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
 	while ((c = getopt(argc, argv, "s:p:h")) != -1) {
 		switch (c) {
 			case 's':
-			cout << "host" << endl;
+			debug("host\n");
 				hosts = hosts->append(strdup(optarg));
 				break;
 			case 'p':
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
 				exit(-1);
 		}
 	}
-	cout << hosts->length() << "hosts" << endl;
+	debug("%i hosts\n", hosts->length());
 	for (int f=0; f<hosts->length(); f++) {
 		debug("%s\n", hosts->nth_data(f));
 	}
@@ -48,6 +48,10 @@ int main(int argc, char **argv) {
 	Gtk_Main m(&argc, &argv);
 
 	window = new My_Window(GTK_WINDOW_TOPLEVEL);
+	window->set_title("gtk-tool");
+	window->activate();
+	window->set_usize(600, 500);
+	window->show();
 
 	tree = new Gtk_Tree();
 	for (int f=0; f<hosts->length(); f++) {
@@ -69,10 +73,6 @@ int main(int argc, char **argv) {
 	window->scroller->show();
 //	treeitem->showDetails();
 //	treeitem->select();
-	window->set_title("gtk-tool");
-	window->activate();
-	window->set_usize(600, 500);
-	window->show();
 
 	m.run();
 	return 0;

@@ -1,5 +1,11 @@
 ChangeLog for gtk-tool
 
+09/12/1998 - Pele
+	* Display of all ldap options in their proper widgets (sliders for 
+	timeout, radio buttons for booleans etc.) when server selected
+	* Code cleanups
+	* Misc fixes
+
 03/12/1998 - Pele
 	* Added support for multiple servers (via multiple -s options)
 	* More testing

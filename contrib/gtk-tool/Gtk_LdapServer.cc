@@ -141,13 +141,15 @@ char* Gtk_LdapServer::getOptDescription(int option) {
 
 int Gtk_LdapServer::getOptType(int option) {
 	debug("Gtk_LdapServer::getOptType(%i) ", option);
-	int type; /* 0 = int, 1 = string, 2 = boolean */
+	/* types:
+	 * 0 = int, 1 = string, 2 = boolean,
+	 * 3 = range, 4 = LDAPAPIInfo, 5 = unknown
+	 */
+	int type;
 	switch(option) {
 		/* ints */
 		case LDAP_OPT_DEREF:
 		case LDAP_OPT_DESC:
-		case LDAP_OPT_SIZELIMIT:	
-		case LDAP_OPT_TIMELIMIT:
 		case LDAP_OPT_ERROR_NUMBER:
 		case LDAP_OPT_PROTOCOL_VERSION: type = 0; break;
 		/* strings */
@@ -157,10 +159,15 @@ int Gtk_LdapServer::getOptType(int option) {
 		case LDAP_OPT_REFERRALS:
 		case LDAP_OPT_DNS:
 		case LDAP_OPT_RESTART: type = 2; break;
+		/* range */
+		case LDAP_OPT_SIZELIMIT:	
+		case LDAP_OPT_TIMELIMIT: type = 3; break;
+		/* api */
+		case LDAP_OPT_API_INFO: type = 4; break;
+		/* unknowns */
 		case LDAP_OPT_SERVER_CONTROLS:
 		case LDAP_OPT_CLIENT_CONTROLS:
-		case LDAP_OPT_API_INFO:
-		default: type = 0; break;
+		default: type = 5; break;
 	}
 	debug("%i\n", type);
 	return type;
@@ -169,19 +176,23 @@ int Gtk_LdapServer::getOptType(int option) {
 int Gtk_LdapServer::getOptions() {
 	debug("Gtk_LdapServer::getOptions()\n");
 	if (this->notebook != NULL) return 0;
+	LDAPAPIInfo api;
 	Gtk_HBox *hbox, *mini_hbox;
 	Gtk_VBox *vbox, *mini_vbox;
 	Gtk_Table *table;
 	Gtk_Label *label;	
 	Gtk_RadioButton *radio1, *radio2;
-	char *s_value;
+	Gtk_HScale *scale;
+	Gtk_Adjustment *adjustment;
+	char *description = NULL, *s_value = NULL;
 	int i_value;
-	char *thing;
-	int things[9] = {
+	string label_string;
+
+	int things[10] = {
 		LDAP_OPT_API_INFO,
-	//	LDAP_OPT_CLIENT_CONTROLS,
+		LDAP_OPT_CLIENT_CONTROLS,
 	//	LDAP_OPT_DESC,
-		LDAP_OPT_DEREF,
+	//	LDAP_OPT_DEREF,
 		LDAP_OPT_DNS,
 	//	LDAP_OPT_ERROR_NUMBER,
 	//	LDAP_OPT_ERROR_STRING,
@@ -189,7 +200,7 @@ int Gtk_LdapServer::getOptions() {
 		LDAP_OPT_PROTOCOL_VERSION,
 		LDAP_OPT_REFERRALS,
 		LDAP_OPT_RESTART,
-	//	LDAP_OPT_SERVER_CONTROLS,
+		LDAP_OPT_SERVER_CONTROLS,
 		LDAP_OPT_SIZELIMIT,
 		LDAP_OPT_TIMELIMIT
 	};
@@ -200,23 +211,22 @@ int Gtk_LdapServer::getOptions() {
 
 //	debug("getting ldap options");
 //	vbox = new Gtk_VBox();
-	table = new Gtk_Table(11, 2, TRUE);
+	table = new Gtk_Table(10, 1, TRUE);
 
-	for (int i=0; i<9; i++) {
+	for (int i=0; i<10; i++) {
 	//	debug("%i\n", i);
 		hbox = new Gtk_HBox(TRUE, 2);
 		hbox->border_width(2);
-		thing = this->getOptDescription(things[i]);
-		label = new Gtk_Label(thing);
+		description = this->getOptDescription(things[i]);
+		label = new Gtk_Label(description);
 		label->set_justify(GTK_JUSTIFY_LEFT);
 		label->set_alignment(0, 0);
 		hbox->pack_start(*label);
 		label->show();
-		int tipus = this->getOptType(things[i]);
-		switch (tipus) {
+		switch (this->getOptType(things[i])) {
 			case 0:
-				ldap_get_option(NULL, things[i], &i_value);
-				debug("%s value %d\n", thing, i_value);
+				ldap_get_option(this->ld, things[i], &i_value);
+				debug("%s value %d\n", description, i_value);
 				sprintf(s_value, "%d", i_value);
 				label = new Gtk_Label(s_value);
 				label->set_justify(GTK_JUSTIFY_LEFT);
@@ -234,8 +244,6 @@ int Gtk_LdapServer::getOptions() {
 				break;
 			case 2:
 				ldap_get_option(this->ld, things[i], &i_value);
-			//	sprintf(s_value, "%s", i_value == (int) LDAP_OPT_ON ? "on" : "off");
-			//	label = new Gtk_Label(s_value);
 				radio1 = new Gtk_RadioButton(static_cast<GSList*>(0), "Enabled");
 				radio2 = new Gtk_RadioButton(*radio1, "Disabled");
 				if (i_value == 1) radio1->set_state(true);
@@ -249,8 +257,36 @@ int Gtk_LdapServer::getOptions() {
 				hbox->pack_end(*mini_hbox);
 				mini_hbox->show();
 				break;
+			case 3:
+				ldap_get_option(this->ld, things[i], &i_value);
+				adjustment = new Gtk_Adjustment(i_value, 1.0, 20.0, 1.0, 1.0, 0.0);
+				scale = new Gtk_HScale(*adjustment);
+				scale->set_update_policy(GTK_UPDATE_CONTINUOUS);
+				scale->set_value_pos(GTK_POS_TOP);
+				scale->set_digits(0);
+				scale->set_draw_value(true);
+				hbox->pack_end(*scale);
+				scale->show();
+				break;
+			case 4:
+#ifdef LDAP_API_INFO_VERSION
+	api.ldapai_info_version = LDAP_API_INFO_VERSION;
+#else
+	api.ldapai_info_version = 1;
+#endif
+				if (ldap_get_option(this->ld, things[i], &api) != LDAP_SUCCESS) {
+					perror(this->getOptDescription(things[i]));
+					break;
+				}
+				s_value = api.ldapai_vendor_name;
+				label = new Gtk_Label(s_value);
+				label->set_justify(GTK_JUSTIFY_LEFT);
+				label->set_alignment(0, 0);
+				hbox->pack_end(*label);
+				label->show();
+				break;
 			default:
-				label = new Gtk_Label("Nothing");
+				label = new Gtk_Label("Not implemented (yet)");
 				label->set_justify(GTK_JUSTIFY_LEFT);
 				label->set_alignment(0, 0);
 				hbox->pack_end(*label);
@@ -259,7 +295,7 @@ int Gtk_LdapServer::getOptions() {
 		}
 	//	hbox->pack_end(*label);
 	//	label->show();
-		table->attach_defaults(*hbox, 0, 2, i, i+1);
+		table->attach_defaults(*hbox, 0, 1, i, i+1);
 		hbox->show();
 	}
 	table->border_width(2);
@@ -313,8 +349,8 @@ void Gtk_LdapServer::show_impl() {
 void Gtk_LdapServer::select_impl() {
 	debug("%s selected\n", this->hostname);
 	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
-	if (this->showDetails() == 0) debug("%s select_impl done\n", this->hostname);
 	if (!sig->select) return;
+	this->showDetails();
 	sig->select(GTK_ITEM(gtkobj()));
 }
 

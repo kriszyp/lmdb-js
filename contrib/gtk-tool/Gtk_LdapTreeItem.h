@@ -10,6 +10,7 @@
 #include "icons/branch_node.h"
 #include "icons/leaf_node.h"
 #include "icons/alias_node.h"
+#include "icons/rfc822mailgroup_node.h"
 #include "icons/general_node.h"
 
 #define ROOT_NODE 1

@@ -80,7 +80,7 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 }
 
 void Gtk_LdapTreeItem::setType(int t) {
-	debug("Gtk_LdapTreeItem::setType(%i)\n", t);
+	debug("Gtk_LdapTreeItem::setType(%s)\n", this->objectClass);
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
 	if (this->getchild() != NULL) {
@@ -97,6 +97,8 @@ void Gtk_LdapTreeItem::setType(int t) {
 		xpm_icon=new Gtk_Pixmap(*xpm_label, leaf_node);
 	else if (strcasecmp(this->objectClass,"alias") == 0)
 		xpm_icon=new Gtk_Pixmap(*xpm_label, alias_node);
+	else if (strcasecmp(this->objectClass,"rfc822mailgroup") == 0)
+		xpm_icon=new Gtk_Pixmap(*xpm_label, rfc822mailgroup_node);
 	else xpm_icon=new Gtk_Pixmap(*xpm_label, general_node);
 	label = new Gtk_Label(this->rdn);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
@@ -145,12 +147,14 @@ int Gtk_LdapTreeItem::getDetails() {
 		for (attribute = ldap_first_attribute(ld, entry, &ber); attribute != NULL; attribute = ldap_next_attribute(ld, entry, ber)) {
 			values = ldap_get_values(ld, entry, attribute);
 			if (strcasecmp(attribute, "objectclass") == 0) {
+			//	debug("processing objectclass\n");
 				if (strcasecmp(values[0],"top") == 0)
 					this->objectClass = strdup(values[1]);
-				else this->objectClass = values[0];
+				else this->objectClass = strdup(values[0]);
 			}
 			table = new Gtk_CList(1, titles);
 			for (int i=0; i<ldap_count_values(values); i++) {
+			//	debug("%i:%s\n",i, values[i]);
 				const gchar *t[] = { values[i] };
 				table->append(t);
 			}

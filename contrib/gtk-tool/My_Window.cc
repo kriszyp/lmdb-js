@@ -1,7 +1,7 @@
 #include <My_Window.h>
 
 My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
-	cout << "My_Window(t)" << endl;
+	debug("My_Window(t)\n");
 	Gtk_VBox *main_hbox;
 	Gtk_HBox *top_hbox;
 	Gtk_VBox *bottom_hbox;
