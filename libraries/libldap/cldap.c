@@ -127,7 +127,7 @@ cldap_open( char *host, int port )
 		}
 	    }
 
-		if ( inet_aton( host, &address ) == 0 ) {
+	    if ( (address = inet_addr( host )) == -1 ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
 		    errno = EHOSTUNREACH;
 		    continue;

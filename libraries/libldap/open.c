@@ -64,19 +64,8 @@ ldap_open( char *host, int port )
 #ifdef LDAP_REFERRALS
 	LDAPServer	*srv;
 #endif /* LDAP_REFERRALS */
-#ifdef HAVE_WINSOCK_2
-	WORD wVersionRequested;
-	WSADATA wsaData;
-#endif
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
-
-#ifdef HAVE_WINSOCK_2
-	wVersionRequested = MAKEWORD( 2, 0 );
-	if ( WSAStartup( wVersionRequested, &wsadata ) != 0 ) {
-		return( NULL );
-	}
-#endif
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
 		return( NULL );
@@ -87,9 +76,6 @@ ldap_open( char *host, int port )
 	    NULL || ( ld->ld_defhost != NULL && ( srv->lsrv_host =
 	    strdup( ld->ld_defhost )) == NULL )) {
 		ldap_ld_free( ld, 0 );
-#ifdef HAVE_WINSOCK_2
-		WSACleanup();
-#endif
 		return( NULL );
 	}
 	srv->lsrv_port = ld->ld_defport;
@@ -98,9 +84,6 @@ ldap_open( char *host, int port )
 		if ( ld->ld_defhost != NULL ) free( srv->lsrv_host );
 		free( (char *)srv );
 		ldap_ld_free( ld, 0 );
-#ifdef HAVE_WINSOCK_2
-		WSACleanup();
-#endif
 		return( NULL );
 	}
 	++ld->ld_defconn->lconn_refcnt;	/* so it never gets closed/freed */
@@ -109,9 +92,6 @@ ldap_open( char *host, int port )
 	if ( open_ldap_connection( ld, &ld->ld_sb, ld->ld_defhost,
 	    ld->ld_defport, &ld->ld_host, 0 ) < 0 ) {
 		ldap_ld_free( ld, 0 );
-#ifdef HAVE_WINSOCK_2
-		WSACleanup();
-#endif
 		return( NULL );
 	}
 #endif /* LDAP_REFERRALS */

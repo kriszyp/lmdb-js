@@ -96,7 +96,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 
 	connected = use_hp = 0;
 
-	if ( host != NULL && ( inet_aton( host, &address ) == 0 ) ) {
+	if ( host != NULL && ( address = inet_addr( host )) == -1 ) {
 		if ( (hp = gethostbyname( host )) == NULL ) {
 			errno = EHOSTUNREACH;	/* not exactly right, but... */
 			return( -1 );
