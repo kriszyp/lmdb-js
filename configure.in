@@ -483,8 +483,8 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl
 		dnl Check special pthread (final) flags
 		dnl 	pthread_create() with -kthread (FreeBSD)
-		dnl 	pthread_create() with -pthread (FreeBSD)
-		dnl 	pthread_create() with -pthreads (OSF/1)
+		dnl 	pthread_create() with -pthread (FreeBSD/Digital Unix)
+		dnl 	pthread_create() with -pthreads (?)
 		dnl 	pthread_create() with -thread (?)
 		dnl
 		dnl Check pthread (final) libraries
@@ -516,9 +516,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-kthread $LIBS"
-				AC_TRY_LINK([char pthread_create();],[
-					pthread_create();
-					], ol_cv_kthread_flag=yes, ol_cv_kthread_flag=no)
+				AC_TRY_LINK([#include <pthread.h>],
+					[pthread_create(NULL,NULL,NULL,NULL);],
+					[ol_cv_kthread_flag=yes], [ol_cv_kthread_flag=no])
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
@@ -536,9 +536,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-pthread $LIBS"
-				AC_TRY_LINK([char pthread_create();],[
-					pthread_create();
-					], ol_cv_pthread_flag=yes, ol_cv_pthread_flag=no)
+				AC_TRY_LINK([#include <pthread.h>],
+					[pthread_create(NULL,NULL,NULL,NULL);],
+					[ol_cv_pthread_flag=yes], [ol_cv_pthread_flag=no])
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
@@ -556,11 +556,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-pthreads $LIBS"
-				AC_TRY_LINK([
-#include <pthread.h>
-],[
-					pthread_create(NULL,NULL,NULL,NULL);
-					], ol_cv_pthreads_flag=yes, ol_cv_pthreads_flag=no)
+				AC_TRY_LINK([#include <pthread.h>],
+					[pthread_create(NULL,NULL,NULL,NULL);],
+					[ol_cv_pthreads_flag=yes], [ol_cv_pthreads_flag=no])
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
@@ -578,9 +576,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				dnl save the flags
 				save_LIBS="$LIBS"
 				LIBS="-thread $LIBS"
-				AC_TRY_LINK([char pthread_create();],[
-					pthread_create();
-					], ol_cv_thread_flag=yes, ol_cv_thread_flag=no)
+				AC_TRY_LINK([char pthread_create();],
+					[pthread_create();],
+					[ol_cv_thread_flag=yes], [ol_cv_thread_flag=no])
 				dnl restore the LIBS
 				LIBS="$save_LIBS"
 			])
