@@ -307,14 +307,8 @@ main ( int argc, char **argv )
 	for ( i = optind; i < argc; i++ ) {
 		char	*s;
 		int	type;
-		char	*localpart, *domainpart;
+		char	*localpart = NULL, *domainpart = NULL;
 		char	address[1024];
-
-/*  TBC: Make this processing optional */
-/*  		for ( j = 0; argv[i][j] != '\0'; j++ ) { */
-/*  			if ( argv[i][j] == '.' || argv[i][j] == '_' ) */
-/*  				argv[i][j] = ' '; */
-/*  		} */
 
 		type = USER;
 		split_address( argv[i], &localpart, &domainpart );
@@ -1134,7 +1128,7 @@ entry_engine(
 	int	*current_nto = nto;
 	Group	*current_group = NULL;
 	char	buf[1024];
-	char	*localpart, *domainpart;
+	char	*localpart = NULL, *domainpart = NULL;
 	Subst	substs[2];
 	int	cur_priority = 0;
 	char	*route_to_host = NULL;
@@ -1436,9 +1430,11 @@ do_address(
 )
 {
 	struct timeval	timeout;
-	char		*localpart, *domainpart;
+	char		*localpart = NULL, *domainpart = NULL;
+	char		*synthname = NULL;
 	int		resolved;
-	Subst	substs[5];
+	int		i;
+	Subst		substs[6];
 
 	/*
 	 * Look up the name in X.500, add the appropriate addresses found
@@ -1453,6 +1449,11 @@ do_address(
 	 */
 
 	split_address( name, &localpart, &domainpart );
+	synthname = strdup( localpart );
+	for ( i = 0; synthname[i] != '\0'; i++ ) {
+		if ( synthname[i] == '.' || synthname[i] == '_' )
+			synthname[i] = ' ';
+	}
 	timeout.tv_sec = MAIL500_TIMEOUT;
 	timeout.tv_usec = 0;
 	substs[0].sub_char = 'm';
@@ -1463,12 +1464,24 @@ do_address(
 	substs[2].sub_value = localpart;
 	substs[3].sub_char = 'd';
 	substs[3].sub_value = domainpart;
-	substs[4].sub_char = '\0';
-	substs[4].sub_value = NULL;
+	substs[4].sub_char = 's';
+	substs[4].sub_value = synthname;
+	substs[5].sub_char = '\0';
+	substs[5].sub_value = NULL;
 
 	resolved = search_bases( NULL, substs, name,
 				 to, nto, togroups, ngroups,
 				 err, nerr, type );
+
+	if ( localpart ) {
+		free( localpart );
+	}
+	if ( domainpart ) {
+		free( domainpart );
+	}
+	if ( synthname ) {
+		free( synthname );
+	}
 
 	if ( !resolved ) {
 		/* not resolved - bounce with user unknown */
