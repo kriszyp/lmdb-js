@@ -458,7 +458,7 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 {
 	Datum d;
 	LDBM_LOCK;
-	d = gdbm_nextkey( ldbm );
+	d = gdbm_nextkey( ldbm, key );
 	LDBM_UNLOCK;
 	return d;
 }
