@@ -17,6 +17,7 @@ OpenLDAP 2.0.X Engineering
 		Fixed make comment bug (ITS#811)
 		Fixed $(DESTDIR) install (ITS#806)
 		Added proxy check to passwd test
+		Fixed slurpd tempdir perms (ITS#840)
 	Documentation
 		Updated ldappasswd(1)
 		Updated ldap_url(3)
