@@ -82,9 +82,20 @@ ldap_back_search(
 #endif /* ENABLE_REWRITE */
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
+	BerVarray v2refs = NULL;
 
 	lc = ldap_back_getconn(li, conn, op);
 	if ( !lc ) {
+		return( -1 );
+	}
+
+	/*
+	 * controls are set in ldap_back_dobind()
+	 * 
+	 * FIXME: in case of values return filter, we might want
+	 * to map attrs and maybe rewrite value
+	 */
+	if ( !ldap_back_dobind( lc, op ) ) {
 		return( -1 );
 	}
 
@@ -104,8 +115,8 @@ ldap_back_search(
 			
 		/* positive hard limit means abort */
 		} else if ( limit->lms_t_hard > 0 ) {
-			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL, 0 );
+			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL );
 			rc = 0;
 			goto finish;
 		}
@@ -122,8 +133,8 @@ ldap_back_search(
 			
 		/* positive hard limit means abort */
 		} else if ( limit->lms_s_hard > 0 ) {
-			send_search_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-					NULL, NULL, NULL, NULL, 0 );
+			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
+					NULL, NULL, NULL, NULL );
 			rc = 0;
 			goto finish;
 		}
@@ -131,23 +142,13 @@ ldap_back_search(
 		/* negative hard limit means no limit */
 	}
 
+	/* should we check return values? */
 	if (deref != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_DEREF, (void *)&deref);
 	if (tlimit != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_TIMELIMIT, (void *)&tlimit);
 	if (slimit != -1)
 		ldap_set_option( lc->ld, LDAP_OPT_SIZELIMIT, (void *)&slimit);
-
-
-	/*
-	 * controls are set in ldap_back_dobind()
-	 * 
-	 * FIXME: in case of values return filter, we might want
-	 * to map attrs and maybe rewrite value
-	 */
-	if ( !ldap_back_dobind( lc, op ) ) {
-		return( -1 );
-	}
 
 	/*
 	 * Rewrite the search base, if required
@@ -273,16 +274,61 @@ fail:;
 			rc = 0;
 			goto finish;
 		}
+
 		if (rc == 0) {
 			tv.tv_sec = 0;
 			tv.tv_usec = 100000;
 			ldap_pvt_thread_yield();
+
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
 			e = ldap_first_entry(lc->ld,res);
-			if ( ldap_send_entry(be, op, lc, e, attrs, attrsonly) == LDAP_SUCCESS ) {
+			if ( ldap_send_entry(be, op, lc, e, attrs, attrsonly) 
+					== LDAP_SUCCESS ) {
 				count++;
 			}
 			ldap_msgfree(res);
+
+		} else if ( rc == LDAP_RES_SEARCH_REFERENCE ) {
+			char		**references = NULL;
+			LDAPControl	**ctrls = NULL;
+			BerVarray	refs;
+			int		cnt;
+
+			rc = ldap_parse_reference( lc->ld, res,
+					&references, &ctrls, 1 );
+
+			if ( rc != LDAP_SUCCESS ) {
+				continue;
+			}
+
+			if ( references == NULL ) {
+				continue;
+			}
+
+			for ( cnt = 0; references[ cnt ]; cnt++ )
+				/* NO OP */ ;
+				
+			refs = ch_calloc( cnt + 1, sizeof( struct berval ) );
+
+			for ( cnt = 0; references[ cnt ]; cnt++ ) {
+				refs[ cnt ].bv_val = references[ cnt ];
+				refs[ cnt ].bv_len = strlen( references[ cnt ] );
+			}
+
+			/* ignore return value by now */
+			( void )send_search_reference( be, conn, op, 
+					NULL, refs, ctrls, &v2refs );
+
+			/* cleanup */
+			if ( references ) {
+				ldap_value_free( references );
+				ch_free( refs );
+			}
+
+			if ( ctrls ) {
+				ldap_controls_free( ctrls );
+			}
+
 		} else {
 			sres = ldap_result2error(lc->ld, res, 1);
 			sres = ldap_back_map_result(sres);
@@ -328,12 +374,18 @@ fail:;
 		}
 	}
 
+	if ( v2refs ) {
+		sres = LDAP_REFERRAL;
+	}
 	send_search_result( conn, op, sres,
-		mmatch, err, NULL, NULL, count );
+		mmatch, err, v2refs, NULL, count );
 
 #else /* !ENABLE_REWRITE */
+	if ( v2refs ) {
+		sres = LDAP_REFERRAL;
+	}
 	send_search_result( conn, op, sres,
-		match, err, NULL, NULL, count );
+		match, err, v2refs, NULL, count );
 #endif /* !ENABLE_REWRITE */
 
 finish:;
