@@ -568,7 +568,8 @@ ldap_set_option LDAP_P((
 
 /* V3 REBIND Function Callback Prototype */
 typedef int (LDAP_REBIND_PROC) LDAP_P((
-	LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid,
+	LDAP *ld, LDAP_CONST char *url,
+	ber_tag_t request, ber_int_t msgid,
 	void *params ));
 
 LDAP_F( int )
