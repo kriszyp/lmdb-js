@@ -1,7 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.X Engineering
-	<insert here>
+	Fixed slurpd TLS initialization bug (ITS#768)
 
 OpenLDAP 2.0.4 Release
 	Fixed clients printf/usage bugs (ITS#749)
