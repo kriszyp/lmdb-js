@@ -775,6 +775,7 @@ static int chk_lanman(
 #endif /* SLAPD_LMHASH */
 
 #ifdef SLAPD_NS_MTA_MD5
+#define NS_MTA_MD5_PASSLEN	64
 static int chk_ns_mta_md5(
 	const struct berval *scheme,
 	const struct berval *passwd,
@@ -786,7 +787,7 @@ static int chk_ns_mta_md5(
 	char buffer[LUTIL_MD5_BYTES*2];
 	int i;
 
-	if( passwd->bv_len != LUTIL_MD5_BYTES*2 ) {
+	if( passwd->bv_len != NS_MTA_MD5_PASSLEN ) {
 		return 1;
 	}
 
