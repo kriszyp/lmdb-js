@@ -24,6 +24,9 @@ define([AC_INIT_BINSH],
 
 echo "Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved."
 echo "Copying restrictions apply, see COPYRIGHT file."
+
+# clear CDPATH
+CDPATH=:
 ])dnl
 dnl ----------------------------------------------------------------
 dnl Disable config.cache!
