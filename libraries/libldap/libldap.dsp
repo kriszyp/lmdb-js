@@ -331,6 +331,10 @@ SOURCE=.\sort.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\sortctrl.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\srchpref.c
 # End Source File
 # Begin Source File
@@ -364,6 +368,10 @@ SOURCE=".\utf-8.c"
 # Begin Source File
 
 SOURCE=".\util-int.c"
+# End Source File
+# Begin Source File
+
+SOURCE=.\vlvctrl.c
 # End Source File
 # End Target
 # End Project

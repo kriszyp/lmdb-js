@@ -312,6 +312,10 @@ SOURCE=..\libldap\sort.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\sortctrl.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\srchpref.c
 # End Source File
 # Begin Source File
@@ -361,6 +365,10 @@ SOURCE="..\libldap\utf-8.c"
 # Begin Source File
 
 SOURCE="..\libldap\util-int.c"
+# End Source File
+# Begin Source File
+
+SOURCE=..\libldap\vlvctrl.c
 # End Source File
 # End Target
 # End Project
