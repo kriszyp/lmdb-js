@@ -59,26 +59,30 @@ static const struct ol_attribute {
 		offsetof(struct ldapoptions, ldo_defbinddn)},
 	{0, ATTR_STRING,	"BASE",			NULL,
 		offsetof(struct ldapoptions, ldo_defbase)},
-	{0, ATTR_INT,		"PORT",			NULL,
+	{0, ATTR_INT,		"PORT",			NULL,		/* deprecated */
 		offsetof(struct ldapoptions, ldo_defport)},
-	/* **** keep this around for backward compatibility */
-	{0, ATTR_URIS,		"HOST",			NULL,	1},
-	/* **** */
-	{0, ATTR_URIS,		"URI",			NULL,	0},
+	{0, ATTR_URIS,		"HOST",			NULL,	1},	/* deprecated */
+	{0, ATTR_URIS,		"URI",			NULL,	0}, /* replaces HOST/URI */
 	{0, ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
+
+#ifdef HAVE_TLS
   	{0, ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
 	{0, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
 	{0, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
   	{0, ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
   	{0, ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
   	{0, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+	{0, ATTR_TLS,		"TLS_RANDFILE",	NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
+#endif
+
 #ifdef HAVE_CYRUS_SASL
 	{0, ATTR_INT,		"SASL_MINSSF",	NULL,
 		offsetof(struct ldapoptions, ldo_sasl_minssf)},
 	{0, ATTR_INT,		"SASL_MAXSSF",	NULL,
 		offsetof(struct ldapoptions, ldo_sasl_maxssf)},
 #endif
+
 	{0, ATTR_NONE,		NULL,		NULL,	0}
 };
 

@@ -29,6 +29,7 @@
 #include <openssl/ssl.h>
 #include <openssl/x509v3.h>
 #include <openssl/err.h>
+#include <openssl/rand.h>
 #elif defined( HAVE_SSL_H )
 #include <ssl.h>
 #endif
@@ -40,6 +41,7 @@ static char *tls_opt_cacertfile = NULL;
 static char *tls_opt_cacertdir = NULL;
 static int  tls_opt_require_cert = 0;
 static char *tls_opt_ciphersuite = NULL;
+static char *tls_opt_randfile = NULL;
 
 #define HAS_TLS( sb )	ber_sockbuf_ctrl( sb, LBER_SB_OPT_HAS_IO, \
 				(void *)&ldap_pvt_sockbuf_io_tls )
@@ -100,8 +102,10 @@ ldap_pvt_tls_init( void )
 {
 	static int tls_initialized = 0;
 
-	if ( tls_initialized )
-		return 0;
+	if ( tls_initialized ) return 0;
+
+	(void) tls_seed_PRNG( tls_opt_randfile );
+
 	tls_initialized = 1;
 #ifdef LDAP_R_COMPILE
 	tls_init_threads();
@@ -673,6 +677,7 @@ ldap_pvt_tls_config( struct ldapoptions *lo, int option, const char *arg )
 	case LDAP_OPT_X_TLS_CACERTDIR:
 	case LDAP_OPT_X_TLS_CERTFILE:
 	case LDAP_OPT_X_TLS_KEYFILE:
+	case LDAP_OPT_X_TLS_RANDOM_FILE:
 		return ldap_pvt_tls_set_option( NULL, option, (void *) arg );
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		i = ( ( strcasecmp( arg, "on" ) == 0 ) ||
@@ -730,6 +735,9 @@ ldap_pvt_tls_get_option( struct ldapoptions *lo, int option, void *arg )
 		break;
 	case LDAP_OPT_X_TLS_REQUIRE_CERT:
 		*(int *)arg = tls_opt_require_cert;
+		break;
+	case LDAP_OPT_X_TLS_RANDOM_FILE:
+		*(char **)arg = tls_opt_randfile;
 		break;
 	default:
 		return -1;
@@ -794,6 +802,10 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 		if ( tls_opt_ciphersuite ) free( tls_opt_ciphersuite );
 		tls_opt_ciphersuite = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
 		break;
+	case LDAP_OPT_X_TLS_RANDOM_FILE:
+		if (tls_opt_randfile ) free (tls_opt_randfile );
+		tls_opt_randfile = arg ? LDAP_STRDUP( (char *) arg ) : NULL;
+		break;
 	default:
 		return -1;
 	}
@@ -803,6 +815,9 @@ ldap_pvt_tls_set_option( struct ldapoptions *lo, int option, void *arg )
 int
 ldap_pvt_tls_start ( LDAP *ld, Sockbuf *sb, void *ctx_arg )
 {
+	/* Make sure tls is initialized, including PRNG properly seeded. */
+	ldap_pvt_tls_init();
+
 	/*
 	 * Fortunately, the lib uses blocking io...
 	 */
@@ -919,11 +934,55 @@ tls_tmp_rsa_cb( SSL *ssl, int is_export, int key_length )
 	tmp_rsa = RSA_generate_key( key_length, RSA_F4, NULL, NULL );
 
 	if ( !tmp_rsa ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: Failed to generate temporary %d-bit %s RSA key\n",
-		       key_length, is_export ? "export" : "domestic", 0 );
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: Failed to generate temporary %d-bit %s RSA key\n",
+			key_length, is_export ? "export" : "domestic", 0 );
 		return NULL;
 	}
 	return tmp_rsa;
+}
+
+static int
+tls_seed_PRNG( const char *randfile )
+{
+#ifndef URANDOM_DEVICE
+	/* no /dev/urandom (or equiv) */
+
+	char buffer[1024];
+	static int egdsocket = 0;
+
+	if (randfile == NULL) {
+		/* The seed file is $RANDFILE if defined, otherwise $HOME/.rnd.
+		 * If $HOME is not set or buffer too small to hold the pathname,
+		 * an error occurs.    - From RAND_file_name() man page.
+		 * The fact is that when $HOME is NULL, .rnd is used.
+		 */
+		randfile = RAND_file_name(buffer, sizeof( buffer ));
+
+	} else if (RAND_egd(randfile) > 0) {
+		/* EGD socket */
+		egdsocket = 1;
+		return 0;
+	}
+
+	if (randfile == NULL) {
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: Use configuration file or $RANDFILE to define seed file",
+			0, 0, 0);
+		return -1;
+	}
+
+	RAND_load_file(randfile, -1);
+
+	if (RAND_status() == 0) {
+		Debug( LDAP_DEBUG_ANY,
+			"TLS: PRNG has not been seeded with enough data",
+			0, 0, 0);
+		return -1;
+	}
+#endif
+
+	return 0;
 }
 
 #if 0
