@@ -664,6 +664,62 @@ done:
 	*matchp = match;
 	return LDAP_SUCCESS;
 }
+
+static int
+NumericStringNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	/* similiar to IA5StringNormalize except removes all spaces */
+	struct berval *newval;
+	char *p, *q;
+
+	newval = ch_malloc( sizeof( struct berval ) );
+
+	p = val->bv_val;
+
+	/* Ignore initial whitespace */
+	while ( isspace( *p++ ) ) {
+		/* EMPTY */  ;
+	}
+
+	if( *p != '\0' ) {
+		ch_free( newval );
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	newval->bv_val = ch_strdup( p );
+	p = q = newval->bv_val;
+
+	while ( *p ) {
+		if ( isspace( *p ) ) {
+			/* Ignore whitespace */
+			p++;
+		} else {
+			*q++ = *p++;
+		}
+	}
+
+	assert( *newval->bv_val );
+	assert( newval->bv_val < p );
+	assert( p <= q );
+
+	/* cannot start with a space */
+	assert( !isspace(*newval->bv_val) );
+
+	/* cannot end with a space */
+	assert( !isspace( q[-1] ) );
+
+	/* null terminate */
+	*q = '\0';
+
+	newval->bv_len = q - newval->bv_val;
+	*normalized = newval;
+
+	return LDAP_SUCCESS;
+}
+
 #endif
 
 struct syntax_defs_rec {
@@ -755,7 +811,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
-		0, NULL, NULL, NULL},
+		0, IA5StringValidate, NumericStringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
@@ -856,8 +912,6 @@ struct mrule_defs_rec {
 
 /* unimplemented matching functions */
 #define objectIdentifierMatch NULL
-#define numericStringMatch NULL
-#define numericStringSubstringsMatch NULL
 #define caseIgnoreListMatch NULL
 #define caseIgnoreListSubstringsMatch NULL
 #define integerMatch NULL
@@ -918,12 +972,12 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, numericStringMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5Match, NULL, NULL},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, numericStringSubstringsMatch, NULL, NULL},
+		NULL, NULL, caseIgnoreIA5SubstringsMatch, NULL, NULL},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
