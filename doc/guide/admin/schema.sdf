@@ -390,8 +390,8 @@ you desire.
 >	objectclass ( 1.1.2.2.2 NAME 'myPerson'
 >		DESC 'my person'
 >		SUP inetOrgPerson
->		MUST ( 'myUniqueName' $ 'givenName' )
->		MAY 'myPhoto' )
+>		MUST ( myUniqueName $ givenName )
+>		MAY myPhoto )
 
 The object class inherits the required/allowed attribute
 types of {{EX:inetOrgPerson}} but requires {{EX:myUniqueName}}
@@ -430,7 +430,7 @@ pairs.  The following is an abbreviated example:
 >	attributeTypes: ( 1.1.2.1.2 NAME 'myPhoto' DESC 'a photo (applicatio
 >	 n defined format)' SYNTAX 1.3.6.1.4.1.1466.115.121.1.40
 >	objectClasses: ( 1.1.2.2.2 NAME 'myPerson' DESC 'my person' SUP inet
->	 OrgPerson MUST ( 'myUniqueName' $ 'givenName' ) MAY 'myPhoto' )
+>	 OrgPerson MUST ( myUniqueName $ givenName ) MAY myPhoto )
 
 Capture the output of the search in a file and then edit the file:
 
@@ -456,8 +456,8 @@ result in a file with contains of:
 >	objectClass ( 1.1.2.2.2 NAME 'myPerson'
 >		DESC 'my person'
 >		SUP inetOrgPerson
->		MUST ( 'myUniqueName' $ 'givenName' )
->		MAY 'myPhoto' )
+>		MUST ( myUniqueName $ givenName )
+>		MAY myPhoto )
 
 Save in an appropriately named file (e.g. {{F:my.schema}}).
 You may now include this file in your {{slapd.conf}}(5) file.

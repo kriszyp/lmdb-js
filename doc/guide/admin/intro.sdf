@@ -201,7 +201,7 @@ LDAPv3 adds the following features to LDAP:
  - Schema Discovery
 
 LDAPv2 is considered historical.  As deploying both LDAPv2 and
-LDAPv3 simultaneously can be quite problematic, LDAPv2 should should
+LDAPv3 simultaneously can be quite problematic, LDAPv2 should
 be avoided.
 
 
