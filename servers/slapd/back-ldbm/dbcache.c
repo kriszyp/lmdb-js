@@ -115,6 +115,7 @@ ldbm_cache_open(
 	li->li_dbcache[i].dbc_name = ch_strdup( buf );
 	li->li_dbcache[i].dbc_refcnt = 1;
 	li->li_dbcache[i].dbc_lastref = curtime;
+	li->li_dbcache[i].dbc_dirty = 0;
 #ifdef HAVE_ST_BLKSIZE
 	if ( stat( buf, &st ) == 0 ) {
 		li->li_dbcache[i].dbc_blksize = st.st_blksize;
@@ -144,8 +145,9 @@ ldbm_cache_close( Backend *be, DBCache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	if( li->li_dbwritesync ) {
+	if( li->li_dbwritesync && db->dbc_dirty ) {
 		ldbm_sync( db->dbc_db );
+		db->dbc_dirty = 0;
 	}
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
@@ -182,6 +184,7 @@ ldbm_cache_flush_all( Backend *be )
 			Debug( LDAP_DEBUG_TRACE, "ldbm flushing db (%s)\n",
 			    li->li_dbcache[i].dbc_name, 0, 0 );
 			ldbm_sync( li->li_dbcache[i].dbc_db );
+			li->li_dbcache[i].dbc_dirty = 0;
 			if ( li->li_dbcache[i].dbc_refcnt != 0 ) {
 				Debug( LDAP_DEBUG_TRACE,
 				       "refcnt = %d, couldn't close db (%s)\n",
@@ -242,6 +245,7 @@ ldbm_cache_store(
 		flags, 0, 0, 0, 0 );
 #endif /* LDBM_DEBUG */
 
+	db->dbc_dirty = 1;
 	rc = ldbm_store( db->dbc_db, key, data, flags );
 
 	return( rc );
@@ -255,6 +259,7 @@ ldbm_cache_delete(
 {
 	int	rc;
 
+	db->dbc_dirty = 1;
 	rc = ldbm_delete( db->dbc_db, key );
 
 	return( rc );
