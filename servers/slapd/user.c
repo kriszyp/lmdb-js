@@ -37,8 +37,8 @@
 void
 slap_init_user( char *user, char *group )
 {
-    uid_t	uid = (uid_t) -1;
-    gid_t	gid = (gid_t) -1;
+    uid_t	uid = (uid_t) 0;
+    gid_t	gid = (gid_t) 0;
 
     if ( user ) {
 	struct passwd *pwd;
@@ -56,7 +56,7 @@ slap_init_user( char *user, char *group )
 		       user, 0, 0 );
 		exit( 1 );
 	    }
-	    if ( uid >= 0 ) {
+	    if ( uid > 0 ) {
 		free( user );
 		user = (pwd != NULL ? ch_strdup( pwd->pw_name ) : NULL);
 	    } else {
@@ -104,7 +104,7 @@ slap_init_user( char *user, char *group )
     endgrent();
 #endif
 
-    if ( gid >= 0 ) {
+    if ( gid > 0 ) {
 	if ( setgid( gid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set real group id to %d\n",
 		   gid, 0, 0 );
@@ -119,7 +119,7 @@ slap_init_user( char *user, char *group )
 #endif
     }
 
-    if ( uid >= 0 ) {
+    if ( uid > 0 ) {
 	if ( setuid( uid ) != 0 ) {
 	    Debug( LDAP_DEBUG_ANY, "Could not set effective user id to %d\n",
 		   uid, 0, 0 );
