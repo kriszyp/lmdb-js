@@ -1,5 +1,21 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.8 Release Engineering
+	Fixed slapd empty OID value bug
+	Fixed slapd waitpid() bug
+	Fixed slapd gai_strerror() bug
+	Fixed back-ldap protocol versioning bug
+	Fixed back-passwd nbase bug
+	Fixed back-shell unbind response bug
+	Updated maildap
+	Updated ldaptcl
+	Build Environment
+		Updated top.mk
+	Documentation
+		Updated ldapdelete(1)
+		Updated ldapsearch(1)
+
+
 OpenLDAP 2.0.7 Release
 	Fixed -lldap TLS data ready bug (ITS#821)
 	Fixed -lldap abandon unsent op bug (ITS#837)
