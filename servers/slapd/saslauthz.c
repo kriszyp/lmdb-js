@@ -199,6 +199,8 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
 	  (nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
 
+	reg = &SaslRegexp[nSaslRegexp];
+
 	reg->sr_match = ch_strdup( match );
 	reg->sr_replace = ch_strdup( replace );
 
