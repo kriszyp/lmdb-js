@@ -67,7 +67,7 @@ bdb_cancel(
 	LDAP_LIST_FOREACH ( ps_list, &bdb->psearch_list, link ) {
 		if ( ps_list->o_connid == conn->c_connid ) {
 			if ( ps_list->o_msgid == id ) {
-				ps_list->o_cancel = LDAP_CANCEL_DONE;
+				ps_list->o_cancel = SLAP_CANCEL_DONE;
 				LDAP_LIST_REMOVE( ps_list, link );
 
 #if 0

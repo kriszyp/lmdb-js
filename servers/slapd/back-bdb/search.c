@@ -500,11 +500,11 @@ loop_begin:
 
 #ifdef LDAP_EXOP_X_CANCEL
 		if ( op->o_cancel ) {
-			assert( op->o_cancel == LDAP_CANCEL_REQ );
+			assert( op->o_cancel == SLAP_CANCEL_REQ );
 			rc = 0;
 			send_search_result( conn, op, LDAP_CANCELLED,
 					NULL, NULL, NULL, NULL, 0 );
-			op->o_cancel = LDAP_CANCEL_ACK;
+			op->o_cancel = SLAP_CANCEL_ACK;
 			goto done;
 		}
 #endif

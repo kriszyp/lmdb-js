@@ -1028,12 +1028,12 @@ operations_error:
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
 
 #ifdef LDAP_EXOP_X_CANCEL
-	if ( arg->co_op->o_cancel == LDAP_CANCEL_REQ ) {
+	if ( arg->co_op->o_cancel == SLAP_CANCEL_REQ ) {
 		arg->co_op->o_cancel = LDAP_TOO_LATE;
 	}
 
-	while ( arg->co_op->o_cancel != LDAP_CANCEL_NONE &&
-		arg->co_op->o_cancel != LDAP_CANCEL_DONE )
+	while ( arg->co_op->o_cancel != SLAP_CANCEL_NONE &&
+		arg->co_op->o_cancel != SLAP_CANCEL_DONE )
 	{
 		ldap_pvt_thread_yield();
 	}
@@ -1048,7 +1048,7 @@ operations_error:
 	LDAP_STAILQ_NEXT(arg->co_op, o_next) = NULL;
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-	if ( arg->co_op->o_cancel == LDAP_CANCEL_ACK )
+	if ( arg->co_op->o_cancel == SLAP_CANCEL_ACK )
 		goto co_op_free;
 #endif
 #ifdef LDAP_CLIENT_UPDATE

@@ -230,8 +230,8 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
 #ifdef LDAP_DEVEL
-#define LDAP_CONTROL_X_PERMISSIVE_MODIFY "1.2.840.113556.1.4.1413"
 #define LDAP_CONTROL_X_DOMAIN_SCOPE "1.2.840.113556.1.4.1339"
+#define LDAP_CONTROL_X_PERMISSIVE_MODIFY "1.2.840.113556.1.4.1413"
 #endif
 
 /* LDAP Unsolicited Notifications */
@@ -247,10 +247,10 @@ typedef struct ldapcontrol {
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
 #define LDAP_TAG_EXOP_MODIFY_PASSWD_GEN	((ber_tag_t) 0x80U)
 
+#define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
 #ifdef LDAP_DEVEL
 #define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
 #endif
-#define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OPERATIONAL_ATTRS "1.3.6.1.4.1.4203.1.5.1"  /* + */
@@ -502,11 +502,6 @@ typedef struct ldapcontrol {
 #define LDAP_NO_SUCH_OPERATION			0x111
 #define LDAP_TOO_LATE					0x112
 #define LDAP_CANNOT_CANCEL				0x113
-
-#define LDAP_CANCEL_NONE				0x00
-#define LDAP_CANCEL_REQ					0x01
-#define LDAP_CANCEL_ACK					0x02
-#define LDAP_CANCEL_DONE				0x03
 #endif
 
 #ifdef LDAP_CLIENT_UPDATE

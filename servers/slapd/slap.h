@@ -1663,7 +1663,11 @@ typedef struct slap_op {
 	ldap_pvt_thread_t	o_tid;	/* thread handling this op */
 
 	volatile sig_atomic_t o_abandon;	/* abandon flag */
-	volatile sig_atomic_t o_cancel;         /* cancel flag */
+	volatile sig_atomic_t o_cancel;		/* cancel flag */
+#define SLAP_CANCEL_NONE				0x00
+#define SLAP_CANCEL_REQ					0x01
+#define SLAP_CANCEL_ACK					0x02
+#define SLAP_CANCEL_DONE				0x03
 
 	char o_do_not_cache;	/* don't cache from this op */
 
