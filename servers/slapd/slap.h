@@ -242,7 +242,7 @@ typedef int slap_mr_normalize_func LDAP_P((
 /* Match (compare) function */
 typedef int slap_mr_match_func LDAP_P((
 	int *match,
-	unsigned use,
+	unsigned flags,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval * value,
@@ -250,7 +250,7 @@ typedef int slap_mr_match_func LDAP_P((
 
 /* Index generation function */
 typedef int slap_mr_indexer_func LDAP_P((
-	unsigned use,
+	unsigned flags,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
@@ -259,7 +259,7 @@ typedef int slap_mr_indexer_func LDAP_P((
 
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
-	unsigned use,
+	unsigned flags,
 	struct slap_syntax *syntax,	/* syntax of stored value */
 	struct slap_matching_rule *mr,
 	struct berval *prefix,
@@ -271,7 +271,8 @@ typedef struct slap_matching_rule {
 	unsigned				smr_usage;
 
 #define SLAP_MR_TYPE_MASK		0xFF00U
-#define SLAP_MR_SUBTYPE_MASK	0x00FFU
+#define SLAP_MR_SUBTYPE_MASK	0x00F0U
+#define SLAP_MR_USAGE			0x000FU
 
 #define SLAP_MR_NONE			0x0000U
 #define SLAP_MR_EQUALITY		0x0100U
@@ -279,11 +280,14 @@ typedef struct slap_matching_rule {
 #define SLAP_MR_SUBSTR			0x0400U
 #define SLAP_MR_EXT				0x0800U
 
-#define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0001U )
+#define SLAP_MR_EQUALITY_APPROX	( SLAP_MR_EQUALITY | 0x0010U )
 
-#define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0001U )
-#define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0002U )
-#define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0004U )
+#define SLAP_MR_SUBSTR_INITIAL	( SLAP_MR_SUBSTR | 0x0010U )
+#define SLAP_MR_SUBSTR_ANY		( SLAP_MR_SUBSTR | 0x0020U )
+#define SLAP_MR_SUBSTR_FINAL	( SLAP_MR_SUBSTR | 0x0040U )
+
+/* this is used to kludge objectClass testing */
+#define SLAP_MR_MODIFY_MATCHING 0x0001U
 
 	Syntax					*smr_syntax;
 	slap_mr_convert_func	*smr_convert;
@@ -382,6 +386,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_objectClass;
 
 	/* operational attributes */
+	AttributeDescription *si_ad_structuralObjectClass;
 	AttributeDescription *si_ad_creatorsName;
 	AttributeDescription *si_ad_createTimestamp;
 	AttributeDescription *si_ad_modifiersName;

@@ -678,6 +678,7 @@ LDAP_SLAPD_F (int) value_match LDAP_P((
 	int *match,
 	AttributeDescription *ad,
 	MatchingRule *mr,
+	unsigned flags,
 	struct berval *v1,
 	void *v2,
 	const char ** text ));

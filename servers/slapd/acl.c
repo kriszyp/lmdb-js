@@ -565,9 +565,9 @@ acl_mask(
 					/* target is attribute, check if the attribute value
 					 * is the op dn.
 					 */
-					rc = value_match(	&match, b->a_dn_at,
-										b->a_dn_at->ad_type->sat_equality,
-										val, &bv, &text );
+					rc = value_match( &match, b->a_dn_at,
+						b->a_dn_at->ad_type->sat_equality, 0,
+						val, &bv, &text );
 					/* on match error or no match, fail the ACL clause */
 					if (rc != LDAP_SUCCESS || match != 0 )
 						continue;
@@ -584,9 +584,10 @@ acl_mask(
 				/* target is attribute, check if the attribute value
 				 * is the op dn.
 				 */
-				rc = value_match(	&match, b->a_dn_at,
-									b->a_dn_at->ad_type->sat_equality,
-									val, &bv, &text );
+				rc = value_match( &match, b->a_dn_at,
+					b->a_dn_at->ad_type->sat_equality, 0,
+					val, &bv, &text );
+
 				/* on match error or no match, fail the ACL clause */
 				if (rc != LDAP_SUCCESS || match != 0 )
 					continue;

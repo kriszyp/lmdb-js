@@ -36,7 +36,6 @@ ldbm_back_attribute(
 	int          i, j, rc;
 	Attribute   *attr;
 	struct berval **v;
-	char *s;
 	const char *entry_at_name = entry_at->ad_cname->bv_val;
 
 	Debug( LDAP_DEBUG_ARGS,

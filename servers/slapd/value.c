@@ -125,12 +125,12 @@ value_match(
 	int *match,
 	AttributeDescription *ad,
 	MatchingRule *mr,
+	unsigned flags,
 	struct berval *v1, /* stored value */
 	void *v2, /* assertion */
 	const char ** text )
 {
 	int rc;
-	int usage = 0;
 	struct berval *nv1 = NULL;
 
 	if( !mr->smr_match ) {
@@ -146,7 +146,7 @@ value_match(
 		}
 	}
 
-	rc = (mr->smr_match)( match, usage,
+	rc = (mr->smr_match)( match, flags,
 		ad->ad_type->sat_syntax,
 		mr,
 		nv1 != NULL ? nv1 : v1,
@@ -184,8 +184,8 @@ int value_find(
 		int match;
 		const char *text;
 
-		rc = value_match( &match, ad, mr, vals[i],
-			nval == NULL ? val : nval, &text );
+		rc = value_match( &match, ad, mr, 0,
+			vals[i], nval == NULL ? val : nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {
 			return LDAP_SUCCESS;

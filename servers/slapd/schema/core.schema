@@ -77,6 +77,11 @@ attributetype ( 2.5.21.8 NAME 'matchingRuleUse'
 	EQUALITY objectIdentifierFirstComponentMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.31 USAGE directoryOperation )
 
+# From X.500(97?)
+attributetype ( 2.5.21.9 NAME 'structuralObjectClass'
+	EQUALITY objectIdentifierMatch
+	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
+	NO-USER-MODIFICATION SINGLE-VALUE USAGE directoryOperation )
 
 # LDAP Operational Attributes from RFC2252
 attributetype ( 1.3.6.1.4.1.1466.101.120.5 NAME 'namingContexts'

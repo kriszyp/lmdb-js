@@ -26,7 +26,7 @@ struct slap_internal_schema slap_schema;
 static int
 objectClassMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -37,7 +37,7 @@ objectClassMatch(
 	ObjectClass *asserted = oc_find( a->bv_val );
 
 	if( asserted == NULL ) {
-		if( OID_LEADCHAR( *value->bv_val ) ) {
+		if( OID_LEADCHAR( *a->bv_val ) ) {
 			/* OID form, return FALSE */
 			*matchp = 1;
 			return LDAP_SUCCESS;
@@ -52,15 +52,58 @@ objectClassMatch(
 		return SLAPD_COMPARE_UNDEFINED;
 	}
 
+	if( flags & SLAP_MR_MODIFY_MATCHING ) {
+		*matchp = ( asserted != oc );
+	} else {
+		*matchp = !is_object_subclass( asserted, oc );
+	}
+
 #if 0
-	Debug( LDAP_DEBUG_TRACE, "objectClassMatch(%s,%s)\n",
-		value->bv_val, a->bv_val, NULL );
+	Debug( LDAP_DEBUG_TRACE, "objectClassMatch(%s,%s) = %d\n",
+		value->bv_val, a->bv_val, *matchp );
 #endif
 
-	*matchp = !is_object_subclass( asserted, oc );
+	return LDAP_SUCCESS;
+}
 
-	Debug( LDAP_DEBUG_TRACE, "\treturns %d\n",
-		*matchp, NULL, NULL );
+#define structuralObjectClassIndexer NULL
+#define structuralObjectClassFilter NULL
+
+static int
+structuralObjectClassMatch(
+	int *matchp,
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	struct berval *a = (struct berval *) assertedValue;
+	ObjectClass *oc = oc_find( value->bv_val );
+	ObjectClass *asserted = oc_find( a->bv_val );
+
+	if( asserted == NULL ) {
+		if( OID_LEADCHAR( *a->bv_val ) ) {
+			/* OID form, return FALSE */
+			*matchp = 1;
+			return LDAP_SUCCESS;
+		}
+
+		/* desc form, return undefined */
+		return SLAPD_COMPARE_UNDEFINED;
+	}
+
+	if ( oc == NULL ) {
+		/* unrecognized stored value */
+		return SLAPD_COMPARE_UNDEFINED;
+	}
+
+	*matchp = ( asserted != oc );
+
+#if 0
+	Debug( LDAP_DEBUG_TRACE, "structuralObjectClassMatch(%s,%s) = %d\n",
+		value->bv_val, a->bv_val, *matchp );
+#endif
 
 	return LDAP_SUCCESS;
 }
@@ -89,6 +132,10 @@ struct slap_schema_ad_map {
 	{ "objectClass",
 		objectClassMatch, objectClassIndexer, objectClassFilter,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
+	{ "structuralObjectClass",
+		structuralObjectClassMatch,
+		structuralObjectClassIndexer, structuralObjectClassFilter,
+		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
 
 	/* user entry operational attributes */
 	{ "creatorsName", NULL, NULL, NULL,

@@ -91,7 +91,7 @@
 static int
 octetStringMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -111,7 +111,7 @@ octetStringMatch(
 
 /* Index generation function */
 int octetStringIndexer(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -164,7 +164,7 @@ int octetStringIndexer(
 
 /* Index generation function */
 int octetStringFilter(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -257,7 +257,7 @@ dnNormalize(
 static int
 dnMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -587,7 +587,7 @@ IA5StringNormalize(
 static int
 caseExactIA5Match(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -608,7 +608,7 @@ caseExactIA5Match(
 static int
 caseExactIA5SubstringsMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -732,7 +732,7 @@ done:
 
 /* Index generation function */
 int caseExactIA5Indexer(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -785,7 +785,7 @@ int caseExactIA5Indexer(
 
 /* Index generation function */
 int caseExactIA5Filter(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -831,7 +831,7 @@ int caseExactIA5Filter(
 static int
 caseIgnoreIA5Match(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -866,7 +866,7 @@ static char *strcasechr( const char *str, int c )
 static int
 caseIgnoreIA5SubstringsMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -991,7 +991,7 @@ done:
 
 /* Index generation function */
 int caseIgnoreIA5Indexer(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1047,7 +1047,7 @@ int caseIgnoreIA5Indexer(
 
 /* Index generation function */
 int caseIgnoreIA5Filter(
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
@@ -1151,7 +1151,7 @@ numericStringNormalize(
 static int
 objectIdentifierFirstComponentMatch(
 	int *matchp,
-	unsigned use,
+	unsigned flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
@@ -1182,7 +1182,7 @@ objectIdentifierFirstComponentMatch(
 
 	/* insert attributeTypes, objectclass check here */
 	if( OID_LEADCHAR(asserted->bv_val[0]) ) {
-		rc = objectIdentifierMatch( &match, use, syntax, mr, &oid, asserted );
+		rc = objectIdentifierMatch( &match, flags, syntax, mr, &oid, asserted );
 
 	} else {
 		char *stored = ch_malloc( oid.bv_len + 1 );

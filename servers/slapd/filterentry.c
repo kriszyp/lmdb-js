@@ -193,7 +193,7 @@ test_ava_filter(
 			int rc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr,
+			rc = value_match( &ret, a->a_desc, mr, 0,
 				a->a_vals[i], ava->aa_value,
 				&text );
 
@@ -344,7 +344,7 @@ test_substrings_filter(
 			int rc;
 			const char *text;
 
-			rc = value_match( &ret, a->a_desc, mr,
+			rc = value_match( &ret, a->a_desc, mr, 0,
 				a->a_vals[i], f->f_sub,
 				&text );
 
