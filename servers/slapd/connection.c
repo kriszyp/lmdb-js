@@ -1070,12 +1070,16 @@ operations_error:
 		goto co_op_free;
 #endif
 #ifdef LDAP_CLIENT_UPDATE
-	if ( ( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) )
+	if ( ( op->o_clientupdate_type & SLAP_LCUP_PERSIST ) ) {
+		sl_mem_detach( ctx, memctx );
 		goto no_co_op_free;
+	}
 #endif
 #ifdef LDAP_SYNC
-	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
+	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
+		sl_mem_detach( ctx, memctx );
 		goto no_co_op_free;
+	}
 #endif
 
 co_op_free:

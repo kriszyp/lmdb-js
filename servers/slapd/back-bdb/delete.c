@@ -487,10 +487,12 @@ return_results:
 	send_ldap_result( op, rs );
 
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
-        if ( rs->sr_err == LDAP_SUCCESS && !noop ) {
+	if ( rs->sr_err == LDAP_SUCCESS && !noop ) {
+		BEI(e) = eip;
 		LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
 		}
+		BEI(e) = NULL;
 	}
 #endif
 

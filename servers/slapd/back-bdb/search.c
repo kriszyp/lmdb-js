@@ -340,6 +340,10 @@ bdb_cancel( Operation *op, SlapReply *rs )
 				rs->sr_err = LDAP_CANCELLED;
 				send_ldap_result( ps_list, rs );
 
+				if ( ps_list->o_tmpmemctx ) {
+					sl_mem_destroy( NULL, ps_list->o_tmpmemctx );
+				}
+
 				slap_op_free ( ps_list );
 				return LDAP_SUCCESS;
 			}
@@ -972,7 +976,7 @@ id2entry_retry:
 		 * scope while we are looking at it, and unless we're using
 		 * BDB_HIER, its parents cannot be moved either.
 		 */
-		switch( op->ors_scope ) {
+		switch( sop->ors_scope ) {
 		case LDAP_SCOPE_BASE:
 			/* This is always true, yes? */
 			if ( id == base.e_id )

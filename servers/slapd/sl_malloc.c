@@ -18,7 +18,7 @@ struct slab_heap {
 	void *h_end;
 };
 
-static void
+void
 sl_mem_destroy(
 	void *key,
 	void *data
@@ -70,6 +70,20 @@ sl_mem_create(
 	sh->h_last = sh->h_base;
 	sh->h_end = (char *) sh->h_base + size;
 	return sh;
+}
+
+void
+sl_mem_detach(
+	void *ctx,
+	void *memctx
+)
+{
+	struct slab_heap *sh = memctx;
+	int size = sh->h_end - sh->h_base;
+
+	sh->h_base = ch_realloc( sh->h_base, size );
+
+	ldap_pvt_thread_pool_setkey( ctx, sl_mem_init, NULL, NULL );
 }
 
 void *

@@ -807,6 +807,8 @@ syncrepl_message_to_entry(
 	if ( *syncstate == LDAP_SYNC_PRESENT ) {
 		e = NULL;
 		goto done;
+	} else if ( *syncstate == LDAP_SYNC_DELETE ) {
+		goto done;
 	}
 
 	if ( *modlist == NULL ) {
@@ -917,11 +919,8 @@ syncrepl_entry(
 			return 0;
 	}
 
-	if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
-		attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID, syncUUID );
-	}
-
-	filterstr = (char *) sl_malloc( strlen("entryUUID=") + syncUUID->bv_len + 1, op->o_tmpmemctx ); 
+	filterstr = (char *) sl_malloc( strlen("entryUUID=") + syncUUID->bv_len + 1,
+									op->o_tmpmemctx ); 
 	strcpy( filterstr, "entryUUID=" );
 	strcat( filterstr, syncUUID->bv_val );
 
@@ -954,26 +953,27 @@ syncrepl_entry(
 
 	cb.sc_response = null_callback;
 
-	if ( si->syncUUID_ndn )
-		printf("syncUUID_ndn = %s\n", si->syncUUID_ndn );
+	rc = LDAP_SUCCESS;
+
+	if ( si->syncUUID_ndn ) {
+		op->o_req_dn = *si->syncUUID_ndn;
+		op->o_req_ndn = *si->syncUUID_ndn;
+		op->o_tag = LDAP_REQ_DELETE;
+		rc = be->be_delete( op, &rs );
+	}
 
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD :
 	case LDAP_SYNC_MODIFY :
 
-		rc = LDAP_SUCCESS;
-
-		if ( si->syncUUID_ndn ) {
-			op->o_req_dn = *si->syncUUID_ndn;
-			op->o_req_ndn = *si->syncUUID_ndn;
-			op->o_tag = LDAP_REQ_DELETE;
-			rc = be->be_delete( op, &rs );
-		}
-
 		if ( rc == LDAP_SUCCESS ||
 			 rc == LDAP_REFERRAL ||
 			 rc == LDAP_NO_SUCH_OBJECT ||
 			 rc == DB_NOTFOUND ) {
+
+			if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
+				attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID, syncUUID );
+			}
 			op->o_tag = LDAP_REQ_ADD;
 			op->ora_e = e;
 			op->o_req_dn = e->e_name;
@@ -1022,11 +1022,11 @@ syncrepl_entry(
 
 		si->e = NULL;
 		return 1;
+
 	case LDAP_SYNC_DELETE :
-		op->o_tag = LDAP_REQ_DELETE;
-		be->be_delete( op, &rs );
-		si->e = NULL;
+		/* Already deleted */
 		return 1;
+
 	default :
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
