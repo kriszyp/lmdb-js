@@ -3390,9 +3390,16 @@ ldap_X509dn2bv( void *x509_name, struct berval *bv, LDAPDN_rewrite_func *func,
 				goto get_oid;
 			newAVA->la_attr.bv_val = (char *)OBJ_nid2sn( n );
 			newAVA->la_attr.bv_len = strlen( newAVA->la_attr.bv_val );
+#ifdef HAVE_EBCDIC
+			newAVA->la_attr.bv_val = LDAP_STRDUP( newAVA->la_attr.bv_val );
+			__etoa( newAVA->la_attr.bv_val );
+#endif
 		} else {
 get_oid:		newAVA->la_attr.bv_val = oidptr;
 			newAVA->la_attr.bv_len = OBJ_obj2txt( oidptr, oidrem, obj, 1 );
+#ifdef HAVE_EBCDIC
+			__etoa( newAVA->la_attr.bv_val );
+#endif
 			oidptr += newAVA->la_attr.bv_len + 1;
 			oidrem -= newAVA->la_attr.bv_len + 1;
 
@@ -3468,6 +3475,9 @@ to_utf8:		rc = ldap_ucs_to_utf8s( &Val, csize, &newAVA->la_value );
 nomem:
 	for (;baseAVA < newAVA; baseAVA++) {
 		LDAP_FREE( baseAVA->la_value.bv_val );
+#ifdef HAVE_EBCDIC
+		if ( !func ) LDAP_FREE( baseAVA->la_attr.bv_val );
+#endif
 	}
 
 	if ( oidsize != 0 )
