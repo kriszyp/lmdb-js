@@ -203,7 +203,7 @@ ldbm_cache_open(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
-		   "ldbm_cache_open: opened %d\n", i ));
+		   "<= ldbm_cache_open: (opened %d)\n", i ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= ldbm_cache_open (opened %d)\n", i, 0, 0 );
 #endif
@@ -311,8 +311,13 @@ ldbm_cache_sync( Backend *be )
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		if ( li->li_dbcache[i].dbc_name != NULL && li->li_dbcache[i].dbc_dirty ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "dbcache", LDAP_LEVEL_DETAIL1, "ldbm_cache_sync: "
+				"ldbm syncing db (%s)\n", li->li_dbcache[i].dbc_name ));
+#else
 			Debug(	LDAP_DEBUG_TRACE, "ldbm syncing db (%s)\n",
 				li->li_dbcache[i].dbc_name, 0, 0 );
+#endif
 			ldbm_sync( li->li_dbcache[i].dbc_db );
 			li->li_dbcache[i].dbc_dirty = 0;
 		}
@@ -385,7 +390,12 @@ ldbm_cache_sync_daemon(
 	Backend *be = (Backend *)be_ptr;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "dbcache", LDAP_LEVEL_ARGS, "ldbm_cache_sync_daemon:"
+		" synchronizer starting for %s\n", li->li_directory ));
+#else
 	Debug( LDAP_DEBUG_ANY, "synchronizer starting for %s\n", li->li_directory, 0, 0 );
+#endif
   
 	while (!li->li_dbshutdown) {
 		int i = li->li_dbsyncwaitn;
@@ -393,18 +403,33 @@ ldbm_cache_sync_daemon(
 		sleep( li->li_dbsyncfreq );
 
 		while (i && ldap_pvt_thread_pool_backload(&connection_pool) != 0) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "dbcache", LDAP_LEVEL_DETAIL1, "ldbm_cache_sync_daemon:"
+				" delay syncing %s\n", li->li_directory ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "delay syncing %s\n", li->li_directory, 0, 0 );
+#endif
 			sleep(li->li_dbsyncwaitinterval);
 			i--;
 		}
 
 		if (!li->li_dbshutdown) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "dbcache", LDAP_LEVEL_DETAIL1, "ldbm_cache_sync_daemon:"
+				" syncing %s\n", li->li_directory ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "syncing %s\n", li->li_directory, 0, 0 );
+#endif
 			ldbm_cache_sync( be );
 		}
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "dbcache", LDAP_LEVEL_DETAIL1, "ldbm_cache_sync_daemon:"
+				" synchronizer stopping\n" ));
+#else
   	Debug( LDAP_DEBUG_ANY, "synchronizer stopping\n", 0, 0, 0 );
+#endif
   
 	return NULL;
 }

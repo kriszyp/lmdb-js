@@ -30,7 +30,7 @@ has_children(
 	ldbm_datum_init( key );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+	LDAP_LOG(( "id2children", LDAP_LEVEL_ENTRY,
 		   "has_children: enter %ld\n", p->e_id ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> has_children( %ld )\n", p->e_id , 0, 0 );
@@ -40,7 +40,7 @@ has_children(
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
+		LDAP_LOG(( "id2children", LDAP_LEVEL_ERR,
 			   "has_children: could not open \"dn2id%s\"\n",
 			   LDBM_SUFFIX ));
 #else
@@ -68,7 +68,7 @@ has_children(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+	LDAP_LOG(( "id2children", LDAP_LEVEL_ENTRY,
 		   "has_children: id (%ld) %s children.\n",
 		   p->e_id, rc ? "has" : "doesn't have" ));
 #else
