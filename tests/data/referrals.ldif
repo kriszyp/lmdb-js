@@ -31,7 +31,7 @@ cn: Directory Manager
 cn: Dir Man
 sn: Manager
 description: Manager of the directory
-userpassword: secret
+userpassword:: c2VjcmV0
 objectclass: person
 
 dn: cn=Alias, o=University of Michigan, c=US

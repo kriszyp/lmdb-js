@@ -74,7 +74,7 @@ postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann
  Arbor, MI 48103-4943
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
 uid: bjensen
-userpassword: bjensen
+userpassword:: YmplbnNlbg==
 mail: bjensen@mailgw.umich.edu
 homepostaladdress: 123 Wesley $ Ann Arbor, MI 48103
 krbname: bjensen@umich.edu
@@ -101,7 +101,7 @@ cn: Biiff Jensen
 sn: Jensen
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
 uid: bjorn
-userpassword: bjorn
+userpassword:: Ympvcm4=
 krbname: jdoe@umich.edu
 nobatchupdates: TRUE
 onvacation: FALSE
@@ -189,7 +189,7 @@ postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
 uid: jaj
 krbname: jaj@umich.edu
-userpassword: jaj
+userpassword:: amFq
 nobatchupdates: TRUE
 onvacation: FALSE
 homepostaladdress: 3882 Beverly Rd. $ Ann Arbor, MI 48105
@@ -313,7 +313,7 @@ cn: Directory Manager
 cn: Dir Man
 sn: Manager
 description: Manager of the directory
-userpassword: secret
+userpassword:: c2VjcmV0
 krbname: bjensen@umich.edu
 
 dn: cn=Mark Elliot, ou=Alumni Association, ou=People, o=University of Michigan
