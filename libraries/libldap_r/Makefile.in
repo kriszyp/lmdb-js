@@ -59,7 +59,7 @@ CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
 .links :
 	@for i in $(XXSRCS); do \
 		$(RM) $$i ; \
-		$(LN_S) $(XXDIR)/$$i . ; \
+		$(LN_S) $(srcdir)/$(XXDIR)/$$i . ; \
 	done
 	touch .links
 

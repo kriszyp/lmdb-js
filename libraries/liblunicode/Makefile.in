@@ -22,7 +22,7 @@ ucgendat: $(LIBRARY) ucgendat.o
 .links :
 	@for i in $(XXSRCS) $(XXHEADERS); do \
 		$(RM) $$i ; \
-		$(LN_S) $(XXDIR)/$$i . ; \
+		$(LN_S) $(srcdir)/$(XXDIR)/$$i . ; \
 	done
 	touch .links
 
