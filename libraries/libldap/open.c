@@ -321,6 +321,14 @@ ldap_int_open_connection(
 		INT_MAX, (void *)"ldap_" );
 #endif
 
+#ifdef HAVE_CYRUS_SASL
+	/* establish Cyrus SASL context prior to starting TLS so
+		that SASL EXTERNAL might be used */
+	if( sasl_host != NULL ) {
+		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
+	}
+#endif
+
 #ifdef HAVE_TLS
 	if (ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ||
 		strcmp( srv->lud_scheme, "ldaps" ) == 0 )
@@ -334,12 +342,6 @@ ldap_int_open_connection(
 		if (rc != LDAP_SUCCESS) {
 			return -1;
 		}
-	}
-#endif
-
-#ifdef HAVE_CYRUS_SASL
-	if( sasl_host != NULL ) {
-		ldap_int_sasl_open( ld, conn, sasl_host, sasl_ssf );
 	}
 #endif
 
