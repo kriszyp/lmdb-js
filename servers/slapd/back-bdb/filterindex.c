@@ -191,12 +191,18 @@ presence_candidates(
 	AttributeDescription *desc,
 	ID *ids )
 {
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db;
 	int rc;
 	slap_mask_t mask;
 	struct berval prefix = {0};
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_presence_candidates\n", 0, 0, 0 );
+
+	if( desc == slap_schema.si_ad_objectClass ) {
+		BDB_IDL_ALL( bdb, ids );
+		return 0;
+	}
 
 	rc = bdb_index_param( be, desc, LDAP_FILTER_PRESENT,
 		&db, &mask, &prefix );

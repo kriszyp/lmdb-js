@@ -223,6 +223,10 @@ presence_candidates(
 
 	idl = idl_allids( be );
 
+	if( desc == slap_schema.si_ad_objectClass ) {
+		return idl;
+	}
+
 	rc = index_param( be, desc, LDAP_FILTER_PRESENT,
 		&dbname, &mask, &prefix );
 
