@@ -54,7 +54,7 @@ OBJS	= main.o globals.o config.o daemon.o \
 		backglue.o operational.o matchedValues.o cancel.o syncrepl.o \
 		backover.o ctxcsn.o ldapsync.o sessionlog.o \
 		slapadd.o slapcat.o slapcommon.o slapdn.o slapindex.o \
-		slappasswd.o slaptest.c \
+		slappasswd.o slaptest.o \
 		$(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include -I$(srcdir)/slapi
