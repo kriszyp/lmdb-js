@@ -259,10 +259,10 @@ do_search( LDAP *ld, char *buf )
 {
 	char		*dn, *rdn;
 	char		**title;
-	int		rc, matches, i, ufn;
+	int		rc = 0, matches = 0, i, ufn;
 	struct timeval	tv;
 	LDAPFiltDesc	*fd;
-	LDAPFiltInfo	*fi;
+	LDAPFiltInfo	*fi = NULL;
 	LDAPMessage	*result, *e;
 	static char	*attrs[] = { "cn", "title", "objectClass", "joinable",
 #ifdef FINGER_SORT_ATTR
