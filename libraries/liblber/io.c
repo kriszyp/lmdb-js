@@ -34,8 +34,6 @@
 
 #include "lber-int.h"
 
-#define EXBUFSIZ	1024
-
 static ber_slen_t
 BerRead(
 	Sockbuf *sb,
@@ -123,7 +121,7 @@ ber_write(
 int
 ber_realloc( BerElement *ber, ber_len_t len )
 {
-	ber_len_t	need, have, total;
+	ber_len_t	total;
 	Seqorset	*s;
 	long		off;
 	char		*oldbuf;
@@ -134,9 +132,9 @@ ber_realloc( BerElement *ber, ber_len_t len )
 	assert( BER_VALID( ber ) );
 
 	total = ber_pvt_ber_total( ber );
-	have = total / EXBUFSIZ;
-	need = (len < EXBUFSIZ ? 1 : (len + (EXBUFSIZ - 1)) / EXBUFSIZ);
-	total = have * EXBUFSIZ + need * EXBUFSIZ;
+
+#define EXBUFSIZ	1000
+	total += len < EXBUFSIZ ? EXBUFSIZ : len;
 
 	oldbuf = ber->ber_buf;
 
