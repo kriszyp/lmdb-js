@@ -78,19 +78,19 @@ CFG=setup - Win32 Debug
 
 # Begin Source File
 
-SOURCE=.\lber_types.h.nt
+SOURCE=.\lber_types.nt
 # End Source File
 # Begin Source File
 
-SOURCE=.\ldap_config.h.nt
+SOURCE=.\ldap_config.nt
 # End Source File
 # Begin Source File
 
-SOURCE=.\ldap_features.h.nt
+SOURCE=.\ldap_features.nt
 # End Source File
 # Begin Source File
 
-SOURCE=.\portable.h.nt
+SOURCE=.\portable.nt
 # End Source File
 # Begin Source File
 
