@@ -256,23 +256,34 @@ main(int argc, char **argv)
 
 	if ( ( authmethod == LDAP_AUTH_KRBV4 ) || ( authmethod ==
 			LDAP_AUTH_KRBV41 ) ) {
-		if( version != LDAP_VERSION2 ) {
+		if( version > LDAP_VERSION2 ) {
 			fprintf( stderr, "Kerberos requires LDAPv2\n" );
 			return( EXIT_FAILURE );
 		}
+		version = LDAP_VERSION2;
 	}
 	else if ( authmethod == LDAP_AUTH_SASL ) {
-		if( version != LDAP_VERSION3 ) {
+		if( version != -1 || version != LDAP_VERSION3 ) {
 			fprintf( stderr, "SASL requires LDAPv3\n" );
 			return( EXIT_FAILURE );
 		}
+		version = LDAP_VERSION3;
 	}
 
 	if( manageDSAit ) {
-		if( version != LDAP_VERSION3 ) {
+		if( version != -1 || version != LDAP_VERSION3 ) {
 			fprintf(stderr, "manage DSA control requires LDAPv3\n");
 			return EXIT_FAILURE;
 		}
+		version = LDAP_VERSION3;
+	}
+
+	if( use_tls ) {
+		if( version != -1 || version != LDAP_VERSION3 ) {
+			fprintf(stderr, "Start TLS requires LDAPv3\n");
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION3;
 	}
 
     if (newSuperior != NULL) {
@@ -283,6 +294,7 @@ main(int argc, char **argv)
 			usage( argv[0] );
 			return( EXIT_FAILURE );
 		}
+		version = LDAP_VERSION3;
     }
     
     havedn = 0;

@@ -302,6 +302,7 @@ main( int argc, char *argv[] )
 	/* don't chase referrals */
 	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
+	/* LDAPv3 only */
 	version = 3;
 	rc = ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version );
 
@@ -448,5 +449,5 @@ main( int argc, char *argv[] )
 	/* disconnect from server */
 	ldap_unbind (ld);
 
-	return ( EXIT_SUCCESS );
+	return EXIT_SUCCESS;
 }
