@@ -13,6 +13,10 @@ SUBDIRS= include libraries clients servers tests doc
 CLEANDIRS= contrib
 INSTALLDIRS= 
 
+libraries: include
+clients servers: libraries
+tests: clients servers
+
 makefiles:	FORCE
 	./config.status
 
