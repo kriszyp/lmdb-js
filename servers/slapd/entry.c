@@ -488,8 +488,8 @@ int entry_encode(Entry *e, struct berval **bv)
  * All we have to do is add the buffer address to all of the
  * stored offsets. We also must lookup the stored attribute names
  * to get AttributeDescriptions. To detect if the attributes of
- * an Entry are later modified, we also store the address of the
- * end of this block in e_private.
+ * an Entry are later modified, we note that e->e_attr is always
+ * a constant offset from (e).
  *
  * Note: everything is stored in a single contiguous block, so
  * you can not free individual attributes or names from this
@@ -516,7 +516,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	    "entry_decode: \"%s\"\n",
 	    x->e_dn, 0, 0 );
 #endif
-	x->e_private = bv->bv_val + bv->bv_len;
+	x->e_private = NULL;
 	if (x->e_attrs)
 		x->e_attrs = (Attribute *)((long)x->e_attrs+base);
 	for (a=x->e_attrs; a; a=a->a_next) {

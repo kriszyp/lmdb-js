@@ -59,7 +59,7 @@ main( int argc, char **argv )
 		}
 
 		data = entry2str( e, &len );
-		entry_free( e );
+		be_entry_release_r( be, 0L, 0L, e );
 
 		if ( data == NULL ) {
 			printf("# bad data for entry id=%08lx\n\n", (long) id );

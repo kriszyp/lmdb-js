@@ -107,6 +107,7 @@ bdb_dn2idl(
  * entry.c
  */
 int bdb_entry_return( BackendDB *be, Entry *e );
+int bdb_entry_release( BackendDB *, Connection *, Operation *, Entry *, int );
 
 /*
  * error.c

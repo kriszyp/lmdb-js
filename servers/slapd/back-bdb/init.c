@@ -128,7 +128,6 @@ bdb_db_open( BackendDB *be )
 	} else {
 		flags |= DB_INIT_CDB;
 		bdb->bi_txn_cp = 0;
-		bdb->bi_dbenv->set_lk_detect(bdb->bi_dbenv, DB_LOCK_DEFAULT);
 	}
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0] );
@@ -385,7 +384,7 @@ bdb_initialize(
 	bi->bi_acl_attribute = bdb_attribute;
 	bi->bi_chk_referrals = bdb_referrals;
 
-	bi->bi_entry_release_rw = 0;
+	bi->bi_entry_release_rw = bdb_entry_release;
 
 	/*
 	 * hooks for slap tools
