@@ -76,10 +76,13 @@ See the "OpenLDAP's Administrator's Guide" for details.
 .B allow <features>
 Specify a set of features (separated by white space) to
 allow (default none).
-.B tls_2_anon
-allows Start TLS to force session to anonymous status (see also
-.B disallow
-.BR tls_authc ).
+.B bind_v2
+allows acceptance of LDAPv2 bind requests.
+.B bind_anon_cred
+allows anonymous bind creditials are not empty (e.g.
+when DN is empty).
+.B bind_anon_dn
+allows unauthenticated (anonymous) bind when DN is not empty.
 .TP
 .B argsfile <filename>
 The ( absolute ) name of a file that will hold the 
@@ -131,22 +134,17 @@ non-base search request with an empty base DN.
 .B disallow <features>
 Specify a set of features (separated by white space) to
 disallow (default none).
-.B bind_v2
-disables acceptance of LDAPv2 bind requests.
 .B bind_anon
 disables acceptance of anonymous bind requests.
-.B bind_anon_cred
-disables anonymous bind creditials are not empty (e.g.
-when DN is empty).
-.B bind_anon_dn
-disables anonymous bind when DN is not empty.
 .B bind_simple
 disables simple (bind) authentication.
 .B bind_krbv4
 disables Kerberos V4 (bind) authentication.
+.B tls_2_anon
+disables Start TLS from forcing session to anonymous status (see also
+.BR tls_authc ).
 .B tls_authc
 disables StartTLS if authenticated (see also
-.B allow
 .BR tls_2_anon ).
 .TP
 .B idletimeout <integer>
