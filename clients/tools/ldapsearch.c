@@ -1543,6 +1543,7 @@ print_entry(
 			}
 			ber_bvecfree( bvals );
 		}
+		ldap_memfree( a );
 	}
 
 	if( ber != NULL ) {
