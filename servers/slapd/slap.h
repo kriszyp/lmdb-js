@@ -364,8 +364,8 @@ typedef struct slap_object_class {
  * represents a recognized attribute description ( type + options )
  */
 typedef struct slap_attr_desc {
-	struct berval *ad_cname;	/* canonical name */
-	AttributeType *ad_type;		/* NULL if unknown */
+	struct berval *ad_cname;	/* canonical name, must be specified */
+	AttributeType *ad_type;		/* attribute type, must be specified */
 	char *ad_lang;				/* NULL if no language tags */
 	unsigned ad_flags;
 #define SLAP_DESC_NONE		0x0U
