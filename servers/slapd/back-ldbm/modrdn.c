@@ -82,12 +82,14 @@ ldbm_back_modrdn(
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		"ldbm_back_modrdn: dn: %s newSuperior=%s\n", 
 		dn->bv_len ? dn->bv_val : "NULL",
-		newSuperior->bv_len ? newSuperior->bv_val : "NULL" ));
+		( newSuperior && newSuperior->bv_len )
+			? newSuperior->bv_val : "NULL" ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"==>ldbm_back_modrdn: dn: %s newSuperior=%s\n", 
 		dn->bv_len ? dn->bv_val : "NULL",
-		newSuperior->bv_len ? newSuperior->bv_val : "NULL", 0 );
+		( newSuperior && newSuperior->bv_len )
+			? newSuperior->bv_val : "NULL", 0 );
 #endif
 
 	/* get entry with writer lock */
@@ -272,11 +274,12 @@ ldbm_back_modrdn(
 	if ( newSuperior != NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "ldbm_back_modrdn: new parent \"%s\" requested\n", newSuperior ));
+			"ldbm_back_modrdn: new parent \"%s\" requested\n",
+			newSuperior->bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE, 
 			"ldbm_back_modrdn: new parent \"%s\" requested...\n",
-			newSuperior, 0, 0 );
+			newSuperior->bv_val, 0, 0 );
 #endif
 
 		np_dn = ch_strdup( newSuperior->bv_val );
@@ -286,13 +289,15 @@ ldbm_back_modrdn(
 		/* newSuperior == oldParent? */
 		if ( strcmp( p_ndn, np_ndn ) == 0 ) {
 #ifdef NEW_LOGGING
-			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_back_modrdn: new parent\"%s\" seems to be the same as the old parent \"%s\"\n",
-				   newSuperior, p_dn ));
+			LDAP_LOG(( "backend", LDAP_LEVEL_INFO, "ldbm_back_modrdn: "
+				"new parent\"%s\" seems to be the same as the "
+				"old parent \"%s\"\n",
+				newSuperior->bv_val, p_dn ));
 #else
-			Debug( LDAP_DEBUG_TRACE, 
-			       "ldbm_back_modrdn: new parent \"%s\" seems to be the same as old parent \"%s\"...\n",
-			       newSuperior, p_dn, 0 );
+			Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: "
+				"new parent\"%s\" seems to be the same as the "
+				"old parent \"%s\"\n",
+				newSuperior->bv_val, p_dn, 0 );
 #endif
 
 			newSuperior = NULL; /* ignore newSuperior */
@@ -307,11 +312,11 @@ ldbm_back_modrdn(
 			if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
-					   "ldbm_back_modrdn: newSup(ndn=%s) not found.\n", np_ndn ));
+					"ldbm_back_modrdn: newSup(ndn=%s) not found.\n", np_ndn ));
 #else
 				Debug( LDAP_DEBUG_TRACE,
-				       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
-				       np_ndn, 0, 0);
+				    "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
+				    np_ndn, 0, 0);
 #endif
 
 				send_ldap_result( conn, op, LDAP_OTHER,
@@ -321,12 +326,12 @@ ldbm_back_modrdn(
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-				   "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
-				   np, np->e_id ));
+				"ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
+				np, np->e_id ));
 #else
 			Debug( LDAP_DEBUG_TRACE,
-			       "ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
-			       np, np->e_id, 0 );
+				"ldbm_back_modrdn: wr to new parent OK np=%p, id=%ld\n",
+				np, np->e_id, 0 );
 #endif
 
 			/* check newSuperior for "children" acl */
