@@ -167,14 +167,6 @@ SOURCE=.\delete.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\disptmpl.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\disptmpl.h
-# End Source File
-# Begin Source File
-
 SOURCE=.\dn.c
 # End Source File
 # Begin Source File
@@ -336,14 +328,6 @@ SOURCE=.\sort.c
 # Begin Source File
 
 SOURCE=.\sortctrl.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\srchpref.c
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\srchpref.h
 # End Source File
 # Begin Source File
 

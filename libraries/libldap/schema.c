@@ -20,8 +20,8 @@
 
 #include <ldap_schema.h>
 
-static LDAP_CONST char *
-choose_name( char *names[], LDAP_CONST char *fallback )
+static const char *
+choose_name( char *names[], const char *fallback )
 {
 	return( (names != NULL && names[0] != NULL) ? names[0] : fallback );
 }
@@ -296,7 +296,7 @@ print_extensions(safe_string *ss, LDAPSchemaExtensionItem **extensions)
 }
 
 char *
-ldap_syntax2str( const LDAPSyntax * syn )
+ldap_syntax2str( LDAPSyntax * syn )
 {
 	safe_string * ss;
 	char * retstring;
@@ -328,7 +328,7 @@ ldap_syntax2str( const LDAPSyntax * syn )
 }
 
 char *
-ldap_matchingrule2str( const LDAPMatchingRule * mr )
+ldap_matchingrule2str( LDAPMatchingRule * mr )
 {
 	safe_string * ss;
 	char * retstring;
@@ -377,7 +377,7 @@ ldap_matchingrule2str( const LDAPMatchingRule * mr )
 }
 
 char *
-ldap_matchingruleuse2str( const LDAPMatchingRuleUse * mru )
+ldap_matchingruleuse2str( LDAPMatchingRuleUse * mru )
 {
 	safe_string * ss;
 	char * retstring;
@@ -426,7 +426,7 @@ ldap_matchingruleuse2str( const LDAPMatchingRuleUse * mru )
 }
 
 char *
-ldap_objectclass2str( const LDAPObjectClass * oc )
+ldap_objectclass2str( LDAPObjectClass * oc )
 {
 	safe_string * ss;
 	char * retstring;
@@ -505,7 +505,7 @@ ldap_objectclass2str( const LDAPObjectClass * oc )
 }
 
 char *
-ldap_attributetype2str( const LDAPAttributeType * at )
+ldap_attributetype2str(  LDAPAttributeType * at )
 {
 	safe_string * ss;
 	char * retstring;
@@ -646,7 +646,7 @@ struct token {
 };
 
 static int
-get_token(const char ** sp, char ** token_val)
+get_token( const char ** sp, char ** token_val )
 {
 	int kind;
 	const char * p;
@@ -1083,7 +1083,10 @@ ldap_syntax_free( LDAPSyntax * syn )
 }
 
 LDAPSyntax *
-ldap_str2syntax( const char * s, int * code, const char ** errp, const int flags )
+ldap_str2syntax( LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags )
 {
 	int kind;
 	const char * ss = s;
@@ -1222,7 +1225,10 @@ ldap_matchingrule_free( LDAPMatchingRule * mr )
 }
 
 LDAPMatchingRule *
-ldap_str2matchingrule( const char * s, int * code, const char ** errp, const int flags )
+ldap_str2matchingrule( LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags )
 {
 	int kind;
 	const char * ss = s;
@@ -1413,7 +1419,10 @@ ldap_matchingruleuse_free( LDAPMatchingRuleUse * mru )
 }
 
 LDAPMatchingRuleUse *
-ldap_str2matchingruleuse( const char * s, int * code, const char ** errp, const int flags )
+ldap_str2matchingruleuse( LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags )
 {
 	int kind;
 	const char * ss = s;
@@ -1607,7 +1616,10 @@ ldap_attributetype_free(LDAPAttributeType * at)
 }
 
 LDAPAttributeType *
-ldap_str2attributetype( const char * s, int * code, const char ** errp, const int flags )
+ldap_str2attributetype( LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags )
 {
 	int kind;
 	const char * ss = s;
@@ -1982,7 +1994,10 @@ ldap_objectclass_free(LDAPObjectClass * oc)
 }
 
 LDAPObjectClass *
-ldap_str2objectclass( const char * s, int * code, const char ** errp, const int flags )
+ldap_str2objectclass( LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags )
 {
 	int kind;
 	const char * ss = s;

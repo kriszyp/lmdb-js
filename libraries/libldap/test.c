@@ -35,13 +35,15 @@
 
 /* local functions */
 #ifndef HAVE_GETLINE
-static char *getline LDAP_P(( char *line, int len, FILE *fp, char *prompt ));
+static char *getline LDAP_P(( char *line, int len, FILE *fp, const char *prompt ));
 #endif
-static char **get_list LDAP_P(( char *prompt ));
-static int file_read LDAP_P(( char *path, struct berval *bv ));
-static LDAPMod **get_modlist LDAP_P(( char *prompt1, char *prompt2, char *prompt3 ));
+static char **get_list LDAP_P(( const char *prompt ));
+static int file_read LDAP_P(( const char *path, struct berval *bv ));
+static LDAPMod **get_modlist LDAP_P(( const char *prompt1,
+	const char *prompt2, const char *prompt3 ));
 static void handle_result LDAP_P(( LDAP *ld, LDAPMessage *lm ));
-static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm, char *s ));
+static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm,
+	const char *s ));
 static void print_search_entry LDAP_P(( LDAP *ld, LDAPMessage *res ));
 static void free_list LDAP_P(( char **list ));
 
@@ -51,7 +53,7 @@ static char *dnsuffix;
 
 #ifndef HAVE_GETLINE
 static char *
-getline( char *line, int len, FILE *fp, char *prompt )
+getline( char *line, int len, FILE *fp, const char *prompt )
 {
 	printf(prompt);
 
@@ -65,7 +67,7 @@ getline( char *line, int len, FILE *fp, char *prompt )
 #endif
 
 static char **
-get_list( char *prompt )
+get_list( const char *prompt )
 {
 	static char	buf[256];
 	int		num;
@@ -111,7 +113,7 @@ free_list( char **list )
 
 
 static int
-file_read( char *path, struct berval *bv )
+file_read( const char *path, struct berval *bv )
 {
 	FILE		*fp;
 	ber_slen_t	rlen;
@@ -157,7 +159,10 @@ file_read( char *path, struct berval *bv )
 
 
 static LDAPMod **
-get_modlist( char *prompt1, char *prompt2, char *prompt3 )
+get_modlist(
+	const char *prompt1,
+	const char *prompt2,
+	const char *prompt3 )
 {
 	static char	buf[256];
 	int		num;
@@ -802,7 +807,7 @@ handle_result( LDAP *ld, LDAPMessage *lm )
 }
 
 static void
-print_ldap_result( LDAP *ld, LDAPMessage *lm, char *s )
+print_ldap_result( LDAP *ld, LDAPMessage *lm, const char *s )
 {
 	ldap_result2error( ld, lm, 1 );
 	ldap_perror( ld, s );

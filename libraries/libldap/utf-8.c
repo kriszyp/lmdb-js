@@ -60,7 +60,7 @@ ber_len_t ldap_utf8_chars( const char * p )
 
 	for( ; *p ; LDAP_UTF8_INCR(p) ) {
 		chars++;
-	};
+	}
 
 	return chars;
 }
