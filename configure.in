@@ -2169,14 +2169,6 @@ if test $ol_with_cyrus_sasl != no ; then
 				[ol_link_sasl="-lsasl"])])
 	fi
 
-	if test $ol_link_sasl = "-lsasl2"; then
-		OL_SASL2_COMPAT
-
-		if test $ol_cv_sasl2_compat = no ; then
-			ol_link_sasl=no
-			AC_MSG_ERROR(SASL: Cyrus SASL2 version obsolete)
-		fi
-	fi
 	if test $ol_link_sasl = no ; then
 		if test $ol_with_cyrus_sasl != auto ; then
 			AC_MSG_ERROR([Could not locate Cyrus SASL])
@@ -2188,6 +2180,12 @@ if test $ol_with_cyrus_sasl != no ; then
 			fi
 		fi
 	else
+		OL_SASL2_COMPAT
+		if test $ol_cv_sasl2_compat = no ; then
+			ol_link_sasl=no
+			AC_MSG_ERROR(SASL: Cyrus SASL2 version obsolete)
+		fi
+
 		AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
 		SASL_LIBS="$ol_link_sasl"
 		if test $ol_enable_spasswd != no ; then
