@@ -553,25 +553,24 @@ idl_insert_key(
 
 #ifndef USE_INDIRECT_NIDS
 	/* select the block to try inserting into *//* XXX linear search XXX */
-	for ( i = 0; !ID_BLOCK_NOID(idl, i) && id > ID_BLOCK_ID(idl, i); i++ )
+	for ( i = 0; !ID_BLOCK_NOID(idl, i) && id >= ID_BLOCK_ID(idl, i); i++ )
 		;	/* NULL */
 #else
 	i = idl_find(idl, id);
-	if (ID_BLOCK_ID(idl, i) < id)
+	if (ID_BLOCK_ID(idl, i) <= id)
 		i++;
 #endif
-	/* The ID already exists in the IDL, no insert needed */
-	if (ID_BLOCK_ID(idl, i) == id) {
-		idl_free( idl );
-		return 0;
-	}
-
 	if ( i != 0 ) {
 		i--;
 		first = 0;
 	} else {
 		first = 1;
 	}
+
+	/* At this point, the following condition must be true:
+	 * ID_BLOCK_ID(idl, i) <= id && id < ID_BLOCK_ID(idl, i+1)
+	 * except when i is the first or the last block.
+	 */
 
 	/* get the block */
 	cont_alloc( &k2, &key );
