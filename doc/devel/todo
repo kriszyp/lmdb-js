@@ -54,8 +54,9 @@ Implement LDAPprep and SASLprep
 Implement additional matching rules (RFC 3698)
 Add dumpasn1 logging support
 Add tests to test suite
-Convert utfconv.txt into man page(s).
+Add jail(2) support
 Recode linked-list structs to use <ldap_queue.h> macros
+Convert utfconv.txt into man page(s).
 Update any manual page
 
 
