@@ -387,9 +387,11 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 		return( -1 );
 	}
 
+	memset( &reqber, '\0', sizeof(reqber) );
 	reqber.ber_valid = LBER_VALID_BERELEMENT;
 	reqber.ber_buf = reqber.ber_ptr = request->ber_buf;
 	reqber.ber_end = request->ber_ptr;
+	reqber.ber_debug = ber_int_debug;
 
 	c_time = time( NULL );
 
