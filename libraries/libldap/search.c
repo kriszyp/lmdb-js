@@ -92,7 +92,7 @@ ldap_search_ext(
 	 * otherwise, use default.
 	 */
 	timelimit = (timeout != NULL)
-			?  timelimit = timeout->tv_sec
+			?  timeout->tv_sec
 			: -1;
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
