@@ -157,15 +157,15 @@ ldap_send_entry(
 	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
-	for (a = ldap_first_attribute(lc->ld, e, &ber); a;
-		a = ldap_next_attribute(lc->ld, e, ber)) {
+	for (	a = ldap_first_attribute(lc->ld, e, &ber);
+			a != NULL;
+			a = ldap_next_attribute(lc->ld, e, ber))
+	{
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
+		if (attr == NULL)
+			continue;
 		attr->a_next = 0;
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* FIXME: we assume here that the local server knows about
-		 * all the attributes that the remote server might send.
-		 * How should this really be handled?
-		 */
 		slap_str2ad(a, &attr->a_desc, &text);
 #else
 		attr->a_type = ch_strdup(a);
@@ -181,7 +181,9 @@ ldap_send_entry(
 	for (;ent.e_attrs;) {
 		attr=ent.e_attrs;
 		ent.e_attrs = attr->a_next;
-#ifndef SLAPD_SCHEMA_NOT_COMPAT
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		ad_free(attr->a_desc, 1);
+#else
 		free(attr->a_type);
 #endif
 		if (attr->a_vals != &dummy)
