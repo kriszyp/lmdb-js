@@ -774,6 +774,11 @@ limits_parse_one(
 int
 limits_check( Operation *op, SlapReply *rs )
 {
+	assert( op );
+	assert( rs );
+	/* FIXME: should this be always true? */
+	assert( op->o_tag == LDAP_REQ_SEARCH);
+	
 	/* allow root to set no limit */
 	if ( be_isroot( op->o_bd, &op->o_ndn ) ) {
 		op->ors_limit = NULL;
