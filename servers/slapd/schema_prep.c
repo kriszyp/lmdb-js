@@ -26,6 +26,8 @@
 
 #define OCDEBUG 0
 
+int schema_init_done = 0;
+
 struct slap_internal_schema slap_schema;
 
 static int
@@ -1256,7 +1258,7 @@ int
 slap_schema_check( void )
 {
 	/* we should only be called once after schema_init() was called */
-	assert( SLAPD_GLOBAL(schema_init_done) == 1 );
+	assert( schema_init_done == 1 );
 
 	/*
 	 * cycle thru attributeTypes to build matchingRuleUse
@@ -1265,7 +1267,7 @@ slap_schema_check( void )
 		return LDAP_OTHER;
 	}
 
-	++SLAPD_GLOBAL(schema_init_done);
+	++schema_init_done;
 	return LDAP_SUCCESS;
 }
 

@@ -80,7 +80,7 @@ frontend_init( void )
 	frontendDB->bd_info->bi_type = "frontend";
 
 	/* known controls */
-	frontendDB->bd_info->bi_controls = SLAPD_GLOBAL(known_controls);
+	frontendDB->bd_info->bi_controls = slap_known_controls;
 
 	/* calls */
 	frontendDB->bd_info->bi_op_add = fe_op_add;

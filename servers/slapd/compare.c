@@ -203,14 +203,14 @@ fe_op_compare( Operation *op, SlapReply *rs )
 	 */
 	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
 	if ( op->o_bd == NULL ) {
-		rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 
 		rs->sr_err = LDAP_REFERRAL;
-		if (!rs->sr_ref) rs->sr_ref = SLAPD_GLOBAL(default_referral);
+		if (!rs->sr_ref) rs->sr_ref = default_referral;
 		send_ldap_result( op, rs );
 
-		if (rs->sr_ref != SLAPD_GLOBAL(default_referral)) ber_bvarray_free( rs->sr_ref );
+		if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		rs->sr_err = 0;
 		goto cleanup;
 	}

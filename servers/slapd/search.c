@@ -335,12 +335,12 @@ fe_op_search( Operation *op, SlapReply *rs )
 		break;
 	}
 
-	if( BER_BVISEMPTY( &op->o_req_ndn ) && !BER_BVISEMPTY( &SLAPD_GLOBAL(default_search_nbase) ) ) {
+	if( BER_BVISEMPTY( &op->o_req_ndn ) && !BER_BVISEMPTY( &default_search_nbase ) ) {
 		slap_sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 		slap_sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 
-		ber_dupbv_x( &op->o_req_dn, &SLAPD_GLOBAL(default_search_base), op->o_tmpmemctx );
-		ber_dupbv_x( &op->o_req_ndn, &SLAPD_GLOBAL(default_search_nbase), op->o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_dn, &default_search_base, op->o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_ndn, &default_search_nbase, op->o_tmpmemctx );
 	}
 
 	/*
@@ -363,14 +363,14 @@ fe_op_search( Operation *op, SlapReply *rs )
 
 	op->o_bd = select_backend( &op->o_req_ndn, be_manageDSAit, 1 );
 	if ( op->o_bd == NULL ) {
-		rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, op->ors_scope );
 
-		if (!rs->sr_ref) rs->sr_ref = SLAPD_GLOBAL(default_referral);
+		if (!rs->sr_ref) rs->sr_ref = default_referral;
 		rs->sr_err = LDAP_REFERRAL;
 		send_ldap_result( op, rs );
 
-		if (rs->sr_ref != SLAPD_GLOBAL(default_referral))
+		if (rs->sr_ref != default_referral)
 		ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
 		goto return_results;

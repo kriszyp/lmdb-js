@@ -193,7 +193,7 @@ monitor_subsys_time_update(
 		currtime = slap_get_time();
 
 #ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex) );
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #endif
 #ifdef HACK_LOCAL_TIME
 # ifdef HAVE_LOCALTIME_R
@@ -211,7 +211,7 @@ monitor_subsys_time_update(
 		lutil_gentime( tmbuf, sizeof( tmbuf ), tm );
 #endif /* !HACK_LOCAL_TIME */
 #ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex) );
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif
 
 		len = strlen( tmbuf );

@@ -112,7 +112,7 @@ entry_schema_check(
 	}
 
 	/* it's a REALLY bad idea to disable schema checks */
-	if( !SLAPD_GLOBAL(schemachecking) ) return LDAP_SUCCESS;
+	if( !global_schemacheck ) return LDAP_SUCCESS;
 
 	/* find the structural object class attribute */
 	asc = attr_find( e->e_attrs, ad_structuralObjectClass );
@@ -384,7 +384,7 @@ entry_schema_check(
 							}
 						}
 					}
-				} else if ( SLAPD_GLOBAL(disallows) & SLAP_DISALLOW_AUX_WO_CR ) {
+				} else if ( global_disallows & SLAP_DISALLOW_AUX_WO_CR ) {
 					k = -1;
 				} else {
 					k = 0;	

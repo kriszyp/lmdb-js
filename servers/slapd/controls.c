@@ -68,8 +68,9 @@ static LDAP_SLIST_HEAD(ControlsList, slap_control) controls_list
 	= LDAP_SLIST_HEAD_INITIALIZER(&controls_list);
 
 /*
- * all known request control OIDs should be added to global known_controls
+ * all known request control OIDs should be added to this list
  */
+char **slap_known_controls = NULL;
 
 static char *proxy_authz_extops[] = {
 	LDAP_EXOP_MODIFY_PASSWD,
@@ -171,28 +172,28 @@ register_supported_control(const char *controloid,
 	}
 	sc->sc_parse = controlparsefn;
 
-	/* Update SLAPD_GLOBAL(known_controls), too. */
-	if ( SLAPD_GLOBAL(known_controls) == NULL ) {
-		SLAPD_GLOBAL(known_controls) = (char **)SLAP_MALLOC( 2 * sizeof(char *) );
-		if ( SLAPD_GLOBAL(known_controls) == NULL ) {
+	/* Update slap_known_controls, too. */
+	if ( slap_known_controls == NULL ) {
+		slap_known_controls = (char **)SLAP_MALLOC( 2 * sizeof(char *) );
+		if ( slap_known_controls == NULL ) {
 			if ( sc->sc_extendedops != NULL ) {
 				ldap_charray_free( sc->sc_extendedops );
 			}
 			ch_free( sc );
 			return LDAP_NO_MEMORY;
 		}
-		SLAPD_GLOBAL(known_controls)[0] = ch_strdup( sc->sc_oid );
-		SLAPD_GLOBAL(known_controls)[1] = NULL;
+		slap_known_controls[0] = ch_strdup( sc->sc_oid );
+		slap_known_controls[1] = NULL;
 
 	} else {
 		char **new_known_controls;
 
-		for ( i = 0; SLAPD_GLOBAL(known_controls)[i] != NULL; i++ ) {
+		for ( i = 0; slap_known_controls[i] != NULL; i++ ) {
 			/* EMPTY */ ;
 		}
 
 		new_known_controls = (char **)SLAP_REALLOC(
-			SLAPD_GLOBAL(known_controls), (i + 2) * sizeof(char *) );
+			slap_known_controls, (i + 2) * sizeof(char *) );
 
 		if ( new_known_controls == NULL ) {
 			if ( sc->sc_extendedops != NULL ) {
@@ -201,9 +202,9 @@ register_supported_control(const char *controloid,
 			ch_free( sc );
 			return LDAP_NO_MEMORY;
 		}
-		SLAPD_GLOBAL(known_controls) = new_known_controls;
-		SLAPD_GLOBAL(known_controls)[i++] = ch_strdup( sc->sc_oid );
-		SLAPD_GLOBAL(known_controls)[i] = NULL;
+		slap_known_controls = new_known_controls;
+		slap_known_controls[i++] = ch_strdup( sc->sc_oid );
+		slap_known_controls[i] = NULL;
 	}
 
 	LDAP_SLIST_NEXT( sc, sc_next ) = NULL;
@@ -250,7 +251,7 @@ controls_destroy( void )
 		}
 		ch_free( sc );
 	}
-	ldap_charray_free( SLAPD_GLOBAL(known_controls) );
+	ldap_charray_free( slap_known_controls );
 }
 
 /*

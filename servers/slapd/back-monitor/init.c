@@ -618,25 +618,25 @@ monitor_back_db_open(
 	 * Start
 	 */
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex) );
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #endif
 #ifdef HACK_LOCAL_TIME
 # ifdef HAVE_LOCALTIME_R
-	tms = localtime_r( &SLAPD_GLOBAL(starttime), &tm_buf );
+	tms = localtime_r( &starttime, &tm_buf );
 # else
-	tms = localtime( &SLAPD_GLOBAL(starttime) );
+	tms = localtime( &starttime );
 # endif /* HAVE_LOCALTIME_R */
 	lutil_localtime( tmbuf, sizeof(tmbuf), tms, -timezone );
 #else /* !HACK_LOCAL_TIME */
 # ifdef HAVE_GMTIME_R
-	tms = gmtime_r( &SLAPD_GLOBAL(starttime), &tm_buf );
+	tms = gmtime_r( &starttime, &tm_buf );
 # else
-	tms = gmtime( &SLAPD_GLOBAL(starttime) );
+	tms = gmtime( &starttime );
 # endif /* HAVE_GMTIME_R */
 	lutil_gentime( tmbuf, sizeof(tmbuf), tms );
 #endif /* !HACK_LOCAL_TIME */
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex) );
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif
 
 	mi->mi_startTime.bv_val = tmbuf;

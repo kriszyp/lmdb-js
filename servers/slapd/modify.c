@@ -299,15 +299,15 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	 */
 	op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
 	if ( op->o_bd == NULL ) {
-		rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+		rs->sr_ref = referral_rewrite( default_referral,
 			NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
-		if (!rs->sr_ref) rs->sr_ref = SLAPD_GLOBAL(default_referral);
+		if (!rs->sr_ref) rs->sr_ref = default_referral;
 
 		if (rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
-			if (rs->sr_ref != SLAPD_GLOBAL(default_referral)) ber_bvarray_free( rs->sr_ref );
+			if (rs->sr_ref != default_referral) ber_bvarray_free( rs->sr_ref );
 		} else {
 			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
 				"no global superior knowledge" );
@@ -448,7 +448,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		/* send a referral */
 		} else {
 			BerVarray defref = op->o_bd->be_update_refs
-				? op->o_bd->be_update_refs : SLAPD_GLOBAL(default_referral);
+				? op->o_bd->be_update_refs : default_referral;
 			if ( defref != NULL ) {
 				rs->sr_ref = referral_rewrite( defref,
 					NULL, &op->o_req_dn,
@@ -779,7 +779,7 @@ int slap_mods_opattrs(
 #ifdef HAVE_GMTIME_R
 		ltm = gmtime_r( &now, &ltm_buf );
 #else
-		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex) );
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 		ltm = gmtime( &now );
 #endif /* HAVE_GMTIME_R */
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
@@ -787,7 +787,7 @@ int slap_mods_opattrs(
 		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, manage_ctxcsn );
 
 #ifndef HAVE_GMTIME_R
-		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex) );
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif
 
 		timestamp.bv_val = timebuf;
@@ -805,7 +805,7 @@ int slap_mods_opattrs(
 	if( op->o_tag == LDAP_REQ_ADD ) {
 		struct berval tmpval;
 
-		if( SLAPD_GLOBAL(schemachecking) ) {
+		if( global_schemacheck ) {
 			int rc = mods_structural_class( mods, &tmpval,
 				text, textbuf, textlen );
 			if( rc != LDAP_SUCCESS ) return rc;

@@ -73,7 +73,7 @@ monitor_subsys_thread_init(
 			mi->mi_oc_monitoredObject->soc_cname.bv_val,
 			mi->mi_oc_monitoredObject->soc_cname.bv_val,
 			mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-			SLAPD_GLOBAL(connection_pool_max),
+			connection_pool_max,
 			mi->mi_creatorsName.bv_val,
 			mi->mi_creatorsName.bv_val,
 			mi->mi_startTime.bv_val,
@@ -189,7 +189,7 @@ monitor_subsys_thread_update(
 	}
 
 	snprintf( buf, sizeof( buf ), "%d", 
-			ldap_pvt_thread_pool_backload( &SLAPD_GLOBAL(connection_pool) ) );
+			ldap_pvt_thread_pool_backload( &connection_pool ) );
 	len = strlen( buf );
 	if ( len > a->a_vals[ 0 ].bv_len ) {
 		a->a_vals[ 0 ].bv_val = ber_memrealloc( a->a_vals[ 0 ].bv_val, len + 1 );

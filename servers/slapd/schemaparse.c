@@ -25,6 +25,8 @@
 #include "slap.h"
 #include "ldap_schema.h"
 
+int	global_schemacheck = 1; /* schemacheck ON is default */
+
 static void		oc_usage(void); 
 static void		at_usage(void);
 

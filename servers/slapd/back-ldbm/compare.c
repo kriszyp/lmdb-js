@@ -48,7 +48,7 @@ ldbm_back_compare(
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-			rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 

@@ -577,7 +577,7 @@ int
 glue_sub_init( )
 {
 	int i, j;
-	int cont = SLAPD_GLOBAL(num_subordinates);
+	int cont = num_subordinates;
 	BackendDB *b1, *be;
 	BackendInfo *bi = NULL;
 	glueinfo *gi;

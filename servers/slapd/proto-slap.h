@@ -376,6 +376,10 @@ LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
 						char ***,
 						char *,
 						const char * ));
+#ifdef LDAP_SLAPI
+LDAP_SLAPD_V (int) slapi_plugins_used;
+#endif
+
 /*
  * connection.c
  */
@@ -469,6 +473,11 @@ LDAP_SLAPD_F (void) slapd_set_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_write LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_set_read LDAP_P((ber_socket_t s, int wake));
 LDAP_SLAPD_F (void) slapd_clr_read LDAP_P((ber_socket_t s, int wake));
+
+LDAP_SLAPD_V (volatile sig_atomic_t) slapd_abrupt_shutdown;
+LDAP_SLAPD_V (volatile sig_atomic_t) slapd_shutdown;
+LDAP_SLAPD_V (int) slapd_register_slp;
+LDAP_SLAPD_V (slap_ssf_t) local_ssf;
 
 /*
  * dn.c
@@ -655,6 +664,8 @@ LDAP_SLAPD_V( const struct berval ) slap_empty_bv;
 LDAP_SLAPD_V( const struct berval ) slap_unknown_bv;
 LDAP_SLAPD_V( const struct berval ) slap_true_bv;
 LDAP_SLAPD_V( const struct berval ) slap_false_bv;
+LDAP_SLAPD_V( struct slap_sync_cookie_s ) slap_sync_cookie;
+LDAP_SLAPD_V( void * ) slap_tls_ctx;
 
 /*
  * index.c
@@ -664,19 +675,19 @@ LDAP_SLAPD_F (int) slap_str2index LDAP_P(( const char *str, slap_mask_t *idx ));
 /*
  * init.c
  */
-LDAP_SLAPD_V( int ) ldap_syslog;
-LDAP_SLAPD_V( int ) ldap_syslog_level;
-
 LDAP_SLAPD_F (int)	slap_init LDAP_P((int mode, const char* name));
 LDAP_SLAPD_F (int)	slap_startup LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_shutdown LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int)	slap_destroy LDAP_P((void));
 
+LDAP_SLAPD_V (char **)	slap_known_controls;
+
 /*
  * kerberos.c
  */
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-LDAP_SLAPD_F (int)	krbv4_ldap_auth();
+LDAP_SLAPD_V (char *)	ldap_srvtab;
+LDAP_SLAPD_V (int)	krbv4_ldap_auth();
 #endif
 
 /*
@@ -1136,6 +1147,7 @@ LDAP_SLAPD_F( int ) mods_structural_class(
 /*
  * schema_init.c
  */
+LDAP_SLAPD_V( int ) schema_init_done;
 LDAP_SLAPD_F (int) slap_schema_init LDAP_P((void));
 LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
@@ -1207,6 +1219,8 @@ LDAP_SLAPD_F (Filter *) str2filter_x LDAP_P(( Operation *op, const char *str ));
 /*
  * syncrepl.c
  */
+
+LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P((syncinfo_t *));
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
@@ -1294,12 +1308,61 @@ LDAP_SLAPD_F (int) value_add_one LDAP_P((
 /*
  * Other...
  */
+LDAP_SLAPD_V(unsigned) num_subordinates;
+
+LDAP_SLAPD_V (unsigned int) index_substr_if_minlen;
+LDAP_SLAPD_V (unsigned int) index_substr_if_maxlen;
+LDAP_SLAPD_V (unsigned int) index_substr_any_len;
+LDAP_SLAPD_V (unsigned int) index_substr_any_step;
+
+LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming;
+LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming_auth;
+LDAP_SLAPD_V (int)		slap_conn_max_pending;
+LDAP_SLAPD_V (int)		slap_conn_max_pending_auth;
+
+LDAP_SLAPD_V (slap_mask_t)	global_allows;
+LDAP_SLAPD_V (slap_mask_t)	global_disallows;
+
+LDAP_SLAPD_V (BerVarray)	default_referral;
+LDAP_SLAPD_V (char *)		replogfile;
 LDAP_SLAPD_V (const char) 	Versionstr[];
 
+LDAP_SLAPD_V (int)		global_gentlehup;
+LDAP_SLAPD_V (int)		global_idletimeout;
+LDAP_SLAPD_V (int)		global_schemacheck;
+LDAP_SLAPD_V (char *)	global_host;
+LDAP_SLAPD_V (char *)	global_realm;
+LDAP_SLAPD_V (char **)	default_passwd_hash;
 LDAP_SLAPD_V (int)		lber_debug;
+LDAP_SLAPD_V (int)		ldap_syslog;
+LDAP_SLAPD_V (struct berval)	default_search_base;
+LDAP_SLAPD_V (struct berval)	default_search_nbase;
+
+LDAP_SLAPD_V (slap_counters_t)	slap_counters;
+
+LDAP_SLAPD_V (char *)		slapd_pid_file;
+LDAP_SLAPD_V (char *)		slapd_args_file;
+LDAP_SLAPD_V (time_t)		starttime;
 
 /* use time(3) -- no mutex */
 #define slap_get_time()	time( NULL )
+
+LDAP_SLAPD_V (ldap_pvt_thread_pool_t)	connection_pool;
+LDAP_SLAPD_V (int)			connection_pool_max;
+
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	entry2str_mutex;
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	replog_mutex;
+
+#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
+#endif
+#ifndef HAVE_GMTIME_R
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
+#endif
+
+LDAP_SLAPD_V (ber_socket_t)	dtblsize;
+
+LDAP_SLAPD_V (int)		use_reverse_lookup;
 
 LDAP_SLAPD_V (struct berval)	AllUser;
 LDAP_SLAPD_V (struct berval)	AllOper;

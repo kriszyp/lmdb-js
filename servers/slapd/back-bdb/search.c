@@ -612,7 +612,7 @@ dn2entry_retry:
 			}
 
 		} else {
-			rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &sop->o_req_dn, sop->oq_search.rs_scope );
 		}
 

@@ -252,7 +252,7 @@ conn_create(
 	assert( ep != NULL );
 
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex) );
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #endif
 #ifdef HACK_LOCAL_TIME
 # ifdef HAVE_LOCALTIME_R
@@ -280,7 +280,7 @@ conn_create(
 # endif /* HAVE_GMTIME_R */
 #endif /* !HACK_LOCAL_TIME */
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex) );
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif
 
 	snprintf( buf, sizeof( buf ),
@@ -314,7 +314,7 @@ conn_create(
 	}
 
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex) );
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 #endif
 
 #ifdef HAVE_GMTIME_R
@@ -332,7 +332,7 @@ conn_create(
 	lutil_gentime( buf3, sizeof( buf3 ), ltm );
 
 #ifndef HAVE_GMTIME_R
-	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex) );
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 #endif /* HAVE_GMTIME_R */
 
 	/* monitored info */

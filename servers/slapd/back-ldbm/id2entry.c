@@ -61,7 +61,7 @@ id2entry_add( Backend *be, Entry *e )
 #endif
 	key.dsize = sizeof(ID);
 
-	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(entry2str_mutex) );
+	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
 	data.dptr = entry2str( e, &len );
 	data.dsize = len + 1;
 
@@ -69,7 +69,7 @@ id2entry_add( Backend *be, Entry *e )
 	flags = LDBM_REPLACE;
 	rc = ldbm_cache_store( db, key, data, flags );
 
-	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(entry2str_mutex) );
+	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 	ldbm_cache_close( be, db );
 

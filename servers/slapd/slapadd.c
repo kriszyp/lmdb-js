@@ -156,7 +156,7 @@ slapadd( int argc, char **argv )
 			break;
 		}
 
-		if( SLAPD_GLOBAL(schemachecking) ) {
+		if( global_schemacheck ) {
 			Attribute *sc = attr_find( e->e_attrs,
 				slap_schema.si_ad_structuralObjectClass );
 			Attribute *oc = attr_find( e->e_attrs,

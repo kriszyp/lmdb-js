@@ -66,17 +66,17 @@ relay_back_select_backend( struct slap_op *op, struct slap_rep *rs, int err )
 	}
 
 	if ( bd == NULL ) {
-		if ( SLAPD_GLOBAL(default_referral) ) {
-			rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+		if ( default_referral ) {
+			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 			if ( !rs->sr_ref ) {
-				rs->sr_ref = SLAPD_GLOBAL(default_referral);
+				rs->sr_ref = default_referral;
 			}
 
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 
-			if ( rs->sr_ref != SLAPD_GLOBAL(default_referral) ) {
+			if ( rs->sr_ref != default_referral ) {
 				ber_bvarray_free( rs->sr_ref );
 			}
 

@@ -57,7 +57,7 @@ dnssrv_back_referrals(
 
 	if( ldap_dn2domain( op->o_req_dn.bv_val, &domain ) || domain == NULL ) {
 		rs->sr_err = LDAP_REFERRAL;
-		rs->sr_ref = SLAPD_GLOBAL(default_referral);
+		rs->sr_ref = default_referral;
 		send_ldap_result( op, rs );
 		return LDAP_REFERRAL;
 	}

@@ -447,10 +447,10 @@ send_ldap_response(
 	}
 #endif /* LDAP_SLAPI */
 
-	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(counters).sc_sent_mutex );
-	ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_pdu, 1 );
-	ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_bytes, bytes );
-	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(counters).sc_sent_mutex );
+	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, bytes );
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 
 cleanup:;
 	/* Tell caller that we did this for real, as opposed to being
@@ -1175,11 +1175,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		}
 		rs->sr_nentries++;
 
-		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(counters).sc_sent_mutex );
-		ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_bytes, bytes );
-		ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_entries, 1 );
-		ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_pdu, 1 );
-		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(counters).sc_sent_mutex );
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, bytes );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_entries, 1 );
+		ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 	}
 
 	Statslog( LDAP_DEBUG_STATS2, "%s ENTRY dn=\"%s\"\n",
@@ -1364,11 +1364,11 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 	bytes = send_ldap_ber( op->o_conn, ber );
 	ber_free_buf( ber );
 
-	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(counters).sc_sent_mutex );
-	ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_bytes, bytes );
-	ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_refs, 1 );
-	ldap_pvt_mp_add_ulong( SLAPD_GLOBAL(counters).sc_pdu, 1 );
-	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(counters).sc_sent_mutex );
+	ldap_pvt_thread_mutex_lock( &slap_counters.sc_sent_mutex );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_bytes, bytes );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_refs, 1 );
+	ldap_pvt_mp_add_ulong( slap_counters.sc_pdu, 1 );
+	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_sent_mutex );
 #ifdef LDAP_CONNECTIONLESS
 	}
 #endif

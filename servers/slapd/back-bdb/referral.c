@@ -94,9 +94,9 @@ dn2entry_retry:
 
 			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 			e = NULL;
-		} else if ( SLAPD_GLOBAL(default_referral) != NULL ) {
+		} else if ( default_referral != NULL ) {
 			rc = LDAP_OTHER;
-			rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 

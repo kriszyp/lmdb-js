@@ -710,10 +710,10 @@ ppolicy_bind_resp( Operation *op, SlapReply *rs )
 	}
 
 	now = slap_get_time(); /* stored for later consideration */
-	ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex ));
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 	tm = gmtime(&now);
 	lutil_gentime( nowstr, sizeof(nowstr), tm );
-	ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex ));
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	if ( rs->sr_err == LDAP_INVALID_CREDENTIALS ) {
 		int i = 0, fc = 0;
@@ -1125,10 +1125,10 @@ ppolicy_add(
 			struct tm *ltm;
 			time_t now = slap_get_time();
 
-			ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex ));
+			ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 			ltm = gmtime( &now );
 			lutil_gentime( timebuf, sizeof(timebuf), ltm );
-			ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex ));
+			ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 			timestamp.bv_val = timebuf;
 			timestamp.bv_len = strlen(timebuf);
@@ -1445,10 +1445,10 @@ do_modify:
 		 * up to date.
 		 */
 
-		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(gmtime_mutex ));
+		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 		ltm = gmtime( &now );
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
-		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(gmtime_mutex ));
+		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 		timestamp.bv_val = timebuf;
 		timestamp.bv_len = strlen(timebuf);
@@ -1676,8 +1676,8 @@ ppolicy_db_init(
 
 	on->on_bi.bi_private = ch_calloc( sizeof(pp_info), 1 );
 
-	if ( SLAPD_GLOBAL(dtblsize) && !pwcons )
-		pwcons = ch_calloc(sizeof(pw_conn), SLAPD_GLOBAL(dtblsize) );
+	if ( dtblsize && !pwcons )
+		pwcons = ch_calloc(sizeof(pw_conn), dtblsize );
 
 	return 0;
 }

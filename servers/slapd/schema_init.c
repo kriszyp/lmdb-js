@@ -60,6 +60,11 @@
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
 
+unsigned int index_substr_if_minlen = SLAP_INDEX_SUBSTR_IF_MINLEN_DEFAULT;
+unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
+unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
+unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
+
 static int
 inValidate(
 	Syntax *syntax,
@@ -406,26 +411,26 @@ octetStringSubstringsIndexer(
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		/* count number of indices to generate */
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
-			if( values[i].bv_len >= SLAPD_GLOBAL(index_substr_if_maxlen) ) {
-				nkeys += SLAPD_GLOBAL(index_substr_if_maxlen) -
-					(SLAPD_GLOBAL(index_substr_if_minlen) - 1);
-			} else if( values[i].bv_len >= SLAPD_GLOBAL(index_substr_if_minlen) ) {
-				nkeys += values[i].bv_len - (SLAPD_GLOBAL(index_substr_if_minlen) - 1);
+			if( values[i].bv_len >= index_substr_if_maxlen ) {
+				nkeys += index_substr_if_maxlen -
+					(index_substr_if_minlen - 1);
+			} else if( values[i].bv_len >= index_substr_if_minlen ) {
+				nkeys += values[i].bv_len - (index_substr_if_minlen - 1);
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
-			if( values[i].bv_len >= SLAPD_GLOBAL(index_substr_any_len) ) {
-				nkeys += values[i].bv_len - (SLAPD_GLOBAL(index_substr_any_len) - 1);
+			if( values[i].bv_len >= index_substr_any_len ) {
+				nkeys += values[i].bv_len - (index_substr_any_len - 1);
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
-			if( values[i].bv_len >= SLAPD_GLOBAL(index_substr_if_maxlen) ) {
-				nkeys += SLAPD_GLOBAL(index_substr_if_maxlen) -
-					(SLAPD_GLOBAL(index_substr_if_minlen) - 1);
-			} else if( values[i].bv_len >= SLAPD_GLOBAL(index_substr_if_minlen) ) {
-				nkeys += values[i].bv_len - (SLAPD_GLOBAL(index_substr_if_minlen) - 1);
+			if( values[i].bv_len >= index_substr_if_maxlen ) {
+				nkeys += index_substr_if_maxlen -
+					(index_substr_if_minlen - 1);
+			} else if( values[i].bv_len >= index_substr_if_minlen ) {
+				nkeys += values[i].bv_len - (index_substr_if_minlen - 1);
 			}
 		}
 	}
@@ -446,25 +451,25 @@ octetStringSubstringsIndexer(
 		ber_len_t j,max;
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( values[i].bv_len >= SLAPD_GLOBAL(index_substr_any_len) ) )
+			( values[i].bv_len >= index_substr_any_len ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = values[i].bv_len - (SLAPD_GLOBAL(index_substr_any_len) - 1);
+			max = values[i].bv_len - (index_substr_any_len - 1);
 
 			for( j=0; j<max; j++ ) {
 				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
-					syntax, mr, (unsigned char *)&values[i].bv_val[j], SLAPD_GLOBAL(index_substr_any_len));
+					syntax, mr, (unsigned char *)&values[i].bv_val[j], index_substr_any_len);
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
 
 		/* skip if too short */ 
-		if( values[i].bv_len < SLAPD_GLOBAL(index_substr_if_minlen) ) continue;
+		if( values[i].bv_len < index_substr_if_minlen ) continue;
 
-		max = SLAPD_GLOBAL(index_substr_if_maxlen) < values[i].bv_len
-			? SLAPD_GLOBAL(index_substr_if_maxlen) : values[i].bv_len;
+		max = index_substr_if_maxlen < values[i].bv_len
+			? index_substr_if_maxlen : values[i].bv_len;
 
-		for( j=SLAPD_GLOBAL(index_substr_if_minlen); j<=max; j++ ) {
+		for( j=index_substr_if_minlen; j<=max; j++ ) {
 			char pre;
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
@@ -520,36 +525,36 @@ octetStringSubstringsFilter (
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
 		sa->sa_initial.bv_val != NULL &&
-		sa->sa_initial.bv_len >= SLAPD_GLOBAL(index_substr_if_minlen) )
+		sa->sa_initial.bv_len >= index_substr_if_minlen )
 	{
 		nkeys++;
-		if ( sa->sa_initial.bv_len > SLAPD_GLOBAL(index_substr_if_maxlen) &&
+		if ( sa->sa_initial.bv_len > index_substr_if_maxlen &&
 			( flags & SLAP_INDEX_SUBSTR_ANY ))
 		{
-			nkeys += (sa->sa_initial.bv_len - SLAPD_GLOBAL(index_substr_if_maxlen)) / SLAPD_GLOBAL(index_substr_any_step);
+			nkeys += (sa->sa_initial.bv_len - index_substr_if_maxlen) / index_substr_any_step;
 		}
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
-			if( sa->sa_any[i].bv_len >= SLAPD_GLOBAL(index_substr_any_len) ) {
+			if( sa->sa_any[i].bv_len >= index_substr_any_len ) {
 				/* don't bother accounting with stepping */
 				nkeys += sa->sa_any[i].bv_len -
-					( SLAPD_GLOBAL(index_substr_any_len) - 1 );
+					( index_substr_any_len - 1 );
 			}
 		}
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
 		sa->sa_final.bv_val != NULL &&
-		sa->sa_final.bv_len >= SLAPD_GLOBAL(index_substr_if_minlen) )
+		sa->sa_final.bv_len >= index_substr_if_minlen )
 	{
 		nkeys++;
-		if ( sa->sa_final.bv_len > SLAPD_GLOBAL(index_substr_if_maxlen) &&
+		if ( sa->sa_final.bv_len > index_substr_if_maxlen &&
 			( flags & SLAP_INDEX_SUBSTR_ANY ))
 		{
-			nkeys += (sa->sa_final.bv_len - SLAPD_GLOBAL(index_substr_if_maxlen)) / SLAPD_GLOBAL(index_substr_any_step);
+			nkeys += (sa->sa_final.bv_len - index_substr_if_maxlen) / index_substr_any_step;
 		}
 	}
 
@@ -569,13 +574,13 @@ octetStringSubstringsFilter (
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
 		sa->sa_initial.bv_val != NULL &&
-		sa->sa_initial.bv_len >= SLAPD_GLOBAL(index_substr_if_minlen) )
+		sa->sa_initial.bv_len >= index_substr_if_minlen )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 		value = &sa->sa_initial;
 
-		klen = SLAPD_GLOBAL(index_substr_if_maxlen) < value->bv_len
-			? SLAPD_GLOBAL(index_substr_if_maxlen) : value->bv_len;
+		klen = index_substr_if_maxlen < value->bv_len
+			? index_substr_if_maxlen : value->bv_len;
 
 		hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
 			syntax, mr, (unsigned char *)value->bv_val, klen );
@@ -584,14 +589,14 @@ octetStringSubstringsFilter (
 		/* If initial is too long and we have subany indexed, use it
 		 * to match the excess...
 		 */
-		if (value->bv_len > SLAPD_GLOBAL(index_substr_if_maxlen) && (flags & SLAP_INDEX_SUBSTR_ANY))
+		if (value->bv_len > index_substr_if_maxlen && (flags & SLAP_INDEX_SUBSTR_ANY))
 		{
 			ber_len_t j;
 			pre = SLAP_INDEX_SUBSTR_PREFIX;
-			for ( j=SLAPD_GLOBAL(index_substr_if_maxlen)-1; j <= value->bv_len - SLAPD_GLOBAL(index_substr_any_len); j+=SLAPD_GLOBAL(index_substr_any_step) )
+			for ( j=index_substr_if_maxlen-1; j <= value->bv_len - index_substr_any_len; j+=index_substr_any_step )
 			{
 				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
-					syntax, mr, (unsigned char *)&value->bv_val[j], SLAPD_GLOBAL(index_substr_any_len) );
+					syntax, mr, (unsigned char *)&value->bv_val[j], index_substr_any_len );
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
@@ -600,18 +605,18 @@ octetStringSubstringsFilter (
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i, j;
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
-		klen = SLAPD_GLOBAL(index_substr_any_len);
+		klen = index_substr_any_len;
 
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
-			if( sa->sa_any[i].bv_len < SLAPD_GLOBAL(index_substr_any_len) ) {
+			if( sa->sa_any[i].bv_len < index_substr_any_len ) {
 				continue;
 			}
 
 			value = &sa->sa_any[i];
 
 			for(j=0;
-				j <= value->bv_len - SLAPD_GLOBAL(index_substr_any_len);
-				j += SLAPD_GLOBAL(index_substr_any_step) )
+				j <= value->bv_len - index_substr_any_len;
+				j += index_substr_any_step )
 			{
 				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
 					syntax, mr, (unsigned char *)&value->bv_val[j], klen ); 
@@ -622,13 +627,13 @@ octetStringSubstringsFilter (
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
 		sa->sa_final.bv_val != NULL &&
-		sa->sa_final.bv_len >= SLAPD_GLOBAL(index_substr_if_minlen) )
+		sa->sa_final.bv_len >= index_substr_if_minlen )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 		value = &sa->sa_final;
 
-		klen = SLAPD_GLOBAL(index_substr_if_maxlen) < value->bv_len
-			? SLAPD_GLOBAL(index_substr_if_maxlen) : value->bv_len;
+		klen = index_substr_if_maxlen < value->bv_len
+			? index_substr_if_maxlen : value->bv_len;
 
 		hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
 			syntax, mr, (unsigned char *)&value->bv_val[value->bv_len-klen], klen );
@@ -637,14 +642,14 @@ octetStringSubstringsFilter (
 		/* If final is too long and we have subany indexed, use it
 		 * to match the excess...
 		 */
-		if (value->bv_len > SLAPD_GLOBAL(index_substr_if_maxlen) && (flags & SLAP_INDEX_SUBSTR_ANY))
+		if (value->bv_len > index_substr_if_maxlen && (flags & SLAP_INDEX_SUBSTR_ANY))
 		{
 			ber_len_t j;
 			pre = SLAP_INDEX_SUBSTR_PREFIX;
-			for ( j=0; j <= value->bv_len - SLAPD_GLOBAL(index_substr_if_maxlen); j+=SLAPD_GLOBAL(index_substr_any_step) )
+			for ( j=0; j <= value->bv_len - index_substr_if_maxlen; j+=index_substr_any_step )
 			{
 				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
-					syntax, mr, (unsigned char *)&value->bv_val[j], SLAPD_GLOBAL(index_substr_any_len) );
+					syntax, mr, (unsigned char *)&value->bv_val[j], index_substr_any_len );
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
@@ -3615,7 +3620,7 @@ slap_schema_init( void )
 	int		i;
 
 	/* we should only be called once (from main) */
-	assert( SLAPD_GLOBAL(schema_init_done) == 0 );
+	assert( schema_init_done == 0 );
 
 	for ( i=0; syntax_defs[i].sd_desc != NULL; i++ ) {
 		res = register_syntax( &syntax_defs[i] );
@@ -3648,7 +3653,7 @@ slap_schema_init( void )
 	}
 
 	res = slap_schema_load();
-	SLAPD_GLOBAL(schema_init_done) = 1;
+	schema_init_done = 1;
 	return res;
 }
 

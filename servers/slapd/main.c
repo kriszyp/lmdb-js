@@ -133,16 +133,18 @@ static int cnvt_str2int( char *, STRDISP_P, int );
 static int check = CHECK_NONE;
 static int version = 0;
 
+void *slap_tls_ctx;
+
 static int
 slapd_opt_slp( const char *val, void *arg )
 {
 #ifdef HAVE_SLP
 	/* NULL is default */
 	if ( val == NULL || strcasecmp( val, "on" ) == 0 ) {
-		SLAPD_GLOBAL(register_slp) = 1;
+		slapd_register_slp = 1;
 
 	} else if ( strcasecmp( val, "off" ) == 0 ) {
-		SLAPD_GLOBAL(register_slp) = 0;
+		slapd_register_slp = 0;
 
 	/* NOTE: add support for URL specification? */
 
@@ -272,8 +274,6 @@ int main( int argc, char **argv )
 
 	slap_sl_mem_init();
 
-	config_init();	/* sets frontendDB */
-
 	serverName = lutil_progname( "slapd", argc, argv );
 
 	if ( strcmp( serverName, "slapd" ) ) {
@@ -354,12 +354,13 @@ int main( int argc, char **argv )
 			break;
 
 		case 'c':	/* provide sync cookie, override if exist in replica */
-			scp = (struct sync_cookie *) ch_calloc( 1, sizeof( struct sync_cookie ));
+			scp = (struct sync_cookie *) ch_calloc( 1,
+										sizeof( struct sync_cookie ));
 			ber_str2bv( optarg, strlen( optarg ), 1, &cookie );
 			ber_bvarray_add( &scp->octet_str, &cookie );
 			slap_parse_sync_cookie( scp );
 
-			LDAP_STAILQ_FOREACH( scp_entry, &SLAPD_GLOBAL(sync_cookie), sc_next ) {
+			LDAP_STAILQ_FOREACH( scp_entry, &slap_sync_cookie, sc_next ) {
 				if ( scp->rid == scp_entry->rid ) {
 					Debug( LDAP_DEBUG_ANY,
 						    "main: duplicated replica id in cookies\n",
@@ -368,7 +369,7 @@ int main( int argc, char **argv )
 					goto destroy;
 				}
 			}
-			LDAP_STAILQ_INSERT_TAIL( &SLAPD_GLOBAL(sync_cookie), scp, sc_next );
+			LDAP_STAILQ_INSERT_TAIL( &slap_sync_cookie, scp, sc_next );
 			break;
 
 		case 'd':	/* set debug level and 'do not detach' flag */
@@ -686,7 +687,7 @@ unhandled_option:;
 			goto destroy;
 		}
 		/* Retrieve slapd's own ctx */
-		ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &SLAPD_GLOBAL(tls_ctx) );
+		ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
 		/* Restore previous ctx */
 		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, def_ctx );
 	}
@@ -703,6 +704,7 @@ unhandled_option:;
 #endif
 	(void) SIGNAL( SIGINT, slap_sig_shutdown );
 	(void) SIGNAL( SIGTERM, slap_sig_shutdown );
+	(void) SIGNAL( SIGTRAP, slap_sig_shutdown );
 #ifdef LDAP_SIGCHLD
 	(void) SIGNAL( LDAP_SIGCHLD, wait4child );
 #endif
@@ -723,7 +725,7 @@ unhandled_option:;
 	 * FIXME: moved here from slapd_daemon_task()
 	 * because back-monitor db_open() needs it
 	 */
-	time( &SLAPD_GLOBAL(starttime) );
+	time( &starttime );
 
 	if ( slap_startup( NULL )  != 0 ) {
 		rc = 1;
@@ -734,21 +736,21 @@ unhandled_option:;
 	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
 
-	if ( SLAPD_GLOBAL(pid_file) != NULL ) {
-		FILE *fp = fopen( SLAPD_GLOBAL(pid_file), "w" );
+	if ( slapd_pid_file != NULL ) {
+		FILE *fp = fopen( slapd_pid_file, "w" );
 
 		if( fp != NULL ) {
 			fprintf( fp, "%d\n", (int) getpid() );
 			fclose( fp );
 
 		} else {
-			free(SLAPD_GLOBAL(pid_file));
-			SLAPD_GLOBAL(pid_file) = NULL;
+			free(slapd_pid_file);
+			slapd_pid_file = NULL;
 		}
 	}
 
-	if ( SLAPD_GLOBAL(args_file) != NULL ) {
-		FILE *fp = fopen( SLAPD_GLOBAL(args_file), "w" );
+	if ( slapd_args_file != NULL ) {
+		FILE *fp = fopen( slapd_args_file, "w" );
 
 		if( fp != NULL ) {
 			for ( i = 0; i < g_argc; i++ ) {
@@ -757,8 +759,8 @@ unhandled_option:;
 			fprintf( fp, "\n" );
 			fclose( fp );
 		} else {
-			free(SLAPD_GLOBAL(args_file));
-			SLAPD_GLOBAL(args_file) = NULL;
+			free(slapd_args_file);
+			slapd_args_file = NULL;
 		}
 	}
 
@@ -783,9 +785,9 @@ destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();
 
-	while ( !LDAP_STAILQ_EMPTY( &SLAPD_GLOBAL(sync_cookie) )) {
-		scp = LDAP_STAILQ_FIRST( &SLAPD_GLOBAL(sync_cookie) );
-		LDAP_STAILQ_REMOVE_HEAD( &SLAPD_GLOBAL(sync_cookie), sc_next );
+	while ( !LDAP_STAILQ_EMPTY( &slap_sync_cookie )) {
+		scp = LDAP_STAILQ_FIRST( &slap_sync_cookie );
+		LDAP_STAILQ_REMOVE_HEAD( &slap_sync_cookie, sc_next );
 		ch_free( scp );
 	}
 
@@ -825,11 +827,11 @@ stop:
 	ldap_pvt_tls_destroy();
 #endif
 
-	if ( SLAPD_GLOBAL(pid_file) != NULL ) {
-		unlink( SLAPD_GLOBAL(pid_file) );
+	if ( slapd_pid_file != NULL ) {
+		unlink( slapd_pid_file );
 	}
-	if ( SLAPD_GLOBAL(args_file) != NULL ) {
-		unlink( SLAPD_GLOBAL(args_file) );
+	if ( slapd_args_file != NULL ) {
+		unlink( slapd_args_file );
 	}
 
 	config_destroy();

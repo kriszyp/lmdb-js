@@ -175,21 +175,21 @@ monitor_subsys_ops_update(
 		ldap_pvt_mp_init( nInitiated );
 		ldap_pvt_mp_init( nCompleted );
 
-		ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(counters).sc_ops_mutex );
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
-			ldap_pvt_mp_add( nInitiated, SLAPD_GLOBAL(counters).sc_ops_initiated_[ i ] );
-			ldap_pvt_mp_add( nCompleted, SLAPD_GLOBAL(counters).sc_ops_completed_[ i ] );
+			ldap_pvt_mp_add( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
+			ldap_pvt_mp_add( nCompleted, slap_counters.sc_ops_completed_[ i ] );
 		}
-		ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(counters).sc_ops_mutex );
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 		
 	} else {
 		for ( i = 0; i < SLAP_OP_LAST; i++ ) {
 			if ( dn_match( &rdn, &monitor_op[ i ].nrdn ) )
 			{
-				ldap_pvt_thread_mutex_lock( &SLAPD_GLOBAL(counters).sc_ops_mutex );
-				ldap_pvt_mp_init_set( nInitiated, SLAPD_GLOBAL(counters).sc_ops_initiated_[ i ] );
-				ldap_pvt_mp_init_set( nCompleted, SLAPD_GLOBAL(counters).sc_ops_completed_[ i ] );
-				ldap_pvt_thread_mutex_unlock( &SLAPD_GLOBAL(counters).sc_ops_mutex );
+				ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex );
+				ldap_pvt_mp_init_set( nInitiated, slap_counters.sc_ops_initiated_[ i ] );
+				ldap_pvt_mp_init_set( nCompleted, slap_counters.sc_ops_completed_[ i ] );
+				ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 				break;
 			}
 		}

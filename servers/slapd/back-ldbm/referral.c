@@ -62,9 +62,9 @@ ldbm_back_referrals(
 
 			cache_return_entry_r( &li->li_cache, matched );
 
-		} else if ( SLAPD_GLOBAL(default_referral) != NULL ) {
+		} else if ( default_referral != NULL ) {
 			rs->sr_err = LDAP_OTHER;
-			rs->sr_ref = referral_rewrite( SLAPD_GLOBAL(default_referral),
+			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
