@@ -15,129 +15,28 @@
 #include "slap.h"
 #include "back-bdb.h"
 
-#ifdef SLAPD_BDB_DYNAMIC
-
-int back_bdb_LTX_init_module(int argc, char *argv[]) {
-    BackendInfo bi;
-
-    memset( &bi, '\0', sizeof(bi) );
-    bi.bi_type = "bdb";
-    bi.bi_init = bdb_back_initialize;
-
-    backend_add(&bi);
-    return 0;
-}
-
-#endif /* SLAPD_BDB_DYNAMIC */
-
-int
-bdb_back_initialize(
-    BackendInfo	*bi
-)
-{
-	static char *controls[] = {
-		LDAP_CONTROL_MANAGEDSAIT,
-		NULL
-	};
-
-	{	/* version check */
-		int major, minor, patch;
-		char *version = db_version( &major, &minor, &patch );
-
-		if( major != DB_VERSION_MAJOR ||
-			minor != DB_VERSION_MINOR ||
-			patch < DB_VERSION_PATCH )
-		{
-			Debug( LDAP_DEBUG_ANY,
-				"bdb_back_initialize: version mismatch\n"
-				"\texpected: " DB_VERSION_STRING "\n"
-				"\tgot: %s \n", version, 0, 0 );
-		}
-
-		Debug( LDAP_DEBUG_ANY, "bdb_back_initialize: %s\n",
-			version, 0, 0 );
-	}
-
-#if 0
-	bi->bi_controls = controls;
-
-	bi->bi_open = bdb_back_open;
-	bi->bi_config = 0;
-	bi->bi_close = bdb_back_close;
-	bi->bi_destroy = bdb_back_destroy;
-
-	bi->bi_db_init = bdb_back_db_init;
-	bi->bi_db_config = bdb_back_db_config;
-	bi->bi_db_open = bdb_back_db_open;
-	bi->bi_db_close = bdb_back_db_close;
-	bi->bi_db_destroy = bdb_back_db_destroy;
-
-	bi->bi_op_bind = bdb_back_bind;
-	bi->bi_op_unbind = bdb_back_unbind;
-	bi->bi_op_search = bdb_back_search;
-	bi->bi_op_compare = bdb_back_compare;
-	bi->bi_op_modify = bdb_back_modify;
-	bi->bi_op_modrdn = bdb_back_modrdn;
-	bi->bi_op_add = bdb_back_add;
-	bi->bi_op_delete = bdb_back_delete;
-	bi->bi_op_abandon = bdb_back_abandon;
-
-	bi->bi_extended = bdb_back_extended;
-
-	bi->bi_entry_release_rw = bdb_back_entry_release_rw;
-	bi->bi_acl_group = bdb_back_group;
-	bi->bi_acl_attribute = bdb_back_attribute;
-	bi->bi_chk_referrals = bdb_back_referrals;
-
-	/*
-	 * hooks for slap tools
-	 */
-	bi->bi_tool_entry_open = bdb_tool_entry_open;
-	bi->bi_tool_entry_close = bdb_tool_entry_close;
-	bi->bi_tool_entry_first = bdb_tool_entry_first;
-	bi->bi_tool_entry_next = bdb_tool_entry_next;
-	bi->bi_tool_entry_get = bdb_tool_entry_get;
-	bi->bi_tool_entry_put = bdb_tool_entry_put;
-	bi->bi_tool_entry_reindex = bdb_tool_entry_reindex;
-	bi->bi_tool_sync = bdb_tool_sync;
-
-	bi->bi_connection_init = 0;
-	bi->bi_connection_destroy = 0;
-#endif
-
-	return 0;
-}
-
-int
-bdb_back_destroy(
-    BackendInfo	*bi
-)
+static int
+bdb_back_destroy( BackendInfo *bi )
 {
 	return 0;
 }
 
-int
-bdb_back_open(
-    BackendInfo	*bi
-)
+static int
+bdb_back_open( BackendInfo *bi )
 {
 	/* initialize the underlying database system */
 	return 0;
 }
 
-int
-bdb_back_close(
-    BackendInfo	*bi
-)
+static int
+bdb_back_close( BackendInfo *bi )
 {
 	/* terminate the underlying database system */
 	return 0;
 }
 
-int
-bdb_back_db_init(
-    Backend	*be
-)
+static int
+bdb_back_db_init( Backend *be )
 {
 	struct bdb_dbinfo	*bdi;
 
@@ -158,10 +57,8 @@ bdb_back_db_init(
 	return 0;
 }
 
-int
-bdb_back_db_open(
-    BackendDB	*be
-)
+static int
+bdb_back_db_open( BackendDB *be )
 {
 	int rc;
 	struct bdb_dbinfo *bdi = (struct bdb_dbinfo *) be->be_private;
@@ -230,10 +127,8 @@ bdb_back_db_open(
 	return 0;
 }
 
-int
-bdb_back_db_destroy(
-    BackendDB	*be
-)
+static int
+bdb_back_db_destroy( BackendDB *be )
 {
 	int rc;
 	struct bdb_dbinfo *bdi = (struct bdb_dbinfo *) be->be_private;
@@ -247,6 +142,97 @@ bdb_back_db_destroy(
 			db_strerror(rc), rc, 0 );
 		return rc;
 	}
+
+	return 0;
+}
+
+#ifdef SLAPD_BDB_DYNAMIC
+int back_bdb_LTX_init_module( int argc, char *argv[] ) {
+    BackendInfo bi;
+
+    memset( &bi, '\0', sizeof(bi) );
+    bi.bi_type = "bdb";
+    bi.bi_init = bdb_back_initialize;
+
+    backend_add( &bi );
+    return 0;
+}
+#endif /* SLAPD_BDB_DYNAMIC */
+
+int
+bdb_back_initialize(
+    BackendInfo	*bi
+)
+{
+	static char *controls[] = {
+		LDAP_CONTROL_MANAGEDSAIT,
+		NULL
+	};
+
+	{	/* version check */
+		int major, minor, patch;
+		char *version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor != DB_VERSION_MINOR ||
+			patch < DB_VERSION_PATCH )
+		{
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_back_initialize: version mismatch\n"
+				"\texpected: " DB_VERSION_STRING "\n"
+				"\tgot: %s \n", version, 0, 0 );
+		}
+
+		Debug( LDAP_DEBUG_ANY, "bdb_back_initialize: %s\n",
+			version, 0, 0 );
+	}
+
+	bi->bi_controls = controls;
+
+	bi->bi_open = bdb_back_open;
+	bi->bi_close = bdb_back_close;
+	bi->bi_config = 0;
+	bi->bi_destroy = bdb_back_destroy;
+
+#if 0
+	bi->bi_db_init = bdb_back_db_init;
+	bi->bi_db_config = bdb_back_db_config;
+	bi->bi_db_open = bdb_back_db_open;
+	bi->bi_db_close = bdb_back_db_close;
+	bi->bi_db_destroy = bdb_back_db_destroy;
+
+	bi->bi_op_bind = bdb_back_bind;
+	bi->bi_op_unbind = bdb_back_unbind;
+	bi->bi_op_search = bdb_back_search;
+	bi->bi_op_compare = bdb_back_compare;
+	bi->bi_op_modify = bdb_back_modify;
+	bi->bi_op_modrdn = bdb_back_modrdn;
+	bi->bi_op_add = bdb_back_add;
+	bi->bi_op_delete = bdb_back_delete;
+	bi->bi_op_abandon = bdb_back_abandon;
+
+	bi->bi_extended = bdb_back_extended;
+
+	bi->bi_entry_release_rw = bdb_back_entry_release_rw;
+	bi->bi_acl_group = bdb_back_group;
+	bi->bi_acl_attribute = bdb_back_attribute;
+	bi->bi_chk_referrals = bdb_back_referrals;
+
+	/*
+	 * hooks for slap tools
+	 */
+	bi->bi_tool_entry_open = bdb_tool_entry_open;
+	bi->bi_tool_entry_close = bdb_tool_entry_close;
+	bi->bi_tool_entry_first = bdb_tool_entry_first;
+	bi->bi_tool_entry_next = bdb_tool_entry_next;
+	bi->bi_tool_entry_get = bdb_tool_entry_get;
+	bi->bi_tool_entry_put = bdb_tool_entry_put;
+	bi->bi_tool_entry_reindex = bdb_tool_entry_reindex;
+	bi->bi_tool_sync = bdb_tool_sync;
+
+	bi->bi_connection_init = 0;
+	bi->bi_connection_destroy = 0;
+#endif
 
 	return 0;
 }
