@@ -2,12 +2,12 @@ dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
 cn: Jim Jones
 sn: Jones
+uid: jaj
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 3882 Beverly Rd. $ Ann Arbor, MI 48105
@@ -74,11 +74,11 @@ dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
  y of Michigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Barbara Jensen
 cn: Babs Jensen
 sn: Jensen
+uid: bjensen
 title: Mythical Manager, Research Systems
 postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann 
  Arbor, MI 48103-4943
@@ -96,11 +96,11 @@ dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University
  of Michigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Bjorn Jensen
 cn: Biiff Jensen
 sn: Jensen
+uid: bjorn
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 19923 Seven Mile Rd. $ South Lyon, MI 49999
 drink: Iced Tea
@@ -143,12 +143,12 @@ dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Universi
  ty of Michigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: James A Jones 2
 cn: James Jones
 cn: Jim Jones
 sn: Doe
+uid: jjones
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 933 Brooks $ Ann Arbor, MI 48104
 homephone: +1 313 555 8838
@@ -164,11 +164,11 @@ dn: cn=John Doe,ou=Information Technology Division,ou=People,o=University of M
  ichigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: John Doe
 cn: Jonathon Doe
 sn: Doe
+uid: johnd
 postaladdress: ITD $ 535 W. William $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 912 East Bllvd $ Ann Arbor, MI 48104

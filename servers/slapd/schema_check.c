@@ -34,7 +34,7 @@ int structural_class(
 	ObjectClass *sc = NULL;
 	int scn = 0;
 
-	*text = "structural object error";
+	*text = "structural_class: internal error";
 	scbv->bv_len = 0;
 
 	for( i=0; ocs[i]; i++ ) {
@@ -239,6 +239,8 @@ entry_schema_check(
 	} else if ( nsc.bv_len == 0 ) {
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
+
+	*text = textbuf;
 
 	oc = oc_find( nsc.bv_val );
 	if ( oc == NULL ) {

@@ -68,7 +68,7 @@ $CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 if test $? != 0 ; then
 	echo "comparison failed - database was not created correctly"
 	echo $SEARCHFLT $LDIFFLT
-	diff -u $SEARCHFLT $LDIFFLT
+	diff -iu $SEARCHFLT $LDIFFLT
 	exit 1
 fi
 

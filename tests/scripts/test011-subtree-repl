@@ -134,10 +134,10 @@ dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University 
 changetype: add
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Gern Jensen
 sn: Jensen
+uid: gjensen
 title: Chief Investigator, ITD
 postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US

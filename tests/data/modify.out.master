@@ -34,11 +34,11 @@ dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
  y of Michigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Barbara Jensen
 cn: Babs Jensen
 sn: Jensen
+uid: bjensen
 title: Mythical Manager, Research Systems
 postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann 
  Arbor, MI 48103-4943
@@ -57,11 +57,11 @@ dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University
  of Michigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Bjorn Jensen
 cn: Biiff Jensen
 sn: Jensen
+uid: bjorn
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 userpassword:: Ympvcm4=
 homepostaladdress: 19923 Seven Mile Rd. $ South Lyon, MI 49999
@@ -80,11 +80,11 @@ dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Dorothy Stevens
 cn: Dot Stevens
 sn: Stevens
+uid: dots
 title: Secretary, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
@@ -100,10 +100,10 @@ dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,o=University o
  f Michigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Gern Jensen
 sn: Jensen
+uid: gjensen
 title: Chief Investigator, ITD
 postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
@@ -142,12 +142,12 @@ dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
 cn: Jim Jones
 sn: Jones
+uid: jaj
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 userpassword:: amFq
@@ -164,11 +164,11 @@ drink: Orange Juice
 dn: cn=Jane Doe,ou=Alumni Association,ou=People,o=University of Michigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Jane Doe
 cn: Jane Alverson
 sn: Doe
+uid: jdoe
 title: Programmer Analyst, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
@@ -185,11 +185,11 @@ dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=University of Michigan
  ,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Jennifer Smith
 cn: Jen Smith
 sn: Smith
+uid: jen
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 drink: Sam Adams
@@ -205,11 +205,11 @@ dn: cn=John Doe,ou=Information Technology Division,ou=People,o=University of M
  ichigan,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: John Doe
 cn: Jonathon Doe
 sn: Doe
+uid: johnd
 postaladdress: ITD $ 535 W. William $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 912 East Bllvd $ Ann Arbor, MI 48104
@@ -235,11 +235,11 @@ dn: cn=Mark Elliot,ou=Alumni Association,ou=People,o=University of Michigan,c=
  US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Mark Elliot
 cn: Mark A Elliot
 sn: Elliot
+uid: melliot
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 homepostaladdress: 199 Outer Drive $ Ypsilanti, MI 48198
@@ -277,10 +277,10 @@ dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
 objectclass: top
 objectclass: person
-objectclass: organizationalPerson
-objectclass: newPilotPerson
+objectclass: OpenLDAPperson
 cn: Ursula Hampster
 sn: Hampster
+uid: uham
 title: Secretary, UM Alumni Association
 postaladdress: Alumni Association $ 111 Maple St $ Ann Arbor, MI 48109
 seealso: cn=All Staff,ou=Groups,o=University of Michigan,c=US
