@@ -151,10 +151,6 @@ SOURCE=.\charray.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\cldap.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\compare.c
 # End Source File
 # Begin Source File
