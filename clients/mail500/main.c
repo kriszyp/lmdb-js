@@ -165,8 +165,8 @@ char	**def_attr = NULL;
 
 static void load_config( char *filespec );
 static void split_address( char *address, char **localpart, char **domainpart);
-static int entry_engine( LDAPMessage *e, char *dn, char *address, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr, int type );
-static void do_address( char *name, char ***to, int *nto, Group **togroups, int *ngroups, Error **err, int *nerr, int type );
+static int entry_engine( LDAPMessage *e, char *dn, char *address, char ***to, int *nto, Group ***togroups, int *ngroups, Error **err, int *nerr, int type );
+static void do_address( char *name, char ***to, int *nto, Group ***togroups, int *ngroups, Error **err, int *nerr, int type );
 static void send_message( char **to );
 static void send_errors( Error *err, int nerr );
 static void do_noemail( FILE *fp, Error *err, int namelen );
@@ -188,7 +188,7 @@ main ( int argc, char **argv )
 	char		*myname;
 	char		**tolist;
 	Error		*errlist;
-	Group		*togroups;
+	Group		**togroups;
 	int		numto, ngroups, numerr, nargs;
 	int		i, j;
 	char		*conffile = NULL;
@@ -393,7 +393,7 @@ main ( int argc, char **argv )
 			syslog( LOG_ALERT, "sending to groups with errorsto" );
 		}
 		(void) rewind( stdin );
-		send_group( togroups, ngroups );
+		send_group( *togroups, ngroups );
 	}
 
 	/* send to expanded aliases and groups w/o errorsTo */
@@ -691,33 +691,34 @@ connect_to_x500( void )
 }
 
 static Group *
-new_group( char *dn, Group **list, int *nlist )
+new_group( char *dn, Group ***list, int *nlist )
 {
 	int	i;
 	Group	*this_group;
 
 	for ( i = 0; i < *nlist; i++ ) {
-		if ( strcmp( dn, (*list)[i].g_dn ) == 0 ) {
+		if ( strcmp( dn, (*list)[i]->g_dn ) == 0 ) {
 			syslog( LOG_ALERT, "group loop 2 detected (%s)", dn );
 			return NULL;
 		}
 	}
 
+	this_group = (Group *) malloc( sizeof(Group) );
+
 	if ( *nlist == 0 ) {
-		*list = (Group *) malloc( sizeof(Group) );
+		*list = (Group **) malloc( sizeof(Group *) );
 	} else {
-		*list = (Group *) realloc( *list, (*nlist + 1) *
-		    sizeof(Group) );
+		*list = (Group **) realloc( *list, (*nlist + 1) *
+		    sizeof(Group *) );
 	}
 
-	this_group = *list;
-
-	(*list)[*nlist].g_errorsto = NULL;
-	(*list)[*nlist].g_members = NULL;
-	(*list)[*nlist].g_nmembers = 0;
+	this_group->g_errorsto = NULL;
+	this_group->g_members = NULL;
+	this_group->g_nmembers = 0;
 	/* save the group's dn so we can check for loops above */
-	(*list)[*nlist].g_dn = strdup( dn );
+	this_group->g_dn = strdup( dn );
 
+	(*list)[*nlist] = this_group;
 	(*nlist)++;
 
 	return( this_group );
@@ -750,7 +751,7 @@ dn_search(
 	char	*address,
 	char	***to,
 	int	*nto,
-	Group	**togroups,
+	Group	***togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr
@@ -800,7 +801,7 @@ search_ldap_url(
 	int	multi_entry,
 	char	***to,
 	int	*nto,
-	Group	**togroups,
+	Group	***togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr,
@@ -1040,7 +1041,7 @@ url_list_search(
 	int	multi_entry,
 	char	***to,
 	int	*nto,
-	Group	**togroups,
+	Group	***togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr,
@@ -1089,7 +1090,7 @@ entry_engine(
 	char	*address,
 	char	***to,
 	int	*nto,
-	Group	**togroups,
+	Group	***togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr,
@@ -1259,7 +1260,7 @@ search_bases(
 	char	*name,
 	char	***to,
 	int	*nto,
-	Group	**togroups,
+	Group	***togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr,
@@ -1290,7 +1291,7 @@ do_address(
 	char	*name,
 	char	***to,
 	int	*nto,
-	Group	**togroups,
+	Group	***togroups,
 	int	*ngroups,
 	Error	**err,
 	int	*nerr,
