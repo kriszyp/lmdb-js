@@ -257,7 +257,6 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 		? LDAP_INT_THREAD_POOL_FINISHING
 		: LDAP_INT_THREAD_POOL_STOPPING;
 	waiting = pool->ltp_open_count;
-	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 	/* broadcast could be used here, but only after
 	 * it is fixed in the NT thread implementation
@@ -265,6 +264,7 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	while (--waiting >= 0) {
 		ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 	}
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 	do {
 		ldap_pvt_thread_yield();
