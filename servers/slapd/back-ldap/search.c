@@ -122,7 +122,7 @@ fail:;
 		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
 			if ( do_retry ) {
 				do_retry = 0;
-				if ( ldap_back_retry( lc, op, &rs, LDAP_BACK_DONTSEND ) ) {
+				if ( ldap_back_retry( lc, op, rs, LDAP_BACK_DONTSEND ) ) {
 					goto retry;
 				}
 			}
