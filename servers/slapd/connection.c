@@ -433,7 +433,9 @@ long connection_init(
 
 		c->c_sasl_bind_mech.bv_val = NULL;
 		c->c_sasl_bind_mech.bv_len = 0;
-		c->c_sasl_context = NULL;
+		c->c_sasl_done = 0;
+		c->c_sasl_authctx = NULL;
+		c->c_sasl_sockctx = NULL;
 		c->c_sasl_extra = NULL;
 		c->c_sasl_bindop = NULL;
 
@@ -467,7 +469,9 @@ long connection_init(
     assert( LDAP_STAILQ_EMPTY(&c->c_ops) );
     assert( LDAP_STAILQ_EMPTY(&c->c_pending_ops) );
 	assert( c->c_sasl_bind_mech.bv_val == NULL );
-	assert( c->c_sasl_context == NULL );
+	assert( c->c_sasl_done == 0 );
+	assert( c->c_sasl_authctx == NULL );
+	assert( c->c_sasl_sockctx == NULL );
 	assert( c->c_sasl_extra == NULL );
 	assert( c->c_sasl_bindop == NULL );
 	assert( c->c_currentber == NULL );
@@ -556,7 +560,7 @@ long connection_init(
     }
 #endif
 
-	slap_sasl_open( c );
+	slap_sasl_open( c, 0 );
 	slap_sasl_external( c, ssf, authid );
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
@@ -1241,9 +1245,16 @@ int connection_read(ber_socket_t s)
 
 #ifdef HAVE_CYRUS_SASL
 	if ( c->c_sasl_layers ) {
+		/* If previous layer is not removed yet, give up for now */
+		if ( !c->c_sasl_sockctx ) {
+			connection_return( c );
+			ldap_pvt_thread_mutex_unlock( &connections_mutex );
+			return 0;
+		}
+
 		c->c_sasl_layers = 0;
 
-		rc = ldap_pvt_sasl_install( c->c_sb,  c->c_sasl_context );
+		rc = ldap_pvt_sasl_install( c->c_sb,  c->c_sasl_sockctx );
 
 		if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING

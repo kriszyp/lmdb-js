@@ -2068,7 +2068,9 @@ typedef struct slap_conn {
 	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
 #endif
 	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
-	void	*c_sasl_context;	/* SASL session context */
+	int	c_sasl_done;		/* SASL completed once */
+	void	*c_sasl_authctx;	/* SASL authentication context */
+	void	*c_sasl_sockctx;	/* SASL security layer context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
 	struct slap_op	*c_sasl_bindop;	/* set to current op if it's a bind */
 

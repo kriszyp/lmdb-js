@@ -188,7 +188,8 @@ typedef struct ldap_conn {
    	void		*lconn_tls_ctx;
 #endif
 #ifdef HAVE_CYRUS_SASL
-	void		*lconn_sasl_ctx;
+	void		*lconn_sasl_authctx;	/* context for bind */
+	void		*lconn_sasl_sockctx;	/* for security layer */
 #endif
 	int			lconn_refcnt;
 	time_t		lconn_lastused;	/* time */

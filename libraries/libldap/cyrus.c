@@ -476,7 +476,7 @@ ldap_int_sasl_open(
 	int rc;
 	sasl_conn_t *ctx;
 
-	assert( lc->lconn_sasl_ctx == NULL );
+	assert( lc->lconn_sasl_authctx == NULL );
 
 	if ( host == NULL ) {
 		ld->ld_errno = LDAP_LOCAL_ERROR;
@@ -504,18 +504,23 @@ ldap_int_sasl_open(
 		host, 0, 0 );
 #endif
 
-	lc->lconn_sasl_ctx = ctx;
+	lc->lconn_sasl_authctx = ctx;
 
 	return LDAP_SUCCESS;
 }
 
 int ldap_int_sasl_close( LDAP *ld, LDAPConn *lc )
 {
-	sasl_conn_t *ctx = lc->lconn_sasl_ctx;
+	sasl_conn_t *ctx = lc->lconn_sasl_authctx;
 
 	if( ctx != NULL ) {
 		sasl_dispose( &ctx );
-		lc->lconn_sasl_ctx = NULL;
+		if ( lc->lconn_sasl_sockctx && ctx != lc->lconn_sasl_sockctx ) {
+			ctx = lc->lconn_sasl_sockctx;
+			sasl_dispose( &ctx );
+		}
+		lc->lconn_sasl_sockctx = NULL;
+		lc->lconn_sasl_authctx = NULL;
 	}
 
 	return LDAP_SUCCESS;
@@ -537,7 +542,7 @@ ldap_int_sasl_bind(
 	const char *pmech = NULL;
 	int			saslrc, rc;
 	sasl_ssf_t		*ssf = NULL;
-	sasl_conn_t	*ctx;
+	sasl_conn_t	*ctx, *oldctx = NULL;
 	sasl_interact_t *prompts = NULL;
 	unsigned credlen;
 	struct berval ccred;
@@ -575,33 +580,23 @@ ldap_int_sasl_bind(
 		}
 	}   
 
-	ctx = ld->ld_defconn->lconn_sasl_ctx;
+	oldctx = ld->ld_defconn->lconn_sasl_authctx;
 
-	/* If we already have a context, shut it down */
-	if( ctx ) {
-		int msgid;
-		LDAPMessage *result;
-		/* Do an anonymous bind to kill the server's context */
-		msgid = ldap_simple_bind( ld, "", NULL );
-
-		/* dispose of the old context */
-		ldap_int_sasl_close( ld, ld->ld_defconn );
-		ldap_pvt_sasl_remove( ld->ld_sb );
-
-		/* The reply is sent in the clear, we can't read it
-		 * until after the context and sockbuf are torn down
-		 */
-		rc = ldap_result( ld, msgid, 1, NULL, &result );
-		ldap_msgfree( result );
+	/* If we already have an authentication context, clear it out */
+	if( oldctx ) {
+		if ( oldctx != ld->ld_defconn->lconn_sasl_sockctx ) {
+			sasl_dispose( &oldctx );
+		}
+		ld->ld_defconn->lconn_sasl_authctx = NULL;
 	}
 
 	rc = ldap_int_sasl_open( ld, ld->ld_defconn,
 		ld->ld_defconn->lconn_server->lud_host ?
 		ld->ld_defconn->lconn_server->lud_host : "localhost" );
-		
+
 	if ( rc != LDAP_SUCCESS ) return rc;
 
-	ctx = ld->ld_defconn->lconn_sasl_ctx;
+	ctx = ld->ld_defconn->lconn_sasl_authctx;
 
 	/* Check for TLS */
 	ssl = ldap_pvt_tls_sb_ctx( ld->ld_sb );
@@ -799,9 +794,16 @@ ldap_int_sasl_bind(
 			if( flags != LDAP_SASL_QUIET ) {
 				fprintf( stderr, "SASL installing layers\n" );
 			}
+			if ( ld->ld_defconn->lconn_sasl_sockctx ) {
+				oldctx = ld->ld_defconn->lconn_sasl_sockctx;
+				sasl_dispose( &oldctx );
+				ldap_pvt_sasl_remove( ld->ld_sb );
+			}
 			ldap_pvt_sasl_install( ld->ld_conns->lconn_sb, ctx );
+			ld->ld_defconn->lconn_sasl_sockctx = ctx;
 		}
 	}
+	ld->ld_defconn->lconn_sasl_authctx = ctx;
 
 done:
 	return rc;
@@ -820,7 +822,7 @@ ldap_int_sasl_external(
 	sasl_external_properties_t extprops;
 #endif
 
-	ctx = conn->lconn_sasl_ctx;
+	ctx = conn->lconn_sasl_authctx;
 
 	if ( ctx == NULL ) {
 		return LDAP_LOCAL_ERROR;
@@ -1000,7 +1002,7 @@ ldap_int_sasl_get_option( LDAP *ld, int option, void *arg )
 				return -1;
 			}
 
-			ctx = ld->ld_defconn->lconn_sasl_ctx;
+			ctx = ld->ld_defconn->lconn_sasl_sockctx;
 
 			if ( ctx == NULL ) {
 				return -1;
@@ -1062,7 +1064,7 @@ ldap_int_sasl_set_option( LDAP *ld, int option, void *arg )
 			return -1;
 		}
 
-		ctx = ld->ld_defconn->lconn_sasl_ctx;
+		ctx = ld->ld_defconn->lconn_sasl_authctx;
 
 		if ( ctx == NULL ) {
 			return -1;

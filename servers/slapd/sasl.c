@@ -825,7 +825,7 @@ slap_sasl_authorize(
 #endif
 
 	/* Figure out how much data we have for the dn */
-	rc = sasl_getprop( conn->c_sasl_context, SASL_REALM, (void **)&realm );
+	rc = sasl_getprop( conn->c_sasl_authctx, SASL_REALM, (void **)&realm );
 	if( rc != SASL_OK && rc != SASL_NOTDONE ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, ERR,
@@ -1047,7 +1047,7 @@ int slap_sasl_destroy( void )
 	return 0;
 }
 
-int slap_sasl_open( Connection *conn )
+int slap_sasl_open( Connection *conn, int reopen )
 {
 	int cb, sc = LDAP_SUCCESS;
 #if SASL_VERSION_MAJOR >= 2
@@ -1058,18 +1058,18 @@ int slap_sasl_open( Connection *conn )
 	sasl_conn_t *ctx = NULL;
 	sasl_callback_t *session_callbacks;
 
-	assert( conn->c_sasl_context == NULL );
-	assert( conn->c_sasl_extra == NULL );
+	assert( conn->c_sasl_authctx == NULL );
 
-	conn->c_sasl_layers = 0;
+	if ( !reopen ) {
+		assert( conn->c_sasl_extra == NULL );
 
-	session_callbacks =
+		session_callbacks =
 #if SASL_VERSION_MAJOR >= 2
-		SLAP_CALLOC( 5, sizeof(sasl_callback_t));
+			SLAP_CALLOC( 5, sizeof(sasl_callback_t));
 #else
-		SLAP_CALLOC( 3, sizeof(sasl_callback_t));
+			SLAP_CALLOC( 3, sizeof(sasl_callback_t));
 #endif
-	if( session_callbacks == NULL ) {
+		if( session_callbacks == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( TRANSPORT, ERR, 
 				"slap_sasl_open: SLAP_MALLOC failed", 0, 0, 0 );
@@ -1078,31 +1078,36 @@ int slap_sasl_open( Connection *conn )
 				"slap_sasl_open: SLAP_MALLOC failed", 0, 0, 0 );
 #endif
 			return -1;
-	}
-	conn->c_sasl_extra = session_callbacks;
+		}
+		conn->c_sasl_extra = session_callbacks;
 
-	session_callbacks[cb=0].id = SASL_CB_LOG;
-	session_callbacks[cb].proc = &slap_sasl_log;
-	session_callbacks[cb++].context = conn;
+		session_callbacks[cb=0].id = SASL_CB_LOG;
+		session_callbacks[cb].proc = &slap_sasl_log;
+		session_callbacks[cb++].context = conn;
 
-	session_callbacks[cb].id = SASL_CB_PROXY_POLICY;
-	session_callbacks[cb].proc = &slap_sasl_authorize;
-	session_callbacks[cb++].context = conn;
+		session_callbacks[cb].id = SASL_CB_PROXY_POLICY;
+		session_callbacks[cb].proc = &slap_sasl_authorize;
+		session_callbacks[cb++].context = conn;
 
 #if SASL_VERSION_MAJOR >= 2
-	session_callbacks[cb].id = SASL_CB_CANON_USER;
-	session_callbacks[cb].proc = &slap_sasl_canonicalize;
-	session_callbacks[cb++].context = conn;
+		session_callbacks[cb].id = SASL_CB_CANON_USER;
+		session_callbacks[cb].proc = &slap_sasl_canonicalize;
+		session_callbacks[cb++].context = conn;
 
-	/* XXXX: this should be conditional */
-	session_callbacks[cb].id = SASL_CB_SERVER_USERDB_CHECKPASS;
-	session_callbacks[cb].proc = &slap_sasl_checkpass;
-	session_callbacks[cb++].context = conn;
+		/* XXXX: this should be conditional */
+		session_callbacks[cb].id = SASL_CB_SERVER_USERDB_CHECKPASS;
+		session_callbacks[cb].proc = &slap_sasl_checkpass;
+		session_callbacks[cb++].context = conn;
 #endif
 
-	session_callbacks[cb].id = SASL_CB_LIST_END;
-	session_callbacks[cb].proc = NULL;
-	session_callbacks[cb++].context = NULL;
+		session_callbacks[cb].id = SASL_CB_LIST_END;
+		session_callbacks[cb].proc = NULL;
+		session_callbacks[cb++].context = NULL;
+	} else {
+		session_callbacks = conn->c_sasl_extra;
+	}
+
+	conn->c_sasl_layers = 0;
 
 	if( global_host == NULL ) {
 		global_host = ldap_pvt_get_fqdn( NULL );
@@ -1161,7 +1166,7 @@ int slap_sasl_open( Connection *conn )
 		return -1;
 	}
 
-	conn->c_sasl_context = ctx;
+	conn->c_sasl_authctx = ctx;
 
 	if( sc == SASL_OK ) {
 		sc = sasl_setprop( ctx,
@@ -1193,7 +1198,7 @@ int slap_sasl_external(
 {
 #if SASL_VERSION_MAJOR >= 2
 	int sc;
-	sasl_conn_t *ctx = conn->c_sasl_context;
+	sasl_conn_t *ctx = conn->c_sasl_authctx;
 
 	if ( ctx == NULL ) {
 		return LDAP_UNAVAILABLE;
@@ -1213,7 +1218,7 @@ int slap_sasl_external(
 
 #elif defined(HAVE_CYRUS_SASL)
 	int sc;
-	sasl_conn_t *ctx = conn->c_sasl_context;
+	sasl_conn_t *ctx = conn->c_sasl_authctx;
 	sasl_external_properties_t extprops;
 
 	if ( ctx == NULL ) {
@@ -1237,32 +1242,7 @@ int slap_sasl_external(
 
 int slap_sasl_reset( Connection *conn )
 {
-	int rc = LDAP_SUCCESS;
-#ifdef HAVE_CYRUS_SASL
-	sasl_conn_t *ctx = conn->c_sasl_context;
-	slap_ssf_t ssf = 0;
-	const char *authid = NULL;
-#if SASL_VERSION_MAJOR >= 2
-	sasl_getprop( ctx, SASL_SSF_EXTERNAL, &ssf );
-	sasl_getprop( ctx, SASL_AUTH_EXTERNAL, &authid );
-	if ( authid ) authid = ch_strdup( authid );
-#else
-	/* we can't retrieve the external properties from SASL 1.5.
-	 * we can get it again from the underlying TLS or IPC connection,
-	 * but it's simpler just to ignore it since 1.5 is obsolete.
-	 */
-#endif
-	rc = slap_sasl_close( conn );
-	ldap_pvt_sasl_remove( conn->c_sb );
-	if ( rc == LDAP_SUCCESS ) {
-		rc = slap_sasl_open( conn );
-	}
-	if ( rc == LDAP_SUCCESS ) {
-		rc = slap_sasl_external( conn, ssf, authid );
-	}
-	if ( authid ) ch_free( authid );
-#endif
-	return rc;
+	return LDAP_SUCCESS;
 }
 
 char ** slap_sasl_mechs( Connection *conn )
@@ -1270,7 +1250,9 @@ char ** slap_sasl_mechs( Connection *conn )
 	char **mechs = NULL;
 
 #ifdef HAVE_CYRUS_SASL
-	sasl_conn_t *ctx = conn->c_sasl_context;
+	sasl_conn_t *ctx = conn->c_sasl_authctx;
+
+	if( ctx == NULL ) ctx = conn->c_sasl_sockctx;
 
 	if( ctx != NULL ) {
 		int sc;
@@ -1306,13 +1288,19 @@ char ** slap_sasl_mechs( Connection *conn )
 int slap_sasl_close( Connection *conn )
 {
 #ifdef HAVE_CYRUS_SASL
-	sasl_conn_t *ctx = conn->c_sasl_context;
+	sasl_conn_t *ctx = conn->c_sasl_authctx;
 
 	if( ctx != NULL ) {
 		sasl_dispose( &ctx );
 	}
+	if ( conn->c_sasl_sockctx && conn->c_sasl_authctx != conn->c_sasl_sockctx ) {
+		ctx = conn->c_sasl_sockctx;
+		sasl_dispose( &ctx );
+	}
 
-	conn->c_sasl_context = NULL;
+	conn->c_sasl_authctx = NULL;
+	conn->c_sasl_sockctx = NULL;
+	conn->c_sasl_done = 0;
 
 	free( conn->c_sasl_extra );
 	conn->c_sasl_extra = NULL;
@@ -1324,7 +1312,7 @@ int slap_sasl_close( Connection *conn )
 int slap_sasl_bind( Operation *op, SlapReply *rs )
 {
 #ifdef HAVE_CYRUS_SASL
-	sasl_conn_t *ctx = op->o_conn->c_sasl_context;
+	sasl_conn_t *ctx = op->o_conn->c_sasl_authctx;
 	struct berval response;
 	unsigned reslen = 0;
 	int sc;
@@ -1365,6 +1353,30 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 #endif
 
 	if ( !op->o_conn->c_sasl_bind_in_progress ) {
+		/* If we already authenticated once, must use a new context */
+		if ( op->o_conn->c_sasl_done ) {
+			slap_ssf_t ssf = 0;
+			const char *authid = NULL;
+#if SASL_VERSION_MAJOR >= 2
+			sasl_getprop( ctx, SASL_SSF_EXTERNAL, (void *)&ssf );
+			sasl_getprop( ctx, SASL_AUTH_EXTERNAL, (void *)&authid );
+			if ( authid ) authid = ch_strdup( authid );
+#endif
+			if ( ctx != op->o_conn->c_sasl_sockctx ) {
+				sasl_dispose( &ctx );
+			}
+			op->o_conn->c_sasl_authctx = NULL;
+				
+			slap_sasl_open( op->o_conn, 1 );
+			ctx = op->o_conn->c_sasl_authctx;
+#if SASL_VERSION_MAJOR >= 2
+			if ( authid ) {
+				sasl_setprop( ctx, SASL_SSF_EXTERNAL, &ssf );
+				sasl_setprop( ctx, SASL_AUTH_EXTERNAL, authid );
+				ch_free( (char *)authid );
+			}
+#endif
+		}
 		sc = START( ctx,
 			op->o_conn->c_sasl_bind_mech.bv_val,
 			op->orb_cred.bv_val, op->orb_cred.bv_len,
@@ -1384,21 +1396,47 @@ int slap_sasl_bind( Operation *op, SlapReply *rs )
 		op->orb_edn = op->o_conn->c_sasl_dn;
 		op->o_conn->c_sasl_dn.bv_val = NULL;
 		op->o_conn->c_sasl_dn.bv_len = 0;
+		op->o_conn->c_sasl_done = 1;
 
 		rs->sr_err = LDAP_SUCCESS;
 
 		(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
 		op->orb_ssf = ssf ? *ssf : 0;
 
+		ctx = NULL;
 		if( op->orb_ssf ) {
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 			op->o_conn->c_sasl_layers++;
+
+			/* If there's an old layer, set sockctx to NULL to
+			 * tell connection_read() to wait for us to finish.
+			 * Otherwise there is a race condition: we have to
+			 * send the Bind response using the old security
+			 * context and then remove it before reading any
+			 * new messages.
+			 */
+			if ( op->o_conn->c_sasl_sockctx ) {
+				ctx = op->o_conn->c_sasl_sockctx;
+				op->o_conn->c_sasl_sockctx = NULL;
+			} else {
+				op->o_conn->c_sasl_sockctx = op->o_conn->c_sasl_authctx;
+			}
 			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 		}
 
+		/* Must send response using old security layer */
 		if (response.bv_len) rs->sr_sasldata = &response;
 		send_ldap_sasl( op, rs );
-
+		
+		/* Now dispose of the old security layer.
+		 */
+		if ( ctx ) {
+			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
+			ldap_pvt_sasl_remove( op->o_conn->c_sb );
+			op->o_conn->c_sasl_sockctx = op->o_conn->c_sasl_authctx;
+			ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
+			sasl_dispose( &ctx );
+		}
 	} else if ( sc == SASL_CONTINUE ) {
 		rs->sr_err = LDAP_SASL_BIND_IN_PROGRESS,
 		rs->sr_sasldata = &response;
@@ -1454,7 +1492,7 @@ slap_sasl_setpass( Operation *op, SlapReply *rs )
 
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->ore_reqoid ) == 0 );
 
-	rs->sr_err = sasl_getprop( op->o_conn->c_sasl_context, SASL_USERNAME,
+	rs->sr_err = sasl_getprop( op->o_conn->c_sasl_authctx, SASL_USERNAME,
 		(SASL_CONST void **)&id.bv_val );
 
 	if( rs->sr_err != SASL_OK ) {
@@ -1492,13 +1530,13 @@ slap_sasl_setpass( Operation *op, SlapReply *rs )
 	}
 
 #if SASL_VERSION_MAJOR < 2
-	rs->sr_err = sasl_setpass( op->o_conn->c_sasl_context,
+	rs->sr_err = sasl_setpass( op->o_conn->c_sasl_authctx,
 		id.bv_val, new.bv_val, new.bv_len, 0, &rs->sr_text );
 #else
-	rs->sr_err = sasl_setpass( op->o_conn->c_sasl_context, id.bv_val,
+	rs->sr_err = sasl_setpass( op->o_conn->c_sasl_authctx, id.bv_val,
 		new.bv_val, new.bv_len, old.bv_val, old.bv_len, 0 );
 	if( rs->sr_err != SASL_OK ) {
-		rs->sr_text = sasl_errdetail( op->o_conn->c_sasl_context );
+		rs->sr_text = sasl_errdetail( op->o_conn->c_sasl_authctx );
 	}
 #endif
 	switch(rs->sr_err) {

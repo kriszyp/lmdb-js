@@ -834,7 +834,7 @@ LDAP_SLAPD_F (int) slap_sasl_init(void);
 LDAP_SLAPD_F (char *) slap_sasl_secprops( const char * );
 LDAP_SLAPD_F (int) slap_sasl_destroy(void);
 
-LDAP_SLAPD_F (int) slap_sasl_open( Connection *c );
+LDAP_SLAPD_F (int) slap_sasl_open( Connection *c, int reopen );
 LDAP_SLAPD_F (char **) slap_sasl_mechs( Connection *c );
 
 LDAP_SLAPD_F (int) slap_sasl_external( Connection *c,
