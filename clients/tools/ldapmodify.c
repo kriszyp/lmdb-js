@@ -34,8 +34,7 @@
 #include "ldif.h"
 #include "ldap_defaults.h"
 #include "ldap_log.h"
-/* needed for ldap_control_dup(); we should declare it somewhere else ... */
-#include "../../libraries/libldap/ldap-int.h"
+#include "ldap_pvt.h"
 
 static char	*prog;
 static char	*binddn = NULL;
