@@ -776,21 +776,28 @@ bdb_idl_intersection(
 		return 0;
 	}
 
-	if ( BDB_IDL_IS_RANGE( a ) && BDB_IDL_IS_RANGE(b) ) {
-		a[1] = idmin;
-		a[2] = idmax;
-		return 0;
-	}
-
 	if ( BDB_IDL_IS_RANGE( a ) ) {
-		ID *tmp = a;
-		a = b;
-		b = tmp;
-		swap = 1;
+		if ( BDB_IDL_IS_RANGE(b) ) {
+		/* If both are ranges, just shrink the boundaries */
+			a[1] = idmin;
+			a[2] = idmax;
+			return 0;
+		} else {
+		/* Else swap so that b is the range, a is a list */
+			ID *tmp = a;
+			a = b;
+			b = tmp;
+			swap = 1;
+		}
 	}
 
-	if ( BDB_IDL_IS_RANGE( b ) && BDB_IDL_FIRST( b ) <= idmin &&
-		BDB_IDL_LAST( b ) >= idmax) {
+	/* If a range completely covers the list, the result is
+	 * just the list. If idmin to idmax is contiguous, just
+	 * turn it into a range.
+	 */
+	if ( BDB_IDL_IS_RANGE( b )
+		&& BDB_IDL_FIRST( b ) <= BDB_IDL_FIRST( a )
+		&& BDB_IDL_LAST( b ) >= BDB_IDL_LAST( a ) ) {
 		if (idmax - idmin + 1 == a[0])
 		{
 			a[0] = NOID;
@@ -800,14 +807,13 @@ bdb_idl_intersection(
 		goto done;
 	}
 
+	/* Fine, do the intersection one element at a time.
+	 * First advance to idmin in both IDLs.
+	 */
+	cursora = cursorb = idmin;
 	ida = bdb_idl_first( a, &cursora );
 	idb = bdb_idl_first( b, &cursorb );
 	cursorc = 0;
-
-	while( ida < idmin )
-		ida = bdb_idl_next( a, &cursora );
-	while( idb < idmin )
-		idb = bdb_idl_next( b, &cursorb );
 
 	while( ida <= idmax || idb <= idmax ) {
 		if( ida == idb ) {
