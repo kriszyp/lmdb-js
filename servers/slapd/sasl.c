@@ -1331,6 +1331,13 @@ char* slap_sasl_secprops( const char *in )
 #endif
 }
 
+void slap_sasl_secprops_unparse( struct berval *bv )
+{
+#ifdef HAVE_CYRUS_SASL
+	ldap_pvt_sasl_secprops_unparse( &sasl_secprops, bv );
+#endif
+}
+
 #ifdef HAVE_CYRUS_SASL
 int
 slap_sasl_setpass( Operation *op, SlapReply *rs )

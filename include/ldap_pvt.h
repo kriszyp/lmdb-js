@@ -172,6 +172,9 @@ struct sasl_security_properties; /* avoid pulling in <sasl.h> */
 LDAP_F (int) ldap_pvt_sasl_secprops LDAP_P((
 	const char *in,
 	struct sasl_security_properties *secprops ));
+LDAP_F (void) ldap_pvt_sasl_secprops_unparse LDAP_P((
+	struct sasl_security_properties *secprops,
+	struct berval *out ));
 
 LDAP_F (void *) ldap_pvt_sasl_mutex_new LDAP_P((void));
 LDAP_F (int) ldap_pvt_sasl_mutex_lock LDAP_P((void *mutex));

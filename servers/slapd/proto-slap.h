@@ -1130,6 +1130,7 @@ LDAP_SLAPD_F (int) read_root_dse_file LDAP_P((
  */
 LDAP_SLAPD_F (int) slap_sasl_init(void);
 LDAP_SLAPD_F (char *) slap_sasl_secprops( const char * );
+LDAP_SLAPD_F (void) slap_sasl_secprops_unparse( struct berval * );
 LDAP_SLAPD_F (int) slap_sasl_destroy(void);
 
 LDAP_SLAPD_F (int) slap_sasl_open( Connection *c, int reopen );

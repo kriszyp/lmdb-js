@@ -995,8 +995,15 @@ config_generic(ConfigArgs *c) {
 			rc = 1;
 			break;
 #ifdef HAVE_CYRUS_SASL
-		case CFG_SASLSECP:	/* FIXME */
-			rc = 1;
+		case CFG_SASLSECP: {
+			struct berval bv = BER_BVNULL;
+			slap_sasl_secprops_unparse( &bv );
+			if ( !BER_BVISNULL( &bv )) {
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			} else {
+				rc = 1;
+			}
+			}
 			break;
 #endif
 		case CFG_DEPTH:
