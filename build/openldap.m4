@@ -429,10 +429,8 @@ AC_DEFUN([OL_BDB_COMPAT],
 #	define DB_VERSION_MAJOR 1
 #endif
 
-/* require 3.3 or later */
-#if DB_VERSION_MAJOR > 3 
-	__db_version_compat
-#elif DB_VERSION_MAJOR == 3 && DB_VERSION_MINOR >= 3
+/* require 4.0 or later */
+#if DB_VERSION_MAJOR >= 4 
 	__db_version_compat
 #endif
 	],	[ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
