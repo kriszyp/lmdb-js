@@ -436,6 +436,28 @@ rewrite_map_apply(
 	return rc;
 }
 
+void
+rewrite_builtin_map_free(
+		void *tmp
+)
+{
+	struct rewrite_builtin_map *map = ( struct rewrite_builtin_map * )tmp;
+
+	assert( map );
+
+	switch ( map->lb_type ) {
+	case REWRITE_BUILTIN_MAP_LDAP:
+		map_ldap_destroy( &map );
+		break;
+
+	default:
+		assert(0);
+		break;
+	}
+
+	free( map );
+}
+
 int
 rewrite_map_destroy(
 		struct rewrite_map **pmap

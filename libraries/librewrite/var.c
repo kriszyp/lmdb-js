@@ -110,7 +110,7 @@ rewrite_var_insert(
 		return NULL;
 	}
 	memset( var, 0, sizeof( struct rewrite_var ) );
-	var->lv_name = ( char * )strdup( name );
+	var->lv_name = strdup( name );
 	if ( var->lv_name == NULL ) {
 		rc = -1;
 		goto cleanup;
@@ -190,6 +190,7 @@ rewrite_var_free(
 
 	free( var->lv_name );
 	free( var->lv_value.bv_val );
+	free( var );
 }
 
 /*

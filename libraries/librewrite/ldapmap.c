@@ -331,3 +331,21 @@ rc_return:;
 	return rc;
 }
 
+int
+map_ldap_destroy(
+		struct rewrite_builtin_map **pmap
+)
+{
+	struct ldap_map_data *data;
+
+	assert( pmap );
+	assert( *pmap );
+	
+	data = ( struct ldap_map_data * )(*pmap)->lb_private;
+
+	free( data );
+	*pmap = NULL;
+
+	return 0;
+}
+		

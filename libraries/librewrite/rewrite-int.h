@@ -262,7 +262,9 @@ struct rewrite_var {
 struct rewrite_op {
 	int                             lo_num_passes;
 	int                             lo_depth;
+#if 0 /* FIXME: not used anywhere! (debug? then, why strdup?) */
 	char                           *lo_string;
+#endif
 	char                           *lo_result;
 	Avlnode                        *lo_vars;
 	const void                     *lo_cookie;
@@ -369,6 +371,10 @@ rewrite_xmap_destroy(
 		struct rewrite_map **map
 );
 
+LDAP_REWRITE_F (void)
+rewrite_builtin_map_free(
+		void *map
+);
 /*
  * Submatch substitution
  */

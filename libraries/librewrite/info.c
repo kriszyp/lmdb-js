@@ -117,6 +117,11 @@ rewrite_info_delete(
 	}
 	info->li_context = NULL;
 
+	if ( info->li_maps ) {
+		avl_free( info->li_maps, rewrite_builtin_map_free );
+	}
+	info->li_context = NULL;
+
 	rewrite_session_destroy( info );
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
@@ -172,7 +177,7 @@ rewrite_session(
 )
 {
 	struct rewrite_context *context;
-	struct rewrite_op op = { 0, 0, NULL, NULL, NULL, NULL };
+	struct rewrite_op op = { 0, 0, NULL, NULL, NULL };
 	int rc;
 	
 	assert( info != NULL );
@@ -218,21 +223,24 @@ rewrite_session(
 			break;
 		}
 	}
-	
+
+#if 0 /* FIXME: not used anywhere! (debug? then, why strdup?) */
 	op.lo_string = strdup( string );
 	if ( op.lo_string == NULL ) {
 		rc = REWRITE_REGEXEC_ERR;
 		goto rc_return;
 	}
+#endif
 	
 	/*
 	 * Applies rewrite context
 	 */
-	rc = rewrite_context_apply(info, &op, context, string, result );
+	rc = rewrite_context_apply( info, &op, context, string, result );
 	assert( op.lo_depth == 0 );
 
-	/* ?!? */
+#if 0 /* FIXME: not used anywhere! (debug? then, why strdup?) */	
 	free( op.lo_string );
+#endif
 	
 	switch ( rc ) {
 	/*

@@ -180,7 +180,6 @@ rewrite_subst_compile(
 		free( submatch );
 		return NULL;
 	}
-
 	subs = tmps;
 	l = p - begin;
 	if ( l > 0 ) {
