@@ -471,7 +471,7 @@ parse_acl(
 char *
 accessmask2str( slap_access_mask_t mask )
 {
-	static char	buf[sizeof("unknown (+wrsca0)")]; 
+	static char	buf[sizeof("unknown (+wrscan)")]; 
 	int none=1;
 
 	if ( ACL_IS_INVALID( mask ) ) {

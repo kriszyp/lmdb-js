@@ -168,9 +168,10 @@ access_allowed(
 	}
 
 	Debug( LDAP_DEBUG_ACL,
-		"=> access_allowed: %s access %s to \"%s\"\n",
+		"=> access_allowed: %s access %s by %s\n",
 		access2str( access ),
-		ACL_GRANT(mask, access) ? "granted" : "denied", op->o_dn );
+		ACL_GRANT(mask, access) ? "granted" : "denied",
+		accessmask2str( mask ) );
 
 	return ACL_GRANT(mask, access);
 }
@@ -222,7 +223,7 @@ acl_get(
 				continue;
 
 			} else {
-				Debug( LDAP_DEBUG_ACL, "=> acl_get: ACL [%d] matched\n",
+				Debug( LDAP_DEBUG_ACL, "=> acl_get: [%d] matched\n",
 					*count, 0, 0);
 			}
 		}
@@ -281,12 +282,12 @@ acl_mask(
 	assert( mask != NULL );
 
 	Debug( LDAP_DEBUG_ACL,
-		"=> acl_mask: access to entry \"%s\", attr \"%s\"\n requested\n",
+		"=> acl_mask: access to entry \"%s\", attr \"%s\" requested\n",
 		e->e_dn, attr, 0 );
 
 	Debug( LDAP_DEBUG_ACL,
 		"=> acl_mask: to value \"%s\" by \"%s\", (%s) \n",
-		val ? val->bv_val : "any",
+		val ? val->bv_val : "*",
 		op->o_ndn ?  op->o_ndn : "",
 		accessmask2str( *mask ) );
 
@@ -480,28 +481,39 @@ acl_mask(
 
 
 		Debug( LDAP_DEBUG_ACL,
-			"<= acl_mask: matched clause #%d\n",
-			i, 0, 0 );
+			"<= acl_mask: [%d] applying %s (%s)\n",
+			i, accessmask2str( modmask ), 
+			b->a_type == ACL_CONTINUE
+				? "continue"
+				: b->a_type == ACL_BREAK
+					? "break"
+					: "stop" );
 
+		/* save old mask */
 		oldmask = *mask;
 
 		if( ACL_IS_ADDITIVE(modmask) ) {
-			ACL_PRIV_CLR( *mask, ACL_PRIV_LEVEL );
+			/* add privs */
 			ACL_PRIV_SET( *mask, modmask );
-		
+
+			/* cleanup */
+			ACL_PRIV_CLR( *mask, ~ACL_PRIV_MASK );
+
 		} else if( ACL_IS_SUBTRACTIVE(modmask) ) {
-			ACL_PRIV_CLR( *mask, ACL_PRIV_LEVEL );
+			/* substract privs */
 			ACL_PRIV_CLR( *mask, modmask );
 
+			/* cleanup */
+			ACL_PRIV_CLR( *mask, ~ACL_PRIV_MASK );
+
 		} else {
-			ACL_PRIV_ASSIGN( *mask, modmask );
+			/* assign privs */
+			*mask = modmask;
 		}
 
 		Debug( LDAP_DEBUG_ACL,
-			"<= acl_mask: old (%s) mod (%s) new (%s)\n",
-			accessmask2str(oldmask),
-			accessmask2str(modmask),
-			accessmask2str(*mask) );
+			"<= acl_mask: [%d] old: %s new: %s\n",
+			i, accessmask2str(oldmask), accessmask2str(*mask));
 
 		if( b->a_type == ACL_CONTINUE ) {
 			continue;
@@ -510,10 +522,13 @@ acl_mask(
 			return ACL_BREAK;
 
 		} else {
-			break;
+			return ACL_STOP;
 		}
 	}
 
+	Debug( LDAP_DEBUG_ACL,
+		"<= acl_mask: no more <who> clauses, returning %s (stop)\n",
+		accessmask2str(*mask), 0, 0 );
 	return ACL_STOP;
 }
 
