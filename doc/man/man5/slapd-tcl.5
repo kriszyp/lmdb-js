@@ -1,0 +1,243 @@
+.TH SLAPD-TCL 5 "28 April 2002" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.SH NAME
+slapd-tcl \- Tcl backend to slapd
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The Tcl backend to
+.BR slapd (8)
+works by embedding a
+.BR Tcl (3tcl)
+interpreter into
+.BR slapd (8).
+Any tcl database section of the configuration file
+.BR slapd.conf (5)
+must then specify what Tcl script to use.
+.SH CONFIGURATION
+The
+.BR slapd.conf (5)
+options in this category apply to the TCL backend database.
+That is, they must follow a "database tcl" line and come before any
+subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+.TP
+.B scriptpath      <filename.tcl>
+The full path to the tcl script used for this database
+.TP
+.B search   <proc>
+.TP
+.B add      <proc>
+.TP
+.B delete   <proc>
+.TP
+.B modify   <proc>
+.TP
+.B bind     <proc>
+.TP
+.B unbind   <proc>
+.TP
+.B modrdn   <proc>
+.TP
+.B compare  <proc>
+.TP
+.B abandon  <proc>
+The procs for each ldap function.
+This is similar to how the
+.BR slapd-shell (5)
+backend setup works, but these refer to the tcl procs in the
+`scriptpath' script that handle them.
+.TP
+.B tclrealm <interpreter name>
+This is one of the biggest pluses of using the tcl backend.
+The realm lets you group several databases to the same interpreter.
+This basically means they share the same global variables and proc space.
+So global variables, as well as all the procs, are callable between databases.
+If no tclrealm is specified, it is put into the "default" realm.
+.SH "Variables passed to the procs"
+.TP
+.B abandon { action msgid suffix }
+.nf
+  action - Always equal to ABANDON.
+  msgid  - The msgid of this ldap operation.
+  suffix - List of suffix(es) associated with the
+           call.  Each one is an entry in a tcl
+           formatted list (surrounded by {}'s).
+.fi
+.TP
+.B add { action msgid suffix entry }
+.nf
+  action - Always equal to ADD.
+  msgid  - The msgid of this ldap operation.
+  suffix - List of suffix(es), as above.
+  entry  - Full entry to add. Each "type: val" is
+           an element in a tcl formatted list.
+.fi
+.TP
+.B bind { action msgid suffix dn method cred_len cred }
+.nf
+  action   - Always equal to BIND.
+  msgid    - The msgid of this ldap operation.
+  suffix   - List of suffix(es), as above.
+  dn       - DN being bound to.
+  method   - One of the ldap authentication methods.
+  cred_len - Length of cred.
+  cred     - Credentials being used to authenticate,
+             according to RFC.  If this value is empty,
+             then it should be considered an anonymous
+             bind (??)
+.fi
+.TP
+.B compare { action msgid suffix dn ava_type ava_value }
+.nf
+  action    - Always equal to COMPARE.
+  msgid     - The msgid of this ldap operation.
+  suffix    - List of suffix(es), as above.
+  dn        - DN for compare.
+  ava_type  - Type for comparison.
+  ava_value - Value to compare.
+.fi
+.TP
+.B delete { action msgid suffix dn }
+.nf
+  action    - Always equal to DELETE.
+  msgid     - The msgid of this ldap operation.
+  suffix    - List of suffix(es), as above.
+  dn        - DN to delete.
+.fi
+.TP
+.B modify { action msgid suffix dn mods }
+.nf
+  action - Always equal to MODIFY.
+  msgid  - The msgid of this ldap operation.
+  suffix - List of suffix(es), as above.
+  dn     - DN to modify.
+  mods   - Tcl list of modifications.
+           The list is formatted in this way:
+
+           {
+             { {op: type} {type: val} }
+             { {op: type} {type: val} {type: val} }
+             ...
+           }
+
+           Newlines are not present in the actual var,
+           they are present here for clarification.
+           "op" is the type of modification
+           (ADD, DELETE, REPLACE).
+.fi
+.TP
+.B modrdn { action msgid suffix dn newrdn deleteoldrdn }
+.nf
+  action - Always equal to MODRDN.
+  msgid  - The msgid of this ldap operation.
+  suffix - List of suffix(es), as above.
+  dn     - DN whose RDN is being renamed.
+  newrdn - New RDN.
+  deleteoldrdn - Boolean stating whether or not the
+           old RDN should be removed after being renamed.
+.fi
+.TP
+.B search { action msgid suffix base scope deref sizelimit timelimit filterstr attrsonly attrlist }
+.nf
+  action    - Always equal to SEARCH.
+  msgid     - The msgid of this ldap operation.
+  suffix    - List of suffix(es), as above.
+  base      - Base for this search.
+  scope     - Scope of search, ( 0 | 1 | 2 ).
+  deref     - Alias dereferencing ( 0 | 1 | 2 | 3 ).
+  sizelimit - Maximum number of entries to return.
+  timelimit - Time limit for search.
+  filterstr - Filter string as sent by the requester.
+  attrsonly - Boolean for whether to list only the
+              attributes, and not values as well.
+  attrlist  - Tcl list if to retrieve.
+.fi
+.TP
+.B unbind { action msgid suffix dn }
+.nf
+  action - Always equal to UNBIND.
+  msgid  - The msgid of this ldap operation.
+  suffix - List of suffix(es), as above.
+  dn     - DN to unbind.
+.fi
+.LP
+.SH "Return Method and Syntax"
+There are only 2 return types.
+All procs must return a result to show status of the operation.
+The result is in this form:
+.LP
+.nf
+  { RESULT {code: <integer>} {matched: <partialdn>}
+    {info: <string>} {} }
+.fi
+.LP
+This is best accomplished with this type of tcl code
+.LP
+.nf
+  lappend ret_val "RESULT"
+  lappend ret_val "code: 0"
+  lappend ret_val ""
+  return $ret_val
+.fi
+.LP
+The final empty string (item in list) is necessary to point to the end
+of list.
+The `code', `matched', and `info' values are not necessary, and
+default values are given if not specified.
+The `code' value is usually an LDAP error in decimal notation from
+ldap.h.
+The `info', may be sent back to the client, depending on the
+function.
+In the bind proc, LDAP uses the value of `code' to indicate whether or
+not the authentication is acceptable.
+.LP
+The other type of return is for searches.
+It is similar format to the shell backend return (as is most of the
+syntax here).
+Its format follows:
+.LP
+.nf
+    {dn: o=Company, c=US} {attr: val} {objectclass: val} {}
+    {dn: o=CompanyB, c=US} {attr: val} {objectclass: val} {}
+.fi
+.LP
+Again, newlines are for visual purposes here.
+Also note the {} marking the end of the entry (same effect as a
+newline in ldif format).
+Here is some example code again, showing a full search proc example.
+.LP
+.nf
+  # Note that `args' lets you lump all possible args
+  # into one var, used here for simplicity of example
+  proc ldap:search { args } {
+    # ...perform some operations...
+  
+    lappend ret_val "dn: $rdn,$base"
+    lappend ret_val "objectclass: $objcl"
+    lappend ret_val "sn: $rdn"
+    lappend ret_val "mail: $email"
+    lappend ret_val ""
+    # Now setup the result
+    lappend ret_val "RESULT"
+    lappend ret_val "code: 0"
+    lappend ret_val ""
+    return $ret_val
+  }
+.fi
+.LP
+NOTE: Newlines in the return value is acceptable in search entries
+(i.e. when returning base64 encoded binary entries).
+.LP
+.SH "Builtin Commands and Variables"
+.TP
+.B ldap:debug <msg>
+Allows you to send debug messages through OpenLDAP's native debugging
+system, this is sent as a LDAP_DEBUG_ANY and will be logged.
+Useful for debugging scripts or logging bind failures.
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd (8),
+.BR Tcl (3tcl).

@@ -1,0 +1,122 @@
+.TH SLAPD-LDBM 5 "28 April 2002" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapd-ldbm \- LDBM backend to slapd
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The LDBM backend to
+.BR slapd (8)
+is a database that makes
+extensive use of indexing and caching to speed data access.
+.\" .SH LDBM BACKEND-SPECIFIC OPTIONS
+.\" Options in this category only apply to the LDBM backend.
+.\" That is, they must follow "backend ldbm" line and come before
+.\" any subsequent "backend" or "database" lines.
+.SH CONFIGURATION
+The
+.BR slapd.conf (5)
+options in this category apply to the LDBM databases.
+That is, they must follow a "database ldbm" line and come before any
+subsequent "backend" or "database" lines.
+.TP
+.B cachesize <integer>
+Specify the size in entries of the in-memory cache maintained 
+by the LDBM backend database instance.
+The default is 1000 entries.
+.TP
+.B dbcachesize <integer>
+Specify the size in bytes of the in-memory cache associated with each
+open index file.
+If not supported by the underlying database method, this option is
+ignored without comment.
+The default is 100000 bytes.
+.TP
+.B dbnolocking
+Specify that no database locking should be performed.  
+Enabling this option may improve performance at the expense of data security.
+Do NOT run any slap tools while slapd is running.
+.TP
+.B dbnosync
+Specify that on-disk database contents should not be immediately
+synchronized with in memory changes.
+Enabling this option may improve performance at the expense of data
+security.
+.TP
+.B dbsync <frequency> <maxdelays> <delayinterval>
+Flush dirty database buffers to disk every
+.B <seconds>
+seconds.
+Implies
+.B dbnosync
+(ie. indvidual updates are no longer written to disk).
+It attempts to avoid syncs during periods of peak activity by waiting
+.B <delayinterval>
+seconds if the server is busy, repeating this delay up to
+.B <maxdelays>
+times before proceeding.  
+It is an attempt to provide higher write performance with some amount
+of data security.
+Note that it may still be possible to get an inconsistent database if
+the underlying engine fills its cache and writes out individual pages
+and slapd crashes or is killed before the next sync.
+.B <maxdelays>
+and
+.B <delayinterval>
+are optional and default to
+.B 12
+and
+.B 5
+respectively, giving a total elapsed delay of 60 seconds before a sync
+will occur.
+.B <maxdelays>
+may be zero, and
+.B <delayinterval>
+must be 1 or greater.
+.TP
+.B directory <directory>
+Specify the directory where the LDBM files containing this database and
+associated indexes live.
+A separate directory must be specified for each database.
+The default is
+.BR LOCALSTATEDIR/openldap-data .
+.TP
+.B
+index {<attrlist>|default} [pres,eq,approx,sub,<special>]
+Specify the indexes to maintain for the given attribute (or
+list of attributes).
+Some attributes only support a subset of indexes.
+If only an <attr> is given, the indices specified for \fBdefault\fR
+are maintained.
+Note that setting a default does not imply that all attributes will be
+indexed.
+
+A number of special index parameters may be specified.
+The index type
+.B sub
+can be decomposed into
+.BR subinitial ,
+.BR subany ,\ and
+.B subfinal
+indices.
+The special type
+.B nolang
+may be specified to disallow use of this index by language subtypes.
+The special type
+.B nosubtypes
+may be specified to disallow use of this index by named subtypes.
+Note: changing index settings requires rebuilding indices, see
+.BR slapindex (8).
+.TP
+.B mode <integer>
+Specify the file protection mode that newly created database 
+index files should have.
+The default is 0600.
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd (8),
+.BR slapadd (8),
+.BR slapcat (8),
+.BR slapindex (8).
