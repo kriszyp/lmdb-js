@@ -2652,7 +2652,6 @@ if test "$ol_enable_meta" != no ; then
 	AC_DEFINE(SLAPD_META,1,[define to support LDAP Metadirectory backend])
 	BUILD_SLAPD=yes
 	BUILD_META=yes
-	BUILD_LDAP=yes
 	BUILD_REWRITE=yes
 	if test "$ol_with_meta_module" != static ; then
 		AC_DEFINE(SLAPD_META_DYNAMIC,1,
