@@ -497,9 +497,9 @@ search requests to the provider slapd according to the search
 specification. The search specification includes {{EX:searchbase}},
 {{EX:scope}}, {{EX:filter}}, {{EX:attrs}}, {{EX:attrsonly}},
 {{EX:sizelimit}}, and {{EX:timelimit}} parameters as in the normal
-search specification. The syncrepl search specification 
-has the same default value semantics as the {{REF:ldapsearch(1)}}
-client search tool.
+search specification. The syncrepl search specification
+has the same value syntax and the same default values
+as in the {{REF:ldapsearch(1)}} client search tool.
 
 The LDAP Content Synchronization protocol has two operation
 types: {{EX:refreshOnly}} and {{EX:refreshAndPersist}}.
@@ -566,6 +566,7 @@ That is, they must follow a "database bdb" line and come before any
 subsequent "backend" or "database" line.  For a complete reference
 of BDB configuration directives, see {{slapd-bdb}}(5).
 
+
 H4: directory <directory>
 
 This directive specifies the directory where the BDB files
@@ -574,6 +575,35 @@ containing the database and associated indices live.
 \Default:
 
 >	directory /usr/local/var/openldap-data
+
+
+H4: sessionlog <sid> <limit>
+
+This directive specifies a session log store in the provider site
+which contains the information on the entries which has been
+scoped out of the content of the {{EX:<sid>}} replication session.
+The first syncrepl search request having the same sid value in the
+cookie establishes the session log store in the provider site.
+The number of the entries in the session log store is limited
+by {{EX:<limit>}}. Excessive entries are removed from the store
+in the FIFO order. Both {{EX:<sid>}} and {{EX:<limit>}} are integers.
+{{EX:<sid>}} has no more than three digits.
+
+The LDAP Content Synchronization operation of a pre-existing
+session uses the session log store in order to reduce the amount
+of synchronization traffic. If the replica is not so outdated that
+it can be made up-to-date by the information in the session store,
+the provider slapd will send the in-scope entries added to or modified
+within the replication content together with the identities of the
+scoped-out entries to the consumer slapd. If the replica status is
+beyond the coverage of the history store, then the provider slapd will
+send the changed in-scope entries together with the identities of the
+unchanged in-scope entries. The consumer slapd will then remove those
+entries in the replica which is not identified as present in the
+master content.
+
+An access control mechanism is to be further provided to
+make the session joining controllable.
 
 
 H3: LDBM Database Directives
