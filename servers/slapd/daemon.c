@@ -40,6 +40,12 @@
 
 #include "ldap_rq.h"
 
+#define	HAVE_EPOLL	1
+
+#ifdef HAVE_EPOLL
+#include <sys/epoll.h>
+#endif
+
 #ifdef HAVE_TCPD
 #include <tcpd.h>
 #define SLAP_STRING_UNKNOWN	STRING_UNKNOWN
@@ -109,40 +115,38 @@ static struct slap_daemon {
 
 #ifdef HAVE_EPOLL
 #define	SLAP_EVENTS_ARE_INDEXED	0
-#define	SLAP_SOCK_IX(fd)	(slap_daemon.sd_index[fd])
-#define SLAP_SOCK_EP(fd)	(slap_daemon.sd_epolls[SLAP_SOCK_IX(fd)])
-#define SLAP_SOCK_FD(fd)	(SLAP_SOCK_EP(fd).data.fd)
-#define SLAP_SOCK_EV(fd)	(SLAP_SOCK_EP(fd).events)
-#define SLAP_SOCK_IS_ACTIVE(fd)	(SLAP_SOCK_IX(fd) != -1 && SLAP_SOCK_FD(fd) == fd)
-#define SLAP_SOCK_NOT_ACTIVE(fd)	(SLAP_SOCK_IX(fd) == -1)
-#define SLAP_SOCK_IS_SET(fd, mode)	(SLAP_SOCK_EV(fd) & mode)
+#define	SLAP_SOCK_IX(s)	(slap_daemon.sd_index[s])
+#define SLAP_SOCK_EP(s)	(slap_daemon.sd_epolls[SLAP_SOCK_IX(s)])
+#define SLAP_SOCK_FD(s)	(SLAP_SOCK_EP(s).data.fd)
+#define SLAP_SOCK_EV(s)	(SLAP_SOCK_EP(s).events)
+#define SLAP_SOCK_IS_ACTIVE(s)	(SLAP_SOCK_IX(s) != -1 && SLAP_SOCK_FD(s) == s)
+#define SLAP_SOCK_NOT_ACTIVE(s)	(SLAP_SOCK_IX(s) == -1)
+#define SLAP_SOCK_IS_SET(s, mode)	(SLAP_SOCK_EV(s) & mode)
 
-#define SLAP_SOCK_IS_READ(fd)	SLAP_SOCK_IS_SET(fd, EPOLLIN)
-#define SLAP_SOCK_IS_WRITE(fd)	SLAP_SOCK_IS_SET(fd, EPOLLOUT)
+#define SLAP_SOCK_IS_READ(s)	SLAP_SOCK_IS_SET(s, EPOLLIN)
+#define SLAP_SOCK_IS_WRITE(s)	SLAP_SOCK_IS_SET(s, EPOLLOUT)
 
-#define	SLAP_SET_SOCK(fd, events) do { \
-	assert(SLAP_SOCK_IS_ACTIVE(fd));	\
-	if ((SLAP_SOCK_EV(fd) & events) != events) {	\
-		SLAP_SOCK_EV(fd) |= events;	\
-		rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_MOD, fd,	\
-			&SLAP_SOCK_EP(fd));	\
+#define	SLAP_SET_SOCK(s, events) do { \
+	if ((SLAP_SOCK_EV(s) & events) != events) {	\
+		SLAP_SOCK_EV(s) |= events;	\
+		epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_MOD, s,	\
+			&SLAP_SOCK_EP(s));	\
 	}	\
 } while(0)
 
-#define SLAP_CLR_SOCK(fd, events) do { \
-	assert(SLAP_SOCK_IS_ACTIVE(fd));	\
-	if ((SLAP_SOCK_EV(fd) & events)) { \
-		SLAP_SOCK_EV(fd) &= ~events;	\
-		rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_MOD, fd,	\
-			&SLAP_SOCK_EP(fd));	\
+#define SLAP_CLR_SOCK(s, events) do { \
+	if ((SLAP_SOCK_EV(s) & events)) { \
+		SLAP_SOCK_EV(s) &= ~events;	\
+		epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_MOD, s,	\
+			&SLAP_SOCK_EP(s));	\
 	}	\
 } while(0)	\
 
-#define SLAP_SOCK_SET_READ(fd)	SLAP_SET_SOCK(fd, EPOLLIN)
-#define SLAP_SOCK_SET_WRITE(fd)	SLAP_SET_SOCK(fd, EPOLLOUT)
+#define SLAP_SOCK_SET_READ(s)	SLAP_SET_SOCK(s, EPOLLIN)
+#define SLAP_SOCK_SET_WRITE(s)	SLAP_SET_SOCK(s, EPOLLOUT)
 
-#define SLAP_SOCK_CLR_READ(fd)	SLAP_CLR_SOCK(fd, EPOLLIN)
-#define SLAP_SOCK_CLR_WRITE(fd)	SLAP_CLR_SOCK(fd, EPOLLOUT)
+#define SLAP_SOCK_CLR_READ(s)	SLAP_CLR_SOCK(s, EPOLLIN)
+#define SLAP_SOCK_CLR_WRITE(s)	SLAP_CLR_SOCK(s, EPOLLOUT)
 
 #define SLAP_CLR_EVENT(i, events)	(revents[i].events &= ~events)
 
@@ -156,29 +160,31 @@ static struct slap_daemon {
 
 #define SLAP_EVENT_FD(i)	(revents[i].data.fd)
 
-#define SLAP_ADD_SOCK(fd) do { \
-	SLAP_SOCK_IX(fd) = slap_daemon.sd_nfds;	\
-	SLAP_SOCK_FD(fd) = fd;	\
-	SLAP_SOCK_EV(fd) = EPOLLIN;	\
-	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_ADD, fd,	\
-			&SLAP_SOCK_EP(fd));	\
+#define SLAP_EVENT_MAX	slap_daemon.sd_nfds
+
+#define SLAP_ADD_SOCK(s) do { \
+	int rc;	\
+	SLAP_SOCK_IX(s) = slap_daemon.sd_nfds;	\
+	SLAP_SOCK_FD(s) = s;	\
+	SLAP_SOCK_EV(s) = EPOLLIN;	\
+	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_ADD, s,	\
+			&SLAP_SOCK_EP(s));	\
 	if ( rc == 0 ) slap_daemon.sd_nfds++;	\
 } while(0)
 
-#define SLAP_DEL_SOCK(fd) do { \
-	int index = SLAP_SOCK_IX(fd);
-	
-	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_DEL, fd,	\
-			&SLAP_SOCK_EP(fd));	\
+#define SLAP_DEL_SOCK(s) do { \
+	int rc, index = SLAP_SOCK_IX(s); \
+	rc = epoll_ctl(slap_daemon.sd_epfd, EPOLL_CTL_DEL, s,	\
+			&SLAP_SOCK_EP(s));	\
 	slap_daemon.sd_epolls[index] = slap_daemon.sd_epolls[slap_daemon.sd_nfds-1];	\
-	slap_daemon.sd_index[slap_daemon.sd_epools[index].data.fd] = index;	\
-	slap_daemon.sd_index[fd] = -1;	\
+	slap_daemon.sd_index[slap_daemon.sd_epolls[index].data.fd] = index;	\
+	slap_daemon.sd_index[s] = -1;	\
 	slap_daemon.sd_nfds--;	\
 } while(0)
 
-#define	SLAP_SOCK_SET_MUTE(fd)	SLAP_SOCK_CLR_READ(fd)
-#define	SLAP_SOCK_CLR_MUTE(fd)	SLAP_SOCK_SET_READ(fd)
-#define	SLAP_SOCK_IS_MUTE(fd)	!SLAP_SOCK_IS_READ(fd)
+#define	SLAP_SOCK_SET_MUTE(s)	SLAP_SOCK_CLR_READ(s)
+#define	SLAP_SOCK_CLR_MUTE(s)	SLAP_SOCK_SET_READ(s)
+#define	SLAP_SOCK_IS_MUTE(s)	!SLAP_SOCK_IS_READ(s)
 
 #define SLAP_SOCK_SET_INIT	\
 	slap_daemon.sd_epolls = ch_malloc(sizeof(struct epoll_event) * dtblsize * 2);	\
@@ -235,12 +241,12 @@ static struct slap_daemon {
 } while(0)
 
 #define SLAP_ADDTEST(s)
-#define SLAP_MAXWAIT	dtblsize
+#define SLAP_EVENT_MAX	dtblsize
 #else
 #define SLAP_SOCK_SET_READ(fd)	FD_SET(fd, &slap_daemon.sd_readers)
 #define SLAP_SOCK_SET_WRITE(fd)	FD_SET(fd, &slap_daemon.sd_writers)
 
-#define SLAP_MAXWAIT	slap_daemon.sd_nfds
+#define SLAP_EVENT_MAX	slap_daemon.sd_nfds
 #define	SLAP_ADDTEST(s)	if (s >= slap_daemon.sd_nfds) slap_daemon.sd_nfds = s+1
 #endif
 
@@ -266,7 +272,7 @@ static struct slap_daemon {
 #define SLAP_EVENT_CLR_WRITE(fd)	FD_CLR(fd, &writefds)
 
 #define SLAP_EVENT_WAIT(tvp)	\
-	select( SLAP_MAXWAIT, &readfds,	\
+	select( SLAP_EVENT_MAX, &readfds,	\
 		nwriters > 0 ? &writefds : NULL, NULL, tvp )
 
 #define	SLAP_SOCK_SET_MUTE(s)	FD_CLR(s, &readfds)
@@ -419,8 +425,7 @@ void slapd_remove(ber_socket_t s, int wasactive, int wake) {
 	waswriter = SLAP_SOCK_IS_WRITE(s);
 
 	Debug( LDAP_DEBUG_CONNS, "daemon: removing %ld%s%s\n",
-		(long) s,
-	    SLAP_SOCK_IS_READ(s) ? "r" : "",
+		(long) s, SLAP_SOCK_IS_READ(s) ? "r" : "",
 		waswriter ? "w" : "" );
 	if ( waswriter ) slap_daemon.sd_nwriters--;
 
@@ -1606,7 +1611,7 @@ slapd_daemon_task(
 			    SLAP_SOCK_CLR_MUTE( slap_listeners[l]->sl_sd );
 		}
 
-		nfds = SLAP_MAXWAIT;
+		nfds = SLAP_EVENT_MAX;
 
 		if ( global_idletimeout && slap_daemon.sd_nactives )
 			at = 1;
