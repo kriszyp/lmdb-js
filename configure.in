@@ -153,7 +153,7 @@ OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
 	auto, [auto yes no] )
 dnl	OL_ARG_WITH(kerberos,[  --with-kerberos	  with Kerberos support],
 dnl		auto, [auto k5 k5only k425 kth k4 afs yes no])
-ol_with_kerbersos=${ol_with_kerberos-auto}
+ol_with_kerberos=${ol_with_kerberos-auto}
 OL_ARG_WITH(threads,[  --with-threads	  with threads],
 	auto, [auto nt posix mach pth lwp yes no manual] )
 OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],

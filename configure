@@ -1576,7 +1576,7 @@ else
 fi
 # end --with-fetch
 
-ol_with_kerbersos=${ol_with_kerberos-auto}
+ol_with_kerberos=${ol_with_kerberos-auto}
 # OpenLDAP --with-threads
 	# Check whether --with-threads or --without-threads was given.
 if test "${with_threads+set}" = set; then
