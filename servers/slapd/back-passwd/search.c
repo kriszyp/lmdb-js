@@ -51,6 +51,12 @@ passwd_back_search(
 	char *matched = NULL;
 	char *user = NULL;
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
+#else
+	static char *ad_objectClass = "objectClass";
+#endif
+
 	tlimit = (tlimit > be->be_timelimit || tlimit < 1) ? be->be_timelimit
 	    : tlimit;
 	stoptime = op->o_time + tlimit;
@@ -75,6 +81,13 @@ passwd_back_search(
 		matched = ch_strdup( base );
 
 		if( scope != LDAP_SCOPE_ONELEVEL ) {
+			char *type;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			AttributeDescription *desc = NULL;
+#else
+			char *desc;
+#endif
+
 			/* Create an entry corresponding to the base DN */
 			e = (Entry *) ch_calloc(1, sizeof(Entry));
 			e->e_attrs = NULL;
@@ -87,12 +100,36 @@ passwd_back_search(
 
 			if( rdn == NULL || (s = strchr(rdn, '=')) == NULL ) {
 				err = LDAP_INVALID_DN_SYNTAX;
+				free(rdn);
 				goto done;
 			}
 
 			val.bv_val = rdn_attr_value(rdn);
 			val.bv_len = strlen( val.bv_val );
-			attr_merge( e, rdn_attr_type(rdn), vals );
+
+			type = rdn_attr_type(rdn);
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			{
+				int rc;
+				const char *text;
+				rc = slap_str2ad( type, &desc, &text );
+
+				if( rc != LDAP_SUCCESS ) {
+					err = LDAP_NO_SUCH_OBJECT;
+					free(rdn);
+					goto done;
+				}
+			}
+#else
+			desc = type;
+#endif
+
+			attr_merge( e, desc, vals );
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			ad_free( desc, 1 );
+#endif
 
 			free(rdn);
 			rdn = NULL;
@@ -105,8 +142,8 @@ passwd_back_search(
 			 * should be a configuratable item
 			 */
 			val.bv_val = "organizationalUnit";
-			val.bv_len = strlen( val.bv_val );
-			attr_merge( e, "objectClass", vals );
+			val.bv_len = sizeof("organizationalUnit")-1;
+			attr_merge( e, ad_objectClass, vals );
 	
 			if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 				send_search_entry( be, conn, op,
@@ -225,6 +262,36 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	struct berval	val;
 	struct berval	*vals[2];
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	int rc;
+	const char *text;
+
+	AttributeDescription *ad_objectClass = NULL;
+	AttributeDescription *ad_cn = NULL;
+	AttributeDescription *ad_sn = NULL;
+	AttributeDescription *ad_uid = NULL;
+	AttributeDescription *ad_description = NULL;
+
+	rc = slap_str2ad( "objectClass", &ad_objectClass, &text );
+
+	if(rc != LDAP_SUCCESS) return NULL;
+	rc = slap_str2ad( "cn", &ad_cn, &text );
+	if(rc != LDAP_SUCCESS) return NULL;
+	rc = slap_str2ad( "sn", &ad_sn, &text );
+	if(rc != LDAP_SUCCESS) return NULL;
+	rc = slap_str2ad( "uid", &ad_uid, &text );
+	if(rc != LDAP_SUCCESS) return NULL;
+	rc = slap_str2ad( "description", &ad_description, &text );
+	if(rc != LDAP_SUCCESS) return NULL;
+
+#else
+	static char *ad_objectClass = "objectClass";
+	static char *ad_cn = "cn";
+	static char *ad_sn = "sn";
+	static char *ad_uid = "uid";
+	static char *ad_description = "description";
+#endif
+
 	vals[0] = &val;
 	vals[1] = NULL;
 
@@ -236,6 +303,19 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 	e->e_attrs = NULL;
 
+	/* objectclasses should be configuratable items */
+	val.bv_val = "top";
+	val.bv_len = sizeof("top")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	val.bv_val = "person";
+	val.bv_len = sizeof("person")-1;
+	attr_merge( e, ad_objectClass, vals );
+
+	val.bv_val = "uidObject";
+	val.bv_len = sizeof("uidObject")-1;
+	attr_merge( e, ad_objectClass, vals );
+
 	/* rdn attribute type should be a configuratable item */
 	sprintf( buf, "uid=%s,%s", pw->pw_name, be->be_suffix[0] );
 	e->e_dn = ch_strdup( buf );
@@ -244,9 +324,9 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 
 	val.bv_val = pw->pw_name;
 	val.bv_len = strlen( pw->pw_name );
-	attr_merge( e, "uid", vals );	/* required by uidObject */
-	attr_merge( e, "cn", vals );	/* required by person */
-	attr_merge( e, "sn", vals );	/* required by person */
+	attr_merge( e, ad_uid, vals );	/* required by uidObject */
+	attr_merge( e, ad_cn, vals );	/* required by person */
+	attr_merge( e, ad_sn, vals );	/* required by person */
 
 #ifdef HAVE_PW_GECOS
 	/*
@@ -259,7 +339,7 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 
 		val.bv_val = pw->pw_gecos;
 		val.bv_len = strlen(val.bv_val);
-		attr_merge(e, "description", vals);
+		attr_merge(e, ad_description, vals);
 
 		s = strchr(val.bv_val, ',');
 		if (s)
@@ -276,22 +356,14 @@ pw2entry( Backend *be, struct passwd *pw, char *rdn )
 		}
 		val.bv_len = strlen(val.bv_val);
 		if ( strcmp( val.bv_val, pw->pw_name ))
-			attr_merge( e, "cn", vals );
+			attr_merge( e, ad_cn, vals );
 		if ( (s=strrchr(val.bv_val, ' '))) {
 			val.bv_val = s + 1;
 			val.bv_len = strlen(val.bv_val);
-			attr_merge(e, "sn", vals);
+			attr_merge(e, ad_sn, vals);
 		}
 	}
 #endif
 
-	/* objectclasses should be configuratable items */
-	val.bv_val = "person";
-	val.bv_len = strlen( val.bv_val );
-	attr_merge( e, "objectclass", vals );
-
-	val.bv_val = "uidObject";
-	val.bv_len = strlen( val.bv_val );
-	attr_merge( e, "objectclass", vals );
 	return( e );
 }
