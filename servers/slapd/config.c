@@ -44,7 +44,7 @@ int		global_idletimeout = 0;
 char	*global_host = NULL;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
-char		*default_passwd_hash;
+char		*default_passwd_hash = NULL;
 struct berval default_search_base = { 0, NULL };
 struct berval default_search_nbase = { 0, NULL };
 unsigned		num_subordinates = 0;
@@ -520,9 +520,22 @@ read_config( const char *fname )
 
 				return 1;
 
-			} else {
-				default_passwd_hash = ch_strdup( cargv[1] );
 			}
+
+			if ( lutil_passwd_scheme( cargv[1] ) == NULL ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+					   "%s: line %d: password scheme \"%s\" not available\n",
+					   fname, lineno, cargv[1] ));
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: password scheme \"%s\" not available\n",
+					fname, lineno, cargv[1] );
+#endif
+				return 1;
+			}
+
+			default_passwd_hash = ch_strdup( cargv[1] );
 
 		} else if ( strcasecmp( cargv[0], "password-crypt-salt-format" ) == 0 ) 
 		{
