@@ -16,6 +16,7 @@
 #include <ac/unistd.h>
 
 #include "slap.h"
+#include "lber_pvt.h"
 
 static void		split(char *line, int splitchar, char **left, char **right);
 static void		access_append(Access **l, Access *a);
@@ -365,7 +366,9 @@ parse_acl(
 						} else {
 							bv.bv_val = right;
 							acl_regex_normalized_dn( &bv );
-							regtest(fname, lineno, bv.bv_val);
+							if ( !ber_bvccmp( &bv, '*' ) ) {
+								regtest(fname, lineno, bv.bv_val);
+							}
 						}
 					} else if ( right == NULL || *right == '\0' ) {
 						fprintf( stderr,
@@ -479,7 +482,9 @@ parse_acl(
 					if (sty == ACL_STYLE_REGEX) {
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
-						regtest(fname, lineno, bv.bv_val);
+						if ( !ber_bvccmp( &bv, '*' ) ) {
+							regtest(fname, lineno, bv.bv_val);
+						}
 						b->a_group_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 0, &bv );
@@ -605,7 +610,9 @@ parse_acl(
 					if (sty == ACL_STYLE_REGEX) {
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
-						regtest(fname, lineno, bv.bv_val);
+						if ( !ber_bvccmp( &bv, '*' ) ) {
+							regtest(fname, lineno, bv.bv_val);
+						}
 						b->a_peername_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 1, &b->a_peername_pat );
@@ -632,7 +639,9 @@ parse_acl(
 					if (sty == ACL_STYLE_REGEX) {
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
-						regtest(fname, lineno, bv.bv_val);
+						if ( !ber_bvccmp( &bv, '*' ) ) {
+							regtest(fname, lineno, bv.bv_val);
+						}
 						b->a_sockname_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 1, &b->a_sockname_pat );
@@ -659,7 +668,9 @@ parse_acl(
 					if (sty == ACL_STYLE_REGEX) {
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
-						regtest(fname, lineno, bv.bv_val);
+						if ( !ber_bvccmp( &bv, '*' ) ) {
+							regtest(fname, lineno, bv.bv_val);
+						}
 						b->a_domain_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 1, &b->a_domain_pat );
@@ -686,7 +697,9 @@ parse_acl(
 					if (sty == ACL_STYLE_REGEX) {
 						bv.bv_val = right;
 						acl_regex_normalized_dn( &bv );
-						regtest(fname, lineno, bv.bv_val);
+						if ( !ber_bvccmp( &bv, '*' ) ) {
+							regtest(fname, lineno, bv.bv_val);
+						}
 						b->a_sockurl_pat = bv;
 					} else {
 						ber_str2bv( right, 0, 1, &b->a_sockurl_pat );
