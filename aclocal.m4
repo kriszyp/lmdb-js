@@ -506,3 +506,28 @@ AC_DEFUN(AM_TYPE_PTRDIFF_T,
    fi
 ])
 
+dnl check arguments for ctime_r - Bart Hartgers
+
+# serial 1
+AC_DEFUN(OL_NARGS_CTIME_R,
+  [AC_MSG_CHECKING([number of args for ctime_r])
+   AC_TRY_COMPILE([#include <time.h>],
+                  [time_t ti; char *buffer;
+		  ctime_r(&ti,buffer,32);],ol_nargs_ctime_r=3,
+		                           ol_nargs_ctime_r=0)
+  if test $ol_nargs_ctime_r = 0 ; then
+    AC_TRY_COMPILE([#include <time.h>],
+                    [time_t ti; char *buffer;
+		    ctime_r(&ti,buffer);],ol_nargs_ctime_r=2 )
+  fi
+  AC_MSG_RESULT($ol_nargs_ctime_r)
+  if test $ol_nargs_ctime_r = 2 ; then
+    AC_DEFINE( ARGS_CTIME_R_2 )
+  fi
+  if test $ol_nargs_ctime_r = 3 ; then
+    AC_DEFINE( ARGS_CTIME_R_3 )
+  fi
+])
+
+					   
+		  

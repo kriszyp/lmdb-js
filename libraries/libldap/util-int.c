@@ -42,7 +42,13 @@ char *ldap_int_strtok( char *str, const char *delim, char **pos )
 char *ldap_int_ctime( const time_t *tp, char *buf )
 {
 #ifdef HAVE_CTIME_R
+# if defined( ARGS_CTIME_R_2 )
 	return ctime_r(tp,buf);
+# elif defined( ARGS_CTIME_R_3 )
+	return ctime_r(tp,buf,26);
+# else
+	Do not know how many arguments ctime_r takes, so generating error
+# endif	  
 #else
 	return ctime(tp);
 #endif	

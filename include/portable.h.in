@@ -274,6 +274,12 @@
 /* Define if you have the ctime_r function.  */
 #undef HAVE_CTIME_R
 
+/* Define if ctime_r takes two arguments */
+#undef ARGS_CTIME_R_2
+
+/* Define if ctime_r takes three arguments */
+#undef ARGS_CTIME_R_3
+
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
 
