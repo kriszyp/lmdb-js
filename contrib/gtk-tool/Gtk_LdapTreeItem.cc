@@ -23,7 +23,7 @@ int Gtk_LdapTreeItem::search() {
 		}
 		par->scroller2->add_child(this->notebook);	
 	//	par->scroller2->remove((Gtk_Object)par->scroller2->children()->first());
-		this->notebook->reparent(par->scroller2);
+		this->notebook->reparent(*par->scroller2);
 		this->notebook->show();
 		par->scroller2->show();
 		return 0;
@@ -45,7 +45,7 @@ int Gtk_LdapTreeItem::search() {
 			}
 			ldap_value_free(values);
 			label = new Gtk_Label(attribute);
-			notebook->append_page(table, label);
+			notebook->append_page(*table, *label);
 			table->show();
 			label->show();
 		}

@@ -9,26 +9,26 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	this->scroller = new Gtk_ScrolledWindow();
 	this->scroller->set_policy(GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
 //	this->scroller->set_usize(this->height(), 400);
-	pane->add1(this->scroller);
+	pane->add1(*this->scroller);
 	this->scroller->show();
 
 	this->scroller2 = new My_Scroller();
 	this->scroller2->set_policy(GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
-	pane->add2(this->scroller2);	
+	pane->add2(*this->scroller2);	
 	this->scroller2->show();
 
 	top_hbox = new Gtk_HBox();
 	this->urlfield = new Gtk_Entry();
-	top_hbox->pack_start(this->urlfield, TRUE, TRUE, 1);
+	top_hbox->pack_start(*this->urlfield, TRUE, TRUE, 1);
 	this->urlfield->show();
 	this->display_button = new Gtk_Button("Display");
 	connect_to_method(this->display_button->clicked, this, &do_display);
-	top_hbox->pack_end(this->display_button, FALSE, FALSE, 1);
+	top_hbox->pack_end(*this->display_button, FALSE, FALSE, 1);
 	this->display_button->show();
 
 	main_hbox = new Gtk_VBox();
-	main_hbox->pack_start(top_hbox, FALSE, TRUE, 1);
-	main_hbox->pack_end(pane, TRUE, TRUE, 1);
+	main_hbox->pack_start(*top_hbox, FALSE, TRUE, 1);
+	main_hbox->pack_end(*pane, TRUE, TRUE, 1);
 	top_hbox->show();
 	pane->show();
 	this->add(main_hbox);
@@ -86,13 +86,13 @@ Gtk_LdapItem* My_Window::make_tree(My_Window *p, LDAP* l_i, char* b_d) {
 		s = ldap_explode_dn(ldap_get_dn(l_i, entry), 1);
 		subtreeresult = make_tree(p, l_i, ldap_get_dn(l_i, entry));
 		subtreeitem = new Gtk_LdapTreeItem(*subtreeresult->treeitem);
-		subtree->append(subtreeitem);
+		subtree->append(*subtreeitem);
 		printf("inserting %s into %s", s[0], c);
 		if (subtreeresult->tree != NULL) {
 			printf(".");
 			subsubtree = new Gtk_Tree(*subtreeresult->tree);
 			printf(".");
-			subtreeitem->set_subtree(subsubtree);
+			subtreeitem->set_subtree(*subsubtree);
 			printf(".");
 		}
 		subtreeitem->show();

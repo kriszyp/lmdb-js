@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 	if (treeresult->tree != NULL) {
 		subtree = new Gtk_Tree(*treeresult->tree);
 		printf("inserting %s into root\n", base_dn);
-		treeitem->set_subtree(subtree);
+		treeitem->set_subtree(*subtree);
 	}
 	treeitem->show();
 	window->scroller->add(tree);
