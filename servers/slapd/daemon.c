@@ -212,7 +212,7 @@ slapd_daemon(
 
 		Debug( LDAP_DEBUG_CONNS, "before select active_threads %d\n",
 		    active_threads, 0, 0 );
-#if	defined(THREAD_PREEMPTIVE) || defined(NO_THREADS)
+#ifdef PREEMPTIVE_THREADS
 		tvp = NULL;
 #else
 		tvp = active_threads ? &zero : NULL;

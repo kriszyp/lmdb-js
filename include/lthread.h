@@ -20,8 +20,6 @@
 LDAP_BEGIN_DECL
 
 #if defined( HAVE_DCE )
-/* dce threads are preemptive */
-
 #define pthread_attr_init( a )		pthread_attr_create( a )
 #define pthread_attr_destroy( a )	pthread_attr_delete( a )
 #define pthread_attr_setdetachstate( a, b ) \
@@ -178,11 +176,16 @@ LDAP_END_DECL
  *                                 *
  ***********************************/
 
+LDAP_BEGIN_DECL
+
 #ifndef NO_THREADS
 #define NO_THREADS 1
 #endif
 
-LDAP_BEGIN_DECL
+#ifndef PREEMPTIVE_THREADS
+/* treat no threads as preemptive */
+#define PREEMPTIVE_THREADS 1
+#endif
 
 typedef void	*(*VFP)();
 

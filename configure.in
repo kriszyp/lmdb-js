@@ -485,7 +485,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 fi
 
 if test $ol_with_preemptive = yes ; then
-	AC_DEFINE(THREAD_PREEMPTIVE,1)
+	AC_DEFINE(PREEMPTIVE_THREADS,1)
 fi
 
 if test $ol_with_threads = manual ; then
@@ -514,6 +514,7 @@ if test $ol_link_threads = no ; then
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
+	AC_DEFINE(PREEMPTIVE_THREADS,1)
 	LTHREAD_LIBS=""
 fi
 

@@ -104,6 +104,9 @@
 /* define this if you want no thread support */
 #undef NO_THREADS
 
+/* define this if the thread package is preemptive */
+#undef PREEMPTIVE_THREADS
+
 /* define this for ACL Group support */
 #undef SLAPD_ACLGROUPS
 
@@ -130,9 +133,6 @@
 
 /* define this to use SLAPD shell backend */
 #undef SLAPD_SHELL
-
-/* define this if the thread package is preemptive */
-#undef THREAD_PREEMPTIVE
 
 
 /* Leave that blank line there!!  Autoheader needs it. */

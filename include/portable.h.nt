@@ -48,6 +48,11 @@ typedef char * caddr_t;
 /* we have <io.h> */
 #define HAVE_IO_H 1
 
+/* we have <process.h> */
+#define HAVE_PROCESS_H 1
+
+/* --------------------------------------------------- */
+
 /* Define if on AIX 3.
    System headers sometimes define this.
    We just want to avoid a redefinition error message.  */
@@ -120,9 +125,8 @@ typedef char * caddr_t;
 /* Define to `int' if <sys/types.h> doesn't define.  */
 #define uid_t long
 
-/* Define if your processor stores words with the most significant
-   byte first (like Motorola and SPARC, unlike Intel and VAX).  */
-/* #undef WORDS_BIGENDIAN */
+/* define this if toupper() requires tolower() */
+#define C_UPPER_LOWER
 
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 /* #undef DECL_SYS_ERRLIST */
@@ -151,9 +155,6 @@ typedef char * caddr_t;
 /* define if you have Sun LWP (SunOS style) */
 /* #undef HAVE_LWP */
 
-/* define if you have Sun LWP (Solaris style) */
-/* #undef HAVE_LWP_THR */
-
 /* define if you have -lncurses */
 /* #undef HAVE_NCURSES */
 
@@ -178,6 +179,9 @@ typedef char * caddr_t;
 /* define if you have -ltermcap */
 /* #undef HAVE_TERMCAP */
 
+/* define if you have Solaris LWP Threads */
+/* #undef HAVE_THR */
+
 /* define this for connectionless LDAP support */
 /* #undef LDAP_CONNECTIONLESS */
 
@@ -185,7 +189,7 @@ typedef char * caddr_t;
 #define LDAP_DEBUG 1
 
 /* define this for LDAP DNS support */
-/* #undef LDAP_DNS */
+#define LDAP_DNS 1
 
 /* define this to remove -lldap cache support */
 /* #undef LDAP_NOCACHE */
@@ -194,7 +198,7 @@ typedef char * caddr_t;
 #define LDAP_REFERRALS 1
 
 /* define this for LDAP User Interface support */
-#define LDAP_LIBUI 1
+/* #undef LDAP_LIBUI */
 
 /* define this to use DBBTREE w/ LDBM backend */
 /* #undef LDBM_USE_DBBTREE */
@@ -207,6 +211,9 @@ typedef char * caddr_t;
 
 /* define this if you want no thread support */
 #define NO_THREADS 1
+
+/* define this if the thread package is preemptive */
+#define PREEMPTIVE_THREADS 1
 
 /* define this for ACL Group support */
 #define SLAPD_ACLGROUPS
@@ -235,9 +242,6 @@ typedef char * caddr_t;
 /* define this to use SLAPD shell backend */
 /* #undef SLAPD_SHELL */
 
-/* define this if the thread package is preemptive */
-/* #undef THREAD_PREEMPTIVE */
-
 /* Define if you have the bcopy function.  */
 /* #undef HAVE_BCOPY */
 
@@ -264,6 +268,9 @@ typedef char * caddr_t;
 
 /* Define if you have the memmove function.  */
 #define HAVE_MEMMOVE 1
+
+/* Define if you have the mkstemp function.  */
+/* #undef HAVE_MKSTEMP */
 
 /* Define if you have the mktime function.  */
 #define HAVE_MKTIME 1
