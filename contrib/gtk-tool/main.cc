@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
 	Gtk_LdapItem *treeresult;
 	Gtk_Tree *tree, *subtree;
 	Gtk_LdapTreeItem *treeitem;
+	Gtk_Viewport *viewport;
 	LDAPMessage **thing;
 	LDAP *ld;
 	char *host = NULL;
@@ -57,8 +58,11 @@ int main(int argc, char **argv) {
 		treeitem->set_subtree(*subtree);
 	}
 	treeitem->show();
-	window->scroller->add(tree);
+	viewport = new Gtk_Viewport();
+	viewport->add(tree);
+	window->scroller->add(viewport);
 	tree->show();
+	viewport->show();
 	window->scroller->show();
 	treeitem->getDetails();
 	window->set_title("Hello");

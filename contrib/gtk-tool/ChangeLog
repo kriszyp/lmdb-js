@@ -1,5 +1,12 @@
 ChangeLog for gtk-tool
 
+27/11/1998 - Pele
+	* Added viewports, both sides now scroll automatically
+	* Brought back the "cache" stuff, now data gets reused if it's allready
+	available without redundant searches/listings.
+	* Editing pixmaps by hand is so much, er, fun!
+	* Miniscule fixes
+
 26/11/1998 - Pele
 	* Added nice icons in the browser pane - looks decent now.
 	* Fixed scrolling in the data (right) pane - now scrolls if there is

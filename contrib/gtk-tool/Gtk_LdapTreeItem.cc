@@ -51,31 +51,17 @@ int Gtk_LdapTreeItem::getDetails() {
 	Gtk_Notebook *g;
 	Gtk_Viewport *viewport;
 	viewport = new Gtk_Viewport();
-/*
 	if (this->notebook != NULL) {
 		printf("Data on %s available\n", this->rdn);
-		if (par->scroller2->children() != NULL) {
-	//	if (par->scroller2->children[0] != NULL) {
-			printf(".");
-		//	par->scroller2->release(par->scroller2->children()->nth_data(0));
-			par->scroller2->remove_c(par->scroller2->children()->nth_data(0));
-		//	par->scroller2->remove_child(0);
+		if (par->viewport->getchild() != NULL) {
+			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
 		}
-	//	par->scroller2->add_child(this->notebook);	
-		viewport->add(this->notebook);
-			printf(".");
-		par->scroller2->add(viewport); //this->notebook);	
-			printf(".");
-	//	this->notebook->reparent(*par->scroller2);
+		par->viewport->add(this->notebook);
 		this->notebook->show();
-			printf(".");
-		viewport->show();
-			printf(".");
-		par->scroller2->show();
-			printf(".");
+		par->viewport->show();
+	//	par->scroller2->show();
 		return 0;
 	}
-*/
 	error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &result_identifier);
 	entriesCount = ldap_count_entries(ld, result_identifier);
 	if (entriesCount == 0) return 0;
@@ -99,20 +85,13 @@ int Gtk_LdapTreeItem::getDetails() {
 		}
 	}
 	if (par->scroller2 != NULL) {
-	//	cout << "Scroller2 exists" << endl;
-		if (par->scroller2->children() != NULL ) {
-	//	if (par->scroller2->children[0] != NULL) {
-	//		cout << "There are children in scroller2" << endl;
-	//		par->scroller2->release(par->scroller2->children()->nth_data(0));
-			par->scroller2->remove_c(par->scroller2->children()->nth_data(0));
-		//	par->scroller2->remove_child(0);
+		if (par->viewport->getchild() != NULL) {
+			par->viewport->remove_c(par->viewport->getchild()->gtkobj());
 		}
-	//	par->scroller2->add_child(this->notebook);
-		viewport->add(this->notebook);
-		par->scroller2->add(viewport); //this->notebook);	
+		par->viewport->add(this->notebook);
 		this->notebook->show();
-		viewport->show();
-		par->scroller2->show();
+		par->viewport->show();
+	//	par->scroller2->show();
 		cout << "Added details for " << this->rdn << endl;
 	}
 	return 0;

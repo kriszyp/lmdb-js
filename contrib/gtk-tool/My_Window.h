@@ -14,6 +14,7 @@ class My_Scroller;
 class My_Window : public Gtk_Window {
 public:
 	Gtk_ScrolledWindow *scroller, *scroller2;
+	Gtk_Viewport *viewport;
 //	My_Scroller *scroller2;
 	Gtk_Entry *urlfield;
 	Gtk_Button *display_button;

@@ -14,7 +14,9 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 
 //	this->scroller2 = new My_Scroller();
 	this->scroller2 = new Gtk_ScrolledWindow();
+	this->viewport = new Gtk_Viewport();
 	this->scroller2->set_policy(GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	this->scroller2->add(*this->viewport);
 	pane->add2(*this->scroller2);	
 	this->scroller2->show();
 
