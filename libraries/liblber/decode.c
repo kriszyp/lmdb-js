@@ -220,14 +220,19 @@ ber_get_stringa( BerElement *ber, char **buf )
 {
 	unsigned long	datalen, tag;
 
-	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT )
+	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
+		*buf = NULL;
 		return( LBER_DEFAULT );
+	}
 
 	if ( (*buf = (char *) malloc( (size_t)datalen + 1 )) == NULL )
 		return( LBER_DEFAULT );
 
-	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen )
+	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen ) {
+		free( *buf );
+		*buf = NULL;
 		return( LBER_DEFAULT );
+	}
 	(*buf)[datalen] = '\0';
 
 #ifdef STR_TRANSLATION
@@ -237,6 +242,7 @@ ber_get_stringa( BerElement *ber, char **buf )
 		if ( (*(ber->ber_decode_translate_proc))( buf, &datalen, 1 )
 		    != 0 ) {
 			free( *buf );
+			*buf = NULL;
 			return( LBER_DEFAULT );
 		}
 	}
@@ -250,17 +256,25 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 {
 	unsigned long	len, tag;
 
+	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
+		*bv = NULL;
+		return( LBER_DEFAULT );
+	}
+
 	if ( (*bv = (struct berval *) malloc( sizeof(struct berval) )) == NULL )
 		return( LBER_DEFAULT );
 
-	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
+	if ( ((*bv)->bv_val = (char *) malloc( (size_t)len + 1 )) == NULL ) {
+		free( *bv );
+		*bv = NULL;
 		return( LBER_DEFAULT );
+	}
 
-	if ( ((*bv)->bv_val = (char *) malloc( (size_t)len + 1 )) == NULL )
+	if ( (unsigned long) ber_read( ber, (*bv)->bv_val, len ) != len ) {
+		ber_bvfree( *bv );
+		*bv = NULL;
 		return( LBER_DEFAULT );
-
-	if ( (unsigned long) ber_read( ber, (*bv)->bv_val, len ) != len )
-		return( LBER_DEFAULT );
+	}
 	((*bv)->bv_val)[len] = '\0';
 	(*bv)->bv_len = len;
 
@@ -270,7 +284,8 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 		++len;
 		if ( (*(ber->ber_decode_translate_proc))( &((*bv)->bv_val),
 		    &len, 1 ) != 0 ) {
-			free( (*bv)->bv_val );
+			ber_bvfree( *bv );
+			*bv = NULL;
 			return( LBER_DEFAULT );
 		}
 		(*bv)->bv_len = len - 1;
@@ -286,18 +301,26 @@ ber_get_bitstringa( BerElement *ber, char **buf, unsigned long *blen )
 	unsigned long	datalen, tag;
 	unsigned char	unusedbits;
 
-	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT )
+	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
+		*buf = NULL;
 		return( LBER_DEFAULT );
+	}
 	--datalen;
 
 	if ( (*buf = (char *) malloc( (size_t)datalen )) == NULL )
 		return( LBER_DEFAULT );
 
-	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 )
+	if ( ber_read( ber, (char *)&unusedbits, 1 ) != 1 ) {
+		free( buf );
+		*buf = NULL;
 		return( LBER_DEFAULT );
+	}
 
-	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen )
+	if ( (unsigned long) ber_read( ber, *buf, datalen ) != datalen ) {
+		free( buf );
+		*buf = NULL;
 		return( LBER_DEFAULT );
+	}
 
 	*blen = datalen * 8 - unusedbits;
 	return( tag );
@@ -334,6 +357,7 @@ ber_first_element( BerElement *ber, unsigned long *len, char **last )
 {
 	/* skip the sequence header, use the len to mark where to stop */
 	if ( ber_skip_tag( ber, len ) == LBER_DEFAULT ) {
+		*last = NULL;
 		return( LBER_DEFAULT );
 	}
 
@@ -379,6 +403,7 @@ va_dcl
 	BerElement	*ber;
 	char		*fmt;
 #endif
+	char		*fmt_reset;
 	char		*last;
 	char		*s, **ss, ***sss;
 	struct berval 	***bv, **bvp, *bval;
@@ -393,6 +418,7 @@ va_dcl
 	ber = va_arg( ap, BerElement * );
 	fmt = va_arg( ap, char * );
 #endif
+	fmt_reset = fmt;
 
 	if ( ber->ber_debug ) {
 		lber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
@@ -401,6 +427,8 @@ va_dcl
 	}
 
 	for ( rc = 0; *fmt && rc != LBER_DEFAULT; fmt++ ) {
+		/* When this is modified, remember to update
+		 * the error-cleanup code below accordingly. */
 		switch ( *fmt ) {
 		case 'a':	/* octet string - allocate storage as needed */
 			ss = va_arg( ap, char ** );
@@ -553,6 +581,103 @@ va_dcl
 	}
 
 	va_end( ap );
+
+	if ( rc == LBER_DEFAULT ) {
+	    /*
+	     * Error.  Reclaim malloced memory that was given to the caller.
+	     * Set allocated pointers to NULL, "data length" outvalues to 0.
+	     */
+#ifdef HAVE_STDARG
+	    va_start( ap, fmt );
+#else
+	    va_start( ap );
+	    (void) va_arg( ap, BerElement * );
+	    (void) va_arg( ap, char * );
+#endif
+
+	    for ( ; fmt_reset < fmt; fmt_reset++ ) {
+		switch ( *fmt_reset ) {
+		case 'a':	/* octet string - allocate storage as needed */
+			ss = va_arg( ap, char ** );
+			if ( *ss ) {
+				free( *ss );
+				*ss = NULL;
+			}
+			break;
+
+		case 'b':	/* boolean */
+		case 't':	/* tag of next item */
+		case 'T':	/* skip tag of next item */
+			(void) va_arg( ap, int * );
+			break;
+
+		case 's':	/* octet string - in a buffer */
+			(void) va_arg( ap, char * );
+			/* Fall through */
+		case 'e':	/* enumerated */
+		case 'i':	/* int */
+		case 'l':	/* length of next item */
+			(void) va_arg( ap, long * );
+			break;
+
+		case 'o':	/* octet string in a supplied berval */
+			bval = va_arg( ap, struct berval * );
+			if ( bval->bv_val ) {
+				free( bval->bv_val );
+				bval->bv_val = NULL;
+			}
+			bval->bv_len = 0;
+			break;
+
+		case 'O':	/* octet string - allocate & include length */
+			bvp = va_arg( ap, struct berval ** );
+			if ( *bvp ) {
+				ber_bvfree( *bvp );
+				*bvp = NULL;
+			}
+			break;
+
+		case 'B':	/* bit string - allocate storage as needed */
+			ss = va_arg( ap, char ** );
+			if ( *ss ) {
+				free( *ss );
+				*ss = NULL;
+			}
+			*(va_arg( ap, long * )) = 0; /* for length, in bits */
+			break;
+
+		case 'v':	/* sequence of strings */
+			sss = va_arg( ap, char *** );
+			if ( *sss ) {
+				for (j = 0;  (*sss)[j];  j++)
+					free( (*sss)[j] );
+				free( *sss );
+				*sss = NULL;
+			}
+			break;
+
+		case 'V':	/* sequence of strings + lengths */
+			bv = va_arg( ap, struct berval *** );
+			if ( *bv ) {
+				ber_bvecfree( *bv );
+				*bv = NULL;
+			}
+			break;
+
+#if 0		/* No action for these format characters */
+		case 'n':	/* null */
+		case 'x':	/* skip the next element - whatever it is */
+		case '{':	/* begin sequence */
+		case '[':	/* begin set */
+		case '}':	/* end sequence */
+		case ']':	/* end set */
+#endif
+
+		}
+	    }
+
+	    va_end( ap );
+	}
 
 	return( rc );
 }
