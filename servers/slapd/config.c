@@ -1326,7 +1326,7 @@ read_config( const char *fname, int depth )
 
 		/* restricts specific operations */
 		} else if ( strcasecmp( cargv[0], "restrict" ) == 0 ) {
-			slap_mask_t	restrict = 0;
+			slap_mask_t	restrictops = 0;
 			struct restrictable_exops_t {
 				char	*name;
 				int	flag;
@@ -1337,7 +1337,7 @@ read_config( const char *fname, int depth )
 				{ LDAP_EXOP_X_CANCEL,		SLAP_RESTRICT_EXOP_CANCEL },
 				{ NULL,				0 }
 			};
-			int		i;
+			int i;
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -1349,31 +1349,31 @@ read_config( const char *fname, int depth )
 					"%s: line %d: missing <op_list> in \"restrict <op_list>\" "
 					"line.\n", fname, lineno, 0 );
 #endif
-
-				return( 1 );
+				return 1;
 			}
 
 			for ( i = 1; i < cargc; i++ ) {
 				if ( strcasecmp( cargv[ i ], "read" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_READS;
+					restrictops |= SLAP_RESTRICT_OP_READS;
 
 				} else if ( strcasecmp( cargv[ i ], "write" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_WRITES;
+					restrictops |= SLAP_RESTRICT_OP_WRITES;
 
 				} else if ( strcasecmp( cargv[ i ], "add" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_ADD;
+					restrictops |= SLAP_RESTRICT_OP_ADD;
 
 				} else if ( strcasecmp( cargv[ i ], "bind" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_BIND;
+					restrictops |= SLAP_RESTRICT_OP_BIND;
 
 				} else if ( strcasecmp( cargv[ i ], "compare" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_COMPARE;
+					restrictops |= SLAP_RESTRICT_OP_COMPARE;
 
 				} else if ( strcasecmp( cargv[ i ], "delete" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_DELETE;
+					restrictops |= SLAP_RESTRICT_OP_DELETE;
 
 				} else if ( strncasecmp( cargv[ i ], "extended",
-							STRLENOF( "extended" ) ) == 0 ) {
+					STRLENOF( "extended" ) ) == 0 )
+				{
 					char	*e = cargv[ i ] + STRLENOF( "extended" );
 
 					if ( e[0] == '=' ) {
@@ -1381,8 +1381,9 @@ read_config( const char *fname, int depth )
 
 						e++;
 						for ( j = 0; restrictable_exops[ j ].name; j++ ) {
-							if ( strcmp( e, restrictable_exops[ j ].name ) == 0 ) {
-								restrict |= restrictable_exops[ j ].flag;
+							if ( strcmp( e, restrictable_exops[j].name ) == 0 )
+							{
+								restrictops |= restrictable_exops[ j ].flag;
 								break;
 							}
 						}
@@ -1391,25 +1392,26 @@ read_config( const char *fname, int depth )
 							goto restrict_unknown;
 						}
 
-						restrict &= ~SLAP_RESTRICT_OP_EXTENDED;
+						restrictops &= ~SLAP_RESTRICT_OP_EXTENDED;
 
 					} else if ( e[0] == '\0' ) {
-						restrict &= ~SLAP_RESTRICT_EXOP_MASK;
-						restrict |= SLAP_RESTRICT_OP_EXTENDED;
+						restrictops &= ~SLAP_RESTRICT_EXOP_MASK;
+						restrictops |= SLAP_RESTRICT_OP_EXTENDED;
 						
 					} else {
 						goto restrict_unknown;
 					}
 
 				} else if ( strcasecmp( cargv[ i ], "modify" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_MODIFY;
+					restrictops |= SLAP_RESTRICT_OP_MODIFY;
 
 				} else if ( strcasecmp( cargv[ i ], "rename" ) == 0
-						|| strcasecmp( cargv[ i ], "modrdn" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_RENAME;
+					|| strcasecmp( cargv[ i ], "modrdn" ) == 0 )
+				{
+					restrictops |= SLAP_RESTRICT_OP_RENAME;
 
 				} else if ( strcasecmp( cargv[ i ], "search" ) == 0 ) {
-					restrict |= SLAP_RESTRICT_OP_SEARCH;
+					restrictops |= SLAP_RESTRICT_OP_SEARCH;
 
 				} else {
 restrict_unknown:;
@@ -1428,10 +1430,9 @@ restrict_unknown:;
 			}
 
 			if ( be == NULL ) {
-				frontendDB->be_restrictops |= restrict;
-
+				frontendDB->be_restrictops |= restrictops;
 			} else {
-				be->be_restrictops |= restrict;
+				be->be_restrictops |= restrictops;
 			}
 
 		/* allow these features */
