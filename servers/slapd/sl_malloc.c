@@ -78,7 +78,15 @@ sl_mem_detach(
 	void *memctx
 )
 {
+	/* separate from context */
 	ldap_pvt_thread_pool_setkey( ctx, sl_mem_init, NULL, NULL );
+
+	/* The code used to try to use realloc to shrink the region.
+	 * This is unsafe, since realloc may return a different block
+	 * of memory from what was passed in, and the region contains
+	 * pointers that reference itself. After realloc, these pointers
+	 * are invalid, and crashes result.
+	 */
 }
 
 void *
