@@ -135,7 +135,7 @@ static int dosearch LDAP_P((
 	int		attrsonly,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
-	struct timeval *timelimit,
+	struct timeval *timeout,
 	int	sizelimit ));
 
 static char *tmpdir = NULL;
@@ -888,7 +888,7 @@ static int dosearch(
 	int		attrsonly,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls,
-	struct timeval *timelimit,
+	struct timeval *timeout,
 	int sizelimit )
 {
 	char		filter[ BUFSIZ ];
@@ -921,7 +921,7 @@ static int dosearch(
 	}
 
 	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
-		sctrls, cctrls, timelimit, sizelimit, &msgid );
+		sctrls, cctrls, timeout, sizelimit, &msgid );
 
 	if( rc != LDAP_SUCCESS ) {
 		fprintf( stderr, "%s: ldap_search_ext: %s (%d)\n",
