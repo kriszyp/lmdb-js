@@ -7,14 +7,18 @@ OpenLDAP 2.1.26 Engineering
 	Fixed slapd backglue segfault (ITS#2924)
 	Fixed slapd bind mech in authDN (ITS#2871)
 	Fixed back-ldap compare operation (ITS#2893)
+	Fixed back-ldap suffix massage when --enable-rewrite=no (ITS#2923)
 	Fixed libldap sort references bug (ITS#2494)
 	Fixed libldap SASL_MECH bug (ITS#2717)
-	Updated lutil_passwd (ITS#2835, ITS#2869)
+	Fixed lutil_passwd base64 length bugs (ITS#2835, ITS#2869)
 	Updated librewrite (ITS#2787)
 	Updated slurpd (misc bug fixes)
-	Fixed back-ldap suffix massage when --enable-rewrite=no (ITS#2923)
+	Build Environment
+		Updated release documents
+	Documentation
+		Misc man page updates
 
-OpenLDAP 2.1.25 Engineering
+OpenLDAP 2.1.25 Release
 	Build Environment
 		Fix LDBM link bug (ITS#2863)
 
