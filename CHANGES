@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.X Engineering
+OpenLDAP 2.0.7 Release
 	Fixed -lldap TLS data ready bug (ITS#821)
 	Fixed -lldap abandon unsent op bug (ITS#837)
 	Fixed -lldap URL search w/o host bug (ITS#843)
@@ -11,17 +11,19 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd spasswd mutex bug
 	Fixed slapd ACL nameuid bug
 	Fixed slapd SASL layering bug
-	Fixed slapd unknown authc method bug (ITS#831)
+	Fixed slapd unknown authc method bug (ITS#831 ITS#844)
 	Fixed slapd TLSVerifyClient config bug
 	Updated -lldap TLS/SASL error reporting
 	Updated -llber large element handling
 	Updated slapadd error reporting
 	Updated slapd chroot handling (ITS#810)
 	Updated slapd subschema subentry
-	Updated slapd manageDSAit support
+	Updated slapd manageDSAit support (ITS#851)
 	Updated slapd root DIT support
+	Updated slapd/back-sql
 	Updated getaddrinfo error handling (ITS#845 ITS#845 ITS#863)
-	Added slapd numericString indexing
+	Added -lldap SASL/EXTERNAL (TLS) support (ITS#865)
+	Added slapd additional syntax/matching rule support
 	Removed lint
 	Build Environment
 		Fixed make comment bug (ITS#811)
