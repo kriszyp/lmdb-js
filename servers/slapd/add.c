@@ -261,8 +261,8 @@ do_add( Connection *conn, Operation *op )
 					replog( be, op, e->e_dn, e );
 				}
 				be_entry_release_w( be, e );
-				e = NULL;
 			}
+			e = NULL;
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
