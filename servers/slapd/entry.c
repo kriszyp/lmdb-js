@@ -340,7 +340,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 	ber_len_t	len;
 	char *last;
 
-	Debug( LDAP_DEBUG_TRACE, "=> entry_decode",
+	Debug( LDAP_DEBUG_TRACE, "=> entry_decode\n",
 		0, 0, 0 );
 
 	ber = ber_init( bv );
@@ -457,7 +457,7 @@ int entry_encode(
 	Attribute *a;
 	BerElement *ber;
 	
-	Debug( LDAP_DEBUG_TRACE, "=> entry_encode",
+	Debug( LDAP_DEBUG_TRACE, "=> entry_encode\n",
 		0, 0, 0 );
 
 	ber = ber_alloc_t( LBER_USE_DER );
