@@ -112,6 +112,7 @@ meta_back_cache_config(
 			cache_suffix = be->be_nsuffix[0];
 		}
 		li->glue_be = select_backend( &cache_suffix, 0, 1 );
+		li->glue_be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
 		if ( cache_suffix.bv_val != be->be_nsuffix[0].bv_val ) {
 			ch_free( cache_suffix.bv_val );
 		}

@@ -56,6 +56,10 @@ entry_schema_check(
 	int subentry = is_entry_subentry( e );
 	int collectiveSubentry = 0;
 
+	if ( SLAP_NO_SCHEMA_CHECK( be )) {
+		return LDAP_SUCCESS;
+	}
+
 	if( subentry ) {
 		collectiveSubentry = is_entry_collectiveAttributeSubentry( e );
 	}
