@@ -356,10 +356,6 @@ SOURCE=.\str2filter.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\suffixalias.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\syntax.c
 # End Source File
 # Begin Source File
