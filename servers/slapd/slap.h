@@ -495,6 +495,9 @@ typedef struct slap_matching_rule {
 	 */
 	struct slap_matching_rule	*smr_associated;
 
+#define SLAP_MR_ASSOCIATED(mr,amr)	(((mr) == (amr)) || \
+	((mr)->smr_associated == (amr)))
+
 	LDAP_SLIST_ENTRY(slap_matching_rule)smr_next;
 
 #define smr_oid				smr_mrule.mr_oid

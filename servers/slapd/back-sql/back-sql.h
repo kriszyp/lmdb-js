@@ -101,6 +101,9 @@ typedef struct {
 	char		*insentry_query,*delentry_query;
 	char		*id_query;
 	char		*has_children_query;
+
+	MatchingRule	*bi_caseIgnoreMatch;
+
 	struct berval	upper_func;
 	struct berval	upper_func_open;
 	struct berval	upper_func_close;

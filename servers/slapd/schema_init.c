@@ -30,9 +30,6 @@
 
 #define SLAP_NVALUES 1
 
-#define MR_ASSOCIATED(mr,amr)	(((mr) == (amr)) || \
-	((mr)->smr_associated == (amr)))
-
 /* not yet implemented */
 #define objectIdentifierNormalize NULL
 #define integerOrderingMatch NULL
@@ -1005,7 +1002,7 @@ UTF8StringNormalize(
 		return LDAP_SUCCESS;
 	}
 
-	flags = MR_ASSOCIATED( mr, slap_schema.si_mr_caseExactMatch )
+	flags = SLAP_MR_ASSOCIATED( mr, slap_schema.si_mr_caseExactMatch )
 		? LDAP_UTF8_NOCASEFOLD : LDAP_UTF8_CASEFOLD;
 	flags |= ( ( use & SLAP_MR_EQUALITY_APPROX ) == SLAP_MR_EQUALITY_APPROX )
 		? LDAP_UTF8_APPROX : 0;
@@ -1694,7 +1691,7 @@ IA5StringNormalize(
 	void *ctx )
 {
 	char *p, *q;
-	int casefold = MR_ASSOCIATED( mr, slap_schema.si_mr_caseExactIA5Match );
+	int casefold = SLAP_MR_ASSOCIATED( mr, slap_schema.si_mr_caseExactIA5Match );
 
 	assert( val->bv_len );
 

@@ -413,8 +413,6 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 		size_t		textlen = sizeof( textbuf );
 		struct berval	bv[ 2 ];
 		struct berval	soc;
-		AttributeDescription	*ad_soc
-			= slap_schema.si_ad_structuralObjectClass;
 		int rc;
 
 		bv[ 0 ] = bsi->oc->oc->soc_cname;
