@@ -99,6 +99,7 @@ OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
+OL_ARG_ENABLE(multimaster,[    --enable-multimaster	enable multimaster replication], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
 OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
@@ -178,6 +179,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_modules = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
 	fi
+	if test $ol_enable_multimaster = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-multimaster argument])
+	fi
 	if test $ol_enable_wrappers = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-wrappers argument])
 	fi
@@ -228,6 +232,7 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_tcl=no
 
 	ol_enable_modules=no
+	ol_enable_multimaster=no
 	ol_enable_phonetic=no
 	ol_enable_rlookups=no
 	ol_enable_wrappers=no
@@ -1902,6 +1907,9 @@ if test "$ol_enable_crypt" != no ; then
 fi
 if test "$ol_enable_cleartext" != no ; then
 	AC_DEFINE(SLAPD_CLEARTEXT,1,[define to support cleartext passwords])
+fi
+if test "$ol_enable_multimaster" != no ; then
+	AC_DEFINE(SLAPD_MULTIMASTER,1,[define to support multimaster replication])
 fi
 if test "$ol_enable_phonetic" != no ; then
 	AC_DEFINE(SLAPD_PHONETIC,1,[define to support phonetic])

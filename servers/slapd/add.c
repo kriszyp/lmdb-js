@@ -151,11 +151,19 @@ do_add( Connection *conn, Operation *op )
 	 */
 	if ( be->be_add ) {
 		/* do the update here */
+#ifdef SLAPD_MULTIMASTER
+		if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
+			global_lastmod == ON)) && (be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn )) )
+#else
 		if ( be->be_update_ndn == NULL ||
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+#endif
 		{
+#ifndef SLAPD_MULTIMASTER
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON)) && be->be_update_ndn == NULL )
+#endif
 			{
 				rc = add_created_attrs( op, e );
 
@@ -169,14 +177,22 @@ do_add( Connection *conn, Operation *op )
 			}
 
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
-				replog( be, op, e->e_dn, e );
+#ifdef SLAPD_MULTIMASTER
+				if (be->be_update_ndn == NULL ||
+					strcmp( be->be_update_ndn, op->o_ndn ))
+#endif
+				{
+					replog( be, op, e->e_dn, e );
+				}
 				be_entry_release_w( be, e );
 			}
 
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			entry_free( e );
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
+#endif
 		}
 	} else {
 	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );

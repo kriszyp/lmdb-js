@@ -771,6 +771,9 @@
 /* define to support cleartext passwords */
 #undef SLAPD_CLEARTEXT
 
+/* define to support multimaster replication */
+#undef SLAPD_MULTIMASTER
+
 /* define to support phonetic */
 #undef SLAPD_PHONETIC
 

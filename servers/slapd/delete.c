@@ -92,16 +92,27 @@ do_delete(
 	 */
 	if ( be->be_delete ) {
 		/* do the update here */
+#ifndef SLAPD_MULTIMASTER
 		if ( be->be_update_ndn == NULL ||
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+#endif
 		{
 			if ( (*be->be_delete)( be, conn, op, ndn ) == 0 ) {
-				replog( be, op, ndn, NULL );
+#ifdef SLAPD_MULTIMASTER
+				if (be->be_update_ndn == NULL ||
+					strcmp( be->be_update_ndn, op->o_ndn ))
+#endif
+				{
+					replog( be, op, ndn, NULL );
+				}
 			}
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
+#endif
 		}
+
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 			NULL, "Function not implemented", NULL, NULL );

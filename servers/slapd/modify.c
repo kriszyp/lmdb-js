@@ -185,8 +185,13 @@ do_modify(
 	 */
 	if ( be->be_modify ) {
 		/* do the update here */
+#ifndef SLAPD_MULTIMASTER
+		/* we don't have to check for replicator dn
+		 * because we accept each modify request
+		 */
 		if ( be->be_update_ndn == NULL ||
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+#endif
 		{
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
 				global_lastmod == ON)) && be->be_update_ndn == NULL )
@@ -203,14 +208,23 @@ do_modify(
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, ndn, modlist ) == 0 ) {
+			if ( (*be->be_modify)( be, conn, op, ndn, modlist ) == 0 
+#ifdef SLAPD_MULTIMASTER
+				&& ( be->be_update_ndn == NULL ||
+					strcmp( be->be_update_ndn, op->o_ndn ) != 0 )
+#endif
+			) {
+				/* but we log only the ones not from a replicator user */
 				replog( be, op, ndn, modlist );
 			}
 
+#ifndef SLAPD_MULTIMASTER
 		/* send a referral */
 		} else {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
-				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
+				be->be_update_refs ? be->be_update_refs : default_referral,
+				NULL );
+#endif
 		}
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
