@@ -436,7 +436,7 @@ slapd_daemon_task(
 )
 {
 	int l;
-
+	time_t	last_idle_check = slap_get_time();
 	time( &starttime );
 
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
@@ -471,8 +471,7 @@ slapd_daemon_task(
 		int ebadf = 0;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
-		time_t	last_idle_check = slap_get_time();
-		time_t	now;
+		time_t	now = slap_get_time();
 
 
 		fd_set			readfds;
