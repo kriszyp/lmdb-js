@@ -135,11 +135,13 @@ TCL|http://www.tcl.com/
 # Internet and X.500 terms
 !block terms; data
 Term|Definition
+API|Application Program Interface
 ASN|Abstract Syntax Notation
 ASN.1|Abstract Syntax Notation 1
 BCP|Best Common Practice
 BER|Basic Encoding Rules
 BNF|BNF
+C|The C Programming Language
 CLDAP|Connection-less LDAP
 DAP|Directory Access Protocol
 DER|Distinguished Encoding Rules
@@ -152,7 +154,7 @@ DSE|DSA-specific Entry
 DUA|Directory User Agent
 FAQ|Frequently Asked Questions
 FYI|For Your Information
-GSSAPI|Generic Security Services Application Programming Interface
+GSSAPI|Generic Security Services Application Program Interface
 I-D|Internet Draft
 IP|Internet Protocol
 IPSEC|Internet Protocol Security
@@ -174,6 +176,7 @@ SMTP|Simple Mail Transfer Protocol
 SNMP|Simple Network Management Protocol
 STD|Internet Standard
 UDP|User Datagram Protocol
+UNIX|UNIX
 URI|Uniform Resource Identifier
 URL|Uniform Resource Locator
 WWW|World Wide Web
