@@ -51,9 +51,9 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 		if ( strcasecmp( cargv[0], "sasl-authz-policy" ) == 0 ) {
 			if ( cargc != 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: missing policy in \"sasl-authz-policy <policy>\" line\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing policy in \"sasl-authz-policy <policy>\" line\n",
@@ -64,12 +64,12 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 			}
 			if ( slap_sasl_setpolicy( cargv[1] ) ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: unable "
 					   "to parse value \"%s\" "
 					   "in \"sasl-authz-policy "
 					   "<policy>\" line.\n",
-					   fname, lineno, cargv[1] ));
+					   fname, lineno, cargv[1] );
 #else
 				Debug( LDAP_DEBUG_ANY,
 				    	"%s: line %d: unable "
@@ -86,9 +86,9 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 		} else if ( strcasecmp( cargv[0], "sasl-host" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: missing host in \"sasl-host <host>\" line\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing host in \"sasl-host <host>\" line\n",
@@ -100,9 +100,9 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 
 			if ( global_host != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: already set sasl-host!\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set sasl-host!\n",
@@ -119,9 +119,9 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 		} else if ( strcasecmp( cargv[0], "sasl-realm" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: missing realm in \"sasl-realm <realm>\" line.\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing realm in \"sasl-realm <realm>\" line\n",
@@ -133,9 +133,9 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 
 			if ( global_realm != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: already set sasl-realm!\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: already set sasl-realm!\n",
@@ -154,10 +154,10 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 			int rc;
 			if ( cargc != 3 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: need 2 args in "
 					   "\"saslregexp <match> <replace>\"\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, 
 				"%s: line %d: need 2 args in \"saslregexp <match> <replace>\"\n",
@@ -177,10 +177,10 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d: missing flags in "
 					   "\"sasl-secprops <properties>\" line\n",
-					   fname, lineno ));
+					   fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing flags in \"sasl-secprops <properties>\" line\n",
@@ -193,9 +193,9 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 			txt = slap_sasl_secprops( cargv[1] );
 			if ( txt != NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+				LDAP_LOG( CONFIG, CRIT,
 					   "%s: line %d sasl-secprops: %s\n",
-					   fname, lineno, txt ));
+					   fname, lineno, txt );
 #else
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: sasl-secprops: %s\n",
@@ -315,7 +315,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_getdn: conn %d id=%s\n",
-		conn ? conn->c_connid : -1, id ? (*id ? id : "<empty>") : "NULL" );
+		conn ? conn->c_connid : -1, id ? (*id ? id : "<empty>") : "NULL", 0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "slap_sasl_getdn: id=%s\n", 
       id?(*id?id:"<empty>"):"NULL",0,0 );
@@ -1436,9 +1436,9 @@ slap_sasl_setpass(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+	LDAP_LOG( BACKEND, ENTRY,
 		"slap_sasl_setpass: \"%s\"\n",
-		id.bv_val ? id.bv_val : "" ));
+		id.bv_val ? id.bv_val : "", 0, 0);
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> slap_sasl_setpass: \"%s\"\n",
 		id.bv_val ? id.bv_val : "", 0, 0 );
