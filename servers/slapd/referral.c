@@ -215,8 +215,8 @@ int validate_global_referral( const char *url )
 
 struct berval ** referral_rewrite(
 	struct berval **in,
-	const char *base,
-	const char *target,
+	struct berval *base,
+	struct berval *target,
 	int scope )
 {
 	int i, j;
@@ -247,7 +247,9 @@ struct berval ** referral_rewrite(
 		{
 			char *dn = url->lud_dn;
 			url->lud_dn = referral_dn_muck(
-				( dn && *dn ) ? dn : NULL, base, target ); 
+				( dn && *dn ) ? dn : NULL,
+				base ? base->bv_val : NULL,
+				target ? target->bv_val : NULL ); 
 
 			ldap_memfree( dn );
 		}
@@ -281,9 +283,7 @@ struct berval **get_entry_referrals(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	Entry *e,
-	const char *dn,
-	int scope )
+	Entry *e )
 {
 	Attribute *attr;
 	struct berval **refs;

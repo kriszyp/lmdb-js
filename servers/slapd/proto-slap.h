@@ -581,13 +581,12 @@ LDAP_SLAPD_F (int) validate_global_referral LDAP_P((
 	const char *url ));
 
 LDAP_SLAPD_F (struct berval **) get_entry_referrals LDAP_P((
-	Backend *be, Connection *conn, Operation *op,
-	Entry *e, const char *target, int scope ));
+	Backend *be, Connection *conn, Operation *op, Entry *e ));
 
 LDAP_SLAPD_F (struct berval **) referral_rewrite LDAP_P((
 	struct berval **refs,
-	const char *base,
-	const char *target,
+	struct berval *base,
+	struct berval *target,
 	int scope ));
 
 /*

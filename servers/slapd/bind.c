@@ -459,7 +459,7 @@ do_bind(
 	if ( (be = select_backend( ndn, 0, 0 )) == NULL ) {
 		if ( default_referral ) {
 			struct berval **ref = referral_rewrite( default_referral,
-				NULL, pdn->bv_val, LDAP_SCOPE_DEFAULT );
+				NULL, pdn, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				NULL, NULL, ref ? ref : default_referral, NULL );

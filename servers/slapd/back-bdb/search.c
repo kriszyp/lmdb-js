@@ -92,16 +92,15 @@ bdb_search(
 	}
 
 	if ( e == NULL ) {
-		char *matched_dn = NULL;
+		struct berval *matched_dn = NULL;
 		struct berval **refs = NULL;
 
 		if ( matched != NULL ) {
 			struct berval **erefs;
-			matched_dn = ch_strdup( matched->e_dn );
+			matched_dn = ber_bvdup( &matched->e_name );
 
 			erefs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched,
-					base->bv_val, scope )
+				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 
 			bdb_entry_return( be, matched );
@@ -109,29 +108,28 @@ bdb_search(
 
 			if( erefs ) {
 				refs = referral_rewrite( erefs, matched_dn,
-					base->bv_val, scope );
+					base, scope );
 				ber_bvecfree( erefs );
 			}
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, base->bv_val, scope );
+				NULL, base, scope );
 		}
 
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
-			matched_dn, text, refs, NULL );
+			matched_dn->bv_val, text, refs, NULL );
 
 		ber_bvecfree( refs );
-		free( matched_dn );
-
+		ber_bvfree( matched_dn );
 		return rc;
 	}
 
 	if (!manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
-		char *matched_dn = ch_strdup( e->e_dn );
+		struct berval *matched_dn = ber_bvdup( &e->e_name );
 		struct berval **erefs = get_entry_referrals( be,
-			conn, op, e, base->bv_val, scope );
+			conn, op, e );
 		struct berval **refs = NULL;
 
 		bdb_entry_return( be, e );
@@ -139,7 +137,7 @@ bdb_search(
 
 		if( erefs ) {
 			refs = referral_rewrite( erefs, matched_dn,
-				base->bv_val, scope );
+				base, scope );
 			ber_bvecfree( erefs );
 		}
 
@@ -147,12 +145,12 @@ bdb_search(
 			0, 0, 0 );
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
-			matched_dn, refs ? NULL : "bad referral object",
+			matched_dn->bv_val,
+			refs ? NULL : "bad referral object",
 			refs, NULL );
 
 		ber_bvecfree( refs );
-		free( matched_dn );
-
+		ber_bvfree( matched_dn );
 		return 1;
 	}
 
@@ -356,8 +354,9 @@ bdb_search(
 			is_entry_referral( e ) )
 		{
 			struct berval **erefs = get_entry_referrals(
-				be, conn, op, e, NULL, scope );
-			struct berval **refs = referral_rewrite( erefs, e->e_dn, NULL,
+				be, conn, op, e );
+			struct berval **refs = referral_rewrite( erefs,
+				&e->e_name, NULL,
 				scope == LDAP_SCOPE_SUBTREE 
 					? LDAP_SCOPE_SUBTREE
 					: LDAP_SCOPE_BASE );

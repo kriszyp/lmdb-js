@@ -59,8 +59,7 @@ ldbm_back_referrals(
 
 			if( is_entry_referral( matched ) ) {
 				rc = LDAP_OTHER;
-				refs = get_entry_referrals( be, conn, op, matched,
-					dn->bv_val, LDAP_SCOPE_DEFAULT );
+				refs = get_entry_referrals( be, conn, op, matched );
 			}
 
 			cache_return_entry_r( &li->li_cache, matched );
@@ -68,7 +67,7 @@ ldbm_back_referrals(
 		} else if ( default_referral != NULL ) {
 			rc = LDAP_OTHER;
 			refs = referral_rewrite( default_referral,
-				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		if( refs != NULL ) {
@@ -90,9 +89,9 @@ ldbm_back_referrals(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
+			conn, op, e );
 		struct berval **rrefs = referral_rewrite(
-			refs, e->e_dn, dn->bv_val, LDAP_SCOPE_DEFAULT );
+			refs, &e->e_name, dn, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,

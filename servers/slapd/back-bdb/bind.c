@@ -64,8 +64,7 @@ bdb_bind(
 			matched_dn = ch_strdup( matched->e_dn );
 
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched,
-					dn->bv_val, LDAP_SCOPE_DEFAULT )
+				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 
 			bdb_entry_return( be, matched );
@@ -73,7 +72,7 @@ bdb_bind(
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		/* allow noauth binds */
@@ -125,7 +124,7 @@ bdb_bind(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
+			conn, op, e );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );

@@ -97,14 +97,13 @@ ldbm_back_add(
 			if ( matched != NULL ) {
 				matched_dn = ch_strdup( matched->e_dn );
 				refs = is_entry_referral( matched )
-					? get_entry_referrals( be, conn, op, matched,
-						e->e_dn, LDAP_SCOPE_DEFAULT )
+					? get_entry_referrals( be, conn, op, matched )
 					: NULL;
 				cache_return_entry_r( &li->li_cache, matched );
 
 			} else {
 				refs = referral_rewrite( default_referral,
-					NULL, e->e_dn, LDAP_SCOPE_DEFAULT );
+					NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 			}
 
 #ifdef NEW_LOGGING
@@ -176,8 +175,7 @@ ldbm_back_add(
 			/* parent is a referral, don't allow add */
 			char *matched_dn = ch_strdup( p->e_dn );
 			struct berval **refs = is_entry_referral( p )
-				? get_entry_referrals( be, conn, op, p,
-					e->e_dn, LDAP_SCOPE_DEFAULT )
+				? get_entry_referrals( be, conn, op, p )
 				: NULL;
 
 			/* free parent and writer lock */

@@ -62,15 +62,14 @@ ldbm_back_bind(
 			matched_dn = ch_strdup( matched->e_dn );
 
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched,
-					dn->bv_val, LDAP_SCOPE_DEFAULT )
+				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 
 			cache_return_entry_r( &li->li_cache, matched );
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		/* allow noauth binds */
@@ -128,7 +127,7 @@ ldbm_back_bind(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
+			conn, op, e );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,

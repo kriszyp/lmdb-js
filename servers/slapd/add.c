@@ -237,7 +237,7 @@ do_add( Connection *conn, Operation *op )
 	be = select_backend( &e->e_nname, manageDSAit, 0 );
 	if ( be == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, e->e_dn, LDAP_SCOPE_DEFAULT );
+			NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -329,7 +329,7 @@ do_add( Connection *conn, Operation *op )
 			struct berval **defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
 			struct berval **ref = referral_rewrite( defref,
-				NULL, e->e_dn, LDAP_SCOPE_DEFAULT );
+				NULL, &e->e_name, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );

@@ -98,13 +98,12 @@ ldbm_back_modrdn(
 		if( matched != NULL ) {
 			matched_dn = strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched,
-					dn->bv_val, LDAP_SCOPE_DEFAULT )
+				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
@@ -120,7 +119,7 @@ ldbm_back_modrdn(
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
+			conn, op, e );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,

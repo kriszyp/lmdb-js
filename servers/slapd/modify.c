@@ -299,7 +299,7 @@ do_modify(
 	 */
 	if ( (be = select_backend( ndn, manageDSAit, 0 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, pdn->bv_val, LDAP_SCOPE_DEFAULT );
+			NULL, pdn, LDAP_SCOPE_DEFAULT );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
@@ -391,7 +391,7 @@ do_modify(
 			struct berval **defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
 			struct berval **ref = referral_rewrite( defref,
-				NULL, pdn->bv_val, LDAP_SCOPE_DEFAULT );
+				NULL, pdn, LDAP_SCOPE_DEFAULT );
 
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				ref ? ref : defref, NULL );

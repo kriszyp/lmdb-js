@@ -299,7 +299,7 @@ do_search(
 	 */
 	if ( (be = select_backend( nbase, manageDSAit, 1 )) == NULL ) {
 		struct berval **ref = referral_rewrite( default_referral,
-			NULL, pbase->bv_val, scope );
+			NULL, pbase, scope );
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, ref ? ref : default_referral, NULL );
