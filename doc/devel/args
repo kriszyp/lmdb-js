@@ -1,9 +1,9 @@
 Tools           ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-ldapdelete        CD      K M OP *  U WXYZ  cd f h  k  n p     vwx
-ldapmodify        CD F    K M OP *  U WXYZabcd f h  k  n p r t vwx
-ldapmodrdn        CD      K M OP *  U WXYZ  cd f h  k  n p rs  vwx
-ldappasswd      A CD          O  *S U WXYZa  d   h          s  vwx   
-ldapsearch      A CD      KLM OP *STUVWXYZab*d f h  kl n p  stuvwx z
+ldapdelete        CD    I K M OPQ*  U WXYZ  cd f h  k  n p     vwx
+ldapmodify        CD F  I K M OPQ*  U WXYZabcd f h  k  n p r t vwx
+ldapmodrdn        CD    I K M OPQ*  U WXYZ  cd f h  k  n p rs  vwx
+ldappasswd      A CD    I     O Q*S U WXYZa  d   h          s  vwx   
+ldapsearch      A CD    I KLM OPQ*STUVWXYZab*d f h  kl n p  stuvwx z
 
 Other Clients   ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 fax500                                         f h    m
@@ -23,7 +23,6 @@ ud                 D                 V      cd f     l  p   s uv
 	-C Chase Referrals
 	-D Bind DN
 	-P protocol version
-	-R deprecated (don't chase referrals)
 	-W prompt for bind password
 	-d debug
 	-h host
@@ -31,21 +30,26 @@ ud                 D                 V      cd f     l  p   s uv
 	-p port
 	-v verbose
 	-w Bind password
-	-x simple bind
+
+	-R deprecated (was "don't chase")
 
 * LDAPv3 Only 
-	-M ManageDSAIT
+	-x simple bind (not recommended, excepting for anonymous access)
 
+	-M ManageDSAIT
 	-Z StartTLS
 
-	-Y SASL Mechanism
+	-Y SASL Mechanism (defaults to "best")
 	-O SASL Security Options
 	-U SASL Authentication Identity (username)
 	-X SASL Authorization Identity
 
+	-I SASL interactive mode
+	-Q SASL quiet mode
+
+
 * LDAPv2+ Only
 	-K LDAPv2 Kerberos Bind (Step 1 only) (depecated)
 	-k LDAPv2 Kerberos Bind (depecated)
-	-R Don't chase referrals (depecated)
 
 $OpenLDAP$
