@@ -970,6 +970,7 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 	mtdummy.mt_op = op;
 	ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
 	mt = avl_find( si->si_mods, &mtdummy, sp_avl_cmp );
+	ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 	if ( mt ) {
 		modinst *mi = mt->mt_mods;
 		
@@ -980,13 +981,14 @@ syncprov_op_cleanup( Operation *op, SlapReply *rs )
 			mt->mt_op = mt->mt_mods->mi_op;
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 		} else {
+			ldap_pvt_thread_mutex_lock( &si->si_mods_mutex );
 			avl_delete( &si->si_mods, mt, sp_avl_cmp );
+			ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 			ldap_pvt_thread_mutex_unlock( &mt->mt_mutex );
 			ldap_pvt_thread_mutex_destroy( &mt->mt_mutex );
 			ch_free( mt );
 		}
 	}
-	ldap_pvt_thread_mutex_unlock( &si->si_mods_mutex );
 	op->o_callback = cb->sc_next;
 	op->o_tmpfree(cb, op->o_tmpmemctx);
 }
