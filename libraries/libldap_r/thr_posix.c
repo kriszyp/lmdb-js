@@ -48,28 +48,28 @@ ldap_int_thread_destroy( void )
 	return 0;
 }
 
-#ifdef HAVE_PTHREAD_SETCONCURRENCY
+#ifdef LDAP_THREAD_HAVE_SETCONCURRENCY
 int
 ldap_pvt_thread_set_concurrency(int n)
 {
 #ifdef HAVE_PTHREAD_SETCONCURRENCY
 	return pthread_setconcurrency( n );
 #elif HAVE_THR_SETCONCURRENCY
-	return pthread_setconcurrency( n );
+	return thr_setconcurrency( n );
 #else
 	return 0;
 #endif
 }
 #endif
 
-#ifdef HAVE_PTHREAD_GETCONCURRENCY
+#ifdef LDAP_THREAD_HAVE_GETCONCURRENCY
 int
 ldap_pvt_thread_get_concurrency(void)
 {
 #ifdef HAVE_PTHREAD_GETCONCURRENCY
 	return pthread_getconcurrency();
 #elif HAVE_THR_GETCONCURRENCY
-	return pthread_getconcurrency();
+	return thr_getconcurrency();
 #else
 	return 0;
 #endif
