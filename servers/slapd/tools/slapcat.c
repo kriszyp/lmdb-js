@@ -55,10 +55,19 @@ main( int argc, char **argv )
 		if ( e == NULL ) {
 			printf("# no data for entry id=%08lx\n\n", (long) id );
 			rc = EXIT_FAILURE;
-			continue;
+			if( continuemode ) continue;
+			break;
 		}
 
 		data = entry2str( e, &len );
+		entry_free( e );
+
+		if ( data == NULL ) {
+			printf("# bad data for entry id=%08lx\n\n", (long) id );
+			rc = EXIT_FAILURE;
+			if( continuemode ) continue;
+			break;
+		}
 
 		fputs( data, ldiffp );
 		fputs( "\n", ldiffp );

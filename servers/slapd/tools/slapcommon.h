@@ -24,6 +24,8 @@ extern	char	*conffile;
 extern	Backend *be;
 extern	int		appendmode;
 extern	int		verbose;
+extern	int		noschemacheck;
+extern	int		continuemode;
 
 extern	char	*ldiffile;
 extern	FILE	*ldiffp;

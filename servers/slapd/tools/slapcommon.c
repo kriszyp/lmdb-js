@@ -22,6 +22,8 @@ char	*progname	= NULL;
 char	*conffile	= SLAPD_DEFAULT_CONFIGFILE;
 int		truncatemode = 0;
 int		verbose		= 0;
+int		noschemacheck = 0;
+int		continuemode = 0;
 
 char	*ldiffile	= NULL;
 FILE	*ldiffp		= NULL;
@@ -33,12 +35,12 @@ usage( int tool )
 {
 	char *options = NULL;
 	fprintf( stderr,
-		"usage: %s [-v] [-d debuglevel] [-f configfile]\n"
+		"usage: %s [-v] [-c] [-d debuglevel] [-f configfile]\n"
 			 "\t[-n databasenumber | -b suffix]", progname );
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "\t[-l ldiffile]\n";
+		options = "\t[-s] [-l ldiffile]\n";
 		break;
 
 	case SLAPCAT:
@@ -80,15 +82,15 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:d:f:l:n:tv";
+		options = "b:cd:f:l:n:stv";
 		break;
 
 	case SLAPINDEX:
-		options = "b:d:f:n:v";
+		options = "b:cd:f:n:v";
 		break;
 
 	case SLAPCAT:
-		options = "b:d:f:l:n:v";
+		options = "b:cd:f:l:n:v";
 		break;
 
 	default:
@@ -105,6 +107,10 @@ slap_tool_init(
 		case 'b':
 			base = strdup( optarg );
 
+		case 'c':	/* enable continue mode */
+			continuemode++;
+			break;
+
 		case 'd':	/* turn on debugging */
 			ldap_debug += atoi( optarg );
 			break;
@@ -119,6 +125,10 @@ slap_tool_init(
 
 		case 'n':	/* which config file db to index */
 			dbnum = atoi( optarg ) - 1;
+			break;
+
+		case 's':	/* disable schema checking */
+			noschemacheck++;
 			break;
 
 		case 't':	/* turn on truncate */

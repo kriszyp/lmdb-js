@@ -49,18 +49,54 @@ main( int argc, char **argv )
 		Entry *e = str2entry( buf );
 
 		if( e == NULL ) {
-			fprintf( stderr, "%s: could not parse entry at line %d\n",
+			fprintf( stderr, "%s: could not parse entry (line=%d)\n",
 				progname, lineno );
 			rc = EXIT_FAILURE;
-			continue;
+			if( continuemode ) continue;
+			break;
+		}
+
+		if( !noschemacheck ) {
+			/* make sure the DN is valid */
+			if( dn_normalize_case( e->e_ndn ) == NULL ) {
+				fprintf( stderr, "%s: bad dn=\"%s\" (line=%d)\n",
+					progname, e->e_dn, lineno );
+				rc = EXIT_FAILURE;
+				entry_free( e );
+				if( continuemode ) continue;
+				break;
+			}
+
+			/* check schema */
+			if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
+				fprintf( stderr, "%s: entry dn=\"%s\" violates schema violation (line=%d)\n",
+					progname, e->e_dn, lineno );
+				rc = EXIT_FAILURE;
+				entry_free( e );
+				if( continuemode ) continue;
+				break;
+			}
+
+			/* check backend */
+			if( select_backend( e->e_ndn ) != be ) {
+				fprintf( stderr, "%s: database not configured to hold dn=\"%s\" (line=%d)\n",
+					progname, e->e_dn, lineno );
+				rc = EXIT_FAILURE;
+				entry_free( e );
+				if( continuemode ) continue;
+				break;
+			}
 		}
 
 		id = be->be_entry_put( be, e );
 
 		if( id == NOID ) {
-			fprintf( stderr, "%s: could not add entry (%s) at line %d\n",
+			fprintf( stderr, "%s: could not add entry dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
 			rc = EXIT_FAILURE;
+			entry_free( e );
+			if( continuemode ) continue;
+			break;
 
 		} else if ( verbose ) {
 			fprintf( stderr, "added: \"%s\" (%08ld)\n",

@@ -67,7 +67,8 @@ main( int argc, char **argv )
 			fprintf( stderr,
 				"entry id=%08lx: no data\n", (long) id );
 			rc = EXIT_FAILURE;
-			continue;
+			if( continuemode ) continue;
+			break;
 		}
 
 		if( verbose ) {
@@ -78,7 +79,10 @@ main( int argc, char **argv )
 		if( strcasecmp( type, "dn" ) == 0 ) {
 			attr = attr_find( e->e_attrs, type );
 
-			if( attr == NULL ) continue;
+			if( attr == NULL ) {
+				entry_free( e );
+				continue;
+			}
 
 			values = attr->a_vals;
 
@@ -95,6 +99,11 @@ main( int argc, char **argv )
 			type, attr->a_vals, id, SLAP_INDEX_ADD_OP ) )
 		{
 			rc = EXIT_FAILURE;
+
+			if( !continuemode ) {
+				entry_free( e );
+				break;
+			}
 		}
 
 		entry_free( e );
