@@ -1785,7 +1785,7 @@ ppolicy_db_init(
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 
 	/* Has User Schema been initialized yet? */
-	if ( !pwd_UsSchema[0].ad ) {
+	if ( !pwd_UsSchema[0].ad[0] ) {
 		const char *err;
 		int i, code;
 
