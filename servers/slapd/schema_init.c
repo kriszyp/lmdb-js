@@ -2155,7 +2155,7 @@ generalizedTimeNormalize(
 		return rc;
 	}
 
-	normalized->bv_val = sl_malloc( 16, ctx );
+	normalized->bv_val = sl_malloc( sizeof("YYYYmmddHHMMSSZ"), ctx );
 	if ( normalized->bv_val == NULL ) {
 		return LBER_ERROR_MEMORY;
 	}
