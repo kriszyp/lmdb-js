@@ -4,9 +4,9 @@
 
 #include <stdio.h>
 
+#include <ac/socket.h>
 #include <ac/errno.h>
 #include <ac/signal.h>
-#include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>		/* get close() */
@@ -341,7 +341,7 @@ send_search_entry(
 		if ( connection_state_closing( conn ) ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
-			return;
+			return 0;
 		}
 
 		if ( ber_flush( &conn->c_sb, ber, 1 ) == 0 ) {

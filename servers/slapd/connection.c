@@ -2,9 +2,9 @@
 
 #include <stdio.h>
 
+#include <ac/socket.h>
 #include <ac/errno.h>
 #include <ac/signal.h>
-#include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
 
@@ -133,6 +133,7 @@ int connections_shutdown(void)
 	}
 
 	ldap_pvt_thread_mutex_unlock( &connections_mutex );
+    return 0;
 }
 
 static Connection* connection_get( int s )
