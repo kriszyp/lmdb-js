@@ -110,7 +110,7 @@ struct attrinfo {
 */
 };
 
-#define MAXDBCACHE	10
+#define MAXDBCACHE	128
 
 /* this could be made an option */
 #ifndef SLAPD_NEXTID_CHUNK

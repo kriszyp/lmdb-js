@@ -9,6 +9,7 @@ Changes included in OpenLDAP 1.2.11 Release Engineering
 	Fixed strdup use in libldap/request.c
 	Fixed NULL prefix bug in libldap/ufn.c
 	Fixed slapd_shutdown extern reference bug (ITS#527)
+	Raise MAXDBCACHE to 128 (ITS#512)
 	Build Environment
 		Detect and use getpassphrase() and getpass()
 		Change GNU Pth to enable soft syscalls
