@@ -112,7 +112,7 @@ fi
 
 echo "Testing NOT searching..."
 $LDAPSEARCH -C -S "" -b "$BASEDN" -h $LOCALHOST -p $SLAVEPORT \
-	'(!(objectclass=person))' >> $SEARCHOUT 2>&1
+	'(!(objectclass=pilotPerson))' >> $SEARCHOUT 2>&1
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
