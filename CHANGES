@@ -9,6 +9,7 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd ACL nameuid bug
 	Fixed slapd SASL layering bug
 	Fixed slapd unknown authc method bug (ITS#831)
+	Fixed slapd TLSVerifyClient config bug
 	Updated -lldap TLS/SASL error reporting
 	Updated -llber large element handling
 	Updated slapadd error reporting
