@@ -35,10 +35,18 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>		/* get ftruncate() */
+
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #include "slurp.h"
 #include "globals.h"
@@ -230,14 +238,25 @@ Rq_dump(
 {
     Re		*re;
     FILE	*fp;
+    int		tmpfd;
 
     if ( rq == NULL ) {
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: rq is NULL!\n", 0, 0, 0 );
 	return;
     }
 
-    if (( fp = fopen( SLURPD_DUMPFILE, "w" )) == NULL ) {
+    if (unlink(SLURPD_DUMPFILE) == -1 && errno != ENOENT) {
+	Debug( LDAP_DEBUG_ANY, "Rq_dump: \"%s\" exists, and cannot unlink\n",
+		SLURPD_DUMPFILE, 0, 0 );
+	return;
+    }
+    if (( tmpfd = open(SLURPD_DUMPFILE, O_CREAT|O_RDWR|O_EXCL, 0600)) == -1) {
 	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot open \"%s\" for write\n",
+		SLURPD_DUMPFILE, 0, 0 );
+	return;
+    }
+    if (( fp = fdopen( tmpfd, "w" )) == NULL ) {
+	Debug( LDAP_DEBUG_ANY, "Rq_dump: cannot fdopen \"%s\" for write\n",
 		SLURPD_DUMPFILE, 0, 0 );
 	return;
     }

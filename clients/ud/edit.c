@@ -18,6 +18,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <sys/stat.h>
 
 #include <ac/stdlib.h>
 
@@ -28,6 +29,12 @@
 #include <ac/wait.h>
 #include <ac/unistd.h>
 
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
@@ -51,7 +58,7 @@ static int  print_attrs_and_values( FILE *fp, struct attribute *attrs, short fla
 static int  ovalues( char *attr );
 static void write_entry( void );
 
-static char *entry_temp_file;
+static char entry_temp_file[L_tmpnam];
 
 
 void
@@ -124,7 +131,7 @@ load_editor( void )
 {
 	FILE *fp;
 	char *cp, *editor = UD_DEFAULT_EDITOR;
-	static char template[MED_BUF_SIZE];
+	int tmpfd;
 #ifndef HAVE_SPAWNLP
 	int pid;
 	int status;
@@ -137,13 +144,16 @@ load_editor( void )
 #endif
 
 	/* write the entry into a temp file */
-	(void) strcpy(template, "/tmp/udEdit.XXXXXX");
-	if ((entry_temp_file = mktemp(template)) == NULL) {
-		perror("mktemp");
-		return(-1);
+	if (tmpnam(entry_temp_file) == NULL) {
+		perror("tmpnam");
+		return -1;
 	}
-	if ((fp = fopen(entry_temp_file, "w")) == NULL) {
-		perror("fopen");
+	if ((tmpfd = open(entry_temp_file, O_WRONLY|O_CREAT|O_EXCL, 0600)) == -1) {
+		perror(entry_temp_file);
+		return -1;
+	}
+	if ((fp = fdopen(tmpfd, "w")) == NULL) {
+		perror("fdopen");
 		return(-1);
 	}
 	fprintf(fp, "## Directory entry of %s\n", Entry.name);

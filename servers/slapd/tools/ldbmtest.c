@@ -508,7 +508,7 @@ edit_entry( char c, Datum *data )
 
 	strcpy( tmpname, "/tmp/dbtestXXXXXX" );
 #ifndef HAVE_MKSTEMP
-	if ( (fd = open( mktemp( tmpname ), O_RDWR, 0600 )) == -1 ) {
+	if ( (fd = open( mktemp( tmpname ), O_RDWR|O_CREAT|O_EXCL, 0600 )) == -1 ) {
 		perror( tmpname );
 		return;
 	}
