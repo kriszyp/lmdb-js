@@ -137,6 +137,10 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 	e = str2entry( data.dptr );
 	ldbm_datum_free( id2entry->dbc_db, data );
 
+	if( e != NULL ) {
+		e->e_id = id;
+	}
+
 	return e;
 }
 
@@ -197,9 +201,19 @@ int ldbm_tool_entry_reindex(
 	ID id )
 {
 	int rc;
-	Entry *e = ldbm_tool_entry_get( be, id );
+	Entry *e;
 
-	if( e == NULL ) return -1;
+	Debug( LDAP_DEBUG_ARGS, "=> ldbm_tool_entry_reindex( %ld )\n",
+		(long) id, 0, 0 );
+
+	e = ldbm_tool_entry_get( be, id );
+
+	if( e == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"ldbm_tool_entry_reindex:: could not locate id=%ld\n",
+			(long) id, 0, 0 );
+		return -1;
+	}
 
 	/*
 	 * just (re)add them for now
@@ -207,6 +221,10 @@ int ldbm_tool_entry_reindex(
 	 * will zap index databases
 	 *
 	 */
+
+	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_reindex( %ld, \"%s\" )\n",
+		id, e->e_dn, 0 );
+
 	rc = index_entry_add( be, e, e->e_attrs );
 
 	entry_free( e );
