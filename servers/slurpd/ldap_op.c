@@ -49,7 +49,7 @@ static int do_unbind LDAP_P(( Ri * ));
 /*
  * Determine the type of ldap operation being performed and call the
  * appropriate routine.
- * - If successful, returns ERR_DO_LDAP_OK
+ * - If successful, returns DO_LDAP_OK
  * - If a retryable error occurs, ERR_DO_LDAP_RETRYABLE is returned.
  *   The caller should wait a while and retry the operation.
  * - If a fatal error occurs, ERR_DO_LDAP_FATAL is returned.  The caller
@@ -58,88 +58,92 @@ static int do_unbind LDAP_P(( Ri * ));
  */
 int
 do_ldap(
-    Ri		*ri,
-    Re		*re,
-    char	**errmsg
+	Ri		*ri,
+	Re		*re,
+	char	**errmsg
 )
 {
-    int	rc = 0;
-    int	lderr = LDAP_SUCCESS;
-    int	retry = 2;
+	int	retry = 2;
+	*errmsg = NULL;
 
-    *errmsg = NULL;
+	do {
+		int lderr;
+		if ( ri->ri_ldp == NULL ) {
+			lderr = do_bind( ri, &lderr );
 
-    while ( retry > 0 ) {
-	if ( ri->ri_ldp == NULL ) {
-	    rc = do_bind( ri, &lderr );
+			if ( lderr != BIND_OK ) {
+				return DO_LDAP_ERR_RETRYABLE;
+			}
+		}
 
-	    if ( rc != BIND_OK ) {
-			return DO_LDAP_ERR_RETRYABLE;
-	    }
-	}
+		switch ( re->re_changetype ) {
+		case T_ADDCT:
+			lderr = op_ldap_add( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_add_s failed adding \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
 
-	switch ( re->re_changetype ) {
-	case T_ADDCT:
-	    lderr = op_ldap_add( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_add_s failed adding \"%s\": %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	case T_MODIFYCT:
-	    lderr = op_ldap_modify( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_modify_s failed modifying \"%s\": %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	case T_DELETECT:
-	    lderr = op_ldap_delete( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_delete_s failed deleting \"%s\": %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	case T_MODRDNCT:
-	    lderr = op_ldap_modrdn( ri, re, errmsg );
-	    if ( lderr != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY,
-			"Error: ldap_modrdn_s failed modifying %s: %s\n",
-			*errmsg ? *errmsg : ldap_err2string( lderr ),
-			re->re_dn, 0 );
-	    }
-	    break;
-	default:
-	    Debug( LDAP_DEBUG_ANY,
-		    "Error: do_ldap: bad op \"%d\", dn = \"%s\"\n",
-		    re->re_changetype, re->re_dn, 0 );
-	    return DO_LDAP_ERR_FATAL;
-	}
+		case T_MODIFYCT:
+			lderr = op_ldap_modify( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_modify_s failed modifying \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
 
-	/*
-	 * Analyze return code.  If ok, just return.  If LDAP_SERVER_DOWN,
-	 * we may have been idle long enough that the remote slapd timed
-	 * us out.  Rebind and try again.
-	 */
-	if ( lderr == LDAP_SUCCESS ) {
-	    return DO_LDAP_OK;
-	} else if ( lderr == LDAP_SERVER_DOWN ) {
-	    /* The LDAP server may have timed us out - rebind and try again */
-	    (void) do_unbind( ri );
-	    retry--;
-	} else {
-	    return DO_LDAP_ERR_FATAL;
-	}
-    }
-    return DO_LDAP_ERR_FATAL;
+		case T_DELETECT:
+			lderr = op_ldap_delete( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_delete_s failed deleting \"%s\": %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
+
+		case T_MODRDNCT:
+			lderr = op_ldap_modrdn( ri, re, errmsg );
+			if ( lderr != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"Error: ldap_modrdn_s failed modifying %s: %s\n",
+					*errmsg ? *errmsg : ldap_err2string( lderr ),
+					re->re_dn, 0 );
+			}
+			break;
+
+		default:
+			Debug( LDAP_DEBUG_ANY,
+				"Error: do_ldap: bad op \"%d\", dn = \"%s\"\n",
+				re->re_changetype, re->re_dn, 0 );
+			return DO_LDAP_ERR_FATAL;
+		}
+
+		/*
+		 * Analyze return code. If ok, just return. If LDAP_SERVER_DOWN,
+		 * we may have been idle long enough that the remote slapd timed
+		 * us out. Rebind and try again.
+		 */
+		switch( lderr ) {
+		case LDAP_SUCCESS:
+			return DO_LDAP_OK;
+	
+		default:
+			return DO_LDAP_ERR_FATAL;
+
+		case LDAP_SERVER_DOWN: /* server went down */
+			(void) do_unbind( ri );
+ 			retry--;
+		}
+	} while ( retry > 0 );
+
+	return DO_LDAP_ERR_RETRYABLE;
 }
-
 
 
 

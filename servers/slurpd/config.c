@@ -34,7 +34,7 @@
 #include "slurp.h"
 #include "globals.h"
 
-#define MAXARGS	100
+#define MAXARGS	500
 
 /* Forward declarations */
 static void	add_replica LDAP_P(( char **, int ));
@@ -259,12 +259,16 @@ getline(
     CATLINE( buf );
     while ( fgets( buf, sizeof(buf), fp ) != NULL ) {
 	if ( (p = strchr( buf, '\n' )) != NULL ) {
-	    *p = '\0';
+		if( p > buf && p[-1] == '\r' ) --p;       
+		*p = '\0';
 	}
 	lineno++;
 	if ( ! isspace( (unsigned char) buf[0] ) ) {
 	    return( line );
 	}
+
+	/* change leading whitespace to space */
+	buf[0] = ' ';
 
 	CATLINE( buf );
     }
