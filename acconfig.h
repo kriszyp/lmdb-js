@@ -124,6 +124,9 @@
 /* define this for LDAP User Interface support */
 #undef LDAP_LIBUI
 
+/* define this to add syslog code */
+#undef LDAP_SYSLOG
+
 /* define this to use DB2 in native mode */
 #undef LDBM_USE_DB2
 

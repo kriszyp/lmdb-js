@@ -39,6 +39,7 @@ AC_ARG_WITH(subdir, [  --with-subdir=DIR change default subdirectory used for in
 AC_SUBST(ldap_subdir)dnl
 
 OL_ARG_ENABLE(debug,[  --enable-debug 	enable debugging], yes)dnl
+ol_enable_syslog=no
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
@@ -970,7 +971,7 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 	ol_enable_ldbm=no
 fi
 
-if test $ol_enable_wrappers = yes ; then
+if test $ol_enable_wrappers != no ; then
 	AC_CHECK_LIB(wrap, main,
 		[have_wrappers=yes], [have_wrappers=no])
 
@@ -987,6 +988,14 @@ if test $ol_enable_wrappers = yes ; then
 		ol_enable_wrappers=no
 	fi
 
+fi
+
+if test $ol_enable_syslog != no ; then
+	AC_CHECK_FUNC(openlog)
+	if test $ac_cv_func_openlog = no -a $ol_enable_syslog = yes; then
+		AC_MSG_ERROR(could not find syslog, select appropriate options or disable)
+	fi
+	ol_enable_syslog=$ac_cv_func_openlog
 fi
 
 if test $ol_enable_dmalloc != no ; then
@@ -1209,9 +1218,9 @@ dnl Sort out defines
 if test $ol_enable_debug != no ; then
 	AC_DEFINE(LDAP_DEBUG,1)
 fi
-dnl	if test $ol_enable_syslog != no ; then
-dnl		AC_DEFINE(LDAP_SYSLOG,1)
-dnl	fi
+if test $ol_enable_syslog = yes ; then
+	AC_DEFINE(LDAP_SYSLOG,1)
+fi
 if test $ol_enable_libui = yes ; then
 	AC_DEFINE(LDAP_LIBUI,1)
 fi

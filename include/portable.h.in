@@ -225,6 +225,9 @@ is provided ``as is'' without express or implied warranty.
 /* define this for LDAP User Interface support */
 #undef LDAP_LIBUI
 
+/* define this to add syslog code */
+#undef LDAP_SYSLOG
+
 /* define this to use DBBTREE w/ LDBM backend */
 #undef LDBM_USE_DBBTREE
 
