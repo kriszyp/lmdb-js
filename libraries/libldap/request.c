@@ -829,10 +829,10 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp )
 		return( NULL );
 	}
 
-	if ( tag != LDAP_REQ_DELETE &&
+	if ( tag != LDAP_REQ_DELETE && (
 		ber_write(ber, tmpber.ber_ptr, ( tmpber.ber_end - tmpber.ber_ptr ), 0)
 		!= ( tmpber.ber_end - tmpber.ber_ptr ) ||
-	    ber_printf( ber, /*{{*/ "}}" ) == -1 )
+	    ber_printf( ber, /*{{*/ "}}" ) == -1 ) )
 	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
