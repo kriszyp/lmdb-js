@@ -370,10 +370,10 @@ sasl_ap_lookup( Operation *op, SlapReply *rs )
 		if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( TRANSPORT, DETAIL1, 
-				"slap_auxprop: str2ad(%s): %s\n", name, text, 0 );
+				"slap_ap_lookup: str2ad(%s): %s\n", name, text, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"slap_auxprop: str2ad(%s): %s\n", name, text, 0 );
+				"slap_ap_lookup: str2ad(%s): %s\n", name, text, 0 );
 #endif
 			continue;
 		}
