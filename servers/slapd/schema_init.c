@@ -32,6 +32,7 @@
 
 /* not yet implemented */
 #define integerFirstComponentNormalize NULL
+#define objectIdentifierNormalize NULL
 #define objectIdentifierFirstComponentNormalize NULL
 #define uniqueMemberMatch NULL
 
@@ -1424,46 +1425,41 @@ telephoneNumberNormalize(
 }
 
 static int
-numericoidValidate(
+oidValidate(
 	Syntax *syntax,
-	struct berval *in )
+	struct berval *val )
 {
-	struct berval val = *in;
+	ber_len_t i;
 
-	if( val.bv_len == 0 ) {
+	if( val->bv_len == 0 ) {
 		/* disallow empty strings */
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	while( OID_LEADCHAR( val.bv_val[0] ) ) {
-		if ( val.bv_len == 1 ) {
-			return LDAP_SUCCESS;
-		}
-
-		if ( val.bv_val[0] == '0' ) {
-			break;
-		}
-
-		val.bv_val++;
-		val.bv_len--;
-
-		while ( OID_LEADCHAR( val.bv_val[0] )) {
-			val.bv_val++;
-			val.bv_len--;
-
-			if ( val.bv_len == 0 ) {
-				return LDAP_SUCCESS;
+	if( OID_LEADCHAR(val->bv_val[0]) ) {
+		int dot = 0;
+		for(i=1; i < val->bv_len; i++) {
+			if( OID_SEPARATOR( val->bv_val[i] ) ) {
+				if( dot++ ) return 1;
+			} else if ( OID_CHAR( val->bv_val[i] ) ) {
+				dot = 0;
+			} else {
+				return LDAP_INVALID_SYNTAX;
 			}
 		}
 
-		if( !OID_SEPARATOR( val.bv_val[0] )) {
-			break;
+		return !dot ? LDAP_SUCCESS : LDAP_INVALID_SYNTAX;
+
+	} else if( DESC_LEADCHAR(val->bv_val[0]) ) {
+		for(i=1; i < val->bv_len; i++) {
+			if( !DESC_CHAR(val->bv_val[i] ) ) {
+				return LDAP_INVALID_SYNTAX;
+			}
 		}
 
-		val.bv_val++;
-		val.bv_len--;
+		return LDAP_SUCCESS;
 	}
-
+	
 	return LDAP_INVALID_SYNTAX;
 }
 
@@ -2693,7 +2689,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
 		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
-		0, numericoidValidate, NULL},
+		0, oidValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )",
 		0, IA5StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
@@ -2844,7 +2840,7 @@ static slap_mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT, NULL,
-		NULL, NULL, octetStringMatch,
+		NULL, objectIdentifierNormalize, octetStringMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 
