@@ -1,4 +1,8 @@
 #! /bin/sh
+# $OpenLDAP$
+#
+# Modified for use with OpenLDAP
+#
 # Common stub for a few missing GNU programs while installing.
 # Copyright (C) 1996, 1997 Free Software Foundation, Inc.
 # Franc,ois Pinard <pinard@iro.umontreal.ca>, 1996.
@@ -62,8 +66,7 @@ Supported PROGRAM values:
     echo 1>&2 "\
 WARNING: \`$1' is missing on your system.  You should only need it if
          you modified \`acinclude.m4' or \`configure.in'.  You might want
-         to install the \`Automake' and \`Perl' packages.  Grab them from
-         any GNU archive site."
+         to install the \`Automake' and \`Perl' packages. See build/README."
     touch aclocal.m4
     ;;
 
@@ -71,8 +74,7 @@ WARNING: \`$1' is missing on your system.  You should only need it if
     echo 1>&2 "\
 WARNING: \`$1' is missing on your system.  You should only need it if
          you modified \`configure.in'.  You might want to install the
-         \`Autoconf' and \`GNU m4' packages.  Grab them from any GNU
-         archive site."
+         \`Autoconf' and \`GNU m4' packages.  See build/README."
     touch configure
     ;;
 
@@ -80,8 +82,8 @@ WARNING: \`$1' is missing on your system.  You should only need it if
     echo 1>&2 "\
 WARNING: \`$1' is missing on your system.  You should only need it if
          you modified \`acconfig.h' or \`configure.in'.  You might want
-         to install the \`Autoconf' and \`GNU m4' packages.  Grab them
-         from any GNU archive site."
+         to install the \`Autoconf' and \`GNU m4' packages.  See
+         build/README."
     files=`sed -n 's/^[ ]*A[CM]_CONFIG_HEADER(\([^)]*\)).*/\1/p' configure.in`
     test -z "$files" && files="config.h"
     touch_files=
@@ -179,10 +181,11 @@ WARNING: \`$1' is missing on your system.  You should only need it if
     echo 1>&2 "\
 WARNING: \`$1' is needed, and you do not seem to have it handy on your
          system.  You might have modified some files without having the
-         proper tools for further handling them.  Check the \`README' file,
-         it often tells you about the needed prerequirements for installing
-         this package.  You may also peek at any GNU archive site, in case
-         some other package would contain this missing \`$1' program."
+         proper tools for further handling them.  Check the \`README' file
+         or build/README file, they often tells you about the needed
+         prerequirements for installing this package.  You may also peek
+         at any GNU archive site, in case some other package would contain
+         this missing \`$1' program."
     exit 1
     ;;
 esac
