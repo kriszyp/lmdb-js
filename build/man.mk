@@ -22,6 +22,7 @@ all-common:
 			-e 's%BINDIR%$(bindir)%' \
 			-e 's%LIBDIR%$(libdir)%' \
 			-e 's%LIBEXECDIR%$(libexecdir)%' \
+			-e 's%RELEASEDATE%$(RELEASEDATE)%' \
 			$(srcdir)/$$page > $$page.$(TMP_SUFFIX); \
 	done
 

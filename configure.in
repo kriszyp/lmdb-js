@@ -83,6 +83,9 @@ AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_PATCH,$OL_PATCH,Patch)
 OPENLDAP_LIBVERSION=$OL_API_LIB
 AC_SUBST(OPENLDAP_LIBVERSION)dnl
 
+OPENLDAP_RELEASE_DATE="$OL_RELEASE_DATE"
+AC_SUBST(OPENLDAP_RELEASE_DATE)dnl
+
 dnl We use autoconf features new to 2.13.
 dnl aclocal.m4 should be built using aclocal from automake 1.4
 dnl libtool 1.4.2 should be installed.

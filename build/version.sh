@@ -10,6 +10,7 @@ ol_minor=X
 ol_patch=X
 ol_api_inc=000000
 ol_api_lib=0:0:0
+ol_release_date="00/00/0000"
 
 if test $ol_patch != X ; then
 	ol_version=${ol_major}.${ol_minor}.${ol_patch}
@@ -34,3 +35,4 @@ echo OL_API_LIB=$ol_api_lib
 echo OL_VERSION=$ol_version
 echo OL_TYPE=$ol_type
 echo OL_STRING=\"${ol_string}\"
+echo OL_RELEASE_DATE=\"${ol_release_date}\"
