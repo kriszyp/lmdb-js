@@ -282,6 +282,24 @@ nextido:
 	}
 	return rs->sr_err;
 }
+
+static
+int is_sync_protocol( Operation *op )
+{
+#if !defined(LDAP_CLIENT_UPDATE) && !defined(LDAP_SYNC)
+	return 0;
+#endif
+
+#ifdef LDAP_CLIENT_UPDATE
+	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC_AND_PERSIST )
+		return 1;
+#endif
+#ifdef LDAP_SYNC
+	if ( op->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST )
+		return 1;
+#endif
+	return 0;
+}
 	
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 #define IS_BDB_REPLACE(type) (( type == LDAP_PSEARCH_BY_DELETE ) || \
@@ -454,6 +472,25 @@ int bdb_search( Operation *op, SlapReply *rs )
 #endif
 
 	manageDSAit = get_manageDSAit( sop );
+
+	/* Sync / LCUP controls override manageDSAit */
+
+#ifdef LDAP_CLIENT_UPDATE
+	if ( !IS_PSEARCH && sop->o_clientupdate_type & SLAP_LCUP_SYNC ) {
+		if ( manageDSAit == SLAP_NO_CONTROL )
+			manageDSAit = SLAP_CRITICAL_CONTROL;
+	} else
+#endif
+#ifdef LDAP_SYNC
+	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
+		if ( manageDSAit == SLAP_NO_CONTROL )
+			manageDSAit = SLAP_CRITICAL_CONTROL;
+	} else
+#endif
+	if ( IS_PSEARCH ) {
+		if ( manageDSAit == SLAP_NO_CONTROL )
+			manageDSAit = SLAP_CRITICAL_CONTROL;
+	}
 
 	rs->sr_err = LOCK_ID (bdb->bi_dbenv, &locker );
 
@@ -910,23 +947,25 @@ id2entry_retry:
 
 		rs->sr_entry = e;
 #ifdef BDB_SUBENTRIES
-		if ( is_entry_subentry( e ) ) {
-			if( sop->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
-				if(!get_subentries_visibility( sop )) {
+		if ( !is_sync_protocol( sop ) ) {
+			if ( is_entry_subentry( e ) ) {
+				if( sop->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
+					if(!get_subentries_visibility( sop )) {
+						/* only subentries are visible */
+						goto loop_continue;
+					}
+
+				} else if ( get_subentries( sop ) &&
+					!get_subentries_visibility( sop ))
+				{
 					/* only subentries are visible */
 					goto loop_continue;
 				}
 
-			} else if ( get_subentries( sop ) &&
-				!get_subentries_visibility( sop ))
-			{
+			} else if ( get_subentries_visibility( sop )) {
 				/* only subentries are visible */
 				goto loop_continue;
 			}
-
-		} else if ( get_subentries_visibility( sop )) {
-			/* only subentries are visible */
-			goto loop_continue;
 		}
 #endif
 
@@ -1502,7 +1541,8 @@ static int search_candidates(
 	 * these clauses are redundant.
 	 */
 	if (!oc_filter(op->oq_search.rs_filter, 1, &depth)
-		&& !get_subentries_visibility(op) )
+		&& !get_subentries_visibility(op)
+		&& !is_sync_protocol(op) )
 	{
 		if( !get_manageDSAit(op) && !get_domainScope(op) ) {
 			/* match referral objects */
