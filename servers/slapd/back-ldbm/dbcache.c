@@ -62,7 +62,8 @@ ldbm_cache_open(
 		for ( i = 0; i < MAXDBCACHE; i++ ) {
 			/* see if this slot is free */
 			if ( li->li_dbcache[i].dbc_name == NULL) {
-				empty = i;
+				if (empty == MAXDBCACHE)
+					empty = i;
 				continue;
 			}
 
