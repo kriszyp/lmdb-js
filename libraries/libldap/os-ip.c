@@ -95,7 +95,7 @@ ldap_connect_to_host( Sockbuf *sb, const char *host, unsigned long address,
 		{
 			int tmp = 1;
 			if( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
-				&tmp, sizeof(tmp) ) == -1 )
+				(char *) &tmp, sizeof(tmp) ) == -1 )
 			{
 				Debug( LDAP_DEBUG_ANY,
 					"setsockopt(TCP_NODELAY failed on %d\n",
