@@ -202,7 +202,7 @@ char* ldap_utf8_next( const char * p )
 	}
 
 	for( i=1; i<6; i++ ) {
-		if ( u[i] & 0xc0 != 0x80 ) {
+		if ( ( u[i] & 0xc0 ) != 0x80 ) {
 			return (char *) &p[i];
 		}
 	}
@@ -225,7 +225,7 @@ char* ldap_utf8_prev( const char * p )
 	const unsigned char *u = p;
 
 	for( i=-1; i>-6 ; i-- ) {
-		if ( u[i] & 0xc0 != 0x80 ) {
+		if ( ( u[i] & 0xc0 ) != 0x80 ) {
 			return (char *) &p[i];
 		}
 	}
@@ -255,7 +255,7 @@ int ldap_utf8_copy( char* dst, const char *src )
 	}
 
 	for( i=1; i<6; i++ ) {
-		if ( u[i] & 0xc0 != 0x80 ) {
+		if ( ( u[i] & 0xc0 ) != 0x80 ) {
 			return i; 
 		}
 		dst[i] = src[i];
