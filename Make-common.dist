@@ -32,7 +32,7 @@
 #
 # Note:  Some make(1) programs do not understand the FOO?=BAR syntax.
 #
-# On some systems, special care should be taken to ensure all variables
+# On such systems, special care should be taken to ensure all variables
 # are properly defined.
 #
 
