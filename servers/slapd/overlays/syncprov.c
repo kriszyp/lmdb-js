@@ -1744,9 +1744,29 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 		sessionlog *sl;
 
 		/* Is the CSN in a valid format? */
-		if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
-			send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
-			return rs->sr_err;
+		/* FIXME: should use csnValidate when that is implemented */
+		{
+			char *ptr;
+			struct berval timestamp;
+			slap_syntax_validate_func *validate;
+			AttributeDescription *ad = slap_schema.si_ad_modifyTimestamp;
+
+			if ( srs->sr_state.ctxcsn->bv_len >= LDAP_LUTIL_CSNSTR_BUFSIZE ) {
+				send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
+				return rs->sr_err;
+			}
+			ptr = strchr( srs->sr_state.ctxcsn->bv_val, '#' );
+			if ( !ptr ) {
+				send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
+				return rs->sr_err;
+			}
+			timestamp.bv_val = srs->sr_state.ctxcsn->bv_val;
+			timestamp.bv_len = ptr - timestamp.bv_val;
+			validate = ad->ad_type->sat_syntax->ssyn_validate;
+			if ( validate( ad->ad_type->sat_syntax, &timestamp )) {
+				send_ldap_error( op, rs, LDAP_OTHER, "invalid sync cookie" );
+				return rs->sr_err;
+			}
 		}
 		/* If just Refreshing and nothing has changed, shortcut it */
 		if ( bvmatch( srs->sr_state.ctxcsn, &ctxcsn )) {
