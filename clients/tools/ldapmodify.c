@@ -114,6 +114,11 @@ static int dorename LDAP_P((
 	const char *newsup,
 	int deleteoldrdn,
 	LDAPControl **pctrls ));
+static int process_response(
+	LDAP *ld,
+	int msgid,
+	const char *opstr,
+	const char *dn );
 static char *read_one_record LDAP_P(( FILE *fp ));
 
 #ifdef LDAP_GROUP_TRANSACTION
@@ -941,7 +946,7 @@ domodify(
 	LDAPControl **pctrls,
 	int newentry )
 {
-	int			i, j, k, notascii, op;
+	int			rc, i, j, k, notascii, op;
 	struct berval	*bvp;
 
 	if ( dn == NULL ) {
@@ -1004,24 +1009,32 @@ domodify(
 	}
 
 	if ( !not ) {
+		int msgid;
 		if ( newentry ) {
-			i = ldap_add_ext_s( ld, dn, pmods, pctrls, NULL );
+			rc = ldap_add_ext( ld, dn, pmods, pctrls, NULL, &msgid );
 		} else {
-			i = ldap_modify_ext_s( ld, dn, pmods, pctrls, NULL );
+			rc = ldap_modify_ext( ld, dn, pmods, pctrls, NULL, &msgid );
 		}
-		if ( i != LDAP_SUCCESS ) {
+
+		if ( rc != LDAP_SUCCESS ) {
 			/* print error message about failed update including DN */
 			fprintf( stderr, _("%s: update failed: %s\n"), prog, dn );
 			ldap_perror( ld, newentry ? "ldap_add" : "ldap_modify" );
+			goto done;
 		} else if ( verbose ) {
 			printf( _("modify complete\n") );
 		}
+
+		rc = process_response( ld, msgid,
+			newentry ? "ldap_add" : "ldap_modify", dn );
+
 	} else {
-		i = LDAP_SUCCESS;
+		rc = LDAP_SUCCESS;
 	}
 
+done:
 	putchar( '\n' );
-	return( i );
+	return rc;
 }
 
 
@@ -1031,20 +1044,26 @@ dodelete(
 	LDAPControl **pctrls )
 {
 	int	rc;
+	int msgid;
 
 	printf( _("%sdeleting entry \"%s\"\n"), not ? "!" : "", dn );
 	if ( !not ) {
-		rc = ldap_delete_ext_s( ld, dn, pctrls, NULL );
+		rc = ldap_delete_ext( ld, dn, pctrls, NULL, &msgid );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, _("%s: delete failed: %s\n"), prog, dn );
 			ldap_perror( ld, "ldap_delete" );
+			goto done;
 		} else if ( verbose ) {
 			printf( _("delete complete") );
 		}
+
+		rc = process_response( ld, msgid, "ldap_delete", dn );
+
 	} else {
 		rc = LDAP_SUCCESS;
 	}
 
+done:
 	putchar( '\n' );
 	return( rc );
 }
@@ -1059,6 +1078,7 @@ dorename(
 	LDAPControl **pctrls )
 {
 	int	rc;
+	int msgid;
 
 	printf( _("%smodifying rdn of entry \"%s\"\n"), not ? "!" : "", dn );
 	if ( verbose ) {
@@ -1066,22 +1086,48 @@ dorename(
 			newrdn, deleteoldrdn ? _("do not ") : "" );
 	}
 	if ( !not ) {
-		rc = ldap_rename_s( ld, dn, newrdn, newsup, deleteoldrdn,
-			pctrls, NULL );
+		rc = ldap_rename( ld, dn, newrdn, newsup, deleteoldrdn,
+			pctrls, NULL, &msgid );
 		if ( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, _("%s: rename failed: %s\n"), prog, dn );
 			ldap_perror( ld, "ldap_modrdn" );
+			goto done;
 		} else {
 			printf( _("modrdn completed\n") );
 		}
+
+		rc = process_response( ld, msgid, "ldap_rename", dn );
+
 	} else {
 		rc = LDAP_SUCCESS;
 	}
 
+done:
 	putchar( '\n' );
 	return( rc );
 }
 
+static int process_response(
+	LDAP *ld,
+	int msgid,
+	const char *opstr,
+	const char *dn )
+{
+	LDAPMessage *res;
+	int rc = LDAP_OTHER;
+
+	if( ldap_result( ld, msgid, txn ? 0 : 1, NULL, &res ) == -1 ) {
+		ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+		return rc;
+	}
+
+	if( ldap_msgtype( res ) != LDAP_RES_INTERMEDIATE ) {
+		return ldap_result2error( ld, res, 1 );
+	}
+
+	/* assume (successful) transaction intermediate response */
+	return LDAP_SUCCESS;
+}
 
 static char *
 read_one_record( FILE *fp )
