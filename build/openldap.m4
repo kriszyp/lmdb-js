@@ -1165,3 +1165,21 @@ AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
   fi
 ])dnl
 dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check for Cyrus SASL version compatility, need 1.5.x, can't use 2.x
+AC_DEFUN([OL_SASL_COMPAT],
+[AC_CACHE_CHECK([Cyrus SASL library version], [ol_cv_sasl_compat],[
+	AC_EGREP_CPP(__sasl_compat,[
+#ifdef HAVE_SASL_SASL_H
+#include <sasl/sasl.h>
+#else
+#include <sasl.h>
+#endif
+
+/* require 1.5.x, unable to use 2.x */
+#if SASL_VERSION_MAJOR == 1  && SASL_VERSION_MINOR >= 5
+	char *__sasl_compat = "1.5.x okay";
+#endif
+	],	[ol_cv_sasl_compat=yes], [ol_cv_sasl_compat=no])])
+])

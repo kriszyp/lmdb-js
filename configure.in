@@ -1842,6 +1842,11 @@ if test $ol_with_cyrus_sasl != no ; then
 		if test $have_cyrus_sasl != no ; then
 			SASL_LIBS="-lsasl"
 			AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
+			OL_SASL_COMPAT
+			if test $ol_cv_sasl_compat = no ; then
+				ol_link_sasl=no
+				AC_MSG_ERROR([Cyrus SASL library located but incompatible])
+			fi
 			ol_link_sasl=yes
 		fi
 	fi
