@@ -386,6 +386,7 @@ return_results:
 			if ( op && !boi ) {
 				boi = op->o_tmpcalloc(1,sizeof(struct bdb_op_info),op->o_tmpmemctx);
 				boi->boi_lock = lock;
+				boi->boi_bdb = op->o_bd;
 				op->o_private = boi;
 			}
 
