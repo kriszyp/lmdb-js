@@ -1,11 +1,13 @@
-Copyright 1998-2003 The OpenLDAP Foundation
+Copyright 1998-2003 The OpenLDAP Foundation.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted only as authorized by the OpenLDAP
-Public License.  A copy of this license is available at
-http://www.OpenLDAP.org/license.html or in the file LICENSE in the
-top-level directory of the distribution.
+Public License.
+
+A copy of this license is available in the file LICENSE in the
+top-level directory of the distribution or, alternatively, at
+<http://www.OpenLDAP.org/license.html>.
 
 OpenLDAP is a registered trademark of the OpenLDAP Foundation.
 
@@ -25,9 +27,17 @@ Additional information about OpenLDAP can be obtained at:
 
 Portions Copyright 1998-2003 Kurt D. Zeilenga.
 Portions Copyright 1998-2003 Net Boolean Incorporated.
+Portions Copyright 2001-2003 IBM Corporation.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted only as authorized by the OpenLDAP
+Public License.
+
+---
+
 Portions Copyright 1999-2003 Howard Y.H. Chu.
 Portions Copyright 1999-2003 Symas Corporation.
-Portions Copyright 2001-2003 IBM Corporation.
 Portions Copyright 1998-2003 Hallvard B. Furuseth.
 All rights reserved.
 
