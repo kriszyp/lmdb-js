@@ -129,17 +129,22 @@ is_dn_exact:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 		return( rc );
 
-	/* unqualified: to be liberal, it will be regcomp'd/regexec'd */
+	/* unqualified: to be liberal, it is left to the caller
+	 * whether to normalize or regcomp() it */
 	} else if( !strncasecmp( uri->bv_val, "dn:", sizeof("dn:")-1 ) ) {
 		bv.bv_val = uri->bv_val + sizeof("dn:")-1;
 		bv.bv_val += strspn( bv.bv_val, " " );
 
 is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
+#if 0
 		rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
 		if( rc == LDAP_SUCCESS ) {
 			*scope = LDAP_X_SCOPE_EXACTREGEX;
 		}
+#endif
+		*scope = LDAP_X_SCOPE_EXACTREGEX;
+		rc = LDAP_SUCCESS;
 
 		return( rc );
 
@@ -409,7 +414,7 @@ static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 			"slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"slap_sasl2dn: search DN returned more than 1 entry\n", 0,0,0 );
+			"slap_sasl2dn: search DN returned more than 1 entry\n", 0, 0, 0 );
 #endif
 		return -1;
 	}
@@ -678,9 +683,29 @@ void slap_sasl2dn( Operation *opx,
 
 	/* Massive shortcut: search scope == base */
 	switch ( op.oq_search.rs_scope ) {
+	case LDAP_X_SCOPE_EXACTREGEX:
+		/*
+		 * this occurs when "dn:<dn>" was used, which means
+		 * it is not specified whether the DN is an exact value
+		 * or a regular expression, and thus it has not been
+		 * normalized yet.  slap_parseURI() clears the op.o_req_dn
+		 * field and stores its result in op.o_req_ndn, so we first
+		 * swap them and then normalize the value
+		 */
+		assert( op.o_req_dn.bv_val == NULL );
+
+		op.o_req_dn = op.o_req_ndn;
+		rc = dnNormalize( 0, NULL, NULL, &op.o_req_dn, &op.o_req_ndn, opx->o_tmpmemctx );
+		op.o_req_dn.bv_len = 0;
+		op.o_req_dn.bv_val = NULL;
+
+		if( rc != LDAP_SUCCESS ) {
+			goto FINISHED;
+		}
+		/* intentionally continue to next case */
+
 	case LDAP_SCOPE_BASE:
 	case LDAP_X_SCOPE_EXACT:
-	case LDAP_X_SCOPE_EXACTREGEX:
 		*sasldn = op.o_req_ndn;
 		op.o_req_ndn.bv_len = 0;
 		op.o_req_ndn.bv_val = NULL;
