@@ -209,7 +209,7 @@ EOMODS
 
 	echo "Testing delete..."
 	$LDAPMODIFY -v -c -D "$MANAGERDN" -w $PASSWD \
-		-h $LOCALHOST -p $PORT1 > \
+		-h $LOCALHOST -p $PORT1 -M > \
 		$TESTOUT 2>&1 << EOMODS
 version: 1
 
