@@ -154,6 +154,9 @@ is provided ``as is'' without express or implied warranty.
 /* define if you have NDBM */
 #undef HAVE_NDBM
 
+/* define if you have Mach CThreads */
+#undef HAVE_MACH_CTHREADS
+
 /* define if you have PP */
 #undef HAVE_PP
 
@@ -294,6 +297,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the pthread_yield function.  */
 #undef HAVE_PTHREAD_YIELD
+
+/* Define if you have the res_search function.  */
+#undef HAVE_RES_SEARCH
 
 /* Define if you have the sched_yield function.  */
 #undef HAVE_SCHED_YIELD
@@ -504,6 +510,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the nsl_s library (-lnsl_s).  */
 #undef HAVE_LIBNSL_S
+
+/* Define if you have the resolv library (-lresolv).  */
+#undef HAVE_LIBRESOLV
 
 /* Define if you have the socket library (-lsocket).  */
 #undef HAVE_LIBSOCKET

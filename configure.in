@@ -244,8 +244,8 @@ dnl
 	AC_CHECK_LIB(gen, main)
 ])
 
-dnl need to add check for -lresolv
-dnl only needed for LDAP_DNS?
+dnl Check for resolv
+AC_CHECK_LIB(resolv, res_search)
 
 dnl HP-UX requires -lV3
 AC_CHECK_LIB(V3, sigset)
@@ -257,8 +257,8 @@ if test $ol_enable_ldapd != no ; then
 	AC_CHECK_LIB(xtpp, main, [
 		ol_link_isode=yes
 		AC_DEFINE(HAVE_XTPP,1)
-		LDAPD_LIBS="$LDAPD_LIBS -lxtpp -lresolv -lxtdsap -lxtisode -losi"
-		],:,[-lresolv -lxtdsap -lxtisode -losi])
+		LDAPD_LIBS="$LDAPD_LIBS -lxtpp -lxtdsap -lxtisode -losi"
+		],:,[-lxtdsap -lxtisode -losi])
 	AC_CHECK_LIB(dsap, main, [
 		ol_link_isode=yes
 		AC_DEFINE(HAVE_DSAP,1)
@@ -565,6 +565,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 
 		if test $ol_link_threads != no ; then
 			: check for cthread specific functionality here
+			AC_DEFINE(HAVE_MACH_CTHREADS,1)
 		else
 			AC_MSG_ERROR([could not link with Mach CThreads])
 		fi
@@ -910,6 +911,7 @@ AC_CHECK_FUNCS(		\
 	memmove			\
 	mkstemp			\
 	mktime			\
+	res_search		\
 	select			\
 	setpwfile		\
 	setsid			\
