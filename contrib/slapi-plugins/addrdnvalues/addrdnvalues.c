@@ -1,3 +1,4 @@
+/* $OpenLDAP$ */
 /*
  * Copyright 2003-2004 PADL Software Pty Ltd.
  * All rights reserved.
