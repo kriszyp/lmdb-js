@@ -77,7 +77,7 @@
 #undef HAVE_CRYPT
 
 /* define this for connectionless LDAP support */
-#undef LDAP_CONN_LESS
+#undef LDAP_CONNECTIONLESS
 
 /* define this to remove -lldap cache support */
 #undef LDAP_NOCACHE
@@ -85,17 +85,14 @@
 /* define this for phonetic support */
 #undef LDAP_PHONETIC
 
-/* define this for LDAP referrals support */
-#undef LDAP_REFERRALS
-
 /* define this to use SLAPD shell backend */
-#undef LDAP_SHELL
+#undef SLAPD_SHELL
 
 /* define this to use SLAPD passwd backend */
-#undef LDAP_PASSWD
+#undef SLAPD_PASSWD
 
 /* define this to use SLAPD LDBM backend */
-#undef LDAP_LDBM
+#undef SLAPD_LDBM
 
 /* define this to use DBBTREE w/ LDBM backend */
 #undef LDBM_USE_DBBTREE
