@@ -1091,6 +1091,27 @@ int slap_sasl_init( void )
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
 
+#ifdef HAVE_SASL_VERSION
+#define SASL_BUILD_VERSION ((SASL_VERSION_MAJOR << 24) |\
+	(SASL_VERSION_MINOR << 16) | SASL_VERSION_STEP)
+
+	sasl_version( NULL, &rc );
+	if ( ((rc >> 16) != ((SASL_VERSION_MAJOR << 8)|SASL_VERSION_MINOR)) ||
+		(rc & 0xffff) < SASL_VERSION_STEP) {
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( TRANSPORT, INFO,
+		"slap_sasl_init: SASL version mismatch, got %x, wanted %x.\n",
+			rc, SASL_BUILD_VERSION, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+		"slap_sasl_init: SASL version mismatch, got %x, wanted %x.\n",
+			rc, SASL_BUILD_VERSION, 0 );
+#endif
+		return -1;
+	}
+#endif
+	
 	sasl_set_alloc(
 		ber_memalloc,
 		ber_memcalloc,

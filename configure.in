@@ -2194,6 +2194,12 @@ if test $ol_with_cyrus_sasl != no ; then
 		if test $ol_enable_spasswd != no ; then
 			ol_link_spasswd=yes
 		fi
+
+		ac_save_LIBS="$LIBS"
+		LIBS="$LIBS $ol_link_sasl"
+		AC_CHECK_FUNC(sasl_version, [AC_DEFINE(HAVE_SASL_VERSION,1,
+			[define if your SASL library has sasl_version()])])
+		LIBS="$ac_save_LIBS"
 	fi
 
 else
