@@ -3520,7 +3520,6 @@ objectIdentifierFirstComponentMatch(
 		match, value->bv_val, asserted->bv_val );
 #endif
 
-
 	if( rc == LDAP_SUCCESS ) *matchp = match;
 	return rc;
 }
@@ -3538,12 +3537,16 @@ integerBitAndMatch(
 
 	/* safe to assume integers are NUL terminated? */
 	lValue = strtoul(value->bv_val, NULL, 10);
-	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE )
+	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE ) {
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 
 	lAssertedValue = strtol(((struct berval *)assertedValue)->bv_val, NULL, 10);
-	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX) && errno == ERANGE )
+	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX)
+		&& errno == ERANGE )
+	{
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 
 	*matchp = (lValue & lAssertedValue) ? 0 : 1;
 	return LDAP_SUCCESS;
@@ -3562,12 +3565,16 @@ integerBitOrMatch(
 
 	/* safe to assume integers are NUL terminated? */
 	lValue = strtoul(value->bv_val, NULL, 10);
-	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE )
+	if(( lValue == LONG_MIN || lValue == LONG_MAX) && errno == ERANGE ) {
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 
 	lAssertedValue = strtol(((struct berval *)assertedValue)->bv_val, NULL, 10);
-	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX) && errno == ERANGE )
+	if(( lAssertedValue == LONG_MIN || lAssertedValue == LONG_MAX)
+		&& errno == ERANGE )
+	{
 		return LDAP_CONSTRAINT_VIOLATION;
+	}
 
 	*matchp = (lValue | lAssertedValue) ? 0 : -1;
 	return LDAP_SUCCESS;
@@ -3630,8 +3637,8 @@ asn1_integer2str(ASN1_INTEGER *a, struct berval *bv)
 				return NULL;
 			}
 			*--p = digit[carry];
-			if (copy[base] == 0)
-				base++;
+
+			if (copy[base] == 0) base++;
 		}
 		free(copy);
 	}
@@ -3675,7 +3682,9 @@ certificateExactConvert(
 		X509_free(xcert);
 		return LDAP_INVALID_SYNTAX;
 	}
-	if ( dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn ) != LDAP_SUCCESS ) {
+	if ( dnX509normalize(X509_get_issuer_name(xcert), &issuer_dn )
+		!= LDAP_SUCCESS )
+	{
 		X509_free(xcert);
 		ber_memfree(serial.bv_val);
 		return LDAP_INVALID_SYNTAX;
@@ -3723,18 +3732,14 @@ serial_and_issuer_parse(
 
 	begin = assertion->bv_val;
 	end = assertion->bv_val+assertion->bv_len-1;
-	for (p=begin; p<=end && *p != '$'; p++)
-		;
-	if ( p > end )
-		return LDAP_INVALID_SYNTAX;
+	for (p=begin; p<=end && *p != '$'; p++) /* empty */ ;
+	if ( p > end ) return LDAP_INVALID_SYNTAX;
 
 	/* p now points at the $ sign, now use begin and end to delimit the
 	   serial number */
-	while (ASCII_SPACE(*begin))
-		begin++;
+	while (ASCII_SPACE(*begin)) begin++;
 	end = p-1;
-	while (ASCII_SPACE(*end))
-		end--;
+	while (ASCII_SPACE(*end)) end--;
 
 	bv.bv_len = end-begin+1;
 	bv.bv_val = begin;
@@ -3744,8 +3749,7 @@ serial_and_issuer_parse(
 	if ( issuer_dn ) {
 		begin = p+1;
 		end = assertion->bv_val+assertion->bv_len-1;
-		while (ASCII_SPACE(*begin))
-			begin++;
+		while (ASCII_SPACE(*begin)) begin++;
 		/* should we trim spaces at the end too? is it safe always? */
 
 		bv.bv_len = end-begin+1;
@@ -3793,8 +3797,7 @@ certificateExactMatch(
 	X509_free(xcert);
 
 	serial_and_issuer_parse(assertedValue,
-				&asserted_serial,
-				&asserted_issuer_dn);
+		&asserted_serial, &asserted_issuer_dn);
 
 	ret = integerMatch(
 		matchp,
@@ -3890,8 +3893,7 @@ static int certificateExactIndexer(
 		asn1_integer2str(xcert->cert_info->serialNumber, &serial);
 		X509_free(xcert);
 		integerNormalize( slap_schema.si_syn_integer,
-				  &serial,
-				  &keys[i] );
+			&serial, &keys[i] );
 		ber_memfree(serial.bv_val);
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONFIG, ENTRY, 
@@ -3924,8 +3926,7 @@ static int certificateExactFilter(
 	struct berval asserted_serial;
 
 	serial_and_issuer_parse(assertedValue,
-				&asserted_serial,
-				NULL);
+		&asserted_serial, NULL);
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
 	integerNormalize( syntax, &asserted_serial, &keys[0] );
