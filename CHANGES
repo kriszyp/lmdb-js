@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.28 Engineering
+OpenLDAP 2.1.28 Release
 	Fixed back-bdb slapadd crash (ITS#2974)
 	Fixed typo in ACL STYLE slap_style_e enum (ITS#3001)
 	Added ACL set logging (ITS#2949)
