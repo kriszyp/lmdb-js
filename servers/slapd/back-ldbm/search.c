@@ -217,13 +217,12 @@ ldbm_back_search(
 					if ( (dn = dn_parent( be, e->e_dn )) != NULL ) {
 						(void) dn_normalize( dn );
 						scopeok = (dn == realBase) ? 1 : (! strcasecmp( dn, realBase ));
+						free( dn );
 					} else {
 						scopeok = (realBase == NULL || *realBase == '\0');
 					}
-					free( dn );
 				} else if ( scope == LDAP_SCOPE_SUBTREE ) {
-					dn = ch_strdup( e->e_dn );
-					(void) dn_normalize( dn );
+					dn = ch_strdup( e->e_ndn );
 					scopeok = dn_issuffix( dn, realBase );
 					free( dn );
 				}
