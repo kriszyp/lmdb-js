@@ -54,7 +54,7 @@ ldbm_back_add(
 		return( -1 );
 	}
 
-	rc = entry_schema_check( e, NULL, &text, textbuf, textlen );
+	rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
 
 	if ( rc != LDAP_SUCCESS ) {
 		ldap_pvt_thread_mutex_unlock(&li->li_add_mutex);

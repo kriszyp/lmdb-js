@@ -134,7 +134,7 @@ main( int argc, char **argv )
 		if( global_schemacheck ) {
 			/* check schema */
 
-			rc = entry_schema_check( e, NULL, &text, textbuf, textlen );
+			rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
 
 			if( rc != LDAP_SUCCESS ) {
 				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",

@@ -118,7 +118,7 @@ int bdb_modify_internal(
 	}
 
 	/* check that the entry still obeys the schema */
-	rc = entry_schema_check( e, save_attrs, text, textbuf, textlen );
+	rc = entry_schema_check( be, e, save_attrs, text, textbuf, textlen );
 	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;

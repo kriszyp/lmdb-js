@@ -30,7 +30,9 @@ static char * oc_check_required(
 
 int
 entry_schema_check( 
-	Entry *e, Attribute *oldattrs,
+	Backend *be,
+	Entry *e,
+	Attribute *oldattrs,
 	const char** text,
 	char *textbuf, size_t textlen )
 {
