@@ -88,6 +88,24 @@ static struct {
 static struct extop_list *find_extop(
 	struct extop_list *list, struct berval *oid );
 
+struct berval *
+get_supported_extop (int index)
+{
+	struct extop_list *ext;
+
+	/* linear scan is slow, but this way doesn't force a
+	 * big change on root_dse.c, where this routine is used.
+	 */
+	for (ext = supp_ext_list; ext != NULL && --index >= 0; ext = ext->next) {
+		; /* empty */
+	}
+
+	if (ext == NULL) return NULL;
+
+	return &ext->oid;
+}
+
+
 int exop_root_dse_info( Entry *e )
 {
 	AttributeDescription *ad_supportedExtension
