@@ -1037,6 +1037,15 @@ rwm_suffixmassage_config(
 	 * defined as a valid suffix for the current server
 	 */
 	if ( argc == 2 ) {
+		if ( be->be_suffix == NULL ) {
+ 			fprintf( stderr, "%s: line %d: "
+				       " \"suffixMassage [<suffix>]"
+				       " <massaged suffix>\" without "
+				       "<suffix> part requires database "
+				       "suffix be defined first.\n",
+				fname, lineno );
+			return 1;
+		}
 		bvnc = be->be_suffix[ 0 ];
 		massaged = 1;
 
