@@ -38,7 +38,37 @@ LDAP_SLAPD_F (int) slap_set_filter(
 	struct berval *user, struct berval *target, BerVarray *results);
 
 LDAP_SLAPD_F (BerVarray) slap_set_join(SetCookie *cp,
-	BerVarray lset, int op, BerVarray rset);
+	BerVarray lset, unsigned op, BerVarray rset);
+
+#define SLAP_SET_OPMASK		0x00FF
+
+#define SLAP_SET_REFARR		0x0100
+#define SLAP_SET_REFVAL		0x0200
+#define SLAP_SET_REF		(SLAP_SET_REFARR|SLAP_SET_REFVAL)
+
+/* The unsigned "op" can be ORed with the flags below;
+ * - if the rset's values must not be freed, or must be copied if kept,
+ *   it is ORed with SLAP_SET_RREFVAL
+ * - if the rset array must not be freed, or must be copied if kept,
+ *   it is ORed with SLAP_SET_RREFARR
+ * - the same applies to the lset with SLAP_SET_LREFVAL and SLAP_SET_LREFARR
+ * - it is assumed that SLAP_SET_REFVAL implies SLAP_SET_REFARR,
+ *   i.e. the former is checked only if the latter is defined.
+ */
+
+#define SLAP_SET_RREFARR	SLAP_SET_REFARR
+#define SLAP_SET_RREFVAL	SLAP_SET_REFVAL
+#define SLAP_SET_RREF		SLAP_SET_REF
+#define SLAP_SET_RREFMASK	0x0F00
+
+#define SLAP_SET_RREF2REF(r)	((r) & SLAP_SET_RREFMASK)
+	
+#define SLAP_SET_LREFARR	0x1000
+#define SLAP_SET_LREFVAL	0x2000
+#define SLAP_SET_LREF		(SLAP_SET_LREFARR|SLAP_SET_LREFVAL)
+#define SLAP_SET_LREFMASK	0xF000
+	
+#define SLAP_SET_LREF2REF(r)	(((r) & SLAP_SET_LREFMASK) >> 4)
 	
 LDAP_END_DECL
 

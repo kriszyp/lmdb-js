@@ -1802,15 +1802,16 @@ aci_set_cb_gather( Operation *op, SlapReply *rs )
 	aci_set_gather_t	*p = (aci_set_gather_t *)op->o_callback->sc_private;
 	
 	if ( rs->sr_type == REP_SEARCH ) {
-		BerVarray	bvals = NULL;
+		BerValue	bvals[ 2 ];
+		BerVarray	bvalsp = NULL;
 		int		j;
 
 		for ( j = 0; !BER_BVISNULL( &rs->sr_attrs[ j ].an_name ); j++ ) {
 			AttributeDescription	*desc = rs->sr_attrs[ j ].an_desc;
 			
 			if ( desc == slap_schema.si_ad_entryDN ) {
-				bvals = slap_sl_malloc( sizeof( BerValue ) * 2, op->o_tmpmemctx );
-				ber_dupbv_x( &bvals[ 0 ], &rs->sr_entry->e_nname, op->o_tmpmemctx );
+				bvalsp = bvals;
+				bvals[ 0 ] = rs->sr_entry->e_nname;
 				BER_BVZERO( &bvals[ 1 ] );
 
 			} else {
@@ -1823,17 +1824,14 @@ aci_set_cb_gather( Operation *op, SlapReply *rs )
 					for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ )
 						;
 
-					bvals = slap_sl_malloc( sizeof( BerValue ) * ( i + 1 ), op->o_tmpmemctx );
-					for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
-						ber_dupbv_x( &bvals[ i ], &a->a_nvals[ i ], op->o_tmpmemctx );
-					}
-					BER_BVZERO( &bvals[ i ] );
+					bvalsp = a->a_nvals;
 				}
 			}
 		}
 
 		if ( bvals ) {
-			p->bvals = slap_set_join( p->cookie, p->bvals, '|', bvals );
+			p->bvals = slap_set_join( p->cookie, p->bvals,
+					( '|' | SLAP_SET_RREF ), bvalsp );
 		}
 
 	} else {
