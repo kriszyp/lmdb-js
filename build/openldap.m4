@@ -616,14 +616,26 @@ AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
 	/* pthread test function */
 	pthread_t t;
 	int status;
+#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
+	/* This system (e.g. AIX) defaults detached; must override */
+	pthread_attr_t attr;
 
-	/* make sure pthread_create() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_create(&t, pthread_attr_default, task, NULL);
+	status = pthread_attr_init(&attr);
+	if( status ) exit( status );
+
+	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
+	if( status ) exit( status );
+
+#define	ATTR	&attr
 #else
-	status = pthread_create(&t, NULL, task, NULL);
+#if HAVE_PTHREADS_D4
+#define	ATTR	pthread_attr_default
+#else
+#define	ATTR	NULL
 #endif
-
+#endif
+	/* make sure pthread_create() isn't just a stub */
+	status = pthread_create(&t, ATTR, task, NULL);
 	if( status ) exit( status );
 
 	/* make sure pthread_detach() isn't just a stub */
