@@ -73,6 +73,8 @@ shell_back_modify(
 					mod->sm_bvalues[i]->bv_val /* binary! */ );
 			}
 		}
+
+		fprintf( wfp, "-\n" );
 	}
 	fclose( wfp );
 
