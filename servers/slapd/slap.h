@@ -769,6 +769,7 @@ struct slap_internal_schema {
 
 	AttributeDescription *si_ad_dseType;
 	AttributeDescription *si_ad_syncreplCookie;
+	AttributeDescription *si_ad_syncTimestamp;
 	AttributeDescription *si_ad_contextCSN;
 
 	/* root DSE attribute descriptions */
@@ -874,6 +875,9 @@ typedef struct slap_filter {
 #define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
 #define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
 #define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
+#ifdef LDAP_SCOPE_SUBORDINATE
+#define SLAPD_FILTER_DN_CHILDREN	((ber_tag_t) -4)
+#endif
 
 	union f_un_u {
 		/* precomputed result */
@@ -1853,8 +1857,8 @@ typedef struct slap_overinst {
 
 typedef struct slap_overinfo {
 	BackendInfo oi_bi;
-	BackendDB oi_bd;
-	slap_overinst *oi_list;
+	BackendInfo *oi_orig;
+	struct slap_overinst *oi_list;
 } slap_overinfo;
 
 /* Should successive callbacks in a chain be processed? */

@@ -561,6 +561,7 @@ static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 	if( ndn->bv_val ) {
 		o->o_tmpfree(ndn->bv_val, o->o_tmpmemctx);
 		ndn->bv_val = NULL;
+		ndn->bv_len = 0;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( TRANSPORT, DETAIL1,
@@ -898,6 +899,9 @@ void slap_sasl2dn( Operation *opx,
 
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
+#ifdef LDAP_SCOPE_SUBORDINATE
+	case LDAP_SCOPE_SUBORDINATE:
+#endif
 		/* do a search */
 		break;
 

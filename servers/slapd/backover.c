@@ -38,25 +38,23 @@ over_db_func(
 {
 	slap_overinfo *oi = (slap_overinfo *) be->bd_info;
 	slap_overinst *on = oi->oi_list;
-	BackendDB bd;
 	BI_db_open **func;
 	int rc = 0;
 
-	func = &oi->oi_bd.bd_info->bi_db_open;
+	func = &oi->oi_orig->bi_db_open;
 	if ( func[which] ) {
-		rc = func[which]( &oi->oi_bd );
-		if ( rc ) return rc;
+		be->bd_info = oi->oi_orig;
+		rc = func[which]( be );
 	}
 
-	bd = *be;
-	for (; on; on=on->on_next) {
-		bd.bd_info = &on->on_bi;
+	for (; on && rc == 0; on=on->on_next) {
+		be->bd_info = &on->on_bi;
 		func = &on->on_bi.bi_db_open;
 		if (func[which]) {
-			rc = func[which]( &bd );
-			if ( rc ) break;
+			rc = func[which]( be );
 		}
 	}
+	be->bd_info = (BackendInfo *)oi;
 	return rc;
 }
 
@@ -71,24 +69,25 @@ over_db_config(
 {
 	slap_overinfo *oi = (slap_overinfo *) be->bd_info;
 	slap_overinst *on = oi->oi_list;
-	BackendDB bd;
 	int rc = 0;
 
-	if ( oi->oi_bd.bd_info->bi_db_config ) {
-		rc = oi->oi_bd.bd_info->bi_db_config( &oi->oi_bd, fname, lineno,
+	if ( oi->oi_orig->bi_db_config ) {
+		be->bd_info = oi->oi_orig;
+		rc = oi->oi_orig->bi_db_config( be, fname, lineno,
 			argc, argv );
+		be->bd_info = (BackendInfo *)oi;
 		if ( rc != SLAP_CONF_UNKNOWN ) return rc;
 	}
 
-	bd = *be;
 	for (; on; on=on->on_next) {
-		bd.bd_info = &on->on_bi;
 		if (on->on_bi.bi_db_config) {
-			rc = on->on_bi.bi_db_config( &bd, fname, lineno,
+			be->bd_info = &on->on_bi;
+			rc = on->on_bi.bi_db_config( be, fname, lineno,
 				argc, argv );
 			if ( rc != SLAP_CONF_UNKNOWN ) break;
 		}
 	}
+	be->bd_info = (BackendInfo *)oi;
 	return rc;
 }
 
@@ -180,7 +179,7 @@ over_op_func(
 	}
 
 	op->o_bd = be;
-	func = &oi->oi_bd.bd_info->bi_op_bind;
+	func = &oi->oi_orig->bi_op_bind;
 	if ( func[which] && rc == SLAP_CB_CONTINUE ) {
 		rc = func[which]( op, rs );
 	}
@@ -304,7 +303,7 @@ overlay_config( BackendDB *be, const char *ov )
 	 */
 	if ( be->bd_info->bi_type != overtype ) {
 		oi = ch_malloc( sizeof(slap_overinfo) );
-		oi->oi_bd = *be;
+		oi->oi_orig = be->bd_info;
 		oi->oi_bi = *be->bd_info;
 		oi->oi_list = NULL;
 		bi = (BackendInfo *)oi;

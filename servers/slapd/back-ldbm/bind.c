@@ -65,6 +65,7 @@ ldbm_back_bind(
 	if ( (e = dn2entry_r( op->o_bd, &op->o_req_ndn, &matched )) == NULL ) {
 		if( matched != NULL ) {
 			rs->sr_matched = ch_strdup( matched->e_dn );
+			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
 
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
@@ -89,13 +90,9 @@ ldbm_back_bind(
 		send_ldap_result( op, rs );
 
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
-		if ( rs->sr_matched ) free( (char *)rs->sr_matched );
 		rs->sr_ref = NULL;
-		rs->sr_matched = NULL;
 		return rs->sr_err;
 	}
-
-	ber_dupbv( &op->oq_bind.rb_edn, &e->e_name );
 
 	/* check for deleted */
 #ifdef LDBM_SUBENTRIES
@@ -108,8 +105,6 @@ ldbm_back_bind(
 		Debug( LDAP_DEBUG_TRACE,
 				"entry is subentry\n", 0, 0, 0 );
 #endif
-		rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		send_ldap_result( op, rs );
 		rc = LDAP_INVALID_CREDENTIALS;
 		goto return_results;
 	}
@@ -124,11 +119,7 @@ ldbm_back_bind(
 		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
 		    0, 0 );
 #endif
-
-
-		send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
-		    "entry is alias" );
-
+		rs->sr_text = "entry is alias";
 		rc = LDAP_ALIAS_PROBLEM;
 		goto return_results;
 	}
@@ -147,18 +138,13 @@ ldbm_back_bind(
 
 
 		if( rs->sr_ref != NULL ) {
-			rs->sr_err = LDAP_REFERRAL;
-			rs->sr_matched = e->e_name.bv_val;
+			rc = LDAP_REFERRAL;
+			rs->sr_matched = ch_strdup( e->e_name.bv_val );
+			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
 
 		} else {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
+			rc = LDAP_INVALID_CREDENTIALS;
 		}
-		send_ldap_result( op, rs );
-
-		ber_bvarray_free( rs->sr_ref );
-		rs->sr_matched = NULL;
-		rs->sr_ref = NULL;
-		rc = rs->sr_err;
 		goto return_results;
 	}
 
@@ -167,21 +153,17 @@ ldbm_back_bind(
 		if ( ! access_allowed( op, e,
 			password, NULL, ACL_AUTH, NULL ) )
 		{
-			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS, NULL );
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
 
 		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
-			send_ldap_error( op, rs, LDAP_INAPPROPRIATE_AUTH, NULL );
-
 			/* stop front end from sending result */
 			rc = LDAP_INAPPROPRIATE_AUTH;
 			goto return_results;
 		}
 
 		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 ) {
-			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
 			/* stop front end from sending result */
 			rc = LDAP_INVALID_CREDENTIALS;
 			goto return_results;
@@ -193,7 +175,6 @@ ldbm_back_bind(
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	case LDAP_AUTH_KRBV41:
 		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad ) != LDAP_SUCCESS ) {
-			send_ldap_error( op, rs, LDAP_INVALID_CREDENTIALS, NULL );
 			rc = LDAP_INVALID_CREDENTIALS;
 			goto return_results;
 		}
@@ -201,8 +182,6 @@ ldbm_back_bind(
 		if ( ! access_allowed( op, e,
 			krbattr, NULL, ACL_AUTH, NULL ) )
 		{
-			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
-				NULL );
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
@@ -218,7 +197,6 @@ ldbm_back_bind(
 				rc = 0;
 				break;
 			}
-			send_ldap_error( op, rs, LDAP_INAPPROPRIATE_AUTH, NULL );
 			rc = LDAP_INAPPROPRIATE_AUTH;
 			goto return_results;
 
@@ -229,8 +207,6 @@ ldbm_back_bind(
 			krbval.bv_len = strlen( krbname );
 
 			if ( value_find( a->a_desc, a->a_vals, &krbval ) != 0 ) {
-				send_ldap_error( op, rs,
-				    LDAP_INVALID_CREDENTIALS, NULL );
 				rc = LDAP_INVALID_CREDENTIALS;
 				goto return_results;
 			}
@@ -239,24 +215,33 @@ ldbm_back_bind(
 		break;
 
 	case LDAP_AUTH_KRBV42:
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-			"Kerberos bind step 2 not supported" );
+		rs->sr_text = "Kerberos bind step 2 not supported";
 		/* stop front end from sending result */
 		rc = LDAP_UNWILLING_TO_PERFORM;
 		goto return_results;
 #endif
 
 	default:
-		send_ldap_error( op, rs, LDAP_STRONG_AUTH_NOT_SUPPORTED,
-		    "authentication method not supported" );
+		rs->sr_text = "authentication method not supported";
 		rc = LDAP_STRONG_AUTH_NOT_SUPPORTED;
 		goto return_results;
 	}
+
+	ber_dupbv( &op->oq_bind.rb_edn, &e->e_name );
 
 return_results:;
 	/* free entry and reader lock */
 	cache_return_entry_r( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
+
+	if ( rc ) {
+		rs->sr_err = rc;
+		send_ldap_result( op, rs );
+		if ( rs->sr_ref ) {
+			ber_bvarray_free( rs->sr_ref );
+			rs->sr_ref = NULL;
+		}
+	}
 
 	/* front end will send result on success (rc==0) */
 	return( rc );

@@ -94,8 +94,10 @@ dn2entry_retry:
 			rs->sr_ref = is_entry_referral( e )
 				? get_entry_referrals( op, e )
 				: NULL;
-			if (rs->sr_ref)
+			if (rs->sr_ref) {
 				rs->sr_matched = ch_strdup( e->e_name.bv_val );
+				rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
+			}
 
 			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 			e = NULL;
@@ -107,10 +109,8 @@ dn2entry_retry:
 		if ( rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
-			free( (char *)rs->sr_matched );
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;
-			rs->sr_matched = NULL;
 		} else {
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			send_ldap_result( op, rs );
@@ -170,6 +170,8 @@ dn2entry_retry:
 
 		if( rs->sr_ref != NULL ) {
 			rs->sr_err = LDAP_REFERRAL;
+			rs->sr_matched = ch_strdup( e->e_name.bv_val );
+			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
 		} else {
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		}
