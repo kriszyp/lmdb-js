@@ -1,8 +1,10 @@
 /* $OpenLDAP$ */
 #include "portable.h"
 
-#ifdef HAVE_WINSOCK2
-#include <winsock2.h>
+#include <windows.h>
+
+#ifdef HAVE_WINSOCK
+#include <winsock.h>
 
 #define __RETSTR( x ) case x: return #x;
 
@@ -57,6 +59,8 @@ char *WSAGetErrorString( int err )
 		__RETSTR( WSAVERNOTSUPPORTED )
 		__RETSTR( WSANOTINITIALISED )
 		__RETSTR( WSAEDISCON )
+
+#ifdef HAVE_WINSOCK2
 		__RETSTR( WSAENOMORE )
 		__RETSTR( WSAECANCELLED )
 		__RETSTR( WSAEINVALIDPROCTABLE )
@@ -67,6 +71,7 @@ char *WSAGetErrorString( int err )
 		__RETSTR( WSA_E_NO_MORE )
 		__RETSTR( WSA_E_CANCELLED )
 		__RETSTR( WSAEREFUSED )
+#endif // HAVE_WINSOCK2	
 
 		__RETSTR( WSAHOST_NOT_FOUND )
 		__RETSTR( WSATRY_AGAIN )
@@ -83,7 +88,7 @@ char *WSAGetLastErrorString( void )
 
 #undef __RETSTR
 
-#endif /* HAVE_WINSOCK2 */
+#endif /* HAVE_WINSOCK */
 
 
 char *GetErrorString( int err )

@@ -891,9 +891,17 @@ stream_read( Sockbuf *sb, void *buf, ber_len_t len )
    {
    int rc;
    rc = recv( ber_pvt_sb_get_desc(sb), buf, len, 0 );
+
 #ifdef HAVE_WINSOCK
-   if ( rc < 0 ) errno = WSAGetLastError();
+   if ( rc < 0 )
+   {
+     int err;
+
+     err = WSAGetLastError();
+     errno = err;
+   }
 #endif
+
    return rc;
    }
 #elif defined( HAVE_NCSA )
@@ -938,7 +946,12 @@ stream_write( Sockbuf *sb, void *buf, ber_len_t len )
    int rc;
    rc = send( ber_pvt_sb_get_desc(sb), buf, len, 0 );
 #ifdef HAVE_WINSOCK
-   if ( rc < 0 ) errno = WSAGetLastError();
+   if ( rc < 0 )
+   {
+     int err;
+     err = WSAGetLastError();
+     errno = err;
+   }
 #endif
    return rc;
    }
