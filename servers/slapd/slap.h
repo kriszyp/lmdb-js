@@ -1569,12 +1569,6 @@ struct slap_backend_db {
 #define		be_has_subordinates bd_info->bi_has_subordinates
 
 	/* supported controls */
-	/* NOTE: this stores a duplicate of the control OIDs as listed
-	 * in bd_info->bi_controls at database startup; later on,
-	 * controls may be added run-time, e.g. by overlays */
-#if 0
-	char		**be_controls;
-#endif
 	/* note: set to 0 if the database does not support the control;
 	 * be_ctrls[SLAP_MAX_CIDS] is set to 1 if initialized */
 	char		be_ctrls[SLAP_MAX_CIDS + 1];
