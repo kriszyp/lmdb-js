@@ -285,7 +285,7 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 			minor < DB_VERSION_MINOR )
 		{
 			printf("Berkeley DB version mismatch\n"
-				"\texpected: %s\n\tgot: %s\n",
+				"\theader: %s\n\tlibrary: %s\n",
 				DB_VERSION_STRING, version);
 			return 1;
 		}
@@ -366,7 +366,7 @@ main()
 
 	if( major != DB_VERSION_MAJOR || minor < DB_VERSION_MINOR ) {
 		printf("Berkeley DB version mismatch\n"
-			"\texpected: %s\n\tgot: %s\n",
+			"\theader: %s\n\tlibrary: %s\n",
 			DB_VERSION_STRING, version);
 		return 1;
 	}
