@@ -5,13 +5,13 @@
 
 
 INTERNET-DRAFT                                                   S. Legg
-draft-legg-ldap-acm-admin-01.txt                     Adacel Technologies
-Intended Category: Standards Track                    September 18, 2002
+draft-legg-ldap-acm-admin-02.txt                     Adacel Technologies
+Intended Category: Standards Track                     February 25, 2003
 
 
                  Access Control Administration in LDAP
 
-    Copyright (C) The Internet Society (2002). All Rights Reserved.
+    Copyright (C) The Internet Society (2003). All Rights Reserved.
 
    Status of this Memo
 
@@ -39,7 +39,7 @@ Intended Category: Standards Track                    September 18, 2002
    to the LDUP working group mailing list <ietf-ldup@imc.org> or to the
    author.
 
-   This Internet-Draft expires on 18 March 2003.
+   This Internet-Draft expires on 25 August 2003.
 
 
 1. Abstract
@@ -55,39 +55,36 @@ Intended Category: Standards Track                    September 18, 2002
 
 
 
-Legg                      Expires 18 March 2003                 [Page 1]
+Legg                     Expires 25 August 2003                 [Page 1]
 
-INTERNET-DRAFT        Access Control Administration   September 18, 2002
-
-
-   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and  "OPTIONAL" in this
-   document are to be interpreted as described in RFC 2119 [RFC2119].
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
 
 
 2. Table of Contents
 
-   1. Abstract ....................................................    1
-   2. Table of Contents ...........................................    2
-   3. Introduction ................................................    2
-   4. Access Control Administrative Areas .........................    3
-   5. Access Control Scheme Indication ............................    3
-   6. Access Control Information ..................................    4
-   7. Access Control Subentries ...................................    4
-   8. Applicable Access Control Information .......................    5
-   9. Security Considerations .....................................    5
-   10. Acknowledgements ...........................................    6
-   11. Normative References .......................................    6
-   12. Informative References .....................................    6
-   13. Copyright Notice ...........................................    7
-   14. Author's Address ...........................................    7
+   1. Abstract ......................................................  1
+   2. Table of Contents .............................................  2
+   3. Introduction ..................................................  2
+   4. Conventions ...................................................  2
+   5. Access Control Administrative Areas ...........................  3
+   6. Access Control Scheme Indication ..............................  3
+   7. Access Control Information ....................................  4
+   8. Access Control Subentries .....................................  4
+   9. Applicable Access Control Information .........................  5
+   10. Security Considerations ......................................  6
+   11. Acknowledgements .............................................  6
+   12. IANA Considerations ..........................................  6
+   13. Normative References .........................................  7
+   14. Informative References .......................................  7
+   15. Copyright Notice .............................................  7
+   16. Author's Address .............................................  8
 
 
 3. Introduction
 
    This document adapts the X.500 directory administrative model [X501],
    as it pertains to access control administration, for use by the
-   Lightweight Directory Access Protocol (LDAP) [RFC2251].
+   Lightweight Directory Access Protocol (LDAP) [RFC3377].
 
    The administrative model [ADMIN] partitions the Directory Information
    Tree (DIT) for various aspects of directory data administration, e.g.
@@ -102,25 +99,31 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
    employing access control schemes but does not define a particular
    access control scheme.  Two access control schemes known as Basic
    Access Control and Simplified Access Control are defined by [BAC].
-   Other access control schemes MAY be defined by other documents.
+   Other access control schemes may be defined by other documents.
+
+   This document is derived from, and duplicates substantial portions
+   of, Sections 4 and 8 of [X501].
+
+4. Conventions
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and  "OPTIONAL" in this
+
+
+
+Legg                     Expires 25 August 2003                 [Page 2]
+
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
+
+
+   document are to be interpreted as described in RFC 2119 [RFC2119].
 
    Schema definitions are provided using LDAP description formats
    [RFC2252].  Note that the LDAP descriptions have been rendered with
    additional white-space and line breaks for the sake of readability.
 
 
-
-
-Legg                      Expires 18 March 2003                 [Page 2]
-
-INTERNET-DRAFT        Access Control Administration   September 18, 2002
-
-
-   This document is derived from, and duplicates substantial portions
-   of, Sections 4 and 8 of [X501].
-
-
-4. Access Control Administrative Areas
+5. Access Control Administrative Areas
 
    The specific administrative area [ADMIN] for access control is termed
    an Access Control Specific Area (ACSA).  The root of the ACSA is
@@ -148,7 +151,7 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
    Control Information (ACI).
 
 
-5. Access Control Scheme Indication
+6. Access Control Scheme Indication
 
    The access control scheme (e.g. Basic Access Control [BAC]) in force
    in an ACSA is indicated by the accessControlScheme operational
@@ -161,19 +164,21 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
       ( 2.5.24.1 NAME 'accessControlScheme'
           EQUALITY objectIdentifierMatch
           SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
+
+
+
+Legg                     Expires 25 August 2003                 [Page 3]
+
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
+
+
           SINGLE-VALUE USAGE directoryOperation )
 
    An access control scheme conforming to the access control framework
-
-
-
-Legg                      Expires 18 March 2003                 [Page 3]
-
-INTERNET-DRAFT        Access Control Administration   September 18, 2002
-
-
    described in this document MUST define a distinct OBJECT IDENTIFIER
    value to identify it through the accessControlScheme attribute.
+   Object Identifier Descriptors for access control scheme identifiers
+   may be registered with IANA [RFC3383].
 
    Only administrative entries for ACSPs are permitted to contain an
    accessControlScheme attribute.  If the accessControlScheme attribute
@@ -187,7 +192,7 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
    attribute of the ACSP.
 
 
-6. Access Control Information
+7. Access Control Information
 
    There are three categories of Access Control Information (ACI):
    entry, subentry and prescriptive.
@@ -212,21 +217,22 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
    subentries are within the subtree or subtree refinement.
 
 
-7. Access Control Subentries
+8. Access Control Subentries
 
    Each subentry which contains prescriptive ACI MUST have
+
+
+
+Legg                     Expires 25 August 2003                 [Page 4]
+
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
+
+
    accessControlSubentry as a value of its objectClass attribute.  Such
    a subentry is called an access control subentry.
 
    The LDAP description [RFC2252] for the accessControlSubentry
    auxiliary object class is:
-
-
-
-Legg                      Expires 18 March 2003                 [Page 4]
-
-INTERNET-DRAFT        Access Control Administration   September 18, 2002
-
 
       ( 2.5.17.1 NAME 'accessControlSubentry' AUXILIARY )
 
@@ -244,7 +250,7 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
    within a given ACSA may arbitrarily overlap.
 
 
-8. Applicable Access Control Information
+9. Applicable Access Control Information
 
    Although particular items of ACI may specify attributes or values as
    the protected items, ACI is logically associated with entries.
@@ -270,19 +276,19 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
        administrative point as the subentry for which the decision is
        being made.
 
+
+
+
+Legg                     Expires 25 August 2003                 [Page 5]
+
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
+
+
    (3) Subentry ACI from the administrative point associated with the
        subentry.
 
 
-9. Security Considerations
-
-
-
-
-Legg                      Expires 18 March 2003                 [Page 5]
-
-INTERNET-DRAFT        Access Control Administration   September 18, 2002
-
+10. Security Considerations
 
    This document defines a framework for employing an access control
    scheme, i.e. the means by which access to directory information and
@@ -296,62 +302,100 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
    general [ADMIN] also apply to access control administration.
 
 
-10. Acknowledgements
+11. Acknowledgements
 
    This document is derived from, and duplicates substantial portions
    of, Sections 4 and 8 of [X501].
 
 
-11. Normative References
+12. IANA Considerations
+
+   The Internet Assigned Numbers Authority (IANA) is requested to update
+   the LDAP descriptors registry as indicated by the following
+   templates:
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): accessControlScheme
+      Object Identifier: 2.5.24.1
+      Person & email address to contact for further information:
+        Steven Legg <steven.legg@adacel.com.au>
+      Usage: attribute type
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): accessControlSubentry
+      Object Identifier: 2.5.17.1
+      Person & email address to contact for further information:
+        Steven Legg <steven.legg@adacel.com.au>
+      Usage: object class
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+
+
+
+
+Legg                     Expires 25 August 2003                 [Page 6]
+
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
+
+
+13. Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119, March 1997.
-
-   [RFC2251]  Wahl, M., Howes, T. and S. Kille, "Lightweight Directory
-              Access Protocol (v3)", RFC 2251, December 1997.
 
    [RFC2252]  Wahl, M., Coulbeck, A., Howes, T. and S. Kille,
               "Lightweight Directory Access Protocol (v3): Attribute
               Syntax Definitions", RFC 2252, December 1997.
 
-   [ADMIN]    Legg, S., "Directory Administrative Model in LDAP",
-              draft-legg-ldap-admin-xx.txt, a work in progress,
+   [RFC3377]  Hodges, J. and R. Morgan, "Lightweight Directory Access
+              Protocol (v3): Technical Specification", RFC 3377,
               September 2002.
+
+   [RFC3383]  Zeilenga, K., "Internet Assigned Numbers Authority (IANA
+              Considerations for the Lightweight Directory Access
+              Protocol (LDAP)", BCP 64, RFC 3383, September 2002.
+
+   [ADMIN]    Legg, S., "Directory Administrative Model in LDAP",
+              draft-legg-ldap-admin-xx.txt, a work in progress, February
+              2003.
 
    [SUBENTRY] Zeilenga, K. and S. Legg, "Subentries in LDAP",
               draft-zeilenga-ldap-subentry-xx.txt, a work in progress,
               August 2002.
 
 
-12. Informative References
+14. Informative References
 
    [BAC]      Legg, S., "Basic and Simplified Access Control in LDAP",
               draft-legg-ldap-acm-bac-xx.txt, a work in progress,
-              September 2002.
+              February 2003.
 
    [COLLECT]  Zeilenga, K., "Collective Attributes in LDAP",
               draft-zeilenga-ldap-collective-xx.txt, a work in progress,
               August 2002.
-
-
-
-Legg                      Expires 18 March 2003                 [Page 6]
-
-INTERNET-DRAFT        Access Control Administration   September 18, 2002
-
 
    [X501]     ITU-T Recommendation X.501 (02/2001), Information
               technology - Open Systems Interconnection - The Directory:
               Models
 
 
-13. Copyright Notice
+15. Copyright Notice
 
-      Copyright (C) The Internet Society (2002). All Rights Reserved.
+      Copyright (C) The Internet Society (2003). All Rights Reserved.
 
    This document and translations of it may be copied and furnished to
    others, and derivative works that comment on or otherwise explain it
    or assist in its implementation may be prepared, copied, published
+
+
+
+Legg                     Expires 25 August 2003                 [Page 7]
+
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
+
+
    and distributed, in whole or in part, without restriction of any
    kind, provided that the above copyright notice and this paragraph are
    included on all such copies and derivative works.  However, this
@@ -374,35 +418,41 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
    MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
-14. Author's Address
+16. Author's Address
 
    Steven Legg
    Adacel Technologies Ltd.
-   405-409 Ferntree Gully Road
-   Mount Waverley, Victoria 3149
+   250 Bay Street
+   Brighton, Victoria 3186
    AUSTRALIA
 
-   Phone: +61 3 9451 2107
-     Fax: +61 3 9541 2121
+   Phone: +61 3 8530 7710
+     Fax: +61 3 8530 7888
    EMail: steven.legg@adacel.com.au
 
 
-15. Appendix A - Changes From Previous Drafts
+Appendix A - Changes From Previous Drafts
 
-
-
-Legg                      Expires 18 March 2003                 [Page 7]
-
-INTERNET-DRAFT        Access Control Administration   September 18, 2002
-
-
-15.1 Changes in Draft 01
+A.1 Changes in Draft 01
 
    Section 4 has been extracted to become a separate Internet draft,
    draft-legg-ldap-admin-00.txt.  The subsections of Section 5 have
    become the new Sections 4 to 8.  Editorial changes have been made to
    accommodate this split.  No technical changes have been introduced.
 
+A.2 Changes in Draft 02
+
+   RFC 3377 replaces RFC 2251 as the reference for LDAP.
+
+
+
+
+Legg                     Expires 25 August 2003                 [Page 8]
+
+INTERNET-DRAFT        Access Control Administration    February 25, 2003
+
+
+   An IANA Considerations section has been added.
 
 
 
@@ -447,5 +497,11 @@ INTERNET-DRAFT        Access Control Administration   September 18, 2002
 
 
 
-Legg                      Expires 18 March 2003                 [Page 8]
+
+
+
+
+
+
+Legg                     Expires 25 August 2003                 [Page 9]
 

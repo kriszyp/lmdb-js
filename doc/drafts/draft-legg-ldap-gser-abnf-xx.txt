@@ -5,13 +5,13 @@
 
 
 INTERNET-DRAFT                                                   S. Legg
-draft-legg-ldap-gser-abnf-04.txt                     Adacel Technologies
-Intended Category: Informational                         August 19, 2002
+draft-legg-ldap-gser-abnf-06.txt                     Adacel Technologies
+Intended Category: Informational                             May 7, 2003
 
 
                    Common Elements of GSER Encodings
 
-    Copyright (C) The Internet Society (2002). All Rights Reserved.
+    Copyright (C) The Internet Society (2003). All Rights Reserved.
 
    Status of this Memo
 
@@ -39,10 +39,10 @@ Intended Category: Informational                         August 19, 2002
    to the LDAPEXT working group mailing list <ietf-ldapext@netscape.com>
    or to the author.
 
-   This Internet-Draft expires on 19 February 2002.
+   This Internet-Draft expires on 7 November 2003.
 
 
-1. Abstract
+Abstract
 
    The Generic String Encoding Rules (GSER) describe a human readable
    text encoding for an ASN.1 value of any ASN.1 type.  Specifications
@@ -55,68 +55,67 @@ Intended Category: Informational                         August 19, 2002
 
 
 
-Legg                    Expires 19 February 2002                [Page 1]
+Legg                     Expires 7 November 2003                [Page 1]
 
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
 
 
-2. Table of Contents
+1. Table of Contents
 
-   1. Abstract ....................................................    1
-   2. Table of Contents ...........................................    2
-   3. Introduction ................................................    2
-   4. Conventions .................................................    2
-   5. Separators ..................................................    2
-   6. ASN.1 Built-in Types ........................................    3
-   7. ASN.1 Restricted String Types ...............................    7
-   8. Directory ASN.1 Types .......................................    8
-   9. Security Considerations .....................................    9
-   10. Normative References .......................................   10
-   11. Informative References .....................................   10
-   12. Copyright Notice ...........................................   10
-   13. Author's Address ...........................................   11
+   1. Table of Contents .............................................  2
+   2. Introduction ..................................................  2
+   3. Conventions ...................................................  2
+   4. Separators ....................................................  2
+   5. ASN.1 Built-in Types ..........................................  3
+   6. ASN.1 Restricted String Types .................................  7
+   7. Directory ASN.1 Types .........................................  9
+   8. Security Considerations ....................................... 10
+   9. Normative References .......................................... 11
+   10. Informative References ....................................... 11
+   11. Copyright Notice ............................................. 11
+   12. Author's Address ............................................. 12
 
 
-3. Introduction
+2. Introduction
 
-   The Generic String Encoding Rules (GSER) defined in [9] define a
-   human readable text encoding, based on ASN.1 [7] value notation, for
+   The Generic String Encoding Rules (GSER) defined in [7] define a
+   human readable text encoding, based on ASN.1 [8] value notation, for
    an ASN.1 value of any ASN.1 type.  Specifications making use of GSER
    may wish to provide a non-normative equivalent ABNF [3] description
    of the GSER encoding for a particular ASN.1 type as a convenience for
    implementors unfamiliar with ASN.1.  This document supports such
    specifications by providing equivalent ABNF for the GSER encodings
-   for ASN.1 types commonly occuring in LDAP [8] or X.500 [10] attribute
+   for ASN.1 types commonly occuring in LDAP [9] or X.500 [10] attribute
    and assertion syntaxes, as well as equivalent ABNF for the GSER
    encodings for the ASN.1 built-in types.
 
    The ABNF given in this document does not replace or alter GSER in any
    way.  If there is a discrepancy between the ABNF specified here and
-   the encoding defined by GSER in [9] then [9] is to be taken as
+   the encoding defined by GSER in [7] then [7] is to be taken as
    definitive.
 
 
-4. Conventions
+3. Conventions
 
    The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
    "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and  "OPTIONAL" in this
    document are to be interpreted as described in RFC 2119 [1].
 
 
-5. Separators
+4. Separators
 
    Certain separators are commonly used in constructing equivalent ABNF
    for SET and SEQUENCE types.
 
-
-
-
-Legg                    Expires 19 February 2002                [Page 2]
-
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
-
-
       sp  =  *%x20  ; zero, one or more space characters
+
+
+
+Legg                     Expires 7 November 2003                [Page 2]
+
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
+
+
       msp = 1*%x20  ; one or more space characters
 
       sep = [ "," ]
@@ -129,7 +128,7 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
    the SET or SEQUENCE value being encoded.
 
 
-6. ASN.1 Built-in Types
+5. ASN.1 Built-in Types
 
    This section describes the GSER encoding of values of the ASN.1
    built-in types, except for the restricted character string types.
@@ -167,9 +166,10 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
 
 
 
-Legg                    Expires 19 February 2002                [Page 3]
+
+Legg                     Expires 7 November 2003                [Page 3]
 
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
 
 
       CHARACTER-STRING = "{" sp id-identification msp Identification ","
@@ -223,9 +223,9 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
 
 
 
-Legg                    Expires 19 February 2002                [Page 4]
+Legg                     Expires 7 November 2003                [Page 4]
 
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
 
 
       INTEGER-0-MAX   = "0" / positive-number
@@ -237,29 +237,56 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
    The <EMBEDDED-PDV> rule describes the GSER encoding of values of the
    associated type for the EMBEDDED PDV type.
 
-      EMBEDDED-PDV = "{"      sp id-identification msp Identification
-                        [ "," sp id-data-value-descriptor msp
-                                    ObjectDescriptor ]
-                          "," sp id-data-value msp OCTET-STRING
-                              sp "}"
-
-      id-data-value-descriptor = %x64.61.74.61.2D.76.61.6C.75.65.2D.64
-                                    %x65.73.63.72.69.70.74.6F.72
-                                    ; "data-value-descriptor"
+      EMBEDDED-PDV = "{" sp id-identification msp Identification ","
+                         sp id-data-value msp OCTET-STRING
+                         sp "}"
 
    The <EXTERNAL> rule describes the GSER encoding of values of the
    associated type for the EXTERNAL type.
 
-      EXTERNAL = "{"      sp id-identification msp E-Identification
-                    [ "," sp id-data-value-descriptor msp
-                                ObjectDescriptor ]
-                      "," sp id-data-value msp OCTET-STRING
-                          sp "}"
+      EXTERNAL = "{" [ sp id-direct-reference msp
+                             OBJECT-IDENTIFIER "," ]
+                     [ sp id-indirect-reference msp INTEGER "," ]
+                     [ sp id-data-value-descriptor msp
+                             ObjectDescriptor "," ]
+                       sp id-encoding msp Encoding
+                       sp "}"
 
-      E-Identification = ( id-syntax ":" OBJECT-IDENTIFIER ) /
-                         ( id-presentation-context-id ":" INTEGER ) /
-                         ( id-context-negotiation ":"
-                              ContextNegotiation )
+      id-direct-reference      = %x64.69.72.65.63.74.2D.72.65.66.65.72
+                                    %x65.6E.63.65
+                                    ; "direct-reference"
+      id-indirect-reference    = %x69.6E.64.69.72.65.63.74.2D.72.65.66
+                                    %x65.72.65.6E.63.65
+                                    ; "indirect-reference"
+      id-data-value-descriptor = %x64.61.74.61.2D.76.61.6C.75.65.2D.64
+                                    %x65.73.63.72.69.70.74.6F.72
+                                    ; "data-value-descriptor"
+      id-encoding              = %x65.6E.63.6F.64.69.6E.67
+                                    ; "encoding"
+
+      Encoding = ( id-single-ASN1-type ":" Value ) /
+                 ( id-octet-aligned ":" OCTET-STRING ) /
+                 ( id-arbitrary ":" BIT-STRING )
+
+      id-single-ASN1-type = %x73.69.6E.67.6C.65.2D.41.53.4E.31.2D.74.79
+                               %x70.65
+                               ; "single-ASN1-type"
+      id-octet-aligned    = %x6F.63.74.65.74.2D.61.6C.69.67.6E.65.64
+                               ; "octet-aligned"
+      id-arbitrary        = %x61.72.62.69.74.72.61.72.79
+                               ; "arbitrary"
+
+
+
+
+Legg                     Expires 7 November 2003                [Page 5]
+
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
+
+
+   The <Value> rule is defined in [7].  It represents the GSER encoding
+   of a single value of the ASN.1 type identified by the direct-
+   reference and/or indirect-reference components.
 
    The <NULL> rule describes the GSER encoding of values of the NULL
    type.
@@ -276,14 +303,6 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
    An OBJECT IDENTIFIER value is encoded using either the dotted decimal
    representation or an object descriptor name, i.e. <descr>.  The
    <descr> rule is described in [4].  An object descriptor name is
-
-
-
-Legg                    Expires 19 February 2002                [Page 5]
-
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
-
-
    potentially ambiguous and should be used with care.
 
    The <OCTET-STRING> rule describes the GSER encoding of values of the
@@ -313,6 +332,14 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
       MINUS-INFINITY = %x4D.49.4E.55.53.2D.49.4E.46.49.4E.49.54.59
                           ; "MINUS-INFINITY"
 
+
+
+
+Legg                     Expires 7 November 2003                [Page 6]
+
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
+
+
       realnumber = mantissa exponent
       mantissa   = (positive-number [ "." *decimal-digit ])
                    / ( "0." *("0") positive-number )
@@ -333,20 +360,13 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
       RELATIVE-OID = oid-component *( "." oid-component )
 
 
-
-
-Legg                    Expires 19 February 2002                [Page 6]
-
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
-
-
-7. ASN.1 Restricted String Types
+6. ASN.1 Restricted String Types
 
    This section describes the GSER encoding of values of the ASN.1
    restricted character string types.  The characters of a value of a
    restricted character string type are always encoded as a UTF8
    character string between double quotes.  For some of the ASN.1 string
-   types this requires a translation to or form the UTF8 encoding.  Some
+   types this requires a translation to or from the UTF8 encoding.  Some
    of the ASN.1 string types permit only a subset of the characters
    representable in UTF8.  Any double quote characters in the character
    string, where allowed by the character set, are escaped by being
@@ -369,6 +389,13 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
                           %xF8-FB 4(%x80-BF) /  ; 5 byte UTF8 character
                           %xFC-FD 5(%x80-BF)    ; 6 byte UTF8 character
 
+
+
+Legg                     Expires 7 November 2003                [Page 7]
+
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
+
+
    The <NumericString>, <PrintableString>, <VisibleString>,
    <ISO646String>, <IA5String>, <GeneralizedTime> and <UTCTime> rules
    describe the GSER encoding of values of the correspondingly named
@@ -388,14 +415,6 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
                              / %x2B-2F ; + , - . /
                              / %x3A    ; :
                              / %x3D    ; =
-
-
-
-Legg                    Expires 19 February 2002                [Page 7]
-
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
-
-
                              / %x3F    ; ?
 
       ISO646String         = VisibleString
@@ -408,14 +427,33 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
       SafeIA5Character     = %x00-21 / %x23-7F ; ASCII minus dquote
                              / dquote dquote   ; escaped double quote
 
-      UTCTime              = dquote 10(decimal-digit) [2(decimal-digit)]
-                                [ "Z" / u-differential ] dquote
-      u-differential       = ( "-" / "+" ) 4(decimal-digit)
-      GeneralizedTime      = dquote 10(decimal-digit)
-                                *2(2(decimal-digit))
-                                fraction [ "Z" / g-differential ] dquote
-      fraction             = ( "." / "," ) 1*decimal-digit
-      g-differential       = ( "-" / "+" ) 1*2(2(decimal-digit))
+      century = 2(%x30-39) ; "00" to "99"
+      year    = 2(%x30-39) ; "00" to "99"
+      month   =   ( %x30 %x31-39 ) ; "01" (January) to "09"
+                / ( %x31 %x30-32 ) ; "10" to "12"
+      day     =   ( %x30 %x31-39 )    ; "01" to "09"
+                / ( %x31-32 %x30-39 ) ; "10" to "29"
+                / ( %x32 %x30-31 )    ; "30" to "31"
+      hour    = ( %x30-31 %x30-39 ) / ( %x32 %x30-33 ) ; "00" to "23"
+      minute  = %x30-36 %x30-39                        ; "00" to "59"
+      second  = %x30-36 %x30-39                        ; "00" to "59"
+
+      UTCTime         = dquote year month day hour minute [ second ]
+                           [ %x5A / u-differential ] dquote
+      u-differential  = ( "-" / "+" ) hour minute
+      GeneralizedTime = dquote century year month day hour
+                           [ minute [ second ] ] [ fraction ]
+                           [ %x5A / g-differential ] dquote
+
+
+
+Legg                     Expires 7 November 2003                [Page 8]
+
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
+
+
+      fraction        = ( "." / "," ) 1*(%x30-39)
+      g-differential  = ( "-" / "+" ) hour [ minute ]
 
    The <BMPString> and <UniversalString> rules describe the GSER
    encoding of values of the BMPString and UniversalString types
@@ -441,17 +479,9 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
       ObjectDescriptor = GraphicString
 
 
-8. Directory ASN.1 Types
+7. Directory ASN.1 Types
 
    This section describes the GSER encoding of values of selected ASN.1
-
-
-
-Legg                    Expires 19 February 2002                [Page 8]
-
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
-
-
    types defined for LDAP and X.500.  The ABNF rule names beginning with
    uppercase letters describe the GSER encoding of values of the ASN.1
    type with the same name.
@@ -462,7 +492,30 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
    characters as required before being encoded between double quotes
    with any embedded double quotes escaped by being repeated.
 
-      DirectoryString = dquote *SafeUTF8Character dquote
+      DirectoryString = StringValue /
+                        ( id-teletexString   ":" TeletexString ) /
+                        ( id-printableString ":" PrintableString ) /
+                        ( id-bmpString       ":" BMPString ) /
+                        ( id-universalString ":" UniversalString ) /
+                        ( id-uTF8String      ":" UTF8String )
+
+      id-teletexString   = %x74.65.6C.65.74.65.78.53.74.72.69.6E.67
+
+
+
+Legg                     Expires 7 November 2003                [Page 9]
+
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
+
+
+                              ; "teletexString"
+      id-printableString = %x70.72.69.6E.74.61.62.6C.65
+                              %x53.74.72.69.6E.67 ; "printableString"
+      id-bmpString       = %x62.6D.70.53.74.72.69.6E.67 ; "bmpString"
+      id-universalString = %x75.6E.69.76.65.72.73.61.6C
+                              %x53.74.72.69.6E.67 ; "universalString"
+      id-uTF8String      = %x75.54.46.38.53.74.72.69.6E.67
+                              ; "uTF8String"
 
    The <RDNSequence> rule describes the GSER encoding of values of the
    RDNSequence type, which is syntactically equivalent to the
@@ -497,25 +550,21 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
       ORAddress = dquote *SafeIA5Character dquote
 
 
-9. Security Considerations
+8. Security Considerations
 
-   GSER, and therefore the ABNF encodings described in this document, do
+   This document contains an alternative description of parts of the
+   Generic String Encoding Rules, but does not replace or alter GSER in
+   any way.  For the full security implications of using GSER see the
+   Security Considerations section of [7].
 
 
 
-Legg                    Expires 19 February 2002                [Page 9]
+Legg                     Expires 7 November 2003               [Page 10]
 
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
 
 
-   not necessarily enable the exact octet encoding of values of the
-   TeletexString, VideotexString, GraphicString or GeneralString types
-   to be reconstructed, so a transformation from DER to GSER and back to
-   DER may not reproduce the original DER encoding.  This has
-   consequences for the verification of digital signatures.
-
-
-10. Normative References
+9. Normative References
 
    [1]  Bradner, S., "Key words for use in RFCs to Indicate Requirement
         Levels", BCP 14, RFC 2119, March 1997.
@@ -537,39 +586,40 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
    [6]  Yergeau, F., "UTF-8, a transformation format of ISO 10646", RFC
         2279, January 1998.
 
-   [7]  ITU-T Recommendation X.680 (1997) | ISO/IEC 8824-1:1998
+   [7]  Legg, S., "Generic String Encoding Rules for ASN.1 Types",
+        draft-legg-ldap-gser-xx.txt, a work in progress, May 2003.
+
+   [8]  ITU-T Recommendation X.680 (1997) | ISO/IEC 8824-1:1998
         Information Technology - Abstract Syntax Notation One (ASN.1):
         Specification of basic notation
 
 
-11. Informative References
+10. Informative References
 
-   [8]  Wahl, M., Howes, T. and S. Kille, "Lightweight Directory Access
-        Protocol (v3)", RFC 2251, December 1997.
-
-   [9]  Legg, S., "Generic String Encoding Rules for ASN.1 Types",
-        draft-legg-ldap-gser-xx.txt, a work in progress, August 2002.
+   [9]  Hodges, J. and R. Morgan, "Lightweight Directory Access Protocol
+        (v3): Technical Specification", RFC 3377, September 2002.
 
    [10] ITU-T Recommendation X.500 (1993) | ISO/IEC 9594-1:1994,
         Information Technology - Open Systems Interconnection - The
         Directory: Overview of concepts, models and services
 
 
-12. Copyright Notice
+11. Copyright Notice
 
-
-
-Legg                    Expires 19 February 2002               [Page 10]
-
-INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
-
-
-      Copyright (C) The Internet Society (2002). All Rights Reserved.
+      Copyright (C) The Internet Society (2003). All Rights Reserved.
 
    This document and translations of it may be copied and furnished to
    others, and derivative works that comment on or otherwise explain it
    or assist in its implementation may be prepared, copied, published
    and distributed, in whole or in part, without restriction of any
+
+
+
+Legg                     Expires 7 November 2003               [Page 11]
+
+INTERNET-DRAFT      Common Elements of GSER Encodings        May 7, 2003
+
+
    kind, provided that the above copyright notice and this paragraph are
    included on all such copies and derivative works.  However, this
    document itself may not be modified in any way, such as by removing
@@ -591,16 +641,16 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
    MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
-13. Author's Address
+12. Author's Address
 
    Steven Legg
    Adacel Technologies Ltd.
-   405-409 Ferntree Gully Road
-   Mount Waverley, Victoria 3149
+   250 Bay Street
+   Brighton, Victoria 3186
    AUSTRALIA
 
-   Phone: +61 3 9451 2107
-     Fax: +61 3 9541 2121
+   Phone: +61 3 8530 7710
+     Fax: +61 3 8530 7888
    EMail: steven.legg@adacel.com.au
 
 
@@ -615,5 +665,11 @@ INTERNET-DRAFT      Common Elements of GSER Encodings    August 19, 2002
 
 
 
-Legg                    Expires 19 February 2002               [Page 11]
+
+
+
+
+
+
+Legg                     Expires 7 November 2003               [Page 12]
 

@@ -6,12 +6,12 @@
 
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                OpenLDAP Foundation
-Expires in six months                                    17 May 2002
+Expires in six months                                     3 May 2003
 
 
 
-                         LDAP True/False Filters
-                     <draft-zeilenga-ldap-t-f-02.txt>
+                   LDAP Absolute True and False Filters
+                     <draft-zeilenga-ldap-t-f-05.txt>
 
 
 Status of this Memo
@@ -23,8 +23,8 @@ Status of this Memo
   revision, submitted to the RFC Editor as a Standard Track document.
   Distribution of this memo is unlimited.  Technical discussion of this
   document will take place on the IETF LDAP Extensions Working Group
-  mailing list <ietf-ldapext@netscape.com>.  Please send editorial
-  comments directly to the author <Kurt@OpenLDAP.org>.
+  mailing list <ldapext@ietf.org>.  Please send editorial comments
+  directly to the author <Kurt@OpenLDAP.org>.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups.  Note that other
@@ -39,7 +39,7 @@ Status of this Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright 2002, The Internet Society.  All Rights Reserved.
+  Copyright 2003, The Internet Society.  All Rights Reserved.
 
   Please see the Copyright section near the end of this document for
   more information.
@@ -55,9 +55,9 @@ Abstract
 
 
 
-Zeilenga                 LDAP True/False Filters                [Page 1]
+Zeilenga                LDAP True & False Filters               [Page 1]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
+INTERNET-DRAFT       draft-zeilenga-ldap-t-f-05.txt           3 May 2003
 
 
 1.  Background and Intended Use
@@ -66,19 +66,19 @@ INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
   True and False assertions.  An 'and' filter with zero elements always
   evaluates to True.  An 'or' filter with zero elements always evaluates
   to False.  These filters are commonly used when requesting DSA-
-  specific Entries (DSEs) which do not necessarily have objectClass
+  specific Entries (DSEs) which do not necessarily have 'objectClass'
   attributes.  That is, where "(objectClass=*)" may evaluate to False.
 
   While LDAPv2 [RFC1777] placed no restriction on the number of elements
   in 'and' and 'or' filter sets, the LDAPv2 string representation
   [RFC1960] could not represent empty 'and' and 'or' filter sets.  Due
-  to this, LDAPv3 [RFC2251] required 'and' and 'or' filter sets to have
-  at least one element.  Hence, LDAPv3 does not provide absolute True or
-  False filters.
+  to this, absolute True or False filters were (unfortunately)
+  eliminated from LDAPv3 [RFC3377].
 
-  This documents extends LDAPv3 [RFC2251] to support absolute True and
-  False matches by allowing empty 'and' and 'or' and extends the filter
-  string representation [RFC2254] to allow empty filter lists.
+  This documents extends LDAPv3 to support absolute True and False
+  matches by allowing empty 'and' and 'or' in Search filters [RFC2251]
+  and extends the filter string representation [RFC2254] to allow empty
+  filter lists.
 
   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
   "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
@@ -90,11 +90,11 @@ INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
   Implementations of this extension SHALL allow 'and' and 'or' choices
   with zero filter elements.
 
-  An 'and' Filter consisting of an empty set of filters SHALL evaluate
-  to True.  This filter is to represented by the string "(&)".
+  An 'and' filter consisting of an empty set of filters SHALL evaluate
+  to True.  This filter is represented by the string "(&)".
 
-  An 'or' Filter consisting of an empty set of filters SHALL evaluate to
-  False.  This filter is to represented by the string "(|)".
+  An 'or' filter consisting of an empty set of filters SHALL evaluate to
+  False.  This filter is represented by the string "(|)".
 
   Servers supporting this feature SHOULD publish the Object Identifier
   1.3.6.1.4.1.4203.1.5.3 as a value of the supportedFeatures [FEATURES]
@@ -106,28 +106,38 @@ INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
 
 3.  Security Considerations
 
-  The (re)introduction of absolute True and False filters does not raise
-  any new security considerations.
+  The (re)introduction of absolute True and False filters is not
+  believed to raise any new security considerations.
 
 
 
-Zeilenga                 LDAP True/False Filters                [Page 2]
+Zeilenga                LDAP True & False Filters               [Page 2]
 
-INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
+INTERNET-DRAFT       draft-zeilenga-ldap-t-f-05.txt           3 May 2003
 
 
-  Implementors of this (or any) LDAP extension should be familiar with
-  general LDAP general security considerations [LDAPTS].
+  Implementors of this (or any) LDAPv3 extension should be familiar with
+  general LDAPv3 security considerations [RFC3377].
 
 
 4.  IANA Considerations
 
-  No IANA assignments are requested.
+  The OID 1.3.6.1.4.1.4203.1.5.3 identifies the feature described above.
+  This OID was assigned [ASSIGN] by OpenLDAP Foundation, under its
+  IANA-assigned private enterprise allocation [PRIVATE], for use in this
+  specification.
 
-  This document uses the OID 1.3.6.1.4.1.4203.1.5.3 to identify the
-  feature described above.  This OID was assigned [ASSIGN] by OpenLDAP
-  Foundation under its IANA assigned private enterprise allocation
-  [PRIVATE] for use in this specification.
+  Registration of this feature is requested [FEATURES][RFC3383].
+
+  Subject: Request for LDAP Protocol Mechanism Registration
+  Object Identifier: 1.3.6.1.4.1.4203.1.5.3
+  Description: T/F Filters
+  Person & email address to contact for further information:
+       Kurt Zeilenga <kurt@openldap.org>
+  Usage: Feature
+  Specification: RFCxxxx
+  Author/Change Controller: IESG
+  Comments: none
 
 
 5.  Author's Address
@@ -148,12 +158,18 @@ INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
   [RFC2254]  T. Howes, "A String Representation of LDAP Search Filters",
              RFC 2254, December 1997.
 
-  [LDAPTS]   J. Hodges, R. Morgan, "Lightweight Directory Access
-             Protocol (v3): Technical Specification",
-             draft-ietf-ldapbis-ldapv3-ts-xx.txt (a work in progress).
+  [RFC3377]  J. Hodges, R. Morgan, "Lightweight Directory Access
+             Protocol (v3): Technical Specification", RFC 3377,
+             September 2002.
 
   [FEATURES] K. Zeilenga, "Feature Discovery in LDAP",
              draft-zeilenga-ldap-features-xx.txt (a work in progress).
+
+
+
+Zeilenga                LDAP True & False Filters               [Page 3]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-t-f-05.txt           3 May 2003
 
 
 7. Informative References
@@ -164,13 +180,8 @@ INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
   [RFC1960]  T. Howes, "A String Representation of LDAP Search Filters",
              RFC 1960, June 1996.
 
-
-
-
-Zeilenga                 LDAP True/False Filters                [Page 3]
-
-INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
-
+  [RFC3383]  K. Zeilenga, "IANA Considerations for LDAP", BCP 64 (also
+             RFC 3383), September 2002.
 
   [X.500]    ITU-T Rec. X.500, "The Directory: Overview of Concepts,
              Models and Service", 1993.
@@ -185,8 +196,7 @@ INTERNET-DRAFT       draft-zeilenga-ldap-t-f-02.txt          17 May 2002
              http://www.iana.org/assignments/enterprise-numbers.
 
 
-
-Copyright 2002, The Internet Society.  All Rights Reserved.
+Copyright 2003, The Internet Society.  All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
@@ -213,15 +223,5 @@ Copyright 2002, The Internet Society.  All Rights Reserved.
 
 
 
-
-
-
-
-
-
-
-
-
-
-Zeilenga                 LDAP True/False Filters                [Page 4]
+Zeilenga                LDAP True & False Filters               [Page 4]
 

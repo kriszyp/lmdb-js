@@ -1,0 +1,395 @@
+
+
+
+
+
+
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Standard Track                   OpenLDAP Foundation
+Expires in six months                               11 May 2003
+
+
+                 The LDAP entryUUID operational attribute
+                    <draft-zeilenga-ldap-uuid-00.txt>
+
+
+Status of this Memo
+
+  This document is an Internet-Draft and is in full conformance with all
+  provisions of Section 10 of RFC2026.
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as an Standard Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extension Working Group
+  mailing list <ldapext@ietf.org>.  Please send editorial comments
+  directly to the author <Kurt@OpenLDAP.org>.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups.  Note that other
+  groups may also distribute working documents as Internet-Drafts.
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time.  It is inappropriate to use Internet-Drafts as reference
+  material or to cite them other than as ``work in progress.''
+
+  The list of current Internet-Drafts can be accessed at
+  <http://www.ietf.org/ietf/1id-abstracts.txt>. The list of
+  Internet-Draft Shadow Directories can be accessed at
+  <http://www.ietf.org/shadow.html>.
+
+  Copyright (C) The Internet Society (2003).  All Rights Reserved.
+
+  Please see the Full Copyright section near the end of this document
+  for more information.
+
+
+Abstract
+
+  This document describes the LDAP/X.500 'entryUUID' operational
+  attribute and associated matching rules and syntax.  The attribute
+  holds a server-assigned Universally Unique Identifier (UUID) for the
+  object.  Directory clients may use this attribute to distinguish
+  objects identified by a distinguished name or to locate an object
+  after renaming.
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 1]
+
+INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
+
+
+1. Background and Intended Use
+
+  In X.500 Directory Services [X.501], such as those accessible using
+  the the Lightweight Directory Access Protocol (LDAP) [RFC3377], an
+  object is identified by its distinguished name (DN).  However, DNs are
+  not stable identifiers.  That is, a new object may be identified by a
+  DN which previously identified another (now renamed or deleted)
+  object.
+
+  This document describes the 'entryUUID' operational attribute holds
+  the Universally Unique Identifier (UUID) [ISO11578] assigned to the
+  object by the server.  Clients may use this attribute to distinguish
+  objects identified by a distinguished name or to locate an object
+  after renaming.
+
+  This document defines the UUID syntax, the 'uuidMatch' and
+  'uuidOrderingMatch' matching rules, the 'entryUUID' attribute type.
+
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in BCP 14 [RFC2119].
+
+  Schema definitions are provided using LDAP description formats
+  [RFC2252].  Definitions provided here are formatted (line wrapped) for
+  readability.
+
+
+2. UUID Schema Elements
+
+2.1 UUID Syntax
+
+  A Universally Unique Identifier (UUID) [ISO11578] is a 16-octet value
+  which identifies object.  The ASN.1 [X.690] type UUID is defined to
+  represent UUIDs.
+
+      UUID ::= OCTET STRING{16} -- constrained to an UUID [ISO 11578]
+
+  In LDAP, values of the UUID are encoded using the string
+  representation described in [ISO11578].  For example,
+  597ae2f6-16a6-1027-98f4-d28b5365dc14.
+
+      ( IANA-ASSIGNED-OID.1 DESC 'UUID' )
+
+
+2.2 'uuidMatch' Matching Rule
+
+  The 'uuidMatch' matching rule compares an asserted UUID with a stored
+  UUID for equality.  Its semantics are same as octetStringMatch
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 2]
+
+INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
+
+
+  [X.520][RFC2252].
+
+      ( IANA-ASSIGNED-OID.2 NAME 'uuidMatch'
+          SYNTAX IANA-ASSIGNED-OID.1 )
+
+
+2.3 'uuidOrderingMatch' Matching Rule
+
+  The 'uuidOrderingMatch' matching rule compares an asserted UUID
+  with a stored UUID for ordering.  Its semantics are the same as
+  octetStringOrderingMatch [X.520][RFC2252].
+
+      ( IANA-ASSIGNED-OID.3 NAME 'uuidMatch'
+          SYNTAX IANA-ASSIGNED-OID.1 )
+
+
+2.4. 'entryUUID' attribute
+
+  The 'entryUUID' operational attribute provides the Universally Unique
+  Identifier (UUID) [ISO11578] assigned to the entry.
+
+      ( IANA-ASSIGNED-OID.4 NAME 'entryUUID'
+          DESC 'UUID of the entry'
+          EQUALITY uuidMatch
+          ORDERING uuidOrderingMatch
+          SYNTAX IANA-ASSIGNED-OID.1
+          SINGLE-VALUE
+          NO-USER-MODIFICATION
+          USAGE directoryOperation )
+
+  Servers SHALL assign a UUID to each entry upon its addition to the
+  directory  and provide the entry's UUID as the value of the
+  'entryUUID' operational attribute.  An entry's UUID is immutable.
+
+
+3. Security Considerations
+
+  Servers should ensure that components of UUID values are publicly
+  disclosable.
+
+  General LDAP security considerations [RFC3377] apply.
+
+
+4. IANA Considerations
+
+4.1. Object Identifier Registration
+
+  It is requested that IANA register upon Standards Action an LDAP
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 3]
+
+INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
+
+
+  Object Identifier for use in this technical specification.
+
+      Subject: Request for LDAP OID Registration
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+      Comments:
+          Identifies the UUID schema elements
+
+
+4.2. Registration of the uuidMatch descriptor
+
+  It is requested that IANA register upon Standards Action the LDAP
+  'uuidMatch' descriptor.
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): uuidMatch
+      Object Identifier: IANA-ASSIGNED-OID.2
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Usage: Matching Rule
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+
+
+4.3. Registration of the uuidOrderingMatch descriptor
+
+  It is requested that IANA register upon Standards Action the LDAP
+  'uuidOrderingMatch' descriptor.
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): uuidOrderingMatch
+      Object Identifier: IANA-ASSIGNED-OID.3
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Usage: Matching Rule
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+
+
+4.4. Registration of the entryUUID descriptor
+
+  It is requested that IANA register upon Standards Action the LDAP
+  'entryUUID' descriptor.
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): entryUUID
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 4]
+
+INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
+
+
+      Object Identifier: IANA-ASSIGNED-OID.4
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Usage: Attribute Type
+      Specification: RFC XXXX
+      Author/Change Controller: IESG
+
+
+5. Acknowledgments
+
+  This document is based upon discussions in the LDAP Update and
+  Duplication Protocols (LDUP) WG.
+
+
+6. Author's Address
+
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+  <Kurt@OpenLDAP.org>
+
+
+7. Normative References
+
+  [RFC2119]     Bradner, S., "Key words for use in RFCs to Indicate
+                Requirement Levels", BCP 14 (also RFC 2119), March 1997.
+
+  [RFC2252]     Wahl, M., A. Coulbeck, T. Howes, and S. Kille,
+                "Lightweight Directory Access Protocol (v3):  Attribute
+                Syntax Definitions", RFC 2252, December 1997.
+
+  [RFC3377]     Hodges, J. and R. Morgan, "Lightweight Directory Access
+                Protocol (v3): Technical Specification", RFC 3377,
+                September 2002.
+
+  [ISO11578]    International Organization for Standardization,
+                "Information technology - Open Systems Interconnection -
+                Remote Procedure Call", ISO/IEC 11578:1996.
+
+  [X.501]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The Directory
+                -- Models," X.501(1993) (also ISO/IEC 9594-2:1994).
+
+  [X.520]       International Telecommunication Union -
+                Telecommunication Standardization Sector, "The
+                Directory: Selected Attribute Types", X.520(1993) (also
+                ISO/IEC 9594-6:1994).
+
+  [X.680]       International Telecommunication Union -
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 5]
+
+INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
+
+
+                Telecommunication Standardization Sector, "Abstract
+                Syntax Notation One (ASN.1) - Specification of Basic
+                Notation", X.680(1997) (also ISO/IEC 8824-1:1998).
+
+
+8. Informative References
+
+  [RFC3383]     Zeilenga, K., "IANA Considerations for LDAP", BCP 64
+                (also RFC 3383), September 2002.
+
+  [UUIDinfo]    The Open Group, "Universally Unique Identifier" section
+                of "CDE 1.1: Remote Procedure Calls",
+                <http://www.opengroup.org/onlinepubs/9629399/apdxa.htm>,
+                April 1997.
+
+
+
+Intellectual Property Rights
+
+  The IETF takes no position regarding the validity or scope of any
+  intellectual property or other rights that might be claimed to pertain
+  to the implementation or use of the technology described in this
+  document or the extent to which any license under such rights might or
+  might not be available; neither does it represent that it has made any
+  effort to identify any such rights.  Information on the IETF's
+  procedures with respect to rights in standards-track and
+  standards-related documentation can be found in BCP-11.  Copies of
+  claims of rights made available for publication and any assurances of
+  licenses to be made available, or the result of an attempt made to
+  obtain a general license or permission for the use of such proprietary
+  rights by implementors or users of this specification can be obtained
+  from the IETF Secretariat.
+
+  The IETF invites any interested party to bring to its attention any
+  copyrights, patents or patent applications, or other proprietary
+  rights which may cover technology that may be required to practice
+  this standard.  Please address the information to the IETF Executive
+  Director.
+
+
+
+Full Copyright
+
+  Copyright (C) The Internet Society (2003). All Rights Reserved.
+
+  This document and translations of it may be copied and furnished to
+  others, and derivative works that comment on or otherwise explain it
+  or assist in its implmentation may be prepared, copied, published and
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 6]
+
+INTERNET-DRAFT               LDAP entryUUID                  11 May 2003
+
+
+  distributed, in whole or in part, without restriction of any kind,
+  provided that the above copyright notice and this paragraph are
+  included on all such copies and derivative works.  However, this
+  document itself may not be modified in any way, such as by removing
+  the copyright notice or references to the Internet Society or other
+  Internet organizations, except as needed for the  purpose of
+  developing Internet standards in which case the procedures for
+  copyrights defined in the Internet Standards process must be followed,
+  or as required to translate it into languages other than English.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga               draft-zeilenga-ldap-uuid-00              [Page 7]
+

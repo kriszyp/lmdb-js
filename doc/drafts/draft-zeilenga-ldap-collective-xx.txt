@@ -6,11 +6,11 @@
 
 INTERNET-DRAFT                           Editor:  Kurt D. Zeilenga
 Intended Category: Standard Track                 OpenLDAP Foundation
-Expires in six months                             17 May 2002
+Expires in six months                             18 August 2002
 
 
                       Collective Attributes in LDAP
-                 <draft-zeilenga-ldap-collective-07.txt>
+                 <draft-zeilenga-ldap-collective-08.txt>
 
 
 Status of this Memo
@@ -22,8 +22,8 @@ Status of this Memo
   revision, submitted to the RFC Editor as a Standard Track document.
   Distribution of this memo is unlimited.  Technical discussion of this
   document will take place on the IETF LDAP Extension Working Group
-  mailing list <ietf-ldapext@netscape.com>.  Please send editorial
-  comments directly to the author <Kurt@OpenLDAP.org>.
+  mailing list <ldapext@ietf.org>.  Please send editorial comments
+  directly to the author <Kurt@OpenLDAP.org>.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups.  Note that other
@@ -55,9 +55,9 @@ Abstract
 
 
 
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 1]
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 1]
 
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
 
 
 Conventions
@@ -111,9 +111,9 @@ Conventions
 
 
 
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 2]
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 2]
 
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
 
 
 2. System Schema for Collective Attributes
@@ -167,9 +167,9 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
 
 
 
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 3]
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 3]
 
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
 
 
   The descriptor excludeAllCollectiveAttributes is associated with the
@@ -223,9 +223,9 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
 
 
 
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 4]
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 4]
 
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
 
 
 3.2. Collective State or Province Name
@@ -279,9 +279,9 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
 
 
 
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 5]
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 5]
 
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
 
 
   collection of entries.
@@ -335,9 +335,9 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
 
 
 
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 6]
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 6]
 
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
 
 
         SUP facsimileTelephoneNumber COLLECTIVE )
@@ -354,17 +354,26 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
 
 4. Security Considerations
 
-  Collective attributes are not believed to introduce any additional
-  security considerations to LDAP [LDAPTS].
+  Collective attributes, like other attributes, are subject to access
+  control restrictions and other administrative policy.  Generally
+  speaking, collective attributes accessed via an entry in a collection
+  are governed by rules restricting access to attributes of that entry.
+  And collective attributes access via a subentry are governed by rules
+  restricting access to attributes of that subentry.  However, as LDAP
+  does not have a standard access model, the particulars of each
+  server's access control system may differ.
+
+  General LDAP security considerations [LDAPTS] also apply.
 
 
 5. IANA Considerations
 
-  It is requested that IANA register the LDAP descriptors used in this
-  document per the following registration template:
+  It is requested that IANA register upon Standards Action the LDAP
+  descriptors [LDAPIANA] defined in this technical specification.  The
+  following registration template is suggested:
 
       Subject: Request for LDAP Descriptor Registration
-      Descriptor (short name): see comment
+      Descriptor see comments
       Object Identifier: see comment
       Person & email address to contact for further information:
            Kurt Zeilenga <kurt@OpenLDAP.org>
@@ -379,6 +388,14 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
         c-InternationalISDNNumber      A    2.5.4.25.1
         c-PhysicalDeliveryOffice       A    2.5.4.19.1
         c-PostOfficeBox                A    2.5.4.18.1
+
+
+
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 7]
+
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
+
+
         c-PostalAddress                A    2.5.4.16.1
         c-PostalCode                   A    2.5.4.17.1
         c-TelephoneNumber              A    2.5.4.20.1
@@ -388,14 +405,6 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
         c-ou                           A    2.5.4.11.1
         c-st                           A    2.5.4.8.1
         c-street                       A    2.5.4.9.1
-
-
-
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 7]
-
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
-
-
         collectiveAttributeSubentries  A    2.5.18.12
         collectiveAttributeSubentry    O    2.5.20.2
         collectiveExclusions           A    2.5.18.7
@@ -403,10 +412,11 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
       where Type A is Attribute and Type O is ObjectClass.
 
 
-  This document uses in this document were assigned by the ISO/IEC Joint
-  Technical Committee 1 - Subcommitte 6 to identify elements of X.500
-  schema.  This document make no OID assignments, it only associates
-  LDAP schema descriptions with existing elements of X.500 schema.
+  The Object Identifiers used in this document were assigned by the
+  ISO/IEC Joint Technical Committee 1 - Subcommitte 6 to identify
+  elements of X.500 schema [X.520].  This document make no OID
+  assignments, it only provides LDAP schema descriptions with existing
+  elements of X.500 schema.
 
 
 6. Acknowledgments
@@ -434,6 +444,14 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
             Directory Access Protocol (v3):  Attribute Syntax
             Definitions", RFC 2252, December 1997.
 
+
+
+
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 8]
+
+INTERNET-DRAFT         LDAP Collective Attributes         18 August 2002
+
+
   [RFC2256] M. Wahl, "A Summary of the X.500(96) User Schema for use
             with LDAPv3", RFC 2256, December 1997.
 
@@ -443,14 +461,6 @@ INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
 
   [SUBENTRY] K. Zeilenga, S. Legg, "Subentries in LDAP",
             draft-zeilenga-ldap-subentry-xx.txt, a work in progress.
-
-
-
-
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 8]
-
-INTERNET-DRAFT         LDAP Collective Attributes            17 May 2002
-
 
   [X.501]   "The Directory: Models", ITU-T Recommendation X.501, 1993.
 
@@ -493,15 +503,5 @@ Copyright 2002, The Internet Society.  All Rights Reserved.
 
 
 
-
-
-
-
-
-
-
-
-
-
-Zeilenga            draft-zeilenga-ldap-collective-07           [Page 9]
+Zeilenga            draft-zeilenga-ldap-collective-08           [Page 9]
 

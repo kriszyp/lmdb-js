@@ -6,12 +6,12 @@
 
 INTERNET-DRAFT                                    Kurt D. Zeilenga
 Intended Category: Standard Track                 OpenLDAP Foundation
-Date: 17 May 2002                                 Steven Legg
+Date: 18 August 2002                              Steven Legg
 Expires in six months                             Adacel Technologies
 
 
                             Subentries in LDAP
-                  <draft-zeilenga-ldap-subentry-05.txt>
+                  <draft-zeilenga-ldap-subentry-07.txt>
 
 
 Status of this Memo
@@ -23,8 +23,8 @@ Status of this Memo
   revision, submitted to the RFC Editor as a Standard Track document.
   Distribution of this memo is unlimited.  Technical discussion of this
   document will take place on the IETF LDAP Extension Working Group
-  mailing list <ietf-ldapext@netscape.com>.  Please send editorial
-  comments directly to the author <Kurt@OpenLDAP.org>.
+  mailing list <ldapext@ietf.org>.  Please send editorial comments
+  directly to the author <Kurt@OpenLDAP.org>.
 
   Internet-Drafts are working documents of the Internet Engineering Task
   Force (IETF), its areas, and its working groups.  Note that other
@@ -55,9 +55,9 @@ Abstract
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 1]
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 1]
 
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
 
 Conventions
@@ -111,9 +111,9 @@ Conventions
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 2]
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 2]
 
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
 
   lower boundary, possibly extending to the leaf entries.  A subtree
@@ -167,9 +167,9 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 3]
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 3]
 
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
 
   constraints on the components of SubtreeSpecification.
@@ -223,9 +223,9 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 4]
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 4]
 
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
 
   Entries that are more than the maximum number of RDN arcs below the
@@ -279,9 +279,9 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 5]
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 5]
 
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
 
   The administrativeRole operational attribute is also used to regulate
@@ -335,9 +335,9 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 6]
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 6]
 
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
 
   The controlValue SHALL NOT be absent.
@@ -364,8 +364,9 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
 
 5.1 Descriptors
 
-  It is requested that IANA register the LDAP descriptors used in this
-  document per the following registration template:
+  It is requested that IANA register upon Standards Action the LDAP
+  descriptors detailed in this technical specification.  The following
+  registration template is suggested:
 
       Subject: Request for LDAP Descriptor Registration
       Descriptor (short name): see comment
@@ -387,14 +388,15 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
         collectiveAttributeSpecificArea R    2.5.23.5
         subentry                        O    2.5.20.0
         subschemaAdminSpecificArea      R    2.5.23.4
-        subtreeSpecification            A    2.5.18.6
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 7]
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 7]
 
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
+
+        subtreeSpecification            A    2.5.18.6
 
       where Type A is Attribute, Type O is ObjectClass, and Type R is
       Administrative Role.
@@ -402,12 +404,10 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
 
 5.2 Object Identifiers
 
-  No IANA assignment of object identifiers is requested.
-
   This document uses the OID 1.3.6.1.4.1.4203.1.10.1 to identify an LDAP
   protocol element defined herein.  This OID was assigned [ASSIGN] by
-  OpenLDAP Foundation under its IANA assigned private enterprise
-  allocation [PRIVATE] for use in this specification.
+  OpenLDAP Foundation, under its IANA-assigned private enterprise
+  allocation [PRIVATE], for use in this specification.
 
   Other OIDs which appear in this document were either assigned by the
   ISO/IEC Joint Technical Committee 1 - Subcommitte 6 to identify
@@ -415,11 +415,41 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
   here.
 
 
+5.3 Protocol Mechanisms
+
+  Registration of the protocol mechanisms defined in this document is
+  requested [LDAPIANA].
+
+  Subject: Request for LDAP Protocol Mechansism Registration
+
+  Object Identifier: 1.3.6.1.4.1.4203.1.10.1
+
+  Description: Subentries
+
+  Person & email address to contact for further information:
+       Kurt Zeilenga <kurt@openldap.org>
+
+  Usage: Control
+
+  Specification: RFCxxxx
+
+  Author/Change Controller: IESG
+
+  Comments: none
+
+
 6. Acknowledgment
 
   This document is based on engineering done by IETF LDUP and LDAPext
   Working Groups including "LDAP Subentry Schema" by Ed Reed.  This
   document also borrows from a number of ITU documents including X.501.
+
+
+
+
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 8]
+
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
 
 
 7. Authors' Addresses
@@ -443,14 +473,6 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
 8. Normative References
 
   [X.501]     ITU-T, "The Directory -- Models," X.501, 1993.
-
-
-
-
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 8]
-
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
-
 
   [X.680]     ITU-T, "Abstract Syntax Notation One (ASN.1) -
               Specification of Basic Notation", X.680, 1994.
@@ -479,6 +501,13 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
               Protocol (v3): Technical Specification",
               draft-ietf-ldapbis-ldapv3-ts-xx.txt, a work in progress.
 
+
+
+Zeilenga             draft-zeilenga-ldap-subentry-07            [Page 9]
+
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
+
+
   [GSER] S. Legg, "Generic String Encoding Rules for ASN.1 Types",
               draft-legg-ldapext-gser--xx.txt, a work in progress.
 
@@ -501,13 +530,6 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
               http://www.iana.org/assignments/enterprise-numbers.
 
 
-
-
-Zeilenga             draft-zeilenga-ldap-subentry-05            [Page 9]
-
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
-
-
 A. Subtree Specification ABNF
 
   This appendix is non-normative.
@@ -525,18 +547,26 @@ A. Subtree Specification ABNF
   In the event that there is a discrepancy between this ABNF and the
   encoding determined by [GSER], [GSER] is to be taken as definitive.
 
-    SubtreeSpecification = "{"    [ sp base ]
-                              [ sep sp specificExclusions ]
-                              [ sep sp minimum ]
-                              [ sep sp maximum ]
-                              [ sep sp specificationFilter ]
+    SubtreeSpecification = "{"    [ sp ss-base ]
+                              [ sep sp ss-specificExclusions ]
+                              [ sep sp ss-minimum ]
+                              [ sep sp ss-maximum ]
+                              [ sep sp ss-specificationFilter ]
                                     sp "}"
 
-    base                = id-base                msp LocalName
-    specificExclusions  = id-specificExclusions  msp SpecificExclusions
-    minimum             = id-minimum             msp BaseDistance
-    maximum             = id-maximum             msp BaseDistance
-    specificationFilter = id-specificationFilter msp Refinement
+    ss-base                = id-base                msp LocalName
+    ss-specificExclusions  = id-specificExclusions  msp SpecificExclusions
+
+
+
+Zeilenga             draft-zeilenga-ldap-subentry-07           [Page 10]
+
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
+
+
+    ss-minimum             = id-minimum             msp BaseDistance
+    ss-maximum             = id-maximum             msp BaseDistance
+    ss-specificationFilter = id-specificationFilter msp Refinement
 
     id-base                = %x62.61.73.65 ; "base"
     id-specificExclusions  = %x73.70.65.63.69.66.69.63.45.78.63.6C.75.73
@@ -556,14 +586,6 @@ A. Subtree Specification ABNF
 
     Refinement  = item / and / or / not
     item        = id-item ":" OBJECT-IDENTIFIER
-
-
-
-Zeilenga             draft-zeilenga-ldap-subentry-05           [Page 10]
-
-INTERNET-DRAFT             Subentries in LDAP                17 May 2002
-
-
     and         = id-and  ":" Refinements
     or          = id-or   ":" Refinements
     not         = id-not  ":" Refinement
@@ -574,7 +596,7 @@ INTERNET-DRAFT             Subentries in LDAP                17 May 2002
     id-or       = %x6F.72       ; "or"
     id-not      = %x6E.6F.74    ; "not"
 
-    BaseDistance = INTEGER
+    BaseDistance = INTEGER-0-MAX
 
   The <sp>, <msp>, <sep>, <INTEGER>, <OBJECT-IDENTIFIER> and <LocalName>
   rules are defined in [GCE].
@@ -590,6 +612,14 @@ Copyright 2002, The Internet Society.  All Rights Reserved.
   included on all such copies and derivative works.  However, this
   document itself may not be modified in any way, such as by removing
   the copyright notice or references to the Internet Society or other
+
+
+
+Zeilenga             draft-zeilenga-ldap-subentry-07           [Page 11]
+
+INTERNET-DRAFT             Subentries in LDAP             18 August 2002
+
+
   Internet organizations, except as needed for the  purpose of
   developing Internet standards in which case the procedures for
   copyrights defined in the Internet Standards process must be followed,
@@ -615,5 +645,31 @@ Copyright 2002, The Internet Society.  All Rights Reserved.
 
 
 
-Zeilenga             draft-zeilenga-ldap-subentry-05           [Page 11]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga             draft-zeilenga-ldap-subentry-07           [Page 12]
 
