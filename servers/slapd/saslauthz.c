@@ -338,7 +338,7 @@ char *slap_sasl2dn( char *saslname )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
-		   "slap_sasl2dn: performing internal search (base=%s, scope=%s)\n",
+		   "slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
 		   searchbase, scope ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
