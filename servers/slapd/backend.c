@@ -1346,7 +1346,7 @@ backend_group(
 					rc = 1;
 					for (i=0; a->a_vals[i].bv_val; i++) {
 						if ( ldap_url_parse( a->a_vals[i].bv_val, &ludp ) !=
-							LDAP_SUCCESS )
+							LDAP_URL_SUCCESS )
 						{
 							continue;
 						}
@@ -1377,8 +1377,8 @@ backend_group(
 							break;
 #ifdef LDAP_SCOPE_SUBORDINATE
 						case LDAP_SCOPE_SUBORDINATE:
-							if ( dn_match( &nbase, op_ndn ) &&
-								!dnIsSuffix(op_ndn, &nbase ))
+							if ( dn_match( &nbase, op_ndn ) ||
+								!dnIsSuffix( op_ndn, &nbase ) )
 							{
 								goto loopit;
 							}
