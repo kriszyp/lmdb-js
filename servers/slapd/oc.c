@@ -170,6 +170,47 @@ oc_bvfind( struct berval *ocname )
 	return( NULL );
 }
 
+static LDAP_SLIST_HEAD(OCUList, slap_object_class) oc_undef_list
+	= LDAP_SLIST_HEAD_INITIALIZER(&oc_undef_list);
+
+ObjectClass *
+oc_bvfind_undef( struct berval *ocname )
+{
+	ObjectClass	*oc = oc_bvfind( ocname );
+
+	if ( oc ) {
+		return oc;
+	}
+
+	LDAP_SLIST_FOREACH( oc, &oc_undef_list, soc_next ) {
+		int	d = oc->soc_cname.bv_len - ocname->bv_len;
+
+		if ( d ) {
+			continue;
+		}
+
+		if ( strcasecmp( oc->soc_cname.bv_val, ocname->bv_val ) == 0 ) {
+			break;
+		}
+	}
+	
+	if ( oc ) {
+		return oc;
+	}
+	
+	oc = ch_malloc( sizeof( ObjectClass ) + ocname->bv_len + 1 );
+	memset( oc, 0, sizeof( ObjectClass ) );
+
+	oc->soc_cname.bv_len = ocname->bv_len;
+	oc->soc_cname.bv_val = (char *)&oc[ 1 ];
+	AC_MEMCPY( oc->soc_cname.bv_val, ocname->bv_val, ocname->bv_len );
+
+	LDAP_SLIST_NEXT( oc, soc_next ) = NULL;
+	LDAP_SLIST_INSERT_HEAD( &oc_undef_list, oc, soc_next );
+
+	return oc;
+}
+
 static int
 oc_create_required(
     ObjectClass		*soc,
@@ -336,6 +377,13 @@ oc_destroy( void )
 		if (o->soc_required) ldap_memfree(o->soc_required);
 		if (o->soc_allowed) ldap_memfree(o->soc_allowed);
 		ldap_objectclass_free((LDAPObjectClass *)o);
+	}
+	
+	while( !LDAP_SLIST_EMPTY(&oc_undef_list) ) {
+		o = LDAP_SLIST_FIRST(&oc_undef_list);
+		LDAP_SLIST_REMOVE_HEAD(&oc_undef_list, soc_next);
+
+		ch_free( (ObjectClass *)o );
 	}
 }
 

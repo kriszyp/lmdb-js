@@ -142,10 +142,19 @@ rwm_map_config(
 	"is not defined in schema\n",
 				fname, lineno, dst );
 
+			mapping[0].m_dst_oc = oc_bvfind_undef( &mapping[0].m_dst );
+			if ( mapping[0].m_dst_oc == NULL ) {
+				fprintf( stderr, "%s: line %d: unable to mimic destination objectClass '%s'\n",
+					fname, lineno, dst );
+				return 1;
+			}
+
+#if 0
 			mapping[0].m_dst_oc = ch_malloc( sizeof( ObjectClass ) );
 			memset( mapping[0].m_dst_oc, 0, sizeof( ObjectClass ) );
 			mapping[0].m_dst_oc->soc_cname = mapping[0].m_dst;
 			mapping[0].m_flags |= RWMMAP_F_FREE_DST;
+#endif
 		}
 		mapping[1].m_src_oc = mapping[0].m_dst_oc;
 

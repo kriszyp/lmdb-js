@@ -1248,7 +1248,7 @@ slap_schema_load( void )
 		}
 	}
 
-	slap_at_undefined.sat_syntax = slap_schema.si_syn_distinguishedName;
+	slap_at_undefined.sat_syntax = slap_schema.si_syn_octetString;
 	slap_schema.si_at_undefined = &slap_at_undefined;
 
 	return LDAP_SUCCESS;

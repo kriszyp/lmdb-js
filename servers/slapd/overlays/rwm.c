@@ -771,7 +771,9 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 			goto cleanup_attr;
 		}
 
-		if ( (*ap)->a_desc->ad_type->sat_no_user_mod ) {
+		if ( (*ap)->a_desc->ad_type->sat_no_user_mod 
+			&& (*ap)->a_desc->ad_type != slap_schema.si_at_undefined )
+		{
 			goto next_attr;
 		}
 

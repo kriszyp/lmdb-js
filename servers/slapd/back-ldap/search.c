@@ -420,15 +420,24 @@ ldap_build_entry(
 			if ( pretty ) {
 				rc = pretty( attr->a_desc->ad_type->sat_syntax,
 					&attr->a_vals[i], &pval, NULL );
+
 			} else {
 				rc = validate( attr->a_desc->ad_type->sat_syntax,
 					&attr->a_vals[i] );
 			}
 
 			if ( rc != LDAP_SUCCESS ) {
-				attr->a_nvals = NULL;
-				attr_free( attr );
-				goto next_attr;
+				/* check if, by chance, it's an undefined objectClass */
+				if ( attr->a_desc == slap_schema.si_ad_objectClass &&
+						oc_bvfind_undef( &attr->a_vals[i] ) != NULL )
+				{
+					ber_dupbv( &pval, &attr->a_vals[i] );
+
+				} else {
+					attr->a_nvals = NULL;
+					attr_free( attr );
+					goto next_attr;
+				}
 			}
 
 			if ( pretty ) {
@@ -539,7 +548,7 @@ ldap_back_entry_get(
 
 retry:
 	rc = ldap_search_ext_s( lc->lc_ld, ndn->bv_val, LDAP_SCOPE_BASE, filter,
-				gattr, 0, NULL, NULL, LDAP_NO_LIMIT,
+				at ? gattr : NULL, 0, NULL, NULL, LDAP_NO_LIMIT,
 				LDAP_NO_LIMIT, &result );
 	if ( rc != LDAP_SUCCESS ) {
 		if ( rc == LDAP_SERVER_DOWN && do_retry ) {
