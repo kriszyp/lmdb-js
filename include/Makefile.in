@@ -8,9 +8,12 @@ all-local: ldap_config.h FORCE
 
 install-local: FORCE
 	-$(MKDIR) $(DESTDIR)$(includedir)
-	for header in $(srcdir)/lber.h lber_types.h $(srcdir)/ldap.h \
-	  $(srcdir)/ldap_cdefs.h ldap_features.h $(srcdir)/ldap_schema.h \
-	  $(srcdir)/disptmpl.h $(srcdir)/srchpref.h; do \
+	for header in $(srcdir)/lber.h lber_types.h \
+		$(srcdir)/ldap.h $(srcdir)/ldap_cdefs.h \
+		$(srcdir)/ldap_schema.h $(srcdir)/ldap_utf8.h \
+		ldap_features.h \
+		$(srcdir)/disptmpl.h $(srcdir)/srchpref.h; \
+	do \
 		$(INSTALL) $(INSTALLFLAGS) -m 644 $$header $(DESTDIR)$(includedir); \
 	done
 
