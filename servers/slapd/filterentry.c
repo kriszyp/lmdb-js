@@ -171,6 +171,9 @@ test_filter(
 
 		rc = test_filter( be, conn, op, e, f->f_not );
 
+		/* Flip true to false and false to true
+		 * but leave Undefined alone.
+		 */
 		switch( rc ) {
 		case LDAP_COMPARE_TRUE:
 			rc = LDAP_COMPARE_FALSE;
@@ -337,7 +340,7 @@ test_filter_and(
 )
 {
 	Filter	*f;
-	int rtn = LDAP_COMPARE_TRUE;
+	int rtn = LDAP_COMPARE_TRUE; /* True if empty */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
@@ -351,11 +354,13 @@ test_filter_and(
 		int rc = test_filter( be, conn, op, e, f );
 
 		if ( rc == LDAP_COMPARE_FALSE ) {
+			/* filter is False */
 			rtn = rc;
 			break;
 		}
 
 		if ( rc != LDAP_COMPARE_TRUE ) {
+			/* filter is Undefined unless later elements are False */
 			rtn = rc;
 		}
 	}
@@ -380,7 +385,7 @@ test_filter_or(
 )
 {
 	Filter	*f;
-	int rtn = LDAP_COMPARE_FALSE;
+	int rtn = LDAP_COMPARE_FALSE; /* False if empty */
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
@@ -394,11 +399,13 @@ test_filter_or(
 		int rc = test_filter( be, conn, op, e, f );
 
 		if ( rc == LDAP_COMPARE_TRUE ) {
+			/* filter is True */
 			rtn = rc;
 			break;
 		}
 
 		if ( rc != LDAP_COMPARE_FALSE ) {
+			/* filter is Undefined unless later elements are True */
 			rtn = rc;
 		}
 	}
