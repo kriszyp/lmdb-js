@@ -25,6 +25,7 @@ int dtblsize;
 
 static ldap_pvt_thread_t	listener_tid;
 static volatile sig_atomic_t slapd_shutdown = 0;
+static volatile sig_atomic_t slapd_listener = 0;
 
 struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
@@ -228,6 +229,8 @@ slapd_daemon_task(
 	int inetd = ((int *)ptr) [0];
 	int tcps  = ((int *)ptr) [1];
 	free( ptr );
+
+	slapd_listener=1;
 
 	connections_init();
 
@@ -588,6 +591,7 @@ slapd_daemon_task(
 	}
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
+	slapd_listener = 0;
 	return NULL;
 }
 
@@ -625,7 +629,10 @@ void
 slap_set_shutdown( int sig )
 {
 	slapd_shutdown = sig;
-	ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+
+	if(slapd_listener) {
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+	}
 
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_set_shutdown );
