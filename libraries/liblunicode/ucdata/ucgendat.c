@@ -806,7 +806,8 @@ read_cdata(FILE *in)
 
     lineno = skip = 0;
     while (!feof(in)) {
-		if( fscanf(in, "%[^\n]\n", line) != 1) break;
+		if( !fgets(line, sizeof(line), in)) break;
+		if( (s=strchr(line, '\n')) ) *s = '\0';
         lineno++;
 
         /*
@@ -1165,7 +1166,8 @@ read_compexdata(FILE *in)
     (void) memset((char *) compexs, 0, sizeof(unsigned long) << 11);
 
     while (!feof(in)) {
-		if( fscanf(in, "%[^\n]\n", line) != 1) break;
+		if( !fgets(line, sizeof(line), in)) break;
+		if( (s=strchr(line, '\n')) ) *s = '\0';
         /*
          * Skip blank lines and lines that start with a '#'.
          */
@@ -1600,10 +1602,7 @@ main(int argc, char *argv[])
     FILE *in;
     char *prog, *opath;
 
-    if ((prog = strrchr(argv[0], *LDAP_DIRSEP)) != 0)
-      prog++;
-    else
-      prog = argv[0];
+    prog = lutil_progname( "ucgendat", argc, argv );
 
     opath = 0;
     in = stdin;
