@@ -28,31 +28,31 @@ typedef struct config_table_s {
 	void *notify;
 } ConfigTable;
 
-#define ARGS_USERLAND	0x0000ffffL
-#define ARGS_TYPES	0x00ff0000L
-#define ARGS_POINTER	0x001f0000L
-#define ARGS_NUMERIC	0x000f0000L
-#define ARG_INT		0x00010000L
-#define ARG_LONG	0x00020000L
-#define ARG_BER_LEN_T	0x00040000L
-#define ARG_ON_OFF	0x00080000L
-#define ARG_STRING	0x00100000L
-#define ARG_BERVAL	0x00200000L	/* XXX not yet */
-#define ARG_EXISTS	0x00400000L	/* XXX not yet */
-#define ARG_IGNORED	0x00800000L
+#define ARGS_USERLAND	0x0000ffff
+#define ARGS_TYPES	0x00ff0000
+#define ARGS_POINTER	0x001f0000
+#define ARGS_NUMERIC	0x000f0000
+#define ARG_INT		0x00010000
+#define ARG_LONG	0x00020000
+#define ARG_BER_LEN_T	0x00040000
+#define ARG_ON_OFF	0x00080000
+#define ARG_STRING	0x00100000
+#define ARG_BERVAL	0x00200000	/* XXX not yet */
+#define ARG_EXISTS	0x00400000	/* XXX not yet */
+#define ARG_IGNORED	0x00800000
 
-#define ARGS_SYNTAX	0xff000000L
-#define ARG_DB		0x01000000L
-#define ARG_PRE_DB	0x02000000L
-#define ARG_PAREN	0x04000000L
-#define ARG_NONZERO	0x08000000L
-#define ARG_UNIQUE	0x10000000L	/* XXX not yet */
-#define ARG_SPECIAL	0x20000000L	/* one special case */
-#define ARG_OFFSET	0x40000000L
-#define ARG_MAGIC	0x80000000L
+#define ARGS_SYNTAX	0xff000000
+#define ARG_DB		0x01000000
+#define ARG_PRE_DB	0x02000000
+#define ARG_PAREN	0x04000000
+#define ARG_NONZERO	0x08000000
+#define ARG_UNIQUE	0x10000000	/* XXX not yet */
+#define ARG_SPECIAL	0x20000000	/* one special case */
+#define ARG_OFFSET	0x40000000
+#define ARG_MAGIC	0x80000000
 
-#define ARG_BAD_CONF	0xdead0000L	/* overload return values */
-#define ARG_UNKNOWN	0xc0de0000L
+#define ARG_BAD_CONF	0xdead0000	/* overload return values */
+#define ARG_UNKNOWN	0xc0de0000
 
 typedef struct config_args_s {
 	int argc;
