@@ -344,7 +344,11 @@ ber_first_element( BerElement *ber, unsigned long *len, char **last )
 	*last = ber->ber_ptr + *len;
 
 	if ( *last == ber->ber_ptr ) {
+#ifdef LBER_END_SEQORSET 
+		return( LBER_END_SEQORSET );
+#else
 		return( LBER_DEFAULT );
+#endif
 	}
 
 	return( ber_peek_tag( ber, len ) );
@@ -354,7 +358,11 @@ unsigned long
 ber_next_element( BerElement *ber, unsigned long *len, char *last )
 {
 	if ( ber->ber_ptr == last ) {
+#ifdef LBER_END_SEQORSET 
+		return( LBER_END_SEQORSET );
+#else
 		return( LBER_DEFAULT );
+#endif
 	}
 
 	return( ber_peek_tag( ber, len ) );
@@ -462,8 +470,13 @@ va_dcl
 			*sss = NULL;
 			j = 0;
 			for ( tag = ber_first_element( ber, &len, &last );
-			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
-			    tag = ber_next_element( ber, &len, last ) ) {
+			    tag != LBER_DEFAULT && 
+#ifdef LDAP_END_SEQORSET
+					tag != LBER_END_SEQORSET &&
+#endif
+					rc != LBER_DEFAULT;
+			    tag = ber_next_element( ber, &len, last ) )
+			{
 				if ( *sss == NULL ) {
 					*sss = (char **) malloc(
 					    2 * sizeof(char *) );
@@ -474,6 +487,13 @@ va_dcl
 				rc = ber_get_stringa( ber, &((*sss)[j]) );
 				j++;
 			}
+#ifdef LDAP_END_SEQORSET
+			if (rc != LBER_DEFAULT && 
+				tag != LBER_END_SEQORSET )
+			{
+				rc = LBER_DEFAULT;
+			}
+#endif
 			if ( j > 0 )
 				(*sss)[j] = NULL;
 			break;
@@ -483,8 +503,13 @@ va_dcl
 			*bv = NULL;
 			j = 0;
 			for ( tag = ber_first_element( ber, &len, &last );
-			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
-			    tag = ber_next_element( ber, &len, last ) ) {
+			    tag != LBER_DEFAULT && 
+#ifdef LDAP_END_SEQORSET
+					tag != LBER_END_SEQORSET &&
+#endif
+					rc != LBER_DEFAULT;
+			    tag = ber_next_element( ber, &len, last ) )
+			{
 				if ( *bv == NULL ) {
 					*bv = (struct berval **) malloc(
 					    2 * sizeof(struct berval *) );
@@ -495,6 +520,13 @@ va_dcl
 				rc = ber_get_stringal( ber, &((*bv)[j]) );
 				j++;
 			}
+#ifdef LDAP_END_SEQORSET
+			if (rc != LBER_DEFAULT && 
+				tag != LBER_END_SEQORSET )
+			{
+				rc = LBER_DEFAULT;
+			}
+#endif
 			if ( j > 0 )
 				(*bv)[j] = NULL;
 			break;
@@ -532,6 +564,9 @@ va_dcl
 void
 ber_bvfree( struct berval *bv )
 {
+#ifdef LBER_ASSERT
+	assert(bv != NULL);			/* bv damn better point to something */
+#endif
 	if ( bv->bv_val != NULL )
 		free( bv->bv_val );
 	free( (char *) bv );
@@ -542,6 +577,9 @@ ber_bvecfree( struct berval **bv )
 {
 	int	i;
 
+#ifdef LBER_ASSERT
+	assert(bv != NULL);			/* bv damn better point to something */
+#endif
 	for ( i = 0; bv[i] != NULL; i++ )
 		ber_bvfree( bv[i] );
 	free( (char *) bv );
@@ -556,9 +594,18 @@ ber_bvdup( struct berval *bv )
 	    == NULL ) {
 		return( NULL );
 	}
+
+	if ( bv->bv_val == NULL ) {
+		new->bv_val = NULL;
+		new->bv_len = 0;
+		return ( new );
+	}
+
 	if ( (new->bv_val = (char *) malloc( bv->bv_len + 1 )) == NULL ) {
+		free( new );
 		return( NULL );
 	}
+
 	SAFEMEMCPY( new->bv_val, bv->bv_val, (size_t) bv->bv_len );
 	new->bv_val[bv->bv_len] = '\0';
 	new->bv_len = bv->bv_len;

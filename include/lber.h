@@ -40,7 +40,7 @@ LDAP_BEGIN_DECL
  */
 #define LBER_ERROR		0xffffffffL
 #define LBER_DEFAULT		0xffffffffL
-#define LBER_END_SEQORSET	0xfffffffeL
+/* #define LBER_END_SEQORSET	0xfffffffeL *//* no part of LDAP C-API */
 
 /* general BER types we know about */
 #define LBER_BOOLEAN		0x01L
@@ -168,7 +168,7 @@ LDAP_F void ber_init_w_nullc LDAP_P(( BerElement *ber, int options ));
 LDAP_F void ber_reset LDAP_P(( BerElement *ber, int was_writing ));
 
 /*
- * LDAPv3 routines (not yet implemented)
+ * LDAP draft-ietf-ldapext-ldap-c-api-01 routines
  */
 LDAP_F BerElement *ber_init LDAP_P(( struct berval *bv ));
 LDAP_F int ber_flatten LDAP_P(( BerElement *ber, struct berval **bvPtr ));

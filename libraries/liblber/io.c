@@ -365,6 +365,7 @@ ber_dup( BerElement *ber )
 }
 
 
+/* OLD U-Mich ber_init() */
 void
 ber_init_w_nullc( BerElement *ber, int options )
 {
@@ -373,12 +374,79 @@ ber_init_w_nullc( BerElement *ber, int options )
 	ber->ber_options = (char) options;
 }
 
+/* New C-API ber_init() */
+/* This function constructs a BerElement containing a copy
+** of the data in the bv argument.
+*/
 BerElement *
 ber_init( struct berval *bv )
 {
-	return ( NULL );
+	BerElement *ber;
+
+	if ( bv == NULL ) {
+		return NULL;
+	}
+
+	ber = ber_alloc_t( 0 );
+
+	if( ber == NULLBER ) {
+		/* allocation failed */
+		return ( NULL );
+	}
+
+	/* copy the data */
+	if ( (ber_write ( ber, bv->bv_val, bv->bv_len, 0 )) != bv->bv_len ) {
+		/* write failed, so free and return NULL */
+		ber_free( ber, 1 );
+		return( NULL );
+	}
+
+	ber_reset( ber, 1 );	/* reset the pointer to the start of the buffer */
+
+	return ( ber );
 }
 
+/* New C-API ber_flatten routine */
+/* This routine allocates a struct berval whose contents are a BER
+** encoding taken from the ber argument.  The bvPtr pointer pointers to
+** the returned berval.
+*/
+int ber_flatten(
+	BerElement *ber,
+	struct berval **bvPtr)
+{
+	struct berval *bv;
+ 
+	if(bvPtr == NULL) {
+		return( -1 );
+	}
+
+	if ( (bv = malloc( sizeof(struct berval))) == NULL ) {
+		return( -1 );
+	}
+
+	if ( ber == NULL ) {
+		/* ber is null, create an empty berval */
+		bv->bv_val = NULL;
+		bv->bv_len = 0;
+
+	} else {
+		/* copy the berval */
+		ptrdiff_t len = ber->ber_ptr - ber->ber_buf;
+
+		if ( (bv->bv_val = (char *) malloc( len + 1 )) == NULL ) {
+			ber_bvfree( bv );
+			return( -1 );
+		}
+
+		SAFEMEMCPY( bv->bv_val, ber->ber_buf, (size_t)len );
+		bv->bv_val[len] = '\0';
+		bv->bv_len = len;
+	}
+    
+	*bvPtr = bv;
+	return( 0 );
+}
 
 void
 ber_reset( BerElement *ber, int was_writing )
