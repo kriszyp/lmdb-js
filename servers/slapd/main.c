@@ -11,10 +11,58 @@
 #include "slap.h"
 #include "lutil.h"			/* Get lutil_detach() */
 
+/*
+ * when more than one slapd is running on one machine, each one might have
+ * it's own LOCAL for syslogging and must have its own pid/args files
+ */
+
+#ifdef LOG_LOCAL4
+
+#define DEFAULT_SYSLOG_USER  LOG_LOCAL4
+
+typedef struct _str2intDispatch {
+
+        char    *stringVal;
+        int      abbr;
+        int      intVal;
+
+} STRDISP, *STRDISP_P;
+
+
+/* table to compute syslog-options to integer */
+static STRDISP  syslog_types[] = {
+
+    { "LOCAL0",         6, LOG_LOCAL0 },
+    { "LOCAL1",         6, LOG_LOCAL1 },
+    { "LOCAL2",         6, LOG_LOCAL2 },
+    { "LOCAL3",         6, LOG_LOCAL3 },
+    { "LOCAL4",         6, LOG_LOCAL4 },
+    { "LOCAL5",         6, LOG_LOCAL5 },
+    { "LOCAL6",         6, LOG_LOCAL6 },
+    { "LOCAL7",         6, LOG_LOCAL7 },
+    NULL
+
+};
+
+static int   cnvt_str2int();
+
+#endif  /* LOG_LOCAL4 */
+
+/*
+ * the server's name must be accessible from the daemon module,
+ * to construct the pid/args file names
+ */
+char  *serverName = NULL;
+
+
 static void
 usage( char *name )
 {
-	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]\n", name );
+	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]", name );
+#ifdef LOG_LOCAL4
+    fprintf( stderr, " [-l sysloguser]" );
+#endif
+    fprintf( stderr, "\n" );
 }
 
 int
@@ -23,11 +71,13 @@ main( int argc, char **argv )
 	int		i;
 	int		inetd = 0;
 	int		port;
-	char		*myname;
 	int		udp;
 	Backend		*be = NULL;
 	FILE		*fp = NULL;
 	char		*configfile;
+#ifdef LOG_LOCAL4
+	int	syslogUser = DEFAULT_SYSLOG_USER;
+#endif
 
 	configfile = SLAPD_DEFAULT_CONFIGFILE;
 	port = LDAP_PORT;
@@ -95,6 +145,15 @@ main( int argc, char **argv )
 			ldap_syslog = atoi( optarg );
 			break;
 
+#ifdef LOG_LOCAL4
+
+		case 'l':	/* set syslog local user */
+			syslogUser = cnvt_str2int( optarg, syslog_types,
+                                           DEFAULT_SYSLOG_USER );
+			break;
+
+#endif
+
 		case 'u':	/* do udp */
 			udp = 1;
 			break;
@@ -107,10 +166,10 @@ main( int argc, char **argv )
 
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 
-	if ( (myname = strrchr( argv[0], '/' )) == NULL ) {
-		myname = ch_strdup( argv[0] );
+	if ( (serverName = strrchr( argv[0], '/' )) == NULL ) {
+		serverName = ch_strdup( argv[0] );
 	} else {
-		myname = ch_strdup( myname + 1 );
+		serverName = ch_strdup( serverName + 1 );
 	}
 
 	if ( ! inetd ) {
@@ -122,10 +181,11 @@ main( int argc, char **argv )
 		lutil_detach( 0, 0 );
 #endif
 	}
+
 #ifdef LOG_LOCAL4
-	openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
+	openlog( serverName, OPENLOG_OPTIONS, syslogUser );
 #else
-	openlog( myname, OPENLOG_OPTIONS );
+	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
 	init();
@@ -231,3 +291,37 @@ main( int argc, char **argv )
 	}
 	return 1;
 }
+
+
+#ifdef LOG_LOCAL4
+
+/*
+ *  Convert a string to an integer by means of a dispatcher table
+ *  if the string is not in the table return the default
+ */
+
+static int
+cnvt_str2int (stringVal, dispatcher, defaultVal)
+char      *stringVal;
+STRDISP_P  dispatcher;
+int        defaultVal;
+{
+    int        retVal = defaultVal;
+    STRDISP_P  disp;
+
+    for (disp = dispatcher; disp->stringVal; disp++) {
+
+        if (!strncasecmp (stringVal, disp->stringVal, disp->abbr)) {
+
+            retVal = disp->intVal;
+            break;
+
+        }
+    }
+
+    return (retVal);
+
+} /* cnvt_str2int */
+
+#endif  /* LOG_LOCAL4 */
+

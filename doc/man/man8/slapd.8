@@ -1,10 +1,10 @@
-.TH SLAPD 8C "6 November 1995" "U-M LDAP LDVERSION"
+.TH SLAPD 8C "22 September 1998" "OpenLDAP LDVERSION"
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
-.B ETCDIR/slapd [\-d debug\-level]
+.B LIBEXECDIR/slapd [\-d debug\-level]
 .B [\-f slapd\-config\-file] [\-p port\-number]
-.B [\-s syslog\-level] [\-i]
+.B [\-s syslog\-level] [\-l syslog\-local\-user] [\-i]
 .B 
 .SH DESCRIPTION
 .LP
@@ -18,6 +18,26 @@ is typically invoked at boot time, usually out of
 Upon startup,
 .B slapd
 normally forks and disassociates itself from the invoking tty.
+In this case, the
+.B slapd
+process will print its process ID to a 
+.B .pid
+file ( see
+.BR getpid (2)
+), as well as the command line options during invocation to an
+.B .args
+file. By default, these files are located in the directory 
+.B LOCALSTATEDIR.
+The files' base names are derived from the 
+.B slapd
+binary name, making it possible to run several 
+.B slapd
+servers with differet names on the same machine, with each having
+its own 
+.B .pid/.args 
+files. (Those 
+.B slapd
+names might be obtained via symbolic links to one binary file.)
 If the
 .B \-d
 flag is given and debugging is set to some non-zero
@@ -55,6 +75,21 @@ at what level debugging statements should be logged to the
 .BR syslog (8)
 facility.
 .TP
+.BI \-l " syslog\-local\-user"
+Selects the local user of the
+.BR syslog (8)
+facility. Values can be 
+.BR LOCAL0 , 
+.BR LOCAL1 , 
+and so on, up to 
+.BR LOCAL7 . 
+The default is
+.BR LOCAL4 .
+However, this option is only permitted on systems that support
+local users with the 
+.BR syslog (8)
+facility.
+.TP
 .BI \-f " slapd\-config\-file"
 Specifies the slapd configuration file. The default is
 .BR ETCDIR/slapd.conf .
@@ -78,7 +113,7 @@ the LDAP databases defined in the default config file, just type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd
+	LIBEXECDIR/slapd
 .ft
 .fi
 .LP
@@ -89,7 +124,7 @@ on voluminous debugging which will be printed on standard error, type:
 .LP
 .nf
 .ft tt
-	ETCDIR/slapd -f /usr/local/slapd/slapd.conf -d 255
+	LIBEXECDIR/slapd -f ETCDIR/slapd.conf -d 255
 .ft
 .fi
 .LP
@@ -102,3 +137,8 @@ on voluminous debugging which will be printed on standard error, type:
 .SH BUGS
 When using the LDBM database backend, the Modify RDN operation does not
 update the attribute values in the entry that are affected by the change.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

@@ -31,11 +31,13 @@
 /*
  * SHARED DEFINITIONS - things you should change
  */
+#define DEFAULT_DIRSEP		"/"
 #define DEFAULT_BINDIR		"%BINDIR%"
 #define DEFAULT_SBINDIR		"%SBINDIR%"
 #define DEFAULT_DATADIR		"%DATADIR%"
 #define DEFAULT_SYSCONFDIR	"%SYSCONFDIR%"
 #define DEFAULT_LIBEXECDIR	"%LIBEXECDIR%"
+#define DEFAULT_RUNDIR		"%RUNDIR%"
 
 #define DEFAULT_LDAP_CONF_FILE "%SYSCONFDIR%/ldap.conf"
 #define DEFAULT_LDAP_USERRC_FILE "ldaprc"
@@ -213,10 +215,10 @@ Please try again later.\r\n"
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */
 #define SLAPD_DEFAULT_TIMELIMIT		3600
-	/* location of the slapd pid file */
-#define SLAPD_PIDFILE			"%RUNDIR%/slapd.pid"
-	/* location of the slapd args file */
-#define SLAPD_ARGSFILE			"%RUNDIR%/slapd.args"
+	/* extension of the slapd pid file */
+#define SLAPD_PIDEXT            ".pid"
+	/* extension of the slapd args file */
+#define SLAPD_ARGSEXT           ".args"
 	/* dn of the special "monitor" entry */
 #define SLAPD_MONITOR_DN		"cn=monitor"
 	/* dn of the special "config" entry */

@@ -5,6 +5,8 @@ Changes included in OpenLDAP 1.2
 	Add ldappasswd() tool
 	Add salted MD5/SHA1 password support
 	Add client/tools password prompting (-W)
+	Add slapd logging option
+	Add slapd alternative args/pid file locations
 	Fix lber leaking ber_scanf
 	Update client/tools Kerberos option handling
 
