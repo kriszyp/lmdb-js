@@ -276,12 +276,12 @@ put_type_and_value( char **out, char *t, char *val, int vlen )
 					len = 1;
 				}
 
-				/* get b64 digit from low order 6 bits */
-				*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
-			}
-
-			for ( ; pad > 0; pad-- ) {
-				*(*out - pad) = '=';
+				if( i + pad < 4 ) {
+					/* get b64 digit from low order 6 bits */
+					*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
+				} else {
+					*(*out)++ = '=';
+				}
 			}
 		}
 	}
