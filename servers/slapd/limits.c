@@ -147,6 +147,19 @@ add_limits(
 	assert( be );
 	assert( limit );
 
+	switch ( type ) {
+	case SLAP_LIMITS_ANONYMOUS:
+	case SLAP_LIMITS_USERS:
+	case SLAP_LIMITS_ANY:
+		for ( i = 0; be->be_limits && be->be_limits[ i ]; i++ ) {
+			if ( be->be_limits[ i ]->lm_type == type ) {
+				return( -1 );
+			}
+		}
+		break;
+	}
+
+
 	lm = ( struct slap_limits * )ch_calloc( sizeof( struct slap_limits ), 1 );
 
 	switch ( type ) {
@@ -217,7 +230,7 @@ parse_limits(
 	int 	type = SLAP_LIMITS_UNDEFINED;
 	char 	*pattern;
 	struct slap_limits_set limit;
-	int 	i;
+	int 	i, rc = 0;
 
 	assert( be );
 
@@ -396,7 +409,23 @@ parse_limits(
 		limit.lms_s_hard = limit.lms_s_soft;
 	}
 	
-	return( add_limits( be, type, pattern, &limit ) );
+	rc = add_limits( be, type, pattern, &limit );
+	if ( rc ) {
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( CONFIG, CRIT, 
+			"%s : line %d: unable to add limit in "
+			"\"limits <pattern> <limits>\" line.\n",
+			fname, lineno, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"%s : line %d: unable to add limit in "
+			"\"limits <pattern> <limits>\" line.\n",
+		fname, lineno, 0 );
+#endif
+	}
+
+	return( rc );
 }
 
 int
@@ -456,12 +485,16 @@ parse_limit(
 			}
 			
 		} else if ( arg[0] == '=' ) {
-			char	*next = NULL;
-
 			arg++;
-			limit->lms_t_soft = strtol( arg, &next, 10 );
-			if ( next == arg || limit->lms_t_soft < -1 ) {
-				return( 1 );
+			if ( strcasecmp( arg, "none" ) == 0 ) {
+				limit->lms_t_soft = -1;
+			} else {
+				char	*next = NULL;
+
+				limit->lms_t_soft = strtol( arg, &next, 10 );
+				if ( next == arg || limit->lms_t_soft < -1 ) {
+					return( 1 );
+				}
 			}
 			limit->lms_t_hard = 0;
 			
@@ -535,12 +568,16 @@ parse_limit(
 			}
 			
 		} else if ( arg[0] == '=' ) {
-			char	*next = NULL;
-
 			arg++;
-			limit->lms_s_soft = strtol( arg, &next, 10 );
-			if ( next == arg || limit->lms_s_soft < -1 ) {
-				return( 1 );
+			if ( strcasecmp( arg, "none" ) == 0 ) {
+				limit->lms_s_soft = -1;
+			} else {
+				char	*next = NULL;
+
+				limit->lms_s_soft = strtol( arg, &next, 10 );
+				if ( next == arg || limit->lms_s_soft < -1 ) {
+					return( 1 );
+				}
 			}
 			limit->lms_s_hard = 0;
 			
