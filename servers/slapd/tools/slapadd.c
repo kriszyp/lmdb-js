@@ -108,7 +108,7 @@ main( int argc, char **argv )
 		entry_free( e );
 	}
 
-	free( buf );
+	ch_free( buf );
 
 	be->be_entry_close( be );
 
