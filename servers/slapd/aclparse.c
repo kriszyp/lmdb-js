@@ -21,6 +21,8 @@ static void		split(char *line, int splitchar, char **left, char **right);
 static void		access_append(Access **l, Access *a);
 static void		acl_usage(void) LDAP_GCCATTR((noreturn));
 
+static char 		*acl_regex_normalized_dn(const char *pattern);
+
 #ifdef LDAP_DEBUG
 static void		print_acl(Backend *be, AccessControl *a);
 static void		print_access(Access *b);
@@ -167,7 +169,7 @@ parse_acl(
 							a->acl_dn_pat = ch_strdup( "*" );
 
 						} else {
-							a->acl_dn_pat = ch_strdup( right );
+							a->acl_dn_pat = acl_regex_normalized_dn( right );
 						}
 					} else if ( strcasecmp( style, "base" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_BASE;
@@ -342,8 +344,8 @@ parse_acl(
 							pat = ch_strdup( "*" );
 
 						} else {
-							regtest(fname, lineno, right);
-							pat = ch_strdup( right );
+							pat = acl_regex_normalized_dn( right );
+							regtest(fname, lineno, pat);
 						}
 					} else if ( right == NULL || *right == '\0' ) {
 						fprintf( stderr,
@@ -452,8 +454,9 @@ parse_acl(
 
 					b->a_group_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						regtest(fname, lineno, right);
-						b->a_group_pat = ch_strdup( right );
+						char *tmp = acl_regex_normalized_dn( right );
+						regtest(fname, lineno, tmp);
+						b->a_group_pat = tmp;
 					} else {
 						b->a_group_pat = ch_strdup( right );
 						dn_normalize(b->a_group_pat);
@@ -578,9 +581,12 @@ parse_acl(
 
 					b->a_peername_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						regtest(fname, lineno, right);
+						char *tmp = acl_regex_normalized_dn( right );
+						regtest(fname, lineno, tmp);
+						b->a_peername_pat = tmp;
+					} else {
+						b->a_peername_pat = ch_strdup( right );
 					}
-					b->a_peername_pat = ch_strdup( right );
 					continue;
 				}
 
@@ -601,9 +607,12 @@ parse_acl(
 
 					b->a_sockname_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						regtest(fname, lineno, right);
+						char *tmp = acl_regex_normalized_dn( right );
+						regtest(fname, lineno, tmp);
+						b->a_sockname_pat = tmp;
+					} else {
+						b->a_sockname_pat = ch_strdup( right );
 					}
-					b->a_sockname_pat = ch_strdup( right );
 					continue;
 				}
 
@@ -624,9 +633,12 @@ parse_acl(
 
 					b->a_domain_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						regtest(fname, lineno, right);
+						char *tmp = acl_regex_normalized_dn( right );
+						regtest(fname, lineno, tmp);
+						b->a_domain_pat = tmp;
+					} else {
+						b->a_domain_pat = ch_strdup( right );
 					}
-					b->a_domain_pat = ch_strdup( right );
 					continue;
 				}
 
@@ -647,9 +659,12 @@ parse_acl(
 
 					b->a_sockurl_style = sty;
 					if (sty == ACL_STYLE_REGEX) {
-						regtest(fname, lineno, right);
+						char *tmp = acl_regex_normalized_dn( right );
+						regtest(fname, lineno, tmp);
+						b->a_sockurl_pat = tmp;
+					} else {
+						b->a_sockurl_pat = ch_strdup( right );
 					}
-					b->a_sockurl_pat = ch_strdup( right );
 					continue;
 				}
 
@@ -1129,6 +1144,45 @@ acl_usage( void )
 		"<control> ::= [ stop | continue | break ]\n"
 		);
 	exit( EXIT_FAILURE );
+}
+
+/*
+ * At present it simply eats the (optional) space after 
+ * a RDN separator (,)
+ * Eventually will evolve in a more complete normalization
+ */
+static char *
+acl_regex_normalized_dn(
+	const char *pattern
+)
+{
+	char *str, *p;
+
+	str = ch_strdup( pattern );
+
+	if ( str == NULL ) {
+		return( NULL );
+	}
+
+	for ( p = str; p[ 0 ]; p++ ) {
+		/* escape */
+		if ( p[ 0 ] == '\\' ) {
+			p++;
+		}
+
+		if ( p[ 0 ] == ',' ) {
+			if ( p[ 1 ] == ' ' ) {
+				char *q;
+			
+				for ( q = &p[ 2 ]; q[ 0 ] == ' '; q++ ) {
+					/* DO NOTHING */ ;
+				}
+				AC_MEMCPY( &p[ 1 ], &q[ 0 ], strlen( q ) + 1 );
+			}
+		}
+	}
+
+	return( str );
 }
 
 static void
