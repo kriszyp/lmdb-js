@@ -269,6 +269,11 @@ ldap_int_open_connection(
 				srv->lud_host, addr, port, async );
 
 			if ( rc == -1 ) return rc;
+
+#ifdef LDAP_DEBUG
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+				LBER_SBIOD_LEVEL_PROVIDER, (void *)"tcp_" );
+#endif
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_tcp,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
@@ -282,6 +287,11 @@ ldap_int_open_connection(
 			rc = ldap_connect_to_path( ld, conn->lconn_sb,
 				srv->lud_host, async );
 			if ( rc == -1 ) return rc;
+
+#ifdef LDAP_DEBUG
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
+				LBER_SBIOD_LEVEL_PROVIDER, (void *)"ipc_" );
+#endif
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_fd,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
@@ -304,9 +314,10 @@ ldap_int_open_connection(
 
 	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
 		LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
-		INT_MAX, NULL );
+		INT_MAX, (void *)"ldap_" );
 #endif
 
 #ifdef HAVE_TLS
@@ -371,6 +382,10 @@ int ldap_open_internal_connection( LDAP **ldp, ber_socket_t *fdp )
 		return( LDAP_NO_MEMORY );
 	}
 	ber_sockbuf_ctrl( c->lconn_sb, LBER_SB_OPT_SET_FD, fdp );
+#ifdef LDAP_DEBUG
+	ber_sockbuf_add_io( c->lconn_sb, &ber_sockbuf_io_debug,
+		LBER_SBIOD_LEVEL_PROVIDER, (void *)"int_" );
+#endif
 	ber_sockbuf_add_io( c->lconn_sb, &ber_sockbuf_io_tcp,
 	  LBER_SBIOD_LEVEL_PROVIDER, NULL );
 	(*ldp)->ld_defconn = c;
