@@ -68,8 +68,8 @@ ldap_SHA1Transform( uint32 *state, const unsigned char *buffer )
     CHAR64LONG16 *block;
 
 #ifdef SHA1HANDSOFF
-    CHAR64LONG16 workspace;
-    block = &workspace;
+    static unsigned char workspace[64];
+    block = (CHAR64LONG16 *)workspace;
     (void)memcpy(block, buffer, 64);
 #else
     block = (CHAR64LONG16 *)buffer;
