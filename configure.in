@@ -133,8 +133,6 @@ dnl General "enable" options
 OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes)dnl
 OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
 OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
-dnl OL_ARG_ENABLE(cache,[  --enable-cache	  enable caching (experimental)], no)dnl
-ol_enable_cache=${ol_enable_cache-no}
 dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
 ol_enable_referrals=${ol_enable_referrals-no}
 dnl OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (deprecated)], no)dnl
@@ -224,7 +222,8 @@ OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
 OL_ARG_WITH(shell_module,[    --with-shell-module	  module type static|dynamic], static,
 	[static dynamic])
 OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
-OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static, [static dynamic])
+OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static,
+	[static dynamic])
 
 dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
@@ -632,13 +631,14 @@ AC_LIBTOOL_WIN32_DLL
 AC_LIBTOOL_DLOPEN
 AC_PROG_LIBTOOL
 
-AC_PROG_AWK
+LTSTATIC=""
+if test -z "$LTDYNAMIC" -a "${OPENLDAP_CVS}"; then
+	LTSTATIC="-static"
+fi
+AC_SUBST(LTSTATIC)dnl
+
 OL_PROG_LN_H
 AC_PROG_LN_S
-
-AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
-	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
-AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 
 dnl ----------------------------------------------------------------
 dnl Perl
@@ -818,6 +818,7 @@ AC_CHECK_HEADERS(	\
 	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
+	sys/ucred.h		\
 	syslog.h		\
 	termios.h		\
 	unistd.h		\
@@ -1232,7 +1233,8 @@ ol_link_tls=no
 if test $ol_with_tls != no ; then
 	AC_CHECK_HEADERS(openssl/ssl.h ssl.h)
 	
-	if test $ac_cv_header_openssl_ssl_h = yes -o $ac_cv_header_ssl_h = yes ; then
+	if test $ac_cv_header_openssl_ssl_h = yes \
+		-o $ac_cv_header_ssl_h = yes ; then
 		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
 			[have_ssleay=yes
 			need_rsaref=no],
@@ -1294,47 +1296,6 @@ if test $ol_enable_lmpasswd != no; then
 	fi
 
 	AC_DEFINE(SLAPD_LMHASH, 1, [define to support LAN Manager passwords])
-fi
-
-dnl ----------------------------------------------------------------
-dnl Tests for reentrant functions necessary to build a
-dnl thread_safe -lldap.
-AC_CHECK_FUNCS(		\
-	ctime_r			\
-	gethostbyname_r	gethostbyaddr_r \
-)
-
-if test "$ac_cv_func_ctime_r" = no ; then
-	ol_cv_func_ctime_r_nargs=0
-else
-	OL_FUNC_CTIME_R_NARGS
-dnl	OL_FUNC_CTIME_R_TYPE
-fi
-
-if test "$ac_cv_func_gethostbyname_r" = yes ; then
- 	OL_FUNC_GETHOSTBYNAME_R_NARGS
-else
- 	ol_cv_func_gethostbyname_r_nargs=0
-fi
- 
-if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
- 	OL_FUNC_GETHOSTBYADDR_R_NARGS
-else
- 	ol_cv_func_gethostbyaddr_r_nargs=0
-fi
-
-if test "$ac_cv_func_ctime_r" = yes \
-	-a "$ol_cv_func_ctime_r_nargs" -ge 2 \
-	-a "$ol_cv_func_ctime_r_nargs" -le 3 \
-	-a "$ac_cv_func_gethostbyname_r" = yes \
-	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 \
-	-a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
- 	-a "$ac_cv_func_gethostbyaddr_r" = yes \
- 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 \
-	-a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
- 	; then
- 
- 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT,1)
 fi
 
 dnl ----------------------------------------------------------------
@@ -1837,8 +1798,7 @@ if test $ol_link_threads != no -a $ol_link_threads != nt ; then
 	fi
 
 dnl When in thread environment, use 
-dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) \ 
-dnl			|| defined( HAVE_FUNC_R )
+dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) || defined( HAVE_FUNC_R )
 dnl			func_r(...);
 dnl		#else
 dnl		#	if defined( HAVE_THREADS ) 
@@ -1855,14 +1815,14 @@ dnl		_POSIX_REENTRANT_FUNCTIONS
 dnl		_POSIX_THREAD_SAFE_FUNCTIONS
 dnl		_POSIX_THREADSAFE_FUNCTIONS
 dnl
-dnl		and is currently defined in lthread.h
+dnl		and is currently defined in <ldap_pvt_thread.h>
 dnl
-dnl HAVE_THREADS is defined by lthread.h iff -UNO_THREADS
+dnl HAVE_THREADS is defined by <ldap_pvt_thread.h> iff -UNO_THREADS
 dnl 
-dnl libldap/*.c should only include <lthread.h> iff
+dnl libldap/*.c should only include <ldap_pvt_thread.h> iff
 dnl LDAP_R_COMPILE is defined.  ie:
 dnl		#ifdef LDAP_R_COMPILE
-dnl		#	include LDAP_R_COMPILE
+dnl		#	include <ldap_pvt_thread.h>
 dnl		#endif
 dnl
 dnl LDAP_R_COMPILE is defined by libldap_r/Makefile.in
@@ -1905,6 +1865,32 @@ fi
 
 if test $ol_link_threads != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1)
+fi
+
+dnl ----------------------------------------------------------------
+dnl Tests for reentrant functions necessary to build -lldap_r
+AC_CHECK_FUNCS(		\
+	ctime_r			\
+	gethostbyname_r	gethostbyaddr_r \
+)
+
+if test "$ac_cv_func_ctime_r" = no ; then
+	ol_cv_func_ctime_r_nargs=0
+else
+	OL_FUNC_CTIME_R_NARGS
+dnl	OL_FUNC_CTIME_R_TYPE
+fi
+
+if test "$ac_cv_func_gethostbyname_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYNAME_R_NARGS
+else
+ 	ol_cv_func_gethostbyname_r_nargs=0
+fi
+ 
+if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYADDR_R_NARGS
+else
+ 	ol_cv_func_gethostbyaddr_r_nargs=0
 fi
 
 dnl ----------------------------------------------------------------
@@ -2444,14 +2430,18 @@ AC_CHECK_FUNCS(		\
 	wait4			\
 	write			\
 	send			\
+	sendmsg			\
 	sendto			\
 )
 
 dnl We actually may need to replace more than this.
-AC_REPLACE_FUNCS(getopt)
+AC_REPLACE_FUNCS(getopt getpeereid)
 
 if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
+fi
+if test "$ac_cv_func_getpeereid" != yes; then
+	LIBSRCS="$LIBSRCS getpeereid.c"
 fi
 if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then
 	if test "$ac_cv_func_snprintf" != yes; then
@@ -2476,10 +2466,6 @@ fi
 if test "$ol_enable_syslog" = yes ; then
 	AC_DEFINE(LDAP_SYSLOG,1,
 		[define this to add syslog code])
-fi
-if test "$ol_enable_cache" = no ; then
-	AC_DEFINE(LDAP_NOCACHE,1,
-		[define this to remove -lldap cache support])
 fi
 if test "$ol_link_kbind" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION)
