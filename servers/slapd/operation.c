@@ -45,6 +45,10 @@ slap_op_free( Operation *op )
 	assert( LDAP_STAILQ_NEXT(op, o_next) == NULL );
 
 	if ( op->o_ber != NULL ) {
+		/* Note - the ber and its buffer are in regular memory,
+		 * so make sure not to use sl_free here.
+		 */
+		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, NULL );
 		ber_free( op->o_ber, 1 );
 	}
 	if ( op->o_dn.bv_val != NULL ) {

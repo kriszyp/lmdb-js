@@ -892,7 +892,7 @@ connection_operation( void *ctx, void *arg_v )
 	ber_tag_t oldtag = tag;
 #endif /* SLAPD_MONITOR */
 	Connection *conn = op->o_conn;
-	void *memctx;
+	void *memctx = NULL;
 	ber_len_t memsiz;
 
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
@@ -930,6 +930,10 @@ connection_operation( void *ctx, void *arg_v )
 	op->o_tmpmemctx = memctx;
 	op->o_tmpmfuncs = &sl_mfuncs;
 	if ( tag != LDAP_REQ_ADD && tag != LDAP_REQ_MODIFY ) {
+		/* Note - the ber and its buffer are already allocated from
+		 * regular memory; this only affects subsequent mallocs that
+		 * ber_scanf may invoke.
+		 */
 		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, memctx );
 	}
 
