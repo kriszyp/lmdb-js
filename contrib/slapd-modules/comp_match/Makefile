@@ -19,7 +19,7 @@ topbuilddir = ../../../../build
 topsrcdir = ../../..
 snaccdir = /usr/local/snacc
 
-LIBTOOL=$(topbuilddir)/libtool
+LIBTOOL=$(topsrcdir)/libtool
 OPT=-g -O2 -DLDAP_COMPONENT
 CC=gcc
 
@@ -30,7 +30,7 @@ INCS=$(LDAP_INC) $(SNACC_INC)
 
 SNACC_LIB=$(snaccdir)/c-lib/libcasn1.a
 SSL_LIB=-lcrypto
-LDAP_LIB=-lldap_r -llber
+#LDAP_LIB=-lldap_r -llber
 LIBS=$(LDAP_LIB) $(SNACC_LIB) $(SSL_LIB)
 
 all:	compmatch.la
