@@ -402,30 +402,6 @@ static Listener * open_listener( const char* url )
 	    	(long) l.sl_sd, err, sock_errstr(err) );
 	}
 #endif
-#ifdef SO_KEEPALIVE
-	/* enable keep alives */
-	tmp = 1;
-	rc = setsockopt( l.sl_sd, SOL_SOCKET, SO_KEEPALIVE,
-		(char *) &tmp, sizeof(tmp) );
-	if ( rc == AC_SOCKET_ERROR ) {
-		int err = sock_errno();
-		Debug( LDAP_DEBUG_ANY,
-			"slapd(%ld): setsockopt(SO_KEEPALIVE) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err, sock_errstr(err) );
-	}
-#endif
-#ifdef TCP_NODELAY
-	/* enable no delay */
-	tmp = 1;
-	rc = setsockopt( l.sl_sd, IPPROTO_TCP, TCP_NODELAY,
-		(char *)&tmp, sizeof(tmp) );
-	if ( rc == AC_SOCKET_ERROR ) {
-		int err = sock_errno();
-		Debug( LDAP_DEBUG_ANY,
-			"slapd(%ld): setsockopt(TCP_NODELAY) failed errno=%d (%s)\n",
-	    	(long) l.sl_sd, err, sock_errstr(err) );
-	}
-#endif
 
 #ifdef HAVE_GETADDRINFO
 		} /* sai->ai_family != AF_LOCAL */
@@ -666,6 +642,7 @@ slapd_daemon_task(
 	void *ptr
 )
 {
+	int rc, tmp;
 	int l;
 	time_t	last_idle_check = slap_get_time();
 	time( &starttime );
@@ -880,6 +857,31 @@ slapd_daemon_task(
 				continue;
 			}
 #endif
+
+#ifdef SO_KEEPALIVE
+			/* enable keep alives */
+			rc = setsockopt( s, SOL_SOCKET, SO_KEEPALIVE,
+				(char *) &tmp, sizeof(tmp) );
+			if ( rc == AC_SOCKET_ERROR ) {
+				int err = sock_errno();
+				Debug( LDAP_DEBUG_ANY,
+					"slapd(%ld): setsockopt(SO_KEEPALIVE) failed "
+					"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
+			}
+#endif
+#ifdef TCP_NODELAY
+			/* enable no delay */
+			tmp = 1;
+			rc = setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
+				(char *)&tmp, sizeof(tmp) );
+			if ( rc == AC_SOCKET_ERROR ) {
+				int err = sock_errno();
+				Debug( LDAP_DEBUG_ANY,
+					"slapd(%ld): setsockopt(TCP_NODELAY) failed "
+					"errno=%d (%s)\n", (long) s, err, sock_errstr(err) );
+			}
+#endif
+
 
 #ifdef LDAP_DEBUG
 			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
