@@ -6,11 +6,11 @@
 
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                   OpenLDAP Foundation
-Expires: 26 December 2001                           26 June 2001
+Expires in six months                               17 May 2002
 
 
                         Feature Discovery in LDAP
-                  <draft-zeilenga-ldap-features-01.txt>
+                  <draft-zeilenga-ldap-features-03.txt>
 
 
 Status of this Memo
@@ -38,13 +38,29 @@ Status of this Memo
   Internet-Draft Shadow Directories can be accessed at
   <http://www.ietf.org/shadow.html>.
 
-  Copyright 2001, The Internet Society.  All Rights Reserved.
+  Copyright 2002, The Internet Society.  All Rights Reserved.
 
   Please see the Copyright section near the end of this document for
   more information.
 
 
-1. Overview
+Abstract
+
+  The Lightweight Directory Access Protocol (LDAP) is an extensible
+  protocol with numerous elective features.  This document introduces a
+  general mechanism for discovery of elective features and extensions
+  which cannot be discovered using existing mechanisms.
+
+
+
+
+
+Zeilenga             draft-zeilenga-ldap-features-03            [Page 1]
+
+INTERNET-DRAFT           LDAP supportedFeatures              17 May 2002
+
+
+1. Background and Intended Use
 
   LDAP [RFC2251] is an extensible protocol with numerous elective
   features.  LDAP provides mechanisms for a client to discover supported
@@ -52,22 +68,16 @@ Status of this Memo
   subschema information.  However, these mechanisms are not designed to
   support general feature discovery.
 
-
-
-
-Zeilenga             draft-zeilenga-ldap-features-01            [Page 1]
-
-INTERNET-DRAFT           LDAP supportedFeatures             26 June 2001
-
-
   This document describes a simple, general-purpose mechanism which
-  clients may use to discovery the set of features supported by a
-  server.
+  clients may use to discover the set of features supported by a server.
 
-  The key words ``MUST'', ``MUST NOT'', ``REQUIRED'', ``SHALL'', ``SHALL
-  NOT'', ``SHOULD'', ``SHOULD NOT'', ``RECOMMENDED'',  and ``MAY'' in
-  this document are to be interpreted as described in RFC 2119
-  [RFC2119].
+  Schema definitions are provided using LDAPv3 description formats
+  [RFC2252].  Definitions provided here are formatted (line wrapped) for
+  readability.
+
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+  "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+  document are to be interpreted as described in BCP 14 [RFC2119].
 
 
 2. Discovery of supported features
@@ -79,8 +89,7 @@ INTERNET-DRAFT           LDAP supportedFeatures             26 June 2001
   examine the values of this attribute to determine if a particular
   feature is supported by the server.
 
-  The supportedFeatures attribute type is described [RFC2252] as
-  follows:
+  The supportedFeatures attribute type is described as follows:
 
       ( 1.3.6.1.4.1.4203.1.3.5
         NAME 'supportedFeatures'
@@ -88,6 +97,10 @@ INTERNET-DRAFT           LDAP supportedFeatures             26 June 2001
         EQUALITY objectIdentifierMatch
         SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
         USAGE dSAOperation )
+
+  Servers MUST be capable of recognizing this attribute type by the name
+  'supportedFeatures'.  Servers MAY recognize the attribute type by
+  other names.
 
 
 3. Security Considerations
@@ -97,29 +110,49 @@ INTERNET-DRAFT           LDAP supportedFeatures             26 June 2001
   believed to introduce any new security risk to LDAP.
 
 
-4. Acknowledgment
+
+Zeilenga             draft-zeilenga-ldap-features-03            [Page 2]
+
+INTERNET-DRAFT           LDAP supportedFeatures              17 May 2002
+
+
+4. IANA Considerations
+
+  It is requested that IANA register the LDAP 'supportedFeatures'
+  descriptor used in this document per the following registration
+  template:
+
+      Subject: Request for LDAP Descriptor Registration
+      Descriptor (short name): supportedFeatures
+      Object Identifier: 1.3.6.1.4.1.4203.1.3.5
+      Person & email address to contact for further information:
+          Kurt Zeilenga <kurt@OpenLDAP.org>
+      Usage: Attribute Type
+      Specification: RFCXXXX
+      Author/Change Controller: IESG
+
+
+  This OID was assigned [ASSIGN] by OpenLDAP Foundation under its IANA
+  assigned private enterprise allocation [PRIVATE] for use in this
+  specification.
+
+
+5. Acknowledgment
 
   This document is based upon input from the IETF LDAPext working group.
 
 
-5. Author's Address
+6. Author's Address
 
   Kurt D. Zeilenga
   OpenLDAP Foundation
   <Kurt@OpenLDAP.org>
 
 
+7. Normative References
 
-
-Zeilenga             draft-zeilenga-ldap-features-01            [Page 2]
-
-INTERNET-DRAFT           LDAP supportedFeatures             26 June 2001
-
-
-References
-
-  [RFC2219] S. Bradner, "Key words for use in RFCs to Indicate
-            Requirement Levels", RFC 2119, March 1997.
+  [RFC2119] S. Bradner, "Key words for use in RFCs to Indicate
+            Requirement Levels", BCP 14 (also RFC 2119), March 1997.
 
   [RFC2251] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
             Protocol (v3)", RFC 2251, December 1997.
@@ -129,9 +162,19 @@ References
             Definitions", RFC 2252, December 1997.
 
 
+8. Informative References
+
+
+
+
+Zeilenga             draft-zeilenga-ldap-features-03            [Page 3]
+
+INTERNET-DRAFT           LDAP supportedFeatures              17 May 2002
+
+
 Full Copyright
 
-  Copyright 2001, The Internet Society.  All Rights Reserved.
+  Copyright 2002, The Internet Society.  All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
@@ -167,5 +210,18 @@ Full Copyright
 
 
 
-Zeilenga             draft-zeilenga-ldap-features-01            [Page 3]
+
+
+
+
+
+
+
+
+
+
+
+
+
+Zeilenga             draft-zeilenga-ldap-features-03            [Page 4]
 
