@@ -35,6 +35,7 @@ LDAP_LIBDIR= ../../libraries
 
 XLIBS = -lldap -llber -llutil
 XXLIBS = $(SECURITY_LIBS) $(TLS_LIBS)
+UNIX_XXLIBS = $(XXLIBS)
 
 LINKAGE = @LT_LIB_LINKAGE@
 
