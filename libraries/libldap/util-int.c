@@ -92,7 +92,7 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 #endif	
 }
 
-#define BUFSTART (1024-32
+#define BUFSTART (1024-32)
 #define BUFMAX (32*1024-32)
 
 static char *safe_realloc( char **buf, int len );
