@@ -34,6 +34,9 @@
 #include "lutil_ldap.h"
 #include "ldap_defaults.h"
 
+static char *def_tmpdir;
+static char *def_urlpre;
+
 static void
 usage( const char *s )
 {
@@ -50,7 +53,7 @@ usage( const char *s )
 "  -a deref   one of never (default), always, search, or find\n"
 "  -A         retrieve attribute names only (no values)\n"
 "  -b basedn  base dn for search\n"
-"  -F prefix  URL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
+"  -F prefix  URL prefix for files (default: %s)\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
 "  -LL        print responses in LDIF format without comments\n"
@@ -60,8 +63,7 @@ usage( const char *s )
 "  -S attr    sort the results by attribute `attr'\n"
 "  -t         write binary values to files in temporary directory\n"
 "  -tt        write all values to files in temporary directory\n"
-"  -T path    write files to directory specified by path (default:\n"
-"             " LDAP_TMPDIR ")\n"
+"  -T path    write files to directory specified by path (default: %s)\n"
 "  -u         include User Friendly entry names in the output\n"
 "  -z limit   size limit (in entries) for search\n"
 
@@ -89,7 +91,7 @@ usage( const char *s )
 "  -X authzid SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
 "  -Y mech    SASL mechanism\n"
 "  -Z         Start TLS request (-ZZ to require successful response)\n"
-, s );
+, s, def_urlpre, def_tmpdir );
 
 	exit( EXIT_FAILURE );
 }
@@ -140,7 +142,6 @@ static int dosearch LDAP_P((
 
 static char *tmpdir = NULL;
 static char *urlpre = NULL;
-
 static char *prog = NULL;
 static char	*binddn = NULL;
 static struct berval passwd = { 0, NULL };
@@ -159,6 +160,21 @@ static char	*sasl_secprops = NULL;
 static int	use_tls = 0;
 static char	*sortattr = NULL;
 static int	verbose, not, includeufn, vals2tmp, ldif;
+
+static void
+urlize(char *url)
+{
+	char *p;
+
+	if (*LDAP_DIRSEP != '/')
+	{
+		for (p = url; *p; p++)
+		{
+			if (*p == *LDAP_DIRSEP)
+				*p = '/';
+		}
+	}
+}
 
 int
 main( int argc, char **argv )
@@ -182,6 +198,28 @@ main( int argc, char **argv )
 	scope = LDAP_SCOPE_SUBTREE;
 	authmethod = -1;
 
+	if((def_tmpdir = getenv("TMPDIR")) == NULL &&
+	   (def_tmpdir = getenv("TMP")) == NULL &&
+	   (def_tmpdir = getenv("TEMP")) == NULL )
+	{
+		def_tmpdir = LDAP_TMPDIR;
+	}
+
+	if ( !*def_tmpdir )
+		def_tmpdir = LDAP_TMPDIR;
+
+	def_urlpre = malloc( sizeof("file:////") + strlen(def_tmpdir) );
+
+	if( def_urlpre == NULL ) {
+		perror( "malloc" );
+		return EXIT_FAILURE;
+	}
+
+	sprintf( def_urlpre, "file:///%s/",
+		def_tmpdir[0] == *LDAP_DIRSEP ? &def_tmpdir[1] : def_tmpdir );
+
+	urlize( def_urlpre );
+
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
 	while (( i = getopt( argc, argv, "Aa:b:F:f:Ll:S:s:T:tuz:"
@@ -200,7 +238,7 @@ main( int argc, char **argv )
 		deref = LDAP_DEREF_ALWAYS;
 		} else {
 		fprintf( stderr, "alias deref should be never, search, find, or always\n" );
-		usage( argv[ 0 ] );
+		usage(prog);
 		}
 		break;
 	case 'A':	/* retrieve attribute names only -- no values */
@@ -240,7 +278,7 @@ main( int argc, char **argv )
 		scope = LDAP_SCOPE_SUBTREE;
 		} else {
 		fprintf( stderr, "scope should be base, one, or sub\n" );
-		usage( argv[ 0 ] );
+		usage(prog);
 		}
 		break;
 	case 'S':	/* sort attribute */
@@ -596,7 +634,7 @@ main( int argc, char **argv )
 	default:
 		fprintf( stderr, "%s: unrecognized option -%c\n",
 			prog, optopt );
-		usage( argv[0] );
+		usage(prog);
 	}
 	}
 
@@ -633,12 +671,11 @@ main( int argc, char **argv )
 		}
 	}
 
-	if( tmpdir == NULL
-		&& (tmpdir = getenv("TMPDIR")) == NULL
-		&& (tmpdir = getenv("TMP")) == NULL
-		&& (tmpdir = getenv("TEMP")) == NULL )
-	{
-		tmpdir = LDAP_TMPDIR;
+	if ( tmpdir == NULL ) {
+		tmpdir = def_tmpdir;
+
+		if ( urlpre == NULL )
+			urlpre = def_urlpre;
 	}
 
 	if( urlpre == NULL ) {
@@ -650,9 +687,9 @@ main( int argc, char **argv )
 		}
 
 		sprintf( urlpre, "file:///%s/",
-			tmpdir[0] == '/' ? &tmpdir[1] : tmpdir );
+			tmpdir[0] == *LDAP_DIRSEP ? &tmpdir[1] : tmpdir );
 
-		/* urlpre should be URLized.... */
+		urlize( urlpre );
 	}
 
 	if ( debug ) {
@@ -781,7 +818,7 @@ main( int argc, char **argv )
 		}
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
-			prog, argv[0] );
+			prog);
 		return( EXIT_FAILURE );
 #endif
 	} else {
@@ -1096,6 +1133,7 @@ print_entry(
 					sprintf( url, "%s%s", urlpre,
 						&tmpfname[strlen(tmpdir) + sizeof(LDAP_DIRSEP) - 1] );
 
+					urlize( url );
 					write_ldif( LDIF_PUT_URL, a, url, strlen( url ));
 
 				} else {
