@@ -41,10 +41,6 @@ ldbm_back_search(
 	int		manageDSAit = get_manageDSAit( op );
 	int		cscope = LDAP_SCOPE_DEFAULT;
 
-#ifdef LDAP_CACHING
-	Entry 		cache_base_entry; 
-#endif /* LDAP_CACHING */
-
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 		
