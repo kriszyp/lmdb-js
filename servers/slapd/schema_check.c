@@ -52,8 +52,6 @@ entry_schema_check(
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
-	ret = LDAP_SUCCESS;
-
 	/* check that the entry has required attrs for each oc */
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
 		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
@@ -98,6 +96,9 @@ entry_schema_check(
 	if( extensible ) {
 		return LDAP_SUCCESS;
 	}
+
+	/* optimistic */
+	ret = LDAP_SUCCESS;
 
 	/* check that each attr in the entry is allowed by some oc */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
