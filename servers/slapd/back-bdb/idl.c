@@ -315,7 +315,7 @@ bdb_idl_fetch_key(
 			LDAP_LOG(( "idl", LDAP_LEVEL_ERR, "bdb_idl_fetch_key: close failed: %s (%d)\n", db_strerror(rc2), rc2 ));
 #else
 			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_fetch_key: "
-				"close failed: %s (%d)\n", db_strerror(rc2), rc2, 0 )
+				"close failed: %s (%d)\n", db_strerror(rc2), rc2, 0 );
 #endif
 			return rc2;
 		}
