@@ -230,6 +230,7 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 int
 ldap_start_tls ( LDAP *ld )
 {
+#ifdef HAVE_TLS
 	LDAPConn *lc;
 	int rc;
 	char *rspoid;
@@ -253,6 +254,9 @@ ldap_start_tls ( LDAP *ld )
 			return rc;
 	}
 	return LDAP_SUCCESS;
+#else
+	return LDAP_NOT_SUPPORTED;
+#endif
 }
 
 int
