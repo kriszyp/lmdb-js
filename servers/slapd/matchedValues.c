@@ -171,7 +171,7 @@ test_ava_vrFilter(
 		if( mr == NULL ) continue;
 
 		bv = a->a_nvals;
-		for ( j=0; bv->bv_val != NULL; bv++, j++ ) {
+		for ( j=0; !BER_BVISNULL( bv ); bv++, j++ ) {
 			int rc, match;
 			const char *text;
 
@@ -218,7 +218,7 @@ test_presence_vrFilter(
 
 		if ( !is_ad_subtype( a->a_desc, desc ) ) continue;
 
-		for ( bv = a->a_vals, j=0; bv->bv_val != NULL; bv++, j++ );
+		for ( bv = a->a_vals, j = 0; !BER_BVISNULL( bv ); bv++, j++ );
 		memset( (*e_flags)[i], 1, j);
 	}
 
@@ -245,7 +245,7 @@ test_substrings_vrFilter(
 		if( mr == NULL ) continue;
 
 		bv = a->a_nvals;
-		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
+		for ( j = 0; !BER_BVISNULL( bv ); bv++, j++ ) {
 			int rc, match;
 			const char *text;
 
@@ -270,10 +270,11 @@ test_mra_vrFilter(
 	MatchingRuleAssertion *mra,
 	char 		***e_flags )
 {
-	int i, j;
+	int	i, j;
 
-	for ( i=0; a != NULL; a = a->a_next, i++ ) {
-		struct berval *bv, assertedValue;
+	for ( i = 0; a != NULL; a = a->a_next, i++ ) {
+		struct berval	*bv, assertedValue;
+		int		normalize_attribute = 0;
 
 		if ( mra->ma_desc ) {
 			if ( !is_ad_subtype( a->a_desc, mra->ma_desc ) ) {
@@ -294,23 +295,47 @@ test_mra_vrFilter(
 				SLAP_MR_EXT|SLAP_MR_VALUE_OF_ASSERTION_SYNTAX,
 				&mra->ma_value, &assertedValue, &text, op->o_tmpmemctx );
 
-			if( rc != LDAP_SUCCESS ) continue;
+			if ( rc != LDAP_SUCCESS ) continue;
 		}
 
 		/* check match */
-		if (mra->ma_rule == a->a_desc->ad_type->sat_equality) {
+		if ( mra->ma_rule == a->a_desc->ad_type->sat_equality ) {
 			bv = a->a_nvals;
+
 		} else {
 			bv = a->a_vals;
+			normalize_attribute = 1;
 		}
 					
-		for ( j = 0; bv->bv_val != NULL; bv++, j++ ) {
-			int rc, match;
-			const char *text;
+		for ( j = 0; !BER_BVISNULL( bv ); bv++, j++ ) {
+			int		rc, match;
+			const char	*text;
+			struct berval	nbv = BER_BVNULL;
+
+			if ( normalize_attribute && mra->ma_rule->smr_normalize ) {
+				/* see comment in filterentry.c */
+				if ( mra->ma_rule->smr_normalize(
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						mra->ma_rule->smr_syntax,
+						mra->ma_rule,
+						bv, &nbv, op->o_tmpmemctx ) != LDAP_SUCCESS )
+				{
+					/* FIXME: stop processing? */
+					continue;
+				}
+
+			} else {
+				nbv = *bv;
+			}
 
 			rc = value_match( &match, a->a_desc, mra->ma_rule, 0,
-				bv, &assertedValue, &text );
-			if( rc != LDAP_SUCCESS ) return rc;
+				&nbv, &assertedValue, &text );
+
+			if ( nbv.bv_val != bv->bv_val ) {
+				op->o_tmpfree( nbv.bv_val, op->o_tmpmemctx );
+			}
+
+			if ( rc != LDAP_SUCCESS ) return rc;
 
 			if ( match == 0 ) {
 				(*e_flags)[i][j] = 1;
