@@ -10,13 +10,16 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
@@ -49,7 +52,7 @@ struct msg *add_msg(
 	new->m_conn->c_refcnt++;
 	new->m_next = NULL;
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	new->m_cldap = udp;
 	new->m_searchbase = NULLDN;
 
@@ -106,11 +109,11 @@ del_msg( struct msg *m )
 	conn_free( cur->m_conn );
 	modlist_free( cur->m_mods );
 	ber_free( cur->m_ber, 1 );
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( cur->m_searchbase != NULLDN ) {
 	    dn_free( cur->m_searchbase );
 	}
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	free( (char *) cur );
 
 	return( 0 );
@@ -146,7 +149,7 @@ send_msg(
 }
 
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 struct msg *
 get_cldap_msg(
     int			msgid,
@@ -169,4 +172,4 @@ get_cldap_msg(
 
 	return( tmp );
 }
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */

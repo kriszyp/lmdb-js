@@ -10,16 +10,20 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/modify.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
@@ -39,7 +43,7 @@ extern short	ldap_rtl_syntax;
 extern short	ldap_octetstring_syntax;
 
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 extern int 	ldap_compat;
 #define MODTAG	(ldap_compat == 20 ? OLD_LDAP_RES_MODIFY : LDAP_RES_MODIFY)
 #else

@@ -10,15 +10,20 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/errno.h>
+
+#include <ac/ctype.h>
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include <sys/ioctl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"

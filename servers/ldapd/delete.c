@@ -10,20 +10,24 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/remove.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
 
-#ifdef COMPAT20
+#ifdef HAVE_COMPAT20
 extern int 	ldap_compat;
 #define DELTAG	(ldap_compat == 20 ? OLD_LDAP_RES_DELETE : LDAP_RES_DELETE)
 #else
