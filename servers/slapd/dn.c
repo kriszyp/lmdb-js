@@ -117,7 +117,7 @@ dnValidate(
 	}
 
 	/* FIXME: str2dn should take a bv and handle this */
-	if( strlen( val->bv_val ) != val->bv_len ) {
+	if( strlen( in->bv_val ) != in->bv_len ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
@@ -423,6 +423,11 @@ dnPretty2(
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
 		int		rc;
+
+		/* FIXME: str2dn should take a bv and handle this */
+		if( strlen( val->bv_val ) != val->bv_len ) {
+			return LDAP_INVALID_SYNTAX;
+		}
 
 		/* FIXME: should be liberal in what we accept */
 		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAP );
