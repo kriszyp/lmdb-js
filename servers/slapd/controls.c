@@ -37,10 +37,7 @@ static SLAP_CTRL_PARSE_FN parsePermissiveModify;
 static SLAP_CTRL_PARSE_FN parseDomainScope;
 static SLAP_CTRL_PARSE_FN parseTreeDelete;
 static SLAP_CTRL_PARSE_FN parseSearchOptions;
-
-#ifdef LDAP_CONTROL_SUBENTRIES
 static SLAP_CTRL_PARSE_FN parseSubentries;
-#endif
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
@@ -127,10 +124,10 @@ static struct slap_control control_defs[] = {
 		SLAP_CTRL_MODIFY, NULL,
 		parsePermissiveModify, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
-#ifdef LDAP_CONTROL_X_TREE_DELETE
+#ifdef SLAP_CONTROL_X_TREE_DELETE
 	{ LDAP_CONTROL_X_TREE_DELETE,
  		(int)offsetof(struct slap_control_ids, sc_treeDelete),
-		SLAP_CTRL_DELETE, NULL,
+		SLAP_CTRL_HIDE|SLAP_CTRL_DELETE, NULL,
 		parseTreeDelete, LDAP_SLIST_ENTRY_INITIALIZER(next) },
 #endif
 #ifdef LDAP_CONTORL_X_SEARCH_OPTIONS
@@ -1306,7 +1303,10 @@ static int parseSearchOptions (
 	}
 
 	if ( search_flags & ~(LDAP_SEARCH_FLAG_DOMAIN_SCOPE) ) {
-		/* Other search flags not recognised so far */
+		/* Other search flags not recognised so far,
+		 * including:
+		 *		LDAP_SEARCH_FLAG_PHANTOM_ROOM
+		 */
 		rs->sr_text = "searchOptions contained unrecongized flag";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}

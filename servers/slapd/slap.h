@@ -64,7 +64,8 @@ LDAP_BEGIN_DECL
 #define LDAP_COMP_MATCH			/* experimental */
 #define LDAP_DYNAMIC_OBJECTS
 #define LDAP_SYNC_TIMESTAMP
-#define LDAP_COLLECTIVE_ATTRIBUTES /* not yet implemented */
+#define LDAP_COLLECTIVE_ATTRIBUTES
+#define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
 #endif
 
 #if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
