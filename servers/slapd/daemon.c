@@ -689,7 +689,7 @@ slapd_daemon_task(
 		int ns;
 		int at;
 		ber_socket_t nfds;
-#define SLAPD_EBADF_LIMIT 10
+#define SLAPD_EBADF_LIMIT 16
 		int ebadf = 0;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
@@ -783,8 +783,9 @@ slapd_daemon_task(
 				int err = sock_errno();
 
 				if( err == EBADF 
-#ifdef HAVE_WINSOCK
-					|| err == WSAENOTSOCK	/* you'd think this would be EBADF */
+#ifdef WSAENOTSOCK
+					/* you'd think this would be EBADF */
+					|| err == WSAENOTSOCK
 #endif
 				) {
 					if (++ebadf < SLAPD_EBADF_LIMIT)
