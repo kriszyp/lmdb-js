@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.21 Engineering
+OpenLDAP 2.2.21 Release
 	Fixed slapd group limits
 	Fixed slapd/slurpd replog locking (ITS#3421)
 	Fixed slaptest failure if databases cannot be started (ITS#3461)
