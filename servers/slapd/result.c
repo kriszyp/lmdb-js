@@ -1149,8 +1149,6 @@ slap_send_search_entry(
 	}
 
 #ifdef LDAP_SLAPI
-	/* Support Sun ONE DS 5.x computed attributes */
-
 	/*
 	 * First, setup the computed attribute context that is
 	 * passed to all plugins.
@@ -1174,6 +1172,11 @@ slap_send_search_entry(
 			}
 		}
 	} else {
+		/*
+		 * Technically we shouldn't be returning operational attributes
+		 * when the user requested only user attributes. We'll let the
+		 * plugin decide whether to be naughty or not.
+		 */
 		rc = compute_evaluator( &ctx, "*", e, slapi_x_compute_output_ber );
 	}
 	if ( rc == 1 ) {

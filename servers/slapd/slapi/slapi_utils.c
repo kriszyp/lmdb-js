@@ -2597,11 +2597,16 @@ void slapi_x_free_ldapmods (LDAPMod **mods)
 }
 
 /*
- * Sun ONE DS 5.x computed attribute support
+ * Sun ONE DS 5.x computed attribute support. Computed attributes
+ * allow for dynamically generated operational attributes, a very
+ * useful thing indeed.
  */
 
 /*
- * Write the computed attribute to a BerElement.
+ * Write the computed attribute to a BerElement. Complementary 
+ * functions need to be defined for anything that replaces 
+ * op->o_callback->sc_sendentry, if you wish to make computed
+ * attributes available to it.
  */
 int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
 {
@@ -2707,6 +2712,15 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 #endif
 }
 
+/*
+ * For some reason Sun don't use the normal plugin mechanism
+ * registration path to register an "evaluator" function (an
+ * "evaluator" is responsible for adding computed attributes;
+ * the nomenclature is somewhat confusing).
+ *
+ * As such slapi_compute_add_evaluator() registers the 
+ * function directly.
+ */
 int slapi_compute_add_evaluator(slapi_compute_callback_t function)
 {
 #ifdef LDAP_SLAPI
@@ -2749,13 +2763,49 @@ done:
 #endif /* LDAP_SLAPI */
 }
 
+/*
+ * See notes above regarding slapi_compute_add_evaluator().
+ */
 int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function)
 {
 #ifdef LDAP_SLAPI
-	return -1;
+	Slapi_PBlock *pPlugin = NULL;
+	int rc;
+
+	pPlugin = slapi_pblock_new();
+	if ( pPlugin == NULL ) {
+		rc = LDAP_NO_MEMORY;
+		goto done;
+	}
+
+	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_TYPE, (void *)SLAPI_PLUGIN_OBJECT );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	rc = slapi_pblock_set( pPlugin, SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN, (void *)function );
+	if ( rc != LDAP_SUCCESS ) {
+		goto done;
+	}
+
+	rc = insertPlugin( NULL, pPlugin );
+	if ( rc != 0 ) {
+		rc = LDAP_OTHER;
+		goto done;
+	}
+
+done:
+	if ( rc != LDAP_SUCCESS ) {
+		if ( pPlugin != NULL ) {
+			slapi_pblock_destroy( pPlugin );
+		}
+		return -1;
+	}
+
+	return 0;
 #else
 	return -1;
-#endif
+#endif /* LDAP_SLAPI */
 }
 
 /*
