@@ -74,7 +74,7 @@ ldbm_back_exop_passwd(
 	hash = slap_passwd_hash( new );
 
 	if( hash == NULL || hash->bv_len == 0 ) {
-		*text = ch_strdup("password hash failed");
+		*text = "password hash failed";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
@@ -85,7 +85,7 @@ ldbm_back_exop_passwd(
 		dn, id ? " (proxy)" : "", 0 );
 
 	if( dn == NULL || dn[0] == '\0' ) {
-		*text = ch_strdup("No password is associated with the Root DSE");
+		*text = "No password is associated with the Root DSE";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
@@ -93,20 +93,20 @@ ldbm_back_exop_passwd(
 	e = dn2entry_w( be, dn, NULL );
 
 	if( e == NULL ) {
-		*text = ch_strdup("could not locate authorization entry");
+		*text = "could not locate authorization entry";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
 
 	if( ! access_allowed( be, conn, op, e, entry, NULL, ACL_WRITE ) ) {
-		*text = ch_strdup("access to authorization entry denied");
+		*text = "access to authorization entry denied";
 		rc = LDAP_INSUFFICIENT_ACCESS;
 		goto done;
 	}
 
 	if( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow operation */
-		*text = ch_strdup("authorization entry is alias");
+		*text = "authorization entry is alias";
 		rc = LDAP_ALIAS_PROBLEM;
 		goto done;
 	}
@@ -115,7 +115,7 @@ ldbm_back_exop_passwd(
 
 	if( is_entry_referral( e ) ) {
 		/* entry is an referral, don't allow operation */
-		*text = ch_strdup("authorization entry is referral");
+		*text = "authorization entry is referral";
 		goto done;
 	}
 

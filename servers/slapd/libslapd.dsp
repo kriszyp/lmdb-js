@@ -304,6 +304,10 @@ SOURCE=.\slap.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\starttls.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\str2filter.c
 # End Source File
 # Begin Source File

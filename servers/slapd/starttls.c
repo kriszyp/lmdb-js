@@ -32,15 +32,23 @@ starttls_extop (
 	struct berval *** refs )
 {
 	void *ctx;
+	int rc;
 
 	if ( reqdata != NULL ) {
 		/* no request data should be provided */
+		*text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
+	/* acquire connection lock */
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
 	/* can't start TLS if it is already started */
-	if (conn->c_is_tls != 0)
-		return(LDAP_OPERATIONS_ERROR);
+	if (conn->c_is_tls != 0) {
+		*text = "TLS already started";
+		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
+	}
 
 	/* fail if TLS could not be initialized */
 	if (ldap_pvt_tls_get_option(NULL, LDAP_OPT_X_TLS_CERT, &ctx) != 0
@@ -48,25 +56,41 @@ starttls_extop (
 	{
 		if (default_referral != NULL) {
 			/* caller will put the referral into the result */
-			return(LDAP_REFERRAL);
+			rc = LDAP_REFERRAL;
+			goto done;
 		}
-		return(LDAP_UNAVAILABLE);
+
+		*text = "Could not initialize TLS";
+		rc = LDAP_UNAVAILABLE;
+		goto done;
 	}
 
 	/* can't start TLS if there are other op's around */
-	if (conn->c_ops != NULL) {
-		if (conn->c_ops != op || op->o_next != NULL)
-			return(LDAP_OPERATIONS_ERROR);
-	}
-	if (conn->c_pending_ops != NULL) {
-		if (conn->c_pending_ops != op || op->o_next != NULL)
-			return(LDAP_OPERATIONS_ERROR);
+	if (( conn->c_ops != NULL &&
+			(conn->c_ops != op || op->o_next != NULL)) ||
+		( conn->c_pending_ops != NULL))
+	{
+		*text = "cannot start TLS when operations our outstanding";
+		rc = LDAP_OPERATIONS_ERROR;
+		goto done;
 	}
 
     conn->c_is_tls = 1;
     conn->c_needs_tls_accept = 1;
 
-    return(LDAP_SUCCESS);
+    rc = LDAP_SUCCESS;
+
+done:
+	/* give up connection lock */
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+
+	/*
+	 * RACE CONDITION: we give up lock before sending result
+	 * Should be resolved by reworking connection state, not
+	 * by moving send here (so as to ensure proper TLS sequencing)
+	 */
+
+	return rc;
 }
 
 #endif	/* HAVE_TLS */

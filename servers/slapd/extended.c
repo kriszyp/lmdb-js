@@ -172,9 +172,6 @@ do_extended(
 	if ( rspdata != NULL )
 		ber_bvfree( rspdata );
 
-	if ( text != NULL )
-		free(text);
-
 done:
 	if ( reqdata != NULL ) {
 		ber_bvfree( reqdata );

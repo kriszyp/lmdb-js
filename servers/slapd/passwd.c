@@ -35,14 +35,14 @@ int passwd_extop(
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
 
 	if( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		*text = ch_strdup("only authenicated users may change passwords");
+		*text = "only authenicated users may change passwords";
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
 	if( conn->c_authz_backend != NULL && conn->c_authz_backend->be_extended )
 	{
 		if( global_readonly || conn->c_authz_backend->be_readonly ) {
-			*text = ch_strdup("authorization database is read only");
+			*text = "authorization database is read only";
 			rc = LDAP_UNWILLING_TO_PERFORM;
 
 		} else if( conn->c_authz_backend->be_update_ndn != NULL ) {
@@ -59,7 +59,7 @@ int passwd_extop(
 		}
 
 	} else {
-		*text = ch_strdup("operation not supported for current user");
+		*text = "operation not supported for current user";
 		rc = LDAP_UNWILLING_TO_PERFORM;
 	}
 
@@ -86,7 +86,7 @@ int slap_passwd_parse( struct berval *reqdata,
 	if( ber == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "slap_passwd_parse: ber_init failed\n",
 			0, 0, 0 );
-		*text = ch_strdup("password decoding error");
+		*text = "password decoding error";
 		return LDAP_PROTOCOL_ERROR;
 	}
 
@@ -162,7 +162,7 @@ decoding_error:
 			"slap_passwd_parse: decoding error, len=%ld\n",
 			(long) len, 0, 0 );
 
-		*text = ch_strdup("data decoding error");
+		*text = "data decoding error";
 		rc = LDAP_PROTOCOL_ERROR;
 	}
 
