@@ -282,8 +282,8 @@ ldap_int_open_connection(
 			sasl_host = ldap_host_connected_to( conn->lconn_sb );
 #endif
 			break;
-#ifdef LDAP_CONNECTIONLESS
 
+#ifdef LDAP_CONNECTIONLESS
 		case LDAP_PROTO_UDP:
 			port = srv->lud_port;
 
@@ -308,6 +308,10 @@ ldap_int_open_connection(
 #endif
 			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_udp,
 				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
+			ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
+				LBER_SBIOD_LEVEL_PROVIDER, NULL );
+
 			break;
 #endif
 		case LDAP_PROTO_IPC:
@@ -332,9 +336,6 @@ ldap_int_open_connection(
 			return -1;
 			break;
 	}
-
-	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_readahead,
-		LBER_SBIOD_LEVEL_PROVIDER, NULL );
 
 #ifdef LDAP_DEBUG
 	ber_sockbuf_add_io( conn->lconn_sb, &ber_sockbuf_io_debug,
