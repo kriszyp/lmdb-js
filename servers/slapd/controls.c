@@ -804,7 +804,7 @@ static int parsePagedResults (
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ctrl->ldctl_value.bv_len == 0 ) {
+	if ( BER_BVISEMPTY( &ctrl->ldctl_value ) ) {
 		rs->sr_text = "paged results control value is empty (or absent)";
 		return LDAP_PROTOCOL_ERROR;
 	}
@@ -890,6 +890,7 @@ static int parsePagedResults (
 	 * NOTE: this assumes that the op->ors_slimit be set
 	 * before the controls are parsed.     
 	 */
+		
 	if ( op->ors_slimit > 0 && size >= op->ors_slimit ) {
 		op->o_pagedresults = SLAP_IGNORED_CONTROL;
 
