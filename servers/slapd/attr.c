@@ -18,8 +18,6 @@
 #include <sys/param.h>
 #endif
 
-#include <sys/stat.h>
-
 #include "ldapconfig.h"
 #include "slap.h"
 
