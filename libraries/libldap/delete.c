@@ -49,7 +49,7 @@ ldap_delete_ext(
 	BerElement	*ber;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "delete", LDAP_LEVEL_ENTRY, "ldap_delete_ext\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_delete_ext\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_delete_ext\n", 0, 0, 0 );
 #endif
@@ -139,7 +139,7 @@ ldap_delete( LDAP *ld, LDAP_CONST char *dn )
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "delete", LDAP_LEVEL_ENTRY, "ldap_delete\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_delete\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_delete\n", 0, 0, 0 );
 #endif

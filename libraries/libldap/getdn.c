@@ -85,7 +85,7 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 	BerElement	tmp;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_get_dn\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_dn\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_dn\n", 0, 0, 0 );
 #endif
@@ -112,7 +112,7 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 	char	*out = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_dn2ufn\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_dn2ufn\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ufn\n", 0, 0, 0 );
 #endif
@@ -135,7 +135,7 @@ ldap_explode_dn( LDAP_CONST char *dn, int notypes )
 	unsigned flag = notypes ? LDAP_DN_FORMAT_UFN : LDAP_DN_FORMAT_LDAPV3;
 	
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_explode_dn\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_explode_dn\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_dn\n", 0, 0, 0 );
 #endif
@@ -179,7 +179,7 @@ ldap_explode_rdn( LDAP_CONST char *rdn, int notypes )
 	int		iAVA;
 	
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_explode_rdn\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_explode_rdn\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_explode_rdn\n", 0, 0, 0 );
 #endif
@@ -264,7 +264,7 @@ ldap_dn2dcedn( LDAP_CONST char *dn )
 	char	*out = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_dn2dcedn\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_dn2dcedn\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2dcedn\n", 0, 0, 0 );
 #endif
@@ -281,7 +281,7 @@ ldap_dcedn2dn( LDAP_CONST char *dce )
 	char	*out = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_dcedn2dn\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_dcedn2dn\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_dcedn2dn\n", 0, 0, 0 );
 #endif
@@ -297,7 +297,7 @@ ldap_dn2ad_canonical( LDAP_CONST char *dn )
 	char	*out = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_dn2ad_canonical\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_dn2ad_canonical\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn2ad_canonical\n", 0, 0, 0 );
 #endif
@@ -333,7 +333,7 @@ ldap_dn_normalize( LDAP_CONST char *dnin,
 	LDAPDN	*tmpDN = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ENTRY, "ldap_dn_normalize\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_dn_normalize\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_dn_normalize\n", 0, 0, 0 );
 #endif
@@ -660,9 +660,8 @@ ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 	assert( dn );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ARGS, "ldap_bv2dn(%s,%u)\n%s", 
-		str, flags, "" ));
-#elif 0
+	LDAP_LOG ( OPERATION, ARGS, "ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
 #endif
 
@@ -837,9 +836,9 @@ return_result:;
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_RESULTS, "<= ldap_bv2dn(%s,%u)=%d\n", 
-		str, flags, rc ));
-#elif 0
+	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_bv2dn(%s,%u)=%d\n", 
+		str, flags, rc );
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_bv2dn(%s,%u)=%d\n", str, flags, rc );
 #endif
 	*dn = newDN;
@@ -2967,9 +2966,9 @@ int ldap_dn2bv( LDAPDN *dn, struct berval *bv, unsigned flags )
 	bv->bv_val = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_ARGS, "=> ldap_dn2bv(%u)\n%s%s", 
-		flags, "", "" ));
-#elif 0
+	LDAP_LOG ( OPERATION, ARGS, "=> ldap_dn2bv(%u)\n%s%s", 
+		flags, "", "" );
+#else
 	Debug( LDAP_DEBUG_TRACE, "=> ldap_dn2bv(%u)\n%s%s", flags, "", "" );
 #endif
 
@@ -3279,9 +3278,9 @@ int ldap_dn2bv( LDAPDN *dn, struct berval *bv, unsigned flags )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getdn", LDAP_LEVEL_RESULTS, "<= ldap_dn2bv(%s,%u)=%d\n", 
-		bv->bv_val, flags, rc ));
-#elif 0
+	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_dn2bv(%s,%u)=%d\n", 
+		bv->bv_val, flags, rc );
+#else
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s,%u)=%d\n",
 		bv->bv_val, flags, rc );
 #endif

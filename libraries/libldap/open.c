@@ -23,6 +23,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+#include "ldap_log.h"
 
 int ldap_open_defconn( LDAP *ld )
 {
@@ -55,8 +56,7 @@ ldap_open( LDAP_CONST char *host, int port )
 	LDAP		*ld;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "open", LDAP_LEVEL_ARGS, "ldap_open(%s, %d)\n",
-		host, port ));
+	LDAP_LOG ( CONNECTION, ARGS, "ldap_open(%s, %d)\n", host, port, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_open(%s, %d)\n",
 		host, port, 0 );
@@ -75,8 +75,8 @@ ldap_open( LDAP_CONST char *host, int port )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "open", LDAP_LEVEL_RESULTS, "ldap_open: %s\n",
-		ld == NULL ? "succeeded" : "failed" ));
+	LDAP_LOG ( CONNECTION, RESULTS, "ldap_open: %s\n",
+		ld == NULL ? "succeeded" : "failed", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_open: %s\n",
 		ld == NULL ? "succeeded" : "failed", 0, 0 );
@@ -107,7 +107,7 @@ ldap_create( LDAP **ldp )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "open", LDAP_LEVEL_ENTRY, "ldap_create\n" ));
+	LDAP_LOG ( CONNECTION, ENTRY, "ldap_create\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_create\n", 0, 0, 0 );
 #endif
@@ -240,7 +240,7 @@ ldap_int_open_connection(
 	long addr;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "open", LDAP_LEVEL_ENTRY, "ldap_int_open_connection\n" ));
+	LDAP_LOG ( CONNECTION, ENTRY, "ldap_int_open_connection\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_open_connection\n", 0, 0, 0 );
 #endif

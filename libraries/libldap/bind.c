@@ -42,7 +42,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
-
+#include "ldap_log.h"
 
 /*
  * ldap_bind - bind to the ldap server (and X.500).  The dn and password
@@ -61,7 +61,7 @@ int
 ldap_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd, int authmethod )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "bind", LDAP_LEVEL_ENTRY, "ldap_bind\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_bind\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_bind\n", 0, 0, 0 );
 #endif
@@ -110,7 +110,7 @@ ldap_bind_s(
 	int authmethod )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "bind", LDAP_LEVEL_ENTRY, "ldap_bind_s\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_bind_s\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_bind_s\n", 0, 0, 0 );
 #endif

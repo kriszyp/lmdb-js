@@ -100,7 +100,7 @@ ldap_add_ext(
 	int		i, rc;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "add", LDAP_LEVEL_ENTRY, "ldap_add_ext\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_add_ext\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_add_ext\n", 0, 0, 0 );
 #endif

@@ -72,7 +72,7 @@ ldap_modify_ext( LDAP *ld,
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "modify", LDAP_LEVEL_ENTRY, "ldap_modify_ext\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_modify_ext\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_modify_ext\n", 0, 0, 0 );
 #endif
@@ -160,7 +160,7 @@ ldap_modify( LDAP *ld, LDAP_CONST char *dn, LDAPMod **mods )
 	int rc, msgid;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "modify", LDAP_LEVEL_ENTRY, "ldap_modify\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_modify\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_modify\n", 0, 0, 0 );
 #endif

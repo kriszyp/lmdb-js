@@ -31,7 +31,11 @@
 int ldap_int_tblsize = 0;
 
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
+#  ifdef LDAP_PF_INET6
 int ldap_int_inet4or6 = AF_UNSPEC;
+#  else
+int ldap_int_inet4or6 = AF_INET;
+#  endif
 #endif
 
 /*
@@ -197,6 +201,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	struct sockaddr *sin, socklen_t addrlen,
 	int async)
 {
+	int rc;
 	struct timeval	tv, *opt_tv=NULL;
 	fd_set		wfds, *z=NULL;
 #ifdef HAVE_WINSOCK
@@ -226,8 +231,7 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	if ( ldap_pvt_ndelay_on(ld, s) == -1 )
 		return ( -1 );
 
-	if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR )
-	{
+	if ( connect(s, sin, addrlen) != AC_SOCKET_ERROR ) {
 		if ( ldap_pvt_ndelay_off(ld, s) == -1 )
 			return ( -1 );
 		return ( 0 );
@@ -253,16 +257,18 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s,
 	FD_SET(s, &efds );
 #endif
 
-	if ( select(ldap_int_tblsize, z, &wfds,
+	do {
+		rc = select(ldap_int_tblsize, z, &wfds,
 #ifdef HAVE_WINSOCK
-		    &efds,
+			&efds,
 #else
-		    z,
+			z,
 #endif
-		    opt_tv ? &tv : NULL) == AC_SOCKET_ERROR )
-	{
-		return ( -1 );
-	}
+			opt_tv ? &tv : NULL);
+	} while( rc == AC_SOCKET_ERROR && errno == EINTR &&
+		LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_RESTART ));
+
+	if( rc == AC_SOCKET_ERROR ) return rc;
 
 #ifdef HAVE_WINSOCK
 	/* This means the connection failed */
@@ -686,7 +692,7 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 	struct selectinfo	*sip;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "os-ip", LDAP_LEVEL_ENTRY, "ldap_int_select\n" ));
+	LDAP_LOG ( CONNECTION, ENTRY, "ldap_int_select\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
 #endif

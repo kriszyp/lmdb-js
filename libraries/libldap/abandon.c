@@ -58,7 +58,7 @@ ldap_abandon_ext(
 {
 	int rc;
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "abandon", LDAP_LEVEL_ARGS, "ldap_abandon_ext %d\n", msgid ));
+	LDAP_LOG ( OPERATION, ARGS, "ldap_abandon_ext %d\n", msgid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon_ext %d\n", msgid, 0, 0 );
 #endif
@@ -86,7 +86,7 @@ int
 ldap_abandon( LDAP *ld, int msgid )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "abandon", LDAP_LEVEL_ARGS, "ldap_abandon %d\n", msgid ));
+	LDAP_LOG ( OPERATION, ARGS, "ldap_abandon %d\n", msgid, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon %d\n", msgid, 0, 0 );
 #endif
@@ -110,8 +110,7 @@ do_abandon(
 	LDAPRequest	*lr;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "abandon", LDAP_LEVEL_ARGS, "do_abandon %d, msgid %d\n", 
-		origid, msgid ));
+	LDAP_LOG ( OPERATION, ARGS, "do_abandon %d, msgid %d\n", origid, msgid, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "do_abandon origid %d, msgid %d\n",
 		origid, msgid, 0 );

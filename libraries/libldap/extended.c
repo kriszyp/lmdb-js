@@ -30,6 +30,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+#include "ldap_log.h"
 
 int
 ldap_extended_operation(
@@ -44,7 +45,7 @@ ldap_extended_operation(
 	int rc;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "extended", LDAP_LEVEL_ENTRY, "ldap_extended_operation\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_extended_operation\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation\n", 0, 0, 0 );
 #endif
@@ -117,7 +118,7 @@ ldap_extended_operation_s(
     LDAPMessage *res;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "extended", LDAP_LEVEL_ENTRY, "ldap_extended_operation_s\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_extended_operation_s\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation_s\n", 0, 0, 0 );
 #endif
@@ -173,7 +174,7 @@ ldap_parse_extended_result (
 	assert( res != NULL );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "extended", LDAP_LEVEL_ENTRY, "ldap_parse_extended_result\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_parse_extended_result\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_parse_extended_result\n", 0, 0, 0 );
 #endif
@@ -300,8 +301,7 @@ ldap_parse_extended_partial (
 	assert( res != NULL );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "extended", LDAP_LEVEL_ENTRY, 
-		"ldap_parse_extended_partial\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_parse_extended_partial\n", 0,0,0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_parse_extended_partial\n", 0, 0, 0 );
 #endif

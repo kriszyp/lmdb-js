@@ -37,7 +37,7 @@ ldap_get_values( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	assert( target != NULL );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getvalues", LDAP_LEVEL_ENTRY, "ldap_get_values\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_values\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_values\n", 0, 0, 0 );
 #endif
@@ -98,7 +98,7 @@ ldap_get_values_len( LDAP *ld, LDAPMessage *entry, LDAP_CONST char *target )
 	assert( target != NULL );
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "getvalues", LDAP_LEVEL_ENTRY, "ldap_get_values_len\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_values_len\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_values_len\n", 0, 0, 0 );
 #endif

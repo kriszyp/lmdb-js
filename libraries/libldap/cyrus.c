@@ -361,7 +361,7 @@ Sockbuf_IO ldap_pvt_sockbuf_io_sasl = {
 int ldap_pvt_sasl_install( Sockbuf *sb, void *ctx_arg )
 {
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "cyrus", LDAP_LEVEL_ENTRY, "ldap_pvt_sasl_install\n" ));
+	LDAP_LOG ( TRANSPORT, ENTRY, "ldap_pvt_sasl_install\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_pvt_sasl_install\n",
 		0, 0, 0 );
@@ -457,8 +457,8 @@ ldap_int_sasl_open(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "cyrus", LDAP_LEVEL_DETAIL1, 
-		"ldap_int_sasl_open: host=%s\n", host ));
+	LDAP_LOG ( TRANSPORT, DETAIL1, "ldap_int_sasl_open: host=%s\n", 
+		host, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_open: host=%s\n",
 		host, 0, 0 );
@@ -479,8 +479,8 @@ ldap_int_sasl_open(
 			(void *) &extprops );
 #endif
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "cyrus", LDAP_LEVEL_DETAIL1, 
-			"ldap_int_sasl_open: ssf=%ld\n", (long) ssf ));
+		LDAP_LOG ( TRANSPORT, DETAIL1, 
+			"ldap_int_sasl_open: ssf=%ld\n", (long) ssf, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_open: ssf=%ld\n",
 			(long) ssf, 0, 0 );
@@ -525,8 +525,8 @@ ldap_int_sasl_bind(
 	ber_socket_t		sd;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "cyrus", LDAP_LEVEL_ARGS, 
-			"ldap_int_sasl_bind: %s\n", mechs ? mechs : "<null>" ));
+	LDAP_LOG ( TRANSPORT, ARGS, "ldap_int_sasl_bind: %s\n", 
+		mechs ? mechs : "<null>", 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_int_sasl_bind: %s\n",
 		mechs ? mechs : "<null>", 0, 0 );
@@ -637,9 +637,9 @@ ldap_int_sasl_bind(
 			if( scred && scred->bv_len ) {
 				/* and server provided us with data? */
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "cyrus", LDAP_LEVEL_DETAIL1, 
+				LDAP_LOG ( TRANSPORT, DETAIL1, 
 					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n", 
-					rc, saslrc, scred->bv_len ));
+					rc, saslrc, scred->bv_len );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
@@ -655,9 +655,9 @@ ldap_int_sasl_bind(
 			if( scred && scred->bv_len ) {
 				/* but server provided us with data! */
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "cyrus", LDAP_LEVEL_DETAIL1, 
+				LDAP_LOG ( TRANSPORT, DETAIL1, 
 					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n", 
-					rc, saslrc, scred->bv_len ));
+					rc, saslrc, scred->bv_len );
 #else
 				Debug( LDAP_DEBUG_TRACE,
 					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
@@ -678,8 +678,8 @@ ldap_int_sasl_bind(
 				&credlen );
 
 #ifdef NEW_LOGGING
-				LDAP_LOG (( "cyrus", LDAP_LEVEL_DETAIL1, 
-					"ldap_int_sasl_bind: sasl_client_step: %d\n", saslrc ));
+				LDAP_LOG ( TRANSPORT, DETAIL1, 
+					"ldap_int_sasl_bind: sasl_client_step: %d\n", saslrc,0,0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "sasl_client_step: %d\n",
 				saslrc, 0, 0 );

@@ -21,7 +21,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
-
+#include "ldap_log.h"
 
 /*
  * ldap_search_ext - initiate an ldap search operation.
@@ -62,7 +62,7 @@ ldap_search_ext(
 	int timelimit;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY, "ldap_search_ext\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_search_ext\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_search_ext\n", 0, 0, 0 );
 #endif
@@ -184,7 +184,7 @@ ldap_search(
 	BerElement	*ber;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY, "ldap_search\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_search\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_search\n", 0, 0, 0 );
 #endif

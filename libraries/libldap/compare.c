@@ -29,6 +29,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+#include "ldap_log.h"
 
 /*
  * ldap_compare_ext - perform an ldap extended compare operation.  The dn
@@ -55,7 +56,7 @@ ldap_compare_ext(
 	BerElement	*ber;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "compare", LDAP_LEVEL_ENTRY, "ldap_compare\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_compare\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_compare\n", 0, 0, 0 );
 #endif

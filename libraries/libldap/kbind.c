@@ -45,7 +45,6 @@
 
 #include "ldap-int.h"
 
-
 /*
  * ldap_kerberos_bind1 - initiate a bind to the ldap server using
  * kerberos authentication.  The dn is supplied.  It is assumed the user
@@ -65,7 +64,7 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 	ber_len_t credlen;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind1\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_kerberos_bind1\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1\n", 0, 0, 0 );
 #endif
@@ -119,7 +118,7 @@ ldap_kerberos_bind1_s( LDAP *ld, LDAP_CONST char *dn )
 	LDAPMessage	*res;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind1_s\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_kerberos_bind1_s\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1_s\n", 0, 0, 0 );
 #endif
@@ -156,7 +155,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	ber_len_t credlen;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind2\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_kerberos_bind2\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2\n", 0, 0, 0 );
 #endif
@@ -205,7 +204,7 @@ ldap_kerberos_bind2_s( LDAP *ld, LDAP_CONST char *dn )
 	LDAPMessage	*res;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind2_s\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_kerberos_bind2_s\n" , 0, 0, 0);
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2_s\n", 0, 0, 0 );
 #endif
@@ -230,7 +229,7 @@ ldap_kerberos_bind_s( LDAP *ld, LDAP_CONST char *dn )
 	int	err;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, "ldap_kerberos_bind_s\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_kerberos_bind_s\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind_s\n", 0, 0, 0 );
 #endif
@@ -261,17 +260,16 @@ ldap_get_kerberosv4_credentials(
 	char		realm[REALM_SZ], *cred, *krbinstance;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "kbind", LDAP_LEVEL_ENTRY, 
-		"ldap_get_kerberosv4_credentials\n" ));
+	LDAP_LOG ( OPERATION, ENTRY, "ldap_get_kerberosv4_credentials\n", 0, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_kerberosv4_credentials\n", 0, 0, 0 );
 #endif
 
 	if ( (err = krb_get_tf_realm( tkt_string(), realm )) != KSUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "kbind", LDAP_LEVEL_ERR, 
+		LDAP_LOG ( OPERATION, ERR, 
 			"ldap_get_kerberosv4_credentials: krb_get_tf_realm failed: %s\n",
-			krb_err_txt[err] ));
+			krb_err_txt[err], 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ldap_get_kerberosv4_credentials: "
 			"krb_get_tf_realm failed: %s\n", krb_err_txt[err], 0, 0 );
@@ -293,9 +291,9 @@ ldap_get_kerberosv4_credentials(
 	    != KSUCCESS )
 	{
 #ifdef NEW_LOGGING
-		LDAP_LOG (( "kbind", LDAP_LEVEL_ERR, 
+		LDAP_LOG ( OPERATION, ERR, 
 			"ldap_get_kerberosv4_credentials: krb_mk_req failed: %s\n",
-			krb_err_txt[err] ));
+			krb_err_txt[err], 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "ldap_get_kerberosv4_credentials: "
 			"krb_mk_req failed (%s)\n", krb_err_txt[err], 0, 0 );
