@@ -1,4 +1,4 @@
-/* ldapwhoami.c -- a tool for asking the directory "Who Am I?"
+/* ldapwhoami.c -- a tool for asking the directory "Who Am I?" */
 /* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *

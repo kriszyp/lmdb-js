@@ -25,7 +25,7 @@
 /* ACKNOWLEDGEMENTS:
  * This work was initially developed by Bart Hartgers for inclusion in
  * OpenLDAP Software.
-
+ */
 
 /*
  * util-int.c	Various functions to replace missing threadsafe ones.

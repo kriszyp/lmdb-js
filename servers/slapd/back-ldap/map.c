@@ -1,5 +1,5 @@
 /* map.c - ldap backend mapping routines */
-/* $OpenLDAP$
+/* $OpenLDAP$ */
 /* This work is part of OpenLDAP Software <http://www.openldap.org/>.
  *
  * Copyright 1998-2003 The OpenLDAP Foundation.
