@@ -149,6 +149,7 @@ LIBLDAP_F (int) ldap_pvt_tls_start LDAP_P(( Sockbuf *sb, void *ctx_arg ));
 
 typedef ber_int_t ldap_ucs4_t;
 typedef short ldap_ucs2_t;
+typedef ldap_ucs2_t ldap_unicode_t;
 
 /* returns the number of bytes in the UTF-8 string */
 LIBLDAP_F (ber_len_t) ldap_utf8_bytes( const char * );

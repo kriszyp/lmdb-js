@@ -928,8 +928,7 @@ IA5StringConvert(
 	struct berval *in,
 	struct berval **out )
 {
-	typedef ldap_ucs4_t ldap_unicode_t;	/* TEMPORARY */
-	int i;
+	ber_len_t i;
 	struct berval *bv = ch_malloc( sizeof(struct berval) );
 	bv->bv_len = (in->bv_len+1) * sizeof( ldap_unicode_t );
 	bv->bv_val = ch_malloc( bv->bv_len );
@@ -941,6 +940,9 @@ IA5StringConvert(
 		 */
 		bv->bv_val[i] = in->bv_val[i];
 	}
+
+	*out = bv;
+	return 0;
 }
 
 static int
