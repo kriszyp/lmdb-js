@@ -263,7 +263,7 @@ AC_DEFUN([OL_LIB_BERKELEY_DB],
 	ol_LIBS="$LIBS"
 	AC_CHECK_FUNC(dbopen,[ol_cv_lib_db=yes], [
 		AC_CHECK_LIB(db1,dbopen,[ol_cv_lib_db=-ldb1],[
-			AC_CHECK_LIB(db,dbopen,[ol_cv_lib_db=-ldb]
+			AC_CHECK_LIB(db,dbopen,[ol_cv_lib_db=-ldb],
 			[ol_cv_lib_db=no])
 		])
 	])
