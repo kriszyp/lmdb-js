@@ -817,11 +817,12 @@ int connection_read(ber_socket_t s)
 #define CONNECTION_INPUT_LOOP 1
 
 #ifdef DATA_READY_LOOP
-	while(rc >= 0 && ber_pvt_sb_data_ready(&c->c_sb))
+	while(!rc && ber_pvt_sb_data_ready(&c->c_sb))
 #elif CONNECTION_INPUT_LOOP
-	while(rc >= 0)
+	while(!rc)
 #endif
 	{
+		/* How do we do this without getting into a busy loop ? */
 		rc = connection_input( c );
 	}
 
