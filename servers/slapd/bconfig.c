@@ -415,7 +415,7 @@ ConfigTable config_back_cf_table[] = {
 	{ "rootDSE", "file", 2, 2, 0, ARG_MAGIC|CFG_ROOTDSE,
 		&config_generic, "( OLcfgAt:51 NAME 'olcRootDSE' "
 			"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "rootpw", "password", 2, 2, 0, ARG_STRING|ARG_DB|ARG_MAGIC,
+	{ "rootpw", "password", 2, 2, 0, ARG_BERVAL|ARG_DB|ARG_MAGIC,
 		&config_rootpw, "( OLcfgAt:52 NAME 'olcRootPW' "
 			"SYNTAX OMsOctetString SINGLE-VALUE )", NULL, NULL },
 	{ "sasl-authz-policy", NULL, 2, 2, 0, ARG_MAGIC|CFG_AZPOLICY,
@@ -1350,7 +1350,7 @@ config_rootpw(ConfigArgs *c) {
 	Backend *tbe;
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if (!BER_BVISEMPTY(&c->be->be_rootpw)) {
-			c->value_string=c->be->be_rootpw.bv_val;
+			ber_dupbv( &c->value_bv, &c->be->be_rootpw);
 			return 0;
 		}
 		return 1;
@@ -1363,7 +1363,7 @@ config_rootpw(ConfigArgs *c) {
 			c->log, 0, 0);
 		return(1);
 	}
-	ber_str2bv(c->value_string, 0, 0, &c->be->be_rootpw);
+	c->be->be_rootpw = c->value_bv;
 	return(0);
 }
 
