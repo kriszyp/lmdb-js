@@ -275,7 +275,7 @@ LDAP_END_DECL
 typedef	BIGNUM*		ldap_pvt_mp_t;
 
 #define	ldap_pvt_mp_init(mp) \
-	do { (mp) = BN_new(); BN_init((mp)); } while (0)
+	(mp) = BN_new()
 
 /* FIXME: we rely on mpr being initialized */
 #define	ldap_pvt_mp_init_set(mpr,mpv) \
