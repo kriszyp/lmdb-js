@@ -118,14 +118,14 @@ or the {{ORG[expand]FSF}}'s {{PRD:GNU}} Database Manager ({{PRD:GDBM}}).
 If neither of these packages are available at configure time,
 you will not be able build {{slapd}}(8) with primary database backend.
 
-Your operating system may provide one of these two packages in
-the base system or as an optional software component.  You may
-need may need to obtain the software and install it yourself.
+Your operating system may provide one or both of these packages in
+the base system or as an optional software component.  If not,
+you'll have to obtain and install one of these packages yourself.
 
 {{PRD:BerkeleyDB}} is available from {{ORG[expand]Sleepy}}'s
 download page {{URL: http://www.sleepycat.com/download.html}}.
 There are several versions available.  At the time of this writing,
-the latest release, version 3.1, is recommended. 
+the latest release, version 3.3, is recommended. 
 
 {{PRD:GDBM}} is available from {{ORG:FSF}}'s download site
 {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}.

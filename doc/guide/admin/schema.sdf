@@ -37,7 +37,7 @@ openldap.schema		OpenLDAP Project (experimental)
 !endblock
 
 To use any of these schema files, you only need to include the
-the desired file in the global definitions portion of your
+desired file in the global definitions portion of your
 {{slapd.conf}}(5) file.  For example:
 
 >	# include schema

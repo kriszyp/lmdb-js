@@ -475,7 +475,6 @@ This directive specifies the indexes to maintain for the given
 attribute. If only an {{EX:<attrlist>}} is given, the default
 indexes are maintained.
 
-
 \Example:
 
 >	index default pres,eq
@@ -490,6 +489,13 @@ The third line causes present, equality, and substring indices to
 be maintained for {{EX:cn}} and {{EX:sn}} attribute types.  The
 fourth line causes an equality index for the {{EX:objectClass}}
 attribute type.
+
+By default, no indices are maintained.  It is generally advised
+that minimally an equality index upon objectClass be maintained.
+
+>	index objectClass eq
+
+
 
 H4: mode <integer>
 
@@ -861,12 +867,12 @@ Lines 9 and 10 identify the database "super user" entry and associated
 password. This entry is not subject to access control or size or
 time limit restrictions.
 
-Lines 11 through 18 are for replication. Line 11 specifies the
+Lines 11 through 18 are for replication. Line 12 specifies the
 replication log file (where changes to the database are logged \-
-this file is written by slapd and read by slurpd). Lines 12 through
-14 specify the hostname and port for a replicated host, the DN to
+this file is written by slapd and read by slurpd). Lines 13 through
+15 specify the hostname and port for a replicated host, the DN to
 bind as when performing updates, the bind method (simple) and the
-credentials (password) for the binddn. Lines 15 through 18 specify
+credentials (password) for the binddn. Lines 16 through 18 specify
 a second replication site.  See the {{SECT:Replication with slurpd}}
 chapter for more information on these directives.
 
@@ -884,13 +890,14 @@ entry, but may be read by all users (authenticated or not).
 
 The next section of the example configuration file defines another
 LDBM database. This one handles queries involving the
-{{EX:dc=example,dc=net}} subtree.  Note that without line 38, the
-read access would be allowed due to the global access rule at line
-4.
+{{EX:dc=example,dc=net}} subtree but is managed by the same entity
+as the first database.  Note that without line 39, the read access
+would be allowed due to the global access rule at line 4.
 
 E: 33.	# ldbm definition for example.net
 E: 34.	database ldbm
 E: 35.	suffix "dc=example,dc=net"
 E: 36.	directory /usr/local/var/ldbm-example-net
 E: 37.	rootdn "cn=Manager,dc=example,dc=com"
-E: 38.	access to * by users read
+E: 38.	index objectClass eq
+E: 39.	access to * by users read
