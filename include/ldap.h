@@ -534,6 +534,14 @@ ldap_extended_operation_s LDAP_P((
 	char			**retoidp,
 	struct berval	**retdatap ));
 
+LDAP_F( int )
+ldap_parse_extended_result LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	char			**retoidp,
+	struct berval	**retdatap,
+	int				freeit ));
+
 /*
  * in abandon.c:
  */
@@ -606,6 +614,12 @@ ldap_sasl_bind_s LDAP_P((
 	LDAPControl		**clientctrls,
 	struct berval	**servercredp ));
 
+LDAP_F( int )
+ldap_parse_sasl_bind_result LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	struct berval	**servercredp,
+	int				freeit ));
 
 /*
  * in bind.c:
@@ -1088,6 +1102,17 @@ ldap_result LDAP_P((
 	int all,
 	struct timeval *timeout,
 	LDAPMessage **result ));
+
+LDAP_F( int )
+ldap_parse_result LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	int				*errcodep,
+	char			**matcheddnp,
+	char			**errmsgp,
+	char			***referralsp,
+	LDAPControl		***serverctrls,
+	int				freeit ));
 
 LDAP_F( int )
 ldap_msgtype LDAP_P((
