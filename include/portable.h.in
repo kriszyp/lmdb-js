@@ -236,8 +236,17 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
+/* Define if you have the feof_unlocked function.  */
+#undef HAVE_FEOF_UNLOCKED
+
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
+
+/* Define if you have the flockfile function.  */
+#undef HAVE_FLOCKFILE
+
+/* Define if you have the ftrylockfile function.  */
+#undef HAVE_FTRYLOCKFILE
 
 /* Define if you have the getdtablesize function.  */
 #undef HAVE_GETDTABLESIZE
@@ -250,6 +259,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
+
+/* Define if you have the gmtime_r function.  */
+#undef HAVE_GMTIME_R
 
 /* Define if you have the lockf function.  */
 #undef HAVE_LOCKF
@@ -269,8 +281,14 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the pthread_kill function.  */
 #undef HAVE_PTHREAD_KILL
 
+/* Define if you have the pthread_setconcurrency function.  */
+#undef HAVE_PTHREAD_SETCONCURRENCY
+
 /* Define if you have the pthread_yield function.  */
 #undef HAVE_PTHREAD_YIELD
+
+/* Define if you have the putc_unlocked function.  */
+#undef HAVE_PUTC_UNLOCKED
 
 /* Define if you have the sched_yield function.  */
 #undef HAVE_SCHED_YIELD
@@ -314,6 +332,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the strtod function.  */
 #undef HAVE_STRTOD
 
+/* Define if you have the strtok_r function.  */
+#undef HAVE_STRTOK_R
+
 /* Define if you have the strtol function.  */
 #undef HAVE_STRTOL
 
@@ -325,6 +346,12 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the tempnam function.  */
 #undef HAVE_TEMPNAM
+
+/* Define if you have the thr_setconcurrency function.  */
+#undef HAVE_THR_SETCONCURRENCY
+
+/* Define if you have the unlocked_feof function.  */
+#undef HAVE_UNLOCKED_FEOF
 
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF

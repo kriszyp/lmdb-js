@@ -30,6 +30,8 @@ OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
 OL_ARG_ENABLE(dns,[  --enable-dns		enable dns support], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable referrals], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
+OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
+	no, [yes no])dnl
 
 dnl General "with" options
 OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
@@ -200,8 +202,22 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
 dnl Checks the compiler and UNIX Variants
 AC_PROG_CC
+
+if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
+	AC_WARN([cross compiling....  go for it])
+
+elif test $cross_compiling = no -a $ol_enable_x_compile = yes; then
+	AC_WARN([programs compiled here do run here...])
+	AC_ERROR([  if not cross compiling, use --disable-x-compile.])
+
+elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
+	AC_WARN([programs compiled here do not run here...])
+	AC_ERROR([  if cross compiling,  add --enable-x-compile.])
+fi
+
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_CPP
+
 
 AC_AIX
 AC_ISC_POSIX
@@ -386,11 +402,17 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 			dnl Check functions for compatibility
 			AC_CHECK_FUNCS(pthread_kill)
-dnl			AC_CHECK_FUNCS(
+dnl			AC_CHECK_FUNCS( \
 dnl				pthread_attr_create pthread_attr_init \
 dnl				pthread_attr_destroy pthread_attr_delete \
 dnl				pthread_attr_setdetachstate pthread_attr_setdetach_np \
 dnl			)
+
+			dnl Check for setconcurreny functions
+			AC_CHECK_FUNCS(	\
+				pthread_setconcurrency \
+				thr_setconcurrency \
+			)
 
 			dnl Check PREEMPTIVE Implementation 
 			if test $ol_with_preemptive = auto ; then
@@ -424,6 +446,14 @@ main(argc, argv)
 int argc; char **argv;
 {
 	pthread_t t;
+
+#ifdef HAVE_PTHREAD_SETCONCURRENCY
+	(void) pthread_setconcurrency(2);
+#elif HAVE_THR_SETCONCURRENCY
+	/* Set Solaris LWP concurrency to 2 */
+	thr_setconcurrency(2);
+#endif
+
 	pthread_create(&t, NULL, (void *) task, NULL);
 
 #if HAVE_SCHED_YIELD
@@ -444,6 +474,17 @@ int argc; char **argv;
 					ol_with_preemptive=yes
 				fi
 			fi
+
+			dnl check for reentrant/threadsafe functions
+			AC_CHECK_FUNCS(	\
+				feof_unlocked \
+				unlocked_feof \
+				ftrylockfile \
+				flockfile \
+				putc_unlocked \
+				gmtime_r \
+				strtok_r \
+			)
 
 			dnl restore DEFS/LIBS
 			CPPFLAGS="$save_CPPFLAGS"
@@ -919,7 +960,7 @@ if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
 fi
 
 if test $ol_enable_ldapd != no ; then
-	BUILD_SLURPD=yes
+	BUILD_LDAPD=yes
 fi
 
 dnl ----------------------------------------------------------------
