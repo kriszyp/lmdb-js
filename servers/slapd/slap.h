@@ -344,7 +344,7 @@ typedef struct slap_conn {
 	{ \
 		if ( ldap_debug & level ) \
 			fprintf( stderr, fmt, connid, opid, arg1, arg2, arg3 );\
-		if ( ldap_syslog & level ) \
+		if ( 0 && (ldap_syslog & level) ) \
 			syslog( ldap_syslog_level, fmt, connid, opid, arg1, \
 			    arg2, arg3 ); \
 	}
