@@ -24,11 +24,9 @@
 char *
 ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 {
-#if LBER_SEQORSET_AVOID_OVERRUN
 	int rc;
-#endif
 	ber_tag_t tag;
-	ber_len_t len;
+	ber_len_t len = 0;
 	char *attr;
 	BerElement *ber;
 
@@ -53,14 +51,13 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 	 * us at the first attribute.
 	 */
 
-	tag = ber_scanf( ber, "{xl{" /*}}*/, &attr, &len );
+	tag = ber_scanf( ber, "{xl{" /*}}*/, &len );
 	if( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( ber, 0 );
-		return  NULL;
+		return NULL;
 	}
 
-#ifdef LBER_SEQORSET_AVOID_OVERRUN
 	/* set the length to avoid overrun */
 	rc = ber_set_option( ber, LBER_OPT_REMAINING_BYTES, &len );
 	if( rc != LBER_OPT_SUCCESS ) {
@@ -69,14 +66,11 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 		return NULL;
 	}
 
-#ifdef LDAP_SEQORSET_BAILOUT
 	if ( ber_pvt_ber_remaining( ber ) == 0 ) {
 		assert( len == 0 );
 		return NULL;
 	}
 	assert( len != 0 );
-#endif
-#endif
 
 	/* snatch the first attribute */
 	tag = ber_scanf( ber, "{ax}", &attr );
@@ -104,13 +98,9 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 	assert( entry != NULL );
 	assert( ber != NULL );
 
-#ifdef LBER_SEQORSET_AVOID_OVERRUN
-#ifdef LDAP_SEQORSET_BAILOUT
 	if ( ber_pvt_ber_remaining( ber ) == 0 ) {
 		return NULL;
 	}
-#endif
-#endif
 
 	/* skip sequence, snarf attribute type, skip values */
 	tag = ber_scanf( ber, "{ax}", &attr ); 
