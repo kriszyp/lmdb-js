@@ -157,6 +157,7 @@ ID ldbm_tool_entry_put(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	Datum key, data;
 	int rc, len;
+	ID id;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( id2entry != NULL );
@@ -169,21 +170,33 @@ ID ldbm_tool_entry_put(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_tool_entry_put: (%s)%ld\n", e->e_dn, e->e_id ));
+		"ldbm_tool_entry_put: (%s)%ld\n", e->e_dn, e->e_id ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
 #endif
 
+	id = dn2id( be, e->e_ndn );
+	if( id != NOID ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
+			"ldbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
+			e->e_dn, id ));
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"<= ldbm_tool_entry_put: \"%s\" already exists (id=%ld)\n",
+			e->e_ndn, id, 0 );
+#endif
+		return NOID;
+	}
+
 
 	rc = index_entry_add( be, e, e->e_attrs );
-
 	if( rc != 0 ) {
 		return NOID;
 	}
 
 	rc = dn2id_add( be, e->e_ndn, e->e_id );
-
 	if( rc != 0 ) {
 		return NOID;
 	}
