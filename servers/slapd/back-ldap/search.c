@@ -486,7 +486,7 @@ ldap_send_entry(
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
-			for ( i = 0; ( bv = &attr->a_vals[ i ] ); i++ ) {
+			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				char *newval;
 				
 				switch ( rewrite_session( li->rwinfo,
