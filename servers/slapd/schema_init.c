@@ -71,7 +71,6 @@
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
-#define presentationAddressMatch		NULL
 #define protocolInformationMatch		NULL
 #define integerFirstComponentMatch		NULL
 
@@ -4500,7 +4499,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		presentationAddressMatch, NULL, NULL,
+		NULL, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
