@@ -283,7 +283,7 @@ nextido:
 		ei = NULL;
 		rs->sr_err = bdb_cache_find_id(op, NULL, ido, &ei,
 			0, locker, &locka );
-		if (rs->sr_err != LDAP_SUCCESS) goto nextido;
+		if ( rs->sr_err != LDAP_SUCCESS ) goto nextido;
 		e = ei->bei_e;
 	}
 	return rs->sr_err;
@@ -455,12 +455,13 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 			if ( ps_list->o_sync_slog_omitcsn.bv_len != 0 ) {
 				mr = slap_schema.si_ad_entryCSN->ad_type->sat_ordering;
 				if ( sop->o_sync_state.ctxcsn &&
-					 sop->o_sync_state.ctxcsn->bv_val != NULL ) {
-					 value_match( &match, slap_schema.si_ad_entryCSN, mr,
-								SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
-								sop->o_sync_state.ctxcsn,
-								&ps_list->o_sync_slog_omitcsn,
-								&text );
+					sop->o_sync_state.ctxcsn->bv_val != NULL )
+				{
+					value_match( &match, slap_schema.si_ad_entryCSN, mr,
+						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+						sop->o_sync_state.ctxcsn,
+						&ps_list->o_sync_slog_omitcsn,
+						&text );
 				} else {
 					match = -1;
 				}
@@ -501,7 +502,6 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	manageDSAit = get_manageDSAit( sop );
 
 	/* Sync control overrides manageDSAit */
-
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 		if ( manageDSAit == SLAP_NO_CONTROL ) {
 			manageDSAit = SLAP_CRITICAL_CONTROL;
@@ -512,7 +512,7 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		}
 	}
 
-	rs->sr_err = LOCK_ID (bdb->bi_dbenv, &locker );
+	rs->sr_err = LOCK_ID( bdb->bi_dbenv, &locker );
 
 	switch(rs->sr_err) {
 	case 0:
@@ -601,7 +601,7 @@ dn2entry_retry:
 		return rs->sr_err;
 	}
 
-	if (!manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
+	if ( !manageDSAit && e != &slap_entry_root && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval matched_dn;
 		BerVarray erefs;
@@ -656,7 +656,8 @@ dn2entry_retry:
 
 	/* The time/size limits come first because they require very little
 	 * effort, so there's no chance the candidates are selected and then 
-	 * the request is not honored only because of time/size constraints */
+	 * the request is not honored only because of time/size constraints
+	 */
 
 	/* if no time limit requested, use soft limit (unless root!) */
 	if ( isroot ) {
@@ -771,10 +772,8 @@ dn2entry_retry:
 			locker, candidates, scopes );
 	}
 
-	if ( !IS_PSEARCH ) {
-		if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
-			bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
-		}
+	if ( !IS_PSEARCH && sop->o_sync_mode != SLAP_SYNC_NONE ) {
+		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
 	}
 
 	/* start cursor at beginning of candidates.
@@ -787,12 +786,11 @@ dn2entry_retry:
 			   	rs->sr_err = LDAP_SUCCESS;
 			   	goto done;
 			}
-		} else {
-			if ( ps_e->e_id < BDB_IDL_RANGE_FIRST(candidates)
-			   || ps_e->e_id > BDB_IDL_RANGE_LAST(candidates)){
-			   	rs->sr_err = LDAP_SUCCESS;
-			   	goto done;
-			}
+		} else if ( ps_e->e_id < BDB_IDL_RANGE_FIRST( candidates ) ||
+			ps_e->e_id > BDB_IDL_RANGE_LAST( candidates ))
+		{
+			rs->sr_err = LDAP_SUCCESS;
+			goto done;
 		}
 		candidates[0] = 1;
 		candidates[1] = ps_e->e_id;
@@ -839,7 +837,7 @@ dn2entry_retry:
 			}
 			for ( id = bdb_idl_first( candidates, &cursor );
 				id != NOID && id <= (ID)( sop->o_pagedresults_state.ps_cookie );
-				id = bdb_idl_next( candidates, &cursor ) );
+				id = bdb_idl_next( candidates, &cursor ) ) /* empty */;
 		}
 		if ( cursor == NOID ) {
 #ifdef NEW_LOGGING
@@ -859,7 +857,7 @@ dn2entry_retry:
 		goto loop_begin;
 	}
 
-	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) || IS_PSEARCH ) {
+	if (( sop->o_sync_mode & SLAP_SYNC_REFRESH ) || IS_PSEARCH ) {
 		int match;
 
 		cookief.f_choice = LDAP_FILTER_AND;
@@ -956,7 +954,6 @@ loop_begin:
 			goto done;
 		}
 
-
 		if (!IS_PSEARCH) {
 id2entry_retry:
 			/* get the entry with reader lock */
@@ -1000,8 +997,12 @@ id2entry_retry:
 		} else {
 			e = ps_e;
 		}
+#if 0
+		assert( BEI(e) );
+#endif
 
 		rs->sr_entry = e;
+
 #ifdef BDB_SUBENTRIES
 		/* FIXME: send all but syncrepl */
 #if 0
@@ -1052,14 +1053,15 @@ id2entry_retry:
 			if ( id == base.e_id ) break;
 			/* Fall-thru */
 		case LDAP_SCOPE_SUBTREE: {
-			EntryInfo *tmp;
-			for ( tmp = BEI(e); tmp->bei_parent;
-				tmp = tmp->bei_parent )
-			{
+			EntryInfo *tmp = BEI(e);
+			if ( tmp ) for (; tmp->bei_parent; tmp = tmp->bei_parent ) {
 				if ( tmp->bei_id == base.e_id ) {
 					scopeok = 1;
 					break;
 				}
+			} else {
+				/* FIXME */
+				scopeok = 1;
 			}
 			} break;
 		}
