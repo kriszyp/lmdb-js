@@ -174,7 +174,7 @@ fakeConnection(
 	c->c_pending_ops.stqh_first->o_authmech.bv_len = 0; 
 	c->c_pending_ops.stqh_first->o_time = slap_get_time();
 	c->c_pending_ops.stqh_first->o_do_not_cache = 1;
-	c->c_pending_ops.stqh_first->o_threadctx = ldap_pvt_thread_pool_getcontext( &connection_pool );
+	c->c_pending_ops.stqh_first->o_threadctx = ldap_pvt_thread_pool_context( &connection_pool );
 
 	/* connection object */
 	c->c_authmech.bv_val = NULL;
