@@ -303,10 +303,6 @@ bdb2i_back_modrdn_internal(
 	    
 	}		
 
-#ifdef DNS_DN
-	if ( dn_type( old_rdn ) == DN_X500 ) {
-#endif
-
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
 		       0, 0, 0 );
 
@@ -366,20 +362,6 @@ bdb2i_back_modrdn_internal(
 			       old_rdn_val, 0, 0 );
 		
 		}/* if (deleteoldrdn) */
-
-#ifdef DNS_DN
-	} else {
-	    
-
-		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DNS DN\n",
-		       0, 0, 0 );
-		/* XXXV3: not sure of what to do here */
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: not fully implemented...\n",
-		       0, 0, 0 );  
-
-	}
-#endif
 
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );

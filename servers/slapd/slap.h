@@ -55,11 +55,6 @@ LDAP_BEGIN_DECL
  */
 #define LDAP_MOD_SOFTADD	0x1000
 
-#ifdef DNS_DN
-#define DN_DNS	0
-#define DN_X500	1
-#endif
-
 #define ON	1
 #define OFF	(-1)
 #define UNDEFINED 0

@@ -214,9 +214,6 @@ LIBSLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
 LIBSLAPD_F (char **) dn_subtree LDAP_P(( Backend *be, const char *dn ));
 LIBSLAPD_F (char *) dn_rdn LDAP_P(( Backend *be, char *dn ));
 LIBSLAPD_F (int) dn_issuffix LDAP_P(( char *dn, char *suffix ));
-#ifdef DNS_DN
-LIBSLAPD_F (int) dn_type LDAP_P(( char *dn ));
-#endif
 LIBSLAPD_F (int) rdn_validate LDAP_P(( const char* str ));
 LIBSLAPD_F (char *) rdn_attr_value LDAP_P(( char * rdn ));
 LIBSLAPD_F (char *) rdn_attr_type LDAP_P(( char * rdn ));

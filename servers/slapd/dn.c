@@ -222,26 +222,6 @@ dn_parent(
 		return( NULL );
 	}
 
-#ifdef DNS_DN
-	/*
-	 * no =, assume it is a dns name, like blah@some.domain.name
-	 * if the blah@ part is there, return some.domain.name.  if
-	 * it's just some.domain.name, return domain.name.
-	 */
-	if ( strchr( dn, '=' ) == NULL ) {
-		if ( (s = strchr( dn, '@' )) == NULL ) {
-			if ( (s = strchr( dn, '.' )) == NULL ) {
-				return( NULL );
-			}
-		}
-		if ( *(s + 1) == '\0' ) {
-			return( NULL );
-		} else {
-			return( ch_strdup( &s[1] ) );
-		}
-	}
-#endif
-
 	/*
 	 * else assume it is an X.500-style name, which looks like
 	 * foo=bar,sha=baz,...
@@ -295,28 +275,6 @@ char * dn_rdn(
 	}
 
 	dn = ch_strdup( dn );
-
-#ifdef DNS_DN
-	/*
-	 * no =, assume it is a dns name, like blah@some.domain.name
-	 * if the blah@ part is there, return some.domain.name.  if
-	 * it's just some.domain.name, return domain.name.
-	 */
-	if ( strchr( dn, '=' ) == NULL ) {
-		if ( (s = strchr( dn, '@' )) == NULL ) {
-			if ( (s = strchr( dn, '.' )) == NULL ) {
-				return( dn );
-			}
-		}
-		*s = '\0';
-		return( dn );
-	}
-#endif
-
-	/*
-	 * else assume it is an X.500-style name, which looks like
-	 * foo=bar,sha=baz,...
-	 */
 
 	inquote = 0;
 
@@ -397,20 +355,6 @@ dn_issuffix(
 
 	return( strcmp( dn + dnlen - suffixlen, suffix ) == 0 );
 }
-
-#ifdef DNS_DN
-/*
- * dn_type - tells whether the given dn is an X.500 thing or DNS thing
- * returns (defined in slap.h):	DN_DNS          dns-style thing
- *                            	DN_X500         x500-style thing
- */
-
-int
-dn_type( char *dn )
-{
-	return( strchr( dn, '=' ) == NULL ? DN_DNS : DN_X500 );
-}
-#endif
 
 /*
  * get_next_substring(), rdn_attr_type(), rdn_attr_value(), and
@@ -542,39 +486,7 @@ build_new_dn( char ** new_dn,
     
     *new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );
 
-#ifdef DNS_DN
-    if ( dn_type( e_dn ) == DN_X500 ) {
-#endif
-
 	strcpy( *new_dn, newrdn );
 	strcat( *new_dn, "," );
 	strcat( *new_dn, p_dn );
-
-#ifdef DNS_DN
-    } else {
-
-	char	*s;
-	char	sep[2];
-
-	strcpy( *new_dn, newrdn );
-	s = strchr( newrdn, '\0' );
-	s--;
-
-	if ( (*s != '.') && (*s != '@') ) {
-
-	    if ( (s = strpbrk( e_dn, ".@" )) != NULL ) {
-
-		sep[0] = *s;
-		sep[1] = '\0';
-		strcat( *new_dn, sep );
-
-	    }
-
-	}
-
-	strcat( *new_dn, p_dn );
-
-    }
-#endif
-    
 }
