@@ -196,6 +196,12 @@ ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 }
 
 int 
+ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
+{
+	return pthread_mutex_trylock( mutex );
+}
+
+int 
 ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return pthread_mutex_unlock( mutex );
