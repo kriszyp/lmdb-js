@@ -183,7 +183,7 @@ str_getline( char **next )
 			*(*next)++ = '\0';
 			break;
 		}
-		*(*next)++;
+		(*next)++;
 	}
 
 	return( l );
@@ -211,7 +211,7 @@ put_type_and_value( char **out, char *t, char *val, int vlen )
 	b64 = 0;
 
 	stop = (unsigned char *) (val + vlen);
-	if ( isascii( val[0] ) && isspace( val[0] ) || val[0] == ':' ) {
+	if ( isascii( val[0] ) && (isspace( val[0] ) || val[0] == ':') ) {
 		b64 = 1;
 	} else {
 		for ( byte = (unsigned char *) val; byte < stop;
@@ -272,12 +272,12 @@ put_type_and_value( char **out, char *t, char *val, int vlen )
 					len = 1;
 				}
 
-				/* get b64 digit from low order 6 bits */
-				*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
-			}
-
-			for ( ; pad > 0; pad-- ) {
-				*(*out - pad) = '=';
+				if( i + pad < 4 ) {
+					/* get b64 digit from low order 6 bits */
+					*(*out)++ = nib2b64[ (bits & 0xfc0000L) >> 18 ];
+				} else {
+					*(*out)++ = '=';
+				}
 			}
 		}
 	}
