@@ -1844,6 +1844,7 @@ slapd_daemon_task(
 				}
 				slapd_close( wd );
 			}
+			SLAP_EVENT_CLR_WRITE( wd );
 		}
 
 		for ( i = 0; nrfds > 0; i++ )
