@@ -34,7 +34,7 @@ main( int argc, char **argv )
 	char		line[BUFSIZ], idbuf[BUFSIZ];
 	int      	lmax, lcur;
 	int		dbnum;
-	ID		id;
+	ID		id, maxid;
 	struct dbcache	*db;
 	Backend		*be = NULL;
 	struct ldbminfo *li;
@@ -116,6 +116,7 @@ main( int argc, char **argv )
 	}
 
 	id = 0;
+	maxid = 0;
 	stop = 0;
 	buf = NULL;
 	lcur = lmax = 0;
@@ -164,6 +165,7 @@ main( int argc, char **argv )
 				int len;
 
 				id++;
+				if( id > maxid ) maxid = id;
 				key.dptr = (char *) &id;
 				key.dsize = sizeof(ID);
 				data.dptr = buf;
@@ -185,14 +187,14 @@ main( int argc, char **argv )
 	}
 	(*be->be_close)( be );
 
-	id++;
+	maxid++;
 	sprintf( line, "%s/NEXTID",
 	    ((struct ldbminfo *) be->be_private)->li_directory );
 	if ( (fp = fopen( line, "w" )) == NULL ) {
 		perror( line );
-		fprintf( stderr, "Could not write next id %ld\n", id );
+		fprintf( stderr, "Could not write next id %ld\n", maxid );
 	} else {
-		fprintf( fp, "%ld\n", id );
+		fprintf( fp, "%ld\n", maxid );
 		fclose( fp );
 	}
 
