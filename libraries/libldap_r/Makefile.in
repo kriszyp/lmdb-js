@@ -78,11 +78,11 @@ clean-local: FORCE
 depend-common: .links
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
-	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)
+	$(LTLINK) -o $@ apitest.o $(LIBS)
 ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
-	$(LTLINK) $(LDFLAGS) -o $@ test.o $(LIBS)
+	$(LTLINK) -o $@ test.o $(LIBS)
 ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
-	$(LTLINK) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
+	$(LTLINK) -o $@ tmpltest.o $(LIBS)
 
 install-local: $(CFFILES) FORCE
 	-$(MKDIR) $(DESTDIR)$(libdir)

@@ -37,11 +37,11 @@ EXTRA_LIBS =
 CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
 
 dtest:    $(LIBRARY) dtest.o
-	$(LTLINK) $(LDFLAGS) -o $@ dtest.o $(LIBS)
+	$(LTLINK) -o $@ dtest.o $(LIBS)
 etest:  $(LIBRARY) etest.o
-	$(LTLINK) $(LDFLAGS) -o $@ etest.o $(LIBS)
+	$(LTLINK) -o $@ etest.o $(LIBS)
 idtest:  $(LIBRARY) idtest.o
-	$(LTLINK) $(LDFLAGS) -o $@ idtest.o $(LIBS)
+	$(LTLINK) -o $@ idtest.o $(LIBS)
 
 install-local: FORCE
 	-$(MKDIR) $(DESTDIR)$(libdir)

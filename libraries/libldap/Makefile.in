@@ -55,11 +55,11 @@ EXTRA_LIBS = $(@PLAT@_@LIB_LINKAGE@_LIB_LIBS) $(@PLAT@_XXLIBS)
 CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
-	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)
+	$(LTLINK) -o $@ apitest.o $(LIBS)
 ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
-	$(LTLINK) $(LDFLAGS) -o $@ test.o $(LIBS)
+	$(LTLINK) -o $@ test.o $(LIBS)
 ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
-	$(LTLINK) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
+	$(LTLINK) -o $@ tmpltest.o $(LIBS)
 
 CFFILES=ldap.conf ldapfilter.conf ldaptemplates.conf ldapsearchprefs.conf
 
