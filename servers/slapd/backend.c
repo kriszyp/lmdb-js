@@ -484,10 +484,12 @@ int backend_destroy(void)
 		}
 
 		if ( bd->be_pending_csn_list ) {
-			LDAP_TAILQ_FOREACH( csne, bd->be_pending_csn_list, ce_csn_link ) {
+			csne = LDAP_TAILQ_FIRST( bd->be_pending_csn_list );
+			while ( csne ) {
 				LDAP_TAILQ_REMOVE( bd->be_pending_csn_list, csne, ce_csn_link );
 				ch_free( csne->ce_csn->bv_val );
 				ch_free( csne->ce_csn );
+				csne = LDAP_TAILQ_NEXT( csne, ce_csn_link );
 				ch_free( csne );
 			}
 		}
