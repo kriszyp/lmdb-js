@@ -349,8 +349,8 @@
 /* Define if you have the <crypt.h> header file.  */
 #undef HAVE_CRYPT_H
 
-/* Define if you have the <cthread.h> header file.  */
-#undef HAVE_CTHREAD_H
+/* Define if you have the <cthreads.h> header file.  */
+#undef HAVE_CTHREADS_H
 
 /* Define if you have the <db.h> header file.  */
 #undef HAVE_DB_H
@@ -420,9 +420,6 @@
 
 /* Define if you have the <lwp/lwp.h> header file.  */
 #undef HAVE_LWP_LWP_H
-
-/* Define if you have the <mach/cthread.h> header file.  */
-#undef HAVE_MACH_CTHREAD_H
 
 /* Define if you have the <mach/cthreads.h> header file.  */
 #undef HAVE_MACH_CTHREADS_H

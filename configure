@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.391 2002/01/20 21:31:12 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.392 2002/01/21 01:07:29 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -11987,7 +11987,7 @@ fi
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = mach ; then
 
-		for ac_hdr in mach/cthread.h cthread.h
+		for ac_hdr in mach/cthreads.h cthreads.h
 do
 ac_safe=`echo "$ac_hdr" | sed 'y%./+-%__p_%'`
 echo $ac_n "checking for $ac_hdr""... $ac_c" 1>&6
@@ -12027,8 +12027,8 @@ else
 fi
 done
 
-	if test $ac_cv_header_mach_cthread_h = yes \
-		-o $ac_cv_header_cthread_h = yes ; then
+	if test $ac_cv_header_mach_cthreads_h = yes \
+		-o $ac_cv_header_cthreads_h = yes ; then
 		ol_with_threads=found
 
 				echo $ac_n "checking for cthread_fork""... $ac_c" 1>&6
