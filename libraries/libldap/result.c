@@ -315,7 +315,8 @@ wait4msg(
             rc = (*result)->lm_msgtype;
         } else {
 
-			for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
+			for ( lc = ld->ld_conns; lc != NULL; lc = nextlc ) {
+				nextlc = lc->lconn_next;
 				if ( ber_sockbuf_ctrl( lc->lconn_sb,
 						LBER_SB_OPT_DATA_READY, NULL ) ) {
 					    rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
