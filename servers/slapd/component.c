@@ -141,12 +141,15 @@ slapd_ber2cav( struct berval* bv, ComponentAssertionValue* cav)
 	int len;
 
 	len = ldap_pvt_filter_value_unescape( bv->bv_val );
+	if ( len == -1 ) {
+		return LDAP_FILTER_ERROR;
+	}
 	cav->cav_ptr = cav->cav_buf = bv->bv_val;
 	cav->cav_end = bv->bv_val + len;
 
 	/* FIXME: should it check return value 
 	 * of ldap_pvt_filter_value_unescape? */
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 int
@@ -157,7 +160,9 @@ get_comp_filter( Operation* op, struct berval* bv, ComponentFilter** filt,
 	int rc;
 
 	Debug( LDAP_DEBUG_FILTER, "get_comp_filter\n", 0, 0, 0 );
-	slapd_ber2cav(bv, &cav);
+	if ( (rc = slapd_ber2cav(bv, &cav) ) != LDAP_SUCCESS ) {
+		return rc;
+	}
 	rc = parse_comp_filter( op, &cav, filt, text );
 	bv->bv_val = cav.cav_ptr;
 
