@@ -1,6 +1,6 @@
 /* result.c - tcl backend utility functions
  *
- * $Id: tcl_util.c,v 1.2 1999/02/17 01:05:28 bcollins Exp $
+ * $Id: tcl_util.c,v 1.3 1999/02/18 01:18:39 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -125,7 +125,7 @@ tcl_clean_entry (
 		if (mark1[0] == '\n') {
 			mark1++;
 		}
-		dup = (char *) strdup (mark1);
+		dup = (char *) ch_strdup (mark1);
 		if (dup[0] != '\0') {
 			if ((mark2 = (char *) strchr (dup, '\n')) != NULL) {
 				mark2[0] = '\0';

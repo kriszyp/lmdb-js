@@ -1,6 +1,6 @@
 /* abandon.c - tcl abandon routine
  *
- * $Id: tcl_abandon.c,v 1.2 1999/02/16 23:32:49 bcollins Exp $
+ * $Id: tcl_abandon.c,v 1.3 1999/02/18 01:18:39 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -44,16 +44,16 @@ tcl_back_abandon (
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
 	code = Tcl_GlobalEval (ti->ti_ii->interp, command);
-	results = (char *) strdup (ti->ti_ii->interp->result);
+	results = (char *) ch_strdup (ti->ti_ii->interp->result);
 	ldap_pvt_thread_mutex_unlock (&tcl_interpreter_mutex);
 	free (command);
 
-        if (code != TCL_OK) {
-                err = LDAP_OPERATIONS_ERROR;
-                Debug (LDAP_DEBUG_ANY, "tcl_abandon_error: %s\n", results,
-                        0, 0);
-        }
+	if (code != TCL_OK) {
+		err = LDAP_OPERATIONS_ERROR;
+		Debug (LDAP_DEBUG_ANY, "tcl_abandon_error: %s\n", results,
+			0, 0);
+	}
 
-        free(results);
-        return (err);
+	free (results);
+	return (err);
 }

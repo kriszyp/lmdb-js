@@ -1,6 +1,6 @@
 /* bind.c - tcl bind routines
  *
- * $Id: tcl_bind.c,v 1.2 1999/02/17 01:05:28 bcollins Exp $
+ * $Id: tcl_bind.c,v 1.3 1999/02/18 01:18:39 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -53,7 +53,7 @@ tcl_back_bind (
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);
 	code = Tcl_GlobalEval (ti->ti_ii->interp, command);
-	results = (char *) strdup (ti->ti_ii->interp->result);
+	results = (char *) ch_strdup (ti->ti_ii->interp->result);
 	ldap_pvt_thread_mutex_unlock (&tcl_interpreter_mutex);
 	free (command);
 
@@ -68,6 +68,6 @@ tcl_back_bind (
 		send_ldap_result (conn, op, err, NULL,
 			"internal backend error");
 
-	free(results);
+	free (results);
 	return (err);
 }
