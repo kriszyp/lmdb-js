@@ -591,7 +591,7 @@ ldap_set_option(
 	return LDAP_OPT_ERROR;
 }
 
-LIBLDAP_F(int)
+int
 ldap_set_rebind_proc( LDAP *ld, LDAP_REBIND_PROC *rebind_proc)
 {
 	return( ldap_set_option( ld, LDAP_OPT_REBIND_PROC, (void *)rebind_proc));

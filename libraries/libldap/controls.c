@@ -401,7 +401,7 @@ ldap_control_dup( const LDAPControl *c )
 					SHOULD be freed by calling ldap_control_free() when done.
 ---*/
 
-LIBLDAP_F( int )
+int
 ldap_int_create_control(
 	const char *requestOID,
 	BerElement *ber,

@@ -28,7 +28,7 @@
 LDAP_BEGIN_DECL
 
 /* This is NOT a bogus extern declaration (unlike ldap_debug) */
-LIBLDIF_F (int) ldif_debug;
+LDAP_LDIF_F (int) ldif_debug;
 
 #define LDIF_LINE_WIDTH      76      /* maximum length of LDIF lines */
 
@@ -49,23 +49,23 @@ LIBLDIF_F (int) ldif_debug;
     ((nlen) + 4 + LDIF_BASE64_LEN(vlen) \
     + ((LDIF_BASE64_LEN(vlen) + (nlen) + 3) / LDIF_LINE_WIDTH * 2 ))
 
-LIBLDIF_F( int )
+LDAP_LDIF_F( int )
 ldif_parse_line LDAP_P((
 	LDAP_CONST char *line,
 	char **name,
 	char **value,
 	ber_len_t *vlen ));
 
-LIBLDIF_F( int )
+LDAP_LDIF_F( int )
 ldif_fetch_url LDAP_P((
 	LDAP_CONST char *line,
 	char **value,
 	ber_len_t *vlen ));
 
-LIBLDIF_F( char * )
+LDAP_LDIF_F( char * )
 ldif_getline LDAP_P(( char **next ));
 
-LIBLDIF_F( int )
+LDAP_LDIF_F( int )
 ldif_read_record LDAP_P((
 	FILE *fp,
 	int *lineno,
@@ -83,7 +83,7 @@ ldif_read_record LDAP_P((
 #define LDIF_PUT_URL		0x0020	/* url */
 #define LDIF_PUT_SEP		0x0040	/* separator */
 
-LIBLDIF_F( void )
+LDAP_LDIF_F( void )
 ldif_sput LDAP_P((
 	char **out,
 	int type,
@@ -91,14 +91,14 @@ ldif_sput LDAP_P((
 	LDAP_CONST char *val,
 	ber_len_t vlen ));
 
-LIBLDIF_F( char * )
+LDAP_LDIF_F( char * )
 ldif_put LDAP_P((
 	int type,
 	LDAP_CONST char *name,
 	LDAP_CONST char *val,
 	ber_len_t vlen ));
 
-LIBLDIF_F( int )
+LDAP_LDIF_F( int )
 ldif_is_not_printable LDAP_P((
 	LDAP_CONST char *val,
 	ber_len_t vlen ));

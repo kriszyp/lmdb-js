@@ -236,25 +236,25 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-LIBLDBM_F (int) ldbm_initialize( void );
-LIBLDBM_F (int) ldbm_shutdown( void );
+LDAP_LDBM_F (int) ldbm_initialize( void );
+LDAP_LDBM_F (int) ldbm_shutdown( void );
 
-LIBLDBM_F (int) ldbm_errno( LDBM ldbm );
-LIBLDBM_F (LDBM) ldbm_open( char *name, int rw, int mode, int dbcachesize );
-LIBLDBM_F (void) ldbm_close( LDBM ldbm );
-LIBLDBM_F (void) ldbm_sync( LDBM ldbm );
-LIBLDBM_F (void) ldbm_datum_free( LDBM ldbm, Datum data );
-LIBLDBM_F (Datum) ldbm_datum_dup( LDBM ldbm, Datum data );
-LIBLDBM_F (Datum) ldbm_fetch( LDBM ldbm, Datum key );
-LIBLDBM_F (int) ldbm_store( LDBM ldbm, Datum key, Datum data, int flags );
-LIBLDBM_F (int) ldbm_delete( LDBM ldbm, Datum key );
+LDAP_LDBM_F (int) ldbm_errno( LDBM ldbm );
+LDAP_LDBM_F (LDBM) ldbm_open( char *name, int rw, int mode, int dbcachesize );
+LDAP_LDBM_F (void) ldbm_close( LDBM ldbm );
+LDAP_LDBM_F (void) ldbm_sync( LDBM ldbm );
+LDAP_LDBM_F (void) ldbm_datum_free( LDBM ldbm, Datum data );
+LDAP_LDBM_F (Datum) ldbm_datum_dup( LDBM ldbm, Datum data );
+LDAP_LDBM_F (Datum) ldbm_fetch( LDBM ldbm, Datum key );
+LDAP_LDBM_F (int) ldbm_store( LDBM ldbm, Datum key, Datum data, int flags );
+LDAP_LDBM_F (int) ldbm_delete( LDBM ldbm, Datum key );
 
-LIBLDBM_F (Datum) ldbm_firstkey( LDBM ldbm, LDBMCursor **cursor );
-LIBLDBM_F (Datum) ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *cursor );
+LDAP_LDBM_F (Datum) ldbm_firstkey( LDBM ldbm, LDBMCursor **cursor );
+LDAP_LDBM_F (Datum) ldbm_nextkey( LDBM ldbm, Datum key, LDBMCursor *cursor );
 
 /* initialization of Datum structures */
 #if defined( HAVE_BERKELEY_DB ) && (DB_VERSION_MAJOR >= 2)
-	LIBLDBM_F (void *) ldbm_malloc( size_t size );
+	LDAP_LDBM_F (void *) ldbm_malloc( size_t size );
 #   define ldbm_datum_init(d) ((void)memset(&(d), '\0', sizeof(Datum)))
 #else
 #   define ldbm_datum_init(d) ((void)0)

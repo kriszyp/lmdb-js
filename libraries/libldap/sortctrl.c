@@ -171,7 +171,7 @@ static int readNextKey( char **pNextKey, LDAPSortKey **key)
    
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F(int)
+int
 ldap_create_sort_keylist ( LDAPSortKey ***sortKeyList, char *keyString )
 {
 	int         numKeys, rc, i;
@@ -221,7 +221,7 @@ ldap_create_sort_keylist ( LDAPSortKey ***sortKeyList, char *keyString )
    keyList     (IN) Points to an array of pointers to LDAPSortKey structures.
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F(void)
+void
 ldap_free_sort_keylist ( LDAPSortKey **keyList )
 {
 	int i;
@@ -276,7 +276,7 @@ ldap_free_sort_keylist ( LDAPSortKey **keyList )
    
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F( int )
+int
 ldap_create_sort_control (
 	LDAP *ld,
 	LDAPSortKey **keyList,
@@ -391,7 +391,7 @@ exit:
 	  attributeType [0] AttributeDescription OPTIONAL }
    ---------------------------------------------------------------------------*/
 
-LIBLDAP_F( int )
+int
 ldap_parse_sort_control(
 	LDAP           *ld,
 	LDAPControl    **ctrls,

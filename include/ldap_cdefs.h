@@ -21,7 +21,7 @@
 #	define LDAP_END_DECL	/* end declarations */
 #endif
 
-#if !defined(__NO_PROTOTYPES) && ( defined(__NEED_PROTOTYPES) || \
+#if !defined(LDAP_NO_PROTOTYPES) && ( defined(LDAP_NEED_PROTOTYPES) || \
 	defined(__STDC__) || defined(__cplusplus) || defined(c_plusplus) )
 
 	/* ANSI C or C++ */
@@ -57,6 +57,20 @@
 
 /* Support for NT dynamic libraries. */
 
+/* LBER library */
+#if defined(LBER_DECL) && defined(_WIN32)
+#	define LBER_F(type)		extern __declspec(LBER_DECL) type
+#else
+#	define LBER_F(type)		type
+#endif
+
+/* LDAP library */
+#if defined(LDAP_DECL) && defined(_WIN32)
+#	define LDAP_F(type)	extern __declspec(LDAP_DECL) type
+#else
+#	define LDAP_F(type)	extern type
+#endif
+
 /*
  * C library. Mingw32 links with the C run-time library by default,
  * so the explicit definition of CSTATIC will keep dllimport from
@@ -64,58 +78,51 @@
  */
 #if (defined(__MINGW32__) && !defined(CSTATIC) || \
      defined(_WIN32) && defined(_DLL))
-#	define LIBC_F(type)	extern __declspec(dllimport) type
+#	define LDAP_LIBC_F(type)	extern __declspec(dllimport) type
 #else
-#	define LIBC_F(type)	extern type
+#	define LDAP_LIBC_F(type)	extern type
 #endif
 
 /* AVL library */
-#if defined(LIBAVL_DECL) && defined(_WIN32)
-#	define LIBAVL_F(type)	extern __declspec(LIBAVL_DECL) type
+#if defined(LDAP_AVL_DECL) && defined(_WIN32)
+#	define LDAP_AVL_F(type)	extern __declspec(LDAP_AVL_DECL) type
 #else
-#	define LIBAVL_F(type)	extern type
-#endif
-
-/* LBER library */
-#if defined(LIBLBER_DECL) && defined(_WIN32)
-#	define LIBLBER_F(type)	extern __declspec(LIBLBER_DECL) type
-#else
-#	define LIBLBER_F(type)	extern type
-#endif
-
-/* LDAP library */
-#if defined(LIBLDAP_DECL) && defined(_WIN32)
-#	define LIBLDAP_F(type)	extern __declspec(LIBLDAP_DECL) type
-#else
-#	define LIBLDAP_F(type)	extern type
+#	define LDAP_AVL_F(type)	extern type
 #endif
 
 /* LDBM library */
-#if defined(LIBLDBM_DECL) && defined(_WIN32)
-#	define LIBLDBM_F(type)	extern __declspec(LIBLDBM_DECL) type
+#if defined(LDAP_LDBM_DECL) && defined(_WIN32)
+#	define LDAP_LDBM_F(type)	extern __declspec(LDAP_LDBM_DECL) type
 #else
-#	define LIBLDBM_F(type)	extern type
+#	define LDAP_LDBM_F(type)	extern type
 #endif
 
 /* LDIF library */
-#if defined(LIBLDIF_DECL) && defined(_WIN32)
-#	define LIBLDIF_F(type)	extern __declspec(LIBLDIF_DECL) type
+#if defined(LDAP_LDIF_DECL) && defined(_WIN32)
+#	define LDAP_LDIF_F(type)	extern __declspec(LDAP_LDIF_DECL) type
 #else
-#	define LIBLDIF_F(type)	extern type
+#	define LDAP_LDIF_F(type)	extern type
+#endif
+
+/* LUNICODE library */
+#if defined(LDAP_LUNICODE_DECL) && defined(_WIN32)
+#	define LDAP_LUNICODE_F(type)	extern __declspec(LDAP_LUNICODE_DECL) type
+#else
+#	define LDAP_LUNICODE_F(type)	extern type
 #endif
 
 /* LUTIL library */
-#if defined(LIBLUTIL_DECL) && defined(_WIN32)
-#	define LIBLUTIL_F(type)	extern __declspec(LIBLUTIL_DECL) type
+#if defined(LDAP_LUTIL_DECL) && defined(_WIN32)
+#	define LDAP_LUTIL_F(type)	extern __declspec(LDAP_LUTIL_DECL) type
 #else
-#	define LIBLUTIL_F(type)	extern type
+#	define LDAP_LUTIL_F(type)	extern type
 #endif
 
 /* SLAPD (as a module exporting symbols) */
-#if defined(LIBSLAPD_DECL) && defined(_WIN32)
-#	define LIBSLAPD_F(type)	extern __declspec(LIBSLAPD_DECL) type
+#if defined(LDAP_SLAPD_DECL) && defined(_WIN32)
+#	define LDAP_SLAPD_F(type)	extern __declspec(LDAP_SLAPD_DECL) type
 #else
-#	define LIBSLAPD_F(type)	extern type
+#	define LDAP_SLAPD_F(type)	extern type
 #endif
 
 #endif /* _LDAP_CDEFS_H */

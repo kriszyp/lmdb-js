@@ -72,7 +72,7 @@
 
  ---*/
 
-LIBLDAP_F( int )
+int
 ldap_create_vlv_control( LDAP *ld,
 						 LDAPVLVInfo *vlvinfop,
 						 LDAPControl **ctrlp )
@@ -188,7 +188,7 @@ exit:
    
 ---*/
 
-LIBLDAP_F( int )
+int
 ldap_parse_vlv_control(
 	LDAP           *ld,
 	LDAPControl    **ctrls,

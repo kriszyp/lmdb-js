@@ -103,7 +103,7 @@ LDAP_BEGIN_DECL
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
 #define SLAPD_ACI_ATTR			"OpenLDAPaci"
 
-LIBSLAPD_F (int) slap_debug;
+LDAP_SLAPD_F (int) slap_debug;
 
 /*
  * Index types
@@ -706,12 +706,12 @@ struct replog_moddn {
 typedef struct slap_backend_info BackendInfo;	/* per backend type */
 typedef struct slap_backend_db BackendDB;		/* per backend database */
 
-LIBSLAPD_F (int) nBackendInfo;
-LIBSLAPD_F (int) nBackendDB;
-LIBSLAPD_F (BackendInfo	*) backendInfo;
-LIBSLAPD_F (BackendDB *) backendDB;
+LDAP_SLAPD_F (int) nBackendInfo;
+LDAP_SLAPD_F (int) nBackendDB;
+LDAP_SLAPD_F (BackendInfo	*) backendInfo;
+LDAP_SLAPD_F (BackendDB *) backendDB;
 
-LIBSLAPD_F (int) slapMode;	
+LDAP_SLAPD_F (int) slapMode;	
 #define SLAP_UNDEFINED_MODE	0x0000
 #define SLAP_SERVER_MODE	0x0001
 #define SLAP_TOOL_MODE		0x0002

@@ -25,10 +25,9 @@ LDAP_BEGIN_DECL
 #define optopt lutil_optopt
 #define getopt lutil_getopt
 
-LIBLUTIL_F (char *) optarg;
-LIBLUTIL_F (int) optind, opterr, optopt;
-
-LIBLUTIL_F (int) getopt LDAP_P(( int, char * const [], const char *));
+LDAP_LUTIL_F (char *) optarg;
+LDAP_LUTIL_F (int) optind, opterr, optopt;
+LDAP_LUTIL_F (int) getopt LDAP_P(( int, char * const [], const char *));
 
 LDAP_END_DECL
 

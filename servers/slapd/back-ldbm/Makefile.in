@@ -18,7 +18,7 @@ BUILD_OPT = "--enable-ldbm"
 BUILD_MOD = @BUILD_LDBM@
 LINKAGE = @BUILD_LDBM_DYNAMIC@
 
-DYN_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+DYN_DEFS = -DLBER_DECL=dllimport -DLDAP_DECL=dllimport
 
 # TODO
 #NT_mod_DYN_MODDEFS	=

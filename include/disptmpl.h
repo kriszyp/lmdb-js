@@ -225,88 +225,88 @@ struct ldap_disptmpl {
 typedef int (*ldap_writeptype) LDAP_P((
 	void *writeparm, char *p, ber_len_t len ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_init_templates LDAP_P(( char *file, struct ldap_disptmpl **tmpllistp ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_init_templates_buf LDAP_P(( char *buf,
 	ber_len_t buflen,
 	struct ldap_disptmpl **tmpllistp ));
 
-LIBLDAP_F( void )
+LDAP_F( void )
 ldap_free_templates LDAP_P(( struct ldap_disptmpl *tmpllist ));
 
-LIBLDAP_F( struct ldap_disptmpl * )
+LDAP_F( struct ldap_disptmpl * )
 ldap_first_disptmpl LDAP_P(( struct ldap_disptmpl *tmpllist ));
 
-LIBLDAP_F( struct ldap_disptmpl * )
+LDAP_F( struct ldap_disptmpl * )
 ldap_next_disptmpl LDAP_P(( struct ldap_disptmpl *tmpllist,
 	struct ldap_disptmpl *tmpl ));
 
-LIBLDAP_F( struct ldap_disptmpl * )
+LDAP_F( struct ldap_disptmpl * )
 ldap_name2template LDAP_P(( char *name,
 	struct ldap_disptmpl *tmpllist ));
 
-LIBLDAP_F( struct ldap_disptmpl * )
+LDAP_F( struct ldap_disptmpl * )
 ldap_oc2template LDAP_P(( char **oclist,
 	struct ldap_disptmpl *tmpllist ));
 
-LIBLDAP_F( char ** )
+LDAP_F( char ** )
 ldap_tmplattrs LDAP_P(( struct ldap_disptmpl *tmpl,
 	char **includeattrs,
 	int exclude,
 	unsigned long syntaxmask ));
 
-LIBLDAP_F( struct ldap_tmplitem * )
+LDAP_F( struct ldap_tmplitem * )
 ldap_first_tmplrow LDAP_P(( struct ldap_disptmpl *tmpl ));
 
-LIBLDAP_F( struct ldap_tmplitem * )
+LDAP_F( struct ldap_tmplitem * )
 ldap_next_tmplrow LDAP_P(( struct ldap_disptmpl *tmpl,
 	struct ldap_tmplitem *row ));
 
-LIBLDAP_F( struct ldap_tmplitem * )
+LDAP_F( struct ldap_tmplitem * )
 ldap_first_tmplcol LDAP_P(( struct ldap_disptmpl *tmpl,
 	struct ldap_tmplitem *row ));
 
-LIBLDAP_F( struct ldap_tmplitem * )
+LDAP_F( struct ldap_tmplitem * )
 ldap_next_tmplcol LDAP_P(( struct ldap_disptmpl *tmpl,
 	struct ldap_tmplitem *row,
 	struct ldap_tmplitem *col ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_entry2text LDAP_P(( LDAP *ld,
 	char *buf, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,
 	ldap_writeptype writeproc, void *writeparm, char *eol, int rdncount,
 	unsigned long opts ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_vals2text LDAP_P(( LDAP *ld,
 	char *buf, char **vals, char *label, int labelwidth,
 	unsigned long syntaxid, ldap_writeptype writeproc, void *writeparm,
 	char *eol, int rdncount ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_entry2text_search LDAP_P(( LDAP *ld,
 	char *dn, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpllist, char **defattrs, char ***defvals,
 	ldap_writeptype writeproc, void *writeparm, char *eol, int rdncount,
 	unsigned long opts ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_entry2html LDAP_P(( LDAP *ld,
 	char *buf, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,
 	ldap_writeptype writeproc, void *writeparm, char *eol, int rdncount,
 	unsigned long opts, char *urlprefix, char *base ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_vals2html LDAP_P(( LDAP *ld,
 	char *buf, char **vals, char *label, int labelwidth,
 	unsigned long syntaxid, ldap_writeptype writeproc, void *writeparm,
 	char *eol, int rdncount, char *urlprefix ));
 
-LIBLDAP_F( int )
+LDAP_F( int )
 ldap_entry2html_search LDAP_P(( LDAP
 	*ld, char *dn, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpllist, char **defattrs, char ***defvals,

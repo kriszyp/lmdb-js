@@ -28,11 +28,11 @@
 /* note: callers of crypt(3) should include <ac/crypt.h> */
 
 #if defined(HAVE_GETPASSPHRASE)
-LIBC_F(char*)(getpassphrase)();
+LDAP_LIBC_F(char*)(getpassphrase)();
 
 #elif defined(HAVE_GETPASS)
 #define getpassphrase(p) getpass(p)
-LIBC_F(char*)(getpass)();
+LDAP_LIBC_F(char*)(getpass)();
 
 #else
 #define NEED_GETPASSPHRASE 1
@@ -50,13 +50,14 @@ LIBLUTIL_F(char*)(lutil_getpass) LDAP_P((const char *getpass));
 
 #else
 	/* assume we need to declare these externs */
-	LIBC_F (char *) optarg;
-	LIBC_F (int) optind, opterr, optopt;
+	LDAP_LIBC_F (char *) optarg;
+	LDAP_LIBC_F (int) optind, opterr, optopt;
 #endif
 
 #ifndef HAVE_TEMPNAM
-	LIBLUTIL_F(char *)(tempnam) LDAP_P(( const char *tmpdir,
-					     const char *prefix));
+	LDAP_LUTIL_F(char *)(tempnam) LDAP_P((
+		const char *tmpdir,
+		const char *prefix));
 #endif
 
 /* use lutil file locking */

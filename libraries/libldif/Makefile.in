@@ -12,6 +12,6 @@ OBJS	= line64.o fetch.o
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-NT_DYN_LIB_DEFS = -DLIBLDAP_DECL=dllimport -DLIBLBER_DECL=dllimport
+NT_DYN_LIB_DEFS = -DLDAP_DECL=dllimport -DLBER_DECL=dllimport
 CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
 

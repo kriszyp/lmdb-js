@@ -578,7 +578,7 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
  *
  * Return value - number of referrals followed
  */
-LIBLDAP_F(int)
+int
 ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **errstrp, int *hadrefp )
 {
 	char		*unfollowed;

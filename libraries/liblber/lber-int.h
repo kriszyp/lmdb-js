@@ -24,7 +24,7 @@
 
 LDAP_BEGIN_DECL
 
-LIBLBER_F (BER_ERRNO_FN) ber_int_errno_fn;
+LBER_F (BER_ERRNO_FN) ber_int_errno_fn;
 
 struct lber_options {
 	short lbo_valid;
@@ -37,7 +37,7 @@ struct lber_options {
 #define LBER_VALID_BERELEMENT	0x2
 #define LBER_VALID_SOCKBUF		0x3
 
-LIBLBER_F (struct lber_options) ber_int_options;
+LBER_F (struct lber_options) ber_int_options;
 #define ber_int_debug ber_int_options.lbo_debug
 
 struct berelement {
@@ -100,21 +100,21 @@ int ber_realloc LDAP_P((
  */
 #define ber_log_printf ber_pvt_log_printf
 
-LIBLBER_F( int )
+LBER_F( int )
 ber_log_bprint LDAP_P((
 	int errlvl,
 	int loglvl,
 	const char *data,
 	ber_len_t len ));
 
-LIBLBER_F( int )
+LBER_F( int )
 ber_log_dump LDAP_P((
 	int errlvl,
 	int loglvl,
 	BerElement *ber,
 	int inout ));
 
-LIBLBER_F( int )
+LBER_F( int )
 ber_log_sos_dump LDAP_P((
 	int errlvl,
 	int loglvl,
@@ -123,7 +123,7 @@ ber_log_sos_dump LDAP_P((
 
 /* memory.c */
 	/* simple macros to realloc for now */
-LIBLBER_F (BerMemoryFunctions *)	ber_int_memory_fns;
+LBER_F (BerMemoryFunctions *)	ber_int_memory_fns;
 
 #ifdef CSRIMALLOC
 #define LBER_INT_MALLOC		malloc
@@ -158,19 +158,19 @@ LIBLBER_F (BerMemoryFunctions *)	ber_int_memory_fns;
 
 /* sockbuf.c */
 
-LIBLBER_F(	int )
+LBER_F(	int )
 ber_int_sb_init LDAP_P(( Sockbuf *sb ));
 
-LIBLBER_F( int )
+LBER_F( int )
 ber_int_sb_close LDAP_P(( Sockbuf *sb ));
 
-LIBLBER_F(	int )
+LBER_F(	int )
 ber_int_sb_destroy LDAP_P(( Sockbuf *sb ));
 
-LIBLBER_F( ber_slen_t )
+LBER_F( ber_slen_t )
 ber_int_sb_read LDAP_P(( Sockbuf *sb, void *buf, ber_len_t len ));
 
-LIBLBER_F( ber_slen_t )
+LBER_F( ber_slen_t )
 ber_int_sb_write LDAP_P(( Sockbuf *sb, void *buf, ber_len_t len ));
 
 LDAP_END_DECL

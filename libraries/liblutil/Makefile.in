@@ -24,7 +24,7 @@ OBJS	= base64.o debug.o entropy.o \
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-NT_DYN_LIB_DEFS = -DLIBLDAP_DECL=dllimport
+NT_DYN_LIB_DEFS = -DLDAP_DECL=dllimport
 CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
 
 # These rules are for a Mingw32 build, specifically.

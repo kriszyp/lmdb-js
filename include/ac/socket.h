@@ -148,7 +148,7 @@ LIBLBER_F (char *) ber_pvt_wsa_err2string LDAP_P((int));
 #if !defined( HAVE_INET_ATON ) && !defined( inet_aton )
 #define inet_aton ldap_pvt_inet_aton
 struct in_addr;
-LIBLDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
+LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #endif
 
 #if	defined(__WIN32) && defined(_ALPHA)

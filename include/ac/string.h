@@ -43,7 +43,7 @@
 #endif
 
 /* use ldap_pvt_strtok instead of strtok or strtok_r! */
-LIBLDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str, const char *delim,
+LDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str, const char *delim,
 					   char **pos ));
 
 #ifndef HAVE_STRDUP
@@ -52,7 +52,7 @@ LIBLDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str, const char *delim,
 #	define strdup(s) ber_strdup(s)
 #else
 	/* some systems fail to declare strdup */
-	LIBC_F(char *) (strdup)();
+	LDAP_LIBC_F(char *) (strdup)();
 #endif
 
 /*
