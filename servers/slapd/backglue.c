@@ -63,7 +63,7 @@ glue_back_select (
 	bv.bv_val = (char *) dn;
 
 	for (i = 0; i<gi->nodes; i++) {
-		if (dn_issuffixbv (&bv, gi->n[i].be->be_nsuffix[0])) {
+		if (dnIsSuffix(&bv, gi->n[i].be->be_nsuffix[0])) {
 			return gi->n[i].be;
 		}
 	}
@@ -334,14 +334,14 @@ glue_back_search (
 					s2limit, t2limit, filter, filterstr,
 						    attrs, attrsonly);
 			} else if (scope == LDAP_SCOPE_SUBTREE &&
-				dn_issuffixbv (be->be_nsuffix[0], &bv)) {
+				dnIsSuffix(be->be_nsuffix[0], &bv)) {
 				rc = be->be_search (be, conn, op,
 						    be->be_suffix[0],
 						    be->be_nsuffix[0]->bv_val,
 						    scope, deref,
 					s2limit, t2limit, filter, filterstr,
 						    attrs, attrsonly);
-			} else if (dn_issuffixbv (&bv, be->be_nsuffix[0])) {
+			} else if (dnIsSuffix(&bv, be->be_nsuffix[0])) {
 				rc = be->be_search (be, conn, op,
 						    dn, ndn, scope, deref,
 					s2limit, t2limit, filter, filterstr,
@@ -797,7 +797,7 @@ glue_sub_init( )
 			/* We will only link it once */
 			if (be->be_glueflags & SLAP_GLUE_LINKED)
 				continue;
-			if (!dn_issuffixbv(be->be_nsuffix[0],
+			if (!dnIsSuffix(be->be_nsuffix[0],
 				b1->be_nsuffix[0]))
 				continue;
 			cont--;

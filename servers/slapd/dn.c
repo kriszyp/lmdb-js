@@ -418,7 +418,7 @@ dnPretty(
 }
 
 /*
- * dn match routine
+ * dnMatch routine
  *
  * note: uses exact string match (strcmp) because it is supposed to work
  * on normalized DNs.
@@ -472,6 +472,7 @@ dnMatch(
 /*
  * dn_validate - validate and compress dn.  the dn is
  * compressed in place are returned if valid.
+ * Deprecated in favor of dnValidate()
  */
 char *
 dn_validate( char *dn )
@@ -506,6 +507,7 @@ dn_validate( char *dn )
  * dn_normalize - put dn into a canonical form suitable for storing
  * in a hash database.	this involves normalizing the case as well as
  * the format.	the dn is normalized in place as well as returned if valid.
+ * Deprecated in favor of dnNormalize()
  */
 char *
 dn_normalize( char *dn )
@@ -673,48 +675,11 @@ char **dn_subtree(
 	return subtree;
 }
 
-
-int
-dn_issuffixbv(
-	const struct berval *dn,
-	const struct berval *suffix
-)
-{
-	int	d = dn->bv_len - suffix->bv_len;
-
-	assert( dn );
-	assert( suffix );
-
-	/* empty suffix matches any dn */
-	if ( suffix->bv_len == 0 ) {
-		return 1;
-	}
-
-	/* suffix longer than dn */
-	if ( d < 0 ) {
-		return 0;
-	}
-
-	/* no rdn separator or escaped rdn separator */
-	if ( d > 1 && ( !DN_SEPARATOR( dn->bv_val[ d - 1 ] ) 
-				|| DN_ESCAPE( dn->bv_val[ d - 2 ] ) ) ) {
-		return 0;
-	}
-
-	/* no possible match or malformed dn */
-	if ( d == 1 ) {
-		return 0;
-	}
-
-	/* compare */
-	return( strcmp( dn->bv_val + d, suffix->bv_val ) == 0 );
-}
-
 /*
- * dn_issuffix - tells whether suffix is a suffix of dn. Both dn
- * and suffix must be normalized.
+ * dn_issuffix - tells whether suffix is a suffix of dn.
+ * Both dn and suffix must be normalized.
+ *	deprecated in favor of dnIsSuffix()
  */
-
 int
 dn_issuffix(
 	const char	*dn,
@@ -731,7 +696,7 @@ dn_issuffix(
 	bvsuffix.bv_val = (char *) suffix;
 	bvsuffix.bv_len = strlen( suffix );
 
-	return dn_issuffixbv( &bvdn, &bvsuffix );
+	return dnIsSuffix( &bvdn, &bvsuffix );
 }
 
 /*
@@ -972,3 +937,42 @@ build_new_dn( char ** new_dn,
 }
 
 #endif /* SLAP_DN_MIGRATION */
+
+/*
+ * dnIsSuffix - tells whether suffix is a suffix of dn.
+ * Both dn and suffix must be normalized.
+ */
+int
+dnIsSuffix(
+	const struct berval *dn,
+	const struct berval *suffix )
+{
+	int	d = dn->bv_len - suffix->bv_len;
+
+	assert( dn );
+	assert( suffix );
+
+	/* empty suffix matches any dn */
+	if ( suffix->bv_len == 0 ) {
+		return 1;
+	}
+
+	/* suffix longer than dn */
+	if ( d < 0 ) {
+		return 0;
+	}
+
+	/* no rdn separator or escaped rdn separator */
+	if ( d > 1 && ( !DN_SEPARATOR( dn->bv_val[ d - 1 ] ) 
+				|| DN_ESCAPE( dn->bv_val[ d - 2 ] ) ) ) {
+		return 0;
+	}
+
+	/* no possible match or malformed dn */
+	if ( d == 1 ) {
+		return 0;
+	}
+
+	/* compare */
+	return( strcmp( dn->bv_val + d, suffix->bv_val ) == 0 );
+}
