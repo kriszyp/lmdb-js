@@ -539,7 +539,7 @@ long connection_init(
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"connection_init(%d, %s): set nonblocking failed\n",
-			s, c->c_peer_name, 0 );
+			s, c->c_peer_name.bv_val, 0 );
 #endif
 	}
 
@@ -653,15 +653,17 @@ connection_destroy( Connection *c )
 	}
 	c->c_peer_domain.bv_len = 0;
 	if(c->c_peer_name.bv_val != NULL) {
-#ifdef LDAP_PF_lOCAL
+#ifdef LDAP_PF_LOCAL
 		/*
 		 * If peer was a domain socket, unlink. Mind you,
 		 * they may be un-named. Should we leave this to
 		 * the client?
 		 */
-		if (strncmp(c->c_peer_name.bv_val, "PATH=", 5) == 0) {
-			char *path = c->c_peer_name.bv_val + 5;
-			if (path != '\0') {
+		if (strncmp(c->c_peer_name.bv_val, "PATH=", 
+					sizeof("PATH=") - 1) == 0) {
+			char *path = c->c_peer_name.bv_val 
+				+ sizeof("PATH=") - 1;
+			if (path[0] != '\0') {
 				(void)unlink(path);
 			}
 		}
