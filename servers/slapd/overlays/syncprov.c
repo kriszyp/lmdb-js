@@ -147,7 +147,7 @@ syncprov_state_ctrl(
 	ber_init2( ber, 0, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-	ctrls[num_ctrls] = slap_sl_malloc ( sizeof ( LDAPControl ), op->o_tmpmemctx );
+	ctrls[num_ctrls] = op->o_tmpalloc( sizeof ( LDAPControl ), op->o_tmpmemctx );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
@@ -200,7 +200,7 @@ syncprov_done_ctrl(
 	ber_init2( ber, NULL, LBER_USE_DER );
 	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+	ctrls[num_ctrls] = op->o_tmpalloc( sizeof ( LDAPControl ), op->o_tmpmemctx );
 
 	ber_printf( ber, "{" );
 	if ( send_cookie && cookie ) {
@@ -776,7 +776,8 @@ syncprov_sendresp( Operation *op, opcookie *opc, syncops *so, Entry *e, int mode
 	default:
 		assert(0);
 	}
-	free( rs.sr_ctrls[0] );
+	op->o_tmpfree( rs.sr_ctrls[0], op->o_tmpmemctx );
+	rs.sr_ctrls = NULL;
 	return rs.sr_err;
 }
 
@@ -1200,11 +1201,13 @@ typedef struct searchstate {
 static int
 syncprov_search_cleanup( Operation *op, SlapReply *rs )
 {
-	searchstate *ss = op->o_callback->sc_private;
+#if 0
 	if ( rs->sr_ctrls ) {
 		free( rs->sr_ctrls[0] );
 		op->o_tmpfree( rs->sr_ctrls, op->o_tmpmemctx );
+		rs->sr_ctrls = NULL;
 	}
+#endif
 	return 0;
 }
 
@@ -1451,6 +1454,7 @@ syncprov_op_search( Operation *op, SlapReply *rs )
 					rs->sr_ctrls = ctrls;
 					rs->sr_err = LDAP_SUCCESS;
 					send_ldap_result( op, rs );
+					rs->sr_ctrls = NULL;
 					return rs->sr_err;
 				}
 				goto shortcut;
@@ -1554,6 +1558,28 @@ syncprov_operational(
 			a->a_desc = slap_schema.si_ad_contextCSN;
 			a->a_vals = ch_malloc( 2 * sizeof(struct berval));
 
+#if 0	/* causes a deadlock */
+			if ( !si->si_gotcsn ) {
+				sync_control sc, *old;
+				void *ctrls[SLAP_MAX_CIDS];
+				struct berval bv = BER_BVC("1");
+		
+				if ( !op->o_controls ) {
+					memset(ctrls, 0, sizeof(ctrls));
+					op->o_controls = ctrls;
+				} else {
+					old = op->o_controls[sync_cid];
+				}
+				op->o_controls[sync_cid] = &sc;
+				sc.sr_state.ctxcsn = &bv;
+				syncprov_findcsn( op, FIND_CSN );
+				if ( op->o_controls == ctrls ) {
+					op->o_controls = NULL;
+				} else {
+					op->o_controls[sync_cid] = old;
+				}
+			}
+#endif
 			ldap_pvt_thread_mutex_lock( &si->si_csn_mutex );
 			ber_dupbv( &a->a_vals[0], &si->si_ctxcsn );
 			ldap_pvt_thread_mutex_unlock( &si->si_csn_mutex );
