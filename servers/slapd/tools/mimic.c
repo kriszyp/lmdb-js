@@ -8,6 +8,10 @@
 
 #include "../slap.h"
 
+#ifdef WIN32
+time_t starttime;
+#endif
+
 /* bogus ../results.c */
 int str2result(
 	char* s,
@@ -16,6 +20,7 @@ int str2result(
 	char **info )
 {
 	assert(0);
+    return 0;
 }
 
 void
