@@ -49,11 +49,9 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	int			connected, use_hp;
 	struct sockaddr_in	sin;
 	struct hostent		*hp = NULL;
-#ifdef notyet
-#ifdef LDAP_REFERRALS
-	int			status;	/* for ioctl call */
-#endif /* LDAP_REFERRALS */
-#endif /* notyet */
+#ifdef TCP_NODELAY
+	int			status;	
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
 	    ( host == NULL ) ? "(by address)" : host, (int) ntohs( (short) port ), 0 );
@@ -82,6 +80,17 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 		if (( s = socket( AF_INET, SOCK_STREAM, 0 )) < 0 ) {
 			return( -1 );
 		}
+
+#ifdef TCP_NODELAY
+		status = 1;
+		if( setsockopt( s, IPPROTO_TCP, TCP_NODELAY,
+			(char *) &status, sizeof(status)) == -1 )
+		{
+			Debug( LDAP_DEBUG_ANY, "setsockopt(TCP_NODELAY) failed on %d\n",
+			    s, 0, 0 );
+		}
+#endif
+
 #ifdef notyet
 #ifdef LDAP_REFERRALS
 		status = 1;
