@@ -153,8 +153,7 @@ cldap_open( LDAP_CONST char *host, int port )
 	}
 	LDAP_FREE( host_dup );
     } else {
-	address = INADDR_LOOPBACK;
-	sock.sin_addr.s_addr = htonl( address );
+	sock.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
 	if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
 	    ldap_ld_free( ld, 1, NULL, NULL );
 	    DO_RETURN( NULL );
