@@ -485,15 +485,18 @@ client -> server:
 .nf
 (default)      if defined and no specific context 
                is available
-bindDn         bind
+bindDN         bind
 searchBase     search
 searchFilter   search
-compareDn      compare
-addDn          add
-modifyDn       modify
-modrDn         modrdn
-newSuperiorDn  modrdn
-deleteDn       delete
+compareDN      compare
+compareAttrDN  compare AVA
+addDN          add
+addAttrDN      add AVA
+modifyDN       modify
+modifyAttrDN   modify AVA
+modrDN         modrdn
+newSuperiorDN  modrdn
+deleteDN       delete
 .fi
 .RE
 .LP
@@ -504,8 +507,8 @@ server -> client:
 searchResult   search (only if defined; no default;
                acts on DN and DN-syntax attributes 
                of search results)
-matchedDn      all ops (only if defined; no default;
-               NOT IMPL. except in search)
+searchAttrDN   search AVA
+matchedDN      all ops (only if applicable)
 .fi
 .RE
 .LP
