@@ -26,7 +26,7 @@
 #define SLAPD_TOOLS
 #include "slap.h"
 
-static slap_overinst *overlays = NULL;
+static slap_overinst *overlays;
 
 enum db_which { db_open = 0, db_close, db_destroy };
 
