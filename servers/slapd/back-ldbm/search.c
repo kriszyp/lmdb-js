@@ -49,7 +49,7 @@ ldbm_back_search(
 	Entry		*e;
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
-	char	*realbase = NULL;
+	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
 	int		manageDSAit = get_manageDSAit( op );
 	int		cscope = LDAP_SCOPE_DEFAULT;
@@ -70,7 +70,7 @@ ldbm_back_search(
 		e = (Entry *) &slap_entry_root;
 
 		/* need normalized dn below */
-		realbase = ch_strdup( e->e_ndn );
+		ber_dupbv( &realbase, &e->e_nname );
 
 		candidates = search_candidates( be, e, filter,
 		    scope, deref, manageDSAit );
@@ -183,7 +183,7 @@ ldbm_back_search(
 	}
 
 	/* need normalized dn below */
-	realbase = ch_strdup( e->e_ndn );
+	ber_dupbv( &realbase, &e->e_nname );
 
 	cache_return_entry_r( &li->li_cache, e );
 
@@ -343,13 +343,12 @@ searchit:
 			if( scope & LDAP_SCOPE_ONELEVEL ) {
 				char *pdn = dn_parent( NULL, e->e_ndn );
 				if ( pdn != NULL ) {
-					if( strcmp( pdn, realbase ) ) {
-						free( pdn );
+					if( strcmp( pdn, realbase.bv_val ) ) {
 						goto loop_continue;
 					}
 				}
 
-			} else if ( dn_issuffix( e->e_ndn, realbase ) ) {
+			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
 				/* alias is within scope */
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
@@ -379,17 +378,15 @@ searchit:
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					scopeok = (dn == realbase)
+					scopeok = (dn == realbase.bv_val)
 						? 1
-						: (strcmp( dn, realbase ) ? 0 : 1 );
+						: (strcmp( dn, realbase.bv_val ) ? 0 : 1 );
 				} else {
-					scopeok = (realbase == NULL || *realbase == '\0');
+					scopeok = (realbase.bv_len == 0);
 				}
 
 			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
-				dn = ch_strdup( e->e_ndn );
-				scopeok = dn_issuffix( dn, realbase );
-				free( dn );
+				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
 				scopeok = 1;
@@ -431,17 +428,15 @@ searchit:
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					scopeok = (dn == realbase)
+					scopeok = (dn == realbase.bv_val)
 						? 1
-						: (strcmp( dn, realbase ) ? 0 : 1 );
+						: (strcmp( dn, realbase.bv_val ) ? 0 : 1 );
 				} else {
-					scopeok = (realbase == NULL || *realbase == '\0');
+					scopeok = (realbase.bv_len == 0);
 				}
 
 			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
-				dn = ch_strdup( e->e_ndn );
-				scopeok = dn_issuffix( dn, realbase );
-				free( dn );
+				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
 				scopeok = 1;
@@ -516,7 +511,7 @@ done:
 		idl_free( candidates );
 
 	ber_bvecfree( v2refs );
-	if( realbase ) free( realbase );
+	if( realbase.bv_val ) free( realbase.bv_val );
 
 	return rc;
 }

@@ -53,7 +53,7 @@ bdb_search(
 	Entry		*e = NULL;
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
-	char	*realbase = NULL;
+	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
 	int		manageDSAit;
 
@@ -235,7 +235,7 @@ bdb_search(
 	}
 
 	/* need normalized dn below */
-	realbase = ch_strdup( e->e_ndn );
+	ber_dupbv( &realbase, &e->e_nname );
 
 	/* start cursor at base entry's id 
 	 * FIXME: hack to make "" base work */
@@ -328,12 +328,12 @@ bdb_search(
 			if( scope & LDAP_SCOPE_ONELEVEL ) {
 				char *pdn = dn_parent( NULL, e->e_ndn );
 				if ( pdn != NULL ) {
-					if( strcmp( pdn, realbase ) ) {
+					if( strcmp( pdn, realbase.bv_val ) ) {
 						goto loop_continue;
 					}
 				}
 
-			} else if ( dn_issuffix( e->e_ndn, realbase ) ) {
+			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {
 				/* alias is within scope */
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_search: \"%s\" in subtree\n",
@@ -377,17 +377,15 @@ bdb_search(
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					scopeok = (dn == realbase)
+					scopeok = (dn == realbase.bv_val)
 						? 1
-						: (strcmp( dn, realbase ) ? 0 : 1 );
+						: (strcmp( dn, realbase.bv_val ) ? 0 : 1 );
 				} else {
-					scopeok = (realbase == NULL || *realbase == '\0');
+					scopeok = (realbase.bv_len == 0);
 				}
 
 			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
-				dn = ch_strdup( e->e_ndn );
-				scopeok = dn_issuffix( dn, realbase );
-				free( dn );
+				scopeok = dnIsSuffix( &e->e_nname, &realbase );
 
 			} else {
 				scopeok = 1;
@@ -448,7 +446,7 @@ loop_continue:
 
 done:
 	ber_bvecfree( v2refs );
-	if( realbase ) ch_free( realbase );
+	if( realbase.bv_val ) ch_free( realbase.bv_val );
 
 	return rc;
 }
