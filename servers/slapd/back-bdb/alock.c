@@ -29,19 +29,26 @@
 #include <ac/assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <fcntl.h>
+
+#ifdef _WIN32
+#include <stdio.h>
+#include <io.h>
+#include <sys/locking.h>
+#endif
+
 
 static int
 alock_grab_lock ( int fd, int slot )
 {
 	int res;
 	
-#ifdef HAVE_LOCKF
+#if defined( HAVE_LOCKF )
 	res = lseek (fd, (off_t) (ALOCK_SLOT_SIZE * slot), SEEK_SET);
 	if (res == -1) return -1;
 	res = lockf (fd, F_LOCK, (off_t) ALOCK_SLOT_SIZE);
-#else
-# ifdef HAVE_FCNTL
+#elif defined( HAVE_FCNTL )
 	struct flock lock_info;
 	(void) memset ((void *) &lock_info, 0, sizeof (struct flock));
 
@@ -51,9 +58,20 @@ alock_grab_lock ( int fd, int slot )
 	lock_info.l_len = (off_t) ALOCK_SLOT_SIZE;
 
 	res = fcntl (fd, F_SETLKW, &lock_info);
-# else
-#   error libalock needs lockf or fcntl
-# endif
+#elif defined( _WIN32 )
+	if( _lseek( fd, (ALOCK_SLOT_SIZE * slot), SEEK_SET ) < 0 )
+		return -1;
+	/*
+	 * _lock will try for the lock once per second, returning EDEADLOCK
+	 * after ten tries. We just loop until we either get the lock
+	 * or some other error is returned.
+	 */
+	while((res = _locking( fd, _LK_LOCK, ALOCK_SLOT_SIZE )) < 0 ) {
+		if( errno != EDEADLOCK )
+			break;
+	}
+#else
+#   error alock needs lockf, fcntl, or _locking
 #endif
 	if (res == -1) {
 		assert (errno != EDEADLK);
@@ -67,13 +85,12 @@ alock_release_lock ( int fd, int slot )
 {
 	int res;
 	
-#ifdef HAVE_LOCKF
+#if defined( HAVE_LOCKF )
 	res = lseek (fd, (off_t) (ALOCK_SLOT_SIZE * slot), SEEK_SET);
 	if (res == -1) return -1;
 	res = lockf (fd, F_ULOCK, (off_t) ALOCK_SLOT_SIZE);
 	if (res == -1) return -1;
-#else
-# ifdef HAVE_FCNTL
+#elif defined ( HAVE_FCNTL )
 	struct flock lock_info;
 	(void) memset ((void *) &lock_info, 0, sizeof (struct flock));
 
@@ -84,9 +101,13 @@ alock_release_lock ( int fd, int slot )
 
 	res = fcntl (fd, F_SETLKW, &lock_info);
 	if (res == -1) return -1;
-# else
-#    error libalock needs lockf or fcntl
-# endif
+#elif defined( _WIN32 )
+	res = _lseek (fd, (ALOCK_SLOT_SIZE * slot), SEEK_SET);
+	if (res == -1) return -1;
+	res = _locking( fd, _LK_UNLCK, ALOCK_SLOT_SIZE );
+	if (res == -1) return -1;
+#else
+#   error alock needs lockf, fcntl, or _locking
 #endif
 
 	return 0;
@@ -97,7 +118,7 @@ alock_test_lock ( int fd, int slot )
 {
 	int res;
 
-#ifdef HAVE_LOCKF
+#if defined( HAVE_LOCKF )
 	res = lseek (fd, (off_t) (ALOCK_SLOT_SIZE * slot), SEEK_SET);
 	if (res == -1) return -1;
 
@@ -109,8 +130,7 @@ alock_test_lock ( int fd, int slot )
 			return -1;
 		}
 	}
-#else
-# ifdef HAVE_FCNTL
+#elif defined( HAVE_FCNTL )
 	struct flock lock_info;
 	(void) memset ((void *) &lock_info, 0, sizeof (struct flock));
 
@@ -123,9 +143,20 @@ alock_test_lock ( int fd, int slot )
 	if (res == -1) return -1;
 
 	if (lock_info.l_type != F_UNLCK) return ALOCK_LOCKED;
-# else
-#    error libalock needs lockf or fcntl
-# endif
+#elif defined( _WIN32 )
+	res = _lseek (fd, (ALOCK_SLOT_SIZE * slot), SEEK_SET);
+	if (res == -1) return -1;
+	res = _locking( fd, _LK_NBLCK, ALOCK_SLOT_SIZE );
+	_locking( fd, _LK_UNLCK, ALOCK_SLOT_SIZE );
+	if (res == -1) {
+	   if( errno == EACCES ) {
+		   return ALOCK_LOCKED;
+	   } else {
+		   return -1;
+	   }
+	}
+#else
+#   error alock needs lockf, fcntl, or _locking
 #endif
 	
 	return 0;
