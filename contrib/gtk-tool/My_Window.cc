@@ -93,7 +93,7 @@ Gtk_LdapItem* My_Window::make_tree(My_Window *p, LDAP* l_i, char* b_d) {
 //	printf("%i results\n", entriesCount);
 	s = ldap_explode_dn(b_d, 1);
 	c = g_strdup_printf("%s", s[0]);
-	treeitem = new Gtk_LdapTreeItem(c, p);
+	treeitem = new Gtk_LdapTreeItem(c, p, l_i);
 	treeitem->dn = b_d; treeitem->ld = l_i;
 	treeresult = new Gtk_LdapItem();
 	treeitem->getDetails();

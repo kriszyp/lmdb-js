@@ -1,9 +1,9 @@
 #ifndef GTK_LDAPSERVER_H
 #define GTK_LDAPSERVER_H
 #include "gtk.h"
+#include "utils.h"
 #include <My_Window.h>
-/*#include <LdapOpts.h>*/
-#include <Gtk_LdapItem.h>
+#include <Gtk_LdapTree.h>
 #include <Gtk_LdapTreeItem.h>
 #include <lber.h>
 #include <ldap.h>
@@ -36,7 +36,7 @@ public:
 	~Gtk_LdapServer();
 	void setType(int t);
 	int getConfig();
-	int getSubtree();
+	Gtk_Tree* getSubtree();
 	int getDetails();
 	int showDetails();
 	void select_impl();

@@ -44,7 +44,9 @@ int main(int argc, char **argv) {
 
 	tree = new Gtk_Tree();
 	treeitem = new Gtk_LdapServer(window, host, port);
+	subtree = treeitem->getSubtree();
 	tree->append(*treeitem);
+	treeitem->set_subtree(*subtree);
 	treeitem->show();
 	viewport = new Gtk_Viewport();
 	viewport->add(tree);

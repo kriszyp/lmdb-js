@@ -12,7 +12,7 @@ Gtk_LdapServer::Gtk_LdapServer(My_Window *w, char *h, int p) : Gtk_TreeItem() {
 	this->par = w;
 	this->hostname = h;
 	this->port = p;
-	cout << this->hostname << this->port << endl;
+	debug("%s %i\n", this->hostname, this->port);
 	this->getConfig();
 }
 
@@ -20,12 +20,12 @@ Gtk_LdapServer::Gtk_LdapServer(GtkTreeItem *t) : Gtk_TreeItem(t) {
 }
 
 Gtk_LdapServer::~Gtk_LdapServer() {
-	cout << "Bye" << endl;
+	debug("Bye\n");
 	delete this;
 }
 
 void Gtk_LdapServer::setType(int t) {
-	cout << "Gtk_LdapServer::setType(" << t << ")" << endl;
+	debug("Gtk_LdapServer::setType(%i)\n", t);
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
 	if (this->getchild() != NULL) {
@@ -34,7 +34,7 @@ void Gtk_LdapServer::setType(int t) {
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
 	}
 	else xpm_label = new Gtk_HBox();
-	cout << this->hostname << endl;
+	debug(this->hostname);
 	if (strcasecmp(this->hostname,"localhost") == 0)
 		xpm_icon=new Gtk_Pixmap(*xpm_label, local_server);
 	else xpm_icon=new Gtk_Pixmap(*xpm_label, remote_server);
@@ -48,7 +48,7 @@ void Gtk_LdapServer::setType(int t) {
 }
 
 int Gtk_LdapServer::showDetails() {
-	cout << "Gtk_LdapServer::showDetails()" << endl;
+	debug("Gtk_LdapServer::showDetails()\n");
 	this->getDetails();
 	/*
 	if (this->notebook != NULL) {
@@ -67,7 +67,7 @@ int Gtk_LdapServer::showDetails() {
 }
 
 int Gtk_LdapServer::getConfig() {
-	cout << "Gtk_LdapServer::getConfig()" << endl;
+	debug("Gtk_LdapServer::getConfig()\n");
 	int error, entriesCount;
 	LDAPMessage *entry, *result_identifier;
 	BerElement *ber;
@@ -83,32 +83,32 @@ int Gtk_LdapServer::getConfig() {
 		return 0;
 	}
 
-	cout << entriesCount << " entry" << endl;
+	debug("%i entry\n", entriesCount);
 	for (entry = ldap_first_entry(this->ld, result_identifier); entry != NULL; entry = ldap_next_entry(this->ld, result_identifier)) {
 		for (attribute = ldap_first_attribute(this->ld, entry, &ber); attribute != NULL; attribute = ldap_next_attribute(this->ld, entry, ber)) {
-			cout << "Attrib: " << attribute << endl;
+			debug("Attrib: %s\n", attribute);
 			if (strcasecmp(attribute, "database") == 0) {
-				cout << "have database here" << endl;
+				debug("have database here\n");
 				this->databases = new G_List<char>;
 				t = ldap_get_values(this->ld, entry, attribute);
 				for (int i=0; i<ldap_count_values(t); i++) {
 					this->databases->append(strdup(t[i]));
 				}
 				ldap_value_free(t);
-				cout << "databases loaded" << endl;
+				debug("databases loaded\n");
 				for (int i=0; i<this->databases->length(); i++) {
-					cout << "database(" << i << ") " << this->databases->nth_data(i) << endl;
+					debug("database(%i) %s\n", i, this->databases->nth_data(i));
 				}	
 			}
 		}
-		cout << "entry done" << endl;
+		debug("entry done\n");
 	}
-//	cout << "got " << entriesCount << " entries" << endl;
+//	debug("got %i entries\n", entriesCount);
 	return entriesCount;
 }
 
 int Gtk_LdapServer::getDetails() {
-	cout << "Gtk_LdapServer::getDetails()" << endl;
+	debug("Gtk_LdapServer::getDetails()\n");
 	Gtk_HBox *hbox;
 	Gtk_VBox *vbox;
 	Gtk_Label *label;	
@@ -167,15 +167,15 @@ int Gtk_LdapServer::getDetails() {
 	return 0;
 }
 
-int Gtk_LdapServer::getSubtree() {
-	cout << "Gtk_LdapServer::getSubtree()" << endl;
+Gtk_Tree* Gtk_LdapServer::getSubtree() {
+	debug("Gtk_LdapServer::getSubtree()\n");
 	Gtk_LdapItem *treeresult;
-	Gtk_Tree *tree, *subtree;
+	Gtk_LdapTree *tree, *subtree;
 	Gtk_LdapTreeItem *treeitem;
 	int entries;
 
-	cout << "this->hostname=" << this->hostname << endl;
-	cout << "this->port=" << this->port << endl;
+	debug("this->hostname=%s\n", this->hostname);
+	debug("this->port=%i", this->port);
 /*	if ((this->ld = ldap_open(this->hostname, this->port)) == NULL) {
 		perror("connection");
 	}
@@ -185,31 +185,30 @@ int Gtk_LdapServer::getSubtree() {
 	char *tok;
 
 	int len = this->databases->length();
-	cout << "this->databases->length()=" << len << endl;
+	debug("this->databases->length()=%i\n", len);
 
-	tree = new Gtk_Tree();
+	tree = new Gtk_LdapTree();
 	for (int i=0; i<len; i++) {
 		tok = strdup(this->databases->nth_data(i));
 		tok = strtok(tok, ":");
+	//	c = strtok(NULL, " ");
 		c = strtok(NULL, "\0");
-		cout << "database " << i << " " << c << endl;
-		treeresult = this->par->make_tree(this->par, this->ld, c);
-		treeitem = new Gtk_LdapTreeItem(*treeresult->treeitem);
+		debug("database %i %s\n", i, c);
+		treeitem = new Gtk_LdapTreeItem(c, this->par, this->ld);
+		subtree = treeitem->getSubtree(this->ld, 1);
+		debug("inserting %s into %s\n", treeitem->rdn, this->hostname);
 		tree->append(*treeitem);
-		if (treeresult->tree != NULL) {
-			subtree = new Gtk_Tree(*treeresult->tree);
-			treeitem->set_subtree(*subtree);
-		}
+		treeitem->set_subtree(*subtree);
 		treeitem->show();
 	//	tree->show();
 	}
-	this->set_subtree(*tree);
-	cout << "getTree() done" << endl;
-	return 0;
+//	this->set_subtree(*tree);
+	debug("getTree() done\n");
+	return tree;
 }
 
 void Gtk_LdapServer::select_impl() {
-	cout << this->hostname << " selected" << endl;
+	debug("%s selected\n", this->hostname);
 //	gtk_item_select(GTK_ITEM(GTK_TREE_ITEM(this->gtkobj())));
 	Gtk_c_signals_Item *sig=(Gtk_c_signals_Item *)internal_getsignalbase();
 	if (!sig->select) return;
@@ -218,7 +217,7 @@ void Gtk_LdapServer::select_impl() {
 }
 
 void Gtk_LdapServer::collapse_impl() {
-//	cout << this->dn << " collapsed" << endl;
+	debug("%s collapsed\n", this->hostname);
 	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
 	if (!sig->collapse) return;
 	sig->collapse(GTK_TREE_ITEM(gtkobj()));
@@ -226,7 +225,7 @@ void Gtk_LdapServer::collapse_impl() {
 }
 
 void Gtk_LdapServer::expand_impl() {
-//	cout << this->dn << " expanded" << endl;
+	debug("%s expanded\n", this->hostname);
 	Gtk_c_signals_TreeItem *sig=(Gtk_c_signals_TreeItem *)internal_getsignalbase();
 	if (!sig->expand) return;
 	sig->expand(GTK_TREE_ITEM(gtkobj()));
