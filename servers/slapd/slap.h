@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <ac/syslog.h>
 #include <ac/regex.h>
+#include <ac/time.h>
 
 #undef NDEBUG
 #include <assert.h>
