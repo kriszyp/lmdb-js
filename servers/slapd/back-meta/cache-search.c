@@ -203,11 +203,9 @@ is_temp_answerable(
 	int template_id
 );
 
-static void
+static void*
 consistency_check(
-	Operation	*op,
-	SlapReply	*rs,
-	Backend		*glue_be
+	void	*op
 ); 
 
 static int
@@ -215,6 +213,7 @@ cache_back_sentry(
 	Operation* op, 
 	SlapReply *rs
 );
+
 
 int
 meta_back_cache_search(
@@ -296,6 +295,7 @@ meta_back_cache_search(
 		attrs[ count ].an_name.bv_len = 0;
 	}
 
+
 	result->type = SUCCESS; 
 	result->rc = 0; 
 	ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
@@ -307,6 +307,13 @@ meta_back_cache_search(
 #endif /* !NEW_LOGGING */
 	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
     
+	ldap_pvt_thread_mutex_lock(&cm->cc_mutex); 
+	if (!cm->cc_thread_started) {
+		cm->cc_thread_started = 1; 
+                ldap_pvt_thread_create(&(cm->cc_thread), 1, consistency_check, (void*)op); 
+	}	
+	ldap_pvt_thread_mutex_unlock(&cm->cc_mutex); 
+
 	filter2template(filter, &tempstr, &filter_attrs, &fattr_cnt, result);  
 	if (result->type != SUCCESS) 
 		goto Catch; 
@@ -386,8 +393,8 @@ meta_back_cache_search(
 		op_tmp.o_caching_on = 1; 
 		op_tmp.o_callback = &cb; 
 
-		li->glue_be->be_search(op, rs);
-		ber_memfree( ncachebase.bv_val );
+		li->glue_be->be_search(&op_tmp, rs);
+		free( ncachebase.bv_val );
 		if ( cachebase.bv_val != op->o_req_dn.bv_val ) {
 			/* free only if rewritten */
 			free( cachebase.bv_val );
@@ -395,6 +402,8 @@ meta_back_cache_search(
 
 		ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
 	} else {
+		Operation	op_tmp = *op;
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1, "QUERY NOT ANSWERABLE\n",
 					0, 0, 0 );
@@ -402,14 +411,14 @@ meta_back_cache_search(
 		Debug( LDAP_DEBUG_ANY, "QUERY NOT ANSWERABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
 
-		if ( op->ors_scope == LDAP_SCOPE_BASE ) {
+		if ( op_tmp.ors_scope == LDAP_SCOPE_BASE ) {
 			op_type = META_OP_REQUIRE_SINGLE;
 		} else {
 			op_type = META_OP_ALLOW_MULTIPLE;
 		}
 
-		lc = metaConnect(op, rs, op_type,
-				&op->o_req_ndn, result);
+		lc = metaConnect(&op_tmp, rs, op_type,
+				&op_tmp.o_req_ndn, result);
 
 		if (result->type != SUCCESS) 
 			goto Catch; 
@@ -453,7 +462,6 @@ meta_back_cache_search(
 		/*
 		 * Inits searches
 		 */
-
 		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 			char 	*realbase = ( char * )op->o_req_dn.bv_val;
 			int 	realscope = op->ors_scope;
@@ -633,7 +641,7 @@ meta_back_cache_search(
 			++candidates;
 		}
 
-		num_entries = handleLdapResult(lc, op, rs, msgid,
+		num_entries = handleLdapResult(lc, &op_tmp, rs, msgid,
 				op->o_bd, attrs,
 				op->ors_attrsonly, candidates, 
 				cacheable, &entry_array,
@@ -642,7 +650,6 @@ meta_back_cache_search(
 		if (result->type != SUCCESS) 
 			goto Catch; 
 		if (cacheable && (num_entries <= curr_limit)) {
-			Operation	op_tmp = *op;
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
@@ -757,13 +764,6 @@ Catch:;
 			break;
 	}
 
-	ldap_pvt_thread_mutex_lock(&cm->consistency_mutex); 
-	curr_time = slap_get_time(); 
-	if (curr_time - cm->consistency_time > cm->consistency_cycle_time) {
-		cm->consistency_time = curr_time; 
-		consistency_check(op, rs, li->glue_be); 
-	}	
-	ldap_pvt_thread_mutex_unlock(&cm->consistency_mutex); 
 
 	if ( msgid ) {
 		ch_free( msgid );
@@ -892,6 +892,7 @@ meta_create_entry (
 		attr->a_flags = 0;
 		attr->a_next = 0;
 		attr->a_desc = NULL;
+		attr->a_nvals = NULL;
 		if ( slap_bv2ad( &mapped, &attr->a_desc, &text ) != LDAP_SUCCESS) {
 			if ( slap_bv2undef_ad( &mapped, &attr->a_desc, &text ) 
 					!= LDAP_SUCCESS) {
@@ -1011,7 +1012,7 @@ is_one_level_rdn(
 
 static struct metaconn*  
 metaConnect(
-	Operation*		op, 
+	Operation		*op, 
 	SlapReply		*rs,
 	int			op_type, 
 	struct berval		*nbase, 
@@ -1034,11 +1035,8 @@ add_filter_attrs(
 	AttributeName* attrs, 
 	AttributeName* filter_attrs )
 {
-	struct berval all_user = { sizeof(LDAP_ALL_USER_ATTRIBUTES) -1,
-				   LDAP_ALL_USER_ATTRIBUTES };
-
-	struct berval all_op = { sizeof(LDAP_ALL_OPERATIONAL_ATTRIBUTES) -1,
-					LDAP_ALL_OPERATIONAL_ATTRIBUTES}; 
+	struct berval all_user = BER_BVC(LDAP_ALL_USER_ATTRIBUTES);
+	struct berval all_op = BER_BVC(LDAP_ALL_OPERATIONAL_ATTRIBUTES);
 
 	int alluser = 0; 
 	int allop = 0; 
@@ -1145,8 +1143,10 @@ handleLdapResult(
 			if ((entry = get_result_entry(be, lc, lsc,
 						msgid, i, &tv, result))) {
 				rs->sr_entry = entry;
+				rs->sr_attrs = op->ors_attrs; 
 				send_search_entry( op, rs );
 				rs->sr_entry = NULL;
+				rs->sr_attrs = NULL; 
 				if ((cacheable) &&
 						(num_entries < curr_limit))  {
 					rewriteSession( li->rwinfo,
@@ -1637,10 +1637,15 @@ is_temp_answerable(
 	return 0; 
 }
 
-static void 
-consistency_check(Operation *op, SlapReply *rs, Backend* glue_be)
+static void* 
+consistency_check(void* operation)
 {
-	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
+	Operation* op_tmp = (Operation*)operation; 
+
+	Operation op = *op_tmp; 
+	SlapReply rs = {REP_RESULT}; 
+
+	struct metainfo *li = ( struct metainfo * )op.o_bd->be_private;
 	cache_manager* 	cm = li->cm; 
 	query_manager* qm = cm->qm; 
 	CachedQuery* query, *query_prev; 
@@ -1649,87 +1654,88 @@ consistency_check(Operation *op, SlapReply *rs, Backend* glue_be)
 	struct exception result; 
 	int i, return_val; 
 	QueryTemplate* templ;
-	Backend		*be = op->o_bd;
 
-	op->o_bd = glue_be;
+
+	op.o_bd = li->glue_be;
       
-	for (i=0; qm->templates[i].querystr; i++) {
-		templ = qm->templates + i; 
-		query = templ->query_last; 
-		curr_time = slap_get_time(); 
-		ldap_pvt_thread_mutex_lock(&cm->remove_mutex); 
-		while (query && (query->expiry_time < curr_time)) {
-			ldap_pvt_thread_mutex_lock(&qm->lru_mutex); 
-			remove_query(qm, query); 
-			ldap_pvt_thread_mutex_unlock(&qm->lru_mutex); 
+        for(;;) {
+	        ldap_pvt_thread_sleep(cm->cc_period);     
+		for (i=0; qm->templates[i].querystr; i++) {
+			templ = qm->templates + i; 
+			query = templ->query_last; 
+			curr_time = slap_get_time(); 
+			ldap_pvt_thread_mutex_lock(&cm->remove_mutex); 
+			while (query && (query->expiry_time < curr_time)) {
+				ldap_pvt_thread_mutex_lock(&qm->lru_mutex); 
+				remove_query(qm, query); 
+				ldap_pvt_thread_mutex_unlock(&qm->lru_mutex); 
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1, "Lock CR index = %d\n",
-					i, 0, 0 );
+				LDAP_LOG( BACK_META, DETAIL1, "Lock CR index = %d\n",
+						i, 0, 0 );
 #else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "Lock CR index = %d\n",
-					i, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "Lock CR index = %d\n",
+						i, 0, 0 );
 #endif /* !NEW_LOGGING */
-			ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);  
-			remove_from_template(query, templ); 
+				ldap_pvt_thread_rdwr_wlock(&templ->t_rwlock);  
+				remove_from_template(query, templ); 
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-					"TEMPLATE %d QUERIES-- %d\n",
-					i, templ->no_of_queries, 0 );
+				LDAP_LOG( BACK_META, DETAIL1,
+						"TEMPLATE %d QUERIES-- %d\n",
+						i, templ->no_of_queries, 0 );
 #else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "TEMPLATE %d QUERIES-- %d\n",
-					i, templ->no_of_queries, 0 );
+				Debug( LDAP_DEBUG_ANY, "TEMPLATE %d QUERIES-- %d\n",
+						i, templ->no_of_queries, 0 );
 #endif /* !NEW_LOGGING */
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1, "Unlock CR index = %d\n",
-					i, 0, 0 );
+				LDAP_LOG( BACK_META, DETAIL1, "Unlock CR index = %d\n",
+						i, 0, 0 );
 #else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "Unlock CR index = %d\n",
-					i, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "Unlock CR index = %d\n",
+						i, 0, 0 );
 #endif /* !NEW_LOGGING */
-			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);  
-			uuid.bv_val = query->q_uuid; 
-			uuid.bv_len = strlen(query->q_uuid); 
-			return_val = remove_query_data(op, rs, &uuid, &result); 
+				ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);  
+				uuid.bv_val = query->q_uuid; 
+				uuid.bv_len = strlen(query->q_uuid); 
+				return_val = remove_query_data(&op, &rs, &uuid, &result); 
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-					"STALE QUERY REMOVED, SIZE=%d\n",
-					return_val, 0, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "STALE QUERY REMOVED, SIZE=%d\n",
+				LDAP_LOG( BACK_META, DETAIL1,
+						"STALE QUERY REMOVED, SIZE=%d\n",
 						return_val, 0, 0 );
-#endif /* !NEW_LOGGING */
-			ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
-			cm->total_entries -= result.rc; 
-			cm->num_cached_queries--; 
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %lu\n",
-					cm->num_cached_queries, 0, 0 );
 #else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %lu\n",
-					cm->num_cached_queries, 0, 0 );
+				Debug( LDAP_DEBUG_ANY, "STALE QUERY REMOVED, SIZE=%d\n",
+							return_val, 0, 0 );
 #endif /* !NEW_LOGGING */
-			ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
-			cm->cache_size = (return_val > cm->cache_size) ?
-						0: (cm->cache_size-return_val);
+				ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
+				cm->total_entries -= result.rc; 
+				cm->num_cached_queries--; 
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-				"STALE QUERY REMOVED, CACHE SIZE=%lu bytes %d "
-				"entries\n", cm->cache_size,
-				cm->total_entries, 0 );
+				LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %lu\n",
+						cm->num_cached_queries, 0, 0 );
 #else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY,
-				"STALE QUERY REMOVED, CACHE SIZE=%lu bytes %d "
-				"entries\n", cm->cache_size,
-				cm->total_entries, 0 );
+				Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %lu\n",
+						cm->num_cached_queries, 0, 0 );
 #endif /* !NEW_LOGGING */
-			query_prev = query; 
-			query = query->prev; 
-			free_query(query_prev); 
+				ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
+				cm->cache_size = (return_val > cm->cache_size) ?
+							0: (cm->cache_size-return_val);
+#ifdef NEW_LOGGING
+				LDAP_LOG( BACK_META, DETAIL1,
+					"STALE QUERY REMOVED, CACHE SIZE=%lu bytes %d "
+					"entries\n", cm->cache_size,
+					cm->total_entries, 0 );
+#else /* !NEW_LOGGING */
+				Debug( LDAP_DEBUG_ANY,
+					"STALE QUERY REMOVED, CACHE SIZE=%lu bytes %d "
+					"entries\n", cm->cache_size,
+					cm->total_entries, 0 );
+#endif /* !NEW_LOGGING */
+				query_prev = query; 
+				query = query->prev; 
+				free_query(query_prev); 
+			}
+			ldap_pvt_thread_mutex_unlock(&cm->remove_mutex); 
 		}
-		ldap_pvt_thread_mutex_unlock(&cm->remove_mutex); 
 	}
-
-	op->o_bd = be;
 }
 
 static int
@@ -1738,32 +1744,42 @@ cache_back_sentry(
 	SlapReply *rs )
 { 
 	slap_callback		*cb = op->o_callback; 
-	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
+	/*struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;*/
+	Backend* be = (Backend*)(cb->sc_private);
+	struct metainfo		*li = ( struct metainfo * )be->be_private;
  
 	char			*ename = NULL;
 	struct exception	result;
 	struct berval		dn;
 	struct berval		ndn;
-
-	dn = rs->sr_entry->e_name; 
-	ndn = rs->sr_entry->e_nname; 
-
-	rewriteSession( li->rwinfo, "cacheReturn",
-			rs->sr_entry->e_name.bv_val, op->o_conn,
-			&ename, &result );  
-	ber_str2bv(ename, strlen(ename), 0, &rs->sr_entry->e_name); 
-	/* FIXME: should we normalize this? */
-	ber_dupbv(&rs->sr_entry->e_nname, &rs->sr_entry->e_name); 
-
-	op->o_callback = NULL; 
-
-	send_search_entry( op, rs );
  
-	rs->sr_entry->e_name = dn; 
-	rs->sr_entry->e_nname = ndn; 
+	if (rs->sr_type == REP_SEARCH) {
+		dn = rs->sr_entry->e_name; 
+		ndn = rs->sr_entry->e_nname; 
 
-	op->o_callback = cb; 
+		rewriteSession( li->rwinfo, "cacheReturn",
+				rs->sr_entry->e_name.bv_val, op->o_conn,
+				&ename, &result );  
+		ber_str2bv(ename, strlen(ename), 0, &rs->sr_entry->e_name); 
+		/* FIXME: should we normalize this? */
+		ber_dupbv(&rs->sr_entry->e_nname, &rs->sr_entry->e_name); 
 
-	return 0;  
+		op->o_callback = NULL; 
+
+		send_search_entry( op, rs );
+	 
+		rs->sr_entry->e_name = dn; 
+		rs->sr_entry->e_nname = ndn; 
+
+		op->o_callback = cb; 
+		return 0;
+
+	} else if (rs->sr_type == REP_RESULT) { 
+		op->o_callback = NULL; 
+		send_ldap_result( op, rs ); 
+		return 0; 
+	}
+
+	return -1;
 }
 #endif

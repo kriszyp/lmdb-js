@@ -44,7 +44,7 @@ merge_func (
 	SlapReply	*rs
 ); 
 
-void
+static void
 add_func (
 	Operation	*op,
 	SlapReply	*rs
@@ -62,6 +62,15 @@ get_size_func (
 	SlapReply	*rs
 ); 
 
+static int
+null_response (
+	Operation	*op,
+	SlapReply	*rs
+); 
+
+static int 
+normalize_values( Attribute* attr ); 	
+
 struct entry_info {
 	int			size_init; 
 	int			size_final; 
@@ -72,6 +81,7 @@ struct entry_info {
 	enum type_of_result	err; 
 	Backend*		glue_be; 
 }; 
+
 
 int 
 get_entry_size(
@@ -112,12 +122,15 @@ add_merge_func( Operation *op, SlapReply *rs )
 {
 	switch ( rs->sr_type ) {
 	case REP_SEARCH:
-		add_func( op, rs );
+		merge_func( op, rs );
 		break;
 
 	case REP_RESULT:
-		merge_func( op, rs );
+		add_func( op, rs );
 		break;
+
+	default:
+		assert( 0 );
 	}
 	return 0;
 }
@@ -133,10 +146,14 @@ merge_entry(
 	struct berval normdn;
 	struct berval prettydn;
 
+	SlapReply sreply = {REP_RESULT};
+
 	Operation op_tmp = *op;
 	slap_callback cb = { add_merge_func, NULL };
 
 	Filter* filter = str2filter( bv_queryid_any.bv_val );
+	sreply.sr_entry = NULL; 
+	sreply.sr_nentries = 0; 
 
 	dnPrettyNormal(0, &rs->sr_entry->e_name, &prettydn, &normdn,
 			op->o_tmpmemctx);
@@ -173,7 +190,7 @@ merge_entry(
 	op_tmp.ors_attrs = NULL;
 	op_tmp.ors_attrsonly = 0;
 
-	op->o_bd->be_search( &op_tmp, rs );
+	op->o_bd->be_search( &op_tmp, &sreply );
 	result->type = info.err; 
 	if ( result->type == SUCCESS )
 		result->rc = info.added; 
@@ -207,6 +224,8 @@ merge_func (
 	AttributeDescription	*a_new_desc;
 	const char		*text = NULL;
 	Operation		op_tmp = *op;
+	SlapReply		sreply = {REP_RESULT}; 
+	SlapReply		sreply1 = {REP_RESULT}; 
 
 	info->err = SUCCESS; 
 
@@ -221,12 +240,13 @@ merge_func (
 		mod->sml_op = LDAP_MOD_REPLACE;
 		ber_dupbv(&mod->sml_type, &a_new_desc->ad_cname); 
 
-		for (count = 0; a_new->a_vals[count].bv_val; count++) 
+		for ( count = 0; a_new->a_vals[count].bv_val; count++ ) 
 			;
+
 		mod->sml_bvalues = (struct berval*) malloc(
 				(count+1) * sizeof( struct berval) );
 
-		for (i=0; i < count; i++) {
+		for ( i = 0; i < count; i++ ) {
 			ber_dupbv(mod->sml_bvalues+i, a_new->a_vals+i); 
 		}
 
@@ -258,10 +278,12 @@ merge_func (
 	op_tmp.o_req_ndn = entry->e_nname;
 	op_tmp.orm_modlist = modhead;
 
-	if (be->be_modify(op, rs ) != 0 ) {
+	op_tmp.o_callback->sc_response = null_response; 
+	/* FIXME: &op_tmp ??? */
+	if (be->be_modify(op, &sreply ) != 0 ) {
 		/* FIXME: cleanup ? */
 		info->err = MERGE_ERR;
-		return 0; 
+		goto cleanup; 
 	}
 
 	/* compute the size of the entry */
@@ -275,15 +297,23 @@ merge_func (
 	op_tmp.ors_filterstr = bv_queryid_any;
 	op_tmp.ors_attrs = NULL;
 	op_tmp.ors_attrsonly = 0;
-    
-	if (be->be_search( &op_tmp, rs ) != 0) {
+   
+        sreply1.sr_entry = NULL; 
+	sreply1.sr_nentries = 0; 
+
+	if (be->be_search( &op_tmp, &sreply1 ) != 0) {
 		info->err = GET_SIZE_ERR;
+	}
+
+cleanup:;
+	if ( modhead != NULL) {
+		slap_mods_free( modhead );
 	}
 
 	return 0; 
 }
 
-void
+static void
 add_func (
 	Operation	*op,
 	SlapReply	*rs
@@ -295,7 +325,9 @@ add_func (
 	Backend			*be; 
 	BerVarray 		value_array; 
 	Entry			*e; 
-	Attribute		*a; 
+	Attribute		*a, *attr; 
+	int 			i,j;
+	SlapReply 		sreply = {REP_RESULT}; 
 
 	struct timeval		time;	/* time */ 
 	long			timediff; /* time */ 
@@ -306,9 +338,11 @@ add_func (
 	 * new entry, construct an entry with 
 	 * the projected attributes 
 	 */
-	if (rs->sr_nentries) 
-		return; 
+	if (rs->sr_nentries) {
+		return;
+	}
 	
+	op_tmp.o_callback->sc_response = null_response; 
 	be = select_backend(&entry->e_nname, 0, 0); 
 	e = (Entry*)malloc(sizeof(Entry)); 
 
@@ -332,12 +366,19 @@ add_func (
 	a->a_next = entry->e_attrs;
 	entry->e_attrs = NULL;
 
-	info->size_final = get_entry_size(e, 0, NULL); 
+	for ( attr = e->e_attrs; attr; attr = attr->a_next ) {
+		if ( normalize_values( attr ) ) {
+			info->err = MERGE_ERR; 
+			return;
+		}
+	}
+
+	info->size_final = get_entry_size( e, 0, NULL ); 
 
 	op_tmp.o_bd = be;
 	op_tmp.ora_e = e;
 	
-	if ( be->be_add( &op_tmp, rs ) == 0 ) {
+	if ( be->be_add( &op_tmp, &sreply ) == 0 ) {
 		info->added = 1; 
 		be_entry_release_w( &op_tmp, e );
 	} else {
@@ -391,6 +432,64 @@ get_size_func (
 	}
 
 	return 0; 
+}
+
+
+static int
+null_response (
+	Operation	*op,
+	SlapReply	*rs )
+{
+	return 0;
+}
+
+static int 
+normalize_values( Attribute* attr ) 
+{
+	int nvals, rc, i; 
+ 
+	if (attr->a_vals == NULL) {
+		attr->a_nvals = NULL; 
+		return 0; 
+	} 
+
+	for ( nvals = 0; attr->a_vals[nvals].bv_val; nvals++ ) 
+		; 
+
+	attr->a_nvals = (struct berval*)ch_malloc((nvals+1)*sizeof(struct berval));
+
+	if ( attr->a_desc->ad_type->sat_equality &&
+				attr->a_desc->ad_type->sat_equality->smr_normalize )
+	{
+		for ( i = 0; i < nvals; i++ ) {
+			rc = attr->a_desc->ad_type->sat_equality->smr_normalize(
+				0,
+				attr->a_desc->ad_type->sat_syntax,
+				attr->a_desc->ad_type->sat_equality,
+				&attr->a_vals[i], &attr->a_nvals[i], NULL );
+			if ( rc ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( OPERATION, DETAIL1,
+					"Error in normalizing attribute %s value %d (%d)\n",
+					attr->a_desc->ad_cname.bv_val, i, rc );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"Error in normalizing attribute %s value %d (%d)\n",
+					attr->a_desc->ad_cname.bv_val, i, rc );
+#endif
+				return rc;
+			}
+		}
+	} else {
+		for ( i = 0; i < nvals; i++ ) {
+			ber_dupbv( &attr->a_nvals[i], &attr->a_vals[i] ); 
+		}
+	}
+			
+	attr->a_nvals[i].bv_val = NULL;
+	attr->a_nvals[i].bv_len = 0;
+
+	return LDAP_SUCCESS;
 }
 
 #endif /* LDAP_CACHING */

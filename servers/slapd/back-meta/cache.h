@@ -141,12 +141,13 @@ typedef struct cache_manager_s {
         int     num_entries_limit;		/* max # of entries in a cacheable query */ 
 	int     threads;			/* number of threads currently in meta_back_search */ 
 
-	int     consistency_cycle_time;		/* interval between successive consistency checks (sec) */ 
-	int 	consistency_time;		/* time when consistency check was last performed (sec) */ 
+	int     cc_period;		/* interval between successive consistency checks (sec) */ 
+	int     cc_thread_started; 
+	ldap_pvt_thread_t   cc_thread; 
 
 	ldap_pvt_thread_mutex_t		cache_mutex;		
 	ldap_pvt_thread_mutex_t		remove_mutex;
-	ldap_pvt_thread_mutex_t		consistency_mutex; 	
+	ldap_pvt_thread_mutex_t		cc_mutex; 	
 
 	query_manager*   qm;	/* query cache managed by the cache manager */ 
 } cache_manager; 

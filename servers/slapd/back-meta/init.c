@@ -171,8 +171,8 @@ meta_back_db_init(
 	cm->total_entries = 0; 
 	cm->max_queries = 10000; 
 	cm->threads = 0; 
-	cm->consistency_time = slap_get_time(); 
-	cm->consistency_cycle_time = 1000; 
+	cm->cc_thread_started = 0; 
+	cm->cc_period = 1000; 
        
 	qm->attr_sets = NULL; 
 	qm->templates = NULL; 
@@ -186,7 +186,7 @@ meta_back_db_init(
         
         ldap_pvt_thread_mutex_init(&cm->cache_mutex); 
         ldap_pvt_thread_mutex_init(&cm->remove_mutex); 
-	ldap_pvt_thread_mutex_init( &cm->consistency_mutex );
+	ldap_pvt_thread_mutex_init( &cm->cc_mutex );
 #endif /* LDAP_CACHING */
 
 	li = ch_calloc( 1, sizeof( struct metainfo ) );

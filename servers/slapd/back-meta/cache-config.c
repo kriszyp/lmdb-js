@@ -90,7 +90,7 @@ meta_back_cache_config(
 		}
 
 		cm->num_entries_limit = atoi( argv[4] ); 
-		cm->consistency_cycle_time = atoi( argv[5] ); 
+		cm->cc_period = atoi( argv[5] ); 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
 				"Total # of attribute sets to be cached = %d\n",

@@ -60,11 +60,12 @@ remove_query_data (
 	char			filter_str[64]; 
 	Operation		op_tmp = *op;
 	Filter			*filter; 
-	struct timeval		time_in; 
-	struct timeval		time_out; 
 	long timediff;
-
+	SlapReply 		sreply = {REP_RESULT}; 
 	slap_callback cb = { remove_func, NULL }; 
+
+	sreply.sr_entry = NULL; 
+	sreply.sr_nentries = 0; 
 	snprintf(filter_str, sizeof(filter_str), "(queryid=%s)",
 			query_uuid->bv_val);
 	filter = str2filter(filter_str); 	      
@@ -93,7 +94,7 @@ remove_query_data (
 	op_tmp.ors_attrs = NULL;
 	op_tmp.ors_attrsonly = 0;
 
-	op->o_bd->be_search( &op_tmp, rs );
+	op->o_bd->be_search( &op_tmp, &sreply );
 
 	result->type = info.err;  
 	result->rc = info.deleted; 
@@ -110,13 +111,16 @@ remove_func (
 	struct query_info	*info = op->o_callback->sc_private;
 	int			count = 0;
 	int			size;
-	struct timeval		time_in;
-	struct timeval		time_out;
 	long			timediff;
 	Modifications		*mod;
 
 	Attribute		*attr;
 	Operation		op_tmp = *op;
+
+	SlapReply 		sreply = {REP_RESULT}; 
+
+	if (rs->sr_type == REP_RESULT) 
+		return 0; 
 
 	size = get_entry_size(rs->sr_entry, 0, NULL);
 
@@ -177,7 +181,7 @@ remove_func (
 	op_tmp.o_req_ndn = rs->sr_entry->e_nname;
 	op_tmp.orm_modlist = mod;
 	
-	if (op->o_bd->be_modify( &op_tmp, rs )) {
+	if (op->o_bd->be_modify( &op_tmp, &sreply )) {
 		info->err = REMOVE_ERR;
 	}
 
