@@ -308,7 +308,6 @@ whoami_extop (
 	const char ** text,
 	BerVarray * refs )
 {
-	int rc;
 	struct berval *bv;
 
 	if ( reqdata != NULL ) {
