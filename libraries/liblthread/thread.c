@@ -469,10 +469,7 @@ pthread_cond_broadcast( pthread_cond_t *cv )
 }
 
 
-#elif defined( HAVE_NT_MULTITHREADS )
-
-#include <process.h>
-#include <winsock2.h>
+#elif defined( HAVE_NT_THREADS )
 
 int
 pthread_attr_init( pthread_attr_t *attr )
