@@ -66,6 +66,7 @@ int slap_inet4or6 = AF_INET;
 /* globals */
 time_t starttime;
 ber_socket_t dtblsize;
+slap_ssf_t local_ssf = LDAP_PVT_SASL_LOCAL_SSF;
 
 Listener **slap_listeners = NULL;
 
@@ -1467,7 +1468,7 @@ slapd_daemon_task(
 				}
 
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
-				ssf = LDAP_PVT_SASL_LOCAL_SSF;
+				ssf = local_ssf;
 				{
 					uid_t uid;
 					gid_t gid;

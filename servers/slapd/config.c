@@ -191,6 +191,28 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
+		/* set local security factor */
+		} else if ( strcasecmp( cargv[0], "localSSF" ) == 0 ) {
+			long ssf;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+				   "%s: line %d: missing ssf in \"localSSF <ssf>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			ssf = atol( cargv[1] );
+
+			if( ssf < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: invalid ssf value (%ld) in "
+					"\"localSSF <ssf>\" line.\n",
+				    fname, lineno, ssf );
+				return( 1 );
+			}
+
+			local_ssf = ssf;
+
 		/* set thread concurrency */
 		} else if ( strcasecmp( cargv[0], "concurrency" ) == 0 ) {
 			int c;
@@ -1134,7 +1156,6 @@ restrict_unknown:;
 				be->be_requires = requires;
 			}
 
-		/* required security factors */
 		} else if ( strcasecmp( cargv[0], "security" ) == 0 ) {
 			slap_ssf_set_t *set;
 

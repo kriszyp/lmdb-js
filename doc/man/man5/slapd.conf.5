@@ -512,6 +512,14 @@ continuing with the next line of the current file.
 .\"only go to stderr and are not recorded anywhere else. Specifying a logfile
 .\"copies messages to both stderr and the logfile.
 .TP
+.B localSSF <SSF>
+Specifies the Security Strength Factor (SSF) to be given local LDAP sessions,
+such as those to the ldapi:// listener.  For a description of SSF values,
+see 
+.BR sasl-secprops 's
+.B minssf
+property description.
+.TP
 .B loglevel <integer> [...]
 Specify the level at which debugging statements and operation 
 statistics should be syslogged (currently logged to the
