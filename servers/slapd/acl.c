@@ -1813,7 +1813,7 @@ aci_mask(
 			at != NULL;
 			at = attrs_find( at->a_next, ad ) )
 		{
-			if (value_find_ex( ad, SLAP_MR_VALUE_NORMALIZED_MATCH, at->a_vals, &bv) == 0 ) {
+			if (value_find_ex( ad, SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH, at->a_vals, &bv) == 0 ) {
 				rc = 1;
 				break;
 			}
