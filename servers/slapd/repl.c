@@ -83,7 +83,7 @@ replog(
 	struct replog_moddn *moddn;
 	char *tmp;
 	FILE	*fp, *lfp;
-	int	len, i, count = 0;
+	int	len, i;
 
 	if ( be->be_replogfile == NULL && replogfile == NULL ) {
 		return;
@@ -125,19 +125,9 @@ replog(
 		}
 
 		fprintf( fp, "replica: %s\n", be->be_replica[i]->ri_host );
-		++count;
 	}
 
 	ch_free( tmp );
-	if ( count == 0 ) {
-		/* if no replicas matched, drop the log 
-		 * (should we log it anyway?) */
-		lock_fclose( fp, lfp );
-		ldap_pvt_thread_mutex_unlock( &replog_mutex );
-
-		return;
-	}
-
 	fprintf( fp, "time: %ld\n", (long) slap_get_time() );
 	fprintf( fp, "dn: %s\n", dn );
 
