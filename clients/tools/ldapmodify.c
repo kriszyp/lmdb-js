@@ -70,7 +70,8 @@ static char *read_one_record LDAP_P(( FILE *fp ));
 static void
 usage( const char *prog )
 {
-    fprintf( stderr, "Add or modify entries from an LDAP server\n\n"
+    fprintf( stderr,
+		 "Add or modify entries from an LDAP server\n\n"
 	     "usage: %s [-abcknrvF] [-d debug-level] [-P version] [-h ldaphost]\n"
 	     "            [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile ]\n"
 	     "       a    - add values (default%s)\n"
@@ -808,7 +809,7 @@ fromfile( char *path, struct berval *bv )
 
 	bv->bv_len = ftell( fp );
 
-	if (( bv->bv_val = (char *)malloc( bv->bv_len )) == NULL ) {
+	if (( bv->bv_val = (char *)ber_memalloc( bv->bv_len )) == NULL ) {
 		perror( "malloc" );
 		fclose( fp );
 		return( -1 );
@@ -817,6 +818,8 @@ fromfile( char *path, struct berval *bv )
 	if ( fseek( fp, 0L, SEEK_SET ) != 0 ) {
 		perror( path );
 		fclose( fp );
+		ber_memfree( bv->bv_val );
+		bv->bv_val = NULL;
 		return( -1 );
 	}
 
@@ -826,7 +829,8 @@ fromfile( char *path, struct berval *bv )
 
 	if ( (unsigned long) rlen != bv->bv_len ) {
 		perror( path );
-		free( bv->bv_val );
+		ber_memfree( bv->bv_val );
+		bv->bv_val = NULL;
 		return( -1 );
 	}
 
