@@ -11,7 +11,7 @@
 #include <lutil.h>
 
 /*
- * lutil_entropy() provides nbyptes of entropy in buf.
+ * lutil_entropy() provides nbytes of entropy in buf.
  * Quality offerred is suitable for one-time uses, such as "once" keys.
  */
 int lutil_entropy( char *buf, int nbytes )
@@ -31,6 +31,7 @@ int lutil_entropy( char *buf, int nbytes )
 		rc = read( fd, buf, nbytes );
 		close(fd);
 
+		/* should return nbytes */
 		if( rc < nbytes ) return -1;
 
 		return 0;
