@@ -359,6 +359,10 @@ long connection_init(
 		c->c_authmech = NULL;
 		c->c_authstate = NULL;
 
+#ifdef HAVE_CYRUS_SASL
+		c->c_sasl_context = NULL;
+#endif
+
         c->c_sb = ber_sockbuf_alloc( );
 
         /* should check status of thread calls */
@@ -382,6 +386,9 @@ long connection_init(
     assert( c->c_pending_ops == NULL );
 	assert( c->c_authmech == NULL );
 	assert( c->c_authstate == NULL );
+#ifdef HAVE_CYRUS_SASL
+	assert( c->c_sasl_context == NULL );
+#endif
 
 	c->c_listener_url = ch_strdup( url  );
 	c->c_peer_domain = ch_strdup( dnsname  );
@@ -478,6 +485,13 @@ connection_destroy( Connection *c )
 		free(c->c_authstate);
 		c->c_authstate = NULL;
 	}
+
+#ifdef HAVE_CYRUS_SASL
+	if(c->c_sasl_context != NULL ) {
+		sasl_dispose( &c->c_sasl_context );
+		c->c_sasl_context = NULL;
+	}
+#endif
 
 	if ( ber_pvt_sb_in_use(c->c_sb) ) {
 		int sd = ber_pvt_sb_get_desc(c->c_sb);

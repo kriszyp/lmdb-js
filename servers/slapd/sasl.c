@@ -12,16 +12,17 @@
 char **supportedSASLMechanisms = NULL;
 
 #ifdef HAVE_CYRUS_SASL
-#include <sasl.h>
+static sasl_callback_t callbacks[] = {
+	{ SASL_CB_LIST_END, NULL, NULL }
+};
 
 int sasl_init( void )
 {
 	int rc;
-	char *data;
-	unsigned len, count;
+	char *mechs;
 	sasl_conn_t *server = NULL;
 
-	rc = sasl_server_init( NULL, "slapd" );
+	rc = sasl_server_init( callbacks, "slapd" );
 
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
@@ -58,7 +59,7 @@ int sasl_init( void )
 #endif
 
 	rc = sasl_listmech( server, NULL, NULL, ",", NULL,
-		&data, &len, &count);
+		&mechs, NULL, NULL);
 
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_listmech failed: %d\n",
@@ -67,9 +68,9 @@ int sasl_init( void )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "SASL mechanisms: %s\n",
-		data, 0, 0 );
+		mechs, 0, 0 );
 
-	supportedSASLMechanisms = str2charray( data, "," );
+	supportedSASLMechanisms = str2charray( mechs, "," );
 	sasl_dispose( &server );
 
 	return 0;

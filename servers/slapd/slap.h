@@ -11,6 +11,10 @@
 #include <ac/socket.h>
 #include <ac/time.h>
 
+#ifdef HAVE_CYRUS_SASL
+#include <sasl.h>
+#endif
+
 #include "avl.h"
 
 #ifndef ldap_debug
@@ -611,6 +615,10 @@ typedef struct slap_conn {
 	char		*c_peer_domain;	/* DNS name of client */
 	char		*c_peer_name;	/* peer name (trans=addr:port) */
 	char		*c_sock_name;	/* sock name (trans=addr:port) */
+
+#ifdef HAVE_CYRUS_SASL
+	sasl_conn_t	*c_sasl_context;
+#endif
 
 	/* only can be changed by binding thread */
 	int		c_bind_in_progress;	/* multi-op bind in progress */
