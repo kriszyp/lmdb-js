@@ -44,7 +44,7 @@ oc_schema_check( Entry *e )
 	for ( i = 0; aoc->a_vals[i] != NULL; i++ ) {
 		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
 			Debug( LDAP_DEBUG_ANY,
-				"Objectclass \"%s\" not defined",
+				"Objectclass \"%s\" not defined\n",
 				aoc->a_vals[i]->bv_val, 0, 0 );
 		}
 		else
