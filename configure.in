@@ -444,8 +444,9 @@ AC_CHECK_LIB(V3, sigset)
 
 AC_CHECK_HEADERS( regex.h )
 if test "$ac_cv_header_regex_h" != yes ; then
-	AC_MSG_ERROR([POSIX REGEX required.])
+	AC_MSG_ERROR([POSIX regex.h required.])
 fi
+AC_CHECK_FUNC(regfree, :, AC_MSG_ERROR([POSIX regex required.]))
 
 AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
 
