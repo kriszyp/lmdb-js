@@ -9,8 +9,6 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-a ]
 [\c
-.BR \-b ]
-[\c
 .BR \-c ]
 [\c
 .BR \-C ]
@@ -63,8 +61,6 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 .LP
 .B ldapadd
 [\c
-.BR \-b ]
-[\c
 .BR \-c ]
 [\c
 .BR \-C ]
@@ -95,11 +91,15 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BI \-P \ 2\fR\||\|\fI3\fR]
 [\c
-.BR \-E[E] ]
+.BR \-O \ security-properties ]
 [\c
-.BR \-I[I] ]
+.BR \-I ]
+[\c
+.BR \-Q ]
 [\c
 .BI \-U \ username\fR]
+[\c
+.BR \-x ]
 [\c
 .BI \-X \ authzid\fR]
 [\c
@@ -132,11 +132,6 @@ Add new entries.  The default for
 is to modify existing entries.  If invoked as
 .BR ldapadd ,
 this flag is always set.
-.TP
-.B \-b
-Assume that any values that start with a `/' are binary values and that
-the actual value is in a file whose path is specified in the place where
-values normally appear.
 .TP
 .B \-C
 Automatically chase referrals.
