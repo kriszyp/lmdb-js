@@ -300,7 +300,7 @@ static void *stop_status_routine( void *ptr )
 
 
 
-void WINAPI lutil_ServiceCtrlHandler( IN DWORD Opcode)
+static void WINAPI lutil_ServiceCtrlHandler( IN DWORD Opcode)
 {
 	switch (Opcode)
 	{
