@@ -29,7 +29,7 @@ LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 XLIBS = -lldap -llber
-XXLIBS = 
+XXLIBS = $(KRB_LIBS)
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)

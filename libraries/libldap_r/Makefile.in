@@ -32,7 +32,7 @@ LDAP_LIBDIR= ../../libraries
 
 XDEFS = -DLDAP_R_COMPILE -I$(XXDIR)
 XLIBS = -lldap_r -llber
-XXLIBS = $(LUTIL_LIBS)
+XXLIBS = $(LUTIL_LIBS) $(KRB_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
 
 .links :
