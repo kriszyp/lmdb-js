@@ -143,7 +143,7 @@ load_editor( void )
 #endif
 
 #ifdef HAVE_MKSTEMP
-	sprintf(entry_temp_file, "/tmp/udXXXXXX");
+	strcpy(entry_temp_file, LDAP_TMPDIR LDAP_DIRSEP "udXXXXXX");
 
 	tmpfd = mkstemp(entry_temp_file);
 
@@ -192,7 +192,7 @@ load_editor( void )
 	if (verbose) {
 		char	*p;
 
-		if (( p = strrchr( editor, '/' )) == NULL ) {
+		if (( p = strrchr( editor, *LDAP_DIRSEP )) == NULL ) {
 			p = editor;
 		} else {
 			++p;

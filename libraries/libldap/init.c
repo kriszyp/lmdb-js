@@ -263,11 +263,11 @@ static void openldap_ldap_init_w_userconf(const char *file)
 		/* we assume UNIX path syntax is used... */
 
 		/* try ~/file */
-		sprintf(path, "%s/%s", home, file);
+		sprintf(path, "%s%s%s", home, LDAP_DIRSEP, file);
 		openldap_ldap_init_w_conf(path, 1);
 
 		/* try ~/.file */
-		sprintf(path, "%s/.%s", home, file);
+		sprintf(path, "%s%s.%s", home, LDAP_DIRSEP, file);
 		openldap_ldap_init_w_conf(path, 1);
 	}
 

@@ -163,7 +163,7 @@ main ( int argc, char **argv )
 	int		numto, ngroups, numerr, nargs;
 	int		i, j;
 
-	if ( (myname = strrchr( argv[0], '/' )) == NULL )
+	if ( (myname = strrchr( argv[0], *LDAP_DIRSEP )) == NULL )
 		myname = strdup( argv[0] );
 	else
 		myname = strdup( myname + 1 );

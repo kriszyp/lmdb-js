@@ -27,6 +27,7 @@
 /* $Id: ucdata.c,v 1.4 2001/01/02 18:46:20 mleisher Exp $" */
 
 #include "portable.h"
+#include "ldap_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,12 +36,6 @@
 
 
 #include "ucdata.h"
-
-#ifdef WIN32
-#define UC_DIRSEP	'\\'
-#else
-#define UC_DIRSEP	'/'
-#endif
 
 /**************************************************************************
  *
@@ -89,7 +84,7 @@ _ucopenfile(char *paths, char *filename, char *mode)
         pp = path;
         while (*dp && *dp != ':')
           *pp++ = *dp++;
-        *pp++ = UC_DIRSEP;
+        *pp++ = *LDAP_DIRSEP;
 
         fp = filename;
         while (*fp)

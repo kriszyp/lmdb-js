@@ -23,6 +23,7 @@
 /* $Id: ucgendat.c,v 1.4 2001/01/02 18:46:20 mleisher Exp $" */
 
 #include "portable.h"
+#include "ldap_config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1181,7 +1182,7 @@ write_cdata(char *opath)
     /*
      * Open the ctype.dat file.
      */
-    sprintf(path, "%s/ctype.dat", opath);
+    sprintf(path, "%s%sctype.dat", opath, LDAP_DIRSEP);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1252,7 +1253,7 @@ write_cdata(char *opath)
     /*
      * Open the case.dat file.
      */
-    sprintf(path, "%s/case.dat", opath);
+    sprintf(path, "%s%scase.dat", opath, LDAP_DIRSEP);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1307,7 +1308,7 @@ write_cdata(char *opath)
     /*
      * Open the comp.dat file.
      */
-    sprintf(path, "%s/comp.dat", opath);
+    sprintf(path, "%s%scomp.dat", opath, LDAP_DIRSEP);
     if ((out = fopen(path, "wb")) == 0)
 	return;
     
@@ -1345,7 +1346,7 @@ write_cdata(char *opath)
     /*
      * Open the decomp.dat file.
      */
-    sprintf(path, "%s/decomp.dat", opath);
+    sprintf(path, "%s%sdecomp.dat", opath, LDAP_DIRSEP);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1405,7 +1406,7 @@ write_cdata(char *opath)
     /*
      * Open the cmbcl.dat file.
      */
-    sprintf(path, "%s/cmbcl.dat", opath);
+    sprintf(path, "%s%scmbcl.dat", opath, LDAP_DIRSEP);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1443,7 +1444,7 @@ write_cdata(char *opath)
     /*
      * Open the num.dat file.
      */
-    sprintf(path, "%s/num.dat", opath);
+    sprintf(path, "%s%snum.dat", opath, LDAP_DIRSEP);
     if ((out = fopen(path, "wb")) == 0)
       return;
 
@@ -1496,7 +1497,7 @@ main(int argc, char *argv[])
     FILE *in;
     char *prog, *opath;
 
-    if ((prog = strrchr(argv[0], '/')) != 0)
+    if ((prog = strrchr(argv[0], *LDAP_DIRSEP)) != 0)
       prog++;
     else
       prog = argv[0];

@@ -590,7 +590,7 @@ main( int argc, char **argv )
 		}
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
-			argv[0] );
+			prog );
 		return( EXIT_FAILURE );
 #endif
 	}

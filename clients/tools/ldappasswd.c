@@ -483,7 +483,7 @@ main( int argc, char *argv[] )
 		default:
 			fprintf( stderr, "%s: unrecognized option -%c\n",
 				prog, optopt );
-			usage (argv[0]);
+			usage (prog);
 		}
 	}
 
@@ -496,7 +496,7 @@ main( int argc, char *argv[] )
 	}
 
 	if( argc - optind > 1 ) {
-		usage( argv[0] );
+		usage( prog );
 	} else if ( argc - optind == 1 ) {
 		user = strdup( argv[optind] );
 	} else {
@@ -636,7 +636,7 @@ main( int argc, char *argv[] )
 		}
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
-			argv[0] );
+			prog );
 		return( EXIT_FAILURE );
 #endif
 	}

@@ -482,7 +482,7 @@ main(int argc, char **argv)
 	default:
 		fprintf( stderr, "%s: unrecognized option -%c\n",
 			prog, optopt );
-	    usage( argv[0] );
+	    usage( prog );
 	    return( EXIT_FAILURE );
 	}
     }
@@ -512,7 +512,7 @@ main(int argc, char **argv)
     } else if ( argc - optind != 0 ) {
 	fprintf( stderr, "%s: invalid number of arguments (%d), "
 		"only two allowed\n", prog, argc-optind );
-	usage( argv[0] );
+	usage( prog );
 	return( EXIT_FAILURE );
     }
 
@@ -627,7 +627,7 @@ main(int argc, char **argv)
 		}
 #else
 		fprintf( stderr, "%s: not compiled with SASL support\n",
-			argv[0] );
+			prog );
 		return( EXIT_FAILURE );
 #endif
 	}

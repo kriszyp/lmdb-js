@@ -51,7 +51,8 @@ ldif_fetch_url(
 			return -1;
 		}
 
-		if( *p != *LDAP_DIRSEP ) {
+		/* we don't check for LDAP_DIRSEP since URLs should contain '/' */
+		if( *p != '/' ) {
 			/* skip over false root */
 			p++;
 		}
