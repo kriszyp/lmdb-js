@@ -121,7 +121,7 @@ GNU|GNU Not Unix|http://www.gnu.org/
 
 !block products; data
 Name|Jump
-BerkeleyDB|http://www.sleepycat.com/
+Berkeley DB|http://www.sleepycat.com/
 CVS|http://www.cyclic.com/
 Cyrus|http://asg.web.cmu.edu/cyrus/
 GNU|http://www.gnu.org/software/
@@ -142,6 +142,7 @@ Term|Definition
 API|Application Program Interface
 ASN|Abstract Syntax Notation
 ASN.1|Abstract Syntax Notation 1
+BDB|Berkeley DB
 BCP|Best Common Practice
 BDB|Berkeley DB
 BER|Basic Encoding Rules

@@ -240,20 +240,20 @@ and other criteria.  {{slapd}} supports both {{static}} and
 {{B:Internationalization}}: {{slapd}} supports Unicode and language
 tags.
 
-{{B:Choice of databases}}: {{slapd}} comes with a variety of
-different backend databases you can choose from. They include
-{{TERM:LDBM}}, a high-performance disk-based embedded database;
-SHELL, a database interface to arbitrary shell scripts; and PASSWD,
-a simple password file database.  LDBM utilizes either {{PRD:BerkeleyDB}}
-or {{PRD:GDBM}}. There is also a new {{TERM:BDB}} backend database
-which uses BerkeleyDB directly, instead of the generic API that
-LDBM uses, and delivers even greater performance.
+{{B:Choice of databases backends}}: {{slapd}} comes with a variety
+of different database backends you can choose from. They include
+{{TERM:BDB}}, a high-performance transactional database backend;
+{{TERM:LDBM}}, a lightweight DBM based backend; {{SHELL}}, a backend
+interface to arbitrary shell scripts; and PASSWD, a simple backend
+interface to the {{passwd}}(5) file.  BDB utilizes {{ORG:Sleepycat}}
+{{PRD:Berkeley DB}}.  LDBM utilizes either {{PRD:Berkeley DB}} or
+{{PRD:GDBM}}.
 
 {{B:Multiple database instances}}: {{slapd}} can be configured to
 serve multiple databases at the same time. This means that a single
 {{slapd}} server can respond to requests for many logically different
-portions of the LDAP tree, using the same or different backend
-databases.
+portions of the LDAP tree, using the same or different database
+backends.
 
 {{B:Generic modules API}}: If you require even more customization,
 {{slapd}} lets you write your own modules easily. {{slapd}} consists
@@ -264,12 +264,13 @@ well-defined {{TERM:C}} {{TERM:API}}, you can write your own
 customized modules which extend {{slapd}} in numerous ways.  Also,
 a number of {{programmable database}} modules are provided.  These
 allow you to expose external data sources to {{slapd}} using popular
-programming languages ({{PRD:Perl}}, {{Shell}}, {{PRD:SQL}}, and
+programming languages ({{PRD:Perl}}, {{shell}}, {{PRD:SQL}}, and
 {{PRD:TCL}}).
 
-{{B:Threads}}: {{slapd}} is threaded for high performance. A single
-multi-threaded {{slapd}} process handles all incoming requests,
-reducing the amount of system overhead required.
+{{B:Threads}}: {{slapd}} is threaded for high performance.  A single
+multi-threaded {{slapd}} process handles all incoming requests
+using a pool of threads.  This reduces the amount of system overhead
+required while proving high performance.
 
 {{B:Replication}}: {{slapd}} can be configured to maintain replica
 copies of its database. This {{single-master/multiple-slave}}
@@ -283,8 +284,8 @@ single configuration file which allows you to change just about
 everything you'd ever want to change.  Configuration options have
 reasonable defaults, making your job much easier.
 
-{{slapd}} also has its limitations, of course.  The main LDBM
-database backend does not handle range queries or negation queries
+{{slapd}} also has its limitations, of course.  The main BDB
+backend does not handle range queries or negation queries
 very well.
 
 

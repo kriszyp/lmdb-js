@@ -27,7 +27,7 @@ package (in {{FILE:doc/sysadmin.html}}).
 Note that in the following text the term {{user}} is used to describe
 a person or application entity who is connecting to the LDAP server
 via an LDAP client, such as {{ldapsearch}}(1).  That is, the term
-{{user}} not ony applies to both an individual using an LDAP client,
+{{user}} not only applies to both an individual using an LDAP client,
 but to an application entity which issues LDAP client operations
 without direct user control.  For example, an e-mail server which
 uses LDAP operations to access information held in an LDAP server

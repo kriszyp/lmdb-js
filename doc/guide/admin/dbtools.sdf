@@ -44,7 +44,7 @@ should be created:
 
 For example:
 
->	directory /usr/local/var/openldap-ldbm
+>	directory /usr/local/var/openldap-data
 
 You need to create this directory with appropriate permissions such
 that slapd can write to it.
@@ -141,7 +141,7 @@ should be created:
 
 For example:
 
->	directory /usr/local/var/openldap-ldbm
+>	directory /usr/local/var/openldap-data
 
 Finally, you need to specify which indexes you want to build.  This
 is done by one or more index options.
@@ -190,7 +190,7 @@ Options}} section in {{SECT:Running slapd}}.
 
 An optional argument that specifies which database to modify.  The
 first database listed in the configuration file is {{EX:1}}, the
-second {{EX:2}}, etc. By default, the first ldbm database in the
+second {{EX:2}}, etc. By default, the first database in the
 configuration file is used. Should not be used in conjunction with
 {{EX:-b}}.
 

@@ -136,37 +136,40 @@ whatever installation prefix was used by {{EX:configure}}).
 
 . Use your favorite editor to edit the provided {{slapd.conf}}(5)
 example (usually installed as {{F:/usr/local/etc/openldap/slapd.conf}})
-to contain an LDBM database definition of the form:
+to contain an BDB database definition of the form:
 
-..{{EX:database        ldbm}}
+..{{EX:database        bdb}}
 ..{{EX:suffix          "dc=<MY-DOMAIN>,dc=<COM>"}}
 ..{{EX:rootdn          "cn=Manager,dc=<MY-DOMAIN>,dc=<COM>"}}
 ..{{EX:rootpw          secret}}
-..{{EX:directory       /usr/local/var/openldap-ldbm}}
+..{{EX:directory       /usr/local/var/openldap-data}}
 
 . Be sure to replace {{EX:<MY-DOMAIN>}} and {{EX:<COM>}} with
 the appropriate domain components of your domain name.  For
 example, for {{EX:example.com}}, use:
 
-..{{EX:database        ldbm}}
+..{{EX:database        bdb}}
 ..{{EX:suffix          "dc=example,dc=com"}}
 ..{{EX:rootdn          "cn=Manager,dc=example,dc=com"}}
 ..{{EX:rootpw          secret}}
-..{{EX:directory       /usr/local/var/openldap-ldbm}}
+..{{EX:directory       /usr/local/var/openldap-data}}
 
 .If your domain contains additional components, such as
 {{EX:eng.uni.edu.eu}}, use:
 
-..{{EX:database        ldbm}}
+..{{EX:database        bdb}}
 ..{{EX:suffix          "dc=eng,dc=uni,dc=edu,dc=eu"}}
 ..{{EX:rootdn          "cn=Manager,dc=eng,dc=uni,dc=edu,dc=eu"}}
 ..{{EX:rootpw          secret}}
-..{{EX:directory       /usr/local/var/openldap-ldbm}}
+..{{EX:directory       /usr/local/var/openldap-data}}
 
 . Details regarding configuring {{slapd}}(8) can be found
 in the {{slapd.conf}}(5) manual page and the
 {{SECT:The slapd Configuration File}} chapter of this
 document.
+
+Note: the directory specified must exist prior to starting slapd(8).
+
 
 .{{S: }}
 +{{B:Start SLAPD}}.

@@ -237,9 +237,32 @@ by database directives.
 
 H4: backend <type>
 
-This directive marks the beginning of a backend definition.
-{{EX:<type>}} should be one of {{EX:ldbm}}, {{EX:shell}},
-{{EX:passwd}}, or other supported backend type.
+This directive marks the beginning of a backend declaration.
+{{EX:<type>}} should be one of {{EX:bdb}} or one of other
+supported backend types listed in Table 5.2.
+
+!block table; align=Center; coltags="EX,N"; \
+	title="Table 5.2: Database Backends"
+Types	Description
+bdb	Berkeley DB transactional backend
+dnssrv	DNS SRV backend
+ldbm	Lightweight DBM backend
+ldap	Lightweight Directory Access Protocol (Proxy) backend
+meta	Meta Directory backend
+monitor	Monitor backend
+passwd	Provides read-only access to {{passwd}}(5)
+perl	Perl Programmable backend
+shell	Shell (extern program) backend
+sql	SQL Programmable backend
+tcp	TCP Programmable backend
+!endblock
+
+\Example:
+
+>	database bdb
+
+This marks the beginning of a new {{TERM:BDB}} backend
+definition.
 
 
 H3: General Database Directives
@@ -249,17 +272,17 @@ they are defined. They are supported by every type of database.
 
 H4: database <type>
 
-This directive marks the beginning of a new database instance
-definition.
-{{EX:<type>}} should be one of {{EX:ldbm}}, {{EX:shell}},
-{{EX:passwd}}, or other supported database type.
+This directive marks the beginning of a database instance
+declaration.
+{{EX:<type>}} should be one of {{EX:bdb}} or one of other
+supported backend types listed in Table 5.2.
 
 \Example:
 
->	database ldbm
+>	database bdb
 
-This marks the beginning of a new LDBM backend database
-instance definition.
+This marks the beginning of a new {{TERM:BDB}} database instance
+declaration.
 
 
 H4: readonly { on | off }
@@ -415,11 +438,27 @@ If specified multiple times, each {{TERM:URL}} is provided.
 >	updateref	ldap://master.example.net
 
 
-H3: LDBM Backend-Specific Directives
+H3: BDB Database Directives
 
-Directives in this category only apply to the LDBM backend
-database. That is, they must follow a "database ldbm" line and
-come before any other "database" line.
+Directives in this category only apply a BDB database. That is,
+they must follow a "database bdb" line and come before any
+subsequent "backend" or "database" line.
+
+H4: directory <directory>
+
+This directive specifies the directory where the BDB files
+containing the database and associated indexes live.
+
+\Default:
+
+>	directory /usr/local/var/openldap-data
+
+
+H3: LDBM Database Directives
+
+Directives in this category only apply a LDBM database. That is,
+they must follow a "database ldbm" line and come before any
+subsequent "backend" or "database" line.
 
 H4: cachesize <integer>
 
@@ -466,7 +505,7 @@ containing the database and associated indexes live.
 
 \Default:
 
->	directory /usr/local/var/openldap-ldbm
+>	directory /usr/local/var/openldap-data
 
 
 H4: index {<attrlist> | default} [pres,eq,approx,sub,none]
@@ -505,24 +544,6 @@ created database index files should have.
 \Default:
 
 >	mode 0600
-
-
-
-H3: Other Backend Databases
-
-{{slapd}}(8) supports a number of backend database types besides the default LDBM.
-
-!block table; align=Center; coltags="EX,N"; \
-	title="Table 5.2: Backend Database Types"
-Types	Description
-ldbm	Berkeley or GNU DBM compatible backend
-passwd	Provides read-only access to {{F:/etc/passwd}}
-shell	Shell (extern program) backend
-sql	SQL Programmable backend
-!endblock
-
-See {{slapd.conf}}(5) for details.
-
 
 
 H2: Access Control
@@ -720,7 +741,7 @@ This access directive grants read access to everyone.
 >		by * read
 
 This directive allows users to modify their own entries,
-allows authenticate, and allows authenticated users to read.
+allows authenticate, and allows all others to read.
 Note that only the first {{EX:by <who>}} clause which matches applies.
 Hence, the anonymous users are granted {{EX:auth}}, not {{EX:read}}.
 The last clause could just as well have been "{{EX:by users read}}".
@@ -800,7 +821,7 @@ H2: Configuration File Example
 
 The following is an example configuration file, interspersed
 with explanatory text. It defines two databases to handle
-different parts of the {{TERM:X.500}} tree; both are {{TERM:LDBM}}
+different parts of the {{TERM:X.500}} tree; both are {{TERM:BDB}}
 database instances. The line numbers shown are provided for
 reference only and are not included in the actual file. First, the
 global configuration section:
@@ -821,7 +842,7 @@ Line 4 is a global access control.  It applies to all
 entries (after any applicable database-specific access
 controls).
 
-The next section of the configuration file defines an LDBM
+The next section of the configuration file defines an BDB
 backend that will handle queries for things in the
 "dc=example,dc=com" portion of the tree. The
 database is to be replicated to two slave slapds, one on
@@ -829,10 +850,10 @@ truelies, the other on judgmentday. Indexes are to be
 maintained for several attributes, and the {{EX:userPassword}}
 attribute is to be protected from unauthorized access.
 
-E:  5.	# ldbm definition for the example.com
-E:  6.	database ldbm
+E:  5.	# BDB definition for the example.com
+E:  6.	database bdb
 E:  7.	suffix "dc=example,dc=com"
-E:  8.	directory /usr/local/var/openldap
+E:  8.	directory /usr/local/var/openldap-data
 E:  9.	rootdn "cn=Manager,dc=example,dc=com"
 E: 10.	rootpw secret
 E: 11.	# replication directives
@@ -847,7 +868,7 @@ E: 19.	# indexed attribute definitions
 E: 20.	index uid pres,eq
 E: 21.	index cn,sn,uid pres,eq,approx,sub
 E: 22.	index objectClass eq
-E: 23.	# ldbm access control definitions
+E: 23.	# database access control definitions
 E: 24.	access to attr=userPassword
 E: 25.		by self write
 E: 26.		by anonymous auth
@@ -889,15 +910,15 @@ All other attributes are writable by the entry and the "admin"
 entry, but may be read by all users (authenticated or not).
 
 The next section of the example configuration file defines another
-LDBM database. This one handles queries involving the
+BDB database. This one handles queries involving the
 {{EX:dc=example,dc=net}} subtree but is managed by the same entity
 as the first database.  Note that without line 39, the read access
 would be allowed due to the global access rule at line 4.
 
-E: 33.	# ldbm definition for example.net
-E: 34.	database ldbm
+E: 33.	# BDB definition for example.net
+E: 34.	database bdb
 E: 35.	suffix "dc=example,dc=net"
-E: 36.	directory /usr/local/var/ldbm-example-net
+E: 36.	directory /usr/local/var/openldap-data-net
 E: 37.	rootdn "cn=Manager,dc=example,dc=com"
 E: 38.	index objectClass eq
 E: 39.	access to * by users read

@@ -4,6 +4,8 @@
 
 H1: Performance Tuning
 
+Note: this chapter needs to be updated to discuss BDB tuning.
+
 There are several things you can do to tune the performance of
 slapd for your system. Most of them have to do with the LDBM
 backend. LDBM uses an index mechanism to store and retrieve

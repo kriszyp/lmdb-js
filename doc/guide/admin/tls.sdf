@@ -4,9 +4,9 @@
 H1: Using TLS
 
 OpenLDAP clients and servers are capable of using the
-Transport Layer Security {{TERM:TLS}} framework to provide
+{{TERM[expand]TLS}} ({{TERM:TLS}}) framework to provide
 integrity and confidentiality protections and to support
-LDAP authentication using the SASL EXTERNAL mechanism. 
+LDAP authentication using the {{TERM:SASL}} EXTERNAL mechanism. 
 
 TLS uses {{TERM:X.509}} certificates to carry client and server
 identities. All servers are required to have valid certificates,

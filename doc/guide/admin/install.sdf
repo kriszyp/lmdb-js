@@ -111,26 +111,25 @@ configure detects a usable Cyrus SASL installation.
 
 H3: Database Software
 
-OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:LDBM}},
-requires a compatible database package for entry storage.  LDBM
-is compatible with {{ORG[expand]Sleepycat}}'s {{PRD:BerkeleyDB}} (recommended)
-or the {{ORG[expand]FSF}}'s {{PRD:GNU}} Database Manager ({{PRD:GDBM}}).
-If neither of these packages are available at configure time,
-you will not be able build {{slapd}}(8) with a primary database backend.
+OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:BDB}},
+requires {{ORG[expand]Sleepycat}} {{PRD:Berkeley DB}}, version 4.
+If not available at configure time, you will not be able build
+{{slapd}}(8) with primary database backend.
 
-Your operating system may provide one or both of these packages in
-the base system or as an optional software component.  If not,
-you'll have to obtain and install one of these packages yourself.
+Your operating system may provide {{PRD:Berkeley DB}}, version 4,
+in the base system or as an optional software component.  If not,
+you'll have to obtain and install it yourself.
 
-{{PRD:BerkeleyDB}} is available from {{ORG[expand]Sleepycat}}'s
+{{PRD:Berkeley DB}} is available from {{ORG[expand]Sleepycat}}'s
 download page {{URL: http://www.sleepycat.com/download.html}}.
 There are several versions available.  At the time of this writing,
 the latest release, version 4.0, is recommended. This package
 is required if you wish to use the {{TERM:BDB}} database backend.
 
-{{PRD:GDBM}} is available from {{ORG:FSF}}'s download site
+OpenLDAP's {{slapd}}(8) LDBM backend supports a variety of data
+base managers {{PRD:Berkeley DB}} and {{PRD:GDBM}}.  {{PRD:GDBM}}
+is available from {{ORG:FSF}}'s download site
 {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}.
-At the time of this writing, version 1.8 is the latest release.
 
 
 H3: Threads
