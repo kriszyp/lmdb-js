@@ -476,21 +476,19 @@ parse_acl(
 						acl_usage();
 					}
 
+#ifdef SLAPD_SCHEMA_COMPAT
 					if ( right != NULL && *right != '\0' ) {
-#ifdef SLAPD_SCHEMA_COMPAT
 						b->a_aci_at = ch_strdup( right );
-#else
-						b->a_aci_at = at_find( right );
-#endif
 					} else {
-#ifdef SLAPD_SCHEMA_COMPAT
 						b->a_aci_at = ch_strdup( SLAPD_ACI_DEFAULT_ATTR );
+					}
 #else
+					if ( right != NULL && *right != '\0' ) {
+						b->a_aci_at = at_find( right );
+					} else {
 						b->a_aci_at = at_find( SLAPD_ACI_DEFAULT_ATTR );
-#endif
 					}
 
-#ifdef SLAPD_SCHEMA_COMPAT
 					if( b->a_aci_at == NULL ) {
 						fprintf( stderr,
 							"%s: line %d: aci attribute type undefined.\n",
@@ -498,7 +496,6 @@ parse_acl(
 						acl_usage();
 					}
 
-#ifdef SLAPD_OID_DN_SYNTAX
 					if( strcmp( b->a_aci_at->sat_syntax_oid,
 						SLAPD_OID_DN_SYNTAX ) != 0 )
 					{
@@ -507,8 +504,7 @@ parse_acl(
 							fname, lineno );
 						acl_usage();
 					}
-#endif /* SLAPD_OID_DN_SYNTAX */
-#endif /* SLAPD_SCHEMA_COMPAT */
+#endif
 					continue;
 				}
 #endif /* SLAPD_ACI_ENABLED */
