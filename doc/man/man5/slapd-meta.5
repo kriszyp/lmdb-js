@@ -98,11 +98,12 @@ Target specification starts with a "uri" directive:
 .TP
 .B uri <protocol>://[<host>[:<port>]]/<naming context>
 The "server" directive that was allowed in the LDAP backend (although
-deprecated) has been discarded in the Meta backend.
+deprecated) has been completely discarded in the Meta backend.
 The <protocol> part can be anything
 .BR ldap_initialize (3)
 accepts ({ldap|ldaps|ldapi} and variants); <host> and <port> may be
-omitted, defaulting to whatever is set in /etc/ldap.conf.
+omitted, defaulting to whatever is set in
+.BR ldap.conf (5).
 The <naming context> part is mandatory.
 It must end with one of the naming contexts defined for the backend,
 e.g.:
@@ -112,14 +113,19 @@ e.g.:
 suffix "\fBdc=foo,dc=com\fP"
 uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
 .fi
+
 .RE
-.LP
+.RS
 The <naming context> part doesn't need to be unique across the targets;
 it may also match one of the values of the "suffix" directive.
 Multiple URIs may be defined in a single argument.  The URIs must
-be separated by TABs (e.g. '\\t'), and the additional URIs must have
+be separated by TABs (e.g. '\\t'; commas or spaces, unlike back-ldap,
+will not work,
+because they are legal in the <naming context>, and we don't want to use
+URL-encoded <namimg context>s), and the additional URIs must have
 no <naming context> part.  This causes the underlying library
 to contact the first server of the list that responds.
+.RE
 .TP
 .B default-target [<target>]
 The "default-target" directive can also be used during target specification.
