@@ -15,7 +15,7 @@ if test $# != 3 ; then
 	exit 1
 fi
 
-RELNAME=opendlap-$1
+RELNAME=openldap-$1
 shift
 CVSTAG=$1
 shift
