@@ -1162,10 +1162,9 @@ slapi_filter_list_next(
 	ftype = f->f_choice;
 	if ( ftype == LDAP_FILTER_AND
 			|| ftype == LDAP_FILTER_OR
-			|| ftype == LDAP_FILTER_NOT ) {
-		if ( f->f_and == fprev ) {
-			return f->f_and->f_next;
-		}
+			|| ftype == LDAP_FILTER_NOT )
+	{
+		return fprev->f_next;
 	}
 
 	return NULL;
