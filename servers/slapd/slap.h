@@ -2372,15 +2372,15 @@ typedef void (SEND_LDAP_INTERMEDIATE)(
 	struct slap_op *op, struct slap_rep *rs);
 
 #define send_ldap_result( op, rs ) \
-	(op->o_conn->c_send_ldap_result)( op, rs )
+	((op)->o_conn->c_send_ldap_result)( op, rs )
 #define send_search_entry( op, rs ) \
-	(op->o_conn->c_send_search_entry)( op, rs )
+	((op)->o_conn->c_send_search_entry)( op, rs )
 #define send_search_reference( op, rs ) \
-	(op->o_conn->c_send_search_reference)( op, rs )
+	((op)->o_conn->c_send_search_reference)( op, rs )
 #define send_ldap_extended( op, rs ) \
-	(op->o_conn->c_send_ldap_extended)( op, rs )
+	((op)->o_conn->c_send_ldap_extended)( op, rs )
 #define send_ldap_intermediate( op, rs ) \
-	(op->o_conn->c_send_ldap_intermediate)( op, rs )
+	((op)->o_conn->c_send_ldap_intermediate)( op, rs )
 
 typedef struct slap_listener Listener;
 
