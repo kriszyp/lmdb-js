@@ -1025,8 +1025,6 @@ if test $ol_enable_wrappers != no ; then
 	fi
 fi
 
-fi
-
 # ud needs termcap (should insert check here)
 ol_link_termcap=no
 AC_CHECK_HEADERS(termcap.h ncurses.h)
