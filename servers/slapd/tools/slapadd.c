@@ -32,10 +32,6 @@ main( int argc, char **argv )
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 
-	struct berval name, timestamp, csn;
-	char timebuf[22];
-	char csnbuf[64];
-
 #ifdef NEW_LOGGING
 	lutil_log_initialize(argc, argv );
 #endif
@@ -104,7 +100,7 @@ main( int argc, char **argv )
 			break;
 		}
 
-		{
+		if( global_schemacheck ) {
 			Attribute *sc = attr_find( e->e_attrs,
 				slap_schema.si_ad_structuralObjectClass );
 			Attribute *oc = attr_find( e->e_attrs,
@@ -124,12 +120,12 @@ main( int argc, char **argv )
 				struct berval vals[2];
 
 				/* int ret = */ 
-					structural_class( oc->a_vals, vals,
+				structural_class( oc->a_vals, vals,
 					NULL, &text, textbuf, textlen );
 
 				if( vals[0].bv_len == 0 ) {
 					fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
-					progname, e->e_dn, lineno, text );
+						progname, e->e_dn, lineno, text );
 					rc = EXIT_FAILURE;
 					entry_free( e );
 					if( continuemode ) continue;
@@ -140,11 +136,29 @@ main( int argc, char **argv )
 				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
 					vals );
 			}
+
+			/* check schema */
+			rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
+
+			if( rc != LDAP_SUCCESS ) {
+				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
+					progname, e->e_dn, lineno, text );
+				rc = EXIT_FAILURE;
+				entry_free( e );
+				if( continuemode ) continue;
+				break;
+			}
 		}
 
 		if ( SLAP_LASTMOD(be) ) {
 			struct tm *ltm;
 			time_t now = slap_get_time();
+			char uuidbuf[40];
+			struct berval vals[2];
+
+			struct berval name, timestamp, csn;
+			char timebuf[22];
+			char csnbuf[64];
 
 			ltm = gmtime(&now);
 			lutil_gentime( timebuf, sizeof(timebuf), ltm );
@@ -161,57 +175,61 @@ main( int argc, char **argv )
 			} else {
 				name = be->be_rootndn;
 			}
-		}
 
-		if( global_schemacheck ) {
-			/* check schema */
-
-			rc = entry_schema_check( be, e, NULL, &text, textbuf, textlen );
-
-			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
-					progname, e->e_dn, lineno, text );
-				rc = EXIT_FAILURE;
-				entry_free( e );
-				if( continuemode ) continue;
-				break;
+			if( attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )
+				== NULL )
+			{
+				vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
+				vals[0].bv_val = uuidbuf;
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_entryUUID, vals );
 			}
-		}
 
-		if ( SLAP_LASTMOD(be) ) {
-			char uuidbuf[40];
-			struct berval vals[2];
+			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &name );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_creatorsName, vals);
+			}
 
-			vals[0].bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
-			vals[0].bv_val = uuidbuf;
-			vals[1].bv_len = 0;
-			vals[1].bv_val = NULL;
-			attr_merge( e, slap_schema.si_ad_entryUUID, vals );
+			if( attr_find( e->e_attrs, slap_schema.si_ad_modifiersName )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &name );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_modifiersName, vals);
+			}
 
-			ber_dupbv( &vals[0], &name );
-			vals[1].bv_len = 0;
-			vals[1].bv_val = NULL;
-			attr_merge( e, slap_schema.si_ad_creatorsName, vals);
+			if( attr_find( e->e_attrs, slap_schema.si_ad_createTimestamp )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &timestamp );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_createTimestamp, vals );
+			}
 
-			ber_dupbv( &vals[0], &name );
-			vals[1].bv_len = 0;
-			vals[1].bv_val = NULL;
-			attr_merge( e, slap_schema.si_ad_modifiersName, vals);
+			if( attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &timestamp );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals );
+			}
 
-			ber_dupbv( &vals[0], &timestamp );
-			vals[1].bv_len = 0;
-			vals[1].bv_val = NULL;
-			attr_merge( e, slap_schema.si_ad_createTimestamp, vals );
-
-			ber_dupbv( &vals[0], &timestamp );
-			vals[1].bv_len = 0;
-			vals[1].bv_val = NULL;
-			attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals );
-
-			ber_dupbv( &vals[0], &csn );
-			vals[1].bv_len = 0;
-			vals[1].bv_val = NULL;
-			attr_merge( e, slap_schema.si_ad_entryCSN, vals );
+			if( attr_find( e->e_attrs, slap_schema.si_ad_entryCSN )
+				== NULL )
+			{
+				ber_dupbv( &vals[0], &csn );
+				vals[1].bv_len = 0;
+				vals[1].bv_val = NULL;
+				attr_merge( e, slap_schema.si_ad_entryCSN, vals );
+			}
 		}
 
 		if (!dryrun) {
