@@ -12,6 +12,9 @@
  */
 
 #include "portable.h"
+
+#include <ac/errno.h>
+
 #include "ldap_pvt_thread.h"
 
 #if defined( HAVE_PTHREADS )
@@ -95,7 +98,7 @@ ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 	return pthread_kill( thread, signo );
 #else
 	/* pthread package with DCE */
-	if (kill( getpid(), sig )<0)
+	if (kill( getpid(), signo )<0)
 		return errno;
 	return 0;
 #endif
