@@ -16,16 +16,16 @@
 #ifndef _LBER_TYPES_H
 #define _LBER_TYPES_H
 
-/* LBER boolean, enum, integers - 32 bits or larger*/
+/* LBER boolean, enum, integers (32 bits or larger) */
 #undef LBER_INT_T
 
-/* LBER tags - 32 bits or larger */
+/* LBER tags (32 bits or larger) */
 #undef LBER_TAG_T
 
 /* LBER socket descriptor */
 #undef LBER_SOCKET_T
 
-/* LBER lengths - 32 bits or larger*/
+/* LBER lengths (32 bits or larger) */
 #undef LBER_LEN_T
 
 #endif /* _LBER_TYPES_H */
