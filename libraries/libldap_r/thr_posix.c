@@ -113,6 +113,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 		(void) pthread_detach( *thread );
 	}
 #endif
+	pthread_attr_destroy(&attr);
 
 #else
 	rtn = pthread_create( thread, LDAP_INT_THREAD_ATTR_DEFAULT,
