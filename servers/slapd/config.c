@@ -59,6 +59,13 @@ read_config( char *fname )
 
 	Debug( LDAP_DEBUG_CONFIG, "reading config file %s\n", fname, 0, 0 );
 
+	if ( schema_init( ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "error initializing the schema\n",
+		    0, 0, 0 );
+		return( 1 );
+	}
+
 	fp_getline_init( &lineno );
 
 	while ( (line = fp_getline( fp, &lineno )) != NULL ) {

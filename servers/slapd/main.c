@@ -268,11 +268,6 @@ main( int argc, char **argv )
 		goto destroy;
 	}
 
-	if ( schema_init( ) != 0 ) {
-		rc = 1;
-		goto destroy;
-	}
-
 	if ( read_config( configfile ) != 0 ) {
 		rc = 1;
 		goto destroy;
