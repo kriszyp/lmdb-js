@@ -260,14 +260,8 @@ fail:;
 			rc != -1;
 			rc = ldap_result(lc->ld, LDAP_RES_ANY, 0, &tv, &res))
 	{
-		int ab;
-
 		/* check for abandon */
-		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-		ab = op->o_abandon;
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-
-		if (ab) {
+		if (op->o_abandon) {
 			ldap_abandon(lc->ld, msgid);
 			rc = 0;
 			goto finish;

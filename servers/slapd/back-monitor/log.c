@@ -201,7 +201,6 @@ monitor_subsys_log_modify(
 
 			goto cleanup;
 		}
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 #endif
 
 		/* check that the entry still obeys the schema */
