@@ -68,7 +68,9 @@ get_limits(
 				}
 			} else {
 				/* check for unescaped rdn separator */
-				if ( !DN_SEPARATOR( ndn->bv_val[d-1] ) || DN_ESCAPE( ndn->bv_val[d-2] ) ) {
+				if ( !DN_SEPARATOR( ndn->bv_val[d-1] )
+					|| DN_ESCAPE( ndn->bv_val[d-2] ) )
+				{
 					break;
 				}
 			}
@@ -97,7 +99,9 @@ get_limits(
 			if ( ndn->bv_len == 0 ) {
 				break;
 			}
-			if ( regexec( &lm[0]->lm_dn_regex, ndn->bv_val, 0, NULL, 0 ) == 0 ) {
+			if ( regexec( &lm[0]->lm_dn_regex, ndn->bv_val, 0, NULL, 0 )
+				== 0 )
+			{
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
@@ -126,7 +130,7 @@ get_limits(
 	return( 0 );
 }
 
-int
+static int
 add_limits(
 	Backend 	        *be,
 	int			type,

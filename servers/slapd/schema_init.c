@@ -227,30 +227,31 @@ nameUIDValidate(
 	if( in->bv_len == 0 ) return LDAP_SUCCESS;
 
 	dn = ber_bvdup( in );
+	if( !dn ) return LDAP_OTHER;
 
-	if( dn->bv_val[dn->bv_len-1] == '\'' ) {
+	if( dn->bv_val[dn->bv_len-1] == 'B'
+		&& dn->bv_val[dn->bv_len-2] == '\'' )
+	{
 		/* assume presence of optional UID */
 		ber_len_t i;
 
-		for(i=dn->bv_len-2; i>2; i--) {
+		for(i=dn->bv_len-3; i>1; i--) {
 			if( dn->bv_val[i] != '0' &&	dn->bv_val[i] != '1' ) {
 				break;
 			}
 		}
 		if( dn->bv_val[i] != '\'' ||
-		    dn->bv_val[i-1] != 'B' ||
-		    dn->bv_val[i-2] != '#' ) {
+		    dn->bv_val[i-1] != '#' ) {
 			ber_bvfree( dn );
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		/* trim the UID to allow use of dn_validate */
-		dn->bv_val[i-2] = '\0';
+		/* trim the UID to allow use of dnValidate */
+		dn->bv_val[i-1] = '\0';
+		dn->bv_len = i-1;
 	}
 
-	/* FIXME: should use dnValidate */
-	rc = dn_validate( dn->bv_val ) == NULL
-		? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
+	rc = dnValidate( NULL, dn );
 
 	ber_bvfree( dn );
 	return rc;
@@ -266,7 +267,6 @@ nameUIDNormalize(
 	int rc;
 
 	if( out->bv_len != 0 ) {
-		char *dn;
 		ber_len_t dnlen;
 		char *uid = NULL;
 		ber_len_t uidlen = 0;

@@ -1674,7 +1674,7 @@ string_expand(
 	char *match,
 	regmatch_t *matches)
 {
-	int	size;
+	ber_len_t	size;
 	char   *sp;
 	char   *dp;
 	int	flag;

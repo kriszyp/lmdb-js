@@ -83,10 +83,12 @@ passwd_back_search(
 			/* Create an entry corresponding to the base DN */
 			e = (Entry *) ch_calloc(1, sizeof(Entry));
 			e->e_attrs = NULL;
-			e->e_dn = ch_strdup( base );
+			e->e_name.bv_val = ch_strdup( base );
+			e->e_name.bv_len = strlen( e->e_name.bv_val );
 
-			e->e_ndn = ch_strdup( e->e_dn );
-			(void) dn_normalize( e->e_ndn );
+			e->e_nname.bv_val = ch_strdup( base );
+			(void) dn_normalize( e->e_nname.bv_val );
+			e->e_nname.bv_len = strlen( e->e_nname.bv_val );
 
 			/* Use the first attribute of the DN
 		 	* as an attribute within the entry itself.

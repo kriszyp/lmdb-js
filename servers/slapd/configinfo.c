@@ -44,10 +44,16 @@ config_info(
 	vals[1] = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	e->e_private = NULL;
+	e->e_attrs = NULL;
+
+	e->e_name.bv_val = SLAPD_CONFIG_DN;
+	e->e_name.bv_len = sizeof( SLAPD_CONFIG_DN ) - 1;
+
 
 	e->e_attrs = NULL;
 	ber_str2bv( SLAPD_CONFIG_DN, sizeof(SLAPD_CONFIG_DN)-1, 1, &e->e_name );
-	dnNormalize( NULL, &e->e_name, &ndn );
+	(void) dnNormalize( NULL, &e->e_name, &ndn );
 	e->e_nname = *ndn;
 	free( ndn );
 	e->e_private = NULL;

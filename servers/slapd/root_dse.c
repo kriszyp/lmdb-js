@@ -66,9 +66,16 @@ root_dse_info(
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
 	e->e_attrs = NULL;
-	e->e_dn = ch_strdup( LDAP_ROOT_DSE );
-	e->e_ndn = ch_strdup( LDAP_ROOT_DSE );
-	/* the DN is an empty string so no normalization needed */
+	e->e_name.bv_val = ch_strdup( LDAP_ROOT_DSE );
+	e->e_name.bv_len = sizeof( LDAP_ROOT_DSE )-1;
+	e->e_nname.bv_val = ch_strdup( LDAP_ROOT_DSE );
+	e->e_nname.bv_len = sizeof( LDAP_ROOT_DSE )-1;
+
+	/* the DN is an empty string so no pretty/normalization is needed */
+	assert( !e->e_name.bv_len );
+	assert( !e->e_nname.bv_len );
+	
+
 	e->e_private = NULL;
 
 	val.bv_val = "OpenLDAProotDSE";
@@ -191,8 +198,8 @@ int read_root_dse_file( const char *fname )
 			return EXIT_FAILURE;
 		}
 
-		/* make sure the DN is a valid rootdse(rootdse is a null string) */
-		if( strcmp(e->e_ndn, "") != 0 ) {
+		/* make sure the DN is the empty DN */
+		if( e->e_nname.bv_len ) {
 			fprintf( stderr,
 				"root_dse: invalid rootDSE - dn=\"%s\" (line=%d)\n",
 				e->e_dn, lineno );

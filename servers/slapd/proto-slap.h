@@ -464,9 +464,6 @@ LDAP_SLAPD_F (int) test_filter LDAP_P((
  */
 LDAP_SLAPD_F (int) get_limits LDAP_P((
 	Backend *be, struct berval *ndn, struct slap_limits_set **limit ));
-LDAP_SLAPD_F (int) add_limits LDAP_P((
-	Backend *be, int type, const char *pattern, 
-	struct slap_limits_set *limit ));
 LDAP_SLAPD_F (int) parse_limits LDAP_P((
 	Backend *be, const char *fname, int lineno, int argc, char **argv ));
 LDAP_SLAPD_F (int) parse_limit LDAP_P(( const char *arg, 
