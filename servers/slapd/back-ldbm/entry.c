@@ -31,11 +31,18 @@ ldbm_back_entry_release_rw(
 	if ( slapMode == SLAP_SERVER_MODE ) {
 		/* free entry and reader or writer lock */
 		cache_return_entry_rw( &li->li_cache, e, rw ); 
+		/* only do_add calls here with a write lock.
+		 * get_entry doesn't obtain the giant lock, because its
+		 * caller has already obtained it.
+		 */
 		if( rw ) {
 			ldap_pvt_thread_rdwr_wunlock( &li->li_giant_rwlock );
-		} else {
+		}
+#if 0
+		else {
 			ldap_pvt_thread_rdwr_runlock( &li->li_giant_rwlock );
 		}
+#endif
 
 	} else {
 		entry_free( e );
@@ -74,6 +81,8 @@ int ldbm_back_entry_get(
 		"=> ldbm_back_entry_get: oc: \"%s\", at: \"%s\"\n",
 		oc ? oc->soc_cname.bv_val : "(null)", at_name, 0);
 #endif
+
+	/* don't grab the giant lock - our caller has already gotten it. */
 
 	/* can we find entry */
 	e = dn2entry_rw( be, ndn, NULL, rw );
