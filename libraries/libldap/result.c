@@ -484,6 +484,7 @@ retry2:
 #endif
 retry_ber:
 		if ( ber_sockbuf_ctrl( sb, LBER_SB_OPT_DATA_READY, NULL ) ) {
+			ber_free_buf( ber );
 			ber_init2( ber, NULL, ld->ld_lberoptions );
 			goto retry2;
 		}
