@@ -77,7 +77,9 @@ LTONLY_LIB = $(@PLAT@_LTONLY_LIB)
 
 # libtool --only flag for modules: depends on linkage of module
 # The BUILD_MOD_DYNAMIC macro is defined in each backend Makefile.in file
-LTONLY_MOD = # --only-$(BUILD_MOD_DYNAMIC)
+LTONLY_yes = static
+LTONLY_mod = shared
+LTONLY_MOD = # --only-$(BUILD_MOD)
 
 # platform-specific libtool flags
 NT_LTFLAGS_LIB = -no-undefined -avoid-version -rpath $(libdir)
