@@ -234,7 +234,8 @@ int
 backsql_entry_addattr(
 	Entry		*e,
 	struct berval	*at_name,
-	struct berval	*at_val )
+	struct berval	*at_val,
+	void		*memctx )
 {
 	AttributeDescription	*ad;
 	int			rc;
@@ -255,7 +256,7 @@ backsql_entry_addattr(
 		return 0;
 	}
 
-	rc = attr_mergeit_one( e, ad, at_val );
+	rc = attr_merge_normalize_one( e, ad, at_val, memctx );
 
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_entry_addattr(): "

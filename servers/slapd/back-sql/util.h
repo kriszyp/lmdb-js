@@ -21,7 +21,7 @@ struct berval * backsql_strfcat( struct berval *dest, ber_len_t *buflen,
 		const char *fmt, ... );
 
 int backsql_entry_addattr( Entry *e, struct berval *at_name, 
-		struct berval *at_val );
+		struct berval *at_val, void *memctx );
 
 typedef struct backsql_srch_info {
 	struct berval		*base_dn;
@@ -38,8 +38,6 @@ typedef struct backsql_srch_info {
 	ber_len_t		sel_len, from_len, jwhere_len, fwhere_len;
 	SQLHDBC			dbh;
 	int			status;
-	Backend			*be;
-	Connection		*conn;
 	Operation		*op;
 	AttributeName		*attrs;
 	int			bsi_flags;
@@ -50,11 +48,10 @@ typedef struct backsql_srch_info {
 	int			use_reverse_dn; 
 } backsql_srch_info;
 
-void backsql_init_search( backsql_srch_info *bsi, backsql_info *bi,
+void backsql_init_search( backsql_srch_info *bsi, 
 		struct berval *nbase, int scope, int slimit, int tlimit,
 		time_t stoptime, Filter *filter, SQLHDBC dbh,
-		BackendDB *be, Connection *conn, Operation *op,
-		AttributeName *attrs );
+		Operation *op, AttributeName *attrs );
 Entry *backsql_id2entry( backsql_srch_info *bsi, Entry *e, 
 		backsql_entryID *id );
 

@@ -679,13 +679,13 @@ backsql_modrdn( Operation *op, SlapReply *rs )
 		goto modrdn_return;
 	}
 
-	build_new_dn( &new_dn, new_pdn, &op->oq_modrdn.rs_newrdn ); 
-	if ( dnNormalize2( NULL, &new_dn, &new_ndn ) != LDAP_SUCCESS ) {
+	build_new_dn( &new_dn, new_pdn, &op->oq_modrdn.rs_newrdn );
+	rs->sr_err = dnNormalize2( NULL, &new_dn, &new_ndn, op->o_tmpmemctx );
+	if ( rs->sr_err != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_modrdn(): "
 			"new dn is invalid ('%s') - aborting\n",
 			new_dn.bv_val, 0, 0 );
-		rs->sr_err = LDAP_INVALID_DN_SYNTAX;
-		rs->sr_text = "new DN is invalid";
+		rs->sr_text = "unable to build new DN";
 		send_ldap_result( op, rs );
 		goto modrdn_return;
 	}

@@ -84,7 +84,6 @@ backsql_attrlist_add( backsql_srch_info *bsi, AttributeDescription *ad )
 void
 backsql_init_search(
 	backsql_srch_info 	*bsi, 
-	backsql_info 		*bi,
 	struct berval		*nbase, 
 	int 			scope, 
 	int 			slimit,
@@ -92,8 +91,6 @@ backsql_init_search(
 	time_t 			stoptime, 
 	Filter 			*filter, 
 	SQLHDBC 		dbh,
-	BackendDB 		*be, 
-	Connection 		*conn, 
 	Operation 		*op,
 	AttributeName 		*attrs )
 {
@@ -105,8 +102,6 @@ backsql_init_search(
 	bsi->tlimit = tlimit;
 	bsi->filter = filter;
 	bsi->dbh = dbh;
-	bsi->be = be;
-	bsi->conn = conn;
 	bsi->op = op;
 	bsi->bsi_flags = 0;
 
@@ -142,7 +137,6 @@ backsql_init_search(
 	bsi->id_list = NULL;
 	bsi->n_candidates = 0;
 	bsi->stoptime = stoptime;
-	bsi->bi = bi;
 	bsi->sel.bv_val = NULL;
 	bsi->sel.bv_len = 0;
 	bsi->sel_len = 0;
@@ -635,7 +629,7 @@ impossible:
 static int
 backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 {
-	backsql_info	*bi = (backsql_info *)bsi->be->be_private;
+	backsql_info	*bi = (backsql_info *)bsi->op->o_bd->be_private;
 	ber_len_t	q_len = 0;
 	int		rc;
 
@@ -1122,12 +1116,11 @@ backsql_search( Operation *op, SlapReply *rs )
 	/* compute it anyway; root does not use it */
 	stoptime = op->o_time + op->oq_search.rs_tlimit;
 
-	backsql_init_search( &srch_info, bi, &op->o_req_dn,
+	backsql_init_search( &srch_info, &op->o_req_dn,
 			op->oq_search.rs_scope,
 			op->oq_search.rs_slimit, op->oq_search.rs_tlimit,
 			stoptime, op->oq_search.rs_filter,
-			dbh, op->o_bd, op->o_conn, op,
-			op->oq_search.rs_attrs );
+			dbh, op, op->oq_search.rs_attrs );
 
 	/*
 	 * for each objectclass we try to construct query which gets IDs

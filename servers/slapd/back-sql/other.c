@@ -56,9 +56,8 @@ backsql_compare( Operation *op, SlapReply *rs )
 	anlist[0].an_name = op->oq_compare.rs_ava->aa_desc->ad_cname;
 	anlist[0].an_desc = op->oq_compare.rs_ava->aa_desc;
 	anlist[1].an_name.bv_val = NULL;
-	backsql_init_search( &bsi, bi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
-			-1, -1, -1, NULL, dbh, op->o_bd, op->o_conn, op,
-			anlist);
+	backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
+			-1, -1, -1, NULL, dbh, op, anlist);
 	e = backsql_id2entry( &bsi, &user_entry, &user_id );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
@@ -85,7 +84,9 @@ backsql_compare( Operation *op, SlapReply *rs )
 		if ( value_find_ex( op->oq_compare.rs_ava->aa_desc,
 					SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
-					a->a_nvals, &op->oq_compare.rs_ava->aa_value ) == 0 )
+					a->a_nvals,
+					&op->oq_compare.rs_ava->aa_value,
+					op->o_tmpmemctx ) == 0 )
 		{
 			rs->sr_err = LDAP_COMPARE_TRUE;
 			break;

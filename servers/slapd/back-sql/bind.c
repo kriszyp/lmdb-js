@@ -74,8 +74,8 @@ backsql_bind( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	backsql_init_search( &bsi, bi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
-			-1, -1, -1, NULL, dbh, op->o_bd, op->o_conn, op, NULL );
+	backsql_init_search( &bsi, &op->o_req_ndn, LDAP_SCOPE_BASE, 
+			-1, -1, -1, NULL, dbh, op, NULL );
 	e = backsql_id2entry( &bsi, &user_entry, &user_id );
 	if ( e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "

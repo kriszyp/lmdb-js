@@ -325,7 +325,8 @@ backsql_get_attr_vals( void *v_at, void *v_bsi )
 				bv.bv_len = strlen( row.cols[ i ] );
 #endif
        				backsql_entry_addattr( bsi->e, 
-						&row.col_names[ i ], &bv );
+						&row.col_names[ i ], &bv,
+						bsi->op->o_tmpmemctx );
 
 #ifdef BACKSQL_TRACE
 				Debug( LDAP_DEBUG_TRACE, "prec=%d\n",
@@ -356,7 +357,8 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_id2entry()\n", 0, 0, 0 );
 
-	rc = dnPrettyNormal( NULL, &eid->dn, &e->e_name, &e->e_nname );
+	rc = dnPrettyNormal( NULL, &eid->dn, &e->e_name, &e->e_nname,
+			bsi->op->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
 		return NULL;
 	}
@@ -409,7 +411,8 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 				bsi, 0, AVL_INORDER );
 	}
 
-	if ( attr_mergeit_one( bsi->e, ad_oc, &bsi->oc->oc->soc_cname ) ) {
+	if ( attr_merge_normalize_one( bsi->e, ad_oc, &bsi->oc->oc->soc_cname,
+				bsi->op->o_tmpmemctx ) ) {
 		entry_free( e );
 		return NULL;
 	}
@@ -436,7 +439,8 @@ backsql_id2entry( backsql_srch_info *bsi, Entry *e, backsql_entryID *eid )
 
 		if ( bsi->bsi_flags | BSQL_SF_ALL_OPER 
 				|| an_find( bsi->attrs, &AllOper ) ) {
-			if ( attr_mergeit_one( bsi->e, ad_soc, &soc ) ) {
+			if ( attr_merge_normalize_one( bsi->e, ad_soc, &soc,
+						bsi->op->o_tmpmemctx ) ) {
 				entry_free( e );
 				return NULL;
 			}
