@@ -376,7 +376,7 @@ rwm_matched( Operation *op, SlapReply *rs )
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "matchedDn";
+	dc.ctx = "matchedDN";
 #else
 	dc.tofrom = 0;
 	dc.normalized = 0;
@@ -419,7 +419,7 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = NULL; 
-	dc.ctx = "searchResultDN";
+	dc.ctx = "searchResult";
 #else
 	dc.tofrom = 0;
 	dc.normalized = 0;

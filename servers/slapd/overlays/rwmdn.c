@@ -46,10 +46,10 @@ rwm_dn_massage(
 {
 	int rc = 0;
 
-	switch ( rewrite_session( dc->rwmap->rwm_rw, dc->ctx,
-				(dn->bv_len ? dn->bv_val : ""), 
-				dc->conn, &res->bv_val ) )
-	{
+	rc = rewrite_session( dc->rwmap->rwm_rw, dc->ctx,
+			( dn->bv_len ? dn->bv_val : "" ), 
+			dc->conn, &res->bv_val );
+	switch ( rc ) {
 	case REWRITE_REGEXEC_OK:
 		if ( res->bv_val != NULL ) {
 			res->bv_len = strlen( res->bv_val );
@@ -58,10 +58,12 @@ rwm_dn_massage(
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] %s: \"%s\" -> \"%s\"\n", dc->ctx, dn->bv_val, res->bv_val );		
+			"[rw] %s: \"%s\" -> \"%s\"\n",
+			dc->ctx, dn->bv_val, res->bv_val );		
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ARGS,
-			"[rw] %s: \"%s\" -> \"%s\"\n", dc->ctx, dn->bv_val, res->bv_val );		
+			"[rw] %s: \"%s\" -> \"%s\"\n",
+			dc->ctx, dn->bv_val, res->bv_val );		
 #endif /* !NEW_LOGGING */
 		rc = LDAP_SUCCESS;
 		break;
@@ -82,6 +84,7 @@ rwm_dn_massage(
 		rc = LDAP_OTHER;
 		break;
 	}
+
 	return rc;
 }
 
