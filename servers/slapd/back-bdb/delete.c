@@ -244,9 +244,9 @@ retry:	/* transaction retry */
 
 	} else {
 		/* no parent, must be root to delete */
-		if( ! be_isroot( op->o_bd, &op->o_ndn ) ) {
+		if( ! be_isroot( op ) ) {
 			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv )
-				|| be_isupdate( op->o_bd, &op->o_ndn ) ) {
+				|| be_isupdate( op ) ) {
 				p = (Entry *)&slap_entry_root;
 
 				/* check parent for "children" acl */

@@ -150,7 +150,7 @@ dn2entry_retry:
 
 		rs->sr_matched = e->e_name.bv_val;
 		if( rs->sr_ref != NULL ) {
-			rs->sr_err = LDAP_REFERRAL;
+			rc = rs->sr_err = LDAP_REFERRAL;
 			send_ldap_result( op, rs );
 			ber_bvarray_free( rs->sr_ref );
 			rs->sr_ref = NULL;

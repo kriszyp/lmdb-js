@@ -1829,7 +1829,7 @@ proxy_cache_init(
 	qm = (query_manager*)ch_malloc(sizeof(query_manager));
 
 	cm->db = *be;
-	cm->db.be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+	SLAP_DBFLAGS(&cm->db) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 	cm->db.be_private = NULL;
 	cm->qm = qm;
 	cm->numattrsets = 0;
@@ -1870,10 +1870,13 @@ proxy_cache_open(
 		rc = cm->db.bd_info->bi_db_open( &cm->db );
 	}
 
-	ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
-	ldap_pvt_runqueue_insert( &syncrepl_rq, cm->cc_period,
-		consistency_check, on );
-	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	/* There is no runqueue in TOOL mode */
+	if ( slapMode & SLAP_SERVER_MODE ) {
+		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
+		ldap_pvt_runqueue_insert( &syncrepl_rq, cm->cc_period,
+			consistency_check, on );
+		ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
+	}
 
 	return rc;
 }

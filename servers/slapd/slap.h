@@ -530,8 +530,8 @@ typedef struct slap_matching_rule {
 	 */
 	struct slap_matching_rule	*smr_associated;
 
-#define SLAP_MR_ASSOCIATED(mr,amr)	(((mr) == (amr)) || \
-	((mr)->smr_associated == (amr)))
+#define SLAP_MR_ASSOCIATED(mr,amr)	\
+	(((mr) == (amr)) || ((mr)->smr_associated == (amr)))
 
 	LDAP_SLIST_ENTRY(slap_matching_rule)smr_next;
 
@@ -1395,6 +1395,9 @@ typedef struct syncinfo_s {
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
+	/* fields in this structure (and routines acting on this structure)
+	   should be renamed from be_ to bd_ */
+
 	/* BackendInfo accessors */
 #define		be_config	bd_info->bi_db_config
 #define		be_type		bd_info->bi_type
@@ -1412,9 +1415,9 @@ struct slap_backend_db {
 
 #define		be_extended	bd_info->bi_extended
 
+#define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_fetch	bd_info->bi_entry_get_rw
 #define		be_release	bd_info->bi_entry_release_rw
-#define		be_chk_referrals	bd_info->bi_chk_referrals
 #define		be_group	bd_info->bi_acl_group
 #define		be_attribute	bd_info->bi_acl_attribute
 #define		be_operational	bd_info->bi_operational
@@ -1445,33 +1448,26 @@ struct slap_backend_db {
 #define		be_entry_modify	bd_info->bi_tool_entry_modify
 #endif
 
-#define SLAP_BFLAG_NOLASTMOD		0x0001U
-#define SLAP_BFLAG_NO_SCHEMA_CHECK	0x0002U
-#define	SLAP_BFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
-#define	SLAP_BFLAG_GLUE_SUBORDINATE	0x0020U	/* child of a glue hierarchy */
-#define	SLAP_BFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
-#define SLAP_BFLAG_MONITOR			0x0080U /* a monitor backend */
-#define SLAP_BFLAG_INCREMENT		0x0100U
-#define SLAP_BFLAG_ALIASES			0x1000U
-#define SLAP_BFLAG_REFERRALS		0x2000U
-#define SLAP_BFLAG_SUBENTRIES		0x4000U
-#define SLAP_BFLAG_DYNAMIC			0x8000U
+/* Database flags */
+#define SLAP_DBFLAG_NOLASTMOD		0x0001U
+#define SLAP_DBFLAG_NO_SCHEMA_CHECK	0x0002U
+#define	SLAP_DBFLAG_GLUE_INSTANCE	0x0010U	/* a glue backend */
+#define	SLAP_DBFLAG_GLUE_SUBORDINATE 0x0020U	/* child of a glue hierarchy */
+#define	SLAP_DBFLAG_GLUE_LINKED		0x0040U	/* child is connected to parent */
+#define SLAP_DBFLAG_SHADOW			0x8000U /* a shadow */
 	slap_mask_t	be_flags;
-#define SLAP_LASTMOD(be)	(!((be)->be_flags & SLAP_BFLAG_NOLASTMOD))
-#define SLAP_NO_SCHEMA_CHECK(be)	(((be)->be_flags & SLAP_BFLAG_NO_SCHEMA_CHECK))
-#define	SLAP_GLUE_INSTANCE(be)	((be)->be_flags & SLAP_BFLAG_GLUE_INSTANCE)
-#define	SLAP_GLUE_SUBORDINATE(be) \
-	((be)->be_flags & SLAP_BFLAG_GLUE_SUBORDINATE)
-#define	SLAP_GLUE_LINKED(be)	((be)->be_flags & SLAP_BFLAG_GLUE_LINKED)
-
-#define SLAP_MONITOR(be)	((be)->be_flags & SLAP_BFLAG_MONITOR)
-#define SLAP_INCREMENT(be)	((be)->be_flags & SLAP_BFLAG_INCREMENT)
-
-#define SLAP_ALIASES(be)	((be)->be_flags & SLAP_BFLAG_ALIASES)
-#define SLAP_REFERRALS(be)	((be)->be_flags & SLAP_BFLAG_REFERRALS)
-#define SLAP_SUBENTRIES(be)	((be)->be_flags & SLAP_BFLAG_SUBENTRIES)
-#define SLAP_DYNAMIC(be)	((be)->be_flags & SLAP_BFLAG_DYNAMIC)
-
+#define SLAP_DBFLAGS(be)			((be)->be_flags)
+#define SLAP_NOLASTMOD(be)			(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NOLASTMOD)
+#define SLAP_LASTMOD(be)			(!SLAP_NOLASTMOD(be))
+#define SLAP_NO_SCHEMA_CHECK(be)	\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_NO_SCHEMA_CHECK)
+#define	SLAP_GLUE_INSTANCE(be)		\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_INSTANCE)
+#define	SLAP_GLUE_SUBORDINATE(be)	\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_SUBORDINATE)
+#define	SLAP_GLUE_LINKED(be)		\
+	(SLAP_DBFLAGS(be) & SLAP_DBFLAG_GLUE_LINKED)
+#define SLAP_SHADOW(be)				(SLAP_DBFLAGS(be) & SLAP_DBFLAG_SHADOW)
 
 	slap_mask_t	be_restrictops;		/* restriction operations */
 #define SLAP_RESTRICT_OP_ADD		0x0001U
@@ -1517,7 +1513,6 @@ struct slap_backend_db {
 	/* Required Security Strength Factor */
 	slap_ssf_set_t be_ssf_set;
 
-	/* these should be renamed from be_ to bd_ */
 	BerVarray	be_suffix;	/* the DN suffixes of data in this backend */
 	BerVarray	be_nsuffix;	/* the normalized DN suffixes in this backend */
 	struct berval be_schemadn;	/* per-backend subschema subentry DN */
@@ -1532,19 +1527,22 @@ struct slap_backend_db {
 	struct slap_limits **be_limits; /* regex-based size and time limits */
 	AccessControl *be_acl;	/* access control list for this backend	   */
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
+
+	/* Replica Information */
 	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	BerVarray	be_update_refs;	/* where to refer modifying clients to */
-	char	*be_realm;
-	void	*be_private;	/* anything the backend database needs 	   */
-
-	void    *be_pb;         /* Netscape plugin */
 	LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry )	be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
 	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
+
+	char	*be_realm;
+	void    *be_pb;         /* Netscape plugin */
+
+	void	*be_private;	/* anything the backend database needs 	   */
 };
 
 struct slap_conn;
@@ -1664,9 +1662,10 @@ typedef struct slap_rep {
 		rep_search_s sru_search;
 	} sr_un;
 	slap_mask_t sr_flags;
-#define REP_ENTRY_MODIFIABLE	0x00000001
-#define REP_ENTRY_MUSTBEFREED	0x00000002
-#define REP_MATCHED_MUSTBEFREED	0x00000010
+#define REP_ENTRY_MODIFIABLE	0x0001U
+#define REP_ENTRY_MUSTBEFREED	0x0002U
+#define REP_MATCHED_MUSTBEFREED	0x0010U
+#define REP_REF_MUSTBEFREED		0x0020U
 } SlapReply;
 
 /* short hands for response members */
@@ -1688,18 +1687,23 @@ typedef int (BI_op_add) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_delete) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_abandon) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_op_cancel) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_op_extended) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_entry_release_rw) LDAP_P(( struct slap_op *op, Entry *e, int rw ));
+typedef int (BI_op_extended) LDAP_P((
+	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_chk_referrals) LDAP_P((
+	struct slap_op *op, struct slap_rep *rs ));
+typedef int (BI_entry_release_rw)
+	LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e ));
-typedef int (BI_chk_referrals) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
-typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs, int opattrs, Attribute **ap ));
-typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op, Entry *e, int *hasSubs ));
+typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs,
+	int opattrs, Attribute **ap ));
+typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
+	Entry *e, int *hasSubs ));
 
-typedef int (BI_connection_init) LDAP_P((BackendDB *bd,
-		struct slap_conn *c));
-typedef int (BI_connection_destroy) LDAP_P((BackendDB *bd,
-		struct slap_conn *c));
+typedef int (BI_connection_init) LDAP_P(( BackendDB *bd,
+	struct slap_conn *c ));
+typedef int (BI_connection_destroy) LDAP_P(( BackendDB *bd,
+	struct slap_conn *c ));
 
 typedef int (BI_tool_entry_open) LDAP_P(( BackendDB *be, int mode ));
 typedef int (BI_tool_entry_close) LDAP_P(( BackendDB *be ));
@@ -1707,13 +1711,13 @@ typedef ID (BI_tool_entry_first) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_entry_next) LDAP_P(( BackendDB *be ));
 typedef Entry* (BI_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 typedef ID (BI_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e, 
-			struct berval *text ));
+	struct berval *text ));
 typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
 typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
 typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
 typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
 typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
-			struct berval *text ));
+	struct berval *text ));
 
 struct slap_backend_info {
 	char	*bi_type; /* type of backend */
@@ -1787,9 +1791,9 @@ struct slap_backend_info {
 	BI_op_extended	*bi_extended;
 
 	/* Auxilary Functions */
+	BI_chk_referrals	*bi_chk_referrals;
 	BI_entry_get_rw		*bi_entry_get_rw;
 	BI_entry_release_rw	*bi_entry_release_rw;
-	BI_chk_referrals	*bi_chk_referrals;
 
 	BI_operational	*bi_operational;
 	BI_has_subordinates	*bi_has_subordinates;
@@ -1812,6 +1816,22 @@ struct slap_backend_info {
 
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002
+
+	slap_mask_t	bi_flags; /* backend flags */
+#define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
+#define SLAP_BFLAG_INCREMENT		0x0100U
+#define SLAP_BFLAG_ALIASES			0x1000U
+#define SLAP_BFLAG_REFERRALS		0x2000U
+#define SLAP_BFLAG_SUBENTRIES		0x4000U
+#define SLAP_BFLAG_DYNAMIC			0x8000U
+
+#define SLAP_BFLAGS(be)		((be)->bd_info->bi_flags)
+#define SLAP_MONITOR(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_MONITOR)
+#define SLAP_INCREMENT(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_INCREMENT)
+#define SLAP_ALIASES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_ALIASES)
+#define SLAP_REFERRALS(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_REFERRALS)
+#define SLAP_SUBENTRIES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_SUBENTRIES)
+#define SLAP_DYNAMIC(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_DYNAMIC)
 
 	char **bi_controls;		/* supported controls */
 
@@ -1874,7 +1894,6 @@ typedef struct slap_paged_state {
 	ID ps_id;
 } PagedResultsState;
 
-
 #define LDAP_PSEARCH_BY_ADD			0x01
 #define LDAP_PSEARCH_BY_DELETE		0x02
 #define LDAP_PSEARCH_BY_PREMODIFY	0x03
@@ -1902,13 +1921,13 @@ struct slap_session_entry {
 };
 
 struct slap_csn_entry {
-	struct berval *csn;
-	unsigned long opid;
-	unsigned long connid;
+	struct berval *ce_csn;
+	unsigned long ce_opid;
+	unsigned long ce_connid;
 #define SLAP_CSN_PENDING	1
 #define SLAP_CSN_COMMIT		2
-	long state;
-	LDAP_TAILQ_ENTRY (slap_csn_entry) csn_link;
+	long ce_state;
+	LDAP_TAILQ_ENTRY (slap_csn_entry) ce_csn_link;
 };
 
 /*

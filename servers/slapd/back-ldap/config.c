@@ -70,7 +70,7 @@ ldap_back_db_config(
 
 	/* URI of server to query (preferred over "server" directive) */
 	} else if ( strcasecmp( argv[0], "uri" ) == 0 ) {
-		LDAPURLDesc	*lud, tmplud;
+		LDAPURLDesc	tmplud;
 
 		if (argc != 2) {
 			fprintf( stderr, "%s: line %d: "
@@ -82,8 +82,11 @@ ldap_back_db_config(
 		if ( li->url != NULL ) {
 			ch_free( li->url );
 		}
+		if ( li->lud != NULL ) {
+			ldap_free_urldesc( li->lud );
+		}
 
-		if ( ldap_url_parse( argv[ 1 ], &lud ) != LDAP_URL_SUCCESS ) {
+		if ( ldap_url_parse( argv[ 1 ], &li->lud ) != LDAP_URL_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 				"unable to parse uri \"%s\" "
 				"in \"uri <uri>\" line\n",
@@ -91,10 +94,10 @@ ldap_back_db_config(
 			return 1;
 		}
 
-		if ( ( lud->lud_dn != NULL && lud->lud_dn[0] != '\0' )
-				|| lud->lud_attrs != NULL
-				|| lud->lud_filter != NULL
-				|| lud->lud_exts != NULL )
+		if ( ( li->lud->lud_dn != NULL && li->lud->lud_dn[0] != '\0' )
+				|| li->lud->lud_attrs != NULL
+				|| li->lud->lud_filter != NULL
+				|| li->lud->lud_exts != NULL )
 		{
 			fprintf( stderr, "%s: line %d: "
 				"warning, only protocol, "
@@ -105,7 +108,7 @@ ldap_back_db_config(
 
 #if 0
 		tmplud = *lud;
-		tmplud.lud_dn = NULL;
+		tmplud.lud_dn = "";
 		tmplud.lud_attrs = NULL;
 		tmplud.lud_filter = NULL;
 		if ( !ldap_is_ldapi_url( argv[ 1 ] ) ) {
@@ -124,8 +127,6 @@ ldap_back_db_config(
 #else
 		li->url = ch_strdup( argv[ 1 ] );
 #endif
-
-		ldap_free_urldesc( lud );
 
 	/* name to use for ldap_back_group */
 	} else if ( strcasecmp( argv[0], "binddn" ) == 0 ) {
@@ -396,6 +397,7 @@ ldap_back_map_config(
 				/*
 				 * FIXME: this should become an err
 				 */
+				goto error_return;
 			}
 		}
 
@@ -421,6 +423,7 @@ ldap_back_map_config(
 				/*
 				 * FIXME: this should become an err
 				 */
+				goto error_return;
 			}
 
 			ad = NULL;
@@ -441,7 +444,6 @@ ldap_back_map_config(
 		fprintf( stderr,
 			"%s: line %d: duplicate mapping found (ignored)\n",
 			fname, lineno );
-		/* FIXME: free stuff */
 		goto error_return;
 	}
 
@@ -515,16 +517,16 @@ ldap_back_exop_whoami(
 		}
 		ch_free(c.ldctl_value.bv_val);
 		if (rs->sr_err != LDAP_SUCCESS) {
-			rs->sr_err = ldap_back_map_result(rs);
+			rs->sr_err = slap_map_api2result( rs );
 		}
 	} else {
 	/* else just do the same as before */
 		bv = (struct berval *) ch_malloc( sizeof(struct berval) );
 		if( op->o_dn.bv_len ) {
-			bv->bv_len = op->o_dn.bv_len + sizeof("dn:")-1;
+			bv->bv_len = op->o_dn.bv_len + sizeof("dn:") - 1;
 			bv->bv_val = ch_malloc( bv->bv_len + 1 );
-			AC_MEMCPY( bv->bv_val, "dn:", sizeof("dn:")-1 );
-			AC_MEMCPY( &bv->bv_val[sizeof("dn:")-1], op->o_dn.bv_val,
+			AC_MEMCPY( bv->bv_val, "dn:", sizeof("dn:") - 1 );
+			AC_MEMCPY( &bv->bv_val[sizeof("dn:") - 1], op->o_dn.bv_val,
 				op->o_dn.bv_len );
 			bv->bv_val[bv->bv_len] = '\0';
 		} else {
@@ -633,15 +635,6 @@ suffix_massage_config(
 	ch_free( rargv[ 1 ] );
 	ch_free( rargv[ 2 ] );
 
-#if 0 /*  "matched" is not normalized */
-	rargv[ 0 ] = "rewriteContext";
-	rargv[ 1 ] = "matchedDN";
-	rargv[ 2 ] = "alias";
-	rargv[ 3 ] = "searchResult";
-	rargv[ 4 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
-#else /* normalize "matched" */
-
 	rargv[ 0 ] = "rewriteContext";
 	rargv[ 1 ] = "matchedDN";
 	rargv[ 2 ] = "alias";
@@ -655,18 +648,6 @@ suffix_massage_config(
 	rargv[ 3 ] = "searchResult";
 	rargv[ 4 ] = NULL;
 	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
-
-#if 0
-	rargv[ 0 ] = "rewriteRule";
-	rargv[ 1 ] = suffix_massage_regexize( prnc->bv_val );
-	rargv[ 2 ] = suffix_massage_patternize( nvnc->bv_val );
-	rargv[ 3 ] = ":";
-	rargv[ 4 ] = NULL;
-	rewrite_parse( info, "<suffix massage>", ++line, 4, rargv );
-	ch_free( rargv[ 1 ] );
-	ch_free( rargv[ 2 ] );
-#endif /* 0 */
-#endif /* normalize "matched" */
 
 	return 0;
 }

@@ -960,7 +960,7 @@ read_config( const char *fname, int depth )
 				return 1;
 
 			} else {
-				be->be_flags |= SLAP_BFLAG_GLUE_SUBORDINATE;
+				SLAP_DBFLAGS(be) |= SLAP_DBFLAG_GLUE_SUBORDINATE;
 				num_subordinates++;
 			}
 
@@ -1801,11 +1801,24 @@ read_config( const char *fname, int depth )
 					    "a database definition.\n", fname, lineno, 0);
 #endif
 				return 1;
-			} else {
-				if ( add_syncrepl( be, cargv, cargc )) {
-					return 1;
-				}
+
+			} else if ( SLAP_SHADOW( be )) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: syncrepl: database already shadowed.\n",
+					fname, lineno, 0);
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: syncrepl: database already shadowed.\n",
+					fname, lineno, 0);
+#endif
+				return 1;
+
+			} else if ( add_syncrepl( be, cargv, cargc )) {
+				return 1;
 			}
+
+			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
@@ -2010,6 +2023,18 @@ read_config( const char *fname, int depth )
 #endif
 				return 1;
 
+			} else if ( SLAP_SHADOW(be) ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, INFO, 
+					"%s: line %d: updatedn: database already shadowed.\n",
+					fname, lineno, 0);
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: updatedn: database already shadowed.\n",
+					fname, lineno, 0);
+#endif
+				return 1;
+
 			} else {
 				struct berval dn;
 
@@ -2031,7 +2056,9 @@ read_config( const char *fname, int depth )
 #endif
 					return 1;
 				}
+
 			}
+			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_SHADOW;
 
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -2059,14 +2086,14 @@ read_config( const char *fname, int depth )
 #endif
 				return 1;
 
-			} else if ( !be->be_update_ndn.bv_len ) {
+			} else if ( !SLAP_SHADOW(be) ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
-					"updateref line must come after updatedn.\n",
+					"updateref line must come after syncrepl or updatedn.\n",
 					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"updateref line must after updatedn.\n",
+					"updateref line must after syncrepl or updatedn.\n",
 				    fname, lineno, 0 );
 #endif
 				return 1;
@@ -2087,8 +2114,9 @@ read_config( const char *fname, int depth )
 
 			vals[0].bv_val = cargv[1];
 			vals[0].bv_len = strlen( vals[0].bv_val );
-			if( value_add( &be->be_update_refs, vals ) )
+			if( value_add( &be->be_update_refs, vals ) ) {
 				return LDAP_OTHER;
+			}
 
 		/* replication log file to which changes are appended */
 		} else if ( strcasecmp( cargv[0], "replogfile" ) == 0 ) {
@@ -2156,13 +2184,13 @@ read_config( const char *fname, int depth )
 			}
 			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
 				if ( be ) {
-					be->be_flags &= ~SLAP_BFLAG_NOLASTMOD;
+					SLAP_DBFLAGS(be) &= ~SLAP_DBFLAG_NOLASTMOD;
 				} else {
 					lastmod = 1;
 				}
 			} else {
 				if ( be ) {
-					be->be_flags |= SLAP_BFLAG_NOLASTMOD;
+					SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
 				} else {
 					lastmod = 0;
 				}
@@ -2913,7 +2941,7 @@ add_syncrepl(
 			si->si_provideruri == NULL ? "(null)" : si->si_provideruri, 0, 0 );
 #endif
 		if ( !si->si_schemachecking ) {
-			be->be_flags |= SLAP_BFLAG_NO_SCHEMA_CHECK;
+			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
 		si->si_be = be;
 		LDAP_STAILQ_INSERT_TAIL( &be->be_syncinfo, si, si_next );

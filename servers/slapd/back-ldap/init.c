@@ -148,7 +148,7 @@ ldap_back_db_init(
 
 	li->be = be;
 	be->be_private = li;
-	be->be_flags |= SLAP_BFLAG_NOLASTMOD;
+	SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NOLASTMOD;
 
 	return 0;
 }
@@ -198,6 +198,10 @@ ldap_back_db_destroy(
 		if (li->url) {
 			ch_free(li->url);
 			li->url = NULL;
+		}
+		if ( li->lud ) {
+			ldap_free_urldesc( li->lud );
+			li->lud = NULL;
 		}
 		if (li->binddn.bv_val) {
 			ch_free(li->binddn.bv_val);

@@ -146,9 +146,40 @@ over_back_response ( Operation *op, SlapReply *rs )
 	return rc;
 }
 
-enum op_which { op_bind = 0, op_unbind, op_search, op_compare,
-	op_modify, op_modrdn, op_add, op_delete, op_abandon,
-	op_cancel, op_extended };
+enum op_which {
+	op_bind = 0,
+	op_unbind,
+	op_search,
+	op_compare,
+	op_modify,
+	op_modrdn,
+	op_add,
+	op_delete,
+	op_abandon,
+	op_cancel,
+	op_extended,
+	op_aux_chk_referrals,
+	op_last
+};
+
+/*
+ * default return code in case of missing backend function
+ * and overlay stack returning SLAP_CB_CONTINUE
+ */
+static int op_rc[] = {
+	LDAP_UNWILLING_TO_PERFORM,	/* bind */
+	LDAP_UNWILLING_TO_PERFORM,	/* unbind */
+	LDAP_UNWILLING_TO_PERFORM,	/* search */
+	LDAP_UNWILLING_TO_PERFORM,	/* compare */
+	LDAP_UNWILLING_TO_PERFORM,	/* modify */
+	LDAP_UNWILLING_TO_PERFORM,	/* modrdn */
+	LDAP_UNWILLING_TO_PERFORM,	/* add */
+	LDAP_UNWILLING_TO_PERFORM,	/* delete */
+	LDAP_UNWILLING_TO_PERFORM,	/* abandon */
+	LDAP_UNWILLING_TO_PERFORM,	/* cancel */
+	LDAP_UNWILLING_TO_PERFORM,	/* extended */
+	LDAP_SUCCESS			/* aux_chk_referrals */
+};
 
 static int
 over_op_func(
@@ -185,7 +216,7 @@ over_op_func(
 	}
 	/* should not fall thru this far without anything happening... */
 	if ( rc == SLAP_CB_CONTINUE ) {
-		rc = LDAP_UNWILLING_TO_PERFORM;
+		rc = op_rc[ which ];
 	}
 	op->o_callback = cb.sc_next;
 	return rc;
@@ -257,6 +288,12 @@ over_op_extended( Operation *op, SlapReply *rs )
 	return over_op_func( op, rs, op_extended );
 }
 
+static int
+over_chk_referrals( Operation *op, SlapReply *rs )
+{
+	return over_op_func( op, rs, op_aux_chk_referrals );
+}
+
 int
 overlay_register(
 	slap_overinst *on
@@ -325,7 +362,16 @@ overlay_config( BackendDB *be, const char *ov )
 		bi->bi_op_delete = over_op_delete;
 		bi->bi_op_abandon = over_op_abandon;
 		bi->bi_op_cancel = over_op_cancel;
+
 		bi->bi_extended = over_op_extended;
+
+		/*
+		 * this is fine because it has the same
+		 * args of the operations; we need to rework
+		 * all the hooks to share the same args
+		 * of the operations...
+		 */
+		bi->bi_chk_referrals = over_chk_referrals;
 
 		be->bd_info = bi;
 

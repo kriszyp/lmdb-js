@@ -260,7 +260,7 @@ fail:;
 					&match.bv_val, (char **)&rs->sr_text,
 					NULL, NULL, 1);
 			if (rc != LDAP_SUCCESS ) rs->sr_err = rc;
-			rs->sr_err = ldap_back_map_result(rs);
+			rs->sr_err = slap_map_api2result( rs );
 			rc = 0;
 			break;
 		}

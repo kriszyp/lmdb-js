@@ -52,6 +52,14 @@ ldbm_back_initialize(
 
 	bi->bi_controls = controls;
 
+	bi->bi_flags |= 
+		SLAP_BFLAG_INCREMENT |
+#ifdef LDBM_SUBENTRIES
+		SLAP_BFLAG_SUBENTRIES |
+#endif
+		SLAP_BFLAG_ALIASES |
+		SLAP_BFLAG_REFERRALS;
+
 	bi->bi_open = ldbm_back_open;
 	bi->bi_config = NULL;
 	bi->bi_close = ldbm_back_close;
@@ -139,15 +147,6 @@ ldbm_back_db_init(
 )
 {
 	struct ldbminfo	*li;
-
-	/* indicate system schema supported */
-	be->be_flags |= 
-		SLAP_BFLAG_INCREMENT |
-#ifdef LDBM_SUBENTRIES
-		SLAP_BFLAG_SUBENTRIES |
-#endif
-		SLAP_BFLAG_ALIASES |
-		SLAP_BFLAG_REFERRALS;
 
 	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );

@@ -444,7 +444,7 @@ slapi_int_ldapmod_to_entry(
 	if ( op->o_bd == NULL ) {
 		rc = LDAP_PARTIAL_RESULTS;
 	} else {
-		int repl_user = be_isupdate( op->o_bd, &op->o_bd->be_rootdn );
+		int repl_user = be_isupdate_dn( op->o_bd, &op->o_bd->be_rootdn );
         	if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
 			int update = op->o_bd->be_update_ndn.bv_len;
 			char textbuf[SLAP_TEXT_BUFLEN];
@@ -557,7 +557,7 @@ slapi_delete_internal(
 	op->o_ndn = pConn->c_ndn = op->o_bd->be_rootndn;
 
 	if ( op->o_bd->be_delete ) {
-		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+		int repl_user = be_isupdate( op );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 			if ( log_change ) op->o_callback = &cb;
@@ -636,7 +636,7 @@ slapi_int_add_entry_locked(
 	op->oq_add.rs_e = *e;
 
 	if ( op->o_bd->be_add ) {
-		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+		int repl_user = be_isupdate( op );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 			if ( log_changes ) op->o_callback = &cb;
@@ -827,7 +827,7 @@ slapi_modrdn_internal(
 	op->oq_modrdn.rs_deleteoldrdn = deloldrdn;
 
 	if ( op->o_bd->be_modrdn ) {
-		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+		int repl_user = be_isupdate( op );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
 			if ( log_change ) op->o_callback = &cb;
@@ -1018,7 +1018,7 @@ slapi_modify_internal(
 	op->oq_modify.rs_modlist = modlist;
 
 	if ( op->o_bd->be_modify ) {
-		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
+		int repl_user = be_isupdate( op );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
 			int update = op->o_bd->be_update_ndn.bv_len;
 			const char *text = NULL;

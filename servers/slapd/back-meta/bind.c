@@ -169,7 +169,7 @@ meta_back_bind( Operation *op, SlapReply *rs )
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		}
 
-		rs->sr_err = ldap_back_map_result( rs );
+		rs->sr_err = slap_map_api2result( rs );
 		send_ldap_result( op, rs );
 		return -1;
 	}
@@ -214,7 +214,7 @@ meta_back_do_single_bind(
 		rs->sr_err = ldap_set_option( lsc->ld, 
 				LDAP_OPT_SERVER_CONTROLS, op->o_ctrls );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
-			rs->sr_err = ldap_back_map_result( rs );
+			rs->sr_err = slap_map_api2result( rs );
 			goto return_results;
 		}
 	}
@@ -226,7 +226,7 @@ meta_back_do_single_bind(
 			LDAP_SASL_SIMPLE, &op->oq_bind.rb_cred,
 			op->o_ctrls, NULL, NULL);
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		rs->sr_err = ldap_back_map_result( rs );
+		rs->sr_err = slap_map_api2result( rs );
 		goto return_results;
 	}
 
@@ -436,7 +436,7 @@ meta_back_op_result( struct metaconn *lc, Operation *op, SlapReply *rs )
 					LDAP_OPT_ERROR_STRING, &msg );
 			ldap_get_option( lsc->ld,
 					LDAP_OPT_MATCHED_DN, &match );
-			rs->sr_err = ldap_back_map_result( rs );
+			rs->sr_err = slap_map_api2result( rs );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, RESULTS,

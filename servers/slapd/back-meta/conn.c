@@ -207,7 +207,7 @@ init_one_conn(
 	 */
 	rs->sr_err = ldap_initialize( &lsc->ld, lt->uri );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
-		return ldap_back_map_result( rs );
+		return slap_map_api2result( rs );
 	}
 
 	/*

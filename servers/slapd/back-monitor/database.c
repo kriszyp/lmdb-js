@@ -126,7 +126,7 @@ monitor_subsys_database_init(
 			return( -1 );
 		}
 		
-		if ( be->be_flags & SLAP_BFLAG_MONITOR ) {
+		if ( SLAP_MONITOR(be) ) {
 			attr_merge( e, slap_schema.si_ad_monitorContext,
 					be->be_suffix, be->be_nsuffix );
 			attr_merge( e_database, slap_schema.si_ad_monitorContext,

@@ -194,7 +194,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 					break;
 
 				default:
-					rres = ldap_back_map_result( rs );
+					rres = slap_map_api2result( rs );
 
 					if ( err != NULL ) {
 						free( err );

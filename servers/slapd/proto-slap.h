@@ -222,10 +222,11 @@ LDAP_SLAPD_F (BackendDB *) select_backend LDAP_P((
 
 LDAP_SLAPD_F (int) be_issuffix LDAP_P(( Backend *be,
 	struct berval *suffix ));
-LDAP_SLAPD_F (int) be_isroot LDAP_P(( Backend *be,
-	struct berval *ndn ));
+LDAP_SLAPD_F (int) be_isroot LDAP_P(( Operation *op ));
+LDAP_SLAPD_F (int) be_isroot_dn LDAP_P(( Backend *be, struct berval *ndn ));
 LDAP_SLAPD_F (int) be_isroot_pw LDAP_P(( Operation *op ));
-LDAP_SLAPD_F (int) be_isupdate LDAP_P(( Backend *be, struct berval *ndn ));
+LDAP_SLAPD_F (int) be_isupdate LDAP_P(( Operation *op ));
+LDAP_SLAPD_F (int) be_isupdate_dn LDAP_P(( Backend *be, struct berval *ndn ));
 LDAP_SLAPD_F (struct berval *) be_root_dn LDAP_P(( Backend *be ));
 LDAP_SLAPD_F (int) be_entry_get_rw LDAP_P(( struct slap_op *o,
 		struct berval *ndn, ObjectClass *oc,
@@ -946,6 +947,7 @@ LDAP_SLAPD_F (int) slap_read_controls LDAP_P(( Operation *op, SlapReply *rs,
 
 LDAP_SLAPD_F (int) str2result LDAP_P(( char *s,
 	int *code, char **matched, char **info ));
+LDAP_SLAPD_F (int) slap_map_api2result LDAP_P(( SlapReply *rs ));
 
 /*
  * root_dse.c

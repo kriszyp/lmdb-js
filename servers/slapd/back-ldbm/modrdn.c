@@ -246,9 +246,9 @@ ldbm_back_modrdn(
 
 	} else {
 		/* no parent, must be root to modify rdn */
-		isroot = be_isroot( op->o_bd, &op->o_ndn );
+		isroot = be_isroot( op );
 		if ( ! isroot ) {
-			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op->o_bd, &op->o_ndn ) ) {
+			if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op ) ) {
 				int	can_access;
 				p = (Entry *)&slap_entry_root;
 				
@@ -418,11 +418,11 @@ ldbm_back_modrdn(
 
 			/* no parent, must be root to modify newSuperior */
 			if ( isroot == -1 ) {
-				isroot = be_isroot( op->o_bd, &op->o_ndn );
+				isroot = be_isroot( op );
 			}
 
 			if ( ! isroot ) {
-				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op->o_bd, &op->o_ndn ) ) {
+				if ( be_issuffix( op->o_bd, (struct berval *)&slap_empty_bv ) || be_isupdate( op ) ) {
 					int	can_access;
 					np = (Entry *)&slap_entry_root;
 				

@@ -1,8 +1,18 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.9 Engineering
+	Fixed slapd syncrepl replication bugs
+	Fixed slapd slurpd update bugs
+	Fixed slapd inappropriate bind error disclosure bugs
+	Fixed slapd sun_path portability bug
+	Fixed slapd passwd referral memory leak
+	Fixed slapd sasl userdb checkpass bug
 	Fixed ldapmodify missing error information bug (ITS#3057)
 	Fixed back-meta compare return code (ITS#3042)
+	Added slapd Delivery Method syntax validation
+	Updated slapd overlay framework
+	Updated back-ldap backend
+	Updated back-meta backend
 	Build Environment
 		Fixed slapd dynamic backend build (ITS#3044)
 		Removed deprecated configure options

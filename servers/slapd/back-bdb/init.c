@@ -75,17 +75,6 @@ bdb_db_init( BackendDB *be )
 		0, 0, 0 );
 #endif
 
-	/* indicate system schema supported */
-	be->be_flags |=
-		SLAP_BFLAG_INCREMENT |
-#ifdef BDB_SUBENTRIES
-		SLAP_BFLAG_SUBENTRIES |
-#endif
-#ifdef BDB_ALIASES
-		SLAP_BFLAG_ALIASES |
-#endif
-		SLAP_BFLAG_REFERRALS;
-
 	/* allocate backend-database-specific stuff */
 	bdb = (struct bdb_info *) ch_calloc( 1, sizeof(struct bdb_info) );
 
@@ -118,8 +107,7 @@ int
 bdb_bt_compare(
 	DB *db, 
 	const DBT *usrkey,
-	const DBT *curkey
-)
+	const DBT *curkey )
 {
 	unsigned char *u, *c;
 	int i, x;
@@ -585,8 +573,7 @@ int init_module( int argc, char *argv[] ) {
 
 int
 bdb_initialize(
-	BackendInfo	*bi
-)
+	BackendInfo	*bi )
 {
 	static char *controls[] = {
 		LDAP_CONTROL_ASSERT,
@@ -600,8 +587,6 @@ bdb_initialize(
 		NULL
 	};
 
-	bi->bi_controls = controls;
-
 	/* initialize the underlying database system */
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_BDB, ENTRY, "bdb_db_initialize\n", 0, 0, 0 );
@@ -609,6 +594,18 @@ bdb_initialize(
 	Debug( LDAP_DEBUG_TRACE, "bdb_initialize: initialize BDB backend\n",
 		0, 0, 0 );
 #endif
+
+	bi->bi_flags |=
+		SLAP_BFLAG_INCREMENT |
+#ifdef BDB_SUBENTRIES
+		SLAP_BFLAG_SUBENTRIES |
+#endif
+#ifdef BDB_ALIASES
+		SLAP_BFLAG_ALIASES |
+#endif
+		SLAP_BFLAG_REFERRALS;
+
+	bi->bi_controls = controls;
 
 	{	/* version check */
 		int major, minor, patch;

@@ -562,7 +562,7 @@ glue_sub_init( )
 		if (SLAP_GLUE_SUBORDINATE ( b1 ) ) {
 			/* The last database cannot be a subordinate of noone */
 			if (i == nBackendDB - 1) {
-				b1->be_flags ^= SLAP_BFLAG_GLUE_SUBORDINATE;
+				SLAP_DBFLAGS(b1) ^= SLAP_DBFLAG_GLUE_SUBORDINATE;
 			}
 			continue;
 		}
@@ -581,7 +581,7 @@ glue_sub_init( )
 				continue;
 			}
 			cont--;
-			be->be_flags |= SLAP_BFLAG_GLUE_LINKED;
+			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_GLUE_LINKED;
 			if (gi == NULL) {
 				/* We create a copy of the superior's be
 				 * structure, pointing to all of its original
@@ -590,7 +590,7 @@ glue_sub_init( )
 				 * is used whenever we have operations to pass
 				 * down to the real database.
 				 */
-				b1->be_flags |= SLAP_BFLAG_GLUE_INSTANCE;
+				SLAP_DBFLAGS(b1) |= SLAP_DBFLAG_GLUE_INSTANCE;
 				gi = (glueinfo *)ch_malloc(sizeof(glueinfo));
 				gi->nodes = 0;
 				gi->bd = *b1;

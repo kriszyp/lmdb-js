@@ -1660,6 +1660,14 @@ slapd_daemon_task(
 			switch ( from.sa_addr.sa_family ) {
 #  ifdef LDAP_PF_LOCAL
 			case AF_LOCAL:
+				/* FIXME: apparently accept doesn't fill
+				 * the sun_path sun_path member */
+				if ( from.sa_un_addr.sun_path[0] == '\0' ) {
+					AC_MEMCPY( from.sa_un_addr.sun_path,
+							slap_listeners[l]->sl_sa.sa_un_addr.sun_path,
+							sizeof( from.sa_un_addr.sun_path ) );
+				}
+
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
 				ssf = LDAP_PVT_SASL_LOCAL_SSF;
 				{

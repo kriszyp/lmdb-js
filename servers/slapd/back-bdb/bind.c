@@ -44,9 +44,11 @@ bdb_bind( Operation *op, SlapReply *rs )
 	DB_LOCK		lock;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS, "==> bdb_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0 );
+	LDAP_LOG ( OPERATION, ARGS,
+		"==> bdb_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
+	Debug( LDAP_DEBUG_ARGS,
+		"==> bdb_bind: dn: %s\n", op->o_req_dn.bv_val, 0, 0);
 #endif
 
 	/* allow noauth binds */
@@ -91,30 +93,13 @@ dn2entry_retry:
 	e = ei->bei_e;
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if( e != NULL ) {
-			rs->sr_ref = is_entry_referral( e )
-				? get_entry_referrals( op, e )
-				: NULL;
-			if (rs->sr_ref) {
-				rs->sr_matched = ch_strdup( e->e_name.bv_val );
-				rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
-			}
-
-			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+			bdb_cache_return_entry_r( bdb->bi_dbenv,
+				&bdb->bi_cache, e, &lock );
 			e = NULL;
-		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
-		if ( rs->sr_ref != NULL ) {
-			rs->sr_err = LDAP_REFERRAL;
-			send_ldap_result( op, rs );
-			ber_bvarray_free( rs->sr_ref );
-			rs->sr_ref = NULL;
-		} else {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-			send_ldap_result( op, rs );
-		}
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+		send_ldap_result( op, rs );
 
 		LOCK_ID_FREE(bdb->bi_dbenv, locker);
 
@@ -134,7 +119,6 @@ dn2entry_retry:
 		Debug( LDAP_DEBUG_TRACE, "entry is subentry\n", 0,
 			0, 0 );
 #endif
-
 		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
@@ -144,22 +128,23 @@ dn2entry_retry:
 	if ( is_entry_alias( e ) ) {
 		/* entry is an alias, don't allow bind */
 #ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, DETAIL1, "bdb_bind: entry is alias\n", 0, 0, 0 );
+		LDAP_LOG ( OPERATION, DETAIL1,
+			"bdb_bind: entry is alias\n", 0, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0,
-			0, 0 );
+		Debug( LDAP_DEBUG_TRACE, "entry is alias\n", 0, 0, 0 );
 #endif
 
+#if 1
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
+#else
 		rs->sr_err = LDAP_ALIAS_PROBLEM;
 		rs->sr_text = "entry is alias";
+#endif
 		goto done;
 	}
 #endif
 
 	if ( is_entry_referral( e ) ) {
-		/* entry is a referral, don't allow bind */
-		rs->sr_ref = get_entry_referrals( op, e );
-
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, DETAIL1, 
 			"bdb_bind: entry is referral\n", 0, 0, 0 );
@@ -167,14 +152,7 @@ dn2entry_retry:
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
 #endif
-
-		if( rs->sr_ref != NULL ) {
-			rs->sr_err = LDAP_REFERRAL;
-			rs->sr_matched = ch_strdup( e->e_name.bv_val );
-			rs->sr_flags |= REP_MATCHED_MUSTBEFREED;
-		} else {
-			rs->sr_err = LDAP_INVALID_CREDENTIALS;
-		}
+		rs->sr_err = LDAP_INVALID_CREDENTIALS;
 		goto done;
 	}
 
@@ -183,16 +161,26 @@ dn2entry_retry:
 		rs->sr_err = access_allowed( op, e,
 			password, NULL, ACL_AUTH, NULL );
 		if ( ! rs->sr_err ) {
+#if 1
+			rs->sr_err = LDAP_INVALID_CREDENTIALS;
+#else
 			rs->sr_err = LDAP_INSUFFICIENT_ACCESS;
+#endif
 			goto done;
 		}
 
 		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
+#if 1
+			rs->sr_err = LDAP_INVALID_CREDENTIALS;
+#else
 			rs->sr_err = LDAP_INAPPROPRIATE_AUTH;
+#endif
 			goto done;
 		}
 
-		if ( slap_passwd_check( op->o_conn, a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 ) {
+		if ( slap_passwd_check( op->o_conn,
+			a, &op->oq_bind.rb_cred, &rs->sr_text ) != 0 )
+		{
 			rs->sr_err = LDAP_INVALID_CREDENTIALS;
 			goto done;
 		}
@@ -202,7 +190,9 @@ dn2entry_retry:
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	case LDAP_AUTH_KRBV41:
-		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad ) != LDAP_SUCCESS ) {
+		if ( krbv4_ldap_auth( op->o_bd, &op->oq_bind.rb_cred, &ad )
+			!= LDAP_SUCCESS )
+		{
 			rs->sr_err = LDAP_INVALID_CREDENTIALS,
 			goto done;
 		}
@@ -214,8 +204,8 @@ dn2entry_retry:
 			goto done;
 		}
 
-		krbval.bv_len = sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
-			: "", ad.pinst, ad.prealm );
+		krbval.bv_len = sprintf( krbname, "%s%s%s@%s", ad.pname,
+			*ad.pinst ? "." : "", ad.pinst, ad.prealm );
 
 		if ( (a = attr_find( e->e_attrs, krbattr )) == NULL ) {
 			/*
@@ -238,14 +228,10 @@ dn2entry_retry:
 		}
 		rs->sr_err = 0;
 		break;
-
-	case LDAP_AUTH_KRBV42:
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-		rs->sr_text = "Kerberos bind step 2 not supported";
-		goto done;
 #endif
 
 	default:
+		assert( 0 ); /* should not be unreachable */
 		rs->sr_err = LDAP_STRONG_AUTH_NOT_SUPPORTED;
 		rs->sr_text = "authentication method not supported";
 	}
