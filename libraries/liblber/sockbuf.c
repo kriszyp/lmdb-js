@@ -221,7 +221,7 @@ ber_sockbuf_remove_io( Sockbuf *sb, Sockbuf_IO *sbio, int layer )
 			}
 			*q = p->sbiod_next;
 			LBER_FREE( p );
-		break;
+			break;
 		}
 		q = &p->sbiod_next;
 	}
