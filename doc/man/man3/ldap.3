@@ -12,8 +12,12 @@ ldap - OpenLDAP Lightweight Directory Access Protocol API
 .fi
 .SH DESCRIPTION
 .LP
-The Lightweight Directory Access Protocol provides TCP/IP access to
-the X.500 Directory or to a stand-alone LDAP server.
+The Lightweight Directory Access Protocol provides access to
+X.500 directory services.  The services may be stand\-alone
+part of a distributed directory service.  This API supports
+LDAP over TCP, LDAP over SSL, and LDAP over IPC (UNIX domain
+sockets).
+.LP
 The OpenLDAP LDAP package includes a stand-alone server in
 .BR slapd (8),
 various LDAP clients, and an LDAP client library used to provide
@@ -24,28 +28,27 @@ Both synchronous and asynchronous APIs are provided.  Also included are
 various routines to parse the results returned from these routines.
 These routines are found in the \-lldap library.
 .LP
-The basic interaction is as follows.  A connection is made to an LDAP
-server by calling
-.BR ldap_open (3).
-An LDAP bind operation is performed by calling
-one of
-.BR ldap_bind (3)
+The basic interaction is as follows.  A session handle associated
+with created using
+.BR ldap_init (3).
+The underlying session is established upon first use which is
+commonly an LDAP bind operation.  The LDAP bind operation is
+performed by calling one of
+.BR ldap_sasl_bind (3)
 and friends.  Next, other operations are performed
 by calling one of the synchronous or asynchronous routines (e.g.,
-.BR ldap_search_s (3)
+.BR ldap_search_ext_s (3)
 or
-.BR ldap_search (3)
+.BR ldap_search_ext (3)
 followed by
 .BR ldap_result (3)).
 Results returned from these routines are interpreted by calling the
-LDAP parsing routines.  The LDAP association is terminated by calling
-.BR ldap_unbind (3).
+LDAP parsing routines such as
+.BR ldap_parse_result (3).
+The LDAP association and underlying connection is terminated by calling
+.BR ldap_unbind_ext (3).
 Errors can be interpreted by calling
-.BR ldap_perror (3).
-The
-.BR ldap_set_rebind_proc (3)
-routine can be used to set a routine to be called back when an LDAP bind
-operation needs to occur when handling a client referral.
+.BR ldap_err2string (3).
 .SH SEARCH FILTERS
 Search filters to be passed to the ldap search routines can be
 constructed by hand, or by calling the
@@ -67,9 +70,8 @@ and
 .BR ldap_next_attribute (3)
 to step through an entry's attributes, and
 .BR ldap_get_values (3)
-to retrieve a given attribute's value, and then calling
-.BR printf (3)
-or whatever to display the values.
+to retrieve a given attribute's value.  Attribute values
+may or may not be displayable.
 .LP
 Alternatively, the entry can be output automatically by calling
 the
@@ -94,7 +96,7 @@ The
 .BR ldap_ufn (3)
 routines implement a user friendly naming
 scheme via LDAP.  This scheme allows you to look up entries
-using fuzzy, untyped names like "mark smith, umich, us".
+using fuzzy, untyped names like "john smith, example corp, ca, us".
 .SH CACHING
 The
 .BR ldap_cache (3)
@@ -130,9 +132,10 @@ Also included in the distribution is a set of lightweight Basic
 Encoding Rules routines.  These routines are used by the LDAP library
 routines to encode and decode LDAP protocol elements using the
 (slightly simplified) Basic Encoding Rules defined by LDAP.  They are
-not normally used directly by an LDAP application program.  The
+not normally used directly by an LDAP application program excepting
+in the handling of controls and extended operations.  The
 routines provide a printf and scanf-like interface, as well as
-lower-level access.  These routines are found in the liblber.a
+lower-level access.  These routines are found in the -llber
 library.
 .SH INDEX
 .TP 20
@@ -323,12 +326,6 @@ convert a DN into its component parts
 .SM ldap_explode_rdn(3)
 convert a RDN into its component parts
 .TP
-.SM ldap_explode_dns(3)
-convert a DNS-style DN into its component parts (experimental)
-.TP
-.SM ldap_is_dns_dn(3)
-check to see if a DN is a DNS-style DN (experimental)
-.TP
 .SM ldap_dn2ufn(3)
 convert a DN into user friendly form
 .TP
@@ -466,24 +463,6 @@ sort a list of attribute values
 .TP
 .SM ldap_sort_strcasecmp(3)
 case insensitive string comparison
-.TP
-.SM ldap_set_string_translators(3)
-set character set translation routines used by LDAP library
-.TP
-.SM ldap_t61_to_8859(3)
-translate from ISO-8859 characters to the T.61 characters
-.TP
-.SM ldap_8859_to_t61(3)
-translate from T.61 characters to the ISO-8859 characters
-.TP
-.SM ldap_translate_from_t61(3)
-translate from the T.61 character set to another character set
-.TP
-.SM ldap_translate_to_t61(3)
-translate to the T.61 character set from another character set
-.TP
-.SM ldap_enable_translation(3)
-enable or disable character translation for an LDAP entry result
 .TP
 .SM cldap_open(3)
 open a connectionless LDAP (CLDAP) session

@@ -1,6 +1,0 @@
-ldap_set_string_translators.3
-ldap_enable_translation.3
-ldap_translate_from_t61.3
-ldap_translate_to_t61.3
-ldap_t61_to_8859.3
-ldap_8859_to_t61.3

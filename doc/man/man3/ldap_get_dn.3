@@ -3,7 +3,7 @@
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_get_dn, ldap_explode_dn, ldap_explode_rdn, ldap_dn2ufn, ldap_is_dns_dn, ldap_explode_dns \- LDAP DN handling routines
+ldap_get_dn, ldap_explode_dn, ldap_explode_rdn, ldap_dn2ufn \- LDAP DN handling routines
 .SH SYNOPSIS
 .nf
 .ft B
@@ -29,16 +29,6 @@ int notypes;
 .LP
 .ft B
 char *ldap_dn2ufn(dn)
-.ft
-char *dn;
-.LP
-.ft B
-int ldap_is_dns_dn(dn)
-.ft
-char *dn;
-.LP
-.ft B
-char **ldap_explode_dns(dn)
 .ft
 char *dn;
 .SH DESCRIPTION
@@ -93,20 +83,6 @@ for more details on the UFN format.  The space for the UFN returned
 is obtained dynamically and the user is responsible for freeing it
 via a call to
 .BR ldap_memfree (3).
-.LP
-.B ldap_is_dns_dn()
-returns non-zero if the dn string is an experimental
-DNS-style DN (generally in the form of an RFC 822 e-mail address).  It
-returns zero if the dn appears to be an RFC 1779 format DN.
-.LP
-.B ldap_explode_dns()
-takes a DNS-style DN and breaks it up into its
-component parts.
-.B ldap_explode_dns()
-returns a NULL-terminated array.
-For example, the DN "mcs.umich.edu" will return { "mcs", "umich", "edu",
-NULL }.  The result can be freed by calling
-.BR ldap_value_free (3).
 .SH ERRORS
 If an error occurs in
 .BR ldap_get_dn() ,
@@ -117,7 +93,6 @@ field in the \fIld\fP parameter is set to indicate the error.  See
 for a description of possible error codes.
 .BR ldap_explode_dn() ,
 .BR ldap_explode_rdn() ,
-.B ldap_explode_dns()
 and
 .B ldap_dn2ufn()
 will return NULL with
