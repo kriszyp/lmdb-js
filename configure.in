@@ -914,7 +914,12 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			AC_CACHE_CHECK([for pthread_detach with <pthread.h>],
 				[ol_cv_func_pthread_detach], [
 				dnl save the flags
-				AC_TRY_LINK([#include <pthread.h>],
+				AC_TRY_LINK([
+#include <pthread.h>
+#ifndef NULL
+#define NULL (void*)0
+#endif
+],
 					[pthread_detach(NULL);],
 					[ol_cv_func_pthread_detach=yes],
 					[ol_cv_func_pthread_detach=no])
