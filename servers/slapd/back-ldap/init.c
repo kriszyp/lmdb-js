@@ -32,23 +32,6 @@
 #include "back-ldap.h"
 #include "external.h"
 
-#if SLAPD_LDAP == SLAPD_MOD_DYNAMIC
-int
-init_module( int argc, char *argv[] )
-{
-	BackendInfo	bi;
-
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "ldap";
-	bi.bi_init = ldap_back_initialize;
-
-	backend_add( &bi );
-    
-	return 0;
-}
-
-#endif /* SLAPD_LDAP */
-
 int
 ldap_back_open( BackendInfo	*bi )
 {
@@ -271,3 +254,22 @@ ldap_back_db_destroy(
 
 	return 0;
 }
+
+#if SLAPD_LDAP == SLAPD_MOD_DYNAMIC
+
+int
+init_module( int argc, char *argv[] )
+{
+	BackendInfo	bi;
+
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "ldap";
+	bi.bi_init = ldap_back_initialize;
+
+	backend_add( &bi );
+    
+	return 0;
+}
+
+#endif /* SLAPD_LDAP */
+

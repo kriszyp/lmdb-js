@@ -27,22 +27,6 @@
 #include "back-meta.h"
 #include "external.h"
 
-#if SLAPD_META == SLAPD_MOD_DYNAMIC
-
-int
-init_module( int argc, char *argv[] ) {
-    BackendInfo bi;
-
-    memset( &bi, '\0', sizeof( bi ) );
-    bi.bi_type = "meta";
-    bi.bi_init = meta_back_initialize;
-
-    backend_add( &bi );
-    return 0;
-}
-
-#endif /* SLAPD_META */
-
 int
 meta_back_open(
 	BackendInfo *bi
@@ -237,4 +221,23 @@ meta_back_db_destroy(
 	free( be->be_private );
 	return 0;
 }
+
+#if SLAPD_META == SLAPD_MOD_DYNAMIC
+
+int
+init_module( int argc, char *argv[] )
+{
+	BackendInfo bi;
+
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "meta";
+	bi.bi_init = meta_back_initialize;
+
+	backend_add( &bi );
+
+	return 0;
+}
+
+#endif /* SLAPD_META */
+
 

@@ -26,21 +26,6 @@
 
 ldap_pvt_thread_mutex_t passwd_mutex;
 
-#if SLAPD_PASSWD == SLAPD_MOD_DYNAMIC
-
-int init_module(int argc, char *argv[]) {
-    BackendInfo bi;
-
-    memset( &bi, '\0', sizeof(bi) );
-    bi.bi_type = "passwd";
-    bi.bi_init = passwd_back_initialize;
-
-    backend_add(&bi);
-    return 0;
-}
-
-#endif /* SLAPD_PASSWD */
-
 int
 passwd_back_initialize(
     BackendInfo	*bi
@@ -87,3 +72,22 @@ passwd_back_destroy(
 	ldap_pvt_thread_mutex_destroy( &passwd_mutex );
 	return 0;
 }
+
+#if SLAPD_PASSWD == SLAPD_MOD_DYNAMIC
+
+int
+init_module( int argc, char *argv[] )
+{
+	BackendInfo bi;
+
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "passwd";
+	bi.bi_init = passwd_back_initialize;
+
+	backend_add( &bi );
+
+	return 0;
+}
+
+#endif /* SLAPD_PASSWD */
+

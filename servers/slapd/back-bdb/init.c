@@ -529,24 +529,6 @@ bdb_db_destroy( BackendDB *be )
 	return 0;
 }
 
-#if	(SLAPD_BDB == SLAPD_MOD_DYNAMIC && !defined(BDB_HIER)) || \
-	(SLAPD_HDB == SLAPD_MOD_DYNAMIC && defined(BDB_HIER))
-int init_module( int argc, char *argv[] ) {
-	BackendInfo bi;
-
-	memset( &bi, '\0', sizeof(bi) );
-#ifdef BDB_HIER
-	bi.bi_type = "hdb";
-#else
-	bi.bi_type = "bdb";
-#endif
-	bi.bi_init = bdb_back_initialize;
-
-	backend_add( &bi );
-	return 0;
-}
-#endif /* SLAPD_BDB */
-
 int
 bdb_back_initialize(
 	BackendInfo	*bi )
@@ -674,3 +656,24 @@ bdb_back_initialize(
 
 	return 0;
 }
+
+#if	(SLAPD_BDB == SLAPD_MOD_DYNAMIC && !defined(BDB_HIER)) || \
+	(SLAPD_HDB == SLAPD_MOD_DYNAMIC && defined(BDB_HIER))
+int
+init_module( int argc, char *argv[] )
+{
+	BackendInfo bi;
+
+	memset( &bi, '\0', sizeof( bi ) );
+#ifdef BDB_HIER
+	bi.bi_type = "hdb";
+#else
+	bi.bi_type = "bdb";
+#endif
+	bi.bi_init = bdb_back_initialize;
+
+	backend_add( &bi );
+	return 0;
+}
+#endif /* SLAPD_BDB */
+

@@ -29,22 +29,6 @@
 #include "proto-dnssrv.h"
 #include "external.h"
 
-#if SLAPD_DNSSRV == SLAPD_MOD_DYNAMIC
-
-int init_module(int argc, char *argv[])
-{
-    BackendInfo bi;
-
-    memset( &bi, '\0', sizeof(bi) );
-    bi.bi_type = "dnssrv";
-    bi.bi_init = dnssrv_back_initialize;
-
-    backend_add( &bi );
-    return 0;
-}
-
-#endif /* SLAPD_DNSSRV */
-
 int
 dnssrv_back_initialize(
     BackendInfo	*bi )
@@ -101,3 +85,22 @@ dnssrv_back_db_destroy(
 {
 	return 0;
 }
+
+#if SLAPD_DNSSRV == SLAPD_MOD_DYNAMIC
+
+int
+init_module( int argc, char *argv[] )
+{
+	BackendInfo bi;
+
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "dnssrv";
+	bi.bi_init = dnssrv_back_initialize;
+
+	backend_add( &bi );
+
+	return 0;
+}
+
+#endif /* SLAPD_DNSSRV */
+

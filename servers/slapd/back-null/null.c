@@ -173,17 +173,19 @@ null_back_initialize(
 }
 
 #if SLAPD_NULL == SLAPD_MOD_DYNAMIC
-int init_module(
-	int argc,
-	char *argv[] )
+
+int
+init_module( int argc, char *argv[] )
 {
-    BackendInfo bi;
+	BackendInfo bi;
 
-    memset( &bi, '\0', sizeof(bi) );
-    bi.bi_type = "null";
-    bi.bi_init = null_back_initialize;
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "null";
+	bi.bi_init = null_back_initialize;
 
-    backend_add(&bi);
-    return 0;
+	backend_add( &bi );
+
+	return 0;
 }
+
 #endif /* SLAPD_NULL */

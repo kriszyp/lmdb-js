@@ -24,22 +24,6 @@ EXT void boot_DynaLoader LDAP_P((PERL_BACK_BOOT_DYNALOADER_PARAMS));
 PerlInterpreter *PERL_INTERPRETER = NULL;
 ldap_pvt_thread_mutex_t	perl_interpreter_mutex;
 
-#if SLAPD_PERL == SLAPD_MOD_DYNAMIC
-
-int init_module(int argc, char *argv[])
-{
-	BackendInfo bi;
-
-	memset( &bi, '\0', sizeof(bi) );
-	bi.bi_type = "perl";
-	bi.bi_init = perl_back_initialize;
-
-	backend_add(&bi);
-	return 0;
-}
-
-#endif /* SLAPD_PERL */
-
 
 /**********************************************************
  *
@@ -172,3 +156,23 @@ perl_back_xs_init(PERL_BACK_XS_INIT_PARAMS)
 	dXSUB_SYS;
 	newXS("DynaLoader::boot_DynaLoader", boot_DynaLoader, file);
 }
+
+#if SLAPD_PERL == SLAPD_MOD_DYNAMIC
+
+int
+init_module( int argc, char *argv[] )
+{
+	BackendInfo bi;
+
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "perl";
+	bi.bi_init = perl_back_initialize;
+
+	backend_add( &bi );
+
+	return 0;
+}
+
+#endif /* SLAPD_PERL */
+
+

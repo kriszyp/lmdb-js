@@ -30,25 +30,6 @@
 #include "proto-sql.h"
 #include "external.h"
 
-#if SLAPD_SQL == SLAPD_MOD_DYNAMIC
-
-int
-init_module(
-	int 		argc, 
-	char 		*argv[] )
-{
-	BackendInfo bi;
-
-	memset( &bi, '\0', sizeof( bi ) );
-	bi.bi_type = "sql";
-	bi.bi_init = sql_back_initialize;
-
-	backend_add( &bi );
-	return 0;
-}
-
-#endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC */
-
 int
 sql_back_initialize(
 	BackendInfo	*bi )
@@ -501,6 +482,24 @@ backsql_connection_destroy( Backend *bd, Connection *c )
 
 	return 0;
 }
+
+#if SLAPD_SQL == SLAPD_MOD_DYNAMIC
+
+int
+init_module( int argc, char *argv[] )
+{
+	BackendInfo bi;
+
+	memset( &bi, '\0', sizeof( bi ) );
+	bi.bi_type = "sql";
+	bi.bi_init = sql_back_initialize;
+
+	backend_add( &bi );
+	
+	return 0;
+}
+
+#endif /* SLAPD_SQL == SLAPD_MOD_DYNAMIC */
 
 #endif /* SLAPD_SQL */
 
