@@ -46,7 +46,7 @@ ldbm_cache_open(
 		flags |= LDBM_NOLOCKING;
 	}
 	
-	if( li->li_dbwritesync ) {
+	if( li->li_dbwritesync && global_backendsyncfreq == 0) {
 		flags |= LDBM_SYNC;
 	} else {
 		flags |= LDBM_NOSYNC;
@@ -293,6 +293,24 @@ ldbm_cache_flush_all( Backend *be )
 				free( li->li_dbcache[i].dbc_name );
 				li->li_dbcache[i].dbc_name = NULL;
 			}
+		}
+	}
+	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
+}
+
+void
+ldbm_cache_sync( Backend *be )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	int		i;
+
+	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
+	for ( i = 0; i < MAXDBCACHE; i++ ) {
+		if ( li->li_dbcache[i].dbc_name != NULL && li->li_dbcache[i].dbc_dirty ) {
+			Debug(	LDAP_DEBUG_TRACE, "ldbm syncing db (%s)\n",
+				li->li_dbcache[i].dbc_name, 0, 0 );
+			ldbm_sync( li->li_dbcache[i].dbc_db );
+			li->li_dbcache[i].dbc_dirty = 0;
 		}
 	}
 	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );

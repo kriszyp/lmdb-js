@@ -40,6 +40,7 @@ passwd_back_initialize(
 	bi->bi_db_open = 0;
 	bi->bi_db_close = 0;
 	bi->bi_db_destroy = 0;
+	bi->bi_db_sync = 0;
 
 	bi->bi_op_bind = 0;
 	bi->bi_op_unbind = 0;

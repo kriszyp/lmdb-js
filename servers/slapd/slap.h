@@ -990,6 +990,7 @@ struct slap_backend_info {
 	int (*bi_db_open) LDAP_P((Backend *bd));
 	int (*bi_db_close) LDAP_P((Backend *bd));
 	int (*bi_db_destroy) LDAP_P((Backend *db));
+	int (*bi_db_sync) LDAP_P((Backend *db));
 
 	/* LDAP Operations Handling Routines */
 	int	(*bi_op_bind)  LDAP_P(( BackendDB *bd,

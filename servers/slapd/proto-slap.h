@@ -143,6 +143,7 @@ LDAP_SLAPD_F (int) backend_init LDAP_P((void));
 LDAP_SLAPD_F (int) backend_add LDAP_P((BackendInfo *aBackendInfo));
 LDAP_SLAPD_F (int) backend_num LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_startup LDAP_P((Backend *be));
+LDAP_SLAPD_F (int) backend_sync LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_shutdown LDAP_P((Backend *be));
 LDAP_SLAPD_F (int) backend_destroy LDAP_P((void));
 
@@ -822,6 +823,7 @@ LDAP_SLAPD_F (int)		g_argc;
 LDAP_SLAPD_F (slap_access_t)	global_default_access;
 LDAP_SLAPD_F (int)		global_lastmod;
 LDAP_SLAPD_F (int)		global_idletimeout;
+LDAP_SLAPD_F (int)		global_backendsyncfreq;
 LDAP_SLAPD_F (int)		global_schemacheck;
 LDAP_SLAPD_F (char)		*global_host;
 LDAP_SLAPD_F (char)		*global_realm;
