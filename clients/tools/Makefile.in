@@ -22,47 +22,55 @@ PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn \
 	ldappasswd ldapwhoami ldapcompare
 
 
-ldapsearch:	ldapsearch.o common.o $(XLIBS)
-	$(LTLINK) -o $@ ldapsearch.o common.o $(LIBS)
+ldapsearch:	ldsversion.o
+	$(LTLINK) -o $@ ldapsearch.o common.o ldsversion.o $(LIBS)
 
-ldapmodify:	ldapmodify.o common.o $(XLIBS)
-	$(LTLINK) -o $@ ldapmodify.o common.o $(LIBS)
+ldapmodify:	ldmversion.o
+	$(LTLINK) -o $@ ldapmodify.o common.o ldmversion.o $(LIBS)
 
-ldapdelete:	ldapdelete.o common.o $(XLIBS)
-	$(LTLINK) -o $@ ldapdelete.o common.o $(LIBS)
+ldapdelete:	lddversion.o
+	$(LTLINK) -o $@ ldapdelete.o common.o lddversion.o $(LIBS)
 
-ldapmodrdn:	ldapmodrdn.o common.o $(XLIBS)
-	$(LTLINK) -o $@ ldapmodrdn.o common.o $(LIBS)
+ldapmodrdn:	ldrversion.o
+	$(LTLINK) -o $@ ldapmodrdn.o common.o ldrversion.o $(LIBS)
 
-ldappasswd:	ldappasswd.o common.o $(XLIBS)
-	$(LTLINK) -o $@ ldappasswd.o common.o $(LIBS)
+ldappasswd:	ldpversion.o
+	$(LTLINK) -o $@ ldappasswd.o common.o ldpversion.o $(LIBS)
 
-ldapwhoami:	ldapwhoami.o common.o $(XLIBS)
-	$(LTLINK) -o $@ ldapwhoami.o common.o $(LIBS)
+ldapwhoami:	ldwversion.o
+	$(LTLINK) -o $@ ldapwhoami.o common.o ldwversion.o $(LIBS)
 
-ldapcompare: ldapcompare.o common.o $(XLIBS)
-	$(LTLINK) -o $@ ldapcompare.o common.o $(LIBS)
+ldapcompare: ldcversion.o
+	$(LTLINK) -o $@ ldapcompare.o common.o ldcversion.o $(LIBS)
 
-ldapsearch.o:	$(srcdir)/ldapsearch.c
-	$(CC) -c $(CFLAGS) $(CWD_DEF) -o $@ $<
+ldsversion.c: ldapsearch.o common.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapsearch > $@
 
-ldapmodify.o:	$(srcdir)/ldapmodify.c
-	$(CC) -c $(CFLAGS) $(CWD_DEF) -o $@ $<
+ldmversion.c: ldapmodify.o common.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapmodify > $@
 
-ldapdelete.o:	$(srcdir)/ldapdelete.c
-	$(CC) -c $(CFLAGS) $(CWD_DEF) -o $@ $<
+lddversion.c: ldapdelete.o common.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapdelete > $@
 
-ldapmodrdn.o:	$(srcdir)/ldapmodrdn.c
-	$(CC) -c $(CFLAGS) $(CWD_DEF) -o $@ $<
+ldpversion.c: ldappasswd.o common.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldappasswd > $@
 
-ldappasswd.o:	$(srcdir)/ldappasswd.c
-	$(CC) -c $(CFLAGS) $(CWD_DEF) -o $@ $<
+ldrversion.c: ldapmodrdn.o common.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapmodrdn > $@
 
-ldapwhoami.o:	$(srcdir)/ldapwhoami.c
-	$(CC) -c $(CFLAGS) $(CWD_DEF) -o $@ $<
+ldwversion.c: ldapwhoami.o common.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapwhoami > $@
 
-ldapcompare.o:	$(srcdir)/ldapcompare.c
-	$(CC) -c $(CFLAGS) $(CWD_DEF) -o $@ $<
+ldcversion.c: ldapcompare.o common.o $(XLIBS)
+	@-$(RM) $@
+	$(MKVERSION) $(MKVOPTS) ldapcompare > $@
+
 
 install-local:	FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)

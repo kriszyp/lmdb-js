@@ -36,10 +36,6 @@
 
 #include "common.h"
 
-#define _OLV_APP	"ldapsearch"
-#define	_OLV_STATIC
-#include "ol_version.h"
-
 
 static int scope = LDAP_SCOPE_SUBTREE;
 static int deref = -1;

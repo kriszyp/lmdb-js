@@ -23,10 +23,6 @@
 
 #include "common.h"
 
-#define _OLV_APP	"ldapwhoami"
-#define	_OLV_STATIC
-#include "ol_version.h"
-
 
 void
 usage( void )

@@ -21,10 +21,6 @@
 
 #include "common.h"
 
-#define _OLV_APP	"ldapdelete"
-#define	_OLV_STATIC
-#include "ol_version.h"
-
 
 static int	prune = 0;
 
