@@ -249,7 +249,9 @@ main( int argc, char *argv[] )
 		newpw = strdup(getpassphrase("Old password: "));
 		ckoldpw = getpassphrase("Re-enter old password: ");
 
-		if( strncmp( oldpw, ckoldpw, strlen(oldpw) )) {
+		if( newpw== NULL || ckoldpw == NULL ||
+			strncmp( oldpw, ckoldpw, strlen(oldpw) ))
+		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
 		}
@@ -261,7 +263,9 @@ main( int argc, char *argv[] )
 		newpw = strdup(getpassphrase("New password: "));
 		cknewpw = getpassphrase("Re-enter new password: ");
 
-		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
+		if( newpw== NULL || cknewpw == NULL ||
+			strncmp( newpw, cknewpw, strlen(newpw) ))
+		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
 		}
@@ -281,7 +285,7 @@ main( int argc, char *argv[] )
 		/* handle bind password */
 		fprintf( stderr, "Bind DN: %s\n", binddn );
 		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
-		passwd.bv_len = strlen( passwd.bv_val );
+		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
 
 	if ( debug ) {
@@ -400,7 +404,7 @@ main( int argc, char *argv[] )
 			free(newpw);
 		}
 
-		ber_printf( ber, /*{*/ "}" );
+		ber_printf( ber, /*{*/ "N}" );
 
 		rc = ber_flatten( ber, &bv );
 

@@ -81,7 +81,7 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 	}
 
 	/* fill it in */
-	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV41, cred, credlen );
 
 	if ( rc == -1 ) {
@@ -159,7 +159,7 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	}
 
 	/* fill it in */
-	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
+	rc = ber_printf( ber, "{it{istoN}N}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV42, cred, credlen );
 
 

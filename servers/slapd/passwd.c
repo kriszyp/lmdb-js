@@ -202,7 +202,7 @@ struct berval * slap_passwd_return(
 
 	if( ber == NULL ) return NULL;
 	
-	rc = ber_printf( ber, "{tO}",
+	rc = ber_printf( ber, "{tON}",
 		LDAP_TAG_EXOP_X_MODIFY_PASSWD_GEN, cred );
 
 	if( rc == -1 ) {

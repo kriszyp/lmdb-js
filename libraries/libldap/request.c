@@ -1010,7 +1010,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 	if ( tag == LDAP_REQ_BIND ) {
 		rc = ber_printf( ber, "{it{is" /*}}*/, msgid, tag, ver, *dnp );
 	} else if ( tag == LDAP_REQ_DELETE ) {
-		rc = ber_printf( ber, "{its}", msgid, tag, *dnp );
+		rc = ber_printf( ber, "{itsN}", msgid, tag, *dnp );
 	} else {
 		rc = ber_printf( ber, "{it{s" /*}}*/, msgid, tag, *dnp );
 	}
@@ -1024,7 +1024,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 	if ( tag != LDAP_REQ_DELETE && (
 		ber_write(ber, tmpber.ber_ptr, ( tmpber.ber_end - tmpber.ber_ptr ), 0)
 		!= ( tmpber.ber_end - tmpber.ber_ptr ) ||
-	    ber_printf( ber, /*{{*/ "}}" ) == -1 ) )
+	    ber_printf( ber, /*{{*/ "N}N}" ) == -1 ) )
 	{
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );

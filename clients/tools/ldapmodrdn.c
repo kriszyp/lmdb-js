@@ -365,7 +365,7 @@ main(int argc, char **argv)
 
 	if (want_bindpw) {
 		passwd.bv_val = getpassphrase("Enter LDAP Password: ");
-		passwd.bv_len = strlen( passwd.bv_val );
+		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
 
 	if ( authmethod == LDAP_AUTH_SASL ) {

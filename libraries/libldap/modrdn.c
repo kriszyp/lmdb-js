@@ -83,13 +83,13 @@ ldap_rename(
 			return( ld->ld_errno );
 		}
 
-		rc = ber_printf( ber, "{it{ssbts}", /* '}' */ 
+		rc = ber_printf( ber, "{it{ssbtsN}", /* '}' */ 
 			++ld->ld_msgid, LDAP_REQ_MODDN,
 			dn, newrdn, (ber_int_t) deleteoldrdn,
 			LDAP_TAG_NEWSUPERIOR, newSuperior );
 
 	} else {
-		rc = ber_printf( ber, "{it{ssb}", /* '}' */ 
+		rc = ber_printf( ber, "{it{ssbN}", /* '}' */ 
 			++ld->ld_msgid, LDAP_REQ_MODDN,
 			dn, newrdn, (ber_int_t) deleteoldrdn );
 	}
@@ -106,7 +106,7 @@ ldap_rename(
 		return ld->ld_errno;
 	}
 
-	rc = ber_printf( ber, /*{*/ "}" );
+	rc = ber_printf( ber, /*{*/ "N}" );
 	if ( rc < 0 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );

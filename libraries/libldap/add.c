@@ -123,10 +123,10 @@ ldap_add_ext(
 	/* for each attribute in the entry... */
 	for ( i = 0; attrs[i] != NULL; i++ ) {
 		if ( ( attrs[i]->mod_op & LDAP_MOD_BVALUES) != 0 ) {
-			rc = ber_printf( ber, "{s[V]}", attrs[i]->mod_type,
+			rc = ber_printf( ber, "{s[V]N}", attrs[i]->mod_type,
 			    attrs[i]->mod_bvalues );
 		} else {
-			rc = ber_printf( ber, "{s[v]}", attrs[i]->mod_type,
+			rc = ber_printf( ber, "{s[v]N}", attrs[i]->mod_type,
 			    attrs[i]->mod_values );
 		}
 		if ( rc == -1 ) {
@@ -136,7 +136,7 @@ ldap_add_ext(
 		}
 	}
 
-	if ( ber_printf( ber, /*{{*/ "}}" ) == -1 ) {
+	if ( ber_printf( ber, /*{{*/ "N}N}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return ld->ld_errno;
@@ -148,7 +148,7 @@ ldap_add_ext(
 		return ld->ld_errno;
 	}
 
-	if ( ber_printf( ber, /*{*/ "}" ) == -1 ) {
+	if ( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return ld->ld_errno;

@@ -276,7 +276,7 @@ send_ldap_response(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( op->o_cldap ) {
-		rc = ber_printf( ber, "{is{t{ess}}}", msgid, "", tag,
+		rc = ber_printf( ber, "{is{t{essN}N}N}", msgid, "", tag,
 		    err, matched ? matched : "", text ? text : "" );
 	} else
 #endif
@@ -312,7 +312,7 @@ send_ldap_response(
 		}
 
 		if( rc != -1 ) {
-			rc = ber_printf( ber, "}}" );
+			rc = ber_printf( ber, "N}N}" );
 		}
 	}
 
@@ -747,7 +747,7 @@ send_search_entry(
 			}
 		}
 
-		if (( rc = ber_printf( ber, /*{[*/ "]}" )) == -1 ) {
+		if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
@@ -822,7 +822,7 @@ send_search_entry(
 			}
 		}
 
-		if (( rc = ber_printf( ber, /*{[*/ "]}" )) == -1 ) {
+		if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
 			Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 			ber_free( ber, 1 );
 			send_ldap_result( conn, op, LDAP_OTHER,
@@ -833,7 +833,7 @@ send_search_entry(
 
 	attrs_free( aa );
 
-	rc = ber_printf( ber, /*{{{*/ "}}}" );
+	rc = ber_printf( ber, /*{{{*/ "}N}N}" );
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
@@ -934,7 +934,7 @@ send_search_reference(
 		return -1;
 	}
 
-	rc = ber_printf( ber, "{it{V}}", op->o_msgid,
+	rc = ber_printf( ber, "{it{V}N}", op->o_msgid,
 		LDAP_RES_SEARCH_REFERENCE, refs );
 
 	if ( rc == -1 ) {

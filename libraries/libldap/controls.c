@@ -94,14 +94,14 @@ ldap_int_put_controls(
 		}
 
 
-		if( ber_printf( ber, /*{*/"}" ) == -1 ) {
+		if( ber_printf( ber, /*{*/"N}" ) == -1 ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;
 			return ld->ld_errno;
 		}
 	}
 
 
-	if( ber_printf( ber, /*{*/"}" ) == -1 ) {
+	if( ber_printf( ber, /*{*/ "}" ) == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		return ld->ld_errno;
 	}

@@ -135,7 +135,8 @@ ldap_result(
 			if ( all == LDAP_MSG_ONE
 			    || (lm->lm_msgtype != LDAP_RES_SEARCH_RESULT
 			    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE	/* LDAPv3 */
-			    && lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY) )
+			    && lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY
+				&& lm->lm_msgtype != LDAP_RES_EXTENDED_PARTIAL) )
 				break;
 
 			for ( tmp = lm; tmp != NULL; tmp = tmp->lm_chain ) {
@@ -382,8 +383,7 @@ try_read1msg(
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_read: message type %s msgid %ld, original id %ld\n",
-	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : 
-		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
+	    ldap_int_msgtype2str( tag ),
 		(long) lr->lr_msgid, (long) lr->lr_origid );
 
 	id = lr->lr_origid;
@@ -653,7 +653,8 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	/* part of a search response - add to end of list of entries */
 	for ( tmp = l; (tmp->lm_chain != NULL) &&
 	    	((tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
-	    	 (tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE));
+	    	 (tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE) ||
+			 (tmp->lm_chain->lm_msgtype == LDAP_RES_EXTENDED_PARTIAL ));
 	    tmp = tmp->lm_chain )
 		;	/* NULL */
 	tmp->lm_chain = new;
@@ -792,6 +793,24 @@ ldap_msgid( LDAPMessage *lm )
 	return ( lm != NULL ) ? lm->lm_msgid : -1;
 }
 
+
+char * ldap_int_msgtype2str( ber_tag_t tag )
+{
+	switch( tag ) {
+	case LDAP_RES_ADD: return "add";
+	case LDAP_RES_BIND: return "bind";
+	case LDAP_RES_COMPARE: return "compare";
+	case LDAP_RES_DELETE: return "delete";
+	case LDAP_RES_EXTENDED: return "extended-result";
+	case LDAP_RES_EXTENDED_PARTIAL: return "extended-partial";
+	case LDAP_RES_MODIFY: return "modify";
+	case LDAP_RES_RENAME: return "rename";
+	case LDAP_RES_SEARCH_ENTRY: return "search-entry";
+	case LDAP_RES_SEARCH_REFERENCE: return "search-reference";
+	case LDAP_RES_SEARCH_RESULT: return "search-result";
+	}
+	return "unknown";
+}
 
 int
 ldap_msgfree( LDAPMessage *lm )

@@ -458,6 +458,7 @@ LDAP_F (int) ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 #ifdef LDAP_CONNECTIONLESS
 LDAP_F (int) cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber );
 #endif
+LDAP_F (char *) ldap_int_msgtype2str( ber_tag_t tag );
 
 /*
  * in search.c

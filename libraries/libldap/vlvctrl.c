@@ -96,7 +96,7 @@ ldap_create_vlv_control( LDAP *ld,
 	if( tag == LBER_ERROR ) goto exit;
 
 	if (vlvinfop->ldvlv_attrvalue == NULL) {
-		tag = ber_printf(ber, "t{ii}",
+		tag = ber_printf(ber, "t{iiN}",
 			LDAP_VLVBYINDEX_IDENTIFIER,
 			vlvinfop->ldvlv_offset,
 			vlvinfop->ldvlv_count);
@@ -116,7 +116,7 @@ ldap_create_vlv_control( LDAP *ld,
 		if( tag == LBER_ERROR ) goto exit;
 	}
 
-	tag = ber_printf(ber, /*{*/ "}"); 
+	tag = ber_printf(ber, /*{*/ "N}"); 
 	if( tag == LBER_ERROR ) goto exit;
 
 	ld->ld_errno = ldap_int_create_control(

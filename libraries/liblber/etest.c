@@ -144,7 +144,7 @@ main( int argc, char **argv )
 	}
 
 	fprintf(stderr, "encode: end\n" );
-	if( ber_printf( ber, /*{*/ "}" ) == -1 ) {
+	if( ber_printf( ber, /*{*/ "N}" ) == -1 ) {
 		perror( /*{*/ "ber_printf }" );
 		return( EXIT_FAILURE );
 	}

@@ -321,11 +321,11 @@ ldap_create_sort_control (
 			if( tag == LBER_ERROR ) goto exit;
 		}
 
-		tag = ber_printf(ber, /*{*/ "}");
+		tag = ber_printf(ber, /*{*/ "N}");
 		if( tag == LBER_ERROR ) goto exit;
 	}
 
-	tag = ber_printf(ber, /*{*/ "}");
+	tag = ber_printf(ber, /*{*/ "N}");
 	if( tag == LBER_ERROR ) goto exit;
 
 	ld->ld_errno = ldap_int_create_control( LDAP_CONTROL_SORTREQUEST,

@@ -609,6 +609,15 @@ ldap_parse_extended_result LDAP_P((
 	struct berval	**retdatap,
 	int				freeit ));
 
+LDAP_F( int )
+ldap_parse_extended_partial LDAP_P((
+	LDAP			*ld,
+	LDAPMessage		*res,
+	char			**retoidp,
+	struct berval	**retdatap,
+	LDAPControl		***serverctrls,
+	int				freeit ));
+
 /*
  * in abandon.c:
  */
