@@ -155,27 +155,36 @@ which applies to add, delete, modify and modrdn), and execute operations
 to anonymous users.
 .TP
 .BI \-r " directory"
-Specifies a chroot "jail" directory.  slapd will
-.BR chdir (2)
+Specifies a directory to become the root directory.  slapd will
+change the current working directory to this directory and
 then
 .BR chroot (2)
-to this directory after opening listeners but before reading
-any configuration file or initializing any backend.
+to this directory.  This is done after opening listeners but before
+reading any configuration file or initializing any backend.  When
+used as a security mechanism, it should be used in conjunction with
+.B -u
+and
+.B -g
+options.
 .TP
 .BI \-u " user"
 .B slapd
 will run slapd with the specified user name or id, and that user's
 supplementary group access list as set with initgroups(3).  The group ID
 is also changed to this user's gid, unless the -g option is used to
-override.
-.TP
-.BI \-g " group"
-.B slapd
-will run with the specified group name or id.
+override.  Note when used with
+.BR -r ,
+slapd will use the user database in the change root environment.
 .LP
 Note that on some systems, running as a non-privileged user will prevent
 passwd back-ends from accessing the encrypted passwords.  Note also that
 any shell back-ends will run as the specified non-privileged user.
+.TP
+.BI \-g " group"
+.B slapd
+will run with the specified group name or id.  Note when used with
+.BR -r ,
+slapd will use the group database in the change root environment.
 .TP
 .BI \-c " cookie"
 This option provides a cookie for the syncrepl replication consumer.
