@@ -184,7 +184,8 @@ parse_acl(
 						a->acl_dn_style = ACL_STYLE_BASE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 
-					} else if ( strcasecmp( style, "one" ) == 0 ) {
+					} else if ( strcasecmp( style, "onelevel" ) == 0
+						|| strcasecmp( style, "one" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_ONE;
 						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
 
@@ -401,7 +402,8 @@ parse_acl(
 				{
 					sty = ACL_STYLE_BASE;
 
-				} else if ( strcasecmp( style, "one" ) == 0 ) {
+				} else if ( strcasecmp( style, "onelevel" ) == 0 ||
+					strcasecmp( style, "one" ) == 0 ) {
 					sty = ACL_STYLE_ONE;
 
 				} else if ( strcasecmp( style, "subtree" ) == 0 ||
