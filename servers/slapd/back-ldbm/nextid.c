@@ -13,65 +13,94 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+static ID
+next_id_read( Backend *be )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	ID  	id;
+	char	buf[20];
+	char*	file = li->li_nextid_file; 
+	FILE*	fp;
+
+	if ( (fp = fopen( file, "r" )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "next_id_read: could not open \"%s\"\n",
+		    file, 0, 0 );
+		return NOID;
+	}
+
+	if ( fgets( buf, sizeof(buf), fp ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		   "next_id_read: could not fgets nextid from \"%s\"\n",
+		    file, 0, 0 );
+		fclose( fp );
+		return NOID;
+	}
+
+	id = atol( buf );
+	fclose( fp );
+
+	if(id < 1) {
+		Debug( LDAP_DEBUG_ANY,
+			"next_id_read %lu: atol(%s) return non-positive integer\n",
+			id, buf, 0 );
+		return NOID;
+	}
+
+	return id;
+}
+
+static int
+next_id_write( Backend *be, ID id )
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	char	buf[20];
+	char*	file = li->li_nextid_file; 
+	FILE*	fp;
+	int		rc;
+
+	if ( (fp = fopen( file, "w" )) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "next_id_write(%lu): could not open \"%s\"\n",
+		    id, file, 0 );
+		return -1;
+	} 
+
+	rc = 0;
+
+	if ( fprintf( fp, "%ld\n", id ) == EOF ) {
+		Debug( LDAP_DEBUG_ANY, "next_id_write(%lu): cannot fprintf\n",
+		    id, 0, 0 );
+		rc = -1;
+	}
+
+	if( fclose( fp ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY, "next_id_write %lu: cannot fclose\n",
+		    id, 0, 0 );
+		rc = -1;
+	}
+
+	return rc;
+}
+
 ID
 next_id( Backend *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		buf[MAXPATHLEN];
-	char		buf2[20];
-	FILE		*fp;
 	ID		id;
-
-	sprintf( buf, "%s/NEXTID", li->li_directory );
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
 
 	/* first time in here since startup - try to read the nexid */
-	if ( li->li_nextid == -1 ) {
-		if ( (fp = fopen( buf, "r" )) == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "next_id %lu: could not open \"%s\"\n",
-			    li->li_nextid, buf, 0 );
+	if ( li->li_nextid == NOID ) {
+		li->li_nextid = next_id_read( be );
+
+		if ( li->li_nextid == NOID ) {
 			li->li_nextid = 1;
-
-		} else {
-			if ( fgets( buf2, sizeof(buf2), fp ) != NULL ) {
-				li->li_nextid = atol( buf2 );
-
-				if(li->li_nextid < 1) {
-					/* protect against bad data */
-					Debug( LDAP_DEBUG_ANY,
-					"next_id %lu: atol(%s) return non-positive integer\n",
-						li->li_nextid, buf2, 0 );
-					li->li_nextid = 1;
-				}
-
-			} else {
-				Debug( LDAP_DEBUG_ANY,
-			   "next_id %lu: could not fgets nextid from \"%s\"\n",
-				    li->li_nextid, buf2, 0 );
-				li->li_nextid = 1;
-			}
-
-			fclose( fp );
 		}
 	}
 
 	id = li->li_nextid++;
-
-	if ( (fp = fopen( buf, "w" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "next_id %lu: could not open \"%s\"\n",
-		    li->li_nextid, buf, 0 );
-	} else {
-		if ( fprintf( fp, "%ld\n", li->li_nextid ) == EOF ) {
-			Debug( LDAP_DEBUG_ANY, "next_id %lu: cannot fprintf\n",
-			    li->li_nextid, 0, 0 );
-		}
-		if( fclose( fp ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY, "next_id %lu: cannot fclose\n",
-			    li->li_nextid, 0, 0 );
-		}
-	}
+	(void) next_id_write( be, li->li_nextid );
 
 	pthread_mutex_unlock( &li->li_nextid_mutex );
 	return( id );
@@ -80,9 +109,8 @@ next_id( Backend *be )
 void
 next_id_return( Backend *be, ID id )
 {
+#ifdef NEXT_ID_RETURN
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		buf[MAXPATHLEN];
-	FILE		*fp;
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
 
@@ -91,68 +119,27 @@ next_id_return( Backend *be, ID id )
 		return;
 	}
 
-	sprintf( buf, "%s/NEXTID", li->li_directory );
-
 	li->li_nextid--;
-	if ( (fp = fopen( buf, "w" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-		  "next_id_return of %lu: could not open \"%s\" next id %lu\n",
-		    id, buf, li->li_nextid );
-	} else {
-		if ( fprintf( fp, "%ld\n", li->li_nextid ) == EOF ) {
-			Debug( LDAP_DEBUG_ANY,
-		  "next_id_return of %lu: cannot fprintf \"%s\" next id %lu\n",
-			    id, buf, li->li_nextid );
-		}
-		if( fclose( fp ) != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-		  "next_id_return of %lu: cannot fclose \"%s\" next id %lu\n",
-			    id, buf, li->li_nextid );
-		}
-	}
+	(void) next_id_write( be, li->li_nextid );
+
 	pthread_mutex_unlock( &li->li_nextid_mutex );
+#endif
 }
 
 ID
 next_id_get( Backend *be )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		buf[MAXPATHLEN];
-	char		buf2[20];
-	FILE		*fp;
 	ID		id;
-
-	sprintf( buf, "%s/NEXTID", li->li_directory );
 
 	pthread_mutex_lock( &li->li_nextid_mutex );
 
 	/* first time in here since startup - try to read the nexid */
-	if ( li->li_nextid == -1 ) {
-		if ( (fp = fopen( buf, "r" )) == NULL ) {
-			Debug( LDAP_DEBUG_ANY,
-			    "next_id_get %lu: could not open \"%s\"\n",
-			    li->li_nextid, buf, 0 );
+	if ( li->li_nextid == NOID ) {
+		li->li_nextid = next_id_read( be );
+
+		if ( li->li_nextid == NOID ) {
 			li->li_nextid = 1;
-
-		} else {
-			if ( fgets( buf2, sizeof(buf2), fp ) != NULL ) {
-				li->li_nextid = atol( buf2 );
-
-				if(li->li_nextid < 1) {
-					/* protect against bad data */
-					Debug( LDAP_DEBUG_ANY,
-					"next_id_get %lu: atol(%s) return non-positive integer\n",
-						li->li_nextid, buf2, 0 );
-					li->li_nextid = 1;
-				}
-
-			} else {
-				Debug( LDAP_DEBUG_ANY,
-			    "next_id_get %lu: cannot fgets nextid from \"%s\"\n",
-				    li->li_nextid, buf2, 0 );
-				li->li_nextid = 1;
-			}
-			fclose( fp );
 		}
 	}
 
