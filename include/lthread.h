@@ -148,6 +148,9 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
+stkalign_t *get_stack( int *stacknop );
+void free_stack( int *stackno );
+
 typedef void	*(*VFP)();
 
 /* thread attributes and thread type */

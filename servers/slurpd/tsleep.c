@@ -34,9 +34,6 @@
 
 #if defined( HAVE_LWP )
 
-extern stkalign_t *get_stack( int * );
-extern void free_stack( int );
-
 int
 tsleep(
     int	interval

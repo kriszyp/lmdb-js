@@ -317,9 +317,6 @@ pthread_cond_broadcast( pthread_cond_t *cv )
  *           *
  *************/
 
-extern stkalign_t	*get_stack();
-static void		lwp_create_stack();
-
 int
 pthread_attr_init( pthread_attr_t *attr )
 {
@@ -347,6 +344,14 @@ pthread_attr_setdetachstate( pthread_attr_t *attr, int detachstate )
 	return( 0 );
 }
 
+static void
+lwp_create_stack( VFP func, void *arg, int stackno )
+{
+	(*func)( arg );
+
+	free_stack( stackno );
+}
+
 /* ARGSUSED */
 int
 pthread_create(
@@ -364,14 +369,6 @@ pthread_create(
 	}
 	return( lwp_create( tid, lwp_create_stack, MINPRIO, 0, stack, 3, func,
 	    arg, stackno ) );
-}
-
-static void
-lwp_create_stack( VFP func, void *arg, int stackno )
-{
-	(*func)( arg );
-
-	free_stack( stackno );
 }
 
 void

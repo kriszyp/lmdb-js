@@ -2,6 +2,8 @@
 
 #include "portable.h"
 
+#if defined( HAVE_LWP )
+
 #include <stdio.h>
 
 #include <ac/time.h>
@@ -9,8 +11,6 @@
 
 #include "lber.h"
 #include "ldap.h"
-
-#if defined( sunos4 )
 
 #include <lwp/lwp.h>
 #include <lwp/stackdep.h>
