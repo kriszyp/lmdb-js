@@ -765,7 +765,8 @@ static int parseProxyAuthz (
 	rc = slap_sasl_getdn( op->o_conn, op, &ctrl->ldctl_value,
 			NULL, &dn, SLAP_GETDN_AUTHZID );
 
-	if( rc != LDAP_SUCCESS || !dn.bv_len ) {
+	/* FIXME: empty DN in proxyAuthz control should be legal... */
+	if( rc != LDAP_SUCCESS /* || !dn.bv_len */ ) {
 		if ( dn.bv_val ) {
 			ch_free( dn.bv_val );
 		}
