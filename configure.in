@@ -394,7 +394,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		if test $ol_link_threads = no ; then
 			dnl try DEC Threads -lpthread -lexc
 			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_create, [
+			AC_CHECK_LIB(pthread, pthread_join, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lexc"
 				if test $ol_with_preemptive = auto ; then
@@ -407,7 +407,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		if test $ol_link_threads = no ; then
 			dnl try DEC Threads -lpthreads -lmach -lexc -lc_r
 			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_create, [
+			AC_CHECK_LIB(pthreads, pthread_join, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
 				if test $ol_with_preemptive = auto ; then
