@@ -22,7 +22,6 @@
 /* Pass-thru hash function. Since the indexer is already giving us hash
  * values as keys, we don't need BDB to re-hash them.
  */
-#if LUTIL_HASH_BYTES == 4
 static u_int32_t
 bdb_db_hash(
 	DB *db,
@@ -30,10 +29,19 @@ bdb_db_hash(
 	u_int32_t length
 )
 {
-	u_int32_t *ret = (u_int32_t *)bytes;
-	return *ret;
+	u_int32_t ret = 0;
+	unsigned char *dst = (unsigned char *)&ret;
+	const unsigned char *src = (const unsigned char *)bytes;
+
+	if ( length > sizeof(u_int32_t) )
+		length = sizeof(u_int32_t);
+
+	while ( length ) {
+		*dst++ = *src++;
+		length--;
+	}
+	return ret;
 }
-#endif
 
 int
 bdb_db_cache(
@@ -90,9 +98,7 @@ bdb_db_cache(
 	}
 
 	rc = db->bdi_db->set_pagesize( db->bdi_db, BDB_PAGESIZE );
-#if LUTIL_HASH_BYTES == 4
 	rc = db->bdi_db->set_h_hash( db->bdi_db, bdb_db_hash );
-#endif
 #ifdef BDB_IDL_MULTI
 	rc = db->bdi_db->set_flags( db->bdi_db, DB_DUP | DB_DUPSORT );
 	rc = db->bdi_db->set_dup_compare( db->bdi_db, bdb_bt_compare );
