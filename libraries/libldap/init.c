@@ -63,7 +63,7 @@ static const struct ol_attribute {
 	{ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
 	{ATTR_BOOL,		"DNS",			NULL,	LDAP_BOOL_DNS},
-  	{ATTR_BOOL,		"TLS",			NULL,	LDAP_OPT_X_TLS},
+  	{ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
 	{ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
 	{ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
   	{ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
@@ -294,7 +294,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 			break;
 		case ATTR_TLS:
 #ifdef HAVE_TLS
-		   	ldap_pvt_tls_config( attrs[i].offset, value );
+		   	ldap_pvt_tls_config( &gopts, attrs[i].offset, value );
 #endif			 	
 		   	break;
 		}
