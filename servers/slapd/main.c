@@ -99,9 +99,6 @@ usage( char *name )
 	fprintf( stderr,
 		"usage: %s options\n", name );
 	fprintf( stderr,
-#if LDAP_CONNECTIONLESS
-		"\t-c\t\tEnable (experimental) Connectionless LDAP\n"
-#endif
 		"\t-d level\tDebug Level" "\n"
 		"\t-f filename\tConfiguration File\n"
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
@@ -116,9 +113,6 @@ usage( char *name )
 		"\t-r directory\n"
 #endif
 		"\t-s level\tSyslog Level\n"
-#ifdef SLAPD_BDB2
-		"\t-t\t\tEnable BDB2 timing\n"
-#endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\tUser (id or name) to ran as\n"
 #endif
@@ -212,14 +206,8 @@ int main( int argc, char **argv )
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
-#ifdef SLAPD_BDB2
-			     "t"
-#endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 			     "u:g:"
-#endif
-#ifdef LDAP_CONNECTIONLESS
-				 "c"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -251,20 +239,6 @@ int main( int argc, char **argv )
 		case 'l':	/* set syslog local user */
 			syslogUser = cnvt_str2int( optarg,
 				syslog_types, DEFAULT_SYSLOG_USER );
-			break;
-#endif
-
-#ifdef LDAP_CONNECTIONLESS
-		case 'c':	/* do connectionless (udp) */
-			/* udp = 1; */
-			fprintf( stderr, "connectionless support not supported");
-			exit( EXIT_FAILURE );
-			break;
-#endif
-
-#ifdef SLAPD_BDB2
-		case 't':  /* timed server */
-			serverMode |= SLAP_TIMED_MODE;
 			break;
 #endif
 

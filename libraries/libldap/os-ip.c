@@ -300,8 +300,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 		memset( &hints, '\0', sizeof(hints) );
 		hints.ai_family = AF_UNSPEC;
-		hints.ai_socktype = proto == LDAP_PROTO_UDP
-			? SOCK_DGRAM : SOCK_STREAM;
+		hints.ai_socktype = SOCK_STREAM;
 
 		snprintf(serv, sizeof serv, "%d", ntohs(port));
 		if ( getaddrinfo(host, serv, &hints, &res) ) {
@@ -312,8 +311,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		rc = -1;
 		do {
 			/* we assume AF_x and PF_x are equal for all x */
-			s = ldap_int_socket( ld, sai->ai_family,
-				proto == LDAP_PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM );
+			s = ldap_int_socket( ld, sai->ai_family, SOCK_STREAM );
 			if ( s == -1 ) {
 				continue;
 			}
@@ -377,8 +375,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	rc = s = -1;
 	for ( i = 0; !use_hp || (hp->h_addr_list[i] != 0); ++i, rc = -1 ) {
 
-		s = ldap_int_socket( ld, PF_INET,
-			proto == LDAP_PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM );
+		s = ldap_int_socket( ld, PF_INET, SOCK_STREAM );
 		if ( s == -1 ) {
 			/* use_hp ? continue : break; */
 			break;

@@ -475,15 +475,9 @@ do_entry2text_search(
 
 	    ocattrs[0] = OCATTRNAME;
 	    ocattrs[1] = NULL;
-#ifdef LDAP_CONNECTIONLESS
-	    if ( LDAP_IS_CLDAP( ld ))
-		    err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE,
-			NULL, ocattrs, 0, &ldmp, NULL );
-	    else
-#endif /* LDAP_CONNECTIONLESS */
-		    err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE,
-			    NULL, ocattrs, 0, &timeout, &ldmp );
 
+		err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE,
+			NULL, ocattrs, 0, &timeout, &ldmp );
 	    if ( err == LDAP_SUCCESS ) {
 		entry = ldap_first_entry( ld, ldmp );
 	    }
@@ -509,12 +503,6 @@ do_entry2text_search(
 	fetchattrs = ldap_tmplattrs( tmpl, NULL, 1, LDAP_SYN_OPT_DEFER );
     }
 
-#ifdef LDAP_CONNECTIONLESS
-    if ( LDAP_IS_CLDAP( ld ))
-	err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE, NULL,
-		fetchattrs, 0, &ldmp, NULL );
-    else
-#endif /* LDAP_CONNECTIONLESS */
 	err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, NULL,
 		fetchattrs, 0, &timeout, &ldmp );
 
@@ -1078,12 +1066,6 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
     timeout.tv_sec = SEARCH_TIMEOUT_SECS;
     timeout.tv_usec = 0;
 
-#ifdef LDAP_CONNECTIONLESS
-    if ( LDAP_IS_CLDAP( ld ))
-	lderr = cldap_search_s( ld, base, LDAP_SCOPE_SUBTREE, filter, retattrs,
-		0, &ldmp, NULL );
-    else
-#endif /* LDAP_CONNECTIONLESS */
 	lderr = ldap_search_st( ld, base, LDAP_SCOPE_SUBTREE, filter, retattrs,
 		0, &timeout, &ldmp );
 

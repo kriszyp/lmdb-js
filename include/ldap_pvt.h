@@ -21,9 +21,9 @@
 
 LDAP_BEGIN_DECL
 
-#define LDAP_PROTO_TCP 1
-#define LDAP_PROTO_UDP 2
-#define LDAP_PROTO_IPC 3
+#define LDAP_PROTO_TCP 1 /* ldap://  */
+#define LDAP_PROTO_UDP 2 /* reserved */
+#define LDAP_PROTO_IPC 3 /* ldapi:// */
 
 LDAP_F ( int )
 ldap_pvt_url_scheme2proto LDAP_P((

@@ -44,9 +44,6 @@ int	query_cmd LDAP_P((struct msginfo *msgp, char *reply));
 extern struct command rcpt_cmds[];
 /* main.c */
 extern int dosyslog;
-#ifdef LDAP_CONNECTIONLESS
-extern int do_cldap;
-#endif
 extern int derefaliases;
 extern int sizelimit;
 extern int rdncount;

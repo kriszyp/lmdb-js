@@ -286,23 +286,11 @@ ldap_build_search_req(
 		}
 	}
 
-#ifdef LDAP_CONNECTIONLESS
-	if ( ld->ld_cldapnaddr > 0 ) {
-	    err = ber_printf( ber, "{ist{seeiib", ++ld->ld_msgid,
-			ld->ld_cldapdn, LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
-			(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
-			(timelimit < 0) ? ld->ld_timelimit : timelimit,
-			attrsonly );
-	} else {
-#endif /* LDAP_CONNECTIONLESS */
-		err = ber_printf( ber, "{it{seeiib", ++ld->ld_msgid,
-		    LDAP_REQ_SEARCH, base, (ber_int_t) scope, ld->ld_deref,
-			(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
-			(timelimit < 0) ? ld->ld_timelimit : timelimit,
-		    attrsonly );
-#ifdef LDAP_CONNECTIONLESS
-	}
-#endif /* LDAP_CONNECTIONLESS */
+	err = ber_printf( ber, "{it{seeiib", ++ld->ld_msgid,
+		LDAP_REQ_SEARCH, base, (ber_int_t) scope, ld->ld_deref,
+		(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
+		(timelimit < 0) ? ld->ld_timelimit : timelimit,
+		attrsonly );
 
 	if ( err == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;

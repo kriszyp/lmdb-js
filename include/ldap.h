@@ -1484,37 +1484,6 @@ ldap_free_friendlymap LDAP_P(( /* deprecated */
 
 
 /*
- * in cldap.c
- *	(deprecated)
- */
-LDAP_F( LDAP * )
-cldap_open LDAP_P((	/* deprecated */
-	LDAP_CONST char *host,
-	int port ));
-
-LDAP_F( void )
-cldap_close LDAP_P((	/* deprecated */
-	LDAP *ld ));
-
-LDAP_F( int )
-cldap_search_s LDAP_P(( /* deprecated */
-	LDAP *ld,
-	LDAP_CONST char *base,
-	int scope,
-	LDAP_CONST char *filter,
-	char **attrs,
-	int attrsonly,
-	LDAPMessage **res,
-	char *logdn ));
-
-LDAP_F( void )
-cldap_setretryinfo LDAP_P(( /* deprecated */
-	LDAP *ld,
-	int tries,
-	int timeout ));
-
-
-/*
  * in sort.c
  */
 typedef int (LDAP_SORT_AD_CMP_PROC) LDAP_P((

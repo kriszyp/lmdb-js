@@ -1013,12 +1013,6 @@ typedef struct slap_op {
 
 	unsigned long	o_connid; /* id of conn initiating this op  */
 
-#ifdef LDAP_CONNECTIONLESS
-	int		o_cldap;	/* != 0 if this came in via CLDAP */
-	struct sockaddr	o_clientaddr;	/* client address if via CLDAP	  */
-	char		o_searchbase;	/* search base if via CLDAP	  */
-#endif
-
 	ldap_pvt_thread_mutex_t	o_abandonmutex; /* protects o_abandon  */
 	int		o_abandon;	/* abandon flag */
 
