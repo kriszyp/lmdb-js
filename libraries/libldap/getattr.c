@@ -24,7 +24,8 @@
 char *
 ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 {
-	ber_tag_t rc;
+	int rc;
+	ber_tag_t tag;
 	ber_len_t len;
 	char *attr;
 	BerElement *ber;
@@ -35,6 +36,8 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 	assert( LDAP_VALID( ld ) );
 	assert( entry != NULL );
 	assert( berout != NULL );
+
+	*berout = NULL;
 
 	ber = ldap_alloc_ber_with_options( ld );
 	if( ber == NULL ) {
@@ -48,9 +51,8 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 	 * us at the first attribute.
 	 */
 
-	rc = ber_scanf( ber, "{xl{" /*}}*/, &attr, &len );
-
-	if( rc == LBER_ERROR ) {
+	tag = ber_scanf( ber, "{xl{" /*}}*/, &attr, &len );
+	if( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( ber, 0 );
 		return  NULL;
@@ -62,18 +64,19 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 	}
 #endif
 	
+#if 0
 	/* set the length to avoid overrun */
 	rc = ber_set_option( ber, LBER_OPT_REMAINING_BYTES, &len );
-
 	if( rc != LBER_OPT_SUCCESS ) {
 		ld->ld_errno = LDAP_LOCAL_ERROR;
 		ber_free( ber, 0 );
 		return NULL;
 	}
+#endif
 
 	/* snatch the first attribute */
-	rc = ber_scanf( ber, "{ax}", &attr );
-	if( rc == LBER_ERROR ) {
+	tag = ber_scanf( ber, "{ax}", &attr );
+	if( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		ber_free( ber, 0 );
 		return NULL;
@@ -87,7 +90,7 @@ ldap_first_attribute( LDAP *ld, LDAPMessage *entry, BerElement **berout )
 char *
 ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 {
-	ber_tag_t rc;
+	ber_tag_t tag;
 	char *attr;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_next_attribute\n", 0, 0, 0 );
@@ -104,8 +107,8 @@ ldap_next_attribute( LDAP *ld, LDAPMessage *entry, BerElement *ber )
 #endif
 
 	/* skip sequence, snarf attribute type, skip values */
-	rc = ber_scanf( ber, "{ax}", &attr ); 
-	if( rc == LBER_ERROR ) {
+	tag = ber_scanf( ber, "{ax}", &attr ); 
+	if( tag == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return NULL;
 	}
