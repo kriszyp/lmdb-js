@@ -410,12 +410,16 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			if ( unbind ) {
 				ldap_send_unbind( ld, lc->lconn_sb, NULL, NULL );
 			}
-			ldap_close_connection( lc->lconn_sb );
-		   	ber_pvt_sb_destroy( lc->lconn_sb );
-			if( lc->lconn_ber != NULL ) {
-				ber_free( lc->lconn_ber, 1 );
-			}
 		}
+
+		/* force closure */
+		ldap_close_connection( lc->lconn_sb );
+		ber_pvt_sb_destroy( lc->lconn_sb );
+
+		if( lc->lconn_ber != NULL ) {
+			ber_free( lc->lconn_ber, 1 );
+		}
+
 		prevlc = NULL;
 		for ( tmplc = ld->ld_conns; tmplc != NULL;
 		    tmplc = tmplc->lconn_next ) {
