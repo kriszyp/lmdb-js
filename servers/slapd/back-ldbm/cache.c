@@ -3,9 +3,10 @@
 #include "portable.h"
 
 #include <stdio.h>
-int strcasecmp( const char *, const char *);
 
+#include <ac/string.h>
 #include <ac/socket.h>
+
 #include "slap.h"
 
 #include "back-ldbm.h"

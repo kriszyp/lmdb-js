@@ -267,7 +267,7 @@ acl_access_allowed(
 			if ( strcasecmp( b->a_dnpat, "self" ) == 0 && 
 				op->o_ndn != NULL && *(op->o_ndn) && e->e_dn != NULL ) 
 			{
-				if ( strcasecmp( edn, op->o_ndn ) == 0 ) {
+				if ( strcmp( edn, op->o_ndn ) == 0 ) {
 					Debug( LDAP_DEBUG_ACL,
 					"<= acl_access_allowed: matched by clause #%d access %s\n",
 					    i, (b->a_access & ~ACL_SELF) >=

@@ -161,7 +161,7 @@ select_backend( char * dn )
 				continue;
 			}
 
-			if ( strcasecmp( backends[i].be_suffix[j],
+			if ( strcmp( backends[i].be_suffix[j],
 			    dn + (dnlen - len) ) == 0 ) {
 				return( &backends[i] );
 			}
@@ -181,7 +181,7 @@ select_backend( char * dn )
                                 continue;
                         }
 
-                        if ( strcasecmp( backends[i].be_suffixAlias[j],
+                        if ( strcmp( backends[i].be_suffixAlias[j],
                             dn + (dnlen - len) ) == 0 ) {
                                 return( &backends[i] );
                         }
@@ -214,7 +214,7 @@ be_issuffix(
 	int	i;
 
 	for ( i = 0; be->be_suffix != NULL && be->be_suffix[i] != NULL; i++ ) {
-		if ( strcasecmp( be->be_suffix[i], suffix ) == 0 ) {
+		if ( strcmp( be->be_suffix[i], suffix ) == 0 ) {
 			return( 1 );
 		}
 	}

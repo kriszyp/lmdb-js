@@ -229,7 +229,7 @@ dn_issuffix(
 		return( 0 );
 	}
 
-	return( strcasecmp( dn + dnlen - suffixlen, suffix ) == 0 );
+	return( strcmp( dn + dnlen - suffixlen, suffix ) == 0 );
 }
 
 /*
