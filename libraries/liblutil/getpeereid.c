@@ -58,9 +58,12 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 	}
 #elif defined( DO_SENDMSG )
 	int dummy, fd[2];
-	struct iovec iov = {(char *)&dummy, 1};
+	struct iovec iov;
 	struct msghdr msg = {0};
 	struct stat st;
+
+	iov.iov_base = (char*) &dummy;
+	iov.iov_len = 1;
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 	msg.msg_accrights = (char *)fd;
