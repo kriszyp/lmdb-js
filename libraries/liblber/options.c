@@ -11,6 +11,7 @@
 #include "lber-int.h"
 
 extern void * ber_pvt_err_file;	/* bprint.c */
+extern BER_LOG_FN ber_int_log_proc;
 
 struct lber_options ber_int_options = {
 	LBER_UNINITIALIZED, 0, 0 };
@@ -50,6 +51,9 @@ ber_get_option(
 #else
 			return LBER_OPT_ERROR;
 #endif
+		} else if(option == LBER_OPT_LOG_PRINT_FILE) {
+			*((FILE**)outvalue) = (FILE*)ber_pvt_err_file;
+			return LBER_OPT_SUCCESS;
 		}
 
 		ber_errno = LBER_ERROR_PARAM;
@@ -166,6 +170,8 @@ ber_set_option(
 #else
 			return LBER_OPT_ERROR;
 #endif
+		} else if(option == LBER_OPT_LOG_PROC) {
+			ber_int_log_proc = (BER_LOG_FN)invalue;
 		}
 
 		ber_errno = LBER_ERROR_PARAM;

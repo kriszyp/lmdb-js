@@ -494,6 +494,8 @@ ber_scanf ( BerElement *ber,
 
 	fmt_reset = fmt;
 
+	LDAP_LOG( "LIBLBER", LDAP_LEVEL_ENTRY, "ber_scanf fmt (%s) ber:\n", fmt );
+
 	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
 		"ber_scanf fmt (%s) ber:\n", fmt );
 	ber_log_dump( LDAP_DEBUG_BER, ber->ber_debug, ber, 1 );

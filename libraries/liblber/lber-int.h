@@ -33,6 +33,8 @@ struct lber_options {
 	long		lbo_meminuse;
 };
 
+#define LDAP_LOG ber_pvt_log_output
+
 #define LBER_UNINITIALIZED		0x0
 #define LBER_INITIALIZED		0x1
 #define LBER_VALID_BERELEMENT	0x2
