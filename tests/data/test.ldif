@@ -55,7 +55,7 @@ dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
 objectclass: OpenLDAPperson
 cn: Barbara Jensen
 cn: Babs Jensen
-sn: Jensen
+sn:: IEplbnNlbiA=
 uid: bjensen
 title: Mythical Manager, Research Systems
 postaladdress: ITD Prod Dev & Deployment $ 535 W. William St. Room 4212 $ Ann 
