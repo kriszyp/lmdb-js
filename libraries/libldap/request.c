@@ -575,13 +575,14 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
  *  (IN) lr = LDAP Request structure
  *  (IN) refs = array of pointers to referral strings that we will chase
  *              The array will be free'd by this function when no longer needed
+ *  (IN) sref != 0 if following search reference
  *  (OUT) errstrp = Place to return a string of referrals which could not be followed
  *  (OUT) hadrefp = 1 if sucessfully followed referral
  *
  * Return value - number of referrals followed
  */
 int
-ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **errstrp, int *hadrefp )
+ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char **errstrp, int *hadrefp )
 {
 	char		*unfollowed;
 	int			 unfollowedcnt = 0;
@@ -687,6 +688,11 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **errstrp, 
 		 * Note: In the future we also need to replace the filter if one
 		 * was provided with the search reference
 		 */
+
+		/* For references we don't want old dn if new dn empty */
+		if ( sref && srv->lud_dn == NULL )
+			srv->lud_dn = LDAP_STRDUP( "" );
+
 		if (( ber = re_encode_request( ld, origreq->lr_ber,
 			    ++ld->ld_msgid, &srv->lud_dn, &rinfo.ri_request )) == NULL ) {
 			ld->ld_errno = LDAP_ENCODING_ERROR;

@@ -440,7 +440,7 @@ LDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbin
 LDAP_F (void) ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
 LDAP_F (void) ldap_dump_requests_and_responses( LDAP *ld );
 LDAP_F (int) ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp );
-LDAP_F (int) ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **referralsp, int *hadrefp );
+LDAP_F (int) ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char **referralsp, int *hadrefp );
 LDAP_F (int) ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 
 /*

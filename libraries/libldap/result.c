@@ -431,7 +431,7 @@ try_read1msg(
 				} else {
 					/* Note: refs arrary is freed by ldap_chase_v3referrals */
 					refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
-					    &lr->lr_res_error, &hadref );
+					    1, &lr->lr_res_error, &hadref );
 					if ( refer_cnt > 0 ) {	/* sucessfully chased reference */
 						/* If haven't got end search, set chasing referrals */
 						if( lr->lr_status != LDAP_REQST_COMPLETED) {
@@ -470,7 +470,7 @@ try_read1msg(
 							 * Note: refs arrary is freed by ldap_chase_v3referrals
 							 */
 							refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
-							    &lr->lr_res_error, &hadref );
+							    0, &lr->lr_res_error, &hadref );
 							lr->lr_status = LDAP_REQST_COMPLETED;
 							Debug( LDAP_DEBUG_TRACE,
 							    "read1msg:  referral chased, mark request completed, id = %d\n",
