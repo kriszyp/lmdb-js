@@ -1177,11 +1177,8 @@ LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
 
 LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
-LDAP_SLAPD_F (void) init_syncrepl LDAP_P(());
+LDAP_SLAPD_F (void) init_syncrepl LDAP_P((syncinfo_t *));
 LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
-LDAP_SLAPD_F (int) ldap_sync_search LDAP_P((
-					syncinfo_t *, LDAP *, LDAPControl **,
-					LDAPControl **, int *));
 LDAP_SLAPD_F (Entry*) syncrepl_message_to_entry LDAP_P((
 					syncinfo_t *, LDAP *, Operation *, LDAPMessage *,
 					Modifications **, int*, struct berval *, struct berval * ));

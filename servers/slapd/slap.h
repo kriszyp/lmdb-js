@@ -1318,8 +1318,8 @@ typedef struct syncinfo_s {
         char			*srvtab;
 		int				schemachecking;
         Filter			*filter;
-        char			*filterstr;
-        char			*base;
+        struct berval		filterstr;
+        struct berval		base;
         int				scope;
         int				attrsonly;
         char			**attrs;
@@ -1987,7 +1987,6 @@ typedef struct slap_op {
 
 	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
-	syncinfo_t*	o_si;
 	int o_nocaching;
 
 #ifdef LDAP_SLAPI
