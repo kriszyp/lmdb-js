@@ -10,9 +10,6 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include "lber.h"
-#include "ldap.h"
-#include "disptmpl.h"
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -30,12 +27,17 @@
 #ifdef aix
 #include <sys/select.h>
 #endif /* aix */
-#include "portable.h"
-#include "ldapconfig.h"
 
 #ifdef USE_SYSCONF
 #include <unistd.h>
 #endif /* USE_SYSCONF */
+
+#include "lber.h"
+#include "ldap.h"
+#include "disptmpl.h"
+
+#include "portable.h"
+#include "ldapconfig.h"
 
 int	debug;
 int	dosyslog;
@@ -155,6 +157,14 @@ char	**argv;
 #else /* USE_SYSCONF */
 	dtblsize = getdtablesize();
 #endif /* USE_SYSCONF */
+
+#ifdef FD_SETSIZE
+	if ( dtblsize > FD_SETSIZE ) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
+
+
 
 #ifdef GO500GW_HOSTNAME
 	strcpy( myhost, GO500GW_HOSTNAME );
@@ -766,15 +776,16 @@ char	*query;
 
 		e = ldap_first_entry( ld, res );
 		oc = ldap_get_values( ld, e, "objectClass" );
-		if ( isnonleaf( ld, oc, dn ) ) {
-			dn = ldap_get_dn( ld, e );
+		dn = ldap_get_dn( ld, e );
 
+		if ( isnonleaf( ld, oc, dn ) ) {
 			rc = do_menu( ld, fp, dn );
 
 			free( dn );
 			return( rc );
 		}
 
+		free( dn );
 		ldap_value_free( oc );
 	}
 

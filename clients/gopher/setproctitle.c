@@ -21,6 +21,7 @@ int	Argc;		/* original argc */
 /* VARARGS */
 setproctitle( fmt, a, b, c )
 char *fmt;
+char *a, *b, *c;
 {
 	static char *endargv = (char *)0;
 	char	*s;
