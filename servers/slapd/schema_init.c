@@ -4103,8 +4103,11 @@ struct syntax_defs_rec syntax_defs[] = {
 
 #ifdef HAVE_TLS
 	/* From PKIX */
-	/* These OIDs are not published yet, but have been assigned */
-	{"( 1.3.6.1.4.1.1466.115.121.1.9999 DESC 'Serial Number and Issuer' )",
+	/* These OIDs are not published yet, but will be in the next
+	 * I-D for PKIX LDAPv3 schema as have been advanced by David
+	 * Chadwick in private mail.
+	 */
+	{"( 1.2.826.0.1.3344810.7.1 DESC 'Serial Number and Issuer' )",
 		0, NULL, NULL, NULL},
 #endif
 
@@ -4373,7 +4376,7 @@ struct mrule_defs_rec mrule_defs[] = {
 
 #ifdef HAVE_TLS
 	{"( 2.5.13.34 NAME 'certificateExactMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.9999 )",
+		"SYNTAX 1.2.826.0.1.3344810.7.1 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
 		certificateExactMatch, NULL, NULL,
