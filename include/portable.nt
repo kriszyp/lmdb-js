@@ -22,7 +22,6 @@
 #define OPENLDAP_PACKAGE "OpenLDAP"
 #define OPENLDAP_VERSION "-devel"
 #define EXEEXT ".exe"
-#define LDAP_DIRSEP "\\"
 
 /* don't suck in all of the win32 api */
 #define WIN32_LEAN_AND_MEAN
@@ -49,7 +48,6 @@
 
 #define strcasecmp	stricmp
 #define strncasecmp	strnicmp
-#define strdup		_strdup
 
 #define	snprintf	_snprintf
 #define vsnprintf	_vsnprintf
@@ -63,8 +61,6 @@ typedef char * caddr_t;
 #define LOG_DEBUG 0
 #define openlog( a, b )
 #define closelog()
-
-#define FD_SETSIZE 1024
 
 /* we have NT threads */
 #ifdef _MT
@@ -96,9 +92,6 @@ typedef char * caddr_t;
 
 /* we have <wincrypt.h> */
 #define HAVE_WINCRYPT_H 1
-
-#define LDAP_SIGUSR1	SIGILL
-#define LDAP_SIGUSR2	SIGTERM
 
 #define MAXPATHLEN _MAX_PATH
 
@@ -406,11 +399,11 @@ typedef char * caddr_t;
 /* Define if you have the sigset function.  */
 /* #undef HAVE_SIGSET */
 
-/* Define if you have the snprintf function.  */
-/* #undef HAVE_SNPRINTF */
-
 /* Define if you have the socket function.  */
 #define HAVE_SOCKET 1
+
+/* Define if you have the snprintf function.  */
+#define HAVE_SNPRINTF 1
 
 /* Define if you have the strdup function.  */
 #define HAVE_STRDUP 1
@@ -530,7 +523,7 @@ typedef char * caddr_t;
 #define HAVE_MALLOC_H 1
 
 /* Define if you have the <memory.h> header file.  */
-/* #define HAVE_MEMORY_H */
+#define HAVE_MEMORY_H 1
 
 /* Define if you have the <ncurses.h> header file.  */
 /* #undef HAVE_NCURSES_H */
