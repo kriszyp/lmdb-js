@@ -453,6 +453,7 @@ done:
 #endif
 		e->e_id = NOID;
 	}
+	bdb_entry_release( &op, e, 0 );
 
 	return rc;
 }
