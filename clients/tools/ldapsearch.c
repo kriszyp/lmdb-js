@@ -583,7 +583,8 @@ main( int argc, char **argv )
 	}
 
 	if (( argc - optind < 1 ) ||
-		( strchr( argv[optind], '=' ) == NULL ) )
+		( *argv[optind] != '(' /*')'*/ &&
+		( strchr( argv[optind], '=' ) == NULL ) ) )
 	{
 		filtpattern = "(objectclass=*)";
 	} else {
