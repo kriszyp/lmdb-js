@@ -119,8 +119,7 @@ meta_back_search(
 	LDAPMessage	*res, *e;
 	int	count, rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
 	char *match = NULL, *err = NULL;
-	char *mbase = NULL, *mmatch = NULL, 
-		*mapped_filter = NULL, **mapped_attrs = NULL;
+	char *mbase = NULL, *mmatch = NULL;
 	struct berval mfilter;
 		
 	int i, last = 0, candidates = 0, op_type;
@@ -195,9 +194,10 @@ meta_back_search(
 	 * Inits searches
 	 */
 	for ( i = 0, lsc = lc->conns; lsc[ 0 ] != NULL; ++i, ++lsc ) {
-		char *realbase = ( char * )base->bv_val;
-		int realscope = scope;
-		int suffixlen;
+		char 	*realbase = ( char * )base->bv_val;
+		int 	realscope = scope;
+		int 	suffixlen;
+		char	*mapped_filter, **mapped_attrs;
 		
 		if ( lsc[ 0 ]->candidate != META_CANDIDATE ) {
 			continue;
@@ -346,7 +346,11 @@ meta_back_search(
 				&li->targets[ i ]->oc_map, &mfilter, 0 );
 		if ( mapped_filter == NULL ) {
 			mapped_filter = ( char * )mfilter.bv_val;
+		} else {
+			ber_memfree( mfilter.bv_val );
 		}
+		mfilter.bv_val = NULL;
+		mfilter.bv_len = 0;
 	
 		/*
 		 * Maps required attributes
@@ -354,11 +358,10 @@ meta_back_search(
 		mapped_attrs = ldap_back_map_attrs( &li->targets[ i ]->at_map,
 				attrs, 0 );
 		if ( mapped_attrs == NULL && attrs) {
-			AttributeName *an;
-			for ( count=0, an=attrs; an->an_name.bv_val; an++, count++ );
+			for ( count=0; attrs[ count ].an_name.bv_val; count++ );
 			mapped_attrs = ch_malloc( ( count + 1 ) * sizeof(char *));
-			for ( count=0, an=attrs; an->an_name.bv_val; an++, count++ ) {
-				mapped_attrs[ count ] = an->an_name.bv_val;
+			for ( count=0; attrs[ count ].an_name.bv_val; count++ ) {
+				mapped_attrs[ count ] = attrs[ count ].an_name.bv_val;
 			}
 			mapped_attrs[ count ] = NULL;
 		}
@@ -367,7 +370,7 @@ meta_back_search(
 		 * Starts the search
 		 */
 		msgid[ i ] = ldap_search( lsc[ 0 ]->ld, mbase, realscope,
-				mapped_filter, mapped_attrs, attrsonly); 
+				mapped_filter, mapped_attrs, attrsonly ); 
 		if ( msgid[ i ] == -1 ) {
 			lsc[ 0 ]->candidate = META_NOT_CANDIDATE;
 			continue;
@@ -377,14 +380,9 @@ meta_back_search(
 			free( mapped_attrs );
 			mapped_attrs = NULL;
 		}
-		if ( mapped_filter != mfilter.bv_val ) {
+		if ( mapped_filter != filterstr->bv_val ) {
 			free( mapped_filter );
 			mapped_filter = NULL;
-		}
-		if ( mfilter.bv_val != filterstr->bv_val ) {
-			free( mfilter.bv_val );
-			mfilter.bv_val = NULL;
-			mfilter.bv_len = 0;
 		}
 		if ( mbase != realbase ) {
 			free( mbase );
@@ -590,7 +588,7 @@ meta_send_entry(
 	struct berval 		*bv, bdn;
 	const char 		*text;
 
-	if ( ber_scanf( &ber, "{o", &bdn ) == LBER_ERROR ) {
+	if ( ber_scanf( &ber, "{o{", &bdn ) == LBER_ERROR ) {
 		return;
 	}
 
@@ -640,7 +638,7 @@ meta_send_entry(
 	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
-	while ( ber_scanf( &ber, "{{o", &a ) != LBER_ERROR ) {
+	while ( ber_scanf( &ber, "{o", &a ) != LBER_ERROR ) {
 		ldap_back_map( &li->targets[ target ]->at_map, 
 				&a, &mapped, 1 );
 		if ( mapped.bv_val == NULL ) {
@@ -675,19 +673,19 @@ meta_send_entry(
 		} else if ( strcasecmp( mapped.bv_val, "objectClass" ) == 0 ) {
 			int i, last;
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
-			for ( i = 0; ( bv = &attr->a_vals[ i ] ); i++ ) {
+			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map( &li->targets[ target]->oc_map,
 						bv, &mapped, 1 );
 				if ( mapped.bv_val == NULL ) {
-					free( attr->a_vals[ i ].bv_val );
-					attr->a_vals[ i ].bv_val = NULL;
+					free( bv->bv_val );
+					bv->bv_val = NULL;
 					if ( --last < 0 ) {
 						break;
 					}
-					attr->a_vals[ i ] = 
-						attr->a_vals[ last ];
+					*bv = attr->a_vals[ last ];
 					attr->a_vals[ last ].bv_val = NULL;
-					--i;
+					i--;
+
 				} else if ( mapped.bv_val != bv->bv_val ) {
 					ch_free( bv->bv_val );
 					ber_dupbv( bv, &mapped );
@@ -707,7 +705,7 @@ meta_send_entry(
 		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
 			int i;
-			for ( i = 0; ( bv = &attr->a_vals[ i ] ); i++ ) {
+			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				char *newval;
 
 				switch ( rewrite_session( li->targets[ target ]->rwinfo,
