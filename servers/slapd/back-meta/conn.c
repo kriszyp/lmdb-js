@@ -228,6 +228,7 @@ init_one_conn(
 		)
 {
 	int		vers;
+	dncookie	dc;
 
 	/*
 	 * Already init'ed
@@ -262,51 +263,16 @@ init_one_conn(
 	 * If the connection dn is not null, an attempt to rewrite it is made
 	 */
 	if ( op->o_conn->c_dn.bv_len != 0 ) {
+		dc.rwmap = &lt->rwmap;
+		dc.conn = op->o_conn;
+		dc.rs = rs;
+		dc.ctx = "bindDn";
 		
 		/*
 		 * Rewrite the bind dn if needed
 		 */
-		lsc->bound_dn.bv_val = NULL;
-		switch ( rewrite_session( lt->rwmap.rwm_rw, "bindDn",
-					op->o_conn->c_dn.bv_val, op->o_conn, 
-					&lsc->bound_dn.bv_val ) ) {
-		case REWRITE_REGEXEC_OK:
-			if ( lsc->bound_dn.bv_val == NULL ) {
-				ber_dupbv( &lsc->bound_dn, &op->o_conn->c_dn );
-			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n",
-				op->o_conn->c_dn.bv_val,
-				lsc->bound_dn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS,
-				       	"rw> bindDn: \"%s\" -> \"%s\"\n",
-					op->o_conn->c_dn.bv_val,
-					lsc->bound_dn.bv_val, 0 );
-#endif /* !NEW_LOGGING */
-			break;
-			
-		case REWRITE_REGEXEC_UNWILLING:
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			rs->sr_text = "Operation not allowed";
-#if 0
-			send_ldap_result( conn, op,
-					LDAP_UNWILLING_TO_PERFORM,
-					NULL, "Operation not allowed",
-					NULL, NULL );
-#endif
-			return rs->sr_err;
-			
-		case REWRITE_REGEXEC_ERR:
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "Rewrite error";
-#if 0
-			send_ldap_result( conn, op,
-					LDAP_OTHER,
-					NULL, "Rewrite error",
-					NULL, NULL );
-#endif
+		if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn, &lsc->bound_dn) ) {
+			send_ldap_result( op, rs );
 			return rs->sr_err;
 		}
 

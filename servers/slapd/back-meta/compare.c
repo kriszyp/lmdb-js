@@ -83,7 +83,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	struct metasingleconn *lsc;
 	char *match = NULL, *err = NULL;
 	struct berval mmatch = { 0, NULL };
-	int candidates = 0, last = 0, i, count, rc;
+	int candidates = 0, last = 0, i, count = 0, rc;
        	int cres = LDAP_SUCCESS, rres = LDAP_SUCCESS;
 	int *msgid;
 	dncookie dc;

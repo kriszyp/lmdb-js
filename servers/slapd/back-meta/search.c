@@ -104,8 +104,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 	struct timeval	tv = { 0, 0 };
 	LDAPMessage	*res, *e;
 	int	rc = 0, *msgid, sres = LDAP_NO_SUCH_OBJECT;
-	char *match = NULL, *err = NULL;
-	char *mmatch = NULL;
+	char *err = NULL;
+	struct berval match = { 0, NULL }, mmatch = { 0, NULL };
 	BerVarray v2refs = NULL;
 		
 	int i, last = 0, candidates = 0;
@@ -513,22 +513,22 @@ new_candidate:;
 				}
 				ldap_get_option( lsc->ld,
 						LDAP_OPT_ERROR_STRING, &err );
-				if ( match != NULL ) {
-					free( match );
+				if ( match.bv_val != NULL ) {
+					free( match.bv_val );
 				}
 				ldap_get_option( lsc->ld,
-						LDAP_OPT_MATCHED_DN, &match );
+						LDAP_OPT_MATCHED_DN, &match.bv_val );
 
 #ifdef NEW_LOGGING
 				LDAP_LOG( BACK_META, ERR,
 					"meta_back_search [%d] "
 					"match=\"%s\" err=\"%s\"\n",
-					i, match, err );
+					i, match.bv_val, err );
 #else /* !NEW_LOGGING */
 				Debug( LDAP_DEBUG_ANY,
 					"=>meta_back_search [%d] "
 					"match=\"%s\" err=\"%s\"\n",
-     					i, match, err );	
+     					i, match.bv_val, err );	
 #endif /* !NEW_LOGGING */
 				
 				last = i;
@@ -570,31 +570,12 @@ new_candidate:;
 	 * 
 	 * FIXME: only the last one gets caught!
 	 */
-	if ( match != NULL ) {
-		switch ( rewrite_session( li->targets[ last ]->rwmap.rwm_rw,
-					"matchedDn", match, op->o_conn,
-					&mmatch ) ) {
-		case REWRITE_REGEXEC_OK:
-			if ( mmatch == NULL ) {
-				mmatch = ( char * )match;
-			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] matchedDn: \"%s\" -> \"%s\"\n",
-				match, mmatch, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS,
-				"rw> matchedDn: \"%s\" -> \"%s\"\n",
-				match, mmatch, 0 );
-#endif /* !NEW_LOGGING */
-			break;
-			
-		case REWRITE_REGEXEC_UNWILLING:
-			
-		case REWRITE_REGEXEC_ERR:
-			/* FIXME: no error, but no matched ... */
-			mmatch = NULL;
-			break;
+	if ( match.bv_val != NULL && *match.bv_val ) {
+		dc.ctx = "matchedDn";
+		dc.rwmap = &li->targets[ last ]->rwmap;
+
+		if ( ldap_back_dn_massage( &dc, &match, &mmatch ) ) {
+			mmatch.bv_val = NULL;
 		}
 	}
 
@@ -609,7 +590,7 @@ new_candidate:;
 		sres = LDAP_REFERRAL;
 	}
 	rs->sr_err = sres;
-	rs->sr_matched = mmatch;
+	rs->sr_matched = mmatch.bv_val;
 	rs->sr_v2ref = v2refs;
 	send_ldap_result( op, rs );
 	rs->sr_matched = NULL;
@@ -617,11 +598,11 @@ new_candidate:;
 
 
 finish:;
-	if ( match ) {
-		if ( mmatch != match ) {
-			free( mmatch );
+	if ( match.bv_val ) {
+		if ( mmatch.bv_val != match.bv_val ) {
+			free( mmatch.bv_val );
 		}
-		free(match);
+		free( match.bv_val );
 	}
 	
 	if ( err ) {
@@ -695,6 +676,7 @@ meta_send_entry(
 	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
+	dc.ctx = "searchAttrDN";
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		ldap_back_map( &li->targets[ target ]->rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
@@ -727,6 +709,16 @@ meta_send_entry(
 
 		/* no subschemaSubentry */
 		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
+
+			/* 
+			 * We eat target's subschemaSubentry because
+			 * a search for this value is likely not
+			 * to resolve to the appropriate backend;
+			 * later, the local subschemaSubentry is
+			 * added.
+			 */
+			( void )ber_scanf( &ber, "x" /* [W] */ );
+
 			ch_free(attr);
 			continue;
 		}
@@ -770,61 +762,9 @@ meta_send_entry(
 		 * ACLs to the target directory server, and letting
 		 * everything pass thru the ldap backend.
 		 */
-		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
-			int		last;
-
-			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
-
-			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
-				char *newval;
-
-				switch ( rewrite_session( li->targets[ target ]->rwmap.rwm_rw,
-							"searchResult",
-							bv->bv_val,
-							lc->conn, &newval )) {
-				case REWRITE_REGEXEC_OK:
-					/* left as is */
-					if ( newval == NULL ) {
-						break;
-					}
-#ifdef NEW_LOGGING
-					LDAP_LOG( BACK_META, DETAIL1,
-						"[rw] searchResult on attr=%s: \"%s\" -> \"%s\"\n",
-						attr->a_desc->ad_type->sat_cname.bv_val,
-						bv->bv_val, newval );
-#else /* !NEW_LOGGING */
-					Debug( LDAP_DEBUG_ARGS,
-						"rw> searchResult on attr=%s:"
-						" \"%s\" -> \"%s\"\n",
-					attr->a_desc->ad_type->sat_cname.bv_val,
-						bv->bv_val, newval );
-#endif /* !NEW_LOGGING */
-					free( bv->bv_val );
-					bv->bv_val = newval;
-					bv->bv_len = strlen( newval );
-
-					break;
-
-				case REWRITE_REGEXEC_UNWILLING:
-					LBER_FREE(bv->bv_val);
-					bv->bv_val = NULL;
-					if (--last < 0)
-						goto next_attr;
-					*bv = attr->a_vals[last];
-					attr->a_vals[last].bv_val = NULL;
-					bv--;
-					break;
-
-				case REWRITE_REGEXEC_ERR:
-					/*
-					 * FIXME: better give up,
-					 * skip the attribute
-					 * or leave it untouched?
-					 */
-					break;
-				}
-			}
+		} else if ( attr->a_desc->ad_type->sat_syntax ==
+				slap_schema.si_syn_distinguishedName ) {
+			ldap_dnattr_result_rewrite( &dc, attr->a_vals );
 		}
 next_attr:;
 
