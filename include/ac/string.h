@@ -26,11 +26,6 @@
 #		include <memory.h>
 #	endif
 
-	/* we should actually create <ac/stdlib.h> */
-#	ifdef HAVE_MALLOC_H
-#		include <malloc.h>
-#	endif
-
 #	ifndef HAVE_STRRCHR
 #		undef strchr
 #		define strchr index
@@ -76,6 +71,5 @@ extern int (strncasecmp)();
 #		define SAFEMEMCPY( d, s, n )	memcpy((d), (s), (n))
 #	endif
 #endif
-
 
 #endif /* _AC_STRING_H */
