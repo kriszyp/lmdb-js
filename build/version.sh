@@ -31,6 +31,7 @@ else
 fi
 
 ol_string="${ol_package} ${ol_version}-${ol_type}"
+ol_api_lib_version="${ol_api_current}:${ol_api_revision}:${ol_api_age}"
 
 echo OL_PACKAGE=\"${ol_package}\"
 echo OL_MAJOR=$ol_major
