@@ -41,8 +41,6 @@
 #include "ldap_defaults.h"
 
 /* local macros */
-#define CEILING(x)	((double)(x) > (int)(x) ? (int)(x) + 1 : (int)(x))
-
 #define LDAP_PASSWD_ATTRIB "userPassword"
 #define LDAP_PASSWD_CONF   LDAP_SYSCONFDIR LDAP_DIRSEP "passwd.conf"
 
@@ -107,8 +105,10 @@ pw_encode (unsigned char *passwd, Salt * salt, unsigned int len)
 		len += salt->len;
 	}
 
-	b64_len = CEILING (len / 3) * 4 + 1;
+	b64_len = LUTIL_BASE64_ENCODE_LEN(len) + 1;
+
 	base64digest = (char *)malloc (b64_len);
+
 	if (lutil_b64_ntop (npasswd, len, base64digest, b64_len) < 0)
 	{
 		free (base64digest);

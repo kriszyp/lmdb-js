@@ -19,6 +19,12 @@
  * Include file for LDAP utility routine
  */
 
+/* n octets encode into ceiling(n/3) * 4 bytes */
+/* Avoid floating point math by through extra padding */
+
+#define LUTIL_BASE64_ENCODE_LEN(n)	((n)/3 * 4 + 4)
+#define LUTIL_BASE64_DECODE_LEN(n)	((n)/4 * 3)
+
 LDAP_BEGIN_DECL
 
 /* ISC Base64 Routines */

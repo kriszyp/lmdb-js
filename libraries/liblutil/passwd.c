@@ -109,7 +109,7 @@ lutil_passwd(
 	if ((p = passwd_scheme( passwd, "{MD5}", schemes )) != NULL ) {
 		lutil_MD5_CTX MD5context;
 		unsigned char MD5digest[16];
-		char base64digest[25];  /* ceiling(sizeof(input)/3) * 4 + 1 */
+		char base64digest[LUTIL_BASE64_ENCODE_LEN(16)]; 
 
 		lutil_MD5Init(&MD5context);
 		lutil_MD5Update(&MD5context,
@@ -127,7 +127,7 @@ lutil_passwd(
 	} else if ((p = passwd_scheme( passwd, "{SHA}", schemes )) != NULL ) {
 		lutil_SHA1_CTX SHA1context;
 		unsigned char SHA1digest[20];
-		char base64digest[29];  /* ceiling(sizeof(input)/3) * 4 + 1 */
+		char base64digest[LUTIL_BASE64_ENCODE_LEN(20)]; 
 
 		lutil_SHA1Init(&SHA1context);
 		lutil_SHA1Update(&SHA1context,
@@ -150,7 +150,8 @@ lutil_passwd(
 		unsigned char *orig_pass = NULL;
  
 		/* base64 un-encode password */
-		orig_pass = (unsigned char *)malloc((size_t)(pw_len * 0.75 + 1));
+		orig_pass = (unsigned char *) malloc( (size_t) (
+			LUTIL_BASE64_DECODE_LEN(pw_len) + 1) );
 		if ((rc = lutil_b64_pton(p, orig_pass, pw_len)) < 0)
 		{
 			free(orig_pass);
@@ -179,7 +180,8 @@ lutil_passwd(
 		unsigned char *orig_pass = NULL;
 
 		/* base64 un-encode password */
-		orig_pass = (unsigned char *)malloc((size_t)(pw_len * 0.75 + 1));
+		orig_pass = (unsigned char *) malloc( (size_t) (
+			LUTIL_BASE64_DECODE_LEN(pw_len) + 1) );
 		if ((rc = lutil_b64_pton(p, orig_pass, pw_len)) < 0)
 		{
 			free(orig_pass);
