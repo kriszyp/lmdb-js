@@ -49,6 +49,7 @@ usage(const char *s)
 "	-v\t\tverbose mode\n"
 "	-w passwd\tbind password (for simple authentication)\n"
 "	-W\t\tprompt for bind password\n"
+"	-x\t\tSimple authentication\n"
 "	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
 "	-Y mech\t\tSASL mechanism\n"
 "	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
@@ -216,6 +217,14 @@ main( int argc, char *argv[] )
 				"support\n", argv[0] );
 			return( EXIT_FAILURE );
 #endif
+			break;
+		case 'x':
+			if( authmethod != -1 && authmethod != LDAP_AUTH_SIMPLE ) {
+				fprintf( stderr, "%s: incompatible with previous "
+					"authentication choice\n", prog );
+				return EXIT_FAILURE;
+			}
+			authmethod = LDAP_AUTH_SIMPLE;
 			break;
 		case 'X':
 #ifdef HAVE_CYRUS_SASL
