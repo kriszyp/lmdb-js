@@ -35,13 +35,30 @@
 #include "ldap_queue.h"
 
 LDAP_BEGIN_DECL
-
-#define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
-#define SLAPD_ANONYMOUS "cn=anonymous"
+/*
+ * SLAPD Memory allocation macros
+ *
+ * Unlike ch_*() routines, these routines do not assert() upon
+ * allocation error.  They are intended to be used instead of
+ * ch_*() routines where the caller has implemented proper
+ * checking for and handling of allocation errors.
+ *
+ * Patches to convert ch_*() calls to SLAP_*() calls welcomed.
+ */
+#define SLAP_MALLOC(s)      ber_memalloc((s))
+#define SLAP_CALLOC(n,s)    ber_memcalloc((n),(s))
+#define SLAP_REALLOC(p,s)   ber_memrealloc((p),(s))
+#define SLAP_FREE(p)        ber_memfree((p))
+#define SLAP_VFREE(v)       ber_memvfree((void**)(v))
+#define SLAP_STRDUP(s)      ber_strdup((s))
+#define SLAP_STRNDUP(s,l)   ber_strndup((s),(l))
 
 #ifdef f_next
 #undef f_next /* name conflict between sys/file.h on SCO and struct filter */
 #endif
+
+#define SERVICE_NAME  OPENLDAP_PACKAGE "-slapd"
+#define SLAPD_ANONYMOUS "cn=anonymous"
 
 /* LDAPMod.mod_op value ===> Must be kept in sync with ldap.h!
  *
