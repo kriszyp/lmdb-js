@@ -15,7 +15,7 @@
 #define _LDBM_H_
 
 #include <ldap_cdefs.h>
-#include <string.h>
+#include <ac/string.h>
 
 /* dummy DB_ENV for non Berkeley DB */
 #if !defined( LDBM_USE_DBBTREE ) && !defined( LDBM_USE_DBHASH )
