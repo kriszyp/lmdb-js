@@ -124,9 +124,9 @@ see if an attribute is present in an entry and are not interested in the
 specific values.
 .TP
 .B \-L
-Display search results in
-.BR ldif (5)
-format.  A second -L disables comments. A third -L disables
+Display search results in LDAP Data Interchange Format detailed in
+.BR ldif (5).
+A second -L disables comments. A third -L disables
 printing of the LDIF version.
 The default is -L.
 .TP
@@ -264,7 +264,7 @@ Issue StartTLS (Transport Layer Security) extended operation. If you use
 , the command will require the operation to be successful.
 .SH OUTPUT FORMAT
 If one or more entries are found, each entry is written to standard
-output in LDAP Interchange Data Format or
+output in LDAP Data Interchange Format or
 .BR ldif (5):
 .LP
 .nf
