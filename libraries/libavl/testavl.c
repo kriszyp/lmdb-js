@@ -25,7 +25,7 @@ main( int argc, char **argv )
 	while ( fgets( command, sizeof( command ), stdin ) != NULL ) {
 		switch( *command ) {
 		case 'n':	/* new tree */
-			( void ) avl_free( tree, free );
+			( void ) avl_free( tree, (IFP) free );
 			tree = NULLAVL;
 			break;
 		case 'p':	/* print */
