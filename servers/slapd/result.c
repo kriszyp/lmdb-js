@@ -687,9 +687,9 @@ slap_send_search_entry(
 	int		opattrs;
 	AccessControlState acl_state = ACL_STATE_INIT;
 #ifdef LDAP_SLAPI
-	/* Support virtual attribute plugins. */
-	Slapi_PBlock *pb = op->o_pb;
-	Slapi_AttrSet *vattrs = NULL;
+	/* Support for computed attribute plugins */
+	computed_attr_context	 ctx;
+	AttributeName	*anp;
 #endif
 
 	AttributeDescription *ad_entry = slap_schema.si_ad_entry;
@@ -1148,149 +1148,39 @@ slap_send_search_entry(
 		}
 	}
 
-#if defined( LDAP_SLAPI )
-	/* Add virtual attributes */
-	vattrs = slapi_x_attrset_new();
-	slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, (void *)e );
-	slapi_pblock_set( pb, SLAPI_PLUGIN_OPATTR_COALESCE_DATA, (void *)vattrs );
-	rc = doPluginFNs( be, SLAPI_PLUGIN_OPATTR_COALESCE_FN, pb );
-	if ( rc == 0 ) {
-		/*
-		 * Re-fetch this to be safe; plugin could have freed and
-		 * changed it, although it shouldn't.
-		 */
-		rc = slapi_pblock_get( pb, SLAPI_PLUGIN_OPATTR_COALESCE_DATA, (void **)&vattrs );
-		if ( rc != 0 ) {
-			/* Something bad happened. */
-			vattrs = NULL;
+#ifdef LDAP_SLAPI
+	/* Support Sun ONE DS 5.x computed attributes */
+
+	/*
+	 * First, setup the computed attribute context that is
+	 * passed to all plugins.
+	 */
+	ctx.cac_pb = op->o_pb;
+	ctx.cac_attrs = attrs;
+	ctx.cac_attrsonly = attrsonly;
+	ctx.cac_userattrs = userattrs;
+	ctx.cac_opattrs = opattrs;
+	ctx.cac_acl_state = acl_state;
+	ctx.cac_private = (void *)ber;
+
+	/*
+	 * For each client requested attribute, call the plugins.
+	 */
+	if ( attrs != NULL ) {
+		for ( anp = attrs; anp->an_name.bv_val != NULL; anp++ ) {
+			rc = compute_evaluator( &ctx, anp->an_name.bv_val, e, slapi_x_compute_output_ber );
+			if ( rc == 1 ) {
+				break;
+			}
 		}
+	} else {
+		rc = compute_evaluator( &ctx, "*", e, slapi_x_compute_output_ber );
 	}
-
-	/* Now, send the virtual attributes. */
-	if ( vattrs != NULL ) {
-		for (a = *vattrs, j = 0; a != NULL; a = a->a_next, j++ ) {
-			AttributeDescription *desc = a->a_desc;
-	
-			if ( attrs == NULL ) {
-				/* all attrs request, skip operational attributes */
-				if( is_at_operational( desc->ad_type ) ) {
-					continue;
-				}
-	
-			} else {
-				/* specific attrs requested */
-				if( is_at_operational( desc->ad_type ) ) {
-					if( !opattrs && !ad_inlist( desc, attrs ) ) {
-						continue;
-					}
-				} else {
-					if (!userattrs && !ad_inlist( desc, attrs ) )
-					{
-						continue;
-					}
-				}
-			}
-	
-			if ( ! access_allowed( be, conn, op, e,	desc, NULL,
-				ACL_READ, &acl_state ) )
-			{
-#ifdef NEW_LOGGING
-				LDAP_LOG( ACL, INFO, 
-					"send_search_entry: conn %lu "
-					"access to attribute %s not allowed\n",
-					op->o_connid, desc->ad_cname.bv_val, 0 );
-#else
-				Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s "
-						"not allowed\n",
-				    		desc->ad_cname.bv_val, 0, 0 );
-#endif
-	
-				continue;
-			}
-	
-			rc = ber_printf( ber, "{O[" /*]}*/ , &desc->ad_cname );
-			if ( rc == -1 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR, 
-					"send_search_entry: conn %lu  "
-					"ber_printf failed\n", op->o_connid, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
-#endif
-	
-				ber_free_buf( ber );
-				send_ldap_result( conn, op, LDAP_OTHER,
-				    NULL, "encoding description error", NULL, NULL );
-	
-				attrs_free( aa );
-				goto error_return;
-			}
-	
-			if ( ! attrsonly ) {
-				for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
-					if ( ! access_allowed( be, conn, op, e,
-						desc, &a->a_vals[i], ACL_READ, &acl_state ) )
-					{
-#ifdef NEW_LOGGING
-						LDAP_LOG( ACL, INFO, 
-							"send_search_entry: conn %lu "
-							"access to %s, value %d not allowed\n",
-							op->o_connid, desc->ad_cname.bv_val, i );
-#else
-						Debug( LDAP_DEBUG_ACL,
-							"acl: access to attribute %s, "
-							"value %d not allowed\n",
-							desc->ad_cname.bv_val, i, 0 );
-#endif
-	
-						continue;
-					}
-	
-					if ( op->vrFilter && e_flags[j][i] == 0 ){
-						continue;
-					}
-	
-					if (( rc = ber_printf( ber, "O", &a->a_vals[i] )) == -1 ) {
-#ifdef NEW_LOGGING
-						LDAP_LOG( OPERATION, ERR, 
-							"send_search_entry: conn %lu  ber_printf failed\n", 
-							op->o_connid, 0, 0 );
-#else
-						Debug( LDAP_DEBUG_ANY,
-						    "ber_printf failed\n", 0, 0, 0 );
-#endif
-	
-						ber_free_buf( ber );
-						send_ldap_result( conn, op, LDAP_OTHER,
-							NULL, "encoding values error", 
-							NULL, NULL );
-
-						attrs_free( aa );
-						goto error_return;
-					}
-				}
-			}
-
-			if (( rc = ber_printf( ber, /*{[*/ "]N}" )) == -1 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, ERR, 
-					"send_search_entry: conn %lu  ber_printf failed\n",
-					op->o_connid, 0, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
-#endif
-
-				ber_free_buf( ber );
-				send_ldap_result( conn, op, LDAP_OTHER,
-				    NULL, "encode end error", NULL, NULL );
-
-				attrs_free( aa );
-				goto error_return;
-			}
-		}
-		slapi_x_attrset_free( &vattrs );
-		slapi_pblock_set( pb, SLAPI_SEARCH_RESULT_ENTRY, NULL );
-		slapi_pblock_set( pb, SLAPI_PLUGIN_OPATTR_COALESCE_DATA, NULL );
+	if ( rc == 1 ) {
+		ber_free_buf( ber );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "computed attribute error", NULL, NULL );
+		goto error_return;
 	}
 #endif /* LDAP_SLAPI */
 

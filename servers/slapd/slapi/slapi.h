@@ -20,7 +20,6 @@ LDAP_BEGIN_DECL
 typedef struct	slapi_pblock	Slapi_PBlock;
 typedef struct	slap_entry	Slapi_Entry;
 typedef struct	slap_attr	Slapi_Attr;
-typedef struct	slap_attr *	Slapi_AttrSet;
 typedef struct	berval		Slapi_Value;
 typedef BerVarray		Slapi_ValueSet;
 typedef Filter			Slapi_Filter;
@@ -88,15 +87,6 @@ LDAP_BEGIN_DECL
 #define SLAPI_PLUGIN_PWD_STORAGE_SCHEME         14
 #define SLAPI_PLUGIN_VATTR_SP                   15
 #define SLAPI_PLUGIN_REVER_PWD_STORAGE_SCHEME   16
-/*
- * Because the Sun ONE DS virtual attribute service
- * is quite complicated, we've added a "lightweight"
- * virtual attribute service. Virtual attribute
- * plugins are called for each search result; 
- * they should examine the list of attributes
- * requested to minimise the performance impact.
- */
-#define SLAPI_PLUGIN_OPATTR_SP			17
 
 #define SLAPI_PLUGIN_EXTENDED_SENT_RESULT       -1
 #define SLAPI_PLUGIN_EXTENDED_NOT_HANDLED       -2
@@ -250,16 +240,15 @@ LDAP_BEGIN_DECL
 #define SLAPI_RESULT_TEXT			882
 #define SLAPI_RESULT_MATCHED			883
 
-/* Virtual attribute service provider */
-#define SLAPI_PLUGIN_OPATTR_COALESCE_DATA	900
-/* Pointer to a Slapi_AttrSet */
-#define SLAPI_PLUGIN_OPATTR_COALESCE_FN		901
-
 #define SLAPI_PLUGIN_SYNTAX_FLAG_ORKEYS			1
 #define SLAPI_PLUGIN_SYNTAX_FLAG_ORDERING		2
 
 #define SLAPI_PLUGIN_AUDIT_DATA                 1100
 #define SLAPI_PLUGIN_AUDIT_FN                   1101
+
+/* DS 5.x Computed Attribute Callbacks (not exposed) */
+#define SLAPI_PLUGIN_COMPUTE_EVALUATOR_FN	1200
+#define SLAPI_PLUGIN_COMPUTE_SEARCH_REWRITER_FN	1201
 
 #define SLAPI_MANAGEDSAIT       		1000
 

@@ -86,6 +86,10 @@ newPlugin(
 	}
 
 	rc = loadPlugin( pPlugin, path, initfunc, TRUE, NULL, &hdLoadHandle );
+	if ( rc != 0 ) {
+		rc = LDAP_OTHER;
+		goto done;
+	}
 
 done:
 	if ( rc != LDAP_SUCCESS && pPlugin != NULL ) {
@@ -557,7 +561,9 @@ loadPlugin(
 	return rc;
 }
 
-
+/*
+ * Special support for computed attribute plugins
+ */
 int 
 doPluginFNs(
 	Backend		*be, 	
@@ -607,7 +613,7 @@ doPluginFNs(
 	 * backend); same logic as above.
 	 */
 	if ( be != NULL ) {
-		rc = getAllPluginFuncs( be, funcType, &tmpPlugin );
+		rc = getAllPluginFuncs( NULL, funcType, &tmpPlugin );
 		if ( rc != LDAP_SUCCESS || tmpPlugin == NULL )
 			return 0;
 		for ( pGetPlugin = tmpPlugin; *pGetPlugin != NULL; pGetPlugin++ ) {
@@ -650,8 +656,8 @@ netscape_plugin(
 		iType = SLAPI_PLUGIN_POSTOPERATION;
 	} else if ( strcasecmp( argv[1], "extendedop" ) == 0 ) {
 		iType = SLAPI_PLUGIN_EXTENDEDOP;
-	} else if ( strcasecmp( argv[1], "opattrsp" ) == 0 ) {
-		iType = SLAPI_PLUGIN_OPATTR_SP;
+	} else if ( strcasecmp( argv[1], "object" ) == 0 ) {
+		iType = SLAPI_PLUGIN_OBJECT;
 	} else {
 		fprintf( stderr, "%s: line %d: invalid plugin type \"%s\".\n",
 				fname, lineno, argv[1] );
@@ -667,8 +673,7 @@ netscape_plugin(
 
 	if ( iType == SLAPI_PLUGIN_PREOPERATION ||
 		  	iType == SLAPI_PLUGIN_EXTENDEDOP ||
-			iType == SLAPI_PLUGIN_POSTOPERATION ||
-			iType == SLAPI_PLUGIN_OPATTR_SP ) {
+			iType == SLAPI_PLUGIN_POSTOPERATION ) {
 		int rc;
 		Slapi_PBlock *pPlugin;
 

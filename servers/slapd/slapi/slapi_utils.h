@@ -63,18 +63,6 @@ Slapi_Entry *slapi_entry_alloc();
 void slapi_entry_free( Slapi_Entry *e );
 int slapi_attr_get_values( Slapi_Attr *attr, struct berval ***vals );
 
-/* OpenLDAP AttrSet extensions for virtual attribute service */
-Slapi_AttrSet *slapi_x_attrset_new( void );
-Slapi_AttrSet *slapi_x_attrset_init( Slapi_AttrSet *as, Slapi_Attr *a );
-void slapi_x_attrset_free( Slapi_AttrSet **as );
-Slapi_AttrSet *slapi_x_attrset_dup( Slapi_AttrSet *as );
-int slapi_x_attrset_add_attr( Slapi_AttrSet *as, Slapi_Attr *a );
-int slapi_x_attrset_add_attr_copy( Slapi_AttrSet *as, Slapi_Attr *a );
-int slapi_x_attrset_find( Slapi_AttrSet *as, const char *type, Slapi_Attr **attr );
-int slapi_x_attrset_merge( Slapi_AttrSet *as, const char *type, Slapi_ValueSet *vals );
-int slapi_x_attrset_merge_bervals( Slapi_AttrSet *as, const char *type, struct berval **vals );
-int slapi_x_attrset_delete( Slapi_AttrSet *as, const char *type );
-
 /* DS 5.x SLAPI */
 int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr, struct berval *val, int access );
 int slapi_acl_check_mods( Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char **errbuf );
@@ -203,6 +191,30 @@ int slapi_x_operation_set_pb( Slapi_PBlock *pb, Operation *op );
 LDAPMod **slapi_x_modifications2ldapmods(Modifications **);
 Modifications *slapi_x_ldapmods2modifications(LDAPMod **);
 void slapi_x_free_ldapmods(LDAPMod **);
+
+/* Computed attribute support */
+struct _computed_attr_context {
+	/* slap_send_search_entry() argblock */
+	Slapi_PBlock	*cac_pb;
+	AttributeName	*cac_attrs;
+	int		cac_attrsonly : 1;
+	int		cac_userattrs : 1;
+	int 		cac_opattrs : 1;
+	AccessControlState	cac_acl_state;
+	/* private data */
+	void *cac_private;
+};
+typedef struct _computed_attr_context computed_attr_context;
+typedef int (*slapi_compute_output_t)(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e);
+typedef int (*slapi_compute_callback_t)(computed_attr_context *c, char *type,
+	Slapi_Entry *e, slapi_compute_output_t outputfn);
+typedef int (*slapi_search_rewrite_callback_t)(Slapi_PBlock *pb);
+int slapi_compute_add_evaluator(slapi_compute_callback_t function);
+int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function);
+int compute_rewrite_search_filter(Slapi_PBlock *pb);
+int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
+int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e);
+int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 
 extern ldap_pvt_thread_mutex_t	slapi_hn_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
