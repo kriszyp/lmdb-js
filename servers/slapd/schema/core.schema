@@ -722,7 +722,7 @@ attributetype ( 2.5.18.6 NAME 'subtreeSpecification'
 
 objectclass ( 2.5.20.0 NAME 'subentry'
 	SUP top STRUCTURAL
-	MUST ( cn $ subtreeSpecification ) )   
+	MUST ( cn $ subtreeSpecification ) )
 
 
 #
@@ -770,28 +770,6 @@ attributetype ( 1.3.6.1.4.1.4203.1.3.5
 	EQUALITY objectIdentifierMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.38
 	USAGE dSAOperation )
-
-#
-# RFC 3112 (authPassword)
-#
-attributetype ( 1.3.6.1.4.1.4203.1.3.4
-	NAME 'authPassword'
-	DESC 'RFC3112: authentication password attribute'
-	SYNTAX 1.3.6.1.4.1.4203.666.2.2
-	USAGE dSAOperation )
-
-attributetype ( 1.3.6.1.4.1.4203.1.3.3
-	NAME 'supportedAuthPasswordSchemes'
-	DESC 'RFC3112: supported authPassword schemes'
-	EQUALITY caseIgnoreIA5Match
-	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{32}
-	NO-USER-MODIFICATION USAGE dSAOperation )
-
-objectclass ( 1.3.6.1.4.1.4203.1.4.7
-	NAME 'authPasswordObject'
-	DESC 'RFC3112: authPassword mixin class'
-	MAY authPassword
-	AUXILIARY )
 
 #
 # LDUP/LCUP attributes

@@ -407,7 +407,8 @@ typedef struct slap_matching_rule {
 #define smr_extensions		smr_mrule.mr_extensions
 } MatchingRule;
 
-struct slap_attr_desc;
+struct slap_entry;
+struct slap_attr;
 
 typedef int (AttributeTypeSchemaCheckFN)(
 	struct slap_entry *e,
@@ -450,6 +451,8 @@ typedef struct slap_attribute_type {
 #define is_at_collective(at)	((at)->sat_collective)
 #define is_at_obsolete(at)		((at)->sat_obsolete)
 #define is_at_no_user_mod(at)	((at)->sat_no_user_mod)
+
+struct slap_object_class;
 
 typedef int (ObjectClassSchemaCheckFN)(
 	struct slap_entry *e,
