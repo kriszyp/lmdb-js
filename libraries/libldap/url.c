@@ -283,7 +283,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 			err = -1;
 		} else {
 			if ( ludp->lud_port == 0 ) {
-				srv->lsrv_port = openldap_ldap_global_options.ldo_defport;
+				srv->lsrv_port = ldap_int_global_options.ldo_defport;
 			} else {
 				srv->lsrv_port = ludp->lud_port;
 			}

@@ -15,12 +15,11 @@
 #include "ldap-int.h"
 #include "ldapconfig.h"
 
-struct ldapoptions openldap_ldap_global_options = { LDAP_DEBUG_NONE };  
+struct ldapoptions ldap_int_global_options =
+	{ LDAP_UNINITIALIZED, LDAP_DEBUG_NONE };  
 
 #undef gopts
-#define gopts openldap_ldap_global_options
-
-int	openldap_ldap_initialized = 0;
+#define gopts ldap_int_global_options
 
 #define ATTR_NONE	0
 #define ATTR_BOOL	1
@@ -284,9 +283,9 @@ static void openldap_ldap_init_w_env(const char *prefix)
 	}
 }
 
-void openldap_ldap_initialize( void )
+void ldap_int_initialize( void )
 {
-	if ( openldap_ldap_initialized ) {
+	if ( gopts.ldo_valid == LDAP_INITIALIZED ) {
 		return;
 	}
 
@@ -308,7 +307,7 @@ void openldap_ldap_initialize( void )
 
 	LDAP_BOOL_SET(&gopts, LDAP_BOOL_REFERRALS);
 
-	openldap_ldap_initialized = 1;
+	gopts.ldo_valid = LDAP_INITIALIZED;
 
 	if( getenv("LDAPNOINIT") != NULL ) {
 		return;

@@ -213,7 +213,6 @@ ldbm_back_modify(
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*matched;
 	Entry		*e;
-	int		err;
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
@@ -233,8 +232,6 @@ ldbm_back_modify(
 		goto error_return;
 
 	}
-
-
 
 	/* change the entry itself */
 	if ( id2entry_add( be, e ) != 0 ) {

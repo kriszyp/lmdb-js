@@ -23,20 +23,23 @@
 
 LDAP_BEGIN_DECL
 
-extern int ber_int_debug;
-#define ber_log_printf ber_pvt_log_printf
-
 struct lber_options {
-	short		lbo_item_type;
-#define LBER_ITEM_BERELEMENT 1
-#define LBER_ITEM_SOCKBUF 2
-	short		lbo_options;
-	int			lbo_debug;
+	short lbo_valid;
+#define LBER_UNINITIALIZED		0x0
+#define LBER_INITIALIZED		0x1
+#define LBER_VALID_BERELEMENT	0x2
+#define LBER_VALID_SOCKBUF		0x3
+
+	unsigned short lbo_options;
+	int lbo_debug;
 };
+
+extern struct lber_options ber_int_options;
+#define ber_int_debug ber_int_options.lbo_debug
 
 struct berelement {
 	struct		lber_options ber_opts;
-#define ber_item_type	ber_opts.lbo_item_type
+#define ber_valid		ber_opts.lbo_valid
 #define ber_options		ber_opts.lbo_options
 #define ber_debug		ber_opts.lbo_debug
 
@@ -54,7 +57,11 @@ struct berelement {
 	BERTranslateProc ber_encode_translate_proc;
 	BERTranslateProc ber_decode_translate_proc;
 };
+#define BER_VALID(ber)	((ber)->ber_valid==LBER_VALID_BERELEMENT)
 #define NULLBER	((BerElement *) 0)
+
+#define ber_pvt_ber_bytes(ber)		((ber)->ber_ptr - (ber)->ber_buf)
+#define ber_pvt_ber_remaining(ber)	((ber)->ber_end - (ber)->ber_ptr)
 
 struct sockbuf;
 
@@ -88,21 +95,13 @@ typedef struct sockbuf_io Sockbuf_IO;
 typedef struct sockbuf_sec Sockbuf_Sec;
 typedef struct sockbuf_buf Sockbuf_Buf;
 
-#define	ber_pvt_sb_get_desc( sb ) ((sb)->sb_sd)
-#define ber_pvt_sb_set_desc( sb, val ) ((sb)->sb_sd =(val))
-#define ber_pvt_sb_in_use( sb ) ((sb)->sb_sd!=-1)
+extern Sockbuf_IO ber_pvt_sb_io_tcp;
+extern Sockbuf_IO ber_pvt_sb_io_udp;
 
-#ifdef USE_SASL
-#define ber_pvt_sb_data_ready( sb ) \
-(((sb)->sb_buf_ready) || ((sb)->sb_trans_ready) || ((sb)->sb_sec_ready))
-#else
-#define ber_pvt_sb_data_ready( sb ) \
-(((sb)->sb_buf_ready) || ((sb)->sb_trans_ready))
-#endif
 
 struct sockbuf {
 	struct lber_options sb_opts;
-#define	sb_item_type	sb_opts.lbo_item_type
+#define	sb_valid		sb_opts.lbo_valid
 #define	sb_options		sb_opts.lbo_options
 #define	sb_debug		sb_opts.lbo_debug
 
@@ -138,6 +137,21 @@ struct sockbuf {
 	long		sb_sec_prev_len;
 #endif   
 };
+#define SOCKBUF_VALID(ber)	((sb)->sb_valid==LBER_VALID_SOCKBUF)
+
+/* these should be internal ie: ber_int_* */
+#define	ber_pvt_sb_get_desc( sb ) ((sb)->sb_sd)
+#define ber_pvt_sb_set_desc( sb, val ) ((sb)->sb_sd =(val))
+
+#define ber_pvt_sb_in_use( sb ) ((sb)->sb_sd!=-1)
+
+#ifdef USE_SASL
+#define ber_pvt_sb_data_ready( sb ) \
+(((sb)->sb_buf_ready) || ((sb)->sb_trans_ready) || ((sb)->sb_sec_ready))
+#else
+#define ber_pvt_sb_data_ready( sb ) \
+(((sb)->sb_buf_ready) || ((sb)->sb_trans_ready))
+#endif
 
 #define READBUFSIZ	8192
 
@@ -154,6 +168,8 @@ struct seqorset {
 /*
  * bprint.c
  */
+#define ber_log_printf ber_pvt_log_printf
+
 LDAP_F( int )
 ber_log_bprint LDAP_P((
 	int errlvl,
@@ -175,6 +191,8 @@ ber_log_sos_dump LDAP_P((
 	const Seqorset *sos ));
 
 /* sockbuf.c */
+
+/* these should be ber_int*() functions */
 
 LDAP_F( int )
 ber_pvt_sb_init LDAP_P(( Sockbuf *sb ));
@@ -217,7 +235,5 @@ ber_pvt_sb_udp_set_dst LDAP_P((Sockbuf *sb, void *addr ));
 LDAP_F(	void * )
 ber_pvt_sb_udp_get_src LDAP_P((Sockbuf *sb ));
 
-extern Sockbuf_IO ber_pvt_sb_io_tcp;
-extern Sockbuf_IO ber_pvt_sb_io_udp;
 
 #endif /* _LBER_INT_H */

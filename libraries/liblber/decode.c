@@ -39,6 +39,7 @@ ber_get_tag( BerElement *ber )
 	unsigned int	i;
 
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
@@ -77,6 +78,7 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 
 	assert( ber != NULL );
 	assert( len != NULL );
+	assert( BER_VALID( ber ) );
 
 	/*
 	 * Any ber element looks like this: tag length contents.
@@ -130,12 +132,15 @@ ber_peek_tag(
 	BerElement *ber;
 
 	assert( ber_in != NULL );
+	assert( BER_VALID( ber_in ) );
 
 	ber = ber_dup( ber_in );
 
 	if( ber == NULL ) {
 		return LBER_ERROR;
 	}
+
+	assert( BER_VALID( ber ) );
 
 	tag = ber_skip_tag( ber, len );
 
@@ -152,6 +157,8 @@ ber_getnint( BerElement *ber, long *num, int len )
 
 	assert( ber != NULL );
 	assert( num != NULL );
+
+	assert( BER_VALID( ber ) );
 
 	/*
 	 * The tag and length have already been stripped off.  We should
@@ -188,6 +195,7 @@ ber_get_int( BerElement *ber, long *num )
 	unsigned long	tag, len;
 
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
@@ -207,6 +215,7 @@ ber_get_stringb( BerElement *ber, char *buf, unsigned long *len )
 #endif /* STR_TRANSLATION */
 
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
@@ -249,6 +258,8 @@ ber_get_stringa( BerElement *ber, char **buf )
 	assert( ber != NULL );
 	assert( buf != NULL );
 
+	assert( BER_VALID( ber ) );
+
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		*buf = NULL;
 		return( LBER_DEFAULT );
@@ -287,6 +298,8 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 
 	assert( ber != NULL );
 	assert( bv != NULL );
+
+	assert( BER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT ) {
 		*bv = NULL;
@@ -337,6 +350,8 @@ ber_get_bitstringa( BerElement *ber, char **buf, unsigned long *blen )
 	assert( buf != NULL );
 	assert( blen != NULL );
 
+	assert( BER_VALID( ber ) );
+
 	if ( (tag = ber_skip_tag( ber, &datalen )) == LBER_DEFAULT ) {
 		*buf = NULL;
 		return( LBER_DEFAULT );
@@ -368,6 +383,7 @@ ber_get_null( BerElement *ber )
 	unsigned long	len, tag;
 
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( (tag = ber_skip_tag( ber, &len )) == LBER_DEFAULT )
 		return( LBER_DEFAULT );
@@ -386,6 +402,8 @@ ber_get_boolean( BerElement *ber, int *boolval )
 
 	assert( ber != NULL );
 	assert( boolval != NULL );
+
+	assert( BER_VALID( ber ) );
 
 	rc = ber_get_int( ber, &longbool );
 	*boolval = longbool;
@@ -421,6 +439,8 @@ ber_next_element( BerElement *ber, unsigned long *len, char *last )
 	assert( ber != NULL );
 	assert( len != NULL );
 	assert( last != NULL );
+
+	assert( BER_VALID( ber ) );
 
 	if ( ber->ber_ptr == last ) {
 		return( LBER_DEFAULT );
@@ -464,6 +484,8 @@ va_dcl
 
 	assert( ber != NULL );
 	assert( fmt != NULL );
+
+	assert( BER_VALID( ber ) );
 
 	fmt_reset = fmt;
 
@@ -795,6 +817,7 @@ ber_set_string_translators( BerElement *ber, BERTranslateProc encode_proc,
 	BERTranslateProc decode_proc )
 {
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
     ber->ber_encode_translate_proc = encode_proc;
     ber->ber_decode_translate_proc = decode_proc;

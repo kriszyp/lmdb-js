@@ -94,7 +94,7 @@ send_ldap_result2(
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 	/* write the pdu */
-	bytes = ber->ber_ptr - ber->ber_buf;
+	bytes = ber_pvt_ber_bytes( ber );
 
 	while ( 1 ) {
 		int err;
@@ -329,7 +329,7 @@ send_search_entry(
 		return( 1 );
 	}
 
-	bytes = ber->ber_ptr - ber->ber_buf;
+	bytes = ber_pvt_ber_bytes( ber );
 
 	/* write only one pdu at a time - wait til it's our turn */
 	ldap_pvt_thread_mutex_lock( &conn->c_write_mutex );

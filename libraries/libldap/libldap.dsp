@@ -243,6 +243,10 @@ SOURCE=..\..\include\ldap_pvt.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ldap_schema.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldapconfig.h
 # End Source File
 # Begin Source File
@@ -284,6 +288,10 @@ SOURCE=.\result.c
 # Begin Source File
 
 SOURCE=.\sbind.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\schema.c
 # End Source File
 # Begin Source File
 

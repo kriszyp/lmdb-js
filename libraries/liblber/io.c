@@ -54,6 +54,8 @@ BerRead( Sockbuf *sb, char *buf, long len )
 	assert( sb != NULL );
 	assert( buf != NULL );
 
+	assert( SOCKBUF_VALID( sb ) );
+
 	while ( len > 0 ) {
 		if ( (c = ber_pvt_sb_read( sb, buf, len )) <= 0 ) {
 			if ( nread > 0 )
@@ -76,6 +78,8 @@ ber_read( BerElement *ber, char *buf, unsigned long len )
 	assert( ber != NULL );
 	assert( buf != NULL );
 
+	assert( BER_VALID( ber ) );
+
 	nleft = ber->ber_end - ber->ber_ptr;
 	actuallen = nleft < len ? nleft : len;
 
@@ -95,6 +99,8 @@ ber_write(
 {
 	assert( ber != NULL );
 	assert( buf != NULL );
+
+	assert( BER_VALID( ber ) );
 
 	if ( nosos || ber->ber_sos == NULL ) {
 		if ( ber->ber_ptr + len > ber->ber_end ) {
@@ -126,6 +132,8 @@ ber_realloc( BerElement *ber, unsigned long len )
 
 	assert( ber != NULL );
 	assert( len > 0 );
+
+	assert( BER_VALID( ber ) );
 
 	have = (ber->ber_end - ber->ber_buf) / EXBUFSIZ;
 	need = (len < EXBUFSIZ ? 1 : (len + (EXBUFSIZ - 1)) / EXBUFSIZ);
@@ -167,10 +175,12 @@ void
 ber_free( BerElement *ber, int freebuf )
 {
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( freebuf && ber->ber_buf != NULL )
 		free( ber->ber_buf );
 	ber->ber_buf = NULL;
+	ber->ber_valid = LBER_UNINITIALIZED;
 	free( (char *) ber );
 }
 
@@ -181,6 +191,9 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 
 	assert( sb != NULL );
 	assert( ber != NULL );
+
+	assert( SOCKBUF_VALID( ber ) );
+	assert( BER_VALID( ber ) );
 
 	if ( ber->ber_rwptr == NULL ) {
 		ber->ber_rwptr = ber->ber_buf;
@@ -232,10 +245,12 @@ ber_alloc_t( int options )
 	if ( ber == NULLBER )
 		return( NULLBER );
 
+	ber->ber_valid = LBER_VALID_BERELEMENT;
 	ber->ber_tag = LBER_DEFAULT;
 	ber->ber_options = options;
 	ber->ber_debug = ber_int_debug;
 
+	assert( BER_VALID( ber ) );
 	return( ber );
 }
 
@@ -257,6 +272,7 @@ ber_dup( LDAP_CONST BerElement *ber )
 	BerElement	*new;
 
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( (new = ber_alloc_t( ber->ber_options )) == NULL ) {
 		return( NULL );
@@ -264,6 +280,7 @@ ber_dup( LDAP_CONST BerElement *ber )
 
 	*new = *ber;
 
+	assert( BER_VALID( new ) );
 	return( new );
 }
 
@@ -275,9 +292,12 @@ ber_init_w_nullc( BerElement *ber, int options )
 	assert( ber != NULL );
 
 	(void) memset( (char *)ber, '\0', sizeof( BerElement ));
+	ber->ber_valid = LBER_VALID_BERELEMENT;
 	ber->ber_tag = LBER_DEFAULT;
 	ber->ber_options = (char) options;
 	ber->ber_debug = ber_int_debug;
+
+	assert( BER_VALID( ber ) );
 }
 
 /* New C-API ber_init() */
@@ -362,6 +382,7 @@ void
 ber_reset( BerElement *ber, int was_writing )
 {
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( was_writing ) {
 		ber->ber_end = ber->ber_ptr;
@@ -384,6 +405,7 @@ get_tag( Sockbuf *sb )
 	unsigned int	i;
 
 	assert( sb != NULL );
+	assert( SOCKBUF_VALID( sb ) );
 
 	if ( ber_pvt_sb_read( sb, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
@@ -425,11 +447,12 @@ ber_get_next( Sockbuf *sb, unsigned long *len, BerElement *ber )
 	assert( len != NULL );
 	assert( ber != NULL );
 
-	if ( ber->ber_debug ) {
-		ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
-			"ber_get_next\n" );
-	}
-	
+	assert( SOCKBUF_VALID( sb ) );
+	assert( BER_VALID( ber ) );
+
+	ber_log_printf( LDAP_DEBUG_TRACE, ber->ber_debug,
+		"ber_get_next\n" );
+
 	/*
 	 * Any ber element looks like this: tag length contents.
 	 * Assuming everything's ok, we return the tag byte (we
@@ -574,11 +597,14 @@ fill_buffer:
 void	ber_clear( BerElement *ber, int freebuf )
 {
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ((freebuf) && (ber->ber_buf))
 		free( ber->ber_buf );
 	ber->ber_buf = NULL;
 	ber->ber_rwptr = NULL;
 	ber->ber_end = NULL;
+
+	ber->ber_valid = LBER_UNINITIALIZED;
 }
 

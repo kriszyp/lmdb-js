@@ -112,7 +112,7 @@ int ldap_int_get_controls LDAP_P((
 
 	*ctrls = NULL;
 
-	len = ber->ber_end - ber->ber_ptr;
+	len = ber_pvt_ber_remaining(ber);
 
 	if( len == 0) {
 		/* no controls */

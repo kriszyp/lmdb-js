@@ -59,6 +59,8 @@ ldap_simple_bind( LDAP *ld, LDAP_CONST char *dn, LDAP_CONST char *passwd )
 		return( -1 );
 	}
 
+	assert( BER_VALID( ber ) );
+
 	/* fill it in */
 	if ( ber_printf( ber, "{it{ists}}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_SIMPLE, passwd ) == -1 ) {

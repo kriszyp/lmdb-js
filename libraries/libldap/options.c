@@ -83,18 +83,25 @@ ldap_get_option(
 {
 	struct ldapoptions *lo;
 
-	if(!openldap_ldap_initialized) {
-		openldap_ldap_initialize();
+	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize();
 	}
 
 	if(outvalue == NULL) {
 		/* no place to get to */
-		return -1;
+		return LDAP_OPT_ERROR;
 	}
 
 	if(ld == NULL) {
-		lo = &openldap_ldap_global_options;
+		lo = &ldap_int_global_options;
+
 	} else {
+		assert( LDAP_VALID( ld ) );
+
+		if( !LDAP_VALID( ld ) ) {
+			return LDAP_OPT_ERROR;
+		}
+
 		lo = &ld->ld_options;
 	}
 
@@ -104,13 +111,13 @@ ldap_get_option(
 
 			if(info == NULL) {
 				/* outvalue must point to an apiinfo structure */
-				return -1;
+				return LDAP_OPT_ERROR;
 			}
 
 			if(info->ldapai_info_version != LDAP_API_INFO_VERSION) {
 				/* api info version mismatch */
 				info->ldapai_info_version = LDAP_API_INFO_VERSION;
-				return -1;
+				return LDAP_OPT_ERROR;
 			}
 
 			info->ldapai_api_version = LDAP_API_VERSION;
@@ -135,7 +142,7 @@ ldap_get_option(
 			info->ldapai_vendor_name = strdup(LDAP_VENDOR_NAME);
 			info->ldapai_vendor_version = LDAP_VENDOR_VERSION;
 
-			return 0;
+			return LDAP_OPT_SUCCESS;
 		} break;
 
 	case LDAP_OPT_DESC:
@@ -145,34 +152,34 @@ ldap_get_option(
 		} 
 
 		* (int *) outvalue = ber_pvt_sb_get_desc( &(ld->ld_sb) );
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_DEREF:
 		* (int *) outvalue = lo->ldo_deref;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SIZELIMIT:
 		* (int *) outvalue = lo->ldo_sizelimit;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMELIMIT:
 		* (int *) outvalue = lo->ldo_timelimit;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_REFERRALS:
 		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_REFERRALS) ==
 				      LDAP_OPT_ON);
-		return 0;
+		return LDAP_OPT_SUCCESS;
 		
 	case LDAP_OPT_RESTART:
 		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART) ==
 				      LDAP_OPT_ON);
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_DNS:	/* LDAPv2 */
 		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_DNS) ==
 				      LDAP_OPT_ON);
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_PROTOCOL_VERSION:
 		if ((ld != NULL) && ld->ld_version) {
@@ -180,19 +187,19 @@ ldap_get_option(
 		} else { 
 			* (int *) outvalue = lo->ldo_version;
 		}
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SERVER_CONTROLS:
 		* (LDAPControl ***) outvalue =
 			ldap_controls_dup( lo->ldo_sctrls );
 
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_CLIENT_CONTROLS:
 		* (LDAPControl ***) outvalue =
 			ldap_controls_dup( lo->ldo_cctrls );
 
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME:
 		/*
@@ -202,7 +209,7 @@ ldap_get_option(
 		 */
 
 		* (char **) outvalue = strdup(lo->ldo_defhost);
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_NUMBER:
 		if(ld == NULL) {
@@ -210,7 +217,7 @@ ldap_get_option(
 			break;
 		} 
 		* (int *) outvalue = ld->ld_errno;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_STRING:
 		if(ld == NULL) {
@@ -229,7 +236,7 @@ ldap_get_option(
 			* (char **) outvalue = strdup(ld->ld_error);
 		}
 
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
         case LDAP_OPT_MATCH_STRING:
 		if(ld == NULL) {
@@ -254,21 +261,21 @@ ldap_get_option(
 			LDAPAPIFeatureInfo *info = (LDAPAPIFeatureInfo *) outvalue;
 			int i;
 
-			if(info == NULL) return -1;
+			if(info == NULL) return LDAP_OPT_ERROR;
 
 			if(info->ldapaif_info_version != LDAP_FEATURE_INFO_VERSION) {
 				/* api info version mismatch */
 				info->ldapaif_info_version = LDAP_FEATURE_INFO_VERSION;
-				return -1;
+				return LDAP_OPT_ERROR;
 			}
 
-			if(info->ldapaif_name == NULL) return -1;
+			if(info->ldapaif_name == NULL) return LDAP_OPT_ERROR;
 
 			for(i=0; features[i].ldapaif_name != NULL; i++) {
 				if(!strcmp(info->ldapaif_name, features[i].ldapaif_name)) {
 					info->ldapaif_version =
 						features[i].ldapaif_version;
-					return 0;
+					return LDAP_OPT_SUCCESS;
 				}
 			}
 		}
@@ -276,14 +283,14 @@ ldap_get_option(
 
 	case LDAP_OPT_DEBUG_LEVEL:
 		* (int *) outvalue = lo->ldo_debug;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	default:
 		/* bad param */
 		break;
 	}
 
-	return -1;
+	return LDAP_OPT_ERROR;
 }
 
 int
@@ -294,13 +301,20 @@ ldap_set_option(
 {
 	struct ldapoptions *lo;
 
-	if(!openldap_ldap_initialized) {
-		openldap_ldap_initialize();
+	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize();
 	}
 
 	if(ld == NULL) {
-		lo = &openldap_ldap_global_options;
+		lo = &ldap_int_global_options;
+
 	} else {
+		assert( LDAP_VALID( ld ) );
+
+		if( !LDAP_VALID( ld ) ) {
+			return LDAP_OPT_ERROR;
+		}
+
 		lo = &ld->ld_options;
 	}
 
@@ -311,7 +325,7 @@ ldap_set_option(
 		} else {
 			LDAP_BOOL_CLR(lo, LDAP_BOOL_REFERRALS);
 		}
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_RESTART:
 		if(invalue == LDAP_OPT_ON) {
@@ -319,12 +333,12 @@ ldap_set_option(
 		} else {
 			LDAP_BOOL_CLR(lo, LDAP_BOOL_RESTART);
 		}
-		return 0;
+		return LDAP_OPT_SUCCESS;
 	}
 
 	if(invalue == NULL) {
 		/* no place to set from */
-		return -1;
+		return LDAP_OPT_ERROR;
 	}
 
 	switch(option) {
@@ -335,15 +349,15 @@ ldap_set_option(
 
 	case LDAP_OPT_DEREF:
 		lo->ldo_deref = * (int *) invalue;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SIZELIMIT:
 		lo->ldo_sizelimit = * (int *) invalue;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMELIMIT:
 		lo->ldo_timelimit = * (int *) invalue;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_PROTOCOL_VERSION: {
 			int vers = * (int *) invalue;
@@ -352,7 +366,7 @@ ldap_set_option(
 				break;
 			}
 			ld->ld_version = vers;
-		} return 0;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SERVER_CONTROLS: {
 			LDAPControl **controls = (LDAPControl **) invalue;
@@ -361,7 +375,7 @@ ldap_set_option(
 
 			if( controls == NULL || *controls == NULL ) {
 				lo->ldo_sctrls = NULL;
-				return 0;
+				return LDAP_OPT_SUCCESS;
 			}
 				
 			lo->ldo_sctrls =
@@ -371,7 +385,7 @@ ldap_set_option(
 				/* memory allocation error ? */
 				break;
 			}
-		} return 0;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_CLIENT_CONTROLS: {
 			LDAPControl **controls = (LDAPControl **) invalue;
@@ -380,7 +394,7 @@ ldap_set_option(
 
 			if( controls == NULL || *controls == NULL ) {
 				lo->ldo_cctrls = NULL;
-				return 0;
+				return LDAP_OPT_SUCCESS;
 			}
 				
 			lo->ldo_cctrls =
@@ -390,7 +404,7 @@ ldap_set_option(
 				/* memory allocation error ? */
 				break;
 			}
-		} return 0;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME: {
 			char* host = (char *) invalue;
@@ -402,7 +416,7 @@ ldap_set_option(
 
 			if(host != NULL) {
 				lo->ldo_defhost = strdup(host);
-				return 0;
+				return LDAP_OPT_SUCCESS;
 			}
 
 			if(ld == NULL) {
@@ -418,9 +432,9 @@ ldap_set_option(
 				 *   updated to the current global default
 				 */
 				lo->ldo_defhost = strdup(
-					openldap_ldap_global_options.ldo_defhost);
+					ldap_int_global_options.ldo_defhost);
 			}
-		} return 0;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_NUMBER: {
 			int err = * (int *) invalue;
@@ -431,7 +445,7 @@ ldap_set_option(
 			}
 
 			ld->ld_errno = err;
-		} return 0;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_STRING: {
 			char* err = (char *) invalue;
@@ -446,7 +460,7 @@ ldap_set_option(
 			}
 
 			ld->ld_error = strdup(err);
-		} return 0;
+		} return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_API_FEATURE_INFO:
 		/* read-only */
@@ -454,11 +468,11 @@ ldap_set_option(
 
 	case LDAP_OPT_DEBUG_LEVEL:
 		lo->ldo_debug = * (int *) invalue;
-		return 0;
+		return LDAP_OPT_SUCCESS;
 
 	default:
 		/* bad param */
 		break;
 	}
-	return -1;
+	return LDAP_OPT_ERROR;
 }

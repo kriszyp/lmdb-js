@@ -18,7 +18,7 @@
 
 #include "../liblber/lber-int.h"
 
-#define ldap_debug	(openldap_ldap_global_options.ldo_debug)
+#define ldap_debug	(ldap_int_global_options.ldo_debug)
 #undef Debug
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
 	ldap_log_printf( NULL, (level), (fmt), (arg1), (arg2), (arg3) )
@@ -81,6 +81,11 @@ struct ldapmsg {
  * which have global defaults.
  */
 struct ldapoptions {
+	short ldo_valid;
+#define LDAP_UNINITIALIZED	0x0
+#define LDAP_INITIALIZED	0x1
+#define LDAP_VALID_SESSION	0x2
+
 	int		ldo_debug;
 
 	int		ldo_version;	/* version to connect at */
@@ -92,8 +97,11 @@ struct ldapoptions {
 	char*	ldo_defbase;
 	char*	ldo_defhost;
 
+#ifdef LDAP_CONNECTIONLESS
 	int		ldo_cldaptries;	/* connectionless search retry count */
 	int		ldo_cldaptimeout;/* time between retries */
+#endif
+
 	int		ldo_refhoplimit;	/* limit on referral nesting */
 
 	/* LDAPv3 server and client controls */
@@ -128,7 +136,7 @@ typedef struct ldap_conn {
 	LDAPServer		*lconn_server;
 	char			*lconn_krbinstance;
 	struct ldap_conn	*lconn_next;
-	BerElement		lconn_ber;/* ber receiving on this conn. */
+	BerElement		*lconn_ber;/* ber receiving on this conn. */
 } LDAPConn;
 
 
@@ -189,6 +197,9 @@ struct ldap {
 
 	struct ldapoptions ld_options;
 
+#define ld_valid		ld_options.ldo_valid
+#define ld_debug		ld_options.ldo_debug
+
 #define ld_deref		ld_options.ldo_deref
 #define ld_timelimit	ld_options.ldo_timelimit
 #define ld_sizelimit	ld_options.ldo_sizelimit
@@ -226,6 +237,7 @@ struct ldap {
 
 	LDAPCache	*ld_cache;	/* non-null if cache is initialized */
 	/* stuff used by connectionless searches. */
+
    	char		*ld_cldapdn;	/* DN used in connectionless search */
 	int		ld_cldapnaddr; /* number of addresses */
    	void		**ld_cldapaddrs;/* addresses to send request to */
@@ -241,13 +253,14 @@ struct ldap {
 				char **passwdp, int *authmethodp, int freeit );
 				/* routine to get info needed for re-bind */
 };
+#define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
 /*
  * in init.c
  */
-extern int openldap_ldap_initialized;
-extern struct ldapoptions openldap_ldap_global_options;
-void openldap_ldap_initialize LDAP_P((void));
+
+extern struct ldapoptions ldap_int_global_options;
+void ldap_int_initialize LDAP_P((void));
 
 
 /*

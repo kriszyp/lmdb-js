@@ -258,14 +258,18 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	assert( ld != NULL );
 	assert( lc != NULL );
 	
-	ber = &lc->lconn_ber;
-
 	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
 
-#if 0
-	ber_init_w_nullc( &ber, 0 );
-	ldap_set_ber_options( ld, &ber );
-#endif
+    if ( lc->lconn_ber == NULLBER ) {
+		lc->lconn_ber = ldap_alloc_ber_with_options(ld);
+
+		if( lc->lconn_ber == NULL ) {
+			return -1;
+		}
+    }
+
+	ber = lc->lconn_ber;
+	assert( BER_VALID (ber) );
 
 	/* get the next message */
 	errno = 0;
@@ -289,15 +293,22 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		return -1;
 	}
 
+	/*
+     * We read a complete message.
+	 * The connection should no longer need this ber.
+	 */
+    lc->lconn_ber = NULLBER;
+
 	/* message id */
 	if ( ber_get_int( ber, &id ) == LBER_ERROR ) {
+		ber_free( ber, 1 );
 		ld->ld_errno = LDAP_DECODING_ERROR;
 		return( -1 );
 	}
 
 	/* if it's been abandoned, toss it */
 	if ( ldap_abandoned( ld, (int)id ) ) {
-		ber_clear( ber, 1 );	/* gack! */
+		ber_free( ber, 1 );
 		return( -2 );	/* continue looking */
 	}
 
@@ -305,21 +316,23 @@ try_read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
 		    id, 0, 0 );
-		ber_clear( ber, 1 );	/* gack! */
+		ber_free( ber, 1 );
 		return( -2 );	/* continue looking */
 	}
-	Debug( LDAP_DEBUG_TRACE, "ldap_read: %s msgid %ld, original id %d\n",
-	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : 
-		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
-		id, lr->lr_origid );
-	id = lr->lr_origid;
 
 	/* the message type */
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
+		ber_free( ber, 1 );
 		return( -1 );
 	}
 
+	Debug( LDAP_DEBUG_TRACE, "ldap_read: %s msgid %ld, original id %d\n",
+	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : 
+		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
+		id, lr->lr_origid );
+
+	id = lr->lr_origid;
 	refer_cnt = 0;
 	hadref = simple_request = 0;
 	rc = -2;	/* default is to keep looking (no response found) */
@@ -362,7 +375,8 @@ Debug( LDAP_DEBUG_TRACE,
 		    "read1msg:  %d new referrals\n", refer_cnt, 0, 0 );
 
 		if ( refer_cnt != 0 ) {	/* chasing referrals */
-			ber_clear( ber, 1 );	/* gack! */
+			ber_free( ber, 1 );
+			ber = NULL;
 			if ( refer_cnt < 0 ) {
 				return( -1 );	/* fatal error */
 			}
@@ -373,7 +387,8 @@ Debug( LDAP_DEBUG_TRACE,
 				simple_request = ( hadref ? 0 : 1 );
 			} else {
 				/* request with referrals or child request */
-				ber_clear( ber, 1 );	/* gack! */
+				ber_free( ber, 1 );
+				ber = NULL;
 			}
 
 			while ( lr->lr_parent != NULL ) {
@@ -395,7 +410,8 @@ Debug( LDAP_DEBUG_TRACE,
 lr->lr_res_errno, lr->lr_res_error ? lr->lr_res_error : "",
 lr->lr_res_matched ? lr->lr_res_matched : "" );
 				if ( !simple_request ) {
-					ber_clear( ber, 1 ); /* gack! */
+					ber_free( ber, 1 );
+					ber = NULL;
 					if ( build_result_ber( ld, ber, lr )
 					    == LBER_ERROR ) {
 						ld->ld_errno = LDAP_NO_MEMORY;
@@ -412,7 +428,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		}
 	}
 
-	if ( ber->ber_buf == NULL ) {
+	if ( ber == NULL ) {
 		return( rc );
 	}
 
@@ -424,8 +440,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	}
 	new->lm_msgid = (int)id;
 	new->lm_msgtype = tag;
-	new->lm_ber = ber_dup( ber );
-	ber_clear( ber, 0 ); /* don't kill buffer */
+	new->lm_ber = ber;
 
 #ifndef LDAP_NOCACHE
 		if ( ld->ld_cache != NULL ) {

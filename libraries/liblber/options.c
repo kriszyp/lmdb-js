@@ -8,7 +8,8 @@
 
 #include "lber-int.h"
 
-int ber_int_debug = 0;
+struct lber_options ber_int_options = {
+	LBER_UNINITIALIZED, 0, 0 };
 
 int
 ber_get_option(
@@ -38,10 +39,12 @@ ber_get_option(
 
 	switch(option) {
 	case LBER_OPT_BER_OPTIONS:
+		assert( BER_VALID( ber ) );
 		* (int *) outvalue = ber->ber_options;
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_DEBUG:
+		assert( BER_VALID( ber ) );
 		* (int *) outvalue = ber->ber_debug;
 		return LBER_OPT_SUCCESS;
 
@@ -85,10 +88,12 @@ ber_set_option(
 
 	switch(option) {
 	case LBER_OPT_BER_OPTIONS:
+		assert( BER_VALID( ber ) );
 		ber->ber_options = * (int *) invalue;
 		return LBER_OPT_SUCCESS;
 
 	case LBER_OPT_BER_DEBUG:
+		assert( BER_VALID( ber ) );
 		ber->ber_debug = * (int *) invalue;
 		return LBER_OPT_SUCCESS;
 

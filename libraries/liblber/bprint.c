@@ -170,6 +170,7 @@ ber_log_dump(
 	int inout )
 {
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
@@ -187,6 +188,7 @@ ber_dump(
 	char buf[132];
 
 	assert( ber != NULL );
+	assert( BER_VALID( ber ) );
 
 	sprintf( buf, "ber_dump: buf 0x%lx, ptr 0x%lx, end 0x%lx\n",
 	    (long) ber->ber_buf,

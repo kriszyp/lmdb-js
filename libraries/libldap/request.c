@@ -418,7 +418,9 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			}
 			ldap_close_connection( lc->lconn_sb );
 		   	ber_pvt_sb_destroy( lc->lconn_sb );
-			ber_clear( &lc->lconn_ber, 1 );
+			if( lc->lconn_ber != NULL ) {
+				ber_free( lc->lconn_ber, 1 );
+			}
 		}
 		prevlc = NULL;
 		for ( tmplc = ld->ld_conns; tmplc != NULL;
@@ -709,7 +711,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 				*ports++ = '\0';
 				srv->lsrv_port = atoi( ports );
 			} else {
-				srv->lsrv_port = openldap_ldap_global_options.ldo_defport;
+				srv->lsrv_port = ldap_int_global_options.ldo_defport;
 			}
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
 		} else {

@@ -8,15 +8,15 @@
 
 #include "portable.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include <ac/ctype.h>
 #include <ac/string.h>
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldap_schema.h>
-#include <stdio.h>
 
 /*
  * When pretty printing the entities we will be appending to a buffer.

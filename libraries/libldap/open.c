@@ -85,8 +85,8 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 {
 	LDAP			*ld;
 
-	if(!openldap_ldap_initialized) {
-		openldap_ldap_initialize();
+	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize();
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
@@ -135,8 +135,10 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 	}
    
 	/* copy the global options */
-	memcpy(&ld->ld_options, &openldap_ldap_global_options,
+	memcpy(&ld->ld_options, &ldap_int_global_options,
 		sizeof(ld->ld_options));
+
+	ld->ld_valid = LDAP_VALID_SESSION;
 
 	/* but not pointers to malloc'ed items */
 	ld->ld_options.ldo_defbase = NULL;
@@ -148,7 +150,7 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 		ld->ld_options.ldo_defhost = strdup( defhost );
 	} else {
 		ld->ld_options.ldo_defhost = strdup(
-			openldap_ldap_global_options.ldo_defhost);
+			ldap_int_global_options.ldo_defhost);
 	}
 
 	if ( ld->ld_options.ldo_defhost == NULL ) {
@@ -157,9 +159,9 @@ ldap_init( LDAP_CONST char *defhost, int defport )
 		return( NULL );
 	}
 
-	if ( openldap_ldap_global_options.ldo_defbase != NULL ) {
+	if ( ldap_int_global_options.ldo_defbase != NULL ) {
 		ld->ld_options.ldo_defbase = strdup(
-			openldap_ldap_global_options.ldo_defbase);
+			ldap_int_global_options.ldo_defbase);
 	}
 
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
