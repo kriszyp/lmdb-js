@@ -8,9 +8,12 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  *
- * $Id$
+ * $Id: tcl_init.c,v 1.2 1999/02/17 00:55:54 bcollins Exp $
  *
- * $Log$
+ * $Log: tcl_init.c,v $
+ * Revision 1.2  1999/02/17 00:55:54  bcollins
+ * Implemented the open, init functions correctly
+ *
  */
 
 #include "portable.h"
@@ -41,7 +44,7 @@ tcl_back_initialize(
 	ldap_pvt_thread_mutex_init( &tcl_interpreter_mutex );
 
 	bi->bi_open = tcl_back_open;
-	bi->bi_config = tcl_back_config;
+	bi->bi_config = NULL;
 	bi->bi_close = tcl_back_close;
 	bi->bi_destroy = tcl_back_destroy;
 
@@ -64,6 +67,25 @@ tcl_back_initialize(
 	bi->bi_acl_group = NULL;
 
 	return 0;
+}
+
+int
+tcl_back_open(
+	BackendInfo	*bi
+)
+{
+	/* Initialize the global interpreter array */
+	global_i = (struct i_info *) ch_malloc (sizeof (struct i_info));
+	global_i->count = 0;
+	global_i->name = "default";
+	global_i->next = NULL;
+	global_i->interp = Tcl_CreateInterp ();
+	Tcl_Init (global_i->interp);
+
+	/* Initialize the global interpreter lock */
+	ldap_pvt_thread_mutex_init( &tcl_interpreter_mutex );
+
+	return( 0 );
 }
 
 int

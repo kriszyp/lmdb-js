@@ -8,9 +8,12 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  *
- * $Id$
+ * $Id: tcl_close.c,v 1.2 1999/02/17 00:55:03 bcollins Exp $
  *
- * $Log$
+ * $Log: tcl_close.c,v $
+ * Revision 1.2  1999/02/17 00:55:03  bcollins
+ * Implemented all of the (db_)destroy and (db_)close functions
+ *
  */
 
 #include "portable.h"
@@ -26,8 +29,6 @@ tcl_back_close (
 )
 {
 	Tcl_DeleteInterp(global_i->interp);
-	Tcl_Free(global_i->interp);
-	free(global_i);
 
 	return( 0 );
 }
@@ -37,6 +38,8 @@ tcl_back_destroy(
 		BackendInfo *bi
 )
 {
+	Tcl_Free(global_i->interp);
+	free(global_i);
 	ldap_pvt_thread_mutex_destroy( &tcl_interpreter_mutex );
 
 	return( 0 );
