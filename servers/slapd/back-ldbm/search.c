@@ -79,7 +79,6 @@ ldbm_back_search(
 	switch ( deref ) {
 	case LDAP_DEREF_FINDING:
 	case LDAP_DEREF_ALWAYS:
-		free (realBase);
 		realBase = derefDN ( be, conn, op, base );
 		break;
 	default:
@@ -110,6 +109,9 @@ ldbm_back_search(
 	default:
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, "",
 		    "Bad scope" );
+		if( realBase != NULL) {
+			free( realBase );
+		}
 		return( -1 );
 	}
 
@@ -119,7 +121,14 @@ ldbm_back_search(
 		if ( matched != NULL ) {
 			free( matched );
 		}
+		if( realBase != NULL) {
+			free( realBase );
+		}
 		return( -1 );
+	}
+
+	if ( matched != NULL ) {
+		free( matched );
 	}
 
 	rmaxsize = 0;
@@ -136,6 +145,9 @@ ldbm_back_search(
 			pthread_mutex_unlock( &op->o_abandonmutex );
 			idl_free( candidates );
 			free( rbuf );
+			if( realBase != NULL) {
+				free( realBase );
+			}
 			return( 0 );
 		}
 		pthread_mutex_unlock( &op->o_abandonmutex );
@@ -150,6 +162,9 @@ ldbm_back_search(
 			    NULL, nentries );
 			idl_free( candidates );
 			free( rbuf );
+			if( realBase != NULL) {
+				free( realBase );
+			}
 			return( 0 );
 		}
 		pthread_mutex_unlock( &currenttime_mutex );
@@ -273,6 +288,10 @@ ldbm_back_search(
 		    nentries );
 	}
 	free( rbuf );
+
+	if( realBase != NULL) {
+		free( realBase );
+	}
 
 	return( 0 );
 }
