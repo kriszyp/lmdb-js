@@ -1,2 +1,0 @@
-set -aliasderef always -sizelimit 25 -timelimit 30
-moveto "o=Enterprise Solutions Limited, c=CA"

@@ -14,12 +14,6 @@ Current contributions:
 	ldaptcl
 		TCL API from NeoSoft
 
-    saucer
-		General purpose command-line LDAP client, modeled
-		after ISODE's DISH (DIrectory SHell) client.
-		Contributed by Eric Rosenquist.  See saucer/README
-		and its man page for more information.
-
 Please submit your contributions using the OpenLDAP Issue
 Tracking System <http://www.openldap.org/>.
 
