@@ -26,9 +26,18 @@ A template is defined by a filter string and an index identifying a set of
 attributes. The \fBtemplate string\fP for a query can be obtained by
 removing assertion values from the RFC 2254 representation of its search
 filter. A query belongs to a template if its template string and set of
-projected attributes correspond to a cacheable template. Examples of template strings are (mail=), (|(sn=)(cn=)), (&(sn=)(givenName=)).    
+projected attributes correspond to a cacheable template.
+Examples of template strings are \fB(mail=)\fP, \fB(|(sn=)(cn=))\fP,
+\fB(&(sn=)(givenName=))\fP.
 
 .LP 
+The config directives that are specific to the
+.B proxycache
+overlay can be prefixed by
+.BR proxycache\- ,
+to avoid conflicts with directives specific to the underlying database
+or to other stacked overlays.  This may be particularly useful for those
+directives that refer to the backend used for local storage.
 The following cache specific directives can be used to configure the proxy
 cache: 
 .TP
@@ -70,7 +79,8 @@ Specifies a cacheable template and "time to live" (in sec) <ttl> of queries
 belonging to the template. 
 
 .LP
-The following adds a template with filter string (&sn=)(givenName=)) and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 
+The following adds a template with filter string \fB((&sn=)(givenName=))\fP 
+and attributes mail, postaladdress, telephonenumber and a TTL of 1 hour. 
 .LP
 .RS
 .nf
@@ -78,6 +88,7 @@ proxyattrset \fB0 mail postaladdress telephonenumber\fP
 proxytemplate \fB(&(sn=)(givenName=)) 0 3600\fP
 .fi
 .RE
+
 .LP
 Directives for configuring the underlying database must also be given, as
 shown here:
