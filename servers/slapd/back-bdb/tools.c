@@ -439,6 +439,7 @@ done:
 #endif
 		e->e_id = NOID;
 	}
+	bdb_entry_return( e );
 
 	return rc;
 }
