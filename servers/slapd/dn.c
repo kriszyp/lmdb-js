@@ -132,11 +132,13 @@ dnValidate(
 	 * Schema-aware validate
 	 */
 	rc = LDAPDN_validate( dn );
-	if ( rc == LDAP_SUCCESS ) {
-		ldap_dnfree( dn );
+	ldap_dnfree( dn );
+
+	if ( rc != LDAP_SUCCESS ) {
+		return LDAP_INVALID_SYNTAX;
 	}
-	
-	return LDAP_INVALID_SYNTAX;
+
+	return LDAP_SUCCESS;
 }
 
 /*
