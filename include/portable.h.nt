@@ -1,5 +1,5 @@
 /* include/portable.h.nt -- manually updated of MS NT (MS VC5) */
-/* synced with portable.h.in 1.5 */
+/* synced with portable.h.in 1.6 */
 /*
 Copyright 1998 The OpenLDAP Foundation, Redwood City, California, USA
 All rights reserved.
@@ -88,6 +88,9 @@ typedef char * caddr_t;
 
 /* Define if you have the vprintf function.  */
 #define HAVE_VPRINTF 1
+
+/* Define if you have the vsnprintf function.  */
+/* #undef HAVE_VSNPRINTF */
 
 /* Define if you have the wait3 system call.  */
 /* #undef HAVE_WAIT3 */
@@ -314,6 +317,9 @@ typedef char * caddr_t;
 
 /* Define if you have the sigset function.  */
 /* #undef HAVE_SIGSET */
+
+/* Define if you have the snprintf function.  */
+/* #undef HAVE_SNPRINTF */
 
 /* Define if you have the socket function.  */
 #define HAVE_SOCKET 1

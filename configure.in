@@ -803,6 +803,12 @@ dnl Checks for library functions.
 AC_FUNC_MEMCMP
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
+
+if test $ac_cv_func_vprintf = yes ; then
+	dnl check for vsnprintf
+	AC_CHECK_FUNCS(vsnprintf)
+fi
+
 AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
@@ -822,6 +828,7 @@ AC_CHECK_FUNCS(		\
 	setsid			\
 	signal			\
 	sigset			\
+	snprintf		\
 	socket			\
 	strerror		\
 	strstr			\
@@ -908,6 +915,10 @@ fi
 
 if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
 	$BUILD_SLAPD = yes ; then
+	BUILD_SLURPD=yes
+fi
+
+if test $ol_enable_ldapd != no ; then
 	BUILD_SLURPD=yes
 fi
 

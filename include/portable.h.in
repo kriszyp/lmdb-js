@@ -290,6 +290,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the sigset function.  */
 #undef HAVE_SIGSET
 
+/* Define if you have the snprintf function.  */
+#undef HAVE_SNPRINTF
+
 /* Define if you have the socket function.  */
 #undef HAVE_SOCKET
 
@@ -322,6 +325,9 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the tempnam function.  */
 #undef HAVE_TEMPNAM
+
+/* Define if you have the vsnprintf function.  */
+#undef HAVE_VSNPRINTF
 
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID
