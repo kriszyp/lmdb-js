@@ -24,7 +24,6 @@
 #define _LBER_H
 
 #include <stdio.h>
-#include <ac/stdarg.h>
 
 #include <lber_types.h>
 
@@ -107,8 +106,6 @@ LDAP_BEGIN_DECL
 /* get/set Memory Debug options */
 #define LBER_OPT_MEMORY_INUSE		0x8005	/* for memory debugging */
 #define LBER_OPT_LOG_PROC           0x8006  /* for external logging function */
-
-typedef void (*BER_LOG_FN) LDAP_P((FILE *file, char *subsys, int level, const char *fmt, va_list vl));
 
 typedef int* (*BER_ERRNO_FN) LDAP_P(( void ));
 
@@ -224,10 +221,6 @@ ber_dump LDAP_P((
 LBER_F( void )
 ber_sos_dump LDAP_P((
 	Seqorset *sos ));
-
-LBER_F( int )
-ber_pvt_log_output LDAP_P((
-	char *subsystem, int level, const char *fmt, ... ));
 
 /*
  * in decode.c:
