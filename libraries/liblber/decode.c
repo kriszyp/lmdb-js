@@ -596,7 +596,8 @@ ber_scanf ( BerElement *ber,
 					(j + 2) * sizeof(char *) );
 
 				if( *sss == NULL ) {
-					LBER_FREE( save );
+					save[j] = NULL;
+					ber_memvfree( save );
 					rc = LBER_DEFAULT;
 					goto breakout;
 				}
@@ -604,8 +605,7 @@ ber_scanf ( BerElement *ber,
 				rc = ber_get_stringa( ber, &((*sss)[j]) );
 				j++;
 			}
-			if ( j > 0 )
-				(*sss)[j] = NULL;
+			if ( j > 0 ) (*sss)[j] = NULL;
 			break;
 
 		case 'V':	/* sequence of strings + lengths */
@@ -622,7 +622,8 @@ ber_scanf ( BerElement *ber,
 					(j + 2) * sizeof(struct berval *) );
 		
 				if( *bv == NULL ) {
-					LBER_FREE( save );
+					save[j] = NULL;
+					ber_bvecfree( save );
 					rc = LBER_DEFAULT;
 					goto breakout;
 				}
@@ -630,8 +631,7 @@ ber_scanf ( BerElement *ber,
 				rc = ber_get_stringal( ber, &((*bv)[j]) );
 				j++;
 			}
-			if ( j > 0 )
-				(*bv)[j] = NULL;
+			if ( j > 0 ) (*bv)[j] = NULL;
 			break;
 
 		case 'x':	/* skip the next element - whatever it is */
@@ -744,11 +744,7 @@ breakout:
 		case 'v':	/* sequence of strings */
 			sss = va_arg( ap, char *** );
 			if ( *sss ) {
-				for (j = 0;  (*sss)[j];	 j++) {
-					LBER_FREE( (*sss)[j] );
-					(*sss)[j] = NULL;
-				}
-				LBER_FREE( *sss );
+				ber_memvfree( *sss );
 				*sss = NULL;
 			}
 			break;
