@@ -239,6 +239,8 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 #define SLAPI_PLUGIN_EXTENDEDOP         2
 #define SLAPI_PLUGIN_PREOPERATION       3
 #define SLAPI_PLUGIN_POSTOPERATION      4
+#define SLAPI_PLUGIN_MATCHINGRULE       5
+#define SLAPI_PLUGIN_SYNTAX             6
 #define SLAPI_PLUGIN_AUDIT              7   
 
 /* misc params */
@@ -370,6 +372,12 @@ int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
 #define SLAPI_PLUGIN_MR_FILTER_REUSABLE		615
 #define SLAPI_PLUGIN_MR_QUERY_OPERATOR		616
 #define SLAPI_PLUGIN_MR_USAGE			617
+
+#define SLAPI_MATCHINGRULE_NAME			1
+#define SLAPI_MATCHINGRULE_OID			2
+#define SLAPI_MATCHINGRULE_DESC			3
+#define SLAPI_MATCHINGRULE_SYNTAX		4
+#define SLAPI_MATCHINGRULE_OBSOLETE		5
 
 #define SLAPI_OP_LESS					1
 #define SLAPI_OP_LESS_OR_EQUAL				2
