@@ -41,7 +41,7 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 	int entriesCount = 0, error;
 
 	this->ld = ld;
-	if (this->dn == "cn=config" || this->dn == "cn=monitor") error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &r_i);
+	if (this->dn == "cn=config" || this->dn == "cn=monitor" || this->dn == "cn=schema") error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_BASE, "objectclass=*", NULL, 0, &r_i);
 	else {
 		if (strcasecmp(this->objectClass,"alias") == 0) error = ldap_search_s(this->ld, this->getAttribute("aliasedobjectname"), LDAP_SCOPE_ONELEVEL, "objectclass=*", NULL, 0, &r_i);
 		else error = ldap_search_s(this->ld, this->dn, LDAP_SCOPE_ONELEVEL, "objectclass=*", NULL, 0, &r_i);
@@ -57,7 +57,7 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 		entry = ldap_first_entry(this->ld, r_i);
 	//	float i = 1;
 		gfloat percent = 100/entriesCount;
-		cout << "percent is " << percent << endl;
+		debug("percent is %f\n", percent);
 	//	this->par->progress.set_percentage(percent/100);
 	//	this->par->progress.show();
 		while (entry != NULL) {

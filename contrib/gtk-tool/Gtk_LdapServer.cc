@@ -137,6 +137,7 @@ int Gtk_LdapServer::getConfig() {
 				}
 			this->databases = g_list_append(this->databases, "ldbm : cn=config");
 			this->databases = g_list_append(this->databases, "ldbm : cn=monitor");
+			this->databases = g_list_append(this->databases, "ldbm : cn=schema");
 				ldap_value_free(t);
 				debug("databases loaded\n");
 				GList *t;

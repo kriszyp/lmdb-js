@@ -1,4 +1,7 @@
 ChangeLog for gtk-tool
+06/01/2000 - Pele
+	* Added cn=schema
+
 03/01/2000 - Pele
 	* Fixed localtime() bug in Linux ?;)
 
