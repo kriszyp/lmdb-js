@@ -369,7 +369,6 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	}
 
 	if ( rc == -1 ) {
-		/* TimesTen : Don't run the query */
 		goto impossible;
 	}
  
@@ -681,19 +680,6 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	bsi->flt_where.bb_val.bv_len = 0;
 	bsi->flt_where.bb_len = 0;
 
-#if 0
-	/*
-	 * FIXME: this query has been split in case a string cast function
-	 * is defined; more sophisticated (pattern based) function should
-	 * be used
-	 */
-	backsql_strcat( &bsi->sel,
-			"SELECT DISTINCT ldap_entries.id,", 
-			bsi->oc->keytbl.bv_val, ".", bsi->oc->keycol.bv_val,
-			",'", bsi->oc->name.bv_val, "' AS objectClass",
-			",ldap_entries.dn AS dn", NULL );
-#endif
-
 	backsql_strfcat( &bsi->sel, "lbcbc",
 			(ber_len_t)sizeof( "SELECT DISTINCT ldap_entries.id," ) - 1,
 				"SELECT DISTINCT ldap_entries.id,", 
@@ -771,10 +757,6 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 						"ldap_entries.dn LIKE ?" );
 		}
 
-#if 0
-		backsql_strfcat( &bsi->join_where, "b",
-				&bi->subtree_cond );
-#endif
 		break;
 
 	default:
@@ -799,8 +781,6 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 		 * Indicates that there's no possible way the filter matches
 		 * anything.  No need to issue the query
 		 */
-		Debug( LDAP_DEBUG_TRACE,
-			"<==backsql_srch_query() returns NULL\n", 0, 0, 0 );
 		free( query->bv_val );
 		query->bv_val = NULL;
 	}
@@ -818,9 +798,10 @@ backsql_srch_query( backsql_srch_info *bsi, struct berval *query )
 	bsi->flt_where.bb_val.bv_len = 0;
 	bsi->flt_where.bb_len = 0;
 	
-	Debug( LDAP_DEBUG_TRACE, "<==backsql_srch_query()\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<==backsql_srch_query() returns %s\n",
+		query->bv_val ? query->bv_val : "NULL", 0, 0 );
 	
-	return ( query->bv_val == NULL ? 1 : 0 );
+	return ( rc <= 0 ? 1 : 0 );
 }
 
 static int
@@ -850,16 +831,29 @@ backsql_oc_get_candidates( void *v_oc, void *v_bsi )
 			"unchecked limit has been overcome\n", 0, 0, 0 );
 		/* should never get here */
 		assert( 0 );
-		bsi->status = LDAP_OTHER;
+		bsi->status = LDAP_ADMINLIMIT_EXCEEDED;
 		return BACKSQL_STOP;
 	}
 	
 	bsi->oc = oc;
-	if ( backsql_srch_query( bsi, &query ) ) {
+	res = backsql_srch_query( bsi, &query );
+	if ( res ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
-			"could not construct query for objectclass\n",
-			0, 0, 0 );
-		bsi->status = LDAP_OTHER;
+			"error while constructing query for objectclass '%s'\n",
+			oc->oc->soc_cname.bv_val, 0, 0 );
+		/*
+		 * FIXME: need to separate errors from legally
+		 * impossible filters
+		 */
+		bsi->status = LDAP_SUCCESS;
+		return BACKSQL_CONTINUE;
+	}
+
+	if ( query.bv_val == NULL ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_oc_get_candidates(): "
+			"could not construct query for objectclass '%s'\n",
+			oc->oc->soc_cname.bv_val, 0, 0 );
+		bsi->status = LDAP_SUCCESS;
 		return BACKSQL_CONTINUE;
 	}
 
