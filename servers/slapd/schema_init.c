@@ -1550,6 +1550,10 @@ int caseExactIgnoreSubstringsFilter(
 	}
 
 	if( nkeys == 0 ) {
+		ch_free( sa->sa_final );
+		ber_bvecfree( sa->sa_any );
+		ch_free( sa->sa_initial );
+		ch_free( sa );
 		*keysp = NULL;
 		return LDAP_SUCCESS;
 	}

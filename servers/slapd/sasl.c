@@ -713,6 +713,10 @@ int slap_sasl_bind(
 			NULL, errstr, NULL, NULL );
 	}
 
+	if( response.bv_len ) {
+		ch_free( response.bv_val );
+	}
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl_bind: rc=%d\n", rc ));

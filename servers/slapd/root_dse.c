@@ -120,6 +120,7 @@ root_dse_info(
 			val.bv_len = strlen( val.bv_val );
 			attr_merge( e, ad_supportedSASLMechanisms, vals );
 		}
+		charray_free( supportedSASLMechanisms );
 	}
 
 	if ( default_referral != NULL ) {
