@@ -159,11 +159,17 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	p_ndn.bv_val = dn_parent( be, e->e_ndn );
-	if (p_ndn.bv_val && *p_ndn.bv_val)
-		p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
-	else
+	if ( be_issuffix( be, e->e_nname.bv_val ) ) {
 		p_ndn.bv_len = 0;
+		p_ndn.bv_val = "";
+	} else {
+		rc = dnParent( e->e_nname.bv_val, (const char **)&p_ndn.bv_val );
+		if ( rc != LDAP_SUCCESS ) {
+			text = "internal error";
+			goto return_results;
+		}
+		p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_nname.bv_val);
+	}
 	np_ndn = &p_ndn;
 	if ( p_ndn.bv_len != 0 ) {
 		/* Make sure parent entry exist and we can write its 
@@ -206,11 +212,17 @@ retry:	/* transaction retry */
 			"bdb_modrdn: wr to children of entry %s OK\n",
 			p_ndn.bv_val, 0, 0 );
 		
-		p_dn.bv_val = dn_parent( be, e->e_dn );
-		if (p_dn.bv_val && *p_dn.bv_val)
-			p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
-		else
+		if ( be_issuffix( be, e->e_name.bv_val ) ) {
 			p_dn.bv_len = 0;
+			p_dn.bv_val = "";
+		} else {
+			rc = dnParent( e->e_name.bv_val, &p_dn.bv_val );
+			if ( rc != LDAP_SUCCESS ) {
+				text = "internal error";
+				goto return_results;
+			}
+			p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_name.bv_val);
+		}
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: parent dn=%s\n",
