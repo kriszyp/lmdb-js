@@ -1,5 +1,8 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.11 Engineering
+	Fix attribute parse bug (ITS#1159)
+
 OpenLDAP 2.0.10 Release
 	Build Environment
 		Fix TLS-less build (ITS#1156)
