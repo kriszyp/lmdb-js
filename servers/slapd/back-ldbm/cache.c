@@ -84,7 +84,7 @@ cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
-	entry_rdwr_unlock(e, rw);;
+	entry_rdwr_unlock(e, rw);
 
 	if ( --e->e_refcnt == 0 && e->e_state == ENTRY_STATE_DELETED ) {
 		entry_free( e );
