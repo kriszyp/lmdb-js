@@ -351,9 +351,6 @@ int get_ctrls(
 	BerElement *ber = op->o_ber;
 	struct slap_control *sc;
 	struct berval bv;
-	BER_MEMREALLOC_FN *reallo;
-
-	reallo = op->o_tmpmemctx ? sl_realloc : (BER_MEMREALLOC_FN *)ch_realloc;
 
 	len = ber_pvt_ber_remaining(ber);
 
@@ -413,7 +410,7 @@ int get_ctrls(
 		/* allocate pointer space for current controls (nctrls)
 		 * + this control + extra NULL
 		 */
-		tctrls = reallo( op->o_ctrls,
+		tctrls = op->o_tmprealloc( op->o_ctrls,
 			(nctrls+2) * sizeof(LDAPControl *), op->o_tmpmemctx );
 
 #if 0

@@ -68,8 +68,7 @@ str2filter( const char *str )
 	Operation op = {0};
 
 	op.o_tmpmemctx = NULL;
-	op.o_tmpalloc = ch_malloc;
-	op.o_tmpfree = ch_free;
+	op.o_tmpmfuncs = &ch_mfuncs;
 
 	return str2filter_x( &op, str );
 }

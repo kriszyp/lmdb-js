@@ -35,13 +35,14 @@ BER_MEMCALLOC_FN sl_calloc;
 BER_MEMREALLOC_FN sl_realloc;
 BER_MEMFREE_FN sl_free;
 
-static BerMemoryFunctions sl_bmf =
+
+BerMemoryFunctions sl_mfuncs =
 	{ sl_malloc, sl_calloc, sl_realloc, sl_free };
 
 void
 sl_mem_init()
 {
-	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &sl_bmf );
+	ber_set_option( NULL, LBER_OPT_MEMORY_FNS, &sl_mfuncs );
 }
 
 void *

@@ -615,85 +615,83 @@ filter_free( Filter *f )
 	Operation op;
 
 	op.o_tmpmemctx = NULL;
-	op.o_tmpfree = (BER_MEMFREE_FN *)ch_free;
+	op.o_tmpmfuncs = &ch_mfuncs;
 	filter_free_x( &op, f );
 }
 
 void
-filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
+filter2bv_x( Operation *op, Filter *f, struct berval *fstr )
 {
 	int	i;
 	Filter	*p;
 	struct berval tmp;
 	ber_len_t len;
-	BER_MEMALLOC_FN *alloc = ctx ? sl_malloc : (BER_MEMALLOC_FN *)ch_malloc;
-	BER_MEMREALLOC_FN *reallo = ctx ? sl_realloc : (BER_MEMREALLOC_FN *)ch_realloc;
 
 	if ( f == NULL ) {
-		ber_str2bv_x( "No filter!", sizeof("No filter!")-1, 1, fstr, ctx );
+		ber_str2bv_x( "No filter!", sizeof("No filter!")-1, 1, fstr, op->o_tmpmemctx );
 		return;
 	}
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-		filter_escape_value_x( &f->f_av_value, &tmp, ctx );
+		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(=)") - 1 );
-		fstr->bv_val = alloc( fstr->bv_len + 1, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 			tmp.bv_val );
 
-		ber_memfree_x( tmp.bv_val, ctx );
+		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_GE:
-		filter_escape_value_x( &f->f_av_value, &tmp, ctx );
+		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(>=)") - 1 );
-		fstr->bv_val = alloc( fstr->bv_len + 1, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 			tmp.bv_val );
 
-		ber_memfree_x( tmp.bv_val, ctx );
+		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_LE:
-		filter_escape_value_x( &f->f_av_value, &tmp, ctx );
+		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(<=)") - 1 );
-		fstr->bv_val = alloc( fstr->bv_len + 1, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 			tmp.bv_val );
 
-		ber_memfree_x( tmp.bv_val, ctx );
+		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_APPROX:
-		filter_escape_value_x( &f->f_av_value, &tmp, ctx );
+		filter_escape_value_x( &f->f_av_value, &tmp, op->o_tmpmemctx );
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(~=)") - 1 );
-		fstr->bv_val = alloc( fstr->bv_len + 1, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			f->f_av_desc->ad_cname.bv_val,
 			tmp.bv_val );
-		ber_memfree_x( tmp.bv_val, ctx );
+		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		fstr->bv_len = f->f_sub_desc->ad_cname.bv_len +
 			( sizeof("(=*)") - 1 );
-		fstr->bv_val = alloc( fstr->bv_len + 128, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 128, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			f->f_sub_desc->ad_cname.bv_val );
@@ -701,46 +699,46 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 		if ( f->f_sub_initial.bv_val != NULL ) {
 			len = fstr->bv_len;
 
-			filter_escape_value_x( &f->f_sub_initial, &tmp, ctx );
+			filter_escape_value_x( &f->f_sub_initial, &tmp, op->o_tmpmemctx );
 
 			fstr->bv_len += tmp.bv_len;
-			fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, ctx );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len-2], tmp.bv_len+3,
 				/* "(attr=" */ "%s*)",
 				tmp.bv_val );
 
-			ber_memfree_x( tmp.bv_val, ctx );
+			ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		}
 
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; f->f_sub_any[i].bv_val != NULL; i++ ) {
 				len = fstr->bv_len;
-				filter_escape_value_x( &f->f_sub_any[i], &tmp, ctx );
+				filter_escape_value_x( &f->f_sub_any[i], &tmp, op->o_tmpmemctx );
 
 				fstr->bv_len += tmp.bv_len + 1;
-				fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, ctx );
+				fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 				snprintf( &fstr->bv_val[len-1], tmp.bv_len+3,
 					/* "(attr=[init]*[any*]" */ "%s*)",
 					tmp.bv_val );
-				ber_memfree_x( tmp.bv_val, ctx );
+				ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 			}
 		}
 
 		if ( f->f_sub_final.bv_val != NULL ) {
 			len = fstr->bv_len;
 
-			filter_escape_value_x( &f->f_sub_final, &tmp, ctx );
+			filter_escape_value_x( &f->f_sub_final, &tmp, op->o_tmpmemctx );
 
 			fstr->bv_len += tmp.bv_len;
-			fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, ctx );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len-1], tmp.bv_len+3,
 				/* "(attr=[init*][any*]" */ "%s)",
 				tmp.bv_val );
 
-			ber_memfree_x( tmp.bv_val, ctx );
+			ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		}
 
 		break;
@@ -748,7 +746,7 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 	case LDAP_FILTER_PRESENT:
 		fstr->bv_len = f->f_desc->ad_cname.bv_len +
 			( sizeof("(=*)") - 1 );
-		fstr->bv_val = alloc( fstr->bv_len + 1, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			f->f_desc->ad_cname.bv_val );
@@ -758,7 +756,7 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
 		fstr->bv_len = sizeof("(%)") - 1;
-		fstr->bv_val = alloc( fstr->bv_len + 128, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 128, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
 			f->f_choice == LDAP_FILTER_AND ? '&' :
@@ -767,22 +765,22 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			len = fstr->bv_len;
 
-			filter2bv( p, &tmp );
+			filter2bv_x( op, p, &tmp );
 			
 			fstr->bv_len += tmp.bv_len;
-			fstr->bv_val = reallo( fstr->bv_val, fstr->bv_len + 1, ctx );
+			fstr->bv_val = op->o_tmprealloc( fstr->bv_val, fstr->bv_len + 1, op->o_tmpmemctx );
 
 			snprintf( &fstr->bv_val[len-1], tmp.bv_len + 2, 
 				/*"("*/ "%s)", tmp.bv_val );
 
-			ch_free( tmp.bv_val );
+			op->o_tmpfree( tmp.bv_val, op->o_tmpmemctx );
 		}
 
 		break;
 
 	case LDAP_FILTER_EXT: {
 		struct berval ad;
-		filter_escape_value_x( &f->f_mr_value, &tmp, ctx );
+		filter_escape_value_x( &f->f_mr_value, &tmp, op->o_tmpmemctx );
 
 		if ( f->f_mr_desc ) {
 			ad = f->f_mr_desc->ad_cname;
@@ -795,7 +793,7 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
 			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
 			tmp.bv_len + ( sizeof("(:=)") - 1 );
-		fstr->bv_val = alloc( fstr->bv_len + 1, ctx );
+		fstr->bv_val = op->o_tmpalloc( fstr->bv_len + 1, op->o_tmpmemctx );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			ad.bv_val,
@@ -803,7 +801,7 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 			f->f_mr_rule_text.bv_len ? ":" : "",
 			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
 			tmp.bv_val );
-		ber_memfree_x( tmp.bv_val, ctx );
+		ber_memfree_x( tmp.bv_val, op->o_tmpmemctx );
 		} break;
 
 	case SLAPD_FILTER_COMPUTED:
@@ -816,11 +814,11 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 			f->f_result == LDAP_COMPARE_TRUE ? sizeof("(?=true)")-1 :
 			f->f_result == SLAPD_COMPARE_UNDEFINED ? sizeof("(?=undefined)")-1 :
 			sizeof("(?=error)")-1,
-			1, fstr, ctx );
+			1, fstr, op->o_tmpmemctx );
 		break;
 
 	default:
-		ber_str2bv_x( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr, ctx );
+		ber_str2bv_x( "(?=unknown)", sizeof("(?=unknown)")-1, 1, fstr, op->o_tmpmemctx );
 		break;
 	}
 }
@@ -828,7 +826,11 @@ filter2bv_x( Filter *f, struct berval *fstr, void *ctx )
 void
 filter2bv( Filter *f, struct berval *fstr )
 {
-	filter2bv_x( f, fstr, NULL );
+	Operation op;
+	op.o_tmpmemctx = NULL;
+	op.o_tmpmfuncs = &ch_mfuncs;
+
+	filter2bv_x( &op, f, fstr );
 }
 
 int

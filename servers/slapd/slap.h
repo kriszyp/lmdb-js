@@ -1840,8 +1840,11 @@ typedef struct slap_op {
 
 	void	*o_threadctx;		/* thread pool thread context */
 	void	*o_tmpmemctx;		/* slab malloc context */
-	BER_MEMALLOC_FN *o_tmpalloc;
-	BER_MEMFREE_FN *o_tmpfree;
+	BerMemoryFunctions *o_tmpmfuncs;
+#define	o_tmpalloc	o_tmpmfuncs->bmf_malloc
+#define o_tmpcalloc	o_tmpmfuncs->bmf_calloc
+#define	o_tmprealloc	o_tmpmfuncs->bmf_realloc
+#define	o_tmpfree	o_tmpmfuncs->bmf_free
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */

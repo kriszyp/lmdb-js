@@ -256,14 +256,7 @@ LDAP_SLAPD_F (int) glue_sub_init( void );
 /*
  * ch_malloc.c
  */
-#ifdef CSRIMALLOC
-#define ch_malloc malloc
-#define ch_realloc realloc
-#define ch_calloc calloc
-#define ch_strdup strdup
-#define ch_free free
-
-#else
+LDAP_SLAPD_V (BerMemoryFunctions) ch_mfuncs;
 LDAP_SLAPD_F (void *) ch_malloc LDAP_P(( ber_len_t size ));
 LDAP_SLAPD_F (void *) ch_realloc LDAP_P(( void *block, ber_len_t size ));
 LDAP_SLAPD_F (void *) ch_calloc LDAP_P(( ber_len_t nelem, ber_len_t size ));
@@ -273,7 +266,6 @@ LDAP_SLAPD_F (void) ch_free LDAP_P(( void * ));
 #ifndef CH_FREE
 #undef free
 #define free ch_free
-#endif
 #endif
 
 /*
@@ -498,7 +490,7 @@ LDAP_SLAPD_F (int) get_filter LDAP_P((
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));
 LDAP_SLAPD_F (void) filter_free_x LDAP_P(( Operation *op, Filter *f ));
 LDAP_SLAPD_F (void) filter2bv LDAP_P(( Filter *f, struct berval *bv ));
-LDAP_SLAPD_F (void) filter2bv_x LDAP_P(( Filter *f, struct berval *bv, void *ctx ));
+LDAP_SLAPD_F (void) filter2bv_x LDAP_P(( Operation *op, Filter *f, struct berval *bv ));
 
 LDAP_SLAPD_F (int) get_vrFilter LDAP_P(( Operation *op, BerElement *ber,
 	ValuesReturnFilter **f,
@@ -970,10 +962,12 @@ LDAP_SLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del,
 /*
  * sl_malloc.c
  */
+LDAP_SLAPD_V (BerMemoryFunctions) sl_mfuncs;
 LDAP_SLAPD_F (void *) sl_malloc LDAP_P(( ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void *) sl_realloc LDAP_P(( void *block, ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void *) sl_calloc LDAP_P(( ber_len_t nelem, ber_len_t size, void *ctx ));
 LDAP_SLAPD_F (void) sl_free LDAP_P(( void *, void *ctx ));
+LDAP_SLAPD_F (void *) sl_mem_create LDAP_P(( ber_len_t size, void *ctx ));
 
 /*
  * starttls.c

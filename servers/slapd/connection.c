@@ -919,12 +919,10 @@ connection_operation( void *ctx, void *arg_v )
 		memctx = sl_mem_create( SLAB_SIZE, ctx );
 		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, memctx );
 		op->o_tmpmemctx = memctx;
-		op->o_tmpalloc = sl_malloc;
-		op->o_tmpfree = sl_free;
+		op->o_tmpmfuncs = &sl_mfuncs;
 	} else {
 		op->o_tmpmemctx = NULL;
-		op->o_tmpalloc = (BER_MEMALLOC_FN *)ch_malloc;
-		op->o_tmpfree = (BER_MEMFREE_FN *)ch_free;
+		op->o_tmpmfuncs = &ch_mfuncs;
 	}
 
 	switch ( tag ) {

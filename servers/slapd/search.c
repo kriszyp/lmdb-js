@@ -145,7 +145,7 @@ do_search(
 		}
 		goto return_results;
 	}
-	filter2bv_x( op->ors_filter, &op->ors_filterstr, op->o_tmpmemctx );
+	filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
@@ -478,7 +478,7 @@ static int doSearchRewriteFNs( Operation *op )
 		 */
 		slapi_pblock_get( op->o_pb, SLAPI_SEARCH_FILTER, (void *)&op->ors_filter);
 		op->o_tmpfree( op->ors_filterstr.bv_val, op->o_tmpmemctx );
-		filter2bv_x( op->ors_filter, &op->ors_filterstr, op->o_tmpmemctx );
+		filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
 			"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 

@@ -18,7 +18,12 @@
 
 #include "slap.h"
 
-#ifndef CSRIMALLOC
+BerMemoryFunctions ch_mfuncs = {
+	(BER_MEMALLOC_FN *)ch_malloc,
+	(BER_MEMCALLOC_FN *)ch_calloc,
+	(BER_MEMREALLOC_FN *)ch_realloc,
+	(BER_MEMFREE_FN *)ch_free 
+};
 
 void *
 ch_malloc(
@@ -27,7 +32,7 @@ ch_malloc(
 {
 	void	*new;
 
-	if ( (new = (void *) ber_memalloc( size )) == NULL ) {
+	if ( (new = (void *) ber_memalloc_x( size, NULL )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			   "ch_malloc: allocation of %lu bytes failed\n", (long)size, 0,0 );
@@ -58,7 +63,7 @@ ch_realloc(
 		ch_free( block );
 	}
 
-	if ( (new = (void *) ber_memrealloc( block, size )) == NULL ) {
+	if ( (new = (void *) ber_memrealloc_x( block, size, NULL )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			   "ch_realloc: reallocation of %lu bytes failed\n", (long)size, 0,0 );
@@ -81,7 +86,7 @@ ch_calloc(
 {
 	void	*new;
 
-	if ( (new = (void *) ber_memcalloc( nelem, size )) == NULL ) {
+	if ( (new = (void *) ber_memcalloc_x( nelem, size, NULL )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			   "ch_calloc: allocation of %lu elements of %lu bytes faild\n",
@@ -104,7 +109,7 @@ ch_strdup(
 {
 	char	*new;
 
-	if ( (new = ber_strdup( string )) == NULL ) {
+	if ( (new = ber_strdup_x( string, NULL )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR, 
 			"chr_strdup: duplication of \"%s\" failed\n", string, 0, 0 );
@@ -121,7 +126,6 @@ ch_strdup(
 void
 ch_free( void *ptr )
 {
-	ber_memfree( ptr );
+	ber_memfree_x( ptr, NULL );
 }
 
-#endif
