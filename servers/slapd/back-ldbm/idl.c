@@ -58,7 +58,7 @@ static void idl_check(ID_BLOCK *idl)
 #ifndef USE_INDIRECT_NIDS
 	if( ID_BLOCK_INDIRECT(idl) )
 	{
-		for ( max = 0; !ID_BLOCK_BOID(idl, max); max++ ) ;
+		for ( max = 0; !ID_BLOCK_NOID(idl, max); max++ ) ;
 	} else
 #endif
 	{
