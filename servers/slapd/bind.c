@@ -319,7 +319,7 @@ do_bind(
 #endif
 
 	} else {
-		rc = LDAP_AUTH_UNKNOWN;
+		rc = LDAP_AUTH_METHOD_NOT_SUPPORTED;
 		text = "unknown authentication method";
 
 		send_ldap_result( conn, op, rc,
