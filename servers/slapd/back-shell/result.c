@@ -23,7 +23,7 @@ read_and_send_results(
     Connection	*conn,
     Operation	*op,
     FILE	*fp,
-    char	**attrs,
+    struct berval **attrs,
     int		attrsonly
 )
 {
@@ -82,8 +82,8 @@ read_and_send_results(
 				Debug( LDAP_DEBUG_ANY, "str2entry(%s) failed\n",
 				    buf, 0, 0 );
 			} else {
-				send_search_entry( be, conn, op, e, attrs,
-				    attrsonly, NULL );
+				send_search_entry( be, conn, op, e,
+					attrs, attrsonly, NULL );
 				entry_free( e );
 			}
 
@@ -111,6 +111,6 @@ print_suffixes(
 	int	i;
 
 	for ( i = 0; be->be_suffix[i] != NULL; i++ ) {
-		fprintf( fp, "suffix: %s\n", be->be_suffix[i].bv_val );
+		fprintf( fp, "suffix: %s\n", be->be_suffix[i]->bv_val );
 	}
 }

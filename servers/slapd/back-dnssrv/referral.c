@@ -20,8 +20,8 @@ dnssrv_back_referrals(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char *dn,
-    const char *ndn,
+    struct berval *dn,
+    struct berval *ndn,
 	const char **text )
 {
 	int i;
@@ -31,7 +31,7 @@ dnssrv_back_referrals(
 	char **hosts = NULL;
 	struct berval **urls = NULL;
 
-	if( ndn == NULL || *ndn == '\0' ) {
+	if( ndn->bv_len == 0 ) {
 		*text = "DNS SRV operation upon null (empty) DN disallowed";
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
@@ -45,20 +45,21 @@ dnssrv_back_referrals(
 		return LDAP_OTHER;
 	} 
 
-	if( ldap_dn2domain( dn, &domain ) ) {
+	if( ldap_dn2domain( dn->bv_val, &domain ) ) {
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		return LDAP_REFERRAL;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> domain=\"%s\"\n",
-		dn == NULL ? "" : dn,
+		dn->bv_val,
 		domain == NULL ? "" : domain,
 		0 );
 
 	if( rc = ldap_domain2hostlist( domain, &hostlist ) ) {
-		Debug( LDAP_DEBUG_TRACE, "DNSSRV: domain2hostlist returned %d\n",
-			rc, 0, 0 );
+		Debug( LDAP_DEBUG_TRACE,
+			"DNSSRV: domain2hostlist(%s) returned %d\n",
+			domain, rc, 0 );
 		*text = "no DNS SRV RR available for DN";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
@@ -90,11 +91,11 @@ dnssrv_back_referrals(
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%d DNSSRV p=%d dn=\"%s\" url=\"%s\"\n",
-	    op->o_connid, op->o_opid, op->o_protocol, dn, urls[0]->bv_val );
+	    op->o_connid, op->o_opid, op->o_protocol,
+		dn->bv_val, urls[0]->bv_val );
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> url=\"%s\"\n",
-		dn == NULL ? "" : dn,
-		urls[0]->bv_val, 0 );
+		dn->bv_val, urls[0]->bv_val, 0 );
 
 	send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 		NULL, "DNS SRV generated referrals", urls, NULL );

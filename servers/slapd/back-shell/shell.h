@@ -42,7 +42,7 @@ extern int read_and_send_results LDAP_P((
 	struct slap_conn *conn,
 	struct slap_op *op,
 	FILE *fp,
-	char **attrs,
+	struct berval **attrs,
 	int attrsonly));
 
 LDAP_END_DECL
