@@ -228,7 +228,7 @@ char *derefDN ( Backend     *be,
    */
   if (depth >= be->be_maxDerefDepth) {
     Debug( LDAP_DEBUG_TRACE, 
-	   "<= max deref depth exceeded in derefDN for %s, result %s\n", 
+	   "<= max deref depth exceeded in derefDN for \"%s\", result \"%s\"\n", 
 	   dn, newDN, 0 );
     send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM, "",
 		      "Maximum alias dereference depth exceeded for base" );
@@ -238,7 +238,7 @@ char *derefDN ( Backend     *be,
     newDN = ch_strdup ( dn );
   }
   
-  Debug( LDAP_DEBUG_TRACE, "<= returning deref DN of  %s\n", newDN, 0, 0 ); 
+  Debug( LDAP_DEBUG_TRACE, "<= returning deref DN of \"%s\"\n", newDN, 0, 0 ); 
   if (matched != NULL) free(matched);
 
   return newDN;

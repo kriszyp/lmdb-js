@@ -163,7 +163,7 @@ dn2entry(
 	Entry		*e = NULL;
 	char		*pdn;
 
-	Debug(LDAP_DEBUG_TRACE, "dn2entry_%s: dn: %s\n",
+	Debug(LDAP_DEBUG_TRACE, "dn2entry_%s: dn: \"%s\"\n",
 		rw ? "w" : "r", dn, 0);
 
 	*matched = NULL;
