@@ -690,6 +690,13 @@ parse_noidlen(char **sp, int *code, int *len)
 	return sval;
 }
 
+/*
+ * Next routine will accept a qdstring in place of an oid.  This is
+ * necessary to interoperate with Netscape Directory server that
+ * will improperly quote each oid (at least those of the descr kind)
+ * in the SUP clause.
+ */
+
 /* Parse a woid or a $-separated list of them enclosed in () */
 static char **
 parse_oids(char **sp, int *code)
@@ -720,7 +727,7 @@ parse_oids(char **sp, int *code)
 		pos = 0;
 		parse_whsp(sp);
 		kind = get_token(sp,&sval);
-		if ( kind == TK_BAREWORD ) {
+		if ( kind == TK_BAREWORD || kind == TK_QDSTRING ) {
 			res[pos] = sval;
 			pos++;
 		} else {
@@ -736,7 +743,8 @@ parse_oids(char **sp, int *code)
 			if ( kind == TK_DOLLAR ) {
 				parse_whsp(sp);
 				kind = get_token(sp,&sval);
-				if ( kind == TK_BAREWORD ) {
+				if ( kind == TK_BAREWORD ||
+				     kind == TK_QDSTRING ) {
 					if ( pos == size-2 ) {
 						size++;
 						res1 = LDAP_REALLOC(res,size*sizeof(char *));
@@ -764,7 +772,7 @@ parse_oids(char **sp, int *code)
 		res[pos] = NULL;
 		parse_whsp(sp);
 		return(res);
-	} else if ( kind == TK_BAREWORD ) {
+	} else if ( kind == TK_BAREWORD || kind == TK_QDSTRING ) {
 		res = LDAP_CALLOC(2,sizeof(char *));
 		if ( !res ) {
 			*code = LDAP_SCHERR_OUTOFMEM;
@@ -813,6 +821,12 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 	int seen_must = 0;
 	int seen_may = 0;
 	LDAP_ATTRIBUTE_TYPE * at;
+
+	if ( !s ) {
+		*code = LDAP_SCHERR_EMPTY;
+		*errp = "";
+		return NULL;
+	}
 
 	*errp = s;
 	at = LDAP_CALLOC(1,sizeof(LDAP_ATTRIBUTE_TYPE));
@@ -968,6 +982,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					free_at(at);
 					return NULL;
 				}
+				parse_whsp(&ss);
 			} else if ( !strcmp(sval,"SINGLE-VALUE") ) {
 				if ( at->at_single_value ) {
 					*code = LDAP_SCHERR_DUPOPT;
@@ -1025,6 +1040,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					free_at(at);
 					return NULL;
 				}
+				parse_whsp(&ss);
 			} else {
 				*code = LDAP_SCHERR_UNEXPTOKEN;
 				*errp = ss;
@@ -1067,6 +1083,12 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 	int seen_must = 0;
 	int seen_may = 0;
 	LDAP_OBJECT_CLASS * oc;
+
+	if ( !s ) {
+		*code = LDAP_SCHERR_EMPTY;
+		*errp = "";
+		return NULL;
+	}
 
 	*errp = s;
 	oc = LDAP_CALLOC(1,sizeof(LDAP_OBJECT_CLASS));
@@ -1159,10 +1181,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return(NULL);
 				}
 				seen_sup = 1;
-				/* Netscape DS is broken or I have not
-				   understood the syntax. */
-				/* oc->oc_sup_oids = parse_oids(&ss,code); */
-				oc->oc_sup_oids = parse_qdescrs(&ss,code);
+				oc->oc_sup_oids = parse_oids(&ss,code);
 				if ( !oc->oc_sup_oids ) {
 					*errp = ss;
 					free_oc(oc);
@@ -1254,7 +1273,8 @@ static char *err2text[] = {
 	"Expecting a name",
 	"Bad description",
 	"Bad superiors",
-	"Duplicate option"
+	"Duplicate option",
+	"Unexpected end of data"
 };
 
 char *
