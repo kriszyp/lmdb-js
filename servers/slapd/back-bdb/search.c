@@ -1713,8 +1713,8 @@ send_paged_response(
 	LDAPControl	ctrl, *ctrls[2];
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *)&berbuf;
-	struct berval	cookie = BER_BVC( "" );
 	PagedResultsCookie respcookie;
+	struct berval cookie;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY,
@@ -1739,17 +1739,16 @@ send_paged_response(
 
 	} else {
 		respcookie = ( PagedResultsCookie )0;
+		cookie.bv_val = "";
+		cookie.bv_len = 0;
 	}
 
 	op->o_conn->c_pagedresults_state.ps_cookie = respcookie;
 	op->o_conn->c_pagedresults_state.ps_count =
 		op->o_pagedresults_state.ps_count + rs->sr_nentries;
 
-	/*
-	 * FIXME: we should consider sending an estimate of the entries
-	 * left, after appropriate security check is done
-	 */
-	ber_printf( ber, "{iO}", tentries, &cookie ); 
+	/* return size of 0 -- no estimate */
+	ber_printf( ber, "{iO}", 0, &cookie ); 
 
 	if ( ber_flatten2( ber, &ctrls[0]->ldctl_value, 0 ) == -1 ) {
 		goto done;
