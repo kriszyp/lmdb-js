@@ -12,7 +12,6 @@ microsoft.ext.schema    Microsoft
 microsoft.schema        Microsoft
 microsoft.std.schema    Microsoft
 misc.schema             misc/experimental
-nadf.schema             North America Directory Forum
 nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project
 vendor.schema			Vendor Information (RFC 3045) schema
