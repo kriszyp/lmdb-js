@@ -39,7 +39,7 @@ BackendDB *be_monitor = NULL;
 /*
  * subsystem data
  */
-struct monitorsubsys monitor_subsys[] = {
+static struct monitorsubsys known_monitor_subsys[] = {
 	{ 
 		SLAPD_MONITOR_BACKEND_NAME, 
 		BER_BVNULL, BER_BVNULL, BER_BVNULL,
@@ -163,12 +163,79 @@ init_module( int argc, char *argv[] )
 
 #endif /* SLAPD_MONITOR */
 
+static struct monitorsubsys **monitor_subsys = NULL;
+
+int
+monitor_back_register_subsys( monitorsubsys *ms )
+{
+	int	i = 0;
+
+	if ( monitor_subsys ) {
+		for ( ; monitor_subsys[ i ] != NULL; i++ )
+			/* just count'em */ ;
+	}
+
+	monitor_subsys = ch_realloc( monitor_subsys,
+			( 2 + i ) * sizeof( monitorsubsys * ) );
+
+	if ( monitor_subsys == NULL ) {
+		return -1;
+	}
+
+	monitor_subsys[ i ] = ms;
+	monitor_subsys[ i + 1 ] = NULL;
+
+	return 0;
+}
+
+monitorsubsys *
+monitor_back_get_subsys( const char *name )
+{
+	if ( monitor_subsys != NULL ) {
+		int	i;
+		
+		for ( i = 0; monitor_subsys[ i ] != NULL; i++ ) {
+			if ( strcasecmp( monitor_subsys[ i ]->mss_name, name ) == 0 ) {
+				return monitor_subsys[ i ];
+			}
+		}
+	}
+
+	return NULL;
+}
+
+monitorsubsys *
+monitor_back_get_subsys_by_dn( struct berval *ndn, int sub )
+{
+	if ( monitor_subsys != NULL ) {
+		int	i;
+
+		if ( sub ) {
+			for ( i = 0; monitor_subsys[ i ] != NULL; i++ ) {
+				if ( dnIsSuffix( ndn, &monitor_subsys[ i ]->mss_ndn ) ) {
+					return monitor_subsys[ i ];
+				}
+			}
+
+		} else {
+			for ( i = 0; monitor_subsys[ i ] != NULL; i++ ) {
+				if ( dn_match( ndn, &monitor_subsys[ i ]->mss_ndn ) ) {
+					return monitor_subsys[ i ];
+				}
+			}
+		}
+	}
+
+	return NULL;
+}
+
 int
 monitor_back_initialize(
 	BackendInfo	*bi
 )
 {
-	static char *controls[] = {
+	monitorsubsys	*ms;
+	static char	*controls[] = {
 		LDAP_CONTROL_MANAGEDSAIT,
 		LDAP_CONTROL_VALUESRETURNFILTER,
 		NULL
@@ -221,6 +288,12 @@ monitor_back_initialize(
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
+
+	for ( ms = known_monitor_subsys; ms->mss_name != NULL; ms++ ) {
+		if ( monitor_back_register_subsys( ms ) ) {
+			return -1;
+		}
+	}
 
 	return 0;
 }
@@ -602,7 +675,7 @@ monitor_back_db_open(
 )
 {
 	struct monitorinfo 	*mi = (struct monitorinfo *)be->be_private;
-	struct monitorsubsys	*ms;
+	struct monitorsubsys	**ms;
 	Entry 			*e, **ep;
 	struct monitorentrypriv	*mp;
 	int			i;
@@ -732,16 +805,16 @@ monitor_back_db_open(
 	/*	
 	 * Create all the subsystem specific entries
 	 */
-	for ( i = 0; monitor_subsys[ i ].mss_name != NULL; i++ ) {
-		int 		len = strlen( monitor_subsys[ i ].mss_name );
+	for ( i = 0; monitor_subsys[ i ] != NULL; i++ ) {
+		int 		len = strlen( monitor_subsys[ i ]->mss_name );
 		struct berval	dn;
 		int		rc;
 
 		dn.bv_len = len + sizeof( "cn=" ) - 1;
 		dn.bv_val = ch_calloc( sizeof( char ), dn.bv_len + 1 );
 		strcpy( dn.bv_val, "cn=" );
-		strcat( dn.bv_val, monitor_subsys[ i ].mss_name );
-		rc = dnPretty( NULL, &dn, &monitor_subsys[ i ].mss_rdn, NULL );
+		strcat( dn.bv_val, monitor_subsys[ i ]->mss_name );
+		rc = dnPretty( NULL, &dn, &monitor_subsys[ i ]->mss_rdn, NULL );
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -752,10 +825,10 @@ monitor_back_db_open(
 
 		dn.bv_len += sizeof( SLAPD_MONITOR_DN ); /* 1 for the , */
 		dn.bv_val = ch_malloc( dn.bv_len + 1 );
-		strcpy( dn.bv_val , monitor_subsys[ i ].mss_rdn.bv_val );
+		strcpy( dn.bv_val , monitor_subsys[ i ]->mss_rdn.bv_val );
 		strcat( dn.bv_val, "," SLAPD_MONITOR_DN );
-		rc = dnPrettyNormal( NULL, &dn, &monitor_subsys[ i ].mss_dn,
-			&monitor_subsys[ i ].mss_ndn, NULL );
+		rc = dnPrettyNormal( NULL, &dn, &monitor_subsys[ i ]->mss_dn,
+			&monitor_subsys[ i ]->mss_ndn, NULL );
 		free( dn.bv_val );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY,
@@ -773,10 +846,10 @@ monitor_back_db_open(
 				"modifiersName: %s\n"
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
-				monitor_subsys[ i ].mss_dn.bv_val,
+				monitor_subsys[ i ]->mss_dn.bv_val,
 				mi->mi_oc_monitorContainer->soc_cname.bv_val,
 				mi->mi_oc_monitorContainer->soc_cname.bv_val,
-				monitor_subsys[ i ].mss_name,
+				monitor_subsys[ i ]->mss_name,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_creatorsName.bv_val,
 				mi->mi_startTime.bv_val,
@@ -787,21 +860,21 @@ monitor_back_db_open(
 		if ( e == NULL) {
 			Debug( LDAP_DEBUG_ANY,
 				"unable to create \"%s\" entry\n", 
-				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
+				monitor_subsys[ i ]->mss_dn.bv_val, 0, 0 );
 			return( -1 );
 		}
 
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
 		mp->mp_next = NULL;
-		mp->mp_info = &monitor_subsys[ i ];
+		mp->mp_info = monitor_subsys[ i ];
 		mp->mp_children = NULL;
-		mp->mp_flags = monitor_subsys[ i ].mss_flags;
+		mp->mp_flags = monitor_subsys[ i ]->mss_flags;
 
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"unable to add entry \"%s\" to cache\n",
-				monitor_subsys[ i ].mss_dn.bv_val, 0, 0 );
+				monitor_subsys[ i ]->mss_dn.bv_val, 0, 0 );
 			return -1;
 		}
 
@@ -814,10 +887,11 @@ monitor_back_db_open(
 	be->be_private = mi;
 	
 	/*
-	 * opens the monitor backend
+	 * opens the monitor backend subsystems
 	 */
-	for ( ms = monitor_subsys; ms->mss_name != NULL; ms++ ) {
-		if ( ms->mss_init && ( *ms->mss_init )( be ) ) {
+	for ( ms = monitor_subsys; ms[ 0 ] != NULL; ms++ ) {
+		if ( ms[ 0 ]->mss_open && ( *ms[ 0 ]->mss_open )( be, ms[ 0 ] ) )
+		{
 			return( -1 );
 		}
 	}

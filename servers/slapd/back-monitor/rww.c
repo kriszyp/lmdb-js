@@ -46,7 +46,8 @@ struct monitor_rww_t {
 
 int
 monitor_subsys_rww_init(
-	BackendDB		*be
+	BackendDB		*be,
+	monitorsubsys		*ms
 )
 {
 	struct monitorinfo	*mi;
@@ -60,11 +61,11 @@ monitor_subsys_rww_init(
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi,
-			&monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn, &e_conn ) ) {
+			&ms->mss_ndn, &e_conn ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_rww_init: "
 			"unable to get entry \"%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
@@ -87,7 +88,7 @@ monitor_subsys_rww_init(
 			"createTimestamp: %s\n"
 			"modifyTimestamp: %s\n",
 			monitor_rww[i].rdn.bv_val,
-			monitor_subsys[SLAPD_MONITOR_RWW].mss_dn.bv_val,
+			ms->mss_dn.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 			&monitor_rww[i].rdn.bv_val[STRLENOF("cn")],
@@ -101,7 +102,7 @@ monitor_subsys_rww_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_rww_init: "
 				"unable to create entry \"cn=Read,%s\"\n",
-				monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0, 0 );
+				ms->mss_ndn.bv_val, 0, 0 );
 			return( -1 );
 		}
 
@@ -116,8 +117,8 @@ monitor_subsys_rww_init(
 		e->e_private = ( void * )mp;
 		mp->mp_next = NULL;
 		mp->mp_children = NULL;
-		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_RWW];
-		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_RWW].mss_flags \
+		mp->mp_info = ms;
+		mp->mp_flags = ms->mss_flags \
 			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 
 		if ( monitor_cache_add( mi, e ) ) {
@@ -125,7 +126,7 @@ monitor_subsys_rww_init(
 				"monitor_subsys_rww_init: "
 				"unable to add entry \"%s,%s\"\n",
 				monitor_rww[i].rdn.bv_val,
-				monitor_subsys[SLAPD_MONITOR_RWW].mss_ndn.bv_val, 0 );
+				ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 	

@@ -70,7 +70,8 @@ static int replace_values( Entry *e, Modification *mod, int *newlevel );
  */
 int
 monitor_subsys_log_init(
-	BackendDB	*be
+	BackendDB	*be,
+	monitorsubsys	*ms
 )
 {
 	struct monitorinfo	*mi;
@@ -86,12 +87,12 @@ monitor_subsys_log_init(
 
 	mi = ( struct monitorinfo * )be->be_private;
 
-	if ( monitor_cache_get( mi, &monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn, 
+	if ( monitor_cache_get( mi, &ms->mss_ndn, 
 				&e ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_log_init: "
 			"unable to get entry \"%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_LOG].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 

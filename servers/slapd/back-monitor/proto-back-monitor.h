@@ -28,74 +28,96 @@
 LDAP_BEGIN_DECL
 
 /*
- * entry
- */
-int monitor_entry_test_flags LDAP_P(( struct monitorentrypriv *mp, int cond ));
-
-/*
  * backends
  */
-int monitor_subsys_backend_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_backend_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 
 /*
- * databases 
+ * cache
  */
-int monitor_subsys_database_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_database_modify LDAP_P(( Operation *op, Entry *e ));
-
-/*
- * threads
- */
-int monitor_subsys_thread_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_thread_update LDAP_P(( Operation *op, Entry *e ));
+extern int monitor_cache_cmp LDAP_P(( const void *c1, const void *c2 ));
+extern int monitor_cache_dup LDAP_P(( void *c1, void *c2 ));
+extern int monitor_cache_add LDAP_P(( struct monitorinfo *mi, Entry *e ));
+extern int monitor_cache_get LDAP_P(( struct monitorinfo *mi, struct berval *ndn, Entry **ep ));
+extern int monitor_cache_dn2entry LDAP_P(( Operation *op, struct berval *ndn, Entry **ep, Entry **matched ));
+extern int monitor_cache_lock LDAP_P(( Entry *e ));
+extern int monitor_cache_release LDAP_P(( struct monitorinfo *mi, Entry *e ));
 
 /*
  * connections
  */
-int monitor_subsys_conn_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_conn_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 int monitor_subsys_conn_update LDAP_P(( Operation *op, Entry *e ));
 int monitor_subsys_conn_create LDAP_P(( Operation *op, struct berval *ndn,
 			Entry *e_parent, Entry **ep ));
 
 /*
- * waiters
+ * databases 
  */
-int monitor_subsys_rww_init LDAP_P(( BackendDB *be ));
-int monitor_subsys_rww_update LDAP_P(( Operation *op, Entry *e ));
+int monitor_subsys_database_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
+int monitor_subsys_database_modify LDAP_P(( Operation *op, Entry *e ));
+
+/*
+ * entry
+ */
+extern int monitor_entry_update LDAP_P(( Operation *op, Entry *e ));
+extern int monitor_entry_create LDAP_P(( Operation *op, struct berval *ndn,
+		Entry *e_parent, Entry **ep ));
+extern int monitor_entry_modify LDAP_P(( Operation *op, Entry *e ));
+int monitor_entry_test_flags LDAP_P(( struct monitorentrypriv *mp, int cond ));
+
+/*
+ * init
+ */
+extern int monitor_back_register_subsys LDAP_P(( monitorsubsys *ms ));
+extern monitorsubsys * monitor_back_get_subsys LDAP_P(( const char *name ));
+extern monitorsubsys * monitor_back_get_subsys_by_dn LDAP_P(( struct berval *ndn, int sub ));
+
+/*
+ * listener
+ */
+int monitor_subsys_listener_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 
 /*
  * log
  */
-int monitor_subsys_log_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_log_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 int monitor_subsys_log_modify LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * operations
  */
-int monitor_subsys_ops_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_ops_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 int monitor_subsys_ops_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * overlay
  */
-int monitor_subsys_overlay_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_overlay_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 
 /*
  * sent
  */
-int monitor_subsys_sent_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_sent_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 int monitor_subsys_sent_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
- * listener
+ * threads
  */
-int monitor_subsys_listener_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_thread_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
+int monitor_subsys_thread_update LDAP_P(( Operation *op, Entry *e ));
 
 /*
  * time
  */
-int monitor_subsys_time_init LDAP_P(( BackendDB *be ));
+int monitor_subsys_time_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
 int monitor_subsys_time_update LDAP_P(( Operation *op, Entry *e ));
+
+/*
+ * waiters
+ */
+int monitor_subsys_rww_init LDAP_P(( BackendDB *be, monitorsubsys *ms ));
+int monitor_subsys_rww_update LDAP_P(( Operation *op, Entry *e ));
 
 /* NOTE: this macro assumes that bv has been allocated
  * by ber_* malloc functions or is { 0L, NULL } */

@@ -30,7 +30,8 @@
 
 int
 monitor_subsys_conn_init(
-	BackendDB		*be
+	BackendDB		*be,
+	monitorsubsys		*ms
 )
 {
 	struct monitorinfo	*mi;
@@ -44,13 +45,11 @@ monitor_subsys_conn_init(
 
 	mi = ( struct monitorinfo * )be->be_private;
 
-	if ( monitor_cache_get( mi,
-			&monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn, &e_conn ) )
-	{
+	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_conn ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to get entry \"%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
@@ -70,7 +69,7 @@ monitor_subsys_conn_init(
 		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
-		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
+		ms->mss_dn.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_creatorsName.bv_val,
@@ -83,7 +82,7 @@ monitor_subsys_conn_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to create entry \"cn=Total,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
@@ -94,8 +93,8 @@ monitor_subsys_conn_init(
 	e->e_private = ( void * )mp;
 	mp->mp_next = NULL;
 	mp->mp_children = NULL;
-	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_CONN];
-	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_CONN].mss_flags \
+	mp->mp_info = ms;
+	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 	mp->mp_flags &= ~MONITOR_F_VOLATILE_CH;
 
@@ -103,7 +102,7 @@ monitor_subsys_conn_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to add entry \"cn=Total,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
@@ -122,7 +121,7 @@ monitor_subsys_conn_init(
 		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
-		monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
+		ms->mss_dn.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_oc_monitorCounterObject->soc_cname.bv_val,
 		mi->mi_creatorsName.bv_val,
@@ -135,7 +134,7 @@ monitor_subsys_conn_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to create entry \"cn=Current,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
@@ -146,8 +145,8 @@ monitor_subsys_conn_init(
 	e->e_private = ( void * )mp;
 	mp->mp_next = NULL;
 	mp->mp_children = NULL;
-	mp->mp_info = &monitor_subsys[SLAPD_MONITOR_CONN];
-	mp->mp_flags = monitor_subsys[SLAPD_MONITOR_CONN].mss_flags \
+	mp->mp_info = ms;
+	mp->mp_flags = ms->mss_flags \
 		| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
 	mp->mp_flags &= ~MONITOR_F_VOLATILE_CH;
 
@@ -155,7 +154,7 @@ monitor_subsys_conn_init(
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_conn_init: "
 			"unable to add entry \"cn=Current,%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 	
@@ -227,7 +226,8 @@ static int
 conn_create(
 	struct monitorinfo	*mi,
 	Connection		*c,
-	Entry			**ep
+	Entry			**ep,
+	monitorsubsys		*ms
 )
 {
 	struct monitorentrypriv *mp;
@@ -292,7 +292,7 @@ conn_create(
 		"modifiersName: %s\n"
 		"createTimestamp: %s\n"
 		"modifyTimestamp: %s\n",
-		c->c_connid, monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val,
+		c->c_connid, ms->mss_dn.bv_val,
 		mi->mi_oc_monitorConnection->soc_cname.bv_val,
 		mi->mi_oc_monitorConnection->soc_cname.bv_val,
 		c->c_connid,
@@ -309,7 +309,7 @@ conn_create(
 			"unable to create entry "
 			"\"cn=Connection %ld,%s\" entry\n",
 			c->c_connid, 
-			monitor_subsys[SLAPD_MONITOR_CONN].mss_dn.bv_val, 0 );
+			ms->mss_dn.bv_val, 0 );
 		return( -1 );
 	}
 
@@ -399,7 +399,7 @@ conn_create(
 
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
-	mp->mp_info = &monitor_subsys[ SLAPD_MONITOR_CONN ];
+	mp->mp_info = ms;
 	mp->mp_children = NULL;
 	mp->mp_flags = MONITOR_F_SUB | MONITOR_F_VOLATILE;
 
@@ -423,10 +423,13 @@ monitor_subsys_conn_create(
 	int			connindex;
 	struct monitorentrypriv *mp;
 	int			rc = 0;
+	monitorsubsys		*ms;
 
 	assert( mi != NULL );
 	assert( e_parent != NULL );
 	assert( ep != NULL );
+
+	ms = (( struct monitorentrypriv *)e_parent->e_private)->mp_info;
 
 	*ep = NULL;
 
@@ -438,7 +441,7 @@ monitor_subsys_conn_create(
 		for ( c = connection_first( &connindex );
 				c != NULL;
 				c = connection_next( c, &connindex )) {
-			if ( conn_create( mi, c, &e ) || e == NULL ) {
+			if ( conn_create( mi, c, &e, ms ) || e == NULL ) {
 				for ( ; e_tmp != NULL; ) {
 					mp = ( struct monitorentrypriv * )e_tmp->e_private;
 					e = mp->mp_next;
@@ -484,7 +487,7 @@ monitor_subsys_conn_create(
 				c != NULL;
 				c = connection_next( c, &connindex )) {
 			if ( c->c_connid == connid ) {
-				if ( conn_create( mi, c, ep ) || *ep == NULL ) {
+				if ( conn_create( mi, c, ep, ms ) || *ep == NULL ) {
 					rc = -1;
 				}
 

@@ -30,8 +30,10 @@ monitor_entry_update(
 	Entry 			*e
 )
 {
-	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
+	struct monitorinfo	*mi =
+		(struct monitorinfo *)op->o_bd->be_private;
 	struct monitorentrypriv *mp;
+	int			rc = 0;
 
 	assert( mi != NULL );
 	assert( e != NULL );
@@ -39,12 +41,15 @@ monitor_entry_update(
 
 	mp = ( struct monitorentrypriv * )e->e_private;
 
-
 	if ( mp->mp_info && mp->mp_info->mss_update ) {
-		return ( *mp->mp_info->mss_update )( op, e );
+		rc = ( *mp->mp_info->mss_update )( op, e );
 	}
 
-	return( 0 );
+	if ( rc == 0 && mp->mp_update ) {
+		rc = ( *mp->mp_update )( op, e );
+	}
+
+	return rc;
 }
 
 int

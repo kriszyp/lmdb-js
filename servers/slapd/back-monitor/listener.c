@@ -28,7 +28,8 @@
 
 int
 monitor_subsys_listener_init(
-	BackendDB	*be
+	BackendDB	*be,
+	monitorsubsys	*ms
 )
 {
 	struct monitorinfo	*mi;
@@ -53,13 +54,13 @@ monitor_subsys_listener_init(
 	mi = ( struct monitorinfo * )be->be_private;
 
 	if ( monitor_cache_get( mi, 
-				&monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn, 
+				&ms->mss_ndn, 
 				&e_listener ) )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_listener_init: "
 			"unable to get entry \"%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
@@ -83,7 +84,7 @@ monitor_subsys_listener_init(
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
-				monitor_subsys[SLAPD_MONITOR_LISTENER].mss_dn.bv_val,
+				ms->mss_dn.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
@@ -100,7 +101,7 @@ monitor_subsys_listener_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
 				"unable to create entry \"cn=Listener %d,%s\"\n",
-				i, monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
@@ -129,15 +130,15 @@ monitor_subsys_listener_init(
 		e->e_private = ( void * )mp;
 		mp->mp_next = NULL;
 		mp->mp_children = NULL;
-		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_LISTENER];
-		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_LISTENER].mss_flags
+		mp->mp_info = ms;
+		mp->mp_flags = ms->mss_flags
 			| MONITOR_F_SUB;
 
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_listener_init: "
 				"unable to add entry \"cn=Listener %d,%s\"\n",
-				i, monitor_subsys[SLAPD_MONITOR_LISTENER].mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 

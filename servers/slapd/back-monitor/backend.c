@@ -33,24 +33,35 @@
  */
 int
 monitor_subsys_backend_init(
-	BackendDB	*be
+	BackendDB	*be,
+	monitorsubsys	*ms
 )
 {
 	struct monitorinfo	*mi;
 	Entry			*e_backend, **ep;
 	int			i;
 	struct monitorentrypriv	*mp;
+	monitorsubsys		*ms_database;
 
 	mi = ( struct monitorinfo * )be->be_private;
 
-	if ( monitor_cache_get( mi, 
-				&monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn, 
-				&e_backend ) )
+	ms_database = monitor_back_get_subsys( SLAPD_MONITOR_DATABASE_NAME );
+	if ( ms_database == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_backend_init: "
+			"unable to get "
+			"\"" SLAPD_MONITOR_DATABASE_NAME "\" "
+			"subsystem\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_backend ) )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_backend_init: "
 			"unable to get entry \"%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
@@ -77,7 +88,7 @@ monitor_subsys_backend_init(
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
-				monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val,
+				ms->mss_dn.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
@@ -91,7 +102,7 @@ monitor_subsys_backend_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_backend_init: "
 				"unable to create entry \"cn=Backend %d,%s\"\n",
-				i, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 		
@@ -123,7 +134,7 @@ monitor_subsys_backend_init(
 			}
 
 			snprintf( buf, sizeof( buf ), "cn=Database %d,%s",
-					j, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val );
+					j, ms_database->mss_dn.bv_val );
 			dn.bv_val = buf;
 			dn.bv_len = strlen( buf );
 
@@ -135,8 +146,8 @@ monitor_subsys_backend_init(
 		e->e_private = ( void * )mp;
 		mp->mp_next = NULL;
 		mp->mp_children = NULL;
-		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_BACKEND];
-		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_BACKEND].mss_flags
+		mp->mp_info = ms;
+		mp->mp_flags = ms->mss_flags
 			| MONITOR_F_SUB;
 
 		if ( monitor_cache_add( mi, e ) ) {
@@ -144,7 +155,7 @@ monitor_subsys_backend_init(
 				"monitor_subsys_backend_init: "
 				"unable to add entry \"cn=Backend %d,%s\"\n",
 				i,
-			       	monitor_subsys[SLAPD_MONITOR_BACKEND].mss_ndn.bv_val, 0 );
+			       	ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 

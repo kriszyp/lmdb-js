@@ -96,26 +96,48 @@ init_restrictedOperation( struct monitorinfo *mi, Entry *e, slap_mask_t restrict
 
 int
 monitor_subsys_database_init(
-	BackendDB	*be
+	BackendDB	*be,
+	monitorsubsys	*ms
 )
 {
 	struct monitorinfo	*mi;
 	Entry			*e_database, **ep;
 	int			i;
 	struct monitorentrypriv	*mp;
+	monitorsubsys		*ms_backend,
+				*ms_overlay;
 
 	assert( be != NULL );
 
 	mi = ( struct monitorinfo * )be->be_private;
 
-	if ( monitor_cache_get( mi, 
-				&monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn, 
-				&e_database ) )
-	{
+	ms_backend = monitor_back_get_subsys( SLAPD_MONITOR_BACKEND_NAME );
+	if ( ms_backend == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_database_init: "
+			"unable to get "
+			"\"" SLAPD_MONITOR_BACKEND_NAME "\" "
+			"subsystem\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	ms_overlay = monitor_back_get_subsys( SLAPD_MONITOR_OVERLAY_NAME );
+	if ( ms_overlay == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+			"monitor_subsys_database_init: "
+			"unable to get "
+			"\"" SLAPD_MONITOR_OVERLAY_NAME "\" "
+			"subsystem\n",
+			0, 0, 0 );
+		return -1;
+	}
+
+	if ( monitor_cache_get( mi, &ms->mss_ndn, &e_database ) ) {
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_database_init: "
 			"unable to get entry \"%s\"\n",
-			monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0, 0 );
+			ms->mss_ndn.bv_val, 0, 0 );
 		return( -1 );
 	}
 
@@ -159,7 +181,7 @@ monitor_subsys_database_init(
 				"createTimestamp: %s\n"
 				"modifyTimestamp: %s\n",
 				i,
-				monitor_subsys[SLAPD_MONITOR_DATABASE].mss_dn.bv_val,
+				ms->mss_dn.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
@@ -175,7 +197,7 @@ monitor_subsys_database_init(
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
 				"unable to create entry \"cn=Database %d,%s\"\n",
-				i, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 		
@@ -215,7 +237,7 @@ monitor_subsys_database_init(
 
 				snprintf( buf, sizeof( buf ), 
 					"cn=Overlay %d,%s", 
-					j, monitor_subsys[SLAPD_MONITOR_OVERLAY].mss_dn.bv_val );
+					j, ms_overlay->mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
 				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
@@ -241,7 +263,7 @@ monitor_subsys_database_init(
 
 				snprintf( buf, sizeof( buf ), 
 					"cn=Backend %d,%s", 
-					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
+					j, ms_backend->mss_dn.bv_val );
 				bv.bv_val = buf;
 				bv.bv_len = strlen( buf );
 				attr_merge_normalize_one( e, mi->mi_ad_seeAlso,
@@ -256,15 +278,15 @@ monitor_subsys_database_init(
 		e->e_private = ( void * )mp;
 		mp->mp_next = NULL;
 		mp->mp_children = NULL;
-		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_DATABASE];
-		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_DATABASE].mss_flags
+		mp->mp_info = ms;
+		mp->mp_flags = ms->mss_flags
 			| MONITOR_F_SUB;
 
 		if ( monitor_cache_add( mi, e ) ) {
 			Debug( LDAP_DEBUG_ANY,
 				"monitor_subsys_database_init: "
 				"unable to add entry \"cn=Database %d,%s\"\n",
-				i, monitor_subsys[SLAPD_MONITOR_DATABASE].mss_ndn.bv_val, 0 );
+				i, ms->mss_ndn.bv_val, 0 );
 			return( -1 );
 		}
 
