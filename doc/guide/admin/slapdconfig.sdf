@@ -450,10 +450,10 @@ Synchronization protocol. See {{EX:draft-zeilenga-ldup-sync-xx.txt}}
 ({{a work in progress}}) for more information on the protocol.
 
 The {{EX:rid}} parameter is used for identification of the current
-{{EX:syncrepl}} directive within the replication consumer site,
+{{EX:syncrepl}} directive within the replication consumer server,
 where {{EX:<replica ID>}} uniquely identifies the syncrepl specification
 described by the current {{EX:syncrepl}} directive. {{EX:<replica ID>}}
-is non-negative and is no more than three digits in length.
+is non-negative and is no more than three decimal digits in length.
 
 The {{EX:provider}} parameter specifies the replication provider site
 containing the master content as an LDAP URI. The {{EX:provider}}
@@ -592,31 +592,28 @@ containing the database and associated indices live.
 H4: sessionlog <sid> <limit>
 
 This directive specifies a session log store in the syncrepl 
-replication provider site which contains information on
-the entries that have been scoped out of the content of the
-replication session identified by {{EX:<sid>}}.
-The first syncrepl search request having the same sid value in the
-cookie establishes the session log store in the provider site.
+replication provider server which contains information on
+the entries that have been scoped out of the replication
+content identified by {{EX:<sid>}}.
+The first syncrepl search request having the same {{EX:<sid>}} value
+in the cookie establishes the session log store in the provider server.
 The number of the entries in the session log store is limited
 by {{EX:<limit>}}. Excessive entries are removed from the store
 in the FIFO order. Both {{EX:<sid>}} and {{EX:<limit>}} are
-non-negative integers. {{EX:<sid>}} has no more than three digits.
+non-negative integers. {{EX:<sid>}} has no more than three decimal digits.
 
 The LDAP Content Synchronization operation that falls into a pre-existing
-session uses the session log store in order to reduce the amount
+session can use the session log store in order to reduce the amount
 of synchronization traffic. If the replica is not so outdated that
 it can be made up-to-date by the information in the session store,
 the provider slapd will send the consumer slapd the identities of the
 scoped-out entries together with the in-scope entries added to or
 modified within the replication content. If the replica status is
-beyond the coverage of the history store, then the provider slapd will
-send the identities of the unchanged in-scope entries along with the
-changed in-scope entries. The consumer slapd will then remove those
-entries in the replica which are not identified as present in the
-master content.
-
-An access control mechanism is to be further provided to
-make the session joining controllable.
+outdated too much and beyond the coverage of the history store,
+then the provider slapd will send the identities of the unchanged
+in-scope entries along with the changed in-scope entries.
+The consumer slapd will then remove those entries in the replica
+which are not identified as present in the provider content.
 
 
 H3: LDBM Database Directives
