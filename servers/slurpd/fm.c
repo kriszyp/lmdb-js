@@ -217,6 +217,7 @@ populate_queue(
 {
     FILE	*fp, *lfp;
     char	*p;
+    int		wake = 0;
 
     if ( acquire_lock( f, &fp, &lfp ) < 0 ) {
 #ifdef NEW_LOGGING
@@ -262,9 +263,15 @@ populate_queue(
 		    "error: malformed replog entry (begins with \"%s\")\n",
 		    p, 0, 0 );
 #endif
+	} else {
+	    wake = 1;
 	}
 	free( p );
 	ldap_pvt_thread_yield();
+    }
+    /* wake up any threads waiting for more work */
+    if ( wake ) {
+        ldap_pvt_thread_cond_broadcast( &sglob->rq->rq_more );
     }
     sglob->srpos = ftell( fp );
     }
