@@ -907,14 +907,22 @@ slapd_daemon_task(
 #endif /* LDAP_PF_LOCAL */
 
 #  ifdef LDAP_PF_INET6
-			case AF_INET6: {
+			case AF_INET6:
+			if ( IN6_IS_ADDR_V4MAPPED(&from.sa_in6_addr.sin6_addr) ) {
+				peeraddr = inet_ntoa( *((struct in_addr *)
+							&from.sa_in6_addr.sin6_addr.s6_addr32[3]) );
+				sprintf( peername, "IP=%s:%d",
+					 peeraddr != NULL ? peeraddr : "unknown",
+					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
+			} else {
 				char addr[INET6_ADDRSTRLEN];
 				sprintf( peername, "IP=%s %d",
-					inet_ntop( AF_INET6,
-						&from.sa_in6_addr.sin6_addr,
-					    addr, sizeof addr) ? addr : "unknown",
-					(unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
-			} break;
+					 inet_ntop( AF_INET6,
+						    &from.sa_in6_addr.sin6_addr,
+						    addr, sizeof addr) ? addr : "unknown",
+					 (unsigned) ntohs( from.sa_in6_addr.sin6_port ) );
+			}
+			break;
 #  endif /* LDAP_PF_INET6 */
 
 			case AF_INET:
