@@ -119,7 +119,7 @@ idl_fetch(
 		idl_free( idl );
 		idl = idl_allids( be );
 
-		return idl;
+		return( idl );
 	}
 
 	if ( ! ID_BLOCK_INDIRECT( idl ) ) {

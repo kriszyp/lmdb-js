@@ -22,6 +22,11 @@
 #define ldap_debug slap_debug
 #endif
 
+#ifdef SLAPD_BDB2
+extern int bdb2i_do_timing;
+#endif
+
+
 #include "ldap_log.h"
 
 #include "../../libraries/liblber/lber-int.h"
@@ -151,7 +156,7 @@ typedef struct entry {
 	/*
 	 * remaining fields require backend cache lock to access
 	 * These items are specific to the LDBM backend and should
-	 * and should be hidden.
+	 * be hidden.
 	 */
 	char		e_state;	/* for the cache		  */
 #define ENTRY_STATE_DELETED		1

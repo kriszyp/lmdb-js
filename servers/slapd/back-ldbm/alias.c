@@ -315,6 +315,7 @@ char *derefDN ( Backend     *be,
   }
   
   Debug( LDAP_DEBUG_TRACE, "<= returning deref DN of \"%s\"\n", newDN, 0, 0 ); 
+	if (matched != NULL) free(matched);
 
   return newDN;
 }

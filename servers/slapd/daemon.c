@@ -40,6 +40,9 @@ static volatile sig_atomic_t slapd_shutdown = 0;
 static void	set_shutdown(int sig);
 static void	do_nothing  (int sig);
 
+int listener_running = 1;
+
+
 /* a link to the slapd.conf configuration parameters */
 extern char *slapd_pid_file;
 extern char *slapd_args_file;
@@ -389,6 +392,11 @@ slapd_daemon(
 		ldap_pvt_thread_cond_wait(&active_threads_cond, &active_threads_mutex);
 	}
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+
+	/*  a braindead signal handling in LINUX Kernel Threads needs some
+		provision, so that the top thread is not killed before the
+		listener thread (should be better implemented by cond_vars)  */
+	listener_running = 0;
 
 	return NULL;
 }

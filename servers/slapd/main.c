@@ -12,6 +12,8 @@
 #include "lutil.h"			/* Get lutil_detach() */
 
 
+extern int listener_running;
+
 /*
  * when more than one slapd is running on one machine, each one might have
  * it's own LOCAL for syslogging and must have its own pid/args files
@@ -172,6 +174,10 @@ main( int argc, char **argv )
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
+#ifdef SLAPD_BDB2
+	bdb2i_do_timing = 1;
+#endif
+
 	if ( slap_init( SLAP_SERVER_MODE, serverName ) != 0 ) {
 		rc = 1;
 		goto destroy;
@@ -208,7 +214,8 @@ main( int argc, char **argv )
 		} else {
 
 			/* wait for the listener thread to complete */
-			ldap_pvt_thread_join( listener_tid, (void *) NULL );
+			while ( listener_running )
+				ldap_pvt_thread_join( listener_tid, (void *) NULL );
 		}
 
 	} else {
