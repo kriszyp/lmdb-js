@@ -31,7 +31,7 @@ install-common: FORCE
 			for link in `$(CAT) $$page.links`; do \
 				echo "installing $(MANDIR)/$$link as link to $$page"; \
 				$(RM) $(MANDIR)/$$link $(MANDIR)/$$link$(MANCOMPRESSSUFFIX); \
-				ln -sf $$page$(MANCOMPRESSSUFFIX) $(MANDIR)/$$link$(MANCOMPRESSSUFFIX); \
+				$(LN_S) $$page$(MANCOMPRESSSUFFIX) $(MANDIR)/$$link$(MANCOMPRESSSUFFIX); \
 			done; \
 		fi; \
 	done; \
