@@ -10,7 +10,7 @@
  * without express or implied warranty.
  */
 /*
- * Portions (C) Copyright PADL Software Pty Ltd.
+ * Portions (C) Copyright PADL Software Pty Ltd. 2003
  * Redistribution and use in source and binary forms are permitted
  * provided that this notice is preserved and that due credit is 
  * given to PADL Software Pty Ltd. This software is provided ``as is'' 
