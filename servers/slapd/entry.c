@@ -65,7 +65,7 @@ str2entry( char *s )
 	e = (Entry *) ch_malloc( sizeof(Entry) );
 
 	if( e == NULL ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 		    "<= str2entry NULL (entry allocation failed)\n",
 		    0, 0, 0 );
 		return( NULL );
@@ -114,7 +114,8 @@ str2entry( char *s )
 		rc = slap_str2ad( type, &ad, &text );
 
 		if( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( slapMode & SLAP_TOOL_MODE
+				? LDAP_DEBUG_ANY : LDAP_DEBUG_TRACE,
 				"<= str2entry: str2ad(%s): %s\n", type, text, 0 );
 
 			if( slapMode & SLAP_TOOL_MODE ) {
@@ -127,7 +128,7 @@ str2entry( char *s )
 			rc = slap_str2undef_ad( type, &ad, &text );
 
 			if( rc != LDAP_SUCCESS ) {
-				Debug( LDAP_DEBUG_TRACE,
+				Debug( LDAP_DEBUG_ANY,
 					"<= str2entry: str2undef_ad(%s): %s\n",
 						type, text, 0 );
 				entry_free( e );
@@ -157,7 +158,7 @@ str2entry( char *s )
 			rc = validate( ad->ad_type->sat_syntax, &value );
 
 			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_TRACE,
+				Debug( LDAP_DEBUG_ANY,
 					"str2entry: invalid value for syntax %s\n",
 					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
 				entry_free( e );
@@ -172,7 +173,7 @@ str2entry( char *s )
 		ad_free( ad, 1 );
 
 		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
 			entry_free( e );
 			free( value.bv_val );
@@ -342,7 +343,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 
 	ber = ber_init( bv );
 	if( ber == NULL ) {
-		Debug( LDAP_DEBUG_TRACE,
+		Debug( LDAP_DEBUG_ANY,
 		    "<= entry_decode: ber_init failed\n",
 		    0, 0, 0 );
 		return LDAP_LOCAL_ERROR;
@@ -411,7 +412,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 			rc = slap_bv2undef_ad( type, &ad, &text );
 
 			if( rc != LDAP_SUCCESS ) {
-				Debug( LDAP_DEBUG_TRACE,
+				Debug( LDAP_DEBUG_ANY,
 					"<= entry_decode: str2undef_ad(%s): %s\n",
 						type, text, 0 );
 				ber_bvfree( type );
@@ -425,7 +426,7 @@ int entry_decode( struct berval *bv, Entry **entry )
 		ad_free( ad, 1 );
 
 		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
+			Debug( LDAP_DEBUG_ANY,
 			    "<= entry_decode: attr_merge failed\n", 0, 0, 0 );
 			ber_bvfree( type );
 			ber_bvecfree( vals );
