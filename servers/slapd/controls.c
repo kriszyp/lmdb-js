@@ -156,10 +156,13 @@ int get_ctrls(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( OPERATION, ENTRY, "get_ctrls: conn %lu\n", conn->c_connid, 0, 0 );
+	LDAP_LOG( OPERATION, ENTRY,
+		"get_ctrls: conn %lu\n", conn->c_connid, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> get_ctrls\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE,
+		"=> get_ctrls\n", 0, 0, 0 );
 #endif
+
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		rc = SLAPD_DISCONNECT;
 		errmsg = "controls require LDAPv3";
@@ -232,10 +235,28 @@ int get_ctrls(
 			Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: get oid failed.\n",
 				0, 0, 0 );
 #endif
+
 			ldap_controls_free( op->o_ctrls );
 			op->o_ctrls = NULL;
 			rc = SLAPD_DISCONNECT;
 			errmsg = "decoding controls error";
+			goto return_results;
+
+		} else if( c->ldctl_oid == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, INFO,
+				"get_ctrls: conn %lu got emtpy OID.\n",
+				conn->c_connid, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_TRACE,
+				"get_ctrls: conn %lu got emtpy OID.\n",
+				conn->c_connid, 0, 0 );
+#endif
+
+			ldap_controls_free( op->o_ctrls );
+			op->o_ctrls = NULL;
+			rc = LDAP_PROTOCOL_ERROR;
+			errmsg = "OID field is empty";
 			goto return_results;
 		}
 
@@ -272,13 +293,12 @@ int get_ctrls(
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, INFO, "get_ctrls: conn %lu: "
 					"%s (%scritical): get value failed.\n",
-					conn->c_connid, c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+					conn->c_connid, c->ldctl_oid,
 					c->ldctl_iscritical ? "" : "non" );
 #else
 				Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: conn %lu: "
 					"%s (%scritical): get value failed.\n",
-					conn->c_connid,
-					c->ldctl_oid ? c->ldctl_oid : "(NULL)",
+					conn->c_connid, c->ldctl_oid,
 					c->ldctl_iscritical ? "" : "non" );
 #endif
 				ldap_controls_free( op->o_ctrls );
@@ -292,13 +312,11 @@ int get_ctrls(
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, 
 			"get_ctrls: conn %lu oid=\"%s\" (%scritical)\n",
-			conn->c_connid, c->ldctl_oid ? c->ldctl_oid : "(NULL)",
-			c->ldctl_iscritical ? "" : "non" );
+			conn->c_connid, c->ldctl_oid, c->ldctl_iscritical ? "" : "non" );
 #else
-		Debug( LDAP_DEBUG_TRACE, "=> get_ctrls: oid=\"%s\" (%scritical)\n",
-			c->ldctl_oid ? c->ldctl_oid : "(NULL)",
-			c->ldctl_iscritical ? "" : "non",
-			0 );
+		Debug( LDAP_DEBUG_TRACE,
+			"=> get_ctrls: oid=\"%s\" (%scritical)\n",
+			c->ldctl_oid, c->ldctl_iscritical ? "" : "non", 0 );
 #endif
 
 		sc = find_ctrl( c->ldctl_oid );
