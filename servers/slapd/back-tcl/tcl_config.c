@@ -8,9 +8,12 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  *
- * $Id$
+ * $Id: tcl_config.c,v 1.2 1999/02/16 23:30:36 bcollins Exp $
  *
- * $Log$
+ * $Log: tcl_config.c,v $
+ * Revision 1.2  1999/02/16 23:30:36  bcollins
+ * fixed exit()'s to be return()'s
+ *
  */
 
 #include "portable.h"
@@ -65,6 +68,7 @@ int tcl_back_db_config (
 		ti->ti_ii = NULL;
 
 		ii = global_i;
+		/* Try to see if it already exists */
 		do {
 			if (ii != NULL && !strcasecmp (ii->name, argv[1]))
 			ti->ti_ii = ii;
@@ -72,15 +76,15 @@ int tcl_back_db_config (
 			ii = ii->next;
 		} while (ii->next != NULL);
 
-		if (ti->ti_ii == NULL) {	/* we need to make a new one */
-			ii->next = (struct i_info *) ch_malloc (sizeof (struct i_info));
+		if (ti->ti_ii == NULL) { /* we need to make a new one */
+			ii->next = (struct i_info *) ch_malloc
+				(sizeof (struct i_info));
 
 			ii->next->count = 0;
 			ii->next->name = (char *) strdup (argv[1]);
+			ii->next->interp = NULL;
 			ii->next->next = NULL;
-			ii->next->interp = Tcl_CreateInterp ();
-			Tcl_Init (ii->next->interp);
-			ti->ti_ii = ii;
+			ti->ti_ii = ii->next;
 		}
 
 	/* proc for binds */
@@ -178,25 +182,6 @@ int tcl_back_db_config (
 			"Unknown tcl backend config: %s\n", argv[0], 0, 0);
 		return( 1 );
 	}
-
-	return 0;
-}
-
-int tcl_back_db_open (
-	BackendDB * bd
-)
-{
-	struct tclinfo *ti = (struct tclinfo *) bd->be_private;
-
-	/* raise that count for the interpreter */
-	ti->ti_ii->count++;
-
-	/* now let's (try to) load the script */
-	readtclscript (ti->script_path, ti->ti_ii->interp);
-
-	/* Intall the debug command */
-	Tcl_CreateCommand( ti->ti_ii->interp, "ldap:debug", &tcl_ldap_debug,
-	NULL, NULL);
 
 	return 0;
 }
