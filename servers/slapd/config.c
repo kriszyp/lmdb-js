@@ -469,7 +469,7 @@ read_config( char *fname )
 						str2access(cargv[1]))) )
 				{
 					Debug( LDAP_DEBUG_ANY,
-"%s: line %d: bad access \"%s\" expecting [self]{none|compare|read|write}\n",
+"%s: line %d: bad access \"%s\" expecting [self]{none|auth|compare|search|read|write}\n",
 					    fname, lineno, cargv[1] );
 					return( 1 );
 				}
@@ -479,7 +479,7 @@ read_config( char *fname )
 				{
 					Debug( LDAP_DEBUG_ANY,
 						"%s: line %d: bad access \"%s\", "
-						"expecting [self]{none|compare|search|read|write}\n",
+						"expecting [self]{none|auth|compare|search|read|write}\n",
 					    fname, lineno, cargv[1] );
 					return( 1 );
 				}
