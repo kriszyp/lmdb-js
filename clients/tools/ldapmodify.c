@@ -162,8 +162,8 @@ main( int argc, char **argv )
 		{
 			char* p;
 
-			for( p = optarg; *p == NULL; p++ ) {
-				*p = 'X';
+			for( p = optarg; *p == '\0'; p++ ) {
+				*p = '*';
 			}
 		}
 	    break;
