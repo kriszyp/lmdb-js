@@ -1,6 +1,6 @@
 /* config.c - tcl backend configuration file routine
  *
- * $Id: tcl_config.c,v 1.4 1999/02/18 01:18:39 bcollins Exp $
+ * $Id: tcl_config.c,v 1.5 1999/02/19 06:55:20 bcollins Exp $
  *
  * Copyright 1999, Ben Collins <bcollins@debian.org>, All rights reserved.
  *
@@ -44,7 +44,7 @@ tcl_back_db_config (
 	/* Script to load */
 	if (strcasecmp (argv[0], "scriptpath") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing script in \"scriptpath <script>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -56,7 +56,7 @@ tcl_back_db_config (
 		struct i_info *ii;
 
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing script in \"tclrealm <name>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -86,7 +86,7 @@ tcl_back_db_config (
 		/* proc for binds */
 	} else if (strcasecmp (argv[0], "bind") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"bind <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -96,7 +96,7 @@ tcl_back_db_config (
 		/* proc for unbinds */
 	} else if (strcasecmp (argv[0], "unbind") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"unbind <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -106,7 +106,7 @@ tcl_back_db_config (
 		/* proc for search */
 	} else if (strcasecmp (argv[0], "search") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"search <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -116,7 +116,7 @@ tcl_back_db_config (
 		/* proc for compares */
 	} else if (strcasecmp (argv[0], "compare") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"compare <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -126,7 +126,7 @@ tcl_back_db_config (
 		/* proc for modify */
 	} else if (strcasecmp (argv[0], "modify") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"modify <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -136,7 +136,7 @@ tcl_back_db_config (
 		/* proc for modrdn */
 	} else if (strcasecmp (argv[0], "modrdn") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"modrdn <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -146,7 +146,7 @@ tcl_back_db_config (
 		/* proc for add */
 	} else if (strcasecmp (argv[0], "add") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"add <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -156,7 +156,7 @@ tcl_back_db_config (
 		/* proc for delete */
 	} else if (strcasecmp (argv[0], "delete") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"delete <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -166,7 +166,7 @@ tcl_back_db_config (
 		/* proc for abandon */
 	} else if (strcasecmp (argv[0], "abandon") == 0) {
 		if (argc < 2) {
-			Debug (LDAP_DEBUG_ANY,
+			Debug (LDAP_DEBUG_CONFIG,
 				"%s: line %d: missing proc in \"abandon <proc>\" line\n",
 				fname, lineno, 0);
 			return (1);
@@ -174,7 +174,7 @@ tcl_back_db_config (
 		ti->ti_search = (char *) ch_strdup (argv[1]);
 
 	} else {
-		Debug (LDAP_DEBUG_ANY,
+		Debug (LDAP_DEBUG_CONFIG,
 			"Unknown tcl backend config: %s\n", argv[0], 0, 0);
 		return (1);
 	}
