@@ -1039,7 +1039,7 @@ AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
 	if test $ol_cv_func_gethostbyaddr_r_nargs7 = yes -a \
 		$ol_cv_func_gethostbyaddr_r_nargs8 = no ; then
 
-		ol_cv_func_gethostbyname_r_nargs=7
+		ol_cv_func_gethostbyaddr_r_nargs=7
 
 	elif test $ol_cv_func_gethostbyaddr_r_nargs7 = no -a \
 		$ol_cv_func_gethostbyaddr_r_nargs8 = yes ; then

@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.269 1999/10/28 15:42:04 kdz Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.270 1999/11/01 02:40:57 kdz Exp  
 
 # Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -6607,7 +6607,7 @@ rm -f conftest*
 	if test $ol_cv_func_gethostbyaddr_r_nargs7 = yes -a \
 		$ol_cv_func_gethostbyaddr_r_nargs8 = no ; then
 
-		ol_cv_func_gethostbyname_r_nargs=7
+		ol_cv_func_gethostbyaddr_r_nargs=7
 
 	elif test $ol_cv_func_gethostbyaddr_r_nargs7 = no -a \
 		$ol_cv_func_gethostbyaddr_r_nargs8 = yes ; then
