@@ -162,10 +162,11 @@ cn: Must Fail 18
 member: UID=john\GGsmith
 description: UID=john\GGsmith // invalid HEX escape
 
+# String representations we should accept for compatibility with RFC1779
 dn: ou=LDAPv2,dc=example,dc=com
 objectClass: organizationalUnit
 ou: LDAPv2
-description: RFC 1777 compliant DN string representation
+description: RFC 1779 compliant DN string representation
 
 dn: cn=May Succeed 1,ou=LDAPv2,dc=example,dc=com
 objectClass: groupOfNames
@@ -202,6 +203,48 @@ objectClass: groupOfNames
 cn: May Succeed 6
 member: CN="John Smith",O=example,C=US
 description: CN="John Smith",O=example,C=US // quotes
+
+# Other DN-related syntaxes
+dn: ou=Related Syntaxes,dc=example,dc=com
+objectClass: organizationalUnit
+ou: Related Syntaxes
+
+# Name and Optional UID
+dn: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+objectClass: groupOfUniqueNames
+cn: Name and Optional UID
+uniqueMember: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+uniqueMember: #'1'B
+uniqueMember: #'0010'B
+uniqueMember: dc=example,dc=com#'1000'B
+uniqueMember: dc=example,dc=com#'0'B
+description: cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com // only DN portion
+description: #'1'B // empty "" DN
+description: #'0010'B // empty "" DN with leading '0's
+description: dc=example,dc=com#'1000'B // with DN portion
+description: dc=example,dc=com#'0'B // with DN portion and just one '0'
+
+dn: cn=Should Fail 1,cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+objectClass: groupOfUniqueNames
+cn: Should Fail 1
+uniqueMember: #'1234'B
+description: #'1234'B // illegal digits other than '0' and '1'
+
+dn: cn=Should Fail 2,cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+objectClass: groupOfUniqueNames
+cn: Should Fail 2
+uniqueMember: #'12ABCD'B
+description: #'12ABCD'B // illegal digits and chars other than '0' and '1'
+
+dn: cn=Should Parse as DN,cn=Name and Optional UID,ou=Related Syntaxes,dc=example,dc=com
+objectClass: groupOfUniqueNames
+cn: Should Parse as DN
+uniqueMember: dc=example,dc=com#0'B
+uniqueMember: dc=example,dc=com#'0B
+uniqueMember: dc=example,dc=com '0'B
+description: dc=example,dc=com#0'B // malformed UID?
+description: dc=example,dc=com#'0B // malformed UID?
+description: dc=example,dc=com '0'B // malformed UID?
 
 #  UID=jsmith,DC=example,DC=net                          [AoOn]
 #  304631133011060A0992268993F22C64011916036E657431      [AoO]
