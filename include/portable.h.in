@@ -421,6 +421,9 @@
 /* Define if you have the <lwp/lwp.h> header file.  */
 #undef HAVE_LWP_LWP_H
 
+/* Define if you have the <mach/cthread.h> header file.  */
+#undef HAVE_MACH_CTHREAD_H
+
 /* Define if you have the <mach/cthreads.h> header file.  */
 #undef HAVE_MACH_CTHREADS_H
 

@@ -1593,9 +1593,9 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 	-o $ol_with_threads = mach ; then
 
 	dnl check for Mach CThreads
-	AC_CHECK_HEADERS(mach/cthreads.h cthread.h)
-	if test "${ac_cv_header_mach_cthreads_h}" = yes -o \
-		"${ac_cv_header_cthreads_h}" = yes ; then
+	AC_CHECK_HEADERS(mach/cthread.h cthread.h)
+	if test $ac_cv_header_mach_cthread_h = yes \
+		-o $ac_cv_header_cthread_h = yes ; then
 		ol_with_threads=found
 
 		dnl check for cthread support in current $LIBS
