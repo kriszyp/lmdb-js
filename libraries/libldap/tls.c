@@ -1071,6 +1071,7 @@ tls_seed_PRNG( const char *randfile )
 {
 #ifndef URANDOM_DEVICE
 	/* no /dev/urandom (or equiv) */
+	long total=0;
 	char buffer[MAXPATHLEN];
 
 	if (randfile == NULL) {
@@ -1093,7 +1094,7 @@ tls_seed_PRNG( const char *randfile )
 		return -1;
 	}
 
-	RAND_load_file(randfile, -1);
+	total = RAND_load_file(randfile, -1);
 
 	if (RAND_status() == 0) {
 		Debug( LDAP_DEBUG_ANY,
@@ -1101,6 +1102,12 @@ tls_seed_PRNG( const char *randfile )
 			0, 0, 0);
 		return -1;
 	}
+
+	/* assume if there was enough bits to seed that it's okay
+	 * to write derived bits to the file
+	 */
+	RAND_write_file(randfile);
+
 #endif
 
 	return 0;
