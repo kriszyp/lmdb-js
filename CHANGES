@@ -2,7 +2,7 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2.12 Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
-	<insert changes here>
+	Fixed ldapmodify ldaphost NULL bug
 
 Changes included in OpenLDAP 1.2.11
 	CVS Tag: OPENLDAP_REL_ENG_1_2_11
