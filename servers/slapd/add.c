@@ -28,6 +28,7 @@
 static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
+	int repl_user,
 	const char **text );
 
 int
@@ -279,7 +280,7 @@ do_add( Connection *conn, Operation *op )
 				}
 			}
 
-			rc = slap_mods2entry( modlist, &e, &text );
+			rc = slap_mods2entry( modlist, &e, repl_user, &text );
 			if( rc != LDAP_SUCCESS ) {
 				send_ldap_result( conn, op, rc,
 					NULL, text, NULL, NULL );
@@ -335,6 +336,7 @@ done:
 static int slap_mods2entry(
 	Modifications *mods,
 	Entry **e,
+	int repl_user,
 	const char **text )
 {
 	Attribute **tail = &(*e)->e_attrs;
@@ -353,6 +355,11 @@ static int slap_mods2entry(
 #ifdef SLURPD_FRIENDLY
 			ber_len_t i,j;
 
+			if( !repl_user ) {
+				*text = "attribute provided more than once";
+				return LDAP_TYPE_OR_VALUE_EXISTS;
+			}
+
 			for( i=0; attr->a_vals[i].bv_val; i++ ) {
 				/* count them */
 			}
@@ -365,6 +372,7 @@ static int slap_mods2entry(
 				sizeof( struct berval ) * (i+j) );
 
 			/* should check for duplicates */
+
 			AC_MEMCPY( &attr->a_vals[i], mods->sml_bvalues,
 				sizeof( struct berval ) * j );
 
