@@ -181,8 +181,10 @@ static struct slap_schema_oc_map {
 };
 
 static AttributeTypeSchemaCheckFN rootDseAttribute;
-static AttributeTypeSchemaCheckFN subentryAttribute;
+static AttributeTypeSchemaCheckFN aliasAttribute;
 static AttributeTypeSchemaCheckFN referralAttribute;
+static AttributeTypeSchemaCheckFN subentryAttribute;
+static AttributeTypeSchemaCheckFN dynamicAttribute;
 
 static struct slap_schema_ad_map {
 	char *ssam_name;
@@ -416,7 +418,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2256: name of aliased object' "
 			"EQUALITY distinguishedNameMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 SINGLE-VALUE )",
-		NULL, NULL, NULL, NULL,
+		aliasAttribute, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_aliasedObjectName) },
 	{ "ref", "( 2.16.840.1.113730.3.1.34 NAME 'ref' "
 			"DESC 'namedref: subordinate referral URL' "
@@ -456,7 +458,7 @@ static struct slap_schema_ad_map {
 			"DESC 'RFC2589: entry time-to-live' "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE "
 			"NO-USER-MODIFICATION USAGE dSAOperation )",
-		NULL, NULL, NULL, NULL,
+		dynamicAttribute, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryTtl) },
 	{ "dynamicSubtrees", "( 1.3.6.1.4.1.1466.101.119.4 "
 			"NAME 'dynamicSubtrees' "
@@ -728,6 +730,7 @@ static int rootDseObjectClass (
 	char *textbuf, size_t textlen )
 {
 	*text = textbuf;
+
 	if( e->e_nname.bv_len ) {
 		snprintf( textbuf, textlen,
 			"objectClass \"%s\" only allowed in the root DSE",
@@ -747,12 +750,15 @@ static int aliasObjectClass (
 	const char** text,
 	char *textbuf, size_t textlen )
 {
+	*text = textbuf;
+
 	if( !SLAP_ALIASES(be) ) {
 		snprintf( textbuf, textlen,
 			"objectClass \"%s\" not supported in context",
 			oc->soc_oid );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
+
 	return LDAP_SUCCESS;
 }
 
@@ -763,12 +769,15 @@ static int referralObjectClass (
 	const char** text,
 	char *textbuf, size_t textlen )
 {
+	*text = textbuf;
+
 	if( !SLAP_REFERRALS(be) ) {
 		snprintf( textbuf, textlen,
 			"objectClass \"%s\" not supported in context",
 			oc->soc_oid );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
+
 	return LDAP_SUCCESS;
 }
 
@@ -779,6 +788,8 @@ static int subentryObjectClass (
 	const char** text,
 	char *textbuf, size_t textlen )
 {
+	*text = textbuf;
+
 	if( !SLAP_SUBENTRIES(be) ) {
 		snprintf( textbuf, textlen,
 			"objectClass \"%s\" not supported in context",
@@ -792,6 +803,7 @@ static int subentryObjectClass (
 			oc->soc_oid );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
+
 	return LDAP_SUCCESS;
 }
 
@@ -802,12 +814,15 @@ static int dynamicObjectClass (
 	const char** text,
 	char *textbuf, size_t textlen )
 {
+	*text = textbuf;
+
 	if( !SLAP_DYNAMIC(be) ) {
 		snprintf( textbuf, textlen,
 			"objectClass \"%s\" not supported in context",
 			oc->soc_oid );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
+
 	return LDAP_SUCCESS;
 }
 
@@ -819,6 +834,7 @@ static int rootDseAttribute (
 	char *textbuf, size_t textlen )
 {
 	*text = textbuf;
+
 	if( e->e_nname.bv_len ) {
 		snprintf( textbuf, textlen,
 			"attribute \"%s\" only allowed in the root DSE",
@@ -831,7 +847,7 @@ static int rootDseAttribute (
 	return LDAP_SUCCESS;
 }
 
-static int subentryAttribute (
+static int aliasAttribute (
 	Backend *be,
 	Entry *e,
 	Attribute *attr,
@@ -839,9 +855,17 @@ static int subentryAttribute (
 	char *textbuf, size_t textlen )
 {
 	*text = textbuf;
-	if( !is_entry_subentry( e ) ) {
+
+	if( !SLAP_ALIASES(be) ) {
 		snprintf( textbuf, textlen,
-			"attribute \"%s\" only allowed in the subentry",
+			"attribute \"%s\" not supported in context",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	if( !is_entry_alias( e ) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" only allowed in the alias",
 			attr->a_desc->ad_cname.bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
@@ -857,9 +881,69 @@ static int referralAttribute (
 	char *textbuf, size_t textlen )
 {
 	*text = textbuf;
+
+	if( !SLAP_REFERRALS(be) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" not supported in context",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
 	if( !is_entry_referral( e ) ) {
 		snprintf( textbuf, textlen,
 			"attribute \"%s\" only allowed in the referral",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int subentryAttribute (
+	Backend *be,
+	Entry *e,
+	Attribute *attr,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	*text = textbuf;
+
+	if( !SLAP_SUBENTRIES(be) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" not supported in context",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	if( !is_entry_subentry( e ) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" only allowed in the subentry",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	return LDAP_SUCCESS;
+}
+
+static int dynamicAttribute (
+	Backend *be,
+	Entry *e,
+	Attribute *attr,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	*text = textbuf;
+
+	if( !SLAP_DYNAMIC(be) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" not supported in context",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	if( !is_entry_dynamicObject( e ) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" only allowed in dynamic object",
 			attr->a_desc->ad_cname.bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
