@@ -50,7 +50,6 @@ monitor_subsys_listener_init(
 	Listener		**l;
 
 	assert( be != NULL );
-	assert( monitor_ad_desc != NULL );
 
 	mi = ( struct monitorinfo * )be->be_private;
 
@@ -127,7 +126,7 @@ monitor_subsys_listener_init(
 			bv.bv_val = "TLS";
 			bv.bv_len = sizeof("TLS")-1;
 
-			attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
+			attr_merge_normalize_one( e, mi->monitor_ad_description, &bv, NULL );
 		}
 #endif /* HAVE_TLS */
 #ifdef LDAP_CONNECTIONLESS
@@ -137,7 +136,7 @@ monitor_subsys_listener_init(
 			bv.bv_val = "UDP";
 			bv.bv_len = sizeof("UDP")-1;
 
-			attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
+			attr_merge_normalize_one( e, mi->monitor_ad_description, &bv, NULL );
 		}
 #endif /* HAVE_TLS */
 

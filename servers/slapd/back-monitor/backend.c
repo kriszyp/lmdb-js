@@ -109,8 +109,10 @@ monitor_subsys_backend_init(
 		bv.bv_val = bi->bi_type;
 		bv.bv_len = strlen( bv.bv_val );
 
-		attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
-		attr_merge_normalize_one( e_backend, monitor_ad_desc, &bv, NULL );
+		attr_merge_normalize_one( e, mi->monitor_ad_description,
+				&bv, NULL );
+		attr_merge_normalize_one( e_backend, mi->monitor_ad_description,
+				&bv, NULL );
 
 		if ( bi->bi_controls ) {
 			int j;

@@ -75,7 +75,7 @@ monitor_subsys_thread_init(
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 
-	attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
+	attr_merge_normalize_one( e, mi->monitor_ad_description, &bv, NULL );
 
 	monitor_cache_release( mi, e );
 
@@ -98,8 +98,8 @@ monitor_subsys_thread_update(
 	snprintf( buf, sizeof( buf ), "backload=%d", 
 			ldap_pvt_thread_pool_backload( &connection_pool ) );
 
-	if ( ( a = attr_find( e->e_attrs, monitor_ad_desc ) ) != NULL ) {
-
+	a = attr_find( e->e_attrs, mi->monitor_ad_description );
+	if ( a != NULL ) {
 		for ( b = a->a_vals; b[0].bv_val != NULL; b++ ) {
 			if ( strncmp( b[0].bv_val, "backload=", 
 					sizeof( "backload=" ) - 1 ) == 0 ) {
@@ -115,7 +115,8 @@ monitor_subsys_thread_update(
 
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
-		attr_merge_normalize_one( e, monitor_ad_desc, &bv, NULL );
+		attr_merge_normalize_one( e, mi->monitor_ad_description,
+				&bv, NULL );
 	}
 
 	return( 0 );

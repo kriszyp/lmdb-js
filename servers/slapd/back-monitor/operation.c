@@ -123,7 +123,7 @@ monitor_subsys_ops_init(
 	
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
+	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -190,7 +190,7 @@ monitor_subsys_ops_init(
 	
 		bv.bv_val = "0";
 		bv.bv_len = 1;
-		attr_merge_one( e, monitor_ad_desc, &bv, NULL );
+		attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
 	
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
@@ -257,7 +257,7 @@ monitor_subsys_ops_init(
 
 	bv.bv_val = "0";
 	bv.bv_len = 1;
-	attr_merge_one( e, monitor_ad_desc, &bv, NULL );
+	attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
 	
 	mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 	e->e_private = ( void * )mp;
@@ -324,7 +324,7 @@ monitor_subsys_ops_init(
 
 		bv.bv_val = "0";
 		bv.bv_len = 1;
-		attr_merge_one( e, monitor_ad_desc, &bv, NULL );
+		attr_merge_one( e, mi->monitor_ad_description, &bv, NULL );
 	
 		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
 		e->e_private = ( void * )mp;
@@ -433,7 +433,7 @@ monitor_subsys_ops_update(
 		Attribute	*a;
 		char		buf[16];
 
-		a = attr_find( e->e_attrs, monitor_ad_desc );
+		a = attr_find( e->e_attrs, mi->monitor_ad_description );
 		if ( a == NULL ) {
 			return( -1 );
 		}

@@ -116,13 +116,13 @@ monitor_subsys_log_init(
 	/* initialize the debug level(s) */
 	for ( i = 0; int_2_level[ i ].i != 0; i++ ) {
 
-		if ( monitor_ad_desc->ad_type->sat_equality->smr_normalize ) {
+		if ( mi->monitor_ad_description->ad_type->sat_equality->smr_normalize ) {
 			int	rc;
 
-			rc = (*monitor_ad_desc->ad_type->sat_equality->smr_normalize)(
+			rc = (*mi->monitor_ad_description->ad_type->sat_equality->smr_normalize)(
 					0,
-					monitor_ad_desc->ad_type->sat_syntax,
-					monitor_ad_desc->ad_type->sat_equality,
+					mi->monitor_ad_description->ad_type->sat_syntax,
+					mi->monitor_ad_description->ad_type->sat_equality,
 					&int_2_level[ i ].s,
 					&int_2_level[ i ].n, NULL );
 			if ( rc ) {
@@ -131,7 +131,7 @@ monitor_subsys_log_init(
 		}
 
 		if ( int_2_level[ i ].i & ldap_syslog ) {
-			attr_merge_one( e, monitor_ad_desc,
+			attr_merge_one( e, mi->monitor_ad_description,
 					&int_2_level[ i ].s,
 					&int_2_level[ i ].n );
 		}
@@ -149,6 +149,7 @@ monitor_subsys_log_modify(
 	Modifications		*modlist
 )
 {
+	struct monitorinfo *mi = (struct monitorinfo *)op->o_bd->be_private;
 	int		rc = LDAP_OTHER;
 	int		newlevel = ldap_syslog;
 	Attribute	*save_attrs;
@@ -178,7 +179,7 @@ monitor_subsys_log_modify(
 		/*
 		 * only the monitor description attribute can be modified
 		 */
-		} else if ( mod->sm_desc != monitor_ad_desc ) {
+		} else if ( mod->sm_desc != mi->monitor_ad_description ) {
 			rc = LDAP_UNWILLING_TO_PERFORM;
 			break;
 		}

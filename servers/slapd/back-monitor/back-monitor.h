@@ -41,6 +41,8 @@
 
 LDAP_BEGIN_DECL
 
+#define MONITOR_DEVEL
+
 /*
  * The cache maps DNs to Entries.
  * Each entry, on turn, holds the list of its children in the e_private field.
@@ -73,6 +75,26 @@ struct monitorentrypriv {
 struct monitorinfo {
 	Avlnode			*mi_cache;
 	ldap_pvt_thread_mutex_t	mi_cache_mutex;
+
+	ObjectClass *monitor_oc_monitorServer;
+	ObjectClass *monitor_oc_monitorContainer;
+	ObjectClass *monitor_oc_monitorCounter;
+	ObjectClass *monitor_oc_monitorOperation;
+	ObjectClass *monitor_oc_monitorConnection;
+	ObjectClass *monitor_oc_managedObject;
+	ObjectClass *monitor_oc_monitoredObject;
+
+	AttributeDescription *monitor_ad_monitoredInfo;
+	AttributeDescription *monitor_ad_managedInfo;
+	AttributeDescription *monitor_ad_monitorCounter;
+	AttributeDescription *monitor_ad_monitorOpCompleted;
+	AttributeDescription *monitor_ad_monitorOpInitiated;
+	AttributeDescription *monitor_ad_monitorConnectionNumber;
+	AttributeDescription *monitor_ad_monitorConnectionAuthzDN;
+	AttributeDescription *monitor_ad_monitorConnectionLocalAddress;
+	AttributeDescription *monitor_ad_monitorConnectionPeerAddress;
+
+	AttributeDescription *monitor_ad_description;
 };
 
 /*
@@ -202,7 +224,6 @@ struct monitorsubsys {
 
 extern struct monitorsubsys monitor_subsys[];
 
-extern AttributeDescription *monitor_ad_desc;
 extern BackendDB *be_monitor;
 
 /*

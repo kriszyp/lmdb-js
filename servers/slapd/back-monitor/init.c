@@ -245,6 +245,96 @@ monitor_back_db_init(
 	struct berval		dn, ndn;
 	const char 		*text;
 	struct berval		bv;
+	struct m_s {
+		char	*name;
+		char	*schema;
+		int	offset;
+	} moc[] = {
+		{ "monitorServer", "( 1.3.6.1.4.1.4203.666.XXX "
+			"NAME 'monitorServer' "
+			"DESC 'Server monitoring root entry' "
+			"SUP monitor STRUCTURAL)",
+			offsetof(struct monitorinfo, monitor_oc_monitorServer) },
+		{ "monitorContainer", "( 1.3.6.1.4.1.4203.666.XXX "
+			"NAME 'monitorContainer' "
+			"DESC 'monitor container class' "
+			"SUP monitor STRUCTURAL)",
+			offsetof(struct monitorinfo, monitor_oc_monitorContainer) },
+		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.XXX "
+			"NAME 'monitorCounter' "
+			"DESC 'monitor counter class' "
+			"SUP monitor STRUCTURAL)",
+			offsetof(struct monitorinfo, monitor_oc_monitorCounter) },
+		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.XXX "
+			"NAME 'monitorOperation' "
+			"DESC 'monitor operation class' "
+			"SUP monitor STRUCTURAL)",
+			offsetof(struct monitorinfo, monitor_oc_monitorOperation) },
+		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.XXX "
+			"NAME 'monitorConnection' "
+			"DESC 'monitor connection class' "
+			"SUP monitor STRUCTURAL)",
+			offsetof(struct monitorinfo, monitor_oc_monitorConnection) },
+		{ "managedObject", "( 1.3.6.1.4.1.4203.666.XXX "
+			"NAME 'managedObject' "
+			"DESC 'monitor managed entity class' "
+			"SUP monitor STRUCTURAL)",
+			offsetof(struct monitorinfo, monitor_oc_managedObject) },
+		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.XXX "
+			"NAME 'monitoredObject' "
+			"DESC 'monitor monitored entity class' "
+			"SUP monitor STRUCTURAL)",
+			offsetof(struct monitorinfo, monitor_oc_monitoredObject) },
+		{ NULL, NULL, -1 }
+	}, mat[] = {
+		{ "monitoredInfo", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitoredInfo' "
+			"DESC 'monitored info' "
+			"SUP name )",
+			offsetof(struct monitorinfo, monitor_ad_monitoredInfo) },
+		{ "managedInfo", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'managedInfo' "
+			"DESC 'monitor managed info' "
+			"SUP name )",
+			offsetof(struct monitorinfo, monitor_ad_managedInfo) },
+		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitorCounter' "
+			"DESC 'monitor counter' "
+			"EQUALITY integerMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
+			offsetof(struct monitorinfo, monitor_ad_monitorCounter) },
+		{ "monitorOpCompleted", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitorOpCompleted' "
+			"DESC 'monitor completed operations' "
+			"SUP monitorCounter )",
+			offsetof(struct monitorinfo, monitor_ad_monitorOpCompleted) },
+		{ "monitorOpInitiated", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitorOpInitiated' "
+			"DESC 'monitor initiated operations' "
+			"SUP monitorCounter )",
+			offsetof(struct monitorinfo, monitor_ad_monitorOpInitiated) },
+		{ "monitorConnectionNumber", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitorConnectionNumber' "
+			"DESC 'monitor connection number' "
+			"SUP monitorCounter )",
+			offsetof(struct monitorinfo, monitor_ad_monitorConnectionNumber) },
+		{ "monitorConnectionAuthzDN", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitorConnectionAuthzDN' "
+			"DESC 'monitor connection authorization DN' "
+			"SUP distinguishedName)",
+			offsetof(struct monitorinfo, monitor_ad_monitorConnectionAuthzDN) },
+		{ "monitorConnectionLocalAddress", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitorConnectionLocalAddress' "
+			"DESC 'monitor connection local address' "
+			"SUP monitoredInfo)",
+			offsetof(struct monitorinfo, monitor_ad_monitorConnectionLocalAddress) },
+		{ "monitorConnectionPeerAddress", "( 1.3.6.1.4.1.4203.666.XXX"
+			"NAME 'monitorConnectionPeerAddress' "
+			"DESC 'monitor connection peer address' "
+			"SUP monitoredInfo)",
+			offsetof(struct monitorinfo, monitor_ad_monitorConnectionPeerAddress) },
+		{ NULL, NULL, -1 }
+	};
 
 	/*
 	 * database monitor can be defined once only
@@ -252,11 +342,10 @@ monitor_back_db_init(
 	if ( be_monitor ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
-			"only one monitor backend is allowed\n" , 0, 0, 0);
+			"only one monitor backend is allowed\n", 0, 0, 0);
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"only one monitor backend is allowed\n%s%s%s",
-			"", "", "" );
+			"only one monitor backend is allowed\n", 0, 0, 0 );
 #endif
 		return( -1 );
 	}
@@ -272,11 +361,12 @@ monitor_back_db_init(
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
-			"monitor DN \"" SLAPD_MONITOR_DN "\" backend is allowed\n" , 0, 0, 0 );
+			"unable to normalize monitor DN \"" SLAPD_MONITOR_DN
+			"\"\n" , 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"monitor DN \"" SLAPD_MONITOR_DN "\" backend is allowed\n",
-			0, 0, 0 );
+			"unable to normalize monitor DN \"" SLAPD_MONITOR_DN
+			"\"\n", 0, 0, 0 );
 #endif
 		return -1;
 	}
@@ -286,9 +376,117 @@ monitor_back_db_init(
 	ber_bvarray_add( &be->be_nsuffix, &ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
+	if ( mi == NULL ) {
+		return -1;
+	}
+
 	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
 
-	if ( slap_str2ad( "description", &monitor_ad_desc, &text ) ) {
+	for ( i = 0; moc[i].name; i++ ) {
+		LDAPObjectClass		*oc;
+		int			code;
+		const char		*err;
+		ObjectClass		*Oc;
+
+		oc = ldap_str2objectclass(moc[i].schema, &code, &err,
+				LDAP_SCHEMA_ALLOW_ALL );
+		if ( !oc ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT,
+				"unable to parse monitor objectclass '%s' "
+				"(%s before %s)\n" , moc[i].name,
+				ldap_scherr2str(code), err );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"unable to parse monitor objectclass '%s' "
+				"(%s before %s)\n" , moc[i].name,
+				ldap_scherr2str(code), err );
+#endif
+			return -1;
+		}
+
+		if ( oc->oc_oid == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT,
+				"objectclass '%s' has no OID\n" ,
+				moc[i].name, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"objectclass '%s' has no OID\n" ,
+				moc[i].name, 0, 0 );
+#endif
+			return -1;
+		}
+
+		code = oc_add(oc,1,&err);
+		if ( code ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT,
+				"objectclass '%s' (%s before %s)\n" ,
+				moc[i].name, scherr2str(code), err );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"objectclass '%s' (%s before %s)\n" ,
+				moc[i].name, scherr2str(code), err );
+#endif
+			return -1;
+		}
+
+		ldap_memfree(oc);
+
+		Oc = oc_find( moc[i].name );
+		if ( Oc == NULL ) {
+			return -1;
+		}
+
+		((ObjectClass **)&(((char *)mi)[moc[i].offset]))[0] = Oc;
+	}
+
+	for ( i = 0; mat[i].name; i++ ) {
+		LDAPAttributeType *at;
+		int		code;
+		const char	*err;
+		AttributeDescription **ad;
+
+		at = ldap_str2attributetype( mat[i].schema, &code,
+				&err, LDAP_SCHEMA_ALLOW_ALL );
+		if ( !at ) {
+			return 1;
+		}
+
+		if ( at->at_oid == NULL ) {
+			return 1;
+		}
+
+		/* operational attributes should be defined internally
+		if ( at->at_usage ) {
+			fprintf( stderr, "%s: line %d: attribute type \"%s\" is operational\n",
+				 fname, lineno, at->at_oid );
+			return 1;
+		} */
+
+		code = at_add(at,&err);
+		if ( code ) {
+			return 1;
+		}
+		ldap_memfree(at);
+
+		ad = ((AttributeDescription **)&(((char *)mi)[mat[i].offset]));
+		ad[0] = NULL;
+		if ( slap_str2ad( mat[i].name, ad, &text ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, CRIT,
+				"monitor_back_db_init: %s\n", text, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_backend_init: %s\n%s%s", 
+				text, "", "" );
+#endif
+			return -1;
+		}
+	}
+
+	if ( slap_str2ad( "description", &mi->monitor_ad_description, &text ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, CRIT,
 			"monitor_back_db_init: %s\n", text, 0, 0 );

@@ -58,7 +58,6 @@ monitor_subsys_database_init(
 	const char		*text = NULL;
 
 	assert( be != NULL );
-	assert( monitor_ad_desc != NULL );
 
 	mi = ( struct monitorinfo * )be->be_private;
 
@@ -205,6 +204,7 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 {
 	Slapi_PBlock		*pCurrentPB; 
 	int			i, rc = LDAP_SUCCESS;
+	struct monitorinfo	*mi = ( struct monitorinfo * )be->be_private;
 
 	if ( slapi_x_pblock_get_first( be, &pCurrentPB ) != LDAP_SUCCESS ) {
 		/*
@@ -239,7 +239,8 @@ monitor_back_add_plugin( Backend *be, Entry *e_database )
 
 		bv.bv_val = buf;
 		bv.bv_len = strlen( buf );
-		attr_merge_normalize_one( e_database, monitor_ad_desc, &bv, NULL );
+		attr_merge_normalize_one( e_database,
+				mi->monitor_ad_description, &bv, NULL );
 
 		i++;
 
