@@ -291,6 +291,15 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((
 	slap_access_t access
 ));
 
+LDAP_SLAPD_F (int) backend_access LDAP_P((
+	Operation		*op,
+	Entry			*target,
+	struct berval		*edn,
+	AttributeDescription	*entry_at,
+	struct berval		*nval,
+	slap_access_t		access,
+	slap_mask_t		*mask ));
+
 LDAP_SLAPD_F (int) backend_operational LDAP_P((
 	Operation *op,
 	SlapReply *rs 
