@@ -1561,9 +1561,9 @@ slapd_daemon_task(
 
 					if( getpeereid( s, &uid, &gid ) == 0 ) {
 						authid = ch_malloc(
-							sizeof("uidNumber=4294967295+gidNumber=4294967295,"
+							sizeof("uidnumber=4294967295+gidnumber=4294967295,"
 								"cn=peercred,cn=external,cn=auth"));
-						sprintf(authid, "uidNumber=%d+gidNumber=%d,"
+						sprintf(authid, "uidnumber=%d+gidnumber=%d,"
 							"cn=peercred,cn=external,cn=auth",
 							(int) uid, (int) gid);
 					}
