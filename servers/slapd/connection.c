@@ -72,9 +72,6 @@ int connections_init(void)
 		return -1;
 	}
 
-	for ( i = 0; i < dtblsize; i++ )
-		memset( &connections[i], 0, sizeof(Connection) );
-
 	/*
 	 * per entry initialization of the Connection array initialization
 	 * will be done by connection_init()
