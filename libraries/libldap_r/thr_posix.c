@@ -81,8 +81,19 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void * ),
 	void *arg)
 {
-	int rtn = pthread_create( thread, LDAP_PVT_THREAD_ATTR_DEFAULT,
+	int rtn;
+#if defined(HAVE_PTHREADS_FINAL) && defined(PTHREAD_CREATE_UNDETACHED)
+	pthread_attr_t attr;
+
+	pthread_attr_init(&attr);
+	if (!detach)
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
+
+	rtn = pthread_create( thread, &attr, start_routine, arg );
+#else
+	rtn = pthread_create( thread, LDAP_PVT_THREAD_ATTR_DEFAULT,
 				  start_routine, arg );
+#endif
 
 	if( detach ) {
 #ifdef HAVE_PTHREADS_FINAL
