@@ -1,11 +1,17 @@
+
+
+
+
+
+
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                   OpenLDAP Foundation
-Expires: 11 January 2001                            11 July 2000
+Expires: 20 July 2001                               20 January 2001
+
 
 
                   LDAP Authentication Password Attribute
-                 <draft-zeilenga-ldap-authpasswd-03.txt>
-
+                 <draft-zeilenga-ldap-authpasswd-04.txt>
 
 
 1. Status of this Memo
@@ -14,7 +20,7 @@ Expires: 11 January 2001                            11 July 2000
   provisions of Section 10 of RFC2026.
 
   This document is intended to be, after appropriate review and
-  revision, submitted to the RFC Editor as a Standard Track document.
+  revision, submitted to the RFC Editor as an Standard Track document.
   Distribution of this memo is unlimited.  Technical discussion of this
   document will take place on the IETF LDAP Extension Working Group
   mailing list <ietf-ldapext@netscape.com>.  Please send editorial
@@ -32,7 +38,7 @@ Expires: 11 January 2001                            11 July 2000
   http://www.ietf.org/ietf/1id-abstracts.txt The list of Internet-Draft
   Shadow Directories can be accessed at http://www.ietf.org/shadow.html.
 
-  Copyright 2000, The Internet Society.  All Rights Reserved.
+  Copyright 2001, The Internet Society.  All Rights Reserved.
 
   Please see the Copyright section near the end of this document for
   more information.
@@ -40,23 +46,19 @@ Expires: 11 January 2001                            11 July 2000
 
 2. Abstract
 
-  This document describes schema for storing information in support of
-  user/password authentication in a LDAP [RFC2251] directory.  The
-  document defines the authPassword attribute type and related schema.
-  The attribute type is used to store values derived from the user's
-  password(s) (commonly using cryptographic strength one-way hash).
-  authPassword is intended to used instead of clear text password
+  This document describes schema in support of user/password
+  authentication in a LDAP directory including the authPassword
+  attribute type.  This attribute type holds values derived from the
+  user's password(s) (commonly using cryptographic strength one-way
+  hash).  authPassword is intended to used instead of userPassword.
+
 
 
 
 Zeilenga                                                        [Page 1]
 
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
 
-
-  storage mechanisms such as userPassword [RFC2256].  The values of
-  authPassword may be used to support both LDAP "simple" and SASL
-  [RFC2222] password authentication mechanisms [RFC2829].
 
   The key words ``MUST'', ``MUST NOT'', ``REQUIRED'', ``SHALL'', ``SHALL
   NOT'', ``SHOULD'', ``SHOULD NOT'', ``RECOMMENDED'',  and ``MAY'' in
@@ -73,16 +75,22 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
   of actual passwords.
 
   The authPassword attribute type is intended to be used to store
-  information used to implement password based authentication.  The
-  attribute type may be used by LDAP servers to implement user/password
-  authentication operations [RFC2829] such "simple" and SASL [RFC2222] /
-  DIGEST-MD5 [RFC2831].
+  information used to implement simple password based authentication.
+  The attribute type may be used by LDAP servers to implement the LDAP
+  Bind operation's "simple" authentication method.
 
   The attribute type supports multiple storage schemes.  A matching rule
   is provided for use with extensible search filters to allow clients to
   assert that a clear text password "matches" one of the attribute's
-  values.  Storage schemes often use of cryptographic strength one-way
-  hashing.
+  values.
+
+  Storage schemes often use of cryptographic strength one-way hashing.
+  Though the use of one-way hashing reduces the potential that exposed
+  values will allow unauthorized access to the Directory (unless the
+  hash algorithm/implementation is flawed), the hashing of passwords is
+  intended to be as an additional layer of protection.  It is
+  RECOMMENDED that hashed values be protected as if they were clear text
+  passwords.
 
   This attribute may be used in conjunction with server side password
   generation mechanisms (such as [PW-EXOP]).
@@ -100,38 +108,37 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
   Editor's Note: object identifiers (OIDs) will be assigned before this
                  document is published as an RFC.
 
-4.1. authPasswordSyntax
-
 
 
 
 Zeilenga                                                        [Page 2]
 
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
 
+
+4.1. authPasswordSyntax
 
     ( authPasswordSyntaxOID
       DESC 'authentication password syntax' )
 
-  Values of this syntax are encoded according to the following BNF:
+  Values of this syntax are encoded according to:
 
     authPasswordValue = w scheme s [authInfo] s authValue w
-    scheme = <an IA5 string of uppercase letters, numbers,
-             and "-", "_", and "/">
+    scheme = %x30-39 / %x41-5A / %x2D-2F / %x5F
+            ; 0-9, A-Z, "-", ".", "/", or "_"
     authInfo = schemeSpecificValue
-    authValue = schemeSpecfiicValue
-    schemeSpecificValue = <an IA5 printable string
-                          not containing "$" or " ">
+    authValue = schemeSpecificValue
+    schemeSpecificValue = *( %x21-23 / %25-7E )
+            ; printable ascii less "$" and " "
     s = w sep w
     w = *sp
-    sep = "$" ; an IA5 dollar sign (36)
-    sp = " "     ; an IA5 space (20)
+    sep = %x24 ; dollar sign
+    sp = %x20 ; space
 
-  where scheme describes the storage mechanism, authInfo and authValue
-  are a scheme specific.  The authInfo field is often a base64 encoded
-  salt.  The authValue field is often a base64 encoded value derived
-  from a user's password(s). Values of this attribute are case
-  sensitive.
+  where scheme describes the mechanism and authInfo and authValue are a
+  scheme specific.  The authInfo field is often a base64 encoded salt.
+  The authValue field is often a base64 encoded value derived from a
+  user's password(s). Values of this attribute are case sensitive.
 
   This document describes a number of schemes, as well as requirements
   for the scheme naming, in section 5.
@@ -160,10 +167,9 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
 
 
 
-
 Zeilenga                                                        [Page 3]
 
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
 
 
 4.3. supportedAuthPasswordSchemes
@@ -178,8 +184,8 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
   The values of this attribute are names of supported authentication
   password schemes which the server supports.  The syntax of a scheme
   name is described in section 4.1.  This attribute may only be present
-  in the root DSE.  If the server does not support any mechanisms this
-  attribute will not be present.
+  in the root DSE.  If the server does not support any password schemes,
+  this attribute will not be present.
 
 
 4.4. authPassword
@@ -211,22 +217,20 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
 
 5. Schemes
 
-  This section describes the "MD5", "SHA1", and "SASL/DIGEST-MD5".
-  Other schemes may be defined by other documents.  Schemes starting
-  with string "SASL/" indicate association with a SASL mechanism.
+  This section describes the "MD5" and "SHA1".  Other schemes may be
+  defined by other documents.  Schemes which are not described by
+  standard track documents SHOULD be named with a leading "X-" to
 
 
 
 Zeilenga                                                        [Page 4]
 
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
 
 
-  Schemes which are not described by standard track documents SHOULD be
-  named with a leading "X-" or, if associated with a SASL mechanism,
-  "SASL/X-" to indicate they are a private or implementation specific
-  mechanism, or may be named using the dotted-decimal representation
-  [RFC2252] of an OID assigned to the mechanism.
+  indicate they are a private or implementation specific scheme, or may
+  be named using the dotted-decimal representation [RFC2252] of an OID
+  assigned to the scheme.
 
 
 5.1. MD5 scheme
@@ -234,10 +238,10 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
   The MD5 [RFC1321] scheme name is "MD5".
 
   The authValue is the base64 encoding of an MD5 digest of the
-  concatenation the user password and optional salt.  The base64
-  encoding of the salt is provided in the authInfo field.
-  Implementations of this scheme must support salts up to 128-bit in
-  length.  Use with a 64-bit or larger salt is RECOMMENDED.
+  concatenation the user password and salt.  The base64 encoding of the
+  salt is provided in the authInfo field.  The salt MUST be at least
+  64-bits long.  Implementations of this scheme MUST support salts up to
+  128-bit in length.
 
   Example:
     Given a user "joe" who's password is "mary" and a salt of "salt",
@@ -255,33 +259,30 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
   Values of this scheme SHOULD only be used to implement simple
   user/password authentication.
 
-  It is RECOMMENDED that values of this scheme be protected as if they
-  were clear text passwords.
-
 
 5.2. SHA1 scheme
 
   The SHA1 [SHA1] scheme name is "SHA1".
 
   The authValue is the base64 encoding of an SHA1 digest of the
-  concatenation the user password and the optional salt.  The base64
-  encoding of the salt is provided in the authInfo field.
-  Implementations of this scheme must support salts up to 128-bit in
-  length.  Use with a 64-bit or larger salt is RECOMMENDED.
+  concatenation the user password and the salt.  The base64 encoding of
+  the salt is provided in the authInfo field.  The salt MUST be at least
+  64-bits long.  Implementations of this scheme MUST support salts up to
+  128-bit in length.
 
   Example:
+    Given a user "joe" who's password is "mary" and a salt of "salt",
+    the authInfo field would be the base64 encoding of "salt" and the
+    authValue field would be the base64 encoding of the SHA1 digest of
+    "marysalt".
+
 
 
 
 Zeilenga                                                        [Page 5]
 
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
 
-
-    Given a user "joe" who's password is "mary" and a salt of "salt",
-    the authInfo field would be the base64 encoding of "salt" and the
-    authValue field would be the base64 encoding of the SHA1 digest of
-    "marysalt".
 
   A match against an asserted password and an attribute value of this
   scheme SHALL be true if and only if the SHA1 digest of concatenation
@@ -293,46 +294,8 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
   Values of this scheme SHOULD only be used to implement simple
   user/password authentication.
 
-  It is RECOMMENDED that values of this scheme be protected as if they
-  were clear text passwords.
-
-
-5.3. DIGEST-MD5 scheme
-
-  The DIGEST-MD5 scheme name is "SASL/DIGEST-MD5".
-
-  The authValue is the base64 encoding of
-    H( { username-value, ":", realm-value, ":", passwd } )
-
-  and authInfo is the base64 encoding of
-    { username-value, ":", realm-value }
-
-  as defined by RFC2831.
-
-  Example:
-    Given a user "joe" within the realm "localhost" who's password is
-    "mary", the info field would be the base64 encoding of
-    "joe:localhost" and the authValue field would be the base64 encoding
-    of the MD5 digest of "joe:localhost:mary".
-
-  Values of this scheme SHOULD only be used to implement the
-  SASL/DIGEST-MD5 as described by the Authentication Methods for LDAP
-  [RFC2829].  A simple password assertion against a value of this scheme
-  SHALL be considered undefined.
-
-  Values of this scheme MUST be protected as if it the values were clear
-  text passwords per reasons detailed in DIGEST-MD5, Section 3.9,
-  "Storing Passwords."
-
 
 6. Implementation Issues
-
-
-
-Zeilenga                                                        [Page 6]
-
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
-
 
   For implementations of this specification:
 
@@ -344,8 +307,8 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
     userPassword or an external password store, in conjunction with
     authPassword to support the authentication process.
 
-    Servers that support simple bind MUST support the MD5 scheme and
-    SHOULD support the SHA1 scheme.
+    Servers that support simple bind MUST support the SHA1 scheme and
+    SHOULD support the MD5 scheme.
 
     Servers SHOULD not publish values of authPassword nor allow
     operations which expose authPassword or AuthPasswordMatch values to
@@ -364,31 +327,35 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
 7. Security Considerations
 
   This document describes how authentication information may be stored
-  in a directory.  Authentication information must be adequately
+  in a directory.  Authentication information MUST be adequately
   protected as unintended disclosure will allow attackers to gain
   immediate access to the directory as described by [RFC2829].
 
-  Values of authPassword SHOULD be protected as if they were clear text
-  passwords.  When values are transferred, privacy protections, such as
-  IPSEC or TLS, SHOULD be in place.
+  As flaws may be discovered in the hashing algorithm or with a
+
+
+
+Zeilenga                                                        [Page 6]
+
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
+
+
+  particular implementation of the algorithm or may be subjected to
+  dictionary or other attacks if exposed, values of AuthPassword SHOULD
+  be protected as if they were clear text passwords.  When values are
+  transferred, privacy protections, such as IPSEC or TLS, SHOULD be in
+  place.
 
   Clients SHOULD use strong authentication mechanisms [RFC2829].
 
   AuthPasswordMatch matching rule allows applications to test the
-  validity of a user password and, hence, may be used to mount a
-  dictionary attack.  Servers SHOULD take appropriate measures to
-  protect the directory from such attacks.
+  validity of a user password and, hence, may be used to mount an
+  attack.  Servers SHOULD take appropriate measures to protect the
+  directory from such attacks.
 
   Some password schemes may require CPU intensive operations.  Servers
   SHOULD take appropriate measures to protect against Denial of Service
   attacks.
-
-
-
-Zeilenga                                                        [Page 7]
-
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
-
 
   AuthPassword does not restrict an authentication identity to a single
   password.  An attacker who gains write access to this attribute may
@@ -403,7 +370,7 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
 
 8. Copyright
 
-  Copyright 2000, The Internet Society.  All Rights Reserved.
+  Copyright 2001, The Internet Society.  All Rights Reserved.
 
   This document and translations of it may be copied and furnished to
   others, and derivative works that comment on or otherwise explain it
@@ -420,6 +387,14 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
 
   The limited permissions granted above are perpetual and will not be
   revoked by the Internet Society or its successors or assigns.
+
+
+
+
+Zeilenga                                                        [Page 7]
+
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
+
 
   This document and the information contained herein is provided on an
   "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
@@ -438,14 +413,6 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
 10. Bibliography
 
   [RFC1321] R. Rivest, "The MD5 Message-Digest Algorithm", RFC 1321,
-
-
-
-Zeilenga                                                        [Page 8]
-
-INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
-
-
             April 1992
 
   [RFC2219] S. Bradner, "Key words for use in RFCs to Indicate
@@ -468,13 +435,10 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
             with LDAPv3", RFC 2256, December 1997.
 
   [RFC2307] L. Howard, "An Approach for Using LDAP as a Network
-            Information Service", RFC 2307, March 1998.
+            Information Service", RFC 2307, March 1998.  (not normative)
 
   [RFC2829] M. Wahl, H. Alvestrand, J. Hodges, RL "Bob" Morgan,
             "Authentication Methods for LDAP", RFC 2829, June 2000.
-
-  [RFC2831] P. Leach, C. Newman, "Using Digest Authentication as a SASL
-            Mechanism", RFC 2831, June 2000.
 
   [PW-EXOP] K. Zeilenga, "LDAP Password Modify Extended Operation"
             draft-zeilenga-ldap-passwd-exop-xx.txt, a work in progress.
@@ -482,11 +446,53 @@ INTERNET-DRAFT              LDAP AuthPasswd                 11 July 2000
   [SHA1]    NIST, FIPS PUB 180-1: Secure Hash Standard, April 1995.
 
 
+
+Zeilenga                                                        [Page 8]
+
+INTERNET-DRAFT              LDAP AuthPassword            20 January 2001
+
+
 11.  Author's Address
 
   Kurt D. Zeilenga
   OpenLDAP Foundation
   <Kurt@OpenLDAP.org>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,10 +1,16 @@
+
+
+
+
+
+
 INTERNET-DRAFT                                      Kurt D. Zeilenga
 Intended Category: Standard Track                   OpenLDAP Foundation
-Expires: 13 December 2000                           13 June 2000
+Expires: 3 May 2001                                 3 Novemeber 2000
 
 
                  LDAP Password Modify Extended Operation
-                 <draft-zeilenga-ldap-passwd-exop-03.txt>
+                 <draft-zeilenga-ldap-passwd-exop-05.txt>
 
 
 1.      Status of this Memo
@@ -39,22 +45,20 @@ Expires: 13 December 2000                           13 June 2000
 
 2.      Abstract
 
-  The integration of LDAP [RFC2251] and external authentication services
-  has introduced non-DN authentication identities and allowed for
+  The integration of LDAP and external authentication services has
+  introduced non-DN authentication identities and allowed for
   non-directory storage of passwords.   As such, mechanisms which update
-  the directory, such as Modify operation, cannot be used to change a
-  user's password.  This document describes an LDAP extended operation
-  to allow allow modification of user passwords which is not dependent
-  upon the form of the authentication identity nor the password storage
+  the directory (e.g. Modify) cannot be used to change a user's
+  password.  This document describes an LDAP extended operation to allow
+  modification of user passwords which is not dependent upon the form of
+  the authentication identity nor the password storage mechanism used.
 
 
 
 Zeilenga                                                        [Page 1]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
+INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-05   3 Novemeber 2000
 
-
-  mechanism used.
 
   The key words ``MUST'', ``MUST NOT'', ``REQUIRED'', ``SHALL'', ``SHALL
   NOT'', ``SHOULD'', ``SHOULD NOT'', ``RECOMMENDED'',  and ``MAY'' in
@@ -73,58 +77,55 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
 
   The protocol does not mandate that passwords associated with a user be
   stored in the directory server.  The server may use any attribute
-  suitable for password storage, such as userPassword or authPassword
-  [AuthPasswd], or use non-directory storage.
+  suitable for password storage (e.g. userPassword), or use
+  non-directory storage.
 
-  The integration of application neutral SASL [RFC2222] services which
-  support simple username/password mechanisms (such as DIGEST-MD5) has
-  introduced non-LDAP DN authentication identity forms and made storage
-  of passwords the responsibility of the SASL service provider.
+  The integration [RFC2829] of application neutral SASL [RFC2222]
+  services which support simple username/password mechanisms (such as
+  DIGEST-MD5) has introduced non-LDAP DN authentication identity forms
+  and made storage of passwords the responsibility of the SASL service
+  provider.
 
   LDAP update operations are designed to act upon attributes of an entry
   within the directory.  LDAP update operations cannot be used to modify
   a user's password when the user is not represented by a DN, does not
   have a entry, or when that password used by the server is not stored
-  as an attribute of an entry.  An alternative mechanism are needed.
+  as an attribute of an entry.  An alternative mechanism is needed.
 
-  This document describes an LDAP Extended Operation intended to be
-  allow directory clients to update user passwords.  The user may or may
-  not have be associated with a directory entry. The user may or may not
-  be represented as an LDAP DN.  The user's password may or may not be
+  This document describes an LDAP Extended Operation intended to allow
+  directory clients to update user passwords.  The user may or may not
+  be associated with a directory entry. The user may or may not be
+  represented as an LDAP DN.  The user's password may or may not be
   stored in the directory.
 
   The operation SHOULD NOT be used without adequate security protection
   as the operation affords no privacy or integrity protect itself.  This
-  operation SHOULD NOT be used by "anonymous" clients.
+  operation SHALL NOT be used anonymously.
 
 
 4.      Password Modify Request and Response
 
   The Password Modify operation is an LDAPv3 Extended Operation
   [RFC2251, Section 4.12] and is identified by the OBJECT IDENTIFIER
+  passwdModifyOID.  This section details the syntax of the protocol
 
 
 
 Zeilenga                                                        [Page 2]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
+INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-05   3 Novemeber 2000
 
 
-  passwdModifyOID.  This section details the syntax of the protocol
   request and response.
 
-    passwdModifyOID OBJECT IDENTIFIER ::= 1.3.6.1.4.1.4203.666.6.1
-
-    [Editor's Note: this OID is temporary.  A permanent OID
-      will be assigned to this object before this document is
-      progressed as an RFC.]
+    passwdModifyOID OBJECT IDENTIFIER ::= 1.3.6.1.4.1.4203.1.11.1
 
     PasswdModifyRequestValue ::= SEQUENCE {
       userIdentity    [0]  OCTET STRING OPTIONAL
       oldPasswd       [1]  OCTET STRING OPTIONAL
       newPasswd       [2]  OCTET STRING OPTIONAL }
 
-    PasswordModifyResponseValue ::= SEQUENCE {
+    PasswdModifyResponseValue ::= SEQUENCE {
       genPasswd       [0]     OCTET STRING OPTIONAL }
 
 
@@ -158,19 +159,18 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
   The genPasswd field, if present, SHALL contain a generated password
   for the user.
 
-
-
-
-Zeilenga                                                        [Page 3]
-
-INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
-
-
   If an resultCode other than success (0) is indicated in the response,
   the response field MUST be absent.
 
 
 5.      Operation Requirements
+
+
+
+Zeilenga                                                        [Page 3]
+
+INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-05   3 Novemeber 2000
+
 
   Clients SHOULD NOT submit a Password Modification request without
   ensuring adequate security safeguards are in place.  Servers SHOULD
@@ -178,11 +178,13 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
   not in place.
 
   Servers SHOULD indicate their support for this extended operation by
-  providing PasswordModifyOID as a value of the supportedExtensions
-  attribute type in their root DSE.  Clients SHOULD verify the server
-  implements this extended operation prior to attempting the operation
-  by asserting the supportedExtensions attribute contains a value of
-  PasswordModifyOID.
+  providing PasswdModifyOID as a value of the supportedExtension
+  attribute type in their root DSE.  A server MAY choose to advertise
+  this extension only when the client is authorized and/or has
+  established the necessary security protections to use this operation.
+  Clients SHOULD verify the server implements this extended operation
+  prior to attempting the operation by asserting the supportedExtension
+  attribute contains a value of PasswdModifyOID.
 
   The server SHALL only return success upon successfully changing the
   user's password.  The server SHALL leave the password unmodified and
@@ -192,14 +194,16 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
   the combination of fields provided, it SHALL NOT change the user
   password.
 
-  If the provided oldPasswd value cannot be verified or is incorrect,
-  the server SHALL NOT change the user password.
+  If oldPasswd is present and the provided value cannot be verified or
+  is incorrect, the server SHALL NOT change the user password.  If
+  oldPasswd is not present, the server MAY use other policy to determine
+  whether or not to change the password.
 
   The server SHALL NOT generate a password on behalf of the client if
-  the client has provided a newPassword.  In absence of a client
-  provided newPassword, the server SHALL either generate a password on
-  behalf of the client or return a non-success result code.  The server
-  MUST provide the generated password upon success as the value of the
+  the client has provided a newPasswd.  In absence of a client provided
+  newPasswd, the server SHALL either generate a password on behalf of
+  the client or return a non-success result code.  The server MUST
+  provide the generated password upon success as the value of the
   genPasswd field.
 
   The server MAY return adminLimitExceeded, busy,
@@ -211,36 +215,26 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
   operation.
 
 
-6.      Other requirements
+6.      Security Considerations
 
-  A server which supports this operation SHOULD provide a
+  This operation is used to modify user passwords.  The operation itself
+  does not provide any security protection to ensure integrity and/or
+  confidentiality of the information.  Use of this operation is strongly
 
 
 
 Zeilenga                                                        [Page 4]
 
-INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
+INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-05   3 Novemeber 2000
 
 
-  supportedExtension attribute in the Root DSE which contains as one of
-  its values the passwdModifyOID OID.  A server MAY advertise the
-  extension only when the client is authorized and/or has established
-  the necessary security protections to use this operation.  Clients
-  SHOULD verify the server has advertised the extension before
-  attempting the operation.
-
-
-7.      Security Considerations
-
-  This operation is used to modify user passwords.  The operation itself
-  does not provide any security protection to ensure integrity and/or
-  confidentiality of the information.  Use of this operation is strongly
   discouraged when privacy protections are not in place to guarantee
   confidentiality and may result in the disclosure of the password to
-  unauthorized parties.
+  unauthorized parties.  Use of Start TLS [RFC 2830] is highly
+  recommended.
 
 
-8.      Copyright
+7.      Copyright
 
   Copyright 2000, The Internet Society.  All Rights Reserved.
 
@@ -268,15 +262,7 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
   WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
-9.      Bibliography
-
-
-
-
-Zeilenga                                                        [Page 5]
-
-INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
-
+8.      Bibliography
 
   [RFC2219]       S. Bradner, "Key words for use in RFCs to Indicate
                   Requirement Levels", RFC 2119, March 1997.
@@ -290,6 +276,14 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
 
   [RFC2252]       M. Wahl, A. Coulbeck, T. Howes, S. Kille,
                   "Lightweight Directory Access Protocol (v3):
+
+
+
+Zeilenga                                                        [Page 5]
+
+INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-05   3 Novemeber 2000
+
+
                   Attribute Syntax Definitions", RFC 2252,
                   December 1997.
 
@@ -301,21 +295,33 @@ INTERNET-DRAFT     draft-zeilenga-ldap-passwd-exop-03       13 June 2000
   [RFC2256]       M. Wahl, "A Summary of the X.500(96) User Schema
                   for use with LDAPv3", RFC 2256, December 1997.
 
-  [AuthPasswd]    K. Zeilenga, "LDAP Authentication Password
-                  Attribute", draft-zeilenga-ldap-authpasswd-xx.txt,
-                  a work in progress.
+  [RFC2829]       M. Wahl, H. Alvestrand, J. Hodges, and R. Morgan,
+                  "Authentication Methods for LDAP", RFC 2829,
+                  May 2000.
 
-10.     Acknowledgment
+  [RFC2830]       Hodges, J., R. Morgan, and M. Wahl, "Lightweight
+                  Directory Access Protocol (v3): Extension for
+                  Transport Layer Security", RFC 2830, May 2000.
+
+9.     Acknowledgment
 
   This document borrows from a number of IETF documents and is based
   upon input from the IETF LDAPext working group.
 
 
-11.     Author's Address
+10.     Author's Address
 
   Kurt D. Zeilenga
   OpenLDAP Foundation
   <Kurt@OpenLDAP.org>
+
+
+
+
+
+
+
+
 
 
 
