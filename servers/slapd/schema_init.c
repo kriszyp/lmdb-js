@@ -619,6 +619,9 @@ UTF8StringNormalize(
 	char *p, *q, *s, *e;
 	int len = 0;
 
+	/* validator should have refused an empty string */
+	assert( val->bv_len );
+
 	p = val->bv_val;
 
 	/* Ignore initial whitespace */
@@ -626,6 +629,12 @@ UTF8StringNormalize(
 	for ( ; p < val->bv_val + val->bv_len && ASCII_SPACE( p[ 0 ] ); p++ );
 
 	normalized->bv_len = val->bv_len - (p - val->bv_val);
+
+	if( !normalized->bv_len ) {
+		ber_mem2bv( " ", 1, 1, normalized );
+		return LDAP_SUCCESS;
+	}
+
 	ber_mem2bv( p, normalized->bv_len, 1, normalized );
 	e = normalized->bv_val + normalized->bv_len;
 
@@ -1751,14 +1760,24 @@ telephoneNumberNormalize(
 {
 	char *p, *q;
 
+	/* validator should have refused an empty string */
+	assert( val->bv_len );
+
 	q = normalized->bv_val = ch_malloc( val->bv_len + 1 );
 
-	for( p = val->bv_val; *p; p++ )
-		if ( ! ( ASCII_SPACE( *p ) || *p == '-' ))
+	for( p = val->bv_val; *p; p++ ) {
+		if ( ! ( ASCII_SPACE( *p ) || *p == '-' )) {
 			*q++ = *p;
+		}
+	}
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
+
+	if( normalized->bv_len == 0 ) {
+		free( normalized->bv_val );
+		return LDAP_INVALID_SYNTAX;
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -2061,6 +2080,8 @@ printableStringValidate(
 {
 	ber_len_t i;
 
+	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+
 	for(i=0; i < val->bv_len; i++) {
 		if( !SLAP_PRINTABLE(val->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -2075,13 +2096,27 @@ printablesStringValidate(
 	Syntax *syntax,
 	struct berval *val )
 {
-	ber_len_t i;
+	ber_len_t i, len;
 
-	for(i=0; i < val->bv_len; i++) {
-		if( !SLAP_PRINTABLES(val->bv_val[i]) ) {
+	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+
+	for(i=0,len=0; i < val->bv_len; i++) {
+		int c = val->bv_val[i];
+
+		if( c == '$' ) {
+			if( len == 0 ) {
+				return LDAP_INVALID_SYNTAX;
+			}
+			len = 0;
+
+		} else if ( SLAP_PRINTABLE(c) ) {
+			len++;
+		} else {
 			return LDAP_INVALID_SYNTAX;
 		}
 	}
+
+	if( len == 0 ) LDAP_INVALID_SYNTAX;
 
 	return LDAP_SUCCESS;
 }
@@ -2092,6 +2127,8 @@ IA5StringValidate(
 	struct berval *val )
 {
 	ber_len_t i;
+
+	if( val->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
 
 	for(i=0; i < val->bv_len; i++) {
 		if( !LDAP_ASCII(val->bv_val[i]) ) {
@@ -2109,6 +2146,8 @@ IA5StringNormalize(
 	struct berval *normalized )
 {
 	char *p, *q;
+
+	assert( val->bv_len );
 
 	p = val->bv_val;
 
@@ -2150,6 +2189,13 @@ IA5StringNormalize(
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
+
+	if( normalized->bv_len == 0 ) {
+		normalized->bv_val = ch_realloc( normalized->bv_val, 2 );
+		normalized->bv_val[0] = ' ';
+		normalized->bv_val[1] = '\0';
+		normalized->bv_len = 1;
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -3327,6 +3373,8 @@ numericStringValidate(
 {
 	ber_len_t i;
 
+	if( in->bv_len == 0 ) return LDAP_INVALID_SYNTAX;
+
 	for(i=0; i < in->bv_len; i++) {
 		if( !SLAP_NUMERIC(in->bv_val[i]) ) {
 			return LDAP_INVALID_SYNTAX;
@@ -3344,6 +3392,8 @@ numericStringNormalize(
 {
 	/* removal all spaces */
 	char *p, *q;
+
+	assert( val->bv_len );
 
 	normalized->bv_val = ch_malloc( val->bv_len + 1 );
 
@@ -3366,6 +3416,13 @@ numericStringNormalize(
 	*q = '\0';
 
 	normalized->bv_len = q - normalized->bv_val;
+
+	if( normalized->bv_len == 0 ) {
+		normalized->bv_val = ch_realloc( normalized->bv_val, 2 );
+		normalized->bv_val[0] = ' ';
+		normalized->bv_val[1] = '\0';
+		normalized->bv_len = 1;
+	}
 
 	return LDAP_SUCCESS;
 }
