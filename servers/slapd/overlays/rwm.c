@@ -77,9 +77,9 @@ rwm_add( Operation *op, SlapReply *rs )
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
 	int			rc,
-				i,
-				isupdate;
+				i;
 	Attribute		**ap = NULL;
+	char			*olddn = op->o_req_dn.bv_val;
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "addDn" );
@@ -93,14 +93,21 @@ rwm_add( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
+	if ( olddn != op->o_req_dn.bv_val ) {
+		ber_memfree( op->ora_e->e_name.bv_val );
+		ber_memfree( op->ora_e->e_nname.bv_val );
+
+		ber_dupbv( &op->ora_e->e_name, &op->o_req_dn );
+		ber_dupbv( &op->ora_e->e_nname, &op->o_req_ndn );
+	}
+
 	/* Count number of attributes in entry */ 
-	isupdate = be_shadow_update( op );
 	for ( i = 0, ap = &op->oq_add.rs_e->e_attrs; *ap; ) {
 		struct berval	mapped;
 		Attribute	*a;
 
-		if ( !isupdate && (*ap)->a_desc->ad_type->sat_no_user_mod ) {
-			goto cleanup_attr;
+		if ( (*ap)->a_desc->ad_type->sat_no_user_mod ) {
+			goto next_attr;
 		}
 
 		rwm_map( &rwmap->rwm_at, &(*ap)->a_desc->ad_cname,
@@ -117,16 +124,20 @@ rwm_add( Operation *op, SlapReply *rs )
 			 * the operation should give up, right?
 			 */
 #ifdef ENABLE_REWRITE
-			rc = rwm_dnattr_rewrite( op, rs, "addDn", (*ap)->a_vals, NULL );
+			rc = rwm_dnattr_rewrite( op, rs, "addAttrDn",
+					(*ap)->a_vals,
+					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
 #else
 			rc = 1;
-			rc = rwm_dnattr_rewrite( op, rs, &rc, (*ap)->a_vals, NULL );
+			rc = rwm_dnattr_rewrite( op, rs, &rc, (*ap)->a_vals,
+					(*ap)->a_nvals ? &(*ap)->a_nvals : NULL );
 #endif
 			if ( rc ) {
 				goto cleanup_attr;
 			}
 		}
 
+next_attr:;
 		ap = &(*ap)->a_next;
 		continue;
 
@@ -287,7 +298,6 @@ rwm_modify( Operation *op, SlapReply *rs )
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
-	int			isupdate;
 	Modifications		**mlp;
 	int			rc;
 
@@ -303,19 +313,12 @@ rwm_modify( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	isupdate = be_shadow_update( op );
 	for ( mlp = &op->oq_modify.rs_modlist; *mlp; ) {
 		int		is_oc = 0;
+		Modifications	*ml;
 
-		if ( !isupdate && (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
-			Modifications	*ml;
-
-			ml = *mlp;
-			*mlp = (*mlp)->sml_next;
-			slap_mod_free( &ml->sml_mod, 0 );
-			free( ml );
-
-			continue;
+		if ( (*mlp)->sml_desc->ad_type->sat_no_user_mod  ) {
+			goto next_mod;
 		}
 
 		if ( (*mlp)->sml_desc == slap_schema.si_ad_objectClass 
@@ -329,14 +332,7 @@ rwm_modify( Operation *op, SlapReply *rs )
 			drop_missing = rwm_mapping( &rwmap->rwm_at, &(*mlp)->sml_desc->ad_cname, &m, RWM_MAP );
 			if ( drop_missing || ( m != NULL && BER_BVISNULL( &m->m_dst ) ) )
 			{
-				Modifications	*ml;
-
-				ml = *mlp;
-				*mlp = (*mlp)->sml_next;
-				slap_mod_free( &ml->sml_mod, 0 );
-				free( ml );
-
-				continue;
+				goto cleanup_mod;
 			}
 
 			if ( m ) {
@@ -366,14 +362,7 @@ rwm_modify( Operation *op, SlapReply *rs )
 						 * the relayed database's business...
 						 */
 #if 0
-						Modifications	*ml;
-
-						ml = *mlp;
-						*mlp = (*mlp)->sml_next;
-						slap_mod_free( &ml->sml_mod, 0 );
-						free( ml );
-
-						continue;
+						goto cleanup_mod;
 #endif
 						if ( last > j ) {
 							(*mlp)->sml_values[j] = (*mlp)->sml_values[last];
@@ -393,28 +382,31 @@ rwm_modify( Operation *op, SlapReply *rs )
 				{
 #ifdef ENABLE_REWRITE
 					rc = rwm_dnattr_rewrite( op, rs, "modifyDn",
-							(*mlp)->sml_values, &(*mlp)->sml_nvalues );
+							(*mlp)->sml_values,
+							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
 #else
 					rc = 1;
 					rc = rwm_dnattr_rewrite( op, rs, &rc, 
-							(*mlp)->sml_values, &(*mlp)->sml_nvalues );
+							(*mlp)->sml_values,
+							(*mlp)->sml_nvalues ? &(*mlp)->sml_nvalues : NULL );
 #endif
 				}
 
 				if ( rc != LDAP_SUCCESS ) {
-					Modifications	*ml;
-
-					ml = *mlp;
-					*mlp = (*mlp)->sml_next;
-					slap_mod_free( &ml->sml_mod, 0 );
-					free( ml );
-
-					continue;
+					goto cleanup_mod;
 				}
 			}
 		}
 
+next_mod:;
 		mlp = &(*mlp)->sml_next;
+		continue;
+
+cleanup_mod:;
+		ml = *mlp;
+		*mlp = (*mlp)->sml_next;
+		slap_mod_free( &ml->sml_mod, 0 );
+		free( ml );
 	}
 
 	/* TODO: rewrite attribute types, values of DN-valued attributes ... */
@@ -630,7 +622,7 @@ rwm_extended( Operation *op, SlapReply *rs )
 	}
 
 	/* TODO: rewrite/map extended data ? ... */
-	return 0;
+	return SLAP_CB_CONTINUE;
 }
 
 static int
@@ -718,6 +710,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 		struct ldapmapping	*m;
 		int			drop_missing;
 		int			last;
+		Attribute		*a;
 
 		if ( rs->sr_opattrs == SLAP_OPATTRS && is_at_operational( (*ap)->a_desc->ad_type ) )
 		{
@@ -725,25 +718,17 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 			
 		} else if ( op->ors_attrs != NULL && !ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
 		{
-			Attribute	*a;
+			goto cleanup_attr;
+		}
 
-			a = *ap;
-			*ap = (*ap)->a_next;
-
-			attr_free( a );
-			continue;
+		if ( (*ap)->a_desc->ad_type->sat_no_user_mod ) {
+			goto next_attr;
 		}
 
 		drop_missing = rwm_mapping( &rwmap->rwm_at,
 				&(*ap)->a_desc->ad_cname, &m, RWM_REMAP );
 		if ( drop_missing || ( m != NULL && BER_BVISEMPTY( &m->m_dst ) ) ) {
-			Attribute	*a;
-
-			a = *ap;
-			*ap = (*ap)->a_next;
-
-			attr_free( a );
-			continue;
+			goto cleanup_attr;
 		}
 
 		for ( last = 0; !BER_BVISNULL( &(*ap)->a_vals[last] ); last++ )
@@ -802,13 +787,7 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 		{
 			rc = rwm_dnattr_result_rewrite( &dc, (*ap)->a_vals );
 			if ( rc != LDAP_SUCCESS ) {
-				Attribute	*a;
-
-				a = *ap;
-				*ap = (*ap)->a_next;
-
-				attr_free( a );
-				continue;
+				goto cleanup_attr;
 			}
 		}
 
@@ -820,6 +799,13 @@ rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 
 next_attr:;
 		ap = &(*ap)->a_next;
+		continue;
+
+cleanup_attr:;
+		a = *ap;
+		*ap = (*ap)->a_next;
+
+		attr_free( a );
 	}
 
 	return 0;

@@ -49,6 +49,7 @@ int passwd_extop(
 	slap_callback cb2 = { NULL, slap_replog_cb, NULL, NULL };
 	int i, nhash;
 	char **hashes;
+	int	rc;
 
 	cb2.sc_next = &cb;
 
@@ -72,17 +73,19 @@ int passwd_extop(
 	}
 
 	if ( id.bv_len ) {
-		op->o_req_dn = id;
+		ber_dupbv_x( &op->o_req_dn, &id, op->o_tmpmemctx );
 		/* ndn is in tmpmem, so we don't need to free it */
 		rs->sr_err = dnNormalize( 0, NULL, NULL, &id, &op->o_req_ndn, op->o_tmpmemctx );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_text = "Invalid DN";
-			return rs->sr_err;
+			rc = rs->sr_err;
+			goto error_return;
 		}
 		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+
 	} else {
-		op->o_req_dn = op->o_dn;
-		op->o_req_ndn = op->o_ndn;
+		ber_dupbv_x( &op->o_req_dn, &op->o_dn, op->o_tmpmemctx );
+		ber_dupbv_x( &op->o_req_ndn, &op->o_ndn, op->o_tmpmemctx );
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		op->o_bd = op->o_conn->c_authz_backend;
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
@@ -90,21 +93,24 @@ int passwd_extop(
 
 	if( op->o_bd == NULL ) {
 #ifdef HAVE_CYRUS_SASL
-		return slap_sasl_setpass( op, rs );
+		rc = slap_sasl_setpass( op, rs );
 #else
 		rs->sr_text = "no authz backend";
-		return LDAP_OTHER;
+		rc = LDAP_OTHER;
 #endif
+		goto error_return;
 	}
 
 	if ( op->o_req_ndn.bv_len == 0 ) {
 		rs->sr_text = "no password is associated with the Root DSE";
-		return LDAP_UNWILLING_TO_PERFORM;
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		goto error_return;
 	}
 
 	if (backend_check_restrictions( op, rs,
 			(struct berval *)&slap_EXOP_MODIFY_PASSWD ) != LDAP_SUCCESS) {
-		return rs->sr_err;
+		rc = rs->sr_err;
+		goto error_return;
 	}
 
 
@@ -123,12 +129,14 @@ int passwd_extop(
 			} else {
 				rs->sr_ref = defref;
 			}
-			return LDAP_REFERRAL;
+			rc = LDAP_REFERRAL;
+			goto error_return;
 
 		}
 
 		rs->sr_text = "shadow context; no update referral";
-		return LDAP_UNWILLING_TO_PERFORM;
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		goto error_return;
 	}
 #endif /* !SLAPD_MULTIMASTER */
 
@@ -141,7 +149,8 @@ int passwd_extop(
 	}
 	if ( qpw->rs_new.bv_len == 0 ) {
 		rs->sr_text = "password generation failed";
-		return LDAP_OTHER;
+		rc = LDAP_OTHER;
+		goto error_return;
 	}
 
 	/* Give the backend a chance to handle this itself */
@@ -149,14 +158,16 @@ int passwd_extop(
 		rs->sr_err = op->o_bd->be_extended( op, rs );
 		if ( rs->sr_err != LDAP_UNWILLING_TO_PERFORM &&
 			rs->sr_err != SLAP_CB_CONTINUE ) {
-			return rs->sr_err;
+			rc = rs->sr_err;
+			goto error_return;
 		}
 	}
 
 	/* The backend didn't handle it, so try it here */
 	if( op->o_bd && !op->o_bd->be_modify ) {
 		rs->sr_text = "operation not supported for current user";
-		return LDAP_UNWILLING_TO_PERFORM;
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		goto error_return;
 	}
 
 	ml = ch_malloc( sizeof(Modifications) );
@@ -189,8 +200,8 @@ int passwd_extop(
 
 	if ( hashes[i] ) {
 		rs->sr_err = LDAP_OTHER;
-	} else {
 
+	} else {
 		op2 = *op;
 		op2.o_tag = LDAP_REQ_MODIFY;
 		op2.o_callback = &cb2;
@@ -203,6 +214,9 @@ int passwd_extop(
 		
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_err = op2.o_bd->be_modify( &op2, rs );
+			/* FIXME: in case it got rewritten... */
+			op->o_req_dn = op2.o_req_dn;
+			op->o_req_ndn = op2.o_req_ndn;
 		}
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			rs->sr_rspdata = rsp;
@@ -215,7 +229,17 @@ int passwd_extop(
 		free( qpw->rs_new.bv_val );
 	}
 
-	return rs->sr_err;
+	rc = rs->sr_err;
+
+error_return:;
+	if ( !BER_BVISNULL( &op->o_req_dn ) ) {
+		op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
+	}
+	if ( !BER_BVISNULL( &op->o_req_ndn ) ) {
+		op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
+	}
+
+	return rc;
 }
 
 int slap_passwd_parse( struct berval *reqdata,
