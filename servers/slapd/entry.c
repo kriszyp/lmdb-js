@@ -596,7 +596,11 @@ int entry_encode(Entry *e, struct berval *bv)
  * you can not free individual attributes or names from this
  * structure. Attempting to do so will likely corrupt memory.
  */
+#ifdef SLAP_ZONE_ALLOC
+int entry_decode(struct berval *bv, Entry **e, void *ctx)
+#else
 int entry_decode(struct berval *bv, Entry **e)
+#endif
 {
 	int i, j, count;
 	int rc;
@@ -613,7 +617,15 @@ int entry_decode(struct berval *bv, Entry **e)
 			"entry_decode: entry length was zero\n", 0, 0, 0);
 		return LDAP_OTHER;
 	}
+#ifdef SLAP_ZONE_ALLOC
+	x = slap_zn_calloc(1, i + bv->bv_len, ctx);
+	AC_MEMCPY((char*)x + i, bv->bv_val, bv->bv_len);
+	bv->bv_val = (char*)x + i;
+	ptr = (unsigned char *)bv->bv_val;
+	i = entry_getlen(&ptr);
+#else
 	x = ch_calloc(1, i);
+#endif
 	i = entry_getlen(&ptr);
 	x->e_name.bv_val = (char *) ptr;
 	x->e_name.bv_len = i;

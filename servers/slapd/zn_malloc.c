@@ -220,6 +220,7 @@ slap_zn_mem_create(
 		ldap_pvt_thread_rdwr_init(&zh->zh_znlock[i]);
 	}
 
+	LDAP_STAILQ_INIT(&zh->zh_latency_history_queue);
 	ldap_pvt_thread_mutex_init(&zh->zh_mutex);
 	ldap_pvt_thread_rdwr_init(&zh->zh_lock);
 
@@ -892,4 +893,79 @@ int slap_zn_wunlock(
 	}
 }
 
+#define T_SEC_IN_USEC 1000000
+
+static int
+slap_timediff(struct timeval *tv_begin, struct timeval *tv_end)
+{
+	uint64_t t_begin, t_end, t_diff;
+
+	t_begin = T_SEC_IN_USEC * tv_begin->tv_sec + tv_begin->tv_usec;
+	t_end  = T_SEC_IN_USEC * tv_end->tv_sec  + tv_end->tv_usec;
+	t_diff  = t_end - t_begin;
+	
+	if ( t_diff < 0 )
+		t_diff = 0;
+
+	return (int)t_diff;
+}
+
+void
+slap_set_timing(struct timeval *tv_set)
+{
+	gettimeofday(tv_set, (struct timezone *)NULL);
+}
+
+int
+slap_measure_timing(struct timeval *tv_set, struct timeval *tv_measure)
+{
+	gettimeofday(tv_measure, (struct timezone *)NULL);
+	return(slap_timediff(tv_set, tv_measure));
+}
+
+#define EMA_WEIGHT 0.999000
+#define SLAP_ZN_LATENCY_HISTORY_QLEN 500
+int
+slap_zn_latency_history(void* ctx, int ea_latency)
+{
+/* TODO: monitor /proc/swap as well */
+	struct zone_heap* zh = ctx;
+	double t_diff = 0.0;
+
+	zh->zh_ema_latency = (double)ea_latency * (1.0 - EMA_WEIGHT)
+					+ zh->zh_ema_latency * EMA_WEIGHT;
+	if (!zh->zh_swapping && zh->zh_ema_samples++ % 100 == 99) {
+		struct zone_latency_history *zlh_entry;
+		zlh_entry = ch_calloc(1, sizeof(struct zone_latency_history));
+		zlh_entry->zlh_latency = zh->zh_ema_latency;
+		LDAP_STAILQ_INSERT_TAIL(
+				&zh->zh_latency_history_queue, zlh_entry, zlh_next);
+		zh->zh_latency_history_qlen++;
+		while (zh->zh_latency_history_qlen > SLAP_ZN_LATENCY_HISTORY_QLEN) {
+			struct zone_latency_history *zlh;
+			zlh = LDAP_STAILQ_FIRST(&zh->zh_latency_history_queue);
+			LDAP_STAILQ_REMOVE_HEAD(
+					&zh->zh_latency_history_queue, zlh_next);
+			zh->zh_latency_history_qlen--;
+			ch_free(zlh);
+		}
+		if (zh->zh_latency_history_qlen == SLAP_ZN_LATENCY_HISTORY_QLEN) {
+			struct zone_latency_history *zlh_first, *zlh_last;
+			zlh_first = LDAP_STAILQ_FIRST(&zh->zh_latency_history_queue);
+			zlh_last = LDAP_STAILQ_LAST(&zh->zh_latency_history_queue,
+						zone_latency_history, zlh_next);
+			t_diff = zlh_last->zlh_latency - zlh_first->zlh_latency;
+		}
+		if (t_diff >= 2000) {
+			zh->zh_latency_jump++;
+		} else {
+			zh->zh_latency_jump = 0;
+		}
+		if (zh->zh_latency_jump > 3) {
+			zh->zh_latency_jump = 0;
+			zh->zh_swapping = 1;
+		}
+	}
+	return zh->zh_swapping;
+}
 #endif /* SLAP_ZONE_ALLOC */
