@@ -16,6 +16,8 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
+#include "lber_pvt.h"
+
 #include "slap.h"
 
 #ifdef LDAP_SLAPI

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <ac/string.h>
 
+#include "lber_pvt.h"
 #include "back-bdb.h"
 #include "idl.h"
 #include "external.h"
