@@ -1771,6 +1771,86 @@ IA5StringNormalize(
 }
 
 static int
+UUIDValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int i;
+	if( in->bv_len != 36 ) {
+		assert(0);
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	for( i=0; i<36; i++ ) {
+		switch(i) {
+			case 8:
+			case 13:
+			case 18:
+			case 23:
+				if( in->bv_val[i] != '-' ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+				break;
+			default:
+				if( !ASCII_HEX( in->bv_val[i]) ) {
+					return LDAP_INVALID_SYNTAX;
+				}
+		}
+	}
+	
+	return LDAP_SUCCESS;
+}
+
+static int
+UUIDNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized,
+	void *ctx )
+{
+	unsigned char octet;
+	int i;
+	int j;
+	normalized->bv_len = 16;
+	normalized->bv_val = sl_malloc( normalized->bv_len+1, ctx );
+
+	for( i=0, j=0; i<36; i++ ) {
+		unsigned char nibble;
+		if( val->bv_val[i] == '-' ) {
+			continue;
+
+		} else if( ASCII_DIGIT( val->bv_val[i] ) ) {
+			nibble = val->bv_val[i] - '0';
+
+		} else if( ASCII_HEXLOWER( val->bv_val[i] ) ) {
+			nibble = val->bv_val[i] - ('a'-10);
+
+		} else if( ASCII_HEXUPPER( val->bv_val[i] ) ) {
+			nibble = val->bv_val[i] - ('A'-10);
+
+		} else {
+			sl_free( normalized->bv_val, ctx );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		if( j % 2 ) {
+			octet = nibble << 4;
+		} else {
+			octet |= nibble;
+			normalized->bv_val[j>>1] = octet;
+		}
+		j++;
+	}
+
+	normalized->bv_val[normalized->bv_len] = 0;
+	return LDAP_SUCCESS;
+}
+
+
+
+static int
 numericStringValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -2761,6 +2841,9 @@ static slap_syntax_defs_rec syntax_defs[] = {
 		SLAP_SYNTAX_HIDE, NULL, NULL},
 #endif
 
+	{"( 1.3.6.1.4.1.4203.666.2.6 DESC 'UUID' )",
+		SLAP_SYNTAX_HIDE, UUIDValidate, NULL},
+
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
 		SLAP_SYNTAX_HIDE, inValidate, NULL},
@@ -3108,6 +3191,20 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		NULL, NULL, integerBitOrMatch,
 		NULL, NULL,
 		"integerMatch" },
+
+	{"( 1.3.6.1.4.1.4203.666.4.6 NAME 'UUIDMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.2.6 )",
+		SLAP_MR_HIDE | SLAP_MR_EQUALITY, NULL,
+		NULL, UUIDNormalize, octetStringMatch,
+		octetStringIndexer, octetStringFilter,
+		NULL},
+
+	{"( 1.3.6.1.4.1.4203.666.4.7 NAME 'UUIDOrderingMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.2.6 )",
+		SLAP_MR_HIDE | SLAP_MR_ORDERING, NULL,
+		NULL, UUIDNormalize, octetStringOrderingMatch,
+		octetStringIndexer, octetStringFilter,
+		"UUIDMatch"},
 
 	{NULL, SLAP_MR_NONE, NULL,
 		NULL, NULL, NULL, NULL, NULL,

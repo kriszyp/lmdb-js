@@ -368,8 +368,9 @@ static struct slap_schema_ad_map {
 
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
 			"DESC 'UUID of the entry' "
-			"EQUALITY octetStringMatch "
-			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"EQUALITY UUIDMatch "
+			"ORDERING UUIDOrderingMatch "
+			"SYNTAX 1.3.6.1.4.1.4203.666.2.6 "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL,

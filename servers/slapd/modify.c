@@ -850,7 +850,7 @@ int slap_mods_opattrs(
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_entryUUID;
 			mod->sml_values =
-			(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &tmpval );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
@@ -863,7 +863,8 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_creatorsName;
-			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			mod->sml_values =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &name );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
@@ -881,7 +882,8 @@ int slap_mods_opattrs(
 			mod->sml_op = mop;
 			mod->sml_type.bv_val = NULL;
 			mod->sml_desc = slap_schema.si_ad_createTimestamp;
-			mod->sml_values = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			mod->sml_values =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 			ber_dupbv( &mod->sml_values[0], &timestamp );
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
