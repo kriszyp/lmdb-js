@@ -38,7 +38,7 @@
 #include "lber.h"
 #include "ldap.h"
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 #ifndef MAIL500_BOUNCEFROM
 #define MAIL500_BOUNCEFROM "<>"

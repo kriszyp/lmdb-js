@@ -35,7 +35,7 @@
 #include <sys/resource.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "lber.h"
 #include "ldap.h"
 

@@ -20,7 +20,7 @@ void (Debug)( int level, const char *fmt, ... )
 
 	if( log_file == NULL )
     {
-		log_file = fopen( "C:\\OpenLDAP\\run\\slapd.log", "w" );
+		log_file = fopen( LDAP_RUNDIR LDAP_DIRSEP "slapd.log", "w" );
 
         if ( log_file == NULL )
 			log_file = fopen( "slapd.log", "w" );

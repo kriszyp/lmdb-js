@@ -15,7 +15,7 @@
 #include <sys/param.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -35,7 +35,8 @@ ldbm_cache_open(
 	struct stat	st;
 #endif
 
-	sprintf( buf, "%s%s%s%s", li->li_directory, DIRSEP, name, suffix );
+	sprintf( buf, "%s" LDAP_DIRSEP "%s%s",
+		li->li_directory, name, suffix );
 
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );

@@ -9,7 +9,7 @@
 #include <ac/socket.h>
 #include <ac/unistd.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 

@@ -10,7 +10,7 @@
 
 #include <sys/param.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "../slap.h"
 #include "../back-bdb2/back-bdb2.h"
 #include "ldif.h"
@@ -55,7 +55,7 @@ main( int argc, char **argv )
 	struct berval	*vals[2];
 	Avlnode		*avltypes = NULL;
 
-	sbindir = DEFAULT_SBINDIR;
+	sbindir = LDAP_SBINDIR;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, "d:e:s:f:i:j:n:" )) != EOF ) {

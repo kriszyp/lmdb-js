@@ -11,7 +11,7 @@
 //#include <ac/signal.h>
 //#include <ac/errno.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "slap.h"
 
 #include "slapdmsg.h"
@@ -53,7 +53,7 @@ void main( DWORD argc, LPTSTR *argv )
 	// set the service's current directory to being the installation directory for the service.
 	// this way we don't have to write absolute paths in the configuration files
 	GetModuleFileName( NULL, filename, sizeof( filename ) );
-	fname_start = strrchr( filename, '\\' );
+	fname_start = strrchr( filename, *LDAP_DIRSEP );
 	*fname_start = '\0';
 	SetCurrentDirectory( filename );
 

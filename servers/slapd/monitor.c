@@ -18,7 +18,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "slap.h"
 
 #if defined( SLAPD_MONITOR_DN )

@@ -23,7 +23,7 @@
 #include "disptmpl.h"
 
 #include "rcpt500.h"
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 static char buf[ MAXSIZE ];
 static char *errpreface = "Your query failed: ";

@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <ac/string.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 //#include "slap.h"
 
 #include "slapdmsg.h"

@@ -15,7 +15,7 @@
 #include <sys/param.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 
 #define SEARCHCMD		"slapd-search"
@@ -167,7 +167,7 @@ main( int argc, char **argv )
 	 */
 
 	sanum = 0;
-	sprintf( scmd, "%s%s%s", progdir, DIRSEP, SEARCHCMD );
+	sprintf( scmd, "%s%s%s", progdir, LDAP_DIRSEP, SEARCHCMD );
 	sargs[sanum++] = scmd;
 	sargs[sanum++] = "-h";
 	sargs[sanum++] = host;
@@ -186,7 +186,7 @@ main( int argc, char **argv )
 	 */
 
 	ranum = 0;
-	sprintf( rcmd, "%s%s%s", progdir, DIRSEP, READCMD );
+	sprintf( rcmd, "%s%s%s", progdir, LDAP_DIRSEP, READCMD );
 	rargs[ranum++] = rcmd;
 	rargs[ranum++] = "-h";
 	rargs[ranum++] = host;
@@ -203,7 +203,7 @@ main( int argc, char **argv )
 	 */
 
 	aanum = 0;
-	sprintf( acmd, "%s%s%s", progdir, DIRSEP, ADDCMD );
+	sprintf( acmd, "%s%s%s", progdir, LDAP_DIRSEP, ADDCMD );
 	aargs[aanum++] = acmd;
 	aargs[aanum++] = "-h";
 	aargs[aanum++] = host;
@@ -254,7 +254,7 @@ get_file_name( char *dirname, char *filename )
 {
 	char buf[MAXPATHLEN];
 
-	sprintf( buf, "%s%s%s", dirname, DIRSEP, filename );
+	sprintf( buf, "%s%s%s", dirname, LDAP_DIRSEP, filename );
 	return( strdup( buf ));
 }
 

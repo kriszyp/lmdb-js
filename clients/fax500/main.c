@@ -39,7 +39,7 @@
 
 #include "fax500.h"
 
-#include <ldapconfig.h>
+#include <ldap_defaults.h>
 
 #define USER		0
 #define GROUP_ERRORS	1

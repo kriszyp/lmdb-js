@@ -51,8 +51,9 @@ bdb2i_init_db_file_cache( struct ldbminfo *li, BDB2_TXN_FILES *fileinfo )
 
 	fileinfo->dbc_refcnt = 1;
 
-	sprintf( buf, "%s%s%s", li->li_directory, DIRSEP,
-					fileinfo->dbc_name );
+	sprintf( buf, "%s" LDAP_DIRSEP "%s",
+		li->li_directory, fileinfo->dbc_name );
+
 	if ( stat( buf, &st ) == 0 ) {
 		fileinfo->dbc_blksize = st.st_blksize;
 	} else {
@@ -133,8 +134,8 @@ bdb2i_txn_attr_config(
 			if ( open && strcasecmp( fileName, "objectclass" )) {
 
 				/*  re-use filename to get the complete path  */
-				sprintf( fileName, "%s%s%s",
-							li->li_directory, DIRSEP, p->dbc_name );
+				sprintf( fileName, "%s" LDAP_DIRSEP "%s",
+							li->li_directory, p->dbc_name );
 
 				/*  since we have an mpool, we should not define a cache size */
 				p->dbc_db = bdb2i_db_open( fileName, DB_TYPE,
@@ -180,8 +181,8 @@ bdb2i_open_nextid( BackendDB *be )
 	DB_INFO			dbinfo;
 	char            fileName[MAXPATHLEN];
 
-	sprintf( fileName, "%s%s%s",
-				li->li_directory, DIRSEP, NEXTID_NAME );
+	sprintf( fileName, "%s" LDAP_DIRSEP "%s",
+				li->li_directory, NEXTID_NAME );
 
 	/*  try to open the file for read and write  */
 	memset( &dbinfo, 0, sizeof( dbinfo ));
@@ -224,8 +225,8 @@ bdb2i_txn_open_files( BackendDB *be )
 	for ( dbFile = head->dbFiles; dbFile; dbFile = dbFile->next ) {
 		char   fileName[MAXPATHLEN];
 
-		sprintf( fileName, "%s%s%s",
-					li->li_directory, DIRSEP, dbFile->dbc_name );
+		sprintf( fileName, "%s" LDAP_DIRSEP "%s",
+					li->li_directory, dbFile->dbc_name );
 
 		/*  since we have an mpool, we should not define a cache size */
 		dbFile->dbc_db = bdb2i_db_open( fileName, DB_TYPE,

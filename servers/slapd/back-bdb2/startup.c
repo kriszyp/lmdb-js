@@ -12,7 +12,7 @@
 #include <direct.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "slap.h"
 #include "back-bdb2.h"
 
@@ -45,11 +45,12 @@ bdb2i_back_startup_internal(
 					DB_INIT_LOCK | DB_INIT_MPOOL );
 
 	/*  make sure, dbhome is an absolute path  */
-	if ( *lty->lty_dbhome != *DIRSEP ) {
+	if ( *lty->lty_dbhome != *LDAP_DIRSEP ) {
 		char   cwd[MAXPATHLEN];
 
 		(void) getcwd( cwd, MAXPATHLEN );
-		sprintf( cwd, "%s%s%s", cwd, DIRSEP, lty->lty_dbhome );
+		sprintf( cwd, "%s" LDAP_DIRSEP "%s",
+			cwd, lty->lty_dbhome );
 		free( lty->lty_dbhome );
 		lty->lty_dbhome = ch_strdup( cwd );
 
@@ -159,11 +160,13 @@ bdb2i_back_db_startup_internal(
 
 	/*  if the data directory is not an absolute path, have it relative
         to the current working directory (which should not be configured !)  */
-	if ( *li->li_directory != *DIRSEP ) {
+	if ( *li->li_directory != *LDAP_DIRSEP ) {
 		char   cwd[MAXPATHLEN];
 
 		(void) getcwd( cwd, MAXPATHLEN );
-		sprintf( cwd, "%s%s%s", cwd, DIRSEP, li->li_directory );
+		sprintf( cwd, "%s" LDAP_DIRSEP "%s",
+			cwd, li->li_directory );
+
 		free( li->li_directory );
 		li->li_directory = ch_strdup( cwd );
 

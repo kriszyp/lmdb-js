@@ -32,7 +32,7 @@
 
 #include <lber.h>
 #include <ldap.h>
-#include <ldapconfig.h>
+#include <ldap_defaults.h>
 #include "ud.h"
 
 static int  load_editor( void );

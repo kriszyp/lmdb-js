@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "rcpt500.h"
 
 

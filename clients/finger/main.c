@@ -34,7 +34,7 @@
 
 #include "disptmpl.h"
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 
 int	dosyslog = 1;

@@ -19,28 +19,20 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#ifndef _LDAP_CONFIG_H
-#define _LDAP_CONFIG_H
-
 /*
- * config.h for LDAP -- edit this file to customize LDAP client behavior.
- * NO platform-specific definitions should be placed in this file.
- * Note that this IS USED by the LDAP or LBER libraries.
+ * This file controls defaults for OpenLDAP package.
+ * You should not change any of these settings.
  */
 
-/*
- * SHARED DEFINITIONS - things you should change
- */
-#define DEFAULT_BINDIR		"C:\\OpenLDAP\\bin"
-#define DEFAULT_SBINDIR		"C:\\OpenLDAP\\sbin"
-#define DEFAULT_DATADIR		"C:\\OpenLDAP\\share"
-#define DEFAULT_SYSCONFDIR	"C:\\OpenLDAP\\etc"
-#define DEFAULT_LIBEXECDIR	"C:\\OpenLDAP\\execdir"
-#define DEFAULT_RUNDIR		"C:\\OpenLDAP\\run"
+#ifndef _LDAP_DEFAULTS_H
+#define _LDAP_DEFAULTS_H
 
-#define DEFAULT_LDAP_CONF_FILE "C:\\OpenLDAP\\ldap.conf"
-#define DEFAULT_LDAP_USERRC_FILE "ldaprc"
-#define DEFAULT_LDAP_ENV_PREFIX "LDAP"
+
+#include <ldap_config.h>
+
+#define LDAP_CONF_FILE	 LDAP_SYSCONFDIR LDAP_DIRSEP "ldap.conf"
+#define LDAP_USERRC_FILE "ldaprc"
+#define LDAP_ENV_PREFIX "LDAP"
 
 
 /*********************************************************************
@@ -57,10 +49,10 @@
 	/* default count of DN components to show in entry displays */
 #define DEFAULT_RDNCOUNT	2
 	/* default config file locations */
-#define FILTERFILE		"C:\\OpenLDAP\\etc\\ldapfilter.conf"
-#define TEMPLATEFILE	"C:\\OpenLDAP\\etc\\ldaptemplates.conf"
-#define SEARCHFILE		"C:\\OpenLDAP\\etc\\ldapsearchprefs.conf"
-#define FRIENDLYFILE	"C:\\OpenLDAP\\share\\ldapfriendly"
+#define FILTERFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldapfilter.conf"
+#define TEMPLATEFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldaptemplates.conf"
+#define SEARCHFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "ldapsearchprefs.conf"
+#define FRIENDLYFILE	LDAP_DATADIR LDAP_DIRSEP "ldapfriendly"
 
 /*
  * FINGER DEFINITIONS
@@ -84,7 +76,7 @@ Please try again later.\r\n"
 	/* max number of hits displayed in full before a list is presented */
 #define FINGER_LISTLIMIT	1
 	/* what to exec for "finger @host" */
-#define FINGER_CMD		"%FINGER%"
+#define FINGER_CMD		LDAP_FINGER
 	/* how to treat aliases when searching */
 #define FINGER_DEREF		LDAP_DEREF_FINDING
 	/* attribute to use when sorting results */
@@ -121,7 +113,7 @@ Please try again later.\r\n"
  * GO500GW GOPHER GATEWAY DEFINITIONS
  */
 	/* where the helpfile lives */
-#define GO500GW_HELPFILE	"C:\\OpenLDAP\\share\\go500gw.help"
+#define GO500GW_HELPFILE	LDAP_DATADIR LDAP_DIRSEP "go500gw.help"
 	/* port on which to listen */
 #define GO500GW_PORT		7777
 	/* timeout on all searches */
@@ -142,14 +134,14 @@ Please try again later.\r\n"
  * RCPT500 MAIL RESPONDER GATEWAY DEFINITIONS
  */
 	/* where the helpfile lives */
-#define RCPT500_HELPFILE	"C:\\OpenLDAP\\share\\rcpt500.help"
+#define RCPT500_HELPFILE	LDAP_DATADIR LDAP_DIRSEP "rcpt500.help"
 	/* maximum number of matches returned */
 #define RCPT500_SIZELIMIT	50
 	/* address replies will appear to come from */
 #define RCPT500_FROM		"\"Directory Query Program\" <Dir-Query>"
 	/* command that will accept an RFC822 message text on standard
 	   input, and send it.  sendmail -t does this nicely. */
-#define RCPT500_PIPEMAILCMD	"%SENDMAIL% -t"
+#define RCPT500_PIPEMAILCMD	LDAP_SENDMAIL " -t"
 	/* attribute to use when sorting results */
 #define RCPT500_SORT_ATTR	SORT_ATTR
 	/* max number of hits displayed in full before a list is presented */
@@ -169,15 +161,15 @@ Please try again later.\r\n"
 	/* timeout for all searches */
 #define MAIL500_TIMEOUT		180
 	/* sendmail location - mail500 needs to exec this */
-#define MAIL500_SENDMAIL	"%SENDMAIL%"
+#define MAIL500_SENDMAIL	LDAP_SENDMAIL
 
 /*
  * UD DEFINITIONS
  */
 	/* ud configuration file */
-#define UD_CONFIG_FILE		"C:\\OpenLDAP\\etc\\ud.conf"
+#define UD_CONFIG_FILE		LDAP_SYSCONFDIR LDAP_DIRSEP "ud.conf"
 	/* default editor */
-#define UD_DEFAULT_EDITOR	"%EDITOR%"
+#define UD_DEFAULT_EDITOR	LDAP_EDITOR
 	/* default bbasename of user config file */
 #define UD_USER_CONFIG_FILE	".udrc"
 	/* default base where groups are created */
@@ -195,7 +187,7 @@ Please try again later.\r\n"
 	/* maximum number of members allowed */
 #define FAX_MAXMEMBERS		LDAP_NO_LIMIT
 	/* program to send mail */
-#define FAX_SENDMAIL		"%SENDMAIL%"
+#define FAX_SENDMAIL		LDAP_SENDMAIL
 
 /*
  * RP500 DEFINITIONS
@@ -207,22 +199,22 @@ Please try again later.\r\n"
  * SLAPD DEFINITIONS
  */
 	/* location of the default slapd config file */
-#define SLAPD_DEFAULT_CONFIGFILE	"C:\\OpenLDAP\\etc\\slapd.conf"
+#define SLAPD_DEFAULT_CONFIGFILE	LDAP_SYSCONFDIR LDAP_DIRSEP "slapd.conf"
 	/* default max deref depth for aliases */
 #define SLAPD_DEFAULT_MAXDEREFDEPTH	15	
 	/* default sizelimit on number of entries from a search */
 #define SLAPD_DEFAULT_SIZELIMIT		500
 	/* default timelimit to spend on a search */
 #define SLAPD_DEFAULT_TIMELIMIT		3600
-	/* extension of the slapd pid file */
-#define SLAPD_PIDEXT			".pid"
-	/* extension of the slapd args file */
-#define SLAPD_ARGSEXT			".args"
-	/* dn of the special "monitor" entry */
-#define SLAPD_MONITOR_DN		"cn=monitor"
-	/* dn of the special "config" entry */
-#define SLAPD_CONFIG_DN			"cn=config"
 	/* minimum max ids that a single index entry can map to in ldbm */
 #define SLAPD_LDBM_MIN_MAXIDS		4000
+
+/* the following DNs must be normalized and in uppercase! */
+	/* dn of the special "monitor" entry */
+#define SLAPD_MONITOR_DN		"CN=MONITOR"
+	/* dn of the special "config" entry */
+#define SLAPD_CONFIG_DN			"CN=CONFIG"
+	/* dn of the special "schema" entry */
+#define SLAPD_SCHEMA_DN			"CN=SCHEMA"
 
 #endif /* _LDAP_CONFIG_H */

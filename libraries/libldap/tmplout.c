@@ -28,7 +28,7 @@
 #include "disptmpl.h"
 
 #include "ldap-int.h"
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 #define writeptype ldap_writeptype
 

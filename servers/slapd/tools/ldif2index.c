@@ -12,7 +12,7 @@
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "ldif.h"
 
 #define MAXARGS      		100

@@ -12,7 +12,7 @@
 #include <sys/param.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 #include "ldif.h"
@@ -61,7 +61,7 @@ main( int argc, char **argv )
 
 	ldbm_ignore_nextid_file = 1;
 
-	sbindir = DEFAULT_SBINDIR;
+	sbindir = LDAP_SBINDIR;
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
 	dbnum = -1;
 	while ( (i = getopt( argc, argv, "d:e:s:f:i:j:n:" )) != EOF ) {

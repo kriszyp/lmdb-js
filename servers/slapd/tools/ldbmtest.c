@@ -27,7 +27,7 @@
 #include <io.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "../slap.h"
 #include "../back-ldbm/back-ldbm.h"
 
@@ -535,7 +535,7 @@ edit_entry( char c, Datum *data )
 		char	*editor;
 
 		if ( (editor = getenv( "EDITOR" )) == NULL ) {
-			editor = DEFAULT_EDITOR;
+			editor = LDAP_EDITOR;
 		}
 		execl( editor, editor, tmpname, NULL );
 		perror( "execl" );

@@ -35,7 +35,7 @@
 
 #include <lber.h>
 #include <ldap.h>
-#include <ldapconfig.h>
+#include <ldap_defaults.h>
 
 char *
 getpass( const char *prompt )

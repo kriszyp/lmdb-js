@@ -10,7 +10,7 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "slap.h"
 
 #ifdef HAVE_TCPD

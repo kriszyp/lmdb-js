@@ -18,7 +18,7 @@
 #include <sys/param.h>
 #endif
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "slap.h"
 
 #ifdef LDAP_DEBUG

@@ -36,7 +36,7 @@
 #include "ldap_log.h"
 
 #include "ldap_pvt_thread.h"
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "ldif.h"
 
 

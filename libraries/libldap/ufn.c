@@ -21,7 +21,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 typedef int (*cancelptype) LDAP_P(( void *cancelparm ));
 

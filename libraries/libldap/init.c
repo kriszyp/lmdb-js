@@ -13,7 +13,7 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 struct ldapoptions ldap_int_global_options =
 	{ LDAP_UNINITIALIZED, LDAP_DEBUG_NONE };  
@@ -222,7 +222,7 @@ static void openldap_ldap_init_w_env(const char *prefix)
 	char *value;
 
 	if (prefix == NULL) {
-		prefix = DEFAULT_LDAP_ENV_PREFIX;
+		prefix = LDAP_ENV_PREFIX;
 	}
 
 	strncpy(buf, prefix, MAX_LDAP_ENV_PREFIX_LEN);
@@ -313,11 +313,11 @@ void ldap_int_initialize( void )
 		return;
 	}
 
-	openldap_ldap_init_w_conf(DEFAULT_LDAP_CONF_FILE);
-	openldap_ldap_init_w_userconf(DEFAULT_LDAP_USERRC_FILE);
+	openldap_ldap_init_w_conf(LDAP_CONF_FILE);
+	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);
 
 	{
-		char *altfile = getenv("LDAPCONF");
+		char *altfile = getenv(LDAP_ENV_PREFIX "CONF");
 
 		if( altfile != NULL ) {
 			openldap_ldap_init_w_conf( altfile );
@@ -325,7 +325,7 @@ void ldap_int_initialize( void )
 	}
 
 	{
-		char *altfile = getenv("LDAPRC");
+		char *altfile = getenv(LDAP_ENV_PREFIX "RC");
 
 		if( altfile != NULL ) {
 			openldap_ldap_init_w_userconf( altfile );

@@ -18,7 +18,7 @@
 #include <ac/syslog.h>
 #include <ac/unistd.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 #include "rcpt500.h"
 
 int dosyslog = 0;

@@ -46,7 +46,7 @@
 
 #include "disptmpl.h"
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 int	debug;
 int ldap_syslog;

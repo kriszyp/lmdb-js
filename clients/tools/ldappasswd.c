@@ -32,13 +32,13 @@
 #include <lutil_md5.h>
 #include <lutil_sha1.h>
 
-#include "ldapconfig.h"
+#include "ldap_defaults.h"
 
 /* local macros */
 #define CEILING(x)	((double)(x) > (int)(x) ? (int)(x) + 1 : (int)(x))
 
 #define LDAP_PASSWD_ATTRIB "userPassword"
-#define LDAP_PASSWD_CONF   DEFAULT_SYSCONFDIR DIRSEP "passwd.conf"
+#define LDAP_PASSWD_CONF   LDAP_SYSCONFDIR LDAP_DIRSEP "passwd.conf"
 
 #define HS_NONE  0
 #define HS_PLAIN 1

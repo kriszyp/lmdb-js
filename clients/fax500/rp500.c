@@ -34,7 +34,7 @@
 
 #include "fax500.h"
 
-#include <ldapconfig.h>
+#include <ldap_defaults.h>
 
 #define DEFAULT_PORT		79
 #define DEFAULT_SIZELIMIT	50

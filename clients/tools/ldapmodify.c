@@ -28,7 +28,7 @@
 #include <ldap.h>
 #include <ldif.h>
 
-#include <ldapconfig.h>
+#include <ldap_defaults.h>
 
 static char	*prog;
 static char	*binddn = NULL;
@@ -99,7 +99,7 @@ main( int argc, char **argv )
     FILE		*fp;
 	int		rc, i, use_ldif, authmethod, version, want_bindpw, debug;
 
-    if (( prog = strrchr( argv[ 0 ], *DIRSEP )) == NULL ) {
+    if (( prog = strrchr( argv[ 0 ], *LDAP_DIRSEP )) == NULL ) {
 	prog = argv[ 0 ];
     } else {
 	++prog;
