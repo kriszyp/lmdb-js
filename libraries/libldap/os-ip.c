@@ -174,7 +174,7 @@ ldap_host_connected_to( Sockbuf *sb )
 {
 	struct hostent		*hp;
 	char			*p;
-	int			len;
+	socklen_t         	len;
 	struct sockaddr_in	sin;
 
    	/* buffers for gethostbyaddr_r */

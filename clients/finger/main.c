@@ -64,7 +64,7 @@ main( int argc, char **argv )
 	char			*myname;
 	struct hostent		*hp;
 	struct sockaddr_in	peername;
-	int			peernamelen;
+	socklen_t         	peernamelen;
 	int			interactive = 0;
 
 	deref = FINGER_DEREF;

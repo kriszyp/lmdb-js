@@ -1003,7 +1003,7 @@ dgram_read( Sockbuf *sb, void *buf, ber_len_t len )
 {
 #ifdef LDAP_CONNECTIONLESS
    ber_slen_t rc;
-   int addrlen;
+   socklen_t  addrlen;
    struct dgram_data *dd;
    
 	assert( sb != NULL );

@@ -111,7 +111,7 @@ main( int argc, char **argv )
 	fd_set			readfds;
 	struct hostent		*hp;
 	struct sockaddr_in	from;
-	int			len;
+	socklen_t         	len;
 	int			dsapargc;
 	char			**dsapargv;
 #ifdef LDAP_PROCTITLE

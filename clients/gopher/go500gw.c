@@ -101,7 +101,7 @@ main (int  argc, char **argv )
 	fd_set			readfds;
 	struct hostent		*hp;
 	struct sockaddr_in	from;
-	int			fromlen;
+	socklen_t         	fromlen;
 
 #if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
