@@ -401,8 +401,10 @@ searchit:
 			if( scopeok ) {
 				struct berval **erefs = get_entry_referrals(
 					be, conn, op, e, NULL, cscope );
-				struct berval **refs = referral_rewrite( erefs, e->e_dn,
-					NULL, scope );
+				struct berval **refs = referral_rewrite( erefs, e->e_dn, NULL,
+					scope == LDAP_SCOPE_SUBTREE
+						? LDAP_SCOPE_SUBTREE
+						: LDAP_SCOPE_BASE );
 
 				send_search_reference( be, conn, op,
 					e, refs, NULL, &v2refs );

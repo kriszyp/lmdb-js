@@ -688,7 +688,7 @@ send_search_entry(
 	    }
 	}
 	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {
-	    rc = ber_printf( ber, "{is{t{s{",
+	    rc = ber_printf( ber, "{is{t{s{" /*}}}*/,
 		op->o_msgid, "", LDAP_RES_SEARCH_ENTRY, e->e_dn );
 	} else
 #endif
