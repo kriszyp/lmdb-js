@@ -334,12 +334,12 @@ at_add(
 	if ( at->at_collective ) {
 		if( at->at_usage ) {
 			/* collective attributes cannot be operational */
-			return SLAP_SCHERR_NOT_SUPPORTED;
+			return SLAP_SCHERR_ATTR_BAD_USAGE;
 		}
 
 		if( at->at_single_value ) {
 			/* collective attributes cannot be single-valued */
-			return SLAP_SCHERR_NOT_SUPPORTED;
+			return SLAP_SCHERR_ATTR_BAD_USAGE;
 		}
 	}
 
