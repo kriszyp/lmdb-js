@@ -37,6 +37,23 @@
 
 #include "slap.h"
 #include "back-monitor.h"
+#include "lber_pvt.h"
+
+static struct berval 
+	bv_initiated = BER_BVC( "Initiated" ),
+	bv_completed = BER_BVC( "Completed" ),
+	bv_op[] = {
+		BER_BVC( "Bind" ),
+		BER_BVC( "Unbind" ),
+		BER_BVC( "Add" ),
+		BER_BVC( "Delete" ),
+		BER_BVC( "Modrdn" ),
+		BER_BVC( "Modify" ),
+		BER_BVC( "Compare" ),
+		BER_BVC( "Search" ),
+		BER_BVC( "Abandon" ),
+		BER_BVC( "Extended" )
+	};
 
 int
 monitor_subsys_ops_init(
@@ -45,10 +62,11 @@ monitor_subsys_ops_init(
 {
 	struct monitorinfo	*mi;
 	
-	Entry			*e, *e_tmp, *e_op;
+	Entry			*e, *e_tmp, *e_op, *e_children;
 	struct monitorentrypriv	*mp;
 	char			buf[1024];
 	struct berval		bv[2];
+	int 			i;
 
 	assert( be != NULL );
 
@@ -77,24 +95,28 @@ monitor_subsys_ops_init(
 	 * Initiated ops
 	 */
 	snprintf( buf, sizeof( buf ),
-			"dn: cn=Initiated,%s\n"
+			"dn: cn=%s,%s\n"
 			SLAPD_MONITOR_OBJECTCLASSES
-			"cn: Initiated\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val );
+			"cn: %s\n",
+			bv_initiated.bv_val,
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val,
+			bv_initiated.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
-			"unable to create entry 'cn=Initiated,%s'\n",
+			"unable to create entry 'cn=%s,%s'\n",
+			bv_initiated.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
-			"unable to create entry 'cn=Initiated,%s'\n%s%s",
+			"unable to create entry 'cn=%s,%s'\n%s",
+			bv_initiated.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
-			"", "" );
+			"" );
 #endif
 		return( -1 );
 	}
@@ -116,42 +138,121 @@ monitor_subsys_ops_init(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
-			"unable to add entry 'cn=Initiated,%s'\n",
+			"unable to add entry 'cn=%s,%s'\n",
+			bv_initiated.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
-			"unable to add entry 'cn=Initiated,%s'\n%s%s",
+			"unable to add entry 'cn=%s,%s'\n%s",
+			bv_initiated.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
-			"", "" );
+			"" );
 #endif
 		return( -1 );
 	}
 	
 	e_tmp = e;
+	e_children = NULL;
+
+	for ( i = SLAP_OP_LAST; i-- > 0; ) {
+
+		/*
+		 * Initiated ops
+		 */
+		snprintf( buf, sizeof( buf ),
+				"dn: cn=%s,cn=%s,%s\n"
+				SLAPD_MONITOR_OBJECTCLASSES
+				"cn: %s\n",
+				bv_op[ i ].bv_val,
+				bv_initiated.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val,
+				bv_op[ i ].bv_val );
+
+		e = str2entry( buf );
+		if ( e == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor_subsys_ops_init: "
+				"unable to create entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_initiated.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_ops_init: "
+				"unable to create entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_initiated.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
+#endif
+			return( -1 );
+		}
+	
+		bv[1].bv_val = NULL;
+		bv[0].bv_val = "0";
+		bv[0].bv_len = 1;
+		attr_merge( e, monitor_ad_desc, bv );
+	
+		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		e->e_private = ( void * )mp;
+		mp->mp_next = e_children;
+		mp->mp_children = NULL;
+		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_OPS];
+		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_OPS].mss_flags \
+			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+
+		if ( monitor_cache_add( mi, e ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor_subsys_ops_init: "
+				"unable to add entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_initiated.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_ops_init: "
+				"unable to add entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_initiated.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
+#endif
+			return( -1 );
+		}
+	
+		e_children = e;
+	}
+
+	mp = ( struct monitorentrypriv * )e_tmp->e_private;
+	mp->mp_children = e_children;
 
 	/*
 	 * Completed ops
 	 */
 	snprintf( buf, sizeof( buf ),
-			"dn: cn=Completed,%s\n"
+			"dn: cn=%s,%s\n"
 			SLAPD_MONITOR_OBJECTCLASSES
-			"cn: Completed\n",
-			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val );
+			"cn: %s\n",
+			bv_completed.bv_val,
+			monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val,
+			bv_completed.bv_val );
 
 	e = str2entry( buf );
 	if ( e == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
-			"unable to create entry 'cn=Completed,%s'\n",
+			"unable to create entry 'cn=%s,%s'\n",
+			bv_completed.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
-			"unable to create entry 'cn=Completed,%s'\n%s%s",
+			"unable to create entry 'cn=%s,%s'\n%s",
+			bv_completed.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
-			"", "" );
+			"" );
 #endif
 		return( -1 );
 	}
@@ -172,19 +273,93 @@ monitor_subsys_ops_init(
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"monitor_subsys_ops_init: "
-			"unable to add entry 'cn=Completed,%s'\n",
+			"unable to add entry 'cn=%s,%s'\n",
+			bv_completed.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"monitor_subsys_ops_init: "
-			"unable to add entry 'cn=Completed,%s'\n%s%s",
+			"unable to add entry 'cn=%s,%s'\n%s",
+			bv_completed.bv_val,
 			monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val,
-			"", "" );
+			"" );
 #endif
 		return( -1 );
 	}
 	
 	e_tmp = e;
+	e_children = NULL;
+
+	for ( i = SLAP_OP_LAST; i-- > 0; ) {
+
+		/*
+		 * Completed ops
+		 */
+		snprintf( buf, sizeof( buf ),
+				"dn: cn=%s,cn=%s,%s\n"
+				SLAPD_MONITOR_OBJECTCLASSES
+				"cn: %s\n",
+				bv_op[ i ].bv_val,
+				bv_completed.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_dn.bv_val,
+		       		bv_op[ i ].bv_val );
+	
+		e = str2entry( buf );
+		if ( e == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor_subsys_ops_init: "
+				"unable to create entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_completed.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_ops_init: "
+				"unable to create entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_completed.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
+#endif
+			return( -1 );
+		}
+
+		bv[0].bv_val = "0";
+		bv[0].bv_len = 1;
+		attr_merge( e, monitor_ad_desc, bv );
+	
+		mp = ( struct monitorentrypriv * )ch_calloc( sizeof( struct monitorentrypriv ), 1 );
+		e->e_private = ( void * )mp;
+		mp->mp_next = e_children;
+		mp->mp_children = NULL;
+		mp->mp_info = &monitor_subsys[SLAPD_MONITOR_OPS];
+		mp->mp_flags = monitor_subsys[SLAPD_MONITOR_OPS].mss_flags \
+			| MONITOR_F_SUB | MONITOR_F_PERSISTENT;
+
+		if ( monitor_cache_add( mi, e ) ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+				"monitor_subsys_ops_init: "
+				"unable to add entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_completed.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val ));
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"monitor_subsys_ops_init: "
+				"unable to add entry 'cn=%s,cn=%s,%s'\n",
+				bv_op[ i ].bv_val,
+				bv_completed.bv_val,
+				monitor_subsys[SLAPD_MONITOR_OPS].mss_ndn.bv_val );
+#endif
+			return( -1 );
+		}
+	
+		e_children = e;
+	}
+
+	mp = ( struct monitorentrypriv * )e_tmp->e_private;
+	mp->mp_children = e_children;
 
 	mp = ( struct monitorentrypriv * )e_op->e_private;
 	mp->mp_children = e_tmp;
@@ -201,21 +376,58 @@ monitor_subsys_ops_update(
 )
 {
 	long 		n = -1;
+	char 		*dn;
 
 	assert( mi );
 	assert( e );
-	
-	if ( strncasecmp( e->e_ndn, "CN=INITIATED", 
-				sizeof("CN=INITIATED")-1 ) == 0 ) {
+
+	dn = e->e_dn + 3;
+
+	if ( strncmp( dn, bv_initiated.bv_val, 
+				bv_initiated.bv_len ) == 0 ) {
 		ldap_pvt_thread_mutex_lock(&num_ops_mutex);
 		n = num_ops_initiated;
 		ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
 
-	} else if ( strncasecmp( e->e_ndn, "CN=COMPLETED", 
-				sizeof("CN=COMPLETED")-1 ) == 0 ) {
+	} else if ( strncmp( dn, bv_completed.bv_val,
+				bv_completed.bv_len ) == 0 ) {
 		ldap_pvt_thread_mutex_lock(&num_ops_mutex);
 		n = num_ops_completed;
 		ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
+
+	} else {
+		int 		i;
+		ber_len_t 	len;
+		
+		for (i = 0; i < SLAP_OP_LAST; i++ ) {
+			len = bv_op[ i ].bv_len;
+
+			if ( strncmp( dn, bv_op[ i ].bv_val, len ) == 0 ) {
+				break;
+			}
+		}
+
+		if ( i == SLAP_OP_LAST ) {
+			return( 0 );
+		}
+
+		dn += len + 3 + 1;
+
+		if ( strncmp( dn, bv_initiated.bv_val,
+					bv_initiated.bv_len ) == 0 ) {
+			ldap_pvt_thread_mutex_lock(&num_ops_mutex);
+			n = num_ops_initiated_[ i ];
+			ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
+
+		} else if ( strncmp( dn, bv_completed.bv_val,
+					bv_completed.bv_len ) == 0 ) {
+			ldap_pvt_thread_mutex_lock(&num_ops_mutex);
+			n = num_ops_completed_[ i ];
+			ldap_pvt_thread_mutex_unlock(&num_ops_mutex);
+
+		} else {
+			assert( 0 );
+		}
 	}
 
 	if ( n != -1 ) {
