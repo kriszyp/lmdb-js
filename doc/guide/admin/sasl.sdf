@@ -189,7 +189,7 @@ the KERBEROS_IV mechanism, it will request a session key for that
 same principal, either from the ticket cache or by obtaining a new
 one from the Kerberos server.  This will require the TGT to be
 available and valid in the cache as well.  If it is not present or
-has expired, SASL will print out the message
+has expired, the client may print out the message:
 
 >	ldap_sasl_interactive_bind_s: Local error
 
@@ -226,18 +226,12 @@ it needs access to the plaintext password (unlike mechanisms which
 pass plaintext passwords over the wire, where the server can store
 a hashed version of the password).
 
-Secret passwords are normally stored in Cyrus SASL's own {{sasldb}}
-database, but if OpenLDAP Software has been compiled with Cyrus
-SASL 2.1 it is possible to store the secrets in the LDAP database
-itself. With Cyrus SASL 1.5, secrets may only be stored in the
-{{sasldb}}.  In either case it is very important to apply file
-access controls and LDAP access controls to prevent exposure of the
-passwords.
-
-The configuration and commands discussed in this section assume the
-use of Cyrus SASL 2.1. If you are using version 1.5 then certain
-features will not be available, and the command names will not have
-the trailing digit "2".
+The server's copy of the shared-secret may be stored in Cyrus SASL's
+own {{sasldb}} database, in an external system accessed via
+{{saslauthd}}, or in LDAP database itself.  In either case it is
+very important to apply file access controls and LDAP access controls
+to prevent exposure of the passwords.  The configuration and commands
+discussed in this section assume the use of Cyrus SASL 2.1.
 
 To use secrets stored in {{sasldb}}, simply add users with the
 {{saslpasswd2}} command:
@@ -248,23 +242,23 @@ The passwords for such users must be managed with the {{saslpasswd2}}
 command.
 
 To use secrets stored in the LDAP directory, place plaintext passwords
-in the {{EX:userPassword}} attribute. It will be necessary to add
-an option to {{EX:slapd.conf}} to make sure that passwords changed
-through LDAP are stored in plaintext:
+in the {{EX:userPassword}} attribute.  It will be necessary to add
+an option to {{EX:slapd.conf}} to make sure that passwords set using
+the LDAP Password Modify Operation are stored in plaintext:
 
 >       password-hash   {CLEARTEXT}
 
-Passwords stored in this way can be managed either with {{EX:ldappasswd}}
-or by simply modifying the {{EX:userPassword}} attribute.
+Passwords stored in this way can be managed either with {{ldappasswd}}(1)
+or by simply modifying the {{EX:userPassword}} attribute.  Regardless of
+where the passwords are stored, a mapping will be needed from
+authentication request DN to user's DN.
 
-Wherever the passwords are stored, a mapping will be needed from SASL
-authentication IDs to regular DNs. The DIGEST-MD5 mechanism produces
-authentication IDs of the form:
+The DIGEST-MD5 mechanism produces authentication IDs of the form:
 
 >	uid=<username>,cn=<realm>,cn=digest-md5,cn=auth
 
-NOTE that if the default realm is used, the realm name is omitted from
-the ID, giving:
+If the default realm is used, the realm name is omitted from the ID,
+giving:
 
 >	uid=<username>,cn=digest-md5,cn=auth
 
@@ -272,9 +266,9 @@ See {{SECT: Mapping Authentication Identities}} below for information
 on optional mapping of identities.
 
 With suitable mappings in place, users can specify SASL IDs when
-performing LDAP operations, and the password stored in {{sasldb}} or in
-the directory itself will be used to verify the authentication.
-For example, the user identified by the directory entry:
+performing LDAP operations and sldb}} and the directory itself will
+be used to verify the authentication.  For example, the user
+identified by the directory entry:
 
 >       dn: cn=Andrew Findlay+uid=u000997,dc=example,dc=com
 >       objectclass: inetOrgPerson
@@ -285,23 +279,13 @@ For example, the user identified by the directory entry:
 
 can issue commands of the form:
 
->       ldapsearch -U u000997 -b dc=example,dc=com 'cn=andrew*'
-
-or can specify the realm explicitly:
-
->       ldapsearch -U u000997@myrealm -b dc=example,dc=com 'cn=andrew*'
-
-If several SASL mechanisms are supported at your site, it may be
-necessary to specify which one to use, e.g.:
-
->       ldapsearch -Y DIGEST-MD5 -U u000997 -b dc=example,dc=com 'cn=andrew*'
-
+>       ldapsearch -Y DIGEST-MD5 -U u000997 ...
 
 Note: in each of the above cases, no authorization identity (e.g.
-{{EX:-X}}) was provided.   Unless you are attempting
-{{SECT:SASL Proxy Authorization}}, no authorization identity should
-be specified.  The server will infer an authorization identity from
-authentication identity (as described below).
+{{EX:-X}}) was provided.   Unless you are attempting {{SECT:SASL
+Proxy Authorization}}, no authorization identity should be specified.
+The server will infer an authorization identity from authentication
+identity (as described below).
 
 
 H3: Mapping Authentication Identities
@@ -321,8 +305,12 @@ or
 >	uid=<username>,cn=<mechanism>,cn=auth
 
 depending on whether or not <mechanism> employs the concept of
-"realms". Note also that the realm part will be omitted if the default
-realm was used in the authentication.
+"realms".  Note also that the realm part will be omitted if the
+default realm was used in the authentication.
+
+The {{ldapwhoami}}(1) command may be used to determine the identity
+associated with the user.  It is very useful for determining proper
+function of mappings.
 
 It is not intended that you should add LDAP entries of the above
 form to your LDAP database.  Chances are you have an LDAP entry for
