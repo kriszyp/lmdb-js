@@ -201,6 +201,7 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 dnl Checks the compiler and UNIX Variants
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
+AC_PROG_CPP
 
 AC_AIX
 AC_ISC_POSIX
