@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.24 Engineering
+	Fixed slapd syncrepl consumer unclean shutdown (ITS#3546)
 	Added libldap fast synchronous search result processing
 	Fixed libldap fdset re-init for restart (ITS#3524)
 
