@@ -1,5 +1,9 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
 #
 # Plain Copyright for Software Distribution
 #
-!define NO_C
+!define HTML_TITLE "OpenLDAP Copyright"
+!include "../plain.sdf"
 !include "copyright.sdf"; plain

@@ -1,10 +1,10 @@
 # Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
 
-!if NO_C
-!define copyright 'Copyright'
-!else
+!if OPT_PP_HTML
 !define	copyright '[[c]] Copyright'
+!else
+!define copyright 'Copyright'
 !endif
 
 H1: OpenLDAP Software Copyrights

@@ -73,7 +73,7 @@ make things clear.
 
 
 !import "intro_tree.gif"; align="center"; title="An example LDAP directory tree"
-FT: Figure 1: An example LDAP directory tree.
+FT[align="Center"] Figure 1: An example LDAP directory tree.
 
 
 In addition, LDAP allows you to control which attributes are required and

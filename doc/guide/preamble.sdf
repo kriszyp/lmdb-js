@@ -5,21 +5,42 @@
 # Preamble for all OpenLDAP SDF documents
 #
 
+!default VERSION 2.0
+
 #
 # Paths are relative to the main subdirectories
 #
 
 !define DOC_AUTHOR	"OpenLDAP <{{URL:http://www.openldap.org/}}>"
-!define DOC_TYPE    "OpenLDAP"
+!define DOC_NAME    "OpenLDAP"
+!define DOC_TYPE    "Guide"
 
 !define DOC_LOGO	"../images/LDAPwww.gif"
+# should create a smaller logo for HTML and TOPIC purposes
 #!define DOC_HTML_LOGO	"../images/LDAPwww.gif"
 #!define DOC_TOPIC_LOGO	"../images/LDAPwww.gif"
 
 !define DOC_LOF_TITLE	"Figures"
 !define DOC_LOF
 
-
 !define HTML_URL_HOME		 "http://www.openldap.org/"
 !define HTML_URL_CATALOG	"../index.html"
 
+!block organisations; data
+Name		Long			Jump
+OpenLDAP	OpenLDAP		http://www.openldap.org/
+OLF		The OpenLDAP Foundation	http://www.openldap.org/foundation/
+OLP		The OpenLDAP Project	http://www.openldap.org/project/
+UM		University of Michigan	http://www.umich.edu/
+IETF		Internet Engineering Task Force	http://www.ietf.org/
+!endblock
+
+!block terms; data
+Term	Definition
+FAQ	Frequently Asked Questions
+ITS	Issue Tracking System
+LDAP	Lightweight Directory Access Protocol
+RFC	Request for Comments
+URL	Uniform Resource Locator
+WWW	World Wide Web
+!endblock

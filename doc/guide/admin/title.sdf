@@ -5,7 +5,7 @@
 # Master: master.sdf
 # 
 
-!define DOC_TYPE	"OpenLDAP Administrators Guide"
+!define DOC_TYPE	"Administrator's Guide"
 
 !build_title
 

@@ -18,12 +18,13 @@ you can retrieve using this URL:
 .If you are reading this guide, you have probably already done this.
 
 
-+ {{B:Untar the distribution}}. Pick a place for the LDAP source to live, cd
++ {{B:Untar the distribution}}.
+.Pick a place for the LDAP source to live, cd
 there, and untar it. For example:
 
-.{{EX: cd /usr/local/src}}
-.{{EX: gunzip -c openldap-release.tgz | tar xvfB -}}
-.{{EX: cd ldap}}
+.{{EX:cd /usr/local/src}}
+.{{EX:gunzip -c openldap-release.tgz | tar xvfB -}}
+.{{EX:cd ldap}}
 
 + {{B: Configure the software}}.
 . You will have to edit two files to configure things for your site.

@@ -1,15 +1,24 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+!if OPT_PP_HTML
+!define	copyright '[[c]] Copyright'
+!else
+!define copyright 'Copyright'
+!endif
+
 H1: The OpenLDAP Public License
 
-Version 1.4, 18 January 1999
-Copyright 1998-1999, The OpenLDAP Foundation.
-All Rights Reserved.
+.Version 1.5, 5 May 1999
+.[[copyright]] 1998-1999, The OpenLDAP Foundation.
+.All Rights Reserved.
 
-. Note: This license is derived from the {{I:Artistic License}}
-as distributed with the {{I:Perl Programming Language}}.
+Note: This license is derived from the {{Artistic License}}
+as distributed with the {{Perl Programming Language}}.
 As significant differences exist,
 {{B: the complete license should be read}}.
 
-H2: Preamble
+P2[notoc] Preamble
 
 The intent of this document is to state the conditions under which
 a Package may be copied, such that the Copyright Holder
@@ -18,7 +27,7 @@ package, while giving the users of the package the right to use
 and distribute the Package in a more-or-less customary fashion,
 plus the right to make reasonable modifications.
 
-H2: Definitions
+P2[notoc] Definitions
 
 . "Package" refers to the collection of files distributed by the
 Copyright Holder, and derivatives of that collection of files
@@ -45,7 +54,7 @@ itself, though there may be fees involved in handling the item.
 It also means that recipients of the item may redistribute it
 under the same conditions they received it.
 
-H2: Terms and Conditions
+P2[notoc] Terms and Conditions
 
 ^ You may make and give away verbatim copies of the source form
 of the Standard Version of this Package without restriction, provided

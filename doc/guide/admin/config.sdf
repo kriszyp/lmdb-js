@@ -15,7 +15,7 @@ for your local domain only. It does not interact with other directory
 servers in any way. This configuration is shown in Figure 2.
 
 !import "config_local.gif"; align="center"; title="Local service via slapd configuration"
-FT: Figure 2: Local service via slapd configuration.
+FT[align="Center"] Figure 2: Local service via slapd configuration.
 
 Use this configuration if you are just starting out (it's the one the
 quick-start guide makes for you) or if you want to provide a local
@@ -33,7 +33,7 @@ point to somebody else who does and doesn't mind you pointing to
 their service). This configuration is shown in Figure 3.
 
 !import "config_x500ref.gif"; align="center"; title="Local service via slapd + X.500 referrals configuration"
-FT: Figure 3: Local service via slapd + X.500 referrals configuration
+FT[align="Center"] Figure 3: Local service via slapd + X.500 referrals configuration
 
 Use this configuration if you want to provide local service but still want
 to be connected to the rest of the X.500 world. Remember, you don't
@@ -51,7 +51,7 @@ through an ldapd which runs at your site. This configuration is shown
 in Figure 4.
 
 !import "config_x500fe.gif"; align="center"; title="Local service via X.500 and ldapd configuration"
-FT: Figure 4: Local service via X.500 and ldapd configuration
+FT[align="Center"] Figure 4: Local service via X.500 and ldapd configuration
 
 Use this configuration if you are already running an X.500 service.
 Slapd is not involved in this configuration, so you can probably stop
@@ -66,7 +66,7 @@ to one or more slave slapds. An example master-slave configuration
 is shown in figure 5.
 
 !import "config_repl.gif"; align="center"; title="Master slapd with two slaves replicated with slurpd"
-FT: Figure 5: Master slapd with two slaves replicated with slurpd
+FT[align="Center"] Figure 5: Master slapd with two slaves replicated with slurpd
 
 This configuration can be used in conjunction with the first two
 configurations in situations where a single slapd does not provide the

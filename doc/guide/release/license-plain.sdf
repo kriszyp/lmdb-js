@@ -1,4 +1,9 @@
+# Copyright 1999, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
 #
 # Plain License for Software Distribution
 #
+!define HTML_TITLE "OpenLDAP Public License"
+!include "../plain.sdf"
 !include "license.sdf"; plain
