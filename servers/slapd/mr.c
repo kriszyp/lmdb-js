@@ -176,11 +176,17 @@ register_matching_rule(
 	if( associated != NULL ) {
 		amr = mr_find( associated );
 
-		Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
-			"associated matching rule %s for %s\n",
-			associated, desc, 0 );
+#if 0
+		/* ignore for now */
 
-		return -1;
+		if( amr == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
+				"associated matching rule %s for %s\n",
+				associated, desc, 0 );
+			return -1;
+		}
+#endif
+
 	}
 
 	mr = ldap_str2matchingrule( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
