@@ -188,10 +188,24 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	rc = schema_init();
+
+	if (rc != 0 ) {
+		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+
 	read_config( conffile );
 
 	if ( !nbackends ) {
 		fprintf( stderr, "No databases found in config file\n" );
+		exit( EXIT_FAILURE );
+	}
+
+	rc = schema_prep();
+
+	if (rc != 0 ) {
+		fprintf( stderr, "%s: slap_schema_prep failed!\n", progname );
 		exit( EXIT_FAILURE );
 	}
 

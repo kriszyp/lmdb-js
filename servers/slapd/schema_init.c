@@ -564,16 +564,16 @@ struct mrule_defs_rec mrule_defs[] = {
 	{NULL, SLAP_MR_NONE, NULL, NULL, NULL}
 };
 
+static int schema_init_done = 0;
+
 int
 schema_init( void )
 {
 	int		res;
 	int		i;
-	static int	schema_init_done = 0;
 
-	/* We are called from read_config that is recursive */
-	if ( schema_init_done )
-		return( 0 );
+	/* we should only be called once (from main) */
+	assert( schema_init_done == 0 );
 
 	for ( i=0; syntax_defs[i].sd_desc != NULL; i++ ) {
 		res = register_syntax( syntax_defs[i].sd_desc,
@@ -585,7 +585,7 @@ schema_init( void )
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering syntax %s\n",
 				 syntax_defs[i].sd_desc );
-			exit( EXIT_FAILURE );
+			return -1;
 		}
 	}
 
@@ -610,9 +610,42 @@ schema_init( void )
 			fprintf( stderr,
 				"schema_init: Error registering matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
-			exit( EXIT_FAILURE );
+			return -1;
 		}
 	}
 	schema_init_done = 1;
 	return( 0 );
+}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+AttributeDescription *slap_ad_entry = NULL;
+AttributeDescription *slap_ad_children = NULL;
+#endif
+
+int
+schema_prep( void )
+{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	int rc;
+	char *text;
+#endif
+	/* we should only be called once after schema_init() was called */
+	assert( schema_init_done == 1 );
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	rc = slap_str2ad( "entry", &slap_ad_entry, &text);
+	if( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "No attribute \"entry\" defined in schema\n" );
+		return rc;
+	}
+
+	rc = slap_str2ad( "children", &slap_ad_children, &text);
+	if( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "No attribute \"children\" defined in schema\n" );
+		return rc;
+	}
+#endif
+
+	++schema_init_done;
+	return 0;
 }

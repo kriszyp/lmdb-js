@@ -11,6 +11,9 @@
 LDAP_BEGIN_DECL
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F( AttributeDescription * ) slap_ad_entry;
+LIBSLAPD_F( AttributeDescription * ) slap_ad_children;
+
 LIBSLAPD_F (int) slap_str2ad LDAP_P((
 	const char *,
 	AttributeDescription **ad,
@@ -611,6 +614,7 @@ LIBSLAPD_F (int) entry_schema_check LDAP_P((
  * schema_init.c
  */
 LIBSLAPD_F (int) schema_init LDAP_P((void));
+LIBSLAPD_F (int) schema_prep LDAP_P((void));
 
 
 /*

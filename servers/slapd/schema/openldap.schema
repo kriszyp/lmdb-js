@@ -18,3 +18,7 @@
 #
 # other slapd items
 #
+attributetype ( entryOID NAME 'entry' SUP name
+      SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
+attributetype ( childrenOID NAME 'children' SUP name
+      SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )

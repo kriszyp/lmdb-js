@@ -361,9 +361,23 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
+	if ( schema_init( ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "schema initialization error\n",
+		    0, 0, 0 );
+		goto destroy;
+	}
+
 	if ( read_config( configfile ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
+		goto destroy;
+	}
+
+	if ( schema_prep( ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "schema prep error\n",
+		    0, 0, 0 );
 		goto destroy;
 	}
 
