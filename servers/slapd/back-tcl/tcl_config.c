@@ -7,6 +7,10 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
+ *
+ * $Id$
+ *
+ * $Log$
  */
 
 #include "portable.h"
@@ -32,7 +36,7 @@ int tcl_back_db_config (
 	if (ti == NULL) {
 		fprintf (stderr, "%s: line %d: tcl backend info is null!\n", fname,
 			lineno);
-		exit (1);
+		return( 1 );
 	}
 	if (ti->ti_ii == NULL) {
 		ti->ti_ii = global_i;
@@ -44,7 +48,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing script in \"scriptpath <script>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->script_path = (char *) strdup (argv[1]);
 
@@ -56,7 +60,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing script in \"tclrealm <name>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_ii = NULL;
 
@@ -85,7 +89,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"bind <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_bind = (char *) strdup (argv[1]);
 
@@ -95,7 +99,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 			"%s: line %d: missing proc in \"unbind <proc>\" line\n",
 			fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_unbind = (char *) strdup (argv[1]);
 
@@ -105,7 +109,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"search <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_search = (char *) strdup (argv[1]);
 
@@ -115,7 +119,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"compare <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_compare = (char *) strdup (argv[1]);
 
@@ -125,7 +129,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"modify <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_modify = (char *) strdup (argv[1]);
 
@@ -135,7 +139,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"modrdn <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_modrdn = (char *) strdup (argv[1]);
 
@@ -145,7 +149,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"add <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_add = (char *) strdup (argv[1]);
 
@@ -155,7 +159,7 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"delete <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_delete = (char *) strdup (argv[1]);
 
@@ -165,14 +169,14 @@ int tcl_back_db_config (
 			Debug (LDAP_DEBUG_ANY,
 				"%s: line %d: missing proc in \"abandon <proc>\" line\n",
 				fname, lineno, 0);
-			exit (1);
+			return( 1 );
 		}
 		ti->ti_search = (char *) strdup (argv[1]);
 
 	} else {
-		fprintf (stderr,
-			"Unknown tcl backend config: %s\n", argv[0]);
-		exit (1);
+		Debug (LDAP_DEBUG_ANY,
+			"Unknown tcl backend config: %s\n", argv[0], 0, 0);
+		return( 1 );
 	}
 
 	return 0;
@@ -205,7 +209,7 @@ void readtclscript (char *script, Tcl_Interp * my_tcl)
 	if (f == NULL) {
 		Debug (LDAP_DEBUG_ANY, "Could not open scriptpath %s\n", script,
 			0, 0);
-		exit (1);
+		return( 1 );
 	}
 	fclose (f);
 	code = Tcl_EvalFile (my_tcl, script);
@@ -214,6 +218,6 @@ void readtclscript (char *script, Tcl_Interp * my_tcl)
 			Tcl_GetVar (my_tcl, "errorInfo", TCL_GLOBAL_ONLY), 0);
 		Debug (LDAP_DEBUG_ANY, "%s: error at line\n", script,
 	  		my_tcl->errorLine, 0);
-		exit (1);
+		return( 1 );
 	}
 }
