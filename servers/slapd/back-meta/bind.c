@@ -383,17 +383,15 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, WARNING,
 					"meta_back_dobind: (anonymous)"
-					" bind as \"%s\" failed"
-					" with error \"%s\"\n",
-					lsc->bound_dn.bv_val,
-					ldap_err2string( rc ), 0 );
+					" bind failed"
+					" with error %d (%s)\n",
+					rc, ldap_err2string( rc ), 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"==>meta_back_dobind: (anonymous)"
-					" bind as \"%s\" failed"
-					" with error \"%s\"\n%s",
-					lsc->bound_dn.bv_val,
-					ldap_err2string( rc ), "" );
+					" bind failed"
+					" with error %d (%s)\n",
+					rc, ldap_err2string( rc ), 0 );
 #endif /* !NEW_LOGGING */
 
 			/*
