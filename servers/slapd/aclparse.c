@@ -466,7 +466,6 @@ parse_acl(
 						}
 					}
 
-#if 0
 					if( is_object_subclass( b->a_group_oc,
 						slap_schema.si_oc_referral ) )
 					{
@@ -486,7 +485,6 @@ parse_acl(
 							fname, lineno, value );
 						acl_usage();
 					}
-#endif
 
 					if (name && *name) {
 						rc = slap_str2ad( right, &b->a_group_at, &text );
