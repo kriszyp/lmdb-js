@@ -122,28 +122,34 @@ MAKESLAPD= yes
 # remove the defines for backends you don't want to enable 
 SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 #
-# If you have included -DLDAP_LDBM in the SLAPD_BACKENDS line you need
-# to specify which low-level database package to use.  There are
-# four choices: Berkeley db b-tree, Berkeley db hash, GNU dbm, or ndbm.
-# You will also need to edit the include and lib strings appropriately.
+# If you have included -DLDAP_LDBM in the SLAPD_BACKENDS line, 
+# which low-level database package to use must be specified.  You
+# may want to overide the platform settings by disabling the lines
+# below and hardcoding the desired settings.
 #
-# berkeley db btree package
-#LDBMLIB=-ldb
-#LDBMBACKEND?=-DLDBM_USE_DBBTREE
-#LDBMINCLUDE?=-I/usr/local/db/include
-#LDBMLIB?=-ldb
-# berkeley db hash package
-#LDBMBACKEND?=-DLDBM_USE_DBHASH
-#LDBMINCLUDE?=-I/usr/local/db/include
-#LDBMLIB?=-ldb
-# gnu dbm (gdbm)
-#LDBMBACKEND?=-DLDBM_USE_GDBM
-#LDBMINCLUDE?=-I/usr/local/gdbm/include
-#LDBMLIB?=-lgdbm
+# The four choices: Berkeley db b-tree, Berkeley db hash, GNU dbm, or ndbm.
+# You will also need to edit the include and lib strings appropriately.
 # standard unix ndbm
+
+# Fallback settings, defaults are set in build/*/Make-platform
 LDBMBACKEND?=-DLDBM_USE_NDBM
 LDBMINCLUDE?=
 LDBMLIB?=
+
+# LDBM Hardcode Setting Examples (may require editing)
+# berkeley db btree package
+#LDBMLIB=-ldb
+#LDBMBACKEND=-DLDBM_USE_DBBTREE
+#LDBMINCLUDE=-I/usr/local/db/include
+#LDBMLIB?=-ldb
+# berkeley db hash package
+#LDBMBACKEND=-DLDBM_USE_DBHASH
+#LDBMINCLUDE=-I/usr/local/db/include
+#LDBMLIB=-ldb
+# gnu dbm (gdbm)
+#LDBMBACKEND=-DLDBM_USE_GDBM
+#LDBMINCLUDE=-I/usr/local/gdbm/include
+#LDBMLIB=-lgdbm
 
 #undef these if you have SLEEPYCAT DB2 installed
 #LDBMBACKEND=-DLDBM_USE_DBBTREE -DHAVE_SLEEPYCAT_DB2
