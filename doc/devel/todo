@@ -34,14 +34,14 @@ OpenLDAP 2.x Projects
 Large projects
 --------------
 Implement slapd backend w/ transaction support
-Modify -lldap to be session-level thread support (ldap_dup)
 Redesign slapd memory allocation fault handling
 Perform a security audit (and fix any hole found)
 
 
 Medium projects
 ---------------
-Modify -lldap to be reentrant/threadsafe implement LDAP concurrency draft
+Modify -lldap to be reentrant/threadsafe implement LDAP concurrency
+	and ldap_dup drafts
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 
@@ -52,10 +52,11 @@ Add tests to test suite (ACI, moddn, manageDSAit, subtyping, etc.)
 Add compare of RootDSE, cn=subschema, etc.
 Add user configurable attributes to RootDSE
 Create ldapcompare (from ldapsearch) to support compare operations
-Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
+Create ldapquery (from ldapsearch?) to support searching
+	using ldap_getfilter(3)
 Update saucer(1) to support LDAPv3 features (and bring into clients)
-Update ud(1) to include contributed changes
 Update ud(1) to support LDAPv3 features
+Update ud(1) to include contributed changes
 Update any manual page
 
 
