@@ -637,7 +637,6 @@ load_config( char *filespec )
 	}
 
 	while ( ( line = get_config_line( cf,&lineno ) ) ) {
-		fprintf( stderr, "Read line %d:%s\n", lineno, line );
 		p = strpbrk( line, " \t" );
 		if ( !p ) {
 			syslog( LOG_ALERT,
