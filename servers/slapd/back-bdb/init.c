@@ -94,6 +94,7 @@ bdb_db_open( BackendDB *be )
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0] );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
 
+#ifdef BDB_SUBDIRS
 	{
 		char dir[MAXPATHLEN];
 		size_t len = strlen( bdb->bi_dbenv_home );
@@ -129,6 +130,11 @@ bdb_db_open( BackendDB *be )
 			return rc;
 		}
 	}
+#endif
+
+	Debug( LDAP_DEBUG_TRACE,
+		"bi_back_db_open: dbenv_open(%s)\n",
+		bdb->bi_dbenv_home, 0, 0);
 
 	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
 		bdb->bi_dbenv_home,
@@ -136,8 +142,8 @@ bdb_db_open( BackendDB *be )
 		bdb->bi_dbenv_mode );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bi_back_db_open: dbenv_open(%s) failed: %s (%d)\n",
-			bdb->bi_dbenv_home, db_strerror(rc), rc );
+			"bi_back_db_open: dbenv_open failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
 		return rc;
 	}
 
