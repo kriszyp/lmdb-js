@@ -294,22 +294,6 @@ do_bind(
 
 		rs->sr_err = slap_sasl_bind( op, rs );
 
-#ifdef LDAP_SLAPI
-		/*
-		 * Normally post-operation plugins are called only after the
-		 * backend operation. Because the front-end performs SASL
-		 * binds on behalf of the backend, we'll make a special
-		 * exception to call the post-operation plugins after a
-		 * SASL bind.
-		 */
-		slapi_x_pblock_set_operation( pb, op );
-		slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
-		slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
-		slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
-		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
-		(void) doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb );
-#endif /* LDAP_SLAPI */
-
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		if( rs->sr_err == LDAP_SUCCESS ) {
 			ber_dupbv(&op->o_conn->c_dn, &op->orb_edn);
@@ -368,6 +352,23 @@ do_bind(
 			}
 			op->o_conn->c_sasl_bind_in_progress = 0;
 		}
+
+#ifdef LDAP_SLAPI
+		/*
+		 * Normally post-operation plugins are called only after the
+		 * backend operation. Because the front-end performs SASL
+		 * binds on behalf of the backend, we'll make a special
+		 * exception to call the post-operation plugins after a
+		 * SASL bind.
+		 */
+		slapi_x_pblock_set_operation( pb, op );
+		slapi_pblock_set( pb, SLAPI_BIND_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_BIND_METHOD, (void *)method );
+		slapi_pblock_set( pb, SLAPI_BIND_CREDENTIALS, (void *)&op->orb_cred );
+		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)(0) );
+		(void) doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_BIND_FN, pb );
+#endif /* LDAP_SLAPI */
+
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 
 		goto cleanup;
