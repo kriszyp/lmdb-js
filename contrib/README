@@ -10,6 +10,10 @@ Current contributions:
 	gtk-tool
 		GTK-based frontend from Predrag Balorda
 
+	ldapc++
+		The OpenLDAP LDAP C++ API
+		Contributed by SuSE Gmbh.
+
 	ldaptcl
 		TCL API from NeoSoft
 
