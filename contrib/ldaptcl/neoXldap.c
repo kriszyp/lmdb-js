@@ -302,16 +302,13 @@ LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value,
     LDAPMessage  *entryMessage = 0;
     char	  *sortKey;
 
-    Tcl_Obj      *resultObj;
     int		  lderrno;
-
-    resultObj = Tcl_GetObjResult (interp);
 
     sprintf(filter, filtpatt, value);
 
     fflush(stderr);
     if ((msgid = ldap_search (ldap, base, scope, filter, attrs, 0)) == -1) {
-	Tcl_AppendStringsToObj (resultObj,
+	Tcl_AppendResult (interp,
 			        "LDAP start search error: ",
 					LDAP_ERR_STRING(ldap),
 			        (char *)NULL);
@@ -376,27 +373,19 @@ LDAP_PerformSearch (interp, ldaptcl, base, scope, attrs, filtpatt, value,
 	return tclResult;
     }
     if (resultCode == -1) {
-	Tcl_AppendStringsToObj (resultObj,
+	Tcl_ResetResult (interp);
+	Tcl_AppendResult (interp,
 				"LDAP result search error: ",
 				LDAP_ERR_STRING(ldap),
 				(char *)NULL);
 	LDAP_SetErrorCode(ldaptcl, -1, interp);
 	return TCL_ERROR;
     }
-    if (resultCode == 0) {
-	Tcl_SetErrorCode (interp, "TIMEOUT", (char*) NULL);
-	Tcl_SetStringObj (resultObj, "LDAP timeout retrieving results", -1);
-	return TCL_ERROR;
-    }
-    /*
-    if (resultCode == LDAP_RES_SEARCH_RESULT || 
-	(all && resultCode == LDAP_RES_SEARCH_ENTRY))
-	    return tclResult;
-    */
 
     if ((errorCode = ldap_result2error (ldap, resultMessage, 0))
       != LDAP_SUCCESS) {
-      Tcl_AppendStringsToObj (resultObj,
+      Tcl_ResetResult (interp);
+      Tcl_AppendResult (interp,
 			      "LDAP search error: ",
 			      ldap_err2string(errorCode),
 			      (char *)NULL);
