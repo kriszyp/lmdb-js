@@ -23,7 +23,6 @@ all-common:
 			-e 's%LIBEXECDIR%$(libexecdir)%' \
 			$(srcdir)/$$page > $$page.$(TMP_SUFFIX); \
 	done
-	touch all-common
 
 install-common:
 	-$(MKDIR) $(MANDIR)
