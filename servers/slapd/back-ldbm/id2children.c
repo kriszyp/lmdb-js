@@ -80,10 +80,17 @@ id2children_remove(
 	key.dsize = strlen( buf ) + 1;
 
 	if ( idl_delete_key( be, db, key, e->e_id ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2children_remove -1 (idl_delete)\n",
+#if 0
+		Debug( LDAP_DEBUG_ANY,
+			"<= id2children_remove: idl_delete_key failure\n",
 		    0, 0, 0 );
 		ldbm_cache_close( be, db );
 		return( -1 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"<= id2children_remove: ignoring idl_delete_key failure\n",
+		    0, 0, 0 );
+#endif
 	}
 
 	ldbm_cache_close( be, db );
