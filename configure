@@ -10089,6 +10089,43 @@ fi
 
 
 
+echo $ac_n "checking strdup decleration""... $ac_c" 1>&6
+echo "configure:10094: checking strdup decleration" >&5
+if eval "test \"`echo '$''{'ol_cv_dcl_strdup'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+	cat > conftest.$ac_ext <<EOF
+#line 10100 "configure"
+#include "confdefs.h"
+
+#include <string.h> 
+int main() {
+extern char *strdup()
+; return 0; }
+EOF
+if { (eval echo configure:10108: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf conftest*
+  ol_cv_dcl_strdup=yes
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ol_cv_dcl_strdup=no
+fi
+rm -f conftest*
+fi
+
+echo "$ac_t""$ol_cv_dcl_strdup" 1>&6
+if test $ol_cv_dcl_strdup = yes ; then
+	cat >> confdefs.h <<\EOF
+#define DECL_STRDUP 1
+EOF
+
+fi
+
+
+
 if test "$ol_enable_debug" != no ; then
 	cat >> confdefs.h <<\EOF
 #define LDAP_DEBUG 1

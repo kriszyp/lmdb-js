@@ -663,11 +663,14 @@
 /* define if cross compiling */
 #undef CROSS_COMPILING
 
-/* define if sys_errlist is declared in stdio.h or errno.h */
+/* define if sys_errlist is not declared in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
 /* define if you actually have sys_errlist in your libs */
 #undef HAVE_SYS_ERRLIST
+
+/* define if you have strdup() but it's not declared */
+#undef DECL_STRDUP
 
 /* begin of postamble */
 

@@ -1672,6 +1672,10 @@ dnl ----------------------------------------------------------------
 OL_SYS_ERRLIST
 
 dnl ----------------------------------------------------------------
+dnl Check our declaration of strdup()
+OL_DECL_STRDUP
+
+dnl ----------------------------------------------------------------
 dnl Sort out defines
 
 if test "$ol_enable_debug" != no ; then
