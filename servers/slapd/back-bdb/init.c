@@ -99,14 +99,19 @@ static void *lock_detect_task( void *arg )
 
 	while( bdb->bi_dbenv != NULL ) {
 		int rc;
+		int aborted;
 		sleep( bdb->bi_lock_detect_seconds );
 
 		rc = LOCK_DETECT( bdb->bi_dbenv, 0,
-			bdb->bi_lock_detect, NULL );
+			bdb->bi_lock_detect, &aborted );
 
 		if( rc != 0 ) {
 			break;
 		}
+
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_lock_detect: aborted %d locks\n",
+			aborted, 0, 0 );
 	}
 
 	return NULL;

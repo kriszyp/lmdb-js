@@ -87,13 +87,13 @@ bdb_filter_candidates(
 	case LDAP_FILTER_GE:
 		/* no GE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
-		rc = presence_candidates( be, f->f_desc, ids );
+		rc = presence_candidates( be, f->f_ava->aa_desc, ids );
 		break;
 
 	case LDAP_FILTER_LE:
 		/* no LE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
-		rc = presence_candidates( be, f->f_desc, ids );
+		rc = presence_candidates( be, f->f_ava->aa_desc, ids );
 		break;
 
 	case LDAP_FILTER_NOT:
