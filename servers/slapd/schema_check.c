@@ -424,6 +424,7 @@ entry_schema_check(
 	}
 
 	if( extensible ) {
+		*text = NULL;
 		return LDAP_SUCCESS;
 	}
 
@@ -471,6 +472,7 @@ entry_schema_check(
 		}
 	}
 
+	*text = NULL;
 	return LDAP_SUCCESS;
 }
 

@@ -203,6 +203,7 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 	Backend		*newSuperior_be = NULL;
 	int		manageDSAit;
 	struct berval	pdn = BER_BVNULL;
+	BackendDB *op_be;
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: root dse!\n", 0, 0, 0 );
@@ -250,6 +251,12 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 			op->o_bd = NULL;
 		}
 		goto cleanup;
+	}
+
+	/* If we've got a glued backend, check the real backend */
+	op_be = op->o_bd;
+	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
+		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
 	}
 
 	/* check restrictions */
@@ -320,6 +327,9 @@ fe_op_modrdn( Operation *op, SlapReply *rs )
 #endif
 		{
 			slap_callback cb = { NULL, slap_replog_cb, NULL, NULL };
+
+			op->o_bd = op_be;
+
 #ifdef SLAPD_MULTIMASTER
 			if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )
 #endif

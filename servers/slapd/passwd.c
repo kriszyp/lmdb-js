@@ -51,6 +51,7 @@ int passwd_extop(
 	int i, nhash;
 	char **hashes;
 	int	rc;
+	BackendDB *op_be;
 
 	cb2.sc_next = &cb;
 
@@ -108,6 +109,12 @@ int passwd_extop(
 		goto error_return;
 	}
 
+	/* If we've got a glued backend, check the real backend */
+	op_be = op->o_bd;
+	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
+		op->o_bd = select_backend( &op->o_req_ndn, 0, 0 );
+	}
+
 	if (backend_check_restrictions( op, rs,
 			(struct berval *)&slap_EXOP_MODIFY_PASSWD ) != LDAP_SUCCESS) {
 		rc = rs->sr_err;
@@ -158,6 +165,8 @@ int passwd_extop(
 		rc = LDAP_OTHER;
 		goto error_return;
 	}
+
+	op->o_bd = op_be;
 
 	/* Give the backend a chance to handle this itself */
 	if ( op->o_bd->be_extended ) {

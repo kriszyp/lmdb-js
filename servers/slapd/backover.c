@@ -659,9 +659,11 @@ overlay_config( BackendDB *be, const char *ov )
 
 	/* Any initialization needed? */
 	if ( on->on_bi.bi_db_init ) {
+		int rc;
 		be->bd_info = (BackendInfo *)on2;
-		on2->on_bi.bi_db_init( be );
+		rc = on2->on_bi.bi_db_init( be );
 		be->bd_info = (BackendInfo *)oi;
+		if ( rc ) return rc;
 	}
 
 	return 0;

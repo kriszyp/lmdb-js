@@ -72,8 +72,6 @@ int	slap_conn_max_pending_auth = SLAP_CONN_MAX_PENDING_AUTH;
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
 
-char   *strtok_quote_ptr;
-
 int use_reverse_lookup = 0;
 
 #ifdef LDAP_SLAPI
@@ -84,7 +82,7 @@ static int fp_getline(FILE *fp, ConfigArgs *c);
 static void fp_getline_init(ConfigArgs *c);
 static int fp_parse_line(ConfigArgs *c);
 
-static char	*strtok_quote(char *line, char *sep);
+static char	*strtok_quote(char *line, char *sep, char **quote_ptr);
 
 int read_config_file(const char *fname, int depth, ConfigArgs *cf);
 
@@ -103,55 +101,61 @@ new_config_args( BackendDB *be, const char *fname, int lineno, int argc, char **
 	return(c);
 }
 
-int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
+ConfigTable *config_find_keyword(ConfigTable *Conf, ConfigArgs *c) {
+	int i;
+
+	for(i = 0; Conf[i].name; i++)
+		if( (Conf[i].length && (!strncasecmp(c->argv[0], Conf[i].name, Conf[i].length))) ||
+			(!strcasecmp(c->argv[0], Conf[i].name)) ) break;
+	if ( !Conf[i].name ) return NULL;
+	return Conf+i;
+}
+
+int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
 	int i, rc, arg_user, arg_type, iarg;
 	long larg;
 	ber_len_t barg;
 	void *ptr;
 
-	for(i = 0; Conf[i].name; i++)
-		if( (Conf[i].length && (!strncasecmp(c->argv[0], Conf[i].name, Conf[i].length))) ||
-			(!strcasecmp(c->argv[0], Conf[i].name)) ) break;
-	if(!Conf[i].name) return(ARG_UNKNOWN);
-	arg_type = Conf[i].arg_type;
+	arg_type = Conf->arg_type;
 	if(arg_type == ARG_IGNORED) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> ignored\n",
-			c->log, Conf[i].name, 0);
+			c->log, Conf->name, 0);
 		return(0);
 	}
-	if(Conf[i].min_args && (c->argc < Conf[i].min_args)) {
+	if(Conf->min_args && (c->argc < Conf->min_args)) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> missing <%s> argument\n",
-			c->log, Conf[i].name, Conf[i].what);
+			c->log, Conf->name, Conf->what);
 		return(ARG_BAD_CONF);
 	}
-	if(Conf[i].max_args && (c->argc > Conf[i].max_args)) {
+	if(Conf->max_args && (c->argc > Conf->max_args)) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: extra cruft after <%s> in <%s> line (ignored)\n",
-			c->log, Conf[i].what, Conf[i].name);
+			c->log, Conf->what, Conf->name);
 	}
 	if((arg_type & ARG_DB) && !c->be) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> allowed only within database declaration\n",
-			c->log, Conf[i].name, 0);
+			c->log, Conf->name, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_BI) && c->bi) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any backend %sdeclaration\n",
-			c->log, Conf[i].name, ((arg_type & ARG_PRE_DB)
+			c->log, Conf->name, ((arg_type & ARG_PRE_DB)
 			? "or database " : "") );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_DB) && c->be && c->be != frontendDB) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any database declaration\n",
-			c->log, Conf[i].name, 0);
+			c->log, Conf->name, 0);
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PAREN) && *c->argv[1] != '(' /*')'*/) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: old <%s> format not supported\n",
-			c->log, Conf[i].name, 0);
+			c->log, Conf->name, 0);
 		return(ARG_BAD_CONF);
 	}
-	if((arg_type & ARGS_POINTER) && !Conf[i].arg_item) {
+	if((arg_type & ARGS_POINTER) && !Conf->arg_item && !(arg_type & ARG_OFFSET)) {
 		Debug(LDAP_DEBUG_CONFIG, "%s: null arg_item for <%s>\n",
-			c->log, Conf[i].name, 0);
+			c->log, Conf->name, 0);
 		return(ARG_BAD_CONF);
 	}
 	c->type = arg_user = (arg_type & ARGS_USERLAND);
@@ -175,7 +179,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 				} else {
 					Debug(LDAP_DEBUG_CONFIG, "%s: ignoring ", c->log, 0, 0);
 					Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%s) in <%s> line\n",
-						Conf[i].what, c->argv[1], Conf[i].name);
+						Conf->what, c->argv[1], Conf->name);
 					return(0);
 				}
 				break;
@@ -184,7 +188,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		if(iarg < j || larg < j || barg < j ) {
 			larg = larg ? larg : (barg ? barg : iarg);
 			Debug(LDAP_DEBUG_CONFIG, "%s: " , c->log, 0, 0);
-			Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%ld) in <%s> line\n", Conf[i].what, larg, Conf[i].name);
+			Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%ld) in <%s> line\n", Conf->what, larg, Conf->name);
 			return(ARG_BAD_CONF);
 		}
 		switch(arg_type & ARGS_NUMERIC) {
@@ -194,7 +198,9 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 			case ARG_BER_LEN_T:	c->value_ber_t = barg;		break;
 		}
 	} else if(arg_type & ARG_STRING) {
-		 c->value_string = ch_strdup(c->argv[1]);
+		c->value_string = ch_strdup(c->argv[1]);
+	} else if(arg_type & ARG_BERVAL) {
+		ber_str2bv( c->argv[1], 0, 1, &c->value_bv );
 	} else if(arg_type & ARG_DN) {
 		struct berval bv;
 		ber_str2bv( c->argv[1], 0, 0, &bv );
@@ -202,17 +208,17 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		if ( rc != LDAP_SUCCESS ) {
 			Debug(LDAP_DEBUG_CONFIG, "%s: " , c->log, 0, 0);
 			Debug(LDAP_DEBUG_CONFIG, "%s DN is invalid %d (%s)\n",
-				Conf[i].name, rc, ldap_err2string( rc ));
+				Conf->name, rc, ldap_err2string( rc ));
 			return(ARG_BAD_CONF);
 		}
 	}
 	if(arg_type & ARG_MAGIC) {
 		if(!c->be) c->be = frontendDB;
-		rc = (*((ConfigDriver*)Conf[i].arg_item))(c);
+		rc = (*((ConfigDriver*)Conf->arg_item))(c);
 		if(c->be == frontendDB) c->be = NULL;
 		if(rc) {
-			Debug(LDAP_DEBUG_CONFIG, "%s: handler for <%s> exited with %d!",
-				c->log, Conf[i].name, rc);
+			Debug(LDAP_DEBUG_CONFIG, "%s: handler for <%s> exited with %d!\n",
+				c->log, Conf->name, rc);
 			return(ARG_BAD_CONF);
 		}
 		return(0);
@@ -223,15 +229,16 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		else if (c->bi)
 			ptr = c->bi->bi_private;
 		else {
-			Debug(LDAP_DEBUG_CONFIG, "%s: offset for <%s> missing base pointer!",
-				c->log, Conf[i].name, 0);
+			Debug(LDAP_DEBUG_CONFIG, "%s: offset for <%s> missing base pointer!\n",
+				c->log, Conf->name, 0);
 			return(ARG_BAD_CONF);
 		}
-		ptr = (void *)((char *)ptr + (int)Conf[i].arg_item);
+		ptr = (void *)((char *)ptr + (int)Conf->arg_item);
 	} else if (arg_type & ARGS_POINTER) {
-		ptr = Conf[i].arg_item;
+		ptr = Conf->arg_item;
 	}
-	if(arg_type & ARGS_POINTER) switch(arg_type & ARGS_POINTER) {
+	if(arg_type & ARGS_POINTER)
+		switch(arg_type & ARGS_POINTER) {
 			case ARG_ON_OFF:
 			case ARG_INT: 		*(int*)ptr = iarg;			break;
 			case ARG_LONG:  	*(long*)ptr = larg;			break;
@@ -241,7 +248,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 				if(cc) {
 					if (arg_type & ARG_UNIQUE) {
 						Debug(LDAP_DEBUG_CONFIG, "%s: already set %s!\n",
-							c->log, Conf[i].name, 0 );
+							c->log, Conf->name, 0 );
 						return(ARG_BAD_CONF);
 					}
 					ch_free(cc);	/* potential memory leak */
@@ -249,8 +256,17 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 				*(char **)ptr = c->value_string;
 				break;
 				}
-	}
+			case ARG_BERVAL:
+				*(struct berval *)ptr = c->value_bv;
+				break;
+		}
 	return(arg_user);
+}
+
+int
+config_del_vals(ConfigTable *cf, ConfigArgs *c)
+{
+	int rc = 0;
 }
 
 int
@@ -267,7 +283,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 	memset(&c->values, 0, sizeof(c->values));
 	c->rvalue_vals = NULL;
 	c->rvalue_nvals = NULL;
-	c->emit = 1;
+	c->op = SLAP_CONFIG_EMIT;
 	c->type = cf->arg_type & ARGS_USERLAND;
 
 	if ( cf->arg_type & ARG_MAGIC ) {
@@ -295,19 +311,28 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 			if ( *(char **)ptr )
 				c->value_string = ch_strdup(*(char **)ptr);
 			break;
+		case ARG_BERVAL:
+			ber_dupbv( &c->value_bv, (struct berval *)ptr ); break;
 		}
 	}
 	if ( cf->arg_type & ARGS_POINTER) {
 		bv.bv_val = c->log;
 		switch(cf->arg_type & ARGS_POINTER) {
 		case ARG_INT: bv.bv_len = sprintf(bv.bv_val, "%d", c->value_int); break;
-		case ARG_LONG: bv.bv_len = sprintf(bv.bv_val, "%l", c->value_long); break;
-		case ARG_BER_LEN_T: bv.bv_len =sprintf(bv.bv_val, "%l",c->value_ber_t); break;
+		case ARG_LONG: bv.bv_len = sprintf(bv.bv_val, "%ld", c->value_long); break;
+		case ARG_BER_LEN_T: bv.bv_len = sprintf(bv.bv_val, "%ld", c->value_ber_t); break;
 		case ARG_ON_OFF: bv.bv_len = sprintf(bv.bv_val, "%s",
 			c->value_int ? "TRUE" : "FALSE"); break;
 		case ARG_STRING:
 			if ( c->value_string && c->value_string[0]) {
 				ber_str2bv( c->value_string, 0, 0, &bv);
+			} else {
+				return 1;
+			}
+			break;
+		case ARG_BERVAL:
+			if ( !BER_BVISEMPTY( &c->value_bv )) {
+				bv = c->value_bv;
 			} else {
 				return 1;
 			}
@@ -388,6 +413,7 @@ int
 read_config_file(const char *fname, int depth, ConfigArgs *cf)
 {
 	FILE *fp;
+	ConfigTable *ct;
 	ConfigArgs *c;
 	int rc;
 
@@ -430,6 +456,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		snprintf( c->log, sizeof( c->log ), "%s: line %lu",
 				c->fname, c->lineno );
 
+		c->argc = 0;
 		if ( fp_parse_line( c ) ) {
 			goto badline;
 		}
@@ -439,58 +466,69 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 			continue;
 		}
 
-		rc = parse_config_table( config_back_cf_table, c );
-		if ( !rc ) {
-			continue;
-		}
-		if ( rc & ARGS_USERLAND ) {
-			switch(rc) {	/* XXX a usertype would be opaque here */
-			default:
-				Debug(LDAP_DEBUG_CONFIG, "%s: unknown user type <%d>\n",
-					c->log, *c->argv, 0);
+		c->op = LDAP_MOD_ADD;
+
+		ct = config_find_keyword( config_back_cf_table, c );
+		if ( ct ) {
+			rc = config_add_vals( ct, c );
+			if ( !rc ) continue;
+
+			if ( rc & ARGS_USERLAND ) {
+				/* XXX a usertype would be opaque here */
+				Debug(LDAP_DEBUG_CONFIG, "%s: unknown user type <%s>\n",
+					c->log, c->argv[0], 0);
+				goto badline;
+
+			} else if ( rc == ARG_BAD_CONF ) {
 				goto badline;
 			}
-
-		} else if ( rc == ARG_BAD_CONF || rc != ARG_UNKNOWN ) {
-			goto badline;
 			
-		} else if ( c->bi && c->bi->bi_config ) {		/* XXX to check: could both be/bi_config? oops */
-			rc = (*c->bi->bi_config)(c->bi, c->fname, c->lineno, c->argc, c->argv);
+		} else if ( c->bi ) {
+			rc = SLAP_CONF_UNKNOWN;
+			if ( c->bi->bi_cf_table ) {
+				ct = config_find_keyword( c->bi->bi_cf_table, c );
+				if ( ct ) {
+					rc = config_add_vals( ct, c );
+				}
+			}
+			if ( c->bi->bi_config && rc == SLAP_CONF_UNKNOWN ) {
+				rc = (*c->bi->bi_config)(c->bi, c->fname, c->lineno,
+					c->argc, c->argv);
+			}
 			if ( rc ) {
 				switch(rc) {
 				case SLAP_CONF_UNKNOWN:
 					Debug(LDAP_DEBUG_CONFIG, "%s: "
 						"unknown directive <%s> inside backend info definition (ignored)\n",
-				   		c->log, *c->argv, 0);
+						c->log, *c->argv, 0);
 					continue;
 				default:
 					goto badline;
 				}
 			}
-			
+
 		} else if ( c->be ) {
+			rc = SLAP_CONF_UNKNOWN;
 			if ( c->be->be_cf_table ) {
-				rc = parse_config_table( c->be->be_cf_table, c );
-
-				if ( !rc ) continue;
-
-				if ( rc != ARG_UNKNOWN ) goto badline;
+				ct = config_find_keyword( c->be->be_cf_table, c );
+				if ( ct ) {
+					rc = config_add_vals( ct, c );
+				}
 			}
-
-			if ( c->be->be_config ) {
+			if ( c->be->be_config && rc == SLAP_CONF_UNKNOWN ) {
 				rc = (*c->be->be_config)(c->be, c->fname, c->lineno,
 					c->argc, c->argv);
-				if ( rc ) {
-					switch(rc) {
-					case SLAP_CONF_UNKNOWN:
-						Debug( LDAP_DEBUG_CONFIG, "%s: "
-							"unknown directive <%s> inside backend database "
-							"definition (ignored)\n",
-							c->log, *c->argv, 0);
-						continue;
-					default:
-						goto badline;
-					}
+			}
+			if ( rc ) {
+				switch(rc) {
+				case SLAP_CONF_UNKNOWN:
+					Debug( LDAP_DEBUG_CONFIG, "%s: "
+						"unknown directive <%s> inside backend database "
+						"definition (ignored)\n",
+						c->log, *c->argv, 0);
+					continue;
+				default:
+					goto badline;
 				}
 			}
 
@@ -709,13 +747,13 @@ void bindconf_free( slap_bindconf *bc ) {
 
 
 static char *
-strtok_quote( char *line, char *sep )
+strtok_quote( char *line, char *sep, char **quote_ptr )
 {
 	int		inquote;
 	char		*tmp;
 	static char	*next;
 
-	strtok_quote_ptr = NULL;
+	*quote_ptr = NULL;
 	if ( line != NULL ) {
 		next = line;
 	}
@@ -750,7 +788,7 @@ strtok_quote( char *line, char *sep )
 		default:
 			if ( ! inquote ) {
 				if ( strchr( sep, *next ) != NULL ) {
-					strtok_quote_ptr = next;
+					*quote_ptr = next;
 					*next++ = '\0';
 					return( tmp );
 				}
@@ -838,17 +876,18 @@ fp_parse_line(ConfigArgs *c)
 	char *token;
 	char *tline = ch_strdup(c->line);
 	char *hide[] = { "rootpw", "replica", "bindpw", "pseudorootpw", "dbpasswd", '\0' };
+	char *quote_ptr;
 	int i;
 
-	c->argc = 0;
-	token = strtok_quote(tline, " \t");
+	token = strtok_quote(tline, " \t", &quote_ptr);
 
 	if(token) for(i = 0; hide[i]; i++) if(!strcasecmp(token, hide[i])) break;
-	if(strtok_quote_ptr) *strtok_quote_ptr = ' ';
-	Debug(LDAP_DEBUG_CONFIG, "line %lu (%s%s)\n", c->lineno, hide[i] ? hide[i] : c->line, hide[i] ? " ***" : "");
-	if(strtok_quote_ptr) *strtok_quote_ptr = '\0';
+	if(quote_ptr) *quote_ptr = ' ';
+	Debug(LDAP_DEBUG_CONFIG, "line %lu (%s%s)\n", c->lineno,
+		hide[i] ? hide[i] : c->line, hide[i] ? " ***" : "");
+	if(quote_ptr) *quote_ptr = '\0';
 
-	for(; token; token = strtok_quote(NULL, " \t")) {
+	for(; token; token = strtok_quote(NULL, " \t", &quote_ptr)) {
 		if(c->argc == c->argv_size - 1) {
 			char **tmp;
 			tmp = ch_realloc(c->argv, (c->argv_size + ARGS_STEP) * sizeof(*c->argv));
@@ -928,4 +967,25 @@ slap_str2clist( char ***out, char *in, const char *brkstr )
 	*new = NULL;
 	free( str );
 	return( *out );
+}
+
+int config_generic_wrapper( Backend *be, const char *fname, int lineno,
+	int argc, char **argv )
+{
+	ConfigArgs c = { 0 };
+	ConfigTable *ct;
+	int rc;
+
+	c.be = be;
+	c.fname = fname;
+	c.lineno = lineno;
+	c.argc = argc;
+	c.argv = argv;
+	sprintf( c.log, "%s: line %lu", fname, lineno );
+
+	rc = SLAP_CONF_UNKNOWN;
+	ct = config_find_keyword( be->be_cf_table, &c );
+	if ( ct )
+		rc = config_add_vals( ct, &c );
+	return rc;
 }

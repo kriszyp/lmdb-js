@@ -980,8 +980,8 @@ static int slap_open_listener(
 		case AF_LOCAL:
 #ifdef LOCAL_CREDS
 		{
-		    int one = 1;
-		    setsockopt(l.sl_sd, 0, LOCAL_CREDS, &one, sizeof one);
+			int one = 1;
+			setsockopt(l.sl_sd, 0, LOCAL_CREDS, &one, sizeof one);
 		}
 #endif
 		addrlen = sizeof(struct sockaddr_un);
@@ -1672,7 +1672,7 @@ slapd_daemon_task(
 		}
 		ldap_pvt_thread_mutex_unlock( &slapd_rq.rq_mutex );
 
-		if ( cat != NULL ) {
+		if ( cat && cat->tv_sec ) {
 			time_t diff = difftime( cat->tv_sec, now );
 			if ( diff == 0 )
 				diff = tdelta;

@@ -271,7 +271,11 @@ glue_op_search ( Operation *op, SlapReply *rs )
 
 	switch (op->ors_scope) {
 	case LDAP_SCOPE_BASE:
-		return SLAP_CB_CONTINUE;
+		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+		if (op->o_bd && op->o_bd->be_search) {
+			rs->sr_err = op->o_bd->be_search( op, rs );
+		}
+		return rs->sr_err;
 
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:

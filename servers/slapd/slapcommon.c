@@ -108,6 +108,7 @@ slap_tool_init(
 {
 	char *options;
 	char *conffile = SLAPD_DEFAULT_CONFIGFILE;
+	char *confdir = SLAPD_DEFAULT_CONFIGDIR;
 	struct berval base = BER_BVNULL;
 	char *filterstr = NULL;
 	char *subtree = NULL;
@@ -127,36 +128,36 @@ slap_tool_init(
 
 	switch( tool ) {
 	case SLAPADD:
-		options = "b:cd:f:l:n:qtuvw";
+		options = "b:cd:f:F:l:n:qtuvw";
 		break;
 
 	case SLAPCAT:
-		options = "a:b:cd:f:l:n:s:v";
+		options = "a:b:cd:f:F:l:n:s:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPDN:
-		options = "d:f:v";
+		options = "d:f:F:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPTEST:
-		options = "d:f:uv";
+		options = "d:f:F:uv";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPAUTH:
-		options = "d:f:M:R:U:vX:";
+		options = "d:f:F:M:R:U:vX:";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
 	case SLAPINDEX:
-		options = "b:cd:f:n:qv";
+		options = "b:cd:f:F:n:qv";
 		mode |= SLAP_TOOL_READMAIN;
 		break;
 
 	case SLAPACL:
-		options = "b:D:d:f:U:v";
+		options = "b:D:d:f:F:U:v";
 		mode |= SLAP_TOOL_READMAIN | SLAP_TOOL_READONLY;
 		break;
 
@@ -190,6 +191,10 @@ slap_tool_init(
 
 		case 'f':	/* specify a conf file */
 			conffile = strdup( optarg );
+			break;
+
+		case 'F':	/* specify a conf dir */
+			confdir = strdup( optarg );
 			break;
 
 		case 'l':	/* LDIF file */
@@ -336,7 +341,7 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
-	rc = read_config( conffile, 0 );
+	rc = read_config( conffile, confdir );
 
 	if ( rc != 0 ) {
 		fprintf( stderr, "%s: bad configuration file!\n", progname );

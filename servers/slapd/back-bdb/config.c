@@ -122,7 +122,7 @@ static ConfigOCs bdbocs[] = {
 static int
 bdb_cf_oc(ConfigArgs *c)
 {
-	if ( c->emit ) {
+	if ( c->op == SLAP_CONFIG_EMIT ) {
 		value_add_one( &c->rvalue_vals, &bdb_oc->soc_cname );
 		return 0;
 	}
@@ -144,7 +144,7 @@ bdb_cf_gen(ConfigArgs *c)
 	struct bdb_info *bdb = c->be->be_private;
 	int rc;
 
-	if ( c->emit ) {
+	if ( c->op == SLAP_CONFIG_EMIT ) {
 		rc = 0;
 		switch( c->type ) {
 		case BDB_CHKPT:
@@ -240,28 +240,8 @@ int bdb_back_init_cf( BackendInfo *bi )
 	int rc;
 	bi->bi_cf_table = bdbcfg;
 
-	rc = init_config_attrs( bdbcfg );
+	rc = config_register_schema( bdbcfg, bdbocs );
 	if ( rc ) return rc;
 	bdbcfg[0].ad = slap_schema.si_ad_objectClass;
-	rc = init_config_ocs( bdbocs );
-	return rc;
-}
-
-int bdb_db_config( Backend *be, const char *fname, int lineno, int argc,
-	char **argv )
-{
-	ConfigArgs c = { 0 };
-	int rc;
-
-	c.be = be;
-	c.fname = fname;
-	c.lineno = lineno;
-	c.argc = argc;
-	c.argv = argv;
-	sprintf( c.log, "%s: line %lu", fname, lineno );
-
-	rc = parse_config_table( bdbcfg, &c );
-	if ( rc == ARG_UNKNOWN )
-		rc = SLAP_CONF_UNKNOWN;
-	return rc;
+	return 0;
 }

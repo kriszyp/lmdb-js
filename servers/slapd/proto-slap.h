@@ -439,7 +439,7 @@ LDAP_SLAPD_F (int) slap_global_control LDAP_P ((
 /*
  * config.c
  */
-LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
+LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, const char *dir ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) slap_str2clist LDAP_P((
 	char ***, char *, const char * ));
@@ -454,6 +454,8 @@ LDAP_SLAPD_F (int) bindconf_parse LDAP_P((
 LDAP_SLAPD_F (int) bindconf_unparse LDAP_P((
 	slap_bindconf *bc, struct berval *bv ));
 LDAP_SLAPD_F (void) bindconf_free LDAP_P(( slap_bindconf *bc ));
+LDAP_SLAPD_F (int) config_generic_wrapper LDAP_P(( Backend *be,
+	const char *fname, int lineno, int argc, char **argv ));
 
 #ifdef LDAP_SLAPI
 LDAP_SLAPD_V (int) slapi_plugins_used;

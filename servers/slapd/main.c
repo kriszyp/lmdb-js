@@ -253,8 +253,10 @@ int main( int argc, char **argv )
 
 #ifdef HAVE_NT_SERVICE_MANAGER
 	char		*configfile = ".\\slapd.conf";
+	char		*configdir = ".\\slapd.d";
 #else
 	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
+	char		*configdir = SLAPD_DEFAULT_CONFIGDIR;
 #endif
 	char	    *serverName;
 	int	    serverMode = SLAP_SERVER_MODE;
@@ -288,6 +290,7 @@ int main( int argc, char **argv )
 	{
 		int *i;
 		char *newConfigFile;
+		char *newConfigDir;
 		char *newUrls;
 		char *regService = NULL;
 
@@ -319,11 +322,17 @@ int main( int argc, char **argv )
 			configfile = newConfigFile;
 			Debug ( LDAP_DEBUG_ANY, "new config file from registry is: %s\n", configfile, 0, 0 );
 		}
+
+		newConfigDir = (char*)lutil_getRegParam( regService, "ConfigDir" );
+		if ( newConfigDir != NULL ) {
+			configdir = newConfigDir;
+			Debug ( LDAP_DEBUG_ANY, "new config dir from registry is: %s\n", configdir, 0, 0 );
+		}
 	}
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:f:h:n:o:s:StT:V"
+			     "c:d:f:F:h:n:o:s:StT:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -383,6 +392,10 @@ int main( int argc, char **argv )
 
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );
+			break;
+
+		case 'F':	/* use config dir */
+			configdir = ch_strdup( optarg );
 			break;
 
 		case 'o': {
@@ -624,7 +637,7 @@ unhandled_option:;
 	}
 #endif /* SLAP_DYNACL */
 
-	if ( read_config( configfile, 0 ) != 0 ) {
+	if ( read_config( configfile, configdir ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
 

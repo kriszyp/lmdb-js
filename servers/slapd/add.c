@@ -205,6 +205,7 @@ fe_op_add( Operation *op, SlapReply *rs )
 	Modifications	*modlist = op->ora_modlist;
 	Modifications	**modtail = &modlist;
 	int		rc = 0;
+	BackendDB *op_be;
 
 	manageDSAit = get_manageDSAit( op );
 
@@ -234,6 +235,12 @@ fe_op_add( Operation *op, SlapReply *rs )
 			op->o_bd = NULL;
 		}
 		goto done;
+	}
+
+	/* If we've got a glued backend, check the real backend */
+	op_be = op->o_bd;
+	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
+		op->o_bd = select_backend( &e->e_nname, manageDSAit, 0 );
 	}
 
 	/* check restrictions */
@@ -268,6 +275,8 @@ fe_op_add( Operation *op, SlapReply *rs )
 			char		textbuf[ SLAP_TEXT_BUFLEN ];
 			size_t		textlen = sizeof( textbuf );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
+
+			op->o_bd = op_be;
 
 			if ( !update ) {
 				rs->sr_err = slap_mods_no_update_check( modlist,

@@ -107,6 +107,7 @@ fe_op_delete( Operation *op, SlapReply *rs )
 {
 	struct berval	pdn = BER_BVNULL;
 	int		manageDSAit;
+	BackendDB *op_be;
 	
 	manageDSAit = get_manageDSAit( op );
 
@@ -136,6 +137,12 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			op->o_bd = NULL;
 		}
 		goto cleanup;
+	}
+
+	/* If we've got a glued backend, check the real backend */
+	op_be = op->o_bd;
+	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
+		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
 	}
 
 	/* check restrictions */
@@ -195,6 +202,8 @@ fe_op_delete( Operation *op, SlapReply *rs )
 			struct berval	org_ndn = BER_BVNULL;
 			int		org_managedsait;
 			slap_callback 	cb = { NULL, slap_replog_cb, NULL, NULL };
+
+			op->o_bd = op_be;
 
 			if ( !repl_user ) {
 				struct berval csn = BER_BVNULL;

@@ -58,20 +58,21 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef LDAP_DEVEL
 #define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
+
+#ifdef LDAP_DEVEL
 #define SLAP_DYNACL
-#define LDAP_COMP_MATCH			/* experimental */
+#define LDAP_COMP_MATCH
 #define LDAP_DYNAMIC_OBJECTS
 #define LDAP_SYNC_TIMESTAMP
 #define LDAP_COLLECTIVE_ATTRIBUTES
 #define SLAP_CONTROL_X_TREE_DELETE LDAP_CONTROL_X_TREE_DELETE
+
+#ifdef ENABLE_REWRITE
+#define SLAP_AUTH_REWRITE	1 /* use librewrite for sasl-regexp */
+#endif
 #endif
 
-#if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
-/* use librewrite for sasl-regexp */
-#define SLAP_AUTH_REWRITE	1
-#endif /* LDAP_DEVEL && ENABLE_REWRITE */
 
 /*
  * SLAPD Memory allocation macros
@@ -822,6 +823,7 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_monitorContext;
 	AttributeDescription *si_ad_vendorName;
 	AttributeDescription *si_ad_vendorVersion;
+	AttributeDescription *si_ad_configContext;
 
 	/* subentry attribute descriptions */
 	AttributeDescription *si_ad_administrativeRole;
@@ -2029,6 +2031,7 @@ struct slap_backend_info {
 
 	slap_mask_t	bi_flags; /* backend flags */
 #define SLAP_BFLAG_MONITOR			0x0001U /* a monitor backend */
+#define SLAP_BFLAG_CONFIG			0x0002U /* a config backend */
 #define SLAP_BFLAG_NOLASTMODCMD		0x0010U
 #define SLAP_BFLAG_INCREMENT		0x0100U
 #define SLAP_BFLAG_ALIASES			0x1000U
@@ -2038,6 +2041,7 @@ struct slap_backend_info {
 
 #define SLAP_BFLAGS(be)		((be)->bd_info->bi_flags)
 #define SLAP_MONITOR(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_MONITOR)
+#define SLAP_CONFIG(be)		(SLAP_BFLAGS(be) & SLAP_BFLAG_CONFIG)
 #define SLAP_INCREMENT(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_INCREMENT)
 #define SLAP_ALIASES(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_ALIASES)
 #define SLAP_REFERRALS(be)	(SLAP_BFLAGS(be) & SLAP_BFLAG_REFERRALS)
