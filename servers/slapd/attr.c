@@ -67,6 +67,8 @@ Attribute *attr_dup( Attribute *a )
 
 		for( i=0; a->a_vals[i] != NULL; i++ ) {
 			tmp->a_vals[i] = ber_bvdup( a->a_vals[i] );
+
+			if( tmp->a_vals[i] == NULL ) break;
 		}
 
 		tmp->a_vals[i] = NULL;
