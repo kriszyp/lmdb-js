@@ -496,8 +496,9 @@ retry:	/* transaction retry */
 
 		if ( rs->sr_err == LDAP_SUCCESS && !op->o_no_psearch ) {
 			ldap_pvt_thread_rdwr_rlock( &bdb->bi_pslist_rwlock );
+			assert( BEI(e) );
 			LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
-				bdb_psearch( op, rs, ps_list, op->oq_add.rs_e,
+				bdb_psearch( op, rs, ps_list, e,
 					LDAP_PSEARCH_BY_ADD );
 			}
 			ldap_pvt_thread_rdwr_runlock( &bdb->bi_pslist_rwlock );
