@@ -32,6 +32,9 @@ is provided ``as is'' without express or implied warranty.
 #ifndef _LDAP_PORTABLE_H
 #define _LDAP_PORTABLE_H
 
+/* MSVC5 doesn't define _STDC_, but requires prototypes */
+#define __NEED_PROTOTYPES 1
+
 /* we installed Henry Spencer's REGEX */
 #define HAVE_REGEX_H 1
 

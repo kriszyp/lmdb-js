@@ -30,8 +30,6 @@
 
 #include "ldap-int.h"
 
-int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
-void free_strarray LDAP_P(( char **sap ));
 static int next_line LDAP_P(( char **bufp, long *blenp, char **linep ));
 static char *next_token LDAP_P(( char ** sp ));
 

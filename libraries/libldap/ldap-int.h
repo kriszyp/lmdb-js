@@ -155,6 +155,11 @@ void ldap_add_request_to_cache LDAP_P(( LDAP *ld, unsigned long msgtype,
 void ldap_add_result_to_cache LDAP_P(( LDAP *ld, LDAPMessage *result ));
 int ldap_check_cache LDAP_P(( LDAP *ld, unsigned long msgtype, BerElement *request ));
 
+/*
+ * in dparse.c
+ */
+int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
+void free_strarray LDAP_P(( char **sap ));
 
 #ifdef HAVE_KERBEROS
 /*
@@ -257,8 +262,8 @@ int ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input );
 extern 
 int ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input );
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
+ #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
 LDAP_END_DECL
-#endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
 
 #endif /* _LDAP_INT_H */

@@ -33,8 +33,6 @@
 static void free_disptmpl LDAP_P(( struct ldap_disptmpl *tmpl ));
 static int read_next_tmpl LDAP_P(( char **bufp, long *blenp,
 	struct ldap_disptmpl **tmplp, int dtversion ));
-int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
-void free_strarray LDAP_P(( char **sap ));
 
 static char		*tmploptions[] = {
     "addable", "modrdn",

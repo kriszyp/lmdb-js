@@ -30,8 +30,6 @@
 #include "ldap-int.h"
 #include "srchpref.h"
 
-int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
-void free_strarray LDAP_P(( char **sap ));
 static void free_searchobj LDAP_P(( struct ldap_searchobj *so ));
 static int read_next_searchobj LDAP_P(( char **bufp, long *blenp,
 	struct ldap_searchobj **sop, int soversion ));

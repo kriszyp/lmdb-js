@@ -32,7 +32,6 @@ static LDAPMessage *ldap_msg_merge LDAP_P(( LDAP *ld, LDAPMessage *a, LDAPMessag
 static LDAPMessage *ldap_ufn_expand LDAP_P(( LDAP *ld, cancelptype cancelproc,
 	void *cancelparm, char **dns, char *filter, int scope,
 	char **attrs, int aonly, int *err ));
-LDAPFiltDesc *ldap_ufn_setfilter LDAP_P(( LDAP *ld, char *fname ));
 
 /*
  * ldap_ufn_search_ctx - do user friendly searching; provide cancel feature;

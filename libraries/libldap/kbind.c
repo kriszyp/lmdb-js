@@ -40,7 +40,6 @@ ldap_kerberos_bind1( LDAP *ld, char *dn )
 	BerElement	*ber;
 	char		*cred;
 	int		rc, credlen;
-	char		*ldap_get_kerberosv4_credentials();
 #ifdef STR_TRANSLATION
 	int		str_translation_on;
 #endif /* STR_TRANSLATION */
@@ -147,7 +146,6 @@ ldap_kerberos_bind2( LDAP *ld, char *dn )
 	BerElement	*ber;
 	char		*cred;
 	int		rc, credlen;
-	char		*ldap_get_kerberosv4_credentials();
 #ifdef STR_TRANSLATION
 	int		str_translation_on;
 #endif /* STR_TRANSLATION */
