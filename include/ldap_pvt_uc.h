@@ -144,6 +144,11 @@ LDAP_LUNICODE_F(char *) UTF8normalize(
 	struct berval *,
 	unsigned );
 
+LDAP_LUNICODE_F(struct berval *) UTF8bvnormalize(
+	struct berval *,
+	struct berval *,
+	unsigned );
+
 LDAP_LUNICODE_F(int) UTF8normcmp(
 	const char *,
 	const char *,

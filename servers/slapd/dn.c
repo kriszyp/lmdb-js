@@ -298,9 +298,10 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			if( mr && ( mr->smr_usage & SLAP_MR_DN_FOLD ) ) {
 				char *s = bv.bv_val;
 
-				ber_str2bv( UTF8normalize( bv.bv_val ? &bv
-					: &ava->la_value, LDAP_UTF8_CASEFOLD ),
-					0, 0, &bv );
+				if ( UTF8bvnormalize( &bv, &bv, 
+						LDAP_UTF8_CASEFOLD ) == NULL ) {
+					return LDAP_INVALID_SYNTAX;
+				}
 				free( s );
 			}
 

@@ -609,8 +609,7 @@ UTF8SubstringsassertionNormalize(
 	}
 
 	if( sa->sa_initial.bv_val != NULL ) {
-		ber_str2bv( UTF8normalize( &sa->sa_initial, casefold ), 0,
-			0, &nsa->sa_initial );
+		UTF8bvnormalize( &sa->sa_initial, &nsa->sa_initial, casefold );
 		if( nsa->sa_initial.bv_val == NULL ) {
 			goto err;
 		}
@@ -622,8 +621,8 @@ UTF8SubstringsassertionNormalize(
 		}
 		nsa->sa_any = (struct berval *)ch_malloc( (i + 1) * sizeof(struct berval) );
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
-			ber_str2bv( UTF8normalize( &sa->sa_any[i], casefold ),
-				0, 0, &nsa->sa_any[i] );
+			UTF8bvnormalize( &sa->sa_any[i], &nsa->sa_any[i], 
+					casefold );
 			if( nsa->sa_any[i].bv_val == NULL ) {
 				goto err;
 			}
@@ -632,8 +631,7 @@ UTF8SubstringsassertionNormalize(
 	}
 
 	if( sa->sa_final.bv_val != NULL ) {
-		ber_str2bv( UTF8normalize( &sa->sa_final, casefold ), 0,
-			0, &nsa->sa_final );
+		UTF8bvnormalize( &sa->sa_final, &nsa->sa_final, casefold );
 		if( nsa->sa_final.bv_val == NULL ) {
 			goto err;
 		}
@@ -1045,7 +1043,7 @@ caseExactIgnoreSubstringsMatch(
 {
 	int match = 0;
 	SubstringsAssertion *sub = NULL;
-	struct berval left;
+	struct berval left = { 0, NULL };
 	int i;
 	ber_len_t inlen=0;
 	char *nav;
@@ -1054,13 +1052,11 @@ caseExactIgnoreSubstringsMatch(
 	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
-	nav = UTF8normalize( value, casefold );
-	if( nav == NULL ) {
+	if ( UTF8bvnormalize( value, &left, casefold ) == NULL ) {
 		match = 1;
 		goto done;
 	}
-	left.bv_val = nav;
-	left.bv_len = strlen( nav );
+	nav = left.bv_val;
 
 	sub = UTF8SubstringsassertionNormalize( assertedValue, casefold );
 	if( sub == NULL ) {
