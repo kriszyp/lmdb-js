@@ -135,6 +135,8 @@ LDAP_END_DECL
 #define LDBM_LOCKING	0
 #ifdef GDBM_NOLOCK
 #define LDBM_NOLOCKING	GDBM_NOLOCK
+#else
+#define LDBM_NOLOCKING	0
 #endif
 
 #define LDBM_SUFFIX	".gdbm"
