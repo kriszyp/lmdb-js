@@ -771,7 +771,6 @@ static int parseProxyAuthz (
 		}
 		rs->sr_text = "authzId mapping failed";
 		return LDAP_PROXY_AUTHZ_FAILURE;
-
 	}
 
 #ifdef NEW_LOGGING

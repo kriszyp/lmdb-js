@@ -164,7 +164,8 @@ do_search(
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ARGS, 
 		"do_search: conn %d	filter: %s\n", 
-		op->o_connid, !BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0 );
+		op->o_connid, !BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty",
+		0 );
 #else
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n",
 		!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
