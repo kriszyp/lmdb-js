@@ -1033,9 +1033,11 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	 * to return, and remap them accordingly */
 	(void)rwm_attrs( op, rs, &e->e_attrs, 1 );
 
+#if 0
 	if ( rs->sr_operational_attrs ) {
 		(void)rwm_attrs( op, rs, &rs->sr_operational_attrs, 0 );
 	}
+#endif
 
 	rs->sr_entry = e;
 	rs->sr_flags = flags;

@@ -1809,18 +1809,7 @@ int backend_operational(
 	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || rs->sr_attrs ) &&
 		op->o_bd && op->o_bd->be_operational != NULL )
 	{
-		Attribute	*a;
-		
-		a = rs->sr_operational_attrs;
-		rs->sr_operational_attrs = NULL;
 		rc = op->o_bd->be_operational( op, rs );
-		*ap = rs->sr_operational_attrs;
-		if ( a != NULL ) {
-			rs->sr_operational_attrs = a;
-		}
-
-		for ( ; *ap; ap = &(*ap)->a_next )
-			/* just count them */ ;
 	}
 	op->o_bd = be_orig;
 
