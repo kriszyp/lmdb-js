@@ -49,6 +49,9 @@ void *getRegParam( char *svc, char *value );
 #endif
 
 short port = LDAP_PORT;
+#ifdef HAVE_TLS
+short tls_port = LDAP_TLS_PORT;
+#endif
 /*
  * when more than one slapd is running on one machine, each one might have
  * it's own LOCAL for syslogging and must have its own pid/args files
@@ -114,6 +117,10 @@ usage( char *name )
 time_t starttime;
 struct sockaddr_in	bind_addr;
 ber_int_t tcps;
+#ifdef HAVE_TLS
+struct sockaddr_in	tls_bind_addr;
+ber_int_t tls_tcps;
+#endif
 
 #ifdef HAVE_WINSOCK
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
@@ -146,6 +153,11 @@ int main( int argc, char **argv )
 	bind_addr.sin_family = AF_INET;
 	bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	bind_addr.sin_port = htons(port);
+#ifdef HAVE_TLS
+	tls_bind_addr.sin_family = AF_INET;
+	tls_bind_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+	tls_bind_addr.sin_port = htons(tls_port);
+#endif
 
 	g_argc = argc;
 	g_argv = argv;
@@ -196,6 +208,9 @@ int main( int argc, char **argv )
 #ifdef HAVE_WINSOCK
 				 "n:"
 #endif
+#ifdef HAVE_TLS
+			     "P:"
+#endif
 			     )) != EOF ) {
 		switch ( i ) {
 		case 'a':	/* bind address */
@@ -207,6 +222,13 @@ int main( int argc, char **argv )
 			{
 				fprintf(stderr, "invalid address (%s) for -a option", optarg);
 			}
+#ifdef HAVE_TLS
+#ifdef HAVE_WINSOCK
+			tls_bind_addr.sin_addr.S_un.S_addr = inet_addr(optarg);
+#else
+			inet_aton(optarg, &tls_bind_addr.sin_addr);
+#endif
+#endif
             break;
 
 #ifdef LDAP_DEBUG
@@ -267,6 +289,17 @@ int main( int argc, char **argv )
 					bind_addr.sin_port = htons(port);
 				}
 			} break;
+
+#ifdef HAVE_TLS
+		case 'P': {	/* port on which to listen for TLS */
+				tls_port = (short)atoi( optarg );
+				if(! tls_port ) {
+					fprintf(stderr, "-P %s must be numeric\n", optarg);
+				} else {
+					tls_bind_addr.sin_port = htons(tls_port);
+				}
+			} break;
+#endif
 
 		case 's':	/* set syslog level */
 			ldap_syslog = atoi( optarg );
@@ -353,6 +386,11 @@ int main( int argc, char **argv )
 	tcps = set_socket( inetd ? NULL : &bind_addr );
 	if ( tcps == -1 )
 		goto destroy;
+#ifdef HAVE_TLS
+	tls_tcps = set_socket( inetd ? NULL : &tls_bind_addr );
+	if ( tls_tcps == -1 )
+		goto destroy;
+#endif
 
 	(void) SIGNAL( LDAP_SIGUSR1, slap_do_nothing );
 	(void) SIGNAL( LDAP_SIGUSR2, slap_set_shutdown );
@@ -392,6 +430,9 @@ int main( int argc, char **argv )
 		FILE *fp;
 
 		args.addr = &bind_addr;
+#ifdef HAVE_TLS
+		args.tls_addr = &tls_bind_addr;
+#endif
 
 		Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 
@@ -414,8 +455,14 @@ int main( int argc, char **argv )
 
 	} else {
 		args.addr = NULL;
+#ifdef HAVE_TLS
+		args.tls_addr = NULL;
+#endif
 	}
 	args.tcps = tcps;
+#ifdef HAVE_TLS
+	args.tls_tcps = tls_tcps;
+#endif
 
 	time( &starttime );
 #ifdef HAVE_WINSOCK

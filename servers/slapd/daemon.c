@@ -22,7 +22,16 @@ int deny_severity = LOG_NOTICE;
 
 /* globals */
 ber_socket_t dtblsize;
-static ber_socket_t tcps;
+#ifdef HAVE_TLS
+#define N_LISTENERS 2
+#else
+#define N_LISTENERS 1
+#endif
+struct listener_rec {
+	ber_socket_t		tcps;
+	struct sockaddr_in	*addr;
+	int			use_tls;
+} listeners[N_LISTENERS];
 
 #ifdef HAVE_WINSOCK2
 /* in nt_main.c */
@@ -283,11 +292,18 @@ slapd_daemon_task(
 {
 	int inetd;
 	struct slapd_args *args = (struct slapd_args *) ptr;
-	struct sockaddr_in *slapd_addr = args->addr;
+	int l;
 
-	tcps  = args->tcps;
+	listeners[0].tcps = args->tcps;
+	listeners[0].addr = args->addr;
+	listeners[0].use_tls = 0;
+#ifdef HAVE_TLS
+	listeners[1].tcps = args->tls_tcps;
+	listeners[1].addr = args->tls_addr;
+	listeners[1].use_tls = 1;
+#endif
 
-	inetd = ( slapd_addr == NULL);
+	inetd = ( listeners[0].addr == NULL);
     if ( !daemon_initialized ) sockinit();
 
 	slapd_listener=1;
@@ -297,17 +313,19 @@ slapd_daemon_task(
 	FD_ZERO( &slap_daemon.sd_writers );
 
 	if( !inetd ) {
-		if ( listen( tcps, 5 ) == -1 ) {
-			int err = errno;
-			Debug( LDAP_DEBUG_ANY,
+		for ( l = 0; l < N_LISTENERS; l++ ) {
+			if ( listen( listeners[l].tcps, 5 ) == -1 ) {
+				int err = errno;
+				Debug( LDAP_DEBUG_ANY,
 				"daemon: listen(%ld, 5) failed errno %d (%s)\n",
-			    (long) tcps, err,
-				err > -1 && err < sys_nerr
-					? sys_errlist[err] : "unknown" );
-			return( (void*)-1 );
-		}
+				       (long) listeners[l].tcps, err,
+				       err > -1 && err < sys_nerr
+				       ? sys_errlist[err] : "unknown" );
+				return( (void*)-1 );
+			}
 
-		slapd_add( tcps );
+			slapd_add( listeners[l].tcps );
+		}
 
 	} else {
 		if( connection_init( (ber_socket_t) 0, NULL, NULL ) ) {
@@ -381,7 +399,9 @@ slapd_daemon_task(
 		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
 
-		FD_SET( (unsigned) tcps, &readfds );
+		for ( l = 0; l < N_LISTENERS; l++ ) {
+			FD_SET( (unsigned) listeners[l].tcps, &readfds );
+		}
 
 #ifndef HAVE_WINSOCK
 		nfds = slap_daemon.sd_nfds;
@@ -401,12 +421,12 @@ slapd_daemon_task(
 		tvp = at ? &zero : NULL;
 #endif
 
-		Debug( LDAP_DEBUG_CONNS,
+		for ( i = 0; i < N_LISTENERS; i++ ) {
+			Debug( LDAP_DEBUG_CONNS,
 			"daemon: select: tcps=%d active_threads=%d tvp=%s\n",
-		    tcps, at,
-			tvp == NULL ? "NULL" : "zero" );
-	   
-
+			       listeners[i].tcps, at,
+			       tvp == NULL ? "NULL" : "zero" );
+		}
 
 		switch(ns = select( nfds, &readfds,
 #ifdef HAVE_WINSOCK
@@ -456,18 +476,22 @@ slapd_daemon_task(
 			/* FALL THRU */
 		}
 
-		if ( FD_ISSET( tcps, &readfds ) ) {
+		for ( l = 0; l < N_LISTENERS; l++ ) {
 			ber_int_t s;
 			int len = sizeof(from);
 			long id;
 
-			if ( (s = accept( tcps,
+			if ( !FD_ISSET( listeners[l].tcps, &readfds ) )
+				continue;
+
+			if ( (s = accept( listeners[l].tcps,
 				(struct sockaddr *) &from, &len )) == AC_SOCKET_INVALID )
 			{
 				int err = errno;
 				Debug( LDAP_DEBUG_ANY,
 				    "daemon: accept(%ld) failed errno %d (%s)\n", err,
-				    (long) tcps, err >= 0 && err < sys_nerr ?
+				    (long) listeners[l].tcps,
+				    err >= 0 && err < sys_nerr ?
 				    sys_errlist[err] : "unknown");
 				continue;
 			}
@@ -582,10 +606,20 @@ slapd_daemon_task(
 #else
 		for ( i = 0; i < nfds; i++ ) {
 			int	a, r, w;
+			int	is_listener = 0;
 
+			for ( l = 0; l < N_LISTENERS; l++ ) {
+				if ( i == listeners[l].tcps ) {
+					is_listener = 1;
+					break;
+				}
+			}
+			if ( is_listener ) {
+				continue;
+			}
 			r = FD_ISSET( i, &readfds );
 			w = FD_ISSET( i, &writefds );
-			if ( i != tcps && (r || w) ) {
+			if ( r || w ) {
 				Debug( LDAP_DEBUG_CONNS, " %d%s%s", i,
 				    r ? "r" : "", w ? "w" : "" );
 			}
@@ -602,7 +636,7 @@ slapd_daemon_task(
 #endif
 		{
 			ber_socket_t wd;
-
+			int is_listener = 0;
 #ifdef HAVE_WINSOCK
 			wd = writefds.fd_array[i];
 #else
@@ -612,7 +646,13 @@ slapd_daemon_task(
 			wd = i;
 #endif
 
-			if ( wd == tcps ) {
+			for ( l = 0; l < N_LISTENERS; l++ ) {
+				if ( wd == listeners[l].tcps ) {
+					is_listener = 1;
+					break;
+				}
+			}
+			if ( is_listener ) {
 				continue;
 			}
 			Debug( LDAP_DEBUG_CONNS,
@@ -639,6 +679,7 @@ slapd_daemon_task(
 #endif
 		{
 			ber_socket_t rd;
+			int is_listener = 0;
 
 #ifdef HAVE_WINSOCK
 			rd = readfds.fd_array[i];
@@ -649,7 +690,13 @@ slapd_daemon_task(
 			rd = i;
 #endif
 
-			if ( rd == tcps ) {
+			for ( l = 0; l < N_LISTENERS; l++ ) {
+				if ( rd == listeners[l].tcps ) {
+					is_listener = 1;
+					break;
+				}
+			}
+			if ( is_listener ) {
 				continue;
 			}
 
@@ -685,8 +732,10 @@ slapd_daemon_task(
 			0, 0, 0 );
 	}
 
-	if( tcps >= 0 ) {
-		slapd_close( tcps );
+	for ( l = 0; l < N_LISTENERS; l++ ) {
+		if ( listeners[l].tcps >= 0 ) {
+			slapd_close( listeners[l].tcps );
+		}
 	}
 
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
@@ -823,6 +872,7 @@ void sockinit()
 void
 slap_set_shutdown( int sig )
 {
+	int l;
 	slapd_shutdown = sig;
 #ifndef HAVE_WINSOCK
 	if(slapd_listener) {
@@ -833,7 +883,11 @@ slap_set_shutdown( int sig )
 	/* trying to "hit" the socket seems to always get a */
 	/* EWOULDBLOCK error, so just close the listen socket to */
 	/* break out of the select since we're shutting down anyway */
-	tcp_close( tcps );
+	for ( l = 0; l < N_LISTENERS; l++ ) {
+		if ( listeners[l].tcps >= 0 ) {
+			tcp_close( listeners[l].tcps );
+		}
+	}
 #endif
 	/* reinstall self */
 	(void) SIGNAL( sig, slap_set_shutdown );
