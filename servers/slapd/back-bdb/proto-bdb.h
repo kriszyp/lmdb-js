@@ -469,6 +469,7 @@ void bdb_cache_delete_cleanup(
 void bdb_cache_release_all( Cache *cache );
 
 #ifdef LDAP_SYNC
+#define bdb_cache_entry_db_relock		BDB_SYMBOL(cache_entry_db_relock)
 int bdb_cache_entry_db_relock(
 	DB_ENV *env,
 	u_int32_t locker,
