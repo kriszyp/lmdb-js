@@ -1,9 +1,10 @@
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
-#include <ac/string.h>
 #include <ctype.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
 #include <ac/time.h>
 
 #include <lber.h>
@@ -19,7 +20,7 @@ extern int ldap_debug, lber_debug;
 #endif /* LDAP_DEBUG */
 
 
-usage( s )
+static void usage( s )
 char	*s;
 {
     fprintf( stderr, "usage: %s [options] filter [attributes...]\nwhere:\n", s );
@@ -55,6 +56,25 @@ char	*s;
     fprintf( stderr, "    -p port\tport on ldap server\n" );
     exit( 1 );
 }
+
+static void print_entry LDAP_P((
+    LDAP	*ld,
+    LDAPMessage	*entry,
+    int		attrsonly));
+
+static int write_ldif_value LDAP_P((
+	char *type,
+	char *value,
+	unsigned long vallen ));
+
+static int dosearch LDAP_P((
+	LDAP	*ld,
+    char	*base,
+    int		scope,
+    char	**attrs,
+    int		attrsonly,
+    char	*filtpatt,
+    char	*value));
 
 static char	*binddn = LDAPSEARCH_BINDDN;
 static char	*passwd = LDAPSEARCH_BIND_CRED;
@@ -299,16 +319,16 @@ char	**argv;
 }
 
 
-dosearch( ld, base, scope, attrs, attrsonly, filtpatt, value )
-    LDAP	*ld;
-    char	*base;
-    int		scope;
-    char	**attrs;
-    int		attrsonly;
-    char	*filtpatt;
-    char	*value;
+static int dosearch(
+	LDAP	*ld,
+    char	*base,
+    int		scope,
+    char	**attrs,
+    int		attrsonly,
+    char	*filtpatt,
+    char	*value)
 {
-    char		filter[ BUFSIZ ], **val;
+    char		filter[ BUFSIZ ];
     int			rc, first, matches;
     LDAPMessage		*res, *e;
 
@@ -376,10 +396,10 @@ dosearch( ld, base, scope, attrs, attrsonly, filtpatt, value )
 }
 
 
-print_entry( ld, entry, attrsonly )
-    LDAP	*ld;
-    LDAPMessage	*entry;
-    int		attrsonly;
+void print_entry(
+    LDAP	*ld,
+    LDAPMessage	*entry,
+    int		attrsonly)
 {
     char		*a, *dn, *ufn, tmpfname[ 64 ];
     int			i, j, notascii;
@@ -441,7 +461,7 @@ print_entry( ld, entry, attrsonly )
 		} else {
 		    notascii = 0;
 		    if ( !allow_binary ) {
-			for ( j = 0; j < bvals[ i ]->bv_len; ++j ) {
+			for ( j = 0; (unsigned long) j < bvals[ i ]->bv_len; ++j ) {
 			    if ( !isascii( bvals[ i ]->bv_val[ j ] )) {
 				notascii = 1;
 				break;

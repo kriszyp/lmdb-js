@@ -1,18 +1,23 @@
 /* ldapmodify.c - generic program to modify or add entries using LDAP */
 
-#define DISABLE_BRIDGE
 #include "portable.h"
 
 #include <stdio.h>
-#include <ac/string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <fcntl.h>
 
+#include <ac/string.h>
+#include <ac/socket.h>
 #include <ac/unistd.h>
+
+#include <sys/stat.h>
+
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #include <lber.h>
 #include <ldap.h>
@@ -603,7 +608,7 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
 		for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
 		    bvp = pmods[ i ]->mod_bvalues[ j ];
 		    notascii = 0;
-		    for ( k = 0; k < bvp->bv_len; ++k ) {
+		    for ( k = 0; (unsigned long) k < bvp->bv_len; ++k ) {
 			if ( !isascii( bvp->bv_val[ k ] )) {
 			    notascii = 1;
 			    break;
@@ -751,7 +756,7 @@ fromfile( char *path, struct berval *bv )
 	eof = feof( fp );
 	fclose( fp );
 
-	if ( rlen != bv->bv_len ) {
+	if ( (unsigned long) rlen != bv->bv_len ) {
 		perror( path );
 		free( bv->bv_val );
 		return( -1 );
