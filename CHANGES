@@ -1,5 +1,7 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.24 Engineering
+
 OpenLDAP 2.2.24 Release
 	Fixed slapd "chldren:" typo (ITS#3560)
 	Fixed slapd syncrepl consumer unclean shutdown (ITS#3546)
@@ -13,7 +15,6 @@ OpenLDAP 2.2.24 Release
 	Fixed slapi modify/increment support (ITS#3522)
 	Fixed slapi plugins called multiple times with glue (ITS#3529)
 	Fixed slapi 64-bit portability (ITS#3556)
-	Fixed slapcat logging (ITS#3579)
 	Fixed back-bdb IDL cache crash (ITS#3527)
 	Fixed back-bdb initialization message (ITS#3533)
 	Fixed back-hdb dn2id crash (ITS#3559)
