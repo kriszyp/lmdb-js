@@ -78,9 +78,9 @@ LDAP_SLAPD_F (int) slap_bv2undef_ad LDAP_P((
 	AttributeDescription **ad,
 	const char **text ));
 
-LDAP_SLAPD_F (AttributeDescription *) ad_find_lang LDAP_P((
+LDAP_SLAPD_F (AttributeDescription *) ad_find_tags LDAP_P((
 	AttributeType *type,
-	struct berval *lang ));
+	struct berval *tags ));
 
 LDAP_SLAPD_F (AttributeName *) str2anlist LDAP_P(( AttributeName *an,
 	char *str, const char *brkstr ));

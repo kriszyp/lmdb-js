@@ -206,7 +206,7 @@ typedef struct slap_ssf_set {
 
 #define SLAP_INDEX_FLAGS         0xF000UL
 #define SLAP_INDEX_NOSUBTYPES    0x1000UL /* don't use index w/ subtypes */
-#define SLAP_INDEX_NOLANG        0x2000UL /* don't use index w/ lang */
+#define SLAP_INDEX_NOTAGS        0x2000UL /* don't use index w/ tags */
 
 /*
  * there is a single index for each attribute.  these prefixes ensure
@@ -627,20 +627,16 @@ typedef struct slap_content_rule {
 	struct slap_content_rule *scr_next;
 } ContentRule;
 
-/*
- * Represents a recognized attribute description ( type + options ).
- * Note: Tagging options/ranges are mislabeled "language options",
- * because language options ("lang-") were implemented first.
- */
+/* Represents a recognized attribute description ( type + options ). */
 typedef struct slap_attr_desc {
 	struct slap_attr_desc *ad_next;
 	AttributeType *ad_type;		/* attribute type, must be specified */
 	struct berval ad_cname;		/* canonical name, must be specified */
-	struct berval ad_lang;		/* empty if no language tags */
+	struct berval ad_tags;		/* empty if no tagging options */
 	unsigned ad_flags;
 #define SLAP_DESC_NONE			0x00U
 #define SLAP_DESC_BINARY		0x01U
-#define SLAP_DESC_LANG_RANGE	0x80U
+#define SLAP_DESC_TAG_RANGE		0x80U
 } AttributeDescription;
 
 typedef struct slap_attr_name {
@@ -649,9 +645,9 @@ typedef struct slap_attr_name {
 	ObjectClass *an_oc;
 } AttributeName;
 
-#define slap_ad_is_lang(ad)			( (ad)->ad_lang.bv_len != 0 )
-#define slap_ad_is_lang_range(ad)	\
-	( ((ad)->ad_flags & SLAP_DESC_LANG_RANGE) ? 1 : 0 )
+#define slap_ad_is_tagged(ad)			( (ad)->ad_tags.bv_len != 0 )
+#define slap_ad_is_tag_range(ad)	\
+	( ((ad)->ad_flags & SLAP_DESC_TAG_RANGE) ? 1 : 0 )
 #define slap_ad_is_binary(ad)		\
 	( ((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
 

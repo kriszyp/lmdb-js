@@ -29,8 +29,9 @@ int slap_str2index( const char *str, slap_mask_t *idx )
 		strcasecmp( str, "sub" ) == 0 )
 	{
 		*idx = SLAP_INDEX_SUBSTR_DEFAULT;
-	} else if ( strcasecmp( str, "nolang" ) == 0 ) {
-		*idx = SLAP_INDEX_NOLANG;
+	} else if ( strcasecmp( str, "nolang" ) == 0 ||	/* backwards compat */
+	            strcasecmp( str, "notags" ) == 0 ) {
+		*idx = SLAP_INDEX_NOTAGS;
 	} else if ( strcasecmp( str, "nosubtypes" ) == 0 ) {
 		*idx = SLAP_INDEX_NOSUBTYPES;
 	} else {

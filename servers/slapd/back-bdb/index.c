@@ -36,14 +36,14 @@ static slap_mask_t index_mask(
 		return mask;
 	}
 
-	/* If there is a language tag, did we ever index the base
+	/* If there is a tagging option, did we ever index the base
 	 * type? If so, check for mask, otherwise it's not there.
 	 */
-	if( slap_ad_is_lang( desc ) && desc != desc->ad_type->sat_ad ) {
-		/* has language tag */
+	if( slap_ad_is_tagged( desc ) && desc != desc->ad_type->sat_ad ) {
+		/* has tagging option */
 		bdb_attr_mask( be->be_private, desc->ad_type->sat_ad, &mask );
 
-		if ( mask && ( mask ^ SLAP_INDEX_NOLANG ) ) {
+		if ( mask && ( mask ^ SLAP_INDEX_NOTAGS ) ) {
 			*atname = desc->ad_type->sat_cname;
 			*dbname = desc->ad_type->sat_cname.bv_val;
 			return mask;
@@ -262,7 +262,7 @@ static int index_at_values(
 	Backend *be,
 	DB_TXN *txn,
 	AttributeType *type,
-	struct berval *lang,
+	struct berval *tags,
 	BerVarray vals,
 	ID id,
 	int op )
@@ -273,7 +273,7 @@ static int index_at_values(
 	if( type->sat_sup ) {
 		/* recurse */
 		rc = index_at_values( be, txn,
-			type->sat_sup, lang,
+			type->sat_sup, tags,
 			vals, id, op );
 
 		if( rc ) return rc;
@@ -293,12 +293,12 @@ static int index_at_values(
 		if( rc ) return rc;
 	}
 
-	if( lang->bv_len ) {
+	if( tags->bv_len ) {
 		AttributeDescription *desc;
 
 		mask = 0;
 
-		desc = ad_find_lang( type, lang );
+		desc = ad_find_tags( type, tags );
 		if( desc ) {
 			bdb_attr_mask( be->be_private, desc, &mask );
 		}
@@ -329,7 +329,7 @@ int bdb_index_values(
 	int rc;
 
 	rc = index_at_values( be, txn,
-		desc->ad_type, &desc->ad_lang,
+		desc->ad_type, &desc->ad_tags,
 		vals, id, op );
 
 	return rc;
