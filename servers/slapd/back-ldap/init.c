@@ -96,6 +96,8 @@ ldap_back_initialize(
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
 
+	ldap_chain_setup();
+
 	return 0;
 }
 

@@ -1768,7 +1768,6 @@ struct slap_overinfo;
 typedef struct slap_overinst {
 	BackendInfo on_bi;
 	slap_response *on_response;
-	void *on_private;
 	struct slap_overinfo *on_info;
 	struct slap_overinst *on_next;
 } slap_overinst;
@@ -1778,6 +1777,9 @@ typedef struct slap_overinfo {
 	BackendDB oi_bd;
 	slap_overinst *oi_list;
 } slap_overinfo;
+
+/* Should successive callbacks in a chain be processed? */
+#define	SLAP_CB_CONTINUE	0x8000
 
 /*
  * Paged Results state

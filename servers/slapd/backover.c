@@ -127,7 +127,7 @@ over_back_response ( Operation *op, SlapReply *rs )
 {
 	slap_overinfo *oi = (slap_overinfo *) op->o_bd->bd_info;
 	slap_overinst *on = oi->oi_list;
-	int rc = 0;
+	int rc = SLAP_CB_CONTINUE;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
 	slap_callback *sc = op->o_callback->sc_private;
 
@@ -136,14 +136,15 @@ over_back_response ( Operation *op, SlapReply *rs )
 		if ( on->on_response ) {
 			db.bd_info = (BackendInfo *)on;
 			rc = on->on_response( op, rs );
-			if ( rc ) break;
+			if ( ! (rc & SLAP_CB_CONTINUE) ) break;
 		}
 	}
 	op->o_callback = sc;
-	if ( rc == 0 && sc ) {
+	if ( sc && (rc & SLAP_CB_CONTINUE) ) {
 		rc = sc->sc_response( op, rs );
 	}
 	op->o_bd = be;
+	rc &= ~SLAP_CB_CONTINUE;
 	return rc;
 }
 
@@ -282,6 +283,9 @@ overlay_config( BackendDB *be, const char *ov )
 		return 1;
 	}
 
+	/* If this is the first overlay on this backend, set up the
+	 * overlay info structure
+	 */
 	if ( be->bd_info->bi_type != overtype ) {
 		oi = ch_malloc( sizeof(slap_overinfo) );
 		oi->oi_bd = *be;
@@ -311,6 +315,9 @@ overlay_config( BackendDB *be, const char *ov )
 		be->bd_info = bi;
 	}
 
+	/* Walk to the end of the list of overlays, add the new
+	 * one onto the end
+	 */
 	oi = (slap_overinfo *) be->bd_info;
 	for ( prev=NULL, on2 = oi->oi_list; on2; prev=on2, on2=on2->on_next );
 	on2 = ch_malloc( sizeof(slap_overinst) );
@@ -320,6 +327,13 @@ overlay_config( BackendDB *be, const char *ov )
 		prev->on_next = on2;
 	}
 	*on2 = *on;
+
+	/* Any initialization needed? */
+	if ( on->on_bi.bi_db_init ) {
+		be->bd_info = (BackendInfo *)on2;
+		on2->on_bi.bi_db_init( be );
+		be->bd_info = (BackendInfo *)oi;
+	}
 
 	return 0;
 }
