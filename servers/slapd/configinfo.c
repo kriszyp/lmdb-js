@@ -36,7 +36,7 @@ config_info(
 {
 	Entry		*e;
 	char		buf[BUFSIZ];
-	struct berval	val;
+	struct berval	val, *ndn = NULL;
 	struct berval	*vals[2];
 	int		i, j;
 
@@ -46,9 +46,10 @@ config_info(
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
 	e->e_attrs = NULL;
-	e->e_dn = ch_strdup( SLAPD_CONFIG_DN );
-	e->e_ndn = ch_strdup( SLAPD_CONFIG_DN );
-	(void) dn_normalize( e->e_ndn );
+	ber_str2bv( SLAPD_CONFIG_DN, sizeof(SLAPD_CONFIG_DN)-1, 1, &e->e_name );
+	dnNormalize( NULL, &e->e_name, &ndn );
+	e->e_nname = *ndn;
+	free( ndn );
 	e->e_private = NULL;
 
 	val.bv_val = "top";
@@ -64,27 +65,25 @@ config_info(
 	attr_merge( e, "objectClass", vals );
 
 	{
-		char *rdn = ch_strdup( SLAPD_CONFIG_DN );
-		val.bv_val = strchr( rdn, '=' );
+		val.bv_val = strchr( e->e_dn, '=' );
 
 		if( val.bv_val != NULL ) {
-			*val.bv_val = '\0';
-			val.bv_len = strlen( ++val.bv_val );
+			*val.bv_val++ = '\0';
+			val.bv_len = e->e_name.bv_len - (val.bv_val-e->e_dn);
 
 			attr_merge( e, rdn, vals );
+			val.bv_val[-1] = '=';
 		}
-
-		free( rdn );
 	}
 
 	for ( i = 0; i < nbackends; i++ ) {
-		strcpy( buf, backends[i].be_type );
+		char *ptr = slap_strcopy( buf, backends[i].be_type );
 		for ( j = 0; backends[i].be_suffix[j] != NULL; j++ ) {
-			strcat( buf, " : " );
-			strcat( buf, backends[i].be_suffix[j]->bv_val );
+			ptr = slap_strcopy( ptr, " : " );
+			ptr = slap_strcopy( ptr, backends[i].be_suffix[j]->bv_val );
 		}
 		val.bv_val = buf;
-		val.bv_len = strlen( buf );
+		val.bv_len = ptr - buf;
 		attr_merge( e, "database", vals );
 	}
 

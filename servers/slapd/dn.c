@@ -929,6 +929,7 @@ build_new_dn( char ** new_dn,
 	const char * parent_dn,
 	const char * newrdn )
 {
+	char *ptr;
 
 	if ( parent_dn == NULL ) {
 		*new_dn = ch_strdup( newrdn );
@@ -938,9 +939,9 @@ build_new_dn( char ** new_dn,
 	*new_dn = (char *) ch_malloc(
 		strlen( parent_dn ) + strlen( newrdn ) + 2 );
 
-	strcpy( *new_dn, newrdn );
-	strcat( *new_dn, "," );
-	strcat( *new_dn, parent_dn );
+	ptr = slap_strcopy( *new_dn, newrdn );
+	*ptr++ = ',';
+	strcpy( ptr, parent_dn );
 }
 
 #endif /* SLAP_DN_MIGRATION */

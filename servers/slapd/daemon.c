@@ -114,8 +114,8 @@ void slapd_slp_init( const char* urls ) {
 				slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
 					strlen( host ) +
 					sizeof( LDAP_SRVTYPE_PREFIX ) );
-				strcpy( slapd_srvurls[i], LDAP_SRVTYPE_PREFIX );
-				strcat( slapd_srvurls[i], host );
+				strcpy( slap_strcopy(slapd_srvurls[i],
+					LDAP_SRVTYPE_PREFIX ), host );
 
 				ch_free( host );
 			}
@@ -126,8 +126,8 @@ void slapd_slp_init( const char* urls ) {
 				slapd_srvurls[i] = (char *) realloc( slapd_srvurls[i],
 					strlen( host ) +
 					sizeof( LDAPS_SRVTYPE_PREFIX ) );
-				strcpy( slapd_srvurls[i], LDAPS_SRVTYPE_PREFIX );
-				strcat( slapd_srvurls[i], host );
+				strcpy( slap_strcopy(slapd_srvurls[i],
+					LDAPS_SRVTYPE_PREFIX ), host );
 
 				ch_free( host );
 			}

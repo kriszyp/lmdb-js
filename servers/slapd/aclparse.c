@@ -983,6 +983,7 @@ char *
 accessmask2str( slap_mask_t mask, char *buf )
 {
 	int none=1;
+	char *ptr = buf;
 
 	assert( buf != NULL );
 
@@ -994,75 +995,75 @@ accessmask2str( slap_mask_t mask, char *buf )
 
 	if ( ACL_IS_LEVEL( mask ) ) {
 		if ( ACL_LVL_IS_NONE(mask) ) {
-			strcat( buf, "none" );
+			ptr = slap_strcopy( ptr, "none" );
 
 		} else if ( ACL_LVL_IS_AUTH(mask) ) {
-			strcat( buf, "auth" );
+			ptr = slap_strcopy( ptr, "auth" );
 
 		} else if ( ACL_LVL_IS_COMPARE(mask) ) {
-			strcat( buf, "compare" );
+			ptr = slap_strcopy( ptr, "compare" );
 
 		} else if ( ACL_LVL_IS_SEARCH(mask) ) {
-			strcat( buf, "search" );
+			ptr = slap_strcopy( ptr, "search" );
 
 		} else if ( ACL_LVL_IS_READ(mask) ) {
-			strcat( buf, "read" );
+			ptr = slap_strcopy( ptr, "read" );
 
 		} else if ( ACL_LVL_IS_WRITE(mask) ) {
-			strcat( buf, "write" );
+			ptr = slap_strcopy( ptr, "write" );
 		} else {
-			strcat( buf, "unknown" );
+			ptr = slap_strcopy( ptr, "unknown" );
 		}
 		
-		strcat(buf, " (");
+		*ptr++ = '(';
 	}
 
 	if( ACL_IS_ADDITIVE( mask ) ) {
-		strcat( buf, "+" );
+		*ptr++ = '+';
 
 	} else if( ACL_IS_SUBTRACTIVE( mask ) ) {
-		strcat( buf, "-" );
+		*ptr++ = '-';
 
 	} else {
-		strcat( buf, "=" );
+		*ptr++ = '=';
 	}
 
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WRITE) ) {
 		none = 0;
-		strcat( buf, "w" );
+		*ptr++ = 'w';
 	} 
 
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_READ) ) {
 		none = 0;
-		strcat( buf, "r" );
+		*ptr++ = 'r';
 	} 
 
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_SEARCH) ) {
 		none = 0;
-		strcat( buf, "s" );
+		*ptr++ = 's';
 	} 
 
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_COMPARE) ) {
 		none = 0;
-		strcat( buf, "c" );
+		*ptr++ = 'c';
 	} 
 
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_AUTH) ) {
 		none = 0;
-		strcat( buf, "x" );
+		*ptr++ = 'x';
 	} 
 
 	if ( none && ACL_PRIV_ISSET(mask, ACL_PRIV_NONE) ) {
 		none = 0;
-		strcat( buf, "n" );
+		*ptr++ = 'n';
 	} 
 
 	if ( none ) {
-		strcat( buf, "0" );
+		*ptr++ = '0';
 	}
 
 	if ( ACL_IS_LEVEL( mask ) ) {
-		strcat(buf, ")");
+		*ptr = ')';
 	} 
 	return buf;
 }
