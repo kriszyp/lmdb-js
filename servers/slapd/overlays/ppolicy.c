@@ -1571,39 +1571,41 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 		}
 	}
 
-	/*
-	 * Last check - the password history.
-	 */
-	if (slap_passwd_check( op->o_conn, pa, bv, &txt ) == LDAP_SUCCESS) {
+	if (pa) {
 		/*
-		 * This is bad - it means that the user is attempting
-		 * to set the password to the same as the old one.
+		 * Last check - the password history.
 		 */
-		rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
-		rs->sr_text = "Password is not being changed from existing value";
-		pErr = PP_passwordInHistory;
-		goto return_results;
-	}
-
-	if (pp.pwdInHistory < 1) goto do_modify;
-
-	/*
-	 * Iterate through the password history, and fail on any
-	 * password matches.
-	 */
-	at = *pa;
-	at.a_vals = cr;
-	cr[1].bv_val = NULL;
-	for(p=tl; p; p=p->next) {
-		cr[0] = p->pw;
-		rc = slap_passwd_check( op->o_conn, &at, bv, &txt );
-		
-		if (rc != LDAP_SUCCESS) continue;
-		
-		rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
-		rs->sr_text = "Password is in history of old passwords";
-		pErr = PP_passwordInHistory;
-		goto return_results;
+		if (slap_passwd_check( op->o_conn, pa, bv, &txt ) == LDAP_SUCCESS) {
+			/*
+			 * This is bad - it means that the user is attempting
+			 * to set the password to the same as the old one.
+			 */
+			rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+			rs->sr_text = "Password is not being changed from existing value";
+			pErr = PP_passwordInHistory;
+			goto return_results;
+		}
+	
+		if (pp.pwdInHistory < 1) goto do_modify;
+	
+		/*
+		 * Iterate through the password history, and fail on any
+		 * password matches.
+		 */
+		at = *pa;
+		at.a_vals = cr;
+		cr[1].bv_val = NULL;
+		for(p=tl; p; p=p->next) {
+			cr[0] = p->pw;
+			rc = slap_passwd_check( op->o_conn, &at, bv, &txt );
+			
+			if (rc != LDAP_SUCCESS) continue;
+			
+			rs->sr_err = LDAP_CONSTRAINT_VIOLATION;
+			rs->sr_text = "Password is in history of old passwords";
+			pErr = PP_passwordInHistory;
+			goto return_results;
+		}
 	}
 
 do_modify:
