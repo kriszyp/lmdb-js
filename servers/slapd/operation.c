@@ -13,6 +13,10 @@
 void
 slap_op_free( Operation *op )
 {
+#ifdef LDAP_DEBUG
+	assert( op->o_next == NULL );
+#endif
+
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 
 	if ( op->o_ber != NULL ) {
@@ -31,14 +35,40 @@ slap_op_free( Operation *op )
 }
 
 Operation *
-slap_op_add(
-    Operation		**olist,
+slap_op_alloc(
     BerElement		*ber,
     unsigned long	msgid,
     unsigned long	tag,
-    char			*dn,
     int				id,
     int				connid
+)
+{
+	Operation	*op;
+
+	op = (Operation *) ch_calloc( 1, sizeof(Operation) );
+
+	ldap_pvt_thread_mutex_init( &op->o_abandonmutex );
+	op->o_ber = ber;
+	op->o_msgid = msgid;
+	op->o_tag = tag;
+	op->o_abandon = 0;
+
+	op->o_dn = NULL;
+	op->o_ndn = NULL;
+
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
+	op->o_time = currenttime;
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+	op->o_opid = id;
+	op->o_connid = connid;
+	op->o_next = NULL;
+
+	return( op );
+}
+
+int slap_op_add(
+    Operation		**olist,
+	Operation		*op
 )
 {
 	Operation	**tmp;
@@ -46,29 +76,13 @@ slap_op_add(
 	for ( tmp = olist; *tmp != NULL; tmp = &(*tmp)->o_next )
 		;	/* NULL */
 
-	*tmp = (Operation *) ch_calloc( 1, sizeof(Operation) );
+	*tmp = op;
 
-	ldap_pvt_thread_mutex_init( &(*tmp)->o_abandonmutex );
-	(*tmp)->o_ber = ber;
-	(*tmp)->o_msgid = msgid;
-	(*tmp)->o_tag = tag;
-	(*tmp)->o_abandon = 0;
-
-	(*tmp)->o_dn = ch_strdup( dn != NULL ? dn : "" );
-	(*tmp)->o_ndn = dn_normalize_case( ch_strdup( (*tmp)->o_dn ) );
-
-	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
-	(*tmp)->o_time = currenttime;
-	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
-	(*tmp)->o_opid = id;
-	(*tmp)->o_connid = connid;
-	(*tmp)->o_next = NULL;
-
-	return( *tmp );
+	return 0;
 }
 
-void
-slap_op_delete( Operation **olist, Operation *op )
+int
+slap_op_remove( Operation **olist, Operation *op )
 {
 	Operation	**tmp;
 
@@ -78,10 +92,24 @@ slap_op_delete( Operation **olist, Operation *op )
 	if ( *tmp == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %ld\n",
 		    op->o_msgid, 0, 0 );
-		slap_op_free( op );
-		return; 
+		return -1; 
 	}
 
 	*tmp = (*tmp)->o_next;
-	slap_op_free( op );
+	op->o_next = NULL;
+
+	return 0;
 }
+
+Operation * slap_op_pop( Operation **olist )
+{
+	Operation *tmp = *olist;
+
+	if(tmp != NULL) {
+		*olist = tmp->o_next;
+		tmp->o_next = NULL;
+	}
+
+	return tmp;
+}
+

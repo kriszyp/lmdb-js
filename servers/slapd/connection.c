@@ -10,6 +10,9 @@
 
 #include "slap.h"
 
+static int connection_op_activate( Connection *conn, Operation *op );
+static int connection_resched( Connection *conn );
+
 struct co_arg {
 	Connection	*co_conn;
 	Operation	*co_op;
@@ -25,59 +28,61 @@ static void *
 connection_operation( void *arg_v )
 {
 	struct co_arg	*arg = arg_v;
+	int tag = arg->co_op->o_tag;
+	Connection *conn = arg->co_conn;
 
-	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
-	arg->co_conn->c_ops_received++;
-	ldap_pvt_thread_mutex_unlock( &arg->co_conn->c_opsmutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
+	conn->c_ops_received++;
+	ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
 
 	ldap_pvt_thread_mutex_lock( &ops_mutex );
 	ops_initiated++;
 	ldap_pvt_thread_mutex_unlock( &ops_mutex );
 
-	switch ( arg->co_op->o_tag ) {
+	switch ( tag ) {
 	case LDAP_REQ_BIND:
-		do_bind( arg->co_conn, arg->co_op );
+		do_bind( conn, arg->co_op );
 		break;
 
 #ifdef LDAP_COMPAT30
 	case LDAP_REQ_UNBIND_30:
 #endif
 	case LDAP_REQ_UNBIND:
-		do_unbind( arg->co_conn, arg->co_op );
+		do_unbind( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_ADD:
-		do_add( arg->co_conn, arg->co_op );
+		do_add( conn, arg->co_op );
 		break;
 
 #ifdef LDAP_COMPAT30
 	case LDAP_REQ_DELETE_30:
 #endif
 	case LDAP_REQ_DELETE:
-		do_delete( arg->co_conn, arg->co_op );
+		do_delete( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_MODRDN:
-		do_modrdn( arg->co_conn, arg->co_op );
+		do_modrdn( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_MODIFY:
-		do_modify( arg->co_conn, arg->co_op );
+		do_modify( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_COMPARE:
-		do_compare( arg->co_conn, arg->co_op );
+		do_compare( conn, arg->co_op );
 		break;
 
 	case LDAP_REQ_SEARCH:
-		do_search( arg->co_conn, arg->co_op );
+		do_search( conn, arg->co_op );
 		break;
 
 #ifdef LDAP_COMPAT30
 	case LDAP_REQ_ABANDON_30:
 #endif
 	case LDAP_REQ_ABANDON:
-		do_abandon( arg->co_conn, arg->co_op );
+		do_abandon( conn, arg->co_op );
 		break;
 
 	default:
@@ -86,20 +91,25 @@ connection_operation( void *arg_v )
 		break;
 	}
 
-	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
-	arg->co_conn->c_ops_completed++;
-
-	slap_op_delete( &arg->co_conn->c_ops, arg->co_op );
-	arg->co_op = NULL;
-
-	ldap_pvt_thread_mutex_unlock( &arg->co_conn->c_opsmutex );
-
-	arg->co_conn = NULL;
-	free( (char *) arg );
-
 	ldap_pvt_thread_mutex_lock( &ops_mutex );
 	ops_completed++;
 	ldap_pvt_thread_mutex_unlock( &ops_mutex );
+
+	ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
+	conn->c_ops_completed++;
+
+	slap_op_remove( &conn->c_ops, arg->co_op );
+	slap_op_free( arg->co_op );
+	arg->co_op = NULL;
+	arg->co_conn = NULL;
+	free( (char *) arg );
+	arg = NULL;
+
+	if((tag == LDAP_REQ_BIND) && (conn->c_state == SLAP_C_BINDING)) {
+		conn->c_state = SLAP_C_ACTIVE;
+	}
+
+	ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
 
 	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	active_threads--;
@@ -107,6 +117,9 @@ connection_operation( void *arg_v )
 		ldap_pvt_thread_cond_signal(&active_threads_cond);
 	}
 	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+
+	connection_resched( conn );
+
 	return NULL;
 }
 
@@ -115,12 +128,10 @@ connection_activity(
     Connection *conn
 )
 {
-	int status;
-	struct co_arg	*arg;
+	Operation *op;
 	unsigned long	tag, len;
 	long		msgid;
 	BerElement	*ber;
-	char		*tmpdn;
 
 	if ( conn->c_currentber == NULL && (conn->c_currentber = ber_alloc())
 	    == NULL ) {
@@ -178,8 +189,60 @@ connection_activity(
 	}
 #endif
 
-	arg = (struct co_arg *) ch_malloc( sizeof(struct co_arg) );
-	arg->co_conn = conn;
+	op = slap_op_alloc( ber, msgid, tag,
+	   	conn->c_ops_received, conn->c_connid );
+
+	if ( conn->c_state == SLAP_C_BINDING ) {
+		/* connection is binding to a dn, make 'em wait */
+		ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
+		slap_op_add( &conn->c_pending_ops, op );
+
+		Debug( LDAP_DEBUG_ANY, "deferring operation\n", 0, 0, 0 );
+
+		ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
+
+		return;
+	}
+
+	connection_op_activate( conn, op );
+}
+
+static int
+connection_resched( Connection *conn )
+{
+	Operation *op;
+
+	if( conn->c_state != SLAP_C_ACTIVE ) {
+		/* other states need different handling */
+		return;
+	}
+
+	ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
+
+	for( op = slap_op_pop( &conn->c_pending_ops );
+		op != NULL;
+		op = slap_op_pop( &conn->c_pending_ops ) )
+	{
+		ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
+
+		connection_op_activate( conn, op );
+
+		ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
+
+		if ( conn->c_state == SLAP_C_BINDING ) {
+			break;
+		}
+	}
+
+	ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
+}
+
+static int connection_op_activate( Connection *conn, Operation *op )
+{
+	struct co_arg *arg;
+	char *tmpdn;
+	int status;
+	unsigned long tag = op->o_tag;
 
 	ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
 	if ( conn->c_dn != NULL ) {
@@ -189,9 +252,21 @@ connection_activity(
 	}
 	ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
 
+	arg = (struct co_arg *) ch_malloc( sizeof(struct co_arg) );
+	arg->co_conn = conn;
+	arg->co_op = op;
+
+	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
+	arg->co_op->o_ndn = dn_normalize_case( ch_strdup( arg->co_op->o_dn ) );
+
 	ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
-	arg->co_op = slap_op_add( &conn->c_ops, ber, msgid, tag, tmpdn,
-	    conn->c_ops_received, conn->c_connid );
+
+	slap_op_add( &conn->c_ops, arg->co_op );
+
+	if(tag == LDAP_REQ_BIND) {
+		conn->c_state = SLAP_C_BINDING;
+	}
+
 	ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
 
 	if ( tmpdn != NULL ) {
@@ -204,7 +279,10 @@ connection_activity(
 
 	status = ldap_pvt_thread_create( &arg->co_op->o_tid, 1,
 					 connection_operation, (void *) arg );
+
 	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
 	}
+
+	return status;
 }

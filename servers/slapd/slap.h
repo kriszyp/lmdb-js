@@ -399,7 +399,7 @@ typedef struct slap_op {
 	struct sockaddr	o_clientaddr;	/* client address if via CLDAP	  */
 	char		o_searchbase;	/* search base if via CLDAP	  */
 #endif
-	struct slap_op	*o_next;	/* next operation pending	  */
+	struct slap_op	*o_next;	/* next operation in list	  */
 	ldap_pvt_thread_t	o_tid;		/* thread handling this op	  */
 	int		o_abandon;	/* signals op has been abandoned  */
 	ldap_pvt_thread_mutex_t	o_abandonmutex;	/* signals op has been abandoned  */

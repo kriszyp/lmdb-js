@@ -171,10 +171,13 @@ void monitor_info LDAP_P(( Connection *conn, Operation *op ));
  */
 
 void slap_op_free LDAP_P(( Operation *op ));
-Operation * slap_op_add LDAP_P(( Operation **olist,
+Operation * slap_op_alloc LDAP_P((
 	BerElement *ber, unsigned long msgid,
-	unsigned long tag, char *dn, int id, int connid ));
-void slap_op_delete LDAP_P(( Operation **olist, Operation *op ));
+	unsigned long tag, int id, int connid ));
+
+int slap_op_add LDAP_P(( Operation **olist, Operation *op ));
+int slap_op_remove LDAP_P(( Operation **olist, Operation *op ));
+Operation * slap_op_pop LDAP_P(( Operation **olist ));
 
 /*
  * phonetic.c
