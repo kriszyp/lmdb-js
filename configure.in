@@ -623,11 +623,12 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 	dnl check for SunOS5 LWP
 	AC_CHECK_HEADERS(thread.h synch.h)
 	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
-		AC_CHECK_LIB(thread, thr_create, [have_lwp=yes], [have_lwp=no])
+		AC_CHECK_LIB(thread, thr_create, [have_thr=yes], [have_thr=no])
 
-		if test $have_lwp = yes ; then
+		if test $have_thr = yes ; then
 			AC_DEFINE(HAVE_THR)
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+			ol_link_threads=thr
 
 			if test $ol_with_preemptive = auto ; then
 				ol_with_preemptive=yes
@@ -643,6 +644,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 		if test $have_lwp = yes ; then
 			AC_DEFINE(HAVE_LWP)
 			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+			ol_link_threads=lwp
 
 			if test $ol_with_preemptive = auto ; then
 				ol_with_preemptive=no
