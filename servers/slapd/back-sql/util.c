@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -20,11 +20,12 @@
 #include "util.h"
 
 
-char backsql_def_oc_query[]="SELECT id,name,keytbl,keycol,create_proc,delete_proc FROM ldap_objclasses";
-char backsql_def_at_query[]="SELECT name,sel_expr,from_tbls,join_where,add_proc,modify_proc,delete_proc FROM ldap_attrs WHERE oc_id=?";
+char backsql_def_oc_query[]="SELECT id,name,keytbl,keycol,create_proc,delete_proc,expect_return FROM ldap_objclasses";
+char backsql_def_at_query[]="SELECT name,sel_expr,from_tbls,join_where,add_proc,modify_proc,delete_proc,param_order,expect_return FROM ldap_attrs WHERE oc_id=?";
 char backsql_def_delentry_query[]="DELETE FROM ldap_entries WHERE id=?";
 char backsql_def_insentry_query[]="INSERT INTO ldap_entries (dn,objclass,parent,keyval) VALUES (?,?,?,?)";
 char backsql_def_subtree_cond[]="ldap_entries.dn LIKE CONCAT('%',?)";
+char backsql_id_query[]="SELECT id,keyval,objclass FROM ldap_entries WHERE ";
 
 
 char* backsql_strcat(char* dest,int *buflen, ...)
@@ -78,7 +79,7 @@ int backsql_entry_addattr(Entry *e,char *at_name,char *at_val,unsigned int at_va
   {
    //Debug(LDAP_DEBUG_TRACE,"backsql_addattr(): creating new attribute\n",0,0,0);
    c_at=(Attribute *)ch_calloc(sizeof(Attribute),1);
-   c_at->a_type=strdup(at_name);
+   c_at->a_type=ch_strdup(at_name);
    c_at->a_syntax=SYNTAX_CIS;
    c_at->a_vals=(struct berval**)ch_calloc(sizeof(struct berval *),1);
    c_at->a_vals[0]=NULL;
@@ -143,10 +144,10 @@ int backsql_merge_from_clause(char **dest_from,int *dest_len,char *src_from)
 
  //Debug(LDAP_DEBUG_TRACE,"==>backsql_merge_from_clause(): dest_from='%s',src_from='%s'\n",
  //				dest_from,src_from,0);
- srcc=strdup(src_from);
+ srcc=ch_strdup(src_from);
  p=srcc;
  while(*p)
- {//4832041
+ {
   s=backsql_get_table_spec(&p);
  // Debug(LDAP_DEBUG_TRACE,"backsql_merge_from_clause(): p='%s' s='%s'\n",p,s,0);  
   if (*dest_from==NULL)

@@ -2,7 +2,7 @@
 #define __BACKSQL_H__
 
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -27,6 +27,8 @@ typedef struct
  char *subtree_cond;
  char *oc_query,*at_query;
  char *insentry_query,*delentry_query;
+ char *id_query;
+ char *upper_func;
  Avlnode *db_conns;
  Avlnode *oc_by_name;
  Avlnode *oc_by_id;

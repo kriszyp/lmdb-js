@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -84,19 +84,21 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
   {
    oc_map=(backsql_oc_map_rec*)ch_calloc(1,sizeof(backsql_oc_map_rec));
    oc_map->id=atoi(oc_row.cols[0]);
-   oc_map->name=strdup(oc_row.cols[1]);
-   oc_map->keytbl=strdup(oc_row.cols[2]);
-   oc_map->keycol=strdup(oc_row.cols[3]);
-   oc_map->create_proc=(oc_row.is_null[4]<0)?NULL:strdup(oc_row.cols[4]);
-   oc_map->delete_proc=(oc_row.is_null[5]<0)?NULL:strdup(oc_row.cols[5]);
+   oc_map->name=ch_strdup(oc_row.cols[1]);
+   oc_map->keytbl=ch_strdup(oc_row.cols[2]);
+   oc_map->keycol=ch_strdup(oc_row.cols[3]);
+   oc_map->create_proc=(oc_row.is_null[4]<0)?NULL:ch_strdup(oc_row.cols[4]);
+   oc_map->delete_proc=(oc_row.is_null[5]<0)?NULL:ch_strdup(oc_row.cols[5]);
+   oc_map->expect_return=atoi(oc_row.cols[6]);
+
    oc_map->attrs=NULL;
    avl_insert(&si->oc_by_name,oc_map,(AVL_CMP)backsql_cmp_oc_name,backsql_dummy);
    avl_insert(&si->oc_by_id,oc_map,(AVL_CMP)backsql_cmp_oc_id,backsql_dummy);
    oc_id=oc_map->id;
    Debug(LDAP_DEBUG_TRACE,"load_schema_map(): objectclass '%s': keytbl='%s' keycol='%s' ",
-	   oc_row.cols[1],oc_row.cols[2],oc_row.cols[3]);
-   Debug(LDAP_DEBUG_TRACE,"create_proc='%s' delete_proc='%s' ; attributes:\n",oc_row.cols[4],
-	   oc_row.cols[5],0);
+	   oc_map->name,oc_map->keytbl,oc_map->keycol);
+   Debug(LDAP_DEBUG_TRACE,"create_proc='%s' delete_proc='%s' expect_return=%d; attributes:\n",
+       oc_map->create_proc,oc_map->delete_proc,oc_map->expect_return);
    if ((rc=SQLExecute(at_sth)) != SQL_SUCCESS)
     {
      Debug(LDAP_DEBUG_TRACE,"load_schema_map(): error executing at_query: \n",0,0,0);
@@ -113,23 +115,25 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
              at_row.cols[4],at_row.cols[5]);
 	 Debug(LDAP_DEBUG_TRACE,"delete_proc='%s'\n",at_row.cols[6],0,0);
      at_map=(backsql_at_map_rec*)ch_calloc(1,sizeof(backsql_at_map_rec));
-     at_map->name=strdup(at_row.cols[0]);
-     at_map->sel_expr=strdup(at_row.cols[1]);
+     at_map->name=ch_strdup(at_row.cols[0]);
+     at_map->sel_expr=ch_strdup(at_row.cols[1]);
 	 tmps=NULL;tmpslen=0;
 	 backsql_merge_from_clause(&tmps,&tmpslen,at_row.cols[2]);
-     at_map->from_tbls=strdup(tmps);
+     at_map->from_tbls=ch_strdup(tmps);
 	 ch_free(tmps);
-	 at_map->join_where=strdup((at_row.is_null[3]<0)?"":at_row.cols[3]);
-	 at_map->add_proc=(at_row.is_null[4]<0)?NULL:strdup(at_row.cols[4]);
-	 at_map->modify_proc=(at_row.is_null[5]<0)?NULL:strdup(at_row.cols[5]);
-	 at_map->delete_proc=(at_row.is_null[6]<0)?NULL:strdup(at_row.cols[6]);
+	 at_map->join_where=ch_strdup((at_row.is_null[3]<0)?"":at_row.cols[3]);
+	 at_map->add_proc=(at_row.is_null[4]<0)?NULL:ch_strdup(at_row.cols[4]);
+	 at_map->modify_proc=(at_row.is_null[5]<0)?NULL:ch_strdup(at_row.cols[5]);
+	 at_map->delete_proc=(at_row.is_null[6]<0)?NULL:ch_strdup(at_row.cols[6]);
+	 at_map->param_order=atoi(at_row.cols[7]);
+	 at_map->expect_return=atoi(at_row.cols[8]);
 	 tmps=NULL;tmpslen=0;
 	 tmps=backsql_strcat(tmps,&tmpslen,"SELECT ",at_map->sel_expr," AS ",at_map->name,
 			" FROM ",at_map->from_tbls,
 			" WHERE ",oc_map->keytbl,".",oc_map->keycol,"=?",NULL);
      if (at_map->join_where!=NULL && at_map->join_where[0]!='\0')
        tmps=backsql_strcat(tmps,&tmpslen," AND ",at_map->join_where,NULL);
-	 at_map->query=strdup(tmps);
+	 at_map->query=ch_strdup(tmps);
 	 ch_free(tmps);
 	 Debug(LDAP_DEBUG_TRACE,"load_schema_map(): preconstructed query '%s'\n",at_map->query,0,0);
      avl_insert(&oc_map->attrs,at_map,(AVL_CMP)backsql_cmp_attr,backsql_dummy);

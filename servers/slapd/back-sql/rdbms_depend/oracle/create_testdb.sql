@@ -143,40 +143,46 @@ UPDATE documents SET abstract=new_abstract WHERE id=keyval;
 END;
 /
 
-CREATE OR REPLACE PROCEDURE make_author_link (keyval IN NUMBER, author_dn IN varchar2)  AS
+CREATE OR REPLACE FUNCTION make_author_link (keyval IN NUMBER, author_dn IN varchar2) RETURN NUMBER AS
 per_id NUMBER;
 BEGIN
 SELECT keyval INTO per_id FROM ldap_entries 
 	   				WHERE objclass=1 AND dn=author_dn;
 IF NOT (per_id IS NULL) THEN
  INSERT INTO authors_docs (doc_id,pers_id) VALUES (keyval,per_id);
+ RETURN 1;
 END IF;
+RETURN 0;
 END;
 /
 
-CREATE OR REPLACE PROCEDURE make_doc_link (keyval IN NUMBER, doc_dn IN varchar2)  AS
+CREATE OR REPLACE FUNCTION make_doc_link (keyval IN NUMBER, doc_dn IN varchar2) RETURN NUMBER AS
 docid NUMBER;
 BEGIN
 SELECT keyval INTO docid FROM ldap_entries 
 		   WHERE objclass=2 AND dn=doc_dn;
 IF NOT (docid IS NULL) THEN
  INSERT INTO authors_docs (pers_id,doc_id) VALUES (keyval,docid);
+ RETURN 1;
 END IF;
+RETURN 0;
 END;
 /
 
-CREATE OR REPLACE PROCEDURE del_doc_link (keyval IN NUMBER, doc_dn IN varchar2)  AS
+CREATE OR REPLACE FUNCTION del_doc_link (keyval IN NUMBER, doc_dn IN varchar2) RETURN NUMBER AS
 docid NUMBER;
 BEGIN
 SELECT keyval INTO docid FROM ldap_entries 
 	   	WHERE objclass=2 AND dn=doc_dn;
 IF NOT (docid IS NULL) THEN
  DELETE FROM authors_docs WHERE pers_id=keyval AND doc_id=docid;
+ RETURN 1;
 END IF;
+RETURN 0;
 END;
 /
 
-CREATE PROCEDURE del_author_link (keyval IN NUMBER, author_dn IN varchar2)  AS
+CREATE OR REPLACE FUNCTION del_author_link (keyval IN NUMBER, author_dn IN varchar2) RETURN NUMBER AS
 per_id NUMBER;
 BEGIN
 SELECT keyval INTO per_id FROM ldap_entries
@@ -184,7 +190,9 @@ SELECT keyval INTO per_id FROM ldap_entries
 
 IF NOT (per_id IS NULL) THEN
  DELETE FROM authors_docs WHERE doc_id=keyval AND pers_id=per_id;
+ RETURN 1;
 END IF;
+ RETURN 0;
 END;
 /
 

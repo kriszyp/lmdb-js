@@ -7,7 +7,9 @@ CREATE TABLE ldap_attrs (
 	join_where varchar (255) NULL ,
 	add_proc varchar (255) NULL ,
 	modify_proc varchar (255) NULL ,
-	delete_proc varchar (255) NULL 
+	delete_proc varchar (255) NULL ,
+	param_order int NOT NULL,
+	expect_return int NOT NULL
 )
 GO
 
@@ -26,7 +28,8 @@ CREATE TABLE ldap_objclasses (
 	keytbl varchar (64) NOT NULL ,
 	keycol varchar (64) NOT NULL ,
 	create_proc varchar (255) NULL ,
-	delete_proc varchar (255) NULL 
+	delete_proc varchar (255) NULL,
+	expect_return int NOT NULL
 )
 GO
 

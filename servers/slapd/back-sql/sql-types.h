@@ -2,7 +2,7 @@
 #define __BACKSQL_SQL_TYPES_H__
 
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this

@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -39,14 +39,14 @@ int backsql_attrlist_add(backsql_srch_info *bsi,char *at_name)
  }
  Debug(LDAP_DEBUG_TRACE,"==>backsql_attrlist_add(): adding '%s' to list\n",at_name,0,0);
  bsi->attrs=(char**)ch_realloc(bsi->attrs,(n_attrs+2)*sizeof(char*));
- bsi->attrs[n_attrs]=strdup(at_name);
+ bsi->attrs[n_attrs]=ch_strdup(at_name);
  bsi->attrs[n_attrs+1]=NULL;
  return 1;
 }
 
 void backsql_init_search(backsql_srch_info *bsi,backsql_info *bi,char *nbase,int scope,
 						 int slimit,int tlimit,time_t stoptime,Filter *filter,
-						 SQLHDBC dbh,Backend *be,Connection *conn,Operation *op,char **attrs)
+						 SQLHDBC dbh,BackendDB *be,Connection *conn,Operation *op,char **attrs)
 {
  char **p;
  bsi->base_dn=nbase;
@@ -85,9 +85,6 @@ int backsql_process_filter_list(backsql_srch_info *bsi,Filter *f,int op)
  {
   res=backsql_process_filter(bsi,f);
   
-  if (res==-1)
-	bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len," 1=0 ",NULL);
-
   f=f->f_next;
   if (f==NULL)
    break;
@@ -114,19 +111,35 @@ int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
 
  backsql_at_map_rec *at=backsql_at_with_name(bsi->oc,f->f_sub_type);
 
- bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,
+ bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",NULL);
+
+ if (bsi->bi->upper_func)
+ {
+  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,
+	  bsi->bi->upper_func,"(",at->sel_expr,")",
 				" LIKE '",NULL);
+ }
+ else
+ {
+  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,at->sel_expr,
+				" LIKE '",NULL);
+ }
  if (f->f_sub_initial!=NULL)
-  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_initial,NULL);
+ {
+  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_initial->bv_val,NULL);
+ }
 
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"%",NULL);
 
  if (f->f_sub_any!=NULL)
   for(i=0;f->f_sub_any[i]!=NULL;i++)
-   bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_any[i],"%",NULL);
+  {
+   //Debug(LDAP_DEBUG_TRACE,"==>backsql_process_sub_filter(): sub_any='%s'\n",f->f_sub_any[i]->bv_val,0,0);
+   bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_any[i]->bv_val,"%",NULL);
+  }
 
  if (f->f_sub_final!=NULL)
-  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_final,NULL);
+  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,f->f_sub_final->bv_val,NULL);
 
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"')",NULL);
  
@@ -179,6 +192,7 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_process_filter(): attribute '%s' is not defined for objectclass '%s'\n",
                       at_name,bsi->oc->name,0);
+  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len," 1=0 ",NULL);
   return -1;
  }
 			
@@ -195,8 +209,17 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  switch(f->f_choice)
  {
   case LDAP_FILTER_EQUALITY:
-			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,"='",
-															f->f_avvalue.bv_val,"')",NULL);
+			//maybe we should check type of at->sel_expr here somehow,
+			//to know whether upper_func is applicable, but for now
+			//upper_func stuff is made for Oracle, where UPPER is
+			//safely applicable to NUMBER etc.
+			if (bsi->bi->upper_func)
+			 bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
+					bsi->bi->upper_func,"(",at->sel_expr,")='",
+											f->f_avvalue.bv_val,"')",NULL);
+			else
+			 bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,"='",
+											f->f_avvalue.bv_val,"')",NULL);
 			break;
   case LDAP_FILTER_GE:
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,">=",
@@ -247,8 +270,16 @@ char* backsql_srch_query(backsql_srch_info *bsi)
  switch(bsi->scope)
  {
   case LDAP_SCOPE_BASE:
-		bsi->join_where=backsql_strcat(bsi->join_where,&bsi->jwhere_len,
+        if (bsi->bi->upper_func)
+		 {
+		  bsi->join_where=backsql_strcat(bsi->join_where,&bsi->jwhere_len,
+			 bsi->bi->upper_func,"(","ldap_entries.dn)=(?)",NULL);
+		 }
+		else
+		 {
+		  bsi->join_where=backsql_strcat(bsi->join_where,&bsi->jwhere_len,
 				"ldap_entries.dn=?",NULL);
+		 }
 		break;
   case LDAP_SCOPE_ONELEVEL:
 		bsi->join_where=backsql_strcat(bsi->join_where,&bsi->jwhere_len,
@@ -318,7 +349,7 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
 		}
 		break;
   case LDAP_SCOPE_ONELEVEL:
-		res=backsql_dn2id(&base_id,bsi->dbh,bsi->base_dn);
+		res=backsql_dn2id(bsi->bi,&base_id,bsi->dbh,bsi->base_dn);
 		if (res==NULL)
 		{
 		 Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): could not retrieve base_dn id - no such entry\n",0,0,0);
@@ -360,15 +391,15 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
     }
    */
 
-   Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): adding entry id=%s, keyval=%s dn='%s'\n",
-		row.cols[0],row.cols[1],row.cols[3]);
    c_id=(backsql_entryID*)ch_calloc(1,sizeof(backsql_entryID));
    c_id->id=atoi(row.cols[0]);
    c_id->keyval=atoi(row.cols[1]);
    c_id->oc_id=bsi->oc->id;
-   c_id->dn=strdup(row.cols[3]);
+   c_id->dn=ch_strdup(row.cols[3]);
    c_id->next=bsi->id_list;
    bsi->id_list=c_id;
+   Debug(LDAP_DEBUG_TRACE,"backsql_oc_get_candidates(): added entry id=%d, keyval=%d dn='%s'\n",
+		c_id->id,c_id->keyval,row.cols[3]);
   }
  backsql_FreeRow(&row);
  SQLFreeStmt(sth,SQL_DROP);
@@ -376,10 +407,9 @@ int backsql_oc_get_candidates(backsql_oc_map_rec *oc,backsql_srch_info *bsi)
  return 1;
 }
 
-
-int backsql_search(Backend *be,Connection *conn,Operation *op,
-	char *base, char *nbase, int scope,int deref,int slimit,int tlimit,
-	Filter *filter, char *filterstr,char **attrs,int attrsonly)
+int backsql_search(BackendDB *be,Connection *conn,Operation *op,
+	const char *base, const char *nbase, int scope,int deref,int slimit,int tlimit,
+	Filter *filter, const char *filterstr,char **attrs,int attrsonly)
 {
  backsql_info *bi=(backsql_info*)be->be_private;
  SQLHDBC dbh;
@@ -392,9 +422,8 @@ int backsql_search(Backend *be,Connection *conn,Operation *op,
  backsql_srch_info srch_info;
  backsql_entryID *eid=NULL;
 
- base=dn_validate(base);
  Debug(LDAP_DEBUG_TRACE,"==>backsql_search(): base='%s', filter='%s', scope=%d,",
-                     base,filterstr,scope);
+                     nbase,filterstr,scope);
  Debug(LDAP_DEBUG_TRACE," deref=%d, attrsonly=%d, attributes to load: %s\n",
 	 deref,attrsonly,attrs==NULL?"all":"custom list");
  dbh=backsql_get_db_conn(be,conn);
@@ -427,11 +456,8 @@ int backsql_search(Backend *be,Connection *conn,Operation *op,
 		    be->be_sizelimit : slimit;
   }
 
- //backsql_init_search(&srch_info,bi,nbase/*!!!!!!!!*/,scope,slimit,tlimit,stoptime,filter,dbh,
-//		 be,conn,op,attrs);
- backsql_init_search(&srch_info,bi,base/*don't know so far how to make Oracle do CIS search on VARCHAR2*/,
-			scope,slimit,tlimit,stoptime,filter,dbh,
-	 be,conn,op,attrs);
+ backsql_init_search(&srch_info,bi,(char*)nbase,scope,slimit,tlimit,stoptime,filter,dbh,
+		 be,conn,op,attrs);
 
  //for each objectclass we try to construct query which gets IDs
  //of entries matching LDAP query filter and scope (or at least candidates),
@@ -494,7 +520,7 @@ int backsql_search(Backend *be,Connection *conn,Operation *op,
 
  for(eid=srch_info.id_list;eid!=NULL;eid=backsql_free_entryID(eid));
 
- //free bsi->attrs!!!!!!!!!!!!!!!!!!!!!!!!!!!
+ charray_free(srch_info.attrs);
 
  if (nentries>0)
   send_search_result( conn, op,

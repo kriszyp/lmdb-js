@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -23,7 +23,7 @@ int backsql_dummy()
 }
 
 int backsql_compare(BackendDB *be,Connection *conn,Operation *op,
-	char *dn,char *ndn,Ava *ava)
+	const char *dn,const char *ndn,Ava *ava)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_compare()\n",0,0,0);
  return 0;

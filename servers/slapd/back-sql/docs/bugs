@@ -25,12 +25,6 @@
    6.1 (glibc 2.1.2) (the same code behaves differently when built on 6.0 and 6.1)
    my problem was solved by upgrading iODBC to 3.0 beta - but it is kinda strange
    that beta works better than release (and release still works fine on 6.0)
-8) Oracle does case-sensitive comparison of strings by default, so back-sql
-   becomes sensitive too when using Oracle. Later I'll add some option to slapd.conf
-   that would allow to set some function to process values before comparison
-   (something like "before_match	UPPER", so that back-sql could generate
-    something like "select ... from ... where ... and UPPER(colname)=UPPER(?) or
-    UPPER(colname) LIKE UPPER(...)")
 9) ldapsearch sometimes refuses to show some attributes ("NOT PRINTABLE" diags)
    on Win32 (on linux everything's fine -- at least with mySQL)
    

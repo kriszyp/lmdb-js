@@ -1,14 +1,14 @@
 1. Build
 To build slapd with back-sql under Unix you need to build and install
 iODBC 2.50.3 (later versions should probably work). Then, run 
-"configure <options you need> --enable-sql [--with-iodbc-includes=<path>] [--with-iodbc-libs=<path>]",
-this should build back-sql-enabled slapd.
+"configure <other options you need> --enable-sql",
+this should build back-sql-enabled slapd, provided that you have iODBC 
+libraries and include files in include/library paths.
 
 Under Win32/MSVC++, I modified the workspace so that back-sql is built into
 slapd automatically, since MS odbc32 is included in standard library pack,
 and it does no bad even if you don't plan to use it. I also could provide
-precompiled executables for those who don't have MSVC later (when back-sql
-comes into some stable state).
+precompiled executables for those who don't have MSVC.
 
 2. Tune datasources and slapd.conf
 Next, you need to define ODBC datasource with data you want to publish

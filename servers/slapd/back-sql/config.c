@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -38,7 +38,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->dbhost=strdup(argv[1]);
+     si->dbhost=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): hostname=%s\n",si->dbhost,0,0);
     }
    return(0);
@@ -53,7 +53,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->dbuser=strdup(argv[1]);
+     si->dbuser=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): dbuser=%s\n",argv[1],0,0);
     }
    return(0);
@@ -68,7 +68,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->dbpasswd=strdup(argv[1]);
+     si->dbpasswd=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): dbpasswd=%s\n",si->dbpasswd,0,0);
     }
    return(0);
@@ -83,7 +83,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->dbname=strdup(argv[1]);
+     si->dbname=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): dbname=%s\n",si->dbname,0,0);
     }
    return(0);
@@ -98,7 +98,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->subtree_cond=strdup(argv[1]);
+     si->subtree_cond=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): subtree_cond=%s\n",si->subtree_cond,0,0);
     }
    return(0);
@@ -113,7 +113,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->oc_query=strdup(argv[1]);
+     si->oc_query=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): oc_query=%s\n",si->oc_query,0,0);
     }
    return(0);
@@ -128,7 +128,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->at_query=strdup(argv[1]);
+     si->at_query=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): at_query=%s\n",si->at_query,0,0);
     }
    return(0);
@@ -143,8 +143,23 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->insentry_query=strdup(argv[1]);
+     si->insentry_query=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): insentry_query=%s\n",si->insentry_query,0,0);
+    }
+   return(0);
+  }
+
+ if (!strcasecmp(argv[0],"upper_func"))
+  {
+   if (argc<2)
+    {
+     Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config (%s line %d): missing function name in upper_func directive\n",
+                     fname,lineno,0);
+    }
+   else
+    {
+     si->upper_func=ch_strdup(argv[1]);
+     Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): upper_func=%s\n",si->upper_func,0,0);
     }
    return(0);
   }
@@ -158,7 +173,7 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
     }
    else
     {
-     si->delentry_query=strdup(argv[1]);
+     si->delentry_query=ch_strdup(argv[1]);
      Debug(LDAP_DEBUG_TRACE,"<==backsql_db_config(): delentry_query=%s\n",si->delentry_query,0,0);
     }
    return(0);
@@ -168,4 +183,5 @@ int backsql_db_config(BackendDB *be,const char *fname,int lineno,int argc,char *
                      fname,lineno,argv[0]);
  return 0;
 }
+
 #endif /* SLAPD_SQL */

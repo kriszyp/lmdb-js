@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -116,6 +116,8 @@ int backsql_db_destroy(BackendDB *bd)
   free(si->dbpasswd);
  if (si->dbhost)
   free(si->dbhost);
+ if (si->upper_func)
+  free(si->upper_func);
  free(si->subtree_cond);
  free(si->oc_query);
  free(si->at_query);
@@ -131,6 +133,7 @@ int backsql_db_open (BackendDB *bd)
  backsql_info *si=(backsql_info*)bd->be_private;
  Connection tmp;
  SQLHDBC dbh;
+ int idq_len;
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_db_open(): testing RDBMS connection\n",0,0,0);
  if (si->dbname==NULL)
@@ -147,32 +150,42 @@ int backsql_db_open (BackendDB *bd)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): subtree search SQL condition not specified (use subtree_cond directive in slapd.conf)\n",0,0,0);
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' as default\n",backsql_def_subtree_cond,0,0);
-  si->subtree_cond=strdup(backsql_def_subtree_cond);
+  si->subtree_cond=ch_strdup(backsql_def_subtree_cond);
  }
  if (si->oc_query==NULL)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): objectclass mapping SQL statement not specified (use oc_query directive in slapd.conf)\n",0,0,0);
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_oc_query,0,0);
-  si->oc_query=strdup(backsql_def_oc_query);
+  si->oc_query=ch_strdup(backsql_def_oc_query);
  }
  if (si->at_query==NULL)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): attribute mapping SQL statement not specified (use at_query directive in slapd.conf)\n",0,0,0);
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_at_query,0,0);
-  si->at_query=strdup(backsql_def_at_query);
+  si->at_query=ch_strdup(backsql_def_at_query);
  }
  if (si->insentry_query==NULL)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): entry insertion SQL statement not specified (use insentry_query directive in slapd.conf)\n",0,0,0);
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_insentry_query,0,0);
-  si->insentry_query=strdup(backsql_def_insentry_query);
+  si->insentry_query=ch_strdup(backsql_def_insentry_query);
  }
  if (si->delentry_query==NULL)
  {
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): entry deletion SQL statement not specified (use delentry_query directive in slapd.conf)\n",0,0,0);
   Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): setting '%s' by default\n",backsql_def_delentry_query,0,0);
-  si->delentry_query=strdup(backsql_def_delentry_query);
+  si->delentry_query=ch_strdup(backsql_def_delentry_query);
  }
+ si->id_query=NULL;
+ idq_len=0;
+ if (si->upper_func==NULL)
+ {
+  si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,"dn=?",NULL);
+ }
+ else
+  {
+   si->id_query=backsql_strcat(si->id_query,&idq_len,backsql_id_query,si->upper_func,"(dn)=",si->upper_func,"(?)",NULL);
+  }
  tmp.c_connid=-1;
  dbh=backsql_get_db_conn(bd,&tmp);
  if (!dbh)
@@ -181,6 +194,11 @@ int backsql_db_open (BackendDB *bd)
   return 1;
  }
  backsql_free_db_conn(bd,&tmp);
+ if (!si->schema_loaded)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_db_open(): test failed, schema map not loaded - exiting\n",0,0,0);
+  return 1;
+ }
  Debug(LDAP_DEBUG_TRACE,"<==backsql_db_open(): test succeeded, schema map loaded\n",0,0,0);
  return 0;
 }

@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -17,8 +17,8 @@
 #include "back-sql.h"
 #include "sql-wrap.h"
 
-int backsql_bind(Backend *be,Connection *conn,Operation *op,
-	char *dn,char *ndn,int method,struct berval *cred,char** edn)
+int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
+	const char *dn,const char *ndn,int method,struct berval *cred,char** edn)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_bind()\n",0,0,0);
  //for now, just return OK, allowing to test modify operations
@@ -27,7 +27,7 @@ int backsql_bind(Backend *be,Connection *conn,Operation *op,
  return 0;
 }
  
-int backsql_unbind(Backend *be,Connection *conn,Operation *op)
+int backsql_unbind(BackendDB *be,Connection *conn,Operation *op)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_unbind()\n",0,0,0);
  backsql_free_db_conn(be,conn);

@@ -1,6 +1,15 @@
 #ifndef __BACKSQL_UTIL_H__
 #define __BACKSQL_UTIL_H__
 
+/*
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
+ *
+ *	 Redistribution and use in source and binary forms are permitted only
+ *	 as authorized by the OpenLDAP Public License.	A copy of this
+ *	 license is available at http://www.OpenLDAP.org/license.html or
+ *	 in file LICENSE in the top-level directory of the distribution.
+ */
+
 
 #include "entry-id.h"
 #include "schema-map.h"
@@ -44,7 +53,7 @@ Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* id);
 
 extern char backsql_def_oc_query[],backsql_def_at_query[],
 			backsql_def_delentry_query[],backsql_def_insentry_query[],
-			backsql_def_subtree_cond[];
+			backsql_def_subtree_cond[],backsql_id_query[];
 
 int backsql_merge_from_clause(char **dest_from,int *dest_len,char *src_from);
 

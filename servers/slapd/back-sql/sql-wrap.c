@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -138,7 +138,7 @@ RETCODE backsql_BindRowAsStrings(SQLHSTMT sth,BACKSQL_ROW_NTS *row)
   {
    rc=SQLDescribeCol(sth,(SQLSMALLINT)i,&colname[0],(SQLUINTEGER)sizeof(colname)-1,&name_len,&col_type,
           (UDWORD*) &col_prec,&col_scale,&col_null);
-   row->col_names[i-1]=strdup(colname);
+   row->col_names[i-1]=ch_strdup(colname);
    //Debug(LDAP_DEBUG_TRACE,"backsql_BindRowAsStrings: col_name=%s, col_prec[%d]=%d\n",colname,(int)i,(int)col_prec);
    if (col_type == SQL_LONGVARCHAR || col_type== SQL_LONGVARBINARY)
    {

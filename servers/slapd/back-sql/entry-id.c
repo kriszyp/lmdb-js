@@ -1,5 +1,5 @@
 /*
- *	 Copyright 1999, Dmitry Kovalev (zmit@mail.ru), All rights reserved.
+ *	 Copyright 1999, Dmitry Kovalev <mit@openldap.org>, All rights reserved.
  *
  *	 Redistribution and use in source and binary forms are permitted only
  *	 as authorized by the OpenLDAP Public License.	A copy of this
@@ -30,16 +30,15 @@ backsql_entryID* backsql_free_entryID(backsql_entryID* id)
  return next;
 }
 
-backsql_entryID* backsql_dn2id(backsql_entryID *id,SQLHDBC dbh,char *dn)
+backsql_entryID* backsql_dn2id(backsql_info *bi,backsql_entryID *id,SQLHDBC dbh,char *dn)
 {
- static char id_query[]="SELECT id,keyval,objclass FROM ldap_entries WHERE dn=?";
  SQLHSTMT sth; 
  BACKSQL_ROW_NTS row;
  //SQLINTEGER nrows=0;
  RETCODE rc;
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_dn2id(): dn='%s'\n",dn,0,0);
- backsql_Prepare(dbh,&sth,id_query,0);
+ backsql_Prepare(dbh,&sth,bi->id_query,0);
  if ((rc=backsql_BindParamStr(sth,1,dn,BACKSQL_MAX_DN_LEN)) != SQL_SUCCESS)
   {
    Debug(LDAP_DEBUG_TRACE,"backsql_dn2id(): error binding dn parameter:\n",0,0,0);
@@ -66,7 +65,7 @@ backsql_entryID* backsql_dn2id(backsql_entryID *id,SQLHDBC dbh,char *dn)
    id->id=atoi(row.cols[0]);
    id->keyval=atoi(row.cols[1]);
    id->oc_id=atoi(row.cols[2]);
-   id->dn=strdup(dn);
+   id->dn=ch_strdup(dn);
    id->next=NULL;
   }
  else
@@ -147,7 +146,7 @@ Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* eid)
  bsi->c_eid=eid;
  e->e_attrs=NULL;
  if (bsi->base_dn != NULL)
-  e->e_dn=strdup(bsi->c_eid->dn);
+  e->e_dn=ch_strdup(bsi->c_eid->dn);
  
  if (bsi->attrs!=NULL)
  {
