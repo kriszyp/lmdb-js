@@ -13,7 +13,7 @@
 #define _AC_BYTES_H
 
 #if defined( LDAP_INT4_TYPE ) && defined( LDAP_INT2_TYPE )
-	/* cross compilers should define LDAP_INT{2,4}_TYPE in CPPFLAS */
+	/* cross compilers should define LDAP_INT{2,4}_TYPE in CPPFLAGS */
 	typedef LDAP_INT4_TYPE LDAP_INT4;
 	typedef signed LDAP_INT4_TYPE LDAP_SINT4;
 	typedef unsigned LDAP_INT4_TYPE LDAP_UINT4;
