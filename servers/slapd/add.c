@@ -521,12 +521,12 @@ slap_mods2entry(
 }
 
 #ifdef LDAP_SLAPI
-static void Slapi_PBlock *initAddPlugin( Operation *op,
+static void initAddPlugin( Operation *op,
 	struct berval *dn, Entry *e, int manageDSAit )
 {
-	slapi_x_backend_set_pb( pb, op->o_bd );
-	slapi_x_connection_set_pb( pb, op->o_conn );
-	slapi_x_operation_set_pb( pb, op );
+	slapi_x_backend_set_pb( op->o_pb, op->o_bd );
+	slapi_x_connection_set_pb( op->o_pb, op->o_conn );
+	slapi_x_operation_set_pb( op->o_pb, op );
 
 	slapi_pblock_set( op->o_pb, SLAPI_ADD_TARGET, (void *)dn->bv_val );
 	slapi_pblock_set( op->o_pb, SLAPI_ADD_ENTRY, (void *)e );
@@ -559,7 +559,7 @@ static int doPreAddPluginFNs( Operation *op )
 	return rc;
 }
 
-static void doPostAddPluginFNs( Operation *op );
+static void doPostAddPluginFNs( Operation *op )
 {
 	int rc;
 

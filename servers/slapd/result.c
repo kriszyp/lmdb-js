@@ -1080,7 +1080,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 	if ( rc == 1 ) {
 		ber_free_buf( ber );
-		send_ldap_error( op, LDAP_OTHER, "computed attribute error" );
+		send_ldap_error( op, rs, LDAP_OTHER, "computed attribute error" );
 		goto error_return;
 	}
 #endif /* LDAP_SLAPI */

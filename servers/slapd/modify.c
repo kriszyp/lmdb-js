@@ -324,15 +324,15 @@ do_modify(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_backend_set_pb( pb, be );
-	slapi_x_connection_set_pb( pb, conn );
+	slapi_x_backend_set_pb( pb, op->o_bd );
+	slapi_x_connection_set_pb( pb, op->o_conn );
 	slapi_x_operation_set_pb( pb, op );
 	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
 	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 	modv = slapi_x_modifications2ldapmods( &modlist );
 	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
-	rs->sr_err = doPluginFNs( be, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
 	if ( rs->sr_err != 0 ) {
 		/*
 		 * A preoperation plugin failure will abort the

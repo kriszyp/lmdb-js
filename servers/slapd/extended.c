@@ -275,13 +275,13 @@ do_extended(
 
 		} else {
 			rs->sr_err = slapi_pblock_get( pb, SLAPI_EXT_OP_RET_OID,
-					&rs->sr_resoid);
+					&rs->sr_rspoid);
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				goto done2;
 			}
 
 			rs->sr_err = slapi_pblock_get( pb, SLAPI_EXT_OP_RET_VALUE,
-					&rs->sr_resdata);
+					&rs->sr_rspdata);
 			if ( rs->sr_err != LDAP_SUCCESS ) {
 				goto done2;
 			}
@@ -296,12 +296,12 @@ done2:;
 			send_ldap_result( op, rs );
 		}
 
-		if ( op->oq_extended.rs_resoid != NULL ) {
-			free( op->oq_extended.rs_resoid );
+		if ( op->oq_extended.rs_reqoid.bv_val != NULL ) {
+			slapi_ch_free( (void **)&op->oq_extended.rs_reqoid.bv_val );
 		}
 
-		if ( op->oq_extended.rs_resdata != NULL ) {
-			ber_bvfree( op->oq_extended.rs_resdata );
+		if ( op->oq_extended.rs_reqdata != NULL ) {
+			ber_bvfree( op->oq_extended.rs_reqdata );
 		}
 
 	} /* end of Netscape extended operation */

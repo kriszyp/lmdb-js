@@ -1202,10 +1202,9 @@ slapiControlOp2SlapControlMask(unsigned long slapi_mask,
 
 static int
 parseSlapiControl(
-	Connection *conn,
 	Operation *op,
-	LDAPControl *ctrl,
-	const char **text)
+	SlapReply *rs,
+	LDAPControl *ctrl )
 {
 	/* Plugins must deal with controls themselves. */
 
@@ -1349,31 +1348,42 @@ slapi_send_ldap_result(
 	struct berval	**urls ) 
 {
 #ifdef LDAP_SLAPI
-	Connection	*conn;
 	Operation	*op;
 	struct berval	*s;
 	char		*extOID = NULL;
 	struct berval	*extValue = NULL;
 	int		rc;
+	SlapReply	rs;
 
-	slapi_pblock_get( pb, SLAPI_CONNECTION, &conn );
 	slapi_pblock_get( pb, SLAPI_OPERATION, &op );
+
+	rs.sr_err = err;
+	rs.sr_matched = matched;
+	rs.sr_text = text;
+	rs.sr_ref = NULL;
+	rs.sr_ctrls = NULL;
+
 	if ( err == LDAP_SASL_BIND_IN_PROGRESS ) {
-		slapi_pblock_get( pb, SLAPI_BIND_RET_SASLCREDS, &s );
-		rc = LDAP_SASL_BIND_IN_PROGRESS;
-		send_ldap_sasl( conn, op, rc, NULL, NULL, NULL, NULL, s );
+		rs.sr_type = REP_SASL;
+		slapi_pblock_get( pb, SLAPI_BIND_RET_SASLCREDS, (void *) &rs.sr_sasldata );
+
+		send_ldap_sasl( op, &rs );
 		return;
 	}
 
 	slapi_pblock_get( pb, SLAPI_EXT_OP_RET_OID, &extOID );
 	if ( extOID != NULL ) {
-		slapi_pblock_get( pb, SLAPI_EXT_OP_RET_VALUE, &extValue );
-		slapi_send_ldap_extended_response( conn, op, err, extOID,
-				extValue );
+		rs.sr_type = REP_EXTENDED;
+		rs.sr_rspoid = extOID;
+		slapi_pblock_get( pb, SLAPI_EXT_OP_RET_VALUE, &rs.sr_rspdata );
+		send_ldap_response( op, &rs );
 		return;
 	}
 
-	send_ldap_result( conn, op, err, matched, text, NULL, NULL );
+	rs.sr_type = REP_RESULT;
+	slapi_pblock_get( pb, SLAPI_RESCONTROLS, &rs.sr_ctrls );
+
+	send_ldap_result( op, &rs );
 #endif /* LDAP_SLAPI */
 }
 
@@ -1390,7 +1400,7 @@ slapi_send_ldap_search_entry(
 	Connection	*pConn;
 	Operation	*pOp;
 	int		rc;
-
+	SlapReply	rs;
 	int		i;
 	AttributeName	*an = NULL;
 	const char	*text;
@@ -1412,12 +1422,20 @@ slapi_send_ldap_search_entry(
 		an[i].an_name.bv_val = NULL;
 	}
 
-	if ( ( rc = slapi_pblock_get( pb, SLAPI_BACKEND, (void *)&be ) != 0 ) ||
-			( rc = slapi_pblock_get( pb, SLAPI_CONNECTION, (void *)&pConn) != 0 ) ||
-			( rc = slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&pOp) != 0 ) ) {
+	rs.sr_type = REP_SEARCH;
+	rs.sr_err = LDAP_SUCCESS;
+	rs.sr_matched = NULL;
+	rs.sr_text = NULL;
+	rs.sr_ref = NULL;
+	rs.sr_ctrls = ectrls;
+	rs.sr_attrs = an;
+	rs.sr_entry = e;
+	rs.sr_v2ref = NULL;
+
+	if ( rc = slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&pOp) != 0 ) {
 		rc = LDAP_OTHER;
 	} else {
-		rc = send_search_entry( be, pConn, pOp, e, an, attrsonly, NULL );
+		rc = send_search_entry( pOp, &rs );
 	}
 
 	return rc;
@@ -1751,7 +1769,7 @@ slapi_filter_test( Slapi_PBlock *pb, Slapi_Entry *e, Slapi_Filter *f,
 	 * According to acl.c it is safe to call test_filter() with
 	 * NULL arguments...
 	 */
-	rc = test_filter( be, conn, op, e, f );
+	rc = test_filter( op, e, f );
 	switch (rc) {
 	case LDAP_COMPARE_TRUE:
 		rc = 0;
@@ -1841,8 +1859,19 @@ slapi_send_ldap_extended_response(
 	struct berval	*response )
 {
 #ifdef LDAP_SLAPI
-	send_ldap_extended( conn,op, errornum, NULL, NULL, NULL,
-			respName,response, NULL );
+	SlapReply	rs;
+
+	rs.sr_type = REP_EXTENDED;
+	rs.sr_err = errornum;
+	rs.sr_matched = NULL;
+	rs.sr_text = NULL;
+	rs.sr_ref = NULL;
+	rs.sr_ctrls = NULL;
+	rs.sr_rspoid = respName;
+	rs.sr_rspdata = response;
+
+	send_ldap_extended( op, &rs );
+
 	return LDAP_SUCCESS;
 #else /* LDAP_SLAPI */
 	return -1;
@@ -3072,20 +3101,10 @@ int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr,
 int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char **errbuf)
 {
 #ifdef LDAP_SLAPI
-	Backend *be;
-	Connection *conn;
 	Operation *op;
 	int ret;
 	Modifications *ml;
         Modifications *next;
-
-	if ( slapi_pblock_get( pb, SLAPI_BACKEND, (void *)&be ) != 0 ) {
-		return LDAP_PARAM_ERROR;
-	}
-
-	if ( slapi_pblock_get( pb, SLAPI_CONNECTION, (void *)&conn ) != 0 ) {
-		return LDAP_PARAM_ERROR;
-	}
 
 	if ( slapi_pblock_get( pb, SLAPI_OPERATION, (void *)&op ) != 0 ) {
 		return LDAP_PARAM_ERROR;
@@ -3096,7 +3115,7 @@ int slapi_acl_check_mods(Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char 
 		return LDAP_OTHER;
 	}
 
-	ret = acl_check_modlist( be, conn, op, e, ml );
+	ret = acl_check_modlist( op, e, ml );
 
 	/* Careful when freeing the modlist because it has pointers into the mods array. */
 	for ( ; ml != NULL; ml = next ) {
@@ -3294,8 +3313,6 @@ void slapi_x_free_ldapmods (LDAPMod **mods)
 int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e)
 {
 #ifdef LDAP_SLAPI
-	Backend *be = NULL;
-	Connection *conn = NULL;
 	Operation *op = NULL;
 	BerElement *ber;
 	AttributeDescription *desc = NULL;
@@ -3312,16 +3329,6 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 
 	if ( e == NULL ) {
 		return 1;
-	}
-
-	rc = slapi_pblock_get( c->cac_pb, SLAPI_BACKEND, (void *)&be );
-	if ( rc != 0 ) {
-		be = NULL; /* no backend for root DSE */
-	}
-
-	rc = slapi_pblock_get( c->cac_pb, SLAPI_CONNECTION, (void *)&conn );
-	if ( rc != 0 || conn == NULL ) {
-		return rc;
 	}
 
 	rc = slapi_pblock_get( c->cac_pb, SLAPI_OPERATION, (void *)&op );
@@ -3350,7 +3357,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 		}
 	}
 
-	if ( !access_allowed( be, conn, op, e, desc, NULL, ACL_READ, &c->cac_acl_state) ) {
+	if ( !access_allowed( op, e, desc, NULL, ACL_READ, &c->cac_acl_state) ) {
 		slapi_log_error( SLAPI_LOG_ACL, "SLAPI_COMPUTE",
 			"acl: access to attribute %s not allowed\n",
 			desc->ad_cname.bv_val );
@@ -3366,7 +3373,7 @@ int slapi_x_compute_output_ber(computed_attr_context *c, Slapi_Attr *a, Slapi_En
 
 	if ( !c->cac_attrsonly ) {
 		for ( i = 0; a->a_vals[i].bv_val != NULL; i++ ) {
-			if ( !access_allowed( be, conn, op, e,
+			if ( !access_allowed( op, e,
 				desc, &a->a_vals[i], ACL_READ, &c->cac_acl_state)) {
 				slapi_log_error( SLAPI_LOG_ACL, "SLAPI_COMPUTE",
 					"slapi_x_compute_output_ber: conn %lu "
