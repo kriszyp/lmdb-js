@@ -182,6 +182,7 @@ ldbm_back_bind(
 				goto return_results;
 			}
 		}
+		rc = 0;
 		break;
 
 	case LDAP_AUTH_KRBV42:
