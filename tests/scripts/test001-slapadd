@@ -21,7 +21,7 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 
 echo "Running slapadd to build slapd database..."
-$SLAPADD -f $CONF -l $LDIF
+$SLAPADD -f $CONF -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
