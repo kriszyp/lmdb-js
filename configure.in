@@ -623,7 +623,11 @@ if test $ol_aix_threads = yes ; then
 fi
 
 if test -z "${CC}"; then
-	AC_CHECK_PROGS(CC,cc)
+	AC_CHECK_PROGS(CC,cc,missing)
+
+	if test "${CC}" = "missing" ; then
+		AC_MSG_ERROR([Unable to locate cc(1).  Check PATH or set CC.])
+	fi
 fi
 
 dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
