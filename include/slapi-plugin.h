@@ -79,6 +79,8 @@ int slapi_attr_get_valueset( const Slapi_Attr *a, Slapi_ValueSet **vs );
 int slapi_attr_get_bervals_copy( Slapi_Attr *a, struct berval ***vals );
 int slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value );
 int slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
+int slapi_entry_first_attr( const Slapi_Entry *e, Slapi_Attr **attr );
+int slapi_entry_next_attr( const Slapi_Entry *e, Slapi_Attr *prevattr, Slapi_Attr **attr );
 char *slapi_attr_syntax_normalize( const char *s );
 
 Slapi_Value *slapi_value_new( void );
