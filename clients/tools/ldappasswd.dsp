@@ -1,29 +1,29 @@
-# Microsoft Developer Studio Project File - Name="ldapwhoami" - Package Owner=<4>
+# Microsoft Developer Studio Project File - Name="ldappasswd" - Package Owner=<4>
 # Microsoft Developer Studio Generated Build File, Format Version 5.00
 # ** DO NOT EDIT **
 
 # TARGTYPE "Win32 (x86) Console Application" 0x0103
 
-CFG=ldapwhoami - Win32 Single Debug
+CFG=ldappasswd - Win32 Single Debug
 !MESSAGE This is not a valid makefile. To build this project using NMAKE,
 !MESSAGE use the Export Makefile command and run
 !MESSAGE 
-!MESSAGE NMAKE /f "ldapwhoami.mak".
+!MESSAGE NMAKE /f "ldappasswd.mak".
 !MESSAGE 
 !MESSAGE You can specify a configuration when running NMAKE
 !MESSAGE by defining the macro CFG on the command line. For example:
 !MESSAGE 
-!MESSAGE NMAKE /f "ldapwhoami.mak" CFG="ldapwhoami - Win32 Single Debug"
+!MESSAGE NMAKE /f "ldappasswd.mak" CFG="ldappasswd - Win32 Single Debug"
 !MESSAGE 
 !MESSAGE Possible choices for configuration are:
 !MESSAGE 
-!MESSAGE "ldapwhoami - Win32 Release" (based on\
+!MESSAGE "ldappasswd - Win32 Release" (based on\
  "Win32 (x86) Console Application")
-!MESSAGE "ldapwhoami - Win32 Debug" (based on\
+!MESSAGE "ldappasswd - Win32 Debug" (based on\
  "Win32 (x86) Console Application")
-!MESSAGE "ldapwhoami - Win32 Single Debug" (based on\
+!MESSAGE "ldappasswd - Win32 Single Debug" (based on\
  "Win32 (x86) Console Application")
-!MESSAGE "ldapwhoami - Win32 Single Release" (based on\
+!MESSAGE "ldappasswd - Win32 Single Release" (based on\
  "Win32 (x86) Console Application")
 !MESSAGE 
 
@@ -33,7 +33,7 @@ CFG=ldapwhoami - Win32 Single Debug
 CPP=cl.exe
 RSC=rc.exe
 
-!IF  "$(CFG)" == "ldapwhoami - Win32 Release"
+!IF  "$(CFG)" == "ldappasswd - Win32 Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "..\..\Release"
-# PROP Intermediate_Dir "..\..\Release\ldapwhoami"
+# PROP Intermediate_Dir "..\..\Release\ldappasswd"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -57,7 +57,7 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 sasl.lib libsasl.lib ws2_32.lib /nologo /subsystem:console /machine:I386 /libpath:"..\..\Release"
 
-!ELSEIF  "$(CFG)" == "ldapwhoami - Win32 Debug"
+!ELSEIF  "$(CFG)" == "ldappasswd - Win32 Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -67,7 +67,7 @@ LINK32=link.exe
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "..\..\Debug"
-# PROP Intermediate_Dir "..\..\Debug\ldapwhoami"
+# PROP Intermediate_Dir "..\..\Debug\ldappasswd"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -81,7 +81,7 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\Debug"
 
-!ELSEIF  "$(CFG)" == "ldapwhoami - Win32 Single Debug"
+!ELSEIF  "$(CFG)" == "ldappasswd - Win32 Single Debug"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 1
@@ -91,7 +91,7 @@ LINK32=link.exe
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
 # PROP Output_Dir "..\..\SDebug"
-# PROP Intermediate_Dir "..\..\SDebug\ldapwhoami"
+# PROP Intermediate_Dir "..\..\SDebug\ldappasswd"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -105,7 +105,7 @@ LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 libsasl.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept /libpath:"..\..\SDebug"
 
-!ELSEIF  "$(CFG)" == "ldapwhoami - Win32 Single Release"
+!ELSEIF  "$(CFG)" == "ldappasswd - Win32 Single Release"
 
 # PROP BASE Use_MFC 0
 # PROP BASE Use_Debug_Libraries 0
@@ -115,7 +115,7 @@ LINK32=link.exe
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
 # PROP Output_Dir "..\..\SRelease"
-# PROP Intermediate_Dir "..\..\SRelease\ldapwhoami"
+# PROP Intermediate_Dir "..\..\SRelease\ldappasswd"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -133,17 +133,17 @@ LINK32=link.exe
 
 # Begin Target
 
-# Name "ldapwhoami - Win32 Release"
-# Name "ldapwhoami - Win32 Debug"
-# Name "ldapwhoami - Win32 Single Debug"
-# Name "ldapwhoami - Win32 Single Release"
+# Name "ldappasswd - Win32 Release"
+# Name "ldappasswd - Win32 Debug"
+# Name "ldappasswd - Win32 Single Debug"
+# Name "ldappasswd - Win32 Single Release"
 # Begin Source File
 
 SOURCE=.\common.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\ldapwhoami.c
+SOURCE=.\ldappasswd.c
 # End Source File
 # End Target
 # End Project

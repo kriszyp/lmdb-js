@@ -1,5 +1,19 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.13 Engineering
+	Updated libldap TLS certificate checking
+	Updated client tool argument handling
+	Updated test suite
+	Updated liblutil detach handling
+	Added libldap ldap_whoami routines
+	Added liblber ber_flatten2 routine
+	Added liblutil passwd sanity checks
+	Fixed liblber PROTOS bugs
+	Fixed ber_flush debug level
+	Fixed libldap NULL cred bug
+	Build Environment
+		Check back-bdb requirement for BDB 4.1
+
 OpenLDAP 2.1.12 Release
 	Build Environment
 		Update version number

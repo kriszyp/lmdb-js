@@ -146,6 +146,12 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 	return( pth_mutex_acquire( mutex, 1, NULL ) ? 0 : errno );
 }
 
+ldap_pvt_thread_t
+ldap_pvt_thread_self( void )
+{
+	return pth_self();
+}
+
 #ifdef LDAP_THREAD_HAVE_RDWR
 int 
 ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )

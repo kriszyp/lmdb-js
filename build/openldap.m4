@@ -312,6 +312,8 @@ dnl Try to locate appropriate library
 AC_DEFUN([OL_BERKELEY_DB_LINK],
 [ol_cv_lib_db=no
 OL_BERKELEY_DB_TRY(ol_cv_db_none)
+OL_BERKELEY_DB_TRY(ol_cv_db_db41,[-ldb41])
+OL_BERKELEY_DB_TRY(ol_cv_db_db_41,[-ldb-41])
 OL_BERKELEY_DB_TRY(ol_cv_db_db4,[-ldb4])
 OL_BERKELEY_DB_TRY(ol_cv_db_db_4,[-ldb-4])
 OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
@@ -433,9 +435,12 @@ AC_DEFUN([OL_BDB_COMPAT],
 #ifndef DB_VERSION_MAJOR
 #	define DB_VERSION_MAJOR 1
 #endif
+#ifndef DB_VERSION_MINOR
+#	define DB_VERSION_MINOR 0
+#endif
 
 /* require 4.0 or later */
-#if DB_VERSION_MAJOR >= 4 
+#if (DB_VERSION_MAJOR >= 4) && (DB_VERSION_MINOR >= 1)
 	__db_version_compat
 #endif
 	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])

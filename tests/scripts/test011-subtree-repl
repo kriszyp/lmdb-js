@@ -41,6 +41,14 @@ if test ! -x $SLURPD ; then
 	exit 0
 fi
 
+# quick hack to check for awk
+echo "looking for a POSIX compliant awk"
+awk -W version >$CMPOUT 2>&1
+if test $? != 0 ; then
+	echo "This test requires awk"
+	exit 0
+fi
+
 echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 echo "Cleaning up in $REPLDIR..."
@@ -134,6 +142,10 @@ member: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=Univer
 add: member
 member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US
+-
+replace: description
+description: A very long description, that is very likely to cause line wrapping in a LDIF file
+-
 
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
@@ -224,7 +236,7 @@ SEARCHOUT=$SUBMASTEROUT
 LDIF=$SLAVEOUT
 
 echo "Filtering master ldapsearch results..."
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT | $STRIPATTR "description" > $SEARCHFLT
 echo "Filtering slave ldapsearch results..."
 . $LDIFFILTER < $LDIF > $LDIFFLT
 
@@ -239,17 +251,17 @@ fi
 SEARCHOUT=$MASTEROUT
 
 echo "Filtering remaining data"
-. $LDIFFILTER < $SEARCHOUT > $SEARCHFLT
+. $LDIFFILTER < $SEARCHOUT | $STRIPATTR "description" > $SEARCHFLT
 
 echo "Stripping slave entries from master output..."
-$CMP $SEARCHFLT $LDIFFLT | $UNDIFFFILTER > $SUBFLT
+$DIFF $SEARCHFLT $LDIFFLT | $UNDIFFFILTER > $SUBFLT
 
 echo "Stripping subtree entries from master output..."
 . $SUBFILTER 'ou=Groups,[ ]?o=University of Michigan,[ ]?c=US' < $SEARCHOUT \
-	| $UNDIFFFILTER > $SUBFLT2
+	| $STRIPATTR "description" > $SUBFLT2
 
 echo "Comparing master minus subtree and master minus slave..."
-$CMP $SUBFLT $SUBFLT2 > $CMPOUT
+$BCMP $SUBFLT $SUBFLT2 > $CMPOUT
 
 if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"

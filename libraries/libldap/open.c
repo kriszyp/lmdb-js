@@ -340,8 +340,7 @@ ldap_int_open_connection(
 #endif
 
 #ifdef LDAP_CONNECTIONLESS
-	if( proto == LDAP_PROTO_UDP )
-		return 0;
+	if( proto == LDAP_PROTO_UDP ) return 0;
 #endif
 
 #ifdef HAVE_CYRUS_SASL
@@ -351,9 +350,16 @@ ldap_int_open_connection(
 		ldap_int_sasl_open( ld, conn, sasl_host );
 		LDAP_FREE( sasl_host );
 	}
+#ifdef LDAP_PF_LOCAL
 	if( proto == LDAP_PROTO_IPC ) {
-		ldap_int_sasl_external( ld, conn, "nobody", LDAP_PVT_SASL_LOCAL_SSF );
+		char authid[sizeof("uidNumber=4294967295,gidNumber=4294967295,"
+			"cn=peercred,cn=external,cn=auth")];
+		sprintf( authid, "uidNumber=%d,gidNumber=%d,"
+			"cn=peercred,cn=external,cn=auth",
+			(int) geteuid(), (int) getegid() );
+		ldap_int_sasl_external( ld, conn, authid, LDAP_PVT_SASL_LOCAL_SSF );
 	}
+#endif
 #endif
 
 #ifdef HAVE_TLS

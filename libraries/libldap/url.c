@@ -881,6 +881,12 @@ ldap_url_duplist (LDAPURLDesc *ludlist)
 int
 ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
 {
+	return ldap_url_parselist_ext( ludlist, url, ", " );
+}
+
+int
+ldap_url_parselist_ext (LDAPURLDesc **ludlist, const char *url, const char *sep )
+{
 	int i, rc;
 	LDAPURLDesc *ludp;
 	char **urls;
@@ -890,7 +896,7 @@ ldap_url_parselist (LDAPURLDesc **ludlist, const char *url )
 
 	*ludlist = NULL;
 
-	urls = ldap_str2charray(url, ", ");
+	urls = ldap_str2charray(url, sep);
 	if (urls == NULL)
 		return LDAP_NO_MEMORY;
 
@@ -1042,9 +1048,13 @@ ldap_url_list2urls(
 	/* figure out how big the string is */
 	size = 1;	/* nul-term */
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
-		size += strlen(ludp->lud_scheme) + strlen(ludp->lud_host);
-		if (strchr(ludp->lud_host, ':'))        /* will add [ ] below */
-			size += 2;
+		size += strlen(ludp->lud_scheme);
+		if ( ludp->lud_host ) {
+			size += strlen(ludp->lud_host);
+			/* will add [ ] below */
+			if (strchr(ludp->lud_host, ':'))
+				size += 2;
+		}
 		size += sizeof(":/// ");
 
 		if (ludp->lud_port != 0) {
@@ -1059,9 +1069,11 @@ ldap_url_list2urls(
 
 	p = s;
 	for (ludp = ludlist; ludp != NULL; ludp = ludp->lud_next) {
-		p += sprintf(p,
-			     strchr(ludp->lud_host, ':') ? "%s://[%s]" : "%s://%s",
-			     ludp->lud_scheme, ludp->lud_host);
+		p += sprintf(p, "%s://", ludp->lud_scheme);
+		if ( ludp->lud_host ) {
+			p += sprintf(p, strchr(ludp->lud_host, ':') 
+					? "[%s]" : "%s", ludp->lud_host);
+		}
 		if (ludp->lud_port != 0)
 			p += sprintf(p, ":%d", ludp->lud_port);
 		*p++ = '/';
