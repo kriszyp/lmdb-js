@@ -91,7 +91,7 @@ rewrite_subst_compile(
 			if ( subs[ nsub - 1 ]->bv_val == NULL ) {
 				return NULL;
 			}
-			strncpy( subs[ nsub - 1 ]->bv_val, begin, l );
+			AC_MEMCPY( subs[ nsub - 1 ]->bv_val, begin, l );
 			subs[ nsub - 1 ]->bv_val[ l ] = '\0';
 		} else {
 			subs[ nsub - 1 ] = NULL;
@@ -202,7 +202,7 @@ rewrite_subst_compile(
 		subs_len += l;
 		subs[ nsub ]->bv_len = l;
 		subs[ nsub ]->bv_val = malloc( l + 1 );
-		strncpy( subs[ nsub ]->bv_val, begin, l );
+		AC_MEMCPY( subs[ nsub ]->bv_val, begin, l );
 		subs[ nsub ]->bv_val[ l ] = '\0';
 	} else {
 		subs[ nsub ] = NULL;
@@ -255,7 +255,7 @@ submatch_copy(
 		return REWRITE_ERR;
 	}
 	
-	strncpy( val->bv_val, s, l );
+	AC_MEMCPY( val->bv_val, s, l );
 	val->bv_val[ l ] = '\0';
 	
 	return REWRITE_SUCCESS;
@@ -410,15 +410,18 @@ rewrite_subst_apply(
 	 */
         for ( n = 0, cl = 0; n < subst->lt_num_submatch; n++ ) {
 		if ( subst->lt_subs[ n ] != NULL ) {
-                	strcpy( res + cl, subst->lt_subs[ n ]->bv_val);
+                	AC_MEMCPY( res + cl, subst->lt_subs[ n ]->bv_val,
+					subst->lt_subs[ n ]->bv_len );
 			cl += subst->lt_subs[ n ]->bv_len;
 		}
-		strcpy( res + cl, submatch[ n ].bv_val );
+		AC_MEMCPY( res + cl, submatch[ n ].bv_val, 
+				submatch[ n ].bv_len );
 		cl += submatch[ n ].bv_len;
 		free( submatch[ n ].bv_val );
 	}
 	if ( subst->lt_subs[ n ] != NULL ) {
-		strcpy( res + cl, subst->lt_subs[ n ]->bv_val );
+		AC_MEMCPY( res + cl, subst->lt_subs[ n ]->bv_val,
+				subst->lt_subs[ n ]->bv_len );
 	}
 
 	val->bv_val = res;

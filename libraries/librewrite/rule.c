@@ -205,7 +205,7 @@ rewrite_rule_compile(
 				/* XXX Need to free stuff */
 				return REWRITE_ERR;
 			}
-			strncpy( buf, p + 2, l );
+			AC_MEMCPY( buf, p + 2, l );
 			buf[ l ] = '\0';
 
 			d = malloc( sizeof( int ) );

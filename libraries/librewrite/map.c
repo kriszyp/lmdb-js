@@ -123,7 +123,7 @@ rewrite_xmap_parse(
 
 		l = p - s - c;
 		filename = calloc( sizeof( char ), l + 1 );
-		strncpy( filename, s + c, l );
+		AC_MEMCPY( filename, s + c, l );
 		filename[ l ] = '\0';
 		
 		map->lm_args = ( void * )fopen( filename, "r" );
@@ -177,7 +177,7 @@ rewrite_xmap_parse(
 		 */
 		l = p - s - c;
 		url = calloc( sizeof( char ), l + 3 );
-		strncpy( url, s + c, l );
+		AC_MEMCPY( url, s + c, l );
 		url[ l ] = '\0';
 
 		/*
@@ -270,7 +270,7 @@ rewrite_map_parse(
 	 */
 	l = p - string - 1;
 	s = calloc( sizeof( char ), l + 1 );
-	strncpy( s, string, l );
+	AC_MEMCPY( s, string, l );
 	s[ l ] = 0;
 
 	/*
