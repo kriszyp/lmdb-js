@@ -181,6 +181,7 @@ St_read(
 	return 0;
     }
     if (( rc = acquire_lock( sglob->slurpd_status_file, &fp, &lfp)) < 0 ) {
+	pthread_mutex_unlock( &(st->st_mutex ));
 	return 0;
     }
     while ( fgets( buf, sizeof( buf ), fp ) != NULL ) {

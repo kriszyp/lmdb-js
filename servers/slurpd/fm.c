@@ -210,8 +210,7 @@ populate_queue(
 	Debug( LDAP_DEBUG_ANY,
 		"error: can't seek to offset %ld in file \"%s\"\n",
 		sglob->srpos, f, 0 );
-	return;
-    }
+    } else {
     while (( p = get_record( fp )) != NULL ) {
 	if ( sglob->rq->rq_add( sglob->rq, p ) < 0 ) {
 	    char *t;
@@ -227,6 +226,7 @@ populate_queue(
 	pthread_yield();
     }
     sglob->srpos = ftell( fp );
+    }
     (void) relinquish_lock( f, fp, lfp );
 }
     

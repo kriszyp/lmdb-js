@@ -43,6 +43,8 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 #else
 		lockf( fileno( *lfp ), F_ULOCK, 0 );
 #endif
+		fclose( *lfp );
+		*lfp = NULL;
 		return( NULL );
 	}
 

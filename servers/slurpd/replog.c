@@ -117,7 +117,7 @@ copy_replog(
 	Debug( LDAP_DEBUG_ANY,
 		"Error: copy_replog: Can't lock replog \"%s\" for write: %s\n",
 		src, sys_errlist[ errno ], 0 );
-	lock_fclose( rfp );
+	lock_fclose( rfp, lfp );
 	return( 1 );
     }
 
@@ -133,12 +133,12 @@ copy_replog(
 	truncate( src, (off_t) 0 );
     }
 
-    if ( lock_fclose( rfp, lfp ) == EOF ) {
+    if ( lock_fclose( dfp, dlfp ) == EOF ) {
 	Debug( LDAP_DEBUG_ANY,
 		"Error: copy_replog: Error closing \"%s\"\n",
 		src, 0, 0 );
     }
-    if ( lock_fclose( dfp, dlfp ) == EOF ) {
+    if ( lock_fclose( rfp, lfp ) == EOF ) {
 	Debug( LDAP_DEBUG_ANY,
 		"Error: copy_replog: Error closing \"%s\"\n",
 		src, 0, 0 );

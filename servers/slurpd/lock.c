@@ -68,6 +68,8 @@ lock_fopen(
 #else
 		lockf( fileno( *lfp ), F_ULOCK, 0 );
 #endif
+		fclose( *lfp );
+		*lfp = NULL;
 		return( NULL );
 	}
 
