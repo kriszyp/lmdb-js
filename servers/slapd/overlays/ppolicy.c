@@ -49,6 +49,7 @@
 typedef struct pp_info {
 	struct berval def_policy;	/* DN of default policy subentry */
 	int use_lockout;		/* send AccountLocked result? */
+	int hash_passwords;		/* transparently hash cleartext pwds */
 } pp_info;
 
 /* Our per-connection info - note, it is not per-instance, it is 
@@ -439,7 +440,7 @@ password_scheme( struct berval *cred, struct berval *sch )
 }
 
 static int
-check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyError *err )
+check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyError *err, Entry *e )
 {
 	int rc = LDAP_SUCCESS, ok = LDAP_SUCCESS;
 	char *ptr = cred->bv_val;
@@ -498,7 +499,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				pp->pwdCheckModule, err, 0 );
 			ok = LDAP_OTHER; /* internal error */
 		} else {
-			int (*prog)( char *passwd, char **text, void *arg );
+			int (*prog)( char *passwd, char **text, Attribute *attrs );
 
 			if ((prog = lt_dlsym( mod, "check_password" )) == NULL) {
 				err = lt_dlerror();
@@ -511,7 +512,7 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 				char *txt = NULL;
 
 				ldap_pvt_thread_mutex_lock( &chk_syntax_mutex );
-				ok = prog( cred->bv_val, &txt, NULL );
+				ok = prog( cred->bv_val, &txt, e ? e->e_attrs : NULL );
 				ldap_pvt_thread_mutex_unlock( &chk_syntax_mutex );
 				if (txt) {
 					Debug(LDAP_DEBUG_ANY,
@@ -1073,9 +1074,11 @@ ppolicy_add(
 	SlapReply *rs )
 {
 	slap_overinst *on = (slap_overinst *)op->o_bd->bd_info;
+	pp_info *pi = on->on_bi.bi_private;
 	PassPolicy pp;
 	int pw;
 	Attribute *pa;
+	const char *txt;
 
 	if ( ppolicy_restrict( op, rs ) != SLAP_CB_CONTINUE )
 		return rs->sr_err;
@@ -1089,7 +1092,7 @@ ppolicy_add(
 		 * then we need to check that the password fits in with the
 		 * security policy for the new entry.
 		 */
-		ppolicy_get( op, op->oq_add.rs_e, &pp );
+		ppolicy_get( op, op->ora_e, &pp );
 		if (pp.pwdCheckQuality > 0 && !be_isroot( op )) {
 			struct berval *bv = &(pa->a_vals[0]);
 			int rc, i, send_ctrl = 0; 
@@ -1103,7 +1106,7 @@ ppolicy_add(
 					break;
 				}
 			}
-			rc = check_password_quality( bv, &pp, &pErr );
+			rc = check_password_quality( bv, &pp, &pErr, op->ora_e );
 			if (rc != LDAP_SUCCESS) {
 				op->o_bd->bd_info = (BackendInfo *)on->on_info;
 				if ( send_ctrl ) {
@@ -1116,6 +1119,37 @@ ppolicy_add(
 				}
 				send_ldap_error( op, rs, rc, "Password fails quality checking policy" );
 				return rs->sr_err;
+			}
+			    /*
+			     * A controversial bit. We hash cleartext
+			     * passwords provided via add and modify operations
+			     * You're not really supposed to do this, since
+			     * the X.500 model says "store attributes" as they
+			     * get provided. By default, this is what we do
+			     *
+			     * But if the hash_passwords flag is set, we hash
+			     * any cleartext password attribute values via the
+			     * default password hashing scheme.
+			     */
+			if ((pi->hash_passwords) &&
+				(password_scheme( &(pa->a_vals[0]), NULL ) != LDAP_SUCCESS)) {
+				struct berval hpw;
+
+				slap_passwd_hash( &(pa->a_vals[0]), &hpw, &txt );
+				if (hpw.bv_val == NULL) {
+				    /*
+				     * hashing didn't work. Emit an error.
+				     */
+					rs->sr_err = LDAP_OTHER;
+					rs->sr_text = txt;
+					send_ldap_error( op, rs, LDAP_OTHER, "Password hashing failed" );
+					return rs->sr_err;
+				}
+
+				memset( pa->a_vals[0].bv_val, 0, pa->a_vals[0].bv_len);
+				ber_memfree( pa->a_vals[0].bv_val );
+				pa->a_vals[0].bv_val = hpw.bv_val;
+				pa->a_vals[0].bv_len = hpw.bv_len;
 			}
 		}
 		/* If password aging is in effect, set the pwdChangedTime */
@@ -1143,6 +1177,7 @@ static int
 ppolicy_modify( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *)op->o_bd->bd_info;
+	pp_info			*pi = on->on_bi.bi_private;
 	int			i, rc, mod_pw_only, pwmod, pwmop, deladd,
 				hsize = 0;
 	PassPolicy		pp;
@@ -1387,7 +1422,7 @@ ppolicy_modify( Operation *op, SlapReply *rs )
 	bv = newpw.bv_val ? &newpw : addmod->sml_values;
 	if (pp.pwdCheckQuality > 0) {
 
-		rc = check_password_quality( bv, &pp, &pErr );
+		rc = check_password_quality( bv, &pp, &pErr, e );
 		if (rc != LDAP_SUCCESS) {
 			rs->sr_err = rc;
 			rs->sr_text = "Password fails quality checking policy";
@@ -1593,7 +1628,7 @@ do_modify:
 		 * leave it alone.
 		 */
 
-		if ((addmod) && !newpw.bv_val && 
+		if ((pi->hash_passwords) && (addmod) && !newpw.bv_val && 
 			(password_scheme( &(addmod->sml_values[0]), NULL ) != LDAP_SUCCESS)) {
 			struct berval hpw, bv;
 			
@@ -1733,6 +1768,13 @@ ppolicy_config(
 		}
 		pi->use_lockout = 1;
 		return 0;
+	} else if ( strcasecmp( argv[0], "ppolicy_hash_cleartext" ) == 0 ) {
+		if ( argc != 1 ) {
+			fprintf( stderr, "%s: line %d: ppolicy_hash_cleartext "
+				"takes no arguments\n", fname, lineno );
+			return ( 1 );
+		}
+		pi->hash_passwords = 1;
 	}
 	return SLAP_CONF_UNKNOWN;
 }

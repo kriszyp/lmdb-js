@@ -37,6 +37,12 @@ Specify the DN of the pwdPolicy object to use when no specific policy is
 set on a given user's entry. If there is no specific policy for an entry
 and no default is given, then no policies will be enforced.
 .TP
+.B ppolicy_hash_cleartext
+Specify that cleartext passwords present in Add and Modify requests should
+be hashed before being stored in the database. This violates the X.500
+information model, but may be needed to compensate for LDAP clients that
+don't use the PasswordModify exop to manage passwords.
+.TP
 .B ppolicy_use_lockout
 A client will always receive an LDAP
 .B InvalidCredentials
@@ -419,7 +425,7 @@ function prototype:
 .RS 4
 int
 .I check_password
-(char *pPasswd, char **ppErrStr, void *pArg);
+(char *pPasswd, char **ppErrStr, Attribute *pAttrs);
 .RE
 The
 .B pPasswd
@@ -427,9 +433,10 @@ parameter contains the clear-text user password, the
 .B ppErrStr
 parameter contains a double pointer that allows the function
 to return human-readable details about any error it encounters.
-The
-.B pArg
-parameter is currently unused.
+The optional
+.B pAttr
+parameter, if non-NULL, carries a list of the attributes for the
+entry whose password is being checked.
 If
 .B ppErrStr
 is NULL, then 
@@ -441,7 +448,8 @@ indicates that the password is unacceptable.  If the password is
 unacceptable, the server will return an error to the client, and
 .B ppErrStr
 may be used to return a human-readable textual explanation of the
-error.
+error. The error string must be dynamically allocated as it will
+be free()'d by slapd.
 .LP
 .RS 4
 (  1.3.6.1.4.1.4754.1.99.1
