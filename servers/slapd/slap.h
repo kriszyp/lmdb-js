@@ -58,6 +58,20 @@
 
 LDAP_BEGIN_DECL
 
+#ifdef LDAP_DEVEL
+#define SLAP_ACL_HONOR_DISCLOSE	/* partially implemented */
+#define SLAP_DYNACL
+#define LDAP_COMP_MATCH			/* experimental */
+#define LDAP_DYNAMIC_OBJECTS
+#define LDAP_SYNC_TIMESTAMP
+#define LDAP_COLLECTIVE_ATTRIBUTES /* not yet implemented */
+#endif
+
+#if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
+/* use librewrite for sasl-regexp */
+#define SLAP_AUTH_REWRITE	1
+#endif /* LDAP_DEVEL && ENABLE_REWRITE */
+
 /*
  * SLAPD Memory allocation macros
  *
@@ -323,10 +337,6 @@ typedef int slap_syntax_transform_func LDAP_P((
 	struct berval * in,
 	struct berval * out,
 	void *memctx));
-
-#ifdef LDAP_DEVEL
-#define LDAP_COMP_MATCH
-#endif
 
 #ifdef LDAP_COMP_MATCH
 typedef void* slap_component_transform_func LDAP_P((
@@ -1117,10 +1127,6 @@ typedef struct slap_ldap_modlist {
 #define ml_values	ml_mod.mod_values
 } LDAPModList;
 
-#ifdef LDAP_DEVEL
-#define SLAP_ACL_HONOR_DISCLOSE
-#endif /* LDAP_DEVEL */
-
 /*
  * represents an access control list
  */
@@ -1171,10 +1177,6 @@ typedef struct slap_authz_info {
 	slap_ssf_t	sai_sasl_ssf;		/* SASL SSF */
 } AuthorizationInformation;
 
-
-#ifdef LDAP_DEVEL
-#define SLAP_DYNACL
-#endif /* LDAP_DEVEL */
 
 #ifdef SLAP_DYNACL
 struct slap_op;
@@ -2584,11 +2586,6 @@ typedef int (SLAP_CTRL_PARSE_FN) LDAP_P((
 
 #define SLAP_ZONE_ALLOC 1
 #undef SLAP_ZONE_ALLOC
-
-#if defined(LDAP_DEVEL) && defined(ENABLE_REWRITE)
-/* use librewrite for sasl-regexp */
-#define SLAP_AUTH_REWRITE	1
-#endif /* LDAP_DEVEL && ENABLE_REWRITE */
 
 #ifdef LDAP_COMP_MATCH
 /*
