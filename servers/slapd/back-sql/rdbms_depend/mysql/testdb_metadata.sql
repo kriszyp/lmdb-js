@@ -17,6 +17,9 @@ values (2,'document','documents','id',NULL,NULL,0);
 insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
 values (3,'organization','institutes','id',NULL,NULL,0);
 
+insert into ldap_oc_mappings (id,name,keytbl,keycol,create_proc,delete_proc,expect_return)
+values (4,'referral','referrals','id',NULL,NULL,0);
+
 -- attributeType mappings: describe how an attributeType for a certain objectClass maps to the SQL data.
 --	id		a unique number identifying the attribute	
 --	oc_map_id	the value of "ldap_oc_mappings.id" that identifies the objectClass this attributeType is defined for
@@ -71,6 +74,9 @@ values (12,3,'dc','lower(institutes.name)','institutes,ldap_entries AS dcObject,
 	'institutes.id=dcObject.keyval AND dcObject.oc_map_id=3 AND dcObject.id=auxObjectClass.entry_id AND auxObjectClass.oc_name=''dcObject''',
 	NULL,NULL,3,0);
 
+insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return)
+values (13,4,'ou','referrals.name','referrals',NULL,NULL,NULL,3,0);
+
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry
 --	dn		the DN of the entry, in "pretty" form
@@ -94,7 +100,9 @@ values (5,'documentTitle=book1,dc=example,dc=com',2,1,1);
 
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
 values (6,'documentTitle=book2,dc=example,dc=com',2,1,2);
-	
+
+insert into ldap_entries (id,dn,oc_map_id,parent,keyval)
+values (7,'ou=Referral,dc=example,dc=com',4,1,1);
 
 -- objectClass mapping: entries that have multiple objectClass instances are listed here with the objectClass name (view them as auxiliary objectClass)
 --	entry_id	the "ldap_entries.id" of the entry this objectClass value must be added
@@ -103,11 +111,11 @@ insert into ldap_entry_objclasses (entry_id,oc_name)
 values (1,'dcObject');
 
 insert into ldap_entry_objclasses (entry_id,oc_name)
-values (4,'referral');
+values (7,'extensibleObject');
 
 -- referrals mapping: entries that should be treated as referrals are stored here
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
 --	url		the URI of the referral
 insert into ldap_referrals (entry_id,url)
-values (4,'ldap://localhost:9010/');
+values (7,'ldap://localhost:9010/');
 

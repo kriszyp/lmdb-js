@@ -66,3 +66,9 @@ ALTER TABLE phones  ADD
 		id
 	); 
 
+drop table if exists referrals;
+CREATE TABLE referrals (
+	id int NOT NULL,
+	name varchar(255) NOT NULL
+);
+

@@ -53,7 +53,6 @@ insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,
 
 insert into ldap_attr_mappings (id,oc_map_id,name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return) values (13,4,'ou','referrals.name','referrals',NULL,'UPDATE referrals SET name=? WHERE id=?',NULL,3,0);
 
-
 -- entries mapping: each entry must appear in this table, with a unique DN rooted at the database naming context
 --	id		a unique number > 0 identifying the entry
 --	dn		the DN of the entry, in "pretty" form
@@ -73,15 +72,13 @@ insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (5,'documentTitl
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (6,'documentTitle=book2,dc=example,dc=com',2,1,2);
 	
 insert into ldap_entries (id,dn,oc_map_id,parent,keyval) values (7,'ou=Referral,dc=example,dc=com',4,1,1);
-	
-	
+
 -- objectClass mapping: entries that have multiple objectClass instances are listed here with the objectClass name (view them as auxiliary objectClass)
 --	entry_id	the "ldap_entries.id" of the entry this objectClass value must be added
 --	oc_name		the name of the objectClass; it MUST match the name of an objectClass that is loaded in slapd's schema
 insert into ldap_entry_objclasses (entry_id,oc_name) values (1,'dcObject');
 
 insert into ldap_entry_objclasses (entry_id,oc_name) values (7,'extensibleObject');
-
 
 -- referrals mapping: entries that should be treated as referrals are stored here
 --	entry_id	the "ldap_entries.id" of the entry that should be treated as a referral
