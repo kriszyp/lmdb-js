@@ -24,7 +24,7 @@ int ldif_debug = 0;
 
 #define RIGHT2			0x03
 #define RIGHT4			0x0f
-#define CONTINUED_LINE_MARKER	'\001'
+#define CONTINUED_LINE_MARKER	'\r'
 
 #ifdef CSRIMALLOC
 #define ber_memalloc malloc
@@ -274,7 +274,13 @@ ldif_getline( char **next )
 		line = *next;
 
 		while ( (*next = strchr( *next, '\n' )) != NULL ) {
-			unsigned char c = *(*next + 1);
+			unsigned char c = (*next)[1];
+
+#if CONTINUED_LINE_MARKER != '\r'
+			if ( (*next)[-1] == '\r' ) {
+				(*next)[-1] = CONTINUED_LINE_MARKER;
+			}
+#endif
 
 			if ( !isspace( c ) || c == '\n' ) {
 				*(*next)++ = '\0';
@@ -282,7 +288,7 @@ ldif_getline( char **next )
 			}
 
 			**next = CONTINUED_LINE_MARKER;
-			*(*next+1) = CONTINUED_LINE_MARKER;
+			(*next)[1] = CONTINUED_LINE_MARKER;
 			(*next)++;
 		}
 	} while( *line == '#' );
