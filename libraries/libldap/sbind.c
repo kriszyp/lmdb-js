@@ -5,21 +5,17 @@
  *  sbind.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
 
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
-
-#if !defined( MACOS ) && !defined( DOS )
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -73,11 +69,11 @@ ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
 		return( -1 );
 	}
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
 	}
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 
 	/* send the message */
 	return( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));

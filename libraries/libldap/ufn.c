@@ -5,53 +5,36 @@
  *  ufn.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
+#include <ac/string.h>
 #include <ctype.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
 
 #include "ldapconfig.h"
 
-#ifdef NEEDPROTOS
-typedef int (*cancelptype)( void *cancelparm );
-#else /* NEEDPROTOS */
-typedef int (*cancelptype)();
-#endif /* NEEDPROTOS */
+typedef int (*cancelptype) LDAP_P(( void *cancelparm ));
 
-#ifdef NEEDPROTOS
-static int ldap_ufn_search_ctx( LDAP *ld, char **ufncomp, int ncomp, 
+static int ldap_ufn_search_ctx LDAP_P(( LDAP *ld, char **ufncomp, int ncomp, 
 	char *prefix, char **attrs, int attrsonly, LDAPMessage **res, 
 	cancelptype cancelproc, void *cancelparm, char *tag1, char *tag2,
-	char *tag3 );
-static LDAPMessage *ldap_msg_merge( LDAP *ld, LDAPMessage *a, LDAPMessage *b );
-static LDAPMessage *ldap_ufn_expand( LDAP *ld, cancelptype cancelproc,
+	char *tag3 ));
+static LDAPMessage *ldap_msg_merge LDAP_P(( LDAP *ld, LDAPMessage *a, LDAPMessage *b ));
+static LDAPMessage *ldap_ufn_expand LDAP_P(( LDAP *ld, cancelptype cancelproc,
 	void *cancelparm, char **dns, char *filter, int scope,
-	char **attrs, int aonly, int *err );
-LDAPFiltDesc *ldap_ufn_setfilter( LDAP *ld, char *fname );
-#else /* NEEDPROTOS */
-static LDAPMessage *ldap_msg_merge();
-static LDAPMessage *ldap_ufn_expand();
-LDAPFiltDesc *ldap_ufn_setfilter();
-#endif /* NEEDPROTOS */
+	char **attrs, int aonly, int *err ));
+LDAPFiltDesc *ldap_ufn_setfilter LDAP_P(( LDAP *ld, char *fname ));
 
 /*
  * ldap_ufn_search_ctx - do user friendly searching; provide cancel feature;

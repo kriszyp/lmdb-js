@@ -5,28 +5,18 @@
  *  unbind.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
@@ -84,10 +74,10 @@ ldap_ld_free( LDAP *ld, int close )
 		ldap_msgfree( lm );
 	}
 
-#ifndef NO_CACHE
+#ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL )
 		ldap_destroy_cache( ld );
-#endif /* !NO_CACHE */
+#endif /* !LDAP_NOCACHE */
 	if ( ld->ld_error != NULL )
 		free( ld->ld_error );
 	if ( ld->ld_matched != NULL )
@@ -114,6 +104,8 @@ ldap_ld_free( LDAP *ld, int close )
 		free( ld->ld_defhost );
 
 	free( (char *) ld );
+
+	WSACleanup();
 
 	return( err );
 }

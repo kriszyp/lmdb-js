@@ -17,6 +17,10 @@
  * 
  * Library of functions implementing reader/writer locks
  */
+
+#define DISABLE_BRIDGE
+#include <portable.h>
+
 #include <stdlib.h>
 #include <lthread.h>
 #include <lthread_rdwr.h>

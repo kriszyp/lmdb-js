@@ -3,28 +3,19 @@
  * 12 April 1994 by Mark C Smith
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/file.h>
-#endif /* DOS */
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
 
-#ifdef VMS
-#include <sys/socket.h>
-#endif /* VMS */
+#ifdef HAVE_SYS_FILE_H
+#include <sys/file.h>
+#endif
 
 #include "lber.h"
 #include "ldap.h"
@@ -32,41 +23,34 @@
 
 #include "ldapconfig.h"
 
-#ifdef NEEDPROTOS
-static int do_entry2text( LDAP *ld, char *buf, char *base, LDAPMessage *entry,
+static int do_entry2text LDAP_P((
+	LDAP *ld, char *buf, char *base, LDAPMessage *entry,
 	struct ldap_disptmpl *tmpl, char **defattrs, char ***defvals,
 	writeptype writeproc, void *writeparm, char *eol, int rdncount,
-	unsigned long opts, char *urlprefix );
-static int do_entry2text_search( LDAP *ld, char *dn, char *base,
+	unsigned long opts, char *urlprefix ));
+static int do_entry2text_search LDAP_P((
+	LDAP *ld, char *dn, char *base,
 	LDAPMessage *entry, struct ldap_disptmpl *tmpllist, char **defattrs,
 	char ***defvals, writeptype writeproc, void *writeparm, char *eol,
-	int rdncount, unsigned long opts, char *urlprefix );
-static int do_vals2text( LDAP *ld, char *buf, char **vals, char *label,
+	int rdncount, unsigned long opts, char *urlprefix ));
+static int do_vals2text LDAP_P((
+	LDAP *ld, char *buf, char **vals, char *label,
 	int labelwidth, unsigned long syntaxid, writeptype writeproc,
-	void *writeparm, char *eol, int rdncount, char *urlprefix );
-static int max_label_len( struct ldap_disptmpl *tmpl );
-static int output_label( char *buf, char *label, int width,
-	writeptype writeproc, void *writeparm, char *eol, int html );
-static int output_dn( char *buf, char *dn, int width, int rdncount,
-	writeptype writeproc, void *writeparm, char *eol, char *urlprefix );
-static void strcat_escaped( char *s1, char *s2 );
-static char *time2text( char *ldtimestr, int dateonly );
-static long gtime( struct tm *tm );
-static int searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry,
+	void *writeparm, char *eol, int rdncount, char *urlprefix ));
+static int max_label_len LDAP_P(( struct ldap_disptmpl *tmpl ));
+static int output_label LDAP_P((
+	char *buf, char *label, int width,
+	writeptype writeproc, void *writeparm, char *eol, int html ));
+static int output_dn LDAP_P((
+	char *buf, char *dn, int width, int rdncount,
+	writeptype writeproc, void *writeparm, char *eol, char *urlprefix ));
+static void strcat_escaped LDAP_P(( char *s1, char *s2 ));
+static char *time2text LDAP_P(( char *ldtimestr, int dateonly ));
+static long gtime LDAP_P(( struct tm *tm ));
+static int searchaction LDAP_P((
+	LDAP *ld, char *buf, char *base, LDAPMessage *entry,
 	char *dn, struct ldap_tmplitem *tip, int labelwidth, int rdncount,
-	writeptype writeproc, void *writeparm, char *eol, char *urlprefix );
-#else /* NEEDPROTOS */
-static int do_entry2text();
-static int do_entry2text_search();
-static int do_vals2text();
-static int max_label_len();
-static int output_label();
-static int output_dn();
-static void strcat_escaped();
-static char *time2text();
-static long gtime();
-static int searchaction();
-#endif /* NEEDPROTOS */
+	writeptype writeproc, void *writeparm, char *eol, char *urlprefix ));
 
 #define DEF_LABEL_WIDTH		15
 #define SEARCH_TIMEOUT_SECS	120
@@ -478,12 +462,12 @@ do_entry2text_search(
 
 	    ocattrs[0] = OCATTRNAME;
 	    ocattrs[1] = NULL;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	    if ( LDAP_IS_CLDAP( ld ))
 		    err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE,
 			"objectClass=*", ocattrs, 0, &ldmp, NULL );
 	    else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		    err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE,
 			    "objectClass=*", ocattrs, 0, &timeout, &ldmp );
 
@@ -512,12 +496,12 @@ do_entry2text_search(
 	fetchattrs = ldap_tmplattrs( tmpl, NULL, 1, LDAP_SYN_OPT_DEFER );
     }
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( LDAP_IS_CLDAP( ld ))
 	err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
 		fetchattrs, 0, &ldmp, NULL );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
 		fetchattrs, 0, &timeout, &ldmp );
 
@@ -927,11 +911,6 @@ time2text( char *ldtimestr, int dateonly )
 
 
 /* gtime.c - inverse gmtime */
-
-#if !defined( MACOS ) && !defined( _WIN32 ) && !defined( DOS )
-#include <sys/time.h>
-#endif /* !MACOS */
-
 /* gtime(): the inverse of localtime().
 	This routine was supplied by Mike Accetta at CMU many years ago.
  */
@@ -1050,12 +1029,12 @@ searchaction( LDAP *ld, char *buf, char *base, LDAPMessage *entry, char *dn,
     timeout.tv_sec = SEARCH_TIMEOUT_SECS;
     timeout.tv_usec = 0;
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
     if ( LDAP_IS_CLDAP( ld ))
 	lderr = cldap_search_s( ld, base, LDAP_SCOPE_SUBTREE, filter, retattrs,
 		0, &ldmp, NULL );
     else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	lderr = ldap_search_st( ld, base, LDAP_SCOPE_SUBTREE, filter, retattrs,
 		0, &timeout, &ldmp );
 

@@ -44,12 +44,17 @@
  * IF IBM IS APPRISED OF THE POSSIBILITY OF SUCH DAMAGES.
  */
 
+#include "portable.h"
+
 #include <stdlib.h>
 #include <stddef.h>
-#include <string.h>
-#include <sys/types.h>
 
-#include <lutil.h>
+#include <ac/string.h>
+
+/* include socket.h to get sys/types.h and/or winsock2.h */
+#include <ac/socket.h>
+
+#include "lutil.h"
 
 #define Assert(Cond) if (!(Cond)) abort()
 

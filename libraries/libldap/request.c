@@ -5,80 +5,39 @@
  *  request.c - sending of ldap requests; handling of referrals
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include <time.h>
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#include <time.h>
-#ifdef PCNFS
-#include <tklib.h>
-#include <tk_errno.h>
-#include <bios.h>
-#endif /* PCNFS */
-#ifdef NCSA
-#include "externs.h"
-#endif /* NCSA */
-#else /* DOS */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
-#ifdef _AIX
-#include <sys/select.h>
-#endif /* _AIX */
-#include "portable.h"
-#endif /* DOS */
-#endif /* MACOS */
-#ifdef VMS
-#include "ucx_select.h"
-#endif
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
-
-
 #if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
-#ifdef NEEDPROTOS
-static LDAPConn *find_connection( LDAP *ld, LDAPServer *srv, int any );
-static void use_connection( LDAP *ld, LDAPConn *lc );
-static void free_servers( LDAPServer *srvlist );
-#else /* NEEDPROTOS */
-static LDAPConn *find_connection();
-static void use_connection();
-static void free_servers();
-#endif /* NEEDPROTOS */
+static LDAPConn *find_connection LDAP_P(( LDAP *ld, LDAPServer *srv, int any ));
+static void use_connection LDAP_P(( LDAP *ld, LDAPConn *lc ));
+static void free_servers LDAP_P(( LDAPServer *srvlist ));
 #endif /* LDAP_REFERRALS || LDAP_DNS */
 
 
 #ifdef LDAP_DNS
-#ifdef NEEDPROTOS
-static LDAPServer *dn2servers( LDAP *ld, char *dn );
-#else /* NEEDPROTOS */
-static LDAPServer *dn2servers();
-#endif /* NEEDPROTOS */
+static LDAPServer *dn2servers LDAP_P(( LDAP *ld, char *dn ));
 #endif /* LDAP_DNS */
 
 #ifdef LDAP_REFERRALS
-#ifdef NEEDPROTOS
-static BerElement *re_encode_request( LDAP *ld, BerElement *origber,
-    int msgid, char **dnp );
-#else /* NEEDPROTOS */
-static BerElement *re_encode_request();
-#endif /* NEEDPROTOS */
+static BerElement *re_encode_request LDAP_P(( LDAP *ld, BerElement *origber,
+    int msgid, char **dnp ));
 #endif /* LDAP_REFERRALS */
 
 

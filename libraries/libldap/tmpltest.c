@@ -1,8 +1,12 @@
+#include "portable.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/types.h>
 
-#ifdef MACOS
+#include <ac/socket.h>
+#include <ac/time.h>
+
+#ifdef HAVE_CONSOLE_H
 #include <console.h>
 #endif /* MACOS */
 
@@ -11,13 +15,8 @@
 #include "disptmpl.h"
 #include "srchpref.h"
 
-#ifdef NEEDPROTOS
-void dump_tmpl( struct ldap_disptmpl *tmpl );
-void dump_srchpref( struct ldap_searchobj *sp );
-#else /* NEEDPROTOS */
-void dump_tmpl();
-void dump_srchpref();
-#endif /* NEEDPROTOS */
+void dump_tmpl LDAP_P(( struct ldap_disptmpl *tmpl ));
+void dump_srchpref LDAP_P(( struct ldap_searchobj *sp ));
 
 #define NULLSTRINGIFNULL( s )	( s == NULL ? "(null)" : s )
 
@@ -28,7 +27,7 @@ main( int argc, char **argv )
     struct ldap_searchobj	*so, *sop;
     int				err;
 
-#ifdef MACOS
+#ifdef HAVE_CONSOLE_H
 	ccommand( &argv );
 	for ( argc = 0; argv[ argc ] != NULL; ++argc ) {
 	    ;

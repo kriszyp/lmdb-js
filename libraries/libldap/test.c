@@ -1,33 +1,24 @@
+#include "portable.h"
+
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#ifdef THINK_C
-#include <console.h>
-#include <unix.h>
-#include <fcntl.h>
-#endif /* THINK_C */
-#include "macos.h"
-#else /* MACOS */
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#if defined( WINSOCK ) || defined( _WIN32 )
-#include "console.h"
-#endif /* WINSOCK */
-#else /* DOS */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#ifndef VMS
+#endif
+#ifdef HAVE_IO_H
+#include <io.h>
+#endif
+
 #include <fcntl.h>
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
 
 #include "lber.h"
 #include "ldap.h"
@@ -38,27 +29,16 @@
  */
 #include "ldap-int.h"
 
-#if !defined( PCNFS ) && !defined( WINSOCK ) && !defined( MACOS )
-#define MOD_USE_BVALS
-#endif /* !PCNFS && !WINSOCK && !MACOS */
+static void handle_result LDAP_P(( LDAP *ld, LDAPMessage *lm ));
+static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm, char *s ));
+static void print_search_entry LDAP_P(( LDAP *ld, LDAPMessage *res ));
+static void free_list LDAP_P(( char **list ));
 
-#ifdef NEEDPROTOS
-static void handle_result( LDAP *ld, LDAPMessage *lm );
-static void print_ldap_result( LDAP *ld, LDAPMessage *lm, char *s );
-static void print_search_entry( LDAP *ld, LDAPMessage *res );
-static void free_list( char **list );
-#else
-static void handle_result();
-static void print_ldap_result();
-static void print_search_entry();
-static void free_list();
-#endif /* NEEDPROTOS */
-
-#define NOCACHEERRMSG	"don't compile with -DNO_CACHE if you desire local caching"
+#define NOCACHEERRMSG	"don't compile with -DLDAP_NOCACHE if you desire local caching"
 
 char *dnsuffix;
 
-#ifndef WINSOCK
+#ifndef HAVE_GETLINE
 static char *
 getline( char *line, int len, FILE *fp, char *prompt )
 {
@@ -71,7 +51,7 @@ getline( char *line, int len, FILE *fp, char *prompt )
 
 	return( line );
 }
-#endif /* WINSOCK */
+#endif
 
 static char **
 get_list( char *prompt )
@@ -119,7 +99,6 @@ free_list( char **list )
 }
 
 
-#ifdef MOD_USE_BVALS
 static int
 file_read( char *path, struct berval *bv )
 {
@@ -156,7 +135,7 @@ file_read( char *path, struct berval *bv )
 	eof = feof( fp );
 	fclose( fp );
 
-	if ( rlen != bv->bv_len ) {
+	if ( (unsigned long) rlen != bv->bv_len ) {
 		perror( path );
 		free( bv->bv_val );
 		return( -1 );
@@ -164,7 +143,6 @@ file_read( char *path, struct berval *bv )
 
 	return( bv->bv_len );
 }
-#endif /* MOD_USE_BVALS */
 
 
 static LDAPMod **
@@ -174,9 +152,7 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 	int		num;
 	LDAPMod		tmp;
 	LDAPMod		**result;
-#ifdef MOD_USE_BVALS
 	struct berval	**bvals;
-#endif /* MOD_USE_BVALS */
 
 	num = 0;
 	result = NULL;
@@ -195,7 +171,7 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 		tmp.mod_type = strdup( buf );
 
 		tmp.mod_values = get_list( prompt3 );
-#ifdef MOD_USE_BVALS
+
 		if ( tmp.mod_values != NULL ) {
 			int	i;
 
@@ -221,7 +197,6 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 			tmp.mod_bvalues = bvals;
 			tmp.mod_op |= LDAP_MOD_BVALUES;
 		}
-#endif /* MOD_USE_BVALS */
 
 		if ( result == NULL )
 			result = (LDAPMod **) malloc( sizeof(LDAPMod *) );
@@ -250,7 +225,7 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 	static char	dn[256], passwd[256];
 
 	if ( !freeit ) {
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		getline( dn, sizeof(dn), stdin,
 		    "re-bind method (0->simple, 1->krbv41, 2->krbv42, 3->krbv41&2)? " );
 		if (( *authmethodp = atoi( dn )) == 3 ) {
@@ -258,9 +233,9 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 		} else {
 			*authmethodp |= 0x80;
 		}
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 		*authmethodp = LDAP_AUTH_SIMPLE;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
 		getline( dn, sizeof(dn), stdin, "re-bind dn? " );
 		strcat( dn, dnsuffix );
@@ -281,12 +256,7 @@ bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
 
 
 int
-#ifdef WINSOCK
-ldapmain(
-#else /* WINSOCK */
-main(
-#endif /* WINSOCK */
-	int argc, char **argv )
+main( int argc, char **argv )
 {
 	LDAP		*ld = NULL;
 	int		i, c, port, cldapflg, errflg, method, id, msgtype;
@@ -306,15 +276,6 @@ main(
 	extern char	*optarg;
 	extern int	optind;
 
-#ifdef MACOS
-	if (( argv = get_list( "cmd line arg?" )) == NULL ) {
-		exit( 1 );
-	}
-	for ( argc = 0; argv[ argc ] != NULL; ++argc ) {
-		;
-	}
-#endif /* MACOS */
-
 	host = NULL;
 	port = LDAP_PORT;
 	dnsuffix = "";
@@ -323,11 +284,11 @@ main(
 	while (( c = getopt( argc, argv, "uh:d:s:p:t:T:" )) != -1 ) {
 		switch( c ) {
 		case 'u':
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			cldapflg++;
-#else /* CLDAP */
-			printf( "Compile with -DCLDAP for UDP support\n" );
-#endif /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
+			printf( "Compile with -DLDAP_CONNECTIONLESS for UDP support\n" );
+#endif /* LDAP_CONNECTIONLESS */
 			break;
 
 		case 'd':
@@ -353,7 +314,6 @@ main(
 			port = atoi( optarg );
 			break;
 
-#if !defined(MACOS) && !defined(DOS)
 		case 't':	/* copy ber's to given file */
 			copyfname = strdup( optarg );
 			copyoptions = LBER_TO_FILE;
@@ -363,7 +323,6 @@ main(
 			copyfname = strdup( optarg );
 			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY);
 			break;
-#endif
 
 		default:
 		    ++errflg;
@@ -384,9 +343,9 @@ main(
 		host == NULL ? "(null)" : host, port );
 
 	if ( cldapflg ) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		ld = cldap_open( host, port );
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	} else {
 		ld = ldap_open( host, port );
 	}
@@ -396,7 +355,6 @@ main(
 		exit(1);
 	}
 
-#if !defined(MACOS) && !defined(DOS)
 	if ( copyfname != NULL ) {
 		if ( (ld->ld_sb.sb_fd = open( copyfname, O_WRONLY | O_CREAT,
 		    0600 ))  == -1 ) {
@@ -405,7 +363,6 @@ main(
 		}
 		ld->ld_sb.sb_options = copyoptions;
 	}
-#endif
 
 	bound = 0;
 	timeout.tv_sec = 0;
@@ -447,13 +404,13 @@ main(
 			break;
 
 		case 'b':	/* asynch bind */
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			getline( line, sizeof(line), stdin,
 			    "method (0->simple, 1->krbv41, 2->krbv42)? " );
 			method = atoi( line ) | 0x80;
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -473,7 +430,7 @@ main(
 			break;
 
 		case 'B':	/* synch bind */
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 			getline( line, sizeof(line), stdin,
 			    "method 0->simple 1->krbv41 2->krbv42 3->krb? " );
 			method = atoi( line );
@@ -481,9 +438,9 @@ main(
 				method = LDAP_AUTH_KRBV4;
 			else
 				method = method | 0x80;
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -574,10 +531,10 @@ main(
 			break;
 
 		case 'q':	/* quit */
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			if ( cldapflg )
 				cldap_close( ld );
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 #ifdef LDAP_REFERRALS
 			if ( !cldapflg )
 #else /* LDAP_REFERRALS */
@@ -643,7 +600,7 @@ main(
 			attrsonly = atoi( line );
 
 			if ( cldapflg ) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			    getline( line, sizeof(line), stdin,
 				"Requestor DN (for logging)? " );
 			    if ( cldap_search_s( ld, dn, scope, filter, types,
@@ -655,7 +612,7 @@ main(
 				handle_result( ld, res );
 				res = NULLMSG;
 			    }
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 			} else {
 			    if (( id = ldap_search( ld, dn, scope, filter,
 				    types, attrsonly  )) == -1 ) {
@@ -756,9 +713,9 @@ main(
 			break;
 
 		case 'e':	/* enable cache */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "Cache timeout (secs)? " );
 			i = atoi( line );
 			getline( line, sizeof(line), stdin, "Maximum memory to use (bytes)? " );
@@ -767,25 +724,25 @@ main(
 			} else {
 				printf( "ldap_enable_cache failed\n" ); 
 			}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case 'x':	/* uncache entry */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "DN? " );
 			ldap_uncache_entry( ld, line );
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case 'X':	/* uncache request */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "request msgid? " );
 			ldap_uncache_request( ld, atoi( line ));
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case 'o':	/* set ldap options */
@@ -840,9 +797,9 @@ main(
 			break;
 
 		case 'O':	/* set cache options */
-#ifdef NO_CACHE
+#ifdef LDAP_NOCACHE
 			printf( NOCACHEERRMSG );
-#else /* NO_CACHE */
+#else /* LDAP_NOCACHE */
 			getline( line, sizeof(line), stdin, "cache errors (0=smart, 1=never, 2=always)?" );
 			switch( atoi( line )) {
 			case 0:
@@ -859,7 +816,7 @@ main(
 			default:
 				printf( "not a valid cache option\n" );
 			}
-#endif /* NO_CACHE */
+#endif /* LDAP_NOCACHE */
 			break;
 
 		case '?':	/* help */
@@ -963,13 +920,9 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 
 		ufn = ldap_dn2ufn( dn );
 		printf( "\tUFN: %s\n", ufn );
-#ifdef WINSOCK
-		ldap_memfree( dn );
-		ldap_memfree( ufn );
-#else /* WINSOCK */
+
 		free( dn );
 		free( ufn );
-#endif /* WINSOCK */
 
 		for ( a = ldap_first_attribute( ld, e, &ber ); a != NULL;
 		    a = ldap_next_attribute( ld, e, ber ) ) {
@@ -982,7 +935,7 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 					int	j, nonascii;
 
 					nonascii = 0;
-					for ( j = 0; j < vals[i]->bv_len; j++ )
+					for ( j = 0; (unsigned long) j < vals[i]->bv_len; j++ )
 						if ( !isascii( vals[i]->bv_val[j] ) ) {
 							nonascii = 1;
 							break;
@@ -1008,23 +961,3 @@ print_search_entry( LDAP *ld, LDAPMessage *res )
 	    || res->lm_chain != NULLMSG )
 		print_ldap_result( ld, res, "search" );
 }
-
-
-#ifdef WINSOCK
-void
-ldap_perror( LDAP *ld, char *s )
-{
-	char	*errs;
-
-	if ( ld == NULL ) {
-		perror( s );
-		return;
-	}
-
-	errs = ldap_err2string( ld->ld_errno );
-	printf( "%s: %s\n", s, errs == NULL ? "unknown error" : errs );
-	if ( ld->ld_error != NULL && *ld->ld_error != '\0' ) {
-		printf( "%s: additional info: %s\n", s, ld->ld_error );
-	}
-}
-#endif /* WINSOCK */
