@@ -108,8 +108,9 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_DEBUG_LEVEL		0x5001	/* debug level */
 #define LDAP_OPT_TIMEOUT			0x5002	/* default timeout */
 #define LDAP_OPT_REFHOPLIMIT		0x5003	/* ref hop limit */
-#define LDAP_OPT_NETWORK_TIMEOUT        0x5005  /* socket level timeout */
+#define LDAP_OPT_NETWORK_TIMEOUT	0x5005	/* socket level timeout */
 #define LDAP_OPT_URI				0x5006
+#define LDAP_OPT_REFERRAL_URLS      0x5007  /* Referral URLs */
 
 /* OpenLDAP TLS options */
 #define LDAP_OPT_X_TLS				0x6000
