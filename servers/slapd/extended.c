@@ -81,7 +81,7 @@ static struct {
 #ifdef HAVE_TLS
 	{ &slap_EXOP_START_TLS, 0, starttls_extop },
 #endif
-	{ NULL, NULL }
+	{ NULL, 0, NULL }
 };
 
 
