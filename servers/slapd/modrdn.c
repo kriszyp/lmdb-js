@@ -60,10 +60,6 @@ do_modrdn(
 	ber_len_t	length;
 	int manageDSAit;
 
-#ifdef LDAP_SLAPI
-	Slapi_PBlock *pb = op->o_pb;
-#endif
-
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_modrdn: begin\n", 0, 0, 0 );
 #else
@@ -315,32 +311,35 @@ do_modrdn(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
-			(void *)newSuperior.bv_val );
-	slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+#define	pb	op->o_pb
+	if ( pb ) {
+		slapi_x_pblock_set_operation( pb, op );
+		slapi_pblock_set( pb, SLAPI_MODRDN_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_NEWRDN, (void *)newrdn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_NEWSUPERIOR,
+				(void *)newSuperior.bv_val );
+		slapi_pblock_set( pb, SLAPI_MODRDN_DELOLDRDN, (void *)deloldrdn );
+		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
-	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
-	if ( rs->sr_err < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
+		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODRDN_FN, pb );
+		if ( rs->sr_err < 0 ) {
+			/*
+			 * A preoperation plugin failure will abort the
+			 * entire operation.
+			 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn preoperation plugin "
-				"failed\n", 0, 0, 0 );
+			LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn preoperation plugin "
+					"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn preoperation plugin "
-				"failed.\n", 0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE, "do_modrdn: modrdn preoperation plugin "
+					"failed.\n", 0, 0, 0);
 #endif
-		if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 ) ||
-		     rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_OTHER;
+			if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 ) ||
+				 rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_OTHER;
+			}
+			goto cleanup;
 		}
-		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -399,7 +398,7 @@ do_modrdn(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODRDN_FN, pb ) < 0 ) {
+	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODRDN_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modrdn: modrdn postoperation plugins "
 				"failed\n", 0, 0, 0 );

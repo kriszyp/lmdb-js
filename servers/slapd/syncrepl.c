@@ -398,8 +398,10 @@ do_syncrepl(
 	op.o_conn = &conn;
 	op.o_connid = op.o_conn->c_connid;
 #if defined( LDAP_SLAPI )
-	op.o_pb = slapi_pblock_new();
-	slapi_x_create_object_extensions( SLAPI_X_EXT_OPERATION, &op );
+	if ( slapi_plugins_used ) {
+		op.o_pb = slapi_pblock_new();
+		slapi_x_create_object_extensions( SLAPI_X_EXT_OPERATION, &op );
+	}
 #endif /* defined( LDAP_SLAPI ) */
 
 	/* get syncrepl cookie of shadow replica from subentry */

@@ -47,7 +47,6 @@ do_modify(
 #endif
 #ifdef LDAP_SLAPI
 	LDAPMod		**modv = NULL;
-	Slapi_PBlock *pb = op->o_pb;
 #endif
 	int manageDSAit;
 	int increment = 0;
@@ -383,44 +382,47 @@ do_modify(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
-	modv = slapi_x_modifications2ldapmods( &modlist );
-	slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
+#define pb	op->o_pb
+	if ( pb ) {
+		slapi_x_pblock_set_operation( pb, op );
+		slapi_pblock_set( pb, SLAPI_MODIFY_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+		modv = slapi_x_modifications2ldapmods( &modlist );
+		slapi_pblock_set( pb, SLAPI_MODIFY_MODS, (void *)modv );
 
-	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
-	if ( rs->sr_err < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
+		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+		if ( rs->sr_err < 0 ) {
+			/*
+			 * A preoperation plugin failure will abort the
+			 * entire operation.
+			 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_modify: modify preoperation plugin "
-				"failed\n", 0, 0, 0 );
+			LDAP_LOG( OPERATION, INFO, "do_modify: modify preoperation plugin "
+					"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
-				0, 0, 0);
+			Debug(LDAP_DEBUG_TRACE, "do_modify: modify preoperation plugin failed.\n",
+					0, 0, 0);
 #endif
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
-		     rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_OTHER;
+			if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
+				 rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_OTHER;
+			}
+			slapi_x_free_ldapmods( modv );
+			modv = NULL;
+			goto cleanup;
 		}
-		slapi_x_free_ldapmods( modv );
-		modv = NULL;
-		goto cleanup;
-	}
 
-	/*
-	 * It's possible that the preoperation plugin changed the
-	 * modification array, so we need to convert it back to
-	 * a Modification list.
-	 *
-	 * Calling slapi_x_modifications2ldapmods() destroyed modlist so
-	 * we don't need to free it.
-	 */
-	slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
-	modlist = slapi_x_ldapmods2modifications( modv );
+		/*
+		 * It's possible that the preoperation plugin changed the
+		 * modification array, so we need to convert it back to
+		 * a Modification list.
+		 *
+		 * Calling slapi_x_modifications2ldapmods() destroyed modlist so
+		 * we don't need to free it.
+		 */
+		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
+		modlist = slapi_x_ldapmods2modifications( modv );
+	}
 
 	/*
 	 * NB: it is valid for the plugin to return no modifications
@@ -532,7 +534,7 @@ do_modify(
 #if defined( LDAP_SLAPI )
 	} /* modlist != NULL */
 
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
+	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_modify: modify postoperation plugins "
 				"failed\n", 0, 0, 0 );

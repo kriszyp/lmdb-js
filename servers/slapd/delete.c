@@ -40,10 +40,6 @@ do_delete(
 	struct berval dn = { 0, NULL };
 	int manageDSAit;
 
-#ifdef LDAP_SLAPI
-	Slapi_PBlock *pb = op->o_pb;
-#endif
-
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, 
 		"do_delete: conn %d\n", op->o_connid, 0, 0 );
@@ -158,28 +154,31 @@ do_delete(
 	}
 
 #if defined( LDAP_SLAPI )
-	slapi_x_pblock_set_operation( pb, op );
-	slapi_pblock_set( pb, SLAPI_DELETE_TARGET, (void *)dn.bv_val );
-	slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
+#define pb op->o_pb
+	if ( pb ) {
+		slapi_x_pblock_set_operation( pb, op );
+		slapi_pblock_set( pb, SLAPI_DELETE_TARGET, (void *)dn.bv_val );
+		slapi_pblock_set( pb, SLAPI_MANAGEDSAIT, (void *)manageDSAit );
 
-	rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
-	if ( rs->sr_err < 0 ) {
-		/*
-		 * A preoperation plugin failure will abort the
-		 * entire operation.
-		 */
+		rs->sr_err = doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_DELETE_FN, pb );
+		if ( rs->sr_err < 0 ) {
+			/*
+			 * A preoperation plugin failure will abort the
+			 * entire operation.
+			 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_delete: delete preoperation plugin "
-				"failed\n", 0, 0, 0 );
+			LDAP_LOG( OPERATION, INFO, "do_delete: delete preoperation plugin "
+					"failed\n", 0, 0, 0 );
 #else
-		Debug (LDAP_DEBUG_TRACE, "do_delete: delete preoperation plugin failed.\n",
-				0, 0, 0);
+			Debug (LDAP_DEBUG_TRACE, "do_delete: delete preoperation plugin failed.\n",
+					0, 0, 0);
 #endif
-		if ( ( slapi_pblock_get( op->o_pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
-		     rs->sr_err == LDAP_SUCCESS ) {
-			rs->sr_err = LDAP_OTHER;
+			if ( ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rs->sr_err ) != 0 )  ||
+				 rs->sr_err == LDAP_SUCCESS ) {
+				rs->sr_err = LDAP_OTHER;
+			}
+			goto cleanup;
 		}
-		goto cleanup;
 	}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -245,7 +244,7 @@ do_delete(
 	}
 
 #if defined( LDAP_SLAPI )
-	if ( doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_DELETE_FN, pb ) < 0) {
+	if ( pb && doPluginFNs( op->o_bd, SLAPI_PLUGIN_POST_DELETE_FN, pb ) < 0) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, INFO, "do_delete: delete postoperation plugins "
 				"failed\n", 0, 0, 0 );

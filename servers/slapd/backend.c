@@ -745,31 +745,29 @@ int
 backend_unbind( Operation *op, SlapReply *rs )
 {
 	int		i;
-#if defined( LDAP_SLAPI )
-	Slapi_PBlock *pb = op->o_pb;
-
-	int     rc;
-	slapi_x_pblock_set_operation( pb, op );
-#endif /* defined( LDAP_SLAPI ) */
 
 	for ( i = 0; i < nbackends; i++ ) {
 #if defined( LDAP_SLAPI )
-		slapi_pblock_set( pb, SLAPI_BACKEND, (void *)&backends[i] );
-		rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
-				(Slapi_PBlock *)pb );
-		if ( rc < 0 ) {
-			/*
-			 * A preoperation plugin failure will abort the
-			 * entire operation.
-			 */
+		if ( op->o_pb ) {
+			int rc;
+			if ( i == 0 ) slapi_x_pblock_set_operation( op->o_pb, op );
+			slapi_pblock_set( op->o_pb, SLAPI_BACKEND, (void *)&backends[i] );
+			rc = doPluginFNs( &backends[i], SLAPI_PLUGIN_PRE_UNBIND_FN,
+					(Slapi_PBlock *)op->o_pb );
+			if ( rc < 0 ) {
+				/*
+				 * A preoperation plugin failure will abort the
+				 * entire operation.
+				 */
 #ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "do_bind: Unbind preoperation plugin "
-					"failed\n", 0, 0, 0);
+				LDAP_LOG( OPERATION, INFO, "do_bind: Unbind preoperation plugin "
+						"failed\n", 0, 0, 0);
 #else
-			Debug(LDAP_DEBUG_TRACE, "do_bind: Unbind preoperation plugin "
-					"failed.\n", 0, 0, 0);
+				Debug(LDAP_DEBUG_TRACE, "do_bind: Unbind preoperation plugin "
+						"failed.\n", 0, 0, 0);
 #endif
-			return 0;
+				return 0;
+			}
 		}
 #endif /* defined( LDAP_SLAPI ) */
 
@@ -779,8 +777,8 @@ backend_unbind( Operation *op, SlapReply *rs )
 		}
 
 #if defined( LDAP_SLAPI )
-		if ( doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
-				(Slapi_PBlock *)pb ) < 0 ) {
+		if ( op->o_pb && doPluginFNs( &backends[i], SLAPI_PLUGIN_POST_UNBIND_FN,
+				(Slapi_PBlock *)op->o_pb ) < 0 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, INFO, "do_unbind: Unbind postoperation plugins "
 					"failed\n", 0, 0, 0);

@@ -231,7 +231,7 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_SLAPI
-	initAddPlugin( op, &dn, e, manageDSAit );
+	if ( op->o_pb ) initAddPlugin( op, &dn, e, manageDSAit );
 #endif /* LDAP_SLAPI */
 
 	/*
@@ -290,10 +290,12 @@ do_add( Operation *op, SlapReply *rs )
 			 * Call the preoperation plugin here, because the entry
 			 * will actually contain something.
 			 */
-			rs->sr_err = doPreAddPluginFNs( op );
-			if ( rs->sr_err != LDAP_SUCCESS ) {
-				/* plugin will have sent result */
-				goto done;
+			if ( op->o_pb ) {
+				rs->sr_err = doPreAddPluginFNs( op );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					/* plugin will have sent result */
+					goto done;
+				}
 			}
 #endif /* LDAP_SLAPI */
 
@@ -317,10 +319,12 @@ do_add( Operation *op, SlapReply *rs )
 			 * SLAPI_ADD_ENTRY will be empty, but this may be acceptable
 			 * on replicas (for now, it involves the minimum code intrusion).
 			 */
-			rs->sr_err = doPreAddPluginFNs( op );
-			if ( rs->sr_err != LDAP_SUCCESS ) {
-				/* plugin will have sent result */
-				goto done;
+			if ( op->o_pb ) {
+				rs->sr_err = doPreAddPluginFNs( op );
+				if ( rs->sr_err != LDAP_SUCCESS ) {
+					/* plugin will have sent result */
+					goto done;
+				}
 			}
 #endif /* LDAP_SLAPI */
 
@@ -349,10 +353,12 @@ do_add( Operation *op, SlapReply *rs )
 		}
 	} else {
 #ifdef LDAP_SLAPI
-	    rs->sr_err = doPreAddPluginFNs( op );
-	    if ( rs->sr_err != LDAP_SUCCESS ) {
-			/* plugin will have sent result */
-			goto done;
+		if ( op->o_pb ) {
+			rs->sr_err = doPreAddPluginFNs( op );
+			if ( rs->sr_err != LDAP_SUCCESS ) {
+				/* plugin will have sent result */
+				goto done;
+			}
 		}
 #endif
 #ifdef NEW_LOGGING
@@ -366,7 +372,7 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 #ifdef LDAP_SLAPI
-	doPostAddPluginFNs( op );
+	if ( op->o_pb ) doPostAddPluginFNs( op );
 #endif /* LDAP_SLAPI */
 
 done:

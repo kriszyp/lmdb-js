@@ -73,6 +73,10 @@ char   *strtok_quote_ptr;
 
 int use_reverse_lookup = 0;
 
+#ifdef LDAP_SLAPI
+int slapi_plugins_used = 0;
+#endif
+
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);
 static int	fp_parse_line(int lineno, char *line);
@@ -2404,6 +2408,7 @@ read_config( const char *fname, int depth )
 					!= LDAP_SUCCESS ) {
 				return( 1 );
 			}
+			slapi_plugins_used++;
 
 #else /* !defined( LDAP_SLAPI ) */
 #ifdef NEW_LOGGING

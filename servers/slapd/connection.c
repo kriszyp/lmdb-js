@@ -39,16 +39,18 @@ static unsigned long conn_nextid = 0;
 #define SLAP_C_ACTIVE			0x02	/* one or more threads */
 #define SLAP_C_BINDING			0x03	/* binding */
 #define SLAP_C_CLOSING			0x04	/* closing */
+#define SLAP_C_CLIENT			0x05	/* outbound client conn */
 
 const char *
 connection_state2str( int state )
 {
 	switch( state ) {
-	case SLAP_C_INVALID:	return "!";		
-	case SLAP_C_INACTIVE:	return "|";		
-	case SLAP_C_ACTIVE:		return "";			
+	case SLAP_C_INVALID:	return "!";
+	case SLAP_C_INACTIVE:	return "|";
+	case SLAP_C_ACTIVE:		return "";
 	case SLAP_C_BINDING:	return "B";
-	case SLAP_C_CLOSING:	return "C";			
+	case SLAP_C_CLOSING:	return "C";
+	case SLAP_C_CLIENT:		return "L";
 	}
 
 	return "?";
@@ -463,7 +465,9 @@ long connection_init(
 		ldap_pvt_thread_cond_init( &c->c_write_cv );
 
 #ifdef LDAP_SLAPI
-		slapi_x_create_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+		if ( slapi_plugins_used ) {
+			slapi_x_create_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+		}
 #endif
 
 		c->c_struct_state = SLAP_C_UNUSED;
@@ -687,7 +691,9 @@ connection_destroy( Connection *c )
 
 #ifdef LDAP_SLAPI
 	/* call destructors, then constructors; avoids unnecessary allocation */
-	slapi_x_clear_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+	if ( slapi_plugins_used ) {
+		slapi_x_clear_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+	}
 #endif
 }
 

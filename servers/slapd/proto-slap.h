@@ -304,6 +304,9 @@ LDAP_SLAPD_F (int) get_supported_controls LDAP_P (( char ***ctrloidsp, slap_mask
 LDAP_SLAPD_F (int) read_config LDAP_P(( const char *fname, int depth ));
 LDAP_SLAPD_F (void) config_destroy LDAP_P ((void));
 LDAP_SLAPD_F (char **) str2clist LDAP_P(( char ***, char *, const char * ));
+#ifdef LDAP_SLAPI
+LDAP_SLAPD_V (int) slapi_plugins_used;
+#endif
 
 /*
  * connection.c

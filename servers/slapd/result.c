@@ -371,9 +371,11 @@ send_ldap_response(
 	}
 
 #ifdef LDAP_SLAPI
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
+	if ( op->o_pb ) {
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
+	}
 #endif /* LDAP_SLAPI */
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
@@ -493,12 +495,14 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	 * should just set SLAPI_RESULT_CODE rather than sending a
 	 * result if they wish to change the result.
 	 */
-	slapi_x_pblock_set_operation( op->o_pb, op );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
-	slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
+	if ( op->o_pb ) {
+		slapi_x_pblock_set_operation( op->o_pb, op );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_CODE, (void *)rs->sr_err );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_TEXT, (void *)rs->sr_text );
+		slapi_pblock_set( op->o_pb, SLAPI_RESULT_MATCHED, (void *)rs->sr_matched );
 
-	(void) doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
+		(void) doPluginFNs( op->o_bd, SLAPI_PLUGIN_PRE_RESULT_FN, op->o_pb );
+	}
 #endif /* LDAP_SLAPI */
 
 	if ( op->o_protocol < LDAP_VERSION3 ) {
@@ -1069,38 +1073,40 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 * First, setup the computed attribute context that is
 	 * passed to all plugins.
 	 */
-	ctx.cac_pb = op->o_pb;
-	ctx.cac_attrs = rs->sr_attrs;
-	ctx.cac_attrsonly = op->ors_attrsonly;
-	ctx.cac_userattrs = userattrs;
-	ctx.cac_opattrs = opattrs;
-	ctx.cac_acl_state = acl_state;
-	ctx.cac_private = (void *)ber;
+	if ( op->o_pb ) {
+		ctx.cac_pb = op->o_pb;
+		ctx.cac_attrs = rs->sr_attrs;
+		ctx.cac_attrsonly = op->ors_attrsonly;
+		ctx.cac_userattrs = userattrs;
+		ctx.cac_opattrs = opattrs;
+		ctx.cac_acl_state = acl_state;
+		ctx.cac_private = (void *)ber;
 
-	/*
-	 * For each client requested attribute, call the plugins.
-	 */
-	if ( rs->sr_attrs != NULL ) {
-		for ( anp = rs->sr_attrs; anp->an_name.bv_val != NULL; anp++ ) {
-			rc = compute_evaluator( &ctx, anp->an_name.bv_val,
-				rs->sr_entry, slapi_x_compute_output_ber );
-			if ( rc == 1 ) {
-				break;
-			}
-		}
-	} else {
 		/*
-		 * Technically we shouldn't be returning operational attributes
-		 * when the user requested only user attributes. We'll let the
-		 * plugin decide whether to be naughty or not.
+		 * For each client requested attribute, call the plugins.
 		 */
-		rc = compute_evaluator( &ctx, "*",
-			rs->sr_entry, slapi_x_compute_output_ber );
-	}
-	if ( rc == 1 ) {
-		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
-		send_ldap_error( op, rs, LDAP_OTHER, "computed attribute error" );
-		goto error_return;
+		if ( rs->sr_attrs != NULL ) {
+			for ( anp = rs->sr_attrs; anp->an_name.bv_val != NULL; anp++ ) {
+				rc = compute_evaluator( &ctx, anp->an_name.bv_val,
+					rs->sr_entry, slapi_x_compute_output_ber );
+				if ( rc == 1 ) {
+					break;
+				}
+			}
+		} else {
+			/*
+			 * Technically we shouldn't be returning operational attributes
+			 * when the user requested only user attributes. We'll let the
+			 * plugin decide whether to be naughty or not.
+			 */
+			rc = compute_evaluator( &ctx, "*",
+				rs->sr_entry, slapi_x_compute_output_ber );
+		}
+		if ( rc == 1 ) {
+			if ( op->o_res_ber == NULL ) ber_free_buf( ber );
+			send_ldap_error( op, rs, LDAP_OTHER, "computed attribute error" );
+			goto error_return;
+		}
 	}
 #endif /* LDAP_SLAPI */
 
