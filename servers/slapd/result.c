@@ -28,7 +28,7 @@ send_ldap_result2(
 )
 {
 	BerElement	*ber;
-	int		rc, tmp;
+	int		rc;
 	unsigned long	tag, bytes;
 
 	if ( err == LDAP_PARTIAL_RESULTS && (text == NULL || *text == '\0') )
