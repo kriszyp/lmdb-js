@@ -158,6 +158,15 @@ main( int argc, char *argv[] )
 
 		case LDAP_DN_FORMAT_LDAPV3:
 		case LDAP_DN_FORMAT_LDAPV2:
+			n = ldap_dn2domain( strin, &tmp );
+			if( n ) {
+				fprintf( stdout, "\nldap_dn2domain(\"%s\") FAILED\n", strin );
+			} else {
+				fprintf( stdout, "\nldap_dn2domain(\"%s\")\n"
+					"\t= \"%s\"\n", strin, tmp );
+			}
+			ldap_memfree( tmp );
+
 			tmp = ldap_dn2ufn( strin );
 			fprintf( stdout, "\nldap_dn2ufn(\"%s\")\n"
 					"\t= \"%s\"\n", strin, tmp );

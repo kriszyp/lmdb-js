@@ -37,106 +37,84 @@ int ldap_dn2domain(
 	LDAP_CONST char *dn_in,
 	char **domainp)
 {
-	int i;
-	char *domain = NULL;
-	char **dn;
+	int i, j;
+	char *ndomain;
+	LDAPDN *dn = NULL;
+	LDAPRDN *rdn = NULL;
+	LDAPAVA *ava = NULL;
+	struct berval domain = { 0, NULL };
+	static struct berval DC = BER_BVC("DC");
+	static struct berval DCOID = BER_BVC("0.9.2342.19200300.100.1.25");
 
 	assert( dn_in != NULL );
 	assert( domainp != NULL );
 
-	dn = ldap_explode_dn( dn_in, 0 );
-
-	if( dn == NULL ) {
+	if ( ldap_str2dn( dn_in, &dn, LDAP_DN_FORMAT_LDAP ) != LDAP_SUCCESS ) {
 		return -2;
 	}
 
-	for( i=0; dn[i] != NULL; i++ ) {
-		char ** rdn = ldap_explode_rdn( dn[i], 0 );
+	if( dn ) for( i=0; (*dn)[i] != NULL; i++ ) {
+		rdn = (*dn)[i];
 
-		if( rdn == NULL || *rdn == NULL ) {
-			LDAP_FREE( rdn );
-			LDAP_FREE( domain );
-			LDAP_VFREE( dn );
-			return -3;
-		}
+		for( j=0; (*rdn)[j] != NULL; j++ ) {
+			ava = (*rdn)[j];
 
-
-		if( rdn[1] == NULL ) {
-			/*
-			 * single-valued RDN
-			 */
-			char *dc;
-
-#define LDAP_DC "dc="
-#define LDAP_DCOID "0.9.2342.19200300.100.1.25="
-
-			if( strncasecmp( rdn[0],
-				LDAP_DC, sizeof(LDAP_DC)-1 ) == 0 )
+			if( (*dn)[i][j][1] == NULL &&
+				!ava->la_flags && ava->la_value.bv_len &&
+				( ber_bvstrcasecmp( &ava->la_attr, &DC ) == 0
+				|| ber_bvstrcasecmp( &ava->la_attr, &DCOID ) == 0 ) )
 			{
-				dc = &rdn[0][sizeof(LDAP_DC)-1];
+				if( domain.bv_len == 0 ) {
+					ndomain = LDAP_REALLOC( domain.bv_val,
+						ava->la_value.bv_len + 1);
 
-			} else if( strncmp( rdn[0],
-				LDAP_DCOID, sizeof(LDAP_DCOID)-1 ) == 0 )
-			{
-				dc = &rdn[0][sizeof(LDAP_DCOID)-1];
+					if( ndomain == NULL ) {
+						goto return_error;
+					}
 
-			} else {
-				dc = NULL;
-			}
+					domain.bv_val = ndomain;
 
-			if( dc != NULL ) {
-				char *ndomain;
+					AC_MEMCPY( domain.bv_val, ava->la_value.bv_val,
+						ava->la_value.bv_len );
 
-				if( *dc == '\0' ) {
-					/* dc value is empty! */
-					LDAP_FREE( rdn );
-					LDAP_FREE( domain );
-					LDAP_VFREE( dn );
-					LDAP_VFREE( rdn );
-					return -4;
-				}
+					domain.bv_len = ava->la_value.bv_len;
+					domain.bv_val[domain.bv_len] = '\0';
 
-				ndomain = LDAP_REALLOC( domain,
-					( domain == NULL ? 0 : strlen(domain) )
-					+ strlen(dc) + sizeof(".") );
-
-				if( ndomain == NULL ) {
-					LDAP_FREE( rdn );
-					LDAP_FREE( domain );
-					LDAP_VFREE( dn );
-					LDAP_VFREE( rdn );
-					return -5;
-				}
-
-				if( domain == NULL ) {
-					ndomain[0] = '\0';
 				} else {
-					strcat( ndomain, "." );
+					ndomain = LDAP_REALLOC( domain.bv_val,
+						ava->la_value.bv_len + sizeof(".") + domain.bv_len );
+
+					if( ndomain == NULL ) {
+						goto return_error;
+					}
+
+					domain.bv_val = ndomain;
+					domain.bv_val[domain.bv_len++] = '.';
+					AC_MEMCPY( &domain.bv_val[domain.bv_len],
+						ava->la_value.bv_val, ava->la_value.bv_len );
+					domain.bv_len += ava->la_value.bv_len;
+					domain.bv_val[domain.bv_len] = '\0';
 				}
-
-				strcat( ndomain, dc );
-
-				domain = ndomain;
-				continue;
+			} else {
+				domain.bv_len = 0;
 			}
-		}
-
-		/*
-		 * multi-valued RDN or fall thru
-		 */
-
-		LDAP_VFREE( rdn );
-		LDAP_FREE( domain );
-		domain = NULL;
-	} 
-
-	if( domain != NULL &&  *domain == '\0' ) {
-		LDAP_FREE( domain );
-		domain = NULL;
+		} 
 	}
 
-	*domainp = domain;
+
+	if( domain.bv_len == 0 && domain.bv_val != NULL ) {
+		LDAP_FREE( domain.bv_val );
+		domain.bv_val = NULL;
+	}
+
+	ldap_dnfree( dn );
+	*domainp = domain.bv_val;
 	return 0;
+
+return_error:
+	ldap_dnfree( dn );
+	LDAP_FREE( domain.bv_val );
+	return -1;
 }
 
 int ldap_domain2dn(
