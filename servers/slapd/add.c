@@ -387,6 +387,56 @@ static int slap_mods2entry(
 #endif
 		}
 
+		if( mods->sml_bvalues[1].bv_val != NULL ) {
+			/* check for duplicates */
+			int		i, j;
+			MatchingRule *mr = mods->sml_desc->ad_type->sat_equality;
+
+			/* check if the values we're adding already exist */
+			if( mr == NULL || !mr->smr_match ) {
+				for ( i = 0; mods->sml_bvalues[i].bv_val != NULL; i++ ) {
+					/* test asserted values against themselves */
+					for( j = 0; j < i; j++ ) {
+						int rc = ber_bvcmp( &mods->sml_bvalues[i],
+							&mods->sml_bvalues[j] );
+
+						if( rc == 0 ) {
+							/* value exists already */
+							return LDAP_TYPE_OR_VALUE_EXISTS;
+						}
+					}
+				}
+
+			} else {
+				for ( i = 0; mods->sml_bvalues[i].bv_val != NULL; i++ ) {
+					int rc, match;
+					const char *text = NULL;
+					struct berval asserted;
+
+					rc = value_normalize( mods->sml_desc,
+						SLAP_MR_EQUALITY,
+						&mods->sml_bvalues[i],
+						&asserted,
+						&text );
+
+					if( rc != LDAP_SUCCESS ) return rc;
+
+					for ( j = 0; j < i; j++ ) {
+						int rc = value_match( &match, mods->sml_desc, mr,
+							SLAP_MR_VALUE_SYNTAX_MATCH,
+							&mods->sml_bvalues[j], &asserted, &text );
+
+						if( rc == LDAP_SUCCESS && match == 0 ) {
+							free( asserted.bv_val );
+							return LDAP_TYPE_OR_VALUE_EXISTS;
+						}
+					}
+
+					free( asserted.bv_val );
+				}
+			}
+		}
+
 		attr = ch_calloc( 1, sizeof(Attribute) );
 
 		/* move ad to attr structure */
