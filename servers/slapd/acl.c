@@ -62,6 +62,12 @@ static struct berval
 	aci_bv_set_ref		= BER_BVC("set-ref"),
 	aci_bv_grant		= BER_BVC("grant"),
 	aci_bv_deny		= BER_BVC("deny"),
+
+	aci_bv_ip_eq		= BER_BVC("IP="),
+#ifdef LDAP_PF_LOCAL
+	aci_bv_path_eq		= BER_BVC("PATH="),
+	aci_bv_dirsep		= BER_BVC(LDAP_DIRSEP),
+#endif /* LDAP_PF_LOCAL */
 	
 	aci_bv_group_class 	= BER_BVC(SLAPD_GROUP_CLASS),
 	aci_bv_group_attr 	= BER_BVC(SLAPD_GROUP_ATTR),
@@ -985,9 +991,80 @@ dn_match_cleanup:;
 					{
 						continue;
 					}
+
 				} else {
-					if ( ber_bvstrcasecmp( &b->a_peername_pat, &op->o_conn->c_peer_name ) != 0 )
-						continue;
+					/* try exact match */
+					if ( b->a_peername_style == ACL_STYLE_BASE ) {
+						if ( ber_bvstrcasecmp( &b->a_peername_pat, &op->o_conn->c_peer_name ) != 0 )
+							continue;
+
+					/* extract IP and try exact match */
+					} else if ( b->a_peername_style == ACL_STYLE_IP ) {
+						char		*port;
+						char		buf[] = "255.255.255.255";
+						struct berval	ip;
+						unsigned long	addr;
+						int		port_number = -1;
+						
+						if ( strncasecmp( op->o_conn->c_peer_name.bv_val, 
+									aci_bv_ip_eq.bv_val, aci_bv_ip_eq.bv_len ) != 0 ) 
+							continue;
+
+						ip.bv_val = op->o_conn->c_peer_name.bv_val + aci_bv_ip_eq.bv_len;
+						ip.bv_len = op->o_conn->c_peer_name.bv_len - aci_bv_ip_eq.bv_len;
+
+						port = strrchr( ip.bv_val, ':' );
+						if ( port ) {
+							char	*next;
+							
+							ip.bv_len = port - ip.bv_val;
+							++port;
+							port_number = strtol( port, &next, 10 );
+							if ( next[0] != '\0' )
+								continue;
+						}
+						
+						/* the port check can be anticipated here */
+						if ( b->a_peername_port != -1 && port_number != b->a_peername_port )
+							continue;
+						
+						/* address longer than expected? */
+						if ( ip.bv_len >= sizeof(buf) )
+							continue;
+
+						AC_MEMCPY( buf, ip.bv_val, ip.bv_len );
+						buf[ ip.bv_len ] = '\0';
+
+						addr = inet_addr( buf );
+
+						/* unable to convert? */
+						if ( addr == (unsigned long)(-1) )
+							continue;
+
+						if ( (addr & b->a_peername_mask) != b->a_peername_addr )
+							continue;
+
+#ifdef LDAP_PF_LOCAL
+					/* extract path and try exact match */
+					} else if ( b->a_peername_style == ACL_STYLE_PATH ) {
+						struct berval path;
+						
+						if ( strncmp( op->o_conn->c_peer_name.bv_val,
+									aci_bv_path_eq.bv_val, aci_bv_path_eq.bv_len ) != 0 )
+							continue;
+
+						path.bv_val = op->o_conn->c_peer_name.bv_val + aci_bv_path_eq.bv_len;
+						path.bv_len = op->o_conn->c_peer_name.bv_len - aci_bv_path_eq.bv_len;
+
+						if ( ber_bvcmp( &b->a_peername_pat, &path ) != 0 )
+							continue;
+
+#endif /* LDAP_PF_LOCAL */
+
+					/* exact match (very unlikely...) */
+					} else if ( ber_bvcmp( &op->o_conn->c_peer_name, &b->a_peername_pat ) != 0 ) {
+							continue;
+					}
 				}
 			}
 		}

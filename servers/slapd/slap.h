@@ -1082,7 +1082,9 @@ typedef enum slap_style_e {
 	ACL_STYLE_ONE,
 	ACL_STYLE_SUBTREE,
 	ACL_STYLE_CHILDREN,
-	ACL_STYLE_ATTROF
+	ACL_STYLE_ATTROF,
+	ACL_STYLE_IP,
+	ACL_STYLE_PATH
 } slap_style_t;
 
 typedef struct slap_authz_info {
@@ -1171,6 +1173,10 @@ typedef struct slap_access {
 
 	slap_style_t a_peername_style;
 	struct berval	a_peername_pat;
+	unsigned long	a_peername_addr,
+			a_peername_mask;
+	int		a_peername_port;
+
 	slap_style_t a_sockname_style;
 	struct berval	a_sockname_pat;
 

@@ -413,6 +413,8 @@ do_search(
 	} else {
 		( void ) get_limits( op, &op->o_ndn, &op->ors_limit );
 
+		assert( op->ors_limit != NULL );
+
 		/* if no limit is required, use soft limit */
 		if ( op->ors_tlimit <= 0 ) {
 			op->ors_tlimit = op->ors_limit->lms_t_soft;

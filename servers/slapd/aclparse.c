@@ -38,8 +38,17 @@
 #include "lber_pvt.h"
 #include "lutil.h"
 
-static char *style_strings[] = { "regex",
-	"base", "one", "subtree", "children", NULL };
+static char *style_strings[] = {
+	"regex",
+	"base",
+	"one",
+	"subtree",
+	"children",
+	"attrof",
+	"ip",
+	"path",
+	NULL
+};
 
 static void		split(char *line, int splitchar, char **left, char **right);
 static void		access_append(Access **l, Access *a);
@@ -418,6 +427,17 @@ parse_acl(
 				} else if ( strcasecmp( style, "regex" ) == 0 ) {
 					sty = ACL_STYLE_REGEX;
 
+				} else if ( strcasecmp( style, "ip" ) == 0 ) {
+					sty = ACL_STYLE_IP;
+
+				} else if ( strcasecmp( style, "path" ) == 0 ) {
+					sty = ACL_STYLE_PATH;
+#ifndef LDAP_PF_LOCAL
+					fprintf( stderr, "%s: line %d: "
+						"path style modifier is useless without local\n",
+						fname, lineno );
+#endif /* LDAP_PF_LOCAL */
+
 				} else {
 					fprintf( stderr,
 						"%s: line %d: unknown style \"%s\" in by clause\n",
@@ -741,7 +761,14 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "peername" ) == 0 ) {
-					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+					switch (sty) {
+					case ACL_STYLE_REGEX:
+					case ACL_STYLE_BASE:
+					case ACL_STYLE_IP:
+					case ACL_STYLE_PATH:
+						break;
+
+					default:
 						fprintf( stderr, "%s: line %d: "
 							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
@@ -770,8 +797,53 @@ parse_acl(
 							regtest(fname, lineno, bv.bv_val);
 						}
 						b->a_peername_pat = bv;
+
 					} else {
 						ber_str2bv( right, 0, 1, &b->a_peername_pat );
+
+						if ( sty == ACL_STYLE_IP ) {
+							char		*addr = NULL,
+									*mask = NULL,
+									*port = NULL;
+
+							split( right, '{', &addr, &port );
+							split( addr, '%', &addr, &mask );
+
+							b->a_peername_addr = inet_addr( addr );
+							if ( b->a_peername_addr == (unsigned long)(-1)) {
+								/* illegal address */
+								fprintf( stderr, "%s: line %d: "
+									"illegal peername address \"%s\".\n",
+									fname, lineno, addr );
+								acl_usage();
+							}
+
+							b->a_peername_mask = (unsigned long)(-1);
+							if ( mask != NULL ) {
+								b->a_peername_mask = inet_addr( mask );
+								if ( b->a_peername_mask == (unsigned long)(-1)) {
+									/* illegal mask */
+									fprintf( stderr, "%s: line %d: "
+										"illegal peername address mask \"%s\".\n",
+										fname, lineno, mask );
+									acl_usage();
+								}
+							} 
+
+							b->a_peername_port = -1;
+							if ( port ) {
+								char	*end = NULL;
+
+								b->a_peername_port = strtol( port, &end, 10 );
+								if ( end[ 0 ] != '}' ) {
+									/* illegal port */
+									fprintf( stderr, "%s: line %d: "
+										"illegal peername port specification \"{%s}\".\n",
+										fname, lineno, port );
+									acl_usage();
+								}
+							}
+						}
 					}
 					continue;
 				}
@@ -1389,14 +1461,16 @@ acl_usage( void )
 		"<who> ::= [ * | anonymous | users | self | dn[.<dnstyle>]=<DN> ]\n"
 			"\t[dnattr=<attrname>]\n"
 			"\t[group[/<objectclass>[/<attrname>]][.<style>]=<group>]\n"
-			"\t[peername[.<style>]=<peer>] [sockname[.<style>]=<name>]\n",
-			"\t[domain[.<style>]=<domain>] [sockurl[.<style>]=<url>]\n"
+			"\t[peername[.<peernamestyle>]=<peer>] [sockname[.<style>]=<name>]\n",
+			"\t[domain[.<domainstyle>]=<domain>] [sockurl[.<style>]=<url>]\n"
 #ifdef SLAPD_ACI_ENABLED
 			"\t[aci=<attrname>]\n"
 #endif
 			"\t[ssf=<n>] [transport_ssf=<n>] [tls_ssf=<n>] [sasl_ssf=<n>]\n"
-		"<dnstyle> ::= base | exact | one | subtree | children | regex\n"
+		"<dnstyle> ::= base | exact | one(level) | sub(tree) | children | regex\n"
 		"<style> ::= regex | base | exact\n"
+		"<peernamestyle> ::= regex | exact | ip | path\n"
+		"<domainstyle> ::= regex | base | exact | sub(tree)\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
 		"<level> ::= none | auth | compare | search | read | write\n"
 		"<priv> ::= {=|+|-}{w|r|s|c|x|0}+\n"
