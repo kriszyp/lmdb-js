@@ -374,7 +374,7 @@ dnNormalize(
 		 * Schema-aware rewrite
 		 */
 		if ( LDAPDN_rewrite( dn, 0, ctx ) != LDAP_SUCCESS ) {
-			ldap_dnfree( dn );
+			ldap_dnfree_x( dn, ctx );
 			return LDAP_INVALID_SYNTAX;
 		}
 
