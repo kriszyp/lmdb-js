@@ -80,7 +80,7 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
 
-echo "Using ldapsearch to check that R1 slave slapd(pid=$SLAVEPID) is running..."
+echo "Using ldapsearch to check that R1 slave slapd (pid=$SLAVEPID) is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
 		'objectclass=*' > /dev/null 2>&1
@@ -108,7 +108,7 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
 
-echo "Using ldapsearch to check that R2 slave slapd(pid=$SLAVEPID) is running..."
+echo "Using ldapsearch to check that R2 slave slapd (pid=$SLAVEPID) is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT3 \
 		'objectclass=*' > /dev/null 2>&1
@@ -136,7 +136,7 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
 
-echo "Using ldapsearch to check that P1 slave slapd(pid=$SLAVEPID) is running..."
+echo "Using ldapsearch to check that P1 slave slapd (pid=$SLAVEPID) is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT4 \
 		'objectclass=*' > /dev/null 2>&1
@@ -164,7 +164,7 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
 
-echo "Using ldapsearch to check that P2 slave slapd(pid=$SLAVEPID) is running..."
+echo "Using ldapsearch to check that P2 slave slapd (pid=$SLAVEPID) is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT5 \
 		'objectclass=*' > /dev/null 2>&1
@@ -192,7 +192,7 @@ if test $WAIT != 0 ; then
 fi
 KILLPIDS="$KILLPIDS $SLAVEPID"
 
-echo "Using ldapsearch to check that P3 slave slapd(pid=$SLAVEPID) is running..."
+echo "Using ldapsearch to check that P3 slave slapd (pid=$SLAVEPID) is running..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT6 \
 		'objectclass=*' > /dev/null 2>&1
