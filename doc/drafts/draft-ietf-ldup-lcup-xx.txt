@@ -1,14 +1,14 @@
 
 
 Internet Draft                                     R. Megginson, Editor 
-Document: <draft-ietf-ldup-lcup-02.txt>                        M. Smith 
+Document: <draft-ietf-ldup-lcup-03.txt>                        M. Smith 
 Category: Proposed Standard                                    Netscape 
                                                    Communications Corp. 
                                                            O. Natkovich 
                                                                   Yahoo 
                                                               J. Parham 
                                                   Microsoft Corporation 
-                                                          November 2001 
+                                                              June 2002 
     
     
                         LDAP Client Update Protocol 
@@ -86,22 +86,9 @@ Status of this Memo
     
    The problem areas not being considered: 
     
-    - directory server to directory server synchronization. The 
-      replication protocol that is being defined by the LDUP IETF 
-      working group should be used for this purpose. 
-    
-   Several features of the protocol distinguish it from LDUP 
-   replication. First, the server does not maintain any state 
-   information on behalf of its clients. The clients are responsible 
-   for storing the information about how up to date they are with 
-   respect to the server's content. Second, no predefined agreements 
-   exist between the clients and the servers. The client decides when 
-   and from where to retrieve the changes. Finally, the server never 
-   pushes the data to the client; the client always initiates the 
-   update session during which it pulls the changes from the server. 
-    
-   The set of clients that are allowed to synchronize with an LDAP 
-   server is determined by the server defined policy. 
+    - directory server to directory server synchronization. The IETF is 
+      developing a LDAP replication protocol, called [LDUP], which is 
+      specifically designed to address this problem area. 
     
    There are currently several protocols in use for LDAP client server 
    synchronization. While each protocol addresses the needs of a 
@@ -112,42 +99,47 @@ Status of this Memo
    connected can't be easily supported by any of the existing 
    protocols. 
     
+   Several features of the protocol distinguish it from LDUP 
+   replication. LCUP is designed such that the server does not need to 
+   maintain state information on behalf of the client. The clients are 
+   responsible for storing the information about how up to date they 
+   are with respect to the server's content. LCUP design avoids the 
+   need for LCUP-specific update agreements to be made between client 
+   and server prior to LCUP use. The client decides when and from where 
+   to retrieve the changes. LCUP design requires clients to initiate 
+   the update session and "pull" the changes from server. 
+    
+   LCUP operations are subject to administrative and access         
+   control policies enforced by the server. 
+    
 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002             2 
+Megginson, et. al. Proposed Standard - Expires: December 2002        2 
 
 
 
-   A server can define a naming context or some part thereof to 
-   participate in LCUP.  This document will refer to this as an LCUP 
-   Context.  For example, LDUP defines a replica, a part of the DIT 
-   which may participate in replication.  The LCUP context may be 
-   coincident with the replicated area, depending on the server's 
-   implementation.  It is assumed that most server implementations of 
-   LCUP will make use of the server's underlying replication mechanism, 
-   but this does not have to be LDUP compliant. 
+   A part of the DIT which is enabled for LCUP is referred to as an 
+   LCUP Context.  A server may support one or more LCUP Contexts. 
     
 4.      Protocol Specification 
     
    This section describes the protocol elements and the protocol flow. 
     
-4.1     Unique Identifiers 
+4.1     Universally Unique Identifiers 
     
    Distinguished names can change, so are therefore unreliable  
-   as identifiers. The server SHOULD assign a Unique Identifier to each 
-   entry as it is created. This identifier will be stored as an 
-   operational attribute of the entry, named `entryUUID'. The entryUUID 
-   attribute is single valued. If the client wants to use entryUUID, it 
-   should supply entryUUID in the list of attributes to return in the 
-   LCUP search (described below). 
-   A consistent algorithm for generating such unique  
+   as identifiers. The server SHOULD assign a Universally Unique 
+   Identifier (or UUID for short) to each entry as it is created. This 
+   identifier will be stored as an operational attribute of the entry, 
+   named `entryUUID'. The entryUUID attribute is single valued. A 
+   consistent algorithm for generating such universally unique  
    identifiers may be standardized at some point in the future. 
    The definition of the entryUUID attribute type, written using the 
    BNF form of AttributeDescription described in RFC 2252 [RFC2252] is: 
     
        ( OID-To-Be-Specified 
          NAME `entryUUID' 
-         DESC `unique entry identifier' 
+         DESC `universally unique entry identifier' 
          EQUALITY caseIgnoreMatch 
          SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 
          SINGLE-VALUE 
@@ -172,80 +164,85 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             2
      value, the preferred form of documentation is an RFC.  It is 
      expected that there will be one or more standards track cookie 
      schemes where the value format is exposed and described in detail. 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002             3 
-
-
-
-    
     
      value - this is the actual data describing the state of the 
      client's data.  This value may be opaque, or its value may have 
-     some well known format, depending on the scheme.  The cookie value 
+     some well-known format, depending on the scheme.  The cookie value 
      MUST be included except when a client has no stored state; i.e., 
      when the client is requesting a full synchronization.  When the 
      server sends back a cookie, the cookie value MUST be present. 
     
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002        3 
+
+
+
    Further uses of the LCUP Cookie value are described below. 
     
-4.3     LCUP Cookie Schemes Operational Attribute 
+4.3     Additional LDAP Result Codes defined by LCUP 
     
-   The OIDs of the supported LCUP cookie schemes SHOULD be published 
-   using the following operational attribute: 
+   The LDAP result code names and numbers defined in the following 
+   table are to be replaced with IANA assigned result code names and 
+   numbers per draft-ietf-ldapbis-iana-xx.txt. 
     
-       ( OID-TBD 
-         NAME 'lcupCookieScheme' 
-         EQUALITY objectIdentifierMatch 
-         SYNTAX  1.3.6.1.4.1.1466.115.121.1.38 
-         NO-USER-MODIFICATION 
-         USAGE directoryOperation ) 
+     lcupResourcesExhausted (TBD) the server is running out of 
+                                   resources 
+     lcupSecurityViolation  (TBD) the client is suspected of malicious 
+                                   actions 
+     lcupInvalidCookie      (TBD) invalid cookie was supplied by the 
+                                   client - both/either the scheme 
+                                   and/or the value part was invalid 
+     lcupUnsupportedScheme  (TBD) The scheme part of the cookie is a 
+                                  valid OID but is not supported by 
+                                  this server 
+     lcupClientDisconnect   (TBD) client requested search termination 
+                                   using the LDAP Cancel extended 
+                                   operation request [CANCEL] 
+     lcupReloadRequired     (TBD) indicates that client data needs to 
+                                   be reinitialized. This reason is 
+                                   returned if the server does not 
+                                   contain sufficient information to 
+                                   synchronize the client or if the 
+                                   server's data was reloaded since the 
+                                   last synchronization session 
     
-   The lcupCookieScheme operational attribute MUST be present in the 
-   root DSE.  The lcupCookieScheme operational attribute MAY be present 
-   in every directory entry that may be used as the baseObject for a 
-   search request that contains an LCUP clientUpdate control.  If a 
-   client wants to determine what LCUP cookie schemes are supported, it 
-   MAY use a base object search to read the lcupCookieScheme attribute 
-   from the entry that will be used as the baseObject in subsequent 
-   LCUP sessions, then query the root DSE if the lcupCookieScheme was 
-   not found in the base entry.  Clients SHOULD NOT search for entries 
-   that contain lcupCookieScheme values; rather, it is RECOMMENDED that 
-   servers support LCUP sessions based at as many different entries as 
-   possible. 
-   Each value of the attribute will be a list of OIDs of the cookie 
-   schemes followed by the DN of the LCUP context which supports the 
-   schemes.  The delimiter will be a single space character.  For 
-   example: 
-   lcupCookieScheme: 1.2.3.4 5.6.7.8 dc=mycorp, dc=com 
-   Everything after the last space after the last OID will be the LCUP 
-   Context DN.  If the attribute is present in a regular directory 
-   entry in an LCUP Context, the values corresponding to DNs other than 
-   the LCUP Context containing the entry MAY be omitted. 
+   The uses of these codes are described below. 
     
 4.4     Client Update Control Value 
  
    A client initiates a synchronization session with a server by 
-   attaching a clientUpdate control to a search operation. The search 
-   specification determines the part of the directory information tree 
-   (DIT) the client wishes to synchronize with, the set of attributes 
-   it is interested in and the amount of data the client is willing to 
-   receive. The clientUpdate control contains the client's 
-   synchronization specification. The controlType field for the 
+   attaching a clientUpdate control to an LDAP searchRequest message.  
+   The client SHOULD specify entryUUID in the attributes list in the 
+   searchRequest message.  The search specification determines the part 
+   of the directory information tree (DIT) the client wishes to 
+   synchronize with, the set of attributes it is interested in and the 
+   amount of data the client is willing to receive. The clientUpdate 
+   control contains the client's synchronization specification. The 
+   controlType field for the clientUpdate control is 
+   ClientUpdateControlOID (to be assigned).  The controlValue is an 
+   OCTET STRING, whose contents are the bytes of the BER encoding of 
+   the following: 
+    
+
+
+
+
+
+
+
+
   
-Megginson, et. al. Proposed Standard - Expires: May 2002             4 
+Megginson, et. al. Proposed Standard - Expires: December 2002        4 
 
 
 
-   clientUpdate control is ClientUpdateControlOID (to be assigned).  
-   The controlValue is an OCTET STRING, whose contents are the bytes of 
-   the BER encoding of the following: 
-    
     ClientUpdateControlValue ::= SEQUENCE { 
-      updateType      ENUMERATED { 
-                            synchronizeOnly         (0), 
-                            synchronizeAndPersist   (1), 
-                            persistOnly             (2) }, 
-      cookie          LCUPCookie OPTIONAL 
+      updateType         ENUMERATED { 
+                               synchronizeOnly         (0), 
+                               synchronizeAndPersist   (1), 
+                               persistOnly             (2) }, 
+      sendCookieInterval INTEGER    OPTIONAL, 
+      cookie             LCUPCookie OPTIONAL 
     } 
     
      updateType - specifies the type of update requested by the client 
@@ -257,28 +254,32 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             4
       synchronizeAndPersist - the server sends all the data needed to 
         synchronize the client with the server, then leaves open the 
         connection, sending to the client any new added, modified, or 
-        deleted entries which satisfy the search criteria. 
+        deleted entries that satisfy the search criteria. 
        
       persistOnly - the server does not synchronize the data with the 
         client but leaves open the connection and sends over any new 
-        added, modified, or deleted entries which satisfy the search 
-        criteria.   
+        added, modified, or deleted entries that satisfy the search 
+        criteria. 
  
+     sendCookieInterval û (optional) the server SHOULD send the cookie 
+      back in the entryUpdate control value for every 
+      sendCookieInterval number of SearchResultEntry PDUs returned to 
+      the client.  For example, if the value is 5, the server SHOULD 
+      send the cookie back in the entryUpdate control value for every 5 
+      search results returned to the client.  If this value is absent, 
+      zero or less than zero, the server chooses the interval. 
+                                                        
      cookie - a value that represents the current state of the client's 
       data.  If a cookie is provided, the server MUST use the enclosed 
       scheme throughout the duration of the LCUP session or until an 
       LCUP context boundary is crossed, since a new cookie may be 
       required in that case.  If the value or scheme part of the cookie 
       is invalid, the server MUST return immediately with a 
-      SearchResultDone message with the clientUpdateDone control 
-      attached with the reason set to the value of lcupInvalidCookie 
-      (see below).  Also, the LDAP result code MUST be 
-      unwillingToPerform.  If the scheme part of the cookie is a valid 
+      SearchResultDone message with the resultCode set to the value of 
+      lcupInvalidCookie.  If the scheme part of the cookie is a valid 
       OID, but is not supported, the server MUST return immediately 
-      with a SearchResultDone message with the clientUpdateDone control 
-      attached with the reason set to the value of 
-      lcupUnsupportedScheme (see below).  Also, the LDAP result code 
-      MUST be unwillingToPerform. 
+      with a SearchResultDone message with the resultCode set to the 
+      value of lcupUnsupportedScheme. 
       
      If the cookie is omitted, the server MAY use any scheme it 
      supports. 
@@ -288,38 +289,31 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             4
    In response to the client's synchronization request, the server 
    returns one or more SearchResultEntry PDU that fits the client's 
    specification. Each SearchResultEntry PDU also contains an 
-   entryUpdateControl which describes the LCUP state of the returned 
-   entry.  To represent a deleted entry, the server attaches an 
+   entryUpdateControl that describes the LCUP state of the returned 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002             5 
+Megginson, et. al. Proposed Standard - Expires: December 2002        5 
 
 
 
+   entry.  To represent a deleted entry, the server attaches an 
    entryUpdate control to the corresponding SearchResultEntry. The 
    SearchResultEntry corresponding to a deleted entry MUST contain a 
-   valid DN and MAY contain a valid Unique Identifier but, to reduce 
-   the amount of data sent to the client, it SHOULD not contain any 
-   other attributes.  Distinguished names can change, so are therefore 
-   unreliable as identifiers. A Unique Identifier MAY therefore be 
-   assigned to each entry as it is created.  The Unique Identifier 
-   allows the client to uniquely identify entries even in the presence 
-   of modifyDN operations.  The Unique Identifier is carried in the 
-   entryUUID attribute. 
-   For returned SearchResultEntry PDUs other than deleted entries, the 
-   client MAY request that the Unique Identifier attribute be returned 
-   by specifying it in the attribute list to be returned by the search 
-   request.  If the Unique Identifier is not returned, the client MAY 
-   use the entry DN to keep track of returned entries. 
+   valid DN and SHOULD contain a valid UUID but, to reduce the amount 
+   of data sent to the client, it SHOULD not contain any other 
+   attributes. 
  
    Furthermore, the server may elect to periodically return to the 
    client the cookie that represents the state of the client's data. 
    This information is useful in case the client crashes or gets 
-   disconnected. The cookie SHOULD be present in every entryUpdate 
-   control sent to the client to insure ease of synchronization.  The 
-   cookie is also provided in the entryUpdate control. The controlType 
-   field for the entryUpdate control is EntryUpdateControlOID (to be 
-   assigned).  The controlValue is an OCTET STRING, whose contents are 
-   the bytes of the BER encoding of the following: 
+   disconnected. The client MAY specify how often to receive the cookie 
+   by the use of the sendCookieInterval in the clientUpdate control 
+   value (see above).  If the client does not specify a value, the 
+   server will determine the interval. 
+    
+   The controlType field for the entryUpdate control is 
+   EntryUpdateControlOID (to be assigned).  The controlValue is an 
+   OCTET STRING, whose contents are the bytes of the BER encoding of 
+   the following: 
     
     EntryUpdateControlValue ::= SEQUENCE { 
       stateUpdate   BOOLEAN, 
@@ -335,158 +329,75 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             5
       contain the updated cookie. This feature allows updating the 
       client's cookie when there are no changes that effect the 
       client's data store. Note that the control MUST be attached to a 
-      valid SearchResultEntry, i.e. the entry should contain a valid 
-      dn.  The server MAY send the entry named by the baseObject from 
-      the client's search request. 
+      valid SearchResultEntry, which should contain a valid LDAPDN in 
+      the objectName field, and MAY contain an entryUUID attribute, but 
+      SHOULD NOT contain any other attributes.  The server MAY send the 
+      entry named by the baseObject from the client's search request. 
      
     entryDeleted - if set to TRUE, indicates that the entry to which 
       the control is attached was deleted.  The server MAY also set 
       this to TRUE if the entry has left the client's search result 
       set.  As far as the client is concerned, a deleted entry is no 
-      different than an entry which has left the result set. 
+      different than an entry that has left the result set. 
  
     cookie - the LCUP cookie value that represents the current state of 
       the client's data. 
      
 4.6     Client Update Done Control Value 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002             6 
-
-
-
  
    When the server has finished processing the client's request, it 
    attaches a clientUpdateDone control to the SearchResultDone message 
    and sends it to the client. However, if the SearchResultDone message 
-   contains a resultCode which is not success, the clientUpdateDone 
-   control MAY be omitted.  The controlType field for the 
-   clientUpdateDone control is ClientUpdateDoneControlOID (to be 
-   assigned).  The controlValue is an OCTET STRING, whose contents are 
-   the bytes of the BER encoding of the following: 
-    
-    ClientUpdateDoneControlValue ::= SEQUENCE { 
-      reason  INTEGER, 
-      reasonText LDAPString, 
-      cookie  LCUPCookie OPTIONAL 
-    } 
-     
-    reason - reason for terminating the operation. The following values 
-      are defined: 
-    
-     lcupSuccess            (0)  the operation was successfully 
-                                  processed 
-     lcupResourcesExhausted (1)  the server is running out of resource 
-     lcupSecurityViolation  (2)  the client is suspected of malicious 
-                                  actions 
-     lcupInvalidCookie      (3)  invalid cookie was supplied by the 
-                                  client - both/either the scheme 
-                                  and/or the value part was invalid 
-     lcupUnsupportedScheme  (4)  The scheme part of the cookie is a 
-                                 valid OID but is not supported by 
-                                 this server 
-     lcupClientDisconnect   (5)  client requested search termination 
-                                  using the stopClientUpdate request 
-                                  (defined below) 
-     lcupReloadRequired     (6)  indicates that client data needs to 
-                                  be reinitialized. This reason is 
-                                  returned if the server does not 
-                                  contain sufficient information to 
-                                  synchronize the client or that the 
-                                  server's data was reloaded since the 
-                                  last synchronization session 
-    
-   reasonText - The reasonText field of this construct may, at the 
-    server's option, be used to return a string containing a textual, 
-    human-readable (terminal control and page formatting characters 
-    should be avoided) error diagnostic. As this error diagnostic is 
-    not standardized, implementations MUST NOT rely on the values 
-    returned.  If the server chooses not to return a textual 
-    diagnostic, the reasonText field of the 
-    ClientUpdateDoneControlValue MUST contain a zero length string.  
-    The reasonText should be limited to characters in the range 0x00 to 
-    0x7F. 
-    
-   cookie - the LCUP cookie value that represents the current state of 
-    the client's data.  Although this value is OPTIONAL, it MUST be set 
+   contains a resultCode that is not success or lcupClientDisconnect, 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002             7 
+Megginson, et. al. Proposed Standard - Expires: December 2002        6 
 
 
 
-    in the ClientUpdateDoneControlValue if the reason is lcupSuccess or 
-    lcupClientDisconnect and the LDAP search result code is success.  
-    This provides a good "checksum" of what the server thinks the state 
-    of the client is.  If some error occurred, either an LDAP search 
-    error (e.g. insufficientAccessRights) or an LCUP error (e.g. 
+   the clientUpdateDone control MAY be omitted.  The controlType field 
+   for the clientUpdateDone control is ClientUpdateDoneControlOID (to 
+   be assigned).  The controlValue is an OCTET STRING, whose contents 
+   are the bytes of the BER encoding of the following: 
+    
+    ClientUpdateDoneControlValue ::= SEQUENCE { 
+      cookie  LCUPCookie OPTIONAL 
+    } 
+ 
+   cookie - the LCUP cookie value that represents the current state of 
+    the client's data.  Although this value is OPTIONAL, it MUST be set 
+    in the ClientUpdateDoneControlValue if the SearchResultDone 
+    resultCode is success or lcupClientDisconnect.  This provides a 
+    good "checksum" of what the server thinks the state of the client 
+    is.  If some error occurred, either an LDAP search error (e.g. 
+    insufficientAccessRights) or an LCUP error (e.g. 
     lcupUnsupportedScheme), the cookie MAY be omitted. 
     
    If server resources become tight, the server can terminate one or 
    more search operations by sending a SearchResultDone message to the 
-   client(s). Unless the client sets the updateType field to 
-   persistOnly, the server attaches a clientUpdateDone control that 
-   contains the cookie that corresponds to the current state of the 
-   client's data and the value of the reason field is set to 
-   lcupResourcesExhausted. A server set policy is used to decide which 
-   searches to terminate. This can also be used as a security mechanism 
-   to disconnect clients that are suspected of malicious actions, but 
-   if the server can infer that the client is malicious, the server 
-   should return lcupSecurityViolation in the reason field of the 
-   response. 
- 
-4.7     Stop Client Update Request and Response 
- 
-   The Stop Client Update operation is an LDAPv3 Extended Operation  
-   [RFC2251, Section 4.12] and is identified by the OBJECT IDENTIFIER  
-   stopClientUpdateRequestOID (to be assigned).  This section details 
-   the syntax of the protocol. 
- 
-   An LDAPv3 Extended Request is defined in [LDAPv3] as follows: 
-    
-         ExtendedRequest ::= [APPLICATION 23] SEQUENCE { 
-             requestName    [0] LDAPOID, 
-             requestValue   [1] OCTET STRING OPTIONAL 
-         } 
+   client(s) with a resultCode of lcupResourcesExhausted. Unless the 
+   client sets the updateType field to persistOnly, the server attaches 
+   a clientUpdateDone control that contains the cookie that corresponds 
+   to the current state of the client's data. A server set policy is 
+   used to decide which searches to terminate. This can also be used as 
+   a security mechanism to disconnect clients that are suspected of 
+   malicious actions, but if the server can infer that the client is 
+   malicious, the server should return lcupSecurityViolation instead. 
+                                                         
+4.7     Client Initiated Termination 
     
    If the client needs to terminate the synchronization process and it 
    wishes to obtain the cookie that represents the current state of its 
-   data, it issues a stopClientUpdateRequest extended operation. The 
-   operation carries the following data. The extended operation 
-   requestValue is an OCTET STRING, whose contents are the bytes of the 
-   BER encoding of the following: 
-    
-    StopClientUpdateRequestValue ::= MessageID 
-     
-    StopClientUpdateRequestValue - the message ID of the search that 
-      included the original clientUpdate control 
-    
-   The server responds immediately with a stopClientUpdateResponse 
-   extended operation that carries no data, and an OBJECT IDENTIFIER of 
-   stopClientUpdateResponseOID (to be assigned).  The server MAY send 
-   any pending SearchResultEntry PDUs if the server cannot easily abort 
-   or remove those search results from its outgoing queue.  The server 
-   SHOULD send as few of these remaining SearchResultEntry PDUs as 
-   possible.  Finally, the server sends the message SearchResultDone 
-   with the clientUpdateDone control attached.  The value of the reason 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002             8 
-
-
-
-   in the clientUpdateDone control value MUST be either an error code 
-   (some value other than lcupSuccess) or lcupClientDisconnect.  The 
-   stopClientUpdateResponse is sent only to satisfy LDAP requirement 
-   that every server must issue an extended response for each extended 
-   request it receives. 
+   data, it issues an LDAP Cancel operation [CANCEL].  The server 
+   responds immediately with a LDAP Cancel response [CANCEL].  The 
+   server MAY send any pending SearchResultEntry PDUs if the server 
+   cannot easily abort or remove those search results from its outgoing 
+   queue.  The server SHOULD send as few of these remaining 
+   SearchResultEntry PDUs as possible.  Finally, the server sends the 
+   message SearchResultDone with the clientUpdateDone control attached. 
     
    If the client is not interested in the state information, it can 
    simply abandon the search operation or disconnect from the server. 
     
-   The requestName portion of the stopClientUpdate must be the 
-   OID stopClientUpdateOID (to be assigned).  The requestValue is the 
-   message ID corresponding to the client's search request.  If the 
-   message ID is not valid, the server MUST send back to the client an 
-   LDAP error code of unwillingToPerform. 
-                                                         
 4.8     Protocol Flow 
  
    The client server interaction can proceed in three different ways 
@@ -497,6 +408,11 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             8
    actions in response to directory modifications, the protocol 
    proceeds as follows: 
     
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002        7 
+
+
+
     C->S   Sends a search operation with a clientUpdate control attached. 
            The search specification determines the part of the DIT the 
            client wishes to synchronize with and the set of attributes it 
@@ -512,36 +428,27 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             8
     *S->C  If the server starts to run out of resources or the client is 
            suspected of malicious actions, the server SHOULD terminate 
            the search operation by sending to the client a 
-           SearchResultDone message with clientUpdateDone control 
-           attached. The control contains the reason field set to 
-           lcupResourcesExhausted or lcupSecurityViolation depending on 
-           the reason for termination. The server MAY provide more 
-           details to the client via the reasonText field of the control. 
+           SearchResultDone message with optional clientUpdateDone 
+           control attached. The resultCode in the SearchResultDone 
+           mesasge SHOULD be set to lcupResourcesExhausted or 
+           lcupSecurityViolation depending on the reason for termination. 
     *C->S  If the client receives lcupResourcesExhausted error from the 
            server, it MUST wait for a while before attempting another 
            synchronization session with the server. It is RECOMMENDED 
            that clients use an exponential backoff strategy. 
     C->S   The client terminates the search.  The client can do this by 
            abandoning the search operation, disconnecting from the 
-           server, or by sending the stopClientUpdate extended operation. 
-    *S->C  If the server receives the stopClientUpdate extended op, it 
-           will immediately send back the stopClientUpdate extended op 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002             9 
-
-
-
-           response 
-    *S->C  If the client sent the stopClientUpdate extended op, the 
-           server MAY send any pending SearchResultEntry PDUs in its 
-           outgoing queue 
-    *S->C  If the client sent the stopClientUpdate extended op, after the 
-           server sends the response and any pending SearchResultEntry 
-           PDUs, the server sends the SearchResultDone message with the 
-           clientUpdateDone control attached.  The value of the reason 
-           field of the clientUpdateDone control value will be either 
-           lcupClientDisconnect or some lcup error code (not 
-           lcupSuccess). 
+           server, or by sending an LDAP Cancel operation. 
+    *S->C  If the server receives the LDAP Cancel op, it will immediately 
+           send back the LDAP Cancel response 
+    *S->C  If the server sent the LDAP Cancel response, the server MAY 
+           send any pending SearchResultEntry PDUs in its outgoing queue 
+    *S->C  If the server sent the LDAP Cancel response, after the server 
+           sends the response and any pending SearchResultEntry PDUs, the 
+           server sends the SearchResultDone message with the 
+           clientUpdateDone control attached.  The resultCode in the 
+           SearchResultDone message will be either lcupClientDisconnect 
+           or some LDAP error code (not success). 
     S->C   Stops sending changes to the client and closes the connection. 
     
    If the client's intent is to synchronize with the server and then 
@@ -560,6 +467,11 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             9
           use that scheme throughout the duration of the LCUP session or 
           until an LCUP boundary is crossed, since the server will 
           usually require a different cookie in that case anyway. (Note 
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002        8 
+
+
+
           that the client can synchronize with different servers during 
           different synchronization sessions.) The updateType field of 
           the control value is set to synchronizeOnly. 
@@ -572,25 +484,17 @@ Megginson, et. al. Proposed Standard - Expires: May 2002             9
           data that matches the client's search specification followed 
           by the SearchResultDone message with a clientUpdateDone 
           control attached. The control contains the cookie that 
-          corresponds to the current state of the client's data and the 
-          reason flag set to lcupSuccess. 
+          corresponds to the current state of the client's data.  If 
+          synchronization was successful, the resultCode in the 
+          SearchResultDone message should be success. 
     *S->C If an invalid cookie is specified, the server sends the 
-          SearchResultDone message with clientUpdateDone control 
-          attached. The reason field of the control is set to 
-          lcupInvalidCookie and the reasonText field MAY contain 
-          explanation of the error. 
+          SearchResultDone message with the resultCode set to  
+          lcupInvalidCookie. 
     *S->C If a valid cookie is specified and the data that matches the 
           search specification has been reloaded or the server does not 
           contain enough state information to synchronize the client, 
-          the server sends a SearchResultDone message with 
-          clientUpdateDone control attached. The reason field of the 
-          control is set to lcupReloadRequired and the reasonText field 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002            10 
-
-
-
-          MAY contain explanation of the error. 
+          the server sends a SearchResultDone message with the 
+          resultCode set to lcupReloadRequired. 
     *S->C If the cookie is valid and the client is up to date, the 
           server sends a success response to the client. 
     S->C  If the cookie is valid and there is data to be sent, the 
@@ -604,21 +508,29 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            10
           of the client's data. In that case, the cookie field of the 
           control represents the state of the client's data including 
           the entry to which the control is attached. Once all the 
-          changes are sent, the server sends a SearchResultDone with the 
-          clientUpdateDone control attached. The control contains the 
-          cookie that represents the current state of the client's data. 
-          The reason field of the control is set to lcupSuccess. 
+          changes are sent successfully, the server sends a 
+          SearchResultDone with the clientUpdateDone control attached. 
+          The control contains the cookie that represents the current 
+          state of the client's data. The resultCode in the 
+          SearchResultDone message is set to success.  If the resultCode 
+          is not success, the server may OPTIONALLY attach the 
+          clientUpdateDone control to the SearchResultDone message. 
           The client stores the cookie received from the server until 
           the next synchronization session. 
-    *C->S If the reason field of the control is set lcupReloadRequired, 
-          the client clears its data store and repeats the 
-          synchronization process by sending the search operation with 
-          clientUpdate control that contains no cookie, or that contains 
-          a cookie with no value field. 
+    *C->S If the resultCode in the SearchResultDone message is set 
+          lcupReloadRequired, the client clears its data store and 
+          repeats the synchronization process by sending the search 
+          operation with clientUpdate control that contains no cookie, 
+          or that contains a cookie with no value field. 
     
    If the client's intent is to be synchronized with the server and 
    stay notified about data modifications, the protocol proceeds as 
    follows: 
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002        9 
+
+
+
     
     C->S  The client behaves exactly as in the previous case except it 
           sets the updateType field in the control value to 
@@ -631,30 +543,24 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            10
     *S->C If the server starts to run out of resources or the client is 
           suspected of malicious actions, the server SHOULD terminate 
           the search operation by sending to the client a 
-          SearchResultDone message with clientUpdateDone control 
-          attached. The control contains the reason field set to 
+          SearchResultDone message with the resultCode set to 
           lcupResourcesExhausted or lcupSecurityViolation depending on 
-          the reason for termination. The server MAY provide more 
-          details to the client via the reasonText field of the control. 
+          the reason for termination. 
     *C->S If the client receives lcupResourcesExhausted error from the 
           server, it MUST wait for a while before attempting another 
           synchronization session with the server. We recommend 
           exponential backoff strategy. 
-    C->S  Sends a stopClientUpdateRequest extended operation to the 
-          server to terminate the synchronization session. 
-    S->C  Responds with a stopClientUpdateResponse extended operation 
-          followed by a SearchResultDone with the clientUpdateDone 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002            11 
-
-
-
-          control optionally attached. If present, the control contains 
-          the cookie that represents the current state of the client's 
-          data.  The value of the reason field of the clientUpdateDone 
-          control value will be either lcupClientDisconnect or some lcup 
-          error code (not lcupSuccess).  The control may not be present 
-          if some error occurred. 
+    C->S  Sends an LDAP Cancel operation to the server to terminate the 
+          synchronization session. 
+    S->C  Responds with an LDAP Cancel response, followed optionally by 
+          SearchResultEntry PDUs, followed by a SearchResultDone with 
+          the clientUpdateDone control optionally attached. If the 
+          control is present, it contains the cookie that represents the 
+          current state of the client's data.  The value of the 
+          resultCode in the SearchResultDone message will be either 
+          lcupClientDisconnect or some other LDAPResult resultCode (not 
+          success).  The control may not be present if some error 
+          occurred. 
  
 4.9     Size and Time Limits 
  
@@ -667,17 +573,36 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            11
     
 4.10    Changes vs. Operations 
  
-   The server sends to the client modified entries rather than 
-   operations.  Given this model, the server communicates a modifyDN 
-   operation in one of two ways: by sending the client the current form 
-   of the entry (with its new DN) along with an entryUUID attribute, or 
-   by sending the client a deletion for the previous DN and an entry 
-   for the new DN.  The latter method must be used if the server does 
-   not support the entryUUID attribute.  In either case, if the client 
-   state shows that the object that underwent the modifyDN operation 
-   was the root of a subtree, the client MUST infer that the DNs of all 
-   objects in the subtree have changed such that they reflect the new 
-   DN of the subtree root. 
+   A server that supports UUIDs SHOULD communicate a modifyDN  
+   operation by sending the client the current form of the entry (with 
+   its new DN) along with an entryUUID attribute. A server that does 
+   not support UUIDs SHOULD communicate a modifyDN operation by sending 
+   the client a deletion for the previous DN followed by an entry for 
+   the new DN. Note that for servers that do not support UUIDs, no 
+   guarantees are made about the correctness of the client state in the 
+   presence of modifyDN operations. 
+    
+   Communicating modifyDN operations by sending a delete of the old DN 
+   followed by an entry with the new DN makes it impossible for an LCUP 
+   client to distinguish between a modifyDN operation, which is one 
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002       10 
+
+
+
+   atomic operation, and an delete operation followed by an add of a 
+   new entry.  The loss of information about atomicity may cause 
+   problems for some LCUP clients. For example, when an entry is 
+   renamed, a client that manages resources such as a person's mailbox 
+   might delete the mailbox and everything in it instead of merely 
+   changing the name associated with the mailbox. 
+    
+   Also note that regardless of how a modifyDN operation is 
+   communicated to the client, if the client state shows that the 
+   object that underwent the modifyDN operation was the root of a 
+   subtree, the client MUST infer that the DNs of all objects in the 
+   subtree have changed such that they reflect the new DN of the 
+   subtree root. 
     
 4.11    Operations on the Same Connection 
  
@@ -702,12 +627,6 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            11
     
 5.      Additional Features 
  
-
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002            12 
-
-
-
    There are several features present in other protocols or considered 
    useful by clients that are currently not included in the protocol 
    primarily because they are difficult to implement on the server. 
@@ -725,6 +644,11 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            12
       search at the time the operation is being performed, 
       - enteredSet: the entry entered the result, 
       - leftSet: the entry left the result, 
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002       11 
+
+
+
       - modified: the entry was part of the result set, was modified or 
       renamed, and still is in the result set." 
     
@@ -754,19 +678,13 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            12
    For LCUP, the intention is full synchronization, not partial.  Each 
    entry returned by an LCUP search will have some change associated 
    with it that may concern the client.  The client may have to have a 
-   local index of entries by DN or unique identifier to determine if 
-   the entry has been added or just modified.  It is easy for clients 
-   to determine if the entry has been deleted because the entryDeleted 
-   value of the entryUpdateControl will be TRUE. 
+   local index of entries by DN or UUID to determine if the entry has 
+   been added or just modified.  It is easy for clients to determine if 
+   the entry has been deleted because the entryDeleted value of the 
+   entryUpdateControl will be TRUE. 
     
 5.3     Sending Changes 
                  
-
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002            13 
-
-
-
    Some earlier synchronization protocols sent the client(s) only the 
    modified attributes of the entry rather than the entire entry. While 
    this approach can significantly reduce the amount of data returned 
@@ -785,6 +703,11 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            13
    the client has the previous version of the data and can perform 
    value by value comparisons. 
  
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002       12 
+
+
+
 5.4     Data Size Limits 
                   
    Some earlier synchronization protocols allowed clients to control 
@@ -794,9 +717,9 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            13
    already provides the means for the client to specify the size limit 
    by setting the sizeLimit field in the SearchRequest to the maximum 
    number of entries the client is willing to receive. While the 
-   granularity is not the same, the assumption is that LCUP protocol 
-   will be implemented by regular LDAP clients that can deal with the 
-   limitations of the LDAP protocol. 
+   granularity is not the same, the assumption is that regular LDAP 
+   clients that can deal with the limitations of the LDAP protocol will 
+   implement LCUP. 
  
 5.5     Data Ordering 
  
@@ -810,87 +733,114 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            13
  
 6.      Client Side Considerations 
  
-   There are several issues that the implementors of a synchronization 
-   client need to consider: 
+   Clients SHOULD always specify entryUUID in the SearchRequest 
+   attribute list. 
     
-    - The cookie received from the server after a synchronization 
-      session can only be used with the same or more restrictive search 
-      specification than the search that generated the cookie. The 
-      server will reject the search operation with a cookie that does 
-      not satisfy this condition. This is because the client can end up 
-      with an incomplete data store otherwise. A more restrictive 
-      search specification is the one that generates a subset of the 
-      data produced by the original search specification.  
+   The cookie received from the server after a synchronization session 
+   can only be used with the same or more restrictive search 
+   specification than the search that generated the cookie. The server 
+   will reject the search operation with a cookie that does not satisfy 
+   this condition. This is because the client can end up with an 
+   incomplete data store otherwise. A more restrictive search 
+   specification is the one that generates a subset of the data 
+   produced by the original search specification.  
+    
+   Because an LCUP client specifies the area of the tree with which it 
+   wishes to synchronize through the standard LDAP search 
+   specification, the client can be returned noSuchObject error if the 
+   root of the synchronization area was renamed between the 
+   synchronization sessions or during a synchronization session. If 
+   this condition occurs, the client can attempt to locate the root by 
+   using the root's UUID saved in client's local data store. It then 
+   can repeat the synchronization request using the new search base. In 
+   general, a client can detect that an entry was renamed and apply the 
+   changes received to the right entry by using the UUID rather than DN 
+   based addressing. 
+    
+   Each active persistent operation requires that an open TCP 
+   connection be maintained between an LDAP client and an LDAP server 
+   that might not otherwise be kept open.  Therefore, client 
+   implementors are encouraged to avoid using persistent operations for 
+   non-essential tasks and to close idle LDAP connections as soon as 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002            14 
+Megginson, et. al. Proposed Standard - Expires: December 2002       13 
 
 
 
-     
-    - Because an LCUP client specifies the area of the tree with which 
-      it wishes to synchronize through the standard LDAP search 
-      specification, the client can be returned noSuchObject error if 
-      the root of the synchronization area was renamed between the 
-      synchronization sessions or during a synchronization session. If 
-      this condition occurs, the client can attempt to locate the root 
-      by using the root's Unique Identifier saved in client's local 
-      data store. It then can repeat the synchronization request using 
-      the new search base. In general, a client can detect that an 
-      entry was renamed and apply the changes received to the right 
-      entry by using the Unique Identifier rather then DN based 
-      addressing. 
-     
-    - Each active persistent operation requires that an open TCP 
-      connection be maintained between an LDAP client and an LDAP 
-      server that might not otherwise be kept open.  Therefore, client 
-      implementors are encouraged to avoid using persistent operations 
-      for non-essential tasks and to close idle LDAP connections as 
-      soon as practical.  The server may close connections if server 
-      resources become tight. 
- 
-     - The client MAY receive a continuation reference 
-      (SearchResultReference [RFC2251 SECTION 4.5.3]) if the search 
-      request spans multiple parts of the DIT, some of which may 
-      require a different LCUP cookie, some of which may not even be 
-      managed by LCUP.  The client SHOULD maintain a cache of the LDAP 
-      URLs returned in the continuation references and the cookies 
-      associated with them.  The client is responsible for performing 
-      another LCUP search to follow the references, and SHOULD use the 
-      cookie corresponding to the LDAP URL for that reference (if it 
-      has a cookie). 
- 
-     - For alias dereferencing, the server will behave as if the client 
-      had requested neverDerefAliases or derefFindingBaseObj as the 
-      derefAliases field in the search request [RFC2251, Section 
-      4.5.1].  If the client specifies a value other than 
-      neverDerefAliases or derefFindingBaseObj, the server will return 
-      protocolError to the client. 
-      
-     - Changes to data (e.g., that might affect the LCUP client's 
-      filter or scope) or meta-data (e.g., that might affect the 
-      client's read access) may affect the presence of entries in the 
-      search set.  Servers MAY notify LCUP clients of changes to the 
-      search set that result from such changes, but an LCUP client MUST 
-      NOT assume that such notification will occur.  Therefore, in the 
-      case where a client is maintaining a cache of entries using LCUP, 
-      the data held by the client may be a superset or a subset of the 
-      entries that would be returned by a new search request.  For 
-      example, if access control meta information is changed to deny 
-      access to particular entries in the search result set, and the 
-      access control information is outside of the search scope (e.g., 
-      in a parent entry), the client may have entries stored locally 
-      which are no longer part of its desired search set.  Similarly, 
+   practical.  The server may close connections if server resources 
+   become tight. 
+    
+   The client MAY receive a continuation reference 
+   (SearchResultReference [RFC2251 SECTION 4.5.3]) if the search 
+   request spans multiple parts of the DIT, some of which may require a 
+   different LCUP cookie, some of which may not even be managed by 
+   LCUP.  The client SHOULD maintain a cache of the LDAP URLs returned 
+   in the continuation references and the cookies associated with them.  
+   The client is responsible for performing another LCUP search to 
+   follow the references, and SHOULD use the cookie corresponding to 
+   the LDAP URL for that reference (if it has a cookie). 
+    
+   The client may receive a referral (Referral [RFC2251 SECTION 
+   4.1.11]) when the search base is a subordinate reference, and this 
+   will end the operation. 
+    
+   For alias dereferencing, the server will behave as if the client had 
+   requested neverDerefAliases or derefFindingBaseObj as the 
+   derefAliases field in the search request [RFC2251, Section 4.5.1].  
+   If the client specifies a value other than neverDerefAliases or 
+   derefFindingBaseObj, the server will return protocolError to the 
+   client. 
+    
+   Changes to data (e.g., that might affect the LCUP client's filter or 
+   scope) or meta-data (e.g., that might affect the client's read 
+   access) may affect the presence of entries in the search set.  
+   Servers MAY notify LCUP clients of changes to the search set that 
+   result from such changes, but an LCUP client MUST NOT assume that 
+   such notification will occur.  Therefore, in the case where a client 
+   is maintaining a cache of entries using LCUP, the data held by the 
+   client may be a superset or a subset of the entries that would be 
+   returned by a new search request.  For example, if access control 
+   meta information is changed to deny access to particular entries in 
+   the search result set, and the access control information is outside 
+   of the search scope (e.g., in a parent entry), the client may have 
+   entries stored locally which are no longer part of its desired 
+   search set.  Similarly, if entries are added to the search result 
+   set due to changes in meta-data, the client's cache of entries may 
+   not include these entries. 
+    
+   Some clients may wish to perform an initial synchronization in order 
+   to prime a cache or establish a baseline set of entries, then look 
+   for changes after that.  The recommended way to do this is to first 
+   issue an LCUP search with the updateType field of the clientUpdate 
+   control value set to synchronizeOnly, then after that search 
+   successfully completes, immediately issue an LCUP search with the 
+   updateType field of the clientUpdate control value set to 
+   synchronizeAndPersist. 
+    
+   Some clients may have unreliable connections, for example, a 
+   wireless device or a WAN connection.  These clients may want to 
+   insure that the cookie is returned often in the entryUpdate control 
+   value, so that if they have to reconnect, they do not have to 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002            15 
+Megginson, et. al. Proposed Standard - Expires: December 2002       14 
 
 
 
-      if entries are added to the search result set due to changes in 
-      meta-data, the client's cache of entries may not include these 
-      entries. 
+   process many redundant entries.  These clients should set the 
+   sendCookieInterval in the clientUpdate control value to a low 
+   number, perhaps even 1.  Also, some clients may have a limited 
+   bandwidth connection, and may not want to receive the cookie very 
+   often, or even at all (however, the cookie is always sent back in 
+   the clientUpdateDone control value upon successful completion).  
+   These clients should set the sendCookieInterval in the clientUpdate 
+   control value to a high number. 
  
 7.      Server Implementation Considerations 
  
+   Servers SHOULD support UUIDs.  Otherwise, it will be very difficult 
+   to support modifyDN operations.  Adding support for UUIDs should be 
+   seen as a necessary component of LCUP. 
+    
    By design, the protocol supports multiple cookie schemes.  This is 
    to allow different implementations the flexibility of storing any 
    information applicable to their environment. A reasonable 
@@ -930,6 +880,11 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            15
    their last modified CSN. This ordering guarantees that the RUV can 
    be updated after each entry is sent. 
     
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002       15 
+
+
+
    The server's DIT may be partitioned into different sections which 
    may have different cookies associated with them.  For example, some 
    servers may use some sort of replication mechanism to support LCUP.  
@@ -939,14 +894,9 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            15
    by LCUP and some may not.  A part of the DIT which is enabled for 
    LCUP is referred to as an LCUP Context.  The server SHOULD send a 
    SearchResultReference [RFC2251, SECTION 4.5.3] when the LCUP Context 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002            16 
-
-
-
    for a returned entry changes.  The server SHOULD return all entries 
    for a particular LCUP Context before returning a reference to other 
-   LCUP Contexts or non LCUP enabled parts of the DIT, in order to 
+   LCUP Contexts or non-LCUP enabled parts of the DIT, in order to 
    minimize the processing burden on the clients.  The LDAP URL(s) 
    returned MUST contain the DN(s) of the base of another section of 
    the DIT (however the server implementation has partitioned the DIT).  
@@ -988,6 +938,12 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            16
  
 8.      Synchronizing Heterogeneous Data Stores 
  
+
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002       16 
+
+
+
    Clients, like a meta directory join engine, synchronizing multiple 
    writable data stores will only work correctly if each piece of 
    information is single mastered (for instance, only by an LDUP 
@@ -998,11 +954,6 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            16
    converging. 
     
 9.      Security Considerations 
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002            17 
-
-
-
  
    In some situations, it may be important to prevent general exposure 
    of information about changes that occur in an LDAP server.  
@@ -1032,7 +983,7 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            17
    a less restrictive search specification. See Client Side 
    Considerations Section for more detailed explanation of the problem. 
  
-10.     References 
+10.     Normative References 
  
    [KEYWORDS]    S. Bradner, "Keywords for use in RFCs to Indicate 
                  Requirement Levels", RFC 2119, March 1997. 
@@ -1044,6 +995,14 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            17
                 Directory Access Protocol (v3): Attribute Syntax 
                 Definitions", RFC 2252, December 1997. 
     
+   [CANCEL]     K. Zeilenga, "LDAP Cancel Extended Operation", 
+                draft-zeilenga-ldap-cancel-xx.txt, a work in progress. 
+    
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002       17 
+
+
+
 11.     Acknowledgements 
     
    The LCUP protocol is based in part on the Persistent Search Change 
@@ -1057,11 +1016,6 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            17
    Rich Megginson 
    Netscape Communications Corp. 
    901 San Antonio Rd.  
-  
-Megginson, et. al. Proposed Standard - Expires: May 2002            18 
-
-
-
    Palo Alto, CA  94303-4900  
    Mail Stop SCA17 - 201 
    Phone: +1 505 797-7762 
@@ -1073,7 +1027,7 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            18
    Sunnyvale, CA 94089 
    Phone: +1 408 349-6153 
    Email: olgan@yahoo-inc.com 
-    
+                           
    Mark Smith 
    Netscape Communications Corp. 
    901 San Antonio Rd.  
@@ -1103,6 +1057,11 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            18
    developing Internet standards in which case the procedures for 
    copyrights defined in the Internet Standards process must be 
    followed, or as required to translate it into languages other than 
+  
+Megginson, et. al. Proposed Standard - Expires: December 2002       18 
+
+
+
    English. 
     
    The limited permissions granted above are perpetual and will not be 
@@ -1116,8 +1075,49 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            18
    MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. 
     
 14.     Appendix A - Summary of Changes 
+ 
+   Changes new to version 03: 
+    
+     Emphasized the use of UUIDs throughout the document.  Implementers 
+     are strongly encouraged to use UUIDs as a necessary component of 
+     the protocol. 
+      
+     Removed the LCUP Cancel extended operation in favor of the new 
+     LDAP Cancel operation [CANCEL]. 
+      
+     Got rid of the lcupSuccess result code.  All result codes will be 
+     added to the IANA LDAP result code registry as part of the LDAP 
+     standard.  Also removed the result code and text from the client 
+     update done control value. 
+      
+     Changed any and all wording suggesting an LCUP Context is related 
+     to a naming context.  New text says an LCUP Context is a part of 
+     the DIT that supports LCUP, and that a server may have one or more 
+     LCUP Contexts. 
+      
+     Removed Old Section 4.2: lcupCookieScheme 
+     We decided that LCUP did not need a discovery mechanism.  The 
+     controls and extended operations will be published in the root DSE 
+     as per the LDAP standards. 
+      
+     Changed references to "Unique Identifier" to either "Universally 
+     Unique Identifier" or "UUID". 
+      
+     Added this text to section 6 "Client Side Considerations": 
+     "- The client may receive a referral (Referral [RFC2251 SECTION 
+      4.1.11]) when the search base is a subordinate reference, and 
+      this will end the operation." 
+      
+     Added a note to section 6 "Client Side Considerations" about how 
+     to establish a baseline set of entries or entry cache. 
+      
+     Added the field sendCookieInterval to the clientUpdate control 
+     value. 
+      
+     Added a note to section 6 "Client Side Considerations" explaining 
+     possible uses of the sendCookieInterval. 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002            19 
+Megginson, et. al. Proposed Standard - Expires: December 2002       19 
 
 
 
@@ -1176,7 +1176,7 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            19
      4.2 describes the new cookie format and defines the LCUP Cookie 
      Value. 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002            20 
+Megginson, et. al. Proposed Standard - Expires: December 2002       20 
 
 
 
@@ -1235,7 +1235,7 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            20
     containing the message id of the operation to stop. 
      
   
-Megginson, et. al. Proposed Standard - Expires: May 2002            21 
+Megginson, et. al. Proposed Standard - Expires: December 2002       21 
 
 
 
@@ -1294,5 +1294,5 @@ Megginson, et. al. Proposed Standard - Expires: May 2002            21
 
 
   
-Megginson, et. al. Proposed Standard - Expires: May 2002            22 
+Megginson, et. al. Proposed Standard - Expires: December 2002       22 
 
