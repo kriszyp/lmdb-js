@@ -114,12 +114,15 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 	}
 
 	if ( rc != LDAP_URL_SUCCESS ) {
-		return( LDAP_PROTOCOL_ERROR );
+		return LDAP_PROTOCOL_ERROR;
 	}
 
-	if ( ludp->lud_host && *ludp->lud_host ) {
+	if (( ludp->lud_host && *ludp->lud_host )
+		|| ludp->lud_attrs || ludp->lud_exts )
+	{
 		/* host part should be empty */
-		return( LDAP_PROTOCOL_ERROR );
+		/* attrs and extensions parts should be empty */
+		return LDAP_PROTOCOL_ERROR;
 	}
 
 	/* Grab the scope */
@@ -130,14 +133,18 @@ is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 		*filter = str2filter( ludp->lud_filter );
 		if ( *filter == NULL ) {
 			rc = LDAP_PROTOCOL_ERROR;
+			goto done;
 		}
 	}
 
 	/* Grab the searchbase */
-	if ( rc == LDAP_URL_SUCCESS ) {
-		bv.bv_val = ludp->lud_dn;
-		bv.bv_len = strlen( bv.bv_val );
-		rc = dnNormalize2( NULL, &bv, searchbase );
+	bv.bv_val = ludp->lud_dn;
+	bv.bv_len = strlen( bv.bv_val );
+	rc = dnNormalize2( NULL, &bv, searchbase );
+
+done:
+	if( rc != LDAP_SUCCESS ) {
+		if( *filter ) filter_free( *filter );
 	}
 
 	ldap_free_urldesc( ludp );
@@ -186,11 +193,8 @@ static int slap_sasl_rx_off(char *rep, int *off)
 
 int slap_sasl_regexp_config( const char *match, const char *replace )
 {
-	const char *c;
-	int rc, n;
+	int rc;
 	SaslRegexp_t *reg;
-	struct berval bv;
-	Filter *filter;
 
 	SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
 	  (nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
