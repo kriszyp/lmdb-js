@@ -81,6 +81,10 @@ size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
 #pragma convlit(suspend)
 #endif
 	ret = strftime( s, smax, "%Y%m%d%H%M%SZ", tm );
+#ifdef HAVE_EBCDIC
+#pragma convlit(resume)
+	__etoa( s );
+#endif
 	if ( delta == 0 || ret == 0 ) {
 		return ret;
 	}
@@ -102,10 +106,6 @@ size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
 	snprintf( p, smax - 15, "%02ld%02ld", delta / 3600,
 			( delta % 3600 ) / 60 );
 
-#ifdef HAVE_EBCDIC
-#pragma convlit(resume)
-	__etoa( s );
-#endif
 	return ret + 5;
 }
 
