@@ -726,12 +726,12 @@ bdb_idl_insert_key(
 				/* Delete all the records between lo and hi */
 				for ( i=2; i<count; i++ ) {
 					rc = cursor->c_get( cursor, &key2, &data, DB_NEXT_DUP | DB_RMW );
-					if ( rc != 0 && rc != DB_NOTFOUND ) {
+					if ( rc != 0 ) {
 						err = "c_get next_dup";
 						goto fail;
 					}
 					rc = cursor->c_del( cursor, 0 );
-					if ( rc != 0 && rc != DB_NOTFOUND ) {
+					if ( rc != 0 ) {
 						err = "c_del range";
 						goto fail;
 					}
