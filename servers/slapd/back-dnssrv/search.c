@@ -156,15 +156,15 @@ dnssrv_back_search(
 
 		vals[0].bv_val = "top";
 		vals[0].bv_len = sizeof("top")-1;
-		attr_merge( e, ad_objectClass, vals );
+		attr_mergeit( e, ad_objectClass, vals );
 
 		vals[0].bv_val = "referral";
 		vals[0].bv_len = sizeof("referral")-1;
-		attr_merge( e, ad_objectClass, vals );
+		attr_mergeit( e, ad_objectClass, vals );
 
 		vals[0].bv_val = "extensibleObject";
 		vals[0].bv_len = sizeof("extensibleObject")-1;
-		attr_merge( e, ad_objectClass, vals );
+		attr_mergeit( e, ad_objectClass, vals );
 
 		{
 			AttributeDescription *ad = NULL;
@@ -185,7 +185,7 @@ dnssrv_back_search(
 				}
 
 				vals[0].bv_len = strlen(vals[0].bv_val);
-				attr_merge( e, ad, vals );
+				attr_mergeit( e, ad, vals );
 			}
 		}
 
@@ -198,11 +198,11 @@ dnssrv_back_search(
 			if( rc == LDAP_SUCCESS ) {
 				vals[0].bv_val = domain;
 				vals[0].bv_len = strlen(domain);
-				attr_merge( e, ad, vals );
+				attr_mergeit( e, ad, vals );
 			}
 		}
 
-		attr_merge( e, ad_ref, urls );
+		attr_mergeit( e, ad_ref, urls );
 
 		rc = test_filter( be, conn, op, e, filter ); 
 
