@@ -67,10 +67,10 @@ main( int argc, char **argv )
 #ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;
 
-	memset( &savekey, 0, sizeof( savekey ));
-	memset( &key, 0, sizeof( key ));
-	memset( &data, 0, sizeof( data ));
-	memset( &last, 0, sizeof( last ));
+	ldbm_datum_init( savekey );
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
+	ldbm_datum_init( last );
 #endif
 
 	tailorfile = SLAPD_DEFAULT_CONFIGFILE;
@@ -184,7 +184,9 @@ main( int argc, char **argv )
 					    "key: ", NULL, NULL );
 				}
 
-				ldbm_datum_free( dbc->dbc_db, data );
+                if ( data.dptr != NULL ) {
+				    ldbm_datum_free( dbc->dbc_db, data );
+                }
 			}
 			if ( savekey.dptr != NULL )
 				ldbm_datum_free( dbc->dbc_db, savekey );
@@ -562,7 +564,9 @@ edit_entry( char c, Datum *data )
 		perror( tmpname );
 		return;
 	}
-	ldbm_datum_free( NULL, *data );
+    if ( data->dptr != NULL ) {
+	    ldbm_datum_free( NULL, *data );
+    }
 	get_keydata( fp, c, NULL, data );
 	fclose( fp );
 	unlink( tmpname );

@@ -54,7 +54,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
 
-	db_open( name, DB_TYPE, rw, mode, NULL, &dbinfo, &ret );
+    (void) db_open( name, DB_TYPE, rw, mode, NULL, &dbinfo, &ret );
 
 #else
 	void		*info;
@@ -107,14 +107,9 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 {
 	Datum	dup;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &dup, 0, sizeof( dup ));
-#endif
+	ldbm_datum_init( dup );
 
 	if ( data.dsize == 0 ) {
-		dup.dsize = 0;
-		dup.dptr = NULL;
-
 		return( dup );
 	}
 	dup.dsize = data.dsize;
@@ -131,7 +126,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	int	rc;
 
 #ifdef HAVE_BERKELEY_DB2
-	memset( &data, 0, sizeof( data ));
+	ldbm_datum_init( data );
 
 	data.flags = DB_DBT_MALLOC;
 
@@ -160,6 +155,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 #else
 	rc = (*ldbm->put)( ldbm, &key, &data, flags & ~LDBM_SYNC );
 #endif
+
 	if ( flags & LDBM_SYNC )
 		(*ldbm->sync)( ldbm, 0 );
 	return( rc );
@@ -193,13 +189,24 @@ ldbm_firstkey( LDBM ldbm )
 #ifdef HAVE_BERKELEY_DB2
 	DBC  *dbci;
 
-	memset( &key, 0, sizeof( key ));
-	memset( &data, 0, sizeof( data ));
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	key.flags = data.flags = DB_DBT_MALLOC;
 
 	/* acquire a cursor for the DB */
+
+#  if defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
+    DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR < 6
+
 	if ( (*ldbm->cursor)( ldbm, NULL, &dbci )) {
+
+#  else
+
+	if ( (*ldbm->cursor)( ldbm, NULL, &dbci, 0 )) {
+
+#  endif
+
 		return( key );
 	} else {
 		*dbch = dbci;
@@ -234,7 +241,7 @@ ldbm_nextkey( LDBM ldbm, Datum key )
 #ifdef HAVE_BERKELEY_DB2
 	void *oldKey = key.dptr;
 
-	memset( &data, 0, sizeof( data ));
+	ldbm_datum_init( data );
 
 	data.flags = DB_DBT_MALLOC;
 
@@ -267,7 +274,7 @@ ldbm_errno( LDBM ldbm )
 
 /*****************************************************************
  *                                                               *
- * use gdbm							 *
+ * use gdbm                                                      *
  *                                                               *
  *****************************************************************/
 

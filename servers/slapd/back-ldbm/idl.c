@@ -58,8 +58,9 @@ idl_fetch_one(
 
 #ifdef HAVE_BERKELEY_DB2
 	Datum	k2;
-	memset( &k2, 0, sizeof( k2 ) );
-	memset( &data, 0, sizeof( data ) );
+
+	ldbm_datum_init( data );
+	ldbm_datum_init( k2 );
 #endif
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch_one\n", 0, 0, 0 ); */
@@ -84,10 +85,8 @@ idl_fetch(
 	char	*kstr;
 	int	i, nids;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &k2, 0, sizeof( k2 ) );
-	memset( &data, 0, sizeof( data ) );
-#endif
+	ldbm_datum_init( k2 );
+	ldbm_datum_init( data );
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch\n", 0, 0, 0 ); */
 
@@ -178,9 +177,7 @@ idl_store(
 	Datum	data;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &data, 0, sizeof( data ) );
-#endif
+	ldbm_datum_init( data );
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_store\n", 0, 0, 0 ); */
 
@@ -300,9 +297,7 @@ idl_insert_key(
 	char	*kstr;
 	Datum	k2;
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &k2, 0, sizeof( k2 ) );
-#endif
+	ldbm_datum_init( k2 );
 
 	if ( (idl = idl_fetch_one( be, db, key )) == NULL ) {
 #ifdef LDBM_DEBUG
@@ -664,7 +659,7 @@ idl_delete_key (
 	kstr = (char *) ch_malloc( key.dsize + 20 );
 	for ( j = 0; idl->b_ids[j] != NOID; j++ ) 
 	{
-		memset( &k2, 0, sizeof(k2) );
+		ldbm_datum_init( k2 );
 		sprintf( kstr, "%c%s%ld", CONT_PREFIX, key.dptr, idl->b_ids[j] );
 		k2.dptr = kstr;
 		k2.dsize = strlen( kstr ) + 1;

@@ -101,9 +101,7 @@ index_read(
 	char		*realval, *tmpval;
 	char		buf[BUFSIZ];
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-#endif
+	ldbm_datum_init( key );
 
 	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> index_read( \"%s\" \"%c\" \"%s\" )\n",
@@ -175,9 +173,7 @@ add_value(
 	char	*realval, *tmpval, *s;
 	char	buf[BUFSIZ];
 
-#ifdef HAVE_BERKELEY_DB2
-	memset( &key, 0, sizeof( key ) );
-#endif
+	ldbm_datum_init( key );
 
 	prefix = index2prefix( indextype );
 	Debug( LDAP_DEBUG_TRACE, "=> add_value( \"%c%s\" )\n", prefix, val, 0 );

@@ -201,4 +201,16 @@ int	ldbm_delete( LDBM ldbm, Datum key );
 	Datum	ldbm_nextkey( LDBM ldbm, Datum key );
 #endif
 
+
+/* initialization of Datum structures */
+#ifdef HAVE_BERKELEY_DB2
+
+#   define ldbm_datum_init(d) ((void)memset(&(d), 0, sizeof(Datum)))
+
+#else
+
+#   define ldbm_datum_init(d) ((void)0)
+
+#endif  /* HAVE_BERKELEY_DB2 */
+
 #endif /* _ldbm_h_ */

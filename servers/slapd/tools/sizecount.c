@@ -94,8 +94,8 @@ main( int argc, char **argv )
 					Datum	key, data;
 					char	*w;
 
-					memset( &key, 0, sizeof( key ));
-					memset( &data, 0, sizeof( data ));
+					ldbm_datum_init( key );
+					ldbm_datum_init( data );
 
 					/* update value count */
 					vcount++;
@@ -179,8 +179,8 @@ add(
 {
 	Datum	key, data;
 
-	memset( &key, 0, sizeof( key ));
-	memset( &data, 0, sizeof( data ));
+	ldbm_datum_init( key );
+	ldbm_datum_init( data );
 
 	key.dptr = s;
 	key.dsize = strlen( key.dptr ) + 1;
@@ -190,6 +190,6 @@ add(
 		(*count)++;
 		(*size) += strlen( key.dptr );
 	}
-	if ( freeit )
+	if ( freeit && ( key.dptr != NULL ) )
 		ldbm_datum_free( ldbm, key );
 }

@@ -152,8 +152,8 @@ main( int argc, char **argv )
 		int		vlen;
 		Datum		key, data;
 
-		memset( &key, 0, sizeof( key ));
-		memset( &data, 0, sizeof( data ));
+		ldbm_datum_init( key );
+		ldbm_datum_init( data );
 
 		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
 			int     len;
@@ -240,8 +240,8 @@ main( int argc, char **argv )
 		char	buf2[20];
 		Datum	key, data;
 
-		memset( &key, 0, sizeof( key ));
-		memset( &data, 0, sizeof( data ));
+		ldbm_datum_init( key );
+		ldbm_datum_init( data );
 
 		if ( fgets( line, sizeof(line), stdin ) != NULL ) {
 			int     len;
