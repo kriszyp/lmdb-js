@@ -127,7 +127,7 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 	LDAPMessage	*lm;
 	BerElement	ber;
 	long		along;
-	int		rc;
+	unsigned long	rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_result2error\n", 0, 0, 0 );
 

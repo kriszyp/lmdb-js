@@ -439,7 +439,7 @@ get_tag( Sockbuf *sb )
 	unsigned char	xbyte;
 	unsigned long	tag;
 	char		*tagp;
-	int		i;
+	unsigned int	i;
 
 	if ( BerRead( sb, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );

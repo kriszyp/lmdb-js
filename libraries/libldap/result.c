@@ -30,7 +30,7 @@ static int wait4msg LDAP_P(( LDAP *ld, int msgid, int all, struct timeval *timeo
 #ifdef LDAP_REFERRALS
 static int read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb, LDAPConn *lc,
 	LDAPMessage **result ));
-static int build_result_ber LDAP_P(( LDAP *ld, BerElement *ber, LDAPRequest *lr ));
+static unsigned long build_result_ber LDAP_P(( LDAP *ld, BerElement *ber, LDAPRequest *lr ));
 static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr ));
 #else /* LDAP_REFERRALS */
 static int read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb,
@@ -512,7 +512,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 
 #ifdef LDAP_REFERRALS
-static int
+static unsigned long
 build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
 {
 	unsigned long	len;
@@ -523,7 +523,7 @@ build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
 	if ( ber_printf( ber, "{it{ess}}", lr->lr_msgid,
 	    (long)lr->lr_res_msgtype, lr->lr_res_errno,
 	    lr->lr_res_matched ? lr->lr_res_matched : "",
-	    lr->lr_res_error ? lr->lr_res_error : "" ) == LBER_ERROR ) {
+	    lr->lr_res_error ? lr->lr_res_error : "" ) == -1 ) {
 		return( LBER_ERROR );
 	}
 

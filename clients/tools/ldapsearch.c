@@ -86,6 +86,7 @@ static char	*sortattr = NULL;
 static int	skipsortattr = 0;
 static int	verbose, not, includeufn, allow_binary, vals2tmp, ldif;
 
+int
 main( argc, argv )
 int	argc;
 char	**argv;

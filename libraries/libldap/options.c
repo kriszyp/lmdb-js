@@ -28,7 +28,7 @@ ldap_get_option(
 	if(ldp == NULL) {
 		ld = &openldap_ld_globals;
 	} else {
-		ld = ld;
+		ld = ldp;
 	}
 
 	switch(option) {
@@ -136,7 +136,7 @@ ldap_set_option(
 	if(ldp == NULL) {
 		ld = &openldap_ld_globals;
 	} else {
-		ld = ld;
+		ld = ldp;
 	}
 
 	switch(option) {

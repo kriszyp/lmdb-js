@@ -43,7 +43,7 @@ ber_get_tag( BerElement *ber )
 	unsigned char	xbyte;
 	unsigned long	tag;
 	char		*tagp;
-	int		i;
+	unsigned int	i;
 
 	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
@@ -386,8 +386,8 @@ va_dcl
 	char		*s, **ss, ***sss;
 	struct berval 	***bv, **bvp, *bval;
 	int		*i, j;
-	long		*l, rc, tag;
-	unsigned long	len;
+	long		*l;
+	unsigned long	rc, tag, len;
 
 #if defined( HAVE_STDARG_H ) && __STDC__
 	va_start( ap, fmt );

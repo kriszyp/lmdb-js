@@ -414,7 +414,8 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 		return( dup );
 	}
 	dup.dsize = data.dsize;
-	if ( dup.dptr = (char *) malloc( data.dsize ) )
+	dup.dptr = (char *) malloc( data.dsize );
+	if ( dup.dptr )
 		memcpy( dup.dptr, data.dptr, data.dsize );
 
 	return( dup );

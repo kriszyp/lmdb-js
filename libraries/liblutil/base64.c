@@ -48,6 +48,7 @@
 
 #include <stdlib.h>
 #include <stddef.h>
+#include <ctype.h>
 
 #include <ac/string.h>
 
@@ -209,7 +210,7 @@ b64_pton(
 	tarindex = 0;
 
 	while ((ch = *src++) != '\0') {
-		if (isspace(ch))	/* Skip whitespace anywhere. */
+		if (isascii(ch) && isspace(ch))	/* Skip whitespace anywhere. */
 			continue;
 
 		if (ch == Pad64)
@@ -279,7 +280,7 @@ b64_pton(
 		case 2:		/* Valid, means one byte of info */
 			/* Skip any number of spaces. */
 			for ((void)NULL; ch != '\0'; ch = *src++)
-				if (!isspace(ch))
+				if (! (isascii(ch) && isspace(ch)))
 					break;
 			/* Make sure there is another trailing = sign. */
 			if (ch != Pad64)
@@ -294,7 +295,7 @@ b64_pton(
 			 * whitespace after it?
 			 */
 			for ((void)NULL; ch != '\0'; ch = *src++)
-				if (!isspace(ch))
+				if (! (isascii(ch) && isspace(ch)))
 					return (-1);
 
 			/*

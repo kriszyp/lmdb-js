@@ -187,7 +187,7 @@ str_getline( char **next )
 			*(*next)++ = '\0';
 			break;
 		}
-		*(*next)++;
+		(*next)++;
 	}
 
 	return( l );
@@ -215,7 +215,7 @@ put_type_and_value( char **out, char *t, char *val, int vlen )
 	b64 = 0;
 
 	stop = (unsigned char *) (val + vlen);
-	if ( isascii( val[0] ) && isspace( val[0] ) || val[0] == ':' ) {
+	if ( isascii( val[0] ) && (isspace( val[0] ) || val[0] == ':') ) {
 		b64 = 1;
 	} else {
 		for ( byte = (unsigned char *) val; byte < stop;

@@ -195,7 +195,7 @@ do_entry2text(
 	    sprintf( buf + strlen( buf ),
 		    "%s\">Move Up To <EM>%s</EM></A>%s<BR>",
 		    ( vals[ 1 ] == NULL ) ? "??one" : "",
-		    ( untagged != NULL ) ? untagged + 1 : vals[ 1 ], eol, eol );
+		    ( untagged != NULL ) ? untagged + 1 : vals[ 1 ], eol );
 	    (*writeproc)( writeparm, buf, strlen( buf ));
 
 	    /*

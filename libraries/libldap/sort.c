@@ -30,7 +30,7 @@ struct entrything {
 };
 
 static int	(*et_cmp_fn) LDAP_P(( char *a, char *b ));
-static int	et_cmp LDAP_P(( void *aa, void *bb));
+static int	et_cmp LDAP_P(( const void *aa, const void *bb));
 
 
 int
@@ -44,13 +44,13 @@ ldap_sort_strcasecmp(
 
 static int
 et_cmp(
-	void	*aa,
-	void	*bb
+	const void	*aa,
+	const void	*bb
 )
 {
 	int			i, rc;
-	struct entrything	*a = (struct entrything *)aa;
-	struct entrything	*b = (struct entrything *)bb;
+	const struct entrything	*a = (const struct entrything *)aa;
+	const struct entrything	*b = (const struct entrything *)bb;
 
 	if ( a->et_vals == NULL && b->et_vals == NULL )
 		return( 0 );
