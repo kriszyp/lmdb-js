@@ -8,11 +8,11 @@
 ##
 
 SRCS = config.c context.c info.c ldapmap.c map.c params.c rule.c \
-	session.c subst.c var.c \
+	session.c subst.c var.c xmap.c \
 	parse.c rewrite.c
 XSRCS = version.c
 OBJS = config.o context.o info.o ldapmap.o map.o params.o rule.o \
-	session.o subst.o var.o
+	session.o subst.o var.o xmap.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

@@ -52,7 +52,7 @@ apply(
 	int rc;
 	void *cookie = &info;
 
-	info = rewrite_info_init(REWRITE_MODE_ERR);
+	info = rewrite_info_init( REWRITE_MODE_ERR );
 
 	if ( rewrite_read( fin, info ) != 0 ) {
 		exit( EXIT_FAILURE );
@@ -84,7 +84,11 @@ apply(
 		string = result;
 	}
 
+	free( string );
+
 	rewrite_session_delete( info, cookie );
+
+	rewrite_info_delete( &info );
 
 	return result;
 }
@@ -138,6 +142,10 @@ main( int argc, char *argv[] )
 	}
 
 	apply( ( fin ? fin : stdin ), rewriteContext, argv[ optind ] );
+
+	if ( fin ) {
+		fclose( fin );
+	}
 
 	return 0;
 }

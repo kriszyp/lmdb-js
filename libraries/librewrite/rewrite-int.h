@@ -189,10 +189,10 @@ struct rewrite_submatch {
  */
 struct rewrite_subst {
 	size_t                          lt_subs_len;
-	struct berval                 **lt_subs;
+	struct berval                  *lt_subs;
 	
 	int                             lt_num_submatch;
-	struct rewrite_submatch       **lt_submatch;
+	struct rewrite_submatch        *lt_submatch;
 };
 
 /*
@@ -315,7 +315,7 @@ struct rewrite_info {
  * PRIVATE *
  ***********/
 
-LDAP_REWRITE_V (struct rewrite_context*) __curr_context;
+LDAP_REWRITE_V (struct rewrite_context*) rewrite_int_curr_context;
 
 /*
  * Maps
@@ -359,6 +359,15 @@ rewrite_xmap_apply(
 		struct berval *val
 );
 
+LDAP_REWRITE_F (int)
+rewrite_map_destroy(
+		struct rewrite_map **map
+);
+
+LDAP_REWRITE_F (int)
+rewrite_xmap_destroy(
+		struct rewrite_map **map
+);
 
 /*
  * Submatch substitution
@@ -385,6 +394,11 @@ rewrite_subst_apply(
 		const char *string,
 		const regmatch_t *match,
 		struct berval *val
+);
+
+LDAP_REWRITE_F (int)
+rewrite_subst_destroy(
+		struct rewrite_subst **subst
 );
 
 
@@ -420,6 +434,11 @@ rewrite_rule_apply(
 		struct rewrite_rule *rule,
 		const char *string,
 		char **result
+);
+
+LDAP_REWRITE_F (int)
+rewrite_rule_destroy(
+		struct rewrite_rule **rule
 );
 
 /*
@@ -553,6 +572,16 @@ rewrite_context_apply(
 		struct rewrite_context *context,
 		const char *string,
 		char **result
+);
+
+LDAP_REWRITE_F (int)
+rewrite_context_destroy(
+		struct rewrite_context **context
+);
+
+LDAP_REWRITE_F (void)
+rewrite_context_free(
+		void *tmp
 );
 
 #endif /* REWRITE_INT_H */

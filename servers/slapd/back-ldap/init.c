@@ -198,7 +198,7 @@ ldap_back_db_destroy(
 		}
 #ifdef ENABLE_REWRITE
 		if (li->rwmap.rwm_rw) {
-			rewrite_info_delete( li->rwmap.rwm_rw );
+			rewrite_info_delete( &li->rwmap.rwm_rw );
 		}
 #else /* !ENABLE_REWRITE */
 		if (li->rwmap.rwm_suffix_massage) {

@@ -96,7 +96,7 @@ rewrite_info_init(
  */
 LDAP_REWRITE_F (int)
 rewrite_info_delete(
-                struct rewrite_info *info
+                struct rewrite_info **info
 );
 
 

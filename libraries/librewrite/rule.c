@@ -336,7 +336,8 @@ rewrite_rule_apply(
 	int rc = REWRITE_SUCCESS;
 
 	char *string;
-	struct berval val;
+	int strcnt = 0;
+	struct berval val = { 0, NULL };
 
 	assert( info != NULL );
 	assert( op != NULL );
@@ -346,10 +347,7 @@ rewrite_rule_apply(
 
 	*result = NULL;
 
-	string = strdup( arg );
-	if ( string == NULL ) {
-		return REWRITE_REGEXEC_ERR;
-	}
+	string = (char *)arg;
 	
 	/*
 	 * In case recursive match is required (default)
@@ -357,13 +355,14 @@ rewrite_rule_apply(
 recurse:;
 
 	Debug( LDAP_DEBUG_TRACE, "==> rewrite_rule_apply"
-			" rule='%s' string='%s'\n%s", 
-			rule->lr_pattern, string, "" );
+			" rule='%s' string='%s'\n", 
+			rule->lr_pattern, string, 0 );
 	
 	op->lo_num_passes++;
 	if ( regexec( &rule->lr_regex, string, nmatch, match, 0 ) != 0 ) {
-		if ( *result == NULL ) {
+		if ( *result == NULL && strcnt > 0 ) {
 			free( string );
+			string = NULL;
 		}
 
 		/*
@@ -376,7 +375,11 @@ recurse:;
 			match, &val );
 
 	*result = val.bv_val;
-	free( string );
+	val.bv_val = NULL;
+	if ( strcnt > 0 ) {
+		free( string );
+		string = NULL;
+	}
 
 	if ( rc != REWRITE_REGEXEC_OK ) {
 		return rc;
@@ -385,9 +388,50 @@ recurse:;
 	if ( ( rule->lr_mode & REWRITE_RECURSE ) == REWRITE_RECURSE 
 			&& op->lo_num_passes <= info->li_max_passes ) {
 		string = *result;
+		strcnt++;
+
 		goto recurse;
 	}
 
 	return REWRITE_REGEXEC_OK;
+}
+
+int
+rewrite_rule_destroy(
+		struct rewrite_rule **prule
+		)
+{
+	struct rewrite_rule *rule;
+
+	assert( prule );
+	assert( *prule );
+
+	rule = *prule;
+
+	if ( rule->lr_pattern ) {
+		free( rule->lr_pattern );
+		rule->lr_pattern = NULL;
+	}
+
+	if ( rule->lr_subststring ) {
+		free( rule->lr_subststring );
+		rule->lr_subststring = NULL;
+	}
+
+	if ( rule->lr_flagstring ) {
+		free( rule->lr_flagstring );
+		rule->lr_flagstring = NULL;
+	}
+
+	if ( rule->lr_subst ) {
+		rewrite_subst_destroy( &rule->lr_subst );
+	}
+
+	regfree( &rule->lr_regex );
+
+	free( rule );
+	*prule = NULL;
+
+	return 0;
 }
 

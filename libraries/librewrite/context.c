@@ -144,6 +144,7 @@ rewrite_context_create(
 		free( context );
 		return NULL;
 	}
+	memset( context->lc_rule, 0, sizeof( struct rewrite_rule ) );
 	
 	/*
 	 * Add context to tree
@@ -413,3 +414,49 @@ rc_end_of_context:;
 	return return_code;
 }
 
+void
+rewrite_context_free(
+		void *tmp
+)
+{
+	struct rewrite_context *context = (struct rewrite_context *)tmp;
+
+	assert( tmp );
+
+	rewrite_context_destroy( &context );
+}
+
+int
+rewrite_context_destroy(
+		struct rewrite_context **pcontext
+)
+{
+	struct rewrite_context *context;
+	struct rewrite_rule *r;
+
+	assert( pcontext );
+	assert( *pcontext );
+
+	context = *pcontext;
+
+	assert( context->lc_rule );
+
+	for ( r = context->lc_rule->lr_next; r; ) {
+		struct rewrite_rule *cr = r;
+
+		r = r->lr_next;
+		rewrite_rule_destroy( &cr );
+	}
+
+	free( context->lc_rule );
+	context->lc_rule = NULL;
+
+	assert( context->lc_name );
+	free( context->lc_name );
+	context->lc_name = NULL;
+
+	free( context );
+	*pcontext = NULL;
+	
+	return 0;
+}

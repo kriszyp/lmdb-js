@@ -112,6 +112,16 @@ rewrite_param_get(
 	return REWRITE_SUCCESS;
 }
 
+static void
+rewrite_param_free(
+		void *tmp
+)
+{
+	char	*value = ( char * )tmp;
+
+	free( value );
+}
+
 /*
  * Destroys the parameter tree
  */
@@ -128,7 +138,7 @@ rewrite_param_destroy(
 	ldap_pvt_thread_rdwr_wlock( &info->li_params_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 	
-	count = avl_free( info->li_params, NULL );
+	count = avl_free( info->li_params, rewrite_param_free );
 	info->li_params = NULL;
 
 #ifdef USE_REWRITE_LDAP_PVT_THREADS

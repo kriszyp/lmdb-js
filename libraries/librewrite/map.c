@@ -33,195 +33,6 @@
 #include "rewrite-int.h"
 #include "rewrite-map.h"
 
-/*
- * Global data
- */
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-ldap_pvt_thread_mutex_t xpasswd_mutex;
-static int xpasswd_mutex_init = 0;
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-/*
- * Map parsing
- * NOTE: these are old-fashion maps; new maps will be parsed on separate
- * config lines, and referred by name.
- */
-struct rewrite_map *
-rewrite_xmap_parse(
-		struct rewrite_info *info,
-		const char *s,
-		const char **currpos
-)
-{
-	struct rewrite_map *map;
-
-	assert( info != NULL );
-	assert( s != NULL );
-	assert( currpos != NULL );
-
-	Debug( LDAP_DEBUG_ARGS, "rewrite_xmap_parse: %s\n%s%s",
-			s, "", "" );
-
-	*currpos = NULL;
-
-	map = calloc( sizeof( struct rewrite_map ), 1 );
-	if ( map == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "rewrite_xmap_parse:"
-				" calloc failed\n%s%s%s", "", "", "" );
-		return NULL;
-	}
-
-	/*
-	 * Experimental passwd map:
-	 * replaces the uid with the matching gecos from /etc/passwd file 
-	 */
-	if ( strncasecmp(s, "xpasswd", 7 ) == 0 ) {
-		map->lm_type = REWRITE_MAP_XPWDMAP;
-		map->lm_name = strdup( "xpasswd" );
-
-		assert( s[7] == '}' );
-		*currpos = s + 8;
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-		if ( !xpasswd_mutex_init ) {
-			xpasswd_mutex_init = 1;
-			if ( ldap_pvt_thread_mutex_init( &xpasswd_mutex ) ) {
-				free( map );
-				return NULL;
-			}
-		}
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-		/* Don't really care if fails */
-		return map;
-	
-	/*
-	 * Experimental file map:
-	 * looks up key in a `key value' ascii file
-	 */
-	} else if ( strncasecmp(s, "xfile", 5 ) == 0 ) {
-		char *filename;
-		const char *p;
-		int l;
-		int c = 5;
-		
-		map->lm_type = REWRITE_MAP_XFILEMAP;
-		
-		if ( s[ c ] != '(' ) {
-			free( map );
-			return NULL;
-		}
-
-		/* Must start with '/' for security concerns */
-		c++;
-		if ( s[ c ] != '/' ) {
-			free( map );
-			return NULL;
-		}
-
-		for ( p = s + c; p[ 0 ] != '\0' && p[ 0 ] != ')'; p++ );
-		if ( p[ 0 ] != ')' ) {
-			free( map );
-			return NULL;
-		}
-
-		l = p - s - c;
-		filename = calloc( sizeof( char ), l + 1 );
-		AC_MEMCPY( filename, s + c, l );
-		filename[ l ] = '\0';
-		
-		map->lm_args = ( void * )fopen( filename, "r" );
-		free( filename );
-
-		if ( map->lm_args == NULL ) {
-			free( map );
-			return NULL;
-		}
-
-		*currpos = p + 1;
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-                if ( ldap_pvt_thread_mutex_init( &map->lm_mutex ) ) {
-			fclose( ( FILE * )map->lm_args );
-			free( map );
-			return NULL;
-		}
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */	
-		
-		return map;
-
-	/*
-         * Experimental ldap map:
-         * looks up key on the fly (not implemented!)
-         */
-        } else if ( strncasecmp(s, "xldap", 5 ) == 0 ) {
-		char *p;
-		char *url;
-		int l, rc;
-		int c = 5;
-		LDAPURLDesc *lud;
-
-		if ( s[ c ] != '(' ) {
-			free( map );
-			return NULL;
-		}
-		c++;
-		
-		p = strchr( s, '}' );
-		if ( p == NULL ) {
-			free( map );
-			return NULL;
-		}
-		p--;
-
-		*currpos = p + 2;
-	
-		/*
-		 * Add two bytes for urlencoding of '%s'
-		 */
-		l = p - s - c;
-		url = calloc( sizeof( char ), l + 3 );
-		AC_MEMCPY( url, s + c, l );
-		url[ l ] = '\0';
-
-		/*
-		 * Urlencodes the '%s' for ldap_url_parse
-		 */
-		p = strchr( url, '%' );
-		if ( p != NULL ) {
-			AC_MEMCPY( p + 3, p + 1, strlen( p + 1 ) + 1 );
-			p[ 1 ] = '2';
-			p[ 2 ] = '5';
-		}
-
-		rc =  ldap_url_parse( url, &lud );
-		free( url );
-
-		if ( rc != LDAP_SUCCESS ) {
-			free( map );
-			return NULL;
-		}
-		assert( lud != NULL );
-
-		map->lm_args = ( void * )lud;
-		map->lm_type = REWRITE_MAP_XLDAPMAP;
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-                if ( ldap_pvt_thread_mutex_init( &map->lm_mutex ) ) {
-			ldap_free_urldesc( lud );
-			free( map );
-			return NULL;
-		}
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-		return map;
-	
-	/* Unhandled map */
-	}
-	
-	return NULL;
-}
-
 struct rewrite_map *
 rewrite_map_parse(
 		struct rewrite_info *info,
@@ -233,7 +44,7 @@ rewrite_map_parse(
 	struct rewrite_subst *subst = NULL;
 	char *s, *begin = NULL, *end;
 	const char *p;
-	int l, cnt;
+	int l, cnt, mtx = 0, rc = 0;
 
 	assert( info != NULL );
 	assert( string != NULL );
@@ -259,8 +70,11 @@ rewrite_map_parse(
 				cnt++;
 				p++;
 			}
-			if ( p[ 1 ] != '\0' )
+
+			if ( p[ 1 ] != '\0' ) {
 				p++;
+			}
+
 		} else if ( p[ 0 ] == '}' ) {
 			cnt--;
 		}
@@ -285,11 +99,12 @@ rewrite_map_parse(
 	case REWRITE_OPERATOR_VARIABLE_GET:
 	case REWRITE_OPERATOR_PARAM_GET:
 		break;
+
 	default:
 		begin = strchr( s, '(' );
 		if ( begin == NULL ) {
-			free( s );
-			return NULL;
+			rc = -1;
+			goto cleanup;
 		}
 		begin[ 0 ] = '\0';
 		begin++;
@@ -333,13 +148,13 @@ rewrite_map_parse(
 	 * Check the syntax of the variable name
 	 */
 	if ( !isalpha( (unsigned char) p[ 0 ] ) ) {
-		free( s );
-		return NULL;
+		rc = -1;
+		goto cleanup;
 	}
 	for ( p++; p[ 0 ] != '\0'; p++ ) {
 		if ( !isalnum( (unsigned char) p[ 0 ] ) ) {
-			free( s );
-			return NULL;
+			rc = -1;
+			goto cleanup;
 		}
 	}
 
@@ -350,11 +165,12 @@ rewrite_map_parse(
 	case REWRITE_OPERATOR_VARIABLE_GET:
 	case REWRITE_OPERATOR_PARAM_GET:
 		break;
+
 	default:
 		end = strrchr( begin, ')' );
 		if ( end == NULL ) {
-			free( s );
-			return NULL;
+			rc = -1;
+			goto cleanup;
 		}
 		end[ 0 ] = '\0';
 
@@ -363,8 +179,8 @@ rewrite_map_parse(
 	 	 */
 		subst = rewrite_subst_compile( info, begin );
 		if ( subst == NULL ) {
-			free( s );
-			return NULL;
+			rc = -1;
+			goto cleanup;
 		}
 		break;
 	}
@@ -374,22 +190,17 @@ rewrite_map_parse(
 	 */
 	map = calloc( sizeof( struct rewrite_map ), 1 );
 	if ( map == NULL ) {
-		if ( subst != NULL ) {
-			free( subst );
-		}
-		free( s );
-		return NULL;
+		rc = -1;
+		goto cleanup;
 	}
+	memset( map, 0, sizeof( struct rewrite_map ) );
 	
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
         if ( ldap_pvt_thread_mutex_init( &map->lm_mutex ) ) {
-		if ( subst != NULL ) {
-			free( subst );
-		}
-		free( s );
-		free( map );
-		return NULL;
+		rc = -1;
+		goto cleanup;
 	}
+	++mtx;
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 			
 	/*
@@ -399,6 +210,7 @@ rewrite_map_parse(
 	case REWRITE_OPERATOR_VARIABLE_GET:
 	case REWRITE_OPERATOR_PARAM_GET:
 		break;
+
 	default:
 		map->lm_subst = subst;
 		break;
@@ -422,19 +234,17 @@ rewrite_map_parse(
 		map->lm_name = strdup( s + 1 );
 		map->lm_data = rewrite_context_find( info, s + 1 );
 		if ( map->lm_data == NULL ) {
-			free( s );
-			free( map );
-			return NULL;
+			rc = -1;
+			goto cleanup;
 		}
 		break;
 
 	/*
-	 * External command
+	 * External command (not implemented yet)
 	 */
 	case REWRITE_OPERATOR_COMMAND:		/* '|' */
-		free( map );
-		map = NULL;
-		break;
+		rc = -1;
+		goto cleanup;
 	
 	/*
 	 * Variable set
@@ -488,226 +298,36 @@ rewrite_map_parse(
 		map->lm_name = strdup( s );
 		map->lm_data = rewrite_builtin_map_find( info, s );
 		if ( map->lm_data == NULL ) {
-			return NULL;
+			rc = -1;
+			goto cleanup;
 		}
 		break;
 
 	}
-	
+
+cleanup:
 	free( s );
+	if ( rc ) {
+		if ( subst != NULL ) {
+			free( subst );
+		}
+		if ( map ) {
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+		        if ( mtx ) {
+				ldap_pvt_thread_mutex_destroy( &map->lm_mutex );
+			}
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
+
+			if ( map->lm_name ) {
+				free( map->lm_name );
+				map->lm_name = NULL;
+			}
+			free( map );
+			map = NULL;
+		}
+	}
+
 	return map;
-}
-
-/*
- * Map key -> value resolution
- * NOTE: these are old-fashion maps; new maps will be parsed on separate
- * config lines, and referred by name.
- */
-int
-rewrite_xmap_apply(
-		struct rewrite_info *info,
-		struct rewrite_op *op,
-		struct rewrite_map *map,
-		struct berval *key,
-		struct berval *val
-)
-{
-	int rc = REWRITE_SUCCESS;
-	
-	assert( info != NULL );
-	assert( op != NULL );
-	assert( map != NULL );
-	assert( key != NULL );
-	assert( val != NULL );
-	
-	val->bv_val = NULL;
-	val->bv_len = 0;
-	
-	switch ( map->lm_type ) {
-#ifdef HAVE_GETPWNAM
-	case REWRITE_MAP_XPWDMAP: {
-		struct passwd *pwd;
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-		ldap_pvt_thread_mutex_lock( &xpasswd_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-		
-		pwd = getpwnam( key->bv_val );
-		if ( pwd == NULL ) {
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-			ldap_pvt_thread_mutex_unlock( &xpasswd_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-			rc = REWRITE_NO_SUCH_OBJECT;
-			break;
-		}
-
-#ifdef HAVE_PW_GECOS
-		if ( pwd->pw_gecos != NULL && pwd->pw_gecos[0] != '\0' ) {
-			int l = strlen( pwd->pw_gecos );
-			
-			val->bv_val = strdup( pwd->pw_gecos );
-			if ( val->bv_val == NULL ) {
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-		                ldap_pvt_thread_mutex_unlock( &xpasswd_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-				rc = REWRITE_ERR;
-				break;
-			}
-			val->bv_len = l;
-		} else
-#endif /* HAVE_PW_GECOS */
-		{
-			val->bv_val = strdup( key->bv_val );
-			val->bv_len = key->bv_len;
-		}
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-		ldap_pvt_thread_mutex_unlock( &xpasswd_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-			
-		break;
-	}
-#endif /* HAVE_GETPWNAM*/
-	
-	case REWRITE_MAP_XFILEMAP: {
-		char buf[1024];
-		
-		if ( map->lm_args == NULL ) {
-			rc = REWRITE_ERR;
-			break;
-		}
-		
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-		ldap_pvt_thread_mutex_lock( &map->lm_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-		rewind( ( FILE * )map->lm_args );
-		
-		while ( fgets( buf, sizeof( buf ), ( FILE * )map->lm_args ) ) {
-			char *p;
-			int blen;
-			
-			blen = strlen( buf );
-			if ( buf[ blen - 1 ] == '\n' ) {
-				buf[ blen - 1 ] = '\0';
-			}
-			
-			p = strtok( buf, " " );
-			if ( p == NULL ) {
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-				ldap_pvt_thread_mutex_unlock( &map->lm_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-				rc = REWRITE_ERR;
-				goto rc_return;
-			}
-			if ( strcasecmp( p, key->bv_val ) == 0 
-					&& ( p = strtok( NULL, "" ) ) ) {
-				val->bv_val = strdup( p );
-				if ( val->bv_val == NULL ) {
-					return REWRITE_ERR;
-				}
-
-				val->bv_len = strlen( p );
-				
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-				ldap_pvt_thread_mutex_unlock( &map->lm_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-				
-				goto rc_return;
-			}
-		}
-
-#ifdef USE_REWRITE_LDAP_PVT_THREADS
-		ldap_pvt_thread_mutex_unlock( &map->lm_mutex );
-#endif /* USE_REWRITE_LDAP_PVT_THREADS */
-
-		rc = REWRITE_ERR;
-		
-		break;
-	}
-
-	case REWRITE_MAP_XLDAPMAP: {
-		LDAP *ld;
-		char filter[1024];
-		LDAPMessage *res = NULL, *entry;
-		LDAPURLDesc *lud = ( LDAPURLDesc * )map->lm_args;
-		int attrsonly = 0;
-		char **values;
-
-		assert( lud != NULL );
-
-		/*
-		 * No mutex because there is no write on the map data
-		 */
-		
-		ld = ldap_init( lud->lud_host, lud->lud_port );
-		if ( ld == NULL ) {
-			rc = REWRITE_ERR;
-			goto rc_return;
-		}
-
-		snprintf( filter, sizeof( filter ), lud->lud_filter,
-				key->bv_val );
-
-		if ( strcasecmp( lud->lud_attrs[ 0 ], "dn" ) == 0 ) {
-			attrsonly = 1;
-		}
-		rc = ldap_search_s( ld, lud->lud_dn, lud->lud_scope,
-				filter, lud->lud_attrs, attrsonly, &res );
-		if ( rc != LDAP_SUCCESS ) {
-			ldap_unbind( ld );
-			rc = REWRITE_ERR;
-			goto rc_return;
-		}
-
-		if ( ldap_count_entries( ld, res ) != 1 ) {
-			ldap_unbind( ld );
-			rc = REWRITE_ERR;
-			goto rc_return;
-		}
-
-		entry = ldap_first_entry( ld, res );
-		if ( entry == NULL ) {
-			ldap_msgfree( res );
-			ldap_unbind( ld );
-			rc = REWRITE_ERR;
-			goto rc_return;
-		}
-		if ( attrsonly == 1 ) {
-			val->bv_val = ldap_get_dn( ld, entry );
-			if ( val->bv_val == NULL ) {
-				ldap_msgfree( res );
-                                ldap_unbind( ld );
-                                rc = REWRITE_ERR;
-                                goto rc_return;
-                        }
-		} else {
-			values = ldap_get_values( ld, entry,
-					lud->lud_attrs[0] );
-			if ( values == NULL ) {
-				ldap_msgfree( res );
-				ldap_unbind( ld );
-				rc = REWRITE_ERR;
-				goto rc_return;
-			}
-			val->bv_val = strdup( values[ 0 ] );
-			ldap_value_free( values );
-		}
-		val->bv_len = strlen( val->bv_val );
-
-		ldap_msgfree( res );
-		ldap_unbind( ld );
-		
-		rc = REWRITE_SUCCESS;
-	}
-	}
-
-rc_return:;
-	return rc;
 }
 
 /*
@@ -796,6 +416,7 @@ rewrite_map_apply(
 
 	case REWRITE_MAP_BUILTIN: {
 		struct rewrite_builtin_map *bmap = map->lm_data;
+
 		switch ( bmap->lb_type ) {
 		case REWRITE_BUILTIN_MAP_LDAP:
 			rc = map_ldap_apply( bmap, key->bv_val, val );
@@ -813,5 +434,41 @@ rewrite_map_apply(
 	}
 
 	return rc;
+}
+
+int
+rewrite_map_destroy(
+		struct rewrite_map **pmap
+)
+{
+	struct rewrite_map *map;
+	
+	assert( pmap );
+	assert( *pmap );
+
+	map = *pmap;
+
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+	ldap_pvt_thread_mutex_lock( &map->lm_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
+
+	if ( map->lm_name ) {
+		free( map->lm_name );
+		map->lm_name = NULL;
+	}
+
+	if ( map->lm_subst ) {
+		rewrite_subst_destroy( &map->lm_subst );
+	}
+
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+	ldap_pvt_thread_mutex_unlock( &map->lm_mutex );
+	ldap_pvt_thread_mutex_destroy( &map->lm_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
+
+	free( map );
+	*pmap = NULL;
+	
+	return 0;
 }
 

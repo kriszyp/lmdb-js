@@ -109,25 +109,31 @@ rewrite_var_insert(
 	if ( var == NULL ) {
 		return NULL;
 	}
+	memset( var, 0, sizeof( struct rewrite_var ) );
 	var->lv_name = ( char * )strdup( name );
 	if ( var->lv_name == NULL ) {
-		free( var );
-		return NULL;
+		rc = -1;
+		goto cleanup;
 	}
 	var->lv_value.bv_val = strdup( value );
 	if ( var->lv_value.bv_val == NULL ) {
-		free( var );
-		free( var->lv_name );
-		return NULL;
+		rc = -1;
+		goto cleanup;
 	}
 	var->lv_value.bv_len = strlen( value );
 	rc = avl_insert( tree, ( caddr_t )var,
 			rewrite_var_cmp, rewrite_var_dup );
 	if ( rc != 0 ) { 
-		free( var );
+		rc = -1;
+		goto cleanup;
+	}
+
+cleanup:;
+	if ( rc != 0 ) {
 		free( var->lv_name );
 		free( var->lv_value.bv_val );
-		return NULL;
+		free( var );
+		var = NULL;
 	}
 
 	return var;

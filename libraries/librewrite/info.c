@@ -35,7 +35,7 @@
  * rewrite_parse; it can be altered only by a 
  * rewriteContext config line or by a change in info.
  */
-struct rewrite_context *__curr_context = NULL;
+struct rewrite_context *rewrite_int_curr_context = NULL;
 
 /*
  * Inits the info
@@ -63,7 +63,7 @@ rewrite_info_init(
 	/*
 	 * Resets the running context for parsing ...
 	 */
-	__curr_context = NULL;
+	rewrite_int_curr_context = NULL;
 
 	info = calloc( sizeof( struct rewrite_info ), 1 );
 	if ( info == NULL ) {
@@ -102,19 +102,35 @@ rewrite_info_init(
  */
 int
 rewrite_info_delete(
-		struct rewrite_info *info
+		struct rewrite_info **pinfo
 )
 {
-	assert( info != NULL );
+	struct rewrite_info	*info;
+
+	assert( pinfo != NULL );
+	assert( *pinfo != NULL );
+
+	info = *pinfo;
 	
+	if ( info->li_context ) {
+		avl_free( info->li_context, rewrite_context_free );
+	}
+	info->li_context = NULL;
+
 	rewrite_session_destroy( info );
+
+#ifdef USE_REWRITE_LDAP_PVT_THREADS
+	ldap_pvt_thread_rdwr_destroy( &info->li_cookies_mutex );
+#endif /* USE_REWRITE_LDAP_PVT_THREADS */
 
 	rewrite_param_destroy( info );
 	
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
-	ldap_pvt_thread_rdwr_destroy( &info->li_cookies_mutex );
 	ldap_pvt_thread_rdwr_destroy( &info->li_params_mutex );
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
+
+	free( info );
+	*pinfo = NULL;
 
 	return REWRITE_SUCCESS;
 }
