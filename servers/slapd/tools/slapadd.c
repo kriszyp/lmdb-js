@@ -58,7 +58,7 @@ main( int argc, char **argv )
 		}
 
 		/* make sure the DN is valid */
-		if( dn_normalize( e->e_ndn ) == NULL ) {
+		if( dn_normalize( e->e_ndn ) == NULL || e->e_ndn[0] == '\0' ) {
 			fprintf( stderr, "%s: invalid dn=\"%s\" (line=%d)\n",
 				progname, e->e_dn, lineno );
 			rc = EXIT_FAILURE;
