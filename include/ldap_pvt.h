@@ -124,6 +124,8 @@ LDAP_F( char * )
 ldap_pvt_str2lower LDAP_P(( char *str ));
 
 /* tls.c */
+struct ldapoptions;
+
 int ldap_pvt_tls_init LDAP_P(( void ));
 int ldap_pvt_tls_config LDAP_P(( struct ldapoptions *lo, int option, const char *arg ));
 int ldap_pvt_tls_connect LDAP_P(( Sockbuf *sb, void *ctx_arg ));
