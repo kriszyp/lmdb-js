@@ -198,18 +198,18 @@ static int ldapdb_auxprop_plug_init(const sasl_utils_t *utils,
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_uri", &tmp.uri, NULL);
     if(!tmp.uri) return SASL_BADPARAM;
 
-    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_id", (const char **)&tmp.id.bv_val, NULL);
-    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_pw", (const char **)&tmp.pw.bv_val, NULL);
-    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech", (const char **)&tmp.mech.bv_val, NULL);
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_id",
+    	(const char **)&tmp.id.bv_val, (unsigned *)&tmp.id.bv_len);
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_pw",
+    	(const char **)&tmp.pw.bv_val, (unsigned *)&tmp.pw.bv_len);
+    utils->getopt(utils->getopt_context, ldapdb, "ldapdb_mech",
+    	(const char **)&tmp.mech.bv_val, (unsigned *)&tmp.mech.bv_len);
     utils->getopt(utils->getopt_context, ldapdb, "ldapdb_rc", &s, NULL);
     if(s && setenv("LDAPRC", s, 1)) return SASL_BADPARAM;
 
     p = utils->malloc(sizeof(ldapctx));
     if (!p) return SASL_NOMEM;
     *p = tmp;
-    if (p->id.bv_val) p->id.bv_len = strlen(p->id.bv_val);
-    if (p->pw.bv_val) p->pw.bv_len = strlen(p->pw.bv_val);
-    if (p->mech.bv_val) p->mech.bv_len = strlen(p->mech.bv_val);
     ldapdb_auxprop_plugin.glob_context = p;
 
     *out_version = SASL_AUXPROP_PLUG_VERSION;
