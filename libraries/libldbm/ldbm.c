@@ -225,6 +225,9 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	DB_ENV *env = NULL;    
 	int     err;
 	u_int32_t	envFlags;
+#ifdef HAVE_EBCDIC
+	char n2[2048];
+#endif
 
 	err = db_env_create( &env, 0 );
 
@@ -259,6 +262,12 @@ DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
 	envFlags |= DB_THREAD;
 #endif
 
+#ifdef HAVE_EBCDIC
+	strncpy(n2, home, sizeof(n2)-1);
+	n2[sizeof(n2)-1] = '\0';
+	__atoe(n2);
+	home = n2;
+#endif
 #if DB_VERSION_X >= 0x030100
 	err = env->open( env, home, envFlags, 0 );
 #else
