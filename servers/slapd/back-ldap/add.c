@@ -134,6 +134,10 @@ ldap_back_add(
 		}
 #endif
 		
+		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
+			continue;
+		}
+
 		ldap_back_map(&li->at_map, &a->a_desc->ad_cname, &mapped, 0);
 		if (mapped.bv_val == NULL) {
 			continue;

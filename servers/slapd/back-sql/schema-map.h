@@ -12,14 +12,11 @@
 
 typedef struct {
 	/*
-	 * FIXME: we explicitly keep the objectClass name because
-	 * the ObjectClass structure does not use bervals (yet?)
-	 */
-	struct berval	name;
-	/*
 	 * Structure of corresponding LDAP objectClass definition
 	 */
 	ObjectClass	*oc;
+#define BACKSQL_OC_NAME(ocmap)	((ocmap)->oc->soc_cname.bv_val)
+	
 	struct berval	keytbl;
 	struct berval	keycol;
 	/* expected to return keyval of newly created entry */

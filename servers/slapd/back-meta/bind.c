@@ -77,6 +77,18 @@
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
 
+static int
+meta_back_do_single_bind(
+		struct metainfo		*li,
+		struct metaconn		*lc,
+		Operation		*op,
+		struct berval		*dn,
+		struct berval		*ndn,
+		struct berval		*cred,
+		int			method,
+		int			candidate
+);
+
 int
 meta_back_bind(
 		Backend		*be,
@@ -177,7 +189,7 @@ meta_back_bind(
 			realmethod = method;
 		}
 		
-		lerr = meta_back_do_single_bind( li, lc,
+		lerr = meta_back_do_single_bind( li, lc, op,
 				realdn, realndn, realcred, realmethod, i );
 		if ( lerr != LDAP_SUCCESS ) {
 			err = lerr;
@@ -223,10 +235,11 @@ meta_back_bind(
  *
  * attempts to perform a bind with creds
  */
-int
+static int
 meta_back_do_single_bind(
 		struct metainfo		*li,
 		struct metaconn		*lc,
+		Operation		*op,
 		struct berval		*dn,
 		struct berval		*ndn,
 		struct berval		*cred,
@@ -263,6 +276,15 @@ meta_back_do_single_bind(
 		return LDAP_OTHER;
 	}
 
+	if ( op->o_ctrls ) {
+		rc = ldap_set_option( lc->conns[ candidate ].ld, 
+				LDAP_OPT_SERVER_CONTROLS, op->o_ctrls );
+		if ( rc != LDAP_SUCCESS ) {
+			rc = ldap_back_map_result( rc );
+			goto return_results;
+		}
+	}
+	
 	rc = ldap_bind_s( lc->conns[ candidate ].ld, mdn.bv_val, cred->bv_val, method );
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
@@ -277,6 +299,8 @@ meta_back_do_single_bind(
 					ndn, candidate );
 		}
 	}
+
+return_results:;
 	
 	if ( mdn.bv_val != dn->bv_val ) {
 		free( mdn.bv_val );
@@ -312,6 +336,17 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		}
 
 		/*
+		 * If required, set controls
+		 */
+		if ( op->o_ctrls ) {
+			if ( ldap_set_option( lsc->ld, LDAP_OPT_SERVER_CONTROLS,
+					op->o_ctrls ) != LDAP_SUCCESS ) {
+				( void )meta_clear_one_candidate( lsc, 1 );
+				continue;
+			}
+		}
+	
+		/*
 		 * If the target is already bound it is skipped
 		 */
 		if ( lsc->bound == META_BOUND && lc->bound_target == i ) {
@@ -329,6 +364,8 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 			lsc->bound_dn.bv_val = NULL;
 			lsc->bound_dn.bv_len = 0;
 		}
+		
+
 		rc = ldap_bind_s( lsc->ld, 0, NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
 			

@@ -63,13 +63,18 @@ backsql_operational(
 	backsql_info 		*bi = (backsql_info*)be->be_private;
 	SQLHDBC 		dbh = SQL_NULL_HDBC;
 	Attribute		**aa = a;
-	int			rc;
+	int			rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry '%s'\n",
 			e->e_nname.bv_val, 0, 0 );
 
 
-	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) {
+	if ( ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) 
+#ifdef SLAP_X_FILTER_HASSUBORDINATES
+			&& attr_find( e->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL
+#endif /* SLAP_X_FILTER_HASSUBORDINATES */
+			) {
+		
 		rc = backsql_get_db_conn( be, conn, &dbh );
 		if ( rc != LDAP_SUCCESS ) {
 			goto no_connection;

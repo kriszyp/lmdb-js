@@ -273,7 +273,7 @@ char *
 backsql_get_table_spec( char **p )
 {
 	char		*s, *q;
-	struct berval	res = { 0, NULL };
+	struct berval	res = BER_BVNULL;
 	ber_len_t	res_len = 0;
 
 	assert( p );

@@ -43,6 +43,18 @@ int
 sql_back_initialize(
 	BackendInfo	*bi )
 { 
+	static char *controls[] = {
+#ifdef LDAP_CONTROL_NOOP
+		LDAP_CONTROL_NOOP,
+#endif
+#ifdef LDAP_CONTROL_VALUESRETURNFILTER
+ 		LDAP_CONTROL_VALUESRETURNFILTER,
+#endif
+		NULL
+	};
+
+	bi->bi_controls = controls;
+
 	Debug( LDAP_DEBUG_TRACE,"==>backsql_initialize()\n", 0, 0, 0 );
 	
 	bi->bi_open = 0;

@@ -74,6 +74,14 @@ ldap_back_bind(
 		return( -1 );
 	}
 
+	if ( op->o_ctrls ) {
+		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
+					op->o_ctrls ) != LDAP_SUCCESS ) {
+			ldap_back_op_result( lc, op );
+			return( -1 );
+		}
+	}
+	
 	/*
 	 * Rewrite the bind dn if needed
 	 */
@@ -350,15 +358,23 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
  * it can be used to simplify the check.
  */
 int
-ldap_back_dobind(struct ldapconn *lc, Operation *op)
-{
-	if (lc->bound) {
+ldap_back_dobind( struct ldapconn *lc, Operation *op )
+{	
+	if ( op->o_ctrls ) {
+		if ( ldap_set_option( lc->ld, LDAP_OPT_SERVER_CONTROLS,
+				op->o_ctrls ) != LDAP_SUCCESS ) {
+			ldap_back_op_result( lc, op );
+			return( 0 );
+		}
+	}
+	
+	if ( lc->bound ) {
 		return( lc->bound );
 	}
 
-	if (ldap_bind_s(lc->ld, lc->bound_dn.bv_val, lc->cred.bv_val, LDAP_AUTH_SIMPLE) !=
-		LDAP_SUCCESS) {
-		ldap_back_op_result(lc, op);
+	if ( ldap_bind_s( lc->ld, lc->bound_dn.bv_val, lc->cred.bv_val, 
+				LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
+		ldap_back_op_result( lc, op );
 		return( 0 );
 	} /* else */
 	return( lc->bound = 1 );

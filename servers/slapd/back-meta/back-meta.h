@@ -151,18 +151,6 @@ struct metainfo {
 	Avlnode			*conntree;
 };
 
-extern int
-meta_back_do_single_bind(
-		struct metainfo         *li,
-		struct metaconn         *lc,
-		struct berval		*dn,
-		struct berval		*ndn,
-		struct berval		*cred,
-		int			method,
-		int                     candidate
-);
-
-
 #define META_OP_ALLOW_MULTIPLE		0x00
 #define META_OP_REQUIRE_SINGLE		0x01
 #define META_OP_REQUIRE_ALL		0x02
