@@ -2,6 +2,7 @@ OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.11 Engineering
 	Fixed slapd undefined objectclass bug (ITS#3097)
+	Updated slapd limits handling
 
 OpenLDAP 2.2.10 Release
 	Build Environment
@@ -27,7 +28,7 @@ OpenLDAP 2.2.9 Release
 	Fixed libldap parse_oid core dump bug (ITS#3065)
 	Fixed ldapmodify missing error information bug (ITS#3057)
 	Fixed ldapsearch paged results error handling
-	Updated slapd limits
+	Updated slapd limits handling
 	Updated slapd overlay framework
 	Added slapd Delivery Method syntax validation (ITS#3052)
 	Added libldap ditContentRule oidMacro support (ITS#2920)
