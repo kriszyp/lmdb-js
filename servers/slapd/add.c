@@ -246,8 +246,7 @@ do_add( Connection *conn, Operation *op )
 		}
 
 		if (mod == NULL) {
-#define BAILOUT
-#ifdef BAILOUT
+			if ( !global_add_rdn_values ) {
 			/* bail out */
 			send_ldap_result( conn, op, 
 				rc = LDAP_NO_SUCH_ATTRIBUTE,
@@ -256,7 +255,7 @@ do_add( Connection *conn, Operation *op )
 				NULL, NULL );
 			goto done;
 
-#else /* ! BAILOUT */
+			} else {
 			struct berval	bv;
 	
 			/* add attribute type and value to modlist */
@@ -276,7 +275,7 @@ do_add( Connection *conn, Operation *op )
 			*modtail = mod;
 			modtail = &mod->sml_next;
 			continue;
-#endif /* ! BAILOUT */
+			}
 		}
 
 		mr = desc->ad_type->sat_equality;
@@ -311,7 +310,7 @@ do_add( Connection *conn, Operation *op )
 
 		/* not found? */
 		if (mod->sml_bvalues[ i ].bv_val == NULL) {
-#ifdef BAILOUT
+			if ( !global_add_rdn_values ) {
 			/* bailout */
 			send_ldap_result( conn, op, 
 					rc = LDAP_NO_SUCH_ATTRIBUTE,
@@ -320,14 +319,14 @@ do_add( Connection *conn, Operation *op )
 					NULL, NULL );
 			goto done;
 
-#else /* ! BAILOUT */
+			} else {
 			struct berval	bv;
 
 			/* add attribute type and value to modlist */
 			ber_dupbv( &bv, &rdn[ 0 ][ cnt ]->la_value );
 			ber_bvarray_add( &mod->sml_bvalues, &bv );
 			continue;
-#endif /* ! BAILOUT */
+			}
 		}
 	}
 

@@ -1107,6 +1107,7 @@ LDAP_SLAPD_V (slap_access_t)	global_default_access;
 LDAP_SLAPD_V (int)		global_gentlehup;
 LDAP_SLAPD_V (int)		global_idletimeout;
 LDAP_SLAPD_V (int)		global_schemacheck;
+LDAP_SLAPD_V (int)		global_add_rdn_values;
 LDAP_SLAPD_V (char *)	global_host;
 LDAP_SLAPD_V (char *)	global_realm;
 LDAP_SLAPD_V (char *)	default_passwd_hash;

@@ -1727,6 +1727,36 @@ read_config( const char *fname, int depth )
 				global_schemacheck = 1;
 			}
 
+		/* turn on/off rdn value add */
+		} else if ( strcasecmp( cargv[0], "add-rdn-values" ) == 0 ) {
+			if ( cargc < 2 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: missing on|off in \"add-rdn-values <on|off>\""
+					" line.\n", fname, lineno , 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+    "%s: line %d: missing on|off in \"add-rdn-values <on|off>\" line\n",
+				    fname, lineno, 0 );
+#endif
+
+				return( 1 );
+			}
+			if ( strcasecmp( cargv[1], "on" ) == 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( CONFIG, CRIT, 
+					"%s: line %d: add-rdn-values enabled! your mileage may vary!\n",
+					fname, lineno , 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: add-rdn-values enabled! your mileage may vary!\n",
+				    fname, lineno, 0 );
+#endif
+				global_add_rdn_values = 1;
+			} else {
+				global_add_rdn_values = 0;
+			}
+
 		/* specify access control info */
 		} else if ( strcasecmp( cargv[0], "access" ) == 0 ) {
 			parse_acl( be, fname, lineno, cargc, cargv );

@@ -17,6 +17,7 @@
 #include "ldap_schema.h"
 
 int	global_schemacheck = 1; /* schemacheck ON is default */
+int	global_add_rdn_values = 0; /* bail out if rdn values do not match entry values is default */
 
 static void		oc_usage(void); 
 static void		at_usage(void);
