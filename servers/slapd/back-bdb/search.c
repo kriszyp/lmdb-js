@@ -359,7 +359,7 @@ bdb_search(
 		{
 			struct berval **erefs = get_entry_referrals(
 				be, conn, op, e, NULL, scope );
-			struct berval **ref = referral_rewrite( eref, e->e_dn, NULL,
+			struct berval **refs = referral_rewrite( erefs, e->e_dn, NULL,
 				scope == LDAP_SCOPE_SUBTREE 
 					? LDAP_SCOPE_SUBTREE
 					: LDAP_SCOPE_BASE );
