@@ -1176,7 +1176,7 @@ int connection_client_setup(
 {
 	Connection *c;
 
-	if ( connection_init( s, &dummy_list, "", "", CONN_IS_CLIENT, 0, NULL ) < 0 ) {
+	if ( connection_init( s, (Listener *)&dummy_list, "", "", CONN_IS_CLIENT, 0, NULL ) < 0 ) {
 		return -1;
 	}
 
