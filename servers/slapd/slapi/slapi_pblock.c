@@ -278,6 +278,7 @@ set( Slapi_PBlock *pb, int param, void *val )
 {
 #if defined(LDAP_SLAPI)
 	int i, freeit;
+	int addcon = 0;
 
 	if ( isValidParam( pb, param ) == INVALID_PARAM ) {
 		return PBLOCK_ERROR;
@@ -288,6 +289,11 @@ set( Slapi_PBlock *pb, int param, void *val )
 	if ( pb->numParams == PBLOCK_MAX_PARAMS ) {
 		unLock( pb );
 		return PBLOCK_ERROR; 
+	}
+
+	if ( param == SLAPI_ADD_RESCONTROL ) {
+		addcon = 1;
+		param = SLAPI_RES_CONTROLS;
 	}
 
 	switch ( param ) {
@@ -311,8 +317,19 @@ set( Slapi_PBlock *pb, int param, void *val )
 		pb->curParams[i] = param;
 	  	pb->numParams++;
 	}
-	if ( freeit ) ch_free( pb->curVals[i] );
-	pb->curVals[i] = val;
+	if ( addcon ) {
+		LDAPControl **ctrls = pb->curVals[i];
+		int j;
+
+		for (j=0; ctrls[j]; j++);
+		ctrls = ch_realloc( ctrls, (j+2)*sizeof(LDAPControl *) );
+		ctrls[j] = val;
+		ctrls[j+1] = NULL;
+		pb->curVals[i] = ctrls;
+	} else {
+		if ( freeit ) ch_free( pb->curVals[i] );
+		pb->curVals[i] = val;
+	}
 
 	unLock( pb );	
 	return LDAP_SUCCESS;
