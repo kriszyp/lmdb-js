@@ -61,7 +61,7 @@ modename="$progname"
 PROGRAM=ltmain.sh
 PACKAGE=libtool
 VERSION=1.4.3-OpenLDAP
-TIMESTAMP=' ($Id$)'
+TIMESTAMP=""
 
 default_mode=
 help="Try \`$progname --help' for more information."
