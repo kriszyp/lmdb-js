@@ -105,7 +105,7 @@ main( int argc, char *argv[] )
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
 
-    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : ++prog;
+    prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
 
 	if (argc == 1)
 		usage (argv[0]);
