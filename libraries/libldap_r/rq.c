@@ -118,7 +118,8 @@ ldap_pvt_runqueue_isrunning(
 void 
 ldap_pvt_runqueue_resched(
 	struct runqueue_s* rq,
-	struct re_s* entry
+	struct re_s* entry,
+	int defer
 )
 {
 	struct re_s* prev;
@@ -133,7 +134,7 @@ ldap_pvt_runqueue_resched(
 
 	LDAP_STAILQ_REMOVE( &rq->task_list, entry, re_s, tnext );
 
-	if ( entry->interval.tv_sec ) {
+	if ( entry->interval.tv_sec && !defer ) {
 		entry->next_sched.tv_sec = time( NULL ) + entry->interval.tv_sec;
 	} else {
 		entry->next_sched.tv_sec = 0;
