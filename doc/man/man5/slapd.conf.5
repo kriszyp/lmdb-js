@@ -158,7 +158,7 @@ feature.  The default is 0.
 Read additional configuration information from the given file before
 continuing with the next line of the current file.
 .TP
-.B limits [dn[.{exact|regex}]=]<pattern> <limit> [...]
+.B limits [dn[.{exact|regex|anonymous}]=]<pattern> <limit> [...]
 Specify time and size limits based on the distinguished name that
 initiated an operation.
 The argument
@@ -168,7 +168,10 @@ It is a distinguished name in case of
 .BR exact
 match, or an Extended Regex pattern in case of
 .BR regex
-match (the default).
+match (the default). In the case of
+.BR anonymous
+the pattern is ignored and the limits will apply to anonymously
+bound operations.
 The currently supported limits are "size" and "time".
 
 The syntax for time limits is 

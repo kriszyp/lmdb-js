@@ -856,6 +856,7 @@ struct slap_limits {
 #define SLAP_LIMITS_UNDEFINED	0x0000
 #define SLAP_LIMITS_EXACT	0x0001
 #define SLAP_LIMITS_REGEX	0x0002
+#define SLAP_LIMITS_ANONYMOUS	0x0003
 	regex_t	lm_dn_regex;	/* regex-based size and time limits */
 	char   *lm_dn_pat;	/* ndn for EXACT; pattern for REGEX */
 	struct slap_limits_set	lm_limits;

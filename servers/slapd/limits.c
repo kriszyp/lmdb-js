@@ -30,16 +30,16 @@ get_limits(
 	 */
 	*limit = &be->be_def_limit;
 
-	/*
-	 * anonymous or no regex-based limits? 
-	 */
-	if ( be->be_limits == NULL || ndn == NULL || ndn[0] == '\0' ) {
+	if ( be->be_limits == NULL ) {
 		return( 0 );
 	}
 
 	for ( lm = be->be_limits; lm[0] != NULL; lm++ ) {
 		switch ( lm[0]->lm_type) {
 		case SLAP_LIMITS_EXACT:
+			if ( ndn == NULL || ndn[0] == '\0' ) {
+				break;
+			}
 			if ( strcmp( lm[0]->lm_dn_pat, ndn ) == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
@@ -47,12 +47,20 @@ get_limits(
 			break;
 
 		case SLAP_LIMITS_REGEX:
+			if ( ndn == NULL || ndn[0] == '\0' ) {
+				break;
+			}
 			if ( regexec( &lm[0]->lm_dn_regex, ndn, 0, NULL, 0 ) == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
 			break;
-			
+		case SLAP_LIMITS_ANONYMOUS:
+			if ( ndn == NULL || ndn[0] == '\0' ) {
+				*limit = &lm[0]->lm_limits;
+				return( 0 );
+			}
+			break;
 		default:
 			assert( 0 );	/* unreachable */
 			return( -1 );
@@ -74,7 +82,6 @@ add_limits(
 	struct slap_limits	*lm;
 	
 	assert( be );
-	assert( pattern );
 	assert( limit );
 
 	lm = ( struct slap_limits * )ch_calloc( sizeof( struct slap_limits ), 1 );
@@ -99,6 +106,10 @@ add_limits(
 			ch_free( lm );
 			return( -1 );
 		}
+		break;
+	case SLAP_LIMITS_ANONYMOUS:
+		lm->lm_type = SLAP_LIMITS_ANONYMOUS;
+		lm->lm_dn_pat = NULL;
 		break;
 	}
 
@@ -158,7 +169,7 @@ parse_limits(
 	 * 
 	 * <pattern>:
 	 * 
-	 * [ "dn" [ "." { "exact" | "regex" } ] "=" ] <dn pattern>
+	 * [ "dn" [ "." { "exact" | "regex" | "anonymous" } ] "=" ] <dn pattern>
 	 *
 	 * 
 	 * <limit>:
@@ -179,20 +190,23 @@ parse_limits(
 			} else if ( strncasecmp( pattern, "regex", 5 ) == 0 ) {
 				type = SLAP_LIMITS_REGEX;
 				pattern += 5;
+			} else if ( strncasecmp( pattern, "anonymous", 9 ) == 0 ) {
+				type = SLAP_LIMITS_ANONYMOUS;
+				pattern = NULL;
 			}
 		}
 
-		if ( pattern[0] != '=' ) {
+		if (( type != SLAP_LIMITS_ANONYMOUS ) && ( pattern[0] != '=' )) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
 				"%s : line %d: missing '=' in "
-				"\"dn[.{exact|regex}]=<pattern>\" in "
+				"\"dn[.{exact|regex|anonymous}]=<pattern>\" in "
 				"\"limits <pattern> <limits>\" line.\n",
 			fname, lineno ));
 #else
 			Debug( LDAP_DEBUG_ANY,
 				"%s : line %d: missing '=' in "
-				"\"dn[.{exact|regex}]=<pattern>\" in "
+				"\"dn[.{exact|regex|anonymous}]=<pattern>\" in "
 				"\"limits <pattern> <limits>\" line.\n%s",
 			fname, lineno, "" );
 #endif
