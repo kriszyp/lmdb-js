@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.423 2002/06/25 00:18:50 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.425 2002/08/08 01:01:14 kurt Exp  
 
 # Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -23174,9 +23174,6 @@ doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk \
 doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
 doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
-clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
-clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
-clients/maildap/Makefile:build/top.mk:clients/maildap/Makefile.in:build/rules.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
@@ -23402,9 +23399,6 @@ doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk \
 doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
 doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
-clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
-clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
-clients/maildap/Makefile:build/top.mk:clients/maildap/Makefile.in:build/rules.mk \
 clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
