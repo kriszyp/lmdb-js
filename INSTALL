@@ -64,21 +64,41 @@ these steps:
 	% make
 
     If all goes well, the system will build as configured.  If not,
-	return to step 4 after reviewing the enable/with options settings.
-	
- 7. install the binaries and man pages.  You may need to be superuser to
+	return to step 4 after reviewing the configuration settings.
+
+	You may want to consult the doc/install/hints file for your
+	platform.
+
+ 7. Test the standalone system
+
+	This step requires the standalone LDAP server (slapd) with
+	LDBM support.
+
+	% cd tests
+	% make
+
+	If all goes well, the system has been built as configured.  If not,
+	return to step 4 after reviewing your configuration settings.
+
+	You may want to consult the doc/install/hints file for your
+	platform.
+
+ 8. install the binaries and man pages.  You may need to be superuser to
     do this (depending on where you are installing things):
 
 	% su
 	# make install
 
-    That's it!  See the man pages for the individual clients for information
-    on configuring and using them.  Eventually you will probably want to
-    edit the configuration files used by the various clients (installed in
-    the LDAP etc directory).  The files are:
+    That's it!
 
+	See the man pages for the individual applications for
+	information on configuring and using them.  You may also want
+	to edit the configuration files used by the various clients.
+	These configuration files are located in the OpenLDAP
+	configuration directory (normally /usr/local/etc/openldap).
+
+	ldap.conf            - LDAP defaults
 	ldapfilter.conf      - search filter configuration
-	ldapfriendly         - mapping of X.500 names to human-friendly names
 	ldapsearchprefs.conf - search object definitions
 	ldaptemplates.conf   - display template definitions
 
@@ -126,10 +146,11 @@ variables for determining compiler/linker options.   This can
 be used to manual specify features and compilation options.
 
 Supported Environmental Variables
-	CC			C Compiler		(cc, ecgs)
-	CFLAGS		C Flags			(-ansi)
-	CPPFLAGS	CPP Flags		(-I/path/include -Ddef)
-	LDFLAGS		LDFLAGS			(-L/path/lib -llib)
+	CC			C compiler		(cc, egcc)
+	CFLAGS		C flags			(-ansi)
+	CPPFLAGS	cpp flags		(-I/path/include -Ddef)
+	LDFLAGS		ld flags		(-s)
+	LIBS		libraries		(-L/usr/local/lib -llib)
 	PATH		command path	/usr/local/bin:/usr/bin:/bin
 
 * Including alternative compilers
@@ -137,7 +158,7 @@ Supported Environmental Variables
 	use a specific compiler.  For example, to use ecgs
 	instead of the compiler configure choose, use:
 
-	[env] CC=ecgs ./configure 
+	[env] CC=egcc ./configure 
 
 	You can also use CC use specific flags with the
 	specified compiler.  For example, to require strict
@@ -179,7 +200,9 @@ Supported Environmental Variables
 
 HINTS
 
-* use software under installed in /usr/local/{include,lib}
+* Platform specific hints are available in doc/install/hints.
+
+* Use software under installed in /usr/local/{include,lib}
 	[env] \
 		CPPFLAGS="-I/usr/local/include" \
 		LDFLAGS="-L/usr/local/lib" \
