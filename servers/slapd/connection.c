@@ -1040,7 +1040,7 @@ operations_error:
 	case LDAP_REQ_DELETE:
 		INCR_OP_COMPLETED(SLAP_OP_DELETE);
 		break;
-	case LDAP_REQ_MODRDN:
+	case LDAP_REQ_MODDN:
 		INCR_OP_COMPLETED(SLAP_OP_MODRDN);
 		break;
 	case LDAP_REQ_MODIFY:
@@ -1062,10 +1062,12 @@ operations_error:
 		/* this is reachable */
 #if 0
 		/* not reachable */
-		assert( 0 );
+		assert( 0 )
 #endif
+			;
 	}
 #endif /* SLAPD_MONITOR */
+
 	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
