@@ -14,6 +14,34 @@
 
 /* end of preamble */
 
+/* --------------------------------------------------- */
+/* begin of WINNT specific entries */
+
+#ifdef WINNT
+
+/* don't suck in all of the win32 api */
+#define WIN32_LEAN_AND_MEAN
+
+/* WindowsNT specific features */
+#define HAVE_NT_SERVICE_MANAGER 1
+#define HAVE_NT_EVENT_LOG 1
+
+#define MAXPATHLEN _MAX_PATH
+
+/* preprocess out undefined functions */
+#define LOG_DEBUG 0
+#define openlog(a, b)
+#define closelog()
+
+/* define undefined types */
+#define ssize_t signed int
+typedef char * caddr_t;
+
+#endif
+
+/* end of WINNT specific entries */
+/* --------------------------------------------------- */
+
 /* Define if on AIX 3.
    System headers sometimes define this.
    We just want to avoid a redefinition error message.  */
@@ -276,6 +304,9 @@
 /* Define if you have the snprintf function.  */
 #undef HAVE_SNPRINTF
 
+/* Define to different name, if applicable */
+#undef snprintf
+
 /* Define if you have the strdup function.  */
 #undef HAVE_STRDUP
 
@@ -318,8 +349,14 @@
 /* Define if you have the thr_yield function.  */
 #undef HAVE_THR_YIELD
 
+/* Define if you have the _spawnlp function.  */
+#undef HAVE_SPAWNLP
+
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF
+
+/* Define to different name, if applicable */
+#undef vsnprintf
 
 /* Define if you have the vsprintf function.  */
 #undef HAVE_VSPRINTF
@@ -329,6 +366,9 @@
 
 /* Define if you have the waitpid function.  */
 #undef HAVE_WAITPID
+
+/* Define if you have the winsock support.  */
+#undef HAVE_WINSOCK
 
 /* Define if you have the write function.  */
 #undef HAVE_WRITE
@@ -341,6 +381,9 @@
 
 /* Define if you have the <assert.h> header file.  */
 #undef HAVE_ASSERT_H
+
+/* Define if you have the <conio.h> header file.  */
+#undef HAVE_CONIO_H
 
 /* Define if you have the <crypt.h> header file.  */
 #undef HAVE_CRYPT_H
@@ -356,6 +399,9 @@
 
 /* Define if you have the <des.h> header file.  */
 #undef HAVE_DES_H
+
+/* Define if you have the <direct.h> header file.  */
+#undef HAVE_DIRECT_H
 
 /* Define if you have the <dirent.h> header file.  */
 #undef HAVE_DIRENT_H
@@ -380,6 +426,9 @@
 
 /* Define if you have the <grp.h> header file.  */
 #undef HAVE_GRP_H
+
+/* Define if you have the <io.h> header file.  */
+#undef HAVE_IO_H
 
 /* Define if you have the <kerberosIV/des.h> header file.  */
 #undef HAVE_KERBEROSIV_DES_H
@@ -446,6 +495,9 @@
 
 /* Define if you have the <pwd.h> header file.  */
 #undef HAVE_PWD_H
+
+/* Define if you have the <process.h> header file.  */
+#undef HAVE_PROCESS_H
 
 /* Define if you have the <quipu/commonarg.h> header file.  */
 #undef HAVE_QUIPU_COMMONARG_H
@@ -680,6 +732,9 @@
 
 /* if you have LinuxThreads */
 #undef HAVE_LINUX_THREADS
+
+/* if you have NT threads */
+#undef HAVE_NT_THREADS
 
 /* define if you have (or want) no threads */
 #undef NO_THREADS
