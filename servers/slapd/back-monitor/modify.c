@@ -43,46 +43,51 @@
 #include "proto-back-monitor.h"
 
 int
-monitor_back_modify(
-    Backend	*be,
-    Connection	*conn,
-    Operation	*op,
-    struct berval	*dn,
-    struct berval	*ndn,
-    Modifications	*modlist
-)
+monitor_back_modify( Operation *op, SlapReply *rs )
+	/*
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	struct berval	*dn,
+	struct berval	*ndn,
+	Modifications	*modlist
+	*/
 {
-	int 		rc = 0;
-	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
-	Entry		*matched;
-	Entry		*e;
+	int 			rc = 0;
+	struct monitorinfo	*mi
+		= (struct monitorinfo *) op->o_bd->be_private;
+	Entry			*matched;
+	Entry			*e;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_MON, ENTRY,
-		"monitor_back_modify: enter\n", 0, 0, 0 );
+	LDAP_LOG( BACK_MON, ENTRY, "monitor_back_modify: enter\n", 0, 0, 0 );
 #else
 	Debug(LDAP_DEBUG_ARGS, "monitor_back_modify:\n", 0, 0, 0);
 #endif
 
 	/* acquire and lock entry */
-	monitor_cache_dn2entry( mi, ndn, &e, &matched );
+	monitor_cache_dn2entry( mi, &op->o_req_ndn, &e, &matched );
 	if ( e == NULL ) {
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-				matched ? matched->e_dn : NULL,
-				NULL, NULL, NULL );
+		rs->sr_err = LDAP_NO_SUCH_OBJECT;
+		if ( matched ) {
+			rs->sr_matched = ch_strdup( matched->e_dn );
+		}
+		send_ldap_result( op, rs );
 		if ( matched != NULL ) {
+			rs->sr_matched = NULL;
 			monitor_cache_release( mi, matched );
 			return( 0 );
 		}
 	}
 
-	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
+	if ( !acl_check_modlist( op, e, op->oq_modify.rs_modlist )) {
 		rc = LDAP_INSUFFICIENT_ACCESS;
 	} else {
-		rc = monitor_entry_modify( mi, e, modlist );
+		rc = monitor_entry_modify( mi, e, op->oq_modify.rs_modlist );
 	}
 
-	send_ldap_result( conn, op, rc, NULL, NULL, NULL, NULL );
+	rs->sr_err = rc;
+	send_ldap_result( op, rs );
 
 	monitor_cache_release( mi, e );
 

@@ -44,18 +44,23 @@
 
 static int
 monitor_send_children(
+	/*
 	Backend		*be,
     	Connection	*conn,
     	Operation	*op,
     	Filter		*filter,
     	AttributeName	*attrs,
     	int		attrsonly,
+	*/
+	Operation	*op,
+	SlapReply	*rs,
 	Entry		*e_parent,
 	int		sub,
 	int		*nentriesp
 )
 {
-	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
+	struct monitorinfo	*mi =
+		(struct monitorinfo *) op->o_bd->be_private;
 	Entry 			*e, *e_tmp, *e_ch;
 	struct monitorentrypriv *mp;
 	int			nentries;
@@ -106,18 +111,16 @@ monitor_send_children(
 
 		monitor_entry_update( mi, e );
 		
-		rc = test_filter( be, conn, op, e, filter );
+		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			send_search_entry( be, conn, op, e, 
-					attrs, attrsonly, NULL );
+			rs->sr_entry = e;
+			send_search_entry( op, rs );
 			nentries++;
 		}
 
 		if ( ( mp->mp_children || MONITOR_HAS_VOLATILE_CH( mp ) )
 				&& sub ) {
-			rc = monitor_send_children( be, conn, op, filter, 
-					attrs, attrsonly, 
-					e, sub, &nentries );
+			rc = monitor_send_children( op, rs, e, sub, &nentries );
 			if ( rc ) {
 				return( rc );
 			}
@@ -136,21 +139,6 @@ monitor_send_children(
 
 int
 monitor_back_search( Operation *op, SlapReply *rs )
-	/*
-	Backend		*be,
-	Connection	*conn,
-	Operation	*op,
-	struct berval	*base,
-	struct berval	*nbase,
-	int		scope,
-	int		deref,
-	int		slimit,
-	int		tlimit,
-	Filter		*filter,
-	struct berval	*filterstr,
-	AttributeName	*attrs,
-	int		attrsonly
-	*/
 {
 	struct monitorinfo	*mi
 		= (struct monitorinfo *) op->o_bd->be_private;
@@ -182,13 +170,13 @@ monitor_back_search( Operation *op, SlapReply *rs )
 	}
 
 	nentries = 0;
-	switch ( scope ) {
+	switch ( op->oq_search.rs_scope ) {
 	case LDAP_SCOPE_BASE:
 		monitor_entry_update( mi, e );
-		rc = test_filter( be, conn, op, e, filter );
- 		if ( rc == LDAP_COMPARE_TRUE ) {			
-			send_search_entry( be, conn, op, e, attrs, 
-					attrsonly, NULL );
+		rc = test_filter( op, e, op->oq_search.rs_filter );
+ 		if ( rc == LDAP_COMPARE_TRUE ) {
+			rs->sr_entry = e;
+			send_search_entry( op, rs );
 			nentries = 1;
 		}
 		rc = LDAP_SUCCESS;
@@ -196,27 +184,22 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		break;
 
 	case LDAP_SCOPE_ONELEVEL:
-		rc = monitor_send_children( be, conn, op, filter,
-				attrs, attrsonly,
-				e, 0, &nentries );
+		rc = monitor_send_children( op, rs, e, 0, &nentries );
 		if ( rc ) {
 			rc = LDAP_OTHER;
-		}		
+		}
 		
 		break;
 
 	case LDAP_SCOPE_SUBTREE:
 		monitor_entry_update( mi, e );
-		rc = test_filter( be, conn, op, e, filter );
+		rc = test_filter( op, e, op->oq_search.rs_filter );
 		if ( rc == LDAP_COMPARE_TRUE ) {
-			send_search_entry( be, conn, op, e, attrs,
-					attrsonly, NULL );
+			send_search_entry( op, rs );
 			nentries++;
 		}
 
-		rc = monitor_send_children( be, conn, op, filter,
-				attrs, attrsonly,
-				e, 1, &nentries );
+		rc = monitor_send_children( op, rs, e, 1, &nentries );
 		if ( rc ) {
 			rc = LDAP_OTHER;
 		}
@@ -224,8 +207,10 @@ monitor_back_search( Operation *op, SlapReply *rs )
 		break;
 	}
 	
-	send_search_result( conn, op, rc,
-			NULL, NULL, NULL, NULL, nentries );
+	rs->sr_nentries = nentries;
+	rs->sr_err = rc;
+	send_search_result( op, rs );
 
 	return( rc == LDAP_SUCCESS ? 0 : 1 );
 }
+
