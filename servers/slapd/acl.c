@@ -300,7 +300,8 @@ access_allowed(
 		if (state) {
 			if (state->as_vi_acl == a && (state->as_recorded & ACL_STATE_RECORDED_NV)) {
 				Debug( LDAP_DEBUG_ACL, "access_allowed: result from state (%s)\n", attr, 0, 0 );
-				return state->as_result;
+				ret = state->as_result;
+				goto done;
 			} else if (!st_initialized) {
 				Debug( LDAP_DEBUG_ACL, "access_allowed: no res from state (%s)\n", attr, 0, 0);
 			    *state = state_init;
