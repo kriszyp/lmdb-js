@@ -883,20 +883,32 @@ time2text( char *ldtimestr, int dateonly )
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
     char		timebuf[32];
+	int ndigits;
 
-    memset( (char *)&t, 0, sizeof( struct tm ));
-    if ( (int) strlen( ldtimestr ) < 13 ) {
-	return( fmterr );
+	if (strlen( ldtimestr ) < 12 ) {
+		return( fmterr );
+	}
+
+    for ( ndigits=0; isdigit(ldtimestr[ndigits]); ndigits++) { 
+		; /* EMPTY */
     }
 
-    for ( p = ldtimestr; p - ldtimestr < 12; ++p ) {
-	if ( !isdigit( *p )) {
+	if ( ndigits != 12 && ndigits != 14) {
 	    return( fmterr );
 	}
-    }
+	
+    memset( (char *)&t, 0, sizeof( struct tm ));
 
     p = ldtimestr;
+
+	if( ndigits == 14) {
+		/* came with a century */
+		/* POSIX says tm_year should be year - 1900 */
+    	t.tm_year = 100 * GET2BYTENUM( p ) - 1900;
+		p += 2;
+	}
     t.tm_year = GET2BYTENUM( p ); p += 2;
+
     t.tm_mon = GET2BYTENUM( p ) - 1; p += 2;
     t.tm_mday = GET2BYTENUM( p ); p += 2;
     t.tm_hour = GET2BYTENUM( p ); p += 2;
@@ -933,7 +945,27 @@ static int	dmsize[] = {
 #define	dysize(y)	\
 	(((y) % 4) ? 365 : (((y) % 100) ? 366 : (((y) % 400) ? 365 : 366)))
 
-#define	YEAR(y)		((y) >= 100 ? (y) : (y) + 1900)
+/*
+ * Y2K YEAR
+ */
+	/* per POSIX tm_year should be offset by 1900 */
+#define YEAR_POSIX(y)		((y) + 1900)
+
+	/*
+	 * year is < 1900, year is offset by 1900
+	 */
+#define YEAR_CAREFUL(y)		((y) < 1900 ? (y) + 1900 : (y))
+
+	/*
+	** if year is < 1990 and < 70 must be offset by 2000 as Unix epoch
+	** started in 1970.  if year is < 1990 but >= 70, offset by 1900.
+	** if year is >= 1900, it must be the real year.
+	*/ 
+#define YEAR_PEDANTIC(y)		((y) < 1900 \
+						? ((y) < 70 ? (y) + 2000 ? (y) + 1900) \
+						: (y))
+
+#define YEAR(y) YEAR_CAREFUL(y)
 
 /*  */
 
