@@ -226,9 +226,6 @@ register_matching_rule(
 	if( def->mrd_associated != NULL ) {
 		amr = mr_find( def->mrd_associated );
 
-#if 0
-		/* ignore for now */
-
 		if( amr == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR,
@@ -243,7 +240,6 @@ register_matching_rule(
 
 			return -1;
 		}
-#endif
 	}
 
 	mr = ldap_str2matchingrule( def->mrd_desc, &code, &err,
