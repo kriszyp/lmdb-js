@@ -44,6 +44,15 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
+ * attribute.c
+ */
+
+int
+bdb_attribute LDAP_P(( Backend *be, Connection *conn, Operation *op,
+	Entry *target, const char *e_ndn, AttributeDescription *entry_at,
+	struct berval ***vals ));
+
+/*
  * dbcache.c
  */
 int
@@ -115,6 +124,20 @@ int bdb_filter_candidates(
 	Backend	*be,
 	Filter	*f,
 	ID *ids );
+
+/*
+ * group.c
+ */
+
+int bdb_group(
+	Backend	*be,
+	Connection *conn,
+	Operation *op,
+	Entry	*target,
+	const char	*gr_ndn,
+	const char	*op_ndn,
+	ObjectClass *group_oc,
+	AttributeDescription *group_at);
 
 /*
  * id2entry
