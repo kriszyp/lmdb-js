@@ -888,8 +888,30 @@ void connection_done( Connection *c )
 	} while (0)
 #else /* !SLAPD_MONITOR */
 #define INCR_OP_INITIATED(index) 
-#define INCR_OP_COMPLETED(index) 
+#define INCR_OP_COMPLETED(index) \
+	do { \
+		ldap_pvt_thread_mutex_lock( &slap_counters.sc_ops_mutex ); \
+		ldap_pvt_mp_add_ulong(slap_counters.sc_ops_completed, 1); \
+		ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex ); \
+	} while (0)
 #endif /* !SLAPD_MONITOR */
+
+/*
+ * NOTE: keep in sync with enum in slapd.h
+ */
+static int (*opfun[])( Operation *op, SlapReply *rs ) = {
+	do_bind,
+	do_unbind,
+	do_add,
+	do_delete,
+	do_modrdn,
+	do_modify,
+	do_compare,
+	do_search,
+	do_abandon,
+	do_extended,
+	NULL
+};
 
 static void *
 connection_operation( void *ctx, void *arg_v )
@@ -898,9 +920,7 @@ connection_operation( void *ctx, void *arg_v )
 	Operation *op = arg_v;
 	SlapReply rs = {REP_RESULT};
 	ber_tag_t tag = op->o_tag;
-#ifdef SLAPD_MONITOR
-	ber_tag_t oldtag = tag;
-#endif /* SLAPD_MONITOR */
+	int opidx = -1;
 	Connection *conn = op->o_conn;
 	void *memctx = NULL;
 	void *memctx_null = NULL;
@@ -918,7 +938,7 @@ connection_operation( void *ctx, void *arg_v )
 	case LDAP_REQ_UNBIND:
 	case LDAP_REQ_ADD:
 	case LDAP_REQ_DELETE:
-	case LDAP_REQ_MODRDN:
+	case LDAP_REQ_MODDN:
 	case LDAP_REQ_MODIFY:
 	case LDAP_REQ_COMPARE:
 	case LDAP_REQ_SEARCH:
@@ -969,53 +989,43 @@ connection_operation( void *ctx, void *arg_v )
 
 	switch ( tag ) {
 	case LDAP_REQ_BIND:
-		INCR_OP_INITIATED(SLAP_OP_BIND);
-		rc = do_bind( op, &rs );
+		opidx = SLAP_OP_BIND;
 		break;
 
 	case LDAP_REQ_UNBIND:
-		INCR_OP_INITIATED(SLAP_OP_UNBIND);
-		rc = do_unbind( op, &rs );
+		opidx = SLAP_OP_UNBIND;
 		break;
 
 	case LDAP_REQ_ADD:
-		INCR_OP_INITIATED(SLAP_OP_ADD);
-		rc = do_add( op, &rs );
+		opidx = SLAP_OP_ADD;
 		break;
 
 	case LDAP_REQ_DELETE:
-		INCR_OP_INITIATED(SLAP_OP_DELETE);
-		rc = do_delete( op, &rs );
+		opidx = SLAP_OP_DELETE;
 		break;
 
 	case LDAP_REQ_MODRDN:
-		INCR_OP_INITIATED(SLAP_OP_MODRDN);
-		rc = do_modrdn( op, &rs );
+		opidx = SLAP_OP_MODRDN;
 		break;
 
 	case LDAP_REQ_MODIFY:
-		INCR_OP_INITIATED(SLAP_OP_MODIFY);
-		rc = do_modify( op, &rs );
+		opidx = SLAP_OP_MODIFY;
 		break;
 
 	case LDAP_REQ_COMPARE:
-		INCR_OP_INITIATED(SLAP_OP_COMPARE);
-		rc = do_compare( op, &rs );
+		opidx = SLAP_OP_COMPARE;
 		break;
 
 	case LDAP_REQ_SEARCH:
-		INCR_OP_INITIATED(SLAP_OP_SEARCH);
-		rc = do_search( op, &rs );
+		opidx = SLAP_OP_SEARCH;
 		break;
 
 	case LDAP_REQ_ABANDON:
-		INCR_OP_INITIATED(SLAP_OP_ABANDON);
-		rc = do_abandon( op, &rs );
+		opidx = SLAP_OP_ABANDON;
 		break;
 
 	case LDAP_REQ_EXTENDED:
-		INCR_OP_INITIATED(SLAP_OP_EXTENDED);
-		rc = do_extended( op, &rs );
+		opidx = SLAP_OP_EXTENDED;
 		break;
 
 	default:
@@ -1023,52 +1033,20 @@ connection_operation( void *ctx, void *arg_v )
 		assert( 0 );
 	}
 
+	assert( opidx > -1 );
+	INCR_OP_INITIATED( opidx );
+	rc = (*(opfun[opidx]))( op, &rs );
+
 operations_error:
-	if( rc == SLAPD_DISCONNECT ) tag = LBER_ERROR;
+	if ( rc == SLAPD_DISCONNECT ) {
+		tag = LBER_ERROR;
 
-#ifdef SLAPD_MONITOR
-	switch (oldtag) {
-	case LDAP_REQ_BIND:
-		INCR_OP_COMPLETED(SLAP_OP_BIND);
-		break;
-	case LDAP_REQ_UNBIND:
-		INCR_OP_COMPLETED(SLAP_OP_UNBIND);
-		break;
-	case LDAP_REQ_ADD:
-		INCR_OP_COMPLETED(SLAP_OP_ADD);
-		break;
-	case LDAP_REQ_DELETE:
-		INCR_OP_COMPLETED(SLAP_OP_DELETE);
-		break;
-	case LDAP_REQ_MODDN:
-		INCR_OP_COMPLETED(SLAP_OP_MODRDN);
-		break;
-	case LDAP_REQ_MODIFY:
-		INCR_OP_COMPLETED(SLAP_OP_MODIFY);
-		break;
-	case LDAP_REQ_COMPARE:
-		INCR_OP_COMPLETED(SLAP_OP_COMPARE);
-		break;
-	case LDAP_REQ_SEARCH:
-		INCR_OP_COMPLETED(SLAP_OP_SEARCH);
-		break;
-	case LDAP_REQ_ABANDON:
-		INCR_OP_COMPLETED(SLAP_OP_ABANDON);
-		break;
-	case LDAP_REQ_EXTENDED:
-		INCR_OP_COMPLETED(SLAP_OP_EXTENDED);
-		break;
-	default:
-		/* this is reachable */
-#if 0
-		/* not reachable */
-		assert( 0 )
-#endif
-			;
+	} else if ( opidx > -1 ) {
+		/* increment completed operations count 
+		 * only if operation was initiated
+		 * and rc != SLAPD_DISCONNECT */
+		INCR_OP_COMPLETED( opidx );
 	}
-#endif /* SLAPD_MONITOR */
-
-	ldap_pvt_thread_mutex_unlock( &slap_counters.sc_ops_mutex );
 
 	if ( op->o_cancel == SLAP_CANCEL_REQ ) {
 		op->o_cancel = LDAP_TOO_LATE;
