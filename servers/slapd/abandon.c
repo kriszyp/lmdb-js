@@ -33,9 +33,7 @@ do_abandon(
 	ber_int_t	id;
 	Operation	*o;
 	int		rc;
-#ifdef LDAP_CLIENT_UPDATE
 	int		i;
-#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "conn: %d do_abandon\n", conn->c_connid, 0, 0);
