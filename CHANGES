@@ -2,6 +2,10 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
+	Fixed slapd/ldbm/add cache set state deadlock bug
+
+Changes included in OpenLDAP 1.2
+	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA
 	Added ldappasswd() tool
 	Added salted MD5/SHA1 password support
 	Added client/tools password prompting (-W)
