@@ -1939,7 +1939,7 @@ read_config( const char *fname, int depth )
 				}
 			}
 
-		/* dn of master entity allowed to write to replica */
+		/* dn of slave entity allowed to write to replica */
 		} else if ( strcasecmp( cargv[0], "updatedn" ) == 0 ) {
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
