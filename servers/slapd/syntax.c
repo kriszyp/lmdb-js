@@ -141,8 +141,8 @@ register_syntax(
 	char * desc,
 	unsigned flags,
 	slap_syntax_validate_func *validate,
-	slap_syntax_transform_func *ber2str,
-	slap_syntax_transform_func *str2ber )
+	slap_syntax_transform_func *normalize,
+	slap_syntax_transform_func *pretty )
 {
 	LDAPSyntax	*syn;
 	int		code;
@@ -155,7 +155,7 @@ register_syntax(
 		return( -1 );
 	}
 
-	code = syn_add( syn, flags, validate, ber2str, str2ber, &err );
+	code = syn_add( syn, flags, validate, normalize, pretty, &err );
 
 	ldap_memfree( syn );
 
