@@ -1831,6 +1831,7 @@ proxy_cache_init(
 	cm->db = *be;
 	SLAP_DBFLAGS(&cm->db) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 	cm->db.be_private = NULL;
+	cm->db.be_pcl_mutexp = &cm->db.be_pcl_mutex;
 	cm->qm = qm;
 	cm->numattrsets = 0;
 	cm->numtemplates = 0; 
