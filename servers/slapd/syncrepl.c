@@ -221,11 +221,11 @@ do_syncrepl(
 		if ( ld == NULL ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, "do_syncrepl: "
-				"ldap_init failed (%s:%s)\n",
+				"ldap_init failed (%s:%d)\n",
 				si->mastername, si->masterport, 0 );
 #else
 			Debug( LDAP_DEBUG_ANY, "do_syncrepl: "
-				"ldap_init failed (%s:%s)\n",
+				"ldap_init failed (%s:%d)\n",
 				si->mastername, si->masterport, 0 );
 #endif
 		}
