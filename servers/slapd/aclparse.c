@@ -338,7 +338,7 @@ parse_acl(
 					/* format of string is "group/objectClassValue/groupAttrName" */
 					if ((value = strchr(left, '/')) != NULL) {
 						*value++ = '\0';
-						if (value && *value
+						if (*value
 							&& (name = strchr(value, '/')) != NULL)
 						{
 							*name++ = '\0';
@@ -353,14 +353,14 @@ parse_acl(
 						*--value = '/';
 					} else {
 						b->a_group_oc = ch_strdup("groupOfNames");
+					}
 
-						if (name && *name) {
-							b->a_group_at = ch_strdup(name);
-							*--name = '/';
+					if (name && *name) {
+						b->a_group_at = ch_strdup(name);
+						*--name = '/';
 
-						} else {
-							b->a_group_at = ch_strdup("member");
-						}
+					} else {
+						b->a_group_at = ch_strdup("member");
 					}
 					continue;
 				}
