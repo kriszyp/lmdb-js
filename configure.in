@@ -1770,6 +1770,29 @@ dnl if test $ol_enable_dmalloc != no ; then
 dnl 	AC_CHECK_HEADERS(dmalloc.h)
 dnl 	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
 dnl fi
+
+dnl ----------------------------------------------------------------
+dnl SQL
+ol_link_sql=no
+if test $ol_enable_sql != no ; then
+	AC_CHECK_LIB(iodbc,SQLDriverConnect,[have_iodbc=yes],[have_iodbc=no])
+	if test $have_iodbc = yes ; then
+		ol_link_sql="-liodbc"
+	else
+		AC_CHECK_LIB(odbc,SQLDriverConnect,[have_odbc=yes],[have_odbc=no])
+		if test $have_odbc = yes ; then
+			ol_link_sql="-liodbc"
+		fi
+	fi
+
+	if test $ol_link_sql != no ; then
+		SLAPD_SQL_LIBS="$ol_link_sql"
+
+	elif test $ol_enable_sql != auto ; then
+		AC_MSG_ERROR([could not locate suitable ODBC library])
+	fi
+fi
+
 dnl ----------------------------------------------------------------
 dnl TCL
 if test $ol_enable_tcl != no ; then
@@ -2271,11 +2294,10 @@ if test "$ol_enable_tcl" != no ; then
 	fi
 fi
 
-if test "$ol_enable_sql" != no ; then
+if test "$ol_link_sql" != no ; then
 	AC_DEFINE(SLAPD_SQL,1,[define to support SQL backend])
 	BUILD_SLAPD=yes
 	BUILD_SQL=yes
-	SLAPD_SQL_LIBS=-liodbc
 	if test "$ol_with_sql_module" != static; then
 		AC_DEFINE(SLAPD_SQL_DYNAMIC,1,
 			[define to support dynamic SQL backend])
