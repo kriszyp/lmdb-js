@@ -26,14 +26,12 @@ static int search_candidates(
 	int scope,
 	int deref,
 	ID	*ids );
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 static void send_pagerequest_response( 
 	Connection	*conn,
 	Operation *op,
 	ID  lastid,
 	int nentries,
 	int tentries );			
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 int
 bdb_search(
@@ -63,11 +61,9 @@ bdb_search(
 	struct berval	realbase = { 0, NULL };
 	int		nentries = 0;
 	int		manageDSAit;
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	int		pagedresults;
 	int		tentries = 0;
 	ID		lastid = NOID;
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #ifdef LDAP_CLIENT_UPDATE
 	Filter lcupf, csnfnot, csnfeq, csnfand, csnfge;
@@ -100,10 +96,7 @@ bdb_search(
 
 
 	manageDSAit = get_manageDSAit( op );
-
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	pagedresults = get_pagedresults( op );
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 	rc = LOCK_ID (bdb->bi_dbenv, &locker );
 	switch(rc) {
@@ -283,15 +276,11 @@ dn2entry_retry:
 		
 		/* if no limit is required, use soft limit */
 		if ( slimit <= 0 ) {
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 			if ( pagedresults && limit->lms_s_pr != 0 ) {
 				slimit = limit->lms_s_pr;
 			} else {
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 				slimit = limit->lms_s_soft;
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 			}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 		/* if requested limit higher than hard limit, abort */
 		} else if ( slimit > limit->lms_s_hard ) {
@@ -367,13 +356,10 @@ dn2entry_retry:
 		}
 	}
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	if ( isroot || !limit->lms_s_pr_hide ) {
 		tentries = BDB_IDL_N(candidates);
 	}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	if ( pagedresults ) {
 		if ( op->o_pagedresults_state.ps_cookie == 0 ) {
 			id = 0;
@@ -405,7 +391,6 @@ dn2entry_retry:
 		}
 		goto loop_begin;
 	}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 #ifdef LDAP_CLIENT_UPDATE
 	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
@@ -441,10 +426,7 @@ dn2entry_retry:
 
 		int		scopeok = 0;
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 loop_begin:
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
-
 		/* check for abandon */
 		if ( op->o_abandon ) {
 			rc = 0;
@@ -647,7 +629,7 @@ id2entry_retry:
 						v2refs, NULL, nentries );
 					goto done;
 				}
-#ifdef LDAP_CONTROL_PAGEDRESULTS
+
 				if ( pagedresults ) {
 					if ( nentries >= op->o_pagedresults_size ) {
 						send_pagerequest_response( conn, op, lastid, nentries, tentries );
@@ -655,7 +637,6 @@ id2entry_retry:
 					}
 					lastid = id;
 				}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
 				if (e) {
 					int result;
@@ -1106,7 +1087,6 @@ static int search_candidates(
 	return rc;
 }
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 static void
 send_pagerequest_response( 
 	Connection	*conn,
@@ -1167,5 +1147,4 @@ done:
 		ch_free( ctrls[0]->ldctl_value.bv_val );
 	}
 }			
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 

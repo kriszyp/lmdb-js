@@ -71,21 +71,15 @@ static struct slap_control {
 		SLAP_CTRL_SEARCH, NULL,
 		parseSubentries },
 #endif
-#ifdef LDAP_CONTROL_NOOP
 	{ LDAP_CONTROL_NOOP,
 		SLAP_CTRL_ACCESS, NULL,
 		parseNoOp },
-#endif
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	{ LDAP_CONTROL_PAGEDRESULTS,
 		SLAP_CTRL_SEARCH, NULL,
 		parsePagedResults },
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
-#ifdef LDAP_CONTROL_VALUESRETURNFILTER
  	{ LDAP_CONTROL_VALUESRETURNFILTER,
  		SLAP_CTRL_SEARCH, NULL,
  		parseValuesReturnFilter },
-#endif
 #ifdef LDAP_CLIENT_UPDATE
 	{ LDAP_CONTROL_CLIENT_UPDATE,
 		SLAP_CTRL_SEARCH, NULL,
@@ -445,7 +439,6 @@ static int parseSubentries (
 }
 #endif
 
-#ifdef LDAP_CONTROL_NOOP
 static int parseNoOp (
 	Connection *conn,
 	Operation *op,
@@ -468,9 +461,7 @@ static int parseNoOp (
 
 	return LDAP_SUCCESS;
 }
-#endif
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 static int parsePagedResults (
 	Connection *conn,
 	Operation *op,
@@ -551,9 +542,7 @@ static int parsePagedResults (
 
 	return LDAP_SUCCESS;
 }
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 
-#ifdef LDAP_CONTROL_VALUESRETURNFILTER
 int parseValuesReturnFilter (
 	Connection *conn,
 	Operation *op,
@@ -609,7 +598,6 @@ int parseValuesReturnFilter (
 
 	return LDAP_SUCCESS;
 }
-#endif
 
 #ifdef LDAP_CLIENT_UPDATE
 static int parseClientUpdate (

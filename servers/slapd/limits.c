@@ -563,7 +563,6 @@ parse_limit(
 					}
 				}
 
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 			} else if ( strncasecmp( arg, "pr", sizeof( "pr" ) - 1 ) == 0 ) {
 				arg += sizeof( "pr" ) - 1;
 				if ( arg[0] != '=' ) {
@@ -581,7 +580,6 @@ parse_limit(
 						return( 1 );
 					}
 				}
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 				
 			} else {
 				return( 1 );

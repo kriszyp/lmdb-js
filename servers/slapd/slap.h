@@ -1154,10 +1154,8 @@ struct slap_limits_set {
 	int	lms_s_soft;
 	int	lms_s_hard;
 	int	lms_s_unchecked;
-#ifdef LDAP_CONTROL_PAGEDRESULTS
 	int	lms_s_pr;
 	int	lms_s_pr_hide;
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 };
 
 struct slap_limits {
@@ -1685,9 +1683,7 @@ typedef struct slap_op {
 #define get_manageDSAit(op)				((int)(op)->o_managedsait)
 #define get_subentries(op)				((int)(op)->o_subentries)
 #define get_subentries_visibility(op)	((int)(op)->o_subentries_visibility)
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-#define get_pagedresults(op)				((int)(op)->o_pagedresults)
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
+#define get_pagedresults(op)			((int)(op)->o_pagedresults)
 
 
 /*

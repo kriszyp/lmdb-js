@@ -30,12 +30,9 @@ struct slap_limits_set deflimit = {
 
 	SLAPD_DEFAULT_SIZELIMIT,	/* backward compatible limits */
 	0,
-	-1				/* no limit on unchecked size */
-#ifdef LDAP_CONTROL_PAGEDRESULTS
-	,
+	-1,				/* no limit on unchecked size */
 	0,				/* page limit */
 	0				/* hide number of entries left */
-#endif /* LDAP_CONTROL_PAGEDRESULTS */
 };
 
 AccessControl	*global_acl = NULL;

@@ -100,8 +100,6 @@ main( int argc, char *argv[] )
 	char	*control, *cvalue;
 	int		crit;
 
-	int id;
-	LDAPMessage *res;
 	char *matcheddn = NULL, *text = NULL, **refs = NULL;
 	char	*retoid = NULL;
 	struct berval *retdata = NULL;
