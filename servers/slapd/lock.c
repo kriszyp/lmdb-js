@@ -53,10 +53,10 @@ int
 lock_fclose( FILE *fp, FILE *lfp )
 {
 	/* unlock */
-#ifdef USE_LOCKF
-	lockf( fileno( lfp ), F_ULOCK, 0 );
-#else
+#ifdef HAVE_FLOCK
 	flock( fileno( lfp ), LOCK_UN );
+#else
+	lockf( fileno( lfp ), F_ULOCK, 0 );
 #endif
 	fclose( lfp );
 
