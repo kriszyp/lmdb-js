@@ -2,12 +2,13 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
-	Add ldappasswd() tool
-	Add salted MD5/SHA1 password support
-	Add client/tools password prompting (-W)
-	Add slapd alternative args/pid file locations
-	Add slapd logging option
-	Add slapd nextid chunking
+	Added ldappasswd() tool
+	Added salted MD5/SHA1 password support
+	Added client/tools password prompting (-W)
+	Added slapd alternative args/pid file locations
+	Added slapd logging option
+	Added slapd nextid chunking
+	Added LDBM DB2 debugging support
 	Fixed client SIGPIPE handling
 	Fixed configure wait3 handling
 	Fixed lber leaking ber_scanf

@@ -2,11 +2,14 @@
 
 /* Patched for Berkeley DB version 2.0; /KSp; 98/02/23
  *
- *   - basic implementation; 1998/02/23, /KSp
+ *   - DB version 2.6.4b   ; 1998/12/28, /KSp
  *   - DB_DBT_MALLOC       ; 1998/03/22, /KSp
+ *   - basic implementation; 1998/02/23, /KSp
  */
 
 #include "portable.h"
+
+#include "syslog.h"
 
 #ifdef SLAPD_LDBM
 
@@ -38,6 +41,21 @@ ldbm_malloc( size_t size )
 	return( calloc( 1, size ));
 }
 
+/*  a dbEnv for BERKELEYv2  */
+#include "lthread.h"
+
+DB_ENV           dbEnv;
+int              dbEnvInit = 0;
+pthread_mutex_t  dbEnvInit_mutex;
+
+void
+ldbm_db_errcall( const char *prefix, char *message )
+{
+
+	syslog( LOG_INFO, "ldbm_db_errcall(): %s %s", prefix, message );
+
+}
+
 #endif
 
 
@@ -49,12 +67,57 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 #ifdef HAVE_BERKELEY_DB2
 	DB_INFO  	dbinfo;
 
+	/* initialize an environment for the DB application */
+	pthread_mutex_lock( &dbEnvInit_mutex );
+
+	if ( !dbEnvInit ) {
+		char   *dir;
+		char    tmp[BUFSIZ];
+		int     err = 0;
+		int     envFlags = DB_CREATE | DB_THREAD;
+
+		strcpy( tmp, name );
+		if ( ( dir = strrchr( tmp, '/' )) ) {
+
+			*dir ='\0';
+			dir = tmp;
+
+		} else {
+
+			dir = "/";
+
+		}
+
+		memset( &dbEnv, 0, sizeof( dbEnv ));
+
+		dbEnv.db_errcall   = ldbm_db_errcall;
+		dbEnv.db_errpfx    = "==>";
+
+		if ( ( err = db_appinit( NULL, NULL, &dbEnv, envFlags )) ) {
+			char  error[BUFSIZ];
+
+			if ( err < 0 ) sprintf( error, "%ld\n", (long) err );
+			else           sprintf( error, "%s\n", strerror( err ));
+
+			syslog( LOG_INFO,
+                        "ldbm_open(): FATAL error in db_appinit(%s) : %s\n",
+							dir, error );
+
+		 	exit( 1 );
+
+		}
+
+		dbEnvInit = 1;
+
+	}
+	pthread_mutex_unlock( &dbEnvInit_mutex );
+
 	memset( &dbinfo, 0, sizeof( dbinfo ));
 	dbinfo.db_cachesize = dbcachesize;
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
 
-    (void) db_open( name, DB_TYPE, rw, mode, NULL, &dbinfo, &ret );
+    (void) db_open( name, DB_TYPE, rw, mode, &dbEnv, &dbinfo, &ret );
 
 #else
 	void		*info;

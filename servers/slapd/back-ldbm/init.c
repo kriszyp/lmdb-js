@@ -19,6 +19,8 @@ ldbm_back_init(
 	char		*argv[ 4 ];
 	int		i;
 
+	extern pthread_mutex_t   dbEnvInit_mutex;
+
 	/* allocate backend-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
 
@@ -79,6 +81,7 @@ ldbm_back_init(
 		pthread_cond_init( &li->li_dbcache[i].dbc_cv,
 		    pthread_condattr_default );
 	}
+	pthread_mutex_init( &dbEnvInit_mutex, pthread_mutexattr_default );
 
 	be->be_private = li;
 }
