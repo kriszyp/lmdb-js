@@ -1,0 +1,49 @@
+dnl Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+dnl COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+  
+  
+dnl Process this file with autoconf to produce a configure script.
+
+
+AC_INIT(src/main.cpp)
+AM_INIT_AUTOMAKE(main, 0.0.1)
+AM_CONFIG_HEADER(src/config.h)
+
+
+dnl Checks for programs.
+AC_PROG_CXX
+AC_PROG_RANLIB
+dnl AC_PROG_MAKE_SET
+AC_ARG_ENABLE(debug,--disable-debug,[
+	],[
+	CXXFLAGS="-g -O0 -Wall"
+	]
+)
+
+AC_ARG_WITH(libldap,[  --with-libldap=DIR          Path to the libldap library [/usr/local/lib]],[
+	LIBS="$LIBS -L$with_libldap"	
+	],[
+	LIBS="$LIBS -L/usr/local/lib"	
+	]
+)
+
+AC_ARG_WITH(ldap-includes,[  --with-ldap-includes=DIR    Path to the libldap include files [/usr/local/include]],[
+	CPPFLAGS="$CPPFLAGS -I$with_ldap_includes"	
+	],[
+	CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+	]
+)
+dnl Checks for libraries.
+AC_CHECK_LIB(resolv,main)
+AC_CHECK_LIB(lber,main)
+AC_CHECK_LIB(ldap,main)
+dnl Checks for header files.
+AC_HEADER_TIME
+AC_CHECK_HEADER(ldap.h)
+AC_CHECK_HEADER(lber.h)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+
+dnl Checks for library functions.
+
+AC_OUTPUT(Makefile src/Makefile)

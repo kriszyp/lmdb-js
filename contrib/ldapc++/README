@@ -1,0 +1,8 @@
+This is an unstable development release of a LDAPv3 C++ Class Library.
+It is based upon the OpenLDAP C-API and so it needs the C-library and
+Headerfiles installed.
+
+A HTML documentation of all classes can be found in the srcdoc directory.
+
+	Ralf Haferkamp <rhafer@suse.de>
+
