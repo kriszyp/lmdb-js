@@ -1,4 +1,4 @@
-.TH SLAPD.CONF 5 "28 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD.CONF 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -66,11 +66,13 @@ Options described in this section apply to all backends, unless specifically
 overridden in a backend definition. Arguments that should be replaced by 
 actual text are shown in brackets <>.
 .TP
-.B access to <what> [ by <who> <access> <control> ]+
+.B access to <what> "[ by <who> <access> <control> ]+"
 Grant access (specified by <access>) to a set of entries and/or
 attributes (specified by <what>) by one or more requestors (specified
 by <who>).
-See the "OpenLDAP's Administrator's Guide" for details.
+See
+.BR slapd.access (5)
+and the "OpenLDAP's Administrator's Guide" for details.
 .TP
 .B allow <features>
 Specify a set of features (separated by white space) to
@@ -90,11 +92,11 @@ server's command line options
 if started without the debugging command line option.
 .HP
 .hy 0
-.B attributetype (\ <oid> [NAME\ <name>] [OBSOLETE]\
+.B attributetype "(\ <oid> [NAME\ <name>] [OBSOLETE]\
  [DESC\ <description>]\
  [SUP\ <oid>] [EQUALITY\ <oid>] [ORDERING\ <oid>]\
  [SUBSTR\ <oid>] [SYNTAX\ <oidlen>] [SINGLE\-VALUE] [COLLECTIVE]\
- [NO\-USER\-MODIFICATION] [USAGE\ <attributeUsage>]\ )
+ [NO\-USER\-MODIFICATION] [USAGE\ <attributeUsage>]\ )"
 .RS
 Specify an attribute type using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
@@ -401,9 +403,9 @@ option are only usable if slapd was compiled with --enable-modules.
 Specify a list of directories to search for loadable modules. Typically
 the path is colon-separated but this depends on the operating system.
 .HP
-.B objectclass ( <oid> [NAME <name>] [DESC <description] [OBSOLETE]\
+.B objectclass "( <oid> [NAME <name>] [DESC <description] [OBSOLETE]\
  [SUP <oids>] [{ ABSTRACT | STRUCTURAL | AUXILIARY }] [MUST <oids>]\
- [MAY <oids>] )
+ [MAY <oids>] )"
 .RS
 Specify an objectclass using the LDAPv3 syntax defined in RFC 2252.
 The slapd parser extends the RFC 2252 definition by allowing string
@@ -414,7 +416,7 @@ objectidentifier
 description.)  Object classes are "STRUCTURAL" by default.
 .RE
 .TP
-.B objectidentifier <name> { <oid> | <name>[:<suffix>] }
+.B objectidentifier <name> "{ <oid> | <name>[:<suffix>] }"
 Define a string name that equates to the given OID. The string can be used
 in place of the numeric OID in objectclass and attribute definitions. The
 name can also be used with a suffix of the form ":xx" in which case the
@@ -945,11 +947,10 @@ Specify the referral to pass back when
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
 .SH DATABASE-SPECIFIC OPTIONS
-Each database may allow specific configuration options; they will be
+Each database may allow specific configuration options; they are
 documented separately in the
-.B slapd-<backend>(5)
-manual pakges since most of these databases are very specific
-or experimental.
+.BR slapd-<backend> (5)
+manual pages.
 .SH EXAMPLE
 "OpenLDAP Administrator's Guide" contains an annotated
 example of a configuration file.
@@ -958,6 +959,7 @@ ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR ldap (3),
 .BR slapd-bdb (5),
+.BR slapd-ldap (5),
 .BR slapd-ldbm (5),
 .BR slapd-meta (5),
 .BR slapd-null (5),

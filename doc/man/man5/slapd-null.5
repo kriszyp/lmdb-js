@@ -1,4 +1,4 @@
-.TH SLAPD-NULL 5 "25 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-NULL 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .SH NAME
 slapd-null \- Null backend to slapd
@@ -20,9 +20,9 @@ is surely the most useful part of
 .br
 Inspired by the /dev/null device.
 .SH CONFIGURATION
-The
-.BR slapd.conf (5)
-option in this category applies to the NULL backend database.
+This
+.B slapd.conf
+option applies to the NULL backend database.
 That is, it must follow a "database null" line and come before
 any subsequent "database" lines.
 Other database options are described in the
@@ -40,7 +40,8 @@ Here is a possible slapd.conf extract using the Null backend:
   suffix   "cn=Nothing"
   bind     on
 .fi
-.LP
+.SH FILES
+ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8).

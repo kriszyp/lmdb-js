@@ -1,4 +1,4 @@
-.TH SLAPD-SQL 5 "25 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-SQL 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .SH NAME
 slapd-sql \- SQL backend to slapd
@@ -40,7 +40,7 @@ Also, it uses ODBC to connect to RDBMSes, and is highly configurable
 for SQL dialects RDBMSes may use, so it may be used for integration
 and distribution of data on different RDBMSes, OSes, hosts etc., in
 other words, in highly heterogeneous environment.
-.SH "METAINFORMATION USED"
+.SH METAINFORMATION USED
 .LP
 Almost everything mentioned later is illustrated in examples located
 in the
@@ -101,7 +101,7 @@ To fetch all values for cn attribute given person ID, we construct the
 query:
 .LP
 .nf
-  SELECT CONCAT(persons.first_name,\' \',persons.last_name)
+  SELECT CONCAT(persons.first_name,' ',persons.last_name)
       AS cn FROM persons WHERE persons.id=?
 .fi
 .LP
@@ -119,7 +119,7 @@ If we wanted to service LDAP requests with filters like
   SELECT ... FROM persons,phones
    WHERE persons.id=phones.pers.id
      AND persons.id=?
-     AND phones.phone like \'123%\'
+     AND phones.phone like '123%'
 .fi
 .LP
 So, if we had information about what tables contain values for each
@@ -155,7 +155,7 @@ Keytbl and keycol thus contain "persons" (name of the table), and "id"
   id=1
   oc_id=1
   name="cn"
-  sel_expr="CONCAT(persons.first_name,\' \',persons.last_name)"
+  sel_expr="CONCAT(persons.first_name,' ',persons.last_name)"
   from_tbls="persons"
   join_where=NULL
   ************
@@ -230,14 +230,14 @@ like this (by Robin Elfrink):
 .nf
   CREATE VIEW ldap_entries (id, dn, oc_map_id, parent, keyval)
       AS SELECT (1000000000+userid),
-  UPPER(CONCAT(CONCAT(\'cn=\',gecos),\',o=MyCompany,c=NL\')),
+  UPPER(CONCAT(CONCAT('cn=',gecos),',o=MyCompany,c=NL')),
   1, 0, userid FROM unixusers UNION
           SELECT (2000000000+groupnummer),
-  UPPER(CONCAT(CONCAT(\'cn=\',groupnaam),\',o=MyCompany,c=NL\')),
+  UPPER(CONCAT(CONCAT('cn=',groupnaam),',o=MyCompany,c=NL')),
   2, 0, groupnummer FROM groups;
 .fi
 .LP
-.SH "Typical SQL backend operation"
+.SH Typical SQL backend operation
 Having metainformation loaded, the SQL backend uses these tables to
 determine a set of primary keys of candidates (depending on search
 scope and filter).
@@ -248,19 +248,19 @@ for our query with filter (telephoneNumber=123*) we would get following
 query generated (which loads candidate IDs)
 .LP
 .nf
-  SELECT ldap_entries.id,persons.id, \'person\' AS objectClass,
+  SELECT ldap_entries.id,persons.id, 'person' AS objectClass,
          ldap_entries.dn AS dn
     FROM ldap_entries,persons,phones
    WHERE persons.id=ldap_entries.keyval
      AND ldap_entries.objclass=?
      AND ldap_entries.parent=?
      AND phones.pers_id=persons.id
-     AND (phones.phone LIKE \'123%\')
+     AND (phones.phone LIKE '123%')
 .fi
 .LP
 (for ONELEVEL search)
 or "... AND dn=?" (for BASE search)
-or "... AND dn LIKE \'%?\'" (for SUBTREE)
+or "... AND dn LIKE '%?'" (for SUBTREE)
 .LP
 Then, for each candidate, we load attributes requested using
 per-attribute queries like
@@ -291,7 +291,7 @@ Please see samples to find out what are the parameters passed, and other
 information on this matter - they are self-explanatory for those familiar
 with concept expressed above.
 .LP
-.SH "common techniques (referrals, multiclassing etc.)"
+.SH common techniques (referrals, multiclassing etc.)
 First of all, lets remember that among other major differences to
 complete LDAP data model, the concept above does not directly support
 such things as multiple objectclasses for entry, and referrals.
@@ -319,6 +319,8 @@ described in Administrators Guide.
 .SH EXAMPLES
 There are example SQL modules in the slapd/back-sql/rdbms_depend/
 direcetory in the OpenLDAP source tree.
+.SH FILES
+ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8).

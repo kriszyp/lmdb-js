@@ -1,4 +1,4 @@
-.TH SLAPD_META 5 "28 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD_META 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
 .\" Copying restrictions apply.  See the COPYRIGHT file.
 .\" Copyright 2001, Pierangelo Masarati, All rights reserved. <ando@sys-net.it>
@@ -41,11 +41,14 @@ In the examples section, some typical scenarios will be discussed.
 There are examples in various places in this document, as well as in the
 slapd/back-meta/data/ directory in the OpenLDAP source tree.
 .SH CONFIGURATION
-The
-.BR slapd.conf (5)
-options in this category apply to the META backend database.
+These
+.B slapd.conf
+options apply to the META backend database.
 That is, they must follow a "database meta" line and come before any
 subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
 .LP
 Note: as with the
 .B ldap
@@ -68,7 +71,7 @@ for every
 and
 .B meta
 backend.
-.SH "SPECIAL CONFIGURATION DIRECTIVES"
+.SH SPECIAL CONFIGURATION DIRECTIVES
 Target configuration starts with the "uri" directive.
 All the configuration directives that are not specific to targets
 should be defined first for clarity, including those that are common
@@ -87,12 +90,12 @@ This directive can also be used when processing targets to mark a
 specific target as default.
 .TP
 .B dncache-ttl {forever|disabled|<ttl>}
-This directive sets the time-to-live of the dn cache.
-This caches the target that holds a given dn to speed up target
+This directive sets the time-to-live of the DN cache.
+This caches the target that holds a given DN to speed up target
 selection in case multiple targets would result from an uncached
-search; forever means cache never expires; disabled means no dn
+search; forever means cache never expires; disabled means no DN
 caching; otherwise a valid ( > 0 ) ttl in seconds is required.
-.SH "TARGET SPECIFICATION"
+.SH TARGET SPECIFICATION
 Target specification starts with a "uri" directive:
 .TP
 .B uri <protocol>://[<host>[:<port>]]/<naming context>
@@ -100,14 +103,14 @@ The "server" directive that was allowed in the LDAP backend (although
 deprecated) has been discarded in the Meta backend.
 The <protocol> part can be anything ldap_initialize(3) accepts
 ({ldap|ldaps|ldapi} and variants); <host> and <port> may be omitted,
-defaulting to whatever is set in /etc/ldap.conf
+defaulting to whatever is set in /etc/ldap.conf.
 The <naming context> part is mandatory.
 It must end with one of the naming contexts defined for the backend,
 e.g.:
 .LP
 .nf
-  suffix "dc=foo,dc=com"
-  uri    "ldap://x.foo.com/dc=x,dc=foo,dc=com"
+  suffix "\fBdc=foo,dc=com\fP"
+  uri    "ldap://x.foo.com/dc=x,\fBdc=foo,dc=com\fP"
 .fi
 .LP
 The <naming context> part doesn't need to be unique across the targets;
@@ -120,8 +123,8 @@ The optional number marks target <target> as the default one, starting
 from 1.
 Target <target> must be defined.
 .TP
-.B binddn <administrative dn for access control purposes>
-This directive, as in the LDAP backend, allows to define the dn that is
+.B binddn "<administrative DN for access control purposes>"
+This directive, as in the LDAP backend, allows to define the DN that is
 used to query the target server for acl checking; it should have read
 access on the target server to attributes used on the proxy for acl
 checking.
@@ -132,16 +135,16 @@ check permissions.
 This directive sets the password for acl checking in conjunction
 with the above mentioned "binddn" directive.
 .TP
-.B pseudorootdn	<substitute dn in case of rootdn bind>
-This directive, if present, sets the dn that will be substituted to
-the bind dn if a bind with the backend's "rootdn" succeeds.
+.B pseudorootdn "<substitute DN in case of rootdn bind>"
+This directive, if present, sets the DN that will be substituted to
+the bind DN if a bind with the backend's "rootdn" succeeds.
 The true "rootdn" of the target server ought not be used; an arbitrary
-administrative dn should used instead.
+administrative DN should used instead.
 .TP
-.B pseudorootpw <substitute password in case of rootdn bind>
+.B pseudorootpw "<substitute password in case of rootdn bind>"
 This directive sets the credential that will be used in case a bind
 with the backend's "rootdn" succeeds, and the bind is propagated to
-the target using the "pseudorootdn" dn.
+the target using the "pseudorootdn" DN.
 .LP
 Note: cleartext credentials must be supplied here; as a consequence,
 using the pseudorootdn/pseudorootpw directives is inherently unsafe.
@@ -149,7 +152,7 @@ using the pseudorootdn/pseudorootpw directives is inherently unsafe.
 .B rewrite* ...
 The rewrite options are described in the "REWRITING" section.
 .TP
-.B suffixmassage <virtual naming context> <real naming context>
+.B suffixmassage "<virtual naming context>" "<real naming context>"
 All the directives starting with "rewrite" refer to the rewrite engine
 that has been added to slapd.
 The "suffixmassage" directive was introduced in the LDAP backend to
@@ -170,7 +173,7 @@ See the "REWRITING" section.
 This maps object classes and attributes as in the LDAP backend.
 See
 .BR slapd-ldap (5).
-.SH "SCENARIOS"
+.SH SCENARIOS
 A powerful (and in some sense dangerous) rewrite engine has been added
 to both the LDAP and Meta backends.
 While the former can gain limited beneficial effects from rewriting
@@ -199,7 +202,8 @@ spawning two searches to the targets.
 but they'd present as a single DIT
 [Caveat: uniqueness of (massaged) entries among the two servers is
 assumed; integrity checks risk to incur in excessive overhead and have
-not been implemented].  Say we have "dc=bar,dc=org" and "o=Foo,c=US",
+not been implemented].
+Say we have "dc=bar,dc=org" and "o=Foo,c=US",
 and we'd like them to appear as branches of "dc=foo,dc=com", say
 "dc=a,dc=foo,dc=com" and "dc=b,dc=foo,dc=com".
 Then we need to configure our Meta backend as:
@@ -253,7 +257,7 @@ sharing the same naming context:
 All the previous considerations hold, except that now there is
 no way to unambiguously resolve a DN.
 In this case, all the operations that require an unambiguous target
-selection will fail unless the dn is already cached or a default
+selection will fail unless the DN is already cached or a default
 target has been set.
 .SH ACLs
 Note on ACLs: at present you may add whatever ACL rule you desire
@@ -367,11 +371,11 @@ See
 The string substitution happens according to a substitution pattern.
 .TP
 .B -
-substring substitution is allowed with the syntax `\\d' where `d' is a
+substring substitution is allowed with the syntax `\ed' where `d' is a
 digit ranging 0-9 (0 is the full match).
 I see that 0-9 digit expansion is a widely accepted practise; however
 there is no technical reason to use such a strict limit.
-A syntax of the form `\\{ddd}' should be fine if there is any need to
+A syntax of the form `\e{ddd}' should be fine if there is any need to
 use a higher number of possible submatches.
 .TP
 .B -
@@ -385,43 +389,20 @@ ldap(!), math(?) and so on maps `a la sendmail'.
 .B -
 subroutine invocation will make it possible to rewrite a submatch in
 terms of the output of another rewriteContext.
-.Sh "Old syntax:"
-.TP
-.B `\\' {0-9} [ `{' <name> [ `(' <args> `)' ] `}' ]
-where <name> is the name of a built-in map, and <args> are optional
-arguments to the map, if the map <name> requires them.
-The following experimental maps have been implemented:
-.TP
-.B \\n{xpasswd}
-maps the n-th substring match as uid to the gecos field in
-/etc/passwd;
-.TP
-.B \\n{xfile(/absolute/path)}
-maps the n-th substring match to a `key value' style plain text file.
-.TP
-.B \\n{xldap(ldap://url/with?%0?in?filter)
-maps the n-th substring match to an attribute retrieved by means of an
-LDAP url with substitution of %0 in the filter (NOT IMPL.)
-.SH "New scheme:"
-everything starting with `\\' requires substitution;
+.SH "Substitution Pattern Syntax:"
+everything starting with `%' requires substitution;
 .LP
-the only obvious exception is `\\\\', which is left as is;
+the only obvious exception is `%%', which is left as is;
 .LP
-the basic substitution is `\\d', where `d' is a digit;
-0 means the whole string, while 1-9 is a submatch;
+the basic substitution is `%d', where `d' is a digit;
+0 means the whole string, while 1-9 is a submatch, as discussed in 
+.BR regex (7);
 .LP
-in the outdated schema, the digit may be optionally
-followed by a `{', which means pipe the submatch into
-the map described by the string up to the following `}';
-.LP
-the output of the map is used instead of the submatch;
-.LP
-in the new schema, a `\\' followed by a `{' invokes an
-advanced substitution scheme.
+a `%' followed by a `{' invokes an advanced substitution.
 The pattern is:
 .LP
 .nf
-  `\\' `{' [{ <op> }] <name> `(' <substitution schema> `)' `}'
+  `%' `{' [ <op> ] <name> `(' <substitution> `)' `}'
 .fi
 .LP
 where <name> must be a legal name for the map, i.e.
@@ -431,8 +412,8 @@ where <name> must be a legal name for the map, i.e.
   <op> ::= `>' `|' `&' `&&' `*' `**' `$'
 .fi
 .LP
-and <substitution schema> must be a legal substitution
-schema, with no limits on the nesting level.
+and <substitution> must be a legal substitution
+pattern, with no limits on the nesting level.
 .LP
 The operators are:
 .TP
@@ -446,32 +427,47 @@ defined command name (NOT IMPL.)
 .TP
 .B &
 variable assignment; <name> defines a variable in the running
-operation structure which can be dereferenced later (NOT IMPL.)
+operation structure which can be dereferenced later; operator
+.B &
+assigns a variable in the rewrite context scope; operator
+.B &&
+assigns a variable that scopes the entire session, e.g. its value
+can be derefenced later by other rewrite contexts
 .TP
 .B *
 variable dereferencing; <name> must refer to a variable that is
-defined and assigned for the running operation (NOT IMPL.)
+defined and assigned for the running operation; operator
+.B *
+dereferences a variable scoping the rewrite context; operator
+.B **
+dereferences a variable scoping the whole session, e.g. the value
+is passed across rewrite contexts
 .TP
 .B $
 parameter dereferencing; <name> must refer to an existing parameter;
 the idea is to make some run-time parameters set by the system
-available to the rewrite engine, as the client host name, the bind dn
-if any, constant parameters initialized at config time, and so on (NOT
-IMPL.)
+available to the rewrite engine, as the client host name, the bind DN
+if any, constant parameters initialized at config time, and so on;
+no parameter is currently set by either 
+.B back\-ldap
+or
+.BR back\-meta ,
+but constant parameters can be defined in the configuration file
+by using the
+.B rewriteParam
+directive.
 .LP
-Note: as the slapd parsing routines escape backslashes ('\\'),
-a double backslash is required inside substitution patterns.
-To overcome the resulting heavy notation, the substitution escaping
-has been delegated to the `%' symbol, which should be used
-instead of `\\' in string substitution patterns.
-The symbol can be altered at will by redefining the related macro in
-"rewrite-int.h".
-In the current snapshot, all the `\\' on the left side of each rule
-(the regex pattern) must be converted in `\\\\'; all the `\\' on the
-right side of the rule (the substitution pattern) must be turned into
-`%'.
-In the following examples, the original (more readable) syntax is
-used.
+Substitution escaping has been delegated to the `%' symbol, 
+which is used instead of `\e' in string substitution patterns
+because `\e' is already escaped by slapd's low level parsing routines;
+as a consequence, 
+.BR regex (7)
+escaping requires two `\e' symbols, e.g. `\fB.*\e.foo\e.bar\fP' must
+be written as `\fB.*\e\e.foo\e\e.bar\fP'.
+.\"
+.\" The symbol can be altered at will by redefining the related macro in
+.\" "rewrite-int.h".
+.\"
 .SH "Rewrite context:"
 A rewrite context is a set of rules which are applied in sequence.
 The basic idea is to have an application initialize a rewrite
@@ -480,17 +476,15 @@ contexts; when string rewriting is required, one invokes the
 appropriate rewrite context with the input string and obtains the
 newly rewritten one if no errors occur.
 .LP
-An interesting application, in the LDAP backend or in slapd itself,
-could associate each basic server operation to a rewrite context
-(most of them possibly aliasing the default one).
-Then, DN rewriting could take place at any invocation of a backend
-operation.
+Each basic server operation is associated to a rewrite context;
+they are divided in two main groups: client \-> server and
+server \-> client rewriting.
 .LP
 client -> server:
 .LP
 .nf
-     default         if defined and no specific
-                     context is available
+     (default)       if defined and no specific context 
+                     is available
      bindDn          bind
      searchBase      search
      searchFilter    search
@@ -506,6 +500,7 @@ server -> client:
 .LP
 .nf
      searchResult    search (only if defined; no default)
+     matchedDn       all ops (only if defined; no default; NOT IMPL.)
 .fi
 .LP
 .SH "Basic configuration syntax"
@@ -515,7 +510,7 @@ If `on', the requested rewriting is performed; if `off', no
 rewriting takes place (an easy way to stop rewriting without
 altering too much the configuration file).
 .TP
-.B rewriteContext <context name> [ alias <aliased context name> ]
+.B rewriteContext <context name> "[ alias <aliased context name> ]"
 <Context name> is the name that identifies the context, i.e. the name
 used by the application to refer to the set of rules it contains.
 It is used also to reference sub contexts in string rewriting.
@@ -523,23 +518,23 @@ A context may aliase another one.
 In this case the alias context contains no rule, and any reference to
 it will result in accessing the aliased one.
 .TP
-.B rewriteRule <regex pattern> <substitution pattern> [ <flags> ]
+.B rewriteRule "<regex pattern>" "<substitution pattern>" "[ <flags> ]"
 Determines how a tring can be rewritten if a pattern is matched.
 Examples are reported below.
 .SH "Additional configuration syntax:"
 .TP
-.B rewriteMap <map name> <map type> [ <map attrs> ]
+.B rewriteMap "<map name>" "<map type>" "[ <map attrs> ]"
 Allows to define a map that transforms substring rewriting into
 something else.
 The map is referenced inside the substitution pattern of a rule.
 .TP
 .B rewriteParam <param name> <param value>
 Sets a value with global scope, that can be dereferenced by the
-command `\\{$paramName}'.
+command `%{$paramName}'.
 .TP
 .B rewriteMaxPasses <number of passes>
-Sets the maximum number of total rewriting passes taht can be
-performed in a signle rewriting operation (to avoid loops).
+Sets the maximum number of total rewriting passes that can be
+performed in a single rewrite operation (to avoid loops).
 .SH "Configuration examples:"
 .nf
      # set to `off' to disable rewriting
@@ -550,50 +545,57 @@ performed in a signle rewriting operation (to avoid loops).
      # to `dc=home,dc=net' to `dc=OpenLDAP, dc=org'
 
      rewriteRule "(.*)dc=home,[ ]?dc=net"
-                 "\\1dc=OpenLDAP, dc=org"  ":"
+                 "%1dc=OpenLDAP, dc=org"  ":"
+
+     # since a pretty/normalized DN does not include spaces
+     # after rdn separators, e.g. `,', this rule suffices:
+
+     rewriteRule "(.*)dc=home,dc=net"
+                 "%1dc=OpenLDAP,dc=org"  ":"
 
      # Start a new context (ends input of the previous one).
-     # This rule adds blancs between dn parts if not present.
-     rewriteContext  addBlancs
-     rewriteRule     "(.*),([^ ].*)" "\\1, \\2"
+     # This rule adds blanks between DN parts if not present.
+     rewriteContext  addBlanks
+     rewriteRule     "(.*),([^ ].*)" "%1, %2"
 
-     # This one eats blancs
-     rewriteContext  eatBlancs
-     rewriteRule     "(.*),[ ](.*)" "\\1,\\2"
+     # This one eats blanks
+     rewriteContext  eatBlanks
+     rewriteRule     "(.*),[ ](.*)" "%1,%2"
 
      # Here control goes back to the default rewrite
      # context; rules are appended to the existing ones.
-     # anything that gets here is piped into rule `addBlancs'
+     # anything that gets here is piped into rule `addBlanks'
      rewriteContext  default
-     rewriteRule     ".*" "\\{>addBlancs(\\0)}" ":"
+     rewriteRule     ".*" "%{>addBlanks(%0)}" ":"
 
      # Anything with `uid=username' is looked up in
      # /etc/passwd for gecos (I know it's nearly useless,
-     # but it is there just to test something fancy!). Note
-     # the `I' flag that leaves `uid=username' in place if
-     # `username' does not have a valid account, and the
+     # but it is there just as a guideline to implementing
+     # custom maps).
+     # Note the `I' flag that leaves `uid=username' in place 
+     # if `username' does not have a valid account, and the
      # `:' that forces the rule to be processed exactly once.
      rewriteContext  uid2Gecos
      rewriteRule     "(.*)uid=([a-z0-9]+),(.+)"
-                     "\\1cn=\\2{xpasswd},\\3"      "I:"
+                     "%1cn=%2{xpasswd},%3"      "I:"
 
-     # Finally, in a bind, if one uses a `uid=username' dn,
+     # Finally, in a bind, if one uses a `uid=username' DN,
      # it is rewritten in `cn=name surname' if possible.
      rewriteContext  bindDn
-     rewriteRule     ".*" "\\{>addBlancs(\\{>uid2Gecos(\\0)})}" ":"
+     rewriteRule     ".*" "%{>addBlanks(%{>uid2Gecos(%0)})}" ":"
 
      # Rewrite the search base  according to `default' rules.
      rewriteContext  searchBase alias default
 
-     # Search results with OpenLDAP dn are rewritten back with
+     # Search results with OpenLDAP DN are rewritten back with
      # `dc=home,dc=net' naming context, with spaces eaten.
      rewriteContext  searchResult
      rewriteRule     "(.*[^ ]?)[ ]?dc=OpenLDAP,[ ]?dc=org"
-                     "\\{>eatBlancs(\\1)}dc=home,dc=net"    ":"
+                     "%{>eatBlanks(%1)}dc=home,dc=net"    ":"
 
-     # Bind with email instead of full dn: we first need
-     # an ldap map that turns attributes into a dn (the
-     # filter is provided by the substitution string):
+     # Bind with email instead of full DN: we first need
+     # an ldap map that turns attributes into a DN (the
+     # filter is appended by the ldap map substitution):
      rewriteMap ldap attr2dn "ldap://host/dc=my,dc=org?dn?sub"
 
      # Then we need to detect emails; note that the rule
@@ -603,18 +605,18 @@ performed in a signle rewriting operation (to avoid loops).
      # regular DNs, because the definition of a bindDn
      # rewrite context overrides the default definition.
      rewriteContext bindDn
-     rewriteRule "(mail=[^,]+@[^,]+)" "\\{attr2dn(\\1)}" "@I"
+     rewriteRule "^mail=[^,]+@[^,]+$" "%{attr2dn(%0)}" "@I"
 
-     # This is a rather sophisticate example. It massages a
+     # This is a rather sophisticated example. It massages a
      # search filter in case who performs the search has
      # administrative privileges.  First we need to keep
-     # track of the bind dn of the incoming request:
+     # track of the bind DN of the incoming request:
      rewriteContext  bindDn
-     rewriteRule     ".+" "\\{**&binddn(\\0)}" ":"
+     rewriteRule     ".+" "%{&&binddn(%0)}%0" ":"
 
      # A search filter containing `uid=' is rewritten only
-     # if an appropriate dn is bound.
-     # To do this, in the first rule the bound dn is
+     # if an appropriate DN is bound.
+     # To do this, in the first rule the bound DN is
      # dereferenced, while the filter is decomposed in a
      # prefix, the argument of the `uid=', and in a
      # suffix. A tag `<>' is appended to the DN. If the DN
@@ -626,35 +628,37 @@ performed in a signle rewriting operation (to avoid loops).
      # `cn', but only if the request comes from a possible
      # `dn: cn=Web auth, ou=admin, dc=home, dc=net' user.
      rewriteContext searchFilter
-     rewriteRule "(.*\\()uid=([a-z0-9_]+)(\\).*)"
-       "\\{**binddn}<>\\{&prefix(\\1)}\\{&arg(\\2)}\\{&suffix(\\3)}"
+     rewriteRule "(.*\e\e()uid=([a-z0-9_]+)(\e\e).*)"
+       "%{**binddn}<>%{&prefix(%1)}%{&arg(%2)}%{&suffix(%3)}"
        ":I"
-     rewriteRule "[^,]+,[ ]?ou=admin,[ ]?dc=home,[ ]?dc=net"
-       "\\{*prefix}|(uid=\\{*arg})(cn=\\{*arg})\\{*suffix}" "@I"
-     rewriteRule ".*<>" "\\{*prefix}uid=\\{*arg}\\{*suffix}"
+     rewriteRule "[^,]+,ou=admin,dc=home,dc=net"
+       "%{*prefix}|(uid=%{*arg})(cn=%{*arg})%{*suffix}" "@I"
+     rewriteRule ".*<>" "%{*prefix}uid=%{*arg}%{*suffix}" ":"
 .fi
-.SH "LDAP Proxy resolution (a possible evolution of slapd-ldap(5):"
-In case the rewritten dn is an LDAP URL, the operation is initiated
-towards the host[:port] indicated in the url, if it does not refer
+.SH "LDAP Proxy resolution (a possible evolution of slapd\-ldap(5)):"
+In case the rewritten DN is an LDAP URI, the operation is initiated
+towards the host[:port] indicated in the uri, if it does not refer
 to the local server.
 E.g.:
 .LP
 .nf
-  rewriteRule \'^cn=root,.*\' \'\\0\'                     \'G{3}\'
-  rewriteRule \'^cn=[a-l].*\' \'ldap://ldap1.my.org/\\0\' \'@\'
-  rewriteRule \'^cn=[m-z].*\' \'ldap://ldap2.my.org/\\0\' \'@\'
-  rewriteRule \'.*\'          \'ldap://ldap3.my.org/\\0\' \'@\'
+  rewriteRule '^cn=root,.*' '%0'                     'G{3}'
+  rewriteRule '^cn=[a-l].*' 'ldap://ldap1.my.org/%0' '@'
+  rewriteRule '^cn=[m-z].*' 'ldap://ldap2.my.org/%0' '@'
+  rewriteRule '.*'          'ldap://ldap3.my.org/%0' '@'
 .fi
 .LP
 (Rule 1 is simply there to illustrate the `G{n}' action; it could have
 been written:
 .LP
 .nf
-  rewriteRule \'^cn=root,.*\' \'ldap://ldap3.my.org/\\0\' \'@\'
+  rewriteRule '^cn=root,.*' 'ldap://ldap3.my.org/%0' '@'
 .fi
 .LP
 with the advantage of saving one rewrite pass ...)
-.SH "SEE ALSO"
+.SH FILES
+ETCDIR/slapd.conf
+.SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd\-ldap (5),
 .BR slapd (8),

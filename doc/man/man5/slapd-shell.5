@@ -1,4 +1,4 @@
-.TH SLAPD-SHELL 5 "25 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-SHELL 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -14,39 +14,43 @@ make it easy to tie an existing database to the
 .B slapd
 front-end.
 .SH CONFIGURATION
-The
-.BR slapd.conf (5)
-options in this category apply to the SHELL backend database.
+These
+.B slapd.conf
+options apply to the SHELL backend database.
 That is, they must follow a "database shell" line and come before any
 subsequent "backend" or "database" lines.
-.LP
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+.TP
+.B bind     <pathname>
+.TP
+.B unbind   <pathname>
+.TP
+.B search   <pathname>
+.TP
+.B compare  <pathname>
+.TP
+.B modify   <pathname>
+.TP
+.B modrdn   <pathname>
+.TP
+.B add      <pathname>
+.TP
+.B delete   <pathname>
+.TP
+.B abandon  <pathname>
 These options specify the pathname of the command to execute in response 
 to the given LDAP operation.
 Note that you need only supply configuration lines for those commands you
 want the backend to handle.
 Operations for which a command is not supplied will be refused with an
 "unwilling to perform" error.
-.TP
-.B bind <pathname>
-.TP
-.B unbind <pathname>
-.TP
-.B search <pathname>
-.TP
-.B compare <pathname>
-.TP
-.B modify <pathname>
-.TP
-.B modrdn <pathname>
-.TP
-.B add <pathname>
-.TP
-.B delete <pathname>
-.TP
-.B abandon <pathname>
 .SH EXAMPLE
 There is a skeleton search script in the slapd/back-shell/ directory
 in the OpenLDAP source tree.
+.SH FILES
+ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8),

@@ -1,4 +1,4 @@
-.TH SLAPD-LDBM 5 "28 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-LDBM 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -9,18 +9,18 @@ ETCDIR/slapd.conf
 .SH DESCRIPTION
 The LDBM backend to
 .BR slapd (8)
-is a database that makes
-extensive use of indexing and caching to speed data access.
-.\" .SH LDBM BACKEND-SPECIFIC OPTIONS
-.\" Options in this category only apply to the LDBM backend.
-.\" That is, they must follow "backend ldbm" line and come before
-.\" any subsequent "backend" or "database" lines.
+is a database which uses one of BerkelyDB, Gnu DBM, MDBM or NDBM to
+store data.
+It makes extensive use of indexing and caching to speed data access.
 .SH CONFIGURATION
-The
-.BR slapd.conf (5)
-options in this category apply to the LDBM databases.
+These
+.B slapd.conf
+options apply to the LDBM backend database.
 That is, they must follow a "database ldbm" line and come before any
 subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
 .TP
 .B cachesize <integer>
 Specify the size in entries of the in-memory cache maintained 
@@ -114,6 +114,8 @@ Note: changing index settings requires rebuilding indices, see
 Specify the file protection mode that newly created database 
 index files should have.
 The default is 0600.
+.SH FILES
+ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8),

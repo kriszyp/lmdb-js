@@ -1,4 +1,4 @@
-.TH SLAPD-PERL 5 "25 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-PERL 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .SH NAME
 slapd-perl \- Perl backend to slapd
@@ -139,9 +139,9 @@ Its argument is as follows.
 .LP
 Return value: nonzero if initialization failed.
 .SH CONFIGURATION
-The
-.BR slapd.conf (5)
-options in this category apply to the PERL backend database.
+These
+.B slapd.conf
+options apply to the PERL backend database.
 That is, they must follow a "database perl" line and come before any
 subsequent "backend" or "database" lines.
 Other database options are described in the
@@ -164,6 +164,8 @@ direcetory in the OpenLDAP source tree.
 .SH WARNING
 The interface of this backend to the perl module MAY change.
 Any suggestions would greatly be appreciated.
+.SH FILES
+ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8),

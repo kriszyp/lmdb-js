@@ -1,4 +1,4 @@
-.TH SLAPD-BDB 5 "28 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-BDB 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .\" $OpenLDAP$
@@ -13,11 +13,14 @@ is the recommended backend for a normal slapd database.
 It uses the Sleepycat BerkelyDB package to store data.
 It makes extensive use of indexing and caching to speed data access.
 .SH CONFIGURATION
-The
-.BR slapd.conf (5)
-options in this category apply to the BDB databases.
+These
+.B slapd.conf
+options apply to the BDB backend database.
 That is, they must follow a "database bdb" line and come before any
 subsequent "backend" or "database" lines.
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
 .TP
 .B cachesize <integer>
 Specify the size in entries of the in-memory cache maintained 
@@ -91,6 +94,8 @@ The default is the same as
 Specify the file protection mode that newly created database 
 index files should have.
 The default is 0600.
+.SH FILES
+ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8),

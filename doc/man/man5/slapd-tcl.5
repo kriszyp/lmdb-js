@@ -1,4 +1,4 @@
-.TH SLAPD-TCL 5 "28 April 2002" "OpenLDAP LDVERSION"
+.TH SLAPD-TCL 5 "30 April 2002" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .SH NAME
 slapd-tcl \- Tcl backend to slapd
@@ -15,9 +15,9 @@ Any tcl database section of the configuration file
 .BR slapd.conf (5)
 must then specify what Tcl script to use.
 .SH CONFIGURATION
-The
-.BR slapd.conf (5)
-options in this category apply to the TCL backend database.
+These
+.B slapd.conf
+options apply to the TCL backend database.
 That is, they must follow a "database tcl" line and come before any
 subsequent "backend" or "database" lines.
 Other database options are described in the
@@ -25,25 +25,29 @@ Other database options are described in the
 manual page.
 .TP
 .B scriptpath      <filename.tcl>
-The full path to the tcl script used for this database
-.TP
+The full path to the tcl script used for this database.
+.\"
+.\" There must be a .TP before this list, otherwise the .in doesn't work.
+.\"
+.LP
 .B search   <proc>
-.TP
+.br
 .B add      <proc>
-.TP
+.br
 .B delete   <proc>
-.TP
+.br
 .B modify   <proc>
-.TP
+.br
 .B bind     <proc>
-.TP
+.br
 .B unbind   <proc>
-.TP
+.br
 .B modrdn   <proc>
-.TP
+.br
 .B compare  <proc>
-.TP
+.br
 .B abandon  <proc>
+.in
 The procs for each ldap function.
 This is similar to how the
 .BR slapd-shell (5)
@@ -56,7 +60,7 @@ The realm lets you group several databases to the same interpreter.
 This basically means they share the same global variables and proc space.
 So global variables, as well as all the procs, are callable between databases.
 If no tclrealm is specified, it is put into the "default" realm.
-.SH "Variables passed to the procs"
+.SH Variables passed to the procs
 .TP
 .B abandon { action msgid suffix }
 .nf
@@ -67,7 +71,7 @@ If no tclrealm is specified, it is put into the "default" realm.
            formatted list (surrounded by {}'s).
 .fi
 .TP
-.B add { action msgid suffix entry }
+.B add "{ action msgid suffix entry }"
 .nf
   action - Always equal to ADD.
   msgid  - The msgid of this ldap operation.
@@ -76,7 +80,7 @@ If no tclrealm is specified, it is put into the "default" realm.
            an element in a tcl formatted list.
 .fi
 .TP
-.B bind { action msgid suffix dn method cred_len cred }
+.B bind "{ action msgid suffix dn method cred_len cred }"
 .nf
   action   - Always equal to BIND.
   msgid    - The msgid of this ldap operation.
@@ -90,7 +94,7 @@ If no tclrealm is specified, it is put into the "default" realm.
              bind (??)
 .fi
 .TP
-.B compare { action msgid suffix dn ava_type ava_value }
+.B compare "{ action msgid suffix dn ava_type ava_value }"
 .nf
   action    - Always equal to COMPARE.
   msgid     - The msgid of this ldap operation.
@@ -100,7 +104,7 @@ If no tclrealm is specified, it is put into the "default" realm.
   ava_value - Value to compare.
 .fi
 .TP
-.B delete { action msgid suffix dn }
+.B delete "{ action msgid suffix dn }"
 .nf
   action    - Always equal to DELETE.
   msgid     - The msgid of this ldap operation.
@@ -108,7 +112,7 @@ If no tclrealm is specified, it is put into the "default" realm.
   dn        - DN to delete.
 .fi
 .TP
-.B modify { action msgid suffix dn mods }
+.B modify "{ action msgid suffix dn mods }"
 .nf
   action - Always equal to MODIFY.
   msgid  - The msgid of this ldap operation.
@@ -129,7 +133,7 @@ If no tclrealm is specified, it is put into the "default" realm.
            (ADD, DELETE, REPLACE).
 .fi
 .TP
-.B modrdn { action msgid suffix dn newrdn deleteoldrdn }
+.B modrdn "{ action msgid suffix dn newrdn deleteoldrdn }"
 .nf
   action - Always equal to MODRDN.
   msgid  - The msgid of this ldap operation.
@@ -140,7 +144,9 @@ If no tclrealm is specified, it is put into the "default" realm.
            old RDN should be removed after being renamed.
 .fi
 .TP
-.B search { action msgid suffix base scope deref sizelimit timelimit filterstr attrsonly attrlist }
+.B
+search { action msgid suffix base scope deref \
+sizelimit timelimit filterstr attrsonly attrlist }
 .nf
   action    - Always equal to SEARCH.
   msgid     - The msgid of this ldap operation.
@@ -156,7 +162,7 @@ If no tclrealm is specified, it is put into the "default" realm.
   attrlist  - Tcl list if to retrieve.
 .fi
 .TP
-.B unbind { action msgid suffix dn }
+.B unbind "{ action msgid suffix dn }"
 .nf
   action - Always equal to UNBIND.
   msgid  - The msgid of this ldap operation.
@@ -164,7 +170,7 @@ If no tclrealm is specified, it is put into the "default" realm.
   dn     - DN to unbind.
 .fi
 .LP
-.SH "Return Method and Syntax"
+.SH Return Method and Syntax
 There are only 2 return types.
 All procs must return a result to show status of the operation.
 The result is in this form:
@@ -231,12 +237,14 @@ Here is some example code again, showing a full search proc example.
 NOTE: Newlines in the return value is acceptable in search entries
 (i.e. when returning base64 encoded binary entries).
 .LP
-.SH "Builtin Commands and Variables"
+.SH Builtin Commands and Variables
 .TP
 .B ldap:debug <msg>
 Allows you to send debug messages through OpenLDAP's native debugging
 system, this is sent as a LDAP_DEBUG_ANY and will be logged.
 Useful for debugging scripts or logging bind failures.
+.SH FILES
+ETCDIR/slapd.conf
 .SH SEE ALSO
 .BR slapd.conf (5),
 .BR slapd (8),
