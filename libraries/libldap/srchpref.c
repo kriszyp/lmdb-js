@@ -13,42 +13,29 @@
  * 17 May 1994 by Gordon Good
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#else /* DOS */
-#include <sys/types.h>
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
-#endif /* DOS */
-#endif /* MACOS */
+#endif
 
 #include "lber.h"
 #include "ldap.h"
 #include "srchpref.h"
 
-#ifndef NEEDPROTOS
-int next_line_tokens();
-void free_strarray();
-static void free_searchobj();
-static int read_next_searchobj();
-#else /* !NEEDPROTOS */
-int next_line_tokens( char **bufp, long *blenp, char ***toksp );
-void free_strarray( char **sap );
-static void free_searchobj( struct ldap_searchobj *so );
-static int read_next_searchobj( char **bufp, long *blenp,
-	struct ldap_searchobj **sop, int soversion );
-#endif /* !NEEDPROTOS */
+int next_line_tokens LDAP_P(( char **bufp, long *blenp, char ***toksp ));
+void free_strarray LDAP_P(( char **sap ));
+static void free_searchobj LDAP_P(( struct ldap_searchobj *so ));
+static int read_next_searchobj LDAP_P(( char **bufp, long *blenp,
+	struct ldap_searchobj **sop, int soversion ));
 
 
 static char		*sobjoptions[] = {
