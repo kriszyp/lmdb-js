@@ -1609,7 +1609,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 		irdn = 0;
 		DN[ irdn ] = RDNs[ irdn ];
 		RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
-		BER_BVSTR( &AVAs[ irdn ].la_attr, "uid" );
+		AVAs[ irdn ].la_attr = slap_schema.si_ad_uid->ad_cname;
 		AVAs[ irdn ].la_value = *dn;
 		AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
 		AVAs[ irdn ].la_private = NULL;
@@ -1619,7 +1619,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 			irdn++;
 			DN[ irdn ] = RDNs[ irdn ];
 			RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
-			BER_BVSTR( &AVAs[ irdn ].la_attr, "cn" );
+			AVAs[ irdn ].la_attr = slap_schema.si_ad_cn->ad_cname;
 			ber_str2bv( user_realm, 0, 0, &AVAs[ irdn ].la_value );
 			AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
 			AVAs[ irdn ].la_private = NULL;
@@ -1630,7 +1630,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 			irdn++;
 			DN[ irdn ] = RDNs[ irdn ];
 			RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
-			BER_BVSTR( &AVAs[ irdn ].la_attr, "cn" );
+			AVAs[ irdn ].la_attr = slap_schema.si_ad_cn->ad_cname;
 			AVAs[ irdn ].la_value = *mech;
 			AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
 			AVAs[ irdn ].la_private = NULL;
@@ -1640,7 +1640,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, struct berval *id,
 		irdn++;
 		DN[ irdn ] = RDNs[ irdn ];
 		RDNs[ irdn ][ 0 ] = &AVAs[ irdn ];
-		BER_BVSTR( &AVAs[ irdn ].la_attr, "cn" );
+		AVAs[ irdn ].la_attr = slap_schema.si_ad_cn->ad_cname;
 		BER_BVSTR( &AVAs[ irdn ].la_value, "auth" );
 		AVAs[ irdn ].la_flags = LDAP_AVA_NULL;
 		AVAs[ irdn ].la_private = NULL;

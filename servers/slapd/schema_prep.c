@@ -907,6 +907,15 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_cn) },
+	{ "uid", "( 0.9.2342.19200300.100.1.1 NAME ( 'uid' 'userid' ) "
+			"DESC 'RFC1274: user identifier' "
+			"EQUALITY caseIgnoreMatch "
+			"SUBSTR caseIgnoreSubstringsMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )",
+		NULL, 0,
+		NULL, NULL,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_uid) },
 	{ "userPassword", "( 2.5.4.35 NAME 'userPassword' "
 			"DESC 'RFC2256/2307: password of user' "
 			"EQUALITY octetStringMatch "
