@@ -1547,6 +1547,8 @@ static int oc_filter(
 {
 	int rc = 0;
 
+	assert( f );
+
 	if( cur > *max ) *max = cur;
 
 	switch(f->f_choice) {
