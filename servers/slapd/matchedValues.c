@@ -206,8 +206,8 @@ test_ava_vrFilter(
 		case LDAP_FILTER_APPROX:
 			mr = a->a_desc->ad_type->sat_approx;
 			if( mr != NULL ) break;
+			/* use EQUALITY matching rule if no APPROX rule */
 
-		/* use EQUALITY matching rule if no APPROX rule */
 		case LDAP_FILTER_EQUALITY:
 			mr = a->a_desc->ad_type->sat_equality;
 			break;
@@ -221,10 +221,7 @@ test_ava_vrFilter(
 			mr = NULL;
 		}
 
-		if( mr == NULL ) {
-			continue;
-
-		}
+		if( mr == NULL ) continue;
 
 		bv = a->a_nvals;
 		for ( j=0; bv->bv_val != NULL; bv++, j++ ) {

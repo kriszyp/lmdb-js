@@ -156,12 +156,9 @@ attr_index_config(
 		}
 
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) && !(
-			( ad->ad_type->sat_approx
+			ad->ad_type->sat_approx
 				&& ad->ad_type->sat_approx->smr_indexer
-				&& ad->ad_type->sat_approx->smr_filter )
-			&& ( ad->ad_type->sat_equality
-				&& ad->ad_type->sat_equality->smr_indexer
-				&& ad->ad_type->sat_equality->smr_filter ) ) )
+				&& ad->ad_type->sat_approx->smr_filter ) )
 		{
 			fprintf( stderr, "%s: line %d: "
 				"approx index of attribute \"%s\" disallowed\n",

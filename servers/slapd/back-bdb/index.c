@@ -121,9 +121,14 @@ int bdb_index_param(
 		break;
 
 	case LDAP_FILTER_APPROX:
-		if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) ) {
-			goto done;
+		if ( desc->ad_type->sat_approx ) {
+			if( IS_SLAP_INDEX( mask, SLAP_INDEX_APPROX ) ) {
+				goto done;
+			}
+			break;
 		}
+
+		/* Use EQUALITY rule and index for approximate match */
 		/* fall thru */
 
 	case LDAP_FILTER_EQUALITY:
