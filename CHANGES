@@ -7,6 +7,7 @@ Changes included in OpenLDAP 1.2.12 Engineering
 	Fixed Pth initialization bug
 	Fixed libldap/add mod_bvalues typo
 	Build Environment
+		Remove extra Digital UNIX symbol (ITS#590)
 		Ignore make clean rm failure
 
 Changes included in OpenLDAP 1.2.11
