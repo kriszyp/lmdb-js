@@ -5,6 +5,7 @@
 
 #include "portable.h"
 #include <ac/socket.h>
+#include <ac/unistd.h>
 
 #include <lutil.h>
 
