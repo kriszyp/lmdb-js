@@ -6,4 +6,5 @@
 #include <fstream.h>
 #include <strstream.h>
 #include <unistd.h>
+#include <stdio.h>
 #endif

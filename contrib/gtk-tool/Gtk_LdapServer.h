@@ -30,7 +30,7 @@ public:
 	Gtk_HBox *xpm_label;
 //	Gtk_Tree *subtree;
 	Gtk_Menu *popup;
-	G_List<char> *databases;
+	GList *databases;
 	Gtk_LdapServer();
 	Gtk_LdapServer(My_Window *w, char *c, int p);
 	Gtk_LdapServer(GtkTreeItem *t);

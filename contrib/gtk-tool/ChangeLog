@@ -1,4 +1,8 @@
 ChangeLog for gtk-tool
+28/12/1999 - Pele
+	* Updated Gtk-- API from 1.0 to 1.1
+	* Added -d switch (for debugging info)
+	* Added "Options" menu
 
 12/01/1999 - Pele
 	* Added some defines for U-MICH compatibility

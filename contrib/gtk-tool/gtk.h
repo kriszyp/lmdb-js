@@ -8,7 +8,7 @@
 #include <gtk--/window.h>
 #include <gtk--/list.h>
 #include <gtk--/main.h>
-#include <gtk--sig.h>
+/*#include <gtk--sig.h>*/
 #include <gtk--/container.h>
 
 #endif

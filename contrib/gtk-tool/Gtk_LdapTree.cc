@@ -1,14 +1,15 @@
 #include <Gtk_LdapTree.h>
 
 void Gtk_LdapTree::show_impl() {
-	debug("tree show\n");
-	Gtk_LdapTree *tree = NULL;
+	debug("Gtk_LdapTree::show_impl()\n");
+	Gtk_LdapTree *tree;
 	Gtk_LdapTreeItem *item = NULL;
-	Gtk_LdapTree::iterator i;
+	Gtk_LdapTree::ItemList &items = this->tree();
+	Gtk_LdapTree::ItemList::iterator i = items.begin();
 	debug("iterator\n");
-	for (i=this->begin(); i!=this->end();i++) {
-	//	item = (Gtk_LdapTreeItem *)GTK_TREE_ITEM((*i));
+	for (i=items.begin(); i!=items.end();i++) {
 		item = (Gtk_LdapTreeItem *)(*i);
+		debug("new item\n");
 		debug("#%s#\n", item->dn);
 		if (item->get_subtree() == NULL) {
 			debug("ding!\n");

@@ -33,24 +33,31 @@ void Gtk_LdapServer::setType(int t) {
 	Gtk_Label *label;
 	char *c = NULL;
 	if (this->get_child() != NULL) {
-		xpm_label = new Gtk_HBox(GTK_HBOX(this->get_child()->gtkobj()));
+		this->remove();
+		/*
+		//xpm_label = new Gtk_HBox(GTK_HBOX(this->get_child()->gtkobj()));
+		xpm_label = new Gtk_HBox(this->get_child());
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
 		xpm_label->remove_c(xpm_label->children()->nth_data(0));
+		*/
 	}
-	else xpm_label = new Gtk_HBox();
+	xpm_label = new Gtk_HBox();
 	debug(this->hostname);
 	if (strcasecmp(this->hostname,"localhost") == 0)
-		xpm_icon=new Gtk_Pixmap(*xpm_label, local_server);
-	else xpm_icon=new Gtk_Pixmap(*xpm_label, remote_server);
+		//xpm_icon=new Gtk_Pixmap(*xpm_label, local_server);
+		xpm_icon=new Gtk_Pixmap(local_server);
+	else //xpm_icon=new Gtk_Pixmap(*xpm_label, remote_server);
+		xpm_icon=new Gtk_Pixmap(remote_server);
 //	sprintf(c, "%s:%i", this->hostname, this->port);
 //	printf("%s\n", c);
 	label = new Gtk_Label(this->hostname);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
 	xpm_label->pack_start(*label, false, false, 1);
-	if (this->get_child() == NULL) this->add(xpm_label);
-	label->show();
-	xpm_label->show();
-	xpm_icon->show();
+	if (this->get_child() == NULL) this->add(*xpm_label);
+	//label->show();
+	//xpm_label->show();
+	//xpm_icon->show();
+	this->show_all();
 }
 
 int Gtk_LdapServer::showDetails() {
@@ -60,15 +67,16 @@ int Gtk_LdapServer::showDetails() {
 		debug("Have a notebook here");
 		if (par->viewport2->get_child() != NULL) {
 			debug(" and viewport has children");
-			par->viewport2->remove(par->viewport2->get_child());
-			debug(" which have been removed");
+			par->viewport2->remove(); //par->viewport2->get_child());
+			debug(" which have been removed\n");
 		}
-		else debug(" and viewport without children");
-		par->viewport2->add(this->notebook);
-		this->notebook->show();
-		par->viewport2->show();
-		return 0;
+		else debug(" and viewport without children\n");
+		par->viewport2->add(*this->notebook);
+		//this->notebook->show();
+		//par->viewport2->show();
+		//return 0;
 	}
+	this->show_all();
 	debug("done\n");
 	return 0;
 }
@@ -96,15 +104,19 @@ int Gtk_LdapServer::getConfig() {
 			debug("Attrib: %s\n", attribute);
 			if (strcasecmp(attribute, "database") == 0) {
 				debug("have database here\n");
-				this->databases = new G_List<char>;
+				//this->databases = new GList<char>;
+				this->databases = NULL;
 				t = ldap_get_values(this->ld, entry, attribute);
 				for (int i=0; i<ldap_count_values(t); i++) {
-					this->databases->append(strdup(t[i]));
+					this->databases = g_list_append(this->databases, strdup(t[i]));
+					//this->databases->push_back(*strdup(t[i]));
 				}
 				ldap_value_free(t);
 				debug("databases loaded\n");
-				for (int i=0; i<this->databases->length(); i++) {
-					debug("database(%i) %s\n", i, this->databases->nth_data(i));
+				GList *t;
+				for (int i=0;i>g_list_length(this->databases);i++) {
+					t = g_list_nth(this->databases, i);
+//					debug("database(%i) %s\n", i, ((gchar*) t->data));
 				}	
 			}
 		}
@@ -182,8 +194,9 @@ int Gtk_LdapServer::getOptions() {
 	label = new Gtk_Label("This tool has been compiled with (old) U-MICH API (no LDAP_GET_OPT)\nCompile with the latest -devel (from OpenLDAP cvs tree)\nto get some nice options here");
 	this->notebook = new Gtk_Frame("LDAP Options");
 	this->notebook->add(*label);
-	label->show();
-	this->notebook->show();
+	//label->show();
+	//this->notebook->show();
+	this->notebook->show_all();
 	return 0;
 #else
 	LDAPAPIInfo api;
@@ -219,7 +232,6 @@ int Gtk_LdapServer::getOptions() {
 		this->getSubtree();
 	} */
 
-//	debug("getting ldap options");
 //	vbox = new Gtk_VBox();
 	table = new Gtk_Table(10, 1, TRUE);
 
@@ -254,21 +266,23 @@ int Gtk_LdapServer::getOptions() {
 				break;
 			case 2:
 				ldap_get_option(this->ld, things[i], &i_value);
-				radio1 = new Gtk_RadioButton(static_cast<GSList*>(0), "Enabled");
-				radio2 = new Gtk_RadioButton(*radio1, "Disabled");
+				radio1 = new Gtk_RadioButton("Enabled");
+				radio2 = new Gtk_RadioButton("Disabled");
+				radio2->set_group(radio1->group());
 				if (i_value == 1) radio1->set_active(true);
 				else radio2->set_active(true);
 				mini_hbox = new Gtk_HBox(FALSE, 2);
 				mini_hbox->set_border_width(2);
 				mini_hbox->pack_start(*radio1);
-				radio1->show();
+				//radio1->show();
 				mini_hbox->pack_end(*radio2);
-				radio2->show();
+				//radio2->show();
 				hbox->pack_end(*mini_hbox);
-				mini_hbox->show();
+				//mini_hbox->show();
 				break;
 			case 3:
 				ldap_get_option(this->ld, things[i], &i_value);
+				debug("i_value: %s\n", i_value);
 				adjustment = new Gtk_Adjustment(i_value, 1.0, 20.0, 1.0, 1.0, 0.0);
 				scale = new Gtk_HScale(*adjustment);
 				scale->set_update_policy(GTK_UPDATE_CONTINUOUS);
@@ -276,7 +290,7 @@ int Gtk_LdapServer::getOptions() {
 				scale->set_digits(0);
 				scale->set_draw_value(true);
 				hbox->pack_end(*scale);
-				scale->show();
+				//scale->show();
 				break;
 			case 4:
 #ifdef LDAP_API_INFO_VERSION
@@ -293,25 +307,26 @@ int Gtk_LdapServer::getOptions() {
 				label->set_justify(GTK_JUSTIFY_LEFT);
 				label->set_alignment(0, 0);
 				hbox->pack_end(*label);
-				label->show();
+				//label->show();
 				break;
 			default:
 				label = new Gtk_Label("Not implemented (yet)");
 				label->set_justify(GTK_JUSTIFY_LEFT);
 				label->set_alignment(0, 0);
 				hbox->pack_end(*label);
-				label->show();
+				//label->show();
 				break;
 		}
 	//	hbox->pack_end(*label);
 	//	label->show();
-		table->attach_defaults(*hbox, 0, 1, i, i+1);
+		table->attach(*hbox, 0, 1, i, i+1);
 		hbox->show();
 	}
 	table->set_border_width(2);
 	this->notebook = new Gtk_Frame("LDAP Options");
 	this->notebook->add(*table);
-	table->show();
+	//table->show();
+	this->notebook->show_all();
 	return 0;
 #endif /* LDAP_GET_OPT */
 }
@@ -328,12 +343,13 @@ Gtk_Tree* Gtk_LdapServer::getSubtree() {
 	char *c;
 	char *tok;
 
-	int len = this->databases->length();
+	int len = g_list_length(this->databases);
 	debug("this->databases->length()=%i\n", len);
 
 	tree = new Gtk_LdapTree();
 	for (int i=0; i<len; i++) {
-		tok = strdup(this->databases->nth_data(i));
+		GList *t = g_list_nth(this->databases, i);
+		tok = strdup((char*)t->data);
 		tok = strtok(tok, ":");
 	//	c = strtok(NULL, " ");
 		c = strtok(NULL, "\0");

@@ -2,7 +2,8 @@ HOME_LOCATION=$(shell pwd)
 CPLUS=	g++
 OPTS=-g #-DDEBUG
 INCLUDES=`gtkmm-config --cflags` -I.
-LDFLAGS=`gtkmm-config --libs` -L/usr/lib -L/usr/X11/lib -L/usr/local/gnome/lib -L/usr/local/ldap/lib -lldap -llber -L/usr/local/kerberos/lib -lkrb5 -lkrb4
+GTKMMLIBS=`gtkmm-config --libs`
+LDFLAGS=-L/usr/lib -L/usr/X11/lib -L/usr/local/ldap/lib -lldap -llber -L/usr/local/kerberos/lib -lkrb5 -lkrb4 `gtkmm-config --libs`
 LIBS=-lXext -lgtkmm -lX11 -lXt -lXxf86dga
 
 .EXPORT_ALL_VARIABLES:
@@ -14,7 +15,7 @@ OBJECTS=My_Window.o Gtk_LdapTree.o Gtk_LdapTreeItem.o Gtk_LdapServer.o utils.o m
 
 all: main
 main:	$(OBJECTS)
-	$(CPLUS) $(OBJECTS) -o main $(LDFLAGS)
+	$(CPLUS) $(OBJECTS) -o main $(LDFLAGS) $(GTKMMLIBS)
 	exec
 
 main.o: main.cc

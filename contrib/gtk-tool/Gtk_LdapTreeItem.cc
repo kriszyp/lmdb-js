@@ -28,7 +28,8 @@ Gtk_LdapTree* Gtk_LdapTreeItem::getSubtree(LDAP *ld, int counter) {
 	debug("Gtk_LdapTreeItem::getSubtree(%s)\n", this->dn);
 	if (counter <= 0) return NULL;
 	if (this->gtkobj()->subtree != NULL) {
-		return (Gtk_LdapTree *)GTK_TREE(this->gtkobj()->subtree);
+		//return (Gtk_LdapTree *)GTK_TREE(this->gtkobj()->subtree);
+		return (Gtk_LdapTree *)this->get_subtree(); //gtkobj()->subtree);
 	}
 	counter--;
 	Gtk_LdapTree *subtree = NULL, *tree = NULL;
@@ -83,29 +84,49 @@ void Gtk_LdapTreeItem::setType(int t) {
 	Gtk_Pixmap *xpm_icon;
 	Gtk_Label *label;
 	if (this->get_child() != NULL) {
-		xpm_label = new Gtk_HBox(GTK_HBOX(this->get_child()->gtkobj()));
-		xpm_label->remove_c(xpm_label->children()->nth_data(0));
-		xpm_label->remove_c(xpm_label->children()->nth_data(0));
+		debug("got a child here");
+		//xpm_label = new Gtk_HBox(this->get_child());
+		this->remove();
+		/*
+		//xpm_label = new Gtk_HBox(*GTK_HBOX(this->get_child()->gtkobj()));
+		xpm_label = new Gtk_HBox(this->get_child()); //->gtkobj());
+		//xpm_label->remove_c(xpm_label->children().nth_data(0));
+		Gtk_HBox::BoxList &list = xpm_label->children();
+		Gtk_HBox::BoxList::iterator i = list.begin();
+		xpm_label->remove(*i);
+		//xpm_label->remove_c(xpm_label->children().nth_data(0));
+		xpm_label->remove(*xpm_label->children().begin());
+		*/
 	}
-	else xpm_label = new Gtk_HBox();
+	xpm_label = new Gtk_HBox();
 	if (strcasecmp(this->objectClass,"organization") == 0)
-		xpm_icon=new Gtk_Pixmap(*xpm_label, root_node);
+		//xpm_icon=new Gtk_Pixmap(*xpm_label, root_node);
+		xpm_icon=new Gtk_Pixmap(root_node);
 	else if (strcasecmp(this->objectClass,"organizationalunit") == 0)
-		xpm_icon=new Gtk_Pixmap(*xpm_label, branch_node);
+		//xpm_icon=new Gtk_Pixmap(*xpm_label, branch_node);
+		xpm_icon=new Gtk_Pixmap(branch_node);
 	else if (strcasecmp(this->objectClass,"person") == 0)
-		xpm_icon=new Gtk_Pixmap(*xpm_label, leaf_node);
+		//xpm_icon=new Gtk_Pixmap(*xpm_label, leaf_node);
+		xpm_icon=new Gtk_Pixmap(leaf_node);
 	else if (strcasecmp(this->objectClass,"alias") == 0)
-		xpm_icon=new Gtk_Pixmap(*xpm_label, alias_node);
+		//xpm_icon=new Gtk_Pixmap(*xpm_label, alias_node);
+		xpm_icon=new Gtk_Pixmap(alias_node);
 	else if (strcasecmp(this->objectClass,"rfc822mailgroup") == 0)
-		xpm_icon=new Gtk_Pixmap(*xpm_label, rfc822mailgroup_node);
-	else xpm_icon=new Gtk_Pixmap(*xpm_label, general_node);
+		//xpm_icon=new Gtk_Pixmap(*xpm_label, rfc822mailgroup_node);
+		xpm_icon=new Gtk_Pixmap(rfc822mailgroup_node);
+	else //xpm_icon=new Gtk_Pixmap(*xpm_label, general_node);
+		xpm_icon=new Gtk_Pixmap(general_node);
 	label = new Gtk_Label(this->rdn);
 	xpm_label->pack_start(*xpm_icon, false, false, 1);
 	xpm_label->pack_start(*label, false, false, 1);
-	if (this->get_child() == NULL) this->add(xpm_label);
-	label->show();
-	xpm_label->show();
-	xpm_icon->show();
+	if (this->get_child() == NULL) {
+		debug("no children - GREAT!!");
+		this->add(*xpm_label);
+	}
+	//label->show();
+	//xpm_icon->show();
+	//xpm_label->show();
+	show_all();
 }
 
 int Gtk_LdapTreeItem::showDetails() {
@@ -115,7 +136,8 @@ int Gtk_LdapTreeItem::showDetails() {
 		debug("Have a notebook here");
 		if (par->viewport2->get_child() != NULL) {
 			debug(" and the viewport has children");
-			par->viewport2->remove(par->viewport2->get_child());
+			//par->viewport2->remove(par->viewport2->get_child());
+			par->viewport2->remove();
 			debug(" which have been removed");
 		}
 		else debug(" and viewport has no children");
@@ -167,7 +189,7 @@ int Gtk_LdapTreeItem::getDetails() {
 			label = new Gtk_Label(attrib);
 			label->set_alignment(0, 0);
 			label->set_justify(GTK_JUSTIFY_LEFT);
-			this->notebook->append_page(*table, *label);
+			this->notebook->pages().push_back(Gtk_Notebook_Helpers::TabElem(*table, *label));
 			table->show();
 			label->show();
 		}

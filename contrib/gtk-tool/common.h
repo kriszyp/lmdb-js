@@ -9,4 +9,5 @@
 #include <error.h>
 #include <string.h>
 extern int errno;
+extern int debug_level;
 #endif
