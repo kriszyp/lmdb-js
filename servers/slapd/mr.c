@@ -317,8 +317,15 @@ matching_rule_use_init( void )
 			continue;
 		}
 
-		/* hide rules with no type */
-		if ( um == SLAP_MR_NONE ) {
+		/* hide rules not marked as designed for extensibility */
+		/* MR_EXT means can be used any attribute type whose
+		 * syntax is same as the assertion syntax.
+		 * Another mechanism is needed where rule can be used
+		 * with attribute of other syntaxes.
+		 * Framework doesn't support this (yet).
+		 */
+
+		if (!( mr->smr_usage & SLAP_MR_EXT )) {
 			continue;
 		}
 
@@ -346,132 +353,11 @@ matching_rule_use_init( void )
 				mru->smru_names ? mru->smru_names[ 0 ] : "", 0 );
 #endif
 
-		switch ( um ) {
-		case SLAP_MR_EQUALITY:
-			at = NULL;
-			if ( usm == SLAP_MR_EQUALITY_APPROX ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, INFO, "APPROX%s\n",
-						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-						0, 0 );
-#else
-				Debug( LDAP_DEBUG_TRACE, "APPROX%s\n",
-						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-						0, 0 );
-#endif
-
-				for ( at_start( &at ); at; at_next( &at ) ) {
-					if ( mr == at->sat_approx ) {
-#ifdef NEW_LOGGING
-						LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
-								at->sat_oid,
-								at->sat_cname.bv_val, 0 );
-#else
-						Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
-								at->sat_oid,
-								at->sat_cname.bv_val, 0 );
-#endif
-						ldap_charray_add( &applies_oids,
-								at->sat_oid );
-					}
-				}
-
-			} else {
-#ifdef NEW_LOGGING
-				LDAP_LOG( OPERATION, INFO, "EQUALITY%s\n",
-						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-						0, 0 );
-#else
-				Debug( LDAP_DEBUG_TRACE, "EQUALITY%s\n",
-						( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-						0, 0 );
-#endif
-				for ( at_start( &at ); at; at_next( &at ) ) {
-					if ( mr == at->sat_equality ) {
-#ifdef NEW_LOGGING
-						LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
-								at->sat_oid,
-								at->sat_cname.bv_val, 0 );
-#else
-						Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
-								at->sat_oid,
-								at->sat_cname.bv_val, 0 );
-#endif
-						ldap_charray_add( &applies_oids,
-								at->sat_cname.bv_val );
-					}
-				}
+		at = NULL;
+		for ( at_start( &at ); at; at_next( &at ) ) {
+			if( mr->smr_syntax == at->sat_syntax ) {
+				ldap_charray_add( &applies_oids, at->sat_cname.bv_val );
 			}
-			break;
-
-		case SLAP_MR_ORDERING:
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "ORDERING%s\n",
-					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-					0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE, "ORDERING%s\n",
-					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-					0, 0 );
-#endif
-			at = NULL;
-			for ( at_start( &at ); at; at_next( &at ) ) {
-				if ( mr == at->sat_ordering ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
-							at->sat_oid,
-							at->sat_cname.bv_val, 0 );
-#else
-					Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
-							at->sat_oid,
-							at->sat_cname.bv_val, 0 );
-#endif
-					ldap_charray_add( &applies_oids,
-							at->sat_cname.bv_val );
-				}
-			}
-			break;
-
-		case SLAP_MR_SUBSTR:
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, INFO, "SUBSTR%s\n",
-					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-					0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE, "SUBSTR%s\n",
-					( mr->smr_usage & SLAP_MR_EXT ) ? " (EXT)" : "",
-					0, 0 );
-#endif
-			at = NULL;
-			for ( at_start( &at ); at; at_next( &at ) ) {
-				if ( mr == at->sat_substr ) {
-#ifdef NEW_LOGGING
-					LDAP_LOG( OPERATION, INFO, "        %s (%s)\n",
-							at->sat_oid,
-							at->sat_cname.bv_val, 0 );
-#else
-					Debug( LDAP_DEBUG_TRACE, "        %s (%s)\n",
-							at->sat_oid,
-							at->sat_cname.bv_val, 0 );
-#endif
-					ldap_charray_add( &applies_oids,
-							at->sat_cname.bv_val );
-				}
-			}
-			break;
-
-		default:
-#ifdef NEW_LOGGING
-			LDAP_LOG( OPERATION, ERR, "        unknown matching rule type "
-					"(type mask %d, subtype mask %d%s)\n", um, usm,
-					( mr->smr_usage & SLAP_MR_EXT ) ? ", EXT" : "" );
-#else
-			Debug( LDAP_DEBUG_ANY, "        unknown matching rule type "
-					"(type mask %d, subtype mask %d%s)\n", um, usm,
-					( mr->smr_usage & SLAP_MR_EXT ) ? ", EXT" : "" );
-#endif
-			fprintf ( stderr, "    %d (%d)\n", um, usm );
-			assert( 0 );
 		}
 
 		/*
