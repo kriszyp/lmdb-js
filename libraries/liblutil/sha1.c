@@ -138,7 +138,7 @@ void
 lutil_SHA1Update(
     lutil_SHA1_CTX	*context,
     const unsigned char	*data,
-    u_int		len
+    uint32		len
 )
 {
     u_int i, j;

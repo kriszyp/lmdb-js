@@ -51,6 +51,18 @@
 #	define LOCK_API	"flock"
 #endif
 
+#if !defined(USE_LOCKF) && !defined(USE_FCNTL) && !defined(USE_FLOCK)
+int lutil_lockf ( int fd ) {
+    fd = fd;
+    return 0;
+}
+
+int lutil_unlockf ( int fd ) {
+    fd = fd;
+    return 0;
+}
+#endif
+
 #ifdef USE_LOCKF
 int lutil_lockf ( int fd ) {
 	/* use F_LOCK instead of F_TLOCK, ie: block */
