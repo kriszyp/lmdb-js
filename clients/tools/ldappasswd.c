@@ -533,9 +533,6 @@ main( int argc, char *argv[] )
 
 	if (want_bindpw && passwd.bv_val == NULL ) {
 		/* handle bind password */
-		if( binddn != NULL ) {
-			fprintf( stderr, "Bind DN: %s\n", binddn );
-		}
 		passwd.bv_val = strdup( getpassphrase("Enter bind password: "));
 		passwd.bv_len = passwd.bv_val ? strlen( passwd.bv_val ) : 0;
 	}
