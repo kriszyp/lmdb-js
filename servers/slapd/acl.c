@@ -606,7 +606,7 @@ acl_mask(
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_sockurl_pat, conn->c_listener_url ) == 0 )
+					if ( strcasecmp( b->a_sockurl_pat, conn->c_listener_url ) != 0 )
 						continue;
 				}
 			}
@@ -629,7 +629,7 @@ acl_mask(
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_domain_pat, conn->c_peer_domain ) == 0 )
+					if ( strcasecmp( b->a_domain_pat, conn->c_peer_domain ) != 0 )
 						continue;
 				}
 			}
@@ -652,7 +652,7 @@ acl_mask(
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_peername_pat, conn->c_peer_name ) == 0 )
+					if ( strcasecmp( b->a_peername_pat, conn->c_peer_name ) != 0 )
 						continue;
 				}
 			}
@@ -675,7 +675,7 @@ acl_mask(
 						continue;
 					}
 				} else {
-					if ( strcasecmp( b->a_sockname_pat, conn->c_sock_name ) == 0 )
+					if ( strcasecmp( b->a_sockname_pat, conn->c_sock_name ) != 0 )
 						continue;
 				}
 			}
