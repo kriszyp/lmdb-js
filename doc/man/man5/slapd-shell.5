@@ -13,6 +13,12 @@ executes external programs to implement operations, and is designed to
 make it easy to tie an existing database to the
 .B slapd
 front-end.
+.SH WARNING
+.B "This backend's calling conventions have changed since OpenLDAP 2.0."
+The operations receive a new "opid:" (operation ID) line, to be used
+instead of "msgid:".
+The "msgid:" line will be removed in a future version.
+Also, abandon now gets a new "abandonid:" line.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -30,14 +36,17 @@ Each option is followed by the input lines that the program receives:
 .B abandon  <pathname> <argument>...
 .nf
 ABANDON
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID of operation to abandon>
 <repeat { "suffix:" <database suffix DN> }>
+abandonid: <operation ID of operation to abandon>
 .fi
 .TP
 .B add      <pathname> <argument>...
 .nf
 ADD
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 <entry in LDIF format>
 .fi
@@ -45,7 +54,8 @@ msgid: <message id>
 .B bind     <pathname> <argument>...
 .nf
 BIND
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 dn: <DN>
 method: <method number>
@@ -56,7 +66,8 @@ cred: <credentials>
 .B compare  <pathname> <argument>...
 .nf
 COMPARE
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 dn: <DN>
 <attribute>: <value>
@@ -65,7 +76,8 @@ dn: <DN>
 .B delete   <pathname> <argument>...
 .nf
 DELETE
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 dn: <DN>
 .fi
@@ -73,7 +85,8 @@ dn: <DN>
 .B modify   <pathname> <argument>...
 .nf
 MODIFY
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 dn: <DN>
 <repeat {
@@ -86,7 +99,8 @@ dn: <DN>
 .B modrdn   <pathname> <argument>...
 .nf
 MODRDN
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 dn: <DN>
 newrdn: <new RDN>
@@ -97,7 +111,8 @@ deleteoldrdn: <0 or 1>
 .B search   <pathname> <argument>...
 .nf
 SEARCH
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 base: <base DN>
 scope: <0-2, see ldap.h>
@@ -112,10 +127,15 @@ attrs: <"all" or space-separated attribute list>
 .B unbind   <pathname> <argument>...
 .nf
 UNBIND
-msgid: <message id>
+opid: <operation ID>
+msgid: <message ID>
 <repeat { "suffix:" <database suffix DN> }>
 dn: <bound DN>
 .fi
+.LP
+An
+.I operation ID
+is a "connection ID/message ID" string identifying an operation.
 .LP
 Note that you need only supply configuration lines for those commands you
 want the backend to handle.

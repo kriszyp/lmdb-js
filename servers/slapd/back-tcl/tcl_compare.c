@@ -45,10 +45,10 @@ tcl_back_compare (
 
 	command = (char *) ch_malloc (ti->ti_compare.bv_len +
 		suf_tcl.bv_len + dn->bv_len + ava->aa_desc->ad_cname.bv_len +
-		ava->aa_value.bv_len + 64);
-	sprintf (command, "%s COMPARE {%ld} {%s} {%s} {%s: %s}",
-		ti->ti_compare.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
-		dn->bv_val,
+		ava->aa_value.bv_len + 84);
+	sprintf (command, "%s COMPARE {%ld/%ld} {%s} {%s} {%s: %s}",
+		ti->ti_compare.bv_val, op->o_connid, (long) op->o_msgid,
+		suf_tcl.bv_val, dn->bv_val,
 		ava->aa_desc->ad_cname.bv_val, ava->aa_value.bv_val);
 	Tcl_Free (suf_tcl.bv_val);
 

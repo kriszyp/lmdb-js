@@ -44,9 +44,9 @@ tcl_back_add (
 	entrystr = tcl_clean_entry(e);
 
 	command = (char *) ch_malloc (ti->ti_add.bv_len + suf_tcl.bv_len +
-		strlen(entrystr) + 32);
-	sprintf (command, "%s ADD {%ld} {%s} {%s}",
-		ti->ti_add.bv_val, (long) op->o_msgid, 
+		strlen(entrystr) + 52);
+	sprintf (command, "%s ADD {%ld/%ld} {%s} {%s}",
+		ti->ti_add.bv_val, op->o_connid, (long) op->o_msgid, 
 		suf_tcl.bv_val, entrystr);
 	Tcl_Free (suf_tcl.bv_val);
 	free (entrystr);

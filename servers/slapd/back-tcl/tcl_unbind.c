@@ -37,10 +37,10 @@ tcl_back_unbind (
 	}
 
 	command = (char *) ch_malloc (ti->ti_unbind.bv_len + suf_tcl.bv_len
-		+ conn->c_dn.bv_len + 64);
-	sprintf (command, "%s UNBIND {%ld} {%s} {%s}",
-		ti->ti_unbind.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
-		conn->c_dn.bv_val ?  conn->c_dn.bv_val : "");
+		+ conn->c_dn.bv_len + 84);
+	sprintf (command, "%s UNBIND {%ld/%ld} {%s} {%s}",
+		ti->ti_unbind.bv_val, op->o_connid, (long) op->o_msgid,
+		suf_tcl.bv_val, conn->c_dn.bv_val ?  conn->c_dn.bv_val : "");
 	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);

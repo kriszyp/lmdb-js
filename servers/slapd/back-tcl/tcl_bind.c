@@ -46,9 +46,10 @@ tcl_back_bind (
 	}
 
 	command = (char *) ch_malloc (ti->ti_bind.bv_len + suf_tcl.bv_len +
-		dn->bv_len + cred->bv_len + 64);
-	sprintf (command, "%s BIND {%ld} {%s} {%s} {%d} {%lu} {%s}",
-		ti->ti_bind.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
+		dn->bv_len + cred->bv_len + 84);
+	sprintf (command, "%s BIND {%ld/%ld} {%s} {%s} {%d} {%lu} {%s}",
+		ti->ti_bind.bv_val, op->o_connid, (long) op->o_msgid,
+		suf_tcl.bv_val, 
 		dn->bv_val, method, cred->bv_len, cred->bv_val);
 	Tcl_Free (suf_tcl.bv_val);
 

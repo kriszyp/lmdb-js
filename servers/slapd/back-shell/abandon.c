@@ -65,8 +65,10 @@ shell_back_abandon(
 
 	/* write out the request to the abandon process */
 	fprintf( wfp, "ABANDON\n" );
+	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %d\n", msgid );
 	print_suffixes( wfp, be );
+	fprintf( wfp, "abandonid: %ld/%d\n", op->o_connid, msgid );
 	fclose( wfp );
 
 	/* no result from abandon */

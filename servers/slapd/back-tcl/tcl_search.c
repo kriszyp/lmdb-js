@@ -63,12 +63,12 @@ tcl_back_search (
 	}
 
 	command = (char *) ch_malloc (ti->ti_search.bv_len + suf_tcl.bv_len
-		+ base->bv_len + 40 + filterstr->bv_len + 
+		+ base->bv_len + 60 + filterstr->bv_len + 
 		(attrs_tcl == NULL ? 5 : strlen (attrs_tcl)) + 72);
 	sprintf (command,
-		"%s SEARCH {%ld} {%s} {%s} {%d} {%d} {%d} {%d} {%s} {%d} {%s}",
-		ti->ti_search.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
-		base->bv_val, scope, deref,
+		"%s SEARCH {%ld/%ld} {%s} {%s} {%d} {%d} {%d} {%d} {%s} {%d} {%s}",
+		ti->ti_search.bv_val, op->o_connid, (long) op->o_msgid,
+		suf_tcl.bv_val, base->bv_val, scope, deref,
 		sizelimit, timelimit, filterstr->bv_val, attrsonly ? 1 : 0,
 		attrs_tcl == NULL ? "{all}" : attrs_tcl);
 	Tcl_Free (attrs_tcl);

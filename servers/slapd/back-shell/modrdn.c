@@ -60,6 +60,7 @@ shell_back_modrdn(
 
 	/* write out the request to the modrdn process */
 	fprintf( wfp, "MODRDN\n" );
+	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	fprintf( wfp, "dn: %s\n", dn->bv_val );

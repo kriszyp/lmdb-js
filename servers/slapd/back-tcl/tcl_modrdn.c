@@ -62,10 +62,11 @@ tcl_back_modrdn (
 
 	command = (char *) ch_malloc (ti->ti_modrdn.bv_len + suf_tcl.bv_len
 		+ dn->bv_len + newrdn->bv_len
-		+ (newSuperior ? newSuperior->bv_len : 0) + 64);
+		+ (newSuperior ? newSuperior->bv_len : 0) + 84);
 	if ( newSuperior ) {
-		sprintf (command, "%s MODRDN {%ld} {%s} {%s} {%s} %d {%s}",
-			 ti->ti_modrdn.bv_val, (long) op->o_msgid, 
+		sprintf (command, "%s MODRDN {%ld/%ld} {%s} {%s} {%s} %d {%s}",
+			 ti->ti_modrdn.bv_val,
+			 op->o_connid, (long) op->o_msgid, 
 			 suf_tcl.bv_val, dn->bv_val,
 			 newrdn->bv_val, deleteoldrdn ? 1 : 0, 
 			 newSuperior->bv_val );

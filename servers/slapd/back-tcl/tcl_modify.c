@@ -97,11 +97,11 @@ tcl_back_modify (
 	}
 
 	command = (char *) ch_malloc (ti->ti_modify.bv_len + suf_tcl.bv_len
-		+ dn->bv_len + strlen (tcl_mods) + 64);
+		+ dn->bv_len + strlen (tcl_mods) + 84);
 	/* This space is simply for aesthetics--\  */
-	sprintf (command, "%s MODIFY {%ld} {%s} {%s} { %s}",
-		ti->ti_modify.bv_val, (long) op->o_msgid, suf_tcl.bv_val, 
-		dn->bv_val, tcl_mods);
+	sprintf (command, "%s MODIFY {%ld/%ld} {%s} {%s} { %s}",
+		ti->ti_modify.bv_val, op->o_connid, (long) op->o_msgid,
+		suf_tcl.bv_val, dn->bv_val, tcl_mods);
 	Tcl_Free (suf_tcl.bv_val);
 	free (tcl_mods);
 

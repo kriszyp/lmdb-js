@@ -38,9 +38,10 @@ tcl_back_abandon (
 	}
 
 	command = (char *) ch_malloc (ti->ti_abandon.bv_len + suf_tcl.bv_len
-		+ 20);
-	sprintf (command, "%s ABANDON {%ld} {%s}",
-		ti->ti_abandon.bv_val, (long) op->o_msgid, suf_tcl.bv_val);
+		+ 80);
+	sprintf (command, "%s ABANDON {%ld/%ld} {%s} {%ld/%d}",
+		ti->ti_abandon.bv_val, op->o_connid, (long) op->o_msgid,
+		suf_tcl.bv_val, op->o_connid, msgid);
 	Tcl_Free (suf_tcl.bv_val);
 
 	ldap_pvt_thread_mutex_lock (&tcl_interpreter_mutex);

@@ -41,6 +41,7 @@ shell_back_add(
 
 	/* write out the request to the add process */
 	fprintf( wfp, "ADD\n" );
+	fprintf( wfp, "opid: %ld/%ld\n", op->o_connid, (long) op->o_msgid );
 	fprintf( wfp, "msgid: %ld\n", (long) op->o_msgid );
 	print_suffixes( wfp, be );
 	ldap_pvt_thread_mutex_lock( &entry2str_mutex );

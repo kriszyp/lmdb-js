@@ -14,6 +14,13 @@ interpreter into
 Any tcl database section of the configuration file
 .BR slapd.conf (5)
 must then specify what Tcl script to use.
+.SH WARNING
+.B "This backend's calling conventions have changed since OpenLDAP 2.0."
+Previously, the 2nd argument to the procs was a message ID.
+Now they are an "operation ID" string.
+Also, proc abandon now gets a new
+.B abandonid
+argument.
 .SH CONFIGURATION
 These
 .B slapd.conf
@@ -57,28 +64,29 @@ So global variables, as well as all the procs, are callable between databases.
 If no tclrealm is specified, it is put into the "default" realm.
 .SH Variables passed to the procs
 .TP
-.B abandon { action msgid suffix }
+.B abandon { action opid suffix abandonid }
 .nf
-action - Always equal to ABANDON.
-msgid  - The msgid of this ldap operation.
-suffix - List of suffix(es) associated with the
-         call.  Each one is an entry in a tcl
-         formatted list (surrounded by {}'s).
+action    - Always equal to ABANDON.
+opid      - The opid of this ldap operation.
+suffix    - List of suffix(es) associated with the
+            call.  Each one is an entry in a tcl
+            formatted list (surrounded by {}'s).
+abandonid - The opid of the operation to abandon.
 .fi
 .TP
-.B add "{ action msgid suffix entry }"
+.B add "{ action opid suffix entry }"
 .nf
 action - Always equal to ADD.
-msgid  - The msgid of this ldap operation.
+opid   - The opid of this ldap operation.
 suffix - List of suffix(es), as above.
 entry  - Full entry to add. Each "type: val" is
          an element in a tcl formatted list.
 .fi
 .TP
-.B bind "{ action msgid suffix dn method cred_len cred }"
+.B bind "{ action opid suffix dn method cred_len cred }"
 .nf
 action   - Always equal to BIND.
-msgid    - The msgid of this ldap operation.
+opid     - The opid of this ldap operation.
 suffix   - List of suffix(es), as above.
 dn       - DN being bound to.
 method   - One of the ldap authentication methods.
@@ -89,28 +97,28 @@ cred     - Credentials being used to authenticate,
            bind (??)
 .fi
 .TP
-.B compare "{ action msgid suffix dn ava_type ava_value }"
+.B compare "{ action opid suffix dn ava_type ava_value }"
 .nf
 action    - Always equal to COMPARE.
-msgid     - The msgid of this ldap operation.
+opid      - The opid of this ldap operation.
 suffix    - List of suffix(es), as above.
 dn        - DN for compare.
 ava_type  - Type for comparison.
 ava_value - Value to compare.
 .fi
 .TP
-.B delete "{ action msgid suffix dn }"
+.B delete "{ action opid suffix dn }"
 .nf
 action    - Always equal to DELETE.
-msgid     - The msgid of this ldap operation.
+opid      - The opid of this ldap operation.
 suffix    - List of suffix(es), as above.
 dn        - DN to delete.
 .fi
 .TP
-.B modify "{ action msgid suffix dn mods }"
+.B modify "{ action opid suffix dn mods }"
 .nf
 action - Always equal to MODIFY.
-msgid  - The msgid of this ldap operation.
+opid   - The opid of this ldap operation.
 suffix - List of suffix(es), as above.
 dn     - DN to modify.
 mods   - Tcl list of modifications.
@@ -128,10 +136,10 @@ mods   - Tcl list of modifications.
          (ADD, DELETE, REPLACE).
 .fi
 .TP
-.B modrdn "{ action msgid suffix dn newrdn deleteoldrdn }"
+.B modrdn "{ action opid suffix dn newrdn deleteoldrdn }"
 .nf
 action - Always equal to MODRDN.
-msgid  - The msgid of this ldap operation.
+opid   - The opid of this ldap operation.
 suffix - List of suffix(es), as above.
 dn     - DN whose RDN is being renamed.
 newrdn - New RDN.
@@ -140,11 +148,11 @@ deleteoldrdn - Boolean stating whether or not the
 .fi
 .TP
 .B
-search { action msgid suffix base scope deref \
+search { action opid suffix base scope deref \
 sizelimit timelimit filterstr attrsonly attrlist }
 .nf
 action    - Always equal to SEARCH.
-msgid     - The msgid of this ldap operation.
+opid      - The opid of this ldap operation.
 suffix    - List of suffix(es), as above.
 base      - Base for this search.
 scope     - Scope of search, ( 0 | 1 | 2 ).
@@ -157,13 +165,18 @@ attrsonly - Boolean for whether to list only the
 attrlist  - Tcl list if to retrieve.
 .fi
 .TP
-.B unbind "{ action msgid suffix dn }"
+.B unbind "{ action opid suffix dn }"
 .nf
 action - Always equal to UNBIND.
-msgid  - The msgid of this ldap operation.
+opid   - The opid of this ldap operation.
 suffix - List of suffix(es), as above.
 dn     - DN to unbind.
 .fi
+.LP
+An
+.I opid
+(operation ID) is a "connection ID/message ID" string identifying an
+operation.
 .LP
 .SH Return Method and Syntax
 There are only 2 return types.
