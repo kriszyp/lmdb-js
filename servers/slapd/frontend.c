@@ -69,8 +69,6 @@ frontend_init( void )
 	/* FIXME: do we need this? */
 	frontendDB->be_pcl_mutexp = &frontendDB->be_pcl_mutex;
 	ldap_pvt_thread_mutex_init( frontendDB->be_pcl_mutexp );
-
-	LDAP_STAILQ_INIT( &frontendDB->be_syncinfo );
 #endif
 
 	/* suffix */

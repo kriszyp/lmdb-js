@@ -1637,9 +1637,7 @@ add_syncrepl(
 )
 {
 	syncinfo_t *si;
-	syncinfo_t *si_entry;
 	int	rc = 0;
-	int duplicated_replica_id = 0;
 
 	si = (syncinfo_t *) ch_calloc( 1, sizeof( syncinfo_t ) );
 
@@ -1678,16 +1676,7 @@ add_syncrepl(
 
 	rc = parse_syncrepl_line( cargv, cargc, si );
 
-	LDAP_STAILQ_FOREACH( si_entry, &be->be_syncinfo, si_next ) {
-		if ( si->si_rid == si_entry->si_rid ) {
-			Debug( LDAP_DEBUG_ANY,
-				"add_syncrepl: duplicated replica id\n",0, 0, 0 );
-			duplicated_replica_id = 1;
-			break;
-		}
-	}
-
-	if ( rc < 0 || duplicated_replica_id ) {
+	if ( rc < 0 ) {
 		Debug( LDAP_DEBUG_ANY, "failed to add syncinfo\n", 0, 0, 0 );
 		syncinfo_free( si );	
 		return 1;
@@ -1699,7 +1688,7 @@ add_syncrepl(
 			SLAP_DBFLAGS(be) |= SLAP_DBFLAG_NO_SCHEMA_CHECK;
 		}
 		si->si_be = be;
-		LDAP_STAILQ_INSERT_TAIL( &be->be_syncinfo, si, si_next );
+		be->be_syncinfo = si;
 		return 0;
 	}
 }

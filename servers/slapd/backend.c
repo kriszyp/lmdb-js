@@ -266,7 +266,7 @@ int backend_startup(Backend *be)
 		if ( rc ) return rc;
 
 
-		if ( !LDAP_STAILQ_EMPTY( &backendDB[i].be_syncinfo )) {
+		if ( backendDB[i].be_syncinfo ) {
 			syncinfo_t *si;
 
 			if ( !( backendDB[i].be_search && backendDB[i].be_add &&
@@ -277,7 +277,8 @@ int backend_startup(Backend *be)
 				continue;
 			}
 
-			LDAP_STAILQ_FOREACH( si, &backendDB[i].be_syncinfo, si_next ) {
+			{
+				si = backendDB[i].be_syncinfo;
 				si->si_be = &backendDB[i];
 				init_syncrepl( si );
 				ldap_pvt_thread_mutex_lock( &slapd_rq.rq_mutex );
@@ -371,7 +372,6 @@ int backend_destroy(void)
 {
 	int i;
 	BackendDB *bd;
-	syncinfo_t *si_entry;
 	struct slap_csn_entry *csne;
 
 	ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
@@ -379,10 +379,8 @@ int backend_destroy(void)
 	/* destroy each backend database */
 	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
 
-		while ( !LDAP_STAILQ_EMPTY( &bd->be_syncinfo )) {
-			si_entry = LDAP_STAILQ_FIRST( &bd->be_syncinfo );
-			LDAP_STAILQ_REMOVE_HEAD( &bd->be_syncinfo, si_next );
-			syncinfo_free( si_entry );
+		if ( bd->be_syncinfo ) {
+			syncinfo_free( bd->be_syncinfo );
 		}
 
 		if ( bd->be_pending_csn_list ) {
@@ -499,8 +497,6 @@ backend_db_init(
 
 	be->be_pcl_mutexp = &be->be_pcl_mutex;
 	ldap_pvt_thread_mutex_init( be->be_pcl_mutexp );
-
-	LDAP_STAILQ_INIT( &be->be_syncinfo );
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 

@@ -998,8 +998,6 @@ do_syncrepl(
 
 		if ( !si->si_retrynum || si->si_retrynum[i] == -2 ) {
 			ldap_pvt_runqueue_remove( &slapd_rq, rtask );
-			LDAP_STAILQ_REMOVE( &be->be_syncinfo, si, syncinfo_s, si_next );
-			syncinfo_free( si );
 		} else if ( si->si_retrynum[i] >= -1 ) {
 			if ( si->si_retrynum[i] > 0 )
 				si->si_retrynum[i]--;

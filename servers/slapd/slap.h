@@ -1514,7 +1514,6 @@ typedef struct syncinfo_s {
         Avlnode				*si_presentlist;
 		LDAP				*si_ld;
 		LDAP_LIST_HEAD(np, nonpresent_entry) si_nonpresentlist;
-		LDAP_STAILQ_ENTRY( syncinfo_s ) si_next;
 } syncinfo_t;
 
 LDAP_TAILQ_HEAD( be_pcl, slap_csn_entry );
@@ -1678,7 +1677,7 @@ struct slap_backend_db {
 	struct		be_pcl	*be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	ldap_pvt_thread_mutex_t					*be_pcl_mutexp;
-	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
+	syncinfo_t								*be_syncinfo; /* For syncrepl */
 
 	char	*be_realm;
 	void    *be_pb;         /* Netscape plugin */

@@ -182,9 +182,9 @@ retry:	/* transaction retry */
 			e = NULL;
 
 		} else {
-			if ( !LDAP_STAILQ_EMPTY( &op->o_bd->be_syncinfo )) {
-				syncinfo_t *si;
-				LDAP_STAILQ_FOREACH( si, &op->o_bd->be_syncinfo, si_next ) {
+			if ( op->o_bd->be_syncinfo ) {
+				syncinfo_t *si = op->o_bd->be_syncinfo;
+				{
 					struct berval tmpbv;
 					ber_dupbv( &tmpbv, &si->si_provideruri_bv[0] );
 					ber_bvarray_add( &deref, &tmpbv );
