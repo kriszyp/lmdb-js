@@ -28,7 +28,7 @@ ldbm_cache_open(
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		i, lru, empty;
-	time_t		oldtime, curtime;
+	time_t		oldtime;
 	char		buf[MAXPATHLEN];
 #ifdef HAVE_ST_BLKSIZE
 	struct stat	st;
@@ -61,13 +61,12 @@ ldbm_cache_open(
 #endif
 
 
-	curtime = slap_get_time();
 	empty = MAXDBCACHE;
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	do {
 		lru = 0;
-		oldtime = curtime;
+		oldtime = 1;
 		for ( i = 0; i < MAXDBCACHE; i++ ) {
 			/* see if this slot is free */
 			if ( li->li_dbcache[i].dbc_name == NULL) {
@@ -113,8 +112,9 @@ ldbm_cache_open(
 			}
 
 			/* keep track of lru db */
-			if ( li->li_dbcache[i].dbc_lastref < oldtime
-				&& li->li_dbcache[i].dbc_refcnt == 0 )
+			if (( li->li_dbcache[i].dbc_refcnt == 0 ) &&
+			      (( oldtime == 1 ) ||
+			      ( li->li_dbcache[i].dbc_lastref < oldtime )) )
 			{
 				lru = i;
 				oldtime = li->li_dbcache[i].dbc_lastref;
@@ -170,7 +170,7 @@ ldbm_cache_open(
 	}
 	li->li_dbcache[i].dbc_name = ch_strdup( buf );
 	li->li_dbcache[i].dbc_refcnt = 1;
-	li->li_dbcache[i].dbc_lastref = curtime;
+	li->li_dbcache[i].dbc_lastref = slap_get_time();
 	li->li_dbcache[i].dbc_flags = flags;
 	li->li_dbcache[i].dbc_dirty = 0;
 #ifdef HAVE_ST_BLKSIZE

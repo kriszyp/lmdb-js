@@ -940,9 +940,12 @@ slapd_daemon_task(
 )
 {
 	int l;
-	time_t	last_idle_check = slap_get_time();
+	time_t	last_idle_check;
 	time( &starttime );
 
+	if ( global_idletimeout > 0 ) {
+		last_idle_check = slap_get_time();
+	}
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 		if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID )
 			continue;
@@ -993,7 +996,7 @@ slapd_daemon_task(
 		int emfile = 0;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
-		time_t	now = slap_get_time();
+		time_t	now;
 
 
 		fd_set			readfds;
@@ -1006,11 +1009,15 @@ slapd_daemon_task(
 		struct timeval		zero;
 		struct timeval		*tvp;
 
-		if( emfile || ( global_idletimeout > 0 && difftime(
-			last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT,
-			now ) < 0 ))
-		{
-			connections_timeout_idle(now);
+		if( emfile ) {
+			now = slap_get_time();
+			connections_timeout_idle( now );
+		}
+		else if ( global_idletimeout > 0 ) {
+			now = slap_get_time();
+			if ( difftime( last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT, now ) < 0 ) {
+				connections_timeout_idle( now );
+			}
 		}
 
 		FD_ZERO( &writefds );
