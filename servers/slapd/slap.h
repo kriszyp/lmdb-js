@@ -834,10 +834,10 @@ typedef struct slap_acl {
 /*
  * replog moddn param structure
  */
-struct replog_moddn {
-	char *newrdn;
+struct slap_replog_moddn {
+	struct berval *newrdn;
 	int	deloldrdn;
-	char *newsup;
+	struct berval *newsup;
 };
 
 /*
@@ -982,11 +982,11 @@ struct slap_backend_db {
 
 	/* these should be renamed from be_ to bd_ */
 	char	**be_suffix;	/* the DN suffixes of data in this backend */
-	struct berval	**be_nsuffix;	/* the normalized DN suffixes in this backend */
-	struct berval	**be_suffixAlias; /* pairs of DN suffix aliases and deref values */
-	char	*be_root_dn;	/* the magic "root" dn for this db 	*/
-	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
-	struct berval be_root_pw;	/* the magic "root" password for this db	*/
+	struct berval **be_nsuffix;	/* the normalized DN suffixes in this backend */
+	struct berval **be_suffixAlias; /* pairs of DN suffix aliases and deref values */
+	struct berval be_rootdn;	/* the magic "root" name (DN) for this db */
+	struct berval be_rootndn;	/* the magic "root" normalized name (DN) for this db */
+	struct berval be_rootpw;	/* the magic "root" password for this db	*/
 	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
 #define be_sizelimit	be_def_limit.lms_s_soft
 #define be_timelimit	be_def_limit.lms_t_soft
@@ -996,7 +996,7 @@ struct slap_backend_db {
 	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
 	struct slap_replica_info **be_replica;	/* replicas of this backend (in master)	*/
 	char	*be_replogfile;	/* replication log file (in master)	   */
-	char	*be_update_ndn;	/* allowed to make changes (in replicas) */
+	struct berval be_update_ndn;	/* allowed to make changes (in replicas) */
 	struct berval **be_update_refs;	/* where to refer modifying clients to */
 	int	be_lastmod;	/* keep track of lastmodified{by,time}	   */
 

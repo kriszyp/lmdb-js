@@ -208,8 +208,7 @@ ldbm_back_modrdn(
 		/* no parent, must be root to modify rdn */
 		isroot = be_isroot( be, op->o_ndn.bv_val );
 		if ( ! be_isroot ) {
-			if ( be_issuffix( be, "" )
-					|| be_isupdate( be, op->o_ndn.bv_val ) ) {
+			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,
@@ -387,8 +386,7 @@ ldbm_back_modrdn(
 			}
 
 			if ( ! be_isroot ) {
-				if ( be_issuffix( be, "" )
-						|| be_isupdate( be, op->o_ndn.bv_val ) ) {
+				if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 					np = (Entry *)&slap_entry_root;
 				
 					rc = access_allowed( be, conn, op, np,

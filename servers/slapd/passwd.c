@@ -43,7 +43,7 @@ int passwd_extop(
 			*text = "authorization database is read only";
 			rc = LDAP_UNWILLING_TO_PERFORM;
 
-		} else if( conn->c_authz_backend->be_update_ndn != NULL ) {
+		} else if( conn->c_authz_backend->be_update_ndn.bv_len ) {
 			/* we SHOULD return a referral in this case */
 			*refs = referral_rewrite( conn->c_authz_backend->be_update_refs,
 				NULL, NULL, LDAP_SCOPE_DEFAULT );

@@ -206,8 +206,7 @@ ldbm_back_add(
 
 		/* no parent, must be adding entry to root */
 		if ( !be_isroot( be, op->o_ndn.bv_val ) ) {
-			if ( be_issuffix( be, "" ) 
-					|| be_isupdate( be, op->o_ndn.bv_val ) ) {
+			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 				p = (Entry *)&slap_entry_root;
 				
 				rc = access_allowed( be, conn, op, p,

@@ -419,9 +419,9 @@ int backend_destroy(void)
 		}
 		charray_free( backendDB[i].be_suffix );
 		ber_bvecfree( backendDB[i].be_nsuffix );
-		free( backendDB[i].be_root_dn );
-		free( backendDB[i].be_root_ndn );
-		free( backendDB[i].be_root_pw.bv_val );
+		free( backendDB[i].be_rootdn.bv_val );
+		free( backendDB[i].be_rootndn.bv_val );
+		free( backendDB[i].be_rootpw.bv_val );
 		acl_destroy( backendDB[i].be_acl, global_acl );
 	}
 	free( backendDB );
@@ -599,41 +599,37 @@ be_isroot( Backend *be, const char *ndn )
 		return( 0 );
 	}
 
-	if ( be->be_root_ndn == NULL || *be->be_root_ndn == '\0' ) {
+	if ( !be->be_rootndn.bv_len ) {
 		return( 0 );
 	}
 
-	rc = strcmp( be->be_root_ndn, ndn ) ? 0 : 1;
+	rc = strcmp( be->be_rootndn.bv_val, ndn ) ? 0 : 1;
 
 	return(rc);
 }
 
 int
-be_isupdate( Backend *be, const char *ndn )
+be_isupdate( Backend *be, struct berval *ndn )
 {
-	int rc;
-
-	if ( ndn == NULL || *ndn == '\0' ) {
+	if ( !ndn->bv_len ) {
 		return( 0 );
 	}
 
-	if ( be->be_update_ndn == NULL || *be->be_update_ndn == '\0' ) {
+	if ( !be->be_update_ndn.bv_len ) {
 		return( 0 );
 	}
 
-	rc = strcmp( be->be_update_ndn, ndn ) ? 0 : 1;
-
-	return(rc);
+	return strcmp( be->be_update_ndn.bv_val, ndn->bv_val ) ? 0 : 1;
 }
 
 char *
 be_root_dn( Backend *be )
 {
-	if ( be->be_root_dn == NULL ) {
+	if ( !be->be_rootdn.bv_len ) {
 		return( "" );
 	}
 
-	return be->be_root_dn;
+	return be->be_rootdn.bv_val;
 }
 
 int
@@ -648,7 +644,7 @@ be_isroot_pw( Backend *be,
 		return 0;
 	}
 
-	if( be->be_root_pw.bv_len == 0 ) {
+	if( be->be_rootpw.bv_len == 0 ) {
 		return 0;
 	}
 
@@ -659,7 +655,7 @@ be_isroot_pw( Backend *be,
 #endif
 #endif
 
-	result = lutil_passwd( &be->be_root_pw, cred, NULL );
+	result = lutil_passwd( &be->be_rootpw, cred, NULL );
 
 #if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD

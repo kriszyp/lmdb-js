@@ -1142,27 +1142,49 @@ read_config( const char *fname )
 #endif
 
 			} else {
-				be->be_root_dn = ch_strdup( cargv[1] );
-				be->be_root_ndn = ch_strdup( cargv[1] );
-
+				struct berval dn, *pdn = NULL, *ndn = NULL;
+				
 				if ( load_ucdata( NULL ) < 0 ) {
 					return( 1 );
 				}
-				if( dn_normalize( be->be_root_ndn ) == NULL ) {
-					free( be->be_root_dn );
-					free( be->be_root_ndn );
+
+				dn.bv_val = cargv[1];
+				dn.bv_len = strlen( cargv[1] );
+
+				rc = dnPretty( NULL, &dn, &pdn );
+				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						   "%s: line %d: rootdn DN is invalid.\n",
-						   fname, lineno ));
+						"%s: line %d: rootdn DN is invalid.\n",
+						fname, lineno ));
 #else
 					Debug( LDAP_DEBUG_ANY,
-"%s: line %d: rootdn DN is invalid\n",
+						"%s: line %d: rootdn DN is invalid\n",
 					   fname, lineno, 0 );
 #endif
-
 					return( 1 );
 				}
+
+				rc = dnNormalize( NULL, &dn, &ndn );
+				if( rc != LDAP_SUCCESS ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
+						"%s: line %d: rootdn DN is invalid.\n",
+						fname, lineno ));
+#else
+					Debug( LDAP_DEBUG_ANY,
+						"%s: line %d: rootdn DN is invalid\n",
+					   fname, lineno, 0 );
+#endif
+					ber_bvfree( ndn );
+					return( 1 );
+				}
+
+				be->be_rootdn = *pdn;
+				be->be_rootndn = *ndn;
+
+				free( pdn );
+				free( ndn );
 			}
 
 		/* set super-secret magic database password */
@@ -1192,8 +1214,8 @@ read_config( const char *fname )
 #endif
 
 			} else {
-				be->be_root_pw.bv_val = ch_strdup( cargv[1] );
-				be->be_root_pw.bv_len = strlen( be->be_root_pw.bv_val );
+				be->be_rootpw.bv_val = ch_strdup( cargv[1] );
+				be->be_rootpw.bv_len = strlen( be->be_rootpw.bv_val );
 			}
 
 		/* make this database read-only */
@@ -1798,23 +1820,31 @@ read_config( const char *fname )
 #endif
 
 			} else {
-				be->be_update_ndn = ch_strdup( cargv[1] );
+				struct berval dn, *ndn = NULL;
+
 				if ( load_ucdata( NULL ) < 0 ) {
 					return( 1 );
 				}
-				if( dn_normalize( be->be_update_ndn ) == NULL ) {
+
+				dn.bv_val = cargv[1];
+				dn.bv_len = strlen( cargv[1] );
+
+				rc = dnNormalize( NULL, &dn, &ndn );
+				if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 					LDAP_LOG(( "config", LDAP_LEVEL_CRIT,
-						   "%s: line %d: updatedn DN is invalid.\n",
-						   fname, lineno ));
+						"%s: line %d: updatedn DN is invalid.\n",
+						fname, lineno ));
 #else
 					Debug( LDAP_DEBUG_ANY,
-"%s: line %d: updatedn DN is invalid\n",
+						"%s: line %d: updatedn DN is invalid\n",
 					    fname, lineno, 0 );
 #endif
-
 					return 1;
 				}
+
+				be->be_update_ndn = *ndn;
+				free( ndn );
 			}
 
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
@@ -1833,24 +1863,24 @@ read_config( const char *fname )
 			}
 			if ( be == NULL ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
-					"updateref line must appear inside a database definition "
-					"(ignored)\n", fname, lineno ));
+				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: updateref"
+					" line must appear inside a database definition\n",
+					fname, lineno ));
 #else
-				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"updateref line must appear inside a database definition "
-					"(ignored)\n", fname, lineno, 0 );
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: updateref"
+					" line must appear inside a database definition\n",
+					fname, lineno, 0 );
 #endif
 				return 1;
 
-			} else if ( be->be_update_ndn == NULL ) {
+			} else if ( !be->be_update_ndn.bv_len ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "config", LDAP_LEVEL_INFO, "%s: line %d: "
-					"updateref line must come after updatedn (ignored).\n",
+					"updateref line must come after updatedn.\n",
 					fname, lineno ));
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"updateref line must after updatedn (ignored)\n",
+					"updateref line must after updatedn.\n",
 				    fname, lineno, 0 );
 #endif
 				return 1;

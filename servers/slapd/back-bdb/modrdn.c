@@ -214,7 +214,7 @@ retry:	/* transaction retry */
 		/* no parent, modrdn entry directly under root */
 		isroot = be_isroot( be, op->o_ndn.bv_val );
 		if ( ! isroot ) {
-			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn.bv_val ) ) {
+			if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 
 				p = (Entry *)&slap_entry_root;
 
@@ -335,8 +335,7 @@ retry:	/* transaction retry */
 
 			/* no parent, modrdn entry directly under root */
 			if ( ! isroot ) {
-				if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn.bv_val ) ) {
-
+				if ( be_issuffix( be, "" ) || be_isupdate( be, &op->o_ndn ) ) {
 					np = (Entry *)&slap_entry_root;
 
 					/* check parent for "children" acl */

@@ -376,21 +376,21 @@ do_modrdn(
 	 */
 	if ( be->be_modrdn ) {
 		/* do the update here */
-		int repl_user = be_isupdate( be, op->o_ndn.bv_val );
+		int repl_user = be_isupdate( be, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( be->be_update_ndn == NULL || repl_user )
+		if ( !be->be_update_ndn.bv_len || repl_user )
 #endif
 		{
 			if ( (*be->be_modrdn)( be, conn, op, pdn->bv_val, ndn->bv_val,
 				pnewrdn->bv_val, deloldrdn, pnewSuperior ? pnewSuperior->bv_val : NULL ) == 0
 #ifdef SLAPD_MULTIMASTER
-				&& ( be->be_update_ndn == NULL || !repl_user )
+				&& ( !be->be_update_ndn.bv_len || !repl_user )
 #endif
 			) {
-				struct replog_moddn moddn;
-				moddn.newrdn = pnewrdn->bv_val;
+				struct slap_replog_moddn moddn;
+				moddn.newrdn = pnewrdn;
 				moddn.deloldrdn = deloldrdn;
-				moddn.newsup = pnewSuperior ? pnewSuperior->bv_val : NULL;
+				moddn.newsup = pnewSuperior;
 
 				replog( be, op, pdn->bv_val, ndn->bv_val, &moddn );
 			}

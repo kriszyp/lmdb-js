@@ -179,14 +179,14 @@ do_delete(
 	 */
 	if ( be->be_delete ) {
 		/* do the update here */
-		int repl_user = be_isupdate( be, op->o_ndn.bv_val );
+		int repl_user = be_isupdate( be, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
-		if ( be->be_update_ndn == NULL || repl_user )
+		if ( !be->be_update_ndn.bv_len || repl_user )
 #endif
 		{
 			if ( (*be->be_delete)( be, conn, op, pdn->bv_val, ndn->bv_val ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
-				if (be->be_update_ndn == NULL || !repl_user )
+				if ( !be->be_update_ndn.bv_len || !repl_user )
 #endif
 				{
 					replog( be, op, pdn->bv_val, ndn->bv_val, NULL );

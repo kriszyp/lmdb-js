@@ -333,15 +333,15 @@ do_modify(
 	 */
 	if ( be->be_modify ) {
 		/* do the update here */
-		int repl_user = be_isupdate( be, op->o_ndn.bv_val );
+		int repl_user = be_isupdate( be, &op->o_ndn );
 #ifndef SLAPD_MULTIMASTER
 		/* Multimaster slapd does not have to check for replicator dn
 		 * because it accepts each modify request
 		 */
-		if ( be->be_update_ndn == NULL || repl_user )
+		if ( !be->be_update_ndn.bv_len || repl_user )
 #endif
 		{
-			int update = be->be_update_ndn != NULL;
+			int update = be->be_update_ndn.bv_len;
 			const char *text;
 			char textbuf[SLAP_TEXT_BUFLEN];
 			size_t textlen = sizeof textbuf;
