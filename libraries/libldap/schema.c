@@ -230,6 +230,35 @@ print_noidlen(safe_string *ss, char *s, int l)
 }
 
 char *
+ldap_syntax2str( LDAP_SYNTAX * syn )
+{
+	safe_string * ss;
+	char * retstring;
+	
+	ss = new_safe_string(256);
+	if ( !ss )
+		return NULL;
+
+	print_literal(ss,"(");
+	print_whsp(ss);
+
+	print_numericoid(ss, syn->syn_oid);
+	print_whsp(ss);
+
+	if ( syn->syn_desc ) {
+		print_literal(ss,"DESC");
+		print_qdstring(ss,syn->syn_desc);
+	}
+
+	print_whsp(ss);
+	print_literal(ss,")");
+
+	retstring = strdup(safe_string_val(ss));
+	safe_string_free(ss);
+	return(retstring);
+}
+
+char *
 ldap_objectclass2str( LDAP_OBJECT_CLASS * oc )
 {
 	safe_string * ss;
@@ -794,6 +823,111 @@ parse_oids(char **sp, int *code)
 }
 
 static void
+free_syn(LDAP_SYNTAX * syn)
+{
+	ldap_memfree(syn->syn_oid);
+	ldap_memfree(syn->syn_desc);
+	ldap_memfree(syn);
+}
+
+LDAP_SYNTAX *
+ldap_str2syntax( char * s, int * code, char ** errp )
+{
+	int kind;
+	char * ss = s;
+	char * sval;
+	int seen_desc = 0;
+	LDAP_SYNTAX * syn;
+	char ** ssdummy;
+
+	if ( !s ) {
+		*code = LDAP_SCHERR_EMPTY;
+		*errp = "";
+		return NULL;
+	}
+
+	*errp = s;
+	syn = LDAP_CALLOC(1,sizeof(LDAP_SYNTAX));
+
+	if ( !syn ) {
+		*code = LDAP_SCHERR_OUTOFMEM;
+		return NULL;
+	}
+
+	kind = get_token(&ss,&sval);
+	if ( kind != TK_LEFTPAREN ) {
+		*code = LDAP_SCHERR_NOLEFTPAREN;
+		free_syn(syn);
+		return NULL;
+	}
+
+	parse_whsp(&ss);
+	syn->syn_oid = parse_numericoid(&ss,code);
+	if ( !syn->syn_oid ) {
+		*errp = ss;
+		free_syn(syn);
+		return NULL;
+	}
+	parse_whsp(&ss);
+
+	/*
+	 * Beyond this point we will be liberal and accept the items
+	 * in any order.
+	 */
+	while (1) {
+		kind = get_token(&ss,&sval);
+		switch (kind) {
+		case TK_EOS:
+			*code = LDAP_SCHERR_NORIGHTPAREN;
+			*errp = ss;
+			free_syn(syn);
+			return NULL;
+		case TK_RIGHTPAREN:
+			return syn;
+		case TK_BAREWORD:
+			if ( !strcmp(sval,"DESC") ) {
+				if ( seen_desc ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					free_syn(syn);
+					return(NULL);
+				}
+				seen_desc = 1;
+				parse_whsp(&ss);
+				kind = get_token(&ss,&sval);
+				if ( kind != TK_QDSTRING ) {
+					*code = LDAP_SCHERR_UNEXPTOKEN;
+					*errp = ss;
+					free_syn(syn);
+					return NULL;
+				}
+				syn->syn_desc = sval;
+				parse_whsp(&ss);
+			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
+				/* Should be parse_qdstrings */
+				ssdummy = parse_qdescrs(&ss, code);
+				if ( !ssdummy ) {
+					*errp = ss;
+					free_syn(syn);
+					return NULL;
+				}
+			} else {
+				*code = LDAP_SCHERR_UNEXPTOKEN;
+				*errp = ss;
+				free_syn(syn);
+				return NULL;
+			}
+			break;
+		default:
+			*code = LDAP_SCHERR_UNEXPTOKEN;
+			*errp = ss;
+			free_syn(syn);
+			return NULL;
+		}
+	}
+}
+
+static void
 free_at(LDAP_ATTRIBUTE_TYPE * at)
 {
 	ldap_memfree(at->at_oid);
@@ -826,6 +960,7 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 	int seen_must = 0;
 	int seen_may = 0;
 	LDAP_ATTRIBUTE_TYPE * at;
+	char ** ssdummy;
 
 	if ( !s ) {
 		*code = LDAP_SCHERR_EMPTY;
@@ -1050,6 +1185,14 @@ ldap_str2attributetype( char * s, int * code, char ** errp )
 					return NULL;
 				}
 				parse_whsp(&ss);
+			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
+				/* Should be parse_qdstrings */
+				ssdummy = parse_qdescrs(&ss, code);
+				if ( !ssdummy ) {
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
 			} else {
 				*code = LDAP_SCHERR_UNEXPTOKEN;
 				*errp = ss;
@@ -1092,6 +1235,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 	int seen_must = 0;
 	int seen_may = 0;
 	LDAP_OBJECT_CLASS * oc;
+	char ** ssdummy;
 
 	if ( !s ) {
 		*code = LDAP_SCHERR_EMPTY;
@@ -1256,6 +1400,14 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 					return NULL;
 				}
 				parse_whsp(&ss);
+			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
+				/* Should be parse_qdstrings */
+				ssdummy = parse_qdescrs(&ss, code);
+				if ( !ssdummy ) {
+					*errp = ss;
+					free_oc(oc);
+					return NULL;
+				}
 			} else {
 				*code = LDAP_SCHERR_UNEXPTOKEN;
 				*errp = ss;
