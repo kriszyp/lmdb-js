@@ -164,7 +164,7 @@ typedef cond_t	pthread_cond_t;
 #define pthread_attr_init( a )		pthread_attr_create( a )
 #define pthread_attr_destroy( a )	pthread_attr_delete( a )
 #define pthread_attr_setdetachstate( a, b ) \
-					pthread_attr_setdetach_np( a, b )
+					pthread_attr_setdetach_np( (a), (b) )
 
 #else /* end dce pthreads */
 

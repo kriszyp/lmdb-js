@@ -60,7 +60,7 @@ struct ldap_searchobj {
 #define LDAP_SEARCHOBJ_OPT_INTERNAL	0x00000001
 
 #define LDAP_IS_SEARCHOBJ_OPTION_SET( so, option )	\
-	(((so)->so_options & option ) != 0 )
+	(((so)->so_options & (option) ) != 0 )
 
 #define LDAP_SEARCHPREF_VERSION_ZERO	0
 #define LDAP_SEARCHPREF_VERSION		1

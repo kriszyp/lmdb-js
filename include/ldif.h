@@ -34,7 +34,7 @@ extern "C" {
  */
 #define LDIF_SIZE_NEEDED(tlen,vlen) \
     ((tlen) + 4 + LDIF_BASE64_LEN(vlen) \
-    + ((LDIF_BASE64_LEN(vlen) + tlen + 3) / LINE_WIDTH * 2 ))
+    + ((LDIF_BASE64_LEN(vlen) + (tlen) + 3) / LINE_WIDTH * 2 ))
 
 
 #ifdef NEEDPROTOS

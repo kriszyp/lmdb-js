@@ -29,13 +29,13 @@ typedef struct avlnode {
 #define NULLAVL	((Avlnode *) NULL)
 
 /* balance factor values */
-#define LH 	-1
+#define LH 	(-1)
 #define EH 	0
 #define RH 	1
 
 /* avl routines */
-#define avl_getone(x)	(x == 0 ? 0 : (x)->avl_data)
-#define avl_onenode(x)	(x == 0 || ((x)->avl_left == 0 && (x)->avl_right == 0))
+#define avl_getone(x)	((x) == 0 ? 0 : (x)->avl_data)
+#define avl_onenode(x)	((x) == 0 || ((x)->avl_left == 0 && (x)->avl_right == 0))
 extern int		avl_insert();
 extern caddr_t		avl_delete();
 extern caddr_t		avl_find();
@@ -49,7 +49,7 @@ extern int		avl_apply();
 #define AVL_INORDER	2
 #define AVL_POSTORDER	3
 /* what apply returns if it ran out of nodes */
-#define AVL_NOMORE	-6
+#define AVL_NOMORE	(-6)
 
 typedef int	(*IFP)();
 

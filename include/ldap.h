@@ -64,16 +64,16 @@ extern int	ldap_syslog_level;
 #ifdef LDAP_SYSLOG
 #define Debug( level, fmt, arg1, arg2, arg3 )	\
 	{ \
-		if ( ldap_debug & level ) \
-			fprintf( stderr, fmt, arg1, arg2, arg3 ); \
+		if ( ldap_debug & (level) ) \
+			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) ); \
 		if ( ldap_syslog & level ) \
-			syslog( ldap_syslog_level, fmt, arg1, arg2, arg3 ); \
+			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
 	}
 #else /* LDAP_SYSLOG */
 #ifndef WINSOCK
 #define Debug( level, fmt, arg1, arg2, arg3 ) \
-		if ( ldap_debug & level ) \
-			fprintf( stderr, fmt, arg1, arg2, arg3 );
+		if ( ldap_debug & (level) ) \
+			fprintf( stderr, (fmt), (arg1), (arg2), (arg3) );
 #else /* !WINSOCK */
 extern void Debug( int level, char* fmt, ... );
 #endif /* !WINSOCK */
@@ -490,7 +490,7 @@ typedef struct friendly {
 /*
  * handy macro to check whether LDAP struct is set up for CLDAP or not
  */
-#define LDAP_IS_CLDAP( ld )	( ld->ld_sb.sb_naddr > 0 )
+#define LDAP_IS_CLDAP( ld )	( (ld)->ld_sb.sb_naddr > 0 )
 
 
 /*
