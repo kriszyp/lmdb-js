@@ -91,9 +91,7 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_search_stack_depth = DEFAULT_SEARCH_STACK_DEPTH;
 	bdb->bi_search_stack = NULL;
 
-#ifdef LDAP_SYNC
 	LDAP_LIST_INIT (&bdb->bi_psearch_list);
-#endif
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
@@ -674,13 +672,8 @@ bdb_initialize(
 
 	bi->bi_op_unbind = 0;
 
-#ifdef LDAP_SYNC
 	bi->bi_op_abandon = bdb_abandon;
 	bi->bi_op_cancel = bdb_cancel;
-#else
-	bi->bi_op_abandon = 0;
-	bi->bi_op_cancel = 0;
-#endif
 
 	bi->bi_extended = bdb_extended;
 

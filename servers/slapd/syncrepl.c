@@ -33,8 +33,6 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
-#ifdef LDAP_SYNCREPL
-
 #include "ldap_rq.h"
 
 static void
@@ -1696,4 +1694,3 @@ str2clist( char ***out, char *in, const char *brkstr )
 	free( str );
 	return( *out );
 }
-#endif

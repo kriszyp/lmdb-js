@@ -76,9 +76,7 @@ LDAP_BEGIN_DECL
 
 #define SLAP_MAX_WORKER_THREADS		(16)
 
-#ifdef LDAP_SYNCREPL
 #define SLAP_MAX_SYNCREPL_THREADS	(8)
-#endif
 
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
 #define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
@@ -644,14 +642,9 @@ typedef struct slap_object_class {
 #define	SLAP_OC_SUBENTRY	0x0004
 #define	SLAP_OC_DYNAMICOBJECT	0x0008
 #define	SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY	0x0010
-#ifdef LDAP_SYNCREPL
 #define SLAP_OC_GLUE		0x0020
 #define	SLAP_OC__MASK		0x003F
 #define	SLAP_OC__END		0x0040
-#else
-#define	SLAP_OC__MASK		0x001F
-#define	SLAP_OC__END		0x0020
-#endif
 #define SLAP_OC_OPERATIONAL	0x4000
 #ifdef LDAP_DEVEL
 #define SLAP_OC_HIDE		0x0000
@@ -720,11 +713,9 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_collectiveAttributeSubentry;
 	ObjectClass *si_oc_dynamicObject;
 
-#ifdef LDAP_SYNCREPL
 	ObjectClass *si_oc_glue;
 	ObjectClass *si_oc_syncConsumerSubentry;
 	ObjectClass *si_oc_syncProviderSubentry;
-#endif
 
 	/* objectClass attribute descriptions */
 	AttributeDescription *si_ad_objectClass;
@@ -749,11 +740,9 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_queryid;
 #endif /* LDAP_CACHING */
 
-#ifdef LDAP_SYNCREPL
 	AttributeDescription *si_ad_dseType;
 	AttributeDescription *si_ad_syncreplCookie;
 	AttributeDescription *si_ad_contextCSN;
-#endif
 
 	/* root DSE attribute descriptions */
 	AttributeDescription *si_ad_altServer;
@@ -1286,7 +1275,6 @@ typedef BackendDB Backend;
 #define nbackends nBackendDB
 #define backends backendDB
 
-#ifdef LDAP_SYNCREPL
 struct nonpresent_entry {
 	struct berval *dn;
 	struct berval *ndn;
@@ -1341,8 +1329,6 @@ typedef struct syncinfo_s {
 		int				sync_mode;
 		LDAP_LIST_HEAD(np, nonpresent_entry) nonpresentlist;
 } syncinfo_t;
-
-#endif /* LDAP_SYNCREPL */
 
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
@@ -1491,15 +1477,11 @@ struct slap_backend_db {
 	void	*be_private;	/* anything the backend database needs 	   */
 
 	void    *be_pb;         /* Netscape plugin */
-#ifdef LDAP_SYNC
 	LDAP_TAILQ_HEAD( pcl, slap_csn_entry )	be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	struct berval							be_context_csn;
 	ldap_pvt_thread_mutex_t					be_context_csn_mutex;
-#endif
-#ifdef LDAP_SYNCREPL
 	syncinfo_t	*syncinfo;	/* For syncrepl */
-#endif
 };
 
 struct slap_conn;
@@ -1807,7 +1789,6 @@ typedef struct slap_paged_state {
 } PagedResultsState;
 
 
-#ifdef LDAP_SYNC
 #define LDAP_PSEARCH_BY_ADD			0x01
 #define LDAP_PSEARCH_BY_DELETE		0x02
 #define LDAP_PSEARCH_BY_PREMODIFY	0x03
@@ -1828,8 +1809,6 @@ struct slap_csn_entry {
 	long state;
 	LDAP_TAILQ_ENTRY (slap_csn_entry) csn_link;
 };
-#endif
-
 
 /*
  * represents an operation pending from an ldap client
@@ -1954,7 +1933,6 @@ typedef struct slap_op {
 #define get_pagedresults(op)			(0)
 #endif
 
-#ifdef LDAP_SYNC
 	char o_sync;
 	char o_sync_mode;
 #define SLAP_SYNC_NONE				(0x0)
@@ -1966,7 +1944,6 @@ typedef struct slap_op {
 	int o_ps_entries;
 	LDAP_LIST_ENTRY(slap_op) o_ps_link;
 	LDAP_LIST_HEAD(pe, psid_entry) o_pm_list;
-#endif
 
 	AuthorizationInformation o_authz;
 
@@ -1992,9 +1969,7 @@ typedef struct slap_op {
 #define get_assertion(op)				((op)->o_assertion)
 	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
-#ifdef LDAP_SYNCREPL
 	syncinfo_t*	o_si;
-#endif
 
 #ifdef LDAP_SLAPI
 	void    *o_pb;                  /* NS-SLAPI plugin */
@@ -2200,9 +2175,7 @@ enum {
 #define SLAP_LDAPDN_PRETTY 0x1
 #define SLAP_LDAPDN_MAXLEN 8192
 
-#ifdef LDAP_SYNC
 #define SLAP_SEARCH_MAX_CTRLS   10
-#endif
 
 #ifdef LDAP_DEVEL
 #define SLAP_CTRL_HIDE				0x00000000U

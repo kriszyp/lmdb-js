@@ -78,7 +78,6 @@ int cancel_extop( Operation *op, SlapReply *rs )
 	}
 
 	if ( !found ) {
-#ifdef LDAP_SYNC
 		for ( i = 0; i < nbackends; i++ ) {
 			op->o_bd = &backends[i];
 			if( !op->o_bd->be_cancel ) continue;
@@ -91,7 +90,6 @@ int cancel_extop( Operation *op, SlapReply *rs )
 			}
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		}
-#endif
 		ldap_pvt_thread_mutex_unlock( &op->o_conn->c_mutex );
 		rs->sr_text = "message ID not found";
 	 	return LDAP_NO_SUCH_OPERATION;

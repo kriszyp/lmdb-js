@@ -353,13 +353,11 @@ do_modrdn(
 	if ( op->o_bd->be_modrdn ) {
 		/* do the update here */
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
-#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		if ( !op->o_bd->syncinfo &&
 					( !op->o_bd->be_update_ndn.bv_len || repl_user ))
-#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->syncinfo )  /* LDAP_SYNCREPL overrides MM */
-#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
+#else
+		if ( !op->o_bd->syncinfo )
 #endif
 		{
 			op->orr_deleteoldrdn = deloldrdn;
@@ -370,15 +368,12 @@ do_modrdn(
 			) {
 				replog( op );
 			}
-#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
-#ifdef LDAP_SYNCREPL
 			if ( op->o_bd->syncinfo ) {
 				defref = op->o_bd->syncinfo->provideruri_bv;
-			} else
-#endif
-			{
+			} else {
 				defref = op->o_bd->be_update_refs
 						? op->o_bd->be_update_refs : default_referral;
 			}
@@ -417,9 +412,7 @@ do_modrdn(
 
 cleanup:
 
-#ifdef LDAP_SYNC
 	slap_graduate_commit_csn( op );
-#endif
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );

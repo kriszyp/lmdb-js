@@ -128,18 +128,14 @@ BackendInfo	*backendInfo = NULL;
 int			nBackendDB = 0; 
 BackendDB	*backendDB = NULL;
 
-#ifdef LDAP_SYNCREPL
 ldap_pvt_thread_pool_t	syncrepl_pool;
 int			syncrepl_pool_max = SLAP_MAX_SYNCREPL_THREADS;
-#endif
 
 int backend_init(void)
 {
 	int rc = -1;
 
-#ifdef LDAP_SYNCREPL
 	ldap_pvt_thread_pool_init( &syncrepl_pool, syncrepl_pool_max, 0 );
-#endif
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
@@ -248,9 +244,7 @@ int backend_startup(Backend *be)
 	int i;
 	int rc = 0;
 
-#ifdef LDAP_SYNCREPL
 	init_syncrepl();
-#endif
 
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
@@ -268,9 +262,7 @@ int backend_startup(Backend *be)
 	if(be != NULL) {
 		/* startup a specific backend database */
 
-#ifdef LDAP_SYNC
 		LDAP_TAILQ_INIT( &be->be_pending_csn_list );
-#endif
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACKEND, DETAIL1, "backend_startup:  starting \"%s\"\n",
@@ -338,20 +330,16 @@ int backend_startup(Backend *be)
 		}
 	}
 
-#ifdef LDAP_SYNCREPL
 	ldap_pvt_thread_mutex_init( &syncrepl_rq.rq_mutex );
 	LDAP_STAILQ_INIT( &syncrepl_rq.task_list );
 	LDAP_STAILQ_INIT( &syncrepl_rq.run_list );
-#endif
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
 
-#ifdef LDAP_SYNC
 		LDAP_TAILQ_INIT( &backendDB[i].be_pending_csn_list );
-#endif
 
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
@@ -369,7 +357,6 @@ int backend_startup(Backend *be)
 			}
 		}
 
-#ifdef LDAP_SYNCREPL
 		if ( backendDB[i].syncinfo != NULL ) {
 			syncinfo_t *si = ( syncinfo_t * ) backendDB[i].syncinfo;
 			si->be = &backendDB[i];
@@ -378,7 +365,6 @@ int backend_startup(Backend *be)
 							do_syncrepl, (void *) backendDB[i].syncinfo );
 			ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 		}
-#endif
 	}
 
 	return rc;
@@ -461,9 +447,7 @@ int backend_destroy(void)
 	int i;
 	BackendDB *bd;
 
-#ifdef LDAP_SYNCREPL
-        ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
-#endif
+	ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
 
 	/* destroy each backend database */
 	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
@@ -544,16 +528,12 @@ backend_db_init(
 	be->be_requires = global_requires;
 	be->be_ssf_set = global_ssf_set;
 
-#ifdef LDAP_SYNC
 	be->be_context_csn.bv_len = 0;
 	be->be_context_csn.bv_val = NULL;
 	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
 	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
-#endif
 
-#ifdef LDAP_SYNCREPL
 	be->syncinfo = NULL;
-#endif
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 

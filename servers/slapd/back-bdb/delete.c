@@ -35,13 +35,11 @@ bdb_delete( Operation *op, SlapReply *rs )
 
 	int		num_retries = 0;
 
-#ifdef LDAP_SYNC
 	Operation* ps_list;
 	int     rc;
 	EntryInfo   *suffix_ei;
 	Entry       *ctxcsn_e;
 	int         ctxcsn_added = 0;
-#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS,  "==> bdb_delete: %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -230,11 +228,8 @@ retry:	/* transaction retry */
 		}
 	}
 
-#ifdef LDAP_SYNCREPL /* FIXME : dn2entry() should return non-glue entry */
+	/* FIXME : dn2entry() should return non-glue entry */
 	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
-#else
-	if ( e == NULL ) {
-#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ARGS, 
 			"<=- bdb_delete: no such object %s\n", op->o_req_dn.bv_val, 0, 0);
@@ -253,12 +248,8 @@ retry:	/* transaction retry */
 			matched = NULL;
 
 		} else {
-#ifdef LDAP_SYNCREPL
 			BerVarray deref = op->o_bd->syncinfo ?
 							  op->o_bd->syncinfo->provideruri_bv : default_referral;
-#else
-			BerVarray deref = default_referral;
-#endif
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
@@ -460,11 +451,7 @@ retry:	/* transaction retry */
 	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
 #endif
 
-#ifdef LDAP_SYNCREPL
-	if ( !op->o_bd->syncinfo )
-#endif
-#ifdef LDAP_SYNC
-	{
+	if ( !op->o_bd->syncinfo ) {
 		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
 		case BDB_CSN_ABORT :
@@ -473,7 +460,6 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 	}
-#endif
 
 	if( op->o_noop ) {
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
@@ -483,25 +469,18 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_SUCCESS;
 		}
 	} else {
-#ifdef LDAP_SYNC
 		struct berval ctx_nrdn;
-#endif
 
 		bdb_cache_delete( &bdb->bi_cache, e, bdb->bi_dbenv,
 			locker, &lock );
 
-#ifdef LDAP_SYNCREPL
-		if ( !op->o_bd->syncinfo )
-#endif
-#ifdef LDAP_SYNC
-		{
+		if ( !op->o_bd->syncinfo ) {
 			if ( ctxcsn_added ) {
 				ctx_nrdn.bv_val = "cn=ldapsync";
 				ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
 				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
 			}
 		}
-#endif
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}
@@ -540,13 +519,11 @@ retry:	/* transaction retry */
 return_results:
 	send_ldap_result( op, rs );
 
-#ifdef LDAP_SYNC
 	if ( rs->sr_err == LDAP_SUCCESS && !noop ) {
 		LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, e, LDAP_PSEARCH_BY_DELETE );
 		}
 	}
-#endif
 
 	if(rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();

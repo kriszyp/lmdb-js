@@ -173,12 +173,8 @@ retry:	/* transaction retry */
 
 	if ( ei ) e = ei->bei_e;
 
-#ifdef LDAP_SYNCREPL
 	if ( e == NULL || is_entry_glue( e )) {
 			/* FIXME: dn2entry() should return non-glue entry */
-#else
-	if ( e == NULL ) {
-#endif
 		rs->sr_text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;

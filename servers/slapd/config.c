@@ -80,10 +80,8 @@ static int	fp_parse_line(int lineno, char *line);
 static char	*strtok_quote(char *line, char *sep);
 static int      load_ucdata(char *path);
 
-#ifdef LDAP_SYNCREPL
 static void     add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int      parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
-#endif
 
 int
 read_config( const char *fname, int depth )
@@ -1747,12 +1745,10 @@ read_config( const char *fname, int depth )
 				ldap_syslog += atoi( cargv[1] );
 			}
 
-#ifdef LDAP_SYNCREPL
 		/* list of sync replication information in this backend (slave only) */
 		} else if ( strcasecmp( cargv[0], "syncrepl" ) == 0 ) {
 
 			add_syncrepl( be, cargv, cargc );
-#endif
 
 		/* list of replicas of the data in this backend (master only) */
 		} else if ( strcasecmp( cargv[0], "replica" ) == 0 ) {
@@ -2733,7 +2729,6 @@ config_destroy( )
 	acl_destroy( global_acl, NULL );
 }
 
-#ifdef LDAP_SYNCREPL
 static void
 add_syncrepl(
 	Backend *be,
@@ -3046,4 +3041,3 @@ parse_syncrepl_line(
 
 	return 0;
 }
-#endif /* LDAP_SYNCREPL */

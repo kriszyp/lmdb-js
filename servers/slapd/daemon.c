@@ -20,9 +20,7 @@
 #include "lutil.h"
 #include "slap.h"
 
-#ifdef LDAP_SYNCREPL
 #include "ldap_rq.h"
-#endif
 
 #ifdef HAVE_TCPD
 #include <tcpd.h>
@@ -1256,11 +1254,9 @@ slapd_daemon_task(
 		struct timeval		tv;
 		struct timeval		*tvp;
 
-#ifdef LDAP_SYNCREPL
 		struct timeval		*cat;
 		time_t				tdelta = 1;
 		struct re_s*		rtask;
-#endif
 		now = slap_get_time();
 
 		if( ( global_idletimeout > 0 ) &&
@@ -1349,7 +1345,6 @@ slapd_daemon_task(
 		else
 			tvp = NULL;
 
-#ifdef LDAP_SYNCREPL
 		ldap_pvt_thread_mutex_lock( &syncrepl_rq.rq_mutex );
 		rtask = ldap_pvt_runqueue_next_sched( &syncrepl_rq, &cat );
 		while ( cat && cat->tv_sec && cat->tv_sec <= now ) {
@@ -1377,7 +1372,6 @@ slapd_daemon_task(
 				tvp = &tv;
 			}
 		}
-#endif
 
 		for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 			if ( slap_listeners[l]->sl_sd == AC_SOCKET_INVALID ||

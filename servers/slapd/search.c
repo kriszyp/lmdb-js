@@ -337,12 +337,9 @@ do_search(
 	/* Sync control overrides manageDSAit */
 
 	if ( manageDSAit != SLAP_NO_CONTROL ) {
-#ifdef LDAP_SYNC
 		if ( op->o_sync_mode & SLAP_SYNC_REFRESH ) {
 			be_manageDSAit = SLAP_NO_CONTROL;
-		} else
-#endif
-		{
+		} else {
 			be_manageDSAit = manageDSAit;
 		}
 	} else {
@@ -399,10 +396,8 @@ do_search(
 
 return_results:;
 
-#ifdef LDAP_SYNC
 	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) )
 		return rs->sr_err;
-#endif
 
 	if( op->o_req_dn.bv_val != NULL) sl_free( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	if( op->o_req_ndn.bv_val != NULL) sl_free( op->o_req_ndn.bv_val, op->o_tmpmemctx );

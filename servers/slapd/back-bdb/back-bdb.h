@@ -14,9 +14,7 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef LDAP_SYNCREPL
 #define BDB_SUBENTRIES 1
-#endif
 
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
@@ -158,9 +156,7 @@ struct bdb_info {
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
-#ifdef LDAP_SYNC
 	LDAP_LIST_HEAD(pl, slap_op) bi_psearch_list;
-#endif
 #ifdef SLAP_IDL_CACHE
 	int		bi_idl_cache_max_size;
 	int		bi_idl_cache_size;
@@ -223,11 +219,9 @@ struct bdb_op_info {
 
 #define BDB_REUSE_LOCKERS
 
-#ifdef LDAP_SYNC
 #define BDB_CSN_COMMIT	0
 #define BDB_CSN_ABORT	1
 #define BDB_CSN_RETRY	2
-#endif
 
 LDAP_END_DECL
 

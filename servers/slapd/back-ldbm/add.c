@@ -51,11 +51,7 @@ ldbm_back_add(
 #endif
 
 		send_ldap_result( op, rs );
-#ifdef LDAP_SYNCREPL
 		return rs->sr_err;
-#else
-		return( -1 );
-#endif
 	}
 
 #ifdef LDBM_SUBENTRIES
@@ -77,11 +73,7 @@ ldbm_back_add(
 		send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 		    "no write access to entry" );
 
-#ifdef LDAP_SYNCREPL
 		return LDAP_INSUFFICIENT_ACCESS;
-#else
-		return -1;
-#endif
 	}
 
 	/* grab giant lock for writing */
@@ -92,11 +84,7 @@ ldbm_back_add(
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_err = rs->sr_err ? LDAP_OTHER : LDAP_ALREADY_EXISTS;
 		send_ldap_result( op, rs );
-#ifdef LDAP_SYNCREPL
 		return rs->sr_err;
-#else
-		return( -1 );
-#endif
 	}
 
 	/*
@@ -147,11 +135,7 @@ ldbm_back_add(
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
 
-#ifdef LDAP_SYNCREPL
 			return rs->sr_err;
-#else
-			return -1;
-#endif
 		}
 
 		if ( ! access_allowed( op, p,
@@ -173,11 +157,7 @@ ldbm_back_add(
 			send_ldap_error( op, rs, LDAP_INSUFFICIENT_ACCESS,
 			    "no write access to parent" );
 
-#ifdef LDAP_SYNCREPL
 			return LDAP_INSUFFICIENT_ACCESS;
-#else
-			return -1;
-#endif
 		}
 
 #ifdef LDBM_SUBENTRIES
@@ -214,11 +194,7 @@ ldbm_back_add(
 			send_ldap_error( op, rs, LDAP_ALIAS_PROBLEM,
 			    "parent is an alias" );
 
-#ifdef LDAP_SYNCREPL
 			return LDAP_ALIAS_PROBLEM;
-#else
-			return -1;
-#endif
 		}
 
 		if ( is_entry_referral( p ) ) {
@@ -244,11 +220,7 @@ ldbm_back_add(
 
 			ber_bvarray_free( rs->sr_ref );
 			free( (char *)rs->sr_matched );
-#ifdef LDAP_SYNCREPL
 			return rs->sr_err;
-#else
-			return -1;
-#endif
 		}
 
 #ifdef LDBM_SUBENTRIES
@@ -291,17 +263,9 @@ ldbm_back_add(
 						LDAP_INSUFFICIENT_ACCESS,
 						"no write access to parent" );
 
-#ifdef LDAP_SYNCREPL
 					return LDAP_INSUFFICIENT_ACCESS;
-#else
-					return -1;
-#endif
 				}
-#ifdef LDAP_SYNCREPL
 			} else if ( !is_entry_glue( op->oq_add.rs_e )) {
-#else
-			} else {
-#endif
 				ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 #ifdef NEW_LOGGING
@@ -318,11 +282,7 @@ ldbm_back_add(
 				send_ldap_error( op, rs,
 						LDAP_NO_SUCH_OBJECT, NULL );
 
-#ifdef LDAP_SYNCREPL
 					return LDAP_NO_SUCH_OBJECT;
-#else
-					return -1;
-#endif
 			}
 		}
 
@@ -362,11 +322,7 @@ ldbm_back_add(
 		send_ldap_error( op, rs, LDAP_OTHER,
 			"next_id add failed" );
 
-#ifdef LDAP_SYNCREPL
 		return LDAP_OTHER;
-#else
-		return( -1 );
-#endif
 	}
 
 	/*
@@ -394,11 +350,7 @@ ldbm_back_add(
 		rs->sr_err = rs->sr_err > 0 ? LDAP_ALREADY_EXISTS : LDAP_OTHER;
 		send_ldap_result( op, rs );
 
-#ifdef LDAP_SYNCREPL
 		return rs->sr_err;
-#else
-		return( -1 );
-#endif
 	}
 
 	rs->sr_err = -1;

@@ -30,7 +30,6 @@
 #include "back-bdb.h"
 #include "external.h"
 
-#ifdef LDAP_SYNC
 int
 bdb_csn_commit(
 	Operation *op,
@@ -201,4 +200,3 @@ rewind :
 	slap_rewind_commit_csn( op );
 	return BDB_CSN_RETRY;
 }
-#endif

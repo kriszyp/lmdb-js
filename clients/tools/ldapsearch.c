@@ -75,10 +75,8 @@ usage( void )
 #ifdef LDAP_CONTROL_SUBENTRIES
 	fprintf( stderr, _("             [!]subentries[=true|false]  (subentries)\n"));
 #endif
-#ifdef LDAP_SYNC
 	fprintf( stderr, _("             [!]sync=ro[/<cookie>]            (LDAP Sync refreshOnly)\n"));
 	fprintf( stderr, _("                     rp[/<cookie>][/<slimit>] (LDAP Sync refreshAndPersist)\n"));
-#endif
 	fprintf( stderr, _("  -F prefix  URL prefix for files (default: %s)\n"), def_urlpre);
 	fprintf( stderr, _("  -l limit   time limit (in seconds) for search\n"));
 	fprintf( stderr, _("  -L         print responses in LDIFv1 format\n"));
@@ -153,11 +151,9 @@ static char	*vrFilter = NULL;
 static int domainScope = 0;
 #endif
 
-#ifdef LDAP_SYNC
 static int ldapsync = 0;
 static struct berval sync_cookie = { 0, NULL };
 static int sync_slimit = -1;
-#endif
 
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 static int pagedResults = 0;
@@ -313,7 +309,6 @@ handle_private_option( int i )
 			if( crit ) subentries *= -1;
 #endif
 
-#ifdef LDAP_SYNC
 	} else if ( strcasecmp( control, "sync" ) == 0 ) {
 			char *cookiep;
 			char *slimitp;
@@ -357,7 +352,6 @@ handle_private_option( int i )
 				exit( EXIT_FAILURE );
 			}
 			if ( crit ) ldapsync *= -1;
-#endif
 
 		} else {
 			fprintf( stderr, _("Invalid control name: %s\n"), control );
@@ -447,10 +441,8 @@ main( int argc, char **argv )
 	LDAP		*ld = NULL;
 	BerElement	*seber = NULL, *vrber = NULL, *prber = NULL;
 
-#ifdef LDAP_SYNC
 	BerElement      *syncber = NULL;
 	struct berval   *syncbvalp = NULL;
-#endif
 
 	tool_init();
 
@@ -555,9 +547,7 @@ getNextPage:
 #ifdef LDAP_CONTROL_PAGEDRESULTS
 		|| pageSize
 #endif
-#ifdef LDAP_SYNC
 		|| ldapsync
-#endif
 		|| subentries || valuesReturnFilter )
 	{
 		int err;
@@ -597,7 +587,6 @@ getNextPage:
 		}
 #endif
 
-#ifdef LDAP_SYNC
 		if ( ldapsync ) {
 			if (( syncber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 				return EXIT_FAILURE;
@@ -625,7 +614,6 @@ getNextPage:
 			c[i].ldctl_iscritical = ldapsync < 0;
 			i++;
 		}
-#endif
 
 		if ( valuesReturnFilter ) {
 	        if (( vrber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
@@ -831,12 +819,10 @@ static int dosearch(
 	int			npartial;
 	LDAPMessage		*res, *msg;
 	ber_int_t		msgid;
-#ifdef LDAP_SYNC
 	char			*retoid = NULL;
 	struct berval		*retdata = NULL;
 	int			nresponses_psearch = -1;
 	int			cancel_msgid = -1;
-#endif
 
 	if( filtpatt != NULL ) {
 		filter = malloc( strlen( filtpatt ) + strlen( value ) );
@@ -894,10 +880,8 @@ static int dosearch(
 			msg = ldap_next_message( ld, msg ) )
 		{
 			if ( nresponses++ ) putchar('\n');
-#if LDAP_SYNC
 			if ( nresponses_psearch >= 0 ) 
 				nresponses_psearch++;
-#endif
 
 			switch( ldap_msgtype( msg ) ) {
 			case LDAP_RES_SEARCH_ENTRY:
@@ -919,14 +903,12 @@ static int dosearch(
 					goto done;
 				}
 
-#ifdef LDAP_SYNC
 				if ( cancel_msgid != -1 &&
 						cancel_msgid == ldap_msgid( msg ) ) {
 					printf(_("Cancelled \n"));
 					printf(_("cancel_msgid = %d\n"), cancel_msgid);
 					goto done;
 				}
-#endif
 				break;
 
 			case LDAP_RES_SEARCH_RESULT:
@@ -937,19 +919,14 @@ static int dosearch(
 				}
 #endif
 
-#ifdef LDAP_SYNC
 				if ( ldapsync == LDAP_SYNC_REFRESH_AND_PERSIST ) {
 					break;
 				}
-#endif
 
 				goto done;
 
 			case LDAP_RES_INTERMEDIATE:
 				npartial++;
-#ifndef LDAP_SYNC
-				print_partial( ld, msg );
-#else
 				ldap_parse_intermediate( ld, msg,
 					&retoid, &retdata, NULL, 0 );
 
@@ -966,10 +943,8 @@ static int dosearch(
 				ldap_memfree( retoid );
 				ber_bvfree( retdata );
 				goto done;
-#endif
 			}
 
-#ifdef LDAP_SYNC
 			if ( ldapsync && sync_slimit != -1 &&
 					nresponses_psearch >= sync_slimit ) {
 				BerElement *msgidber = NULL;
@@ -981,8 +956,6 @@ static int dosearch(
 						msgidvalp, NULL, NULL, &cancel_msgid);
 				nresponses_psearch = -1;
 			}
-#endif
-
 		}
 
 		ldap_msgfree( res );

@@ -477,7 +477,6 @@ void bdb_cache_delete_cleanup(
 );
 void bdb_cache_release_all( Cache *cache );
 
-#ifdef LDAP_SYNC
 #define bdb_cache_entry_db_relock		BDB_SYMBOL(cache_entry_db_relock)
 int bdb_cache_entry_db_relock(
 	DB_ENV *env,
@@ -486,7 +485,6 @@ int bdb_cache_entry_db_relock(
 	int rw,
 	int tryOnly,
 	DB_LOCK *lock );
-#endif
 
 #ifdef BDB_REUSE_LOCKERS
 
@@ -507,8 +505,6 @@ int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
  * search.c
  */
 
-#ifdef LDAP_SYNC
-
 #define bdb_abandon					BDB_SYMBOL(abandon)
 #define bdb_cancel					BDB_SYMBOL(cancel)
 #define bdb_do_search				BDB_SYMBOL(do_search)
@@ -524,10 +520,7 @@ int bdb_do_search(
 	int             psearch_type
 );
 #define	bdb_psearch(op, rs, sop, e, ps_type)	bdb_do_search(op, rs, sop, e, ps_type)
-#endif
 
-
-#ifdef LDAP_SYNC
 #define bdb_build_sync_state_ctrl	BDB_SYMBOL(build_sync_state_ctrl)
 #define bdb_build_sync_done_ctrl	BDB_SYMBOL(build_sync_done_ctrl)
 #define bdb_send_ldap_intermediate	BDB_SYMBOL(send_ldap_intermediate)
@@ -558,7 +551,6 @@ bdb_send_ldap_intermediate(
 	SlapReply	*rs,
 	int         state,
 	struct berval *cookie );
-#endif
 
 /*
  * trans.c

@@ -358,13 +358,11 @@ LDAP_SLAPD_F (ContentRule *) cr_bvfind LDAP_P((
  * ctxcsn.c
  */
 
-#ifdef LDAP_SYNC
 LDAP_SLAPD_F (struct berval *) slap_get_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (void) slap_rewind_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (void) slap_graduate_commit_csn LDAP_P(( Operation * ));
 LDAP_SLAPD_F (Entry *) slap_create_context_csn_entry LDAP_P(( Backend *, struct berval *));
 LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, const char *, int, struct berval *, int ));
-#endif
 
 /*
  * daemon.c
@@ -734,12 +732,10 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) != 0) \
 	 : is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1))
-#ifdef LDAP_SYNCREPL
 #define is_entry_glue(e)	\
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_GLUE) != 0) \
 	 : is_entry_objectclass((e), slap_schema.si_oc_glue, 1))
-#endif
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 
@@ -1159,7 +1155,6 @@ LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
  * syncrepl
  */
 
-#ifdef LDAP_SYNCREPL
 LDAP_SLAPD_V (struct runqueue_s) syncrepl_rq;
 
 LDAP_SLAPD_F (void) init_syncrepl LDAP_P(());
@@ -1179,7 +1174,6 @@ LDAP_SLAPD_F (char **) str2clist LDAP_P(( char ***, char *, const char * ));
 
 LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( syncinfo_t *, LDAP *, Operation*, Entry*,
 							Modifications*, int, struct berval*, struct berval* ));
-#endif
 
 LDAP_END_DECL
 

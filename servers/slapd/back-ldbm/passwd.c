@@ -103,12 +103,8 @@ ldbm_back_exop_passwd(
 
 	e = dn2entry_w( op->o_bd, &ndn, NULL );
 
-#ifdef LDAP_SYNCREPL
 	if ( e == NULL || is_entry_glue( e )) {
-			/* FIXME : dn2entry() should return non-glue entry */
-#else
-	if( e == NULL ) {
-#endif
+		/* FIXME : dn2entry() should return non-glue entry */
 		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		rs->sr_text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;

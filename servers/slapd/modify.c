@@ -445,13 +445,11 @@ do_modify(
 		/* Multimaster slapd does not have to check for replicator dn
 		 * because it accepts each modify request
 		 */
-#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		if ( !op->o_bd->syncinfo &&
 			( !op->o_bd->be_update_ndn.bv_len || repl_user ))
-#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->syncinfo )  /* LDAP_SYNCREPL overrides MM */
-#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
+#else
+		if ( !op->o_bd->syncinfo )
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;
@@ -492,16 +490,13 @@ do_modify(
 				replog( op );
 			}
 
-#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		/* send a referral */
 		} else {
 			BerVarray defref = NULL;
-#ifdef LDAP_SYNCREPL
 			if ( op->o_bd->syncinfo ) {
 				defref = op->o_bd->syncinfo->provideruri_bv;
-			} else
-#endif
-			{
+			} else {
 				defref = op->o_bd->be_update_refs
 						? op->o_bd->be_update_refs : default_referral;
 			}
@@ -543,9 +538,7 @@ do_modify(
 
 cleanup:
 
-#ifdef LDAP_SYNC
 	slap_graduate_commit_csn( op );
-#endif
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 	op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
@@ -773,19 +766,12 @@ int slap_mods_opattrs(
 	int mop = op->o_tag == LDAP_REQ_ADD
 		? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
 
-#ifdef LDAP_SYNCREPL
 	syncinfo_t *si = op->o_si;
-#endif
 
 	assert( modtail != NULL );
 	assert( *modtail == NULL );
 
-#ifdef LDAP_SYNCREPL
-	if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN ))
-#else
-	if ( SLAP_LASTMOD(op->o_bd) )
-#endif
-	{
+	if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN )) {
 		struct tm *ltm;
 		time_t now = slap_get_time();
 
@@ -793,11 +779,7 @@ int slap_mods_opattrs(
 		ltm = gmtime( &now );
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 
-#ifdef LDAP_SYNC
 		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
-#else
-		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 0 );
-#endif
 
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
@@ -842,17 +824,10 @@ int slap_mods_opattrs(
 			modtail = &mod->sml_next;
 		}
 
-#ifdef LDAP_SYNCREPL
-		if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN ))
-#else
-		if ( SLAP_LASTMOD(op->o_bd) )
-#endif
-		{
+		if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN )) {
 			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 
-#ifdef LDAP_SYNCREPL
 			if ( !si ) {
-#endif
 				tmpval.bv_len = lutil_uuidstr( uuidbuf, sizeof( uuidbuf ) );
 				tmpval.bv_val = uuidbuf;
 		
@@ -869,9 +844,7 @@ int slap_mods_opattrs(
 				mod->sml_nvalues = NULL;
 				*modtail = mod;
 				modtail = &mod->sml_next;
-#ifdef LDAP_SYNCREPL
 			}
-#endif
 
 			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 			mod->sml_op = mop;
@@ -906,12 +879,7 @@ int slap_mods_opattrs(
 		}
 	}
 
-#ifdef LDAP_SYNCREPL
-	if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN ))
-#else
-	if ( SLAP_LASTMOD(op->o_bd) )
-#endif
-	{
+	if ( SLAP_LASTMOD(op->o_bd) && ( !si || si->lastmod == LASTMOD_GEN )) {
 		mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
 		mod->sml_op = mop;
 		mod->sml_type.bv_val = NULL;

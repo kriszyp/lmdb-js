@@ -115,11 +115,7 @@ ldbm_back_search(
 
 		ber_bvarray_free( rs->sr_ref );
 		ber_memfree( matched_dn.bv_val );
-#ifdef LDAP_SYNCREPL
 		return LDAP_REFERRAL;
-#else
-		return 1;
-#endif
 	}
 
 	if (!manageDSAit && is_entry_referral( e ) ) {
@@ -163,11 +159,7 @@ ldbm_back_search(
 		}
 
 		ber_memfree( matched_dn.bv_val );
-#ifdef LDAP_SYNCREPL
 		return LDAP_OTHER;
-#else
-		return 1;
-#endif
 	}
 
 	if ( is_entry_alias( e ) ) {
@@ -205,11 +197,7 @@ searchit:
 		rs->sr_err = LDAP_SUCCESS;
 		send_ldap_result( op, rs );
 
-#ifdef LDAP_SYNCREPL
 		rc = LDAP_OTHER;
-#else
-		rc = 1;
-#endif
 		goto done;
 	}
 
@@ -454,11 +442,9 @@ searchit:
 			goto loop_continue;
 		}
 
-#ifdef LDAP_SYNCREPL
 		if ( !manageDSAit && is_entry_glue( e )) {
 			goto loop_continue;
 		}
-#endif
 
 		/* if it matches the filter and scope, send it */
 		result = test_filter( op, e, op->oq_search.rs_filter );

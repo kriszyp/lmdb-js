@@ -35,13 +35,11 @@ bdb_add(Operation *op, SlapReply *rs )
 
 	int		num_retries = 0;
 
-#ifdef LDAP_SYNC
 	Operation* ps_list;
 	int		rc;
 	EntryInfo	*suffix_ei;
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
-#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ARGS, "==> bdb_add: %s\n", op->oq_add.rs_e->e_name.bv_val, 0, 0 );
@@ -317,11 +315,7 @@ retry:	/* transaction retry */
 					rs->sr_text = "no write access to parent";
 					goto return_results;
 				}
-#ifdef LDAP_SYNCREPL
 			} else if ( !is_entry_glue( op->oq_add.rs_e )) {
-#else
-			} else {
-#endif
 #ifdef NEW_LOGGING
 				LDAP_LOG ( OPERATION, DETAIL1, "bdb_add: %s denied\n", 
 					pdn.bv_len == 0 ? "suffix" : "entry at root", 0, 0 );
@@ -470,11 +464,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef LDAP_SYNCREPL
-	if ( !op->o_bd->syncinfo )
-#endif
-#ifdef LDAP_SYNC
-	{
+	if ( !op->o_bd->syncinfo ) {
 		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
 		case BDB_CSN_ABORT :
@@ -483,7 +473,6 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 	}
-#endif
 
 	if ( op->o_noop ) {
 		if (( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
@@ -504,9 +493,7 @@ retry:	/* transaction retry */
 
 		} else {
 			struct berval nrdn;
-#ifdef LDAP_SYNC
 			struct berval ctx_nrdn;
-#endif
 
 			if (pdn.bv_len) {
 				nrdn.bv_val = op->ora_e->e_nname.bv_val;
@@ -517,18 +504,13 @@ retry:	/* transaction retry */
 
 			bdb_cache_add( bdb, ei, op->oq_add.rs_e, &nrdn, locker );
 
-#ifdef LDAP_SYNCREPL
-			if ( !op->o_bd->syncinfo )
-#endif
-#ifdef LDAP_SYNC
-			{
+			if ( !op->o_bd->syncinfo ) {
 				if ( ctxcsn_added ) {
 					ctx_nrdn.bv_val = "cn=ldapsync";
 					ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
 					bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
 				}
 			}
-#endif
 
 			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 				rs->sr_text = "txn_commit failed";
@@ -566,13 +548,11 @@ retry:	/* transaction retry */
 return_results:
 	send_ldap_result( op, rs );
 
-#ifdef LDAP_SYNC
 	if ( rs->sr_err == LDAP_SUCCESS && !noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch( op, rs, ps_list, op->oq_add.rs_e, LDAP_PSEARCH_BY_ADD );
 		}
 	}
-#endif
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();

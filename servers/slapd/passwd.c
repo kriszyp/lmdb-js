@@ -52,16 +52,14 @@ int passwd_extop(
 		rs->sr_err = LDAP_OTHER;
 #endif
 
-#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 	/* This does not apply to multi-master case */
 	} else if( op->o_bd->be_update_ndn.bv_len ) {
 		/* we SHOULD return a referral in this case */
 		BerVarray defref = NULL;
-#ifdef LDAP_SYNCREPL
 		if ( op->o_bd->syncinfo ) {
 			defref = op->o_bd->syncinfo->provideruri_bv;
 		} else
-#endif
 		{
 			defref = referral_rewrite( op->o_bd->be_update_refs,
 				NULL, NULL, LDAP_SCOPE_DEFAULT );

@@ -13,9 +13,7 @@
 
 #include "../slap.h"
 
-#ifdef LDAP_SYNCREPL
 #include "ldap_rq.h"
-#endif
 
 /* needed by WIN32 and back-monitor */
 time_t starttime;
@@ -262,7 +260,6 @@ int root_dse_info( Connection *conn, Entry **entry, const char **text )
 	return -1;
 }
 
-#ifdef LDAP_SYNCREPL
 struct runqueue_s syncrepl_rq;
 
 void init_syncrepl( )
@@ -307,5 +304,4 @@ Entry *slap_create_context_csn_entry( Backend *be, struct berval *context_csn )
 {
 	return NULL;
 }
-#endif
 #endif

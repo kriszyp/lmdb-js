@@ -314,11 +314,8 @@ ldbm_back_modify(
 	/* acquire and lock entry */
 	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
 
-#ifdef LDAP_SYNCREPL /* FIXME: dn2entry() should return non-glue entry */
+	/* FIXME: dn2entry() should return non-glue entry */
 	if (( e == NULL ) || ( !manageDSAit && e && is_entry_glue( e ))) {
-#else
-	if ( e == NULL ) {
-#endif
 		if ( matched != NULL ) {
 			rs->sr_matched = ch_strdup( matched->e_dn );
 			rs->sr_ref = is_entry_referral( matched )
@@ -326,12 +323,8 @@ ldbm_back_modify(
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-#ifdef LDAP_SYNCREPL
 			BerVarray deref = op->o_bd->syncinfo ?
 							  op->o_bd->syncinfo->provideruri_bv : default_referral;
-#else
-			BerVarray deref = default_referral;
-#endif
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
@@ -342,11 +335,7 @@ ldbm_back_modify(
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		free( (char *)rs->sr_matched );
 
-#ifdef LDAP_SYNCREPL
 		return rs->sr_err;
-#else
-		return( -1 );
-#endif
 	}
 
 	if ( !manageDSAit && is_entry_referral( e ) )
@@ -403,9 +392,5 @@ ldbm_back_modify(
 error_return:;
 	cache_return_entry_w( &li->li_cache, e );
 	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
-#ifdef LDAP_SYNCREPL
 	return rs->sr_err;
-#else
-	return( -1 );
-#endif
 }

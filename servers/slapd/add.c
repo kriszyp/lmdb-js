@@ -243,13 +243,11 @@ do_add( Operation *op, SlapReply *rs )
 	if ( op->o_bd->be_add ) {
 		/* do the update here */
 		int repl_user = be_isupdate(op->o_bd, &op->o_ndn );
-#if defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		if ( !op->o_bd->syncinfo &&
 						( !op->o_bd->be_update_ndn.bv_len || repl_user ))
-#elif defined(LDAP_SYNCREPL) && defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->syncinfo )	/* LDAP_SYNCREPL overrides MM */
-#elif !defined(LDAP_SYNCREPL) && !defined(SLAPD_MULTIMASTER)
-		if ( !op->o_bd->be_update_ndn.bv_len || repl_user )
+#else
+		if ( !op->o_bd->syncinfo )
 #endif
 		{
 			int update = op->o_bd->be_update_ndn.bv_len;
@@ -311,7 +309,7 @@ do_add( Operation *op, SlapReply *rs )
 				e = NULL;
 			}
 
-#if defined(LDAP_SYNCREPL) || !defined(SLAPD_MULTIMASTER)
+#ifndef SLAPD_MULTIMASTER
 		} else {
 			BerVarray defref = NULL;
 #ifdef LDAP_SLAPI
@@ -326,12 +324,9 @@ do_add( Operation *op, SlapReply *rs )
 			}
 #endif /* LDAP_SLAPI */
 
-#ifdef LDAP_SYNCREPL
 			if ( op->o_bd->syncinfo ) {
 				defref = op->o_bd->syncinfo->provideruri_bv;
-			} else
-#endif
-			{
+			} else {
 				defref = op->o_bd->be_update_refs
 							? op->o_bd->be_update_refs : default_referral;
 			}
@@ -376,9 +371,7 @@ do_add( Operation *op, SlapReply *rs )
 
 done:
 
-#ifdef LDAP_SYNC
 	slap_graduate_commit_csn( op );
-#endif
 
 	if( modlist != NULL ) {
 		slap_mods_free( modlist );
@@ -409,10 +402,7 @@ slap_mods2entry(
 	for( ; mods != NULL; mods = mods->sml_next ) {
 		Attribute *attr;
 
-#ifdef LDAP_SYNCREPL
-		if ( !repl_user )
-#endif
-		{
+		if ( !repl_user ) {
 			assert( mods->sml_op == LDAP_MOD_ADD );
 		}
 		assert( mods->sml_desc != NULL );

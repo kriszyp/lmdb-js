@@ -328,14 +328,12 @@ bdb_modify( Operation *op, SlapReply *rs )
 
 	int		num_retries = 0;
 
-#ifdef LDAP_SYNC
 	Operation* ps_list;
 	struct psid_entry *pm_list, *pm_prev;
 	int rc;
 	EntryInfo	*suffix_ei;
 	Entry		*ctxcsn_e;
 	int			ctxcsn_added = 0;
-#endif
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify: %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -356,7 +354,6 @@ retry:	/* transaction retry */
 			"bdb_modify: retrying...\n", 0, 0, 0);
 #endif
 
-#ifdef LDAP_SYNC
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
 			LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -364,7 +361,6 @@ retry:	/* transaction retry */
 			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 			ch_free( pm_prev );
 		}
-#endif
 
 		rs->sr_err = TXN_ABORT( ltid );
 		ltid = NULL;
@@ -437,11 +433,8 @@ retry:	/* transaction retry */
 
 	e = ei->bei_e;
 	/* acquire and lock entry */
-#ifdef LDAP_SYNCREPL /* FIXME: dn2entry() should return non-glue entry */
+	/* FIXME: dn2entry() should return non-glue entry */
 	if (( rs->sr_err == DB_NOTFOUND ) || ( !manageDSAit && e && is_entry_glue( e ))) {
-#else
-	if ( rs->sr_err == DB_NOTFOUND ) {
-#endif
 		if ( e != NULL ) {
 			rs->sr_matched = ch_strdup( e->e_dn );
 			rs->sr_ref = is_entry_referral( e )
@@ -451,12 +444,8 @@ retry:	/* transaction retry */
 			e = NULL;
 
 		} else {
-#ifdef LDAP_SYNCREPL
 			BerVarray deref = op->o_bd->syncinfo ?
 							  op->o_bd->syncinfo->provideruri_bv : default_referral;
-#else
-			BerVarray deref = default_referral;
-#endif
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
@@ -500,13 +489,11 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef LDAP_SYNC
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			bdb_psearch(op, rs, ps_list, e, LDAP_PSEARCH_BY_PREMODIFY );
 		}
 	}
-#endif
 
 	/* nested transaction */
 	rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, ltid, &lt2, 
@@ -575,11 +562,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-#ifdef LDAP_SYNCREPL
-	if ( !op->o_bd->syncinfo )
-#endif
-#ifdef LDAP_SYNC
-	{
+	if ( !op->o_bd->syncinfo ) {
 		rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
 		switch ( rc ) {
 		case BDB_CSN_ABORT :
@@ -588,7 +571,6 @@ retry:	/* transaction retry */
 			goto retry;
 		}
 	}
-#endif
 
 	if( op->o_noop ) {
 		if ( ( rs->sr_err = TXN_ABORT( ltid ) ) != 0 ) {
@@ -598,24 +580,18 @@ retry:	/* transaction retry */
 			rs->sr_err = LDAP_SUCCESS;
 		}
 	} else {
-#ifdef LDAP_SYNC
 		struct berval ctx_nrdn;
 		EntryInfo *ctx_ei;
-#endif
+
 		bdb_cache_modify( e, dummy.e_attrs, bdb->bi_dbenv, locker, &lock );
 
-#ifdef LDAP_SYNCREPL
-		if ( !op->o_bd->syncinfo )
-#endif
-#ifdef LDAP_SYNC
-		{
+		if ( !op->o_bd->syncinfo ) {
 			if ( ctxcsn_added ) {
 				ctx_nrdn.bv_val = "cn=ldapsync";
 				ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
 				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
 			}
 		}
-#endif
 
 		rs->sr_err = TXN_COMMIT( ltid, 0 );
 	}
@@ -655,7 +631,6 @@ retry:	/* transaction retry */
 return_results:
 	send_ldap_result( op, rs );
 
-#ifdef LDAP_SYNC
 	if ( rs->sr_err == LDAP_SUCCESS && !op->o_noop ) {
 		/* Loop through in-scope entries for each psearch spec */
 		LDAP_LIST_FOREACH ( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
@@ -671,7 +646,6 @@ return_results:
 			ch_free( pm_prev );
 		}
 	}
-#endif
 
 	if( rs->sr_err == LDAP_SUCCESS && bdb->bi_txn_cp ) {
 		ldap_pvt_thread_yield();
@@ -681,7 +655,6 @@ return_results:
 
 done:
 	if( ltid != NULL ) {
-#ifdef LDAP_SYNC
 		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
 		while ( pm_list != NULL ) {
 			LDAP_LIST_REMOVE ( pm_list, ps_link );
@@ -689,7 +662,6 @@ done:
 			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 			ch_free( pm_prev );
 		}
-#endif
 		TXN_ABORT( ltid );
 		op->o_private = NULL;
 	}

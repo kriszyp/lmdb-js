@@ -32,9 +32,7 @@ static SLAP_CTRL_PARSE_FN parseDomainScope;
 #ifdef LDAP_CONTROL_SUBENTRIES
 static SLAP_CTRL_PARSE_FN parseSubentries;
 #endif
-#ifdef LDAP_SYNC
 static SLAP_CTRL_PARSE_FN parseLdupSync;
-#endif
 
 #undef sc_mask /* avoid conflict with Irix 6.5 <sys/signal.h> */
 
@@ -98,11 +96,9 @@ static struct slap_control control_defs[] = {
 	{ LDAP_CONTROL_NOOP,
 		SLAP_CTRL_ACCESS, NULL,
 		parseNoOp, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#ifdef LDAP_SYNC
 	{ LDAP_CONTROL_SYNC,
 		SLAP_CTRL_HIDE|SLAP_CTRL_SEARCH, NULL,
 		parseLdupSync, LDAP_SLIST_ENTRY_INITIALIZER(next) },
-#endif
 	{ LDAP_CONTROL_MODIFY_INCREMENT,
 		SLAP_CTRL_MODIFY, NULL,
 		parseModifyIncrement, LDAP_SLIST_ENTRY_INITIALIZER(next) },
@@ -1093,7 +1089,6 @@ static int parseDomainScope (
 }
 #endif
 
-#ifdef LDAP_SYNC
 static int parseLdupSync (
 	Operation *op,
 	SlapReply *rs,
@@ -1179,4 +1174,3 @@ static int parseLdupSync (
 
 	return LDAP_SUCCESS;
 }
-#endif

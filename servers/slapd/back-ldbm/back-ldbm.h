@@ -12,9 +12,7 @@
 
 LDAP_BEGIN_DECL
 
-#ifdef LDAP_SYNCREPL
 #define LDBM_SUBENTRIES 1
-#endif
 
 #define DEFAULT_CACHE_SIZE	1000
 

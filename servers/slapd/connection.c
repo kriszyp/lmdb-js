@@ -1085,14 +1085,12 @@ operations_error:
 	LDAP_STAILQ_REMOVE( &conn->c_ops, op, slap_op, o_next);
 	LDAP_STAILQ_NEXT(op, o_next) = NULL;
 
-#ifdef LDAP_SYNC
 	if ( op->o_cancel == SLAP_CANCEL_ACK )
 		goto co_op_free;
 	if ( ( op->o_sync_mode & SLAP_SYNC_PERSIST ) ) {
 		sl_mem_detach( ctx, memctx );
 		goto no_co_op_free;
 	}
-#endif
 
 co_op_free:
 

@@ -83,11 +83,8 @@ ldbm_back_modrdn(
 	e = dn2entry_w( op->o_bd, &op->o_req_ndn, &matched );
 
 	/* get entry with writer lock */
-#ifdef LDAP_SYNCREPL /* FIXME: dn2entry() should return non-glue entry */
+	/* FIXME: dn2entry() should return non-glue entry */
 	if (( e == NULL  ) || ( !manageDSAit && e && is_entry_glue( e ))) {
-#else
-	if ( e == NULL ) {
-#endif
 		if ( matched != NULL ) {
 			rs->sr_matched = strdup( matched->e_dn );
 			rs->sr_ref = is_entry_referral( matched )
@@ -95,12 +92,8 @@ ldbm_back_modrdn(
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
-#ifdef LDAP_SYNCREPL
 			BerVarray deref = op->o_bd->syncinfo ?
 							  op->o_bd->syncinfo->provideruri_bv : default_referral;
-#else
-			BerVarray deref = default_referral;
-#endif
 			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
@@ -112,11 +105,7 @@ ldbm_back_modrdn(
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
 		free( (char *)rs->sr_matched );
 
-#ifdef LDAP_SYNCREPL
 		return rs->sr_err;
-#else
-		return( -1 );
-#endif
 	}
 
 	/* check entry for "entry" acl */

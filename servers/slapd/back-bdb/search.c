@@ -280,18 +280,11 @@ nextido:
 static
 int is_sync_protocol( Operation *op )
 {
-#if !defined(LDAP_SYNC)
-	return 0;
-#endif
-
-#ifdef LDAP_SYNC
 	if ( op->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST )
 		return 1;
-#endif
 	return 0;
 }
 	
-#if defined(LDAP_SYNC)
 #define IS_BDB_REPLACE(type) (( type == LDAP_PSEARCH_BY_DELETE ) || \
 	( type == LDAP_PSEARCH_BY_SCOPEOUT ))
 #define IS_PSEARCH (op != sop)
@@ -359,11 +352,6 @@ int bdb_search( Operation *op, SlapReply *rs )
 int
 bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	Entry *ps_e, int ps_type )
-#else
-#define	IS_PSEARCH	0
-#define	sop	op
-int bdb_search( Operation *op, SlapReply *rs )
-#endif
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	time_t		stoptime;
@@ -379,7 +367,6 @@ int bdb_search( Operation *op, SlapReply *rs )
 	ID		lastid = NOID;
 	AttributeName	*attrs;
 
-#ifdef LDAP_SYNC
 	Filter 		contextcsnand, contextcsnle, cookief, csnfnot, csnfeq, csnfand, csnfge;
 	Filter		omitcsnf, omitcsnfle;
 	AttributeAssertion aa_ge, aa_eq, aa_le;
@@ -401,7 +388,6 @@ int bdb_search( Operation *op, SlapReply *rs )
 	int		entry_sync_state = -1;
 	AttributeName	null_attr;
 	int		no_sync_state_change = 0;
-#endif
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
@@ -416,7 +402,6 @@ int bdb_search( Operation *op, SlapReply *rs )
 #endif
 	attrs = sop->oq_search.rs_attrs;
 
-#ifdef LDAP_SYNC
 	/* psearch needs to be registered before refresh begins */
 	/* psearch and refresh transmission is serialized in send_ldap_ber() */
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
@@ -439,19 +424,15 @@ int bdb_search( Operation *op, SlapReply *rs )
 		attrs[0].an_name.bv_len = 0;
 		attrs[0].an_name.bv_val = NULL;
 	}
-#endif
 
 	manageDSAit = get_manageDSAit( sop );
 
 	/* Sync control overrides manageDSAit */
 
-#ifdef LDAP_SYNC
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
 		if ( manageDSAit == SLAP_NO_CONTROL )
 			manageDSAit = SLAP_CRITICAL_CONTROL;
-	} else
-#endif
-	if ( IS_PSEARCH ) {
+	} else if ( IS_PSEARCH ) {
 		if ( manageDSAit == SLAP_NO_CONTROL )
 			manageDSAit = SLAP_CRITICAL_CONTROL;
 	}
@@ -680,17 +661,13 @@ dn2entry_retry:
 	}
 	e = NULL;
 
-#ifdef LDAP_SYNC
 	if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
-#ifdef LDAP_SYNCREPL
 		if ( sop->o_bd->syncinfo ) {
 			char substr[67];
 			sprintf( substr, "cn=syncrepl%d", sop->o_bd->syncinfo->id );
 			ber_str2bv( substr, strlen( substr ), 0, &ctxcsn_rdn );
 			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
-		} else
-#endif
-		{
+		} else {
 			ber_str2bv( "cn=ldapsync", strlen("cn=ldapsync"), 0, &ctxcsn_rdn );
 			build_new_dn( &ctxcsn_ndn, &op->o_bd->be_nsuffix[0], &ctxcsn_rdn );
 		}
@@ -723,12 +700,9 @@ ctxcsn_retry :
 		}
 
 		if ( ctxcsn_e ) {
-#ifdef LDAP_SYNCREPL
 			if ( sop->o_bd->syncinfo ) {
 				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_syncreplCookie );
-			} else
-#endif
-			{
+			} else {
 				csn_a = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
 			}
 			if ( csn_a ) {
@@ -740,7 +714,6 @@ ctxcsn_retry :
 			search_context_csn = NULL;
 		}
 	}
-#endif
 
 	/* select candidates */
 	if ( sop->oq_search.rs_scope == LDAP_SCOPE_BASE ) {
@@ -752,16 +725,13 @@ ctxcsn_retry :
 		rs->sr_err = search_candidates( op, sop, rs, &base, locker, candidates, scopes );
 	}
 
-#ifdef LDAP_SYNC
 	if ( sop->o_sync_mode != SLAP_SYNC_NONE ) {
 		bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
 	}
-#endif
 
 	/* start cursor at beginning of candidates.
 	 */
 	cursor = 0;
-#ifdef LDAP_SYNC
 	if (IS_PSEARCH) {
 		if ( !BDB_IDL_IS_RANGE( candidates ) ) {
 			cursor = bdb_idl_search( candidates, ps_e->e_id );
@@ -779,7 +749,6 @@ ctxcsn_retry :
 		candidates[0] = 1;
 		candidates[1] = ps_e->e_id;
 	}
-#endif
 
 	if ( candidates[0] == 0 ) {
 #ifdef NEW_LOGGING
@@ -844,7 +813,6 @@ ctxcsn_retry :
 	}
 #endif
 
-#ifdef LDAP_SYNC
 	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) || IS_PSEARCH )
 	{
 		MatchingRule	*mr;
@@ -899,7 +867,6 @@ ctxcsn_retry :
 			csnfge.f_next = sop->oq_search.rs_filter;
 		}
 	}
-#endif
 
 	for ( id = bdb_idl_first( candidates, &cursor );
 		id != NOID;
@@ -934,9 +901,7 @@ loop_begin:
 		}
 
 
-#ifdef LDAP_SYNC
 		if (!IS_PSEARCH) {
-#endif
 id2entry_retry:
 			/* get the entry with reader lock */
 			ei = NULL;
@@ -976,11 +941,9 @@ id2entry_retry:
 
 				goto loop_continue;
 			}
-#ifdef LDAP_SYNC
 		} else {
 			e = ps_e;
 		}
-#endif
 
 		rs->sr_entry = e;
 #ifdef BDB_SUBENTRIES
@@ -1117,14 +1080,11 @@ id2entry_retry:
 			goto loop_continue;
 		}
 
-#ifdef LDAP_SYNCREPL
 		if ( !manageDSAit && is_entry_glue( e )) {
 			goto loop_continue;
 		}
-#endif
 
 		/* if it matches the filter and scope, send it */
-#ifdef LDAP_SYNC
 		if (IS_PSEARCH) {
 			if (ps_type != LDAP_PSEARCH_BY_SCOPEOUT) {
 				rs->sr_err = test_filter( sop, rs->sr_entry, &cookief );
@@ -1157,24 +1117,19 @@ id2entry_retry:
 						entry_sync_state = LDAP_SYNC_PRESENT;
 					}
 				}
-			} else
-#endif
-			{
+			} else {
 				rs->sr_err = test_filter( sop,
 					rs->sr_entry, sop->oq_search.rs_filter );
 			}
-#ifdef LDAP_SYNC
 		}
-#endif
 
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
 			if ( --sop->oq_search.rs_slimit == -1 ) {
-#ifdef LDAP_SYNC
-				if (!IS_PSEARCH)
-#endif
-				bdb_cache_return_entry_r( bdb->bi_dbenv,
-					&bdb->bi_cache, e, &lock );
+				if (!IS_PSEARCH) {
+					bdb_cache_return_entry_r( bdb->bi_dbenv,
+						&bdb->bi_cache, e, &lock );
+				}
 				e = NULL;
 				rs->sr_entry = NULL;
 				rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
@@ -1203,7 +1158,6 @@ id2entry_retry:
 					result = 0;
 				} else
 #endif
-#ifdef LDAP_SYNC
 				if (IS_PSEARCH) {
 					int premodify_found = 0;
 					int entry_sync_state;
@@ -1283,9 +1237,7 @@ id2entry_retry:
 						ch_free( ctrls[--num_ctrls] );
 						ctrls[num_ctrls] = NULL;
 						rs->sr_ctrls = NULL;
-					} else
-#endif
-					{
+					} else {
 						rs->sr_attrs = sop->oq_search.rs_attrs;
 						rs->sr_ctrls = NULL;
 						result = send_search_entry( sop, rs );
@@ -1333,43 +1285,39 @@ loop_continue:
 	}
 
 	if (!IS_PSEARCH) {
-#ifdef LDAP_SYNC
-	if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-		rs->sr_err = LDAP_SUCCESS;
-		rs->sr_rspoid = LDAP_SYNC_INFO;
-		rs->sr_ctrls = NULL;
-		bdb_send_ldap_intermediate( sop, rs,
-			LDAP_SYNC_STATE_MODE_DONE, search_context_csn );
-
-		/* If changelog is supported, this is where to process it */
-
-		if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
-			/* refreshAndPersist mode */
+		if ( sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_rspoid = LDAP_SYNC_INFO;
+			rs->sr_ctrls = NULL;
 			bdb_send_ldap_intermediate( sop, rs,
-				LDAP_SYNC_LOG_MODE_DONE, search_context_csn );
+				LDAP_SYNC_STATE_MODE_DONE, search_context_csn );
+
+			/* If changelog is supported, this is where to process it */
+	
+			if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
+				/* refreshAndPersist mode */
+				bdb_send_ldap_intermediate( sop, rs,
+					LDAP_SYNC_LOG_MODE_DONE, search_context_csn );
+			} else {
+				/* refreshOnly mode */
+				bdb_build_sync_done_ctrl( sop, rs, ctrls,
+					num_ctrls++, 1, search_context_csn );
+				rs->sr_ctrls = ctrls;
+				rs->sr_ref = rs->sr_v2ref;
+				rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
+				send_ldap_result( sop, rs );
+				if ( ctrls[num_ctrls-1]->ldctl_value.bv_val != NULL ) {
+					ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
+				}
+				ch_free( ctrls[--num_ctrls] );
+				ctrls[num_ctrls] = NULL;
+			}
 		} else {
-			/* refreshOnly mode */
-			bdb_build_sync_done_ctrl( sop, rs, ctrls,
-				num_ctrls++, 1, search_context_csn );
-			rs->sr_ctrls = ctrls;
+			rs->sr_ctrls = NULL;
 			rs->sr_ref = rs->sr_v2ref;
 			rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
 			send_ldap_result( sop, rs );
-			if ( ctrls[num_ctrls-1]->ldctl_value.bv_val != NULL ) {
-				ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
-			}
-			ch_free( ctrls[--num_ctrls] );
-			ctrls[num_ctrls] = NULL;
 		}
-
-	} else
-#endif
-	{
-		rs->sr_ctrls = NULL;
-		rs->sr_ref = rs->sr_v2ref;
-		rs->sr_err = (rs->sr_v2ref == NULL) ? LDAP_SUCCESS : LDAP_REFERRAL;
-		send_ldap_result( sop, rs );
-	}
 	}
 
 	rs->sr_err = LDAP_SUCCESS;
@@ -1667,8 +1615,6 @@ done:
 }			
 #endif
 
-#ifdef LDAP_SYNC
-#if 1
 int
 bdb_build_sync_state_ctrl(
 	Operation	*op,
@@ -1734,102 +1680,6 @@ bdb_build_sync_state_ctrl(
 
 	return LDAP_SUCCESS;
 }
-#else
-int
-bdb_build_sync_state_ctrl(
-	Operation	*op,
-	SlapReply	*rs,
-	Entry		*e,
-	int		entry_sync_state,
-	LDAPControl	**ctrls,
-	int		num_ctrls,
-	int		send_cookie,
-	struct berval	*latest_entrycsn_bv	)
-{
-	Attribute* a;
-	int ret;
-	int res;
-	const char *text = NULL;
-
-	char berbuf[LBER_ELEMENT_SIZEOF];
-	BerElement *ber = (BerElement *)berbuf;
-
-	struct berval entryuuid_bv	= { 0, NULL };
-	struct berval entrycsn_bv	= { 0, NULL };
-
-	ber_init2( ber, 0, LBER_USE_DER );
-
-	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
-
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		AttributeDescription *desc = a->a_desc;
-		if ( desc == slap_schema.si_ad_entryCSN ) {
-			ber_dupbv( &entrycsn_bv, &a->a_vals[0] );
-			if ( latest_entrycsn_bv->bv_val == NULL ) {
-				ber_dupbv( latest_entrycsn_bv, &entrycsn_bv );
-			} else {
-				res = value_match( &ret, desc,
-						desc->ad_type->sat_ordering, 0,
-						&entrycsn_bv, latest_entrycsn_bv, &text );
-				if ( res != LDAP_SUCCESS ) {
-					ret = 0;
-#ifdef NEW_LOGGING
-					LDAP_LOG ( OPERATION, RESULTS,
-							"bdb_search: value_match failed\n",
-							0, 0, 0 );
-#else
-					Debug( LDAP_DEBUG_TRACE,
-							"bdb_search: value_match failed\n",
-							0, 0, 0 );
-#endif
-				}
-				if ( ret > 0 ) {
-					ch_free( latest_entrycsn_bv->bv_val );
-					latest_entrycsn_bv->bv_val = NULL;
-					ber_dupbv( latest_entrycsn_bv, &entrycsn_bv );
-				}
-			}
-		} else if ( desc == slap_schema.si_ad_entryUUID ) {
-			ber_dupbv( &entryuuid_bv, &a->a_vals[0] );
-		}
-	}
-
-	if ( send_cookie ) {
-		ber_printf( ber, "{eOON}",
-			entry_sync_state, &entryuuid_bv, &entrycsn_bv );
-	} else {
-		ber_printf( ber, "{eON}",
-			entry_sync_state, &entryuuid_bv );
-	}
-
-	ch_free( entrycsn_bv.bv_val );
-	entrycsn_bv.bv_val = NULL;
-	ch_free( entryuuid_bv.bv_val );
-	entryuuid_bv.bv_val = NULL;
-
-	ctrls[num_ctrls]->ldctl_oid = LDAP_CONTROL_SYNC_STATE;
-	ctrls[num_ctrls]->ldctl_iscritical = op->o_sync;
-	ret = ber_flatten2( ber, &ctrls[num_ctrls]->ldctl_value, 1 );
-
-	ber_free_buf( ber );
-
-	if ( ret < 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS, 
-			"bdb_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_build_sync_ctrl: ber_flatten2 failed\n",
-			0, 0, 0 );
-#endif
-		send_ldap_error( op, rs, LDAP_OTHER, "internal error" );
-		return ret;
-	}
-
-	return LDAP_SUCCESS;
-}
-#endif
 
 int
 bdb_build_sync_done_ctrl(
@@ -1921,4 +1771,3 @@ bdb_send_ldap_intermediate(
 
 	return LDAP_SUCCESS;
 }
-#endif

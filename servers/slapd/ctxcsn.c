@@ -33,8 +33,6 @@
 #include "slap.h"
 #include "lutil_ldap.h"
 
-#ifdef LDAP_SYNC
-
 struct berval *
 slap_get_commit_csn( Operation *op )
 {
@@ -315,4 +313,3 @@ slap_get_csn(
 
 	return LDAP_SUCCESS;
 }
-#endif

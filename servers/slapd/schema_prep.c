@@ -224,7 +224,6 @@ static struct slap_schema_oc_map {
 		dynamicObjectClass, SLAP_OC_DYNAMICOBJECT,
 		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
 #endif
-#ifdef LDAP_SYNCREPL
 	{ "glue", "( 1.3.6.1.4.1.4203.666.3.4 "
 			"NAME 'glue' "
 			"DESC 'Glue Entry' "
@@ -238,8 +237,6 @@ static struct slap_schema_oc_map {
 			"MAY syncreplCookie )",
 		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_syncConsumerSubentry) },
-#endif
-#ifdef LDAP_SYNC
 	{ "syncProviderSubentry", "( 1.3.6.1.4.1.4203.666.3.6 "
 			"NAME 'syncProviderSubentry' "
 			"DESC 'Persistent Info for SyncRepl Producer' "
@@ -247,7 +244,6 @@ static struct slap_schema_oc_map {
 			"MAY contextCSN )",
 		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_syncProviderSubentry) },
-#endif
 
 	{ NULL, NULL, NULL, 0, 0 }
 };
@@ -423,7 +419,6 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_queryid) },
 #endif /* LDAP_CACHING */
 
-#ifdef LDAP_SYNCREPL
 	{ "syncreplCookie", "( 1.3.6.1.4.1.4203.666.1.23 "
 			"NAME 'syncreplCookie' "
 			"DESC 'syncrepl Cookie for shadow copy' "
@@ -435,8 +430,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_syncreplCookie) },
-#endif
-#ifdef LDAP_SYNC
+
 	{ "contextCSN", "( 1.3.6.1.4.1.4203.666.1.25 "
 			"NAME 'contextCSN' "
 			"DESC 'the largest committed CSN of a context' "
@@ -448,7 +442,6 @@ static struct slap_schema_ad_map {
 		NULL, NULL,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_contextCSN) },
-#endif
 
 	/* root DSE attributes */
 	{ "altServer", "( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer' "

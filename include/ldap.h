@@ -201,9 +201,6 @@ typedef struct ldapcontrol {
 
 #define LDAP_CONTROL_PAGEDRESULTS		"1.2.840.113556.1.4.319"
 
-#define LDAP_SYNC 2
-#ifdef LDAP_SYNC
-#define LDAP_SYNCREPL 1
 #define LDAP_CONTROL_SYNC		"1.3.6.1.4.1.4203.666.5.6"
 #define LDAP_CONTROL_SYNC_STATE	"1.3.6.1.4.1.4203.666.5.7"
 #define LDAP_CONTROL_SYNC_DONE	"1.3.6.1.4.1.4203.666.5.8"
@@ -222,7 +219,6 @@ typedef struct ldapcontrol {
 #define LDAP_SYNC_ADD			1
 #define LDAP_SYNC_MODIFY		2
 #define LDAP_SYNC_DELETE		3
-#endif
 
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474"
@@ -297,9 +293,7 @@ typedef struct ldapcontrol {
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
 
-#ifdef LDAP_SYNC
 #define LDAP_SYNC_TAG_COOKIE	((ber_tag_t) 0x04U)	/* octet string */
-#endif
 
 
 /* possible operations a client can invoke */
@@ -476,14 +470,12 @@ typedef struct ldapcontrol {
 #define LDAP_CLIENT_LOOP				0x60	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* draft-ietf-ldap-c-api-xx */
 
-#ifdef LDAP_SYNC
 #define LDAP_SYNC_RESOURCES_EXHAUSTED	0x100
 #define LDAP_SYNC_SECURITY_VIOLATION	0x101
 #define LDAP_SYNC_INVALID_COOKIE		0x102
 #define LDAP_SYNC_UNSUPPORTED_SCHEME	0x103
 #define LDAP_SYNC_CLIENT_DISCONNECT		0x104
 #define LDAP_SYNC_RELOAD_REQUIRED		0x105
-#endif
 
 #define LDAP_ASSERTION_FAILED			0x10f
 
@@ -496,11 +488,9 @@ typedef struct ldapcontrol {
 #endif
 
 /* LDAP SYNC request type */
-#ifdef LDAP_SYNC
 #define LDAP_SYNC_NONE					0x00
 #define LDAP_SYNC_REFRESH_ONLY			0x01
 #define LDAP_SYNC_REFRESH_AND_PERSIST	0x03
-#endif
 
 /*
  * This structure represents both ldap messages and ldap responses.
