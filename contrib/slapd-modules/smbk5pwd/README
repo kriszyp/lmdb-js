@@ -1,4 +1,4 @@
-Copyright 2004 Howard Chu, Symas Corp. All rights reserved.
+Copyright 2004-2005 Howard Chu, Symas Corp. All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted only as authorized by the OpenLDAP
@@ -15,7 +15,12 @@ password hashes for an LDAP user.
 The Kerberos support is written for Heimdal using its hdb-ldap backend.
 If a PasswordModify is performed on an entry that has the krb5KDCEntry
 objectclass, then the krb5Key and krb5KeyVersionNumber will be updated
-using the new password in the PasswordModify request.
+using the new password in the PasswordModify request. Additionally, a
+new "{K5KEY}" password hash mechanism is provided. krb5KDCEntries that
+have this hash specifier in their userPassword attribute, Simple Binds
+will be checked against the Kerberos keys of the Entry. No data is
+needed after the "{K5KEY}" hash specifier in the userPassword, it is
+looked up from the Entry directly.
 
 The Samba support is written using the Samba 3.0 LDAP schema. If a
 PasswordModify is performed on an entry that has the sambaSamAccount
