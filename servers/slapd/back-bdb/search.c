@@ -513,7 +513,16 @@ dn2entry_retry:
 
 	switch(rs->sr_err) {
 	case DB_NOTFOUND:
-		matched = ei->bei_e; break;
+		if ( sop->o_sync_mode & SLAP_SYNC_PERSIST ) {
+			rs->sr_err = LDAP_SUCCESS;
+			rs->sr_rspoid = LDAP_SYNC_INFO;
+			rs->sr_ctrls = NULL;
+			bdb_send_ldap_intermediate( sop, rs,
+					LDAP_SYNC_REFRESH_DONE, &latest_entrycsn_bv );
+			goto done;
+		} else {
+			matched = ei->bei_e; break;
+		}
 	case 0:
 		e = ei->bei_e; break;
 	case LDAP_BUSY:
