@@ -724,14 +724,12 @@ ldap_int_sasl_bind(
 			fprintf( stderr, "SASL username: %s\n", data );
 		}
 
-#if SASL_VERSION_MAJOR >= 2
-		saslrc = sasl_getprop( ctx, SASL_DEFUSERREALM, (SASL_CONST void **) &data );
-#else
+#if SASL_VERSION_MAJOR < 2
 		saslrc = sasl_getprop( ctx, SASL_REALM, (SASL_CONST void **) &data );
-#endif
 		if( saslrc == SASL_OK && data && *data ) {
 			fprintf( stderr, "SASL realm: %s\n", data );
 		}
+#endif
 	}
 
 	saslrc = sasl_getprop( ctx, SASL_SSF, (SASL_CONST void **) &ssf );
