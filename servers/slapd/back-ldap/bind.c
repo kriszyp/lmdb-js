@@ -575,8 +575,13 @@ ldap_back_proxy_authz_bind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 
 	default:
 		if ( li->idassert_authz ) {
-			struct berval	authcDN = BER_BVISNULL( &op->o_conn->c_ndn ) ? slap_empty_bv : op->o_conn->c_ndn;
+			struct berval authcDN;
 
+			if ( BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+				authcDN = slap_empty_bv;
+			} else {
+				authcDN = op->o_conn->c_ndn;
+			}	
 			rs->sr_err = slap_sasl_matches( op, li->idassert_authz,
 					&authcDN, &authcDN );
 			if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -790,9 +795,13 @@ ldap_back_proxy_authz_ctrl(
 
 	} else if ( li->idassert_authz ) {
 		int		rc;
-		struct berval	authcDN = BER_BVISNULL( &op->o_conn->c_ndn ) ? slap_empty_bv : op->o_conn->c_ndn;
+		struct berval authcDN;
 
-
+		if ( BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+			authcDN = slap_empty_bv;
+		} else {
+			authcDN = op->o_conn->c_ndn;
+		}
 		rc = slap_sasl_matches( op, li->idassert_authz,
 				&authcDN, & authcDN );
 		if ( rc != LDAP_SUCCESS ) {
@@ -836,7 +845,11 @@ ldap_back_proxy_authz_ctrl(
 	case LDAP_BACK_IDASSERT_SELF:
 		/* original behavior:
 		 * assert the client's identity */
-		assertedID = BER_BVISNULL( &op->o_conn->c_ndn ) ? slap_empty_bv : op->o_conn->c_ndn;
+		if ( BER_BVISNULL( &op->o_conn->c_ndn ) ) {
+			assertedID = slap_empty_bv;
+		} else {
+			assertedID = op->o_conn->c_ndn;
+		}
 		break;
 
 	case LDAP_BACK_IDASSERT_ANONYMOUS:
