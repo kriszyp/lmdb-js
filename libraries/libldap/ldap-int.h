@@ -119,10 +119,10 @@ struct ldapoptions {
 #define LDAP_INITIALIZED	0x1
 #define LDAP_VALID_SESSION	0x2
 #ifdef LDAP_CONNECTIONLESS
-#define	LDAP_UDP_SESSION	0x4
-#define	LDAP_IS_UDP(ld)		(ld->ld_options.ldo_valid & LDAP_UDP_SESSION)
+#define	LDAP_IS_UDP(ld)		((ld)->ld_options.ldo_is_udp)
 	void*			ldo_peer;	/* struct sockaddr* */
 	char*			ldo_cldapdn;
+	int			ldo_is_udp;
 #endif
 
 	int		ldo_debug;
@@ -301,7 +301,7 @@ struct ldap {
 	LDAPConn	*ld_conns;	/* list of server connections */
 	void		*ld_selectinfo;	/* platform specifics for select */
 };
-#define LDAP_VALID(ld)	( (ld)->ld_valid & LDAP_VALID_SESSION )
+#define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
 #ifdef LDAP_R_COMPILE
 #include <ldap_pvt_thread.h>

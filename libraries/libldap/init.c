@@ -399,6 +399,7 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 #ifdef LDAP_CONNECTIONLESS
 	gopts->ldo_peer = NULL;
 	gopts->ldo_cldapdn = NULL;
+	gopts->ldo_is_udp = 0;
 #endif
 
 #ifdef HAVE_CYRUS_SASL

@@ -238,7 +238,7 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 		}
 #ifdef LDAP_CONNECTIONLESS
 		if (ldap_is_ldapc_url(url))
-			ld->ld_options.ldo_valid |= LDAP_UDP_SESSION;
+			LDAP_IS_UDP(ld) = 1;
 #endif
 	}
 
@@ -303,7 +303,7 @@ ldap_int_open_connection(
 			} else {
 				host = srv->lud_host;
 			}
-			ld->ld_options.ldo_valid |= LDAP_UDP_SESSION;
+			LDAP_IS_UDP(ld) = 1;
 			rc = ldap_connect_to_host( ld, conn->lconn_sb,
 				proto, host, addr, port, async );
 
