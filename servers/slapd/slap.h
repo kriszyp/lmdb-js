@@ -601,6 +601,9 @@ typedef struct slap_conn {
 	BerElement	*c_currentber;	/* ber we're attempting to read */
 	int		c_writewaiter;	/* true if writer is waiting */
 
+	int	c_is_tls;		/* true if this LDAP over raw TLS */
+	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
+
 	long	c_n_ops_received;		/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */
 	long	c_n_ops_pending;		/* num of ops pending execution */
