@@ -58,8 +58,6 @@ root_dse_info(
 	AttributeDescription *ad_ref
 		= slap_schema.si_ad_ref;
 
-	Attribute *a;
-
 	vals[1].bv_val = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
@@ -150,7 +148,8 @@ root_dse_info(
 	}
 
 	if( usr_attr != NULL) {
-		for(a = usr_attr->e_attrs; a != NULL; a = a->a_next) {
+		Attribute *a;
+		for( a = usr_attr->e_attrs; a != NULL; a = a->a_next ) {
 			attr_merge( e, a->a_desc, a->a_vals );
 		}
 	}
@@ -171,8 +170,6 @@ int read_root_dse_file( const char *fname )
 	int rc = 0, lineno = 0, lmax = 0;
 	char	*buf = NULL;
 
-	Attribute *a;
-
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 			"could not open rootdse attr file \"%s\" - absolute path?\n",
@@ -186,6 +183,7 @@ int read_root_dse_file( const char *fname )
 
 	while( ldif_read_record( fp, &lineno, &buf, &lmax ) ) {
 		Entry *e = str2entry( buf );
+		Attribute *a;
 
 		if( e == NULL ) {
 			fprintf( stderr, "root_dse: could not parse entry (line=%d)\n",
