@@ -262,7 +262,7 @@ if test $ol_enable_slapd = no ; then
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
 			AC_MSG_WARN([slapd disabled, ignoring --enable-$i argument])
-			eval "\$ol_enable_$i=no"
+			eval "ol_enable_$i=no"
 		fi
 	done
 	if test $ol_enable_modules = yes ; then
@@ -297,7 +297,7 @@ if test $ol_enable_slapd = no ; then
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
 			AC_MSG_WARN([slapd disabled, ignoring --enable-$i argument])
-			eval "\$ol_enable_$i=no"
+			eval "ol_enable_$i=no"
 		fi
 	done
 
@@ -679,14 +679,14 @@ else
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp = mod ; then
 			AC_MSG_WARN([building static $i backend])
-			eval "\$ol_enable_$i=yes"
+			eval "ol_enable_$i=yes"
 		fi
 	done
 	for i in $Overlays; do
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp = mod ; then
 			AC_MSG_WARN([building static $i overlay])
-			eval "\$ol_enable_$i=yes"
+			eval "ol_enable_$i=yes"
 		fi
 	done
 fi

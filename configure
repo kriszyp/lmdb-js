@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.526 2004/04/08 03:56:25 hyc Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.527 2004/04/08 04:10:20 hyc Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -2396,7 +2396,7 @@ if test $ol_enable_slapd = no ; then
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
 			echo "configure: warning: slapd disabled, ignoring --enable-$i argument" 1>&2
-			eval "\$ol_enable_$i=no"
+			eval "ol_enable_$i=no"
 		fi
 	done
 	if test $ol_enable_modules = yes ; then
@@ -2430,7 +2430,7 @@ if test $ol_enable_slapd = no ; then
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp != no ; then
 			echo "configure: warning: slapd disabled, ignoring --enable-$i argument" 1>&2
-			eval "\$ol_enable_$i=no"
+			eval "ol_enable_$i=no"
 		fi
 	done
 
@@ -8214,14 +8214,14 @@ else
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp = mod ; then
 			echo "configure: warning: building static $i backend" 1>&2
-			eval "\$ol_enable_$i=yes"
+			eval "ol_enable_$i=yes"
 		fi
 	done
 	for i in $Overlays; do
 		eval "ol_tmp=\$ol_enable_$i"
 		if test $ol_tmp = mod ; then
 			echo "configure: warning: building static $i overlay" 1>&2
-			eval "\$ol_enable_$i=yes"
+			eval "ol_enable_$i=yes"
 		fi
 	done
 fi
