@@ -326,7 +326,7 @@ static int compare_entry(
 	Entry *e,
 	AttributeAssertion *ava )
 {
-	int rc = LDAP_NO_SUCH_ATTRIBUTE;
+	int rc;
 	Attribute *a;
 
 	if ( ! access_allowed( op, e,
@@ -335,11 +335,20 @@ static int compare_entry(
 		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
+	a = attrs_find( e->e_attrs, ava->aa_desc );
+	if( a == NULL ) return LDAP_NO_SUCH_ATTRIBUTE;
+
+	rc = LDAP_COMPARE_FALSE;
 	for(a = attrs_find( e->e_attrs, ava->aa_desc );
 		a != NULL;
 		a = attrs_find( a->a_next, ava->aa_desc ))
 	{
-		rc = LDAP_COMPARE_FALSE;
+		if (( ava->aa_desc != a->a_desc ) && ! access_allowed( op,
+			e, a->a_desc, &ava->aa_value, ACL_COMPARE, NULL ) )
+		{	
+			rc = LDAP_INSUFFICIENT_ACCESS;
+			break;
+		}
 
 		if ( value_find_ex( ava->aa_desc,
 			SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |

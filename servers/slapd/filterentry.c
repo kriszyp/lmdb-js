@@ -433,8 +433,8 @@ test_ava_filter(
 		MatchingRule *mr;
 		struct berval *bv;
 
-		if (( ava->aa_desc != a->a_desc ) && !access_allowed( op, e,
-			a->a_desc, &ava->aa_value, ACL_SEARCH, NULL ))
+		if (( ava->aa_desc != a->a_desc ) && !access_allowed( op,
+			e, a->a_desc, &ava->aa_value, ACL_SEARCH, NULL ))
 		{
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			continue;
@@ -512,7 +512,6 @@ test_presence_filter(
 	}
 
 	if ( desc == slap_schema.si_ad_hasSubordinates ) {
-
 		/*
 		 * XXX: fairly optimistic: if the function is defined,
 		 * then PRESENCE must succeed, because hasSubordinate
