@@ -1183,3 +1183,16 @@ AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
   fi
 ])dnl
 dnl
+dnl --------------------------------------------------------------------
+dnl Check for Cyrus SASL version compatility, need 2.1.3 or newer
+AC_DEFUN([OL_SASL2_COMPAT],
+[AC_CACHE_CHECK([Cyrus SASL 2 library version], [ol_cv_sasl2_compat],[
+	AC_EGREP_CPP(__sasl2_version_compat,[
+#include <sasl/sasl.h>
+
+/* require 2.1.3 or later */
+#if SASL_VERSION_MAJOR >= 2 && (SASL_VERSION_MINOR > 1 || SASL_VERSION_STEP > 2)
+	__sasl2_version_compat
+#endif
+	],	[ol_cv_sasl2_compat=yes], [ol_cv_sasl2_compat=no])])
+])
