@@ -182,8 +182,7 @@ ldap_connect_to_path(LDAP *ld, Sockbuf *sb, const char *path, int async)
 {
 	struct sockaddr_un	server;
 	ber_socket_t		s = AC_SOCKET_INVALID;
-	int			rc, i, len;
-	char   			*ha_buf=NULL, *p, *q;
+	int			rc;
 
 	oslocal_debug(ld, "ldap_connect_to_path\n",0,0,0);
 
