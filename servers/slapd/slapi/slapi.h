@@ -112,6 +112,11 @@ struct _computed_attr_context {
 #define SLAPI_TYPE_CMP_BASE	1
 #define SLAPI_TYPE_CMP_SUBTYPE	2
 
+typedef enum slapi_extension_e {
+	SLAPI_X_EXT_CONNECTION = 0,
+	SLAPI_X_EXT_OPERATION = 1,
+	SLAPI_X_EXT_MAX = 2
+} slapi_extension_t;
 
 /*
  * Was: slapi_pblock.h
@@ -268,6 +273,7 @@ extern Backend * slapi_cl_get_be(char *dn);
 #define SLAPI_X_CONN_CLIENTPATH			1300
 #define SLAPI_X_CONN_SERVERPATH			1301
 #define SLAPI_X_CONN_IS_UDP			1302
+#define SLAPI_X_CONN_SSF			1303
 
 #define SLAPD_AUTH_NONE   "none"
 #define SLAPD_AUTH_SIMPLE "simple"

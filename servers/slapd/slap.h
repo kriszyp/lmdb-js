@@ -1973,6 +1973,7 @@ typedef struct slap_op {
 
 #ifdef LDAP_SLAPI
 	void    *o_pb;                  /* NS-SLAPI plugin */
+	void	*o_extensions;		/* NS-SLAPI plugin */
 #endif
 } Operation;
 
@@ -2091,6 +2092,7 @@ typedef struct slap_conn {
 	long	c_n_write;		/* num of write calls */
 
 	void    *c_pb;                  /* Netscape plugin */
+	void	*c_extensions;		/* Netscape plugin */
 
 	/*
 	 * These are the "callbacks" that are available for back-ends to

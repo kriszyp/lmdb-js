@@ -744,6 +744,10 @@ slapi_init(void)
 		return -1;
 	}
 
+	if ( slapi_x_init_object_extensions() != 0 ) {
+		return -1;
+	}
+
 	return 0;
 }
 

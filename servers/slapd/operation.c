@@ -75,6 +75,7 @@ slap_op_free( Operation *op )
 	if ( op->o_pb != NULL ) {
 		slapi_pblock_destroy( (Slapi_PBlock *)op->o_pb );
 	}
+	slapi_x_free_object_extensions( SLAPI_X_EXT_OPERATION, op );
 #endif /* defined( LDAP_SLAPI ) */
 
 	memset( op, 0, sizeof(Operation) );
@@ -114,6 +115,7 @@ slap_op_alloc(
 
 #if defined( LDAP_SLAPI )
 	op->o_pb = slapi_pblock_new();
+	slapi_x_create_object_extensions( SLAPI_X_EXT_OPERATION, op );
 #endif /* defined( LDAP_SLAPI ) */
 
 	return( op );

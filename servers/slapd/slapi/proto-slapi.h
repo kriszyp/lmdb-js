@@ -311,6 +311,11 @@ extern int slapi_modifyrdn_changelog(char *olddn, char *newRdn, int delRdn,
 		char *suffix, char *chNum, Operation* op);
 extern Backend * slapi_cl_get_be(char *dn);
 
+int slapi_x_init_object_extensions(void);
+int slapi_x_free_object_extensions(int objecttype, void *object);
+int slapi_x_create_object_extensions(int objecttype, void *object);
+int slapi_x_clear_object_extensions(int objecttype, void *object);
+
 LDAP_END_DECL
 
 #endif /* _PROTO_SLAPI_H */

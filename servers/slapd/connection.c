@@ -19,6 +19,10 @@
 #include "lutil.h"
 #include "slap.h"
 
+#ifdef LDAP_SLAPI
+#include "slapi.h"
+#endif
+
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
@@ -135,6 +139,9 @@ int connections_destroy(void)
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
+#ifdef LDAP_SLAPI
+			slapi_x_free_object_extensions( SLAPI_X_EXT_CONNECTION, &connections[i] );
+#endif
 		}
 	}
 
@@ -453,6 +460,10 @@ long connection_init(
 		ldap_pvt_thread_mutex_init( &c->c_write_mutex );
 		ldap_pvt_thread_cond_init( &c->c_write_cv );
 
+#ifdef LDAP_SLAPI
+		slapi_x_create_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+#endif
+
 		c->c_struct_state = SLAP_C_UNUSED;
 	}
 
@@ -681,6 +692,11 @@ connection_destroy( Connection *c )
 
     c->c_conn_state = SLAP_C_INVALID;
     c->c_struct_state = SLAP_C_UNUSED;
+
+#ifdef LDAP_SLAPI
+	/* call destructors, then constructors; avoids unnecessary allocation */
+	slapi_x_clear_object_extensions( SLAPI_X_EXT_CONNECTION, c );
+#endif
 }
 
 int connection_state_closing( Connection *c )
