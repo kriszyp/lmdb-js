@@ -944,6 +944,7 @@ bdb_dn2id_matched(
 	struct berval	rdn;
 	char		*p1, *p2;
 	idNode *n, *p;
+	int		rc = 0;
 
 	if (!bdb->bi_troot)
 		return DB_NOTFOUND;
@@ -976,8 +977,11 @@ bdb_dn2id_matched(
 		*id = n->i_id;
 	} else if (id2) {
 		*id2 = p->i_id;
+	} else {
+		rc = DB_NOTFOUND;
 	}
-	return n ? 0 : DB_NOTFOUND;
+
+	return rc;
 }
 
 int
@@ -1079,7 +1083,9 @@ bdb_dn2idl(
 	if (prefix == DN_ONE_PREFIX) {
 		rc = avl_apply(n->i_kids, insert_one, ids, -1, AVL_INORDER);
 	} else {
-		rc = avl_apply(n->i_kids, insert_sub, ids, -1, AVL_INORDER);
+		rc = bdb_idl_insert(ids, id);
+		if (n->i_kids)
+			rc = avl_apply(n->i_kids, insert_sub, ids, -1, AVL_INORDER);
 	}
 	ldap_pvt_thread_rdwr_runlock(&n->i_kids_rdwr);
 	return rc;
