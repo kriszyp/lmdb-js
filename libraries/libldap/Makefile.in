@@ -30,7 +30,7 @@ ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
 ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
 
-CFFILES=ldapfilter.conf ldaptemplates.conf ldapsearchprefs.conf
+CFFILES=ldap.conf ldapfilter.conf ldaptemplates.conf ldapsearchprefs.conf
 
 install-local: $(CFFILES) FORCE
 	-$(MKDIR) $(libdir)
