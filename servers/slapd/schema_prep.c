@@ -117,13 +117,12 @@ structuralObjectClassMatch(
 	Debug( LDAP_DEBUG_TRACE, "structuralObjectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );
 #endif
-
 #endif
 
 	return LDAP_SUCCESS;
 }
 
-struct slap_schema_oc_map {
+static struct slap_schema_oc_map {
 	char *ssom_name;
 	size_t ssom_offset;
 } oc_map[] = {
@@ -137,7 +136,7 @@ struct slap_schema_oc_map {
 	{ NULL, 0 }
 };
 
-struct slap_schema_ad_map {
+static struct slap_schema_ad_map {
 	char *ssam_name;
 	slap_mr_match_func *ssam_match;
 	slap_mr_indexer_func *ssam_indexer;
@@ -236,7 +235,7 @@ static AttributeType slap_at_undefined = {
 	/* mutex (don't know how to initialize it :) */
 };
 
-struct slap_schema_mr_map {
+static struct slap_schema_mr_map {
 	char *ssmm_name;
 	size_t ssmm_offset;
 } mr_map[] = {
@@ -247,7 +246,7 @@ struct slap_schema_mr_map {
 	{ NULL, 0 }
 };
 
-struct slap_schema_syn_map {
+static struct slap_schema_syn_map {
 	char *sssm_name;
 	size_t sssm_offset;
 } syn_map[] = {

@@ -13,7 +13,7 @@
 #include "back-bdb.h"
 #include "external.h"
 
-struct exop {
+static struct exop {
 	char *oid;
 	SLAP_EXTENDED_FN	extended;
 } exop_table[] = {

@@ -20,13 +20,11 @@
 
 #include "lutil.h"
 
-// #define SLAP_AUTHPASSWD 1
-
 /*
  * Password Test Program
  */
 
-char *hash[] = {
+static char *hash[] = {
 #ifdef SLAP_AUTHPASSWD
 	"SHA1", "MD5",
 #else

@@ -437,7 +437,7 @@ LDAP_F (char *) ldap_host_connected_to( Sockbuf *sb );
 #endif
 
 LDAP_F (void) ldap_int_ip_init( void );
-LDAP_F (int) do_ldap_select( LDAP *ld, struct timeval *timeout );
+LDAP_F (int) ldap_int_select( LDAP *ld, struct timeval *timeout );
 LDAP_F (void *) ldap_new_select_info( void );
 LDAP_F (void) ldap_free_select_info( void *sip );
 LDAP_F (void) ldap_mark_select_write( LDAP *ld, Sockbuf *sb );

@@ -24,7 +24,7 @@
 			 ispunct((unsigned char) (x)) || \
 			 isdigit((unsigned char) (x)) || (x) == '\0')
 
-char *
+static char *
 first_word( char *s )
 {
 	if ( s == NULL ) {
@@ -42,7 +42,7 @@ first_word( char *s )
 	return( s );
 }
 
-char *
+static char *
 next_word( char *s )
 {
 	if ( s == NULL ) {
@@ -64,7 +64,7 @@ next_word( char *s )
 	return( s );
 }
 
-char *
+static char *
 word_dup( char *w )
 {
 	char	*s, *ret;

@@ -149,7 +149,7 @@ glue_back_db_close (
 	return 0;
 }
 
-int
+static int
 glue_back_db_destroy (
 	BackendDB *be
 )
@@ -172,7 +172,7 @@ typedef struct glue_state {
 	struct berval **refs;
 } glue_state;
 
-void
+static void
 glue_back_response (
 	Connection *conn,
 	Operation *op,
@@ -228,7 +228,7 @@ glue_back_response (
 	}
 }
 
-void
+static void
 glue_back_sresult (
 	Connection *c,
 	Operation *op,
@@ -247,7 +247,7 @@ glue_back_sresult (
 			    NULL, NULL, NULL, ctrls);
 }
 
-int
+static int
 glue_back_search (
 	BackendDB *b0,
 	Connection *conn,
@@ -364,7 +364,7 @@ done:
 	return rc;
 }
 
-int
+static int
 glue_back_bind (
 	BackendDB *b0,
 	Connection *conn,
@@ -392,7 +392,7 @@ glue_back_bind (
 	return rc;
 }
 
-int
+static int
 glue_back_compare (
 	BackendDB *b0,
 	Connection *conn,
@@ -417,7 +417,7 @@ glue_back_compare (
 	return rc;
 }
 
-int
+static int
 glue_back_modify (
 	BackendDB *b0,
 	Connection *conn,
@@ -442,7 +442,7 @@ glue_back_modify (
 	return rc;
 }
 
-int
+static int
 glue_back_modrdn (
 	BackendDB *b0,
 	Connection *conn,
@@ -469,7 +469,7 @@ glue_back_modrdn (
 	return rc;
 }
 
-int
+static int
 glue_back_add (
 	BackendDB *b0,
 	Connection *conn,
@@ -492,7 +492,7 @@ glue_back_add (
 	return rc;
 }
 
-int
+static int
 glue_back_delete (
 	BackendDB *b0,
 	Connection *conn,
@@ -516,7 +516,7 @@ glue_back_delete (
 	return rc;
 }
 
-int
+static int
 glue_back_release_rw (
 	BackendDB *b0,
 	Connection *conn,
@@ -539,7 +539,7 @@ glue_back_release_rw (
 	return rc;
 }
 
-int
+static int
 glue_back_group (
 	BackendDB *b0,
 	Connection *conn,
@@ -564,7 +564,7 @@ glue_back_group (
 	return rc;
 }
 
-int
+static int
 glue_back_attribute (
 	BackendDB *b0,
 	Connection *conn,
@@ -588,7 +588,7 @@ glue_back_attribute (
 	return rc;
 }
 
-int
+static int
 glue_back_referrals (
 	BackendDB *b0,
 	Connection *conn,
@@ -611,7 +611,7 @@ glue_back_referrals (
 	return rc;
 }
 
-int
+static int
 glue_tool_entry_open (
 	BackendDB *b0,
 	int mode
@@ -627,7 +627,7 @@ glue_tool_entry_open (
 	return 0;
 }
 
-int
+static int
 glue_tool_entry_close (
 	BackendDB *b0
 )
@@ -642,7 +642,7 @@ glue_tool_entry_close (
 	return rc;
 }
 
-ID
+static ID
 glue_tool_entry_first (
 	BackendDB *b0
 )
@@ -667,7 +667,7 @@ glue_tool_entry_first (
 	return glueBack->be_entry_first (glueBack);
 }
 
-ID
+static ID
 glue_tool_entry_next (
 	BackendDB *b0
 )
@@ -699,7 +699,7 @@ glue_tool_entry_next (
 	return rc;
 }
 
-Entry *
+static Entry *
 glue_tool_entry_get (
 	BackendDB *b0,
 	ID id
@@ -711,7 +711,7 @@ glue_tool_entry_get (
 	return glueBack->be_entry_get (glueBack, id);
 }
 
-ID
+static ID
 glue_tool_entry_put (
 	BackendDB *b0,
 	Entry *e
@@ -742,7 +742,7 @@ glue_tool_entry_put (
 	return be->be_entry_put (be, e);
 }
 
-int
+static int
 glue_tool_entry_reindex (
 	BackendDB *b0,
 	ID id
@@ -754,7 +754,7 @@ glue_tool_entry_reindex (
 	return glueBack->be_entry_reindex (glueBack, id);
 }
 
-int
+static int
 glue_tool_sync (
 	BackendDB *b0
 )
@@ -768,8 +768,6 @@ glue_tool_sync (
 			gi->n[i].be->be_sync (gi->n[i].be);
 	return 0;
 }
-
-extern int num_subs;	/* config.c */
 
 int
 glue_sub_init( )

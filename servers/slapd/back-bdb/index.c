@@ -17,7 +17,7 @@
 #include "lutil_hash.h"
 
 static char presence_keyval[LUTIL_HASH_BYTES] = {0,0,0,1};
-struct berval presence_key = {LUTIL_HASH_BYTES, presence_keyval};
+static struct berval presence_key = {LUTIL_HASH_BYTES, presence_keyval};
 
 static slap_mask_t index_mask(
 	Backend *be,

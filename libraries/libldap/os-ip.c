@@ -661,11 +661,11 @@ ldap_int_ip_init( void )
 
 
 int
-do_ldap_select( LDAP *ld, struct timeval *timeout )
+ldap_int_select( LDAP *ld, struct timeval *timeout )
 {
 	struct selectinfo	*sip;
 
-	Debug( LDAP_DEBUG_TRACE, "do_ldap_select\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_int_select\n", 0, 0, 0 );
 
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();

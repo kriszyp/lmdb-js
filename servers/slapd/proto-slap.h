@@ -540,9 +540,6 @@ LDAP_SLAPD_F (Operation *) slap_op_pop LDAP_P(( Operation **olist ));
  * phonetic.c
  */
 
-LDAP_SLAPD_F (char *) first_word LDAP_P(( char *s ));
-LDAP_SLAPD_F (char *) next_word LDAP_P(( char *s ));
-LDAP_SLAPD_F (char *) word_dup LDAP_P(( char *w ));
 LDAP_SLAPD_F (char *) phonetic LDAP_P(( char *s ));
 
 /*
@@ -907,6 +904,8 @@ LDAP_SLAPD_F (Attribute *) slap_operational_hasSubordinate( int has );
  */
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
 #define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
+
+LDAP_SLAPD_V(int) num_subs;
 
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming;
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming_auth;

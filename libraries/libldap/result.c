@@ -272,13 +272,13 @@ wait4msg(
 	        }
 
 		    if ( lc == NULL ) {
-			    rc = do_ldap_select( ld, tvp );
+			    rc = ldap_int_select( ld, tvp );
 
 
 #ifdef LDAP_DEBUG
 			    if ( rc == -1 ) {
 			        Debug( LDAP_DEBUG_TRACE,
-				        "do_ldap_select returned -1: errno %d\n",
+				        "ldap_int_select returned -1: errno %d\n",
 				        errno, 0, 0 );
 			    }
 #endif

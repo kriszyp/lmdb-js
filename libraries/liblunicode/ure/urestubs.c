@@ -49,7 +49,7 @@ ucs4_t _ure_tolower(ucs4_t c)
     return uctoupper(c);
 }
 
-static struct maskmap {
+static struct ucmaskmap {
 	unsigned long mask1;
 	unsigned long mask2;
 } masks[32] = {

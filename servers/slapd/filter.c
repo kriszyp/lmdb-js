@@ -837,7 +837,7 @@ filter_print( Filter *f )
 
 #endif /* ldap_debug */
 
-int filter_escape_value(
+static int filter_escape_value(
 	struct berval *in,
 	struct berval *out )
 {
