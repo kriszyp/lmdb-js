@@ -80,6 +80,7 @@ ldap_create_vlv_control( LDAP *ld,
 	BerElement *ber;
 
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 	assert( vlvinfop != NULL );
 	assert( ctrlp != NULL );
 
@@ -203,6 +204,7 @@ ldap_parse_vlv_control(
 	ber_len_t berLen;
 
 	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 
 	if (contextp) {
 		*contextp = NULL;	 /* Make sure we return a NULL if error occurs. */

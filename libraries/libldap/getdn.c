@@ -90,6 +90,8 @@ ldap_get_dn( LDAP *ld, LDAPMessage *entry )
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_dn\n", 0, 0, 0 );
 #endif
 
+	assert( ld != NULL );
+	assert( LDAP_VALID(ld) );
 	assert( entry != NULL );
 
 	tmp = *entry->lm_ber;	/* struct copy */
