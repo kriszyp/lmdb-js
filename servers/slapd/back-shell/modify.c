@@ -44,15 +44,15 @@ shell_back_modify(
 	for ( ; mods != NULL; mods = mods->mod_next ) {
 		switch ( mods->mod_op & ~LDAP_MOD_BVALUES ) {
 		case LDAP_MOD_ADD:
-			fprintf( wfp, "add: %s", mods->mod_type );
+			fprintf( wfp, "add: %s\n", mods->mod_type );
 			break;
 
 		case LDAP_MOD_DELETE:
-			fprintf( wfp, "delete: %s", mods->mod_type );
+			fprintf( wfp, "delete: %s\n", mods->mod_type );
 			break;
 
 		case LDAP_MOD_REPLACE:
-			fprintf( wfp, "replace: %s", mods->mod_type );
+			fprintf( wfp, "replace: %s\n", mods->mod_type );
 			break;
 		}
 
