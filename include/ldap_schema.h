@@ -54,6 +54,15 @@ typedef struct ldap_matchingrule {
 	LDAPSchemaExtensionItem **mr_extensions; /* OPTIONAL */
 } LDAPMatchingRule;
 
+typedef struct ldap_matchingruleuse {
+	char *mru_oid;		/* REQUIRED */
+	char **mru_names;	/* OPTIONAL */
+	char *mru_desc;		/* OPTIONAL */
+	int  mru_obsolete;	/* OPTIONAL */
+	char **mru_applies_oids;	/* REQUIRED */
+	LDAPSchemaExtensionItem **mru_extensions; /* OPTIONAL */
+} LDAPMatchingRuleUse;
+
 typedef struct ldap_attributetype {
 	char *at_oid;		/* REQUIRED */
 	char **at_names;	/* OPTIONAL */
@@ -116,6 +125,10 @@ ldap_matchingrule2name LDAP_P((
 	LDAPMatchingRule * mr ));
 
 LDAP_F( LDAP_CONST char * )
+ldap_matchingruleuse2name LDAP_P((
+	LDAPMatchingRuleUse * mru ));
+
+LDAP_F( LDAP_CONST char * )
 ldap_attributetype2name LDAP_P((
 	LDAPAttributeType * at ));
 
@@ -130,6 +143,10 @@ ldap_syntax_free LDAP_P((
 LDAP_F( void )
 ldap_matchingrule_free LDAP_P((
 	LDAPMatchingRule * mr ));
+
+LDAP_F( void )
+ldap_matchingruleuse_free LDAP_P((
+	LDAPMatchingRuleUse * mr ));
 
 LDAP_F( void )
 ldap_attributetype_free LDAP_P((
@@ -167,6 +184,13 @@ ldap_str2matchingrule LDAP_P((
 	LDAP_CONST char ** errp,
 	LDAP_CONST int flags ));
 
+LDAP_F( LDAPMatchingRuleUse * )
+ldap_str2matchingruleuse LDAP_P((
+	LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp,
+	LDAP_CONST int flags ));
+
 LDAP_F( char * )
 ldap_objectclass2str LDAP_P((
 	LDAP_CONST LDAPObjectClass * oc ));
@@ -182,6 +206,10 @@ ldap_syntax2str LDAP_P((
 LDAP_F( char * )
 ldap_matchingrule2str LDAP_P((
 	LDAP_CONST LDAPMatchingRule * mr ));
+
+LDAP_F( char * )
+ldap_matchingruleuse2str LDAP_P((
+	LDAP_CONST LDAPMatchingRuleUse * mru ));
 
 LDAP_F( char * )
 ldap_scherr2str LDAP_P((

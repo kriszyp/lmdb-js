@@ -39,6 +39,12 @@ ldap_matchingrule2name( LDAPMatchingRule * mr )
 }
 
 LDAP_CONST char *
+ldap_matchingruleuse2name( LDAPMatchingRuleUse * mru )
+{
+	return( choose_name( mru->mru_names, mru->mru_oid ) );
+}
+
+LDAP_CONST char *
 ldap_attributetype2name( LDAPAttributeType * at )
 {
 	return( choose_name( at->at_names, at->at_oid ) );
@@ -358,6 +364,55 @@ ldap_matchingrule2str( const LDAPMatchingRule * mr )
 	print_whsp(ss);
 
 	print_extensions(ss, mr->mr_extensions);
+
+	print_literal(ss,/*(*/")");
+
+	retstring = LDAP_STRDUP(safe_string_val(ss));
+	safe_string_free(ss);
+	return(retstring);
+}
+
+char *
+ldap_matchingruleuse2str( const LDAPMatchingRuleUse * mru )
+{
+	safe_string * ss;
+	char * retstring;
+	
+	ss = new_safe_string(256);
+	if ( !ss )
+		return NULL;
+
+	print_literal(ss,"(" /*)*/);
+	print_whsp(ss);
+
+	print_numericoid(ss, mru->mru_oid);
+	print_whsp(ss);
+
+	if ( mru->mru_names ) {
+		print_literal(ss,"NAME");
+		print_qdescrs(ss,mru->mru_names);
+	}
+
+	if ( mru->mru_desc ) {
+		print_literal(ss,"DESC");
+		print_qdstring(ss,mru->mru_desc);
+	}
+
+	if ( mru->mru_obsolete == LDAP_SCHEMA_YES ) {
+		print_literal(ss, "OBSOLETE");
+		print_whsp(ss);
+	}
+
+	if ( mru->mru_applies_oids ) {
+		print_literal(ss,"APPLIES");
+		print_whsp(ss);
+		print_oids(ss, mru->mru_applies_oids);
+		print_whsp(ss);
+	}
+
+	print_whsp(ss);
+
+	print_extensions(ss, mru->mru_extensions);
 
 	print_literal(ss,/*(*/")");
 
@@ -1337,6 +1392,196 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp, const int
 			*errp = ss;
 			LDAP_FREE(sval);
 			ldap_matchingrule_free(mr);
+			return NULL;
+		}
+	}
+}
+
+void
+ldap_matchingruleuse_free( LDAPMatchingRuleUse * mru )
+{
+	LDAP_FREE(mru->mru_oid);
+	LDAP_VFREE(mru->mru_names);
+	LDAP_FREE(mru->mru_desc);
+	LDAP_VFREE(mru->mru_applies_oids);
+	free_extensions(mru->mru_extensions);
+	LDAP_FREE(mru);
+}
+
+LDAPMatchingRuleUse *
+ldap_str2matchingruleuse( const char * s, int * code, const char ** errp, const int flags )
+{
+	int kind;
+	const char * ss = s;
+	char * sval;
+	int seen_name = 0;
+	int seen_desc = 0;
+	int seen_obsolete = 0;
+	int seen_applies = 0;
+	LDAPMatchingRuleUse * mru;
+	char ** ext_vals;
+	const char * savepos;
+
+	if ( !s ) {
+		*code = LDAP_SCHERR_EMPTY;
+		*errp = "";
+		return NULL;
+	}
+
+	*errp = s;
+	mru = LDAP_CALLOC(1,sizeof(LDAPMatchingRuleUse));
+
+	if ( !mru ) {
+		*code = LDAP_SCHERR_OUTOFMEM;
+		return NULL;
+	}
+
+	kind = get_token(&ss,&sval);
+	if ( kind != TK_LEFTPAREN ) {
+		*code = LDAP_SCHERR_NOLEFTPAREN;
+		LDAP_FREE(sval);
+		ldap_matchingruleuse_free(mru);
+		return NULL;
+	}
+
+	parse_whsp(&ss);
+	savepos = ss;
+	mru->mru_oid = parse_numericoid(&ss,code,flags);
+	if ( !mru->mru_oid ) {
+		if ( flags & LDAP_SCHEMA_ALLOW_NO_OID ) {
+			/* Backtracking */
+			ss = savepos;
+			kind = get_token(&ss,&sval);
+			if ( kind == TK_BAREWORD ) {
+				if ( !strcmp(sval, "NAME") ||
+				     !strcmp(sval, "DESC") ||
+				     !strcmp(sval, "OBSOLETE") ||
+				     !strcmp(sval, "APPLIES") ||
+				     !strncmp(sval, "X-", 2) ) {
+					/* Missing OID, backtrack */
+					ss = savepos;
+				} else {
+					/* Non-numerical OID, ignore */
+				}
+			}
+			LDAP_FREE(sval);
+		} else {
+			*errp = ss;
+			ldap_matchingruleuse_free(mru);
+			return NULL;
+		}
+	}
+	parse_whsp(&ss);
+
+	/*
+	 * Beyond this point we will be liberal and accept the items
+	 * in any order.
+	 */
+	while (1) {
+		kind = get_token(&ss,&sval);
+		switch (kind) {
+		case TK_EOS:
+			*code = LDAP_SCHERR_NORIGHTPAREN;
+			*errp = ss;
+			ldap_matchingruleuse_free(mru);
+			return NULL;
+		case TK_RIGHTPAREN:
+			return mru;
+		case TK_BAREWORD:
+			if ( !strcmp(sval,"NAME") ) {
+				LDAP_FREE(sval);
+				if ( seen_name ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingruleuse_free(mru);
+					return(NULL);
+				}
+				seen_name = 1;
+				mru->mru_names = parse_qdescrs(&ss,code);
+				if ( !mru->mru_names ) {
+					if ( *code != LDAP_SCHERR_OUTOFMEM )
+						*code = LDAP_SCHERR_BADNAME;
+					*errp = ss;
+					ldap_matchingruleuse_free(mru);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"DESC") ) {
+				LDAP_FREE(sval);
+				if ( seen_desc ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingruleuse_free(mru);
+					return(NULL);
+				}
+				seen_desc = 1;
+				parse_whsp(&ss);
+				kind = get_token(&ss,&sval);
+				if ( kind != TK_QDSTRING ) {
+					*code = LDAP_SCHERR_UNEXPTOKEN;
+					*errp = ss;
+					LDAP_FREE(sval);
+					ldap_matchingruleuse_free(mru);
+					return NULL;
+				}
+				mru->mru_desc = sval;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"OBSOLETE") ) {
+				LDAP_FREE(sval);
+				if ( seen_obsolete ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingruleuse_free(mru);
+					return(NULL);
+				}
+				seen_obsolete = 1;
+				mru->mru_obsolete = LDAP_SCHEMA_YES;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"APPLIES") ) {
+				LDAP_FREE(sval);
+				if ( seen_applies ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_matchingruleuse_free(mru);
+					return(NULL);
+				}
+				seen_applies = 1;
+				mru->mru_applies_oids = parse_oids(&ss,
+							     code,
+							     flags);
+				if ( !mru->mru_applies_oids ) {
+					*errp = ss;
+					ldap_matchingruleuse_free(mru);
+					return NULL;
+				}
+			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
+				/* Should be parse_qdstrings */
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
+					*errp = ss;
+					ldap_matchingruleuse_free(mru);
+					return NULL;
+				}
+				if ( add_extension(&mru->mru_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
+					ldap_matchingruleuse_free(mru);
+					return NULL;
+				}
+			} else {
+				*code = LDAP_SCHERR_UNEXPTOKEN;
+				*errp = ss;
+				LDAP_FREE(sval);
+				ldap_matchingruleuse_free(mru);
+				return NULL;
+			}
+			break;
+		default:
+			*code = LDAP_SCHERR_UNEXPTOKEN;
+			*errp = ss;
+			LDAP_FREE(sval);
+			ldap_matchingruleuse_free(mru);
 			return NULL;
 		}
 	}
