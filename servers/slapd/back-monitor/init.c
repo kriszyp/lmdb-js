@@ -260,27 +260,27 @@ monitor_back_db_init(
 			"DESC 'monitor container class' "
 			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorContainer) },
-		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.3.8 "
+		{ "monitorCounter", "( 1.3.6.1.4.1.4203.666.3.9 "
 			"NAME 'monitorCounter' "
 			"DESC 'monitor counter class' "
 			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorCounter) },
-		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.9 "
+		{ "monitorOperation", "( 1.3.6.1.4.1.4203.666.3.10 "
 			"NAME 'monitorOperation' "
 			"DESC 'monitor operation class' "
 			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorOperation) },
-		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.10 "
+		{ "monitorConnection", "( 1.3.6.1.4.1.4203.666.3.11 "
 			"NAME 'monitorConnection' "
 			"DESC 'monitor connection class' "
 			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_monitorConnection) },
-		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.11 "
+		{ "managedObject", "( 1.3.6.1.4.1.4203.666.3.12 "
 			"NAME 'managedObject' "
 			"DESC 'monitor managed entity class' "
 			"SUP monitor STRUCTURAL )",
 			offsetof(struct monitorinfo, monitor_oc_managedObject) },
-		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.12 "
+		{ "monitoredObject", "( 1.3.6.1.4.1.4203.666.3.13 "
 			"NAME 'monitoredObject' "
 			"DESC 'monitor monitored entity class' "
 			"SUP monitor STRUCTURAL )",
