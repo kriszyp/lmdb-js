@@ -14,7 +14,7 @@
 #include "portable.h"
 
 #if defined( HAVE_MACH_CTHREADS )
-#include "ldap_int_thread.h"
+#include "ldap_pvt_thread.h"
 
 /***********************************************************************
  *                                                                     *
@@ -36,7 +36,7 @@ ldap_int_thread_destroy( void )
 }
 
 int 
-ldap_int_thread_create( ldap_int_thread_t * thread, 
+ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
 	int detach,
 	void *(*start_routine)( void *), void *arg)
 {
@@ -45,13 +45,13 @@ ldap_int_thread_create( ldap_int_thread_t * thread,
 }
 
 void 
-ldap_int_thread_exit( void *retval )
+ldap_pvt_thread_exit( void *retval )
 {
 	cthread_exit( (any_t) retval );
 }
 
 int 
-ldap_int_thread_join( ldap_int_thread_t thread, void **thread_return )
+ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	void *status;
 	status = (void *) cthread_join ( thread );
@@ -63,56 +63,56 @@ ldap_int_thread_join( ldap_int_thread_t thread, void **thread_return )
 }
 
 int 
-ldap_int_thread_kill( ldap_int_thread_t thread, int signo )
+ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_yield( void )
+ldap_pvt_thread_yield( void )
 {
 	cthread_yield();
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_init( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	condition_init( cond );
 	return( 0 );
 }
 
 int 
-ldap_int_thread_cond_destroy( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
 {
 	condition_clear( cond );
 	return( 0 );
 }
 
 int 
-ldap_int_thread_cond_signal( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
 	condition_signal( cond );
 	return( 0 );
 }
 
 int
-ldap_int_thread_cond_broadcast( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
 	condition_broadcast( cond );
 	return( 0 );
 }
 
 int 
-ldap_int_thread_cond_wait( ldap_int_thread_cond_t *cond, 
-			  ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
+			  ldap_pvt_thread_mutex_t *mutex )
 {
 	condition_wait( cond, mutex );
 	return( 0 );	
 }
 
 int 
-ldap_int_thread_mutex_init( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	mutex_init( mutex );
 	mutex->name = NULL;
@@ -120,28 +120,28 @@ ldap_int_thread_mutex_init( ldap_int_thread_mutex_t *mutex )
 }
 
 int 
-ldap_int_thread_mutex_destroy( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
 	mutex_clear( mutex );
 	return ( 0 );	
 }
 	
 int 
-ldap_int_thread_mutex_lock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
 	mutex_lock( mutex );
 	return ( 0 );
 }
 
 int 
-ldap_int_thread_mutex_unlock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	mutex_unlock( mutex );
 	return ( 0 );
 }
 
 int
-ldap_int_thread_mutex_trylock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return mutex_try_lock( mutex );
 }

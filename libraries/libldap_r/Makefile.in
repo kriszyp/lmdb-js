@@ -20,9 +20,13 @@ XXSRCS	= apitest.c test.c tmpltest.c extended.c \
 	init.c options.c print.c string.c util-int.c schema.c \
 	charray.c tls.c dn.c os-local.c dnssrv.c \
 	utf-8.c
-SRCS	= thr_posix.c thr_cthreads.c thr_thr.c thr_lwp.c thr_nt.c \
-	thr_pth.c thr_sleep.c thr_stub.c rdwr.c threads.c
-OBJS	= extended.lo \
+SRCS	= threads.c rdwr.c tpool.c \
+	thr_posix.c thr_cthreads.c thr_thr.c thr_lwp.c thr_nt.c \
+	thr_pth.c thr_stub.c
+OBJS	= threads.lo rdwr.lo tpool.lo  \
+	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
+	thr_pth.lo thr_stub.lo \
+	extended.lo \
 	bind.lo controls.lo open.lo result.lo error.lo compare.lo search.lo \
 	modify.lo add.lo modrdn.lo delete.lo abandon.lo ufn.lo cache.lo \
 	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
@@ -30,8 +34,6 @@ OBJS	= extended.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
 	request.lo os-ip.lo url.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
-	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
-	thr_pth.lo thr_sleep.lo thr_stub.lo rdwr.lo threads.lo \
 	charray.lo tls.lo dn.lo os-local.lo dnssrv.lo \
 	utf-8.lo
 

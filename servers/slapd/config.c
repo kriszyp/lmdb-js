@@ -143,6 +143,27 @@ read_config( const char *fname )
 				return( 1 );
 			}
 
+		/* set thread concurrency */
+		} else if ( strcasecmp( cargv[0], "concurrency" ) == 0 ) {
+			int c;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing level in \"concurrency <level>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			c = atoi( cargv[1] );
+
+			if( c < 1 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: invalid level (%d) in \"concurrency <level>\" line\n",
+				    fname, lineno, c );
+				return( 1 );
+			}
+
+			ldap_pvt_thread_set_concurrency( c );
+
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
 			if ( cargc < 2 ) {

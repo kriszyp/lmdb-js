@@ -15,7 +15,7 @@
 
 #if defined( NO_THREADS )
 
-#include "ldap_int_thread.h"
+#include "ldap_pvt_thread.h"
 
 /***********************************************************************
  *                                                                     *
@@ -39,7 +39,7 @@ ldap_int_thread_destroy( void )
 static void* ldap_int_status = NULL;
 
 int 
-ldap_int_thread_create( ldap_int_thread_t * thread, 
+ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
 	int detach,
 	void *(*start_routine)(void *),
 	void *arg)
@@ -50,7 +50,7 @@ ldap_int_thread_create( ldap_int_thread_t * thread,
 }
 
 void 
-ldap_int_thread_exit( void *retval )
+ldap_pvt_thread_exit( void *retval )
 {
 	if( retval != NULL ) {
 		ldap_int_status = retval;
@@ -59,83 +59,119 @@ ldap_int_thread_exit( void *retval )
 }
 
 int 
-ldap_int_thread_join( ldap_int_thread_t thread, void **status )
+ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **status )
 {
 	if(status != NULL) *status = ldap_int_status;
 	return 0;
 }
 
 int 
-ldap_int_thread_kill( ldap_int_thread_t thread, int signo )
+ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_yield( void )
+ldap_pvt_thread_yield( void )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_init( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_destroy( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cond )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_signal( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_broadcast( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_wait( ldap_int_thread_cond_t *cond,
-			  ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
+			  ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_mutex_init( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_mutex_destroy( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_mutex_lock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_mutex_trylock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_mutex_unlock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
+}
+
+/*
+ * NO_THREADS requires a separate tpool implementation since
+ * generic ldap_pvt_thread_pool_wrapper loops forever.
+ */
+int
+ldap_pvt_thread_pool_init (
+	ldap_pvt_thread_pool_t *pool_out,
+	int max_concurrency, int max_pending )
+{
+	*pool_out = NULL;
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_submit (
+	ldap_pvt_thread_pool_t *pool,
+	void *(*start_routine)( void * ), void *arg )
+{
+	(start_routine)(arg);
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_backload (
+	ldap_pvt_thread_pool_t *pool )
+{
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_destroy (
+	ldap_pvt_thread_pool_t *pool, int run_pending )
+{
+	return(0);
 }
 
 #endif /* NO_THREADS */

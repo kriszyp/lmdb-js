@@ -22,7 +22,6 @@ typedef ldap_int_thread_t ldap_pvt_thread_t;
 typedef ldap_int_thread_mutex_t ldap_pvt_thread_mutex_t;
 typedef ldap_int_thread_cond_t ldap_pvt_thread_cond_t;
 
-
 LIBLDAP_F( int )
 ldap_pvt_thread_initialize LDAP_P(( void ));
 
@@ -35,10 +34,6 @@ ldap_pvt_thread_sleep LDAP_P(( unsigned int s ));
 LIBLDAP_F( int )
 ldap_pvt_thread_get_concurrency LDAP_P(( void ));
 
-#ifndef LDAP_THREAD_CONCURRENCY
-	/* three concurrent threads should be enough */
-#define LDAP_THREAD_CONCURRENCY	3
-#endif
 LIBLDAP_F( int )
 ldap_pvt_thread_set_concurrency LDAP_P(( int ));
 
@@ -97,17 +92,7 @@ LIBLDAP_F( int )
 ldap_pvt_thread_mutex_unlock LDAP_P(( ldap_pvt_thread_mutex_t *mutex ));
 
 #ifndef LDAP_THREAD_HAVE_RDWR
-typedef struct ldap_pvt_thread_rdwr_var {
-	ldap_pvt_thread_mutex_t ltrw_mutex;	
-	ldap_pvt_thread_cond_t ltrw_read;	/* wait for read */
-	ldap_pvt_thread_cond_t ltrw_write;	/* wait for write */
-	int ltrw_valid;
-#define LDAP_PVT_THREAD_RDWR_VALID 0x0bad
-	int ltrw_r_active;
-	int ltrw_w_active;
-	int ltrw_r_wait;
-	int ltrw_w_wait;
-} ldap_pvt_thread_rdwr_t;
+typedef struct ldap_int_thread_rdwr_s * ldap_pvt_thread_rdwr_t;
 #endif
 
 LIBLDAP_F( int )
@@ -148,30 +133,28 @@ ldap_pvt_thread_rdwr_active LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 #define LDAP_PVT_THREAD_EINVAL EINVAL
 #define LDAP_PVT_THREAD_EBUSY EINVAL
 
-
-typedef struct t_ldap_pvt_thread_pool *ldap_pvt_thread_pool_t;
-
+typedef ldap_int_thread_pool_t ldap_pvt_thread_pool_t;
 
 LIBLDAP_F( int )
-ldap_pvt_thread_pool_initialize LDAP_P((
-						ldap_pvt_thread_pool_t *pool_out,
-						int max_concurrency,
-						int max_pending ));
+ldap_pvt_thread_pool_init LDAP_P((
+	ldap_pvt_thread_pool_t *pool_out,
+	int max_concurrency,
+	int max_pending ));
 
 LIBLDAP_F( int )
 ldap_pvt_thread_pool_submit LDAP_P((
-						ldap_pvt_thread_pool_t pool,
-						void *(*start_routine)( void * ),
-						void *arg ));
+	ldap_pvt_thread_pool_t *pool,
+	void *(*start_routine)( void * ),
+	void *arg ));
 
 LIBLDAP_F( int )
 ldap_pvt_thread_pool_backload LDAP_P((
-						ldap_pvt_thread_pool_t pool ));
+	ldap_pvt_thread_pool_t *pool ));
 
 LIBLDAP_F( int )
 ldap_pvt_thread_pool_destroy LDAP_P((
-						ldap_pvt_thread_pool_t pool,
-						int run_pending ));
+	ldap_pvt_thread_pool_t *pool,
+	int run_pending ));
 
 
 LDAP_END_DECL

@@ -15,7 +15,7 @@
 
 #if defined( HAVE_GNU_PTH )
 
-#include "ldap_int_thread.h"
+#include "ldap_pvt_thread.h"
 
 /*******************
  *                 *
@@ -28,9 +28,11 @@ static pth_attr_t detach_attr;
 int
 ldap_int_thread_initialize( void )
 {
+	if( !pth_init() ) {
+		return -1;
+	}
 	detach_attr = pth_attr_new();
-	pth_attr_set( detach_attr, PTH_ATTR_JOINABLE, FALSE );
-	return pth_init();
+	return pth_attr_set( detach_attr, PTH_ATTR_JOINABLE, FALSE );
 }
 
 int
@@ -42,7 +44,7 @@ ldap_int_thread_destroy( void )
 }
 
 int 
-ldap_int_thread_create( ldap_int_thread_t * thread, 
+ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
 	int detach,
 	void *(*start_routine)( void *),
 	void *arg)
@@ -54,88 +56,88 @@ ldap_int_thread_create( ldap_int_thread_t * thread,
 }
 
 void 
-ldap_int_thread_exit( void *retval )
+ldap_pvt_thread_exit( void *retval )
 {
 	pth_exit( retval );
 }
 
-int ldap_int_thread_join( ldap_int_thread_t thread, void **thread_return )
+int ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	pth_join( thread, thread_return );
 	return 0;
 }
 
 int 
-ldap_int_thread_kill( ldap_int_thread_t thread, int signo )
+ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
 	pth_raise( thread, signo );
 	return 0;
 }
 	
 int 
-ldap_int_thread_yield( void )
+ldap_pvt_thread_yield( void )
 {
 	pth_yield(NULL);
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_init( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	return( pth_cond_init( cond ) );
 }
 
 int 
-ldap_int_thread_cond_signal( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
 	return( pth_cond_notify( cond, 0 ) );
 }
 
 int
-ldap_int_thread_cond_broadcast( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
 	return( pth_cond_notify( cond, 1 ) );
 }
 
 int 
-ldap_int_thread_cond_wait( ldap_int_thread_cond_t *cond, 
-			  ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
+	ldap_pvt_thread_mutex_t *mutex )
 {
 	return( pth_cond_await( cond, mutex, NULL ) );
 }
 
 int
-ldap_int_thread_cond_destroy( ldap_int_thread_cond_t *cv )
+ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cv )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_mutex_init( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( pth_mutex_init( mutex ) );
 }
 
 int 
-ldap_int_thread_mutex_destroy( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_mutex_lock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( pth_mutex_acquire( mutex, 0, NULL ) );
 }
 
 int 
-ldap_int_thread_mutex_unlock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( pth_mutex_release( mutex ) );
 }
 
 int
-ldap_int_thread_mutex_trylock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( pth_mutex_acquire( mutex, 1, NULL ) );
 }

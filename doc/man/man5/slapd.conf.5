@@ -103,6 +103,10 @@ SubstringAssertion NISnetgrouptriple Bootparameter
 .RE
 .RE
 .TP
+.B concurrency <integer>
+Specify a desired level of concurrency.  Provided to the underlying
+thread system as a hint.  The default is not to provdide any hint.
+.TP
 .B
 defaultaccess { none | auth | compare | search | read | write }
 Specify the default access level to grant requestors when

@@ -13,8 +13,6 @@
 #ifndef _LDAP_INT_THREAD_H
 #define _LDAP_INT_THREAD_H
 
-#include "ldap_cdefs.h"
-
 #if defined( HAVE_PTHREADS )
 /**********************************
  *                                *
@@ -41,12 +39,12 @@ typedef pthread_cond_t		ldap_int_thread_cond_t;
 
 #if defined( HAVE_PTHREAD_GETCONCURRENCY ) || \
 	defined( HAVE_THR_GETCONCURRENCY )
-#define HAVE_GETCONCURRENCY 1
+#define LDAP_THREAD_HAVE_GETCONCURRENCY 1
 #endif
 
 #if defined( HAVE_PTHREAD_SETCONCURRENCY ) || \
 	defined( HAVE_THR_SETCONCURRENCY )
-#define HAVE_SETCONCURRENCY 1
+#define LDAP_THREAD_HAVE_SETCONCURRENCY 1
 #endif
 
 #if 0 && defined( HAVE_PTHREAD_RWLOCK_DESTROY )
@@ -96,7 +94,6 @@ typedef pth_rwlock_t ldap_pvt_thread_rdwr_t;
 
 LDAP_END_DECL
 
-
 #elif defined( HAVE_THR )
 /********************************************
  *                                          *
@@ -116,10 +113,10 @@ typedef cond_t			ldap_int_thread_cond_t;
 #define HAVE_REENTRANT_FUNCTIONS 1
 
 #ifdef HAVE_THR_GETCONCURRENCY
-#define HAVE_GETCONCURRENCY 1
+#define LDAP_THREAD_HAVE_GETCONCURRENCY 1
 #endif
 #ifdef HAVE_THR_SETCONCURRENCY
-#define HAVE_SETCONCURRENCY 1
+#define LDAP_THREAD_HAVE_SETCONCURRENCY 1
 #endif
 
 LDAP_END_DECL
@@ -133,6 +130,7 @@ LDAP_END_DECL
 
 #include <lwp/lwp.h>
 #include <lwp/stackdep.h>
+#define LDAP_THREAD_HAVE_SLEEP 1
 
 LDAP_BEGIN_DECL
 
@@ -150,10 +148,10 @@ LDAP_END_DECL
 
 #elif defined(HAVE_NT_THREADS)
 
-LDAP_BEGIN_DECL
-
 #include <process.h>
 #include <windows.h>
+
+LDAP_BEGIN_DECL
 
 typedef unsigned long	ldap_int_thread_t;
 typedef HANDLE	ldap_int_thread_mutex_t;
@@ -170,15 +168,18 @@ LDAP_END_DECL
  *                                 *
  ***********************************/
 
-LDAP_BEGIN_DECL
-
 #ifndef NO_THREADS
 #define NO_THREADS 1
 #endif
 
+LDAP_BEGIN_DECL
+
 typedef int			ldap_int_thread_t;
 typedef int			ldap_int_thread_mutex_t;
 typedef int			ldap_int_thread_cond_t;
+
+#define LDAP_THREAD_HAVE_TPOOL 1
+typedef int			ldap_int_thread_pool_t;
 
 LDAP_END_DECL
 
@@ -186,79 +187,14 @@ LDAP_END_DECL
 
 LDAP_BEGIN_DECL
 
-LIBLDAP_F( int )
-ldap_int_thread_initialize LDAP_P(( void ));
+LIBLDAP_F(int) ldap_int_thread_initialize LDAP_P(( void ));
+LIBLDAP_F(int) ldap_int_thread_destroy LDAP_P(( void ));
+LIBLDAP_F(int) ldap_int_thread_pool_startup ( void );
+LIBLDAP_F(int) ldap_int_thread_pool_shutdown ( void );
 
-LIBLDAP_F( int )
-ldap_int_thread_destroy LDAP_P(( void ));
-
-LIBLDAP_F( unsigned int )
-ldap_int_thread_sleep LDAP_P(( unsigned int s ));
-
-#ifdef HAVE_GETCONCURRENCY
-LIBLDAP_F( int )
-ldap_int_thread_get_concurrency LDAP_P(( void ));
+#ifndef LDAP_THREAD_HAVE_TPOOL
+typedef struct ldap_int_thread_pool_s * ldap_int_thread_pool_t;
 #endif
-
-#ifdef HAVE_SETCONCURRENCY
-#	ifndef LDAP_THREAD_CONCURRENCY
-	/* three concurrent threads should be enough */
-#	define LDAP_THREAD_CONCURRENCY	3
-#	endif
-LIBLDAP_F( int )
-ldap_int_thread_set_concurrency LDAP_P(( int ));
-#endif
-
-LIBLDAP_F( int ) 
-ldap_int_thread_create LDAP_P((
-	ldap_int_thread_t * thread, 
-	int	detach,
-	void *(*start_routine)( void * ), 
-	void *arg));
-
-LIBLDAP_F( void ) 
-ldap_int_thread_exit LDAP_P(( void *retval ));
-
-LIBLDAP_F( int )
-ldap_int_thread_join LDAP_P(( ldap_int_thread_t thread, void **status ));
-
-LIBLDAP_F( int )
-ldap_int_thread_kill LDAP_P(( ldap_int_thread_t thread, int signo ));
-
-LIBLDAP_F( int )
-ldap_int_thread_yield LDAP_P(( void ));
-
-LIBLDAP_F( int )
-ldap_int_thread_cond_init LDAP_P(( ldap_int_thread_cond_t *cond ));
-
-LIBLDAP_F( int )
-ldap_int_thread_cond_destroy LDAP_P(( ldap_int_thread_cond_t *cond ));
-
-LIBLDAP_F( int )
-ldap_int_thread_cond_signal LDAP_P(( ldap_int_thread_cond_t *cond ));
-
-LIBLDAP_F( int )
-ldap_int_thread_cond_broadcast LDAP_P(( ldap_int_thread_cond_t *cond ));
-
-LIBLDAP_F( int )
-ldap_int_thread_cond_wait LDAP_P((
-	ldap_int_thread_cond_t *cond, 
-	ldap_int_thread_mutex_t *mutex ));
-
-LIBLDAP_F( int )
-ldap_int_thread_mutex_init LDAP_P(( ldap_int_thread_mutex_t *mutex ));
-
-LIBLDAP_F( int )
-ldap_int_thread_mutex_destroy LDAP_P(( ldap_int_thread_mutex_t *mutex ));
-
-LIBLDAP_F( int )
-ldap_int_thread_mutex_lock LDAP_P(( ldap_int_thread_mutex_t *mutex ));
-
-LIBLDAP_F( int )
-ldap_int_thread_mutex_trylock LDAP_P(( ldap_int_thread_mutex_t *mutex ));
-
-LIBLDAP_F( int )
-ldap_int_thread_mutex_unlock LDAP_P(( ldap_int_thread_mutex_t *mutex ));
 
 LDAP_END_DECL
 

@@ -35,7 +35,7 @@
 
 #include "ldap-int.h"
 
-#include "ldap_int_thread.h"
+#include "ldap_pvt_thread.h"
 
 #include <lwp/lwp.h>
 #include <lwp/stackdep.h>
@@ -141,7 +141,7 @@ lwp_create_stack( void *(*func)(), void *arg, int stackno )
 }
 
 int 
-ldap_int_thread_create( ldap_int_thread_t * thread, 
+ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
 	int detach,
 	void *(*start_routine)( void *),
 	void *arg)
@@ -157,13 +157,13 @@ ldap_int_thread_create( ldap_int_thread_t * thread,
 }
 
 void 
-ldap_int_thread_exit( void *retval )
+ldap_pvt_thread_exit( void *retval )
 {
 	lwp_destroy( SELF );
 }
 
 unsigned int
-ldap_int_thread_sleep(
+ldap_pvt_thread_sleep(
 	unsigned int interval
 )
 {
@@ -265,27 +265,27 @@ lwp_scheduler(
 }
 
 int 
-ldap_int_thread_join( ldap_int_thread_t thread, void **thread_return )
+ldap_pvt_thread_join( ldap_pvt_thread_t thread, void **thread_return )
 {
 	lwp_join( thread );
 	return 0;
 }
 
 int 
-ldap_int_thread_kill( ldap_int_thread_t thread, int signo )
+ldap_pvt_thread_kill( ldap_pvt_thread_t thread, int signo )
 {
 	return 0;
 }
 
 int 
-ldap_int_thread_yield( void )
+ldap_pvt_thread_yield( void )
 {
 	lwp_yield( SELF );
 	return 0;
 }
 
 int 
-ldap_int_thread_cond_init( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
 	/*
 	 * lwp cv_create requires the monitor id be passed in
@@ -301,14 +301,14 @@ ldap_int_thread_cond_init( ldap_int_thread_cond_t *cond )
 }
 
 int 
-ldap_int_thread_cond_signal( ldap_int_thread_cond_t *cond )
+ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 {
 	return( cond->lcv_created ? cv_notify( cv->lcv_cv ) : 0 );
 }
 
 int 
-ldap_int_thread_cond_wait( ldap_int_thread_cond_t *cond, 
-		      ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
+	ldap_int_thread_mutex_t *mutex )
 {
 	if ( ! cond->lcv_created ) {
 		cv_create( &cond->lcv_cv, *mutex );
@@ -319,43 +319,43 @@ ldap_int_thread_cond_wait( ldap_int_thread_cond_t *cond,
 }
 
 int 
-ldap_int_thread_mutex_init( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( mon_create( mutex ) );
 }
 
 int 
-ldap_int_thread_mutex_destroy( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_destroy( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( mon_destroy( *mutex ) );
 }
 
 int 
-ldap_int_thread_mutex_lock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( mon_enter( *mutex ) );
 }
 
 int 
-ldap_int_thread_mutex_unlock( ldap_int_thread_mutex_t *mutex )
+ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return( mon_exit( *mutex ) );
 }
 
 int
-ldap_int_thread_mutex_trylock( ldap_int_thread_mutex_t *mp )
+ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mp )
 {
 	return( mon_cond_enter( *mp ) );
 }
 
 int
-ldap_int_thread_cond_destroy( ldap_pvt_thread_cond_t *cv )
+ldap_pvt_thread_cond_destroy( ldap_pvt_thread_cond_t *cv )
 {
 	return( cv->lcv_created ? cv_destroy( cv->lcv_cv ) : 0 );
 }
 
 int
-ldap_int_thread_cond_broadcast( ldap_int_thread_cond_t *cv )
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cv )
 {
 	return( cv->lcv_created ? cv_broadcast( cv->lcv_cv ) : 0 );
 }

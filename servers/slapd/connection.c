@@ -1128,7 +1128,8 @@ static int connection_op_activate( Connection *conn, Operation *op )
 		free( tmpdn );
 	}
 
-	status = ldap_pvt_thread_pool_submit( connection_pool, connection_operation, (void *) arg );
+	status = ldap_pvt_thread_pool_submit( &connection_pool,
+		connection_operation, (void *) arg );
 
 	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
