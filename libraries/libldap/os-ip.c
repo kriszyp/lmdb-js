@@ -902,7 +902,7 @@ ldap_int_select( LDAP *ld, struct timeval *timeout )
 	
 	rc = select( ldap_int_tblsize,
 		&sip->si_use_readfds, &sip->si_use_writefds,
-		NULL, timeout ));
+		NULL, timeout );
 #endif
 
 	return rc;
