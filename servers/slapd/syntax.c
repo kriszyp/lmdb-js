@@ -94,7 +94,16 @@ syn_insert(
 
 	if ( ssyn->ssyn_oid ) {
 		sir = (struct sindexrec *)
-			ch_calloc( 1, sizeof(struct sindexrec) );
+			SLAP_CALLOC( 1, sizeof(struct sindexrec) );
+		if( sir == NULL ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( OPERATION, ERR, 
+				"syn_insert: SLAP_CALLOC Error\n", 0, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
+#endif
+			return LDAP_OTHER;
+		}
 		sir->sir_name = ssyn->ssyn_oid;
 		sir->sir_syn = ssyn;
 		if ( avl_insert( &syn_index, (caddr_t) sir,
@@ -120,7 +129,16 @@ syn_add(
 	Syntax		*ssyn;
 	int		code;
 
-	ssyn = (Syntax *) ch_calloc( 1, sizeof(Syntax) );
+	ssyn = (Syntax *) SLAP_CALLOC( 1, sizeof(Syntax) );
+	if( ssyn == NULL ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG( OPERATION, ERR, 
+			"syn_add: SLAP_CALLOC Error\n", 0, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY, "SLAP_CALLOC Error\n", 0, 0, 0 );
+#endif
+		return LDAP_OTHER;
+	}
 
 	AC_MEMCPY( &ssyn->ssyn_syn, syn, sizeof(LDAPSyntax) );
 
