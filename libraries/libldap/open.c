@@ -13,6 +13,7 @@
 #include "portable.h"
 
 #include <stdio.h>
+#include <limits.h>
 
 #include <ac/stdlib.h>
 

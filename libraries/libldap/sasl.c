@@ -588,7 +588,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 
 	p->buf_in.buf_size = p->buf_in.buf_end;
 
-	bufptr += ber_pvt_sb_copy_out( &p->buf_in, buf + bufptr, len );
+	bufptr += ber_pvt_sb_copy_out( &p->buf_in, (char*) buf + bufptr, len );
 
 	return bufptr;
 }
