@@ -247,3 +247,14 @@ int root_dse_info( Connection *conn, Entry **entry, const char **text )
 	return -1;
 }
 
+#ifdef LDAP_SYNCREPL
+void init_syncrepl( )
+{
+        return -1;
+}
+
+void* do_syncrepl( void *ctx, void *arg )
+{
+                return -1;
+}
+#endif

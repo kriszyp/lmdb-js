@@ -223,10 +223,21 @@ entry_schema_check(
 	}
 
 	/* naming check */
-	rc = entry_naming_check( e, text, textbuf, textlen );
-	if( rc != LDAP_SUCCESS ) {
-		return rc;
-	}
+#ifdef LDAP_SYNCREPL
+        if ( !is_entry_objectclass ( e, slap_schema.si_oc_glue, 0 ) ) {
+                rc = entry_naming_check( e, text, textbuf, textlen );
+                if( rc != LDAP_SUCCESS ) {
+                        return rc;
+                }
+        } else {
+                printf("glue !!!\n");
+        }
+#else
+        rc = entry_naming_check( e, text, textbuf, textlen );
+        if( rc != LDAP_SUCCESS ) {
+                return rc;
+        }
+#endif
 
 #ifdef SLAP_EXTENDED_SCHEMA
 	/* find the content rule for the structural class */

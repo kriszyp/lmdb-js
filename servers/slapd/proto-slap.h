@@ -1118,6 +1118,15 @@ LDAP_SLAPD_F (int) do_search LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_unbind LDAP_P((Operation *op, SlapReply *rs));
 LDAP_SLAPD_F (int) do_extended LDAP_P((Operation *op, SlapReply *rs));
 
+/*
+ * syncrepl
+ */
+
+#ifdef LDAP_SYNCREPL
+LDAP_SLAPD_F (void) init_syncrepl LDAP_P(());
+LDAP_SLAPD_F (void*) do_syncrepl LDAP_P((void *, void *));
+#endif
+
 LDAP_END_DECL
 
 #endif /* PROTO_SLAP_H */

@@ -120,9 +120,18 @@ BackendInfo	*backendInfo = NULL;
 int			nBackendDB = 0; 
 BackendDB	*backendDB = NULL;
 
+#ifdef LDAP_SYNCREPL
+ldap_pvt_thread_pool_t	syncrepl_pool;
+int			syncrepl_pool_max = SLAP_MAX_SYNCREPL_THREADS;
+#endif
+
 int backend_init(void)
 {
 	int rc = -1;
+
+#ifdef LDAP_SYNCREPL
+        ldap_pvt_thread_pool_init( &syncrepl_pool, syncrepl_pool_max, 0 );
+#endif
 
 	if((nBackendInfo != 0) || (backendInfo != NULL)) {
 		/* already initialized */
@@ -231,6 +240,10 @@ int backend_startup(Backend *be)
 	int i;
 	int rc = 0;
 
+#ifdef LDAP_SYNCREPL
+	init_syncrepl();
+#endif
+
 	if( ! ( nBackendDB > 0 ) ) {
 		/* no databases */
 #ifdef NEW_LOGGING
@@ -332,6 +345,25 @@ int backend_startup(Backend *be)
 				return rc;
 			}
 		}
+
+#ifdef LDAP_SYNCREPL
+		if ( backendDB[i].syncinfo != NULL ) {
+			int ret;
+			ret = ldap_pvt_thread_pool_submit( &syncrepl_pool,
+					do_syncrepl, (void *) &backendDB[i] );
+			if ( ret != 0 ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG( BACKEND, CRIT,
+					"syncrepl thread pool submit failed (%d)\n",
+					ret, 0, 0 );
+#else
+				Debug( LDAP_DEBUG_ANY,
+					"ldap_pvt_thread_pool_submit failed (%d) \n",
+					ret, 0, 0 );
+#endif
+			}
+		}
+#endif
 	}
 
 	return rc;
@@ -414,6 +446,10 @@ int backend_destroy(void)
 	int i;
 	BackendDB *bd;
 
+#ifdef LDAP_SYNCREPL
+        ldap_pvt_thread_pool_destroy( &syncrepl_pool, 1 );
+#endif
+
 	/* destroy each backend database */
 	for( i = 0, bd = backendDB; i < nBackendDB; i++, bd++ ) {
 		if ( bd->bd_info->bi_db_destroy ) {
@@ -492,6 +528,10 @@ backend_db_init(
 	be->be_restrictops = global_restrictops;
 	be->be_requires = global_requires;
 	be->be_ssf_set = global_ssf_set;
+
+#ifdef LDAP_SYNCREPL
+        be->syncinfo = NULL;
+#endif
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 

@@ -77,6 +77,10 @@ LDAP_BEGIN_DECL
 
 #define SLAP_MAX_WORKER_THREADS		(16)
 
+#ifdef LDAP_SYNCREPL
+#define SLAP_MAX_SYNCREPL_THREADS	(8)
+#endif
+
 #define SLAP_SB_MAX_INCOMING_DEFAULT ((1<<18) - 1)
 #define SLAP_SB_MAX_INCOMING_AUTH ((1<<24) - 1)
 
@@ -698,6 +702,12 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_collectiveAttributeSubentry;
 	ObjectClass *si_oc_dynamicObject;
 
+#ifdef LDAP_SYNCREPL
+        ObjectClass *si_oc_glue;
+        ObjectClass *si_oc_syncConsumerSubentry;
+        ObjectClass *si_oc_syncProviderSubentry;
+#endif
+
 	/* objectClass attribute descriptions */
 	AttributeDescription *si_ad_objectClass;
 
@@ -720,6 +730,11 @@ struct slap_internal_schema {
 	/* LDAP cache specific operational attribute */
 	AttributeDescription *si_ad_queryid;
 #endif /* LDAP_CACHING */
+
+#ifdef LDAP_SYNCREPL
+        AttributeDescription *si_ad_dseType;
+        AttributeDescription *si_ad_syncreplCookie;
+#endif
 
 	/* root DSE attribute descriptions */
 	AttributeDescription *si_ad_altServer;
@@ -1252,6 +1267,87 @@ typedef BackendDB Backend;
 #define nbackends nBackendDB
 #define backends backendDB
 
+#ifdef LDAP_SYNCREPL
+ /*
+  * syncinfo structure for syncrepl
+  */
+typedef struct syncinfo_s {
+        struct slap_conn *conn;
+        struct slap_backend_db *be;
+        struct slap_entry *e;
+        void            *ctx;
+        int             id;
+        char            *masteruri;
+        char            *mastername;
+        int             masterport;
+        int             type;
+        char            *binddn;
+        int             bindmethod;
+        char            *passwd;
+        char            *secprops;
+        char            *realm;
+        char            *authcId;
+        char            *authzId;
+        char            *srvtab;
+        char            *saslmech;
+        int             interval;
+        char            *base;
+        int             scope;
+        int             deref;
+        int             slimit;
+        int             tlimit;
+        Filter          *filter;
+        char            *filterstr;
+        char            **attrs;
+        int             attrsonly;
+#define LASTMOD_REQ		0
+#define LASTMOD_GEN		1
+#define LASTMOD_NO		2
+	int		lastmod;
+        /* TLS flags */
+#define TLS_OFF                 0
+#define TLS_ON                  1
+#define TLS_CRITICAL            2
+        int             tls;
+        int             found;
+        struct berval   *syncUUID;
+        struct berval   *syncCookie;
+        Avlnode         *presentlist;
+} syncinfo_t;
+
+#define IDSTR           "id"
+#define MASTERSTR       "master"
+#define SUFFIXSTR       "suffix"
+#define BINDDNSTR       "binddn"
+#define BINDMETHSTR     "bindmethod"
+#define SIMPLESTR       "simple"
+#define SASLSTR         "sasl"
+#define CREDSTR         "credentials"
+#define OLDAUTHCSTR     "bindprincipal"
+#define AUTHCSTR        "authcID"
+#define AUTHZSTR        "authzID"
+#define SRVTABSTR       "srvtab"
+#define SASLMECHSTR     "saslmech"
+#define REALMSTR        "realm"
+#define SECPROPSSTR     "secprops"
+#define TLSSTR          "tls"
+#define TLSCRITICALSTR  "critical"
+
+#define FILTERSTR       "filter"
+#define SEARCHBASESTR   "searchbase"
+#define SCOPESTR        "scope"
+#define ATTRSSTR        "attrs"
+#define ATTRSONLYSTR    "attrsonly"
+#define TYPESTR         "type"
+#define INTERVALSTR     "interval"
+#define COOKIESTR       "cookie"
+#define LASTMODSTR	"lastmod"
+#define LMREQSTR	"req"
+#define LMGENSTR	"gen"
+#define LMNOSTR		"no"
+
+#endif /* LDAP_SYNCREPL */
+
 struct slap_backend_db {
 	BackendInfo	*bd_info;	/* pointer to shared backend info */
 
@@ -1392,6 +1488,9 @@ struct slap_backend_db {
 	void	*be_private;	/* anything the backend database needs 	   */
 
 	void    *be_pb;         /* Netscape plugin */
+#ifdef LDAP_SYNCREPL
+	syncinfo_t	*syncinfo;	/* For syncrepl */
+#endif
 };
 
 struct slap_conn;
