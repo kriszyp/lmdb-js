@@ -122,7 +122,6 @@ struct bdb_info {
 	int		bi_nrdns;
 #endif
 
-	int			bi_txn;
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;

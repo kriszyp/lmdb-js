@@ -12,7 +12,6 @@
 
 #include "back-bdb.h"
 
-#define	SLAP_BDB_ALLOW_DBNOTXN
 #ifdef DB_DIRTY_READ
 #	define	SLAP_BDB_ALLOW_DIRTY_READ
 #endif
@@ -47,11 +46,6 @@ bdb_db_config(
 		}
 		bdb->bi_dbenv_home = ch_strdup( argv[1] );
 
-#ifdef SLAP_BDB_ALLOW_DBNOTXN
-	/* turn off transactions, use CDB mode instead */
-	} else if ( strcasecmp( argv[0], "dbnotxn" ) == 0 ) {
-		bdb->bi_txn = 0;
-#endif
 #ifdef SLAP_BDB_ALLOW_DIRTY_READ
 	} else if ( strcasecmp( argv[0], "dirtyread" ) == 0 ) {
 		bdb->bi_db_opflags |= DB_DIRTY_READ;

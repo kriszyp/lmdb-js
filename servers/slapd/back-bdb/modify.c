@@ -215,19 +215,17 @@ retry:	/* transaction retry */
 		ldap_pvt_thread_yield();
 	}
 
-	if( bdb->bi_txn ) {
-		/* begin transaction */
-		rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 
-			bdb->bi_db_opflags );
-		text = NULL;
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_TRACE,
-				"bdb_modify: txn_begin failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-			rc = LDAP_OTHER;
-			text = "internal error";
-			goto return_results;
-		}
+	/* begin transaction */
+	rc = txn_begin( bdb->bi_dbenv, NULL, &ltid, 
+		bdb->bi_db_opflags );
+	text = NULL;
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_TRACE,
+			"bdb_modify: txn_begin failed: %s (%d)\n",
+			db_strerror(rc), rc, 0 );
+		rc = LDAP_OTHER;
+		text = "internal error";
+		goto return_results;
 	}
 
 	opinfo.boi_bdb = be;
@@ -330,9 +328,7 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
-	if( bdb->bi_txn ) {
-		rc = txn_commit( ltid, 0 );
-	}
+	rc = txn_commit( ltid, 0 );
 	ltid = NULL;
 	op->o_private = NULL;
 

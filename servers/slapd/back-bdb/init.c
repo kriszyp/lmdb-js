@@ -76,7 +76,6 @@ bdb_db_init( BackendDB *be )
 	bdb->bi_dbenv_home = ch_strdup( BDB_DBENV_HOME );
 	bdb->bi_dbenv_xflags = 0;
 	bdb->bi_dbenv_mode = DEFAULT_MODE;
-	bdb->bi_txn = 1;	/* default to using transactions */
 
 	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
 
@@ -171,15 +170,8 @@ bdb_db_open( BackendDB *be )
 		return rc;
 	}
 
-	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE;
-
-	if( bdb->bi_txn ) {
-		flags |= DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN | DB_RECOVER;
-
-	} else {
-		flags |= DB_INIT_CDB;
-		bdb->bi_txn_cp = 0;
-	}
+	flags = DB_INIT_MPOOL | DB_THREAD | DB_CREATE
+		| DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN | DB_RECOVER;
 
 	bdb->bi_dbenv->set_errpfx( bdb->bi_dbenv, be->be_suffix[0]->bv_val );
 	bdb->bi_dbenv->set_errcall( bdb->bi_dbenv, bdb_errcall );
@@ -366,13 +358,11 @@ bdb_db_destroy( BackendDB *be )
 	/* close db environment */
 	if( bdb->bi_dbenv ) {
 		/* force a checkpoint */
-		if( bdb->bi_txn ) {
-			rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
-					db_strerror(rc), rc, 0 );
-			}
+		rc = TXN_CHECKPOINT( bdb->bi_dbenv, 0, 0, DB_FORCE );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"bdb_db_destroy: txn_checkpoint failed: %s (%d)\n",
+				db_strerror(rc), rc, 0 );
 		}
 
 		bdb_cache_release_all (&bdb->bi_cache);
