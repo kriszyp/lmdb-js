@@ -427,10 +427,12 @@ typedef struct slap_attribute_type {
 	MatchingRule			*sat_approx;
 	MatchingRule			*sat_ordering;
 	MatchingRule			*sat_substr;
-	Syntax				*sat_syntax;
+	Syntax					*sat_syntax;
+
 	AttributeTypeSchemaCheckFN	*sat_check;
+	slap_mask_t					sat_flags;
+
 	struct slap_attr_desc		*sat_ad;
-	struct slap_attribute_type	*sat_next;
 	ldap_pvt_thread_mutex_t		sat_ad_mutex;
 #define sat_oid			sat_atype.at_oid
 #define sat_names		sat_atype.at_names
@@ -446,6 +448,8 @@ typedef struct slap_attribute_type {
 #define sat_no_user_mod		sat_atype.at_no_user_mod
 #define sat_usage		sat_atype.at_usage
 #define sat_extensions		sat_atype.at_extensions
+
+	struct slap_attribute_type	*sat_next;
 } AttributeType;
 
 #define is_at_operational(at)	((at)->sat_usage)
@@ -466,19 +470,21 @@ typedef int (ObjectClassSchemaCheckFN)(
 typedef struct slap_object_class {
 	LDAPObjectClass		soc_oclass;
 	struct slap_object_class	**soc_sups;
-	AttributeType			**soc_required;
-	AttributeType			**soc_allowed;
+	AttributeType				**soc_required;
+	AttributeType				**soc_allowed;
 	ObjectClassSchemaCheckFN	*sco_check;
-	struct slap_object_class	*soc_next;
-#define soc_oid			soc_oclass.oc_oid
-#define soc_names		soc_oclass.oc_names
-#define soc_desc		soc_oclass.oc_desc
+	slap_mask_t					sco_flags;
+#define soc_oid				soc_oclass.oc_oid
+#define soc_names			soc_oclass.oc_names
+#define soc_desc			soc_oclass.oc_desc
 #define soc_obsolete		soc_oclass.oc_obsolete
 #define soc_sup_oids		soc_oclass.oc_sup_oids
-#define soc_kind		soc_oclass.oc_kind
+#define soc_kind			soc_oclass.oc_kind
 #define soc_at_oids_must	soc_oclass.oc_at_oids_must
 #define soc_at_oids_may		soc_oclass.oc_at_oids_may
 #define soc_extensions		soc_oclass.oc_extensions
+
+	struct slap_object_class	*soc_next;
 } ObjectClass;
 
 #ifdef LDAP_DIT_CONTENT_RULES

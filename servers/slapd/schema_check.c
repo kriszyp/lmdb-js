@@ -46,9 +46,9 @@ entry_schema_check(
 		= slap_schema.si_ad_objectClass;
 	int extensible = 0;
 	int subentry = is_entry_subentry( e );
-	int collective = 0;
+	int collectiveSubentry = 0;
 
-	if( subentry) collective = is_entry_collectiveAttributes( e );
+	if( subentry) collectiveSubentry = is_entry_collectiveAttributes( e );
 
 	*text = textbuf;
 
@@ -68,7 +68,7 @@ entry_schema_check(
 			}
 		}
 
-		if( !collective && is_at_collective( a->a_desc->ad_type ) ) {
+		if( !collectiveSubentry && is_at_collective( a->a_desc->ad_type ) ) {
 			snprintf( textbuf, textlen,
 				"'%s' can only appear in collectiveAttributes subentry",
 				type );
