@@ -131,10 +131,10 @@ main( int argc, char *argv[] )
 	}
 
 	hash = lutil_passwd_hash( &passwd, scheme, &text );
-
 	if( hash == NULL || hash->bv_val == NULL ) {
-		fprintf( stderr, "Password generation failed. %s\n",
-			text ? text : "" );
+		fprintf( stderr,
+			"Password generation failed for scheme %s: %s\n",
+			scheme, text ? text : "" );
 		return EXIT_FAILURE;
 	}
 
