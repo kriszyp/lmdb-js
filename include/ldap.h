@@ -339,6 +339,8 @@ typedef struct ldapmod {
 #define LDAP_RESULTS_TOO_LARGE		0x46 /* CLDAP */
 #define LDAP_AFFECTS_MULTIPLE_DSAS	0x47 /* LDAPv3 */
 
+#define LDAP_CLIENT_ERROR(n)	( (int)(n) >= 0x50 )
+
 #define LDAP_OTHER			0x50
 #define LDAP_SERVER_DOWN		0x51
 #define LDAP_LOCAL_ERROR		0x52
