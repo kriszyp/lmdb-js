@@ -120,8 +120,8 @@ main( int argc, char *argv[] )
 
 	if ( rc == LDAP_SUCCESS ) {
 		int i;
-		if( dn ) {
-			for ( i = 0; dn[i]; i++ ) {
+		if ( dn ) {
+			for ( i = 0; dn[ 0 ][ i ]; i++ ) {
 				LDAPRDN		*rdn = dn[ 0 ][ i ];
 				char		*rstr = NULL;
 
