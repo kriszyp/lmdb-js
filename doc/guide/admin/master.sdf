@@ -18,26 +18,41 @@
 
 # title information
 !include "title.sdf"
+PB:
 
 # Document copyright, publishing info, acknowledgements, preface
 !include "preface.sdf"; about
+PB:
 
 # Chapters
 !include "intro.sdf"; chapter
+PB:
 !include "quickstart.sdf"; chapter
+PB:
 !include "config.sdf"; chapter
+PB:
 !include "install.sdf"; chapter
+PB:
 !include "slapdconfig.sdf"; chapter
+PB:
 !include "runningslapd.sdf"; chapter
+PB:
 !include "monitoringslapd.sdf"; chapter
+PB:
 !include "dbtools.sdf"; chapter
+PB:
 !include "tuning.sdf"; chapter
+PB:
 !include "referrals.sdf"; chapter
+PB:
 !include "replication.sdf"; chapter
+PB:
 
 # Appendices 
 !include "../release/autoconf.sdf"; appendix
+PB:
 
 # Software Copyright/License
 !include "../release/copyright.sdf"; appendix
+PB:
 !include "../release/license.sdf"; appendix

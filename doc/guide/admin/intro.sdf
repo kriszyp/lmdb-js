@@ -13,16 +13,17 @@ service, and the directory service provided by {{I:slapd}} in particular.
 
 H2: What is a directory service?
 
-A directory is like a database, but tends to contain more descriptive,
-attribute-based information. The information in a directory is generally read
-much more often than it is written. As a consequence, directories don't
-usually implement the complicated transaction or roll-back schemes regular
-databases use for doing high-volume complex updates. Directory updates
-are typically simple all-or-nothing changes, if they are allowed at all.
-Directories are tuned to give quick-response to high-volume lookup or
-search operations. They may have the ability to replicate information widely in
-order to increase availability and reliability, while reducing response time.
-When directory information is replicated, temporary inconsistencies between
+A directory is specialized database optimized for reading, browsing and
+searching.  Directories tend to contain descriptive, attribute-based
+information and support sophisticated filtering capabilities.  Directories
+are generally do not support complicated transaction or roll-back schemes
+found in database management systems designed for handling high-volume
+complex updates.  Directory updates are typically simple all-or-nothing
+changes, if they are allowed at all.  Directories are tuned to give
+quick-response to high-volume lookup or search operations. They may have
+the ability to replicate information widely in order to increase
+availability and reliability, while reducing response time.  When
+directory information is replicated, temporary inconsistencies between
 the replicas may be OK, as long as they get in sync eventually.
 
 There are many different ways to provide a directory service. Different
@@ -32,70 +33,74 @@ queried and updated, how it is protected from unauthorized access, etc.
 Some directory services are {{I:local}}, providing service to a restricted 
 context (e.g., the finger service on a single machine). Other services are 
 global, providing service to a much broader context (e.g., the entire Internet).
-Global services are usually {{I:distributed}},
-meaning that the data they contain
-is spread across many machines, all of which cooperate to provide the
-directory service. Typically a global service defines a uniform {{I:namespace}}
-which gives the same view of the data no matter where you are in relation to
-the data itself.
+Global services are usually {{I:distributed}}, meaning that the data they
+contain is spread across many machines, all of which cooperate to provide
+the directory service. Typically a global service defines a uniform
+{{I:namespace}} which gives the same view of the data no matter where
+you are in relation to the data itself.  The Internet {{Domain Name System}}
+is an example of a globally distributed directory service.
 
 
 
 H2: What is LDAP?
 
-{{I:Slapd}}'s model for directory service is based on a global directory model
-called LDAP, which stands for the Lightweight Directory Access Protocol.
-LDAP is a directory service protocol that runs over TCP/IP. The nitty-gritty
-details of LDAP are defined in RFC 1777 "The Lightweight Directory Access
-Protocol." This section gives an overview of LDAP from a user's perspective.
+{{I:Slapd}}'s model for directory service is based on a global directory
+model called {{LDAP}}.  LDAP stands for the {{Lightweight Directory
+Access Protocol}}.  LDAP is a directory access protocol that runs over
+{{TCP/IP}}. The nitty-gritty details of LDAP are defined in RFC 2251
+"The Lightweight Directory Access Protocol (v3)."  This section gives
+an overview of LDAP from a user's perspective.
 
 {{I:What kind of information can be stored in the directory?}}
-The LDAP directory
-service model is based on {{I:entries}}. An entry is a collection of 
-attributes that has a name, called a {{I:distinguished name}} (DN). 
+The LDAP information model is based on {{entries}}. An entry is a
+collection of attributes that has a globally-unique {{distinguished
+name}} (DN). 
 The DN is used to refer to the entry unambiguously. Each of the 
-entry's attributes has a {{I:type}} and one or
-more {{I:values}}. 
+entry's attributes has a {{type}} and one or more {{values}}. 
 The types are typically mnemonic strings, like "{{EX:cn}}" for common
-name, or "{{EX:mail}}" for email address. The values depend on what type of
-attribute it is. For example, a {{EX:mail}} attribute might contain the value
-"{{EX:babs@openldap.org}}". A {{EX:jpegPhoto}} attribute would contain 
-a photograph in binary JPEG/JFIF format.
+name, or "{{EX:mail}}" for email address. The syntax of values depend
+on the attribute type is.  For example, {{EX:cn}} attribute might
+be the value {{EX: Babs Jensen}}.  A {{EX:mail}} attribute might
+contain the value "{{EX:babs@openldap.org}}". A {{EX:jpegPhoto}}
+attribute would contain a photograph in the JPEG/JFIF (binary) format.
 
 {{I:How is the information arranged?}}
-In LDAP, directory entries are arranged in
-a hierarchical tree-like structure that reflects political, geographic and/or
-organizational boundaries. Entries representing countries appear at the top
-of the tree. Below them are entries representing states or national
-organizations. Below them might be entries representing people,
-organizational units, printers, documents, or just about anything else you can
-think of. Figure 1 shows an example LDAP directory tree, which should help
-make things clear.
+In LDAP, directory entries are arranged in a hierarchical tree-like
+structure.  Traditionally, this structure reflected the geographic
+and/or organizational boundaries.  Entries representing countries
+appeared at the top of the tree. Below them are entries representing
+states and national organizations. Below them might be entries
+representing organizational units, people, printers, documents,
+or just about anything else you can think of.  Figure 1 shows an
+example LDAP directory tree using traditional naming.
 
+!import "intro_tree.gif"; align="center"; title="LDAP directory tree (traditional naming)"
+FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
-!import "intro_tree.gif"; align="center"; title="An example LDAP directory tree"
-FT[align="Center"] Figure 1: An example LDAP directory tree.
+The tree may also be arranged based upon Internet domain names.
+Figure 2 shows an example using this increasing popular naming approach.
 
+!import "intro_dctree.gif"; align="center"; title="LDAP directory tree (Internet naming)"
+FT[align="Center"] Figure 1.2: LDAP directory tree (Internet naming)
 
-In addition, LDAP allows you to control which attributes are required and
-allowed in an entry through the use of a special attribute called 
-{{I:objectclass}}.
-The values of the {{I:objectclass}} attribute determine 
-the {{I:schema}} rules the entry
-must obey.
+In addition, LDAP allows you to control which attributes are required
+and allowed in an entry through the use of a special attribute called 
+{{I:objectClass}}.  The values of the {{I:objectClass}} attribute
+determine the {{I:schema}} rules the entry must obey.
 
 {{I:How is the information referenced?}}
-An entry is referenced by its
-distinguished name, which is constructed by taking the name of the entry
-itself (called the relative distinguished name, or RDN) and concatenating the
-names of its ancestor entries. For example, the entry for Barbara Jensen in
-the example above has an RDN of "{{EX:cn=Barbara J Jensen}}" and a DN of
-"{{EX:cn=Barbara J Jensen, o=OpenLDAP Project, c=US}}". The full DN format is
-described in RFC 1779, "A String Representation of Distinguished Names."
+An entry is referenced by its distinguished name, which is constructed
+by taking the name of the entry itself (called the relative distinguished
+name, or RDN) and concatenating the names of its ancestor entries. For
+example, the entry for Barbara Jensen in the Internet naming example
+above has an RDN of {{EX:uid=babs}} and a DN of
+{{EX:uid=babs, dc=OpenLDAP, dc=com}}". The full DN format is
+described in RFC 2253, "Lightweight Directory Access Protocol (v3):
+UTF-8 String Representation of Distinguished Names."
 
 {{I:How is the information accessed?}}
-LDAP defines operations for interrogating
-and updating the directory. Operations are provided for adding and deleting
+LDAP defines operations for interrogating and updating the directory.
+Operations are provided for adding and deleting
 an entry from the directory, changing an existing entry, and changing the
 name of an entry. Most of the time, though, LDAP is used to search for
 information in the directory. The LDAP search operation allows some portion
@@ -103,21 +108,20 @@ of the directory to be searched for entries that match some criteria specified
 by a search filter. Information can be requested from each entry that matches
 the criteria.
 
-For example, you might want to search the entire directory subtree below the
-OpenLDAP Project for people with the name Barbara Jensen, retrieving
-the email address of each entry found. LDAP lets you do this easily. Or you
-might want to search the entries directly below the c=US entry for
-organizations with the string "Acme" in their name, and that have a fax
-number. LDAP lets you do this too. The next section describes in more detail
-what you can do with LDAP and how it might be useful to you.
+For example, you might want to search the entire directory subtree at
+and below {{EX:dc=OpenLDAP,dc=org}} for people with the name {{EX:Barbara
+Jensen}}, retrieving the email address of each entry found. LDAP lets
+you do this easily.  Or you might want to search the entries directly
+below the {{EX:st=California, c=US}} entry for organizations with the
+string {{EX:Acme}} in their name, and that have a fax number. LDAP lets
+you do this too. The next section describes in more detail what you can
+do with LDAP and how it might be useful to you.
 
 {{I:How is the information protected from unauthorized access?}}
-Some directory
-services provide no protection, allowing anyone to see the information. LDAP
-provides a method for a client to authenticate, or prove its identity to a
-directory server, paving the way for rich access control to protect the
-information the server contains.
-
+Some directory services provide no protection, allowing anyone to see
+the information. LDAP provides a method for a client to authenticate,
+or prove its identity to a directory server, paving the way for rich
+access control to protect the information the server contains.
 
 
 H2: How does LDAP work?
@@ -125,39 +129,39 @@ H2: How does LDAP work?
 LDAP directory service is based on a {{I:client-server}} model. One or more
 LDAP servers contain the data making up the LDAP directory tree. An LDAP
 client connects to an LDAP server and asks it a question. The server
-responds with the answer, or with a pointer to where the client can get more
-information (typically, another LDAP server). No matter which LDAP server a
-client connects to, it sees the same view of the directory; a name presented
-to one LDAP server references the same entry it would at another LDAP
-server. This is an important feature of a global directory service, like LDAP.
-
-
+responds with the answer and/or with a pointer to where the client can
+get additional information (typically, another LDAP server). No matter
+which LDAP server a client connects to, it sees the same view of the
+directory; a name presented to one LDAP server references the same
+entry it would at another LDAP server. This is an important feature of
+a global directory service, like LDAP.
 
 
 H2: What is slapd and what can it do?
 
-{{I:Slapd}} is an LDAP directory server that runs on many different UNIX
+{{I:Slapd}} is an LDAP directory server that runs on many different
 platforms. You can use it to provide a directory service of your very own.
 Your directory can contain pretty much anything you want to put in it. You
 can connect it to the global LDAP directory service, or run a service all by
 yourself. Some of slapd's more interesting features and capabilities include:
 
-{{B:Choice of databases}}: {{I:Slapd}} comes with three different backend 
-databases you can choose from. They are LDBM, a high-performance disk-based
-database; SHELL, a database interface to arbitrary UNIX commands or shell
-scripts; and PASSWD, a simple password file database.
+{{B:Choice of databases}}: {{I:Slapd}} comes with a variety of different
+backend databases you can choose from. They include LDBM, a high-performance
+disk-based {{embedded}} database; SHELL, a database interface to arbitrary
+shell scripts; and PASSWD, a simple password file database.
 
 {{B:Multiple database instances}}: {{I:Slapd}} can be configured to serve 
 multiple databases at the same time. This means that a single {{I:slapd}}
 server can respond to requests for many logically different portions 
 of the LDAP tree, using the same or different backend databases.
 
-{{B:Generic database API}}: If you require even more customization, {{I:slapd}} 
-lets you write your own backend database easily. {{I:Slapd}} 
+{{B:Generic database API}}: If you require even more customization,
+{{I:slapd}} lets you write your own backend database easily. {{I:Slapd}} 
 consists of two distinct parts: a front end that handles protocol 
 communication with LDAP clients; and a backend that handles database 
 operations. Because these two pieces communicate via a well-defined 
 C API, you can write your own customized database backend to {{I:slapd}}.
+A number of {{programmable}} backends are also provided.
 
 {{B:Access control}}: {{I:Slapd}} provides a rich and powerful access 
 control facility, allowing you to control access to the information 
@@ -179,51 +183,50 @@ single configuration file which allows you to change just about
 everything you'd ever want to change.  Configuration options have 
 reasonable defaults, making your job much easier.
 
-{{I:Slapd}} also has its limitations, of course. It does not 
-currently handle aliases, which are part of the LDAP model. The 
-main LDBM database backend does not handle range queries or negation 
-queries very well. These features and more will be coming in a future release.
+{{I:Slapd}} also has its limitations, of course. The main LDBM
+database backend does not handle range queries or negation queries
+very well. These features and more will be coming in a future release.
 
 
 
 H2: What about X.500?
 
-LDAP was originally developed as a front end to X.500, the OSI directory
-service. X.500 defines the Directory Access Protocol (DAP) for clients to
-use when contacting directory servers. DAP is a heavyweight protocol that
-runs over a full OSI stack and requires a significant amount of computing
-resources to run. LDAP runs directly over TCP and provides most of the
-functionality of DAP at a much lower cost.
+Technically, LDAP is a directory access protocol to an X.500 directory
+service, the OSI directory service.  Initial LDAP servers were
+were gateway between LDAP and the X.500 Directory Access Protocol (DAP).
+DAP is a heavyweight protocol that runs over a full OSI stack and
+requires a significant amount of computing resources to run. LDAP
+runs directly over TCP and provides most of the functionality of DAP
+at a much lower cost.
 
 This use of LDAP makes it easy to access the X.500 directory, but still
-requires a full X.500 service to make data available to the many LDAP clients
-being developed. As with full X.500 DAP clients, a full X.500 server is no
-small piece of software to run.
+requires a full X.500 service to make data available to the many LDAP
+clients being developed. As with full X.500 DAP clients, a full X.500
+DAP server is no small piece of software to run.
 
-The stand-alone LDAP daemon, or {{I:slapd}}, is meant to remove much of the
-burden from the server side just as LDAP itself removed much of the burden
-from clients. If you are already running an X.500 service and you want to
-continue to do so, you can probably stop reading this guide, which is all
-about running LDAP via {{I:slapd}}, without running X.500. If you are not
-running X.500,
-want to stop running X.500, or have no immediate plans to run X.500,
-read on.
+The stand-alone LDAP daemon, or {{I:slapd}}, is meant to remove much
+of the burden from the server side just as LDAP itself removed much of
+the burden from clients. If you are already running an X.500 DAP service
+and you want to continue to do so, you can probably stop reading this
+guide, which is all about running LDAP via {{I:slapd}}, without running
+X.500 DAP. If you are not running X.500 DAP, want to stop running
+X.500 DAP, or have no immediate plans to run X.500 DAP, read on.
 
 It is possible to replicate data from a {{I:slapd}} directory 
-server to an X.500 DSA, which allows your organization to make your 
-data available as part of the global X.500 directory service on a 
-"read-only" basis. This is discussed in section 11.6.
+server to a X.500 DSA, which allows your organization to make your 
+data available as part of the global X.500 DAP directory service
+on a "read-only" basis. This is discussed in section 11.6.
 
-Another way to make data in a {{I:slapd}} server available to the X.500
-community would be by using a X.500 DAP to LDAP gateway. At this time, no
-such software has been written (to the best of our knowledge), but hopefully
-some group will see fit towrite such a gateway.
-
+Another way to make data in a {{I:slapd}} server available to the
+X.500 community would be by using a X.500 DAP to LDAP gateway. At
+this time, no such software has been written (to the best of our
+knowledge), but hopefully some group will see fit to write such a
+gateway.
 
 
 H2: What is slurpd and what can it do?
 
-{{I:Slurpd}} is a UNIX daemon that helps {{I:slapd}} provide 
+{{I:Slurpd}} is a daemon that helps {{I:slapd}} provide 
 replicated service. It is responsible for distributing changes made 
 to the master {{I:slapd}} database out to the various {{I:slapd}} 
 replicas. It frees {{I:slapd}} from having to worry that some
@@ -233,5 +236,4 @@ replicas might be down or unreachable when a change comes through;
 file that is used to log changes.
 
 PB:
-
 

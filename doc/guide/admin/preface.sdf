@@ -17,13 +17,12 @@ Copyright 1992-1996, University of Michigan, All Rights Reserved.
 # acknowledge U-M.  Probably should be placed in a separate file.
 P2[notoc] Acknowledgements
 
-The OpenLDAP Project ({{URL:http://www.openldap.org/}}) is comprised
-of a team of volunteers.  This software would not be possible
+The {{OpenLDAP Project}} ({{URL:http://www.openldap.org/}}) is comprised
+of a team of volunteers.  This document would not be possible
 without their contribution of time and energy.
 
 The OpenLDAP Project would also like to thank the {{University of Michigan
 LDAP Team}} ({{URL::http://www.umich.edu/~dirsvcs/ldap/}}) for building
 the foundation of LDAP software and information
 to which we build upon.
-
 
