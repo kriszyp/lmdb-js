@@ -19,6 +19,7 @@
 
 #include <ac/string.h>
 #include <ac/unistd.h>
+#include <ac/crypt.h>
 
 #include "lutil_md5.h"
 #include "lutil_sha1.h"

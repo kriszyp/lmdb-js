@@ -21,12 +21,7 @@
 #	include <unistd.h>
 #endif
 
-/* crypt() may be defined in a separate include file */
-#if HAVE_CRYPT_H
-#	include <crypt.h>
-#else
-	extern char *(crypt)();
-#endif
+/* note: callers of crypt(3) should include <ac/crypt.h> */
 
 #ifndef HAVE_GETPASS
 LDAP_F(char*)(getpass) LDAP_P((const char *getpass));

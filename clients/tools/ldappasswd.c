@@ -30,6 +30,7 @@
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
+#include <ac/crypt.h>
 
 #include <lber.h>
 #include <ldap.h>
