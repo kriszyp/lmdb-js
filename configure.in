@@ -49,7 +49,6 @@ OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
 OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 	no, [yes no])dnl
 
-
 dnl General "with" options
 OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
 
@@ -59,6 +58,8 @@ OL_ARG_WITH(threads,[  --with-threads	use threads],
 	auto, [auto posix mach lwp yes no manual] )
 OL_ARG_WITH(yielding_select,[  --with-yielding-select	with implicitly yielding select],
 	auto, [auto yes no manual] )
+OL_ARG_WITH(tls,[  --with-tls  use tls/ssl],
+	auto, [auto ssleay openssl yes no] )
 
 dnl Server options
 
@@ -261,6 +262,7 @@ SLAPD_PERL_CPPFLAGS=
 
 KRB_LIBS=
 TERMCAP_LIBS=
+TLS_LIBS=
 
 dnl ----------------------------------------------------------------
 dnl Checks for programs
@@ -451,6 +453,35 @@ fi
 if test $ol_link_kerberos = yes ; then
 	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
 fi
+
+dnl
+dnl Check for SSL/TLS
+dnl
+ol_link_tls=no
+if test $ol_with_tls = auto -o $ol_with_tls = ssleay \
+	-o $ol_with_tls = openssl ; then
+	
+	AC_CHECK_HEADERS(ssl.h)
+	
+	if test $ac_cv_header_ssl_h = yes ; then
+		AC_CHECK_LIB( ssl, SSLeay_add_ssl_algorithms, 
+			[have_ssleay=yes], [have_ssleay=no], [-lcrypto])
+			
+		if test $have_ssleay = yes ; then
+			ol_with_tls=found
+			ol_link_tls=yes
+
+			AC_DEFINE( HAVE_SSLEAY, 1, 
+				[define if you have SSLeay] )
+
+			TLS_LIBS="-lssl -lcrypto"
+		fi
+	fi
+fi
+
+if test $ol_link_tls = yes ; then
+	AC_DEFINE( HAVE_TLS, 1, [define if you have TLS] )
+fi	
 
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = yes \
@@ -1516,8 +1547,22 @@ else
 	ol_cv_func_ctime_r=0
 fi
 
+if test "$ac_cv_func_gethostbyname_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYNAME_R_NARGS
+else
+ 	ol_cv_func_gethostbyname_r=0
+fi
+ 
+if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYADDR_R_NARGS
+else
+ 	ol_cv_func_gethostbyaddr_r=0
+fi
+
 if test "$ac_cv_func_ctime_r" = yes \
 	-a "$ol_cv_func_ctime_r_nargs" -ge 2 -a "$ol_cv_func_ctime_r_nargs" -le 3 \
+ 	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
+ 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 -a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
 	-a "$ac_cv_func_gethostbyaddr_r" = yes \
 	-a "$ac_cv_func_gethostbyname_r" = yes \
 	; then
@@ -1650,6 +1695,7 @@ AC_SUBST(SLAPD_PERL_LDFLAGS)
 
 AC_SUBST(KRB_LIBS)
 AC_SUBST(TERMCAP_LIBS)
+AC_SUBST(TLS_LIBS)
 
 dnl ----------------------------------------------------------------
 dnl final output

@@ -45,6 +45,12 @@
 /* define this to the number of arguments ctime_r() expects */
 #undef CTIME_R_NARGS
 
+/* define this to the number of arguments gethostbyaddr_r expects */
+#undef GETHOSTBYADDR_R_NARGS
+
+/* define this to the number of arguments gethostbyname_r expects */
+#undef GETHOSTBYNAME_R_NARGS
+
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 

@@ -4,8 +4,8 @@
  */
 /*
  * util-int.c	Various functions to replace missing threadsafe ones.
- *				  Without the real *_r funcs, things will work, but won't be
- *				  threadsafe. 
+ *				  Without the real *_r funcs, things will
+ *				  work, but might not be threadsafe. 
  * 
  * Written by Bart Hartgers.
  *
@@ -18,6 +18,7 @@
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
  */ 
+
 
 #include "portable.h"
 
@@ -90,6 +91,11 @@ int ldap_pvt_gethostbyname_a(
 	int *herrno_ptr )
 {
 #if defined( HAVE_GETHOSTBYNAME_R )
+
+# if (GETHOSTBYNAME_R_NARGS > 6) || (GETHOSTBYNAME_R_NARGS < 5)
+    Ouch! gethostbyname_r() must have either 5 or 6 args
+#endif
+
 # define NEED_SAFE_REALLOC 1   
 	int r=-1;
 	int buflen=BUFSTART;
@@ -97,8 +103,19 @@ int ldap_pvt_gethostbyname_a(
 	for(;buflen<BUFMAX;) {
 		if (safe_realloc( buf, buflen )==NULL)
 			return r;
+
+#if (GETHOSTBYNAME_R_NARGS < 6)
+		r = ((*result=gethostbyname_r( name, resbuf, *buf,\
+					       buflen, herrno_ptr ))== NULL) ?\
+		    -1 : 0;
+#else
 		r = gethostbyname_r( name, resbuf, *buf,
 			buflen, result, herrno_ptr );
+#endif
+
+		Debug( LDAP_DEBUG_TRACE, "ldap_pvt_gethostbyname_a: host=%s, r=%d\n",\
+		       name, r, 0 );
+
 #ifdef NETDB_INTERNAL
 		if ((r<0) &&
 			(*herrno_ptr==NETDB_INTERNAL) &&
@@ -157,6 +174,11 @@ int ldap_pvt_gethostbyaddr_a(
 	int *herrno_ptr )
 {
 #if defined( HAVE_GETHOSTBYADDR_R )
+
+#if (GETHOSTBYADDR_R_NARGS > 8) || (GETHOSTBYADDR_R_NARGS < 7)
+    Ouch! gethostbyaddr_r() must have either 7 or 8 args
+#endif
+
 # undef NEED_SAFE_REALLOC
 # define NEED_SAFE_REALLOC   
 	int r=-1;
@@ -165,9 +187,17 @@ int ldap_pvt_gethostbyaddr_a(
 	for(;buflen<BUFMAX;) {
 		if (safe_realloc( buf, buflen )==NULL)
 			return r;
+#if (GETHOSTBYADDR_R_NARGS < 8)
+		r = ((*result=gethostbyaddr_r( addr, len, type,
+					       resbuf, *buf, buflen, 
+					       herrno_ptr )) == NULL) ?\
+		    -1 : 0;
+#else
 		r = gethostbyaddr_r( addr, len, type,
 			resbuf, *buf, buflen, 
 			result, herrno_ptr );
+#endif
+
 #ifdef NETDB_INTERNAL
 		if ((r<0) &&
 			(*herrno_ptr==NETDB_INTERNAL) &&
@@ -289,7 +319,7 @@ static int copy_hostent( struct hostent *res, char **buf, struct hostent * src )
 	
 	for( n_alias=total_alias_len=0, p=src->h_aliases; (*p) ; p++ ) {
 		total_alias_len += strlen( *p ) + 1;
-		n_alias++;
+		n_alias++; 
 	}
 
 	for( n_addr=0, p=src->h_addr_list; (*p) ; p++ ) {

@@ -443,4 +443,75 @@ AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
     AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs)
   fi
 ])dnl
+dnl ====================================================================
+dnl check no of arguments for gethostbyname_r
+AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,
+ [AC_CACHE_CHECK(number of arguments of gethostbyname_r, ol_cv_func_gethostbyname_r_nargs,
+   [AC_TRY_COMPILE([#include <sys/types.h>
+		    #include <sys/socket.h>
+		    #include <netinet/in.h>
+		    #include <netdb.h>
+		    #define BUFSIZE (sizeof(struct hostent)+10)],
+		   [struct hostent hent; char buffer[BUFSIZE];
+		    int bufsize=BUFSIZE;int h_errno;
+                    (void)gethostbyname_r( "segovia.cs.purdue.edu", &hent, buffer, bufsize, &h_errno);
+		    return 0;],
+		ol_cv_func_gethostbyname_r_nargs=5, ol_cv_func_gethostbyname_r_nargs=0)
+		if test $ol_cv_func_gethostbyname_r_nargs = 0 ; then
+ 			AC_TRY_COMPILE([#include <sys/types.h>
+		    #include <sys/socket.h>
+		    #include <netinet/in.h>
+		    #include <netdb.h>
+		    #define BUFSIZE (sizeof(struct hostent)+10)],
+		   [struct hostent hent;struct hostent *rhent;
+		    char buffer[BUFSIZE];
+		    int bufsize=BUFSIZE;int h_errno;
+                     (void)gethostbyname_r( "segovia.cs.purdue.edu", &hent, buffer, bufsize, &rhent, &h_errno);
+		    return 0;],
+		   ol_cv_func_gethostbyname_r_nargs=6, ol_cv_func_gethostbyname_r_nargs=0)
+		fi
+	])
+  if test $ol_cv_func_gethostbyname_r_nargs -gt 1 ; then
+    AC_DEFINE_UNQUOTED(GETHOSTBYNAME_R_NARGS, $ol_cv_func_gethostbyname_r_nargs)
+  fi
+])dnl
+dnl check no of arguments for gethostbyaddr_r
+AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
+ [AC_CACHE_CHECK(number of arguments of gethostbyaddr_r, ol_cv_func_gethostbyaddr_r_nargs,
+   [AC_TRY_COMPILE([#include <sys/types.h>
+		    #include <sys/socket.h>
+		    #include <netinet/in.h>
+		    #include <netdb.h>
+		    #define BUFSIZE (sizeof(struct hostent)+10)],
+		   [struct hostent hent; char buffer[BUFSIZE]; 
+		    struct in_addr add={0x70707070};
+		    size_t alen=sizeof(struct in_addr);
+		    int bufsize=BUFSIZE;int h_errno;
+                    (void)gethostbyaddr_r( (void *)&(add.s_addr),
+				alen, AF_INET, &hent, buffer, bufsize, &h_errno);
+		    return 0;],
+		    ol_cv_func_gethostbyaddr_r_nargs=7,
+		    ol_cv_func_gethostbyaddr_r_nargs=0)
+		if test $ol_cv_func_gethostbyaddr_r_nargs = 0 ; then
+			AC_TRY_COMPILE([#include <sys/types.h>
+		    #include <sys/socket.h>
+		    #include <netinet/in.h>
+		    #include <netdb.h>
+		    #define BUFSIZE (sizeof(struct hostent)+10)],
+		   [struct hostent hent; struct hostent *rhent; char buffer[BUFSIZE]; 
+		    struct in_addr add={0x70707070};
+		    size_t alen=sizeof(struct in_addr);
+		    int bufsize=BUFSIZE;int h_errno;
+                    (void)gethostbyaddr_r( (void *)&(add.s_addr),
+				alen, AF_INET, &hent, buffer, bufsize, 
+				&rhent, &h_errno);
+		    return 0;],
+		    ol_cv_func_gethostbyaddr_r_nargs=8,
+		    ol_cv_func_gethostbyaddr_r_nargs=0)
+		fi
+	])
+  if test $ol_cv_func_gethostbyaddr_r_nargs -gt 1 ; then
+    AC_DEFINE_UNQUOTED(GETHOSTBYADDR_R_NARGS, $ol_cv_func_gethostbyaddr_r_nargs)
+  fi
+])dnl
 
