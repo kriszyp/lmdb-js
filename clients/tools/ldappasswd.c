@@ -8,20 +8,17 @@
  *	license is available at http://www.OpenLDAP.org/license.html or
  *	in file LICENSE in the top-level directory of the distribution.
  *
- * ldappasswd.c - program to modify passwords in an LDAP tree
+ *	ldappasswd.c - program to modify passwords in an LDAP tree
  *
- *	Created: 1998-11-26
  *	Author: David E. Storey <dave@tamos.net>
- *	Last Modified: 1998-12-05
  *
- *		ToDo: passwd style change of password (termcap?)
- *			option for referral handling
- *			cracklib support?
- *			kerberos support? (is this really necessary?)
- *			update "shadow" fields?
- *			create/view/change password policies?
+ *	ToDo: option for referral handling
+ *		cracklib support?
+ *		kerberos support? (is this really necessary?)
+ *		update "shadow" fields?
+ *		create/view/change password policies?
  *
- *		  Note: I am totally FOR comments and suggestions!
+ *      Note: I am totally FOR comments and suggestions!
  */
 
 #include "portable.h"
@@ -153,7 +150,7 @@ static struct hash_t hashes[] = {
 	{"crypt", 5, hash_crypt, HASHTYPE_CRYPT},
 	{"md5",   3, hash_md5,   HASHTYPE_MD5},
 	{"sha",   3, hash_sha1,  HASHTYPE_SHA1},
-	{NULL,	0, NULL,	   HASHTYPE_NONE}
+	{NULL,    0, NULL,       HASHTYPE_NONE}
 };
 
 int
@@ -202,19 +199,19 @@ usage(char *s)
 	fprintf(stderr, "usage: %s [options] [filter]\n", s);
 	fprintf(stderr, "\t-a attrib   password attribute (default: userPassword)\n");
 	fprintf(stderr, "\t-b basedn   basedn to perform searches\n");
-	fprintf(stderr, "\t-c hash	 hash type: none, crypt, md5, sha (default: crypt)\n");
+	fprintf(stderr, "\t-c hash     hash type: none, crypt, md5, sha (default: crypt)\n");
 	fprintf(stderr, "\t-D binddn   bind dn\n");
-	fprintf(stderr, "\t-d level	debugging level\n");
-	fprintf(stderr, "\t-h host	 ldap server (default: localhost)\n");
-	fprintf(stderr, "\t-l time	 time limit\n");
-	fprintf(stderr, "\t-n		  make no modifications\n");
-	fprintf(stderr, "\t-p port	 ldap port\n");
-	fprintf(stderr, "\t-s scope	search scope: base, one, sub (default: sub)\n");
+	fprintf(stderr, "\t-d level    debugging level\n");
+	fprintf(stderr, "\t-h host     ldap server (default: localhost)\n");
+	fprintf(stderr, "\t-l time     time limit\n");
+	fprintf(stderr, "\t-n          make no modifications\n");
+	fprintf(stderr, "\t-p port     ldap port\n");
+	fprintf(stderr, "\t-s scope    search scope: base, one, sub (default: sub)\n");
 	fprintf(stderr, "\t-t targetdn dn to change password\n");
 	fprintf(stderr, "\t-W newpass  new password\n");
-	fprintf(stderr, "\t-w passwd   bind password (for simple authentication)\n");
-	fprintf(stderr, "\t-v		  verbose\n");
-	fprintf(stderr, "\t-z size	 size limit\n");
+	fprintf(stderr, "\t-w [passwd] bind password (for simple authentication)\n");
+	fprintf(stderr, "\t-v          verbose\n");
+	fprintf(stderr, "\t-z size     size limit\n");
 	exit(1);
 }
 
@@ -225,9 +222,10 @@ main(int argc, char *argv[])
 	int i, j;
 	int sizelimit = LDAP_NO_LIMIT;
 	int timelimit = LDAP_NO_LIMIT;
+	int want_bindpw = 0;
 	LDAP *ld;
 
-	while ((i = getopt(argc, argv, "D:W:a:b:c:d:h:l:np:s:t:vw:z:")) != EOF)
+	while ((i = getopt(argc, argv, "D:W:a:b:c:d:h:l:np:s:t:vw::z:")) != EOF)
 	{
 		switch(i)
 		{
@@ -236,18 +234,15 @@ main(int argc, char *argv[])
 			break;
 
 		case 'W':	   /* new password */
-			if (optarg)
-				newpw = strdup(optarg);
+                        newpw = strdup(optarg);
 			break;
 
 		case 'a':	   /* password attribute */
-			if (optarg)
-				pwattr = strdup(optarg);
+                        pwattr = strdup(optarg);
 			break;
 
 		case 'b':	   /* base search dn */
-			if (optarg)
-				base = strdup(optarg);
+                        base = strdup(optarg);
 			break;
 
 		case 'c':	   /* hashes */
@@ -276,13 +271,11 @@ main(int argc, char *argv[])
 			break;
 
 		case 'h':	   /* ldap host */
-			if (optarg)
-				ldaphost = strdup(optarg);
+                        ldaphost = strdup(optarg);
 			break;
 
 		case 'l':	   /* time limit */
-			if (optarg)
-				timelimit = strtol(optarg, NULL, 10);
+                        timelimit = strtol(optarg, NULL, 10);
 			break;
 
 		case 'n':	   /* don't update entry(s) */
@@ -290,8 +283,7 @@ main(int argc, char *argv[])
 			break;
 
 		case 'p':	   /* ldap port */
-			if (optarg)
-				ldapport = strtol(optarg, NULL, 10);
+			ldapport = strtol(optarg, NULL, 10);
 			break;
 
 		case 's':	   /* scope */
@@ -307,24 +299,23 @@ main(int argc, char *argv[])
 			}
 			break;
 
-		case 't':	   /* password type */
-			if (optarg)
-				targetdn = strdup(optarg);
-			else
-				targetdn = binddn;
+		case 't':	   /* target dn */
+                        targetdn = strdup(optarg);
 			break;
 
 		case 'v':	   /* verbose */
 			verbose++;
 			break;
 
-		case 'w':	   /* bind password */
-			bindpw = strdup(optarg);
-			break;
+                case 'w':	   /* bind password */
+			if (optarg)
+				bindpw = strdup(optarg);
+			else
+				want_bindpw++;
+                    break;
 
 		case 'z':	   /* time limit */
-			if (optarg)
-				sizelimit = strtol(optarg, NULL, 10);
+			sizelimit = strtol(optarg, NULL, 10);
 			break;
 
 		default:
@@ -332,19 +323,30 @@ main(int argc, char *argv[])
 		}
 	}
 
+	/* grab filter */
 	if (!(argc - optind < 1))
 		filtpattern = strdup(argv[optind]);
 
+	/* check for target(s) */
 	if (!filtpattern && !targetdn)
-	{
-		fprintf(stderr, "No filter or targetdn(-t)\n");
-		usage(argv[0]);
-	}
+		targetdn = binddn;
 
+	/* handle bind password */
+	if (want_bindpw)
+		bindpw = strdup(getpass("Enter LDAP password: "));
+
+	/* handle new password */
 	if (!newpw)
 	{
-		fprintf(stderr, "Need a password (-W)\n");
-		usage(argv[0]);
+		char *cknewpw;
+		newpw = strdup(getpass("New password: "));
+		cknewpw = getpass("Re-enter new password: ");
+
+		if (strncmp(newpw, cknewpw, strlen(newpw)))
+		{
+			fprintf(stderr, "passwords do not match\n");
+			return(1);
+		}
 	}
 
 	/* connect to server */
