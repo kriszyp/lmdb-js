@@ -16,7 +16,7 @@ static void	string_expand(char *newbuf, int bufsiz, char *pattern,
 
 
 /*
- * access_allowed - check whether dn is allowed the requested access
+ * access_allowed - check whether op->o_ndn is allowed the requested access
  * to entry e, attribute attr, value val.  if val is null, access to
  * the whole attribute is assumed (all values).  this routine finds
  * the applicable acl and calls acl_access_allowed() to make the
@@ -34,7 +34,6 @@ access_allowed(
     Entry		*e,
     char		*attr,
     struct berval	*val,
-    char		*dn,
     int			access
 )
 {
@@ -50,7 +49,8 @@ access_allowed(
 		return( 0 );
 	}
 
-	edn = dn_normalize_case( ch_strdup( e->e_dn ) );
+	edn = e->e_ndn;
+
 	Debug( LDAP_DEBUG_ACL, "\n=> access_allowed: entry (%s) attr (%s)\n",
 		e->e_dn, attr, 0 );
 
@@ -62,13 +62,12 @@ access_allowed(
 	{
  		Debug( LDAP_DEBUG_ACL, "LASTMOD attribute: %s access allowed\n",
 			attr, 0, 0 );
-		free( edn );
 		return(1);
 	}
 
 	memset(matches, 0, sizeof(matches));
 
-	a = acl_get_applicable( be, op, e, attr, edn, MAXREMATCHES, matches );
+	a = acl_get_applicable( be, op, e, attr, MAXREMATCHES, matches );
 
 	if (a) {
 		for (i = 0; i < MAXREMATCHES && matches[i].rm_so > 0; i++) {
@@ -85,7 +84,6 @@ access_allowed(
 	}
 
 	rc = acl_access_allowed( a, be, conn, e, val, op, access, edn, matches );
-	free( edn );
 
 	Debug( LDAP_DEBUG_ACL, "\n=> access_allowed: exit (%s) attr (%s)\n",
 		e->e_dn, attr, 0);
@@ -105,23 +103,25 @@ acl_get_applicable(
     Operation		*op,
     Entry		*e,
     char		*attr,
-    char		*edn,
     int			nmatch,
     regmatch_t	*matches
 )
 {
 	int		i, j;
 	struct acl	*a;
+    char		*edn;
 
 	Debug( LDAP_DEBUG_ACL, "\n=> acl_get: entry (%s) attr (%s)\n",
 		e->e_dn, attr, 0 );
 
-	if ( be_isroot( be, op->o_dn ) ) {
+	if ( be_isroot( be, op->o_ndn ) ) {
 		Debug( LDAP_DEBUG_ACL,
 		    "<= acl_get: no acl applicable to database root\n", 0, 0,
 		    0 );
 		return( NULL );
 	}
+
+    edn = e->e_ndn;
 
 	Debug( LDAP_DEBUG_ARGS, "=> acl_get: edn %s\n", edn, 0, 0 );
 
@@ -230,9 +230,9 @@ acl_access_allowed(
 		"\n=> acl_access_allowed: %s access to value \"%s\" by \"%s\"\n",
 	    access2str( access ),
 		val ? val->bv_val : "any",
-		op->o_dn ?  op->o_dn : "" );
+		op->o_ndn ?  op->o_ndn : "" );
 
-	if ( be_isroot( be, op->o_dn ) ) {
+	if ( be_isroot( be, op->o_ndn ) ) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= acl_access_allowed: granted to database root\n",
 		    0, 0, 0 );
@@ -248,12 +248,13 @@ acl_access_allowed(
 		return( default_access >= access );
 	}
 
-	odn = NULL;
-	if ( op->o_dn != NULL ) {
-		odn = dn_normalize_case( ch_strdup( op->o_dn ) );
+	odn = op->o_ndn;
+
+	if ( odn != NULL ) {
 		bv.bv_val = odn;
 		bv.bv_len = strlen( odn );
 	}
+
 	for ( i = 1, b = a->acl_access; b != NULL; b = b->a_next, i++ ) {
 		if ( b->a_dnpat != NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "<= check a_dnpat: %s\n",
@@ -264,15 +265,14 @@ acl_access_allowed(
 			 * the entry, OR the given dn matches the dn pattern
 			 */
 			if ( strcasecmp( b->a_dnpat, "self" ) == 0 && 
-				op->o_dn != NULL && *(op->o_dn) && e->e_dn != NULL ) 
+				op->o_ndn != NULL && *(op->o_ndn) && e->e_dn != NULL ) 
 			{
-				if ( strcasecmp( edn, op->o_dn ) == 0 ) {
+				if ( strcasecmp( edn, op->o_ndn ) == 0 ) {
 					Debug( LDAP_DEBUG_ACL,
 					"<= acl_access_allowed: matched by clause #%d access %s\n",
 					    i, (b->a_access & ~ACL_SELF) >=
 					    access ? "granted" : "denied", 0 );
 
-					if ( odn ) free( odn );
 					return( (b->a_access & ~ACL_SELF) >= access );
 				}
 			} else {
@@ -282,7 +282,6 @@ acl_access_allowed(
 				    i, (b->a_access & ~ACL_SELF) >= access ?
 					    "granted" : "denied", 0 );
 
-					if ( odn ) free( odn );
 					return( (b->a_access & ~ACL_SELF) >= access );
 				}
 			}
@@ -294,7 +293,6 @@ acl_access_allowed(
 				    i, (b->a_access & ~ACL_SELF) >= access ?
 				    "granted" : "denied", 0 );
 
-				if ( odn ) free( odn );
 				return( (b->a_access & ~ACL_SELF) >= access );
 			}
 		}
@@ -308,11 +306,10 @@ acl_access_allowed(
 				    i, (b->a_access & ~ACL_SELF) >= access ?
 				    "granted" : "denied", 0 );
 
-				if ( odn ) free( odn );
 				return( (b->a_access & ~ACL_SELF) >= access );
 			}
 		}
-		if ( b->a_dnattr != NULL && op->o_dn != NULL ) {
+		if ( b->a_dnattr != NULL && op->o_ndn != NULL ) {
 			Debug( LDAP_DEBUG_ARGS, "<= check a_dnattr: %s\n",
 				b->a_dnattr, 0, 0);
 			/* see if asker is listed in dnattr */
@@ -325,7 +322,6 @@ acl_access_allowed(
 					continue;
 				}
 
-				if ( odn ) free( odn );
 				Debug( LDAP_DEBUG_ACL,
 				    "<= acl_acces_allowed: matched by clause #%d access %s\n",
 				    i, (b->a_access & ~ACL_SELF) >= access ?
@@ -341,7 +337,6 @@ acl_access_allowed(
 				continue;
 			}
 
-			if ( odn ) free( odn );
 			Debug( LDAP_DEBUG_ACL,
 				"<= acl_access_allowed: matched by clause #%d (self) access %s\n",
 			    i, (b->a_access & ~ACL_SELF) >= access ? "granted"
@@ -350,8 +345,8 @@ acl_access_allowed(
 			return( (b->a_access & ~ACL_SELF) >= access );
 		}
 #ifdef SLAPD_ACLGROUPS
-		if ( b->a_group != NULL && op->o_dn != NULL ) {
-			char buf[512];
+		if ( b->a_group != NULL && op->o_ndn != NULL ) {
+			char buf[1024];
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
@@ -359,6 +354,7 @@ acl_access_allowed(
 			 */
 			/* see if asker is listed in dnattr */
 			string_expand(buf, sizeof(buf), b->a_group, edn, matches);
+			(void) dn_normalize_case(buf);
 
 			if (be_group(be, e, buf, odn,
 				b->a_objectclassvalue, b->a_groupattrname) == 0)
@@ -366,14 +362,12 @@ acl_access_allowed(
 				Debug( LDAP_DEBUG_ACL,
 					"<= acl_access_allowed: matched by clause #%d (group) access granted\n",
 					i, 0, 0 );
-				if ( odn ) free( odn );
 				return( (b->a_access & ~ACL_SELF) >= access );
 			}
 		}
 #endif /* SLAPD_ACLGROUPS */
 	}
 
-	if ( odn ) free( odn );
 	Debug( LDAP_DEBUG_ACL,
 		"<= acl_access_allowed: %s by default (no matching by)\n",
 	    default_access >= access ? "granted" : "denied", 0, 0 );
@@ -400,9 +394,7 @@ acl_check_modlist(
 {
 	int		i;
 	struct acl	*a;
-	char            *edn;
-
-	edn = dn_normalize_case( ch_strdup( e->e_dn ) );
+	char	*edn = e->e_ndn;
 
 	for ( ; mlist != NULL; mlist = mlist->ml_next ) {
 		regmatch_t       matches[MAXREMATCHES];
@@ -418,7 +410,7 @@ acl_check_modlist(
 			continue;
 		}
 
-		a = acl_get_applicable( be, op, e, mlist->ml_type, edn,
+		a = acl_get_applicable( be, op, e, mlist->ml_type,
 			MAXREMATCHES, matches );
 
 		switch ( mlist->ml_op & ~LDAP_MOD_BVALUES ) {
@@ -431,7 +423,6 @@ acl_check_modlist(
 				if ( ! acl_access_allowed( a, be, conn, e, mlist->ml_bvalues[i], 
 					op, ACL_WRITE, edn, matches) ) 
 				{
-					free(edn);
 					return( LDAP_INSUFFICIENT_ACCESS );
 				}
 			}
@@ -442,7 +433,6 @@ acl_check_modlist(
 				if ( ! acl_access_allowed( a, be, conn, e,
 					NULL, op, ACL_WRITE, edn, matches) ) 
 				{
-					free(edn);
 					return( LDAP_INSUFFICIENT_ACCESS );
 				}
 				break;
@@ -451,7 +441,6 @@ acl_check_modlist(
 				if ( ! acl_access_allowed( a, be, conn, e, mlist->ml_bvalues[i], 
 					op, ACL_WRITE, edn, matches) ) 
 				{
-					free(edn);
 					return( LDAP_INSUFFICIENT_ACCESS );
 				}
 			}
@@ -459,7 +448,6 @@ acl_check_modlist(
 		}
 	}
 
-	free(edn);
 	return( LDAP_SUCCESS );
 }
 

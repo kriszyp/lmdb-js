@@ -40,8 +40,8 @@ ldbm_back_modrdn(
 
 #ifdef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
 		/* check parent for "children" acl */
-	if ( ! access_allowed( be, conn, op, e, "entry", NULL,
-		op->o_dn, ACL_WRITE ) )
+	if ( ! access_allowed( be, conn, op, e,
+		"entry", NULL, ACL_WRITE ) )
 	{
 		Debug( LDAP_DEBUG_TRACE, "no access to entry\n", 0,
 			0, 0 );
@@ -63,8 +63,8 @@ ldbm_back_modrdn(
 
 #ifndef SLAPD_CHILD_MODIFICATION_WITH_ENTRY_ACL
 		/* check parent for "children" acl */
-		if ( ! access_allowed( be, conn, op, p, "children", NULL,
-			op->o_dn, ACL_WRITE ) )
+		if ( ! access_allowed( be, conn, op, p,
+			"children", NULL, ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
@@ -96,7 +96,7 @@ ldbm_back_modrdn(
 		}
 	} else {
 		/* no parent, modrdn entry directly under root */
-		if( ! be_isroot( be, op->o_dn ) ) {
+		if( ! be_isroot( be, op->o_ndn ) ) {
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,

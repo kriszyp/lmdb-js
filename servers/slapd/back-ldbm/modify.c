@@ -55,15 +55,15 @@ ldbm_back_modify(
 
 		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
 		case LDAP_MOD_ADD:
-			err = add_values( e, mod, op->o_dn );
+			err = add_values( e, mod, op->o_ndn );
 			break;
 
 		case LDAP_MOD_DELETE:
-			err = delete_values( e, mod, op->o_dn );
+			err = delete_values( e, mod, op->o_ndn );
 			break;
 
 		case LDAP_MOD_REPLACE:
-			err = replace_values( e, mod, op->o_dn );
+			err = replace_values( e, mod, op->o_ndn );
 			break;
 		}
 

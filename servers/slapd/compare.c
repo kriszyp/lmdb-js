@@ -24,7 +24,7 @@ do_compare(
     Operation	*op
 )
 {
-	char	*dn;
+	char	*ndn;
 	Ava	ava;
 	int	rc;
 	Backend	*be;
@@ -43,28 +43,29 @@ do_compare(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a{ao}}", &dn, &ava.ava_type,
+	if ( ber_scanf( op->o_ber, "{a{ao}}", &ndn, &ava.ava_type,
 	    &ava.ava_value ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
 	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
-	dn_normalize( dn );
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    dn, ava.ava_type, ava.ava_value.bv_val );
+	    ndn, ava.ava_type, ava.ava_value.bv_val );
+
+	ndn = dn_normalize( ndn );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-	    conn->c_connid, op->o_opid, dn, ava.ava_type, 0 );
+	    conn->c_connid, op->o_opid, ndn, ava.ava_type, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( dn )) == NULL ) {
-		free( dn );
+	if ( (be = select_backend( ndn )) == NULL ) {
+		free( ndn );
 		ava_free( &ava, 0 );
 
 		send_ldap_result( conn, op, LDAP_PARTIAL_RESULTS, NULL,
@@ -72,13 +73,17 @@ do_compare(
 		return;
 	}
 
+	/* alias suffix if approp */
+	ndn = suffixAlias( ndn, op, be );
+	dn_normalize_case( ndn );
+
 	if ( be->be_compare != NULL ) {
-		(*be->be_compare)( be, conn, op, dn, &ava );
+		(*be->be_compare)( be, conn, op, ndn, &ava );
 	} else {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
-	free( dn );
+	free( ndn );
 	ava_free( &ava, 0 );
 }

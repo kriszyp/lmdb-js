@@ -35,8 +35,9 @@ ldbm_back_compare(
 	}
 
 	/* check for deleted */
-	if ( ! access_allowed( be, conn, op, e, ava->ava_type, &ava->ava_value,
-	    op->o_dn, ACL_COMPARE ) ) {
+	if ( ! access_allowed( be, conn, op, e,
+		ava->ava_type, &ava->ava_value, ACL_COMPARE ) )
+	{
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS, "", "" );
 		rc = 1;
 		goto return_results;

@@ -87,6 +87,7 @@ slapd_daemon(
 
 	for ( i = 0; i < dtblsize; i++ ) {
 		c[i].c_dn = NULL;
+		c[i].c_cdn = NULL;
 		c[i].c_addr = NULL;
 		c[i].c_domain = NULL;
 		c[i].c_ops = NULL;
@@ -343,6 +344,10 @@ slapd_daemon(
 			if ( c[ns].c_dn != NULL ) {
 				free( c[ns].c_dn );
 				c[ns].c_dn = NULL;
+			}
+			if ( c[ns].c_cdn != NULL ) {
+				free( c[ns].c_cdn );
+				c[ns].c_cdn = NULL;
 			}
 			pthread_mutex_unlock( &c[ns].c_dnmutex );
 			c[ns].c_starttime = currenttime;

@@ -194,7 +194,8 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: rootdn line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_rootdn = dn_normalize_case( ch_strdup( cargv[1] ) );
+				be->be_root_dn = ch_strdup( cargv[1] );
+				be->be_root_ndn = dn_normalize_case( ch_strdup( cargv[1] ) );
 			}
 
 		/* set super-secret magic database password */
@@ -210,7 +211,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: rootpw line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_rootpw = ch_strdup( cargv[1] );
+				be->be_root_pw = ch_strdup( cargv[1] );
 			}
 
 		/* make this database read-only */
@@ -350,8 +351,8 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: updatedn line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_updatedn = ch_strdup( cargv[1] );
-				(void) dn_normalize( be->be_updatedn );
+				be->be_update_ndn = ch_strdup( cargv[1] );
+				(void) dn_normalize_case( be->be_update_ndn );
 			}
 
 		/* replication log file to which changes are appended */

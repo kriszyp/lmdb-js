@@ -29,8 +29,8 @@ do_bind(
 {
 	BerElement	*ber = op->o_ber;
 	int		version, method, len;
+	char		*cdn, *ndn;
 	unsigned long	rc;
-	char		*dn;
 	struct berval	cred;
 	Backend		*be;
 
@@ -65,14 +65,15 @@ do_bind(
 	if ( ber_peek_tag( &tber, &tlen ) == LBER_SEQUENCE ) {
 		Debug( LDAP_DEBUG_ANY, "version 3.0 detected\n", 0, 0, 0 );
 		conn->c_version = 30;
-		rc = ber_scanf(ber, "{{iato}}", &version, &dn, &method, &cred);
+		rc = ber_scanf(ber, "{{iato}}", &version, &cdn, &method, &cred);
 	} else {
-		rc = ber_scanf( ber, "{iato}", &version, &dn, &method, &cred );
+		rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
 	}
 	}
 #else
-	rc = ber_scanf( ber, "{iato}", &version, &dn, &method, &cred );
+	rc = ber_scanf( ber, "{iato}", &version, &cdn, &method, &cred );
 #endif
+
 	if ( rc == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL,
@@ -96,14 +97,21 @@ do_bind(
 		}
 	}
 #endif /* compat30 */
-	dn_normalize( dn );
+
+	Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
+	    version, cdn, method );
+
+	ndn = dn_normalize_case( ch_strdup( cdn ) );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d BIND dn=\"%s\" method=%d\n",
-	    conn->c_connid, op->o_opid, dn, method, 0 );
+	    conn->c_connid, op->o_opid, ndn, method, 0 );
 
 	if ( version != LDAP_VERSION2 ) {
-		if ( dn != NULL ) {
-			free( dn );
+		if ( cdn != NULL ) {
+			free( cdn );
+		}
+		if ( ndn != NULL ) {
+			free( ndn );
 		}
 		if ( cred.bv_val != NULL ) {
 			free( cred.bv_val );
@@ -115,13 +123,13 @@ do_bind(
 		return;
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "do_bind: version %d dn (%s) method %d\n",
-	    version, dn, method );
-
 	/* accept null binds */
-	if ( dn == NULL || *dn == '\0' ) {
-		if ( dn != NULL ) {
-			free( dn );
+	if ( ndn == NULL || *ndn == '\0' ) {
+		if ( cdn != NULL ) {
+			free( cdn );
+		}
+		if ( ndn != NULL ) {
+			free( ndn );
 		}
 		if ( cred.bv_val != NULL ) {
 			free( cred.bv_val );
@@ -137,8 +145,9 @@ do_bind(
 	 * if we don't hold it.
 	 */
 
-	if ( (be = select_backend( dn )) == NULL ) {
-		free( dn );
+	if ( (be = select_backend( ndn )) == NULL ) {
+		free( cdn );
+		free( ndn );
 		if ( cred.bv_val != NULL ) {
 			free( cred.bv_val );
 		}
@@ -155,27 +164,57 @@ do_bind(
 		return;
 	}
 
-        /* alias suffix */
-        dn = suffixAlias ( dn, op, be );
-
 	if ( be->be_bind != NULL ) {
-		if ( (*be->be_bind)( be, conn, op, dn, method, &cred ) == 0 ) {
+		/* alias suffix */
+		char *edn;
+
+		ndn = suffixAlias( ndn, op, be );
+		dn_normalize_case( ndn );
+
+		if ( (*be->be_bind)( be, conn, op, ndn, method, &cred, &edn ) == 0 ) {
 			pthread_mutex_lock( &conn->c_dnmutex );
-			if ( conn->c_dn != NULL ) {
+
+			if ( conn->c_cdn != NULL ) {
+				free( conn->c_cdn );
+			}
+
+			conn->c_cdn = cdn;
+			cdn = NULL;
+
+			if ( conn->c_cdn != NULL ) {
 				free( conn->c_dn );
 			}
-			conn->c_dn = ch_strdup( dn );
+
+			if(edn != NULL) {
+				conn->c_dn = edn;
+			} else {
+				conn->c_dn = ndn;
+				ndn = NULL;
+			}
+
+			Debug( LDAP_DEBUG_TRACE, "do_bind: bound \"%s\" to \"%s\"\n",
+	    		conn->c_cdn, conn->c_dn, method );
+
 			pthread_mutex_unlock( &conn->c_dnmutex );
 
 			/* send this here to avoid a race condition */
 			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
+
+		} else if (edn != NULL) {
+			free( edn );
 		}
+
 	} else {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,
 		    "Function not implemented" );
 	}
 
-	free( dn );
+	if( cdn != NULL ) {
+		free( cdn );
+	}
+	if( ndn != NULL ) {
+		free( ndn );
+	}
 	if ( cred.bv_val != NULL ) {
 		free( cred.bv_val );
 	}

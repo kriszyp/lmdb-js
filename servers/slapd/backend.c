@@ -223,28 +223,37 @@ be_issuffix(
 }
 
 int
-be_isroot( Backend *be, char *dn )
+be_isroot( Backend *be, char *ndn )
 {
 	int rc;
-	char *ndn;
 
-	if ( dn == NULL || be->be_rootdn == NULL ) {
+	if ( ndn == NULL || be->be_root_ndn == NULL ) {
 		return( 0 );
 	}
 
-	ndn = dn_normalize_case( ch_strdup( dn ) );
-	rc = strcmp( be->be_rootdn, ndn ) ? 0 : 1;
+	rc = strcmp( be->be_root_ndn, ndn ) ? 0 : 1;
 
-	free(ndn);
 	return(rc);
 }
 
+char *
+be_root_dn( Backend *be )
+{
+	int rc;
+
+	if ( be->be_root_dn == NULL ) {
+		return( "" );
+	}
+
+	return be->be_root_dn;
+}
+
 int
-be_isroot_pw( Backend *be, char *dn, struct berval *cred )
+be_isroot_pw( Backend *be, char *ndn, struct berval *cred )
 {
 	int result;
 
-	if ( ! be_isroot( be, dn ) ) {
+	if ( ! be_isroot( be, ndn ) ) {
 		return( 0 );
 	}
 
@@ -252,7 +261,7 @@ be_isroot_pw( Backend *be, char *dn, struct berval *cred )
 	pthread_mutex_lock( &crypt_mutex );
 #endif
 
-	result = lutil_passwd( cred->bv_val, be->be_rootpw );
+	result = lutil_passwd( cred->bv_val, be->be_root_pw );
 
 #ifdef SLAPD_CRYPT
 	pthread_mutex_unlock( &crypt_mutex );
@@ -293,17 +302,17 @@ be_unbind(
 int 
 be_group(
 	Backend	*be,
-	Entry	*e,
-	char	*bdn,
-	char	*edn,
+	Entry	*target,
+	char	*gr_ndn,
+	char	*op_ndn,
 	char	*objectclassValue,
 	char	*groupattrName
 )
 {
-        if (be->be_group)
-                return(be->be_group(be, e, bdn, edn,
-					objectclassValue, groupattrName));
-        else
-                return(1);
+	if (be->be_group)
+		return( be->be_group(be, target, gr_ndn, op_ndn,
+			objectclassValue, groupattrName) );
+	else
+		return(1);
 }
 #endif

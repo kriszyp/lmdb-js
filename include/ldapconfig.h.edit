@@ -219,11 +219,15 @@ Please try again later.\r\n"
 #define SLAPD_PIDEXT            ".pid"
 	/* extension of the slapd args file */
 #define SLAPD_ARGSEXT           ".args"
-	/* dn of the special "monitor" entry */
-#define SLAPD_MONITOR_DN		"cn=monitor"
-	/* dn of the special "config" entry */
-#define SLAPD_CONFIG_DN			"cn=config"
 	/* minimum max ids that a single index entry can map to in ldbm */
 #define SLAPD_LDBM_MIN_MAXIDS		4000
+
+/* the following DNs must be normalized and in uppercase! */
+	/* dn of the special "monitor" entry */
+#define SLAPD_MONITOR_DN		"CN=MONITOR"
+	/* dn of the special "config" entry */
+#define SLAPD_CONFIG_DN			"CN=CONFIG"
+	/* dn of the special "schema" entry */
+/* #define SLAPD_SCHEMA_DN			"CN=SCHEMA" */
 
 #endif /* _LDAP_CONFIG_H */

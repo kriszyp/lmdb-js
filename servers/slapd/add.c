@@ -117,11 +117,11 @@ do_add( Connection *conn, Operation *op )
 	 */
 	if ( be->be_add != NULL ) {
 		/* do the update here */
-		if ( be->be_updatedn == NULL ||
-			strcasecmp( be->be_updatedn, op->o_dn ) == 0 ) {
-
+		if ( be->be_update_ndn == NULL ||
+			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
+		{
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && be->be_updatedn == NULL ) {
+				global_lastmod == ON)) && be->be_update_ndn == NULL ) {
 
 				add_created_attrs( op, e );
 			}

@@ -86,8 +86,8 @@ ldbm_back_add(
 			free( matched );
 		}
 
-		if ( ! access_allowed( be, conn, op, p, "children", NULL,
-		    op->o_dn, ACL_WRITE ) )
+		if ( ! access_allowed( be, conn, op, p,
+			"children", NULL, ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 			    0, 0 );
@@ -103,7 +103,7 @@ ldbm_back_add(
 
 	} else {
 		/* no parent, must be adding entry to root */
-		if ( ! be_isroot( be, op->o_dn ) ) {
+		if ( ! be_isroot( be, op->o_ndn ) ) {
 			pthread_mutex_unlock(&li->li_add_mutex);
 			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n", 0,
 			    0, 0 );

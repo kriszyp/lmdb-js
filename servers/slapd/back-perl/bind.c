@@ -34,13 +34,16 @@ perl_back_bind(
 	Operation *op,
 	char *dn,
 	int method,
-	struct berval *cred
+	struct berval *cred,
+	char** edn
 )
 {
 	int return_code;
 	int count;
 
 	PerlBackend *perl_back = (PerlBackend *) be->be_private;
+
+	*edn = NULL;
 
 	pthread_mutex_lock( &perl_interpreter_mutex );	
 

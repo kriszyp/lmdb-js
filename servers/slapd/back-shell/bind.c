@@ -17,12 +17,15 @@ shell_back_bind(
     Operation		*op,
     char		*dn,
     int			method,
-    struct berval	*cred
+    struct berval	*cred,
+	char		**edn
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;
 	FILE			*rfp, *wfp;
 	int			rc;
+
+	*edn = NULL;
 
 	if ( si->si_bind == NULL ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM, NULL,

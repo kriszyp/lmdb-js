@@ -227,6 +227,7 @@ main( int argc, char **argv )
 		struct hostent		*hp;
 
 		c.c_dn = NULL;
+		c.c_cdn = NULL;
 		c.c_ops = NULL;
 		c.c_sb.sb_sd = 0;
 		c.c_sb.sb_options = 0;

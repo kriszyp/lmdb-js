@@ -13,67 +13,68 @@
 
 
 #ifdef SLAPD_ACLGROUPS
-/* return 0 IFF edn is a value in member attribute
- * of entry with bdn AND that entry has an objectClass
+/* return 0 IFF op_dn is a value in member attribute
+ * of entry with gr_dn AND that entry has an objectClass
  * value of groupOfNames
  */
 int
 ldbm_back_group(
-	Backend     *be,
+	Backend	*be,
 	Entry	*target,
-        char        *bdn,
-        char        *edn,
-        char        *objectclassValue,
-        char        *groupattrName
+	char	*gr_ndn,
+	char	*op_ndn,
+	char	*objectclassValue,
+	char	*groupattrName
 )
 {
         struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
         Entry        *e;
-		char		*tdn, *xdn; 
         char        *matched;
         Attribute   *objectClass;
         Attribute   *member;
         int          rc;
 
-	Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: bdn: %s\n", bdn, 0, 0 ); 
-	Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: edn: %s\n", edn, 0, 0 ); 
-	Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: objectClass: %s attrName: %s\n", 
-                objectclassValue, groupattrName, 0 ); 
+	Debug( LDAP_DEBUG_TRACE,
+		"=> ldbm_back_group: gr dn: \"%s\"\n",
+		gr_ndn, 0, 0 ); 
+	Debug( LDAP_DEBUG_TRACE,
+		"=> ldbm_back_group: op dn: \"%s\"\n",
+		op_ndn, 0, 0 ); 
+	Debug( LDAP_DEBUG_TRACE,
+		"=> ldbm_back_group: objectClass: \"%s\" attrName: \"%s\"\n", 
+		objectclassValue, groupattrName, 0 ); 
 
-	tdn = dn_normalize_case( ch_strdup( target->e_dn ) );
-	xdn = dn_normalize_case( ch_strdup( bdn ) );
-	Debug( LDAP_DEBUG_TRACE, "=> ldbm_back_group: tdn: %s\n", tdn, 0, 0 ); 
-	if (strcmp(tdn, xdn) == 0) {
+	Debug( LDAP_DEBUG_TRACE,
+		"=> ldbm_back_group: tr dn: \"%s\"\n",
+		target->e_ndn, 0, 0 ); 
+
+	if (strcmp(target->e_ndn, gr_ndn) == 0) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
         	Debug( LDAP_DEBUG_ARGS,
-			"=> ldbm_back_group: target is bdn: %s\n",
-			bdn, 0, 0 ); 
+			"=> ldbm_back_group: target is group: \"%s\"\n",
+			gr_ndn, 0, 0 ); 
 	} else {
-		/* can we find bdn entry with reader lock */
-		if ((e = dn2entry_r(be, bdn, &matched )) == NULL) {
+		/* can we find group entry with reader lock */
+		if ((e = dn2entry_r(be, gr_ndn, &matched )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE,
-				"=> ldbm_back_group: cannot find bdn: %s matched: %s\n",
-					bdn, (matched ? matched : ""), 0 ); 
+				"=> ldbm_back_group: cannot find group: \"%s\" matched: \"%s\"\n",
+					gr_ndn, (matched ? matched : ""), 0 ); 
 			if (matched != NULL)
 				free(matched);
-			free(tdn);
-			free(xdn);
 			return( 1 );
 		}
-        	Debug( LDAP_DEBUG_ARGS,
-			"=> ldbm_back_group: found bdn: %s\n",
-			bdn, 0, 0 ); 
+		Debug( LDAP_DEBUG_ARGS,
+			"=> ldbm_back_group: found group: \"%s\"\n",
+			gr_ndn, 0, 0 ); 
         }
-	free(tdn);
-	free(xdn);
 
 
         /* check for deleted */
 
         /* find it's objectClass and member attribute values
          * make sure this is a group entry
-         * finally test if we can find edn in the member attribute value list *
+         * finally test if we can find op_dn in the member attribute value list *
          */
         
         rc = 1;
@@ -92,8 +93,8 @@ ldbm_back_group(
             bvObjectClass.bv_val = objectclassValue;
             bvObjectClass.bv_len = strlen( bvObjectClass.bv_val );         
 
-            bvMembers.bv_val = edn;
-            bvMembers.bv_len = strlen( edn );         
+            bvMembers.bv_val = op_ndn;
+            bvMembers.bv_len = strlen( op_ndn );         
 
             if (value_find(objectClass->a_vals, &bvObjectClass, SYNTAX_CIS, 1) != 0) {
                 Debug( LDAP_DEBUG_TRACE,
@@ -101,12 +102,14 @@ ldbm_back_group(
                         objectclassValue, 0, 0 ); 
             }
             else if (value_find(member->a_vals, &bvMembers, SYNTAX_CIS, 1) != 0) {
-                Debug( LDAP_DEBUG_ACL, "<= ldbm_back_group: %s not in %s: %s\n", 
-                        edn, bdn, groupattrName ); 
+                Debug( LDAP_DEBUG_ACL,
+					"<= ldbm_back_group: \"%s\" not in \"%s\": %s\n", 
+					op_ndn, gr_ndn, groupattrName ); 
             }
             else {
-                Debug( LDAP_DEBUG_ACL, "<= ldbm_back_group: %s is in %s: %s\n", 
-                        edn, bdn, groupattrName ); 
+				Debug( LDAP_DEBUG_ACL,
+					"<= ldbm_back_group: \"%s\" is in \"%s\": %s\n", 
+					op_ndn, gr_ndn, groupattrName ); 
                 rc = 0;
             }
         }
@@ -115,8 +118,9 @@ ldbm_back_group(
 		/* free entry and reader lock */
 		cache_return_entry_r( &li->li_cache, e );                 
 	}
-        Debug( LDAP_DEBUG_ARGS, "ldbm_back_group: rc: %d\n", rc, 0, 0 ); 
-        return(rc);
+
+	Debug( LDAP_DEBUG_ARGS, "ldbm_back_group: rc: %d\n", rc, 0, 0 ); 
+	return(rc);
 }
 #endif /* SLAPD_ACLGROUPS */
 
