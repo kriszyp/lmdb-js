@@ -624,16 +624,129 @@ static int chk_md5(
 }
 
 #ifdef SLAPD_LMHASH
+/* pseudocode from RFC2433
+ * A.2 LmPasswordHash()
+ * 
+ *    LmPasswordHash(
+ *    IN  0-to-14-oem-char Password,
+ *    OUT 16-octet         PasswordHash )
+ *    {
+ *       Set UcasePassword to the uppercased Password
+ *       Zero pad UcasePassword to 14 characters
+ * 
+ *       DesHash( 1st 7-octets of UcasePassword,
+ *                giving 1st 8-octets of PasswordHash )
+ * 
+ *       DesHash( 2nd 7-octets of UcasePassword,
+ *                giving 2nd 8-octets of PasswordHash )
+ *    }
+ * 
+ * 
+ * A.3 DesHash()
+ * 
+ *    DesHash(
+ *    IN  7-octet Clear,
+ *    OUT 8-octet Cypher )
+ *    {
+ *        *
+ *        * Make Cypher an irreversibly encrypted form of Clear by
+ *        * encrypting known text using Clear as the secret key.
+ *        * The known text consists of the string
+ *        *
+ *        *              KGS!@#$%
+ *        *
+ * 
+ *       Set StdText to "KGS!@#$%"
+ *       DesEncrypt( StdText, Clear, giving Cypher )
+ *    }
+ * 
+ * 
+ * A.4 DesEncrypt()
+ * 
+ *    DesEncrypt(
+ *    IN  8-octet Clear,
+ *    IN  7-octet Key,
+ *    OUT 8-octet Cypher )
+ *    {
+ *        *
+ *        * Use the DES encryption algorithm [4] in ECB mode [9]
+ *        * to encrypt Clear into Cypher such that Cypher can
+ *        * only be decrypted back to Clear by providing Key.
+ *        * Note that the DES algorithm takes as input a 64-bit
+ *        * stream where the 8th, 16th, 24th, etc.  bits are
+ *        * parity bits ignored by the encrypting algorithm.
+ *        * Unless you write your own DES to accept 56-bit input
+ *        * without parity, you will need to insert the parity bits
+ *        * yourself.
+ *        *
+ *    }
+ */
+
+static void lmPasswd_to_key(
+	const unsigned char *lmPasswd,
+	des_cblock *key)
+{
+	/* make room for parity bits */
+	((char *)key)[0] = lmPasswd[0];
+	((char *)key)[1] = ((lmPasswd[0]&0x01)<<7) | (lmPasswd[1]>>1);
+	((char *)key)[2] = ((lmPasswd[1]&0x03)<<6) | (lmPasswd[2]>>2);
+	((char *)key)[3] = ((lmPasswd[2]&0x07)<<5) | (lmPasswd[3]>>3);
+	((char *)key)[4] = ((lmPasswd[3]&0x0F)<<4) | (lmPasswd[4]>>4);
+	((char *)key)[5] = ((lmPasswd[4]&0x1F)<<3) | (lmPasswd[5]>>5);
+	((char *)key)[6] = ((lmPasswd[5]&0x3F)<<2) | (lmPasswd[6]>>6);
+	((char *)key)[7] = ((lmPasswd[6]&0x7F)<<1);
+		
+	des_set_odd_parity( key );
+}	
+
 static int chk_lanman(
 	const struct berval *scheme,
 	const struct berval *passwd,
 	const struct berval *cred,
 	const char **text )
 {
-	struct berval *hash;
-
-	hash = hash_lanman( scheme, cred, text );
-	return memcmp( &hash->bv_val[scheme->bv_len], passwd->bv_val, 32);
+	int i;
+	char UcasePassword[15];
+	des_cblock key;
+	des_key_schedule schedule;
+	des_cblock StdText = "KGS!@#$%";
+	des_cblock PasswordHash1, PasswordHash2;
+	char PasswordHash[33], storedPasswordHash[33];
+	
+	for( i=0; i<cred->bv_len; i++) {
+		if(cred->bv_val[i] == '\0') {
+			return -1;	/* NUL character in password */
+		}
+	}
+	
+	if( cred->bv_val[i] != '\0' ) {
+		return -1;	/* passwd must behave like a string */
+	}
+	
+	strncpy( UcasePassword, cred->bv_val, 14 );
+	UcasePassword[14] = '\0';
+	ldap_pvt_str2upper( UcasePassword );
+	
+	lmPasswd_to_key( UcasePassword, &key );
+	des_set_key_unchecked( &key, schedule );
+	des_ecb_encrypt( &StdText, &PasswordHash1, schedule , DES_ENCRYPT );
+	
+	lmPasswd_to_key( &UcasePassword[7], &key );
+	des_set_key_unchecked( &key, schedule );
+	des_ecb_encrypt( &StdText, &PasswordHash2, schedule , DES_ENCRYPT );
+	
+	sprintf( PasswordHash, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", 
+		PasswordHash1[0],PasswordHash1[1],PasswordHash1[2],PasswordHash1[3],
+		PasswordHash1[4],PasswordHash1[5],PasswordHash1[6],PasswordHash1[7],
+		PasswordHash2[0],PasswordHash2[1],PasswordHash2[2],PasswordHash2[3],
+		PasswordHash2[4],PasswordHash2[5],PasswordHash2[6],PasswordHash2[7] );
+	
+	/* as a precaution convert stored password hash to lower case */
+	strncpy( storedPasswordHash, passwd->bv_val, 32 );
+	storedPasswordHash[32] = '\0';
+	ldap_pvt_str2lower( storedPasswordHash );
+	
+	return memcmp( PasswordHash, storedPasswordHash, 32) ? 1 : 0;
 }
 #endif /* SLAPD_LMHASH */
 
@@ -1146,81 +1259,6 @@ static struct berval *hash_md5(
 }
 
 #ifdef SLAPD_LMHASH 
-/* pseudocode from RFC2433
- * A.2 LmPasswordHash()
- * 
- *    LmPasswordHash(
- *    IN  0-to-14-oem-char Password,
- *    OUT 16-octet         PasswordHash )
- *    {
- *       Set UcasePassword to the uppercased Password
- *       Zero pad UcasePassword to 14 characters
- * 
- *       DesHash( 1st 7-octets of UcasePassword,
- *                giving 1st 8-octets of PasswordHash )
- * 
- *       DesHash( 2nd 7-octets of UcasePassword,
- *                giving 2nd 8-octets of PasswordHash )
- *    }
- * 
- * 
- * A.3 DesHash()
- * 
- *    DesHash(
- *    IN  7-octet Clear,
- *    OUT 8-octet Cypher )
- *    {
- *        *
- *        * Make Cypher an irreversibly encrypted form of Clear by
- *        * encrypting known text using Clear as the secret key.
- *        * The known text consists of the string
- *        *
- *        *              KGS!@#$%
- *        *
- * 
- *       Set StdText to "KGS!@#$%"
- *       DesEncrypt( StdText, Clear, giving Cypher )
- *    }
- * 
- * 
- * A.4 DesEncrypt()
- * 
- *    DesEncrypt(
- *    IN  8-octet Clear,
- *    IN  7-octet Key,
- *    OUT 8-octet Cypher )
- *    {
- *        *
- *        * Use the DES encryption algorithm [4] in ECB mode [9]
- *        * to encrypt Clear into Cypher such that Cypher can
- *        * only be decrypted back to Clear by providing Key.
- *        * Note that the DES algorithm takes as input a 64-bit
- *        * stream where the 8th, 16th, 24th, etc.  bits are
- *        * parity bits ignored by the encrypting algorithm.
- *        * Unless you write your own DES to accept 56-bit input
- *        * without parity, you will need to insert the parity bits
- *        * yourself.
- *        *
- *    }
- */
-
-static void lmPasswd_to_key(
-	const unsigned char *lmPasswd,
-	des_cblock *key)
-{
-	/* make room for parity bits */
-	((char *)key)[0] = lmPasswd[0];
-	((char *)key)[1] = ((lmPasswd[0]&0x01)<<7) | (lmPasswd[1]>>1);
-	((char *)key)[2] = ((lmPasswd[1]&0x03)<<6) | (lmPasswd[2]>>2);
-	((char *)key)[3] = ((lmPasswd[2]&0x07)<<5) | (lmPasswd[3]>>3);
-	((char *)key)[4] = ((lmPasswd[3]&0x0F)<<4) | (lmPasswd[4]>>4);
-	((char *)key)[5] = ((lmPasswd[4]&0x1F)<<3) | (lmPasswd[5]>>5);
-	((char *)key)[6] = ((lmPasswd[5]&0x3F)<<2) | (lmPasswd[6]>>6);
-	((char *)key)[7] = ((lmPasswd[6]&0x7F)<<1);
-		
-	des_set_odd_parity( key );
-}	
-
 static struct berval *hash_lanman(
 	const struct berval *scheme,
 	const struct berval *passwd,
@@ -1232,8 +1270,8 @@ static struct berval *hash_lanman(
 	des_cblock key;
 	des_key_schedule schedule;
 	des_cblock StdText = "KGS!@#$%";
-	des_cblock hash1, hash2;
-	char lmhash[33];
+	des_cblock PasswordHash1, PasswordHash2;
+	char PasswordHash[33];
 	struct berval hash;
 	
 	for( i=0; i<passwd->bv_len; i++) {
@@ -1252,17 +1290,19 @@ static struct berval *hash_lanman(
 	
 	lmPasswd_to_key( UcasePassword, &key );
 	des_set_key_unchecked( &key, schedule );
-	des_ecb_encrypt( &StdText, &hash1, schedule , DES_ENCRYPT );
+	des_ecb_encrypt( &StdText, &PasswordHash1, schedule , DES_ENCRYPT );
 	
 	lmPasswd_to_key( &UcasePassword[7], &key );
 	des_set_key_unchecked( &key, schedule );
-	des_ecb_encrypt( &StdText, &hash2, schedule , DES_ENCRYPT );
+	des_ecb_encrypt( &StdText, &PasswordHash2, schedule , DES_ENCRYPT );
 	
-	sprintf( lmhash, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", 
-		hash1[0],hash1[1],hash1[2],hash1[3],hash1[4],hash1[5],hash1[6],hash1[7],
-		hash2[0],hash2[1],hash2[2],hash2[3],hash2[4],hash2[5],hash2[6],hash2[7] );
+	sprintf( PasswordHash, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", 
+		PasswordHash1[0],PasswordHash1[1],PasswordHash1[2],PasswordHash1[3],
+		PasswordHash1[4],PasswordHash1[5],PasswordHash1[6],PasswordHash1[7],
+		PasswordHash2[0],PasswordHash2[1],PasswordHash2[2],PasswordHash2[3],
+		PasswordHash2[4],PasswordHash2[5],PasswordHash2[6],PasswordHash2[7] );
 	
-	hash.bv_val = lmhash;
+	hash.bv_val = PasswordHash;
 	hash.bv_len = 32;
 	
 	return pw_string( scheme, &hash );
