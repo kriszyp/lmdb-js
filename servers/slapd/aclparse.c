@@ -62,10 +62,7 @@ static void		print_acl(Backend *be, AccessControl *a);
 static void		print_access(Access *b);
 #endif
 
-#ifdef LDAP_DEVEL
-static int
-check_scope( BackendDB *be, AccessControl *a );
-#endif /* LDAP_DEVEL */
+static int		check_scope( BackendDB *be, AccessControl *a );
 
 #ifdef SLAP_DYNACL
 static int
@@ -160,7 +157,6 @@ regtest(const char *fname, int lineno, char *pat) {
 	regfree(&re);
 }
 
-#ifdef LDAP_DEVEL
 /*
  * Experimental
  *
@@ -295,7 +291,6 @@ regex_done:;
 
 	return ACL_SCOPE_UNKNOWN;
 }
-#endif /* LDAP_DEVEL */
 
 void
 parse_acl(
@@ -303,8 +298,7 @@ parse_acl(
     const char	*fname,
     int		lineno,
     int		argc,
-    char	**argv
-)
+    char	**argv )
 {
 	int		i;
 	char		*left, *right, *style, *next;
@@ -1653,7 +1647,6 @@ parse_acl(
 		}
 
 		if ( be != NULL ) {
-#ifdef LDAP_DEVEL
 			if ( !BER_BVISNULL( &be->be_nsuffix[ 1 ] ) ) {
 				fprintf( stderr, "%s: line %d: warning: "
 					"scope checking only applies to single-valued "
@@ -1693,7 +1686,6 @@ parse_acl(
 			default:
 				break;
 			}
-#endif /* LDAP_DEVEL */
 			acl_append( &be->be_acl, a );
 
 		} else {
@@ -1720,6 +1712,9 @@ accessmask2str( slap_mask_t mask, char *buf )
 		if ( ACL_LVL_IS_NONE(mask) ) {
 			ptr = lutil_strcopy( ptr, "none" );
 
+		} else if ( ACL_LVL_IS_DISCLOSE(mask) ) {
+			ptr = lutil_strcopy( ptr, "disclose" );
+
 		} else if ( ACL_LVL_IS_AUTH(mask) ) {
 			ptr = lutil_strcopy( ptr, "auth" );
 
@@ -1734,6 +1729,10 @@ accessmask2str( slap_mask_t mask, char *buf )
 
 		} else if ( ACL_LVL_IS_WRITE(mask) ) {
 			ptr = lutil_strcopy( ptr, "write" );
+
+		} else if ( ACL_LVL_IS_MANAGE(mask) ) {
+			ptr = lutil_strcopy( ptr, "manage" );
+
 		} else {
 			ptr = lutil_strcopy( ptr, "unknown" );
 		}
@@ -1750,6 +1749,11 @@ accessmask2str( slap_mask_t mask, char *buf )
 	} else {
 		*ptr++ = '=';
 	}
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_MANAGE) ) {
+		none = 0;
+		*ptr++ = 'm';
+	} 
 
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WRITE) ) {
 		none = 0;
@@ -1774,6 +1778,11 @@ accessmask2str( slap_mask_t mask, char *buf )
 	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_AUTH) ) {
 		none = 0;
 		*ptr++ = 'x';
+	} 
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_DISCLOSE) ) {
+		none = 0;
+		*ptr++ = 'd';
 	} 
 
 	if ( none && ACL_PRIV_ISSET(mask, ACL_PRIV_NONE) ) {
@@ -1817,7 +1826,10 @@ str2accessmask( const char *str )
 		}
 
 		for( i=1; str[i] != '\0'; i++ ) {
-			if( TOLOWER((unsigned char) str[i]) == 'w' ) {
+			if( TOLOWER((unsigned char) str[i]) == 'm' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_MANAGE);
+
+			} else if( TOLOWER((unsigned char) str[i]) == 'w' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
 
 			} else if( TOLOWER((unsigned char) str[i]) == 'r' ) {
@@ -1832,6 +1844,9 @@ str2accessmask( const char *str )
 			} else if( TOLOWER((unsigned char) str[i]) == 'x' ) {
 				ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
 
+			} else if( TOLOWER((unsigned char) str[i]) == 'd' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_DISCLOSE);
+
 			} else if( str[i] != '0' ) {
 				ACL_INVALIDATE(mask);
 				return mask;
@@ -1843,6 +1858,9 @@ str2accessmask( const char *str )
 
 	if ( strcasecmp( str, "none" ) == 0 ) {
 		ACL_LVL_ASSIGN_NONE(mask);
+
+	} else if ( strcasecmp( str, "disclose" ) == 0 ) {
+		ACL_LVL_ASSIGN_DISCLOSE(mask);
 
 	} else if ( strcasecmp( str, "auth" ) == 0 ) {
 		ACL_LVL_ASSIGN_AUTH(mask);
@@ -1858,6 +1876,9 @@ str2accessmask( const char *str )
 
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
 		ACL_LVL_ASSIGN_WRITE(mask);
+
+	} else if ( strcasecmp( str, "manage" ) == 0 ) {
+		ACL_LVL_ASSIGN_MANAGE(mask);
 
 	} else {
 		ACL_INVALIDATE( mask );
@@ -1890,8 +1911,8 @@ acl_usage( void )
 		"<peernamestyle> ::= exact | regex | ip | path\n"
 		"<domainstyle> ::= exact | regex | base(Object) | sub(tree)\n"
 		"<access> ::= [self]{<level>|<priv>}\n"
-		"<level> ::= none | auth | compare | search | read | write\n"
-		"<priv> ::= {=|+|-}{w|r|s|c|x|0}+\n"
+		"<level> ::= none|disclose|auth|compare|search|read|write|manage\n"
+		"<priv> ::= {=|+|-}{0|d|x|c|s|r|w|m}+\n"
 		"<control> ::= [ stop | continue | break ]\n"
 	);
 	exit( EXIT_FAILURE );
@@ -2053,6 +2074,9 @@ access2str( slap_access_t access )
 	if ( access == ACL_NONE ) {
 		return "none";
 
+	} else if ( access == ACL_DISCLOSE ) {
+		return "disclose";
+
 	} else if ( access == ACL_AUTH ) {
 		return "auth";
 
@@ -2067,6 +2091,10 @@ access2str( slap_access_t access )
 
 	} else if ( access == ACL_WRITE ) {
 		return "write";
+
+	} else if ( access == ACL_MANAGE ) {
+		return "manage";
+
 	}
 
 	return "unknown";
@@ -2077,6 +2105,9 @@ str2access( const char *str )
 {
 	if ( strcasecmp( str, "none" ) == 0 ) {
 		return ACL_NONE;
+
+	} else if ( strcasecmp( str, "disclose" ) == 0 ) {
+		return ACL_DISCLOSE;
 
 	} else if ( strcasecmp( str, "auth" ) == 0 ) {
 		return ACL_AUTH;
@@ -2092,6 +2123,9 @@ str2access( const char *str )
 
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
 		return ACL_WRITE;
+
+	} else if ( strcasecmp( str, "manage" ) == 0 ) {
+		return ACL_MANAGE;
 	}
 
 	return( ACL_INVALID_ACCESS );

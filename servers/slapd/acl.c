@@ -253,7 +253,7 @@ access_allowed_mask(
 		    "<= root access granted\n",
 			0, 0, 0 );
 		if ( maskp ) {
-			mask = ACL_LVL_WRITE;
+			mask = ACL_LVL_MANAGE;
 		}
 
 		goto done;
@@ -1741,7 +1741,9 @@ acl_check_modlist(
 		Debug( LDAP_DEBUG_ACL,
 			"=> access_allowed: backend default %s access %s to \"%s\"\n",
 			access2str( ACL_WRITE ),
-			op->o_bd->be_dfltaccess >= ACL_WRITE ? "granted" : "denied", op->o_dn.bv_val );
+			op->o_bd->be_dfltaccess >= ACL_WRITE
+				? "granted" : "denied",
+			op->o_dn.bv_val );
 		ret = (op->o_bd->be_dfltaccess >= ACL_WRITE);
 		goto done;
 	}
