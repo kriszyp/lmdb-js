@@ -198,25 +198,32 @@ static int test_mra_filter(
 			struct berval *bv;
 #ifdef LDAP_COMP_MATCH
 			/* Component Matching */
-			if( mra->ma_cf &&
-				mra->ma_rule->smr_usage & SLAP_MR_COMPONENT )
-			{
-
+			if( mra->ma_cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
 				num_attr_vals = 0;
 				if ( !a->a_comp_data ) {
-					for ( ; a->a_vals[num_attr_vals].bv_val != NULL; num_attr_vals++ );
-					if ( num_attr_vals <= 0 )/* no attribute value */
+					for ( ;
+						a->a_vals[num_attr_vals].bv_val != NULL;
+						num_attr_vals++ )
+					{
+						/* empty */;
+					}
+					if ( num_attr_vals <= 0 ) {
+						/* no attribute value */
 						return LDAP_INAPPROPRIATE_MATCHING;
+					}
 					num_attr_vals++;
 
 					/* following malloced will be freed by comp_tree_free () */
-					a->a_comp_data = malloc( sizeof( ComponentData ) + sizeof( ComponentSyntaxInfo* )*num_attr_vals );
+					a->a_comp_data = malloc( sizeof( ComponentData ) +
+						sizeof( ComponentSyntaxInfo* )*num_attr_vals );
 
-					if ( !a->a_comp_data )
-						return LDAP_NO_MEMORY;
-					a->a_comp_data->cd_tree = (ComponentSyntaxInfo**)((char*)a->a_comp_data + sizeof(ComponentData));
-					a->a_comp_data->cd_tree[ num_attr_vals - 1] = (ComponentSyntaxInfo*)NULL;
-					a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*16, 1024 );
+					if ( !a->a_comp_data ) return LDAP_NO_MEMORY;
+					a->a_comp_data->cd_tree = (ComponentSyntaxInfo**)
+						((char*)a->a_comp_data + sizeof(ComponentData));
+					a->a_comp_data->cd_tree[num_attr_vals - 1] =
+						(ComponentSyntaxInfo*) NULL;
+					a->a_comp_data->cd_mem_op =
+						nibble_mem_allocator( 1024*16, 1024 );
 				}
 			}
 #endif
@@ -241,13 +248,17 @@ static int test_mra_filter(
 				if( mra->ma_cf &&
 					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
 					/* Check if decoded component trees are already linked */
-					if ( num_attr_vals )
-						a->a_comp_data->cd_tree[i] = attr_converter (a, a->a_desc->ad_type->sat_syntax, bv);
+					if ( num_attr_vals ) {
+						a->a_comp_data->cd_tree[i] = attr_converter(
+							a, a->a_desc->ad_type->sat_syntax, bv );
+					}
 					/* decoding error */
-					if ( !a->a_comp_data->cd_tree[i] )
+					if ( !a->a_comp_data->cd_tree[i] ) {
 						return LDAP_OPERATIONS_ERROR;
+					}
 					rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
-						(struct berval*)a->a_comp_data->cd_tree[i++], (void*)mra, &text );
+						(struct berval*)a->a_comp_data->cd_tree[i++],
+						(void*)mra, &text );
 				} else 
 #endif
 				{
@@ -572,7 +583,7 @@ test_presence_filter(
 		 * XXX: fairly optimistic: if the function is defined,
 		 * then PRESENCE must succeed, because hasSubordinate
 		 * is boolean-valued; I think we may live with this 
-		 * simplification by now
+		 * simplification by now.
 		 */
 		if ( op && op->o_bd && op->o_bd->be_has_subordinates ) {
 			return LDAP_COMPARE_TRUE;
