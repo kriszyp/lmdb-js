@@ -234,7 +234,11 @@ ldbm_back_search(
 					switch ( deref ) {
 					case LDAP_DEREF_SEARCHING:
 					case LDAP_DEREF_ALWAYS:
-						e = derefAlias ( be, conn, op, e );
+						{
+							Entry *newe = derefAlias_r( be, conn, op, e );
+							cache_return_entry_r( &li->li_cache, e );
+							e = newe;
+						}
 						break;
 					}
 

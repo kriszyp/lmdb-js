@@ -4,16 +4,16 @@
 /*
  * alias.c
  */
-Entry *derefAlias ( Backend     *be,
-		    Connection	*conn,
-		    Operation	*op,
-		    Entry       *e
-		    );
-char *derefDN ( Backend     *be,
-                Connection  *conn,
-                Operation   *op,
-                char        *dn
-);
+Entry *derefAlias_r (
+	Backend     *be,
+	Connection	*conn,
+	Operation	*op,
+	Entry       *e );
+char *derefDN (
+	Backend     *be,
+	Connection  *conn,
+	Operation   *op,
+	char        *dn );
 
 /*
  * attr.c

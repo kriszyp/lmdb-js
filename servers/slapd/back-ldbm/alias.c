@@ -14,26 +14,23 @@
 #include <string.h>
 #include "slap.h"
 #include "back-ldbm.h"
-
-extern Attribute	*attr_find();
+#include "proto-back-ldbm.h"
 
 /*
  * given an alias object, dereference it to its end point.
+ * entry returned has reader lock 
  */
-Entry *derefAlias ( Backend     *be,
+Entry *derefAlias_r ( Backend     *be,
 		    Connection	*conn,
 		    Operation	*op,
-		    Entry       *e
-		    )
+		    Entry       *e)
 {
-  struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
   Attribute *a;
-  ID        id;
   int       depth;
   char      **pastAliases;
+  char      *matched;
 
-  Debug( LDAP_DEBUG_TRACE, 
-	 "<= checking for alias for dn %s\n", e->e_dn, 0, 0 );
+  Debug( LDAP_DEBUG_TRACE, "<= checking for alias for dn %s\n", e->e_dn, 0, 0 );
 
   /*
    * try to deref fully, up to a maximum depth.  If the max depth exceeded
@@ -42,7 +39,8 @@ Entry *derefAlias ( Backend     *be,
   for ( depth = 0;
 	( ( a = attr_find( e->e_attrs, "aliasedobjectname" ) ) != NULL) &&
 	  ( depth < be->be_maxDerefDepth );
-	++depth) {
+	++depth) 
+  {
 
     /* 
      * make sure there is a defined aliasedobjectname.  
@@ -56,16 +54,11 @@ Entry *derefAlias ( Backend     *be,
       newDN = strdup (a->a_vals[0]->bv_val);
       oldDN = strdup (e->e_dn);
 
-	/* free reader lock */
-	cache_return_entry_r( &li->li_cache, e );
-	e = NULL;
-
       /*
        * ok, so what happens if there is an alias in the DN of a dereferenced
        * alias object?  
        */
-      if ( (id = dn2id( be, newDN )) == NOID ||
-	   (e = id2entry_r( be, id )) == NULL ) {
+      if ( (e = dn2entry_r( be, newDN, &matched )) == NULL ) {
 
 	/* could not deref return error  */
 	Debug( LDAP_DEBUG_TRACE, 
@@ -113,11 +106,13 @@ char *derefDN ( Backend     *be,
                 char        *dn
 )
 {
-  struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+  struct ldbminfo *li = (struct ldbminfo *) be->be_private;
   char 	*matched;
   char 	*newDN;
   int	depth;
-  Entry 	*e = NULL;
+  Entry 	*eMatched;
+  Entry 	*eDeref;
+  Entry         *eNew;
   
 
   Debug( LDAP_DEBUG_TRACE, 
@@ -128,51 +123,41 @@ char *derefDN ( Backend     *be,
   
   /* while we don't have a matched dn, deref the DN */
   for ( depth = 0;
-	( (e = dn2entry_r( be, newDN, &matched )) == NULL) &&
+	( (eMatched = dn2entry_r( be, newDN, &matched )) == NULL) &&
 	  (depth < be->be_maxDerefDepth);
 	++depth ) {
     
+    /* free reader lock */
+    cache_return_entry_r(&li->li_cache, eMatched);
+
     if (*matched) {	
       char *submatch;
       
-	if( e != NULL ) {
-		/* free reader lock */
-		cache_return_entry_r( &li->li_cache, e );
-		e = NULL;
-	}
-
       /* 
        * make sure there actually is an entry for the matched part 
        */
-      if ( (e = dn2entry_r( be, matched, &submatch )) != NULL) {
+      if ( (eMatched = dn2entry_r( be, matched, &submatch )) != NULL) {
 	char  *remainder; /* part before the aliased part */
-	Entry *newE;
 	int  rlen = strlen(newDN) - strlen(matched);
 	
-	Debug( LDAP_DEBUG_TRACE, 
-	       "<= matched %s\n", 
-	       matched, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= matched %s\n", matched, 0, 0 );
 	
 	remainder = ch_malloc (rlen + 1);
 	strncpy ( remainder, newDN, rlen );
 	remainder[rlen]	= '\0';
 	
-	Debug( LDAP_DEBUG_TRACE, 
-	       "<= remainder %s\n",
-	       remainder, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= remainder %s\n", remainder, 0, 0 );
 	
-	if ((newE = derefAlias (be, conn, op, e)) == NULL) {
+	if ((eNew = derefAlias_r( be, conn, op, eMatched )) == NULL) {
 	  free (matched);
 	  free (newDN);
 	  break; /*  no associated entry, dont deref */
 	}
 	else {
 
-	  Debug( LDAP_DEBUG_TRACE, 
-		 "<= l&g we have %s vs %s \n",
-		 matched, newE->e_dn, 0 );
+	  Debug( LDAP_DEBUG_TRACE, "<= l&g we have %s vs %s \n", matched, eNew->e_dn, 0 );
 
-	  if (!strcasecmp (matched, newE->e_dn)) {
+	  if (!strcasecmp (matched, eNew->e_dn)) {
 	    /* newDN same as old so not an alias, no need to go further */
 	    free (newDN);
 	    free (matched);
@@ -186,11 +171,16 @@ char *derefDN ( Backend     *be,
 	  free (newDN);
 	  free (matched);
 	  
-	  newDN = ch_malloc (strlen(e->e_dn) + rlen + 1);
+	  newDN = ch_malloc (strlen(eMatched->e_dn) + rlen + 1);
 	  strcpy (newDN, remainder);
-	  strcat (newDN, e->e_dn);
+	  strcat (newDN, eMatched->e_dn);
 	  Debug( LDAP_DEBUG_TRACE, "<= expanded to %s\n", newDN, 0, 0 );
+
+          /* free reader lock */
+          cache_return_entry_r(&li->li_cache, eNew);
 	}
+        /* free reader lock */
+        cache_return_entry_r(&li->li_cache, eMatched);
       }
       else {
 	break; /* there was no entry for the matched part */
@@ -199,30 +189,21 @@ char *derefDN ( Backend     *be,
     else {
       break; /* there was no matched part */
     }
-
-	if( e != NULL ) {
-		/* free reader lock */
-		cache_return_entry_r( &li->li_cache, e );
-		e = NULL;
-	}
   }
   
-  if( e != NULL ) {
-	/* free reader lock */
-	cache_return_entry_r( &li->li_cache, e );
-	e = NULL;
-  }
-
   /*
    * the final part of the DN might be an alias 
    * so try to dereference it.
    */
-
-  if ( (e = dn2entry_r( be, newDN, &matched )) != NULL) {
-    if ((e = derefAlias (be, conn, op, e)) != NULL) {
+  if ( (eNew = dn2entry_r( be, newDN, &matched )) != NULL) {
+    if ((eDeref = derefAlias_r( be, conn, op, eNew )) != NULL) {
       free (newDN);
-      newDN = strdup (e->e_dn);
+      newDN = strdup (eDeref->e_dn);
+      /* free reader lock */
+      cache_return_entry_r(&li->li_cache, eDeref);
     }
+    /* free reader lock */
+    cache_return_entry_r(&li->li_cache, eNew);
   }
   
   /*
