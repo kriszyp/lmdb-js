@@ -125,7 +125,6 @@ int bdb_dn2idl(
 
 #ifdef BDB_HIER
 #define bdb_dn2id_parent			BDB_SYMBOL(dn2id_parent)
-#define bdb_dup_compare				BDB_SYMBOL(dup_compare)
 #define bdb_fix_dn					BDB_SYMBOL(fix_dn)
 
 int bdb_dn2id_parent(
@@ -133,11 +132,6 @@ int bdb_dn2id_parent(
 	DB_TXN *txn,
 	EntryInfo *ei,
 	ID *idp );
-
-int bdb_dup_compare(
-	DB *db,
-	const DBT *usrkey,
-	const DBT *curkey );
 
 int bdb_fix_dn( Entry *e, int checkit );
 #endif
@@ -299,15 +293,6 @@ bdb_idl_union(
 ID bdb_idl_first( ID *ids, ID *cursor );
 ID bdb_idl_next( ID *ids, ID *cursor );
 
-
-#if 0
-#define bdb_bt_compare				BDB_SYMBOL(bt_compare)
-
-int bdb_bt_compare(
-	DB *db,
-	const DBT *a,
-	const DBT *b );
-#endif
 
 
 /*

@@ -101,33 +101,6 @@ bdb_db_init( BackendDB *be )
 	return 0;
 }
 
-#if 0
-int
-bdb_bt_compare(
-	DB *db, 
-	const DBT *usrkey,
-	const DBT *curkey )
-{
-	unsigned char *u, *c;
-	int i, x;
-
-	u = usrkey->data;
-	c = curkey->data;
-
-#ifdef WORDS_BIGENDIAN
-	for( i = 0; i < (int)sizeof(ID); i++)
-#else
-	for( i = sizeof(ID)-1; i >= 0; i--)
-#endif
-	{
-		x = u[i] - c[i];
-		if( x ) return x;
-	}
-
-	return 0;
-}
-#endif
-
 static void *
 bdb_checkpoint( void *ctx, void *arg )
 {
@@ -323,10 +296,6 @@ bdb_db_open( BackendDB *be )
 		}
 
 		if( i == BDB_ID2ENTRY ) {
-#if 0
-			rc = db->bdi_db->set_bt_compare( db->bdi_db,
-				bdb_bt_compare );
-#endif
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 			if ( slapMode & SLAP_TOOL_READMAIN ) {
@@ -338,22 +307,12 @@ bdb_db_open( BackendDB *be )
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 #ifndef BDB_HIER
-#if 0
-			rc = db->bdi_db->set_dup_compare( db->bdi_db,
-				bdb_bt_compare );
-#endif
 			if ( slapMode & SLAP_TOOL_READONLY ) {
 				flags |= DB_RDONLY;
 			} else {
 				flags |= DB_CREATE;
 			}
 #else
-#if 0
-			rc = db->bdi_db->set_dup_compare( db->bdi_db,
-				bdb_dup_compare );
-			rc = db->bdi_db->set_bt_compare( db->bdi_db,
-				bdb_bt_compare );
-#endif
 			if ( slapMode & (SLAP_TOOL_READONLY|SLAP_TOOL_READMAIN) ) {
 				flags |= DB_RDONLY;
 			} else {
