@@ -33,6 +33,9 @@ bdb_delete(
 	AttributeDescription *children = slap_schema.si_ad_children;
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
+
+	u_int32_t	locker;
+	DB_LOCK		lock;
 #if 0
 	u_int32_t	lockid;
 	DB_LOCK		lock;
@@ -49,7 +52,7 @@ bdb_delete(
 	if( 0 ) {
 retry:	/* transaction retry */
 		if( e != NULL ) {
-			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
@@ -87,6 +90,8 @@ retry:	/* transaction retry */
 		text = "internal error";
 		goto return_results;
 	}
+
+	locker = TXN_ID ( ltid );
 #if 0
 	lockid = TXN_ID( ltid );
 #endif
@@ -111,7 +116,7 @@ retry:	/* transaction retry */
 		}
 #endif
 		/* get parent */
-		rc = bdb_dn2entry_r( be, ltid, &pdn, &p, NULL, 0 );
+		rc = bdb_dn2entry_r( be, ltid, &pdn, &p, NULL, 0, locker, &lock );
 
 		switch( rc ) {
 		case 0:
@@ -147,7 +152,7 @@ retry:	/* transaction retry */
 		rc = access_allowed( be, conn, op, p,
 			children, NULL, ACL_WRITE, NULL );
 
-		bdb_cache_return_entry_r(&bdb->bi_cache, p);
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
 		p = NULL;
 
 		switch( opinfo.boi_err ) {
@@ -226,7 +231,7 @@ retry:	/* transaction retry */
 	}
 
 	/* get entry for read/modify/write */
-	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, DB_RMW );
+	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, DB_RMW, locker, &lock );
 
 	switch( rc ) {
 	case 0:
@@ -263,7 +268,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_cache_return_entry_r(&bdb->bi_cache, matched );
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, matched);
 			matched = NULL;
 
 		} else {
@@ -465,7 +470,7 @@ return_results:
 done:
 	/* free entry */
 	if( e != NULL ) {
-		bdb_cache_return_entry_w(&bdb->bi_cache, e);
+		bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 	}
 
 	if( ltid != NULL ) {

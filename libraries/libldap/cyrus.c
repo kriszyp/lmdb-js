@@ -434,19 +434,6 @@ ldap_int_sasl_open(
 	int rc;
 	sasl_conn_t *ctx;
 
-	sasl_callback_t *session_callbacks =
-		LDAP_CALLOC( 2, sizeof( sasl_callback_t ) );
-
-	if( session_callbacks == NULL ) return LDAP_NO_MEMORY;
-
-	session_callbacks[0].id = SASL_CB_USER;
-	session_callbacks[0].proc = NULL;
-	session_callbacks[0].context = ld;
-
-	session_callbacks[1].id = SASL_CB_LIST_END;
-	session_callbacks[1].proc = NULL;
-	session_callbacks[1].context = NULL;
-
 	assert( lc->lconn_sasl_ctx == NULL );
 
 	if ( host == NULL ) {
@@ -456,14 +443,13 @@ ldap_int_sasl_open(
 
 #if SASL_VERSION_MAJOR >= 2
 	rc = sasl_client_new( "ldap", host, NULL, NULL,
-		session_callbacks, 0, &ctx );
+		NULL, 0, &ctx );
 #else
-	rc = sasl_client_new( "ldap", host, session_callbacks,
+	rc = sasl_client_new( "ldap", host, NULL,
 		SASL_SECURITY_LAYER, &ctx );
 #endif
 
 	if ( rc != SASL_OK ) {
-		LDAP_FREE( session_callbacks );
 		ld->ld_errno = sasl_err2ldap( rc );
 		return ld->ld_errno;
 	}
@@ -477,7 +463,6 @@ ldap_int_sasl_open(
 #endif
 
 	lc->lconn_sasl_ctx = ctx;
-	lc->lconn_sasl_cbs = session_callbacks;
 
 	if( ssf ) {
 #if SASL_VERSION_MAJOR >= 2
@@ -510,8 +495,6 @@ int ldap_int_sasl_close( LDAP *ld, LDAPConn *lc )
 	if( ctx != NULL ) {
 		sasl_dispose( &ctx );
 		lc->lconn_sasl_ctx = NULL;
-		LDAP_FREE( lc->lconn_sasl_cbs );
-		lc->lconn_sasl_cbs = NULL;
 	}
 
 	return LDAP_SUCCESS;

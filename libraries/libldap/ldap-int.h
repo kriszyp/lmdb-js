@@ -189,7 +189,6 @@ typedef struct ldap_conn {
 #endif
 #ifdef HAVE_CYRUS_SASL
 	void		*lconn_sasl_ctx;
-	void		*lconn_sasl_cbs;
 #endif
 	int			lconn_refcnt;
 	time_t		lconn_lastused;	/* time */

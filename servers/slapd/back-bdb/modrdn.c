@@ -56,6 +56,9 @@ bdb_modrdn(
 
 	int		manageDSAit = get_manageDSAit( op );
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "modrdn", LDAP_LEVEL_ENTRY, "==>bdb_modrdn(%s,%s,%s)\n",
 		dn->bv_val,newrdn->bv_val,
@@ -78,13 +81,13 @@ bdb_modrdn(
 retry:	/* transaction retry */
 		if (e != NULL) {
 			bdb_cache_delete_entry(&bdb->bi_cache, e);
-			bdb_cache_return_entry_w(&bdb->bi_cache, e);
+			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
 		if (p != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, p);
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
 		}
 		if (np != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, np);
+			bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, np);
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG (( "modrdn", LDAP_LEVEL_DETAIL1, "==>bdb_modrdn: retrying...\n"));
@@ -119,13 +122,15 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+	locker = TXN_ID ( ltid );
+
 	opinfo.boi_bdb = be;
 	opinfo.boi_txn = ltid;
 	opinfo.boi_err = 0;
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_w( be, ltid, ndn, &e, &matched, 0, locker, &lock );
 
 	switch( rc ) {
 	case 0:
@@ -152,7 +157,7 @@ retry:	/* transaction retry */
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_cache_return_entry_r( &bdb->bi_cache, matched );
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, matched);
 			matched = NULL;
 
 		} else {
@@ -199,7 +204,7 @@ retry:	/* transaction retry */
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
-		rc = bdb_dn2entry_r( be, ltid, &p_ndn, &p, NULL, 0 );
+		rc = bdb_dn2entry_r( be, ltid, &p_ndn, &p, NULL, 0, locker, &lock );
 
 		switch( rc ) {
 		case 0:
@@ -348,7 +353,7 @@ retry:	/* transaction retry */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			rc = bdb_dn2entry_r( be, ltid, nnewSuperior, &np, NULL, 0 );
+			rc = bdb_dn2entry_r( be, ltid, nnewSuperior, &np, NULL, 0, locker, &lock );
 
 			switch( rc ) {
 			case 0:
@@ -855,17 +860,17 @@ done:
 	/* LDAP v3 Support */
 	if( np != NULL ) {
 		/* free new parent and reader lock */
-		bdb_cache_return_entry_r(&bdb->bi_cache, np);
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, np);
 	}
 
 	if( p != NULL ) {
 		/* free parent and reader lock */
-		bdb_cache_return_entry_r(&bdb->bi_cache, p);
+		bdb_unlocked_cache_return_entry_r(&bdb->bi_cache, p);
 	}
 
 	/* free entry */
 	if( e != NULL ) {
-		bdb_cache_return_entry_w( &bdb->bi_cache, e );
+		bdb_unlocked_cache_return_entry_w( &bdb->bi_cache, e);
 	}
 
 	if( ltid != NULL ) {

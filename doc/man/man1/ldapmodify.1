@@ -1,36 +1,113 @@
-.TH LDAPMODIFY 1 "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDAPMODIFY 1 "20 August 2001" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2002 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldapmodify, ldapadd \- ldap modify entry and ldap add entry tools
+ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 .SH SYNOPSIS
 .B ldapmodify
-.B [\-a]
-.B [\-b]
-.B [\-c]
-.B [\-r]
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-d debuglevel]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [\-f file]
+[\c
+.BR \-a ]
+[\c
+.BR \-c ]
+[\c
+.BI \-S \ file\fR]
+.[\c
+.BR \-C ]
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BR \-M[M] ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BR \-W ]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-H \ ldapuri\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
+.BR \-O \ security-properties ]
+[\c
+.BR \-I ]
+[\c
+.BR \-Q ]
+[\c
+.BI \-U \ authcid\fR]
+[\c
+.BR \-x ]
+[\c
+.BI \-X \ authzid\fR]
+[\c
+.BI \-Y \ mech\fR]
+[\c
+.BR \-Z[Z] ]
+[\c
+.BI \-f \ file\fR]
 .LP
 .B ldapadd
-.B [\-b]
-.B [\-c]
-.B [\-r]
-.B [\-n]
-.B [\-v]
-.B [\-k]
-.B [\-K]
-.B [\-d debuglevel]
-.B [\-D binddn]
-.B [\-w passwd]
-.B [\-h ldaphost]
-.B [\-p ldapport]
-.B [\-f file]
+[\c
+.BR \-c ]
+[\c
+.BI \-S \ file\fR]
+[\c
+.BR \-C ]
+[\c
+.BR \-n ]
+[\c
+.BR \-v ]
+[\c
+.BR \-k ]
+[\c
+.BR \-K ]
+[\c
+.BR \-M[M] ]
+[\c
+.BI \-d \ debuglevel\fR]
+[\c
+.BI \-D \ binddn\fR]
+[\c
+.BR \-W ]
+[\c
+.BI \-w \ passwd\fR]
+[\c
+.BI \-h \ ldaphost\fR]
+[\c
+.BI \-p \ ldapport\fR]
+[\c
+.BI \-P \ 2\fR\||\|\fI3\fR]
+[\c
+.BR \-O \ security-properties ]
+[\c
+.BR \-I ]
+[\c
+.BR \-Q ]
+[\c
+.BI \-U \ authcid\fR]
+[\c
+.BR \-x ]
+[\c
+.BI \-X \ authzid\fR]
+[\c
+.BI \-Y \ mech\fR]
+[\c
+.BR \-Z[Z] ]
+[\c
+.BI \-f \ file\fR]
 .SH DESCRIPTION
 .B ldapmodify
 is a shell-accessible interface to the
@@ -56,10 +133,8 @@ is to modify existing entries.  If invoked as
 .BR ldapadd ,
 this flag is always set.
 .TP
-.B \-b
-Assume that any values that start with a `/' are binary values and that
-the actual value is in a file whose path is specified in the place where
-values normally appear.
+.B \-C
+Automatically chase referrals.
 .TP
 .B \-c
 Continuous operation mode.  Errors are reported, but
@@ -67,8 +142,10 @@ Continuous operation mode.  Errors are reported, but
 will continue with modifications.  The default is to exit after
 reporting an error.
 .TP
-.B \-r
-Replace existing values by default.
+.BI \-S \ file
+Add or change records which where skipped due to an error are written to \fIfile\fP 
+and the error message returned by the server is added as a comment. Most useful in 
+conjunction with -c.
 .TP
 .B \-n
 Show what would be done, but don't actually modify entries.  Useful for
@@ -78,14 +155,14 @@ debugging in conjunction with -v.
 Use verbose mode, with many diagnostics written to standard output.
 .TP
 .B \-k
-Use Kerberos authentication instead of simple authentication.  It is
+Use Kerberos IV authentication instead of simple authentication.  It is
 assumed that you already have a valid ticket granting ticket.  You must
-compile with KERBEROS defined for this option to have any effect.
+compile with Kerberos support for this option to have any effect.
 .TP
 .B \-K
-Same as \-k, but only does step 1 of the kerberos bind.  This is useful
+Same as \-k, but only does step 1 of the Kerberos IV bind.  This is useful
 when connecting to a slapd and there is no x500dsa.hostname principal
-registered with your kerberos servers.
+registered with your Kerberos Domain Controller(s).
 .TP
 .B \-F
 Force application of all changes regardless of the contents of input
@@ -94,35 +171,84 @@ lines that begin with
 (by default, replica: lines are compared against the LDAP server host
 and port in use to decide if a replog record should actually be applied).
 .TP
-.B \-d debuglevel
+.B \-M[M]
+Enable manage DSA IT control.
+.B \-MM
+makes control critical.
+.TP
+.BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldapmodify
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
-.B \-f file
+.BI \-f \ file
 Read the entry modification information from \fIfile\fP instead of from
 standard input.
 .TP
-.B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
-a string-represented DN as defined in RFC 1779.
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
-.B \-w passwd
+.BI \-D \ binddn
+Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
+.TP
+.B \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
+.TP
+.BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
 .TP
-.B \-h ldaphost
-Specify an alternate host on which the ldap server is running.
+.BI \-H \ ldapuri
+Specify URI(s) referring to the ldap server(s).
 .TP
-.B \-p ldapport
+.BI \-h \ ldaphost
+Specify an alternate host on which the ldap server is running.
+Deprecated in favor of -H.
+.TP
+.BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
+Deprecated in favor of -H.
+.TP
+.BI \-P \ 2\fR\||\|\fI3
+Specify the LDAP protocol version to use.
+.TP
+.BI \-O \ security-properties
+Specify SASL security properties.
+.TP
+.B \-I
+Enable SASL Interactive mode.  Always prompt.  Default is to prompt
+only as needed.
+.TP
+.B \-Q
+Enable SASL Quiet mode.  Never prompt.
+.TP
+.BI \-U \ authcid
+Specify the authentication ID for SASL bind. The form of the ID
+depends on the actual SASL mechanism used.
+.TP
+.BI \-X \ authzid
+Specify the requested authorization ID for SASL bind.
+.I authzid
+must be one of the following formats:
+.B dn:\c
+.I <distinguished name>
+or
+.B u:\c
+.I <username>
+.TP
+.BI \-Y \ mech
+Specify the SASL mechanism to be used for authentication. If it's not
+specified, the program will choose the best mechanism the server knows.
+.TP
+.B \-Z[Z]
+Issue StartTLS (Transport Layer Security) extended operation. If you use
+.B \-ZZ\c
+, the command will require the operation to be successful.
 .SH INPUT FORMAT
 The contents of \fIfile\fP (or standard input if no \-f flag is given on
 the command line) should conform to the format defined in
 .BR slapd.replog (5),
 with the exceptions noted below.
-.LP
-If the first line of a record consists of a decimal number (entry id),
-it is ignored.
 .LP
 Lines that begin with "replica:" are matched against the LDAP server host
 and port in use to decide if a particular replog record should be applied.
@@ -138,8 +264,10 @@ flag is set (or if the program was invoked as
 and "modify" otherwise.
 .LP
 If changetype is "modify" and no "add:", "replace:", or "delete:" lines
-appear, the default is "replace" if the -r flag is set and "add"
-otherwise.
+appear, the default is "replace" for and "add"
+.BR ldapmodify (1)
+for
+.BR ldapadd (1).
 .LP
 Note that the above exceptions to the
 .BR slapd.replog (5)
@@ -149,56 +277,22 @@ entries to be used as input to
 .I ldapmodify
 or
 .I ldapadd.
-.SH ALTERNATIVE INPUT FORMAT
-An alternative input format is supported for compatibility with older
-versions of
-.I ldapmodify.
-This format consists of one or more entries separated by blank lines,
-where each entry looks like:
-.LP
-.nf
-    Distinguished Name (DN)
-    attr=value
-    [attr=value ...]
-.fi
-.LP
-where \fIattr\fP is the name of the attribute and \fIvalue\fP is the
-value.
-.LP
-By default, values are added.  If the
-.RI \- r
-command line flag is
-given, the default is to replace existing values with the new one.
-Note that it is permissible for a given attribute to appear more than
-once (for example, to add more than one value for an attribute).  Also
-note that you can use a trailing `\\' to continue values across lines and
-preserve newlines in the value itself (this is useful for modifying
-QUIPU iattr attributes among others).
-.LP
-.I attr
-should be preceded by a \fB-\fP to remove a value.  The `=' and
-value should be omitted to remove an entire attribute.
-.LP
-.I attr
-should be preceded by a \fB+\fP to add a value in the presence of the
-\-r flag.
-.LP
 .SH EXAMPLES
 Assuming that the file
 .B /tmp/entrymods
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Modify Me, o=University of Michigan, c=US
+    dn: cn=Modify Me,dc=example,dc=com
     changetype: modify
     replace: mail
-    mail: modme@terminator.rs.itd.umich.edu
+    mail: modme@OpenLDAP.org
     -
     add: title
     title: Grand Poobah
     -
     add: jpegPhoto
-    jpegPhoto: /tmp/modme.jpeg
+    jpegPhoto:< file://tmp/modme.jpeg
     -
     delete: description
     -
@@ -207,12 +301,12 @@ exists and has the contents:
 the command:
 .LP
 .nf
-    ldapmodify -b -r -f /tmp/entrymods
+    ldapmodify -f /tmp/entrymods
 .fi
 .LP
 will replace the contents of the "Modify Me" entry's
 .I mail
-attribute with the value "modme@terminator.rs.itd.umich.edu", add a
+attribute with the value "modme@example.com", add a
 .I title
 of "Grand Poobah", and the contents of the file "/tmp/modme.jpeg"
 as a
@@ -220,36 +314,19 @@ as a
 and completely remove the
 .I description
 attribute.
-The same modifications as above can be performed using the older
-.I ldapmodify
-inout format:
-.LP
-.nf
-    cn=Modify Me, o=University of Michigan, c=US
-    mail=modme@terminator.rs.itd.umich.edu
-    +title=Grand Poobah
-    +jpegPhoto=/tmp/modme.jpeg
-    -description
-.fi
-.LP
-and the command:
-.LP
-.nf
-    ldapmodify -b -r -f /tmp/entrymods
-.fi
 .LP
 Assuming that the file
 .B /tmp/newentry
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, o=University of Michigan, c=US
+    dn: cn=Barbara Jensen,dc=example,dc=com
     objectClass: person
     cn: Barbara Jensen
     cn: Babs Jensen
     sn: Jensen
     title: the world's most famous mythical manager
-    mail: bjensen@terminator.rs.itd.umich.edu
+    mail: bjensen@example.com
     uid: bjensen
 .LP
 the command:
@@ -267,7 +344,7 @@ Assuming that the file
 exists and has the contents:
 .LP
 .nf
-    dn: cn=Barbara Jensen, o=University of Michigan, c=US
+    dn: cn=Barbara Jensen,dc=example,dc=com
     changetype: delete
 .LP
 the command:
@@ -278,24 +355,24 @@ the command:
 .LP
 will remove Babs Jensen's entry.
 .SH DIAGNOSTICS
-Exit status is 0 if no errors occur.  Errors result in a non-zero exit
-status and a diagnostic message being written to standard error.
+Exit status is zero if no errors occur.  Errors result in a non-zero
+exit status and a diagnostic message being written to standard error.
 .SH "SEE ALSO"
 .BR ldapadd (1),
 .BR ldapdelete (1),
 .BR ldapmodrdn (1),
 .BR ldapsearch (1),
+.BR ldap.conf (5),
 .BR ldap (3),
 .BR ldap_add (3),
 .BR ldap_delete (3),
 .BR ldap_modify (3),
 .BR ldap_modrdn (3),
 .BR slapd.replog (5)
-.LP
-Kille, S.,
-.IR "A String Representation of Distinguished Names",
-.SM RFC
-1779,
-ISODE Consortium, March 1995.
-.SH BUGS
-There is no interactive mode, but there probably should be.
+.SH AUTHOR
+The OpenLDAP Project <http://www.openldap.org/>
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

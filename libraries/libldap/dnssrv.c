@@ -41,9 +41,8 @@ int ldap_dn2domain(
 	char *domain = NULL;
 	char **dn;
 
-	if( dn_in == NULL || domainp == NULL ) {
-		return -1;
-	}
+	assert( dn_in != NULL );
+	assert( domainp != NULL );
 
 	dn = ldap_explode_dn( dn_in, 0 );
 
@@ -147,12 +146,12 @@ int ldap_domain2dn(
     char *domain, *s, *tok_r, *dn;
     size_t loc;
 
-    if (domain_in == NULL || dnp == NULL) {
-	return LDAP_NO_MEMORY;
-    }
+	assert( domain_in != NULL );
+	assert( dnp != NULL );
+
     domain = LDAP_STRDUP(domain_in);
     if (domain == NULL) {
-	return LDAP_NO_MEMORY;
+		return LDAP_NO_MEMORY;
     }
     dn = NULL;
     loc = 0;

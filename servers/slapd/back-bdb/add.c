@@ -23,7 +23,7 @@ bdb_add(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	struct berval	pdn;
 	Entry		*p = NULL;
-	int			rc; 
+	int		rc, ret; 
 	const char	*text;
 	char textbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof textbuf;
@@ -33,6 +33,8 @@ bdb_add(
 #ifdef BDB_SUBENTRIES
 	int subentry;
 #endif
+	u_int32_t	locker;
+	DB_LOCK		lock;
 #if 0
 	u_int32_t	lockid;
 	DB_LOCK		lock;
@@ -108,6 +110,8 @@ retry:	/* transaction retry */
 		text = "internal error";
 		goto return_results;
 	}
+
+	locker = TXN_ID ( ltid );
 #if 0
 	lockid = TXN_ID( ltid );
 #endif
@@ -142,7 +146,7 @@ retry:	/* transaction retry */
 #endif
 
 		/* get parent */
-		rc = bdb_dn2entry_r( be, ltid, &pdn, &p, &matched, 0 );
+		rc = bdb_dn2entry_r( be, ltid, &pdn, &p, &matched, 0, locker, &lock );
 
 		switch( rc ) {
 		case 0:
@@ -169,7 +173,7 @@ retry:	/* transaction retry */
 				refs = is_entry_referral( matched )
 					? get_entry_referrals( be, conn, op, matched )
 					: NULL;
-				bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+				bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, matched );
 				matched = NULL;
 
 			} else {
@@ -200,7 +204,7 @@ retry:	/* transaction retry */
 		case DB_LOCK_DEADLOCK:
 		case DB_LOCK_NOTGRANTED:
 			/* free parent and reader lock */
-			bdb_cache_return_entry_r( &bdb->bi_cache, p );
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 			p = NULL;
 			goto retry;
 		}
@@ -262,7 +266,7 @@ retry:	/* transaction retry */
 				matched_dn, NULL, refs, NULL );
 
 			ber_bvarray_free( refs );
-			bdb_cache_return_entry_r( &bdb->bi_cache, p );
+			bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 			p = NULL;
 			goto done;
 		}
@@ -275,7 +279,7 @@ retry:	/* transaction retry */
 #endif
 
 		/* free parent and reader lock */
-		bdb_cache_return_entry_r( &bdb->bi_cache, p );
+		bdb_unlocked_cache_return_entry_r( &bdb->bi_cache, p );
 		p = NULL;
 
 	} else {
@@ -430,9 +434,22 @@ retry:	/* transaction retry */
 			text = "txn_prepare failed";
 
 		} else {
+			ret = bdb_cache_add_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, CACHE_WRITE_LOCK, locker, &lock);
+#if 0
 			if ( bdb_cache_add_entry_rw(&bdb->bi_cache,
 				e, CACHE_WRITE_LOCK) != 0 )
-			{
+#endif
+			switch ( ret ) {
+			case 0:
+				break;
+			case DB_LOCK_DEADLOCK:
+			case DB_LOCK_NOTGRANTED:
+				goto retry;
+			default:
+				ret = LDAP_OTHER;
+			}
+
+			if ( ret ) {
 				if(( rc=TXN_ABORT( ltid )) != 0 ) {
 					text = "cache add & txn_abort failed";
 				} else {

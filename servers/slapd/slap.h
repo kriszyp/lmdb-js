@@ -579,6 +579,8 @@ struct slap_internal_schema {
 	AttributeDescription *si_ad_modifyTimestamp;
 	AttributeDescription *si_ad_hasSubordinates;
 	AttributeDescription *si_ad_subschemaSubentry;
+	AttributeDescription *si_ad_entryUUID;
+	AttributeDescription *si_ad_entryCSN;
 
 	/* root DSE attribute descriptions */
 	AttributeDescription *si_ad_altServer;

@@ -44,6 +44,9 @@ bdb_group(
 	const char *group_oc_name = NULL;
 	const char *group_at_name = group_at->ad_cname.bv_val;
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 	if( group_oc->soc_names && group_oc->soc_names[0] ) {
 		group_oc_name = group_oc->soc_names[0];
 	} else {
@@ -76,6 +79,11 @@ bdb_group(
 		txn = boi->boi_txn;
 	}
 
+	if ( txn )
+		locker = TXN_ID( txn );
+	else
+		LOCK_ID ( bdb->bi_dbenv, &locker );
+
 	if (dn_match(&target->e_name, gr_ndn)) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
@@ -88,11 +96,17 @@ bdb_group(
 			gr_ndn->bv_val, 0, 0 );
 #endif
 	} else {
+dn2entry_retry:
 		/* can we find group entry */
-		rc = bdb_dn2entry_r( be, NULL, gr_ndn, &e, NULL, 0 ); 
+		rc = bdb_dn2entry_r( be, NULL, gr_ndn, &e, NULL, 0, locker, &lock ); 
 		if( rc ) {
+			if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED )
+				goto dn2entry_retry;
 			if( txn ) {
 				boi->boi_err = rc;
+			}
+			else {
+				LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 			}
 			return( 1 );
 		}
@@ -106,6 +120,9 @@ bdb_group(
 				"=> bdb_group: cannot find group: \"%s\"\n",
 					gr_ndn->bv_val, 0, 0 ); 
 #endif
+			if ( txn == NULL ) {
+				LOCK_ID_FREE ( bdb->bi_dbenv, locker );
+			}
 			return( 1 );
 		}
 #ifdef NEW_LOGGING
@@ -211,7 +228,11 @@ bdb_group(
 return_results:
 	if( target != e ) {
 		/* free entry */
-		bdb_cache_return_entry_r( &bdb->bi_cache, e );
+		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
+	}
+
+	if ( txn == NULL ) {
+		LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 	}
 
 #ifdef NEW_LOGGING

@@ -37,6 +37,9 @@ static void		uncache_entry_or_req LDAP_P(( LDAP *ld, LDAP_CONST char *dn, ber_in
 int
 ldap_enable_cache( LDAP *ld, long timeout, ber_len_t maxmem )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 #ifndef LDAP_NOCACHE
 	if ( ld->ld_cache == NULL ) {
 		if (( ld->ld_cache = (LDAPCache *)LDAP_MALLOC( sizeof( LDAPCache )))
@@ -62,6 +65,9 @@ ldap_enable_cache( LDAP *ld, long timeout, ber_len_t maxmem )
 void
 ldap_disable_cache( LDAP *ld )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 #ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ld->ld_cache->lc_enabled = 0;
@@ -74,6 +80,9 @@ ldap_disable_cache( LDAP *ld )
 void
 ldap_set_cache_options( LDAP *ld, unsigned long opts )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 #ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ld->ld_cache->lc_options = opts;
@@ -85,6 +94,9 @@ ldap_set_cache_options( LDAP *ld, unsigned long opts )
 void
 ldap_destroy_cache( LDAP *ld )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 #ifndef LDAP_NOCACHE
 	if ( ld->ld_cache != NULL ) {
 		ldap_flush_cache( ld );
@@ -101,6 +113,9 @@ ldap_flush_cache( LDAP *ld )
 #ifndef LDAP_NOCACHE
 	int		i;
 	LDAPMessage	*m, *next;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "cache", LDAP_LEVEL_ENTRY, "ldap_flush_cache\n" ));
@@ -134,6 +149,9 @@ ldap_flush_cache( LDAP *ld )
 void
 ldap_uncache_request( LDAP *ld, int msgid )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 #ifndef LDAP_NOCACHE
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "cache", LDAP_LEVEL_ARGS, 
@@ -152,6 +170,10 @@ ldap_uncache_request( LDAP *ld, int msgid )
 void
 ldap_uncache_entry( LDAP *ld, LDAP_CONST char *dn )
 {
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( dn != NULL );
+
 #ifndef LDAP_NOCACHE
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "cache", LDAP_LEVEL_ARGS, 
@@ -240,6 +262,9 @@ ldap_add_request_to_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 	LDAPMessage	*new;
 	ber_len_t	len;
 
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "cache", LDAP_LEVEL_ENTRY, "ldap_add_request_to_cache\n" ));
 #else
@@ -287,6 +312,10 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 #ifndef LDAP_NOCACHE
 	LDAPMessage	*m, **mp, *req, *new, *prev;
 	int		err, keep;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( result != NULL );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "cache", LDAP_LEVEL_ARGS, 
@@ -446,6 +475,10 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 	BerElement	reqber;
 	int		first, hash;
 	time_t	c_time;
+
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+	assert( request != NULL );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "cache", LDAP_LEVEL_ENTRY, "ldap_check_cache\n" ));

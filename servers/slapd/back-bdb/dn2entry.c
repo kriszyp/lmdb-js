@@ -25,7 +25,9 @@ bdb_dn2entry_rw(
 	Entry **e,
 	Entry **matched,
 	int flags,
-	int rw )
+	int rw,
+	u_int32_t locker,
+	DB_LOCK *lock )
 {
 	int rc;
 	ID		id, id2 = 0;
@@ -52,9 +54,9 @@ bdb_dn2entry_rw(
 	}
 
 	if( id2 == 0 ) {
-		rc = bdb_id2entry_rw( be, tid, id, e, rw );
+		rc = bdb_id2entry_rw( be, tid, id, e, rw, locker, lock );
 	} else {
-		rc = bdb_id2entry_r( be, tid, id2, matched);
+		rc = bdb_id2entry_r( be, tid, id2, matched, locker, lock );
 	}
 
 	return rc;

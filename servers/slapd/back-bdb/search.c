@@ -59,6 +59,9 @@ bdb_search(
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY,"bdb_back_search\n"));
 #else
@@ -67,6 +70,8 @@ bdb_search(
 #endif
 
 	manageDSAit = get_manageDSAit( op );
+
+	LOCK_ID (bdb->bi_dbenv, &locker );
 
 	if ( nbase->bv_len == 0 ) {
 		/* DIT root special case */
@@ -81,7 +86,8 @@ bdb_search(
 	} else
 #endif
 	{
-		rc = bdb_dn2entry_r( be, NULL, nbase, &e, &matched, 0 );
+dn2entry_retry:
+		rc = bdb_dn2entry_r( be, NULL, nbase, &e, &matched, 0, locker, &lock );
 	}
 
 	switch(rc) {
@@ -90,23 +96,28 @@ bdb_search(
 		break;
 	case LDAP_BUSY:
 		if (e != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, e);
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
 		if (matched != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
 		}
 		send_ldap_result( conn, op, LDAP_BUSY,
 			NULL, "ldap server busy", NULL, NULL );
+		LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return LDAP_BUSY;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto dn2entry_retry;
 	default:
 		if (e != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, e);
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 		}
 		if (matched != NULL) {
-			bdb_cache_return_entry_r(&bdb->bi_cache, matched);
+			bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
 		}
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
+		LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		return rc;
 	}
 
@@ -116,14 +127,13 @@ bdb_search(
 
 		if ( matched != NULL ) {
 			BerVarray erefs;
-
 			ber_dupbv( &matched_dn, &matched->e_name );
 
 			erefs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 
-			bdb_cache_return_entry_r (&bdb->bi_cache, matched);
+			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, matched, &lock);
 			matched = NULL;
 
 			if( erefs ) {
@@ -140,6 +150,7 @@ bdb_search(
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
 			matched_dn.bv_val, text, refs, NULL );
 
+		LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		if ( refs ) ber_bvarray_free( refs );
 		if ( matched_dn.bv_val ) ber_memfree( matched_dn.bv_val );
 		return rc;
@@ -154,7 +165,7 @@ bdb_search(
 		erefs = get_entry_referrals( be, conn, op, e );
 		refs = NULL;
 
-		bdb_cache_return_entry_r( &bdb->bi_cache, e );
+		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 		e = NULL;
 
 		if( erefs ) {
@@ -175,6 +186,7 @@ bdb_search(
 			refs ? NULL : "bad referral object",
 			refs, NULL );
 
+		LOCK_ID_FREE (bdb->bi_dbenv, locker );
 		ber_bvarray_free( refs );
 		ber_memfree( matched_dn.bv_val );
 		return 1;
@@ -270,7 +282,7 @@ bdb_search(
 	cursor = e->e_id == NOID ? 1 : e->e_id;
 
 	if ( e != &slap_entry_root ) {
-		bdb_cache_return_entry_r(&bdb->bi_cache, e);
+		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 	}
 	e = NULL;
 
@@ -320,13 +332,17 @@ bdb_search(
 			goto done;
 		}
 
+id2entry_retry:
 		/* get the entry with reader lock */
-		rc = bdb_id2entry_r( be, NULL, id, &e );
+		rc = bdb_id2entry_r( be, NULL, id, &e, locker, &lock );
 
 		if (rc == LDAP_BUSY) {
 			send_ldap_result( conn, op, rc=LDAP_BUSY,
 				NULL, "ldap server busy", NULL, NULL );
 			goto done;
+
+		} else if ( rc == DB_LOCK_DEADLOCK || rc == DB_LOCK_NOTGRANTED ) {
+			goto id2entry_retry;	
 		}
 
 		if ( e == NULL ) {
@@ -416,18 +432,49 @@ bdb_search(
 		if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
 			is_entry_referral( e ) )
 		{
-			BerVarray erefs = get_entry_referrals(
-				be, conn, op, e );
-			BerVarray refs = referral_rewrite( erefs,
-				&e->e_name, NULL,
-				scope == LDAP_SCOPE_SUBTREE 
-					? LDAP_SCOPE_SUBTREE
-					: LDAP_SCOPE_BASE );
+			struct berval	dn;
 
-			send_search_reference( be, conn, op,
-				e, refs, NULL, &v2refs );
+			/* check scope */
+			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
+				if ( !be_issuffix( be, &e->e_nname ) ) {
+					dnParent( &e->e_nname, &dn );
+					scopeok = dn_match( &dn, &realbase );
+				} else {
+					scopeok = (realbase.bv_len == 0);
+				}
 
-			ber_bvarray_free( refs );
+			} else if ( !scopeok && scope == LDAP_SCOPE_SUBTREE ) {
+				scopeok = dnIsSuffix( &e->e_nname, &realbase );
+
+			} else {
+				scopeok = 1;
+			}
+
+			if( scopeok ) {
+				BerVarray erefs = get_entry_referrals(
+					be, conn, op, e );
+				BerVarray refs = referral_rewrite( erefs,
+					&e->e_name, NULL,
+					scope == LDAP_SCOPE_SUBTREE
+						? LDAP_SCOPE_SUBTREE
+						: LDAP_SCOPE_BASE );
+
+				send_search_reference( be, conn, op,
+					e, refs, NULL, &v2refs );
+
+				ber_bvarray_free( refs );
+
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL2,
+					"bdb_search: candidate referral %ld scope not okay\n",
+					id ));
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"bdb_search: candidate referral %ld scope not okay\n",
+					id, 0, 0 );
+#endif
+			}
 
 			goto loop_continue;
 		}
@@ -456,7 +503,7 @@ bdb_search(
 			if ( scopeok ) {
 				/* check size limit */
 				if ( --slimit == -1 ) {
-					bdb_cache_return_entry_r (&bdb->bi_cache, e);
+					bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 					e = NULL;
 					send_search_result( conn, op,
 						rc = LDAP_SIZELIMIT_EXCEEDED, NULL, NULL,
@@ -481,7 +528,7 @@ bdb_search(
 					case 1:		/* entry not sent */
 						break;
 					case -1:	/* connection closed */
-						bdb_cache_return_entry_r(&bdb->bi_cache, e);
+						bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
 						e = NULL;
 						rc = LDAP_OTHER;
 						goto done;
@@ -509,7 +556,7 @@ bdb_search(
 loop_continue:
 		if( e != NULL ) {
 			/* free reader lock */
-                        bdb_cache_return_entry_r ( &bdb->bi_cache, e );
+                        bdb_cache_return_entry_r ( bdb->bi_dbenv, &bdb->bi_cache, e , &lock);
                         e = NULL;
 		}
 
@@ -524,8 +571,10 @@ loop_continue:
 done:
 	if( e != NULL ) {
 		/* free reader lock */
-		bdb_cache_return_entry_r ( &bdb->bi_cache, e );
+		bdb_cache_return_entry_r ( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
+
+	LOCK_ID_FREE (bdb->bi_dbenv, locker );
 
 	if( v2refs ) ber_bvarray_free( v2refs );
 	if( realbase.bv_val ) ch_free( realbase.bv_val );

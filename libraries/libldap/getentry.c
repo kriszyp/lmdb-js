@@ -29,10 +29,6 @@ ldap_first_entry( LDAP *ld, LDAPMessage *chain )
 	assert( LDAP_VALID( ld ) );
 	assert( chain != NULL );
 
-	if( ld == NULL || chain == NULL ) {
-		return NULL;
-	}
-
 	return chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY
 		? chain
 		: ldap_next_entry( ld, chain );
@@ -45,11 +41,7 @@ ldap_next_entry( LDAP *ld, LDAPMessage *entry )
 	assert( LDAP_VALID( ld ) );
 	assert( entry != NULL );
 
-	if ( ld == NULL || entry == NULL ) {
-		return NULL;
-	}
-
-	for (
+	for(
 		entry = entry->lm_chain;
 		entry != NULL;
 		entry = entry->lm_chain )
@@ -69,10 +61,6 @@ ldap_count_entries( LDAP *ld, LDAPMessage *chain )
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-
-	if ( ld == NULL ) {
-		return -1;
-	}
 
 	for ( i = 0; chain != NULL; chain = chain->lm_chain ) {
 		if( chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY ) {

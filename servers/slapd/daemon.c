@@ -490,13 +490,15 @@ static int slap_get_listener_addresses(
 
 		freeaddrinfo(res);
 #else
+		int i, n = 1;
 		struct in_addr in;
+		struct hostent *he = NULL;
 
 		if ( host == NULL ) {
 			in.s_addr = htonl(INADDR_ANY);
 
 		} else if ( !inet_aton( host, &in ) ) {
-			struct hostent *he = gethostbyname( host );
+			he = gethostbyname( host );
 			if( he == NULL ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
@@ -508,25 +510,30 @@ static int slap_get_listener_addresses(
 #endif
 				return -1;
 			}
-			AC_MEMCPY( &in, he->h_addr, sizeof( in ) );
+			for (n = 0; he->h_addr_list[n]; n++) ;
 		}
 
-		*sal = ch_malloc(2 * sizeof(void *));
+		*sal = ch_malloc((n+1) * sizeof(void *));
 		if (*sal == NULL) {
 			return -1;
 		}
 
 		sap = *sal;
-		*sap = ch_malloc(sizeof(struct sockaddr_in));
-		if (*sap == NULL) {
-			goto errexit;
+		for ( i = 0; i<n; i++ ) {
+			sap[i] = ch_malloc(sizeof(struct sockaddr_in));
+			if (*sap == NULL) {
+				goto errexit;
+			}
+			(void)memset( (void *)sap[i], '\0', sizeof(struct sockaddr_in) );
+			sap[i]->sa_family = AF_INET;
+			((struct sockaddr_in *)sap[i])->sin_port = htons(port);
+			if (he) {
+				AC_MEMCPY( &((struct sockaddr_in *)sap[i])->sin_addr, he->h_addr_list[i], sizeof(struct in_addr) );
+			} else {
+				AC_MEMCPY( &((struct sockaddr_in *)sap[i])->sin_addr, &in, sizeof(struct in_addr) );
+			}
 		}
-		sap[1] = NULL;
-
-		(void)memset( (void *)*sap, '\0', sizeof(struct sockaddr_in) );
-		(*sap)->sa_family = AF_INET;
-		((struct sockaddr_in *)*sap)->sin_port = htons(port);
-		((struct sockaddr_in *)*sap)->sin_addr = in;
+		sap[i] = NULL;
 #endif
 	}
 
@@ -537,10 +544,13 @@ errexit:
 	return -1;
 }
 
-static Listener * slap_open_listener(
-	const char* url )
+static int slap_open_listener(
+	const char* url,
+	int *listeners,
+	int *cur
+	)
 {
-	int	tmp, rc;
+	int	num, tmp, rc;
 	Listener l;
 	Listener *li;
 	LDAPURLDesc *lud;
@@ -565,7 +575,7 @@ static Listener * slap_open_listener(
 			"daemon: listen URL \"%s\" parse error=%d\n",
 			url, rc, 0 );
 #endif
-		return NULL;
+		return rc;
 	}
 
 #ifndef HAVE_TLS
@@ -580,7 +590,7 @@ static Listener * slap_open_listener(
 			url, 0, 0 );
 #endif
 		ldap_free_urldesc( lud );
-		return NULL;
+		return -1;
 	}
 
 	if(! lud->lud_port ) {
@@ -620,7 +630,7 @@ static Listener * slap_open_listener(
 			url, 0, 0);
 #endif
 		ldap_free_urldesc( lud );
-		return NULL;
+		return -1;
 #endif
 	} else {
 #ifdef LDAP_CONNECTIONLESS
@@ -637,7 +647,16 @@ static Listener * slap_open_listener(
 
 	ldap_free_urldesc( lud );
 	if ( err ) {
-		return NULL;
+		return -1;
+	}
+
+	/* If we got more than one address returned, we need to make space
+	 * for it in the slap_listeners array.
+	 */
+	for ( num=0; sal[num]; num++ );
+	if ( num > 1 ) {
+		*listeners += num-1;
+		slap_listeners = ch_realloc( slap_listeners, (*listeners + 1) * sizeof(Listener *) );
 	}
 
 	psal = sal;
@@ -732,9 +751,8 @@ static Listener * slap_open_listener(
 #endif
 		}
 
-		if (!bind(l.sl_sd, *sal, addrlen))
-			break;
-		err = sock_errno();
+		if (bind(l.sl_sd, *sal, addrlen)) {
+			err = sock_errno();
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
 			   "slap_open_listener: bind(%ld) failed errno=%d (%s)\n",
@@ -743,21 +761,10 @@ static Listener * slap_open_listener(
 		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed errno=%d (%s)\n",
 		       (long) l.sl_sd, err, sock_errstr(err) );
 #endif
-		tcp_close( l.sl_sd );
-		sal++;
-	} /* while ( *sal != NULL ) */
-
-	if ( *sal == NULL ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG(( "connection", LDAP_LEVEL_INFO,
-			   "slap_open_listener: bind(%ld) failed.\n", (long)l.sl_sd ));
-#else
-		Debug( LDAP_DEBUG_ANY, "daemon: bind(%ld) failed\n",
-			(long) l.sl_sd, 0, 0 );
-#endif
-		slap_free_listener_addresses(psal);
-		return NULL;
-	}
+			tcp_close( l.sl_sd );
+			sal++;
+			continue;
+		}
 
 	switch ( (*sal)->sa_family ) {
 #ifdef LDAP_PF_LOCAL
@@ -775,7 +782,7 @@ static Listener * slap_open_listener(
 #endif
 			tcp_close( l.sl_sd );
 			slap_free_listener_addresses(psal);
-			return NULL;
+			return -1;
 		}
 		l.sl_name = ch_malloc( strlen(addr) + sizeof("PATH=") );
 		sprintf( l.sl_name, "PATH=%s", addr );
@@ -821,20 +828,27 @@ static Listener * slap_open_listener(
 		break;
 	}
 
-	slap_free_listener_addresses(psal);
-
+	AC_MEMCPY(&l.sl_sa, *sal, addrlen);
 	l.sl_url = ch_strdup( url );
 	li = ch_malloc( sizeof( Listener ) );
 	*li = l;
+	slap_listeners[*cur] = li;
+	(*cur)++;
+	sal++;
+
+	} /* while ( *sal != NULL ) */
+
+	slap_free_listener_addresses(psal);
+
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "connection", LDAP_LEVEL_RESULTS,
-		   "slap_open_listener: daemon initialzed %s\n", l.sl_url ));
+		   "slap_open_listener: daemon initialized %s\n", l.sl_url ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
 		l.sl_url, 0, 0 );
 #endif
-	return li;
+	return 0;
 }
 
 static int sockinit(void);
@@ -842,7 +856,7 @@ static int sockdestroy(void);
 
 int slapd_daemon_init( const char *urls )
 {
-	int i, rc;
+	int i, j, n, rc;
 	char **u;
 
 #ifdef NEW_LOGGING
@@ -938,15 +952,13 @@ int slapd_daemon_init( const char *urls )
 #endif
 	slap_listeners = ch_malloc( (i+1)*sizeof(Listener *) );
 
-	for(i = 0; u[i] != NULL; i++ ) {
-		slap_listeners[i] = slap_open_listener( u[i] );
-
-		if( slap_listeners[i] == NULL ) {
+	for(n = 0, j = 0; u[n]; n++ ) {
+		if ( slap_open_listener( u[n], &i, &j ) ) {
 			charray_free( u );
 			return -1;
 		}
 	}
-	slap_listeners[i] = NULL;
+	slap_listeners[j] = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "connection", LDAP_LEVEL_DETAIL1,

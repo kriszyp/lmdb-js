@@ -31,8 +31,14 @@ bdb_compare(
 	const char	*text = NULL;
 	int		manageDSAit = get_manageDSAit( op );
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
+	LOCK_ID ( bdb->bi_dbenv, &locker );
+
+dn2entry_retry:
 	/* get entry */
-	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0, locker, &lock );
 
 	switch( rc ) {
 	case DB_NOTFOUND:
@@ -41,6 +47,9 @@ bdb_compare(
 	case LDAP_BUSY:
 		text = "ldap server busy";
 		goto return_results;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto dn2entry_retry;
 	default:
 		rc = LDAP_OTHER;
 		text = "internal error";
@@ -56,7 +65,7 @@ bdb_compare(
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
-			bdb_cache_return_entry_r( &bdb->bi_cache, matched );
+			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, matched, &lock );
 			matched = NULL;
 
 		} else {
@@ -125,8 +134,10 @@ return_results:
 done:
 	/* free entry */
 	if( e != NULL ) {
-		bdb_cache_return_entry_r( &bdb->bi_cache, e );
+		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
+
+	LOCK_ID_FREE ( bdb->bi_dbenv, locker );
 
 	return rc;
 }

@@ -40,14 +40,20 @@ bdb_bind(
 
 	AttributeDescription *password = slap_schema.si_ad_userPassword;
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG (( "bind", LDAP_LEVEL_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val ));
 #else
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_bind: dn: %s\n", dn->bv_val, 0, 0);
 #endif
 
+	LOCK_ID(bdb->bi_dbenv, &locker);
+
+dn2entry_retry:
 	/* get entry */
-	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry_r( be, NULL, ndn, &e, &matched, 0, locker, &lock );
 
 	switch(rc) {
 	case DB_NOTFOUND:
@@ -56,10 +62,15 @@ bdb_bind(
 	case LDAP_BUSY:
 		send_ldap_result( conn, op, LDAP_BUSY,
 			NULL, "ldap server busy", NULL, NULL );
+		LOCK_ID_FREE(bdb->bi_dbenv, locker);
 		return LDAP_BUSY;
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto dn2entry_retry;
 	default:
 		send_ldap_result( conn, op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
+		LOCK_ID_FREE(bdb->bi_dbenv, locker);
 		return rc;
 	}
 
@@ -75,7 +86,7 @@ bdb_bind(
 				? get_entry_referrals( be, conn, op, matched )
 				: NULL;
 
-			bdb_cache_return_entry_r( &bdb->bi_cache, matched );
+			bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, matched, &lock );
 			matched = NULL;
 
 		} else {
@@ -107,6 +118,8 @@ bdb_bind(
 			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
 				NULL, NULL, NULL, NULL );
 		}
+
+		LOCK_ID_FREE(bdb->bi_dbenv, locker);
 
 		ber_bvarray_free( refs );
 		free( matched_dn );
@@ -274,8 +287,10 @@ bdb_bind(
 done:
 	/* free entry and reader lock */
 	if( e != NULL ) {
-		bdb_cache_return_entry_r( &bdb->bi_cache, e );
+		bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache, e, &lock );
 	}
+
+	LOCK_ID_FREE(bdb->bi_dbenv, locker);
 
 	/* front end with send result on success (rc==0) */
 	return rc;

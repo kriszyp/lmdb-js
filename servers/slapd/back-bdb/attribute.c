@@ -39,6 +39,9 @@ bdb_attribute(
 	const char *entry_at_name = entry_at->ad_cname.bv_val;
 	AccessControlState acl_state = ACL_STATE_INIT;
 
+	u_int32_t	locker;
+	DB_LOCK		lock;
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
 		"bdb_attribute: gr dn: \"%s\"\n", entry_ndn->bv_val ));
@@ -65,6 +68,11 @@ bdb_attribute(
 		txn = boi->boi_txn;
 	}
 
+	if ( txn != NULL )
+		locker = TXN_ID ( txn );
+	else
+		LOCK_ID ( bdb->bi_dbenv, &locker );
+
 	if (target != NULL && dn_match(&target->e_nname, entry_ndn)) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
@@ -80,15 +88,22 @@ bdb_attribute(
 
 
 	} else {
+dn2entry_retry:
 		/* can we find entry */
-		rc = bdb_dn2entry_r( be, NULL, entry_ndn, &e, NULL, 0 );
+		rc = bdb_dn2entry_r( be, NULL, entry_ndn, &e, NULL, 0, locker, &lock );
 		switch( rc ) {
 		case DB_NOTFOUND:
 		case 0:
 			break;
+		case DB_LOCK_DEADLOCK:
+		case DB_LOCK_NOTGRANTED:
+			goto dn2entry_retry;
 		default:
 			if( txn != NULL ) {
 				boi->boi_err = rc;
+			}
+			else {
+				LOCK_ID_FREE( bdb->bi_dbenv, locker );
 			}
 			return (rc != LDAP_BUSY) ? LDAP_OTHER : LDAP_BUSY;
 		}
@@ -102,6 +117,9 @@ bdb_attribute(
 				"=> bdb_attribute: cannot find entry: \"%s\"\n",
 					entry_ndn->bv_val, 0, 0 ); 
 #endif
+			if ( txn == NULL ) {
+				LOCK_ID_FREE( bdb->bi_dbenv, locker );
+			}
 			return LDAP_NO_SUCH_OBJECT; 
 		}
 		
@@ -205,7 +223,11 @@ bdb_attribute(
 return_results:
 	if( target != e ) {
 		/* free entry */
-		bdb_cache_return_entry_r(&bdb->bi_cache, e);
+		bdb_cache_return_entry_r(bdb->bi_dbenv, &bdb->bi_cache, e, &lock);
+	}
+
+	if ( txn == NULL ) {
+		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 	}
 
 #ifdef NEW_LOGGING
