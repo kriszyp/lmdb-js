@@ -901,7 +901,6 @@ static int parsePagedResults (
 	} else {
 		/* Initial request.  Initialize state. */
 		op->o_pagedresults_state.ps_cookie = 0;
-		op->o_pagedresults_state.ps_id = NOID;
 		op->o_pagedresults_state.ps_count = 0;
 	}
 

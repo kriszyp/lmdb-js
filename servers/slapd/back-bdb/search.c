@@ -752,7 +752,7 @@ dn2entry_retry:
 	}
 
 	if ( get_pagedresults(sop) ) {
-		if ( sop->o_pagedresults_state.ps_cookie == 0 ) {
+		if ( (ID)( sop->o_pagedresults_state.ps_cookie ) == 0 ) {
 			id = bdb_idl_first( candidates, &cursor );
 
 		} else {
