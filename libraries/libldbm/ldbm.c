@@ -79,6 +79,7 @@ int ldbm_shutdown( void )
 
 #else
 
+#ifndef WIN32
 #ifdef HAVE_SYSLOG
 #include "syslog.h"
 #else
@@ -86,6 +87,7 @@ int ldbm_shutdown( void )
 #define LOG_INFO 1
 extern int syslog(int, char*, ...);
 #endif
+#endif /* WIN32 */
 
 void *
 ldbm_malloc( size_t size )
@@ -96,7 +98,9 @@ ldbm_malloc( size_t size )
 static void
 ldbm_db_errcall( const char *prefix, char *message )
 {
+#ifndef WIN32
 	syslog( LOG_INFO, "ldbm_db_errcall(): %s %s", prefix, message );
+#endif
 }
 
 /*  a dbEnv for BERKELEYv2  */
@@ -131,9 +135,11 @@ int ldbm_initialize( void )
 			sprintf( error, "%s\n", strerror( err ));
 		}
 
+#ifndef WIN32
 		syslog( LOG_INFO,
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
 			error );
+#endif
 	 	return( 1 );
 	}
 
