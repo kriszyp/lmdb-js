@@ -150,6 +150,9 @@ static int objectSubClassIndexer(
 #endif
 	}
 
+	ocvalues[i].bv_val = NULL;
+	ocvalues[i].bv_len = 0;
+
 	/* expand values */
 	for( i=0; i<noc; i++ ) {
 		int j;
