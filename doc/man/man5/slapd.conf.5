@@ -1387,14 +1387,16 @@ option.
 .TP
 .B updatedn <dn>
 This option is only applicable in a slave
-.B slapd. 
+database updated using
+.BR slurpd(8). 
 It specifies the DN permitted to update (subject to access controls)
 the replica (typically, this is the DN
 .BR slurpd (8)
 binds to update the replica).  Generally, this DN
 .I should not
 be the same as the
-.BR rootdn .
+.B rootdn 
+used at the master.
 .TP
 .B updateref <url>
 Specify the referral to pass back when
