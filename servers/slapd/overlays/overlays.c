@@ -36,11 +36,20 @@ extern int dyngroup_init();
 #if SLAPD_OVER_LASTMOD == SLAPD_MOD_STATIC
 extern int lastmod_init();
 #endif
+#if SLAPD_OVER_PPOLICY == SLAPD_MOD_STATIC
+extern int ppolicy_init();
+#endif
 #if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_STATIC
 extern int pcache_init();
 #endif
+#if SLAPD_OVER_REFINT == SLAPD_MOD_STATIC
+extern int refint_init();
+#endif
 #if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
 extern int rwm_init();
+#endif
+#if SLAPD_OVER_UNIQUE == SLAPD_MOD_STATIC
+extern int unique_init();
 #endif
 
 static struct {
@@ -59,11 +68,20 @@ static struct {
 #if SLAPD_OVER_LASTMOD == SLAPD_MOD_STATIC
 	{ "Last Modification", lastmod_init },
 #endif
+#if SLAPD_OVER_PPOLICY == SLAPD_MOD_STATIC
+	{ "Password Policy", ppolicy_init },
+#endif
 #if SLAPD_OVER_PROXYCACHE == SLAPD_MOD_STATIC
 	{ "Proxy Cache", pcache_init },
 #endif
+#if SLAPD_OVER_REFINT == SLAPD_MOD_STATIC
+	{ "Referential Integrity", refint_init },
+#endif
 #if SLAPD_OVER_RWM == SLAPD_MOD_STATIC
 	{ "Rewrite/Remap", rwm_init },
+#endif
+#if SLAPD_OVER_UNIQUE == SLAPD_MOD_STATIC
+	{ "Attribute Uniqueness", unique_init },
 #endif
 	{ NULL, NULL }
 };
