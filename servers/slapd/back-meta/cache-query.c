@@ -20,6 +20,8 @@
 
 #include <stdio.h>
 
+#include <ac/string.h>
+
 #include "slap.h"
 #include "../back-ldap/back-ldap.h"
 #include "back-meta.h"
@@ -331,11 +333,11 @@ void add_query(
 	new_cached_query->lru_down = NULL; 
 	new_cached_query->expiry_time = slap_get_time() + templ->ttl; 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_META, DETAIL1, "Added query expires at %d\n",
-			new_cached_query->expiry_time, 0, 0 );
+	LDAP_LOG( BACK_META, DETAIL1, "Added query expires at %ld\n",
+			(long) new_cached_query->expiry_time, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_ANY, "Added query expires at %d\n",
-			new_cached_query->expiry_time, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "Added query expires at %ld\n",
+			(long) new_cached_query->expiry_time, 0, 0 );
 #endif
 	new_query = (Query*)new_cached_query; 
 

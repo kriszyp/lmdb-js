@@ -1491,11 +1491,11 @@ cache_entries(
 					cm->num_cached_queries--; 
 #ifdef NEW_LOGGING
 					LDAP_LOG( BACK_META, DETAIL1,
-						"STORED QUERIES = %d\n",
+						"STORED QUERIES = %lu\n",
 						cm->num_cached_queries, 0, 0 );
 #else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ANY,
-						"STORED QUERIES = %d\n",
+						"STORED QUERIES = %lu\n",
 						cm->num_cached_queries, 0, 0 );
 #endif /* !NEW_LOGGING */
 					ldap_pvt_thread_mutex_unlock(
@@ -1506,13 +1506,13 @@ cache_entries(
 #ifdef NEW_LOGGING
 					LDAP_LOG( BACK_META, DETAIL1,
 						"QUERY REMOVED, CACHE SIZE="
-						"%d bytes %d entries\n",
+						"%lu bytes %d entries\n",
 						cm->cache_size,
 						cm->total_entries, 0 );
 #else /* !NEW_LOGGING */
 					Debug( LDAP_DEBUG_ANY,
 						"QUERY REMOVED, CACHE SIZE="
-						"%d bytes %d entries\n",
+						"%lu bytes %d entries\n",
 						cm->cache_size,
 						cm->total_entries, 0 );
 #endif /* !NEW_LOGGING */
@@ -1523,11 +1523,11 @@ cache_entries(
 		cm->cache_size += return_val;
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
-			"ENTRY ADDED/MERGED, CACHE SIZE=%d bytes\n",
+			"ENTRY ADDED/MERGED, CACHE SIZE=%lu bytes\n",
 			cm->cache_size, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY,
-			"ENTRY ADDED/MERGED, CACHE SIZE=%d bytes\n",
+			"ENTRY ADDED/MERGED, CACHE SIZE=%lu bytes\n",
 			cm->cache_size, 0, 0 );
 #endif /* !NEW_LOGGING */
 #ifdef NEW_LOGGING
@@ -1561,10 +1561,10 @@ cache_entries(
 	ldap_pvt_thread_mutex_lock(&cm->cache_mutex); 
 	cm->num_cached_queries++; 
 #ifdef NEW_LOGGING
-	LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %d\n",
+	LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %lu\n",
 			cm->num_cached_queries, 0, 0 );
 #else /* !NEW_LOGGING */
-	Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %d\n",
+	Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %lu\n",
 			cm->num_cached_queries, 0, 0 );
 #endif /* !NEW_LOGGING */
 	ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
@@ -1668,10 +1668,10 @@ consistency_check(Backend* be, Backend* glue_be, Connection* conn)
 			cm->total_entries -= result.rc; 
 			cm->num_cached_queries--; 
 #ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %d\n",
+			LDAP_LOG( BACK_META, DETAIL1, "STORED QUERIES = %lu\n",
 					cm->num_cached_queries, 0, 0 );
 #else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %d\n",
+			Debug( LDAP_DEBUG_ANY, "STORED QUERIES = %lu\n",
 					cm->num_cached_queries, 0, 0 );
 #endif /* !NEW_LOGGING */
 			ldap_pvt_thread_mutex_unlock(&cm->cache_mutex); 
@@ -1679,12 +1679,12 @@ consistency_check(Backend* be, Backend* glue_be, Connection* conn)
 						0: (cm->cache_size-return_val);
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
-				"STALE QUERY REMOVED, CACHE SIZE=%d bytes %d "
+				"STALE QUERY REMOVED, CACHE SIZE=%lu bytes %d "
 				"entries\n", cm->cache_size,
 				cm->total_entries, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
-				"STALE QUERY REMOVED, CACHE SIZE=%d bytes %d "
+				"STALE QUERY REMOVED, CACHE SIZE=%lu bytes %d "
 				"entries\n", cm->cache_size,
 				cm->total_entries, 0 );
 #endif /* !NEW_LOGGING */
