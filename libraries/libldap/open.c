@@ -252,6 +252,20 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, const char *host, int defport,
    
    	ber_pvt_sb_set_io( sb, &ber_pvt_sb_io_tcp, NULL );
 
+#ifdef HAVE_TLS
+   	if ( ld->ld_options.ldo_tls_mode == LDAP_OPT_X_TLS_HARD ) {
+		/*
+		 * Fortunately, the lib uses blocking io...
+		 */
+		if ( ldap_pvt_tls_connect( sb, ld->ld_options.ldo_tls_ctx ) < 
+		     0 ) {
+			return -1;
+		}
+		/* FIXME: hostname of server must be compared with name in
+		 * certificate....
+		 */
+	}
+#endif
 	if ( krbinstancep != NULL ) {
 #ifdef HAVE_KERBEROS
 		char *c;
