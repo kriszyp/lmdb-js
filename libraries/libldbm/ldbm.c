@@ -145,12 +145,17 @@ int ldbm_initialize( void )
 	 	return( 1 );
 	}
 
-#if DB_VERSION_MAJOR >= 3
+#if DB_VERSION_MAJOR > 2
 	ldbm_Env->set_errcall( ldbm_Env, ldbm_db_errcall );
 	ldbm_Env->set_errpfx( ldbm_Env, "==>" );
 
         envFlags |= DB_INIT_MPOOL;
+
+#if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
+        err = ldbm_Env->open( ldbm_Env, NULL, envFlags, 0 );
+#else
         err = ldbm_Env->open( ldbm_Env, NULL, NULL, envFlags, 0 );
+#endif
         if ( err != 0 )
         {
             char error[BUFSIZ];
@@ -175,7 +180,7 @@ int ldbm_shutdown( void )
 	if( !ldbm_initialized ) return 1;
 
 #if DB_VERSION_MAJOR >= 3
-        ldbm_Env->close( ldbm_Env, 0 );
+	ldbm_Env->close( ldbm_Env, 0 );
 #else
 	db_appexit( ldbm_Env );
 #endif
@@ -253,8 +258,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 	memset( &dbinfo, '\0', sizeof( dbinfo ));
 
-#if defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) && \
-    DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR == 4
+#if	DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR == 4
 	/*
 	 * BerkeleyDB 2.4 do not allow db_cachesize
 	 * to be specified if an DB_ENV is.
