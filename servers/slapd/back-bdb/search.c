@@ -129,8 +129,6 @@ bdb_search(
 
 	rc = LOCK_ID (bdb->bi_dbenv, &locker );
 
-	printf("locker = %d\n", locker);
-
 	switch(rc) {
 	case 0:
 		break;
