@@ -18,6 +18,7 @@
 #include <ldap.h>
 
 #include "lutil_ldap.h"
+#include "ldap_defaults.h"
 
 #include "common.h"
 
@@ -59,9 +60,9 @@ char *prog = NULL;
 void
 tool_init( void )
 {
-	setlocale(LC_MESSAGES,"");
-	bindtextdomain(OPENLDAP_PACKAGE, LDAP_LOCALEDIR);
-	textdomain(OPENLDAP_PACKAGE);
+	ldap_pvt_setlocale(LC_MESSAGES, "");
+	ldap_pvt_bindtextdomain(OPENLDAP_PACKAGE, LDAP_LOCALEDIR);
+	ldap_pvt_textdomain(OPENLDAP_PACKAGE);
 }
 
 void
