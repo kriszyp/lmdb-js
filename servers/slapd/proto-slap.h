@@ -100,8 +100,12 @@ LIBSLAPD_F (int) be_entry_release_rw LDAP_P(( Backend *be, Entry *e, int rw ));
 #define be_entry_release_r( be, e ) be_entry_release_rw( be, e, 0 )
 #define be_entry_release_w( be, e ) be_entry_release_rw( be, e, 1 )
 
-
 LIBSLAPD_F (int) backend_unbind LDAP_P((Connection *conn, Operation *op));
+
+LIBSLAPD_F( int )	backend_check_controls LDAP_P((
+	Backend *be,
+	Connection *conn,
+	Operation *op ));
 
 LIBSLAPD_F (int) backend_connection_init LDAP_P((Connection *conn));
 LIBSLAPD_F (int) backend_connection_destroy LDAP_P((Connection *conn));
@@ -239,8 +243,32 @@ LIBSLAPD_F (int) entry_id_cmp LDAP_P(( Entry *a, Entry *b ));
  * extended.c
  */
 
-LIBSLAPD_F (int) load_extension LDAP_P((const void *module, const char *file_name));
-LIBSLAPD_F (char *) get_supported_extension LDAP_P((int index));
+#define SLAPD_EXTOP_GETVERSION 0
+#define SLAPD_EXTOP_GETPROTO 1
+#define SLAPD_EXTOP_GETAUTH 2
+#define SLAPD_EXTOP_GETDN 3
+#define SLAPD_EXTOP_GETCLIENT 4
+
+typedef int (*SLAP_EXTOP_CALLBACK_FN) LDAP_P((
+	Connection *conn, Operation *op,
+	int msg, int arg, void *argp ));
+
+typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
+	SLAP_EXTOP_CALLBACK_FN,
+	Connection *conn, Operation *op,
+	char * oid,
+	struct berval * reqdata,
+	struct berval ** rspdata,
+	char ** text ));
+
+typedef int (*SLAP_EXTOP_GETOID_FN) LDAP_P((
+	int index, char *oid, int blen ));
+
+LIBSLAPD_F (int) load_extop LDAP_P((
+	const char *ext_oid,
+	SLAP_EXTOP_MAIN_FN ext_main ));
+
+LIBSLAPD_F (char *) get_supported_extop LDAP_P((int index));
 
 /*
  * filter.c
@@ -268,13 +296,23 @@ LIBSLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
  */
 
 #ifdef SLAPD_MODULES
+
 LIBSLAPD_F (int) module_init LDAP_P(( void ));
 LIBSLAPD_F (int) module_kill LDAP_P(( void ));
 
-LIBSLAPD_F (int) module_load LDAP_P(( const char* file_name, int argc, char *argv[] ));
+LIBSLAPD_F (int) load_null_module(
+	const void *module, const char *file_name);
+LIBSLAPD_F (int) load_extop_module(
+	const void *module, const char *file_name);
+
+LIBSLAPD_F (int) module_load LDAP_P((
+	const char* file_name,
+	int argc, char *argv[] ));
 LIBSLAPD_F (int) module_path LDAP_P(( const char* path ));
 
-LIBSLAPD_F (void) *module_resolve LDAP_P((const void *module, const char *name));
+LIBSLAPD_F (void) *module_resolve LDAP_P((
+	const void *module, const char *name));
+
 #endif /* SLAPD_MODULES */
 
 /*
@@ -445,6 +483,8 @@ LIBSLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 LIBSLAPD_F (int) slap_passwd_check(
 	Attribute			*attr,
 	struct berval		*cred );
+LIBSLAPD_F (struct berval *) slap_passwd_generate(
+	struct berval		*cred );
 
 /*
  * kerberos.c
@@ -470,6 +510,7 @@ LIBSLAPD_F (int)		global_lastmod;
 LIBSLAPD_F (int)		global_idletimeout;
 LIBSLAPD_F (int)		global_schemacheck;
 LIBSLAPD_F (char)		*global_realm;
+LIBSLAPD_F (char)		*default_passwd_hash;
 LIBSLAPD_F (int)		lber_debug;
 LIBSLAPD_F (int)		ldap_syslog;
 

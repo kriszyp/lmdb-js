@@ -144,13 +144,16 @@ int index_change_values LDAP_P(( Backend *be,
 				 unsigned int op ));
 
 /*
- * kerberos.c
+ * passwd.c
  */
-
-#ifdef HAVE_KERBEROS
-/* krbv4_ldap_auth LDAP_P(( Backend *be, struct berval *cred, AUTH_DAT *ad )); */
-#endif
+extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
+	char *oid,
+	struct berval *reqdata,
+	struct berval **rspdata,
+	char **text ));
  
+
 /*
  * modify.c
  * These prototypes are placed here because they are used by modify and
@@ -166,9 +169,11 @@ int index_change_values LDAP_P(( Backend *be,
 int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
 int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+
+/* returns LDAP error code indicating error OR SLAPD_ABANDON */
 int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,
-	char *dn, LDAPModList *mods, Entry *e));
+	char *dn, LDAPModList *mods, Entry *e ));
 
 /*
  * nextid.c

@@ -104,8 +104,6 @@ LDAP_BEGIN_DECL
 
 /* 0x34 - 0x0fff not defined by current draft */
 
-/* extended options - none */
-
 /* private and experimental options */
 #define LDAP_OPT_DNS				0x4001	/* use DN & DNS */
 
@@ -172,7 +170,7 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_MANAGEDSAIT "2.16.840.1.113730.3.4.2"
 
 /* Experimental Controls */
-#define LDAP_CONTROL_X_CHANGE_PASSWD "1.3.6.1.4.1.4203.666.5.1"
+#define LDAP_CONTROL_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.5.1"
 
 
 /* LDAP Unsolicited Notifications */
@@ -181,6 +179,7 @@ typedef struct ldapcontrol {
 
 
 /* LDAP Extended Operations */
+#define LDAP_EXOP_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.6.1"
 
 
 /* 

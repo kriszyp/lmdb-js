@@ -204,6 +204,14 @@ do_search(
 		goto return_results;
 	}
 
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, NULL, NULL, NULL );
+	}
+
 	/* deref the base if needed */
 	nbase = suffix_alias( be, nbase );
 

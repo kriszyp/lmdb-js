@@ -99,6 +99,14 @@ do_compare(
 		goto cleanup;
 	}
 
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, NULL, NULL, NULL );
+	}
+
 	/* deref suffix alias if appropriate */
 	ndn = suffix_alias( be, ndn );
 

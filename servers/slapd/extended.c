@@ -32,39 +32,26 @@
 
 #include "slap.h"
 
-#ifdef SLAPD_EXTERNAL_EXTENSIONS
-
-typedef struct extensions_cookie_t {
-    Connection	*conn;
-    Operation	*op;
-} extensions_cookie_t;
-
 #define MAX_OID_LENGTH	128
 
-typedef struct extensions_list_t {
-	struct extensions_list_t *next;
+typedef struct extop_list_t {
+	struct extop_list_t *next;
 	char *oid;
-	int (*ext_main)(int (*)(), void *, char *reqoid, struct berval *reqdata, char **rspoid, struct berval *rspdata, char **text);
-} extensions_list_t;
+	SLAP_EXTOP_MAIN_FN ext_main;
+} extop_list_t;
 
-extensions_list_t *supp_ext_list = NULL;
+extop_list_t *supp_ext_list = NULL;
 
-extensions_list_t *find_extension (extensions_list_t *list, char *oid);
-int extensions_callback (extensions_cookie_t *cookie, int msg, int arg, void *argp);
+static extop_list_t *find_extop( extop_list_t *list, char *oid );
 
-#else
-
-char *supportedExtensions[] = {
-	NULL
-};
-#endif
-
+static int extop_callback(
+	Connection *conn, Operation *op,
+	int msg, int arg, void *argp);
 
 char *
-get_supported_extension (int index)
+get_supported_extop (int index)
 {
-#ifdef SLAPD_EXTERNAL_EXTENSIONS
-	extensions_list_t *ext;
+	extop_list_t *ext;
 
 	/* linear scan is slow, but this way doesn't force a
 	 * big change on root_dse.c, where this routine is used.
@@ -73,9 +60,6 @@ get_supported_extension (int index)
 	if (ext == NULL)
 		return(NULL);
 	return(ext->oid);
-#else
-	return(supportedExtensions[index]);
-#endif
 }
 
 int
@@ -85,21 +69,18 @@ do_extended(
 )
 {
 	int rc = LDAP_SUCCESS;
-	char* reqoid ;
-	struct berval reqdata;
+	char* oid;
+	struct berval *reqdata;
 	ber_tag_t tag;
 	ber_len_t len;
-#ifdef SLAPD_EXTERNAL_EXTENSIONS
-	extensions_list_t *ext;
-	char *rspoid, *text;
-	struct berval rspdata;
-	extensions_cookie_t cookie;
-#endif
+	extop_list_t *ext;
+	char *text;
+	struct berval *rspdata;
 
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 
-	reqoid = NULL;
-	reqdata.bv_val = NULL;
+	oid = NULL;
+	reqdata = NULL;
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
 		Debug( LDAP_DEBUG_ANY, "do_extended: protocol version (%d) too low\n",
@@ -110,7 +91,7 @@ do_extended(
 		goto done;
 	}
 
-	if ( ber_scanf( op->o_ber, "{a" /*}*/, &reqoid ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &oid ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -118,23 +99,18 @@ do_extended(
 		goto done;
 	}
 
-#ifdef SLAPD_EXTERNAL_EXTENSIONS
-	if( !(ext = find_extension(supp_ext_list, reqoid)) )
-#else
-	if( !charray_inlist( supportedExtensions, reqoid ) )
-#endif
-	{
+	if( !(ext = find_extop(supp_ext_list, oid)) ) {
 		Debug( LDAP_DEBUG_ANY, "do_extended: unsupported operation \"%s\"\n",
-			reqoid, 0 ,0 );
+			oid, 0 ,0 );
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-			NULL, "unsuppored extended operation", NULL, NULL );
+			NULL, "unsupported extended operation", NULL, NULL );
 		goto done;
 	}
 
 	tag = ber_peek_tag( op->o_ber, &len );
 	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
-		if( ber_scanf( op->o_ber, "o", &reqdata ) == LBER_ERROR ) {
+		if( ber_scanf( op->o_ber, "O", &reqdata ) == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -148,99 +124,70 @@ do_extended(
 		return rc;
 	} 
 
-	Debug( LDAP_DEBUG_ARGS, "do_extended: oid \"%s\"\n", reqoid, 0 ,0 );
+	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", oid, 0 ,0 );
 
-#ifdef SLAPD_EXTERNAL_EXTENSIONS
-	cookie.conn = conn;
-	cookie.op = op;
-	rspoid = NULL;
-	rspdata.bv_len = 0;
-	rspdata.bv_val = NULL;
+	rspdata = NULL;
 	text = NULL;
-	rc = (ext->ext_main)(extensions_callback, &cookie, reqoid, &reqdata, &rspoid, &rspdata, &text);
 
-	send_ldap_extended(conn, op, rc, NULL, text, rspoid, rspdata.bv_val ? &rspdata : NULL);
+	rc = (ext->ext_main)( extop_callback, conn, op,
+		oid, reqdata, &rspdata, &text );
 
-	if (rspoid != NULL)
-		free(rspoid);
-	if ( rspdata.bv_val != NULL )
-		free(rspdata.bv_val);
+	if( rc != SLAPD_ABANDON ) {
+		send_ldap_extended( conn, op, rc, NULL, text,
+			oid, rspdata );
+	}
+
+	if ( rspdata != NULL )
+		ber_bvfree( rspdata );
+
 	if ( text != NULL )
 		free(text);
 
-#else
-	send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-		NULL, "unsupported extended operation", NULL, NULL );
-
-#endif
-
 done:
-	if ( reqoid != NULL ) {
-		free( reqoid );
+	if ( reqdata != NULL ) {
+		ber_bvfree( reqdata );
 	}
-	if ( reqdata.bv_val != NULL ) {
-		free( reqdata.bv_val );
+	if ( oid != NULL ) {
+		free( oid );
 	}
 
 	return rc;
 }
 
-#ifdef SLAPD_EXTERNAL_EXTENSIONS
-
 int
-load_extension (
-	const void *module,
-	const char *file_name
-)
+load_extop(
+	const char *ext_oid,
+	SLAP_EXTOP_MAIN_FN ext_main )
 {
-	extensions_list_t *ext;
-	int (*ext_getoid)(int index, char *oid, int blen);
+	extop_list_t *ext;
 	int rc;
 
-	ext = ch_calloc(1, sizeof(extensions_list_t));
+	if( ext_oid == NULL || *ext_oid == '\0' ) return -1; 
+	if(!ext_main) return -1; 
+
+	ext = ch_calloc(1, sizeof(extop_list_t));
 	if (ext == NULL)
 		return(-1);
 
-	ext->oid = ch_malloc(MAX_OID_LENGTH);
+	ext->oid = ch_strdup( ext_oid );
 	if (ext->oid == NULL) {
 		free(ext);
 		return(-1);
 	}
 
-	ext->ext_main = module_resolve(module, "ext_main");
-	if (ext->ext_main == NULL) {
-		free(ext->oid);
-		free(ext);
-		return(-1);
-	}
-
-	ext_getoid = module_resolve(module, "ext_getoid");
-	if (ext_getoid == NULL) {
-		free(ext->oid);
-		free(ext);
-		return(-1);
-	}
-	rc = (ext_getoid)(0, ext->oid, MAX_OID_LENGTH);
-	if (rc != 0) {
-		free(ext->oid);
-		free(ext);
-		return(rc);
-	}
-	if (*ext->oid == 0) {
-		free(ext->oid);
-		free(ext);
-		return(-1);
-	}
-
+	ext->ext_main = ext_main;
 	ext->next = supp_ext_list;
+
 	supp_ext_list = ext;
+
 	return(0);
 }
 
-extensions_list_t *
-find_extension (extensions_list_t *list, char *oid)
+
+static extop_list_t *
+find_extop( extop_list_t *list, char *oid )
 {
-	extensions_list_t *ext;
+	extop_list_t *ext;
 
 	for (ext = list; ext; ext = ext->next) {
 		if (strcmp(ext->oid, oid) == 0)
@@ -250,38 +197,37 @@ find_extension (extensions_list_t *list, char *oid)
 }
 
 int
-extensions_callback (extensions_cookie_t *cookie, int msg, int arg, void *argp)
+extop_callback(
+	Connection *conn, Operation *op,
+	int msg, int arg, void *argp)
 {
-	if (cookie == NULL)
-		return(-1);
-
 	if (argp == NULL)
 		return(-1);
 
 	switch (msg) {
-	case 0:		/* SLAPD_EXT_GETVERSION */
+	case SLAPD_EXTOP_GETVERSION:
 		*(int *)argp = 1;
 		return(0);
 
-	case 1:		/* SLAPD_EXT_GETPROTO */
-		*(int *)argp = cookie->op->o_protocol;
+	case SLAPD_EXTOP_GETPROTO:
+		*(int *)argp = op->o_protocol;
 		return(0);
 	
-	case 2:		/* SLAPD_EXT_GETAUTH */
-		*(int *)argp = cookie->op->o_authtype;
+	case SLAPD_EXTOP_GETAUTH:
+		*(int *)argp = op->o_authtype;
 		return(0);
 	
-	case 3:		/* SLAPD_EXT_GETDN */
-		*(char **)argp = cookie->op->o_dn;
+	case SLAPD_EXTOP_GETDN:
+		*(char **)argp = op->o_dn;
 		return(0);
 	
-	case 4:		/* SLAPD_EXT_GETCLIENT */
-		if (cookie->conn->c_peer_domain != NULL && *cookie->conn->c_peer_domain != 0) {
-			*(char **)argp = cookie->conn->c_peer_domain;
+	case SLAPD_EXTOP_GETCLIENT:
+		if (conn->c_peer_domain != NULL && *conn->c_peer_domain != 0) {
+			*(char **)argp = conn->c_peer_domain;
 			return(0);
 		}
-		if (cookie->conn->c_peer_name != NULL && *cookie->conn->c_peer_name != 0) {
-			*(char **)argp = cookie->conn->c_peer_name;
+		if (conn->c_peer_name != NULL && *conn->c_peer_name != 0) {
+			*(char **)argp = conn->c_peer_name;
 			return(0);
 		}
 		break;
@@ -291,6 +237,3 @@ extensions_callback (extensions_cookie_t *cookie, int msg, int arg, void *argp)
 	}
 	return(-1);
 }
-
-#endif
-

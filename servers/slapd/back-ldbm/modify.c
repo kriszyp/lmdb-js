@@ -39,9 +39,7 @@ int ldbm_modify_internal(
 	Attribute	*save_attrs;
 
 	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
-		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-			NULL, NULL, NULL, NULL );
-		return -1;
+		return LDAP_INSUFFICIENT_ACCESS;
 	}
 
 	save_attrs = e->e_attrs;
@@ -82,9 +80,7 @@ int ldbm_modify_internal(
 			attrs_free( e->e_attrs );
 			e->e_attrs = save_attrs;
 			/* unlock entry, delete from cache */
-			send_ldap_result( conn, op, err,
-				NULL, NULL, NULL, NULL );
-			return -1;
+			return err; 
 		}
 	}
 
@@ -94,7 +90,7 @@ int ldbm_modify_internal(
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		return -1;
+		return SLAPD_ABANDON;
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
@@ -103,9 +99,7 @@ int ldbm_modify_internal(
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION,
-			NULL, NULL, NULL, NULL );
-		return -1;
+		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
 	/* check for abandon */
@@ -114,7 +108,7 @@ int ldbm_modify_internal(
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		return -1;
+		return SLAPD_ABANDON;
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
@@ -143,20 +137,10 @@ int ldbm_modify_internal(
 	/* modify indexes */
 	if ( index_add_mods( be, modlist, e->e_id ) != 0 ) {
 		/* our indices are likely hosed */
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		return -1;
+		return LDAP_OPERATIONS_ERROR;
 	}
 
-	/* check for abandon */
-	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
-	if ( op->o_abandon ) {
-		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		return -1;
-	}
-	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 
@@ -170,6 +154,7 @@ ldbm_back_modify(
     LDAPModList	*modlist
 )
 {
+	int rc;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	Entry		*matched;
 	Entry		*e;
@@ -221,7 +206,14 @@ ldbm_back_modify(
 	}
 	
 	/* Modify the entry */
-	if ( ldbm_modify_internal( be, conn, op, ndn, modlist, e ) != 0 ) {
+	rc = ldbm_modify_internal( be, conn, op, ndn, modlist, e );
+
+	if( rc != LDAP_SUCCESS ) {
+		if( rc != SLAPD_ABANDON ) {
+			send_ldap_result( conn, op, rc,
+		   		NULL, NULL, NULL, NULL );
+		}
+
 		goto error_return;
 	}
 
@@ -234,6 +226,7 @@ ldbm_back_modify(
 
 	send_ldap_result( conn, op, LDAP_SUCCESS,
 		NULL, NULL, NULL, NULL );
+
 	cache_return_entry_w( &li->li_cache, e );
 	return( 0 );
 

@@ -66,6 +66,9 @@ LDAP_BEGIN_DECL
 
 #define MAXREMATCHES 10
 
+/* psuedo error code to indicating abandoned operation */
+#define SLAPD_ABANDON -1
+
 /* XXYYZ: these macros assume 'x' is an ASCII x */
 #define DNSEPARATOR(c)	((c) == ',' || (c) == ';')
 #define SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
@@ -482,8 +485,12 @@ struct slap_backend_db {
 #define		be_modrdn	bd_info->bi_op_modrdn
 #define		be_search	bd_info->bi_op_search
 
+#define		be_extended	bd_info->bi_extended
+
 #define		be_release	bd_info->bi_entry_release_rw
 #define		be_group	bd_info->bi_acl_group
+
+#define		be_controls	bd_info->bi_controls
 
 #define		be_connection_init	bd_info->bi_connection_init
 #define		be_connection_destroy	bd_info->bi_connection_destroy
@@ -523,6 +530,15 @@ struct slap_backend_db {
 
 	void	*be_private;	/* anything the backend database needs 	   */
 };
+
+typedef int (*SLAP_EXTENDED_FN) LDAP_P((
+    Backend		*be,
+    struct slap_conn		*conn,
+    struct slap_op		*op,
+	char		*oid,
+    struct berval * reqdata,
+    struct berval ** rspdata,
+	char**	text ));
 
 struct slap_backend_info {
 	char	*bi_type;	/* type of backend */
@@ -615,6 +631,9 @@ struct slap_backend_info {
 		struct slap_conn *c, struct slap_op *o,
 		ber_int_t msgid));
 
+	/* Extended Operations Helper */
+	SLAP_EXTENDED_FN bi_extended;
+
 	/* Auxilary Functions */
 	int	(*bi_entry_release_rw) LDAP_P((BackendDB *bd, Entry *e, int rw));
 
@@ -642,6 +661,8 @@ struct slap_backend_info {
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002
 
+	char **bi_controls;		/* supported controls */
+
 	unsigned int bi_nDB;	/* number of databases of this type */
 	void	*bi_private;	/* anything the backend type needs */
 };
@@ -662,9 +683,19 @@ typedef struct slap_op {
 	time_t		o_time;		/* time op was initiated	  */
 
 	int		o_bind_in_progress;	/* multi-step bind in progress */
+#ifdef SLAP_AUTHZID
+	/* should only be used for reporting purposes */
+	char	*o_authc_dn;	/* authentication DN */
 
+	/* should be used as the DN of the User */
+	char	*o_authz_dn;	/* authorization DN */
+	char	*o_authz_ndn;	/* authorizaiton NDN */
+
+#else
 	char		*o_dn;		/* dn bound when op was initiated */
 	char		*o_ndn;		/* normalized dn bound when op was initiated */
+#endif
+
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	o_authtype;	/* auth method used to bind dn	  */
 					/* values taken from ldap.h	  */
@@ -709,19 +740,35 @@ typedef struct slap_conn {
 	char		*c_peer_name;	/* peer name (trans=addr:port) */
 	char		*c_sock_name;	/* sock name (trans=addr:port) */
 
+	/* only can be changed by binding thread */
+	int		c_bind_in_progress;	/* multi-op bind in progress */
 #ifdef HAVE_CYRUS_SASL
 	sasl_conn_t	*c_sasl_context;
 #endif
+	void	*c_authstate;	/* SASL state data */
 
-	/* only can be changed by binding thread */
-	int		c_bind_in_progress;	/* multi-op bind in progress */
+	Backend *c_authc_backend;
 
+	/* authorization backend */
+	Backend *c_authz_backend;
+
+#ifdef SLAP_AUTHZID
+	/* authentication backend */
+	/* should only be used for reporting purposes */
+	char	*c_authc_dn;	/* authentication DN */
+
+	/* should be used as the DN of the User */
+	char	*c_authz_dn;	/* authorization DN */
+	char	*c_authz_ndn;	/* authorization NDN */
+
+#else
 	char	*c_cdn;		/* DN provided by the client */
 	char	*c_dn;		/* DN bound to this conn  */
+#endif
+
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	c_authtype;/* auth method used to bind c_dn  */
 	char	*c_authmech;	/* SASL mechanism used to bind c_dn */
-	void	*c_authstate;	/* SASL state data */
 
 	Operation	*c_ops;			/* list of operations being processed */
 	Operation	*c_pending_ops;	/* list of pending operations */

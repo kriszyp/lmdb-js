@@ -68,6 +68,8 @@ do_bind(
 		conn->c_dn = NULL;
 	}
 
+	conn->c_authz_backend = NULL;
+
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
 	if ( op->o_dn != NULL ) {
@@ -281,14 +283,28 @@ do_bind(
 		goto cleanup;
 	}
 
+	conn->c_authz_backend = be;
+
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, NULL, NULL, NULL );
+	}
+
 	if ( be->be_bind ) {
+		int ret;
 		/* alias suffix */
 		char *edn = NULL;
 
 		/* deref suffix alias if appropriate */
 		ndn = suffix_alias( be, ndn );
 
-		if ( (*be->be_bind)( be, conn, op, dn, ndn, method, mech, &cred, &edn ) == 0 ) {
+		ret = (*be->be_bind)( be, conn, op, dn, ndn,
+			method, mech, &cred, &edn );
+
+		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_cdn = dn;

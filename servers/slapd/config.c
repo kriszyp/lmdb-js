@@ -34,6 +34,7 @@ int		global_lastmod = ON;
 int		global_idletimeout = 0;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
+char		*default_passwd_hash;
 
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
@@ -170,6 +171,24 @@ read_config( const char *fname )
 			}
 
 			slapd_args_file = ch_strdup( cargv[1] );
+
+		/* default password hash */
+		} else if ( strcasecmp( cargv[0], "password-hash" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing realm in \"password-hash <hash>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+			if ( default_passwd_hash != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: already set default password_hash!\n",
+					fname, lineno, 0 );
+				return 1;
+
+			} else {
+				default_passwd_hash = ch_strdup( cargv[1] );
+			}
 
 		/* set DIGEST realm */
 		} else if ( strcasecmp( cargv[0], "digest-realm" ) == 0 ) {

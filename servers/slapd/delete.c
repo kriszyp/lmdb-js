@@ -86,6 +86,14 @@ do_delete(
 		goto cleanup;
 	}
 
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, NULL, NULL, NULL );
+	}
+
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_delete: database is read-only\n",
 		       0, 0, 0 );

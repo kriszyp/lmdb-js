@@ -55,6 +55,14 @@ bdb2_back_initialize(
 {
 	int  ret;
 
+	static char *controls[] = {
+		LDAP_CONTROL_MANAGEDSAIT,
+	/*	LDAP_CONTROL_X_CHANGE_PASSWD, */
+		NULL
+	};
+
+	bi->bi_controls = controls;
+
 	bi->bi_open = bdb2_back_open;
 	bi->bi_config = bdb2_back_config;
 	bi->bi_close = bdb2_back_close;
@@ -75,6 +83,8 @@ bdb2_back_initialize(
 	bi->bi_op_add = bdb2_back_add;
 	bi->bi_op_delete = bdb2_back_delete;
 	bi->bi_op_abandon = bdb2_back_abandon;
+
+	bi->bi_extended = 0;
 
 	bi->bi_entry_release_rw = bdb2_back_entry_release_rw;
 	bi->bi_acl_group = bdb2_back_group;

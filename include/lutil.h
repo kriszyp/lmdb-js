@@ -58,9 +58,14 @@ lutil_entropy LDAP_P((
 /* passwd.c */
 LIBLUTIL_F( int )
 lutil_passwd LDAP_P((
-	const char *cred,
-	const char *passwd,
+	const char *passwd,	/* stored password */
+	const char *cred,	/* user supplied value */
 	const char **methods ));
+
+LIBLUTIL_F( char * )
+lutil_passwd_generate LDAP_P((
+	const char *passwd,
+	const char *method ));
 
 LIBLUTIL_F (const char *) lutil_passwd_schemes[];
 

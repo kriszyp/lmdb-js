@@ -72,6 +72,8 @@ ldap_back_initialize(
 	bi->bi_op_delete = ldap_back_delete;
 	bi->bi_op_abandon = 0;
 
+	bi->bi_extended = 0;
+
 	bi->bi_acl_group = 0;
 
 	bi->bi_connection_init = 0;

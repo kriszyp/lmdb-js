@@ -74,7 +74,7 @@ root_dse_info( Connection *conn, Operation *op, char **attrs, int attrsonly )
 	}
 
 	/* supportedExtension */
-	for ( i=0; (val.bv_val = get_supported_extension(i)) != NULL; i++ ) {
+	for ( i=0; (val.bv_val = get_supported_extop(i)) != NULL; i++ ) {
 		val.bv_len = strlen( val.bv_val );
 		attr_merge( e, "supportedExtension", vals );
 	}

@@ -453,8 +453,13 @@ ldbm_back_modrdn(
 	}
 
 	/* modify memory copy of entry */
-	if ( ldbm_modify_internal( be, conn, op, dn, &mod[0], e )
-	     != 0 ) {
+	rc = ldbm_modify_internal( be, conn, op, dn, &mod[0], e );
+
+	if( rc != LDAP_SUCCESS ) {
+		if( rc != SLAPD_ABANDON ) {
+			send_ldap_result( conn, op, rc,
+				NULL, NULL, NULL, NULL );
+		}
 	    
 	    goto return_results;
 	}

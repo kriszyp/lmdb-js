@@ -7,19 +7,25 @@
 
 #include <ltdl.h>
 
-int load_null (const void *module, const char *file_name);
-int load_extension (const void *module, const char *file_name);
+typedef int (*MODULE_INIT_FN)(
+	int argc,
+	char *argv[]);
+typedef int (*MODULE_LOAD_FN)(
+	const void *module,
+	const char *filename);
+typedef int (*MODULE_TERM_FN)(void);
+
 
 struct module_regtable_t {
 	char *type;
-	int (*proc)(const void *module, const char *file_name);
+	MODULE_LOAD_FN proc;
 } module_regtable[] = {
-							{ "null", load_null },
+		{ "null", load_null_module },
 #ifdef SLAPD_EXTERNAL_EXTENSIONS
-							{ "extension", load_extension },
+		{ "extension", load_extop_module },
 #endif
-							{ NULL, NULL }
-						};
+		{ NULL, NULL }
+};
 
 typedef struct module_loaded_t {
 	struct module_loaded_t *next;
@@ -28,7 +34,7 @@ typedef struct module_loaded_t {
 
 module_loaded_t *module_list = NULL;
 
-int module_unload (module_loaded_t *module);
+static int module_unload (module_loaded_t *module);
 
 int module_init (void)
 {
@@ -60,7 +66,7 @@ int module_load(const char* file_name, int argc, char *argv[])
 	module_loaded_t *module = NULL;
 	const char *error;
 	int rc;
-	int (*initialize) LDAP_P((int argc, char *argv[]));
+	MODULE_INIT_FN initialize;
 
 	module = (module_loaded_t *)ch_calloc(1, sizeof(module_loaded_t));
 	if (module == NULL) {
@@ -153,10 +159,10 @@ void *module_resolve (const void *module, const char *name)
 	return(lt_dlsym(((module_loaded_t *)module)->lib, name));
 }
 
-int module_unload (module_loaded_t *module)
+static int module_unload (module_loaded_t *module)
 {
 	module_loaded_t *mod;
-	int (*terminate) LDAP_P((void));
+	MODULE_TERM_FN terminate;
 
 	if (module != NULL) {
 		/* remove module from tracking list */
@@ -188,5 +194,25 @@ int load_null (const void *module, const char *file_name)
 	return 0;
 }
 
+#ifdef SLAPD_EXTERNAL_EXTENSIONS
+int
+load_extop_module (
+	const void *module,
+	const char *file_name
+)
+{
+	ext_main = module_resolve(module, "ext_main");
+	if (ext_main == NULL) {
+		return(-1);
+	}
+
+	ext_getoid = module_resolve(module, "ext_getoid");
+	if (ext_getoid == NULL) {
+		return(-1);
+	}
+
+	return load_extop( ext_main, ext_getoid );
+}
+#endif /* SLAPD_EXTERNAL_EXTENSIONS */
 #endif /* SLAPD_MODULES */
 

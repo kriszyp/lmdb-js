@@ -241,7 +241,7 @@ send_ldap_response(
     const char	*text,
 	struct berval	**ref,
 	const char	*resoid,
-	struct berval	*resdata,
+	struct berval	*data,
 	LDAPControl **ctrls
 )
 {
@@ -281,9 +281,8 @@ send_ldap_response(
 			rc = ber_printf( ber, "s", resoid );
 		}
 
-		if( rc != -1 && resdata != NULL ) {
-			rc = ber_printf( ber, "O", resdata );
-
+		if( rc != -1 && data != NULL ) {
+			rc = ber_printf( ber, "O", data );
 		}
 
 		if( rc != -1 ) {

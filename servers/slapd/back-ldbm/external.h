@@ -22,6 +22,13 @@ extern int	ldbm_back_db_destroy LDAP_P(( BackendDB *bd ));
 extern int	ldbm_back_db_config LDAP_P(( BackendDB *bd,
 	const char *fname, int lineno, int argc, char **argv ));
 
+extern int ldbm_back_extended LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
+	char *reqoid,
+	struct berval *reqdata,
+	struct berval **rspdata,
+	char **text ));
+
 extern int ldbm_back_bind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
 	char *dn, char *ndn, int method, char* mech,

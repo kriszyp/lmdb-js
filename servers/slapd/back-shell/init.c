@@ -51,6 +51,8 @@ shell_back_initialize(
 	bi->bi_op_delete = shell_back_delete;
 	bi->bi_op_abandon = shell_back_abandon;
 
+	bi->bi_extended = 0;
+
 	bi->bi_acl_group = 0;
 
 	bi->bi_connection_init = 0;

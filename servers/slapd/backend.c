@@ -506,14 +506,14 @@ be_isroot_pw( Backend *be, const char *ndn, struct berval *cred )
 	int result;
 
 	if ( ! be_isroot( be, ndn ) ) {
-		return( 0 );
+		return 0;
 	}
 
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_lock( &crypt_mutex );
 #endif
 
-	result = lutil_passwd( cred->bv_val, be->be_root_pw, NULL );
+	result = lutil_passwd( be->be_root_pw, cred->bv_val, NULL );
 
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_unlock( &crypt_mutex );
@@ -582,6 +582,29 @@ backend_connection_destroy(
 	}
 
 	return 0;
+}
+
+int
+backend_check_controls(
+	Backend *be,
+	Connection *conn,
+	Operation *op )
+{
+	LDAPControl **ctrls;
+	ctrls = op->o_ctrls;
+	if( ctrls == NULL ) {
+		return LDAP_SUCCESS;
+	}
+
+	for( ; *ctrls != NULL ; ctrls++ ) {
+		if( (*ctrls)->ldctl_iscritical &&
+			!charray_inlist( be->be_controls, (*ctrls)->ldctl_oid ) )
+		{
+			return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+		}
+	}
+
+	return LDAP_SUCCESS;
 }
 
 int 

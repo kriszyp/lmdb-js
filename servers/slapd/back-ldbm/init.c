@@ -35,6 +35,14 @@ ldbm_back_initialize(
     BackendInfo	*bi
 )
 {
+	static char *controls[] = {
+		LDAP_CONTROL_MANAGEDSAIT,
+	/*	LDAP_CONTROL_X_CHANGE_PASSWD, */
+		NULL
+	};
+
+	bi->bi_controls = controls;
+
 	bi->bi_open = ldbm_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = ldbm_back_close;
@@ -55,6 +63,8 @@ ldbm_back_initialize(
 	bi->bi_op_add = ldbm_back_add;
 	bi->bi_op_delete = ldbm_back_delete;
 	bi->bi_op_abandon = ldbm_back_abandon;
+
+	bi->bi_extended = ldbm_back_extended;
 
 	bi->bi_entry_release_rw = ldbm_back_entry_release_rw;
 	bi->bi_acl_group = ldbm_back_group;

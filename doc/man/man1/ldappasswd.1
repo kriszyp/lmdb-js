@@ -6,150 +6,76 @@
 ldappasswd \- change the password of an LDAP entry
 .SH SYNOPSIS
 .B ldappasswd
-[\c
-.BI \-a \ passwdattribute\fR]
-[\c
-.BI \-b \ searchbase\fR]
-[\c
-.BI \-D \ binddn\fR]
+.BI \-D \ binddn\fR
 [\c
 .BI \-d \ debuglevel\fR]
 [\c
-.BR \-E ]
-[\c
-.BI \-e \ passwd\fR] 
-[\c
-.BI \-g \ pwlen\fR]
-[\c
-.BI \-H \ none\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsmd5\fR\||\|\fIsha\fR\||\|\fIssha]
-[\c
 .BI \-h \ ldaphost\fR]
-[\c
-.BR \-K ]
-[\c
-.BR \-k ]
-[\c
-.BI \-l \ searchtime\fR]
 [\c
 .BR \-n ]
 [\c
-.BI \-P \ 2\fR\||\|\fI3\fR]
-[\c
 .BI \-p \ ldapport\fR]
 [\c
-.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR]
-[\c
-.BI \-t \ targetdn\fR]
+.BI \-s \ newPasswd\fR]
 [\c
 .BR \-v ]
 [\c
 .BR \-W ]
 [\c
 .BI \-w \ passwd\fR]
-[\c
-.BI \-z \ searchsize\fR]
-[\fIfilter\fR]
 .SH DESCRIPTION
 .B ldappasswd
-is a tool to modify the password of one or more LDAP entries.
-Multiple entries can be specified using a search filter.
+is a tool to set the password of an LDAP user.
 It is neither designed nor intended to be a replacement for
 .BR passwd (1)
 and should not be installed as such.
 .LP
 .B ldappasswd
-works by specifying a single target dn or by using a search filter.
-Matching entries will be modified with the new password.
+sets the password of associated with the user associated with the
+bind DN.
 If the new password is not specified on the command line, the user
 will be prompted to enter it.
-The new password will be hashed using
-.I crypt
-or any other supported hashing algorithm.
-For hashing algorithms other than
-.I crypt
-or
-.IR none ,
-the stored password will be base64 encoded.
-Salts are only generated for crypt and are based on the least
-significant bits of the current time and other psuedo randomness.
 .SH OPTIONS
 .TP
-.BI \-a \ passwdattribute
-Specify the LDAP attribute to change. The default is "userPassword".
-.TP
-.BI \-b \ searchbase
-Use \fIsearchbase\fP as the starting point for the search instead of
-the default.
-.TP
 .BI \-D \ binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
-a string-represented DN as defined in RFC 1779.
+Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should
+be a string-represented DN as defined in RFC 2253.
+This flag is not optional.
 .TP
 .BI \-d \ debuglevel
 Set the LDAP debugging level to \fIdebuglevel\fP.
 .B ldappasswd
 must be compiled with LDAP_DEBUG defined for this option to have any effect.
 .TP
-.BI \-g \ pwlen
-Auto-generate passwords of length \fIpwlen\fR.
-Passwords will be displayed when using verbose,
-.BR -vvv .
-.TP
-.B \-H \fInone\fR\||\|\fIcrypt\fR\||\|\fImd5\fR\||\|\fIsmd5\fR\||\|\fIsha\fR\||\|\fIssha
-Specify the hashing algorithm used to store the password. The default is
-.IR crypt .
-.TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
 .TP
-.B \-K
-Same as -k, but only does step 1 of the kerberos bind.
-This is useful when connecting to a slapd and there is no x500dsa.hostname principal registered with your kerberos servers.
-.TP
-.B \-k
-Use Kerberos authentication instead of simple authentication.
-It is assumed that you already have a valid ticket granting ticket.
-.B ldappasswd
-must be compiled with KERBEROS defined for this option to have any effect.
-.TP
-.BI \-l \ searchtime
-Specify a maximum query time in seconds.
-.TP
 .B \-n
-Make no modifications. (Can be useful when used in conjunction with
+Do not set password. (Can be useful when used in conjunction with
 .BR \-v \ or
 .BR \-d )
 .TP
-.BI \-P \ 2\fR\||\|\fI3
-Specify the LDAP protocol version to use.
+.BI \-s \ newPasswd
+Set the user password to \fInewPasswd\fP.
 .TP
 .BI \-p \ ldapport
 Specify an alternate port on which the ldap server is running.
 .TP
-.BI \-s \ base\fR\||\|\fIone\fR\||\|\fIsub\fR
-Specify the scope of the search. The default is
-.IR base .
-.TP
-.B \-t \fR[\fItargetdn\fR]
-Specify the target dn to modify.
-If an argument is not given, the target dn will be the binddn.
-.TP
 .B \-v
-The more v's the more verbose.
+Increase the verbosity of output.  Can be specified multiple times.
 .TP
 .BI \-W
-Prompt for simple authentication.
+Prompt for bind password.
 This is used instead of specifying the password on the command line.
 .TP
 .BI \-w \ passwd
-Use \fIpasswd\fP as the password for simple authentication.
-.TP
-.BI \-z \ searchsize
-Specify a maximum query size.
-.SH AUTHOR
-David E. Storey <dave@tamos.net>
-.SH "SEE ALSO"
-.BR ldapadd (1),
-.BR ldapdelete (1),
-.BR ldapmodrdn (1),
-.BR ldapsearch (1)
+Use \fIpasswd\fP as the password to bind with.
+.SH SEE ALSO
+.BR ldap_bind (3)
+.SH BUGS
+No transport security layer is provided.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  
