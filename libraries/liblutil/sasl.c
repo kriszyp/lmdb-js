@@ -138,16 +138,16 @@ static int interaction(
 
 	if( challenge ) {
 		if( interact->challenge ) {
-			fprintf( stderr, "Challenge: %s\n", interact->challenge );
+			fprintf( stderr, _("Challenge: %s\n"), interact->challenge );
 		}
 	}
 
 	if( dflt ) {
-		fprintf( stderr, "Default: %s\n", dflt );
+		fprintf( stderr, _("Default: %s\n"), dflt );
 	}
 
 	snprintf( input, sizeof input, "%s: ",
-		interact->prompt ? interact->prompt : "Interact" );
+		interact->prompt ? interact->prompt : _("Interact") );
 
 	if( noecho ) {
 		interact->result = (char *) getpassphrase( input );
@@ -207,7 +207,7 @@ int lutil_sasl_interact(
 	if( ld == NULL ) return LDAP_PARAM_ERROR;
 
 	if( flags == LDAP_SASL_INTERACTIVE ) {
-		fputs( "SASL Interaction\n", stderr );
+		fputs( _("SASL Interaction\n"), stderr );
 	}
 
 	while( interact->id != SASL_CB_LIST_END ) {

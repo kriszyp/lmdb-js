@@ -90,7 +90,7 @@ printf("DF_TRACE_DEBUG: 	int getopt () in getopt.c\n");
 	optopt = (int) c;
 	if (c == arg || (cp = strchr(opts,c)) == NULL)
 	{
-		ERR(argv,": illegal option--",c);
+		ERR(argv,_(": illegal option--"),c);
 		if (argv[optind][++sp] == eos)
 		{
 			optind++;
@@ -104,7 +104,7 @@ printf("DF_TRACE_DEBUG: 	int getopt () in getopt.c\n");
 			optarg = &argv[optind++][sp + 1];
 		else if (++optind >= argc)
 		{
-			ERR(argv,": option requires an argument--",c);
+			ERR(argv,_(": option requires an argument--"),c);
 			sp = 1;
 			return error;
 		}

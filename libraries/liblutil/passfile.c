@@ -42,8 +42,8 @@ lutil_get_filed_password(
 		struct stat sb;
 		if ( fstat( fileno( f ), &sb ) == 0 ) {
 			if( sb.st_mode & 006 ) {
-				fprintf( stderr,
-					"Warning: Password file %s is publicly readable/writeable\n",
+				fprintf( stderr, _("Warning: Password file %s"
+					" is publicly readable/writeable\n"),
 					filename );
 			}
 

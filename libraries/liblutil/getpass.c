@@ -50,7 +50,7 @@ lutil_getpass( const char *prompt )
 	static char buf[256];
 	int i, c;
 
-	if( prompt == NULL ) prompt = "Password: ";
+	if( prompt == NULL ) prompt = _("Password: ");
 
 #ifdef DEBUG
 	if (debug & D_TRACE)
@@ -76,7 +76,7 @@ lutil_getpass( const char *prompt )
 	FILE *fi;
 	RETSIGTYPE (*sig)( int sig );
 
-	if( prompt == NULL ) prompt = "Password: ";
+	if( prompt == NULL ) prompt = _("Password: ");
 
 #ifdef DEBUG
 	if (debug & D_TRACE)

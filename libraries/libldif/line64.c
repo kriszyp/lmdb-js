@@ -89,7 +89,7 @@ ldif_parse_line(
 
 	if( freeme == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-			"ldif_parse_line: line malloc failed\n");
+			_("ldif_parse_line: line malloc failed\n"));
 		return( -1 );
 	}
 
@@ -99,7 +99,7 @@ ldif_parse_line(
 
 	if ( s == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
-			"ldif_parse_line: missing ':' after %s\n",
+			_("ldif_parse_line: missing ':' after %s\n"),
 			type );
 		ber_memfree( freeme );
 		return( -1 );
@@ -142,7 +142,7 @@ ldif_parse_line(
 		if ( *s == '\0' ) {
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
-				"ldif_parse_line: %s missing base64 value\n", type );
+				_("ldif_parse_line: %s missing base64 value\n"), type );
 			ber_memfree( freeme );
 			return( -1 );
 		}
@@ -155,8 +155,8 @@ ldif_parse_line(
 				if ( p[i] != '=' && (p[i] & 0x80 ||
 				    b642nib[ p[i] & 0x7f ] > 0x3f) ) {
 					ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-						"ldif_parse_line: %s: invalid base64 encoding"
-						" char (%c) 0x%x\n",
+						_("ldif_parse_line: %s: invalid base64 encoding"
+						" char (%c) 0x%x\n"),
 					    type, p[i], p[i] );
 					ber_memfree( freeme );
 					return( -1 );
@@ -194,14 +194,14 @@ ldif_parse_line(
 		if ( *s == '\0' ) {
 			/* no value is present, error out */
 			ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
-				"ldif_parse_line: %s missing URL value\n", type );
+				_("ldif_parse_line: %s missing URL value\n"), type );
 			ber_memfree( freeme );
 			return( -1 );
 		}
 
 		if( ldif_fetch_url( s, &value, &vlen ) ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-				"ldif_parse_line: %s: URL \"%s\" fetch failed\n",
+				_("ldif_parse_line: %s: URL \"%s\" fetch failed\n"),
 				type, s );
 			ber_memfree( freeme );
 			return( -1 );
@@ -216,7 +216,7 @@ ldif_parse_line(
 
 	if( type == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-			"ldif_parse_line: type malloc failed\n");
+			_("ldif_parse_line: type malloc failed\n"));
 		if( url ) ber_memfree( value );
 		ber_memfree( freeme );
 		return( -1 );
@@ -226,7 +226,7 @@ ldif_parse_line(
 		p = ber_memalloc( vlen + 1 );
 		if( p == NULL ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-				"ldif_parse_line: value malloc failed\n");
+				_("ldif_parse_line: value malloc failed\n"));
 			ber_memfree( type );
 			ber_memfree( freeme );
 			return( -1 );
@@ -523,7 +523,7 @@ ldif_put(
 
     if ( buf == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
-			"ldif_type_and_value: malloc failed!" );
+			_("ldif_type_and_value: malloc failed!"));
 		return NULL;
     }
 
