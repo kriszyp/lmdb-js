@@ -124,7 +124,7 @@ bdb_db_open( BackendDB *be )
 		rc = bdb->bi_dbenv->set_lg_dir( bdb->bi_dbenv, dir );
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"bi_back_db_open: set_lg_dir(%s) failed: %s (%d)\n",
+				"bdb_db_open: set_lg_dir(%s) failed: %s (%d)\n",
 				dir, db_strerror(rc), rc );
 			return rc;
 		}
@@ -142,7 +142,7 @@ bdb_db_open( BackendDB *be )
 #endif
 
 	Debug( LDAP_DEBUG_TRACE,
-		"bi_back_db_open: dbenv_open(%s)\n",
+		"bdb_db_open: dbenv_open(%s)\n",
 		bdb->bi_dbenv_home, 0, 0);
 
 	rc = bdb->bi_dbenv->open( bdb->bi_dbenv,
@@ -157,6 +157,9 @@ bdb_db_open( BackendDB *be )
 	}
 
 	flags = DB_THREAD | DB_CREATE;
+
+	bdb->bi_databases = (struct bdb_db_info **) ch_malloc(
+		BDB_INDICES * sizeof(struct bdb_db_info *) );
 
 	/* open (and create) main database */
 	for( i = 0; i < BDB_INDICES; i++ ) {
@@ -185,6 +188,8 @@ bdb_db_open( BackendDB *be )
 				bdb->bi_dbenv_home, db_strerror(rc), rc );
 			return rc;
 		}
+
+		bdb->bi_databases[i] = db;
 	}
 
 	/* <insert> open (and create) index databases */
