@@ -65,14 +65,12 @@ lutil_SHA1Transform( uint32 *state, const unsigned char *buffer )
 	unsigned char c[64];
 	u_int l[16];
     } CHAR64LONG16;
-    CHAR64LONG16 *block;
 
 #ifdef SHA1HANDSOFF
-    static unsigned char workspace[64];
-    block = (CHAR64LONG16 *)workspace;
+    CHAR64LONG16 block[1];
     (void)memcpy(block, buffer, 64);
 #else
-    block = (CHAR64LONG16 *)buffer;
+    CHAR64LONG16 *block = (CHAR64LONG16 *)buffer;
 #endif
 
     /* Copy context->state[] to working vars */
