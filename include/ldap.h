@@ -569,6 +569,13 @@ ldap_set_rebind_proc LDAP_P((
 /*
  * in controls.c:
  */
+LDAP_F( int ) 
+ldap_create_control LDAP_P(( 
+	const char *requestOID, 
+	BerElement *ber, 
+	int iscritical,
+	LDAPControl **ctrlp ));
+
 LDAP_F( void )
 ldap_control_free LDAP_P((
 	LDAPControl *ctrl ));
