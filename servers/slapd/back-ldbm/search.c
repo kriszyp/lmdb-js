@@ -51,7 +51,7 @@ ldbm_back_search(
 	Attribute	*ref;
 	char		*matched = NULL;
 	int		rmaxsize, nrefs;
-	char		*rbuf, *rcur, *r;
+	char		*rbuf, *rcur;
 	int		nentries = 0;
 	char		*realBase;
 
@@ -186,7 +186,7 @@ ldbm_back_search(
 			strncmp( e->e_ndn, "REF=", 4 ) == 0 &&
 			(ref = attr_find( e->e_attrs, "ref" )) != NULL )
 		{
-			int	i, len;
+			int	i;
 
 			if ( ref->a_vals == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "null ref in (%s)\n", 
@@ -326,8 +326,6 @@ base_candidates(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	int		rc;
-	ID		id;
 	ID_BLOCK		*idl;
 	Entry		*e;
 

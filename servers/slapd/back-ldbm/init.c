@@ -82,7 +82,6 @@ ldbm_back_db_init(
 {
 	struct ldbminfo	*li;
 	char		*argv[ 4 ];
-	int		i;
 
 	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );

@@ -87,8 +87,7 @@ phonetic( char *s )
 {
         char	code, adjacent, ch;
 	char	*p;
-	char	**c;
-        int	i, cmax;
+        int	i;
 	char	phoneme[MAXPHONEMELEN + 1];
 
         p = s;

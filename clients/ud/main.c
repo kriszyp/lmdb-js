@@ -170,7 +170,6 @@ do_commands( void )
 	LDAPMessage *mp;			/* returned by find() */
 	register char *cp;			/* misc char pointer */
 	register char *ap;			/* misc char pointer */
-	static char buf[MED_BUF_SIZE];		/* for prompting */
 	static char cmd[MED_BUF_SIZE];		/* holds the command */
 	static char input[MED_BUF_SIZE];	/* buffer for input */
 

@@ -935,7 +935,7 @@ add_member(
 {
 	char		*ndn;
 	char		**mail;
-	int		i, rc;
+	int		rc;
 	LDAPMessage	*res, *e;
 	struct timeval	timeout;
 
@@ -1621,7 +1621,7 @@ get_attributes_mail_dn(
 )
 {
 	LDAPMessage	*ee, *res;
-	char		**vals, **dnlist, **mail, **grname, **graddr;
+	char		**vals, **dnlist, **mail, **grname;
         char            *dn;
 	int		nto = 0, i, rc;
 	struct timeval	timeout;

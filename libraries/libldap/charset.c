@@ -1027,7 +1027,6 @@ ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
   unsigned int  n;
   int           c;
   unsigned long len;
-  Couple        *cc;
 
   Debug( LDAP_DEBUG_TRACE, "ldap_t61_to_8859 input length: %ld\n",
 	*buflenp, 0, 0 );

@@ -19,8 +19,6 @@ id2children_add(
 {
 	struct dbcache	*db;
 	Datum		key;
-	int		len, rc;
-	ID_BLOCK		*idl;
 	char		buf[20];
 
 	ldbm_datum_init( key );
@@ -63,8 +61,6 @@ id2children_remove(
 {
 	struct dbcache	*db;
 	Datum		key;
-	int		len, rc;
-	ID_BLOCK		*idl;
 	char		buf[20];
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2children_remove( %ld, %ld )\n", p ? p->e_id

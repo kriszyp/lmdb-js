@@ -55,7 +55,6 @@ main( int argc, char **argv )
     char		*prog, *usage = "%s [-l] [-U] [-h ldaphost] [-p ldapport] [-b searchbase] [-a] [-z sizelimit] [-u dapuser] [-f filterfile] [-t templatefile] [-c rdncount]\n";
     struct msginfo	msg;
     int			c, errflg;
-    char		*replytext;
 
     *reply = '\0';
 

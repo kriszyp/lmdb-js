@@ -22,7 +22,6 @@ int
 oc_schema_check( Entry *e )
 {
 	Attribute	*a, *aoc;
-	struct objclass	*oc;
 	int		i;
 	int		ret = 0;
 

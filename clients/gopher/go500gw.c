@@ -798,8 +798,7 @@ do_search( LDAP *ld, FILE *fp, char *query )
 	}
 
 	if ( count == 1 ) {
-		char	*dn, **s, **oc;
-		int	rc;
+		char	*dn, **oc;
 
 		e = ldap_first_entry( ld, res );
 		oc = ldap_get_values( ld, e, "objectClass" );

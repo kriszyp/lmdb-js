@@ -427,7 +427,6 @@ cache_find_entry_dn2id(
     char		*dn
 )
 {
-	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	Entry		e, *ep;
 	ID			id;
 

@@ -25,7 +25,7 @@ send_ldap_result2(
 )
 {
 	BerElement	*ber;
-	int		rc, sd;
+	int		rc;
 	unsigned long	tag, bytes;
 
 	if ( err == LDAP_PARTIAL_RESULTS && (text == NULL || *text == '\0') )
@@ -186,7 +186,7 @@ send_search_entry(
 {
 	BerElement	*ber;
 	Attribute	*a;
-	int		i, rc, bytes, sd;
+	int		i, rc, bytes;
 	struct acl	*acl;
 	char            *edn;
 

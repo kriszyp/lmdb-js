@@ -40,7 +40,7 @@ query_cmd( struct msginfo *msgp, char *reply )
 {
     LDAP			*ldp;
     LDAPMessage			*ldmsgp, *entry;
-    char			*s, *dn;
+    char			*dn;
     int				matches, rc, ld_errno, ufn;
     LDAPFiltDesc		*lfdp;
     LDAPFiltInfo		*lfi;

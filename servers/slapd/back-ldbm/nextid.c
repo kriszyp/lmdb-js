@@ -54,7 +54,6 @@ static int
 next_id_write( Backend *be, ID id )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char	buf[20];
 	char*	file = li->li_nextid_file; 
 	FILE*	fp;
 	int		rc;
