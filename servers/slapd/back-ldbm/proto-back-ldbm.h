@@ -67,7 +67,7 @@ Entry * dn2entry_w LDAP_P(( Backend *be, char *dn, char **matched ));
  * filterindex.c
  */
 
-IDList * filter_candidates LDAP_P(( Backend *be, Filter *f ));
+ID_BLOCK * filter_candidates LDAP_P(( Backend *be, Filter *f ));
 
 /*
  * id2children.c
@@ -91,18 +91,18 @@ Entry * id2entry_w LDAP_P(( Backend *be, ID id ));
  * idl.c
  */
 
-IDList * idl_alloc LDAP_P(( int nids ));
-IDList * idl_allids LDAP_P(( Backend *be ));
-void idl_free LDAP_P(( IDList *idl ));
-IDList * idl_fetch LDAP_P(( Backend *be, struct dbcache *db, Datum key ));
+ID_BLOCK * idl_alloc LDAP_P(( int nids ));
+ID_BLOCK * idl_allids LDAP_P(( Backend *be ));
+void idl_free LDAP_P(( ID_BLOCK *idl ));
+ID_BLOCK * idl_fetch LDAP_P(( Backend *be, struct dbcache *db, Datum key ));
 int idl_insert_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
-int idl_insert LDAP_P(( IDList **idl, ID id, int maxids ));
+int idl_insert LDAP_P(( ID_BLOCK **idl, ID id, int maxids ));
 int idl_delete_key LDAP_P(( Backend *be, struct dbcache *db, Datum key, ID id ));
-IDList * idl_intersection LDAP_P(( Backend *be, IDList *a, IDList *b ));
-IDList * idl_union LDAP_P(( Backend *be, IDList *a, IDList *b ));
-IDList * idl_notin LDAP_P(( Backend *be, IDList *a, IDList *b ));
-ID idl_firstid LDAP_P(( IDList *idl ));
-ID idl_nextid LDAP_P(( IDList *idl, ID id ));
+ID_BLOCK * idl_intersection LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));
+ID_BLOCK * idl_union LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));
+ID_BLOCK * idl_notin LDAP_P(( Backend *be, ID_BLOCK *a, ID_BLOCK *b ));
+ID idl_firstid LDAP_P(( ID_BLOCK *idl ));
+ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID id ));
 
 /*
  * index.c
@@ -110,7 +110,7 @@ ID idl_nextid LDAP_P(( IDList *idl, ID id ));
 
 int index_add_entry LDAP_P(( Backend *be, Entry *e ));
 int index_add_mods LDAP_P(( Backend *be, LDAPModList *ml, ID id ));
-IDList * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
+ID_BLOCK * index_read LDAP_P(( Backend *be, char *type, int indextype, char *val ));
 int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID  id ));
 
 /*

@@ -85,7 +85,7 @@ index_add_mods(
 	return( 0 );
 }
 
-IDList *
+ID_BLOCK *
 index_read(
     Backend	*be,
     char	*type,
@@ -95,7 +95,7 @@ index_read(
 {
 	struct dbcache	*db;
 	Datum   	key;
-	IDList		*idl;
+	ID_BLOCK		*idl;
 	int		indexmask, syntax;
 	char		prefix;
 	char		*realval, *tmpval;
@@ -112,7 +112,7 @@ index_read(
 		idl =  idl_allids( be );
 		Debug( LDAP_DEBUG_TRACE,
 		    "<= index_read %lu candidates (allids - not indexed)\n",
-		    idl ? idl->b_nids : 0, 0, 0 );
+		    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 		return( idl );
 	}
 
@@ -152,7 +152,7 @@ index_read(
 	ldbm_cache_close( be, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= index_read %lu candidates\n",
-	    idl ? idl->b_nids : 0, 0, 0 );
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
@@ -168,7 +168,7 @@ add_value(
 {
 	int	rc;
 	Datum   key;
-	IDList	*idl;
+	ID_BLOCK	*idl;
 	char	prefix;
 	char	*realval, *tmpval, *s;
 	char	buf[BUFSIZ];

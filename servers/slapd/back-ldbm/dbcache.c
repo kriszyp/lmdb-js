@@ -109,7 +109,7 @@ ldbm_cache_open(
 		li->li_dbcache[i].dbc_blksize = DEFAULT_BLOCKSIZE;
 	}
 	li->li_dbcache[i].dbc_maxids = (li->li_dbcache[i].dbc_blksize /
-	    sizeof(ID)) - 2;
+	    sizeof(ID)) - ID_BLOCK_IDS_OFFSET;
 	li->li_dbcache[i].dbc_maxindirect = (SLAPD_LDBM_MIN_MAXIDS /
 	    li->li_dbcache[i].dbc_maxids) + 1;
 
