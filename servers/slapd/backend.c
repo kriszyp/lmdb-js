@@ -866,9 +866,9 @@ backend_check_controls(
 				 */
 				(*ctrls)->ldctl_iscritical &&
 #else
-				!slap_global_control( op, (*ctrls)->ldctl_oid )
+				!slap_global_control( op, (*ctrls)->ldctl_oid ) &&
 #endif
-				&& !ldap_charray_inlist( op->o_bd->be_controls,
+				!ldap_charray_inlist( op->o_bd->be_controls,
 				(*ctrls)->ldctl_oid ) )
 			{
 				/* Per RFC 2251 (and LDAPBIS discussions), if the control
