@@ -355,14 +355,16 @@ backsql_load_schema_map( backsql_info *si, SQLHDBC dbh )
 		rc = SQLExecute( at_sth );
 		if ( rc != SQL_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_load_schema_map(): "
-				"error executing at_query: \n", 0, 0, 0 );
+				"error executing at_query\n"
+				"    \"%s\"\n"
+				"    with param oc_id=\"%lu\": \n",
+				si->at_query, oc_id, 0 );
 			backsql_PrintErrors( SQL_NULL_HENV, dbh, at_sth, rc );
 			return LDAP_OTHER;
 		}
 
 		backsql_BindRowAsStrings( at_sth, &at_row );
-		rc = SQLFetch( at_sth );
-		for ( ; BACKSQL_SUCCESS(rc); rc = SQLFetch( at_sth ) ) {
+		for ( ; rc = SQLFetch( at_sth ), BACKSQL_SUCCESS( rc ); ) {
 			const char	*text = NULL;
 			struct berval	bv;
 			struct berbuf	bb = BB_NULL;
