@@ -578,7 +578,7 @@ Malloc( unsigned int size )
 void
 Free( void *ptr )
 {
-#ifndef STDC_HEADERS
+#if 0
 	if (free(ptr) < 0) {
 		perror("free");
 		exit(-1);
