@@ -255,6 +255,10 @@ SOURCE=..\..\include\ldap_pvt_uc.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ldap_queue.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldap_schema.h
 # End Source File
 # Begin Source File
