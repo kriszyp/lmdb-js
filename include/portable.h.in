@@ -1043,6 +1043,9 @@
 /* define for Dynamic Group overlay */
 #undef SLAPD_OVER_DYNGROUP
 
+/* define for Backend Glue overlay */
+#undef SLAPD_OVER_GLUE
+
 /* define for Last Modification overlay */
 #undef SLAPD_OVER_LASTMOD
 
