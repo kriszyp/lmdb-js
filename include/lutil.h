@@ -147,6 +147,30 @@ lutil_progname LDAP_P((
 	int argc,
 	char *argv[] ));
 
+struct slap_tm {
+	int tm_sec;	/* seconds 0-60 (1 leap second) */
+	int tm_min;	/* minutes 0-59 */
+	int tm_hour;	/* hours 0-23 */
+	int tm_mday;	/* day 1-31 */
+	int tm_mon;	/* month 0-11 */
+	int tm_year;	/* year - 1900 */
+	int tm_usec;	/* microseconds */
+} slap_tm;
+
+struct slap_timet {
+	unsigned int tt_sec;	/* seconds since 1900 */
+	int tt_gsec;		/* seconds since 1900, high 7 bits */
+	unsigned int tt_usec;	/* microseconds */
+} slap_timet;
+
+LDAP_LUTIL_F( int )
+lutil_parsetime LDAP_P((
+	char *atm, struct slap_tm * ));
+
+LDAP_LUTIL_F( int )
+lutil_tm2time LDAP_P((
+	struct slap_tm *, struct slap_timet * ));
+
 #ifdef _WIN32
 LDAP_LUTIL_F( void )
 lutil_slashpath LDAP_P(( char* path ));

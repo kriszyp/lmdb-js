@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/unistd.h>
 #include <ac/time.h>
 #ifdef HAVE_IO_H
@@ -135,6 +136,130 @@ size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
 	return ret + 5;
 }
 
+int lutil_tm2time( struct slap_tm *tm, struct slap_timet *tt )
+{
+	static int moffset[12] = {
+		0, 31, 59, 90, 120,
+		151, 181, 212, 243,
+		273, 304, 334 }; 
+	int sec;
+
+	tt->tt_usec = tm->tm_usec;
+
+	/* special case 0000/01/01+00:00:00 is returned as zero */
+	if ( tm->tm_year == -1900 && tm->tm_mon == 0 && tm->tm_mday == 1 &&
+		tm->tm_hour == 0 && tm->tm_min == 0 && tm->tm_sec == 0 ) {
+		tt->tt_sec = 0;
+		tt->tt_gsec = 0;
+		return 0;
+	}
+
+	/* tm->tm_year is years since 1900 */
+	/* calculate days from years since 1970 (epoch) */ 
+	tt->tt_sec = tm->tm_year - 70; 
+	tt->tt_sec *= 365L; 
+
+	/* count leap days in preceding years */ 
+	tt->tt_sec += ((tm->tm_year -69) >> 2); 
+
+	/* calculate days from months */ 
+	tt->tt_sec += moffset[tm->tm_mon]; 
+
+	/* add in this year's leap day, if any */ 
+	if (((tm->tm_year & 3) == 0) && (tm->tm_mon > 1)) { 
+		tt->tt_sec ++; 
+	} 
+
+	/* add in days in this month */ 
+	tt->tt_sec += (tm->tm_mday - 1); 
+
+	/* 86400 seconds in a day, divided by 128 = 675 */
+	tt->tt_sec *= 675;
+	tt->tt_gsec = tt->tt_sec >> 25;
+	tt->tt_sec -= tt->tt_gsec << 25;
+
+	/* convert to hours */ 
+	sec = tm->tm_hour; 
+
+	/* convert to minutes */ 
+	sec *= 60L; 
+	sec += tm->tm_min; 
+
+	/* convert to seconds */ 
+	sec *= 60L; 
+	sec += tm->tm_sec; 
+	
+	tt->tt_sec <<= 7;
+	tt->tt_sec += sec;
+
+	/* return success */
+	return 0; 
+}
+
+int lutil_parsetime( char *atm, struct slap_tm *tm )
+{
+	while (atm && tm) {
+		char *ptr = atm;
+		int i, fracs;
+
+		/* Is the stamp reasonably long? */
+		for (i=0; isdigit(atm[i]); i++);
+		if (i < sizeof("00000101000000")-1)
+			break;
+
+		/*
+		 * parse the time into a struct tm
+		 */
+		/* 4 digit year to year - 1900 */
+		tm->tm_year = *ptr++ - '0';
+		tm->tm_year *= 10; tm->tm_year += *ptr++ - '0';
+		tm->tm_year *= 10; tm->tm_year += *ptr++ - '0';
+		tm->tm_year *= 10; tm->tm_year += *ptr++ - '0';
+		tm->tm_year -= 1900;
+		/* month 01-12 to 0-11 */
+		tm->tm_mon = *ptr++ - '0';
+		tm->tm_mon *=10; tm->tm_mon += *ptr++ - '0';
+		if (tm->tm_mon < 1 || tm->tm_mon > 12) break;
+		tm->tm_mon--;
+
+		/* day of month 01-31 */
+		tm->tm_mday = *ptr++ - '0';
+		tm->tm_mday *=10; tm->tm_mday += *ptr++ - '0';
+		if (tm->tm_mday < 1 || tm->tm_mday > 31) break;
+
+		/* Hour 00-23 */
+		tm->tm_hour = *ptr++ - '0';
+		tm->tm_hour *=10; tm->tm_hour += *ptr++ - '0';
+		if (tm->tm_hour < 0 || tm->tm_hour > 23) break;
+
+		/* Minute 00-59 */
+		tm->tm_min = *ptr++ - '0';
+		tm->tm_min *=10; tm->tm_min += *ptr++ - '0';
+		if (tm->tm_min < 0 || tm->tm_min > 59) break;
+
+		/* Second 00-61 */
+		tm->tm_sec = *ptr++ - '0';
+		tm->tm_sec *=10; tm->tm_sec += *ptr++ - '0';
+		if (tm->tm_sec < 0 || tm->tm_sec > 61) break;
+
+		/* Fractions of seconds */
+		for (i = 0, fracs = 0;isdigit(*ptr);) {
+			i*=10; i+= *ptr++ - '0';
+			fracs++;
+		}
+		tm->tm_usec = i;
+		if (i) {
+			for (i = fracs; i<6; i++)
+				tm->tm_usec *= 10;
+		}
+
+		/* Must be UTC */
+		if (*ptr != 'Z') break;
+
+		return 0;
+	}
+	return -1;
+}
 
 /* strcopy is like strcpy except it returns a pointer to the trailing NUL of
  * the result string. This allows fast construction of catenated strings
