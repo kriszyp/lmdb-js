@@ -15,8 +15,6 @@
 #include <stdio.h>
 
 #include <ac/stdlib.h>
-
-#include <ac/ctype.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -365,7 +363,11 @@ dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 #define B4IA5VALUE		0x0040
 #define B4BINARYVALUE		0x0050
 
-/* Helpers (mostly from slapd.h; maybe it should be rewritten from this) */
+/*
+ * Helpers (mostly from slap.h)
+ * c is assumed to Unicode in an ASCII compatible format (UTF-8)
+ * Macros assume "C" Locale (ASCII)
+ */
 #define LDAP_DN_ASCII_SPACE(c) \
 	( (c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\r' )
 #define LDAP_DN_ASCII_LOWER(c)		( (c) >= 'a' && (c) <= 'z' )
@@ -468,17 +470,23 @@ dn2dn( const char *dnin, unsigned fin, char **dnout, unsigned fout )
 /* generics */
 #define LDAP_DN_HEXPAIR(s) \
 	( LDAP_DN_ASCII_HEXDIGIT((s)[0]) && LDAP_DN_ASCII_HEXDIGIT((s)[1]) )
-#define	LDAP_DC_ATTR			"dc"
 /* better look at the AttributeDescription? */
 
 /* FIXME: no composite rdn or non-"dc" types, right?
  * (what about "dc" in OID form?) */
 /* FIXME: we do not allow binary values in domain, right? */
 /* NOTE: use this macro only when ABSOLUTELY SURE rdn IS VALID! */
-#define LDAP_DN_IS_RDN_DC( rdn ) \
-	( ( rdn ) && ( rdn )[ 0 ][ 0 ] && !( rdn )[ 1 ] \
-	  && ( ( rdn )[ 0 ][ 0 ]->la_flags == LDAP_AVA_STRING ) \
-	  && ! strcasecmp( ( rdn )[ 0 ][ 0 ]->la_attr->bv_val, LDAP_DC_ATTR ) )
+/* NOTE: don't use strcasecmp() as it is locale specific! */
+#define	LDAP_DC_ATTR	"dc"
+#define	LDAP_DC_ATTRU	"DC"
+#define LDAP_DN_IS_RDN_DC( r ) \
+	( (r) && (r)[0][0] && !(r)[1] \
+	  && ((r)[0][0]->la_flags == LDAP_AVA_STRING) \
+	  && ((r)[0][0]->la_attr->bv_len == 2) \
+	  && (((r)[0][0]->la_attr->bv_val[0] == LDAP_DC_ATTR[0]) \
+		|| ((r)[0][0]->la_attr->bv_val[0] == LDAP_DC_ATTRU[0])) \
+	  && (((r)[0][0]->la_attr->bv_val[1] == LDAP_DC_ATTR[1]) \
+		|| ((r)[0][0]->la_attr->bv_val[1] == LDAP_DC_ATTRU[1])))
 
 /* Composite rules */
 #define LDAP_DN_ALLOW_ONE_SPACE(f) \

@@ -201,7 +201,9 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	}
 
 	/* DN strings that are a cn=auth identity to run through regexp */
-	if( !strncasecmp( dn, "dn:", 3) && ( ( flags & FLAG_GETDN_FINAL ) == 0 ) ) {
+	if( !strncasecmp( dn, "dn:", 3) &&
+		( ( flags & FLAG_GETDN_FINAL ) == 0 ) )
+	{
 		c1 = slap_sasl2dn( dn + 3 );
 		if( c1 ) {
 			ch_free( dn );
@@ -216,9 +218,10 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-				   "slap_sasl_getdn: dn:id converted to %s.\n", dn ));
+				"slap_sasl_getdn: dn:id converted to %s.\n", dn ));
 #else
-			Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n", dn,0,0 );
+			Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n",
+				dn, 0, 0 );
 #endif
 		}
 	}

@@ -38,7 +38,8 @@ ldbm_back_exop_passwd(
 	struct berval *id = NULL;
 	struct berval *new = NULL;
 
-	char *dn;
+	struct berval dn;
+	struct berval *ndn = NULL;
 
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_X_MODIFY_PASSWD, reqoid ) == 0 );
@@ -80,32 +81,34 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	dn = id ? id->bv_val : op->o_dn.bv_val;
+	if( id ) {
+		dn = *id;
+	} else {
+		dn = op->o_dn;
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-		   "ldbm_back_exop_passwd: \"%s\"%s\n",
-		   dn, id ? " (proxy)" : "" ));
+		"ldbm_back_exop_passwd: \"%s\"%s\n",
+		dn.bv_val, id ? " (proxy)" : "" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "passwd: \"%s\"%s\n",
-		dn, id ? " (proxy)" : "", 0 );
+		dn.bv_val, id ? " (proxy)" : "", 0 );
 #endif
 
-
-	if( dn == NULL || dn[0] == '\0' ) {
+	if( dn.bv_len == 0 ) {
 		*text = "No password is associated with the Root DSE";
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
 
-	if( dn_normalize( dn ) == NULL ) {
+	rc = dnNormalize( NULL, &dn, &ndn );
+	if( rc != LDAP_SUCCESS ) {
 		*text = "Invalid DN";
-		rc = LDAP_INVALID_DN_SYNTAX;
 		goto done;
 	}
 
-	e = dn2entry_w( be, dn, NULL );
-
+	e = dn2entry_w( be, ndn->bv_val, NULL );
 	if( e == NULL ) {
 		*text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
@@ -144,7 +147,7 @@ ldbm_back_exop_passwd(
 			conn, op, op->o_ndn.bv_val, &ml, e, text, textbuf, 
 			sizeof( textbuf ) );
 
-		/* FIXME: ldbm_modify_internal may set *tex = textbuf,
+		/* FIXME: ldbm_modify_internal may set *text = textbuf,
 		 * which is BAD */
 		if ( *text == textbuf ) {
 			*text = NULL;
@@ -182,6 +185,10 @@ done:
 
 	if( hash != NULL ) {
 		ber_bvfree( hash );
+	}
+
+	if( ndn != NULL ) {
+		ber_bvfree( ndn );
 	}
 
 	return rc;

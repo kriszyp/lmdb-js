@@ -300,9 +300,6 @@ char *slap_sasl_regexp( char *saslname )
 }
 
 
-
-
-
 /*
  * Given a SASL name (e.g. "UID=name,cn=REALM,cn=MECH,cn=AUTH")
  * return the LDAP DN to which it matches. The SASL regexp rules in the config
@@ -314,8 +311,10 @@ char *slap_sasl_regexp( char *saslname )
 
 char *slap_sasl2dn( char *saslname )
 {
-	char *uri=NULL, *DN=NULL;
+	char *uri=NULL;
 	struct berval searchbase = {0, NULL};
+	struct berval dn = {0, NULL};
+	struct berval *ndn = NULL;
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
@@ -323,15 +322,13 @@ char *slap_sasl2dn( char *saslname )
 	LDAP *client=NULL;
 	LDAPMessage *res=NULL, *msg;
 
-
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl2dn: converting SASL name %s to DN.\n", saslname ));
+		"slap_sasl2dn: converting SASL name %s to DN.\n", saslname ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	  "==>slap_sasl2dn: Converting SASL name %s to a DN\n", saslname, 0,0 );
+		"==>slap_sasl2dn: Converting SASL name %s to a DN\n", saslname, 0,0 );
 #endif
-
 
 	/* Convert the SASL name into an LDAP URI */
 	uri = slap_sasl_regexp( saslname );
@@ -339,12 +336,13 @@ char *slap_sasl2dn( char *saslname )
 		goto FINISHED;
 
 	rc = slap_parseURI( uri, &searchbase, &scope, &filter );
-	if( rc )
+	if( rc ) {
 		goto FINISHED;
+	}
 
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
-		DN = searchbase.bv_val;
+		dn = searchbase;
 		searchbase.bv_len = 0;
 		searchbase.bv_val = NULL;
 		goto FINISHED;
@@ -396,8 +394,19 @@ char *slap_sasl2dn( char *saslname )
 		goto FINISHED;
 
 	msg = ldap_first_entry( client, res );
-	DN = ldap_get_dn( client, msg );
-	if( DN ) dn_normalize( DN );
+	dn.bv_val = ldap_get_dn( client, msg );
+	dn.bv_len = dn.bv_val ? strlen( dn.bv_val ) : 0;
+	if( dn.bv_val ) {
+		rc = dnNormalize( NULL, &dn, &ndn );
+		ldap_memfree( dn.bv_val );
+		if( rc != LDAP_SUCCESS ) {
+			dn.bv_val = NULL;
+			dn.bv_len = 0;
+			goto FINISHED;
+		}
+		dn = *ndn;
+		free( ndn );
+	}
 
 FINISHED:
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
@@ -406,19 +415,18 @@ FINISHED:
 	if( conn ) connection_internal_close( conn );
 	if( res ) ldap_msgfree( res );
 	if( client  ) ldap_unbind( client );
+
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl2dn: Converted SASL name to %s\n", DN ? DN : "<nothing>" ));
+		"slap_sasl2dn: Converted SASL name to %s\n",
+		dn.bv_len ? dn.bv_val : "<nothing>" ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<==slap_sasl2dn: Converted SASL name to %s\n",
-	   DN ? DN : "<nothing>", 0, 0 );
+		dn.bv_len ? dn.bv_val : "<nothing>", 0, 0 );
 #endif
 
-	return( DN );
+	return( dn.bv_val );
 }
-
-
-
 
 
 /*
@@ -433,7 +441,6 @@ FINISHED:
 static
 int slap_sasl_match( char *rule, char *assertDN, char *authc )
 {
-	char *dn=NULL;
 	struct berval searchbase = {0, NULL};
 	int rc, scope;
 	Backend *be;
@@ -443,15 +450,13 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	LDAPMessage *res=NULL, *msg;
 	regex_t reg;
 
-
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-		   "slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule ));
+		"slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "===>slap_sasl_match: comparing DN %s to rule %s\n", assertDN, rule, 0 );
 #endif
-
 
 	rc = slap_parseURI( rule, &searchbase, &scope, &filter );
 	if( rc != LDAP_SUCCESS )
@@ -459,7 +464,8 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 
 	/* Massive shortcut: search scope == base */
 	if( scope == LDAP_SCOPE_BASE ) {
-		rc = regcomp(&reg, searchbase.bv_val, REG_EXTENDED|REG_ICASE|REG_NOSUB);
+		rc = regcomp(&reg, searchbase.bv_val,
+			REG_EXTENDED|REG_ICASE|REG_NOSUB);
 		if ( rc == 0 ) {
 			rc = regexec(&reg, assertDN, 0, NULL, 0);
 			regfree( &reg );
@@ -475,14 +481,13 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
-		   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-		   searchbase.bv_val, scope ));
+		"slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
+		searchbase.bv_val, scope ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
 	   searchbase.bv_val, scope, 0 );
 #endif
-
 
 	be = select_backend( &searchbase, 0, 1 );
 	if(( be == NULL ) || ( be->be_search == NULL)) {
@@ -500,7 +505,6 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
-
 	/* On the client side of the internal search, read the results. Check
 	   if the assertDN matches any of the DN's returned by the search */
 	rc = ldap_result( client, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
@@ -509,14 +513,25 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 
 	for( msg=ldap_first_entry( client, res );
 	      msg;
-	      msg=ldap_next_entry( client, msg ) )   {
-		dn = ldap_get_dn( client, msg );
-		dn_normalize( dn );
-		rc = strcmp( dn, assertDN );
-		ch_free( dn );
-		if( rc == 0 ) {
-			rc = LDAP_SUCCESS;
-			goto CONCLUDED;
+	      msg=ldap_next_entry( client, msg ) )
+	{
+		struct berval dn;
+		dn.bv_val = ldap_get_dn( client, msg );
+
+		if( dn.bv_val ) {
+			struct berval *ndn = NULL;
+			dn.bv_len = strlen( dn.bv_val );
+			rc = dnNormalize( NULL, &dn, &ndn );
+			ldap_memfree( dn.bv_val );
+			if( rc != LDAP_SUCCESS ) {
+				goto CONCLUDED;
+			}
+			rc = strcmp( ndn->bv_val, assertDN );
+			ber_bvfree( ndn );
+			if( rc == 0 ) {
+				rc = LDAP_SUCCESS;
+				goto CONCLUDED;
+			}
 		}
 	}
 	rc = LDAP_INAPPROPRIATE_AUTH;

@@ -40,19 +40,14 @@ ldap_url_parse_ext LDAP_P((
 	LDAP_CONST char *url,
 	struct ldap_url_desc **ludpp ));
 
-LDAP_F ( int )
-ldap_pvt_domain2dn LDAP_P((
-	LDAP_CONST char *domain,
-	char **dn ));
-
-struct hostent;	/* avoid pulling in <netdb.h> */
-
 LDAP_F( char * )
 ldap_pvt_ctime LDAP_P((
 	const time_t *tp,
 	char *buf ));
 
 LDAP_F( char *) ldap_pvt_get_fqdn LDAP_P(( char * ));
+
+struct hostent;	/* avoid pulling in <netdb.h> */
 
 LDAP_F( int )
 ldap_pvt_gethostbyname_a LDAP_P((
@@ -109,26 +104,17 @@ ldap_charray2str LDAP_P((
 LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 LDAP_F (int) ldap_pvt_unhex( int c );
 
-/* these macros assume 'x' is an ASCII x */
-#define LDAP_DNSEPARATOR(c)	((c) == ',' || (c) == ';')
-#define LDAP_SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
+/*
+ * these macros assume 'x' is an ASCII x
+ * and assume the "C" locale
+ */
 #define LDAP_SPACE(c)		((c) == ' ' || (c) == '\t' || (c) == '\n')
+#define LDAP_DIGIT(c)		((c) >= '0' && (c) <= '9')
+#define LDAP_LOWER(c)		((c) >= 'a' && (c) <= 'z')
+#define LDAP_UPPER(c)		((c) >= 'A' && (c) <= 'Z')
+#define LDAP_ALPHA(c)		(LDAP_LOWER(c) || LDAP_UPPER(c))
+#define LDAP_ALNUM(c)		(LDAP_ALPHA(c) || LDAP_DIGIT(c))
 
-#define LDAP_LOWER(c)		( (c) >= 'a' && (c) <= 'z' )
-#define LDAP_UPPER(c)		( (c) >= 'A' && (c) <= 'Z' )
-#define LDAP_ALPHA(c)		( LDAP_LOWER(c) || LDAP_UPPER(c) )
-#define LDAP_DIGIT(c)		( (c) >= '0' && (c) <= '9' )
-#define LDAP_ALNUM(c)		( LDAP_ALPHA(c) || LDAP_DIGIT(c) )
-
-#define LDAP_LEADKEYCHAR(c)	( LDAP_ALPHA(c) )
-#define LDAP_KEYCHAR(c)		( LDAP_ALNUM(c) || (c) == '-' )
-#define LDAP_LEADOIDCHAR(c)	( LDAP_DIGIT(c) )
-#define LDAP_OIDCHAR(c)		( LDAP_DIGIT(c) || (c) == '.' )
-
-#define LDAP_LEADATTRCHAR(c)	( LDAP_LEADKEYCHAR(c) || LDAP_LEADOIDCHAR(c) )
-#define LDAP_ATTRCHAR(c)		( LDAP_KEYCHAR(c) || LDAP_OIDCHAR(c) )
-
-#define LDAP_NEEDSESCAPE(c)	((c) == '\\' || (c) == '"')
 
 #ifdef HAVE_CYRUS_SASL
 /* cyrus.c */

@@ -26,7 +26,6 @@
 #define ldap_debug slap_debug
 #endif
 
-
 #include "ldap_log.h"
 
 #include <ldap.h>
@@ -114,7 +113,7 @@ LDAP_BEGIN_DECL
 
 /* must match in schema_init.c */
 #define SLAPD_DN_SYNTAX			"1.3.6.1.4.1.1466.115.121.1.12"
-#define SLAPD_NAMEUID_SYNTAX		"1.3.6.1.4.1.1466.115.121.1.34"
+#define SLAPD_NAMEUID_SYNTAX	"1.3.6.1.4.1.1466.115.121.1.34"
 #define SLAPD_GROUP_ATTR		"member"
 #define SLAPD_GROUP_CLASS		"groupOfNames"
 #define SLAPD_ROLE_ATTR			"roleOccupant"

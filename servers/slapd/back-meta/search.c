@@ -784,7 +784,7 @@ is_one_level_rdn(
 )
 {
 	for ( ; len--; ) {
-		if ( LDAP_DNSEPARATOR( rdn[ len ] ) ) {
+		if ( DN_SEPARATOR( rdn[ len ] ) ) {
 			return 0;
 		}
 	}

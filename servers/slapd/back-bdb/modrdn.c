@@ -421,7 +421,6 @@ retry:	/* transaction retry */
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-
 	if ( rdn_attrs( newrdn->bv_val, &new_rdn_types, &new_rdn_vals ) ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: can't figure out type(s)/values(s) "

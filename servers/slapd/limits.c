@@ -152,11 +152,18 @@ add_limits(
 	case SLAP_LIMITS_SUBTREE:
 	case SLAP_LIMITS_CHILDREN:
 		lm->lm_type = type;
-		lm->lm_dn_pat = ber_bvstrdup( pattern );
-		if ( dn_normalize( lm->lm_dn_pat->bv_val ) == NULL ) {
-			ber_bvfree( lm->lm_dn_pat );
-			ch_free( lm );
-			return( -1 );
+		{
+			int rc;
+			struct berval bv;
+			bv.bv_val = (char *) pattern;
+			bv.bv_len = strlen( pattern );
+			lm->lm_dn_pat = NULL;
+
+			rc = dnNormalize( NULL, &bv, &lm->lm_dn_pat );
+			if ( rc != LDAP_SUCCESS ) {
+				ch_free( lm );
+				return( -1 );
+			}
 		}
 		break;
 		

@@ -716,25 +716,6 @@ char * dn_rdn(
 }
 
 /*
- * return a charray of all subtrees to which the DN resides in
- */
-char **dn_subtree(
-	Backend	*be,
-	const char	*dn )
-{
-	char **subtree = NULL;
-	
-	do {
-		charray_add( &subtree, dn );
-
-		dn = dn_parent( be, dn );
-
-	} while ( dn != NULL );
-
-	return subtree;
-}
-
-/*
  * dn_issuffix - tells whether suffix is a suffix of dn.
  * Both dn and suffix must be normalized.
  *	deprecated in favor of dnIsSuffix()
@@ -829,7 +810,6 @@ rdn_attr_value( const char * rdn )
  *
  * Deprecated; directly use LDAPRDN from ldap_str2rdn
  */
-
 int
 rdn_attrs( const char * rdn, char ***types, char ***values)
 {
@@ -866,14 +846,27 @@ rdn_attrs( const char * rdn, char ***types, char ***values)
 }
 
 
-/* rdn_validate:
+/* rdnValidate:
  *
- * 1 if rdn is a legal rdn;
- * 0 otherwise (including a sequence of rdns)
+ * LDAP_SUCCESS if rdn is a legal rdn;
+ * LDAP_INVALID_SYNTAX otherwise (including a sequence of rdns)
  */
 int
-rdn_validate( const char *rdn )
+rdnValidate( struct berval *rdn )
 {
+#if 1
+	/* Major cheat!
+	 * input is a pretty or normalized DN
+	 * hence, we can just search for ','
+	 */
+	if( rdn == NULL || rdn->bv_len == 0 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	return strchr( rdn->bv_val, ',' ) == NULL
+		? LDAP_SUCCESS : LDAP_INVALID_SYNTAX;
+
+#else
 	LDAPRDN		*RDN, **DN[ 2 ] = { &RDN, NULL };
 	const char	*p;
 	int		rc;
@@ -912,6 +905,7 @@ rdn_validate( const char *rdn )
 	 * Must validate (there's a repeated parsing ...)
 	 */
 	return ( rc == LDAP_SUCCESS );
+#endif
 }
 
 

@@ -373,20 +373,21 @@ LDAP_SLAPD_F (int) dnMatch LDAP_P((
 LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 	const struct berval *dn, const struct berval *suffix ));
 
+LDAP_SLAPD_F (int) rdnValidate LDAP_P(( struct berval * rdn ));
+
 #define SLAP_DN_MIGRATION
 #ifdef SLAP_DN_MIGRATION
 	/* These routines are deprecated!!! */
 LDAP_SLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
-LDAP_SLAPD_F (char **) dn_subtree LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (char *) dn_rdn LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (int) dn_rdnlen LDAP_P(( Backend *be, const char *dn ));
 LDAP_SLAPD_F (int) dn_issuffix LDAP_P(( const char *dn, const char *suffix ));
-LDAP_SLAPD_F (int) rdn_validate LDAP_P(( const char* str ));
 LDAP_SLAPD_F (char *) rdn_attr_value LDAP_P(( const char * rdn ));
 LDAP_SLAPD_F (char *) rdn_attr_type LDAP_P(( const char * rdn ));
-LDAP_SLAPD_F (int) rdn_attrs LDAP_P(( const char * rdn, char ***ptypes, char ***pvals ));
+LDAP_SLAPD_F (int) rdn_attrs LDAP_P(( const char * rdn,
+	char ***ptypes, char ***pvals ));
 
 LDAP_SLAPD_F (void) build_new_dn LDAP_P(( struct berval * new_dn,
 	struct berval * parent_dn,
