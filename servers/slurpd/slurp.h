@@ -119,6 +119,7 @@
 
 /* Config file keywords */
 #define	HOSTSTR			"host"
+#define	SUFFIXSTR		"suffix"
 #define	BINDDNSTR		"binddn"
 #define	BINDMETHSTR		"bindmethod"
 #define	KERBEROSSTR		"kerberos"

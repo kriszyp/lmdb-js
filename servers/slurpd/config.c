@@ -377,6 +377,8 @@ parse_replica_line(
 	    }
 	    ri->ri_hostname = strdup( val );
 	    gots |= GOT_HOST;
+	} else if ( !strncasecmp( cargv[ i ], SUFFIXSTR, strlen( HOSTSTR ))) {
+	    /* ignore it */ ;
 	} else if ( !strncasecmp( cargv[ i ], TLSSTR, strlen( TLSSTR ))) {
 	    val = cargv[ i ] + strlen( TLSSTR ) + 1;
 		if( !strcasecmp( val, TLSCRITICALSTR ) ) {

@@ -1560,11 +1560,13 @@ read_config( const char *fname )
 #endif
 
 			} else {
+				int nr = -1;
+
 				for ( i = 1; i < cargc; i++ ) {
 					if ( strncasecmp( cargv[i], "host=", 5 )
 					    == 0 ) {
-						charray_add( &be->be_replica,
-							     cargv[i] + 5 );
+						nr = add_replica_info( be, 
+							cargv[i] + 5 );
 						break;
 					}
 				}
@@ -1579,6 +1581,39 @@ read_config( const char *fname )
 					    fname, lineno, 0 );
 #endif
 
+				} else if ( nr == -1 ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+						   "%s: line %d: unable to add"
+				 		   " replica \"%s\""
+						   " (ignored)\n",
+						   fname, lineno, 
+						   cargv[i] + 5 ));
+#else
+					Debug( LDAP_DEBUG_ANY,
+		"%s: line %d: unable to add replica \"%s\" (ignored)\n",
+						fname, lineno, cargv[i] + 5 );
+#endif
+				} else {
+					for ( i = 1; i < cargc; i++ ) {
+						if ( strncasecmp( cargv[i], "suffix=", 7 ) == 0 ) {
+							char *nsuffix = ch_strdup( cargv[i] + 7 );
+							if ( dn_normalize( nsuffix ) != NULL ) {
+								charray_add( &be->be_replica[nr]->ri_nsuffix, nsuffix );
+							} else {
+#ifdef NEW_LOGGING
+								LDAP_LOG(( "config", LDAP_LEVEL_INFO,
+											"%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
+											fname, lineno ));
+#else
+								 Debug( LDAP_DEBUG_ANY,
+										 "%s: line %d: unable to normalize suffix in \"replica\" line (ignored)\n",
+										 fname, lineno, 0 );
+#endif
+							}
+							free( nsuffix );
+						}
+					}
 				}
 			}
 
