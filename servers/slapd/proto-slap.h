@@ -715,6 +715,12 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_DYNAMICOBJECT) != 0) \
 	 : is_entry_objectclass((e), slap_schema.si_oc_dynamicObject, 1))
+#ifdef LDAP_SYNCREPL
+#define is_entry_glue(e)	\
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_GLUE) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_glue, 1))
+#endif
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 

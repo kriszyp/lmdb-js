@@ -1082,6 +1082,13 @@ id2entry_retry:
 			goto loop_continue;
 		}
 
+#ifdef LDAP_SYNCREPL
+		if ( !manageDSAit && is_entry_glue( e ) )
+		{
+			goto loop_continue;
+		}
+#endif
+
 		/* if it matches the filter and scope, send it */
 #if defined(LDAP_CLIENT_UPDATE) || defined(LDAP_SYNC)
 		if (IS_PSEARCH) {
