@@ -1435,8 +1435,7 @@ int connection_read(ber_socket_t s)
 
 static int
 connection_input(
-	Connection *conn
-)
+	Connection *conn )
 {
 	Operation *op;
 	ber_tag_t	tag;
@@ -1448,6 +1447,7 @@ connection_input(
 	Sockaddr	peeraddr;
 	char 		*cdn = NULL;
 #endif
+	char *defer = NULL;
 
 	if ( conn->c_currentber == NULL &&
 		( conn->c_currentber = ber_alloc()) == NULL )
@@ -1617,28 +1617,34 @@ connection_input(
 	 * Bind, or if it's closing. Also, don't let any single conn
 	 * use up all the available threads, and don't execute if we're
 	 * currently blocked on output. And don't execute if there are
-	 * already pending ops, let them go first.
-	 *
-	 * But always allow Abandon through; it won't cost much.
+	 * already pending ops, let them go first.  Abandon operations
+	 * get exceptions to some, but not all, cases.
 	 */
-	if ( tag != LDAP_REQ_ABANDON && (conn->c_conn_state == SLAP_C_BINDING
-		|| conn->c_conn_state == SLAP_C_CLOSING
-		|| conn->c_n_ops_executing >= connection_pool_max/2
-		|| conn->c_n_ops_pending
-		|| conn->c_writewaiter))
-	{
+	if (tag != LDAP_REQ_ABANDON && conn->c_conn_state == SLAP_C_CLOSING) {
+		defer = "closing";
+	} else if (tag != LDAP_REQ_ABANDON && conn->c_writewaiter) {
+		defer = "awaiting write";
+	} else if (conn->c_n_ops_executing >= connection_pool_max/2) {
+		defer = "too many executing";
+	} else if (conn->c_conn_state == SLAP_C_BINDING ) {
+		defer = "binding";
+	} else if (conn->c_n_ops_pending) {
+		defer = "pending operations";
+	}
+
+	if( defer ) {
 		int max = conn->c_dn.bv_len
 			? slap_conn_max_pending_auth
 			: slap_conn_max_pending;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONNECTION, INFO, 
-			"connection_input: conn %lu deferring operation\n",
-			conn->c_connid, 0, 0 );
+			"connection_input: conn %lu deferring operation: %s\n",
+			conn->c_connid, defer, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"connection_input: conn=%lu deferring operation\n",
-			conn->c_connid, 0, 0 );
+			"connection_input: conn=%lu deferring operation: %s\n",
+			conn->c_connid, defer, 0 );
 #endif
 		conn->c_n_ops_pending++;
 		LDAP_STAILQ_INSERT_TAIL( &conn->c_pending_ops, op, o_next );
