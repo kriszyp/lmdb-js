@@ -80,7 +80,8 @@ ldap_back_compare(
 		return -1;
 	}
 
-	if ( op->oq_compare.rs_ava->aa_desc == slap_schema.si_ad_objectClass ) {
+	if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass
+		|| op->orc_ava->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 		ldap_back_map(&li->rwmap.rwm_oc, &op->orc_ava->aa_value,
 				&mapped_val, BACKLDAP_MAP);
 		if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {

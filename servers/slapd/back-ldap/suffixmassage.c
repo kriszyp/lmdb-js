@@ -146,9 +146,9 @@ ldap_back_dn_massage(
 			strncpy( res->bv_val, dn->bv_val, diff );
 			strcpy( &res->bv_val[diff], dc->rwmap->rwm_suffix_massage[i+dst].bv_val );
 #ifdef NEW_LOGGING
-					LDAP_LOG ( BACK_LDAP, ARGS, 
-						"ldap_back_dn_massage: converted \"%s\" to \"%s\"\n",
-						dn->bv_val, res->bv_val, 0 );
+			LDAP_LOG ( BACK_LDAP, ARGS, 
+				"ldap_back_dn_massage: converted \"%s\" to \"%s\"\n",
+				dn->bv_val, res->bv_val, 0 );
 #else
 			Debug( LDAP_DEBUG_ARGS,
 				"ldap_back_dn_massage:"

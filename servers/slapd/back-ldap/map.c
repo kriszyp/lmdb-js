@@ -188,7 +188,7 @@ map_attr_value(
 		return 0;
 	}
 
-	if ( strcmp( ad->ad_type->sat_syntax->ssyn_oid, SLAPD_DN_SYNTAX ) == 0 )
+	if ( ad->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName )
 	{
 		dncookie fdc = *dc;
 
