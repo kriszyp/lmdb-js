@@ -189,7 +189,7 @@ It can have the forms
 	sockname[.<style>]=<sockname>
 	domain[.<domainstyle>[,<modifier>]]=<domain>
 	sockurl[.<style>]=<sockurl>
-	set[.<style>]=<pattern>
+	set[.<setstyle>]=<pattern>
 
 	ssf=<n>
 	transport_ssf=<n>
@@ -204,9 +204,10 @@ with
 .nf
 	<dnstyle>={{exact|base}|regex|sub(tree)|one(level)|children}
 	<groupstyle>={exact|expand}
-	<style>={exact|regex}
-	<peernamestyle>={exact|regex|ip|path}
+	<style>={exact|regex|expand}
+	<peernamestyle>={<style>|ip|path}
 	<domainstyle>={exact|regex|sub(tree)}
+	<setstyle>={exact|regex}
 	<modifier>={expand}
 .fi
 .LP
@@ -331,7 +332,13 @@ The same
 .B style
 rules for pattern match described for the
 .B group
-case apply. 
+case apply, plus the
+.B regex
+style, which implies submatch
+.B expand
+and
+.BR regex (7)
+match of the corresponding connection parameters.
 The
 .B exact
 style of the
@@ -395,6 +402,13 @@ pattern, or its trailing part, after a
 exactly matches the 
 .BR domain
 pattern.
+The 
+.B expand
+style is allowed, implying an
+.B exact 
+match with submatch expansion; the use of 
+.B expand 
+as a style modifier is considered more appropriate.
 As an example,
 .B domain.subtree=example.com
 will match www.example.com, but will not match www.anotherexample.com.

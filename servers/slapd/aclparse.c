@@ -469,13 +469,15 @@ parse_acl(
 						break;
 
 					default:
+						/* we'll see later if it's pertinent */
 						expand = 1;
 						break;
 					}
 				}
 
+				/* expand in <who> needs regex in <what> */
 				if ( ( sty == ACL_STYLE_EXPAND || expand )
-						&& ( a->acl_dn_pat.bv_len && a->acl_dn_style != ACL_STYLE_REGEX) ) 
+						&& a->acl_dn_style != ACL_STYLE_REGEX )
 				{
 					fprintf( stderr, "%s: line %d: "
 						"\"expand\" style or modifier used "
@@ -644,7 +646,7 @@ parse_acl(
 
 					switch ( sty ) {
 					case ACL_STYLE_REGEX:
-						/* legacy */
+						/* legacy, tolerated */
 						fprintf( stderr, "%s: line %d: "
 							"deprecated group style \"regex\"; "
 							"use \"expand\" instead\n",
@@ -652,13 +654,14 @@ parse_acl(
 						sty = ACL_STYLE_EXPAND;
 						break;
 
-					case ACL_STYLE_EXPAND:
 					case ACL_STYLE_BASE:
-						/* legal */
+						/* legal, traditional */
+					case ACL_STYLE_EXPAND:
+						/* legal, substring expansion; supersedes regex */
 						break;
 
 					default:
-						/* unhandled */
+						/* unknown */
 						fprintf( stderr, "%s: line %d: "
 							"inappropriate style \"%s\" in by clause\n",
 							fname, lineno, style );
@@ -814,8 +817,12 @@ parse_acl(
 					switch (sty) {
 					case ACL_STYLE_REGEX:
 					case ACL_STYLE_BASE:
+						/* legal, traditional */
+					case ACL_STYLE_EXPAND:
+						/* cheap replacement to regex for simple expansion */
 					case ACL_STYLE_IP:
 					case ACL_STYLE_PATH:
+						/* legal, peername specific */
 						break;
 
 					default:
@@ -899,7 +906,16 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "sockname" ) == 0 ) {
-					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
+					switch (sty) {
+					case ACL_STYLE_REGEX:
+					case ACL_STYLE_BASE:
+						/* legal, traditional */
+					case ACL_STYLE_EXPAND:
+						/* cheap replacement to regex for simple expansion */
+						break;
+
+					default:
+						/* unknown */
 						fprintf( stderr, "%s: line %d: "
 							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
@@ -939,9 +955,23 @@ parse_acl(
 					case ACL_STYLE_REGEX:
 					case ACL_STYLE_BASE:
 					case ACL_STYLE_SUBTREE:
+						/* legal, traditional */
+						break;
+
+					case ACL_STYLE_EXPAND:
+						/* tolerated: means exact,expand */
+						if ( expand ) {
+							fprintf( stderr,
+								"%s: line %d: "
+								"\"expand\" modifier with \"expand\" style\n",
+								fname, lineno );
+						}
+						sty = ACL_STYLE_BASE;
+						expand = 1;
 						break;
 
 					default:
+						/* unknown */
 						fprintf( stderr,
 							"%s: line %d: inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
@@ -977,9 +1007,18 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "sockurl" ) == 0 ) {
-					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
-						fprintf( stderr,
-							"%s: line %d: inappropriate style \"%s\" in by clause\n",
+					switch (sty) {
+					case ACL_STYLE_REGEX:
+					case ACL_STYLE_BASE:
+						/* legal, traditional */
+					case ACL_STYLE_EXPAND:
+						/* cheap replacement to regex for simple expansion */
+						break;
+
+					default:
+						/* unknown */
+						fprintf( stderr, "%s: line %d: "
+							"inappropriate style \"%s\" in by clause\n",
 						    fname, lineno, style );
 						acl_usage();
 					}

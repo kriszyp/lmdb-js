@@ -908,6 +908,19 @@ dn_match_cleanup:;
 					{
 						continue;
 					}
+
+				} else if ( b->a_sockurl_style == ACL_STYLE_EXPAND ) {
+					struct berval	bv;
+					char buf[ACL_BUF_SIZE];
+
+					bv.bv_len = sizeof( buf ) - 1;
+					bv.bv_val = buf;
+					string_expand( &bv, &b->a_sockurl_pat, e->e_ndn, matches );
+
+					if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_listener_url ) != 0 ) {
+						continue;
+					}
+
 				} else {
 					if ( ber_bvstrcasecmp( &b->a_sockurl_pat, &op->o_conn->c_listener_url ) != 0 )
 						continue;
@@ -985,7 +998,7 @@ dn_match_cleanup:;
 				b->a_peername_pat.bv_val, 0, 0 );
 #endif
 			if ( !ber_bvccmp( &b->a_peername_pat, '*' ) ) {
-				if ( b->a_peername_style == ACL_STYLE_REGEX) {
+				if ( b->a_peername_style == ACL_STYLE_REGEX ) {
 					if (!regex_matches( &b->a_peername_pat, op->o_conn->c_peer_name.bv_val,
 							e->e_ndn, matches ) ) 
 					{
@@ -995,8 +1008,21 @@ dn_match_cleanup:;
 				} else {
 					/* try exact match */
 					if ( b->a_peername_style == ACL_STYLE_BASE ) {
-						if ( ber_bvstrcasecmp( &b->a_peername_pat, &op->o_conn->c_peer_name ) != 0 )
+						if ( ber_bvstrcasecmp( &b->a_peername_pat, &op->o_conn->c_peer_name ) != 0 ) {
 							continue;
+						}
+
+					} else if ( b->a_peername_style == ACL_STYLE_EXPAND ) {
+						struct berval	bv;
+						char buf[ACL_BUF_SIZE];
+
+						bv.bv_len = sizeof( buf ) - 1;
+						bv.bv_val = buf;
+						string_expand( &bv, &b->a_peername_pat, e->e_ndn, matches );
+
+						if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_peer_name ) != 0 ) {
+							continue;
+						}
 
 					/* extract IP and try exact match */
 					} else if ( b->a_peername_style == ACL_STYLE_IP ) {
@@ -1088,6 +1114,19 @@ dn_match_cleanup:;
 					{
 						continue;
 					}
+
+				} else if ( b->a_sockname_style == ACL_STYLE_EXPAND ) {
+					struct berval	bv;
+					char buf[ACL_BUF_SIZE];
+
+					bv.bv_len = sizeof( buf ) - 1;
+					bv.bv_val = buf;
+					string_expand( &bv, &b->a_sockname_pat, e->e_ndn, matches );
+
+					if ( ber_bvstrcasecmp( &bv, &op->o_conn->c_sock_name ) != 0 ) {
+						continue;
+					}
+
 				} else {
 					if ( ber_bvstrcasecmp( &b->a_sockname_pat, &op->o_conn->c_sock_name ) != 0 )
 						continue;
