@@ -1194,6 +1194,10 @@ syncprov_playlog( Operation *op, SlapReply *rs, sessionlog *sl,
 
 	ndel = i;
 
+	/* Zero out unused slots */
+	for ( i=ndel; i < num - nmods; i++ )
+		uuids[i].bv_len = 0;
+
 	/* Mods must be validated to see if they belong in this delete set.
 	 */
 
