@@ -172,7 +172,7 @@ main( int argc, char **argv )
 	    break;
 	case 'f':	/* read from file */
 		if( infile != NULL ) {
-			fprintf( stderr, "%s: -f previously specified\n" );
+			fprintf( stderr, "%s: -f previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 	    infile = strdup( optarg );
@@ -193,33 +193,33 @@ main( int argc, char **argv )
 	    break;
 	case 'D':	/* bind DN */
 		if( binddn != NULL ) {
-			fprintf( stderr, "%s: -D previously specified\n" );
+			fprintf( stderr, "%s: -D previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 	    binddn = strdup( optarg );
 	    break;
 	case 'h':	/* ldap host */
 		if( ldapuri != NULL ) {
-			fprintf( stderr, "%s: -h incompatible with -H\n" );
+			fprintf( stderr, "%s: -h incompatible with -H\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( ldaphost != NULL ) {
-			fprintf( stderr, "%s: -h previously specified\n" );
+			fprintf( stderr, "%s: -h previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 	    ldaphost = strdup( optarg );
 	    break;
 	case 'H':	/* ldap URI */
 		if( ldaphost != NULL ) {
-			fprintf( stderr, "%s: -H incompatible with -h\n" );
+			fprintf( stderr, "%s: -H incompatible with -h\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( ldapport ) {
-			fprintf( stderr, "%s: -H incompatible with -p\n" );
+			fprintf( stderr, "%s: -H incompatible with -p\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( ldapuri != NULL ) {
-			fprintf( stderr, "%s: -H previously specified\n" );
+			fprintf( stderr, "%s: -H previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 	    ldapuri = strdup( optarg );
@@ -301,7 +301,7 @@ main( int argc, char **argv )
 	case 'O':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_secprops != NULL ) {
-			fprintf( stderr, "%s: -O previously specified\n" );
+			fprintf( stderr, "%s: -O previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( version == LDAP_VERSION2 ) {
@@ -325,7 +325,7 @@ main( int argc, char **argv )
 		break;
 	case 'p':
 		if( ldapport ) {
-			fprintf( stderr, "%s: -p previously specified\n" );
+			fprintf( stderr, "%s: -p previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 	    ldapport = atoi( optarg );
@@ -379,7 +379,7 @@ main( int argc, char **argv )
 	case 'R':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_realm != NULL ) {
-			fprintf( stderr, "%s: -R previously specified\n" );
+			fprintf( stderr, "%s: -R previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( version == LDAP_VERSION2 ) {
@@ -405,7 +405,7 @@ main( int argc, char **argv )
 	case 'U':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_authc_id != NULL ) {
-			fprintf( stderr, "%s: -U previously specified\n" );
+			fprintf( stderr, "%s: -U previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( version == LDAP_VERSION2 ) {
@@ -448,7 +448,7 @@ main( int argc, char **argv )
 	case 'Y':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_mech != NULL ) {
-			fprintf( stderr, "%s: -Y previously specified\n" );
+			fprintf( stderr, "%s: -Y previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( version == LDAP_VERSION2 ) {
@@ -480,7 +480,7 @@ main( int argc, char **argv )
 	case 'X':
 #ifdef HAVE_CYRUS_SASL
 		if( sasl_authz_id != NULL ) {
-			fprintf( stderr, "%s: -X previously specified\n" );
+			fprintf( stderr, "%s: -X previously specified\n", prog );
 			return EXIT_FAILURE;
 		}
 		if( version == LDAP_VERSION2 ) {
