@@ -727,7 +727,7 @@ meta_send_entry(
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		ldap_back_map( &li->targets[ target ]->at_map, 
 				&a, &mapped, 1 );
-		if ( mapped.bv_val == NULL ) {
+		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
 			continue;
 		}
 		attr = ( Attribute * )ch_malloc( sizeof( Attribute ) );
@@ -771,7 +771,7 @@ meta_send_entry(
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map( &li->targets[ target]->oc_map,
 						bv, &mapped, 1 );
-				if ( mapped.bv_val == NULL ) {
+				if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 					free( bv->bv_val );
 					bv->bv_val = NULL;
 					if ( --last < 0 ) {

@@ -492,7 +492,7 @@ ldap_send_entry(
 
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
 		ldap_back_map(&li->at_map, &a, &mapped, 1);
-		if (mapped.bv_val == NULL)
+		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0')
 			continue;
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
 		if (attr == NULL)
@@ -537,7 +537,7 @@ ldap_send_entry(
 			for ( last = 0; attr->a_vals[last].bv_val; last++ ) ;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
 				ldap_back_map(&li->oc_map, bv, &mapped, 1);
-				if (mapped.bv_val == NULL) {
+				if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 					LBER_FREE(bv->bv_val);
 					bv->bv_val = NULL;
 					if (--last < 0)
