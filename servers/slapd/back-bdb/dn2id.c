@@ -73,6 +73,8 @@ bdb_dn2id_add(
 			int i;
 			((char *)key.data)[0] = DN_SUBTREE_PREFIX;
 			for( i=0; subtree[i] != NULL; i++ ) {
+				if (be_issuffix(be, subtree[i]))
+					continue;
 				key.size = strlen( subtree[i] ) + 2;
 				AC_MEMCPY( &((char *)key.data)[1],
 					subtree[i], key.size - 1 );
