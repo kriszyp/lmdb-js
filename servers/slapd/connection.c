@@ -1555,11 +1555,13 @@ static int connection_op_activate( Connection *conn, Operation *op )
 
 	if (!arg->co_op->o_dn.bv_len) {
 	    arg->co_op->o_authz = conn->c_authz;
-	    arg->co_op->o_dn = conn->c_dn;
-	    arg->co_op->o_ndn = conn->c_ndn;
+	    arg->co_op->o_dn.bv_val = ch_strdup( conn->c_dn.bv_val ?
+	    	conn->c_dn.bv_val : "" );
+	    arg->co_op->o_ndn.bv_val = ch_strdup( conn->c_ndn.bv_val ?
+	    	conn->c_ndn.bv_val : "" );
 	}
 	arg->co_op->o_authtype = conn->c_authtype;
-	arg->co_op->o_authmech = conn->c_authmech;
+	ber_dupbv( &arg->co_op->o_authmech, &conn->c_authmech );
 	
 	if (!arg->co_op->o_protocol) {
 	    arg->co_op->o_protocol = conn->c_protocol

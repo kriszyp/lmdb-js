@@ -23,6 +23,15 @@ slap_op_free( Operation *op )
 	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );
 	}
+	if ( op->o_dn.bv_val != NULL ) {
+		free( op->o_dn.bv_val );
+	}
+	if ( op->o_ndn.bv_val != NULL ) {
+		free( op->o_ndn.bv_val );
+	}
+	if ( op->o_authmech.bv_val != NULL ) {
+		free( op->o_authmech.bv_val );
+	}
 	if ( op->o_ctrls != NULL ) {
 		ldap_controls_free( op->o_ctrls );
 	}
