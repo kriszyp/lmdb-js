@@ -1,7 +1,5 @@
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
@@ -66,14 +64,11 @@ cn: Alumni Assoc Staff
 objectclass: groupofnames
 
 dn: ou=Alumni Association,ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Alumni Association
 
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
  y of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Barbara Jensen
 cn: Babs Jensen
@@ -94,8 +89,6 @@ telephonenumber: +1 313 555 9022
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University 
  of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Bjorn Jensen
 cn: Biiff Jensen
@@ -114,12 +107,10 @@ facsimiletelephonenumber: +1 313 555 2177
 telephonenumber: +1 313 555 0355
 
 dn: ou=Groups,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Groups
 
 dn: ou=Information Technology Division,ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Information Technology Division
 
@@ -141,8 +132,6 @@ ou: Groups
 
 dn: cn=James A Jones 2,ou=Information Technology Division,ou=People,o=Universi
  ty of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: James A Jones 2
 cn: James Jones
@@ -162,8 +151,6 @@ telephonenumber: +1 313 555 7334
 
 dn: cn=John Doe,ou=Information Technology Division,ou=People,o=University of M
  ichigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: John Doe
 cn: Jonathon Doe
@@ -181,7 +168,6 @@ facsimiletelephonenumber: +1 313 555 4544
 telephonenumber: +1 313 555 9394
 
 dn: cn=Manager,o=University of Michigan,c=US
-objectclass: top
 objectclass: person
 cn: Manager
 cn: Directory Manager
@@ -190,12 +176,10 @@ sn: Manager
 description: Manager of the directory
 
 dn: ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: People
 
 dn: o=University of Michigan,c=US
-objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
 l: Ann Arbor, Michigan

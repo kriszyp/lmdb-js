@@ -1,5 +1,4 @@
 dn: o=University of Michigan,c=US
-objectClass: top
 objectClass: organization
 objectClass: extensibleObject
 o: University of Michigan

@@ -104,8 +104,6 @@ member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Michi
 
 dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,o=University of Michigan,c=US
 changetype: add
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Gern Jensen
 sn: Jensen

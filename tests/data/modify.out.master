@@ -26,14 +26,11 @@ cn: Alumni Assoc Staff
 objectclass: groupofnames
 
 dn: ou=Alumni Association,ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Alumni Association
 
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
  y of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Barbara Jensen
 cn: Babs Jensen
@@ -55,8 +52,6 @@ telephonenumber: +1 313 555 9022
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University 
  of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Bjorn Jensen
 cn: Biiff Jensen
@@ -78,8 +73,6 @@ drink: Mad Dog 20/20
 
 dn: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Dorothy Stevens
 cn: Dot Stevens
@@ -98,8 +91,6 @@ homephone: +1 313 555 0454
 
 dn: cn=Gern Jensen,ou=Information Technology Division,ou=People,o=University o
  f Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Gern Jensen
 sn: Jensen
@@ -116,12 +107,10 @@ mail: gjensen@mailgw.umich.edu
 homephone: +1 313 555 8844
 
 dn: ou=Groups,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Groups
 
 dn: ou=Information Technology Division,ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Information Technology Division
 
@@ -140,8 +129,6 @@ member: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Mic
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
@@ -162,8 +149,6 @@ telephonenumber: +1 313 555 0895
 drink: Orange Juice
 
 dn: cn=Jane Doe,ou=Alumni Association,ou=People,o=University of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Jane Doe
 cn: Jane Alverson
@@ -183,8 +168,6 @@ telephonenumber: +1 313 555 4774
 
 dn: cn=Jennifer Smith,ou=Alumni Association,ou=People,o=University of Michigan
  ,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Jennifer Smith
 cn: Jen Smith
@@ -203,8 +186,6 @@ telephonenumber: +1 313 555 8232
 
 dn: cn=John Doe,ou=Information Technology Division,ou=People,o=University of M
  ichigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: John Doe
 cn: Jonathon Doe
@@ -222,7 +203,6 @@ facsimiletelephonenumber: +1 313 555 4544
 telephonenumber: +1 313 555 9394
 
 dn: cn=Manager,o=University of Michigan,c=US
-objectclass: top
 objectclass: person
 cn: Manager
 cn: Directory Manager
@@ -233,8 +213,6 @@ userpassword:: c2VjcmV0
 
 dn: cn=Mark Elliot,ou=Alumni Association,ou=People,o=University of Michigan,c=
  US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Mark Elliot
 cn: Mark A Elliot
@@ -252,12 +230,10 @@ facsimiletelephonenumber: +1 313 555 7762
 telephonenumber: +1 313 555 4177
 
 dn: ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: People
 
 dn: o=University of Michigan,c=US
-objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
 l: Ann Arbor, Michigan
@@ -275,8 +251,6 @@ associateddomain: umich.edu
 
 dn: cn=Ursula Hampster,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Ursula Hampster
 sn: Hampster

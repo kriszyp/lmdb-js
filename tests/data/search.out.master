@@ -1,7 +1,5 @@
 dn: cn=Barbara Jensen,ou=Information Technology Division,ou=People,o=Universit
  y of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Barbara Jensen
 cn: Babs Jensen
@@ -23,8 +21,6 @@ telephonenumber: +1 313 555 9022
 
 dn: cn=Bjorn Jensen,ou=Information Technology Division,ou=People,o=University 
  of Michigan,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Bjorn Jensen
 cn: Biiff Jensen
@@ -104,8 +100,6 @@ member: cn=John Doe,ou=Information Technology Division,ou=People,o=University
 
 dn: cn=James A Jones 1,ou=Alumni Association,ou=People,o=University of Michiga
  n,c=US
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: James A Jones 1
 cn: James Jones
@@ -217,17 +211,14 @@ cn: Alumni Assoc Staff
 objectclass: groupofnames
 
 dn: ou=Alumni Association,ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Alumni Association
 
 dn: ou=Groups,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Groups
 
 dn: ou=Information Technology Division,ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: Information Technology Division
 
@@ -245,7 +236,6 @@ member: cn=John Doe,ou=Information Technology Division,ou=People,o=University
  of Michigan,c=US
 
 dn: cn=Manager,o=University of Michigan,c=US
-objectClass: top
 objectClass: person
 cn: Manager
 cn: Directory Manager
@@ -255,12 +245,10 @@ description: Manager of the directory
 userPassword:: c2VjcmV0
 
 dn: ou=People,o=University of Michigan,c=US
-objectclass: top
 objectclass: organizationalUnit
 ou: People
 
 dn: o=University of Michigan,c=US
-objectclass: top
 objectclass: organization
 objectclass: domainRelatedObject
 l: Ann Arbor, Michigan
