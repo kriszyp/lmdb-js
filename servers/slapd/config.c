@@ -526,8 +526,9 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_BI) && c->bi) {
-		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any backend declaration\n",
-			c->log, Conf[i].name, 0);
+		Debug(LDAP_DEBUG_CONFIG, "%s: keyword <%s> must appear before any backend %sdeclaration\n",
+			c->log, Conf[i].name, ((arg_type & ARG_PRE_DB)
+			? "or database " : "") );
 		return(ARG_BAD_CONF);
 	}
 	if((arg_type & ARG_PRE_DB) && c->be && c->be != frontendDB) {
@@ -546,10 +547,7 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 		return(ARG_BAD_CONF);
 	}
 	c->type = arg_user = (arg_type & ARGS_USERLAND);
-	c->value_int = c->value_long = c->value_ber_t = 0;
-	c->value_string = NULL;
-	BER_BVZERO( &c->value_dn );
-	BER_BVZERO( &c->value_ndn );
+	memset(&c->values, 0, sizeof(c->values));
 	if(arg_type & ARGS_NUMERIC) {
 		int j;
 		iarg = 0; larg = 0; barg = 0;
@@ -558,9 +556,11 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 			case ARG_LONG:		larg = atol(c->argv[1]);		break;
 			case ARG_BER_LEN_T:	barg = (ber_len_t)atol(c->argv[1]);	break;
 			case ARG_ON_OFF:
-				if(!strcasecmp(c->argv[1], "on")) {
+				if(!strcasecmp(c->argv[1], "on") ||
+					!strcasecmp(c->argv[1], "true")) {
 					iarg = 1;
-				} else if(!strcasecmp(c->argv[1], "off")) {
+				} else if(!strcasecmp(c->argv[1], "off") ||
+					!strcasecmp(c->argv[1], "false")) {
 					iarg = 0;
 				} else {
 					Debug(LDAP_DEBUG_CONFIG, "%s: ignoring ", c->log, 0, 0);
@@ -578,12 +578,15 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 			Debug(LDAP_DEBUG_CONFIG, "invalid %s value (%ld) in <%s> line\n", Conf[i].what, larg, Conf[i].name);
 			return(ARG_BAD_CONF);
 		}
-		c->value_int = iarg;
-		c->value_long = larg;
-		c->value_ber_t = barg;
-	}
-	if(arg_type & ARG_STRING) c->value_string = ch_strdup(c->argv[1]);
-	if(arg_type & ARG_DN) {
+		switch(arg_type & ARGS_NUMERIC) {
+			case ARG_ON_OFF:
+			case ARG_INT:		c->value_int = iarg;		break;
+			case ARG_LONG:		c->value_long = larg;		break;
+			case ARG_BER_LEN_T:	c->value_ber_t = barg;		break;
+		}
+	} else if(arg_type & ARG_STRING) {
+		 c->value_string = ch_strdup(c->argv[1]);
+	} else if(arg_type & ARG_DN) {
 		struct berval bv;
 		ber_str2bv( c->argv[1], 0, 0, &bv );
 		rc = dnPrettyNormal( NULL, &bv, &c->value_dn, &c->value_ndn, NULL );
@@ -625,6 +628,46 @@ int parse_config_table(ConfigTable *Conf, ConfigArgs *c) {
 				}
 	}
 	return(arg_user);
+}
+
+int
+config_get_vals(ConfigTable *cf, ConfigArgs *c)
+{
+	int rc = 0;
+	struct berval bv;
+	memset(&c->values, 0, sizeof(c->values));
+	c->rvalue_vals = ch_calloc(2,sizeof(struct berval));
+	c->rvalue_nvals = NULL;
+	c->emit = 1;
+	if ( cf->arg_type & ARG_MAGIC ) {
+#if 0
+		rc = (*((ConfigDriver*)cf->arg_item))(c);
+		if ( rc ) return rc;
+#else
+		rc = 1;
+#endif
+	} else {
+		switch(cf->arg_type & ARGS_POINTER) {
+		case ARG_ON_OFF:
+		case ARG_INT:	c->value_int = *(int *)cf->arg_item; break;
+		case ARG_LONG:	c->value_long = *(long *)cf->arg_item; break;
+		case ARG_BER_LEN_T:	c->value_ber_t = *(ber_len_t *)cf->arg_item; break;
+		case ARG_STRING:	c->value_string = *(char **)cf->arg_item; break;
+		}
+	}
+	if ( cf->arg_type & ARGS_POINTER) {
+		bv.bv_val = c->log;
+		switch(cf->arg_type & ARGS_POINTER) {
+		case ARG_INT: bv.bv_len = sprintf(bv.bv_val, "%d", c->value_int); break;
+		case ARG_LONG: bv.bv_len = sprintf(bv.bv_val, "%l", c->value_long); break;
+		case ARG_BER_LEN_T: bv.bv_len =sprintf(bv.bv_val, "%l",c->value_ber_t); break;
+		case ARG_ON_OFF: bv.bv_len = sprintf(bv.bv_val, "%s",
+			c->value_int ? "TRUE" : "FALSE"); break;
+		case ARG_STRING: ber_str2bv( c->value_string, 0, 0, &bv); break;
+		}
+		ber_bvarray_add(&c->rvalue_vals, &bv);
+	}
+	return rc;
 }
 
 int

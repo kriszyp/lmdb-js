@@ -65,17 +65,32 @@ typedef struct config_args_s {
 	unsigned long lineno;
 	char log[PATH_MAX + STRLENOF(": line 18446744073709551615") + 1];
 	int depth;
-	int value_int;   /* parsed first val */
-	long value_long; /* for simple cases */
-	ber_len_t value_ber_t;
-	char *value_string;
-	struct berval value_dn;
-	struct berval value_ndn;
+	/* parsed first val for simple cases */
+	union {
+		int v_int;
+		long v_long;
+		ber_len_t v_ber_t;
+		char *v_string;
+		struct {
+			struct berval vdn_dn;
+			struct berval vdn_ndn;
+		} v_dn;
+	} values;
+	/* return values for emit mode */
+	BerVarray rvalue_vals;
+	BerVarray rvalue_nvals;
 	int emit;	/* emit instead of setting */
 	int type;	/* ConfigTable.arg_type & ARGS_USERLAND */
 	BackendDB *be;
 	BackendInfo *bi;
 } ConfigArgs;
+
+#define value_int values.v_int
+#define value_long values.v_long
+#define value_ber_t values.v_ber_t
+#define value_string values.v_string
+#define value_dn values.v_dn.vdn_dn
+#define value_ndn values.v_dn.vdn_ndn
 
 typedef int (ConfigDriver)(ConfigArgs *c);
 
@@ -99,3 +114,4 @@ typedef struct ConfigFile {
 } ConfigFile;
 
 void config_back_init( ConfigFile *cfp, ConfigTable *ct );
+int config_get_vals(ConfigTable *ct, ConfigArgs *c);

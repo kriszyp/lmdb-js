@@ -201,10 +201,12 @@ config_back_db_open( BackendDB *be )
 	struct berval rdn;
 	Entry *e, *parent;
 	CfEntryInfo *ce, *ceparent, *ceprev;
-	int i, buflen = 0;
+	int i, rc, buflen = 0;
 	char *buf = NULL;
 	BackendInfo *bi;
 	BackendDB *bptr;
+	ConfigArgs c;
+	ConfigTable *ct;
 
 	/* create root of tree */
 	ber_str2bv( CONFIG_DN, STRLENOF( CONFIG_DN ), 0, &rdn );
@@ -214,6 +216,17 @@ config_back_db_open( BackendDB *be )
 	cfb->cb_root = ce;
 
 	config_build_entry( e, be->be_private, "olcGlobal", &rdn );
+	c.be = be;
+	c.bi = be->bd_info;
+	ct = ce->ce_table;
+	for (ct=ce->ce_table; ct->name; ct++) {
+		if (!ct->ad) continue;
+		if (ct->arg_type & ARG_DB) continue;
+		rc = config_get_vals(ct, &c);
+		if (rc == LDAP_SUCCESS) {
+			attr_merge(e, ct->ad, c.rvalue_vals, c.rvalue_nvals);
+		}
+	}
 
 	parent = e;
 	ceparent = ce;
@@ -264,6 +277,18 @@ config_back_db_open( BackendDB *be )
 		ce->ce_table = bptr->be_cf_table;
 		config_build_entry( e, bptr->be_private, "olcDatabaseConfig",
 			&rdn );
+		c.be = bptr;
+		c.bi = bi;
+		ct = be->bd_info->bi_cf_table;
+		for (; ct->name; ct++) {
+			if (!ct->ad) continue;
+			if (!(ct->arg_type & (ARG_DB|ARG_MAY_DB))) continue;
+			rc = config_get_vals(ct, &c);
+			if (rc == LDAP_SUCCESS) {
+				attr_merge(e, ct->ad, c.rvalue_vals, c.rvalue_nvals);
+			}
+		}
+
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
 		} else {
