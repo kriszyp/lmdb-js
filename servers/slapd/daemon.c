@@ -797,6 +797,8 @@ slapd_daemon_task(
 			continue;
 
 		default:	/* something happened - deal with it */
+			if( slapd_shutdown ) continue;
+
 			ebadf = 0;
 			Debug( LDAP_DEBUG_CONNS, "daemon: activity on %d descriptors\n",
 				ns, 0, 0 );
@@ -837,9 +839,9 @@ slapd_daemon_task(
 			if ( !FD_ISSET( slap_listeners[l]->sl_sd, &readfds ) )
 				continue;
 
-			if ( (s = accept( slap_listeners[l]->sl_sd,
-				(struct sockaddr *) &from, &len )) == AC_SOCKET_INVALID )
-			{
+			s = accept( slap_listeners[l]->sl_sd,
+				(struct sockaddr *) &from, &len );
+			if ( s == AC_SOCKET_INVALID ) {
 				int err = sock_errno();
 				Debug( LDAP_DEBUG_ANY,
 				    "daemon: accept(%ld) failed errno=%d (%s)\n",
