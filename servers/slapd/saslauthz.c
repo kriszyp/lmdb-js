@@ -283,6 +283,43 @@ char *slap_sasl_regexp( char *saslname )
 	return( uri );
 }
 
+/* Two empty callback functions to avoid sending results */
+static void sasl_sc_r( Connection *conn, Operation *o, ber_tag_t tag,
+	ber_int_t msgid, ber_int_t err, const char *matched,
+	const char *text, BVarray ref, const char *resoid,
+	struct berval *resdata, struct berval *sasldata, LDAPControl **c)
+{
+}
+
+static void sasl_sc_s( Connection *conn, Operation *o, ber_int_t err,
+	const char *matched, const char *text, BVarray refs, LDAPControl **c,
+	int nentries)
+{
+}
+
+/* This callback actually does some work...*/
+static int sasl_sc_sasl2dn( BackendDB *be, Connection *conn, Operation *o,
+	Entry *e, AttributeName *an, int ao, LDAPControl **c)
+{
+	struct berval *ndn = o->o_callback->sc_private;
+
+	/* We only want to be called once */
+	if (ndn->bv_val) {
+		free(ndn->bv_val);
+		ndn->bv_val = NULL;
+#ifdef NEW_LOGGING
+	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
+		   "slap_sasl2dn: search DN returned more than 1 entry\n" ));
+#else
+	Debug( LDAP_DEBUG_TRACE,
+	   "slap_sasl2dn: search DN returned more than 1 entry\n", 0,0,0 );
+#endif
+		return -1;
+	} else {
+		ber_dupbv(ndn, &e->e_nname);
+		return 0;
+	}
+}
 
 /*
  * Given a SASL name (e.g. "UID=name,cn=REALM,cn=MECH,cn=AUTH")
@@ -298,13 +335,11 @@ char *slap_sasl2dn( char *saslname )
 	char *uri=NULL;
 	struct berval searchbase = {0, NULL};
 	struct berval dn = {0, NULL};
-	struct berval ndn;
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
-	Connection *conn=NULL;
-	LDAP *client=NULL;
-	LDAPMessage *res=NULL, *msg;
+	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_sasl2dn, &dn};
+	Operation op = {0};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -344,60 +379,29 @@ char *slap_sasl2dn( char *saslname )
 	   searchbase.bv_val, scope, 0 );
 #endif
 
-
 	be = select_backend( &searchbase, 0, 1 );
 	if(( be == NULL ) || ( be->be_search == NULL))
 		goto FINISHED;
 	suffix_alias( be, &searchbase );
 
-	rc = connection_internal_open( &conn, &client, saslname );
-	if( rc != LDAP_SUCCESS )
-		goto FINISHED;
+	ldap_pvt_thread_mutex_init( &op.o_abandonmutex );
+	op.o_tag = LDAP_REQ_SEARCH;
+	op.o_protocol = LDAP_VERSION3;
+	op.o_ndn.bv_val = saslname;
+	op.o_ndn.bv_len = strlen(saslname);
+	op.o_callback = &cb;
+	op.o_time = slap_get_time();
 
-	(*be->be_search)( be, conn, LDAP_STAILQ_FIRST(&conn->c_ops), /*base*/NULL, &searchbase,
+	(*be->be_search)( be, /*conn*/NULL, &op, /*base*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/1, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
-
-
-	/* Read the client side of the internal search */
-	rc = ldap_result( client, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
-	if( rc == -1 )
-		goto FINISHED;
-
-	/* Make sure exactly one entry was returned */
-	rc = ldap_count_entries( client, res );
-#ifdef NEW_LOGGING
-	LDAP_LOG(( "sasl", LDAP_LEVEL_DETAIL1,
-		   "slap_sasl2dn: search DN returned %d entries\n", rc ));
-#else
-	Debug( LDAP_DEBUG_TRACE,
-	   "slap_sasl2dn: search DN returned %d entries\n", rc,0,0 );
-#endif
-
-	if( rc != 1 )
-		goto FINISHED;
-
-	msg = ldap_first_entry( client, res );
-	dn.bv_val = ldap_get_dn( client, msg );
-	dn.bv_len = dn.bv_val ? strlen( dn.bv_val ) : 0;
-	if( dn.bv_val ) {
-		rc = dnNormalize2( NULL, &dn, &ndn );
-		ldap_memfree( dn.bv_val );
-		if( rc != LDAP_SUCCESS ) {
-			dn.bv_val = NULL;
-			dn.bv_len = 0;
-			goto FINISHED;
-		}
-		dn = ndn;
-	}
+	
+	ldap_pvt_thread_mutex_destroy( &op.o_abandonmutex );
 
 FINISHED:
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
 	if( filter ) filter_free( filter );
 	if( uri ) ch_free( uri );
-	if( conn ) connection_internal_close( conn );
-	if( res ) ldap_msgfree( res );
-	if( client  ) ldap_unbind( client );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -411,6 +415,23 @@ FINISHED:
 	return( dn.bv_val );
 }
 
+typedef struct smatch_info {
+	struct berval *dn;
+	int match;
+} smatch_info;
+
+static int sasl_sc_smatch( BackendDB *be, Connection *conn, Operation *o,
+	Entry *e, AttributeName *an, int ao, LDAPControl **c)
+{
+	smatch_info *sm = o->o_callback->sc_private;
+
+	if (dn_match(sm->dn, &e->e_nname)) {
+		sm->match = 1;
+		return -1;	/* short-circuit the search */
+	} else {
+		return 1;
+	}
+}
 
 /*
  * Map a SASL regexp rule to a DN. If the rule is just a DN or a scope=base
@@ -422,16 +443,16 @@ FINISHED:
  */
 
 static
-int slap_sasl_match( char *rule, char *assertDN, char *authc )
+int slap_sasl_match( char *rule, struct berval *assertDN, char *authc )
 {
 	struct berval searchbase = {0, NULL};
 	int rc, scope;
 	Backend *be;
 	Filter *filter=NULL;
-	Connection *conn=NULL;
-	LDAP *client=NULL;
-	LDAPMessage *res=NULL, *msg;
 	regex_t reg;
+	smatch_info sm;
+	slap_callback cb = {sasl_sc_r, sasl_sc_s, sasl_sc_smatch, &sm};
+	Operation op = {0};
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -450,7 +471,7 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 		rc = regcomp(&reg, searchbase.bv_val,
 			REG_EXTENDED|REG_ICASE|REG_NOSUB);
 		if ( rc == 0 ) {
-			rc = regexec(&reg, assertDN, 0, NULL, 0);
+			rc = regexec(&reg, assertDN->bv_val, 0, NULL, 0);
 			regfree( &reg );
 		}
 		if ( rc == 0 )
@@ -479,52 +500,29 @@ int slap_sasl_match( char *rule, char *assertDN, char *authc )
 	}
 	suffix_alias( be, &searchbase );
 
-	/* Make an internal connection on which to run the search */
-	rc = connection_internal_open( &conn, &client, authc );
-	if( rc != LDAP_SUCCESS )
-		goto CONCLUDED;
+	sm.dn = assertDN;
+	sm.match = 0;
 
-	(*be->be_search)( be, conn, LDAP_STAILQ_FIRST(&conn->c_ops), /*base=*/NULL, &searchbase,
+	ldap_pvt_thread_mutex_init( &op.o_abandonmutex );
+	op.o_tag = LDAP_REQ_SEARCH;
+	op.o_protocol = LDAP_VERSION3;
+	op.o_ndn.bv_val = authc;
+	op.o_ndn.bv_len = strlen(authc);
+	op.o_callback = &cb;
+	op.o_time = slap_get_time();
+
+	(*be->be_search)( be, /*conn=*/NULL, &op, /*base=*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
 	   /*attrs=*/NULL, /*attrsonly=*/0 );
 
-	/* On the client side of the internal search, read the results. Check
-	   if the assertDN matches any of the DN's returned by the search */
-	rc = ldap_result( client, LDAP_RES_ANY, LDAP_MSG_ALL, NULL, &res );
-	if( rc == -1 )
-		goto CONCLUDED;
-
-	for( msg=ldap_first_entry( client, res );
-	      msg;
-	      msg=ldap_next_entry( client, msg ) )
-	{
-		struct berval dn;
-		dn.bv_val = ldap_get_dn( client, msg );
-
-		if( dn.bv_val ) {
-			struct berval ndn;
-			dn.bv_len = strlen( dn.bv_val );
-			rc = dnNormalize2( NULL, &dn, &ndn );
-			ldap_memfree( dn.bv_val );
-			if( rc != LDAP_SUCCESS ) {
-				goto CONCLUDED;
-			}
-			rc = strcmp( ndn.bv_val, assertDN );
-			free( ndn.bv_val );
-			if( rc == 0 ) {
-				rc = LDAP_SUCCESS;
-				goto CONCLUDED;
-			}
-		}
-	}
-	rc = LDAP_INAPPROPRIATE_AUTH;
+	if (sm.match)
+		rc = LDAP_SUCCESS;
+	else
+		rc = LDAP_INAPPROPRIATE_AUTH;
 
 CONCLUDED:
 	if( searchbase.bv_len ) ch_free( searchbase.bv_val );
 	if( filter ) filter_free( filter );
-	if( conn ) connection_internal_close( conn );
-	if( res ) ldap_msgfree( res );
-	if( client  ) ldap_unbind( client );
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
 		   "slap_sasl_match: comparison returned %d\n", rc ));
@@ -546,7 +544,7 @@ CONCLUDED:
  * DN's passed in should have a dn: prefix
  */
 static int
-slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
+slap_sasl_check_authz(char *searchDN, char *assertDN, struct berval *attr, char *authc)
 {
 	const char *errmsg;
 	int i, rc;
@@ -564,7 +562,7 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 	   assertDN, attr, searchDN);
 #endif
 
-	rc = slap_str2ad( attr, &ad, &errmsg );
+	rc = slap_bv2ad( attr, &ad, &errmsg );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
@@ -574,9 +572,11 @@ slap_sasl_check_authz(char *searchDN, char *assertDN, char *attr, char *authc)
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 
+	bv.bv_val = assertDN+3;
+	bv.bv_len = strlen(bv.bv_val);
 	/* Check if the *assertDN matches any **vals */
 	for( i=0; vals[i].bv_val != NULL; i++ ) {
-		rc = slap_sasl_match( vals[i].bv_val, assertDN+3, authc );
+		rc = slap_sasl_match( vals[i].bv_val, &bv, authc );
 		if ( rc == LDAP_SUCCESS )
 			goto COMPLETE;
 	}
@@ -600,6 +600,12 @@ COMPLETE:
 
 /* Check if a bind can SASL authorize to another identity.
    Accepts authorization DN's with "dn:" prefix */
+
+static struct berval sasl_authz_src = {
+	sizeof(SASL_AUTHZ_SOURCE_ATTR)-1, SASL_AUTHZ_SOURCE_ATTR };
+
+static struct berval sasl_authz_dst = {
+	sizeof(SASL_AUTHZ_DEST_ATTR)-1, SASL_AUTHZ_DEST_ATTR };
 
 int slap_sasl_authorized( char *authcDN, char *authzDN )
 {
@@ -627,14 +633,14 @@ int slap_sasl_authorized( char *authcDN, char *authzDN )
 	}
 
 	/* Check source rules */
-	rc = slap_sasl_check_authz( authcDN, authzDN, SASL_AUTHZ_SOURCE_ATTR,
+	rc = slap_sasl_check_authz( authcDN, authzDN, &sasl_authz_src,
 	   authcDN );
 	if( rc == LDAP_SUCCESS ) {
 		goto DONE;
 	}
 
 	/* Check destination rules */
-	rc = slap_sasl_check_authz( authzDN, authcDN, SASL_AUTHZ_DEST_ATTR,
+	rc = slap_sasl_check_authz( authzDN, authcDN, &sasl_authz_dst,
 	   authcDN );
 	if( rc == LDAP_SUCCESS ) {
 		goto DONE;
