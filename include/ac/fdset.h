@@ -22,6 +22,10 @@
 #ifndef _AC_FDSET_H
 #define _AC_FDSET_H
 
+#if !defined( OPENLDAP_FD_SETSIZE ) && !defined( FD_SETSIZE )
+#  define OPENLDAP_FD_SETSIZE 4096
+#endif
+
 #ifdef OPENLDAP_FD_SETSIZE
     /* assume installer desires to enlarge fd_set */
 #  ifdef HAVE_BITS_TYPES_H
