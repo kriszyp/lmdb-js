@@ -102,7 +102,7 @@ charray_dup( char **a )
 	new = (char **) ch_malloc( (i + 1) * sizeof(char *) );
 
 	for ( i = 0; a[i] != NULL; i++ ) {
-		new[i] = strdup( a[i] );
+		new[i] = ch_strdup( a[i] );
 	}
 	new[i] = NULL;
 
@@ -117,7 +117,7 @@ str2charray( char *str, char *brkstr )
 	int	i;
 
 	/* protect the input string from strtok */
-	str = strdup( str );
+	str = ch_strdup( str );
 
 	i = 1;
 	for ( s = str; *s; s++ ) {
@@ -130,7 +130,7 @@ str2charray( char *str, char *brkstr )
 	i = 0;
 	for ( s = strtok( str, brkstr ); s != NULL; s = strtok( NULL,
 	    brkstr ) ) {
-		res[i++] = strdup( s );
+		res[i++] = ch_strdup( s );
 	}
 	res[i] = NULL;
 

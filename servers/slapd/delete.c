@@ -41,7 +41,7 @@ do_delete(
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
-	odn = strdup( dn );
+	odn = ch_strdup( dn );
 	dn_normalize( dn );
 
 	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", dn, 0, 0 );

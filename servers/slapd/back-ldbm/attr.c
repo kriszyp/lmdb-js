@@ -101,7 +101,7 @@ attr_index_config(
 	}
 	for ( i = 0; attrs[i] != NULL; i++ ) {
 		a = (struct attrinfo *) ch_malloc( sizeof(struct attrinfo) );
-		a->ai_type = strdup( attrs[i] );
+		a->ai_type = ch_strdup( attrs[i] );
 		a->ai_syntaxmask = attr_syntax( a->ai_type );
 		if ( argc == 1 ) {
 			a->ai_indexmask = (INDEX_PRESENCE | INDEX_EQUALITY |

@@ -135,7 +135,7 @@ pw2entry( Backend *be, struct passwd *pw )
 	e->e_attrs = NULL;
 
 	sprintf( buf, "%s@%s", pw->pw_name, be->be_suffix[0] );
-	e->e_dn = strdup( buf );
+	e->e_dn = ch_strdup( buf );
 
 	val.bv_val = pw->pw_name;
 	val.bv_len = strlen( pw->pw_name );

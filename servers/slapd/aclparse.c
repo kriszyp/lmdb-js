@@ -120,7 +120,7 @@ parse_acl(
 							fname, lineno, right, buf );
 						acl_usage();
 					}
-					a->acl_dnpat = strdup( ".*" );
+					a->acl_dnpat = ch_strdup( ".*" );
 					continue;
 				}
 
@@ -152,7 +152,7 @@ parse_acl(
 						acl_usage();
 
 					} else {
-						a->acl_dnpat = dn_upcase(strdup( right ));
+						a->acl_dnpat = dn_upcase(ch_strdup( right ));
 					}
 				} else if ( strncasecmp( left, "attr", 4 )
 				    == 0 ) {
@@ -194,14 +194,14 @@ parse_acl(
 			/* get <who> */
 			split( argv[i], '=', &left, &right );
 			if ( strcasecmp( argv[i], "*" ) == 0 ) {
-				b->a_dnpat = strdup( ".*" );
+				b->a_dnpat = ch_strdup( ".*" );
 			} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
-				b->a_dnpat = strdup( "self" );
+				b->a_dnpat = ch_strdup( "self" );
 			} else if ( strcasecmp( left, "dn" ) == 0 ) {
 				regtest(fname, lineno, right);
-				b->a_dnpat = dn_upcase( strdup( right ) );
+				b->a_dnpat = dn_upcase( ch_strdup( right ) );
 			} else if ( strcasecmp( left, "dnattr" ) == 0 ) {
-				b->a_dnattr = strdup( right );
+				b->a_dnattr = ch_strdup( right );
 
 #ifdef SLAPD_ACLGROUPS
 			} else if ( strcasecmp( left, "group" ) == 0 ) {
@@ -217,21 +217,21 @@ parse_acl(
                                             *name++ = '\0';
                                 }
 
-				b->a_group = dn_upcase(strdup( right ));
+				b->a_group = dn_upcase(ch_strdup( right ));
 
                                 if (value && *value) {
-                                        b->a_objectclassvalue = strdup(value);
+                                        b->a_objectclassvalue = ch_strdup(value);
                                         *--value = '/';
                                 }
                                 else
-                                        b->a_objectclassvalue = strdup("groupOfNames");
+                                        b->a_objectclassvalue = ch_strdup("groupOfNames");
 
                                 if (name && *name) {
-                                        b->a_groupattrname = strdup(name);
+                                        b->a_groupattrname = ch_strdup(name);
                                         *--name = '/';
                                 }
                                 else
-                                        b->a_groupattrname = strdup("member");
+                                        b->a_groupattrname = ch_strdup("member");
 
 
 
@@ -239,7 +239,7 @@ parse_acl(
 			} else if ( strcasecmp( left, "domain" ) == 0 ) {
 				char	*s;
 				regtest(fname, lineno, right);
-				b->a_domainpat = strdup( right );
+				b->a_domainpat = ch_strdup( right );
 
 				/* normalize the domain */
 				for ( s = b->a_domainpat; *s; s++ ) {
@@ -247,7 +247,7 @@ parse_acl(
 				}
 			} else if ( strcasecmp( left, "addr" ) == 0 ) {
 				regtest(fname, lineno, right);
-				b->a_addrpat = strdup( right );
+				b->a_addrpat = ch_strdup( right );
 			} else {
 				fprintf( stderr,
 				    "%s: line %d: expecting <who> got \"%s\"\n",

@@ -24,7 +24,7 @@ ldbm_back_add(
 	Entry		*p = NULL;
 	int			rc;
 
-	dn = dn_normalize( strdup( e->e_dn ) );
+	dn = dn_normalize( ch_strdup( e->e_dn ) );
 
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_add: %s\n", dn, 0, 0);
 

@@ -167,7 +167,7 @@ str2simple( char *str )
 			f->f_choice = LDAP_FILTER_PRESENT;
 		} else {
 			f->f_choice = LDAP_FILTER_SUBSTRINGS;
-			f->f_sub_type = strdup( str );
+			f->f_sub_type = ch_strdup( str );
 			if ( str2subvals( value, f ) != 0 ) {
 				filter_free( f );
 				*(value-1) = '=';
@@ -180,10 +180,10 @@ str2simple( char *str )
 	}
 
 	if ( f->f_choice == LDAP_FILTER_PRESENT ) {
-		f->f_type = strdup( str );
+		f->f_type = ch_strdup( str );
 	} else {
-		f->f_avtype = strdup( str );
-		f->f_avvalue.bv_val = strdup( value );
+		f->f_avtype = ch_strdup( str );
+		f->f_avvalue.bv_val = ch_strdup( value );
 		f->f_avvalue.bv_len = strlen( value );
 	}
 
@@ -206,11 +206,11 @@ str2subvals( char *val, Filter *f )
 			*nextstar++ = '\0';
 
 		if ( gotstar == 0 ) {
-			f->f_sub_initial = strdup( val );
+			f->f_sub_initial = ch_strdup( val );
 		} else if ( nextstar == NULL ) {
-			f->f_sub_final = strdup( val );
+			f->f_sub_final = ch_strdup( val );
 		} else {
-			charray_add( &f->f_sub_any, strdup( val ) );
+			charray_add( &f->f_sub_any, ch_strdup( val ) );
 		}
 
 		gotstar = 1;

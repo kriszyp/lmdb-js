@@ -35,7 +35,7 @@ ldbm_back_config(
 			    fname, lineno );
 			exit( 1 );
 		}
-		li->li_directory = strdup( argv[1] );
+		li->li_directory = ch_strdup( argv[1] );
 
 	/* mode with which to create new database files */
 	} else if ( strcasecmp( argv[0], "mode" ) == 0 ) {

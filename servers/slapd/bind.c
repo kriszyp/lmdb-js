@@ -164,7 +164,7 @@ do_bind(
 			if ( conn->c_dn != NULL ) {
 				free( conn->c_dn );
 			}
-			conn->c_dn = strdup( dn );
+			conn->c_dn = ch_strdup( dn );
 			pthread_mutex_unlock( &conn->c_dnmutex );
 
 			/* send this here to avoid a race condition */

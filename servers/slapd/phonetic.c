@@ -69,7 +69,7 @@ word_dup( char *w )
 		;	/* NULL */
 	save = *s;
 	*s = '\0';
-	ret = strdup( w );
+	ret = ch_strdup( w );
 	*s = save;
 
 	return( ret );
@@ -154,7 +154,7 @@ phonetic( char *s )
 	if ( i > 0 )
 		phoneme[i] = '\0';
 
-        return( strdup( phoneme ) );
+        return( ch_strdup( phoneme ) );
 }
 
 #else
@@ -205,7 +205,7 @@ phonetic( char *Word )
 	Metaph = buf;
 	*Metaph = '\0';
 	if (n == ntrans + 4) {
-		return( strdup( buf ) );		/* Return if null */
+		return( ch_strdup( buf ) );		/* Return if null */
 	}
 	n_end = n;		/* Set n_end to end of string */
 
@@ -426,7 +426,7 @@ phonetic( char *Word )
 	}
 
 	*Metaph = 0;		/* Null terminate */
-	return( strdup( buf ) );
+	return( ch_strdup( buf ) );
 }
 
 #endif /* metaphone */

@@ -128,7 +128,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: suffix line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				dn = strdup( cargv[1] );
+				dn = ch_strdup( cargv[1] );
 				(void) dn_normalize( dn );
 				charray_add( &be->be_suffix, dn );
 			}
@@ -155,11 +155,11 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: suffixAlias line must appear inside a database definition (ignored)\n",
                                     fname, lineno, 0 );
                         } else {
-                                dn = strdup( cargv[1] );
+                                dn = ch_strdup( cargv[1] );
                                 (void) dn_normalize( dn );
                                 charray_add( &be->be_suffixAlias, dn );
 
-                                dn = strdup( cargv[2] );
+                                dn = ch_strdup( cargv[2] );
                                 (void) dn_normalize( dn );
                                 charray_add( &be->be_suffixAlias, dn );
                         }
@@ -194,7 +194,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: rootdn line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				dn = strdup( cargv[1] );
+				dn = ch_strdup( cargv[1] );
 				(void) dn_normalize( dn );
 				be->be_rootdn = dn;
 			}
@@ -212,7 +212,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: rootpw line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_rootpw = strdup( cargv[1] );
+				be->be_rootpw = ch_strdup( cargv[1] );
 			}
 
 		/* make this database read-only */
@@ -328,7 +328,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 					if ( strncasecmp( cargv[i], "host=", 5 )
 					    == 0 ) {
 						charray_add( &be->be_replica,
-						    strdup( cargv[i] + 5 ) );
+						    ch_strdup( cargv[i] + 5 ) );
 						break;
 					}
 				}
@@ -352,7 +352,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 "%s: line %d: updatedn line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_updatedn = strdup( cargv[1] );
+				be->be_updatedn = ch_strdup( cargv[1] );
 				(void) dn_normalize( be->be_updatedn );
 			}
 
@@ -365,9 +365,9 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				exit( 1 );
 			}
 			if ( be ) {
-				be->be_replogfile = strdup( cargv[1] );
+				be->be_replogfile = ch_strdup( cargv[1] );
 			} else {
-				replogfile = strdup( cargv[1] );
+				replogfile = ch_strdup( cargv[1] );
 			}
 
 		/* maintain lastmodified{by,time} attributes */
@@ -398,7 +398,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				    fname, lineno, 0 );
 				exit( 1 );
 			}
-			savefname = strdup( cargv[1] );
+			savefname = ch_strdup( cargv[1] );
 			savelineno = lineno;
 			read_config( savefname, bep, NULL );
 			be = *bep;
@@ -413,7 +413,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				    fname, lineno, 0 );
 				exit( 1 );
 			}
-			ldap_srvtab = strdup( cargv[1] );
+			ldap_srvtab = ch_strdup( cargv[1] );
 
 		/* pass anything else to the current backend config routine */
 		} else {

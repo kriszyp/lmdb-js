@@ -60,7 +60,7 @@ ldbm_back_modrdn(
 			strcat( newdn, pdn );
 		}
 	} else {
-		newdn = strdup( newrdn );
+		newdn = ch_strdup( newrdn );
 	}
 	(void) dn_normalize( newdn );
 

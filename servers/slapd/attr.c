@@ -77,7 +77,7 @@ attr_merge_fast(
 
 	if ( **a == NULL ) {
 		**a = (Attribute *) ch_malloc( sizeof(Attribute) );
-		(**a)->a_type = attr_normalize( strdup( type ) );
+		(**a)->a_type = attr_normalize( ch_strdup( type ) );
 		(**a)->a_vals = NULL;
 		(**a)->a_syntax = attr_syntax( type );
 		(**a)->a_next = NULL;
@@ -112,7 +112,7 @@ attr_merge(
 
 	if ( *a == NULL ) {
 		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
-		(*a)->a_type = attr_normalize( strdup( type ) );
+		(*a)->a_type = attr_normalize( ch_strdup( type ) );
 		(*a)->a_vals = NULL;
 		(*a)->a_syntax = attr_syntax( type );
 		(*a)->a_next = NULL;

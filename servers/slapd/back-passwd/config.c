@@ -28,7 +28,7 @@ passwd_back_config(
 			    fname, lineno );
 			exit( 1 );
 		}
-		be->be_private = strdup( argv[1] );
+		be->be_private = ch_strdup( argv[1] );
 #else /* HAVE_SETPWFILE */
 		fprintf( stderr,
     "%s: line %d: ignoring \"file\" option (not supported on this platform)\n",

@@ -54,8 +54,8 @@ Entry *derefAlias_r ( Backend     *be,
 
       Debug( LDAP_DEBUG_TRACE, "<= %s is an alias for %s\n", 
 	     e->e_dn, a->a_vals[0]->bv_val, 0 );
-      newDN = strdup (a->a_vals[0]->bv_val);
-      oldDN = strdup (e->e_dn);
+      newDN = ch_strdup (a->a_vals[0]->bv_val);
+      oldDN = ch_strdup (e->e_dn);
 
       /*
        * ok, so what happens if there is an alias in the DN of a dereferenced
@@ -124,7 +124,7 @@ char *derefDN ( Backend     *be,
 	 "<= dereferencing dn %s\n", 
 	 dn, 0, 0 );
   
-  newDN = strdup ( dn );
+  newDN = ch_strdup ( dn );
 
   /* while we don't have a matched dn, deref the DN */
   for ( depth = 0;
@@ -212,7 +212,7 @@ char *derefDN ( Backend     *be,
   if ( (eNew = dn2entry_r( be, newDN, &matched )) != NULL) {
     if ((eDeref = derefAlias_r( be, conn, op, eNew )) != NULL) {
       free (newDN);
-      newDN = strdup (eDeref->e_dn);
+      newDN = ch_strdup (eDeref->e_dn);
       /* free reader lock */
       cache_return_entry_r(&li->li_cache, eDeref);
     }
@@ -232,7 +232,7 @@ char *derefDN ( Backend     *be,
   }
 
   if (newDN == NULL) {
-    newDN = strdup ( dn );
+    newDN = ch_strdup ( dn );
   }
   
   Debug( LDAP_DEBUG_TRACE, "<= returning deref DN of  %s\n", newDN, 0, 0 ); 

@@ -60,7 +60,7 @@ ldbm_back_init(
 	attr_index_config( li, "ldbm id2children initialization", 0, 2, argv,
 	    1 );
 	argv[ 0 ] = "objectclass";
-	argv[ 1 ] = strdup( "pres,eq" );
+	argv[ 1 ] = ch_strdup( "pres,eq" );
 	argv[ 2 ] = NULL;
 	attr_index_config( li, "ldbm objectclass initialization", 0, 2, argv,
 	    1 );

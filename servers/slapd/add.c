@@ -57,7 +57,7 @@ do_add( Connection *conn, Operation *op )
 		return;
 	}
 	e->e_dn = dn;
-	dn = dn_normalize( strdup( dn ) );
+	dn = dn_normalize( ch_strdup( dn ) );
 	Debug( LDAP_DEBUG_ARGS, "    do_add: dn (%s)\n", dn, 0, 0 );
 
 	/* get the attrs */

@@ -75,13 +75,15 @@ ldbm_back_search(
 	 * check and apply aliasing where the dereferencing applies to
 	 * the subordinates of the base
 	 */
-	realBase = strdup (base);
+
 	switch ( deref ) {
 	case LDAP_DEREF_FINDING:
 	case LDAP_DEREF_ALWAYS:
 		free (realBase);
 		realBase = derefDN ( be, conn, op, base );
 		break;
+	default:
+		realBase = ch_strdup(base);
 	}
 
 	(void) dn_normalize (realBase);
@@ -205,7 +207,7 @@ ldbm_back_search(
 					}
 					free( dn );
 				} else if ( scope == LDAP_SCOPE_SUBTREE ) {
-					dn = strdup( e->e_dn );
+					dn = ch_strdup( e->e_dn );
 					(void) dn_normalize( dn );
 					scopeok = dn_issuffix( dn, realBase );
 					free( dn );
@@ -358,9 +360,9 @@ onelevel_candidates(
 	f->f_choice = LDAP_FILTER_AND;
 	f->f_and = (Filter *) ch_malloc( sizeof(Filter) );
 	f->f_and->f_choice = LDAP_FILTER_EQUALITY;
-	f->f_and->f_ava.ava_type = strdup( "id2children" );
+	f->f_and->f_ava.ava_type = ch_strdup( "id2children" );
 	sprintf( buf, "%ld", e != NULL ? e->e_id : 0 );
-	f->f_and->f_ava.ava_value.bv_val = strdup( buf );
+	f->f_and->f_ava.ava_value.bv_val = ch_strdup( buf );
 	f->f_and->f_ava.ava_value.bv_len = strlen( buf );
 	f->f_and->f_next = filter;
 
@@ -429,9 +431,9 @@ subtree_candidates(
 		f->f_choice = LDAP_FILTER_OR;
 		f->f_or = (Filter *) ch_malloc( sizeof(Filter) );
 		f->f_or->f_choice = LDAP_FILTER_EQUALITY;
-		f->f_or->f_avtype = strdup( "objectclass" );
+		f->f_or->f_avtype = ch_strdup( "objectclass" );
 		/* Patch to use normalized uppercase */
-		f->f_or->f_avvalue.bv_val = strdup( "REFERRAL" );
+		f->f_or->f_avvalue.bv_val = ch_strdup( "REFERRAL" );
 		f->f_or->f_avvalue.bv_len = strlen( "REFERRAL" );
 		f->f_or->f_next = filter;
 		filter = f;
@@ -442,10 +444,10 @@ subtree_candidates(
 			f->f_choice = LDAP_FILTER_AND;
 			f->f_and = (Filter *) ch_malloc( sizeof(Filter) );
 			f->f_and->f_choice = LDAP_FILTER_SUBSTRINGS;
-			f->f_and->f_sub_type = strdup( "dn" );
+			f->f_and->f_sub_type = ch_strdup( "dn" );
 			f->f_and->f_sub_initial = NULL;
 			f->f_and->f_sub_any = NULL;
-			f->f_and->f_sub_final = strdup( base );
+			f->f_and->f_sub_final = ch_strdup( base );
 			value_normalize( f->f_and->f_sub_final, SYNTAX_CIS );
 			f->f_and->f_next = filter;
 			filter = f;

@@ -48,7 +48,7 @@ monitor_info( Connection *conn, Operation *op )
 	/* initialize reader/writer lock */
 	entry_rdwr_init(e);
 	e->e_attrs = NULL;
-	e->e_dn = strdup( SLAPD_MONITOR_DN );
+	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
 
 	val.bv_val = Versionstr;
 	if (( p = strchr( Versionstr, '\n' )) == NULL ) {

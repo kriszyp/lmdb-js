@@ -46,7 +46,7 @@ do_modrdn(
 		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR, NULL, "" );
 		return;
 	}
-	odn = strdup( dn );
+	odn = ch_strdup( dn );
 	dn_normalize( dn );
 
 	Debug( LDAP_DEBUG_ARGS,

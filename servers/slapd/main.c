@@ -120,7 +120,7 @@ main( int argc, char **argv )
 #endif
 
 		case 'f':	/* read config file */
-			configfile = strdup( optarg );
+			configfile = ch_strdup( optarg );
 			break;
 
 		case 'i':	/* run from inetd */
@@ -148,9 +148,9 @@ main( int argc, char **argv )
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 
 	if ( (myname = strrchr( argv[0], '/' )) == NULL ) {
-		myname = strdup( argv[0] );
+		myname = ch_strdup( argv[0] );
 	} else {
-		myname = strdup( myname + 1 );
+		myname = ch_strdup( myname + 1 );
 	}
 
 	if ( ! inetd ) {
@@ -243,7 +243,7 @@ main( int argc, char **argv )
 			    inet_ntoa( from.sin_addr ), 0 );
 
 			c.c_addr = inet_ntoa( from.sin_addr );
-			c.c_domain = strdup( hp == NULL ? "" : hp->h_name );
+			c.c_domain = ch_strdup( hp == NULL ? "" : hp->h_name );
 		} else {
 			Debug( LDAP_DEBUG_ARGS, "connection from unknown\n",
 			    0, 0, 0 );
