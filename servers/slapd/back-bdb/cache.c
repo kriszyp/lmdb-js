@@ -686,6 +686,7 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 							bdb_fix_dn( ep, 0 );
 #endif
 							(*eip)->bei_e = ep;
+							ep = NULL;
 						}
 					}
 					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
@@ -712,6 +713,9 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 	}
 	if ( islocked ) {
 		bdb_cache_entryinfo_unlock( *eip );
+	}
+	if ( ep ) {
+		bdb_entry_return( ep );
 	}
 	if ( rc == 0 ) {
 		/* set lru mutex */
@@ -1077,6 +1081,10 @@ bdb_cache_release_all( Cache *cache )
 
 	avl_free( cache->c_dntree.bei_kids, NULL );
 	avl_free( cache->c_idtree, bdb_entryinfo_release );
+	for (;cache->c_eifree;cache->c_eifree = cache->c_lruhead) {
+		cache->c_lruhead = cache->c_eifree->bei_lrunext;
+		bdb_cache_entryinfo_destroy(cache->c_eifree);
+	}
 	cache->c_lruhead = NULL;
 	cache->c_lrutail = NULL;
 
