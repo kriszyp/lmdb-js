@@ -68,6 +68,11 @@ class LDAPObjClass{
 	string getName ();
 
 	/**
+	 * Returns object class kind: 0=ABSTRACT, 1=STRUCTURAL, 2=AUXILIARY
+	 */
+	int getKind ();
+
+	/**
 	 * Returns all object class names
 	 */
 	StringList getNames();

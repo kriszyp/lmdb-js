@@ -118,8 +118,9 @@ when connecting to a slapd and there is no x500dsa.hostname principal
 registered with your Kerberos Domain Controller(s).
 .TP
 .B \-t
-Write retrieved values to a set of temporary files.  This is useful for
-dealing with non-ASCII values such as jpegPhoto or audio.
+Write retrieved non-printable values to a set of temporary files.  This
+is useful for dealing with values containing non-character data such as
+jpegPhoto or audio.
 .TP
 .B \-A
 Retrieve attributes only (no values).  This is useful when you just want to

@@ -290,7 +290,7 @@ send_ldap_controls( Operation *o, BerElement *ber, LDAPControl **c )
 	return rc;
 }
 
-void
+static int
 send_ldap_response(
 	Operation *op,
 	SlapReply *rs )
@@ -311,7 +311,7 @@ send_ldap_response(
 			op->o_callback = op->o_callback->sc_next;
 		}
 		op->o_callback = sc;
-		if ( rc != SLAP_CB_CONTINUE ) goto cleanup;
+		if ( rc != SLAP_CB_CONTINUE ) goto clean2;
 	}
 
 #ifdef LDAP_CONNECTIONLESS
@@ -464,12 +464,18 @@ send_ldap_response(
 	num_pdu_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
-cleanup:;
+cleanup:
+	/* Tell caller that we did this for real, as opposed to being
+	 * overridden by a callback
+	 */
+	rc = SLAP_CB_CONTINUE;
+
 	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
 		free( (char *)rs->sr_matched );
 		rs->sr_matched = NULL;
 	}
 
+clean2:
 	if (op->o_callback) {
 		slap_callback *sc = op->o_callback;
 		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
@@ -480,7 +486,7 @@ cleanup:;
 		op->o_callback = sc;
 	}
 
-	return;
+	return rc;
 }
 
 
@@ -518,11 +524,11 @@ send_ldap_disconnect( Operation	*op, SlapReply *rs )
 		rs->sr_msgid = 0;
 	}
 
-	send_ldap_response( op, rs );
-
-	Statslog( LDAP_DEBUG_STATS,
+	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
+		Statslog( LDAP_DEBUG_STATS,
 	    "conn=%lu op=%lu DISCONNECT tag=%lu err=%d text=%s\n",
 		op->o_connid, op->o_opid, rs->sr_tag, rs->sr_err, rs->sr_text ? rs->sr_text : "" );
+	}
 }
 
 void
@@ -612,22 +618,22 @@ slap_send_ldap_result( Operation *op, SlapReply *rs )
 	rs->sr_tag = req2res( op->o_tag );
 	rs->sr_msgid = (rs->sr_tag != LBER_SEQUENCE) ? op->o_msgid : 0;
 
-	send_ldap_response( op, rs );
+	if ( send_ldap_response( op, rs ) == SLAP_CB_CONTINUE ) {
+		if ( op->o_tag == LDAP_REQ_SEARCH ) {
+			char nbuf[64];
+			snprintf( nbuf, sizeof nbuf, "%d nentries=%d",
+				rs->sr_err, rs->sr_nentries );
 
-	if ( op->o_tag == LDAP_REQ_SEARCH ) {
-		char nbuf[64];
-		snprintf( nbuf, sizeof nbuf, "%d nentries=%d",
-			rs->sr_err, rs->sr_nentries );
-
-		Statslog( LDAP_DEBUG_STATS,
-	    	"conn=%lu op=%lu SEARCH RESULT tag=%lu err=%s text=%s\n",
-			op->o_connid, op->o_opid, rs->sr_tag, nbuf,
-			rs->sr_text ? rs->sr_text : "" );
-	} else {
-		Statslog( LDAP_DEBUG_STATS,
-			"conn=%lu op=%lu RESULT tag=%lu err=%d text=%s\n",
-			op->o_connid, op->o_opid, rs->sr_tag, rs->sr_err,
-			rs->sr_text ? rs->sr_text : "" );
+			Statslog( LDAP_DEBUG_STATS,
+			"conn=%lu op=%lu SEARCH RESULT tag=%lu err=%s text=%s\n",
+				op->o_connid, op->o_opid, rs->sr_tag, nbuf,
+				rs->sr_text ? rs->sr_text : "" );
+		} else {
+			Statslog( LDAP_DEBUG_STATS,
+				"conn=%lu op=%lu RESULT tag=%lu err=%d text=%s\n",
+				op->o_connid, op->o_opid, rs->sr_tag, rs->sr_err,
+				rs->sr_text ? rs->sr_text : "" );
+		}
 	}
 
 	if( tmp != NULL ) ch_free(tmp);
