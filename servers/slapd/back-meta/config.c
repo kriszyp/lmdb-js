@@ -321,6 +321,7 @@ meta_back_db_config(
 			fprintf( stderr,
 	"%s: line %d: need \"uri\" directive first\n",
 				fname, lineno );
+			return 1;
 		}
 		
 		if ( argc != 2 ) {
@@ -347,6 +348,7 @@ meta_back_db_config(
 			fprintf( stderr,
 	"%s: line %d: need \"uri\" directive first\n",
 				fname, lineno );
+			return 1;
 		}
 		
 		if ( argc != 2 ) {
@@ -376,6 +378,7 @@ meta_back_db_config(
 			fprintf( stderr,
 	"%s: line %d: need \"uri\" directive first\n",
 				fname, lineno );
+			return 1;
 		}
 		
 		if ( argc != 2 ) {
@@ -402,6 +405,7 @@ meta_back_db_config(
 			fprintf( stderr,
 	"%s: line %d: need \"uri\" directive first\n",
 				fname, lineno );
+			return 1;
 		}
 		
 		if ( argc != 2 ) {
@@ -522,6 +526,13 @@ meta_back_db_config(
 	/* objectclass/attribute mapping */
 	} else if ( strcasecmp( argv[ 0 ], "map" ) == 0 ) {
 		int 		i = li->ntargets-1;
+
+		if ( i < 0 ) {
+			fprintf( stderr,
+	"%s: line %d: need \"uri\" directive first\n",
+				fname, lineno );
+			return 1;
+		}
 
 		return ldap_back_map_config( &li->targets[ i ]->oc_map, 
 				&li->targets[ i ]->at_map,
