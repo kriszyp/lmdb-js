@@ -46,6 +46,7 @@
 
 #include "portable.h"
 
+#include <ac/assert.h>
 #include <ac/stdlib.h>
 #include <ac/ctype.h>
 #include <ac/string.h>
@@ -54,8 +55,6 @@
 #include <ac/socket.h>
 
 #include "lutil.h"
-
-#define Assert(Cond) if (!(Cond)) abort()
 
 static const char Base64[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -146,10 +145,10 @@ lutil_b64_ntop(
 		output[1] = ((input[0] & 0x03) << 4) + (input[1] >> 4);
 		output[2] = ((input[1] & 0x0f) << 2) + (input[2] >> 6);
 		output[3] = input[2] & 0x3f;
-		Assert(output[0] < 64);
-		Assert(output[1] < 64);
-		Assert(output[2] < 64);
-		Assert(output[3] < 64);
+		assert(output[0] < 64);
+		assert(output[1] < 64);
+		assert(output[2] < 64);
+		assert(output[3] < 64);
 
 		if (datalength + 4 > targsize)
 			return (-1);
@@ -169,9 +168,9 @@ lutil_b64_ntop(
 		output[0] = input[0] >> 2;
 		output[1] = ((input[0] & 0x03) << 4) + (input[1] >> 4);
 		output[2] = ((input[1] & 0x0f) << 2) + (input[2] >> 6);
-		Assert(output[0] < 64);
-		Assert(output[1] < 64);
-		Assert(output[2] < 64);
+		assert(output[0] < 64);
+		assert(output[1] < 64);
+		assert(output[2] < 64);
 
 		if (datalength + 4 > targsize)
 			return (-1);
