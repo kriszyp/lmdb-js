@@ -45,7 +45,7 @@ CFG=build - Win32 DLL Debug
 # PROP Intermediate_Dir "Release"
 # PROP Cmd_Line "NMAKE /f build.mak"
 # PROP Rebuild_Opt "/a"
-# PROP Target_File "build.exe"
+# PROP Target_File "build.txt"
 # PROP Bsc_Name "build.bsc"
 # PROP Target_Dir ""
 
