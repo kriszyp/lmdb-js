@@ -10,8 +10,8 @@
 ##
 
 SUBDIRS= include libraries clients servers doc # contrib
-CLEANDIRS= tests doc
-INSTALLDIRS= doc
+CLEANDIRS= tests
+INSTALLDIRS=
 
 makefiles:	FORCE
 	./config.status
