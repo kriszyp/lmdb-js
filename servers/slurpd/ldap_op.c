@@ -762,6 +762,7 @@ do_bind(
 	return( BIND_ERR_BADRI );
     }
 
+retry:
     if ( ri->ri_ldp != NULL ) {
 	ldrc = ldap_unbind( ri->ri_ldp );
 	if ( ldrc != LDAP_SUCCESS ) {
@@ -868,6 +869,8 @@ do_bind(
 				ri->ri_ldp = NULL;
 				return BIND_ERR_TLS_FAILED;
 			}
+			ri->ri_tls = TLS_OFF;
+			goto retry;
 		}
 	}
 
