@@ -22,6 +22,8 @@ ldapmodify, ldapadd \- ldap modify entry and ldap add entry tools
 [\c
 .BI \-D \ binddn\fR]
 [\c
+.BR \-W ]
+[\c
 .BI \-w \ passwd\fR]
 [\c
 .BI \-h \ ldaphost\fR]
@@ -132,6 +134,10 @@ standard input.
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
+.TP
+.B \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
 .TP
 .BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.

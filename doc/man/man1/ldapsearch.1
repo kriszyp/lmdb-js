@@ -32,6 +32,8 @@ ldapsearch \- ldap search tool
 [\c
 .BI \-D \ binddn\fR]
 [\c
+.BR \-W ]
+[\c
 .BI \-w \ bindpasswd\fR]
 [\c
 .BI \-h \ ldaphost\fR]
@@ -148,6 +150,10 @@ character, then the lines are read from standard input.
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
+.TP
+.B \-W
+Prompt for simple authentication.
+This is used instead of specifying the password on the command line.
 .TP
 .BI \-w \ bindpasswd
 Use \fIbindpasswd\fP as the password for simple authentication.
