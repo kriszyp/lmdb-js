@@ -581,11 +581,21 @@ backend_db_init(
 		return NULL;
 	}
 
+	be = backendDB;
+
 	backendDB = (BackendDB *) ch_realloc(
 			(char *) backendDB,
 		    (nBackendDB + 1) * sizeof(Backend) );
 
 	memset( &backendDB[nbackends], '\0', sizeof(Backend) );
+
+	/* did realloc move our table? if so, fix up dependent pointers */
+	if ( be != backendDB ) {
+		int i;
+		for ( i=0, be=backendDB; i<nbackends; i++, be++ ) {
+			be->be_pcl_mutexp = &be->be_pcl_mutex;
+		}
+	}
 
 	be = &backends[nbackends++];
 
@@ -599,8 +609,8 @@ backend_db_init(
 
 	be->be_context_csn.bv_len = 0;
 	be->be_context_csn.bv_val = NULL;
-	ldap_pvt_thread_mutex_init( &be->be_pcl_mutex );
-	ldap_pvt_thread_mutex_init( &be->be_context_csn_mutex );
+	be->be_pcl_mutexp = &be->be_pcl_mutex;
+	ldap_pvt_thread_mutex_init( be->be_pcl_mutexp );
 
 	LDAP_STAILQ_INIT( &be->be_syncinfo );
 
@@ -1412,7 +1422,8 @@ backend_attribute(
 	Entry	*target,
 	struct berval	*edn,
 	AttributeDescription *entry_at,
-	BerVarray *vals )
+	BerVarray *vals,
+	slap_access_t access )
 {
 	Entry *e;
 	Attribute *a;
@@ -1433,8 +1444,8 @@ backend_attribute(
 		if ( a ) {
 			BerVarray v;
 
-			if ( op->o_conn && access_allowed( op,
-				e, entry_at, NULL, ACL_AUTH,
+			if ( op->o_conn && access > ACL_NONE && access_allowed( op,
+				e, entry_at, NULL, access,
 				&acl_state ) == 0 ) {
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto freeit;
@@ -1445,10 +1456,10 @@ backend_attribute(
 			v = op->o_tmpalloc( sizeof(struct berval) * (i+1),
 				op->o_tmpmemctx );
 			for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
-				if ( op->o_conn && access_allowed( op,
+				if ( op->o_conn && access > ACL_NONE && access_allowed( op,
 					e, entry_at,
 					&a->a_nvals[i],
-					ACL_AUTH, &acl_state ) == 0 ) {
+					access, &acl_state ) == 0 ) {
 					continue;
 				}
 				ber_dupbv_x( &v[j],
