@@ -870,6 +870,27 @@ ldap_modify_s LDAP_P((
  * in modrdn.c:
  */
 LDAP_F( int )
+ldap_rename LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	int *msgidp ));
+
+LDAP_F( int )
+ldap_rename_s LDAP_P((
+	LDAP *ld,
+	LDAP_CONST char *dn,
+	LDAP_CONST char *newrdn,
+	int deleteoldrdn,
+	LDAP_CONST char *newSuperior,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls ));
+
+LDAP_F( int )
 ldap_rename_ext LDAP_P((
 	LDAP			*ld,
 	LDAP_CONST char	*dn,
