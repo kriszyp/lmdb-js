@@ -1338,7 +1338,7 @@ read_config( const char *fname, int depth )
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 						"unknown feature %s in \"allow <features>\" line.\n",
-						fname, lineno, cargv[1] );
+						fname, lineno, cargv[i] );
 #else
 					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
 						"unknown feature %s in \"allow <features>\" line\n",
