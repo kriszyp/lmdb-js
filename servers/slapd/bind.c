@@ -46,6 +46,7 @@ do_bind(
 {
 	BerElement *ber = op->o_ber;
 	ber_int_t version;
+	ber_tag_t method;
 	struct berval mech = { 0, NULL };
 	struct berval dn = { 0, NULL };
 	ber_tag_t tag;
@@ -106,7 +107,7 @@ do_bind(
 	 *	}
 	 */
 
-	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &op->orb_method );
+	tag = ber_scanf( ber, "{imt" /*}*/, &version, &dn, &method );
 
 	if ( tag == LBER_ERROR ) {
 #ifdef NEW_LOGGING
@@ -121,6 +122,7 @@ do_bind(
 	}
 
 	op->o_protocol = version;
+	op->orb_method = method;
 
 	if( op->orb_method != LDAP_AUTH_SASL ) {
 		tag = ber_scanf( ber, /*{*/ "m}", &op->orb_cred );
@@ -206,8 +208,8 @@ do_bind(
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu BIND dn=\"%s\" method=%ld\n",
-	    op->o_connid, op->o_opid, op->o_req_dn.bv_val, (unsigned long) op->orb_method,
-		0 );
+	    op->o_connid, op->o_opid, op->o_req_dn.bv_val,
+		(unsigned long) op->orb_method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 #ifdef NEW_LOGGING
@@ -458,7 +460,9 @@ do_bind(
 		}
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	} else if ( op->orb_method == LDAP_AUTH_KRBV41 || op->orb_method == LDAP_AUTH_KRBV42 ) {
+	} else if ( op->orb_method == LDAP_AUTH_KRBV41 ||
+		op->orb_method == LDAP_AUTH_KRBV42 )
+	{
 		if ( global_disallows & SLAP_DISALLOW_BIND_KRBV4 ) {
 			/* disallow simple authentication */
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
