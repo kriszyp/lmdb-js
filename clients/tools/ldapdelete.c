@@ -23,6 +23,7 @@ static char	*binddn = NULL;
 static char	*passwd = NULL;
 static char	*ldaphost = NULL;
 static int	ldapport = 0;
+static int  prune = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
@@ -30,10 +31,13 @@ static int dodelete LDAP_P((
     LDAP	*ld,
     char	*dn));
 
+static int deletechildren LDAP_P(( LDAP *ld,
+                                   char *dn ));
+
 int
 main( int argc, char **argv )
 {
-	char		*usage = "usage: %s [-n] [-v] [-k] [-W] [-M[M]] [-d debug-level] [-f file] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
+	char		*usage = "usage: %s [-n] [-v] [-k] [-W] [-M[M]] [-r] [-d debug-level] [-f file] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [dn]...\n";
     char		buf[ 4096 ];
     FILE		*fp;
 	int		i, rc, authmethod, want_bindpw, version, debug, manageDSAit;
@@ -43,7 +47,7 @@ main( int argc, char **argv )
     authmethod = LDAP_AUTH_SIMPLE;
 	version = -1;
 
-    while (( i = getopt( argc, argv, "WMnvkKch:P:p:D:w:d:f:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "WMnvkKcrh:P:p:D:w:d:f:" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
 #ifdef HAVE_KERBEROS
@@ -97,6 +101,9 @@ main( int argc, char **argv )
 	case 'n':	/* print deletes, don't actually do them */
 	    ++not;
 	    break;
+	case 'r':
+		prune = 1;
+		break;
 	case 'v':	/* verbose mode */
 	    verbose++;
 	    break;
@@ -230,12 +237,72 @@ static int dodelete(
     if ( not ) {
 	rc = LDAP_SUCCESS;
     } else {
-	if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
-	    ldap_perror( ld, "ldap_delete" );
+		/* If prune is on, remove a whole subtree.  Delete the children of the
+		 * DN recursively, then the DN requested.
+		 */
+		if ( prune ) deletechildren( ld, dn );
+		if (( rc = ldap_delete_s( ld, dn )) != LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_delete" );
 	} else if ( verbose ) {
 	    printf( "\tremoved\n" );
 	}
     }
 
     return( rc );
+}
+
+/*
+ * Delete all the children of an entry recursively until leaf nodes are reached.
+ *
+ */
+static int deletechildren( LDAP *ld,
+                           char *dn )
+{
+    LDAPMessage *res, *e;
+    int entries;
+    int rc;
+	int timeout = 30 * 10000;
+
+    ldap_set_option( ld, LDAP_OPT_TIMEOUT, &timeout );
+    if ( verbose ) printf ( "deleting children of: %s\n", dn );
+    /*
+     * Do a one level search at dn for children.  For each, delete its children.
+     */
+    if ( ldap_search_s( ld, dn, LDAP_SCOPE_ONELEVEL, "objectclass=*", NULL, 0, &res ) == -1 )
+    {
+        ldap_perror( ld, "ldap_search" );
+		ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &rc );
+        return( rc );
+    }
+
+    entries = ldap_count_entries( ld, res );
+    if ( entries > 0 )
+    {
+        int i;
+
+        for (e = ldap_first_entry( ld, res ), i = 0; e != NULL;
+             e = ldap_next_entry( ld, e ), i++ )
+        {
+            if ( (rc = deletechildren( ld, ldap_get_dn( ld, e) )) == -1 )
+            {
+                ldap_perror( ld, "ldap_prune" );
+                return rc;
+            }
+            if ( verbose )
+            {
+                printf( "\tremoving %s\n", ldap_get_dn( ld, e ) );
+            }
+            if ( rc = ldap_delete_s( ld, ldap_get_dn( ld, e ) ) == -1 )
+            {
+                ldap_perror( ld, "ldap_delete" );
+                return rc;
+            }
+            else if ( verbose )
+            {
+                printf( "\t%s removed\n", ldap_get_dn( ld, e ) );
+            }
+        }
+    }
+    ldap_msgfree( res );
+    return rc;
 }
