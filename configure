@@ -3183,7 +3183,7 @@ case "x$am_cv_prog_cc_stdc" in
 esac
 
 if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
-	{ echo "configure: error: OpenLDAP requires compiler to support STDC prototypes." 1>&2; exit 1; }
+	{ echo "configure: error: OpenLDAP requires compiler to support STDC constructs." 1>&2; exit 1; }
 fi
 
 

@@ -449,7 +449,7 @@ AC_DEFINE_UNQUOTED( EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
 dnl OpenLDAP requires STDC features
 AM_PROG_CC_STDC
 if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
-	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC prototypes.])
+	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC constructs.])
 fi
 
 dnl AM_C_PROTOTYPES
