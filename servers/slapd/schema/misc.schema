@@ -1,12 +1,12 @@
 # $OpenLDAP$
 #
 # Assorted definitions from several sources, including
-# ''works in progress''.  Use with extreme care.  May
-# be subject to change.
+# ''works in progress''.
 #
+# Not recommended for production use!
 
 #
-# draft-lachman-laser-ldap-mail-routing-02.txt
+# draft-lachman-laser-ldap-mail-routing-02.txt !!!EXPIRED!!!
 #
 attributetype ( 2.16.840.1.113730.3.1.13
 	NAME 'mailLocalAddress'
