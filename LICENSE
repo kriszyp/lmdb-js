@@ -1,6 +1,6 @@
 The OpenLDAP Public License
 
-Version 1.3, 17 January 1999
+Version 1.4, 18 January 1999
 Copyright 1998-1999, The OpenLDAP Foundation.
 All Rights Reserved.
 
@@ -123,9 +123,11 @@ the regression tests for the Package.
 8. Software supplied by you and linked with this Package in order
 to use subroutines and variables defined by this Package shall not
 be considered part of this Package and do not automatically fall
-under the copyright of this Package, and the executables produced
+under the copyright of this Package.  Executables produced
 by linking your software with this Package may be used and
-redistributed without restriction and may be sold commercially.
+redistributed without restriction and may be sold commercially
+so long as the primary function of your software is different
+than the package itself.
 
 9. The name of the Copyright Holder may not be used to endorse or
 promote products derived from this software without specific prior
