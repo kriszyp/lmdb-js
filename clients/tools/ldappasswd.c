@@ -81,7 +81,7 @@ static int	auto_gen_pw = 0;
 /*** functions ***/
 
 /*
- * pw_encode() essentially base64 encodes a password and it's salt
+ * pw_encode() essentially base64 encodes a password and its salt
  */
 
 char *
@@ -284,7 +284,7 @@ modify_dn (LDAP * ld, char *targetdn, char *pwattr, char *oldpw,
 	/* hash password */
 	hashed_pw = hashes[htype].func (newpw, salt->len ? salt : NULL);
 
-	/* return salt back to it's original state */
+	/* return salt back to its original state */
 	if (want_salt)
 	{
 		free (salt->salt);
