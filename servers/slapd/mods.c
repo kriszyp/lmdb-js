@@ -629,7 +629,7 @@ modify_delete_values(
 	}
 	a->a_vals[ j ].bv_val = NULL;
 #ifdef SLAP_NVALUES
-	a->a_nvals[ j ].bv_val = NULL;
+	if (a->a_nvals) a->a_nvals[ j ].bv_val = NULL;
 #endif
 
 	assert( i == k - j );
