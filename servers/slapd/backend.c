@@ -637,7 +637,7 @@ backend_check_restrictions(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	const char *extoid,
+	const void *opdata,
 	const char **text )
 {
 	int rc;
@@ -701,7 +701,9 @@ backend_check_restrictions(
 		return LDAP_OTHER;
 	}
 
-	if (( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) ) ) {
+	if ( op->o_tag != LDAP_REQ_EXTENDED
+		|| strcmp( (const char *) opdata, LDAP_EXOP_START_TLS ) )
+	{
 		/* these checks don't apply to StartTLS */
 
 		if( op->o_tag == LDAP_REQ_EXTENDED ) {
@@ -709,47 +711,57 @@ backend_check_restrictions(
 			updateop++;
 		}
 
-		if( op->o_ssf < ssf->sss_ssf ) {
-			*text = "confidentiality required";
-			return LDAP_CONFIDENTIALITY_REQUIRED;
-		}
 		if( op->o_transport_ssf < ssf->sss_transport ) {
 			*text = "transport confidentiality required";
 			return LDAP_CONFIDENTIALITY_REQUIRED;
 		}
+
 		if( op->o_tls_ssf < ssf->sss_tls ) {
 			*text = "TLS confidentiality required";
 			return LDAP_CONFIDENTIALITY_REQUIRED;
 		}
-		if( op->o_sasl_ssf < ssf->sss_sasl ) {
-			*text = "SASL confidentiality required";
-			return LDAP_CONFIDENTIALITY_REQUIRED;
+
+		if( op->o_tag != LDAP_REQ_BIND || opdata == NULL ) {
+			/* these checks don't apply to SASL bind */
+
+			if( op->o_sasl_ssf < ssf->sss_sasl ) {
+				*text = "SASL confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
+
+			if( op->o_ssf < ssf->sss_ssf ) {
+				*text = "confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
 		}
 
 		if( updateop ) {
-			if( op->o_ssf < ssf->sss_update_ssf ) {
-				*text = "update confidentiality required";
-				return LDAP_CONFIDENTIALITY_REQUIRED;
-			}
 			if( op->o_transport_ssf < ssf->sss_update_transport ) {
 				*text = "transport update confidentiality required";
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
+
 			if( op->o_tls_ssf < ssf->sss_update_tls ) {
 				*text = "TLS update confidentiality required";
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
+
 			if( op->o_sasl_ssf < ssf->sss_update_sasl ) {
 				*text = "SASL update confidentiality required";
+				return LDAP_CONFIDENTIALITY_REQUIRED;
+			}
+
+			if( op->o_ssf < ssf->sss_update_ssf ) {
+				*text = "update confidentiality required";
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
 		}
 	}
 
-	if (( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) )
-		|| op->o_tag == LDAP_REQ_BIND )
+	if ( op->o_tag != LDAP_REQ_BIND && ( op->o_tag != LDAP_REQ_EXTENDED ||
+		strcmp( (const char *) opdata, LDAP_EXOP_START_TLS ) ) )
 	{
-		/* these checks don't apply to StartTLS or Bind */
+		/* these checks don't apply to Bind or StartTLS */
 
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */

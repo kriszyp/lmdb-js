@@ -203,6 +203,14 @@ do_bind(
 			goto cleanup;
 		}
 
+		/* check restrictions */
+		rc = backend_check_restrictions( NULL, conn, op, mech, &text );
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+			goto cleanup;
+		}
+
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 		if ( conn->c_sasl_bind_mech != NULL ) {
@@ -290,6 +298,9 @@ do_bind(
 				/* disallow */
 				rc = LDAP_INAPPROPRIATE_AUTH;
 				text = "anonymous bind disallowed";
+
+			} else {
+				rc = backend_check_restrictions( NULL, conn, op, mech, &text );
 			}
 
 			/*
@@ -363,7 +374,7 @@ do_bind(
 	}
 
 	/* check restrictions */
-	rc = backend_check_restrictions( be, conn, op, NULL, &text ) ;
+	rc = backend_check_restrictions( be, conn, op, NULL, &text );
 	if( rc != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, rc,
 			NULL, text, NULL, NULL );

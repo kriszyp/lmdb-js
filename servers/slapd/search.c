@@ -27,7 +27,7 @@
 
 int
 do_search(
-    Connection	*conn,	/* where to send results 		       */
+    Connection	*conn,	/* where to send results */
     Operation	*op	/* info about the op to which we're responding */
 ) {
 	int		i;
@@ -140,7 +140,7 @@ do_search(
 		goto return_results;
 	} 
 
-	rc = 0;
+	rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_ARGS, "    attrs:", 0, 0, 0 );
 
@@ -156,28 +156,62 @@ do_search(
 	    "conn=%ld op=%d SRCH base=\"%s\" scope=%d filter=\"%s\"\n",
 	    op->o_connid, op->o_opid, base, scope, fstr );
 
+	manageDSAit = get_manageDSAit( op );
+
 	if ( scope == LDAP_SCOPE_BASE ) {
 		Entry *entry = NULL;
 
 		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
 			rc = root_dse_info( conn, &entry, &text );
 		}
 
 #if defined( SLAPD_MONITOR_DN )
 		else if ( strcasecmp( nbase, SLAPD_MONITOR_DN ) == 0 ) {
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
 			rc = monitor_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_CONFIG_DN )
 		else if ( strcasecmp( nbase, SLAPD_CONFIG_DN ) == 0 ) {
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
 			rc = config_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_SCHEMA_DN )
 		else if ( strcasecmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
-			rc= schema_info( &entry, &text );
+			/* check restrictions */
+			rc = backend_check_restrictions( NULL, conn, op, NULL, &text ) ;
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;
+			}
+
+			rc = schema_info( &entry, &text );
 		}
 #endif
 
@@ -209,8 +243,6 @@ do_search(
 		base = ch_strdup( default_search_base );
 		nbase = ch_strdup( default_search_nbase );
 	}
-
-	manageDSAit = get_manageDSAit( op );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
