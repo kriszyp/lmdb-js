@@ -17,6 +17,7 @@
 
 #include "slap.h"
 #include "lutil.h"
+#include "ldif.h"
 
 #ifdef LDAP_SIGCHLD
 static RETSIGTYPE wait4child( int sig );

@@ -32,7 +32,6 @@
 #include <ldap_schema.h>
 
 #include "ldap_pvt_thread.h"
-#include "ldif.h"
 
 LDAP_BEGIN_DECL
 
