@@ -7,6 +7,10 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
+ *
+ * $Id$
+ *
+ * $Log$
  */
 
 #include "portable.h"
@@ -35,15 +39,16 @@ tcl_back_initialize(
 
 	/* Initialize the global interpreter lock */
 	ldap_pvt_thread_mutex_init( &tcl_interpreter_mutex );
-	bi->bi_open = NULL;
-	bi->bi_config = NULL;
-	bi->bi_close = NULL;
-	bi->bi_destroy = NULL;
+
+	bi->bi_open = tcl_back_open;
+	bi->bi_config = tcl_back_config;
+	bi->bi_close = tcl_back_close;
+	bi->bi_destroy = tcl_back_destroy;
 
 	bi->bi_db_init = tcl_back_db_init;
 	bi->bi_db_config = tcl_back_db_config;
 	bi->bi_db_open = tcl_back_db_open;
-	bi->bi_db_close = NULL;
+	bi->bi_db_close = tcl_back_db_close;
 	bi->bi_db_destroy = tcl_back_db_destroy;
 
 	bi->bi_op_bind = tcl_back_bind;
@@ -89,11 +94,26 @@ tcl_back_db_init(
 	return ti == NULL;
 }
 
-int
-tcl_back_db_destroy(
-	Backend	*be
+int tcl_back_db_open (
+        BackendDB * bd
 )
 {
-	free( be->be_private );
+	struct tclinfo *ti = (struct tclinfo *) bd->be_private;
+
+	if (ti->ti_ii->interp == NULL) { /* we need to make a new one */
+		ti->ti_ii->interp = Tcl_CreateInterp ();
+		Tcl_Init (ti->interp);
+	}
+
+	/* raise that count for the interpreter */
+	ti->ti_ii->count++;
+
+	/* now let's (try to) load the script */
+	readtclscript (ti->script_path, ti->ti_ii->interp);
+
+	/* Intall the debug command */
+	Tcl_CreateCommand( ti->ti_ii->interp, "ldap:debug", &tcl_ldap_debug,
+		NULL, NULL);
+
 	return 0;
 }
