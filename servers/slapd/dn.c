@@ -556,6 +556,36 @@ dnMatch(
 	return( LDAP_SUCCESS );
 }
 
+/*
+ * dnParent - dn's parent, in-place
+ *
+ * note: the incoming dn is assumed to be normalized/prettyfied,
+ * so that escaped rdn/ava separators are in '\'+hexpair form
+ */
+int
+dnParent( 
+	const char	*dn, 
+	const char	**pdn )
+{
+	const char	*p;
+
+	p = strchr( dn, ',' );
+
+	/* one-level dn */
+	if ( p == NULL ) {
+		*pdn = "";
+		return LDAP_SUCCESS;
+	}
+
+	assert( DN_SEPARATOR( p[ 0 ] ) );
+	p++;
+
+	assert( ATTR_LEADCHAR( p[ 0 ] ) );
+	*pdn = p;
+
+	return LDAP_SUCCESS;
+}
+
 #ifdef SLAP_DN_MIGRATION
 /*
  * these routines are provided for migration purposes only!
@@ -600,34 +630,6 @@ dn_normalize( char *dn )
 	ber_bvfree( normalized );
 
 	return dn;
-}
-
-/*
- * dnParent - dn's parent, in-place
- *
- * note: the incoming dn is assumed to be normalized/prettyfied,
- * so that escaped rdn/ava separators are in '\'+hexpair form
- */
-int
-dnParent( 
-	const char	*dn, 
-	const char	**pdn )
-{
-	const char	*p;
-
-	p = strchr( dn, ',' );
-
-	if ( p == NULL ) {
-		return LDAP_INVALID_DN_SYNTAX;
-	}
-
-	assert( DN_SEPARATOR( p[ 0 ] ) );
-	p++;
-
-	assert( ! ASCII_SPACE( p[ 0 ] ) );
-	*pdn = p;
-
-	return LDAP_SUCCESS;
 }
 
 /*
