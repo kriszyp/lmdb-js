@@ -941,9 +941,9 @@
 #	define WIN32_LEAN_AND_MEAN 1
 #endif
 
-#ifndef LDAP_NEED_PROTOTYPES
+#ifndef LDAP_NEEDS_PROTOTYPES
 /* force LDAP_P to always include prototypes */
-#define LDAP_NEED_PROTOTYPES 1
+#define LDAP_NEEDS_PROTOTYPES 1
 #endif
 
 #ifdef HAVE_STDDEF_H

@@ -21,7 +21,7 @@
 #	define LDAP_END_DECL	/* end declarations */
 #endif
 
-#if !defined(LDAP_NO_PROTOTYPES) && ( defined(LDAP_NEED_PROTOTYPES) || \
+#if !defined(LDAP_NO_PROTOTYPES) && ( defined(LDAP_NEEDS_PROTOTYPES) || \
 	defined(__STDC__) || defined(__cplusplus) || defined(c_plusplus) )
 
 	/* ANSI C or C++ */
