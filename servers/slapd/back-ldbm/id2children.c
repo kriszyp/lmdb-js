@@ -104,7 +104,7 @@ has_children(
 {
 	struct dbcache	*db;
 	Datum		key;
-	int		rc = 1;
+	int		rc = 0;
 	ID_BLOCK		*idl;
 	char		buf[20];
 
@@ -130,7 +130,7 @@ has_children(
 
 	if( idl != NULL ) {
 		idl_free( idl );
-		rc = 0;
+		rc = 1;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= has_children( %lu ): %s\n",
