@@ -21,6 +21,8 @@
 
 #ifdef HAVE_WINSOCK2
 #include <winsock2.h>
+#define EMSGSIZE WSAEMSGSIZE
+#define EHOSTUNREACH WSAEHOSTUNREACH
 #elif HAVE_WINSOCK
 #include <winsock.h>
 #endif
