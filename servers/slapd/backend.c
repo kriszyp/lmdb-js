@@ -1535,7 +1535,8 @@ int backend_operational(
 
 	/* Let the overlays have a chance at this */
 	be_orig = op->o_bd;
-	op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
+	if ( SLAP_ISOVERLAY( be_orig ))
+		op->o_bd = select_backend( be_orig->be_nsuffix, 0, 0 );
 
 	if (( SLAP_OPATTRS( rs->sr_attr_flags ) || op->ors_attrs ) &&
 		op->o_bd && op->o_bd->be_operational != NULL )

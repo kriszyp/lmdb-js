@@ -178,6 +178,7 @@ over_back_response ( Operation *op, SlapReply *rs )
 	int rc = SLAP_CB_CONTINUE;
 	BackendDB *be = op->o_bd, db = *op->o_bd;
 
+	db.be_flags |= SLAP_DBFLAG_OVERLAY;
 	op->o_bd = &db;
 	for (; on; on=on->on_next ) {
 		if ( on->on_response ) {
@@ -241,6 +242,7 @@ over_op_func(
 	slap_callback cb = {NULL, over_back_response, NULL, NULL};
 	int rc = SLAP_CB_CONTINUE;
 
+	db.be_flags |= SLAP_DBFLAG_OVERLAY;
 	op->o_bd = &db;
 	cb.sc_next = op->o_callback;
 	cb.sc_private = oi;
