@@ -183,11 +183,11 @@ ldap_pvt_find_wildcard( const char *s )
 
 		case '\\':
 			if( s[1] == '\0' ) return NULL;
+
 			if( LDAP_HEX( s[1] ) && LDAP_HEX( s[2] ) ) {
 				s+=2;
-			}
 
-			switch( s[1] ) {
+			} else switch( s[1] ) {
 			default:
 				return NULL;
 
@@ -201,7 +201,7 @@ ldap_pvt_find_wildcard( const char *s )
 		}
 	}
 
-	return s;
+	return (char *) s;
 }
 
 /* unescape filter value */
@@ -332,7 +332,7 @@ ldap_int_put_filter( BerElement *ber, char *str )
 	 * Note: tags in a choice are always explicit
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "put_filter \"%s\"\n", str, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "put_filter: \"%s\"\n", str, 0, 0 );
 
 	parens = 0;
 	while ( *str ) {
@@ -491,7 +491,7 @@ put_simple_filter(
 	ber_tag_t	ftype;
 	int		rc = -1;
 
-	Debug( LDAP_DEBUG_TRACE, "put_simple_filter \"%s\"\n",
+	Debug( LDAP_DEBUG_TRACE, "put_simple_filter: \"%s\"\n",
 		str, 0, 0 );
 
 	str = LDAP_STRDUP( str );
