@@ -736,9 +736,9 @@ ldap_bv2dn_x( struct berval *bvin, LDAPDN *dn, unsigned flags, void *ctx )
 	end = str + bv->bv_len;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS, "ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
+	LDAP_LOG ( OPERATION, ARGS, "ldap_bv2dn(%s,%u)\n", str, flags, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2dn(%s,%u)\n%s", str, flags, "" );
+	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2dn(%s,%u)\n", str, flags, 0 );
 #endif
 
 	*dn = NULL;
@@ -922,10 +922,11 @@ return_result:;
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_bv2dn(%s,%u)=%d\n", 
-		str, flags, rc );
+	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_bv2dn(%s)=%d %s\n", 
+		str, rc, ldap_err2string( rc ) );
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_bv2dn(%s,%u)=%d\n", str, flags, rc );
+	Debug( LDAP_DEBUG_TRACE, "<= ldap_bv2dn(%s)=%d %s\n", str, rc,
+			ldap_err2string( rc ) );
 #endif
 	*dn = newDN;
 	
@@ -3032,10 +3033,9 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 	bv->bv_val = NULL;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, ARGS, "=> ldap_dn2bv(%u)\n%s%s", 
-		flags, "", "" );
+	LDAP_LOG ( OPERATION, ARGS, "=> ldap_dn2bv(%u)\n", flags, 0, 0 );
 #else
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_dn2bv(%u)\n%s%s", flags, "", "" );
+	Debug( LDAP_DEBUG_TRACE, "=> ldap_dn2bv(%u)\n", flags, 0, 0 );
 #endif
 
 	/* 
@@ -3346,11 +3346,11 @@ int ldap_dn2bv_x( LDAPDN dn, struct berval *bv, unsigned flags, void *ctx )
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_dn2bv(%s,%u)=%d\n", 
-		bv->bv_val, flags, rc );
+	LDAP_LOG ( OPERATION, RESULTS, "<= ldap_dn2bv(%s)=%d %s\n", 
+		bv->bv_val, rc, ldap_err2string( rc ) );
 #else
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s,%u)=%d\n",
-		bv->bv_val, flags, rc );
+	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s)=%d %s\n",
+		bv->bv_val, rc, ldap_err2string( rc ) );
 #endif
 
 return_results:;
