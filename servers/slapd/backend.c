@@ -282,10 +282,10 @@ be_unbind(
 
 #ifdef SLAPD_ACLGROUPS
 int 
-be_group(Backend *be, char *bdn, char *edn)
+be_group(Backend *be, char *bdn, char *edn, char *objectclassValue, char *groupattrName)
 {
         if (be->be_group)
-                return(be->be_group(be, bdn, edn));
+                return(be->be_group(be, bdn, edn, objectclassValue, groupattrName));
         else
                 return(1);
 }

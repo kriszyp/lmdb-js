@@ -144,7 +144,9 @@ struct access {
 	long		a_access;
 
 #ifdef SLAPD_ACLGROUPS
-    char		*a_group;
+        char		*a_group;
+        char		*a_objectclassvalue;
+        char		*a_groupattrname;
 #endif
 
 #define ACL_NONE	0x01

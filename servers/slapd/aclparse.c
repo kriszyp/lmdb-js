@@ -210,8 +210,36 @@ parse_acl(
 
 #ifdef SLAPD_ACLGROUPS
 			} else if ( strcasecmp( left, "group" ) == 0 ) {
+                                char *name = NULL;
+                                char *value = NULL;
 				regtest(fname, lineno, right);
+
+                                /* format of string is "group/objectClassValue/groupAttrName"
+                                 */
+                                if ((value = strchr(right, '/')) != NULL) {
+                                        *value++ = '\0';
+                                        if (value && *value && (name = strchr(value, '/')) != NULL) 
+                                            *name++ = '\0';
+                                }
+
 				b->a_group = dn_upcase(strdup( right ));
+
+                                if (value && *value) {
+                                        b->a_objectclassvalue = strdup(value);
+                                        *--value = '/';
+                                }
+                                else
+                                        b->a_objectclassvalue = strdup("groupOfNames");
+
+                                if (name && *name) {
+                                        b->a_groupattrname = strdup(name);
+                                        *--name = '/';
+                                }
+                                else
+                                        b->a_groupattrname = strdup("member");
+
+
+
 #endif /* SLAPD_ACLGROUPS */
 			} else if ( strcasecmp( left, "domain" ) == 0 ) {
 				char	*s;
@@ -264,6 +292,10 @@ parse_acl(
 			    fname, lineno );
 
 	} else {
+
+                if (ldap_debug&LDAP_DEBUG_ACL)
+                    print_acl(a);
+
 	
 		if ( a->acl_access == NULL ) {
 			fprintf( stderr,
@@ -386,15 +418,22 @@ print_access( struct access *b )
 {
 	printf( "\tby" );
 	if ( b->a_dnpat != NULL ) {
-		printf( " dn=%s", b->a_dnpat );
+		fprintf( stderr, " dn=%s", b->a_dnpat );
 	} else if ( b->a_addrpat != NULL ) {
-		printf( " addr=%s", b->a_addrpat );
+		fprintf( stderr, " addr=%s", b->a_addrpat );
 	} else if ( b->a_domainpat != NULL ) {
-		printf( " domain=%s", b->a_domainpat );
+		fprintf( stderr, " domain=%s", b->a_domainpat );
 	} else if ( b->a_dnattr != NULL ) {
-		printf( " dnattr=%s", b->a_dnattr );
+		fprintf( stderr, " dnattr=%s", b->a_dnattr );
 	}
-	printf( " %s\n", access2str( b->a_access ) );
+        else if ( b->a_group != NULL ) {
+                fprintf( stderr, " group: %s", b->a_group );
+                if ( b->a_objectclassvalue )
+                        fprintf( stderr, " objectClassValue: %s", b->a_objectclassvalue );
+                if ( b->a_groupattrname )
+                        fprintf( stderr, " groupAttrName: %s", b->a_groupattrname );
+        }
+	fprintf( stderr, "\n" );
 }
 
 static void
@@ -404,33 +443,34 @@ print_acl( struct acl *a )
 	struct access	*b;
 
 	if ( a == NULL ) {
-		printf( "NULL\n" );
+		fprintf( stderr, "NULL\n" );
 	}
-	printf( "access to" );
+	fprintf( stderr, "ACL: access to" );
 	if ( a->acl_filter != NULL ) {
-		printf( " filter=" );
+		fprintf(  stderr," filter=" );
 		filter_print( a->acl_filter );
 	}
 	if ( a->acl_dnpat != NULL ) {
-		printf( " dn=" );
-		printf( a->acl_dnpat );
+		fprintf( stderr, " dn=" );
+		fprintf( stderr, a->acl_dnpat );
 	}
 	if ( a->acl_attrs != NULL ) {
 		int	first = 1;
 
-		printf( " attrs=" );
+		fprintf( stderr, "\n attrs=" );
 		for ( i = 0; a->acl_attrs[i] != NULL; i++ ) {
 			if ( ! first ) {
-				printf( "," );
+				fprintf( stderr, "," );
 			}
-			printf( a->acl_attrs[i] );
+			fprintf( stderr, a->acl_attrs[i] );
 			first = 0;
 		}
 	}
-	printf( "\n" );
+	fprintf( stderr, "\n" );
 	for ( b = a->acl_access; b != NULL; b = b->a_next ) {
 		print_access( b );
 	}
+	fprintf( stderr, "\n" );
 }
 
 #endif /* LDAP_DEBUG */

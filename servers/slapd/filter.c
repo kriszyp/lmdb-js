@@ -391,63 +391,63 @@ filter_print( Filter *f )
 	Filter	*p;
 
 	if ( f == NULL ) {
-		printf( "NULL" );
+		fprintf( stderr, "NULL" );
 	}
 
 	switch ( f->f_choice ) {
 	case LDAP_FILTER_EQUALITY:
-		printf( "(%s=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_GE:
-		printf( "(%s>=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s>=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_LE:
-		printf( "(%s<=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s<=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_APPROX:
-		printf( "(%s~=%s)", f->f_ava.ava_type,
+		fprintf( stderr, "(%s~=%s)", f->f_ava.ava_type,
 		    f->f_ava.ava_value.bv_val );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
-		printf( "(%s=", f->f_sub_type );
+		fprintf( stderr, "(%s=", f->f_sub_type );
 		if ( f->f_sub_initial != NULL ) {
-			printf( "%s", f->f_sub_initial );
+			fprintf( stderr, "%s", f->f_sub_initial );
 		}
 		if ( f->f_sub_any != NULL ) {
 			for ( i = 0; f->f_sub_any[i] != NULL; i++ ) {
-				printf( "*%s", f->f_sub_any[i] );
+				fprintf( stderr, "*%s", f->f_sub_any[i] );
 			}
 		}
 		charray_free( f->f_sub_any );
 		if ( f->f_sub_final != NULL ) {
-			printf( "*%s", f->f_sub_final );
+			fprintf( stderr, "*%s", f->f_sub_final );
 		}
 		break;
 
 	case LDAP_FILTER_PRESENT:
-		printf( "%s=*", f->f_type );
+		fprintf( stderr, "%s=*", f->f_type );
 		break;
 
 	case LDAP_FILTER_AND:
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
-		printf( "(%c", f->f_choice == LDAP_FILTER_AND ? '&' :
+		fprintf( stderr, "(%c", f->f_choice == LDAP_FILTER_AND ? '&' :
 		    f->f_choice == LDAP_FILTER_OR ? '|' : '!' );
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			filter_print( p );
 		}
-		printf( ")" );
+		fprintf( stderr, ")" );
 		break;
 
 	default:
-		printf( "unknown type %d", f->f_choice );
+		fprintf( stderr, "unknown type %d", f->f_choice );
 		break;
 	}
 }

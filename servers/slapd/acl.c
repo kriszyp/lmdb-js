@@ -368,15 +368,10 @@ acl_access_allowed(
 			 * entry with objectclass group* and we test to see if odn is one of
 			 * the values in the attribute group
 			 */
-			Debug( LDAP_DEBUG_ARGS, "<= check a_group: %s\n",
-				b->a_group, 0, 0);
-			Debug( LDAP_DEBUG_ARGS, "<= check a_group: odn: %s\n",
-				odn, 0, 0);
-
 			/* see if asker is listed in dnattr */
 			string_expand(buf, sizeof(buf), b->a_group, edn, matches);
 
-			if (be_group(be, buf, odn) == 0) {
+			if (be_group(be, buf, odn, b->a_objectclassvalue, b->a_groupattrname) == 0) {
 				Debug( LDAP_DEBUG_ACL,
 					"<= acl_access_allowed: matched by clause #%d (group) access granted\n",
 					i, 0, 0 );
