@@ -105,22 +105,22 @@ attributetype ( 1.3.6.1.1.1.1.18 NAME 'oncRpcNumber'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.1.1.1.19 NAME 'ipHostNumber'
-	DESC 'IP address as a dotted decimal, eg. 192.168.1.1, omitting leading zeros'
+	DESC 'IP address'
 	EQUALITY caseIgnoreIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{128} )
 
 attributetype ( 1.3.6.1.1.1.1.20 NAME 'ipNetworkNumber'
-	DESC 'IP network as a dotted decimal, eg. 192.168, omitting leading zeros'
+	DESC 'IP network'
 	EQUALITY caseIgnoreIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{128} SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.1.1.1.21 NAME 'ipNetmaskNumber'
-	DESC 'IP netmask as a dotted decimal, eg. 255.255.255.0, omitting leading zeros'
+	DESC 'IP netmask'
 	EQUALITY caseIgnoreIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{128} SINGLE-VALUE )
 
 attributetype ( 1.3.6.1.1.1.1.22 NAME 'macAddress'
-	DESC 'MAC address in maximal, colon separated hex notation, eg. 00:00:92:90:ee:e2'
+	DESC 'MAC address'
 	EQUALITY caseIgnoreIA5Match
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26{128} )
 
@@ -161,45 +161,32 @@ objectclass ( 1.3.6.1.1.1.2.2 NAME 'posixGroup' SUP top STRUCTURAL
 	MAY ( userPassword $ memberUid $ description ) )
 
 objectclass ( 1.3.6.1.1.1.2.3 NAME 'ipService' SUP top STRUCTURAL
-	DESC 'Abstraction an Internet Protocol service.
-	      Maps an IP port and protocol (such as tcp or udp)
-	      to one or more names; the distinguished value of
-	      the cn attribute denotes the service"s canonical
-	      name'
+	DESC 'Abstraction an Internet Protocol service'
 	MUST ( cn $ ipServicePort $ ipServiceProtocol )
 	MAY ( description ) )
 
 objectclass ( 1.3.6.1.1.1.2.4 NAME 'ipProtocol' SUP top STRUCTURAL
-	DESC 'Abstraction of an IP protocol. Maps a protocol number
-	      to one or more names. The distinguished value of the cn
-	      attribute denotes the protocol"s canonical name'
+	DESC 'Abstraction of an IP protocol'
 	MUST ( cn $ ipProtocolNumber $ description )
 	MAY description )
 
 objectclass ( 1.3.6.1.1.1.2.5 NAME 'oncRpc' SUP top STRUCTURAL
-	DESC 'Abstraction of an Open Network Computing (ONC)
-	      [RFC1057] Remote Procedure Call (RPC) binding.
-	      This class maps an ONC RPC number to a name.
-	      The distinguished value of the cn attribute denotes
-	      the RPC service"s canonical name'
+	DESC 'Abstraction of an ONC/RPC binding'
 	MUST ( cn $ oncRpcNumber $ description )
 	MAY description )
 
 objectclass ( 1.3.6.1.1.1.2.6 NAME 'ipHost' SUP top AUXILIARY
-	DESC 'Abstraction of a host, an IP device. The distinguished
-	      value of the cn attribute denotes the host"s canonical
-	      name. Device SHOULD be used as a structural class'
+	DESC 'Abstraction of a host, an IP device'
 	MUST ( cn $ ipHostNumber )
 	MAY ( l $ description $ manager ) )
 
 objectclass ( 1.3.6.1.1.1.2.7 NAME 'ipNetwork' SUP top STRUCTURAL
-	DESC 'Abstraction of a network. The distinguished value of
-	      the cn attribute denotes the network"s canonical name'
+	DESC 'Abstraction of an IP network'
 	MUST ( cn $ ipNetworkNumber )
 	MAY ( ipNetmaskNumber $ l $ description $ manager ) )
 
 objectclass ( 1.3.6.1.1.1.2.8 NAME 'nisNetgroup' SUP top STRUCTURAL
-	DESC 'Abstraction of a netgroup. May refer to other netgroups'
+	DESC 'Abstraction of a netgroup'
 	MUST cn
 	MAY ( nisNetgroupTriple $ memberNisNetgroup $ description ) )
 
@@ -214,11 +201,9 @@ objectclass ( 1.3.6.1.1.1.2.10 NAME 'nisObject' SUP top STRUCTURAL
 	MAY description )
 
 objectclass ( 1.3.6.1.1.1.2.11 NAME 'ieee802Device' SUP top AUXILIARY
-	DESC 'A device with a MAC address; device SHOULD be
-	      used as a structural class'
+	DESC 'A device with a MAC address'
 	MAY macAddress )
 
 objectclass ( 1.3.6.1.1.1.2.12 NAME 'bootableDevice' SUP top AUXILIARY
-	DESC 'A device with boot parameters; device SHOULD be
-	      used as a structural class'
+	DESC 'A device with boot parameters'
 	MAY ( bootFile $ bootParameter ) )
