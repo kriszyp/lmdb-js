@@ -10,6 +10,7 @@ CONF=$DATADIR/slapd.conf
 MCONF=$DATADIR/slapd-master.conf
 PWCONF=$DATADIR/slapd-pw.conf
 ACLCONF=$DATADIR/slapd-acl.conf
+RCONF=$DATADIR/slapd-referrals.conf
 MASTERCONF=$DATADIR/slapd-repl-master.conf
 SLAVECONF=$DATADIR/slapd-repl-slave.conf
 REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
@@ -47,6 +48,7 @@ SLAPD="../servers/slapd/slapd -s0"
 SLURPD=../servers/slurpd/slurpd
 LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
 LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
+LDAPRSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS"
 LDAPMODIFY="$CLIENTDIR/ldapmodify $TOOLPROTO $TOOLARGS"
 LDAPADD="$CLIENTDIR/ldapadd $TOOLPROTO $TOOLARGS"
 LDAPMODRDN="$CLIENTDIR/ldapmodrdn $TOOLPROTO $TOOLARGS"
@@ -66,7 +68,9 @@ LDIFPASSWD=$DATADIR/passwd.ldif
 LDIFPASSWDOUT=$DATADIR/passwd-out.ldif
 LDIFLANG=$DATADIR/test-lang.ldif
 LDIFLANGOUT=$DATADIR/lang-out.ldif
+LDIFREF=$DATADIR/referrals.ldif
 MONITOR=""
+REFDN="c=US"
 BASEDN="o=University of Michigan,c=US"
 MANAGERDN="cn=Manager,o=University of Michigan,c=US"
 UPDATEDN="cn=Replica,o=University of Michigan,c=US"
@@ -87,6 +91,7 @@ SLAVEOUT=$DBDIR/slave.out
 SUBMASTEROUT=$DBDIR/submaster.out
 TESTOUT=$DBDIR/test.out
 INITOUT=$DBDIR/init.out
+REFERRALOUT=$DATADIR/referrals.out
 SEARCHOUTMASTER=$DATADIR/search.out.master
 SEARCHOUTX=$DATADIR/search.out.xsearch
 MODIFYOUTMASTER=$DATADIR/modify.out.master
