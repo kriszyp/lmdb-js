@@ -59,6 +59,11 @@
 #define IA5StringApproxIndexer			approxIndexer
 #define IA5StringApproxFilter			approxFilter
 
+unsigned int index_substr_if_minlen = SLAP_INDEX_SUBSTR_IF_MINLEN_DEFAULT;
+unsigned int index_substr_if_maxlen = SLAP_INDEX_SUBSTR_IF_MAXLEN_DEFAULT;
+unsigned int index_substr_any_len = SLAP_INDEX_SUBSTR_ANY_LEN_DEFAULT;
+unsigned int index_substr_any_step = SLAP_INDEX_SUBSTR_ANY_STEP_DEFAULT;
+
 static int
 inValidate(
 	Syntax *syntax,
@@ -148,6 +153,29 @@ octetStringOrderingMatch(
 	return LDAP_SUCCESS;
 }
 
+hashDigestify(
+	HASH_CONTEXT *HASHcontext,
+	unsigned char *HASHdigest,
+	struct berval *prefix,
+	char pre,
+	Syntax *syntax,
+	MatchingRule *mr,
+	unsigned char *value,
+	int value_len)
+{
+	HASH_Init(HASHcontext);
+	if(prefix && prefix->bv_len > 0) {
+		HASH_Update(HASHcontext,
+			(unsigned char *)prefix->bv_val, prefix->bv_len);
+	}
+	if(pre) HASH_Update(HASHcontext, (unsigned char*)&pre, sizeof(pre));
+	HASH_Update(HASHcontext, (unsigned char*)syntax->ssyn_oid, syntax->ssyn_oidlen);
+	HASH_Update(HASHcontext, (unsigned char*)mr->smr_oid, mr->smr_oidlen);
+	HASH_Update(HASHcontext, value, value_len);
+	HASH_Final(HASHdigest, HASHcontext);
+	return;
+}
+
 /* Index generation function */
 int octetStringIndexer(
 	slap_mask_t use,
@@ -180,6 +208,7 @@ int octetStringIndexer(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
+	/* XXX this invocation does not like hashDigestify() */
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		HASH_Init( &HASHcontext );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -389,7 +418,7 @@ octetStringSubstringsIndexer(
 	BerVarray *keysp,
 	void *ctx )
 {
-	ber_len_t i, j, nkeys;
+	ber_len_t i, j, len, nkeys;
 	size_t slen, mlen;
 	BerVarray keys;
 
@@ -404,26 +433,26 @@ octetStringSubstringsIndexer(
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		/* count number of indices to generate */
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MAXLEN ) {
-				nkeys += SLAP_INDEX_SUBSTR_IF_MAXLEN -
-					(SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
-			} else if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN ) {
-				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
+			if( values[i].bv_len >= index_substr_if_maxlen ) {
+				nkeys += index_substr_if_maxlen -
+					(index_substr_if_minlen - 1);
+			} else if( values[i].bv_len >= index_substr_if_minlen ) {
+				nkeys += values[i].bv_len - (index_substr_if_minlen - 1);
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_ANY_LEN ) {
-				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_ANY_LEN - 1);
+			if( values[i].bv_len >= index_substr_any_len ) {
+				nkeys += values[i].bv_len - (index_substr_any_len - 1);
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
-			if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MAXLEN ) {
-				nkeys += SLAP_INDEX_SUBSTR_IF_MAXLEN -
-					( SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
-			} else if( values[i].bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN ) {
-				nkeys += values[i].bv_len - (SLAP_INDEX_SUBSTR_IF_MINLEN - 1);
+			if( values[i].bv_len >= index_substr_if_maxlen ) {
+				nkeys += index_substr_if_maxlen -
+					(index_substr_if_minlen - 1);
+			} else if( values[i].bv_len >= index_substr_if_minlen ) {
+				nkeys += values[i].bv_len - (index_substr_if_minlen - 1);
 			}
 		}
 	}
@@ -444,79 +473,38 @@ octetStringSubstringsIndexer(
 		ber_len_t j,max;
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( values[i].bv_len >= SLAP_INDEX_SUBSTR_ANY_LEN ) )
+			( values[i].bv_len >= index_substr_any_len ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = values[i].bv_len - (SLAP_INDEX_SUBSTR_ANY_LEN - 1);
+			max = values[i].bv_len - (index_substr_any_len - 1);
 
 			for( j=0; j<max; j++ ) {
-				HASH_Init( &HASHcontext );
-				if( prefix != NULL && prefix->bv_len > 0 ) {
-					HASH_Update( &HASHcontext,
-						(unsigned char *)prefix->bv_val, prefix->bv_len );
-				}
-
-				HASH_Update( &HASHcontext,
-					(unsigned char *)&pre, sizeof( pre ) );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)syntax->ssyn_oid, slen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)mr->smr_oid, mlen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)&values[i].bv_val[j],
-					SLAP_INDEX_SUBSTR_ANY_LEN );
-				HASH_Final( HASHdigest, &HASHcontext );
-
+				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+					syntax, mr, (unsigned char *)&values[i].bv_val[j], index_substr_any_len);
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
 
 		/* skip if too short */ 
-		if( values[i].bv_len < SLAP_INDEX_SUBSTR_IF_MINLEN ) continue;
+		if( values[i].bv_len < index_substr_if_minlen ) continue;
 
-		max = SLAP_INDEX_SUBSTR_IF_MAXLEN < values[i].bv_len
-			? SLAP_INDEX_SUBSTR_IF_MAXLEN : values[i].bv_len;
+		max = index_substr_if_maxlen < values[i].bv_len
+			? index_substr_if_maxlen : values[i].bv_len;
 
-		for( j=SLAP_INDEX_SUBSTR_IF_MINLEN; j<=max; j++ ) {
+		for( j=index_substr_if_minlen; j<=max; j++ ) {
 			char pre;
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
 				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
-				HASH_Init( &HASHcontext );
-				if( prefix != NULL && prefix->bv_len > 0 ) {
-					HASH_Update( &HASHcontext,
-						(unsigned char *)prefix->bv_val, prefix->bv_len );
-				}
-				HASH_Update( &HASHcontext,
-					(unsigned char *)&pre, sizeof( pre ) );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)syntax->ssyn_oid, slen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)mr->smr_oid, mlen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)values[i].bv_val, j );
-				HASH_Final( HASHdigest, &HASHcontext );
-
+				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+					syntax, mr, (unsigned char *)values[i].bv_val, j );
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 
 			if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
 				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
-				HASH_Init( &HASHcontext );
-				if( prefix != NULL && prefix->bv_len > 0 ) {
-					HASH_Update( &HASHcontext,
-						(unsigned char *)prefix->bv_val, prefix->bv_len );
-				}
-				HASH_Update( &HASHcontext,
-					(unsigned char *)&pre, sizeof( pre ) );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)syntax->ssyn_oid, slen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)mr->smr_oid, mlen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)&values[i].bv_val[values[i].bv_len-j], j );
-				HASH_Final( HASHdigest, &HASHcontext );
-
+				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+					syntax, mr, (unsigned char *)&values[i].bv_val[values[i].bv_len-j], j );
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 
@@ -547,7 +535,7 @@ octetStringSubstringsFilter (
 {
 	SubstringsAssertion *sa;
 	char pre;
-	ber_len_t nkeys = 0;
+	ber_len_t len, max, nkeys = 0;
 	size_t slen, mlen, klen;
 	BerVarray keys;
 	HASH_CONTEXT HASHcontext;
@@ -559,27 +547,37 @@ octetStringSubstringsFilter (
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
 		sa->sa_initial.bv_val != NULL &&
-		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
+		sa->sa_initial.bv_len >= index_substr_if_minlen )
 	{
 		nkeys++;
+		if ( sa->sa_initial.bv_len > index_substr_if_maxlen &&
+			( flags & SLAP_INDEX_SUBSTR_ANY ))
+		{
+			nkeys += (sa->sa_initial.bv_len - index_substr_if_maxlen) / index_substr_any_step;
+		}
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
-			if( sa->sa_any[i].bv_len >= SLAP_INDEX_SUBSTR_ANY_LEN ) {
+			if( sa->sa_any[i].bv_len >= index_substr_any_len ) {
 				/* don't bother accounting with stepping */
 				nkeys += sa->sa_any[i].bv_len -
-					( SLAP_INDEX_SUBSTR_ANY_LEN - 1 );
+					( index_substr_any_len - 1 );
 			}
 		}
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
 		sa->sa_final.bv_val != NULL &&
-		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
+		sa->sa_final.bv_len >= index_substr_if_minlen )
 	{
 		nkeys++;
+		if ( sa->sa_final.bv_len > index_substr_if_maxlen &&
+			( flags & SLAP_INDEX_SUBSTR_ANY ))
+		{
+			nkeys += (sa->sa_final.bv_len - index_substr_if_maxlen) / index_substr_any_step;
+		}
 	}
 
 	if( nkeys == 0 ) {
@@ -598,63 +596,52 @@ octetStringSubstringsFilter (
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL &&
 		sa->sa_initial.bv_val != NULL &&
-		sa->sa_initial.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
+		sa->sa_initial.bv_len >= index_substr_if_minlen )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 		value = &sa->sa_initial;
 
-		klen = SLAP_INDEX_SUBSTR_IF_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_IF_MAXLEN : value->bv_len;
+		klen = index_substr_if_maxlen < value->bv_len
+			? index_substr_if_maxlen : value->bv_len;
 
-		HASH_Init( &HASHcontext );
-		if( prefix != NULL && prefix->bv_len > 0 ) {
-			HASH_Update( &HASHcontext,
-				(unsigned char *)prefix->bv_val, prefix->bv_len );
-		}
-		HASH_Update( &HASHcontext,
-			(unsigned char *)&pre, sizeof( pre ) );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)syntax->ssyn_oid, slen );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)mr->smr_oid, mlen );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)value->bv_val, klen );
-		HASH_Final( HASHdigest, &HASHcontext );
-
+		hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+			syntax, mr, (unsigned char *)value->bv_val, klen );
 		ber_dupbv_x( &keys[nkeys++], &digest, ctx );
+
+		/* If initial is too long and we have subany indexed, use it
+		 * to match the excess...
+		 */
+		if (value->bv_len > index_substr_if_maxlen && (flags & SLAP_INDEX_SUBSTR_ANY))
+		{
+			ber_len_t j;
+			pre = SLAP_INDEX_SUBSTR_PREFIX;
+			for ( j=index_substr_if_maxlen-1; j <= value->bv_len - index_substr_any_len; j+=index_substr_any_step )
+			{
+				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+					syntax, mr, (unsigned char *)&value->bv_val[j], index_substr_any_len );
+				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
+			}
+		}
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i, j;
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
-		klen = SLAP_INDEX_SUBSTR_ANY_LEN;
+		klen = index_substr_any_len;
 
 		for( i=0; sa->sa_any[i].bv_val != NULL; i++ ) {
-			if( sa->sa_any[i].bv_len < SLAP_INDEX_SUBSTR_ANY_LEN ) {
+			if( sa->sa_any[i].bv_len < index_substr_any_len ) {
 				continue;
 			}
 
 			value = &sa->sa_any[i];
 
 			for(j=0;
-				j <= value->bv_len - SLAP_INDEX_SUBSTR_ANY_LEN;
-				j += SLAP_INDEX_SUBSTR_ANY_STEP )
+				j <= value->bv_len - index_substr_any_len;
+				j += index_substr_any_step )
 			{
-				HASH_Init( &HASHcontext );
-				if( prefix != NULL && prefix->bv_len > 0 ) {
-					HASH_Update( &HASHcontext,
-						(unsigned char *)prefix->bv_val, prefix->bv_len );
-				}
-				HASH_Update( &HASHcontext,
-					(unsigned char *)&pre, sizeof( pre ) );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)syntax->ssyn_oid, slen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)mr->smr_oid, mlen );
-				HASH_Update( &HASHcontext,
-					(unsigned char *)&value->bv_val[j], klen ); 
-				HASH_Final( HASHdigest, &HASHcontext );
-
+				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+					syntax, mr, (unsigned char *)&value->bv_val[j], klen ); 
 				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
 			}
 		}
@@ -662,30 +649,32 @@ octetStringSubstringsFilter (
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL &&
 		sa->sa_final.bv_val != NULL &&
-		sa->sa_final.bv_len >= SLAP_INDEX_SUBSTR_IF_MINLEN )
+		sa->sa_final.bv_len >= index_substr_if_minlen )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 		value = &sa->sa_final;
 
-		klen = SLAP_INDEX_SUBSTR_IF_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_IF_MAXLEN : value->bv_len;
+		klen = index_substr_if_maxlen < value->bv_len
+			? index_substr_if_maxlen : value->bv_len;
 
-		HASH_Init( &HASHcontext );
-		if( prefix != NULL && prefix->bv_len > 0 ) {
-			HASH_Update( &HASHcontext,
-				(unsigned char *)prefix->bv_val, prefix->bv_len );
-		}
-		HASH_Update( &HASHcontext,
-			(unsigned char *)&pre, sizeof( pre ) );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)syntax->ssyn_oid, slen );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)mr->smr_oid, mlen );
-		HASH_Update( &HASHcontext,
-			(unsigned char *)&value->bv_val[value->bv_len-klen], klen );
-		HASH_Final( HASHdigest, &HASHcontext );
-
+		hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+			syntax, mr, (unsigned char *)&value->bv_val[value->bv_len-klen], klen );
 		ber_dupbv_x( &keys[nkeys++], &digest, ctx );
+
+		/* If final is too long and we have subany indexed, use it
+		 * to match the excess...
+		 */
+		if (value->bv_len > index_substr_if_maxlen && (flags & SLAP_INDEX_SUBSTR_ANY))
+		{
+			ber_len_t j;
+			pre = SLAP_INDEX_SUBSTR_PREFIX;
+			for ( j=0; j <= value->bv_len - index_substr_if_maxlen; j+=index_substr_any_step )
+			{
+				hashDigestify( &HASHcontext, HASHdigest, prefix, pre,
+					syntax, mr, (unsigned char *)&value->bv_val[j], index_substr_any_len );
+				ber_dupbv_x( &keys[nkeys++], &digest, ctx );
+			}
+		}
 	}
 
 	if( nkeys > 0 ) {

@@ -240,6 +240,82 @@ read_config( const char *fname, int depth )
 
 			ldap_pvt_thread_set_concurrency( c );
 
+		/* set substring initial/final index minimum length */
+		} else if ( strcasecmp( cargv[0], "index_substr_if_minlen" ) == 0 ) {
+			long min;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing min in \"index_substr_if_minlen <length>\" line\n",
+				fname, lineno, 0 );
+				return( 1 );
+			}
+			min = atoi( cargv[1] );
+			if( min < 1 || min > index_substr_if_maxlen ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: invalid min value (%ld) in "
+				"\"index_substr_if_minlen <length>\" line.\n",
+				fname, lineno, min );
+				return( 1 );
+			}
+			index_substr_if_minlen = min;
+
+		/* set substring initial/final index maximum length */
+		} else if ( strcasecmp( cargv[0], "index_substr_if_maxlen" ) == 0 ) {
+			long max;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing max in \"index_substr_if_maxlen <length>\" line\n",
+				fname, lineno, 0 );
+				return( 1 );
+			}
+			max = atol( cargv[1] );
+			if( max < 1 || max < index_substr_if_minlen ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: invalid max value (%ld) in "
+				"\"index_substr_maxlen <length>\" line.\n",
+				fname, lineno, max );
+				return( 1 );
+			}
+			index_substr_if_maxlen = max;
+
+		/* set substring any index len */
+		} else if ( strcasecmp( cargv[0], "index_substr_any_len" ) == 0 ) {
+			long len;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing len in \"index_substr_any_len <len>\" line\n",
+				fname, lineno, 0 );
+				return( 1 );
+			}
+			len = atol( cargv[1] );
+			if( len < 1 ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: invalid len value (%ld) in "
+				"\"index_substr_any_len <len>\" line.\n",
+				fname, lineno, len );
+				return( 1 );
+			}
+			index_substr_any_len = len;
+
+		/* set substring any index step */
+		} else if ( strcasecmp( cargv[0], "index_substr_any_step" ) == 0 ) {
+			long step;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: missing step in \"index_substr_any_step <step>\" line\n",
+				fname, lineno, 0 );
+				return( 1 );
+			}
+			step = atol( cargv[1] );
+			if( step < 1 ) {
+				Debug( LDAP_DEBUG_ANY,
+				"%s: line %d: invalid step value (%ld) in "
+				"\"index_substr_any_step <step>\" line.\n",
+				fname, lineno, step );
+				return( 1 );
+			}
+			index_substr_any_step = step;
+
 		/* set sockbuf max */
 		} else if ( strcasecmp( cargv[0], "sockbuf_max_incoming" ) == 0 ) {
 			long max;

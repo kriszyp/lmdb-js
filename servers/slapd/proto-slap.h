@@ -1310,6 +1310,11 @@ LDAP_SLAPD_F (int) value_add_one LDAP_P((
  */
 LDAP_SLAPD_V(unsigned) num_subordinates;
 
+LDAP_SLAPD_V (unsigned int) index_substr_if_minlen;
+LDAP_SLAPD_V (unsigned int) index_substr_if_maxlen;
+LDAP_SLAPD_V (unsigned int) index_substr_any_len;
+LDAP_SLAPD_V (unsigned int) index_substr_any_step;
+
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming;
 LDAP_SLAPD_V (ber_len_t) sockbuf_max_incoming_auth;
 LDAP_SLAPD_V (int)		slap_conn_max_pending;
