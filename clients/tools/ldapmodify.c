@@ -253,6 +253,10 @@ main( int argc, char **argv )
 		}
 
 		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if( manageDSAit ) {
+				fprintf( stderr, "manageDSAit control previously specified");
+				return EXIT_FAILURE;
+			}
 			if( cvalue != NULL ) {
 				fprintf( stderr, "manageDSAit: no control value expected" );
 				usage(prog);
@@ -264,6 +268,10 @@ main( int argc, char **argv )
 			break;
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
+			if( noop ) {
+				fprintf( stderr, "noop control previously specified");
+				return EXIT_FAILURE;
+			}
 			if( cvalue != NULL ) {
 				fprintf( stderr, "noop: no control value expected" );
 				usage(prog);

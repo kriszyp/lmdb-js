@@ -130,6 +130,7 @@ main( int argc, char **argv )
 		"Cd:D:e:h:H:IkKMnO:p:P:qQR:U:vw:WxX:y:Y:zZ")) != EOF )
 	{
 		switch( i ) {
+#if 0
 	case 'E': /* compare controls */
 		if( version == LDAP_VERSION2 ) {
 			fprintf( stderr, "%s: -E incompatible with LDAPv%d\n",
@@ -155,6 +156,7 @@ main( int argc, char **argv )
 		fprintf( stderr, "Invalid compare control name: %s\n", control );
 		usage(prog);
 		return EXIT_FAILURE;
+#endif
 
 		/* Common Options */
 		case 'C':
@@ -195,6 +197,10 @@ main( int argc, char **argv )
 		}
 
 		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if( manageDSAit ) {
+				fprintf( stderr, "manageDSAit control previously specified");
+				return EXIT_FAILURE;
+			}
 			if( cvalue != NULL ) {
 				fprintf( stderr, "manageDSAit: no control value expected" );
 				usage(prog);
@@ -206,6 +212,10 @@ main( int argc, char **argv )
 			break;
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
+			if( noop ) {
+				fprintf( stderr, "noop control previously specified");
+				return EXIT_FAILURE;
+			}
 			if( cvalue != NULL ) {
 				fprintf( stderr, "noop: no control value expected" );
 				usage(prog);

@@ -55,7 +55,10 @@ usage( const char *s )
 "  -A         retrieve attribute names only (no values)\n"
 "  -b basedn  base dn for search\n"
 "  -E [!]<ctrl>[=<ctrlparam>] search controls (! indicates criticality)\n"
-"             [!]mv=<filter>   (matched values filter)\n"
+"             [!]mv=<filter>              (matched values filter)\n"
+#ifdef LDAP_CONTROL_SUBENTRIES
+"             [!]subentries[=true|false]  (subentries)\n"
+#endif
 "  -F prefix  URL prefix for files (default: %s)\n"
 "  -l limit   time limit (in seconds) for search\n"
 "  -L         print responses in LDIFv1 format\n"
@@ -190,7 +193,7 @@ main( int argc, char **argv )
 	int			referrals, timelimit, sizelimit, debug;
 	int		authmethod, version, want_bindpw;
 	LDAP		*ld = NULL;
-	int		valuesReturnFilter;
+	int		subentries, valuesReturnFilter;
 	BerElement	*ber = NULL;
 	struct berval 	*bvalp = NULL;
 	char	*vrFilter  = NULL, *control = NULL, *cvalue;
@@ -198,7 +201,8 @@ main( int argc, char **argv )
 
 
 	infile = NULL;
-	debug = verbose = not = vals2tmp = referrals = valuesReturnFilter =
+	debug = verbose = not = vals2tmp = referrals =
+		subentries = valuesReturnFilter =
 		attrsonly = manageDSAit = noop = ldif = want_bindpw = 0;
 
 	prog = lutil_progname( "ldapsearch", argc, argv );
@@ -282,7 +286,7 @@ main( int argc, char **argv )
 
 		if ( strcasecmp( control, "mv" ) == 0 ) {
 			/* ValuesReturnFilter control */
-			if (valuesReturnFilter!=0) {
+			if( valuesReturnFilter ) {
 				fprintf( stderr, "ValuesReturnFilter previously specified");
 				return EXIT_FAILURE;
 			}
@@ -297,6 +301,24 @@ main( int argc, char **argv )
 			vrFilter = cvalue;
 			version = LDAP_VERSION3;
 			break;
+
+#ifdef LDAP_CONTROL_SUBENTRIES
+		} else if ( strcasecmp( control, "subentries" ) == 0 ) {
+			if( subentries ) {
+				fprintf( stderr, "subentries control previously specified");
+				return EXIT_FAILURE;
+			}
+			if( cvalue == NULL || strcasecmp( cvalue, "true") == 0 ) {
+				subentries = 2;
+			} else if ( strcasecmp( cvalue, "false") == 0 ) {
+				subentries = 1;
+			} else {
+				fprintf( stderr,
+					"subentries control value \"%s\" invalid\n");
+				return EXIT_FAILURE;
+			}
+			if( crit ) subentries *= -1;
+#endif
 
 		} else {
 			fprintf( stderr, "Invalid control name: %s\n", control );
@@ -392,6 +414,10 @@ main( int argc, char **argv )
 		}
 
 		if ( strcasecmp( control, "manageDSAit" ) == 0 ) {
+			if( manageDSAit ) {
+				fprintf( stderr, "manageDSAit control previously specified");
+				return EXIT_FAILURE;
+			}
 			if( cvalue != NULL ) {
 				fprintf( stderr, "manageDSAit: no control value expected" );
 				usage(prog);
@@ -403,6 +429,10 @@ main( int argc, char **argv )
 			break;
 			
 		} else if ( strcasecmp( control, "noop" ) == 0 ) {
+			if( noop ) {
+				fprintf( stderr, "noop control previously specified");
+				return EXIT_FAILURE;
+			}
 			if( cvalue != NULL ) {
 				fprintf( stderr, "noop: no control value expected" );
 				usage(prog);
@@ -1050,6 +1080,11 @@ main( int argc, char **argv )
 		if ( noop ) {
 			printf("\n# with noop %scontrol",
 				noop > 1 ? "critical " : "" );
+		}
+		if ( subentries ) {
+			printf("\n# with subentries %scontrol: %s",
+				subentries < 0 ? "critical " : "",
+				abs(subentries) == 1 ? "false" : "true" );
 		}
 		if ( valuesReturnFilter ) {
 			printf("\n# with valuesReturnFilter %scontrol: %s",

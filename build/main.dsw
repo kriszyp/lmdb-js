@@ -155,6 +155,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name ldapwhoami
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ldapcompare
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -239,6 +242,18 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
 }}}
 
 ###############################################################################
