@@ -51,7 +51,6 @@ be_isroot
 be_isroot_pw
 be_issuffix
 be_root_dn
-bind_addr
 build_new_dn
 cache_add_entry_rw
 cache_delete_entry
@@ -315,11 +314,7 @@ slap_shutdown
 slap_sig_shutdown
 slap_sig_wake
 slap_startup
-started_event
 starttime
-start_status_tid
-stopped_event
-stop_status_tid
 str2access
 str2charray
 str2entry
