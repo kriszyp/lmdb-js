@@ -70,7 +70,7 @@ ldbm_back_delete(
 		e->e_rdwr.readers_reading, e->e_rdwr.writer_writing, 0);
 
 	/* delete from parent's id2children entry */
-	if( (pdn = dn_parent( be, dn )) != NULL ) {
+	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
 		if( (p = dn2entry_w( be, pdn, &matched )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
@@ -115,7 +115,7 @@ ldbm_back_delete(
 	}
 
 	/* delete from dn2id mapping */
-	if ( dn2id_delete( be, e->e_dn ) != 0 ) {
+	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
