@@ -127,8 +127,6 @@ typedef datum		Datum;
 typedef Datum LDBMCursor;
 typedef GDBM_FILE	LDBM;
 
-extern gdbm_error	gdbm_errno;
-
 LDAP_END_DECL
 
 /* for ldbm_open */
