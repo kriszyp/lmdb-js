@@ -1941,7 +1941,6 @@ UUIDValidate(
 {
 	int i;
 	if( in->bv_len != 36 ) {
-		assert(0);
 		return LDAP_INVALID_SYNTAX;
 	}
 
