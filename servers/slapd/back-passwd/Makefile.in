@@ -12,7 +12,7 @@ PROGRAMS= libback-passwd.a
 
 XINCPATH = -I.. -I$(srcdir)/..
 
-all-local: 	FORCE	
+all-local-srv: 	FORCE	
 	$(MAKE) $(MFLAGS) libback-passwd.a
 
 libback-passwd.a:	version.o

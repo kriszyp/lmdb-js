@@ -18,7 +18,7 @@ XINCPATH = -I.. -I$(srcdir)/..
 
 PROGRAMS = libback-ldbm.a
 
-all-local: FORCE
+all-local-srv: FORCE
 	$(MAKE) $(MFLAGS) libback-ldbm.a
 
 libback-ldbm.a:	version.o

@@ -40,6 +40,6 @@ version.c: $(OBJS) $(LDAP_LIBDEPEND)
 	-e "s|%VERSION%|$${v}|" \
 	< $(srcdir)/Version.c > $@)
 
-install-local: FORCE
+install-local-srv: FORCE
 	@-$(MKDIR) $(libexecdir)
 	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slurpd $(libexecdir)

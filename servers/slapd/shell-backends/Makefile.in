@@ -10,7 +10,7 @@ LDAP_LIBDIR= ../../../libraries
 BUILD_OPT = "--enable-shell"
 BUILD_SRV = @BUILD_SHELL@
 
-all-local: $(PROGRAMS)
+all-local-srv: $(PROGRAMS)
 
 passwd-shell:	pwd-version.o
 	$(CC) $(LDFLAGS) -o $@ $(OBJS) pwd-version.o $(LIBS)
