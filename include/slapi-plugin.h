@@ -327,6 +327,7 @@ void slapi_set_object_extension(int objecttype, void *object,
 #define SLAPI_X_CONN_SERVERPATH			1301
 #define SLAPI_X_CONN_IS_UDP			1302
 #define SLAPI_X_CONN_SSF			1303
+#define SLAPI_X_CONN_SASL_CONTEXT		1304
 
 /*  Authentication types */
 #define SLAPD_AUTH_NONE   "none"
