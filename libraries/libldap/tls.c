@@ -1049,7 +1049,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	void *ctx = ld->ld_defconn->lconn_tls_ctx;
 	char *host;
 	void *ssl;
-	int ret;
 
 	if( srv ) {
 		host = srv->lud_host;
@@ -1063,7 +1062,8 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	 * Fortunately, the lib uses blocking io...
 	 */
 	if ( ldap_int_tls_connect( ld, conn ) < 0 ) {
-		return LDAP_CONNECT_ERROR;
+		ld->ld_errno = LDAP_CONNECT_ERROR;
+		return (ld->ld_errno);
 	}
 
 	ssl = (void *) ldap_pvt_tls_sb_ctx( sb );
@@ -1073,9 +1073,11 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	 * compare host with name(s) in certificate 
 	 */
 
-	ret = ldap_pvt_tls_check_hostname( ssl, host );
-	if (ret != LDAP_SUCCESS)
-		return ret;
+	ld->ld_errno = ldap_pvt_tls_check_hostname( ssl, host );
+	if (ld->ld_errno != LDAP_SUCCESS)
+	{
+		return ld->ld_errno;
+	}
 
 	/*
 	 * set SASL properties to TLS ssf and authid
