@@ -794,6 +794,7 @@ loop_continue:
 
 		ldap_pvt_thread_yield();
 	}
+
 #ifdef LDAP_CLIENT_UPDATE
 	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
 		int ret;
@@ -866,12 +867,14 @@ done:
 	}
 
 #ifdef LDAP_CLIENT_UDATE
-	if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
-		ch_free( csnfeq.f_av_value.bv_val );
-	}
+	if ( op->o_clientupdate_type & SLAP_LCUP_SYNC ) {
+		if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
+			ch_free( csnfeq.f_av_value.bv_val );
+		}
 	
-	if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
-		ch_free( csnfge.f_av_value.bv_val );
+		if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
+			ch_free( csnfge.f_av_value.bv_val );
+		}
 	}
 #endif /* LDAP_CLIENT_UPDATE */
 
