@@ -13,7 +13,6 @@ static void
 usage( char *name )
 {
         fprintf( stderr, "usage: %s [-n] <filename>\n", name );
-        exit( 1 );
 }
 
 int
@@ -34,6 +33,7 @@ main( int argc, char **argv )
         if ( argc < 2 || argc > 3 || ( argc == 3 && strcmp( argv[1], "-n" )
             != 0 )) {
                 usage( argv[0] );
+				return EXIT_FAILURE;
         }
         if ( argc == 3 && strcmp( argv[1], "-n" ) == 0 ) {
                 printid = 0;
@@ -44,7 +44,7 @@ main( int argc, char **argv )
 
         if ( (dbp = ldbm_open( file, LDBM_READER, 0, 0 )) == NULL ) {
                 perror( file );
-                exit ( 1 );
+				return EXIT_FAILURE;
         }
 
 #ifdef HAVE_BERKELEY_DB2
@@ -69,14 +69,10 @@ main( int argc, char **argv )
                     }
 
                     ldbm_datum_free( dbp, data );
-
-                } else {
-
 				}
         }
+
         ldbm_close( dbp );
 
-        exit( 0 );
-
-		return 0; /* NOT REACHED */
+		return EXIT_SUCCESS;
 }
