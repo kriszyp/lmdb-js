@@ -1177,8 +1177,9 @@ typedef struct ldap_ava {
 	char *la_attr;
 	struct berval *la_value;
 	unsigned la_flags;
-#define LDAP_AVA_STRING 0x0000U
-#define LDAP_AVA_BINARY 0x0001U
+#define LDAP_AVA_STRING		0x0000U
+#define LDAP_AVA_BINARY		0x0001U
+#define LDAP_AVA_UTF8STRING	0x0002U
 } LDAPAVA;
 
 typedef LDAPAVA** LDAPRDN;
@@ -1189,10 +1190,12 @@ typedef LDAPRDN** LDAPDN;
 #define LDAP_DN_FORMAT_LDAPV2	0x0001U
 #define LDAP_DN_FORMAT_DCE		0x0002U
 #define LDAP_DN_FORMAT_UFN		0x0003U	/* dn2str only */
+#define LDAP_DN_FORMAT_AD_CANONICAL	0x0004U	/* dn2str only */
 #define LDAP_DN_FORMAT_MASK		0x000FU
 
-/* str2dn flags */ 
-#define LDAP_DN_PEDANTIC		0x1000U
+/* str2dn flags */
+#define LDAP_DN_P_LEADTRAILSPACES	0x1000U
+#define LDAP_DN_PEDANTIC		0xF000U
 
 LDAP_F( int )
 ldap_str2dn LDAP_P((

@@ -340,6 +340,7 @@ LDAP_F ( void ) ldap_int_initialize_global_options LDAP_P((
 #define LDAP_FREE(p)		(LBER_FREE((p)))
 #define LDAP_VFREE(v)		(LBER_VFREE((void **)(v)))
 #define LDAP_STRDUP(s)		(LBER_STRDUP((s)))
+#define LDAP_STRNDUP(s,l)	(LBER_STRNDUP((s),(l)))
 
 /*
  * in error.c

@@ -563,3 +563,56 @@ ber_strdup( LDAP_CONST char *s )
 	AC_MEMCPY( p, s, len );
 	return p;
 }
+
+char *
+ber_strndup( LDAP_CONST char *s, ber_len_t l )
+{
+	char    *p;
+	size_t	len;
+	
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+#ifdef LDAP_MEMORY_DEBUG
+	assert(s != NULL);			/* bv damn better point to something */
+#endif
+
+	if( s == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
+		return NULL;
+	}
+
+	len = strlen( s );
+
+	if ( len > l ) {
+		len = l;
+	}
+
+	if ( (p = LBER_MALLOC( len + 1 )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+		return NULL;
+	}
+
+	AC_MEMCPY( p, s, len );
+	p[ len ] = '\0';
+	return p;
+}
+
+char *
+ber_strndup__( LDAP_CONST char *s, size_t l )
+{
+	char    *p;
+	size_t	len;
+
+	if ( s == NULL ) {
+		return NULL;
+	}
+
+	len = strlen( s );
+	if (( p = LBER_MALLOC( len + 1 ) ) == NULL ) {
+		return NULL;
+	}
+
+	AC_MEMCPY( p, s, len );
+	p[ len ] = '\0';
+	return p;
+}

@@ -7,7 +7,7 @@
 LIBRARY = libldap.la
 XLIBRARY = ../libldap.a
 
-PROGRAMS = apitest ltest ttest
+PROGRAMS = apitest ltest ttest dntest
 
 SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	controls.c messages.c references.c extended.c cyrus.c \
@@ -60,6 +60,8 @@ ltest:	$(LIBRARY) test.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) -o $@ test.o $(LIBS)
 ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) -o $@ tmpltest.o $(LIBS)
+dntest:	$(LIBRARY) dntest.o $(LDAP_LIBLBER_DEPEND)
+	$(LTLINK) -o $@ dntest.o $(LIBS)
 
 CFFILES=ldap.conf ldapfilter.conf ldaptemplates.conf ldapsearchprefs.conf
 

@@ -736,7 +736,7 @@ parse_whsp(const char **sp)
  */
 
 /* Parse a sequence of dot-separated decimal strings */
-static char *
+char *
 parse_numericoid(const char **sp, int *code, const int flags)
 {
 	char * res;

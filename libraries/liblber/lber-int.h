@@ -147,6 +147,8 @@ ber_log_sos_dump LDAP_P((
 /* memory.c */
 	/* simple macros to realloc for now */
 LBER_F (BerMemoryFunctions *)	ber_int_memory_fns;
+LBER_F (char *)	ber_strndup( LDAP_CONST char *, ber_len_t );
+LBER_F (char *)	ber_strndup__( LDAP_CONST char *, size_t );
 
 #ifdef CSRIMALLOC
 #define LBER_INT_MALLOC		malloc
@@ -162,6 +164,7 @@ LBER_F (BerMemoryFunctions *)	ber_int_memory_fns;
 #define LBER_FREE			free
 #define LBER_VFREE			ber_memvfree
 #define LBER_STRDUP			strdup
+#define LBER_STRNDUP			ber_strndup__
 
 #else
 #define LBER_INT_MALLOC(s)		ber_memalloc((s))
@@ -177,6 +180,7 @@ LBER_F (BerMemoryFunctions *)	ber_int_memory_fns;
 #define LBER_FREE(p)		ber_memfree((p))	
 #define LBER_VFREE(v)		ber_memvfree((void**)(v))
 #define LBER_STRDUP(s)		ber_strdup((s))
+#define LBER_STRNDUP(s,l)	ber_strndup((s),(l))
 #endif
 
 /* sockbuf.c */
