@@ -202,6 +202,8 @@ config file.
 permission to write the database (e.g., it is listed as {{EX:rootdn}}
 or is allowed {{EX:access}} by one or more access directives).
 
++ Use the {{EX:updateref}} directive to define the URL the
+slave should return if an update request is received.
 
 
 H3: Shut down the master {{slapd}}

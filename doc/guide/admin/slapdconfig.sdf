@@ -479,7 +479,7 @@ H3: Other Backend and Databases
 
 {{slapd}}(8) supports a number of other backend database types.
 
-!block table; align=Center; \
+!block table; align=Center; coltags="EX,N"; \
 	title="Table 5.2: Backend Database Types"
 Types	Description
 passwd	Provides read-only access to {{F:/etc/passwd}}
@@ -576,7 +576,7 @@ The <who> part identifies the entity or entities being granted
 access. Note that access is granted to "entities" not "entries."
 The follow table summaries entity specifiers:
 
-!block table; align=Center; \
+!block table; align=Center; coltags="EX,N"; \
 	title="Table 5.3: Access Entity Specifiers"
 Specifier	Entities
 *		All, including anonymous and authenticated users
@@ -619,7 +619,7 @@ H3: The access to grant
 The kind of <access> granted can be one of the following:
 
 
-!block table; colaligns="LRL"; align=Center; \
+!block table; colaligns="LRL"; coltags="EX,EX,N"; align=Center; \
 	title="Table 5.4: Access Levels"
 Level	Privledges	Description
 none			no access
