@@ -19,6 +19,10 @@
 static RETSIGTYPE wait4child( int sig );
 #endif
 
+#ifdef WIN32
+const char Versionstr[] = "OpenLDAP slapd 1.2 for Windows NT";
+#endif
+
 /*
  * when more than one slapd is running on one machine, each one might have
  * it's own LOCAL for syslogging and must have its own pid/args files
