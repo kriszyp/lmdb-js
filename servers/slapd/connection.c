@@ -1176,6 +1176,7 @@ static int connection_op_activate( Connection *conn, Operation *op )
 		? conn->c_protocol : LDAP_VERSION3;
 	arg->co_op->o_connid = conn->c_connid;
 
+	arg->co_op->o_authz = conn->c_authz;
 	arg->co_op->o_authtype = conn->c_authtype;
 	arg->co_op->o_authmech = conn->c_authmech != NULL
 		?  ch_strdup( conn->c_authmech ) : NULL;
