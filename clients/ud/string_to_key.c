@@ -24,11 +24,6 @@
  *	spm	8/85	MIT project athena
  */
 
-#ifndef	lint
-static char rcsid_string_to_key_c[] =
-"$Id: string_to_key.c,v 1.3 1998/09/08 00:26:56 kurt Exp $";
-#endif
-
 #ifdef KERBEROS_V
 #include <kerberosIV/mit-copyright.h>
 #include <kerberosIV/des.h>
