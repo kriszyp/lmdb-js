@@ -9,28 +9,56 @@ dnl http://www.OpenLDAP.org/license.html or in file LICENSE in the
 dnl top-level directory of the distribution.
 dnl
 dnl ----------------------------------------------------------------
-AC_COPYRIGHT(
-[Copyright 1998-2003 The OpenLDAP Foundation. All Rights Reserved.
+dnl Redefine AC_INIT_BINSH to provide RCS IDs and copyright notice
+dnl at top of generated configure script.  Prints simple copyright.
+define([AC_INIT_BINSH],
+[[#! /bin/sh
+# $]OpenLDAP[$
+# from] translit([$OpenLDAP$], $")] [
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted only as authorized by the OpenLDAP
-Public License.  A copy of this license is available at
-http://www.OpenLDAP.org/license.html or in file LICENSE in the
-top-level directory of the distribution.
+# Copyright 1998-2003 The OpenLDAP Foundation.  All Rights Reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted only as authorized by the OpenLDAP
+# Public License.  A copy of this license is available at
+# http://www.OpenLDAP.org/license.html or in file LICENSE in the
+# top-level directory of the distribution.
+
+echo "Copyright 1998-2003 The OpenLDAP Foundation,  All Rights Reserved."
+echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
 ])dnl
+dnl ----------------------------------------------------------------
+dnl Disable config.cache!
+define([AC_CACHE_LOAD], )dnl
+define([AC_CACHE_SAVE], )dnl
 dnl ================================================================
 dnl Configure.in for OpenLDAP
+AC_INIT(build/version.sh)dnl
 
-AC_INIT([OpenLDAP],,[<http://www.openldap.org/its/>])
-AC_CONFIG_SRCDIR([include/ldap.h])dnl
-AC_CONFIG_AUX_DIR([build])dnl
+# set unset (borrowed from autoconf 2.49c)
+if (OL_FOO=OL_FOO; unset OL_FOO) >/dev/null 2>&1; then
+  ol_unset=unset
+else
+  ol_unset=false
+fi
+# unset CDPATH
+$ol_unset CDPATH || test "${CDPATH+set}" != set || { CDPATH=:; export CDPATH; }
+
+AC_CONFIG_AUX_DIR(build)dnl
 
 eval `$ac_aux_dir/version.sh`
 if test -z "$OL_STRING"; then
 	AC_MSG_ERROR([could not determine version])
 fi
 
-AC_PROG_SHTOOL
+if test -f "$ac_aux_dir/shtool" -a ! -d $ac_aux_dir/shtool; then
+	ac_cv_shtool="$ac_aux_dir/shtool"
+else
+	AC_MSG_ERROR([no shtool found in $ac_aux_dir])
+fi
+
+SHTOOL="$ac_cv_shtool"
+dnl AC_SUBST(SHTOOL)dnl
 
 TB="`$SHTOOL echo -e '%B' 2>/dev/null`"
 TN="`$SHTOOL echo -e '%b' 2>/dev/null`"
@@ -46,19 +74,16 @@ dnl Determine host platform
 dnl		we try not to use this for much
 AC_CANONICAL_SYSTEM
 
-OPENLDAP_PACKAGE=$OL_PACKAGE
-OPENLDAP_VERSION=$OL_VERSION
+AM_INIT_AUTOMAKE([$OL_PACKAGE],[$OL_VERSION], [no defines])dnl
+AC_SUBST(PACKAGE)dnl
+AC_SUBST(VERSION)dnl
+AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
+AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
 
-AC_SUBST(OPENLDAP_PACKAGE)
-AC_SUBST(OPENLDAP_VERSION)
-
-AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$OL_PACKAGE",OpenLDAP Package)
-AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$OL_VERSION",OpenLDAP Version)
-
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION,$OL_API_INC,Vendor Version)
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MAJOR,$OL_MAJOR,Vendor Major)
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MINOR,$OL_MINOR,Vendor Minor)
-AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_PATCH,$OL_PATCH,Vendor Patch)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION,$OL_API_INC,Version)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MAJOR,$OL_MAJOR,Major)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MINOR,$OL_MINOR,Minor)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_PATCH,$OL_PATCH,Patch)
 
 OPENLDAP_LIBVERSION=$OL_API_LIB
 AC_SUBST(OPENLDAP_LIBVERSION)dnl
@@ -66,10 +91,10 @@ AC_SUBST(OPENLDAP_LIBVERSION)dnl
 OPENLDAP_RELEASE_DATE="$OL_RELEASE_DATE"
 AC_SUBST(OPENLDAP_RELEASE_DATE)dnl
 
-dnl We use autoconf features new to 2.57.
-dnl aclocal.m4 should be built using aclocal from automake 1.7.3
-dnl libtool 1.4.3 should be installed.
-AC_PREREQ(2.57)dnl Required Autoconf version
+dnl We use autoconf features new to 2.13.
+dnl aclocal.m4 should be built using aclocal from automake 1.4
+dnl libtool 1.4.2 should be installed.
+AC_PREREQ(2.13)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
 
@@ -105,87 +130,115 @@ AC_SUBST(ldap_subdir)dnl
 
 dnl ----------------------------------------------------------------
 dnl General "enable" options
-OL_ARG_ENABLE(debug,[enable debugging], yes)dnl
-OL_ARG_ENABLE(dynamic,[enable linking built binaries with dynamic libs], no)dnl
-OL_ARG_ENABLE(syslog,[enable syslog support], auto)dnl
-OL_ARG_ENABLE(proctitle,[enable proctitle support], yes)dnl
-dnl OL_ARG_ENABLE(referrals,[enable LDAPv2+ Referrals (experimental)], no)dnl
+OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes)dnl
+OL_ARG_ENABLE(dynamic,[  --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
+OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
+OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
+dnl OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
 ol_enable_referrals=${ol_enable_referrals-no}
-dnl OL_ARG_ENABLE(kbind,[enable LDAPv2+ Kerberos IV bind (deprecated)], no)dnl
+dnl OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (deprecated)], no)dnl
 ol_enable_kbind=${ol_enable_kbind-no}
-OL_ARG_ENABLE(ipv6,[enable IPv6 support], auto)dnl
-OL_ARG_ENABLE(local,[enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
-OL_ARG_ENABLE(x-compile,[enable cross compiling], no, [yes no])dnl
+OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
+OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
+OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
+	no, [yes no])dnl
 
 dnl ----------------------------------------------------------------
 dnl General "with" options
-OL_ARG_WITH(cyrus_sasl,[with Cyrus SASL support], auto)dnl
-OL_ARG_WITH(fetch,[with fetch(3) URL support], auto)dnl
-OL_ARG_WITH(kerberos,[with Kerberos support], auto,
-	[auto k5 k5only k425 kth k4 afs yes no])dnl
-OL_ARG_WITH(readline,[with readline support], auto)dnl
-OL_ARG_WITH(threads,[with threads], auto,
-	[auto nt posix mach pth lwp yes no manual])dnl
-OL_ARG_WITH(tls,[with TLS/SSL support], auto,
-	[auto ssleay openssl yes no])dnl
-OL_ARG_WITH(yielding_select,[with implicitly yielding select], auto,
-	[auto yes no manual])dnl
+dnl OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	  enable debug malloc support], no)dnl
+
+OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
+	auto, [auto yes no] )
+OL_ARG_WITH(fetch,[  --with-fetch		  with fetch(3) URL support],
+	auto, [auto yes no] )
+OL_ARG_WITH(kerberos,[  --with-kerberos	  with Kerberos support],
+	auto, [auto k5 k5only k425 kth k4 afs yes no])
+OL_ARG_WITH(readline,[  --with-readline	  with readline support],
+	auto, [auto yes no] )
+OL_ARG_WITH(threads,[  --with-threads	  with threads],
+	auto, [auto nt posix mach pth lwp yes no manual] )
+OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
+	auto, [auto ssleay openssl yes no] )
+OL_ARG_WITH(yielding_select,[  --with-yielding-select  with implicitly yielding select],
+	auto, [auto yes no manual] )
 
 dnl ----------------------------------------------------------------
 dnl Server options
 dnl ----------------------------------------------------------------
+
+dnl ----------------------------------------------------------------
 dnl SLAPD OPTIONS
-OL_ARG_ENABLE(slapd,[enable building slapd], yes)dnl
-OL_ARG_ENABLE(aci,[enable per-object ACIs (experimental)], no)dnl
-OL_ARG_ENABLE(cleartext,[enable cleartext passwords], yes)dnl
-OL_ARG_ENABLE(crypt,[enable crypt(3) passwords], no)dnl
-OL_ARG_ENABLE(kpasswd,[enable Kerberos password verification], no)dnl
-OL_ARG_ENABLE(lmpasswd,[enable LAN Manager passwords], no)dnl
-OL_ARG_ENABLE(spasswd,[enable (Cyrus) SASL password verification], no)dnl
-OL_ARG_ENABLE(modules,[enable dynamic module support], no)dnl
-dnl OL_ARG_ENABLE(multimaster,[enable multimaster replication], no)dnl
+AC_ARG_WITH(xxslapdoptions,[
+SLAPD (Standalone LDAP Daemon) Options:])
+OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
+OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no)dnl
+OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
+OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
+OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
+OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
+OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
+OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
+dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
 ol_enable_multimaster=${ol_enable_multimaster-no}
-OL_ARG_ENABLE(phonetic,[enable phonetic/soundex], no)dnl
-OL_ARG_ENABLE(rewrite,[enable DN rewriting in back-ldap and back-meta], no)dnl
-OL_ARG_ENABLE(rlookups,[enable reverse lookups of client hostnames], no)dnl
-OL_ARG_ENABLE(slapi,[enable installation of slapi library], no)dnl
-OL_ARG_ENABLE(slp,[enable SLPv2 support], no)dnl     
-OL_ARG_ENABLE(wrappers,[enable tcp wrapper support], no)dnl
+OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
+OL_ARG_ENABLE(rewrite,[    --enable-rewrite	  enable DN rewriting in back-ldap and back-meta], no)dnl
+OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups of client hostnames], no)dnl
+OL_ARG_ENABLE(slapi,[    --enable-slapi        enable installation of slapi library], no)dnl
+OL_ARG_ENABLE(slp,[    --enable-slp          enable SLPv2 support], no)dnl     
+OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
+
 
 dnl SLAPD Backend options
-OL_ARG_ENABLE(bdb,[enable Berkeley DB backend], yes)dnl
-OL_ARG_WITH(bdb-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(dnssrv,[enable dnssrv backend], no)dnl
-OL_ARG_WITH(dnssrv-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(ldap,[enable ldap backend], no)dnl
-OL_ARG_WITH(ldap-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(ldbm,[enable ldbm backend], no)dnl
-OL_ARG_WITH(ldbm_api,[with LDBM API], auto, [auto berkeley bcompat mdbm gdbm])dnl
-OL_ARG_WITH(ldbm-module,[module type], static, [static dynamic])dnl
-OL_ARG_WITH(ldbm-type,[use LDBM type], auto, [auto btree hash])dnl
-OL_ARG_ENABLE(meta,[enable metadirectory backend], no)dnl
-OL_ARG_WITH(meta-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(monitor,[enable monitor backend], no)dnl
-OL_ARG_WITH(monitor-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(null,[enable null backend], no)dnl
-OL_ARG_WITH(null-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(passwd,[enable passwd backend], no)dnl
-OL_ARG_WITH(passwd-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(perl,[enable perl backend], no)dnl
-OL_ARG_WITH(perl-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(shell,[enable shell backend], no)dnl
-OL_ARG_WITH(shell-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(sql,[enable sql backend], no)dnl
-OL_ARG_WITH(sql-module,[module type], static, [static dynamic])dnl
-OL_ARG_ENABLE(tcl,[enable tcl backend], no)dnl
-OL_ARG_WITH(tcl-module,[module type], static, [static dynamic])dnl
+OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], yes)dnl
+OL_ARG_WITH(bdb_module,[    --with-bdb-module     module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
+OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend], no)dnl
+OL_ARG_WITH(ldap_module,[    --with-ldap-module	  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend], no)dnl
+OL_ARG_WITH(ldbm_api,[    --with-ldbm-api       with LDBM API auto|berkeley|bcompat|mdbm|gdbm], auto,
+	[auto berkeley bcompat mdbm gdbm])
+OL_ARG_WITH(ldbm_module,[    --with-ldbm-module	  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type auto|btree|hash], auto,
+	[auto btree hash])
+OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no)dnl
+OL_ARG_WITH(meta_module,[    --with-meta-module	  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], no)dnl
+OL_ARG_WITH(monitor_module,[    --with-monitor-module module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(null,[    --enable-null	  enable null backend], no)dnl
+OL_ARG_WITH(null_module,[    --with-null-module	  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no)dnl
+OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend], no)dnl
+OL_ARG_WITH(perl_module,[    --with-perl-module	  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
+OL_ARG_WITH(shell_module,[    --with-shell-module	  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
+OL_ARG_WITH(sql_module,[    --with-sql-module	  module type static|dynamic], static,
+	[static dynamic])
+OL_ARG_ENABLE(tcl,[    --enable-tcl	  enable tcl backend], no)dnl
+OL_ARG_WITH(tcl_module,[    --with-tcl-module	  module type static|dynamic], static,
+	[static dynamic])
 
 dnl ----------------------------------------------------------------
 dnl SLURPD OPTIONS
-OL_ARG_ENABLE(slurpd,[enable building slurpd], auto)dnl
+AC_ARG_WITH(xxslurpdoptions,[
+SLURPD (Replication Daemon) Options:])
+OL_ARG_ENABLE(slurpd,[  --enable-slurpd	  enable building slurpd], auto)dnl
 
 dnl ----------------------------------------------------------------
-dnl Library Generation & Linking Options
+AC_ARG_WITH(xxliboptions,[
+Library Generation & Linking Options])
 AC_ENABLE_STATIC
 AC_ENABLE_SHARED
 
@@ -534,9 +587,7 @@ SLAPD_SLP_LIBS=
 dnl ================================================================
 dnl Checks for programs
 
-AC_PROG_MAKE_SET
 AC_PROG_INSTALL
-dnl AM_GNU_GETTEXT([external])
 
 AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
 
@@ -655,11 +706,11 @@ dnl AC_ISC_POSIX
 dnl AC_MINIX
 
 dnl ----------------------------------------------------------------
-dnl Checks for system services (now obsolete)
-dnl AC_CYGWIN (obsolete)
-dnl AC_MINGW32 (obsolete)
-dnl AC_EXEEXT
-dnl AC_OBJEXT
+dnl Checks for system services
+AC_CYGWIN
+AC_MINGW32
+AC_EXEEXT
+AC_OBJEXT
 
 AC_DEFINE_UNQUOTED(EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
 
@@ -684,8 +735,7 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for AIX security library
-AC_CHECK_LIB(s, afopen,
-[
+AC_CHECK_LIB(s, afopen, [
 	AUTH_LIBS=-ls
 	AC_DEFINE(HAVE_AIX_SECURITY,1,[define if you have AIX security lib])
 ])
@@ -771,6 +821,7 @@ AC_CHECK_HEADERS(	\
 	psap.h			\
 	pwd.h			\
 	process.h		\
+	resolv.h		\
 	sgtty.h			\
 	shadow.h		\
 	stddef.h		\
@@ -789,6 +840,7 @@ AC_CHECK_HEADERS(	\
 	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
+	sys/ucred.h		\
 	sys/uio.h		\
 	syslog.h		\
 	termios.h		\
@@ -797,12 +849,6 @@ AC_CHECK_HEADERS(	\
 	winsock2.h		\
 )
 
-AC_CHECK_HEADERS(sys/ucred.h,,,[#include <sys/types.h>])
-AC_CHECK_HEADERS(resolv.h,,,[
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/nameser.h>
-])
 
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
@@ -2285,7 +2331,7 @@ if test $ol_enable_proctitle != no ; then
 			[have_setproctitle=yes
 			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
 			[have_setproctitle=no
-			AC_LIBOBJ([setproctitle])
+			LIBOBJS="$LIBOBJS setproctitle.o"
 			LIBSRCS="$LIBSRCS setproctitle.c"])])
 
 	if test $have_setproctitle = yes ; then
@@ -2316,12 +2362,12 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
-AC_CHECK_TYPES([ptrdiff_t, uintmax_t])
+AM_TYPE_PTRDIFF_T
 AC_TYPE_SIGNAL
 AC_TYPE_SIZE_T
 
-AC_CHECK_TYPES([ssize_t, signed int])
-AC_CHECK_TYPES([caddr_t, char *])
+AC_CHECK_TYPE(ssize_t, [signed int])
+AC_CHECK_TYPE(caddr_t,	[char *])
 
 OL_TYPE_SOCKLEN_T
 AC_STRUCT_ST_BLKSIZE
@@ -2345,9 +2391,9 @@ else
 	AC_C_BIGENDIAN
 fi
 
-AC_CHECK_SIZEOF(short) 
-AC_CHECK_SIZEOF(int) 
-AC_CHECK_SIZEOF(long)
+AC_COMPILE_CHECK_SIZEOF(short) 
+AC_COMPILE_CHECK_SIZEOF(int) 
+AC_COMPILE_CHECK_SIZEOF(long)
 
 if test "$ac_cv_sizeof_int" -lt 4 ; then
 	AC_MSG_WARN([OpenLDAP requires 'int' to be 32 bits or greater.])
@@ -2848,47 +2894,51 @@ AC_ARG_WITH(xxinstall,[
 See INSTALL file for further details.])
 
 dnl ----------------------------------------------------------------
-AC_CONFIG_FILES(Makefile:build/top.mk:Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(doc/man/man1/Makefile:build/top.mk:doc/man/man1/Makefile.in:build/man.mk)
-AC_CONFIG_FILES(doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk)
-AC_CONFIG_FILES(doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk)
-AC_CONFIG_FILES(doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk)
-AC_CONFIG_FILES(clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk)
-AC_CONFIG_FILES(include/Makefile:build/top.mk:include/Makefile.in)
-AC_CONFIG_FILES(libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk)
-AC_CONFIG_FILES(libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk)
-AC_CONFIG_FILES(libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk)
-AC_CONFIG_FILES(libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk)
-AC_CONFIG_FILES(libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk)
-AC_CONFIG_FILES(libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk)
-AC_CONFIG_FILES(libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk)
-AC_CONFIG_FILES(libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk)
-AC_CONFIG_FILES(libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk)
-AC_CONFIG_FILES(servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk)
-AC_CONFIG_FILES(servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk)
-AC_CONFIG_FILES(servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk)
-AC_CONFIG_FILES(servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk)
-AC_CONFIG_FILES(servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in)
-AC_CONFIG_FILES(servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk)
-AC_CONFIG_FILES(tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk)
-AC_CONFIG_FILES(tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk)
+dnl final output
+dnl
 
-AC_CONFIG_COMMANDS([time-stamp], [date >stamp-h
-echo Please run \"make depend\" to build dependencies])
-AC_OUTPUT
+AC_OUTPUT( \
+Makefile:build/top.mk:Makefile.in:build/dir.mk \
+doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk \
+doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk \
+doc/man/man1/Makefile:build/top.mk:doc/man/man1/Makefile.in:build/man.mk \
+doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk \
+doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
+doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
+clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
+clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
+include/Makefile:build/top.mk:include/Makefile.in \
+libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
+libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk \
+servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
+servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
+servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk \
+servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \
+servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
+servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
+servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk \
+servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk \
+servers/slapd/back-null/Makefile:build/top.mk:servers/slapd/back-null/Makefile.in:build/mod.mk \
+servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
+servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
+servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
+servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
+servers/slapd/back-tcl/Makefile:build/top.mk:servers/slapd/back-tcl/Makefile.in:build/mod.mk \
+servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
+servers/slapd/slapi/Makefile:build/top.mk:servers/slapd/slapi/Makefile.in:build/lib.mk:build/lib-shared.mk  \
+servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
+servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
+tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
+tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
+,[
+date > stamp-h
+echo Please run \"make depend\" to build dependencies
+])

@@ -117,6 +117,5 @@
 #include "ldap_features.h"
 
 #include "ac/assert.h"
-#include "ac/localize.h"
 
 #endif /* _LDAP_PORTABLE_H */

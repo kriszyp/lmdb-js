@@ -8,8 +8,8 @@
 ## http://www.OpenLDAP.org/license.html or in file LICENSE in the
 ## top-level directory of the distribution.
 ##
-PACKAGE= @OPENLDAP_PACKAGE@
-VERSION= @OPENLDAP_VERSION@
+PACKAGE= @PACKAGE@
+VERSION= @VERSION@
 RELEASEDATE= @OPENLDAP_RELEASE_DATE@
 
 @SET_MAKE@
@@ -37,7 +37,6 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@$(ldap_subdir)
 schemadir = $(sysconfdir)/schema
-localedir = @datadir@/locale
 
 PLAT = @PLAT@
 EXEEXT = @EXEEXT@

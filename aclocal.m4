@@ -1,15 +1,14 @@
-# generated automatically by aclocal 1.7.3 -*- Autoconf -*-
+dnl aclocal.m4 generated automatically by aclocal 1.4a
 
-# Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002
-# Free Software Foundation, Inc.
-# This file is free software; the Free Software Foundation
-# gives unlimited permission to copy and/or distribute it,
-# with or without modifications, as long as this notice is preserved.
+dnl Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+dnl This file is free software; the Free Software Foundation
+dnl gives unlimited permission to copy and/or distribute it,
+dnl with or without modifications, as long as this notice is preserved.
 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
-# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE.
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+dnl PARTICULAR PURPOSE.
 
 dnl
 dnl Copyright 1998-2003 The OpenLDAP Foundation, Redwood City, California, USA
@@ -26,43 +25,119 @@ dnl
 divert(-1)
 builtin(include, build/openldap.m4)dnl
 
+# Do all the work for Automake.  This macro actually does too much --
+# some checks are only needed if your package does certain things.
+# But this isn't really a big deal.
 
-AC_DEFUN(AC_PROG_SHTOOL,[dnl
-AC_PREREQ(2.13)dnl
-AC_MSG_CHECKING([for GNU shtool])
-AC_CACHE_VAL(ac_cv_shtool,[dnl
-#   canonicalize and split path string
-ac_paths="`echo .:$ac_aux_dir:$PATH |\
-           sed -e 's%/*:%:%g' -e 's%/*$%%' \
-               -e 's/^:/.:/' -e 's/::/:.:/g' -e 's/:$/:./' \
-               -e 's/:/ /g'`"
-#   iterate over $PATH but prefer CWD
-ac_cv_shtool=""
-for ac_path in $ac_paths; do
-    if test -f "$ac_path/shtool" && test ! -d "$ac_path/shtool"; then
-        ac_cv_shtool="$ac_path/shtool"
-        break
-    fi
-done
-#   check for existance
-if test ".$ac_cv_shtool" = .; then
-    AC_MSG_ERROR([no shtool found in .:$PATH])
-fi
-#   check deeper
-ac_rc=`($ac_cv_shtool --version) </dev/null 2>/dev/null | grep 'GNU shtool'`
-if test ".$ac_rc" = .; then
-    ac_cv_shtool="${CONFIG_SHELL-/bin/sh} $ac_cv_shtool"
-    ac_rc=`($ac_cv_shtool --version) </dev/null 2>/dev/null | grep 'GNU shtool'`
-    if test ".$ac_rc" = .; then
-        AC_MSG_ERROR([$ac_cv_shtool seems not to be GNU shtool])
-    fi
-fi
-])dnl
-AC_MSG_RESULT([$ac_cv_shtool])
-SHTOOL="$ac_cv_shtool"
-AC_SUBST(SHTOOL)
-])
+# serial 1
 
+dnl Usage:
+dnl AM_INIT_AUTOMAKE(package,version, [no-define])
+
+AC_DEFUN(AM_INIT_AUTOMAKE,
+[AC_REQUIRE([AC_PROG_INSTALL])
+dnl We require 2.13 because we rely on SHELL being computed by configure.
+AC_PREREQ([2.13])
+PACKAGE=[$1]
+AC_SUBST(PACKAGE)
+VERSION=[$2]
+AC_SUBST(VERSION)
+dnl test to see if srcdir already configured
+if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
+  AC_MSG_ERROR([source directory already configured; run "make distclean" there first])
+fi
+ifelse([$3],,
+AC_DEFINE_UNQUOTED(PACKAGE, "$PACKAGE", [Name of package])
+AC_DEFINE_UNQUOTED(VERSION, "$VERSION", [Version number of package]))
+AC_REQUIRE([AM_SANITY_CHECK])
+AC_REQUIRE([AC_ARG_PROGRAM])
+dnl FIXME This is truly gross.
+missing_dir=`cd $ac_aux_dir && pwd`
+AM_MISSING_PROG(ACLOCAL, aclocal, $missing_dir)
+AM_MISSING_PROG(AUTOCONF, autoconf, $missing_dir)
+AM_MISSING_PROG(AUTOMAKE, automake, $missing_dir)
+AM_MISSING_PROG(AUTOHEADER, autoheader, $missing_dir)
+AM_MISSING_PROG(MAKEINFO, makeinfo, $missing_dir)
+dnl Set install_sh for make dist
+install_sh="$missing_dir/install-sh"
+test -f "$install_sh" || install_sh="$missing_dir/install.sh"
+AC_SUBST(install_sh)
+dnl We check for tar when the user configures the end package.
+dnl This is sad, since we only need this for "dist".  However,
+dnl there's no other good way to do it.  We prefer GNU tar if
+dnl we can find it.  If we can't find a tar, it doesn't really matter.
+AC_CHECK_PROGS(AMTAR, gnutar gtar tar)
+dnl We need awk for the "check" target.  The system "awk" is bad on
+dnl some platforms.
+AC_REQUIRE([AC_PROG_AWK])
+AMTARFLAGS=
+if test -n "$AMTAR"; then
+  if $SHELL -c "$AMTAR --version" > /dev/null 2>&1; then
+    dnl We have GNU tar.
+    AMTARFLAGS=o
+  fi
+fi
+AC_SUBST(AMTARFLAGS)
+AC_REQUIRE([AC_PROG_MAKE_SET])])
+
+#
+# Check to make sure that the build environment is sane.
+#
+
+AC_DEFUN(AM_SANITY_CHECK,
+[AC_MSG_CHECKING([whether build environment is sane])
+# Just in case
+sleep 1
+echo timestamp > conftestfile
+# Do `set' in a subshell so we don't clobber the current shell's
+# arguments.  Must try -L first in case configure is actually a
+# symlink; some systems play weird games with the mod time of symlinks
+# (eg FreeBSD returns the mod time of the symlink's containing
+# directory).
+if (
+   set X `ls -Lt $srcdir/configure conftestfile 2> /dev/null`
+   if test "[$]*" = "X"; then
+      # -L didn't work.
+      set X `ls -t $srcdir/configure conftestfile`
+   fi
+   if test "[$]*" != "X $srcdir/configure conftestfile" \
+      && test "[$]*" != "X conftestfile $srcdir/configure"; then
+
+      # If neither matched, then we have a broken ls.  This can happen
+      # if, for instance, CONFIG_SHELL is bash and it inherits a
+      # broken ls alias from the environment.  This has actually
+      # happened.  Such a system could not be considered "sane".
+      AC_MSG_ERROR([ls -t appears to fail.  Make sure there is not a broken
+alias in your environment])
+   fi
+
+   test "[$]2" = conftestfile
+   )
+then
+   # Ok.
+   :
+else
+   AC_MSG_ERROR([newly created file is older than distributed files!
+Check your system clock])
+fi
+rm -f conftest*
+AC_MSG_RESULT(yes)])
+
+dnl AM_MISSING_PROG(NAME, PROGRAM, DIRECTORY)
+dnl The program must properly implement --version.
+AC_DEFUN(AM_MISSING_PROG,
+[AC_MSG_CHECKING(for working $2)
+# Run test in a subshell; some versions of sh will print an error if
+# an executable is not found, even if stderr is redirected.
+# Redirect stdin to placate older versions of autoconf.  Sigh.
+if ($2 --version) < /dev/null > /dev/null 2>&1; then
+   $1=$2
+   AC_MSG_RESULT(found)
+else
+   $1="$3/missing $2"
+   AC_MSG_RESULT(missing)
+fi
+AC_SUBST($1)])
 
 # libtool.m4 - Configure libtool for the host system. -*-Shell-script-*-
 
@@ -3686,24 +3761,7 @@ AC_MSG_RESULT([$SED])
 ])
 
 
-# Copyright 1996, 1997, 1999, 2000, 2001, 2002  Free Software Foundation, Inc.
-
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2, or (at your option)
-# any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-# 02111-1307, USA.
-
-# serial 2
+# serial 1
 
 # @defmac AC_PROG_CC_STDC
 # @maindex PROG_CC_STDC
@@ -3720,7 +3778,7 @@ AC_MSG_RESULT([$SED])
 # program @code{ansi2knr}, which comes with Ghostscript.
 # @end defmac
 
-AC_DEFUN([AM_PROG_CC_STDC],
+AC_DEFUN(AM_PROG_CC_STDC,
 [AC_REQUIRE([AC_PROG_CC])
 AC_BEFORE([$0], [AC_C_INLINE])
 AC_BEFORE([$0], [AC_C_CONST])
@@ -3730,7 +3788,7 @@ dnl like #elif.
 dnl FIXME: can't do this because then AC_AIX won't work due to a
 dnl circular dependency.
 dnl AC_BEFORE([$0], [AC_PROG_CPP])
-AC_MSG_CHECKING([for ${CC-cc} option to accept ANSI C])
+AC_MSG_CHECKING(for ${CC-cc} option to accept ANSI C)
 AC_CACHE_VAL(am_cv_prog_cc_stdc,
 [am_cv_prog_cc_stdc=no
 ac_save_CC="$CC"
@@ -3783,7 +3841,7 @@ CC="$ac_save_CC"
 if test -z "$am_cv_prog_cc_stdc"; then
   AC_MSG_RESULT([none needed])
 else
-  AC_MSG_RESULT([$am_cv_prog_cc_stdc])
+  AC_MSG_RESULT($am_cv_prog_cc_stdc)
 fi
 case "x$am_cv_prog_cc_stdc" in
   x|xno) ;;
@@ -3791,55 +3849,68 @@ case "x$am_cv_prog_cc_stdc" in
 esac
 ])
 
-AU_DEFUN([fp_PROG_CC_STDC], [AM_PROG_CC_STDC])
-
-# Helper functions for option handling.                    -*- Autoconf -*-
-
-# Copyright 2002  Free Software Foundation, Inc.
-
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 2, or (at your option)
-# any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA
-# 02111-1307, USA.
+dnl From Jim Meyering.
 
 # serial 1
 
-# Obsolete Automake macros.
+AC_DEFUN(AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL,
+[AC_REQUIRE([AM_SYS_POSIX_TERMIOS])
+ AC_CACHE_CHECK([whether use of TIOCGWINSZ requires sys/ioctl.h],
+	        am_cv_sys_tiocgwinsz_needs_sys_ioctl_h,
+  [am_cv_sys_tiocgwinsz_needs_sys_ioctl_h=no
 
-# We put here only the macros whose substitution is not an Automake
-# macro; otherwise including this file would trigger dependencies for
-# all the subsitutions.  Generally, obsolete Automake macros are
-# better AU_DEFUNed in the same file as their replacement, or alone in
-# a separate file (see obsol-gt.m4 or obsol-lt.m4 for instance).
+  gwinsz_in_termios_h=no
+  if test $am_cv_sys_posix_termios = yes; then
+    AC_EGREP_CPP([yes],
+    [#include <sys/types.h>
+#     include <termios.h>
+#     ifdef TIOCGWINSZ
+        yes
+#     endif
+    ], gwinsz_in_termios_h=yes)
+  fi
 
-AU_DEFUN([AC_FEATURE_CTYPE],     [AC_HEADER_STDC])
-AU_DEFUN([AC_FEATURE_ERRNO],     [AC_REPLACE_FUNCS([strerror])])
-AU_DEFUN([AM_CYGWIN32],	         [AC_CYGWIN])
-AU_DEFUN([AM_EXEEXT],            [AC_EXEEXT])
-AU_DEFUN([AM_FUNC_MKTIME],       [AC_FUNC_MKTIME])
-AU_DEFUN([AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL],
-				 [AC_HEADER_TIOCGWINSZ])
-AU_DEFUN([AM_MINGW32],           [AC_MINGW32])
-AU_DEFUN([AM_PROG_INSTALL],      [AC_PROG_INSTALL])
-AU_DEFUN([AM_SANITY_CHECK_CC],   [AC_PROG_CC])
-AU_DEFUN([AM_SYS_POSIX_TERMIOS], [AC_SYS_POSIX_TERMIOS])
-AU_DEFUN([fp_FUNC_FNMATCH],      [AC_FUNC_FNMATCH])
-AU_DEFUN([fp_PROG_INSTALL],      [AC_PROG_INSTALL])
-AU_DEFUN([md_TYPE_PTRDIFF_T],    [AC_CHECK_TYPES([ptrdiff_t])])
+  if test $gwinsz_in_termios_h = no; then
+    AC_EGREP_CPP([yes],
+    [#include <sys/types.h>
+#     include <sys/ioctl.h>
+#     ifdef TIOCGWINSZ
+        yes
+#     endif
+    ], am_cv_sys_tiocgwinsz_needs_sys_ioctl_h=yes)
+  fi
+  ])
+  if test $am_cv_sys_tiocgwinsz_needs_sys_ioctl_h = yes; then
+    AC_DEFINE(GWINSZ_IN_SYS_IOCTL,1,
+              [Define if TIOCGWINSZ requires sys/ioctl.h])
+  fi
+])
 
-# Don't know how to translate these.
-# If used, Autoconf will complain that they are possibly unexpended;
-# this seems a good enough error message.
-# AC_FEATURE_EXIT
-# AC_SYSTEM_HEADER
+dnl From Jim Meyering.
+
+# serial 1
+
+AC_DEFUN(AM_SYS_POSIX_TERMIOS,
+[AC_CACHE_CHECK([POSIX termios], am_cv_sys_posix_termios,
+  [AC_TRY_LINK([#include <sys/types.h>
+#include <unistd.h>
+#include <termios.h>],
+  [/* SunOS 4.0.3 has termios.h but not the library calls.  */
+   tcgetattr(0, 0);],
+  am_cv_sys_posix_termios=yes,
+  am_cv_sys_posix_termios=no)])
+])
+
+# From Ulrich Drepper.
+
+# serial 1
+
+AC_DEFUN(AM_TYPE_PTRDIFF_T,
+  [AC_CACHE_CHECK([for ptrdiff_t], am_cv_type_ptrdiff_t,
+     [AC_TRY_COMPILE([#include <stddef.h>], [ptrdiff_t p],
+		     am_cv_type_ptrdiff_t=yes, am_cv_type_ptrdiff_t=no)])
+   if test $am_cv_type_ptrdiff_t = yes; then
+     AC_DEFINE(HAVE_PTRDIFF_T,1,[Define if system has ptrdiff_t type])
+   fi
+])
 

@@ -19,10 +19,9 @@ dnl $2 = help-string
 dnl $3 = default value	(auto)
 dnl $4 = allowed values (auto yes no)
 AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
-	AC_ARG_ENABLE([$1], AC_HELP_STRING([--enable-$1],
-	[$2 <m4_ifval([$4],[$4],[auto yes no])> default=m4_ifval([$3],[$3],[auto])]),
-[	ol_arg=invalid
-	for ol_val in m4_ifval([$4],[$4],[auto yes no]) ; do
+	AC_ARG_ENABLE($1,changequote(<,>)<$2 [>ifelse($3,,auto,$3)<]>changequote([,]),[
+	ol_arg=invalid
+	for ol_val in ifelse($4,,[auto yes no],[$4]) ; do
 		if test "$enableval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -32,7 +31,8 @@ AC_DEFUN([OL_ARG_ENABLE], [# OpenLDAP --enable-$1
 	fi
 	ol_enable_$1="$ol_arg"
 ],
-[	ol_enable_$1=m4_ifval([$3],["$3"],["auto"])])dnl
+[	ol_enable_$1=ifelse($3,,"auto","$3")])dnl
+dnl AC_VERBOSE(OpenLDAP -enable-$1 $ol_enable_$1)
 # end --enable-$1
 ])dnl
 dnl
@@ -42,12 +42,11 @@ dnl
 dnl $1 = option name
 dnl $2 = help-string
 dnl $3 = default value (no)
-dnl $4 = allowed values (yes no)
+dnl $4 = allowed values (yes or no)
 AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
-	AC_ARG_WITH([$1], AC_HELP_STRING([--with-$1],
-	[$2 <m4_ifval([$4],[$4],[auto yes no])> default=m4_ifval([$3],[$3],[auto])]),
-[	ol_arg=invalid
-	for ol_val in m4_ifval([$4],[$4],[auto yes no]) ; do
+	AC_ARG_WITH($1,changequote(<,>)<$2 [>ifelse($3,,yes,$3)<]>changequote([,]),[
+	ol_arg=invalid
+	for ol_val in ifelse($4,,[yes no],[$4]) ; do
 		if test "$withval" = "$ol_val" ; then
 			ol_arg="$ol_val"
 		fi
@@ -57,10 +56,38 @@ AC_DEFUN([OL_ARG_WITH], [# OpenLDAP --with-$1
 	fi
 	ol_with_$1="$ol_arg"
 ],
-[	ol_with_$1=m4_ifval([$3],["$3"],["auto"])])dnl
+[	ol_with_$1=ifelse($3,,"no","$3")])dnl
+dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
 # end --with-$1
 ])dnl
 dnl
+dnl ====================================================================
+dnl
+AC_DEFUN(AC_COMPILE_CHECK_SIZEOF,
+[changequote(<<, >>)dnl 
+dnl The name to #define. 
+define(<<AC_TYPE_NAME>>, translit(sizeof_$1, [a-z *], [A-Z_P]))dnl 
+dnl The cache variable name. 
+define(<<AC_CV_NAME>>, translit(ac_cv_sizeof_$1, [ *], [_p]))dnl 
+changequote([, ])dnl 
+AC_MSG_CHECKING(size of $1) 
+AC_CACHE_VAL(AC_CV_NAME, 
+[for ac_size in 4 8 1 2 16 $2 ; do # List sizes in rough order of prevalence. 
+  AC_TRY_COMPILE([#include "confdefs.h" 
+#include <sys/types.h> 
+$2 
+], [switch (0) case 0: case (sizeof ($1) == $ac_size):;], AC_CV_NAME=$ac_size) 
+  if test x$AC_CV_NAME != x ; then break; fi 
+done 
+]) 
+if test x$AC_CV_NAME = x ; then 
+  AC_MSG_ERROR([cannot determine a size for $1]) 
+fi 
+AC_MSG_RESULT($AC_CV_NAME) 
+AC_DEFINE_UNQUOTED(AC_TYPE_NAME, $AC_CV_NAME, [The number of bytes in type $1]) 
+undefine([AC_TYPE_NAME])dnl 
+undefine([AC_CV_NAME])dnl 
+])
 dnl ====================================================================
 dnl check if hard links are supported.
 dnl
@@ -189,19 +216,33 @@ dnl
 dnl ====================================================================
 dnl Check if struct passwd has pw_gecos
 AC_DEFUN([OL_STRUCT_PASSWD_PW_GECOS], [# test for pw_gecos in struct passwd
-   AC_CHECK_MEMBER(struct passwd.pw_gecos,,,[#include <pwd.h>])
-   if test $ac_cv_member_struct_passwd_pw_gecos = "yes" ; then
-		AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
-   fi
-])dnl
+AC_CACHE_CHECK([struct passwd for pw_gecos],ol_cv_struct_passwd_pw_gecos,[
+	AC_TRY_COMPILE([#include <pwd.h>],[
+	struct passwd pwd;
+	pwd.pw_gecos = pwd.pw_name;
+],
+	[ol_cv_struct_passwd_pw_gecos=yes],
+	[ol_cv_struct_passwd_pw_gecos=no])])
+if test $ol_cv_struct_passwd_pw_gecos = yes ; then
+	AC_DEFINE(HAVE_PW_GECOS,1, [define if struct passwd has pw_gecos])
+fi
+])
+dnl
 dnl --------------------------------------------------------------------
 dnl Check if struct passwd has pw_passwd
 AC_DEFUN([OL_STRUCT_PASSWD_PW_PASSWD], [# test for pw_passwd in struct passwd
-   AC_CHECK_MEMBER(struct passwd.pw_passwd,,,[#include <pwd.h>])
-   if test $ac_cv_member_struct_passwd_pw_passwd = "yes" ; then
-		AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
-   fi
-])dnl
+AC_CACHE_CHECK([struct passwd for pw_passwd],ol_cv_struct_passwd_pw_passwd,[
+	AC_TRY_COMPILE([#include <pwd.h>],[
+	struct passwd pwd;
+	pwd.pw_passwd = pwd.pw_name;
+],
+	[ol_cv_struct_passwd_pw_passwd=yes],
+	[ol_cv_struct_passwd_pw_passwd=no])])
+if test $ol_cv_struct_passwd_pw_passwd = yes ; then
+	AC_DEFINE(HAVE_PW_PASSWD,1, [define if struct passwd has pw_passwd])
+fi
+])
+dnl
 dnl ====================================================================
 dnl Berkeley DB macros
 dnl
@@ -1178,9 +1219,13 @@ AC_DEFUN([OL_SASL_COMPAT],
 dnl ====================================================================
 dnl check for msg_accrights in msghdr
 AC_DEFUN(OL_MSGHDR_MSG_ACCRIGHTS,
- [AC_CHECK_MEMBER(struct msghdr.msg_accrights,,,[#include <sys/socket.h>])
-   if test $ac_cv_member_struct_msghdr_msg_accrights = "yes" ; then
-		AC_DEFINE(HAVE_MSGHDR_MSG_ACCRIGHTS,1,
-			[define if struct msghdr has msg_accrights])
-   fi
+ [AC_CACHE_CHECK(for msg_accrights in msghdr, ol_cv_msghdr_msg_accrights,
+   [AC_TRY_COMPILE([#include <sys/socket.h>],
+		[struct msghdr m; m.msg_accrightslen=0],
+		ol_cv_msghdr_msg_accrights=yes, ol_cv_msghdr_msg_accrights=no)
+	])
+  if test $ol_cv_msghdr_msg_accrights = "yes" ; then
+	AC_DEFINE(HAVE_MSGHDR_MSG_ACCRIGHTS,1,
+		[define if struct msghdr has msg_accrights])
+  fi
 ])dnl
