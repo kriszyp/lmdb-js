@@ -66,7 +66,7 @@ struct cache {
 	Avlnode		*c_idtree;
 	Entry		*c_lruhead;	/* lru - add accessed entries here */
 	Entry		*c_lrutail;	/* lru - rem lru entries from here */
-	pthread_mutex_t	c_mutex;
+	ldap_pvt_thread_mutex_t	c_mutex;
 };
 
 /* for the cache of open index files */
@@ -112,9 +112,9 @@ struct ldbminfo {
 	ID			li_nextid_wrote;
 #endif
 	char		*li_nextid_file;
-	pthread_mutex_t		li_root_mutex;
-	pthread_mutex_t		li_add_mutex;
-	pthread_mutex_t		li_nextid_mutex;
+	ldap_pvt_thread_mutex_t		li_root_mutex;
+	ldap_pvt_thread_mutex_t		li_add_mutex;
+	ldap_pvt_thread_mutex_t		li_nextid_mutex;
 	int			li_mode;
 	char			*li_directory;
 	struct cache		li_cache;
@@ -122,8 +122,8 @@ struct ldbminfo {
 	int			li_dbcachesize;
 	int			li_dbcachewsync;
 	struct dbcache		li_dbcache[MAXDBCACHE];
-	pthread_mutex_t		li_dbcache_mutex;
-	pthread_cond_t		li_dbcache_cv;
+	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
+	ldap_pvt_thread_cond_t		li_dbcache_cv;
 };
 
 #include "proto-back-ldbm.h"

@@ -245,20 +245,21 @@ extern long		num_entries_sent;
 extern long		ops_completed;
 extern long		ops_initiated;
 
-extern pthread_mutex_t	active_threads_mutex;
-extern pthread_cond_t	active_threads_cond;
+extern ldap_pvt_thread_mutex_t	active_threads_mutex;
+extern ldap_pvt_thread_cond_t	active_threads_cond;
 
-extern pthread_mutex_t	currenttime_mutex;
-extern pthread_mutex_t	strtok_mutex;
-extern pthread_mutex_t	entry2str_mutex;
-extern pthread_mutex_t	new_conn_mutex;
-extern pthread_mutex_t	num_sent_mutex;
-extern pthread_mutex_t	ops_mutex;
-extern pthread_mutex_t	replog_mutex;
+extern ldap_pvt_thread_mutex_t	currenttime_mutex;
+extern ldap_pvt_thread_mutex_t	entry2str_mutex;
+extern ldap_pvt_thread_mutex_t	new_conn_mutex;
+extern ldap_pvt_thread_mutex_t	num_sent_mutex;
+extern ldap_pvt_thread_mutex_t	ops_mutex;
+extern ldap_pvt_thread_mutex_t	replog_mutex;
 #ifdef SLAPD_CRYPT
-extern pthread_mutex_t	crypt_mutex;
+extern ldap_pvt_thread_mutex_t	crypt_mutex;
 #endif
-extern pthread_t	listener_tid;
+extern ldap_pvt_thread_mutex_t	strtok_mutex;
+
+extern ldap_pvt_thread_t	listener_tid;
 extern struct acl	*global_acl;
 extern struct objclass	*global_oc;
 extern time_t		currenttime;

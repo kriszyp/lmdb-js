@@ -181,7 +181,7 @@ add_created_attrs( Operation *op, Entry *e )
 	}
 	attr_merge( e, "creatorsname", bvals );
 
-	pthread_mutex_lock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 #ifndef LDAP_LOCALTIME
 	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
@@ -189,7 +189,7 @@ add_created_attrs( Operation *op, Entry *e )
 	ltm = localtime( &currenttime );
 	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
 #endif
-	pthread_mutex_unlock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );

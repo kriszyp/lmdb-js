@@ -72,25 +72,25 @@ passwd_back_search(
 
 	for ( pw = getpwent(); pw != NULL; pw = getpwent() ) {
 		/* check for abandon */
-		pthread_mutex_lock( &op->o_abandonmutex );
+		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 		if ( op->o_abandon ) {
-			pthread_mutex_unlock( &op->o_abandonmutex );
+			ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 			endpwent();
 			return( -1 );
 		}
-		pthread_mutex_unlock( &op->o_abandonmutex );
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		/* check time limit */
-		pthread_mutex_lock( &currenttime_mutex );
+		ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 		time( &currenttime );
 		if ( currenttime > stoptime ) {
-			pthread_mutex_unlock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 			send_ldap_result( conn, op, LDAP_TIMELIMIT_EXCEEDED,
 			    NULL, NULL );
 			endpwent();
 			return( 0 );
 		}
-		pthread_mutex_unlock( &currenttime_mutex );
+		ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 		e = pw2entry( be, pw );
 

@@ -27,13 +27,13 @@ connection_operation( void *arg_v )
 	struct co_arg	*arg = arg_v;
 	unsigned long	len;
 
-	pthread_mutex_lock( &arg->co_conn->c_opsmutex );
+	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
 	arg->co_conn->c_opsinitiated++;
-	pthread_mutex_unlock( &arg->co_conn->c_opsmutex );
+	ldap_pvt_thread_mutex_unlock( &arg->co_conn->c_opsmutex );
 
-	pthread_mutex_lock( &ops_mutex );
+	ldap_pvt_thread_mutex_lock( &ops_mutex );
 	ops_initiated++;
-	pthread_mutex_unlock( &ops_mutex );
+	ldap_pvt_thread_mutex_unlock( &ops_mutex );
 
 	switch ( arg->co_op->o_tag ) {
 	case LDAP_REQ_BIND:
@@ -87,23 +87,23 @@ connection_operation( void *arg_v )
 		break;
 	}
 
-	pthread_mutex_lock( &arg->co_conn->c_opsmutex );
+	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
 	arg->co_conn->c_opscompleted++;
 	slap_op_delete( &arg->co_conn->c_ops, arg->co_op );
-	pthread_mutex_unlock( &arg->co_conn->c_opsmutex );
+	ldap_pvt_thread_mutex_unlock( &arg->co_conn->c_opsmutex );
 
 	free( (char *) arg );
 
-	pthread_mutex_lock( &ops_mutex );
+	ldap_pvt_thread_mutex_lock( &ops_mutex );
 	ops_completed++;
-	pthread_mutex_unlock( &ops_mutex );
+	ldap_pvt_thread_mutex_unlock( &ops_mutex );
 
-	pthread_mutex_lock( &active_threads_mutex );
+	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	active_threads--;
 	if( active_threads < 1 ) {
-		pthread_cond_signal(&active_threads_cond);
+		ldap_pvt_thread_cond_signal(&active_threads_cond);
 	}
-	pthread_mutex_unlock( &active_threads_mutex );
+	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 	return NULL;
 }
 
@@ -112,9 +112,6 @@ connection_activity(
     Connection *conn
 )
 {
-#ifndef HAVE_PTHREAD_DETACH
-	pthread_attr_t	attr;
-#endif
 	int status;
 	struct co_arg	*arg;
 	unsigned long	tag, len;
@@ -181,68 +178,29 @@ connection_activity(
 	arg = (struct co_arg *) ch_malloc( sizeof(struct co_arg) );
 	arg->co_conn = conn;
 
-	pthread_mutex_lock( &conn->c_dnmutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
 	if ( conn->c_dn != NULL ) {
 		tmpdn = ch_strdup( conn->c_dn );
 	} else {
 		tmpdn = NULL;
 	}
-	pthread_mutex_unlock( &conn->c_dnmutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
 
-	pthread_mutex_lock( &conn->c_opsmutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_opsmutex );
 	arg->co_op = slap_op_add( &conn->c_ops, ber, msgid, tag, tmpdn,
 	    conn->c_opsinitiated, conn->c_connid );
-	pthread_mutex_unlock( &conn->c_opsmutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_opsmutex );
 
 	if ( tmpdn != NULL ) {
 		free( tmpdn );
 	}
 
-#ifdef HAVE_PTHREAD_DETACH
-	if ( status = pthread_create( &arg->co_op->o_tid, NULL,
+	if ( status = ldap_pvt_thread_create( &arg->co_op->o_tid, 1,
 	    connection_operation, (void *) arg ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "pthread_create failed (%d)\n", status, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
 	} else {
-		pthread_mutex_lock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 		active_threads++;
-		pthread_mutex_unlock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 	}
-
-#if !defined(HAVE_PTHREADS_D4)
-	pthread_detach( arg->co_op->o_tid );
-#else
-	pthread_detach( &arg->co_op->o_tid );
-#endif
-
-#else /* !pthread detach */
-
-	pthread_attr_init( &attr );
-	pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
-#if !defined(HAVE_PTHREADS_D4)
-	/* POSIX_THREADS or compatible
-	 * This is a draft 10 or standard pthreads implementation
-	 */
-	if ( status = pthread_create( &arg->co_op->o_tid, &attr,
-	    connection_operation, (void *) arg ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "pthread_create failed (%d)\n", status, 0, 0 );
-	} else {
-		pthread_mutex_lock( &active_threads_mutex );
-		active_threads++;
-		pthread_mutex_unlock( &active_threads_mutex );
-	}
-#else	/* pthread draft4  */
-	/*
-	 * This is a draft 4 or earlier pthreads implementation
-	 */
-	if ( status = pthread_create( &arg->co_op->o_tid, attr,
-	    connection_operation, (void *) arg ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "pthread_create failed (%d)\n", status, 0, 0 );
-	} else {
-		pthread_mutex_lock( &active_threads_mutex );
-		active_threads++;
-		pthread_mutex_unlock( &active_threads_mutex );
-	}
-#endif	/* pthread draft4 */
-	pthread_attr_destroy( &attr );
-#endif
 }

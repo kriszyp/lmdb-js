@@ -203,7 +203,7 @@ add_value(
 	}
 	idl_free( idl );
 
-	pthread_yield();
+	ldap_pvt_thread_yield();
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= add_value %d\n", rc, 0, 0 ); */
 	return( rc );

@@ -50,6 +50,8 @@ OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
 	no, [yes no])dnl
 
 dnl General "with" options
+OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	enable debug malloc support], no)dnl
+
 OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
 	auto, [auto k5 k4 afs yes no])
 OL_ARG_WITH(threads,[  --with-threads	use threads],
@@ -592,30 +594,28 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
 				dnl Solaris has sched_yield() in -lposix4
-				AC_CHECK_LIB(posix4, sched_yield,
-					[LTHREAD_LIBS="$LTHREAD_LIBS -lposix4"
-					AC_DEFINE(HAVE_SCHED_YIELD,1)
-					ac_cv_func_sched_yield=yes],
-					[ac_cv_func_sched_yield=no])
+				dnl but we'll use thr_yield instead.
+				AC_CHECK_FUNCS(thr_yield)
 			fi
 			if test $ac_cv_func_sched_yield = no -a \
-				$ac_cv_func_pthread_yield = no ; then
+				$ac_cv_func_pthread_yield = no -a \
+				"$ac_cv_func_thr_yield" = no ; then
 				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
 			fi
 
 			dnl Check functions for compatibility
 			AC_CHECK_FUNCS(pthread_kill pthread_detach)
 
-			AC_CHECK_FUNCS( \
-				pthread_attr_create pthread_attr_init \
-				pthread_attr_destroy pthread_attr_delete \
-				pthread_attr_setdetachstate pthread_attr_setdetach_np \
-			)
+			if test $ac_cv_func_pthread_detach = no ; then
+				AC_MSG_ERROR([could not locate pthread_detach()])
+			fi
 
 			dnl Check for setconcurreny functions
 			AC_CHECK_FUNCS(	\
 				pthread_setconcurrency \
+				pthread_getconcurrency \
 				thr_setconcurrency \
+				thr_getconcurrency \
 			)
 
 			AC_MSG_CHECKING([if pthread_create() works])
@@ -1016,6 +1016,11 @@ if test $ol_enable_wrappers != no ; then
 		AC_MSG_WARN(disabling wrappers support)
 		ol_enable_wrappers=no
 	fi
+fi
+
+if test $ol_enable_dmalloc != no ; then
+	AC_CHECK_HEADERS(dmalloc.h)
+	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
 fi
 
 # ud needs termcap (should insert check here)

@@ -144,9 +144,9 @@ ldbm_back_search(
 	for ( id = idl_firstid( candidates ); id != NOID;
 	    id = idl_nextid( candidates, id ) ) {
 		/* check for abandon */
-		pthread_mutex_lock( &op->o_abandonmutex );
+		ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 		if ( op->o_abandon ) {
-			pthread_mutex_unlock( &op->o_abandonmutex );
+			ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 			idl_free( candidates );
 			free( rbuf );
 			if( realBase != NULL) {
@@ -154,13 +154,13 @@ ldbm_back_search(
 			}
 			return( 0 );
 		}
-		pthread_mutex_unlock( &op->o_abandonmutex );
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 		/* check time limit */
-		pthread_mutex_lock( &currenttime_mutex );
+		ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 		time( &currenttime );
 		if ( tlimit != -1 && currenttime > stoptime ) {
-			pthread_mutex_unlock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 			send_ldap_search_result( conn, op,
 			    LDAP_TIMELIMIT_EXCEEDED, NULL, nrefs > 0 ? rbuf :
 			    NULL, nentries );
@@ -171,7 +171,7 @@ ldbm_back_search(
 			}
 			return( 0 );
 		}
-		pthread_mutex_unlock( &currenttime_mutex );
+		ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 		/* get the entry with reader lock */
 		if ( (e = id2entry_r( be, id )) == NULL ) {
@@ -292,7 +292,7 @@ ldbm_back_search(
 			cache_return_entry_r( &li->li_cache, e );
 		}
 
-		pthread_yield();
+		ldap_pvt_thread_yield();
 	}
 	idl_free( candidates );
 	if ( nrefs > 0 ) {

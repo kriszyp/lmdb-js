@@ -70,12 +70,12 @@ ldbm_back_init(
 	free( argv[ 1 ] );
 
 	/* initialize various mutex locks & condition variables */
-	pthread_mutex_init( &li->li_root_mutex, pthread_mutexattr_default );
-	pthread_mutex_init( &li->li_add_mutex, pthread_mutexattr_default );
-	pthread_mutex_init( &li->li_cache.c_mutex, pthread_mutexattr_default );
-	pthread_mutex_init( &li->li_nextid_mutex, pthread_mutexattr_default );
-	pthread_mutex_init( &li->li_dbcache_mutex, pthread_mutexattr_default );
-	pthread_cond_init( &li->li_dbcache_cv, pthread_condattr_default );
+	ldap_pvt_thread_mutex_init( &li->li_root_mutex );
+	ldap_pvt_thread_mutex_init( &li->li_add_mutex );
+	ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex );
+	ldap_pvt_thread_mutex_init( &li->li_nextid_mutex );
+	ldap_pvt_thread_mutex_init( &li->li_dbcache_mutex );
+	ldap_pvt_thread_cond_init( &li->li_dbcache_cv );
 
 	be->be_private = li;
 }

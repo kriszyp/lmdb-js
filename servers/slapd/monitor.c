@@ -68,7 +68,7 @@ monitor_info( Connection *conn, Operation *op )
 	nwritewaiters = 0;
 	nreadwaiters = 0;
 
-	pthread_mutex_lock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	for ( i = 0; i < dtblsize; i++ ) {
 		if ( c[i].c_sb.sb_sd != -1 ) {
 			nconns++;
@@ -78,7 +78,7 @@ monitor_info( Connection *conn, Operation *op )
 			if ( c[i].c_gettingber ) {
 				nreadwaiters++;
 			}
-			pthread_mutex_lock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 #ifndef LDAP_LOCALTIME
 			ltm = gmtime( &c[i].c_starttime );
 			strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
@@ -86,21 +86,21 @@ monitor_info( Connection *conn, Operation *op )
 			ltm = localtime( &c[i].c_starttime );
 			strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
 #endif
-			pthread_mutex_unlock( &currenttime_mutex );
+			ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
-			pthread_mutex_lock( &c[i].c_dnmutex );
+			ldap_pvt_thread_mutex_lock( &c[i].c_dnmutex );
 			sprintf( buf, "%d : %s : %d : %d : %s : %s%s", i,
 			    buf2, c[i].c_opsinitiated, c[i].c_opscompleted,
 			    c[i].c_cdn ? c[i].c_cdn : "NULLDN",
 			    c[i].c_gettingber ? "r" : "",
 			    c[i].c_writewaiter ? "w" : "" );
-			pthread_mutex_unlock( &c[i].c_dnmutex );
+			ldap_pvt_thread_mutex_unlock( &c[i].c_dnmutex );
 			val.bv_val = buf;
 			val.bv_len = strlen( buf );
 			attr_merge( e, "connection", vals );
 		}
 	}
-	pthread_mutex_unlock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 
 	sprintf( buf, "%d", nconns );
 	val.bv_val = buf;
@@ -147,7 +147,7 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "bytessent", vals );
 
-	pthread_mutex_lock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 #ifndef LDAP_LOCALTIME
 	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
@@ -155,12 +155,12 @@ monitor_info( Connection *conn, Operation *op )
 	ltm = localtime( &currenttime );
 	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
 #endif
-	pthread_mutex_unlock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "currenttime", vals );
 
-	pthread_mutex_lock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 #ifndef LDAP_LOCALTIME
 	ltm = gmtime( &starttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
@@ -168,7 +168,7 @@ monitor_info( Connection *conn, Operation *op )
 	ltm = localtime( &starttime );
 	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
 #endif
-	pthread_mutex_unlock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "starttime", vals );
@@ -178,8 +178,8 @@ monitor_info( Connection *conn, Operation *op )
 	val.bv_len = strlen( buf );
 	attr_merge( e, "nbackends", vals );
 
-#ifdef HAVE_THR
-	sprintf( buf, "%d", thr_getconcurrency() );
+#ifdef HAVE_THREAD_CONCURRENCY
+	sprintf( buf, "%d", ldap_pvt_thread_getconcurrency() );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "concurrency", vals );

@@ -36,7 +36,6 @@ main(
     return( 1 );
 #else
 
-    pthread_attr_t	attr;
     int			status;
     int			i;
 
@@ -94,13 +93,8 @@ main(
 #endif /* LDAP_DEBUG */
 	lutil_detach( 0, 0 );
 
-#if defined( HAVE_LWP )
-    /*
-     * Need to start a scheduler thread under SunOS 4
-     */
-    start_lwp_scheduler();
-#endif /* HAVE_LWP */
-
+	/* initialize thread package */
+	ldap_pvt_thread_initialize();
 
     /*
      * Start threads - one thread for each replica
@@ -112,9 +106,10 @@ main(
     /*
      * Start the main file manager thread (in fm.c).
      */
-    if ( pthread_create( &(sglob->fm_tid), NULL, fm, (void *) NULL )
-	    != 0 ) {
-	Debug( LDAP_DEBUG_ANY, "file manager pthread_create failed\n",
+    if ( ldap_pvt_thread_create( &(sglob->fm_tid),
+		0, fm, (void *) NULL ) != 0 )
+	{
+	Debug( LDAP_DEBUG_ANY, "file manager ldap_pvt_thread_create failed\n",
 		0, 0, 0 );
 	exit( 1 );
 
@@ -123,20 +118,13 @@ main(
     /*
      * Wait for the fm thread to finish.
      */
-#ifdef HAVE_PTHREADS_FINAL
-    pthread_join( sglob->fm_tid, (void *) NULL );
-#else
-    pthread_join( sglob->fm_tid, (void *) &status );
-#endif
+    ldap_pvt_thread_join( sglob->fm_tid, (void *) NULL );
+
     /*
      * Wait for the replica threads to finish.
      */
     for ( i = 0; sglob->replicas[ i ] != NULL; i++ ) {
-#ifdef HAVE_PTHREADS_FINAL
-	pthread_join( sglob->replicas[ i ]->ri_tid, (void *) NULL );
-#else
-	pthread_join( sglob->replicas[ i ]->ri_tid, (void *) &status );
-#endif
+	ldap_pvt_thread_join( sglob->replicas[ i ]->ri_tid, (void *) NULL );
     }
     Debug( LDAP_DEBUG_ANY, "slurpd: terminating normally\n", 0, 0, 0 );
     sglob->slurpd_shutdown = 1;

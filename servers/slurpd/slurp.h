@@ -27,10 +27,10 @@
 
 #include "lber.h"
 #include "ldap.h"
-#include "lthread.h"
+
+#include "ldap_pvt_thread.h"
 #include "ldapconfig.h"
 #include "ldif.h"
-
 
 /* Default directory for slurpd's private copy of replication logs */
 #define	DEFAULT_SLURPD_REPLICA_DIR	"/usr/tmp"
@@ -180,7 +180,7 @@ struct ri {
     struct stel	*ri_stel;		/* pointer to Stel for this replica */
     unsigned long
 		ri_seq;			/* seq number of last repl */
-    pthread_t	ri_tid;			/* ID of thread for this replica */
+    ldap_pvt_thread_t	ri_tid;			/* ID of thread for this replica */
 
     /* Member functions */
     int (*ri_process) LDAP_P(( Ri * ));	/* process the next repl entry */
@@ -214,7 +214,7 @@ typedef struct re Re;
 struct re {
 
     /* Private data */
-    pthread_mutex_t
+    ldap_pvt_thread_mutex_t
 		re_mutex;		/* mutex for this Re */
     int		re_refcnt;		/* ref count, 0 = done */
     char	*re_timestamp;		/* timestamp of this re */
@@ -259,9 +259,9 @@ struct rq {
     time_t	rq_lasttrim;		/* Last time we trimmed file */
     
     /* Public data */
-    pthread_mutex_t
+    ldap_pvt_thread_mutex_t
 		rq_mutex;		/* mutex for whole queue */
-    pthread_cond_t
+    ldap_pvt_thread_cond_t
 		rq_more;		/* condition var - more work added */
 
     /* Member functions */
@@ -306,7 +306,7 @@ typedef struct stel {
 typedef struct st St;
 struct st {
     /* Private data */
-    pthread_mutex_t
+    ldap_pvt_thread_mutex_t
 		st_mutex;		/* mutex to serialize access */
     Stel	**st_data;		/* array of pointers to Stel structs */
     int		st_nreplicas;		/* number of repl hosts */

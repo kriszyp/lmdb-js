@@ -102,7 +102,7 @@ next_id( Backend *be )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID		id;
 
-	pthread_mutex_lock( &li->li_nextid_mutex );
+	ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex );
 
 	/* first time in here since startup - try to read the nexid */
 	if ( li->li_nextid == NOID ) {
@@ -128,7 +128,7 @@ next_id( Backend *be )
 	(void) next_id_write( be, li->li_nextid );
 #endif
 
-	pthread_mutex_unlock( &li->li_nextid_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 	return( id );
 }
 
@@ -138,10 +138,10 @@ next_id_return( Backend *be, ID id )
 #ifdef SLAPD_NEXTID_RETURN
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	pthread_mutex_lock( &li->li_nextid_mutex );
+	ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex );
 
 	if ( id != li->li_nextid - 1 ) {
-		pthread_mutex_unlock( &li->li_nextid_mutex );
+		ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 		return;
 	}
 
@@ -151,7 +151,7 @@ next_id_return( Backend *be, ID id )
 	(void) next_id_write( be, li->li_nextid );
 #endif
 
-	pthread_mutex_unlock( &li->li_nextid_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 #endif
 }
 
@@ -161,7 +161,7 @@ next_id_get( Backend *be )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	ID		id;
 
-	pthread_mutex_lock( &li->li_nextid_mutex );
+	ldap_pvt_thread_mutex_lock( &li->li_nextid_mutex );
 
 	/* first time in here since startup - try to read the nexid */
 	if ( li->li_nextid == NOID ) {
@@ -178,7 +178,7 @@ next_id_get( Backend *be )
 
 	id = li->li_nextid;
 
-	pthread_mutex_unlock( &li->li_nextid_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->li_nextid_mutex );
 
 	return( id );
 }

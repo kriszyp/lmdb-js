@@ -107,7 +107,7 @@ ldbm_back_modrdn(
 			goto return_results;
 		}
 
-		pthread_mutex_lock(&li->li_root_mutex);
+		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
 		rootlock = 1;
 
 		new_dn = ch_strdup( newrdn );
@@ -121,12 +121,12 @@ ldbm_back_modrdn(
 	}
 
 	/* check for abandon */
-	pthread_mutex_lock( &op->o_abandonmutex );
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
-		pthread_mutex_unlock( &op->o_abandonmutex );
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 		goto return_results;
 	}
-	pthread_mutex_unlock( &op->o_abandonmutex );
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* add new one */
 	if ( dn2id_add( be, new_ndn, e->e_id ) != 0 ) {
@@ -180,7 +180,7 @@ return_results:
 
 	if ( rootlock ) {
 		/* release root writer lock */
-		pthread_mutex_unlock(&li->li_root_mutex);
+		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
 	}
 
 	/* free entry and writer lock */

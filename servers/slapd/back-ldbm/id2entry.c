@@ -33,7 +33,7 @@ id2entry_add( Backend *be, Entry *e )
 	key.dptr = (char *) &e->e_id;
 	key.dsize = sizeof(ID);
 
-	pthread_mutex_lock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_lock( &entry2str_mutex );
 	data.dptr = entry2str( e, &len, 1 );
 	data.dsize = len + 1;
 
@@ -42,7 +42,7 @@ id2entry_add( Backend *be, Entry *e )
 	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
 	rc = ldbm_cache_store( db, key, data, flags );
 
-	pthread_mutex_unlock( &entry2str_mutex );
+	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
 
 	ldbm_cache_close( be, db );
 	(void) cache_add_entry_lock( &li->li_cache, e, 0 );
@@ -66,7 +66,7 @@ id2entry_delete( Backend *be, Entry *e )
 
 	/* XXX - check for writer lock - should also check no reader pending */
 #ifdef LDAP_DEBUG
-	assert(pthread_rdwr_wchk_np(&e->e_rdwr));
+	assert(ldap_pvt_thread_rdwr_wchk(&e->e_rdwr));
 #endif
 
 	ldbm_datum_init( key );
@@ -74,7 +74,7 @@ id2entry_delete( Backend *be, Entry *e )
 	/* XXX - check for writer lock - should also check no reader pending */
 	Debug (LDAP_DEBUG_TRACE,
 		"rdwr_Xchk: readers_reading: %d writer_writing: %d\n",
-		e->e_rdwr.readers_reading, e->e_rdwr.writer_writing, 0);
+		e->e_rdwr.lt_readers_reading, e->e_rdwr.lt_writer_writing, 0);
  
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {

@@ -135,7 +135,7 @@ do_bind(
 			free( cred.bv_val );
 		}
 
-		pthread_mutex_lock( &conn->c_dnmutex );
+		ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
 
 		if ( conn->c_cdn != NULL ) {
 			free( conn->c_cdn );
@@ -147,7 +147,7 @@ do_bind(
 			conn->c_dn = NULL;
 		}
 
-		pthread_mutex_unlock( &conn->c_dnmutex );
+		ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
 
 		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 		return;
@@ -166,7 +166,7 @@ do_bind(
 			free( cred.bv_val );
 		}
 		if ( cred.bv_len == 0 ) {
-			pthread_mutex_lock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
 
 			if ( conn->c_cdn != NULL ) {
 				free( conn->c_cdn );
@@ -178,7 +178,7 @@ do_bind(
 				conn->c_dn = NULL;
 			}
 
-			pthread_mutex_unlock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
 
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL );
@@ -199,7 +199,7 @@ do_bind(
 		ndn = suffixAlias( ndn, op, be );
 
 		if ( (*be->be_bind)( be, conn, op, ndn, method, &cred, &edn ) == 0 ) {
-			pthread_mutex_lock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_lock( &conn->c_dnmutex );
 
 			if ( conn->c_cdn != NULL ) {
 				free( conn->c_cdn );
@@ -222,7 +222,7 @@ do_bind(
 			Debug( LDAP_DEBUG_TRACE, "do_bind: bound \"%s\" to \"%s\"\n",
 	    		conn->c_cdn, conn->c_dn, method );
 
-			pthread_mutex_unlock( &conn->c_dnmutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_dnmutex );
 
 			/* send this here to avoid a race condition */
 			send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );

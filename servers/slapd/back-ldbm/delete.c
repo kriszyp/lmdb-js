@@ -41,7 +41,7 @@ ldbm_back_delete(
 
 	Debug (LDAP_DEBUG_TRACE,
 		"rdwr_Xchk: readers_reading: %d writer_writing: %d\n",
-		e->e_rdwr.readers_reading, e->e_rdwr.writer_writing, 0);
+		e->e_rdwr.lt_readers_reading, e->e_rdwr.lt_writer_writing, 0);
 
 	/* check for deleted */
 
@@ -67,12 +67,13 @@ ldbm_back_delete(
 
 	Debug (LDAP_DEBUG_TRACE,
 		"rdwr_Xchk: readers_reading: %d writer_writing: %d\n",
-		e->e_rdwr.readers_reading, e->e_rdwr.writer_writing, 0);
+		e->e_rdwr.lt_readers_reading, e->e_rdwr.lt_writer_writing, 0);
 
 	/* delete from parent's id2children entry */
 	if( (pdn = dn_parent( be, e->e_ndn )) != NULL ) {
 		if( (p = dn2entry_w( be, pdn, &matched )) == NULL) {
-			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- ldbm_back_delete: parent does not exist\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
 				"", "");
@@ -84,7 +85,8 @@ ldbm_back_delete(
 		if ( ! access_allowed( be, conn, op, p,
 			"children", NULL, ACL_WRITE ) )
 		{
-			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- ldbm_back_delete: no access to parent\n", 0,
 				0, 0 );
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				"", "" );
@@ -95,14 +97,15 @@ ldbm_back_delete(
 	} else {
 		/* no parent, must be root to delete */
 		if( ! be_isroot( be, op->o_ndn ) ) {
-			Debug( LDAP_DEBUG_TRACE, "no parent & not root\n",
+			Debug( LDAP_DEBUG_TRACE,
+				"<=- ldbm_back_delete: no parent & not root\n",
 				0, 0, 0);
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				"", "");
 			goto return_results;
 		}
 
-		pthread_mutex_lock(&li->li_root_mutex);
+		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
 		rootlock = 1;
 	}
 
@@ -145,7 +148,7 @@ return_results:;
 
 	if ( rootlock ) {
 		/* release root lock */
-		pthread_mutex_unlock(&li->li_root_mutex);
+		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
 	}
 
 	/* free entry and writer lock */

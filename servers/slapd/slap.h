@@ -19,8 +19,9 @@
 #include "avl.h"
 #include "lber.h"
 #include "ldap.h"
-#include "lthread.h"
-#include "lthread_rdwr.h"
+
+#include "ldap_pvt_thread.h"
+
 #include "ldif.h"
 #ifdef f_next
 #undef f_next /* name conflict between sys/file.h on SCO and struct filter */
@@ -132,7 +133,7 @@ typedef struct entry {
 					/* really be private to back-ldbm */
 	char		e_state;	/* for the cache		  */
 
-	pthread_rdwr_t	e_rdwr;	/* reader/writer lock             */
+	ldap_pvt_thread_rdwr_t	e_rdwr;	/* reader/writer lock             */
 
 #define ENTRY_STATE_DELETED	1
 #define ENTRY_STATE_CREATING	2
@@ -281,9 +282,9 @@ typedef struct slap_op {
 	char		o_searchbase;	/* search base if via CLDAP	  */
 #endif
 	struct slap_op	*o_next;	/* next operation pending	  */
-	pthread_t	o_tid;		/* thread handling this op	  */
+	ldap_pvt_thread_t	o_tid;		/* thread handling this op	  */
 	int		o_abandon;	/* signals op has been abandoned  */
-	pthread_mutex_t	o_abandonmutex;	/* signals op has been abandoned  */
+	ldap_pvt_thread_mutex_t	o_abandonmutex;	/* signals op has been abandoned  */
 
 	int		o_private;	/* anything the backend needs	  */
 } Operation;
@@ -296,7 +297,7 @@ typedef struct slap_conn {
 	Sockbuf		c_sb;		/* ber connection stuff		  */
 	char		*c_cdn;		/* DN provided by the client */
 	char		*c_dn;		/* DN bound to this conn  */
-	pthread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */
+	ldap_pvt_thread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */
 	int		c_authtype;	/* auth method used to bind c_dn  */
 #ifdef LDAP_COMPAT
 	int		c_version;	/* for compatibility w/2.0, 3.0	  */
@@ -304,9 +305,9 @@ typedef struct slap_conn {
 	char		*c_addr;	/* address of client on this conn */
 	char		*c_domain;	/* domain of client on this conn  */
 	Operation	*c_ops;		/* list of pending operations	  */
-	pthread_mutex_t	c_opsmutex;	/* mutex for c_ops list & stats	  */
-	pthread_mutex_t	c_pdumutex;	/* only one pdu written at a time */
-	pthread_cond_t	c_wcv;		/* used to wait for sd write-ready*/
+	ldap_pvt_thread_mutex_t	c_opsmutex;	/* mutex for c_ops list & stats	  */
+	ldap_pvt_thread_mutex_t	c_pdumutex;	/* only one pdu written at a time */
+	ldap_pvt_thread_cond_t	c_wcv;		/* used to wait for sd write-ready*/
 	int		c_gettingber;	/* in the middle of ber_get_next  */
 	BerElement	*c_currentber;	/* ber we're getting              */
 	int		c_writewaiter;	/* signals write-ready sd waiter  */

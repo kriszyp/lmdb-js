@@ -90,13 +90,10 @@ slapd_daemon(
 		c[i].c_sb.sb_ber.ber_end = NULL;
 		c[i].c_writewaiter = 0;
 		c[i].c_connid = 0;
-		pthread_mutex_init( &c[i].c_dnmutex,
-		    pthread_mutexattr_default );
-		pthread_mutex_init( &c[i].c_opsmutex,
-		    pthread_mutexattr_default );
-		pthread_mutex_init( &c[i].c_pdumutex,
-		    pthread_mutexattr_default );
-		pthread_cond_init( &c[i].c_wcv, pthread_condattr_default );
+		ldap_pvt_thread_mutex_init( &c[i].c_dnmutex );
+		ldap_pvt_thread_mutex_init( &c[i].c_opsmutex );
+		ldap_pvt_thread_mutex_init( &c[i].c_pdumutex );
+		ldap_pvt_thread_cond_init( &c[i].c_wcv );
 	}
 
 	if ( (tcps = socket( AF_INET, SOCK_STREAM, 0 )) == -1 ) {
@@ -173,12 +170,12 @@ slapd_daemon(
 		zero.tv_sec = 0;
 		zero.tv_usec = 0;
 
-		pthread_mutex_lock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 		Debug( LDAP_DEBUG_CONNS,
 		    "listening for connections on %d, activity on:",
 		    tcps, 0, 0 );
 
-		pthread_mutex_lock( &new_conn_mutex );
+		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 		for ( i = 0; i < dtblsize; i++ ) {
 			if ( c[i].c_sb.sb_sd != -1 ) {
 				FD_SET( c[i].c_sb.sb_sd, &readfds );
@@ -191,7 +188,7 @@ slapd_daemon(
 			}
 		}
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
-		pthread_mutex_unlock( &new_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 
 		Debug( LDAP_DEBUG_CONNS, "before select active_threads %d\n",
 		    active_threads, 0, 0 );
@@ -200,7 +197,7 @@ slapd_daemon(
 #else
 		tvp = active_threads ? &zero : NULL;
 #endif
-		pthread_mutex_unlock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
 		switch ( i = select( dtblsize, &readfds, &writefds, 0, tvp ) ) {
 		case -1:	/* failure - try again */
@@ -213,19 +210,19 @@ slapd_daemon(
 		case 0:		/* timeout - let threads run */
 			Debug( LDAP_DEBUG_CONNS, "select timeout - yielding\n",
 			    0, 0, 0 );
-			pthread_yield();
+			ldap_pvt_thread_yield();
 			continue;
 
 		default:	/* something happened - deal with it */
 			Debug( LDAP_DEBUG_CONNS, "select activity on %d descriptors\n", i, 0, 0 );
 			;	/* FALL */
 		}
-		pthread_mutex_lock( &currenttime_mutex );
+		ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 		time( &currenttime );
-		pthread_mutex_unlock( &currenttime_mutex );
+		ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 
 		/* new connection */
-		pthread_mutex_lock( &new_conn_mutex );
+		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 		if ( FD_ISSET( tcps, &readfds ) ) {
 			len = sizeof(from);
 			if ( (ns = accept( tcps, (struct sockaddr *) &from,
@@ -234,7 +231,7 @@ slapd_daemon(
 				    "accept() failed errno %d (%s)", errno,
 				    errno > -1 && errno < sys_nerr ?
 				    sys_errlist[errno] : "unknown", 0 );
-				pthread_mutex_unlock( &new_conn_mutex );
+				ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 				continue;
 			}
 			if ( ioctl( ns, FIONBIO, (caddr_t) &on ) == -1 ) {
@@ -292,15 +289,15 @@ slapd_daemon(
 			   	  0, 0 );
 
 				close(ns);
-				pthread_mutex_unlock( &new_conn_mutex );
+				ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 				continue;
 			}
 #endif /* HAVE_TCPD */
 
 			c[ns].c_sb.sb_sd = ns;
-			pthread_mutex_lock( &ops_mutex );
+			ldap_pvt_thread_mutex_lock( &ops_mutex );
 			c[ns].c_connid = num_conns++;
-			pthread_mutex_unlock( &ops_mutex );
+			ldap_pvt_thread_mutex_unlock( &ops_mutex );
 
 			Statslog( LDAP_DEBUG_STATS,
 			    "conn=%d fd=%d connection from %s (%s) accepted.\n",
@@ -321,7 +318,7 @@ slapd_daemon(
 			c[ns].c_domain = ch_strdup( client_name == NULL
 				? "" : client_name );
 
-			pthread_mutex_lock( &c[ns].c_dnmutex );
+			ldap_pvt_thread_mutex_lock( &c[ns].c_dnmutex );
 			if ( c[ns].c_dn != NULL ) {
 				free( c[ns].c_dn );
 				c[ns].c_dn = NULL;
@@ -330,12 +327,12 @@ slapd_daemon(
 				free( c[ns].c_cdn );
 				c[ns].c_cdn = NULL;
 			}
-			pthread_mutex_unlock( &c[ns].c_dnmutex );
+			ldap_pvt_thread_mutex_unlock( &c[ns].c_dnmutex );
 			c[ns].c_starttime = currenttime;
 			c[ns].c_opsinitiated = 0;
 			c[ns].c_opscompleted = 0;
 		}
-		pthread_mutex_unlock( &new_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 
 		Debug( LDAP_DEBUG_CONNS, "activity on:", 0, 0, 0 );
 		for ( i = 0; i < dtblsize; i++ ) {
@@ -360,11 +357,11 @@ slapd_daemon(
 				Debug( LDAP_DEBUG_CONNS,
 				    "signaling write waiter on %d\n", i, 0, 0 );
 
-				pthread_mutex_lock( &active_threads_mutex );
-				pthread_cond_signal( &c[i].c_wcv );
+				ldap_pvt_thread_mutex_lock( &active_threads_mutex );
+				ldap_pvt_thread_cond_signal( &c[i].c_wcv );
 				c[i].c_writewaiter = 0;
 				active_threads++;
-				pthread_mutex_unlock( &active_threads_mutex );
+				ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 			}
 
 			if ( FD_ISSET( i, &readfds ) ) {
@@ -375,19 +372,19 @@ slapd_daemon(
 			}
 		}
 
-		pthread_yield();
+		ldap_pvt_thread_yield();
 	}
 
 	close( tcps );
 
-	pthread_mutex_lock( &active_threads_mutex );
+	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 	Debug( LDAP_DEBUG_ANY,
 	    "slapd shutting down - waiting for %d threads to terminate\n",
 	    active_threads, 0, 0 );
 	while ( active_threads > 0 ) {
-		pthread_cond_wait(&active_threads_cond, &active_threads_mutex);
+		ldap_pvt_thread_cond_wait(&active_threads_cond, &active_threads_mutex);
 	}
-	pthread_mutex_unlock( &active_threads_mutex );
+	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
 	/* let backends do whatever cleanup they need to do */
 	Debug( LDAP_DEBUG_TRACE,
@@ -403,7 +400,7 @@ set_shutdown( int sig )
 {
 	Debug( LDAP_DEBUG_ANY, "slapd got shutdown signal %d\n", sig, 0, 0 );
 	slapd_shutdown = 1;
-	pthread_kill( listener_tid, LDAP_SIGUSR1 );
+	ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 	(void) SIGNAL( LDAP_SIGUSR2, set_shutdown );
 	(void) SIGNAL( SIGTERM, set_shutdown );
 	(void) SIGNAL( SIGINT, set_shutdown );

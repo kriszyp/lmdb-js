@@ -245,7 +245,7 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	tmp->mod_next = *mods;
 	*mods = tmp;
 
-	pthread_mutex_lock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 #ifndef LDAP_LOCALTIME
 	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
@@ -253,7 +253,7 @@ add_lastmods( Operation *op, LDAPMod **mods )
 	ltm = localtime( &currenttime );
 	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
 #endif
-	pthread_mutex_unlock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );

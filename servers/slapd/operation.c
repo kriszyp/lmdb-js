@@ -21,7 +21,7 @@ slap_op_free( Operation *op )
 	if ( op->o_ndn != NULL ) {
 		free( op->o_ndn );
 	}
-	/* pthread_mutex_destroy( &op->o_abandonmutex ); */
+	ldap_pvt_thread_mutex_destroy( &op->o_abandonmutex );
 	free( (char *) op );
 }
 
@@ -42,8 +42,7 @@ slap_op_add(
 		;	/* NULL */
 
 	*tmp = (Operation *) calloc( 1, sizeof(Operation) );
-	pthread_mutex_init( &(*tmp)->o_abandonmutex,
-	    pthread_mutexattr_default );
+	ldap_pvt_thread_mutex_init( &(*tmp)->o_abandonmutex );
 	(*tmp)->o_ber = ber;
 	(*tmp)->o_msgid = msgid;
 	(*tmp)->o_tag = tag;
@@ -52,9 +51,9 @@ slap_op_add(
 	(*tmp)->o_dn = ch_strdup( dn != NULL ? dn : "" );
 	(*tmp)->o_ndn = dn_normalize_case( ch_strdup( (*tmp)->o_dn ) );
 
-	pthread_mutex_lock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 	(*tmp)->o_time = currenttime;
-	pthread_mutex_unlock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 	(*tmp)->o_opid = id;
 	(*tmp)->o_connid = connid;
 	(*tmp)->o_next = NULL;

@@ -40,12 +40,12 @@ ldbm_cache_open(
 	    flags, li->li_mode );
 
 	lru = 0;
-	pthread_mutex_lock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 	curtime = currenttime;
-	pthread_mutex_unlock( &currenttime_mutex );
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
 	oldtime = curtime;
 
-	pthread_mutex_lock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE && li->li_dbcache[i].dbc_name != NULL;
 	    i++ ) {
 		/* already open - return it */
@@ -53,7 +53,7 @@ ldbm_cache_open(
 			li->li_dbcache[i].dbc_refcnt++;
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= ldbm_cache_open (cache %d)\n", i, 0, 0 );
-			pthread_mutex_unlock( &li->li_dbcache_mutex );
+			ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 			return( &li->li_dbcache[i] );
 		}
 
@@ -74,7 +74,7 @@ ldbm_cache_open(
 			    0, 0, 0 );
 			lru = -1;
 			while ( lru == -1 ) {
-				pthread_cond_wait( &li->li_dbcache_cv,
+				ldap_pvt_thread_cond_wait( &li->li_dbcache_cv,
 				    &li->li_dbcache_mutex );
 				for ( i = 0; i < MAXDBCACHE; i++ ) {
 					if ( li->li_dbcache[i].dbc_refcnt
@@ -97,7 +97,7 @@ ldbm_cache_open(
 		    "<= ldbm_cache_open NULL \"%s\" errno %d reason \"%s\")\n",
 		    buf, errno, errno > -1 && errno < sys_nerr ?
 		    sys_errlist[errno] : "unknown" );
-		pthread_mutex_unlock( &li->li_dbcache_mutex );
+		ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 		return( NULL );
 	}
 	li->li_dbcache[i].dbc_name = ch_strdup( buf );
@@ -118,7 +118,7 @@ ldbm_cache_open(
 	    li->li_dbcache[i].dbc_blksize, li->li_dbcache[i].dbc_maxids,
 	    li->li_dbcache[i].dbc_maxindirect );
 	Debug( LDAP_DEBUG_TRACE, "<= ldbm_cache_open (opened %d)\n", i, 0, 0 );
-	pthread_mutex_unlock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 	return( &li->li_dbcache[i] );
 }
 
@@ -127,11 +127,11 @@ ldbm_cache_close( Backend *be, struct dbcache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	pthread_mutex_lock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	if ( --db->dbc_refcnt == 0 ) {
-		pthread_cond_signal( &li->li_dbcache_cv );
+		ldap_pvt_thread_cond_signal( &li->li_dbcache_cv );
 	}
-	pthread_mutex_unlock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 }
 
 void
@@ -139,14 +139,14 @@ ldbm_cache_really_close( Backend *be, struct dbcache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
-	pthread_mutex_lock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	if ( --db->dbc_refcnt == 0 ) {
-		pthread_cond_signal( &li->li_dbcache_cv );
+		ldap_pvt_thread_cond_signal( &li->li_dbcache_cv );
 		ldbm_close( db->dbc_db );
 		free( db->dbc_name );
 		db->dbc_name = NULL;
 	}
-	pthread_mutex_unlock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 }
 
 void
@@ -155,7 +155,7 @@ ldbm_cache_flush_all( Backend *be )
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		i;
 
-	pthread_mutex_lock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		if ( li->li_dbcache[i].dbc_name != NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "ldbm flushing db (%s)\n",
@@ -163,7 +163,7 @@ ldbm_cache_flush_all( Backend *be )
 			ldbm_sync( li->li_dbcache[i].dbc_db );
 		}
 	}
-	pthread_mutex_unlock( &li->li_dbcache_mutex );
+	ldap_pvt_thread_mutex_unlock( &li->li_dbcache_mutex );
 }
 
 Datum

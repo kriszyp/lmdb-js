@@ -9,12 +9,10 @@ XSRCS	= version.c
 
 SRCS	=	admin.c args.c ch_malloc.c config.c \
 		fm.c globals.c ldap_op.c lock.c main.c re.c \
-		reject.c replica.c replog.c ri.c rq.c sanity.c st.c \
-		tsleep.c
+		reject.c replica.c replog.c ri.c rq.c sanity.c st.c
 OBJS	=	admin.o args.o ch_malloc.o config.o \
 		fm.o globals.o ldap_op.o lock.o main.o re.o \
-		reject.o replica.o replog.o ri.o rq.o sanity.o st.o \
-		tsleep.o
+		reject.o replica.o replog.o ri.o rq.o sanity.o st.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries

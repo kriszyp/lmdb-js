@@ -83,14 +83,14 @@ send_ldap_result2(
 	}
 
 	/* write only one pdu at a time - wait til it's our turn */
-	pthread_mutex_lock( &conn->c_pdumutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_pdumutex );
 
 	/* write the pdu */
 	bytes = ber->ber_ptr - ber->ber_buf;
-	pthread_mutex_lock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
 	    1 ) != 0 ) {
-		pthread_mutex_unlock( &new_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
@@ -104,33 +104,33 @@ send_ldap_result2(
 		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
 			close_connection( conn, op->o_connid, op->o_opid );
 
-			pthread_mutex_unlock( &conn->c_pdumutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
 			return;
 		}
 
 		/* wait for socket to be write-ready */
-		pthread_mutex_lock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 		active_threads--;
 		conn->c_writewaiter = 1;
 
-		pthread_kill( listener_tid, LDAP_SIGUSR1 );
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
 
-		pthread_cond_wait( &conn->c_wcv, &active_threads_mutex );
+		ldap_pvt_thread_cond_wait( &conn->c_wcv, &active_threads_mutex );
 
 		if( active_threads < 1 ) {
-			pthread_cond_signal(&active_threads_cond);
+			ldap_pvt_thread_cond_signal(&active_threads_cond);
 		}
-		pthread_mutex_unlock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
-		pthread_yield();
-		pthread_mutex_lock( &new_conn_mutex );
+		ldap_pvt_thread_yield();
+		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	}
-	pthread_mutex_unlock( &new_conn_mutex );
-	pthread_mutex_unlock( &conn->c_pdumutex );
+	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
 
-	pthread_mutex_lock( &num_sent_mutex );
+	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
-	pthread_mutex_unlock( &num_sent_mutex );
+	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%d op=%d RESULT err=%d tag=%d nentries=%d\n", conn->c_connid,
@@ -319,13 +319,13 @@ send_search_entry(
 	}
 
 	/* write only one pdu at a time - wait til it's our turn */
-	pthread_mutex_lock( &conn->c_pdumutex );
+	ldap_pvt_thread_mutex_lock( &conn->c_pdumutex );
 
 	bytes = ber->ber_ptr - ber->ber_buf;
-	pthread_mutex_lock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	while ( conn->c_connid == op->o_connid && ber_flush( &conn->c_sb, ber,
 	    1 ) != 0 ) {
-		pthread_mutex_unlock( &new_conn_mutex );
+		ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 		/*
 		 * we got an error.  if it's ewouldblock, we need to
 		 * wait on the socket being writable.  otherwise, figure
@@ -339,34 +339,34 @@ send_search_entry(
 		if ( errno != EWOULDBLOCK && errno != EAGAIN ) {
 			close_connection( conn, op->o_connid, op->o_opid );
 
-			pthread_mutex_unlock( &conn->c_pdumutex );
+			ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
 			return( -1 );
 		}
 
 		/* wait for socket to be write-ready */
-		pthread_mutex_lock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
 		active_threads--;
 		conn->c_writewaiter = 1;
-		pthread_kill( listener_tid, LDAP_SIGUSR1 );
-		pthread_cond_wait( &conn->c_wcv, &active_threads_mutex );
+		ldap_pvt_thread_kill( listener_tid, LDAP_SIGUSR1 );
+		ldap_pvt_thread_cond_wait( &conn->c_wcv, &active_threads_mutex );
 
 		if( active_threads < 1 ) {
-			pthread_cond_signal(&active_threads_cond);
+			ldap_pvt_thread_cond_signal(&active_threads_cond);
 		}
-		pthread_mutex_unlock( &active_threads_mutex );
+		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 
-		pthread_yield();
-		pthread_mutex_lock( &new_conn_mutex );
+		ldap_pvt_thread_yield();
+		ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	}
-	pthread_mutex_unlock( &new_conn_mutex );
-	pthread_mutex_unlock( &conn->c_pdumutex );
+	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &conn->c_pdumutex );
 
-	pthread_mutex_lock( &num_sent_mutex );
+	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
 	num_entries_sent++;
-	pthread_mutex_unlock( &num_sent_mutex );
+	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
 
-	pthread_mutex_lock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	if ( conn->c_connid == op->o_connid ) {
 		rc = 0;
 		Statslog( LDAP_DEBUG_STATS2, "conn=%d op=%d ENTRY dn=\"%s\"\n",
@@ -374,7 +374,7 @@ send_search_entry(
 	} else {
 		rc = -1;
 	}
-	pthread_mutex_unlock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 
 	Debug( LDAP_DEBUG_TRACE, "<= send_search_entry\n", 0, 0, 0 );
 
@@ -447,7 +447,7 @@ str2result(
 void
 close_connection( Connection *conn, int opconnid, int opid )
 {
-	pthread_mutex_lock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_lock( &new_conn_mutex );
 	if ( conn->c_sb.sb_sd != -1 && conn->c_connid == opconnid ) {
 		Statslog( LDAP_DEBUG_STATS,
 		    "conn=%d op=%d fd=%d closed errno=%d\n", conn->c_connid,
@@ -456,5 +456,5 @@ close_connection( Connection *conn, int opconnid, int opid )
 		conn->c_sb.sb_sd = -1;
 		conn->c_version = 0;
 	}
-	pthread_mutex_unlock( &new_conn_mutex );
+	ldap_pvt_thread_mutex_unlock( &new_conn_mutex );
 }

@@ -81,7 +81,7 @@ Re_free(
     }
 #if !defined( HAVE_LWP )
     /* This seems to have problems under SunOS lwp */
-    pthread_mutex_destroy( &re->re_mutex );
+    ldap_pvt_thread_mutex_destroy( &re->re_mutex );
 #endif /* HAVE_LWP */
     ch_free( re->re_timestamp );
     if (( rh = re->re_replicas ) != NULL ) {
@@ -641,7 +641,7 @@ Re_lock(
     Re	*re
 )
 {
-    return( pthread_mutex_lock( &re->re_mutex ));
+    return( ldap_pvt_thread_mutex_lock( &re->re_mutex ));
 }
 
 
@@ -655,7 +655,7 @@ Re_unlock(
     Re	*re
 )
 {
-    return( pthread_mutex_unlock( &re->re_mutex ));
+    return( ldap_pvt_thread_mutex_unlock( &re->re_mutex ));
 }
 
 
@@ -696,7 +696,7 @@ Re_init(
    (*re)->re_mods = NULL;
    (*re)->re_next = NULL;
 
-   pthread_mutex_init( &((*re)->re_mutex), pthread_mutexattr_default );
+   ldap_pvt_thread_mutex_init( &((*re)->re_mutex) );
    return 0;
 }
 
