@@ -31,6 +31,8 @@
 #include <stdlib.h>
 #include <ac/unistd.h>			/* get sleep() */
 
+#include "ldap_pvt_thread.h"
+
 #if !defined( HAVE_LWP )
 
 /*
