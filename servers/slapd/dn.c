@@ -345,7 +345,8 @@ dn_upcase( char *dn )
 
 
 /*
- * get_next_substring(), rdn_attr_type(), and rdn_attr_value()
+ * get_next_substring(), rdn_attr_type(), rdn_attr_value(), and
+ * build_new_dn().
  * 
  * Copyright 1999, Juan C. Gomez, All rights reserved.
  * This software is not subject to any license of Silicon Graphics 
@@ -440,3 +441,51 @@ rdn_attr_value( char * rdn )
 	return NULL;
 
 }/* char * rdn_attr_value() */
+
+
+/* build_new_dn:
+ *
+ * Used by ldbm/bdb2_back_modrdn to create the new dn of entries being
+ * renamed.
+ *
+ * new_dn = parent (p_dn)  + separator(s) + rdn (newrdn) + null.
+ */
+
+void
+build_new_dn( char ** new_dn, char *e_dn, char * p_dn, char * newrdn )
+{
+    
+    *new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );
+
+    if ( dn_type( e_dn ) == DN_X500 ) {
+
+	strcpy( *new_dn, newrdn );
+	strcat( *new_dn, ", " );
+	strcat( *new_dn, p_dn );
+
+    } else {
+
+	char	*s;
+	char	sep[2];
+
+	strcpy( *new_dn, newrdn );
+	s = strchr( newrdn, '\0' );
+	s--;
+
+	if ( (*s != '.') && (*s != '@') ) {
+
+	    if ( (s = strpbrk( e_dn, ".@" )) != NULL ) {
+
+		sep[0] = *s;
+		sep[1] = '\0';
+		strcat( *new_dn, sep );
+
+	    }/* if ( (s = strpbrk( dn, ".@" )) != NULL ) */
+
+	}/* if ( *s != '.' && *s != '@' ) */
+
+	strcat( *new_dn, p_dn );
+
+    }/* if ( dn_type( e_dn ) == DN_X500 ) {}else */
+    
+}/* void build_new_dn() */
