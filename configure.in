@@ -183,8 +183,6 @@ OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
 OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
-dnl OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
-ol_enable_kpasswd=${ol_enable_kpasswd-no}
 OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
 OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
 OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
@@ -513,14 +511,14 @@ if test $ol_enable_lmpasswd = yes ; then
 	fi
 fi
 
-if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
+if test $ol_enable_kbind = yes ; then
 	if test $ol_with_kerberos = no ; then
 		AC_MSG_ERROR([options require --with-kerberos])
 	elif test $ol_with_kerberos = auto ; then
 		ol_with_kerberos=yes
 	fi
 
-elif test $ol_enable_kbind = no -o $ol_enable_kpasswd = no ; then
+elif test $ol_enable_kbind = no ; then
 	if test $ol_with_kerberos = auto ; then
 		ol_with_kerberos=no
 	elif test $ol_with_kerberos != no ; then
@@ -1117,7 +1115,6 @@ fi
 dnl ----------------------------------------------------------------
 dnl Kerberos
 ol_link_kbind=no
-ol_link_kpasswd=no
 ol_link_krb5=no
 ol_link_krb4=no
 
@@ -1171,10 +1168,6 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 
 			AC_DEFINE(HAVE_KRB5, 1,
 				[define if you have Kerberos V])
-
-			if test $ol_enable_kpasswd != no ; then
-				ol_link_kpasswd=yes;
-			fi
 
 			if test $ol_with_kerberos = k5only ; then
 				ol_with_kerberos=found
@@ -1270,10 +1263,6 @@ if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
 			fi
 		fi
 	fi
-fi
-
-if test $ol_link_krb4 = yes -a $ol_enable_kpasswd != no ; then
-	ol_link_kpasswd=yes
 fi
 
 if test $ol_link_krb4 = yes -a $ol_enable_kbind != no ; then
@@ -2535,9 +2524,6 @@ if test "$ol_enable_cleartext" != no ; then
 fi
 if test "$ol_enable_crypt" != no ; then
 	AC_DEFINE(SLAPD_CRYPT,1,[define to support crypt(3) passwords])
-fi
-if test "$ol_link_kpasswd" != no ; then
-	AC_DEFINE(SLAPD_KPASSWD,1,[define to support Kerberos passwords])
 fi
 if test "$ol_link_spasswd" != no ; then
 	AC_DEFINE(SLAPD_SPASSWD,1,[define to support SASL passwords])
