@@ -169,8 +169,14 @@ parse_acl(
 					} else if ( strcasecmp( style, "subtree" ) == 0
 						|| strcasecmp( style, "sub" ) == 0 )
 					{
-						a->acl_dn_style = ACL_STYLE_SUBTREE;
-						ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+						if( *right == '\0' ) {
+							a->acl_dn_pat.bv_val = ch_strdup( "*" );
+							a->acl_dn_pat.bv_len = 1;
+
+						} else {
+							a->acl_dn_style = ACL_STYLE_SUBTREE;
+							ber_str2bv( right, 0, 1, &a->acl_dn_pat );
+						}
 
 					} else if ( strcasecmp( style, "children" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_CHILDREN;
