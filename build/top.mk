@@ -40,7 +40,7 @@ AR = ar
 
 LINT = lint
 5LINT = 5lint
-MKDEP = $(top_srcdir)/build/mkdep
+MKDEP = $(top_srcdir)/build/mkdep -c "$(CC)"
 
 # Misc UNIX commands used in makefiles
 SED = sed
