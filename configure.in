@@ -136,14 +136,6 @@ if test "$LDAP_CLDAP" = "yes" ; then
 	LDAP_DEFS="$LDAP_DEFS -DCLDAP"
 fi
 
-LTHREAD_LIBS=
-if test "$opt_thread" = "no" ; then
-	LTHREAD_DEFS="-DNO_THREADS"
-	BUILD_SLURPD=no
-else
-	LTHREAD_DEFS="-DNO_THREADS"
-fi
-
 ## ldapd arguments
 LDAPD_DEFS=
 LDAPD_LIBS=
@@ -204,6 +196,56 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
+LTHREAD_LIBS=
+if test "$opt_thread" = "no" ; then
+	LTHREAD_DEFS="-DNO_THREADS"
+	BUILD_SLURPD=no
+else
+	AC_CHECK_HEADERS(pthread.h sched.h)
+
+	if test "$ac_cv_header_pthread_h" = yes ; then
+		dnl We have some form of pthreads
+		AC_MSG_CHECKING(POSIX thread version)
+		AC_CACHE_VAL(cf_cv_pthread_version,[
+			AC_EGREP_CPP(final,[
+#include <pthread.h>
+/* this check could be improved */
+#ifdef PTHREAD_ONCE_INIT
+	final
+#endif
+			], pthread_final=yes, pthread_final=no)
+
+			AC_EGREP_CPP(draft4,[
+#include <pthread.h>
+/* this check could be improved */
+#ifdef pthread_once_init
+	draft4
+#endif
+			], pthread_draft4=yes, pthread_draft4=no)
+
+			if test $pthread_final = yes -a $pthread_draft4 = no; then
+				cf_cv_pthread_version=final
+			elif test $pthread_final = no -a $pthread_draft4 = yes; then
+				cf_cv_pthread_version=draft4
+			else
+				cf_cv_pthread_version=unknown
+			fi
+		])
+		AC_MSG_RESULT($cf_cv_pthread_version)
+		
+		if test $cf_cv_pthread_version = final ; then
+			LTHREAD_DEFS="$LTHREAD_DEFS -DPOSIX_THREADS"
+		elif test $cf_cv_pthread_version = draft4 ; then
+			LTHREAD_DEFS="$LTHREAD_DEFS -DTHREAD_MIT_PTHREADS"
+		else
+			AC_MSG_ERROR(unknown pthread version)
+		fi
+	else
+		LTHREAD_DEFS="-DNO_THREADS"
+	fi
+fi
+
+
 ldbm_use="none"
 LDBM_DEFS=
 LDBM_LIBS=
@@ -248,8 +290,8 @@ dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
 			if test $opt_db2 = yes ; then
 				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2"
 			else
-				AC_CHECK_HEADERS(db185.h)
-				if test "$cf_cv_header_db185_h" = no ; then
+				AC_CHECK_HEADERS(db_185.h)
+				if test $ac_cv_header_db_185_h = no ; then
 					AC_MSG_ERROR([select --with-db2 or install db2 with 1.85 compatibility])
 				fi
 
