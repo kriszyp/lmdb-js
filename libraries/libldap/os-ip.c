@@ -305,7 +305,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 		sai = res;
 		rc = -1;
 		do {
-			s = ldap_pvt_socket( ld, sai->ai_family, ld );
+			s = ldap_pvt_socket( ld, sai->ai_family );
 			if ( s == -1 ) {
 				continue;
 			}
