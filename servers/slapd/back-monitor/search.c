@@ -187,6 +187,7 @@ monitor_back_search(
 					attrsonly, NULL );
 			nentries = 1;
 		}
+		rc = LDAP_SUCCESS;
 		monitor_cache_release( mi, e );
 		break;
 
