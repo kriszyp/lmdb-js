@@ -135,9 +135,12 @@ access_allowed(
 
 	assert( attr != NULL );
 
-	if( op && op->o_is_auth_check && (access == ACL_SEARCH || access == ACL_READ)) {
+	if( op && op->o_is_auth_check &&
+		( access == ACL_SEARCH || access == ACL_READ ))
+	{
 		access = ACL_AUTH;
 	}
+
 	if( state && state->as_recorded && state->as_vd_ad==desc) { 
 		if( state->as_recorded & ACL_STATE_RECORDED_NV &&
 			val == NULL )
@@ -150,7 +153,9 @@ access_allowed(
 			return state->as_result;
 		}
 		st_same_attr = 1;
-	} if (state) {
+	}
+
+	if( state ) {
 		state->as_vd_ad=desc;
 	}
 
@@ -259,8 +264,7 @@ access_allowed(
 		a = state->as_vd_acl;
 		mask = state->as_vd_acl_mask;
 		count = state->as_vd_acl_count;
-		AC_MEMCPY( matches, state->as_vd_acl_matches,
-			sizeof(matches) );
+		AC_MEMCPY( matches, state->as_vd_acl_matches, sizeof(matches) );
 		goto vd_access;
 
 	} else {
