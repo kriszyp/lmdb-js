@@ -1085,11 +1085,11 @@ one subordinate to another subordinate within the namingContext.
 .TP
 .B updatedn <dn>
 This option is only applicable in a slave
-.B slapd.
-It specifies the DN allowed to make changes to the replica (typically,
-this is the DN
+.B slapd. 
+It specifies the DN permitted to update (subject to access controls)
+the replica (typically, this is the DN
 .BR slurpd (8)
-binds as when making changes to the replica).
+binds to update the replica).
 .TP
 .B updateref <url>
 Specify the referral to pass back when
