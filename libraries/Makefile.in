@@ -6,5 +6,5 @@
 
 SUBDIRS= liblutil libldif \
 	liblber libldap libldap_r \
-	libavl libldbm liblunicode
+	libavl libldbm
 
