@@ -67,6 +67,8 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BR \-c ]
 [\c
+.BR \-C ]
+[\c
 .BR \-r ]
 [\c
 .BR \-n ]
@@ -158,12 +160,12 @@ Use verbose mode, with many diagnostics written to standard output.
 .B \-k
 Use Kerberos authentication instead of simple authentication.  It is
 assumed that you already have a valid ticket granting ticket.  You must
-compile with KERBEROS defined for this option to have any effect.
+compile with Kerberos support for this option to have any effect.
 .TP
 .B \-K
-Same as \-k, but only does step 1 of the kerberos bind.  This is useful
+Same as \-k, but only does step 1 of the Kerberos bind.  This is useful
 when connecting to a slapd and there is no x500dsa.hostname principal
-registered with your kerberos servers.
+registered with your Kerberos servers.
 .TP
 .B \-F
 Force application of all changes regardless of the contents of input
