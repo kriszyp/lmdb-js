@@ -97,9 +97,9 @@
  * complex end of list detection.
  *
  * For details on the use of these macros, see the queue(3) manual page.
+ * All macros are prefixed with LDAP_.
  *
- *
- *			LDAP_SLIST	LIST	LDAP_STAILQ	TAILQ	LDAP_CIRCLEQ
+ *			SLIST_	LIST_	STAILQ_	TAILQ_	CIRCLEQ_
  * _HEAD		+	+	+	+	+
  * _ENTRY		+	+	+	+	+
  * _INIT		+	+	+	+	+
@@ -118,19 +118,16 @@
  * _REMOVE		+	+	+	+	+
  *
  */
-/*
- * see queue(3) for instructions on how to use
- */
 
 /*
  * Singly-linked List definitions.
  */
-#define LDAP_SLIST_HEAD(name, type)						\
+#define LDAP_SLIST_HEAD(name, type)					\
 struct name {								\
 	struct type *slh_first;	/* first element */			\
 }
 
-#define LDAP_SLIST_HEAD_INITIALIZER(head)					\
+#define LDAP_SLIST_HEAD_INITIALIZER(head)				\
 	{ NULL }
 
 #define LDAP_SLIST_ENTRY(type)						\
@@ -145,14 +142,14 @@ struct {								\
 
 #define	LDAP_SLIST_FIRST(head)	((head)->slh_first)
 
-#define LDAP_SLIST_FOREACH(var, head, field)					\
+#define LDAP_SLIST_FOREACH(var, head, field)				\
 	for((var) = (head)->slh_first; (var); (var) = (var)->field.sle_next)
 
 #define LDAP_SLIST_INIT(head) {						\
 	(head)->slh_first = NULL;					\
 }
 
-#define LDAP_SLIST_INSERT_AFTER(slistelm, elm, field) do {			\
+#define LDAP_SLIST_INSERT_AFTER(slistelm, elm, field) do {		\
 	(elm)->field.sle_next = (slistelm)->field.sle_next;		\
 	(slistelm)->field.sle_next = (elm);				\
 } while (0)
@@ -164,7 +161,7 @@ struct {								\
 
 #define LDAP_SLIST_NEXT(elm, field)	((elm)->field.sle_next)
 
-#define LDAP_SLIST_REMOVE_HEAD(head, field) do {				\
+#define LDAP_SLIST_REMOVE_HEAD(head, field) do {			\
 	(head)->slh_first = (head)->slh_first->field.sle_next;		\
 } while (0)
 
@@ -184,13 +181,13 @@ struct {								\
 /*
  * Singly-linked Tail queue definitions.
  */
-#define LDAP_STAILQ_HEAD(name, type)						\
+#define LDAP_STAILQ_HEAD(name, type)					\
 struct name {								\
 	struct type *stqh_first;/* first element */			\
 	struct type **stqh_last;/* addr of last next element */		\
 }
 
-#define LDAP_STAILQ_HEAD_INITIALIZER(head)					\
+#define LDAP_STAILQ_HEAD_INITIALIZER(head)				\
 	{ NULL, &(head).stqh_first }
 
 #define LDAP_STAILQ_ENTRY(type)						\
@@ -203,15 +200,15 @@ struct {								\
  */
 #define LDAP_STAILQ_EMPTY(head) ((head)->stqh_first == NULL)
 
-#define	LDAP_STAILQ_INIT(head) do {						\
+#define	LDAP_STAILQ_INIT(head) do {					\
 	(head)->stqh_first = NULL;					\
 	(head)->stqh_last = &(head)->stqh_first;			\
 } while (0)
 
 #define LDAP_STAILQ_FIRST(head)	((head)->stqh_first)
 
-#define	LDAP_STAILQ_LAST(head, type, field)					\
-	(LDAP_STAILQ_EMPTY(head) ?						\
+#define	LDAP_STAILQ_LAST(head, type, field)				\
+	(LDAP_STAILQ_EMPTY(head) ?					\
 		NULL :							\
 	        ((struct type *)					\
 		((char *)((head)->stqh_last) - offsetof(struct type, field))))
@@ -239,13 +236,13 @@ struct {								\
 
 #define LDAP_STAILQ_NEXT(elm, field)	((elm)->field.stqe_next)
 
-#define LDAP_STAILQ_REMOVE_HEAD(head, field) do {				\
+#define LDAP_STAILQ_REMOVE_HEAD(head, field) do {			\
 	if (((head)->stqh_first =					\
 	     (head)->stqh_first->field.stqe_next) == NULL)		\
 		(head)->stqh_last = &(head)->stqh_first;		\
 } while (0)
 
-#define LDAP_STAILQ_REMOVE_HEAD_UNTIL(head, elm, field) do {			\
+#define LDAP_STAILQ_REMOVE_HEAD_UNTIL(head, elm, field) do {		\
 	if (((head)->stqh_first = (elm)->field.stqe_next) == NULL)	\
 		(head)->stqh_last = &(head)->stqh_first;		\
 } while (0)
@@ -267,12 +264,12 @@ struct {								\
 /*
  * List definitions.
  */
-#define LDAP_LIST_HEAD(name, type)						\
+#define LDAP_LIST_HEAD(name, type)					\
 struct name {								\
 	struct type *lh_first;	/* first element */			\
 }
 
-#define LDAP_LIST_HEAD_INITIALIZER(head)					\
+#define LDAP_LIST_HEAD_INITIALIZER(head)				\
 	{ NULL }
 
 #define LDAP_LIST_ENTRY(type)						\
@@ -289,14 +286,14 @@ struct {								\
 
 #define LDAP_LIST_FIRST(head)	((head)->lh_first)
 
-#define LDAP_LIST_FOREACH(var, head, field)					\
+#define LDAP_LIST_FOREACH(var, head, field)				\
 	for((var) = (head)->lh_first; (var); (var) = (var)->field.le_next)
 
-#define	LDAP_LIST_INIT(head) do {						\
+#define	LDAP_LIST_INIT(head) do {					\
 	(head)->lh_first = NULL;					\
 } while (0)
 
-#define LDAP_LIST_INSERT_AFTER(listelm, elm, field) do {			\
+#define LDAP_LIST_INSERT_AFTER(listelm, elm, field) do {		\
 	if (((elm)->field.le_next = (listelm)->field.le_next) != NULL)	\
 		(listelm)->field.le_next->field.le_prev =		\
 		    &(elm)->field.le_next;				\
@@ -304,14 +301,14 @@ struct {								\
 	(elm)->field.le_prev = &(listelm)->field.le_next;		\
 } while (0)
 
-#define LDAP_LIST_INSERT_BEFORE(listelm, elm, field) do {			\
+#define LDAP_LIST_INSERT_BEFORE(listelm, elm, field) do {		\
 	(elm)->field.le_prev = (listelm)->field.le_prev;		\
 	(elm)->field.le_next = (listelm);				\
 	*(listelm)->field.le_prev = (elm);				\
 	(listelm)->field.le_prev = &(elm)->field.le_next;		\
 } while (0)
 
-#define LDAP_LIST_INSERT_HEAD(head, elm, field) do {				\
+#define LDAP_LIST_INSERT_HEAD(head, elm, field) do {			\
 	if (((elm)->field.le_next = (head)->lh_first) != NULL)		\
 		(head)->lh_first->field.le_prev = &(elm)->field.le_next;\
 	(head)->lh_first = (elm);					\
@@ -320,7 +317,7 @@ struct {								\
 
 #define LDAP_LIST_NEXT(elm, field)	((elm)->field.le_next)
 
-#define LDAP_LIST_REMOVE(elm, field) do {					\
+#define LDAP_LIST_REMOVE(elm, field) do {				\
 	if ((elm)->field.le_next != NULL)				\
 		(elm)->field.le_next->field.le_prev = 			\
 		    (elm)->field.le_prev;				\
@@ -330,13 +327,13 @@ struct {								\
 /*
  * Tail queue definitions.
  */
-#define LDAP_TAILQ_HEAD(name, type)						\
+#define LDAP_TAILQ_HEAD(name, type)					\
 struct name {								\
 	struct type *tqh_first;	/* first element */			\
 	struct type **tqh_last;	/* addr of last next element */		\
 }
 
-#define LDAP_TAILQ_HEAD_INITIALIZER(head)					\
+#define LDAP_TAILQ_HEAD_INITIALIZER(head)				\
 	{ NULL, &(head).tqh_first }
 
 #define LDAP_TAILQ_ENTRY(type)						\
@@ -350,7 +347,7 @@ struct {								\
  */
 #define	LDAP_TAILQ_EMPTY(head) ((head)->tqh_first == NULL)
 
-#define LDAP_TAILQ_FOREACH(var, head, field)					\
+#define LDAP_TAILQ_FOREACH(var, head, field)				\
 	for (var = LDAP_TAILQ_FIRST(head); var; var = TAILQ_NEXT(var, field))
 
 #define LDAP_TAILQ_FOREACH_REVERSE(var, head, headname, field)		\
@@ -368,7 +365,7 @@ struct {								\
 #define LDAP_TAILQ_PREV(elm, headname, field) \
 	(*(((struct headname *)((elm)->field.tqe_prev))->tqh_last))
 
-#define	LDAP_TAILQ_INIT(head) do {						\
+#define	LDAP_TAILQ_INIT(head) do {					\
 	(head)->tqh_first = NULL;					\
 	(head)->tqh_last = &(head)->tqh_first;				\
 } while (0)
@@ -400,14 +397,14 @@ struct {								\
 	(elm)->field.tqe_prev = &(listelm)->field.tqe_next;		\
 } while (0)
 
-#define LDAP_TAILQ_INSERT_BEFORE(listelm, elm, field) do {			\
+#define LDAP_TAILQ_INSERT_BEFORE(listelm, elm, field) do {		\
 	(elm)->field.tqe_prev = (listelm)->field.tqe_prev;		\
 	(elm)->field.tqe_next = (listelm);				\
 	*(listelm)->field.tqe_prev = (elm);				\
 	(listelm)->field.tqe_prev = &(elm)->field.tqe_next;		\
 } while (0)
 
-#define LDAP_TAILQ_REMOVE(head, elm, field) do {				\
+#define LDAP_TAILQ_REMOVE(head, elm, field) do {			\
 	if (((elm)->field.tqe_next) != NULL)				\
 		(elm)->field.tqe_next->field.tqe_prev = 		\
 		    (elm)->field.tqe_prev;				\
@@ -425,7 +422,7 @@ struct name {								\
 	struct type *cqh_last;		/* last element */		\
 }
 
-#define LDAP_CIRCLEQ_ENTRY(type)						\
+#define LDAP_CIRCLEQ_ENTRY(type)					\
 struct {								\
 	struct type *cqe_next;		/* next element */		\
 	struct type *cqe_prev;		/* previous element */		\
@@ -448,12 +445,12 @@ struct {								\
 	    (var) != (void *)(head);					\
 	    (var) = (var)->field.cqe_prev)
 
-#define	LDAP_CIRCLEQ_INIT(head) do {						\
+#define	LDAP_CIRCLEQ_INIT(head) do {					\
 	(head)->cqh_first = (void *)(head);				\
 	(head)->cqh_last = (void *)(head);				\
 } while (0)
 
-#define LDAP_CIRCLEQ_INSERT_AFTER(head, listelm, elm, field) do {		\
+#define LDAP_CIRCLEQ_INSERT_AFTER(head, listelm, elm, field) do {	\
 	(elm)->field.cqe_next = (listelm)->field.cqe_next;		\
 	(elm)->field.cqe_prev = (listelm);				\
 	if ((listelm)->field.cqe_next == (void *)(head))		\
@@ -463,7 +460,7 @@ struct {								\
 	(listelm)->field.cqe_next = (elm);				\
 } while (0)
 
-#define LDAP_CIRCLEQ_INSERT_BEFORE(head, listelm, elm, field) do {		\
+#define LDAP_CIRCLEQ_INSERT_BEFORE(head, listelm, elm, field) do {	\
 	(elm)->field.cqe_next = (listelm);				\
 	(elm)->field.cqe_prev = (listelm)->field.cqe_prev;		\
 	if ((listelm)->field.cqe_prev == (void *)(head))		\
@@ -499,7 +496,7 @@ struct {								\
 
 #define LDAP_CIRCLEQ_PREV(elm,field) ((elm)->field.cqe_prev)
 
-#define	LDAP_CIRCLEQ_REMOVE(head, elm, field) do {				\
+#define	LDAP_CIRCLEQ_REMOVE(head, elm, field) do {			\
 	if ((elm)->field.cqe_next == (void *)(head))			\
 		(head)->cqh_last = (elm)->field.cqe_prev;		\
 	else								\
