@@ -315,14 +315,14 @@ main ( int argc, char **argv )
 static int
 connect_to_x500( void )
 {
-	if ( (ld = ldap_open( LDAPHOST, LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_open( NULL, 0 )) == NULL ) {
 		syslog( LOG_ALERT, "ldap_open failed" );
 		return( -1 );
 	}
 	ld->ld_sizelimit = FAX_MAXAMBIGUOUS;
 	ld->ld_deref = LDAP_DEREF_ALWAYS;
 
-	if ( ldap_simple_bind_s( ld, FAX_BINDDN, FAX_BIND_CRED ) != LDAP_SUCCESS ) {
+	if ( ldap_simple_bind_s( ld, NULL, NULL ) != LDAP_SUCCESS ) {
 		syslog( LOG_ALERT, "ldap_simple_bind_s failed" );
 		return( -1 );
 	}

@@ -90,8 +90,8 @@ main( int argc, char **argv )
 
 	ldapsrcurl = NULL;
 	ldapdesturl = NULL;
-	ldaphost = LDAPHOST;
-	ldapbase = DEFAULT_BASE;
+	ldaphost = NULL;
+	ldapbase = NULL;
 	srcldapauthmethod = LDAP_AUTH_SIMPLE;
 	destldapauthmethod = LDAP_AUTH_SIMPLE;
 	srcldapbinddn = NULL;
@@ -384,7 +384,7 @@ start_ldap_search(
 		fflush( stdout );
 	}
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
 		perror( "ldap_open" );
 		return( NULL );
 	}
@@ -961,7 +961,7 @@ bind_to_destination_ldap(
 	free( ldapbase );
 	ldapbase = strdup( buf );
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
 		perror( "ldap_open" );
 		return( NULL );
 	}

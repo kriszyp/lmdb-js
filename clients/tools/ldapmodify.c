@@ -26,10 +26,10 @@
 #include "ldapconfig.h"
 
 static char	*prog;
-static char	*binddn = LDAPMODIFY_BINDDN;
-static char	*passwd = LDAPMODIFY_BIND_CRED;
-static char	*ldaphost = LDAPHOST;
-static int	ldapport = LDAP_PORT;
+static char	*binddn = NULL;
+static char	*passwd = NULL;
+static char	*ldaphost = NULL;
+static int	ldapport = 0;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
 static LDAP	*ld;
 
@@ -264,7 +264,7 @@ process_ldif_rec( char *rbuf )
 	    if ( !use_record && strcasecmp( type, T_REPLICA_STR ) == 0 ) {
 		++saw_replica;
 		if (( p = strchr( value, ':' )) == NULL ) {
-		    replicaport = LDAP_PORT;
+		    replicaport = 0;
 		} else {
 		    *p++ = '\0';
 		    replicaport = atoi( p );

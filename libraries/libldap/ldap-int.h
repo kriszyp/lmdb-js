@@ -27,6 +27,26 @@ LDAP_BEGIN_DECL
 #endif /* LDAP_REFERRALS */
 
 /*
+ * structure representing get/set'able options
+ * which have global defaults.
+ */
+struct ldapoptions {
+	int		ldo_deref;
+	int		ldo_timelimit;
+	int		ldo_sizelimit;
+
+	char*	ldo_defbase;
+	char*	ldo_defhost;
+	int		ldo_defport;
+};
+
+extern struct ldapoptions openldap_ldap_global_options; 
+extern int	openldap_ldap_initialized;
+
+/* in init.c */
+void openldap_ldap_initialize LDAP_P(( void ));
+
+/*
  * in cache.c
  */
 void ldap_add_request_to_cache LDAP_P(( LDAP *ld, unsigned long msgtype,

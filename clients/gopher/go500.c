@@ -46,8 +46,8 @@ int	dosyslog;
 int	inetd;
 int	dtblsize;
 
-char	*ldaphost = LDAPHOST;
-char	*base = GO500_BASE;
+char	*ldaphost = NULL;
+char	*base = NULL;
 int	rdncount = GO500_RDNCOUNT;
 char	*filterfile = FILTERFILE;
 char	*templatefile = TEMPLATEFILE;
@@ -378,7 +378,7 @@ do_queries( int s )
 	if ( *query == '~' || *query == '@' ) {
 		ld = NULL;
 	} else {
-		if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+		if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
 			    LDAP_SERVER_DOWN, myhost, myport );
@@ -388,7 +388,7 @@ do_queries( int s )
 		}
 
 		ld->ld_deref = GO500_DEREF;
-		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, GO500_BIND_CRED ))
+		if ( (rc = ldap_simple_bind_s( ld, NULL, NULL ))
 		    != LDAP_SUCCESS ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",

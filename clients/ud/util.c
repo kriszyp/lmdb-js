@@ -40,7 +40,7 @@
 char *
 mygetpass( char *prompt )
 {
-#if !defined(HAVE_TERMIOS) && !defined(HAVE_SGTTY_H)
+#if !defined(HAVE_POSIX_TERMIOS) && !defined(HAVE_SGTTY_H)
 	static char buf[256];
 	int i, c;
 
@@ -525,7 +525,7 @@ my_ldap_dn2ufn( char *s )
 	register char **cpp;
 	static char short_DN[BUFSIZ];
 
-	if (strstr(s, UD_BASE) == NULL)
+	if (strstr(s, NULL) == NULL)
 		return(ldap_dn2ufn(s));
 	cpp = ldap_explode_dn(s, TRUE);
 	sprintf(short_DN, "%s, %s", *cpp, *(cpp + 1));

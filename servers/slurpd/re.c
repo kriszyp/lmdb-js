@@ -293,7 +293,7 @@ get_repl_hosts(
 	if ( str_parse_line( line, &type, &value, &len ) < 0 ) {
 	    return( NULL );
 	}
-	port = LDAP_PORT;
+	port = 0;
 	if (( p = strchr( value, ':' )) != NULL ) {
 	    *p = '\0';
 	    p++;

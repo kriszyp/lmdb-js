@@ -58,10 +58,10 @@ char copyright[] =
 static char *server = NULL;
 static char *config_file = UD_CONFIG_FILE;
 static char *filter_file = FILTERFILE;
-static int ldap_port = LDAP_PORT;
+static int ldap_port = 0;
 static int dereference = TRUE;
 
-char *default_bind_object = UD_BINDDN;
+char *default_bind_object = NULL;
 
 char *bound_dn;			/* bound user's Distinguished Name */
 char *group_base;		/* place in LDAP tree where groups are */
@@ -487,7 +487,7 @@ change_base( int type, char **base, char *s )
 	/* set the search base back to the original default value */
 	else if (!strcasecmp(s, "default")) {
 		if (type == BASE_SEARCH)
-			StrFreeDup(base, UD_BASE);
+			StrFreeDup(base, NULL);
 		else if (type == BASE_GROUPS)
 			StrFreeDup(base, UD_WHERE_GROUPS_ARE_CREATED);
 		printbase(output_string, *base);
@@ -582,6 +582,16 @@ initialize_client( void )
 					continue;
 				server = strdup(cp);
 			}
+			else if (!strncasecmp(buffer, "host", 4)) {
+				if (server != NULL)
+					continue;
+				cp = buffer + 4;
+				while (isspace(*cp))
+					cp++;
+				if ((*cp == '\0') || (*cp == '\n'))
+					continue;
+				server = strdup(cp);
+			}
 			else if (!strncasecmp(buffer, "base", 4)) {
 				cp = buffer + 4;
 				while (isspace(*cp))
@@ -604,10 +614,6 @@ initialize_client( void )
 	}
 	if (group_base == NULL)
 		group_base = strdup(UD_WHERE_GROUPS_ARE_CREATED);
-	if (search_base == NULL)
-		search_base = strdup(UD_BASE);
-	if (server == NULL)
-		server = strdup(LDAPHOST);
 
 	/*
 	 *  Set up our LDAP connection.  The values of retry and timeout
@@ -619,7 +625,7 @@ initialize_client( void )
 		exit(0);
 		/* NOTREACHED */
 	}
-	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) UD_BIND_CRED,
+	if (ldap_bind_s(ld, (char *) default_bind_object, (char *) NULL,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
 		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
 		if (ld->ld_errno != LDAP_UNAVAILABLE)

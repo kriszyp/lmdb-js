@@ -28,23 +28,10 @@
 #define DEFAULT_SYSCONFDIR	"%SYSCONFDIR%"
 #define DEFAULT_LIBEXECDIR	"%LIBEXECDIR%"
 
-/* default ldap host */
-#define LDAPHOST	"localhost"
+#define DEFAULT_LDAP_CONF_FILE "%SYSCONFDIR%/ldap.conf"
+#define DEFAULT_LDAP_USERRC_FILE "ldaprc"
+#define DEFAULT_LDAP_ENV_PREFIX "LDAP"
 
-#define DEFAULT_LDAPHOST_FILE "%SYSCONFDIR%/ldaphost"
-/* default place to start searching */
-#define DEFAULT_BASE	"o=Your Organization Name, c=US"
-#define DEFAULT_BASE_FILE "%SYSCONFDIR%/ldapbase"
-
-/*
- * default binddn and creditials
- *  use files, make sure they are not generally readable
- */
-#define DEFAULT_BINDDN		NULL
-#define DEFAULT_BINDDN_FILE "%SYSCONFDIR%/ldapbinddn"
-
-#define DEFAULT_BIND_CRED	NULL
-#define DEFAULT_BIND_CRED_FILE "%SYSCONFDIR%/ldapbindcred"
 
 /*********************************************************************
  *                                                                   *
@@ -68,13 +55,8 @@
 /*
  * FINGER DEFINITIONS
  */
-	/* who to bind as */
-#define FINGER_BINDDN			NULL
-#define FINGER_BIND_CRED		NULL
-	/* where to search */
-#define FINGER_BASE				DEFAULT_BASE
 	/* banner to print */
-#define FINGER_BANNER		"X.500 Finger Service...\r\n"
+#define FINGER_BANNER		"OpenLDAP Finger Service...\r\n"
 	/* who to report errors to */
 #define FINGER_ERRORS		"System Administrator"
 	/* what to say if no matches are found */
@@ -107,11 +89,6 @@ Please try again later.\r\n"
 /*
  * GO500 GOPHER GATEWAY DEFINITIONS
  */
-	/* who to bind as */
-#define GO500_BINDDN	NULL
-#define GO500_BIND_CRED	NULL
-	/* where to search */
-#define GO500_BASE	DEFAULT_BASE
 	/* port on which to listen */
 #define GO500_PORT	5555
 	/* how to handle aliases */
@@ -133,9 +110,6 @@ Please try again later.\r\n"
 /*
  * GO500GW GOPHER GATEWAY DEFINITIONS
  */
-	/* who to bind as */
-#define GO500GW_BINDDN			NULL
-#define GO500GW_BIND_CRED		NULL
 	/* where the helpfile lives */
 #define GO500GW_HELPFILE	"%DATADIR%/go500gw.help"
 	/* port on which to listen */
@@ -157,9 +131,6 @@ Please try again later.\r\n"
 /*
  * RCPT500 MAIL RESPONDER GATEWAY DEFINITIONS
  */
-	/* who to bind as */
-#define RCPT500_BINDDN		NULL
-#define RCPT500_BIND_CRED	NULL
 	/* where the helpfile lives */
 #define RCPT500_HELPFILE	"%DATADIR%/rcpt500.help"
 	/* maximum number of matches returned */
@@ -169,8 +140,6 @@ Please try again later.\r\n"
 	/* command that will accept an RFC822 message text on standard
 	   input, and send it.  sendmail -t does this nicely. */
 #define RCPT500_PIPEMAILCMD	"%SENDMAIL% -t"
-        /* where to search */
-#define RCPT500_BASE             DEFAULT_BASE
 	/* attribute to use when sorting results */
 #define RCPT500_SORT_ATTR	SORT_ATTR
 	/* max number of hits displayed in full before a list is presented */
@@ -181,47 +150,8 @@ Please try again later.\r\n"
 #define RCPT500_RDNCOUNT	DEFAULT_RDNCOUNT	
 
 /*
- * LDAPSEARCH TOOL
- */
-	/* who to bind as */
-#define LDAPSEARCH_BINDDN		NULL
-#define LDAPSEARCH_BIND_CRED	NULL
-	/* search base */
-#define LDAPSEARCH_BASE		DEFAULT_BASE
-
-/*
- * LDAPMODIFY TOOL
- */
-	/* who to bind as */
-#define LDAPMODIFY_BINDDN		NULL
-#define LDAPMODIFY_BIND_CRED	NULL
-	/* search base */
-#define LDAPMODIFY_BASE		DEFAULT_BASE
-
-/*
- * LDAPDELETE TOOL
- */
-	/* who to bind as */
-#define LDAPDELETE_BINDDN		NULL
-#define LDAPDELETE_BIND_CRED	NULL
-	/* search base */
-#define LDAPDELETE_BASE		DEFAULT_BASE
-
-/*
- * LDAPMODRDN TOOL
- */
-	/* who to bind as */
-#define LDAPMODRDN_BINDDN		NULL
-#define LDAPMODRDN_BIND_CRED	NULL
-	/* search base */
-#define LDAPMODRDN_BASE		DEFAULT_BASE
-
-/*
  * MAIL500 MAILER DEFINITIONS
  */
-	/* who to bind as */
-#define MAIL500_BINDDN			NULL
-#define MAIL500_BIND_CRED			NULL
 	/* max number of ambiguous matches reported */
 #define MAIL500_MAXAMBIGUOUS	10
 	/* max subscribers allowed (size limit when searching for them ) */
@@ -240,12 +170,6 @@ Please try again later.\r\n"
 #define UD_DEFAULT_EDITOR	"%EDITOR%"
 	/* default bbasename of user config file */
 #define UD_USER_CONFIG_FILE	".udrc"
-	/* default user to bind as */
-#define UD_BINDDN		NULL
-	/* default password to bind with */
-#define UD_BIND_CRED	NULL
-	/* default search base */
-#define UD_BASE		DEFAULT_BASE
 	/* default base where groups are created */
 #define UD_WHERE_GROUPS_ARE_CREATED	""
 	/* default base below which all groups live */
@@ -254,11 +178,6 @@ Please try again later.\r\n"
 /*
  * FAX500 DEFINITIONS
  */
-	/* what to bind as */
-#define FAX_BINDDN		NULL
-#define FAX_BIND_CRED	NULL
-	/* default search base */
-#define FAX_BASE		DEFAULT_BASE
 	/* how long to wait for searches */
 #define FAX_TIMEOUT		180
 	/* maximum number of ambiguous matches reported */
@@ -271,12 +190,6 @@ Please try again later.\r\n"
 /*
  * RP500 DEFINITIONS
  */
-	/* what to bind as */
-#define RP_BINDDN		NULL
-#define RP_BIND_CRED	NULL
-	/* default search base */
-#define RP_BASE			DEFAULT_BASE
-
 	/* prefix to add to non-fully-qualified numbers */
 #define RP_PHONEPREFIX	""
 

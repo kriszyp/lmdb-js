@@ -1,7 +1,7 @@
-.TH UD 1 "18 March 1993" "U-M LDAP LDVERSION"
+.TH UD 1 "10 November 1998" "OpenLDAP LDVERSION"
 .UC 6
 .SH NAME
-ud \- interactive X.500 Directory Server query program
+ud \- interactive LDAP Directory Server query program
 .SH SYNOPSIS
 .B ud
 [-Dv] [-s 
@@ -59,6 +59,7 @@ Prints out a list of valid ud debug masks.
 ETCDIR/ud.conf		The ud configuration file.
 .SH "SEE ALSO"
 .BR ud.conf (5),
+.BR ldap.conf (5),
 .BR ldap (3)
 .SH DIAGNOSTICS
 .B ud
@@ -71,3 +72,8 @@ uses the ldap_perror() routine to print an informative diagnostic.
 Too numerous to mention.
 .SH AUTHOR
 Bryan Beecher, University of Michigan
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

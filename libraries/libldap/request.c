@@ -698,7 +698,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 				*ports++ = '\0';
 				srv->lsrv_port = atoi( ports );
 			} else {
-				srv->lsrv_port = LDAP_PORT;
+				srv->lsrv_port = openldap_ldap_global_options.ldo_defport;
 			}
 #ifdef LDAP_DNS
 		} else {
@@ -881,7 +881,7 @@ dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
 	srvlist = NULL;
 
 	for ( i = 0; dxs[ i ] != NULL; ++i ) {
-		port = LDAP_PORT;
+		port = openldap_global_ldap_options.ldo_defport;
 		server_dn = NULL;
 		if ( strchr( dxs[ i ], ':' ) == NULL ) {
 			host = dxs[ i ];

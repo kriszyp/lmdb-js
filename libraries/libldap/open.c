@@ -101,6 +101,10 @@ ldap_init( char *defhost, int defport )
 {
 	LDAP			*ld;
 
+	if(!openldap_ldap_initialized) {
+		openldap_ldap_initialize();
+	}
+
 	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
 
 #ifdef HAVE_WINSOCK2
@@ -164,7 +168,8 @@ ldap_init( char *defhost, int defport )
 	}
 
 
-	ld->ld_defport = ( defport == 0 ) ? LDAP_PORT : defport;
+	ld->ld_defport = ( defport == 0 ) ?
+		openldap_ldap_global_options.ldo_defport : defport;
 	ld->ld_version = LDAP_VERSION;
 	ld->ld_lberoptions = LBER_USE_DER;
 	ld->ld_refhoplimit = LDAP_DEFAULT_REFHOPLIMIT;

@@ -66,10 +66,14 @@ cldap_open( char *host, int port )
     char		*p;
     int			i;
 
+	if(!openldap_ldap_initialized) {
+		openldap_ldap_initialize();
+	}
+
     Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
 
     if ( port == 0 ) {
-	    port = LDAP_PORT;
+	    port = openldap_ldap_global_options.ldo_defport;
     }
 
     if ( (s = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 ) {

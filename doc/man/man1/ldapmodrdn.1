@@ -1,4 +1,4 @@
-.TH LDAPMODRDN 1 "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDAPMODRDN 1 "10 November 1998" "OpenLDAP LDVERSION"
 .SH NAME
 ldapmodrdn \- ldap modify entry RDN tool
 .SH SYNOPSIS
@@ -67,7 +67,7 @@ Read the entry modification information from \fIfile\fP instead of from
 standard input or the command-line.
 .TP
 .B \-D binddn
-Use \fIbinddn\fP to bind to the X.500 directory. \fIbinddn\fP should be
+Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should be
 a string-represented DN as defined in RFC 1779.
 .TP
 .B \-w passwd
@@ -120,6 +120,7 @@ status and a diagnostic message being written to standard error.
 .BR ldapdelete (1),
 .BR ldapmodify (1),
 .BR ldapsearch (1),
+.BR ldap.conf (5),
 .BR ldap (3),
 .BR ldap_modrdn2 (3)
 .LP
@@ -130,3 +131,8 @@ Kille, S.,
 ISODE Consortium, March 1995.
 .SH BUGS
 There is no interactive mode, but there probably should be.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

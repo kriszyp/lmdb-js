@@ -48,8 +48,8 @@ int	dosyslog;
 int	inetd;
 int	dtblsize;
 
-char		*ldaphost = LDAPHOST;
-int		ldapport = LDAP_PORT;
+char		*ldaphost = NULL;
+int		ldapport = 0;
 int		searchaliases = 1;
 char		*helpfile = GO500GW_HELPFILE;
 char		*filterfile = FILTERFILE;
@@ -442,7 +442,7 @@ do_queries( int s )
 	if ( !searchaliases )
 		ld->ld_deref = LDAP_DEREF_FINDING;
 
-	if ( (rc = ldap_simple_bind_s( ld, GO500GW_BINDDN, NULL ))
+	if ( (rc = ldap_simple_bind_s( ld, NULL, NULL ))
 	    != LDAP_SUCCESS ) {
 		if ( debug ) ldap_perror( ld, "ldap_simple_bind_s" );
 		fprintf(fp, "0An error occurred (explanation)\tE%d\t%s\t%d\r\n",

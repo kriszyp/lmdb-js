@@ -74,11 +74,11 @@ static int dosearch LDAP_P((
     char	*filtpatt,
     char	*value));
 
-static char	*binddn = LDAPSEARCH_BINDDN;
-static char	*passwd = LDAPSEARCH_BIND_CRED;
-static char	*base = LDAPSEARCH_BASE;
-static char	*ldaphost = LDAPHOST;
-static int	ldapport = LDAP_PORT;
+static char	*binddn = NULL;
+static char	*passwd = NULL;
+static char	*base = NULL;
+static char	*ldaphost = NULL;
+static int	ldapport = 0;
 static char	*sep = DEFSEP;
 static char	*sortattr = NULL;
 static int	skipsortattr = 0;
