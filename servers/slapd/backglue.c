@@ -606,7 +606,7 @@ glue_sub_init( )
 			gi->n[gi->nodes].be = &gi->bd;
 			dnParent( &b1->be_nsuffix[0], &gi->n[gi->nodes].pdn );
 			gi->nodes++;
-			b1->bd_info = bi;
+			b1->bd_info = (BackendInfo *)gi;
 		}
 	}
 	/* If there are any unresolved subordinates left, something is wrong */
