@@ -909,6 +909,7 @@ int connection_read(ber_socket_t s)
 			/* connections_mutex and c_mutex are locked */
 			connection_closing( c );
 
+#if 0
 			/* Drain input before close, to allow SSL error codes
 			 * to propagate to client. */
 			FD_ZERO(&rfd);
@@ -922,6 +923,7 @@ int connection_read(ber_socket_t s)
 				ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_DRAIN,
 				    NULL);
 			}
+#endif
 			connection_close( c );
 
 		} else if ( rc == 0 ) {
