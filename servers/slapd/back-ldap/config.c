@@ -553,6 +553,7 @@ ldap_back_exop_whoami(
 		LDAPMessage *res;
 		Operation op2 = *op;
 		ber_int_t msgid;
+		int do_retry = 1;
 
 		ctrls[0] = &c;
 		op2.o_ndn = op->o_conn->c_ndn;
@@ -567,11 +568,17 @@ ldap_back_exop_whoami(
 		strcpy(c.ldctl_value.bv_val, "dn:");
 		strcpy(c.ldctl_value.bv_val+3, op->o_ndn.bv_val);
 
+retry:
 		rs->sr_err = ldap_whoami(lc->ld, ctrls, NULL, &msgid);
 		if (rs->sr_err == LDAP_SUCCESS) {
 			if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
 				ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err);
+				if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
+					do_retry = 0;
+					if ( ldap_back_retry( lc, op, rs ) )
+						goto retry;
+				}
 				ldap_back_freeconn( op, lc );
 				lc = NULL;
 
