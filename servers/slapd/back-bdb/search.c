@@ -579,12 +579,16 @@ id2entry_retry:
 				if (e) {
 					int result;
 					
+#if 0	/* noop is masked SLAP_CTRL_UPDATE */
 					if( op->o_noop ) {
 						result = 0;
 					} else {
+#endif
 						result = send_search_entry( be, conn, op,
 							e, attrs, attrsonly, NULL);
+#if 0
 					}
+#endif
 
 					switch (result) {
 					case 0:		/* entry sent ok */
