@@ -1114,7 +1114,9 @@ syncrepl_del_nonpresent(
 	op->ors_filter = filter;
 	ber_str2bv( si->filterstr, strlen( si->filterstr ), 1, &op->ors_filterstr );
 
+	op->o_nocaching = 1;
 	be->be_search( op, &rs );
+	op->o_nocaching = 0;
 
 	if ( !LDAP_LIST_EMPTY( &si->nonpresentlist ) ) {
 		np_list = LDAP_LIST_FIRST( &si->nonpresentlist );

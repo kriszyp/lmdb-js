@@ -1981,6 +1981,7 @@ typedef struct slap_op {
 	ValuesReturnFilter *o_vrFilter; /* ValuesReturnFilter */
 
 	syncinfo_t*	o_si;
+	int o_nocaching;
 
 #ifdef LDAP_SLAPI
 	void    *o_pb;                  /* NS-SLAPI plugin */
