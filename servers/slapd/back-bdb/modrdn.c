@@ -212,7 +212,7 @@ retry:	/* transaction retry */
 		/* no parent, modrdn entry directly under root */
 		isroot =  be_isroot( be, op->o_ndn );
 		if ( ! isroot ) {
-			if ( be_issuffix( be, "" ) ) {
+			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
 
 				p = (Entry *)&roote;
 
@@ -333,7 +333,7 @@ retry:	/* transaction retry */
 
 			/* no parent, modrdn entry directly under root */
 			if ( ! isroot ) {
-				if ( be_issuffix( be, "" ) ) {
+				if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
 
 					np = (Entry *)&roote;
 

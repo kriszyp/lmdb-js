@@ -195,7 +195,7 @@ retry:	rc = txn_abort( ltid );
 		 *  or with parent ""
 		 */
 		if ( !be_isroot( be, op->o_ndn )) {
-			if ( be_issuffix( be, "" ) ) {
+			if ( be_issuffix( be, "" ) || be_isupdate( be, op->o_ndn ) ) {
 				static const Entry rootp = { NOID, "", "", NULL, NULL };
 
 				p = (Entry *)&rootp;
