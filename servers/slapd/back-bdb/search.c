@@ -969,9 +969,11 @@ id2entry_retry:
 			if ( ei->bei_parent->bei_id == base.e_id ) scopeok = 1;
 			break;
 
+#ifdef LDAP_SCOPE_CHILDREN
 		case LDAP_SCOPE_CHILDREN:
 			if ( id == base.e_id ) break;
 			/* Fall-thru */
+#endif
 		case LDAP_SCOPE_SUBTREE: {
 			EntryInfo *tmp;
 			for (tmp = BEI(e); tmp->bei_parent;

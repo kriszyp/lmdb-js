@@ -443,10 +443,12 @@ handle_private_option( int i )
 			scope = LDAP_SCOPE_BASE;
 		} else if ( strncasecmp( optarg, "one", sizeof("one")-1 ) == 0 ) {
 			scope = LDAP_SCOPE_ONELEVEL;
+#ifdef LDAP_SCOPE_SUBORDINATE
 		} else if (( strcasecmp( optarg, "subordinate" ) == 0 )
 			|| ( strcasecmp( optarg, "children" ) == 0 ))
 		{
 			scope = LDAP_SCOPE_SUBORDINATE;
+#endif
 		} else if ( strncasecmp( optarg, "sub", sizeof("sub")-1 ) == 0 ) {
 			scope = LDAP_SCOPE_SUBTREE;
 		} else {
@@ -764,8 +766,14 @@ getNextPage:
 			base ? base : "",
 			((scope == LDAP_SCOPE_BASE) ? "baseObject"
 				: ((scope == LDAP_SCOPE_ONELEVEL) ? "oneLevel"
+#ifdef LDAP_SCOPE_SUBORDINATE
 				: ((scope == LDAP_SCOPE_SUBORDINATE) ? "children"
-				: "subtree"))));
+#endif
+				: "subtree"
+#ifdef LDAP_SCOPE_SUBORDINATE
+				)
+#endif
+				)));
 		printf(_("# filter%s: %s\n"), infile != NULL ? _(" pattern") : "",
 		       filtpattern);
 		printf(_("# requesting: "));

@@ -26,6 +26,8 @@
 
 #include "ldap-int.h"
 
+#ifdef LDAP_GROUP_TRANSACTION
+
 int
 ldap_txn_create_s(
 	LDAP *ld,
@@ -46,3 +48,5 @@ ldap_txn_end_s(
 {
 	return LDAP_NOT_SUPPORTED;
 }
+
+#endif

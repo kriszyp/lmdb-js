@@ -875,7 +875,9 @@ typedef struct slap_filter {
 #define SLAPD_FILTER_COMPUTED		((ber_tag_t) -1)
 #define SLAPD_FILTER_DN_ONE			((ber_tag_t) -2)
 #define SLAPD_FILTER_DN_SUBTREE		((ber_tag_t) -3)
+#ifdef LDAP_SCOPE_SUBORDINATE
 #define SLAPD_FILTER_DN_CHILDREN	((ber_tag_t) -4)
+#endif
 
 	union f_un_u {
 		/* precomputed result */

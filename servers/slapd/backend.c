@@ -1289,12 +1289,14 @@ backend_group(
 						case LDAP_SCOPE_SUBTREE:
 							if ( !dnIsSuffix( op_ndn, &nbase )) goto loopit;
 							break;
+#ifdef LDAP_SCOPE_SUBORDINATE
 						case LDAP_SCOPE_SUBORDINATE:
 							if ( dn_match( &nbase, op_ndn ) &&
 								!dnIsSuffix(op_ndn, &nbase ))
 							{
 								goto loopit;
 							}
+#endif
 						}
 						filter = str2filter_x( op, ludp->lud_filter );
 						if ( filter ) {

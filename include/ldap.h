@@ -223,8 +223,10 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
 /* Password policy Controls *//* work in progress */
+#ifdef LDAP_DEVEL
 #define LDAP_CONTROL_PASSWORDPOLICYREQUEST	"1.3.6.1.4.1.42.2.27.8.5.1"
 #define LDAP_CONTROL_PASSWORDPOLICYRESPONSE	"1.3.6.1.4.1.42.2.27.8.5.1"
+#endif
 
 /* LDAP Sync -- draft-zeilenga-ldup-sync *//* submitted for publication */
 #define LDAP_SYNC_OID			"1.3.6.1.4.1.4203.1.9.1"
@@ -282,6 +284,7 @@ typedef struct ldapcontrol {
 #define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
 
 /* LDAP Grouping of Related Operations *//* a work in progress */
+#ifdef LDAP_DEVEL
 #define LDAP_X_GROUPING_BASE		"1.3.6.1.4.1.4203.666.10.3"
 #define LDAP_EXOP_GROUPING_CREATE	LDAP_X_GROUPING_BASE ".1"
 #define LDAP_EXOP_GROUPING_END		LDAP_X_GROUPING_BASE ".2"
@@ -289,9 +292,12 @@ typedef struct ldapcontrol {
 #define LDAP_EXOP_GROUPING_ACTION	LDAP_X_GROUPING_BASE ".4"
 #define LDAP_NOTICE_GROUPING_INFO	LDAP_X_GROUPING_BASE ".5"
 #define LDAP_CONTROL_GROUPING		LDAP_X_GROUPING_BASE ".6"
+#endif
 
 /* LDAP Grouping Types *//* a work in progress */
+#ifdef LDAP_DEVEL
 #define LDAP_GROUP_TRANSACTION		 "1.3.6.1.4.1.4203.666.10.4"
+#endif
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OP_ATTRS	"1.3.6.1.4.1.4203.1.5.1"	/* RFC 3673 */
@@ -301,10 +307,12 @@ typedef struct ldapcontrol {
 #define LDAP_FEATURE_LANGUAGE_TAG_OPTIONS "1.3.6.1.4.1.4203.1.5.4"
 #define LDAP_FEATURE_LANGUAGE_RANGE_OPTIONS "1.3.6.1.4.1.4203.1.5.5"
 
+#ifdef LDAP_DEVEL
 #define LDAP_FEATURE_SUBORDINATE_SCOPE \
 	"1.3.6.1.4.1.4203.666.8.1" /* "children" */
 #define LDAP_FEATURE_CHILDREN_SCOPE LDAP_FEATURE_SUBORDINATE_SCOPE
 #define LDAP_FEATURE_MODIFY_INCREMENT "1.3.6.1.4.1.4203.666.8.2"
+#endif
 
 /*
  * specific LDAP instantiations of BER types we know about
@@ -424,8 +432,10 @@ typedef struct ldapcontrol {
 #define LDAP_SCOPE_ONE			LDAP_SCOPE_ONELEVEL
 #define LDAP_SCOPE_SUBTREE		((ber_int_t) 0x0002)
 #define LDAP_SCOPE_SUB			LDAP_SCOPE_SUBTREE
+#ifdef LDAP_DEVEL
 #define LDAP_SCOPE_SUBORDINATE	((ber_int_t) 0x0003) /* OpenLDAP extension */
 #define LDAP_SCOPE_CHILDREN		LDAP_SCOPE_SUBORDINATE
+#endif
 
 /* substring filter component types */
 #define LDAP_SUBSTRING_INITIAL	((ber_tag_t) 0x80U)	/* context specific */
@@ -744,7 +754,7 @@ ldap_parse_intermediate LDAP_P((
  */
 
 LDAP_F( int )
-ldap_grouping_create_operation LDAP_P((
+ldap_grouping_create LDAP_P((
 	LDAP			*ld,
 	LDAP_CONST char	*grpoid,
 	struct berval	*grpdata,
@@ -753,7 +763,7 @@ ldap_grouping_create_operation LDAP_P((
 	int				*msgidp ));
 
 LDAP_F( int )
-ldap_grouping_create_operation_s LDAP_P((
+ldap_grouping_create_s LDAP_P((
 	LDAP			*ld,
 	LDAP_CONST char	*grpoid,
 	struct berval	*grpdata,
@@ -772,7 +782,7 @@ ldap_parse_grouping_create_result LDAP_P((
 	int				freeit ));
 
 LDAP_F( int )
-ldap_grouping_end_operation LDAP_P((
+ldap_grouping_end LDAP_P((
 	LDAP			*ld,
 	LDAP_CONST char	*grpoid,
 	struct berval	*grpdata,
@@ -781,7 +791,7 @@ ldap_grouping_end_operation LDAP_P((
 	int				*msgidp ));
 
 LDAP_F( int )
-ldap_grouping_end_operation_s LDAP_P((
+ldap_grouping_end_s LDAP_P((
 	LDAP			*ld,
 	LDAP_CONST char	*grpoid,
 	struct berval	*grpdata,
@@ -1844,6 +1854,7 @@ ldap_parse_vlv_control LDAP_P((
  * LDAP Transactions
  *	in txn.c
  */
+#ifdef LDAP_GROUPING_TRANSACTION
 LDAP_F( int )
 ldap_parse_txn_create LDAP_P((
 	LDAP *ld,
@@ -1880,6 +1891,7 @@ ldap_txn_end_s LDAP_P((
 	int commit,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls ));
+#endif
 
 /*
  * LDAP Who Am I?

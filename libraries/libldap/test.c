@@ -640,7 +640,9 @@ main( int argc, char **argv )
 					ludp->lud_scope == LDAP_SCOPE_BASE ? "baseObject"
 					: ludp->lud_scope == LDAP_SCOPE_ONELEVEL ? "oneLevel"
 					: ludp->lud_scope == LDAP_SCOPE_SUBTREE ? "subtree"
+#ifdef LDAP_SCOPE_SUBORDINATE
 					: ludp->lud_scope == LDAP_SCOPE_SUBORDINATE ? "children"
+#endif
 					: "**invalid**" );
 			    printf( "\tfilter: <%s>\n", ludp->lud_filter );
 			    ldap_free_urldesc( ludp );

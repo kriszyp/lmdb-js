@@ -89,8 +89,10 @@ filter_candidates(
 		}
 		break;
 
+#ifdef SLAPD_FILTER_DN_CHILDREN
 	case SLAPD_FILTER_DN_CHILDREN:
 		sub = "CHILDREN";
+#endif
 	case SLAPD_FILTER_DN_SUBTREE:
 #ifdef NEW_LOGGING
 		LDAP_LOG( FILTER, DETAIL1, 

@@ -102,7 +102,9 @@ do_search(
 	case LDAP_SCOPE_BASE:
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
+#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE:
+#endif
 		break;
 	default:
 		send_ldap_error( op, rs, LDAP_PROTOCOL_ERROR, "invalid scope" );

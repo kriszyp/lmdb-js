@@ -246,7 +246,7 @@ static int str2scope( const char *p )
 	} else if ( strcasecmp( p, "subtree" ) == 0 ) {
 		return LDAP_SCOPE_SUBTREE;
 
-#ifdef LDAP_FEATURE_SUBORDINATE_SCOPE
+#ifdef LDAP_SCOPE_SUBORDINATE
 	} else if ( strcasecmp( p, "subordinate" ) == 0 ) {
 		return LDAP_SCOPE_SUBORDINATE;
 

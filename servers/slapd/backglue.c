@@ -281,7 +281,9 @@ glue_back_search ( Operation *op, SlapReply *rs )
 
 	case LDAP_SCOPE_ONELEVEL:
 	case LDAP_SCOPE_SUBTREE:
+#ifdef LDAP_SCOPE_SUBORDINATE
 	case LDAP_SCOPE_SUBORDINATE: /* FIXME */
+#endif
 		op->o_callback = &cb;
 		rs->sr_err = gs.err = LDAP_UNWILLING_TO_PERFORM;
 		scope0 = op->ors_scope;
