@@ -17,8 +17,7 @@ bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
 	const char	*dn,
-	ID		id
-)
+	ID		id )
 {
 	int		rc;
 	DBT		key, data;
@@ -212,8 +211,13 @@ bdb_dn2id(
 	/* fetch it */
 	rc = db->get( db, txn, &key, &data, 0 );
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: id=0x%08lx: %s (%d)\n",
-		*id, db_strerror( rc ), rc );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: get failed: %s (%d)\n",
+			db_strerror( rc ), rc, 0 );
+	} else {
+		Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: got id=0x%08lx\n",
+			*id, 0, 0 );
+	}
 
 	ch_free( key.data );
 	return rc;

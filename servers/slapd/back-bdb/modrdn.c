@@ -300,16 +300,18 @@ retry:	rc = txn_abort( ltid );
 		new_ndn, 0, 0 );
 
 	rc = bdb_dn2id ( be, ltid, new_ndn, &id );
-	if( rc != 0 ) {
-		switch( rc ) {
-		case DB_LOCK_DEADLOCK:
-		case DB_LOCK_NOTGRANTED:
-			goto retry;
-		default:
-			rc = LDAP_OTHER;
-			text = "internal error";
-		}
-
+	switch( rc ) {
+	case DB_LOCK_DEADLOCK:
+	case DB_LOCK_NOTGRANTED:
+		goto retry;
+	case DB_NOTFOUND:
+		break;
+	case 0:
+		rc = LDAP_ALREADY_EXISTS;
+		goto return_results;
+	default:
+		rc = LDAP_OTHER;
+		text = "internal error";
 		goto return_results;
 	}
 
