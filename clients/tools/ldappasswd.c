@@ -30,32 +30,32 @@ usage(const char *s)
 	fprintf(stderr,
 "Change password of an LDAP user\n\n"
 "usage: %s [options] user\n"
-"	user: the identity of the user, normally a DN\n"
+"  user: the identity of the user, normally a DN\n"
 "Password change options:\n"
-"	-a secret\told password\n"
-"	-A\t\tprompt for old password\n"
-"	-s secret\tnew password\n"
-"	-S\t\tprompt for new password\n"
+"  -a secret  old password\n"
+"  -A         prompt for old password\n"
+"  -s secret  new password\n"
+"  -S         prompt for new password\n"
 
 "Common options:\n"
-"	-d level\tdebugging level\n"
-"	-C\t\tchase referrals\n"
-"	-D binddn\tbind DN\n"
-"	-h host\t\tLDAP server (default: localhost)\n"
-"	-I\t\tuse SASL Interactive mode\n"
-"	-n\t\tmake no modifications\n"
-"	-O secprops\tSASL security properties\n"
-"	-p port\t\tport on LDAP server\n"
-"	-Q\t\tuse SASL Quiet mode\n"
-"	-R realm\tSASL realm\n"
-"	-U user\t\tSASL authentication identity (username)\n"
-"	-v\t\tverbose mode\n"
-"	-w passwd\tbind password (for simple authentication)\n"
-"	-W\t\tprompt for bind password\n"
-"	-x\t\tSimple authentication\n"
-"	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
-"	-Y mech\t\tSASL mechanism\n"
-"	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
+"  -d level   set LDAP debugging level to `level'\n"
+"  -D binddn  bind DN\n"
+"  -f file    read operations from `file'\n"
+"  -h host    LDAP server\n"
+"  -I         use SASL Interactive mode\n"
+"  -n         show what would be done but don't actually search\n"
+"  -O props   SASL security properties\n"
+"  -p port    port on LDAP server\n"
+"  -Q         use SASL Quiet mode\n"
+"  -R realm   SASL realm\n"
+"  -U user    SASL authentication identity (username)\n"
+"  -v         run in verbose mode (diagnostics to standard output)\n"
+"  -w passwd  bind passwd (for simple authentication)\n"
+"  -W         prompt for bind passwd\n"
+"  -x         Simple authentication\n"
+"  -X id      SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -Y mech    SASL mechanism\n"
+"  -Z         Start TLS request (-ZZ to require successful response)\n"
 		, s );
 
 	exit( EXIT_FAILURE );
@@ -315,7 +315,7 @@ main( int argc, char *argv[] )
 		sasl_flags = LDAP_SASL_QUIET;
 		break;
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -340,7 +340,7 @@ main( int argc, char *argv[] )
 		version = LDAP_VERSION3;
 		sasl_realm = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -366,7 +366,7 @@ main( int argc, char *argv[] )
 		version = LDAP_VERSION3;
 		sasl_authc_id = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -407,7 +407,7 @@ main( int argc, char *argv[] )
 		version = LDAP_VERSION3;
 		sasl_mech = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -448,7 +448,7 @@ main( int argc, char *argv[] )
 	case 'Z':
 #ifdef HAVE_TLS
 		if( version == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s -Z incompatible with version %d\n",
+			fprintf( stderr, "%s: -Z incompatible with version %d\n",
 				prog, version );
 			return EXIT_FAILURE;
 		}
@@ -605,7 +605,7 @@ main( int argc, char *argv[] )
 			return( EXIT_FAILURE );
 		}
 #else
-		fprintf( stderr, "%s was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			argv[0] );
 		return( EXIT_FAILURE );
 #endif

@@ -51,15 +51,17 @@ ldappasswd \- change the password of an LDAP entry
 .SH DESCRIPTION
 .B ldappasswd
 is a tool to set the password of an LDAP user.
-It is neither designed nor intended to be a replacement for
-.BR passwd (1)
-and should not be installed as such.
 .LP
 .B ldappasswd
 sets the password of associated with the user.  If the new
 password is not specified on the command line or the user
 doesn't enable prompting, the server will be asked to generate
 a password for the user.
+.LP
+.B ldappasswd
+is neither designed nor intended to be a replacement for
+.BR passwd (1)
+and should not be installed as such.
 .SH OPTIONS
 .TP
 .BI \-A
@@ -132,11 +134,9 @@ actual SASL mechanism used.
 Specify the requested authorization ID for SASL bind.
 .I authzid
 must be one of the following formats:
-.B dn:\c
-.I <distinguished name>
+.BI dn: <distinguished name>
 or
-.B u:\c
-.I <username>
+.BI u: <username>\fP.
 .TP
 .BI \-Y \ mech
 Specify the SASL mechanism to be used for authentication. If it's not
@@ -144,8 +144,8 @@ specified, the program will choose the best mechanism the server knows.
 .TP
 .B \-Z[Z]
 Issue StartTLS (Transport Layer Security) extended operation. If you use
-.B \-ZZ\c
-, the command will require the operation to be successful.
+.BR \-ZZ ,
+the command will require the operation to be successful
 .SH SEE ALSO
 .BR ldap_bind (3)
 .SH AUTHOR

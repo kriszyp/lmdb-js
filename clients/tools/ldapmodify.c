@@ -100,32 +100,33 @@ usage( const char *prog )
 "	The list of desired operations are read from stdin or from the file\n"
 "	specified by \"-f file\".\n"
 "Add or modify options:\n"
-"	-a\t\tadd values (default%s)\n"
-"	-r\t\treplace values\n"
-"	-F\t\tforce all changes records to be used\n"
+"  -a         add values (default%s)\n"
+"  -r         replace values\n"
+"  -F         force all changes records to be used\n"
 
-"common options:\n"
-"	-c\t\tcontinuous operation (ignore errors)\n"
-"	-C\t\tchase referrals\n"
-"	-d level\tset LDAP debugging level to `level'\n"
-"	-D dn\t\tbind DN\n"
-"	-f file\t\tread operations from `file'\n"
-"	-h host\t\tLDAP server\n"
-"	-I\t\tuse SASL Interactive mode\n"
-"	-k\t\tuse Kerberos authentication\n"
-"	-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
-"	-M\t\tenable Manage DSA IT control (-MM to make it critical)\n"
-"	-n\t\tprint changes, don't actually do them\n"
-"	-O secprops\tSASL security properties\n"
-"	-p port\t\tport on LDAP server\n"
-"	-Q\t\tuse SASL Quiet mode\n"
-"	-R realm\tSASL realm\n"
-"	-U user\t\tSASL authentication identity (username)\n"
-"	-v\t\tverbose mode\n"
-"	-w passwd\tbind password (for Simple authentication)\n"
-"	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
-"	-Y mech\t\tSASL mechanism\n"
-"	-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
+"Common options:\n"
+"  -d level   set LDAP debugging level to `level'\n"
+"  -D binddn  bind DN\n"
+"  -f file    read operations from `file'\n"
+"  -h host    LDAP server\n"
+"  -I         use SASL Interactive mode\n"
+"  -k         use Kerberos authentication\n"
+"  -K         like -k, but do only step 1 of the Kerberos bind\n"
+"  -M         enable Manage DSA IT control (-MM to make critical)\n"
+"  -n         show what would be done but don't actually search\n"
+"  -O props   SASL security properties\n"
+"  -p port    port on LDAP server\n"
+"  -P version procotol version (default: 3)\n"
+"  -Q         use SASL Quiet mode\n"
+"  -R realm   SASL realm\n"
+"  -U user    SASL authentication identity (username)\n"
+"  -v         run in verbose mode (diagnostics to standard output)\n"
+"  -w passwd  bind passwd (for simple authentication)\n"
+"  -W         prompt for bind passwd\n"
+"  -x         Simple authentication\n"
+"  -X id      SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -Y mech    SASL mechanism\n"
+"  -Z         Start TLS request (-ZZ to require successful response)\n"
 	     , prog, (strcmp( prog, "ldapadd" ) ? " is to replace" : "") );
 
     exit( EXIT_FAILURE );
@@ -348,7 +349,7 @@ main( int argc, char **argv )
 		sasl_flags = LDAP_SASL_QUIET;
 		break;
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -373,7 +374,7 @@ main( int argc, char **argv )
 		version = LDAP_VERSION3;
 		sasl_realm = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -399,7 +400,7 @@ main( int argc, char **argv )
 		version = LDAP_VERSION3;
 		sasl_authc_id = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -440,7 +441,7 @@ main( int argc, char **argv )
 		version = LDAP_VERSION3;
 		sasl_mech = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -481,7 +482,7 @@ main( int argc, char **argv )
 	case 'Z':
 #ifdef HAVE_TLS
 		if( version == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s -Z incompatible with version %d\n",
+			fprintf( stderr, "%s: -Z incompatible with version %d\n",
 				prog, version );
 			return EXIT_FAILURE;
 		}
@@ -610,7 +611,7 @@ main( int argc, char **argv )
 			return( EXIT_FAILURE );
 		}
 #else
-		fprintf( stderr, "%s was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			argv[0] );
 		return( EXIT_FAILURE );
 #endif

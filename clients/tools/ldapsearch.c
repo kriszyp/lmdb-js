@@ -39,55 +39,55 @@ usage( const char *s )
 {
 	fprintf( stderr,
 "usage: %s [options] [filter [attributes...]]\nwhere:\n"
-"\tfilter\tRFC-2254 compliant LDAP search filter\n"
-"\tattributes\twhitespace-separated list of attribute descriptions\n"
-"\t  which may include:\n"
-"\t\t1.1 -- no attributes\n"
-"\t\t*   -- all user attributes\n"
-"\t\t+   -- all operational attributes\n"
+"  filter\tRFC-2254 compliant LDAP search filter\n"
+"  attributes\twhitespace-separated list of attribute descriptions\n"
+"    which may include:\n"
+"      1.1   no attributes\n"
+"      *     all user attributes\n"
+"      +     all operational attributes\n"
 
 "Search options:\n"
-"\t-a deref\tone of never (default), always, search, or find\n"
-"\t-A\t\tretrieve attribute names only (no values)\n"
-"\t-b basedn\tbase dn for search\n"
-"\t-l limit\ttime limit (in seconds) for search\n"
-"\t-L\t\tprint responses in LDIFv1 format\n"
-"\t-LL\t\tprint responses in LDIF format without comments\n"
-"\t-LLL\t\tprint responses in LDIF format without comments\n"
-"\t\t\tand version\n"
-"\t-s scope\tone of base, one, or sub (search scope)\n"
-"\t-S attr\t\tsort the results by attribute `attr'\n"
-"\t-t\t\twrite binary values to files in temporary directory\n"
-"\t-tt\t\twrite all values to files in temporary directory\n"
-"\t-T path\t\twrite files to directory specified by path (default:\n"
-"\t\t\t\"" LDAP_TMPDIR "\")\n"
-"\t-u\t\tinclude User Friendly entry names in the output\n"
+"  -a deref   one of never (default), always, search, or find\n"
+"  -A         retrieve attribute names only (no values)\n"
+"  -b basedn  base dn for search\n"
+"  -l limit   time limit (in seconds) for search\n"
+"  -L         print responses in LDIFv1 format\n"
+"  -LL        print responses in LDIF format without comments\n"
+"  -LLL       print responses in LDIF format without comments\n"
+"             and version\n"
+"  -s scope   one of base, one, or sub (search scope)\n"
+"  -S attr    sort the results by attribute `attr'\n"
+"  -t         write binary values to files in temporary directory\n"
+"  -tt        write all values to files in temporary directory\n"
+"  -T path    write files to directory specified by path (default:\n"
+"             " LDAP_TMPDIR ")\n"
+"  -u         include User Friendly entry names in the output\n"
+"  -V prefix  URL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
+"  -z limit   size limit (in entries) for search\n"
 
 "Common options:\n"
-"\t-d level\tset LDAP debugging level to `level'\n"
-"\t-D binddn\tbind DN\n"
-"\t-f file\t\tread operations from `file'\n"
-"\t-h host\t\tLDAP server\n"
-"\t-I\t\tuse SASL Interactive mode\n"
-"\t-k\t\tuse Kerberos authentication\n"
-"\t-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
-"\t-M\t\tenable Manage DSA IT control (-MM to make critical)\n"
-"\t-n\t\tshow what would be done but don't actually search\n"
-"\t-O secprops\tSASL security properties\n"
-"\t-p port\t\tport on LDAP server\n"
-"\t-P version\tprocotol version (default: 3)\n"
-"\t-Q\t\tuse SASL Quiet mode\n"
-"\t-R realm\tSASL realm\n"
-"\t-U user\t\tSASL authentication identity (username)\n"
-"\t-v\t\trun in verbose mode (diagnostics to standard output)\n"
-"\t-V prefix\tURL prefix for files (default: \"" LDAP_FILE_URI_PREFIX ")\n"
-"\t-w passwd\tbind passwd (for simple authentication)\n"
-"\t-W\t\tprompt for bind passwd\n"
-"\t-x\t\tSimple authentication\n"
-"\t-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
-"\t-Y mech\t\tSASL mechanism\n"
-"\t-z limit\tsize limit (in entries) for search\n"
-"\t-Z\t\tissue Start TLS request (-ZZ to require successful response)\n"
+"  -d level   set LDAP debugging level to `level'\n"
+"  -D binddn  bind DN\n"
+"  -f file    read operations from `file'\n"
+"  -h host    LDAP server\n"
+"  -I         use SASL Interactive mode\n"
+"  -k         use Kerberos authentication\n"
+"  -K         like -k, but do only step 1 of the Kerberos bind\n"
+"  -M         enable Manage DSA IT control (-MM to make critical)\n"
+"  -n         show what would be done but don't actually search\n"
+"  -O props   SASL security properties\n"
+"  -p port    port on LDAP server\n"
+"  -P version procotol version (default: 3)\n"
+"  -Q         use SASL Quiet mode\n"
+"  -R realm   SASL realm\n"
+"  -U user    SASL authentication identity (username)\n"
+"  -v         run in verbose mode (diagnostics to standard output)\n"
+"  -w passwd  bind passwd (for simple authentication)\n"
+"  -W         prompt for bind passwd\n"
+"  -x         Simple authentication\n"
+"  -X id      SASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"  -Y mech    SASL mechanism\n"
+"  -Z         Start TLS request (-ZZ to require successful response)\n"
 , s );
 
 	exit( EXIT_FAILURE );
@@ -140,6 +140,7 @@ static int dosearch LDAP_P((
 static char *tmpdir = NULL;
 static char *urlpre = NULL;
 
+static char *prog = NULL;
 static char	*binddn = NULL;
 static struct berval passwd = { 0, NULL };
 static char	*base = NULL;
@@ -160,7 +161,7 @@ static int	verbose, not, includeufn, vals2tmp, ldif;
 int
 main( int argc, char **argv )
 {
-	char		*prog, *infile, *filtpattern, **attrs, line[BUFSIZ];
+	char		*infile, *filtpattern, **attrs, line[BUFSIZ];
 	FILE		*fp = NULL;
 	int			rc, i, first, scope, deref, attrsonly, manageDSAit;
 	int			referrals, timelimit, sizelimit, debug;
@@ -418,7 +419,7 @@ main( int argc, char **argv )
 		sasl_flags = LDAP_SASL_QUIET;
 		break;
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -443,7 +444,7 @@ main( int argc, char **argv )
 		version = LDAP_VERSION3;
 		sasl_realm = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -469,7 +470,7 @@ main( int argc, char **argv )
 		version = LDAP_VERSION3;
 		sasl_authc_id = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -510,7 +511,7 @@ main( int argc, char **argv )
 		version = LDAP_VERSION3;
 		sasl_mech = strdup( optarg );
 #else
-		fprintf( stderr, "%s: was not compiled with SASL support\n",
+		fprintf( stderr, "%s: not compiled with SASL support\n",
 			prog );
 		return( EXIT_FAILURE );
 #endif
@@ -551,7 +552,7 @@ main( int argc, char **argv )
 	case 'Z':
 #ifdef HAVE_TLS
 		if( version == LDAP_VERSION2 ) {
-			fprintf( stderr, "%s -Z incompatible with version %d\n",
+			fprintf( stderr, "%s: -Z incompatible with version %d\n",
 				prog, version );
 			return EXIT_FAILURE;
 		}
@@ -737,8 +738,8 @@ main( int argc, char **argv )
 			return( EXIT_FAILURE );
 		}
 #else
-		fprintf( stderr, "%s was not compiled with SASL support\n",
-			argv[0] );
+		fprintf( stderr, "%s: not compiled with SASL support\n",
+			prog, argv[0] );
 		return( EXIT_FAILURE );
 #endif
 	} else {
@@ -885,8 +886,8 @@ static int dosearch(
 		sctrls, cctrls, timelimit, sizelimit, &msgid );
 
 	if( rc != LDAP_SUCCESS ) {
-		fprintf( stderr, "ldapsearch: ldap_search_ext: %s (%d)\n",
-			ldap_err2string( rc ), rc );
+		fprintf( stderr, "%s: ldap_search_ext: %s (%d)\n",
+			prog, ldap_err2string( rc ), rc );
 		return( rc );
 	}
 
