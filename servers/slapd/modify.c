@@ -145,7 +145,6 @@ do_modify(
 
 	/* alias suffix if approp */
 	ndn = suffixAlias ( ndn, op, be );
-	(void) dn_normalize_case( ndn );
 
 	/*
 	 * do the modify if 1 && (2 || 3)

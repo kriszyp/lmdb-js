@@ -72,7 +72,6 @@ do_modrdn(
 
 	/* alias suffix if approp */
 	ndn = suffixAlias( ndn, op, be );
-	dn_normalize_case( ndn );
 
 	/*
 	 * do the add if 1 && (2 || 3)

@@ -62,7 +62,6 @@ do_delete(
 
 	/* alias suffix if approp */
 	ndn = suffixAlias( ndn, op, be );
-	dn_normalize_case( ndn );
 
 	/*
 	 * do the delete if 1 && (2 || 3)

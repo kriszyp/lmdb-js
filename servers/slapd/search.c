@@ -143,7 +143,6 @@ do_search(
 
 	/* translate the base if it matches an aliased base part */
 	base = suffixAlias ( base, op, be );
-	(void) dn_normalize_case( base );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search != NULL ) {

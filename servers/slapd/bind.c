@@ -169,7 +169,6 @@ do_bind(
 		char *edn;
 
 		ndn = suffixAlias( ndn, op, be );
-		dn_normalize_case( ndn );
 
 		if ( (*be->be_bind)( be, conn, op, ndn, method, &cred, &edn ) == 0 ) {
 			pthread_mutex_lock( &conn->c_dnmutex );

@@ -75,7 +75,6 @@ do_compare(
 
 	/* alias suffix if approp */
 	ndn = suffixAlias( ndn, op, be );
-	dn_normalize_case( ndn );
 
 	if ( be->be_compare != NULL ) {
 		(*be->be_compare)( be, conn, op, ndn, &ava );
