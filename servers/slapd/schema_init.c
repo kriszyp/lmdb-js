@@ -1869,6 +1869,12 @@ int caseIgnoreFilter(
 
 #if UTF8MATCH
 	value = ber_bvstr( UTF8normalize( ((struct berval *) assertValue)->bv_val, UTF8_CASEFOLD ) );
+	/* This usually happens if filter contains bad UTF8 */
+	if( value == NULL ) {
+		keys = ch_malloc( sizeof( struct berval * ) );
+		keys[0] = NULL;
+		return LDAP_SUCCESS;
+	}
 #else
 	value = ber_bvdup( (struct berval *) assertValue );
 	ldap_pvt_str2upper( value->bv_val );
