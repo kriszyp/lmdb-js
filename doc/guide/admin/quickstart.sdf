@@ -179,8 +179,9 @@ for your site.  By default ldapadd is installed as
 
 .Where {{F:example.ldif}} is the file you created above.
 
-Note: Use of transport security services is recommended when updating
-the directory.  These services are described in later chapters.
+Note: Use of strong authentication and transport security services
+is highly recommended when updating the directory.  These services
+are described in later chapters.
 
 
 .{{S: }}

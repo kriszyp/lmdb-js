@@ -337,7 +337,7 @@ to provide replication service (see Section 10).
 
 \Example:
 
->	rootkrbname admin@openldap.org
+>	rootkrbname admin@EXAMPLE.COM
 
 H4: rootpw <password>
 
