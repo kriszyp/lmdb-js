@@ -1,0 +1,2764 @@
+dnl $OpenLDAP$
+dnl
+dnl Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
+dnl 
+dnl Redistribution and use in source and binary forms, with or without
+dnl modification, are permitted only as authorized by the OpenLDAP
+dnl Public License.  A copy of this license is available at
+dnl http://www.OpenLDAP.org/license.html or in file LICENSE in the
+dnl top-level directory of the distribution.
+dnl
+dnl ----------------------------------------------------------------
+dnl Redefine AC_INIT_BINSH to provide RCS IDs and copyright notice
+dnl at top of generated configure script.  Prints simple copyright.
+define([AC_INIT_BINSH],
+[[#! /bin/sh
+# $]OpenLDAP[$
+# from] translit([$OpenLDAP$], $")] [
+
+# Copyright 1998-2002 The OpenLDAP Foundation.  All Rights Reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted only as authorized by the OpenLDAP
+# Public License.  A copy of this license is available at
+# http://www.OpenLDAP.org/license.html or in file LICENSE in the
+# top-level directory of the distribution.
+
+echo "Copyright 1998-2002 The OpenLDAP Foundation,  All Rights Reserved."
+echo "	Restrictions apply, see COPYRIGHT and LICENSE files."
+])dnl
+dnl ----------------------------------------------------------------
+dnl Disable config.cache!
+define([AC_CACHE_LOAD], )dnl
+define([AC_CACHE_SAVE], )dnl
+dnl ================================================================
+dnl Configure.in for OpenLDAP
+AC_INIT(build/version.sh)dnl
+
+# set unset (borrowed from autoconf 2.49c)
+if (OL_FOO=OL_FOO; unset OL_FOO) >/dev/null 2>&1; then
+  ol_unset=unset
+else
+  ol_unset=false
+fi
+# unset CDPATH
+$ol_unset CDPATH || test "${CDPATH+set}" != set || { CDPATH=:; export CDPATH; }
+
+AC_CONFIG_AUX_DIR(build)dnl
+
+eval `$ac_aux_dir/version.sh`
+if test -z "$OL_STRING"; then
+	AC_MSG_ERROR([could not determine version])
+fi
+
+if test -f "$ac_aux_dir/shtool" -a ! -d $ac_aux_dir/shtool; then
+	ac_cv_shtool="$ac_aux_dir/shtool"
+else
+	AC_MSG_ERROR([no shtool found in $ac_aux_dir])
+fi
+
+SHTOOL="$ac_cv_shtool"
+dnl AC_SUBST(SHTOOL)dnl
+
+TB=`$SHTOOL echo -e %B`
+TN=`$SHTOOL echo -e %b`
+
+echo "Configuring $TB$OL_STRING$TN ..."
+
+dnl Determine host platform
+dnl		we try not to use this for much
+AC_CANONICAL_SYSTEM
+
+AM_INIT_AUTOMAKE([$OL_PACKAGE],[$OL_VERSION], [no defines])dnl
+AC_SUBST(PACKAGE)dnl
+AC_SUBST(VERSION)dnl
+AC_DEFINE_UNQUOTED(OPENLDAP_PACKAGE,"$PACKAGE",Package)
+AC_DEFINE_UNQUOTED(OPENLDAP_VERSION,"$VERSION",Version)
+
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION,$OL_API_INC,Version)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MAJOR,$OL_MAJOR,Major)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_MINOR,$OL_MINOR,Minor)
+AC_DEFINE_UNQUOTED(LDAP_VENDOR_VERSION_PATCH,$OL_PATCH,Patch)
+
+OPENLDAP_LIBVERSION=$OL_API_LIB
+AC_SUBST(OPENLDAP_LIBVERSION)dnl
+
+dnl We use autoconf features new to 2.13.
+dnl aclocal.m4 should be built using aclocal from automake 1.4
+dnl libtool 1.4.2 should be installed.
+AC_PREREQ(2.13)dnl Required Autoconf version
+
+AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
+
+dnl ================================================================
+dnl Start Args
+AC_MSG_CHECKING(configure arguments)
+AC_PREFIX_DEFAULT(/usr/local)
+
+top_builddir=`pwd`
+AC_SUBST(top_builddir)dnl
+
+dnl ----------------------------------------------------------------
+dnl --with-subdir
+ldap_subdir="/openldap"
+
+AC_ARG_WITH(subdir,
+[  --with-subdir=DIR       change default subdirectory used for installs],
+[case "$withval" in
+	no) ldap_subdir=""
+		;;
+	yes)
+		;;
+	/*|\\*)
+		ldap_subdir="$withval"
+		;;
+	*)
+		ldap_subdir="/$withval"
+		;;
+esac
+])dnl
+
+AC_SUBST(ldap_subdir)dnl
+
+dnl ----------------------------------------------------------------
+dnl General "enable" options
+OL_ARG_ENABLE(debug,[  --enable-debug 	  enable debugging], yes)dnl
+OL_ARG_ENABLE(syslog,[  --enable-syslog	  enable syslog support], auto)dnl
+OL_ARG_ENABLE(proctitle,[  --enable-proctitle	  enable proctitle support], yes)dnl
+OL_ARG_ENABLE(cache,[  --enable-cache	  enable caching (experimental)], no)dnl
+OL_ARG_ENABLE(referrals,[  --enable-referrals	  enable LDAPv2+ Referrals (experimental)], no)dnl
+OL_ARG_ENABLE(kbind,[  --enable-kbind	  enable LDAPv2+ Kerberos IV bind (deprecated)], no)dnl
+OL_ARG_ENABLE(ipv6,[  --enable-ipv6 	  enable IPv6 support], auto)dnl
+OL_ARG_ENABLE(local,[  --enable-local	  enable AF_LOCAL (AF_UNIX) socket support], auto)dnl
+OL_ARG_ENABLE(rewrite,[  --enable-rewrite	  enable rewrite], no)dnl
+OL_ARG_ENABLE(x_compile,[  --enable-x-compile	  enable cross compiling],
+	no, [yes no])dnl
+
+dnl ----------------------------------------------------------------
+dnl General "with" options
+dnl OL_ARG_ENABLE(dmalloc,[  --enable-dmalloc	  enable debug malloc support], no)dnl
+
+OL_ARG_WITH(cyrus_sasl,[  --with-cyrus-sasl	  with Cyrus SASL support],
+	auto, [auto yes no] )
+OL_ARG_WITH(fetch,[  --with-fetch		  with fetch URL support],
+	auto, [auto yes no] )
+OL_ARG_WITH(kerberos,[  --with-kerberos	  with Kerberos support],
+	auto, [auto k5 k5only k425 kth k4 afs yes no])
+OL_ARG_WITH(readline,[  --with-readline	  with readline support],
+	auto, [auto yes no] )
+OL_ARG_WITH(threads,[  --with-threads	  with threads],
+	auto, [auto nt posix mach pth lwp yes no manual] )
+OL_ARG_WITH(tls,[  --with-tls		  with TLS/SSL support],
+	auto, [auto ssleay openssl yes no] )
+OL_ARG_WITH(yielding_select,[  --with-yielding-select  with implicitly yielding select],
+	auto, [auto yes no manual] )
+
+dnl ----------------------------------------------------------------
+dnl Server options
+dnl ----------------------------------------------------------------
+
+dnl ----------------------------------------------------------------
+dnl SLAPD OPTIONS
+AC_ARG_WITH(xxslapdoptions,[
+SLAPD (Standalone LDAP Daemon) Options:])
+OL_ARG_ENABLE(slapd,[  --enable-slapd	  enable building slapd], yes)dnl
+OL_ARG_ENABLE(aci,[    --enable-aci	  enable per-object ACIs (experimental)], no)dnl
+OL_ARG_ENABLE(cleartext,[    --enable-cleartext	  enable cleartext passwords], yes)dnl
+OL_ARG_ENABLE(crypt,[    --enable-crypt	  enable crypt(3) passwords], no)dnl
+OL_ARG_ENABLE(dynamic,[    --enable-dynamic	  enable linking built binaries with dynamic libs], no)dnl
+OL_ARG_ENABLE(kpasswd,[    --enable-kpasswd	  enable Kerberos password verification], no)dnl
+OL_ARG_ENABLE(lmpasswd,[    --enable-lmpasswd	  enable LAN Manager passwords], no)dnl
+OL_ARG_ENABLE(spasswd,[    --enable-spasswd	  enable (Cyrus) SASL password verification], no)dnl
+OL_ARG_ENABLE(modules,[    --enable-modules	  enable dynamic module support], no)dnl
+dnl OL_ARG_ENABLE(multimaster,[    --enable-multimaster  enable multimaster replication], no)dnl
+OL_ARG_ENABLE(phonetic,[    --enable-phonetic	  enable phonetic/soundex], no)dnl
+OL_ARG_ENABLE(rlookups,[    --enable-rlookups	  enable reverse lookups], no)dnl
+OL_ARG_ENABLE(slp, [    --enable-slp          enable SLPv2 support], no)dnl     
+OL_ARG_ENABLE(wrappers,[    --enable-wrappers	  enable tcp wrapper support], no)dnl
+
+dnl SLAPD Backend options
+OL_ARG_ENABLE(bdb,[    --enable-bdb	  enable Berkeley DB backend], yes)dnl
+OL_ARG_WITH(bdb_module,[    --with-bdb-module     module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(dnssrv,[    --enable-dnssrv	  enable dnssrv backend], no)dnl
+OL_ARG_WITH(dnssrv_module,[    --with-dnssrv-module  module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(ldap,[    --enable-ldap	  enable ldap backend], no)dnl
+OL_ARG_WITH(ldap_module,[    --with-ldap-module	  module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(ldbm,[    --enable-ldbm	  enable ldbm backend], no)dnl
+OL_ARG_WITH(ldbm_api,[    --with-ldbm-api       with LDBM API], auto,
+	[auto berkeley bcompat mdbm gdbm])
+OL_ARG_WITH(ldbm_module,[    --with-ldbm-module	  module type], static,
+	[static dynamic])
+OL_ARG_WITH(ldbm_type,[    --with-ldbm-type	  use LDBM type], auto,
+	[auto btree hash])
+OL_ARG_ENABLE(meta,[    --enable-meta	  enable metadirectory backend], no)dnl
+OL_ARG_WITH(meta_module,[    --with-meta-module	  module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(monitor,[    --enable-monitor	  enable monitor backend], no)dnl
+OL_ARG_WITH(monitor_module,[    --with-monitor-module module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(passwd,[    --enable-passwd	  enable passwd backend], no)dnl
+OL_ARG_WITH(passwd_module,[    --with-passwd-module  module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(perl,[    --enable-perl	  enable perl backend], no)dnl
+OL_ARG_WITH(perl_module,[    --with-perl-module	  module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(shell,[    --enable-shell	  enable shell backend], no)dnl
+OL_ARG_WITH(shell_module,[    --with-shell-module	  module type], static,
+	[static dynamic])
+OL_ARG_ENABLE(sql,[    --enable-sql	  enable sql backend], no)dnl
+OL_ARG_WITH(sql_module,[    --with-sql-module	  module type], static,
+	[static dynamic])
+
+dnl ----------------------------------------------------------------
+dnl SLURPD OPTIONS
+AC_ARG_WITH(xxslurpdoptions,[
+SLURPD (Replication Daemon) Options:])
+OL_ARG_ENABLE(slurpd,[  --enable-slurpd	  enable building slurpd], auto)dnl
+
+dnl ----------------------------------------------------------------
+AC_ARG_WITH(xxliboptions,[
+Library Generation & Linking Options])
+AC_ENABLE_STATIC
+dnl AC_DISABLE_SHARED
+AC_ENABLE_SHARED
+
+dnl ----------------------------------------------------------------
+
+dnl General "enable" options
+# validate options
+if test $ol_enable_slapd = no ; then
+	dnl SLAPD was specificallly disabled
+	if test $ol_enable_bdb = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-bdb argument])
+	fi
+	if test $ol_enable_dnssrv = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-dnssrv argument])
+	fi
+	if test $ol_enable_ldap = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-ldap argument])
+	fi
+	if test $ol_enable_ldbm = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-ldbm argument])
+	fi
+	if test $ol_enable_meta = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-meta argument])
+	fi
+	if test $ol_enable_monitor = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-monitor argument])
+	fi
+	if test $ol_enable_passwd = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-passwd argument])
+	fi
+	if test $ol_enable_perl = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-perl argument])
+	fi
+	if test $ol_enable_shell = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-shell argument])
+	fi
+	if test $ol_enable_sql = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-sql argument])
+	fi
+	if test $ol_enable_modules = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-modules argument])
+	fi
+dnl	if test $ol_enable_multimaster = yes ; then
+dnl		AC_MSG_WARN([slapd disabled, ignoring --enable-multimaster argument])
+dnl	fi
+	if test $ol_enable_wrappers = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-wrappers argument])
+	fi
+	if test $ol_enable_phonetic = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-phonetic argument])
+	fi
+	if test $ol_enable_rlookups = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-rlookups argument])
+	fi
+	if test $ol_enable_aci = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-aci argument])
+	fi
+	if test $ol_with_ldbm_api != auto ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-api argument])
+	fi
+	if test $ol_with_ldbm_type != auto ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-type argument])
+	fi
+	if test $ol_with_bdb_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-bdb-module argument])
+	fi
+	if test $ol_with_dnssrv_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-dnssrv-module argument])
+	fi
+	if test $ol_with_ldap_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-ldap-module argument])
+	fi
+	if test $ol_with_ldbm_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-ldbm-module argument])
+	fi
+	if test $ol_with_meta_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-meta-module argument])
+	fi
+	if test $ol_with_monitor_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-monitor-module argument])
+	fi
+	if test $ol_with_passwd_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-passwd-module argument])
+	fi
+	if test $ol_with_perl_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-perl-module argument])
+	fi
+	if test $ol_with_shell_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-shell-module argument])
+	fi
+	if test $ol_with_sql_module != static ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-sql-module argument])
+	fi
+	if test $ol_enable_slurpd = yes ; then
+		AC_MSG_ERROR([slurpd requires slapd])
+	fi
+	if test $ol_enable_rewrite = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
+	fi
+
+	# force settings to no
+	ol_enable_bdb=no
+	ol_enable_dnssrv=no
+	ol_enable_ldap=no
+	ol_enable_ldbm=no
+	ol_enable_meta=no
+	ol_enable_monitor=no
+	ol_enable_passwd=no
+	ol_enable_perl=no
+	ol_enable_shell=no
+	ol_enable_sql=no
+
+	ol_enable_modules=no
+dnl	ol_enable_multimaster=no
+	ol_enable_phonetic=no
+	ol_enable_rlookups=no
+	ol_enable_aci=no
+	ol_enable_wrappers=no
+	ol_enable_dynamic=no
+
+	ol_with_ldbm_api=no
+	ol_with_ldbm_type=no
+
+	ol_with_bdb_module=static
+	ol_with_dnssrv_module=static
+	ol_with_ldap_module=static
+	ol_with_ldbm_module=static
+	ol_with_meta_module=static
+	ol_with_monitor_module=static
+	ol_with_passwd_module=static
+	ol_with_perl_module=static
+	ol_with_shell_module=static
+	ol_with_sql_module=static
+
+	ol_enable_slurpd=no
+
+	ol_enable_rewrite=no
+
+elif test $ol_enable_ldbm = no ; then
+	dnl SLAPD without LDBM
+
+	if test $ol_with_ldbm_api != auto ; then
+		AC_MSG_WARN([LDBM disabled, ignoring --with-ldbm-api argument])
+	fi
+
+	if test $ol_with_ldbm_type != auto ; then
+		AC_MSG_WARN([LDBM disabled, ignoring --with-ldbm-type argument])
+	fi
+
+	if test $ol_with_ldbm_module != static ; then
+		AC_MSG_WARN([LDBM disabled, ignoring --with-ldbm-module argument])
+	fi
+
+	if test $ol_enable_modules != yes -a \
+		$ol_enable_bdb = no -a \
+		$ol_enable_dnssrv = no -a \
+		$ol_enable_ldap = no -a \
+		$ol_enable_meta = no -a \
+		$ol_enable_monitor = no -a \
+		$ol_enable_passwd = no -a \
+		$ol_enable_perl = no -a \
+		$ol_enable_shell = no -a \
+		$ol_enable_sql = no -a \
+
+		if test $ol_enable_slapd = yes ; then
+			AC_MSG_ERROR([slapd requires a backend])
+		else
+			AC_MSG_WARN([skipping slapd, no backend specified])
+			ol_enable_slapd=no
+		fi
+	fi
+
+	ol_with_ldbm_api=no
+	ol_with_ldbm_type=no
+	ol_with_ldbm_module=static
+
+	if test $ol_enable_bdb != no ; then
+		ol_with_ldbm_api=berkeley
+	fi
+
+else
+	dnl SLAPD with LDBM
+	if test $ol_with_ldbm_api = gdbm -a \
+		$ol_with_ldbm_type = btree ; then
+		AC_MSG_ERROR([GDBM only supports LDBM type hash])
+	fi
+	if test $ol_with_ldbm_api = mdbm -a \
+		$ol_with_ldbm_type = btree ; then
+		AC_MSG_ERROR([MDBM only supports LDBM type hash])
+	fi
+	if test $ol_with_ldbm_api = ndbm -a \
+		$ol_with_ldbm_type = btree ; then
+		AC_MSG_ERROR([NDBM only supports LDBM type hash])
+	fi
+
+	if test $ol_enable_bdb = yes ; then
+		if test $ol_with_ldbm_api = auto ; then
+			ol_with_ldbm_api=berkeley
+		elif test $ol_with_ldbm_api != berkeley ; then
+			AC_MSG_ERROR([LDBM API not compatible with BDB])
+		fi
+
+	elif test $ol_enable_bdb = auto ; then
+		if test $ol_with_ldbm_api != berkeley \
+			-o $ol_with_ldbm_api != auto ; then
+			AC_MSG_WARN([LDBM API not compatible with BDB, disabling BDB])
+			ol_enable_bdb=no
+		fi
+	fi
+fi
+
+if test $ol_enable_slurpd = yes ; then
+	dnl SLURPD was specifically enabled
+	if test $ol_with_threads = no ; then
+		AC_MSG_ERROR([slurpd requires threads])
+	fi
+fi
+
+if test $ol_enable_lmpasswd = yes ; then
+	if test $ol_with_tls = no ; then
+		AC_MSG_ERROR([LAN Manager passwords require OpenSSL])
+	fi
+fi
+
+if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
+	if test $ol_with_kerberos = no ; then
+		AC_MSG_ERROR([options require --with-kerberos])
+	elif test $ol_with_kerberos = auto ; then
+		ol_with_kerberos=yes
+	fi
+
+elif test $ol_enable_kbind = no -o $ol_enable_kpasswd = no ; then
+	if test $ol_with_kerberos = auto ; then
+		ol_with_kerberos=no
+	elif test $ol_with_kerberos != no ; then
+		AC_MSG_WARN([Kerberos detection enabled unnecessarily]);
+		ol_with_kerberos=no
+	fi
+fi
+
+if test $ol_enable_spasswd = yes ; then
+	if test $ol_with_cyrus_sasl = no ; then
+		AC_MSG_ERROR([options require --with-cyrus-sasl])
+	fi
+	ol_with_cyrus_sasl=yes
+fi
+
+AC_MSG_RESULT(done)
+
+dnl ----------------------------------------------------------------
+dnl Initialize vars
+LDAP_LIBS=
+LDIF_LIBS=
+LDBM_LIB=
+LDBM_LIBS=
+LTHREAD_LIBS=
+LUTIL_LIBS=
+
+SLAPD_LIBS=
+SLURPD_LIBS=
+
+BUILD_SLAPD=no
+BUILD_SLURPD=no
+
+BUILD_THREAD=no
+
+BUILD_BDB=no
+BUILD_DNSSRV=no
+BUILD_LDAP=no
+BUILD_LDBM=no
+BUILD_META=no
+BUILD_MONITOR=no
+BUILD_PASSWD=no
+BUILD_PERL=no
+BUILD_SHELL=no
+BUILD_SQL=no
+
+BUILD_BDB_DYNAMIC=static
+BUILD_DNSSRV_DYNAMIC=static
+BUILD_LDAP_DYNAMIC=static
+BUILD_LDBM_DYNAMIC=static
+BUILD_META_DYNAMIC=static
+BUILD_MONITOR_DYNAMIC=static
+BUILD_PASSWD_DYNAMIC=static
+BUILD_PERL_DYNAMIC=static
+BUILD_SHELL_DYNAMIC=static
+BUILD_SQL_DYNAMIC=static
+
+SLAPD_MODULES_LDFLAGS=
+SLAPD_MODULES_CPPFLAGS=
+SLAPD_MODULES_LIST=
+
+SLAPD_STATIC_BACKENDS=
+SLAPD_DYNAMIC_BACKENDS=
+
+SLAPD_PERL_LDFLAGS=
+MOD_PERL_LDFLAGS=
+PERL_CPPFLAGS=
+
+SLAPD_SQL_LDFLAGS=
+SLAPD_SQL_LIBS=
+SLAPD_SQL_INCLUDES=
+
+KRB4_LIBS=
+KRB5_LIBS=
+READLINE_LIBS=
+SASL_LIBS=
+TERMCAP_LIBS=
+TLS_LIBS=
+MODULES_LIBS=
+AUTH_LIBS=
+
+SLAPD_SLP_LIBS=
+
+dnl ================================================================
+dnl Checks for programs
+
+AC_PROG_INSTALL
+
+AC_DEFINE(HAVE_MKVERSION, 1, [define this if you have mkversion])
+
+dnl ----------------------------------------------------------------
+dnl
+dnl Determine which C translator to use
+dnl
+
+dnl AIX Thread requires we use cc_r or xlc_r.
+dnl But only do this IF AIX and CC is not set
+dnl and threads are auto|yes|posix.
+dnl
+dnl If we find cc_r|xlc_r, force pthreads and assume
+dnl		pthread_create is in $LIBS (ie: don't bring in
+dnl		any additional thread libraries)
+dnl If we do not find cc_r|xlc_r, disable threads
+
+ol_aix_threads=no
+case "$target" in
+*-*-aix*) dnl all AIX is not a good idea.
+	if test -z "$CC" ; then
+		case "$ol_with_threads" in
+		auto | yes |  posix) ol_aix_threads=yes ;;
+		esac
+	fi
+;;
+esac
+
+if test $ol_aix_threads = yes ; then
+	if test -z "${CC}" ; then
+		AC_CHECK_PROGS(CC,cc_r xlc_r cc)
+
+		if test "$CC" = cc ; then
+			dnl no CC! don't allow --with-threads
+			if test $ol_with_threads != auto ; then
+				AC_MSG_ERROR([--with-threads requires cc_r (or other suitable compiler) on AIX])
+			else
+				AC_MSG_WARN([disabling threads, no cc_r on AIX])
+			fi
+			ol_with_threads=no
+  		fi
+	fi
+
+	if test "${CC}" = "cc_r" -o "${CC}" = "xlc_r" ; then
+		ol_with_threads=posix
+		ol_cv_pthread_create=yes
+	fi
+fi
+
+if test -z "${CC}"; then
+	AC_CHECK_PROGS(CC,cc)
+fi
+
+dnl The default CFLAGS is empty NOT whatever AC_PROG_CC sets.
+dnl (for now, let autoconf sort this out)
+dnl CFLAGS=${CFLAGS-""}
+
+AC_CHECK_PROGS(AR,ar gar,ar)
+
+AC_LIBTOOL_WIN32_DLL
+AC_LIBTOOL_DLOPEN
+AC_PROG_LIBTOOL
+
+AC_PROG_AWK
+OL_PROG_LN_H
+AC_PROG_LN_S
+
+AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
+	$PATH:/usr/libexec:/usr/lib:/usr/sbin:/usr/etc:/etc)
+AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
+AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
+
+dnl ----------------------------------------------------------------
+dnl Perl
+ol_link_perl=no
+if test $ol_enable_perl != no ; then
+	AC_PATH_PROG(PERLBIN, perl, /usr/bin/perl)
+
+	if test "no$PERLBIN" = "no" ; then
+		if test $ol_enable_perl = yes ; then
+			AC_MSG_ERROR([could not locate perl])
+		fi
+
+	else
+		PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
+		if test x"$ol_with_perl_module" = "xstatic" ; then
+			SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+		else
+			MOD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+		fi
+		dnl should check perl version
+		ol_link_perl=yes
+	fi
+fi
+
+AC_PROG_CPP
+
+dnl ----------------------------------------------------------------
+dnl Cross compiling checks
+if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
+	AC_MSG_WARN([cross compiling....  some functionality will be removed.])
+
+elif test $cross_compiling = no -a $ol_enable_x_compile = yes; then
+	AC_MSG_WARN([programs compiled here do run here...])
+	AC_MSG_ERROR([  if not cross compiling, use --disable-x-compile.])
+
+elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
+	AC_MSG_WARN([programs compiled here do not run here...])
+	AC_MSG_ERROR([  if cross compiling,  add --enable-x-compile.])
+fi
+
+dnl ----------------------------------------------------------------
+dnl Checks for UNIX Variants
+dnl AC_AIX
+dnl AC_ISC_POSIX
+dnl AC_MINIX
+
+dnl ----------------------------------------------------------------
+dnl Checks for system services
+AC_CYGWIN
+AC_MINGW32
+AC_EXEEXT
+AC_OBJEXT
+
+AC_DEFINE_UNQUOTED( EXEEXT, "${EXEEXT}", [defined to be the EXE extension])
+
+dnl ----------------------------------------------------------------
+dnl BeOS requires -lbe -lroot -lnet
+AC_CHECK_LIB(be, be_app, [LIBS="$LIBS -lbe -lroot -lnet"], :, [-lroot -lnet])
+
+dnl ----------------------------------------------------------------
+dnl OpenLDAP requires STDC features
+AM_PROG_CC_STDC
+if test "X${am_cv_prog_cc_stdc}" = "Xno" ; then
+	AC_MSG_ERROR([OpenLDAP requires compiler to support STDC constructs.])
+fi
+
+dnl ----------------------------------------------------------------
+dnl Check cc depend flags
+OL_MKDEPEND
+if test "${ol_cv_mkdep}" = no ; then
+	# this will soon become an error
+	AC_MSG_WARN([do not know how to generate dependencies])
+fi
+
+dnl ----------------------------------------------------------------
+dnl Check for AIX security library
+AC_CHECK_LIB(s, afopen, [
+	AUTH_LIBS=-ls
+	AC_DEFINE(HAVE_AIX_SECURITY,1,[define if you have AIX security lib])
+])
+
+
+dnl ----------------------------------------------------------------
+dnl Check for module support
+ol_link_modules=no
+if test $ol_enable_modules != no ; then
+	AC_CHECK_HEADERS(ltdl.h)
+
+	if test $ac_cv_header_ltdl_h = no ; then
+		AC_MSG_ERROR([could not locate libtool ltdl.h])
+	fi
+
+	AC_CHECK_LIB(ltdl, lt_dlinit, [
+		MODULES_LIBS=-lltdl
+		AC_DEFINE(HAVE_LIBLTDL,1,[define if you have libtool -ltdl])
+	])
+
+	if test "$ac_cv_lib_ltdl_lt_dlinit" = no ; then
+		AC_MSG_ERROR([could not locate libtool -lltdl])
+	fi
+	ol_link_modules=yes
+else
+	ol_with_bdb_module=static
+	ol_with_dnssrv_module=static
+	ol_with_ldap_module=static
+	ol_with_ldbm_module=static
+	ol_with_meta_module=static
+	ol_with_monitor_module=static
+	ol_with_passwd_module=static
+	ol_with_perl_module=static
+	ol_with_shell_module=static
+	ol_with_sql_module=static
+fi
+
+dnl ----------------------------------------------------------------
+dnl Checks for header files.
+OL_HEADER_STDC
+
+if test $ol_cv_header_stdc != yes; then
+	AC_MSG_WARN([could not locate Standard C compliant headers])
+fi
+
+AC_HEADER_DIRENT
+AC_HEADER_SYS_WAIT
+AM_HEADER_TIOCGWINSZ_NEEDS_SYS_IOCTL
+if test $am_cv_sys_posix_termios = yes ; then
+	AC_DEFINE(HAVE_POSIX_TERMIOS,1,
+		[define if you have POSIX termios])
+fi
+
+AC_CHECK_HEADERS(	\
+	arpa/inet.h		\
+	arpa/nameser.h	\
+	assert.h		\
+	conio.h			\
+	crypt.h			\
+	direct.h		\
+	errno.h			\
+	fcntl.h			\
+	filio.h			\
+	getopt.h		\
+	grp.h			\
+	io.h			\
+	libutil.h		\
+	limits.h		\
+	locale.h		\
+	netinet/tcp.h	\
+	malloc.h		\
+	memory.h		\
+	psap.h			\
+	pwd.h			\
+	process.h		\
+	resolv.h		\
+	sgtty.h			\
+	shadow.h		\
+	stddef.h		\
+	string.h		\
+	strings.h		\
+	sysexits.h		\
+	sys/file.h		\
+	sys/filio.h		\
+	sys/errno.h		\
+	sys/ioctl.h		\
+	sys/param.h		\
+	sys/resource.h	\
+	sys/select.h	\
+	sys/socket.h	\
+	sys/syslog.h	\
+	sys/time.h		\
+	sys/types.h		\
+	syslog.h		\
+	termios.h		\
+	unistd.h		\
+	winsock.h		\
+	winsock2.h		\
+)
+
+
+dnl ----------------------------------------------------------------
+dnl Checks for libraries
+
+AC_CHECK_FUNC(dlopen, :, [AC_CHECK_LIB(dl, dlopen)])
+
+dnl HP-UX requires -lV3
+dnl this is not needed on newer versions of HP-UX
+AC_CHECK_LIB(V3, sigset)
+
+dnl The following is INTENTIONALLY scripted out because shell does not
+dnl support variable names with the '@' character, which is what
+dnl autoconf would try to generate if one merely used AC_SEARCH_LIBS
+AC_MSG_CHECKING(for winsock)
+save_LIBS="$LIBS"
+for curlib in ws2_32 wsock32; do
+	LIBS="$LIBS -l$curlib"
+	AC_TRY_LINK([
+			char socket@12();
+			char select@20();
+			char closesocket@4();
+			char gethostname@8();
+			],
+			[
+			socket@12();
+			select@20();
+			closesocket@4();
+			gethostname@8();
+			],
+			have_winsock=yes, have_winsock=no)
+
+	if test $have_winsock = yes; then
+		AC_DEFINE(HAVE_WINSOCK, 1, [define if you have winsock])
+		ac_cv_func_socket=yes
+		ac_cv_func_select=yes
+		ac_cv_func_closesocket=yes
+		ac_cv_func_gethostname=yes
+		if test $curlib = ws2_32; then
+			have_winsock=winsock2
+			AC_DEFINE(HAVE_WINSOCK2, 1,
+				  [define if you have winsock2])
+		fi
+		break
+	fi
+	LIBS="$save_LIBS"
+done
+AC_MSG_RESULT($have_winsock)
+
+dnl Find socket()
+dnl Likely combinations:
+dnl		-lsocket [ -lnsl_s | -lnsl ]
+dnl		-linet
+
+AC_CHECK_FUNC(socket, :, [	
+dnl hopefully we won't include too many libraries
+	AC_CHECK_LIB(socket, main)
+	AC_CHECK_LIB(net, main)
+	AC_CHECK_LIB(nsl_s, main)
+	AC_CHECK_LIB(nsl, main)
+	AC_CHECK_LIB(inet, socket)
+	AC_CHECK_LIB(gen, main)
+])
+
+dnl require select
+AC_CHECK_FUNC(select, :, AC_MSG_ERROR([select() required.]))
+
+if test "${ac_cv_header_winsock_h}" != yes; then
+	dnl Select arg types
+	dnl (if this detection becomes permenent, it and the select() detection
+	dnl should be done before the yielding select test) 
+	AC_FUNC_SELECT_ARGTYPES
+fi
+
+dnl check to see if system call automatically restart
+dnl AC_SYS_RESTARTABLE_SYSCALLS
+
+dnl ----------------------------------------------------------------
+dnl require POSIX regex
+AC_CHECK_HEADERS( regex.h )
+if test "$ac_cv_header_regex_h" != yes ; then
+	AC_MSG_ERROR([POSIX regex.h required.])
+fi
+AC_SEARCH_LIBS(regfree, [regex gnuregex],
+	:, AC_MSG_ERROR([POSIX regex required.]))
+
+OL_POSIX_REGEX
+if test "$ol_cv_c_posix_regex" = no ; then
+	AC_MSG_ERROR([broken POSIX regex!])
+fi
+
+dnl ----------------------------------------------------------------
+dnl UUID Support
+
+have_uuid=no
+AC_CHECK_HEADERS(sys/uuid.h)
+if test $ac_cv_header_sys_uuid_h = yes ; then
+	save_LIBS="$LIBS"
+	AC_SEARCH_LIBS(uuid_to_str, uuid, [have_uuid=yes], :)
+	LIBS="$save_LIBS"
+
+	if test have_uuid = yes ; then
+		AC_DEFINE(HAVE_UUID_TO_STR,1,
+			[define if you have uuid_to_str()])
+
+		test "$ac_cv_search_uuid_to_str" = "none required" || \
+			SLAPD_LIBS="$SLAPD_LIBS $ac_cv_search_uuid_to_str"
+	fi
+fi
+
+dnl For windows, check for the need of RPCRT for UUID function support
+if test $have_uuid = no ; then
+	AC_MSG_CHECKING(to see if -lrpcrt4 is needed for win32 UUID support)
+	save_LIBS="$LIBS"
+	LIBS="$LIBS -lrpcrt4"
+	AC_TRY_LINK([
+		char UuidCreate@4();
+		char UuidToStringA@8();
+		],
+		[
+		UuidCreate@4();
+		UuidToStringA@8();
+		],
+		need_rpcrt=yes, need_rpcrt=no)
+	if test $need_rpcrt = yes; then
+		SLAPD_LIBS="$SLAPD_LIBS -lrpcrt4"
+	fi
+	LIBS="$save_LIBS"
+	AC_MSG_RESULT($need_rpcrt)
+fi
+
+dnl ----------------------------------------------------------------
+dnl Check for resolver routines
+dnl	  need to check for both res_query and __res_query
+dnl   need to check -lc, -lbind, and -lresolv
+ol_link_dnssrv=no
+AC_CHECK_FUNC(res_query,:)
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_FUNC(__res_query,:)
+	ac_cv_func_res_query=$ac_cv_func___res_query
+fi
+
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(bind, res_query)
+	ac_cv_func_res_query=$ac_cv_lib_bind_res_query
+fi
+
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(bind, __res_query)
+	ac_cv_func_res_query=$ac_cv_lib_bind___res_query
+fi
+
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(resolv, res_query)
+	ac_cv_func_res_query=$ac_cv_lib_resolv_res_query
+fi
+
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(resolv, __res_query)
+	ac_cv_func_res_query=$ac_cv_lib_resolv___res_query
+fi
+
+if test "$ac_cv_func_res_query" = yes ; then
+	AC_DEFINE(HAVE_RES_QUERY,1,
+		[define if you have res_query()])
+
+	if test $ol_enable_dnssrv != no ; then
+		ol_link_dnssrv=yes
+	fi
+fi
+
+if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
+	AC_MSG_ERROR([DNSSRV requires res_query()])
+fi
+
+dnl ----------------------------------------------------------------
+dnl PF_INET6 support requires getaddrinfo and INET6_ADDRSTRLEN
+dnl PF_LOCAL may use getaddrinfo in available
+AC_CHECK_FUNCS( getaddrinfo gai_strerror inet_ntop )
+
+ol_link_ipv6=no
+if test $ac_cv_func_getaddrinfo = no -o $ac_cv_func_inet_ntop = no ; then
+	if test $ol_enable_ipv6 = yes ; then
+		AC_MSG_ERROR([IPv6 support requires getaddrinfo() and inet_ntop()])
+	fi
+elif test $ol_enable_ipv6 != no ; then
+	AC_CACHE_CHECK([INET6_ADDRSTRLEN],[ol_cv_inet6_addrstrlen],[
+		AC_EGREP_CPP(__has_inet6_addrstrlen__,[
+#			include <netinet/in.h>
+#			ifdef INET6_ADDRSTRLEN
+				__has_inet6_addrstrlen__;
+#			endif
+		], [ol_cv_inet6_addrstrlen=yes], [ol_cv_inet6_addrstrlen=no])])
+
+	if test $ol_cv_inet6_addrstrlen = yes ; then
+		ol_link_ipv6=yes
+	elif test $ol_enable_ipv6 = yes ; then
+		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
+	fi
+fi
+
+if test $ol_enable_local != no ; then
+	AC_CHECK_HEADERS( sys/un.h )
+
+	if test $ol_enable_local = auto ; then
+		ol_enable_local=$ac_cv_header_sys_un_h
+	elif test $ac_cv_header_sys_un_h = no ; then
+		AC_MSG_ERROR([AF_LOCAL domain support requires sys/un.h])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl Kerberos
+ol_link_kbind=no
+ol_link_kpasswd=no
+ol_link_krb5=no
+ol_link_krb4=no
+
+if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
+	-o $ol_with_kerberos = k5 -o $ol_with_kerberos = k5only \
+	-o $ol_with_kerberos = k425 ; then
+
+	AC_CHECK_HEADERS(krb5.h)
+
+	if test $ac_cv_header_krb5_h = yes ; then
+		dnl lazy check for Heimdal Kerberos
+		AC_CHECK_HEADERS(heim_err.h)
+		if test $ac_cv_header_heim_err_h = yes ; then
+			krb5_impl=heimdal
+		else
+			krb5_impl=mit
+		fi
+
+		if test $krb5_impl = mit; then
+			AC_CHECK_LIB(k5crypto, main,
+				[krb5crypto=k5crypto],
+				[krb5crypto=crypto])
+
+			AC_CHECK_LIB(krb5, main,
+				[have_krb5=yes
+				KRB5_LIBS="-lkrb5 -l$krb5crypto -lcom_err"],
+				[have_krb5=no],
+				[-l$krb5crypto -lcom_err])
+
+		elif test $krb5_impl = heimdal; then
+			AC_CHECK_LIB(krb5, main,
+				[have_krb5=yes
+				KRB5_LIBS="-lkrb5 -ldes -lasn1 -lroken -lcom_err"],
+				[have_krb5=no],
+				[-ldes -lasn1 -lroken -lcom_err])
+
+			AC_DEFINE(HAVE_HEIMDAL_KERBEROS, 1,
+				[define if you have HEIMDAL Kerberos])
+
+		else
+			have_krb5=no
+			AC_MSG_WARN([Unrecongized Kerberos5 Implementation])
+		fi
+
+		if test $have_krb5 = yes ; then
+			ol_link_krb5=yes
+
+			AC_DEFINE(HAVE_KRB5, 1,
+				[define if you have Kerberos V])
+
+			if test $ol_enable_kpasswd != no ; then
+				ol_link_kpasswd=yes;
+			fi
+
+			if test $ol_with_kerberos = k5only ; then
+				ol_with_kerberos=found
+			fi
+
+		elif test $ol_with_kerberos != auto ; then
+			AC_MSG_ERROR([Required Kerberos 5 support not available])
+		fi
+
+	fi
+fi
+
+if test $ol_link_krb5 = yes -a \( $ol_with_kerberos = yes -o \
+	$ol_with_kerberos = auto -o $ol_with_kerberos = k425 \) ; then
+
+	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
+
+	if test $ac_cv_header_kerberosIV_krb_h = yes ; then
+		if test $krb5_impl = mit; then
+			AC_CHECK_LIB(krb4, main, [have_k425=yes
+				KRB4_LIBS="-lkrb4 -ldes425"], [have_k425=no],
+				[-ldes425 -lkrb5 -l$krb5crypto -lcom_err])
+
+		elif test $krb5_impl = heimdal; then
+			AC_CHECK_LIB(krb4, main, [have_k425=yes
+				KRB4_LIBS="-lkrb4"], [have_k425=no],
+				[-lkrb5 -ldes -lasn1 -lroken -lcom_err])
+
+		else
+			have_425=no
+			AC_MSG_WARN([Unrecongized Kerberos V Implementation])
+		fi
+
+		if test $have_k425 = yes ; then
+			ol_with_kerberos=found
+			ol_link_krb4=yes
+
+			AC_DEFINE(HAVE_KRB425, 1,
+				[define if you have Kerberos V with IV support])
+			AC_DEFINE(HAVE_KRB4, 1,
+				[define if you have Kerberos IV])
+
+			AC_CACHE_CHECK([for des_debug in Kerberos libraries],
+				[ol_cv_var_des_debug], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="$KRB4_LIBS $KRB5_LIBS $LIBS"
+				AC_TRY_LINK([
+#include <kerberosIV/krb.h>
+#include <kerberosIV/des.h>
+extern int des_debug;
+],[
+des_debug = 1;
+],				ol_cv_var_des_debug=yes, ol_cv_var_des_debug=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_var_des_debug = yes ; then
+				AC_DEFINE(HAVE_DES_DEBUG,1,
+					[define if you have Kerberos des_debug])
+			fi
+
+			LIBS="$save_LIBS"
+		fi
+	fi
+fi
+
+if test $ol_link_krb5 = yes ; then
+	ol_with_kerberos=found
+fi
+
+if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
+	-o $ol_with_kerberos = k4 -o $ol_with_kerberos = kth ; then
+
+	AC_CHECK_HEADERS(krb.h des.h krb-archaeology.h )
+
+	if test $ac_cv_header_krb_h = yes ; then
+		AC_CHECK_LIB(krb, main, [have_k4=yes], [have_k4=no], [-ldes])
+
+		if test $have_k4 = yes ; then
+			ol_with_kerberos=found
+			ol_link_krb4=yes
+
+			AC_DEFINE(HAVE_KRB4, 1,
+				[define if you have Kerberos IV])
+
+			KRB4_LIBS="-lkrb -ldes"
+
+			if test $ac_cv_header_krb_archaeology_h = yes ; then
+				AC_DEFINE(HAVE_KTH_KERBEROS, 1,
+					[define if you have Kth Kerberos])
+			fi
+		fi
+	fi
+fi
+
+if test $ol_link_krb4 = yes -a $ol_enable_kpasswd != no ; then
+	ol_link_kpasswd=yes
+fi
+
+if test $ol_link_krb4 = yes -a $ol_enable_kbind != no ; then
+	ol_link_kbind=yes
+
+elif test $ol_enable_kbind = yes ; then
+	AC_MSG_ERROR([Kerberos IV detection failed])
+fi
+
+if test $ol_link_krb4 = yes -o $ol_link_krb5 = yes ; then
+	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
+
+elif test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
+	AC_MSG_ERROR([Kerberos detection failed])
+fi
+
+dnl ----------------------------------------------------------------
+dnl TLS/SSL
+ol_link_tls=no
+if test $ol_with_tls != no ; then
+	AC_CHECK_HEADERS(openssl/ssl.h ssl.h)
+	
+	if test $ac_cv_header_openssl_ssl_h = yes -o $ac_cv_header_ssl_h = yes ; then
+		AC_CHECK_LIB(ssl, SSLeay_add_ssl_algorithms, 
+			[have_ssleay=yes
+			need_rsaref=no],
+			[have_ssleay=no],
+			[-lcrypto])
+			
+		if test $have_ssleay = no ; then
+			AC_CHECK_LIB(ssl, SSL_library_init,
+				[have_ssleay=yes
+				need_rsaref=no], [have_ssleay=no],
+				[-lcrypto])
+		fi
+
+		if test $have_ssleay = no ; then
+			AC_CHECK_LIB(ssl, ssl3_accept, 
+				[have_ssleay=yes
+				need_rsaref=yes], [have_ssleay=no],
+				[-lcrypto -lRSAglue -lrsaref])
+		fi
+
+		if test $have_ssleay = yes ; then
+			ol_with_tls=found
+			ol_link_tls=yes
+
+			AC_DEFINE(HAVE_SSLEAY, 1, 
+				[define if you have SSLeay or OpenSSL])
+
+			if test $need_rsaref = yes; then
+				AC_DEFINE(HAVE_RSAREF, 1, 
+					[define if you have RSAref])
+
+				TLS_LIBS="-lssl -lcrypto -lRSAglue -lrsaref"
+			else
+				TLS_LIBS="-lssl -lcrypto"
+			fi
+		fi
+	fi
+
+else
+	AC_WARN([TLS privacy protection not supported!])
+fi
+
+if test $ol_link_tls = yes ; then
+	AC_DEFINE(HAVE_TLS, 1, [define if you have TLS])
+
+elif test $ol_with_tls = auto ; then
+	AC_WARN([Could not locate TLS/SSL package])
+	AC_WARN([TLS privacy protection not supported!])
+
+elif test $ol_with_tls != no ; then
+	AC_ERROR([Could not locate TLS/SSL package])
+fi
+
+dnl ----------------------------------------------------------------
+dnl LAN Manger password checking requires DES from OpenSSL
+if test $ol_enable_lmpasswd != no; then
+	if test $ol_link_tls != yes ; then
+		AC_ERROR([LAN Manager passwords require OpenSSL])
+	fi
+
+	AC_DEFINE(SLAPD_LMHASH, 1, [define to support LAN Manager passwords])
+fi
+
+dnl ----------------------------------------------------------------
+dnl Tests for reentrant functions necessary to build a
+dnl thread_safe -lldap.
+AC_CHECK_FUNCS(		\
+	ctime_r			\
+	gethostbyname_r	gethostbyaddr_r \
+)
+
+if test "$ac_cv_func_ctime_r" = no ; then
+	ol_cv_func_ctime_r_nargs=0
+else
+	OL_FUNC_CTIME_R_NARGS
+dnl	OL_FUNC_CTIME_R_TYPE
+fi
+
+if test "$ac_cv_func_gethostbyname_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYNAME_R_NARGS
+else
+ 	ol_cv_func_gethostbyname_r_nargs=0
+fi
+ 
+if test "$ac_cv_func_gethostbyaddr_r" = yes ; then
+ 	OL_FUNC_GETHOSTBYADDR_R_NARGS
+else
+ 	ol_cv_func_gethostbyaddr_r_nargs=0
+fi
+
+if test "$ac_cv_func_ctime_r" = yes \
+	-a "$ol_cv_func_ctime_r_nargs" -ge 2 \
+	-a "$ol_cv_func_ctime_r_nargs" -le 3 \
+	-a "$ac_cv_func_gethostbyname_r" = yes \
+	-a "$ol_cv_func_gethostbyname_r_nargs" -ge 5 \
+	-a "$ol_cv_func_gethostbyname_r_nargs" -le 6 \
+ 	-a "$ac_cv_func_gethostbyaddr_r" = yes \
+ 	-a "$ol_cv_func_gethostbyaddr_r_nargs" -ge 5 \
+	-a "$ol_cv_func_gethostbyaddr_r_nargs" -le 6 \
+ 	; then
+ 
+ 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_REENTRANT,1)
+fi
+
+dnl ----------------------------------------------------------------
+dnl Threads?
+ol_link_threads=no
+
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = nt ; then
+
+	OL_NT_THREADS
+
+	if test "$ol_cv_nt_threads" = yes ; then
+		ol_link_threads=nt
+		ol_with_threads=found
+		ol_with_yielding_select=yes
+
+		AC_DEFINE(HAVE_NT_SERVICE_MANAGER,1,[if you have NT Service Manager])
+		AC_DEFINE(HAVE_NT_EVENT_LOG,1,[if you have NT Event Log])
+	fi
+
+	if test $ol_with_threads = nt ; then
+		AC_MSG_ERROR([could not locate NT Threads])
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = posix ; then
+
+	AC_CHECK_HEADERS(pthread.h)
+
+	if test $ac_cv_header_pthread_h = yes ; then
+		OL_POSIX_THREAD_VERSION
+
+		if test $ol_cv_pthread_version = final ; then
+			AC_DEFINE(HAVE_PTHREADS_FINAL,1,
+				[define if pthreads API compatible with final spec])
+		elif test $ol_cv_pthread_version = draft4 ; then
+			AC_DEFINE(HAVE_PTHREADS_D4,1,
+				[define if pthreads API compatible with draft4 spec])
+		else
+			AC_MSG_ERROR([unknown pthread version])
+		fi
+
+		# consider threads found
+		ol_with_threads=found
+
+		OL_HEADER_LINUX_THREADS
+		OL_HEADER_GNU_PTH_PTHREAD_H
+
+		if test $ol_cv_header_gnu_pth_pthread_h = no ; then
+			AC_CHECK_HEADERS(sched.h)
+		fi
+
+		dnl Now the hard part, how to link?
+		dnl
+		dnl currently supported checks:
+		dnl
+		dnl Check for no flags 
+		dnl 	pthread_create() in $LIBS
+		dnl
+		dnl Check special pthread (final) flags
+		dnl 	[skipped] pthread_create() with -mt (Solaris) [disabled]
+		dnl 	pthread_create() with -kthread (FreeBSD)
+		dnl 	pthread_create() with -pthread (FreeBSD/Digital Unix)
+		dnl 	pthread_create() with -pthreads (?)
+		dnl 	pthread_create() with -mthreads (AIX)
+		dnl 	pthread_create() with -thread (?)
+		dnl
+		dnl Check pthread (final) libraries
+		dnl 	pthread_mutex_unlock() in -lpthread -lmach -lexc -lc_r (OSF/1)
+		dnl 	pthread_mutex_lock() in -lpthread -lmach -lexc (OSF/1)
+		dnl 	[skipped] pthread_mutex_trylock() in -lpthread -lexc (OSF/1)
+		dnl 	pthread_join() -Wl,-woff,85 -lpthread (IRIX)
+		dnl 	pthread_create() in -lpthread (many)
+		dnl 	pthread_create() in -lc_r (FreeBSD)
+		dnl
+		dnl Check pthread (draft4) flags (depreciated)
+		dnl 	pthread_create() with -threads (OSF/1)
+		dnl
+		dnl Check pthread (draft4) libraries (depreciated)
+		dnl 	pthread_mutex_unlock() in -lpthreads -lmach -lexc -lc_r (OSF/1)
+		dnl 	pthread_mutex_lock() in -lpthreads -lmach -lexc (OSF/1)
+		dnl 	pthread_mutex_trylock() in -lpthreads -lexc (OSF/1)
+		dnl 	pthread_create() in -lpthreads (many)
+		dnl
+
+		dnl pthread_create in $LIBS
+		AC_CACHE_CHECK([for pthread_create in default libraries],
+			ol_cv_pthread_create,[
+		AC_TRY_RUN(OL_PTHREAD_TEST_PROGRAM,
+			[ol_cv_pthread_create=yes],
+			[ol_cv_pthread_create=no],
+			[AC_TRY_LINK(OL_PTHREAD_TEST_INCLUDES,OL_PTHREAD_TEST_FUNCTION,
+				[ol_cv_pthread_create=yes],
+				[ol_cv_pthread_create=no])])])
+
+		if test $ol_cv_pthread_create != no ; then
+			ol_link_threads=posix
+			ol_link_pthreads=""
+		fi
+		
+dnl		OL_PTHREAD_TRY([-mt],		[ol_cv_pthread_mt])
+		OL_PTHREAD_TRY([-kthread],	[ol_cv_pthread_kthread])
+		OL_PTHREAD_TRY([-pthread],	[ol_cv_pthread_pthread])
+		OL_PTHREAD_TRY([-pthreads],	[ol_cv_pthread_pthreads])
+		OL_PTHREAD_TRY([-mthreads],	[ol_cv_pthread_mthreads])
+		OL_PTHREAD_TRY([-thread],	[ol_cv_pthread_thread])
+
+		OL_PTHREAD_TRY([-lpthread -lmach -lexc -lc_r],
+			[ol_cv_pthread_lpthread_lmach_lexc_lc_r])
+		OL_PTHREAD_TRY([-lpthread -lmach -lexc],
+			[ol_cv_pthread_lpthread_lmach_lexc])
+dnl		OL_PTHREAD_TRY([-lpthread -lexc],
+dnl			[ol_cv_pthread_lpthread_lexc])
+
+		OL_PTHREAD_TRY([-lpthread -Wl,-woff,85],
+			[ol_cv_pthread_lib_lpthread_woff])
+
+		OL_PTHREAD_TRY([-lpthread],	[ol_cv_pthread_lpthread])
+		OL_PTHREAD_TRY([-lc_r],		[ol_cv_pthread_lc_r])
+
+		OL_PTHREAD_TRY([-threads],	[ol_cv_pthread_threads])
+
+		OL_PTHREAD_TRY([-lpthreads -lmach -lexc -lc_r],
+			[ol_cv_pthread_lpthreads_lmach_lexc_lc_r])
+		OL_PTHREAD_TRY([-lpthreads -lmach -lexc],
+			[ol_cv_pthread_lpthreads_lmach_lexc])
+		OL_PTHREAD_TRY([-lpthreads -lexc],
+			[ol_cv_pthread_lpthreads_lexc])
+
+		OL_PTHREAD_TRY([-lpthreads],[ol_cv_pthread_lib_lpthreads])
+
+		if test $ol_link_threads != no ; then
+			AC_DEFINE(HAVE_PTHREADS,1,
+				[define if you have POSIX Threads])
+
+			LTHREAD_LIBS="$LTHREAD_LIBS $ol_link_pthreads"
+
+			dnl save flags
+			save_CPPFLAGS="$CPPFLAGS"
+			save_LIBS="$LIBS"
+			LIBS="$LTHREAD_LIBS $LIBS"
+
+			dnl All POSIX Thread (final) implementations should have
+			dnl sched_yield instead of pthread yield.
+			dnl check for both
+			AC_CHECK_FUNCS(sched_yield pthread_yield)
+
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no ; then
+				dnl Digital UNIX has sched_yield() in -lrt
+				AC_CHECK_LIB(rt, sched_yield,
+					[LTHREAD_LIBS="$LTHREAD_LIBS -lrt"
+					AC_DEFINE(HAVE_SCHED_YIELD,1,
+						[Define if you have the sched_yield function.])
+					ac_cv_func_sched_yield=yes],
+					[ac_cv_func_sched_yield=no])
+			fi
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no ; then
+				dnl Solaris has sched_yield() stub in -lposix4
+				dnl but we'll use thr_yield instead.
+				AC_CHECK_FUNCS(thr_yield)
+			fi
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no -a \
+				"$ac_cv_func_thr_yield" = no ; then
+				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
+			fi
+
+			dnl Check functions for compatibility
+			AC_CHECK_FUNCS(pthread_kill pthread_rwlock_destroy)
+
+			dnl Check for pthread_detach with <pthread.h> inclusion
+			dnl as it's symbol may have been mangled.
+			AC_CACHE_CHECK([for pthread_detach with <pthread.h>],
+				[ol_cv_func_pthread_detach], [
+				dnl save the flags
+				AC_TRY_LINK([
+#include <pthread.h>
+#ifndef NULL
+#define NULL (void*)0
+#endif
+],
+					[pthread_detach(NULL);],
+					[ol_cv_func_pthread_detach=yes],
+					[ol_cv_func_pthread_detach=no])
+			])
+
+			if test $ol_cv_func_pthread_detach = no ; then
+				AC_MSG_ERROR([could not locate pthread_detach()])
+			fi
+
+			AC_DEFINE(HAVE_PTHREAD_DETACH,1,
+				[define if you have pthread_detach function])
+
+			dnl Check for setconcurreny functions
+			AC_CHECK_FUNCS(	\
+				pthread_setconcurrency \
+				pthread_getconcurrency \
+				thr_setconcurrency \
+				thr_getconcurrency \
+			)
+
+			OL_SYS_LINUX_THREADS
+			OL_LINUX_THREADS
+
+			if test $ol_cv_linux_threads = error; then
+				AC_MSG_ERROR([LinuxThreads header/library mismatch]);
+			fi
+
+			AC_CACHE_CHECK([if pthread_create() works],
+				ol_cv_pthread_create_works,[
+			AC_TRY_RUN(OL_PTHREAD_TEST_PROGRAM,
+				[ol_cv_pthread_create_works=yes],
+				[ol_cv_pthread_create_works=no],
+				[dnl assume yes
+				ol_cv_pthread_create_works=yes])])
+
+			if test $ol_cv_pthread_create_works = no ; then
+				AC_MSG_ERROR([pthread_create is not usable, check environment settings])
+			fi
+
+			dnl Check if select causes an yield
+			if test $ol_with_yielding_select = auto ; then
+				AC_CACHE_CHECK([if select yields when using pthreads],
+					ol_cv_pthread_select_yields,[
+				AC_TRY_RUN([
+#include <sys/types.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <pthread.h>
+#ifndef NULL
+#define NULL (void*) 0
+#endif
+
+static int fildes[2];
+
+static void *task(p)
+	void *p;
+{
+	int i;
+	struct timeval tv;
+
+	fd_set rfds;
+
+	tv.tv_sec=10;
+	tv.tv_usec=0;
+
+	FD_ZERO(&rfds);
+	FD_SET(fildes[0], &rfds);
+
+	/* we're not interested in any fds */
+	i = select(FD_SETSIZE, &rfds, NULL, NULL, &tv);
+
+	if(i < 0) {
+		perror("select");
+		exit(10);
+	}
+
+	exit(0); /* if we exit here, the select blocked the whole process */
+}
+
+int main(argc, argv)
+	int argc;
+	char **argv;
+{
+	pthread_t t;
+
+	/* create a pipe to select */
+	if(pipe(&fildes[0])) {
+		perror("select");
+		exit(1);
+	}
+
+#ifdef HAVE_PTHREAD_SETCONCURRENCY
+	(void) pthread_setconcurrency(2);
+#else
+#ifdef HAVE_THR_SETCONCURRENCY
+	/* Set Solaris LWP concurrency to 2 */
+	thr_setconcurrency(2);
+#endif
+#endif
+
+#if HAVE_PTHREADS_D4
+	pthread_create(&t, pthread_attr_default, task, NULL);
+#else
+	pthread_create(&t, NULL, task, NULL);
+#endif
+
+#if HAVE_SCHED_YIELD
+	sched_yield();	/* make sure task runs first */
+#else
+#ifdef HAVE_PTHREAD_YIELD
+	pthread_yield();	/* make sure task runs first */
+#endif
+#endif
+
+	exit(2);
+}],
+				[ol_cv_pthread_select_yields=no],
+				[ol_cv_pthread_select_yields=yes],
+				[ol_cv_pthread_select_yields=cross])])
+
+				if test $ol_cv_pthread_select_yields = cross ; then
+					AC_MSG_ERROR([crossing compiling: use --with-yielding_select=yes|no|manual])
+				fi
+
+				if test $ol_cv_pthread_select_yields = yes ; then
+					ol_with_yielding_select=yes
+				fi
+			fi
+
+			dnl restore flags
+			CPPFLAGS="$save_CPPFLAGS"
+			LIBS="$save_LIBS"
+		else
+			AC_MSG_ERROR([could not locate usable POSIX Threads])
+		fi
+	fi
+
+	if test $ol_with_threads = posix ; then
+		AC_MSG_ERROR([could not locate POSIX Threads])
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = mach ; then
+
+	dnl check for Mach CThreads
+	AC_CHECK_HEADERS(mach/cthreads.h cthreads.h)
+	if test $ac_cv_header_mach_cthreads_h = yes ; then
+		ol_with_threads=found
+
+		dnl check for cthreads support in current $LIBS
+		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
+
+		if test $ol_link_threads = no ; then
+			dnl try -all_load
+			dnl this test needs work
+			AC_CACHE_CHECK([for cthread_fork with -all_load],
+				[ol_cv_cthread_all_load], [
+				dnl save the flags
+				save_LIBS="$LIBS"
+				LIBS="-all_load $LIBS"
+				AC_TRY_LINK([#include <mach/cthreads.h>],[
+					cthread_fork((void *)0, (void *)0);
+					], ol_cv_cthread_all_load=yes, ol_cv_cthread_all_load=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_cthread_all_load = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -all_load"
+				ol_link_threads=mach
+				ol_with_threads=found
+			fi
+		fi
+
+	elif test $ac_cv_header_cthreads_h = yes ; then
+		dnl Hurd variant of Mach Cthreads
+		dnl uses <cthreads.h> and -lthreads
+
+		ol_with_threads=found
+ 
+		dnl save the flags
+		save_LIBS="$LIBS"
+		LIBS="$LIBS -lthreads"
+		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
+		LIBS="$save_LIBS"
+
+		if test $ol_link_threads = yes ; then
+			LTHREAD_LIBS="-lthreads"
+			ol_link_threads=mach
+			ol_with_threads=found
+		else
+			AC_MSG_ERROR([could not link with Mach CThreads])
+		fi
+
+	elif test $ol_with_threads = mach ; then
+		AC_MSG_ERROR([could not locate Mach CThreads])
+	fi
+
+	if test $ol_link_threads = mach ; then
+		AC_DEFINE(HAVE_MACH_CTHREADS,1,
+			[define if you have Mach Cthreads])
+	elif test $ol_with_threads = found ; then
+		AC_MSG_ERROR([could not link with Mach CThreads])
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = pth ; then
+
+	AC_CHECK_HEADERS(pth.h)
+
+	if test $ac_cv_header_pth_h = yes ; then
+		AC_CHECK_LIB(pth, pth_version, [have_pth=yes], [have_pth=no])
+
+		if test $have_pth = yes ; then
+			AC_DEFINE(HAVE_GNU_PTH,1,[if you have GNU Pth])
+			LTHREAD_LIBS="$LTHREAD_LIBS -lpth"
+			ol_link_threads=pth
+			ol_with_threads=found
+
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=yes
+			fi
+		fi
+	fi
+fi
+
+if test $ol_with_threads = auto -o $ol_with_threads = yes \
+	-o $ol_with_threads = lwp ; then
+
+	dnl check for SunOS5 LWP
+	AC_CHECK_HEADERS(thread.h synch.h)
+	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
+		AC_CHECK_LIB(thread, thr_create, [have_thr=yes], [have_thr=no])
+
+		if test $have_thr = yes ; then
+			AC_DEFINE(HAVE_THR,1,
+				[if you have Solaris LWP (thr) package])
+			LTHREAD_LIBS="$LTHREAD_LIBS -lthread"
+			ol_link_threads=thr
+
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=yes
+			fi
+
+			dnl Check for setconcurreny functions
+			AC_CHECK_FUNCS(	\
+				thr_setconcurrency \
+				thr_getconcurrency \
+			)
+		fi
+	fi
+
+	dnl check for SunOS4 LWP
+	AC_CHECK_HEADERS(lwp/lwp.h)
+	if test $ac_cv_header_lwp_lwp_h = yes ; then
+		AC_CHECK_LIB(lwp, lwp_create, [have_lwp=yes], [have_lwp=no])
+
+		if test $have_lwp = yes ; then
+			AC_DEFINE(HAVE_LWP,1,
+				[if you have SunOS LWP package])
+			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+			ol_link_threads=lwp
+
+			if test $ol_with_yielding_select = auto ; then
+				ol_with_yielding_select=no
+			fi
+		fi
+	fi
+fi
+
+if test $ol_with_yielding_select = yes ; then
+	AC_DEFINE(HAVE_YIELDING_SELECT,1,
+		[define if select implicitly yields])
+fi
+
+if test $ol_with_threads = manual ; then
+	dnl User thinks he can manually configure threads.
+	ol_link_threads=yes
+
+	AC_MSG_WARN([thread defines and link options must be set manually])
+
+	AC_CHECK_HEADERS(pthread.h sched.h)
+	AC_CHECK_FUNCS(sched_yield pthread_yield)
+	OL_HEADER_LINUX_THREADS
+
+	AC_CHECK_HEADERS(mach/cthreads.h)
+	AC_CHECK_HEADERS(lwp/lwp.h)
+	AC_CHECK_HEADERS(thread.h synch.h)
+fi
+
+if test $ol_link_threads != no -a $ol_link_threads != nt ; then  
+	dnl needed to get reentrant/threadsafe versions
+	dnl
+	AC_DEFINE(REENTRANT,1)
+	AC_DEFINE(_REENTRANT,1)
+	AC_DEFINE(THREAD_SAFE,1)
+	AC_DEFINE(_THREAD_SAFE,1)
+	AC_DEFINE(THREADSAFE,1)
+	AC_DEFINE(_THREADSAFE,1)
+	AC_DEFINE(_SGI_MP_SOURCE,1)
+
+	dnl The errno declaration may dependent upon _REENTRANT.
+	dnl If it does, we must link with thread support.
+	AC_CACHE_CHECK([for thread specific errno],
+		[ol_cv_errno_thread_specific], [
+		AC_TRY_LINK([#include <errno.h>], [errno = 0;],
+			[ol_cv_errno_thread_specific=yes],
+			[ol_cv_errno_thread_specific=no])
+	])
+
+	dnl The h_errno declaration may dependent upon _REENTRANT.
+	dnl If it does, we must link with thread support.
+	AC_CACHE_CHECK([for thread specific h_errno],
+		[ol_cv_h_errno_thread_specific], [
+		AC_TRY_LINK([#include <netdb.h>], [h_errno = 0;],
+			[ol_cv_h_errno_thread_specific=yes],
+			[ol_cv_h_errno_thread_specific=no])
+	])
+
+	if test $ol_cv_errno_thread_specific != yes \
+		-o $ol_cv_h_errno_thread_specific != yes ; then
+		LIBS="$LTHREAD_LIBS $LIBS"
+		LTHREAD_LIBS=""
+	fi
+
+dnl When in thread environment, use 
+dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) \ 
+dnl			|| defined( HAVE_FUNC_R )
+dnl			func_r(...);
+dnl		#else
+dnl		#	if defined( HAVE_THREADS ) 
+dnl				/* lock */
+dnl		#	endif
+dnl				func(...);
+dnl		#	if defined( HAVE_THREADS ) 
+dnl				/* unlock */
+dnl		#	endif
+dnl		#endif
+dnl
+dnl HAVE_REENTRANT_FUNCTIONS is derived from:
+dnl		_POSIX_REENTRANT_FUNCTIONS
+dnl		_POSIX_THREAD_SAFE_FUNCTIONS
+dnl		_POSIX_THREADSAFE_FUNCTIONS
+dnl
+dnl		and is currently defined in lthread.h
+dnl
+dnl HAVE_THREADS is defined by lthread.h iff -UNO_THREADS
+dnl 
+dnl libldap/*.c should only include <lthread.h> iff
+dnl LDAP_R_COMPILE is defined.  ie:
+dnl		#ifdef LDAP_R_COMPILE
+dnl		#	include LDAP_R_COMPILE
+dnl		#endif
+dnl
+dnl LDAP_R_COMPILE is defined by libldap_r/Makefile.in
+dnl specifically for compiling the threadsafe version of
+dnl	the ldap library (-lldap_r).
+dnl		
+dnl	dnl check for reentrant/threadsafe functions
+dnl	dnl
+dnl	dnl note: these should only be used when linking
+dnl	dnl		with $LTHREAD_LIBS
+dnl	dnl
+dnl	save_CPPFLAGS="$CPPFLAGS"
+dnl	save_LIBS="$LIBS"
+dnl	LIBS="$LTHREAD_LIBS $LIBS"
+dnl	AC_CHECK_FUNCS(	\
+dnl		gmtime_r \
+dnl		gethostbyaddr_r gethostbyname_r \
+dnl		feof_unlocked unlocked_feof \
+dnl		putc_unlocked unlocked_putc \
+dnl		flockfile ftrylockfile \
+dnl	)
+dnl	CPPFLAGS="$save_CPPFLAGS"
+dnl	LIBS="$save_LIBS"
+fi  
+
+if test $ol_link_threads = no ; then
+	if test $ol_with_threads = yes ; then
+		AC_MSG_ERROR([no suitable thread support])
+	fi
+
+	if test $ol_with_threads = auto ; then
+		AC_MSG_WARN([no suitable thread support, disabling threads])
+		ol_with_threads=no
+	fi
+
+	AC_DEFINE(NO_THREADS,1,
+		[define if you have (or want) no threads])
+	LTHREAD_LIBS=""
+fi
+
+if test $ol_link_threads != no ; then
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE,1)
+fi
+
+dnl ----------------------------------------------------------------
+ol_link_ldbm=no 
+
+if test $ol_with_ldbm_api = auto \
+	-o $ol_with_ldbm_api = berkeley \
+	-o $ol_with_ldbm_api = bcompat ; then
+
+	if test $ol_with_ldbm_api = bcompat; then \
+		OL_BERKELEY_COMPAT_DB
+	else
+		OL_BERKELEY_DB
+	fi
+
+	if test $ol_cv_berkeley_db != no ; then
+		AC_DEFINE(HAVE_BERKELEY_DB,1,
+			[define this if Berkeley DB is available])
+
+		ol_link_ldbm=berkeley
+		ol_with_ldbm_api=berkeley
+
+		if test $ol_with_ldbm_type = hash ; then
+			AC_DEFINE(LDBM_USE_DBHASH,1,
+				[define this to use DBHASH w/ LDBM backend])
+		else
+			AC_DEFINE(LDBM_USE_DBBTREE,1,
+				[define this to use DBBTREE w/ LDBM backend])
+		fi
+
+		dnl $ol_cv_lib_db should be yes or -ldb
+		dnl (it could be no, but that would be an error
+		if test $ol_cv_lib_db != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_db"
+		fi
+	fi
+fi
+
+if test $ol_enable_bdb = yes -a $ol_link_ldbm != berkeley ; then
+	AC_MSG_ERROR(BDB: BerkeleyDB not available)
+elif test $ol_enable_bdb != no -a $ol_link_ldbm = berkeley ; then
+	OL_BDB_COMPAT
+
+	if test $ol_cv_bdb_compat = yes ; then
+		ol_enable_bdb=yes
+	elif test $ol_enable_bdb = yes ; then
+		AC_MSG_ERROR(BDB: BerkeleyDB version incompatible)
+	else
+		ol_enable_bdb=no
+	fi
+fi
+
+if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
+	AC_MSG_WARN(Could not find LDBM with BTREE support)
+	ol_with_ldbm_api=none
+fi
+
+if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = mdbm ; then
+	OL_MDBM
+
+	if test $ol_cv_mdbm = yes ; then
+		ol_link_ldbm=mdbm
+		ol_with_ldbm_api=mdbm
+		if test $ol_cv_lib_mdbm != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_mdbm"
+		fi
+	fi
+fi
+
+if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
+	OL_GDBM
+
+	if test $ol_cv_gdbm = yes ; then
+		ol_link_ldbm=gdbm
+		ol_with_ldbm_api=gdbm
+
+		if test $ol_cv_lib_gdbm != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_gdbm"
+		fi
+	fi
+fi
+
+if test $ol_with_ldbm_api = ndbm ; then
+	OL_NDBM
+
+	if test $ol_cv_ndbm = yes ; then
+		ol_link_ldbm=ndbm
+		ol_with_ldbm_api=ndbm
+
+		if test $ol_cv_lib_ndbm != yes ; then
+			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_ndbm"
+		fi
+	fi
+fi
+
+if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
+	AC_MSG_WARN(could not find suitable LDBM backend)
+	if test $ol_enable_ldbm = yes ; then
+		AC_MSG_ERROR(select appropriate LDBM options or disable)
+	fi
+
+	AC_MSG_WARN(disabling LDBM)
+	ol_enable_ldbm=no
+fi
+
+dnl ----------------------------------------------------------------
+if test $ol_enable_dynamic = yes -a $enable_shared = yes ; then
+	BUILD_LIBS_DYNAMIC=shared
+	AC_DEFINE(LDAP_LIBS_DYNAMIC, 1, [define if LDAP libs are dynamic])
+else
+	BUILD_LIBS_DYNAMIC=static
+fi
+
+dnl ----------------------------------------------------------------
+if test $ol_enable_wrappers != no ; then
+	AC_CHECK_HEADERS(tcpd.h,[
+		AC_MSG_CHECKING([for TCP wrappers library])
+		save_LIBS="$LIBS"
+		LIBS="$LIBS -lwrap"
+		AC_TRY_LINK([
+#include <tcpd.h>
+int allow_severity = 0;
+int deny_severity  = 0;
+
+struct request_info *req;
+		],[
+hosts_access(req)
+		],[AC_MSG_RESULT([-lwrap])
+		have_wrappers=yes
+		LIBS="$save_LIBS"],[
+		dnl try with -lnsl
+		LIBS="$LIBS -lnsl"
+		AC_TRY_LINK([
+#include <tcpd.h>
+int allow_severity = 0;
+int deny_severity  = 0;
+
+struct request_info *req;
+		],[
+hosts_access(req)
+		],[AC_MSG_RESULT([-lwrap -lnsl])
+		have_wrappers=yes
+		LIBS="$save_LIBS -lnsl"],[
+		AC_MSG_RESULT(no)
+		have_wrappers=no
+		LIBS=$save_LIBS])],[
+		have_wrappers=no])],[have_wrappers=no])
+
+	if test $have_wrappers = yes ; then
+		AC_DEFINE(HAVE_TCPD,1, [define if you have -lwrap])
+		WRAP_LIBS="-lwrap"
+	elif test $ol_enable_wrappers = yes ; then
+		AC_MSG_ERROR([could not find TCP wrappers, select apppropriate options ore disable])
+	else
+		AC_MSG_WARN([could not find TCP wrappers, support disabled])
+		WRAP_LIBS=""
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+if test $ol_enable_syslog != no ; then
+	AC_CHECK_FUNC(openlog)
+	if test $ac_cv_func_openlog = no -a $ol_enable_syslog = yes; then
+		AC_MSG_ERROR(could not find syslog, select appropriate options or disable)
+	fi
+	ol_enable_syslog=$ac_cv_func_openlog
+fi
+
+dnl ----------------------------------------------------------------
+dnl dmalloc support (deprecated in favor of -DCSRIMALLOC support)
+dnl if test $ol_enable_dmalloc != no ; then
+dnl 	AC_CHECK_HEADERS(dmalloc.h)
+dnl 	AC_CHECK_LIB(dmalloc, dmalloc_shutdown)
+dnl fi
+
+dnl ----------------------------------------------------------------
+dnl SQL
+ol_link_sql=no
+if test $ol_enable_sql != no ; then
+	AC_CHECK_LIB(iodbc,SQLDriverConnect,[have_iodbc=yes],[have_iodbc=no])
+	if test $have_iodbc = yes ; then
+		ol_link_sql="-liodbc"
+	else
+		AC_CHECK_LIB(odbc,SQLDriverConnect,[have_odbc=yes],[have_odbc=no])
+		if test $have_odbc = yes ; then
+			ol_link_sql="-lodbc"
+		fi
+	fi
+
+	if test $ol_link_sql != no ; then
+		SLAPD_SQL_LIBS="$ol_link_sql"
+
+	elif test $ol_enable_sql != auto ; then
+		AC_MSG_ERROR([could not locate suitable ODBC library])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl ud needs termcap (should insert check here)
+ol_link_termcap=no
+AC_CHECK_HEADERS(termcap.h ncurses.h)
+
+if test $ol_link_termcap = no ; then
+	AC_CHECK_LIB(termcap, tputs, [have_termcap=yes], [have_termcap=no])
+	if test $have_termcap = yes ; then
+		AC_DEFINE(HAVE_TERMCAP, 1, [define if you have -ltermcap])
+		ol_link_termcap=yes
+		TERMCAP_LIBS=-ltermcap
+	fi
+fi
+
+if test $ol_link_termcap = no ; then
+	AC_CHECK_LIB(ncurses, initscr, [have_ncurses=yes], [have_ncurses=no])
+	if test $have_ncurses = yes ; then
+		AC_DEFINE(HAVE_NCURSES, 1, [define if you have -lncurses])
+		ol_link_termcap=yes
+		TERMCAP_LIBS=-lncurses
+	fi
+fi
+
+if test $ol_link_termcap = no ; then
+	AC_DEFINE(NO_TERMCAP,1, [define if you have no termcap support])
+	TERMCAP_LIBS=
+fi
+
+dnl ----------------------------------------------------------------
+dnl
+dnl Check for Cyrus SASL
+dnl
+ol_link_sasl=no
+ol_link_spasswd=no
+if test $ol_with_cyrus_sasl != no ; then
+	AC_CHECK_HEADERS(sasl/sasl.h sasl.h)
+
+	if test $ac_cv_header_sasl_sasl_h = yes -o $ac_cv_header_sasl_h = yes; then
+		AC_CHECK_LIB(sasl2, sasl_client_init,
+			[ol_link_sasl="-lsasl2"],
+			[AC_CHECK_LIB(sasl, sasl_client_init,
+				[ol_link_sasl="-lsasl"])])
+	fi
+
+	if test $ol_link_sasl = no ; then
+		if test $ol_with_cyrus_sasl != auto ; then
+			AC_MSG_ERROR([Could not locate Cyrus SASL])
+		else
+			AC_MSG_WARN([Could not locate Cyrus SASL])
+			AC_MSG_WARN([SASL authentication not supported!])
+			if test $ol_link_tls = no ; then
+				AC_MSG_WARN([Strong authentication not supported!])
+			fi
+		fi
+	else
+		AC_DEFINE(HAVE_CYRUS_SASL,1,[define if you have Cyrus SASL])
+		SASL_LIBS="$ol_link_sasl"
+		if test $ol_enable_spasswd != no ; then
+			ol_link_spasswd=yes
+		fi
+	fi
+
+else
+	AC_MSG_WARN([SASL authentication not supported!])
+	if test $ol_link_tls = no ; then
+		AC_MSG_WARN([Strong authentication not supported!])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl Check for entropy sources
+if test $cross_compiling != yes -a "$ac_cv_mingw32" != yes ; then
+	dev=no
+	if test -r /dev/urandom ; then
+		dev="/dev/urandom";
+	elif test -r /idev/urandom ; then
+		dev="/idev/urandom";
+	elif test -r /dev/srandom ; then
+		dev="/dev/srandom";
+	elif test -r /dev/random ; then
+		dev="/dev/random";
+	elif test -r /idev/random ; then
+		dev="/idev/random";
+	fi
+
+	if test $dev != no ; then
+		AC_DEFINE_UNQUOTED(URANDOM_DEVICE,"$dev",[set to urandom device])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl
+dnl Check for fetch URL support
+dnl		should be extended to support other fetch URL APIs
+dnl
+ol_link_fetch=no
+if test $ol_with_fetch != no ; then
+	OL_LIB_FETCH
+
+	if test $ol_cv_lib_fetch != no ; then
+		LDIF_LIBS="$LDIF_LIBS $ol_link_fetch"
+		ol_link_fetch=freebsd
+
+	elif test $ol_with_fetch != auto ; then
+		AC_MSG_ERROR(no suitable API for --with-fetch=$ol_with_fetch)
+	fi 
+fi
+
+dnl ----------------------------------------------------------------
+dnl
+dnl Check for GNU readline
+dnl
+ol_link_readline=no
+if test $ol_with_readline != no ; then
+	AC_CHECK_HEADERS(readline/readline.h readline/history.h)
+
+	if test $ac_cv_header_readline_readline_h = yes ; then
+		save_LIBS="$LIBS"
+		LIBS="$TERMCAP_LIBS $LIBS"
+		AC_CHECK_LIB(readline, readline, 
+			[have_readline=yes], [have_readline=no])
+		LIBS="$save_LIBS"
+			
+		if test $have_readline = yes ; then
+			ol_with_readline=found
+			ol_link_readline=yes
+
+			READLINE_LIBS="-lreadline"
+		fi
+	fi
+fi
+
+if test $ol_link_readline = yes ; then
+	AC_DEFINE(HAVE_READLINE, 1, [define if you have -lreadline])
+fi
+
+
+dnl ----------------------------------------------------------------
+dnl FreeBSD (and others) have crypt(3) in -lcrypt
+if test $ol_enable_crypt != no ; then
+	AC_CHECK_FUNC(crypt, [have_crypt=yes], [
+		AC_CHECK_LIB(crypt, crypt, [LUTIL_LIBS="$LUTIL_LIBS -lcrypt"
+			have_crypt=yes], [have_crypt=no])])
+
+	if test $have_crypt = yes ; then
+		AC_DEFINE(HAVE_CRYPT,1, [define if crypt(3) is available])
+	else
+		AC_MSG_WARN(could not find crypt)
+		if test $ol_enable_crypt = yes ; then
+			AC_MSG_ERROR(could not find crypt, select appropriate options or disable)
+		fi
+
+		AC_MSG_WARN(disabling crypt support)
+		ol_enable_crypt=no
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl FreeBSD (and others) have setproctitle(3) in -lutil
+if test $ol_enable_proctitle != no ; then
+	AC_CHECK_FUNC(setproctitle,	[have_setproctitle=yes], [
+		AC_CHECK_LIB(util, setproctitle,
+			[have_setproctitle=yes
+			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
+			[have_setproctitle=no
+			LIBOBJS="$LIBOBJS setproctitle.o"
+			LIBSRCS="$LIBSRCS setproctitle.c"])])
+
+	if test $have_setproctitle = yes ; then
+		AC_DEFINE(HAVE_SETPROCTITLE,1,
+			[define if setproctitle(3) is available])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl Check for SLPv2 Compliant API Library
+if test $ol_enable_slp != no ; then
+	AC_CHECK_HEADERS( slp.h )
+
+	if test $ac_cv_header_slp_h = yes ; then
+		AC_CHECK_LIB(slp, SLPOpen, [have_slp=yes], [have_slp=no])
+		if test $have_slp = yes ; then
+			AC_DEFINE(HAVE_SLP, 1, [define if you have -lslp])
+			SLAPD_SLP_LIBS=-lslp
+		fi
+
+	elif test $ol_enable_slp = yes ; then
+		AC_MSG_ERROR([SLP not found])
+	fi
+fi
+
+dnl ----------------------------------------------------------------
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_MODE_T
+AC_TYPE_OFF_T
+AC_TYPE_PID_T
+AM_TYPE_PTRDIFF_T
+AC_TYPE_SIGNAL
+AC_TYPE_SIZE_T
+
+AC_CHECK_TYPE(ssize_t, [signed int])
+AC_CHECK_TYPE(caddr_t,	[char *])
+
+OL_TYPE_SOCKLEN_T
+AC_STRUCT_ST_BLKSIZE
+AC_HEADER_TIME
+AC_STRUCT_TM
+AC_TYPE_UID_T
+OL_TYPE_SIG_ATOMIC_T
+
+dnl AC_TYPE_GETGROUPS
+
+OL_STRUCT_PASSWD_PW_GECOS
+OL_STRUCT_PASSWD_PW_PASSWD
+
+OL_C_UPPER_LOWER
+AC_C_CONST
+OL_C_VOLATILE
+
+if test $cross_compiling = yes ; then
+	AC_DEFINE(CROSS_COMPILING, 1, [define if cross compiling])
+else
+	AC_C_BIGENDIAN
+fi
+
+AC_COMPILE_CHECK_SIZEOF(short) 
+AC_COMPILE_CHECK_SIZEOF(int) 
+AC_COMPILE_CHECK_SIZEOF(long)
+
+if test "$ac_cv_sizeof_int" -lt 4 ; then
+	AC_MSG_WARN([OpenLDAP requires 'int' to be 32 bits or greater.])
+
+	AC_DEFINE(LBER_INT_T,long)
+else
+	AC_DEFINE(LBER_INT_T,int)
+fi
+
+AC_DEFINE(LBER_LEN_T,long)
+AC_DEFINE(LBER_SOCKET_T,int)
+AC_DEFINE(LBER_TAG_T,long)
+
+dnl ----------------------------------------------------------------
+dnl Checks for library functions.
+AC_FUNC_MEMCMP
+dnl AM_FUNC_MKTIME dnl checks for sys/time.h and unistd.h
+AC_FUNC_STRFTIME
+dnl AM_FUNC_STRTOD
+
+OL_FUNC_INET_ATON
+
+dnl Check for NT specific routines
+AC_CHECK_FUNC(_spawnlp, AC_DEFINE(HAVE_SPAWNLP,1,[if you have spawnlp()]))
+
+AC_CHECK_FUNC(_snprintf, [ac_cv_func_snprintf=yes
+	AC_DEFINE(snprintf, _snprintf, [define to snprintf routine])
+])
+
+AC_CHECK_FUNC(_vsnprintf, [ac_cv_func_vsnprintf=yes
+	AC_DEFINE(vsnprintf, _vsnprintf, [define to vsnprintf routine])
+])
+
+AC_FUNC_VPRINTF
+
+if test $ac_cv_func_vprintf = yes ; then
+	dnl check for vsnprintf
+	AC_CHECK_FUNCS(vsnprintf vsprintf)
+fi
+
+AC_CHECK_FUNCS(		\
+	bcopy			\
+	closesocket		\
+	chroot			\
+	endgrent		\
+	endpwent		\
+	fcntl			\
+	flock			\
+	getdtablesize	\
+	getgrgid		\
+	gethostname		\
+	getpass			\
+	getpassphrase	\
+	getpwuid		\
+	getpwnam		\
+	getspnam		\
+	gettimeofday	\
+	initgroups		\
+	lockf			\
+	memcpy			\
+	memmove			\
+	mkstemp			\
+	mktemp			\
+	pipe			\
+	read			\
+	recv			\
+	recvfrom		\
+	setpwfile		\
+	setgid			\
+	setegid			\
+	setsid			\
+	setuid			\
+	seteuid			\
+	sigaction		\
+	signal			\
+	sigset			\
+	strdup			\
+	strerror		\
+	strpbrk			\
+	strrchr			\
+	strsep			\
+	strstr			\
+	strtol			\
+	strtoul			\
+	strspn			\
+	sysconf			\
+	usleep			\
+	waitpid			\
+	wait4			\
+	write			\
+	send			\
+	sendto			\
+)
+
+dnl We actually may need to replace more than this.
+AC_REPLACE_FUNCS(getopt)
+
+if test "$ac_cv_func_getopt" != yes; then
+	LIBSRCS="$LIBSRCS getopt.c"
+fi
+
+dnl ----------------------------------------------------------------
+# Check Configuration
+OL_SYS_ERRLIST
+
+dnl ----------------------------------------------------------------
+dnl Sort out defines
+
+if test "$ol_enable_debug" != no ; then
+	AC_DEFINE(LDAP_DEBUG,1,
+		[define this to add debugging code])
+fi
+if test "$ol_enable_syslog" = yes ; then
+	AC_DEFINE(LDAP_SYSLOG,1,
+		[define this to add syslog code])
+fi
+if test "$ol_enable_cache" = no ; then
+	AC_DEFINE(LDAP_NOCACHE,1,
+		[define this to remove -lldap cache support])
+fi
+if test "$ol_link_kbind" != no ; then
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND,LDAP_VENDOR_VERSION)
+fi
+if test "$ol_enable_proctitle" != no ; then
+	AC_DEFINE(LDAP_PROCTITLE,1,
+		[define this for LDAP process title support])
+fi
+if test "$ol_enable_referrals" != no ; then
+	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION)
+fi
+if test "$ol_enable_local" != no; then
+	AC_DEFINE(LDAP_PF_LOCAL,1,[define to support PF_LOCAL])
+fi
+if test "$ol_link_ipv6" != no; then
+	AC_DEFINE(LDAP_PF_INET6,1,[define to support PF_INET6])
+fi
+if test "$ol_enable_cleartext" != no ; then
+	AC_DEFINE(SLAPD_CLEARTEXT,1,[define to support cleartext passwords])
+fi
+if test "$ol_enable_crypt" != no ; then
+	AC_DEFINE(SLAPD_CRYPT,1,[define to support crypt(3) passwords])
+fi
+if test "$ol_link_kpasswd" != no ; then
+	AC_DEFINE(SLAPD_KPASSWD,1,[define to support Kerberos passwords])
+fi
+if test "$ol_link_spasswd" != no ; then
+	AC_DEFINE(SLAPD_SPASSWD,1,[define to support SASL passwords])
+fi
+dnl if test "$ol_enable_multimaster" != no ; then
+dnl	AC_DEFINE(SLAPD_MULTIMASTER,1,[define to support multimaster replication])
+dnl fi
+if test "$ol_enable_phonetic" != no ; then
+	AC_DEFINE(SLAPD_PHONETIC,1,[define to support phonetic])
+fi
+if test "$ol_enable_rlookups" != no ; then
+	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
+fi
+if test "$ol_enable_aci" != no ; then
+	AC_DEFINE(SLAPD_ACI_ENABLED,1,[define to support per-object ACIs])
+fi
+
+if test "$ol_link_modules" != no ; then
+	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
+	BUILD_SLAPD=yes
+	SLAPD_MODULES_LDFLAGS="-dlopen self"
+fi
+
+if test "$ol_enable_bdb" != no ; then
+	AC_DEFINE(SLAPD_BDB,1,[define to support BDB backend])
+	BUILD_SLAPD=yes
+	BUILD_BDB=yes
+	if test "$ol_with_bdb_module" != static ; then
+		AC_DEFINE(SLAPD_BDB_DYNAMIC,1,
+			[define to support dynamic BDB backend])
+		BUILD_BDB=mod
+		BUILD_BDB_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-bdb/back_bdb.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-bdb"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-bdb"
+	fi
+fi
+
+if test "$ol_link_dnssrv" != no ; then
+	AC_DEFINE(SLAPD_DNSSRV,1,[define to support DNS SRV backend])
+	BUILD_SLAPD=yes
+	BUILD_DNSSRV=yes
+	if test "$ol_with_dnssrv_module" != static ; then
+		AC_DEFINE(SLAPD_DNSSRV_DYNAMIC,1,
+			[define to support dynamic DNS SRV backend])
+		BUILD_DNSSRV=mod
+		BUILD_DNSSRV_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-dnssrv/back_dnssrv.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-dnssrv"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-dnssrv"
+	fi
+fi
+
+if test "$ol_enable_ldap" != no ; then
+	AC_DEFINE(SLAPD_LDAP,1,[define to support LDAP backend])
+	BUILD_SLAPD=yes
+	BUILD_LDAP=yes
+	if test "$ol_with_ldap_module" != static ; then
+		AC_DEFINE(SLAPD_LDAP_DYNAMIC,1,
+			[define to support dynamic LDAP backend])
+		BUILD_LDAP=mod
+		BUILD_LDAP_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldap/back_ldap.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldap"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldap"
+	fi
+fi
+
+if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
+	AC_DEFINE(SLAPD_LDBM,1,[define to support LDBM backend])
+	BUILD_SLAPD=yes
+	BUILD_LDBM=yes
+	LDBM_LIB="-lldbm"
+	if test "$ol_with_ldbm_module" != static ; then
+		AC_DEFINE(SLAPD_LDBM_DYNAMIC,1,
+			[define to support dynamic LDBM backend])
+		BUILD_LDBM=mod
+		BUILD_LDBM_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-ldbm/back_ldbm.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-ldbm"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-ldbm"
+	fi
+fi
+
+if test "$ol_enable_meta" != no ; then
+	if test "$ol_enable_ldap" = no ; then
+		AC_MSG_ERROR([need --enable-ldap to use --enable-meta])
+	fi
+	if test "$ol_enable_rewrite" = no ; then
+		AC_MSG_ERROR([need --enable-rewrite to use --enable-meta])
+	fi
+	AC_DEFINE(SLAPD_META,1,[define to support LDAP Metadirectory backend])
+	BUILD_SLAPD=yes
+	BUILD_META=yes
+	if test "$ol_with_meta_module" != static ; then
+		AC_DEFINE(SLAPD_META_DYNAMIC,1,
+			[define to support dynamic LDAP Metadirectory backend])
+		BUILD_META=mod
+		BUILD_META_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-meta/back_meta.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-meta"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-meta"
+	fi
+fi
+
+if test "$ol_enable_monitor" != no ; then
+	AC_DEFINE(SLAPD_MONITOR,1,[define to support cn=Monitor backend])
+	BUILD_SLAPD=yes
+	BUILD_MONITOR=yes
+	if test "$ol_with_monitor_module" != static ; then
+		AC_DEFINE(SLAPD_MONITOR_DYNAMIC,1,
+			[define to support dynamic cn=Monitor backend])
+		BUILD_MONITOR=mod
+		BUILD_MONITOR_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-monitor/back_monitor.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-monitor"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-monitor"
+	fi
+fi
+
+if test "$ol_enable_passwd" != no ; then
+	AC_DEFINE(SLAPD_PASSWD,1,[define to support PASSWD backend])
+	BUILD_SLAPD=yes
+	BUILD_PASSWD=yes
+	if test "$ol_with_passwd_module" != static ; then
+		AC_DEFINE(SLAPD_PASSWD_DYNAMIC,1,
+			[define to support dynamic PASSWD backend])
+		BUILD_PASSWD=mod
+		BUILD_PASSWD_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-passwd/back_passwd.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-passwd"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-passwd"
+	fi
+fi
+
+if test "$ol_link_perl" != no ; then
+	AC_DEFINE(SLAPD_PERL,1,[define to support PERL backend])
+	BUILD_SLAPD=yes
+	BUILD_PERL=yes
+	if test "$ol_with_perl_module" != static ; then
+		AC_DEFINE(SLAPD_PERL_DYNAMIC,1,
+			[define to support dynamic PERL backend])
+		BUILD_PERL=mod
+		BUILD_PERL_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-perl/back_perl.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-perl"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-perl"
+	fi
+fi
+
+if test "$ol_enable_shell" != no ; then
+	AC_DEFINE(SLAPD_SHELL,1,[define to support SHELL backend])
+	BUILD_SLAPD=yes
+	BUILD_SHELL=yes
+	if test "$ol_with_shell_module" != static ; then
+		AC_DEFINE(SLAPD_SHELL_DYNAMIC,1,
+			[define to support dynamic SHELL backend])
+		BUILD_SHELL=mod
+		BUILD_SHELL_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-shell/back_shell.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-shell"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-shell"
+	fi
+fi
+
+if test "$ol_link_sql" != no ; then
+	AC_DEFINE(SLAPD_SQL,1,[define to support SQL backend])
+	BUILD_SLAPD=yes
+	BUILD_SQL=yes
+	if test "$ol_with_sql_module" != static; then
+		AC_DEFINE(SLAPD_SQL_DYNAMIC,1,
+			[define to support dynamic SQL backend])
+		BUILD_SQL=mod
+		BUILD_SQL_DYNAMIC=shared
+		SLAPD_MODULES_LIST="$SLAPD_MODULES_LIST -dlopen \$(SLAP_DIR)back-sql/back_sql.la"
+		SLAPD_DYNAMIC_BACKENDS="$SLAPD_DYNAMIC_BACKENDS back-sql"
+	else
+		SLAPD_STATIC_BACKENDS="$SLAPD_STATIC_BACKENDS back-sql"
+	fi
+fi
+
+if test "$ol_enable_slurpd" != no -a "$ol_link_threads" != no -a \
+	$BUILD_SLAPD = yes ; then
+	BUILD_SLURPD=yes
+fi
+
+if test "$ol_enable_rewrite" != no ; then
+	AC_DEFINE(ENABLE_REWRITE,1,[define to enable rewriting in back-ldap and back-meta])
+	BUILD_REWRITE=yes
+fi
+
+dnl ----------------------------------------------------------------
+
+dnl
+dnl For Windows build, we don't want to include -dlopen flags.
+dnl They hurt more than they help.
+dnl
+
+if test "$ac_cv_mingw32" = yes ; then
+	PLAT=NT
+	SLAPD_MODULES_LDFLAGS=
+	SLAPD_MODULES_LIST=
+else
+	PLAT=UNIX
+fi
+
+AC_SUBST(LIBSRCS)
+AC_SUBST(PLAT)
+AC_SUBST(BUILD_LIBS_DYNAMIC)
+
+AC_SUBST(BUILD_SLAPD)
+  AC_SUBST(BUILD_BDB)
+  AC_SUBST(BUILD_DNSSRV)
+  AC_SUBST(BUILD_LDAP)
+  AC_SUBST(BUILD_LDBM)
+  AC_SUBST(BUILD_META)
+  AC_SUBST(BUILD_MONITOR)
+  AC_SUBST(BUILD_PASSWD)
+  AC_SUBST(BUILD_PERL)
+  AC_SUBST(BUILD_SHELL)
+  AC_SUBST(BUILD_SQL)
+  AC_SUBST(BUILD_BDB_DYNAMIC)
+  AC_SUBST(BUILD_DNSSRV_DYNAMIC)
+  AC_SUBST(BUILD_LDAP_DYNAMIC)
+  AC_SUBST(BUILD_LDBM_DYNAMIC)
+  AC_SUBST(BUILD_META_DYNAMIC)
+  AC_SUBST(BUILD_MONITOR_DYNAMIC)
+  AC_SUBST(BUILD_PASSWD_DYNAMIC)
+  AC_SUBST(BUILD_PERL_DYNAMIC)
+  AC_SUBST(BUILD_SHELL_DYNAMIC)
+  AC_SUBST(BUILD_SQL_DYNAMIC)
+AC_SUBST(BUILD_SLURPD)
+
+AC_SUBST(LDBM_LIB)
+
+AC_SUBST(LDAP_LIBS)
+AC_SUBST(LDIF_LIBS)
+AC_SUBST(SLAPD_LIBS)
+AC_SUBST(SLURPD_LIBS)
+AC_SUBST(LDBM_LIBS)
+AC_SUBST(LTHREAD_LIBS)
+AC_SUBST(LUTIL_LIBS)
+AC_SUBST(WRAP_LIBS)
+
+AC_SUBST(SLAPD_MODULES_CPPFLAGS)
+AC_SUBST(SLAPD_MODULES_LDFLAGS)
+AC_SUBST(SLAPD_MODULES_LIST)
+
+AC_SUBST(SLAPD_STATIC_BACKENDS)
+AC_SUBST(SLAPD_DYNAMIC_BACKENDS)
+
+AC_SUBST(PERL_CPPFLAGS)
+AC_SUBST(SLAPD_PERL_LDFLAGS)
+AC_SUBST(MOD_PERL_LDFLAGS)
+
+AC_SUBST(KRB4_LIBS)
+AC_SUBST(KRB5_LIBS)
+AC_SUBST(READLINE_LIBS)
+AC_SUBST(SASL_LIBS)
+AC_SUBST(TERMCAP_LIBS)
+AC_SUBST(TLS_LIBS)
+AC_SUBST(MODULES_LIBS)
+AC_SUBST(AUTH_LIBS)
+
+AC_SUBST(SLAPD_SLP_LIBS)
+
+AC_SUBST(SLAPD_SQL_LDFLAGS)
+AC_SUBST(SLAPD_SQL_LIBS)
+AC_SUBST(SLAPD_SQL_INCLUDES)
+
+dnl ----------------------------------------------------------------
+dnl final help output
+AC_ARG_WITH(xxinstall,[
+See INSTALL file for further details.])
+
+dnl ----------------------------------------------------------------
+dnl final output
+dnl
+
+AC_OUTPUT( \
+Makefile:build/top.mk:Makefile.in:build/dir.mk \
+doc/Makefile:build/top.mk:doc/Makefile.in:build/dir.mk \
+doc/man/Makefile:build/top.mk:doc/man/Makefile.in:build/dir.mk \
+doc/man/man1/Makefile:build/top.mk:doc/man/man1/Makefile.in:build/man.mk \
+doc/man/man3/Makefile:build/top.mk:doc/man/man3/Makefile.in:build/man.mk \
+doc/man/man5/Makefile:build/top.mk:doc/man/man5/Makefile.in:build/man.mk \
+doc/man/man8/Makefile:build/top.mk:doc/man/man8/Makefile.in:build/man.mk \
+clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
+clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
+clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
+clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
+clients/maildap/Makefile:build/top.mk:clients/maildap/Makefile.in:build/rules.mk \
+clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
+include/Makefile:build/top.mk:include/Makefile.in \
+libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
+libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblber/Makefile:build/top.mk:libraries/liblber/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap/Makefile:build/top.mk:libraries/libldap/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldap_r/Makefile:build/top.mk:libraries/libldap_r/Makefile.in:build/lib.mk:build/lib-shared.mk	\
+libraries/libldbm/Makefile:build/top.mk:libraries/libldbm/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/libldif/Makefile:build/top.mk:libraries/libldif/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblunicode/Makefile:build/top.mk:libraries/liblunicode/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/liblutil/Makefile:build/top.mk:libraries/liblutil/Makefile.in:build/lib.mk:build/lib-static.mk	\
+libraries/librewrite/Makefile:build/top.mk:libraries/librewrite/Makefile.in:build/lib.mk:build/lib-static.mk \
+servers/Makefile:build/top.mk:servers/Makefile.in:build/dir.mk \
+servers/slapd/Makefile:build/top.mk:servers/slapd/Makefile.in:build/srv.mk \
+servers/slapd/back-bdb/Makefile:build/top.mk:servers/slapd/back-bdb/Makefile.in:build/mod.mk \
+servers/slapd/back-dnssrv/Makefile:build/top.mk:servers/slapd/back-dnssrv/Makefile.in:build/mod.mk \
+servers/slapd/back-ldap/Makefile:build/top.mk:servers/slapd/back-ldap/Makefile.in:build/mod.mk \
+servers/slapd/back-ldbm/Makefile:build/top.mk:servers/slapd/back-ldbm/Makefile.in:build/mod.mk \
+servers/slapd/back-meta/Makefile:build/top.mk:servers/slapd/back-meta/Makefile.in:build/mod.mk \
+servers/slapd/back-monitor/Makefile:build/top.mk:servers/slapd/back-monitor/Makefile.in:build/mod.mk \
+servers/slapd/back-passwd/Makefile:build/top.mk:servers/slapd/back-passwd/Makefile.in:build/mod.mk \
+servers/slapd/back-perl/Makefile:build/top.mk:servers/slapd/back-perl/Makefile.in:build/mod.mk \
+servers/slapd/back-shell/Makefile:build/top.mk:servers/slapd/back-shell/Makefile.in:build/mod.mk \
+servers/slapd/back-sql/Makefile:build/top.mk:servers/slapd/back-sql/Makefile.in:build/mod.mk \
+servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/Makefile.in:build/srv.mk \
+servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
+servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
+tests/Makefile:build/top.mk:tests/Makefile.in:build/dir.mk \
+tests/progs/Makefile:build/top.mk:tests/progs/Makefile.in:build/rules.mk \
+,[
+date > stamp-h
+echo Please run \"make depend\" to build dependencies
+])
