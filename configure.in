@@ -694,7 +694,7 @@ int main(argc, argv)
 		OL_PTHREAD_TRY_LINK([-lpthread],[ol_cv_pthread_lpthread])
 		OL_PTHREAD_TRY_LINK([-lc_r],	[ol_cv_pthread_lc_r])
 
-		OL_PTHREAD_TRY_LINK([-threads],	[ol_cv_pthread_pthread])
+		OL_PTHREAD_TRY_LINK([-threads],	[ol_cv_pthread_threads])
 
 		OL_PTHREAD_TRY_LINK([-lpthreads -lmach -lexc -lc_r],
 			[ol_cv_pthread_lpthreads_lmach_lexc_lc_r])
