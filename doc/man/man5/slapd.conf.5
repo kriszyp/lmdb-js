@@ -138,17 +138,6 @@ The ( absolute ) name of a file that will hold the
 server's command line options
 if started without the debugging command line option.
 .TP
-.B
-locale { <locale-name> | on | off }
-Obey <locale-name>'s character classification and case conversion; i.e. the
-.BR locale (5)
-LC_CTYPE category.  See
-.BR locale (5)
-for details about locales.  "on" takes the locale from the environment,
-typically $LANG or $LC_CTYPE, and will only work properly if slapd will
-run with the same environment variables as when the database was
-generated.  "off" (the default setting) resets to the initial "C" locale.
-.TP
 .B loglevel <integer>
 Specify the level at which debugging statements and operation 
 statistics should be syslogged (currently logged to the
