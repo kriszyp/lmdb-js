@@ -249,8 +249,9 @@ meta_back_do_single_bind(
 		int			candidate
 )
 {
-	struct berval mdn = { 0, NULL };
-	int rc;
+	struct berval	mdn = { 0, NULL };
+	int		rc;
+	ber_int_t	msgid;
 	
 	/*
 	 * Rewrite the bind dn if needed
@@ -287,7 +288,8 @@ meta_back_do_single_bind(
 		}
 	}
 	
-	rc = ldap_bind_s( lc->conns[ candidate ].ld, mdn.bv_val, cred->bv_val, method );
+	rc = ldap_sasl_bind(lc->conns[ candidate ].ld, mdn.bv_val,
+			LDAP_SASL_SIMPLE, cred, op->o_ctrls, NULL, &msgid);
 	if ( rc != LDAP_SUCCESS ) {
 		rc = ldap_back_map_result( rc );
 	} else {
@@ -449,7 +451,8 @@ meta_back_rebind( LDAP *ld, LDAP_CONST char *url, ber_tag_t request,
 {
 	struct metasingleconn *lc = params;
 
-	return ldap_bind_s( ld, lc->bound_dn.bv_val, lc->cred.bv_val, LDAP_AUTH_SIMPLE );
+	return ldap_bind_s( ld, lc->bound_dn.bv_val, lc->cred.bv_val,
+			LDAP_AUTH_SIMPLE );
 }
 
 /*
