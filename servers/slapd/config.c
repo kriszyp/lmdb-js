@@ -1535,6 +1535,14 @@ restrict_unknown:;
 			} else {
 				int nr = -1;
 
+				if ( SLAP_MONITOR( be ) ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"\"replica\" should not be used "
+						"inside monitor database\n",
+						fname, lineno, 0 );
+					/* FIXME: turn into an error? */
+				}
+
 				for ( i = 1; i < cargc; i++ ) {
 					if ( strncasecmp( cargv[i], "host=", 5 )
 					    == 0 ) {
@@ -1711,7 +1719,15 @@ restrict_unknown:;
 				return( 1 );
 			}
 			if ( be ) {
+				if ( SLAP_MONITOR( be ) ) {
+					Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+						"\"replogfile\" should not be used "
+						"inside monitor database\n",
+						fname, lineno, 0 );
+					/* FIXME: turn into an error? */
+				}
 				be->be_replogfile = ch_strdup( cargv[1] );
+
 			} else {
 				replogfile = ch_strdup( cargv[1] );
 			}
