@@ -142,7 +142,7 @@ ID bdb_tool_entry_put(
 
 	/* add dn2id indices */
 	pdn = dn_parent( be, e->e_ndn );
-	rc = bdb_dn2id_add( be, tid, e->e_ndn, e->e_id );
+	rc = bdb_dn2id_add( be, tid, pdn, e );
 	if( pdn ) free( pdn );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
