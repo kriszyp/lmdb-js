@@ -204,6 +204,7 @@ at_destroy( void )
 		ldap_pvt_thread_mutex_destroy(&a->sat_ad_mutex);
 		ldap_attributetype_free((LDAPAttributeType *)a);
 	}
+	ad_destroy(slap_schema.si_at_undefined->sat_ad);
 }
 
 static int
