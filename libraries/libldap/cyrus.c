@@ -555,6 +555,13 @@ ldap_int_sasl_bind(
 		}
 
 		if ( rc != LDAP_SUCCESS && rc != LDAP_SASL_BIND_IN_PROGRESS ) {
+			if( scred ) {
+				/* and server provided us with data? */
+				Debug( LDAP_DEBUG_TRACE,
+					"ldap_int_sasl_bind: rc=%d sasl=%d len=%ld\n",
+					rc, saslrc, scred->bv_len );
+				ber_bvfree( scred );
+			}
 			return ld->ld_errno;
 		}
 
@@ -608,8 +615,6 @@ ldap_int_sasl_bind(
 	if ( saslrc != SASL_OK ) {
 		return ld->ld_errno = sasl_err2ldap( saslrc );
 	}
-
-	/* likely should add a quiet option */
 
 	if( flags != LDAP_SASL_QUIET ) {
 		saslrc = sasl_getprop( ctx, SASL_USERNAME, (void **) &data );
