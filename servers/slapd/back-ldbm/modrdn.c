@@ -161,7 +161,7 @@ ldbm_back_modrdn(
 		goto return_results;
 	}
 
-	if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL ) {
+	if ( (p_ndn = dn_parent( be, e->e_ndn )) != NULL && p_ndn[0] != '\0' ) {
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
