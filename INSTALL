@@ -49,9 +49,14 @@ Making and Installing the OpenLDAP Distribution
 
         % [env settings] ./configure [options]
 
-     If all goes well, the configure script with automatically detect
-     the appropriate settings.  However, you may need to specify
-     options and/or environment variables to obtain desired results.
+     If all goes well, the configure script will automatically detect
+     the appropriate settings.  If the configure script fails, you
+     should read the config.log file that it generated to see what it
+     was trying to do and exactly what failed.  You may need to specify
+     additional options and/or environment variables besides those
+     listed above to obtain desired results, depending on your operating
+     system. The Platform Hints section of the FAQ provides help for
+     operating system related problems.
 
 4.   Build dependencies:
 
