@@ -188,7 +188,7 @@ main( int argc, char **argv )
 			if( attr_find( e->e_attrs, slap_schema.si_ad_creatorsName )
 				== NULL )
 			{
-				ber_dupbv( &vals[0], &name );
+				vals[0] = name;
 				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
 				attr_merge( e, slap_schema.si_ad_creatorsName, vals);
@@ -197,7 +197,7 @@ main( int argc, char **argv )
 			if( attr_find( e->e_attrs, slap_schema.si_ad_modifiersName )
 				== NULL )
 			{
-				ber_dupbv( &vals[0], &name );
+				vals[0] = name;
 				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
 				attr_merge( e, slap_schema.si_ad_modifiersName, vals);
@@ -206,7 +206,7 @@ main( int argc, char **argv )
 			if( attr_find( e->e_attrs, slap_schema.si_ad_createTimestamp )
 				== NULL )
 			{
-				ber_dupbv( &vals[0], &timestamp );
+				vals[0] = timestamp;
 				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
 				attr_merge( e, slap_schema.si_ad_createTimestamp, vals );
@@ -215,7 +215,7 @@ main( int argc, char **argv )
 			if( attr_find( e->e_attrs, slap_schema.si_ad_modifyTimestamp )
 				== NULL )
 			{
-				ber_dupbv( &vals[0], &timestamp );
+				vals[0] = timestamp;
 				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
 				attr_merge( e, slap_schema.si_ad_modifyTimestamp, vals );
@@ -224,7 +224,7 @@ main( int argc, char **argv )
 			if( attr_find( e->e_attrs, slap_schema.si_ad_entryCSN )
 				== NULL )
 			{
-				ber_dupbv( &vals[0], &csn );
+				vals[0] = csn;
 				vals[1].bv_len = 0;
 				vals[1].bv_val = NULL;
 				attr_merge( e, slap_schema.si_ad_entryCSN, vals );
