@@ -47,6 +47,9 @@ is provided ``as is'' without express or implied warranty.
 /* define type for caddr_t */
 typedef char * caddr_t;
 
+/* we have spawnlp instead of fork/execlp */
+#define HAVE_SPAWNLP 1
+
 /* we have winsock2 */
 #define HAVE_WINSOCK2 1
 
