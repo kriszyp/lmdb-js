@@ -30,6 +30,111 @@ static int put_substring_filter LDAP_P(( BerElement *ber, char *type, char *str 
 static int put_filter_list LDAP_P(( BerElement *ber, char *str ));
 
 /*
+ * ldap_search_ext - initiate an ldap search operation.
+ *
+ * Parameters:
+ *
+ *	ld		LDAP descriptor
+ *	base		DN of the base object
+ *	scope		the search scope - one of LDAP_SCOPE_BASE,
+ *			    LDAP_SCOPE_ONELEVEL, LDAP_SCOPE_SUBTREE
+ *	filter		a string containing the search filter
+ *			(e.g., "(|(cn=bob)(sn=bob))")
+ *	attrs		list of attribute types to return for matches
+ *	attrsonly	1 => attributes only 0 => attributes and values
+ *
+ * Example:
+ *	char	*attrs[] = { "mail", "title", 0 };
+ *	ldap_search_ext( ld, "c=us@o=UM", LDAP_SCOPE_SUBTREE, "cn~=bob",
+ *	    attrs, attrsonly, sctrls, ctrls, timeout, sizelimit,
+ *		&msgid );
+ */
+int
+ldap_search_ext(
+	LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	int *msgidp )
+{
+	BerElement	*ber;
+	int timelimit;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_search_ext\n", 0, 0, 0 );
+
+	/*
+	 * if timeout is provided, use only tv_sec as timelimit.
+	 * otherwise, use default.
+	 */
+	timelimit = (timeout != NULL)
+			?  timelimit = timeout->tv_sec
+			: -1;
+
+	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
+	    attrsonly, sctrls, cctrls, timelimit, sizelimit ); 
+
+	if ( ber == NULLBER ) {
+		return ld->ld_errno;
+	}
+
+#ifndef LDAP_NOCACHE
+	if ( ld->ld_cache != NULL ) {
+		if ( ldap_check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
+			ber_free( ber, 1 );
+			ld->ld_errno = LDAP_SUCCESS;
+			*msgidp = ld->ld_msgid;
+			return ld->ld_errno;
+		}
+		ldap_add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
+	}
+#endif /* LDAP_NOCACHE */
+
+	/* send the message */
+	*msgidp = ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber );
+
+	if( *msgidp < 0 )
+		return ld->ld_errno;
+
+	return LDAP_SUCCESS;
+}
+
+int
+ldap_search_ext_s(
+	LDAP *ld,
+	LDAP_CONST char *base,
+	int scope,
+	LDAP_CONST char *filter,
+	char **attrs,
+	int attrsonly,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	struct timeval *timeout,
+	int sizelimit,
+	LDAPMessage **res )
+{
+	int rc;
+	int	msgid;
+
+	rc = ldap_search_ext( ld, base, scope, filter, attrs, attrsonly,
+		sctrls, cctrls, timeout, sizelimit, &msgid );
+
+	if ( rc != LDAP_SUCCESS ) {
+		return( rc );
+	}
+
+	if ( ldap_result( ld, msgid, 1, timeout, res ) == -1 )
+		return( ld->ld_errno );
+
+	return( ldap_result2error( ld, *res, 0 ) );
+}
+
+/*
  * ldap_search - initiate an ldap search operation.
  *
  * Parameters:
@@ -49,15 +154,18 @@ static int put_filter_list LDAP_P(( BerElement *ber, char *str ));
  *	    attrs, attrsonly );
  */
 int
-ldap_search( LDAP *ld, LDAP_CONST char *base, int scope, LDAP_CONST char *filter,
+ldap_search(
+	LDAP *ld, LDAP_CONST char *base, int scope, LDAP_CONST char *filter,
 	char **attrs, int attrsonly )
 {
 	BerElement	*ber;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_search\n", 0, 0, 0 );
 
-	if (( ber = ldap_build_search_req( ld, base, scope, filter, attrs,
-	    attrsonly, NULL, NULL )) == NULLBER ) {
+	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
+	    attrsonly, NULL, NULL, -1, -1 ); 
+
+	if ( ber == NULLBER ) {
 		return( -1 );
 	}
 
@@ -86,7 +194,9 @@ ldap_build_search_req(
 	char **attrs,
 	int attrsonly,
 	LDAPControl **sctrls,
-	LDAPControl **cctrls )
+	LDAPControl **cctrls,
+	int timelimit,
+	int sizelimit )
 {
 	BerElement	*ber;
 	int		err;
@@ -137,13 +247,17 @@ ldap_build_search_req(
 #ifdef LDAP_CONNECTIONLESS
 	if ( ld->ld_cldapnaddr > 0 ) {
 	    err = ber_printf( ber, "{ist{seeiib", ++ld->ld_msgid,
-		ld->ld_cldapdn, LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
-		ld->ld_sizelimit, ld->ld_timelimit, attrsonly );
+			ld->ld_cldapdn, LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
+			(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
+			(timelimit < 0) ? ld->ld_timelimit : timelimit,
+			attrsonly );
 	} else {
 #endif /* LDAP_CONNECTIONLESS */
 		err = ber_printf( ber, "{it{seeiib", ++ld->ld_msgid,
 		    LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
-		    ld->ld_sizelimit, ld->ld_timelimit, attrsonly );
+			(sizelimit < 0) ? ld->ld_sizelimit : sizelimit,
+			(timelimit < 0) ? ld->ld_timelimit : timelimit,
+		    attrsonly );
 #ifdef LDAP_CONNECTIONLESS
 	}
 #endif /* LDAP_CONNECTIONLESS */
@@ -225,10 +339,11 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	/* put explicit tag */
 	if ( ber_printf( ber, "t{", tag ) == -1 )
 		return( NULL );
-/*
+
+#if 0
 	if ( !not && ber_printf( ber, "{" ) == -1 )
 		return( NULL );
-*/
+#endif
 
 	str++;
 	if ( (next = find_right_paren( str )) == NULL )
@@ -242,10 +357,11 @@ put_complex_filter( BerElement *ber, char *str, unsigned long tag, int not )
 	/* flush explicit tagged thang */
 	if ( ber_printf( ber, "}" ) == -1 )
 		return( NULL );
-/*
+
+#if 0
 	if ( !not && ber_printf( ber, "}" ) == -1 )
 		return( NULL );
-*/
+#endif
 
 	return( next );
 }

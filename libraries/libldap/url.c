@@ -264,8 +264,11 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 		return( -1 );
 	}
 
-	if (( ber = ldap_build_search_req( ld, ludp->lud_dn, ludp->lud_scope,
-	    ludp->lud_filter, ludp->lud_attrs, attrsonly, NULL, NULL )) == NULLBER ) {
+	ber = ldap_build_search_req( ld, ludp->lud_dn, ludp->lud_scope,
+	    ludp->lud_filter, ludp->lud_attrs, attrsonly, NULL, NULL,
+		-1, -1 );
+
+	if ( ber == NULLBER ) {
 		return( -1 );
 	}
 

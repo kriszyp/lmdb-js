@@ -375,9 +375,14 @@ LDAP_F int cldap_getmsg	( LDAP *ld, struct timeval *timeout, BerElement *ber );
 /*
  * in search.c
  */
-BerElement *ldap_build_search_req( LDAP *ld, const char *base, int scope,
+BerElement *ldap_build_search_req LDAP_P((
+	LDAP *ld,
+	const char *base, int scope,
 	const char *filter, char **attrs, int attrsonly,
-	LDAPControl **sctrls, LDAPControl **cctrls );
+	LDAPControl **sctrls,
+	LDAPControl **cctrls,
+	int timelimit,
+	int sizelimit ));
 
 /*
  * in strdup.c
