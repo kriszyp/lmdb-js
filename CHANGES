@@ -1,5 +1,8 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.X Engineering
+	<insert here>
+
 OpenLDAP 2.0.4 Release
 	Fixed clients printf/usage bugs (ITS#749)
 	Fixed -lldap SASL interoperability bug
