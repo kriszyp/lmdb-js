@@ -134,14 +134,16 @@ replog( Operation *op )
 #endif
 	int	subsets = 0;
 	long now = slap_get_time();
+	char	*replogfile;
 
-	if ( op->o_bd->be_replogfile == NULL && replogfile == NULL ) {
+	replogfile = op->o_bd->be_replogfile ? op->o_bd->be_replogfile :
+		frontendDB->be_replogfile;
+	if ( !replogfile ) {
 		return;
 	}
 
 	ldap_pvt_thread_mutex_lock( &replog_mutex );
-	if ( (fp = lock_fopen( op->o_bd->be_replogfile ? op->o_bd->be_replogfile :
-	    replogfile, "a", &lfp )) == NULL ) {
+	if ( (fp = lock_fopen( replogfile, "a", &lfp )) == NULL ) {
 		ldap_pvt_thread_mutex_unlock( &replog_mutex );
 		return;
 	}

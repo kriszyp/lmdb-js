@@ -48,7 +48,6 @@
  */
 slap_mask_t		global_allows = 0;
 slap_mask_t		global_disallows = 0;
-char		*replogfile;
 int		global_gentlehup = 0;
 int		global_idletimeout = 0;
 char	*global_host = NULL;
@@ -218,7 +217,7 @@ ConfigTable SystemConfiguration[] = {
   { "replicationInterval",	0,  0,  0,  NULL,	ARG_IGNORED,		NULL,				NULL, NULL, NULL },
   { "updatedn",			2,  2,  0,  "dn",	ARG_DB|ARG_MAGIC,	&config_updatedn,		NULL, NULL, NULL },
   { "updateref",		2,  2,  0,  "url",	ARG_DB|ARG_MAGIC,	&config_updateref,		NULL, NULL, NULL },
-  { "replogfile",		2,  2,  0,  "filename", ARG_MAGIC|CFG_REPLOG,	&config_generic,		NULL, NULL, NULL },
+  { "replogfile",		2,  2,  0,  "filename", ARG_MAGIC|ARG_STRING|CFG_REPLOG,	&config_generic,		NULL, NULL, NULL },
   { "rootDSE",			2,  2,  0,  "filename", ARG_MAGIC|CFG_ROOTDSE,	&config_generic,		NULL, NULL, NULL },
   { "lastmod",			2,  2,  0,  "on|off",	ARG_DB|ARG_ON_OFF|ARG_MAGIC|CFG_LASTMOD, &config_generic, NULL, NULL, NULL },
 #ifdef SIGHUP

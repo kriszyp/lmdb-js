@@ -1343,7 +1343,6 @@ LDAP_SLAPD_V (slap_mask_t)	global_allows;
 LDAP_SLAPD_V (slap_mask_t)	global_disallows;
 
 LDAP_SLAPD_V (BerVarray)	default_referral;
-LDAP_SLAPD_V (char *)		replogfile;
 LDAP_SLAPD_V (const char) 	Versionstr[];
 
 LDAP_SLAPD_V (int)		global_gentlehup;
