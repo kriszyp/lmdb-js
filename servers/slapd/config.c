@@ -119,10 +119,9 @@ ConfigTable *config_find_keyword(ConfigTable *Conf, ConfigArgs *c) {
 }
 
 int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
-	int i, rc, arg_user, arg_type, iarg;
+	int rc, arg_user, arg_type, iarg;
 	long larg;
 	ber_len_t barg;
-	void *ptr;
 	
 	arg_type = Conf->arg_type;
 	if(arg_type == ARG_IGNORED) {
@@ -233,7 +232,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 }
 
 int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
-	int i, rc, arg_type;
+	int rc, arg_type;
 	void *ptr;
 
 	arg_type = Conf->arg_type;
@@ -291,7 +290,7 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 }
 
 int config_add_vals(ConfigTable *Conf, ConfigArgs *c) {
-	int i, rc, arg_type, iarg;
+	int rc, arg_type;
 
 	arg_type = Conf->arg_type;
 	if(arg_type == ARG_IGNORED) {
@@ -308,6 +307,8 @@ int
 config_del_vals(ConfigTable *cf, ConfigArgs *c)
 {
 	int rc = 0;
+
+	return rc;
 }
 
 int
@@ -690,8 +691,7 @@ verbs_to_mask(int argc, char *argv[], slap_verbmasks *v, slap_mask_t *m) {
 
 int
 mask_to_verbs(slap_verbmasks *v, slap_mask_t m, BerVarray *bva) {
-	int i, j;
-	struct berval bv;
+	int i;
 
 	if (!m) return 1;
 	for (i=0; !BER_BVISNULL(&v[i].word); i++) {
@@ -721,79 +721,111 @@ static slap_verbmasks methkey[] = {
 typedef struct cf_aux_table {
 	struct berval key;
 	int off;
-	int quote;
+	char type;
+	char quote;
 	slap_verbmasks *aux;
 } cf_aux_table;
 
 static cf_aux_table bindkey[] = {
-	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 0, tlskey },
-	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 0, methkey },
-	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 1, NULL },
-	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 1, NULL },
-	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 0, NULL },
-	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 0, NULL },
-	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 0, NULL },
-	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 0, NULL },
-	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 1, NULL },
-	{ BER_BVNULL, 0, 0, NULL }
+	{ BER_BVC("starttls="), offsetof(slap_bindconf, sb_tls), 'd', 0, tlskey },
+	{ BER_BVC("bindmethod="), offsetof(slap_bindconf, sb_method), 'd', 0, methkey },
+	{ BER_BVC("binddn="), offsetof(slap_bindconf, sb_binddn), 'b', 1, NULL },
+	{ BER_BVC("credentials="), offsetof(slap_bindconf, sb_cred), 'b', 1, NULL },
+	{ BER_BVC("saslmech="), offsetof(slap_bindconf, sb_saslmech), 's', 0, NULL },
+	{ BER_BVC("secprops="), offsetof(slap_bindconf, sb_secprops), 's', 0, NULL },
+	{ BER_BVC("realm="), offsetof(slap_bindconf, sb_realm), 's', 0, NULL },
+	{ BER_BVC("authcID="), offsetof(slap_bindconf, sb_authcId), 's', 0, NULL },
+	{ BER_BVC("authzID="), offsetof(slap_bindconf, sb_authzId), 'b', 1, NULL },
+	{ BER_BVNULL, 0, 0, 0, NULL }
 };
 
 int bindconf_parse( const char *word, slap_bindconf *bc ) {
-	int i, rc = 0;
-	char **cptr;
+	int rc = 0;
 	cf_aux_table *tab;
 
 	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
 		if ( !strncasecmp( word, tab->key.bv_val, tab->key.bv_len )) {
-			cptr = (char **)((char *)bc + tab->off);
-			if ( tab->aux ) {
-				int j;
+			char **cptr;
+			int *iptr, j;
+			struct berval *bptr;
+			const char *val = word + tab->key.bv_len;
+
+			switch ( tab->type ) {
+			case 's':
+				cptr = (char **)((char *)bc + tab->off);
+				*cptr = ch_strdup( val );
+				break;
+
+			case 'b':
+				bptr = (struct berval *)((char *)bc + tab->off);
+				ber_str2bv( val, 0, 1, bptr );
+				break;
+
+			case 'i':
+				assert( tab->aux );
+				iptr = (int *)((char *)bc + tab->off);
+
 				rc = 1;
-				for (j=0; !BER_BVISNULL(&tab->aux[j].word); j++) {
-					if (!strcasecmp(word+tab->key.bv_len, tab->aux[j].word.bv_val)) {
-						int *ptr = (int *)cptr;
-						*ptr = tab->aux[j].mask;
+				for ( j = 0; !BER_BVISNULL( &tab->aux[j].word ); j++ ) {
+					if ( !strcasecmp( val, tab->aux[j].word.bv_val ) ) {
+						*iptr = tab->aux[j].mask;
 						rc = 0;
 					}
 				}
-				if (rc ) {
-					Debug(LDAP_DEBUG_ANY, "invalid bind config value %s\n",
-						word, 0, 0 );
-				}
-				return rc;
+				break;
 			}
-			*cptr = ch_strdup(word+tab->key.bv_len);
-			return 0;
+
+			if ( rc ) {
+				Debug( LDAP_DEBUG_ANY, "invalid bind config value %s\n",
+					word, 0, 0 );
+			}
+			
+			return rc;
 		}
 	}
+
 	return rc;
 }
 
 int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 	char buf[BUFSIZ], *ptr;
 	cf_aux_table *tab;
-	char **cptr;
 	struct berval tmp;
 
 	ptr = buf;
 	for (tab = bindkey; !BER_BVISNULL(&tab->key); tab++) {
+		char **cptr;
+		int *iptr, i;
+		struct berval *bptr;
+
 		cptr = (char **)((char *)bc + tab->off);
-		if ( tab->aux ) {
-			int *ip = (int *)cptr, i;
-			for ( i=0; !BER_BVISNULL(&tab->aux[i].word); i++ ) {
-				if ( *ip == tab->aux[i].mask ) {
+
+		switch ( tab->type ) {
+		case 'b':
+			bptr = (struct berval *)((char *)bc + tab->off);
+			cptr = &bptr->bv_val;
+		case 's':
+			if ( *cptr ) {
+				*ptr++ = ' ';
+				ptr = lutil_strcopy( ptr, tab->key.bv_val );
+				if ( tab->quote ) *ptr++ = '"';
+				ptr = lutil_strcopy( ptr, *cptr );
+				if ( tab->quote ) *ptr++ = '"';
+			}
+			break;
+
+		case 'i':
+			assert( tab->aux );
+		
+			for ( i = 0; !BER_BVISNULL( &tab->aux[i].word ); i++ ) {
+				if ( *iptr == tab->aux[i].mask ) {
 					*ptr++ = ' ';
 					ptr = lutil_strcopy( ptr, tab->key.bv_val );
 					ptr = lutil_strcopy( ptr, tab->aux[i].word.bv_val );
 					break;
 				}
 			}
-		} else if ( *cptr ) {
-			*ptr++ = ' ';
-			ptr = lutil_strcopy( ptr, tab->key.bv_val );
-			if ( tab->quote ) *ptr++ = '"';
-			ptr = lutil_strcopy( ptr, *cptr );
-			if ( tab->quote ) *ptr++ = '"';
+			break;
 		}
 	}
 	tmp.bv_val = buf;
@@ -803,11 +835,11 @@ int bindconf_unparse( slap_bindconf *bc, struct berval *bv ) {
 }
 
 void bindconf_free( slap_bindconf *bc ) {
-	if ( bc->sb_binddn ) {
-		ch_free( bc->sb_binddn );
+	if ( !BER_BVISNULL( &bc->sb_binddn ) ) {
+		ch_free( bc->sb_binddn.bv_val );
 	}
-	if ( bc->sb_cred ) {
-		ch_free( bc->sb_cred );
+	if ( !BER_BVISNULL( &bc->sb_cred ) ) {
+		ch_free( bc->sb_cred.bv_val );
 	}
 	if ( bc->sb_saslmech ) {
 		ch_free( bc->sb_saslmech );
@@ -821,8 +853,8 @@ void bindconf_free( slap_bindconf *bc ) {
 	if ( bc->sb_authcId ) {
 		ch_free( bc->sb_authcId );
 	}
-	if ( bc->sb_authzId ) {
-		ch_free( bc->sb_authzId );
+	if ( !BER_BVISNULL( &bc->sb_authzId ) ) {
+		ch_free( bc->sb_authzId.bv_val );
 	}
 }
 

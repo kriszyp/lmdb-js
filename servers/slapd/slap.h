@@ -1419,13 +1419,13 @@ LDAP_SLAPD_V (int) slapMode;
 typedef struct slap_bindconf {
 	int sb_tls;
 	int sb_method;
-	char *sb_binddn;
-	char *sb_cred;
+	struct berval sb_binddn;
+	struct berval sb_cred;
 	char *sb_saslmech;
 	char *sb_secprops;
 	char *sb_realm;
 	char *sb_authcId;
-	char *sb_authzId;
+	struct berval sb_authzId;
 } slap_bindconf;
 
 struct slap_replica_info {

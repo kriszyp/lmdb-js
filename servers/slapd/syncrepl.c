@@ -244,9 +244,9 @@ ldap_sync_search(
 	c[0].ldctl_iscritical = si->si_type < 0;
 	ctrls[0] = &c[0];
 
-	if ( si->si_bindconf.sb_authzId ) {
+	if ( !BER_BVISNULL( &si->si_bindconf.sb_authzId ) ) {
 		c[1].ldctl_oid = LDAP_CONTROL_PROXY_AUTHZ;
-		ber_str2bv( si->si_bindconf.sb_authzId, 0, 0, &c[1].ldctl_value );
+		c[1].ldctl_value = si->si_bindconf.sb_authzId;
 		c[1].ldctl_iscritical = 1;
 		ctrls[1] = &c[1];
 		ctrls[2] = NULL;
@@ -324,10 +324,10 @@ do_syncrep1(
 
 		defaults = lutil_sasl_defaults( si->si_ld, si->si_bindconf.sb_saslmech,
 			si->si_bindconf.sb_realm, si->si_bindconf.sb_authcId,
-			si->si_bindconf.sb_cred, si->si_bindconf.sb_authzId );
+			si->si_bindconf.sb_cred.bv_val, si->si_bindconf.sb_authzId.bv_val );
 
 		rc = ldap_sasl_interactive_bind_s( si->si_ld,
-				si->si_bindconf.sb_binddn,
+				si->si_bindconf.sb_binddn.bv_val,
 				si->si_bindconf.sb_saslmech,
 				NULL, NULL,
 				LDAP_SASL_QUIET,
@@ -363,12 +363,13 @@ do_syncrep1(
 		goto done;
 #endif
 
-	} else {
-		rc = ldap_bind_s( si->si_ld, si->si_bindconf.sb_binddn,
-			si->si_bindconf.sb_cred, si->si_bindconf.sb_method );
+	} else if ( si->si_bindconf.sb_method == LDAP_AUTH_SIMPLE ) {
+		rc = ldap_sasl_bind_s( si->si_ld,
+			si->si_bindconf.sb_binddn.bv_val, LDAP_SASL_SIMPLE,
+			&si->si_bindconf.sb_cred, NULL, NULL, NULL );
 		if ( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_ANY, "do_syncrep1: "
-				"ldap_bind_s failed (%d)\n", rc, 0, 0 );
+				"ldap_sasl_bind_s failed (%d)\n", rc, 0, 0 );
 			goto done;
 		}
 	}
@@ -392,7 +393,6 @@ do_syncrep1(
 	if ( BER_BVISNULL( &si->si_syncCookie.octet_str )) {
 		/* get contextCSN shadow replica from database */
 		BerVarray csn = NULL;
-		struct berval newcookie;
 
 		assert( si->si_rid < 1000 );
 		op->o_req_ndn = op->o_bd->be_nsuffix[0];
@@ -445,7 +445,7 @@ do_syncrep1(
 done:
 	if ( rc ) {
 		if ( si->si_ld ) {
-			ldap_unbind( si->si_ld );
+			ldap_unbind_ext( si->si_ld, NULL, NULL );
 			si->si_ld = NULL;
 		}
 	}
@@ -815,7 +815,7 @@ done:
 	if ( res ) ldap_msgfree( res );
 
 	if ( rc && si->si_ld ) {
-		ldap_unbind( si->si_ld );
+		ldap_unbind_ext( si->si_ld, NULL, NULL );
 		si->si_ld = NULL;
 	}
 
@@ -859,7 +859,7 @@ do_syncrepl(
 		if ( si->si_ld ) {
 			ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 			connection_client_stop( s );
-			ldap_unbind( si->si_ld );
+			ldap_unbind_ext( si->si_ld, NULL, NULL );
 			si->si_ld = NULL;
 		}
 		ldap_pvt_thread_mutex_unlock( &si->si_mutex );
@@ -1533,8 +1533,6 @@ syncrepl_del_nonpresent(
 	AttributeName	an[2];
 
 	struct berval pdn = BER_BVNULL;
-	struct berval org_req_dn = BER_BVNULL;
-	struct berval org_req_ndn = BER_BVNULL;
 
 	op->o_req_dn = si->si_base;
 	op->o_req_ndn = si->si_base;
@@ -1803,10 +1801,6 @@ syncrepl_updateCookie(
 	Modifications mod = {0};
 	struct berval vals[2];
 
-	const char	*text;
-	char txtbuf[SLAP_TEXT_BUFLEN];
-	size_t textlen = sizeof txtbuf;
-
 	int rc;
 
 	slap_callback cb = { NULL };
@@ -1847,7 +1841,6 @@ syncrepl_updateCookie(
 			"be_modify failed (%d)\n", rs_modify.sr_err, 0, 0 );
 	}
 
-done :
 	slap_graduate_commit_csn( op );
 
 	return;
