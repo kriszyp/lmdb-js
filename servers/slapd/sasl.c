@@ -111,7 +111,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 	/* An authcID needs to be converted to authzID form */
 	if( flags & FLAG_GETDN_AUTHCID ) {
 		if( sasl_external_x509dn_convert && conn->c_sasl_bind_mech
-			&& ( strcasecmp( LDAP_SASL_EXTERNAL, conn->c_sasl_bind_mech ) == 0 ) 
+			&& ( strcasecmp( "EXTERNAL", conn->c_sasl_bind_mech ) == 0 ) 
 			&& len && dn[0] == '/' && dn[len-1]== '/' )
 		{
 			/* check SASL external for X.509 style DN and */
@@ -119,7 +119,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 			char *tmpdn = ldap_dcedn2dn( id );
 			len = strlen( tmpdn );
 
-			dn = ch_malloc( dn, len+4 );
+			dn = ch_malloc( len+4 );
 			dn[0] = 'd';
 			dn[1] = 'n';
 			dn[2] = ':';
@@ -128,7 +128,7 @@ int slap_sasl_getdn( Connection *conn, char *id, char **dnptr, int flags )
 
 		} else {
 			/* convert to u:<username> form */
-			dn = ch_malloc( dn, len+3 );
+			dn = ch_malloc( len+3 );
 			dn[0] = 'u';
 			dn[1] = ':';
 			memmove( &dn[2], id, len+1 );
