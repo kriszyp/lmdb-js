@@ -151,7 +151,10 @@ main( int argc, char **argv )
 	debug = verbose = binary = not = vals2tmp =
 		attrsonly = manageDSAit = ldif = want_bindpw = 0;
 
-	deref = referrals = sizelimit = timelimit = version = -1;
+	deref = sizelimit = timelimit = version = -1;
+
+	/* default should be off */
+	referrals = 1;
 
 	scope = LDAP_SCOPE_SUBTREE;
 	authmethod = LDAP_AUTH_SIMPLE;
@@ -197,7 +200,7 @@ main( int argc, char **argv )
 		manageDSAit++;
 		break;
 	case 'R':	/* don't automatically chase referrals */
-		referrals = (int) LDAP_OPT_OFF;
+		referrals = 0;
 		break;
 	case 'A':	/* retrieve attribute names only -- no values */
 		++attrsonly;
