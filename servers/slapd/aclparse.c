@@ -2294,7 +2294,7 @@ acl_unparse( AccessControl *a, struct berval *bv )
 
 	ptr = bv->bv_val;
 
-	ptr = lutil_strcopy( ptr, "access to" );
+	ptr = lutil_strcopy( ptr, "to" );
 	if ( !BER_BVISNULL( &a->acl_dn_pat ) ) {
 		to++;
 		ptr = lutil_strcopy( ptr, " dn." );
@@ -2369,7 +2369,7 @@ print_acl( Backend *be, AccessControl *a )
 	struct berval bv;
 
 	acl_unparse( a, &bv );
-	fprintf( stderr, "%s ACL: %s\n",
+	fprintf( stderr, "%s ACL: access %s\n",
 		be == NULL ? "Global" : "Backend", bv.bv_val );
 }
 #endif /* LDAP_DEBUG */
