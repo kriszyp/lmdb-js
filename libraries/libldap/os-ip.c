@@ -337,7 +337,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 		osip_debug(ld, "ldap_connect_to_host: TCP %s:%d\n",host,port,0);
 		break;
 	case LDAP_PROTO_UDP: socktype = SOCK_DGRAM;
-		osip_debug(ld, "ldap_connect_to_host: TCP %s:%d\n",host,port,0);
+		osip_debug(ld, "ldap_connect_to_host: UDP %s:%d\n",host,port,0);
 		break;
 
 	default:
