@@ -541,7 +541,7 @@ slap_sasl_canonicalize(
 		sasl_out_params_t dummy;
 		int offset = (void *)&dummy.ulen - (void *)&dummy.authid;
 		char **authid = (void *)out_len - offset;
-		if ( !strcmp( in, *authid ) )
+		if ( *authid && !strcmp( in, *authid ) )
 			goto done;
 	}
 
