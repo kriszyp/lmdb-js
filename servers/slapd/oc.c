@@ -297,8 +297,8 @@ oc_add_sups(
 				sups1++;
 			}
 			nsups++;
-			soc->soc_sups = (ObjectClass **)ch_calloc(1,
-					  nsups*sizeof(ObjectClass *));
+			soc->soc_sups = (ObjectClass **)ch_calloc(nsups,
+					  sizeof(ObjectClass *));
 		}
 		nsups = 0;
 		sups1 = sups;
