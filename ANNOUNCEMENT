@@ -1,10 +1,10 @@
 	A N N O U N C E M E N T
 
-	OpenLDAP 1.0
+	OpenLDAP 1.1
 
 
 	The OpenLDAP Project is pleased to announce the availability
-	of OpenLDAP release 1.0, a suite of the Lightweight Weight
+	of OpenLDAP release 1.1, a suite of the Lightweight Weight
 	Directory Protocol servers, clients, utilities, and development tools.
 
 	OpenLDAP is derived from University of Michigan LDAP release 3.3.
@@ -28,13 +28,22 @@
 
     In addition, there are some contributed components:
 
-	- web500 - an HTTP-to-LDAP gateway
-	- whois++d - a WHOIS++-to-LDAP gateway
+	- gtk-tool - a demonstration ldap interface written gtk
+	- php3-tool - a demonstration ldap interface written php3 
 	- saucer - a simple command-line oriented client program
+	- whois++d - a WHOIS++-to-LDAP gateway
 
 CHANGES
-	Changes from U. Mich release 3.3
+	Changes from OpenLDAP 1.0
+	- improved build environment with dynamic library support,
+	- externally configurable client library support: ldap.conf(5),
+	- improved password security features include SHA1, MD5, crypt(3)
+	  user and root passwords instead of clear-text password
+	- integrated SDK and tools for MS NT,
+	- platforms updates, and
+	- numerous bug fixes and build changes.
 
+	Changes from U. Mich release 3.3
 	- TCP Wrappers support added to slapd,
 	- Berkely DB2 compatibility added to slapd,
 	- ACL enhancements including Access by Group and POSIX regex(3) support,
