@@ -137,8 +137,10 @@ LDAP_LUNICODE_F(void) ucstr2upper(
 	ldap_unicode_t *,
 	ber_len_t );
 
-#define LDAP_UTF8_CASEFOLD		0x1U
 #define LDAP_UTF8_NOCASEFOLD	0x0U
+#define LDAP_UTF8_CASEFOLD	0x1U
+#define LDAP_UTF8_ARG1NFC	0x2U
+#define LDAP_UTF8_ARG2NFC	0x4U
 
 LDAP_LUNICODE_F(char *) UTF8normalize(
 	struct berval *,

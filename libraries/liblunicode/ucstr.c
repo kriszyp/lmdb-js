@@ -503,11 +503,14 @@ int UTF8normcmp(
 int UTF8bvnormcmp(
 	struct berval *bv1,
 	struct berval *bv2,
-	unsigned casefold )
+	unsigned flags )
 {
 	int i, l1, l2, len, ulen, res;
 	char *s1, *s2, *done;
 	unsigned long *ucs, *ucsout1, *ucsout2;
+	unsigned casefold = flags & LDAP_UTF8_CASEFOLD;
+	unsigned norm1 = flags & LDAP_UTF8_ARG1NFC;
+	unsigned norm2 = flags & LDAP_UTF8_ARG2NFC;
 
 	if (bv1 == NULL) {
 		return bv2 == NULL ? 0 : -1;
@@ -575,7 +578,7 @@ int UTF8bvnormcmp(
 	 * proper normalized form.
 	 */
 
-	ucs = (long *) malloc( ( l1 > l2 ? l1 : l2 ) * sizeof(*ucs) );
+	ucs = (long *) malloc( ( ( norm1 || l1 > l2 ) ? l1 : l2 ) * sizeof(*ucs) );
 	if ( ucs == NULL ) {
 		return l1 > l2 ? 1 : -1; /* what to do??? */
 	}
@@ -594,8 +597,18 @@ int UTF8bvnormcmp(
                 }
 		len = LDAP_UTF8_CHARLEN( s1 + i );
 	}
-	uccanondecomp( ucs, ulen, &ucsout1, &l1 );
-	l1 = uccanoncomp( ucsout1, l1 );
+
+	if ( norm1 ) {
+		ucsout1 = ucs;
+		l1 = ulen;
+		ucs = (long *) malloc( l2 * sizeof(*ucs) );
+		if ( ucs == NULL ) {
+			return l1 > l2 ? 1 : -1; /* what to do??? */
+		}
+	} else {
+		uccanondecomp( ucs, ulen, &ucsout1, &l1 );
+		l1 = uccanoncomp( ucsout1, l1 );
+	}
 
 	/* convert and normalize 2nd string */
 	for ( i = 0, ulen = 0; i < l2; i += len, ulen++ ) {
@@ -607,11 +620,16 @@ int UTF8bvnormcmp(
                 }
 		len = LDAP_UTF8_CHARLEN( s2 + i );
 	}
-	uccanondecomp( ucs, ulen, &ucsout2, &l2 );
-	l2 = uccanoncomp( ucsout2, l2 );
 
-	free( ucs );
-
+	if ( norm2 ) {
+		ucsout2 = ucs;
+		l2 = ulen;
+	} else {
+		uccanondecomp( ucs, ulen, &ucsout2, &l2 );
+		l2 = uccanoncomp( ucsout2, l2 );
+		free( ucs );
+	}
+	
 	res = casefold
 		? ucstrncasecmp( ucsout1, ucsout2, l1 < l2 ? l1 : l2 )
 		: ucstrncmp( ucsout1, ucsout2, l1 < l2 ? l1 : l2 );
