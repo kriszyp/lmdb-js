@@ -100,7 +100,7 @@ static int search_aliases(
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	ID *aliases, *curscop, *subscop, *visited, *newsubs, *oldsubs, *tmp;
-	ID cursora, ida, cursoro, ido;
+	ID cursora, ida, cursoro, ido, *subscop2;
 	Entry *matched, *a;
 	struct berval bv_alias = { sizeof("alias")-1, "alias" };
 	AttributeAssertion aa_alias;
@@ -115,6 +115,7 @@ static int search_aliases(
 	newsubs = visited + BDB_IDL_UM_SIZE;
 	oldsubs = newsubs + BDB_IDL_UM_SIZE;
 	tmp = oldsubs + BDB_IDL_UM_SIZE;
+	subscop2 = tmp + BDB_IDL_UM_SIZE;
 
 	af.f_choice = LDAP_FILTER_EQUALITY;
 	af.f_ava = &aa_alias;
@@ -136,19 +137,22 @@ static int search_aliases(
 	BDB_IDL_ZERO( visited );
 	BDB_IDL_ZERO( newsubs );
 
+	cursoro = 0;
 	ido = bdb_idl_first( oldsubs, &cursoro );
 
 	for (;;) {
 		BDB_IDL_CPY( curscop, aliases );
-		BDB_IDL_ALL( bdb, subscop );
 		rs->sr_err = bdb_filter_candidates( op->o_bd, sf, subscop, NULL, NULL );
 		if (first) {
 			first = 0;
 		} else {
 			bdb_cache_return_entry_r (bdb->bi_dbenv, &bdb->bi_cache, e, &locka);
 		}
+		BDB_IDL_CPY(subscop2, subscop);
 		rs->sr_err = bdb_idl_intersection(curscop, subscop);
+		BDB_IDL_CPY(subscop, subscop2);
 
+		cursora = 0;
 		for (ida = bdb_idl_first(curscop, &cursora); ida != NOID;
 			ida = bdb_idl_next(curscop, &cursora))
 		{
@@ -175,8 +179,10 @@ static int search_aliases(
 					a, &lockr);
 
 			} else if (matched) {
+				/* ignore errors */
 				bdb_cache_return_entry_r( bdb->bi_dbenv, &bdb->bi_cache,
 					matched, &lockr );
+				rs->sr_text = NULL;
 			}
 		}
 		bdb_idl_union( ids, subscop );
@@ -187,6 +193,7 @@ nextido:
 			if (BDB_IDL_IS_ZERO(newsubs)) break;
 			BDB_IDL_CPY(oldsubs, newsubs);
 			BDB_IDL_ZERO(newsubs);
+			cursoro = 0;
 			ido = bdb_idl_first( oldsubs, &cursoro );
 		}
 		rs->sr_err = bdb_id2entry_r(op->o_bd, NULL, ido, &e, locker, &locka);
