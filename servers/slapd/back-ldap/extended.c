@@ -31,7 +31,7 @@
 BI_op_extended ldap_back_exop_passwd;
 
 static struct exop {
-	struct berval *oid;
+	struct berval	*oid;
 	BI_op_extended	*extended;
 } exop_table[] = {
 	{ (struct berval *)&slap_EXOP_MODIFY_PASSWD, ldap_back_exop_passwd },
@@ -40,36 +40,39 @@ static struct exop {
 
 int
 ldap_back_extended(
-	Operation		*op,
-	SlapReply		*rs )
+		Operation	*op,
+		SlapReply	*rs )
 {
-	int i;
+	int	i;
 
-	for( i=0; exop_table[i].extended != NULL; i++ ) {
-		if( ber_bvcmp( exop_table[i].oid, &op->oq_extended.rs_reqoid ) == 0 ) {
+	for ( i = 0; exop_table[i].extended != NULL; i++ ) {
+		if ( bvmatch( exop_table[i].oid, &op->oq_extended.rs_reqoid ) )
+		{
 #ifdef LDAP_BACK_PROXY_AUTHZ 
-			struct ldapconn *lc;
-			LDAPControl **oldctrls = NULL;
-			int rc;
+			struct ldapconn	*lc;
+			LDAPControl	**oldctrls = NULL;
+			int		rc;
 
 			/* FIXME: this needs to be called here, so it is
 			 * called twice; maybe we could avoid the 
 			 * ldap_back_dobind() call inside each extended()
 			 * call ... */
-			lc = ldap_back_getconn(op, rs);
-			if (!lc || !ldap_back_dobind(lc, op, rs) ) {
+			lc = ldap_back_getconn( op, rs );
+			if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
 				return -1;
 			}
 
 			oldctrls = op->o_ctrls;
-			if ( ldap_back_proxy_authz_ctrl( lc, op, rs, &op->o_ctrls ) ) {
+			if ( ldap_back_proxy_authz_ctrl( lc, op, rs,
+						&op->o_ctrls ) )
+			{
 				op->o_ctrls = oldctrls;
 				send_ldap_result( op, rs );
 				rs->sr_text = NULL;
 				return rs->sr_err;
 			}
 
-			rc = (exop_table[i].extended)( op, rs );
+			rc = ( *exop_table[i].extended )( op, rs );
 
 			if ( op->o_ctrls && op->o_ctrls != oldctrls ) {
 				free( op->o_ctrls[ 0 ] );
@@ -79,7 +82,7 @@ ldap_back_extended(
 
 			return rc;
 #else /* ! LDAP_BACK_PROXY_AUTHZ */
-			return (exop_table[i].extended)( op, rs );
+			return ( *exop_table[i].extended )( op, rs );
 #endif /* ! LDAP_BACK_PROXY_AUTHZ */
 		}
 	}
@@ -90,93 +93,85 @@ ldap_back_extended(
 
 int
 ldap_back_exop_passwd(
-	Operation		*op,
-	SlapReply		*rs )
+		Operation	*op,
+		SlapReply	*rs )
 {
-	struct ldapinfo *li = (struct ldapinfo *) op->o_bd->be_private;
-	struct ldapconn *lc;
-	req_pwdexop_s *qpw = &op->oq_pwdexop;
-	struct berval mdn = BER_BVNULL, newpw;
-	LDAPMessage *res;
-	ber_int_t msgid;
-	int rc, isproxy;
-	int do_retry = 1;
-	dncookie dc;
+	struct ldapconn	*lc;
+	req_pwdexop_s	*qpw = &op->oq_pwdexop;
+	LDAPMessage	*res;
+	ber_int_t	msgid;
+	int		rc, isproxy;
+	int		do_retry = 1;
 
-	lc = ldap_back_getconn(op, rs);
-	if (!lc || !ldap_back_dobind(lc, op, rs) ) {
+	lc = ldap_back_getconn( op, rs );
+	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
 		return -1;
 	}
 
 	isproxy = ber_bvcmp( &op->o_req_ndn, &op->o_ndn );
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_back_exop_passwd: \"%s\"%s\n",
+	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_exop_passwd(\"%s\")%s\n",
 		op->o_req_dn.bv_val, isproxy ? " (proxy)" : "", 0 );
 
-	if ( isproxy ) {
-		dc.rwmap = &li->rwmap;
-#ifdef ENABLE_REWRITE
-		dc.conn = op->o_conn;
-		dc.rs = rs;
-		dc.ctx = "exopPasswdDN";
-#else
-		dc.tofrom = 1;
-		dc.normalized = 0;
-#endif
-		if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
-			send_ldap_result( op, rs );
-			return -1;
-		}
-	}
-
 retry:
-	rc = ldap_passwd(lc->ld, isproxy ? &mdn : NULL,
+	rc = ldap_passwd( lc->lc_ld, isproxy ? &op->o_req_dn : NULL,
 		qpw->rs_old.bv_val ? &qpw->rs_old : NULL,
 		qpw->rs_new.bv_val ? &qpw->rs_new : NULL,
-		op->o_ctrls, NULL, &msgid);
+		op->o_ctrls, NULL, &msgid );
 
-	if (rc == LDAP_SUCCESS) {
-		if (ldap_result(lc->ld, msgid, 1, NULL, &res) == -1) {
-			ldap_get_option(lc->ld, LDAP_OPT_ERROR_NUMBER, &rc);
+	if ( rc == LDAP_SUCCESS ) {
+		if ( ldap_result( lc->lc_ld, msgid, 1, NULL, &res ) == -1 ) {
+			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER, &rc );
 			ldap_back_freeconn( op, lc );
 			lc = NULL;
 
 		} else {
-			/* sigh. parse twice, because parse_passwd doesn't give
-			 * us the err / match / msg info.
+			/* sigh. parse twice, because parse_passwd
+			 * doesn't give us the err / match / msg info.
 			 */
-			rc = ldap_parse_result(lc->ld, res, &rs->sr_err, (char **)&rs->sr_matched, (char **)&rs->sr_text,
-				NULL, NULL, 0);
-			if (rc == LDAP_SUCCESS) {
-				if (rs->sr_err == LDAP_SUCCESS) {
-					rc = ldap_parse_passwd(lc->ld, res, &newpw);
-					if (rc == LDAP_SUCCESS && newpw.bv_val) {
+			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
+					(char **)&rs->sr_matched,
+					(char **)&rs->sr_text,
+					NULL, NULL, 0 );
+			if ( rc == LDAP_SUCCESS ) {
+				if ( rs->sr_err == LDAP_SUCCESS ) {
+					struct berval	newpw;
+					
+					rc = ldap_parse_passwd( lc->lc_ld, res,
+							&newpw);
+					if ( rc == LDAP_SUCCESS &&
+							!BER_BVISNULL( &newpw ) )
+					{
 						rs->sr_type = REP_EXTENDED;
-						rs->sr_rspdata = slap_passwd_return(&newpw);
-						free(newpw.bv_val);
+						rs->sr_rspdata = slap_passwd_return( &newpw );
+						free( newpw.bv_val );
 					}
+
 				} else {
 					rc = rs->sr_err;
 				}
 			}
-			ldap_msgfree(res);
+			ldap_msgfree( res );
 		}
 	}
-	if (rc != LDAP_SUCCESS) {
+	if ( rc != LDAP_SUCCESS ) {
 		rs->sr_err = slap_map_api2result( rs );
 		if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 			do_retry = 0;
-			if ( ldap_back_retry (lc, op, rs )) goto retry;
+			if ( ldap_back_retry(lc, op, rs ) ) {
+				goto retry;
+			}
 		}
-		send_ldap_result(op, rs);
-		if (rs->sr_matched) free((char *)rs->sr_matched);
-		if (rs->sr_text) free((char *)rs->sr_text);
+		send_ldap_result( op, rs );
+		if ( rs->sr_matched ) {
+			free( (char *)rs->sr_matched );
+		}
+		if ( rs->sr_text ) {
+			free( (char *)rs->sr_text );
+		}
 		rs->sr_matched = NULL;
 		rs->sr_text = NULL;
 		rc = -1;
-	}
-	if (mdn.bv_val != op->o_req_dn.bv_val) {
-		free(mdn.bv_val);
 	}
 
 	return rc;

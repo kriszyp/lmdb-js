@@ -33,58 +33,26 @@
 
 int
 ldap_back_modrdn(
-    Operation	*op,
-    SlapReply	*rs )
+		Operation	*op,
+ 		SlapReply	*rs )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
-	ber_int_t msgid;
-	dncookie dc;
-	LDAPControl **ctrls = NULL;
-	int do_retry = 1;
-	int rc = LDAP_SUCCESS;
-
-	struct berval mdn = BER_BVNULL, mnewSuperior = BER_BVNULL;
+	ber_int_t	msgid;
+	LDAPControl	**ctrls = NULL;
+	int		do_retry = 1;
+	int		rc = LDAP_SUCCESS;
+	char		*newSup = NULL;
 
 	lc = ldap_back_getconn( op, rs );
-	if ( !lc || !ldap_back_dobind(lc, op, rs) ) {
+	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
 		return( -1 );
 	}
 
-	dc.rwmap = &li->rwmap;
-#ifdef ENABLE_REWRITE
-	dc.conn = op->o_conn;
-	dc.rs = rs;
-#else
-	dc.tofrom = 1;
-	dc.normalized = 0;
-#endif
-	if (op->orr_newSup) {
-		int version = LDAP_VERSION3;
-		ldap_set_option( lc->ld, LDAP_OPT_PROTOCOL_VERSION, &version);
+	if ( op->orr_newSup ) {
+		int	version = LDAP_VERSION3;
 		
-		/*
-		 * Rewrite the new superior, if defined and required
-	 	 */
-#ifdef ENABLE_REWRITE
-		dc.ctx = "newSuperiorDN";
-#endif
-		if ( ldap_back_dn_massage( &dc, op->orr_newSup,
-			&mnewSuperior ) ) {
-			send_ldap_result( op, rs );
-			return -1;
-		}
-	}
-
-	/*
-	 * Rewrite the modrdn dn, if required
-	 */
-#ifdef ENABLE_REWRITE
-	dc.ctx = "modrDN";
-#endif
-	if ( ldap_back_dn_massage( &dc, &op->o_req_ndn, &mdn ) ) {
-		send_ldap_result( op, rs );
-		return -1;
+		ldap_set_option( lc->lc_ld, LDAP_OPT_PROTOCOL_VERSION, &version );
+		newSup = op->orr_newSup->bv_val;
 	}
 
 	ctrls = op->o_ctrls;
@@ -98,32 +66,21 @@ ldap_back_modrdn(
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
-	rs->sr_err = ldap_rename( lc->ld, mdn.bv_val,
-			op->orr_newrdn.bv_val, mnewSuperior.bv_val,
-			op->orr_deleteoldrdn,
-			ctrls,
-			NULL, &msgid );
+	rs->sr_err = ldap_rename( lc->lc_ld, op->o_req_ndn.bv_val,
+			op->orr_newrdn.bv_val, newSup,
+			op->orr_deleteoldrdn, ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry (lc, op, rs )) goto retry;
+		if ( ldap_back_retry( lc, op, rs ) ) {
+			goto retry;
+		}
 	}
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 cleanup:
-	if ( ctrls && ctrls != op->o_ctrls ) {
-		free( ctrls[ 0 ] );
-		free( ctrls );
-	}
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
-
-	if ( mdn.bv_val != op->o_req_ndn.bv_val ) {
-		free( mdn.bv_val );
-	}
-	if ( mnewSuperior.bv_val != NULL
-		&& mnewSuperior.bv_val != op->oq_modrdn.rs_newSup->bv_val ) {
-		free( mnewSuperior.bv_val );
-	}
 
 	return rc;
 }

@@ -33,40 +33,20 @@
 
 int
 ldap_back_delete(
-    Operation	*op,
-    SlapReply	*rs )
+		Operation	*op,
+		SlapReply	*rs )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
-	struct ldapconn *lc;
-	ber_int_t msgid;
-	dncookie dc;
-	LDAPControl **ctrls = NULL;
-	int do_retry = 1;
-	int rc = LDAP_SUCCESS;
-
-	struct berval mdn = BER_BVNULL;
+	struct ldapconn	*lc;
+	ber_int_t	msgid;
+	LDAPControl	**ctrls = NULL;
+	int		do_retry = 1;
+	int		rc = LDAP_SUCCESS;
 
 	lc = ldap_back_getconn( op, rs );
 	
 	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
-		return( -1 );
-	}
-
-	/*
-	 * Rewrite the request dn, if needed
-	 */
-	dc.rwmap = &li->rwmap;
-#ifdef ENABLE_REWRITE
-	dc.conn = op->o_conn;
-	dc.rs = rs;
-	dc.ctx = "deleteDN";
-#else
-	dc.tofrom = 1;
-	dc.normalized = 0;
-#endif
-	if ( ldap_back_dn_massage( &dc, &op->o_req_ndn, &mdn ) ) {
-		send_ldap_result( op, rs );
-		return -1;
+		rc = -1;
+		goto cleanup;
 	}
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
@@ -80,7 +60,7 @@ ldap_back_delete(
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
-	rs->sr_err = ldap_delete_ext( lc->ld, mdn.bv_val,
+	rs->sr_err = ldap_delete_ext( lc->lc_ld, op->o_req_ndn.bv_val,
 			ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 	if ( rs->sr_err == LDAP_SERVER_DOWN && do_retry ) {
@@ -88,17 +68,10 @@ retry:
 		if ( ldap_back_retry (lc, op, rs )) goto retry;
 	}
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 cleanup:
-	if ( ctrls && ctrls != op->o_ctrls ) {
-		free( ctrls[ 0 ] );
-		free( ctrls );
-	}
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
-
-	if ( mdn.bv_val != op->o_req_ndn.bv_val ) {
-		free( mdn.bv_val );
-	}
 
 	return rc;
 }

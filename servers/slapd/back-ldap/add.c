@@ -33,95 +33,60 @@
 
 int
 ldap_back_add(
-    Operation	*op,
-    SlapReply	*rs )
+	Operation	*op,
+	SlapReply	*rs )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
-	struct ldapconn *lc;
-	int i, j;
-	Attribute *a;
-	LDAPMod **attrs;
-	struct berval mapped;
-	struct berval mdn = BER_BVNULL;
-	ber_int_t msgid;
-	dncookie dc;
-	int isupdate;
-	int do_retry = 1;
-	LDAPControl **ctrls = NULL;
-	int rc = LDAP_SUCCESS;
+	struct ldapconn	*lc;
+	int		i = 0,
+			j = 0;
+	Attribute	*a;
+	LDAPMod		**attrs = NULL,
+			*attrs2 = NULL;
+	ber_int_t	msgid;
+	int		isupdate;
+	int		do_retry = 1;
+	LDAPControl	**ctrls = NULL;
+	int		rc = LDAP_SUCCESS;
 
-	Debug(LDAP_DEBUG_ARGS, "==> ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0);
-	
-	lc = ldap_back_getconn(op, rs);
+	Debug( LDAP_DEBUG_ARGS, "==> ldap_back_add(\"%s\")\n",
+			op->o_req_dn.bv_val, 0, 0 );
+
+	lc = ldap_back_getconn( op, rs );
 	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
-		return( -1 );
-	}
-
-	/*
-	 * Rewrite the add dn, if needed
-	 */
-	dc.rwmap = &li->rwmap;
-#ifdef ENABLE_REWRITE
-	dc.conn = op->o_conn;
-	dc.rs = rs;
-	dc.ctx = "addDN";
-#else
-	dc.tofrom = 1;
-	dc.normalized = 0;
-#endif
-	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
-		send_ldap_result( op, rs );
-		return -1;
+		rc = -1;
+		goto cleanup;
 	}
 
 	/* Count number of attributes in entry */
 	for (i = 1, a = op->oq_add.rs_e->e_attrs; a; i++, a = a->a_next)
-		;
+		/* just count attrs */ ;
 	
 	/* Create array of LDAPMods for ldap_add() */
-	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
-
-#ifdef ENABLE_REWRITE
-	dc.ctx = "addAttrDN";
-#endif
+	attrs = (LDAPMod **)ch_malloc( sizeof( LDAPMod * )*i 
+			+ sizeof( LDAPMod )*( i - 1 ) );
+	attrs2 = ( LDAPMod * )&attrs[ i ];
 
 	isupdate = be_shadow_update( op );
-	for (i=0, a=op->oq_add.rs_e->e_attrs; a; a=a->a_next) {
+	for ( i = 0, a = op->oq_add.rs_e->e_attrs; a; a = a->a_next ) {
 		if ( !isupdate && a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map(&li->rwmap.rwm_at, &a->a_desc->ad_cname, &mapped,
-				BACKLDAP_MAP);
-		if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
-			continue;
+		attrs[ i ] = &attrs2[ i ];
+		attrs[ i ]->mod_op = LDAP_MOD_BVALUES;
+		attrs[ i ]->mod_type = a->a_desc->ad_cname.bv_val;
+
+		for ( j = 0; a->a_vals[ j ].bv_val; j++ )
+			/* just count vals */ ;
+		attrs[i]->mod_vals.modv_bvals = 
+			ch_malloc( ( j + 1 )*sizeof( struct berval * ) );
+		for ( j = 0; a->a_vals[ j ].bv_val; j++ ) {
+			attrs[ i ]->mod_vals.modv_bvals[ j ] = &a->a_vals[ j ];
 		}
-
-		attrs[i] = (LDAPMod *)ch_malloc(sizeof(LDAPMod));
-		if (attrs[i] == NULL) {
-			continue;
-		}
-
-		attrs[i]->mod_op = LDAP_MOD_BVALUES;
-		attrs[i]->mod_type = mapped.bv_val;
-
-		if ( a->a_desc->ad_type->sat_syntax ==
-			slap_schema.si_syn_distinguishedName ) {
-			/*
-			 * FIXME: rewrite could fail; in this case
-			 * the operation should give up, right?
-			 */
-			(void)ldap_dnattr_rewrite( &dc, a->a_vals );
-		}
-
-		for (j=0; a->a_vals[j].bv_val; j++);
-		attrs[i]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
-		for (j=0; a->a_vals[j].bv_val; j++)
-			attrs[i]->mod_vals.modv_bvals[j] = &a->a_vals[j];
-		attrs[i]->mod_vals.modv_bvals[j] = NULL;
+		attrs[ i ]->mod_vals.modv_bvals[ j ] = NULL;
 		i++;
 	}
-	attrs[i] = NULL;
+	attrs[ i ] = NULL;
 
 	ctrls = op->o_ctrls;
 #ifdef LDAP_BACK_PROXY_AUTHZ
@@ -134,28 +99,31 @@ ldap_back_add(
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
-	rs->sr_err = ldap_add_ext(lc->ld, mdn.bv_val, attrs,
-			ctrls, NULL, &msgid);
+	rs->sr_err = ldap_add_ext( lc->lc_ld, op->o_req_dn.bv_val, attrs,
+			ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry (lc, op, rs )) goto retry;
+		if ( ldap_back_retry( lc, op, rs ) ) {
+			goto retry;
+		}
 	}
-#ifdef LDAP_BACK_PROXY_AUTHZ
+
 cleanup:
-	if ( ctrls && ctrls != op->o_ctrls ) {
-		free( ctrls[ 0 ] );
-		free( ctrls );
-	} 
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
-	for (--i; i>= 0; --i) {
-		ch_free(attrs[i]->mod_vals.modv_bvals);
-		ch_free(attrs[i]);
+
+	if ( attrs ) {
+		for ( --i; i >= 0; --i ) {
+			ch_free( attrs[ i ]->mod_vals.modv_bvals );
+		}
+		ch_free( attrs );
 	}
-	ch_free(attrs);
-	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
-		free( mdn.bv_val );
-	}
+
+	Debug( LDAP_DEBUG_ARGS, "<== ldap_back_add(\"%s\"): %d\n",
+			op->o_req_dn.bv_val, rc, 0 );
+
 	return rc;
 }
 

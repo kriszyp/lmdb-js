@@ -33,70 +33,19 @@
 
 int
 ldap_back_compare(
-    Operation	*op,
-    SlapReply	*rs )
+		Operation	*op,
+		SlapReply	*rs )
 {
-	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
-	struct ldapconn *lc;
-	struct berval mapped_at = BER_BVNULL, mapped_val = BER_BVNULL;
-	struct berval mdn = BER_BVNULL;
-	ber_int_t msgid;
-	int freeval = 0;
-	int do_retry = 1;
-	dncookie dc;
-	LDAPControl **ctrls = NULL;
-	int rc = LDAP_SUCCESS;
+	struct ldapconn	*lc;
+	ber_int_t	msgid;
+	int		do_retry = 1;
+	LDAPControl	**ctrls = NULL;
+	int		rc = LDAP_SUCCESS;
 
-	lc = ldap_back_getconn(op, rs);
+	lc = ldap_back_getconn( op, rs );
 	if (!lc || !ldap_back_dobind( lc, op, rs ) ) {
-		return( -1 );
-	}
-
-	/*
-	 * Rewrite the compare dn, if needed
-	 */
-	dc.rwmap = &li->rwmap;
-#ifdef ENABLE_REWRITE
-	dc.conn = op->o_conn;
-	dc.rs = rs;
-	dc.ctx = "compareDN";
-#else
-	dc.tofrom = 1;
-	dc.normalized = 0;
-#endif
-	if ( ldap_back_dn_massage( &dc, &op->o_req_ndn, &mdn ) ) {
-		send_ldap_result( op, rs );
-		return -1;
-	}
-
-	if ( op->orc_ava->aa_desc == slap_schema.si_ad_objectClass
-		|| op->orc_ava->aa_desc == slap_schema.si_ad_structuralObjectClass ) {
-		ldap_back_map(&li->rwmap.rwm_oc, &op->orc_ava->aa_value,
-				&mapped_val, BACKLDAP_MAP);
-		if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {
-			return( -1 );
-		}
-		mapped_at = op->orc_ava->aa_desc->ad_cname;
-	} else {
-		ldap_back_map(&li->rwmap.rwm_at,
-				&op->orc_ava->aa_desc->ad_cname, &mapped_at, 
-				BACKLDAP_MAP);
-		if (mapped_at.bv_val == NULL || mapped_at.bv_val[0] == '\0') {
-			return( -1 );
-		}
-		if (op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
-#ifdef ENABLE_REWRITE
-			dc.ctx = "compareAttrDN";
-#endif
-			ldap_back_dn_massage( &dc, &op->orc_ava->aa_value, &mapped_val );
-			if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {
-				mapped_val = op->orc_ava->aa_value;
-			} else if (mapped_val.bv_val != op->orc_ava->aa_value.bv_val) {
-				freeval = 1;
-			}
-		} else {
-			mapped_val = op->orc_ava->aa_value;
-		}
+		rc = -1;
+		goto cleanup;
 	}
 
 	ctrls = op->o_ctrls;
@@ -110,28 +59,22 @@ ldap_back_compare(
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 
 retry:
-	rs->sr_err = ldap_compare_ext( lc->ld, mdn.bv_val,
-			mapped_at.bv_val, &mapped_val, 
+	rs->sr_err = ldap_compare_ext( lc->lc_ld, op->o_req_ndn.bv_val,
+			op->orc_ava->aa_desc->ad_cname.bv_val,
+			&op->orc_ava->aa_value, 
 			ctrls, NULL, &msgid );
 	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 	if ( rs->sr_err == LDAP_UNAVAILABLE && do_retry ) {
 		do_retry = 0;
-		if ( ldap_back_retry (lc, op, rs )) goto retry;
+		if ( ldap_back_retry(lc, op, rs ) ) {
+			goto retry;
+		}
 	}
 
-#ifdef LDAP_BACK_PROXY_AUTHZ
 cleanup:
-	if ( ctrls && ctrls != op->o_ctrls ) {
-		free( ctrls[ 0 ] );
-		free( ctrls );
-	}
+#ifdef LDAP_BACK_PROXY_AUTHZ
+	(void)ldap_back_proxy_authz_ctrl_free( op, &ctrls );
 #endif /* LDAP_BACK_PROXY_AUTHZ */
 	
-	if ( mdn.bv_val != op->o_req_ndn.bv_val ) {
-		free( mdn.bv_val );
-	}
-	if ( freeval ) {
-		free( mapped_val.bv_val );
-	}
 	return rc;
 }

@@ -33,8 +33,8 @@
 
 int
 ldap_back_conn_destroy(
-    Backend		*be,
-    Connection		*conn
+		Backend		*be,
+		Connection	*conn
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
@@ -44,24 +44,17 @@ ldap_back_conn_destroy(
 		"=>ldap_back_conn_destroy: fetching conn %ld\n",
 		conn->c_connid, 0, 0 );
 
-	lc_curr.conn = conn;
-	lc_curr.local_dn = conn->c_ndn;
+	lc_curr.lc_conn = conn;
+	lc_curr.lc_local_ndn = conn->c_ndn;
 	
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = avl_delete( &li->conntree, (caddr_t)&lc_curr, ldap_back_conn_cmp );
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
-#ifdef ENABLE_REWRITE
-	/*
-	 * Cleanup rewrite session
-	 */
-	rewrite_session_delete( li->rwmap.rwm_rw, conn );
-#endif /* ENABLE_REWRITE */
-
-	if (lc) {
+	if ( lc ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"=>ldap_back_conn_destroy: destroying conn %ld\n",
-			lc->conn->c_connid, 0, 0 );
+			lc->lc_conn->c_connid, 0, 0 );
 
 		/*
 		 * Needs a test because the handler may be corrupted,

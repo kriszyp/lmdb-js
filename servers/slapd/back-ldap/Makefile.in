@@ -14,11 +14,9 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c \
-		delete.c modify.c modrdn.c \
-		suffixmassage.c map.c extended.c
+		delete.c modify.c modrdn.c extended.c
 OBJS	= init.lo config.lo search.lo bind.lo unbind.lo add.lo compare.lo \
-		delete.lo modify.lo modrdn.lo \
-		suffixmassage.lo map.lo extended.lo
+		delete.lo modify.lo modrdn.lo extended.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -29,12 +27,9 @@ BUILD_MOD = @BUILD_LDAP@
 mod_DEFS = -DSLAPD_IMPORT
 MOD_DEFS = $(@BUILD_LDAP@_DEFS)
 
-mod_REWRITE = $(LDAP_LIBREWRITE_A)
-
-REWRITE = $(@BUILD_META@_REWRITE) $(@BUILD_LDAP@_REWRITE)
 shared_LDAP_LIBS = $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
-NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS) $(REWRITE)
-UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS) $(REWRITE)
+NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
 
 LIBBASE = back_ldap
 
