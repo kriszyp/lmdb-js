@@ -914,9 +914,9 @@ may also be provided using the
 directive.
 .TP
 .B rootpw <password>
-Specify a password (or hash of the password) for the rootdn.  If
-the rootdn is not within the namingContext of the database, the
-provided password is ignored.
+Specify a password (or hash of the password) for the rootdn.  The
+password can only be set if the rootdn is within the namingContext
+(suffix) of the database.
 This option accepts all RFC 2307 userPassword formats known to
 the server (see 
 .B password-hash
