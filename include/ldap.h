@@ -1179,7 +1179,7 @@ typedef struct ldap_ava {
 	unsigned la_flags;
 #define LDAP_AVA_STRING		0x0000U
 #define LDAP_AVA_BINARY		0x0001U
-#define LDAP_AVA_UTF8STRING	0x0002U
+#define LDAP_AVA_PRINTABLE	0x0002U
 } LDAPAVA;
 
 typedef LDAPAVA** LDAPRDN;

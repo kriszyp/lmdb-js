@@ -384,7 +384,7 @@ explode_name( const char *name, int notypes, int is_type )
 #define LDAP_DN_NEEDESCAPE_LEAD(c) \
 	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_OCTOTHORPE(c) || LDAP_DN_NE(c) )
 #define LDAP_DN_NEEDESCAPE_TRAIL(c) \
-	( ( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_NEEDESCAPE(c) )
+	( LDAP_DN_ASCII_SPACE(c) || LDAP_DN_NEEDESCAPE(c) )
 
 /* LDAPv2 */
 #define	LDAP_DN_VALUE_END_V2(c) \
@@ -1126,7 +1126,9 @@ str2strval( const char *str, struct berval **val, const char **next, unsigned fl
 			if ( p[ 0 ] == '\0' ) {
 				return( 1 );
 			}
-			if ( LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
+			if ( ( p == startPos + 1 && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
+					|| ( LDAP_DN_VALUE_END( p[ 1 ] ) && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) )
+					|| LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
 				escapes++;
 				continue;
 			}
@@ -1144,7 +1146,7 @@ str2strval( const char *str, struct berval **val, const char **next, unsigned fl
 				/*
 				 * we assume the string is UTF-8
 				 */
-				*retFlags = LDAP_AVA_UTF8STRING;
+				*retFlags = LDAP_AVA_PRINTABLE;
 				continue;
 			}
 
@@ -1185,8 +1187,8 @@ str2strval( const char *str, struct berval **val, const char **next, unsigned fl
 		/* strip trailing (unescaped) spaces */
 		for ( endPos = p - 1; 
 				endPos > startPos + 1 && 
-				LDAP_DN_ASCII_SPACE( endPos[ -1 ] ) &&
-				!LDAP_DN_ESCAPE( endPos[ -2 ] );
+				LDAP_DN_ASCII_SPACE( endPos[ 0 ] ) &&
+				!LDAP_DN_ESCAPE( endPos[ -1 ] );
 				endPos-- ) {
 			/* no op */
 		}
@@ -1209,7 +1211,9 @@ str2strval( const char *str, struct berval **val, const char **next, unsigned fl
 		for ( s = 0, d = 0; d < len; ) {
 			if ( LDAP_DN_ESCAPE( startPos[ s ] ) ) {
 				s++;
-				if ( LDAP_DN_NEEDESCAPE( startPos[ s ] ) ) {
+				if ( ( s == 0 && LDAP_DN_NEEDESCAPE_LEAD( startPos[ s ] ) )
+						|| ( s == len - 1 && LDAP_DN_NEEDESCAPE_TRAIL( startPos[ s ] ) )
+						|| LDAP_DN_NEEDESCAPE( startPos[ s ] ) ) {
 					( *val )->bv_val[ d++ ] = 
 						startPos[ s++ ];
 				} else if ( LDAP_DN_HEXPAIR( &startPos[ s ] ) ) {
@@ -1283,8 +1287,8 @@ DCE2strval( const char *str, struct berval **val, const char **next, unsigned fl
 		/* strip trailing (unescaped) spaces */
 		for ( endPos = p - 1; 
 				endPos > startPos + 1 && 
-				LDAP_DN_ASCII_SPACE( endPos[ -1 ] ) &&
-				!LDAP_DN_ESCAPE( endPos[ -2 ] );
+				LDAP_DN_ASCII_SPACE( endPos[ 0 ] ) &&
+				!LDAP_DN_ESCAPE( endPos[ -1 ] );
 				endPos-- ) {
 			/* no op */
 		}
@@ -1518,7 +1522,7 @@ hexstr2bin( const char *str, unsigned *c )
 static int
 hexstr2binval( const char *str, struct berval **val, const char **next, unsigned flags )
 {
-	const char 	*p, *startPos;
+	const char 	*p, *startPos, *endPos = NULL;
 	ber_len_t	len;
 	ber_len_t	s, d;
 
@@ -1530,10 +1534,21 @@ hexstr2binval( const char *str, struct berval **val, const char **next, unsigned
 	*next = NULL;
 
 	for ( startPos = p = str; p[ 0 ]; p += 2 ) {
-		/* 
-		 * FIXME: add test for spaces to allow trailing spaces
-		 */ 
 		if ( LDAP_DN_VALUE_END( p[ 0 ] ) ) {
+			break;
+		}
+
+		if ( LDAP_DN_ASCII_SPACE( p[ 0 ] ) ) {
+			if ( flags & LDAP_DN_PEDANTIC ) {
+				return( 1 );
+			}
+			endPos = p;
+
+			for ( ; p[ 0 ]; p++ ) {
+				if ( LDAP_DN_VALUE_END( p[ 0 ] ) ) {
+					break;
+				}
+			}
 			break;
 		}
 		
@@ -1542,9 +1557,9 @@ hexstr2binval( const char *str, struct berval **val, const char **next, unsigned
 		}
 	}
 
-	/* FIXME: no trailing spaces allowed? */
-	len = ( p - startPos ) / 2;
-	assert( 2 * len == p - startPos );	/* must be even! */
+	len = ( ( endPos ? endPos : p ) - startPos ) / 2;
+	/* must be even! */
+	assert( 2 * len == ( endPos ? endPos : p ) - startPos );
 
 	*val = LDAP_MALLOC( sizeof( struct berval ) );
 	if ( *val == NULL ) {
@@ -1644,14 +1659,16 @@ strval2strlen( struct berval *val, unsigned flags )
 		if ( cl > 1 ) {
 			/* need to escape it */
 			l += 3 * cl;
-		} else if ( LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
+		} else if ( ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
+				|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) )
+				|| LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
 			l += 2;
 		} else {
 			l++;
 		}
 	}
 
-	return l;
+	return( l );
 }
 
 /*
@@ -1661,7 +1678,7 @@ strval2strlen( struct berval *val, unsigned flags )
 static int
 strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
-	ber_len_t	s, d, cl;
+	ber_len_t	s, d, cl, end;
 
 	assert( val );
 	assert( str );
@@ -1677,8 +1694,7 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 	 * we assume the string has enough room for the hex encoding
 	 * of the value
 	 */
-
-	for ( s = 0, d = 0; s < val->bv_len; ) {
+	for ( s = 0, d = 0, end = val->bv_len - 1; s < val->bv_len; ) {
 		cl = ldap_utf8_charlen( &val->bv_val[ s ] );
 		
 		if ( cl > 1 ) {
@@ -1689,7 +1705,9 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 				d += 2;
 			}
 		} else {
-			if ( LDAP_DN_NEEDESCAPE( val->bv_val[ s ] ) ) {
+			if ( ( d == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
+					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) )
+					|| LDAP_DN_NEEDESCAPE( val->bv_val[ s ] ) ) {
 				str[ d++ ] = '\\';
 			}
 			str[ d++ ] = val->bv_val[ s++ ];
@@ -1717,7 +1735,7 @@ strval2IA5strlen( struct berval *val, unsigned flags )
 		return( 0 );
 	}
 
-	if ( flags & LDAP_AVA_UTF8STRING ) {
+	if ( flags & LDAP_AVA_PRINTABLE ) {
 		/*
 		 * FIXME: binary encoded BER
 		 */
@@ -1725,7 +1743,9 @@ strval2IA5strlen( struct berval *val, unsigned flags )
 
 	} else {
 		for ( l = 0, p = val->bv_val; p[ 0 ]; p++ ) {
-			if ( LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
+			if ( ( p == val->bv_val && LDAP_DN_NEEDESCAPE_LEAD( p[ 0 ] ) )
+					|| ( !p[ 1 ] && LDAP_DN_NEEDESCAPE_TRAIL( p[ 0 ] ) )
+					|| LDAP_DN_NEEDESCAPE( p[ 0 ] ) ) {
 				l += 2;
 			} else {
 				l++;
@@ -1743,7 +1763,7 @@ strval2IA5strlen( struct berval *val, unsigned flags )
 static int
 strval2IA5str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 {
-	ber_len_t	s, d;
+	ber_len_t	s, d, end;
 
 	assert( val );
 	assert( str );
@@ -1755,7 +1775,7 @@ strval2IA5str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		return ( 0 );
 	}
 
-	if ( flags & LDAP_AVA_UTF8STRING ) {
+	if ( flags & LDAP_AVA_PRINTABLE ) {
 		/*
 		 * FIXME: binary encoded BER
 		 */
@@ -1767,8 +1787,10 @@ strval2IA5str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		 * of the value
 		 */
 
-		for ( s = 0, d = 0; s < val->bv_len; ) {
-			if ( LDAP_DN_NEEDESCAPE( val->bv_val[ s ] ) ) {
+		for ( s = 0, d = 0, end = val->bv_len - 1; s < val->bv_len; ) {
+			if ( ( s == 0 && LDAP_DN_NEEDESCAPE_LEAD( val->bv_val[ s ] ) )
+					|| ( s == end && LDAP_DN_NEEDESCAPE_TRAIL( val->bv_val[ s ] ) )
+					|| LDAP_DN_NEEDESCAPE( val->bv_val[ s ] ) ) {
 				str[ d++ ] = '\\';
 			}
 			str[ d++ ] = val->bv_val[ s++ ];
@@ -1797,7 +1819,7 @@ strval2DCEstrlen( struct berval *val, unsigned flags )
 		return ( 0 );
 	}
 
-	if ( flags & LDAP_AVA_UTF8STRING ) {
+	if ( flags & LDAP_AVA_PRINTABLE ) {
 		/* 
 		 * FIXME: binary encoded BER
 		 */
@@ -1836,7 +1858,7 @@ strval2DCEstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		return ( 0 );
 	}
 
-	if ( flags & LDAP_AVA_UTF8STRING ) {
+	if ( flags & LDAP_AVA_PRINTABLE ) {
 		/*
 		 * FIXME: binary encoded BER
 		 */
@@ -1879,7 +1901,7 @@ strval2ADstrlen( struct berval *val, unsigned flags )
 		return ( 0 );
 	}
 
-	if ( flags & LDAP_AVA_UTF8STRING ) {
+	if ( flags & LDAP_AVA_PRINTABLE ) {
 		/* 
 		 * FIXME: binary encoded BER
 		 */
@@ -1918,7 +1940,7 @@ strval2ADstr( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 		return ( 0 );
 	}
 
-	if ( flags & LDAP_AVA_UTF8STRING ) {
+	if ( flags & LDAP_AVA_PRINTABLE ) {
 		/*
 		 * FIXME: binary encoded BER
 		 */
@@ -2046,7 +2068,7 @@ int ldap_dn2str( LDAPDN *dn, char **str, unsigned flags )
 		s2l = strval2IA5strlen;
 		s2s = strval2IA5str;
 v2_v3:
-		
+
 		/*
 		 * FIXME: we're treating LDAPv3 and LDAPv2 the same way;
 		 * is it correct?  No. LDAPv2 need to use binary encode
@@ -2077,7 +2099,6 @@ v2_v3:
 			rc = LDAP_NO_MEMORY;
 			break;
 		}
-		( *str )[ 0 ] = '\0';
 
 		for ( l = 0, iRDN = 0; dn[ iRDN ]; iRDN++ ) {
 			LDAPRDN 	*rdn = dn[ iRDN ][ 0 ];
@@ -2170,7 +2191,6 @@ v2_v3:
 			rc = LDAP_NO_MEMORY;
 			break;
 		}
-		( *str )[ 0 ] = '\0';
 
 		for ( l = 0, iRDN = 0; dn[ iRDN ]; iRDN++ ) {
 			LDAPRDN 	*rdn = dn[ iRDN ][ 0 ];
@@ -2235,7 +2255,6 @@ v2_v3:
 			rc = LDAP_NO_MEMORY;
 			break;
 		}
-		( *str )[ 0 ] = '\0';
 
 		for ( l = 0; iRDN--; ) {
 			LDAPRDN 	*rdn = dn[ iRDN ][ 0 ];
@@ -2296,7 +2315,6 @@ v2_v3:
 			rc = LDAP_NO_MEMORY;
 			break;
 		}
-		( *str )[ 0 ] = '\0';
 
 		iRDN--;
 		if ( iRDN && dn2domain( dn, str, &iRDN ) ) {
