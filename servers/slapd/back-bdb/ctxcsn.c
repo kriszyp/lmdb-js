@@ -305,9 +305,8 @@ txn_retry:
 						rs->sr_err = LDAP_OTHER;
 						return rs->sr_err;
 					}
-
-					bdb_trans_backoff( ++num_retries );
 					ldap_pvt_thread_yield();
+					bdb_trans_backoff( ++num_retries );
 				}
 				rs->sr_err = TXN_BEGIN( bdb->bi_dbenv, NULL, &ltid, bdb->bi_db_opflags );
 				if ( rs->sr_err != 0 ) {

@@ -120,8 +120,8 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto done;
 		}
-		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
+		bdb_trans_backoff( ++num_retries );
 	}
 
 	/* begin transaction */

@@ -73,8 +73,8 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
-		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
+		bdb_trans_backoff( ++num_retries );
 	}
 
 	/* begin transaction */
@@ -554,7 +554,7 @@ done:
 	if( e != NULL ) {
 		if ( rs->sr_err == LDAP_SUCCESS ) {
 			/* Free the EntryInfo and the Entry */
-			bdb_cache_delete_cleanup( e );
+			bdb_cache_delete_cleanup( &bdb->bi_cache, e );
 		} else {
 			bdb_unlocked_cache_return_entry_w(&bdb->bi_cache, e);
 		}
