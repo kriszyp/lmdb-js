@@ -805,7 +805,8 @@ read_config(const char *fname, int depth) {
 	}
 	i = init_config_attrs(SystemConfiguration);
 	if ( i ) return i;
-	config_back_init( &cf_prv, SystemConfiguration );
+	i = config_back_init( &cf_prv, SystemConfiguration );
+	if ( i ) return i;
 	return read_config_file(fname, depth, NULL);
 }
 
