@@ -1,6 +1,6 @@
-OpenLDAP 2.0 Alpha README
-	This is an alpha release of OpenLDAP 2.0.  It is provided
-	for reference purposes only.  It is not for general use.
+OpenLDAP 2.0 Beta README
+	This is an beta release of OpenLDAP 2.0.  It is provided
+	for testing purposes only.  It is not for general use.
 
 	The OpenLDAP Developer's FAQ is available at:
 		http://www.openldap.org/faq/index.cgi?file=4
@@ -9,8 +9,7 @@ OpenLDAP 2.0 Alpha README
 	this release to the openldap-devel@openldap.org mailing list.
 	As this release is not intended for general use, no general
 	use questions will be answered.   Developer's wishing to
-	contribute changes should work with latest devel codes, this
-	snapshot is for reference purposes only.
+	contribute changes should work with latest devel codes.
 
 	For a more detailed description of how to make an install the
 	distribution, see the INSTALL file in this directory.  Additional
