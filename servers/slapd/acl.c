@@ -48,6 +48,7 @@
 static struct berval 
 	aci_bv_entry 		= BER_BVC("entry"),
 	aci_bv_children 	= BER_BVC("children"),
+	aci_bv_onelevel 	= BER_BVC("onelevel"),
 	aci_bv_subtree 		= BER_BVC("subtree"),
 	aci_bv_br_entry		= BER_BVC("[entry]"),
 	aci_bv_br_all		= BER_BVC("[all]"),
@@ -2412,15 +2413,20 @@ aci_mask(
 	assert( !BER_BVISNULL( &desc->ad_cname ) );
 
 	/* parse an aci of the form:
-		oid#scope#action;rights;attr;rights;attr$action;rights;attr;rights;attr#dnType#subjectDN
+		oid # scope # action;rights;attr;rights;attr 
+			$ action;rights;attr;rights;attr # type # subject
 
 	   See draft-ietf-ldapext-aci-model-04.txt section 9.1 for
 	   a full description of the format for this attribute.
 	   Differences: "this" in the draft is "self" here, and
-	   "self" and "public" is in the position of dnType.
+	   "self" and "public" is in the position of type.
 
-	   For now, this routine only supports scope=entry.
+	   This routine now supports scope={ENTRY,CHILDREN}
+	   with the semantics:
+	     - ENTRY applies to "entry" and "subtree";
+	     - CHILDREN aplies to "children" and "subtree"
 	 */
+
 	/* check that the aci has all 5 components */
 	if ( aci_get_part( aci, 4, '#', NULL ) < 0 ) {
 		return 0;
@@ -2475,6 +2481,17 @@ aci_mask(
 		return 0;
 	}
 
+	/* see if we have a public (i.e. anonymous) access */
+	if ( ber_bvstrcasecmp( &aci_bv_public, &type ) == 0 ) {
+		return 1;
+
+	}
+	
+	/* otherwise require an identity */
+	if ( BER_BVISNULL( &op->o_ndn ) || BER_BVISEMPTY( &op->o_ndn ) ) {
+		return 0;
+	}
+
 	if ( aci_get_part( aci, 4, '#', &sdn ) < 0 ) {
 		return 0;
 	}
@@ -2482,18 +2499,66 @@ aci_mask(
 	if ( ber_bvstrcasecmp( &aci_bv_access_id, &type ) == 0 ) {
 		struct berval ndn;
 		
-		rc = 0;
-		if ( dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx ) == LDAP_SUCCESS )
-		{
-			if ( dn_match( &op->o_ndn, &ndn ) ) {
-				rc = 1;
-			}
-			slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
+		if ( rc != LDAP_SUCCESS ) {
+			return 0;
 		}
+
+		if ( dn_match( &op->o_ndn, &ndn ) ) {
+			rc = 1;
+		}
+		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+
 		return rc;
 
-	} else if ( ber_bvstrcasecmp( &aci_bv_public, &type ) == 0 ) {
-		return 1;
+	} else if ( ber_bvstrcasecmp( &aci_bv_subtree, &type ) == 0 ) {
+		struct berval ndn;
+		
+		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
+		if ( rc != LDAP_SUCCESS ) {
+			return 0;
+		}
+
+		if ( dnIsSuffix( &op->o_ndn, &ndn ) ) {
+			rc = 1;
+		}
+		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+
+		return rc;
+
+	} else if ( ber_bvstrcasecmp( &aci_bv_onelevel, &type ) == 0 ) {
+		struct berval ndn, pndn;
+		
+		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
+		if ( rc != LDAP_SUCCESS ) {
+			return 0;
+		}
+
+		dnParent( &ndn, &pndn );
+
+		if ( dn_match( &op->o_ndn, &pndn ) ) {
+			rc = 1;
+		}
+		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+
+		return rc;
+
+	} else if ( ber_bvstrcasecmp( &aci_bv_children, &type ) == 0 ) {
+		struct berval ndn;
+		
+		rc = dnNormalize( 0, NULL, NULL, &sdn, &ndn, op->o_tmpmemctx );
+		if ( rc != LDAP_SUCCESS ) {
+			return 0;
+		}
+
+		if ( !dn_match( &op->o_ndn, &ndn )
+				&& dnIsSuffix( &op->o_ndn, &ndn ) )
+		{
+			rc = 1;
+		}
+		slap_sl_free( ndn.bv_val, op->o_tmpmemctx );
+
+		return rc;
 
 	} else if ( ber_bvstrcasecmp( &aci_bv_self, &type ) == 0 ) {
 		if ( dn_match( &op->o_ndn, &e->e_nname ) ) {
@@ -2513,8 +2578,6 @@ aci_mask(
 
 		rc = 0;
 
-		bv = op->o_ndn;
-
 		for ( at = attrs_find( e->e_attrs, ad );
 				at != NULL;
 				at = attrs_find( at->a_next, ad ) )
@@ -2523,7 +2586,7 @@ aci_mask(
 				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
 					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
 				at->a_nvals,
-				&bv, op->o_tmpmemctx ) == 0 )
+				&op->o_ndn, op->o_tmpmemctx ) == 0 )
 			{
 				rc = 1;
 				break;
@@ -2531,7 +2594,6 @@ aci_mask(
 		}
 
 		return rc;
-
 
 	} else if ( ber_bvstrcasecmp( &aci_bv_group, &type ) == 0 ) {
 		if ( aci_group_member( &sdn, &aci_bv_group_class,
@@ -2671,6 +2733,27 @@ dynacl_aci_mask(
 		struct berval	parent_ndn;
 		struct berval	old_parent_ndn = BER_BVNULL;
 
+#if 1
+		/* to solve the chicken'n'egg problem of accessing
+		 * the OpenLDAPaci attribute, the direct access
+		 * to the entry's attribute is unchecked; however,
+		 * further accesses to OpenLDAPaci values in the 
+		 * ancestors occur through backend_attribute(), i.e.
+		 * with the identity of the operation, requiring
+		 * further access checking.  For uniformity, this
+		 * makes further requests occur as the rootdn, if
+		 * any, i.e. searching for the OpenLDAPaci attribute
+		 * is considered an internal search.  If this is not
+		 * acceptable, then the same check needs be performed
+		 * when accessing the entry's attribute. */
+		Operation	op2 = *op;
+
+		if ( !BER_BVISNULL( &op->o_bd->be_rootndn ) ) {
+			op2.o_dn = op->o_bd->be_rootdn;
+			op2.o_ndn = op->o_bd->be_rootndn;
+		}
+#endif
+
 		dnParent( &e->e_nname, &parent_ndn );
 		while ( parent_ndn.bv_val != old_parent_ndn.bv_val ){
 			int		i;
@@ -2679,7 +2762,7 @@ dynacl_aci_mask(
 
 			old_parent_ndn = parent_ndn;
 			Debug( LDAP_DEBUG_ACL, "checking ACI of \"%s\"\n", parent_ndn.bv_val, 0, 0 );
-			ret = backend_attribute( op, NULL, &parent_ndn, ad, &bvals, ACL_AUTH );
+			ret = backend_attribute( &op2, NULL, &parent_ndn, ad, &bvals, ACL_AUTH );
 
 			switch ( ret ) {
 			case LDAP_SUCCESS :
