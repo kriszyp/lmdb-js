@@ -637,7 +637,7 @@ send_search_entry(
 	 *          returned or filtered out
 	 * e_flags: array of a_flags
 	 */
-	char *a_flags, **e_flags;
+	char **e_flags = NULL;
 
 	if (op->o_callback && op->o_callback->sc_sendentry) {
 		return op->o_callback->sc_sendentry( be, conn, op, e, attrs,
@@ -726,27 +726,22 @@ send_search_entry(
 	 * to particular value of attribute and equals 1 if value matches
 	 * to ValuesReturnFilter or 0 if not
 	 */	
-	for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next ) i++;
-	e_flags = ch_malloc ( i * sizeof(a_flags) );
-	
-	for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
-		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
+	if ( op->vrFilter != NULL ) {
+		int k = 0;
+		char *a_flags;
 
-		if( j ) {
-			a_flags = ch_calloc ( j, sizeof(char) );
-			/* If no ValuesReturnFilter control return everything */
-			if ( op->vrFilter == NULL ) {
-				memset(a_flags, 1, j);
-			}
-		} else {
-			a_flags = NULL;
+		for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) k++;
 		}
-		e_flags[i] = a_flags; 
-	}
+		e_flags = ch_calloc ( 1, i * sizeof(char *) + k );
+		a_flags = (char *)(e_flags + i);
+		for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
+			e_flags[i] = a_flags;
+			a_flags += j;
+		}
 
-	if ( op->vrFilter != NULL ) { 
 		rc = filter_matched_values(be, conn, op, e->e_attrs, &e_flags) ; 
-	    
 		if ( rc == -1 ) {
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, ERR, 
@@ -757,12 +752,6 @@ send_search_entry(
 				"matched values filtering failed\n", 0, 0, 0 );
 #endif
 			ber_free( ber, 1 );
-
-			/* free e_flags */
-			for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
-				free( e_flags[i] );
-			}
-			free( e_flags );
 
 			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "matched values filtering error", 
@@ -821,11 +810,6 @@ send_search_entry(
 #endif
 
 			ber_free_buf( ber );
-			/* free e_flags */
-			for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
-				free( e_flags[i] );
-			}
-			free( e_flags );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encoding description error", NULL, NULL );
 			goto error_return;
@@ -851,7 +835,7 @@ send_search_entry(
 					continue;
 				}
 
-				if ( e_flags[j][i] == 0 ){
+				if ( op->vrFilter && e_flags[j][i] == 0 ){
 					continue;
 				}
 
@@ -866,11 +850,6 @@ send_search_entry(
 #endif
 
 					ber_free_buf( ber );
-					/* free e_flags */
-					for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
-						free( e_flags[i] );
-					}
-					free( e_flags );
 					send_ldap_result( conn, op, LDAP_OTHER,
 						NULL, "encoding values error",
 						NULL, NULL );
@@ -889,11 +868,6 @@ send_search_entry(
 #endif
 
 			ber_free_buf( ber );
-			/* free e_flags */
-			for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
-				free( e_flags[i] );
-			}
-			free( e_flags );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encode end error", NULL, NULL );
 			goto error_return;
@@ -901,30 +875,29 @@ send_search_entry(
 	}
 
 	/* free e_flags */
-	for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
-		free( e_flags[i] );
+	if ( e_flags ) {
+		free( e_flags );
+		e_flags = NULL;
 	}
-	free( e_flags );
 
 	/* eventually will loop through generated operational attributes */
 	/* only have subschemaSubentry implemented */
 	aa = backend_operational( be, conn, op, e, attrs, opattrs );
 
-	for ( a = aa, i=0; a != NULL; a = a->a_next ) i++;
-	e_flags = ch_malloc ( i * sizeof(a_flags) );
-	
-	for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
-		for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
+	if ( aa != NULL && op->vrFilter != NULL ) {
+		int k = 0;
+		char *a_flags;
 
-		a_flags = ch_calloc ( j, sizeof(char) );
-		/* If no ValuesReturnFilter control return everything */
-		if ( op->vrFilter == NULL ){
-		    memset(a_flags, 1, j);
+		for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
+			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) k++;
 		}
-		e_flags[i] = a_flags; 
-	}
-
-	if ( op->vrFilter != NULL ) {
+		e_flags = ch_calloc ( 1, i * sizeof(char *) + k );
+		a_flags = (char *)(e_flags + i);
+		for ( a = e->e_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
+			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
+			e_flags[i] = a_flags;
+			a_flags += j;
+		}
 		rc = filter_matched_values(be, conn, op, aa, &e_flags) ; 
 	    
 		if ( rc == -1 ) {
@@ -938,12 +911,6 @@ send_search_entry(
 				"matched values filtering failed\n", 0, 0, 0 );
 #endif
 			ber_free( ber, 1 );
-
-			/* free e_flags */
-			for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
-				free( e_flags[i] );
-			}
-			free( e_flags );
 
 			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "matched values filtering error", 
@@ -1007,11 +974,6 @@ send_search_entry(
 			ber_free_buf( ber );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encoding description error", NULL, NULL );
-			/* free e_flags */
-			for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
-				free( e_flags[i] );
-			}
-			free( e_flags );
 
 			attrs_free( aa );
 			goto error_return;
@@ -1037,7 +999,7 @@ send_search_entry(
 					continue;
 				}
 
-				if ( e_flags[j][i] == 0 ){
+				if ( op->vrFilter && e_flags[j][i] == 0 ){
 					continue;
 				}
 
@@ -1055,11 +1017,6 @@ send_search_entry(
 					send_ldap_result( conn, op, LDAP_OTHER,
 						NULL, "encoding values error", 
 						NULL, NULL );
-					/* free e_flags */
-					for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
-						free( e_flags[i] );
-					}
-					free( e_flags );
 
 					attrs_free( aa );
 					goto error_return;
@@ -1079,11 +1036,6 @@ send_search_entry(
 			ber_free_buf( ber );
 			send_ldap_result( conn, op, LDAP_OTHER,
 			    NULL, "encode end error", NULL, NULL );
-			/* free e_flags */
-			for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
-				free( e_flags[i] );
-			}
-			free( e_flags );
 
 			attrs_free( aa );
 			goto error_return;
@@ -1091,10 +1043,10 @@ send_search_entry(
 	}
 
 	/* free e_flags */
-	for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
-		free( e_flags[i] );
+	if ( e_flags ) {
+		free( e_flags );
+		e_flags = NULL;
 	}
-	free( e_flags );
 
 	attrs_free( aa );
 	rc = ber_printf( ber, /*{{{*/ "}N}N}" );
@@ -1154,6 +1106,7 @@ send_search_entry(
 	rc = 0;
 
 error_return:;
+	if ( e_flags ) free( e_flags );
 	return( rc );
 }
 
