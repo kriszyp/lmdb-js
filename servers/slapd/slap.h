@@ -1618,6 +1618,8 @@ typedef struct slap_conn {
 	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
 	void	*c_sasl_context;	/* SASL session context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
+	struct slap_op	*c_sasl_bindop;	/* set to current op if it's a bind */
+	ldap_pvt_thread_mutex_t	c_sasl_bindmutex;	/* lock for bindop */
 
 	PagedResultsState c_pagedresults_state; /* paged result state */
 

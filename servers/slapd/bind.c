@@ -231,6 +231,10 @@ do_bind(
 		goto cleanup;
 	}
 
+	/* Set the bindop for the benefit of in-directory SASL lookups */
+	ldap_pvt_thread_mutex_lock( &conn->c_sasl_bindmutex );
+	conn->c_sasl_bindop = op;
+
 	if ( method == LDAP_AUTH_SASL ) {
 		slap_ssf_t ssf = 0;
 
@@ -570,6 +574,9 @@ do_bind(
 	}
 
 cleanup:
+	conn->c_sasl_bindop = NULL;
+	ldap_pvt_thread_mutex_unlock( &conn->c_sasl_bindmutex );
+
 	if( pdn.bv_val != NULL ) {
 		free( pdn.bv_val );
 	}

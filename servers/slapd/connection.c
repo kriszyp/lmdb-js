@@ -139,6 +139,7 @@ int connections_destroy(void)
 			ber_sockbuf_free( connections[i].c_sb );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_mutex );
 			ldap_pvt_thread_mutex_destroy( &connections[i].c_write_mutex );
+			ldap_pvt_thread_mutex_destroy( &connections[i].c_sasl_bindmutex );
 			ldap_pvt_thread_cond_destroy( &connections[i].c_write_cv );
 		}
 	}
@@ -436,6 +437,7 @@ long connection_init(
 		c->c_sasl_bind_mech.bv_len = 0;
 		c->c_sasl_context = NULL;
 		c->c_sasl_extra = NULL;
+		c->c_sasl_bindop = NULL;
 
 		c->c_sb = ber_sockbuf_alloc( );
 
@@ -449,6 +451,7 @@ long connection_init(
 		/* should check status of thread calls */
 		ldap_pvt_thread_mutex_init( &c->c_mutex );
 		ldap_pvt_thread_mutex_init( &c->c_write_mutex );
+		ldap_pvt_thread_mutex_init( &c->c_sasl_bindmutex );
 		ldap_pvt_thread_cond_init( &c->c_write_cv );
 
 		c->c_struct_state = SLAP_C_UNUSED;
@@ -470,6 +473,7 @@ long connection_init(
 	assert( c->c_sasl_bind_mech.bv_val == NULL );
 	assert( c->c_sasl_context == NULL );
 	assert( c->c_sasl_extra == NULL );
+	assert( c->c_sasl_bindop == NULL );
 	assert( c->c_currentber == NULL );
 
 	ber_str2bv( url, 0, 1, &c->c_listener_url );
