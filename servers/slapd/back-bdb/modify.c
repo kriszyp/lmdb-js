@@ -584,15 +584,10 @@ replace_values(
 	char	*dn
 )
 {
-	int rc = attr_delete( &e->e_attrs, mod->sm_desc );
-
-	if( rc != LDAP_SUCCESS && rc != LDAP_NO_SUCH_ATTRIBUTE ) {
-		return rc;
-	}
-	rc = LDAP_SUCCESS;
+	(void) attr_delete( &e->e_attrs, mod->sm_desc );
 
 	if ( mod->sm_bvalues ) {
-		rc = add_values( e, mod, dn );
+		return add_values( e, mod, dn );
 	}
 
 	return LDAP_SUCCESS;
