@@ -139,6 +139,9 @@ int main( int argc, char **argv )
 	char *username = NULL;
 	char *groupname = NULL;
 #endif
+#if defined(HAVE_CHROOT)
+	char *sandbox = NULL;
+#endif
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
@@ -190,6 +193,9 @@ int main( int argc, char **argv )
 
 	while ( (i = getopt( argc, argv,
 			     "d:f:h:s:"
+#ifdef HAVE_CHROOT
+				"r:"
+#endif
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
@@ -252,6 +258,13 @@ int main( int argc, char **argv )
 			break;
 #endif
 
+#ifdef HAVE_CHROOT
+		case 'r':
+			if( sandbox ) free(sandbox);
+			sandbox = ch_strdup( optarg );
+			break;
+#endif
+
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		case 'u':	/* user name */
 			if( username ) free(username);
@@ -300,6 +313,14 @@ int main( int argc, char **argv )
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
 		goto stop;
 	}
+
+#if defined(HAVE_CHROOT)
+	if ( sandbox && chroot( sandbox ) ) {
+		perror("chroot");
+		rc = 1;
+		goto stop;
+	}
+#endif
 
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 	if ( username != NULL || groupname != NULL ) {

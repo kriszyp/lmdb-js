@@ -127,6 +127,9 @@
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
+/* Define if you have the chroot function.  */
+#undef HAVE_CHROOT
+
 /* Define if you have the closesocket function.  */
 #undef HAVE_CLOSESOCKET
 

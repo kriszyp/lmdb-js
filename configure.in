@@ -2122,6 +2122,7 @@ fi
 AC_CHECK_FUNCS(		\
 	bcopy			\
 	closesocket		\
+	chroot			\
 	endgrent		\
 	endpwent		\
 	flock			\
