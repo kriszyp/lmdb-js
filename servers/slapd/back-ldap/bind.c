@@ -464,8 +464,6 @@ ldap_back_dobind( struct ldapconn *lc, Operation *op, SlapReply *rs )
 					case LDAP_BACK_IDASSERT_SELF:
 						if ( BER_BVISNULL( &op->o_conn->c_dn ) ) {
 							/* connection is not authc'd, so don't idassert */
-							/* FIXME: cyrus-sasl doesn't honor empty authzID!
-							 * i.e. NULL is equivalent to ""! */
 							break;
 						}
 						authzID.bv_len = STRLENOF( "dn:" ) + op->o_conn->c_dn.bv_len;
@@ -835,9 +833,6 @@ ldap_back_proxy_authz_ctrl(
 	case LDAP_BACK_IDASSERT_SELF:
 		/* original behavior:
 		 * assert the client's identity */
-		/* FIXME: we may get here if binding anonymously,
-		 * because cyrus sasl doesn't honor empty (i.e. "")
-		 * authzID */
 		assertedID = BER_BVISNULL( &op->o_conn->c_dn ) ? slap_empty_bv : op->o_conn->c_dn;
 		break;
 
