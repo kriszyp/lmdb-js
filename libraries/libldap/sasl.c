@@ -264,7 +264,6 @@ ldap_parse_sasl_bind_result(
 		return ld->ld_errno;
 	}
 
-	errcode = LDAP_SUCCESS;
 	scred = NULL;
 
 	if ( ld->ld_error ) {
@@ -280,9 +279,20 @@ ldap_parse_sasl_bind_result(
 
 	ber = ber_dup( res->lm_ber );
 
+	if( ber == NULL ) {
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return ld->ld_errno;
+	}
+
 	if ( ld->ld_version < LDAP_VERSION2 ) {
 		tag = ber_scanf( ber, "{ia}",
 			&errcode, &ld->ld_error );
+
+		if( tag == LBER_ERROR ) {
+			ber_free( ber, 0 );
+			ld->ld_errno = LDAP_DECODING_ERROR;
+			return ld->ld_errno;
+		}
 
 	} else {
 		ber_len_t len;
@@ -290,45 +300,48 @@ ldap_parse_sasl_bind_result(
 		tag = ber_scanf( ber, "{iaa" /*}*/,
 			&errcode, &ld->ld_matched, &ld->ld_error );
 
-		if( tag != LBER_ERROR ) {
-			tag = ber_peek_tag(ber, &len);
+		if( tag == LBER_ERROR ) {
+			ber_free( ber, 0 );
+			ld->ld_errno = LDAP_DECODING_ERROR;
+			return ld->ld_errno;
 		}
+
+		tag = ber_peek_tag(ber, &len);
 
 		if( tag == LDAP_TAG_REFERRAL ) {
 			/* skip 'em */
-			tag = ber_scanf( ber, "x" );
+			if( ber_scanf( ber, "x" ) == LBER_ERROR ) {
+				ber_free( ber, 0 );
+				ld->ld_errno = LDAP_DECODING_ERROR;
+				return ld->ld_errno;
+			}
 
-			if( tag != LBER_ERROR ) {
-				tag = ber_peek_tag(ber, &len);
+			tag = ber_peek_tag(ber, &len);
+		}
+
+		if( tag == LDAP_TAG_SASL_RES_CREDS ) {
+			if( ber_scanf( ber, "O", &scred ) == LBER_ERROR ) {
+				ber_free( ber, 0 );
+				ld->ld_errno = LDAP_DECODING_ERROR;
+				return ld->ld_errno;
 			}
 		}
-
-		/* need to clean out misc items */
-		if( tag == LDAP_TAG_SASL_RES_CREDS ) {
-			tag = ber_scanf( ber, "O", &scred );
-		}
 	}
 
-	if ( tag == LBER_ERROR ) {
-		errcode = LDAP_DECODING_ERROR;
-	}
+	ber_free( ber, 0 );
 
-	if( ber != NULL ) {
-		ber_free( ber, 0 );
-	}
-
-	/* return */
-	if ( errcode == LDAP_SUCCESS && servercredp != NULL ) {
+	if ( servercredp != NULL ) {
 		*servercredp = scred;
 
 	} else if ( scred != NULL ) {
 		ber_bvfree( scred );
 	}
 
+	ld->ld_errno = errcode;
+
 	if ( freeit ) {
 		ldap_msgfree( res );
 	}
 
-	ld->ld_errno = errcode;
 	return( ld->ld_errno );
 }

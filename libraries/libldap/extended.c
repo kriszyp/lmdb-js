@@ -189,8 +189,6 @@ ldap_parse_extended_result (
 	if( retoidp != NULL ) *retoidp = NULL;
 	if( retdatap != NULL ) *retdatap = NULL;
 
-	ber = ber_dup( res->lm_ber );
-
 	if ( ld->ld_error ) {
 		LDAP_FREE( ld->ld_error );
 		ld->ld_error = NULL;
@@ -199,6 +197,13 @@ ldap_parse_extended_result (
 	if ( ld->ld_matched ) {
 		LDAP_FREE( ld->ld_matched );
 		ld->ld_matched = NULL;
+	}
+
+	ber = ber_dup( res->lm_ber );
+
+	if ( ber == NULL ) {
+		ld->ld_errno = LDAP_NO_MEMORY;
+		return ld->ld_errno;
 	}
 
 	rc = ber_scanf( ber, "{iaa" /*}*/, &errcode,
@@ -217,11 +222,13 @@ ldap_parse_extended_result (
 
 	if( tag == LDAP_TAG_REFERRAL ) {
 		/* skip over referral */
-		tag = ber_scanf( ber, "x" );
-
-		if( tag != LBER_ERROR ) {
-			tag = ber_peek_tag( ber, &len );
+		if( ber_scanf( ber, "x" ) == LBER_ERROR ) {
+			ld->ld_errno = LDAP_DECODING_ERROR;
+			ber_free( ber, 0 );
+			return ld->ld_errno;
 		}
+
+		tag = ber_peek_tag( ber, &len );
 	}
 
 	if( tag == LDAP_TAG_EXOP_RES_OID ) {
@@ -244,6 +251,8 @@ ldap_parse_extended_result (
 			return ld->ld_errno;
 		}
 	}
+
+	ber_free( ber, 0 );
 
 	if( retoidp != NULL ) {
 		*retoidp = resoid;
