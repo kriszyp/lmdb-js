@@ -1995,7 +1995,10 @@ void slapi_valueset_done(Slapi_ValueSet *vs)
 void slapi_valueset_add_value(Slapi_ValueSet *vs, const Slapi_Value *addval)
 {
 #ifdef LDAP_SLAPI
-	ber_bvarray_add( vs, (Slapi_Value *)addval );
+	struct berval bv;
+
+	ber_dupbv( &bv, (Slapi_Value *)addval );
+	ber_bvarray_add( vs, &bv );
 #endif
 }
 
