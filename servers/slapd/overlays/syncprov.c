@@ -586,7 +586,7 @@ syncprov_findcsn( Operation *op, int mode )
 	char buf[LDAP_LUTIL_CSNSTR_BUFSIZE + STRLENOF("(entryCSN<=)")];
 	char cbuf[LDAP_LUTIL_CSNSTR_BUFSIZE];
 	struct berval fbuf, maxcsn;
-	Filter cf;
+	Filter cf, af;
 	AttributeAssertion eq;
 	int i, rc = LDAP_SUCCESS;
 	fpres_cookie pcookie;
@@ -607,6 +607,12 @@ syncprov_findcsn( Operation *op, int mode )
 	cf.f_ava = &eq;
 	cf.f_av_desc = slap_schema.si_ad_entryCSN;
 	cf.f_next = NULL;
+
+	fop.o_callback = &cb;
+	fop.ors_limit = NULL;
+	fop.ors_tlimit = SLAP_NO_LIMIT;
+	fop.ors_filter = &cf;
+	fop.ors_filterstr = fbuf;
 
 	switch( mode ) {
 	case FIND_MAXCSN:
@@ -634,10 +640,14 @@ syncprov_findcsn( Operation *op, int mode )
 		cb.sc_response = findcsn_cb;
 		break;
 	case FIND_PRESENT:
+		af.f_choice = LDAP_FILTER_AND;
+		af.f_next = NULL;
+		af.f_and = &cf;
 		cf.f_choice = LDAP_FILTER_LE;
 		cf.f_av_value = *srs->sr_state.ctxcsn;
-		fbuf.bv_len = sprintf( buf, "(entryCSN<=%s)",
-			cf.f_av_value.bv_val );
+		cf.f_next = op->ors_filter;
+		fop.ors_filter = &af;
+		filter2bv_x( &fop, fop.ors_filter, &fop.ors_filterstr );
 		fop.ors_attrsonly = 0;
 		fop.ors_attrs = uuid_anlist;
 		fop.ors_slimit = SLAP_NO_LIMIT;
@@ -660,11 +670,6 @@ syncprov_findcsn( Operation *op, int mode )
 		}
 		break;
 	}
-	fop.o_callback = &cb;
-	fop.ors_limit = NULL;
-	fop.ors_tlimit = SLAP_NO_LIMIT;
-	fop.ors_filter = &cf;
-	fop.ors_filterstr = fbuf;
 
 	fop.o_bd->bd_info = on->on_info->oi_orig;
 	fop.o_bd->be_search( &fop, &frs );
@@ -683,6 +688,7 @@ syncprov_findcsn( Operation *op, int mode )
 		break;
 	case FIND_PRESENT:
 		op->o_tmpfree( pcookie.uuids, op->o_tmpmemctx );
+		op->o_tmpfree( fop.ors_filterstr.bv_val, op->o_tmpmemctx );
 		break;
 	}
 
