@@ -61,7 +61,7 @@ doargs(
     int		i;
     int		rflag = 0;
 
-    if ( (g->myname = strrchr( argv[0], '/' )) == NULL ) {
+    if ( (g->myname = strrchr( argv[0], LDAP_DIRSEP[0] )) == NULL ) {
 	g->myname = strdup( argv[0] );
     } else {
 	g->myname = strdup( g->myname + 1 );
@@ -120,7 +120,7 @@ doargs(
 	    break;
 	case 't':	/* dir to use for our copies of replogs */
 	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + sizeof("/replica"));
-	    sprintf(g->slurpd_rdir, "%s/replica", optarg);
+	    sprintf(g->slurpd_rdir, "%s" LDAP_DIRSEP "replica", optarg);
 	    break;
 	default:
 	    usage( g->myname );
@@ -135,11 +135,11 @@ doargs(
     }
 
     /* Set location/name of our private copy of the slapd replog file */
-    sprintf( g->slurpd_replogfile, "%s/%s", g->slurpd_rdir,
+    sprintf( g->slurpd_replogfile, "%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_REPLOGFILE );
 
     /* Set location/name of the slurpd status file */
-    sprintf( g->slurpd_status_file, "%s/%s", g->slurpd_rdir,
+    sprintf( g->slurpd_status_file, "%s" LDAP_DIRSEP "%s", g->slurpd_rdir,
 	    DEFAULT_SLURPD_STATUS_FILE );
 
 	ber_set_option(NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug);

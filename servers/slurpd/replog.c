@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 
+#include <ac/stdlib.h>
 #include <ac/errno.h>
 #include <ac/param.h>
 #include <ac/string.h>
@@ -71,7 +72,7 @@ copy_replog(
      * with a fatal error.
      */
     strcpy( buf, src );
-    if (( p = strrchr( buf, '/' )) == NULL ) {
+    if (( p = strrchr( buf, LDAP_DIRSEP[0] )) == NULL ) {
 	strcpy( buf, "." );
     } else {
 	*p = '\0';
@@ -89,7 +90,7 @@ copy_replog(
 	return( -1 );
     }
     strcpy( buf, dst );
-    if (( p = strrchr( buf, '/' )) == NULL ) {
+    if (( p = strrchr( buf, LDAP_DIRSEP[0] )) == NULL ) {
 	strcpy( buf, "." );
     } else {
 	*p = '\0';

@@ -32,7 +32,11 @@
 Globals		 *sglob;
 
 int ldap_syslog = 0;
+#ifdef LOG_DEBUG
 int ldap_syslog_level = LOG_DEBUG;
+#else
+int ldap_syslog_level = 0;
+#endif
 int ldap_debug = 0;
 
 

@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 
+#include <ac/stdlib.h>
 #include <ac/errno.h>
 #include <ac/unistd.h>
 
@@ -56,7 +57,7 @@ write_reject(
     int		rc;
 
     ldap_pvt_thread_mutex_lock( &sglob->rej_mutex );
-    sprintf( rejfile, "%s/%s:%d.rej", sglob->slurpd_rdir,
+    sprintf( rejfile, "%s" LDAP_DIRSEP "%s:%d.rej", sglob->slurpd_rdir,
 	    ri->ri_hostname, ri->ri_port );
 
     if ( access( rejfile, F_OK ) < 0 ) {

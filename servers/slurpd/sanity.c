@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 
+#include <ac/stdlib.h>
 #include <ac/unistd.h>
 #include <ac/string.h>
 
@@ -185,7 +186,7 @@ filecheck(
     unsigned int	ret = 0;
 
     strcpy( dir, f );
-    p = strrchr( dir, '/' );
+    p = strrchr( dir, LDAP_DIRSEP[0] );
     if ( p != NULL ) {
 	*p = '\0';
     }

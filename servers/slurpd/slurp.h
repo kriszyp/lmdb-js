@@ -20,7 +20,7 @@
 #ifndef _SLURPD_H_
 #define _SLURPD_H_
 
-#ifndef LDAP_SYSLOG
+#if !defined(HAVE_WINSOCK) && !defined(LDAP_SYSLOG)
 #define LDAP_SYSLOG 1
 #endif
 
@@ -42,6 +42,12 @@
 #include "ldap_defaults.h"
 #include "ldif.h"
 
+#ifdef HAVE_WINSOCK
+#define ftruncate(a,b) _chsize(a,b)
+#define truncate(a,b) _lclose( _lcreat(a, 0))
+#define S_IRGRP 0
+#define S_IWGRP 0
+#endif
 
 /* Default directory for slurpd's private copy of replication logs */
 #define	DEFAULT_SLURPD_REPLICA_DIR	LDAP_RUNDIR LDAP_DIRSEP "openldap-slurp"
