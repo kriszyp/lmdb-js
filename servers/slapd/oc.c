@@ -480,33 +480,36 @@ oc_add(
 int
 oc_schema_info( Entry *e )
 {
-	struct berval	vals[2];
-	ObjectClass	*oc;
-
 	AttributeDescription *ad_objectClasses = slap_schema.si_ad_objectClasses;
-
-	vals[1].bv_val = NULL;
+	ObjectClass	*oc;
+	struct berval	val;
+#ifdef SLAP_NVALUES
+	struct berval	nval;
+#endif
 
 	LDAP_SLIST_FOREACH( oc, &oc_list, soc_next ) {
 		if( oc->soc_flags & SLAP_OC_HIDE ) continue;
 
-		if ( ldap_objectclass2bv( &oc->soc_oclass, vals ) == NULL ) {
+		if ( ldap_objectclass2bv( &oc->soc_oclass, &val ) == NULL ) {
 			return -1;
 		}
 
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging oc [%ld] %s\n",
-	       (long) vals[0].bv_len, vals[0].bv_val, 0 );
+	       (long) val.bv_len, val.bv_val, 0 );
 #endif
 #ifdef SLAP_NVALUES
-		if( attr_merge( e, ad_objectClasses, vals, NULL /* FIXME */ ) )
+		nval.bv_val = oc->soc_oid;
+		nval.bv_len = strlen(oc->soc_oid);
+
+		if( attr_merge_one( e, ad_objectClasses, &val, &nval ) )
 #else
-		if( attr_merge( e, ad_objectClasses, vals ) )
+		if( attr_merge_one( e, ad_objectClasses, &val ) )
 #endif
 		{
 			return -1;
 		}
-		ldap_memfree( vals[0].bv_val );
+		ldap_memfree( val.bv_val );
 	}
 	return 0;
 }

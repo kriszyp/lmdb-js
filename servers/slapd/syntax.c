@@ -210,12 +210,12 @@ register_syntax(
 int
 syn_schema_info( Entry *e )
 {
-	struct berval	vals[2];
-	Syntax		*syn;
-
 	AttributeDescription *ad_ldapSyntaxes = slap_schema.si_ad_ldapSyntaxes;
-
-	vals[1].bv_val = NULL;
+	Syntax		*syn;
+	struct berval	val;
+#ifdef SLAP_NVALUES
+	struct berval	nval;
+#endif
 
 	LDAP_SLIST_FOREACH(syn, &syn_list, ssyn_next ) {
 		if ( ! syn->ssyn_validate ) {
@@ -227,29 +227,32 @@ syn_schema_info( Entry *e )
 			continue;
 		}
 
-		if ( ldap_syntax2bv( &syn->ssyn_syn, vals ) == NULL ) {
+		if ( ldap_syntax2bv( &syn->ssyn_syn, &val ) == NULL ) {
 			return -1;
 		}
 #if 0
 #ifdef NEW_LOGGING
 		LDAP_LOG( config, ENTRY,
 			   "syn_schema_info: Merging syn [%ld] %s\n",
-			   (long)vals[0].bv_len, vals[0].bv_val, 0 );
+			   (long)val.bv_len, val.bv_val, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE, "Merging syn [%ld] %s\n",
-	       (long) vals[0].bv_len, vals[0].bv_val, 0 );
+	       (long) val.bv_len, val.bv_val, 0 );
+#endif
 #endif
 
-#endif
 #ifdef SLAP_NVALUES
-		if( attr_merge( e, ad_ldapSyntaxes, vals, NULL /* FIXME */ ) )
+		nval.bv_val = syn->ssyn_oid;
+		nval.bv_len = strlen(syn->ssyn_oid);
+
+		if( attr_merge_one( e, ad_ldapSyntaxes, &val, &nval ) )
 #else
-		if( attr_merge( e, ad_ldapSyntaxes, vals ) )
+		if( attr_merge_one( e, ad_ldapSyntaxes, &val ) )
 #endif
 		{
 			return -1;
 		}
-		ldap_memfree( vals[0].bv_val );
+		ldap_memfree( val.bv_val );
 	}
 	return 0;
 }

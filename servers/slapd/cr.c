@@ -399,36 +399,40 @@ int
 cr_schema_info( Entry *e )
 {
 #ifdef SLAP_EXTENDED_SCHEMA
-	struct berval	vals[2];
-	ContentRule	*cr;
-
 	AttributeDescription *ad_ditContentRules
 		= slap_schema.si_ad_ditContentRules;
+	ContentRule	*cr;
 
-	vals[1].bv_val = NULL;
+	struct berval	val;
+#ifdef SLAP_NVALUES
+	struct berval	nval;
+#endif
 
 	LDAP_SLIST_FOREACH(cr, &cr_list, scr_next) {
-		if ( ldap_contentrule2bv( &cr->scr_crule, vals ) == NULL ) {
+		if ( ldap_contentrule2bv( &cr->scr_crule, &val ) == NULL ) {
 			return -1;
 		}
 
 #if 0
 		if( cr->scr_flags & SLAP_CR_HIDE ) continue;
 #endif
-
 #if 0
 		Debug( LDAP_DEBUG_TRACE, "Merging cr [%ld] %s\n",
-	       (long) vals[0].bv_len, vals[0].bv_val, 0 );
+	       (long) val.bv_len, val.bv_val, 0 );
 #endif
+
 #ifdef SLAP_NVALUES
-		if( attr_merge( e, ad_ditContentRules, vals, NULL ) )
+		nval.bv_val = cr->scr_oid;
+		nval.bv_len = strlen(cr->scr_oid);
+
+		if( attr_merge_one( e, ad_ditContentRules, &val, &nval ) )
 #else
-		if( attr_merge( e, ad_ditContentRules, vals ) )
+		if( attr_merge_one( e, ad_ditContentRules, &val ) )
 #endif
 		{
 			return -1;
 		}
-		ldap_memfree( vals[0].bv_val );
+		ldap_memfree( val.bv_val );
 	}
 #endif
 	return 0;

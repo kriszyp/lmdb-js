@@ -597,29 +597,32 @@ at_index_print( void )
 int
 at_schema_info( Entry *e )
 {
-	struct berval	vals[2];
-	AttributeType	*at;
-
 	AttributeDescription *ad_attributeTypes = slap_schema.si_ad_attributeTypes;
-
-	vals[1].bv_val = NULL;
+	AttributeType	*at;
+	struct berval	val;
+#ifdef SLAP_NVALUES
+	struct berval	nval;
+#endif
 
 	LDAP_SLIST_FOREACH(at,&attr_list,sat_next) {
 		if( at->sat_flags & SLAP_AT_HIDE ) continue;
 
-		if ( ldap_attributetype2bv( &at->sat_atype, vals ) == NULL ) {
+		if ( ldap_attributetype2bv( &at->sat_atype, &val ) == NULL ) {
 			return -1;
 		}
 
 #ifdef SLAP_NVALUES
-		if( attr_merge( e, ad_attributeTypes, vals, NULL /* FIXME */ ) )
+		nval.bv_val = at->sat_oid;
+		nval.bv_len = strlen(at->sat_oid);
+
+		if( attr_merge_one( e, ad_attributeTypes, &val, &nval ) )
 #else
-		if( attr_merge( e, ad_attributeTypes, vals ) )
+		if( attr_merge_one( e, ad_attributeTypes, &val ) )
 #endif
 		{
 			return -1;
 		}
-		ldap_memfree( vals[0].bv_val );
+		ldap_memfree( val.bv_val );
 	}
 	return 0;
 }
