@@ -178,7 +178,125 @@ int ldap_pvt_gethostbyname_a(
 	return -1;
 #endif	
 }
-	 
+
+#ifndef GETNAMEINFO
+static const char *
+hp_strerror( int err )
+{
+	switch (err) {
+	case HOST_NOT_FOUND:	return "Host not found (authoritative)";
+	case TRY_AGAIN:		return "Host not found (server fail?)";
+	case NO_RECOVERY:	return "Non-recoverable failure";
+	case NO_DATA:		return "No data of requested type";
+#ifdef NETDB_INTERNAL
+	case NETDB_INTERNAL:	return STRERROR( errno );
+#endif
+	default:	break;	
+	}
+	return "Unknown resolver error";
+}
+#endif
+
+int ldap_pvt_get_hname(
+	const struct sockaddr *sa,
+	int len,
+	char *name,
+	int namelen,
+	char **err )
+{
+	int rc;
+#if defined( HAVE_GETNAMEINFO )
+
+#if defined( LDAP_R_COMPILE )
+	ldap_pvt_thread_mutex_lock( &ldap_int_resolv_mutex );
+#endif
+	rc = getnameinfo( sa, len, name, namelen, NULL, 0, 0 );
+#if defined( LDAP_R_COMPILE )
+	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
+#endif
+	if ( rc ) *err = AC_GAI_STRERROR( rc );
+	return rc;
+
+#else /* !HAVE_GETNAMEINFO */
+	char *addr;
+	int alen;
+	struct hostent *hp = NULL;
+#ifdef HAVE_GETHOSTBYADDR_R
+	struct hostent hb;
+	int buflen=BUFSTART, h_errno;
+	char *buf=NULL;
+#endif
+
+#ifdef LDAP_PF_INET6
+	if (sa->sa_family == AF_INET6) {
+		struct sockaddr_in6 *sin = (struct sockaddr_in6 *)sa;
+		addr = (char *)&sin->sin6_addr;
+		alen = sizeof(sin->sin6_addr);
+	} else
+#endif
+	if (sa->sa_family == AF_INET) {
+		struct sockaddr_in *sin = (struct sockaddr_in *)sa;
+		addr = (char *)&sin->sin_addr;
+		alen = sizeof(sin->sin_addr);
+	} else {
+		rc = NO_RECOVERY;
+		*err = hp_strerror( rc );
+		return rc;
+	}
+#if defined( HAVE_GETHOSTBYADDR_R )
+	for(;buflen<BUFMAX;) {
+		if (safe_realloc( &buf, buflen )==NULL) {
+			*err = STRERROR( ENOMEM );
+			return ENOMEM;
+		}
+#if (GETHOSTBYADDR_R_NARGS < 8)
+		hp=gethostbyaddr_r( addr, alen, sa->sa_family,
+			&hb, buf, buflen, &h_errno );
+		rc = (hp == NULL) ? -1 : 0;
+#else
+		rc = gethostbyaddr_r( addr, alen, sa->sa_family,
+			&hb, buf, buflen, 
+			&hp, &h_errno );
+#endif
+#ifdef NETDB_INTERNAL
+		if ((rc<0) &&
+			(h_errno==NETDB_INTERNAL) &&
+			(errno==ERANGE))
+		{
+			buflen*=2;
+			continue;
+		}
+#endif
+		break;
+	}
+	if (hp) {
+		strncpy( name, hp->h_name, namelen );
+	} else {
+		*err = hp_strerror( h_errno );
+	}
+	LDAP_FREE(buf);
+#else /* HAVE_GETHOSTBYADDR_R */
+
+#if defined( LDAP_R_COMPILE )
+	ldap_pvt_thread_mutex_lock( &ldap_int_resolv_mutex );
+#endif
+	hp = gethostbyaddr( addr, alen, sa->sa_family );
+	if (hp) {
+		strncpy( name, hp->h_name, namelen );
+		rc = 0;
+	} else {
+		rc = h_errno;
+		*err = hp_strerror( h_errno );
+	}
+#if defined( LDAP_R_COMPILE )
+	ldap_pvt_thread_mutex_unlock( &ldap_int_resolv_mutex );
+#endif
+
+#endif	/* !HAVE_GETHOSTBYADDR_R */
+	return rc;
+#endif	/* !HAVE_GETNAMEINFO */
+}
+
 int ldap_pvt_gethostbyaddr_a(
 	const char *addr,
 	int len,
