@@ -507,7 +507,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				if test $ol_with_yielding_select = auto ; then
 					ol_with_yielding_select=yes
 				fi
-				],,[-lexc])
+				],:,[-lexc])
 			LIBS="$save_LIBS"
 		fi
 
@@ -520,7 +520,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 				if test $ol_with_yielding_select = auto ; then
 					ol_with_yielding_select=yes
 				fi
-				],,[-lmach -lexc -lc_r])
+				],:,[-lmach -lexc -lc_r])
 			LIBS="$save_LIBS"
 		fi
 
@@ -529,7 +529,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthread, pthread_create, [
 				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"])
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"],:)
 			LIBS="$save_LIBS"
 		fi
 
@@ -538,7 +538,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(c_r, pthread_create, [
 				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"])
+				LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"],:)
 			LIBS="$save_LIBS"
 		fi
 
@@ -547,7 +547,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthreads, pthread_create, [
 				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"])
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"],:)
 			LIBS="$save_LIBS"
 		fi
 
@@ -558,7 +558,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 			AC_CHECK_LIB(pthreads, pthread_join, [
 				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"
-				],[-Wl,-woff,85])
+				],:,[-Wl,-woff,85])
 			LIBS="$save_LIBS"
 		fi
 
@@ -1099,8 +1099,14 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 fi
 
 if test $ol_enable_wrappers != no ; then
-	AC_CHECK_LIB(wrap, main,
-		[have_wrappers=yes], [have_wrappers=no])
+	AC_CHECK_HEADERS(tcpd.h)
+
+	if test $ac_cv_header_tcpd_h != yes ; then
+		have_wrappers=no
+	else
+		AC_CHECK_LIB(wrap, main,
+			[have_wrappers=yes], [have_wrappers=no])
+	fi
 
 	if test $have_wrappers = yes ; then
 		AC_DEFINE(HAVE_TCPD)
@@ -1114,7 +1120,6 @@ if test $ol_enable_wrappers != no ; then
 		AC_MSG_WARN(disabling wrappers support)
 		ol_enable_wrappers=no
 	fi
-
 fi
 
 if test $ol_enable_syslog != no ; then
