@@ -30,6 +30,7 @@
 #include "ldap_config.h"
 
 #include <stdio.h>
+#include <ac/bytes.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
@@ -44,11 +45,11 @@
  **************************************************************************/
 
 typedef struct {
-    unsigned short bom;
-    unsigned short cnt;
+    ac_uint4 bom;
+    ac_uint4 cnt;
     union {
-        unsigned long bytes;
-        unsigned short len[2];
+        ac_uint4 bytes;
+        ac_uint2 len[2]; 
     } size;
 } _ucheader_t;
 
