@@ -482,7 +482,12 @@ ldap_host_connected_to( Sockbuf *sb )
 {
 	struct hostent	*hp;
 	socklen_t		len;
-	struct sockaddr	sa;
+#ifdef LDAP_PF_INET6
+	struct sockaddr_storage sabuf;
+#else
+	struct sockaddr sabuf;
+#endif
+	struct sockaddr	*sa = (struct sockaddr *) &sabuf;
 	char			*addr;
 	char			*host;
 
@@ -492,11 +497,11 @@ ldap_host_connected_to( Sockbuf *sb )
    	char			*ha_buf=NULL;
 	ber_socket_t	sd;
 
-	(void)memset( (char *)&sa, '\0', sizeof( struct sockaddr ));
-	len = sizeof( sa );
+	(void)memset( (char *)sa, '\0', sizeof sabuf );
+	len = sizeof sabuf;
 
 	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
-	if ( getpeername( sd, &sa, &len ) == -1 ) {
+	if ( getpeername( sd, sa, &len ) == -1 ) {
 		return( NULL );
 	}
 
@@ -506,19 +511,19 @@ ldap_host_connected_to( Sockbuf *sb )
 	 * hostname is used as the kerberos instance.
 	 */
 
-	switch (sa.sa_family) {
+	switch (sa->sa_family) {
 #ifdef LDAP_PF_LOCAL
 	case AF_LOCAL:
 		return LDAP_STRDUP( ldap_int_hostname );
 #endif
 #ifdef LDAP_PF_INET6
 	case AF_INET6:
-		addr = (char *) &((struct sockaddr_in6 *)&sa)->sin6_addr;
+		addr = (char *) &((struct sockaddr_in6 *)sa)->sin6_addr;
 		len = sizeof( struct in6_addr );
 		break;
 #endif
 	case AF_INET:
-		addr = (char *) &((struct sockaddr_in *)&sa)->sin_addr;
+		addr = (char *) &((struct sockaddr_in *)sa)->sin_addr;
 		len = sizeof( struct in_addr );
 
 		{
@@ -526,7 +531,7 @@ ldap_host_connected_to( Sockbuf *sb )
 			localhost.sin_addr.s_addr = htonl( INADDR_ANY );
 
 			if( memcmp ( &localhost.sin_addr,
-				&((struct sockaddr_in *)&sa)->sin_addr,
+				&((struct sockaddr_in *)sa)->sin_addr,
 				sizeof(localhost.sin_addr) ) == 0 )
 			{
 				return LDAP_STRDUP( ldap_int_hostname );
@@ -536,7 +541,7 @@ ldap_host_connected_to( Sockbuf *sb )
 			localhost.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
 
 			if( memcmp ( &localhost.sin_addr,
-				&((struct sockaddr_in *)&sa)->sin_addr,
+				&((struct sockaddr_in *)sa)->sin_addr,
 				sizeof(localhost.sin_addr) ) == 0 )
 			{
 				return LDAP_STRDUP( ldap_int_hostname );
@@ -551,9 +556,8 @@ ldap_host_connected_to( Sockbuf *sb )
 	}
 
 	host = NULL;
-	if ((ldap_pvt_gethostbyaddr_a( addr, len,
-		sa.sa_family, &he_buf, &ha_buf,
-		&hp,&local_h_errno ) == 0 ) &&
+	if ((ldap_pvt_gethostbyaddr_a( addr, len, sa->sa_family,
+		&he_buf, &ha_buf, &hp, &local_h_errno ) == 0 ) &&
 		(hp != NULL) && ( hp->h_name != NULL ) )
 	{
 		host = LDAP_STRDUP( hp->h_name );   
