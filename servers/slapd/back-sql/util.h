@@ -40,29 +40,35 @@ int backsql_entry_addattr( Entry *e, struct berval *at_name,
 		struct berval *at_val, void *memctx );
 
 typedef struct backsql_srch_info {
-	Operation		*op;
+	Operation		*bsi_op;
 
 	int			bsi_flags;
 #define	BSQL_SF_ALL_OPER		0x0001
 #define BSQL_SF_FILTER_HASSUBORDINATE	0x0002
 
-	struct berval		*base_dn;
-	int			scope;
-	Filter			*filter;
-	int			slimit, tlimit;
-	time_t			stoptime;
+	struct berval		*bsi_base_dn;
+	int			bsi_scope;
+	Filter			*bsi_filter;
+	int			bsi_slimit,
+				bsi_tlimit;
+	time_t			bsi_stoptime;
 
-	backsql_entryID		*id_list, *c_eid;
-	int			n_candidates;
-	int			abandon;
-	int			status;
+	backsql_entryID		*bsi_id_list,
+				*bsi_c_eid;
+	int			bsi_n_candidates;
+	int			bsi_abandon;
+	int			bsi_status;
 
-	backsql_oc_map_rec	*oc;
-	struct berbuf		sel, from, join_where, flt_where;
-	SQLHDBC			dbh;
-	AttributeName		*attrs;
+	backsql_oc_map_rec	*bsi_oc;
+	struct berbuf		bsi_sel,
+				bsi_from,
+				bsi_join_where,
+				bsi_flt_where;
+	ObjectClass		*bsi_filter_oc;
+	SQLHDBC			bsi_dbh;
+	AttributeName		*bsi_attrs;
 
-	Entry			*e;
+	Entry			*bsi_e;
 } backsql_srch_info;
 
 void backsql_init_search( backsql_srch_info *bsi, 

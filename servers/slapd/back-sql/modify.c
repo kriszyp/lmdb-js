@@ -124,15 +124,15 @@ backsql_modify_internal(
 			
 			Debug( LDAP_DEBUG_TRACE, "backsql_modify_internal(): "
 				"replacing values for attribute '%s'\n",
-				at->ad->ad_cname.bv_val, 0, 0 );
+				at->bam_ad->ad_cname.bv_val, 0, 0 );
 
-			if ( at->add_proc == NULL ) {
+			if ( at->bam_add_proc == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"backsql_modify_internal(): "
 					"add procedure is not defined "
 					"for attribute '%s' "
 					"- unable to perform replacements\n",
-					at->ad->ad_cname.bv_val, 0, 0 );
+					at->bam_ad->ad_cname.bv_val, 0, 0 );
 
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -144,13 +144,13 @@ backsql_modify_internal(
 				break;
 			}
 
-			if ( at->delete_proc == NULL ) {
+			if ( at->bam_delete_proc == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"backsql_modify_internal(): "
 					"delete procedure is not defined "
 					"for attribute '%s' "
 					"- adding only\n",
-					at->ad->ad_cname.bv_val, 0, 0 );
+					at->bam_ad->ad_cname.bv_val, 0, 0 );
 
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -163,7 +163,7 @@ backsql_modify_internal(
 			}
 			
 del_all:
-			rc = backsql_Prepare( dbh, &asth, at->query, 0 );
+			rc = backsql_Prepare( dbh, &asth, at->bam_query, 0 );
 			if ( rc != SQL_SUCCESS ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"backsql_modify_internal(): "
@@ -222,7 +222,7 @@ del_all:
 			rc = SQLFetch( asth );
 			for ( ; BACKSQL_SUCCESS( rc ); rc = SQLFetch( asth ) ) {
 				for ( i = 0; i < row.ncols; i++ ) {
-			   		if ( BACKSQL_IS_DEL( at->expect_return ) ) {
+			   		if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {
 						pno = 1;
 						SQLBindParameter(sth, 1,
 							SQL_PARAM_OUTPUT,
@@ -232,7 +232,7 @@ del_all:
 					} else {
 						pno = 0;
 					}
-					po = ( BACKSQL_IS_DEL( at->param_order ) ) > 0;
+					po = ( BACKSQL_IS_DEL( at->bam_param_order ) ) > 0;
 					SQLBindParameter( sth, pno + 1 + po,
 						SQL_PARAM_INPUT,
 						SQL_C_ULONG, SQL_INTEGER,
@@ -251,9 +251,9 @@ del_all:
 					Debug( LDAP_DEBUG_TRACE, 
 						"backsql_modify_internal(): "
 						"executing '%s'\n",
-						at->delete_proc, 0, 0 );
+						at->bam_delete_proc, 0, 0 );
 					rc = SQLExecDirect( sth,
-						at->delete_proc, SQL_NTS );
+						at->bam_delete_proc, SQL_NTS );
 					if ( rc != SQL_SUCCESS ) {
 						Debug( LDAP_DEBUG_TRACE,
 							"backsql_modify_internal(): "
@@ -278,19 +278,19 @@ del_all:
 			backsql_FreeRow( &row );
 	   		SQLFreeStmt( asth, SQL_DROP );
 	       	}
-				       
+
 		/*
 		 * PASSTHROUGH - to add new attributes -- do NOT add break
 		 */
 		case LDAP_MOD_ADD:
 		case SLAP_MOD_SOFTADD:
 add_only:;
-			if ( at->add_proc == NULL ) {
+			if ( at->bam_add_proc == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"backsql_modify_internal(): "
 					"add procedure is not defined "
 					"for attribute '%s'\n",
-					at->ad->ad_cname.bv_val, 0, 0 );
+					at->bam_ad->ad_cname.bv_val, 0, 0 );
 
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -304,11 +304,11 @@ add_only:;
 			
 			Debug( LDAP_DEBUG_TRACE, "backsql_modify_internal(): "
 				"adding new values for attribute '%s'\n",
-				at->ad->ad_cname.bv_val, 0, 0 );
+				at->bam_ad->ad_cname.bv_val, 0, 0 );
 			for ( i = 0, at_val = c_mod->sm_bvalues;
 					at_val->bv_val != NULL; 
 					i++, at_val++ ) {
-				if ( BACKSQL_IS_ADD( at->expect_return ) ) {
+				if ( BACKSQL_IS_ADD( at->bam_expect_return ) ) {
 					pno = 1;
 	      				SQLBindParameter( sth, 1,
 						SQL_PARAM_OUTPUT,
@@ -317,7 +317,7 @@ add_only:;
 				} else {
 	      				pno = 0;
 				}
-				po = ( BACKSQL_IS_ADD( at->param_order ) ) > 0;
+				po = ( BACKSQL_IS_ADD( at->bam_param_order ) ) > 0;
 				SQLBindParameter( sth, pno + 1 + po,
 					SQL_PARAM_INPUT, 
 					SQL_C_ULONG, SQL_INTEGER,
@@ -336,8 +336,8 @@ add_only:;
 				Debug( LDAP_DEBUG_TRACE,
 					"backsql_modify_internal(): "
 					"executing '%s'\n", 
-					at->add_proc, 0, 0 );
-				rc = SQLExecDirect( sth, at->add_proc, 
+					at->bam_add_proc, 0, 0 );
+				rc = SQLExecDirect( sth, at->bam_add_proc, 
 						SQL_NTS );
 				if ( rc != SQL_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
@@ -361,12 +361,12 @@ add_only:;
 			break;
 			
 	      	case LDAP_MOD_DELETE:
-			if ( at->delete_proc == NULL ) {
+			if ( at->bam_delete_proc == NULL ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"backsql_modify_internal(): "
 					"delete procedure is not defined "
 					"for attribute '%s'\n",
-					at->ad->ad_cname.bv_val, 0, 0 );
+					at->bam_ad->ad_cname.bv_val, 0, 0 );
 
 				if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
 					rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
@@ -384,18 +384,18 @@ add_only:;
 					"no values given to delete "
 					"for attribute '%s' "
 					"-- deleting all values\n",
-					at->ad->ad_cname.bv_val, 0, 0 );
+					at->bam_ad->ad_cname.bv_val, 0, 0 );
 				goto del_all;
 			}
 
 			Debug( LDAP_DEBUG_TRACE, "backsql_modify_internal(): "
 				"deleting values for attribute '%s'\n",
-				at->ad->ad_cname.bv_val, 0, 0 );
+				at->bam_ad->ad_cname.bv_val, 0, 0 );
 
 			for ( i = 0, at_val = c_mod->sm_bvalues;
 					at_val->bv_val != NULL;
 					i++, at_val++ ) {
-				if ( BACKSQL_IS_DEL( at->expect_return ) ) {
+				if ( BACKSQL_IS_DEL( at->bam_expect_return ) ) {
 					pno = 1;
 					SQLBindParameter( sth, 1,
 						SQL_PARAM_OUTPUT,
@@ -404,7 +404,7 @@ add_only:;
 				} else {
 					pno = 0;
 				}
-				po = ( BACKSQL_IS_DEL( at->param_order ) ) > 0;
+				po = ( BACKSQL_IS_DEL( at->bam_param_order ) ) > 0;
 				SQLBindParameter( sth, pno + 1 + po,
 					SQL_PARAM_INPUT, 
 					SQL_C_ULONG, SQL_INTEGER,
@@ -422,8 +422,8 @@ add_only:;
 				Debug( LDAP_DEBUG_TRACE,
 					"backsql_modify_internal(): "
 					"executing '%s'\n", 
-					at->delete_proc, 0, 0 );
-				rc = SQLExecDirect( sth, at->delete_proc,
+					at->bam_delete_proc, 0, 0 );
+				rc = SQLExecDirect( sth, at->bam_delete_proc,
 						SQL_NTS );
 				if ( rc != SQL_SUCCESS ) {
 					Debug( LDAP_DEBUG_TRACE,
@@ -946,7 +946,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	if ( oc->create_proc == NULL ) {
+	if ( oc->bom_create_proc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"create procedure is not defined for this objectclass "
 			"- aborting\n", 0, 0, 0 );
@@ -956,7 +956,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		return 1;
 
 	} else if ( BACKSQL_CREATE_NEEDS_SELECT( bi )
-			&& oc->create_keyval == NULL ) {
+			&& oc->bom_create_keyval == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"create procedure needs select procedure, "
 			"but none is defined - aborting\n", 0, 0, 0 );
@@ -1064,14 +1064,14 @@ backsql_add( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	if ( BACKSQL_IS_ADD( oc->expect_return ) ) {
+	if ( BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
 		SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT, SQL_C_ULONG, 
 				SQL_INTEGER, 0, 0, &new_keyval, 0, 0 );
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_add(): executing '%s'\n",
-		oc->create_proc, 0, 0 );
-	rc = SQLExecDirect( sth, oc->create_proc, SQL_NTS );
+		oc->bom_create_proc, 0, 0 );
+	rc = SQLExecDirect( sth, oc->bom_create_proc, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 			"create_proc execution failed\n", 0, 0, 0 );
@@ -1086,7 +1086,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		SQLTransact( SQL_NULL_HENV, dbh, SQL_ROLLBACK );
 	}
 
-	if ( !BACKSQL_IS_ADD( oc->expect_return ) ) {
+	if ( !BACKSQL_IS_ADD( oc->bom_expect_return ) ) {
 		SWORD		ncols;
 		SQLINTEGER	value_len;
 
@@ -1104,7 +1104,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			}
 #endif /* BACKSQL_REALLOC_STMT */
 
-			rc = SQLExecDirect( sth, oc->create_keyval, SQL_NTS );
+			rc = SQLExecDirect( sth, oc->bom_create_keyval, SQL_NTS );
 			if ( rc != SQL_SUCCESS ) {
 				rs->sr_err = LDAP_OTHER;
 				rs->sr_text = "SQL-backend error";
@@ -1226,7 +1226,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			continue;
 		}
 		
-		if ( at_rec->add_proc == NULL ) {
+		if ( at_rec->bam_add_proc == NULL ) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 				"add procedure is not defined "
 				"for attribute '%s'\n",
@@ -1244,7 +1244,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 
 #ifdef BACKSQL_REALLOC_STMT
-		rc = backsql_Prepare( dbh, &sth, at_rec->add_proc, 0 );
+		rc = backsql_Prepare( dbh, &sth, at_rec->bam_add_proc, 0 );
 		if ( rc != SQL_SUCCESS ) {
 
 			if ( BACKSQL_FAIL_IF_NO_MAPPING( bi ) ) {
@@ -1258,7 +1258,7 @@ backsql_add( Operation *op, SlapReply *rs )
 		}
 #endif /* BACKSQL_REALLOC_STMT */
 
-		if ( BACKSQL_IS_ADD( at_rec->expect_return ) ) {
+		if ( BACKSQL_IS_ADD( at_rec->bam_expect_return ) ) {
 			pno = 1;
 			SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT,
 					SQL_C_ULONG, SQL_INTEGER,
@@ -1267,7 +1267,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			pno = 0;
 		}
 
-		po = ( BACKSQL_IS_ADD( at_rec->param_order ) ) > 0;
+		po = ( BACKSQL_IS_ADD( at_rec->bam_param_order ) ) > 0;
 		currpos = pno + 1 + po;
 		SQLBindParameter( sth, currpos,
 				SQL_PARAM_INPUT, SQL_C_ULONG,
@@ -1283,7 +1283,7 @@ backsql_add( Operation *op, SlapReply *rs )
 			 * to build the entry
 			 */
 			if ( at->a_desc == slap_schema.si_ad_objectClass ) {
-				if ( bvmatch( at_val, &oc->oc->soc_cname ) ) {
+				if ( bvmatch( at_val, &oc->bom_oc->soc_cname ) ) {
 					continue;
 				}
 			}
@@ -1298,14 +1298,14 @@ backsql_add( Operation *op, SlapReply *rs )
 #ifdef SECURITY_PARANOID
 			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 				"executing '%s', id=%ld\n", 
-				at_rec->add_proc, new_keyval, 0 );
+				at_rec->bam_add_proc, new_keyval, 0 );
 #else
 			Debug( LDAP_DEBUG_TRACE, "backsql_add(): "
 				"executing '%s' with val='%s', id=%ld\n", 
-				at_rec->add_proc, at_val->bv_val, new_keyval );
+				at_rec->bam_add_proc, at_val->bv_val, new_keyval );
 #endif
 #ifndef BACKSQL_REALLOC_STMT
-			rc = SQLExecDirect( sth, at_rec->add_proc, SQL_NTS );
+			rc = SQLExecDirect( sth, at_rec->bam_add_proc, SQL_NTS );
 #else /* BACKSQL_REALLOC_STMT */
 			rc = SQLExecute( sth );
 #endif /* BACKSQL_REALLOC_STMT */
@@ -1343,7 +1343,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	backsql_BindParamStr( sth, 1, op->oq_add.rs_e->e_name.bv_val,
 			BACKSQL_MAX_DN_LEN );
 	SQLBindParameter( sth, 2, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
-			0, 0, &oc->id, 0, 0 );
+			0, 0, &oc->bom_id, 0, 0 );
 	SQLBindParameter( sth, 3, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
 			0, 0, &parent_id.id, 0, 0 );
 	SQLBindParameter( sth, 4, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
@@ -1352,7 +1352,7 @@ backsql_add( Operation *op, SlapReply *rs )
 	Debug( LDAP_DEBUG_TRACE, "backsql_add(): executing '%s' for dn '%s'\n",
 			bi->insentry_query, op->oq_add.rs_e->e_name.bv_val, 0 );
 	Debug( LDAP_DEBUG_TRACE, " for oc_map_id=%ld, parent_id=%ld, "
-			"keyval=%ld\n", oc->id, parent_id.id, new_keyval );
+			"keyval=%ld\n", oc->bom_id, parent_id.id, new_keyval );
 #ifndef BACKSQL_REALLOC_STMT
 	rc = SQLExecDirect( sth, bi->insentry_query, SQL_NTS );
 #else /* BACKSQL_REALLOC_STMT */
@@ -1472,7 +1472,7 @@ backsql_delete( Operation *op, SlapReply *rs )
  		return 1;
 	}
 
-	if ( oc->delete_proc == NULL ) {
+	if ( oc->bom_delete_proc == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
 			"delete procedure is not defined "
 			"for this objectclass - aborting\n", 0, 0, 0 );
@@ -1483,7 +1483,7 @@ backsql_delete( Operation *op, SlapReply *rs )
 	}
 
 	SQLAllocStmt( dbh, &sth );
-	if ( BACKSQL_IS_DEL( oc->expect_return ) ) {
+	if ( BACKSQL_IS_DEL( oc->bom_expect_return ) ) {
 		pno = 1;
 		SQLBindParameter( sth, 1, SQL_PARAM_OUTPUT, SQL_C_ULONG,
 				SQL_INTEGER, 0, 0, &rc, 0, 0 );
@@ -1495,8 +1495,8 @@ backsql_delete( Operation *op, SlapReply *rs )
 			SQL_C_ULONG, SQL_INTEGER, 0, 0, &e_id.keyval, 0, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_delete(): executing '%s'\n",
-			oc->delete_proc, 0, 0 );
-	rc = SQLExecDirect( sth, oc->delete_proc, SQL_NTS );
+			oc->bom_delete_proc, 0, 0 );
+	rc = SQLExecDirect( sth, oc->bom_delete_proc, SQL_NTS );
 	if ( rc != SQL_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_delete(): "
 			"delete_proc execution failed\n", 0, 0, 0 );

@@ -396,13 +396,18 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
 		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
 			"SQLGetInfo() failed:\n", 0, 0, 0 );
 		backsql_PrintErrors( si->db_env, dbc->dbh, SQL_NULL_HENV, rc );
+		return rc;
 	}
 	/* end TimesTen */
 
 	Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn(): "
 		"connected, adding to tree\n", 0, 0, 0 );
 	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
-	avl_insert( &si->db_conns, dbc, backsql_cmp_connid, NULL );
+	if ( avl_insert( &si->db_conns, dbc, backsql_cmp_connid, avl_dup_error ) ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_open_db_conn: "
+			"duplicate connection ID\n", 0, 0, 0 );
+		return LDAP_OTHER;
+	}
 	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_open_db_conn()\n", 0, 0, 0 );
 
