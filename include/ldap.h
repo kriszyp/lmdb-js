@@ -18,10 +18,13 @@
 LDAP_BEGIN_DECL
 
 #define LDAP_PORT	389
+
 #define LDAP_VERSION1	1
 #define LDAP_VERSION2	2
 #define LDAP_VERSION3	3
+
 #define LDAP_VERSION		LDAP_VERSION2
+#define LDAP_VERSION_MIN	LDAP_VERSION2
 #define LDAP_VERSION_MAX	LDAP_VERSION2
 
 /*
@@ -30,7 +33,7 @@ LDAP_BEGIN_DECL
  * whatever number does finally get assigned
  */
 #define LDAP_API_VERSION	2001
-#define LDAP_VENDOR			"OpenLDAP"
+#define LDAP_VENDOR_NAME	"OpenLDAP"
 /* We'll eventually release as 200 */
 #define LDAP_VENDOR_VERSION	190
 
@@ -66,13 +69,14 @@ LDAP_BEGIN_DECL
 
 extern int ldap_debug;
 
+#define LDAP_API_INFO_VERSION	1
 typedef struct ldapapiinfo {
 	int		ldapai_info_version;		/* version of LDAPAPIInfo (1) */
 	int		ldapai_api_version;			/* revision of API supported */
 	int		ldapai_protocol_version;	/* highest LDAP version supported */
 	char	**ldapai_extensions;		/* names of API extensions */
 	char	*ldapai_vendor_name;		/* name of supplier */
-	int		ldapai_vendor_version;		/* supplier-specific version times 100 */
+	int		ldapai_vendor_version;		/* supplier-specific version * 100 */
 } LDAPAPIInfo;
 
 typedef struct ldapcontrol {
