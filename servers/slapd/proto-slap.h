@@ -444,11 +444,11 @@ LDAP_SLAPD_F (int) entry_id_cmp LDAP_P(( const void *v_a, const void *v_b ));
  * extended.c
  */
 #ifdef LDAP_EXOP_X_CANCEL
-const struct berval slap_EXOP_CANCEL;
+LDAP_SLAPD_V( const struct berval ) slap_EXOP_CANCEL;
 #endif
-const struct berval slap_EXOP_WHOAMI;
-const struct berval slap_EXOP_MODIFY_PASSWD;
-const struct berval slap_EXOP_START_TLS;
+LDAP_SLAPD_V( const struct berval ) slap_EXOP_WHOAMI;
+LDAP_SLAPD_V( const struct berval ) slap_EXOP_MODIFY_PASSWD;
+LDAP_SLAPD_V( const struct berval ) slap_EXOP_START_TLS;
 
 typedef int (SLAP_EXTOP_MAIN_FN) LDAP_P(( Operation *op, SlapReply *rs ));
 
