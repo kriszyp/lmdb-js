@@ -176,7 +176,7 @@ int ldbm_modify_internal(
 		case LDAP_MOD_REPLACE:
 		case LDAP_MOD_ADD:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+			/* not yet implemented */
 #else
 			(void) index_change_values( be,
 				mod->mod_type,
@@ -188,7 +188,7 @@ int ldbm_modify_internal(
 
 		case LDAP_MOD_DELETE: {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+			/* not yet implemented */
 #else
 			/* Need to add all remaining values */
 			Attribute *a = e->e_attrs
