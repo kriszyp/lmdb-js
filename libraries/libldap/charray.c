@@ -221,25 +221,26 @@ ldap_str2charray( const char *str_in, const char *brkstr )
 char * ldap_charray2str( char **a, const char *sep )
 {
 	char *s, **v, *p;
-	int len = 0;
+	int len;
 	int slen;
 
 	if( sep == NULL ) sep = " ";
 
 	slen = strlen( sep );
+	len = 0;
 
 	for ( v = a; *v != NULL; v++ ) {
-		len += strlen( *v ) + slen; /* for a space */
+		len += strlen( *v ) + slen;
 	}
 
 	if ( len == 0 ) {
 		return NULL;
 	}
 
+	/* trim extra sep len */
 	len -= slen;
-	len += 1; /* EOS */
 
-	s = LDAP_MALLOC ( len );
+	s = LDAP_MALLOC ( len + 1 );
 
 	if ( s == NULL ) {
 		return NULL;	
@@ -247,8 +248,6 @@ char * ldap_charray2str( char **a, const char *sep )
 
 	p = s;
 	for ( v = a; *v != NULL; v++ ) {
-		int len;
-
 		if ( v != a ) {
 			strncpy( p, sep, slen );
 			p += slen;
