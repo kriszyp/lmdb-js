@@ -1,12 +1,13 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.5 Engineering
-	<insert changes here>
+	Fixed back-ldbm indirect IDL bug (ITS#2039)
 
 OpenLDAP 2.1.4 Release
 	Fixed slapd DN normalization (requires DB reload)
 	Fixed slapd bootParameter validation bug (ITS#1957)
 	Fixed slapd saslRegex bug (ITS#1978)
+	Fixed slapd abstract objectclass check
 	Fixed back-monitor time stats (ITS#1984)
 	Fixed slapd saslRegexp normalization (ITS#1951)
 	Fixed back-meta undef DN attr bug (ITS#1953)
