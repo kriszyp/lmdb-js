@@ -315,7 +315,7 @@ de_crypt( char *s )
     char *p;
 
     if ( strncmp( s, "{CRYPT}", 7 ) == 0 ) {
-	strcpy( s, s + 7 );			/* strip off "{CRYPT}" */
+	SAFEMEMCPY( s, s + 7, strlen( s + 7 ) + 1 ); /* strip off "{CRYPT}" */
 
 	for ( p = s; *p != '\0'; ++p) {		/* "decrypt" each byte */
 	    if ( *p != CRYPT_MASK ) {

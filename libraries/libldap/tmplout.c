@@ -905,7 +905,7 @@ time2text( char *ldtimestr, int dateonly )
    
     timestr[ strlen( timestr ) - 1 ] = zone;	/* replace trailing newline */
     if ( dateonly ) {
-	strcpy( timestr + 11, timestr + 20 );
+	SAFEMEMCPY( timestr + 11, timestr + 20, strlen( timestr + 20 ) + 1 );
     }
 
     return( timestr );
