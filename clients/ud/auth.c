@@ -429,5 +429,5 @@ char *s;
 
 	if (bound_dn != NULL)
 		Free(bound_dn);
-	bound_dn = strdup(s);
+	bound_dn = (s == NULL) ? NULL : strdup(s);
 }
