@@ -1603,7 +1603,6 @@ slapd_daemon_task(
 			continue;
 		}
 
-#ifdef LDAP_DEBUG
 		Debug( LDAP_DEBUG_CONNS, "daemon: activity on:", 0, 0, 0 );
 #ifdef HAVE_WINSOCK
 		nrfds = readfds.fd_count;
@@ -1642,7 +1641,6 @@ slapd_daemon_task(
 #endif
 		Debug( LDAP_DEBUG_CONNS, "\n", 0, 0, 0 );
 
-#endif
 
 		/* loop through the writers */
 		for ( i = 0; nwfds > 0; i++ )
