@@ -64,3 +64,5 @@ all-local-lib:	../.backend
 ../.backend: lib$(LIBBASE).a
 	@touch $@
 
+veryclean-local: FORCE
+	$(RM) $(XXSRCS) .links
