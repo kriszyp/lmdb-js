@@ -132,6 +132,8 @@ static int   cnvt_str2int( char *, STRDISP_P, int );
 static int check = CHECK_NONE;
 static int version = 0;
 
+void *slap_tls_ctx;
+
 static void
 usage( char *name )
 {
@@ -622,18 +624,32 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
-	rc = ldap_pvt_tls_init_def_ctx();
-	if( rc != 0) {
+	{
+		void *def_ctx = NULL;
+
+		/* Save existing default ctx, if any */
+		ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &def_ctx );
+
+		/* Force new ctx to be created */
+		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, NULL );
+
+		rc = ldap_pvt_tls_init_def_ctx();
+		if( rc != 0) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( SLAPD, CRIT, "main: tls init def ctx failed: %d\n", rc, 0, 0 );
+			LDAP_LOG( SLAPD, CRIT, "main: tls init def ctx failed: %d\n", rc, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY,
-		    "main: TLS init def ctx failed: %d\n",
-		    rc, 0, 0 );
+			Debug( LDAP_DEBUG_ANY,
+			    "main: TLS init def ctx failed: %d\n",
+			    rc, 0, 0 );
 #endif
-		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
-		goto destroy;
+			rc = 1;
+			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+			goto destroy;
+		}
+		/* Retrieve slapd's own ctx */
+		ldap_pvt_tls_get_option( NULL, LDAP_OPT_X_TLS_CTX, &slap_tls_ctx );
+		/* Restore previous ctx */
+		ldap_pvt_tls_set_option( NULL, LDAP_OPT_X_TLS_CTX, def_ctx );
 	}
 #endif
 
