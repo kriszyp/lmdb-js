@@ -63,7 +63,7 @@ do_extended(
 		goto done;
 	}
 
-	if ( ber_scanf( op->o_ber, "a", &reqoid ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &reqoid ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
@@ -82,7 +82,7 @@ do_extended(
 	tag = ber_peek_tag( op->o_ber, &len );
 	
 	if( ber_peek_tag( op->o_ber, &len ) == LDAP_TAG_EXOP_REQ_VALUE ) {
-		if( ber_scanf( op->o_ber, "o", &reqdata ) != LBER_ERROR ) {
+		if( ber_scanf( op->o_ber, "o", &reqdata ) == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "do_extended: ber_scanf failed\n", 0, 0 ,0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
