@@ -82,10 +82,10 @@ schema_check_entry( Entry *e )
 	/* check that each attr in the entry is allowed by some oc */
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		if ( oc_check_allowed( a->a_desc.ad_type, aoc->a_vals ) != 0 ) {
+		if ( oc_check_allowed( a->a_desc->ad_type, aoc->a_vals ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "Entry (%s), attr \"%s\" not allowed\n",
-			    e->e_dn, a->a_desc.ad_cname->bv_val, 0 );
+			    e->e_dn, a->a_desc->ad_cname->bv_val, 0 );
 			ret = 1;
 		}
 #else
@@ -129,7 +129,7 @@ oc_check_required( Entry *e, struct berval *ocname )
 		/* see if it's in the entry */
 		for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-			if( a->a_desc.ad_type == at ) {
+			if( a->a_desc->ad_type == at ) {
 				break;
 			}
 #else

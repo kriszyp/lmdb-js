@@ -21,9 +21,19 @@ LIBSLAPD_F (int) slap_bv2ad LDAP_P((
 	AttributeDescription **ad,
 	char **text ));
 
+LIBSLAPD_F (AttributeDescription *) ad_dup LDAP_P((
+	AttributeDescription *desc ));
+
 LIBSLAPD_F (void) ad_free LDAP_P((
 	AttributeDescription *desc,
 	int freeit ));
+
+#define ad_cmp(l,r)	( strcasecmp( \
+	(l)->ad_cname->bv_val, (r)->ad_cname->bv_val ))
+
+LIBSLAPD_F (int) is_ad_subtype LDAP_P((
+	AttributeDescription *sub,
+	AttributeDescription *super ));
 
 LIBSLAPD_F (int) ad_inlist LDAP_P((
 	AttributeDescription *desc,
@@ -108,6 +118,7 @@ LIBSLAPD_F (int) attr_merge LDAP_P(( Entry *e, const char *type,
 	struct berval **vals ));
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F (Attribute *) attrs_find LDAP_P(( Attribute *a, AttributeDescription *desc ));
 LIBSLAPD_F (Attribute *) attr_find LDAP_P(( Attribute *a, AttributeDescription *desc ));
 LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, AttributeDescription *desc ));
 #else

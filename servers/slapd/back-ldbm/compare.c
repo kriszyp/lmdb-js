@@ -94,30 +94,39 @@ ldbm_back_compare(
 		goto return_results;
 	}
 
+	rc = LDAP_NO_SUCH_ATTRIBUTE;
+
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	if ( (a = attr_find( e->e_attrs, ava->aa_desc )) == NULL )
+	for(a = attrs_find( e->e_attrs, ava->aa_desc );
+		a != NULL;
+		a = attrs_find( a, ava->aa_desc ))
 #else
-	if ( (a = attr_find( e->e_attrs, ava->ava_type )) == NULL )
+	if ((a = attr_find( e->e_attrs, ava->ava_type )) != NULL )
 #endif
 	{
-		send_ldap_result( conn, op, LDAP_NO_SUCH_ATTRIBUTE,
-			NULL, NULL, NULL, NULL );
-		rc = 1;
-		goto return_results;
-	}
+		rc = LDAP_COMPARE_FALSE;
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
+		/* not yet implemented */
 #else
-	if ( value_find( a->a_vals, &ava->ava_value, a->a_syntax, 1 ) == 0 ) 
-		send_ldap_result( conn, op, LDAP_COMPARE_TRUE,
-			NULL, NULL, NULL, NULL );
-	else
+		if ( value_find( a->a_vals, &ava->ava_value, a->a_syntax, 1 ) == 0 )
 #endif
-		send_ldap_result( conn, op, LDAP_COMPARE_FALSE,
-			NULL, NULL, NULL, NULL );
+		{
+			rc = LDAP_COMPARE_TRUE;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			break;
+#endif
+		}
 
-	rc = 0;
+	}
+
+	send_ldap_result( conn, op, rc,
+		NULL, NULL, NULL, NULL );
+
+	if( rc != LDAP_NO_SUCH_ATTRIBUTE ) {
+		rc = 0;
+	}
+
 
 return_results:;
 	cache_return_entry_r( &li->li_cache, e );

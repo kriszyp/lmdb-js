@@ -676,7 +676,7 @@ send_search_entry(
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		AttributeDescription *desc = &a->a_desc;
+		AttributeDescription *desc = a->a_desc;
 #else
 		char *desc = a->a_type;
 #endif
@@ -761,7 +761,7 @@ send_search_entry(
 	
 	for (a = aa ; a == NULL; a = a->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		AttributeDescription *desc = &a->a_desc;
+		AttributeDescription *desc = a->a_desc;
 #else
 		char *desc = a->a_type;
 #endif

@@ -19,6 +19,25 @@
 #include "slap.h"
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+AttributeDescription *ad_dup(
+	AttributeDescription *desc )
+{
+	AttributeDescription *ad;
+
+	if( desc == NULL ) {
+		return NULL;
+	}
+
+	ad = (AttributeDescription *) ch_malloc( sizeof(AttributeDescription) );
+
+	*ad = *desc;
+
+	ad->ad_cname = ber_bvdup( ad->ad_cname );
+	ad->ad_lang = ch_strdup( ad->ad_lang );
+
+	return ad;
+}
+
 void
 ad_free( AttributeDescription *ad, int freeit )
 {
@@ -171,6 +190,29 @@ done:
 	return rtn;
 }
 
+int is_ad_subtype(
+	AttributeDescription *sub,
+	AttributeDescription *super
+)
+{
+	if( !is_at_subtype( sub->ad_type, super->ad_type ) ) {
+		return 0;
+	}
+
+	if( super->ad_flags && ( super->ad_flags == sub->ad_flags )) {
+		return 0;
+	}
+
+	if( super->ad_lang != NULL && ( sub->ad_lang == NULL
+		|| strcasecmp( super->ad_lang, sub->ad_lang )))
+	{
+		return 0;
+	}
+
+	return 1;
+}
+
+
 int ad_inlist(
 	AttributeDescription *desc,
 	char **attrs )
@@ -179,31 +221,17 @@ int ad_inlist(
 	for( i=0; attrs[i] != NULL; i++ ) {
 		AttributeDescription *ad = NULL;
 		char *text;
-		int rc = slap_str2ad( attrs[i], &ad, &text );
+		int rc;
+		
+		rc = slap_str2ad( attrs[i], &ad, &text );
 
-		if( rc != LDAP_SUCCESS ) {
-			goto cont;
-		}
+		if( rc != LDAP_SUCCESS ) continue;
 
-		if( !is_at_subtype( desc->ad_type, ad->ad_type ) ) {
-			goto cont;
-		}
-
-		if( ad->ad_flags && ( ad->ad_flags == desc->ad_flags )) {
-			goto cont;
-		}
-
-		if( ad->ad_lang != NULL && ( desc->ad_lang == NULL
-			|| strcasecmp( ad->ad_lang, desc->ad_lang )))
-		{
-			goto cont;
-		}
+		rc = is_ad_subtype( desc, ad );
 
 		ad_free( ad, 1 );
-		return 1;
 
-cont:
-		ad_free( ad, 1 );
+		if( rc ) return 1;
 	}
 
 	return 0;

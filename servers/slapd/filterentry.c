@@ -153,14 +153,16 @@ test_filter(
 		}
 		break;
 
+#ifdef SLAPD_EXT_FILTERS
 	case LDAP_FILTER_EXT:
 		Debug( LDAP_DEBUG_FILTER, "    EXT\n", 0, 0, 0 );
-#if SLAPD_SCHEMA_NOT_COMPAT && notyet
+#if SLAPD_SCHEMA_NOT_COMPAT
 		rc = test_mra_filter( be, conn, op, e, f->f_mra );
 #else
 		rc = -1;
 #endif
 		break;
+#endif
 
 	case 0:
 		Debug( LDAP_DEBUG_FILTER, "    UNDEFINED\n", 0, 0, 0 );
@@ -208,63 +210,52 @@ test_ava_filter(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	if ( (a = attr_find( e->e_attrs, ava->aa_desc )) == NULL )
+	for(a = attrs_find( e->e_attrs, ava->aa_desc );
+		a != NULL;
+		a = attrs_find( a, ava->aa_desc ) )
 #else
-	if ( (a = attr_find( e->e_attrs, ava->ava_type )) == NULL )
+	a = attr_find( e->e_attrs, ava->ava_type );
+	if ( a != NULL )
 #endif
 	{
-		return LDAP_COMPARE_FALSE;
-	}
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-	/* not yet implemented */
-#else
-	if ( a->a_syntax == 0 ) {
-		a->a_syntax = attr_syntax( ava->ava_type );
-	}
-#endif
-
-	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-		int rc = -1;
-
-		switch ( type ) {
-		case LDAP_FILTER_EQUALITY:
-			break;
-		case LDAP_FILTER_APPROX:
-			break;
-
-		case LDAP_FILTER_GE:
-		case LDAP_FILTER_LE:
-			break;
-		}
-
-		if( rc == LDAP_COMPARE_TRUE ) return LDAP_COMPARE_TRUE;
-#else
-		int rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
-		    3 );
-
-		switch ( type ) {
-		case LDAP_FILTER_EQUALITY:
-		case LDAP_FILTER_APPROX:
-			if ( rc == 0 ) {
-				return LDAP_COMPARE_TRUE;
-			}
-			break;
-
-		case LDAP_FILTER_GE:
-			if ( rc >= 0 ) {
-				return LDAP_COMPARE_TRUE;
-			}
-			break;
-
-		case LDAP_FILTER_LE:
-			if ( rc <= 0 ) {
-				return LDAP_COMPARE_TRUE;
-			}
-			break;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+		if ( a->a_syntax == 0 ) {
+			a->a_syntax = attr_syntax( ava->ava_type );
 		}
 #endif
+
+		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
+			int rc;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			/* not yet implemented */
+			rc = 0;
+#else
+			rc = value_cmp( a->a_vals[i], &ava->ava_value, a->a_syntax,
+				3 );
+#endif
+
+			switch ( type ) {
+			case LDAP_FILTER_EQUALITY:
+			case LDAP_FILTER_APPROX:
+				if ( rc == 0 ) {
+					return LDAP_COMPARE_TRUE;
+				}
+				break;
+
+			case LDAP_FILTER_GE:
+				if ( rc >= 0 ) {
+					return LDAP_COMPARE_TRUE;
+				}
+				break;
+
+			case LDAP_FILTER_LE:
+				if ( rc <= 0 ) {
+					return LDAP_COMPARE_TRUE;
+				}
+				break;
+			}
+		}
 	}
 
 	return( LDAP_COMPARE_FALSE );
@@ -280,31 +271,25 @@ test_presence_filter(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	AttributeDescription *desc
 #else
-    char	*type
+    char	*desc
 #endif
 )
 {
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
 	if ( be != NULL && ! access_allowed( be, conn, op, e,
 		desc, NULL, ACL_SEARCH ) )
-#else
-	if ( be != NULL && ! access_allowed( be, conn, op, e,
-		type, NULL, ACL_SEARCH ) )
-#endif
 	{
 		return( -2 );
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	return attr_find( e->e_attrs, desc ) != NULL
+	return attrs_find( e->e_attrs, desc ) != NULL
 #else
-	return attr_find( e->e_attrs, type ) != NULL
+	return attr_find( e->e_attrs, desc ) != NULL
 #endif
 		? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 }
 
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
-
 static int
 test_approx_filter(
     Backend	*be,
@@ -324,64 +309,62 @@ test_approx_filter(
 		return( -2 );
 	}
 
-	if ( (a = attr_find( e->e_attrs, ava->ava_type )) == NULL ) {
-		return LDAP_COMPARE_FALSE;
-	}
-
-	/* for each value in the attribute */
-	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-		/*
-		 * try to match words in the filter value in order
-		 * in the attribute value.
-		 */
-
-		w2 = a->a_vals[i]->bv_val;
-		/* for each word in the filter value */
-		for ( w1 = first_word( ava->ava_value.bv_val ); w1 != NULL;
-		    w1 = next_word( w1 ) ) {
-			if ( (c1 = phonetic( w1 )) == NULL ) {
-				break;
-			}
-
+	a = attr_find( e->e_attrs, ava->ava_type );
+	if ( a != NULL ) {
+		/* for each value in the attribute */
+		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			/*
-			 * for each word in the attribute value from
-			 * where we left off...
+			 * try to match words in the filter value in order
+			 * in the attribute value.
 			 */
-			for ( w2 = first_word( w2 ); w2 != NULL;
-			    w2 = next_word( w2 ) ) {
-				c2 = phonetic( w2 );
-				if ( strcmp( c1, c2 ) == 0 ) {
-					free( c2 );
+
+			w2 = a->a_vals[i]->bv_val;
+			/* for each word in the filter value */
+			for ( w1 = first_word( ava->ava_value.bv_val ); w1 != NULL;
+				w1 = next_word( w1 ) ) {
+				if ( (c1 = phonetic( w1 )) == NULL ) {
 					break;
 				}
-				free( c2 );
-			}
-			free( c1 );
 
-			/*
-			 * if we stopped because we ran out of words
-			 * before making a match, go on to the next
-			 * value.  otherwise try to keep matching
-			 * words in this value from where we left off.
-			 */
-			if ( w2 == NULL ) {
-				break;
-			} else {
-				w2 = next_word( w2 );
+				/*
+				 * for each word in the attribute value from
+				 * where we left off...
+				 */
+				for ( w2 = first_word( w2 ); w2 != NULL;
+					w2 = next_word( w2 ) ) {
+					c2 = phonetic( w2 );
+					if ( strcmp( c1, c2 ) == 0 ) {
+						free( c2 );
+						break;
+					}
+					free( c2 );
+				}
+				free( c1 );
+
+				/*
+				 * if we stopped because we ran out of words
+				 * before making a match, go on to the next
+				 * value.  otherwise try to keep matching
+				 * words in this value from where we left off.
+				 */
+				if ( w2 == NULL ) {
+					break;
+				} else {
+					w2 = next_word( w2 );
+				}
 			}
-		}
-		/*
-		 * if we stopped because we ran out of words we
-		 * have a match.
-		 */
-		if ( w1 == NULL ) {
-			return LDAP_COMPARE_TRUE;
+			/*
+			 * if we stopped because we ran out of words we
+			 * have a match.
+			 */
+			if ( w1 == NULL ) {
+				return LDAP_COMPARE_TRUE;
+			}
 		}
 	}
 
 	return LDAP_COMPARE_FALSE;
 }
-
 #endif
 
 static int

@@ -92,9 +92,18 @@ extern ID ldbm_tool_entry_first LDAP_P(( BackendDB *be ));
 extern ID ldbm_tool_entry_next LDAP_P(( BackendDB *be ));
 extern Entry* ldbm_tool_entry_get LDAP_P(( BackendDB *be, ID id ));
 extern ID ldbm_tool_entry_put LDAP_P(( BackendDB *be, Entry *e ));
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+extern int ldbm_tool_index_attr LDAP_P(( BackendDB *be,
+	AttributeDescription* desc ));
+extern int ldbm_tool_index_change LDAP_P(( BackendDB *be,
+	AttributeDescription* desc,
+	struct berval **bv, ID id, int op ));
+#else
 extern int ldbm_tool_index_attr LDAP_P(( BackendDB *be, char* type ));
 extern int ldbm_tool_index_change LDAP_P(( BackendDB *be, char* type,
 	struct berval **bv, ID id, int op ));
+#endif
 extern int ldbm_tool_sync LDAP_P(( BackendDB *be ));
 
 	

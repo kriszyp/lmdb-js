@@ -422,7 +422,7 @@ typedef struct slap_filter {
  */
 typedef struct slap_attr {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	AttributeDescription a_desc;
+	AttributeDescription *a_desc;
 #else
 	char		*a_type;	/* description */
 	int		a_syntax;
@@ -474,14 +474,13 @@ typedef struct slap_entry {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 typedef struct slap_mod {
 	int sm_op;
-	AttributeDescription sm_desc;
+	AttributeDescription *sm_desc;
 	struct berval **sm_bvalues;
 } Modification;
 #else
 #define Modification LDAPMod
 #define sm_op mod_op
 #define sm_desc	mod_type
-#define sm_type mod_type
 #define sm_bvalues mod_bvalues
 #endif
 
@@ -491,7 +490,7 @@ typedef struct slap_mod_list {
 #define sml_desc	sml_mod.sm_desc
 #define sml_bvalues	sml_mod.sm_bvalues
 #ifndef SLAPD_SCHEMA_NOT_COMPAT
-#define sml_type	sml_mod.sm_type
+#define sml_type	sml_mod.sm_desc
 #endif
 	struct slap_mod_list *sml_next;
 } Modifications;
@@ -898,9 +897,18 @@ struct slap_backend_info {
 	ID (*bi_tool_entry_next) LDAP_P(( BackendDB *be ));
 	Entry* (*bi_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 	ID (*bi_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e ));
-	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be, char* type ));
-	int (*bi_tool_index_change) LDAP_P(( BackendDB *be, char* type,
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be,
+		AttributeDescription *desc ));
+	int (*bi_tool_index_change) LDAP_P(( BackendDB *be,
+		AttributeDescription *desc,
 		struct berval **bv, ID id, int op ));
+#else
+	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be,
+		char* type ));
+	int (*bi_tool_index_change) LDAP_P(( BackendDB *be,
+		char* type,	struct berval **bv, ID id, int op ));
+#endif
 	int (*bi_tool_sync) LDAP_P(( BackendDB *be ));
 
 #ifdef HAVE_CYRUS_SASL

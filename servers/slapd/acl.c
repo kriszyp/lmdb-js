@@ -713,12 +713,7 @@ acl_check_modlist(
 			}
 			for ( i = 0; mlist->sml_bvalues[i] != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-					&mlist->sml_desc,
-#else
-					mlist->sml_type,
-#endif
-					mlist->sml_bvalues[i], ACL_WRITE ) )
+					mlist->sml_desc, mlist->sml_bvalues[i], ACL_WRITE ) )
 				{
 					return( 0 );
 				}
@@ -728,12 +723,7 @@ acl_check_modlist(
 		case LDAP_MOD_DELETE:
 			if ( mlist->sml_bvalues == NULL ) {
 				if ( ! access_allowed( be, conn, op, e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-					&mlist->sml_desc,
-#else
-					mlist->sml_type,
-#endif
-					NULL,  ACL_WRITE ) )
+					mlist->sml_desc, NULL, ACL_WRITE ) )
 				{
 					return( 0 );
 				}
@@ -741,12 +731,7 @@ acl_check_modlist(
 			}
 			for ( i = 0; mlist->sml_bvalues[i] != NULL; i++ ) {
 				if ( ! access_allowed( be, conn, op, e,
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-					&mlist->sml_desc,
-#else
-					mlist->sml_type,
-#endif
-					mlist->sml_bvalues[i], ACL_WRITE ) )
+					mlist->sml_desc, mlist->sml_bvalues[i], ACL_WRITE ) )
 				{
 					return( 0 );
 				}

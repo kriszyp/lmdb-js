@@ -20,6 +20,12 @@ int
 main( int argc, char **argv )
 {
 	char		*type;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	AttributeDescription *desc;
+	char *text;
+#else
+	char *desc;
+#endif
 	ID id;
 	int rc = EXIT_SUCCESS;
 
@@ -40,11 +46,24 @@ main( int argc, char **argv )
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	type = argv[argc - 1];
+
+	if( strcasecmp( type, "dn" ) == 0 ) {
+		desc = NULL;
+
+	} else {
+		rc = slap_str2ad( type, &desc, &text );
+
+		if( rc != LDAP_SUCCESS ) {
+			fprintf( stderr, "%s: unrecognized attribute type: %s\n",
+				progname, text );
+			exit( EXIT_FAILURE );
+		}
+	}
 #else
-	type = attr_normalize( argv[argc - 1] );
+	desc = type = attr_normalize( argv[argc - 1] );
 #endif
 
-	if ( !be->be_index_attr( be, type ) ) {
+	if ( !be->be_index_attr( be, desc ) ) {
 		fprintf( stderr, "attribute type \"%s\": no indices to generate\n",
 			type );
 		exit( EXIT_FAILURE );
@@ -78,7 +97,12 @@ main( int argc, char **argv )
 				id, e->e_dn );
 		}
 
-		if( strcasecmp( type, "dn" ) == 0 ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		if( desc == NULL )
+#else
+		if( strcasecmp( type, "dn" ) == 0 )
+#endif
+		{
 			bv.bv_val = e->e_ndn;
 			bv.bv_len = strlen( bv.bv_val );
 			bvals[0] = &bv;
@@ -86,31 +110,46 @@ main( int argc, char **argv )
 
 			values = bvals;
 
-		} else {
-			Attribute *attr = attr_find( e->e_attrs, type );
+			if ( be->be_index_change( be,
+				desc, values, id, SLAP_INDEX_ADD_OP ) )
+			{
+				rc = EXIT_FAILURE;
 
-			if( attr == NULL ) {
-				entry_free( e );
-				continue;
+				if( !continuemode ) {
+					entry_free( e );
+					break;
+				}
 			}
 
-			values = attr->a_vals;
-		}
+		} else {
+			Attribute *attr;
+			
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			for( attr = attrs_find( e->e_attrs, desc );
+				attr != NULL;
+				attr = attrs_find( attr, desc ) )
+#else
+			if (( attr = attr_find( e->e_attrs, type )) != NULL )
+#endif
+			{
 
-		if ( be->be_index_change( be,
-			type, values, id, SLAP_INDEX_ADD_OP ) )
-		{
-			rc = EXIT_FAILURE;
+				if ( be->be_index_change( be,
+					desc, attr->a_vals, id, SLAP_INDEX_ADD_OP ) )
+				{
+					rc = EXIT_FAILURE;
 
-			if( !continuemode ) {
-				entry_free( e );
-				break;
+					if( !continuemode ) {
+						entry_free( e );
+						goto done;
+					}
+				}
 			}
 		}
 
 		entry_free( e );
 	}
 
+done:
 	(void) be->be_entry_close( be );
 
 	slap_tool_destroy();

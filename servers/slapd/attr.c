@@ -30,7 +30,7 @@ void
 attr_free( Attribute *a )
 {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	ad_free( &a->a_desc, 0 );
+	ad_free( a->a_desc, 1 );
 #else
 	free( a->a_type );
 #endif
@@ -79,9 +79,7 @@ Attribute *attr_dup( Attribute *a )
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-	tmp->a_desc = a->a_desc;
-	tmp->a_desc.ad_cname = ber_bvdup( a->a_desc.ad_cname );
-	tmp->a_desc.ad_lang = ch_strdup( a->a_desc.ad_lang );
+	tmp->a_desc = ad_dup( a->a_desc );
 #else
 	tmp->a_type = ch_strdup( a->a_type );
 	tmp->a_syntax = a->a_syntax;
@@ -210,6 +208,28 @@ attr_merge(
 	return( value_add( &(*a)->a_vals, vals ) );
 }
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+/*
+ * attrs_find - find attribute(s) by AttributeDescription
+ * returns next attribute which is subtype of provided description.
+ */
+
+Attribute *
+attrs_find(
+    Attribute	*a,
+	AttributeDescription *desc
+)
+{
+	for ( ; a != NULL; a = a->a_next ) {
+		if ( is_ad_subtype( a->a_desc, desc ) == 0 ) {
+			return( a );
+		}
+	}
+
+	return( NULL );
+}
+#endif
+
 /*
  * attr_find - find attribute by type
  */
@@ -226,12 +246,13 @@ attr_find(
 {
 	for ( ; a != NULL; a = a->a_next ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
-		/* not yet implemented */
+		if ( ad_cmp( a->a_desc, desc ) == 0 )
 #else
-		if ( strcasecmp( a->a_type, type ) == 0 ) {
+		if ( strcasecmp( a->a_type, type ) == 0 )
+#endif
+		{
 			return( a );
 		}
-#endif
 	}
 
 	return( NULL );

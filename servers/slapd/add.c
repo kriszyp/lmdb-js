@@ -306,8 +306,32 @@ static int slap_mods2entry(
 	Entry **e,
 	char **text )
 {
-	*text = "Not yet implemented";
-	return LDAP_NOT_SUPPORTED;
+	Attribute **tail = &(*e)->e_attrs;
+	assert( *tail == NULL );
+
+	for( ; mods != NULL; mods = mods->sml_next ) {
+		Attribute *attr;
+
+		assert( mods->sml_op == LDAP_MOD_ADD );
+
+		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
+
+		if( attr != NULL ) {
+			*text = "Attribute provided more than once";
+			return LDAP_OPERATIONS_ERROR;
+		}
+
+		attr = ch_calloc( 1, sizeof(Attribute) );
+
+		/* should check for duplicates */
+		attr->a_vals = mods->sml_bvalues;
+		mods->sml_bvalues = NULL;
+
+		*tail = attr;
+		tail = &attr->a_next;
+	}
+
+	return LDAP_SUCCESS;
 }
 
 #else
