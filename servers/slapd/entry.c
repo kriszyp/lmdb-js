@@ -200,7 +200,7 @@ str2entry( char *s )
 		}
 
 		if( slapMode & SLAP_TOOL_MODE ) {
-			struct berval *pval;
+			struct berval *pval = NULL;
 			slap_syntax_validate_func *validate =
 				ad->ad_type->sat_syntax->ssyn_validate;
 			slap_syntax_transform_func *pretty =
