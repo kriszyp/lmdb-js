@@ -51,6 +51,7 @@ bdb_dn2id_add(
 		goto done;
 	}
 
+	pdn = NULL;
 	if( !be_issuffix( be, ptr )) {
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
@@ -60,11 +61,15 @@ bdb_dn2id_add(
 			ptr, rc, 0 );
 			goto done;
 		}
-	}
-
-	pdn = dn_parent( be, ptr );
-
-	if( pdn != NULL ) {
+		
+		rc = dnParent( ptr, (const char **)&pdn );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_add: dnParent(\"%s\") failed\n",
+				ptr, 0, 0 );
+			goto done;
+		}
+	
 		key.size -= pdn - ptr;
 		pdn[-1] = DN_ONE_PREFIX;
 		key.data = pdn - 1;
@@ -93,7 +98,17 @@ bdb_dn2id_add(
 			break;
 		}
 		ptr = pdn;
-		pdn = dn_parent( be, pdn );
+		if ( be_issuffix( be, pdn ) ) {
+			break;
+		}
+		rc = dnParent( pdn, &pdn );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_add: dnParent(\"%s\") failed\n",
+				ptr, 0, 0 );
+			goto done;
+		}
+
 		key.size -= pdn - ptr;
 		key.data = pdn - 1;
 	}
@@ -137,6 +152,7 @@ bdb_dn2id_delete(
 		goto done;
 	}
 
+	pdn = NULL;
 	if( !be_issuffix( be, ptr )) {
 		buf[0] = DN_SUBTREE_PREFIX;
 		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
@@ -146,11 +162,15 @@ bdb_dn2id_delete(
 			ptr, rc, 0 );
 			goto done;
 		}
-	}
 
-	pdn = dn_parent( be, ptr );
+		rc = dnParent( ptr, &pdn );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_delete: dnParent(\"%s\") failed\n",
+				ptr, 0, 0 );
+			goto done;
+		}
 
-	if( pdn != NULL ) {
 		key.size -= pdn - ptr;
 		pdn[-1] = DN_ONE_PREFIX;
 		key.data = pdn - 1;
@@ -179,7 +199,14 @@ bdb_dn2id_delete(
 			goto done;
 		}
 		ptr = pdn;
-		pdn = dn_parent( be, pdn );
+		rc = dnParent( pdn, &pdn );
+		if ( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_delete: dnParent(\"%s\") failed\n",
+				ptr, 0, 0 );
+			goto done;
+		}
+
 		key.size -= pdn - ptr;
 		key.data = pdn - 1;
 	}
@@ -269,7 +296,17 @@ bdb_dn2id_matched(
 		rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 		if( rc == DB_NOTFOUND ) {
-			char *pdn = dn_parent( be, dn );
+			char 	*pdn = NULL;
+
+			if ( ! be_issuffix( be, dn ) ) {
+				rc = dnParent( dn, &pdn );
+				if ( rc != LDAP_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"<= bdb_dn2id_matched: dnParent(\"%s\") failed\n",
+						dn, 0, 0 );
+					break;
+				}
+			}
 
 			if( pdn == NULL || *pdn == '\0' ) {
 				Debug( LDAP_DEBUG_TRACE,

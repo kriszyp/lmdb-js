@@ -117,7 +117,15 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	pdn = dn_parent( be, ndn->bv_val );
+	if ( be_issuffix( be, ndn->bv_val ) ) {
+		pdn = NULL;
+	} else {
+		rc = dnParent( ndn->bv_val, &pdn );
+		if ( rc != LDAP_SUCCESS ) {
+			text = "internal error";
+			goto return_results;
+		}
+	}
 
 	if( pdn != NULL && *pdn != '\0' ) {
 		struct berval pbv;

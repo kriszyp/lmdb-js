@@ -96,11 +96,16 @@ retry:	rc = txn_abort( ltid );
 	 * If the parent does not exist, only allow the "root" user to
 	 * add the entry.
 	 */
-	pdn.bv_val = dn_parent( be, e->e_ndn );
-	if (pdn.bv_val && *pdn.bv_val) {
-		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
-	} else {
+	if ( be_issuffix( be, e->e_nname.bv_val ) ) {
 		pdn.bv_len = 0;
+		pdn.bv_val = "";
+	} else {
+		rc = dnParent( e->e_nname.bv_val, &pdn.bv_val );
+		if ( rc != LDAP_SUCCESS ) {
+			text = "internal error";
+			goto return_results;
+		}
+		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_nname.bv_val);
 	}
 
 	if( pdn.bv_len != 0 ) {
