@@ -132,7 +132,7 @@ $LDAPMODIFY -D "$JAJDN" -h $LOCALHOST -p $PORT -w jaj >> \
 
 dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 changetype: modify
-delete: member
+delete: description
 
 EOMODS3
 

@@ -149,7 +149,11 @@ description: A very long description, that is very likely to cause line wrapping
 
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
-delete: member
+replace: member
+member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Michi
+gan,c=US
+-
+delete: description
 
 dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: add

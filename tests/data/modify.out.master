@@ -1,7 +1,6 @@
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 owner: cn=Manager,o=University of Michigan,c=US
 cn: All Staff
-description: Everyone in the sample data
 objectclass: groupofnames
 member: cn=Dorothy Stevens,ou=Alumni Association,ou=People,o=University of Mic
  higan,c=US
