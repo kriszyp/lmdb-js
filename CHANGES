@@ -10,7 +10,7 @@ OpenLDAP 2.1.27 Release
 	Fixed libldap SASL client callbacks (ITS#2926)
 	Build Environment
 		Fixed gai_strerr portability problem (ITS#2643)
-		Fixed DNS res_query portabilitiy problem
+		Fixed DNS res_query portability problem
 
 OpenLDAP 2.1.26 Release
 	Fixed slapd bdb error recovery bug (ITS#2865)
