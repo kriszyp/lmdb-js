@@ -188,6 +188,10 @@ monitor_cache_dn2entry(
 
 	*matched = NULL;
 
+	if ( !dnIsSuffix( ndn, &op->o_bd->be_nsuffix[ 0 ] ) ) {
+		return( -1 );
+	}
+
 	rc = monitor_cache_get( mi, ndn, ep );
        	if ( !rc && *ep != NULL ) {
 		return( 0 );
