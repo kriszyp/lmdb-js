@@ -13,6 +13,8 @@
 #ifndef _SLAPI_UTILS_H
 #define _SLAPI_UTILS_H
 
+LDAP_BEGIN_DECL
+
 struct _Audit_record;
 typedef struct _Audit_record Audit_record;
 
@@ -117,6 +119,8 @@ extern ldap_pvt_thread_mutex_t	slapi_time_mutex;
 extern ldap_pvt_thread_mutex_t	slapi_printmessage_mutex; 
 extern char			*slapi_log_file;
 extern int			slapi_log_level;
+
+LDAP_END_DECL
 
 #endif /* _SLAPI_UTILS_H */
 

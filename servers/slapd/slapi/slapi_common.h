@@ -13,6 +13,9 @@
 #ifndef SLAPI_COMMON_H
 #define SLAPI_COMMON_H
 
+LDAP_BEGIN_DECL
+
+
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -34,6 +37,8 @@ typedef struct strlist {
 	char *string;
 	struct strlist *next;
 } StrList;
+
+LDAP_END_DECL
 
 #endif /* SLAPI_COMMON_H */
 

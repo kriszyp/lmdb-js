@@ -20,6 +20,8 @@
 #define INVALID_PARAM PBLOCK_ERROR
 #define MAX_PARAMS 100
 
+LDAP_BEGIN_DECL
+
 struct slapi_pblock {
 	ldap_pvt_thread_mutex_t	pblockMutex;
 	int			ckParams;
@@ -41,6 +43,8 @@ void slapi_pblock_clear(Slapi_PBlock *pb);
  */
 int slapi_x_pblock_get_first( Backend *be, Slapi_PBlock **pb );
 int slapi_x_pblock_get_next( Slapi_PBlock **pb );
+
+LDAP_END_DECL
 
 #endif /* SLAPI_PBLOCK_H */
 

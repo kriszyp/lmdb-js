@@ -15,10 +15,14 @@
 
 #include <ibm_pblock_params.h> 
 
+LDAP_BEGIN_DECL
+
 typedef struct	slapi_pblock	Slapi_PBlock;
 typedef struct	slap_entry	Slapi_Entry;
 typedef struct	slap_attr	Slapi_Attr;
 typedef Filter			Slapi_Filter;
+
+LDAP_END_DECL
 
 #include <slapi_utils.h>
 #ifndef NO_PBLOCK_CLASS
@@ -29,6 +33,8 @@ typedef Filter			Slapi_Filter;
 #if 0 /* unused (yet?) */
 #include <slapi_cl.h>
 #endif /* 0 */
+
+LDAP_BEGIN_DECL
 
 /*
  * types of plugins
@@ -293,6 +299,8 @@ typedef Filter			Slapi_Filter;
 #define SLAPI_OPERATION_EXTENDED        	0x00000200L
 #define SLAPI_OPERATION_ANY             	0xFFFFFFFFL
 #define SLAPI_OPERATION_NONE            	0x00000000L
+
+LDAP_END_DECL
 
 #endif /* _SLAPI_H */
 
