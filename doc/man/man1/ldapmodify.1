@@ -35,6 +35,8 @@ ldapmodify, ldapadd \- LDAP modify entry and LDAP add entry tools
 [\c
 .BI \-w \ passwd\fR]
 [\c
+.BI \-H \ ldapuri\fR]
+[\c
 .BI \-h \ ldaphost\fR]
 [\c
 .BI \-p \ ldapport\fR]
@@ -197,11 +199,16 @@ This is used instead of specifying the password on the command line.
 .BI \-w \ passwd
 Use \fIpasswd\fP as the password for simple authentication.
 .TP
+.BI \-H \ ldapuri
+Specify URI(s) referring to the ldap server(s).
+.TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
+Deprecated in favor of -H.
 .TP
 .BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
+Deprecated in favor of -H.
 .TP
 .BI \-P \ 2\fR\||\|\fI3
 Specify the LDAP protocol version to use.

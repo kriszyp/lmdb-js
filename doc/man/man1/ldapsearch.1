@@ -37,6 +37,8 @@ ldapsearch \- LDAP search tool
 [\c
 .BI \-w \ bindpasswd\fR]
 [\c
+.BI \-H \ ldapuri\fR]
+[\c
 .BI \-h \ ldaphost\fR]
 [\c
 .BI \-p \ ldapport\fR]
@@ -176,11 +178,16 @@ This is used instead of specifying the password on the command line.
 .BI \-w \ bindpasswd
 Use \fIbindpasswd\fP as the password for simple authentication.
 .TP
+.BI \-H \ ldapuri
+Specify URI(s) referring to the ldap server(s).
+.TP
 .BI \-h \ ldaphost
 Specify an alternate host on which the ldap server is running.
+Deprecated in favor of -H.
 .TP
 .BI \-p \ ldapport
 Specify an alternate TCP port where the ldap server is listening.
+Deprecated in favor of -H.
 .TP
 .BI \-b \ searchbase
 Use \fIsearchbase\fP as the starting point for the search instead of
