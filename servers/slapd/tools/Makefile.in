@@ -29,21 +29,16 @@ XLIBS = -lavl -lldif -lldbm -llutil -lldap_r -llber
 XXLIBS = $(SLAPD_LIBS) \
 	$(LDBM_LIBS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
-XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
+XXXLIBS = $(MODULES_LIBS) $(LTHREAD_LIBS)
 
-PROGRAMS=ldif slappasswd slapadd slapcat slapindex
-LDBMPROGRAMS=centipede sizecount
+PROGRAMS=slapadd slapcat slapindex slappasswd
 
 # CPPFLAGS will include the defines for dynamic libs in Mingw32.
 NT_DYN_DEFS = -DLBER_DECL=dllimport -DLDAP_DECL=dllimport
 CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_DEFS)
 
-SRCS = ldif.c mimic.c slapcommon.c slapadd.c slapcat.c slapindex.c
-
-XSRCS = edb2-vers.c
-
-# LDBMSRCS = centipede.c sizecount.c
-LDBMSRCS =
+SRCS = mimic.c slapcommon.c \
+	slapadd.c slapcat.c slapindex.c slappasswd.c
 
 SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../module.o ../aclparse.o ../filterentry.o \
@@ -56,20 +51,9 @@ SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 
 SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
 
-EDB2LDIFSRCS    = edb2ldif.c ldapsyntax.c
-EDB2LDIFOBJS    = edb2ldif.o ldapsyntax.o
-
-UNIX_PRGS = build-ldbm
-
-all-local: build-progs $(@PLAT@_PRGS)
+all-local: build-progs
 
 build-progs: $(PROGRAMS)
-
-build-ldbm: ldbm-tools-$(BUILD_LDBM)
-ldbm-tools-no:
-	@echo "run configure with --enable-ldbm to build LDBM tools"
-
-ldbm-tools-yes ldbm-tools-mod: $(LDBMPROGRAMS)
 
 #
 # SLAP Tools
@@ -83,39 +67,11 @@ slapcat:	slapcat.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND)
 slapindex:	slapindex.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ slapindex.o $(SLAPOBJS) ../libbackends.a $(LIBS)
 
-ldif:		ldif.o $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ ldif.o $(LIBS)
-
 slappasswd:		slappasswd.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ slappasswd.o $(LIBS)
 
-#
-# LDBM Specific Tools
-#	(deprecated)
-centipede:	centipede.o $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ centipede.o $(LIBS)
-
-sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
-	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
-
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(LDBMPROGRAMS) \
-		$(XPROGRAMS) $(XSRCS) *.o core .libs/* *.exe
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o core .libs/* *.exe
 
 depend-local: FORCE
-	DEPEND_LDBM= ; \
-	if [ "$(BUILD_LDBM)" != "no" ]; then \
-		DEPEND_LDBM="$(LDBMSRCS)"; \
-	fi; \
-	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $$DEPEND_LDBM
-
-install-local: install-ldbm-$(BUILD_LDBM)
-
-install-ldbm-no:
-
-install-ldbm-yes install-ldbm-mod: FORCE
-	-$(MKDIR) $(DESTDIR)$(sbindir) 
-	@for bin in $(PROGRAMS); do \
-		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
-			$$bin$(EXEEXT) $(DESTDIR)$(sbindir); \
-	done
+	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)
