@@ -644,8 +644,8 @@ avl_free( Avlnode *root, AVL_FREE dfree )
  * < 0 if arg1 is less than arg2 and > 0 if arg1 is greater than arg2.
  */
 
-void*
-avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
+Avlnode *
+avl_find2( Avlnode *root, const void *data, AVL_CMP fcmp )
 {
 	int	cmp;
 
@@ -655,6 +655,13 @@ avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
 		else
 			root = root->avl_right;
 	}
+	return root;
+}
+
+void*
+avl_find( Avlnode *root, const void* data, AVL_CMP fcmp )
+{
+	root = avl_find2( root, data, fcmp );
 
 	return( root ? root->avl_data : 0 );
 }

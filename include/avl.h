@@ -38,13 +38,14 @@ LDAP_BEGIN_DECL
 
 typedef struct avlnode Avlnode;
 
-#ifdef AVL_INTERNAL
 struct avlnode {
 	void*		avl_data;
 	signed int		avl_bf;
 	struct avlnode	*avl_left;
 	struct avlnode	*avl_right;
 };
+
+#ifdef AVL_INTERNAL
 
 #define NULLAVL	((Avlnode *) NULL)
 
@@ -75,6 +76,9 @@ avl_delete LDAP_P((Avlnode **, void*, AVL_CMP));
 
 LDAP_AVL_F( void* )
 avl_find LDAP_P((Avlnode *, const void*, AVL_CMP));
+
+LDAP_AVL_F( Avlnode* )
+avl_find2 LDAP_P((Avlnode *, const void*, AVL_CMP));
 
 LDAP_AVL_F( void* )
 avl_find_lin LDAP_P((Avlnode *, const void*, AVL_CMP));
