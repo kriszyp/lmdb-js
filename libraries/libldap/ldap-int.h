@@ -18,15 +18,11 @@
 
 #include "../liblber/lber-int.h"
 
-/*
- * Windows does not preprocess correctly unless
- * this #include precedes queue.h
- */
 #ifdef LDAP_R_COMPILE
 #include <ldap_pvt_thread.h>
 #endif
 
-#include <ac/queue.h>
+#include <ldap_queue.h>
 
 #ifdef HAVE_CYRUS_SASL
 	/* the need for this should be removed */
