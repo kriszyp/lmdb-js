@@ -2,6 +2,7 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.18 Engineering
 	Fixed slave update when updateref missing bug (ITS#2435)
+	Fixed slapd crash on uniqueMmeber= filter (ITS#2447)
 
 OpenLDAP 2.1.17 Release
 	Fixed libldap_r thread pool context bug (ITS#2404)
