@@ -23,10 +23,10 @@ AC_PREFIX_DEFAULT(/usr/local)
 
 dnl General "enable" options
 OL_ARG_ENABLE(debug,[  --enable-debug	enable debugging], yes)dnl
-#OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
+dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
 OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(dns,[  --enable-dns	enable dns support], auto)dnl
+OL_ARG_ENABLE(dns,[  --enable-dns	enable dns support], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable referrals], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-clapd	enable connectionless ldap], no)dnl
 
@@ -547,9 +547,9 @@ dnl Sort out defines
 if test $ol_enable_debug != no ; then
 	LDAP_DEFS="$LDAP_DEFS -DLDAP_DEBUG"
 fi
-#if test $ol_enable_syslog != no ; then
-#	LDAP_DEFS="$LDAP_DEFS -DLDAP_SYSLOG"
-#fi
+dnl	if test $ol_enable_syslog != no ; then
+dnl		LDAP_DEFS="$LDAP_DEFS -DLDAP_SYSLOG"
+dnl	fi
 if test $ol_enable_libui = no ; then
 	LDAP_DEFS="$LDAP_DEFS -DNO_USERINTERFACE"
 fi

@@ -99,7 +99,7 @@ lint-local:
 lint5-local:
 
 Makefile: Makefile.in ${top_srcdir}/config.status
-	@if [ $(top_srcdir) = $(srcdir) ]; then ; \
+	@if test "$(top_srcdir)" = "$(srcdir)" ; then ; \
 		./config.status	; \
 	else ; \
 		echo "Makefile out of date, run config.status from $top_srcdir" ; \
