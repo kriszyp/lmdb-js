@@ -518,7 +518,7 @@ such as those to the ldapi:// listener.  For a description of SSF values,
 see 
 .BR sasl-secprops 's
 .B minssf
-property description.  The default is 71.
+option description.  The default is 71.
 .TP
 .B loglevel <integer> [...]
 Specify the level at which debugging statements and operation 
@@ -801,10 +801,11 @@ Specify the distinguished name for the subschema subentry that
 controls the entries on this server.  The default is "cn=Subschema".
 .TP
 .B security <factors>
-Specify a set of factors (separated by white space) to require.
-An integer value is associated with each factor and is roughly
-equivalent of the encryption key length to require.  A value
-of 112 is equivalent to 3DES, 128 to Blowfish, etc..
+Specify a set of security strength factors (separated by white space)
+to require (see
+.BR sasl-secprops 's
+.B minssf
+option for a description of security strength factors).
 The directive may be specified globally and/or per-database.
 .B ssf=<n>
 specifies the overall security strength factor.

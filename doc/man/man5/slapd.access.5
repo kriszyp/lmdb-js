@@ -534,7 +534,8 @@ The statements
 .BR tls_ssf=<n> ,
 and
 .BR sasl_ssf=<n>
-set the required Security Strength Factor (ssf) required to grant access.
+set the minimum required Security Strength Factor (ssf) needed
+to grant access.  The value should be positive integer.
 .SH THE <ACCESS> FIELD
 The field
 .B <access> ::= [self]{<level>|<priv>}
