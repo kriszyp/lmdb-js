@@ -243,6 +243,166 @@ char * UTF8normalize(
 	return out;
 }
 
+struct berval * UTF8bvnormalize(
+	struct berval *bv,
+	struct berval *newbv,
+	unsigned casefold )
+{
+	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
+	char *out, *s;
+	unsigned long *ucs, *p, *ucsout;
+	
+	static unsigned char mask[] = {
+                0, 0x7f, 0x1f, 0x0f, 0x07, 0x03, 0x01 };
+
+	if ( bv == NULL ) {
+		return NULL;
+	}
+
+	s = bv->bv_val;
+	len = bv->bv_len;
+
+	if ( len == 0 ) {
+		return ber_dupbv( newbv, bv );
+	}
+	
+	/* FIXME: Should first check to see if string is already in
+	 * proper normalized form. This is almost as time consuming
+	 * as the normalization though.
+	 */
+
+	/* finish off everything up to character before first non-ascii */
+	if ( LDAP_UTF8_ISASCII( s ) ) {
+		if ( casefold ) {
+			outsize = len + 7;
+			out = (char *) malloc( outsize );
+			if ( out == NULL ) {
+				return NULL;
+			}
+			outpos = 0;
+
+			for ( i = 1; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
+				out[outpos++] = TOUPPER( s[i-1] );
+			}
+			if ( i == len ) {
+				out[outpos++] = TOUPPER( s[len - 1] );
+				out[outpos] = '\0';
+				return ber_str2bv( out, outpos, 0, newbv);
+			}
+		} else {
+			for ( i = 1; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
+				/* empty */
+			}
+
+			if ( i == len ) {
+				return ber_str2bv( s, len, 1, newbv );
+			}
+				
+			outsize = len + 7;
+			out = (char *) malloc( outsize );
+			if ( out == NULL ) {
+				return NULL;
+			}
+			outpos = i - 1;
+			memcpy(out, s, outpos);
+		}
+	} else {
+		outsize = len + 7;
+		out = (char *) malloc( outsize );
+		if ( out == NULL ) {
+			return NULL;
+		}
+		outpos = 0;
+		i = 0;
+	}
+
+	p = ucs = (long *) malloc( len * sizeof(*ucs) );
+	if ( ucs == NULL ) {
+		free(out);
+		return NULL;
+	}
+
+	/* convert character before first non-ascii to ucs-4 */
+	if ( i > 0 ) {
+		*p = casefold ? TOUPPER( s[i - 1] ) : s[i - 1];
+		p++;
+	}
+
+	/* s[i] is now first non-ascii character */
+	for (;;) {
+		/* s[i] is non-ascii */
+		/* convert everything up to next ascii to ucs-4 */
+		while ( i < len ) {
+			clen = LDAP_UTF8_CHARLEN2( s + i, clen );
+			if ( clen == 0 ) {
+				free( ucs );
+				free( out );
+				return NULL;
+			}
+			if ( clen == 1 ) {
+				/* ascii */
+				break;
+			}
+			*p = s[i] & mask[clen];
+			i++;
+			for( j = 1; j < clen; j++ ) {
+				if ( (s[i] & 0xc0) != 0x80 ) {
+					free( ucs );
+					free( out );
+					return NULL;
+				}
+				*p <<= 6;
+				*p |= s[i] & 0x3f;
+				i++;
+			}
+			if ( casefold ) {
+				*p = uctoupper( *p );
+			}
+			p++;
+                }
+		/* normalize ucs of length p - ucs */
+		uccanondecomp( ucs, p - ucs, &ucsout, &ucsoutlen );    
+		ucsoutlen = uccanoncomp( ucsout, ucsoutlen );
+		/* convert ucs to utf-8 and store in out */
+		for ( j = 0; j < ucsoutlen; j++ ) {
+			/* allocate more space if not enough room for
+			   6 bytes and terminator */
+			if ( outsize - outpos < 7 ) {
+				outsize = ucsoutlen - j + outpos + 6;
+				out = (char *) realloc( out, outsize );
+				if ( out == NULL ) {
+					free( ucs );
+					return NULL;
+				}
+			}
+			outpos += ldap_x_ucs4_to_utf8( ucsout[j], &out[outpos] );
+		}
+		
+		if ( i == len ) {
+			break;
+		}
+
+		last = i;
+
+		/* s[i] is ascii */
+		/* finish off everything up to char before next non-ascii */
+		for ( i++; (i < len) && LDAP_UTF8_ISASCII(s + i); i++ ) {
+			out[outpos++] = casefold ? TOUPPER( s[i-1] ) : s[i-1];
+		}
+		if ( i == len ) {
+			out[outpos++] = casefold ? TOUPPER( s[len - 1] ) : s[len - 1];
+			break;
+		}
+
+		/* convert character before next non-ascii to ucs-4 */
+		*ucs = casefold ? TOUPPER( s[i - 1] ) : s[i - 1];
+		p = ucs + 1;
+	}		
+	free( ucs );
+	out[outpos] = '\0';
+	return ber_str2bv( out, outpos, 0, newbv );
+}
+
 /* compare UTF8-strings, optionally ignore casing, string pointers must not be NULL */
 /* slow, should be optimized */
 int UTF8normcmp(
