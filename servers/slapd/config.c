@@ -752,7 +752,7 @@ config_get_vals(ConfigTable *cf, ConfigArgs *c)
 		if (( cf->arg_type & ARGS_POINTER ) == ARG_STRING )
 			ber_bvarray_add(&c->rvalue_vals, &bv);
 		else
-			value_add(&c->rvalue_vals, &bv);
+			value_add_one(&c->rvalue_vals, &bv);
 	}
 	return rc;
 }
@@ -1611,6 +1611,7 @@ verbs_to_mask(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t *m) {
 	for(i = 1; i < c->argc; i++) {
 		j = verb_to_mask(c, v, i);
 		if(!v[j].word) return(1);
+		while (!v[j].mask) j--;
 		*m |= v[j].mask;
 	}
 	return(0);
@@ -1623,8 +1624,8 @@ mask_to_verbs(ConfigArgs *c, struct verb_mask_list *v, slap_mask_t m) {
 
 	if (!m) return 1;
 	for (i=0; v[i].word; i++) {
-		if ( v[i].mask == -1 && m != v[i].mask ) continue;
-		if ( m & v[i].mask ) {
+		if (!v[i].mask) continue;
+		if (( m & v[i].mask ) == v[i].mask ) {
 			ber_str2bv( v[i].word, 0, 0, &bv );
 			value_add_one( &c->rvalue_vals, &bv );
 		}
@@ -1640,8 +1641,8 @@ config_restrict(ConfigArgs *c) {
 		{ "bind",		SLAP_RESTRICT_OP_BIND },
 		{ "add",		SLAP_RESTRICT_OP_ADD },
 		{ "modify",		SLAP_RESTRICT_OP_MODIFY },
-		{ "modrdn",		SLAP_RESTRICT_OP_RENAME },
 		{ "rename",		SLAP_RESTRICT_OP_RENAME },
+		{ "modrdn",		0 },
 		{ "delete",		SLAP_RESTRICT_OP_DELETE },
 		{ "search",		SLAP_RESTRICT_OP_SEARCH },
 		{ "compare",	SLAP_RESTRICT_OP_COMPARE },
@@ -1846,45 +1847,59 @@ config_referral(ConfigArgs *c) {
 	return(0);
 }
 
+static struct {
+	struct berval key;
+	int off;
+} sec_keys[] = {
+	{ BER_BVC("ssf="), offsetof(slap_ssf_set_t, sss_ssf) },
+	{ BER_BVC("transport="), offsetof(slap_ssf_set_t, sss_transport) },
+	{ BER_BVC("tls="), offsetof(slap_ssf_set_t, sss_tls) },
+	{ BER_BVC("sasl="), offsetof(slap_ssf_set_t, sss_sasl) },
+	{ BER_BVC("update_ssf="), offsetof(slap_ssf_set_t, sss_update_ssf) },
+	{ BER_BVC("update_transport="), offsetof(slap_ssf_set_t, sss_update_transport) },
+	{ BER_BVC("update_tls="), offsetof(slap_ssf_set_t, sss_update_tls) },
+	{ BER_BVC("update_sasl="), offsetof(slap_ssf_set_t, sss_update_sasl) },
+	{ BER_BVC("simple_bind="), offsetof(slap_ssf_set_t, sss_simple_bind) },
+	{ BER_BVNULL, 0 }
+};
+
 static int
 config_security(ConfigArgs *c) {
 	slap_ssf_set_t *set = &c->be->be_ssf_set;
 	char *next;
-	int i;
+	int i, j;
 	if (c->emit) {
-		return 1;
+		char numbuf[32];
+		struct berval bv;
+		slap_ssf_t *tgt;
+		int rc = 1;
+
+		for (i=0; !BER_BVISNULL( &sec_keys[i].key ); i++) {
+			tgt = (slap_ssf_t *)((char *)set + sec_keys[i].off);
+			if ( *tgt ) {
+				rc = 0;
+				bv.bv_len = sprintf( numbuf, "%u", *tgt );
+				bv.bv_len += sec_keys[i].key.bv_len;
+				bv.bv_val = ch_malloc( bv.bv_len + 1);
+				next = lutil_strcopy( bv.bv_val, sec_keys[i].key.bv_val );
+				strcpy( next, numbuf );
+				ber_bvarray_add( &c->rvalue_vals, &bv );
+			}
+		}
+		return rc;
 	}
 	for(i = 1; i < c->argc; i++) {
-		slap_ssf_t *tgt;
+		slap_ssf_t *tgt = NULL;
 		char *src;
-		if(!strncasecmp(c->argv[i], "ssf=", 4)) {
-			tgt = &set->sss_ssf;
-			src = &c->argv[i][4];
-		} else if(!strncasecmp(c->argv[i], "transport=", 10)) {
-			tgt = &set->sss_transport;
-			src = &c->argv[i][10];
-		} else if(!strncasecmp(c->argv[i], "tls=", 4)) {
-			tgt = &set->sss_tls;
-			src = &c->argv[i][4];
-		} else if(!strncasecmp(c->argv[i], "sasl=", 5)) {
-			tgt = &set->sss_sasl;
-			src = &c->argv[i][5];
-		} else if(!strncasecmp(c->argv[i], "update_ssf=", 11)) {
-			tgt = &set->sss_update_ssf;
-			src = &c->argv[i][11];
-		} else if(!strncasecmp(c->argv[i], "update_transport=", 17)) {
-			tgt = &set->sss_update_transport;
-			src = &c->argv[i][17];
-		} else if(!strncasecmp(c->argv[i], "update_tls=", 11)) {
-			tgt = &set->sss_update_tls;
-			src = &c->argv[i][11];
-		} else if(!strncasecmp(c->argv[i], "update_sasl=", 12)) {
-			tgt = &set->sss_update_sasl;
-			src = &c->argv[i][12];
-		} else if(!strncasecmp(c->argv[i], "simple_bind=", 12)) {
-			tgt = &set->sss_simple_bind;
-			src = &c->argv[i][12];
-		} else {
+		for ( j=0; !BER_BVISNULL( &sec_keys[j].key ); j++ ) {
+			if(!strncasecmp(c->argv[i], sec_keys[j].key.bv_val,
+				sec_keys[j].key.bv_len)) {
+				src = c->argv[i] + sec_keys[j].key.bv_len;
+				tgt = (slap_ssf_t *)((char *)set + sec_keys[j].off);
+				break;
+			}
+		}
+		if ( !tgt ) {
 			Debug(LDAP_DEBUG_ANY, "%s: "
 				"unknown factor %s in \"security <factors>\" line\n",
 				c->log, c->argv[i], 0);
