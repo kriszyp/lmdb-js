@@ -122,7 +122,7 @@ des_string_to_key( char *str, register des_cblock *key )
 #ifdef USE_DES_DEBUG
     if (des_debug)
 	fprintf(stdout,
-		"\nResulting string_to_key = 0x%x 0x%x\n",
+		"\nResulting string_to_key = 0x%lx 0x%lx\n",
 		*((unsigned long *) key),
 		*((unsigned long *) key+1));
 #endif
