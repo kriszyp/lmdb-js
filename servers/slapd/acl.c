@@ -1123,7 +1123,12 @@ dn_match_cleanup:;
 			 */
 			for ( i = 0; at->a_vals[i].bv_val != NULL; i++ ) {
 				if (aci_mask( be, conn, op,
-					e, desc, val, &at->a_vals[i],
+					e, desc, val,
+#ifdef SLAP_NVALUES
+					at->a_vals ? &at->a_nvals[i] : &at->a_vals[i],
+#else
+					&at->a_vals[i],
+#endif
 					matches, &grant, &deny ) != 0)
 				{
 					tgrant |= grant;
@@ -1849,7 +1854,17 @@ aci_mask(
 			at != NULL;
 			at = attrs_find( at->a_next, ad ) )
 		{
-			if (value_find_ex( ad, SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH, at->a_vals, &bv) == 0 ) {
+			if (value_find_ex( ad,
+#ifdef SLAP_NVALUES
+				SLAP_MR_ATTRIBUTE_VALUE_NORMALIZED_MATCH |
+					SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+				at->a_nvals ? at->a_nvals : at->a_vals,
+#else
+				SLAP_MR_ASSERTED_VALUE_NORMALIZED_MATCH,
+				at->a_vals,
+#endif
+				&bv) == 0 )
+			{
 				rc = 1;
 				break;
 			}

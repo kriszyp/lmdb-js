@@ -18,8 +18,7 @@ slap_operational_subschemaSubentry( Backend *be )
 	Attribute	*a;
 
 	/* The backend wants to take care of it */
-	if ( be && be->be_schemadn.bv_val )
-		return NULL;
+	if ( be && be->be_schemadn.bv_val ) return NULL;
 
 	a = ch_malloc( sizeof( Attribute ) );
 	a->a_desc = slap_schema.si_ad_subschemaSubentry;
@@ -30,7 +29,10 @@ slap_operational_subschemaSubentry( Backend *be )
 	a->a_vals[1].bv_val = NULL;
 
 #ifdef SLAP_NVALUES
-	a->a_nvals = NULL;
+	a->a_nvals = ch_malloc( 2 * sizeof( struct berval ) );
+	ber_dupbv( a->a_nvals, &global_schemandn );
+	a->a_nvals[1].bv_len = 0;
+	a->a_nvals[1].bv_val = NULL;
 #endif
 
 	a->a_next = NULL;

@@ -119,7 +119,7 @@ int is_entry_objectclass(
 
 
 struct oindexrec {
-	struct berval	oir_name;
+	struct berval oir_name;
 	ObjectClass	*oir_oc;
 };
 

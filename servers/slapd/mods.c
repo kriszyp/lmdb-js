@@ -360,9 +360,7 @@ modify_add_values(
 
 			/* test asserted values against themselves */
 			for( j = 0; j < i; j++ ) {
-				if ( bvmatch( &mod->sm_bvalues[i],
-					&mod->sm_bvalues[j] ) ) {
-
+				if ( bvmatch( &mod->sm_bvalues[i], &mod->sm_bvalues[j] ) ) {
 					/* value exists already */
 					*text = textbuf;
 					snprintf( textbuf, textlen,
@@ -484,8 +482,7 @@ modify_add_values(
 		} else {
 			rc = modify_check_duplicates( mod->sm_desc, mr,
 					a ? a->a_vals : NULL, mod->sm_bvalues,
-					permissive,
-					text, textbuf, textlen );
+					permissive, text, textbuf, textlen );
 
 			if ( permissive && rc == LDAP_TYPE_OR_VALUE_EXISTS ) {
 				return LDAP_SUCCESS;
