@@ -284,4 +284,6 @@ ber_pvt_sb_udp_get_src LDAP_P((Sockbuf *sb ));
 LIBLBER_F( int )
 ber_pvt_socket_set_nonblock LDAP_P(( ber_socket_t sd, int nb ));
 
+LDAP_END_DECL
+
 #endif /* _LBER_INT_H */
