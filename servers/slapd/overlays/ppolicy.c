@@ -35,7 +35,9 @@
 #include <ldap.h>
 #include "lutil.h"
 #include "slap.h"
+#if SLAPD_MODULES
 #include <ltdl.h>
+#endif
 #include <ac/errno.h>
 #include <ac/time.h>
 #include <ac/string.h>
@@ -486,8 +488,9 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 	}
 
 	rc = LDAP_SUCCESS;
-    
+
 	if (pp->pwdCheckModule[0]) {
+#if SLAPD_MODULES
 		lt_dlhandle mod;
 		const char *err;
 		
@@ -525,6 +528,10 @@ check_password_quality( struct berval *cred, PassPolicy *pp, LDAPPasswordPolicyE
 			    
 			lt_dlclose( mod );
 		}
+#else
+	Debug(LDAP_DEBUG_ANY, "check_password_quality: external modules not "
+		"supported. pwdCheckModule ignored.\n", 0, 0, 0);
+#endif /* SLAPD_MODULES */
 	}
 		
 		    
