@@ -105,7 +105,7 @@ slap_tool_init(
 			base = strdup( optarg );
 
 		case 'd':	/* turn on debugging */
-			ldap_debug = atoi( optarg );
+			ldap_debug += atoi( optarg );
 			break;
 
 		case 'f':	/* specify a conf file */
