@@ -270,6 +270,9 @@ typedef signed int ssize_t;
 /* define this to use SLAPD LDBM backend */
 #define SLAPD_LDBM 1
 
+/* define this to use SLAPD SQL backend */
+#define SLAPD_SQL 1
+
 /* define this to use SLAPD passwd backend */
 /* #undef SLAPD_PASSWD */
 
@@ -284,6 +287,9 @@ typedef signed int ssize_t;
 
 /* define this for per-object ACIs */
 /* #undef SLAPD_ACI_ENABLED */
+
+/* define this for discrete rights in ACIs */
+/* #undef SLAPD_ACI_DISCRETE_RIGHTS */
 
 /* define this to use SLAPD shell backend */
 /* #undef SLAPD_SHELL */
