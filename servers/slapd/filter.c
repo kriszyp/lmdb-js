@@ -736,6 +736,24 @@ filter2bv( Filter *f, struct berval *fstr )
 
 		break;
 
+	case LDAP_FILTER_EXT:
+		filter_escape_value( &f->f_mr_value, &tmp );
+
+		fstr->bv_len = f->f_mr_desc->ad_cname.bv_len +
+			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
+			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
+			tmp.bv_len + ( sizeof("(:=)") - 1 );
+		fstr->bv_val = malloc( fstr->bv_len + 1 );
+
+		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
+			f->f_mr_desc->ad_cname.bv_val,
+			f->f_mr_dnattrs ? ":dn" : "",
+			f->f_mr_rule_text.bv_len ? ":" : "",
+			f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_val : "",
+			tmp.bv_val );
+		ber_memfree( tmp.bv_val );
+		break;
+
 	case SLAPD_FILTER_COMPUTED:
 		ber_str2bv(
 			f->f_result == LDAP_COMPARE_FALSE ? "(?=false)" :

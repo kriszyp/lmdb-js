@@ -999,7 +999,9 @@ caseExactMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	*matchp = UTF8bvnormcmp( value, (struct berval *) assertedValue, LDAP_UTF8_NOCASEFOLD );
+	*matchp = UTF8bvnormcmp( value,
+		(struct berval *) assertedValue,
+		LDAP_UTF8_NOCASEFOLD );
 	return LDAP_SUCCESS;
 }
 
@@ -1645,7 +1647,9 @@ caseIgnoreMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-	*matchp = UTF8bvnormcmp( value, (struct berval *) assertedValue, LDAP_UTF8_CASEFOLD );
+	*matchp = UTF8bvnormcmp( value,
+		(struct berval *) assertedValue,
+		LDAP_UTF8_CASEFOLD );
 	return LDAP_SUCCESS;
 }
 	
