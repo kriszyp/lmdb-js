@@ -45,7 +45,7 @@ int
 auth( char *who, int implicit )
 {
 	int rc;			/* return code from ldap_bind() */
-	char *passwd = NULL;	/* returned by mygetpass() */
+	char *passwd = NULL;	/* returned by getpass() */
 	char **rdns;		/* for fiddling with the DN */
 	int authmethod;
 	int name_provided;	/* was a name passed in? */
@@ -356,7 +356,7 @@ krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 	sprintf(prompt, "  Enter Kerberos password for %s: ", kauth_name );
 #endif
 	do {
-		passwd = mygetpass(prompt);
+		passwd = getpass(prompt);
 	} while (passwd != NULL && *passwd == '\0');
 	if (passwd == NULL) {
 		return(-1);
