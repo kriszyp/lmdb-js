@@ -428,7 +428,12 @@ handle_private_option( int i )
 		urlpre = strdup( optarg );
 		break;
 	case 'l':	/* time limit */
-		timelimit = atoi( optarg );
+		if ( strcasecmp( optarg, "none" ) == 0 ) {
+			/* maxInt as per RFC 4.1.1. Message Envelope */
+			sizelimit = 2147483647;
+		} else {
+			timelimit = atoi( optarg );
+		}
 		if( timelimit < 0 ) {
 			fprintf( stderr, _("%s: invalid timelimit (%d) specified\n"),
 				prog, timelimit );
@@ -470,7 +475,12 @@ handle_private_option( int i )
 		++includeufn;
 		break;
 	case 'z':	/* size limit */
-		sizelimit = atoi( optarg );
+		if ( strcasecmp( optarg, "none" ) == 0 ) {
+			/* maxInt as per RFC 4.1.1. Message Envelope */
+			sizelimit = 2147483647;
+		} else {
+			sizelimit = atoi( optarg );
+		}
 		break;
 	default:
 		return 0;
