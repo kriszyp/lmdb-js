@@ -77,7 +77,7 @@ id2children_remove(
 	if ( (db = ldbm_cache_open( be, "id2children", LDBM_SUFFIX,
 	    LDBM_WRCREAT )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= id2children_add -1 could not open \"id2children%s\"\n",
+		    "<= id2children_remove -1 could not open \"id2children%s\"\n",
 		    LDBM_SUFFIX, 0, 0 );
 		return( -1 );
 	}
@@ -88,7 +88,7 @@ id2children_remove(
 	key.dsize = strlen( buf ) + 1;
 
 	if ( idl_delete_key( be, db, key, e->e_id ) != 0 ) {
-		Debug( LDAP_DEBUG_TRACE, "<= id2children_add -1 (idl_insert)\n",
+		Debug( LDAP_DEBUG_TRACE, "<= id2children_remove -1 (idl_insert)\n",
 		    0, 0, 0 );
 		ldbm_cache_close( be, db );
 		return( -1 );
@@ -96,7 +96,7 @@ id2children_remove(
 
 	ldbm_cache_close( be, db );
 
-	Debug( LDAP_DEBUG_TRACE, "<= id2children_add 0\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= id2children_remove 0\n", 0, 0, 0 );
 	return( 0 );
 }
 

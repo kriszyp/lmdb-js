@@ -93,6 +93,8 @@ ldbm_back_delete(
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
+	if ( p )
+		cache_return_entry_r( &li->li_cache, p );
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
 
