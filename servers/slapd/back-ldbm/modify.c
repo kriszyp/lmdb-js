@@ -175,7 +175,12 @@ int ldbm_modify_internal(
 	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
 		mod = &ml->sml_mod;
 
-		switch ( mod->mod_op ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		switch ( mod->sm_op )
+#else
+		switch ( mod->mod_op )
+#endif
+		{
 		case LDAP_MOD_REPLACE:
 		case LDAP_MOD_ADD:
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -197,7 +202,6 @@ int ldbm_modify_internal(
 			Attribute *a = e->e_attrs
 				? attr_find( e->e_attrs, mod->mod_type )
 				: NULL;
-#endif
 
 			if( a != NULL ) {
 				(void) index_change_values( be,
@@ -206,6 +210,7 @@ int ldbm_modify_internal(
 					e->e_id,
 					SLAP_INDEX_ADD_OP );
 			}
+#endif
 			} break;
 		}
 	}

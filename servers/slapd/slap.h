@@ -106,9 +106,9 @@ LIBSLAPD_F (int) slap_debug;
 #define SLAP_INDEX_EQUALITY      0x0002U
 #define SLAP_INDEX_APPROX        0x0004U
 #define SLAP_INDEX_SUB           0x0008U
-#define SLAP_INDEX_UNKNOWN       0x0010U
+#define SLAP_INDEX_EXTENDED		 0x0010U
+#define SLAP_INDEX_UNDEFINED     0x1000U
 #define SLAP_INDEX_FROMINIT      0x8000U	/* psuedo type */
-
 
 /*
  * represents schema information for a database

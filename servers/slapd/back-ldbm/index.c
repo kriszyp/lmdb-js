@@ -233,6 +233,7 @@ index_change_values(
     unsigned int	op
 )
 {
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 	char		*val, *p, *code, *w;
 	unsigned	i, j, len;
 	int		indexmask, syntax;
@@ -413,6 +414,7 @@ index_change_values(
 
 done:
 	ldbm_cache_close( be, db );
+#endif
 	return( 0 );
 }
 

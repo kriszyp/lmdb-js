@@ -441,8 +441,9 @@ at_add(
 	 */
 	if ( sat->sat_sup ) {
 		sat->sat_syntax = sat->sat_sup->sat_syntax;
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
 		sat->sat_syntax_compat = sat->sat_sup->sat_syntax_compat;
-
+#endif
 		sat->sat_equality = sat->sat_sup->sat_equality;
 		sat->sat_ordering = sat->sat_sup->sat_ordering;
 		sat->sat_substr = sat->sat_sup->sat_substr;

@@ -220,6 +220,7 @@ int ldbm_tool_index_attr(
 		return 0;
 	}
 #endif
+
 	assert( at_cn != NULL );
 	attr_mask( be->be_private, at_cn, &indexmask );
 
