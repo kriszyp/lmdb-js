@@ -403,7 +403,6 @@ slap_modrdn2mods(
 
 	/* Add new attribute values to the entry */
 	for ( a_cnt = 0; new_rdn[ 0 ][ a_cnt ]; a_cnt++ ) {
-		int 			rc;
 		AttributeDescription	*desc = NULL;
 		Modifications 		*mod_tmp;
 
@@ -458,7 +457,6 @@ slap_modrdn2mods(
 	/* Remove old rdn value if required */
 	if ( deleteoldrdn ) {
 		for ( d_cnt = 0; old_rdn[ 0 ][ d_cnt ]; d_cnt++ ) {
-			int 			rc;
 			AttributeDescription	*desc = NULL;
 			Modifications 		*mod_tmp;
 
