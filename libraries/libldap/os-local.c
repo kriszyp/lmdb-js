@@ -83,7 +83,7 @@ ldap_pvt_close_socket(LDAP *ld, int s)
 		"ldap_is_socket_ready: errror on socket %d: errno: %d (%s)\n", \
 		s, \
 		errno, \
-		strerror(errno) ); \
+		STRERROR(errno) ); \
 } while( 0 )
 
 /*
