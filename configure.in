@@ -2030,6 +2030,7 @@ AC_CHECK_FUNCS(		\
 	endgrent		\
 	endpwent		\
 	flock			\
+	getaddrinfo		\
 	getdtablesize	\
 	getgrgid		\
 	gethostname		\
