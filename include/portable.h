@@ -61,9 +61,9 @@
 #endif
 
 /*
- * on many systems, we should use waitpid() instead of waitN()
+ * on most systems, we should use waitpid() instead of waitN()
  */
-#if !defined( USE_WAITPID ) && ( defined( SYSV ) || defined( sunos4 ) || defined( ultrix ) || defined( aix ))
+#if !defined( USE_WAITPID ) && !defined( nextstep )
 #define USE_WAITPID
 #endif
 
@@ -101,7 +101,7 @@
  * some systems don't have the BSD re_comp and re_exec routines
  */
 #ifndef NEED_BSDREGEX
-#if defined( SYSV ) || defined( VMS ) || defined( netbsd ) || defined( freebsd ) || defined( linux )
+#if defined( SYSV ) || defined( VMS ) || defined( netbsd ) || defined( linux )
 #define NEED_BSDREGEX
 #endif
 #endif
@@ -120,7 +120,8 @@
  * Are sys_errlist and sys_nerr declared in stdio.h?
  */
 #ifndef SYSERRLIST_IN_STDIO
-#if defined( freebsd ) 
+#if defined( freebsd ) || defined( netbsd ) || \
+	defined( __GLIBC__ ) && ( __GLIBC__ > 1 )
 #define SYSERRLIST_IN_STDIO
 #endif
 #endif
@@ -170,7 +171,7 @@
  * call signal or sigset (signal does not block the signal while
  * in the handler on sys v and sigset does not exist on bsd)
  */
-#ifdef SYSV
+#if defined(SYSV) && !defined(linux)
 #define SIGNAL sigset
 #else
 #define SIGNAL signal
