@@ -275,7 +275,7 @@ static Listener * open_listener( const char* url )
 	ldap_free_urldesc( lud );
 	sai = res;
 	do {
-		switch( sai_ai_family ) {
+		switch( sai->ai_family ) {
 		case AF_INET:
 #  ifdef LDAP_PF_INET6
 		case AF_INET6:
