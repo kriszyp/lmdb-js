@@ -190,6 +190,7 @@ struct monitorsubsys {
 extern struct monitorsubsys monitor_subsys[];
 
 extern AttributeDescription *monitor_ad_desc;
+extern BackendDB *be_monitor;
 
 /*
  * cache

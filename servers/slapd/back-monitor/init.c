@@ -43,6 +43,7 @@
  * used by many functions to add description to entries
  */
 AttributeDescription *monitor_ad_desc = NULL;
+BackendDB *be_monitor = NULL;
 
 /*
  * subsystem data
@@ -224,9 +225,7 @@ monitor_back_db_init(
 	/*
 	 * database monitor can be defined once only
 	 */
-	static int 		monitor_defined = 0;
-
-	if ( monitor_defined ) {
+	if ( be_monitor ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
 			"only one monitor backend is allowed\n" ));
@@ -237,7 +236,7 @@ monitor_back_db_init(
 #endif
 		return( -1 );
 	}
-	monitor_defined++;
+	be_monitor = be;
 
 	ndn = NULL;
 	dn.bv_val = SLAPD_MONITOR_DN;
