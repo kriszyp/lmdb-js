@@ -104,7 +104,6 @@ struct bdb_info {
 	Avlnode		*bi_tree;
 	ldap_pvt_thread_rdwr_t	bi_tree_rdwr;
 	void		*bi_troot;
-	int		bi_nrdns;
 #endif
 
 	int			bi_txn_cp;
