@@ -601,8 +601,16 @@ an_find(
 	return( 0 );
 }
 
-/* Convert a delimited string into a list of AttributeNames; Add on
- * to an existing list if it was given.
+/*
+ * Convert a delimited string into a list of AttributeNames; 
+ * add on to an existing list if it was given.  If the string
+ * is not a valid attribute name, if a '-' is prepended it is 
+ * skipped and the remaining name is tried again; if a '+' is
+ * prepended, an objectclass name is searched instead.
+ * 
+ * NOTE: currently, if a valid attribute name is not found,
+ * the same string is also checked as valid objectclass name;
+ * however, this behavior is deprecated.
  */
 AttributeName *
 str2anlist( AttributeName *an, char *in, const char *brkstr )
@@ -647,11 +655,15 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 					slap_bv2ad(&adname, &anew->an_desc, &text);
 					if ( !anew->an_desc ) {
 						free( an );
-						/* overwrites input string on error! */
+						/*
+						 * overwrites input string
+						 * on error!
+						 */
 						strcpy( in, s );
 						return NULL;
 					}
 				} break;
+
 			case '+': {
 					struct berval ocname;
 					ocname.bv_len = anew->an_name.bv_len - 1;
@@ -659,11 +671,15 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 					anew->an_oc = oc_bvfind( &ocname );
 					if ( !anew->an_oc ) {
 						free( an );
-						/* overwrites input string on error! */
+						/*
+						 * overwrites input string
+						 * on error!
+						 */
 						strcpy( in, s );
 						return NULL;
 					}
 				} break;
+
 			default:
 				/* old (deprecated) way */
 				anew->an_oc = oc_bvfind( &anew->an_name );
