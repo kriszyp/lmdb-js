@@ -1101,6 +1101,89 @@ Specify the referral to pass back when
 .BR slapd (8)
 is asked to modify a replicated local database.
 If specified multiple times, each url is provided.
+.HP
+.B syncrepl id=<replica ID>
+.B provider=ldap[s]://<hostname>[:port]
+.B [updatedn=<dn>]
+.B [binddn=<dn>]
+.B [bindmethod=simple|sasl] [binddn=<simple DN>] [credentials=<simple passwd>]
+.B [saslmech=<SASL mech>] [secprops=<properties>] [realm=<realm>]
+.B [authcId=<authentication ID>] [authzId=<authorization ID>]
+.B [searchbase=<base DN>]
+.B [filter=<filter str>]
+.B [attrs=<attr list>]
+.B [scope=sub|one|base]
+.B [type=refreshOnly|refreshAndPersist]
+.B [interval=dd:hh:mm]
+.RS
+Specify an LDAP Sync replication session between the specified replication provider
+site and this database (a replication consumer).
+The replication consumer communicates with the replication provider to perform
+an initial population and the following periodic or persistent synchronizations.
+The LDAP Sync replication engine is based on the LDAP Content Sync protocol :
+a stateful, pull, incremental, and partial synchronization protocol which
+supports both polling and listening modes of operations.
+It currently supports entry-level synchronization.
+A directory server wide
+.B id
+uniquely identifies this LDAP Sync replication specification
+in the directory server instance. The specification of an LDAP Sync replication
+session is based on the search specification which defines the replica content.
+The replicated entries are those directory entries of the subtree under the
+.B searchbase
+with the
+.B scope
+that match the
+.B filter.
+Only the attributes specified in the
+.B attrs 
+are included in the replica content.
+There are two synchronization modes depending on the incremental
+synchronization semantics after the intial content population.
+The incremental synchronization is performed periodically with
+the
+.B interval
+when the sync
+.B type
+is
+.B refreshOnly.
+Alternatively, the provider sends synchronization messages to the consumer
+upon updates to the replicated contents when the sync
+.B type
+is
+.B refreshAndPersist.
+The replication provider site is specified by
+.B provider
+as an LDAP URI.
+A
+.B bindmethod
+of 
+.B simple
+requires the options 
+.B binddn
+and 
+.B credentials
+and should only be used when adequate security services (e.g. TLS or IPSEC) are in place.
+A
+.B bindmethod
+of
+.B sasl
+requires the option
+.B saslmech.
+Specific security properties (as with the
+.B sasl secprops
+keyword above) for a SASL bind can be set with the
+.B secprops
+option. A non default SASL realm can be set with the
+.B realm 
+option.
+If the 
+.B mechanism
+will use Kerberos, a kerberos instance should be given in
+.B authcId.
+.B updatedn
+specifies the DN used to update (subject to access controls) the
+replica at the consumer replica.
 .SH DATABASE-SPECIFIC OPTIONS
 Each database may allow specific configuration options; they are
 documented separately in the backends' manual pages.
