@@ -331,16 +331,21 @@ do_bind(
 			Statslog( LDAP_DEBUG_STATS,
 				"conn=%lu op=%lu AUTHZ dn=\"%s\" mech=%s ssf=%d\n",
 				op->o_connid, op->o_opid,
-				conn->c_dn.bv_val, conn->c_authmech.bv_val, ssf );
+				conn->c_dn.bv_val ? conn->c_dn.bv_val : "<empty>",
+				conn->c_authmech.bv_val, ssf );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
-				conn->c_authmech.bv_val, conn->c_dn.bv_val, ssf );
+				conn->c_authmech.bv_val,
+				conn->c_dn.bv_val ? conn->c_dn.bv_val : "<empty>",
+				ssf );
 #else
 			Debug( LDAP_DEBUG_TRACE,
 				"do_bind: SASL/%s bind: dn=\"%s\" ssf=%d\n",
-				conn->c_authmech.bv_val, conn->c_dn.bv_val, ssf );
+				conn->c_authmech.bv_val,
+				conn->c_dn.bv_val ? conn->c_dn.bv_val : "<empty>",
+				ssf );
 #endif
 
 		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {

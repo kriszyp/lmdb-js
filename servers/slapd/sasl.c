@@ -610,13 +610,13 @@ slap_sasl_canonicalize(
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_canonicalize: conn %d %s=\"%s\"\n",
 		conn ? conn->c_connid : -1,
-		(flags & SASL_CU_AUTHID) ? "authcid" : "authzid", in ? in : "<empty>");
+		(flags & SASL_CU_AUTHID) ? "authcid" : "authzid",
+		in ? in : "<empty>");
 #else
-	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: "
-		"%s=\"%s\"\n",
-			conn ? conn->c_connid : -1,
-			(flags & SASL_CU_AUTHID) ? "authcid" : "authzid",
-			in ? in : "<empty>" );
+	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: %s=\"%s\"\n",
+		conn ? conn->c_connid : -1,
+		(flags & SASL_CU_AUTHID) ? "authcid" : "authzid",
+		in ? in : "<empty>");
 #endif
 
 	/* If name is too big, just truncate. We don't care, we're
@@ -685,14 +685,16 @@ slap_sasl_canonicalize(
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
 		"slap_sasl_canonicalize: conn %d %s=\"%s\"\n",
-		conn ? conn->c_connid : -1, names[0]+1, dn.bv_val );
+		conn ? conn->c_connid : -1, names[0]+1,
+		dn.bv_val ? dn.bv_val : "<EMPTY>" );
 #else
-	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: "
-		"%s=\"%s\"\n",
-			conn ? conn->c_connid : -1,
-			names[0]+1, dn.bv_val );
+	Debug( LDAP_DEBUG_ARGS, "SASL Canonicalize [conn=%ld]: %s=\"%s\"\n",
+		conn ? conn->c_connid : -1, names[0]+1,
+		dn.bv_val ? dn.bv_val : "<EMPTY>" );
 #endif
-done:	AC_MEMCPY( out, in, inlen );
+
+done:
+	AC_MEMCPY( out, in, inlen );
 	out[inlen] = '\0';
 
 	*out_len = inlen;
