@@ -47,5 +47,5 @@ when no more work exists, wait on a condition variable, and the main
 thread's file manager routine broadcasts on this condition variable
 when new work is added to the queue. 
 
-
-
+Additional notes:
+	See doc/devel/replication-notes.txt
