@@ -93,6 +93,8 @@ static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_CLIENT_LOOP,				N_("Client Loop")},
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	N_("Referral Limit Exceeded")},
 
+	{LDAP_ASSERTION_FAILED,			N_("Assertion Failed")},
+
 #ifdef LDAP_CLIENT_UPDATE
 	{LDAP_CUP_RESOURCES_EXHAUSTED,	N_("Client Update Resource Exhausted")},
 	{LDAP_CUP_SECURITY_VIOLATION,	N_("Client Update Security Violation")},

@@ -486,6 +486,8 @@ typedef struct ldapcontrol {
 #define LDAP_CUP_RELOAD_REQUIRED		0x105
 #endif
 
+#define LDAP_ASSERTION_FAILED			0x10f
+
 #ifdef LDAP_EXOP_X_CANCEL
 /* resultCode for Cancel Response */
 #define LDAP_CANCELLED					0x110
