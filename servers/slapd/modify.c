@@ -309,11 +309,17 @@ do_modify(
 	if ( (be = select_backend( &ndn, manageDSAit, 0 )) == NULL ) {
 		BerVarray ref = referral_rewrite( default_referral,
 			NULL, &pdn, LDAP_SCOPE_DEFAULT );
+		if ( ref == NULL ) ref = default_referral;
+		if ( ref != NULL ) {
+			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+				NULL, NULL, ref, NULL );
 
-		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-			NULL, NULL, ref ? ref : default_referral, NULL );
-
-		ber_bvarray_free( ref );
+			if ( ref != default_referral ) ber_bvarray_free( ref );
+		} else {
+			send_ldap_result( conn, op,
+					rc = LDAP_UNWILLING_TO_PERFORM,
+					NULL, "referral missing", NULL, NULL );
+		}
 		goto cleanup;
 	}
 
@@ -435,13 +441,21 @@ do_modify(
 		} else {
 			BerVarray defref = be->be_update_refs
 				? be->be_update_refs : default_referral;
-			BerVarray ref = referral_rewrite( defref,
-				NULL, &pdn, LDAP_SCOPE_DEFAULT );
+			if ( defref != NULL ) {
+				BerVarray ref = referral_rewrite( defref,
+					NULL, &pdn, LDAP_SCOPE_DEFAULT );
 
-			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
-				ref ? ref : defref, NULL );
+				send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+						NULL, NULL,
+						ref ? ref : defref, NULL );
 
-			ber_bvarray_free( ref );
+				ber_bvarray_free( ref );
+			} else {
+				send_ldap_result( conn, op,
+						rc = LDAP_UNWILLING_TO_PERFORM,
+						NULL, "referral missing",
+						NULL, NULL );
+			}
 #endif
 		}
 	} else {
