@@ -45,15 +45,15 @@
 #include "slap.h"
 
 typedef struct gluenode {
-	BackendDB *be;
-	struct berval pdn;
+	BackendDB *gn_be;
+	struct berval gn_pdn;
 } gluenode;
 
 typedef struct glueinfo {
-	BackendInfo bi;
-	BackendDB bd;
-	int nodes;
-	gluenode n[1];
+	BackendInfo gi_bi;
+	BackendDB gi_bd;
+	int gi_nodes;
+	gluenode gi_n[1];
 } glueinfo;
 
 static int glueMode;
@@ -75,11 +75,11 @@ glue_back_select (
 	bv.bv_len = strlen(dn);
 	bv.bv_val = (char *) dn;
 
-	for (i = 0; i<gi->nodes; i++) {
-		assert( gi->n[i].be->be_nsuffix );
+	for (i = 0; i<gi->gi_nodes; i++) {
+		assert( gi->gi_n[i].gn_be->be_nsuffix );
 
-		if (dnIsSuffix(&bv, &gi->n[i].be->be_nsuffix[0])) {
-			return gi->n[i].be;
+		if (dnIsSuffix(&bv, &gi->gi_n[i].gn_be->be_nsuffix[0])) {
+			return gi->gi_n[i].gn_be;
 		}
 	}
 	return NULL;
@@ -137,11 +137,11 @@ glue_back_db_open (
 
 	glueOpened = 1;
 
-	gi->bd.be_acl = be->be_acl;
-	gi->bd.be_pending_csn_list = be->be_pending_csn_list;
+	gi->gi_bd.be_acl = be->be_acl;
+	gi->gi_bd.be_pending_csn_list = be->be_pending_csn_list;
 
-	if (gi->bd.bd_info->bi_db_open)
-		rc = gi->bd.bd_info->bi_db_open(&gi->bd);
+	if (gi->gi_bd.bd_info->bi_db_open)
+		rc = gi->gi_bd.bd_info->bi_db_open(&gi->gi_bd);
 
 	return rc;
 }
@@ -159,8 +159,8 @@ glue_back_db_close (
 	glueClosed = 1;
 
 	/* Close the master */
-	if (gi->bd.bd_info->bi_db_close)
-		gi->bd.bd_info->bi_db_close( &gi->bd );
+	if (gi->gi_bd.bd_info->bi_db_close)
+		gi->gi_bd.bd_info->bi_db_close( &gi->gi_bd );
 
 	return 0;
 }
@@ -172,8 +172,8 @@ glue_back_db_destroy (
 {
 	glueinfo *gi = (glueinfo *) be->bd_info;
 
-	if (gi->bd.bd_info->bi_db_destroy)
-		gi->bd.bd_info->bi_db_destroy( &gi->bd );
+	if (gi->gi_bd.bd_info->bi_db_destroy)
+		gi->gi_bd.bd_info->bi_db_destroy( &gi->gi_bd );
 	free (gi);
 	return 0;
 }
@@ -310,10 +310,10 @@ glue_back_search ( Operation *op, SlapReply *rs )
 		/*
 		 * Execute in reverse order, most general first 
 		 */
-		for (i = gi->nodes-1; i >= 0; i--) {
-			if (!gi->n[i].be || !gi->n[i].be->be_search)
+		for (i = gi->gi_nodes-1; i >= 0; i--) {
+			if (!gi->gi_n[i].gn_be || !gi->gi_n[i].gn_be->be_search)
 				continue;
-			if (!dnIsSuffix(&gi->n[i].be->be_nsuffix[0], &b1->be_nsuffix[0]))
+			if (!dnIsSuffix(&gi->gi_n[i].gn_be->be_nsuffix[0], &b1->be_nsuffix[0]))
 				continue;
 			if (tlimit0 != SLAP_NO_LIMIT) {
 				op->ors_tlimit = stoptime - slap_get_time ();
@@ -336,13 +336,13 @@ glue_back_search ( Operation *op, SlapReply *rs )
 			if (op->o_abandon) {
 				goto end_of_loop;
 			}
-			op->o_bd = gi->n[i].be;
+			op->o_bd = gi->gi_n[i].gn_be;
 
 			assert( op->o_bd->be_suffix );
 			assert( op->o_bd->be_nsuffix );
 			
 			if (scope0 == LDAP_SCOPE_ONELEVEL && 
-				dn_match(&gi->n[i].pdn, &ndn))
+				dn_match(&gi->gi_n[i].gn_pdn, &ndn))
 			{
 				op->ors_scope = LDAP_SCOPE_BASE;
 				op->o_req_dn = op->o_bd->be_suffix[0];
@@ -452,10 +452,10 @@ glue_tool_entry_first (
 
 	/* If we're starting from scratch, start at the most general */
 	if (!glueBack) {
-		for (i = gi->nodes-1; i >= 0; i--) {
-			if (gi->n[i].be->be_entry_open &&
-			    gi->n[i].be->be_entry_first) {
-			    	glueBack = gi->n[i].be;
+		for (i = gi->gi_nodes-1; i >= 0; i--) {
+			if (gi->gi_n[i].gn_be->be_entry_open &&
+			    gi->gi_n[i].gn_be->be_entry_first) {
+			    	glueBack = gi->gi_n[i].gn_be;
 				break;
 			}
 		}
@@ -486,15 +486,15 @@ glue_tool_entry_next (
 	while (rc == NOID) {
 		if ( glueBack && glueBack->be_entry_close )
 			glueBack->be_entry_close (glueBack);
-		for (i=0; i<gi->nodes; i++) {
-			if (gi->n[i].be == glueBack)
+		for (i=0; i<gi->gi_nodes; i++) {
+			if (gi->gi_n[i].gn_be == glueBack)
 				break;
 		}
 		if (i == 0) {
 			glueBack = NULL;
 			break;
 		} else {
-			glueBack = gi->n[i-1].be;
+			glueBack = gi->gi_n[i-1].gn_be;
 			rc = glue_tool_entry_first (b0);
 		}
 	}
@@ -566,9 +566,9 @@ glue_tool_sync (
 	int i;
 
 	/* just sync everyone */
-	for (i = 0; i<gi->nodes; i++)
-		if (gi->n[i].be->be_sync)
-			gi->n[i].be->be_sync (gi->n[i].be);
+	for (i = 0; i<gi->gi_nodes; i++)
+		if (gi->gi_n[i].gn_be->be_sync)
+			gi->gi_n[i].gn_be->be_sync (gi->gi_n[i].gn_be);
 	return 0;
 }
 
@@ -618,9 +618,9 @@ glue_sub_init( )
 				 */
 				SLAP_DBFLAGS(b1) |= SLAP_DBFLAG_GLUE_INSTANCE;
 				gi = (glueinfo *)ch_malloc(sizeof(glueinfo));
-				gi->nodes = 0;
-				gi->bd = *b1;
-				gi->bi = *b1->bd_info;
+				gi->gi_nodes = 0;
+				gi->gi_bd = *b1;
+				gi->gi_bi = *b1->bd_info;
 				bi = (BackendInfo *)gi;
 				bi->bi_open = glue_back_open;
 				bi->bi_close = glue_back_close;
@@ -648,19 +648,19 @@ glue_sub_init( )
 			} else {
 				gi = (glueinfo *)ch_realloc(gi,
 					sizeof(glueinfo) +
-					gi->nodes * sizeof(gluenode));
+					gi->gi_nodes * sizeof(gluenode));
 			}
-			gi->n[gi->nodes].be = be;
-			dnParent( &be->be_nsuffix[0], &gi->n[gi->nodes].pdn ); 
-			gi->nodes++;
+			gi->gi_n[gi->gi_nodes].gn_be = be;
+			dnParent( &be->be_nsuffix[0], &gi->gi_n[gi->gi_nodes].gn_pdn ); 
+			gi->gi_nodes++;
 		}
 		if (gi) {
 			/* One more node for the master */
 			gi = (glueinfo *)ch_realloc(gi,
-				sizeof(glueinfo) + gi->nodes * sizeof(gluenode));
-			gi->n[gi->nodes].be = &gi->bd;
-			dnParent( &b1->be_nsuffix[0], &gi->n[gi->nodes].pdn );
-			gi->nodes++;
+				sizeof(glueinfo) + gi->gi_nodes * sizeof(gluenode));
+			gi->gi_n[gi->gi_nodes].gn_be = &gi->gi_bd;
+			dnParent( &b1->be_nsuffix[0], &gi->gi_n[gi->gi_nodes].gn_pdn );
+			gi->gi_nodes++;
 			b1->bd_info = (BackendInfo *)gi;
 		}
 	}
