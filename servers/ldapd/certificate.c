@@ -309,9 +309,9 @@ void certif_init()
 {
 	extern short	ldap_certif_syntax;
 	sntx_table	*syntax_table;
-	extern sntx_table *get_syntax_table();
+	extern sntx_table *get_syntax_table( short int sntx );
 
-	if (syntax_table = get_syntax_table(ldap_certif_syntax)) {
+	if ((syntax_table = get_syntax_table(ldap_certif_syntax)) != NULL) {
 		syntax_table->s_print = (void *) ldap_certif_print;
 		syntax_table->s_parse = (void *) ldap_str2cert;
 	} else
