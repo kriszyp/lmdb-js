@@ -405,6 +405,7 @@ get_substring_filter(
 	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+	f->f_sub = ch_calloc( 1, sizeof(SubstringAssertion) );
 	f->f_sub_desc = NULL;
 	rc = slap_bv2ad( &type, &f->f_sub_desc, text );
 
@@ -412,6 +413,7 @@ get_substring_filter(
 
 	if( rc != LDAP_SUCCESS ) {
 		text = NULL;
+		ch_free( f->f_sub );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
 		*fstr = ch_strdup( "(undefined)" );
@@ -576,6 +578,7 @@ return_error:
 			ber_bvfree( f->f_sub_initial );
 			ber_bvecfree( f->f_sub_any );
 			ber_bvfree( f->f_sub_final );
+			ch_free( f->f_sub );
 			return rc;
 		}
 	}
