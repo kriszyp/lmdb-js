@@ -184,9 +184,8 @@ char *
 phonetic( char *Word )
 {
 	char           *n, *n_start, *n_end;	/* pointers to string */
-	char           *metaph, *metaph_end;	/* pointers to metaph */
+	char           *metaph_end;	/* pointers to metaph */
 	char            ntrans[40];	/* word with uppercase letters */
-	char            newm[8];/* new metaph for comparison */
 	int             KSflag;	/* state flag for X -> KS */
 	char		buf[MAXPHONEMELEN + 2];
 	char		*Metaph;
