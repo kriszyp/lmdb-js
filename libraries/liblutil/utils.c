@@ -6,6 +6,7 @@
 
 #include "portable.h"
 
+#include <stdio.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
@@ -45,8 +46,9 @@ char* lutil_progname( const char* name, int argc, char *argv[] )
 	return progname;
 }
 
-size_t lutil_gentime( char *s, size_t max, const struct tm *tm )
+size_t lutil_gentime( char *s, size_t smax, const struct tm *tm )
 {
+#if 0
 	size_t ret;
 #ifdef HAVE_EBCDIC
 /* We've been compiling in ASCII so far, but we want EBCDIC now since
@@ -54,13 +56,61 @@ size_t lutil_gentime( char *s, size_t max, const struct tm *tm )
  */
 #pragma convlit(suspend)
 #endif
-	ret = strftime( s, max, "%Y%m%d%H%M%SZ", tm );
+	ret = strftime( s, smax, "%Y%m%d%H%M%SZ", tm );
 #ifdef HAVE_EBCDIC
 #pragma convlit(resume)
 	__etoa( s );
 #endif
 	return ret;
+#else
+	return lutil_localtime( s, smax, tm, 0 );
+#endif
 }
+
+size_t lutil_localtime( char *s, size_t smax, const struct tm *tm, long delta )
+{
+	size_t	ret;
+	char	*p;
+
+	if ( smax < 20 ) {
+		return -1;
+	}
+
+#ifdef HAVE_EBCDIC
+/* We've been compiling in ASCII so far, but we want EBCDIC now since
+ * strftime only understands EBCDIC input.
+ */
+#pragma convlit(suspend)
+#endif
+	ret = strftime( s, smax, "%Y%m%d%H%M%SZ", tm );
+	if ( ret == 0 ) {
+		return ret;
+	}
+
+	if ( delta == 0 ) {
+		return ret;
+	}
+
+	p = s + 14;
+
+	if ( delta < 0 ) {
+		p[ 0 ] = '-';
+		delta = -delta;
+	} else {
+		p[ 0 ] = '+';
+	}
+	p++;
+
+	snprintf( p, smax - 15, "%02ld%02ld", delta / 3600,
+			( delta % 3600 ) / 60 );
+
+#ifdef HAVE_EBCDIC
+#pragma convlit(resume)
+	__etoa( s );
+#endif
+	return ret + 5;
+}
+
 
 /* strcopy is like strcpy except it returns a pointer to the trailing NUL of
  * the result string. This allows fast construction of catenated strings
