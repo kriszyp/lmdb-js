@@ -126,6 +126,10 @@ append_to_safe_string(safe_string * ss, char * s)
 	/* We always make sure there is at least one position available */
 	if ( ss->pos + l >= ss->size-1 ) {
 		ss->size *= 2;
+		if ( ss->pos + l >= ss->size-1 ) {
+			ss->size = ss->pos + l + 1;
+		}
+
 		temp = LDAP_REALLOC(ss->val, ss->size);
 		if ( !temp ) {
 			/* Trouble, out of memory */
