@@ -837,8 +837,7 @@ put_vrFilter( BerElement *ber, const char *str_in )
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG ( FILTER, ARGS, "ldap_pvt_put_vrFilter: \"%s\"\n", 
-		str_in, 0, 0 );
+	LDAP_LOG ( FILTER, ARGS, "put_vrFilter: \"%s\"\n", str_in, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "put_vrFilter: \"%s\"\n", str_in, 0, 0 );
 #endif
@@ -933,9 +932,9 @@ put_vrFilter( BerElement *ber, const char *str_in )
 
 		case /*'('*/ ')':
 #ifdef NEW_LOGGING
-			LDAP_LOG ( FILTER, DETAIL1, "ldap_pvt_put_filter: end\n", 0, 0, 0 );
+			LDAP_LOG ( FILTER, DETAIL1, "put_vrFilter: end\n", 0, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_TRACE, "put_filter: end\n",
+			Debug( LDAP_DEBUG_TRACE, "put_vrFilter: end\n",
 				0, 0, 0 );
 #endif
 			if ( ber_printf( ber, /*"["*/ "]" ) == -1 ) {
@@ -952,10 +951,10 @@ put_vrFilter( BerElement *ber, const char *str_in )
 
 		default:	/* assume it's a simple type=value filter */
 #ifdef NEW_LOGGING
-			LDAP_LOG ( FILTER, DETAIL1, "ldap_pvt_put_filter: default\n", 
+			LDAP_LOG ( FILTER, DETAIL1, "put_vrFilter: default\n", 
 				0, 0, 0 );
 #else
-			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n",
+			Debug( LDAP_DEBUG_TRACE, "put_vrFilter: default\n",
 				0, 0, 0 );
 #endif
 			next = strchr( str, '\0' );
