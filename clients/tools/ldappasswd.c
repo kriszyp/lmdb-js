@@ -146,7 +146,7 @@ gen_pass (unsigned int len)
 {
 	static const unsigned char autogen[] =
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890.,";
-	int		i;
+	unsigned int i;
 	Salt		salt;
 
 	salt.salt = NULL;

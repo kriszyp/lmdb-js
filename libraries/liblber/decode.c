@@ -101,7 +101,7 @@ ber_skip_tag( BerElement *ber, unsigned long *len )
 		return( LBER_DEFAULT );
 	if ( lc & 0x80 ) {
 		noctets = (lc & 0x7f);
-		if ( noctets > sizeof(unsigned long) )
+		if ( (unsigned) noctets > sizeof(unsigned long) )
 			return( LBER_DEFAULT );
 		diff = sizeof(unsigned long) - noctets;
 		if ( ber_read( ber, (char *) &netlen + diff, noctets )
@@ -142,7 +142,7 @@ ber_getnint( BerElement *ber, long *num, int len )
 	 * extend after we read it in.
 	 */
 
-	if ( len > sizeof(long) )
+	if ( (unsigned) len > sizeof(long) )
 		return( -1 );
 
 	netnum = 0;
@@ -154,7 +154,7 @@ ber_getnint( BerElement *ber, long *num, int len )
         /* sign extend if necessary */
         p = (char *) &netnum;
         sign = (0x80 & *(p+diff) );
-        if ( sign && len < sizeof(long) ) {
+        if ( sign && ((unsigned) len < sizeof(long)) ) {
                 for ( i = 0; i < diff; i++ ) {
                         *(p+i) = (unsigned char) 0xff;
 		}

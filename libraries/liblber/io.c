@@ -442,7 +442,7 @@ get_lenbyte:
 			return LBER_DEFAULT;
 		if (c & 0x80) {
 			int len = c & 0x7f;
-			if ( (len==0) || ( len>sizeof( ber->ber_len ) ) ) {
+			if ( (len==0) || ((unsigned) len>sizeof( ber->ber_len ) ) ) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}

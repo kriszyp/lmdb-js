@@ -623,7 +623,7 @@ check_cache_memused( LDAPCache *lc )
 	Debug( LDAP_DEBUG_TRACE, "check_cache_memused: %ld bytes in use (%ld max)\n",
 	    lc->lc_memused, lc->lc_maxmem, 0 );
 
-	if ( lc->lc_maxmem <= sizeof( LDAPCache )
+	if ( (unsigned) lc->lc_maxmem <= sizeof( LDAPCache )
 	    || lc->lc_memused <= lc->lc_maxmem * SIZE_FACTOR ) {
 		return;
 	}
