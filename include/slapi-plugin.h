@@ -13,14 +13,15 @@
 #ifndef _SLAPI_PLUGIN_H
 #define _SLAPI_PLUGIN_H
 
-#include "lber.h"
-#include "ldap.h"
+#include <lber.h>
+#include <ldap.h>
 
 typedef struct slapi_pblock	Slapi_PBlock;
 typedef struct slapi_entry	Slapi_Entry;
 typedef struct slapi_attr	Slapi_Attr;
+typedef struct berval		Slapi_Value;
+typedef struct BerVarray	Slapi_ValueSet;
 typedef struct slapi_filter	Slapi_Filter;
-
 
 /* pblock routines */
 int slapi_pblock_get( Slapi_PBlock *pb, int arg, void *value );
@@ -32,6 +33,7 @@ void slapi_pblock_destroy( Slapi_PBlock* );
 Slapi_Entry *slapi_str2entry( char *s, int flags );
 char *slapi_entry2str( Slapi_Entry *e, int *len );
 char *slapi_entry_get_dn( Slapi_Entry *e );
+int slapi_x_entry_get_id( Slapi_Entry *e );
 void slapi_entry_set_dn( Slapi_Entry *e, char *dn );
 Slapi_Entry *slapi_entry_dup( Slapi_Entry *e );
 int slapi_entry_attr_delete( Slapi_Entry *e, char *type );
@@ -39,19 +41,88 @@ Slapi_Entry *slapi_entry_alloc();
 void slapi_entry_free( Slapi_Entry *e );
 int slapi_entry_attr_merge( Slapi_Entry *e, char *type, struct berval **vals );
 int slapi_entry_attr_find( Slapi_Entry *e, char *type, Slapi_Attr **attr );
+char *slapi_entry_attr_get_charptr( const Slapi_Entry *e, const char *type );
+int slapi_entry_attr_get_int( const Slapi_Entry *e, const char *type );
+int slapi_entry_attr_get_long( const Slapi_Entry *e, const char *type );
+int slapi_entry_attr_get_uint( const Slapi_Entry *e, const char *type );
+int slapi_entry_attr_get_ulong( const Slapi_Entry *e, const char *type );
 int slapi_attr_get_values( Slapi_Attr *attr, struct berval ***vals );
 char *slapi_dn_normalize( char *dn );
 char *slapi_dn_normalize_case( char *dn );
 int slapi_dn_issuffix( char *dn, char *suffix );
 char *slapi_dn_ignore_case( char *dn );
 
-/* char routines */
+/* DS 5.x SLAPI */
+int slapi_access_allowed( Slapi_PBlock *pb, Slapi_Entry *e, char *attr, struct berval *val, int access );
+int slapi_acl_check_mods( Slapi_PBlock *pb, Slapi_Entry *e, LDAPMod **mods, char **errbuf );
+Slapi_Attr *slapi_attr_new( void );
+Slapi_Attr *slapi_attr_init( Slapi_Attr *a, const char *type );
+void slapi_attr_free( Slapi_Attr **a );
+Slapi_Attr *slapi_attr_dup( const Slapi_Attr *attr );
+int slapi_attr_add_value( Slapi_Attr *a, const Slapi_Value *v );
+int slapi_attr_type2plugin( const char *type, void **pi );
+int slapi_attr_get_type( const Slapi_Attr *attr, char **type );
+int slapi_attr_get_oid_copy( const Slapi_Attr *attr, char **oidp );
+int slapi_attr_get_flags( const Slapi_Attr *attr, unsigned long *flags );
+int slapi_attr_flag_is_set( const Slapi_Attr *attr, unsigned long flag );
+int slapi_attr_value_cmp( const Slapi_Attr *attr, const struct berval *v1, const struct berval *v2 );
+int slapi_attr_value_find( const Slapi_Attr *a, struct berval *v );
+#define SLAPI_TYPE_CMP_EXACT	0
+#define SLAPI_TYPE_CMP_BASE	1
+#define SLAPI_TYPE_CMP_SUBTYPE	2
+int slapi_attr_type_cmp( const char *t1, const char *t2, int opt );
+int slapi_attr_types_equivalent( const char *t1, const char *t2 );
+int slapi_attr_first_value( Slapi_Attr *a, Slapi_Value **v );
+int slapi_attr_next_value( Slapi_Attr *a, int hint, Slapi_Value **v );
+int slapi_attr_get_numvalues( const Slapi_Attr *a, int *numValues );
+int slapi_attr_get_valueset( const Slapi_Attr *a, Slapi_ValueSet **vs );
+int slapi_attr_get_bervals_copy( Slapi_Attr *a, struct berval ***vals );
+int slapi_entry_attr_hasvalue( Slapi_Entry *e, const char *type, const char *value );
+int slapi_entry_attr_merge_sv( Slapi_Entry *e, const char *type, Slapi_Value **vals );
+char *slapi_attr_syntax_normalize( const char *s );
+
+Slapi_Value *slapi_value_new( void );
+Slapi_Value *slapi_value_new_berval(const struct berval *bval);
+Slapi_Value *slapi_value_new_value(const Slapi_Value *v);
+Slapi_Value *slapi_value_new_string(const char *s);
+Slapi_Value *slapi_value_init(Slapi_Value *v);
+Slapi_Value *slapi_value_init_berval(Slapi_Value *v, struct berval *bval);
+Slapi_Value *slapi_value_init_string(Slapi_Value *v,const char *s);
+Slapi_Value *slapi_value_dup(const Slapi_Value *v);
+void slapi_value_free(Slapi_Value **value);
+const struct berval *slapi_value_get_berval( const Slapi_Value *value );
+Slapi_Value *slapi_value_set_berval( Slapi_Value *value, const struct berval *bval );
+Slapi_Value *slapi_value_set_value( Slapi_Value *value, const Slapi_Value *vfrom);
+Slapi_Value *slapi_value_set( Slapi_Value *value, void *val, unsigned long len);
+int slapi_value_set_string(Slapi_Value *value, const char *strVal);
+int slapi_value_set_int(Slapi_Value *value, int intVal);
+const char*slapi_value_get_string(const Slapi_Value *value);
+int slapi_value_get_int(const Slapi_Value *value); 
+unsigned int slapi_value_get_uint(const Slapi_Value *value); 
+long slapi_value_get_long(const Slapi_Value *value); 
+unsigned long slapi_value_get_ulong(const Slapi_Value *value); 
+size_t slapi_value_get_length(const Slapi_Value *value);
+int slapi_value_compare(const Slapi_Attr *a,const Slapi_Value *v1,const Slapi_Value *v2);
+
+Slapi_ValueSet *slapi_valueset_new( void );
+void slapi_valueset_free(Slapi_ValueSet *vs);
+void slapi_valueset_init(Slapi_ValueSet *vs);
+void slapi_valueset_done(Slapi_ValueSet *vs);
+void slapi_valueset_add_value(Slapi_ValueSet *vs, const Slapi_Value *addval);
+int slapi_valueset_first_value( Slapi_ValueSet *vs, Slapi_Value **v );
+int slapi_valueset_next_value( Slapi_ValueSet *vs, int index, Slapi_Value **v);
+int slapi_valueset_count( const Slapi_ValueSet *vs);
+void slapi_valueset_set_valueset(Slapi_ValueSet *vs1, const Slapi_ValueSet *vs2);
+
 char *slapi_ch_malloc( unsigned long size );
 void slapi_ch_free( void **ptr );
+void slapi_ch_free_string( char **ptr );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );
 char *slapi_ch_realloc( char *block, unsigned long size );
 char *slapi_ch_strdup( char *s );
-
+void slapi_ch_array_free( char **arrayp );
+struct berval *slapi_ch_bvdup(const struct berval *v);
+struct berval **slapi_ch_bvecdup(const struct berval **v);
 
 /* LDAP V3 routines */
 int slapi_control_present( LDAPControl **controls, char *oid,
@@ -113,8 +184,43 @@ void slapi_free_search_results_internal(Slapi_PBlock *pb);
 int slapi_is_connection_ssl(Slapi_PBlock *pPB, int *isSSL);
 int slapi_get_client_port(Slapi_PBlock *pPB, int *fromPort);
 
+/* computed attributes */
+struct _computed_attr_context;
+typedef struct _computed_attr_context computed_attr_context;
+typedef int (*slapi_compute_output_t)(computed_attr_context *c, Slapi_Attr *a, Slapi_Entry *e);
+typedef int (*slapi_compute_callback_t)(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
+typedef int (*slapi_search_rewrite_callback_t)(Slapi_PBlock *pb);
+int slapi_compute_add_evaluator(slapi_compute_callback_t function);
+int slapi_compute_add_search_rewriter(slapi_search_rewrite_callback_t function);
+int compute_rewrite_search_filter(Slapi_PBlock *pb);
+int compute_evaluator(computed_attr_context *c, char *type, Slapi_Entry *e, slapi_compute_output_t outputfn);
+int slapi_x_compute_get_pblock(computed_attr_context *c, Slapi_PBlock **pb);
+
 /* parameters currently supported */
 
+/*
+ * Attribute flags returned by slapi_attr_get_flags()
+ */
+#define SLAPI_ATTR_FLAG_SINGLE		0x0001
+#define SLAPI_ATTR_FLAG_OPATTR		0x0002
+#define SLAPI_ATTR_FLAG_READONLY	0x0004
+#define SLAPI_ATTR_FLAG_STD_ATTR	SLAPI_ATTR_FLAG_READONLY
+#define SLAPI_ATTR_FLAG_OBSOLETE	0x0040
+#define SLAPI_ATTR_FLAG_COLLECTIVE	0x0080
+#define SLAPI_ATTR_FLAG_NOUSERMOD	0x0100
+
+/*
+ * ACL levels
+ */
+#define SLAPI_ACL_COMPARE       0x01
+#define SLAPI_ACL_SEARCH        0x02
+#define SLAPI_ACL_READ          0x04
+#define SLAPI_ACL_WRITE         0x08
+#define SLAPI_ACL_DELETE        0x10    
+#define SLAPI_ACL_ADD           0x20
+#define SLAPI_ACL_SELF          0x40
+#define SLAPI_ACL_PROXY         0x80
+#define SLAPI_ACL_ALL           0x7f
 
 /* plugin types supported */
 
@@ -305,12 +411,24 @@ int slapi_get_client_port(Slapi_PBlock *pPB, int *fromPort);
 
 #define SLAPI_PLUGIN_EXTENDED_SENT_RESULT	-1
 
+#define SLAPI_BIND_SUCCESS		0
+#define SLAPI_BIND_FAIL			2
+#define SLAPI_BIND_ANONYMOUS		3
+
 /* Search result params */
 #define SLAPI_SEARCH_RESULT_SET			193
 #define	SLAPI_SEARCH_RESULT_ENTRY		194
 #define	SLAPI_NENTRIES				195
 #define SLAPI_SEARCH_REFERRALS			196
 
+#define SLAPI_OPERATION_AUTHTYPE                741
+#define SLAPI_OPERATION_ID                      742
+#define SLAPI_CONN_CERT                         743
+#define SLAPI_CONN_AUTHMETHOD                   746
+
+#define SLAPI_RESULT_CODE                       881
+#define SLAPI_RESULT_TEXT                       882
+#define SLAPI_RESULT_MATCHED                    883
 
 /* filter types */
 #ifndef LDAP_FILTER_AND
