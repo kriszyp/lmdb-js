@@ -51,6 +51,8 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 
 	int		noop = 0;
 
+	int		num_retries = 0;
+
 #ifdef LDAP_SYNC
         Operation *ps_list;
 	struct psid_entry *pm_list, *pm_prev;
@@ -105,6 +107,7 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
 	}
 

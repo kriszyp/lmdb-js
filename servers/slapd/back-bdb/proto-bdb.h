@@ -540,6 +540,12 @@ bdb_send_ldap_intermediate(
 	struct berval *cookie );
 #endif
 
+/*
+ * trans.c
+ */
+
+void
+bdb_trans_backoff( int num_retries );
 
 LDAP_END_DECL
 

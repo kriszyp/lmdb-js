@@ -1112,6 +1112,8 @@ LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	passwd_mutex;
 #endif
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	gmtime_mutex;
 
+LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	rand_mutex;
+
 LDAP_SLAPD_V (AccessControl *) global_acl;
 
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;

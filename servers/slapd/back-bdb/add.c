@@ -33,6 +33,8 @@ bdb_add(Operation *op, SlapReply *rs )
 	DB_LOCK		lock;
 	int		noop = 0;
 
+	int		num_retries = 0;
+
 #ifdef LDAP_SYNC
 	Operation* ps_list;
 #endif
@@ -96,6 +98,7 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto return_results;
 		}
+		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
 	}
 

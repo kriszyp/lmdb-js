@@ -36,6 +36,8 @@ bdb_exop_passwd( Operation *op, SlapReply *rs )
 	u_int32_t	locker = 0;
 	DB_LOCK		lock;
 
+	int		num_retries = 0;
+
 	assert( ber_bvcmp( &slap_EXOP_MODIFY_PASSWD, &op->oq_extended.rs_reqoid ) == 0 );
 
 	rc = slap_passwd_parse( op->oq_extended.rs_reqdata,
@@ -118,6 +120,7 @@ retry:	/* transaction retry */
 			rs->sr_text = "internal error";
 			goto done;
 		}
+		bdb_trans_backoff( ++num_retries );
 		ldap_pvt_thread_yield();
 	}
 
