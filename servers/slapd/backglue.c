@@ -366,7 +366,7 @@ glue_back_search (
 						    scope, deref,
 					s2limit, t2limit, filter, filterstr,
 						    attrs, attrsonly);
-			} else if (dn_issuffix (&bv, b0->be_nsuffix[i])) {
+			} else if (dn_issuffixbv (&bv, b0->be_nsuffix[i])) {
 				rc = be->be_search (be, conn, op,
 						    dn, ndn, scope, deref,
 					s2limit, t2limit, filter, filterstr,
