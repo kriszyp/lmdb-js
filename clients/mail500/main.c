@@ -108,20 +108,6 @@ typedef struct baseinfo {
 				/*  to see if this should be searched	   */
 } Base;
 
-/*
- * We should limit the search to objectclass=mailRecipient or
- * objectclass=mailGroup.
- */
-
-/*
-Base	base[] = {
-	{"dc=StlInter, dc=Net",
-		0, 0xff,
-		{"mail=%s", "mailAlternateAddress=%s", NULL}},
-	{NULL}
-};
-*/
-
 Base	**base = NULL;
 
 char	*sendmailargs[] = { MAIL500_SENDMAIL, "-oMrLDAP", "-odi", "-oi", "-f", NULL, NULL };
@@ -157,6 +143,7 @@ typedef struct attr_semantics {
 #define AS_KIND_MODERATOR	7
 #define AS_KIND_ROUTE_TO_ADDR	8	/* Rewrite recipient address as */
 #define AS_KIND_OWN_ADDR	9	/* RFC822 name of this entry */
+#define AS_KIND_DELIVERY_TYPE	10	/* How to deliver mail to this entry */
 
 AttrSemantics **attr_semantics = NULL;
 int current_priority = 0;
@@ -168,7 +155,11 @@ typedef struct subst {
 
 char	**groupclasses = NULL;
 char	**def_attr = NULL;
-char	**mydomains = NULL;		/* FQDNs not to route elsewhere */
+char	**myhosts = NULL;		/* FQDNs not to route elsewhere */
+char	**mydomains = NULL;		/* If an RFC822 address points to one
+					   of these domains, search it in the
+					   directory instead of returning it
+					   to hte MTA */
 
 static void load_config( char *filespec );
 static void split_address( char *address, char **localpart, char **domainpart);
@@ -218,7 +209,7 @@ main ( int argc, char **argv )
 	while ( (i = getopt( argc, argv, "d:C:f:h:l:m:v:" )) != EOF ) {
 		switch( i ) {
 		case 'd':	/* turn on debugging */
-			debug = atoi( optarg );
+			debug |= atoi( optarg );
 			break;
 
 		case 'C':	/* path to configuration file */
@@ -552,8 +543,9 @@ add_attr_semantics( char *s )
 			as->as_syntax = AS_SYNTAX_DN;
 		} else if ( !strcasecmp( p, "url" ) ) {
 			as->as_syntax = AS_SYNTAX_URL;
-		} else if ( !strncasecmp( p, "search-with-filter=", 19 ) ) {
+		} else if ( !strcasecmp( p, "search-with-filter" ) ) {
 			as->as_syntax = AS_SYNTAX_BOOL_FILTER;
+		} else if ( !strncasecmp( p, "param=", 6 ) ) {
 			q = strchr( p, '=' );
 			if ( q ) {
 				p = q + 1;
@@ -568,10 +560,6 @@ add_attr_semantics( char *s )
 					as->as_param = strdup( p );
 					p = q;
 				}
-			} else {
-				syslog( LOG_ALERT,
-					"Missing filter in %s", s );
-				exit( EX_TEMPFAIL );
 			}
 		} else if ( !strcasecmp( p, "host" ) ) {
 			as->as_kind = AS_SYNTAX_HOST;
@@ -591,6 +579,8 @@ add_attr_semantics( char *s )
 			as->as_kind = AS_KIND_REQUEST;
 		} else if ( !strcasecmp( p, "owner" ) ) {
 			as->as_kind = AS_KIND_OWNER;
+		} else if ( !strcasecmp( p, "delivery-type" ) ) {
+			as->as_kind = AS_KIND_DELIVERY_TYPE;
 		} else {
 			syslog( LOG_ALERT,
 				"Unknown semantics word %s", p );
@@ -667,6 +657,9 @@ load_config( char *filespec )
 		} else if ( !strncmp(line, "domain", p-line) ) {
 			p += strspn(p, " \t");
 			add_single_to( &mydomains, p );
+		} else if ( !strncmp(line, "host", p-line) ) {
+			p += strspn(p, " \t");
+			add_single_to( &myhosts, p );
 		} else {
 			syslog( LOG_ALERT,
 				"Unparseable config definition at line %d",
@@ -1083,20 +1076,83 @@ url_list_search(
  * but really, routing belongs in the MTA.
  */
 static int
-is_my_domain(
-	char * domain
+is_my_host(
+	char * host
 )
 {
 	char **d;
 
 	if ( d == NULL )
 		return 0;
-	for ( d = mydomains; *d; d++ ) {
-		if ( !strcasecmp(*d,domain) ) {
+	for ( d = myhosts; *d; d++ ) {
+		if ( !strcasecmp(*d,host) ) {
 			return 1;
 		}
 	}
 	return 0;
+}
+
+static int
+is_my_domain(
+	char * address
+)
+{
+	char **d;
+	char *p;
+
+	if ( d == NULL )
+		return 0;
+	p = strchr( address, '@' );
+	if ( p == NULL)
+		return 0;
+	for ( d = mydomains; *d; d++ ) {
+		if ( !strcasecmp(*d,p+1) ) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+static void
+do_addresses(
+	char	**addresses,
+	char	***to,
+	int	*nto,
+	Group	***togroups,
+	int	*ngroups,
+	Error	**err,
+	int	*nerr,
+	int	type
+)
+{
+	int	i, j;
+	int	n;
+
+	/*
+	 * Well, this is tricky, every address in my_addresses will be
+	 * removed from the list while we shift the other values down
+	 * and we do it in a single scan of the address list and
+	 * without using additional memory.  We are going to be
+	 * modifying the value list in a way that the later
+	 * ldap_value_free works.
+	 */
+	j = 0;
+	for ( i = 0; addresses[i]; i++ ) {
+		if ( is_my_domain(addresses[i]) ) {
+			do_address( addresses[i], to, nto, togroups, ngroups,
+				    err, nerr, type );
+			ldap_memfree( addresses[i] );
+		} else {
+			if ( j < i ) {
+				addresses[j] = addresses[i];
+			}
+			j++;
+		}
+	}
+	addresses[j] = NULL;
+	if ( addresses[0] ) {
+		add_to( to, nto, addresses );
+	}
 }
 
 /*
@@ -1136,6 +1192,8 @@ entry_engine(
 	int	needs_mta_routing = 0;
 	char	**own_addresses = NULL;
 	int	own_addresses_total = 0;
+	char	**delivery_types = NULL;
+	int	delivery_types_total = 0;
 	char	*nvals[2];
 
 	for ( i=0; attr_semantics[i] != NULL; i++ ) {
@@ -1166,7 +1224,9 @@ entry_engine(
 				break;
 			switch ( as->as_syntax ) {
 			case AS_SYNTAX_RFC822:
-				add_to( current_to, current_nto, vals );
+				do_addresses( vals, current_to, current_nto,
+					      togroups, ngroups, err, nerr,
+					      USER );
 				resolved = 1;
 				break;
 			case AS_SYNTAX_RFC822_EXT:
@@ -1179,8 +1239,18 @@ entry_engine(
 				 * We used to send a copy to the vacation host
 				 * if onVacation to uid@vacationhost
 				 */
-				add_to( current_to, current_nto, vals );
-				resolved = 1;
+				if ( as->as_param ) {
+					for ( j=0; j<delivery_types_total; j++ ) {
+						if ( !strcasecmp( as->as_param, delivery_types[j] ) ) {
+							add_to( current_to, current_nto, vals );
+							resolved = 1;
+							break;
+						}
+					}
+				} else {
+					add_to( current_to, current_nto, vals );
+					resolved = 1;
+				}
 				break;
 
 			case AS_SYNTAX_DN:
@@ -1284,7 +1354,7 @@ entry_engine(
 			break;
 
 		case AS_KIND_ROUTE_TO_HOST:
-			if ( !is_my_domain( vals[0] ) ) {
+			if ( !is_my_host( vals[0] ) ) {
 				cur_priority = as->as_priority;
 				if ( as->as_syntax == AS_SYNTAX_PRESENT ) {
 					needs_mta_routing = 1;
@@ -1309,6 +1379,11 @@ entry_engine(
 
 		case AS_KIND_OWN_ADDR:
 			add_to( &own_addresses, &own_addresses_total, vals );
+			cur_priority = as->as_priority;
+			break;
+
+		case AS_KIND_DELIVERY_TYPE:
+			add_to( &delivery_types, &delivery_types_total, vals );
 			cur_priority = as->as_priority;
 			break;
 
@@ -1380,6 +1455,9 @@ entry_engine(
 	if ( own_addresses ) {
 		ldap_value_free( own_addresses );
 	}
+	if ( delivery_types ) {
+		ldap_value_free( delivery_types );
+	}
 		  
 	return( resolved );
 }
@@ -1429,7 +1507,6 @@ do_address(
 	int	type
 )
 {
-	struct timeval	timeout;
 	char		*localpart = NULL, *domainpart = NULL;
 	char		*synthname = NULL;
 	int		resolved;
@@ -1454,8 +1531,6 @@ do_address(
 		if ( synthname[i] == '.' || synthname[i] == '_' )
 			synthname[i] = ' ';
 	}
-	timeout.tv_sec = MAIL500_TIMEOUT;
-	timeout.tv_usec = 0;
 	substs[0].sub_char = 'm';
 	substs[0].sub_value = name;
 	substs[1].sub_char = 'h';
