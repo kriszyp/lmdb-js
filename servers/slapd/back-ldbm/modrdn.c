@@ -50,8 +50,11 @@ ldbm_back_modrdn(
 	char		*new_dn = NULL, *new_ndn = NULL;
 	Entry		*e, *p = NULL;
 	Entry		*matched;
-	int			rootlock = 0;
-	int			rc = -1, rc_id = 0;
+	int		rootlock = 0;
+#define CAN_ROLLBACK	-1
+#define MUST_DESTROY	1
+	int		rc = CAN_ROLLBACK;
+	int 		rc_id = 0;
 	ID              id = NOID;
 	const char *text = NULL;
 	char textbuf[SLAP_TEXT_BUFLEN];
@@ -470,7 +473,7 @@ ldbm_back_modrdn(
 	    
 	    goto return_results;
 	}
-	rc = -1;
+	rc = MUST_DESTROY;
 	
 	(void) cache_update_entry( &li->li_cache, e );
 
@@ -529,9 +532,10 @@ return_results:
 
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
-	if ( rc ) {
-		/* if rc != 0 the entry is uncached and its private data 
-		 * is destroyed; the entry must be freed */
+	if ( rc == MUST_DESTROY ) {
+		/* if rc == MUST_DESTROY the entry is uncached 
+		 * and its private data is destroyed; 
+		 * the entry must be freed */
 		entry_free( e );
 	}
 	return( rc );
