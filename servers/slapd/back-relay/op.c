@@ -22,9 +22,6 @@
 
 #include <stdio.h>
 
-#include <ac/string.h>
-#include <ac/socket.h>
-
 #include "slap.h"
 #include "back-relay.h"
 
@@ -126,6 +123,13 @@ relay_back_op_unbind( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd && bd->be_unbind ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_unbind )( op, rs );
@@ -184,6 +188,13 @@ relay_back_op_compare( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_compare ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_compare )( op, rs );
@@ -212,6 +223,13 @@ relay_back_op_modify( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_modify ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_modify )( op, rs );
@@ -240,6 +258,13 @@ relay_back_op_modrdn( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_modrdn ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_modrdn )( op, rs );
@@ -268,6 +293,13 @@ relay_back_op_add( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_add ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_add )( op, rs );
@@ -296,6 +328,13 @@ relay_back_op_delete( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_delete ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_delete )( op, rs );
@@ -319,6 +358,13 @@ relay_back_op_abandon( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_abandon ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_abandon )( op, rs );
@@ -347,6 +393,13 @@ relay_back_op_cancel( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_cancel ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_cancel )( op, rs );
@@ -375,6 +428,13 @@ relay_back_op_extended( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_extended ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_extended )( op, rs );
@@ -458,6 +518,13 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 
 	if ( bd->be_chk_referrals ) {
 		BackendDB	*be = op->o_bd;
+		slap_callback	cb;
+
+		cb.sc_next = op->o_callback;
+		cb.sc_response = relay_back_swap_bd;
+		cb.sc_cleanup = relay_back_swap_bd;
+		cb.sc_private = op->o_bd;
+		op->o_callback = &cb;
 
 		op->o_bd = bd;
 		rc = ( bd->be_chk_referrals )( op, rs );

@@ -22,12 +22,8 @@
 
 #include <stdio.h>
 
-#include <ac/string.h>
-#include <ac/socket.h>
-
 #include "slap.h"
 #include "back-relay.h"
-#include "lutil.h"
 
 int
 relay_back_db_config(
@@ -43,20 +39,25 @@ relay_back_db_config(
 	if ( ri == NULL ) {
 		fprintf( stderr, "%s: line %d: relay backend info is null!\n",
 		    fname, lineno );
-		return( 1 );
+		return 1;
 	}
 
 	/* real naming context */
 	if ( strcasecmp( argv[0], "relay" ) == 0 ) {
 		struct berval	dn, ndn, pdn;
 		int		rc;
-		char		*cargv[ 4 ];
 
-		if (argc != 2) {
+		if ( argc < 2 ) {
 			fprintf( stderr,
-	"%s: line %d: missing relay suffix in \"relay <dn>\" line\n",
+	"%s: line %d: missing relay suffix in \"relay <dn> [massage]\" line\n",
 			    fname, lineno );
-			return( 1 );
+			return 1;
+
+		} else if ( argc > 3 ) {
+			fprintf( stderr,
+	"%s: line %d: too many args in \"relay <dn> [massage]\" line\n",
+			    fname, lineno );
+			return 1;
 		}
 
 		dn.bv_val = argv[ 1 ];
@@ -85,22 +86,39 @@ relay_back_db_config(
 		} 
 
 		if ( overlay_config( be, "rewrite-remap" ) ) {
-			fprintf( stderr, "unable to install "
+			fprintf( stderr, "%s: line %d: unable to install "
 					"rewrite-remap overlay "
-					"in back-relay \"%s\" => \"%s\"\n",
-					be->be_suffix[0].bv_val,
-					ri->ri_bd->be_suffix[0].bv_val ? 
-					ri->ri_bd->be_suffix[0].bv_val : "<unknown>" );
+					"in back-relay\n",
+					fname, lineno );
 			return 1;
 		}
 
-		cargv[ 0 ] = "suffixmassage";
-		cargv[ 1 ] = be->be_suffix[0].bv_val;
-		cargv[ 2 ] = ri->ri_bd->be_suffix[0].bv_val;
-		cargv[ 3 ] = NULL;
+		if ( argc == 3 ) {
+			char	*cargv[ 4 ];
 
-		if ( be->be_config( be, "back-relay", 1, 3, cargv ) ) {
-			return 1;
+			if ( strcmp( argv[2], "massage" ) ) {
+				fprintf( stderr, "%s: line %d: "
+					"unknown directive \"%s\" "
+					"in \"relay <dn> [massage]\" line\n",
+					fname, lineno, argv[2] );
+				return 1;
+			}
+
+			if ( be->be_suffix[0].bv_val == NULL ) {
+				fprintf( stderr, "%s: line %d: "
+					"relay line must come after \"suffix\"\n",
+					fname, lineno );
+				return 1;
+			}
+
+			cargv[ 0 ] = "suffixmassage";
+			cargv[ 1 ] = be->be_suffix[0].bv_val;
+			cargv[ 2 ] = ri->ri_bd->be_suffix[0].bv_val;
+			cargv[ 3 ] = NULL;
+
+			if ( be->be_config( be, "back-relay", 1, 3, cargv ) ) {
+				return 1;
+			}
 		}
 
 	/* anything else */
