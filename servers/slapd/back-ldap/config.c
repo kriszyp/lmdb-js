@@ -950,8 +950,8 @@ parse_idassert(
 
 		} else {
 			fprintf( stderr, "%s: line %d: "
-					"unhandled auth method %s\n",
-					fname, lineno );
+					"unhandled idassert-method method %s\n",
+					fname, lineno, argv[1] );
 			return 1;
 		}
 
