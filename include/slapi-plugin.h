@@ -14,6 +14,12 @@
  * <http://www.OpenLDAP.org/license.html>.
  */
 
+/*
+ * This header is used in development of SLAPI plugins for
+ * OpenLDAP slapd(8) and other directory servers supporting
+ * this interface.  Your portability mileage may vary.
+ */
+
 #ifndef _SLAPI_PLUGIN_H
 #define _SLAPI_PLUGIN_H
 
