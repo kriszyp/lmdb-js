@@ -853,12 +853,12 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	if ( l == NULL ) {
 		if ( foundit ) {
 			*result = new;
-			goto leave;
+			goto exit;
 		}
 
 		new->lm_next = ld->ld_responses;
 		ld->ld_responses = new;
-		goto leave;
+		goto exit;
 	}
 
 #ifdef NEW_LOGGING
@@ -888,7 +888,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 		*result = l;
 	}
 
-leave:
+exit:
 	if ( foundit ) {
 		ld->ld_errno = LDAP_SUCCESS;
 		return( tag );
