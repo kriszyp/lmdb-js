@@ -334,6 +334,7 @@ int backend_startup(Backend *be)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
+#ifndef SLAPD_MULTIMASTER
 		if ( backendDB[i].be_update_ndn.bv_val && (
 			!backendDB[i].be_update_refs &&
 			!backendDB[i].be_syncinfo &&
@@ -351,6 +352,7 @@ int backend_startup(Backend *be)
 #endif
 			return -1;
 		}
+#endif
 
 		/* append global access controls */
 		acl_append( &backendDB[i].be_acl, global_acl );
