@@ -668,16 +668,33 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
-if test $ol_with_threads != no ; then
+if test $ol_with_threads != no ; then  
 	dnl needed to get reentrant/threadsafe versions
-	dnl
-	dnl hopefully this will not cause problems with
-	dnl non-threaded apps
 	dnl
 	AC_DEFINE(_REENTRANT,1)
 	AC_DEFINE(_THREAD_SAFE,1)
 	AC_DEFINE(_THREADSAFE,1)
-fi
+
+	dnl this might cause the errno symbol to be
+	dnl replaced with a function to get a thread specific errno.
+	dnl check to see if everything needs to be compiled
+	dnl with the thread libraries
+	AC_CACHE_CHECK([for thread specific errno],
+		[ol_cv_errno_thread_specific], [
+		AC_TRY_LINK([
+#include <errno.h>
+			], [
+int x = errno;
+			],
+			[ol_cv_errno_thread_specific=yes],
+			[ol_cv_errno_thread_specific=no])
+	])
+
+	if test $ol_cv_errno_thread_specific != yes ; then
+		LIBS="$LTHREAD_LIBS $LIBS"
+		LTHREAD_LIBS=""
+	fi
+fi  
 
 dnl ----------------------------------------------------------------
 
