@@ -58,9 +58,12 @@ ldap_dn2ufn( LDAP_CONST char *dn )
 		return NULL;
 	}
 
-	if ( ldap_is_dns_dn( dn ) ) {
+	if ( ldap_is_dns_dn( dn ) ||
+		( p = strchr( dn, '=' ) ) == NULL )
+	{
 		return( LDAP_STRDUP( dn ) );
 	}
+
 
 	ufn = LDAP_STRDUP( ++p );
 
