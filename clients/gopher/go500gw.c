@@ -556,7 +556,7 @@ do_menu( LDAP *ld, FILE *fp, char *dn )
 {
 	char		**s;
 	char		*rdn = NULL;
-	FriendlyMap	*fm = NULL;
+	LDAPFriendlyMap	*fm = NULL;
 
 	if ( strcmp( dn, "" ) != 0 ) {
 		s = ldap_explode_dn( dn, 1 );
@@ -588,7 +588,7 @@ do_list( LDAP *ld, FILE *fp, char *dn )
 	int		rc;
 	LDAPMessage	*e, *res;
 	struct timeval	timeout;
-	FriendlyMap	*fm = NULL;
+	LDAPFriendlyMap	*fm = NULL;
 	static char	*attrs[] = { "objectClass", 0 };
 	int deref = LDAP_DEREF_FINDING;
 
