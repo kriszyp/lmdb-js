@@ -1,0 +1,35 @@
+dn: o=University of Michigan,c=US
+objectClass: top
+objectClass: organization
+objectClass: extensibleObject
+o: University of Michigan
+o;lang-x;lang-xx;lang-yy;lang-z;lang-y;lang-zz: University of Michigan
+name;lang-en-us: Billy Ray
+name;lang-en-us: Billy Bob
+cn;lang-en-us: Billy Ray
+name: Billy Ray
+sn;lang-en-gb;lang-en-us: Billy Ray
+sn: Ray
+
+dn: o=University of Michigan,c=US
+o: University of Michigan
+o;lang-x;lang-xx;lang-yy;lang-z;lang-y;lang-zz: University of Michigan
+name;lang-en-us: Billy Ray
+name;lang-en-us: Billy Bob
+cn;lang-en-us: Billy Ray
+name: Billy Ray
+sn;lang-en-gb;lang-en-us: Billy Ray
+sn: Ray
+
+dn: o=University of Michigan,c=US
+name;lang-en-us: Billy Ray
+name;lang-en-us: Billy Bob
+cn;lang-en-us: Billy Ray
+sn;lang-en-gb;lang-en-us: Billy Ray
+
+dn: o=University of Michigan,c=US
+name;lang-en-us: Billy Ray
+name;lang-en-us: Billy Bob
+cn;lang-en-us: Billy Ray
+sn;lang-en-gb;lang-en-us: Billy Ray
+

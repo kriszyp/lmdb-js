@@ -525,8 +525,9 @@ typedef struct slap_attr_desc {
 	struct berval ad_cname;		/* canonical name, must be specified */
 	struct berval ad_lang;		/* empty if no language tags */
 	unsigned ad_flags;
-#define SLAP_DESC_NONE		0x0U
-#define SLAP_DESC_BINARY	0x1U
+#define SLAP_DESC_NONE			0x00U
+#define SLAP_DESC_BINARY		0x01U
+#define SLAP_DESC_LANG_RANGE	0x80U
 } AttributeDescription;
 
 typedef struct slap_attr_name {
@@ -535,8 +536,11 @@ typedef struct slap_attr_name {
 	ObjectClass *an_oc;
 } AttributeName;
 
-#define slap_ad_is_lang(ad)		( (ad)->ad_lang.bv_len != 0 )
-#define slap_ad_is_binary(ad)	( (int)((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
+#define slap_ad_is_lang(ad)			( (ad)->ad_lang.bv_len != 0 )
+#define slap_ad_is_binary(ad)		\
+	( ((ad)->ad_flags & SLAP_DESC_LANG_RANGE) ? 1 : 0 )
+#define slap_ad_is_lang_range(ad)	\
+	( ((ad)->ad_flags & SLAP_DESC_BINARY) ? 1 : 0 )
 
 /*
  * pointers to schema elements used internally

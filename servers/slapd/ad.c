@@ -75,15 +75,42 @@ int slap_str2ad(
 	return slap_bv2ad( &bv, ad, text );
 }
 
+static char *strchrlen(
+	const char *p, 
+	const char ch, 
+	int *len )
+{
+	int i;
+
+	for( i=0; p[i]; i++ ) {
+		if( p[i] == ch ) {
+			*len = i;
+			return (char *) &p[i];
+		}
+	}
+
+	*len = i;
+	return NULL;
+}
+
 int slap_bv2ad(
 	struct berval *bv,
 	AttributeDescription **ad,
 	const char **text )
 {
 	int rtn = LDAP_UNDEFINED_TYPE;
-	int i;
 	AttributeDescription desc, *d2;
 	char *name, *options;
+	char *opt, *next;
+	char *s, *ptr;
+	int nlang;
+	int langlen;
+
+	/* hardcoded limits for speed */
+#define MAX_LANG_OPTIONS 128
+	struct berval langs[MAX_LANG_OPTIONS+1];
+#define MAX_LANG_LEN 1024
+	char langbuf[MAX_LANG_LEN];
 
 	assert( ad != NULL );
 	assert( *ad == NULL ); /* temporary */
@@ -100,10 +127,11 @@ int slap_bv2ad(
 	}
 
 	/* find valid base attribute type; parse in place */
+	memset( &desc, 0, sizeof( desc ));
 	desc.ad_cname = *bv;
 	name = bv->bv_val;
 	options = strchr(name, ';');
-	if (options != NULL) {
+	if( options != NULL ) {
 		desc.ad_cname.bv_len = options - name;
 	}
 	desc.ad_type = at_bvfind( &desc.ad_cname );
@@ -112,65 +140,140 @@ int slap_bv2ad(
 		return rtn;
 	}
 
-	desc.ad_flags = SLAP_DESC_NONE;
-	desc.ad_lang.bv_len = 0;
-	desc.ad_lang.bv_val = NULL;
-
 	if( is_at_operational( desc.ad_type ) && options != NULL ) {
 		*text = "operational attribute with options undefined";
 		return rtn;
 	}
 
-	/* parse options in place */
-	for( ; options != NULL; ) {
-		name = options+1;
-		options = strchr( name, ';' );
-		if ( options != NULL )
-			i = options - name;
-		else
-			i = bv->bv_len - (name - bv->bv_val);
+	/*
+	 * parse options in place
+	 */
+	nlang = 0;
+	memset( langs, 0, sizeof( langs ));
+	langlen = 0;
 
-		if( i == sizeof("binary")-1 && strncasecmp( name, "binary", i) == 0 ) {
+	for( opt=options; opt != NULL; opt=next ) {
+		int optlen;
+		opt++; 
+		next = strchrlen( opt, ';', &optlen );
+
+		if( optlen == 0 ) {
+			*text = "zero length option is invalid";
+			return rtn;
+		
+		} else if ( optlen == sizeof("binary")-1 &&
+			strncasecmp( opt, "binary", sizeof("binary")-1 ) == 0 )
+		{
+			/* binary option */
 			if( slap_ad_is_binary( &desc ) ) {
 				*text = "option \"binary\" specified multiple times";
-				goto done;
+				return rtn;
 			}
 
 			if( !slap_syntax_is_binary( desc.ad_type->sat_syntax )) {
 				/* not stored in binary, disallow option */
 				*text = "option \"binary\" with type not supported";
-				goto done;
+				return rtn;
 			}
 
 			desc.ad_flags |= SLAP_DESC_BINARY;
+			continue;
 
-		} else if ( i >= sizeof("lang-") && strncasecmp( name, "lang-",
-			sizeof("lang-")-1 ) == 0)
+		} else if ( optlen >= sizeof("lang-")-1 &&
+			strncasecmp( opt, "lang-", sizeof("lang-")-1 ) == 0 )
 		{
-			if( desc.ad_lang.bv_len != 0 ) {
-				*text = "multiple language tag options specified";
-				goto done;
+			int i;
+
+			if( opt[optlen-1] == '-' ) {
+				desc.ad_flags |= SLAP_DESC_LANG_RANGE;
 			}
 
-			desc.ad_lang.bv_val = name;
-			desc.ad_lang.bv_len = i;
+			if( nlang >= MAX_LANG_OPTIONS ) {
+				*text = "too many language options";
+				return rtn;
+			}
+
+			/*
+			 * tags should be presented in sorted order,
+			 * so run the array in reverse.
+			 */
+			for( i=nlang-1; i>=0; i-- ) {
+				int rc;
+
+				rc = strncasecmp( opt, langs[i].bv_val,
+					optlen < langs[i].bv_len ? optlen : langs[i].bv_len );
+
+				if( rc == 0 && optlen == langs[i].bv_len ) {
+					/* duplicate (ignore) */
+					goto done;
+
+				} else if ( rc > 0 ||
+					( rc == 0 && optlen > langs[i].bv_len ))
+				{
+					AC_MEMCPY( &langs[i+1], &langs[i],
+						(nlang-i)*sizeof(struct berval) );
+					langs[i].bv_val = opt;
+					langs[i].bv_len = optlen;
+					goto done;
+				}
+			}
+
+			if( nlang ) {
+				AC_MEMCPY( &langs[1], &langs[0],
+					nlang*sizeof(struct berval) );
+			}
+			langs[0].bv_val = opt;
+			langs[0].bv_len = optlen;
+
+done:;
+			langlen += optlen + 1;
+			nlang++;
+
 		} else {
 			*text = "unrecognized option";
-			goto done;
+			return rtn;
 		}
+	}
+
+	if( nlang > 0 ) {
+		int i;
+
+		if( langlen > MAX_LANG_LEN ) {
+			*text = "language options too long";
+			return rtn;
+		}
+
+		desc.ad_lang.bv_val = langbuf;
+		langlen = 0;
+
+		for( i=0; i<nlang; i++ ) {
+			AC_MEMCPY( &desc.ad_lang.bv_val[langlen],
+				langs[i].bv_val, langs[i].bv_len );
+
+			langlen += langs[i].bv_len;
+			desc.ad_lang.bv_val[langlen++] = ';';
+		}
+
+		desc.ad_lang.bv_val[--langlen] = '\0';
+		desc.ad_lang.bv_len = langlen;
 	}
 
 	/* see if a matching description is already cached */
 	for (d2 = desc.ad_type->sat_ad; d2; d2=d2->ad_next) {
-		if (d2->ad_flags != desc.ad_flags)
+		if( d2->ad_flags != desc.ad_flags ) {
 			continue;
-		if (d2->ad_lang.bv_len != desc.ad_lang.bv_len)
+		}
+		if( d2->ad_lang.bv_len != desc.ad_lang.bv_len ) {
 			continue;
-		if (d2->ad_lang.bv_len == 0)
+		}
+		if( d2->ad_lang.bv_len == 0 ) {
 			break;
-		if (strncasecmp(d2->ad_lang.bv_val, desc.ad_lang.bv_val,
-			desc.ad_lang.bv_len) == 0)
+		}
+		if( strncasecmp( d2->ad_lang.bv_val, desc.ad_lang.bv_val,
+			desc.ad_lang.bv_len ) == 0 )
+		{
 			break;
+		}
 	}
 
 	/* Not found, add new one */
@@ -199,17 +302,17 @@ int slap_bv2ad(
 		 * Otherwise, we need to tack on the full name length +
 		 * options length.
 		 */
-		i = sizeof(AttributeDescription);
 		if (desc.ad_lang.bv_len || desc.ad_flags != SLAP_DESC_NONE) {
-			if (desc.ad_lang.bv_len)
+			if (desc.ad_lang.bv_len) {
 				dlen = desc.ad_lang.bv_len+1;
+			}
 			dlen += desc.ad_type->sat_cname.bv_len+1;
 			if( slap_ad_is_binary( &desc ) ) {
 				dlen += sizeof("binary");
 			}
 		}
 
-		d2 = ch_malloc(i + dlen);
+		d2 = ch_malloc(sizeof(AttributeDescription) + dlen);
 		d2->ad_type = desc.ad_type;
 		d2->ad_flags = desc.ad_flags;
 		d2->ad_cname.bv_len = desc.ad_cname.bv_len;
@@ -247,6 +350,7 @@ int slap_bv2ad(
 			d2->ad_next = desc.ad_type->sat_ad->ad_next;
 			desc.ad_type->sat_ad->ad_next = d2;
 		}
+		free(desc.ad_lang.bv_val);
 		ldap_pvt_thread_mutex_unlock( &desc.ad_type->sat_ad_mutex );
 	}
 
@@ -256,10 +360,39 @@ int slap_bv2ad(
 		**ad = *d2;
 	}
 
-	rtn = LDAP_SUCCESS;
+	return LDAP_SUCCESS;
+}
 
-done:
-	return rtn;
+static int is_ad_sublang(
+	const char *sublang, 
+	const char *suplang )
+{
+	const char *supp, *supdelimp;
+	const char *subp, *subdelimp;
+	int  suplen, sublen;
+
+	if( suplang == NULL ) return 1;
+	if( sublang == NULL ) return 0;
+
+	for( supp=suplang ; supp; supp=supdelimp ) {
+		supdelimp = strchrlen( supp, ';', &suplen );
+		if( supdelimp ) supdelimp++;
+
+		for( subp=sublang ; subp; subp=subdelimp ) {
+			subdelimp = strchrlen( subp, ';', &sublen );
+			if( subdelimp ) subdelimp++;
+
+			if ((( suplen < sublen && supp[suplen-1] == '-' ) ||
+				suplen == sublen ) && strncmp( supp, subp, suplen ) == 0 )
+			{
+				goto match;
+			}
+		}
+
+		return 0;
+match:;
+	}
+	return 1;
 }
 
 int is_ad_subtype(
@@ -267,24 +400,25 @@ int is_ad_subtype(
 	AttributeDescription *super
 )
 {
+	int lr;
+
 	if( !is_at_subtype( sub->ad_type, super->ad_type ) ) {
 		return 0;
 	}
 
-	if( super->ad_flags && ( super->ad_flags != sub->ad_flags )) {
+	/* ensure sub does support all flags of super */
+	lr = sub->ad_lang.bv_len ? SLAP_DESC_LANG_RANGE : 0;
+	if(( super->ad_flags & ( sub->ad_flags | lr )) != super->ad_flags ) {
 		return 0;
 	}
 
-	if( super->ad_lang.bv_len && (sub->ad_lang.bv_len !=
-		super->ad_lang.bv_len || strcmp( super->ad_lang.bv_val,
-		sub->ad_lang.bv_val)))
-	{
+	/* check for language tags */
+	if ( !is_ad_sublang( sub->ad_lang.bv_val, super->ad_lang.bv_val )) {
 		return 0;
 	}
 
 	return 1;
 }
-
 
 int ad_inlist(
 	AttributeDescription *desc,
@@ -301,7 +435,6 @@ int ad_inlist(
 				return 1;
 			continue;
 		}
-
 
 		/*
 		 * EXTENSION: see if requested description is an object class
@@ -327,6 +460,7 @@ int ad_inlist(
 					if( rc ) return 1;
 				}
 			}
+
 			if( oc->soc_allowed ) {
 				/* allow return of allowed attributes */
 				int i;
@@ -336,6 +470,7 @@ int ad_inlist(
 					if( rc ) return 1;
 				}
 			}
+
 		} else {
 			/* short-circuit this search next time around */
 			if (!slap_schema.si_at_undefined->sat_ad) {
@@ -385,13 +520,17 @@ int slap_bv2undef_ad(
 		return LDAP_UNDEFINED_TYPE;
 	}
 
-	for (desc = slap_schema.si_at_undefined->sat_ad; desc;
-		desc=desc->ad_next)
-		if (desc->ad_cname.bv_len == bv->bv_len &&
-		    !strcasecmp(desc->ad_cname.bv_val, bv->bv_val))
+	for( desc = slap_schema.si_at_undefined->sat_ad; desc;
+		desc=desc->ad_next ) 
+	{
+		if( desc->ad_cname.bv_len == bv->bv_len &&
+		    !strcasecmp( desc->ad_cname.bv_val, bv->bv_val ))
+		{
 		    	break;
+		}
+	}
 	
-	if (!desc) {
+	if( !desc ) {
 		desc = ch_malloc(sizeof(AttributeDescription) +
 			bv->bv_len + 1);
 		
@@ -411,10 +550,11 @@ int slap_bv2undef_ad(
 		desc->ad_type->sat_ad = desc;
 	}
 
-	if (!*ad)
+	if( !*ad ) {
 		*ad = desc;
-	else
+	} else {
 		**ad = *desc;
+	}
 
 	return LDAP_SUCCESS;
 }
@@ -490,3 +630,4 @@ str2anlist( AttributeName *an, char *in, const char *brkstr )
 	free( str );
 	return( an );
 }
+

@@ -41,7 +41,7 @@ SLAPINDEX="../servers/slapd/tools/slapindex $LDAP_VERBOSE"
 
 unset DIFF_OPTIONS
 DIFF="diff -iu"
-CMP="diff -ic"
+CMP="diff -io"
 CMPOUT=/dev/null
 SLAPD="../servers/slapd/slapd -s0"
 SLURPD=../servers/slurpd/slurpd
@@ -63,6 +63,8 @@ LDIFORDERED=$DATADIR/test-ordered.ldif
 LDIFBASE=$DATADIR/test-base.ldif
 LDIFPASSWD=$DATADIR/passwd.ldif
 LDIFPASSWDOUT=$DATADIR/passwd-out.ldif
+LDIFLANG=$DATADIR/test-lang.ldif
+LDIFLANGOUT=$DATADIR/lang-out.ldif
 MONITOR=""
 BASEDN="o=University of Michigan,c=US"
 MANAGERDN="cn=Manager,o=University of Michigan,c=US"

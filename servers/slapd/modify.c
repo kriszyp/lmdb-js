@@ -449,6 +449,15 @@ int slap_mods_check(
 			return LDAP_UNDEFINED_TYPE;
 		}
 
+		if( slap_ad_is_lang_range( ad )) {
+			/* attribute requires binary transfer */
+			snprintf( textbuf, textlen,
+				"%s: inappropriate use of language range option",
+				ml->sml_type.bv_val );
+			*text = textbuf;
+			return LDAP_UNDEFINED_TYPE;
+		}
+
 		if (!update && is_at_no_user_mod( ad->ad_type )) {
 			/* user modification disallowed */
 			snprintf( textbuf, textlen,

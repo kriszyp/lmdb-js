@@ -568,11 +568,14 @@ select_backend(
 				} else {
 					be = &backends[i];
 				}
+
+				assert( !be->be_ssf_set.sss_tls );
 				return be;
 			}
 		}
 	}
 
+	assert( be == NULL || !be->be_ssf_set.sss_tls );
 	return be;
 }
 
@@ -839,6 +842,7 @@ backend_check_restrictions(
 		}
 
 		if( op->o_tls_ssf < ssf->sss_tls ) {
+			assert(0);
 			*text = "TLS confidentiality required";
 			return LDAP_CONFIDENTIALITY_REQUIRED;
 		}
