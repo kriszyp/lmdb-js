@@ -39,7 +39,7 @@ Redesign slapd threading (thread pooling)
 Redesign slapd caching
 Redesign slapd memory allocation fault handling
 Modify -lldap to be session-level thread support (ldap_dup)
-Slapd-DB2 - Berkeley DB backend w/ transaction support <ksp@openldap.org>
+Implement slapd backend w/ transaction support
 Perform a security audit (and fix any hole found)
 
 
@@ -58,6 +58,7 @@ Port slurpd to NT
 
 Small projects
 --------------
+Update LDBM to support Sleepycat BerkeleyDB 3
 Create ldapquery (from ldapsearch?) to support searching using ldap_getfilter(3)
 Extend gateways to support tcp_wrappers
 Extend slapd/tcp_wrapper to support identd
