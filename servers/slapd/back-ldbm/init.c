@@ -80,8 +80,10 @@ ldbm_back_init(
 	for ( i = 0; i < MAXDBCACHE; i++ ) {
 		pthread_mutex_init( &li->li_dbcache[i].dbc_mutex,
 		    pthread_mutexattr_default );
+#ifdef reentrant_database
 		pthread_cond_init( &li->li_dbcache[i].dbc_cv,
 		    pthread_condattr_default );
+#endif
 	}
 #ifdef HAVE_BERKELEY_DB2
 	pthread_mutex_init( &dbEnvInit_mutex, pthread_mutexattr_default );

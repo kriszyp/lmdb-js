@@ -179,7 +179,7 @@ ldbm_cache_fetch(
 	ldbm_datum_init( data );
 
 	pthread_mutex_lock( &db->dbc_mutex );
-#ifdef reentrant_database
+#ifdef REENTRANT_DATABASE
 	/* increment reader count */
 	db->dbc_readers++
 	pthread_mutex_unlock( &db->dbc_mutex );
@@ -187,7 +187,7 @@ ldbm_cache_fetch(
 
 	data = ldbm_fetch( db->dbc_db, key );
 
-#ifdef reentrant_database
+#ifdef REENTRANT_DATABASE
 	pthread_mutex_lock( &db->dbc_mutex );
 	/* decrement reader count & signal any waiting writers */
 	if ( --db->dbc_readers == 0 ) {
@@ -210,7 +210,7 @@ ldbm_cache_store(
 	int	rc;
 
 	pthread_mutex_lock( &db->dbc_mutex );
-#ifdef reentrant_database
+#ifdef REENTRANT_DATABASE
 	/* wait for reader count to drop to zero */
 	while ( db->dbc_readers > 0 ) {
 		pthread_cond_wait( &db->dbc_cv, &db->dbc_mutex );
@@ -251,7 +251,7 @@ ldbm_cache_delete(
 	int	rc;
 
 	pthread_mutex_lock( &db->dbc_mutex );
-#ifdef reentrant_database
+#ifdef REENTRANT_DATABASE
 	/* wait for reader count to drop to zero - then write */
 	while ( db->dbc_readers > 0 ) {
 		pthread_cond_wait( &db->dbc_cv, &db->dbc_mutex );

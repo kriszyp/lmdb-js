@@ -75,8 +75,10 @@ struct dbcache {
 	int		dbc_refcnt;
 	time_t		dbc_lastref;
 	pthread_mutex_t	dbc_mutex;
+#ifdef REENTRANT_DATBASE
 	pthread_cond_t	dbc_cv;
 	int		dbc_readers;
+#endif
 	long		dbc_blksize;
 	int		dbc_maxids;
 	int		dbc_maxindirect;
