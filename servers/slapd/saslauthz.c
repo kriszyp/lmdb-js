@@ -109,7 +109,10 @@ int slap_parse_user( struct berval *id, struct berval *user,
 
 	u = id->bv_val[ 0 ];
 	
-	assert( u == 'u' || u == 'U' );
+	if ( u != 'u' && u != 'U' ) {
+		/* called with something other than u: */
+		return LDAP_PROTOCOL_ERROR;
+	}
 
 	/* uauthzid form:
 	 *		u[.mech[/realm]]:user
@@ -159,12 +162,11 @@ int slap_parse_user( struct berval *id, struct berval *user,
 		realm->bv_val -= 2;
 	}
 
-	if ( user->bv_val > id->bv_val + 2 ) {
-		user->bv_val -= 2;
-		user->bv_len += 2;
-		user->bv_val[ 0 ] = u;
-		user->bv_val[ 1 ] = ':';
-	}
+	/* leave "u:" before user */
+	user->bv_val -= 2;
+	user->bv_len += 2;
+	user->bv_val[ 0 ] = u;
+	user->bv_val[ 1 ] = ':';
 
 	return LDAP_SUCCESS;
 }
