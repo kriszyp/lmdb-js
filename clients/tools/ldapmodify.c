@@ -63,7 +63,6 @@ static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,
 static int domodify LDAP_P(( char *dn, LDAPMod **pmods, int newentry ));
 static int dodelete LDAP_P(( char *dn ));
 static int domodrdn LDAP_P(( char *dn, char *newrdn, int deleteoldrdn ));
-static void freepmods LDAP_P(( LDAPMod **pmods ));
 static int fromfile LDAP_P(( char *path, struct berval *bv ));
 static char *read_one_record LDAP_P(( FILE *fp ));
 
@@ -461,7 +460,7 @@ process_ldif_rec( char *rbuf )
 	free( newrdn );
     }
     if ( pmods != NULL ) {
-	freepmods( pmods );
+	ldap_mods_free( pmods, 1 );
     }
 
     return( rc );
@@ -567,7 +566,7 @@ process_ldapmod_rec( char *rbuf )
     }
 
     if ( pmods != NULL ) {
-	freepmods( pmods );
+	ldap_mods_free( pmods, 1 );
     }
     if ( dn != NULL ) {
 	free( dn );
@@ -767,25 +766,6 @@ domodrdn( char *dn, char *newrdn, int deleteoldrdn )
     putchar( '\n' );
 
     return( rc );
-}
-
-
-
-static void
-freepmods( LDAPMod **pmods )
-{
-    int	i;
-
-    for ( i = 0; pmods[ i ] != NULL; ++i ) {
-	if ( pmods[ i ]->mod_bvalues != NULL ) {
-	    ber_bvecfree( pmods[ i ]->mod_bvalues );
-	}
-	if ( pmods[ i ]->mod_type != NULL ) {
-	    free( pmods[ i ]->mod_type );
-	}
-	free( pmods[ i ] );
-    }
-    free( pmods );
 }
 
 
