@@ -870,6 +870,7 @@ syncrepl_entry(
 
 	SlapReply	rs = {REP_RESULT};
 	int rc = LDAP_SUCCESS;
+	int ret = LDAP_SUCCESS;
 
 	if ( refresh &&
 		( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ))
@@ -927,10 +928,6 @@ syncrepl_entry(
 		rc = be->be_delete( op, &rs );
 	}
 
-	if ( si->si_syncUUID_ndn ) {
-		ber_bvfree( si->si_syncUUID_ndn );
-	}
-
 	switch ( syncstate ) {
 	case LDAP_SYNC_ADD:
 	case LDAP_SYNC_MODIFY:
@@ -967,13 +964,15 @@ syncrepl_entry(
 							rc, 0, 0 );
 #endif
 					}
-					return 1;
+					ret = 1;
+					goto done;
 				} else if ( rc == LDAP_REFERRAL || rc == LDAP_NO_SUCH_OBJECT ) {
 					syncrepl_add_glue( si, ld, op, e,
 						modlist, syncstate,
 						syncUUID, syncCookie);
 					si->si_e = NULL;
-					return 0;
+					ret = 0;
+					goto done;
 				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( OPERATION, ERR,
@@ -985,12 +984,14 @@ syncrepl_entry(
 						rc, 0, 0 );
 #endif
 					si->si_e = NULL;
-					return 1;
+					ret = 1;
+					goto done;
 				}
 			} else {
 				si->si_e = NULL;
 				be_entry_release_w( op, e );
-				return 0;
+				ret = 0;
+				goto done;
 			}
 		} else {
 #ifdef NEW_LOGGING
@@ -1001,18 +1002,22 @@ syncrepl_entry(
 				"syncrepl_entry : be_search failed (%d)\n", rc, 0, 0 );
 #endif
 			si->si_e = NULL;
-			return 1;
+			ret = 1;
+			goto done;
 		}
 
 	case LDAP_SYNC_DELETE :
 		if ( si->si_sync_mode == LDAP_SYNC_LOG_MODE ) {
-			op->o_req_dn = *si->si_syncUUID_ndn;
-			op->o_req_ndn = *si->si_syncUUID_ndn;
-			op->o_tag = LDAP_REQ_DELETE;
-			rc = be->be_delete( op, &rs );
+			if ( si->si_syncUUID_ndn ) {
+				op->o_req_dn = *si->si_syncUUID_ndn;
+				op->o_req_ndn = *si->si_syncUUID_ndn;
+				op->o_tag = LDAP_REQ_DELETE;
+				rc = be->be_delete( op, &rs );
+			}
 		}
 		/* Already deleted otherwise */
-		return 0;
+		ret = 1;
+		goto done;
 
 	default :
 #ifdef NEW_LOGGING
@@ -1022,8 +1027,16 @@ syncrepl_entry(
 		Debug( LDAP_DEBUG_ANY,
 			"syncrepl_entry : unknown syncstate\n", 0, 0, 0 );
 #endif
-		return 1;
+		ret = 1;
+		goto done;
 	}
+
+done :
+
+	if ( si->si_syncUUID_ndn ) {
+		ber_bvfree( si->si_syncUUID_ndn );
+	}
+	return ret;
 }
 
 static void
