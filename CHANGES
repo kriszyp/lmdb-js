@@ -2,6 +2,8 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.2 Release Engineering
 	CVS Tag: OPENLDAP_REL_ENG_1_2
+	Fixed slapd substring_comp_candidates null intersection bug (ITS#228)
+	Fixed slapd modify: delete of last attribute value bug (ITS#229)
 	Build environment
 		Updated Autoconf 2.13 config.guess/config.sub
 		Don't use "ln -s -f file link" (ITS#227)

@@ -345,6 +345,11 @@ substring_comp_candidates(
 			idl_free( tmp );
 			idl_free( tmp2 );
 		}
+
+		/* break if no candidates */
+		if( idl == NULL ) {
+			break;
+		}
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %lu\n",
