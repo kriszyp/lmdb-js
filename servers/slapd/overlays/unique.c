@@ -267,9 +267,9 @@ static int count_filter_len(
 			if(!up) break;
 		}
 		if(b && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			ks += b[i].bv_len + ad->ad_cname.bv_len + 3;
+			ks += b[i].bv_len + ad->ad_cname.bv_len + STRLENOF( "(=)" );
 		else if(ud->strict)
-			ks += ad->ad_cname.bv_len + 4;	/* (attr=*) */
+			ks += ad->ad_cname.bv_len + STRLENOF( "(=*)" );	/* (attr=*) */
 		break;
 	}
 	return ks;
