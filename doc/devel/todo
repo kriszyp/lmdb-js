@@ -12,6 +12,10 @@ listed, contact <project@OpenLDAP.org>.
 If you have a project you'd like added to the list, talk it up
 on <openldap-devel@OpenLDAP.org> mailing list.
 
+Please read:
+	http://www.OpenLDAP.org/devel/programming.html
+	http://www.OpenLDAP.org/devel/contributing.html
+
 
 Larger than life projects
 -------------------------
@@ -32,14 +36,17 @@ Medium projects
 ---------------
 Modify -lldap to be reentrant/threadsafe
 Modify -llthread to hide thread implementation
+Modify libraries to use application specified logging routines
+Modify libraries to use application specified memory allocation routines
 Extend configure.in to support autodetect of ISODE features.
 Port slurpd to NT
+Update manual page
 
 
 Small projects
 --------------
 Modify servers to use reentrant library functions
-Modify -lldap to use reentrant library functions
+Extend ldap clients to have -P(rotocol) version flag (2 or 3)
 Create ldapurl (from ldapsearch?) to support searching by URL
 Extend configure.in to support autodetect of Kerberos features.
 Extend mail500 (and other daemons) to use ldap filters.
