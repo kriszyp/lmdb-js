@@ -81,8 +81,6 @@ static
 #endif
 volatile sig_atomic_t slapd_shutdown = 0;
 
-static ldap_pvt_thread_t	listener_tid;
-
 static struct slap_daemon {
 	ldap_pvt_thread_mutex_t	sd_mutex;
 
@@ -277,15 +275,19 @@ static Listener * open_listener( const char* url )
 	ldap_free_urldesc( lud );
 	sai = res;
 	do {
-		if ( (sai->ai_family != AF_INET)
+		switch( sai_ai_family ) {
+		case AF_INET:
 #  ifdef LDAP_PF_INET6
-		     && (sai->ai_family != AF_INET6)
+		case AF_INET6:
 #  endif
 #  ifdef LDAP_PF_LOCAL
-		     && (sai->ai_family != AF_LOCAL)
+		case AF_LOCAL:
 #  endif
-		     )
+			break;
+		default:
 			continue;
+		}
+
 		l.sl_sd = socket( sai->ai_family, sai->ai_socktype, sai->ai_protocol);
 		if ( l.sl_sd == AC_SOCKET_INVALID ) {
 			int err = sock_errno();
@@ -857,6 +859,17 @@ slapd_daemon_task(
 			}
 #endif
 
+#ifdef LDAP_DEBUG
+			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
+
+			/* newly accepted stream should not be in any of the FD SETS */
+			assert( !FD_ISSET( s, &slap_daemon.sd_actives) );
+			assert( !FD_ISSET( s, &slap_daemon.sd_readers) );
+			assert( !FD_ISSET( s, &slap_daemon.sd_writers) );
+
+			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
+#endif
+
 #if defined( SO_KEEPALIVE ) || defined( TCP_NODELAY )
 #ifdef LDAP_PF_LOCAL
 			/* for IPv4 and IPv6 sockets only */
@@ -892,31 +905,8 @@ slapd_daemon_task(
 			}
 #endif
 
-
-#ifdef LDAP_DEBUG
-			ldap_pvt_thread_mutex_lock( &slap_daemon.sd_mutex );
-
-			/* newly accepted stream should not be in any of the FD SETS */
-			assert( !FD_ISSET( s, &slap_daemon.sd_actives) );
-			assert( !FD_ISSET( s, &slap_daemon.sd_readers) );
-			assert( !FD_ISSET( s, &slap_daemon.sd_writers) );
-
-			ldap_pvt_thread_mutex_unlock( &slap_daemon.sd_mutex );
-#endif
-
 			Debug( LDAP_DEBUG_CONNS, "daemon: new connection on %ld\n",
 				(long) s, 0, 0 );
-
-			len = sizeof(from);
-
-			if ( getpeername( s, (struct sockaddr *) &from, &len ) != 0 ) {
-				int err = sock_errno();
-				Debug( LDAP_DEBUG_ANY,
-					"daemon: getpeername( %ld ) failed: errno=%d (%s)\n",
-					(long) s, err, sock_errstr(err) );
-				slapd_close(s);
-				continue;
-			}
 
 			switch ( from.sa_addr.sa_family ) {
 #  ifdef LDAP_PF_LOCAL
@@ -956,6 +946,7 @@ slapd_daemon_task(
 				slapd_close(s);
 				continue;
 			}
+
 			if ( ( from.sa_addr.sa_family == AF_INET ) 
 #ifdef LDAP_PF_INET6
 				|| ( from.sa_addr.sa_family == AF_INET6 )
@@ -1210,23 +1201,25 @@ int slapd_daemon( void )
 	connections_init();
 
 #define SLAPD_LISTENER_THREAD 1
-#if defined( SLAPD_LISTENER_THREAD ) || !defined(HAVE_PTHREADS)
+#if defined( SLAPD_LISTENER_THREAD )
+	{
+		ldap_pvt_thread_t	listener_tid;
 
-	/* listener as a separate THREAD */
-	rc = ldap_pvt_thread_create( &listener_tid,
-		0, slapd_daemon_task, NULL );
+		/* listener as a separate THREAD */
+		rc = ldap_pvt_thread_create( &listener_tid,
+			0, slapd_daemon_task, NULL );
 
-	if ( rc != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
-		return rc;
-	}
+		if ( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+		    	"listener ldap_pvt_thread_create failed (%d)\n", rc, 0, 0 );
+			return rc;
+		}
 
-	/* wait for the listener thread to complete */
-	ldap_pvt_thread_join( listener_tid, (void *) NULL );
+		/* wait for the listener thread to complete */
+		ldap_pvt_thread_join( listener_tid, (void *) NULL );
+ 	}
 #else
-	/* expermimental code */
-	listener_tid = pthread_self();
+	/* experimental code */
 	slapd_daemon_task( NULL );
 #endif
 
