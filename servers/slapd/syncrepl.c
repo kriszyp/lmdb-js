@@ -52,7 +52,7 @@ struct runqueue_s syncrepl_rq;
 void
 init_syncrepl(syncinfo_t *si)
 {
-	int i, j, k, n;
+	int i, j, k, l, n;
 	char **tmp;
 
 	if ( !sync_descs[0] ) {
@@ -71,8 +71,9 @@ init_syncrepl(syncinfo_t *si)
 				if ( strcmp( si->si_attrs[j], sync_descs[i]->ad_cname.bv_val )
 					== 0 )
 				{
-					ch_free( si->si_attrs[j] );
 					for ( k = j; si->si_attrs[k] != NULL; k++ ) {
+						if ( k == j )
+							ch_free( si->si_attrs[k] );
 						si->si_attrs[k] = si->si_attrs[k+1];
 					}
 				}
@@ -110,9 +111,24 @@ init_syncrepl(syncinfo_t *si)
 				if ( strcmp( si->si_exattrs[j], sync_descs[i]->ad_cname.bv_val )
 					== 0 )
 				{
-					ch_free( si->si_exattrs[j] );
 					for ( k = j; si->si_exattrs[k] != NULL; k++ ) {
+						if ( k == j )
+							ch_free( si->si_exattrs[k] );
 						si->si_exattrs[k] = si->si_exattrs[k+1];
+					}
+				}
+			}
+		}
+		for ( i = 0; si->si_exattrs[i] != NULL; i++ ) {
+			for ( j = 0; si->si_ocs[j]; j++ ) {
+				for ( k = 0; si->si_ocs[j]->soc_required[k]; k++ ) {
+					if (!strcmp( si->si_exattrs[i],
+						si->si_ocs[j]->soc_required[k]->sat_cname.bv_val )) {
+						for ( l = i; si->si_exattrs[l] != NULL; l++ ) {
+							if ( l == i )
+								ch_free( si->si_exattrs[l] );
+							si->si_exattrs[l] = si->si_exattrs[l+1];
+						}
 					}
 				}
 			}
@@ -2032,6 +2048,9 @@ syncinfo_free( syncinfo_t *sie )
 			i++;
 		}
 		ch_free( sie->si_attrs );
+	}
+	if ( sie->si_ocs ) {
+		ch_free( sie->si_ocs );
 	}
 	if ( sie->si_exattrs ) {
 		int i = 0;

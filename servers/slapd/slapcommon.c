@@ -190,7 +190,7 @@ slap_tool_init(
 				usage( tool, progname );
 				exit( EXIT_FAILURE );
 			}
-			str2clist( &replica_id_strlist, replica_id_string, "," );
+			slap_str2clist( &replica_id_strlist, replica_id_string, "," );
 			for ( i = 0; replica_id_strlist && replica_id_strlist[i]; i++ ) ;
 			replica_id_list = ch_calloc( i + 1, sizeof( int ) );
 			for ( i = 0; replica_id_strlist && replica_id_strlist[i]; i++ ) {

@@ -1444,6 +1444,7 @@ typedef struct syncinfo_s {
         int					si_scope;
         int					si_attrsonly;
         char				**si_attrs;
+		ObjectClass			**si_ocs;
 		char				**si_exattrs;
         int					si_type;
         time_t				si_interval;
