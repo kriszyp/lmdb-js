@@ -24,6 +24,8 @@
  * 7 March 1994 by Mark C Smith
  */
 
+/* DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED */
+
 #ifndef _DISPTMPL_H
 #define _DISPTMPL_H
 
