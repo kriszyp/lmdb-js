@@ -5,4 +5,3 @@
 
 SUBDIRS= liblutil libldif liblber libldap libavl libldbm libldap_r
 
-libldap libldap_r: liblber

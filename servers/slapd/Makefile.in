@@ -36,27 +36,29 @@ XXXLIBS = $(LTHREAD_LIBS)
 BUILD_OPT = "--enable-slapd"
 BUILD_SRV = @BUILD_SLAPD@
 
-BACKENDS=back-*
+all-local-srv: FORCE
+	$(MAKE) $(MFLAGS) backendslib
+	$(MAKE) $(MFLAGS) slapd
+	(cd tools; $(MAKE) $(MFLAGS) all)
+	$(MAKE) $(MFLAGS) all-cffiles
 
-all-local-srv: slapd all-cffiles tools
-
-tools: libbackends.a
-
-slapd: version.o libbackends.a
+slapd: version.o
 	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
 
-sslapd: version.o libbackends.a
+sslapd: version.o
 	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
 
-$(BACKENDS) tools:	FORCE
-	@ if [ -d $@ ]; then \
-		echo " "; echo "  cd $@; $(MAKE) $(MFLAGS) all"; \
-		cd $@; $(MAKE) $(MFLAGS) all ; \
-	fi
+backendslib:	FORCE
+	@for i in back-*; do \
+		if [ -d $$i ]; then \
+			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
+			( cd $$i; $(MAKE) $(MFLAGS) all ); \
+		fi; \
+	done; \
+	echo " "; \
+	$(MAKE) $(MFLAGS) libbackends.a
 
-.backend:
-
-libbackends.a: .backend $(BACKENDS)
+libbackends.a: .backend
 	@$(RM) -r tmp
 	@$(MKDIR) tmp
 	@-for i in back-*/*.a; do \
@@ -148,3 +150,15 @@ install-conf: FORCE
 install-tools: FORCE
 	@-$(MKDIR) $(sbindir)
 	(cd tools; $(MAKE) $(MFLAGS) install)
+
+
+
+
+
+
+
+
+
+
+
+
