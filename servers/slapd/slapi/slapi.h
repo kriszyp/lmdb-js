@@ -54,8 +54,7 @@ LDAP_BEGIN_DECL
 
 extern int slap_debug;
 
-int
-dn_check(char *, int *);
+extern int dn_check(char *, int *);
 
 typedef struct strlist {
 	char *string;
@@ -63,6 +62,7 @@ typedef struct strlist {
 } StrList;
 #endif
 
+extern struct berval *ns_get_supported_extop( int );
 
 /*
  * Was: slapi_utils.h
@@ -175,16 +175,16 @@ struct slapi_pblock {
 #define CL_DELRDN "deleteoldrdn"
 #define CHANGE_INITIATOR "ibm-changeInitiatorsName" 
 
-void slapi_register_changelog_suffix(char *suffix);
-char **slapi_get_changelog_suffixes();
-void slapi_update_changelog_counters(long curNum, long numEntries);
-char *slapi_get_cl_firstNum();
-char *slapi_get_cl_lastNum();
-int slapi_add_to_changelog(Slapi_Entry *ent, char *suffix, char *chNum, Operation* op);	
-int slapi_delete_changelog(char *dn, char *suffix, char *chNum, Operation* op);	
-int slapi_modify_changelog(char *dn,LDAPMod	*mods,char *suffix, char *chNum, Operation* op); 
-int slapi_modifyrdn_changelog(char *olddn, char *newRdn, int delRdn, char *suffix, char *chNum, Operation* op);
-Backend * slapi_cl_get_be(char *dn);
+extern void slapi_register_changelog_suffix(char *suffix);
+extern char **slapi_get_changelog_suffixes();
+extern void slapi_update_changelog_counters(long curNum, long numEntries);
+extern char *slapi_get_cl_firstNum();
+extern char *slapi_get_cl_lastNum();
+extern int slapi_add_to_changelog(Slapi_Entry *ent, char *suffix, char *chNum, Operation* op);	
+extern int slapi_delete_changelog(char *dn, char *suffix, char *chNum, Operation* op);	
+extern int slapi_modify_changelog(char *dn,LDAPMod	*mods,char *suffix, char *chNum, Operation* op); 
+extern int slapi_modifyrdn_changelog(char *olddn, char *newRdn, int delRdn, char *suffix, char *chNum, Operation* op);
+extern Backend * slapi_cl_get_be(char *dn);
 #endif
 
 

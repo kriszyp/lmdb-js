@@ -28,8 +28,6 @@
 #include <slap.h>
 #include <slapi.h>
 
-struct berval *ns_get_supported_extop( int );
-
 #ifdef _SPARC  
 #include <sys/systeminfo.h>
 #endif
