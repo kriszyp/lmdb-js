@@ -1749,7 +1749,7 @@ IA5StringNormalize(
 
 		} else if ( casefold ) {
 			/* Most IA5 rules require casefolding */
-			*q++ = TOLOWER(*p++);
+			*q++ = TOLOWER(*p); p++;
 
 		} else {
 			*q++ = *p++;
