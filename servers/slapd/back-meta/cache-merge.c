@@ -35,75 +35,32 @@
 #include <sys/time.h>
 
 #ifdef LDAP_CACHING
+
+static struct berval bv_queryid_any = BER_BVC( "(queryid=*)" );
+
 static int
 merge_func (
-	Backend	*be,
-	Connection	*conn,
 	Operation	*op,
-	Entry	*stored_entry,
-	AttributeName	*attrs,
-	int		attrsonly,
-	LDAPControl **ctrls
+	SlapReply	*rs
 ); 
 
 void
 add_func (
-	Connection	*conn,
 	Operation	*op,
-	ber_int_t	err,
-	const char	*matched,
-	const char	*text,
-	BerVarray	refs,
-	LDAPControl	**ctrls,
-	int		nentries
+	SlapReply	*rs
 ); 
 
 static Attribute* 
-add_attribute(const char* attr_name, 
+add_attribute(AttributeDescription *ad,
 	Entry* e,
 	BerVarray value_array
 ); 
 
 static int
 get_size_func (
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
-	Entry		*entry,
-	AttributeName	*attrs,
-	int		attrsonly,
-	LDAPControl	**ctrls
+	SlapReply	*rs
 ); 
-
-
-/* Two empty callback functions to avoid sending results */
-void callback_null_response(
-	Connection	*conn,
-	Operation	*o,
-	ber_tag_t	tag,
-	ber_int_t	msgid,
-	ber_int_t	err,
-	const char	*matched,
-	const char	*text,
-	BerVarray	ref,
-	const char	*resoid,
-	struct berval	*resdata,
-	struct berval	*sasldata,
-	LDAPControl	**c	)
-{
-}
-
-void callback_null_sresult(
-	Connection	*conn,
-	Operation	*o,
-	ber_int_t	err,
-	const char	*matched,
-	const char	*text,
-	BerVarray	refs,
-	LDAPControl	**c,
-	int nentries	)
-{
-}
 
 struct entry_info {
 	int			size_init; 
@@ -149,51 +106,74 @@ get_entry_size(
 	return size;
 }
 
+/* quick hack: call the right callback */
+static int
+add_merge_func( Operation *op, SlapReply *rs )
+{
+	switch ( rs->sr_type ) {
+	case REP_SEARCH:
+		add_func( op, rs );
+		break;
+
+	case REP_RESULT:
+		merge_func( op, rs );
+		break;
+	}
+	return 0;
+}
 
 int
-merge_entry (
-	Backend*		be,
-	Connection*		conn, 
-	Entry*			e, 
+merge_entry(
+	Operation		*op,
+	SlapReply		*rs,
 	struct berval*		query_uuid, 
-	struct exception*	result	)
+	struct exception*	result )
 {
-	struct entry_info info; 
-	struct berval normdn; 
-	struct berval prettydn; 
+	struct entry_info info;
+	struct berval normdn;
+	struct berval prettydn;
 
-	Operation op = {0};
-	slap_callback cb = {callback_null_response, 
-		add_func, merge_func, NULL}; 
+	Operation op_tmp = *op;
+	slap_callback cb = { add_merge_func, NULL };
 
-	Filter* filter = str2filter("(queryid=*)"); 	      
+	Filter* filter = str2filter( bv_queryid_any.bv_val );
 
-	dnPrettyNormal(0, &(e->e_name), &prettydn, &normdn); 
+	dnPrettyNormal(0, &rs->sr_entry->e_name, &prettydn, &normdn,
+			op->o_tmpmemctx);
 
-	free(e->e_name.bv_val); 
-	e->e_name = prettydn; 
-	e->e_nname = normdn; 
+	free(rs->sr_entry->e_name.bv_val);
+	rs->sr_entry->e_name = prettydn;
+	if (rs->sr_entry->e_nname.bv_val) free(rs->sr_entry->e_nname.bv_val);
+	rs->sr_entry->e_nname = normdn;
 
-	info.entry = e; 
-	info.uuid = query_uuid; 
-	info.size_init = 0; 
-	info.size_final = 0; 
-	info.added = 0; 
-	info.glue_be = be; 
-	info.err = SUCCESS; 
+	info.entry = rs->sr_entry;
+	info.uuid = query_uuid;
+	info.size_init = 0;
+	info.size_final = 0;
+	info.added = 0;
+	info.glue_be = op->o_bd;
+	info.err = SUCCESS;
 	cb.sc_private = &info;
 
-	op.o_tag = LDAP_REQ_SEARCH;
-	op.o_protocol = LDAP_VERSION3;
-	op.o_ndn = conn->c_ndn;
-	op.o_callback = &cb;
-	op.o_caching_on = 1;
-	op.o_time = slap_get_time();
-	op.o_do_not_cache = 1;
+	op_tmp.o_tag = LDAP_REQ_SEARCH;
+	op_tmp.o_protocol = LDAP_VERSION3;
+	op_tmp.o_callback = &cb;
+	op_tmp.o_caching_on = 1;
+	op_tmp.o_time = slap_get_time();
+	op_tmp.o_do_not_cache = 1;
 
-	be->be_search( be, conn, &op, NULL, &(e->e_nname),
-		LDAP_SCOPE_BASE, LDAP_DEREF_NEVER, 1, 0,
-		filter, NULL, NULL, 0 );
+	op_tmp.o_req_dn = rs->sr_entry->e_name;
+	op_tmp.o_req_ndn = rs->sr_entry->e_nname;
+	op_tmp.ors_scope = LDAP_SCOPE_BASE;
+	op_tmp.ors_deref = LDAP_DEREF_NEVER;
+	op_tmp.ors_slimit = 1;
+	op_tmp.ors_tlimit = 0;
+	op_tmp.ors_filter = filter;
+	op_tmp.ors_filterstr = bv_queryid_any;
+	op_tmp.ors_attrs = NULL;
+	op_tmp.ors_attrsonly = 0;
+
+	op->o_bd->be_search( &op_tmp, rs );
 	result->type = info.err; 
 	if ( result->type == SUCCESS )
 		result->rc = info.added; 
@@ -204,49 +184,44 @@ merge_entry (
 
 static int
 merge_func (
-	Backend		*be_glue,
-	Connection	*conn,
 	Operation	*op,
-	Entry		*e,
-	AttributeName	*attrs,
-	int		attrsonly,
-	LDAPControl	**ctrls
+	SlapReply	*rs
 )
-{ 
-	Backend* be; 
-	char 		*new_attr_name;
+{
+	Backend			*be;
+	char 			*new_attr_name;
 	Attribute		*a_new, *a;
-	int 		i=0;
-	int 		rc=0;
+	int 			i = 0;
+	int 			rc = 0;
     
-	int 		count; 
-	struct timeval      time;	/* time */ 
-	long 		timediff; /* time */ 
-	slap_callback	*tmp = op->o_callback;  
-	struct entry_info*   	info = tmp->sc_private; 
-	Filter* filter = str2filter("(queryid=*)"); 	      
-	Entry* entry = info->entry; 
-	struct berval* uuid = info->uuid; 
-	Modifications *modhead = NULL; 
-	Modifications *mod; 
-	Modifications **modtail = &modhead; 
-	AttributeDescription* a_new_desc;
-	const char	*text = NULL; 
+	int 			count;
+	struct timeval		time;	/* time */
+	long 			timediff; /* time */
+	struct entry_info	*info = op->o_callback->sc_private;
+	Filter			*filter = str2filter( bv_queryid_any.bv_val );
+	Entry			*entry = info->entry;
+	struct berval		*uuid = info->uuid;
+	Modifications		*modhead = NULL;
+	Modifications		*mod;
+	Modifications		**modtail = &modhead;
+	AttributeDescription	*a_new_desc;
+	const char		*text = NULL;
+	Operation		op_tmp = *op;
 
 	info->err = SUCCESS; 
 
 	be = select_backend(&entry->e_nname, 0, 0); 
      
-	info->size_init = get_entry_size(e, 0, 0);  
+	info->size_init = get_entry_size(rs->sr_entry, 0, 0);  
 	a_new = entry->e_attrs;
 
 	while (a_new != NULL) {
 		a_new_desc = a_new->a_desc; 
 		mod = (Modifications *) malloc( sizeof(Modifications) );
 		mod->sml_op = LDAP_MOD_REPLACE;
-		ber_dupbv(&(mod->sml_type), &(a_new_desc->ad_cname)); 
+		ber_dupbv(&mod->sml_type, &a_new_desc->ad_cname); 
 
-		for (count=0; a_new->a_vals[count].bv_val; count++) 
+		for (count = 0; a_new->a_vals[count].bv_val; count++) 
 			;
 		mod->sml_bvalues = (struct berval*) malloc(
 				(count+1) * sizeof( struct berval) );
@@ -270,7 +245,7 @@ merge_func (
 	mod = (Modifications *) ch_malloc( sizeof(Modifications) );
 	mod->sml_op = LDAP_MOD_ADD;
 	mod->sml_desc = slap_schema.si_ad_queryid; 
-	ber_dupbv(&(mod->sml_type), &(mod->sml_desc->ad_cname)); 
+	ber_dupbv(&mod->sml_type, &mod->sml_desc->ad_cname); 
 	mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
 	ber_dupbv( mod->sml_bvalues, uuid );
 	mod->sml_bvalues[1].bv_val = NULL;
@@ -278,51 +253,60 @@ merge_func (
 	*modtail = mod;
 	mod->sml_next = NULL; 
 
-	if (be->be_modify(be, conn, op, &(entry->e_name),
-				&(entry->e_nname), modhead) != 0 ) {
+	/* Apply changes */
+	op_tmp.o_req_dn = entry->e_name;
+	op_tmp.o_req_ndn = entry->e_nname;
+	op_tmp.orm_modlist = modhead;
+
+	if (be->be_modify(op, rs ) != 0 ) {
+		/* FIXME: cleanup ? */
 		info->err = MERGE_ERR;
 		return 0; 
 	}
-	op->o_callback->sc_sendentry = get_size_func; 
-	op->o_callback->sc_sresult = NULL; 
+
+	/* compute the size of the entry */
+	op_tmp.o_callback->sc_response = get_size_func; 
+
+	op_tmp.ors_scope = LDAP_SCOPE_BASE;
+	op_tmp.ors_deref = LDAP_DEREF_NEVER;
+	op_tmp.ors_slimit = 1;
+	op_tmp.ors_tlimit = 0;
+	op_tmp.ors_filter = filter;
+	op_tmp.ors_filterstr = bv_queryid_any;
+	op_tmp.ors_attrs = NULL;
+	op_tmp.ors_attrsonly = 0;
     
-	if (be->be_search( be, conn, op, NULL, &(entry->e_nname),
-			LDAP_SCOPE_BASE, LDAP_DEREF_NEVER, 1, 0,
-			filter, NULL, NULL, 0 ) != 0) {
+	if (be->be_search( &op_tmp, rs ) != 0) {
 		info->err = GET_SIZE_ERR;
 	}
+
 	return 0; 
 }
 
 void
 add_func (
-	Connection	*conn,
 	Operation	*op,
-	ber_int_t	err,
-	const char	*matched,
-	const char	*text,
-	BerVarray	refs,
-	LDAPControl **ctrls,
-	int		nentries
+	SlapReply	*rs
 )
 {
-	slap_callback	*tmp = op->o_callback;  
-	struct entry_info   *info = tmp->sc_private; 
-	Entry* entry = info->entry; 
-	struct berval* uuid = info->uuid; 
-	Backend* be; 
+	struct entry_info	*info = op->o_callback->sc_private; 
+	Entry			*entry = info->entry; 
+	struct berval		*uuid = info->uuid; 
+	Backend			*be; 
 	BerVarray 		value_array; 
-	Entry		*e; 
+	Entry			*e; 
 	Attribute		*a; 
 
-	struct timeval      time;	/* time */ 
-	long 		timediff; /* time */ 
+	struct timeval		time;	/* time */ 
+	long			timediff; /* time */ 
+
+	Operation		op_tmp = *op;
 
 	/* 
 	 * new entry, construct an entry with 
 	 * the projected attributes 
 	 */
-	if (nentries) 
+	if (rs->sr_nentries) 
 		return; 
 	
 	be = select_backend(&entry->e_nname, 0, 0); 
@@ -341,16 +325,21 @@ add_func (
 	value_array[1].bv_val = NULL;
 	value_array[1].bv_len = 0;
 
-	a = add_attribute("queryid", e, value_array); 
+	a = add_attribute(slap_schema.si_ad_queryid, 
+			e, value_array); 
 
 	/* append the attribute list from the fetched entry */
 	a->a_next = entry->e_attrs;
 	entry->e_attrs = NULL;
 
 	info->size_final = get_entry_size(e, 0, NULL); 
-	if ( be->be_add( be, conn, op, e ) == 0 ) {
+
+	op_tmp.o_bd = be;
+	op_tmp.ora_e = e;
+	
+	if ( be->be_add( &op_tmp, rs ) == 0 ) {
 		info->added = 1; 
-		be_entry_release_w( be, conn, op, e );
+		be_entry_release_w( &op_tmp, e );
 	} else {
 		info->err = MERGE_ERR; 
 	}
@@ -358,7 +347,7 @@ add_func (
  
 
 static Attribute* 
-add_attribute(const char* attr_name, 
+add_attribute(AttributeDescription *ad,
 	Entry* e, 
 	BerVarray value_array) 
 {
@@ -381,28 +370,27 @@ add_attribute(const char* attr_name,
 	new_attr->a_next = NULL; 
 	new_attr->a_desc = NULL;
 	new_attr->a_vals = value_array; 
-	slap_str2ad(attr_name, &(new_attr->a_desc), &text);   
+	new_attr->a_desc = ad;
 
 	return new_attr; 
 }
 
 static int
 get_size_func (
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
-	Entry		*entry,
-	AttributeName	*attrs,
-	int		attrsonly,
-	LDAPControl	**ctrls
+	SlapReply	*rs
 )
 {
-	slap_callback		*tmp = op->o_callback;  
-	struct entry_info	*info = tmp->sc_private; 
+	struct entry_info	*info = op->o_callback->sc_private; 
 	struct exception	result; 
 
-	result.type = info->err;  
-	info->size_final = get_entry_size(entry, info->size_init, &result); 
+	if ( rs->sr_type == REP_SEARCH ) {
+		result.type = info->err;  
+		info->size_final = get_entry_size(rs->sr_entry,
+				info->size_init, &result); 
+	}
+
 	return 0; 
-}  
+}
+
 #endif /* LDAP_CACHING */

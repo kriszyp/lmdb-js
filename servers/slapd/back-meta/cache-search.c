@@ -122,12 +122,11 @@ is_one_level_rdn(
 
 static struct metaconn*  
 metaConnect(
-	struct metainfo* li, 
-	Connection* conn, 
-	Operation* op, 
-	int op_type, 
-	struct berval* nbase, 
-	struct exception* result 
+	Operation		*op, 
+	SlapReply		*rs,
+	int			op_type, 
+	struct berval		*nbase, 
+	struct exception	*result 
 );
 
 static void
@@ -141,6 +140,7 @@ static int
 handleLdapResult(
 	struct metaconn* lc, 
 	Operation* op, 
+	SlapReply *rs,
 	int* msgid, Backend* be, 
 	AttributeName* attrs, 
 	int attrsonly, 
@@ -188,10 +188,10 @@ attrscmp(
 
 static char* 
 cache_entries(
+	Operation	*op,
+	SlapReply	*rs,
 	Entry** entry_array, 
 	cache_manager* cm, 
-	Backend* be, 
-	Connection* conn, 
 	struct exception* result
 ); 
 
@@ -205,24 +205,22 @@ is_temp_answerable(
 
 static void
 consistency_check(
-	Backend* be,
-	Backend* glue_be, 
-	Connection* conn
+	Operation	*op,
+	SlapReply	*rs,
+	Backend		*glue_be
 ); 
 
 static int
 cache_back_sentry(
-	Backend* be, 
-	Connection* conn,
 	Operation* op, 
-	Entry* e, 
-	AttributeName* attrs, 
-	int attrsonly, 
-	LDAPControl** ctrls
+	SlapReply *rs
 );
 
 int
 meta_back_cache_search(
+	Operation	*op,
+	SlapReply	*rs )
+	/*
 	Backend		*be,
 	Connection	*conn,
 	Operation	*op,
@@ -236,9 +234,9 @@ meta_back_cache_search(
 	struct berval	*filterstr,
 	AttributeName	*attributes,
 	int		attrsonly
-)
+) */
 {
-	struct metainfo		*li = ( struct metainfo * )be->be_private;
+	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn 	*lc;
 	struct metasingleconn 	*lsc;
 	cache_manager*		cm = li->cm; 
@@ -279,20 +277,20 @@ meta_back_cache_search(
    
 	struct exception result[1]; 
 
-	Filter* filter = str2filter(filterstr->bv_val); 
-	slap_callback cb = {NULL, NULL, cache_back_sentry, NULL}; 
+	Filter* filter = str2filter(op->ors_filterstr.bv_val); 
+	slap_callback cb = {cache_back_sentry, NULL}; 
 
-	cb.sc_private = be; 
+	cb.sc_private = op->o_bd; 
 
-	if (attributes) {
-		for ( count=0; attributes[ count ].an_name.bv_val; count++ )
+	if (op->ors_attrs) {
+		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ )
 			;
 		attrs = (AttributeName*)malloc( ( count + 1 ) *
 						sizeof(AttributeName));
-		for ( count=0; attributes[ count ].an_name.bv_val; count++ ) {
+		for ( count=0; op->ors_attrs[ count ].an_name.bv_val; count++ ) {
 			ber_dupbv(&attrs[ count ].an_name,
-						&attributes[ count ].an_name);
-			attrs[count].an_desc = attributes[count].an_desc; 
+						&op->ors_attrs[ count ].an_name);
+			attrs[count].an_desc = op->ors_attrs[count].an_desc; 
 		}
 		attrs[ count ].an_name.bv_val = NULL;
 		attrs[ count ].an_name.bv_len = 0;
@@ -327,8 +325,8 @@ meta_back_cache_search(
     
 	query.filter = filter; 
 	query.attrs = attrs; 
-	query.base = *base; 
-	query.scope = scope; 
+	query.base = op->o_req_dn; 
+	query.scope = op->ors_scope; 
 
 	/* check for query containment */
 	if (attr_set > -1) {
@@ -343,10 +341,10 @@ meta_back_cache_search(
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL2,
 					"Entering QC, querystr = %s\n",
-			 		filterstr->bv_val, 0, 0 );
+			 		op->ors_filterstr.bv_val, 0, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_NONE, "Entering QC, querystr = %s\n",
-			 			filterstr->bv_val, 0, 0 );
+			 		op->ors_filterstr.bv_val, 0, 0 );
 #endif /* !NEW_LOGGING */
 			answerable = (*(qm->qcfunc))(qm, &query, i);
 
@@ -356,32 +354,41 @@ meta_back_cache_search(
 	}
 
 	if (answerable) {
+		Operation	op_tmp;
+
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1, "QUERY ANSWERABLE\n", 0, 0, 0 );
 #else /* !NEW_LOGGING */
 		Debug( LDAP_DEBUG_ANY, "QUERY ANSWERABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
-		rewriteSession(li->rwinfo, "cacheBase", base->bv_val,
-					conn, &cbase, result); 
+		rewriteSession(li->rwinfo, "cacheBase", op->o_req_dn.bv_val,
+					op->o_conn, &cbase, result); 
 		if (result->type != SUCCESS) { 
 			ldap_pvt_thread_rdwr_runlock(&qm->templates[i].t_rwlock); 
 			goto Catch; 
 		}
 		if ( cbase == NULL ) {
-			cachebase = *base;
+			cachebase = op->o_req_dn;
 		} else {
 			cachebase.bv_val = cbase;
 			cachebase.bv_len = strlen(cbase);
 		}
-		dnNormalize(NULL, &cachebase, &ncachebase); 
-	
-		op->o_caching_on = 1; 	
-		op->o_callback = &cb; 
-		li->glue_be->be_search(li->glue_be, conn, op, &cachebase,
-				&ncachebase, scope, deref, slimit, tlimit,
-				filter, filterstr, attrs, attrsonly);
+		dnNormalize(0, NULL, NULL, &cachebase, &ncachebase,
+				op->o_tmpmemctx); 
+
+		/* FIXME: safe default? */
+		op_tmp = *op;
+
+		op_tmp.o_bd = li->glue_be;
+		op_tmp.o_req_dn = cachebase;
+		op_tmp.o_req_ndn = ncachebase;
+
+		op_tmp.o_caching_on = 1; 
+		op_tmp.o_callback = &cb; 
+
+		li->glue_be->be_search(op, rs);
 		ber_memfree( ncachebase.bv_val );
-		if ( cachebase.bv_val != base->bv_val ) {
+		if ( cachebase.bv_val != op->o_req_dn.bv_val ) {
 			/* free only if rewritten */
 			free( cachebase.bv_val );
 		}
@@ -395,13 +402,14 @@ meta_back_cache_search(
 		Debug( LDAP_DEBUG_ANY, "QUERY NOT ANSWERABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
 
-		if ( scope == LDAP_SCOPE_BASE ) {
+		if ( op->ors_scope == LDAP_SCOPE_BASE ) {
 			op_type = META_OP_REQUIRE_SINGLE;
 		} else {
 			op_type = META_OP_ALLOW_MULTIPLE;
 		}
 
-		lc = metaConnect(li, conn, op, op_type, nbase, result);
+		lc = metaConnect(op, rs, op_type,
+				&op->o_req_ndn, result);
 
 		if (result->type != SUCCESS) 
 			goto Catch; 
@@ -447,38 +455,39 @@ meta_back_cache_search(
 		 */
 
 		for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
-			char 	*realbase = ( char * )base->bv_val;
-			int 	realscope = scope;
+			char 	*realbase = ( char * )op->o_req_dn.bv_val;
+			int 	realscope = op->ors_scope;
 			ber_len_t suffixlen;
 			char	*mapped_filter, **mapped_attrs;
 
 			/* FIXME: Check for more than one targets */
 			if ( meta_back_is_candidate(
-					&li->targets[i]->suffix, nbase ))
+					&li->targets[i]->suffix,
+					&op->o_req_ndn ))
 				lsc->candidate = META_CANDIDATE; 
 
 			if ( lsc->candidate != META_CANDIDATE ) 
 				continue;
 
-			if ( deref != -1 ) {
+			if ( op->ors_deref != -1 ) {
 				ldap_set_option( lsc->ld, LDAP_OPT_DEREF,
-						( void * )&deref);
+						( void * )&op->ors_deref);
 			}
-			if ( tlimit != -1 ) {
+			if ( op->ors_tlimit != -1 ) {
 				ldap_set_option( lsc->ld, LDAP_OPT_TIMELIMIT,
-						( void * )&tlimit);
+						( void * )&op->ors_tlimit);
 			}
-			if ( slimit != -1 ) {
+			if ( op->ors_slimit != -1 ) {
 				ldap_set_option( lsc->ld, LDAP_OPT_SIZELIMIT,
-						( void * )&slimit);
+						( void * )&op->ors_slimit);
 			}
 
 			/*
 			 * modifies the base according to the scope, if required
 			 */
 			suffixlen = li->targets[ i ]->suffix.bv_len;
-			if ( suffixlen > nbase->bv_len ) {
-				switch ( scope ) {
+			if ( suffixlen > op->o_req_ndn.bv_len ) {
+				switch ( op->ors_scope ) {
 				case LDAP_SCOPE_SUBTREE:
 					/*
 					 * make the target suffix the new base
@@ -488,7 +497,7 @@ meta_back_cache_search(
 					 */
 					if ( dnIsSuffix(
 						&li->targets[ i ]->suffix,
-						nbase ) ) {
+						&op->o_req_ndn ) ) {
 						realbase =
 						li->targets[i]->suffix.bv_val;
 					} else {
@@ -505,10 +514,10 @@ meta_back_cache_search(
 				case LDAP_SCOPE_ONELEVEL:
 					if ( is_one_level_rdn(
 						li->targets[ i ]->suffix.bv_val,
-					       	suffixlen - nbase->bv_len - 1 )
+					       	suffixlen - op->o_req_ndn.bv_len - 1 )
 						&& dnIsSuffix(
 						&li->targets[ i ]->suffix,
-						nbase ) ) {
+						&op->o_req_ndn ) ) {
 						/*
 						 * if there is exactly one
 						 * level, make the target suffix
@@ -520,6 +529,7 @@ meta_back_cache_search(
 						realscope = LDAP_SCOPE_BASE;
 						break;
 					} /* else continue with the next case */
+
 				case LDAP_SCOPE_BASE:
 					/*
 					 * this target is no longer candidate
@@ -533,8 +543,9 @@ meta_back_cache_search(
 			 * Rewrite the search base, if required
 			 */
 
-			rewriteSession(li->targets[i]->rwinfo, "searchBase",
-					realbase, conn, &mbase, result); 
+			rewriteSession(li->targets[i]->rwmap.rwm_rw,
+					"searchBase",
+					realbase, op->o_conn, &mbase, result); 
 
 			if (result->type != SUCCESS)
 				goto Catch; 
@@ -546,8 +557,9 @@ meta_back_cache_search(
 			/*
 			 * Rewrite the search filter, if required
 			 */
-			rewriteSession( li->targets[i]->rwinfo, "searchFilter",
-					filterstr->bv_val, conn,
+			rewriteSession( li->targets[i]->rwmap.rwm_rw,
+					"searchFilter",
+					op->ors_filterstr.bv_val, op->o_conn,
 					&mfilter.bv_val, result);
 			if (result->type != SUCCESS) 
 				goto Catch; 
@@ -559,19 +571,20 @@ meta_back_cache_search(
 				if ( mfilter.bv_val != NULL ) {
 					free( mfilter.bv_val );
 				}
-				mfilter = *filterstr;
+				mfilter = op->ors_filterstr;
 			}
 
 			/*
 			 * Maps attributes in filter
 			 */
 			mapped_filter = ldap_back_map_filter(
-					&li->targets[i]->at_map,
-					&li->targets[i]->oc_map, &mfilter, 0 );
+					&li->targets[i]->rwmap.rwm_at,
+					&li->targets[i]->rwmap.rwm_oc,
+					&mfilter, 0 );
 			if ( mapped_filter == NULL ) {
 				mapped_filter = ( char * )mfilter.bv_val;
 			} else {
-				if ( mfilter.bv_val != filterstr->bv_val ) {
+				if ( mfilter.bv_val != op->ors_filterstr.bv_val ) {
 					free( mfilter.bv_val );
 				}
 			}
@@ -581,23 +594,10 @@ meta_back_cache_search(
 			/*
 			 * Maps required attributes
 			 */
-			mapped_attrs = ldap_back_map_attrs(
-					&li->targets[ i ]->at_map,
-					new_attrs, 0 );
-			if ( mapped_attrs == NULL && new_attrs) {
-				for ( count=0;
-				      new_attrs[ count ].an_name.bv_val;
-				      count++)
-					;
-				mapped_attrs = ch_malloc( ( count + 1 ) *
-							sizeof(char *));
-				for ( count=0;
-				      new_attrs[ count ].an_name.bv_val;
-				      count++ ) {
-					mapped_attrs[ count ] =
-						new_attrs[count].an_name.bv_val;
-				}
-				mapped_attrs[ count ] = NULL;
+			if ( ldap_back_map_attrs(
+					&li->targets[ i ]->rwmap.rwm_at,
+					new_attrs, 0, &mapped_attrs ) ) {
+				goto Catch;
 			}
 
 			/*
@@ -605,7 +605,7 @@ meta_back_cache_search(
 			 */
 			msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
 						mapped_filter, mapped_attrs,
-						attrsonly ); 
+						op->ors_attrsonly ); 
 			if ( msgid[ i ] == -1 ) {
 				lsc->candidate = META_NOT_CANDIDATE;
 				continue;
@@ -616,7 +616,7 @@ meta_back_cache_search(
 				mapped_attrs = NULL;
 			}
 
-			if ( mapped_filter != filterstr->bv_val ) {
+			if ( mapped_filter != op->ors_filterstr.bv_val ) {
 				free( mapped_filter );
 				mapped_filter = NULL;
 			}
@@ -629,29 +629,36 @@ meta_back_cache_search(
 			++candidates;
 		}
 
-		num_entries = handleLdapResult(lc, op, msgid, be, attrs,
-				attrsonly, candidates, cacheable, &entry_array,
-				curr_limit, slimit, result); 
+		num_entries = handleLdapResult(lc, op, rs, msgid,
+				op->o_bd, attrs,
+				op->ors_attrsonly, candidates, 
+				cacheable, &entry_array,
+				curr_limit, op->ors_slimit, result); 
 
 		if (result->type != SUCCESS) 
 			goto Catch; 
 		if (cacheable && (num_entries <= curr_limit)) {
+			Operation	op_tmp = *op;
+
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
 					"QUERY CACHEABLE\n", 0, 0, 0 );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY, "QUERY CACHEABLE\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
-			uuid = cache_entries(entry_array, cm, li->glue_be,
-							conn, result); 
+			op_tmp.o_bd = li->glue_be;
+			uuid = cache_entries(&op_tmp, rs, entry_array,
+					cm, result); 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
 					"Added query %s UUID %s ENTRIES %d\n",
-					filterstr->bv_val, uuid, num_entries );
+					op->ors_filterstr.bv_val,
+					uuid, num_entries );
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ANY,
 					"Added query %s UUID %s ENTRIES %d\n",
-					filterstr->bv_val, uuid, num_entries );
+					op->ors_filterstr.bv_val,
+					uuid, num_entries );
 #endif /* !NEW_LOGGING */
 	    
 			if (result->type != SUCCESS) 
@@ -667,8 +674,9 @@ meta_back_cache_search(
 Catch:;
 	switch (result->type) {
 		case SUCCESS: 
-			rc=0; 
-			break; 
+			rc = 0; 
+			break;
+
 		case FILTER_ERR: 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
@@ -678,6 +686,7 @@ Catch:;
 					0, 0, 0 );
 #endif /* !NEW_LOGGING */
 			break; 
+
 		case CONN_ERR: 
 			rc = -1; 
 #ifdef NEW_LOGGING
@@ -689,10 +698,10 @@ Catch:;
 				"Could not connect to a remote server\n",
 				0, 0, 0 );
 #endif /* !NEW_LOGGING */
-			send_ldap_result(conn, op, LDAP_OTHER,  
-					NULL, "Connection error",
-					NULL, NULL );
-			break; 
+			send_ldap_error(op, rs, LDAP_OTHER,
+					"Connection error" );
+			break;
+			
 		case RESULT_ERR: 
 			rc = -1; 
 #ifdef NEW_LOGGING
@@ -703,19 +712,19 @@ Catch:;
 				"Error in handling ldap_result\n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
 			break; 
+
 		case REWRITING_ERR: 
 			rc = -1; 
 			if (result->rc == REWRITE_REGEXEC_UNWILLING) {
-				send_ldap_result( conn, op,
+				send_ldap_error( op, rs,
 						LDAP_UNWILLING_TO_PERFORM,
-						NULL, "Unwilling to perform",
-						NULL, NULL );
+						"Unwilling to perform" );
 			} else {
-				send_ldap_result( conn, op, LDAP_OTHER,
-						NULL, "Rewrite error",
-						NULL, NULL );
+				send_ldap_error( op, rs, LDAP_OTHER,
+						"Rewrite error" );
 			}
-			break; 
+			break;
+
 		case MERGE_ERR: 
 			rc = -1; 
 #ifdef NEW_LOGGING
@@ -725,7 +734,8 @@ Catch:;
 			Debug( LDAP_DEBUG_ANY,
 				"Error in merging entry \n", 0, 0, 0 );
 #endif /* !NEW_LOGGING */
-			break; 
+			break;
+
 		case REMOVE_ERR: 
 			rc = -1; 
 #ifdef NEW_LOGGING
@@ -736,7 +746,8 @@ Catch:;
 			Debug( LDAP_DEBUG_ANY, "Error in removing query \n",
 					0, 0, 0 );
 #endif /* !NEW_LOGGING */
-			break; 
+			break;
+
 		default:
 			/* assert(0); */
 			break;
@@ -746,7 +757,7 @@ Catch:;
 	curr_time = slap_get_time(); 
 	if (curr_time - cm->consistency_time > cm->consistency_cycle_time) {
 		cm->consistency_time = curr_time; 
-		consistency_check(be, li->glue_be, conn); 
+		consistency_check(op, rs, li->glue_be); 
 	}	
 	ldap_pvt_thread_mutex_unlock(&cm->consistency_mutex); 
 
@@ -812,7 +823,7 @@ meta_create_entry (
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
-	rewriteSession( li->targets[ target ]->rwinfo, "searchResult",
+	rewriteSession( li->targets[ target ]->rwmap.rwm_rw, "searchResult",
 			bdn.bv_val, lc->conn, &ent->e_name.bv_val, result );  
 
 	if (result->type != SUCCESS) {
@@ -840,7 +851,7 @@ meta_create_entry (
 	 * 
 	 * FIXME: should we log anything, or delegate to dnNormalize?
 	 */
-	dnNormalize( 0, NULL, NULL, &ent->e_name, &ent->e_nname ); 
+	dnNormalize( 0, NULL, NULL, &ent->e_name, &ent->e_nname, NULL ); 
 
 	/*
 	if ( dnNormalize( 0, NULL, NULL, &ent->e_name, &ent->e_nname )
@@ -865,7 +876,8 @@ meta_create_entry (
 	attrp = &ent->e_attrs;
 
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
-		ldap_back_map( &li->targets[ target ]->at_map, &a, &mapped, 1 );
+		ldap_back_map( &li->targets[ target ]->rwmap.rwm_at, 
+				&a, &mapped, 1 );
 		if ( mapped.bv_val == NULL ) {
 			continue;
 		}
@@ -909,7 +921,7 @@ meta_create_entry (
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last )
 				;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++,i++ ) {
-				ldap_back_map( &li->targets[ target]->oc_map,
+				ldap_back_map( &li->targets[ target]->rwmap.rwm_oc,
 						bv, &mapped, 1 );
 				if ( mapped.bv_val == NULL ) {
 					free( bv->bv_val );
@@ -941,7 +953,7 @@ meta_create_entry (
 			int i;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++,i++ ) {
 				char *newval;
-				rewriteSession(li->targets[ target ]->rwinfo,
+				rewriteSession(li->targets[ target ]->rwmap.rwm_rw,
 						"searchResult", bv->bv_val,
 						lc->conn, &newval, result); 
 				if (result->type != SUCCESS) {
@@ -995,16 +1007,16 @@ is_one_level_rdn(
 
 static struct metaconn*  
 metaConnect(
-	struct metainfo* li, 
-	Connection* conn, 
-	Operation* op, 
-	int op_type, 
-	struct berval* nbase, 
-	struct exception* result)
+	Operation*		op, 
+	SlapReply		*rs,
+	int			op_type, 
+	struct berval		*nbase, 
+	struct exception	*result)
 {
-	struct metaconn* lc; 
+	struct metaconn		*lc; 
+
 	result->type = SUCCESS; 
-	lc = meta_back_getconn( conn, op, op_type, nbase, NULL );
+	lc = meta_back_getconn( op, rs, op_type, nbase, NULL );
 	if (!lc) {
 		result->type = CONN_ERR; 
 		return 0; 
@@ -1082,6 +1094,7 @@ static int
 handleLdapResult(
 	struct metaconn* lc,
 	Operation* op, 
+	SlapReply *rs,
 	int* msgid, Backend* be, 
 	AttributeName* attrs, 
 	int attrsonly, 
@@ -1126,9 +1139,10 @@ handleLdapResult(
 			}
 
 			if ((entry = get_result_entry(be, lc, lsc,
-						msgid, i, &tv, result))) { 
-				send_search_entry( be, lc->conn, op, entry,
-						attrs, attrsonly, NULL );
+						msgid, i, &tv, result))) {
+				rs->sr_entry = entry;
+				send_search_entry( op, rs );
+				rs->sr_entry = NULL;
 				if ((cacheable) &&
 						(num_entries < curr_limit))  {
 					rewriteSession( li->rwinfo,
@@ -1164,7 +1178,8 @@ handleLdapResult(
 			} else if (result->rc == -1) {
 				break; 
 			} else {
-				sres = ldap_back_map_result(result->rc);
+				rs->sr_err = result->rc;
+				sres = ldap_back_map_result(rs);
 				if (mres == LDAP_SUCCESS &&
 						sres != LDAP_SUCCESS) {
 					mres = sres; 
@@ -1188,9 +1203,10 @@ handleLdapResult(
 			Debug( LDAP_DEBUG_ANY, "ldap_result error, rc = -1\n",
 					0, 0, 0 );
 #endif /* !NEW_LOGGING */
-			send_search_result( lc->conn, op, LDAP_OTHER, NULL,
-					NULL, NULL, NULL, num_entries );
+			rs->sr_err = LDAP_OTHER;
+			send_ldap_result( op, rs );
 			return 0; 
+
 		case CREATE_ENTRY_ERR: 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
@@ -1200,10 +1216,11 @@ handleLdapResult(
 			Debug( LDAP_DEBUG_ANY, "Error in parsing result \n",
 					0, 0, 0 );
 #endif /* !NEW_LOGGING */
-			send_search_result( lc->conn, op, LDAP_OTHER, NULL,
-					NULL, NULL, NULL, num_entries );
+			rs->sr_err = LDAP_OTHER;
+			send_ldap_result( op, rs );
 			result->type = RESULT_ERR; 
 			return 0; 
+
 		case SLIMIT_ERR: 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1, "Size limit exceeded \n",
@@ -1212,11 +1229,11 @@ handleLdapResult(
 			Debug( LDAP_DEBUG_ANY, "Size limit exceeded \n",
 					0, 0, 0 );
 #endif /* !NEW_LOGGING */
-			send_search_result( lc->conn, op,
-					LDAP_SIZELIMIT_EXCEEDED,
-					NULL, NULL, NULL, NULL, num_entries );
+			rs->sr_err = LDAP_SIZELIMIT_EXCEEDED;
+			send_ldap_result( op, rs );
 			result->type = RESULT_ERR; 
-			return 0; 
+			return 0;
+
 		case ABANDON_ERR: 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
@@ -1228,6 +1245,7 @@ handleLdapResult(
 #endif /* !NEW_LOGGING */
 			result->type = RESULT_ERR; 
 			return 0; 
+
 		default:
 			/* assert( 0 ); */
 			break;
@@ -1242,8 +1260,14 @@ handleLdapResult(
 		}
 	}
 
-	send_search_result( lc->conn, op, mres, match, err,
-				NULL, NULL, num_entries );
+	rs->sr_err = mres;
+	rs->sr_text = err;
+	rs->sr_matched = match;
+
+	send_ldap_result( op, rs );
+
+	rs->sr_text = NULL;
+	rs->sr_matched = NULL;
 
 	if (err) 
 		free(err); 
@@ -1417,21 +1441,21 @@ attrscmp(
 
 static char* 
 cache_entries(
+	Operation	*op,
+	SlapReply	*rs,
 	Entry** entry_array, 
 	cache_manager* cm, 
-	Backend* be, 
-	Connection* conn, 
 	struct exception* result)
 {
-	int i; 
-	int return_val; 
-	int cache_size; 
-	Entry* e; 
-	struct berval query_uuid; 
-	struct berval crp_uuid; 
-	char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ], *crpid; 
-	char crpuuid[40]; 
-	query_manager* qm = cm->qm;
+	int		i; 
+	int		return_val; 
+	int		cache_size; 
+	Entry		*e; 
+	struct berval	query_uuid; 
+	struct berval	crp_uuid; 
+	char		uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ], *crpid; 
+	char		crpuuid[40]; 
+	query_manager	*qm = cm->qm;
     
 	result->type = SUCCESS; 
 	query_uuid.bv_len = lutil_uuidstr(uuidbuf, sizeof(uuidbuf)); 
@@ -1476,7 +1500,7 @@ cache_entries(
 						"Removing query UUID %s\n",
 						crpuuid, 0, 0 );
 #endif /* !NEW_LOGGING */
-					return_val = remove_query_data(be, conn,
+					return_val = remove_query_data(op, rs,
 							&crp_uuid, result); 
 #ifdef NEW_LOGGING
 					LDAP_LOG( BACK_META, DETAIL1,
@@ -1521,7 +1545,10 @@ cache_entries(
 				}
 			}
 		}
-		return_val = merge_entry(be, conn, e, &query_uuid, result);
+
+		rs->sr_entry = e;
+		return_val = merge_entry(op, rs, &query_uuid, result);
+		rs->sr_entry = NULL;
 		cm->cache_size += return_val;
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
@@ -1607,9 +1634,9 @@ is_temp_answerable(
 }
 
 static void 
-consistency_check(Backend* be, Backend* glue_be, Connection* conn)
+consistency_check(Operation *op, SlapReply *rs, Backend* glue_be)
 {
-	struct metainfo *li = ( struct metainfo * )be->be_private;
+	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
 	cache_manager* 	cm = li->cm; 
 	query_manager* qm = cm->qm; 
 	CachedQuery* query, *query_prev; 
@@ -1617,8 +1644,10 @@ consistency_check(Backend* be, Backend* glue_be, Connection* conn)
 	struct berval uuid;  
 	struct exception result; 
 	int i, return_val; 
-	QueryTemplate* templ; 
-    
+	QueryTemplate* templ;
+	Backend		*be = op->o_bd;
+
+	op->o_bd = glue_be;
       
 	for (i=0; qm->templates[i].querystr; i++) {
 		templ = qm->templates + i; 
@@ -1656,8 +1685,7 @@ consistency_check(Backend* be, Backend* glue_be, Connection* conn)
 			ldap_pvt_thread_rdwr_wunlock(&templ->t_rwlock);  
 			uuid.bv_val = query->q_uuid; 
 			uuid.bv_len = strlen(query->q_uuid); 
-			return_val = remove_query_data(glue_be, conn,
-						&uuid, &result); 
+			return_val = remove_query_data(op, rs, &uuid, &result); 
 #ifdef NEW_LOGGING
 			LDAP_LOG( BACK_META, DETAIL1,
 					"STALE QUERY REMOVED, SIZE=%d\n",
@@ -1696,42 +1724,42 @@ consistency_check(Backend* be, Backend* glue_be, Connection* conn)
 		}
 		ldap_pvt_thread_mutex_unlock(&cm->remove_mutex); 
 	}
+
+	op->o_bd = be;
 }
 
 static int
 cache_back_sentry(
-	Backend* glue_be, 
-	Connection* conn,
 	Operation* op, 
-	Entry* e, 
-	AttributeName* attrs, 
-	int attrsonly, 
-	LDAPControl** ctrls )
+	SlapReply *rs )
 { 
-	slap_callback* cb = op->o_callback; 
-	Backend* be = (Backend*)(cb->sc_private); 
-	struct metainfo	*li = ( struct metainfo * )be->be_private;
+	slap_callback		*cb = op->o_callback; 
+	struct metainfo		*li = ( struct metainfo * )op->o_bd->be_private;
  
-	char* ename = NULL; 
-	struct exception result; 
-	struct berval dn; 
-	struct berval ndn; 
+	char			*ename = NULL;
+	struct exception	result;
+	struct berval		dn;
+	struct berval		ndn;
 
-	dn = e->e_name; 
-	ndn = e->e_nname; 
+	dn = rs->sr_entry->e_name; 
+	ndn = rs->sr_entry->e_nname; 
 
-	rewriteSession( li->rwinfo,
-		"cacheReturn", e->e_name.bv_val, conn, &ename, &result );  
-	ber_str2bv(ename, strlen(ename), 0, &e->e_name); 
-	ber_dupbv(&e->e_nname, &e->e_name); 
+	rewriteSession( li->rwinfo, "cacheReturn",
+			rs->sr_entry->e_name.bv_val, op->o_conn,
+			&ename, &result );  
+	ber_str2bv(ename, strlen(ename), 0, &rs->sr_entry->e_name); 
+	/* FIXME: should we normalize this? */
+	ber_dupbv(&rs->sr_entry->e_nname, &rs->sr_entry->e_name); 
 
 	op->o_callback = NULL; 
-	send_search_entry(be, conn, op, e, attrs, attrsonly, ctrls); 
+
+	send_search_entry( op, rs );
  
-	e->e_name = dn; 
-	e->e_nname = ndn; 
+	rs->sr_entry->e_name = dn; 
+	rs->sr_entry->e_nname = ndn; 
 
 	op->o_callback = cb; 
+
 	return 0;  
 }
 #endif

@@ -154,19 +154,8 @@ typedef struct cache_manager_s {
 /* search-cache.c */
 int
 meta_back_cache_search(
-    Backend		*be,
-    Connection		*conn,
     Operation		*op,
-    struct berval	*base,
-    struct berval	*nbase,
-    int			scope,
-    int			deref,
-    int			slimit,
-    int			tlimit,
-    Filter		*filt,
-    struct berval	*filterstr,
-    AttributeName	*attributes,
-    int			attrsonly
+    SlapReply		*rs
 ); 
 
 /* config-cache.c */
@@ -203,11 +192,11 @@ filter2template( Filter *f,
 /* merge.c */
 
 int
-merge_entry (Backend* be,
-	    Connection* conn, 
-	    Entry* e, 
-	    struct berval* query_uuid, 
-	    struct exception* result
+merge_entry (
+	    Operation		*op, 
+	    SlapReply		*rs,
+	    struct berval	*query_uuid, 
+	    struct exception	*result
 ); 
 
 int 
@@ -216,35 +205,11 @@ get_entry_size(Entry* e,
 	       struct exception* result
 ); 
 
-void 
-callback_null_response( Connection *conn, 
-		       Operation *o, 
- 		       ber_tag_t tag,
-		       ber_int_t msgid, 
-		       ber_int_t err, 
-		       const char *matched,
-		       const char *text, 
-		       BerVarray ref, 
-		       const char *resoid,
-		       struct berval *resdata, 
-		       struct berval *sasldata, 
-		       LDAPControl **c
-);
-
-void callback_null_sresult( Connection *conn, 
-		           Operation *o, 
-		           ber_int_t err,
-			   const char *matched, 
-			   const char *text, 
-			   BerVarray refs, 
-			   LDAPControl **c,
-			   int nentries
-); 
-
 /* remove.c */
 int 
-remove_query_data (Backend* be,
-		   Connection* conn, 
+remove_query_data (
+		   Operation* conn,
+		   SlapReply *rs,
 		   struct berval* query_uuid, 
 		   struct exception* result
 );

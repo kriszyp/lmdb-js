@@ -37,13 +37,8 @@
 #ifdef LDAP_CACHING 
 static int
 remove_func (
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
-	Entry		*entry,
-	AttributeName	*attrs,
-	int		attrsonly,
-	LDAPControl	**ctrls
+	SlapReply	*rs
 );
  
 struct query_info {
@@ -56,22 +51,22 @@ struct query_info {
    
 int 
 remove_query_data (
-	Backend* be,
-	Connection* conn, 
+	Operation	*op,
+	SlapReply	*rs,
 	struct berval* query_uuid, 
 	struct exception* result)
 {
-	struct query_info info; 
-	char filter_str[64]; 
-	Operation op = {0};
-	Filter* filter; 
-	struct timeval time_in; 
-	struct timeval time_out; 
-	long timediff; 
+	struct query_info	info; 
+	char			filter_str[64]; 
+	Operation		op_tmp = *op;
+	Filter			*filter; 
+	struct timeval		time_in; 
+	struct timeval		time_out; 
+	long timediff;
 
-	slap_callback cb = {callback_null_response, 
-			callback_null_sresult, remove_func, NULL}; 
-	sprintf(filter_str, "(queryid=%s)", query_uuid->bv_val);
+	slap_callback cb = { remove_func, NULL }; 
+	snprintf(filter_str, sizeof(filter_str), "(queryid=%s)",
+			query_uuid->bv_val);
 	filter = str2filter(filter_str); 	      
 	info.uuid = query_uuid; 
 	info.freed = 0; 
@@ -79,48 +74,53 @@ remove_query_data (
 	info.err = SUCCESS; 
 	cb.sc_private = &info; 
  
-	op.o_tag = LDAP_REQ_SEARCH;
-	op.o_protocol = LDAP_VERSION3;
-	op.o_ndn = conn->c_ndn;
-	op.o_callback = &cb;
-	op.o_time = slap_get_time();
-	op.o_do_not_cache = 1;
-	op.o_caching_on = 1; 
-	be->be_search( be, conn, &op, NULL, &(be->be_nsuffix[0]),
-			LDAP_SCOPE_SUBTREE, LDAP_DEREF_NEVER, 0, 0,
-			filter, NULL, NULL, 0 );
+	op_tmp.o_tag = LDAP_REQ_SEARCH;
+	op_tmp.o_protocol = LDAP_VERSION3;
+	op_tmp.o_callback = &cb;
+	op_tmp.o_time = slap_get_time();
+	op_tmp.o_do_not_cache = 1;
+	op_tmp.o_caching_on = 1; 
+
+	op_tmp.o_req_dn = op->o_bd->be_suffix[0];
+	op_tmp.o_req_ndn = op->o_bd->be_nsuffix[0];
+	op_tmp.ors_scope = LDAP_SCOPE_SUBTREE;
+	op_tmp.ors_deref = LDAP_DEREF_NEVER;
+	op_tmp.ors_slimit = 0;
+	op_tmp.ors_tlimit = 0;
+	op_tmp.ors_filter = filter;
+	op_tmp.ors_filterstr.bv_val = filter_str;
+	op_tmp.ors_filterstr.bv_len = strlen(filter_str);
+	op_tmp.ors_attrs = NULL;
+	op_tmp.ors_attrsonly = 0;
+
+	op->o_bd->be_search( &op_tmp, rs );
+
 	result->type = info.err;  
 	result->rc = info.deleted; 
+
 	return info.freed;  
 }
 
 static int
 remove_func (
-	Backend		*be,
-	Connection	*conn,
 	Operation	*op,
-	Entry		*entry,
-	AttributeName	*attrs,
-	int		attrsonly,
-	LDAPControl	**ctrls
+	SlapReply	*rs
 )
 {
-	slap_callback	*tmp = op->o_callback;  
-	struct query_info* info = tmp->sc_private; 
-#if 0	/* ??? pdn is not used anywhere */
-	struct berval pdn; 
-#endif
-	int count = 0; 
-	int size; 
-	struct timeval time_in; 
-	struct timeval time_out; 
-	long timediff; 
-	Modifications* mod; 
+	struct query_info	*info = op->o_callback->sc_private;
+	int			count = 0;
+	int			size;
+	struct timeval		time_in;
+	struct timeval		time_out;
+	long			timediff;
+	Modifications		*mod;
 
-	Attribute* attr; 
-	size = get_entry_size(entry, 0, NULL);  
+	Attribute		*attr;
+	Operation		op_tmp = *op;
 
-	for (attr = entry->e_attrs; attr!= NULL; attr = attr->a_next) {
+	size = get_entry_size(rs->sr_entry, 0, NULL);
+
+	for (attr = rs->sr_entry->e_attrs; attr!= NULL; attr = attr->a_next) {
 		if (attr->a_desc == slap_schema.si_ad_queryid) {
 			for (count=0; attr->a_vals[count].bv_val; count++) 
 				;
@@ -133,9 +133,6 @@ remove_func (
 		return 0; 
 	}
 	if (count == 1) {
-#if 0	/* ??? pdn is not used anywhere */
-		dnPretty(NULL, &entry->e_nname, &pdn); 	
-#endif
 		info->freed += size; 
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_META, DETAIL1,
@@ -146,7 +143,10 @@ remove_func (
 				size, attr->a_vals[0].bv_val, 0 );
 #endif
 
-		if (be->be_delete (be, conn, op, &entry->e_name, &entry->e_nname)) {
+		op_tmp.o_req_dn = rs->sr_entry->e_name;
+		op_tmp.o_req_ndn = rs->sr_entry->e_nname;
+
+		if (op->o_bd->be_delete(&op_tmp, rs)) {
 			info->err = REMOVE_ERR; 
 		} else {
 			info->deleted++; 
@@ -172,9 +172,15 @@ remove_func (
 	Debug( LDAP_DEBUG_ANY, "REMOVING TEMP ATTR : TEMPLATE=%s\n",
 			attr->a_vals[0].bv_val, 0, 0 );
 #endif
-	if (be->be_modify(be, conn, op, &(entry->e_name), &(entry->e_nname), mod)) {
+
+	op_tmp.o_req_dn = rs->sr_entry->e_name;
+	op_tmp.o_req_ndn = rs->sr_entry->e_nname;
+	op_tmp.orm_modlist = mod;
+	
+	if (op->o_bd->be_modify( &op_tmp, rs )) {
 		info->err = REMOVE_ERR;
 	}
+
 	info->freed += LDIF_SIZE_NEEDED(9, (strlen(info->uuid->bv_val))); 
 
 	return 0;

@@ -118,16 +118,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	cache_manager*  cm = li->cm;
 
  	if (cm->caching) {
- 		return meta_back_cache_search(op->o_bd, op->o_conn, op,
-				&op->o_req_dn, &op->o_req_ndn, 
-				op->oq_search.rs_scope,
-				op->oq_search.rs_deref,
-				op->oq_search.rs_slimit,
-				op->oq_search.rs_tlimit,
-				op->oq_search.rs_filter,
-				&op->oq_search.rs_filterstr,
-				op->oq_search.rs_attrs,
-				op->oq_search.rs_attrsonly); 
+ 		return meta_back_cache_search(op, rs);
 	}
 #endif /* LDAP_CACHING */
 	
