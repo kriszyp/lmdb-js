@@ -608,7 +608,7 @@ filter2bv( Filter *f, struct berval *fstr )
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			f->f_av_desc->ad_cname.bv_val,
@@ -622,7 +622,7 @@ filter2bv( Filter *f, struct berval *fstr )
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(>=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			f->f_av_desc->ad_cname.bv_val,
@@ -636,7 +636,7 @@ filter2bv( Filter *f, struct berval *fstr )
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(<=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			f->f_av_desc->ad_cname.bv_val,
@@ -650,7 +650,7 @@ filter2bv( Filter *f, struct berval *fstr )
 
 		fstr->bv_len = f->f_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(~=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			f->f_av_desc->ad_cname.bv_val,
@@ -661,7 +661,7 @@ filter2bv( Filter *f, struct berval *fstr )
 	case LDAP_FILTER_SUBSTRINGS:
 		fstr->bv_len = f->f_sub_desc->ad_cname.bv_len +
 			( sizeof("(=*)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 128 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			f->f_sub_desc->ad_cname.bv_val );
@@ -716,7 +716,7 @@ filter2bv( Filter *f, struct berval *fstr )
 	case LDAP_FILTER_PRESENT:
 		fstr->bv_len = f->f_desc->ad_cname.bv_len +
 			( sizeof("(=*)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			f->f_desc->ad_cname.bv_val );
@@ -726,7 +726,7 @@ filter2bv( Filter *f, struct berval *fstr )
 	case LDAP_FILTER_OR:
 	case LDAP_FILTER_NOT:
 		fstr->bv_len = sizeof("(%)") - 1;
-		fstr->bv_val = malloc( fstr->bv_len + 128 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%c)",
 			f->f_choice == LDAP_FILTER_AND ? '&' :
@@ -763,7 +763,7 @@ filter2bv( Filter *f, struct berval *fstr )
 			( f->f_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
 			( f->f_mr_rule_text.bv_len ? f->f_mr_rule_text.bv_len+1 : 0 ) +
 			tmp.bv_len + ( sizeof("(:=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			ad.bv_val,
@@ -1148,7 +1148,7 @@ vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 	}
 
 	fstr->bv_len = sizeof("()") - 1;
-	fstr->bv_val = malloc( fstr->bv_len + 128 );
+	fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
 
 	snprintf( fstr->bv_val, fstr->bv_len + 1, "()");
 
@@ -1184,7 +1184,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=%s)",
 			vrf->vrf_av_desc->ad_cname.bv_val,
@@ -1198,7 +1198,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(>=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s>=%s)",
 			vrf->vrf_av_desc->ad_cname.bv_val,
@@ -1212,7 +1212,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(<=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s<=%s)",
 			vrf->vrf_av_desc->ad_cname.bv_val,
@@ -1226,7 +1226,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 
 		fstr->bv_len = vrf->vrf_av_desc->ad_cname.bv_len +
 			tmp.bv_len + ( sizeof("(~=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s~=%s)",
 			vrf->vrf_av_desc->ad_cname.bv_val,
@@ -1237,7 +1237,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 	case LDAP_FILTER_SUBSTRINGS:
 		fstr->bv_len = vrf->vrf_sub_desc->ad_cname.bv_len +
 			( sizeof("(=*)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 128 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 128 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			vrf->vrf_sub_desc->ad_cname.bv_val );
@@ -1293,7 +1293,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 	case LDAP_FILTER_PRESENT:
 		fstr->bv_len = vrf->vrf_desc->ad_cname.bv_len +
 			( sizeof("(=*)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s=*)",
 			vrf->vrf_desc->ad_cname.bv_val );
@@ -1314,7 +1314,7 @@ simple_vrFilter2bv( ValuesReturnFilter *vrf, struct berval *fstr )
 			( vrf->vrf_mr_dnattrs ? sizeof(":dn")-1 : 0 ) +
 			( vrf->vrf_mr_rule_text.bv_len ? vrf->vrf_mr_rule_text.bv_len+1 : 0 ) +
 			tmp.bv_len + ( sizeof("(:=)") - 1 );
-		fstr->bv_val = malloc( fstr->bv_len + 1 );
+		fstr->bv_val = ch_malloc( fstr->bv_len + 1 );
 
 		snprintf( fstr->bv_val, fstr->bv_len + 1, "(%s%s%s%s:=%s)",
 			ad.bv_val,
