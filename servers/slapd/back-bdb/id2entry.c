@@ -204,6 +204,18 @@ int bdb_entry_return(
 	if( (void *) e->e_attrs != (void *) (e+1)) {
 		attrs_free( e->e_attrs );
 	}
+#ifdef SLAP_NVALUES
+	else {
+		/* nvals are not contiguous with the rest. oh well. */
+		Attribute *a;
+		for (a = e->e_attrs; a; a=a->a_next) {
+			if (a->a_nvals) {
+				ber_bvarray_free( a->a_nvals );
+				a->a_nvals = NULL;
+			}
+		}
+	}
+#endif
 
 #ifndef BDB_HIER
 	/* See if the DNs were changed by modrdn */
