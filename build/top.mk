@@ -88,19 +88,20 @@ LTFLAGS_MOD = $(@PLAT@_LTFLAGS_MOD)
 # LINK_LIBS referenced in library and module link commands.
 LINK_LIBS = $(@PLAT@_LINK_LIBS)
 
-LTLINK   = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) $(LTFLAGS)
+LTLINK   = $(LIBTOOL) --mode=link \
+	$(CC) $(LT_CFLAGS) $(LDFLAGS) $(LTFLAGS)
 
 LTCOMPILE_LIB = $(LIBTOOL) $(LTONLY_LIB) --mode=compile \
-		    $(CC) $(CFLAGS) $(CPPFLAGS) $(LIB_DEFS) -c
+	$(CC) $(LT_CFLAGS) $(LT_CPPFLAGS) $(LIB_DEFS) -c
 
 LTLINK_LIB = $(LIBTOOL) $(LTONLY_LIB) --mode=link \
-		    $(CC) $(CFLAGS) $(LDFLAGS) $(LTFLAGS_LIB)
+	$(CC) $(LT_CFLAGS) $(LDFLAGS) $(LTFLAGS_LIB)
 
 LTCOMPILE_MOD = $(LIBTOOL) $(LTONLY_MOD) --mode=compile \
-		    $(CC) $(CFLAGS) $(CPPFLAGS) $(MOD_DEFS) -c
+	$(CC) $(LT_CFLAGS) $(LT_CPPFLAGS) $(MOD_DEFS) -c
 
 LTLINK_MOD = $(LIBTOOL) $(LTONLY_MOD) --mode=link \
-		    $(CC) $(CFLAGS) $(LDFLAGS) $(LTFLAGS_MOD)
+	$(CC) $(LT_CFLAGS) $(LDFLAGS) $(LTFLAGS_MOD)
 
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
@@ -193,6 +194,9 @@ DEFS = $(LDAP_INCPATH) $(XINCPATH) $(XDEFS) $(AC_DEFS) $(DEFINES)
 CFLAGS = $(AC_CFLAGS) $(DEFS)
 LDFLAGS = $(LDAP_LIBPATH) $(AC_LDFLAGS) $(XLDFLAGS)
 LIBS = $(XLIBS) $(XXLIBS) $(AC_LIBS) $(XXXLIBS)
+
+LT_CFLAGS = $(AC_CFLAGS)
+LT_CPPFLAGS = $(DEFS)
 
 all:		all-common all-local FORCE
 install:	install-common install-local FORCE
