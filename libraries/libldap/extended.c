@@ -40,6 +40,7 @@ ldap_extended_operation(
 	int				*msgidp )
 {
 	BerElement *ber;
+	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_extended_operation\n", 0, 0, 0 );
 
@@ -65,10 +66,19 @@ ldap_extended_operation(
 		return( ld->ld_errno );
 	}
 
-	if ( ber_printf( ber, "{it{tstO}", /* '}' */
-		++ld->ld_msgid, LDAP_REQ_EXTENDED, LDAP_TAG_EXOP_REQ_OID,
-			reqoid, LDAP_TAG_EXOP_REQ_VALUE, reqdata ) == -1 )
-	{
+	if ( reqdata != NULL ) {
+		rc = ber_printf( ber, "{it{tstO}", /* '}' */
+			++ld->ld_msgid, LDAP_REQ_EXTENDED,
+			LDAP_TAG_EXOP_REQ_OID, reqoid,
+			LDAP_TAG_EXOP_REQ_VALUE, reqdata );
+
+	} else {
+		rc = ber_printf( ber, "{it{ts}", /* '}' */
+			++ld->ld_msgid, LDAP_REQ_EXTENDED,
+			LDAP_TAG_EXOP_REQ_OID, reqoid );
+	}
+
+	if( rc == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;
 		ber_free( ber, 1 );
 		return( ld->ld_errno );
