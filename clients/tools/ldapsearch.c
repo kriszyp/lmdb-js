@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
@@ -90,13 +91,13 @@ char	**argv;
 {
     char		*infile, *filtpattern, **attrs, line[ BUFSIZ ];
     FILE		*fp;
-    int			rc, i, first, scope, kerberos, deref, attrsonly;
+    int			rc, i, first, scope, kerberos, deref, attrsonly, debug;
     int			ldap_options, timelimit, sizelimit, authmethod;
     LDAP		*ld;
 
     infile = NULL;
     deref = verbose = allow_binary = not = kerberos = vals2tmp =
-	    attrsonly = ldif = 0;
+	    attrsonly = ldif = debug = 0;
 
 #ifdef LDAP_REFERRALS
     ldap_options = LDAP_OPT_REFERRALS;
@@ -125,7 +126,7 @@ char	**argv;
 	    break;
 	case 'd':
 #ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
+	    debug |= atoi( optarg );
 #else /* LDAP_DEBUG */
 	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
 #endif /* LDAP_DEBUG */
@@ -259,6 +260,14 @@ char	**argv;
     if ( verbose ) {
 	printf( "ldap_open( %s, %d )\n", ldaphost, ldapport );
     }
+
+	if ( debug ) {
+		lber_debug = ldap_debug = debug;
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
     if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
 	perror( ldaphost );

@@ -16,6 +16,7 @@
 #include <stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
@@ -63,7 +64,7 @@ char	*mailfrom = NULL;
 char	*host = NULL;
 char	*ldaphost = NULL;
 int	hostlen = 0;
-int	debug;
+int	debug = 0;
 
 typedef struct errs {
 	int		e_code;
@@ -165,6 +166,10 @@ main ( int argc, char **argv )
 	else
 		myname = strdup( myname + 1 );
 
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
+
 #ifdef LOG_MAIL
 	openlog( myname, OPENLOG_OPTIONS, LOG_MAIL );
 #else
@@ -174,7 +179,7 @@ main ( int argc, char **argv )
 	while ( (i = getopt( argc, argv, "d:f:h:l:m:v:" )) != EOF ) {
 		switch( i ) {
 		case 'd':	/* turn on debugging */
-			debug = atoi( optarg );
+			debug |= atoi( optarg );
 			break;
 
 		case 'f':	/* who it's from & where errors should go */

@@ -43,7 +43,7 @@
 
 #include "ldapconfig.h"
 
-int	debug;
+int	debug = 0;
 int	dosyslog;
 int	inetd;
 int	dtblsize;
@@ -109,10 +109,8 @@ main (int  argc, char **argv )
 			break;
 
 		case 'd':	/* debugging level */
-			debug = atoi( optarg );
-#ifdef LDAP_DEBUG
-			ldap_debug = debug;
-#else
+			debug |= atoi( optarg );
+#ifndef LDAP_DEBUG
 			fprintf( stderr, "warning: ldap debugging requires LDAP_DEBUG\n" );
 #endif
 			break;
@@ -192,6 +190,14 @@ main (int  argc, char **argv )
 		myname = strdup( argv[0] );
 	else
 		myname = strdup( myname + 1 );
+
+	if ( debug ) {
+		lber_debug = ldap_debug = debug;
+	}
+	
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL3

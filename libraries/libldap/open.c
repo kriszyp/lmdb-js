@@ -26,9 +26,7 @@
 #include "ldap.h"
 #include "ldap-int.h"
 
-#ifdef LDAP_DEBUG
 int	ldap_debug;
-#endif
 
 
 /*

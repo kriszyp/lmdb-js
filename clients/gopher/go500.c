@@ -41,7 +41,7 @@
 
 #include "disptmpl.h"
 
-int	debug;
+int	debug = 0;
 int	dosyslog;
 int	inetd;
 int	dtblsize;
@@ -95,7 +95,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'd':	/* debug level */
-			debug = atoi( optarg );
+			debug |= atoi( optarg );
 			break;
 
 		case 'f':	/* ldap filter file */
@@ -164,6 +164,14 @@ main( int argc, char **argv )
 		myname = strdup( argv[0] );
 	else
 		myname = strdup( myname + 1 );
+
+	if ( debug ) {
+		lber_debug = ldap_debug = debug;
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL3

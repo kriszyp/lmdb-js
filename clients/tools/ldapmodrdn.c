@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
@@ -38,10 +39,10 @@ main(int argc, char **argv)
     char		*usage = "usage: %s [-nvkWc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
     char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
-    int			rc, i, remove, havedn, authmethod, want_bindpw;
+    int			rc, i, remove, havedn, authmethod, want_bindpw, debug;
 
     infile = NULL;
-    not = contoper = verbose = remove = want_bindpw = 0;
+    not = contoper = verbose = remove = want_bindpw = debug = 0;
     authmethod = LDAP_AUTH_SIMPLE;
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
@@ -76,7 +77,7 @@ main(int argc, char **argv)
 	    break;
 	case 'd':
 #ifdef LDAP_DEBUG
-	    ldap_debug = lber_debug = atoi( optarg );	/* */
+	    debug |= atoi( optarg );
 #else /* LDAP_DEBUG */
 	    fprintf( stderr, "compile with -DLDAP_DEBUG for debugging\n" );
 #endif /* LDAP_DEBUG */
@@ -130,6 +131,14 @@ main(int argc, char **argv)
     } else {
 	fp = stdin;
     }
+
+	if ( debug ) {
+		lber_debug = ldap_debug = debug;
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
     if (( ld = ldap_open( ldaphost, ldapport )) == NULL ) {
 	perror( "ldap_open" );

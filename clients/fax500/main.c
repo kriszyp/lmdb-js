@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/ctype.h>
@@ -184,6 +185,10 @@ main ( int argc, char **argv )
 		/* I give up, I must be mail500 */
 		identity = MAIL500;
 	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
 #ifdef LOG_MAIL
 	openlog( myname, OPENLOG_OPTIONS, LOG_MAIL );

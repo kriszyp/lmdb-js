@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#include <ac/signal.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 
@@ -560,6 +561,10 @@ main (int argc, char *argv[])
 	if ( debug ) {
 		lber_debug = ldap_debug = debug;
 	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
 	/* connect to server */
 	if ((ld = ldap_open (ldaphost, ldapport)) == NULL)

@@ -125,9 +125,7 @@ struct berval {
 	char		*bv_val;
 };
 
-#ifdef LDAP_DEBUG
 extern int lber_debug;
-#endif
 
 /*
  * in bprint.c:

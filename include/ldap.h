@@ -41,8 +41,10 @@ LDAP_BEGIN_DECL
 #define LDAP_MAX_ATTR_LEN	100
 
 /* debugging stuff */
+extern int	ldap_debug;	/* always available */
+
 #ifdef LDAP_DEBUG
-extern int	ldap_debug;
+
 #ifdef LDAP_SYSLOG
 extern int	ldap_syslog;
 extern int	ldap_syslog_level;

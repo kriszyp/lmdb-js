@@ -38,7 +38,7 @@
 #define DEFAULT_PORT		79
 #define DEFAULT_SIZELIMIT	50
 
-int		debug;
+int		debug = 0;
 char	*ldaphost = NULL;
 char	*base = NULL;
 int		deref;
@@ -81,7 +81,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'd':	/* turn on debugging */
-			debug = atoi( optarg );
+			debug |= atoi( optarg );
 			break;
 
 		case 'f':	/* ldap filter file */
@@ -110,6 +110,14 @@ main( int argc, char **argv )
 		fprintf( stderr, "Cannot open filter file (%s)\n", filterfile );
 		exit( -1 );
 	}
+
+	if ( debug ) {
+		lber_debug = ldap_debug = debug;
+	}
+
+#ifdef SIGPIPE
+	(void) SIGNAL( SIGPIPE, SIG_IGN );
+#endif
 
 	if ( (ld = ldap_open( ldaphost, 0 )) == NULL ) {
 		perror( "ldap_open" );

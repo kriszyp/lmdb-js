@@ -95,8 +95,8 @@ main( int argc, char **argv )
 		switch (c) {
 		case 'l' :
 #ifdef LDAP_DEBUG
-			ldap_debug = (int) strtol(optarg, (char **) NULL, 0);
-			lber_debug = ldap_debug;
+			ldap_debug |= (int) strtol(optarg, (char **) NULL, 0);
+			lber_debug |= ldap_debug;
 #endif
 			break;
 		case 'd' :
@@ -150,6 +150,10 @@ main( int argc, char **argv )
 		*cp = '\0';
 	printf(Version);
 	fflush( stdout );
+
+#ifdef SIGPIPE
+	(void) SIGNAL (SIGPIPE, SIG_IGN);
+#endif
 
 	initialize_client();
 	initialize_attribute_strings();

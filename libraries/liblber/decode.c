@@ -27,9 +27,7 @@
 
 #include "lber.h"
 
-#ifdef LDAP_DEBUG
 int	lber_debug;
-#endif
 
 static int ber_getnint LDAP_P(( BerElement *ber, long *num, int len ));
 
