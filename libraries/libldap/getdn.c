@@ -1178,12 +1178,10 @@ ldap_str2rdn( const char *str, LDAPRDN **rdn, const char **n, unsigned flags )
 			goto parsing_error;
 		}
 	}
+	*n = p;
 	
 parsing_error:;
 	/* They are set to NULL after they're used in an AVA */
-	if ( attrType.bv_val ) {
-		free( attrType.bv_val );
-	}
 
 	if ( attrValue.bv_val ) {
 		free( attrValue.bv_val );
@@ -1195,7 +1193,7 @@ parsing_error:;
 return_result:;
 
 	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2rdn(%*s)=%d\n", 
-			*n - p, str, rc );
+			p - str, str, rc );
 	if ( rdn ) {
 		*rdn = newRDN;
 	}
