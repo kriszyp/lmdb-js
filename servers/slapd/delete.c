@@ -51,7 +51,7 @@ do_delete(
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
 	} 
 
