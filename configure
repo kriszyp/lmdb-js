@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.495 2003/11/26 03:17:26 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.497 2003/12/02 01:20:09 hyc Exp  
 
 # This work is part of OpenLDAP Software <http://www.openldap.org/>.
 #
@@ -7849,7 +7849,7 @@ fi
 
 	else
 		PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
-		PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e 's/ -lc / /'`"
+		PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e 's/ -lc / /' -e 's/ -lc$//'`"
 
 		if test x"$ol_with_perl_module" = "xstatic" ; then
 			SLAPD_PERL_LDFLAGS="$PERL_LDFLAGS"
@@ -20681,7 +20681,7 @@ EOF
 
 		WRAP_LIBS="-lwrap"
 	elif test $ol_enable_wrappers = yes ; then
-		{ echo "configure: error: could not find TCP wrappers, select apppropriate options ore disable" 1>&2; exit 1; }
+		{ echo "configure: error: could not find TCP wrappers, select apppropriate options or disable" 1>&2; exit 1; }
 	else
 		echo "configure: warning: could not find TCP wrappers, support disabled" 1>&2
 		WRAP_LIBS=""
