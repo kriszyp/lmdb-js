@@ -556,15 +556,20 @@ slapi_entry_add_values( Slapi_Entry *e, const char *type, struct berval **vals )
 	}
 
 	if ( vals == NULL ) {
-		/* Apparently vals can be NULL */ 
+		/* Apparently vals can be NULL
+		 * FIXME: sm_bvalues = NULL ? */
 		mod.sm_bvalues = (BerVarray)ch_malloc( sizeof(struct berval) );
 		mod.sm_bvalues->bv_val = NULL;
+
 	} else {
 		rc = bvptr2obj( vals, &mod.sm_bvalues );
 		if ( rc != LDAP_SUCCESS ) {
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
 	}
+#ifdef SLAP_NVALUES
+	mod.sm_nvalues = NULL;
+#endif
 
 	rc = modify_add_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
 
@@ -638,6 +643,9 @@ slapi_entry_delete_values( Slapi_Entry *e, const char *type, struct berval **val
 	if ( rc != LDAP_SUCCESS ) {
 		return LDAP_CONSTRAINT_VIOLATION;
 	}
+#if SLAP_NVALUES
+	mod.sm_nvalues = NULL;
+#endif
 
 	rc = modify_delete_values( e, &mod, 0, &text, textbuf, sizeof(textbuf) );
 
@@ -3144,6 +3152,9 @@ Modifications *slapi_x_ldapmods2modifications (LDAPMod **mods)
 			}
 			mod->sml_bvalues[i].bv_val = NULL;
 		}
+#ifdef SLAP_NVALUES
+		mod->sml_nvalues = NULL;
+#endif
 
 		*modtail = mod;
 		modtail = &mod->sml_next;
