@@ -739,8 +739,6 @@ retry:
 			}
 
 			idx = p - left.bv_val;
-			assert( idx < left.bv_len );
-
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
 				return LDAP_OTHER;
@@ -1308,8 +1306,6 @@ retry:
 			}
 
 			idx = p - left.bv_val;
-			assert( idx < left.bv_len );
-
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
 				return LDAP_OTHER;
@@ -2135,7 +2131,6 @@ retry:
 			}
 
 			idx = p - left.bv_val;
-			assert( idx < left.bv_len );
 
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
@@ -2700,8 +2695,6 @@ retry:
 			}
 
 			idx = p - left.bv_val;
-			assert( idx < left.bv_len );
-
 			if( idx >= left.bv_len ) {
 				/* this shouldn't happen */
 				return LDAP_OTHER;
