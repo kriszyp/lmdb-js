@@ -95,7 +95,7 @@ at_append_to_list(
 	list = *listp;
 	if ( !list ) {
 		size = 2;
-		list = calloc(size, sizeof(AttributeType *));
+		list = ch_calloc(size, sizeof(AttributeType *));
 		if ( !list ) {
 			return -1;
 		}
@@ -107,7 +107,7 @@ at_append_to_list(
 			list1++;
 		}
 		size += 2;
-		list1 = realloc(list, size*sizeof(AttributeType *));
+		list1 = ch_realloc(list, size*sizeof(AttributeType *));
 		if ( !list1 ) {
 			return -1;
 		}
@@ -144,7 +144,7 @@ at_delete_from_list(
 	}
 	list[i] = NULL;
 	/* Tell the runtime this can be shrinked */
-	list1 = realloc(list, (i+1)*sizeof(AttributeType **));
+	list1 = ch_realloc(list, (i+1)*sizeof(AttributeType **));
 	if ( !list1 ) {
 		return -1;
 	}
