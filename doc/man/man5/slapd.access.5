@@ -52,6 +52,11 @@ directives are defined for a backend or those which are defined are
 not applicable, the directives from the global configuration section
 are then used.
 .LP
+If no access controls are present, the default policy
+allows anyone and everyone to read anything but restricts
+updates to rootdn.  (e.g., "access to * by * read").
+The rootdn can always read and write EVERYTHING!
+.LP
 For entries not held in any backend (such as a root DSE), the
 directives of the first backend (and any global directives) are
 used.

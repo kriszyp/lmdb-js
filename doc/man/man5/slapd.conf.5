@@ -79,6 +79,10 @@ actual text are shown in brackets <>.
 Grant access (specified by <access>) to a set of entries and/or
 attributes (specified by <what>) by one or more requestors (specified
 by <who>).
+If no access controls are present, the default policy
+allows anyone and everyone to read anything but restricts
+updates to rootdn.  (e.g., "access to * by * read").
+The rootdn can always read and write EVERYTHING!
 See
 .BR slapd.access (5)
 and the "OpenLDAP's Administrator's Guide" for details.
