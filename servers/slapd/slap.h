@@ -157,24 +157,24 @@ typedef struct entry {
 
 /* the "by" part */
 struct access {
-	char		*a_dnpat;
-	char		*a_addrpat;
-	char		*a_domainpat;
-	char		*a_dnattr;
-	long		a_access;
-
-#ifdef SLAPD_ACLGROUPS
-        char		*a_group;
-        char		*a_objectclassvalue;
-        char		*a_groupattrname;
-#endif
-
 #define ACL_NONE	0x01
 #define ACL_COMPARE	0x02
 #define ACL_SEARCH	0x04
 #define ACL_READ	0x08
 #define ACL_WRITE	0x10
 #define ACL_SELF	0x40
+	int			a_access;
+
+	char		*a_dnpat;
+	char		*a_addrpat;
+	char		*a_domainpat;
+	char		*a_dnattr;
+
+#ifdef SLAPD_ACLGROUPS
+        char		*a_group;
+        char		*a_objectclassvalue;
+        char		*a_groupattrname;
+#endif
 	struct access	*a_next;
 };
 
