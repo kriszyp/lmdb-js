@@ -523,6 +523,7 @@ retry_ber:
 	if (LDAP_IS_UDP(ld) && isv2) {
 		ber_scanf(ber, "x{");
 	}
+nextresp2:
 #endif
 	/* the message type */
 	if ( (tag = ber_peek_tag( ber, &len )) == LBER_ERROR ) {
