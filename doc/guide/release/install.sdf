@@ -229,3 +229,5 @@ E:		./configure
 
 
 End of OpenLDAP INSTALL file.
+
+{{$OpenLDAP$}}
