@@ -210,13 +210,16 @@ rewrite_session(
 		case REWRITE_MODE_ERR:
 			rc = REWRITE_REGEXEC_ERR;
 			goto rc_return;
+			
 		case REWRITE_MODE_OK:
 			rc = REWRITE_REGEXEC_OK;
 			goto rc_return;
+
 		case REWRITE_MODE_COPY_INPUT:
 			*result = strdup( string );
 			rc = REWRITE_REGEXEC_OK;
 			goto rc_return;
+
 		case REWRITE_MODE_USE_DEFAULT:
 			context = rewrite_context_find( info,
 					REWRITE_DEFAULT_CONTEXT );

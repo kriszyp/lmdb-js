@@ -51,7 +51,7 @@ rewrite_subst_compile(
 	 * Take care of substitution string
 	 */
 	for ( p = begin = result, subs_len = 0; p[ 0 ] != '\0'; p++ ) {
-		
+
 		/*
 		 * Keep only single escapes '%'
 		 */
@@ -65,7 +65,7 @@ rewrite_subst_compile(
 			continue;
 		}
 
-		tmps = (struct berval *)realloc( subs,
+		tmps = ( struct berval * )realloc( subs,
 				sizeof( struct berval )*( nsub + 1 ) );
 		if ( tmps == NULL ) {
 			/* FIXME: cleanup */
@@ -96,14 +96,15 @@ rewrite_subst_compile(
 		 * Substitution pattern
 		 */
 		if ( isdigit( (unsigned char) p[ 1 ] ) ) {
-			int d = p[ 1 ] - '0';
 			struct rewrite_submatch *tmpsm;
+			int d = p[ 1 ] - '0';
 
 			/*
 			 * Add a new value substitution scheme
 			 */
-			tmpsm = realloc( submatch, 
-	sizeof( struct rewrite_submatch )*( nsub + 1 ) );
+
+			tmpsm = ( struct rewrite_submatch * )realloc( submatch,
+					sizeof( struct rewrite_submatch )*( nsub + 1 ) );
 			if ( tmpsm == NULL ) {
 				/* cleanup */
 				return NULL;
@@ -118,7 +119,9 @@ rewrite_subst_compile(
 			if ( p[ 2 ] != '{' ) {
 				submatch[ nsub ].ls_type = 
 					REWRITE_SUBMATCH_ASIS;
+				submatch[ nsub ].ls_map = NULL;
 				begin = ++p + 1;
+
 			} else {
 				struct rewrite_map *map;
 
@@ -131,9 +134,8 @@ rewrite_subst_compile(
 					/* cleanup */
 					return NULL;
 				}
-				p = begin - 1;
-
 				submatch[ nsub ].ls_map = map;
+				p = begin - 1;
 			}
 
 		/*
@@ -153,7 +155,7 @@ rewrite_subst_compile(
 			/*
 			 * Add a new value substitution scheme
 			 */
-			tmpsm = realloc( submatch,
+			tmpsm = ( struct rewrite_submatch * )realloc( submatch,
 					sizeof( struct rewrite_submatch )*( nsub + 1 ) );
 			if ( tmpsm == NULL ) {
 				/* cleanup */
@@ -162,7 +164,6 @@ rewrite_subst_compile(
 			submatch = tmpsm;
 			submatch[ nsub ].ls_type =
 				REWRITE_SUBMATCH_MAP_W_ARG;
-			
 			submatch[ nsub ].ls_map = map;
 		}
 
@@ -172,12 +173,12 @@ rewrite_subst_compile(
 	/*
 	 * Last part of string
 	 */
-	tmps = realloc( subs, sizeof( struct berval )*( nsub + 1 ) );
+	tmps = (struct berval * )realloc( subs, sizeof( struct berval )*( nsub + 1 ) );
 	if ( tmps == NULL ) {
 		/*
 		 * XXX need to free the value subst stuff!
 		 */
-		free( submatch );
+		free( subs );
 		return NULL;
 	}
 	subs = tmps;
@@ -235,7 +236,7 @@ submatch_copy(
 	l = match[ c ].rm_eo - match[ c ].rm_so;
 	
 	val->bv_len = l;
-	val->bv_val = calloc( sizeof( char ), l + 1 );
+	val->bv_val = malloc( l + 1 );
 	if ( val->bv_val == NULL ) {
 		return REWRITE_ERR;
 	}
@@ -354,12 +355,16 @@ rewrite_subst_apply(
 			rc = rewrite_xmap_apply( info, op,
 					subst->lt_submatch[ n ].ls_map,
 					&key, &submatch[ n ] );
+			free( key.bv_val );
+			key.bv_val = NULL;
 			break;
 			
 		case REWRITE_SUBMATCH_MAP_W_ARG:
 			rc = rewrite_map_apply( info, op,
 					subst->lt_submatch[ n ].ls_map,
 					&key, &submatch[ n ] );
+			free( key.bv_val );
+			key.bv_val = NULL;
 			break;
 
 		default:
@@ -388,7 +393,7 @@ rewrite_subst_apply(
          * of the subst pattern and initialize it
          */
 	l += subst->lt_subs_len;
-	res = calloc( sizeof( char ), l + 1 );
+	res = malloc( l + 1 );
 	if ( res == NULL ) {
 		rc = REWRITE_REGEXEC_ERR;
 		goto cleanup;
@@ -410,7 +415,9 @@ rewrite_subst_apply(
 	if ( subst->lt_subs[ n ].bv_val != NULL ) {
 		AC_MEMCPY( res + cl, subst->lt_subs[ n ].bv_val,
 				subst->lt_subs[ n ].bv_len );
+		cl += subst->lt_subs[ n ].bv_len;
 	}
+	res[ cl ] = '\0';
 
 	val->bv_val = res;
 	val->bv_len = l;
@@ -467,11 +474,17 @@ rewrite_subst_destroy(
 		}
 	}
 
+	free( subst->lt_submatch );
+	subst->lt_submatch = NULL;
+
 	/* last one */
 	if ( subst->lt_subs[ n ].bv_val ) {
 		free( subst->lt_subs[ n ].bv_val );
 		subst->lt_subs[ n ].bv_val = NULL;
 	}
+
+	free( subst->lt_subs );
+	subst->lt_subs = NULL;
 
 	free( subst );
 	*psubst = NULL;

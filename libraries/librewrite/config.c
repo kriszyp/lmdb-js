@@ -75,6 +75,7 @@ rewrite_parse(
 					"[%s:%d] rewriteEngine needs 'state'\n%s",
 					fname, lineno, "" );
 			return -1;
+
 		} else if ( argc > 2 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] extra fields in rewriteEngine"
@@ -84,8 +85,10 @@ rewrite_parse(
 
 		if ( strcasecmp( argv[ 1 ], "on" ) == 0 ) {
 			info->li_state = REWRITE_ON;
+
 		} else if ( strcasecmp( argv[ 1 ], "off" ) == 0 ) {
 			info->li_state = REWRITE_OFF;
+
 		} else {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] unknown 'state' in rewriteEngine;"
@@ -151,6 +154,7 @@ rewrite_parse(
 							 " 'alias'\n%s",
 							 fname, lineno, "" );
 					 return -1;
+
 				 } else if ( argc > 4 ) {
 					 Debug( LDAP_DEBUG_ANY,
 							 "[%s:%d] extra fields in"
@@ -175,6 +179,7 @@ rewrite_parse(
 				 
 				 rewrite_int_curr_context->lc_alias = aliased;
 				 rewrite_int_curr_context = aliased;
+
 			 } else {
 				 Debug( LDAP_DEBUG_ANY,
 						 "[%s:%d] extra fields"
@@ -195,6 +200,7 @@ rewrite_parse(
 					" 'subst' ['flags']\n%s",
 					fname, lineno, "" );
 			return -1;
+
 		} else if ( argc > 4 ) {
 			Debug( LDAP_DEBUG_ANY,
 					"[%s:%d] extra fields in rewriteRule"

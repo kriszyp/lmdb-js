@@ -455,6 +455,7 @@ rewrite_builtin_map_free(
 		break;
 	}
 
+	free( map->lb_name );
 	free( map );
 }
 

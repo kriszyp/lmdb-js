@@ -70,6 +70,39 @@ append_action(
 	return REWRITE_SUCCESS;
 }
 
+static int
+destroy_action(
+		struct rewrite_action **paction
+)
+{
+	struct rewrite_action	*action;
+
+	assert( paction );
+	assert( *paction );
+
+	action = *paction;
+
+	/* do something */
+	switch ( action->la_type ) {
+	case REWRITE_FLAG_GOTO: {
+		int *pi = (int *)action->la_args;
+
+		if ( pi ) {
+			free( pi );
+		}
+		break;
+	}
+
+	default:
+		break;
+	}
+	
+	free( action );
+	*paction = NULL;
+	
+	return 0;
+}
+
 /*
  * In case of error it returns NULL and does not free all the memory
  * it allocated; as this is a once only phase, and an error at this stage
@@ -402,6 +435,7 @@ rewrite_rule_destroy(
 		)
 {
 	struct rewrite_rule *rule;
+	struct rewrite_action *action;
 
 	assert( prule );
 	assert( *prule );
@@ -428,6 +462,13 @@ rewrite_rule_destroy(
 	}
 
 	regfree( &rule->lr_regex );
+
+	for ( action = rule->lr_action; action; ) {
+		struct rewrite_action *curraction = action;
+
+		action = action->la_next;
+		destroy_action( &curraction );
+	}
 
 	free( rule );
 	*prule = NULL;

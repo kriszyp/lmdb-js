@@ -494,6 +494,7 @@ rewrite_xmap_destroy(
 
 	}
 
+	free( map->lm_name );
 	free( map );
 	*pmap = NULL;
 

@@ -60,7 +60,7 @@ rewrite_param_set(
 #endif /* USE_REWRITE_LDAP_PVT_THREADS */
 			return REWRITE_ERR;
 		}
-	}	
+	}
 	
 #ifdef USE_REWRITE_LDAP_PVT_THREADS
 	ldap_pvt_thread_rdwr_wunlock( &info->li_params_mutex );
@@ -117,9 +117,15 @@ rewrite_param_free(
 		void *tmp
 )
 {
-	char	*value = ( char * )tmp;
+	struct rewrite_var *var = ( struct rewrite_var * )tmp;
+	assert( var != NULL );
 
-	free( value );
+	assert( var->lv_name != NULL );
+	assert( var->lv_value.bv_val != NULL );
+
+	free( var->lv_name );
+	free( var->lv_value.bv_val );
+	free( var );
 }
 
 /*
