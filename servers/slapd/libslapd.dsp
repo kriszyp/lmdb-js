@@ -180,6 +180,10 @@ SOURCE=.\connection.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\controls.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\daemon.c
 # End Source File
 # Begin Source File

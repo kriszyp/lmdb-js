@@ -108,6 +108,8 @@ do_bind(
 		goto cleanup;
 	}
 
+	op->o_protocol = version;
+
 	if( method != LDAP_AUTH_SASL ) {
 		tag = ber_scanf( ber, /*{*/ "o}", &cred );
 
@@ -134,12 +136,10 @@ do_bind(
 		goto cleanup;
 	}
 
-#ifdef GET_CTRLS
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
 	} 
-#endif
 
 	if( method == LDAP_AUTH_SASL ) {
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",

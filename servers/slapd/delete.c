@@ -51,13 +51,11 @@ do_delete(
 		return rc;
 	}
 
-#ifdef GET_CTRLS
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
 		free( ndn );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
 	} 
-#endif
 
 	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", ndn, 0, 0 );
 

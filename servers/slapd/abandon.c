@@ -43,12 +43,10 @@ do_abandon(
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-#ifdef GET_CTRLS
 	if( (rc = get_ctrls( conn, op, 0 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_abandon: get_ctrls failed\n", 0, 0 ,0 );
 		return rc;
 	} 
-#endif
 
 	Debug( LDAP_DEBUG_ARGS, "do_abandon: id %d\n", id, 0 ,0 );
 

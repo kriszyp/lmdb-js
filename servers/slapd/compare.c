@@ -58,14 +58,12 @@ do_compare(
 		return rc;
 	}
 
-#ifdef GET_CTRLS
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		free( ndn );
 		ava_free( &ava, 0 );
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
 	} 
-#endif
 
 	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
 

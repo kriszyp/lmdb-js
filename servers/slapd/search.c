@@ -104,12 +104,10 @@ do_search(
 		goto return_results;
 	}
 
-#ifdef GET_CTRLS
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_search: get_ctrls failed\n", 0, 0, 0 );
 		goto return_results;
 	} 
-#endif
 
 	rc = 0;
 

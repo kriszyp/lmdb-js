@@ -110,13 +110,11 @@ do_add( Connection *conn, Operation *op )
 		return LDAP_PROTOCOL_ERROR;
 	}
 
-#ifdef GET_CTRLS
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		entry_free( e );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
 		return rc;
 	} 
-#endif
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%d op=%d ADD dn=\"%s\"\n",
 	    conn->c_connid, op->o_opid, e->e_ndn, 0, 0 );
