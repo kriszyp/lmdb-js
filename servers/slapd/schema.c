@@ -760,12 +760,43 @@ struct mrule_defs_rec {
 	slap_mr_compare_func *mrd_compare;
 };
 
+/*
+ * Other matching rules in X.520 that we do not use:
+ *
+ * 2.5.13.9	numericStringOrderingMatch
+ * 2.5.13.12	caseIgnoreListSubstringsMatch
+ * 2.5.13.13	booleanMatch
+ * 2.5.13.15	integerOrderingMatch
+ * 2.5.13.18	octetStringOrderingMatch
+ * 2.5.13.19	octetStringSubstringsMatch
+ * 2.5.13.25	uTCTimeMatch
+ * 2.5.13.26	uTCTimeOrderingMatch
+ * 2.5.13.31	directoryStringFirstComponentMatch
+ * 2.5.13.32	wordMatch
+ * 2.5.13.33	keywordMatch
+ * 2.5.13.34	certificateExactMatch
+ * 2.5.13.35	certificateMatch
+ * 2.5.13.36	certificatePairExactMatch
+ * 2.5.13.37	certificatePairMatch
+ * 2.5.13.38	certificateListExactMatch
+ * 2.5.13.39	certificateListMatch
+ * 2.5.13.40	algorithmIdentifierMatch
+ * 2.5.13.41	storedPrefixMatch
+ * 2.5.13.42	attributeCertificateMatch
+ * 2.5.13.43	readerAndKeyIDMatch
+ * 2.5.13.44	attributeIntegrityMatch
+ */
+
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )", NULL, NULL},
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
+	/* Next three are not in the RFC's, but are needed for compatibility */
+	{"( 2.5.13.5 NAME 'caseExactMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
+	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
+	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
 	{"( 2.5.13.8 NAME 'numericStringMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )", NULL, NULL},
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )", NULL, NULL},
