@@ -208,6 +208,8 @@ timelimit of
 (zero) removes the
 .B ldap.conf
 limit.
+A server may impose a maximal timelimit which only
+the root user may override.
 .TP
 .BI \-z \ sizelimit
 retrieve at most \fIsizelimit\fP entries for a search.  A sizelimit
@@ -216,6 +218,8 @@ of
 (zero) removes the 
 .B ldap.conf
 limit.
+A server may impose a maximal sizelimit which only
+the root user may override.
 .SH OUTPUT FORMAT
 If one or more entries are found, each entry is written to standard output
 in the form:
