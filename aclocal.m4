@@ -10,6 +10,10 @@ dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
 dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
 
+dnl OpenLDAP Autoconf Macros
+dnl $OpenLDAP$
+dnl This work is part of OpenLDAP Software <http://www.openldap.org/>.
+dnl
 dnl Copyright 1998-2004 The OpenLDAP Foundation.
 dnl All rights reserved.
 dnl
@@ -766,9 +770,7 @@ else
    ;;
 
   *)
-    AC_CHECK_FUNC([dllload],
-    	[lt_cv_dlopen="dllload"],
-    [AC_CHECK_FUNC([shl_load],
+    AC_CHECK_FUNC([shl_load],
           [lt_cv_dlopen="shl_load"],
       [AC_CHECK_LIB([dld], [shl_load],
             [lt_cv_dlopen="shl_load" lt_cv_dlopen_libs="-dld"],
@@ -785,7 +787,6 @@ else
 	  ])
 	])
       ])
-    ])
     ;;
   esac
 
@@ -1042,10 +1043,6 @@ AC_CACHE_VAL(lt_cv_prog_cc_pic,
     newsos6)
       lt_cv_prog_cc_pic='-KPIC'
       lt_cv_prog_cc_static='-Bstatic'
-      ;;
-    
-    openedition)
-      # XPLINK code is PIC by default
       ;;
 
     osf3* | osf4* | osf5*)
@@ -1787,12 +1784,6 @@ else
     fi
     ;;
 
-  openedition*)
-    archive_cmds="\$CC -Wl,DLL \$libobjs \$deplibs \$compiler_flags -o \$lib &&
-	cp \$linknames \$output_objdir && linknames=''"
-    export_dynamic_flag_spec="-Wl,DLL"
-    ;;
-
   os2*)
     hardcode_libdir_flag_spec='-L$libdir'
     hardcode_minus_L=yes
@@ -2328,17 +2319,6 @@ openbsd*)
   library_names_spec='${libname}${release}.so$versuffix ${libname}.so$versuffix'
   finish_cmds='PATH="\$PATH:/sbin" ldconfig -m $libdir'
   shlibpath_var=LD_LIBRARY_PATH
-  ;;
-
-openedition*)
-  need_lib_prefix=no
-  need_version=no
-  shlibpath_overrides_runpath=yes
-  shlibpath_var=LIBPATH
-  postinstall_cmds="rm \$destdir/\$linkname; cp \$linkname \$destdir; chmod a+x \$lib"
-  # the library's exports are in libname.x; this is the file that must
-  # actually be linked with to use a DLL.
-  library_names_spec="\${libname}\${release}.so\$versuffix \${libname}.x"
   ;;
 
 os2*)
@@ -3517,10 +3497,6 @@ openbsd*)
   else
     lt_cv_deplibs_check_method='file_magic OpenBSD.* shared library'
   fi
-  ;;
-
-openedition*)
-  lt_cv_deplibs_check_method=pass_all
   ;;
 
 osf3* | osf4* | osf5*)
