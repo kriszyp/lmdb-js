@@ -2,14 +2,19 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.9 Engineering
 	Fixed back-bdb moddn newSuperior bug
+	Fixed back-ldap/meta modify bug (ITS#2158)
 	Fixed libldap try_read1msg drain bug (ITS#2153)
 	Fixed slapd unix socket unlink bug (ITS#2157)
 	Fixed slapd empty SASL cred bug
 	Fixed slapd referral/alias normalization bug
+	Fixed slapd logging bugs (ITS#2170)
+	Fixed slapd rootdse entry_free bug (ITS#2172)
 	Added "allow update_anon" feature (ITS#2155)
+	Removed lint
 	Build Environment
 		Add subordinate referral test
-		Updated whoami test
+		Updated other misc other tests
+		Updated back-sql checks (ITS#2163)
 		Fix configure shtool no bold handling
 
 OpenLDAP 2.1.8 Release
