@@ -84,8 +84,7 @@ proxy for acl checking.
 There is no risk of giving away such values; they are only used to
 check permissions.
 .B The acl-authcDN identity is by no means implicitly used by the proxy 
-.B when the client connects anonymously, so it cannot be used to
-.B anonymously query Active Directory.
+.B when the client connects anonymously.
 .TP
 .B acl-passwd <password>
 Password used with the bind DN above.
@@ -254,12 +253,14 @@ The rewrite options are described in the "REWRITING" section of the
 .BR slapd-meta (5)
 manual page.
 .SH EXAMPLES
-This maps the OpenLDAP objectclass `groupOfNames' to the Active
-Directory objectclass `group':
+The following directives map the object class `groupOfNames' to
+the object class `groupOfUniqueNames' and the attribute type
+`member' to the attribute type `uniqueMember':
 .LP
 .RS
 .nf
-map objectclass groupOfNames group
+map objectclass groupOfNames groupOfUniqueNames
+map attribute uniqueMember member
 .fi
 .RE
 .LP
