@@ -645,7 +645,6 @@ test_ava_filter(
 
 			a->a_comp_data->cd_mem_op = nibble_mem_allocator ( 1024*10*(num_attr_vals-1), 1024 );
 			if ( a->a_comp_data->cd_mem_op == NULL ) {
-				fprintf(stderr,"nibble mem allocation error\n");
 				free ( a->a_comp_data );
 				a->a_comp_data = NULL;
 				return LDAP_OPERATIONS_ERROR;
