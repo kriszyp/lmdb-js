@@ -6,6 +6,7 @@
 #	RFC2251-RFC2256 (LDAPv3)
 #
 # select standard track schema items:
+#	RFC2587 (PKI)
 #	RFC2079 (URI)
 #	RFC1274 (uid/dc)
 #	RFC2247 (dc/dcObject)
@@ -446,6 +447,19 @@ objectclass ( 2.5.6.20 NAME 'dmd' SUP top STRUCTURAL
 		telephoneNumber $ internationaliSDNNumber $ facsimileTelephoneNumber $
 		street $ postOfficeBox $ postalCode $ postalAddress $
 		physicalDeliveryOfficeName $ st $ l $ description ) )
+
+objectclass ( 2.5.6.21 NAME 'pkiUser' SUP top AUXILIARY
+	DESC 'RFC2587: PKI user'
+	MUST userCertificate )
+
+objectclass ( 2.5.6.22 NAME 'pkiCA' SUP top AUXILIARY
+	DESC 'RFC2587: PKI certificate authority'
+	MAY ( authorityRevocationList $ certificateRevocationList $
+		cACertificate $ crossCertificatePair ) )
+
+objectclass ( 2.5.6.23 NAME 'deltaCRL' SUP top AUXILIARY
+	DESC 'RFC2587: PKI user'
+	MAY deltaRevocationList )
 
 objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
 	DESC 'RFC2252: extensible object'
