@@ -271,7 +271,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		OL_POSIX_THREAD_VERSION
 
 		if test $ol_cv_pthread_version = final ; then
-			dnl AC_DEFINE(HAVE_PTHREADS_FINAL)
+			AC_DEFINE(HAVE_PTHREADS_FINAL)
 		elif test $ol_cv_pthread_version = draft4 ; then
 			AC_DEFINE(HAVE_PTHREADS_D4)
 		else

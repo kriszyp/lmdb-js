@@ -50,7 +50,10 @@
 /* define if you have POSIX Threads */
 #undef HAVE_PTHREADS
 
-/* define if your POSIX Threads implementatin is circa Draft 4 */
+/* define if your POSIX Threads implementation is circa Final Draft */
+#undef HAVE_PTHREADS_FINAL
+
+/* define if your POSIX Threads implementation is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
 
 /* define if you have -lwrap */
