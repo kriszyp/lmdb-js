@@ -139,13 +139,13 @@ test_ava_filter(
 			break;
 
 		case LDAP_FILTER_GE:
-			if ( rc > 0 ) {
+			if ( rc >= 0 ) {
 				return( 0 );
 			}
 			break;
 
 		case LDAP_FILTER_LE:
-			if ( rc < 0 ) {
+			if ( rc <= 0 ) {
 				return( 0 );
 			}
 			break;
