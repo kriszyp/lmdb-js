@@ -149,7 +149,7 @@ ldap_back_search(
  				base->bv_val, conn, &mbase.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( mbase.bv_val == NULL ) {
-			mbase.bv_val = ( char * )base->bv_val;
+			mbase = *base;
 		}
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
@@ -185,7 +185,10 @@ ldap_back_search(
 				free( mfilter.bv_val );
 			}
 			mfilter = *filterstr;
+		} else {
+			mfilter.bv_len = strlen( mfilter.bv_val );
 		}
+
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 				"[rw] searchFilter: \"%s\" -> \"%s\"\n",
@@ -222,6 +225,12 @@ ldap_back_search(
 		mapped_filter = filterstr->bv_val;
 #endif /* !ENABLE_REWRITE */
 	}
+
+#ifdef ENABLE_REWRITE
+	if ( mfilter.bv_val != filterstr->bv_val ) {
+		ldap_memfree( mfilter.bv_val );
+	}
+#endif /* ENABLE_REWRITE */
 
 	mapped_attrs = ldap_back_map_attrs(&li->at_map, attrs, 0);
 	if ( mapped_attrs == NULL && attrs) {
@@ -341,19 +350,9 @@ finish:;
 	if ( mapped_attrs ) {
 		free( mapped_attrs );
 	}
-#ifdef ENABLE_REWRITE
-	if ( mapped_filter != mfilter.bv_val ) {
-		free( mapped_filter );
-	}
-	if ( mfilter.bv_val != filterstr->bv_val ) {
-		free( mfilter.bv_val );
-	}
-#else /* !ENABLE_REWRITE */
 	if ( mapped_filter != filterstr->bv_val ) {
 		free( mapped_filter );
 	}
-#endif /* !ENABLE_REWRITE */
-	
 	if ( mbase.bv_val != base->bv_val ) {
 		free( mbase.bv_val );
 	}
