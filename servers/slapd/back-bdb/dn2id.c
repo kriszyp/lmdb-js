@@ -85,8 +85,7 @@ bdb_dn2id_add(
 					Debug( LDAP_DEBUG_ANY,
 						"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
 						subtree[i], rc, 0 );
-					charray_free( subtree );
-					goto done;
+					break;
 				}
 			}
 
@@ -96,7 +95,7 @@ bdb_dn2id_add(
 
 done:
 	ch_free( key.data );
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add %d\n", rc, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
 	return rc;
 }
 

@@ -49,15 +49,16 @@ int bdb_idl_search( ID *ids, ID id )
 	} else {
 		return cursor + 1;
 	}
+
 #else
-	/* linear search */
+	/* (reverse) linear search */
 	int i;
-	for( i=1; i<=ids[0]; i++ ) {
-		if( id <= ids[i] ) {
-			return i;
+	for( i=ids[0]; i; i-- ) {
+		if( id > ids[i] ) {
+			break;
 		}
 	}
-	return i;
+	return i+1;
 #endif
 }
 
@@ -65,17 +66,19 @@ static int idl_insert( ID *ids, ID id )
 {
 	int x = bdb_idl_search( ids, id );
 
-	if( ids[x] == id ) {
+	assert( x > 0 );
+
+	if( x <= 0 ) {
+		/* internal error */
+		return -1;
+	}
+
+	if ( ids[x] == id ) {
 		/* duplicate */
 		return -1;
 	}
 
-	if( x == 0 ) {
-		/* append the id */
-		ids[0]++;
-		ids[ids[0]] = id;
-
-	} else if ( ++ids[0] >= BDB_IDL_DB_MAX ) {
+	if ( ++ids[0] >= BDB_IDL_DB_MAX ) {
 		ids[0] = NOID;
 	
 	} else {
@@ -92,12 +95,21 @@ static int idl_delete( ID *ids, ID id )
 {
 	int x = bdb_idl_search( ids, id );
 
-	if( x == 0 || ids[x] != id ) {
+	assert( x > 0 );
+
+	if( x <= 0 ) {
+		/* internal error */
+		return -1;
+	}
+
+	if( x > ids[0] || ids[x] != id ) {
 		/* not found */
 		return -1;
 
 	} else if ( --ids[0] == 0 ) {
-		if( x != 1 ) return -1;
+		if( x != 1 ) {
+			return -1;
+		}
 
 	} else {
 		AC_MEMCPY( &ids[x], &ids[x+1], (1+ids[0]-x) * sizeof(ID) );
@@ -165,7 +177,11 @@ bdb_idl_insert_key(
 			return rc;
 		}
 
-		data.size = (ids[0]+1) * sizeof( ID );
+		if( BDB_IS_ALLIDS( ids ) ) {
+			data.size = sizeof( ID );
+		} else {
+			data.size = (ids[0]+1) * sizeof( ID );
+		}
 	}
 
 	/* store the key */
@@ -233,7 +249,7 @@ bdb_idl_delete_key(
 			return rc;
 		}
 
-		if( BDB_IS_ALLIDS(ids) ) {
+		if( ids[0] == 0 ) {
 			/* delete the key */
 			rc = db->del( db, tid, key, 0 );
 			if( rc != 0 ) {

@@ -55,6 +55,14 @@ extern int	bdb_search LDAP_P(( BackendDB *bd,
 extern int	bdb_unbind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op ));
 
+extern int bdb_referrals(
+    BackendDB	*be,
+    Connection	*conn,
+    Operation	*op,
+    const char *dn,
+    const char *ndn,
+	const char **text );
+
 LDAP_END_DECL
 
 #endif /* _BDB_EXTERNAL_H */

@@ -317,6 +317,7 @@ bdb_initialize(
 
 	bi->bi_acl_group = bdb_group;
 	bi->bi_acl_attribute = bdb_attribute;
+
 	bi->bi_chk_referrals = bdb_referrals;
 #endif
 
