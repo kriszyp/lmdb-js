@@ -75,9 +75,10 @@ OL_ARG_ENABLE(slapd,[  --enable-slapd	enable building slapd], yes)dnl
 OL_ARG_ENABLE(aclgroups,[    --enable-aclgroups	enable ACL group support], auto)dnl
 OL_ARG_ENABLE(cleartext,[    --enable-cleartext	enable cleartext passwords], yes)dnl
 OL_ARG_ENABLE(crypt,[    --enable-crypt	enable crypt(3) passwords], auto)dnl
-OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
+OL_ARG_ENABLE(modules,[    --enable-modules	enable dynamic module support], no)dnl
 OL_ARG_ENABLE(phonetic,[    --enable-phonetic	enable phonetic/soundex], no)dnl
 OL_ARG_ENABLE(rlookups,[    --enable-rlookups	enable reverse lookups], auto)dnl
+OL_ARG_ENABLE(wrappers,[    --enable-wrappers	enable tcp wrapper support], no)dnl
 
 dnl SLAPD Backend options
 OL_ARG_ENABLE(bdb2,[    --enable-bdb2	enable bdb2 backend], no)dnl
@@ -136,6 +137,9 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_aclgroups = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_aclgroups argument])
 	fi
+	if test $ol_enable_modules = yes ; then
+		AC_MSG_WARN([slapd disabled, ignoring --enable_modules argument])
+	fi
 	if test $ol_enable_wrappers = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable_wrappers argument])
 	fi
@@ -162,12 +166,16 @@ if test $ol_enable_slapd = no ; then
 	ol_enable_perl=no
 	ol_enable_shell=no
 	ol_enable_tcl=no
+
 	ol_enable_aclgroups=no
-	ol_enable_wrappers=no
+	ol_enable_modules=no
 	ol_enable_phonetic=no
 	ol_enable_rlookups=no
+	ol_enable_wrappers=no
+
 	ol_with_ldbm_api=no
 	ol_with_ldbm_type=no
+
 	ol_enable_slurpd=no
 
 elif test $ol_enable_ldbm = no ; then
@@ -185,7 +193,8 @@ elif test $ol_enable_ldbm = no ; then
 		AC_MSG_ERROR([BDB2 requires --enable-ldbm])
 	fi
 
-	if test $ol_enable_passwd = no -a \
+	if test $ol_enable_modules != yes -a \
+		$ol_enable_passwd = no -a \
 		$ol_enable_perl = no -a \
 		$ol_enable_shell = no -a \
 		$ol_enable_tcl = no ; then
@@ -261,6 +270,9 @@ BUILD_SHELL=no
 BUILD_TCL=no
 BUILD_THREAD=no
 
+SLAPD_MODULES_LDFLAGS=
+SLAPD_MODULES_CPPFLAGS=
+
 SLAPD_PERL_LDFLAGS=
 SLAPD_PERL_CPPFLAGS=
 
@@ -295,15 +307,41 @@ AC_PATH_PROG(SENDMAIL, sendmail, /usr/lib/sendmail,
 AC_PATH_PROG(EDITOR, vi, /usr/ucb/vi, $PATH:/usr/ucb)
 AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
-if test $ol_enable_perl = yes ; then
+ol_link_modules=no
+if test $ol_enable_modules != no ; then
+	AC_PATH_PROG(GLIBCONFIG, glib-config)
+
+	if test "no$GLIBCONFIG" = "no" ; then
+		if test $ol_enable_modules = yes ; then
+			AC_MSG_ERROR([could not locate glib-config])
+		fi
+
+	else
+		SLAPD_MODULES_VERSION="`$GLIBCONFIG --version gmodule`"
+		SLAPD_MODULES_CPPFLAGS="`$GLIBCONFIG --cflags gmodule`"
+		SLAPD_MODULES_LDFLAGS="`$GLIBCONFIG --libs gmodule`"
+
+		dnl should check glib version
+		ol_link_modules=yes
+	fi
+fi
+
+ol_link_perl=no
+if test $ol_enable_perl != no ; then
 	AC_PATH_PROG(PERLBIN, perl, /usr/bin/perl)
 
 	if test "no$PERLBIN" = "no" ; then
-		ol_enable_perl=no
-	fi
+		if test $ol_enable_perl = yes ; then
+			AC_MSG_ERROR([could not locate perl])
+		fi
 
-	SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
-	SLAPD_PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
+	else
+		SLAPD_PERL_LDFLAGS="`$PERLBIN -MExtUtils::Embed -e ldopts|sed -e s/-lc//`"
+		SLAPD_PERL_CPPFLAGS="`$PERLBIN -MExtUtils::Embed -e ccopts`"
+
+		dnl should check perl version
+		ol_link_perl=yes
+	fi
 fi
 
 AC_PROG_CPP
@@ -1585,6 +1623,11 @@ if test "$ol_enable_rlookups" != no ; then
 	AC_DEFINE(SLAPD_RLOOKUPS,1)
 fi
 
+if test "$ol_link_modules" != no ; then
+	AC_DEFINE(SLAPD_MODULES,1)
+	BUILD_SLAPD=yes
+fi
+
 if test "$ol_link_bdb2" != no ; then
 	AC_DEFINE(SLAPD_BDB2,1)
 	BUILD_SLAPD=yes
@@ -1603,7 +1646,7 @@ if test "$ol_enable_passwd" != no ; then
 	BUILD_PASSWD=yes
 fi
 
-if test "$ol_enable_perl" != no ; then
+if test "$ol_link_perl" != no ; then
 	AC_DEFINE(SLAPD_PERL,1)
 	BUILD_SLAPD=yes
 	BUILD_PERL=yes
@@ -1649,6 +1692,9 @@ AC_SUBST(SLURPD_LIBS)
 AC_SUBST(LDBM_LIBS)
 AC_SUBST(LTHREAD_LIBS)
 AC_SUBST(LUTIL_LIBS)
+
+AC_SUBST(SLAPD_MODULES_CPPFLAGS)
+AC_SUBST(SLAPD_MODULES_LDFLAGS)
 
 AC_SUBST(SLAPD_PERL_CPPFLAGS)
 AC_SUBST(SLAPD_PERL_LDFLAGS)

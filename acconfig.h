@@ -201,6 +201,9 @@
 /* define this to use SLAPD LDBM backend */
 #undef SLAPD_LDBM
 
+/* define this to use SLAPD Modules */
+#undef SLAPD_MODULES
+
 /* define this to use SLAPD passwd backend */
 #undef SLAPD_PASSWD
 
