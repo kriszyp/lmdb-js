@@ -64,18 +64,13 @@ id2entry_delete( Backend *be, Entry *e )
 	Debug(LDAP_DEBUG_TRACE, "=> id2entry_delete( %lu, \"%s\" )\n", e->e_id,
 	    e->e_dn, 0 );
 
-	/* XXX - check for writer lock - should also check no reader pending */
 #ifdef LDAP_DEBUG
-	assert(ldap_pvt_thread_rdwr_wchk(&e->e_rdwr));
+	/* check for writer lock */
+	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr) == 1);
 #endif
 
 	ldbm_datum_init( key );
 
-	/* XXX - check for writer lock - should also check no reader pending */
-	Debug (LDAP_DEBUG_TRACE,
-		"rdwr_Xchk: readers_reading: %d writer_writing: %d\n",
-		e->e_rdwr.lt_readers_reading, e->e_rdwr.lt_writer_writing, 0);
- 
 	if ( (db = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
 		Debug( LDAP_DEBUG_ANY, "Could not open/create id2entry%s\n",

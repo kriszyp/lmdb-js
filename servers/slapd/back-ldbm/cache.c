@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+#include <ac/errno.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 
@@ -58,6 +59,7 @@ cache_set_state( struct cache *cache, Entry *e, int state )
 	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
 
+#ifdef not_used
 static void
 cache_return_entry( struct cache *cache, Entry *e )
 {
@@ -71,14 +73,25 @@ cache_return_entry( struct cache *cache, Entry *e )
 	/* free cache mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
+#endif
 
 static void
 cache_return_entry_rw( struct cache *cache, Entry *e, int rw )
 {
 	Debug( LDAP_DEBUG_TRACE, "====> cache_return_entry_%s\n",
 		rw ? "w" : "r", 0, 0);
+
+	/* set cache mutex */
+	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+
 	entry_rdwr_unlock(e, rw);;
-	cache_return_entry(cache, e);
+
+	if ( --e->e_refcnt == 0 && e->e_state == ENTRY_STATE_DELETED ) {
+		entry_free( e );
+	}
+
+	/* free cache mutex */
+	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
 
 void
@@ -202,7 +215,7 @@ cache_add_entry_lock(
 
 			/* XXX check for writer lock - should also check no readers pending */
 #ifdef LDAP_DEBUG
-			assert(!ldap_pvt_thread_rdwr_rwchk(&e->e_rdwr));
+			assert(!ldap_pvt_thread_rdwr_active( &e->e_rdwr ));
 #endif
 
 			/* delete from cache and lru q */
@@ -241,6 +254,11 @@ cache_find_entry_dn2id(
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
 		cache_entrydn_cmp )) != NULL )
 	{
+		/*
+		 * ep now points to an unlocked entry
+		 * we do not need to lock the entry if we only
+		 * check the state, refcnt, LRU, and id.
+		 */
 		free(e.e_ndn);
 
 		Debug(LDAP_DEBUG_TRACE, "====> cache_find_entry_dn2id: found dn: %s\n",
@@ -257,41 +275,15 @@ cache_find_entry_dn2id(
 			return( NOID );
 		}
 
-		/* XXX is this safe without writer lock? */
-		ep->e_refcnt++;
-
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
-
-		/* acquire reader lock */
-		entry_rdwr_lock(ep, 0);
-
-		/* re-check */
-		if ( ep->e_state == ENTRY_STATE_DELETED ||
-			ep->e_state == ENTRY_STATE_CREATING )
-		{
-			/* XXX check that is is required */
-			ep->e_refcnt--;
-
-			/* free reader lock */
-			entry_rdwr_unlock(ep, 0);
-			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-
-			return( NOID );
-		}
-
+                
 		/* save id */
 		id = ep->e_id;
 
-		/* free reader lock */
-		entry_rdwr_unlock(ep, 0);
-
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-
-		cache_return_entry( &li->li_cache, ep );
 
 		return( id );
 	}
@@ -318,10 +310,11 @@ cache_find_entry_id(
 	Entry	e;
 	Entry	*ep;
 
+	e.e_id = id;
+
+try_again:
 	/* set cache mutex */
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
-
-	e.e_id = id;
 
 	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
 		cache_entryid_cmp )) != NULL )
@@ -340,35 +333,25 @@ cache_find_entry_id(
 			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 			return( NULL );
 		}
-		/* XXX is this safe without writer lock? */
-		ep->e_refcnt++;
+
+		/* acquire reader lock */
+		if ( entry_rdwr_trylock(ep, rw) == LDAP_PVT_THREAD_EBUSY ) {
+			/* could not acquire entry lock...
+			 * owner cannot free as we have the cache locked.
+			 * so, unlock the cache, yield, and try again.
+			 */
+
+			/* free cache mutex */
+			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_yield();
+			goto try_again;
+		}
 
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
                 
-		/* acquire reader lock */
-		entry_rdwr_lock(ep, 0);
-
-		/* re-check */
-		if ( ep->e_state == ENTRY_STATE_DELETED ||
-			ep->e_state == ENTRY_STATE_CREATING ) {
-
-			/* XXX check that is is required */
-			ep->e_refcnt--;
-
-			/* free reader lock */
-			entry_rdwr_unlock(ep, 0);
-
-			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
-			return( NULL );
-		}
-
-		if ( rw ) {
-			entry_rdwr_unlock(ep, 0);
-			entry_rdwr_lock(ep, 1);
-		}
+		ep->e_refcnt++;
 
 		/* free cache mutex */
 		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
@@ -405,7 +388,7 @@ cache_delete_entry(
 
 	/* XXX check for writer lock - should also check no readers pending */
 #ifdef LDAP_DEBUG
-	assert(ldap_pvt_thread_rdwr_wchk(&e->e_rdwr));
+	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr));
 #endif
 
 	/* set cache mutex */

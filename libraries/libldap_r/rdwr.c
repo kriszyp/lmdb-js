@@ -1,100 +1,197 @@
 /*
-** This basic implementation of Reader/Writer locks does not
-** protect writers from starvation.  That is, if a writer is
+** This is an improved implementation of Reader/Writer locks does
+** not protect writers from starvation.  That is, if a writer is
 ** currently waiting on a reader, any new reader will get
 ** the lock before the writer.
+**
+** Does not support cancellation nor does any status checking.
 */
 
 /********************************************************
- * An example source module to accompany...
- *
- * "Using POSIX Threads: Programming with Pthreads"
- *		 by Brad nichols, Dick Buttlar, Jackie Farrell
- *		 O'Reilly & Associates, Inc.
- *
+ * Adapted from:
+ *	"Programming with Posix Threads"
+ *		by David R Butenhof
+ *		Addison-Wesley 
  ********************************************************
- * rdwr.c --
- * 
- * Library of functions implementing reader/writer locks
  */
 
 #include "portable.h"
 
 #include <stdlib.h>
 
+#include <ac/errno.h>
 #include "ldap_pvt_thread.h"
 
 int 
-ldap_pvt_thread_rdwr_init(ldap_pvt_thread_rdwr_t *rdwrp )
+ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 {
-	rdwrp->lt_readers_reading = 0;
-	rdwrp->lt_writer_writing = 0;
-	ldap_pvt_thread_mutex_init(&(rdwrp->lt_mutex) );
-	ldap_pvt_thread_cond_init(&(rdwrp->lt_lock_free) );
+	memset( rw, 0, sizeof(ldap_pvt_thread_rdwr_t) );
+
+	/* we should check return results */
+	ldap_pvt_thread_mutex_init( &rw->ltrw_mutex );
+	ldap_pvt_thread_cond_init( &rw->ltrw_read );
+	ldap_pvt_thread_cond_init( &rw->ltrw_write );
+
+	rw->ltrw_valid = LDAP_PVT_THREAD_RDWR_VALUE;
 	return 0;
 }
 
 int 
-ldap_pvt_thread_rdwr_destroy(ldap_pvt_thread_rdwr_t *rdwrp )
+ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 {
-	ldap_pvt_thread_mutex_destroy(&(rdwrp->lt_mutex) );
-	ldap_pvt_thread_cond_destroy(&(rdwrp->lt_lock_free) );
+	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALUE )
+		return LDAP_PVT_THREAD_EINVAL;
+
+	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	/* active threads? */
+	if( rw->ltrw_r_active > 0 || rw->ltrw_w_active > 1) {
+		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+		return LDAP_PVT_THREAD_EBUSY;
+	}
+
+	/* waiting threads? */
+	if( rw->ltrw_r_wait > 0 || rw->ltrw_w_wait > 0) {
+		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+		return LDAP_PVT_THREAD_EBUSY;
+	}
+
+	rw->ltrw_valid = 0;
+
+	ldap_pvt_thread_mutex_destroy( &rw->ltrw_mutex );
+	ldap_pvt_thread_cond_destroy( &rw->ltrw_read );
+	ldap_pvt_thread_cond_destroy( &rw->ltrw_write );
+
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_rlock(ldap_pvt_thread_rdwr_t *rdwrp){
-	ldap_pvt_thread_mutex_lock(&(rdwrp->lt_mutex));
-	while(rdwrp->lt_writer_writing) {
-		ldap_pvt_thread_cond_wait(&(rdwrp->lt_lock_free), 
-					  &(rdwrp->lt_mutex));
+int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALUE )
+		return LDAP_PVT_THREAD_EINVAL;
+
+	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	if( rw->ltrw_w_active > 1 ) {
+		/* writer is active */
+
+		rw->ltrw_r_wait++;
+
+		do {
+			ldap_pvt_thread_cond_wait(
+				&rw->ltrw_read, &rw->ltrw_mutex );
+		} while( rw->ltrw_w_active > 1 );
+
+		rw->ltrw_r_wait--;
 	}
-	rdwrp->lt_readers_reading++;
-	ldap_pvt_thread_mutex_unlock(&(rdwrp->lt_mutex));
+
+	rw->ltrw_r_active++;
+
+	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_runlock(ldap_pvt_thread_rdwr_t *rdwrp)
+int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 {
-	ldap_pvt_thread_mutex_lock(&(rdwrp->lt_mutex));
-	if (rdwrp->lt_readers_reading == 0) {
-		ldap_pvt_thread_mutex_unlock(&(rdwrp->lt_mutex));
-		return -1;
-	}
-	else {
-		rdwrp->lt_readers_reading--;
-		if (rdwrp->lt_readers_reading == 0) {
-			ldap_pvt_thread_cond_signal(&(rdwrp->lt_lock_free));
-		}
-		ldap_pvt_thread_mutex_unlock(&(rdwrp->lt_mutex));
-		return 0;
-	}
-}
+	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALUE )
+		return LDAP_PVT_THREAD_EINVAL;
 
-int ldap_pvt_thread_rdwr_wlock(ldap_pvt_thread_rdwr_t *rdwrp)
-{
-	ldap_pvt_thread_mutex_lock(&(rdwrp->lt_mutex));
-	while(rdwrp->lt_writer_writing || rdwrp->lt_readers_reading) {
-		ldap_pvt_thread_cond_wait(&(rdwrp->lt_lock_free), 
-					  &(rdwrp->lt_mutex));
+	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	if( rw->ltrw_w_active > 1) {
+		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+		return LDAP_PVT_THREAD_EBUSY;
 	}
-	rdwrp->lt_writer_writing++;
-	ldap_pvt_thread_mutex_unlock(&(rdwrp->lt_mutex));
+
+	rw->ltrw_r_active++;
+
+	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_wunlock(ldap_pvt_thread_rdwr_t *rdwrp)
+int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
 {
-	ldap_pvt_thread_mutex_lock(&(rdwrp->lt_mutex));
-	if (rdwrp->lt_writer_writing == 0) {
-		ldap_pvt_thread_mutex_unlock(&(rdwrp->lt_mutex));
-		return -1;
+	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALUE )
+		return LDAP_PVT_THREAD_EINVAL;
+
+	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	rw->ltrw_r_active--;
+
+	if (rw->ltrw_r_active == 0 && rw->ltrw_w_wait > 0 ) {
+		ldap_pvt_thread_cond_signal( &rw->ltrw_write );
 	}
-	else {
-		rdwrp->lt_writer_writing = 0;
-		ldap_pvt_thread_cond_broadcast(&(rdwrp->lt_lock_free));
-		ldap_pvt_thread_mutex_unlock(&(rdwrp->lt_mutex));
-		return 0;
+
+	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+
+	return 0;
+}
+
+int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALUE )
+		return LDAP_PVT_THREAD_EINVAL;
+
+	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	if ( rw->ltrw_w_active > 0 || rw->ltrw_r_active > 0 ) {
+		rw->ltrw_w_wait++;
+
+		do {
+			ldap_pvt_thread_cond_wait(
+				&rw->ltrw_write, &rw->ltrw_mutex );
+		} while ( rw->ltrw_w_active > 0 || rw->ltrw_r_active > 0 );
+
+		rw->ltrw_w_wait--;
 	}
+
+	rw->ltrw_w_active++;
+
+	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+
+	return 0;
+}
+
+int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALUE )
+		return LDAP_PVT_THREAD_EINVAL;
+
+	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	if ( rw->ltrw_w_active > 0 || rw->ltrw_r_active > 0 ) {
+		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+		return LDAP_PVT_THREAD_EBUSY;
+	}
+
+	rw->ltrw_w_active++;
+
+	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+
+	return 0;
+}
+
+int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	if( rw->ltrw_valid != LDAP_PVT_THREAD_RDWR_VALUE )
+		return LDAP_PVT_THREAD_EINVAL;
+
+	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
+
+	rw->ltrw_w_active--;
+
+	if (rw->ltrw_r_wait > 0) {
+		ldap_pvt_thread_cond_broadcast( &rw->ltrw_read );
+
+	} else if (rw->ltrw_w_wait > 0) {
+		ldap_pvt_thread_cond_signal( &rw->ltrw_write );
+	}
+
+	ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
+
+	return 0;
 }
 
 #ifdef LDAP_DEBUG
@@ -109,19 +206,20 @@ int ldap_pvt_thread_rdwr_wunlock(ldap_pvt_thread_rdwr_t *rdwrp)
  * a lock are caught.
  */
 
-int ldap_pvt_thread_rdwr_rchk(ldap_pvt_thread_rdwr_t *rdwrp)
+int ldap_pvt_thread_rdwr_readers(ldap_pvt_thread_rdwr_t *rw)
 {
-	return(rdwrp->lt_readers_reading!=0);
+	return( rw->ltrw_r_active );
 }
 
-int ldap_pvt_thread_rdwr_wchk(ldap_pvt_thread_rdwr_t *rdwrp)
+int ldap_pvt_thread_rdwr_writers(ldap_pvt_thread_rdwr_t *rw)
 {
-	return(rdwrp->lt_writer_writing!=0);
+	return( rw->ltrw_w_active );
 }
-int ldap_pvt_thread_rdwr_rwchk(ldap_pvt_thread_rdwr_t *rdwrp)
+
+int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rw)
 {
-	return(ldap_pvt_thread_rdwr_rchk(rdwrp) || 
-	       ldap_pvt_thread_rdwr_wchk(rdwrp));
+	return(ldap_pvt_thread_rdwr_readers(rw) +
+	       ldap_pvt_thread_rdwr_writers(rw));
 }
 
 #endif /* LDAP_DEBUG */
