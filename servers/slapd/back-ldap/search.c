@@ -346,7 +346,7 @@ finish:;
 	if ( mapped_filter != mfilter.bv_val ) {
 		free( mapped_filter );
 	}
-	if ( mfilter.bv_val != filterstr.bv_val ) {
+	if ( mfilter.bv_val != filterstr->bv_val ) {
 		free( mfilter.bv_val );
 	}
 #else /* !ENABLE_REWRITE */
@@ -390,7 +390,7 @@ ldap_send_entry(
 	 * Rewrite the dn of the result, if needed
 	 */
 	switch ( rewrite_session( li->rwinfo, "searchResult",
-				dn.bv_val, lc->conn, &ent.e_name.bv_val ) ) {
+				bdn.bv_val, lc->conn, &ent.e_name.bv_val ) ) {
 	case REWRITE_REGEXEC_OK:
 		if ( ent.e_name.bv_val == NULL ) {
 			ent.e_name = bdn;
@@ -399,20 +399,19 @@ ldap_send_entry(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 					"[rw] searchResult: \"%s\""
-					" -> \"%s\"\n", dn.bv_val, ent.e_dn ));
+					" -> \"%s\"\n", bdn.bv_val, ent.e_dn ));
 #else /* !NEW_LOGGING */
 			Debug( LDAP_DEBUG_ARGS, "rw> searchResult: \"%s\""
- 					" -> \"%s\"\n%s", dn.bv_val, ent.e_dn, "" );
+ 					" -> \"%s\"\n%s", bdn.bv_val, ent.e_dn, "" );
 #endif /* !NEW_LOGGING */
-			free( dn.bv_val );
-			dn.bv_val = NULL;
+			free( bdn.bv_val );
+			bdn.bv_val = NULL;
 			ent.e_name.bv_len = strlen( ent.e_name.bv_val );
 		}
 		break;
 		
 	case REWRITE_REGEXEC_ERR:
 	case REWRITE_REGEXEC_UNWILLING:
-		free( dn );
 		return;
 	}
 #else /* !ENABLE_REWRITE */
