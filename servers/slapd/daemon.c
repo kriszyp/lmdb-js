@@ -237,13 +237,8 @@ slapd_daemon(
 				    "FIONBIO ioctl on %d failed\n", ns, 0, 0 );
 			}
 
-			c[ns].c_sb.sb_sd = ns;
 			Debug( LDAP_DEBUG_CONNS, "new connection on %d\n", ns,
 			    0, 0 );
-
-			pthread_mutex_lock( &ops_mutex );
-			c[ns].c_connid = num_conns++;
-			pthread_mutex_unlock( &ops_mutex );
 
 			len = sizeof(from);
 
@@ -284,9 +279,9 @@ slapd_daemon(
 				STRING_UNKNOWN))
 			{
 				/* DENY ACCESS */
-				Statslog( LDAP_DEBUG_STATS,
-			   	 "conn=%d fd=%d connection from %s (%s) denied.\n",
-			   	 	c[ns].c_connid, ns,
+				Statslog( LDAP_DEBUG_ANY,
+			   	 "fd=%d connection from %s (%s) denied.\n",
+			   	 	ns,
 						client_name == NULL ? "unknown" : client_name,
 						client_addr == NULL ? "unknown" : client_addr,
 			   	  0 );
@@ -296,6 +291,11 @@ slapd_daemon(
 				continue;
 			}
 #endif /* HAVE_TCPD */
+
+			c[ns].c_sb.sb_sd = ns;
+			pthread_mutex_lock( &ops_mutex );
+			c[ns].c_connid = num_conns++;
+			pthread_mutex_unlock( &ops_mutex );
 
 			Statslog( LDAP_DEBUG_STATS,
 			    "conn=%d fd=%d connection from %s (%s) accepted.\n",
