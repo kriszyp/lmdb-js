@@ -459,7 +459,7 @@ find_connection( LDAP *ld, LDAPURLDesc *srv, int any )
 			lsu_port = ldap_pvt_url_scheme_port( lsu->lud_scheme,
 				lsu->lud_port );
 
-			if ( strcmp( lcu->lud_scheme, lsu_scheme )
+			if ( strcmp( lcu->lud_scheme, lsu->lud_scheme ) == 0
 				&& lcu->lud_host != NULL && *lcu->lud_host != '\0'
 			    && lsu->lud_host != NULL && *lsu->lud_host != '\0'
 				&& strcasecmp( lsu->lud_host, lcu->lud_host ) == 0
