@@ -98,8 +98,12 @@ access_allowed(
 		return 1;
 	}
 
-	/* no user modify operational attributes are ignored by ACL checking */
-	if ( oc_check_no_usermod_attr( attr ) ) {
+	/*
+	 * no-user-modification operational attributes are ignored
+	 * by ACL_WRITE checking as any found here are not provided
+	 * by the user
+	 */
+	if ( access >= ACL_WRITE && oc_check_no_usermod_attr( attr ) ) {
  		Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
 			" %s access granted\n",
 			attr, 0, 0 );
@@ -623,9 +627,14 @@ acl_check_modlist(
 	}
 
 	for ( ; mlist != NULL; mlist = mlist->ml_next ) {
-		/* the lastmod attributes are ignored by ACL checking */
+		/*
+		 * no-user-modification operational attributes are ignored
+		 * by ACL_WRITE checking as any found here are not provided
+		 * by the user
+		 */
 		if ( oc_check_no_usermod_attr( mlist->ml_type ) ) {
-			Debug( LDAP_DEBUG_ACL, "Operational attribute: %s access allowed\n",
+ 			Debug( LDAP_DEBUG_ACL, "NoUserMod Operational attribute:"
+				" modify access granted\n",
 				mlist->ml_type, 0, 0 );
 			continue;
 		}
