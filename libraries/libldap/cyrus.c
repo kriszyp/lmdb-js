@@ -768,7 +768,7 @@ int ldap_pvt_sasl_secprops(
 				return LDAP_NOT_SUPPORTED;
 			}
 
-			if( maxbufsize && (( maxbufsize < SASL_MIN_BUFF_SIZE ) {
+			if( maxbufsize && (( maxbufsize < SASL_MIN_BUFF_SIZE )
 				|| (maxbufsize > SASL_MAX_BUFF_SIZE )))
 			{
 				/* bad maxbufsize */
