@@ -23,6 +23,8 @@
 #include <io.h>
 #endif
 
+#include "lutil.h"
+
 #ifndef STDERR_FILENO
 #define STDERR_FILENO 2
 #endif
@@ -32,20 +34,27 @@ int optind = 1;
 int optopt;
 char * optarg;
 
+#ifdef HAVE_EBCDIC
+extern int _trans_argv;
+#endif
+
 static void ERR (char * const argv[], const char * s, char c)
 {
-	char errbuf[2];
-
 #ifdef DF_TRACE_DEBUG
 printf("DF_TRACE_DEBUG: 	static void ERR () in getopt.c\n");
 #endif
 	if (opterr)
 	{
-		errbuf[0] = c;
-		errbuf[1] = '\n';
-		(void) write(STDERR_FILENO,argv[0],strlen(argv[0]));
-		(void) write(STDERR_FILENO,s,strlen(s));
-		(void) write(STDERR_FILENO,errbuf,sizeof errbuf);
+		char *ptr, outbuf[4096];
+
+		ptr = lutil_strncopy(outbuf, argv[0], sizeof(outbuf) - 2);
+		ptr = lutil_strncopy(ptr, s, sizeof(outbuf)-2 -(ptr-outbuf));
+		*ptr++ = c;
+		*ptr++ = '\n';
+#ifdef HAVE_EBCDIC
+		__atoe_l(outbuf, ptr - outbuf);
+#endif
+		(void) write(STDERR_FILENO,outbuf,ptr - outbuf);
 	}
 }
 
@@ -57,6 +66,14 @@ int getopt (int argc, char * const argv [], const char * opts)
 
 #ifdef DF_TRACE_DEBUG
 printf("DF_TRACE_DEBUG: 	int getopt () in getopt.c\n");
+#endif
+
+#ifdef HAVE_EBCDIC
+	if (_trans_argv) {
+		int i;
+		for (i=0; i<argc; i++) __etoa(argv[i]);
+		_trans_argv = 0;
+	}
 #endif
 	if (sp == 1)
 	{
