@@ -17,13 +17,13 @@ SRCS = idl.c add.c search.c cache.c dbcache.c dn2id.c entry.c \
 		id2entry.c index.c id2children.c nextid.c \
 		compare.c modify.c modrdn.c delete.c init.c \
 		config.c bind.c attr.c filterindex.c close.c \
-		alias.c tools.c key.c extended.c passwd.c \
+		alias.c tools.c key.c extended.c \
 		referral.c operational.c
 OBJS = idl.lo add.lo search.lo cache.lo dbcache.lo dn2id.lo entry.lo \
 		id2entry.lo index.lo id2children.lo nextid.lo \
 		compare.lo modify.lo modrdn.lo delete.lo init.lo \
 		config.lo bind.lo attr.lo filterindex.lo close.lo \
-		alias.lo tools.lo key.lo extended.lo passwd.lo \
+		alias.lo tools.lo key.lo extended.lo \
 		referral.lo operational.lo $(@BUILD_LDBM@_OBJS)
 
 LDAP_INCDIR= ../../../include       
