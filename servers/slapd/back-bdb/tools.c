@@ -108,6 +108,61 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	return e;
 }
 
+int bdb_tool_next_id(
+	BackendDB *be,
+	DB_TXN *tid,
+	Entry *e,
+	struct berval *text )
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct berval dn = e->e_nname;
+	struct berval pdn;
+	int rc;
+
+	rc = bdb_dn2id( be, tid, &dn, &e->e_id, 0 );
+	if ( rc == DB_NOTFOUND ) {
+		if ( be_issuffix( be, &dn ) ) {
+			pdn = slap_empty_bv;
+		} else {
+			dnParent( &dn, &pdn );
+			e->e_nname = pdn;
+			rc = bdb_tool_next_id( be, tid, e, text );
+			if ( rc ) {
+				return rc;
+			}
+		}
+		rc = bdb_next_id( be, tid, &e->e_id );
+		if ( rc ) {
+			snprintf( text->bv_val, text->bv_len,
+				"next_id failed: %s (%d)",
+				db_strerror(rc), rc );
+#ifdef NEW_LOGGING
+		LDAP_LOG ( TOOLS, ERR, 
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
+#endif
+			return rc;
+		}
+		e->e_nname = dn;
+		rc = bdb_dn2id_add( be, tid, &pdn, e );
+		if ( rc ) {
+			snprintf( text->bv_val, text->bv_len, 
+				"dn2id_add failed: %s (%d)",
+				db_strerror(rc), rc );
+#ifdef NEW_LOGGING
+		LDAP_LOG ( TOOLS, ERR, 
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
+#endif
+		}
+	}
+	return rc;
+}
+
 ID bdb_tool_entry_put(
 	BackendDB *be,
 	Entry *e,
@@ -149,39 +204,9 @@ ID bdb_tool_entry_put(
 		return NOID;
 	}
 
-	rc = bdb_next_id( be, tid, &e->e_id );
-	if( rc != 0 ) {
-		snprintf( text->bv_val, text->bv_len,
-				"next_id failed: %s (%d)",
-				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#endif
-		goto done;
-	}
-
 	/* add dn2id indices */
-	if ( be_issuffix( be, &e->e_nname ) ) {
-		pdn = slap_empty_bv;
-	} else {
-		dnParent( &e->e_nname, &pdn );
-	}
-	rc = bdb_dn2id_add( be, tid, &pdn, e );
+	rc = bdb_tool_next_id( be, tid, e, text );
 	if( rc != 0 ) {
-		snprintf( text->bv_val, text->bv_len, 
-				"dn2id_add failed: %s (%d)",
-				db_strerror(rc), rc );
-#ifdef NEW_LOGGING
-		LDAP_LOG ( TOOLS, ERR, 
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_tool_entry_put: %s\n", text->bv_val, 0, 0 );
-#endif
 		goto done;
 	}
 
