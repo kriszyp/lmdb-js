@@ -37,6 +37,7 @@ get_mra(
 )
 {
 	int rc, tag;
+	ber_len_t length;
 	struct berval type, value, *nvalue;
 	MatchingRuleAssertion *ma;
 
@@ -51,6 +52,7 @@ get_mra(
 	if( rc == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 		*text = "Error parsing matching rule assertion";
+		mra_free( ma, 1 );
 		return SLAPD_DISCONNECT;
 	}
 
@@ -59,6 +61,7 @@ get_mra(
 		if ( rc == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf for mr\n", 0, 0, 0 );
 			*text = "Error parsing matching rule in matching rule assertion";
+			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
 		}
 
@@ -67,6 +70,7 @@ get_mra(
 		if( rc == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 			*text = "Error parsing matching rule assertion";
+			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
 		}
 	}
@@ -93,8 +97,16 @@ get_mra(
 		if( rc == LBER_ERROR ) {
 			Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 			*text = "Error parsing matching rule assertion";
+			mra_free( ma, 1 );
 			return SLAPD_DISCONNECT;
 		}
+	}
+
+	if ( tag != LDAP_FILTER_EXT_VALUE ) {
+		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf missing value\n", 0, 0, 0 );
+		*text = "Missing value in matching rule assertion";
+		mra_free( ma, 1 );
+		return SLAPD_DISCONNECT;
 	}
 
 	rc = ber_scanf( ber, "o", &value );
@@ -102,6 +114,7 @@ get_mra(
 	if( rc == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
 		*text = "Error decoding value in matching rule assertion";
+		mra_free( ma, 1 );
 		return SLAPD_DISCONNECT;
 	}
 
@@ -113,12 +126,28 @@ get_mra(
 	ch_free( value.bv_val );
 
 	if( rc != LDAP_SUCCESS ) {
-		ad_free( ma->ma_desc, 1 );
-		ch_free( ma );
+		mra_free( ma, 1 );
 		return rc;
 	}
 
 	ma->ma_value = nvalue;
+
+	tag = ber_peek_tag( ber, &length );
+
+	if ( tag == LDAP_FILTER_EXT_DNATTRS ) {
+		rc = ber_scanf( ber, "b}", &ma->ma_dnattrs );
+	} else {
+		rc = ber_scanf( ber, "}" );
+		ma->ma_dnattrs = 0;
+	}
+
+	if( rc == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_ANY, "  get_mra ber_scanf\n", 0, 0, 0 );
+		*text = "Error decoding dnattrs matching rule assertion";
+		mra_free( ma, 1 );
+		return SLAPD_DISCONNECT;
+	}
+
 	*mra = ma;
 
 	return LDAP_SUCCESS;
