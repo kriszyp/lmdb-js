@@ -393,6 +393,10 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
 	memset( &hints, '\0', sizeof(hints) );
+#ifdef USE_AI_ATTRCONFIG /* FIXME: configure test needed */
+	/* Use AI_ATTRCONFIG only on systems where its known to be needed. */
+	hints.ai_flags = AI_ATTRCONFIG;
+#endif
 	hints.ai_family = ldap_int_inet4or6;
 	hints.ai_socktype = socktype;
 	snprintf(serv, sizeof serv, "%d", port );
