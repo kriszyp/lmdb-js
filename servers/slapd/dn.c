@@ -242,6 +242,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 		for ( iAVA = 0; rdn[ 0 ][ iAVA ]; iAVA++ ) {
 			LDAPAVA			*ava = rdn[ 0 ][ iAVA ];
 			AttributeDescription	*ad;
+			slap_syntax_validate_func *validf = NULL;
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr;
 			struct berval		bv = { 0, NULL };
@@ -268,15 +269,29 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 
 			if( ava->la_flags & LDAP_AVA_BINARY ) {
 				/* AVA is binary encoded, don't muck with it */
+				validf = NULL;
 				transf = NULL;
 				mr = NULL;
-
 			} else if( flags & SLAP_LDAPDN_PRETTY ) {
+				validf = NULL;
 				transf = ad->ad_type->sat_syntax->ssyn_pretty;
 				mr = NULL;
 			} else {
+				validf = ad->ad_type->sat_syntax->ssyn_validate;
 				transf = ad->ad_type->sat_syntax->ssyn_normalize;
 				mr = ad->ad_type->sat_equality;
+			}
+
+			if ( validf ) {
+				/* validate value before normalization */
+				rc = ( *validf )( ad->ad_type->sat_syntax,
+					ava->la_value.bv_len
+						? &ava->la_value
+						: (struct berval *) &slap_empty_bv );
+
+				if ( rc != LDAP_SUCCESS ) {
+					return LDAP_INVALID_SYNTAX;
+				}
 			}
 
 			if ( transf ) {
