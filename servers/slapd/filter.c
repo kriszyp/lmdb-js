@@ -252,12 +252,12 @@ get_filter(
 
 		assert( f.f_not != NULL );
 		if ( f.f_not->f_choice == SLAPD_FILTER_COMPUTED ) {
+			int fresult = f.f_not->f_result;
 			f.f_choice = SLAPD_FILTER_COMPUTED;
-			f.f_result = f.f_not->f_result;
 			op->o_tmpfree( f.f_not, op->o_tmpmemctx );
 			f.f_not = NULL;
 
-			switch( f.f_result ) {
+			switch( fresult ) {
 			case LDAP_COMPARE_TRUE:
 				f.f_result = LDAP_COMPARE_FALSE;
 				break;
