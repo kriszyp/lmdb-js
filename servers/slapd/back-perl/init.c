@@ -74,7 +74,9 @@ perl_back_initialize(
 	bi->bi_op_delete = perl_back_delete;
 	bi->bi_op_abandon = NULL;
 
+#ifdef SLAPD_ACLGROUPS
 	bi->bi_acl_group = NULL;
+#endif
 
 	return 0;
 }
