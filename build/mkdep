@@ -132,17 +132,21 @@ $CC -M $files | \
 	$SED | \
 awk '
 $1 ~ /:/ {
-	filenm=$1
-	dep=$2
+	filenm=$1;
+	dep=substr($0, length(filenm)+1);
 }
 $1 !~ /:/ {
-	dep=$1
+	dep=$0;
 }
 /.*/ {
-	if (( noslash == "yes") && (dep ~ /^\// )) next
-	if ( length(dep) < 2 ) next
-	rec = filenm " " dep;
-	print rec;
+	split(dep, depends, " ");
+	for(d in depends) {
+		dfile = depends[d];
+		if (( noslash == "yes") && (dfile ~ /^\// )) next
+		if ( length(dfile) < 2 ) continue
+		rec = filenm " " dfile;
+		print rec;
+	}
     }
 ' noslash="$NOSLASH" >> $TMP
 

@@ -4,6 +4,8 @@ Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2
 	Fixed slapd/ldbm/add cache set state deadlock bug
 	Update ldap_open(3) man page to note ldap_init() is preferred.
+	Build environment
+		Fixed mkdep to handle multiple dependent files on one line
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA
