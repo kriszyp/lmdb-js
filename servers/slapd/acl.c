@@ -25,7 +25,6 @@ static int	regex_matches();
 static string_expand(char *newbuf, int bufsiz, char *pattern,
 	char *match, regmatch_t *matches);
 
-extern Entry * be_dn2entry(Backend *be, char *bdn, char **matched);
 
 /*
  * access_allowed - check whether dn is allowed the requested access
@@ -367,7 +366,7 @@ acl_access_allowed(
 
 			/* b->a_group is an unexpanded entry name, expanded it should be an 
 			 * entry with objectclass group* and we test to see if odn is one of
-			 * the values in the attribute uniquegroup
+			 * the values in the attribute group
 			 */
 			Debug( LDAP_DEBUG_ARGS, "<= check a_group: %s\n",
 				b->a_group, 0, 0);
@@ -549,7 +548,7 @@ regex_matches(
 		char error[512];
 		regerror(rc, &re, error, sizeof(error));
 
-		Debug( LDAP_DEBUG_ANY,
+		Debug( LDAP_DEBUG_TRACE,
 		    "compile( \"%s\", \"%s\") failed %s\n",
 			pat, str, error );
 		return( 0 );
