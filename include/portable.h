@@ -61,9 +61,9 @@
 #endif
 
 /*
- * on many systems, we should use waitpid() instead of waitN()
+ * on most systems, we should use waitpid() instead of waitN()
  */
-#if !defined( USE_WAITPID ) && ( defined( SYSV ) || defined( sunos4 ) || defined( ultrix ) || defined( aix ))
+#if !defined( USE_WAITPID ) && !defined( nextstep )
 #define USE_WAITPID
 #endif
 

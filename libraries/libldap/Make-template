@@ -118,11 +118,11 @@ unbind.o: unbind.c ../../include/proto-lber.h ../../include/proto-ldap.h
 friendly.o: friendly.c ../../include/lber.h ../../include/proto-ldap.h
 cldap.o: cldap.c
 free.o: free.c ../../include/ldap.h
-disptmpl.o: disptmpl.c ../../include/proto-lber.h ../../include/proto-ldap.h
-srchpref.o: srchpref.c ../../include/proto-lber.h ../../include/proto-ldap.h
-dsparse.o: dsparse.c ../../include/proto-lber.h ../../include/proto-ldap.h
+disptmpl.o: disptmpl.c ../../include/proto-lber.h ../../include/disptmpl.h
+srchpref.o: srchpref.c ../../include/proto-lber.h ../../include/srchpref.h
+dsparse.o: dsparse.c ../../include/proto-lber.h
 tmplout.o: tmplout.c ../../include/proto-lber.h ../../include/proto-ldap.h
-sort.o: sort.c ../../include/proto-lber.h
+sort.o: sort.c ../../include/proto-lber.h ../../include/proto-ldap.h
 getdn.o: getdn.c ../../include/lber.h ../../include/proto-ldap.h
 getentry.o: getentry.c ../../include/lber.h ../../include/proto-ldap.h
 getattr.o: getattr.c ../../include/lber.h ../../include/proto-ldap.h

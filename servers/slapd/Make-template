@@ -232,15 +232,14 @@ init.o: ../../include/ldap.h ../../include/lthread.h
 detach.o: detach.c
 strdup.o: strdup.c
 tempnam.o: tempnam.c
-repl.o: repl.c ../../include/proto-lber.h ../../include/proto-ldap.h
-repl.o: ../../include/ldif.h
+repl.o: repl.c ../../include/proto-lber.h ../../include/lthread.h
 lock.o: lock.c ../../include/avl.h ../../include/ldap.h ../../include/lthread.h
 schema.o: schema.c ../../include/proto-lber.h ../../include/proto-ldap.h
 schema.o: ../../include/ldif.h
 schemaparse.o: schemaparse.c ../../include/avl.h ../../include/ldap.h
 schemaparse.o: ../../include/lthread.h
-monitor.o: monitor.c ../../include/proto-lber.h ../../include/proto-ldap.h
-monitor.o: ../../include/ldif.h
+monitor.o: monitor.c ../../include/avl.h ../../include/ldap.h
+monitor.o: ../../include/proto-ldap.h ../../include/ldif.h
 configinfo.o: configinfo.c ../../include/avl.h ../../include/ldap.h
 configinfo.o: ../../include/lthread.h ../../include/ldapconfig.h
 

@@ -64,9 +64,10 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #endif /* DOS */
 #endif /* MACOS */
 
+#include "ldap-int.h"
 
 int
-connect_to_host( Sockbuf *sb, char *host, unsigned long address,
+ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	int port, int async )
 /*
  * if host == NULL, connect using address
@@ -85,7 +86,7 @@ connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 #endif /* LDAP_REFERRALS */
 #endif /* notyet */
 
-	Debug( LDAP_DEBUG_TRACE, "connect_to_host: %s:%d\n",
+	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
 	    ( host == NULL ) ? "(by address)" : host, ntohs( port ), 0 );
 
 	connected = use_hp = 0;
@@ -174,7 +175,7 @@ connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 
 
 void
-close_connection( Sockbuf *sb )
+ldap_close_connection( Sockbuf *sb )
 {
     tcp_close( sb->sb_sd );
 }
@@ -182,7 +183,7 @@ close_connection( Sockbuf *sb )
 
 #ifdef KERBEROS
 char *
-host_connected_to( Sockbuf *sb )
+ldap_host_connected_to( Sockbuf *sb )
 {
 	struct hostent		*hp;
 	char			*p;
@@ -223,7 +224,7 @@ struct selectinfo {
 
 
 void
-mark_select_write( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -236,7 +237,7 @@ mark_select_write( LDAP *ld, Sockbuf *sb )
 
 
 void
-mark_select_read( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -249,7 +250,7 @@ mark_select_read( LDAP *ld, Sockbuf *sb )
 
 
 void
-mark_select_clear( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -261,7 +262,7 @@ mark_select_clear( LDAP *ld, Sockbuf *sb )
 
 
 int
-is_write_ready( LDAP *ld, Sockbuf *sb )
+ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -272,7 +273,7 @@ is_write_ready( LDAP *ld, Sockbuf *sb )
 
 
 int
-is_read_ready( LDAP *ld, Sockbuf *sb )
+ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 
@@ -283,7 +284,7 @@ is_read_ready( LDAP *ld, Sockbuf *sb )
 
 
 void *
-new_select_info()
+ldap_new_select_info()
 {
 	struct selectinfo	*sip;
 
@@ -298,7 +299,7 @@ new_select_info()
 
 
 void
-free_select_info( void *sip )
+ldap_free_select_info( void *sip )
 {
 	free( sip );
 }

@@ -111,8 +111,8 @@ ldapsearch.o: ../../include/ldapconfig.h
 ldapmodify.o: ldapmodify.c ../../include/lber.h ../../include/proto-ldap.h
 ldapmodify.o: ../../include/ldapconfig.h
 ldapdelete.o: ldapdelete.c ../../include/proto-lber.h
-ldapdelete.o: ../../include/ldapconfig.h
+ldapdelete.o: ../../include/proto-ldap.h
 ldapmodrdn.o: ldapmodrdn.c ../../include/proto-lber.h
-ldapmodrdn.o: ../../include/ldapconfig.h
+ldapmodrdn.o: ../../include/proto-ldap.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

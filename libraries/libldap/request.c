@@ -83,7 +83,7 @@ static BerElement *re_encode_request();
 
 
 BerElement *
-alloc_ber_with_options( LDAP *ld )
+ldap_alloc_ber_with_options( LDAP *ld )
 {
 	BerElement	*ber;
 
@@ -91,7 +91,7 @@ alloc_ber_with_options( LDAP *ld )
 		ld->ld_errno = LDAP_NO_MEMORY;
 #ifdef STR_TRANSLATION
 	} else {
-		set_ber_options( ld, ber );
+		ldap_set_ber_options( ld, ber );
 #endif /* STR_TRANSLATION */
 	}
 
@@ -100,7 +100,7 @@ alloc_ber_with_options( LDAP *ld )
 
 
 void
-set_ber_options( LDAP *ld, BerElement *ber )
+ldap_set_ber_options( LDAP *ld, BerElement *ber )
 {
 	ber->ber_options = ld->ld_lberoptions;
 #ifdef STR_TRANSLATION
@@ -114,14 +114,14 @@ set_ber_options( LDAP *ld, BerElement *ber )
 
 
 int
-send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
+ldap_send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 	BerElement *ber )
 {
 #if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
 	LDAPServer	*servers;
 #endif /* LDAP_REFERRALS || LDAP_DNS */
 
-	Debug( LDAP_DEBUG_TRACE, "send_initial_request\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_send_initial_request\n", 0, 0, 0 );
 
 #if !defined( LDAP_REFERRALS ) && !defined( LDAP_DNS )
 	if ( ber_flush( &ld->ld_sb, ber, 1 ) != 0 ) {
@@ -165,7 +165,7 @@ send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 	}	
 #endif /* LDAP_DNS */
 
-	return( send_server_request( ld, ber, ld->ld_msgid, NULL, servers,
+	return( ldap_send_server_request( ld, ber, ld->ld_msgid, NULL, servers,
 	    NULL, 0 ));
 #endif /* !LDAP_REFERRALS && !LDAP_DNS */
 }
@@ -174,13 +174,15 @@ send_initial_request( LDAP *ld, unsigned long msgtype, char *dn,
 
 #if defined( LDAP_REFERRALS ) || defined( LDAP_DNS )
 int
-send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
+ldap_send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 	*parentreq, LDAPServer *srvlist, LDAPConn *lc, int bind )
 {
 	LDAPRequest	*lr;
+	int incparent;
 
-	Debug( LDAP_DEBUG_TRACE, "send_server_request\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_send_server_request\n", 0, 0, 0 );
 
+	incparent = 0;
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
 
 	if ( lc == NULL ) {
@@ -189,7 +191,12 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 		} else {
 			if (( lc = find_connection( ld, srvlist, 1 )) ==
 			    NULL ) {
-				lc = new_connection( ld, &srvlist, 0, 1, bind );
+				if ( bind && (parentreq != NULL) ) {
+					/* Remember the bind in the parent */
+					incparent = 1;
+					++parentreq->lr_outrefcnt;
+				}
+				lc = ldap_new_connection( ld, &srvlist, 0, 1, bind );
 			}
 			free_servers( srvlist );
 		}
@@ -200,6 +207,10 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 		if ( ld->ld_errno == LDAP_SUCCESS ) {
 			ld->ld_errno = LDAP_SERVER_DOWN;
 		}
+		if ( incparent ) {
+			/* Forget about the bind */
+			--parentreq->lr_outrefcnt; 
+		}
 		return( -1 );
 	}
 
@@ -207,8 +218,12 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 	if (( lr = (LDAPRequest *)calloc( 1, sizeof( LDAPRequest ))) ==
 	    NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
-		free_connection( ld, lc, 0, 0 );
+		ldap_free_connection( ld, lc, 0, 0 );
 		ber_free( ber, 1 );
+		if ( incparent ) {
+			/* Forget about the bind */
+			--parentreq->lr_outrefcnt; 
+		}
 		return( -1 );
 	} 
 	lr->lr_msgid = msgid;
@@ -217,7 +232,10 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 	lr->lr_ber = ber;
 	lr->lr_conn = lc;
 	if ( parentreq != NULL ) {	/* sub-request */
-		++parentreq->lr_outrefcnt;
+		if ( !incparent ) { 
+			/* Increment if we didn't do it before the bind */
+			++parentreq->lr_outrefcnt;
+		}
 		lr->lr_origid = parentreq->lr_origid;
 		lr->lr_parentcnt = parentreq->lr_parentcnt + 1;
 		lr->lr_parent = parentreq;
@@ -240,12 +258,12 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 		if ( errno == EWOULDBLOCK ) {
 			/* need to continue write later */
 			lr->lr_status = LDAP_REQST_WRITING;
-			mark_select_write( ld, lc->lconn_sb );
+			ldap_mark_select_write( ld, lc->lconn_sb );
 		} else {
 #else /* notyet */
 			ld->ld_errno = LDAP_SERVER_DOWN;
-			free_request( ld, lr );
-			free_connection( ld, lc, 0, 0 );
+			ldap_free_request( ld, lr );
+			ldap_free_connection( ld, lc, 0, 0 );
 			return( -1 );
 #endif /* notyet */
 #ifdef notyet
@@ -258,7 +276,7 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 		}
 
 		/* sent -- waiting for a response */
-		mark_select_read( ld, lc->lconn_sb );
+		ldap_mark_select_read( ld, lc->lconn_sb );
 	}
 
 	ld->ld_errno = LDAP_SUCCESS;
@@ -267,7 +285,7 @@ send_server_request( LDAP *ld, BerElement *ber, int msgid, LDAPRequest
 
 
 LDAPConn *
-new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
+ldap_new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 	int connect, int bind )
 {
 	LDAPConn	*lc;
@@ -367,7 +385,7 @@ new_connection( LDAP *ld, LDAPServer **srvlistp, int use_ldsb,
 		}
 
 		if ( err != 0 ) {
-			free_connection( ld, lc, 1, 0 );
+			ldap_free_connection( ld, lc, 1, 0 );
 			lc = NULL;
 		}
 	}
@@ -414,19 +432,19 @@ use_connection( LDAP *ld, LDAPConn *lc )
 
 
 void
-free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
+ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 {
 	LDAPConn	*tmplc, *prevlc;
 
-	Debug( LDAP_DEBUG_TRACE, "free_connection\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_free_connection\n", 0, 0, 0 );
 
 	if ( force || --lc->lconn_refcnt <= 0 ) {
 		if ( lc->lconn_status == LDAP_CONNST_CONNECTED ) {
-			mark_select_clear( ld, lc->lconn_sb );
+			ldap_mark_select_clear( ld, lc->lconn_sb );
 			if ( unbind ) {
-				send_unbind( ld, lc->lconn_sb );
+				ldap_send_unbind( ld, lc->lconn_sb );
 			}
-			close_connection( lc->lconn_sb );
+			ldap_close_connection( lc->lconn_sb );
 			if ( lc->lconn_sb->sb_ber.ber_buf != NULL ) {
 				free( lc->lconn_sb->sb_ber.ber_buf );
 			}
@@ -442,6 +460,7 @@ free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 				}
 				break;
 			}
+			prevlc = tmplc;
 		}
 		free_servers( lc->lconn_server );
 		if ( lc->lconn_krbinstance != NULL ) {
@@ -451,11 +470,11 @@ free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 			free( (char *)lc->lconn_sb );
 		}
 		free( lc );
-		Debug( LDAP_DEBUG_TRACE, "free_connection: actually freed\n",
+		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: actually freed\n",
 		    0, 0, 0 );
 	} else {
 		lc->lconn_lastused = time( 0 );
-		Debug( LDAP_DEBUG_TRACE, "free_connection: refcnt %d\n",
+		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: refcnt %d\n",
 		    lc->lconn_refcnt, 0, 0 );
 	}
 }
@@ -463,7 +482,7 @@ free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 
 #ifdef LDAP_DEBUG
 void
-dump_connection( LDAP *ld, LDAPConn *lconns, int all )
+ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 {
 	LDAPConn	*lc;
 
@@ -490,7 +509,7 @@ dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 
 
 void
-dump_requests_and_responses( LDAP *ld )
+ldap_dump_requests_and_responses( LDAP *ld )
 {
 	LDAPRequest	*lr;
 	LDAPMessage	*lm, *l;
@@ -531,11 +550,11 @@ dump_requests_and_responses( LDAP *ld )
 
 
 void
-free_request( LDAP *ld, LDAPRequest *lr )
+ldap_free_request( LDAP *ld, LDAPRequest *lr )
 {
 	LDAPRequest	*tmplr, *nextlr;
 
-	Debug( LDAP_DEBUG_TRACE, "free_request (origid %d, msgid %d)\n",
+	Debug( LDAP_DEBUG_TRACE, "ldap_free_request (origid %d, msgid %d)\n",
 		lr->lr_origid, lr->lr_msgid, 0 );
 
 	if ( lr->lr_parent != NULL ) {
@@ -544,7 +563,7 @@ free_request( LDAP *ld, LDAPRequest *lr )
 		/* free all referrals (child requests) */
 		for ( tmplr = lr->lr_refnext; tmplr != NULL; tmplr = nextlr ) {
 			nextlr = tmplr->lr_refnext;
-			free_request( ld, tmplr );
+			ldap_free_request( ld, tmplr );
 		}
 	}
 
@@ -599,7 +618,7 @@ free_servers( LDAPServer *srvlist )
  * XXX merging of errors in this routine needs to be improved
  */
 int
-chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
+ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 {
 	int		rc, count, len, newdn;
 #ifdef LDAP_DNS
@@ -610,7 +629,7 @@ chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 	LDAPServer	*srv;
 	BerElement	*ber;
 
-	Debug( LDAP_DEBUG_TRACE, "chase_referrals\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_chase_referrals\n", 0, 0, 0 );
 
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
 	*hadrefp = 0;
@@ -681,7 +700,7 @@ chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		} else {
 			Debug( LDAP_DEBUG_TRACE,
 			    "ignoring unknown referral <%s>\n", ref, 0, 0 );
-			rc = append_referral( ld, &unfollowed, ref );
+			rc = ldap_append_referral( ld, &unfollowed, ref );
 			*hadrefp = 1;
 			continue;
 		}
@@ -728,14 +747,14 @@ chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		}
 #endif /* LDAP_DNS */
 
-		if ( srv != NULL && send_server_request( ld, ber, ld->ld_msgid,
+		if ( srv != NULL && ldap_send_server_request( ld, ber, ld->ld_msgid,
 		    lr, srv, NULL, 1 ) >= 0 ) {
 			++count;
 		} else {
 			Debug( LDAP_DEBUG_ANY,
 			    "Unable to chase referral (%s)\n", 
 			    ldap_err2string( ld->ld_errno ), 0, 0 );
-			rc = append_referral( ld, &unfollowed, ref );
+			rc = ldap_append_referral( ld, &unfollowed, ref );
 		}
 
 		if ( !newdn && refdn != NULL ) {
@@ -751,7 +770,7 @@ chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 
 
 int
-append_referral( LDAP *ld, char **referralsp, char *s )
+ldap_append_referral( LDAP *ld, char **referralsp, char *s )
 {
 	int	first;
 
@@ -810,7 +829,7 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 		return( NULL );
 	}
 
-        if (( ber = alloc_ber_with_options( ld )) == NULLBER ) {
+        if (( ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
                 return( NULL );
         }
 
@@ -866,7 +885,7 @@ re_encode_request( LDAP *ld, BerElement *origber, int msgid, char **dnp )
 
 
 LDAPRequest *
-find_request_by_msgid( LDAP *ld, int msgid )
+ldap_find_request_by_msgid( LDAP *ld, int msgid )
 {
     	LDAPRequest	*lr;
 
@@ -895,7 +914,7 @@ dn2servers( LDAP *ld, char *dn )	/* dn can also be a domain.... */
 		domain = dn;
 	}
 
-	if (( dxs = getdxbyname( domain )) == NULL ) {
+	if (( dxs = ldap_getdxbyname( domain )) == NULL ) {
 		ld->ld_errno = LDAP_NO_MEMORY;
 		return( NULL );
 	}

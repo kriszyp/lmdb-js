@@ -5,11 +5,6 @@
  *
  * Original version by Steve Dyer, IBM/Project Athena.
  *
- *      $Author: kurt $
- *      $Athena: hesiod.h,v 1.3 88/08/07 21:52:39 treese Locked $
- *      $Header: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/mit/hesiod.h,v 1.1.4.1 1998/08/08 23:05:25 kurt Exp $
- *      $Source: /data/CVS-Repository/pkg/ldap/libraries/msdos/winsock/include/krb/mit/hesiod.h,v $
- *
  * Vendor History
  *
  * Revision 1.6  90/07/20  13:09:16  probe

@@ -80,17 +80,17 @@ ldap_search( LDAP *ld, char *base, int scope, char *filter,
 
 #ifndef NO_CACHE
 	if ( ld->ld_cache != NULL ) {
-		if ( check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
+		if ( ldap_check_cache( ld, LDAP_REQ_SEARCH, ber ) == 0 ) {
 			ber_free( ber, 1 );
 			ld->ld_errno = LDAP_SUCCESS;
 			return( ld->ld_msgid );
 		}
-		add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
+		ldap_add_request_to_cache( ld, LDAP_REQ_SEARCH, ber );
 	}
 #endif /* NO_CACHE */
 
 	/* send the message */
-	return ( send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));
+	return ( ldap_send_initial_request( ld, LDAP_REQ_SEARCH, base, ber ));
 }
 
 
@@ -126,7 +126,7 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 	 */
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( NULLBER );
 	}
 

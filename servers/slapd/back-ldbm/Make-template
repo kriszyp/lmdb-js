@@ -89,8 +89,9 @@ dn2id.o: ../../../include/ldif.h ../../../include/ldbm.h
 id2entry.o: id2entry.c ../../../include/avl.h ../../../include/proto-lber.h
 id2entry.o: ../../../include/proto-ldap.h ../../../include/ldif.h
 id2entry.o: ../../../include/ldbm.h
-index.o: index.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
-index.o: ../../../include/ldif.h ../../../include/ldbm.h
+index.o: index.c ../../../include/avl.h ../../../include/proto-lber.h
+index.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+index.o: ../../../include/ldbm.h
 id2children.o: id2children.c ../../../include/proto-lber.h
 id2children.o: ../../../include/proto-ldap.h ../../../include/ldif.h
 id2children.o: ../../../include/ldbm.h

@@ -223,11 +223,12 @@ test_approx_filter(
 			    w2 = next_word( w2 ) ) {
 				c2 = phonetic( w2 );
 				if ( strcmp( c1, c2 ) == 0 ) {
+					free( c2 );
 					break;
 				}
+				free( c2 );
 			}
 			free( c1 );
-			free( c2 );
 
 			/*
 			 * if we stopped because we ran out of words

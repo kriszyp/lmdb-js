@@ -295,7 +295,7 @@ typedef struct ldapmsg {
 	BerElement	*lm_ber;	/* the ber encoded message contents */
 	struct ldapmsg	*lm_chain;	/* for search - next msg in the resp */
 	struct ldapmsg	*lm_next;	/* next response */
-	unsigned long	lm_time;	/* used to maintain cache */
+	unsigned int	lm_time;	/* used to maintain cache */
 } LDAPMessage;
 #define NULLMSG	((LDAPMessage *) NULL)
 
@@ -318,7 +318,7 @@ typedef struct ldap_server {
 typedef struct ldap_conn {
 	Sockbuf			*lconn_sb;
 	int			lconn_refcnt;
-	unsigned long		lconn_lastused;	/* time */
+	unsigned int		lconn_lastused;	/* time */
 	int			lconn_status;
 #define LDAP_CONNST_NEEDSOCKET		1
 #define LDAP_CONNST_CONNECTING		2
@@ -569,6 +569,8 @@ extern char *strdup();
 
 #else /* NEEDPROTOS */
 #if !defined(MACOS) && !defined(DOS) && !defined(_WIN32) && !defined(WINSOCK)
+#include <sys/types.h>
+#include <time.h>
 #include <sys/time.h>
 #endif
 #if defined(WINSOCK)

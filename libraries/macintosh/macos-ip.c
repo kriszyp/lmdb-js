@@ -19,7 +19,7 @@ static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of 
 #include "ldap-int.h"
 
 int
-connect_to_host( Sockbuf *sb, char *host, unsigned long address,
+ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	int port, int async )
 /*
  * if host == NULL, connect using address
@@ -37,7 +37,7 @@ connect_to_host( Sockbuf *sb, char *host, unsigned long address,
     struct hostInfo	hi;
 #endif /* SUPPORT_OPENTRANSPORT */
 
-	Debug( LDAP_DEBUG_TRACE, "connect_to_host: %s:%d\n",
+	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
 	    ( host == NULL ) ? "(by address)" : host, ntohs( port ), 0 );
 
 	if ( host != NULL && gethostinfobyname( host, &hi ) != noErr ) {
@@ -78,7 +78,7 @@ connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 
 
 void
-close_connection( Sockbuf *sb )
+ldap_close_connection( Sockbuf *sb )
 {
 	tcpclose( (tcpstream *)sb->sb_sd );
 }
@@ -86,7 +86,7 @@ close_connection( Sockbuf *sb )
 
 #ifdef KERBEROS
 char *
-host_connected_to( Sockbuf *sb )
+ldap_host_connected_to( Sockbuf *sb )
 {
 	ip_addr addr;
 	
@@ -131,13 +131,13 @@ struct selectinfo {
 
 
 void
-mark_select_read( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo		*sip;
 	struct tcpstreaminfo	*tcpsip;
 	short					i;
 	
-	Debug( LDAP_DEBUG_TRACE, "mark_select_read: stream %x\n", (tcpstream *)sb->sb_sd, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_mark_select_read: stream %x\n", (tcpstream *)sb->sb_sd, 0, 0 );
 
 	if (( sip = (struct selectinfo *)ld->ld_selectinfo ) == NULL ) {
 		return;
@@ -170,12 +170,12 @@ mark_select_read( LDAP *ld, Sockbuf *sb )
 
 
 void
-mark_select_clear( LDAP *ld, Sockbuf *sb )
+ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 	short				i;
 
-	Debug( LDAP_DEBUG_TRACE, "mark_select_clear: stream %x\n", (tcpstream *)sb->sb_sd, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_mark_select_clear: stream %x\n", (tcpstream *)sb->sb_sd, 0, 0 );
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 	if ( sip != NULL && sip->si_count > 0 && sip->si_streaminfo != NULL ) {
@@ -196,7 +196,7 @@ mark_select_clear( LDAP *ld, Sockbuf *sb )
 
 
 int
-is_read_ready( LDAP *ld, Sockbuf *sb )
+ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
 	short				i;
@@ -207,10 +207,10 @@ is_read_ready( LDAP *ld, Sockbuf *sb )
 			if ( sip->si_streaminfo[ i ].tcpsi_stream == (tcpstream *)sb->sb_sd ) {
 #ifdef LDAP_DEBUG
 				if ( sip->si_streaminfo[ i ].tcpsi_is_read_ready ) {
-					Debug( LDAP_DEBUG_TRACE, "is_read_ready: stream %x READY\n",
+					Debug( LDAP_DEBUG_TRACE, "ldap_is_read_ready: stream %x READY\n",
 							(tcpstream *)sb->sb_sd, 0, 0 );
 				} else {
-					Debug( LDAP_DEBUG_TRACE, "is_read_ready: stream %x Not Ready\n",
+					Debug( LDAP_DEBUG_TRACE, "ldap_is_read_ready: stream %x Not Ready\n",
 							(tcpstream *)sb->sb_sd, 0, 0 );
 				}
 #endif /* LDAP_DEBUG */
@@ -219,20 +219,20 @@ is_read_ready( LDAP *ld, Sockbuf *sb )
 		}
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "is_read_ready: stream %x: NOT FOUND\n", (tcpstream *)sb->sb_sd, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "ldap_is_read_ready: stream %x: NOT FOUND\n", (tcpstream *)sb->sb_sd, 0, 0 );
 	return( 0 );
 }
 
 
 void *
-new_select_info()
+ldap_new_select_info()
 {
 	return( (void *)calloc( 1, sizeof( struct selectinfo )));
 }
 
 
 void
-free_select_info( void *sip )
+ldap_free_select_info( void *sip )
 {
 	if ( sip != NULL ) {
 		free( sip );

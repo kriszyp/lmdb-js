@@ -226,8 +226,6 @@ FILE *where;
 fatal(s)
 char *s;
 {
-	void exit();
-
 	if (errno != 0)
 		perror(s);
 #ifdef KERBEROS

@@ -69,7 +69,7 @@ ldap_modify( LDAP *ld, char *dn, LDAPMod **mods )
 	Debug( LDAP_DEBUG_TRACE, "ldap_modify\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -105,7 +105,7 @@ ldap_modify( LDAP *ld, char *dn, LDAPMod **mods )
 	}
 
 	/* send the message */
-	return( send_initial_request( ld, LDAP_REQ_MODIFY, dn, ber ));
+	return( ldap_send_initial_request( ld, LDAP_REQ_MODIFY, dn, ber ));
 }
 
 int

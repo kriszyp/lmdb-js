@@ -29,12 +29,12 @@ static char copyright[] = "@(#) Copyright (c) 1994 Regents of the University of 
 #include "ldap-int.h"
 
 /*
- * get_kerberosv4_credentials - obtain kerberos v4 credentials for ldap.
+ * ldap_get_kerberosv4_credentials - obtain kerberos v4 credentials for ldap.
  */
 
 /* ARGSUSED */
 char *
-get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
+ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 {
 	static short	authman_refnum = 0;
 	char		*cred, ticket[ MAX_KTXT_LEN ];

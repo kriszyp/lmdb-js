@@ -61,7 +61,7 @@ ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
 		passwd = "";
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -80,7 +80,7 @@ ldap_simple_bind( LDAP *ld, char *dn, char *passwd )
 #endif /* !NO_CACHE */
 
 	/* send the message */
-	return( send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
+	return( ldap_send_initial_request( ld, LDAP_REQ_BIND, dn, ber ));
 }
 
 /*

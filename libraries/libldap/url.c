@@ -305,10 +305,10 @@ ldap_url_search( LDAP *ld, char *url, int attrsonly )
 		ber_free( ber, 1 );
 	} else {
 #ifdef LDAP_REFERRALS
-		err = send_server_request( ld, ber, ld->ld_msgid, NULL, srv,
+		err = ldap_send_server_request( ld, ber, ld->ld_msgid, NULL, srv,
 		    NULL, 1 );
 #else /* LDAP_REFERRALS */
-		err = send_initial_request( ld, LDAP_REQ_SEARCH,
+		err = ldap_send_initial_request( ld, LDAP_REQ_SEARCH,
 		    ludp->lud_dn, ber );
 #endif /* LDAP_REFERRALS */
 	}

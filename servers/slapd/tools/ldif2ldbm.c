@@ -135,7 +135,7 @@ main( int argc, char **argv )
 			fprintf( stderr, "No ldbm database found in config file\n" );
 			exit( 1 );
 		}
-	} else if ( dbnum < 0 || dbnum > nbackends ) {
+	} else if ( dbnum < 0 || dbnum > (nbackends-1) ) {
 		fprintf( stderr, "Database number selected via -n is out of range\n" );
 		fprintf( stderr, "Must be in the range 1 to %d (number of databases in the config file)\n", nbackends );
 		exit( 1 );
@@ -157,7 +157,7 @@ main( int argc, char **argv )
 	args[i++] = "-f";
 	args[i++] = tailorfile;
 	args[i++] = "-n";
-	sprintf( buf2, "%d", dbnum );
+	sprintf( buf2, "%d", dbnum+1 );
 	args[i++] = buf2;
 	if ( ldap_debug ) {
 		sprintf( buf3, "%d", ldap_debug );
@@ -179,7 +179,7 @@ main( int argc, char **argv )
 	args[i++] = "-f";
 	args[i++] = tailorfile;
 	args[i++] = "-n";
-	sprintf( buf2, "%d", dbnum );
+	sprintf( buf2, "%d", dbnum+1 );
 	args[i++] = buf2;
 	if ( ldap_debug ) {
 		sprintf( buf3, "%d", ldap_debug );
@@ -201,7 +201,7 @@ main( int argc, char **argv )
 	args[i++] = "-f";
 	args[i++] = tailorfile;
 	args[i++] = "-n";
-	sprintf( buf2, "%d", dbnum );
+	sprintf( buf2, "%d", dbnum+1 );
 	args[i++] = buf2;
 	if ( ldap_debug ) {
 		sprintf( buf3, "%d", ldap_debug );

@@ -31,9 +31,9 @@
 extern char *str_getline( char **next );
 extern void ch_free( char *p );
 
-#if !(defined(BSD) && (BSD >= 199306))
+#ifndef	SYSERRLIST_IN_STDIO
 extern char *sys_errlist[];
-#endif
+#endif /* SYSERRLIST_IN_STDIO
 
 /* Forward references */
 static Rh 	*get_repl_hosts( char *, int *, char ** );

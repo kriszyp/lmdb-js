@@ -231,8 +231,8 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 #else /* !LDAP_REFERRALS */
 #ifdef LDAP_DEBUG
 		if ( ldap_debug & LDAP_DEBUG_TRACE ) {
-			dump_connection( ld, ld->ld_conns, 1 );
-			dump_requests_and_responses( ld );
+			ldap_dump_connection( ld, ld->ld_conns, 1 );
+			ldap_dump_requests_and_responses( ld );
 		}
 #endif /* LDAP_DEBUG */
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
@@ -276,7 +276,7 @@ wait4msg( LDAP *ld, int msgid, int all, struct timeval *timeout,
 					nextlc = lc->lconn_next;
 					if ( lc->lconn_status ==
 					    LDAP_CONNST_CONNECTED &&
-					    is_read_ready( ld,
+					    ldap_is_read_ready( ld,
 					    lc->lconn_sb )) {
 						rc = read1msg( ld, msgid, all,
 						    lc->lconn_sb, lc, result );
@@ -326,7 +326,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	Debug( LDAP_DEBUG_TRACE, "read1msg\n", 0, 0, 0 );
 
 	ber_init( &ber, 0 );
-	set_ber_options( ld, &ber );
+	ldap_set_ber_options( ld, &ber );
 
 	/* get the next message */
 	if ( (tag = ber_get_next( sb, &len, &ber ))
@@ -349,7 +349,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	}
 
 #ifdef LDAP_REFERRALS
-	if (( lr = find_request_by_msgid( ld, id )) == NULL ) {
+	if (( lr = ldap_find_request_by_msgid( ld, id )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
 		    "no request for response with msgid %ld (tossing)\n",
 		    id, 0, 0 );
@@ -384,7 +384,7 @@ read1msg( LDAP *ld, int msgid, int all, Sockbuf *sb,
 			    != LBER_ERROR ) {
 				if ( lderr != LDAP_SUCCESS ) {
 					/* referrals are in error string */
-					refer_cnt = chase_referrals( ld, lr,
+					refer_cnt = ldap_chase_referrals( ld, lr,
 					    &lr->lr_res_error, &hadref );
 				}
 
@@ -455,11 +455,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 					}
 				}
 
-				free_request( ld, lr );
+				ldap_free_request( ld, lr );
 			}
 
 			if ( lc != NULL ) {
-				free_connection( ld, lc, 0, 1 );
+				ldap_free_connection( ld, lc, 0, 1 );
 			}
 		}
 	}
@@ -481,7 +481,7 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 #ifndef NO_CACHE
 		if ( ld->ld_cache != NULL ) {
-			add_result_to_cache( ld, new );
+			ldap_add_result_to_cache( ld, new );
 		}
 #endif /* NO_CACHE */
 
@@ -542,7 +542,11 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 			prev->lm_next = l->lm_next;
 		*result = l;
 		ld->ld_errno = LDAP_SUCCESS;
+#ifndef ultrix
+		return( l->lm_msgtype );
+#else
 		return( tag );
+#endif
 	}
 
 	return( -2 );	/* continue looking */
@@ -557,7 +561,7 @@ build_result_ber( LDAP *ld, BerElement *ber, LDAPRequest *lr )
 	long		along;
 
 	ber_init( ber, 0 );
-	set_ber_options( ld, ber );
+	ldap_set_ber_options( ld, ber );
 	if ( ber_printf( ber, "{it{ess}}", lr->lr_msgid,
 	    (long)lr->lr_res_msgtype, lr->lr_res_errno,
 	    lr->lr_res_matched ? lr->lr_res_matched : "",
@@ -587,7 +591,7 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 	if ( lr->lr_res_errno == LDAP_PARTIAL_RESULTS ) {
 		parentr->lr_res_errno = lr->lr_res_errno;
 		if ( lr->lr_res_error != NULL ) {
-			(void)append_referral( ld, &parentr->lr_res_error,
+			(void)ldap_append_referral( ld, &parentr->lr_res_error,
 			    lr->lr_res_error );
 		}
 	} else if ( lr->lr_res_errno != LDAP_SUCCESS &&

@@ -10,12 +10,55 @@
 #include "krb.h"
 #endif
 
+#ifdef LDAP_CRYPT
+/* change for crypted passwords -- lukeh */
+#ifdef __NeXT__
+extern char *crypt (char *key, char *salt);
+#else
+#include <unistd.h>
+#endif
+#endif /* LDAP_CRYPT */
+
 extern Entry		*dn2entry();
 extern Attribute	*attr_find();
 
 #ifdef KERBEROS
 extern int	krbv4_ldap_auth();
 #endif
+
+#ifdef LDAP_CRYPT
+pthread_mutex_t crypt_mutex;
+
+static int
+crypted_value_find(
+	struct berval       **vals,
+	struct berval       *v,
+	int                 syntax,
+	int                 normalize,
+	struct berval		*cred
+)
+{
+	int     i;
+	for ( i = 0; vals[i] != NULL; i++ ) {
+		if ( syntax != SYNTAX_BIN && 
+			strncasecmp( "{CRYPT}", vals[i]->bv_val, (sizeof("{CRYPT}") - 1 ) ) == 0 ) {
+				char *userpassword = vals[i]->bv_val + sizeof("{CRYPT}") - 1;
+				pthread_mutex_lock( &crypt_mutex );
+				if ( ( !strcmp( userpassword, crypt( cred->bv_val, userpassword ) ) != 0 ) ) {
+					pthread_mutex_unlock( &crypt_mutex );
+					return ( 0 );
+				}
+				pthread_mutex_unlock( &crypt_mutex );
+		} else {
+                if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
+                        return( 0 );
+                }
+        }
+	}
+
+	return( 1 );
+}
+#endif /* LDAP_CRYPT */
 
 int
 ldbm_back_bind(
@@ -81,13 +124,18 @@ ldbm_back_bind(
 			return( 1 );
 		}
 
-		if ( value_find( a->a_vals, cred, a->a_syntax, 0 ) != 0 ) {
+#ifdef LDAP_CRYPT
+		if ( crypted_value_find( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
+#else
+		if ( value_find( a->a_vals, cred, a->a_syntax, 0 ) != 0 )
+#endif
+{
 			if ( be_isroot_pw( be, dn, cred ) ) {
 				/* front end will send result */
 				return( 0 );
 			}
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
-			    NULL, NULL );
+				NULL, NULL );
 			cache_return_entry( &li->li_cache, e );
 			return( 1 );
 		}

@@ -69,7 +69,7 @@ ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
 	Debug( LDAP_DEBUG_TRACE, "ldap_add\n", 0, 0, 0 );
 
 	/* create a message to send */
-	if ( (ber = alloc_ber_with_options( ld )) == NULLBER ) {
+	if ( (ber = ldap_alloc_ber_with_options( ld )) == NULLBER ) {
 		return( -1 );
 	}
 
@@ -103,7 +103,7 @@ ldap_add( LDAP *ld, char *dn, LDAPMod **attrs )
 	}
 
 	/* send the message */
-	return( send_initial_request( ld, LDAP_REQ_ADD, dn, ber ));
+	return( ldap_send_initial_request( ld, LDAP_REQ_ADD, dn, ber ));
 }
 
 int
