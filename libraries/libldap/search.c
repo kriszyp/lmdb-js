@@ -426,6 +426,8 @@ find_wildcard( char *s )
 
 		case '\\':
 			s++; /* skip over escape */
+			if ( *s == '\0' )
+				return NULL;	/* escape at end of string */
 			if( hex2value( s[0] ) >= 0 && hex2value( s[1] ) >= 0 ) {
 				/* skip over lead digit of two hex digit code */
 				s++;
