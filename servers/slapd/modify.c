@@ -225,6 +225,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 #endif
 	int		increment = op->orm_increment;
 	int		rc = 0;
+	BackendDB *op_be;
 	
 	if( op->o_req_ndn.bv_len == 0 ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: root dse!\n", 0, 0, 0 );
@@ -330,6 +331,12 @@ fe_op_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
+	/* If we've got a glued backend, check the real backend */
+	op_be = op->o_bd;
+	if ( SLAP_GLUE_INSTANCE( op->o_bd )) {
+		op->o_bd = select_backend( &op->o_req_ndn, manageDSAit, 0 );
+	}
+
 	/* check restrictions */
 	if( backend_check_restrictions( op, rs, NULL ) != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );
@@ -424,6 +431,7 @@ fe_op_modify( Operation *op, SlapReply *rs )
 			size_t		textlen = sizeof( textbuf );
 			slap_callback	cb = { NULL, slap_replog_cb, NULL, NULL };
 
+			op->o_bd = op_be;
 
 			if ( !update ) {
 				rs->sr_err = slap_mods_no_update_check( modlist,
