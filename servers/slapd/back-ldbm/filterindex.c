@@ -1,4 +1,8 @@
 /* filterindex.c - generate the list of candidate entries from a filter */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 

@@ -1,4 +1,8 @@
 /* cache.c - routines to maintain an in-core cache of entries */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 

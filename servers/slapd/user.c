@@ -1,6 +1,10 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* user.c - set user id, group id and group access list
  *
- * Copyright 1999 by PM Lashley and The OpenLDAP Foundation.
+ * Copyright 1999 by PM Lashley.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only

@@ -1,4 +1,8 @@
 /* dn.c - routines for dealing with distinguished names */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 

@@ -1,4 +1,8 @@
 /* bind.c - decode an ldap bind operation and pass it to a backend db */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 /*
  * Copyright (c) 1995 Regents of the University of Michigan.

@@ -40,7 +40,6 @@ main( int argc, char **argv )
 	char		*linep, *buf;
 	char		*args[MAXARGS];
 	char		buf2[20], buf3[20];
-	char		line[BUFSIZ];
 	char		cmd[MAXPATHLEN];
 	int		lineno, elineno;
 	int      	lmax;

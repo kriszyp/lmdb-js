@@ -1,4 +1,8 @@
 /* id.c - keep track of the next id to be given out */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 

@@ -2,6 +2,7 @@
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
+
 #ifndef _LDBM_EXTERNAL_H
 #define _LDBM_EXTERNAL_H
 

@@ -1,4 +1,8 @@
 /* modrdn.c - ldbm backend modrdn routine */
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 /*
  * LDAP v3 newSuperior support. Add new rdn as an attribute.

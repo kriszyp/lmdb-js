@@ -1,3 +1,7 @@
+/*
+ * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* ldif2common.c - common definitions for the ldif2* tools */
 
 #include "portable.h"

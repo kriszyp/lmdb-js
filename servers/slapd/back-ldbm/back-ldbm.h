@@ -1,8 +1,8 @@
+/* back-ldbm.h - ldap ldbm back-end header file */
 /*
  * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
-/* back-ldbm.h - ldap ldbm back-end header file */
 
 #ifndef _BACK_LDBM_H_
 #define _BACK_LDBM_H_
