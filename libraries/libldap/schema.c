@@ -618,6 +618,52 @@ parse_qdescrs(char **sp, int *code)
 	}
 }
 
+/* Parse a woid */
+static char *
+parse_woid(char **sp, int *code)
+{
+	char * sval;
+	int kind;
+
+	parse_whsp(sp);
+	kind = get_token(sp, &sval);
+	if ( kind != TK_BAREWORD ) {
+		*code = SCHEMA_ERR_UNEXPTOKEN;
+		return NULL;
+	}
+	parse_whsp(sp);
+	return sval;
+}
+
+/* Parse a noidlen */
+static char *
+parse_noidlen(char **sp, int *code, int *len)
+{
+	char * sval;
+	int kind;
+
+	*len = 0;
+	kind = get_token(sp, &sval);
+	if ( kind != TK_BAREWORD ) {
+		*code = SCHEMA_ERR_UNEXPTOKEN;
+		return NULL;
+	}
+	if ( **sp == '{' ) {
+		(*sp)++;
+		*len = atoi(**sp);
+		while ( isdigit(**sp) )
+			(*sp)++;
+		(*sp)++;
+		if ( **sp != '}' ) {
+			*code = SCHEMA_ERR_UNEXPTOKEN;
+			ldap_memfree(sval);
+			return NULL;
+		}
+		(*sp)++;
+	}		
+	return sval;
+}
+
 /* Parse a woid or a $-separated list of them enclosed in () */
 static char **
 parse_oids(char **sp, int *code)
@@ -705,6 +751,267 @@ parse_oids(char **sp, int *code)
 	} else {
 		*code = SCHEMA_ERR_BADNAME;
 		return NULL;
+	}
+}
+
+static void
+free_at(LDAP_ATTRIBUTE_TYPE * at)
+{
+	ldap_memfree(at->at_oid);
+	charray_free(at->at_names);
+	ldap_memfree(at->at_desc);
+	ldap_memfree(at->at_sup_oid);
+	ldap_memfree(at->at_equality_oid);
+	ldap_memfree(at->at_ordering_oid);
+	ldap_memfree(at->at_substr_oid);
+	ldap_memfree(at->at_syntax_oid);
+	ldap_memfree(at);
+}
+
+LDAP_ATTRIBUTE_TYPE *
+ldap_str2attributetype( char * s, int * code, char ** errp )
+{
+	int kind;
+	char * ss = s;
+	char * sval;
+	int seen_name = 0;
+	int seen_desc = 0;
+	int seen_obsolete = 0;
+	int seen_sup = 0;
+	int seen_equality = 0;
+	int seen_ordering = 0;
+	int seen_substr = 0;
+	int seen_syntax = 0;
+	int seen_usage = 0;
+	int seen_kind = 0;
+	int seen_must = 0;
+	int seen_may = 0;
+	LDAP_ATTRIBUTE_TYPE * at;
+
+	*errp = s;
+	at = calloc(1,sizeof(LDAP_ATTRIBUTE_TYPE));
+
+	if ( !at ) {
+		*code = SCHEMA_ERR_OUTOFMEM;
+		return NULL;
+	}
+
+	kind = get_token(&ss,&sval);
+	if ( kind != TK_LEFTPAREN ) {
+		*code = SCHEMA_ERR_NOLEFTPAREN;
+		free_at(at);
+		return NULL;
+	}
+
+	parse_whsp(&ss);
+	at->at_oid = parse_numericoid(&ss,code);
+	if ( !at->at_oid ) {
+		*errp = ss;
+		free_at(at);
+		return NULL;
+	}
+	parse_whsp(&ss);
+
+	/*
+	 * Beyond this point we will be liberal an accept the items
+	 * in any order.
+	 */
+	while (1) {
+		kind = get_token(&ss,&sval);
+		switch (kind) {
+		case TK_EOS:
+			*code = SCHEMA_ERR_NORIGHTPAREN;
+			*errp = ss;
+			free_at(at);
+			return NULL;
+		case TK_RIGHTPAREN:
+			return at;
+		case TK_BAREWORD:
+			if ( !strcmp(sval,"NAME") ) {
+				if ( seen_name ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_name = 1;
+				at->at_names = parse_qdescrs(&ss,code);
+				if ( !at->at_names ) {
+					if ( *code != SCHEMA_ERR_OUTOFMEM )
+						*code = SCHEMA_ERR_BADNAME;
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"DESC") ) {
+				if ( seen_desc ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_desc = 1;
+				parse_whsp(&ss);
+				kind = get_token(&ss,&sval);
+				if ( kind != TK_QDSTRING ) {
+					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+				at->at_desc = sval;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"OBSOLETE") ) {
+				if ( seen_obsolete ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_obsolete = 1;
+				at->at_obsolete = 1;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"SUP") ) {
+				if ( seen_sup ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_sup = 1;
+				at->at_sup_oid = parse_woid(&ss,code);
+				if ( !at->at_sup_oid ) {
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"EQUALITY") ) {
+				if ( seen_equality ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_equality = 1;
+				at->at_equality_oid = parse_woid(&ss,code);
+				if ( !at->at_equality_oid ) {
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"ORDERING") ) {
+				if ( seen_ordering ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_ordering = 1;
+				at->at_ordering_oid = parse_woid(&ss,code);
+				if ( !at->at_ordering_oid ) {
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"SUBSTR") ) {
+				if ( seen_substr ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_substr = 1;
+				at->at_substr_oid = parse_woid(&ss,code);
+				if ( !at->at_substr_oid ) {
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"SYNTAX") ) {
+				if ( seen_syntax ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_syntax = 1;
+				parse_whsp(&ss);
+				at->at_syntax_oid = parse_noidlen(&ss,code,&at->at_syntax_len);
+				if ( !at->at_syntax_oid ) {
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"SINGLE-VALUE") ) {
+				if ( at->at_single_value ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				at->at_single_value = 1;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"COLLECTIVE") ) {
+				if ( at->at_collective ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				at->at_collective = 1;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"NO-USER-MODIFICATION") ) {
+				if ( at->at_no_user_mod ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				at->at_no_user_mod = 1;
+				parse_whsp(&ss);
+			} else if ( !strcmp(sval,"USAGE") ) {
+				if ( seen_usage ) {
+					*code = SCHEMA_ERR_DUPOPT;
+					*errp = ss;
+					free_at(at);
+					return(NULL);
+				}
+				seen_usage = 1;
+				parse_whsp(&ss);
+				kind = get_token(&ss,&sval);
+				if ( kind != TK_BAREWORD ) {
+					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+				if ( !strcasecmp(sval,"userApplications") )
+					at->at_usage = 0;
+				else if ( !strcasecmp(sval,"directoryOperation") )
+					at->at_usage = 1;
+				else if ( !strcasecmp(sval,"distributedOperation") )
+					at->at_usage = 2;
+				else if ( !strcasecmp(sval,"dSAOperation") )
+					at->at_usage = 3;
+				else {
+					*code = SCHEMA_ERR_UNEXPTOKEN;
+					*errp = ss;
+					free_at(at);
+					return NULL;
+				}
+			} else {
+				*code = SCHEMA_ERR_UNEXPTOKEN;
+				*errp = ss;
+				free_at(at);
+				return NULL;
+			}
+			break;
+		default:
+			*code = SCHEMA_ERR_UNEXPTOKEN;
+			*errp = ss;
+			free_at(at);
+			return NULL;
+		}
 	}
 }
 
@@ -803,7 +1110,7 @@ ldap_str2objectclass( char * s, int * code, char ** errp )
 				if ( kind != TK_QDSTRING ) {
 					*code = SCHEMA_ERR_UNEXPTOKEN;
 					*errp = ss;
-					free(oc);
+					free_oc(oc);
 					return NULL;
 				}
 				oc->oc_desc = sval;
