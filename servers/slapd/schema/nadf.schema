@@ -93,12 +93,12 @@ attributetype ( 2.6.6.5.2.4.16 NAME 'multiMediaInformation'
 # Object classes
 
 # According to the intended use described in section 3.3.1 in the spec,
-# this can only be AUXILIARY.
+# this can only be ABSTRACT.
 # We had lastModifiedTime as 'allows', but sd-04 has it as MUST.
 # We did not have multiMediaInformation neither on this class nor
 # on any of its derived classes.
 
-objectclass ( 2.6.6.5.2.6.7 NAME 'nadfObject' SUP top AUXILIARY
+objectclass ( 2.6.6.5.2.6.7 NAME 'nadfObject' SUP top ABSTRACT
 	MUST lastModifiedTime
 	MAY ( multiMediaInformation $ nadfSearchGuide $
 	supplementaryInformation ) )
