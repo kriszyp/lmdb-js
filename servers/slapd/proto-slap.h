@@ -355,6 +355,18 @@ LDAP_SLAPD_F (ContentRule *) cr_bvfind LDAP_P((
 	struct berval *crname));
 
 /*
+ * ctxcsn.c
+ */
+
+#ifdef LDAP_SYNC
+LDAP_SLAPD_F (struct berval *) slap_get_commit_csn LDAP_P(( Operation * ));
+LDAP_SLAPD_F (void) slap_rewind_commit_csn LDAP_P(( Operation * ));
+LDAP_SLAPD_F (void) slap_graduate_commit_csn LDAP_P(( Operation * ));
+LDAP_SLAPD_F (Entry *) slap_create_context_csn_entry LDAP_P(( Backend *, struct berval *));
+LDAP_SLAPD_F (int) slap_get_csn LDAP_P(( Operation *, const char *, int, struct berval *, int ));
+#endif
+
+/*
  * daemon.c
  */
 LDAP_SLAPD_F (void) slapd_add_internal(ber_socket_t s);
@@ -1167,15 +1179,6 @@ LDAP_SLAPD_F (char **) str2clist LDAP_P(( char ***, char *, const char * ));
 
 LDAP_SLAPD_F (void)  syncrepl_add_glue LDAP_P(( syncinfo_t *, LDAP *, Operation*, Entry*,
 							Modifications*, int, struct berval*, struct berval* ));
-#endif
-
-#ifdef LDAP_SYNC
-LDAP_SLAPD_F (struct berval *) commit_csn LDAP_P(( Operation * ));
-LDAP_SLAPD_F (void) rewind_commit_csn LDAP_P(( Operation * ));
-LDAP_SLAPD_F (void) graduate_commit_csn LDAP_P(( Operation * ));
-LDAP_SLAPD_F (void) update_context_csn LDAP_P(( Backend *, struct berval * ));
-LDAP_SLAPD_F (Entry *) create_context_csn_entry LDAP_P(( Backend *, struct berval *));
-
 #endif
 
 LDAP_END_DECL

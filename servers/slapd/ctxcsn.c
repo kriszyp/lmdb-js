@@ -36,7 +36,7 @@
 #ifdef LDAP_SYNC
 
 struct berval *
-commit_csn( Operation *op )
+slap_get_commit_csn( Operation *op )
 {
 	struct berval *max_committed_csn = NULL;
 	struct slap_csn_entry *csne = NULL, *committed_csne = NULL;
@@ -70,7 +70,7 @@ commit_csn( Operation *op )
 }
 
 void
-rewind_commit_csn( Operation *op )
+slap_rewind_commit_csn( Operation *op )
 {
 	struct slap_csn_entry *csne = NULL;
 
@@ -89,7 +89,7 @@ rewind_commit_csn( Operation *op )
 }
 
 void
-graduate_commit_csn( Operation *op )
+slap_graduate_commit_csn( Operation *op )
 {
 	struct slap_csn_entry *csne = NULL;
 
@@ -113,7 +113,7 @@ graduate_commit_csn( Operation *op )
 }
 
 Entry *
-create_context_csn_entry(
+slap_create_context_csn_entry(
 	Backend *be,
 	struct berval *context_csn
 )
@@ -269,7 +269,7 @@ create_context_csn_entry(
 }
 
 static int
-contextcsn_callback(
+slap_contextcsn_callback(
 	Operation* op,
 	SlapReply* rs
 )
@@ -279,6 +279,40 @@ contextcsn_callback(
 	} else {
 		*((int*)op->o_callback->sc_private) = 1;
 	}
+	return LDAP_SUCCESS;
+}
+
+int
+slap_get_csn(
+	Operation *op,
+	const char *csnbuf,
+	int	len,
+	struct berval *csn,
+	int manage_ctxcsn
+)
+{
+	struct	slap_csn_entry *pending;
+
+	if ( manage_ctxcsn ) {
+		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
+	}
+
+	if ( csn == NULL )
+		return LDAP_OTHER;
+
+	csn->bv_len = lutil_csnstr( csnbuf, len, 0, 0 );
+	csn->bv_val = csnbuf;
+
+	if ( manage_ctxcsn ) {
+		ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
+		pending->csn = ber_dupbv( NULL, csn );
+		pending->connid = op->o_connid;
+		pending->opid = op->o_opid;
+		pending->state = SLAP_CSN_PENDING;
+		LDAP_TAILQ_INSERT_TAIL( &op->o_bd->be_pending_csn_list, pending, csn_link );
+		ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
+	}
+
 	return LDAP_SUCCESS;
 }
 #endif

@@ -288,27 +288,22 @@ void syncrepl_add_glue( syncinfo_t *si, LDAP *ld, Operation *op, Entry *e,
 }
 
 #if 0
-struct berval *commit_csn( Operation *op )
+struct berval *slap_get_commit_csn( Operation *op )
 {
 	return NULL;
 }
 
-void rewind_commit_csn( Operation *op )
+void slap_rewind_commit_csn( Operation *op )
 {
 	return;
 }
 
-void graduate_commit_csn( Operation *op )
+void slap_graduate_commit_csn( Operation *op )
 {
 	return;
 }
 
-void update_context_csn( Backend *be, struct berval *context_csn )
-{
-	return;
-}
-
-Entry *create_context_csn_entry( Backend *be, struct berval *context_csn )
+Entry *slap_create_context_csn_entry( Backend *be, struct berval *context_csn )
 {
 	return NULL;
 }

@@ -544,7 +544,7 @@ do_modify(
 cleanup:
 
 #ifdef LDAP_SYNC
-	graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 #endif
 
 	op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
@@ -773,10 +773,6 @@ int slap_mods_opattrs(
 	int mop = op->o_tag == LDAP_REQ_ADD
 		? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
 
-#ifdef LDAP_SYNC
-	struct slap_csn_entry *pending;
-#endif
-
 #ifdef LDAP_SYNCREPL
 	syncinfo_t *si = op->o_si;
 #endif
@@ -793,24 +789,14 @@ int slap_mods_opattrs(
 		struct tm *ltm;
 		time_t now = slap_get_time();
 
-#ifdef LDAP_SYNC
-		pending = (struct slap_csn_entry *) ch_calloc( 1, sizeof( struct slap_csn_entry ));
-#endif
-
 		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
 		ltm = gmtime( &now );
 		lutil_gentime( timebuf, sizeof(timebuf), ltm );
 
-		csn.bv_len = lutil_csnstr( csnbuf, sizeof( csnbuf ), 0, 0 );
-		csn.bv_val = csnbuf;
 #ifdef LDAP_SYNC
-		ldap_pvt_thread_mutex_lock( &op->o_bd->be_pcl_mutex );
-		pending->csn = ber_dupbv( NULL, &csn );
-		pending->connid = op->o_connid;
-		pending->opid = op->o_opid;
-		pending->state = SLAP_CSN_PENDING;
-		LDAP_TAILQ_INSERT_TAIL( &op->o_bd->be_pending_csn_list, pending, csn_link );
-		ldap_pvt_thread_mutex_unlock( &op->o_bd->be_pcl_mutex );
+		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
+#else
+		slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 0 );
 #endif
 
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );

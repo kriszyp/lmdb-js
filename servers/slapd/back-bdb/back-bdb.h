@@ -223,6 +223,12 @@ struct bdb_op_info {
 
 #define BDB_REUSE_LOCKERS
 
+#ifdef LDAP_SYNC
+#define BDB_CSN_COMMIT	0
+#define BDB_CSN_ABORT	1
+#define BDB_CSN_RETRY	2
+#endif
+
 LDAP_END_DECL
 
 #include "proto-bdb.h"

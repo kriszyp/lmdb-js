@@ -853,11 +853,6 @@ dn2entry_retry:
 		} else {
 			csnfge.f_next = sop->oq_search.rs_filter;
 		}
-
-		if ( search_context_csn && search_context_csn->bv_val )
-			printf("search_context_csn = %s\n", search_context_csn->bv_val );
-		else
-			printf("search_context_csn = NULL\n");
 	}
 #endif
 

@@ -34,6 +34,13 @@ int bdb_attr_index_config LDAP_P(( struct bdb_info *bdb,
 void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
+ * ctxcsn.c
+ */
+int bdb_csn_commit LDAP_P(( Operation *op, SlapReply *rs, DB_TXN *tid,
+						EntryInfo *ei, EntryInfo **suffix_ei, Entry **ctxcsn_e,
+						int *ctxcsn_added, u_int32_t locker ));
+
+/*
  * dbcache.c
  */
 #define bdb_db_cache				BDB_SYMBOL(db_cache)

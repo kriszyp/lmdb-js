@@ -377,7 +377,7 @@ do_add( Operation *op, SlapReply *rs )
 done:
 
 #ifdef LDAP_SYNC
-	graduate_commit_csn( op );
+	slap_graduate_commit_csn( op );
 #endif
 
 	if( modlist != NULL ) {
