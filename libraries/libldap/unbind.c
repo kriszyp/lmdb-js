@@ -36,6 +36,9 @@ ldap_unbind_ext(
 {
 	int rc;
 
+	assert( ld != NULL );
+	assert( LDAP_VALID( ld ) );
+
 	/* check client controls */
 	rc = ldap_int_client_controls( ld, cctrls );
 	if( rc != LDAP_SUCCESS ) return rc;
@@ -72,16 +75,16 @@ ldap_ld_free(
 	int		err = LDAP_SUCCESS;
 	LDAPRequest	*lr, *nextlr;
 
-		/* free LDAP structure and outstanding requests/responses */
-		for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
-			nextlr = lr->lr_next;
-			ldap_free_request( ld, lr );
-		}
+	/* free LDAP structure and outstanding requests/responses */
+	for ( lr = ld->ld_requests; lr != NULL; lr = nextlr ) {
+		nextlr = lr->lr_next;
+		ldap_free_request( ld, lr );
+	}
 
-		/* free and unbind from all open connections */
-		while ( ld->ld_conns != NULL ) {
-			ldap_free_connection( ld, ld->ld_conns, 1, close );
-		}
+	/* free and unbind from all open connections */
+	while ( ld->ld_conns != NULL ) {
+		ldap_free_connection( ld, ld->ld_conns, 1, close );
+	}
 
 	for ( lm = ld->ld_responses; lm != NULL; lm = next ) {
 		next = lm->lm_next;
