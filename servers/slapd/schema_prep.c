@@ -57,33 +57,26 @@ oidValidate(
 		}
 
 	} else {
+		int sep = 0;
 		while( OID_LEADCHAR( val.bv_val[0] ) ) {
-			if ( val.bv_len == 1 ) {
-				return LDAP_SUCCESS;
-			}
-
-			/* FIXME: the OID of 'dc' and other attributeTypes
-			 * starts with '0'! */
-			if ( val.bv_val[0] == '0' && !OID_SEPARATOR( val.bv_val[1] ) ) {
-				break;
-			}
-
 			val.bv_val++;
 			val.bv_len--;
 
-			while ( OID_LEADCHAR( val.bv_val[0] )) {
-				val.bv_val++;
-				val.bv_len--;
-
-				if ( val.bv_len == 0 ) {
-					return LDAP_SUCCESS;
+			if ( val.bv_val[-1] != '0' ) {
+				while ( OID_LEADCHAR( val.bv_val[0] )) {
+					val.bv_val++;
+					val.bv_len--;
 				}
 			}
 
-			if( !OID_SEPARATOR( val.bv_val[0] )) {
-				break;
+			if( val.bv_len == 0 ) {
+				if( sep == 0 ) break;
+				return LDAP_SUCCESS;
 			}
 
+			if( !OID_SEPARATOR( val.bv_val[0] )) break;
+
+			sep++;
 			val.bv_val++;
 			val.bv_len--;
 		}
