@@ -12,11 +12,19 @@
 
 #include "slap.h"
 
-#define BDB_IDL_DB_SIZE		(1<<8) /* 64K IDL on disk */
+#ifdef 0
+	/* larger IDL sizes (which blow thread stacks) */
+#define BDB_IDL_DB_SIZE		(1<<16) /* 64K IDL on disk */
+#define BDB_IDL_SIZE		(1<<17) /* 128K IDL in memory */
+#else
+	/* reduced IDL sizes for testing */
+#define BDB_IDL_DB_SIZE		(1<<8) /* 256 IDL on disk */
+#define BDB_IDL_SIZE		(1<<10) /* 1K IDL in memory */
+#endif
+
 #define BDB_IDL_DB_MAX		(BDB_IDL_DB_SIZE-32)
 /* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
 
-#define BDB_IDL_SIZE		(1<<10) /* 128K IDL in memory */
 #define BDB_IDL_MAX			(BDB_IDL_DB_SIZE-32)
 /* #define BDB_IDL_DB_ALLOC	(BDB_IDL_DB_SIZE * sizeof(ID)) */
 
