@@ -104,9 +104,9 @@ AC_SUBST(OPENLDAP_LIBVERSION)dnl
 OPENLDAP_RELEASE_DATE="$OL_RELEASE_DATE"
 AC_SUBST(OPENLDAP_RELEASE_DATE)dnl
 
-dnl We use autoconf features new to 2.13.
+dnl We use autoconf features new to 2.13.  Later versions like won't work.
 dnl aclocal.m4 should be built using aclocal from automake 1.4
-dnl libtool 1.4.2 should be installed.
+dnl libtool 1.4.3 should be installed.
 AC_PREREQ(2.13)dnl Required Autoconf version
 
 AC_CONFIG_HEADER(include/portable.h include/ldap_features.h include/lber_types.h)dnl
