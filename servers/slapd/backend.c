@@ -277,8 +277,6 @@ int backend_shutdown( Backend *be )
 
 	/* close each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
-		BackendInfo  *bi;
-
 		if ( backendDB[i].bd_info->bi_db_close ) {
 			backendDB[i].bd_info->bi_db_close(
 				&backendDB[i] );
@@ -287,7 +285,7 @@ int backend_shutdown( Backend *be )
 		if(rc != 0) {
 			Debug( LDAP_DEBUG_ANY,
 				"backend_close: bi_close %s failed!\n",
-				bi->bi_type, 0, 0 );
+				backendDB[i].be_type, 0, 0 );
 		}
 	}
 

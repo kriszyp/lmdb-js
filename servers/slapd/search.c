@@ -125,6 +125,7 @@ do_search(
 			send_ldap_result( conn, op, err,
 				NULL, "Bad search filter", NULL, NULL );
 		}
+		rc = -1;
 		goto return_results;
 	}
 
