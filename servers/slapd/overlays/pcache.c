@@ -1224,7 +1224,7 @@ proxy_cache_response(
 				si->tail = NULL;
 			}
 		}
-	} else if ( rs->sr_type == REP_RESULT && !si->over ) {
+	} else if ( rs->sr_type == REP_RESULT && si->count ) {
 		if ( cache_entries( op, rs, &uuid ) == 0) {
 			qm->addfunc(qm, &si->query, si->template_id, &uuid);
 			/* If the consistency checker suspended itself,
