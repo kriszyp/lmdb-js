@@ -27,7 +27,9 @@ rm -rf $P1REPLDIR
 mkdir $P1REPLDIR
 
 SAVE=$BACKEND
-BACKEND=bdb
+if test $BACKEND = ldbm; then
+	BACKEND=bdb
+fi
 echo "Starting master slapd on TCP/IP port $PORT..."
 . $CONFFILTER $BACKEND $MONITORDB < $SRMASTERCONF > $DBCONF
 $SLAPD -f $DBCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
