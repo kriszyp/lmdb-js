@@ -4,19 +4,18 @@
 H1: The Big Picture - Configuration Choices
 
 This section gives a brief overview of various LDAP directory
-configurations, and how your LDAP server (either {{I:slapd}} or 
-{{I:ldapd}}) fits in with the rest of the world.
+configurations, and how your stand-alone LDAP server {{I:slapd}}
+fits in with the rest of the world.
 
 
+H2: Local Directory Service
 
-H2: LDAP as a local service only
-
-In this configuration, you run a {{I:slapd}} which provides directory service
-for your local domain only. It does not interact with other directory
-servers in any way. This configuration is shown in Figure 2.
+In this configuration, you run a {{I:slapd}} which provides directory
+service for your local domain only. It does not interact with other
+directory servers in any way. This configuration is shown in Figure 3.1.
 
 !import "config_local.gif"; align="center"; title="Local service via slapd configuration"
-FT[align="Center"] Figure 2: Local service via slapd configuration.
+FT[align="Center"] Figure 3.1: Local service configuration.
 
 Use this configuration if you are just starting out (it's the one the
 quick-start guide makes for you) or if you want to provide a local
@@ -24,52 +23,41 @@ service and are not interested in connecting to the rest of the world.
 It's easy to upgrade to another configuration later if you want.
 
 
-
-H2: Local service with X.500 referrals
+H2: Local Directory Service with Referrals
 
 In this configuration, you run a slapd which provides directory service
-for your local domain and an ldapd which provides access to the
-X.500 world (you don't have to run the ldapd yourself - you can just
-point to somebody else who does and doesn't mind you pointing to
-their service). This configuration is shown in Figure 3.
+for your local domain and configure it to return referrals to a
+{{superior}} service capable of requests outside your local domain.
+You may run this service yourself or use one provided to you.
+This configuration is shown in Figure 3.2.
 
-!import "config_x500ref.gif"; align="center"; title="Local service via slapd + X.500 referrals configuration"
-FT[align="Center"] Figure 3: Local service via slapd + X.500 referrals configuration
+!import "config_ref.gif"; align="center"; title="Local service with referrals"
+FT[align="Center"] Figure 3.2: Local service with referrals 
 
-Use this configuration if you want to provide local service but still want
-to be connected to the rest of the X.500 world. Remember, you don't
-necessarily have to be running the ldapd in this picture; you just need
-to find one you can point to.
+Use this configuration if you want to provide local service and 
+participate in the Global Directory.
 
 
-
-H2: LDAP as a front end to X.500
-
-In this configuration, you run an X.500 service which provides
-directory service for your local domain and gatewaying service to the
-rest of the X.500 world. LDAP clients gain access to the directory
-through an ldapd which runs at your site. This configuration is shown
-in Figure 4.
-
-!import "config_x500fe.gif"; align="center"; title="Local service via X.500 and ldapd configuration"
-FT[align="Center"] Figure 4: Local service via X.500 and ldapd configuration
-
-Use this configuration if you are already running an X.500 service.
-Slapd is not involved in this configuration, so you can probably stop
-reading this guide.
-
-
-
-H2: Replicated slapd service
+H2: Replicated Directory Service
 
 The slurpd daemon is used to propagate changes from a master slapd
 to one or more slave slapds. An example master-slave configuration
-is shown in figure 5.
+is shown in figure 3.3.
 
-!import "config_repl.gif"; align="center"; title="Master slapd with two slaves replicated with slurpd"
-FT[align="Center"] Figure 5: Master slapd with two slaves replicated with slurpd
+!import "config_repl.gif"; align="center"; title="Replicated Directory Services"
+FT[align="Center"] Figure 3.3: Replicated Directory Services
 
-This configuration can be used in conjunction with the first two
-configurations in situations where a single slapd does not provide the
-required reliability or availability.
+This configuration can be used in conjunction with either of first
+two configurations in situations where a single slapd does not
+provide the required reliability or availability.
+
+H2: Distributed Local Directory Service
+
+In this configuration, the local service is partitioned into smaller
+services, each which may be replicated, and {{glued}} together with
+{{superior}} and {{subordinate}} referrals.  An example of this
+configuration is shown in Figure 3.4.
+
+!import "config_dist.gif"; align="center"; title="Distributed Local Directory Services"
+FT[align="Center"] Figure 3.4: Distributed Local Directory Services
 

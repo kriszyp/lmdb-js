@@ -71,14 +71,14 @@ and/or organizational boundaries.  Entries representing countries
 appeared at the top of the tree. Below them are entries representing
 states and national organizations. Below them might be entries
 representing organizational units, people, printers, documents,
-or just about anything else you can think of.  Figure 1 shows an
+or just about anything else you can think of.  Figure 1.1 shows an
 example LDAP directory tree using traditional naming.
 
 !import "intro_tree.gif"; align="center"; title="LDAP directory tree (traditional naming)"
 FT[align="Center"] Figure 1.1: LDAP directory tree (traditional naming)
 
 The tree may also be arranged based upon Internet domain names.
-Figure 2 shows an example using this increasing popular naming approach.
+Figure 1.2 shows an example using this increasing popular naming approach.
 
 !import "intro_dctree.gif"; align="center"; title="LDAP directory tree (Internet naming)"
 FT[align="Center"] Figure 1.2: LDAP directory tree (Internet naming)
@@ -94,7 +94,7 @@ by taking the name of the entry itself (called the relative distinguished
 name, or RDN) and concatenating the names of its ancestor entries. For
 example, the entry for Barbara Jensen in the Internet naming example
 above has an RDN of {{EX:uid=babs}} and a DN of
-{{EX:uid=babs, dc=OpenLDAP, dc=com}}". The full DN format is
+{{EX:uid=babs, ou=People, dc=OpenLDAP, dc=com}}". The full DN format is
 described in RFC 2253, "Lightweight Directory Access Protocol (v3):
 UTF-8 String Representation of Distinguished Names."
 
@@ -204,7 +204,7 @@ requires a full X.500 service to make data available to the many LDAP
 clients being developed. As with full X.500 DAP clients, a full X.500
 DAP server is no small piece of software to run.
 
-The stand-alone LDAP daemon, or {{I:slapd}}, is meant to remove much
+The stand-alone LDAP daemon, or {{I:slapd}}(8), is meant to remove much
 of the burden from the server side just as LDAP itself removed much of
 the burden from clients. If you are already running an X.500 DAP service
 and you want to continue to do so, you can probably stop reading this
@@ -226,7 +226,7 @@ gateway.
 
 H2: What is slurpd and what can it do?
 
-{{I:Slurpd}} is a daemon that helps {{I:slapd}} provide 
+{{I:Slurpd}}(8) is a daemon that helps {{I:slapd}} provide 
 replicated service. It is responsible for distributing changes made 
 to the master {{I:slapd}} database out to the various {{I:slapd}} 
 replicas. It frees {{I:slapd}} from having to worry that some

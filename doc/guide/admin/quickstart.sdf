@@ -27,7 +27,7 @@ directory there, and untar it. For example:
 ..{{EX:gunzip -c openldap-release.tgz | tar xvfB -}}
 ..{{EX:cd openldap-release}}
 
-. You'll have to replace {{FILE:openldap-release}} with the full
+. You'll have to replace {{F:openldap-release}} with the full
 name of the release.
 
 
@@ -52,7 +52,7 @@ For example:
 ..{{EX:make}}
 
 . Once OpenLDAP is compiled you need to install it.  By default OpenLDAP 
-is installed into {{FILE:/usr/local}}.  This is typically done as root.
+is installed into {{F:/usr/local}}.  This is typically done as root.
 
 ..{{EX:su root}}
 ..{{EX:make install}}
@@ -64,15 +64,15 @@ file, see chapter 5.
 
 .Now we need to edit the default configuration file that was
 installed earlier.  By default the configuration file for slapd
-is located at {{FILE:/usr/local/etc/openldap/slapd.conf}}.  If
+is located at {{F:/usr/local/etc/openldap/slapd.conf}}.  If
 you specified the {{EX:--prefix}} option when you ran configure,
-then replace {{FILE:/usr/local}} with the value you gave as the
+then replace {{F:/usr/local}} with the value you gave as the
 prefix.  For example, if you ran configure as
 
 ..{{EX:./configure --prefix=/opt/ldap}}
 
 .You would find your configuration file in
-{{FILE:/opt/ldap/etc/openldap/slapd.conf}}. 
+{{F:/opt/ldap/etc/openldap/slapd.conf}}. 
 Now look in the configuration file for a line that begins with 
 
 ..{{EX:database          ldbm}}
@@ -81,7 +81,7 @@ Now look in the configuration file for a line that begins with
 you will need to change for this example is located after this line.
 
 .Listed below are the default settings for the database in
-{{FILE:slapd.conf}}(8).  Lines that begin with a # are considered
+{{F:slapd.conf}}(8).  Lines that begin with a # are considered
 to be comments by slapd, they have been removed from the listing
 below to save space.  If a line starts with white space it is
 considered a continuation of the preceeding line.
@@ -101,9 +101,9 @@ is {{EX:example.net}} we might use the following.
 ..{{EX:directory       /usr/local/var/openldap-ldbm}}
 
 . By default, the database files will be created in
-{{FILE:/usr/local/var/openldap-ldbm}}.
+{{F:/usr/local/var/openldap-ldbm}}.
 You may specify an alternate directory via the directory option
-in the {{FILE:slapd.conf}} file.  The directory must exist before
+in the {{F:slapd.conf}} file.  The directory must exist before
 you start the server.
 
 +{{B:Starting the server}}.
@@ -117,7 +117,7 @@ you start the server.
 any data in the directory.  You can check to see if the server is
 running and your naming context (the {{EX:suffix}} you specified above)
 by searching it with {{I:ldapsearch}}(1).  By default ldapsearch is
-installed as {{FILE:/usr/local/bin/ldapsearch}}.
+installed as {{F:/usr/local/bin/ldapsearch}}.
 
 ..{{EX:ldapsearch -x -b '' -s base '(objectclass=*)' namingContexts}}
 
@@ -130,7 +130,7 @@ special characters from interpreted by the shell.  This should return:
 +{{B:Create a database}}.
 
 . This is a two-step process. The first step is to create a file
-(we'll call it {{FILE:example.ldif}}) containing the entries you
+(we'll call it {{F:example.ldif}}) containing the entries you
 want your database to contain. Use the following example as a
 guide, or see Section 7.3 for more details.
 
@@ -154,11 +154,11 @@ or add them later via LDAP.
 your directory.  We use the tool {{I:ldapadd}}(1) to populate the directory.
 Again remember to replace {{EX:dc=example, dc=net}} with the correct values
 for your site.  By default ldapadd is installed as
-{{FILE:/usr/local/bin/ldapadd}}.
+{{F:/usr/local/bin/ldapadd}}.
 
 ..{{EX:ldapadd -x -D 'cn=Manager,dc=example,dc=net' -w secret -f example.ldif}}
 
-.Where {{FILE:example.ldif}} is the file you created above.
+.Where {{F:example.ldif}} is the file you created above.
 
 +{{B:See if it works}}.
 
