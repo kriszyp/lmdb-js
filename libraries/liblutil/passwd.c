@@ -614,7 +614,7 @@ static int chk_kerberos(
 		krb5_preauthtype pre_auth_types[] = {KRB5_PADATA_ENC_TIMESTAMP};
 #endif
 
-		krb5_init_context( &context );
+		ret = krb5_init_context( &context );
 		if (ret) {
 			return 1;
 		}
