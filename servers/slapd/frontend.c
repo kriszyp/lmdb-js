@@ -65,11 +65,13 @@ frontend_init( void )
 	frontendDB->be_def_limit.lms_s_pr_hide = 0;			/* don't hide number of entries left */
 	frontendDB->be_def_limit.lms_s_pr_total = 0;			/* number of total entries returned by pagedResults equal to hard limit */
 
+#if 0
 	/* FIXME: do we need this? */
 	frontendDB->be_pcl_mutexp = &frontendDB->be_pcl_mutex;
 	ldap_pvt_thread_mutex_init( frontendDB->be_pcl_mutexp );
 
 	LDAP_STAILQ_INIT( &frontendDB->be_syncinfo );
+#endif
 
 	/* suffix */
 	frontendDB->be_suffix = ch_calloc( 2, sizeof( struct berval ) );
@@ -99,7 +101,11 @@ frontend_init( void )
 	frontendDB->bd_info->bi_op_search = fe_op_search;
 	frontendDB->bd_info->bi_extended = fe_extended;
 
+#if 0
 	/* FIXME: is this too early? */
 	return backend_startup_one( frontendDB );
+#endif
+
+	return 0;
 }
 

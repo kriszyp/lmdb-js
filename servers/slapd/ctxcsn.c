@@ -87,7 +87,13 @@ slap_graduate_commit_csn( Operation *op )
 	if ( op == NULL ) return;
 	if ( op->o_bd == NULL ) return;
 
+#if 0
+	/* it is NULL when we get here from the frontendDB;
+	 * alternate fix: initialize frontendDB like all other backends */
 	assert( op->o_bd->be_pcl_mutexp != NULL );
+#endif
+	
+	if ( op->o_bd->be_pcl_mutexp == NULL ) return;
 
 	ldap_pvt_thread_mutex_lock( op->o_bd->be_pcl_mutexp );
 
