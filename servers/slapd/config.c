@@ -3164,6 +3164,8 @@ add_syncrepl(
 	si->si_attrsonly = 0;
 	si->si_attrs = (char **) ch_calloc( 1, sizeof( char * ));
 	si->si_attrs[0] = NULL;
+	si->si_exattrs = (char **) ch_calloc( 1, sizeof( char * ));
+	si->si_exattrs[0] = NULL;
 	si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
 	si->si_retryinterval = 0;
@@ -3222,6 +3224,14 @@ add_syncrepl(
 				}
 				ch_free( si_entry->si_attrs );
 			}
+			if ( si_entry->si_exattrs ) {
+				int i = 0;
+				while ( si_entry->si_exattrs[i] != NULL ) {
+					ch_free( si_entry->si_exattrs[i] );
+					i++;
+				}
+				ch_free( si_entry->si_exattrs );
+			}
 		}
 
 		while ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
@@ -3275,6 +3285,7 @@ add_syncrepl(
 #define SCOPESTR		"scope"
 #define ATTRSSTR		"attrs"
 #define ATTRSONLYSTR	"attrsonly"
+#define EXATTRSSTR		"exattrs"
 #define TYPESTR			"type"
 #define INTERVALSTR		"interval"
 #define LASTMODSTR		"lastmod"
@@ -3456,6 +3467,11 @@ parse_syncrepl_line(
 		{
 			val = cargv[ i ] + sizeof( ATTRSSTR );
 			str2clist( &si->si_attrs, val, "," );
+		} else if ( !strncasecmp( cargv[ i ],
+			EXATTRSSTR, sizeof( EXATTRSSTR ) - 1 ) )
+		{
+			val = cargv[ i ] + sizeof( EXATTRSSTR );
+			str2clist( &si->si_exattrs, val, "," );
 		} else if ( !strncasecmp( cargv[ i ],
 			TYPESTR, sizeof( TYPESTR ) - 1 ) )
 		{

@@ -110,6 +110,22 @@ init_syncrepl(syncinfo_t *si)
 	
 	si->si_attrs = tmp;
 
+	for ( n = 0; si->si_exattrs[ n ] != NULL; n++ ) /* empty */;
+	if ( n ) {
+		/* Delete Attributes from exattrs list */
+		for ( i = 0; sync_descs[i] != NULL; i++ ) {
+			for ( j = 0; si->si_exattrs[j] != NULL; j++ ) {
+				if ( strcmp( si->si_exattrs[j], sync_descs[i]->ad_cname.bv_val )
+					== 0 )
+				{
+					ch_free( si->si_exattrs[j] );
+					for ( k = j; si->si_exattrs[k] != NULL; k++ ) {
+						si->si_exattrs[k] = si->si_exattrs[k+1];
+					}
+				}
+			}
+		}
+	}
 }
 
 static int
@@ -1077,7 +1093,20 @@ syncrepl_message_to_entry(
 		if ( mod->sml_desc->ad_type->sat_flags & SLAP_AT_DYNAMIC ) {
 			*modtail = mod->sml_next;
 			slap_mod_free( &mod->sml_mod, 0 );
-			free( mod );
+			ch_free( mod );
+		} else {
+			modtail = &mod->sml_next;
+		}
+	}
+
+	/* Strip out attrs in exattrs list */
+	for ( modtail = modlist; *modtail ; ) {
+		mod = *modtail;
+		if ( ldap_charray_inlist( si->si_exattrs,
+					mod->sml_desc->ad_type->sat_cname.bv_val )) {
+			*modtail = mod->sml_next;
+			slap_mod_free( &mod->sml_mod, 0 );
+			ch_free( mod );
 		} else {
 			modtail = &mod->sml_next;
 		}

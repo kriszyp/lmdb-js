@@ -1437,6 +1437,7 @@ typedef struct syncinfo_s {
         int					si_scope;
         int					si_attrsonly;
         char				**si_attrs;
+		char				**si_exattrs;
         int					si_type;
         time_t				si_interval;
 		time_t				*si_retryinterval;
