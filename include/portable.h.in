@@ -545,6 +545,9 @@
 /* Define if you have the <syslog.h> header file.  */
 #undef HAVE_SYSLOG_H
 
+/* Define if you have the <tcpd.h> header file.  */
+#undef HAVE_TCPD_H
+
 /* Define if you have the <termcap.h> header file.  */
 #undef HAVE_TERMCAP_H
 
