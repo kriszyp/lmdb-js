@@ -246,6 +246,7 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 		ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_ON );
 	}
 
+#ifdef HAVE_TLS
 	/* start TLS ("start-tls"/"try-start-tls" statements) */
 	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
 				&& !ldap_is_ldaps_url( li->url ) ) {
@@ -310,6 +311,7 @@ retry:;
 			goto error_return;
 		}
 	}
+#endif
 
 	if ( *lcp == NULL ) {
 		*lcp = (struct ldapconn *)ch_malloc( sizeof( struct ldapconn ) );
