@@ -643,12 +643,18 @@ do_syncrepl(
 	}
 
 	if ( rc == -1 ) {
+		int errno;
+		const char *errstr;
+
+		ldap_get_option( ld, LDAP_OPT_ERROR_NUMBER, &errno );
+		errstr = ldap_err2string( errno );
+		
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
-			"do_syncrepl : unknown result\n", 0, 0, 0 );
+			"do_syncrepl : %s\n", errstr, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"do_syncrepl : unknown result\n", 0, 0, 0 );
+			"do_syncrepl : %s\n", errstr, 0, 0 );
 #endif
 	}
 
