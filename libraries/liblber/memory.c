@@ -16,7 +16,13 @@ ber_memfree( void *p )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
+	/* catch p == NULL when debugging */
 	assert( p != NULL );
+
+	/* ignore p == NULL when not debugging */
+	if( p == NULL ) {
+		return;
+	}
 
 	if( ber_int_memory_fns == NULL ) {
 		free( p );
@@ -33,7 +39,13 @@ ber_memalloc( size_t s )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
+	/* catch s == 0 when debugging */
 	assert( s );
+
+	/* ignore s == 0 when not debugging */
+	if( s == 0 ) {
+		return NULL;
+	}
 
 	if( ber_int_memory_fns == NULL ) {
 		return malloc( s );
@@ -49,7 +61,13 @@ ber_memcalloc( size_t n, size_t s )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
+	/* catch s,n == 0 when debugging */
 	assert( n && s );
+
+	/* ignore s,n == 0 when not debugging */
+	if( n == 0 || s == 0 ) {
+		return NULL;
+	}
 
 	if( ber_int_memory_fns == NULL ) {
 		return calloc( n, s );
@@ -65,10 +83,12 @@ ber_memrealloc( void* p, size_t s )
 {
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
+	/* realloc(NULL,s) -> malloc(s) */
 	if( p == NULL ) {
 		return ber_memalloc( s );
 	}
 	
+	/* realloc(p,0) -> free(p) */
 	if( s == 0 ) {
 		ber_memfree( p );
 		return NULL;

@@ -56,7 +56,7 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	(1 << (n))
 #define LDAP_BOOL_GET(lo, bool)	((lo)->ldo_booleans & LDAP_BOOL(bool) \
-									?  LDAP_OPT_ON : LDAP_OPT_OFF)
+									?  -1 : 0)
 #define LDAP_BOOL_SET(lo, bool) ((lo)->ldo_booleans |= LDAP_BOOL(bool))
 #define LDAP_BOOL_CLR(lo, bool) ((lo)->ldo_booleans &= ~LDAP_BOOL(bool))
 #define LDAP_BOOL_ZERO(lo) ((lo)->ldo_booleans = 0)

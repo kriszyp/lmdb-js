@@ -110,7 +110,7 @@ ldap_send_initial_request(
 
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	if (( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_DNS ) == LDAP_OPT_ON )
+	if ( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_DNS ))
 		&& ldap_is_dns_dn( dn ) )
 	{
 		if (( servers = dn2servers( ld, dn )) == NULL ) {

@@ -167,18 +167,15 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_REFERRALS:
-		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_REFERRALS) ==
-				      LDAP_OPT_ON);
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_REFERRALS);
 		return LDAP_OPT_SUCCESS;
 		
 	case LDAP_OPT_RESTART:
-		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART) ==
-				      LDAP_OPT_ON);
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART);
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_DNS:	/* LDAPv2 */
-		* (int *) outvalue = (LDAP_BOOL_GET(lo, LDAP_BOOL_DNS) ==
-				      LDAP_OPT_ON);
+		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_DNS);
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_PROTOCOL_VERSION:
@@ -320,18 +317,18 @@ ldap_set_option(
 
 	switch(option) {
 	case LDAP_OPT_REFERRALS:
-		if(invalue == LDAP_OPT_ON) {
-			LDAP_BOOL_SET(lo, LDAP_BOOL_REFERRALS);
-		} else {
+		if(invalue == LDAP_OPT_OFF) {
 			LDAP_BOOL_CLR(lo, LDAP_BOOL_REFERRALS);
+		} else {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_REFERRALS);
 		}
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_RESTART:
-		if(invalue == LDAP_OPT_ON) {
-			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
-		} else {
+		if(invalue == LDAP_OPT_OFF) {
 			LDAP_BOOL_CLR(lo, LDAP_BOOL_RESTART);
+		} else {
+			LDAP_BOOL_SET(lo, LDAP_BOOL_RESTART);
 		}
 		return LDAP_OPT_SUCCESS;
 	}

@@ -162,15 +162,13 @@ main(int argc, char **argv)
 		fprintf(stderr, "%s: ldap_get_option(referrals) failed\n", argv[0]);
 		return EXIT_FAILURE;
 	}
-	printf("  REFERRALS:         %s\n",
-		ival == (int) LDAP_OPT_ON ? "on" : "off");
+	printf("  REFERRALS:         %s\n", ival ? "on" : "off");
 
 	if(ldap_get_option(NULL, LDAP_OPT_RESTART, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(restart) failed\n", argv[0]);
 		return EXIT_FAILURE;
 	}
-	printf("  RESTART:           %s\n",
-		ival == (int) LDAP_OPT_ON ? "on" : "off");
+	printf("  RESTART:           %s\n", ival ? "on" : "off");
 
 	if(ldap_get_option(NULL, LDAP_OPT_PROTOCOL_VERSION, &ival) != LDAP_SUCCESS) {
 		fprintf(stderr, "%s: ldap_get_option(protocol version) failed\n", argv[0]);
