@@ -428,17 +428,30 @@ ldap_back_op_result(
 	 * to a successful state, get the error from the
 	 * remote server response */
 	if ( ERR_OK( rs->sr_err ) ) {
+		int		rc;
+		struct timeval	tv = { 0, 0 };
+
+retry:;
 		/* if result parsing fails, note the failure reason */
-		if ( ldap_result( lc->lc_ld, msgid, 1, NULL, &res ) == -1 ) {
+		switch ( ldap_result( lc->lc_ld, msgid, 1, &tv, &res ) ) {
+		case 0:
+			tv.tv_sec = 0;
+			tv.tv_usec = 100000;	/* 0.1 s */
+			ldap_pvt_thread_yield();
+			goto retry;
+
+		case -1:
 			ldap_get_option( lc->lc_ld, LDAP_OPT_ERROR_NUMBER,
 					&rs->sr_err );
+			break;
+
 
 		/* otherwise get the result; if it is not
 		 * LDAP_SUCCESS, record it in the reply
 		 * structure (this includes 
 		 * LDAP_COMPARE_{TRUE|FALSE}) */
-		} else {
-			int rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
+		default:
+			rc = ldap_parse_result( lc->lc_ld, res, &rs->sr_err,
 					&match, &text, NULL, NULL, 1 );
 			rs->sr_text = text;
 			if ( rc != LDAP_SUCCESS ) {
