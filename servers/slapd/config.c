@@ -2734,26 +2734,26 @@ str2ocs( ObjectClass ***out, char *in, const char *brkstr )
 	slap_str2clist( &clist, in, brkstr );
 
 	for ( i = 0; clist && clist[i]; i++ ) {
-		struct berval ocbv;
 		if (*clist[i] == '@' ) {
+			struct berval ocbv;
 			ber_str2bv( clist[i]+1, strlen(clist[i]+1), 1, &ocbv );
 			oc = oc_bvfind( &ocbv );
 			if ( oc ) {
 				k++;
 			}
+			ch_free( ocbv.bv_val );
 		}
-		ch_free( ocbv.bv_val );
 	}
 
 	*out = ch_realloc( *out, (k + 1) * sizeof( ObjectClass *));
 
 	for ( i = 0; clist && clist[i]; i++ ) {
-		struct berval ocbv;
 		if (*clist[i] == '@' ) {
+			struct berval ocbv;
 			ber_str2bv( clist[i]+1, strlen(clist[i]+1), 1, &ocbv );
 			(*out)[i] = oc_bvfind( &ocbv );
+			ch_free( ocbv.bv_val );
 		}
-		ch_free( ocbv.bv_val );
 	}
 
 	(*out)[i] = NULL;
