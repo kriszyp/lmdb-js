@@ -809,9 +809,6 @@ limits_parse_one(
 				} else if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_pr = -1;
 
-				} else if ( strcasecmp( arg, "disabled" ) == 0 ) {
-					limit->lms_s_pr_total = -2;
-
 				} else {
 					char	*next = NULL;
 					int	pr = strtol( arg, &next, 10 );
@@ -836,6 +833,9 @@ limits_parse_one(
 
 				if ( strcasecmp( arg, "none" ) == 0 ) {
 					limit->lms_s_pr_total = -1;
+
+				} else if ( strcasecmp( arg, "disabled" ) == 0 ) {
+					limit->lms_s_pr_total = -2;
 
 				} else if ( strcasecmp( arg, "hard" ) == 0 ) {
 					limit->lms_s_pr_total = 0;
