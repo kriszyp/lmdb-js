@@ -12,9 +12,10 @@ microsoft.ext.schema    Microsoft
 microsoft.schema        Microsoft
 microsoft.std.schema    Microsoft
 misc.schema             misc/experimental
+nadf.schema             North American Directory Forum schema
 nis.schema              Network Information Service
 openldap.schema         OpenLDAP Project
-vendor.schema			Vendor Information (RFC 3045) schema
+vendor.schema           Vendor Information (RFC 3045) schema
 
 Additional "generally useful" schema definitions can be submitted
 using the OpenLDAP Issue Tracking System <http://www.openldap.org/its/>.
