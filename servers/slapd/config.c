@@ -45,7 +45,7 @@ read_config( char *fname )
 	char	*line, *savefname, *saveline;
 	int	cargc, savelineno;
 	char	*cargv[MAXARGS];
-	int	lineno, i;
+	int	lineno, i, rc;
 
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
@@ -599,6 +599,22 @@ read_config( char *fname )
                    }
 		   
 #endif /*SLAPD_MODULES*/
+
+#ifdef HAVE_TLS
+		} else if ( !strcasecmp( cargv[0], "SSLCertificateFile" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_CERTFILE,
+						      cargv[1] );
+			if ( rc )
+				return rc;
+
+		} else if ( !strcasecmp( cargv[0], "SSLCertificateKeyFile" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_KEYFILE,
+						      cargv[1] );
+			if ( rc )
+				return rc;
+#endif
 
 		/* pass anything else to the current backend info/db config routine */
 		} else {
