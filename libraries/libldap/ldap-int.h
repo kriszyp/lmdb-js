@@ -370,12 +370,6 @@ LDAP_F (int) ldap_check_cache LDAP_P(( LDAP *ld, ber_tag_t msgtype, BerElement *
 /*
  * in controls.c
  */
-LDAP_F (LDAPControl *) ldap_control_dup LDAP_P((
-	const LDAPControl *ctrl ));
-
-LDAP_F (LDAPControl **) ldap_controls_dup LDAP_P((
-	LDAPControl *const *ctrls ));
-
 LDAP_F (int) ldap_int_get_controls LDAP_P((
 	BerElement *be,
 	LDAPControl ***ctrlsp));
