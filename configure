@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.368 2001/10/04 04:34:05 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.369 2001/10/04 13:28:01 ando Exp  
 
 # Copyright 1998-2001 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -17559,7 +17559,7 @@ EOF
 
 	BUILD_SLAPD=yes
 	BUILD_LDBM=yes
-	LDBM_LIB="-ldbm"
+	LDBM_LIB="-lldbm"
 	if test "$ol_with_ldbm_module" != static ; then
 		cat >> confdefs.h <<\EOF
 #define SLAPD_LDBM_DYNAMIC 1
