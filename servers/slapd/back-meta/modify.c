@@ -179,12 +179,18 @@ meta_back_modify(
 				ml->sml_bvalues, conn );
 		}
 
-		for (j = 0; ml->sml_bvalues[ j ].bv_val; j++);
-		mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
-			sizeof(struct berval *));
-		for (j = 0; ml->sml_bvalues[ j ].bv_val; j++)
-			mods[ i ].mod_bvalues[ j ] = &ml->sml_bvalues[j];
-		mods[ i ].mod_bvalues[ j ] = NULL;
+		if ( ml->sml_bvalues != NULL ){
+			for (j = 0; ml->sml_bvalues[ j ].bv_val; j++);
+			mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
+				sizeof(struct berval *));
+			for (j = 0; ml->sml_bvalues[ j ].bv_val; j++)
+				mods[ i ].mod_bvalues[ j ] = &ml->sml_bvalues[j];
+			mods[ i ].mod_bvalues[ j ] = NULL;
+
+		} else {
+			mods[ i ].mod_bvalues = NULL;
+		}
+
 		i++;
 	}
 	modv[ i ] = 0;
