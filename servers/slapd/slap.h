@@ -307,6 +307,18 @@ typedef struct slap_syntax {
 #define slap_syntax_is_ber(s)		slap_syntax_is_flag((s),SLAP_SYNTAX_BER)
 #define slap_syntax_is_hidden(s)	slap_syntax_is_flag((s),SLAP_SYNTAX_HIDE)
 
+typedef struct slap_syntax_defs_rec {
+	char *sd_desc;
+	int sd_flags;
+	slap_syntax_validate_func *sd_validate;
+	slap_syntax_transform_func *sd_normalize;
+	slap_syntax_transform_func *sd_pretty;
+#ifdef SLAPD_BINARY_CONVERSION
+	slap_syntax_transform_func *sd_ber2str;
+	slap_syntax_transform_func *sd_str2ber;
+#endif
+} slap_syntax_defs_rec;
+
 /* X -> Y Converter */
 typedef int slap_mr_convert_func LDAP_P((
 	struct berval * in,
@@ -413,6 +425,18 @@ typedef struct slap_matching_rule {
 #define smr_syntax_oid		smr_mrule.mr_syntax_oid
 #define smr_extensions		smr_mrule.mr_extensions
 } MatchingRule;
+
+typedef struct slap_mrule_defs_rec {
+	char *						mrd_desc;
+	slap_mask_t					mrd_usage;
+	slap_mr_convert_func *		mrd_convert;
+	slap_mr_normalize_func *	mrd_normalize;
+	slap_mr_match_func *		mrd_match;
+	slap_mr_indexer_func *		mrd_indexer;
+	slap_mr_filter_func *		mrd_filter;
+
+	char *						mrd_associated;
+} slap_mrule_defs_rec;
 
 struct slap_backend_db;
 struct slap_entry;

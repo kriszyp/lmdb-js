@@ -113,14 +113,7 @@ syn_insert(
 int
 syn_add(
     LDAPSyntax		*syn,
-	unsigned flags,
-    slap_syntax_validate_func	*validate,
-    slap_syntax_transform_func	*normalize,
-    slap_syntax_transform_func	*pretty,
-#ifdef SLAPD_BINARY_CONVERSION
-    slap_syntax_transform_func	*ber2str,
-    slap_syntax_transform_func	*str2ber,
-#endif
+    slap_syntax_defs_rec *def,
     const char		**err
 )
 {
@@ -134,14 +127,14 @@ syn_add(
 	ssyn->ssyn_next = NULL;
 
 	ssyn->ssyn_oidlen = strlen(syn->syn_oid);
-	ssyn->ssyn_flags = flags;
-	ssyn->ssyn_validate = validate;
-	ssyn->ssyn_normalize = normalize;
-	ssyn->ssyn_pretty = pretty;
+	ssyn->ssyn_flags = def->sd_flags;
+	ssyn->ssyn_validate = def->sd_validate;
+	ssyn->ssyn_normalize = def->sd_normalize;
+	ssyn->ssyn_pretty = def->sd_pretty;
 
 #ifdef SLAPD_BINARY_CONVERSION
-	ssyn->ssyn_ber2str = ber2str;
-	ssyn->ssyn_str2ber = str2ber;
+	ssyn->ssyn_ber2str = def->sd_ber2str;
+	ssyn->ssyn_str2ber = def->sd_str2ber;
 #endif
 
 	code = syn_insert(ssyn, err);
@@ -150,31 +143,27 @@ syn_add(
 
 int
 register_syntax(
-	const char * desc,
-	unsigned flags,
-	slap_syntax_validate_func *validate,
-	slap_syntax_transform_func *normalize,
-	slap_syntax_transform_func *pretty )
+	slap_syntax_defs_rec *def )
 {
 	LDAPSyntax	*syn;
 	int		code;
 	const char	*err;
 
-	syn = ldap_str2syntax( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
+	syn = ldap_str2syntax( def->sd_desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
 	if ( !syn ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONFIG, ERR, 
 			"register_syntax: Error - %s before %s in %s.\n",
-			ldap_scherr2str(code), err, desc );
+			ldap_scherr2str(code), err, def->sd_desc );
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s before %s in %s\n",
-		    ldap_scherr2str(code), err, desc );
+		    ldap_scherr2str(code), err, def->sd_desc );
 #endif
 
 		return( -1 );
 	}
 
-	code = syn_add( syn, flags, validate, normalize, pretty, &err );
+	code = syn_add( syn, def, &err );
 
 	ldap_memfree( syn );
 
@@ -182,10 +171,10 @@ register_syntax(
 #ifdef NEW_LOGGING
 		LDAP_LOG( CONFIG, ERR, 
 			"register_syntax: Error - %s %s in %s\n", 
-			scherr2str(code), err, desc );
+			scherr2str(code), err, def->sd_desc );
 #else
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s %s in %s\n",
-		    scherr2str(code), err, desc );
+		    scherr2str(code), err, def->sd_desc );
 #endif
 
 		return( -1 );

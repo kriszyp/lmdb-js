@@ -599,25 +599,13 @@ LDAP_SLAPD_F (void) *module_resolve LDAP_P((
 LDAP_SLAPD_F (MatchingRule *) mr_bvfind LDAP_P((struct berval *mrname));
 LDAP_SLAPD_F (MatchingRule *) mr_find LDAP_P((const char *mrname));
 LDAP_SLAPD_F (int) mr_add LDAP_P(( LDAPMatchingRule *mr,
-	unsigned usage,
-	slap_mr_convert_func *convert,
-	slap_mr_normalize_func *normalize,
-	slap_mr_match_func *match,
-	slap_mr_indexer_func *indexer,
-	slap_mr_filter_func *filter,
+	slap_mrule_defs_rec *def,
 	MatchingRule * associated,
 	const char **err ));
 LDAP_SLAPD_F (void) mr_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) register_matching_rule LDAP_P((
-	const char * desc,
-	unsigned usage,
-	slap_mr_convert_func *convert,
-	slap_mr_normalize_func *normalize,
-	slap_mr_match_func *match,
-	slap_mr_indexer_func *indexer,
-	slap_mr_filter_func *filter,
-	const char *associated ));
+	slap_mrule_defs_rec *def ));
 
 LDAP_SLAPD_F (int) mr_schema_info( Entry *e );
 LDAP_SLAPD_F (int) mru_schema_info( Entry *e );
@@ -954,33 +942,14 @@ LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((
 	const char *synname ));
 LDAP_SLAPD_F (Syntax *) syn_find_desc LDAP_P((
 	const char *syndesc, int *slen ));
-#ifdef SLAPD_BINARY_CONVERSION
 LDAP_SLAPD_F (int) syn_add LDAP_P((
 	LDAPSyntax *syn,
-	unsigned flags,
-	slap_syntax_validate_func *validate,
-	slap_syntax_transform_func *normalize,
-	slap_syntax_transform_func *pretty,
-	slap_syntax_transform_func *ber2str,
-	slap_syntax_transform_func *str2ber,
+	slap_syntax_defs_rec *def,
 	const char **err ));
-#else
-LDAP_SLAPD_F (int) syn_add LDAP_P((
-	LDAPSyntax *syn,
-	unsigned flags,
-	slap_syntax_validate_func *validate,
-	slap_syntax_transform_func *normalize,
-	slap_syntax_transform_func *pretty,
-	const char **err ));
-#endif
 LDAP_SLAPD_F (void) syn_destroy LDAP_P(( void ));
 
 LDAP_SLAPD_F (int) register_syntax LDAP_P((
-	const char *desc,
-	unsigned flags,
-	slap_syntax_validate_func *validate,
-	slap_syntax_transform_func *normalize,
-	slap_syntax_transform_func *pretty ));
+	slap_syntax_defs_rec *def ));
 
 LDAP_SLAPD_F (int) syn_schema_info( Entry *e );
 
