@@ -146,10 +146,12 @@ bdb_back_db_init(
 	/* DBEnv parameters */
 	bdi->bdi_dbenv_home = ch_strdup( DEFAULT_DBENV_HOME );
 	bdi->bdi_dbenv_xflags = 0;
-	bdi->bdi_dbenv_mode = DEFAULT_DBENV_MODE;
+	bdi->bdi_dbenv_mode = DEFAULT_MODE;
 
 	/* default database directories */
-	bdi->bdi_db_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
+	bdi->bdi_db_tmp_dir = ch_strdup( DEFAULT_DB_TMP_DIR );
+	bdi->bdi_db_lg_dir = ch_strdup( DEFAULT_DB_LG_DIR );
+	bdi->bdi_db_data_dir = ch_strdup( DEFAULT_DB_DATA_DIR );
 
 	be->be_private = bdi;
 	return 0;
@@ -174,13 +176,44 @@ bdb_back_db_open(
 		return rc;
 	}
 
+	flags = DB_INIT_LOCK | DB_INIT_LOG | DB_INIT_TXN |
+		DB_CREATE | DB_RECOVER | DB_THREAD;
+
 #ifdef SLAPD_BDB_PRIVATE
-	flags = DB_INIT_LOCK | DB_INIT_TXN |
-		DB_PRIVATE | DB_RECOVER | DB_THREAD;
+	flags |= DB_PRIVATE;
 #else
-	flags = DB_INIT_LOCK | DB_INIT_TXN | DB_INIT_MPOOL |
-		DB_RECOVER | DB_THREAD;
+	flags |= DB_INIT_MPOOL;
 #endif
+
+	rc = bdi->bdi_dbenv->set_tmp_dir( bdi->bdi_dbenv,
+		bdi->bdi_db_tmp_dir );
+
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_back_db_open: set_tmp_dir(%s) failed: %s (%d)\n",
+			bdi->bdi_db_tmp_dir, db_strerror(rc), rc );
+		return rc;
+	}
+
+	rc = bdi->bdi_dbenv->set_lg_dir( bdi->bdi_dbenv,
+		bdi->bdi_db_lg_dir );
+
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_back_db_open: set_lg_dir(%s) failed: %s (%d)\n",
+			bdi->bdi_db_lg_dir, db_strerror(rc), rc );
+		return rc;
+	}
+
+	rc = bdi->bdi_dbenv->set_data_dir( bdi->bdi_dbenv,
+		bdi->bdi_db_data_dir );
+
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"bdb_back_db_open: set_data_dir(%s) failed: %s (%d)\n",
+			bdi->bdi_db_data_dir, db_strerror(rc), rc );
+		return rc;
+	}
 
 	rc = bdi->bdi_dbenv->open( bdi->bdi_dbenv,
 		bdi->bdi_dbenv_home,
@@ -189,8 +222,8 @@ bdb_back_db_open(
 
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-			"bdb_back_db_open: db_open failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
+			"bdb_back_db_open: db_open(%s) failed: %s (%d)\n",
+			bdi->bdi_dbenv_home, db_strerror(rc), rc );
 		return rc;
 	}
 
