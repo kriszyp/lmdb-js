@@ -485,10 +485,13 @@ static int search_candidates(
 	Filter	af;
 	AttributeAssertion aa_alias;
 #endif
+	ID		range[BDB_IDL_UM_SIZE];
 
 	Debug(LDAP_DEBUG_TRACE,
 		"search_candidates: base=\"%s\" (0x%08lx) scope=%d\n",
 		e->e_dn, (long) e->e_id, scope );
+
+	BDB_IDL_ZERO(range);
 
 	xf.f_or = filter;
 	xf.f_choice = LDAP_FILTER_OR;
@@ -529,7 +532,7 @@ static int search_candidates(
 
 
 #ifdef BDB_FILTER_INDICES
-	rc = bdb_filter_candidates( be, &f, ids );
+	rc = bdb_filter_candidates( be, range, &f, ids );
 #else
 	/* FIXME: Original code:
 	BDB_IDL_ID( bdb, ids, e->e_id );
