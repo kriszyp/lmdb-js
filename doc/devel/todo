@@ -32,6 +32,7 @@ OpenLDAP 2.0 Projects
 		update to use ldap_*_ext routines
 		add -C/-CC/-R referral chasing options
 	SLAPD/SLURD Admin Guide
+	Update manual pages
 
 Other projects:
 
