@@ -105,7 +105,7 @@ the entry itself (called the {{TERM[expand]RDN}} or RDN) and
 concatenating the names of its ancestor entries. For example, the
 entry for Barbara Jensen in the Internet naming example above has
 an RDN of {{EX:uid=babs}} and a DN of
-{{EX:uid=babs,ou=People,dc=example,dc=com}}". The full DN format
+{{EX:uid=babs,ou=People,dc=example,dc=com}}. The full DN format
 is described in {{REF:RFC2253}}, "Lightweight Directory Access
 Protocol (v3):  UTF-8 String Representation of Distinguished Names."
 

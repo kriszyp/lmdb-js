@@ -766,7 +766,7 @@ to a specific attribute and various {{EX:<who>}} selectors.
 This example applies to entries in the "{{EX:dc=example,dc=com}}"
 subtree. To all attributes except {{EX:homePhone}}, the entry itself
 can write them, other {{EX:example.com}} entries can search by them,
-anybody else has no access ((implicit {{EX:by * none}}) excepting for
+anybody else has no access (implicit {{EX:by * none}}) excepting for
 authentication/authorization (which is always done anonymously).
 The {{EX:homePhone}} attribute is writable by the entry, searchable
 by other {{EX:example.com}} entries, readable by clients connecting
