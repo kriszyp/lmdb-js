@@ -1,8 +1,9 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.22 Engineering
-	Fixed slapadd dnfree bug (ITS#2587)
 	Fixed slapd yielding select fix (ITS#2603)
+	Fixed slapadd dnfree bug (ITS#2587)
+	Fixed slappasswd usage help (ITS#2565)
 	Build Environment
 		Fixed back-ldap/meta conflict (ITS#2608)
 
