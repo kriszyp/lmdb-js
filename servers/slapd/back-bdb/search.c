@@ -386,7 +386,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	ID		lastid = NOID;
 	AttributeName	*attrs;
 
-	Filter 		contextcsnand, contextcsnle, cookief, csnfnot, csnfeq, csnfand, csnfge;
+	Filter contextcsnand, contextcsnle, cookief, csnfnot,
+		csnfeq, csnfand, csnfge;
 	AttributeAssertion aa_ge, aa_eq, aa_le;
 	int		entry_count = 0;
 	struct berval *search_context_csn = NULL;
@@ -440,8 +441,10 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_INSERT_HEAD( &bdb->bi_psearch_list, sop, o_ps_link );
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_pslist_rwlock );
+
 	} else if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH_AND_PERSIST
-				&& sop->o_sync_slog_size >= 0 ) {
+		&& sop->o_sync_slog_size >= 0 )
+	{
 		ldap_pvt_thread_rdwr_wlock( &bdb->bi_pslist_rwlock );
 		LDAP_LIST_FOREACH( ps_list, &bdb->bi_psearch_list, o_ps_link ) {
 			if ( ps_list->o_sync_slog_size >= 0 ) {
@@ -504,11 +507,13 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 	/* Sync control overrides manageDSAit */
 
 	if ( !IS_PSEARCH && sop->o_sync_mode & SLAP_SYNC_REFRESH ) {
-		if ( manageDSAit == SLAP_NO_CONTROL )
+		if ( manageDSAit == SLAP_NO_CONTROL ) {
 			manageDSAit = SLAP_CRITICAL_CONTROL;
+		}
 	} else if ( IS_PSEARCH ) {
-		if ( manageDSAit == SLAP_NO_CONTROL )
+		if ( manageDSAit == SLAP_NO_CONTROL ) {
 			manageDSAit = SLAP_CRITICAL_CONTROL;
+		}
 	}
 
 	rs->sr_err = LOCK_ID (bdb->bi_dbenv, &locker );
@@ -534,9 +539,11 @@ dn2entry_retry:
 
 	switch(rs->sr_err) {
 	case DB_NOTFOUND:
-		matched = ei->bei_e; break;
+		matched = ei->bei_e;
+		break;
 	case 0:
-		e = ei->bei_e; break;
+		e = ei->bei_e;
+		break;
 	case LDAP_BUSY:
 		send_ldap_error( sop, rs, LDAP_BUSY, "ldap server busy" );
 		LOCK_ID_FREE (bdb->bi_dbenv, locker );
@@ -736,16 +743,19 @@ dn2entry_retry:
 	e = NULL;
 
 	if ( !IS_PSEARCH ) {
-		rs->sr_err = bdb_get_commit_csn( sop, rs, &search_context_csn, locker, &ctxcsn_lock );
+		rs->sr_err = bdb_get_commit_csn( sop, rs, &search_context_csn,
+			locker, &ctxcsn_lock );
 
 		if ( rs->sr_err != LDAP_SUCCESS ) {
-			send_ldap_error( sop, rs, rs->sr_err, "error in csn management in search" );
+			send_ldap_error( sop, rs, rs->sr_err,
+				"error in csn management in search" );
 			goto done;
 		}
 
-		if ( sop->o_sync_mode != SLAP_SYNC_NONE && sop->o_sync_state.ctxcsn &&
-			 sop->o_sync_state.ctxcsn->bv_val &&
-			 ber_bvcmp( &sop->o_sync_state.ctxcsn[0], search_context_csn ) == 0 )
+		if ( sop->o_sync_mode != SLAP_SYNC_NONE &&
+			sop->o_sync_state.ctxcsn &&
+			sop->o_sync_state.ctxcsn->bv_val &&
+			ber_bvcmp( &sop->o_sync_state.ctxcsn[0], search_context_csn ) == 0 )
 		{
 			bdb_cache_entry_db_unlock( bdb->bi_dbenv, &ctxcsn_lock );
 			goto nochange;
@@ -761,7 +771,8 @@ dn2entry_retry:
 	} else {
 		BDB_IDL_ZERO( candidates );
 		BDB_IDL_ZERO( scopes );
-		rs->sr_err = search_candidates( op, sop, rs, &base, locker, candidates, scopes );
+		rs->sr_err = search_candidates( op, sop, rs, &base,
+			locker, candidates, scopes );
 	}
 
 	if ( !IS_PSEARCH ) {
@@ -852,9 +863,8 @@ dn2entry_retry:
 		goto loop_begin;
 	}
 
-	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) || IS_PSEARCH )
-	{
-		int				match;
+	if ( (sop->o_sync_mode & SLAP_SYNC_REFRESH) || IS_PSEARCH ) {
+		int match;
 
 		cookief.f_choice = LDAP_FILTER_AND;
 		cookief.f_and = &csnfnot;
@@ -901,7 +911,8 @@ dn2entry_retry:
 
 			mr = slap_schema.si_ad_entryCSN->ad_type->sat_ordering;
 			if ( sop->o_sync_state.ctxcsn &&
-				 sop->o_sync_state.ctxcsn->bv_val != NULL ) {
+				sop->o_sync_state.ctxcsn->bv_val != NULL )
+			{
 				value_match( &match, slap_schema.si_ad_entryCSN, mr,
 						SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
 						&sop->o_sync_state.ctxcsn[0], search_context_csn,
@@ -931,7 +942,6 @@ loop_begin:
 			goto done;
 		}
 
-#ifdef LDAP_EXOP_X_CANCEL
 		if ( sop->o_cancel ) {
 			assert( sop->o_cancel == SLAP_CANCEL_REQ );
 			rs->sr_err = LDAP_CANCELLED;
@@ -940,7 +950,6 @@ loop_begin:
 			rs->sr_err = LDAP_SUCCESS;
 			goto done;
 		}
-#endif
 
 		/* check time limit */
 		if ( sop->oq_search.rs_tlimit != -1 && slap_get_time() > stoptime ) {
@@ -998,9 +1007,11 @@ id2entry_retry:
 
 		rs->sr_entry = e;
 #ifdef BDB_SUBENTRIES
-		/* FIXME: send all but syncrepl
-		if ( !is_sync_protocol( sop ) ) {
-		*/
+		/* FIXME: send all but syncrepl */
+#if 0
+		if ( !is_sync_protocol( sop ) )
+#endif
+		{
 			if ( is_entry_subentry( e ) ) {
 				if( sop->oq_search.rs_scope != LDAP_SCOPE_BASE ) {
 					if(!get_subentries_visibility( sop )) {
@@ -1019,10 +1030,8 @@ id2entry_retry:
 				/* only subentries are visible */
 				goto loop_continue;
 			}
-		/*
 		}
-		*/
-#endif
+#endif /* BDB_SUBENTRIES */
 
 		/* Does this candidate actually satisfy the search scope?
 		 *
@@ -1036,23 +1045,24 @@ id2entry_retry:
 		switch( sop->ors_scope ) {
 		case LDAP_SCOPE_BASE:
 			/* This is always true, yes? */
-			if ( id == base.e_id )
-				scopeok = 1;
+			if ( id == base.e_id ) scopeok = 1;
 			break;
+
 		case LDAP_SCOPE_ONELEVEL:
-			if ( ei->bei_parent->bei_id == base.e_id )
-				scopeok = 1;
+			if ( ei->bei_parent->bei_id == base.e_id ) scopeok = 1;
 			break;
-		case LDAP_SCOPE_SUBTREE:
-			{ EntryInfo *tmp;
+
+		case LDAP_SCOPE_SUBTREE: {
+			EntryInfo *tmp;
 			for ( tmp = BEI(e); tmp->bei_parent;
-				tmp = tmp->bei_parent ) {
+				tmp = tmp->bei_parent )
+			{
 				if ( tmp->bei_id == base.e_id ) {
 					scopeok = 1;
 					break;
 				}
-			} }
-			break;
+			}
+			} break;
 		}
 
 #ifdef BDB_ALIASES
@@ -1062,8 +1072,8 @@ id2entry_retry:
 			 * deref it when finding, return it.
 			 */
 			if ( is_entry_alias(e) &&
-				((sop->ors_deref & LDAP_DEREF_FINDING)
-				  || !bvmatch(&e->e_nname, &op->o_req_ndn)))
+				((sop->ors_deref & LDAP_DEREF_FINDING) ||
+					!bvmatch(&e->e_nname, &op->o_req_ndn)))
 			{
 				goto loop_continue;
 			}
@@ -1079,10 +1089,8 @@ id2entry_retry:
 				} else {
 				/* subtree, walk up the tree */
 					EntryInfo *tmp = BEI(e);
-					for (;tmp->bei_parent;
-						tmp=tmp->bei_parent) {
-						x = bdb_idl_search(
-							scopes, tmp->bei_id );
+					for (;tmp->bei_parent; tmp=tmp->bei_parent) {
+						x = bdb_idl_search( scopes, tmp->bei_id );
 						if ( scopes[x] == tmp->bei_id ) {
 							scopeok = 1;
 							break;
@@ -1176,7 +1184,8 @@ id2entry_retry:
 		if ( rs->sr_err == LDAP_COMPARE_TRUE ) {
 			/* check size limit */
             if ( --sop->oq_search.rs_slimit == -1 &&
-                 sop->o_sync_slog_size == -1 ) {
+				sop->o_sync_slog_size == -1 )
+			{
 				if (!IS_PSEARCH) {
 					bdb_cache_return_entry_r( bdb->bi_dbenv,
 						&bdb->bi_cache, e, &lock );
@@ -1581,9 +1590,7 @@ static void search_stack_free( void *key, void *data )
 	ber_memfree_x(data, NULL);
 }
 
-static void *search_stack(
-	Operation *op
-)
+static void *search_stack( Operation *op )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
 	void *ret = NULL;

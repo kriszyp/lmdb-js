@@ -904,27 +904,19 @@ backend_check_restrictions(
 			break;
 		}
 
-		{
-			if( bvmatch( opdata, &slap_EXOP_START_TLS ) ) {
-				session++;
-				starttls++;
-				break;
-			}
+		if( bvmatch( opdata, &slap_EXOP_START_TLS ) ) {
+			session++;
+			starttls++;
+			break;
 		}
 
-		{
-			if( bvmatch( opdata, &slap_EXOP_WHOAMI ) ) {
-				break;
-			}
+		if( bvmatch( opdata, &slap_EXOP_WHOAMI ) ) {
+			break;
 		}
 
-#ifdef LDAP_EXOP_X_CANCEL
-		{
-			if ( bvmatch( opdata, &slap_EXOP_CANCEL ) ) {
-				break;
-			}
+		if ( bvmatch( opdata, &slap_EXOP_CANCEL ) ) {
+			break;
 		}
-#endif
 
 		/* treat everything else as a modify */
 		opflag = SLAP_RESTRICT_OP_MODIFY;

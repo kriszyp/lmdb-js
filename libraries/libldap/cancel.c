@@ -29,8 +29,6 @@
 #include "ldap-int.h"
 #include "ldap_log.h"
 
-#ifdef LDAP_EXOP_X_CANCEL
-
 int
 ldap_cancel(
 	LDAP		*ld,
@@ -72,4 +70,3 @@ ldap_cancel_s(
 	return rc;
 }
 
-#endif /* LDAP_EXOP_X_CANCEL */

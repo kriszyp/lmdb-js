@@ -505,9 +505,7 @@ LDAP_SLAPD_F (Entry *) entry_dup LDAP_P(( Entry *e ));
  */
 LDAP_SLAPD_F (int) exop_root_dse_info LDAP_P ((Entry *e));
 
-#ifdef LDAP_EXOP_X_CANCEL
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_CANCEL;
-#endif
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_WHOAMI;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_MODIFY_PASSWD;
 LDAP_SLAPD_V( const struct berval ) slap_EXOP_START_TLS;
