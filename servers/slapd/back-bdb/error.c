@@ -15,5 +15,9 @@
 
 void bdb_errcall( const char *pfx, char * msg )
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "error", LDAP_LEVEL_INFO, "bdb(%s): %s\n", pfx, msg ));
+#else
 	Debug( LDAP_DEBUG_ANY, "bdb(%s): %s\n", pfx, msg, 0 );
+#endif
 }

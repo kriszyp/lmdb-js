@@ -43,7 +43,7 @@ bdb_key_read(
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+		LDAP_LOG(( "index", LDAP_LEVEL_ERR,
 			"bdb_key_read: failed (%d)\n",
 			rc ));
 #else
@@ -52,7 +52,7 @@ bdb_key_read(
 #endif
 	} else {
 #ifdef NEW_LOGGING
-		LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+		LDAP_LOG(( "index", LDAP_LEVEL_DETAIL1,
 			"bdb_key_read: %ld candidates\n", (long) BDB_IDL_N(ids) ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
@@ -78,7 +78,7 @@ bdb_key_change(
 	DBT	key;
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+	LDAP_LOG(( "index", LDAP_LEVEL_DETAIL1,
 		"key_change: %s ID %lx\n",
 		op == SLAP_INDEX_ADD_OP ? "Add" : "Delete", (long) id ));
 #else
@@ -99,7 +99,7 @@ bdb_key_change(
 	}
 
 #ifdef NEW_LOGGING
-	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
+	LDAP_LOG(( "index", LDAP_LEVEL_RESULTS,
 		"key_change: return %d\n", rc ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "<= key_change %d\n", rc, 0, 0 );
