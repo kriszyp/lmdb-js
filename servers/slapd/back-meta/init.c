@@ -226,6 +226,10 @@ conn_free(
 		if ( lsc->bound_dn.bv_val ) {
 			ber_memfree( lsc->bound_dn.bv_val );
 		}
+		if ( lsc->cred.bv_val ) {
+			memset( lsc->cred.bv_val, 0, lsc->cred.bv_len );
+			ber_memfree( lsc->cred.bv_val );
+		}
 	}
 	free( lc->conns );
 	free( lc );

@@ -188,6 +188,15 @@ metaconn_alloc( int ntargets )
 	}
 	lc->conns[ ntargets ].candidate = META_LAST_CONN;
 
+	for ( ; ntargets-- > 0; ) {
+		lc->conns[ ntargets ].ld = NULL;
+		lc->conns[ ntargets ].bound_dn.bv_val = NULL;
+		lc->conns[ ntargets ].bound_dn.bv_len = 0;
+		lc->conns[ ntargets ].cred.bv_val = NULL;
+		lc->conns[ ntargets ].cred.bv_len = 0;
+		lc->conns[ ntargets ].bound = META_UNBOUND;
+	}
+
 	lc->bound_target = META_BOUND_NONE;
 
 	return lc;
@@ -271,7 +280,8 @@ init_one_conn(
 		/*
 		 * Rewrite the bind dn if needed
 		 */
-		if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn, &lsc->bound_dn) ) {
+		if ( ldap_back_dn_massage( &dc, &op->o_conn->c_dn,
+					&lsc->bound_dn) ) {
 			send_ldap_result( op, rs );
 			return rs->sr_err;
 		}

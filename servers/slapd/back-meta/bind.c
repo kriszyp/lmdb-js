@@ -237,6 +237,7 @@ meta_back_do_single_bind(
 	struct berval	mdn = { 0, NULL };
 	ber_int_t	msgid;
 	dncookie	dc;
+	struct metasingleconn	*lsc = &lc->conns[ candidate ];
 	
 	/*
 	 * Rewrite the bind dn if needed
@@ -252,7 +253,7 @@ meta_back_do_single_bind(
 	}
 
 	if ( op->o_ctrls ) {
-		rs->sr_err = ldap_set_option( lc->conns[ candidate ].ld, 
+		rs->sr_err = ldap_set_option( lsc->ld, 
 				LDAP_OPT_SERVER_CONTROLS, op->o_ctrls );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			rs->sr_err = ldap_back_map_result( rs );
@@ -260,7 +261,7 @@ meta_back_do_single_bind(
 		}
 	}
 	
-	rs->sr_err = ldap_sasl_bind(lc->conns[ candidate ].ld, mdn.bv_val,
+	rs->sr_err = ldap_sasl_bind(lsc->ld, mdn.bv_val,
 			LDAP_SASL_SIMPLE, &op->oq_bind.rb_cred,
 			op->o_ctrls, NULL, &msgid);
 	if ( rs->sr_err != LDAP_SUCCESS ) {
@@ -270,18 +271,20 @@ meta_back_do_single_bind(
 		/*
 		 * FIXME: handle response!!!
 		 */
-		ber_dupbv( &lc->conns[ candidate ].bound_dn, &op->o_req_dn );
-		lc->conns[ candidate ].bound = META_BOUND;
+		if ( lsc->bound_dn.bv_val != NULL ) {
+			ber_memfree( lsc->bound_dn.bv_val );
+		}
+		ber_dupbv( &lsc->bound_dn, &op->o_req_dn );
+		lsc->bound = META_BOUND;
 		lc->bound_target = candidate;
 
 		if ( li->savecred ) {
-			if ( lc->conns[ candidate ].cred.bv_val )
-				ch_free( lc->conns[ candidate ].cred.bv_val );
-			ber_dupbv( &lc->conns[ candidate ].cred,
-					&op->oq_bind.rb_cred );
-			ldap_set_rebind_proc( lc->conns[ candidate ].ld, 
-					meta_back_rebind, 
-					&lc->conns[ candidate ] );
+			if ( lsc->cred.bv_val ) {
+				memset( lsc->cred.bv_val, 0, lsc->cred.bv_len );
+				ber_memfree( lsc->cred.bv_val );
+			}
+			ber_dupbv( &lsc->cred, &op->oq_bind.rb_cred );
+			ldap_set_rebind_proc( lsc->ld, meta_back_rebind, lsc );
 		}
 
 		if ( li->cache.ttl != META_DNCACHE_DISABLED
@@ -351,11 +354,18 @@ meta_back_dobind( struct metaconn *lc, Operation *op )
 		 * bind clears the previous bind).
 		 */
 		if ( lsc->bound_dn.bv_val ) {
-			ch_free( lsc->bound_dn.bv_val );
+			ber_memfree( lsc->bound_dn.bv_val );
 			lsc->bound_dn.bv_val = NULL;
 			lsc->bound_dn.bv_len = 0;
 		}
 		
+		if ( /* FIXME: need li ... li->savecred && */ 
+				lsc->cred.bv_val ) {
+			memset( lsc->cred.bv_val, 0, lsc->cred.bv_len );
+			ber_memfree( lsc->cred.bv_val );
+			lsc->cred.bv_val = NULL;
+			lsc->cred.bv_len = 0;
+		}
 
 		rc = ldap_bind_s( lsc->ld, 0, NULL, LDAP_AUTH_SIMPLE );
 		if ( rc != LDAP_SUCCESS ) {
