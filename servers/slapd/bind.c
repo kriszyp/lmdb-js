@@ -310,7 +310,7 @@ do_bind(
 			}
 
 			if( conn->c_dn.bv_len != 0 ) {
-				ber_len_t max = sockbuf_max_incoming;
+				ber_len_t max = sockbuf_max_incoming_auth;
 				ber_sockbuf_ctrl( conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
@@ -541,7 +541,7 @@ do_bind(
 			ndn.bv_len = 0;
 
 			if( conn->c_dn.bv_len != 0 ) {
-				ber_len_t max = sockbuf_max_incoming;
+				ber_len_t max = sockbuf_max_incoming_auth;
 				ber_sockbuf_ctrl( conn->c_sb,
 					LBER_SB_OPT_SET_MAX_INCOMING, &max );
 			}
