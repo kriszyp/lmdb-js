@@ -82,7 +82,7 @@ Here is an example of an LDIF file containing three entries.
     cn: Barbara J Jensen
     cn: Babs Jensen
     objectclass: person
-    description:< file://tmp/babs
+    description:< file:///tmp/babs
     sn: Jensen
 
     dn: cn=Bjorn J Jensen,dc=example,dc=com
@@ -104,7 +104,7 @@ Here is an example of an LDIF file containing three entries.
 .fi
 .LP
 Notice that the description in Barbara Jensen's entry is
-read from file://tmp/babs and the jpegPhoto in Jennifer
+read from file:///tmp/babs and the jpegPhoto in Jennifer
 Jensen's entry is encoded using base 64.
 .SH SEE ALSO
 .BR ldap (3),

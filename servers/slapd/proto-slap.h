@@ -481,6 +481,7 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	void *memctx ));
 
 LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
+LDAP_SLAPD_F (void) dnRdn LDAP_P(( struct berval *dn, struct berval *rdn ));
 
 LDAP_SLAPD_F (int) dnX509normalize LDAP_P(( void *x509_name, struct berval *out ));
 
@@ -693,7 +694,8 @@ LDAP_SLAPD_F( int ) slap_mods_opattrs(
 	Modifications *mods,
 	Modifications **modlist,
 	const char **text,
-	char *textbuf, size_t textlen );
+	char *textbuf, size_t textlen,
+	int manage_ctxcsn );
 
 /*
  * mods.c
@@ -1145,6 +1147,7 @@ LDAP_SLAPD_F (struct berval *) slap_uuidstr_from_normalized LDAP_P((
 					struct berval *, struct berval *, void * ));
 LDAP_SLAPD_F (int) syncrepl_isupdate LDAP_P(( Operation * ));
 LDAP_SLAPD_F (int) syncrepl_isupdate_dn LDAP_P(( Backend *, struct berval * ));
+LDAP_SLAPD_F (void) syncinfo_free LDAP_P(( syncinfo_t * ));
 
 /* syntax.c */
 LDAP_SLAPD_F (Syntax *) syn_find LDAP_P((

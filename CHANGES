@@ -1,5 +1,10 @@
 OpenLDAP 2.2 Change Log
 
+OpenLDAP 2.2.17 Engineering
+	Fixed slapd syncrepl memory leak bugs
+	Documentation
+		Updated ldif(5)
+
 OpenLDAP 2.2.16 Release
 	Fixed libldap getaddrinfo hints portability bug (ITS#3279)
 	Fixed libldap find_connection bug (ITS#3280)

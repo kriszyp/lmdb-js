@@ -279,7 +279,7 @@ do_add( Operation *op, SlapReply *rs )
 					assert( (*modtail)->sml_desc != NULL );
 				}
 				rs->sr_err = slap_mods_opattrs( op, modlist, modtail,
-					&rs->sr_text, textbuf, textlen );
+					&rs->sr_text, textbuf, textlen, 1 );
 				if( rs->sr_err != LDAP_SUCCESS ) {
 					send_ldap_result( op, rs );
 					goto done;
