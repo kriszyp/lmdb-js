@@ -470,10 +470,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	 * However, the post-operation plugin should still be 
 	 * called.
 	 */
-	if ( modlist == NULL ) {
-		rs->sr_err = LDAP_SUCCESS;
-		send_ldap_result( op, rs );
-	} else {
 #endif /* defined( LDAP_SLAPI ) */
 
 	/*
@@ -560,8 +556,6 @@ fe_op_modify( Operation *op, SlapReply *rs )
 	}
 
 #if defined( LDAP_SLAPI )
-	} /* modlist != NULL */
-
 	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
 		SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 )
 	{
