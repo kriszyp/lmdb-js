@@ -1,7 +1,7 @@
 /* smbk5pwd.c - Overlay for managing Samba and Heimdal passwords */
 /* $OpenLDAP$ */
 /*
- * Copyright 2004 by Howard Chu, Symas Corp.
+ * Copyright 2004-2005 by Howard Chu, Symas Corp.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,11 @@
 #include <ac/errno.h>
 
 #ifdef DO_KRB5
+#include <ac/string.h>
+#include <lber.h>
+#include <lber_pvt.h>
+#include <lutil.h>
+
 /* make ASN1_MALLOC_ENCODE use our allocator */
 #define malloc	ch_malloc
 
@@ -155,7 +160,130 @@ static void nthash(
 }
 #endif /* DO_SAMBA */
 
-int smbk5pwd_exop_passwd(
+#ifdef DO_KRB5
+
+static int smbk5pwd_op_cleanup(
+	Operation *op,
+	SlapReply *rs )
+{
+	slap_callback *cb;
+
+	/* clear out the current key */
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, smbk5pwd_op_cleanup,
+		NULL, NULL );
+
+	/* free the callback */
+	cb = op->o_callback;
+	op->o_callback = cb->sc_next;
+	op->o_tmpfree( cb, op->o_tmpmemctx );
+	return 0;
+}
+
+static int smbk5pwd_op_bind(
+	Operation *op,
+	SlapReply *rs )
+{
+	/* If this is a simple Bind, stash the Op pointer so our chk
+	 * function can find it. Set a cleanup callback to clear it
+	 * out when the Bind completes.
+	 */
+	if ( op->oq_bind.rb_method == LDAP_AUTH_SIMPLE ) {
+		slap_callback *cb;
+		ldap_pvt_thread_pool_setkey( op->o_threadctx, smbk5pwd_op_cleanup, op,
+			NULL );
+		cb = op->o_tmpcalloc( 1, sizeof(slap_callback), op->o_tmpmemctx );
+		cb->sc_cleanup = smbk5pwd_op_cleanup;
+		cb->sc_next = op->o_callback;
+		op->o_callback = cb;
+	}
+	return SLAP_CB_CONTINUE;
+}
+
+static LUTIL_PASSWD_CHK_FUNC chk_k5key;
+static const struct berval scheme = BER_BVC("{K5KEY}");
+
+/* This password scheme stores no data in the userPassword attribute
+ * other than the scheme name. It assumes the invoking entry is a
+ * krb5KDCentry and compares the passed-in credentials against the
+ * krb5Key attribute. The krb5Key may be multi-valued, but they are
+ * simply multiple keytypes generated from the same input string, so
+ * only the first value needs to be compared here.
+ *
+ * Since the lutil_passwd API doesn't pass the Entry object in, we
+ * have to fetch it ourselves in order to get access to the other
+ * attributes. We accomplish this with the help of the overlay's Bind
+ * function, which stores the current Operation pointer in thread-specific
+ * storage so we can retrieve it here. The Operation provides all
+ * the necessary context for us to get Entry from the database.
+ */
+static int chk_k5key(
+	const struct berval *sc,
+	const struct berval *passwd,
+	const struct berval *cred,
+	const char **text )
+{
+	void *ctx;
+	Operation *op;
+	int rc;
+	Entry *e;
+	Attribute *a;
+    krb5_error_code ret;
+    krb5_keyblock key;
+    krb5_salt salt;
+	hdb_entry ent;
+
+	/* Find our thread context, find our Operation */
+	ctx = ldap_pvt_thread_pool_context();
+
+	if ( ldap_pvt_thread_pool_getkey( ctx, smbk5pwd_op_cleanup, (void **)&op, NULL ) ||
+		!op )
+		return LUTIL_PASSWD_ERR;
+
+	rc = be_entry_get_rw( op, &op->o_req_ndn, NULL, NULL, 0, &e );
+	if ( rc != LDAP_SUCCESS ) return LUTIL_PASSWD_ERR;
+
+	rc = LUTIL_PASSWD_ERR;
+	do {
+		size_t l;
+		Key ekey = {0};
+
+		a = attr_find( e->e_attrs, ad_krb5PrincipalName );
+		if (!a ) break;
+
+		memset( &ent, 0, sizeof(ent) );
+		ret = krb5_parse_name(context, a->a_vals[0].bv_val, &ent.principal);
+		if ( ret ) break;
+		krb5_get_pw_salt( context, ent.principal, &salt );
+		krb5_free_principal( context, ent.principal );
+
+		a = attr_find( e->e_attrs, ad_krb5Key );
+		if ( !a ) break;
+
+		ent.keys.len = 1;
+		ent.keys.val = &ekey;
+		decode_Key((unsigned char *) a->a_vals[0].bv_val,
+			(size_t) a->a_vals[0].bv_len, &ent.keys.val[0], &l);
+		if ( db->master_key_set )
+			hdb_unseal_keys( context, db, &ent );
+
+		krb5_string_to_key_salt( context, ekey.key.keytype, cred->bv_val,
+			salt, &key );
+
+		krb5_free_salt( context, salt );
+
+		if ( memcmp( ekey.key.keyvalue.data, key.keyvalue.data,
+			key.keyvalue.length ) == 0 ) rc = LUTIL_PASSWD_OK;
+
+		krb5_free_keyblock_contents( context, &key );
+		krb5_free_keyblock_contents( context, &ekey.key );
+
+	} while(0);
+	be_entry_release_r( op, e );
+	return rc;
+}
+#endif /* DO_KRB5 */
+
+static int smbk5pwd_exop_passwd(
 	Operation *op,
 	SlapReply *rs )
 {
@@ -219,6 +347,8 @@ int smbk5pwd_exop_passwd(
 		}
 		keys[i].bv_val = NULL;
 		keys[i].bv_len = 0;
+
+		_kadm5_free_keys(kadm_context, ent.keys.len, ent.keys.val);
 
 		if ( i != ent.keys.len ) {
 			ber_bvarray_free( keys );
@@ -388,6 +518,12 @@ int smbk5pwd_init() {
 
 	smbk5pwd.on_bi.bi_type = "smbk5pwd";
 	smbk5pwd.on_bi.bi_extended = smbk5pwd_exop_passwd;
+
+#ifdef DO_KRB5
+	smbk5pwd.on_bi.bi_op_bind = smbk5pwd_op_bind;
+
+	lutil_passwd_add( (struct berval *)&scheme, chk_k5key, NULL );
+#endif
 
 	return overlay_register( &smbk5pwd );
 }
