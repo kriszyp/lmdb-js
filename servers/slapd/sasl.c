@@ -176,7 +176,11 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 
 	ctx = conn->c_sasl_context;
 
-	/* An authcID needs to be converted to authzID form */
+	/* An authcID needs to be converted to authzID form. Set the
+	 * values directly into *dn; they will be normalized later. (and
+	 * normalizing always makes a new copy.) An ID from a TLS certificate
+	 * is already normalized, so copy it and skip normalization.
+	 */
 	if( flags & FLAG_GETDN_AUTHCID ) {
 #ifdef HAVE_TLS
 		if( conn->c_is_tls && conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
@@ -184,28 +188,31 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 			/* X.509 DN is already normalized */
 			do_norm = 0;
 			is_dn = SET_DN;
+			ber_str2bv( id, len, 1, dn );
 
 		} else
 #endif
 		{
 			/* convert to u:<username> form */
 			is_dn = SET_U;
+			dn->bv_val = id;
+			dn->bv_len = len;
 		}
-		ber_str2bv( id, len, 1, dn );
 	}
 	if( !is_dn ) {
 		if( !strncasecmp( id, "u:", sizeof("u:")-1 )) {
 			is_dn = SET_U;
-			ber_str2bv( id+2, len-2, 1, dn );
+			dn->bv_val = id+2;
+			dn->bv_len = len-2;
 		} else if ( !strncasecmp( id, "dn:", sizeof("dn:")-1) ) {
 			is_dn = SET_DN;
-			ber_str2bv( id+3, len-3, 1, dn );
+			dn->bv_val = id+3;
+			dn->bv_len = len-3;
 		}
 	}
 
-	/* An authzID must be properly prefixed */
-	if( (flags & FLAG_GETDN_AUTHZID) && !is_dn ) {
-		free( dn->bv_val );
+	/* No other possibilities from here */
+	if( !is_dn ) {
 		dn->bv_val = NULL;
 		dn->bv_len = 0;
 		return( LDAP_INAPPROPRIATE_AUTH );
@@ -237,11 +244,11 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		if( realm ) {
 			p = slap_strcopy( p, ",cn=" );
 			p = slap_strcopy( p, realm );
+			realm[-1] = '@';
 		} else if( user_realm && *user_realm ) {
 			p = slap_strcopy( p, ",cn=" );
 			p = slap_strcopy( p, user_realm );
 		}
-		ch_free( c1 );
 
 		if( conn->c_sasl_bind_mech.bv_len ) {
 			p = slap_strcopy( p, ",cn=" );
@@ -249,7 +256,6 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		}
 		p = slap_strcopy( p, ",cn=auth" );
 		dn->bv_len = p - dn->bv_val;
-		is_dn = SET_DN;
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -259,33 +265,34 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 #endif
 	}
 
-	/* DN strings that are a cn=auth identity to run through regexp */
-	if( is_dn == SET_DN )
-	{
-		slap_sasl2dn( conn, dn, &dn2 );
-		if( dn2.bv_val ) {
-			ch_free( dn->bv_val );
-			*dn = dn2;
-			do_norm = 0;	/* slap_sasl2dn normalizes */
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
-				"slap_sasl_getdn: dn:id converted to %s.\n", dn->bv_val ));
-#else
-			Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n",
-				dn->bv_val, 0, 0 );
-#endif
-		}
-	}
-
+	/* All strings are in DN form now. Normalize if needed. */
 	if ( do_norm ) {
 		rc = dnNormalize2( NULL, dn, &dn2 );
-		free(dn->bv_val);
+
+		/* User DNs were constructed above and must be freed now */
+		if ( is_dn == SET_U )
+			ch_free( dn->bv_val );
+
 		if ( rc != LDAP_SUCCESS ) {
 			dn->bv_val = NULL;
 			dn->bv_len = 0;
 			return rc;
 		}
 		*dn = dn2;
+	}
+
+	/* Run thru regexp */
+	slap_sasl2dn( conn, dn, &dn2 );
+	if( dn2.bv_val ) {
+		ch_free( dn->bv_val );
+		*dn = dn2;
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
+			"slap_sasl_getdn: dn:id converted to %s.\n", dn->bv_val ));
+#else
+		Debug( LDAP_DEBUG_TRACE, "getdn: dn:id converted to %s\n",
+			dn->bv_val, 0, 0 );
+#endif
 	}
 
 	return( LDAP_SUCCESS );
