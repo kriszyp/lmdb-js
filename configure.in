@@ -433,7 +433,7 @@ AC_SUBST(LIBTERMCAP)
 
 # FreeBSD (and others) have crypt(3) in -lcrypt
 if test $ol_enable_crypt != no ; then
-	AC_CHECK_FUNC(crypt, have_crypt=yes, [
+	AC_CHECK_FUNC(crypt, [have_crypt=yes], [
 		AC_CHECK_LIB(crypt, crypt, [LUTIL_LIBS="$LUTIL_LIBS -lcrypt"
 			have_crypt=yes], [have_crypt=no])])
 
