@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -672,6 +670,19 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 		bsi->bsi_flags |= BSQL_SF_FILTER_ENTRYUUID;
 		rc = 1;
 		goto done;
+
+	} else if ( ad == slap_schema.si_ad_entryCSN ) {
+		/*
+		 * TODO: introduce appropriate entryCSN filtering
+		 * to support syncrepl as producer...
+		 */
+		if ( bsi->bsi_op->o_sync_mode != SLAP_SYNC_REFRESH ) {
+			/* unsupported at present... */
+			bsi->bsi_status = LDAP_OTHER;
+			rc = -1;
+			goto done;
+		}
+
 
 	} else if ( ad == slap_schema.si_ad_hasSubordinates || ad == NULL ) {
 		/*
@@ -1969,6 +1980,4 @@ done:;
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_search()\n", 0, 0, 0 );
 	return 0;
 }
-
-#endif /* SLAPD_SQL */
 

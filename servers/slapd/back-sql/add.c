@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -31,15 +29,16 @@
 
 /*
  * Skip:
- * - the first occurrence of objectClass, which is used
- *   to determine how to build the SQL entry (FIXME ?!?)
+ * - null values (e.g. delete modification)
+ * - single occurrence of objectClass, because it is already used
+ *   to determine how to build the SQL entry
  * - operational attributes
- * - empty attributes (FIXME ?!?)
+ * - empty attributes
  */
-#define	backsql_attr_skip(ad,vals) \
+#define	backsql_attr_skip(ad, vals) \
 	( \
 		( (ad) == slap_schema.si_ad_objectClass \
-				&& BER_BVISNULL( &((vals)[ 1 ]) ) ) \
+				&& (vals) && BER_BVISNULL( &((vals)[ 1 ]) ) ) \
 		|| is_at_operational( (ad)->ad_type ) \
 		|| ( (vals) && BER_BVISNULL( &((vals)[ 0 ]) ) ) \
 	)
@@ -273,14 +272,14 @@ backsql_modify_internal(
 
 		BerVarray		sm_values;
 #if 0
-		/* NOTE: some time we'll have to pass 
+		/* NOTE: some day we'll have to pass 
 		 * the normalized values as well */
 		BerVarray		nvalues;
 #endif
 		backsql_at_map_rec	*at = NULL;
 		struct berval		*at_val;
 		int			i;
-		/* first parameter no, parameter order */
+		/* first parameter position, parameter order */
 		SQLUSMALLINT		pno, po;
 		/* procedure return code */
 		int			prc;
@@ -404,6 +403,10 @@ add_only:;
 			Debug( LDAP_DEBUG_TRACE, "   backsql_modify_internal(): "
 				"adding new values for attribute \"%s\"\n",
 				at->bam_ad->ad_cname.bv_val, 0, 0 );
+
+			/* can't add a NULL val array */
+			assert( sm_values != NULL );
+			
 			for ( i = 0, at_val = sm_values;
 					!BER_BVISNULL( at_val ); 
 					i++, at_val++ )
@@ -1417,6 +1420,4 @@ done:;
 
 	return ( ( rs->sr_err == LDAP_SUCCESS ) ? op->o_noop : 1 );
 }
-
-#endif /* SLAPD_SQL */
 

@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -576,7 +574,4 @@ backsql_entryUUID_decode(
 
 	return LDAP_SUCCESS;
 }
-
-
-#endif /* SLAPD_SQL */
 

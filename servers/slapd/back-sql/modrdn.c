@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -462,6 +460,4 @@ modrdn_return:;
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_modrdn()\n", 0, 0, 0 );
 	return op->o_noop;
 }
-
-#endif /* SLAPD_SQL */
 

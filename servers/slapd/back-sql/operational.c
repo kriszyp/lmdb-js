@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -226,6 +224,4 @@ backsql_operational(
 
 	return rc;
 }
-
-#endif /* SLAPD_SQL */
 

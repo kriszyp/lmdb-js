@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include "ac/string.h"
 #include <sys/types.h>
@@ -651,6 +649,4 @@ create_baseObject(
 
 	return 0;
 }
-
-#endif /* SLAPD_SQL */
 

@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -124,6 +122,4 @@ backsql_modify( Operation *op, SlapReply *rs )
 
 	return op->o_noop;
 }
-
-#endif /* SLAPD_SQL */
 

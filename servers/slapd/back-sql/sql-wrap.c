@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include "ac/string.h"
 #include <sys/types.h>
@@ -468,6 +466,4 @@ backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 
 	return LDAP_SUCCESS;
 }
-
-#endif /* SLAPD_SQL */
 

@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -927,6 +925,4 @@ backsql_destroy_schema_map( backsql_info *bi )
 	Debug( LDAP_DEBUG_TRACE, "<==destroy_schema_map()\n", 0, 0, 0 );
 	return 0;
 }
-
-#endif /* SLAPD_SQL */
 

@@ -19,8 +19,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -139,6 +137,4 @@ backsql_api_odbc2dn( Operation *op, SlapReply *rs, struct berval *dn )
 
 	return 0;
 }
-
-#endif /* SLAPD_SQL */
 

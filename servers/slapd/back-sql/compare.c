@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 
@@ -168,5 +166,3 @@ return_results:;
 	}
 }
  
-#endif /* SLAPD_SQL */
-

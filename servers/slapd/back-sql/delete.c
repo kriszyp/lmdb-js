@@ -20,8 +20,6 @@
 
 #include "portable.h"
 
-#ifdef SLAPD_SQL
-
 #include <stdio.h>
 #include <sys/types.h>
 #include "ac/string.h"
@@ -395,6 +393,4 @@ done:;
 
 	return ( ( rs->sr_err == LDAP_SUCCESS ) ? op->o_noop : 1 );
 }
-
-#endif /* SLAPD_SQL */
 
