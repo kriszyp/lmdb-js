@@ -171,10 +171,8 @@ ldbm_back_db_init(
 	li->li_dbshutdown = 0;
 
 	/* initialize various mutex locks & condition variables */
-	ldap_pvt_thread_mutex_init( &li->li_root_mutex );
-	ldap_pvt_thread_mutex_init( &li->li_add_mutex );
+	ldap_pvt_thread_rdwr_init( &li->li_giant_rwlock );
 	ldap_pvt_thread_mutex_init( &li->li_cache.c_mutex );
-	ldap_pvt_thread_mutex_init( &li->li_nextid_mutex );
 	ldap_pvt_thread_mutex_init( &li->li_dbcache_mutex );
 	ldap_pvt_thread_cond_init( &li->li_dbcache_cv );
 
@@ -224,10 +222,8 @@ ldbm_back_db_destroy(
 	free( li->li_directory );
 	attr_index_destroy( li->li_attrs );
 
-	ldap_pvt_thread_mutex_destroy( &li->li_root_mutex );
-	ldap_pvt_thread_mutex_destroy( &li->li_add_mutex );
+	ldap_pvt_thread_rdwr_destroy( &li->li_giant_rwlock );
 	ldap_pvt_thread_mutex_destroy( &li->li_cache.c_mutex );
-	ldap_pvt_thread_mutex_destroy( &li->li_nextid_mutex );
 	ldap_pvt_thread_mutex_destroy( &li->li_dbcache_mutex );
 	ldap_pvt_thread_cond_destroy( &li->li_dbcache_cv );
 

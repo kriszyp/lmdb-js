@@ -19,7 +19,9 @@
 
 /* LDBM backend specific entry info -- visible only to the cache */
 typedef struct ldbm_entry_info {
+#ifdef LDBM_ENTRY_RWLOCK
 	ldap_pvt_thread_rdwr_t	lei_rdwr;	/* reader/writer lock */
+#endif
 
 	/*
 	 * remaining fields require backend cache lock to access
@@ -45,6 +47,7 @@ static int	cache_delete_entry_internal(Cache *cache, Entry *e);
 static void	lru_print(Cache *cache);
 #endif
 
+#ifdef LDBM_ENTRY_RWLOCK
 static int
 cache_entry_rdwr_lock(Entry *e, int rw)
 {
@@ -92,6 +95,7 @@ cache_entry_rdwr_destroy(Entry *e)
 {
 	return ldap_pvt_thread_rdwr_destroy( &LEI(e)->lei_rdwr );
 }
+#endif
 
 static int
 cache_entry_private_init( Entry*e )
@@ -105,11 +109,13 @@ cache_entry_private_init( Entry*e )
 
 	e->e_private = ch_calloc(1, sizeof(struct ldbm_entry_info));
 
+#ifdef LDBM_ENTRY_RWLOCK
 	if( cache_entry_rdwr_init( e ) != 0 ) {
 		free( LEI(e) );
 		e->e_private = NULL;
 		return 1;
 	} 
+#endif
 
 	return 0;
 }
@@ -136,7 +142,9 @@ cache_entry_private_destroy( Entry*e )
 {
 	assert( e->e_private );
 
+#ifdef LDBM_ENTRY_RWLOCK
 	cache_entry_rdwr_destroy( e );
+#endif
 
 	free( e->e_private );
 	e->e_private = NULL;
@@ -154,7 +162,9 @@ cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 	assert( e->e_private );
 
+#ifdef LDBM_ENTRY_RWLOCK
 	cache_entry_rdwr_unlock(e, rw);
+#endif
 
 	id = e->e_id;
 	refcnt = --LEI(e)->lei_refcnt;
@@ -309,7 +319,9 @@ cache_add_entry_rw(
 		return( -1 );
 	}
 
+#ifdef LDBM_ENTRY_RWLOCK
 	cache_entry_rdwr_lock( e, rw );
+#endif
 
 	/* put the entry into 'CREATING' state */
 	/* will be marked after when entry is returned */
@@ -610,6 +622,7 @@ try_again:
 			goto try_again;
 		}
 
+#ifdef LDBM_ENTRY_RWLOCK
 		/* acquire reader lock */
 		if ( cache_entry_rdwr_trylock(ep, rw) == LDAP_PVT_THREAD_EBUSY ) {
 			/* could not acquire entry lock...
@@ -627,6 +640,7 @@ try_again:
 			ldap_pvt_thread_yield();
 			goto try_again;
 		}
+#endif
 
 		/* lru */
 		LRU_DELETE( cache, ep );

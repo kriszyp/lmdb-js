@@ -2,6 +2,7 @@ OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.22 Engineering
 	Fixed slapd passwd modify referral bug
+	Fixed back-ldbm index threading bug
 	Fixed back-ldbm ordering presense index bug
 	Fixed back-ldap modify bug (ITS#1547)
 	Fixed -lldap TLS errno bug
@@ -154,6 +155,7 @@ OpenLDAP 2.0.12 Release
 	Updated ldaptcl API (contrib)
 	Updated -lldap SASL/TLS referral handling
 	Updated -lldap pthread code
+	Updated ldapmodify add/replace handling
 	Removed -lldap UFN search support
 	Build environment
 		Removed extraneous files

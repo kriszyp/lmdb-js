@@ -189,6 +189,9 @@ ldbm_back_modify(
 
 	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
 
+	/* grab giant lock for writing */
+	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
+
 	/* acquire and lock entry */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
@@ -204,6 +207,7 @@ ldbm_back_modify(
 			refs = default_referral;
 		}
 
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
@@ -256,10 +260,12 @@ ldbm_back_modify(
 		NULL, NULL, NULL, NULL );
 
 	cache_return_entry_w( &li->li_cache, e );
+	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	return( 0 );
 
 error_return:;
 	cache_return_entry_w( &li->li_cache, e );
+	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	return( -1 );
 }
 

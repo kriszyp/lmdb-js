@@ -31,7 +31,7 @@ ldbm_back_exop_passwd(
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
-	int rc;
+	int rc, locked=0;
 	Entry *e = NULL;
 	struct berval *hash = NULL;
 
@@ -90,9 +90,12 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	e = dn2entry_w( be, dn, NULL );
+	/* grab giant lock for writing */
+	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
 
+	e = dn2entry_w( be, dn, NULL );
 	if( e == NULL ) {
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 		*text = "could not locate authorization entry";
 		rc = LDAP_NO_SUCH_OBJECT;
 		goto done;
@@ -154,6 +157,7 @@ ldbm_back_exop_passwd(
 done:
 	if( e != NULL ) {
 		cache_return_entry_w( &li->li_cache, e );
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	}
 
 	if( id != NULL ) {

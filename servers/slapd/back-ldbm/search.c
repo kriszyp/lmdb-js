@@ -55,6 +55,9 @@ ldbm_back_search(
 
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
 
+	/* grab giant lock for reading */
+	ldap_pvt_thread_rdwr_rlock(&li->li_giant_rwlock);
+
 	if ( *nbase == '\0' ) {
 		/* DIT root special case */
 		static const Entry root = { NOID, "", "", NULL, NULL };
@@ -98,6 +101,8 @@ ldbm_back_search(
 			refs = default_referral;
 		}
 
+		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
+
 		send_ldap_result( conn, op, err,
 			matched_dn, text, refs, NULL );
 
@@ -116,6 +121,7 @@ ldbm_back_search(
 			conn, op, e );
 
 		cache_return_entry_r( &li->li_cache, e );
+		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
 
 		Debug( LDAP_DEBUG_TRACE,
 			"ldbm_search: entry is referral\n",
@@ -349,6 +355,8 @@ loop_continue:
 	rc = 0;
 
 done:
+	ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
+
 	if( candidates != NULL )
 		idl_free( candidates );
 

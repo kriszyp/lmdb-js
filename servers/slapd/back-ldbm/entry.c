@@ -29,5 +29,11 @@ ldbm_back_entry_release_rw(
 	/* free entry and reader or writer lock */
 	cache_return_entry_rw( &li->li_cache, e, rw ); 
 
+	if(rw) {
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
+	} else {
+		ldap_pvt_thread_rdwr_runlock(&li->li_giant_rwlock);
+	}
+
 	return 0;
 }

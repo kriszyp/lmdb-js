@@ -80,6 +80,9 @@ ldbm_back_modrdn(
 	       (newSuperior ? newSuperior : "NULL"),
 	       0, 0 );
 
+	/* grab giant lock for writing */
+	ldap_pvt_thread_rdwr_wlock(&li->li_giant_rwlock);
+
 	/* get entry with writer lock */
 	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
@@ -94,6 +97,8 @@ ldbm_back_modrdn(
 		} else {
 			refs = default_referral;
 		}
+
+		ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
@@ -204,9 +209,6 @@ ldbm_back_modrdn(
 			}
 		}
 
-		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
-		rootlock = 1;
-		
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: no parent, locked root\n",
 		       0, 0, 0 );
@@ -631,11 +633,6 @@ return_results:
 		cache_return_entry_w( &li->li_cache, p );
 	}
 
-	if ( rootlock ) {
-		/* release root writer lock */
-		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
-	}
-
 	/* free entry and writer lock */
 	cache_return_entry_w( &li->li_cache, e );
 	if ( rc == MUST_DESTROY ) {
@@ -644,5 +641,6 @@ return_results:
 		 * the entry must be freed */
 		entry_free( e );
 	}
+	ldap_pvt_thread_rdwr_wunlock(&li->li_giant_rwlock);
 	return( rc );
 }

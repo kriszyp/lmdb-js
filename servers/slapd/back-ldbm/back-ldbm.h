@@ -103,10 +103,8 @@ typedef struct ldbm_dbcache {
 #define MAXDBCACHE	128
 
 struct ldbminfo {
+	ldap_pvt_thread_rdwr_t		li_giant_rwlock;
 	ID			li_nextid;
-	ldap_pvt_thread_mutex_t		li_nextid_mutex;
-	ldap_pvt_thread_mutex_t		li_root_mutex;
-	ldap_pvt_thread_mutex_t		li_add_mutex;
 	int			li_mode;
 	slap_mask_t	li_defaultmask;
 	char			*li_directory;
