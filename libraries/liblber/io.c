@@ -456,6 +456,8 @@ ber_reset( BerElement *ber, int was_writing )
  * a full packet is read.
  */
 
+#define LENSIZE	4
+
 ber_tag_t
 ber_get_next(
 	Sockbuf *sb,
@@ -486,6 +488,15 @@ ber_get_next(
 	 *	1) small tags (less than 128)
 	 *	2) definite lengths
 	 *	3) primitive encodings used whenever possible
+	 *
+	 * The code also handles multi-byte tags. The first few bytes
+	 * of the message are read to check for multi-byte tags and
+	 * lengths. These bytes are temporarily stored in the ber_tag,
+	 * ber_len, and ber_usertag fields of the berelement until
+	 * tag/len parsing is complete. After this parsing, any leftover
+	 * bytes and the rest of the message are copied into the ber_buf.
+	 *
+	 * We expect tag and len to be at most 32 bits wide.
 	 */
 
 	if (ber->ber_rwptr == NULL) {
@@ -499,13 +510,13 @@ ber_get_next(
 	}
 
 	while (ber->ber_rwptr > (char *)&ber->ber_tag && ber->ber_rwptr <
-		(char *)(&ber->ber_usertag + 1)) {
+		(char *)&ber->ber_len + LENSIZE*2) {
 		ber_slen_t sblen;
-		char buf[sizeof(ber->ber_len)-1];
+		char buf[LENSIZE-1];
 		ber_len_t tlen = 0;
 
 		sblen=ber_int_sb_read( sb, ber->ber_rwptr,
-			(char *)(&ber->ber_usertag+1)-ber->ber_rwptr);
+			((char *)&ber->ber_len + LENSIZE*2)-ber->ber_rwptr);
 		if (sblen<=0) return LBER_DEFAULT;
 		ber->ber_rwptr += sblen;
 
@@ -563,11 +574,11 @@ ber_get_next(
 		}
 
 		/* Are there leftover data bytes inside ber->ber_len? */
-		if (ber->ber_ptr < (char *)&ber->ber_usertag) {
-			if (ber->ber_rwptr < (char *)&ber->ber_usertag)
+		if (ber->ber_ptr < (char *)&ber->ber_len+LENSIZE) {
+			if (ber->ber_rwptr < (char *)&ber->ber_len+LENSIZE)
 				sblen = ber->ber_rwptr - ber->ber_ptr;
 			else
-				sblen = (char *)&ber->ber_usertag - ber->ber_ptr;
+				sblen = ((char *)&ber->ber_len+LENSIZE) - ber->ber_ptr;
 			AC_MEMCPY(buf, ber->ber_ptr, sblen);
 			ber->ber_ptr += sblen;
 		} else {

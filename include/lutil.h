@@ -162,11 +162,34 @@ LDAP_LUTIL_V (ldap_pvt_thread_cond_t) started_event;
 
 /* macros are different between Windows and Mingw */
 #if defined(_WINSVC_H) || defined(_WINSVC_)
-LDAP_LUTIL_V (SERVICE_STATUS) SLAPDServiceStatus;
-LDAP_LUTIL_V (SERVICE_STATUS_HANDLE) hSLAPDServiceStatus;
+LDAP_LUTIL_V (SERVICE_STATUS) lutil_ServiceStatus;
+LDAP_LUTIL_V (SERVICE_STATUS_HANDLE) hlutil_ServiceStatus;
 #endif /* _WINSVC_H */
 
+LDAP_LUTIL_F (void)
+lutil_CommenceStartupProcessing( char *serverName, void (*stopper)(int)) ;
+
+LDAP_LUTIL_F (void)
+lutil_ReportShutdownComplete( void );
+
+LDAP_LUTIL_F (void *)
+lutil_getRegParam( char *svc, char *value );
+
+LDAP_LUTIL_F (int)
+lutil_srv_install( char* service, char * displayName, char* filename,
+		 int auto_start );
+LDAP_LUTIL_F (int)
+lutil_srv_remove ( char* service, char* filename );
+
 #endif /* HAVE_NT_SERVICE_MANAGER */
+
+#ifdef HAVE_NT_EVENT_LOG
+LDAP_LUTIL_F (void)
+lutil_LogStartedEvent( char *svc, int slap_debug, char *configfile, char *urls );
+
+LDAP_LUTIL_F (void)
+lutil_LogStoppedEvent( char *svc );
+#endif
 
 #ifdef HAVE_EBCDIC
 /* Generally this has only been used to put '\n' to stdout. We need to

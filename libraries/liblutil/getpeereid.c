@@ -13,13 +13,18 @@
 #include <ac/unistd.h>
 
 #include <ac/socket.h>
+#include <ac/errno.h>
 
 #if HAVE_SYS_UCRED_H
 #include <sys/ucred.h>
 #endif
 
-#if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && defined(HAVE_SENDMSG)
+#if !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
+	defined(HAVE_SENDMSG) && defined(HAVE_MSGHDR_MSG_ACCRIGHTS)
 #define DO_SENDMSG
+#ifdef HAVE_SYS_UIO_H
+#include <sys/uio.h>
+#endif
 #include <sys/stat.h>
 #endif
 
@@ -53,14 +58,14 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 	}
 #elif defined( DO_SENDMSG )
 	int dummy, fd[2];
-	struct iovec iov = {(char *)&dummy, sizeof(dummy)};
+	struct iovec iov = {(char *)&dummy, 1};
 	struct msghdr msg = {0};
 	struct stat st;
 	msg.msg_iov = &iov;
 	msg.msg_iovlen = 1;
 	msg.msg_accrights = (char *)fd;
 	msg.msg_accrightslen = sizeof(fd);
-	if( recvmsg( s, &msg, 0) >= 0 && msg.msg_accrightslen == sizeof(int) )
+	if( recvmsg( s, &msg, MSG_PEEK) >= 0 && msg.msg_accrightslen == sizeof(int) )
 	{
 		/* We must receive a valid descriptor, it must be a pipe,
 		 * and it must only be accessible by its owner.
@@ -76,9 +81,9 @@ int getpeereid( int s, uid_t *euid, gid_t *egid )
 		}
 	}
 #endif
-#endif
+#endif /* LDAP_PF_LOCAL */
 
 	return -1;
 }
 
-#endif
+#endif /* HAVE_GETPEEREID */

@@ -49,6 +49,9 @@
 #define S_IWGRP 0
 #endif
 
+#undef SERVICE_NAME
+#define SERVICE_NAME	OPENLDAP_PACKAGE "-slurpd"
+
 /* Default directory for slurpd's private copy of replication logs */
 #define	DEFAULT_SLURPD_REPLICA_DIR	LDAP_RUNDIR LDAP_DIRSEP "openldap-slurp"
 

@@ -25,8 +25,12 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-/* XXX non-portable */
+#ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
+#endif
+#ifdef HAVE_SYS_UIO_H
+#include <sys/uio.h>
+#endif
 
 #ifdef HAVE_IO_H
 #include <io.h>
@@ -131,7 +135,9 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 }
 #undef TRACE
 
-#if !defined(HAVE_GETPEEREID) && !defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && defined(HAVE_SENDMSG)
+#if !defined(HAVE_GETPEEREID) && \
+	!defined(SO_PEERCRED) && !defined(LOCAL_PEERCRED) && \
+	defined(HAVE_SENDMSG) && defined(HAVE_MSGHDR_MSG_ACCRIGHTS)
 #define DO_SENDMSG
 #endif
 
@@ -163,9 +169,13 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_un *sa, int async)
 	/* Send a dummy message with access rights. Remote side will
 	 * obtain our uid/gid by fstat'ing this descriptor.
 	 */
-sendcred:	 {
+sendcred:
+		{
 			int fds[2];
-			struct iovec iov = {(char *)fds, sizeof(int)};
+			/* Abandon, noop, has no reply */
+			char txt[] = {LDAP_TAG_MESSAGE, 6,
+				LDAP_TAG_MSGID, 1, 0, LDAP_REQ_ABANDON, 1, 0};
+			struct iovec iov = {txt, sizeof(txt)};
 			struct msghdr msg = {0};
 			if (pipe(fds) == 0) {
 				msg.msg_iov = &iov;
@@ -173,7 +183,7 @@ sendcred:	 {
 				msg.msg_accrights = (char *)fds;
 				msg.msg_accrightslen = sizeof(int);
 				sendmsg( s, &msg, 0 );
-			    	close(fds[0]);
+				close(fds[0]);
 				close(fds[1]);
 			}
 		}

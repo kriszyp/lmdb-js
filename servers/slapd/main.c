@@ -32,26 +32,16 @@ static RETSIGTYPE wait4child( int sig );
 #define MAIN_RETURN(x) return
 static struct sockaddr_in	bind_addr;
 
-void CommenceStartupProcessing( LPCTSTR serverName,
-							   void(*stopper)(int));
-void ReportSlapdShutdownComplete( void );
-void *getRegParam( char *svc, char *value );
-
 #define SERVICE_EXIT( e, n )	do { \
 	if ( is_NT_Service ) { \
-		SLAPDServiceStatus.dwWin32ExitCode				= (e); \
-		SLAPDServiceStatus.dwServiceSpecificExitCode	= (n); \
+		lutil_ServiceStatus.dwWin32ExitCode				= (e); \
+		lutil_ServiceStatus.dwServiceSpecificExitCode	= (n); \
 	} \
 } while ( 0 )
 
 #else
 #define SERVICE_EXIT( e, n )
 #define MAIN_RETURN(x) return(x)
-#endif
-
-#ifdef HAVE_NT_EVENT_LOG
-void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls );
-void LogSlapdStoppedEvent( char *svc );
 #endif
 
 /*
@@ -170,12 +160,12 @@ int main( int argc, char **argv )
 
 		if ( is_NT_Service ) {
 			serverName = argv[0];
-			CommenceStartupProcessing( serverName, slap_sig_shutdown );
+			lutil_CommenceStartupProcessing( serverName, slap_sig_shutdown );
 			if ( strcmp(serverName, SERVICE_NAME) )
 			    regService = serverName;
 		}
 
-		i = (int*)getRegParam( regService, "DebugLevel" );
+		i = (int*)lutil_getRegParam( regService, "DebugLevel" );
 		if ( i != NULL ) 
 		{
 			slap_debug = *i;
@@ -189,7 +179,7 @@ int main( int argc, char **argv )
 #endif
 		}
 
-		newUrls = (char *) getRegParam(regService, "Urls");
+		newUrls = (char *) lutil_getRegParam(regService, "Urls");
 		if (newUrls)
 		{
 		    if (urls)
@@ -206,7 +196,7 @@ int main( int argc, char **argv )
 
 		}
 
-		newConfigFile = (char*)getRegParam( regService, "ConfigFile" );
+		newConfigFile = (char*)lutil_getRegParam( regService, "ConfigFile" );
 		if ( newConfigFile != NULL ) 
 		{
 			configfile = newConfigFile;
@@ -561,7 +551,7 @@ int main( int argc, char **argv )
 
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
-	LogSlapdStartedEvent( serverName, slap_debug, configfile, urls );
+	lutil_LogStartedEvent( serverName, slap_debug, configfile, urls );
 #endif
 
 	rc = slapd_daemon();
@@ -589,7 +579,7 @@ destroy:
 stop:
 #ifdef HAVE_NT_EVENT_LOG
 	if (is_NT_Service)
-	LogSlapdStoppedEvent( serverName );
+	lutil_LogStoppedEvent( serverName );
 #endif
 
 #ifdef NEW_LOGGING
@@ -600,7 +590,7 @@ stop:
 
 
 #ifdef HAVE_NT_SERVICE_MANAGER
-	ReportSlapdShutdownComplete();
+	lutil_ReportShutdownComplete();
 #endif
 
 #ifdef LOG_DEBUG

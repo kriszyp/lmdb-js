@@ -808,10 +808,12 @@ AC_CHECK_HEADERS(	\
 	sys/resource.h	\
 	sys/select.h	\
 	sys/socket.h	\
+	sys/stat.h		\
 	sys/syslog.h	\
 	sys/time.h		\
 	sys/types.h		\
 	sys/ucred.h		\
+	sys/uio.h		\
 	syslog.h		\
 	termios.h		\
 	unistd.h		\
@@ -2438,6 +2440,7 @@ if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
 fi
 if test "$ac_cv_func_getpeereid" != yes; then
+	OL_MSGHDR_MSG_ACCRIGHTS
 	LIBSRCS="$LIBSRCS getpeereid.c"
 fi
 if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then

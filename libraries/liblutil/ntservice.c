@@ -6,7 +6,6 @@
 
 /*
  * NT Service manager utilities for OpenLDAP services
- *	these should NOT be slapd specific, but are
  */
 
 #include "portable.h"
@@ -23,17 +22,6 @@
 
 #include <ldap.h>
 
-/*
- * The whole debug implementation is a bit of a hack.
- * We have to define this LDAP_SLAPD_V macro here since the slap.h
- * header file isn't included (and really shouldn't be).
- * TODO: re-implement debug functions so that the debug level can
- * be passed around instead of having to count on the existence of
- * ldap_debug, slap_debug, etc.
- */
-#define ldap_debug slap_debug
-LDAP_SLAPD_V (int) slap_debug;
-
 #include "ldap_log.h"
 #include "ldap_pvt_thread.h"
 
@@ -45,11 +33,10 @@ LDAP_SLAPD_V (int) slap_debug;
 #define SCM_NOTIFICATION_INTERVAL	5000
 #define THIRTY_SECONDS				(30 * 1000)
 
-int	  is_NT_Service = 1;	/* assume this is an NT service until determined that */
-							/* startup was from the command line */
+int	  is_NT_Service;	/* is this is an NT service? */
 
-SERVICE_STATUS			SLAPDServiceStatus;
-SERVICE_STATUS_HANDLE	hSLAPDServiceStatus;
+SERVICE_STATUS			lutil_ServiceStatus;
+SERVICE_STATUS_HANDLE	hlutil_ServiceStatus;
 
 ldap_pvt_thread_cond_t	started_event,		stopped_event;
 ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
@@ -58,14 +45,17 @@ void (*stopfunc)(int);
 
 static char *GetLastErrorString( void );
 
-int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
-		LPCTSTR lpszBinaryPathName, BOOL auto_start)
+int lutil_srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
+		LPCTSTR lpszBinaryPathName, int auto_start)
 {
 	HKEY		hKey;
 	DWORD		dwValue, dwDisposition;
 	SC_HANDLE	schSCManager, schService;
+	char *sp = strchr( lpszBinaryPathName, ' ');
 
+	if ( sp ) *sp = '\0';
 	fprintf( stderr, "The install path is %s.\n", lpszBinaryPathName );
+	if ( sp ) *sp = ' ';
 	if ((schSCManager = OpenSCManager( NULL, NULL, SC_MANAGER_CONNECT|SC_MANAGER_CREATE_SERVICE ) ) != NULL )
 	{
 	 	if ((schService = CreateService( 
@@ -96,6 +86,7 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 				RegCloseKey(hKey);
 				return(0);
 			}
+			if ( sp ) *sp = '\0';
 			if ( RegSetValueEx(hKey, "EventMessageFile", 0, REG_EXPAND_SZ, lpszBinaryPathName, strlen(lpszBinaryPathName) + 1) != ERROR_SUCCESS)
 			{
 				fprintf( stderr, "RegSetValueEx(EventMessageFile) failed. GetLastError=%lu (%s)\n", GetLastError(), GetLastErrorString() );
@@ -126,7 +117,7 @@ int srv_install(LPCTSTR lpszServiceName, LPCTSTR lpszDisplayName,
 }
 
 
-int srv_remove(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
+int lutil_srv_remove(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 {
 	SC_HANDLE schSCManager, schService;
 
@@ -159,6 +150,7 @@ int srv_remove(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 }
 
 
+#if 0 /* unused */
 DWORD
 svc_installed (LPTSTR lpszServiceName, LPTSTR lpszBinaryPathName)
 {
@@ -209,7 +201,7 @@ svc_running (LPTSTR lpszServiceName)
 	CloseServiceHandle(scm);
 	return(rc);
 }
-
+#endif
 
 static void *start_status_routine( void *ptr )
 {
@@ -226,27 +218,27 @@ static void *start_status_routine( void *ptr )
 				/* the object that we were waiting for has been destroyed (ABANDONED) or
 				 * signalled (TIMEOUT_0). We can assume that the startup process is
 				 * complete and tell the Service Control Manager that we are now runnng */
-				SLAPDServiceStatus.dwCurrentState	= SERVICE_RUNNING;
-				SLAPDServiceStatus.dwWin32ExitCode	= NO_ERROR;
-				SLAPDServiceStatus.dwCheckPoint++;
-				SLAPDServiceStatus.dwWaitHint		= 1000;
-				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+				lutil_ServiceStatus.dwCurrentState	= SERVICE_RUNNING;
+				lutil_ServiceStatus.dwWin32ExitCode	= NO_ERROR;
+				lutil_ServiceStatus.dwCheckPoint++;
+				lutil_ServiceStatus.dwWaitHint		= 1000;
+				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 				done = 1;
 				break;
 			case WAIT_TIMEOUT:
 				/* We've waited for the required time, so send an update to the Service Control 
 				 * Manager saying to wait again. */
-				SLAPDServiceStatus.dwCheckPoint++;
-				SLAPDServiceStatus.dwWaitHint = SCM_NOTIFICATION_INTERVAL * 2;
-				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+				lutil_ServiceStatus.dwCheckPoint++;
+				lutil_ServiceStatus.dwWaitHint = SCM_NOTIFICATION_INTERVAL * 2;
+				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 				break;
 			case WAIT_FAILED:
 				/* theres been some problem with WaitForSingleObject so tell the Service
 				 * Control Manager to wait 30 seconds before deploying its assasin and 
 				 * then leave the thread. */
-				SLAPDServiceStatus.dwCheckPoint++;
-				SLAPDServiceStatus.dwWaitHint = THIRTY_SECONDS;
-				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+				lutil_ServiceStatus.dwCheckPoint++;
+				lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
+				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 				done = 1;
 				break;
 		}
@@ -278,17 +270,17 @@ static void *stop_status_routine( void *ptr )
 			case WAIT_TIMEOUT:
 				/* We've waited for the required time, so send an update to the Service Control 
 				 * Manager saying to wait again. */
-				SLAPDServiceStatus.dwCheckPoint++;
-				SLAPDServiceStatus.dwWaitHint = SCM_NOTIFICATION_INTERVAL * 2;
-				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+				lutil_ServiceStatus.dwCheckPoint++;
+				lutil_ServiceStatus.dwWaitHint = SCM_NOTIFICATION_INTERVAL * 2;
+				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 				break;
 			case WAIT_FAILED:
 				/* theres been some problem with WaitForSingleObject so tell the Service
 				 * Control Manager to wait 30 seconds before deploying its assasin and 
 				 * then leave the thread. */
-				SLAPDServiceStatus.dwCheckPoint++;
-				SLAPDServiceStatus.dwWaitHint = THIRTY_SECONDS;
-				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+				lutil_ServiceStatus.dwCheckPoint++;
+				lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
+				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 				done = 1;
 				break;
 		}
@@ -299,27 +291,26 @@ static void *stop_status_routine( void *ptr )
 
 
 
-void WINAPI SLAPDServiceCtrlHandler( IN DWORD Opcode)
+void WINAPI lutil_ServiceCtrlHandler( IN DWORD Opcode)
 {
 	switch (Opcode)
 	{
 	case SERVICE_CONTROL_STOP:
 	case SERVICE_CONTROL_SHUTDOWN:
 
-		Debug( LDAP_DEBUG_TRACE, "Service Shutdown ordered\n", 0, 0, 0 );
-		SLAPDServiceStatus.dwCurrentState	= SERVICE_STOP_PENDING;
-		SLAPDServiceStatus.dwCheckPoint++;
-		SLAPDServiceStatus.dwWaitHint		= SCM_NOTIFICATION_INTERVAL * 2;
-		SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+		lutil_ServiceStatus.dwCurrentState	= SERVICE_STOP_PENDING;
+		lutil_ServiceStatus.dwCheckPoint++;
+		lutil_ServiceStatus.dwWaitHint		= SCM_NOTIFICATION_INTERVAL * 2;
+		SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 
 		ldap_pvt_thread_cond_init( &stopped_event );
 		if ( stopped_event == NULL )
 		{
 			/* the event was not created. We will ask the service control manager for 30
 			 * seconds to shutdown */
-			SLAPDServiceStatus.dwCheckPoint++;
-			SLAPDServiceStatus.dwWaitHint		= THIRTY_SECONDS;
-			SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+			lutil_ServiceStatus.dwCheckPoint++;
+			lutil_ServiceStatus.dwWaitHint		= THIRTY_SECONDS;
+			SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 		}
 		else
 		{
@@ -334,22 +325,22 @@ void WINAPI SLAPDServiceCtrlHandler( IN DWORD Opcode)
 				 * service stopping is proceeding. 
 				 * tell the Service Control Manager to wait another 30 seconds before deploying its
 				 * assasin.  */
-				SLAPDServiceStatus.dwCheckPoint++;
-				SLAPDServiceStatus.dwWaitHint = THIRTY_SECONDS;
-				SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+				lutil_ServiceStatus.dwCheckPoint++;
+				lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
+				SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 			}
 		}
 		stopfunc( -1 );
 		break;
 
 	case SERVICE_CONTROL_INTERROGATE:
-		SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+		SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 		break;
 	}
 	return;
 }
 
-void *getRegParam( char *svc, char *value )
+void *lutil_getRegParam( char *svc, char *value )
 {
 	HKEY hkey;
 	char path[255];
@@ -364,13 +355,11 @@ void *getRegParam( char *svc, char *value )
 	
 	if ( RegOpenKeyEx( HKEY_LOCAL_MACHINE, path, 0, KEY_READ, &hkey ) != ERROR_SUCCESS )
 	{
-		/*Debug( LDAP_DEBUG_ANY, "RegOpenKeyEx() %s\n", GetLastErrorString(), 0, 0); */
 		return NULL;
 	}
 
 	if ( RegQueryValueEx( hkey, value, NULL, &vType, vValue, &valLen ) != ERROR_SUCCESS )
 	{
-		/*Debug( LDAP_DEBUG_ANY, "RegQueryValueEx() %s\n", GetLastErrorString(), 0, 0 );*/
 		RegCloseKey( hkey );
 		return NULL;
 	}
@@ -387,7 +376,7 @@ void *getRegParam( char *svc, char *value )
 	return (void*)NULL;
 }
 
-void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls )
+void lutil_LogStartedEvent( char *svc, int slap_debug, char *configfile, char *urls )
 {
 	char *Inserts[5];
 	WORD i = 0, j;
@@ -399,10 +388,9 @@ void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *ur
 	itoa( slap_debug, Inserts[i++], 10 );
 	Inserts[i++] = strdup( configfile );
 	Inserts[i++] = strdup( urls ? urls : "ldap:///" );
-	Inserts[i++] = strdup( is_NT_Service ? "svc" : "cmd" );
 
 	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0,
-		MSG_SLAPD_STARTED, NULL, i, 0, (LPCSTR *) Inserts, NULL );
+		MSG_SVC_STARTED, NULL, i, 0, (LPCSTR *) Inserts, NULL );
 
 	for ( j = 0; j < i; j++ )
 		ldap_memfree( Inserts[j] );
@@ -411,34 +399,34 @@ void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *ur
 
 
 
-void LogSlapdStoppedEvent( char *svc )
+void lutil_LogStoppedEvent( char *svc )
 {
 	HANDLE hEventLog;
 	
 	hEventLog = RegisterEventSource( NULL, svc );
 	ReportEvent( hEventLog, EVENTLOG_INFORMATION_TYPE, 0,
-		MSG_SLAPD_STOPPED, NULL, 0, 0, NULL, NULL );
+		MSG_SVC_STOPPED, NULL, 0, 0, NULL, NULL );
 	DeregisterEventSource( hEventLog );
 }
 
 
-void CommenceStartupProcessing( LPCTSTR lpszServiceName,
+void lutil_CommenceStartupProcessing( char *lpszServiceName,
 							   void (*stopper)(int) )
 {
-	hSLAPDServiceStatus = RegisterServiceCtrlHandler( lpszServiceName, (LPHANDLER_FUNCTION)SLAPDServiceCtrlHandler);
+	hlutil_ServiceStatus = RegisterServiceCtrlHandler( lpszServiceName, (LPHANDLER_FUNCTION)lutil_ServiceCtrlHandler);
 
 	stopfunc = stopper;
 
 	/* initialize the Service Status structure */
-	SLAPDServiceStatus.dwServiceType				= SERVICE_WIN32_OWN_PROCESS;
-	SLAPDServiceStatus.dwCurrentState				= SERVICE_START_PENDING;
-	SLAPDServiceStatus.dwControlsAccepted			= SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
-	SLAPDServiceStatus.dwWin32ExitCode				= NO_ERROR;
-	SLAPDServiceStatus.dwServiceSpecificExitCode	= 0;
-	SLAPDServiceStatus.dwCheckPoint					= 1;
-	SLAPDServiceStatus.dwWaitHint					= SCM_NOTIFICATION_INTERVAL * 2;
+	lutil_ServiceStatus.dwServiceType				= SERVICE_WIN32_OWN_PROCESS;
+	lutil_ServiceStatus.dwCurrentState				= SERVICE_START_PENDING;
+	lutil_ServiceStatus.dwControlsAccepted			= SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN;
+	lutil_ServiceStatus.dwWin32ExitCode				= NO_ERROR;
+	lutil_ServiceStatus.dwServiceSpecificExitCode	= 0;
+	lutil_ServiceStatus.dwCheckPoint					= 1;
+	lutil_ServiceStatus.dwWaitHint					= SCM_NOTIFICATION_INTERVAL * 2;
 
-	SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+	SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 
 	/* start up a thread to keep sending SERVICE_START_PENDING to the Service Control Manager
 	 * until the slapd listener is completed and listening. Only then should we send 
@@ -449,9 +437,9 @@ void CommenceStartupProcessing( LPCTSTR lpszServiceName,
 		/* failed to create the event to determine when the startup process is complete so
 		 * tell the Service Control Manager to wait another 30 seconds before deploying its
 		 * assasin  */
-		SLAPDServiceStatus.dwCheckPoint++;
-		SLAPDServiceStatus.dwWaitHint = THIRTY_SECONDS;
-		SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+		lutil_ServiceStatus.dwCheckPoint++;
+		lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
+		SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 	}
 	else
 	{
@@ -466,14 +454,14 @@ void CommenceStartupProcessing( LPCTSTR lpszServiceName,
 			 * service startup is proceeding. 
 			 * tell the Service Control Manager to wait another 30 seconds before deploying its
 			 * assasin.  */
-			SLAPDServiceStatus.dwCheckPoint++;
-			SLAPDServiceStatus.dwWaitHint = THIRTY_SECONDS;
-			SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+			lutil_ServiceStatus.dwCheckPoint++;
+			lutil_ServiceStatus.dwWaitHint = THIRTY_SECONDS;
+			SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 		}
 	}
 }
 
-void ReportSlapdShutdownComplete(  )
+void lutil_ReportShutdownComplete(  )
 {
 	if ( is_NT_Service )
 	{
@@ -486,10 +474,10 @@ void ReportSlapdShutdownComplete(  )
 		if (ldap_pvt_thread_join( stop_status_tid, (void *) NULL ) == -1)
 			ldap_pvt_thread_sleep( SCM_NOTIFICATION_INTERVAL / 2 );
 
-		SLAPDServiceStatus.dwCurrentState = SERVICE_STOPPED;
-		SLAPDServiceStatus.dwCheckPoint++;
-		SLAPDServiceStatus.dwWaitHint = SCM_NOTIFICATION_INTERVAL;
-		SetServiceStatus(hSLAPDServiceStatus, &SLAPDServiceStatus);
+		lutil_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
+		lutil_ServiceStatus.dwCheckPoint++;
+		lutil_ServiceStatus.dwWaitHint = SCM_NOTIFICATION_INTERVAL;
+		SetServiceStatus(hlutil_ServiceStatus, &lutil_ServiceStatus);
 	}
 }
 
