@@ -845,8 +845,15 @@ entry_naming_check(
 			snprintf( textbuf, textlen, 
 				"naming attribute '%s' is not present in entry",
 				ava->la_attr.bv_val );
-			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			rc = LDAP_NAMING_VIOLATION;
 			break;
+		}
+
+		if( ava->la_flags & LDAP_AVA_BINARY ) {
+			snprintf( textbuf, textlen, 
+				"value of naming attribute '%s' in unsupported BER form",
+				ava->la_attr.bv_val );
+			rc = LDAP_NAMING_VIOLATION;
 		}
 
 #ifdef SLAP_NVALUES
@@ -861,7 +868,7 @@ entry_naming_check(
 			snprintf( textbuf, textlen, 
 				"value of naming attribute '%s' is not present in entry",
 				ava->la_attr.bv_val );
-			rc = LDAP_NO_SUCH_ATTRIBUTE;
+			rc = LDAP_NAMING_VIOLATION;
 			break;
 		}
 	}
