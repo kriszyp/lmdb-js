@@ -368,7 +368,10 @@ main()
 
 	version = db_version( &major, &minor, &patch );
 
-	if( major != DB_VERSION_MAJOR || minor < DB_VERSION_MINOR ) {
+	if( major != DB_VERSION_MAJOR ||
+		minor != DB_VERSION_MINOR ||
+		patch != DB_VERSION_PATCH )
+	{
 		printf("Berkeley DB version mismatch\n"
 			"\theader: %s\n\tlibrary: %s\n",
 			DB_VERSION_STRING, version);
