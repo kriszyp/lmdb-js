@@ -1749,6 +1749,13 @@ read_config( const char *fname )
 			if ( rc )
 				return rc;
 
+		} else if ( !strcasecmp( cargv[0], "TLSRandFile" ) ) {
+			rc = ldap_pvt_tls_set_option( NULL,
+						      LDAP_OPT_X_TLS_RANDOM_FILE,
+						      cargv[1] );
+			if ( rc )
+				return rc;
+
 		} else if ( !strcasecmp( cargv[0], "TLSCipherSuite" ) ) {
 			rc = ldap_pvt_tls_set_option( NULL,
 						      LDAP_OPT_X_TLS_CIPHER_SUITE,
