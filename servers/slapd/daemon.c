@@ -783,8 +783,8 @@ static int slap_open_listener(
 		       (long) l.sl_sd, err, sock_errstr(err) );
 #endif
 			tcp_close( l.sl_sd );
-			sal++;
-			continue;
+			slap_free_listener_addresses(psal);
+			return -1;
 		}
 
 	switch ( (*sal)->sa_family ) {
