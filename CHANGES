@@ -4,6 +4,7 @@ OpenLDAP 2.1.18 Engineering
 	Fixed slave update when updateref missing bug (ITS#2435)
 	Fixed slapd crash on uniqueMember= filter (ITS#2447)
 	Fixed slapd subordinate database crash
+	Fixed slapd ACL group DN crash (ITS#2467)
 	Fixed back-bdb search filter empty value bug (ITS#2453)
 
 OpenLDAP 2.1.17 Release
