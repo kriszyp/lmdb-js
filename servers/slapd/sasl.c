@@ -306,6 +306,8 @@ slap_sasl_checkpass(
 	cred.bv_val = (char *)pass;
 	cred.bv_len = passlen;
 
+	/* XXX do we need to check sasldb as well? */
+
 	/* XXX can we do both steps at once? */
 	rc = slap_sasl_getdn( conn, (char *)username, NULL, &dn,
 		FLAG_GETDN_AUTHCID | FLAG_GETDN_FINAL );
