@@ -1,0 +1,40 @@
+OpenLDAP To Do List
+-------------------
+
+This is a list of projects that need getting done.  They are defined
+by scale of the effort as opposed to priority.  Contribute to projects
+based upon your personal priorities.
+
+If you would like to work on any of these projects, contact the
+please coordinate with the listed individual.   If no one is
+listed, contact <project@OpenLDAP.org>.
+
+If you have a project you'd like added to the list, talk it up
+on -devel.
+
+
+Larger than life projects
+-------------------------
+LDAPv3 support <kurt@openldap.org>
+LDAP C API (draft-ietf-ldapext-ldap-c-api-xx) support <kurt@openldap.org>
+Schema Repository
+Modify -lldap to be operation-level multithreaded <kurt@openldap.org>
+
+Large projects
+--------------
+redesign slapd threading
+autoconf support <kurt@openldap.org>
+Modify -lldap to be session-level multithreaded <kurt@openldap.org>
+
+
+Medium projects
+---------------
+Modify -lldap to be reentrant/threadsafe <kurt@openldap.org>
+
+
+Small projects
+--------------
+Modify -lldap to not use non-reentrant library functions <kurt@openldap.org>
+Create ldapurl (from ldapsearch?) to support searching by URL
+Create ldappasswd to support generation of crypt, sha1, md5 passwords.
+

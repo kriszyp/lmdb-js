@@ -4,12 +4,16 @@ OpenLDAP Devel README
 	and unproven bug fixes.  Many of these changes will cause
 	previous working programs to fail.
 
+	Additional developer documents are available in doc/devel,
+		todo list
+		guidelines for developers
+
 	Client developers seeking a stable development platform
 	should use -stable.
 
-OpenLDAP 1.1 Alpha README
 
-    This is the OpenLDAP version 1.1 Alpha.
+OpenLDAP 1.1 Alpha README
+	This is the OpenLDAP version 1.1 Alpha.
 
 	For a description of what this distribution contains, see the
 	ANNOUNCEMENT file in this directory.  For a description of
@@ -17,8 +21,12 @@ OpenLDAP 1.1 Alpha README
 	directory.  For a more detailed description of how to make an
 	install the distribution, see the INSTALL file in this directory.
 
+	Additional installation information, such as per platform
+	hints can be found in the doc/install directory.
+
 	For more information:
 		http://www.OpenLDAP.org/
+
 
 REQUIRED SOFTWARE
 	Build OpenLDAP requires the following software components:
@@ -30,34 +38,23 @@ REQUIRED SOFTWARE
 	SLAPD:
 		LDBM compatible datastore
 			(Berkeley DB, Sleepycat DB2, or GDBM)
+
 	SLURPD:
 		LTHREAD compatible thread package
 			(POSIX pthreads, MIT pthreads, Mach Cthreads or Sun LWP)
 
 	LDAPD:
-		ISODE compatible ldap distribution
+		ISODE compatible X.500 distribution
 
-	CLIENTS/CONTRIBware:
+	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
 		
 
 MAKING AND INSTALLING THE DISTRIBUTION
+	This is a quick guide.  For details, see the INSTALL file.
 
-    You should be able to make and install the distribution with a
-    default configuration by typing the following commands:
-
-	% ./configure --help
-		This will list the available options.
-		The configure script will also use your environmental
-		variables for determining compiler/linker options.
-		These environment variables are used:
-			CC			C compiler	(cc, ecgs)
-			CFLAGS		C Flags		(-ansi)
-			CPPFLAGS	CPP Flags	(-I -D)
-			LDFLAGS		LDFLAGS		(-L -l)
-
-	% [env settings] ./configure [options]
-		this will configure the build system
+	% ./configure
+		autoconf OpenLDAP for current platform
 
 	% make depend
 		this will create dependency information
@@ -80,10 +77,17 @@ MAKING AND INSTALLING THE DISTRIBUTION
 
     See the INSTALL file in this directory for more information.
 
-DOCUMENTATION
 
+DOCUMENTATION
     There are man pages for most programs in the distribution and
     routines in the various libraries.  See ldap(3) for details.
+
+	Additional documentation can be found in the doc directory.
+		doc/devel	Developer Information
+		doc/drafts	LDAP-related IETF drafts
+		doc/install	Installation and Integration
+		doc/man		Raw man(1) pages
+		doc/rfcs	LDAP-related Request for Comments
 
     There is an OpenLDAP homepage available that contains the latest
     LDAP news, releases announcements, pointers to other LDAP resources,
@@ -91,8 +95,8 @@ DOCUMENTATION
 
 	http://www.OpenLDAP.org/
 
-FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 
+FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
     We would appreciate any feedback you can provide.  If you have
     problems, report them to this address:
 
