@@ -1,4 +1,3 @@
-/* schemaparse.c - routines to parse config file objectclass definitions */
 /* $OpenLDAP$ */
 /*
  * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
@@ -25,7 +24,9 @@ static char *const err2text[] = {
 	"Success",
 	"Out of memory",
 	"ObjectClass not found",
+	"ObjectClass inappropriate SUPerior",
 	"AttributeType not found",
+	"AttributeType inappropriate USAGE",
 	"Duplicate objectClass",
 	"Duplicate attributeType",
 	"Duplicate ldapSyntax",
