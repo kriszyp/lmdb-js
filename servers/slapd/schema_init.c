@@ -960,6 +960,11 @@ caseExactMatch(
 	struct berval *value,
 	void *assertedValue )
 {
+#if UTF8MATCH
+	*matchp = UTF8normcmp( value->bv_val,
+		((struct berval *) assertedValue)->bv_val,
+		UTF8_NOCASEFOLD );
+#else
 	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
 
 	if( match == 0 ) {
@@ -969,6 +974,7 @@ caseExactMatch(
 	}
 
 	*matchp = match;
+#endif
 	return LDAP_SUCCESS;
 }
 
