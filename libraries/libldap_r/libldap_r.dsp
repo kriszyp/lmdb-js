@@ -184,6 +184,10 @@ SOURCE=..\libldap\extended.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libldap\filter.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libldap\free.c
 # End Source File
 # Begin Source File
@@ -228,7 +232,19 @@ SOURCE=..\..\include\ldap_cdefs.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ldap_config.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_defaults.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldap_features.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_int_thread.h
 # End Source File
 # Begin Source File
 
@@ -241,6 +257,18 @@ SOURCE=..\..\include\ldap_pvt.h
 # Begin Source File
 
 SOURCE=..\..\include\ldap_pvt_thread.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_pvt_uc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_schema.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_utf8.h
 # End Source File
 # Begin Source File
 

@@ -1208,7 +1208,6 @@ aci_set_gather (void *cookie, char *name, struct berval *attr)
 	AciSetCookie *cp = cookie;
 	BVarray bvals = NULL;
 	struct berval bv, ndn;
-	int i;
 
 	/* this routine needs to return the bervals instead of
 	 * plain strings, since syntax is not known.  It should
@@ -1299,7 +1298,8 @@ aci_match_set (
 		cookie.e = e;
 		cookie.conn = conn;
 		cookie.op = op;
-		rc = (set_filter(aci_set_gather, &cookie, &set, op->o_ndn.bv_val, e->e_ndn, NULL) > 0);
+		rc = (slap_set_filter(aci_set_gather, &cookie, &set,
+			op->o_ndn.bv_val, e->e_ndn, NULL) > 0);
 		ch_free(set.bv_val);
 	}
 	return(rc);

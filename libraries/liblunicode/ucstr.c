@@ -83,7 +83,7 @@ void ucstr2upper(
 
 char * UTF8normalize(
 	struct berval *bv,
-	char casefold )
+	unsigned casefold )
 {
 	int i, j, len, clen, outpos, ucsoutlen, outsize, last;
 	char *out, *s;
@@ -219,7 +219,7 @@ char * UTF8normalize(
 int UTF8normcmp(
 	const char *s1,
 	const char *s2,
-	char casefold )
+	unsigned casefold )
 {
 	int i, l1, l2, len, ulen, res;
 	unsigned long *ucs, *ucsout1, *ucsout2;

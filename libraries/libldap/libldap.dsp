@@ -183,6 +183,10 @@ SOURCE=.\extended.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\filter.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\free.c
 # End Source File
 # Begin Source File

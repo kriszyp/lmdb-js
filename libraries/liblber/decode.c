@@ -704,9 +704,7 @@ ber_scanf ( BerElement *ber,
 		}
 	}
 
-breakout:
 	va_end( ap );
-
 	if ( rc == LBER_DEFAULT ) {
 	    /*
 	     * Error.  Reclaim malloced memory that was given to the caller.

@@ -17,7 +17,6 @@
 #ifndef _LDAP_PVT_H
 #define _LDAP_PVT_H 1
 
-#include <ldap_cdefs.h>
 #include <lber.h>				/* get ber_slen_t */
 
 LDAP_BEGIN_DECL
@@ -107,6 +106,7 @@ LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
  * these macros assume 'x' is an ASCII x
  * and assume the "C" locale
  */
+#define LDAP_ASCII(c)		((c) < 0x80)
 #define LDAP_SPACE(c)		((c) == ' ' || (c) == '\t' || (c) == '\n')
 #define LDAP_DIGIT(c)		((c) >= '0' && (c) <= '9')
 #define LDAP_LOWER(c)		((c) >= 'a' && (c) <= 'z')
@@ -114,6 +114,12 @@ LDAP_F (void) ldap_pvt_hex_unescape LDAP_P(( char *s ));
 #define LDAP_ALPHA(c)		(LDAP_LOWER(c) || LDAP_UPPER(c))
 #define LDAP_ALNUM(c)		(LDAP_ALPHA(c) || LDAP_DIGIT(c))
 
+#define LDAP_LDH(c)			(LDAP_ALNUM(c) || (c) == '-')
+
+#define LDAP_HEXLOWER(c)	((c) >= 'a' && (c) <= 'f')
+#define LDAP_HEXUPPER(c)	((c) >= 'A' && (c) <= 'F')
+#define LDAP_HEX(c)			(LDAP_DIGIT(c) || \
+								LDAP_HEXLOWER(c) || LDAP_HEXUPPER(c))
 
 #ifdef HAVE_CYRUS_SASL
 /* cyrus.c */

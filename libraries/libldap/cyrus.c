@@ -161,7 +161,7 @@ sb_sasl_drop_packet ( Sockbuf_Buf *sec_buf_in, int debuglevel )
 
 	len = sec_buf_in->buf_ptr - sec_buf_in->buf_end;
 	if ( len > 0 )
-		memmove( sec_buf_in->buf_base, sec_buf_in->buf_base +
+		AC_MEMCPY( sec_buf_in->buf_base, sec_buf_in->buf_base +
 			sec_buf_in->buf_end, len );
    
 	if ( len >= 4 ) {

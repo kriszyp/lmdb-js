@@ -149,6 +149,33 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name ucgendat
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name dntest
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ftest
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "dntest"=..\libraries\libldap\dntest.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -178,6 +205,27 @@ Package=<4>
 {{{
     Begin Project Dependency
     Project_Dep_Name liblber
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ftest"=..\libraries\libldap\ftest.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
     End Project Dependency
 }}}
 

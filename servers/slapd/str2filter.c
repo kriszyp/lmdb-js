@@ -227,29 +227,34 @@ str2simple( const char *str )
 		return NULL;
 		break;
 
-	default:
-		if ( ldap_pvt_find_wildcard( value ) == NULL ) {
-			f->f_choice = LDAP_FILTER_EQUALITY;
-		} else if ( strcmp( value, "*" ) == 0 ) {
-			f->f_choice = LDAP_FILTER_PRESENT;
-		} else {
-			f->f_choice = LDAP_FILTER_SUBSTRINGS;
-			f->f_sub = ch_calloc( 1, sizeof( SubstringsAssertion ) );
-			rc = slap_str2ad( str, &f->f_sub_desc, &text );
-			if( rc != LDAP_SUCCESS ) {
+	default: {
+			char *nextstar = ldap_pvt_find_wildcard( value );
+			if ( nextstar == NULL ) {
 				filter_free( f );
 				*(value-1) = '=';
 				return NULL;
-			}
-			if ( str2subvals( value, f ) != 0 ) {
-				filter_free( f );
+			} else if ( nextstar == '\0' ) {
+				f->f_choice = LDAP_FILTER_EQUALITY;
+			} else if ( strcmp( value, "*" ) == 0 ) {
+				f->f_choice = LDAP_FILTER_PRESENT;
+			} else {
+				f->f_choice = LDAP_FILTER_SUBSTRINGS;
+				f->f_sub = ch_calloc( 1, sizeof( SubstringsAssertion ) );
+				rc = slap_str2ad( str, &f->f_sub_desc, &text );
+				if( rc != LDAP_SUCCESS ) {
+					filter_free( f );
+					*(value-1) = '=';
+					return NULL;
+				}
+				if ( str2subvals( value, f ) != 0 ) {
+					filter_free( f );
+					*(value-1) = '=';
+					return( NULL );
+				}
 				*(value-1) = '=';
-				return( NULL );
+				return( f );
 			}
-			*(value-1) = '=';
-			return( f );
-		}
-		break;
+		} break;
 	}
 
 	if ( f->f_choice == LDAP_FILTER_PRESENT ) {
@@ -287,6 +292,7 @@ str2subvals( const char *in, Filter *f )
 {
 	char	*nextstar, *val, *freeme;
 	int	gotstar;
+	int final;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "filter", LDAP_LEVEL_ENTRY,
@@ -299,26 +305,36 @@ str2subvals( const char *in, Filter *f )
 	if( in == NULL ) return 0;
 
 	val = freeme = ch_strdup( in );
-	gotstar = 0;
+	gotstar = final = 0;
 
 	while ( *val ) {
-		if ( (nextstar = ldap_pvt_find_wildcard( val )) != NULL )
-			*nextstar++ = '\0';
+		nextstar = ldap_pvt_find_wildcard( val );
+
+		if ( nextstar == NULL ) {
+			free( freeme );
+			return -1;
+		}
+
+		if( *nextstar == '\0' ) {
+			final = 1;
+		} else {
+			gotstar++;
+			*nextstar = '\0';
+		}
 
 		ldap_pvt_filter_value_unescape( val );
 
-		if ( gotstar == 0 ) {
-			ber_str2bv( val, 0, 1, &f->f_sub_initial );
-
-		} else if ( nextstar == NULL ) {
+		if ( final ) {
 			ber_str2bv( val, 0, 1, &f->f_sub_final );
+
+		} else if ( gotstar <= 1 ) {
+			ber_str2bv( val, 0, 1, &f->f_sub_initial );
 
 		} else {
 			charray_add( (char ***) &f->f_sub_any, (char *) ber_bvstrdup( val ) );
 		}
 
-		gotstar = 1;
-		val = nextstar;
+		val = nextstar+1;
 	}
 
 	free( freeme );

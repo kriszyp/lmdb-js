@@ -18,7 +18,6 @@
 #ifndef _LDAP_PVT_UC_H
 #define _LDAP_PVT_UC_H 1
 
-#include <ldap_cdefs.h>
 #include <lber.h>				/* get ber_slen_t */
 
 #ifdef _MSC_VER
@@ -79,13 +78,12 @@ LDAP_F (char*) ldap_utf8_strtok( char* sp, const char* sep, char **last);
 LDAP_V (const char) ldap_utf8_lentab[128];
 
 #define LDAP_UTF8_ISASCII(p) ( *(unsigned char *)(p) ^ 0x80 )
-#define LDAP_UTF8_ISSPACE(p) ( *(p) == ' ' || (*(p) >= '\t' && *(p) <= '\r') )
 #define LDAP_UTF8_CHARLEN(p) ( LDAP_UTF8_ISASCII(p) \
 	? 1 : ldap_utf8_lentab[*(unsigned char *)(p) ^ 0x80] )
 #define LDAP_UTF8_OFFSET(p) ( LDAP_UTF8_ISASCII(p) \
 	? 1 : ldap_utf8_offset((p)) )
 
-#define LDAP_UTF8_COPY(d,s) (	LDAP_UTF8_ISASCII(s) \
+#define LDAP_UTF8_COPY(d,s) ( LDAP_UTF8_ISASCII(s) \
 	? (*(d) = *(s), 1) : ldap_utf8_copy((d),(s)) )
 
 #define LDAP_UTF8_NEXT(p) (	LDAP_UTF8_ISASCII(p) \
@@ -123,17 +121,17 @@ LDAP_LUNICODE_F(void) ucstr2upper(
 	ldap_unicode_t *,
 	ber_len_t );
 
-#define UTF8_CASEFOLD 1
-#define UTF8_NOCASEFOLD 0
+#define LDAP_UTF8_CASEFOLD		0x1U
+#define LDAP_UTF8_NOCASEFOLD	0x0U
 
 LDAP_LUNICODE_F(char *) UTF8normalize(
 	struct berval *,
-	char );
+	unsigned );
 
 LDAP_LUNICODE_F(int) UTF8normcmp(
 	const char *,
 	const char *,
-	char );
+	unsigned );
 
 LDAP_END_DECL
 

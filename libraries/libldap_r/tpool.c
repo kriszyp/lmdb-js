@@ -17,10 +17,11 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/queue.h>
 
 #include "ldap-int.h"
 #include "ldap_pvt_thread.h"
-#include "queue-compat.h"
+
 
 #ifndef LDAP_THREAD_HAVE_TPOOL
 
@@ -72,7 +73,6 @@ ldap_int_thread_pool_startup ( void )
 int
 ldap_int_thread_pool_shutdown ( void )
 {
-	ldap_int_thread_ctx_t *ctx;
 	struct ldap_int_thread_pool_s *pool;
 
 	while ((pool = STAILQ_FIRST(&ldap_int_thread_pool_list)) != NULL) {

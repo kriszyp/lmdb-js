@@ -303,12 +303,12 @@ nameUIDNormalize(
 		if( uidlen ) {
 			struct berval b2;
 			b2.bv_val = ch_malloc(dnlen + uidlen + 1);
-			SAFEMEMCPY( b2.bv_val, normalized->bv_val, dnlen );
+			AC_MEMCPY( b2.bv_val, normalized->bv_val, dnlen );
 
 			/* restore the separator */
 			*uid = '#';
 			/* shift the UID */
-			SAFEMEMCPY( normalized->bv_val+dnlen, uid, uidlen );
+			AC_MEMCPY( normalized->bv_val+dnlen, uid, uidlen );
 			b2.bv_len = dnlen + uidlen;
 			normalized->bv_val[dnlen+uidlen] = '\0';
 			free(normalized->bv_val);
@@ -567,7 +567,7 @@ UTF8StringNormalize(
 static SubstringsAssertion *
 UTF8SubstringsassertionNormalize(
 	SubstringsAssertion *sa,
-	char casefold )
+	unsigned casefold )
 {
 	SubstringsAssertion *nsa;
 	int i;
@@ -634,7 +634,7 @@ strip8bitChars(
 			while( *++q & 0x80 ) {
 				/* empty */
 			}
-			p = memmove(p, q, strlen(q) + 1);
+			p = AC_MEMCPY(p, q, strlen(q) + 1);
 		} else {
 			p++;
 		}
@@ -666,7 +666,7 @@ approxMatch(
 	size_t avlen;
 
 	/* Yes, this is necessary */
-	nval = UTF8normalize( value, UTF8_NOCASEFOLD );
+	nval = UTF8normalize( value, LDAP_UTF8_NOCASEFOLD );
 	if( nval == NULL ) {
 		*matchp = 1;
 		return LDAP_SUCCESS;
@@ -675,7 +675,7 @@ approxMatch(
 
 	/* Yes, this is necessary */
 	assertv = UTF8normalize( ((struct berval *)assertedValue),
-				 UTF8_NOCASEFOLD );
+		LDAP_UTF8_NOCASEFOLD );
 	if( assertv == NULL ) {
 		ch_free( nval );
 		*matchp = 1;
@@ -781,7 +781,7 @@ approxIndexer(
 
 	for( j=0; values[j].bv_val != NULL; j++ ) {
 		/* Yes, this is necessary */
-		val = UTF8normalize( &values[j], UTF8_NOCASEFOLD );
+		val = UTF8normalize( &values[j], LDAP_UTF8_NOCASEFOLD );
 		strip8bitChars( val );
 
 		/* Isolate how many words there are. There will be a key for each */
@@ -796,7 +796,7 @@ approxIndexer(
 		/* Allocate/increase storage to account for new keys */
 		newkeys = (struct berval *)ch_malloc( (keycount + wordcount + 1) 
 			* sizeof(struct berval) );
-		memcpy( newkeys, keys, keycount * sizeof(struct berval) );
+		AC_MEMCPY( newkeys, keys, keycount * sizeof(struct berval) );
 		if( keys ) ch_free( keys );
 		keys = newkeys;
 
@@ -833,7 +833,7 @@ approxFilter(
 
 	/* Yes, this is necessary */
 	val = UTF8normalize( ((struct berval *)assertValue),
-			     UTF8_NOCASEFOLD );
+		LDAP_UTF8_NOCASEFOLD );
 	if( val == NULL ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
 		keys[0].bv_val = NULL;
@@ -999,7 +999,7 @@ caseExactMatch(
 {
 	*matchp = UTF8normcmp( value->bv_val,
 		((struct berval *) assertedValue)->bv_val,
-		UTF8_NOCASEFOLD );
+		LDAP_UTF8_NOCASEFOLD );
 	return LDAP_SUCCESS;
 }
 
@@ -1017,10 +1017,11 @@ caseExactIgnoreSubstringsMatch(
 	struct berval left;
 	int i;
 	ber_len_t inlen=0;
-	char *nav, casefold;
+	char *nav;
+	unsigned casefold;
 
 	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
-		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
+		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	nav = UTF8normalize( value, casefold );
 	if( nav == NULL ) {
@@ -1172,7 +1173,7 @@ static int caseExactIgnoreIndexer(
 	BVarray *keysp )
 {
 	int i;
-	char casefold;
+	unsigned casefold;
 	size_t slen, mlen;
 	BVarray keys;
 	HASH_CONTEXT   HASHcontext;
@@ -1194,7 +1195,7 @@ static int caseExactIgnoreIndexer(
 	mlen = mr->smr_oidlen;
 
 	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
-		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
+		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		struct berval value;
@@ -1234,7 +1235,7 @@ static int caseExactIgnoreFilter(
 	void * assertValue,
 	BVarray *keysp )
 {
-	char casefold;
+	unsigned casefold;
 	size_t slen, mlen;
 	BVarray keys;
 	HASH_CONTEXT   HASHcontext;
@@ -1248,7 +1249,7 @@ static int caseExactIgnoreFilter(
 	mlen = mr->smr_oidlen;
 
 	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
-		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
+		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	ber_str2bv( UTF8normalize( ((struct berval *) assertValue), casefold ),
 		0, 0, &value );
@@ -1293,7 +1294,7 @@ static int caseExactIgnoreSubstringsIndexer(
 	BVarray values,
 	BVarray *keysp )
 {
-	char casefold;
+	unsigned casefold;
 	ber_len_t i, nkeys;
 	size_t slen, mlen;
 	BVarray keys;
@@ -1315,7 +1316,7 @@ static int caseExactIgnoreSubstringsIndexer(
 	assert( i > 0 );
 
 	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
-		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
+		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	nvalues = ch_malloc( sizeof( struct berval ) * (i+1) );
 	for( i=0; values[i].bv_val != NULL; i++ ) {
@@ -1475,7 +1476,8 @@ static int caseExactIgnoreSubstringsFilter(
 	BVarray *keysp )
 {
 	SubstringsAssertion *sa;
-	char pre, casefold;
+	char pre;
+	unsigned casefold;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
 	BVarray keys;
@@ -1485,7 +1487,7 @@ static int caseExactIgnoreSubstringsFilter(
 	struct berval digest;
 
 	casefold = strcmp( mr->smr_oid, caseExactSubstringsMatchOID )
-		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
+		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
 	sa = UTF8SubstringsassertionNormalize( assertValue, casefold );
 	if( sa == NULL ) {
@@ -1651,7 +1653,7 @@ caseIgnoreMatch(
 {
 	*matchp = UTF8normcmp( value->bv_val,
 		((struct berval *) assertedValue)->bv_val,
-		UTF8_CASEFOLD );
+		LDAP_UTF8_CASEFOLD );
 	return LDAP_SUCCESS;
 }
 	
@@ -1855,7 +1857,7 @@ integerNormalize(
 		if( negative ) {
 			normalized->bv_val[0] = '-';
 		}
-		memcpy( normalized->bv_val + negative, p, len );
+		AC_MEMCPY( normalized->bv_val + negative, p, len );
 	}
 
 	return LDAP_SUCCESS;
@@ -3531,12 +3533,12 @@ certificateExactConvert(
 
 	X509_free(xcert);
 
-	out->bv_len = serial->bv_len + 3 + issuer_dn->bv_len + 1;
+	out->bv_len = serial->bv_len + issuer_dn->bv_len + sizeof(" $ ");
 	out->bv_val = ch_malloc(out->bv_len);
 	p = out->bv_val;
 	AC_MEMCPY(p, serial->bv_val, serial->bv_len);
 	p += serial->bv_len;
-	AC_MEMCPY(p, " $ ", 3);
+	AC_MEMCPY(p, " $ ", sizeof(" $ ")-1);
 	p += 3;
 	AC_MEMCPY(p, issuer_dn->bv_val, issuer_dn->bv_len);
 	p += issuer_dn->bv_len;
@@ -4041,7 +4043,7 @@ nisNetgroupTripleValidate(
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	for ( p++; ( p < e ) && ( *p != ')' ); p++ ) {
+	for ( p++; ( p < e ) && ( *p != /*'('*/ ')' ); p++ ) {
 		if ( *p == ',' ) {
 			commas++;
 			if ( commas > 2 ) {

@@ -219,10 +219,6 @@ SOURCE=.\options.c
 # End Source File
 # Begin Source File
 
-SOURCE="..\..\include\queue-compat.h"
-# End Source File
-# Begin Source File
-
 SOURCE=.\sockbuf.c
 # End Source File
 # End Target

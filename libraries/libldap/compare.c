@@ -36,7 +36,7 @@
  * attr and value) are supplied.  The msgid of the response is returned.
  *
  * Example:
- *	struct berval bvalue = { "secret", strlen("secret") };
+ *	struct berval bvalue = { "secret", sizeof("secret")-1 };
  *	rc = ldap_compare( ld, "c=us@cn=bob",
  *		"userPassword", &bvalue,
  *		sctrl, cctrl, &msgid )

@@ -30,6 +30,7 @@
 #include <ac/string.h>
 #include <ac/unistd.h>
 
+#undef ishdigit
 #define ishdigit(cc) (((cc) >= '0' && (cc) <= '9') ||\
                       ((cc) >= 'A' && (cc) <= 'F') ||\
                       ((cc) >= 'a' && (cc) <= 'f'))

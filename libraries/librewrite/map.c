@@ -187,7 +187,7 @@ rewrite_xmap_parse(
 		 */
 		p = strchr( url, '%' );
 		if ( p != NULL ) {
-			memmove( p + 3, p + 1, strlen( p + 1 ) + 1 );
+			AC_MEMCPY( p + 3, p + 1, strlen( p + 1 ) + 1 );
 			p[ 1 ] = '2';
 			p[ 2 ] = '5';
 		}

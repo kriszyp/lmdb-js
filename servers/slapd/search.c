@@ -30,7 +30,6 @@ do_search(
     Connection	*conn,	/* where to send results */
     Operation	*op	/* info about the op to which we're responding */
 ) {
-	int		i;
 	ber_int_t	scope, deref, attrsonly;
 	ber_int_t	sizelimit, timelimit;
 	struct berval base = { 0, NULL };
@@ -129,9 +128,10 @@ do_search(
 		"do_search \"%s\" %d %d %d %d %d\n", base.bv_val, scope,
 		deref, sizelimit, timelimit, attrsonly ));
 #else
-	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d", base.bv_val, scope, deref );
-	Debug( LDAP_DEBUG_ARGS, "    %d %d %d\n", sizelimit, timelimit,
-	    attrsonly);
+	Debug( LDAP_DEBUG_ARGS, "SRCH \"%s\" %d %d",
+		base.bv_val, scope, deref );
+	Debug( LDAP_DEBUG_ARGS, "    %d %d %d\n",
+		sizelimit, timelimit, attrsonly);
 #endif
 
 	/* filter - returns a "normalized" version */

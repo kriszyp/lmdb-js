@@ -30,9 +30,6 @@
 #include "ldap-int.h"
 #include "ldap_defaults.h"
 
-#undef LDAP_IS_ASCII
-#define LDAP_IS_ASCII(uc)	((uc) < 0x80)
-
 /*
  * Basic UTF-8 routines
  */
@@ -250,6 +247,7 @@ int ldap_utf8_copy( char* dst, const char *src )
 	return i;
 }
 
+#ifndef UTF8_ALPHA_CTYPE
 /*
  * UTF-8 ctype routines
  * Only deals with characters < 0x80 (ie: US-ASCII)
@@ -258,34 +256,32 @@ int ldap_utf8_copy( char* dst, const char *src )
 int ldap_utf8_isascii( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
-	return LDAP_IS_ASCII(c);
+	return LDAP_ASCII(c);
 }
 
 int ldap_utf8_isdigit( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!LDAP_IS_ASCII(c)) return 0;
+	if(!LDAP_ASCII(c)) return 0;
 
-	return c >= '0' && c <= '9';
+	return LDAP_DIGIT( c );
 }
 
 int ldap_utf8_isxdigit( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!LDAP_IS_ASCII(c)) return 0;
+	if(!LDAP_ASCII(c)) return 0;
 
-	return ( c >= '0' && c <= '9' )
-		|| ( c >= 'A' && c <= 'F' )
-		|| ( c >= 'a' && c <= 'f' );
+	return LDAP_HEX(c);
 }
 
 int ldap_utf8_isspace( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!LDAP_IS_ASCII(c)) return 0;
+	if(!LDAP_ASCII(c)) return 0;
 
 	switch(c) {
 	case ' ':
@@ -300,7 +296,6 @@ int ldap_utf8_isspace( const char * p )
 	return 0;
 }
 
-#ifndef UTF8_ALPHA_CTYPE
 /*
  * These are not needed by the C SDK and are
  * not "good enough" for general use.
@@ -309,39 +304,36 @@ int ldap_utf8_isalpha( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!LDAP_IS_ASCII(c)) return 0;
+	if(!LDAP_ASCII(c)) return 0;
 
-	return ( c >= 'A' && c <= 'Z' )
-		|| ( c >= 'a' && c <= 'z' );
+	return LDAP_ALPHA(c);
 }
 
 int ldap_utf8_isalnum( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!LDAP_IS_ASCII(c)) return 0;
+	if(!LDAP_ASCII(c)) return 0;
 
-	return ( c >= '0' && c <= '9' )
-		|| ( c >= 'A' && c <= 'Z' )
-		|| ( c >= 'a' && c <= 'z' );
+	return LDAP_ALNUM(c);
 }
 
 int ldap_utf8_islower( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!LDAP_IS_ASCII(c)) return 0;
+	if(!LDAP_ASCII(c)) return 0;
 
-	return ( c >= 'a' && c <= 'z' );
+	return LDAP_LOWER(c);
 }
 
 int ldap_utf8_isupper( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!LDAP_IS_ASCII(c)) return 0;
+	if(!LDAP_ASCII(c)) return 0;
 
-	return ( c >= 'A' && c <= 'Z' );
+	return LDAP_UPPER(c);
 }
 #endif
 

@@ -511,17 +511,17 @@ int entry_encode(Entry *e, struct berval *bv)
 	ptr = (unsigned char *)bv->bv_val;
 	entry_putlen(&ptr, siz);
 	entry_putlen(&ptr, dnlen);
-	memcpy(ptr, e->e_dn, dnlen);
+	AC_MEMCPY(ptr, e->e_dn, dnlen);
 	ptr += dnlen;
 	*ptr++ = '\0';
 	entry_putlen(&ptr, ndnlen);
-	memcpy(ptr, e->e_ndn, ndnlen);
+	AC_MEMCPY(ptr, e->e_ndn, ndnlen);
 	ptr += ndnlen;
 	*ptr++ = '\0';
 
 	for (a=e->e_attrs; a; a=a->a_next) {
 		entry_putlen(&ptr, a->a_desc->ad_cname.bv_len);
-		memcpy(ptr, a->a_desc->ad_cname.bv_val,
+		AC_MEMCPY(ptr, a->a_desc->ad_cname.bv_val,
 			a->a_desc->ad_cname.bv_len);
 		ptr += a->a_desc->ad_cname.bv_len;
 		*ptr++ = '\0';

@@ -21,9 +21,6 @@ int schema_init_done = 0;
 
 struct slap_internal_schema slap_schema;
 
-#define objectClassIndexer NULL
-#define objectClassFilter NULL
-
 static int
 objectClassMatch(
 	int *matchp,
@@ -68,14 +65,10 @@ objectClassMatch(
 	Debug( LDAP_DEBUG_TRACE, "objectClassMatch(%s,%s) = %d\n",
 		value->bv_val, a->bv_val, *matchp );
 #endif
-
 #endif
 
 	return LDAP_SUCCESS;
 }
-
-#define structuralObjectClassIndexer NULL
-#define structuralObjectClassFilter NULL
 
 static int
 structuralObjectClassMatch(
@@ -144,11 +137,10 @@ static struct slap_schema_ad_map {
 	size_t ssam_offset;
 } ad_map[] = {
 	{ "objectClass",
-		objectClassMatch, objectClassIndexer, objectClassFilter,
+		objectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_objectClass) },
 	{ "structuralObjectClass",
-		structuralObjectClassMatch,
-		structuralObjectClassIndexer, structuralObjectClassFilter,
+		structuralObjectClassMatch, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_structuralObjectClass) },
 
 	/* user entry operational attributes */
@@ -225,7 +217,7 @@ static AttributeType slap_at_undefined = {
 	{ "1.1.1", NULL, NULL, 1, NULL,
 		NULL, NULL, NULL, NULL,
 		0, 0, 0, 1, 3 }, /* LDAPAttributeType */
-	{ sizeof( "UNDEFINED" ) - 1, "UNDEFINED" }, /* cname */
+	{ sizeof("UNDEFINED")-1, "UNDEFINED" }, /* cname */
 	NULL, /* sup */
 	NULL, /* subtypes */
 	NULL, NULL, NULL, NULL,	/* matching rules */

@@ -816,7 +816,7 @@ uccanondecomp(const unsigned long *in, int inlen,
                     for (l = i; l > 0; l--)
                         if (class >= uccombining_class((*out)[l-1]))
                             break;
-                    memmove(*out + l + 1, *out + l, (i - l) * sizeof(**out));
+                    AC_MEMCPY(*out + l + 1, *out + l, (i - l) * sizeof(**out));
                     (*out)[l] = decomp[k];
                 }
                 i++;
@@ -846,7 +846,7 @@ uccanondecomp(const unsigned long *in, int inlen,
                 for (l = i; l > 0; l--)
                     if (class >= uccombining_class((*out)[l-1]))
                         break;
-                memmove(*out + l + 1, *out + l, (i - l) * sizeof(**out));
+                AC_MEMCPY(*out + l + 1, *out + l, (i - l) * sizeof(**out));
                 (*out)[l] = in[j];
             }
             i++;

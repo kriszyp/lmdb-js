@@ -59,7 +59,7 @@ rewrite_subst_compile(
 			continue;
 		} 
 		if ( p[ 1 ] == REWRITE_SUBMATCH_ESCAPE ) {
-			memmove((char *)p, p + 1, strlen( p ) );
+			AC_MEMCPY((char *)p, p + 1, strlen( p ) );
 			continue;
 		}
 

@@ -277,7 +277,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 				char *s = bv.bv_val;
 
 				ber_str2bv( UTF8normalize( bv.bv_val ? &bv
-					: &ava->la_value, UTF8_CASEFOLD ),
+					: &ava->la_value, LDAP_UTF8_CASEFOLD ),
 					0, 0, &bv );
 				free( s );
 			}

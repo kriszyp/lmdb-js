@@ -354,25 +354,21 @@ ldap_dn_normalize( const char *dnin, unsigned fin, char **dnout, unsigned fout )
  */
 #define LDAP_DN_ASCII_SPACE(c) \
 	( (c) == ' ' || (c) == '\t' || (c) == '\n' || (c) == '\r' )
-#define LDAP_DN_ASCII_LOWER(c)		( (c) >= 'a' && (c) <= 'z' )
-#define LDAP_DN_ASCII_UPPER(c)		( (c) >= 'A' && (c) <= 'Z' )
-#define LDAP_DN_ASCII_ALPHA(c) \
-	( LDAP_DN_ASCII_LOWER(c) || LDAP_DN_ASCII_UPPER(c) )
-#define LDAP_DN_ASCII_DIGIT(c)		( (c) >= '0' && (c) <= '9' )
-#define LDAP_DN_ASCII_LCASE_HEXALPHA(c)	( (c) >= 'a' && (c) <= 'f' )
-#define LDAP_DN_ASCII_UCASE_HEXALPHA(c)	( (c) >= 'A' && (c) <= 'F' )
-#define LDAP_DN_ASCII_HEXDIGIT(c) \
-	( LDAP_DN_ASCII_DIGIT(c) \
-	  || LDAP_DN_ASCII_LCASE_HEXALPHA(c) \
-	  || LDAP_DN_ASCII_UCASE_HEXALPHA(c) )
-#define LDAP_DN_ASCII_ALNUM(c) \
-	( LDAP_DN_ASCII_ALPHA(c) || LDAP_DN_ASCII_DIGIT(c) )
+#define LDAP_DN_ASCII_LOWER(c)		LDAP_LOWER(c)
+#define LDAP_DN_ASCII_UPPER(c)		LDAP_UPPER(c)
+#define LDAP_DN_ASCII_ALPHA(c)		LDAP_ALPHA(c)
+
+#define LDAP_DN_ASCII_DIGIT(c)		LDAP_DIGIT(c)
+#define LDAP_DN_ASCII_LCASE_HEXALPHA(c)	LDAP_HEXLOWER(c)
+#define LDAP_DN_ASCII_UCASE_HEXALPHA(c)	LDAP_HEXUPPER(c)
+#define LDAP_DN_ASCII_HEXDIGIT(c)	LDAP_HEX(c)
+#define LDAP_DN_ASCII_ALNUM(c)		LDAP_ALNUM(c)
 #define LDAP_DN_ASCII_PRINTABLE(c)	( (c) >= ' ' && (c) <= '~' )
 
 /* attribute type */
-#define LDAP_DN_OID_LEADCHAR(c)		( LDAP_DN_ASCII_DIGIT(c) )
-#define LDAP_DN_DESC_LEADCHAR(c)	( LDAP_DN_ASCII_ALPHA(c) )
-#define LDAP_DN_DESC_CHAR(c)		( LDAP_DN_ASCII_ALNUM(c) || (c) == '-' )
+#define LDAP_DN_OID_LEADCHAR(c)		LDAP_DIGIT(c)
+#define LDAP_DN_DESC_LEADCHAR(c)	LDAP_ALPHA(c)
+#define LDAP_DN_DESC_CHAR(c)		LDAP_LDH(c)
 #define LDAP_DN_LANG_SEP(c)		( (c) == ';' )
 #define LDAP_DN_ATTRDESC_CHAR(c) \
 	( LDAP_DN_DESC_CHAR(c) || LDAP_DN_LANG_SEP(c) )
@@ -655,7 +651,6 @@ ldap_str2dn( const char *str, LDAPDN **dn, unsigned flags )
 	}
 
 	for ( ; p[ 0 ]; p++ ) {
-		LDAPDN 		*dn;
 		int		err;
 		
 		err = ldap_str2rdn( p, &newRDN, &p, flags );
@@ -3060,7 +3055,8 @@ got_funcs:
 
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s,%u)=%d\n", bv->bv_val, flags, rc );
+	Debug( LDAP_DEBUG_TRACE, "<= ldap_dn2bv(%s,%u)=%d\n",
+		bv->bv_val, flags, rc );
 return_results:;
 	return( rc );
 }

@@ -180,6 +180,10 @@ SOURCE=..\..\include\lutil.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\lutil_hash.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\lutil_ldap.h
 # End Source File
 # Begin Source File

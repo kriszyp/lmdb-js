@@ -116,16 +116,15 @@ find_oidm(char *oid)
 
 			if( pos ) {
 				int suflen = strlen(oid + pos);
-				char *new = ch_malloc( om->som_oid.bv_len
+				char *tmp = ch_malloc( om->som_oid.bv_len
 					+ suflen + 1);
-				strcpy(new, om->som_oid.bv_val);
-
+				strcpy(tmp, om->som_oid.bv_val);
 				if( suflen ) {
 					suflen = om->som_oid.bv_len;
-					new[suflen++] = '.';
-					strcpy(new+suflen, oid+pos+1);
+					tmp[suflen++] = '.';
+					strcpy(tmp+suflen, oid+pos+1);
 				}
-				return new;
+				return tmp;
 			}
 		}
 	}
