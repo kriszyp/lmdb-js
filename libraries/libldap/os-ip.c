@@ -349,11 +349,14 @@ int
 ldap_pvt_inet_aton( const char *host, struct in_addr *in)
 {
 	unsigned long u = inet_addr( host );
-	if ( u != 0xffffffff || u != (unsigned long) -1 ) {
-		in->s_addr = u;
-		return 1;
-	}
-	return 0;
+
+#ifdef INADDR_NONE
+	if ( u == INADDR_NONE ) return 0;
+#endif
+	if ( u == 0xffffffffUL || u == (unsigned long) -1L ) return 0;
+
+	in->s_addr = u;
+	return 1;
 }
 #endif
 
