@@ -6,6 +6,7 @@ OpenLDAP 2.2.18 Engineering
 	Fixed slapd matching rule name sensitivity
 	Fixed slapd referral memory leak
 	Fixed slapd mods2entry memory leak
+	Fixed slapd multiple value delete (ITS#3346)
 	Updated back-sql
 
 OpenLDAP 2.2.17 Release
