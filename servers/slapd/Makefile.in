@@ -118,6 +118,7 @@ CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
 
 install-conf: FORCE
 	@-$(MKDIR) $(sysconfdir)
+	@-$(MKDIR) $(localstatedir)/openldap-ldbm
 	@for i in $(CFFILES); do \
 		tmpcf=/tmp/$$i.$$ ; \
 		if test $$i = slapd.conf ; then \
