@@ -48,7 +48,7 @@
 #undef ldap_debug	/* silence a warning in ldap-int.h */
 #include "../../../libraries/libldap/ldap-int.h"
 
-static void ldap_send_entry( Backend *be, Operation *op, struct ldapconn *lc,
+static int ldap_send_entry( Backend *be, Operation *op, struct ldapconn *lc,
                              LDAPMessage *e, AttributeName *attrs, int attrsonly );
 
 int
@@ -272,8 +272,9 @@ fail:;
 			ldap_pvt_thread_yield();
 		} else if (rc == LDAP_RES_SEARCH_ENTRY) {
 			e = ldap_first_entry(lc->ld,res);
-			ldap_send_entry(be, op, lc, e, attrs, attrsonly);
-			count++;
+			if ( ldap_send_entry(be, op, lc, e, attrs, attrsonly) == LDAP_SUCCESS ) {
+				count++;
+			}
 			ldap_msgfree(res);
 		} else {
 			sres = ldap_result2error(lc->ld, res, 1);
@@ -353,7 +354,7 @@ finish:;
 	return rc;
 }
 
-static void
+static int
 ldap_send_entry(
 	Backend *be,
 	Operation *op,
@@ -373,7 +374,7 @@ ldap_send_entry(
 	const char *text;
 
 	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
-		return;
+		return LDAP_DECODING_ERROR;
 	}
 #ifdef ENABLE_REWRITE
 
@@ -400,7 +401,7 @@ ldap_send_entry(
 		
 	case REWRITE_REGEXEC_ERR:
 	case REWRITE_REGEXEC_UNWILLING:
-		return;
+		return LDAP_OTHER;
 	}
 #else /* !ENABLE_REWRITE */
 	ldap_back_dn_massage( li, &bdn, &ent.e_name, 0, 0 );
@@ -414,7 +415,7 @@ ldap_send_entry(
 	 * FIXME: should we log anything, or delegate to dnNormalize2?
 	 */
 	if ( dnNormalize2( NULL, &ent.e_name, &ent.e_nname ) != LDAP_SUCCESS ) {
-		return;
+		return LDAP_INVALID_DN_SYNTAX;
 	}
 	
 	ent.e_id = 0;
@@ -560,4 +561,6 @@ ldap_send_entry(
 		free( ent.e_dn );
 	if ( ent.e_ndn )
 		free( ent.e_ndn );
+
+	return LDAP_SUCCESS;
 }

@@ -80,7 +80,7 @@
 #include "ldap_log.h"
 #include "../../../libraries/libldap/ldap-int.h"
 
-static void
+static int
 meta_send_entry(
 		Backend		*be,
 		Operation 	*op,
@@ -445,9 +445,10 @@ meta_back_search(
 				goto finish;
 			} else if ( rc == LDAP_RES_SEARCH_ENTRY ) {
 				e = ldap_first_entry( lsc->ld, res );
-				meta_send_entry(be, op, lc, i, e, attrs,
-						attrsonly);
-				count++;
+				if ( meta_send_entry( be, op, lc, i, e, attrs,
+						attrsonly ) == LDAP_SUCCESS ) {
+					count++;
+				}
 				ldap_msgfree( res );
 				gotit = 1;
 			} else {
@@ -569,7 +570,7 @@ finish:;
 	return rc;
 }
 
-static void
+static int
 meta_send_entry(
 		Backend 	*be,
 		Operation 	*op,
@@ -590,7 +591,7 @@ meta_send_entry(
 	const char 		*text;
 
 	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
-		return;
+		return LDAP_DECODING_ERROR;
 	}
 
 	/*
@@ -617,7 +618,7 @@ meta_send_entry(
 		
 	case REWRITE_REGEXEC_ERR:
 	case REWRITE_REGEXEC_UNWILLING:
-		return;
+		return LDAP_OTHER;
 	}
 
 	/*
@@ -628,7 +629,7 @@ meta_send_entry(
 	 * FIXME: should we log anything, or delegate to dnNormalize2?
 	 */
 	if ( dnNormalize2( NULL, &ent.e_name, &ent.e_nname ) != LDAP_SUCCESS ) {
-		return;
+		return LDAP_INVALID_DN_SYNTAX;
 	}
 
 	/*
@@ -782,6 +783,8 @@ meta_send_entry(
 	if ( ent.e_ndn ) {
 		free( ent.e_ndn );
 	}
+
+	return LDAP_SUCCESS;
 }
 
 static int
