@@ -74,7 +74,7 @@ ldap_back_compare(
 		return( -1 );
 
 	mapped_at = ldap_back_map(&li->at_map, ava->aa_value->bv_val, 0);
-	if (mapped_oc == NULL)
+	if (mapped_at == NULL)
 		return( -1 );
 
 	ldap_compare_s( lc->ld, mdn, mapped_oc, mapped_at );
