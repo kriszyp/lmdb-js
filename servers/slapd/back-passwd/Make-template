@@ -68,11 +68,10 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-search.o: search.c ../../../include/portable.h ../slap.h ../../../include/avl.h
-search.o: ../../../include/lber.h ../../../include/ldap.h
-search.o: ../../../include/lthread.h ../../../include/ldif.h
-config.o: config.c ../../../include/portable.h ../slap.h ../../../include/avl.h
-config.o: ../../../include/lber.h ../../../include/ldap.h
-config.o: ../../../include/lthread.h ../../../include/ldif.h
+search.o: search.c ../../../include/portable.h ../../../include/avl.h
+search.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
+search.o: ../../../include/ldif.h
+config.o: config.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+config.o: ../../../include/ldif.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

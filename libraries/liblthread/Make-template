@@ -63,7 +63,7 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-thread.o: thread.c ../../include/lthread.h
-stack.o: stack.c ../../include/lber.h ../../include/ldap.h
+thread.o: thread.c
+stack.o: stack.c ../../include/proto-lber.h ../../include/proto-ldap.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

@@ -178,42 +178,30 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-chlog2replog.o: chlog2replog.c ../../../include/ldif.h
-edb2ldif.o: edb2ldif.c
-ldapsyntax.o: ldapsyntax.c ../../../include/lber.h ../../../include/ldap.h
-ldapsyntax.o: ../../../include/ldif.h ldapsyntax.h
-ldif2index.o: ldif2index.c ../slap.h ../../../include/avl.h
-ldif2index.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2index.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2ldbm.o: ldif2ldbm.c ../slap.h ../../../include/avl.h
-ldif2ldbm.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2ldbm.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2ldbm.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldif2id2entry.o: ldif2id2entry.c ../slap.h ../../../include/avl.h
-ldif2id2entry.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2id2entry.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2id2entry.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldif2id2children.o: ldif2id2children.c ../slap.h ../../../include/avl.h
-ldif2id2children.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2id2children.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2id2children.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldbmcat.o: ldbmcat.c ../../../include/ldbm.h ../slap.h ../../../include/avl.h
-ldbmcat.o: ../../../include/lber.h ../../../include/ldap.h
-ldbmcat.o: ../../../include/lthread.h ../../../include/ldif.h
-centipede.o: centipede.c ../../../include/lber.h ../../../include/ldap.h
-centipede.o: ../../../include/ldapconfig.h ../../../include/ldbm.h
-sizecount.o: sizecount.c ../../../include/ldbm.h ../../../include/lber.h
-sizecount.o: ../../../include/ldap.h ../../../include/portable.h
-ldif2ldbm.sed.o: ldif2ldbm.sed.c ../slap.h ../../../include/avl.h
-ldif2ldbm.sed.o: ../../../include/lber.h ../../../include/ldap.h
-ldif2ldbm.sed.o: ../../../include/lthread.h ../../../include/ldif.h
-ldif2ldbm.sed.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldbmtest.o: ldbmtest.c ../../../include/portable.h
-ldbmtest.o: ../../../include/ldapconfig.h ../slap.h ../../../include/avl.h
-ldbmtest.o: ../../../include/lber.h ../../../include/ldap.h
-ldbmtest.o: ../../../include/lthread.h ../../../include/ldif.h
-ldbmtest.o: ../back-ldbm/back-ldbm.h ../../../include/ldbm.h
-ldif.o: ldif.c ../../../include/lber.h ../../../include/ldap.h
-ldif.o: ../../../include/ldif.h
+ldif2index.o: ldif2index.c ../../../include/avl.h ../../../include/proto-lber.h
+ldif2index.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+ldif2ldbm.o: ldif2ldbm.c ../../../include/proto-lber.h
+ldif2ldbm.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+ldif2ldbm.o: ../../../include/ldbm.h
+ldif2id2entry.o: ldif2id2entry.c ../../../include/avl.h
+ldif2id2entry.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
+ldif2id2entry.o: ../../../include/ldif.h ../../../include/ldbm.h
+ldif2id2children.o: ldif2id2children.c ../../../include/avl.h
+ldif2id2children.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
+ldif2id2children.o: ../../../include/ldif.h ../../../include/ldbm.h
+ldbmcat.o: ldbmcat.c ../../../include/proto-lber.h
+ldbmcat.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+centipede.o: centipede.c ../../../include/proto-lber.h
+centipede.o: ../../../include/proto-ldap.h ../../../include/ldbm.h
+sizecount.o: sizecount.c ../../../include/lber.h ../../../include/ldap.h
+sizecount.o: ../../../include/proto-ldap.h
+ldif2ldbm.sed.o: ldif2ldbm.sed.c ../../../include/avl.h
+ldif2ldbm.sed.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
+ldif2ldbm.sed.o: ../../../include/ldif.h ../../../include/ldbm.h
+ldbmtest.o: ldbmtest.c ../../../include/ldapconfig.h ../../../include/avl.h
+ldbmtest.o: ../../../include/proto-lber.h ../../../include/proto-ldap.h
+ldbmtest.o: ../../../include/ldif.h ../../../include/ldbm.h
+ldbmtest.o: ../back-ldbm/proto-back-ldbm.h
+ldif.o: ldif.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

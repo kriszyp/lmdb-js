@@ -77,9 +77,9 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-decode.o: decode.c ../../include/lber.h
+decode.o: decode.c ../../include/proto-lber.h
 encode.o: encode.c ../../include/lber.h
-io.o: io.c ../../include/lber.h
-bprint.o: bprint.c ../../include/lber.h
+io.o: io.c ../../include/proto-lber.h
+bprint.o: bprint.c ../../include/proto-lber.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

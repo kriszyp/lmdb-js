@@ -63,7 +63,6 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-line64.o: line64.c ../../include/lber.h ../../include/ldap.h
-line64.o: ../../include/ldif.h
+line64.o: line64.c ../../include/proto-lber.h ../../include/proto-ldap.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

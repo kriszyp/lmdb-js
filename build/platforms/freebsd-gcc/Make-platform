@@ -11,6 +11,7 @@
 # -------------------------------------------------------------------------
 # you will probably not need to edit anything below this point
 # -------------------------------------------------------------------------
-CC	= gcc
+CC	= cc
 
 PLATFORMCFLAGS=	-Dfreebsd
+PLATFORMLIBS= -lcrypt

@@ -81,67 +81,42 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-admin.o: admin.c slurp.h ../../include/lber.h ../../include/ldap.h
-admin.o: ../../include/lthread.h ../../include/portable.h
-admin.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-args.o: args.c ../../include/lber.h ../../include/ldap.h slurp.h
-args.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-args.o: ../../include/portable.h ../../include/ldapconfig.h
-args.o: ../../include/ldif.h globals.h slurp.h
-ch_malloc.o: ch_malloc.c ../slapd/slap.h ../../include/avl.h
-ch_malloc.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-ch_malloc.o: ../../include/ldif.h
-config.o: config.c ../../include/lber.h ../../include/ldap.h slurp.h
-config.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-config.o: ../../include/portable.h ../../include/ldapconfig.h
-config.o: ../../include/ldif.h globals.h slurp.h
-detach.o: detach.c ../../include/portable.h
-fm.o: fm.c slurp.h ../../include/lber.h ../../include/ldap.h
-fm.o: ../../include/lthread.h ../../include/portable.h
-fm.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-globals.o: globals.c slurp.h ../../include/lber.h ../../include/ldap.h
-globals.o: ../../include/lthread.h ../../include/portable.h
-globals.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-ldap_op.o: ldap_op.c ../../include/lber.h ../../include/ldap.h
-ldap_op.o: ../../include/portable.h slurp.h ../../include/lber.h
-ldap_op.o: ../../include/ldap.h ../../include/lthread.h
-ldap_op.o: ../../include/portable.h ../../include/ldapconfig.h
-ldap_op.o: ../../include/ldif.h
-lock.o: lock.c ../../include/portable.h ../slapd/slap.h ../../include/avl.h
-lock.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-lock.o: ../../include/ldif.h
-main.o: main.c slurp.h ../../include/lber.h ../../include/ldap.h
-main.o: ../../include/lthread.h ../../include/portable.h
-main.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-re.o: re.c ../slapd/slap.h ../../include/avl.h ../../include/lber.h
-re.o: ../../include/ldap.h ../../include/lthread.h ../../include/ldif.h slurp.h
-re.o: ../../include/lber.h ../../include/ldap.h ../../include/lthread.h
-re.o: ../../include/portable.h ../../include/ldapconfig.h ../../include/ldif.h
-re.o: globals.h slurp.h
-reject.o: reject.c slurp.h ../../include/lber.h ../../include/ldap.h
-reject.o: ../../include/lthread.h ../../include/portable.h
-reject.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-replica.o: replica.c slurp.h ../../include/lber.h ../../include/ldap.h
-replica.o: ../../include/lthread.h ../../include/portable.h
-replica.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-replog.o: replog.c ../../include/portable.h slurp.h ../../include/lber.h
-replog.o: ../../include/ldap.h ../../include/lthread.h ../../include/portable.h
-replog.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-ri.o: ri.c slurp.h ../../include/lber.h ../../include/ldap.h
-ri.o: ../../include/lthread.h ../../include/portable.h
-ri.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-rq.o: rq.c slurp.h ../../include/lber.h ../../include/ldap.h
-rq.o: ../../include/lthread.h ../../include/portable.h
-rq.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-sanity.o: sanity.c slurp.h ../../include/lber.h ../../include/ldap.h
-sanity.o: ../../include/lthread.h ../../include/portable.h
-sanity.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-sanity.o: ../../include/portable.h
-st.o: st.c slurp.h ../../include/lber.h ../../include/ldap.h
-st.o: ../../include/lthread.h ../../include/portable.h
-st.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
-tsleep.o: tsleep.c slurp.h ../../include/lber.h ../../include/ldap.h
-tsleep.o: ../../include/lthread.h ../../include/portable.h
-tsleep.o: ../../include/ldapconfig.h ../../include/ldif.h globals.h slurp.h
+admin.o: admin.c ../../include/lber.h ../../include/proto-ldap.h
+admin.o: ../../include/portable.h ../../include/ldif.h
+args.o: args.c ../../include/lber.h ../../include/proto-ldap.h
+args.o: ../../include/lthread.h ../../include/ldapconfig.h
+ch_malloc.o: ch_malloc.c ../../include/avl.h ../../include/ldap.h
+ch_malloc.o: ../../include/lthread.h
+config.o: config.c ../../include/lber.h ../../include/proto-ldap.h
+config.o: ../../include/lthread.h ../../include/ldapconfig.h
+detach.o: detach.c
+fm.o: fm.c ../../include/lber.h ../../include/proto-ldap.h
+fm.o: ../../include/portable.h ../../include/ldif.h
+globals.o: globals.c ../../include/lber.h ../../include/proto-ldap.h
+globals.o: ../../include/portable.h ../../include/ldif.h
+ldap_op.o: ldap_op.c ../../include/proto-lber.h ../../include/proto-ldap.h
+ldap_op.o: ../../include/lthread.h ../../include/ldif.h
+lock.o: lock.c ../../include/portable.h ../../include/avl.h
+lock.o: ../../include/ldap.h ../../include/lthread.h
+main.o: main.c ../../include/lber.h ../../include/proto-ldap.h
+main.o: ../../include/portable.h ../../include/ldif.h
+re.o: re.c ../slapd/slap.h ../../include/lber.h ../../include/proto-ldap.h
+re.o: ../../include/ldif.h ../../include/portable.h
+reject.o: reject.c ../../include/lber.h ../../include/proto-ldap.h
+reject.o: ../../include/portable.h ../../include/ldif.h
+replica.o: replica.c ../../include/lber.h ../../include/proto-ldap.h
+replica.o: ../../include/portable.h ../../include/ldif.h
+replog.o: replog.c ../../include/portable.h ../../include/proto-lber.h
+replog.o: ../../include/proto-ldap.h ../../include/ldapconfig.h
+ri.o: ri.c ../../include/lber.h ../../include/proto-ldap.h
+ri.o: ../../include/portable.h ../../include/ldif.h
+rq.o: rq.c ../../include/lber.h ../../include/proto-ldap.h
+rq.o: ../../include/portable.h ../../include/ldif.h
+sanity.o: sanity.c ../../include/lber.h ../../include/proto-ldap.h
+sanity.o: ../../include/portable.h ../../include/ldif.h
+st.o: st.c ../../include/lber.h ../../include/proto-ldap.h
+st.o: ../../include/portable.h ../../include/ldif.h
+tsleep.o: tsleep.c ../../include/lber.h ../../include/proto-ldap.h
+tsleep.o: ../../include/portable.h ../../include/ldif.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

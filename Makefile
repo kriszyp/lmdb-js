@@ -202,16 +202,17 @@ checkin:	FORCE
 	    done
 
 tar:	veryclean
+#	$(RM) ./Make-common;  \
+#	$(CP) ./Make-common.dist ./Make-common; \
+#	$(CHMOD) 644 ./Make-common; \
+#	$(RM) ./include/ldapconfig.h.edit; \
+#	$(CP) ./include/ldapconfig.h.dist ./include/ldapconfig.h.edit; \
+#	$(CHMOD) 644 ./include/ldapconfig.h.edit; 
 	@PWD=`pwd`; \
-	$(RM) ./Make-common;  \
-	$(CP) ./Make-common.dist ./Make-common; \
-	$(CHMOD) 644 ./Make-common; \
-	$(RM) ./include/ldapconfig.h.edit; \
-	$(CP) ./include/ldapconfig.h.dist ./include/ldapconfig.h.edit; \
-	$(CHMOD) 644 ./include/ldapconfig.h.edit; \
 	BASE=`$(BASENAME) $$PWD`; XFILE=/tmp/ldap-x.$$$$; \
 	( cd .. ; $(CAT) $$BASE/exclude >$$XFILE; \
 	  $(FIND) $$BASE -name RCS -print >> $$XFILE ; \
+	  $(FIND) $$BASE -name CVS -print >> $$XFILE ; \
 	  $(FIND) $$BASE -name obj-\* -print >> $$XFILE ; \
 	  $(FIND) $$BASE -name tags -print >> $$XFILE ; \
 	  $(TAR) cvfX ./$$BASE.tar $$XFILE $$BASE; \

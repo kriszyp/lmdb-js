@@ -96,48 +96,43 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-bind.o: bind.c ../../include/lber.h ../../include/ldap.h
-open.o: open.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-result.o: result.c ../../include/portable.h ../../include/lber.h
-result.o: ../../include/ldap.h ldap-int.h
-error.o: error.c ../../include/lber.h ../../include/ldap.h
-compare.o: compare.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-search.o: search.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-modify.o: modify.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-add.o: add.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-modrdn.o: modrdn.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-delete.o: delete.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-abandon.o: abandon.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-ufn.o: ufn.c ../../include/lber.h ../../include/ldap.h
-cache.o: cache.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-getfilter.o: getfilter.c ../../include/lber.h ../../include/ldap.h
-getfilter.o: ../../include/regex.h
-regex.o: regex.c ../../include/portable.h
-sbind.o: sbind.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-kbind.o: kbind.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-unbind.o: unbind.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-friendly.o: friendly.c ../../include/lber.h ../../include/ldap.h
-cldap.o: cldap.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-free.o: free.c ../../include/lber.h ../../include/ldap.h
-disptmpl.o: disptmpl.c ../../include/lber.h ../../include/ldap.h
-disptmpl.o: ../../include/disptmpl.h
-srchpref.o: srchpref.c ../../include/lber.h ../../include/ldap.h
-srchpref.o: ../../include/srchpref.h
-dsparse.o: dsparse.c ../../include/lber.h ../../include/ldap.h
-tmplout.o: tmplout.c ../../include/lber.h ../../include/ldap.h
-tmplout.o: ../../include/disptmpl.h
-sort.o: sort.c ../../include/lber.h ../../include/ldap.h
-getdn.o: getdn.c ../../include/lber.h ../../include/ldap.h
-getentry.o: getentry.c ../../include/lber.h ../../include/ldap.h
-getattr.o: getattr.c ../../include/lber.h ../../include/ldap.h ldap-int.h
-getvalues.o: getvalues.c ../../include/lber.h ../../include/ldap.h
-addentry.o: addentry.c ../../include/lber.h ../../include/ldap.h
-request.o: request.c ../../include/portable.h ../../include/lber.h
-request.o: ../../include/ldap.h ldap-int.h
+bind.o: bind.c ../../include/lber.h ../../include/proto-ldap.h
+open.o: open.c ../../include/proto-lber.h ../../include/proto-ldap.h
+result.o: result.c ../../include/portable.h ../../include/proto-lber.h
+result.o: ../../include/proto-ldap.h
+error.o: error.c ../../include/lber.h ../../include/proto-ldap.h
+compare.o: compare.c ../../include/lber.h ../../include/proto-ldap.h
+search.o: search.c ../../include/lber.h ../../include/proto-ldap.h
+modify.o: modify.c ../../include/lber.h ../../include/proto-ldap.h
+add.o: add.c ../../include/lber.h ../../include/proto-ldap.h
+modrdn.o: modrdn.c ../../include/lber.h ../../include/proto-ldap.h
+delete.o: delete.c ../../include/lber.h ../../include/proto-ldap.h
+abandon.o: abandon.c ../../include/lber.h ../../include/proto-ldap.h
+ufn.o: ufn.c ../../include/lber.h ../../include/proto-ldap.h
+cache.o: cache.c ../../include/lber.h ../../include/proto-ldap.h
+getfilter.o: getfilter.c ../../include/lber.h ../../include/proto-ldap.h
+regex.o: regex.c
+sbind.o: sbind.c ../../include/lber.h ../../include/proto-ldap.h
+kbind.o: kbind.c
+unbind.o: unbind.c ../../include/proto-lber.h ../../include/proto-ldap.h
+friendly.o: friendly.c ../../include/lber.h ../../include/proto-ldap.h
+cldap.o: cldap.c
+free.o: free.c ../../include/ldap.h
+disptmpl.o: disptmpl.c ../../include/proto-lber.h ../../include/proto-ldap.h
+srchpref.o: srchpref.c ../../include/proto-lber.h ../../include/proto-ldap.h
+dsparse.o: dsparse.c ../../include/proto-lber.h ../../include/proto-ldap.h
+tmplout.o: tmplout.c ../../include/proto-lber.h ../../include/proto-ldap.h
+sort.o: sort.c ../../include/proto-lber.h
+getdn.o: getdn.c ../../include/lber.h ../../include/proto-ldap.h
+getentry.o: getentry.c ../../include/lber.h ../../include/proto-ldap.h
+getattr.o: getattr.c ../../include/lber.h ../../include/proto-ldap.h
+getvalues.o: getvalues.c ../../include/lber.h ../../include/proto-ldap.h
+addentry.o: addentry.c ../../include/lber.h ../../include/proto-ldap.h
+request.o: request.c ../../include/portable.h ../../include/proto-lber.h
+request.o: ../../include/proto-ldap.h
 getdxbyname.o: getdxbyname.c
-os-ip.o: os-ip.c ../../include/portable.h ../../include/lber.h
-os-ip.o: ../../include/ldap.h
-url.o: url.c ../../include/lber.h ../../include/ldap.h ldap-int.h
+os-ip.o: os-ip.c ../../include/proto-lber.h ../../include/proto-ldap.h
+url.o: url.c ../../include/lber.h ../../include/proto-ldap.h
 charset.o: charset.c
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

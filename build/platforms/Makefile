@@ -27,7 +27,7 @@ install:	FORCE
 clean:	FORCE
 	@echo "making clean in `pwd`"
 	@for i in *; do \
-	    if [ -d $$i -a $$i != "RCS" ]; then \
+	    if [ -d $$i -a $$i != "CVS" ]; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 		( cd $$i; $(MAKE) $(MFLAGS) clean ); \
 	    fi; \
@@ -36,7 +36,7 @@ clean:	FORCE
 veryclean:	FORCE
 	@echo "making veryclean in `pwd`"
 	@for i in *; do \
-	    if [ -d $$i -a $$i != "RCS" ]; then \
+	    if [ -d $$i -a -f $$i/Makefile ]; then \
 		echo; echo "  cd $$i; $(MAKE) $(MFLAGS) veryclean"; \
 		( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
 	    fi; \

@@ -80,21 +80,17 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-main.o: main.c ../../include/lber.h ../../include/ldap.h
-main.o: ../../include/ldapconfig.h ../../include/portable.h ud.h
-find.o: find.c ../../include/lber.h ../../include/ldap.h ud.h
-mod.o: mod.c ../../include/lber.h ../../include/ldap.h ud.h
-print.o: print.c ../../include/lber.h ../../include/ldap.h ud.h
-auth.o: auth.c ../../include/lber.h ../../include/ldap.h
-auth.o: ../../include/ldapconfig.h ud.h
-util.o: util.c ../../include/lber.h ../../include/ldap.h
-util.o: ../../include/ldapconfig.h ../../include/portable.h ud.h
-help.o: help.c ../../include/lber.h ../../include/ldap.h ud.h
+main.o: main.c ../../include/lber.h ../../include/proto-ldap.h
+main.o: ../../include/portable.h
+find.o: find.c ../../include/proto-lber.h ../../include/proto-ldap.h
+mod.o: mod.c ../../include/proto-lber.h ../../include/proto-ldap.h
+print.o: print.c ../../include/proto-lber.h ../../include/proto-ldap.h
+auth.o: auth.c ../../include/proto-lber.h ../../include/proto-ldap.h
+util.o: util.c ../../include/proto-lber.h ../../include/ldapconfig.h
+help.o: help.c ../../include/proto-lber.h ../../include/proto-ldap.h
 string_to_key.o: string_to_key.c
-group.o: group.c ../../include/lber.h ../../include/ldap.h
-group.o: ../../include/ldapconfig.h ud.h
-edit.o: edit.c ../../include/lber.h ../../include/ldap.h
-edit.o: ../../include/ldapconfig.h ud.h
-globals.o: globals.c ud.h
+group.o: group.c ../../include/lber.h ../../include/proto-ldap.h
+edit.o: edit.c ../../include/lber.h ../../include/proto-ldap.h
+globals.o: globals.c
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

@@ -70,44 +70,31 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-init.o: init.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-init.o: ../../../include/ldap.h ../../../include/lthread.h
-init.o: ../../../include/ldif.h shell.h
-config.o: config.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-config.o: ../../../include/ldap.h ../../../include/lthread.h
-config.o: ../../../include/ldif.h shell.h
-fork.o: fork.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-fork.o: ../../../include/ldap.h ../../../include/lthread.h
+init.o: init.c ../../../include/avl.h ../../../include/proto-lber.h
+init.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+config.o: config.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+config.o: ../../../include/ldif.h
+fork.o: fork.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
 fork.o: ../../../include/ldif.h
-search.o: search.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-search.o: ../../../include/ldap.h ../../../include/lthread.h
-search.o: ../../../include/ldif.h shell.h
-bind.o: bind.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-bind.o: ../../../include/ldap.h ../../../include/lthread.h
-bind.o: ../../../include/ldif.h shell.h
-unbind.o: unbind.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-unbind.o: ../../../include/ldap.h ../../../include/lthread.h
-unbind.o: ../../../include/ldif.h shell.h
-add.o: add.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-add.o: ../../../include/ldap.h ../../../include/lthread.h
-add.o: ../../../include/ldif.h shell.h
-delete.o: delete.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-delete.o: ../../../include/ldap.h ../../../include/lthread.h
-delete.o: ../../../include/ldif.h shell.h
-modify.o: modify.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-modify.o: ../../../include/ldap.h ../../../include/lthread.h
-modify.o: ../../../include/ldif.h shell.h
-modrdn.o: modrdn.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-modrdn.o: ../../../include/ldap.h ../../../include/lthread.h
-modrdn.o: ../../../include/ldif.h shell.h
-compare.o: compare.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-compare.o: ../../../include/ldap.h ../../../include/lthread.h
-compare.o: ../../../include/ldif.h shell.h
-abandon.o: abandon.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-abandon.o: ../../../include/ldap.h ../../../include/lthread.h
-abandon.o: ../../../include/ldif.h shell.h
-result.o: result.c ../slap.h ../../../include/avl.h ../../../include/lber.h
-result.o: ../../../include/ldap.h ../../../include/lthread.h
-result.o: ../../../include/ldif.h shell.h
+search.o: search.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+search.o: ../../../include/ldif.h
+bind.o: bind.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+bind.o: ../../../include/ldif.h
+unbind.o: unbind.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+unbind.o: ../../../include/ldif.h
+add.o: add.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+add.o: ../../../include/ldif.h
+delete.o: delete.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+delete.o: ../../../include/ldif.h
+modify.o: modify.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+modify.o: ../../../include/ldif.h
+modrdn.o: modrdn.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+modrdn.o: ../../../include/ldif.h
+compare.o: compare.c ../../../include/proto-lber.h
+compare.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+abandon.o: abandon.c ../../../include/avl.h ../../../include/proto-lber.h
+abandon.o: ../../../include/proto-ldap.h ../../../include/ldif.h
+result.o: result.c ../../../include/proto-lber.h ../../../include/proto-ldap.h
+result.o: ../../../include/ldif.h
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY

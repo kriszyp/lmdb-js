@@ -55,7 +55,7 @@ fax5version.c:	main.o faxtotpc.o $(LDIR)/libldap.a
 install:	rp500 xrpcomp fax500 FORCE
 		-$(MKDIR) -p $(ETCDIR) $(BINDIR)
 		$(INSTALL) $(INSTALLFLAGS) -m 755 rp500 $(ETCDIR)
-		$(SED) -e 's%ETCDIR%$(ETCDIR)%' xrpcomp > /tmp/xrpcomp.tmp
+		$(SED) -e 's%ETCDIR%$(RUNTIMEETCDIR)%' xrpcomp > /tmp/xrpcomp.tmp
 		$(INSTALL) $(INSTALLFLAGS) -m 755 /tmp/xrpcomp.tmp $(BINDIR)/xrpcomp
 		$(RM) /tmp/xrpcomp.tmp
 		$(INSTALL) $(INSTALLFLAGS) -m 755 fax500 $(ETCDIR)
@@ -78,10 +78,10 @@ links:
 # DO NOT DELETE THIS LINE -- mkdep uses it.
 # DO NOT PUT ANYTHING AFTER THIS LINE, IT WILL GO AWAY.
 
-rp500.o: rp500.c ../../include/ldapconfig.h ../../include/lber.h
-rp500.o: ../../include/ldap.h
-main.o: main.c ../../include/ldapconfig.h ../../include/portable.h
-main.o: ../../include/lber.h ../../include/ldap.h
+rp500.o: rp500.c ../../include/ldapconfig.h ../../include/proto-lber.h
+rp500.o: ../../include/proto-ldap.h
+main.o: main.c ../../include/portable.h ../../include/proto-lber.h
+main.o: ../../include/proto-ldap.h
 faxtotpc.o: faxtotpc.c
 
 # IF YOU PUT ANYTHING HERE IT WILL GO AWAY
