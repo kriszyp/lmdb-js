@@ -99,7 +99,7 @@ LDAP_F (int) ldap_pvt_unhex( int c );
 /* these macros assume 'x' is an ASCII x */
 #define LDAP_DNSEPARATOR(c)	((c) == ',' || (c) == ';')
 #define LDAP_SEPARATOR(c)	((c) == ',' || (c) == ';' || (c) == '+')
-#define LDAP_SPACE(c)		((c) == ' ' || (c) == '\n')
+#define LDAP_SPACE(c)		((c) == ' ' || (c) == '\t' || (c) == '\n')
 
 #define LDAP_LOWER(c)		( (c) >= 'a' && (c) <= 'z' )
 #define LDAP_UPPER(c)		( (c) >= 'A' && (c) <= 'Z' )
