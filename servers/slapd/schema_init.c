@@ -1835,11 +1835,11 @@ UUIDNormalize(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		if( j % 2 ) {
-			octet = nibble << 4;
-		} else {
+		if( j & 1 ) {
 			octet |= nibble;
 			normalized->bv_val[j>>1] = octet;
+		} else {
+			octet = nibble << 4;
 		}
 		j++;
 	}

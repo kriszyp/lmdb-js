@@ -895,6 +895,7 @@ syncrepl_entry(
 	AttributeAssertion ava = {0};
 	int rc = LDAP_SUCCESS;
 	int ret = LDAP_SUCCESS;
+	const char *text;
 
 	if ( refresh &&
 		( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_ADD ))
@@ -908,6 +909,17 @@ syncrepl_entry(
 		return e ? 1 : 0;
 	}
 
+	f.f_choice = LDAP_FILTER_EQUALITY;
+	f.f_ava = &ava;
+	ava.aa_desc = slap_schema.si_ad_entryUUID;
+	rc = asserted_value_validate_normalize(
+		ava.aa_desc, ad_mr(ava.aa_desc, SLAP_MR_EQUALITY),
+		SLAP_MR_EQUALITY, syncUUID, &ava.aa_value, &text, op->o_tmpmemctx );
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+	op->ors_filter = &f;
+
 	op->ors_filterstr.bv_len = (sizeof("entryUUID=")-1) + syncUUID->bv_len;
 	op->ors_filterstr.bv_val = (char *) sl_malloc(
 		op->ors_filterstr.bv_len + 1, op->o_tmpmemctx ); 
@@ -916,11 +928,6 @@ syncrepl_entry(
 		syncUUID->bv_val, syncUUID->bv_len );
 	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len] = '\0';
 
-	f.f_choice = LDAP_FILTER_EQUALITY;
-	f.f_ava = &ava;
-	ava.aa_desc = slap_schema.si_ad_entryUUID;
-	ava.aa_value = *syncUUID;
-	op->ors_filter = &f;
 	op->ors_scope = LDAP_SCOPE_SUBTREE;
 
 	/* get syncrepl cookie of shadow replica from subentry */
@@ -960,8 +967,8 @@ syncrepl_entry(
 			 rc == LDAP_NO_SUCH_OBJECT )
 		{
 			attr_delete( &e->e_attrs, slap_schema.si_ad_entryUUID );
-			attr_merge_normalize_one( e, slap_schema.si_ad_entryUUID,
-				syncUUID, op->o_tmpmemctx );
+			attr_merge_one( e, slap_schema.si_ad_entryUUID,
+				syncUUID, &ava.aa_value );
 
 			op->o_tag = LDAP_REQ_ADD;
 			op->ora_e = e;
@@ -1050,6 +1057,9 @@ syncrepl_entry(
 
 done :
 
+	if ( ava.aa_value.bv_val ) {
+		ber_memfree_x( ava.aa_value.bv_val, op->o_tmpmemctx );
+	}
 	if ( si->si_syncUUID_ndn.bv_val ) {
 		ber_memfree_x( si->si_syncUUID_ndn.bv_val, op->o_tmpmemctx );
 	}

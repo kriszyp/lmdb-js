@@ -855,7 +855,15 @@ int slap_mods_opattrs(
 			mod->sml_values[1].bv_len = 0;
 			mod->sml_values[1].bv_val = NULL;
 			assert( mod->sml_values[0].bv_val );
-			mod->sml_nvalues = NULL;
+			mod->sml_nvalues =
+				(BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			(*mod->sml_desc->ad_type->sat_equality->smr_normalize)(
+					SLAP_MR_VALUE_OF_ATTRIBUTE_SYNTAX,
+					mod->sml_desc->ad_type->sat_syntax,
+					mod->sml_desc->ad_type->sat_equality,
+					mod->sml_values, mod->sml_nvalues, NULL );
+			mod->sml_nvalues[1].bv_len = 0;
+			mod->sml_nvalues[1].bv_val = NULL;
 			*modtail = mod;
 			modtail = &mod->sml_next;
 
