@@ -320,7 +320,8 @@ ldap_back_getconn(Operation *op, SlapReply *rs)
 		} else {
 			lc->cred.bv_len = 0;
 			lc->cred.bv_val = NULL;
-			if ( op->o_conn->c_dn.bv_len != 0 ) {
+			if ( op->o_conn->c_dn.bv_len != 0
+					&& ( op->o_bd == op->o_conn->c_authz_backend ) ) {
 				
 				/*
 				 * Rewrite the bind dn if needed
