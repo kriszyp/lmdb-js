@@ -2492,6 +2492,7 @@ LDAPMod **slapi_x_modifications2ldapmods(Modifications **pmodlist)
 	mods = (LDAPMod **)ch_malloc( (i + 1) * sizeof(LDAPMod *) );
 
 	for( i = 0, ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		mods[i] = (LDAPMod *)ch_malloc( sizeof(LDAPMod) );
 		modp = mods[i];
 		modp->mod_op = ml->sml_op | LDAP_MOD_BVALUES;
 
