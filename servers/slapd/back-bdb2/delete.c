@@ -94,7 +94,7 @@ bdb2i_back_delete_internal(
 			goto return_results;
 		}
 
-		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
+		/* DDD ldap_pvt_thread_mutex_lock(&li->li_root_mutex); */
 		rootlock = 1;
 	}
 
@@ -138,7 +138,7 @@ return_results:;
 
 	if ( rootlock ) {
 		/* release root lock */
-		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
+		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_root_mutex); */
 	}
 
 	/* free entry and writer lock */

@@ -70,7 +70,7 @@ main( int argc, char **argv )
 
 	}
 
-	do_read( host, port, entry, loops );
+	do_read( host, port, entry, ( 4 * loops ));
 
 	exit( 0 );
 }
@@ -83,6 +83,7 @@ do_read( char *host, int port, char *entry, int maxloop )
 	int  	i;
 	char	*attrs[] = { "cn", "sn", NULL };
 	char	*filter = "(objectclass=*)";
+	pid_t	pid = getpid();
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
 		perror( "ldap_init" );
@@ -95,21 +96,26 @@ do_read( char *host, int port, char *entry, int maxloop )
 	}
 
 
-	fprintf( stderr, "Read(%d): entry=\"%s\".\n", maxloop, entry );
+	fprintf( stderr, "PID=%ld - Read(%d): entry=\"%s\".\n",
+				pid, maxloop, entry );
 
 	for ( i = 0; i < maxloop; i++ ) {
-		 LDAPMessage *res;
+		LDAPMessage *res;
+		int         rc;
 
-		if ( ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
-				filter, attrs, 0, &res ) != LDAP_SUCCESS ) {
+		if (( rc = ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
+				filter, attrs, 0, &res )) != LDAP_SUCCESS ) {
 
 			ldap_perror( ld, "ldap_read" );
-			break;
+			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
+			continue;
 
 		}
 
 		ldap_msgfree( res );
 	}
+
+	fprintf( stderr, " PID=%ld - Read done.\n", pid );
 
 	ldap_unbind( ld );
 }

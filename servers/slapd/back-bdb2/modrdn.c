@@ -107,7 +107,7 @@ bdb2i_back_modrdn_internal(
 			goto return_results;
 		}
 
-		ldap_pvt_thread_mutex_lock(&li->li_root_mutex);
+		/* DDD ldap_pvt_thread_mutex_lock(&li->li_root_mutex); */
 		rootlock = 1;
 
 		new_dn = ch_strdup( newrdn );
@@ -182,7 +182,7 @@ return_results:
 
 	if ( rootlock ) {
 		/* release root writer lock */
-		ldap_pvt_thread_mutex_unlock(&li->li_root_mutex);
+		/* DDD ldap_pvt_thread_mutex_unlock(&li->li_root_mutex); */
 	}
 
 	/* free entry and writer lock */

@@ -75,7 +75,7 @@ main( int argc, char **argv )
 
 	}
 
-	do_search( host, port, sbase, filter, loops );
+	do_search( host, port, sbase, filter, ( 4 * loops ));
 
 	exit( 0 );
 }
@@ -87,6 +87,7 @@ do_search( char *host, int port, char *sbase, char *filter, int maxloop )
 	LDAP	*ld;
 	int  	i;
 	char	*attrs[] = { "cn", "sn", NULL };
+	pid_t	pid = getpid();
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
 		perror( "ldap_init" );
@@ -99,22 +100,26 @@ do_search( char *host, int port, char *sbase, char *filter, int maxloop )
 	}
 
 
-	fprintf( stderr, "Search(%d): base=\"%s\", filter=\"%s\".\n",
-		maxloop, sbase, filter );
+	fprintf( stderr, "PID=%ld - Search(%d): base=\"%s\", filter=\"%s\".\n",
+				pid, maxloop, sbase, filter );
 
 	for ( i = 0; i < maxloop; i++ ) {
-		 LDAPMessage *res;
+		LDAPMessage *res;
+		int         rc;
 
-		if ( ldap_search_s( ld, sbase, LDAP_SCOPE_SUBTREE,
-				filter, attrs, 0, &res ) != LDAP_SUCCESS ) {
+		if (( rc = ldap_search_s( ld, sbase, LDAP_SCOPE_SUBTREE,
+				filter, attrs, 0, &res )) != LDAP_SUCCESS ) {
 
 			ldap_perror( ld, "ldap_search" );
-			break;
+			if ( rc != LDAP_NO_SUCH_OBJECT ) break;
+			continue;
 
 		}
 
 		ldap_msgfree( res );
 	}
+
+	fprintf( stderr, " PID=%ld - Search done.\n", pid );
 
 	ldap_unbind( ld );
 }

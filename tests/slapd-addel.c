@@ -232,6 +232,7 @@ do_addel(
 {
 	LDAP	*ld;
 	int  	i;
+	pid_t	pid = getpid();
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
 		perror( "ldap_init" );
@@ -245,7 +246,8 @@ do_addel(
 	}
 
 
-	fprintf( stderr, "Add/Delete(%d): entry=\"%s\".\n", maxloop, entry );
+	fprintf( stderr, "PID=%ld - Add/Delete(%d): entry=\"%s\".\n",
+					pid, maxloop, entry );
 
 	for ( i = 0; i < maxloop; i++ ) {
 
@@ -269,6 +271,8 @@ do_addel(
 		}
 
 	}
+
+	fprintf( stderr, " PID=%ld - Add/Delete done.\n", pid );
 
 	ldap_unbind( ld );
 }

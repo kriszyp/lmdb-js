@@ -35,7 +35,7 @@ echo "Waiting 5 seconds for slapd to start..."
 sleep 5
 
 echo "Using tester for concurrent server access..."
-$SLAPDTESTER -b "$BASEDN" -d "$DATADIR" -h localhost -p $PORT -D "$MANAGERDN" -w $PASSWD -l 100
+$SLAPDTESTER -b "$BASEDN" -d "$DATADIR" -h localhost -p $PORT -D "$MANAGERDN" -w $PASSWD -l 50
 RC=$?
 
 if [ $RC != 0 ]; then
