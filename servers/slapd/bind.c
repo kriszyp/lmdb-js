@@ -227,7 +227,8 @@ do_bind(
 		version < LDAP_VERSION3 )
 	{
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-			NULL, "requested protocol version not allowed", NULL, NULL );
+			NULL, "historical protocol version requested, use LDAPv3 instead",
+			NULL, NULL );
 		goto cleanup;
 	}
 
