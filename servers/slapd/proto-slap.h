@@ -401,9 +401,7 @@ LDAP_SLAPD_F (int) rdnValidate LDAP_P(( struct berval * rdn ));
 LDAP_SLAPD_F (char *) dn_validate LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_normalize LDAP_P(( char *dn ));
 LDAP_SLAPD_F (char *) dn_parent LDAP_P(( Backend *be, const char *dn ));
-LDAP_SLAPD_F (char *) dn_rdn LDAP_P(( Backend *be, struct berval *dn ));
 LDAP_SLAPD_F (int) dn_rdnlen LDAP_P(( Backend *be, struct berval *dn ));
-LDAP_SLAPD_F (int) dn_issuffix LDAP_P(( const char *dn, const char *suffix ));
 LDAP_SLAPD_F (char *) rdn_attr_value LDAP_P(( const char * rdn ));
 LDAP_SLAPD_F (char *) rdn_attr_type LDAP_P(( const char * rdn ));
 LDAP_SLAPD_F (int) rdn_attrs LDAP_P(( const char * rdn,
@@ -1066,7 +1064,6 @@ LDAP_SLAPD_F (int) do_extended LDAP_P((Connection *conn, Operation *op));
 
 
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
-
 
 LDAP_END_DECL
 

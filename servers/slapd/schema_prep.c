@@ -190,6 +190,7 @@ static AttributeTypeSchemaCheckFN rootDseAttribute;
 static AttributeTypeSchemaCheckFN aliasAttribute;
 static AttributeTypeSchemaCheckFN referralAttribute;
 static AttributeTypeSchemaCheckFN subentryAttribute;
+static AttributeTypeSchemaCheckFN administrativeRoleAttribute;
 static AttributeTypeSchemaCheckFN dynamicAttribute;
 
 static struct slap_schema_ad_map {
@@ -357,7 +358,7 @@ static struct slap_schema_ad_map {
 			"EQUALITY objectIdentifierMatch "
 			"USAGE directoryOperation "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
-		NULL, 0, NULL, NULL, NULL,
+		administrativeRoleAttribute, 0, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_administrativeRole) },
 	{ "subtreeSpecification", "( 2.5.18.6 NAME 'subtreeSpecification' "
 			"SINGLE-VALUE "
@@ -942,6 +943,28 @@ static int subentryAttribute (
 	}
 
 	return LDAP_SUCCESS;
+}
+
+static int administrativeRoleAttribute (
+	Backend *be,
+	Entry *e,
+	Attribute *attr,
+	const char** text,
+	char *textbuf, size_t textlen )
+{
+	*text = textbuf;
+
+	if( !SLAP_SUBENTRIES(be) ) {
+		snprintf( textbuf, textlen,
+			"attribute \"%s\" not supported in context",
+			attr->a_desc->ad_cname.bv_val );
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
+	snprintf( textbuf, textlen,
+		"attribute \"%s\" not supported!",
+		attr->a_desc->ad_cname.bv_val );
+	return LDAP_OBJECT_CLASS_VIOLATION;
 }
 
 static int dynamicAttribute (

@@ -71,7 +71,6 @@ int bdb_index_is_indexed(
 	Backend *be,
 	AttributeDescription *desc )
 {
-	int rc;
 	slap_mask_t mask;
 	char *dbname;
 	struct berval prefix;
@@ -82,7 +81,7 @@ int bdb_index_is_indexed(
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-    	return LDAP_SUCCESS;
+	return LDAP_SUCCESS;
 }
 
 int bdb_index_param(

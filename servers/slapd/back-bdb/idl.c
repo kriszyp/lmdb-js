@@ -263,8 +263,8 @@ bdb_idl_fetch_key(
 	data.flags = DB_DBT_USERMEM;
 	/* fetch it */
 	rc = db->get( db, tid, key, &data, bdb->bi_db_opflags );
-
 #endif
+
 	if( rc == DB_NOTFOUND ) {
 		return rc;
 

@@ -4,6 +4,13 @@
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
+#ifndef SLAP_SETS_H_
+#define SLAP_SETS_H_
+
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
+
 /* this routine needs to return the bervals instead of
  * plain strings, since syntax is not known.  It should
  * also return the syntax or some "comparison cookie"
@@ -20,3 +27,6 @@ slap_set_filter (SLAP_SET_GATHER gatherer,
 	void *cookie, struct berval *filter,
 	char *user, char *this, BerVarray *results);
 
+LDAP_END_DECL
+
+#endif

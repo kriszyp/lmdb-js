@@ -69,10 +69,6 @@ LDAP_BEGIN_DECL
  */
 #define SLAP_MOD_SOFTADD	0x1000
 
-#define ON	(1)
-#define OFF	(-1)
-#define UNDEFINED (0)
-
 #define MAXREMATCHES (10)
 
 #define SLAP_MAX_WORKER_THREADS		(32)
@@ -343,7 +339,7 @@ typedef int slap_mr_filter_func LDAP_P((
 
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
-	ber_len_t			smr_oidlen;
+	ber_len_t				smr_oidlen;
 	slap_mask_t				smr_usage;
 
 #define SLAP_MR_HIDE			0x8000U
@@ -433,11 +429,11 @@ typedef struct slap_attribute_type {
 
 	struct slap_attribute_type	*sat_next;
 
-#define sat_oid			sat_atype.at_oid
-#define sat_names		sat_atype.at_names
-#define sat_desc		sat_atype.at_desc
+#define sat_oid				sat_atype.at_oid
+#define sat_names			sat_atype.at_names
+#define sat_desc			sat_atype.at_desc
 #define sat_obsolete		sat_atype.at_obsolete
-#define sat_sup_oid		sat_atype.at_sup_oid
+#define sat_sup_oid			sat_atype.at_sup_oid
 #define sat_equality_oid	sat_atype.at_equality_oid
 #define sat_ordering_oid	sat_atype.at_ordering_oid
 #define sat_substr_oid		sat_atype.at_substr_oid
@@ -445,7 +441,7 @@ typedef struct slap_attribute_type {
 #define sat_single_value	sat_atype.at_single_value
 #define sat_collective		sat_atype.at_collective
 #define sat_no_user_mod		sat_atype.at_no_user_mod
-#define sat_usage		sat_atype.at_usage
+#define sat_usage			sat_atype.at_usage
 #define sat_extensions		sat_atype.at_extensions
 
 	struct slap_attr_desc		*sat_ad;
@@ -1356,9 +1352,6 @@ struct slap_backend_info {
 #define o_transport_ssf	o_authz.sai_transport_ssf
 #define o_tls_ssf		o_authz.sai_tls_ssf
 #define o_sasl_ssf		o_authz.sai_sasl_ssf
-
-struct slap_op;
-struct slap_conn;
 
 typedef void (slap_response)( struct slap_conn *, struct slap_op *,
 	ber_tag_t, ber_int_t, ber_int_t, const char *, const char *,

@@ -735,7 +735,7 @@ dnExtractRdn(
 }
 
 /*
- * FIXME: should be replaced by dnExtractRdn() (together with dn_rdn)
+ * FIXME: should be replaced by dnExtractRdn()
  */
 int 
 dn_rdnlen(
@@ -766,60 +766,6 @@ dn_rdnlen(
 	}
 
 	return p - dn_in->bv_val;
-}
-
-/*
- * FIXME: should be replaced by dnExtractRdn() (together with dn_rdnlen)
- */
-char * dn_rdn(
-	Backend	*be,
-	struct berval	*dn_in )
-{
-	struct berval	rdn;
-
-	assert( dn_in );
-
-	if ( dn_in == NULL ) {
-		return NULL;
-	}
-
-	if ( !dn_in->bv_len ) {
-		return NULL;
-	}
-
-	if ( be != NULL && be_issuffix( be, dn_in->bv_val ) ) {
-		return NULL;
-	}
-
-	if ( dnExtractRdn( dn_in, &rdn ) != LDAP_SUCCESS ) {
-		return NULL;
-	}
-
-	return rdn.bv_val;
-}
-
-/*
- * dn_issuffix - tells whether suffix is a suffix of dn.
- * Both dn and suffix must be normalized.
- *	deprecated in favor of dnIsSuffix()
- */
-int
-dn_issuffix(
-	const char	*dn,
-	const char	*suffix
-)
-{
-	struct berval	bvdn, bvsuffix;
-
-	assert( dn );
-	assert( suffix );
-
-	bvdn.bv_val = (char *) dn;
-	bvdn.bv_len = strlen( dn );
-	bvsuffix.bv_val = (char *) suffix;
-	bvsuffix.bv_len = strlen( suffix );
-
-	return dnIsSuffix( &bvdn, &bvsuffix );
 }
 
 /* rdn_attr_type:

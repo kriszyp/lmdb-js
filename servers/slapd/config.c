@@ -77,7 +77,7 @@ read_config( const char *fname )
 	int rc;
 	struct berval vals[2];
 
-	static int lastmod = ON;
+	static int lastmod = 1;
 	static BackendInfo *bi = NULL;
 	static BackendDB	*be = NULL;
 
@@ -1996,13 +1996,13 @@ read_config( const char *fname )
 				if ( be ) {
 					be->be_flags &= ~SLAP_BFLAG_NOLASTMOD;
 				} else {
-					lastmod = ON;
+					lastmod = 1;
 				}
 			} else {
 				if ( be ) {
 					be->be_flags |= SLAP_BFLAG_NOLASTMOD;
 				} else {
-					lastmod = OFF;
+					lastmod = 0;
 				}
 			}
 
