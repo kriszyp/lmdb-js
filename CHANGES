@@ -1,8 +1,13 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.6 Release
+OpenLDAP 2.1.6 Engineering
+	Updated libldap_r Pth support (ITS#724) (ITS#1033)
+	Updated slapd adlist support
 	Build Environment
+		Fixed back-bdb module linking problem
 		Updated pthreads detection
+	Documentation
+		Misc. updates
 
 OpenLDAP 2.1.5 Release
 	Fixed back-ldbm indirect IDL bug (ITS#2039)
