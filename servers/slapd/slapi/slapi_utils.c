@@ -1499,13 +1499,27 @@ int slapi_x_connection_set_pb( Slapi_PBlock *pb, Connection *conn )
 		rc = slapi_pblock_set( pb, SLAPI_CONN_CLIENTIP, (void *)&conn->c_peer_name.bv_val[3] );
 		if ( rc != LDAP_SUCCESS )
 			return rc;
+	} else if ( strncmp( conn->c_peer_name.bv_val, "PATH=", 5 ) == 0 ) {
+		rc = slapi_pblock_set( pb, SLAPI_X_CONN_CLIENTPATH, (void *)&conn->c_peer_name.bv_val[5] );
+		if ( rc != LDAP_SUCCESS )
+			return rc;
 	}
 
 	if ( strncmp( conn->c_sock_name.bv_val, "IP=", 3 ) == 0 ) {
 		rc = slapi_pblock_set( pb, SLAPI_CONN_SERVERIP, (void *)&conn->c_sock_name.bv_val[3] );
 		if ( rc != LDAP_SUCCESS )
 			return rc;
+	} else if ( strncmp( conn->c_sock_name.bv_val, "PATH=", 5 ) == 0 ) {
+		rc = slapi_pblock_set( pb, SLAPI_X_CONN_SERVERPATH, (void *)&conn->c_sock_name.bv_val[5] );
+		if ( rc != LDAP_SUCCESS )
+			return rc;
 	}
+
+#ifdef LDAP_CONNECTIONLESS
+	rc = slapi_pblock_set( pb, SLAPI_X_CONN_IS_UDP, (void *)conn->c_is_udp );
+	if ( rc != LDAP_SUCCESS )
+		return rc;
+#endif
 
 	rc = slapi_pblock_set( pb, SLAPI_CONN_ID, (void *)conn->c_connid );
 	if ( rc != LDAP_SUCCESS )
