@@ -39,11 +39,15 @@ dn2id_add(
 		return( -1 );
 	}
 
-	dn = ch_strdup( dn );
-	(void) dn_normalize_case( dn );
-
+#ifndef DN_INDICES
 	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	key.dsize = strlen( key.dptr ) + 1;
+#else
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, dn );
+#endif
+
 	data.dptr = (char *) &id;
 	data.dsize = sizeof(ID);
 
@@ -52,8 +56,11 @@ dn2id_add(
 
 	rc = ldbm_cache_store( db, key, data, flags );
 
-	free( dn );
 	ldbm_cache_close( be, db );
+
+#ifdef DN_INDICES
+	free( key.dptr );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "<= dn2id_add %d\n", rc, 0, 0 );
 	return( rc );
@@ -73,13 +80,10 @@ dn2id(
 	ldbm_datum_init( key );
 	ldbm_datum_init( data );
 
-	dn = ch_strdup( dn );
 	Debug( LDAP_DEBUG_TRACE, "=> dn2id( \"%s\" )\n", dn, 0, 0 );
-	(void) dn_normalize_case( dn );
 
 	/* first check the cache */
 	if ( (id = cache_find_entry_dn2id( be, &li->li_cache, dn )) != NOID ) {
-		free( dn );
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id %ld (in cache)\n", id,
 			0, 0 );
 		return( id );
@@ -87,19 +91,27 @@ dn2id(
 
 	if ( (db = ldbm_cache_open( be, "dn2id", LDBM_SUFFIX, LDBM_WRCREAT ))
 		== NULL ) {
-		free( dn );
 		Debug( LDAP_DEBUG_ANY, "<= dn2id could not open dn2id%s\n",
 			LDBM_SUFFIX, 0, 0 );
 		return( NOID );
 	}
 
+#ifndef DN_INDICES
 	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	key.dsize = strlen( key.dptr ) + 1;
+#else
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, dn );
+#endif
 
 	data = ldbm_cache_fetch( db, key );
 
 	ldbm_cache_close( be, db );
-	free( dn );
+
+#ifdef DN_INDICES
+	free( key.dptr );
+#endif
 
 	if ( data.dptr == NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<= dn2id NOID\n", 0, 0, 0 );
@@ -136,14 +148,20 @@ dn2id_delete(
 		return( -1 );
 	}
 
-	dn = ch_strdup( dn );
-	(void) dn_normalize_case( dn );
+#ifndef DN_INDICES
 	key.dptr = dn;
-	key.dsize = strlen( dn ) + 1;
+	key.dsize = strlen( key.dptr ) + 1;
+#else
+	key.dsize = strlen( dn ) + 2;
+	key.dptr = ch_malloc( key.dsize );
+	sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, dn );
+#endif
 
 	rc = ldbm_cache_delete( db, key );
 
-	free( dn );
+#ifdef DN_INDICES
+	free( key.dptr );
+#endif
 
 	ldbm_cache_close( be, db );
 

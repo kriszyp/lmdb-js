@@ -86,8 +86,14 @@ main( int argc, char **argv )
 					    id );
 				} else {
 					(void) dn_normalize_case( val );
+#ifndef DN_INDICES
 					key.dptr = val;
 					key.dsize = strlen( val ) + 1;
+#else
+					key.dsize = strlen( val ) + 2;
+					key.dptr = ch_malloc( key.dsize );
+					sprintf( key.dptr, "%c%s", DN_EQ_PREFIX, val );
+#endif
 					data.dptr = (char *) &id;
 					data.dsize = sizeof(ID);
 					if ( ldbm_store( db->dbc_db, key, data,
@@ -95,6 +101,9 @@ main( int argc, char **argv )
 						perror( "dn2id ldbm_store" );
 						exit( EXIT_FAILURE );
 					}
+#ifdef DN_INDICES
+					free( val );
+#endif
 				}
 	}
 	if ( buf )
