@@ -1759,7 +1759,7 @@ else
 #include <pthread.h>
 int main() {
 
-					if(0) pthread_create((pthread_t*) 0,
+					pthread_create((pthread_t*) 0,
 						(pthread_attr_t*) 0, 0, 0);
 					
 ; return 0; }
