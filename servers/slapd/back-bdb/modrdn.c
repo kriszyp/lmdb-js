@@ -41,6 +41,8 @@ bdb_modrdn(
 	DB_TXN *	ltid = NULL;
 	struct bdb_op_info opinfo;
 
+	struct berval bv;
+
 	ID			id;
 	char		**new_rdn_vals = NULL;	/* Vals of new rdn */
 	char		**new_rdn_types = NULL;	/* Types of new rdn */
@@ -168,8 +170,10 @@ retry:	/* transaction retry */
 		/* Make sure parent entry exist and we can write its 
 		 * children.
 		 */
+		bv.bv_val = p_ndn;
+		bv.bv_len = strlen( p_ndn );
 
-		rc = bdb_dn2entry( be, ltid, p_ndn, &p, NULL, 0 );
+		rc = bdb_dn2entry( be, ltid, &bv, &p, NULL, 0 );
 
 		switch( rc ) {
 		case 0:
@@ -274,7 +278,9 @@ retry:	/* transaction retry */
 			/* newSuperior == entry being moved?, if so ==> ERROR */
 			/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-			rc = bdb_dn2entry( be, ltid, np_ndn, &np, NULL, 0 );
+			bv.bv_val = np_ndn;
+			bv.bv_len = strlen( np_ndn );
+			rc = bdb_dn2entry( be, ltid, &bv, &np, NULL, 0 );
 
 			switch( rc ) {
 			case 0:
@@ -392,7 +398,9 @@ retry:	/* transaction retry */
 	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
 		new_ndn, 0, 0 );
 
-	rc = bdb_dn2id ( be, ltid, new_ndn, &id );
+	bv.bv_val = new_ndn;
+	bv.bv_len = strlen( new_ndn );
+	rc = bdb_dn2id ( be, ltid, &bv, &id );
 	switch( rc ) {
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
