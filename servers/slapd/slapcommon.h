@@ -27,7 +27,7 @@ enum slaptool {
 	SLAPINDEX,	/* database index tool */
 	SLAPPASSWD,	/* password generation tool */
 	SLAPTEST,	/* slapd.conf test tool */
-	SLAPSASLAUTH,	/* test sasl-regexp and authc/authz stuff */
+	SLAPAUTH,	/* test authz-regexp and authc/authz stuff */
 	SLAPLAST
 };
 

@@ -45,7 +45,7 @@
  * dn.exact:	the value must pass normalization and is used 
  *		in exact DN match.
  * dn.regex:	the value is treated as a regular expression 
- *		in matching DN values in saslAuthz{To|From}
+ *		in matching DN values in authz{To|From}
  *		attributes.
  * dn:		for backwards compatibility reasons, the value 
  *		is treated as a regular expression, and thus 

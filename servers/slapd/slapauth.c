@@ -75,17 +75,17 @@ do_check( Connection *c, Operation *op, struct berval *id )
 }
 
 int
-slapsaslauth( int argc, char **argv )
+slapauth( int argc, char **argv )
 {
 	int			rc = EXIT_SUCCESS;
-	const char		*progname = "slapsaslauth";
+	const char		*progname = "slapauth";
 	Connection		conn;
 	Operation		op;
 
 #ifdef NEW_LOGGING
 	lutil_log_initialize( argc, argv );
 #endif
-	slap_tool_init( progname, SLAPSASLAUTH, argc, argv );
+	slap_tool_init( progname, SLAPAUTH, argc, argv );
 
 	argv = &argv[ optind ];
 	argc -= optind;

@@ -70,55 +70,54 @@ int slap_sasl_config( int cargc, char **cargv, char *line,
 	const char *fname, int lineno )
 {
 		/* set SASL proxy authorization policy */
-		if ( strcasecmp( cargv[0], "sasl-authz-policy" ) == 0 ) {
+		if ( !strcasecmp( cargv[0], "authz-policy" ) ||
+			!strcasecmp( cargv[0], "sasl-authz-policy" ))
+		{
 			if ( cargc != 2 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT,
 					"%s: line %d: missing policy in"
-					" \"sasl-authz-policy <policy>\" line\n",
-					fname, lineno, 0 );
+					" \"%s <policy>\" line\n",
+				    cargv[0], fname, lineno );
 #else
 				Debug( LDAP_DEBUG_ANY,
 					"%s: line %d: missing policy in"
-					" \"sasl-authz-policy <policy>\" line\n",
-				    fname, lineno, 0 );
+					" \"%s <policy>\" line\n",
+				    cargv[0], fname, lineno );
 #endif
 
 				return( 1 );
 			}
 			if ( slap_sasl_setpolicy( cargv[1] ) ) {
 #ifdef NEW_LOGGING
-				LDAP_LOG( CONFIG, CRIT,
-					   "%s: line %d: unable "
-					   "to parse value \"%s\" "
-					   "in \"sasl-authz-policy "
-					   "<policy>\" line.\n",
-					   fname, lineno, cargv[1] );
+				LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
+					"unable to parse value \"%s\" in \"authz-policy "
+					"<policy>\" line.\n",
+					fname, lineno, cargv[1] );
 #else
-				Debug( LDAP_DEBUG_ANY,
-				    	"%s: line %d: unable "
-					"to parse value \"%s\" "
-					"in \"sasl-authz-policy "
-					"<policy>\" line\n",
-    					fname, lineno, cargv[1] );
+				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
+					"unable to parse value \"%s\" in \"authz-policy "
+					"<policy>\" line.\n",
+					fname, lineno, cargv[1] );
 #endif
 				return( 1 );
 			}
 
-		} else if ( !strcasecmp( cargv[0], "sasl-regexp" ) 
-			|| !strcasecmp( cargv[0], "saslregexp" ) )
+		} else if ( !strcasecmp( cargv[0], "authz-regexp" ) || 
+			!strcasecmp( cargv[0], "sasl-regexp" ) ||
+			!strcasecmp( cargv[0], "saslregexp" ) )
 		{
 			int rc;
 			if ( cargc != 3 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, CRIT,
 					"%s: line %d: need 2 args in "
-					"\"saslregexp <match> <replace>\"\n",
+					"\"authz-regexp <match> <replace>\"\n",
 					fname, lineno, 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, 
 					"%s: line %d: need 2 args in "
-					"\"saslregexp <match> <replace>\"\n",
+					"\"authz-regexp <match> <replace>\"\n",
 					fname, lineno, 0 );
 #endif
 

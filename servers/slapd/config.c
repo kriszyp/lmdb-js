@@ -683,19 +683,25 @@ read_config( const char *fname, int depth )
 
 			lutil_salt_format( cargv[1] );
 
-		/* SASL config options */
-		} else if ( strncasecmp( cargv[0], "sasl", 4 ) == 0 ) {
-			if ( slap_sasl_config( cargc, cargv, line, fname, lineno ) )
-				return 1;
 #ifdef SLAP_SASL_REWRITE
 		/* use authid rewrite instead of sasl regexp */
-		} else if ( strncasecmp( cargv[0], "authid-rewrite", sizeof("authid-rewrite") - 1 ) == 0 ) {
+		} else if ( strncasecmp( cargv[0], "auth-rewrite",
+			sizeof("auth-rewrite") - 1 ) == 0 )
+		{
 			int rc = slap_sasl_rewrite_config( fname, lineno,
 					cargc, cargv );
 			if ( rc ) {
 				return rc;
 			}
 #endif /* SLAP_SASL_REWRITE */
+
+		/* Auth + SASL config options */
+		} else if ( !strncasecmp( cargv[0], "auth", sizeof("auth")-1 ) ||
+			!strncasecmp( cargv[0], "sasl", sizeof("sasl")-1 ))
+		{
+			if ( slap_sasl_config( cargc, cargv, line, fname, lineno ) )
+				return 1;
+
 
 		} else if ( strcasecmp( cargv[0], "schemadn" ) == 0 ) {
 			struct berval dn;

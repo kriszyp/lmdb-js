@@ -70,7 +70,7 @@ usage( int tool, const char *progname )
 		options = "\t[-n databasenumber | -b suffix]\n";
 		break;
 
-	case SLAPSASLAUTH:
+	case SLAPAUTH:
 		options = "\t[-U authcID] [-X authzID] ID [...]\n";
 		break;
 	}
@@ -129,7 +129,7 @@ slap_tool_init(
 		options = "d:f:v";
 		break;
 
-	case SLAPSASLAUTH:
+	case SLAPAUTH:
 		options = "d:f:U:vX:";
 		break;
 
@@ -272,7 +272,7 @@ slap_tool_init(
 		}
 		break;
 
-	case SLAPSASLAUTH:
+	case SLAPAUTH:
 		if ( argc == optind && BER_BVISNULL( &authcID ) ) {
 			usage( tool, progname );
 		}
@@ -371,7 +371,7 @@ slap_tool_init(
 	case SLAPTEST:
 		return;
 
-	case SLAPSASLAUTH:
+	case SLAPAUTH:
 		be = NULL;
 		goto startup;
 
