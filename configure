@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.336 2000/09/24 23:15:14 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.337 2000/09/24 23:17:23 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -5768,7 +5768,7 @@ if test $ac_cv_func_getaddrinfo = no ; then
 else
 	echo $ac_n "checking INET6_ADDRSTRLEN""... $ac_c" 1>&6
 echo "configure:5771: checking INET6_ADDRSTRLEN" >&5
-if eval "test \"\${ol_cv_inet6_addrslen+set}\" = set"; then
+if eval "test \"\${ol_cv_inet6_addrstrlen+set}\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   
@@ -5777,26 +5777,26 @@ else
 #include "confdefs.h"
 
 #			include <netinet/in.h>
-#			ifdef INET6_ADDRSLEN
-				__has_inet6_addrslen__;
+#			ifdef INET6_ADDRSTRLEN
+				__has_inet6_addrstrlen__;
 #			endif
 		
 EOF
 if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
-  egrep "__has_inet6_addrslen__" >/dev/null 2>&1; then
+  egrep "__has_inet6_addrstrlen__" >/dev/null 2>&1; then
   rm -rf conftest*
-  ol_cv_inet6_addrslen=yes
+  ol_cv_inet6_addrstrlen=yes
 else
   rm -rf conftest*
-  ol_cv_inet6_addrslen=no
+  ol_cv_inet6_addrstrlen=no
 fi
 rm -f conftest*
 
 fi
 
-echo "$ac_t""$ol_cv_inet6_addrslen" 1>&6
+echo "$ac_t""$ol_cv_inet6_addrstrlen" 1>&6
 
-	if test $ol_cv_inet6_addrslen = yes ; then
+	if test $ol_cv_inet6_addrstrlen = yes ; then
 		ol_link_ipv6=yes
 	elif test $ol_enable_ipv6 = yes ; then
 		{ echo "configure: error: IPv6 support requires INET6_ADDRSTRLEN" 1>&2; exit 1; }

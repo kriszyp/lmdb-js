@@ -819,15 +819,15 @@ if test $ac_cv_func_getaddrinfo = no ; then
 		AC_MSG_ERROR([IPv6 support requires getaddrinfo()])
 	fi
 else
-	AC_CACHE_CHECK([INET6_ADDRSTRLEN],[ol_cv_inet6_addrslen],[
-		AC_EGREP_CPP(__has_inet6_addrslen__,[
+	AC_CACHE_CHECK([INET6_ADDRSTRLEN],[ol_cv_inet6_addrstrlen],[
+		AC_EGREP_CPP(__has_inet6_addrstrlen__,[
 #			include <netinet/in.h>
-#			ifdef INET6_ADDRSLEN
-				__has_inet6_addrslen__;
+#			ifdef INET6_ADDRSTRLEN
+				__has_inet6_addrstrlen__;
 #			endif
-		], [ol_cv_inet6_addrslen=yes], [ol_cv_inet6_addrslen=no])])
+		], [ol_cv_inet6_addrstrlen=yes], [ol_cv_inet6_addrstrlen=no])])
 
-	if test $ol_cv_inet6_addrslen = yes ; then
+	if test $ol_cv_inet6_addrstrlen = yes ; then
 		ol_link_ipv6=yes
 	elif test $ol_enable_ipv6 = yes ; then
 		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
