@@ -35,6 +35,9 @@
 
 #include "common.h"
 
+#define _OLV_APP	"ldapcompare"
+#define	_OLV_STATIC
+#include "ol_version.h"
 
 static int quiet = 0;
 

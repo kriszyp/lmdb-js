@@ -34,6 +34,10 @@
 
 #include "common.h"
 
+#define _OLV_APP	"ldapmodrdn"
+#define	_OLV_STATIC
+#include "ol_version.h"
+
 
 static char	*newSuperior = NULL;
 static int   remove_old_RDN = 0;

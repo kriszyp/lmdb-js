@@ -36,6 +36,10 @@
 
 #include "common.h"
 
+#define _OLV_APP	"ldapmodify"
+#define	_OLV_STATIC
+#include "ol_version.h"
+
 
 static int	ldapadd, force = 0;
 static char *rejfile = NULL;
