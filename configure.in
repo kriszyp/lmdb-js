@@ -322,7 +322,6 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 ; then
 	fi
 fi
 
-
 ol_link_threads=no
 if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 	AC_CHECK_HEADERS(pthread.h sched.h)
@@ -393,12 +392,24 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		fi
 
 		if test $ol_link_threads = no ; then
-			dnl try DEC Threads
+			dnl try DEC Threads -lpthread -lexc
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthread, pthread_create, [
-				AC_DEFINE(HAVE_DCE)
 				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc_r"
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lexc"
+				if test $ol_with_preemptive = auto ; then
+					ol_with_preemptive=yes
+				fi
+				],,[-lexc])
+			LIBS="$save_LIBS"
+		fi
+
+		if test $ol_link_threads = no ; then
+			dnl try DEC Threads -lpthreads -lmach -lexc -lc_r
+			save_LIBS="$LIBS"
+			AC_CHECK_LIB(pthreads, pthread_create, [
+				ol_link_threads=posix
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
 				if test $ol_with_preemptive = auto ; then
 					ol_with_preemptive=yes
 				fi
@@ -664,6 +675,7 @@ if test $ol_with_threads != no ; then
 	dnl
 	AC_DEFINE(_REENTRANT,1)
 	AC_DEFINE(_THREAD_SAFE,1)
+	AC_DEFINE(_THREADSAFE,1)
 fi
 
 dnl ----------------------------------------------------------------

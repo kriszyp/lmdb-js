@@ -12,6 +12,9 @@
 /* define this if needed to get threadsafe functions */
 #undef _THREAD_SAFE
 
+/* define this if needed to get threadsafe functions */
+#undef _THREADSAFE
+
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 
@@ -26,9 +29,6 @@
 
 /* define if you have crypt */
 #undef HAVE_CRYPT
-
-/* define if you have DCE */
-#undef HAVE_DCE
 
 /* define if you have DSAP */
 #undef HAVE_DSAP
