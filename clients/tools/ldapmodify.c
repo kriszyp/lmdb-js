@@ -251,6 +251,8 @@ main( int argc, char **argv )
 		int deref = LDAP_DEREF_NEVER;
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
 	}
+	/* don't chase referrals */
+	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 	if (want_bindpw)
 		passwd = getpass("Enter LDAP Password: ");

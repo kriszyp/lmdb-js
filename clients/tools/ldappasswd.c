@@ -623,6 +623,8 @@ main (int argc, char *argv[])
 		int deref = LDAP_DEREF_NEVER;
 		ldap_set_option( ld, LDAP_OPT_DEREF, &deref);
 	}
+	/* don't chase referrals */
+	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 	if (version != -1 &&
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS )
