@@ -95,6 +95,7 @@ struct ldapinfo {
 #define LDAP_BACK_F_SAVECRED		0x01U
 #define LDAP_BACK_F_USE_TLS		0x02U
 #define LDAP_BACK_F_TLS_CRITICAL	( 0x04U | LDAP_BACK_F_USE_TLS )
+#define LDAP_BACK_F_CHASE_REFERRALS	0x8U
 	Avlnode		*conntree;
 
 	int		rwm_started;
