@@ -89,7 +89,7 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgAt:1.9 NAME 'dbLockDetect' "
 		"DESC 'Deadlock detection algorithm' "
 		"SYNTAX OMsDirectoryString )", NULL, NULL },
-	{ "mode", "mode", 2, 2, 0, ARG_LONG|ARG_OFFSET,
+	{ "mode", "mode", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_dbenv_mode),
 		"( OLcfgAt:1.10 NAME 'dbMode' "
 		"DESC 'Unix permissions of database files' "
@@ -98,7 +98,7 @@ static ConfigTable bdbcfg[] = {
 		bdb_cf_gen, "( OLcfgAt:1.11 NAME 'dbSearchStack' "
 		"DESC 'Depth of search stack in IDLs' "
 		"SYNTAX OMsInteger )", NULL, NULL },
-	{ "shm_key", "key", 2, 2, 0, ARG_INT|ARG_NONZERO|ARG_OFFSET,
+	{ "shm_key", "key", 2, 2, 0, ARG_INT|ARG_OFFSET,
 		(void *)offsetof(struct bdb_info, bi_shm_key), 
 		"( OLcfgAt:1.12 NAME 'dbShmKey' "
 		"DESC 'Key for shared memory region' "

@@ -233,9 +233,7 @@ int config_check_vals(ConfigTable *Conf, ConfigArgs *c, int check_only ) {
 }
 
 int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
-	int i, rc, arg_type, iarg;
-	long larg;
-	ber_len_t barg;
+	int i, rc, arg_type;
 	void *ptr;
 
 	arg_type = Conf->arg_type;
@@ -269,9 +267,9 @@ int config_set_vals(ConfigTable *Conf, ConfigArgs *c) {
 	if(arg_type & ARGS_POINTER)
 		switch(arg_type & ARGS_POINTER) {
 			case ARG_ON_OFF:
-			case ARG_INT: 		*(int*)ptr = iarg;			break;
-			case ARG_LONG:  	*(long*)ptr = larg;			break;
-			case ARG_BER_LEN_T: 	*(ber_len_t*)ptr = barg;			break;
+			case ARG_INT: 		*(int*)ptr = c->value_int;			break;
+			case ARG_LONG:  	*(long*)ptr = c->value_long;			break;
+			case ARG_BER_LEN_T: 	*(ber_len_t*)ptr = c->value_ber_t;			break;
 			case ARG_STRING: {
 				char *cc = *(char**)ptr;
 				if(cc) {

@@ -78,7 +78,6 @@ typedef struct CfEntryInfo {
 typedef struct {
 	ConfigFile *cb_config;
 	CfEntryInfo *cb_root;
-	BackendDB	*cb_be;	/* config backend */
 	BackendDB	cb_db;	/* underlying database */
 	int		cb_got_ldif;
 } CfBackInfo;
@@ -621,10 +620,10 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcDatabaseConfig' "
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcDatabase $ olcAccess $ olcLastMod $ olcLimits $ "
+		"MAY ( olcDatabase $ olcSuffix $ olcAccess $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
-		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSuffix $ olcSyncrepl $ "
+		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
 		 "olcTimeLimit $ olcUpdateDN $ olcUpdateRef ) )",
 		 	Cft_Database, &cfOc_database },
 	{ "( OLcfgOc:6 "
@@ -1370,7 +1369,8 @@ config_suffix(ConfigArgs *c) {
 	struct berval pdn, ndn;
 	int rc;
 
-	if (c->be == frontendDB) return 1;
+	if (c->be == frontendDB || SLAP_MONITOR(c->be) ||
+		SLAP_CONFIG(c->be)) return 1;
 
 	if (c->op == SLAP_CONFIG_EMIT) {
 		if (!BER_BVISNULL( &c->be->be_suffix[0] )) {
@@ -3037,7 +3037,7 @@ config_add_internal( CfBackInfo *cfb, Entry *e, SlapReply *rs )
 			goto ok;
 		/* FALLTHRU */
 	case Cft_Global:
-		ca.be = cfb->cb_be;
+		ca.be = backendDB;
 		break;
 
 	case Cft_Backend:
@@ -3705,7 +3705,6 @@ config_back_db_init( Backend *be )
 
 	cfb = ch_calloc( 1, sizeof(CfBackInfo));
 	cfb->cb_config = &cf_prv;
-	cfb->cb_be = be;
 	be->be_private = cfb;
 
 	ber_dupbv( &be->be_rootdn, &config_rdn );
