@@ -1,0 +1,33 @@
+# $OpenLDAP$
+
+SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c \
+		delete.c modify.c modrdn.c group.c attribute.c \
+		conn.c candidates.c dncache.c
+OBJS	= init.lo config.lo search.lo bind.lo unbind.lo add.lo compare.lo \
+		delete.lo modify.lo modrdn.lo group.lo attribute.lo \
+		conn.lo candidates.lo dncache.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-meta"
+BUILD_MOD = @BUILD_META@
+BUILD_MOD_DYNAMIC = @BUILD_META_DYNAMIC@
+
+mod_DEFS = -DSLAPD_IMPORT
+MOD_DEFS = $(@BUILD_META@_DEFS)
+
+shared_LDAP_LIBS = $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
+NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+
+LIBBASE = back_meta
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+

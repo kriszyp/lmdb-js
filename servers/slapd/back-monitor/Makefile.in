@@ -1,0 +1,37 @@
+# $OpenLDAP$
+
+SRCS = init.c search.c compare.c modify.c bind.c \
+	operational.c \
+	cache.c entry.c \
+	backend.c database.c thread.c conn.c rww.c log.c \
+	operation.c sent.c listener.c time.c
+OBJS = init.lo search.lo compare.lo modify.lo bind.lo \
+	operational.lo \
+	cache.lo entry.lo \
+	backend.lo database.lo thread.lo conn.lo rww.lo log.lo \
+	operation.lo sent.lo listener.lo time.lo
+
+LDAP_INCDIR= ../../../include       
+LDAP_LIBDIR= ../../../libraries
+
+BUILD_OPT = "--enable-monitor"
+BUILD_MOD = @BUILD_MONITOR@
+BUILD_MOD_DYNAMIC = @BUILD_MONITOR_DYNAMIC@
+
+mod_DEFS = -DSLAPD_IMPORT
+MOD_DEFS = $(@BUILD_MONITOR@_DEFS)
+
+shared_LDAP_LIBS = $(LDAP_LIBLDAP_R_LA) $(LDAP_LIBLBER_LA)
+NT_LINK_LIBS = -L.. -lslapd $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+UNIX_LINK_LIBS = $(@BUILD_LIBS_DYNAMIC@_LDAP_LIBS)
+
+LIBBASE = back_monitor
+
+XINCPATH = -I.. -I$(srcdir)/..
+XDEFS = $(MODULES_CPPFLAGS)
+
+all-local-lib:	../.backend
+
+../.backend: lib$(LIBBASE).a
+	@touch $@
+
