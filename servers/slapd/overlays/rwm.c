@@ -205,6 +205,7 @@ rwm_search( Operation *op, SlapReply *rs )
 		return rc;
 	}
 
+	/* TODO: rewrite/map filter & attrs */
 	return SLAP_CB_CONTINUE;
 }
 
@@ -223,6 +224,7 @@ rwm_extended( Operation *op, SlapReply *rs )
 		return rc;
 	}
 
+	/* TODO: rewrite/map extended data ? ... */
 	return 0;
 }
 
@@ -324,6 +326,9 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 	e->e_nname = ndn;
 
 	rs->sr_entry = e;
+
+	/* TODO: map entry attribute types, objectclasses 
+	 * and dn-valued attribute values */
 	
 	return SLAP_CB_CONTINUE;
 

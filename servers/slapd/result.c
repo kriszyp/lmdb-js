@@ -254,7 +254,7 @@ send_ldap_response(
 
 	if (op->o_callback && op->o_callback->sc_response) {
 		rc = op->o_callback->sc_response( op, rs );
-		if ( rc != SLAP_CB_CONTINUE ) return;
+		if ( rc != SLAP_CB_CONTINUE ) goto cleanup;
 	}
 		
 #ifdef LDAP_CONNECTIONLESS
@@ -370,7 +370,7 @@ send_ldap_response(
 		if (!op->o_conn || op->o_conn->c_is_udp == 0)
 #endif
 		ber_free_buf( ber );
-		return;
+		goto cleanup;
 	}
 
 	/* send BER */
@@ -391,7 +391,7 @@ send_ldap_response(
 			0, 0, 0 );
 #endif
 
-		return;
+		goto cleanup;
 	}
 
 #ifdef LDAP_SLAPI
@@ -406,6 +406,13 @@ send_ldap_response(
 	num_bytes_sent += bytes;
 	num_pdu_sent++;
 	ldap_pvt_thread_mutex_unlock( &num_sent_mutex );
+
+cleanup:;
+	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
+		free( rs->sr_matched );
+		rs->sr_matched = NULL;
+	}
+
 	return;
 }
 
@@ -656,7 +663,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rs->sr_type = REP_SEARCH;
 	if (op->o_callback && op->o_callback->sc_response) {
 		rc = op->o_callback->sc_response( op, rs );
-		if ( rc != SLAP_CB_CONTINUE ) return rc;
+		if ( rc != SLAP_CB_CONTINUE ) goto error_return;
 	}
 
 #ifdef NEW_LOGGING
@@ -682,8 +689,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		    0, 0, 0 );
 #endif
 
-		sl_release( mark, op->o_tmpmemctx );
-		return( 1 );
+		rc = 1;
+		goto error_return;
 	}
 
 	edn = rs->sr_entry->e_nname.bv_val;
@@ -1171,8 +1178,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 		if ( op->o_res_ber == NULL ) ber_free_buf( ber );
 		send_ldap_error( op, rs, LDAP_OTHER, "encode entry end error" );
-		sl_release( mark, op->o_tmpmemctx );
-		return( 1 );
+		rc = 1;
+		goto error_return;
 	}
 
 	if ( op->o_res_ber == NULL ) {
@@ -1190,8 +1197,8 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 				0, 0, 0 );
 #endif
 
-			sl_release( mark, op->o_tmpmemctx );
-			return -1;
+			rc = -1;
+			goto error_return;
 		}
 		rs->sr_nentries++;
 
@@ -1215,8 +1222,18 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rc = 0;
 
 error_return:;
+	if ( op->o_tag == LDAP_REQ_SEARCH && rs->sr_type == REP_SEARCH 
+		&& rs->sr_entry 
+		&& (rs->sr_flags & REP_ENTRY_MUSTBEFREED) ) 
+	{
+		entry_free( rs->sr_entry );
+		rs->sr_entry = NULL;
+		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
+	}
+
 	sl_release( mark, op->o_tmpmemctx );
 	if ( e_flags ) sl_free( e_flags, op->o_tmpmemctx );
+
 	return( rc );
 }
 

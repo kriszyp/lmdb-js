@@ -1629,6 +1629,10 @@ typedef struct slap_rep {
 		rep_extended_s sru_extended;
 		rep_search_s sru_search;
 	} sr_un;
+	slap_mask_t sr_flags;
+#define REP_ENTRY_MODIFIABLE	0x00000001
+#define REP_ENTRY_MUSTBEFREED	0x00000002
+#define REP_MATCHED_MUSTBEFREED	0x00000010
 } SlapReply;
 
 /* short hands for response members */
