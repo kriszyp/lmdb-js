@@ -99,9 +99,10 @@ Target specification starts with a "uri" directive:
 .B uri <protocol>://[<host>[:<port>]]/<naming context>
 The "server" directive that was allowed in the LDAP backend (although
 deprecated) has been discarded in the Meta backend.
-The <protocol> part can be anything ldap_initialize(3) accepts
-({ldap|ldaps|ldapi} and variants); <host> and <port> may be omitted,
-defaulting to whatever is set in /etc/ldap.conf.
+The <protocol> part can be anything
+.BR ldap_initialize (3)
+accepts ({ldap|ldaps|ldapi} and variants); <host> and <port> may be
+omitted, defaulting to whatever is set in /etc/ldap.conf.
 The <naming context> part is mandatory.
 It must end with one of the naming contexts defined for the backend,
 e.g.:
