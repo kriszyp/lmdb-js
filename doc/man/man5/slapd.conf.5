@@ -593,10 +593,41 @@ method, this option is ignored without comment.  The default is 100000 bytes.
 .B dbnolocking
 Specify that no database locking should be performed.  
 Enabling this option may improve performance at the expense of data security.
+Do NOT run any slap tools while slapd is running.
+.TP
 .B dbnosync
 Specify that on-disk database contents should not be immediately
 synchronized with in memory changes.  Enabling this option may improve
 performance at the expense of data security.
+.TP
+.B dbsync <frequency> <maxdelays> <delayinterval>
+Flush dirty database buffers to disk every
+.B <seconds>
+seconds.  Implies
+.B dbnosync
+(ie. indvidual updates are no longer written to disk).  It attempts to avoid
+syncs during periods of peak activity by waiting
+.B <delayinterval>
+seconds if the server is busy, repeating this delay up to
+.B <maxdelays>
+times before proceeding.  
+It is an attempt to provide higher write performance with some amount of data
+security.  Note that it may still be possible to get an inconsistent 
+database if the underlying engine fills its cache and writes out individual
+pages and slapd crashes or is killed before the next sync.
+.B <maxdelays>
+and
+.B <delayinterval>
+are optional and default to
+.B 12
+and
+.B 5
+respectively, giving a total elapsed delay of 60 seconds before a sync
+will occur.
+.B <maxdelays>
+may be zero, and
+.B <delayinterval>
+must be 1 or greater.
 .TP
 .B directory <directory>
 Specify the directory where the LDBM files containing this database and
