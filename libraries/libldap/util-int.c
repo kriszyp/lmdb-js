@@ -29,6 +29,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/unistd.h>
 
 #include "ldap-int.h"
 
@@ -95,7 +96,11 @@ char *ldap_pvt_ctime( const time_t *tp, char *buf )
 #define BUFMAX (32*1024)
 
 static char *safe_realloc( char **buf, int len );
+
+#if !defined(HAVE_GETHOSTBYNAME_R) && defined(LDAP_R_COMPILE)
+# define NEED_COPY_HOSTENT
 static int copy_hostent( struct hostent *res, char **buf, struct hostent * src );
+#endif
 
 int ldap_pvt_gethostbyname_a(
 	const char *name, 
