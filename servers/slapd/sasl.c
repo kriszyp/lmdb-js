@@ -1294,7 +1294,7 @@ int slap_sasl_open( Connection *conn )
 		}
 	}
 	sc = sasl_server_new( "ldap", global_host, global_realm,
-		iplocalport, ipremoteport, session_callbacks, 0, &ctx );
+		iplocalport, ipremoteport, session_callbacks, SASL_SUCCESS_DATA, &ctx );
 	if ( iplocalport != NULL ) {
 		ch_free( iplocalport );
 	}
@@ -1515,7 +1515,7 @@ int slap_sasl_bind(
 	if ( !conn->c_sasl_bind_in_progress ) {
 		sc = START( ctx,
 			conn->c_sasl_bind_mech.bv_val,
-			cred->bv_len ? cred->bv_val : NULL,
+			cred->bv_len ? cred->bv_val : "",
 			cred->bv_len,
 			(SASL_CONST char **)&response.bv_val, &reslen, &errstr );
 
