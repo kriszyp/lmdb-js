@@ -419,10 +419,10 @@ LDAP_F (int) ldap_is_write_ready( LDAP *ld, Sockbuf *sb );
 /*
  * in os-local.c
  */
-#ifdef LDAP_PF_UNIX 
-LDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb, int proto,
+#ifdef LDAP_PF_LOCAL
+LDAP_F (int) ldap_connect_to_path( LDAP *ld, Sockbuf *sb,
 	const char *path, int async );
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 /*
  * in request.c
