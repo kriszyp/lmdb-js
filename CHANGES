@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.7 Engineering
+OpenLDAP 2.2.7 Release
 	Fixed slapd IDL avl_delete failure bug (ITS#3004)
 	Fixed slapd erroneous illegal filter handling (ITS#2977)
 	Fixed slapd syncrepl bugs (multiple)
