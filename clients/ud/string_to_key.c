@@ -1,7 +1,7 @@
-#ifdef KERBEROS
+#if defined(KERBEROS) && !defined(openbsd)
 /*
- * $Source: /usr/local/src/ldap/clients/ud/RCS/string_to_key.c,v $
- * $Author: lsloan $
+ * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $
+ * $Author: kurt $
  *
  * Copyright 1985, 1986, 1987, 1988, 1989 by the Massachusetts Institute
  * of Technology.
@@ -23,11 +23,6 @@
  *
  *	spm	8/85	MIT project athena
  */
-
-#ifndef	lint
-static char rcsid_string_to_key_c[] =
-"$Id: string_to_key.c,v 1.5 1995/11/09 20:29:55 lsloan Exp $";
-#endif
 
 #include <mit-copyright.h>
 #include <stdio.h>
