@@ -1,6 +1,7 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.19 Engineering
+	Fixed slapd substring index normalization (ITS#2468)
 
 OpenLDAP 2.1.18 Release
 	Fixed slapd slave update when updateref missing bug (ITS#2435)
