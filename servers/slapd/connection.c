@@ -331,9 +331,11 @@ void connection_closing( Connection *c )
 			"connection_closing: readying conn=%ld sd=%d for close.\n",
 			c->c_connid, c->c_sb.sb_sd, 0 );
 
+		/* update state to closing */
+		c->c_conn_state = SLAP_C_CLOSING;
+
 		/* don't listen on this port anymore */
 		slapd_clr_read( c->c_sb.sb_sd, 1 );
-		c->c_conn_state = SLAP_C_CLOSING;
 
 		/* shutdown I/O -- not yet implemented */
 
