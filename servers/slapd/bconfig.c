@@ -38,7 +38,7 @@
 static struct berval config_rdn = BER_BVC("cn=config");
 static struct berval schema_rdn = BER_BVC("cn=schema");
 
-#define	IFMT	"{%02d}"
+#define	IFMT	"{%d}"
 
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
@@ -264,7 +264,7 @@ ConfigTable config_back_cf_table[] = {
 		&config_generic, "( OLcfgAt:9 NAME 'olcBackend' "
 			"DESC 'A type of backend' "
 			"EQUALITY caseIgnoreMatch "
-			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
+			"SYNTAX OMsDirectoryString X-ORDERED 'SIBLINGS' )", NULL, NULL },
 	{ "concurrency", "level", 2, 2, 0, ARG_INT|ARG_MAGIC|CFG_CONCUR,
 		&config_generic, "( OLcfgAt:10 NAME 'olcConcurrency' "
 			"SYNTAX OMsInteger SINGLE-VALUE )", NULL, NULL },
@@ -277,7 +277,7 @@ ConfigTable config_back_cf_table[] = {
 	{ "database", "type", 2, 2, 0, ARG_MAGIC|CFG_DATABASE,
 		&config_generic, "( OLcfgAt:13 NAME 'olcDatabase' "
 			"DESC 'The backend type for a database instance' "
-			"SUP olcBackend X-ORDERED 'VALUES' )", NULL, NULL },
+			"SUP olcBackend X-ORDERED 'SIBLINGS' )", NULL, NULL },
 	{ "defaultSearchBase", "dn", 2, 2, 0, ARG_PRE_BI|ARG_PRE_DB|ARG_DN|ARG_MAGIC,
 		&config_search_base, "( OLcfgAt:14 NAME 'olcDefaultSearchBase' "
 			"SYNTAX OMsDN SINGLE-VALUE )", NULL, NULL },
@@ -363,7 +363,7 @@ ConfigTable config_back_cf_table[] = {
 			"SYNTAX OMsDirectoryString X-ORDERED 'VALUES' )", NULL, NULL },
 	{ "overlay", "overlay", 2, 2, 0, ARG_MAGIC,
 		&config_overlay, "( OLcfgAt:34 NAME 'olcOverlay' "
-			"SUP olcDatabase X-ORDERED 'VALUES' )", NULL, NULL },
+			"SUP olcDatabase X-ORDERED 'SIBLINGS' )", NULL, NULL },
 	{ "password-crypt-salt-format", "salt", 2, 2, 0, ARG_STRING|ARG_MAGIC|CFG_SALT,
 		&config_generic, "( OLcfgAt:35 NAME 'olcPasswordCryptSaltFormat' "
 			"SYNTAX OMsDirectoryString SINGLE-VALUE )", NULL, NULL },
@@ -581,13 +581,12 @@ static ConfigOCs cf_ocs[] = {
 	{ "( OLcfgOc:1 "
 		"NAME 'olcConfig' "
 		"DESC 'OpenLDAP configuration object' "
-		"ABSTRACT SUP top "
-		"MAY cn )", Cft_Abstract, NULL },
+		"ABSTRACT SUP top )", Cft_Abstract, NULL },
 	{ "( OLcfgOc:2 "
 		"NAME 'olcGlobal' "
 		"DESC 'OpenLDAP Global configuration options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcConfigFile $ olcConfigDir $ olcAllows $ olcArgsFile $ "
+		"MAY ( cn $ olcConfigFile $ olcConfigDir $ olcAllows $ olcArgsFile $ "
 		 "olcAttributeOptions $ olcAttributeTypes $ olcAuthIDRewrite $ "
 		 "olcAuthzPolicy $ olcAuthzRegexp $ olcConcurrency $ "
 		 "olcConnMaxPending $ olcConnMaxPendingAuth $ olcDefaultSearchBase $ "
@@ -612,18 +611,20 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcSchemaConfig' "
 		"DESC 'OpenLDAP schema object' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcObjectIdentifier $ olcAttributeTypes $ olcObjectClasses $ "
-		 "olcDitContentRules ) )", Cft_Schema, &cfOc_schema },
+		"MAY ( cn $ olcObjectIdentifier $ olcAttributeTypes $ "
+		 "olcObjectClasses $ olcDitContentRules ) )",
+		 	Cft_Schema, &cfOc_schema },
 	{ "( OLcfgOc:4 "
 		"NAME 'olcBackendConfig' "
 		"DESC 'OpenLDAP Backend-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcBackend ) )", Cft_Backend, &cfOc_backend },
+		"MUST olcBackend )", Cft_Backend, &cfOc_backend },
 	{ "( OLcfgOc:5 "
 		"NAME 'olcDatabaseConfig' "
 		"DESC 'OpenLDAP Database-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcDatabase $ olcSuffix $ olcAccess $ olcLastMod $ olcLimits $ "
+		"MUST olcDatabase "
+		"MAY ( olcSuffix $ olcAccess $ olcLastMod $ olcLimits $ "
 		 "olcMaxDerefDepth $ olcPlugin $ olcReadOnly $ olcReplica $ "
 		 "olcReplogFile $ olcRequires $ olcRestrict $ olcRootDN $ olcRootPW $ "
 		 "olcSchemaDN $ olcSecurity $ olcSizeLimit $ olcSyncrepl $ "
@@ -633,20 +634,21 @@ static ConfigOCs cf_ocs[] = {
 		"NAME 'olcOverlayConfig' "
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcOverlay ) )", Cft_Overlay, &cfOc_overlay },
+		"MUST olcOverlay )", Cft_Overlay, &cfOc_overlay },
 	{ "( OLcfgOc:7 "
 		"NAME 'olcIncludeFile' "
 		"DESC 'OpenLDAP configuration include file' "
 		"SUP olcConfig STRUCTURAL "
-		"MAY ( olcInclude $ olcConfigFile $ olcRootDSE ) )",
+		"MUST olcInclude "
+		"MAY ( cn $ olcRootDSE ) )",
 		Cft_Include, &cfOc_include },
 #ifdef SLAPD_MODULES
 	{ "( OLcfgOc:8 "
 		"NAME 'olcModuleList' "
 		"DESC 'OpenLDAP dynamic module info' "
 		"SUP olcConfig STRUCTURAL "
-		"MUST olcModuleLoad  )",
-		Cft_Module, &cfOc_module },
+		"MUST olcModuleLoad "
+		"MAY cn )", Cft_Module, &cfOc_module },
 #endif
 	{ NULL, 0, NULL }
 };
@@ -2005,6 +2007,11 @@ config_include(ConfigArgs *c) {
 	ConfigFile *cfsave = cfn;
 	ConfigFile *cf2 = NULL;
 	if (c->op == SLAP_CONFIG_EMIT) {
+		if (c->private) {
+			ConfigFile *cf = c->private;
+			value_add_one( &c->rvalue_vals, &cf->c_file );
+			return 0;
+		}
 		return 1;
 	}
 	cf = ch_calloc( 1, sizeof(ConfigFile));
@@ -2857,9 +2864,9 @@ config_find_table( CfOcInfo *co, AttributeDescription *ad )
 	return NULL;
 }
 
-/* Sort the values in an X-ORDERED attribute.
+/* Sort the values in an X-ORDERED VALUES attribute.
  * If the values have no index, leave them in their given order.
- * If the values have indexes, sort them and then strip the index.
+ * If the values have indexes, sort them.
  * If some are indexed and some are not, return Error.
  *
  * FIXME: This function probably belongs in the frontend somewhere,
