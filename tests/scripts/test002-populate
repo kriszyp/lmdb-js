@@ -43,8 +43,7 @@ fi
 
 echo "Using ldapsearch to read all the entries..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
-	'objectclass=*' | egrep -iv '^creatorsname:|^createtimestamp:' > \
-	$SEARCHOUT 2>&1
+	'objectclass=*' > $SEARCHOUT 2>&1
 
 kill -HUP $PID
 

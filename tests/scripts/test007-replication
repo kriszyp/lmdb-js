@@ -164,8 +164,17 @@ fi
 
 kill -HUP $PID $SLAVEPID $SLURPPID
 
+SEARCHOUT=$MASTEROUT
+LDIF=$SLAVEOUT
+
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+
 echo "Comparing retrieved entries from master and slave..."
-cmp $MASTEROUT $SLAVEOUT
+cmp $SEARCHFLT $LDIFFLT
+
 if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"
 	exit 1

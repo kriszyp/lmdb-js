@@ -58,8 +58,13 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-echo "Comparing retrieved entries to LDIF file used to create database"
-cmp $SEARCHOUT $LDIF
+echo "Filtering ldapsearch results..."
+. $SRCDIR/scripts/acfilter.sh < $SEARCHOUT > $SEARCHFLT
+echo "Filtering original ldif used to create database..."
+. $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
+echo "Comparing filter output..."
+cmp $SEARCHFLT $LDIFFLT
+
 if test $? != 0 ; then
 	echo "comparison failed - database was not created correctly"
 	exit 1
