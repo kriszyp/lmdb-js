@@ -183,8 +183,6 @@ int backend_startup_one(Backend *be)
 
 	be->be_pending_csn_list = (struct be_pcl *)
 		ch_calloc( 1, sizeof( struct be_pcl ));
-	build_new_dn( &be->be_context_csn, be->be_nsuffix,
-		(struct berval *)&slap_ldapsync_cn_bv, NULL );
 
 	LDAP_TAILQ_INIT( be->be_pending_csn_list );
 
@@ -406,8 +404,7 @@ int backend_destroy(void)
 				struct slap_csn_entry *tmp_csne = csne;
 
 				LDAP_TAILQ_REMOVE( bd->be_pending_csn_list, csne, ce_csn_link );
-				ch_free( csne->ce_csn->bv_val );
-				ch_free( csne->ce_csn );
+				ch_free( csne->ce_csn.bv_val );
 				csne = LDAP_TAILQ_NEXT( csne, ce_csn_link );
 				ch_free( tmp_csne );
 			}
@@ -421,7 +418,6 @@ int backend_destroy(void)
 		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
 		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
 		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
-		if ( bd->be_context_csn.bv_val ) free( bd->be_context_csn.bv_val );
 		acl_destroy( bd->be_acl, frontendDB->be_acl );
 	}
 	free( backendDB );
@@ -514,8 +510,6 @@ backend_db_init(
 	be->be_requires = frontendDB->be_requires;
 	be->be_ssf_set = frontendDB->be_ssf_set;
 
-	be->be_context_csn.bv_len = 0;
-	be->be_context_csn.bv_val = NULL;
 	be->be_pcl_mutexp = &be->be_pcl_mutex;
 	ldap_pvt_thread_mutex_init( be->be_pcl_mutexp );
 

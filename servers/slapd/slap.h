@@ -1668,7 +1668,6 @@ struct slap_backend_db {
 	struct		be_pcl	*be_pending_csn_list;
 	ldap_pvt_thread_mutex_t					be_pcl_mutex;
 	ldap_pvt_thread_mutex_t					*be_pcl_mutexp;
-	struct berval							be_context_csn;
 	LDAP_STAILQ_HEAD( be_si, syncinfo_s )	be_syncinfo; /* For syncrepl */
 
 	char	*be_realm;
@@ -2086,7 +2085,7 @@ struct slap_session_entry {
 };
 
 struct slap_csn_entry {
-	struct berval *ce_csn;
+	struct berval ce_csn;
 	unsigned long ce_opid;
 	unsigned long ce_connid;
 #define SLAP_CSN_PENDING	1
