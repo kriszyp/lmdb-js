@@ -123,7 +123,6 @@ auth( char *who, int implicit )
 	 *  from the user.  Then perform the ldap_bind().
 	 */
 	if ((mp = find(who, TRUE)) == NULL) {
-		(void) ldap_msgfree(mp);
 		printf("  I could not find \"%s\" in the Directory.\n", who);
 		printf("  I used a search base of ");
 		printbase("", search_base);
