@@ -113,20 +113,21 @@ retry:	rc = txn_abort( ltid );
 		}
 
 		if ( p == NULL ) {
-			char *matched_dn;
+			char *matched_dn = NULL;
 			struct berval **refs;
 
 			if ( matched != NULL ) {
 				matched_dn = ch_strdup( matched->e_dn );
 				refs = is_entry_referral( matched )
-					? get_entry_referrals( be, conn, op, matched )
+					? get_entry_referrals( be, conn, op,
+					matched, e->e_dn, LDAP_SCOPE_DEFAULT )
 					: NULL;
 				bdb_entry_return( be, matched );
 				matched = NULL;
 
 			} else {
-				matched_dn = NULL;
-				refs = default_referral;
+				refs = referral_rewrite( default_referral,
+					NULL, e->e_dn, LDAP_SCOPE_DEFAULT );
 			}
 
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent does not exist\n",
@@ -135,10 +136,8 @@ retry:	rc = txn_abort( ltid );
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
 
-			if( matched != NULL ) {
-				ber_bvecfree( refs );
-				ch_free( matched_dn );
-			}
+			ber_bvecfree( refs );
+			ch_free( matched_dn );
 
 			goto done;
 		}
@@ -166,7 +165,8 @@ retry:	rc = txn_abort( ltid );
 			/* parent is a referral, don't allow add */
 			char *matched_dn = ch_strdup( p->e_dn );
 			struct berval **refs = is_entry_referral( p )
-				? get_entry_referrals( be, conn, op, p )
+				? get_entry_referrals( be, conn, op, p,
+					e->e_dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 
 			Debug( LDAP_DEBUG_TRACE, "bdb_add: parent is referral\n",

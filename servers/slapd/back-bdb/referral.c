@@ -40,6 +40,7 @@ bdb_referrals(
 
 	switch(rc) {
 	case DB_NOTFOUND:
+		rc = 0;
 	case 0:
 		break;
 	default:
@@ -53,7 +54,7 @@ bdb_referrals(
 
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
-		struct berval **refs = default_referral;
+		struct berval **refs = NULL;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -62,42 +63,53 @@ bdb_referrals(
 				"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 				(long) op->o_tag, dn, matched_dn );
 
-			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
-				: NULL;
+			if( is_entry_referral( matched ) ) {
+				rc = LDAP_OTHER;
+				refs = get_entry_referrals( be, conn, op,
+					matched, dn, LDAP_SCOPE_DEFAULT );
+			}
 
 			bdb_entry_return( be, matched );
 			matched = NULL;
+		} else if ( default_referral != NULL ) {
+			rc = LDAP_OTHER;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		if( refs != NULL ) {
 			/* send referrals */
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
-		} else {
-			rc = LDAP_SUCCESS;
-		}
-
-		if( matched != NULL ) {
 			ber_bvecfree( refs );
-			free( matched_dn );
+		} else if ( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc, matched_dn,
+				matched_dn ? "bad referral object" : NULL,
+				NULL, NULL );
 		}
 
+		free( matched_dn );
 		return rc;
 	}
 
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+		struct berval **rrefs = referral_rewrite(
+			refs, e->e_dn, dn, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_referrals: op=%ld target=\"%s\" matched=\"%s\"\n",
 			(long) op->o_tag, dn, e->e_dn );
 
-		if( refs != NULL ) {
+		if( rrefs != NULL ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
-				e->e_dn, NULL, refs, NULL );
+				e->e_dn, NULL, rrefs, NULL );
+			ber_bvecfree( rrefs );
+		} else {
+			send_ldap_result( conn, op, rc = LDAP_OTHER, e->e_dn,
+				"bad referral object", NULL, NULL );
 		}
 
 		ber_bvecfree( refs );

@@ -45,27 +45,27 @@ bdb_compare(
 
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
-		struct berval **refs = NULL;
+		struct berval **refs;
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( be, conn, op, matched,
+					dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			bdb_entry_return( be, matched );
 			matched = NULL;
 
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			matched_dn, NULL, refs, NULL );
 
-		if( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 
 		goto done;
 	}
@@ -73,7 +73,7 @@ bdb_compare(
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );

@@ -91,25 +91,33 @@ bdb_search(
 		struct berval **refs = NULL;
 
 		if ( matched != NULL ) {
+			struct berval **erefs;
 			matched_dn = ch_strdup( matched->e_dn );
 
-			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+			erefs = is_entry_referral( matched )
+				? get_entry_referrals( be, conn, op, matched,
+					base, scope )
 				: NULL;
 
+			bdb_entry_return( be, matched );
+			matched = NULL;
+
+			if( erefs ) {
+				refs = referral_rewrite( erefs, matched_dn,
+					base, scope );
+				ber_bvecfree( erefs );
+			}
+
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, base, scope );
 		}
 
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
 			matched_dn, text, refs, NULL );
 
-		if( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-			bdb_entry_return( be, matched );
-			matched = NULL;
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 
 		return rc;
 	}
@@ -117,17 +125,25 @@ bdb_search(
 	if (!manageDSAit && is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow add */
 		char *matched_dn = ch_strdup( e->e_dn );
-		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+		struct berval **erefs = get_entry_referrals( be,
+			conn, op, e, base, scope );
+		struct berval **refs = NULL;
 
 		bdb_entry_return( be, e );
 		e = NULL;
+
+		if( erefs ) {
+			refs = referral_rewrite( erefs, matched_dn,
+				base, scope );
+			ber_bvecfree( erefs );
+		}
 
 		Debug( LDAP_DEBUG_TRACE, "bdb_search: entry is referral\n",
 			0, 0, 0 );
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
-			matched_dn, NULL, refs, NULL );
+			matched_dn, refs ? NULL : "bad referral object",
+			refs, NULL );
 
 		ber_bvecfree( refs );
 		free( matched_dn );
@@ -329,10 +345,10 @@ bdb_search(
 			is_entry_referral( e ) )
 		{
 			struct berval **refs = get_entry_referrals(
-				be, conn, op, e );
+				be, conn, op, e, NULL, scope );
 
 			send_search_reference( be, conn, op,
-				e, refs, scope, NULL, &v2refs );
+				e, refs, NULL, &v2refs );
 
 			ber_bvecfree( refs );
 

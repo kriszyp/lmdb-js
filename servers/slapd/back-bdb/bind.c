@@ -60,20 +60,22 @@ bdb_bind(
 	/* get entry with reader lock */
 	if ( e == NULL ) {
 		char *matched_dn = NULL;
-		struct berval **refs = NULL;
+		struct berval **refs;
 
 		if( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
 
 			refs = is_entry_referral( matched )
-				? get_entry_referrals( be, conn, op, matched )
+				? get_entry_referrals( be, conn, op, matched,
+					dn, LDAP_SCOPE_DEFAULT )
 				: NULL;
 
 			bdb_entry_return( be, matched );
 			matched = NULL;
 
 		} else {
-			refs = default_referral;
+			refs = referral_rewrite( default_referral,
+				NULL, dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		/* allow noauth binds */
@@ -101,10 +103,8 @@ bdb_bind(
 				NULL, NULL, NULL, NULL );
 		}
 
-		if ( matched != NULL ) {
-			ber_bvecfree( refs );
-			free( matched_dn );
-		}
+		ber_bvecfree( refs );
+		free( matched_dn );
 
 		return rc;
 	}
@@ -127,7 +127,7 @@ bdb_bind(
 	if ( is_entry_referral( e ) ) {
 		/* entry is a referral, don't allow bind */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e );
+			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 			0, 0 );
