@@ -2797,6 +2797,7 @@ static int caseIgnoreIA5Indexer(
 	BerVarray *keysp )
 {
 	int i;
+	int rc = LDAP_SUCCESS;
 	size_t slen, mlen;
 	BerVarray keys;
 	HASH_CONTEXT   HASHcontext;
@@ -2819,7 +2820,21 @@ static int caseIgnoreIA5Indexer(
 
 	for( i=0; values[i].bv_val != NULL; i++ ) {
 		struct berval value;
-		ber_dupbv( &value, &values[i] );
+
+		if( mr->smr_normalize ) {
+			rc = (mr->smr_normalize)( use, syntax, mr, &values[i], &value );
+			if( rc != LDAP_SUCCESS ) {
+				break;
+			}
+		} else if ( mr->smr_syntax->ssyn_normalize ) {
+			rc = (mr->smr_syntax->ssyn_normalize)( syntax, &values[i], &value );
+			if( rc != LDAP_SUCCESS ) {
+				break;
+			}
+		} else {
+			ber_dupbv( &value, &values[i] );
+		}
+
 		ldap_pvt_str2lower( value.bv_val );
 
 		HASH_Init( &HASHcontext );
@@ -2841,8 +2856,12 @@ static int caseIgnoreIA5Indexer(
 	}
 
 	keys[i].bv_val = NULL;
+	if( rc != LDAP_SUCCESS ) {
+		ber_bvarray_free( keys );
+		keys = NULL;
+	}
 	*keysp = keys;
-	return LDAP_SUCCESS;
+	return rc;
 }
 
 /* Index generation function */
