@@ -76,10 +76,8 @@ ldap_back_search(
 	char *match = NULL, *err = NULL;
 	char *mapped_filter = NULL, **mapped_attrs = NULL;
 	struct berval mbase;
-#ifdef ENABLE_REWRITE
 	char *mmatch = NULL;
 	struct berval mfilter = { 0, NULL };
-#endif /* ENABLE_REWRITE */
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
 	BerVarray v2refs = NULL;
@@ -389,20 +387,26 @@ fail:;
 		mmatch, err, v2refs, NULL, count );
 
 #else /* !ENABLE_REWRITE */
+	if ( match != NULL ) {
+		struct berval dn, mdn;
+
+		ber_str2bv(match, 0, 0, &dn);
+		ldap_back_dn_massage(li, &dn, &mdn, 0, 0);
+		mmatch = mdn.bv_val;
+	}
+
 	if ( v2refs ) {
 		sres = LDAP_REFERRAL;
 	}
 	send_search_result( conn, op, sres,
-		match, err, v2refs, NULL, count );
+		mmatch, err, v2refs, NULL, count );
 #endif /* !ENABLE_REWRITE */
 
 finish:;
 	if ( match ) {
-#ifdef ENABLE_REWRITE
 		if ( mmatch != match ) {
 			free( mmatch );
 		}
-#endif /* ENABLE_REWRITE */
 		LDAP_FREE(match);
 	}
 	if ( err ) {
@@ -613,6 +617,9 @@ ldap_send_entry(
 				}
 #else /* !ENABLE_REWRITE */
 				ldap_back_dn_massage( li, bv, &newval, 0, 0 );
+				if ( bv->bv_val != newval.bv_val ) {
+					LBER_FREE( bv->bv_val );
+				}
 				*bv = newval;
 #endif /* !ENABLE_REWRITE */
 			}

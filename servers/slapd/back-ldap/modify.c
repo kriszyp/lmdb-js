@@ -159,15 +159,12 @@ ldap_back_modify(
 	ldap_modify_s( lc->ld, mdn.bv_val, modv );
 
 cleanup:;
-#ifdef ENABLE_REWRITE
 	if ( mdn.bv_val != dn->bv_val ) {
-#endif /* ENABLE_REWRITE */
 		free( mdn.bv_val );
-#ifdef ENABLE_REWRITE
 	}
-#endif /* ENABLE_REWRITE */
-	for (i=0; modv[i]; i++)
+	for (i=0; modv[i]; i++) {
 		ch_free(modv[i]->mod_bvalues);
+	}
 	ch_free(mods);
 	ch_free(modv);
 	return( ldap_back_op_result( lc, op ));
