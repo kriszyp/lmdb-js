@@ -255,11 +255,11 @@ caseExactMatch			equality	case sensitive, space insensitive
 caseExactOrderingMatch		ordering	case sensitive, space insensitive
 caseExactSubstringsMatch	substrings	case sensitive, space insensitive
 caseIgnoreIA5Match		equality	case insensitive, space insensitive
-caseIgnoreOrderingIA5Match	ordering	case insensitive, space insensitive
-caseIgnoreSubstringsIA5Match	substrings	case insensitive, space insensitive
+caseIgnoreIA5OrderingMatch	ordering	case insensitive, space insensitive
+caseIgnoreIA5SubstringsMatch	substrings	case insensitive, space insensitive
 caseExactIA5Match		equality	case sensitive, space insensitive
-caseExactOrderingIA5Match	ordering	case sensitive, space insensitive
-caseExactSubstringsIA5Match	substrings	case sensitive, space insensitive
+caseExactIA5OrderingMatch	ordering	case sensitive, space insensitive
+caseExactIA5SubstringsMatch	substrings	case sensitive, space insensitive
 !endblock
 
 The second attribute, {{EX:cn}}, is a subtype of {{EX:name}} hence
