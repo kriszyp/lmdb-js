@@ -64,6 +64,7 @@ ldbm_back_referrals(
 			cache_return_entry_r( &li->li_cache, matched );
 
 		} else if ( default_referral != NULL ) {
+			rc = rs->sr_err = LDAP_OTHER;
 			rs->sr_ref = referral_rewrite( default_referral,
 				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
@@ -78,7 +79,9 @@ ldbm_back_referrals(
 			rs->sr_text = rs->sr_matched ? "bad referral object" : "bad default referral";
 		}
 
-		send_ldap_result( op, rs );
+		if ( rc != LDAP_SUCCESS ) {
+			send_ldap_result( op, rs );
+		}
 
 		if ( rs->sr_matched ) free( (char *)rs->sr_matched );
 		if ( rs->sr_ref ) ber_bvarray_free( rs->sr_ref );
