@@ -720,6 +720,7 @@ default, readonly is off.
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secopts=<options>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authcId=<authentication ID>]
+.B [attr[!]=<attr list>]
 .RS
 Specify a replication site for this database.  Refer to the "OpenLDAP 
 Administrator's Guide" for detailed information on setting up a replicated
@@ -746,6 +747,17 @@ If the
 .B mechanism
 will use Kerberos, a kerberos instance should be given in 
 .B authcId.
+An
+.B attr list
+can be given after the 
+.B attr
+keyword to allow the selective replication of the listed attributes only;
+if the optional 
+.B !
+mark is used, the list is considered exclusive, i.e. the listed attributes
+are not replicated.
+If an objectClass is listed, all the related attributes
+are (are not) replicated.
 .RE
 .TP
 .B replogfile <filename>
