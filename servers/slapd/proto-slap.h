@@ -404,7 +404,7 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	struct berval * parent_dn,
 	struct berval * newrdn ));
 
-LDAP_SLAPD_F (int) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
+LDAP_SLAPD_F (void) dnParent LDAP_P(( struct berval *dn, struct berval *pdn ));
 
 #ifdef HAVE_CYRUS_SASL
 #define SLAP_DN_MIGRATION 1

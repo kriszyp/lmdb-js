@@ -173,11 +173,7 @@ retry:	/* transaction retry */
 	if ( be_issuffix( be, &e->e_nname ) ) {
 		p_ndn = slap_empty_bv;
 	} else {
-		rc = dnParent( &e->e_nname, &p_ndn );
-		if ( rc != LDAP_SUCCESS ) {
-			text = "internal error";
-			goto return_results;
-		}
+		dnParent( &e->e_nname, &p_ndn );
 	}
 	np_ndn = &p_ndn;
 	if ( p_ndn.bv_len != 0 ) {
@@ -224,11 +220,7 @@ retry:	/* transaction retry */
 		if ( p_ndn.bv_val == slap_empty_bv.bv_val ) {
 			p_dn = slap_empty_bv;
 		} else {
-			rc = dnParent( &e->e_name, &p_dn );
-			if ( rc != LDAP_SUCCESS ) {
-				text = "internal error";
-				goto return_results;
-			}
+			dnParent( &e->e_name, &p_dn );
 		}
 
 		Debug( LDAP_DEBUG_TRACE,

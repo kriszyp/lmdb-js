@@ -64,13 +64,7 @@ bdb_dn2id_add(
 			goto done;
 		}
 		
-		rc = dnParent( &ptr, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_add: dnParent(\"%s\") failed\n",
-				ptr.bv_val, 0, 0 );
-			goto done;
-		}
+		dnParent( &ptr, &pdn );
 	
 		key.size = pdn.bv_len + 2;
 		pdn.bv_val[-1] = DN_ONE_PREFIX;
@@ -98,13 +92,7 @@ bdb_dn2id_add(
 					ptr.bv_val, rc, 0 );
 			break;
 		}
-		rc = dnParent( &ptr, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_add: dnParent(\"%s\") failed\n",
-				ptr.bv_val, 0, 0 );
-			goto done;
-		}
+		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
 		key.data = pdn.bv_val - 1;
@@ -163,13 +151,7 @@ bdb_dn2id_delete(
 			goto done;
 		}
 
-		rc = dnParent( &ptr, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_delete: dnParent(\"%s\") failed\n",
-				ptr.bv_val, 0, 0 );
-			goto done;
-		}
+		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
 		pdn.bv_val[-1] = DN_ONE_PREFIX;
@@ -196,13 +178,7 @@ bdb_dn2id_delete(
 				ptr.bv_val, rc, 0 );
 			goto done;
 		}
-		rc = dnParent( &ptr, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_dn2id_delete: dnParent(\"%s\") failed\n",
-				ptr.bv_val, 0, 0 );
-			goto done;
-		}
+		dnParent( &ptr, &pdn );
 
 		key.size = pdn.bv_len + 2;
 		key.data = pdn.bv_val - 1;
@@ -319,13 +295,7 @@ bdb_dn2id_matched(
 			struct berval 	pdn;
 
 			if ( ! be_issuffix( be, &dn ) ) {
-				rc = dnParent( &dn, &pdn );
-				if ( rc != LDAP_SUCCESS ) {
-					Debug( LDAP_DEBUG_TRACE,
-						"<= bdb_dn2id_matched: dnParent(\"%s\") failed\n",
-						dn.bv_val, 0, 0 );
-					break;
-				}
+				dnParent( &dn, &pdn );
 			} else {
 				Debug( LDAP_DEBUG_TRACE,
 					"<= bdb_dn2id_matched: no match\n",

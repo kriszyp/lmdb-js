@@ -107,11 +107,7 @@ retry:          /* transaction retry */
 	if ( be_issuffix( be, &e->e_nname ) ) {
 		pdn = slap_empty_bv;
 	} else {
-		rc = dnParent( &e->e_nname, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			text = "internal error";
-			goto return_results;
-		}
+		dnParent( &e->e_nname, &pdn );
 	}
 
 	if( pdn.bv_len != 0 ) {

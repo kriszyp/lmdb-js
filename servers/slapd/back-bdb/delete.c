@@ -82,11 +82,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	if ( !be_issuffix( be, ndn ) ) {
-		rc = dnParent( ndn, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			text = "internal error";
-			goto return_results;
-		}
+		dnParent( ndn, &pdn );
 	}
 
 	if( pdn.bv_len != 0 ) {

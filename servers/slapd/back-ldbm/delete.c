@@ -115,8 +115,8 @@ ldbm_back_delete(
 	}
 
 	/* delete from parent's id2children entry */
-	if( !be_issuffix( be, &e->e_nname ) && dnParent( &e->e_nname, &pdn ) == LDAP_SUCCESS
-		&& pdn.bv_len ) {
+	if( !be_issuffix( be, &e->e_nname ) && (dnParent( &e->e_nname, &pdn ),
+		pdn.bv_len) ) {
 		if( (p = dn2entry_w( be, &pdn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_ERR,

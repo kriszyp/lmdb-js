@@ -83,8 +83,7 @@ ldbm_back_add(
 	if ( be_issuffix( be, &e->e_nname ) ) {
 		pdn = slap_empty_bv;
 	} else {
-		rc = dnParent( &e->e_nname, &pdn );
-		/* dnParent always returns success */
+		dnParent( &e->e_nname, &pdn );
 	}
 
 	if( pdn.bv_len ) {

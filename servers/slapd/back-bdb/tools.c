@@ -158,14 +158,7 @@ ID bdb_tool_entry_put(
 	if ( be_issuffix( be, &e->e_nname ) ) {
 		pdn = slap_empty_bv;
 	} else {
-		rc = dnParent( &e->e_nname, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "=> bdb_tool_entry_put: "
-				"dnParent(\"%s\") failed\n",
-				e->e_nname.bv_val, 0, 0 );
-			
-			goto done;
-		}
+		dnParent( &e->e_nname, &pdn );
 	}
 	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 ) {
@@ -273,13 +266,7 @@ int bdb_tool_entry_reindex(
 	if ( be_issuffix( be, &e->e_nname ) ) {
 		pdn = slap_empty_bv;
 	} else {
-		rc = dnParent( &e->e_nname, &pdn );
-		if ( rc != LDAP_SUCCESS ) {
-			Debug( LDAP_DEBUG_ANY, "=> bdb_tool_entry_reindex: "
-					"dnParent(\"%s\") failed\n",
-					e->e_nname.bv_val, 0, 0 );
-			goto done;
-		}
+		dnParent( &e->e_nname, &pdn );
 	}
 	rc = bdb_dn2id_add( be, tid, &pdn, e );
 	if( rc != 0 && rc != DB_KEYEXIST ) {

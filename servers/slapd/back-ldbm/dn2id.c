@@ -74,17 +74,15 @@ dn2id_add(
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 		if ( rc != -1 ) {
-			rc = dnParent( &ptr, &pdn );
+			dnParent( &ptr, &pdn );
 
-			if( rc == LDAP_SUCCESS ) {
-				pdn.bv_val[-1] = DN_ONE_PREFIX;
-				key.dsize = pdn.bv_len + 2;
-				key.dptr = pdn.bv_val - 1;
-				ptr = pdn;
-				ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
-				rc = idl_insert_key( be, db, key, id );
-				ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-			}
+			pdn.bv_val[-1] = DN_ONE_PREFIX;
+			key.dsize = pdn.bv_len + 2;
+			key.dptr = pdn.bv_val - 1;
+			ptr = pdn;
+			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+			rc = idl_insert_key( be, db, key, id );
+			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 		}
 	}
 
@@ -96,7 +94,7 @@ dn2id_add(
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
 		if( rc != 0 ) break;
-		rc = dnParent( &ptr, &pdn );
+		dnParent( &ptr, &pdn );
 		key.dsize = pdn.bv_len + 2;
 		key.dptr = pdn.bv_val - 1;
 		ptr = pdn;
@@ -314,18 +312,16 @@ dn2id_delete(
 		(void) idl_delete_key( be, db, key, id );
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
-		rc = dnParent( &ptr, &pdn );
+		dnParent( &ptr, &pdn );
 
-		if( rc == LDAP_SUCCESS ) {
-			pdn.bv_val[-1] = DN_ONE_PREFIX;
-			key.dsize = pdn.bv_len + 2;
-			key.dptr = pdn.bv_val - 1;
-			ptr = pdn;
+		pdn.bv_val[-1] = DN_ONE_PREFIX;
+		key.dsize = pdn.bv_len + 2;
+		key.dptr = pdn.bv_val - 1;
+		ptr = pdn;
 
-			ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
-			(void) idl_delete_key( be, db, key, id );
-			ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
-		}
+		ldap_pvt_thread_mutex_lock( &db->dbc_write_mutex );
+		(void) idl_delete_key( be, db, key, id );
+		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 	}
 
 	while ( rc != -1 && !be_issuffix( be, &ptr )) {
@@ -335,7 +331,7 @@ dn2id_delete(
 		(void) idl_delete_key( be, db, key, id );
 		ldap_pvt_thread_mutex_unlock( &db->dbc_write_mutex );
 
-		rc = dnParent( &ptr, &pdn );
+		dnParent( &ptr, &pdn );
 		key.dsize = pdn.bv_len + 2;
 		key.dptr = pdn.bv_val - 1;
 		ptr = pdn;
@@ -415,8 +411,7 @@ dn2entry_rw(
 	if( matched == NULL ) return NULL;
 
 	/* entry does not exist - see how much of the dn does exist */
-	if ( !be_issuffix( be, dn ) && dnParent( dn, &pdn ) == LDAP_SUCCESS
-		&& pdn.bv_len ) {
+	if ( !be_issuffix( be, dn ) && (dnParent( dn, &pdn ), pdn.bv_len) ) {
 		/* get entry with reader lock */
 		if ( (e = dn2entry_r( be, &pdn, matched )) != NULL ) {
 			*matched = e;

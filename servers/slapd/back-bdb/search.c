@@ -354,10 +354,9 @@ bdb_search(
 			if( scope & LDAP_SCOPE_ONELEVEL ) {
 				struct berval	pdn;
 				
-				if ( dnParent( &e->e_nname, &pdn ) == LDAP_SUCCESS ) {
-					if ( ber_bvcmp( pdn, &realbase ) ) {
-						goto loop_continue;
-					}
+				dnParent( &e->e_nname, &pdn ):
+				if ( ber_bvcmp( pdn, &realbase ) ) {
+					goto loop_continue;
 				}
 
 			} else if ( dnIsSuffix( &e->e_nname, &realbase ) ) {

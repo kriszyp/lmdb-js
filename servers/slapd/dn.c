@@ -564,7 +564,7 @@ dnMatch(
  * note: the incoming dn is assumed to be normalized/prettyfied,
  * so that escaped rdn/ava separators are in '\'+hexpair form
  */
-int
+void
 dnParent( 
 	struct berval	*dn, 
 	struct berval	*pdn )
@@ -576,7 +576,7 @@ dnParent(
 	/* one-level dn */
 	if ( p == NULL ) {
 		*pdn = slap_empty_bv;
-		return LDAP_SUCCESS;
+		return;
 	}
 
 	assert( DN_SEPARATOR( p[ 0 ] ) );
@@ -586,7 +586,7 @@ dnParent(
 	pdn->bv_val = p;
 	pdn->bv_len = dn->bv_len - (p - dn->bv_val);
 
-	return LDAP_SUCCESS;
+	return;
 }
 
 #ifdef SLAP_DN_MIGRATION
