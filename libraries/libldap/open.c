@@ -236,8 +236,10 @@ ldap_initialize( LDAP **ldp, LDAP_CONST char *url )
 			ldap_ld_free(ld, 1, NULL, NULL);
 			return rc;
 		}
+#ifdef LDAP_CONNECTIONLESS
 		if (ldap_is_ldapc_url(url))
 			ld->ld_options.ldo_valid |= LDAP_UDP_SESSION;
+#endif
 	}
 
 	*ldp = ld;
