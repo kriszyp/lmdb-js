@@ -110,7 +110,7 @@ doargs(
 	case 'f':	/* slapd config file */
 	    g->slapd_configfile = strdup( optarg );
 	    break;
-	case 'n':	/* NT service name *.
+	case 'n':	/* NT service name */
 	    if ( g->serverName ) free( g->serverName );
 	    g->serverName = strdup( optarg );
 	    break;
