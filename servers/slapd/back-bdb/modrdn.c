@@ -160,7 +160,7 @@ retry:	/* transaction retry */
 	}
 
 	p_ndn.bv_val = dn_parent( be, e->e_ndn );
-	if (p_ndn.bv_val)
+	if (p_ndn.bv_val && *p_ndn.bv_val)
 		p_ndn.bv_len = e->e_nname.bv_len - (p_ndn.bv_val - e->e_ndn);
 	else
 		p_ndn.bv_len = 0;
@@ -207,7 +207,7 @@ retry:	/* transaction retry */
 			p_ndn.bv_val, 0, 0 );
 		
 		p_dn.bv_val = dn_parent( be, e->e_dn );
-		if (p_dn.bv_val)
+		if (p_dn.bv_val && *p_dn.bv_val)
 			p_dn.bv_len = e->e_name.bv_len - (p_dn.bv_val - e->e_dn);
 		else
 			p_dn.bv_len = 0;

@@ -146,7 +146,7 @@ ID bdb_tool_entry_put(
 
 	/* add dn2id indices */
 	pdn.bv_val = dn_parent( be, e->e_ndn );
-	if (pdn.bv_val)
+	if (pdn.bv_val && *pdn.bv_val)
 		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
 	else
 		pdn.bv_len = 0;
@@ -242,7 +242,7 @@ int bdb_tool_entry_reindex(
 
 	/* add dn2id indices */
 	pdn.bv_val = dn_parent( be, e->e_ndn );
-	if (pdn.bv_val)
+	if (pdn.bv_val && *pdn.bv_val)
 		pdn.bv_len = e->e_nname.bv_len - (pdn.bv_val - e->e_ndn);
 	else
 		pdn.bv_len = 0;

@@ -232,6 +232,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 			slap_syntax_transform_func *transf = NULL;
 			MatchingRule *mr;
 			struct berval		bv = { 0, NULL };
+			int			do_sort = 0;
 
 			assert( ava );
 
@@ -244,6 +245,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 				}
 				
 				ava->la_private = ( void * )ad;
+				do_sort = 1;
 			}
 
 			/* 
@@ -285,7 +287,7 @@ LDAPDN_rewrite( LDAPDN *dn, unsigned flags )
 				ava->la_value = bv;
 			}
 
-			AVA_Sort( rdn, iAVA );
+			if( do_sort ) AVA_Sort( rdn, iAVA );
 		}
 	}
 
@@ -647,6 +649,12 @@ dnParent(
 	rc = ldap_str2rdn( dn, NULL, &p, LDAP_DN_FORMAT_LDAP | LDAP_DN_SKIP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
+	}
+
+	/* Parent is root */
+	if (*p == '\0') {
+		*pdn = "";
+		return LDAP_SUCCESS;
 	}
 
 	assert( DN_SEPARATOR( p[ 0 ] ) );
