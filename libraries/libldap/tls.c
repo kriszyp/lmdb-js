@@ -745,6 +745,94 @@ ldap_pvt_tls_get_peer_hostname( void *s )
 	return p;
 }
 
+int
+ldap_pvt_tls_check_hostname( void *s, char *name )
+{
+    int i, ret = LDAP_LOCAL_ERROR;
+    X509 *x;
+
+    x = SSL_get_peer_certificate((SSL *)s);
+    if (!x)
+    {
+	Debug( LDAP_DEBUG_ANY,
+		"TLS: unable to get peer certificate.\n",
+		0, 0, 0 );
+	return ret;
+    }
+
+    i = X509_get_ext_by_NID(x, NID_subject_alt_name, -1);
+    if (i >= 0)
+    {
+	X509_EXTENSION *ex;
+	STACK_OF(GENERAL_NAME) *alt;
+
+	ex = X509_get_ext(x, i);
+	alt = X509V3_EXT_d2i(ex);
+	if (alt)
+	{
+	    int n, len1, len2;
+	    char *domain;
+	    GENERAL_NAME *gn;
+	    X509V3_EXT_METHOD *method;
+
+	    len1 = strlen(name);
+	    n = sk_GENERAL_NAME_num(alt);
+	    domain = strchr(name, '.');
+	    if (domain)
+	    	len2 = len1 - (domain-name);
+	    for (i=0; i<n; i++)
+	    {
+		gn = sk_GENERAL_NAME_value(alt, i);
+		if (gn->type == GEN_DNS)
+		{
+		    char *sn = ASN1_STRING_data(gn->d.ia5);
+		    int sl = ASN1_STRING_length(gn->d.ia5);
+
+		    /* Is this an exact match? */
+		    if ((len1 == sl) && !strncasecmp(name, sn, len1))
+			break;
+
+		    /* Is this a wildcard match? */
+		    if ((*sn == '*') && domain && (len2 == sl-1) &&
+		    	!strncasecmp(domain, sn+1, len2))
+			break;
+		}
+	    }
+	    method = X509V3_EXT_get(ex);
+	    method->ext_free(alt);
+	    if (i < n)	/* Found a match */
+		ret = LDAP_SUCCESS;
+	}
+    }
+
+    if (ret != LDAP_SUCCESS)
+    {
+	X509_NAME *xn;
+	char buf[2048];
+
+	xn = X509_get_subject_name(x);
+
+	if (X509_NAME_get_text_by_NID(xn, NID_commonName, buf, sizeof(buf))
+	    == -1)
+	{
+	    Debug( LDAP_DEBUG_ANY,
+		    "TLS: unable to get common name from peer certificate.\n",
+		    0, 0, 0 );
+	} else if (strcasecmp(name, buf))
+	{
+	    Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
+		    "common name in certificate (%s).\n", 
+		    name, buf, 0 );
+	    ret =  LDAP_CONNECT_ERROR;
+	} else
+	{
+	    ret = LDAP_SUCCESS;
+	}
+    }
+    X509_free(x);
+    return ret;
+}
+
 const char *
 ldap_pvt_tls_get_peer_issuer( void *s )
 {
@@ -960,7 +1048,6 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	Sockbuf *sb = conn->lconn_sb;
 	void *ctx = ld->ld_defconn->lconn_tls_ctx;
 	char *host;
-	char *peer_cert_cn;
 	void *ssl;
 
 	if( srv ) {
@@ -975,34 +1062,22 @@ ldap_int_tls_start ( LDAP *ld, LDAPConn *conn, LDAPURLDesc *srv )
 	 * Fortunately, the lib uses blocking io...
 	 */
 	if ( ldap_int_tls_connect( ld, conn ) < 0 ) {
-		return LDAP_CONNECT_ERROR;
+		ld->ld_errno = LDAP_CONNECT_ERROR;
+		return (ld->ld_errno);
 	}
 
 	ssl = (void *) ldap_pvt_tls_sb_ctx( sb );
 	assert( ssl != NULL );
 
 	/* 
-	 * compare host with name in certificate 
+	 * compare host with name(s) in certificate 
 	 */
 
-	peer_cert_cn = ldap_pvt_tls_get_peer_hostname( ssl );
-	if ( !peer_cert_cn ) {
-		/* could not get hostname from peer certificate */
-		Debug( LDAP_DEBUG_ANY,
-			"TLS: unable to get common name from peer certificate.\n",
-			0, 0, 0 );
-		return LDAP_LOCAL_ERROR;
+	ld->ld_errno = ldap_pvt_tls_check_hostname( ssl, host );
+	if (ld->ld_errno != LDAP_SUCCESS)
+	{
+		return ld->ld_errno;
 	}
-
-	if ( strcasecmp( host, peer_cert_cn ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "TLS: hostname (%s) does not match "
-			"common name in certificate (%s).\n", 
-			host, peer_cert_cn, 0 );
-		LDAP_FREE( peer_cert_cn );
-		return LDAP_CONNECT_ERROR;
-	}
-
-	LDAP_FREE( peer_cert_cn );
 
 	/*
 	 * set SASL properties to TLS ssf and authid
