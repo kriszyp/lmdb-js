@@ -1,4 +1,4 @@
-.TH LBER_TYPES 3 "12 July 2000" "OpenLDAP LDVERSION"
+.TH LBER_TYPES 3 "22 July 2001" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -23,14 +23,15 @@ typedef impl_tag_t ber_tag_t;
 The are basic types defined for use with the Lightweight BER library.
 .LP
 .B ber_int_t
-is a signed integer of at least 32 bits.
+is a signed integer of at least 32 bits.  It is commonly equivalent to
+.BR int .
 .LP
 .B ber_len_t
 is a unsigned integer of at least 32 bits used to represent a length.  
 It is commonly equivalent to a
 .BR size_t .
 .LP
-.B ber_len_t
+.B ber_tag_t
 is a unsigned integer of at least 32 bits used to represent a
 BER tag.  It is commonly equivalent to a
 .BR unsigned\ long .
