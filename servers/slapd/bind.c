@@ -112,15 +112,6 @@ do_bind(
 		goto cleanup;
 	}
 
-	ndn = ch_strdup( dn );
-
-	if ( dn_normalize( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto cleanup;
-	}
-
 	op->o_protocol = version;
 
 	if( method != LDAP_AUTH_SASL ) {
@@ -155,6 +146,15 @@ do_bind(
 		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
 	} 
+
+	ndn = ch_strdup( dn );
+
+	if ( dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
 
 	if( method == LDAP_AUTH_SASL ) {
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",

@@ -360,7 +360,13 @@ LIBSLAPD_F (char *) get_supported_extop LDAP_P((int index));
  * filter.c
  */
 
-LIBSLAPD_F (int) get_filter LDAP_P(( Connection *conn, BerElement *ber, Filter **filt, char **fstr ));
+LIBSLAPD_F (int) get_filter LDAP_P((
+	Connection *conn,
+	BerElement *ber,
+	Filter **filt,
+	char **fstr,
+	char **text ));
+
 LIBSLAPD_F (void) filter_free LDAP_P(( Filter *f ));
 LIBSLAPD_F (void) filter_print LDAP_P(( Filter *f ));
 

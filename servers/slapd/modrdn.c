@@ -83,22 +83,6 @@ do_modrdn(
 		return SLAPD_DISCONNECT;
 	}
 
-	ndn = ch_strdup( dn );
-
-	if( dn_normalize( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto cleanup;
-	}
-
-	if( !rdn_validate( newrdn ) ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid RDN", NULL, NULL );
-		goto cleanup;
-	}
-
 	/* Check for newSuperior parameter, if present scan it */
 
 	if ( ber_peek_tag( op->o_ber, &length ) == LDAP_TAG_NEWSUPERIOR ) {
@@ -156,6 +140,22 @@ do_modrdn(
 		/* get_ctrls has sent results.  Now clean up. */
 		goto cleanup;
 	} 
+
+	ndn = ch_strdup( dn );
+
+	if( dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
+
+	if( !rdn_validate( newrdn ) ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid RDN", NULL, NULL );
+		goto cleanup;
+	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, dn, 0, 0 );

@@ -76,15 +76,6 @@ do_compare(
 		return SLAPD_DISCONNECT;
 	}
 
-	ndn = ch_strdup( dn );
-
-	if( dn_normalize( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto cleanup;
-	}
-
 	if ( ber_scanf( op->o_ber, "{oo}", &desc, &value ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
@@ -105,6 +96,15 @@ do_compare(
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
 	} 
+
+	ndn = ch_strdup( dn );
+
+	if( dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );

@@ -40,6 +40,7 @@ do_search(
 	char		**attrs = NULL;
 	Backend		*be;
 	int			rc;
+	char		*text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
 
@@ -121,13 +122,13 @@ do_search(
 	    attrsonly);
 
 	/* filter - returns a "normalized" version */
-	if ( (rc = get_filter( conn, op->o_ber, &filter, &fstr )) != LDAP_SUCCESS ) {
+	if ( (rc = get_filter( conn, op->o_ber, &filter, &fstr, &text )) != LDAP_SUCCESS ) {
 		if( rc == SLAPD_DISCONNECT ) {
 			send_ldap_disconnect( conn, op,
-				LDAP_PROTOCOL_ERROR, "decode filter error" );
+				LDAP_PROTOCOL_ERROR, text );
 		} else {
 			send_ldap_result( conn, op, rc,
-				NULL, "bad search filter", NULL, NULL );
+				NULL, text, NULL, NULL );
 		}
 		goto return_results;
 	}

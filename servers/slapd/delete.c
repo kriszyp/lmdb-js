@@ -58,6 +58,11 @@ do_delete(
 		return SLAPD_DISCONNECT;
 	}
 
+	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
+		goto cleanup;
+	} 
+
 	ndn = ch_strdup( dn );
 
 	if(	dn_normalize( ndn ) == NULL ) {
@@ -66,11 +71,6 @@ do_delete(
 		    "invalid DN", NULL, NULL );
 		goto cleanup;
 	}
-
-	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
-		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		goto cleanup;
-	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
 		op->o_connid, op->o_opid, dn, 0, 0 );

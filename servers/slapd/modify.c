@@ -88,15 +88,6 @@ do_modify(
 
 	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
 
-	ndn = ch_strdup( dn );
-
-	if(	dn_normalize( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto cleanup;
-	}
-
 	/* collect modifications & save for later */
 
 	for ( tag = ber_first_element( op->o_ber, &len, &last );
@@ -159,6 +150,15 @@ do_modify(
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
+		goto cleanup;
+	}
+
+	ndn = ch_strdup( dn );
+
+	if(	dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
 		goto cleanup;
 	}
 

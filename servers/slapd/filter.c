@@ -14,11 +14,26 @@
 
 #include "slap.h"
 
-static int	get_filter_list(Connection *conn, BerElement *ber, Filter **f, char **fstr);
-static int	get_substring_filter(Connection *conn, BerElement *ber, Filter *f, char **fstr);
+static int	get_filter_list(
+	Connection *conn,
+	BerElement *ber,
+	Filter **f,
+	char **fstr,
+	char **text );
+static int	get_substring_filter(
+	Connection *conn,
+	BerElement *ber,
+	Filter *f,
+	char **fstr,
+	char **text );
 
 int
-get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
+get_filter(
+	Connection *conn,
+	BerElement *ber,
+	Filter **filt,
+	char **fstr,
+	char **text )
 {
 	ber_tag_t	tag;
 	ber_len_t	len;
@@ -64,6 +79,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 	tag = ber_peek_tag( ber, &len );
 
 	if( tag == LBER_ERROR ) {
+		*text = "error decoding filter";
 		return SLAPD_DISCONNECT;
 	}
 
@@ -80,43 +96,50 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 #else
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "EQUALITY\n", 0, 0, 0 );
-		if ( (err = get_ava( ber, &f->f_ava )) == LDAP_SUCCESS ) {
-			*fstr = ch_malloc(4 + strlen( f->f_avtype ) +
-			    f->f_avvalue.bv_len);
-			sprintf( *fstr, "(%s=%s)", f->f_avtype,
-			    f->f_avvalue.bv_val );
+		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "error decoding filter";
+			break;
 		}
+		*fstr = ch_malloc(4 + strlen( f->f_avtype ) +
+		    f->f_avvalue.bv_len);
+		sprintf( *fstr, "(%s=%s)", f->f_avtype,
+		    f->f_avvalue.bv_val );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		Debug( LDAP_DEBUG_FILTER, "SUBSTRINGS\n", 0, 0, 0 );
-		err = get_substring_filter( conn, ber, f, fstr );
+		err = get_substring_filter( conn, ber, f, fstr, text );
 		break;
 
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "GE\n", 0, 0, 0 );
-		if ( (err = get_ava( ber, &f->f_ava )) == LDAP_SUCCESS ) {
-			*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
-			    f->f_avvalue.bv_len);
-			sprintf( *fstr, "(%s>=%s)", f->f_avtype,
-			    f->f_avvalue.bv_val );
+		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "decoding filter error";
+			break;
 		}
+		*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
+		    f->f_avvalue.bv_len);
+		sprintf( *fstr, "(%s>=%s)", f->f_avtype,
+		    f->f_avvalue.bv_val );
 		break;
 
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "LE\n", 0, 0, 0 );
-		if ( (err = get_ava( ber, &f->f_ava )) == LDAP_SUCCESS ) {
-			*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
-			    f->f_avvalue.bv_len);
-			sprintf( *fstr, "(%s<=%s)", f->f_avtype,
-			    f->f_avvalue.bv_val );
+		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "error decoding filter";
+			break;
 		}
+		*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
+		    f->f_avvalue.bv_len);
+		sprintf( *fstr, "(%s<=%s)", f->f_avtype,
+		    f->f_avvalue.bv_val );
 		break;
 
 	case LDAP_FILTER_PRESENT:
 		Debug( LDAP_DEBUG_FILTER, "PRESENT\n", 0, 0, 0 );
 		if ( ber_scanf( ber, "a", &f->f_type ) == LBER_ERROR ) {
 			err = SLAPD_DISCONNECT;
+			*text = "error decoding filter";
 			break;
 		}
 
@@ -128,46 +151,52 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "APPROX\n", 0, 0, 0 );
-		if ( (err = get_ava( ber, &f->f_ava )) == LDAP_SUCCESS ) {
-			*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
-			    f->f_avvalue.bv_len);
-			sprintf( *fstr, "(%s~=%s)", f->f_avtype,
-			    f->f_avvalue.bv_val );
+		if ( (err = get_ava( ber, &f->f_ava )) != LDAP_SUCCESS ) {
+			*text = "error decoding filter";
+			break;
 		}
+		*fstr = ch_malloc(5 + strlen( f->f_avtype ) +
+		    f->f_avvalue.bv_len);
+		sprintf( *fstr, "(%s~=%s)", f->f_avtype,
+		    f->f_avvalue.bv_val );
 		break;
 #endif
 
 	case LDAP_FILTER_AND:
 		Debug( LDAP_DEBUG_FILTER, "AND\n", 0, 0, 0 );
-		if ( (err = get_filter_list( conn, ber, &f->f_and, &ftmp ))
-		    == LDAP_SUCCESS ) {
-			if (ftmp == NULL) ftmp = ch_strdup("");
-			*fstr = ch_malloc( 4 + strlen( ftmp ) );
-			sprintf( *fstr, "(&%s)", ftmp );
-			free( ftmp );
+		err = get_filter_list( conn, ber, &f->f_and, &ftmp, text );
+		if ( err != LDAP_SUCCESS ) {
+			break;
 		}
+		if (ftmp == NULL) ftmp = ch_strdup("");
+		*fstr = ch_malloc( 4 + strlen( ftmp ) );
+		sprintf( *fstr, "(&%s)", ftmp );
+		free( ftmp );
 		break;
 
 	case LDAP_FILTER_OR:
 		Debug( LDAP_DEBUG_FILTER, "OR\n", 0, 0, 0 );
-		if ( (err = get_filter_list( conn, ber, &f->f_or, &ftmp ))
-		    == LDAP_SUCCESS ) {
-			if (ftmp == NULL) ftmp = ch_strdup("");
-			*fstr = ch_malloc( 4 + strlen( ftmp ) );
-			sprintf( *fstr, "(|%s)", ftmp );
-			free( ftmp );
+		err = get_filter_list( conn, ber, &f->f_and, &ftmp, text );
+		if ( err != LDAP_SUCCESS ) {
+			break;
 		}
+		if (ftmp == NULL) ftmp = ch_strdup("");
+		*fstr = ch_malloc( 4 + strlen( ftmp ) );
+		sprintf( *fstr, "(|%s)", ftmp );
+		free( ftmp );
 		break;
 
 	case LDAP_FILTER_NOT:
 		Debug( LDAP_DEBUG_FILTER, "NOT\n", 0, 0, 0 );
 		(void) ber_skip_tag( ber, &len );
-		if ( (err = get_filter( conn, ber, &f->f_not, &ftmp )) == LDAP_SUCCESS ) {
-			if (ftmp == NULL) ftmp = ch_strdup("");
-			*fstr = ch_malloc( 4 + strlen( ftmp ) );
-			sprintf( *fstr, "(!%s)", ftmp );
-			free( ftmp );
+		err = get_filter( conn, ber, &f->f_not, &ftmp, text );
+		if ( err != LDAP_SUCCESS ) {
+			break;
 		}
+		if (ftmp == NULL) ftmp = ch_strdup("");
+		*fstr = ch_malloc( 4 + strlen( ftmp ) );
+		sprintf( *fstr, "(!%s)", ftmp );
+		free( ftmp );
 		break;
 
 	case LDAP_FILTER_EXT:
@@ -175,12 +204,14 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 		Debug( LDAP_DEBUG_ANY, "extensible match not yet implemented.\n",
 		       f->f_choice, 0, 0 );
 		err = LDAP_PROTOCOL_ERROR;
+		*text = "extensible match not yet implemented";
 		break;
 
 	default:
 		Debug( LDAP_DEBUG_ANY, "unknown filter type %lu\n",
 		       f->f_choice, 0, 0 );
 		err = LDAP_PROTOCOL_ERROR;
+		*text = "unknown filter type";
 		break;
 	}
 
@@ -198,7 +229,7 @@ get_filter( Connection *conn, BerElement *ber, Filter **filt, char **fstr )
 }
 
 static int
-get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr )
+get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr, char **text )
 {
 	Filter		**new;
 	int		err;
@@ -213,8 +244,10 @@ get_filter_list( Connection *conn, BerElement *ber, Filter **f, char **fstr )
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) )
 	{
-		if ( (err = get_filter( conn, ber, new, &ftmp )) != LDAP_SUCCESS )
+		err = get_filter( conn, ber, new, &ftmp, text );
+		if ( err != LDAP_SUCCESS )
 			return( err );
+
 		if ( *fstr == NULL ) {
 			*fstr = ftmp;
 		} else {
@@ -238,7 +271,8 @@ get_substring_filter(
     Connection	*conn,
     BerElement	*ber,
     Filter	*f,
-    char	**fstr
+    char	**fstr,
+	char	**text
 )
 {
 	ber_tag_t	tag;
@@ -248,17 +282,19 @@ get_substring_filter(
 	char		*last;
 	int		syntax;
 
+	*text = "error decoding filter";
+
 	Debug( LDAP_DEBUG_FILTER, "begin get_substring_filter\n", 0, 0, 0 );
 
 	if ( ber_scanf( ber, "{a" /*}*/, &f->f_sub_type ) == LBER_ERROR ) {
 		return SLAPD_DISCONNECT;
 	}
 
-	attr_normalize( f->f_sub_type );
-
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	/* not yet implemented */
 #else
+	attr_normalize( f->f_sub_type );
+
 	/* should get real syntax and see if we have a substring matching rule */
 	syntax = attr_syntax( f->f_sub_type );
 #endif
