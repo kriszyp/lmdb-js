@@ -341,23 +341,23 @@ limits_parse(
 	} else if ( strcasecmp( pattern, "users" ) == 0 ) {
 		flags = SLAP_LIMITS_USERS;
 		
-	} else if ( strncasecmp( pattern, "dn", sizeof( "dn" ) - 1 ) == 0 ) {
-		pattern += sizeof( "dn" ) - 1;
+	} else if ( strncasecmp( pattern, "dn", STRLENOF( "dn" ) ) == 0 ) {
+		pattern += STRLENOF( "dn" );
 		if ( pattern[0] == '.' ) {
 			pattern++;
-			if ( strncasecmp( pattern, "exact", sizeof( "exact" ) - 1 ) == 0 ) {
+			if ( strncasecmp( pattern, "exact", STRLENOF( "exact" )) == 0 ) {
 				flags = SLAP_LIMITS_EXACT;
-				pattern += sizeof( "exact" ) - 1;
+				pattern += STRLENOF( "exact" );
 
-			} else if ( strncasecmp( pattern, "base", sizeof( "base" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "base", STRLENOF( "base" ) ) == 0 ) {
 				flags = SLAP_LIMITS_BASE;
-				pattern += sizeof( "base" ) - 1;
+				pattern += STRLENOF( "base" );
 
-			} else if ( strncasecmp( pattern, "one", sizeof( "one" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "one", STRLENOF( "one" ) ) == 0 ) {
 				flags = SLAP_LIMITS_ONE;
-				pattern += sizeof( "one" ) - 1;
-				if ( strncasecmp( pattern, "level", sizeof( "level" ) - 1 ) == 0 ) {
-					pattern += sizeof( "level" ) - 1;
+				pattern += STRLENOF( "one" );
+				if ( strncasecmp( pattern, "level", STRLENOF( "level" ) ) == 0 ) {
+					pattern += STRLENOF( "level" );
 
 				} else {
 #ifdef NEW_LOGGING
@@ -373,11 +373,11 @@ limits_parse(
 #endif
 				}
 
-			} else if ( strncasecmp( pattern, "sub", sizeof( "sub" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "sub", STRLENOF( "sub" ) ) == 0 ) {
 				flags = SLAP_LIMITS_SUBTREE;
-				pattern += sizeof( "sub" ) - 1;
-				if ( strncasecmp( pattern, "tree", sizeof( "tree" ) - 1 ) == 0 ) {
-					pattern += sizeof( "tree" ) - 1;
+				pattern += STRLENOF( "sub" );
+				if ( strncasecmp( pattern, "tree", STRLENOF( "tree" ) ) == 0 ) {
+					pattern += STRLENOF( "tree" );
 
 				} else {
 #ifdef NEW_LOGGING
@@ -393,19 +393,19 @@ limits_parse(
 #endif
 				}
 
-			} else if ( strncasecmp( pattern, "children", sizeof( "children" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "children", STRLENOF( "children" ) ) == 0 ) {
 				flags = SLAP_LIMITS_CHILDREN;
-				pattern += sizeof( "children" ) - 1;
+				pattern += STRLENOF( "children" );
 
-			} else if ( strncasecmp( pattern, "regex", sizeof( "regex" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "regex", STRLENOF( "regex" ) ) == 0 ) {
 				flags = SLAP_LIMITS_REGEX;
-				pattern += sizeof( "regex" ) - 1;
+				pattern += STRLENOF( "regex" );
 
 			/* 
 			 * this could be deprecated in favour
 			 * of the pattern = "anonymous" form
 			 */
-			} else if ( strncasecmp( pattern, "anonymous", sizeof( "anonymous" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( pattern, "anonymous", STRLENOF( "anonymous" ) ) == 0 ) {
 				flags = SLAP_LIMITS_ANONYMOUS;
 				pattern = NULL;
 			}
@@ -456,8 +456,8 @@ limits_parse(
 			}
 		}
 
-	} else if (strncasecmp( pattern, "group", sizeof( "group" ) - 1 ) == 0 ) {
-		pattern += sizeof( "group" ) - 1;
+	} else if (strncasecmp( pattern, "group", STRLENOF( "group" ) ) == 0 ) {
+		pattern += STRLENOF( "group" );
 
 		if ( pattern[0] == '/' ) {
 			struct berval	oc, ad;
@@ -600,12 +600,12 @@ limits_parse_one(
 	assert( arg );
 	assert( limit );
 
-	if ( strncasecmp( arg, "time", sizeof( "time" ) - 1 ) == 0 ) {
+	if ( strncasecmp( arg, "time", STRLENOF( "time" ) ) == 0 ) {
 		arg += 4;
 
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", sizeof( "soft" ) - 1 ) == 0 ) {
+			if ( strncasecmp( arg, "soft", STRLENOF( "soft" ) ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -623,7 +623,7 @@ limits_parse_one(
 					}
 				}
 				
-			} else if ( strncasecmp( arg, "hard", sizeof( "hard" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( arg, "hard", STRLENOF( "hard" ) ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -665,12 +665,12 @@ limits_parse_one(
 			return( 1 );
 		}
 
-	} else if ( strncasecmp( arg, "size", sizeof( "size" ) - 1 ) == 0 ) {
+	} else if ( strncasecmp( arg, "size", STRLENOF( "size" ) ) == 0 ) {
 		arg += 4;
 		
 		if ( arg[0] == '.' ) {
 			arg++;
-			if ( strncasecmp( arg, "soft", sizeof( "soft" ) - 1 ) == 0 ) {
+			if ( strncasecmp( arg, "soft", STRLENOF( "soft" ) ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -688,7 +688,7 @@ limits_parse_one(
 					}
 				}
 				
-			} else if ( strncasecmp( arg, "hard", sizeof( "hard" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( arg, "hard", STRLENOF( "hard" ) ) == 0 ) {
 				arg += 4;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -708,7 +708,7 @@ limits_parse_one(
 					}
 				}
 				
-			} else if ( strncasecmp( arg, "unchecked", sizeof( "unchecked" ) - 1 ) == 0 ) {
+			} else if ( strncasecmp( arg, "unchecked", STRLENOF( "unchecked" ) ) == 0 ) {
 				arg += 9;
 				if ( arg[0] != '=' ) {
 					return( 1 );
@@ -726,14 +726,11 @@ limits_parse_one(
 					}
 				}
 
-			} else if ( strncasecmp( arg, "pr", sizeof( "pr" ) - 1 ) == 0 ) {
-				arg += sizeof( "pr" ) - 1;
-				if ( arg[0] != '=' ) {
-					return( 1 );
-				}
-				arg++;
+			} else if ( strncasecmp( arg, "pr=", STRLENOF( "pr=" ) ) == 0 ) {
+				arg += STRLENOF( "pr=" );
 				if ( strcasecmp( arg, "noEstimate" ) == 0 ) {
 					limit->lms_s_pr_hide = 1;
+
 				} else {
 					char	*next = NULL;
 
@@ -743,7 +740,17 @@ limits_parse_one(
 						return( 1 );
 					}
 				}
-				
+
+			} else if ( strncasecmp( arg, "prtotal=", STRLENOF( "prtotal=" ) ) == 0 ) {
+				char	*next = NULL;
+
+				arg += STRLENOF( "prtotal=" );
+
+				limit->lms_s_pr_total = strtol( arg, &next, 10 );
+				if ( next == arg || limit->lms_s_pr_total < -1 ) {
+					return( 1 );
+				}
+
 			} else {
 				return( 1 );
 			}

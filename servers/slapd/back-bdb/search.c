@@ -1122,7 +1122,8 @@ id2entry_retry:
 
 			if ( get_pagedresults(sop) ) {
 				if ( sop->ors_limit	/* isroot == TRUE */
-						&& sop->ors_slimit < sop->o_pagedresults_state.ps_count ) {
+						&& sop->ors_limit->lms_s_pr_total > 0
+						&& sop->ors_limit->lms_s_pr_total <= rs->sr_nentries + sop->o_pagedresults_state.ps_count ) {
 					if (!IS_PSEARCH) {
 						bdb_cache_return_entry_r( bdb->bi_dbenv,
 							&bdb->bi_cache, e, &lock );

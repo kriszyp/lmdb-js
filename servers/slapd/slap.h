@@ -1284,6 +1284,7 @@ struct slap_limits_set {
 	int	lms_s_unchecked;
 	int	lms_s_pr;
 	int	lms_s_pr_hide;
+	int	lms_s_pr_total;
 };
 
 struct slap_limits {
