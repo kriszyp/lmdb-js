@@ -427,9 +427,8 @@ try_read1msg(
 	}
 #ifdef LDAP_CONNECTIONLESS
 	if (LDAP_IS_UDP(ld) && ld->ld_options.ldo_version == LDAP_VERSION2) {
-		char *blank = NULL;
-		ber_scanf(ber, "a{", &blank);
-		if (blank) ber_memfree(blank);
+		struct berval blank;
+		ber_scanf(ber, "m{", &blank);
 	}
 #endif
 	/* the message type */
