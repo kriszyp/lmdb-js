@@ -21,6 +21,11 @@
 
 LDAP_BEGIN_DECL
 
+LIBLDAP_F ( int )
+ldap_pvt_domain2dn LDAP_P((
+	LDAP_CONST char *domain,
+	char **dn ));
+
 struct hostent;	/* avoid pulling in <netdb.h> */
 
 LIBLDAP_F( char * )

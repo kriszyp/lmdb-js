@@ -554,7 +554,14 @@ LIBLDAP_F( void )
 ldap_controls_free LDAP_P((
 	LDAPControl **ctrls ));
 
-  
+/*
+ * in dnssrv.c:
+ */
+LIBLDAP_F( int )
+ldap_dnssrv_init LDAP_P((
+	LDAP **ldp,
+	LDAP_CONST char *domain ));
+
 /*
  * in extended.c:
  */

@@ -44,6 +44,10 @@ ldap_getdxbyname( const char *domain )
 
     memset( buf, 0, sizeof( buf ));
 
+#ifdef LDAP_R_COMPILE
+    ldap_pvt_thread_mutex_lock(&ldap_int_resolv_mutex);
+#endif
+
     if (( rc = res_search( domain, C_IN, T_TXT, buf, sizeof( buf ))) < 0
 		|| ( dxs = decode_answer( buf, rc )) == NULL ) {
 	/*
@@ -59,6 +63,10 @@ ldap_getdxbyname( const char *domain )
 	    dxs[ 1 ] = NULL;
 	}
     }
+
+#ifdef LDAP_R_COMPILE
+    ldap_pvt_thread_mutex_unlock(&ldap_int_resolv_mutex);
+#endif
 
     return( dxs );
 }
