@@ -158,12 +158,12 @@ if test "$SLAPD_PHONETIC" = "yes" ; then
 fi
 
 if test "$SLAPD_MD5" = "yes" ; then
-	AC_DEFINE(SLAPD_MD5,1)
+dnl	AC_DEFINE(SLAPD_MD5,1)
 	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_MD5"
 fi
 
 if test "$SLAPD_SHA1" = "yes" ; then
-	AC_DEFINE(SLAPD_SHA1,1)
+dnl	AC_DEFINE(SLAPD_SHA1,1)
 	LUTIL_DEFS="$LUTIL_DEFS -DLDAP_SHA1"
 fi
 
@@ -249,7 +249,7 @@ dnl				AC_DEFINE(LDBM_USE_DBBTREE,1)
 				LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_DB2"
 			else
 				AC_CHECK_HEADERS(db185.h)
-				if test $cf_cv_header_db185 = no ; then
+				if test "$cf_cv_header_db185_h" = no ; then
 					AC_MSG_ERROR([select --with-db2 or install db2 with 1.85 compatibility])
 				fi
 
@@ -291,9 +291,11 @@ dnl			AC_DEFINE(LDBM_USE_NDBM,1)
 fi
 
 if test "$SLAPD_TCP_WRAPPERS" = "yes" ; then
-	AC_CHECK_LIB(wrap, hosts_access, [LIBTCPD="-lwrap"
-		AC_DEFINE(HAVE_TCPD)
+	AC_CHECK_LIB(wrap, hosts_access, [
+dnl		LIBTCPD="-lwrap"
+dnl		AC_DEFINE(HAVE_TCPD)
 		SLAPD_DEFS="$SLAPD_DEFS -DTCP_WRAPPERS"
+		SLAPD_LIBS="$SLAPD_LIBS -lwrap"
 	])
 fi
 
@@ -308,7 +310,7 @@ if test "$SLAPD_CRYPT" = "yes" ; then
 			have_crypt=yes], [have_crypt=no])])
 
 	if test $have_crypt = yes ; then
-		AC_DEFINE(SLAPD_CRYPT,1)
+dnl		AC_DEFINE(SLAPD_CRYPT,1)
 		LUTIL_DEFS="$LUTIL_DEFS -DLDAP_CRYPT"
 	else
 		AC_MSG_WARN(could not find crypt, disabling crypt support)

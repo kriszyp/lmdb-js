@@ -73,9 +73,6 @@
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
-/* define this you have crypt */
-#undef HAVE_CRYPT
-
 /* define this for connectionless LDAP support */
 #undef LDAP_CONNECTIONLESS
 
