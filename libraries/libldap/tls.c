@@ -168,7 +168,7 @@ ldap_pvt_tls_init_def_ctx( void )
 			calist = get_ca_list( tls_opt_cacertfile, tls_opt_cacertdir );
 			if ( !calist ) {
 				Debug( LDAP_DEBUG_ANY, "TLS: "
-					could not load client CA list (file:`%s',dir:`%s').\n",
+					"could not load client CA list (file:`%s',dir:`%s').\n",
 					tls_opt_cacertfile ? tls_opt_cacertfile : "",
 					tls_opt_cacertdir ? tls_opt_cacertdir : "",
 					0 );
