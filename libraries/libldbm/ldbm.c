@@ -142,10 +142,15 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 	dbinfo.db_pagesize  = DEFAULT_DB_PAGE_SIZE;
 	dbinfo.db_malloc    = ldbm_malloc;
 
+#if defined( DB_VERSION_MAJOR ) && defined( DB_VERSION_MINOR ) \
+	&& DB_VERSION_MAJOR == 2 && DB_VERSION_MINOR != 4
+
 	if( ldbm_Env.mp_info == NULL ) {
 		/* set a cachesize if we aren't using a memory pool */
 		dbinfo.db_cachesize = dbcachesize;
 	}
+
+#endif
 
 	LDBM_LOCK;
     (void) db_open( name, DB_TYPE, rw, mode, &ldbm_Env, &dbinfo, &ret );
