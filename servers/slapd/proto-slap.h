@@ -401,6 +401,8 @@ LDAP_SLAPD_F (void) build_new_dn LDAP_P((
 	struct berval * parent_dn,
 	struct berval * newrdn ));
 
+LDAP_SLAPD_F (int) dnParent LDAP_P(( const char *dn, const char **pdn ));
+
 #define SLAP_DN_MIGRATION
 #ifdef SLAP_DN_MIGRATION
 	/* These routines are deprecated!!! */
