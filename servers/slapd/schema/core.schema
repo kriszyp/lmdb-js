@@ -228,7 +228,9 @@ attributetype ( 2.5.4.30 NAME 'supportedApplicationContext'
 # distinguished name of an entry.  On the other hand, the attribute
 # type distinguishedName is meant to be an "abstract" type and other
 # dn-valued attribute types derive from it.  So at most, 'dn' would
-# be a subtype of distinguishedName.
+# be a subtype of distinguishedName, something like:
+#	attributetype ( dnOID NAME 'dn' SUP distinguishedName
+#		SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )
 
 attributetype ( 2.5.4.49 NAME 'distinguishedName'
       EQUALITY distinguishedNameMatch
