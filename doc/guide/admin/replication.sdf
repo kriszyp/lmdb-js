@@ -266,7 +266,8 @@ DN given by the {{EX:binddn=}} directive must exist in the slave
 slapd's database (or be the rootdn specified in the slapd config
 file) in order for the bind operation to succeed.  The DN should
 also be listed as the {{EX:updatedn}} for the database in the slave's
-slapd.conf(5).
+slapd.conf(5).  It is generally recommended that this DN be
+different than the {{EX:rootdn}}.
 
 Note: The use of strong authentication and transport security is
 highly recommended.

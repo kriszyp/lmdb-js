@@ -307,11 +307,11 @@ given, the standard LDAP port number (389 or 636) is used.
 URI such as {{EX:ldap://slave.example.com:389}} or
 {{EX:ldaps://slave.example.com:636}}.
 
-The {{EX:binddn=}} parameter gives the DN to bind as for updates to
-the slave slapd. It should be a DN which has read/write
-access to the slave slapd's database, typically given as a
-{{EX:rootdn}} in the slave's config file. It must also match the
-{{EX:updatedn}} directive in the slave slapd's config file. Since DNs are
+The {{EX:binddn=}} parameter gives the DN to bind as for updates
+to the slave slapd. It should be a DN which has read/write access
+to the slave slapd's database.  It must also match the {{EX:updatedn}}
+directive in the slave slapd's config file.  Generally, this DN
+{{should not}} be the same as the {{EX:rootdn}}.  Since DNs are
 likely to contain embedded spaces, the entire {{EX:"binddn=<DN>"}}
 string should be enclosed in double quotes.
 
@@ -500,13 +500,12 @@ schema conformance. The default is off.
 
 The {{EX:updatedn}} parameter specifies the DN in the consumer site
 which is allowed to make changes to the replica. This DN is used
-locally by the syncrepl engine when updating the replica with
-the entries received from the provider site by using the
-internal operation mechanism. The update of the replica content
-is subject to the access control privileges of the DN.
-The DN should have read/write access to the replica database.
-It is typically given as a {{EX:rootdn}} in the consumer site's
-config file.
+locally by the syncrepl engine when updating the replica with the
+entries received from the provider site by using the internal
+operation mechanism. The update of the replica content is subject
+to the access control privileges of the DN.  The DN should have
+read/write access to the replica database.  Generally, this DN
+{{should not}} be the same as {{EX:rootdn}}.
 
 The {{EX:binddn}} parameter gives the DN to bind as for the
 syncrepl searches to the provider slapd. It should be a DN
