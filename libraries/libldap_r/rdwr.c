@@ -23,8 +23,9 @@
 #include "ldap_pvt_thread.h"
 
 /*
- * implementations that provide their own compatible
- * should define LDAP_THREAD_HAVE_RDWR in ldap_pvt_thread.h
+ * implementations that provide their own compatible 
+ * reader/writer locks define LDAP_THREAD_HAVE_RDWR
+ * in ldap_pvt_thread.h
  */
 #ifndef LDAP_THREAD_HAVE_RDWR
 
