@@ -20,11 +20,7 @@
 #include <quipu/attr.h>
 #endif
 
-static usage( char *name )
-{
-	fprintf( stderr, "usage: %s\n", name );
-}
-
+int
 main( int argc, char **argv )
 {
 #ifdef HAVE_PSAP_H
