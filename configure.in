@@ -360,7 +360,24 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
-
+				dnl Digital UNIX has sched_yield() in -lrt
+				AC_CHECK_LIB(rt, sched_yield,
+					[LTHREAD_LIBS="$LTHREAD_LIBS -lrt"
+					AC_DEFINE(HAVE_SCHED_YIELD,1)
+					ac_cv_func_sched_yield=yes],
+					[ac_cv_func_sched_yield=no])
+			fi
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no ; then
+				dnl Solaris has sched_yield() in -lposix4
+				AC_CHECK_LIB(posix4, sched_yield,
+					[LTHREAD_LIBS="$LTHREAD_LIBS -lposix4"
+					AC_DEFINE(HAVE_SCHED_YIELD,1)
+					ac_cv_func_sched_yield=yes],
+					[ac_cv_func_sched_yield=no])
+			fi
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no ; then
 				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
 				AC_MSG_ERROR([POSIX Threads are not usable])
 			fi
