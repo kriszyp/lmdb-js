@@ -103,9 +103,11 @@ main( int argc, char **argv )
 					fprintf( stderr, "entry %ld has no dn\n",
 					    id );
 				} else {
-					(void) dn_normalize_case( val );
+					if( val != NULL ) {
+						(void) dn_normalize_case( val );
+					}
 					key.dptr = val;
-					key.dsize = strlen( val ) + 1;
+					key.dsize = strlen( val != NULL ? val : "" ) + 1;
 					data.dptr = (char *) &id;
 					data.dsize = sizeof(ID);
 					if ( ldbm_store( db->dbc_db, key, data,

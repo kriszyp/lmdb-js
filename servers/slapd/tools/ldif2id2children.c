@@ -88,14 +88,17 @@ main( int argc, char **argv )
 					fprintf( stderr, "entry %ld has no dn\n",
 					    id );
 				} else {
-					(void) dn_normalize_case( val );
+					if( val != NULL ) {
+						(void) dn_normalize_case( val );
+					}
 #ifndef DN_INDICES
 					key.dptr = val;
-					key.dsize = strlen( val ) + 1;
+					key.dsize = strlen( val != NULL ? val : "" ) + 1;
 #else
-					key.dsize = strlen( val ) + 2;
+					key.dsize = strlen( val != NULL ? val : "" ) + 2;
 					key.dptr = ch_malloc( key.dsize );
-					sprintf( key.dptr, "%c%s", DN_BASE_PREFIX, val );
+					sprintf( key.dptr, "%c%s", DN_BASE_PREFIX,
+						val != NULL ? val : "" );
 #endif
 					data.dptr = (char *) &id;
 					data.dsize = sizeof(ID);
