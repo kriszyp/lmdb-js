@@ -47,7 +47,7 @@ main( int argc, char **argv )
 	ldap_debug = 255;
 	lber_debug = 255;
 */
-	if ( (ld = ldap_open( "vertigo:5555", LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_open( "vertigo:5555", 0 )) == NULL ) {
 		perror( "ldap_open" );
 		exit( 1 );
 	}
