@@ -160,7 +160,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	p_ndn = dn_parent( be, e->e_ndn );
+	p_ndn = dn_parent1( be, e->e_ndn );
 	np_ndn = p_ndn;
 	if ( p_ndn != NULL && p_ndn[ 0 ] != '\0' ) {
 		/* Make sure parent entry exist and we can write its 
@@ -204,7 +204,7 @@ retry:	/* transaction retry */
 			"bdb_modrdn: wr to children of entry %s OK\n",
 			p_ndn, 0, 0 );
 		
-		p_dn = dn_parent( be, e->e_dn );
+		p_dn = dn_parent1( be, e->e_dn );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: parent dn=%s\n",
@@ -239,7 +239,7 @@ retry:	/* transaction retry */
 					"bdb_modrdn: wr to children of entry \"\" OK\n",
 					0, 0, 0 );
 		
-				p_dn = ch_strdup( "" );
+				p_dn = "";
 
 				Debug( LDAP_DEBUG_TRACE,
 					"bdb_modrdn: parent dn=\"\"\n",
@@ -551,7 +551,7 @@ retry:	/* transaction retry */
 	}
 	
 	/* delete old one */
-	rc = bdb_dn2id_delete( be, ltid, p_ndn, e->e_ndn, e->e_id );
+	rc = bdb_dn2id_delete( be, ltid, p_ndn, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -644,8 +644,6 @@ done:
 	if( new_ndn != NULL ) free( new_ndn );
 
 	if( np_ndn == p_ndn ) np_ndn = NULL;
-	if( p_dn != NULL ) free( p_dn );
-	if( p_ndn != NULL ) free( p_ndn );
 
 	/* LDAP v2 supporting correct attribute handling. */
 	if( new_rdn_types != NULL ) charray_free(new_rdn_types);

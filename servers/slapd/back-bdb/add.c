@@ -93,7 +93,7 @@ retry:	rc = txn_abort( ltid );
 	 * If the parent does not exist, only allow the "root" user to
 	 * add the entry.
 	 */
-	pdn = dn_parent( be, e->e_ndn );
+	pdn = dn_parent1( be, e->e_ndn );
 
 	if( pdn != NULL && *pdn != '\0' ) {
 		Entry *matched = NULL;
@@ -304,10 +304,6 @@ return_results:
 	}
 
 done:
-	if( pdn != NULL ) {
-		free(pdn);
-	}
-
 	if (p != NULL) {
 		/* free parent and writer lock */
 		bdb_entry_return( be, p ); 

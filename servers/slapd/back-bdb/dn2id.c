@@ -18,13 +18,14 @@ int
 bdb_dn2id_add(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*pdn,
+	char *pdn,
 	Entry		*e )
 {
-	int		rc;
-	DBT		key, data;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
+	int		rc;
+	DBT		key, data;
+	char		*buf, *ptr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_add( \"%s\", 0x%08lx )\n",
 		e->e_ndn, (long) e->e_id, 0 );
@@ -32,9 +33,11 @@ bdb_dn2id_add(
 
 	DBTzero( &key );
 	key.size = strlen( e->e_ndn ) + 2;
-	key.data = ch_malloc( key.size );
-	((char *)key.data)[0] = DN_BASE_PREFIX;
-	AC_MEMCPY( &((char *)key.data)[1], e->e_ndn, key.size - 1 );
+	buf = ch_malloc( key.size );
+	key.data = buf;
+	buf[0] = DN_BASE_PREFIX;
+	ptr = buf + 1;
+	AC_MEMCPY( ptr, e->e_ndn, key.size - 1 );
 
 	DBTzero( &data );
 	data.data = (char *) &e->e_id;
@@ -48,55 +51,66 @@ bdb_dn2id_add(
 		goto done;
 	}
 
-	{
-		((char *)(key.data))[0] = DN_ONE_PREFIX;
-
-		if( pdn != NULL ) {
-			key.size = strlen( pdn ) + 2;
-			AC_MEMCPY( &((char*)key.data)[1],
-				pdn, key.size - 1 );
-
-			rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
-
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
-					pdn, rc, 0 );
-				goto done;
-			}
-		}
+	buf[0] = DN_SUBTREE_PREFIX;
+	rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+			ptr, rc, 0 );
+		goto done;
 	}
 
-	{
-		char **subtree = dn_subtree( be, e->e_ndn );
+	pdn = dn_parent1( be, ptr );
 
-		if( subtree != NULL ) {
-			int i;
-			((char *)key.data)[0] = DN_SUBTREE_PREFIX;
-			for( i=0; subtree[i] != NULL; i++ ) {
-				if( be_issuffix( be, subtree[i] ))
-					continue;
-				key.size = strlen( subtree[i] ) + 2;
-				AC_MEMCPY( &((char *)key.data)[1],
-					subtree[i], key.size - 1 );
+	if( pdn != NULL ) {
+		key.size -= pdn - ptr;
+		pdn[-1] = DN_ONE_PREFIX;
+		key.data = pdn - 1;
 
-				rc = bdb_idl_insert_key( be, db, txn, &key,
-					e->e_id );
+		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
 
-				if( rc != 0 ) {
-					Debug( LDAP_DEBUG_ANY,
-						"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
-						subtree[i], rc, 0 );
-					break;
-				}
-			}
-
-			charray_free( subtree );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_add: parent (%s) insert failed: %d\n",
+					pdn, rc, 0 );
+			goto done;
 		}
+
+		pdn[-1] = DN_SUBTREE_PREFIX;
+		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
+
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+					pdn, rc, 0 );
+			goto done;
+		}
+		ptr = pdn;
+		pdn = dn_parent1( be, pdn );
+	}
+
+	while( pdn != NULL ) {
+		if( be_issuffix( be, pdn ))
+			break;
+
+		pdn[-1] = DN_SUBTREE_PREFIX;
+		key.size -= pdn - ptr;
+		key.data = pdn - 1;
+
+		rc = bdb_idl_insert_key( be, db, txn, &key, e->e_id );
+
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_add: subtree (%s) insert failed: %d\n",
+					pdn, rc, 0 );
+			break;
+		}
+		ptr = pdn;
+		pdn = dn_parent1( be, pdn );
 	}
 
 done:
-	ch_free( key.data );
+	ch_free( buf );
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_add: %d\n", rc, 0, 0 );
 	return rc;
 }
@@ -105,24 +119,26 @@ int
 bdb_dn2id_delete(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*pdn,
-	const char	*dn,
-	ID		id )
+	char	*pdn,
+	Entry		*e )
 {
-	int		rc;
-	DBT		key;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
+	int		rc;
+	DBT		key;
+	char		*buf, *ptr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_delete( \"%s\", 0x%08lx )\n",
-		dn, id, 0 );
+		e->e_ndn, e->e_id, 0 );
 
 	DBTzero( &key );
-	key.size = strlen( dn ) + 2;
-	key.data = ch_malloc( key.size );
+	key.size = strlen( e->e_ndn ) + 2;
+	buf = ch_malloc( key.size );
+	key.data = buf;
 	key.flags = DB_DBT_USERMEM;
-	((char *)key.data)[0] = DN_BASE_PREFIX;
-	AC_MEMCPY( &((char *)key.data)[1], dn, key.size - 1 );
+	buf[0] = DN_BASE_PREFIX;
+	ptr = buf+1;
+	AC_MEMCPY( ptr, e->e_ndn, key.size - 1 );
 
 	/* delete it */
 	rc = db->del( db, txn, &key, 0 );
@@ -132,53 +148,66 @@ bdb_dn2id_delete(
 		goto done;
 	}
 
-	{
-		((char *)(key.data))[0] = DN_ONE_PREFIX;
-
-		if( pdn != NULL ) {
-			key.size = strlen( pdn ) + 2;
-			AC_MEMCPY( &((char*)key.data)[1],
-				pdn, key.size - 1 );
-
-			rc = bdb_idl_delete_key( be, db, txn, &key, id );
-
-			if( rc != 0 ) {
-				Debug( LDAP_DEBUG_ANY,
-					"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n",
-					pdn, rc, 0 );
-				goto done;
-			}
-		}
+	buf[0] = DN_SUBTREE_PREFIX;
+	rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
+	if( rc != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+			"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
+			ptr, rc, 0 );
+		goto done;
 	}
 
-	{
-		char **subtree = dn_subtree( be, dn );
+	pdn = dn_parent1( be, ptr );
 
-		if( subtree != NULL ) {
-			int i;
-			((char *)key.data)[0] = DN_SUBTREE_PREFIX;
-			for( i=0; subtree[i] != NULL; i++ ) {
-				key.size = strlen( subtree[i] ) + 2;
-				AC_MEMCPY( &((char *)key.data)[1],
-					subtree[i], key.size - 1 );
+	if( pdn != NULL ) {
+		key.size -= pdn - ptr;
+		pdn[-1] = DN_ONE_PREFIX;
+		key.data = pdn - 1;
 
-				rc = bdb_idl_delete_key( be, db, txn, &key, id );
+		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
 
-				if( rc != 0 ) {
-					Debug( LDAP_DEBUG_ANY,
-						"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
-						subtree[i], rc, 0 );
-					charray_free( subtree );
-					goto done;
-				}
-			}
-
-			charray_free( subtree );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_delete: parent (%s) delete failed: %d\n",
+				pdn, rc, 0 );
+			goto done;
 		}
+
+		pdn[-1] = DN_SUBTREE_PREFIX;
+
+		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
+
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
+				pdn, rc, 0 );
+			goto done;
+		}
+		ptr = pdn;
+		pdn = dn_parent1( be, pdn );
+	}
+
+	while( pdn != NULL ) {
+		if( be_issuffix( be, pdn ))
+			break;
+
+		pdn[-1] = DN_SUBTREE_PREFIX;
+		key.size -= pdn - ptr;
+		key.data = pdn - 1;
+
+		rc = bdb_idl_delete_key( be, db, txn, &key, e->e_id );
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+				"=> bdb_dn2id_delete: subtree (%s) delete failed: %d\n",
+				pdn, rc, 0 );
+			goto done;
+		}
+		ptr = pdn;
+		pdn = dn_parent1( be, pdn );
 	}
 
 done:
-	ch_free( key.data );
+	ch_free( buf );
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_delete %d\n", rc, 0, 0 );
 	return rc;
 }
@@ -237,7 +266,6 @@ bdb_dn2id_matched(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	DB *db = bdb->bi_dn2id->bdi_db;
 	const char *dn = in;
-	char *tmp = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_dn2id_matched( \"%s\" )\n", dn, 0, 0 );
 
@@ -263,20 +291,16 @@ bdb_dn2id_matched(
 		rc = db->get( db, txn, &key, &data, bdb->bi_db_opflags );
 
 		if( rc == DB_NOTFOUND ) {
-			char *pdn = dn_parent( be, dn );
-			ch_free( tmp );
-			tmp = NULL;
+			char *pdn = dn_parent1( be, dn );
 
 			if( pdn == NULL || *pdn == '\0' ) {
 				Debug( LDAP_DEBUG_TRACE,
 					"<= bdb_dn2id_matched: no match\n",
 					0, 0, 0 );
-				ch_free( pdn );
 				break;
 			}
 
 			dn = pdn;
-			tmp = pdn;
 			key.size = strlen( dn ) + 2;
 
 		} else if ( rc == 0 ) {
@@ -285,7 +309,6 @@ bdb_dn2id_matched(
 					"<= bdb_dn2id_matched: get size mismatch: "
 					"expected %ld, got %ld\n",
 					(long) sizeof(ID), (long) data.size, 0 );
-				ch_free( tmp );
 			}
 
 			if( in != dn ) {
@@ -301,7 +324,6 @@ bdb_dn2id_matched(
 			Debug( LDAP_DEBUG_ANY,
 				"<= bdb_dn2id_matched: get failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
-			ch_free( tmp );
 			break;
 		}
 	}
@@ -720,9 +742,8 @@ int
 bdb_dn2id_delete(
 	BackendDB	*be,
 	DB_TXN *txn,
-	const char	*pdn,
-	const char	*dn,
-	ID		id )
+	char	*pdn,
+	Entry	*e )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
@@ -731,13 +752,13 @@ bdb_dn2id_delete(
 	idNode *n;
 
 	DBTzero(&key);
-	key.size = sizeof(id);
-	key.data = &id;
+	key.size = sizeof(e->e_id);
+	key.data = &e->e_id;
 
 	rc = db->del( db, txn, &key, 0);
 
 	ldap_pvt_thread_rdwr_wlock(&bdb->bi_tree_rdwr);
-	n = avl_delete(&bdb->bi_tree, (void *)id, (AVL_CMP)node_find_cmp);
+	n = avl_delete(&bdb->bi_tree, (void *)e->e_id, (AVL_CMP)node_find_cmp);
 	if (n) {
 		if (n->i_parent) {
 			ldap_pvt_thread_rdwr_wlock(&n->i_parent->i_kids_rdwr);
@@ -749,7 +770,7 @@ bdb_dn2id_delete(
 		ldap_pvt_thread_rdwr_destroy(&n->i_kids_rdwr);
 		free(n);
 	}
-	if (id == 1)
+	if (e->e_id == 1)
 		bdb->bi_troot = NULL;
 	ldap_pvt_thread_rdwr_wunlock(&bdb->bi_tree_rdwr);
 

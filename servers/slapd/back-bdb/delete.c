@@ -116,7 +116,7 @@ retry:	/* transaction retry */
 		goto done;
 	}
 
-	pdn = dn_parent( be, ndn );
+	pdn = dn_parent1( be, ndn );
 
 	if( pdn != NULL && *pdn != '\0' ) {
 		/* get parent */
@@ -231,7 +231,7 @@ retry:	/* transaction retry */
 	}
 
 	/* delete from dn2id */
-	rc = bdb_dn2id_delete( be, ltid, pdn, e->e_ndn, e->e_id );
+	rc = bdb_dn2id_delete( be, ltid, pdn, e );
 	if ( rc != 0 ) {
 		switch( rc ) {
 		case DB_LOCK_DEADLOCK:
@@ -321,10 +321,6 @@ return_results:
 	}
 
 done:
-	if( pdn != NULL ) {
-		free( pdn );
-	}
-
 	/* free entry */
 	if( e != NULL ) {
 		bdb_entry_return( be, e );
