@@ -196,7 +196,6 @@ int ldap_domain2hostlist(
 {
 #ifdef HAVE_RES_QUERY
     char *request;
-    char *dn;
     char *hostlist = NULL;
     int rc, len, cur = 0;
     unsigned char reply[1024];
