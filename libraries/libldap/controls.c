@@ -382,6 +382,10 @@ ldap_control_dup( const LDAPControl *c )
  * Modification to OpenLDAP source by Novell, Inc.
  * June 2000 sfs  Added control utilities
  */
+/* Note: A verbatim copy of version 2.0.1 of the OpenLDAP Public License
+ * can be found in the file "build/LICENSE-2.0.1" in this distribution
+ * of OpenLDAP Software.
+ */
 /*---
    ldap_create_control
    

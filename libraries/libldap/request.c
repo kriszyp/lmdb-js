@@ -26,6 +26,10 @@
  * April 2000 sfs  Added code to chase V3 referrals
  *  request.c - sending of ldap requests; handling of referrals
  */
+/* Note: A verbatim copy of version 2.0.1 of the OpenLDAP Public License 
+ * can be found in the file "build/LICENSE-2.0.1" in this distribution
+ * of OpenLDAP Software.
+ */
 
 #include "portable.h"
 
