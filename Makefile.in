@@ -9,9 +9,9 @@
 ## in file LICENSE in the top-level directory of the distribution.
 ##
 
-SUBDIRS= include libraries clients servers tests doc # contrib
+SUBDIRS= include libraries clients servers tests doc
 CLEANDIRS= contrib
-INSTALLDIRS=
+INSTALLDIRS= 
 
 makefiles:	FORCE
 	./config.status
