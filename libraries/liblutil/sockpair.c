@@ -58,7 +58,11 @@ int lutil_pair( ber_socket_t sds[2] )
 	}
 
 	sds[0] = sd;
+#if !HAVE_WINSOCK
 	sds[1] = dup( sds[0] );
+#else
+	sds[1] = sds[0];
+#endif
 	return 0;
 #endif
 }
