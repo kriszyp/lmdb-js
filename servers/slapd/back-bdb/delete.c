@@ -37,16 +37,26 @@ bdb_delete(
 	DB_LOCK		lock;
 #endif
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "delete", LDAP_LEVEL_ARGS, "==> bdb_delete: %s\n", 
+		dn->bv_val ));
+#else
 	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n",
 		dn->bv_val, 0, 0 );
+#endif
 
 	if( 0 ) {
 retry:	/* transaction retry */
 		if( e != NULL ) {
 			bdb_cache_return_entry_w(&bdb->bi_cache, e);
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
+			"==> bdb_delete: retrying...\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "==> bdb_delete: retrying...\n",
 			0, 0, 0 );
+#endif
 		rc = TXN_ABORT( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
@@ -63,9 +73,15 @@ retry:	/* transaction retry */
 		bdb->bi_db_opflags );
 	text = NULL;
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_ERR, 
+			"==> bdb_delete: txn_begin failed: %s (%d)\n",
+			db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: txn_begin failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		rc = LDAP_OTHER;
 		text = "internal error";
 		goto return_results;
@@ -110,9 +126,14 @@ retry:	/* transaction retry */
 		}
 
 		if( p == NULL) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
+				"<=- bdb_delete: parent does not exist\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- bdb_delete: parent does not exist\n",
 				0, 0, 0);
+#endif
 			rc = LDAP_OTHER;
 			text = "could not locate parent of entry";
 			goto return_results;
@@ -132,9 +153,14 @@ retry:	/* transaction retry */
 		}
 
 		if ( !rc  ) {
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
+				"<=- bdb_delete: no access to parent\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- bdb_delete: no access to parent\n",
 				0, 0, 0 );
+#endif
 			rc = LDAP_INSUFFICIENT_ACCESS;
 			goto return_results;
 		}
@@ -158,17 +184,27 @@ retry:	/* transaction retry */
 				}
 
 				if ( !rc  ) {
+#ifdef NEW_LOGGING
+					LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
+						"<=- bdb_delete: no access to parent\n" ));
+#else
 					Debug( LDAP_DEBUG_TRACE,
 						"<=- bdb_delete: no access "
 						"to parent\n", 0, 0, 0 );
+#endif
 					rc = LDAP_INSUFFICIENT_ACCESS;
 					goto return_results;
 				}
 
 			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
+					"<=- bdb_delete: no parent and not root\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 					"<=- bdb_delete: no parent "
 					"and not root\n", 0, 0, 0);
+#endif
 				rc = LDAP_INSUFFICIENT_ACCESS;
 				goto return_results;
 			}
@@ -205,9 +241,15 @@ retry:	/* transaction retry */
 		char *matched_dn = NULL;
 		BerVarray refs;
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_ARGS, 
+			"<=- bdb_delete: no such object %s\n",
+			dn->bv_val ));
+#else
 		Debug( LDAP_DEBUG_ARGS,
 			"<=- bdb_delete: no such object %s\n",
 			dn->bv_val, 0, 0);
+#endif
 
 		if ( matched != NULL ) {
 			matched_dn = ch_strdup( matched->e_dn );
@@ -237,9 +279,14 @@ retry:	/* transaction retry */
 		BerVarray refs = get_entry_referrals( be,
 			conn, op, e );
 
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
+			"<=- bdb_delete: entry is referral\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: entry is referral\n",
 			0, 0, 0 );
+#endif
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			e->e_dn, NULL, refs, NULL );
@@ -257,16 +304,28 @@ retry:	/* transaction retry */
 		case DB_LOCK_NOTGRANTED:
 			goto retry;
 		case 0:
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "delete", LDAP_LEVEL_DETAIL1, 
+				"<=- bdb_delete: non-leaf %s\n",
+				dn->bv_val ));
+#else
 			Debug(LDAP_DEBUG_ARGS,
 				"<=- bdb_delete: non-leaf %s\n",
 				dn->bv_val, 0, 0);
+#endif
 			rc = LDAP_NOT_ALLOWED_ON_NONLEAF;
 			text = "subtree delete not supported";
 			break;
 		default:
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "delete", LDAP_LEVEL_ERR, 
+				"<=- bdb_delete: has_children failed %s (%d)\n",
+				db_strerror(rc), rc ));
+#else
 			Debug(LDAP_DEBUG_ARGS,
 				"<=- bdb_delete: has_children failed: %s (%d)\n",
 				db_strerror(rc), rc, 0 );
+#endif
 			rc = LDAP_OTHER;
 			text = "internal error";
 		}
@@ -283,9 +342,15 @@ retry:	/* transaction retry */
 		default:
 			rc = LDAP_OTHER;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_ERR, 
+			"<=- bdb_delete: dn2id failed %s (%d)\n",
+			db_strerror(rc), rc ));
+#else
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- bdb_delete: dn2id failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		text = "DN index delete failed";
 		goto return_results;
 	}
@@ -300,9 +365,15 @@ retry:	/* transaction retry */
 		default:
 			rc = LDAP_OTHER;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_ERR, 
+			"<=- bdb_delete: id2entry failed: %s (%d)\n",
+			db_strerror(rc), rc ));
+#else
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- bdb_delete: id2entry failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
+#endif
 		text = "entry delete failed";
 		goto return_results;
 	}
@@ -317,8 +388,13 @@ retry:	/* transaction retry */
 		default:
 			rc = LDAP_OTHER;
 		}
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_ERR, 
+			"<=- bdb_delete: entry index delete failed!\n" ));
+#else
 		Debug( LDAP_DEBUG_ANY, "entry index delete failed!\n",
 			0, 0, 0 );
+#endif
 		text = "entry index delete failed";
 		goto return_results;
 	}
@@ -340,18 +416,32 @@ retry:	/* transaction retry */
 	op->o_private = NULL;
 
 	if( rc != 0 ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_ERR, 
+			"bdb_delete: txn_%s failed: %s (%d)\n",
+			op->o_noop ? "abort (no-op)" : "commit",
+			db_strerror(rc), rc ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: txn_%s failed: %s (%d)\n",
 			op->o_noop ? "abort (no-op)" : "commit",
 			db_strerror(rc), rc );
+#endif
 		rc = LDAP_OTHER;
 		text = "commit failed";
 
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "delete", LDAP_LEVEL_RESULTS, 
+			"bdb_delete: deleted%s id=%08lx db=\"%s\"\n",
+			op->o_noop ? " (no-op)" : "",
+			e->e_id, e->e_dn ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_delete: deleted%s id=%08lx dn=\"%s\"\n",
 			op->o_noop ? " (no-op)" : "",
 			e->e_id, e->e_dn );
+#endif
 		rc = LDAP_SUCCESS;
 		text = NULL;
 	}
