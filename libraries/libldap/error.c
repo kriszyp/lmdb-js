@@ -19,7 +19,7 @@ struct ldaperror {
 	char	*e_reason;
 };
 
-static struct ldaperror ldap_errlist[] = {
+static const struct ldaperror ldap_errlist[] = {
 	{LDAP_SUCCESS, 					"Success" },
 	{LDAP_OPERATIONS_ERROR, 		"Operations error" },
 	{LDAP_PROTOCOL_ERROR, 			"Protocol error" },

@@ -167,7 +167,7 @@ phonetic( char *s )
  */
 
 /* Character coding array */
-static char     vsvfn[26] = {
+static const char  vsvfn[26] = {
 	   1, 16, 4, 16, 9, 2, 4, 16, 9, 2, 0, 2, 2,
 	/* A   B  C   D  E  F  G   H  I  J  K  L  M  */
 	   2, 1, 4, 0, 2, 4, 4, 1, 0, 0, 0, 8, 0};

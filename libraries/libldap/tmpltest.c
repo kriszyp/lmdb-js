@@ -82,13 +82,13 @@ main( int argc, char **argv )
 }
 
 
-static char *syn_name[] = {
+static const char *const syn_name[] = {
     "?", "CIS", "MLS", "DN", "BOOL", "JPEG", "JPEGBTN", "FAX", "FAXBTN",
     "AUDIOBTN", "TIME", "DATE", "URL", "SEARCHACT", "LINKACT", "ADDDNACT",
     "VERIFYACT",
 };
 
-static char *syn_type[] = {
+static const char *const syn_type[] = {
     "?", "txt", "img", "?", "bool", "?", "?", "?", "btn",
     "?", "?", "?", "?", "?", "?", "?",
     "action", "?"
@@ -96,11 +96,11 @@ static char *syn_type[] = {
 
 static char *includeattrs[] = { "objectClass", "sn", NULL };
 
-static char *item_opts[] = {
+static const char *const item_opts[] = {
     "ro", "sort", "1val", "hide", "required", "hideiffalse", NULL
 };
 
-static unsigned long item_opt_vals[] = {
+static const unsigned long item_opt_vals[] = {
     LDAP_DITEM_OPT_READONLY,		LDAP_DITEM_OPT_SORTVALUES,
     LDAP_DITEM_OPT_SINGLEVALUED,	LDAP_DITEM_OPT_HIDEIFEMPTY,
     LDAP_DITEM_OPT_VALUEREQUIRED,	LDAP_DITEM_OPT_HIDEIFFALSE,

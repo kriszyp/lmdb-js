@@ -38,20 +38,20 @@ static void free_disptmpl LDAP_P(( struct ldap_disptmpl *tmpl ));
 static int read_next_tmpl LDAP_P(( char **bufp, long *blenp,
 	struct ldap_disptmpl **tmplp, int dtversion ));
 
-static char		*tmploptions[] = {
+static const char *const	tmploptions[] = {
     "addable", "modrdn",
     "altview",
     NULL
 };
 
 
-static unsigned long	tmploptvals[] = {
+static const unsigned long	tmploptvals[] = {
     LDAP_DTMPL_OPT_ADDABLE, LDAP_DTMPL_OPT_ALLOWMODRDN,
     LDAP_DTMPL_OPT_ALTVIEW,
 };
 
 
-static char		*itemtypes[] = {
+static const char *const	itemtypes[] = {
     "cis",			"mls",			"dn",
     "bool",			"jpeg",			"jpegbtn",
     "fax",			"faxbtn",		"audiobtn",
@@ -61,7 +61,7 @@ static char		*itemtypes[] = {
     NULL
 };
 
-static unsigned long	itemsynids[] = {
+static const unsigned long	itemsynids[] = {
     LDAP_SYN_CASEIGNORESTR,	LDAP_SYN_MULTILINESTR,	LDAP_SYN_DN,
     LDAP_SYN_BOOLEAN,		LDAP_SYN_JPEGIMAGE,	LDAP_SYN_JPEGBUTTON,
     LDAP_SYN_FAXIMAGE,		LDAP_SYN_FAXBUTTON,	LDAP_SYN_AUDIOBUTTON,
@@ -71,7 +71,7 @@ static unsigned long	itemsynids[] = {
 };
 
 
-static char		*itemoptions[] = {
+static const char *const	itemoptions[] = {
     "ro",		       		"sort",
     "1val",				"hide",
     "required",				"hideiffalse",
@@ -79,7 +79,7 @@ static char		*itemoptions[] = {
 };
 
 
-static unsigned long	itemoptvals[] = {
+static const unsigned long	itemoptvals[] = {
     LDAP_DITEM_OPT_READONLY,		LDAP_DITEM_OPT_SORTVALUES,
     LDAP_DITEM_OPT_SINGLEVALUED,	LDAP_DITEM_OPT_HIDEIFEMPTY,
     LDAP_DITEM_OPT_VALUEREQUIRED,	LDAP_DITEM_OPT_HIDEIFFALSE,

@@ -938,7 +938,7 @@ time2text( char *ldtimestr, int dateonly )
 	This routine was supplied by Mike Accetta at CMU many years ago.
  */
 
-static int	dmsize[] = {
+static const int dmsize[] = {
     31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
 };
 

@@ -38,7 +38,7 @@
 void
 bprint( char *data, int len )
 {
-    static char	hexdig[] = "0123456789abcdef";
+    static const char	hexdig[] = "0123456789abcdef";
     char	out[ BPLEN ];
     int		i = 0;
 

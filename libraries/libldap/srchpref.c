@@ -41,13 +41,13 @@ static int read_next_searchobj LDAP_P(( char **bufp, long *blenp,
 	struct ldap_searchobj **sop, int soversion ));
 
 
-static char		*sobjoptions[] = {
+static const char *const	sobjoptions[] = {
     "internal",
     NULL
 };
 
 
-static unsigned long	sobjoptvals[] = {
+static const unsigned long	sobjoptvals[] = {
     LDAP_SEARCHOBJ_OPT_INTERNAL,
 };
 

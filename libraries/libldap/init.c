@@ -29,11 +29,11 @@ int	openldap_ldap_initialized = 0;
 #define ATTR_STRING	4
 
 struct ol_keyvalue {
-	char*		key;
+	const char *		key;
 	int			value;
 };
 
-static struct ol_keyvalue deref_kv[] = {
+static const struct ol_keyvalue deref_kv[] = {
 	{"never", LDAP_DEREF_NEVER},
 	{"searching", LDAP_DEREF_SEARCHING},
 	{"finding", LDAP_DEREF_FINDING},
@@ -41,10 +41,10 @@ static struct ol_keyvalue deref_kv[] = {
 	{NULL, 0}
 };
 
-static struct ol_attribute {
+static const struct ol_attribute {
 	int			type;
-	char*		name;
-	void*		data;
+	const char *	name;
+	const void *	data;
 	size_t		offset;
 } attrs[] = {
 	{ATTR_KV,		"DEREF",	deref_kv, /* or &deref_kv[0] */
@@ -150,9 +150,9 @@ static void openldap_ldap_init_w_conf(const char *file)
 				break;
 
 			case ATTR_KV: {
-					struct ol_keyvalue *kv;
+					const struct ol_keyvalue *kv;
 
-					for(kv = (struct ol_keyvalue *) attrs[i].data;
+					for(kv = attrs[i].data;
 						kv->key != NULL;
 						kv++) {
 
@@ -255,9 +255,9 @@ static void openldap_ldap_init_w_env(const char *prefix)
 			break;
 
 		case ATTR_KV: {
-				struct ol_keyvalue *kv;
+				const struct ol_keyvalue *kv;
 
-				for(kv = (struct ol_keyvalue *) attrs[i].data;
+				for(kv = attrs[i].data;
 					kv->key != NULL;
 					kv++) {
 

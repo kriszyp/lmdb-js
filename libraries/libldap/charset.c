@@ -163,9 +163,9 @@ typedef struct { Byte  a, b; } Couple;
 /* Prototypes without LDAP_P():
  * 'Byte' in definition incompatible with unprototyped declaration. */
 static Byte *c_to_hh   ( Byte *o, Byte c );
-static Byte *c_to_cc   ( Byte *o, Couple *cc, Byte c );
-static int   hh_to_c   ( Byte *h );
-static Byte *cc_to_t61 ( Byte *o, Byte *s );
+static Byte *c_to_cc   ( Byte *o, const Couple *cc, Byte c );
+static int   hh_to_c   ( const Byte *h );
+static Byte *cc_to_t61 ( Byte *o, const Byte *s );
 
 /*
    Character choosed as base in diacritics alone: NO-BREAK SPACE.
@@ -173,7 +173,7 @@ static Byte *cc_to_t61 ( Byte *o, Byte *s );
 */
 #define  ALONE  0xA0
 
-static Couple diacritic[16] = {
+static const Couple diacritic[16] = {
 #if (ISO_8859 == 1) || (ISO_8859 == 9)
 	{0,0},       {'`',0},     {0xb4,0},    {'^',0},
 	{'~',0},     {0xaf,0},    {'(',ALONE}, {'.',ALONE},
@@ -208,7 +208,7 @@ static Couple diacritic[16] = {
        L,   N,   O,   R,   S,   T,   U,   W,   Y,   Z.
    -----------------------------------------------------------------------
 */
-static int letter_w_diacritic[16][38] = {
+static const int letter_w_diacritic[16][38] = {
 #if (ISO_8859 == 1)
 	0,   0,   0,   0,   0,   0,   0,   0,   0,
 	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -670,7 +670,7 @@ static int letter_w_diacritic[16][38] = {
 /*
 --- T.61 characters [0xA0 .. 0xBF] -----------------
 */
-static Couple trans_t61a_iso8859[32] = {
+static const Couple trans_t61a_iso8859[32] = {
 #if (ISO_8859 == 1) || (ISO_8859 == 9)
 	{'N','S'}, {0xa1,0},  {0xa2,0},  {0xa3,0},
 	{'D','O'}, {0xa5,0},  {'C','u'}, {0xa7,0},
@@ -722,7 +722,7 @@ static Couple trans_t61a_iso8859[32] = {
 /*
 --- T.61 characters [0xE0 .. 0xFF] -----------------
 */
-static Couple trans_t61b_iso8859[48] = {
+static const Couple trans_t61b_iso8859[48] = {
 #if (ISO_8859 == 1)
 	{'-','M'}, {0xb9,0},  {0xae,0},  {0xa9,0},
 	{'T','M'}, {'M','8'}, {0xac,0},  {0xa6,0},
@@ -821,7 +821,7 @@ static Couple trans_t61b_iso8859[48] = {
 --- ISO 8859-n characters <0xA0 .. 0xFF> -------------------
 */
 #if (ISO_8859 == 1)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xa1,0},     {0xa2,0},     {0xa3,0},
 	{0xa8,0},     {0xa5,0},     {0xd7,0},     {0xa7,0},
 	{0xc8,ALONE}, {0xd3,0},     {0xe3,0},     {0xab,0},
@@ -848,7 +848,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc2,'y'},   {0xfc,0},     {0xc8,'y'}
 };
 #elif (ISO_8859 == 2)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xce,'A'},   {0xc6,ALONE}, {0xe8,0},
 	{0xa8,0},     {0xcf,'L'},   {0xc2,'S'},   {0xa7,0},
 	{0xc8,ALONE}, {0xcf,'S'},   {0xcb,'S'},   {0xcf,'T'},
@@ -875,7 +875,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc2,'y'},   {0xcb,'t'},   {0xc7,ALONE}
 };
 #elif (ISO_8859 == 3)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xe4,0},     {0xc6,ALONE}, {0xa3,0},
 	{0xa8,0},     {0,0},        {0xc3,'H'},   {0xa7,0},
 	{0xc8,ALONE}, {0xc7,'I'},   {0xcb,'S'},   {0xc6,'G'},
@@ -902,7 +902,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc6,'u'},   {0xc3,'s'},   {0xc7,ALONE}
 };
 #elif (ISO_8859 == 4)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xce,'A'},   {0xf0,0},     {0xcb,'R'},
 	{0xa8,0},     {0xc4,'I'},   {0xcb,'L'},   {0xa7,0},
 	{0xc8,ALONE}, {0xcf,'S'},   {0xc5,'E'},   {0xcb,'G'},
@@ -929,7 +929,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xc4,'u'},   {0xc5,'u'},   {0xc7,ALONE}
 };
 #elif (ISO_8859 == 9)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xa1,0},     {0xa2,0},     {0xa3,0},
 	{0xa8,0},     {0xa5,0},     {0xd7,0},     {0xa7,0},
 	{0xc8,ALONE}, {0xd3,0},     {0xe3,0},     {0xab,0},
@@ -956,7 +956,7 @@ static Couple trans_iso8859_t61[96] = {
 	{0xc8,'u'},   {0xf5,0},     {0xcb,'s'},   {0xc8,'y'}
 };
 #elif (ISO_8859 == 10)
-static Couple trans_iso8859_t61[96] = {
+static const Couple trans_iso8859_t61[96] = {
 	{0xa0,0},     {0xce,'A'},   {0xc5,'E'},   {0xcb,'G'},
 	{0xc5,'I'},   {0xc4,'I'},   {0xcb,'K'},   {0xa7,0},
 	{0xcb,'L'},   {0xe2,0},     {0xcf,'S'},   {0xed,0},
@@ -1001,7 +1001,7 @@ c_to_hh( Byte *o, Byte c )
 
 
 static Byte *
-c_to_cc( Byte *o, Couple *cc, Byte c )
+c_to_cc( Byte *o, const Couple *cc, Byte c )
 {
   if ( (*cc).a != 0 ) {
     if ( (*cc).b == 0 )
@@ -1151,7 +1151,7 @@ ldap_t61_to_8859( char **bufp, unsigned long *buflenp, int free_input )
 
 
 static int
-hh_to_c( Byte *h )
+hh_to_c( const Byte *h )
 {
   Byte c;
 
@@ -1172,7 +1172,7 @@ hh_to_c( Byte *h )
 
 
 static Byte *
-cc_to_t61( Byte *o, Byte *s )
+cc_to_t61( Byte *o, const Byte *s )
 {
   int n, c = 0;
 
@@ -1563,7 +1563,7 @@ ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input )
   Byte		*s, *oo, *o, *aux;
   int		c;
   unsigned long len; 
-  Couple	*cc;
+  const Couple	*cc;
 
   Debug( LDAP_DEBUG_TRACE, "ldap_8859_to_t61 input length: %ld\n",
 	*buflenp, 0, 0 );
@@ -1689,7 +1689,7 @@ char	*s;
 /* --- routine to convert 8bits characters to the "escaped" (\hh) form --- */
 
 char *convert_8bit_to_escaped( s )
-Byte  *s;
+const Byte  *s;
 {
   Byte	*o, *oo;
   Byte	n;
@@ -1730,7 +1730,7 @@ Byte  *s;
    that conversion is language dependent.
 */
 
-static Couple last_t61_printabled[32] = {
+static const Couple last_t61_printabled[32] = {
 	{0,0},     {'A','E'}, {'D',0},   {0,0},
 	{'H',0},   {0,0},     {'I','J'}, {'L',0},
 	{'L',0},   {'O',0},   {'O','E'}, {0,0},
@@ -1746,7 +1746,7 @@ Byte  *s;
 {
   Byte   *o, *oo;
   Byte   n;
-  Couple *cc;
+  const Couple *cc;
 
   if ( (o = oo = (Byte *)malloc( 2 * strlen( s ) + 64 )) == NULL ) {
         return( NULL );

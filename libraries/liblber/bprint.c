@@ -106,7 +106,7 @@ lber_log_bprint(int errlvl, int loglvl, char *data, int len )
 void
 ber_bprint(char *data, int len )
 {
-    static char	hexdig[] = "0123456789abcdef";
+    static const char	hexdig[] = "0123456789abcdef";
 #define BPLEN	48
     char	out[ BPLEN ];
     char	buf[ BPLEN + sizeof("\t%s\n") ];
