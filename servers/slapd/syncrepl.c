@@ -50,10 +50,9 @@
 static const struct berval slap_syncrepl_bvc = BER_BVC(SYNCREPL_STR);
 static const struct berval slap_syncrepl_cn_bvc = BER_BVC(CN_STR SYNCREPL_STR);
 
+static int syncuuid_cmp( const void *, const void * );
 static void avl_ber_bvfree( void * );
-
-static void
-syncrepl_del_nonpresent( Operation *, syncinfo_t * );
+static void syncrepl_del_nonpresent( Operation *, syncinfo_t * );
 
 /* callback functions */
 static int dn_callback( struct slap_op *, struct slap_rep * );
@@ -425,8 +424,7 @@ do_syncrep2(
 	struct sync_cookie	syncCookie_req = { NULL, -1, NULL };
 	struct berval		cookie = { 0, NULL };
 
-	int	rc;
-	int	err;
+	int	rc, err, i;
 	ber_len_t	len;
 
 	slap_callback	cb;
@@ -444,13 +442,16 @@ do_syncrep2(
 
 	int		refreshDeletes = 0;
 	int		refreshDone = 1;
-	BerVarray syncUUIDs;
+	BerVarray syncUUIDs = NULL;
 	ber_tag_t si_tag;
 
 	if ( slapd_abrupt_shutdown ) {
 		rc = -2;
 		goto done;
 	}
+
+	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrep2\n", 0, 0, 0 );
@@ -626,15 +627,15 @@ do_syncrep2(
 						ber_scanf( ber, "}" );
 						break;
 					case LDAP_TAG_SYNC_ID_SET:
-						/* FIXME : to be supported */
 						ber_scanf( ber, "t{", &tag );
-						if ( ber_peek_tag( ber, &len ) == LDAP_TAG_SYNC_COOKIE )
-						{
+						if ( ber_peek_tag( ber, &len ) ==
+								LDAP_TAG_SYNC_COOKIE ) {
 							ber_scanf( ber, "m", &cookie );
 							if ( cookie.bv_val ) {
 								struct berval tmp_bv;
 								ber_dupbv( &tmp_bv, &cookie );
-								ber_bvarray_add( &syncCookie.octet_str, &tmp_bv);
+								ber_bvarray_add( &syncCookie.octet_str,
+												 &tmp_bv );
 							}
 							if ( syncCookie.octet_str &&
 									 syncCookie.octet_str[0].bv_val )
@@ -647,6 +648,14 @@ do_syncrep2(
 						}
 						ber_scanf( ber, "[W]", &syncUUIDs );
 						ber_scanf( ber, "}" );
+						for ( i = 0; syncUUIDs[i].bv_val; i++ ) {
+							struct berval *syncuuid_bv;
+							syncuuid_bv = ber_dupbv( NULL, &syncUUIDs[i] );
+							avl_insert( &si->si_presentlist,
+									(caddr_t) syncuuid_bv,
+									syncuuid_cmp, avl_dup_error );
+						}
+						ber_memfree_x( syncUUIDs, op->o_tmpmemctx );
 						break;
 					default:
 #ifdef NEW_LOGGING
@@ -939,7 +948,8 @@ syncrepl_message_to_entry(
 	sl_free( ndn.bv_val, op->o_tmpmemctx );
 	sl_free( dn.bv_val, op->o_tmpmemctx );
 
-	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE ) {
+	if ( syncstate == LDAP_SYNC_PRESENT || syncstate == LDAP_SYNC_DELETE )
+	{
 		return NULL;
 	}
 
@@ -1009,16 +1019,6 @@ done:
 	}
 
 	return e;
-}
-
-int
-syncuuid_cmp( const void* v_uuid1, const void* v_uuid2 )
-{
-	const struct berval *uuid1 = v_uuid1;
-	const struct berval *uuid2 = v_uuid2;
-	int rc = uuid1->bv_len - uuid2->bv_len;
-	if ( rc ) return rc;
-	return ( strcmp( uuid1->bv_val, uuid2->bv_val ) );
 }
 
 int
@@ -1820,6 +1820,16 @@ slap_uuidstr_from_normalized(
 	new->bv_val[new->bv_len] = '\0';
 
 	return new;
+}
+
+static int
+syncuuid_cmp( const void* v_uuid1, const void* v_uuid2 )
+{
+	const struct berval *uuid1 = v_uuid1;
+	const struct berval *uuid2 = v_uuid2;
+	int rc = uuid1->bv_len - uuid2->bv_len;
+	if ( rc ) return rc;
+	return ( strcmp( uuid1->bv_val, uuid2->bv_val ) );
 }
 
 static void

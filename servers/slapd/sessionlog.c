@@ -96,8 +96,8 @@ slap_send_session_log(
 			rs->sr_attrs = uuid_attr;
 			rs->sr_ctrls = ctrls;
 			result = send_search_entry( op, rs );
-			ch_free( ctrls[num_ctrls-1]->ldctl_value.bv_val );
-			ch_free( ctrls[--num_ctrls] );
+			sl_free( ctrls[num_ctrls-1]->ldctl_value.bv_val, op->o_tmpmemctx );
+			sl_free( ctrls[--num_ctrls], op->o_tmpmemctx );
 			ctrls[num_ctrls] = NULL;
 			rs->sr_ctrls = NULL;
 		}

@@ -58,8 +58,9 @@ slap_build_sync_state_ctrl(
 	struct berval entryuuid_bv	= { 0, NULL };
 
 	ber_init2( ber, 0, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
-	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
+	ctrls[num_ctrls] = sl_malloc ( sizeof ( LDAPControl ), op->o_tmpmemctx );
 
 	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
 		AttributeDescription *desc = a->a_desc;
@@ -117,6 +118,7 @@ slap_build_sync_done_ctrl(
 	BerElement *ber = (BerElement *)&berbuf;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
 
@@ -174,7 +176,8 @@ slap_build_sync_state_ctrl_from_slog(
 
 	struct berval entryuuid_bv	= { 0, NULL };
 
-	ber_init2( ber, 0, LBER_USE_DER );
+	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	ctrls[num_ctrls] = ch_malloc ( sizeof ( LDAPControl ) );
 
@@ -231,6 +234,7 @@ slap_send_syncinfo(
 	int ret;
 
 	ber_init2( ber, NULL, LBER_USE_DER );
+	ber_set_option( ber, LBER_OPT_BER_MEMCTX, &op->o_tmpmemctx );
 
 	if ( type ) {
 		switch ( type ) {
@@ -469,4 +473,28 @@ slap_dup_sync_cookie(
 	}
 
 	return new;
+}
+
+int
+slap_build_syncUUID_set(
+	Operation *op,
+	BerVarray *set,
+	Entry *e
+)
+{
+	int ret;
+	Attribute* a;
+
+	struct berval entryuuid_bv	= { 0, NULL };
+
+	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
+		AttributeDescription *desc = a->a_desc;
+		if ( desc == slap_schema.si_ad_entryUUID ) {
+			ber_dupbv_x( &entryuuid_bv, &a->a_nvals[0], op->o_tmpmemctx );
+		}
+	}
+
+	ret = ber_bvarray_add_x( set, &entryuuid_bv, op->o_tmpmemctx );
+
+	return ret;
 }

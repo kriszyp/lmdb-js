@@ -1292,6 +1292,7 @@ typedef BackendDB Backend;
  */
 
 #define SLAP_SYNC_SID_SIZE	3
+#define SLAP_SYNCUUID_SET_SIZE 256
 
 struct nonpresent_entry {
 	struct berval *npe_name;
