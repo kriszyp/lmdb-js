@@ -7,6 +7,10 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
+ *
+ * $Id$
+ *
+ * $Log$
  */
 
 #include "portable.h"
@@ -95,47 +99,47 @@ interp_send_results(
 
 char *tcl_clean_entry (Entry *e)
 {
-    char *entrystr, *mark1, *mark2, *buf, *bp, *dup;
-    int len, bsize;
+	char *entrystr, *mark1, *mark2, *buf, *bp, *dup;
+	int len, bsize;
 
-    pthread_mutex_lock( &entry2str_mutex );
-    entrystr = entry2str( e, &len, 0 );
-    pthread_mutex_unlock( &entry2str_mutex );
+	pthread_mutex_lock( &entry2str_mutex );
+	entrystr = entry2str( e, &len, 0 );
+	pthread_mutex_unlock( &entry2str_mutex );
 
-    buf = (char *) ch_malloc( BUFSIZ );
-    buf[0] = '\0';
-    bsize = BUFSIZ;
-    bp = buf;
-    bp++[0] = ' ';
+	buf = (char *) ch_malloc( BUFSIZ );
+	buf[0] = '\0';
+	bsize = BUFSIZ;
+	bp = buf;
+	bp++[0] = ' ';
 
-    mark1 = entrystr;
-    do {
+	mark1 = entrystr;
+	do {
 		if (mark1[0] == '\n') {
-	    	mark1++;
+		    	mark1++;
 		}
 		dup = (char *) strdup(mark1);
-		if (dup[0] != '\0') {
-	    	if ((mark2 = (char *) strchr (dup, '\n')) != NULL) {
+			if (dup[0] != '\0') {
+	    		if ((mark2 = (char *) strchr (dup, '\n')) != NULL) {
 				mark2[0] = '\0';
-	    	}
-	    	len = strlen( dup ) + 3;
-	    	while ( bp + len - buf > bsize ) {
+	    		}
+	    		len = strlen( dup ) + 3;
+	    		while ( bp + len - buf > bsize ) {
 				bsize += BUFSIZ;
 				buf = (char *) ch_realloc( buf, bsize );
-	    	}
-	    	if (mark1[0] == '\0') {
+	    		}
+	    		if (mark1[0] == '\0') {
 				sprintf(bp, "{} ");
-	    	} else {
+	    		} else {
 				sprintf(bp, "{%s} ", dup);
-	    	}
-	    	bp += len;
-	    	if (mark2 != NULL) {
+	    		}
+	    		bp += len;
+	    		if (mark2 != NULL) {
 				mark2[0] = '\n';
-	    	}
+		    	}
 		}
 		free(dup);
-    } while ((mark1 = (char *) strchr (mark1, '\n')) != NULL);
-    return buf;
+	} while ((mark1 = (char *) strchr (mark1, '\n')) != NULL);
+	return buf;
 }
 
 int tcl_ldap_debug (
@@ -145,8 +149,8 @@ int tcl_ldap_debug (
     char *argv[]
 )
 {
-    if (argv[1] != NULL) {
+	if (argv[1] != NULL) {
 		Debug(LDAP_DEBUG_ANY, "tcl_debug: %s\n", argv[1], 0, 0);
-    }
-    return TCL_OK;
+	}
+	return TCL_OK;
 }

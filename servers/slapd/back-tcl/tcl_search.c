@@ -7,6 +7,10 @@
  * as authorized by the OpenLDAP Public License.  A copy of this
  * license is available at http://www.OpenLDAP.org/license.html or
  * in file LICENSE in the top-level directory of the distribution.
+ *
+ * $Id$
+ *
+ * $Log$
  */
 
 #include "portable.h"
