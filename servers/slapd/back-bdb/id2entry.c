@@ -251,13 +251,24 @@ int bdb_entry_release(
 	int rw )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	struct bdb_op_info *boi = NULL;
  
 	/* slapMode : SLAP_SERVER_MODE, SLAP_TOOL_MODE,
 			SLAP_TRUNCATE_MODE, SLAP_UNDEFINED_MODE */
  
 	if ( slapMode == SLAP_SERVER_MODE ) {
 		/* free entry and reader or writer lock */
-		bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
+		if ( o ) {
+			boi = (struct bdb_op_info *)o->o_private;
+		}
+		/* lock is freed with txn */
+		if ( boi && boi->boi_txn ) {
+			bdb_unlocked_cache_return_entry_rw( &bdb->bi_cache, e, rw );
+		} else {
+			bdb_cache_return_entry_rw( bdb->bi_dbenv, &bdb->bi_cache, e, rw, &boi->boi_lock );
+			ch_free( boi );
+			o->o_private = NULL;
+		}
 	} else {
 		if (e->e_private != NULL)
 			free (e->e_private);
@@ -418,6 +429,14 @@ return_results:
 		bdb_cache_return_entry_rw(bdb->bi_dbenv, &bdb->bi_cache, e, rw, &lock);
 	} else {
 		*ent = e;
+		/* big drag. we need a place to store a read lock so we can
+		 * release it later??
+		 */
+		if ( op && !boi ) {
+			boi = ch_calloc(1,sizeof(struct bdb_op_info));
+			boi->boi_lock = lock;
+			op->o_private = boi;
+		}
 	}
 
 	if ( free_lock_id ) {

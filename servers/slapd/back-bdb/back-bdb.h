@@ -155,6 +155,7 @@ struct bdb_info {
 struct bdb_op_info {
 	BackendDB*	boi_bdb;
 	DB_TXN*		boi_txn;
+	DB_LOCK		boi_lock;	/* used when no txn */
 	u_int32_t	boi_err;
 	u_int32_t	boi_locker;
 	int		boi_acl_cache;
