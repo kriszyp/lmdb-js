@@ -351,8 +351,9 @@ slapd_daemon_task(
 		char	*client_name;
 		char	*client_addr;
 
-		if( global_idletimeout > 0 &&
-			difftime( last_idle_check+global_idletimeout, now ) < 0 )
+		if( global_idletimeout > 0 && difftime(
+			last_idle_check+global_idletimeout/SLAPD_IDLE_CHECK_LIMIT,
+			now ) < 0 )
 		{
 			connections_timeout_idle(now);
 		}
