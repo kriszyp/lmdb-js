@@ -14,37 +14,114 @@
 static int	add_values(Entry *e, LDAPMod *mod, char *dn);
 static int	delete_values(Entry *e, LDAPMod *mod, char *dn);
 static int	replace_values(Entry *e, LDAPMod *mod, char *dn);
+static void	add_lastmods(Operation *op, LDAPMod **mods);
 
-int
-ldbm_back_modify(
+
+static void
+add_lastmods( Operation *op, LDAPMod **mods )
+{
+	char		buf[22];
+	struct berval	bv;
+	struct berval	*bvals[2];
+	LDAPMod		**m;
+	LDAPMod		*tmp;
+	struct tm	*ltm;
+
+	Debug( LDAP_DEBUG_TRACE, "add_lastmods\n", 0, 0, 0 );
+
+	bvals[0] = &bv;
+	bvals[1] = NULL;
+
+	/* remove any attempts by the user to modify these attrs */
+	for ( m = mods; *m != NULL; m = &(*m)->mod_next ) {
+            if ( strcasecmp( (*m)->mod_type, "modifytimestamp" ) == 0 || 
+				strcasecmp( (*m)->mod_type, "modifiersname" ) == 0 ||
+				strcasecmp( (*m)->mod_type, "createtimestamp" ) == 0 || 
+				strcasecmp( (*m)->mod_type, "creatorsname" ) == 0 ) {
+
+                Debug( LDAP_DEBUG_TRACE,
+					"add_lastmods: found lastmod attr: %s\n",
+					(*m)->mod_type, 0, 0 );
+                tmp = *m;
+                *m = (*m)->mod_next;
+                free( tmp->mod_type );
+                if ( tmp->mod_bvalues != NULL ) {
+                    ber_bvecfree( tmp->mod_bvalues );
+                }
+                free( tmp );
+                if (!*m)
+                    break;
+            }
+        }
+
+	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
+		bv.bv_val = "NULLDN";
+		bv.bv_len = strlen( bv.bv_val );
+	} else {
+		bv.bv_val = op->o_dn;
+		bv.bv_len = strlen( bv.bv_val );
+	}
+	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
+	tmp->mod_type = ch_strdup( "modifiersname" );
+	tmp->mod_op = LDAP_MOD_REPLACE;
+	tmp->mod_bvalues = (struct berval **) ch_calloc( 1,
+	    2 * sizeof(struct berval *) );
+	tmp->mod_bvalues[0] = ber_bvdup( &bv );
+	tmp->mod_next = *mods;
+	*mods = tmp;
+
+	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
+#ifndef LDAP_LOCALTIME
+	ltm = gmtime( &currenttime );
+	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
+#else
+	ltm = localtime( &currenttime );
+	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
+#endif
+	ldap_pvt_thread_mutex_unlock( &currenttime_mutex );
+	bv.bv_val = buf;
+	bv.bv_len = strlen( bv.bv_val );
+	tmp = (LDAPMod *) ch_calloc( 1, sizeof(LDAPMod) );
+	tmp->mod_type = ch_strdup( "modifytimestamp" );
+	tmp->mod_op = LDAP_MOD_REPLACE;
+	tmp->mod_bvalues = (struct berval **) ch_calloc( 1, 2 * sizeof(struct berval *) );
+	tmp->mod_bvalues[0] = ber_bvdup( &bv );
+	tmp->mod_next = *mods;
+	*mods = tmp;
+}
+
+/* We need this function because of LDAP modrdn. If we do not 
+ * add this there would be a bunch of code replication here 
+ * and there and of course the likelihood of bugs increases.
+ * Juan C. Gomez (gomez@engr.sgi.com) 05/18/99
+ */ 
+
+int ldbm_internal_modify(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
     char	*dn,
-    LDAPMod	*mods
+    LDAPMod	*mods,
+    Entry	*e 
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	char		*matched;
-	Entry		*e;
 	int		i, err;
 	LDAPMod		*mod;
 
-	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
+	if ( ((be->be_lastmod == ON)
+	      || ((be->be_lastmod == UNDEFINED)&&(global_lastmod == ON)))
+	     && (be->be_update_ndn == NULL)) {
 
-	/* acquire and lock entry */
-	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
-		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched,
-		    NULL );
-		if ( matched != NULL ) {
-			free( matched );
-		}
-		return( -1 );
+	        /* XXX: It may be wrong, it changes mod time even if 
+		 * mod fails!
+		 */
+		add_lastmods( op, &mods );
+
 	}
 
 	if ( (err = acl_check_mods( be, conn, op, e, mods )) != LDAP_SUCCESS ) {
 		send_ldap_result( conn, op, err, NULL, NULL );
-		goto error_return;
+		return -1;
 	}
 
 	for ( mod = mods; mod != NULL; mod = mod->mod_next ) {
@@ -65,7 +142,7 @@ ldbm_back_modify(
 		if ( err != LDAP_SUCCESS ) {
 			/* unlock entry, delete from cache */
 			send_ldap_result( conn, op, err, NULL, NULL );
-			goto error_return;
+			return -1;
 		}
 	}
 
@@ -73,35 +150,73 @@ ldbm_back_modify(
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, NULL, NULL );
-		goto error_return;
+		return -1;
 	}
 
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		goto error_return;
+		return -1;
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	/* modify indexes */
 	if ( index_add_mods( be, mods, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		goto error_return;
+		return -1;
 	}
 
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
-		goto error_return;
+		return -1;
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
+	return 0;
+
+}/* int ldbm_internal_modify() */
+
+
+int
+ldbm_back_modify(
+    Backend	*be,
+    Connection	*conn,
+    Operation	*op,
+    char	*dn,
+    LDAPMod	*mods
+)
+{
+	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+	char		*matched;
+	Entry		*e;
+
+	Debug(LDAP_DEBUG_ARGS, "ldbm_back_modify:\n", 0, 0, 0);
+
+	/* acquire and lock entry */
+	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
+		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT, matched,
+		    NULL );
+		if ( matched != NULL ) {
+			free( matched );
+		}
+		return( -1 );
+	}
+
+	/* Modify the entry */
+	if ( ldbm_internal_modify( be, conn, op, dn, mods, e ) != 0 ) {
+
+		goto error_return;
+
+	}
+
 	/* change the entry itself */
 	if ( id2entry_add( be, e ) != 0 ) {
+		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		goto error_return;
+		return -1;
 	}
 
 	send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );

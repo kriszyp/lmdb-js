@@ -123,6 +123,18 @@ int index_add_values LDAP_P(( Backend *be, char *type, struct berval **vals, ID 
 #endif
 
 /*
+ * modify.c
+ */
+
+/* We need this function because of LDAP modrdn. If we do not 
+ * add this there would be a bunch of code replication here 
+ * and there and of course the likelihood of bugs increases.
+ * Juan C. Gomez (gomez@engr.sgi.com) 05/18/99
+ */ 
+int ldbm_internal_modify LDAP_P((Backend *be, Connection *conn, Operation *op,
+			         char *dn, LDAPMod *mods, Entry *e));
+
+/*
  * nextid.c
  */
 
