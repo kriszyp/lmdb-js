@@ -157,9 +157,13 @@ static int
 rwm_bind( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
 	int			rc;
 
 #ifdef ENABLE_REWRITE
+	( void )rewrite_session_init( rwmap->rwm_rw, op->o_conn );
+
 	rc = rwm_op_dn_massage( op, rs, "bindDn" );
 #else
 	rc = 1;
@@ -170,6 +174,20 @@ rwm_bind( Operation *op, SlapReply *rs )
 		send_ldap_error( op, rs, rc, "bindDn massage error" );
 		return -1;
 	}
+
+	return SLAP_CB_CONTINUE;
+}
+
+static int
+rwm_unbind( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+#ifdef ENABLE_REWRITE
+	rewrite_session_delete( rwmap->rwm_rw, op->o_conn );
+#endif
 
 	return SLAP_CB_CONTINUE;
 }
@@ -638,8 +656,14 @@ rwm_config(
 )
 {
 	int		rc = 0;
+	char		*argv0 = NULL;
 
-	if ( strncasecmp( argv[0], "rewrite", sizeof("rewrite") - 1) == 0 ) {
+	if ( strncasecmp( argv[ 0 ], "rwm-", sizeof( "rwm-" ) - 1 ) == 0 ) {
+		argv0 = argv[ 0 ];
+		argv[ 0 ] = &argv0[ sizeof( "rwm-" ) - 1 ];
+	}
+
+	if ( strncasecmp( argv[0], "rewrite", sizeof("rewrite") - 1 ) == 0 ) {
 		rc = rwm_rw_config( be, fname, lineno, argc, argv );
 
 	} else if (strcasecmp( argv[0], "map" ) == 0 ) {
@@ -650,6 +674,10 @@ rwm_config(
 
 	} else {
 		rc = SLAP_CONF_UNKNOWN;
+	}
+
+	if ( argv0 ) {
+		argv[ 0 ] = argv0;
 	}
 
 	return rc;
@@ -750,6 +778,7 @@ rwm_init(void)
 	rwm.on_bi.bi_op_modrdn = rwm_modrdn;
 	rwm.on_bi.bi_op_add = rwm_add;
 	rwm.on_bi.bi_op_delete = rwm_delete;
+	rwm.on_bi.bi_op_unbind = rwm_unbind;
 	rwm.on_bi.bi_extended = rwm_extended;
 
 	rwm.on_response = rwm_response;
