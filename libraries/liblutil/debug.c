@@ -126,7 +126,7 @@ void lutil_log_int(
 	 * break out of the loop.
 	 */
 	for( i = 0; i < numLevels; i++ ) {
-		if ( levelArray[i] == NULL ) return; 
+		if ( levelArray[i] == NULL ) break; 
 		if ( ! strcasecmp( levelArray[i]->subsystem, subsys ) ) break;
 	}
 
@@ -135,7 +135,7 @@ void lutil_log_int(
 	 * the requested output level, don't output it.
 	 */
 	if ( (level > global_level) &&
-		((i > numLevels ) || ( level > levelArray[i]->level )) )
+		((i > numLevels ) || (levelArray[i] == NULL) || ( level > levelArray[i]->level )) )
 	{
 		return;
 	}
@@ -244,6 +244,11 @@ void lutil_log_initialize(int argc, char **argv)
 	    else
 	    {
 		global_level = atoi( optarg );
+		/* 
+		 * if a negative number was used, make the global level the
+		 * maximum sane level.
+		 */
+		if ( global_level < 0 ) global_level = 65535;
 	    }
 	}
     }
