@@ -19,10 +19,6 @@
 
 /* recycled validatation routines */
 #define berValidate						blobValidate
-#define nameUIDValidate					dnValidate
-
-/* unimplemented validators */
-#define bitStringValidate				NULL
 
 /* recycled normalization routines */
 #define faxNumberNormalize				numericStringNormalize
@@ -37,10 +33,8 @@
 #define dnPretty						NULL
 #define integerPretty					NULL
 
-/* recyclied pretters */
-#define nameUIDPretty					dnPretty
-
 /* recycled matching routines */
+#define bitStringMatch					octetStringMatch
 #define integerMatch					caseIgnoreIA5Match
 #define numericStringMatch				caseIgnoreMatch
 #define objectIdentifierMatch			numericStringMatch
@@ -63,7 +57,6 @@
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
-#define bitStringMatch					NULL
 #define presentationAddressMatch		NULL
 #define protocolInformationMatch		NULL
 #define integerFirstComponentMatch		NULL
@@ -289,6 +282,104 @@ dnMatch(
 }
 
 static int
+nameUIDValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	int rc;
+	struct berval *dn;
+
+	if( in->bv_len == 0 ) return LDAP_SUCCESS;
+
+	dn = ber_bvdup( in );
+
+	if( dn->bv_val[dn->bv_len-1] == '\'' ) {
+		/* assume presence of optional UID */
+		ber_len_t i;
+
+		for(i=dn->bv_len-2; i>2; i--) {
+			if( dn->bv_val[i] != '0' &&	dn->bv_val[i] != '1' ) {
+				break;
+			}
+		}
+		if( dn->bv_val[i] != '\'' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+		if( dn->bv_val[i-1] != 'B' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+		if( dn->bv_val[i-2] != '#' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		/* trim the UID to allow use of dn_validate */
+		dn->bv_val[i-2] = '\0';
+	}
+
+	rc = dn_validate( dn->bv_val ) == NULL
+		? LDAP_INVALID_SYNTAX : LDAP_SUCCESS;
+
+	ber_bvfree( dn );
+	return rc;
+}
+
+static int
+nameUIDNormalize(
+	Syntax *syntax,
+	struct berval *val,
+	struct berval **normalized )
+{
+	struct berval *out = ber_bvdup( val );
+
+	if( out->bv_len != 0 ) {
+		char *dn;
+		ber_len_t dnlen;
+		char *uid = NULL;
+		ber_len_t uidlen = 0;
+
+		if( out->bv_val[out->bv_len-1] == '\'' ) {
+			/* assume presence of optional UID */
+			uid = strrchr( out->bv_val, '#' );
+
+			if( uid == NULL ) {
+				ber_bvfree( out );
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			uidlen = out->bv_len - (out->bv_val - uid);
+			/* temporarily trim the UID */
+			*uid = '\0';
+		}
+
+#ifdef USE_DN_NORMALIZE
+		dn = dn_normalize( out->bv_val );
+#else
+		dn = dn_validate( out->bv_val );
+#endif
+
+		if( dn == NULL ) {
+			ber_bvfree( out );
+			return LDAP_INVALID_SYNTAX;
+		}
+
+		dnlen = strlen(dn);
+
+		if( uidlen ) {
+			/* restore the separator */
+			*uid = '#';
+			/* shift the UID */
+			SAFEMEMCPY( &dn[dnlen], uid, uidlen );
+		}
+
+		out->bv_val = dn;
+		out->bv_len = dnlen + uidlen;
+	}
+
+	*normalized = out;
+	return LDAP_SUCCESS;
+}
+
+static int
 inValidate(
 	Syntax *syntax,
 	struct berval *in )
@@ -303,6 +394,35 @@ blobValidate(
 	struct berval *in )
 {
 	/* any value allowed */
+	return LDAP_SUCCESS;
+}
+
+static int
+bitStringValidate(
+	Syntax *syntax,
+	struct berval *in )
+{
+	ber_len_t i;
+
+	/* very unforgiving validation, requires no normalization
+	 * before simplistic matching
+	 */
+	if( in->bv_len < 3 ) {
+		return LDAP_INVALID_SYNTAX;
+	}
+	if( in->bv_val[0] != 'B' ||
+		in->bv_val[1] != '\'' ||
+		in->bv_val[in->bv_len-1] != '\'' )
+	{
+		return LDAP_INVALID_SYNTAX;
+	}
+
+	for( i=in->bv_len-2; i>1; i-- ) {
+		if( in->bv_val[i] != '0' && in->bv_val[i] != '1' ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
 	return LDAP_SUCCESS;
 }
 
@@ -1787,33 +1907,6 @@ IA5StringValidate(
 		if( !isascii(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
-	return LDAP_SUCCESS;
-}
-
-static int
-IA5StringConvert(
-	Syntax *syntax,
-	struct berval *in,
-	struct berval **out )
-{
-	ldap_unicode_t *u;
-	ber_len_t i, len = in->bv_len;
-	struct berval *bv = ch_malloc( sizeof(struct berval) );
-
-	bv->bv_len = len * sizeof( ldap_unicode_t );
-	u = (ldap_unicode_t *) ch_malloc( bv->bv_len + sizeof(ldap_unicode_t) );
-	bv->bv_val = (char *) u;
-
-	for(i=0; i < len; i++ ) {
-		/*
-		 * IA5StringValidate should have been called to ensure
-		 * input is limited to IA5.
-		 */
-		u[i] = in->bv_val[i];
-	}
-	u[i] = 0;
-
-	*out = bv;
 	return LDAP_SUCCESS;
 }
 
@@ -3559,7 +3652,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' " X_BINARY X_NOT_H_R ")",
 		SLAP_SYNTAX_BER, berValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
-		0, bitStringValidate, bitStringNormalize, NULL },
+		0, bitStringValidate, NULL, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
 		0, booleanValidate, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
@@ -3616,7 +3709,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, nameUIDValidate, nameUIDNormalize, nameUIDPretty},
+		0, nameUIDValidate, nameUIDNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
@@ -3660,7 +3753,7 @@ struct syntax_defs_rec syntax_defs[] = {
 		0, NULL, NULL, NULL},
 
 	/* RFC 2307 NIS Syntaxes */
-	{"( 1.3.6.1.1.1.0.0  DESC 'RFC2307 NIS Triple' )",
+	{"( 1.3.6.1.1.1.0.0  DESC 'RFC2307 NIS Netgroup Triple' )",
 		0, nisNetgroupTripleValidate, NULL, NULL},
 	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
 		0, bootParameterValidate, NULL, NULL},
@@ -3694,7 +3787,6 @@ struct mrule_defs_rec {
  * Other matching rules in X.520 that we do not use (yet):
  *
  * 2.5.13.9		numericStringOrderingMatch
- * 2.5.13.13	booleanMatch
  * 2.5.13.15	integerOrderingMatch
  * 2.5.13.18	octetStringOrderingMatch
  * 2.5.13.19	octetStringSubstringsMatch
