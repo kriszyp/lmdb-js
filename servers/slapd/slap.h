@@ -302,7 +302,7 @@ typedef struct slap_syntax {
 	LDAPSyntax			ssyn_syn;
 #define ssyn_oid		ssyn_syn.syn_oid
 #define ssyn_desc		ssyn_syn.syn_desc
-#define ssyn_extensions		ssyn_syn.syn_extensions
+#define ssyn_extensions	ssyn_syn.syn_extensions
 	/*
 	 * Note: the former
 	ber_len_t	ssyn_oidlen;
@@ -1341,7 +1341,7 @@ typedef struct syncinfo_s {
 } syncinfo_t;
 
 #define IDSTR           "id"
-#define MASTERSTR       "master"
+#define PROVIDERSTR     "provider"
 #define SUFFIXSTR       "suffix"
 #define UPDATEDNSTR		"updatedn"
 #define BINDDNSTR       "binddn"
@@ -1356,8 +1356,8 @@ typedef struct syncinfo_s {
 #define SASLMECHSTR     "saslmech"
 #define REALMSTR        "realm"
 #define SECPROPSSTR     "secprops"
-#define TLSSTR          "tls"
-#define TLSCRITICALSTR  "critical"
+#define STARTTLSSTR     "starttls"
+#define CRITICALSTR     "critical"
 
 #define FILTERSTR       "filter"
 #define SEARCHBASESTR   "searchbase"

@@ -2748,9 +2748,9 @@ parse_syncrepl_line(
 			val = cargv[ i ] + sizeof( IDSTR );
 			si->id = atoi( val );
 			gots |= GOT_ID;
-		} else if ( !strncasecmp( cargv[ i ], MASTERSTR,
-					sizeof( MASTERSTR ) - 1 )) {
-			val = cargv[ i ] + sizeof( MASTERSTR );
+		} else if ( !strncasecmp( cargv[ i ], PROVIDERSTR,
+					sizeof( PROVIDERSTR ) - 1 )) {
+			val = cargv[ i ] + sizeof( PROVIDERSTR );
 			si->masteruri = ch_strdup( val );
 			if (( hp = strchr( val, ':' )) != NULL ) {
 				if ( *( hp + 1 ) == '/' ) {
@@ -2778,9 +2778,11 @@ parse_syncrepl_line(
 			si->master_bv[1].bv_len = 0;
 			si->master_bv[1].bv_val = NULL;
 			gots |= GOT_HOST;
-		} else if ( !strncasecmp( cargv[ i ], TLSSTR, sizeof( TLSSTR ) - 1 ) ) {
-			val = cargv[ i ] + sizeof( TLSSTR );
-			if( !strcasecmp( val, TLSCRITICALSTR ) ) {
+		} else if ( !strncasecmp( cargv[ i ], STARTTLSSTR,
+			sizeof(STARTTLSSTR) - 1 ) )
+		{
+			val = cargv[ i ] + sizeof( STARTTLSSTR );
+			if( !strcasecmp( val, CRITICALSTR ) ) {
 				si->tls = TLS_CRITICAL;
 			} else {
 				si->tls = TLS_ON;
