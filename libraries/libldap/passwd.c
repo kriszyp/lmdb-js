@@ -20,7 +20,7 @@
 int ldap_parse_passwd(
 	LDAP *ld,
 	LDAPMessage *res,
-	struct berval **newpasswd )
+	struct berval *newpasswd )
 {
 	int rc;
 	char *retoid = NULL;
@@ -31,7 +31,8 @@ int ldap_parse_passwd(
 	assert( res != NULL );
 	assert( newpasswd != NULL );
 
-	*newpasswd = NULL;
+	newpasswd->bv_val = NULL;
+	newpasswd->bv_len = 0;
 
 	rc = ldap_parse_extended_result( ld, res, &retoid, &retdata, 0 );
 
@@ -49,7 +50,7 @@ int ldap_parse_passwd(
 		}
 
 		/* we should check the tag */
-		tag = ber_scanf( ber, "{O}", newpasswd );
+		tag = ber_scanf( ber, "{o}", newpasswd );
 		ber_free( ber, 1 );
 
 		if( tag == LBER_ERROR ) {
@@ -129,7 +130,7 @@ ldap_passwd_s(
 	struct berval	*user,
 	struct berval	*oldpw,
 	struct berval	*newpw,
-	struct berval **newpasswd,
+	struct berval *newpasswd,
 	LDAPControl **sctrls,
 	LDAPControl **cctrls )
 {

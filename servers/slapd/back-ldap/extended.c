@@ -72,7 +72,7 @@ ldap_back_exop_passwd(
 	struct berval id = { 0, NULL };
 	struct berval old = { 0, NULL };
 	struct berval new = { 0, NULL };
-	struct berval dn, mdn = { 0, NULL }, *newpw = NULL;
+	struct berval dn, mdn = { 0, NULL }, newpw;
 	LDAPMessage *res;
 	ber_int_t msgid;
 	char *msg = NULL, *match = NULL;
@@ -156,9 +156,9 @@ ldap_back_exop_passwd(
 			if (rc == LDAP_SUCCESS) {
 				if (err == LDAP_SUCCESS) {
 					rc = ldap_parse_passwd(lc->ld, res, &newpw);
-					if (rc == LDAP_SUCCESS && newpw) {
-						*rspdata = slap_passwd_return(newpw);
-						ber_bvfree(newpw);
+					if (rc == LDAP_SUCCESS && newpw.bv_val) {
+						*rspdata = slap_passwd_return(&newpw);
+						free(newpw.bv_val);
 					}
 				} else {
 					rc = err;
