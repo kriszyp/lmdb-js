@@ -449,7 +449,7 @@ op_ldap_modrdn(
 	char *buf2;
 	sprintf( buf, "%s:%d", ri->ri_hostname, ri->ri_port );
 	buf2 = (char *) ch_malloc( strlen( re->re_dn ) + strlen( mi->mi_val )
-		+ 10 );
+		+ 11 );
 	sprintf( buf2, "(\"%s\" -> \"%s\")", re->re_dn, mi->mi_val );
 	Debug( LDAP_DEBUG_ARGS,
 		"replica %s - modify rdn %s (flag: %d)\n",
