@@ -489,13 +489,15 @@ bdb_idl_fetch_key(
 	}
 	
 	/* If this is a LE lookup, save original key so we can determine
-	 * when to stop
+	 * when to stop. If this is a GE lookup, save the key since it
+	 * will be overwritten.
 	 */
-	if ( get_flag == LDAP_FILTER_LE ) {
+	if ( get_flag == LDAP_FILTER_LE || get_flag == LDAP_FILTER_GE ) {
 		DBTzero( &key2 );
 		key2.flags = DB_DBT_USERMEM;
 		key2.ulen = sizeof(keybuf);
 		key2.data = keybuf;
+		key2.size = key->size;
 		AC_MEMCPY( keybuf, key->data, key->size );
 		kptr = &key2;
 	} else {
