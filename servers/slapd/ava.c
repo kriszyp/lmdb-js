@@ -51,6 +51,7 @@ get_ava(
 
 	aa = ch_malloc( sizeof( AttributeAssertion ) );
 	aa->aa_desc = NULL;
+	aa->aa_value = NULL;
 
 	rc = slap_bv2ad( &type, &aa->aa_desc, text );
 

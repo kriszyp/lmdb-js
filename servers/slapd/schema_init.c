@@ -23,7 +23,7 @@ blobValidate(
 	struct berval *in )
 {
 	/* any value allowed */
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -40,16 +40,16 @@ UTF8StringValidate(
 		len = LDAP_UTF8_CHARLEN( u );
 
 		/* should not be zero */
-		if( len == 0 ) return -1;
+		if( len == 0 ) return LDAP_INVALID_SYNTAX;
 
 		/* make sure len corresponds with the offset
 			to the next character */
-		if( LDAP_UTF8_OFFSET( u ) != len ) return -1;
+		if( LDAP_UTF8_OFFSET( u ) != len ) return LDAP_INVALID_SYNTAX;
 	}
 
-	if( count != 0 ) return -1;
+	if( count != 0 ) return LDAP_INVALID_SYNTAX;
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -70,9 +70,9 @@ UTF8StringNormalize(
 		LDAP_UTF8_INCR( p );
 	}
 
-	if( *p ) {
+	if( *p == '\0' ) {
 		ch_free( newval );
-		return 1;
+		return LDAP_INVALID_SYNTAX;
 	}
 
 	newval->bv_val = ch_strdup( p );
@@ -126,7 +126,7 @@ UTF8StringNormalize(
 	newval->bv_len = q - newval->bv_val;
 	*normalized = newval;
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -146,23 +146,23 @@ oidValidate(
 			} else if ( isdigit(val->bv_val[i]) ) {
 				dot = 0;
 			} else {
-				return 1;
+				return LDAP_INVALID_SYNTAX;
 			}
 		}
 
-		return !dot ? 0 : 1;
+		return !dot ? LDAP_SUCCESS : LDAP_INVALID_SYNTAX;
 
 	} else if( isalpha(val->bv_val[0]) ) {
 		for(i=1; i < val->bv_len; i++) {
 			if( !isalpha(val->bv_val[i] ) ) {
-				return 1;
+				return LDAP_INVALID_SYNTAX;
 			}
 		}
 
-		return 0;
+		return LDAP_SUCCESS;
 	}
 	
-	return 1;
+	return LDAP_INVALID_SYNTAX;
 }
 
 static int
@@ -173,10 +173,10 @@ integerValidate(
 	ber_len_t i;
 
 	for(i=0; i < val->bv_len; i++) {
-		if( !isdigit(val->bv_val[i]) ) return -1;
+		if( !isdigit(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -187,10 +187,10 @@ printableStringValidate(
 	ber_len_t i;
 
 	for(i=0; i < val->bv_len; i++) {
-		if( !isprint(val->bv_val[i]) ) return -1;
+		if( !isprint(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -201,10 +201,10 @@ IA5StringValidate(
 	ber_len_t i;
 
 	for(i=0; i < val->bv_len; i++) {
-		if( !isascii(val->bv_val[i]) ) return -1;
+		if( !isascii(val->bv_val[i]) ) return LDAP_INVALID_SYNTAX;
 	}
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -230,7 +230,7 @@ IA5StringConvert(
 	u[i] = 0;
 
 	*out = bv;
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -253,7 +253,7 @@ IA5StringNormalize(
 
 	if( *p ) {
 		ch_free( newval );
-		return 1;
+		return LDAP_INVALID_SYNTAX;
 	}
 
 	newval->bv_val = ch_strdup( p );
@@ -298,7 +298,7 @@ IA5StringNormalize(
 	newval->bv_len = q - newval->bv_val;
 	*normalized = newval;
 
-	return 0;
+	return LDAP_SUCCESS;
 }
 
 static int
@@ -711,7 +711,7 @@ schema_init( void )
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering syntax %s\n",
 				 syntax_defs[i].sd_desc );
-			return -1;
+			return LDAP_OTHER;
 		}
 	}
 
@@ -736,11 +736,11 @@ schema_init( void )
 			fprintf( stderr,
 				"schema_init: Error registering matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
-			return -1;
+			return LDAP_OTHER;
 		}
 	}
 	schema_init_done = 1;
-	return( 0 );
+	return LDAP_SUCCESS;
 }
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
@@ -872,5 +872,5 @@ schema_prep( void )
 #endif
 
 	++schema_init_done;
-	return 0;
+	return LDAP_SUCCESS;
 }
