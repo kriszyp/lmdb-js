@@ -61,7 +61,11 @@ ldap_search_ext(
 	BerElement	*ber;
 	int timelimit;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY, "ldap_search_ext\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_search_ext\n", 0, 0, 0 );
+#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
@@ -179,7 +183,11 @@ ldap_search(
 {
 	BerElement	*ber;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "search", LDAP_LEVEL_ENTRY, "ldap_search\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_search\n", 0, 0, 0 );
+#endif
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
