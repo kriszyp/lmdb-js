@@ -14,6 +14,8 @@
 /* crypt() may be defined in a separate include file */
 #if HAVE_CRYPT_H
 #	include <crypt.h>
+#else
+	extern char *crypt();
 #endif
 
 /* getopt() defines may be in separate include file */
