@@ -1102,7 +1102,12 @@ limits_check( Operation *op, SlapReply *rs )
 			}
 
 			if ( pr_total == -1 ) {
-				slimit = -1;
+				if ( op->ors_slimit == 0 || op->ors_slimit == SLAP_MAX_LIMIT ) {
+					slimit = -1;
+
+				} else {
+					slimit = op->ors_slimit - op->o_pagedresults_state.ps_count;
+				}
 
 			} else if ( pr_total > 0 && op->ors_slimit != SLAP_MAX_LIMIT
 					&& ( op->ors_slimit == SLAP_NO_LIMIT || op->ors_slimit > pr_total ) )
