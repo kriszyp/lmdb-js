@@ -93,39 +93,46 @@ LDAP_BEGIN_DECL
 /* debugging stuff */
 #ifdef LDAP_DEBUG
 
-/*
- * This is a bogus extern declaration for the compiler. No need to ensure
- * a 'proper' dllimport.
- */
-#ifndef ldap_debug
-extern int	ldap_debug;
-#endif /* !ldap_debug */
+    /*
+     * This is a bogus extern declaration for the compiler. No need to ensure
+     * a 'proper' dllimport.
+     */
+#   ifndef ldap_debug
+     extern int	ldap_debug;
+#   endif /* !ldap_debug */
 
-#ifdef LDAP_SYSLOG
-extern int	ldap_syslog;
-extern int	ldap_syslog_level;
-#endif /* LDAP_SYSLOG */
+#   ifdef LDAP_SYSLOG
+    extern int	ldap_syslog;
+    extern int	ldap_syslog_level;
+#   endif /* LDAP_SYSLOG */
 
 /* this doesn't below as part of ldap.h */
-#ifdef LDAP_SYSLOG
-#define Debug( level, fmt, arg1, arg2, arg3 )	\
+#   ifdef LDAP_SYSLOG
+#   define Debug( level, fmt, arg1, arg2, arg3 )	\
 	do { \
 		lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) ); \
 		if ( ldap_syslog & (level) ) \
 			syslog( ldap_syslog_level, (fmt), (arg1), (arg2), (arg3) ); \
 	} while ( 0 )
 
-#else
-#define Debug( level, fmt, arg1, arg2, arg3 ) \
-	lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) )
+#   else
+#       define Debug( level, fmt, arg1, arg2, arg3 ) \
+	    lutil_debug( ldap_debug, (level), (fmt), (arg1), (arg2), (arg3) )
+#   endif
+
+#ifndef LDAP_LOG
+#   define LDAP_LOG(a) lutil_log a
 #endif
 
 #else /* LDAP_DEBUG */
-#define Debug( level, fmt, arg1, arg2, arg3 )
+#   define Debug( level, fmt, arg1, arg2, arg3 )
+
+#ifndef LDAP_LOG
+#   define LDAP_LOG(a)
+#endif
+
 #endif /* LDAP_DEBUG */
 
-
-#define LDAP_LOG(a) lutil_log a
 
 LDAP_LUTIL_F(void) lutil_log_initialize(int argc, char **argv);
 LDAP_LUTIL_F(void) lutil_set_debug_level LDAP_P(( char *subsys, int level ));
