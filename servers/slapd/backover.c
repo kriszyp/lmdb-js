@@ -189,6 +189,7 @@ over_op_func(
 		rc = LDAP_UNWILLING_TO_PERFORM;
 	}
 	op->o_bd = be;
+	op->o_callback = cb.sc_private;
 	return rc;
 }
 
