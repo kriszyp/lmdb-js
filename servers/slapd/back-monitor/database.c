@@ -50,7 +50,6 @@ monitor_subsys_database_init(
 	AttributeDescription 	*ad_nc = slap_schema.si_ad_namingContexts;
 	AttributeDescription 	*ad_seeAlso = NULL;
 	const char		*text = NULL;
-	struct berval 		bv[2];
 
 	assert( be != NULL );
 	assert( monitor_ad_desc != NULL );
@@ -116,7 +115,10 @@ monitor_subsys_database_init(
 		}
 		
 		for ( j = 0; be->be_suffix[j]; j++ ) {
-			bv[0] = *be->be_suffix[j];
+			struct berval 		bv[ 2 ];
+
+			bv[ 0 ] = *be->be_suffix[ j ];
+			bv[ 1 ].bv_val = NULL;
 
 			attr_merge( e, ad_nc, bv );
 			attr_merge( e_database, ad_nc, bv );
@@ -124,6 +126,8 @@ monitor_subsys_database_init(
 
 		for ( j = nBackendInfo; j--; ) {
 			if ( &backendInfo[ j ] == be->bd_info ) {
+				struct berval 		bv[ 2 ];
+
 				/* we check the pointer; the test on the
 				 * string should be more reliable */
 				assert( strcasecmp( backendInfo[ j ].bi_type,
@@ -132,8 +136,9 @@ monitor_subsys_database_init(
 				snprintf( buf, sizeof( buf ), 
 					"cn=Backend %d,%s", 
 					j, monitor_subsys[SLAPD_MONITOR_BACKEND].mss_dn.bv_val );
-				bv->bv_val = buf;
-				bv->bv_len = strlen( buf );
+				bv[ 0 ].bv_val = buf;
+				bv[ 0 ].bv_len = strlen( buf );
+				bv[ 1 ].bv_val = NULL;
 				attr_merge( e, ad_seeAlso, bv );
 				break;
 			}

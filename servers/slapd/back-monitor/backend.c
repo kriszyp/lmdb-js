@@ -51,7 +51,6 @@ monitor_subsys_backend_init(
 	Entry			*e, *e_backend, *e_tmp;
 	int			i;
 	struct monitorentrypriv	*mp;
-	struct berval 		bv[2];
 
 	mi = ( struct monitorinfo * )be->be_private;
 
@@ -73,11 +72,11 @@ monitor_subsys_backend_init(
 		return( -1 );
 	}
 
-	bv[1].bv_val = NULL;
 	e_tmp = NULL;
 	for ( i = nBackendInfo; i--; ) {
-		char buf[1024];
-		BackendInfo *bi;
+		char 		buf[1024];
+		BackendInfo 	*bi;
+		struct berval 	bv[ 2 ];
 
 		bi = &backendInfo[i];
 
@@ -110,6 +109,7 @@ monitor_subsys_backend_init(
 		
 		bv[0].bv_val = bi->bi_type;
 		bv[0].bv_len = strlen( bv[0].bv_val );
+		bv[1].bv_val = NULL;
 
 		attr_merge( e, monitor_ad_desc, bv );
 		attr_merge( e_backend, monitor_ad_desc, bv );
