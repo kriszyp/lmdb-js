@@ -42,6 +42,7 @@
 #include "globals.h"
 
 Globals		 *sglob;
+static Globals glob;
 
 int ldap_syslog = 0;
 #ifdef LOG_DEBUG
@@ -59,10 +60,10 @@ init_globals( void )
 {
     Globals *g;
 
-    g = ( Globals * ) calloc( 1, sizeof( Globals ));
-    if ( g == NULL ) {
-	return NULL;
-    }
+    g = &glob;
+
+	g->wake_sds[0] = -1;
+	g->wake_sds[1] = -1;
 
 #ifdef HAVE_NT_SERVICE_MANAGER
     g->slapd_configfile = ".\\slapd.conf";
@@ -71,11 +72,11 @@ init_globals( void )
     g->slapd_configfile = SLAPD_DEFAULT_CONFIGFILE;
     g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR "/replica";
 #endif
+
     g->no_work_interval = DEFAULT_NO_WORK_INTERVAL;
     g->slurpd_shutdown = 0;
     g->num_replicas = 0;
     g->replicas = NULL;
-    strcpy( g->slurpd_status_file, DEFAULT_SLURPD_STATUS_FILE );
     g->slapd_replogfile[ 0 ] = '\0';
     g->slurpd_replogfile[ 0 ] = '\0';
     g->slurpd_status_file[ 0 ] = '\0';
