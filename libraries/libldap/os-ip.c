@@ -333,9 +333,13 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 				AC_GAI_STRERROR(err), 0, 0);
 			return -1;
 		}
-		sai = res;
 		rc = -1;
-		do {
+
+		for( sai=res; sai != NULL; sai=sai->ai_next) {
+			if( sai->ai_addr == NULL ) {
+				continue;
+			}
+
 			/* we assume AF_x and PF_x are equal for all x */
 			s = ldap_int_socket( ld, sai->ai_family, socktype );
 			if ( s == AC_SOCKET_INVALID ) {
@@ -374,7 +378,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 				break;
 			}
 			ldap_pvt_close_socket(ld, s);
-		} while ((sai = sai->ai_next) != NULL);
+		}
 		freeaddrinfo(res);
 		return rc;
 
