@@ -1572,6 +1572,7 @@ static int search_candidates(
 	f.f_and = &nf;
 	/* Dummy; we compute scope separately now */
 	nf.f_choice = SLAPD_FILTER_COMPUTED;
+	nf.f_result = SLAPD_COMPARE_UNDEFINED;
 	nf.f_next = xf.f_or == op->oq_search.rs_filter
 		? op->oq_search.rs_filter : &xf ;
 	/* Filter depth increased again, adding dummy clause */
