@@ -1,0 +1,249 @@
+#! /bin/sh
+# $OpenLDAP$
+
+CACHETTL=60
+CACHE_ENTRY_LIMIT=10
+
+. $SRCDIR/scripts/defines.sh
+
+if test $PROXYCACHE = no; then 
+	echo "Proxy caching requires back-meta AND (back-ldbm OR back-bdb)" 
+	exit 0
+fi 
+
+mkdir -p $TESTDIR $DBDIR1 $DBDIR2
+
+# Test proxy caching:
+# - start master
+# - start proxy cache
+# - populate master 
+# - perform first set of searches at the proxy
+# - verify cacheability
+# - perform second set of searches at the proxy 
+# - verify answerability
+
+echo "Starting master slapd on TCP/IP port $PORT1..."
+. $CONFFILTER < $CACHEMASTERCONF > $CONF
+$SLAPD -f $CONF -h $URI1 -d $LVL > $LOG1 2>&1 &
+PID=$!
+if test $WAIT != 0 ; then
+	echo PID $PID
+	read foo
+fi
+KILLPIDS="$PIDS"
+
+echo "Using ldapsearch to check that master slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Using ldapadd to populate the master directory..."
+$LDAPADD -x -D "$MANAGERDN" -h $LOCALHOST -p $PORT1 -w $PASSWD < \
+	$LDIFORDERED > /dev/null 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapadd failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Starting proxy cache on TCP/IP port $PORT2..."
+. $CONFFILTER < $PROXYCACHECONF > $CONF2
+$SLAPD -f $CONF2 -h $URI2 -d $LVL > $LOG2 2>&1 &
+CACHEPID=$!
+if test $WAIT != 0 ; then
+	echo CACHEPID $CACHEPID
+	read foo
+fi
+KILLPIDS="$KILLPIDS $CACHEPID"
+
+echo "Using ldapsearch to check that proxy slapd is running..."
+for i in 0 1 2 3 4 5; do
+	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT2 \
+		'objectclass=*' > /dev/null 2>&1
+	RC=$?
+	if test $RC = 0 ; then
+		break
+	fi
+	echo "Waiting 5 seconds for slapd to start..."
+	sleep 5
+done
+
+echo "Making queries on the proxy cache..." 
+echo "Query 1: filter:(sn=Jon) attrs: all" 
+$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'sn=Jon' > $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 2: filter:(|(cn=*Jon*)(sn=Jon*)) attrs:cn sn title uid"  
+$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'(|(cn=*Jon*)(sn=Jon*))' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 3: filter:(sn=Smith*) attrs:cn sn title uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'sn=Smith*' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 4: filter:(sn=Doe*) attrs:cn sn title uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'sn=Doe' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+ 
+echo "Query 5: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'uid=bjorn' mail postaladdress telephonenumber cn uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 6: filter:(mail=*@example.com) cn sn title uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'mail=*@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 7: filter:(mail=*) cn sn title uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'mail=*' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+# queries 2-6 are cacheable
+CACHEABILITY=0111110
+grep CACHEABLE $LOG2 | awk '{ 
+		if ($2 == "NOT") 
+			printf "Query %d not cacheable\n",NR
+		else 
+			printf "Query %d cacheable\n",NR
+	}' 
+CACHED=`grep CACHEABLE $LOG2 | awk '{ 
+		if ($2 == "NOT") 
+			printf "0" 
+		else 
+			printf "1" 
+	}'`
+
+if test $CACHEABILITY = $CACHED ; then
+	echo "Successfully verified cacheability"
+else 
+	echo "Error in verifying cacheability"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit 1
+fi
+
+echo "Query 8: filter:(|(cn=*Jones)(sn=Jones)) attrs:cn sn title uid"  
+$LDAPSEARCH -x -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'(|(cn=*Jones)(sn=Jones))' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 9: filter:(sn=Smith) attrs:cn sn title uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'sn=Smith' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 10: filter:(uid=bjorn) attrs:mail postaladdress telephonenumber cn uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'uid=bjorn' mail postaladdress telephonenumber cn uid >> $SLAVEOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+echo "Query 11: filter:(mail=*@example.com) cn sn title uid"  
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT2 \
+	'mail=jaj@mail.alumni.example.com' cn sn title uid >> $SLAVEOUT 2>&1
+RC=$?
+
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
+#queries 8-11 are answerable
+ANSWERABILITY=1111
+grep ANSWERABLE $LOG2 | awk '{ 
+		if (NR > 7) { 
+			if ($2 == "NOT") 
+				printf "Query %d not answerable\n",NR
+			else 
+				printf "Query %d answerable\n",NR 
+		}
+	}' 
+ANSWERED=`grep ANSWERABLE $LOG2 | awk '{ 
+		if (NR > 7) { 
+			if ($2 == "NOT") 
+				printf "0" 
+			else 
+				printf "1"
+		} 
+	}'`
+
+test $KILLSERVERS != no && kill -HUP $KILLPIDS
+
+if test $ANSWERABILITY = $ANSWERED ; then
+	echo "Successfully verified answerability"
+else 
+	echo "Error in verifying answerability"
+	exit 1
+fi
+
+echo ">>>>> Test succeeded"
+exit 0
