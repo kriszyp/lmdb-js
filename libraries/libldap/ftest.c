@@ -27,19 +27,21 @@ static int filter2ber( char *filter );
 int usage()
 {
 	fprintf( stderr, "usage:\n"
-		"\tftest [-d n] filter\n" );
+		"  ftest [-d n] filter\n"
+		"    filter - RFC 2254 string representation of an "
+			"LDAP search filter\n" );
 	return EXIT_FAILURE;
 }
 
 int
 main( int argc, char *argv[] )
 {
-	int i;
+	int c;
 	int debug=0;
 	char *filter=NULL;
 
-    while( (i = getopt( argc, argv, "Aa:Ss:" "d:" )) != EOF ) {
-		switch ( i ) {
+    while( (c = getopt( argc, argv, "d:" )) != EOF ) {
+		switch ( c ) {
 		case 'd':
 			debug = atoi( optarg );
 			break;
@@ -65,10 +67,7 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( argc - optind > 1 ) {
-		return usage();
-
-	} else if ( argc - optind != 1 ) {
+	if ( argc - optind != 1 ) {
 		return usage();
 	}
 
