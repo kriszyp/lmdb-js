@@ -1,12 +1,12 @@
-rem $OpenLDAP$
-rem Copyright 1998-2003 The OpenLDAP Foundation
-rem COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
-rem of this package for details.
-rem
-rem Create a version.c file from build/version.h
-rem
+:: $OpenLDAP$
+:: Copyright 1998-2003 The OpenLDAP Foundation
+:: COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+:: of this package for details.
+::
+:: Create a version.c file from build/version.h
+::
 
-rem input, output, app, static
+:: usage: mkvers.bat <path/version.h>, <version.c>, <appname>, <static>
 
 copy %1 %2
 (echo. ) >> %2
