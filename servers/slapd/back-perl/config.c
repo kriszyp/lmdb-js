@@ -15,7 +15,7 @@
 
 #include <EXTERN.h>
 #include <perl.h>
-#undef _ /* #defined used by both Perl and ac/localize.h */
+#undef _ /* #defined by both Perl and ac/localize.h */
 
 #ifdef HAVE_WIN32_ASPERL
 #include "asperl_undefs.h"
