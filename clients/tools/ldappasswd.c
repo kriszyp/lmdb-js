@@ -29,8 +29,8 @@ usage(const char *s)
 {
 	fprintf(stderr,
 "Change password of an LDAP user\n\n"
-"usage: %s [options] user\n"
-"  user: the identity of the user, normally a DN\n"
+"usage: %s [options] [user]\n"
+"  user: the autentication identity, commonly a DN\n"
 "Password change options:\n"
 "  -a secret  old password\n"
 "  -A         prompt for old password\n"
@@ -70,7 +70,7 @@ main( int argc, char *argv[] )
 	char	*ldaphost = NULL;
 	char	*ldapuri = NULL;
 
-	char	*dn = NULL;
+	char	*user = NULL;
 	char	*binddn = NULL;
 
 	struct berval passwd = { 0, NULL };
@@ -108,9 +108,6 @@ main( int argc, char *argv[] )
 	struct berval *retdata = NULL;
 
     prog = (prog = strrchr(argv[0], *LDAP_DIRSEP)) == NULL ? argv[0] : prog + 1;
-
-	if (argc == 1)
-		usage (argv[0]);
 
 	while( (i = getopt( argc, argv,
 		"Aa:Ss:" "Cd:D:h:H:InO:p:QRU:vw:WxX:Y:Z" )) != EOF )
@@ -490,10 +487,6 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( argc - optind != 1 ) {
-		usage( argv[0] );
-	} 
-
 	if (authmethod == -1) {
 #ifdef HAVE_CYRUS_SASL
 		authmethod = LDAP_AUTH_SASL;
@@ -502,7 +495,13 @@ main( int argc, char *argv[] )
 #endif
 	}
 
-	dn = strdup( argv[optind] );
+	if( argc - optind > 1 ) {
+		usage( argv[0] );
+	} else if ( argc - optind == 1 ) {
+		user = strdup( argv[optind] );
+	} else {
+		user = NULL;
+	}
 
 	if( want_oldpw && oldpw == NULL ) {
 		/* prompt for old password */
@@ -529,16 +528,6 @@ main( int argc, char *argv[] )
 		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
-		}
-	}
-
-	if( binddn == NULL && dn != NULL ) {
-		binddn = dn;
-		dn = NULL;
-
-		if( passwd.bv_val == NULL ) {
-			passwd.bv_val = oldpw;
-			passwd.bv_len = oldpw == NULL ? 0 : strlen( oldpw );
 		}
 	}
 
@@ -656,7 +645,7 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( dn != NULL || oldpw != NULL || newpw != NULL ) {
+	if( user != NULL || oldpw != NULL || newpw != NULL ) {
 		/* build change password control */
 		BerElement *ber = ber_alloc_t( LBER_USE_DER );
 
@@ -668,10 +657,10 @@ main( int argc, char *argv[] )
 
 		ber_printf( ber, "{" /*}*/ );
 
-		if( dn != NULL ) {
+		if( user != NULL ) {
 			ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID, dn );
-			free(dn);
+				LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID, user );
+			free(user);
 		}
 
 		if( oldpw != NULL ) {
