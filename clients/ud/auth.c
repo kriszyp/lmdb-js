@@ -13,15 +13,17 @@
 #include <stdio.h>
 #include <pwd.h>
 #include <string.h>
+#include <time.h>
 #include <ctype.h>
-#include <lber.h>
-#include <ldap.h>
-#include <ldapconfig.h>
-#include "ud.h"
 #ifdef KERBEROS
 #include <sys/types.h>
 #include <krb.h>
 #endif
+
+#include <lber.h>
+#include <ldap.h>
+#include <ldapconfig.h>
+#include "ud.h"
 
 extern LDAP *ld;		/* our LDAP descriptor */
 extern int verbose;		/* verbosity indicator */
@@ -251,7 +253,7 @@ int implicit;
 		else
 			ldap_perror(ld, "ldap_bind_s" );
 		(void) ldap_bind_s(ld, default_bind_object,
-			 (char *) UD_PASSWD, LDAP_AUTH_SIMPLE);
+			 (char *) UD_BIND_CRED, LDAP_AUTH_SIMPLE);
 		if (default_bind_object == NULL)
 			set_bound_dn(NULL);
 		else
@@ -423,5 +425,5 @@ char *s;
 
 	if (bound_dn != NULL)
 		Free(bound_dn);
-	bound_dn = strdup(s);
+	bound_dn = (s == NULL) ? NULL : strdup(s);
 }
