@@ -60,6 +60,8 @@ static int connection_resched( Connection *conn );
 static void connection_abandon( Connection *conn );
 static void connection_destroy( Connection *c );
 
+static ldap_pvt_thread_start_t connection_operation;
+
 struct co_arg {
 	Connection	*co_conn;
 	Operation	*co_op;
@@ -434,6 +436,7 @@ long connection_init(
 		c->c_sasl_bind_mech.bv_len = 0;
 		c->c_sasl_context = NULL;
 		c->c_sasl_extra = NULL;
+		c->c_sasl_bindop = NULL;
 
 		c->c_sb = ber_sockbuf_alloc( );
 
@@ -468,6 +471,7 @@ long connection_init(
 	assert( c->c_sasl_bind_mech.bv_val == NULL );
 	assert( c->c_sasl_context == NULL );
 	assert( c->c_sasl_extra == NULL );
+	assert( c->c_sasl_bindop == NULL );
 	assert( c->c_currentber == NULL );
 
 	ber_str2bv( url, 0, 1, &c->c_listener_url );
@@ -904,7 +908,7 @@ void connection_done( Connection *c )
 #endif /* !SLAPD_MONITOR */
 
 static void *
-connection_operation( void *arg_v )
+connection_operation( void *ctx, void *arg_v )
 {
 	int rc;
 	struct co_arg	*arg = arg_v;
@@ -917,6 +921,8 @@ connection_operation( void *arg_v )
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_initiated++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
+
+	arg->co_op->o_threadctx = ctx;
 
 	if( conn->c_sasl_bind_in_progress && tag != LDAP_REQ_BIND ) {
 #ifdef NEW_LOGGING
@@ -1416,10 +1422,9 @@ connection_input(
 
 	op = slap_op_alloc( ber, msgid, tag, conn->c_n_ops_received++ );
 
+	op->o_conn = conn;
 	op->vrFilter = NULL;
-
 	op->o_pagedresults_state = conn->c_pagedresults_state;
-
 #ifdef LDAP_CONNECTIONLESS
 	op->o_peeraddr = peeraddr;
 	if (cdn) {
@@ -1427,6 +1432,7 @@ connection_input(
 	    op->o_protocol = LDAP_VERSION2;
 	}
 #endif
+
 	if ( conn->c_conn_state == SLAP_C_BINDING
 		|| conn->c_conn_state == SLAP_C_CLOSING )
 	{

@@ -645,11 +645,6 @@ send_search_result(
 	}
 }
 
-static struct berval AllUser = { sizeof(LDAP_ALL_USER_ATTRIBUTES)-1,
-	LDAP_ALL_USER_ATTRIBUTES };
-static struct berval AllOper = { sizeof(LDAP_ALL_OPERATIONAL_ATTRIBUTES)-1,
-	LDAP_ALL_OPERATIONAL_ATTRIBUTES };
-
 int
 send_search_entry(
     Backend	*be,
@@ -726,7 +721,7 @@ send_search_entry(
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
 #endif
 		ber_free_buf( ber );
-		return;
+		return( 1 );
 	    }
 	}
 	if (conn->c_is_udp && op->o_protocol == LDAP_VERSION2) {

@@ -139,8 +139,6 @@ delete: member
 
 dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: add
-objectclass: top
-objectclass: person
 objectclass: OpenLDAPperson
 cn: Gern Jensen
 sn: Jensen
@@ -158,14 +156,12 @@ homephone: +1 313 555 8844
 
 dn: ou=Retired, ou=People, o=University of Michigan, c=US
 changetype: add
-objectclass: top
 objectclass: organizationalUnit
 ou: Retired
 
 dn: cn=Rosco P. Coltrane, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: add
-objectclass: top
-objectclass: person
+objectclass: OpenLDAPperson
 cn: Rosco P. Coltrane
 sn: Coltrane
 

@@ -7,6 +7,7 @@
 #define PROTO_SLAP_H
 
 #include <ldap_cdefs.h>
+#include "ldap_pvt.h"
 
 LDAP_BEGIN_DECL
 
@@ -123,6 +124,9 @@ LDAP_SLAPD_F (Attribute *) attr_dup LDAP_P(( Attribute *a ));
 LDAP_SLAPD_F (int) attr_merge LDAP_P(( Entry *e,
 	AttributeDescription *desc,
 	BerVarray vals ));
+LDAP_SLAPD_F (int) attr_merge_one LDAP_P(( Entry *e,
+	AttributeDescription *desc,
+	struct berval *val ));
 LDAP_SLAPD_F (Attribute *) attrs_find LDAP_P((
 	Attribute *a, AttributeDescription *desc ));
 LDAP_SLAPD_F (Attribute *) attr_find LDAP_P((
@@ -253,19 +257,6 @@ LDAP_SLAPD_F (void) ch_free LDAP_P(( void * ));
 #define free ch_free
 #endif
 #endif
-
-/*
- * charray.c
- */
-LDAP_SLAPD_F (void) charray_add LDAP_P(( char ***a, const char *s ));
-LDAP_SLAPD_F (void) charray_add_n LDAP_P(( char ***a, const char *s, int l ));
-LDAP_SLAPD_F (void) charray_merge LDAP_P(( char ***a, char **s ));
-LDAP_SLAPD_F (void) charray_free LDAP_P(( char **array ));
-LDAP_SLAPD_F (int) charray_inlist LDAP_P(( char **a, const char *s ));
-LDAP_SLAPD_F (char **) charray_dup LDAP_P(( char **a ));
-LDAP_SLAPD_F (char **) str2charray LDAP_P(( const char *str, const char *brkstr ));
-LDAP_SLAPD_F (int) charray_strcmp LDAP_P(( const char **a1, const char **a2 ));
-LDAP_SLAPD_F (int) charray_strcasecmp LDAP_P(( const char **a1, const char **a2 ));
 
 /*
  * controls.c
@@ -902,6 +893,24 @@ LDAP_SLAPD_V( int ) schema_init_done;
 LDAP_SLAPD_F (int) slap_schema_init LDAP_P((void));
 LDAP_SLAPD_F (void) schema_destroy LDAP_P(( void ));
 
+LDAP_SLAPD_F( int ) octetStringIndexer(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	BerVarray values,
+	BerVarray *keysp );
+
+LDAP_SLAPD_F( int ) octetStringFilter(
+	slap_mask_t use,
+	slap_mask_t flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	BerVarray *keysp );
+
 /*
  * schema_prep.c
  */
@@ -998,6 +1007,9 @@ LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 LDAP_SLAPD_F (int) value_add LDAP_P((
 	BerVarray *vals,
 	BerVarray addvals ));
+LDAP_SLAPD_F (int) value_add_one LDAP_P((
+	BerVarray *vals,
+	struct berval *addval ));
 
 /*
  * Other...
@@ -1072,6 +1084,10 @@ LDAP_SLAPD_V (AccessControl *) global_acl;
 LDAP_SLAPD_V (ber_socket_t)	dtblsize;
 
 LDAP_SLAPD_V (int)		use_reverse_lookup;
+
+LDAP_SLAPD_V (struct berval)	AllUser;
+LDAP_SLAPD_V (struct berval)	AllOper;
+LDAP_SLAPD_V (struct berval)	NoAttrs;
 
 /*
  * operations

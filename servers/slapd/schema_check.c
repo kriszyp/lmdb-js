@@ -101,7 +101,7 @@ entry_schema_check(
 	/* it's a REALLY bad idea to disable schema checks */
 	if( !global_schemacheck ) return LDAP_SUCCESS;
 
-	/* find the object class attribute - could error out here */
+	/* find the structural object class attribute */
 	asc = attr_find( e->e_attrs, ad_structuralObjectClass );
 	if ( asc == NULL ) {
 #ifdef NEW_LOGGING
@@ -115,7 +115,7 @@ entry_schema_check(
 #endif
 
 		*text = "no structuralObjectClass operational attribute";
-		return LDAP_OBJECT_CLASS_VIOLATION;
+		return LDAP_OTHER;
 	}
 
 	assert( asc->a_vals != NULL );
@@ -154,7 +154,7 @@ entry_schema_check(
 			e->e_dn, textbuf, 0 );
 #endif
 
-		return LDAP_OBJECT_CLASS_VIOLATION;
+		return LDAP_OTHER;
 	}
 
 	/* find the object class attribute */
@@ -179,8 +179,6 @@ entry_schema_check(
 	rc = structural_class( aoc->a_vals, &nsc, &oc, text, textbuf, textlen );
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
-	} else if ( nsc.bv_len == 0 ) {
-		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
 	*text = textbuf;
@@ -193,7 +191,7 @@ entry_schema_check(
 
 	} else if ( sc != oc ) {
 		snprintf( textbuf, textlen, 
-			"structuralObjectClass modification from '%s' to '%s' not allowed",
+			"structural object class modification from '%s' to '%s' not allowed",
 			asc->a_vals[0].bv_val, nsc.bv_val );
 		return LDAP_NO_OBJECT_CLASS_MODS;
 	}
@@ -543,15 +541,27 @@ int structural_class(
 		}
 	}
 
-	if( scp )
+	if( scp ) {
 		*scp = sc;
+	}
 
 	if( sc == NULL ) {
 		*text = "no structural object classes provided";
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
 
+	if( scn < 0 ) {
+		*text = "invalid structural object class";
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
 	*scbv = ocs[scn];
+
+	if( scbv->bv_len == 0 ) {
+		*text = "invalid structural object class";
+		return LDAP_OBJECT_CLASS_VIOLATION;
+	}
+
 	return LDAP_SUCCESS;
 }
 

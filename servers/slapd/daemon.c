@@ -95,7 +95,7 @@ static SLPHandle slapd_hslp = 0;
 void slapd_slp_init( const char* urls ) {
 	int i;
 
-	slapd_srvurls = str2charray( urls, " " );
+	slapd_srvurls = ldap_str2charray( urls, " " );
 
 	if( slapd_srvurls == NULL ) return;
 
@@ -134,7 +134,7 @@ void slapd_slp_init( const char* urls ) {
 void slapd_slp_deinit() {
 	if( slapd_srvurls == NULL ) return;
 
-	charray_free( slapd_srvurls );
+	ldap_charray_free( slapd_srvurls );
 	slapd_srvurls = NULL;
 
 	/* close the SLP handle */
@@ -927,7 +927,7 @@ int slapd_daemon_init( const char *urls )
 		urls = "ldap:///";
 	}
 
-	u = str2charray( urls, " " );
+	u = ldap_str2charray( urls, " " );
 
 	if( u == NULL || u[0] == NULL ) {
 #ifdef NEW_LOGGING
@@ -958,7 +958,7 @@ int slapd_daemon_init( const char *urls )
 		Debug( LDAP_DEBUG_ANY, "daemon_init: no listeners to open (%s)\n",
 			urls, 0, 0 );
 #endif
-		charray_free( u );
+		ldap_charray_free( u );
 		return -1;
 	}
 
@@ -973,7 +973,7 @@ int slapd_daemon_init( const char *urls )
 
 	for(n = 0, j = 0; u[n]; n++ ) {
 		if ( slap_open_listener( u[n], &i, &j ) ) {
-			charray_free( u );
+			ldap_charray_free( u );
 			return -1;
 		}
 	}
@@ -992,7 +992,7 @@ int slapd_daemon_init( const char *urls )
 	slapd_slp_reg();
 #endif
 
-	charray_free( u );
+	ldap_charray_free( u );
 	ldap_pvt_thread_mutex_init( &slap_daemon.sd_mutex );
 	return !i;
 }

@@ -2,6 +2,21 @@ OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.5 Engineering
 	Fixed back-ldbm indirect IDL bug (ITS#2039)
+	Fixed -lldap DNS SRV buffer size bug
+	Fixed slapd objectClass subclassing matching
+	Fixed back-bdb lock_id bugs
+	Added ldap tools passfile (-y) support
+	Added slapadd lastmod attribute support
+	Updated back-passwd gecos buffer size bug
+	Updated back-sql
+	Build Environment
+		Add SASL version checks
+		Add IPv6 sockaddr_storage check
+		Add Berkeley DB 4.1 support
+		Updated backend module linking
+	Documentation
+		Added ldapwhoami(1) man page
+		Misc man page updates
 
 OpenLDAP 2.1.4 Release
 	Fixed slapd DN normalization (requires DB reload)

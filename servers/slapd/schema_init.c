@@ -37,7 +37,7 @@
 /* recycled matching routines */
 #define bitStringMatch					octetStringMatch
 #define numericStringMatch				caseIgnoreIA5Match
-#define objectIdentifierMatch			caseIgnoreIA5Match
+#define objectIdentifierMatch			octetStringMatch
 #define telephoneNumberMatch			caseIgnoreIA5Match
 #define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
 #define generalizedTimeMatch			caseIgnoreIA5Match
@@ -138,7 +138,7 @@ octetStringMatch(
 }
 
 /* Index generation function */
-static int octetStringIndexer(
+int octetStringIndexer(
 	slap_mask_t use,
 	slap_mask_t flags,
 	Syntax *syntax,
@@ -186,6 +186,7 @@ static int octetStringIndexer(
 	}
 
 	keys[i].bv_val = NULL;
+	keys[i].bv_len = 0;
 
 	*keysp = keys;
 
@@ -193,20 +194,20 @@ static int octetStringIndexer(
 }
 
 /* Index generation function */
-static int octetStringFilter(
+int octetStringFilter(
 	slap_mask_t use,
 	slap_mask_t flags,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	size_t slen, mlen;
 	BerVarray keys;
 	HASH_CONTEXT   HASHcontext;
 	unsigned char	HASHdigest[HASH_BYTES];
-	struct berval *value = (struct berval *) assertValue;
+	struct berval *value = (struct berval *) assertedValue;
 	struct berval digest;
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
@@ -231,6 +232,7 @@ static int octetStringFilter(
 
 	ber_dupbv( keys, &digest );
 	keys[1].bv_val = NULL;
+	keys[1].bv_len = 0;
 
 	*keysp = keys;
 
@@ -929,7 +931,7 @@ approxFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	char *c;
@@ -938,7 +940,7 @@ approxFilter(
 	BerVarray keys;
 
 	/* Yes, this is necessary */
-	val = UTF8bvnormalize( ((struct berval *)assertValue),
+	val = UTF8bvnormalize( ((struct berval *)assertedValue),
 		NULL, LDAP_UTF8_APPROX );
 	if( val == NULL || val->bv_val == NULL ) {
 		keys = (struct berval *)ch_malloc( sizeof(struct berval) );
@@ -1068,7 +1070,7 @@ approxFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	BerVarray keys;
@@ -1077,7 +1079,7 @@ approxFilter(
 	keys = (struct berval *)ch_malloc( sizeof( struct berval * ) * 2 );
 
 	/* Yes, this is necessary */
-	s = UTF8normalize( ((struct berval *)assertValue),
+	s = UTF8normalize( ((struct berval *)assertedValue),
 			     UTF8_NOCASEFOLD );
 	if( s == NULL ) {
 		keys[0] = NULL;
@@ -1333,7 +1335,7 @@ static int caseExactIgnoreFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	unsigned casefold;
@@ -1353,7 +1355,7 @@ static int caseExactIgnoreFilter(
 	casefold = ( mr != caseExactMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
-	UTF8bvnormalize( (struct berval *) assertValue, &value, casefold );
+	UTF8bvnormalize( (struct berval *) assertedValue, &value, casefold );
 	/* This usually happens if filter contains bad UTF8 */
 	if( value.bv_val == NULL ) {
 		keys = ch_malloc( sizeof( struct berval ) );
@@ -1572,7 +1574,7 @@ static int caseExactIgnoreSubstringsFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	SubstringsAssertion *sa;
@@ -1589,7 +1591,7 @@ static int caseExactIgnoreSubstringsFilter(
 	casefold = ( mr != caseExactSubstringsMatchingRule )
 		? LDAP_UTF8_CASEFOLD : LDAP_UTF8_NOCASEFOLD;
 
-	sa = UTF8SubstringsassertionNormalize( assertValue, casefold );
+	sa = UTF8SubstringsassertionNormalize( assertedValue, casefold );
 	if( sa == NULL ) {
 		*keysp = NULL;
 		return LDAP_SUCCESS;
@@ -2021,7 +2023,7 @@ static int integerFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	size_t slen, mlen;
@@ -2036,7 +2038,7 @@ static int integerFilter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	integerNormalize( syntax, assertValue, &norm );
+	integerNormalize( syntax, assertedValue, &norm );
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
@@ -2415,7 +2417,7 @@ static int caseExactIA5Filter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	size_t slen, mlen;
@@ -2430,7 +2432,7 @@ static int caseExactIA5Filter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	value = (struct berval *) assertValue;
+	value = (struct berval *) assertedValue;
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
 
@@ -2621,10 +2623,10 @@ static int caseExactIA5SubstringsFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
-	SubstringsAssertion *sa = assertValue;
+	SubstringsAssertion *sa = assertedValue;
 	char pre;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
@@ -3002,7 +3004,7 @@ static int caseIgnoreIA5Filter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	size_t slen, mlen;
@@ -3017,7 +3019,7 @@ static int caseIgnoreIA5Filter(
 	slen = syntax->ssyn_oidlen;
 	mlen = mr->smr_oidlen;
 
-	ber_dupbv( &value, (struct berval *) assertValue );
+	ber_dupbv( &value, (struct berval *) assertedValue );
 	ldap_pvt_str2lower( value.bv_val );
 
 	keys = ch_malloc( sizeof( struct berval ) * 2 );
@@ -3216,10 +3218,10 @@ static int caseIgnoreIA5SubstringsFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
-	SubstringsAssertion *sa = assertValue;
+	SubstringsAssertion *sa = assertedValue;
 	char pre;
 	ber_len_t nkeys = 0;
 	size_t slen, mlen, klen;
@@ -3915,13 +3917,13 @@ static int certificateExactFilter(
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *prefix,
-	void * assertValue,
+	void * assertedValue,
 	BerVarray *keysp )
 {
 	BerVarray keys;
 	struct berval asserted_serial;
 
-	serial_and_issuer_parse(assertValue,
+	serial_and_issuer_parse(assertedValue,
 				&asserted_serial,
 				NULL);
 

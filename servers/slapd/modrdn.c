@@ -401,6 +401,9 @@ slap_modrdn2mods(
 	Modifications	*mod = NULL;
 	int		a_cnt, d_cnt;
 
+	assert( new_rdn != NULL );
+	assert( !deleteoldrdn || old_rdn != NULL );
+
 	/* Add new attribute values to the entry */
 	for ( a_cnt = 0; new_rdn[ 0 ][ a_cnt ]; a_cnt++ ) {
 		AttributeDescription	*desc = NULL;

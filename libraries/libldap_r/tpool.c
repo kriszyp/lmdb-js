@@ -17,6 +17,7 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 #include <ac/time.h>
+#include <ac/errno.h>
 
 #include "ldap-int.h"
 #include "ldap_pvt_thread.h"
@@ -30,13 +31,25 @@ enum ldap_int_thread_pool_state {
 	LDAP_INT_THREAD_POOL_STOPPING
 };
 
+typedef struct ldap_int_thread_key_s {
+	void *ltk_key;
+	void *ltk_data;
+	ldap_pvt_thread_pool_keyfree_t *ltk_free;
+} ldap_int_thread_key_t;
+
+/* Max number of thread-specific keys we store per thread.
+ * We don't expect to use many...
+ */
+#define	MAXKEYS	32
+
 typedef struct ldap_int_thread_ctx_s {
 	union {
 	LDAP_STAILQ_ENTRY(ldap_int_thread_ctx_s) q;
 	LDAP_SLIST_ENTRY(ldap_int_thread_ctx_s) l;
 	} ltc_next;
-	void *(*ltc_start_routine)( void *);
+	ldap_pvt_thread_start_t *ltc_start_routine;
 	void *ltc_arg;
+	ldap_int_thread_key_t ltc_key[MAXKEYS];
 } ldap_int_thread_ctx_t;
 
 struct ldap_int_thread_pool_s {
@@ -151,7 +164,7 @@ ldap_pvt_thread_pool_init (
 int
 ldap_pvt_thread_pool_submit (
 	ldap_pvt_thread_pool_t *tpool,
-	void *(*start_routine)( void * ), void *arg )
+	ldap_pvt_thread_start_t *start_routine, void *arg )
 {
 	struct ldap_int_thread_pool_s *pool;
 	ldap_int_thread_ctx_t *ctx;
@@ -178,11 +191,15 @@ ldap_pvt_thread_pool_submit (
 	if (ctx) {
 		LDAP_SLIST_REMOVE_HEAD(&pool->ltp_free_list, ltc_next.l);
 	} else {
+		int i;
 		ctx = (ldap_int_thread_ctx_t *) LDAP_MALLOC(
 			sizeof(ldap_int_thread_ctx_t));
 		if (ctx == NULL) {
 			ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 			return(-1);
+		}
+		for ( i=0; i<MAXKEYS; i++ ) {
+			ctx->ltc_key[i].ltk_key = NULL;
 		}
 	}
 
@@ -286,6 +303,17 @@ ldap_pvt_thread_pool_backload ( ldap_pvt_thread_pool_t *tpool )
 	return(count);
 }
 
+static void ldap_int_thread_pool_keyfree( ldap_int_thread_ctx_t *ctx )
+{
+	int i;
+	for ( i=0; i<MAXKEYS && ctx->ltc_key[i].ltk_key; i++ ) {
+		if (ctx->ltc_key[i].ltk_free)
+			ctx->ltc_key[i].ltk_free(
+				ctx->ltc_key[i].ltk_key,
+				ctx->ltc_key[i].ltk_data );
+	}
+}
+
 int
 ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 {
@@ -334,12 +362,14 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	while ((ctx = LDAP_STAILQ_FIRST(&pool->ltp_pending_list)) != NULL)
 	{
 		LDAP_STAILQ_REMOVE_HEAD(&pool->ltp_pending_list, ltc_next.q);
+		ldap_int_thread_pool_keyfree( ctx );
 		LDAP_FREE(ctx);
 	}
 
 	while ((ctx = LDAP_SLIST_FIRST(&pool->ltp_free_list)) != NULL)
 	{
 		LDAP_SLIST_REMOVE_HEAD(&pool->ltp_free_list, ltc_next.l);
+		ldap_int_thread_pool_keyfree( ctx );
 		LDAP_FREE(ctx);
 	}
 
@@ -398,7 +428,7 @@ ldap_int_thread_pool_wrapper (
 		pool->ltp_active_count++;
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
-		(ctx->ltc_start_routine)(ctx->ltc_arg);
+		ctx->ltc_start_routine(ctx, ctx->ltc_arg);
 
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 		LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, ctx, ltc_next.l);
@@ -417,7 +447,51 @@ ldap_int_thread_pool_wrapper (
 	pool->ltp_open_count--;
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
+
 	ldap_pvt_thread_exit(NULL);
 	return(NULL);
+}
+
+int ldap_pvt_thread_pool_getkey(
+	void *xctx,
+	void *key,
+	void **data,
+	ldap_pvt_thread_pool_keyfree_t **kfree )
+{
+	ldap_int_thread_ctx_t *ctx = xctx;
+	int i;
+
+	if ( !ctx || !data ) return EINVAL;
+
+	for ( i=0; i<MAXKEYS && ctx->ltc_key[i].ltk_key; i++ ) {
+		if ( ctx->ltc_key[i].ltk_key == key ) {
+			*data = ctx->ltc_key[i].ltk_data;
+			if ( kfree ) *kfree = ctx->ltc_key[i].ltk_free;
+			return 0;
+		}
+	}
+	return ENOENT;
+}
+
+int ldap_pvt_thread_pool_setkey(
+	void *xctx,
+	void *key,
+	void *data,
+	ldap_pvt_thread_pool_keyfree_t *kfree )
+{
+	ldap_int_thread_ctx_t *ctx = xctx;
+	int i;
+
+	if ( !ctx || !key ) return EINVAL;
+
+	for ( i=0; i<MAXKEYS; i++ ) {
+		if ( !ctx->ltc_key[i].ltk_key || ctx->ltc_key[i].ltk_key == key ) {
+			ctx->ltc_key[i].ltk_key = key;
+			ctx->ltc_key[i].ltk_data = data;
+			ctx->ltc_key[i].ltk_free = kfree;
+			return 0;
+		}
+	}
+	return ENOMEM;
 }
 #endif /* LDAP_HAVE_THREAD_POOL */

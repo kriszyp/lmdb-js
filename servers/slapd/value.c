@@ -54,6 +54,36 @@ value_add(
 }
 
 int
+value_add_one( 
+    BerVarray *vals,
+    struct berval *addval
+)
+{
+	int	n;
+	BerVarray v2;
+
+	if ( *vals == NULL ) {
+		*vals = (BerVarray) ch_malloc( 2 * sizeof(struct berval) );
+		n = 0;
+	} else {
+		for ( n = 0; (*vals)[n].bv_val != NULL; n++ ) {
+			;	/* Empty */
+		}
+		*vals = (BerVarray) ch_realloc( (char *) *vals,
+		    (n + 2) * sizeof(struct berval) );
+	}
+
+	v2 = *vals + n;
+	ber_dupbv(v2, addval);
+
+	v2++;
+	v2->bv_val = NULL;
+	v2->bv_len = 0;
+
+	return LDAP_SUCCESS;
+}
+
+int
 value_validate(
 	MatchingRule *mr,
 	struct berval *in,

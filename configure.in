@@ -491,7 +491,6 @@ dnl ----------------------------------------------------------------
 dnl Initialize vars
 LDAP_LIBS=
 LDIF_LIBS=
-LDBM_LIB=
 LDBM_LIBS=
 LTHREAD_LIBS=
 LUTIL_LIBS=
@@ -1004,10 +1003,25 @@ elif test $ol_enable_ipv6 != no ; then
 #			endif
 		], [ol_cv_inet6_addrstrlen=yes], [ol_cv_inet6_addrstrlen=no])])
 
-	if test $ol_cv_inet6_addrstrlen = yes ; then
+
+	AC_CACHE_CHECK([struct sockaddr_storage],ol_cv_struct_sockaddr_storage,[
+		AC_TRY_COMPILE([
+#include <sys/types.h>
+#include <sys/socket.h>
+],[
+			struct sockaddr_storage ss;
+],			[ol_cv_struct_sockaddr_storage=yes],
+			[ol_cv_struct_sockaddr_storage=no])])
+
+	if test $ol_cv_inet6_addrstrlen = yes \
+		-a $ol_cv_struct_sockaddr_storage = yes ; then
 		ol_link_ipv6=yes
-	elif test $ol_enable_ipv6 = yes ; then
+	elif test $ol_enable_ipv6 = yes \
+			-a $ol_cv_inet6_addrstrlen = no ; then
 		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
+	elif test $ol_enable_ipv6 = yes \
+			-a $ol_cv_struct_sockaddr_storage = no ; then
+		AC_MSG_ERROR([IPv6 support requires struct sockaddr_storage])
 	fi
 fi
 
@@ -2149,6 +2163,12 @@ if test $ol_with_cyrus_sasl != no ; then
 		if test $ol_enable_spasswd != no ; then
 			ol_link_spasswd=yes
 		fi
+
+		ac_save_LIBS="$LIBS"
+		LIBS="$LIBS $ol_link_sasl"
+		AC_CHECK_FUNC(sasl_version, [AC_DEFINE(HAVE_SASL_VERSION,1,
+			[define if your SASL library has sasl_version()])])
+		LIBS="$ac_save_LIBS"
 	fi
 
 else
@@ -2365,6 +2385,7 @@ AC_CHECK_FUNCS(		\
 	endpwent		\
 	fcntl			\
 	flock			\
+	fstat			\
 	getdtablesize	\
 	getgrgid		\
 	gethostname		\
@@ -2534,7 +2555,6 @@ if test "$ol_link_ldbm" != no -a $ol_enable_ldbm != no; then
 	AC_DEFINE(SLAPD_LDBM,1,[define to support LDBM backend])
 	BUILD_SLAPD=yes
 	BUILD_LDBM=yes
-	LDBM_LIB="-lldbm"
 	if test "$ol_with_ldbm_module" != static ; then
 		AC_DEFINE(SLAPD_LDBM_DYNAMIC,1,
 			[define to support dynamic LDBM backend])
@@ -2711,8 +2731,6 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
   AC_SUBST(BUILD_SQL_DYNAMIC)
 AC_SUBST(BUILD_SLURPD)
-
-AC_SUBST(LDBM_LIB)
 
 AC_SUBST(LDAP_LIBS)
 AC_SUBST(LDIF_LIBS)

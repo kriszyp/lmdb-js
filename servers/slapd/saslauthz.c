@@ -449,6 +449,7 @@ void slap_sasl2dn( Connection *conn,
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
+	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
 	(*be->be_search)( be, conn, &op, NULL, &dn,
 		scope, LDAP_DEREF_NEVER, 1, 0,
@@ -569,6 +570,7 @@ int slap_sasl_match(Connection *conn, struct berval *rule, struct berval *assert
 	op.o_callback = &cb;
 	op.o_time = slap_get_time();
 	op.o_do_not_cache = 1;
+	op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
 	(*be->be_search)( be, conn, &op, /*base=*/NULL, &searchbase,
 	   scope, /*deref=*/1, /*sizelimit=*/0, /*time=*/0, filter, /*fstr=*/NULL,
@@ -622,7 +624,7 @@ slap_sasl_check_authz( Connection *conn,
 	   assertDN->bv_val, ad->ad_cname.bv_val, searchDN->bv_val);
 #endif
 
-	rc = backend_attribute( NULL, NULL, NULL, NULL, searchDN, ad, &vals );
+	rc = backend_attribute( NULL, NULL, conn->c_sasl_bindop, NULL, searchDN, ad, &vals );
 	if( rc != LDAP_SUCCESS )
 		goto COMPLETE;
 

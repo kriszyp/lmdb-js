@@ -32,7 +32,7 @@ extern void make_surrogate_parent LDAP_P(( void ));
 #else /* !SHELL_SURROGATE_PARENT */
 
 typedef char **Cmd_info;
-#define MAKE_CMD_INFO(args)  charray_dup( args )
+#define MAKE_CMD_INFO(args)  ldap_charray_dup( args )
 #define IS_NULLCMD(cmd)      ((cmd) == NULL)
 
 #endif /* SHELL_SURROGATE_PARENT */

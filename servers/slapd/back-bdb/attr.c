@@ -67,7 +67,7 @@ bdb_attr_index_config(
 	char **attrs;
 	char **indexes = NULL;
 
-	attrs = str2charray( argv[0], "," );
+	attrs = ldap_str2charray( argv[0], "," );
 
 	if( attrs == NULL ) {
 		fprintf( stderr, "%s: line %d: "
@@ -77,7 +77,7 @@ bdb_attr_index_config(
 	}
 
 	if ( argc > 1 ) {
-		indexes = str2charray( argv[1], "," );
+		indexes = ldap_str2charray( argv[1], "," );
 
 		if( indexes == NULL ) {
 			fprintf( stderr, "%s: line %d: "
@@ -205,8 +205,8 @@ bdb_attr_index_config(
 		}
 	}
 
-	charray_free( attrs );
-	if ( indexes != NULL ) charray_free( indexes );
+	ldap_charray_free( attrs );
+	if ( indexes != NULL ) ldap_charray_free( indexes );
 
 	return LDAP_SUCCESS;
 }

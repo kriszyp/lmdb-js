@@ -143,6 +143,9 @@ struct bdb_op_info {
 	int			boi_err;
 };
 
+#define	DB_OPEN(db, file, name, type, flags, mode) \
+	(db)->open(db, file, name, type, flags, mode)
+
 #if DB_VERSION_MAJOR < 4
 #define LOCK_DETECT(env,f,t,a)		lock_detect(env, f, t, a)
 #define LOCK_GET(env,i,f,o,m,l)		lock_get(env, i, f, o, m, l)
@@ -153,8 +156,8 @@ struct bdb_op_info {
 #define TXN_COMMIT(txn,f)			txn_commit((txn), (f))
 #define	TXN_ABORT(txn)				txn_abort((txn))
 #define TXN_ID(txn)					txn_id(txn)
-#define LOCK_ID(env, locker)		lock_id(env, locker)
-#define LOCK_ID_FREE(env, locker)	lock_id_free(env, locker)
+#define XLOCK_ID(env, locker)		lock_id(env, locker)
+#define XLOCK_ID_FREE(env, locker)	lock_id_free(env, locker)
 #else
 #define LOCK_DETECT(env,f,t,a)		(env)->lock_detect(env, f, t, a)
 #define LOCK_GET(env,i,f,o,m,l)		(env)->lock_get(env, i, f, o, m, l)
@@ -165,8 +168,26 @@ struct bdb_op_info {
 #define TXN_COMMIT(txn,f)			(txn)->commit((txn), (f))
 #define TXN_ABORT(txn)				(txn)->abort((txn))
 #define TXN_ID(txn)					(txn)->id(txn)
-#define LOCK_ID(env, locker)		(env)->lock_id(env, locker)
-#define LOCK_ID_FREE(env, locker)	(env)->lock_id_free(env, locker)
+#define XLOCK_ID(env, locker)		(env)->lock_id(env, locker)
+#define XLOCK_ID_FREE(env, locker)	(env)->lock_id_free(env, locker)
+
+/* BDB 4.1.17 adds txn arg to db->open */
+#if DB_VERSION_MINOR > 1 || DB_VERSION_PATCH >= 17
+#undef DB_OPEN
+#define	DB_OPEN(db, file, name, type, flags, mode) \
+	(db)->open(db, NULL, file, name, type, (flags)|DB_AUTO_COMMIT, mode)
+#endif
+
+#define BDB_REUSE_LOCKERS
+
+#ifdef BDB_REUSE_LOCKERS
+#define	LOCK_ID_FREE(env, locker)
+#define	LOCK_ID(env, locker)	bdb_locker_id(op, env, locker)
+#else
+#define	LOCK_ID_FREE(env, locker)	XLOCK_ID_FREE(env, locker)
+#define	LOCK_ID(env, locker)		XLOCK_ID(env, locker)
+#endif
+
 #endif
 
 LDAP_END_DECL

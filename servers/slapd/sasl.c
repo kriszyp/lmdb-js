@@ -32,7 +32,8 @@
 #define	SASL_CONST
 #endif
 
-#include <ldap_pvt.h>
+#include "ldap_pvt.h"
+#include "lber_pvt.h"
 
 /* Flags for telling slap_sasl_getdn() what type of identity is being passed */
 #define FLAG_GETDN_AUTHCID 2
@@ -298,7 +299,7 @@ slap_sasl_log(
 #define	SET_DN	1
 #define	SET_U	2
 
-static struct berval ext_bv = { sizeof("EXTERNAL")-1, "EXTERNAL" };
+static struct berval ext_bv = BER_BVC( "EXTERNAL" );
 
 int slap_sasl_getdn( Connection *conn, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
@@ -341,8 +342,10 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	 */
 	if( flags & FLAG_GETDN_AUTHCID ) {
 #ifdef HAVE_TLS
-		if( conn->c_is_tls && conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len
-			&& ( strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 ) ) {
+		if( conn->c_is_tls &&
+			conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
+			strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 )
+		{
 			/* X.509 DN is already normalized */
 			do_norm = 0;
 			is_dn = SET_DN;
@@ -607,6 +610,7 @@ slap_auxprop_lookup(
 			op.o_callback = &cb;
 			op.o_time = slap_get_time();
 			op.o_do_not_cache = 1;
+			op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
 			(*be->be_search)( be, conn, &op, NULL, &dn,
 				LDAP_SCOPE_BASE, LDAP_DEREF_NEVER, 1, 0,
@@ -731,6 +735,7 @@ slap_sasl_checkpass(
 		op.o_callback = &cb;
 		op.o_time = slap_get_time();
 		op.o_do_not_cache = 1;
+		op.o_threadctx = conn->c_sasl_bindop->o_threadctx;
 
 		(*be->be_search)( be, conn, &op, NULL, &dn,
 			LDAP_SCOPE_BASE, LDAP_DEREF_NEVER, 1, 0,
@@ -1089,6 +1094,27 @@ int slap_sasl_init( void )
 		{ SASL_CB_LIST_END, NULL, NULL }
 	};
 
+#ifdef HAVE_SASL_VERSION
+#define SASL_BUILD_VERSION ((SASL_VERSION_MAJOR << 24) |\
+	(SASL_VERSION_MINOR << 16) | SASL_VERSION_STEP)
+
+	sasl_version( NULL, &rc );
+	if ( ((rc >> 16) != ((SASL_VERSION_MAJOR << 8)|SASL_VERSION_MINOR)) ||
+		(rc & 0xffff) < SASL_VERSION_STEP) {
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( TRANSPORT, INFO,
+		"slap_sasl_init: SASL version mismatch, got %x, wanted %x.\n",
+			rc, SASL_BUILD_VERSION, 0 );
+#else
+		Debug( LDAP_DEBUG_ANY,
+		"slap_sasl_init: SASL version mismatch, got %x, wanted %x.\n",
+			rc, SASL_BUILD_VERSION, 0 );
+#endif
+		return -1;
+	}
+#endif
+	
 	sasl_set_alloc(
 		ber_memalloc,
 		ber_memcalloc,
@@ -1114,6 +1140,10 @@ int slap_sasl_init( void )
 #else
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
 			0, 0, 0 );
+#endif
+#if SASL_VERSION_MAJOR < 2
+		/* A no-op used to make sure we linked with Cyrus 1.5 */
+		sasl_client_auth( NULL, NULL, NULL, 0, NULL, NULL );
 #endif
 
 		return -1;
@@ -1371,7 +1401,7 @@ char ** slap_sasl_mechs( Connection *conn )
 			return NULL;
 		}
 
-		mechs = str2charray( mechstr, "," );
+		mechs = ldap_str2charray( mechstr, "," );
 
 #if SASL_VERSION_MAJOR < 2
 		ch_free( mechstr );

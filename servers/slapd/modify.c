@@ -589,18 +589,17 @@ int slap_mods_opattrs(
 			if( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
-			if ( tmpval.bv_len ) {
-				mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
-				mod->sml_op = mop;
-				mod->sml_type.bv_val = NULL;
-				mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
-				mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
-				ber_dupbv( &mod->sml_bvalues[0], &tmpval );
-				mod->sml_bvalues[1].bv_val = NULL;
-				assert( mod->sml_bvalues[0].bv_val );
-				*modtail = mod;
-				modtail = &mod->sml_next;
-			}
+
+			mod = (Modifications *) ch_malloc( sizeof( Modifications ) );
+			mod->sml_op = mop;
+			mod->sml_type.bv_val = NULL;
+			mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
+			mod->sml_bvalues = (BerVarray) ch_malloc( 2 * sizeof( struct berval ) );
+			ber_dupbv( &mod->sml_bvalues[0], &tmpval );
+			mod->sml_bvalues[1].bv_val = NULL;
+			assert( mod->sml_bvalues[0].bv_val );
+			*modtail = mod;
+			modtail = &mod->sml_next;
 		}
 
 		if( SLAP_LASTMOD(be) ) {

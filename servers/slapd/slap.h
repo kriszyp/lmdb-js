@@ -505,7 +505,8 @@ typedef int (ObjectClassSchemaCheckFN)(
 	char *textbuf, size_t textlen );
 
 typedef struct slap_object_class {
-	LDAPObjectClass		soc_oclass;
+	LDAPObjectClass			soc_oclass;
+	struct berval			soc_cname;
 	struct slap_object_class	**soc_sups;
 	AttributeType				**soc_required;
 	AttributeType				**soc_allowed;
@@ -1500,6 +1501,7 @@ typedef struct slap_paged_state {
 typedef struct slap_op {
 	unsigned long o_opid;	/* id of this operation */
 	unsigned long o_connid; /* id of conn initiating this op */
+	struct slap_conn *o_conn;	/* connection spawning this op */
 
 	ber_int_t	o_msgid;	/* msgid of the request */
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
@@ -1534,6 +1536,7 @@ typedef struct slap_op {
 	slap_callback	*o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
 
+	void	*o_threadctx;		/* thread pool thread context */
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
@@ -1609,6 +1612,7 @@ typedef struct slap_conn {
 	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
 	void	*c_sasl_context;	/* SASL session context */
 	void	*c_sasl_extra;		/* SASL session extra stuff */
+	struct slap_op	*c_sasl_bindop;	/* set to current op if it's a bind */
 
 	PagedResultsState c_pagedresults_state; /* paged result state */
 

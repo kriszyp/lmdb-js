@@ -133,6 +133,31 @@ attr_merge(
 	return( value_add( &(*a)->a_vals, vals ) );
 }
 
+int
+attr_merge_one(
+	Entry		*e,
+	AttributeDescription *desc,
+	struct berval	*val )
+{
+	Attribute	**a;
+
+	for ( a = &e->e_attrs; *a != NULL; a = &(*a)->a_next ) {
+		if ( ad_cmp( (*a)->a_desc, desc ) == 0 ) {
+			break;
+		}
+	}
+
+	if ( *a == NULL ) {
+		*a = (Attribute *) ch_malloc( sizeof(Attribute) );
+		(*a)->a_desc = desc;
+		(*a)->a_vals = NULL;
+		(*a)->a_next = NULL;
+		(*a)->a_flags = 0;
+	}
+
+	return( value_add_one( &(*a)->a_vals, val ) );
+}
+
 /*
  * attrs_find - find attribute(s) by AttributeDescription
  * returns next attribute which is subtype of provided description.

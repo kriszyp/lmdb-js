@@ -45,7 +45,7 @@ do_bind(
 	int	rc = LDAP_SUCCESS;
 	const char *text;
 	struct berval cred = { 0, NULL };
-	Backend *be;
+	Backend *be = NULL;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( OPERATION, ENTRY, "do_bind: conn %d\n", conn->c_connid, 0, 0 );
@@ -230,6 +230,9 @@ do_bind(
 			NULL, NULL );
 		goto cleanup;
 	}
+
+	/* Set the bindop for the benefit of in-directory SASL lookups */
+	conn->c_sasl_bindop = op;
 
 	if ( method == LDAP_AUTH_SASL ) {
 		slap_ssf_t ssf = 0;
@@ -570,6 +573,8 @@ do_bind(
 	}
 
 cleanup:
+	conn->c_sasl_bindop = NULL;
+
 	if( pdn.bv_val != NULL ) {
 		free( pdn.bv_val );
 	}

@@ -1389,7 +1389,7 @@ aci_set_gather (void *cookie, struct berval *name, struct berval *attr)
 		const char *text;
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
-			backend_attribute(cp->be, NULL, NULL,
+			backend_attribute(cp->be, NULL, cp->op,
 				cp->e, &ndn, desc, &bvals);
 		}
 		free(ndn.bv_val);
@@ -1438,7 +1438,7 @@ aci_match_set (
 			if ( dnNormalize2(NULL, &subjdn, &ndn) == LDAP_SUCCESS
 				&& slap_bv2ad(&setat, &desc, &text) == LDAP_SUCCESS )
 			{
-				backend_attribute(be, NULL, NULL, e,
+				backend_attribute(be, NULL, op, e,
 					&ndn, desc, &bvals);
 				if ( bvals != NULL ) {
 					if ( bvals[0].bv_val != NULL ) {

@@ -436,6 +436,7 @@ parse_limit(
 			}
 			
 		} else if ( arg[0] == '=' ) {
+			arg++;
 			limit->lms_t_soft = atoi( arg );
 			limit->lms_t_hard = 0;
 			
@@ -487,6 +488,7 @@ parse_limit(
 			}
 			
 		} else if ( arg[0] == '=' ) {
+			arg++;
 			limit->lms_s_soft = atoi( arg );
 			limit->lms_s_hard = 0;
 			
