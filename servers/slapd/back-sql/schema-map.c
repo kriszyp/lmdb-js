@@ -532,7 +532,7 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_oc2oc(): "
 		"searching for objectclass with name=\"%s\"\n",
-		objclass, 0, 0 );
+		oc->soc_cname.bv_val, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	tmp.bom_oc = oc;
@@ -541,7 +541,7 @@ backsql_oc2oc( backsql_info *si, ObjectClass *oc )
 	if ( res != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
 			"found name=\"%s\", id=%d\n", 
-			BACKSQL_OC_NAME( res ), res->id, 0 );
+			BACKSQL_OC_NAME( res ), res->bom_id, 0 );
 	} else {
 		Debug( LDAP_DEBUG_TRACE, "<==backsql_oc2oc(): "
 			"not found\n", 0, 0, 0 );
@@ -559,7 +559,7 @@ backsql_name2oc( backsql_info *si, struct berval *oc_name )
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>oc_with_name(): "
 		"searching for objectclass with name=\"%s\"\n",
-		objclass, 0, 0 );
+		oc_name->bv_val, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	tmp.bom_oc = oc_bvfind( oc_name );
@@ -618,7 +618,7 @@ backsql_ad2at( backsql_oc_map_rec* objclass, AttributeDescription *ad )
 #ifdef BACKSQL_TRACE
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_ad2at(): "
 		"searching for attribute \"%s\" for objectclass \"%s\"\n",
-		attr, BACKSQL_OC_NAME( objclass ), 0 );
+		ad->ad_cname.bv_val, BACKSQL_OC_NAME( objclass ), 0 );
 #endif /* BACKSQL_TRACE */
 
 	tmp.bam_ad = ad;

@@ -73,7 +73,7 @@ backsql_strcat( struct berbuf *dest, ... )
 			|| dest->bb_val.bv_len == strlen( dest->bb_val.bv_val ) );
  
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_strcat()\n" );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_strcat()\n", 0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	va_start( strs, dest );
@@ -141,7 +141,7 @@ backsql_strfcat( struct berbuf *dest, const char *fmt, ... )
 			|| dest->bb_val.bv_len == strlen( dest->bb_val.bv_val ) );
  
 #ifdef BACKSQL_TRACE
-	Debug( LDAP_DEBUG_TRACE, "==>backsql_strfcat()\n" );
+	Debug( LDAP_DEBUG_TRACE, "==>backsql_strfcat()\n", 0, 0, 0 );
 #endif /* BACKSQL_TRACE */
 
 	va_start( strs, fmt );
