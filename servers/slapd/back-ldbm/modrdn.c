@@ -352,6 +352,7 @@ ldbm_back_modrdn(
 	for ( a_cnt = 0; new_rdn_types[a_cnt]; a_cnt++ ) {
 		int rc;
 		Modifications *mod_tmp;
+		struct berval val;
 
 		mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications ) );
 
@@ -368,6 +369,21 @@ ldbm_back_modrdn(
 				NULL, text, NULL, NULL );
 
 			goto return_results;		
+		}
+
+		val.bv_val = new_rdn_vals[a_cnt];
+		val.bv_len = strlen( val.bv_val );
+		if ( ! access_allowed( be, conn, op, p, 
+				mod_tmp->sml_desc, &val, ACL_WRITE ) ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"ldbm_back_modrdn: access not allowed "
+				"to attr \"%s\"\n%s%s",
+				new_rdn_types[a_cnt], "", "" );
+			send_ldap_result( conn, op, 
+				LDAP_INSUFFICIENT_ACCESS,
+				NULL, NULL, NULL, NULL );
+
+			goto return_results;
 		}
 
 		mod_tmp->sml_bvalues = (struct berval **)ch_malloc( 2 * sizeof(struct berval *) );
@@ -394,9 +410,9 @@ ldbm_back_modrdn(
 		for ( d_cnt = 0; old_rdn_types[d_cnt]; d_cnt++ ) {    
 			int rc;
 			Modifications *mod_tmp;
+			struct berval val;
 
 			mod_tmp = (Modifications *)ch_malloc( sizeof( Modifications ) );
-
 
 			mod_tmp->sml_desc = NULL;
 			rc = slap_str2ad( old_rdn_types[d_cnt], 
@@ -409,6 +425,21 @@ ldbm_back_modrdn(
 
 				send_ldap_result( conn, op, rc,
 					NULL, text, NULL, NULL );
+
+				goto return_results;
+			}
+
+			val.bv_val = old_rdn_vals[d_cnt];
+			val.bv_len = strlen( val.bv_val );
+			if ( ! access_allowed( be, conn, op, p, 
+					mod_tmp->sml_desc, &val, ACL_WRITE ) ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"ldbm_back_modrdn: access not allowed "
+					"to attr \"%s\"\n%s%s",
+					old_rdn_types[d_cnt], "", "" );
+				send_ldap_result( conn, op, 
+					LDAP_INSUFFICIENT_ACCESS,
+					NULL, NULL, NULL, NULL );
 
 				goto return_results;
 			}
@@ -471,8 +502,14 @@ ldbm_back_modrdn(
 			send_ldap_result( conn, op, rc,
 				NULL, text, NULL, NULL );
 		}
+
+		/* here we may try to delete the newly added dn */
+		if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
+			/* we already are in trouble ... */
+			;
+		}
 	    
-	    goto return_results;
+    		goto return_results;
 	}
 	
 	(void) cache_update_entry( &li->li_cache, e );
