@@ -128,18 +128,6 @@ select_backend( char * dn )
 		for ( j = 0; backends[i].be_suffix != NULL &&
 		    backends[i].be_suffix[j] != NULL; j++ )
 		{
-#ifdef LDAP_ALLOW_NULL_SEARCH_BASE
-			/* Add greg@greg.rim.or.jp
-			 * It's quick hack for cheap client
-			 * Some browser offer a NULL base at ldap_search
-			 */
-			if(dnlen == 0) {
-				Debug( LDAP_DEBUG_TRACE,
-					"select_backend: use default backend\n", 0, 0, 0 );
-				return (&backends[i]);
-			}
-#endif /* LDAP_ALLOW_NULL_SEARCH_BASE */
-
 			len = strlen( backends[i].be_suffix[j] );
 
 			if ( len > dnlen ) {
@@ -173,6 +161,19 @@ select_backend( char * dn )
                 }
         }
 
+#ifdef LDAP_ALLOW_NULL_SEARCH_BASE
+	/* Add greg@greg.rim.or.jp
+	 * It's quick hack for cheap client
+	 * Some browser offer a NULL base at ldap_search
+	 *
+	 * Should only be used as a last resort. -Kdz
+	 */
+	if(dnlen == 0) {
+		Debug( LDAP_DEBUG_TRACE,
+			"select_backend: use default backend\n", 0, 0, 0 );
+		return( &backends[0] );
+	}
+#endif /* LDAP_ALLOW_NULL_SEARCH_BASE */
 
 	return( NULL );
 }
