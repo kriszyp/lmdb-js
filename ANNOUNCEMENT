@@ -34,7 +34,6 @@ A N N O U N C E M E N T -- OpenLDAP 2.3
     In addition, there are some contributed components:
 
         * LDAPC++ - a LDAP C++ SDK
-        * LDAP SASL - An "auxprop" plugin for Cyrus SASL
 		* Various slapd modules and slapi plugins
 
 
