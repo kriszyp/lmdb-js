@@ -229,7 +229,7 @@ ldap_back_map_attrs(
 	if (na == NULL)
 		return(NULL);
 
-	for (i = 0; an[i].an_name.bv_val; i++) {
+	for (i = 0; an[i].an_name.bv_val; ) {
 		ldap_back_map(at_map, &an[i].an_name, &mapped, remap);
 		if (mapped.bv_val != NULL) {
 			na[i] = mapped.bv_val;
