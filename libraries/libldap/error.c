@@ -101,8 +101,9 @@ ldap_int_error( int err )
 	int	i;
 
 	for ( i = 0; ldap_errlist[i].e_code != -1; i++ ) {
-		if ( err == ldap_errlist[i].e_code )
+		if ( err == ldap_errlist[i].e_code ) {
 			return &ldap_errlist[i];
+		}
 	}
 
 	return NULL;
@@ -117,14 +118,13 @@ ldap_err2string( int err )
 
 	e = ldap_int_error( err );
 
-	return ( e != NULL ) ? e->e_reason : "Unknown error";
+	return e ? e->e_reason : "Unknown error";
 }
 
 /* deprecated */
 void
 ldap_perror( LDAP *ld, LDAP_CONST char *str )
 {
-	const char *s;
 	const struct ldaperror *e;
 	Debug( LDAP_DEBUG_TRACE, "ldap_perror\n", 0, 0, 0 );
 
@@ -132,31 +132,24 @@ ldap_perror( LDAP *ld, LDAP_CONST char *str )
 	assert( LDAP_VALID( ld ) );
 	assert( str );
 
-	s = ( str != NULL ) ? str : "ldap_perror";
-
 	if ( ld == NULL ) {
-		perror( s );
+		fprintf( stderr, "ldap_perror: invalid session handle\n" );
 		return;
 	}
 
 	e = ldap_int_error( ld->ld_errno );
 
-	if ( e != NULL ) {
-		fprintf( stderr, "%s: %s\n",
-			s, e->e_reason );
-	} else {
-		fprintf( stderr, "%s: unknown LDAP error number %d\n",
-			s, ld->ld_errno );
-	}
+	fprintf( stderr, "%s: %s (%d)\n",
+		str ? str : "ldap_perror",
+		e ? e->e_reason : "unknown LDAP result code",
+		ld->ld_errno );
 
 	if ( ld->ld_matched != NULL && ld->ld_matched[0] != '\0' ) {
-		fprintf( stderr, "\tmatched DN: \"%s\"\n",
-			ld->ld_matched );
+		fprintf( stderr, "\tmatched DN: %s\n", ld->ld_matched );
 	}
 
 	if ( ld->ld_error != NULL && ld->ld_error[0] != '\0' ) {
-		fprintf( stderr, "\tadditional info: %s\n",
-		    ld->ld_error );
+		fprintf( stderr, "\tadditional info: %s\n", ld->ld_error );
 	}
 
 	fflush( stderr );
