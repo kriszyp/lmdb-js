@@ -178,6 +178,7 @@ int ldbm_modify_internal LDAP_P((Backend *be,
  * nextid.c
  */
 
+int put_nextid LDAP_P(( Backend *be, ID id ));
 ID next_id LDAP_P(( Backend *be ));
 void next_id_return LDAP_P(( Backend *be, ID id ));
 ID next_id_get LDAP_P(( Backend *be ));

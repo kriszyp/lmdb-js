@@ -76,22 +76,14 @@ main( int argc, char **argv )
 				}
 	}
 
+	maxid++;
+	put_nextid( be, maxid );        /* override ldbm_ignore_nextid_file */
+
 #ifdef SLAP_CLEANUP
 	ldbm_cache_close( be, db );
 #endif
 
 	slap_shutdown(dbnum);
-
-	maxid++;
-	sprintf( line, "%s/NEXTID",
-	    ((struct ldbminfo *) be->be_private)->li_directory );
-	if ( (fp = fopen( line, "w" )) == NULL ) {
-		perror( line );
-		fprintf( stderr, "Could not write next id %ld\n", maxid );
-	} else {
-		fprintf( fp, "%ld\n", maxid );
-		fclose( fp );
-	}
 
 	slap_destroy();
 

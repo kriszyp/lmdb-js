@@ -17,10 +17,13 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
+/* All functions except put_nextid() obey ldbm_ignore_nextid_file. */
+
 static ID  next_id_read( Backend *be );
-static int next_id_write( Backend *be, ID id );
 static ID  next_id_get_save( Backend *be, int do_save );
 
+#define    next_id_write( be, id ) \
+	(ldbm_ignore_nextid_file ? (be, id, 0) : put_nextid( be, id ))
 
 static ID
 next_id_read( Backend *be )
@@ -62,19 +65,16 @@ next_id_read( Backend *be )
 	return id;
 }
 
-static int
-next_id_write( Backend *be, ID id )
+int
+put_nextid( Backend *be, ID id )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char*	file = li->li_nextid_file; 
 	FILE*	fp;
 	int		rc;
 
-	if ( ldbm_ignore_nextid_file )
-		return 0;
-
 	if ( (fp = fopen( file, "w" )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): could not open \"%s\"\n",
+		Debug( LDAP_DEBUG_ANY, "put_nextid(%ld): could not open \"%s\"\n",
 		    id, file, 0 );
 		return -1;
 	} 
@@ -82,13 +82,13 @@ next_id_write( Backend *be, ID id )
 	rc = 0;
 
 	if ( fprintf( fp, "%ld\n", id ) == EOF ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write(%ld): cannot fprintf\n",
+		Debug( LDAP_DEBUG_ANY, "put_nextid(%ld): cannot fprintf\n",
 		    id, 0, 0 );
 		rc = -1;
 	}
 
 	if( fclose( fp ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "next_id_write %ld: cannot fclose\n",
+		Debug( LDAP_DEBUG_ANY, "put_nextid %ld: cannot fclose\n",
 		    id, 0, 0 );
 		rc = -1;
 	}
