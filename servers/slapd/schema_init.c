@@ -738,38 +738,172 @@ bitStringValidate(
 	return LDAP_SUCCESS;
 }
 
+/*
+ * Syntax is [RFC2252]:
+ *
+
+6.3. Bit String
+
+   ( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )
+
+   Values in this syntax are encoded according to the following BNF:
+
+      bitstring = "'" *binary-digit "'B"
+
+      binary-digit = "0" / "1"
+
+   ... 
+
+6.21. Name And Optional UID
+
+   ( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )
+
+   Values in this syntax are encoded according to the following BNF:
+
+      NameAndOptionalUID = DistinguishedName [ "#" bitstring ]
+
+   Although the '#' character may occur in a string representation of a
+   distinguished name, no additional special quoting is done.  This
+   syntax has been added subsequent to RFC 1778.
+
+   Example:
+
+      1.3.6.1.4.1.1466.0=#04024869,O=Test,C=GB#'0101'B
+
+ *
+ * draft-ietf-ldapbis-syntaxes-xx.txt says:
+ *
+
+3.3.2.  Bit String
+
+   A value of the Bit String syntax is a sequence of binary digits.  The
+   LDAP-specific encoding of a value of this syntax is defined by the
+   following ABNF:
+
+      BitString    = SQUOTE *binary-digit SQUOTE "B"
+
+      binary-digit = "0" / "1"
+
+   The <SQUOTE> rule is defined in [MODELS].
+
+      Example:
+         '0101111101'B
+
+   The LDAP definition for the Bit String syntax is:
+
+      ( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )
+
+   This syntax corresponds to the BIT STRING ASN.1 type from [ASN.1].
+
+   ...
+
+3.3.21.  Name and Optional UID
+
+   A value of the Name and Optional UID syntax is the distinguished name
+   [MODELS] of an entity optionally accompanied by a unique identifier
+   that serves to differentiate the entity from others with an identical
+   distinguished name.
+
+   The LDAP-specific encoding of a value of this syntax is defined by
+   the following ABNF:
+
+       NameAndOptionalUID = distinguishedName [ SHARP BitString ]
+
+   The <BitString> rule is defined in Section 3.3.2.  The
+   <distinguishedName> rule is defined in [LDAPDN].  The <SHARP> rule is
+   defined in [MODELS].
+
+   Note that although the '#' character may occur in the string
+   representation of a distinguished name, no additional escaping of
+   this character is performed when a <distinguishedName> is encoded in
+   a <NameAndOptionalUID>.
+
+      Example:
+         1.3.6.1.4.1.1466.0=#04024869,O=Test,C=GB#'0101'B
+
+   The LDAP definition for the Name and Optional UID syntax is:
+
+      ( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )
+
+   This syntax corresponds to the NameAndOptionalUID ASN.1 type from
+   [X.520].
+
+ *
+ * draft-ietf-ldapbis-models-xx.txt [MODELS] says:
+ *
+
+1.4. Common ABNF Productions
+
+  ...
+      SHARP   = %x23 ; octothorpe (or sharp sign) ("#")
+  ...
+      SQUOTE  = %x27 ; single quote ("'")
+  ...
+      
+ *
+ * Note: normalization strips any leading "0"s, unless the
+ * bit string is exactly "'0'B", so the normalized example,
+ * in slapd, would result in
+ * 
+ * 1.3.6.1.4.1.1466.0=#04024869,o=test,c=gb#'101'B
+ * 
+ * Since draft-ietf-ldapbis-dn-xx.txt clarifies that SHARP,
+ * i.e. "#", doesn't have to be escaped except when at the
+ * beginning of a value, the definition of Name and Optional
+ * UID appears to be flawed, because there is no clear means
+ * to determine whether the UID part is present or not.
+ *
+ * Example:
+ *
+ * 	cn=Someone,dc=example,dc=com#'1'B
+ *
+ * could be either a NameAndOptionalUID with trailing UID, i.e.
+ *
+ * 	DN = "cn=Someone,dc=example,dc=com"
+ * 	UID = "'1'B"
+ * 
+ * or a NameAndOptionalUID with no trailing UID, and the AVA
+ * in the last RDN made of
+ *
+ * 	attributeType = dc 
+ * 	attributeValue = com#'1'B
+ *
+ * in fact "com#'1'B" is a valid IA5 string.
+ *
+ * As a consequence, current slapd code assumes that the
+ * presence of portions of a BitString at the end of the string 
+ * representation of a NameAndOptionalUID means a BitString
+ * is expected, and cause an error otherwise.  This is quite
+ * arbitrary, and might change in the future.
+ */
+
+
 static int
 nameUIDValidate(
 	Syntax *syntax,
 	struct berval *in )
 {
 	int rc;
-	struct berval dn;
+	struct berval dn, uid;
 
 	if( in->bv_len == 0 ) return LDAP_SUCCESS;
 
 	ber_dupbv( &dn, in );
 	if( !dn.bv_val ) return LDAP_OTHER;
 
-	if( dn.bv_val[dn.bv_len-1] == 'B'
-		&& dn.bv_val[dn.bv_len-2] == '\'' )
-	{
-		/* assume presence of optional UID */
-		ber_len_t i;
+	/* if there's a "#", try bitStringValidate()... */
+	uid.bv_val = strrchr( dn.bv_val, '#' );
+	if ( uid.bv_val ) {
+		uid.bv_val++;
+		uid.bv_len = dn.bv_len - ( uid.bv_val - dn.bv_val );
 
-		for(i=dn.bv_len-3; i>1; i--) {
-			if( dn.bv_val[i] != '0' && dn.bv_val[i] != '1' ) {
-				break;
-			}
+		rc = bitStringValidate( NULL, &uid );
+		if ( rc == LDAP_SUCCESS ) {
+			/* in case of success, trim the UID,
+			 * otherwise treat it as part of the DN */
+			dn.bv_len -= uid.bv_len + 1;
+			uid.bv_val[-1] = '\0';
 		}
-		if( dn.bv_val[i] != '\'' || dn.bv_val[i-1] != '#' ) {
-			ber_memfree( dn.bv_val );
-			return LDAP_INVALID_SYNTAX;
-		}
-
-		/* trim the UID to allow use of dnValidate */
-		dn.bv_val[i-1] = '\0';
-		dn.bv_len = i-1;
 	}
 
 	rc = dnValidate( NULL, &dn );
@@ -806,26 +940,21 @@ nameUIDPretty(
 		struct berval	dnval = *val;
 		struct berval	uidval = BER_BVNULL;
 
-		if( val->bv_val[val->bv_len-1] == 'B'
-			&& val->bv_val[val->bv_len-2] == '\'' )
-		{
-			uidval.bv_val = strrchr( val->bv_val, '#' );
-			if( uidval.bv_val == NULL ||
-				uidval.bv_val < val->bv_val ||
-				( uidval.bv_val > val->bv_val && uidval.bv_val[-1] == '\\' ) )
-			{
-				return LDAP_INVALID_SYNTAX;
-			}
-
-			ber_dupbv_x( &dnval, val, ctx );
-
-			dnval.bv_len = uidval.bv_val - val->bv_val;
-			uidval.bv_len = val->bv_len - dnval.bv_len;
-
-			dnval.bv_val[dnval.bv_len] = '\0';
-
-			uidval.bv_len--;
+		uidval.bv_val = strrchr( val->bv_val, '#' );
+		if ( uidval.bv_val ) {
 			uidval.bv_val++;
+			uidval.bv_len = val->bv_len - ( uidval.bv_val - val->bv_val );
+
+			rc = bitStringValidate( NULL, &uidval );
+
+			if ( rc == LDAP_SUCCESS ) {
+				ber_dupbv_x( &dnval, val, ctx );
+				dnval.bv_len -= uidval.bv_len + 1;
+				dnval.bv_val[dnval.bv_len] = '\0';
+
+			} else {
+				uidval.bv_val = NULL;
+			}
 		}
 
 		rc = dnPretty( syntax, &dnval, out, ctx );
@@ -840,7 +969,8 @@ nameUIDPretty(
 			int	i, c, got1;
 			char	*tmp;
 
-			tmp = slap_sl_realloc( out->bv_val, out->bv_len + uidval.bv_len + 2,
+			tmp = slap_sl_realloc( out->bv_val, out->bv_len 
+				+ STRLENOF( "#" ) + uidval.bv_len + 1,
 				ctx );
 			if( tmp == NULL ) {
 				ber_memfree_x( out->bv_val, ctx );
@@ -861,8 +991,6 @@ nameUIDPretty(
 						got1 = 1;
 						out->bv_val[out->bv_len++] = c;
 						break;
-					default:
-						return LDAP_INVALID_SYNTAX;
 				}
 			}
 
@@ -902,30 +1030,18 @@ uniqueMemberNormalize(
 	} else {
 		struct berval uid = BER_BVNULL;
 
-		if( out.bv_val[out.bv_len-1] == 'B'
-			&& out.bv_val[out.bv_len-2] == '\'' )
-		{
-			/* assume presence of optional UID */
-			uid.bv_val = strrchr( out.bv_val, '#' );
+		uid.bv_val = strrchr( out.bv_val, '#' );
+		if ( uid.bv_val ) {
+			uid.bv_val++;
+			uid.bv_len = out.bv_len - ( uid.bv_val - out.bv_val );
 
-			/* if no '#', or '#' before the beginning
-			 * of the string, or preceded
-			 * by an escape char '\\'...
-			 * (a string of "#'<UID>'B" should be valid,
-			 * since the empty "" DN is legal) */
-			if( uid.bv_val == NULL
-					|| uid.bv_val < out.bv_val
-					|| ( uid.bv_val > out.bv_val && uid.bv_val[-1] == '\\' ) )
-			{
-				slap_sl_free( out.bv_val, ctx );
-				return LDAP_INVALID_SYNTAX;
+			rc = bitStringValidate( NULL, &uid );
+			if ( rc == LDAP_SUCCESS ) {
+				uid.bv_val[-1] = '\0';
+				out.bv_len -= uid.bv_len + 1;
+			} else {
+				uid.bv_val = NULL;
 			}
-
-			uid.bv_len = out.bv_len - (uid.bv_val - out.bv_val);
-			out.bv_len -= uid.bv_len--;
-
-			/* temporarily trim the UID */
-			*(uid.bv_val++) = '\0';
 		}
 
 		rc = dnNormalize( 0, NULL, NULL, &out, normalized, ctx );
@@ -935,10 +1051,18 @@ uniqueMemberNormalize(
 			return LDAP_INVALID_SYNTAX;
 		}
 
-		if( uid.bv_len ) {
-			normalized->bv_val = ch_realloc( normalized->bv_val,
+		if( uid.bv_val ) {
+			char	*tmp;
+
+			tmp = ch_realloc( normalized->bv_val,
 				normalized->bv_len + uid.bv_len
 				+ STRLENOF("#") + 1 );
+			if ( tmp == NULL ) {
+				ber_memfree_x( normalized->bv_val, ctx );
+				return LDAP_OTHER;
+			}
+
+			normalized->bv_val = tmp;
 
 			/* insert the separator */
 			normalized->bv_val[normalized->bv_len++] = '#';
