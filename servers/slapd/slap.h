@@ -254,6 +254,7 @@ typedef struct slap_syntax {
 #define ssyn_oid		ssyn_syn.syn_oid
 #define ssyn_desc		ssyn_syn.syn_desc
 #define ssyn_extensions		ssyn_syn.syn_extensions
+	ber_len_t	ssyn_oidlen;
 
 	unsigned	ssyn_flags;
 
@@ -326,6 +327,7 @@ typedef int slap_mr_filter_func LDAP_P((
 
 typedef struct slap_matching_rule {
 	LDAPMatchingRule		smr_mrule;
+	ber_len_t			smr_oidlen;
 	slap_mask_t				smr_usage;
 
 #define SLAP_MR_TYPE_MASK		0xFF00U

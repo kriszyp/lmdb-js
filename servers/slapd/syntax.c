@@ -134,6 +134,7 @@ syn_add(
 
 	ssyn->ssyn_next = NULL;
 
+	ssyn->ssyn_oidlen = strlen(syn->syn_oid);
 	ssyn->ssyn_flags = flags;
 	ssyn->ssyn_validate = validate;
 	ssyn->ssyn_normalize = normalize;

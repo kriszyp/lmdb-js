@@ -144,8 +144,8 @@ static int octetStringIndexer(
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	for( i=0; values[i] != NULL; i++ ) {
 		HASH_Init( &HASHcontext );
@@ -190,8 +190,8 @@ static int octetStringFilter(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
@@ -1190,8 +1190,8 @@ static int caseExactIgnoreIndexer(
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
 		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
@@ -1244,8 +1244,8 @@ static int caseExactIgnoreFilter(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	casefold = strcmp( mr->smr_oid, caseExactMatchOID )
 		? UTF8_CASEFOLD : UTF8_NOCASEFOLD;
@@ -1365,8 +1365,8 @@ static int caseExactIgnoreSubstringsIndexer(
 
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
@@ -1531,8 +1531,8 @@ static int caseExactIgnoreSubstringsFilter(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 	nkeys = 0;
@@ -2231,8 +2231,8 @@ static int caseExactIA5Indexer(
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	for( i=0; values[i] != NULL; i++ ) {
 		struct berval *value = values[i];
@@ -2277,8 +2277,8 @@ static int caseExactIA5Filter(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	value = (struct berval *) assertValue;
 
@@ -2366,8 +2366,8 @@ static int caseExactIA5SubstringsIndexer(
 
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
@@ -2515,8 +2515,8 @@ static int caseExactIA5SubstringsFilter(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 	nkeys = 0;
@@ -2797,8 +2797,8 @@ static int caseIgnoreIA5Indexer(
 
 	keys = ch_malloc( sizeof( struct berval * ) * (i+1) );
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	for( i=0; values[i] != NULL; i++ ) {
 		struct berval *value = ber_bvdup( values[i] );
@@ -2846,8 +2846,8 @@ static int caseIgnoreIA5Filter(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	value = ber_bvdup( (struct berval *) assertValue );
 	ldap_pvt_str2upper( value->bv_val );
@@ -2939,8 +2939,8 @@ static int caseIgnoreIA5SubstringsIndexer(
 
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
@@ -3092,8 +3092,8 @@ static int caseIgnoreIA5SubstringsFilter(
 	digest.bv_val = HASHdigest;
 	digest.bv_len = sizeof(HASHdigest);
 
-	slen = strlen( syntax->ssyn_oid );
-	mlen = strlen( mr->smr_oid );
+	slen = syntax->ssyn_oidlen;
+	mlen = mr->smr_oidlen;
 
 	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
 	nkeys = 0;

@@ -139,6 +139,7 @@ mr_add(
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
 	AC_MEMCPY( &smr->smr_mrule, mr, sizeof(LDAPMatchingRule));
 
+	smr->smr_oidlen = strlen( mr->mr_oid );
 	smr->smr_usage = usage;
 	smr->smr_convert = convert;
 	smr->smr_normalize = normalize;
