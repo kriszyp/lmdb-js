@@ -55,12 +55,6 @@
 #define generalizedTimeMatch			numericStringMatch
 #define generalizedTimeOrderingMatch	numericStringMatch
 
-/* approx matching rules */
-#define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
-#define directoryStringApproxMatch		NULL
-#define IA5StringApproxMatchOID			"1.3.6.1.4.1.4203.666.4.5"
-#define IA5StringApproxMatch			NULL
-
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
@@ -2349,24 +2343,6 @@ struct mrule_defs_rec {
 
 struct mrule_defs_rec mrule_defs[] = {
 	/*
-	 * EQUALITY matching rules must be listed after associated APPROX
-	 * matching rules.  So, we list all APPROX matching rules first.
-	 */
-	{"( " directoryStringApproxMatchOID " NAME 'directoryStringApproxMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
-		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
-		NULL, NULL,
-		directoryStringApproxMatch, NULL, NULL,
-		NULL},
-
-	{"( " IA5StringApproxMatchOID " NAME 'IA5StringApproxMatch' "
-		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
-		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
-		NULL, NULL,
-		IA5StringApproxMatch, NULL, NULL,
-		NULL},
-
-	/*
 	 * Other matching rules
 	 */
 	
@@ -2389,7 +2365,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
 		caseIgnoreMatch, caseIgnoreIndexer, caseIgnoreFilter,
-		directoryStringApproxMatchOID },
+		NULL},
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
@@ -2412,7 +2388,7 @@ struct mrule_defs_rec mrule_defs[] = {
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
 		caseExactMatch, caseExactIndexer, caseExactFilter,
-		directoryStringApproxMatchOID },
+		NULL},
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
@@ -2556,14 +2532,14 @@ struct mrule_defs_rec mrule_defs[] = {
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
 		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
-		IA5StringApproxMatchOID },
+		NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
 		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
-		IA5StringApproxMatchOID },
+		NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
