@@ -7,14 +7,15 @@ OpenLDAP 2.1.24 Engineering
 	Fixed slapd extended op referrals (ITS#2678, ITS#2781)
 	Fixed slurpd memory leaks (ITS#2423, ITS#2620)
 	Fixed back-bdb compatibility with BDB 4.2 (ITS#2848)
-	Fixed README in ldapsasl (ITS#2838)
 	Fixed libldap_r pthread support (ITS#2820)
 	Added lutil_passwd extensions
 	Build Environment
 		Fixed liblber libdir handling (ITS#2797)
 		Fixed perl LDFLAGS (ITS#2764)
 	Documentation
+		Updated release documents
 		Misc man page updates (ITS#2822, ITS#2823)
+		Fixed README in ldapsasl (ITS#2838)
 
 OpenLDAP 2.1.23 Release
 	Fixed ldapmodify NULL dn bug (ITS#2645)
