@@ -160,6 +160,12 @@ ldbm_back_db_init(
 	/* default database directory */
 	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
 
+	/* DB_ENV environment pointer for DB3 */
+	li->li_dbenv = 0;
+
+	/* envdirok is turned on by ldbm_initialize_env if DB3 */
+	li->li_envdirok = 0;
+
 	/* initialize various mutex locks & condition variables */
 	ldap_pvt_thread_mutex_init( &li->li_root_mutex );
 	ldap_pvt_thread_mutex_init( &li->li_add_mutex );
@@ -178,6 +184,9 @@ ldbm_back_db_open(
     BackendDB	*be
 )
 {
+	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
+	li->li_dbenv = ldbm_initialize_env(li->li_directory,
+		li->li_dbcachesize, &li->li_envdirok);
 	return 0;
 }
 
@@ -188,6 +197,9 @@ ldbm_back_db_destroy(
 {
 	/* should free/destroy every in be_private */
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+
+	ldbm_shutdown_env(li->li_dbenv);
+
 	free( li->li_directory );
 	attr_index_destroy( li->li_attrs );
 

@@ -34,8 +34,11 @@ ldbm_cache_open(
 	struct stat	st;
 #endif
 
-	sprintf( buf, "%s" LDAP_DIRSEP "%s%s",
-		li->li_directory, name, suffix );
+	if (li->li_envdirok)
+		sprintf( buf, "%s%s", name, suffix );
+	else
+		sprintf( buf, "%s" LDAP_DIRSEP "%s%s",
+			li->li_directory, name, suffix );
 
 	if( li->li_dblocking ) {
 		flags |= LDBM_LOCKING;
@@ -146,7 +149,7 @@ ldbm_cache_open(
 		}
 	} while (i == MAXDBCACHE);
 
-	if ( (li->li_dbcache[i].dbc_db = ldbm_open( buf, flags, li->li_mode,
+	if ( (li->li_dbcache[i].dbc_db = ldbm_open( li->li_dbenv, buf, flags, li->li_mode,
 	    li->li_dbcachesize )) == NULL )
 	{
 		int err = errno;

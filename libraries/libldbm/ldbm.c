@@ -69,6 +69,11 @@ static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 #define LDBM_UNLOCK	(ldap_pvt_thread_mutex_unlock(&ldbm_big_mutex))
 #endif
 
+#if !defined( HAVE_BERKELEY_DB ) || (DB_VERSION_MAJOR < 3)
+				/*  a dbEnv for BERKELEYv2  */
+DB_ENV *ldbm_Env = NULL;	/* real or fake, depending on db and version */
+#endif
+
 
 /*******************************************************************
  *                                                                 *
@@ -96,8 +101,7 @@ ldbm_db_errcall( const char *prefix, char *message )
 #endif
 }
 
-/*  a dbEnv for BERKELEYv2  */
-DB_ENV	*ldbm_Env = NULL;
+#if DB_VERSION_MAJOR < 3
 
 int ldbm_initialize( const char* home )
 {
@@ -133,16 +137,12 @@ int ldbm_initialize( const char* home )
 	ldap_pvt_thread_mutex_init( &ldbm_big_mutex );
 #endif
 
-#if DB_VERSION_MAJOR < 3
 	ldbm_Env = calloc( 1, sizeof( DB_ENV ));
 
 	if( ldbm_Env == NULL ) return 1;
 
 	ldbm_Env->db_errcall	= ldbm_db_errcall;
 	ldbm_Env->db_errpfx		= "==>";
-#else
-	ldbm_Env = NULL;
-#endif
 
 	envFlags = DB_CREATE;
 
@@ -158,12 +158,8 @@ int ldbm_initialize( const char* home )
 #endif
 #endif
 
-#if DB_VERSION_MAJOR >= 3
-	err = db_env_create( &ldbm_Env, 0 );
-#else
 	envFlags |= DB_USE_ENVIRON;
 	err = db_appinit( home, NULL, ldbm_Env, envFlags );
-#endif
 
 	if ( err ) {
 #ifdef LDAP_SYSLOG
@@ -172,44 +168,11 @@ int ldbm_initialize( const char* home )
 		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
 
 		syslog( LOG_INFO,
-#if DB_VERSION_MAJOR >= 3
-			"ldbm_initialize(): FATAL error in db_env_create() : %s\n",
-#else
 			"ldbm_initialize(): FATAL error in db_appinit() : %s\n",
-#endif
 			error );
 #endif
 	 	return( 1 );
 	}
-
-#if DB_VERSION_MAJOR > 2
-	ldbm_Env->set_errcall( ldbm_Env, ldbm_db_errcall );
-	ldbm_Env->set_errpfx( ldbm_Env, "==>" );
-
-#ifdef HAVE_BERKELEY_DB_THREAD
-	envFlags |= DB_INIT_CDB | DB_INIT_MPOOL;
-#endif
-	envFlags |= DB_USE_ENVIRON;
-
-#if (DB_VERSION_MAJOR > 3) || (DB_VERSION_MINOR >= 1)
-	err = ldbm_Env->open( ldbm_Env, home, envFlags, 0 );
-#else
-	err = ldbm_Env->open( ldbm_Env, home, NULL, envFlags, 0 );
-#endif
-
-	if ( err != 0 ) {
-#ifdef LDAP_SYSLOG
-		char error[BUFSIZ];
-
-		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
-		syslog( LOG_INFO,
-			"ldbm_initialize(): FATAL error in dbEnv->open() : %s\n",
-			error );
-#endif
-		ldbm_Env->close( ldbm_Env, 0 );
-		return( 1 );
-	}
-#endif
 
 	return 0;
 }
@@ -218,11 +181,7 @@ int ldbm_shutdown( void )
 {
 	if( !ldbm_initialized ) return 1;
 
-#if DB_VERSION_MAJOR >= 3
-	ldbm_Env->close( ldbm_Env, 0 );
-#else
 	db_appexit( ldbm_Env );
-#endif
 
 #ifndef HAVE_BERKELEY_DB_THREAD
 	ldap_pvt_thread_mutex_destroy( &ldbm_big_mutex );
@@ -230,6 +189,26 @@ int ldbm_shutdown( void )
 
 	return 0;
 }
+
+#else  /* Berkeley v3 or greater */
+
+
+int ldbm_initialize( const char * home )
+{
+	/* v3 uses ldbm_initialize_env */
+	return 0;
+}
+
+
+int ldbm_shutdown( void )
+{
+	return 0;
+}
+
+
+#endif
+
+
 
 #else  /* some DB other than Berkeley V2 or greater */
 
@@ -254,6 +233,86 @@ int ldbm_shutdown( void )
 #endif /* HAVE_BERKELEY_DB */
 
 
+#if defined( HAVE_BERKELEY_DB ) && (DB_VERSION_MAJOR >= 3)
+
+
+DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
+{
+	DB_ENV *env = NULL;    
+	int     err;
+	u_int32_t	envFlags;
+
+	envFlags = 
+#if defined( DB_PRIVATE )
+	DB_PRIVATE |
+#endif
+#if defined( HAVE_BERKELEY_DB_THREAD )
+	DB_THREAD |
+#endif
+	DB_CREATE;
+	
+	err = db_env_create( &env, 0 );
+
+	if ( err ) {
+		char error[BUFSIZ];
+
+		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
+#ifdef LDAP_SYSLOG
+		syslog( LOG_INFO, "ldbm_initialize_env(): FATAL error in db_env_create() : %s\n", error );
+#endif
+		return( NULL );
+	}
+
+	env->set_cachesize( env, 0, dbcachesize, 0 );
+        
+	env->set_errcall( env, ldbm_db_errcall );
+	env->set_errpfx( env, "==>" );
+
+	envFlags |= DB_INIT_MPOOL | DB_INIT_CDB | DB_USE_ENVIRON;
+
+	err = env->open( env, home, envFlags, 0 );
+
+	if ( err != 0 )
+	{
+		char error[BUFSIZ];
+
+		sprintf( error, "%s (%d)\n", STRERROR( err ), err );
+
+#ifdef LDAP_SYSLOG
+		syslog(	LOG_INFO,
+			"ldbm_initialize_env(): FATAL error in dbEnv->open() : %s\n",
+			error );
+#endif
+		env->close( env, 0 );
+		return( NULL );
+	}
+
+	*envdirok = 1;
+	return env;
+}
+
+void ldbm_shutdown_env(DB_ENV *env)
+{
+	env->close( env, 0 );
+}
+
+
+#else
+
+DB_ENV *ldbm_initialize_env(const char *home, int dbcachesize, int *envdirok)
+{
+	return ldbm_Env;
+}
+
+void ldbm_shutdown_env(DB_ENV *env)
+{
+}
+
+
+#endif
+
+
 #if defined( LDBM_USE_DBHASH ) || defined( LDBM_USE_DBBTREE )
 
 /*****************************************************************
@@ -263,7 +322,7 @@ int ldbm_shutdown( void )
  *****************************************************************/
 
 LDBM
-ldbm_open( char *name, int rw, int mode, int dbcachesize )
+ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		ret = NULL;
 
@@ -272,7 +331,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 	LDBM_LOCK;
 
-	err = db_create( &ret, ldbm_Env, 0 );
+	err = db_create( &ret, env, 0 );
 	if ( err != 0 ) {
 		(void)ret->close(ret, 0);
 		LDBM_UNLOCK;
@@ -282,6 +341,7 @@ ldbm_open( char *name, int rw, int mode, int dbcachesize )
 
 	ret->set_pagesize( ret, DEFAULT_DB_PAGE_SIZE );
 	ret->set_malloc( ret, ldbm_malloc );
+	ret->set_cachesize( ret, 0, dbcachesize, 0 );
 
 	err = ret->open( ret, name, NULL, DB_TYPE, rw, mode);
 
@@ -581,7 +641,7 @@ ldbm_errno( LDBM ldbm )
  *****************************************************************/
 
 LDBM
-ldbm_open( char *name, int rw, int mode, int dbcachesize )
+ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		db;
 #ifdef HAVE_ST_BLKSIZE
@@ -755,7 +815,7 @@ ldbm_errno( LDBM ldbm )
  *****************************************************************/
 
 LDBM
-ldbm_open( char *name, int rw, int mode, int dbcachesize )
+ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM		db;
 
@@ -1063,7 +1123,7 @@ ldbm_errno( LDBM ldbm )
 
 /* ARGSUSED */
 LDBM
-ldbm_open( char *name, int rw, int mode, int dbcachesize )
+ldbm_open( DB_ENV *env, char *name, int rw, int mode, int dbcachesize )
 {
 	LDBM ldbm;
 
