@@ -28,6 +28,8 @@
 #define INQUOTEDVALUE	7
 #define B4SEPARATOR		8
 
+
+#ifdef UTF8DN
 /*
  * Upper cases a UTF8 character. We cheat a bit, we only change to upper
  * if the byte length is preserved. Should be replaced.
@@ -108,6 +110,7 @@ UTF8touppercheat( unsigned char *p )
 
 	return len;
 }
+#endif
 
 /*
  * dn_validate - validate and compress dn.  the dn is
@@ -277,7 +280,7 @@ char *
 dn_normalize( char *dn )
 {
 	/* upper case it */
-#if 1
+#ifndef UTF8DN
 	ldap_pvt_str2upper( dn );
 #else
 	/* enabling this might require reindexing */
