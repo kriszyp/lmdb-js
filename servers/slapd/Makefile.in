@@ -101,8 +101,7 @@ slapd.def: $(OBJS) version.o
 # We don't want to include symbols from dynamic libraries.
 all.def: $(STATIC_DEFS) $(DYNAMIC_DEFS)
 	cat $(STATIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' > $@
-	if [ "@LIB_LINKAGE@" != "DYN" ] ; \
-	then \
+	if test "@LIB_LINKAGE@" != "DYN" ; then \
 	    cat $(DYNAMIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' >> $@; \
 	fi
 	echo EXPORTS > tmp.def
@@ -160,7 +159,7 @@ sslapd: version.o
 
 .backend: $(@PLAT@_IMPLIB) FORCE
 	@for i in back-*; do \
-		if [ -d $$i -a -f $$i/Makefile ]; then \
+		if test -d $$i -a -f $$i/Makefile ; then \
 			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
 			( cd $$i; $(MAKE) $(MFLAGS) all ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -186,7 +185,7 @@ libbackends.a: .backend
 	done
 	@mv -f tmp/libbackends.a ./libbackends.a
 	@$(RM) -r tmp
-	@if [ ! -z "$(RANLIB)" ]; then \
+	@if test ! -z "$(RANLIB)" ; then \
 		$(RANLIB) libbackends.a; \
 	fi
 	@ls -l libbackends.a
@@ -197,7 +196,7 @@ version.c: $(OBJS) $(SLAPD_LIBDEPEND)
 
 depend-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
-		if [ -d $$i -a -f $$i/Makefile ]; then \
+		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -210,7 +209,7 @@ clean-local:
 
 clean-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
-		if [ -d $$i -a -f $$i/Makefile ]; then \
+		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -220,7 +219,7 @@ clean-local-srv: FORCE
 
 veryclean-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
-		if [ -d $$i -a -f $$i/Makefile ]; then \
+		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) veryclean ); \
 		fi; \
@@ -233,9 +232,9 @@ install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(localstatedir)
 	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
-	@if [ ! -z "$(SLAPD_MODULES)" ]; then \
+	@if test ! -z "$(SLAPD_MODULES)" ; then \
 	    for i in back-* shell-backends tools; do \
-		if [ -d $$i -a -f $$i/Makefile ]; then \
+		if test -d $$i -a -f $$i/Makefile ; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 			( cd $$i; $(MAKE) $(MFLAGS) install ); \
 			if test $$? != 0 ; then exit 1; fi ; \
@@ -252,16 +251,17 @@ all-cffiles: slapd
 
 install-schema: FORCE
 	@-$(MKDIR) $(DESTDIR)$(schemadir)
-	@cd $(srcdir)/schema ; \
-	for i in *.schema ; do \
-		if test ! -f $(DESTDIR)$(schemadir)/$$i; then \
-			echo "installing $$i in $(schemadir)"; \
-			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(schemadir)/$$i; \
-			$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(schemadir)/$$i; \
+	for i in $(srcdir)/schema/*.schema ; do \
+		SF=`basename $$i` ; \
+		SD="$(DISTDIR)$(schemadir)/$$SF" ; \
+		if test ! -f $$SD ; then \
+			echo "installing $$SF in $(schemadir)" ; \
+			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD ; \
+			$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD ; \
 		else \
-			echo "PRESERVING EXISTING SCHEMA FILE $(DESTDIR)$(schemadir)/$$i"; \
-		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(schemadir)/$$i.default ; \
+			echo "PRESERVING EXISTING SCHEMA FILE $$SD" ; \
+		fi ; \
+		$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $$SD.default ; \
 	done
 
 install-conf: FORCE
