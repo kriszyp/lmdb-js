@@ -84,9 +84,7 @@ attribute ( 2.5.21.2 NAME 'dITContentRules'
 
 # Object Classes from RFC2252
 
-objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
-      SUP top AUXILIARY )
-
+# extensibleObject moved forward, since it depends on top
 # ldapSyntaxes (operational) is admissible in next:
 
 objectclass ( 2.5.20.1 NAME 'subschema' AUXILIARY
@@ -105,6 +103,12 @@ attribute ( 2.5.4.1 NAME 'aliasedObjectName' EQUALITY distinguishedNameMatch
 # Defined, but no longer used
 
 attribute ( 2.5.4.2 NAME 'knowledgeInformation' EQUALITY caseIgnoreMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
+
+# Place here since other attribute types derive from it
+
+attribute ( 2.5.4.41 NAME 'name' EQUALITY caseIgnoreMatch
+      SUBSTR caseIgnoreSubstringsMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
 
 attribute ( 2.5.4.3 NAME ( 'cn' 'commonName' ) SUP name )
@@ -203,7 +207,13 @@ attribute ( 2.5.4.30 NAME 'supportedApplicationContext'
       EQUALITY objectIdentifierMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
 
-# SUP comes later
+# Placed here because others derive from it
+# We had a dn definition in slapd.at.conf and Netscape lists both
+# names for that OID
+
+attribute ( 2.5.4.49 NAME ( 'distinguishedName' 'dn' )
+      EQUALITY distinguishedNameMatch
+      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
 
 attribute ( 2.5.4.31 NAME 'member' SUP distinguishedName )
 
@@ -242,11 +252,7 @@ attribute ( 2.5.4.39 NAME 'certificateRevocationList'
 attribute ( 2.5.4.40 NAME 'crossCertificatePair'
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.10 )
 
-# Out of order!!!
-
-attribute ( 2.5.4.41 NAME 'name' EQUALITY caseIgnoreMatch
-      SUBSTR caseIgnoreSubstringsMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{32768} )
+# 2.5.4.41 is 'name', moved above since other attribute types derive from it
 
 attribute ( 2.5.4.42 NAME 'givenName' SUP name )
 
@@ -266,12 +272,7 @@ attribute ( 2.5.4.48 NAME 'protocolInformation'
       EQUALITY protocolInformationMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )
 
-# Out of order!!!
-# We had a dn definition in slapd.at.conf and Netscape lists both
-# names for that OID
-
-attribute ( 2.5.4.49 NAME ( 'distinguishedName' 'dn' ) EQUALITY distinguishedNameMatch
-      SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
+# 2.5.4.49 is distinguishedName, moved up
 
 attribute ( 2.5.4.50 NAME 'uniqueMember' EQUALITY uniqueMemberMatch
       SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )
@@ -424,3 +425,7 @@ objectclass ( 2.5.6.20 NAME 'dmd' SUP top STRUCTURAL MUST ( dmdName )
      street $ postOfficeBox $ postalCode $ postalAddress $
      physicalDeliveryOfficeName $ st $ l $ description ) )
 
+# Next objectclass is defined in RFC2252, but has to be put after top
+
+objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
+      SUP top AUXILIARY )
