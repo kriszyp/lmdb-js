@@ -42,9 +42,10 @@ perl_back_modify(
 
 	{
 		dSP; ENTER; SAVETMPS;
-
+		
 		PUSHMARK(sp);
 		XPUSHs( perl_back->pb_obj_ref );
+		XPUSHs(sv_2mortal(newSVpv( dn , 0)));
 
 		for (; modlist != NULL; modlist = modlist->ml_next ) {
 			LDAPMod *mods = &modlist->ml_mod;
@@ -63,7 +64,7 @@ perl_back_modify(
 				break;
 			}
 
-
+			
 			XPUSHs(sv_2mortal(newSVpv( mods->mod_type, 0 )));
 
 			for ( i = 0;

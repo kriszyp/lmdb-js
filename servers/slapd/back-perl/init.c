@@ -15,12 +15,14 @@
 	#include <ac/socket.h>
 */
 
+
+
 #include <EXTERN.h>
 #include <perl.h>
 
-
 #include "slap.h"
 #include "perl_back.h"
+
 
 
 PerlInterpreter *perl_interpreter = NULL;
@@ -96,7 +98,7 @@ perl_back_db_init(
 )
 {
 	be->be_private = (PerlBackend *) ch_malloc( sizeof(PerlBackend) );
-	memset(&be->be_private, 0, sizeof(PerlBackend));
+	memset( be->be_private, 0, sizeof(PerlBackend));
 
 	Debug( LDAP_DEBUG_TRACE, "perl backend db init\n", 0, 0, 0 );
 

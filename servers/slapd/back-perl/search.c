@@ -27,19 +27,19 @@
  **********************************************************/
 int
 perl_back_search(
-	 Backend *be,
-	 Connection *conn,
-	 Operation *op,
-	 char *base,
-	 int scope,
-	 int deref,
-	 int sizelimit,
-	 int timelimit,
-	 Filter *filter,
-	 char *filterstr,
-	 char **attrs,
-	 int attrsonly
-)
+	Backend *be,
+	Connection *conn,
+	Operation *op,
+	char *base,
+	int scope,
+	int deref,
+	int sizelimit,
+	int timelimit,
+	Filter *filter,
+	char *filterstr,
+	char **attrs,
+	int attrsonly
+	)
 {
 	char test[500];
 	int count ;
@@ -49,6 +49,7 @@ perl_back_search(
 	Entry	*e;
 	char *buf;
 	int i;
+	int return_code;
 
 	ldap_pvt_thread_mutex_lock( &perl_interpreter_mutex );	
 
@@ -67,36 +68,59 @@ perl_back_search(
 		}
 		PUTBACK;
 
-		count = perl_call_method("search", G_SCALAR);
+		count = perl_call_method("search", G_ARRAY );
 
 		SPAGAIN;
 
-		if (count != 1) {
+		if (count < 1) {
 			croak("Big trouble in back_search\n") ;
 		}
-							 
-		printf( "Before send search entry\n");
-		buf = POPp;
 
-		if ( (e = str2entry( buf )) == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "str2entry(%s) failed\n", buf, 0, 0 );
-
-		} else {
-			send_search_entry( be,
-				conn,
-				op,
-				e,
-				attrs,
-				attrsonly );
+		if ( count > 1 ) {
 							 
-			entry_free( e );
+			for ( i = 1; i < count; i++ ) {
+
+				buf = POPp;
+
+				if ( (e = str2entry( buf )) == NULL ) {
+					Debug( LDAP_DEBUG_ANY, "str2entry(%s) failed\n", buf, 0, 0 );
+
+				} else {
+					send_search_entry( be,
+							   conn,
+							   op,
+							   e,
+							   attrs,
+							   attrsonly );
+							 
+					entry_free( e );
+				}
+			}
 		}
+
+		/*
+		 * We grab the return code last because the stack comes
+		 * from perl in reverse order. 
+		 *
+		 * ex perl: return ( 0, $res_1, $res_2 );
+		 *
+		 * ex stack: <$res_2> <$res_1> <0>
+		 */
+
+		return_code = POPi;
+
+
 
 		PUTBACK; FREETMPS; LEAVE;
 	}
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );	
 
-	send_ldap_result( conn, op, err, matched, info );
+	if( return_code != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
+
+	} else {
+		send_ldap_result( conn, op, LDAP_SUCCESS, "", "" );
+	}
 }
 

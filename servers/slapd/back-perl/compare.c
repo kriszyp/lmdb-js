@@ -49,7 +49,7 @@ perl_back_compare(
 		dSP; ENTER; SAVETMPS;
 
 		PUSHMARK(sp);
-		XPUSHs( perl_back->obj_ref );
+		XPUSHs( perl_back->pb_obj_ref );
 		XPUSHs(sv_2mortal(newSVpv( dn , 0)));
 		/* XPUSHs(sv_2mortal(newSVpv( cred->bv_val , cred->bv_len))); */
 		PUTBACK;

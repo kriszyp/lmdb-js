@@ -54,7 +54,7 @@ perl_back_modrdn(
 
 	{
 		dSP; ENTER; SAVETMPS;
-
+		
 		PUSHMARK(sp) ;
 		XPUSHs( perl_back->pb_obj_ref );
 		XPUSHs(sv_2mortal(newSVpv( dn , 0 )));
@@ -79,7 +79,7 @@ perl_back_modrdn(
 	}
 
 	ldap_pvt_thread_mutex_unlock( &perl_interpreter_mutex );
-
+	
 	if( return_code != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, "", "" );
 

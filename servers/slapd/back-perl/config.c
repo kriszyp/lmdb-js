@@ -40,8 +40,9 @@ perl_back_db_config(
 	PerlBackend *perl_back = (PerlBackend *) be->be_private;
 	char eval_str[EVAL_BUF_SIZE];
 	int count ;
-
-	/***** SECURITY PROBLEM HERE FIX LATER *****/
+	int args;
+	int return_code;
+	
 
 	if ( strcasecmp( argv[0], "perlModule" ) == 0 ) {
 		if ( argc < 2 ) {
@@ -65,7 +66,7 @@ perl_back_db_config(
 			PUTBACK;
 
 			count = perl_call_method("new", G_SCALAR);
-
+			
 			SPAGAIN;
 
 			if (count != 1) {
@@ -93,9 +94,39 @@ perl_back_db_config(
 		 * Pass it to Perl module if defined
 		 */
 
-		fprintf( stderr,
-			"Unknown perl backend config: %s\n", argv[0]);
-		return( 1 );
+		{
+			dSP ;  ENTER ; SAVETMPS;
+
+			PUSHMARK(sp) ;
+			XPUSHs( perl_back->pb_obj_ref );
+
+			/* Put all arguments on the perl stack */
+			for( args = 0; args < argc; args++ ) {
+				XPUSHs(sv_2mortal(newSVpv(argv[args], 0)));
+			}
+
+			PUTBACK ;
+
+			count = perl_call_method("config", G_SCALAR);
+
+			SPAGAIN ;
+
+			if (count != 1) {
+				croak("Big trouble in config\n") ;
+			}
+
+			return_code = POPi;
+
+			PUTBACK ; FREETMPS ;  LEAVE ;
+
+		}
+
+		/* if the module rejected it then we should reject it */
+		if ( return_code != 0 ) {
+			fprintf( stderr,
+				 "Unknown perl backeng config: %s\n", argv[0]);
+			exit( 1 );
+		}
 	}
 
 	return 0;
