@@ -1,20 +1,40 @@
-UM-LDAP 3.3 README file
+OpenLDAP 1.0 README
 
-    This is the UM-LDAP version 3.3 distribution.  For a description of
-    what this distribution contains, see the ANNOUNCEMENT file in this
-    directory.  For a description of changes from previous releases,
-    see the CHANGES file in this directory.  For a more detailed
-    description of how to make and install the distribution, see the
-    INSTALL file in this directory.  For more information on making and
-    installing slapd, see the "SLAPD and SLURPD Administrator's Guide"
-    in the doc/guides/ directory.
+    This is the OpenLDAP version 1.0 distribution.
+
+	For a description of what this distribution contains, see the
+	ANNOUNCEMENT file in this directory.  For a description of
+	changes from previous releases, see the CHANGES file in this
+	directory.  For a more detailed description of how to make an
+	install the distribution, see the INSTALL file in this directory.
+
+	For more information:
+		http://www.OpenLDAP.org/
 
 MAKING AND INSTALLING THE DISTRIBUTION
 
     You should be able to make and install the distribution with a pretty
     standard default configuration by typing the following commands
 
-	% make
+	% ./configure --help
+		This will list the available options.
+		The configure script will also use your environmental
+		variables for determining compiler/linker options.
+		These environment variables are used:
+			CC			C compiler	(cc, ecgs)
+			CFLAGS		C Flags		(-ansi)
+			CPPFLAGS	CPP Flags	(-I -D)
+			LDFLAGS		LDFLAGS		(-L -l)
+
+	% [env settings] ./configure [options]
+		this will configure the build system
+
+	% make depend
+		this will create dependency information
+
+	% make 
+		this will build the system
+
 	% su
 	# make install
 
@@ -22,18 +42,11 @@ MAKING AND INSTALLING THE DISTRIBUTION
     works.
 
     You will probably want to do a little configuration to suit your
-    site, though.  There are two files you might want to edit:
+    site, though.  There are one file you might want to edit:
 
-	Make-common		   This file contains definitions for
-				   where things will be installed, where
-				   to find various things, etc.  If you
-				   want to build an ldap server, you'll
-				   definitely need to edit this file
-
-	include/ldapconfig.h.edit  This file contains #defines used
-				   by many parts of the distribution.
-				   You'll at least want to change
-				   DEFAULT_BASE.
+	include/ldapconfig.h.edit
+		This file contains #defines used by many parts of the
+		distribution.  You'll at least want to change DEFAULT_BASE.
 
     See the INSTALL file in this directory for more information.
 
@@ -42,18 +55,16 @@ DOCUMENTATION
     There are man pages for most programs in the distribution and
     routines in the various libraries.  See ldap(3) for details.
 
-    There is a postscript version of an administrator's guide for
-    slapd in doc/guides/slapd.ps.
-
-    There is an LDAP homepage available that contains the latest
+    There is an OpenLDAP homepage available that contains the latest
     LDAP news, releases announcements, pointers to other LDAP resources,
     etc. You can access it at this URL:
 
-	http://www.umich.edu/~rsug/ldap/
+	http://www.OpenLDAP.org/
 
-FEEDBACK / PROBLEM REPORTS
+FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
 
     We would appreciate any feedback you can provide.  If you have
     problems, report them to this address:
 
-	ldap-support@umich.edu
+	OpenLDAP-bugs@OpenLDAP.org
+

@@ -20,6 +20,12 @@
 /* define this for LDAP referrals support */
 #undef LDAP_REFERRALS
 
+/* define this for ACL Group support */
+#undef SLAPD_ACLGROUPS
+
+/* define this for Reverse Lookup support */
+#undef SLAPD_RLOOKUPS
+
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
 

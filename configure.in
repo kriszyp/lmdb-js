@@ -221,7 +221,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 		fi
 
 		# consider threads found
-		ol_with_threads="posix"
+		ol_with_threads=found
 
 		OL_LINUX_THREADS
 
@@ -233,7 +233,7 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 		dnl Now the hard part, how to link
 
 		dnl A few platforms have pthread support in standard libraries
-		AC_CHECK_FUNC(pthread_create,ol_link_threads=yes)
+		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
 
 		if test $ol_link_threads = no ; then
 			dnl try -pthread
@@ -252,7 +252,7 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 
 			if test $ol_cv_pthread_flag = yes ; then
 				LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
-				ol_link_threads=yes
+				ol_link_threads=posix
 			fi
 		fi
 
@@ -260,7 +260,7 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 			dnl try -lpthread
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthread, pthread_create, [
-				ol_link_threads=yes
+				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"])
 			LIBS="$save_LIBS"
 		fi
@@ -269,7 +269,7 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 			dnl try -lc_r
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(c_r, pthread_create, [
-				ol_link_threads=yes
+				ol_link_threads=posix
 				LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"])
 			LIBS="$save_LIBS"
 		fi
@@ -278,17 +278,22 @@ dnl			AC_DEFINE(HAVE_LINUX_THREADS,1)
 			dnl try DEC Threads
 			save_LIBS="$LIBS"
 			AC_CHECK_LIB(pthread, pthread_create, [
-				ol_link_threads=yes
+				ol_link_threads=posix
 				LTHREAD_DEFS="$LTHREAD_DEFS -DDEC_THREADS"
 				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
 				[-lmach -lexc -lc])
 			LIBS="$save_LIBS"
 		fi
 
-		if test $ol_link_threads = no ; then
+		if test $ol_link_threads != no ; then
+			dnl All POSIX Thread (final) implementations should have sched_yield
+			AC_CHECK_FUNC(sched_yield)
+		else
 			AC_MSG_ERROR([could not link with POSIX Threads])
 		fi
-	elif test $ol_with_threads = posix ; then
+	fi
+
+	if test $ol_with_threads = posix ; then
 		AC_MSG_ERROR([could not locate POSIX Threads])
 	fi
 fi
@@ -306,25 +311,6 @@ if test $ol_link_threads = no ; then
 	LTHREAD_DEFS="-DNO_THREADS"
 	LTHREAD_LIBS=""
 fi
-
-dnl	# check for strtok_r (and presumely other reentrant functions)
-dnl	save_LIBS="$LIBS"
-dnl	LIBS="$save_LIBS $LTHREAD_LIBS"
-dnl	AC_CHECK_LIB(pthread,strtok_r)
-dnl 
-dnl	if test $ac_cv_lib_pthread_strtok_r = no ; then
-dnl	LIBS="$save_LIBS $LTHREAD_LIBS"
-dnl	AC_CHECK_LIB(c_r,strtok_r)
-dnl	AC_CHECK_FUNCS(strtok_r sched_yield)
-dnl	if test $ac_cv_lib_c_r_strtok_r = yes ; then
-dnl		LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"
-dnl	fi
-dnl	else
-dnl	AC_CHECK_FUNCS(strtok_r sched_yield)
-dnl	fi
-dnl
-dnl	LIBS="$save_LIBS"
-
 
 ol_link_ldbm=no 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
@@ -385,7 +371,7 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
 
 		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_GDBM"
 
-		if test $ol_cv_lib_db != yes ; then
+		if test $ol_cv_lib_gdbm != yes ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_gdbm"
 		fi
 	fi
@@ -404,7 +390,7 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = ndbm ; then
 
 		LDBM_DEFS="$LDBM_DEFS -DLDBM_USE_NDBM"
 
-		if test $ol_cv_lib_db != yes ; then
+		if test $ol_cv_lib_ndbm != yes ; then
 			LDBM_LIBS="$LDBM_LIBS $ol_cv_lib_ndbm"
 		fi
 	fi

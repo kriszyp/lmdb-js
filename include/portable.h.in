@@ -73,11 +73,11 @@
 /* define this if sys_errlist is not defined in stdio.h or errno.h */
 #undef DECL_SYS_ERRLIST
 
-/* define this for connectionless LDAP support */
-#undef LDAP_CONNECTIONLESS
+/* define this for ACL Group support */
+#undef SLAPD_ACLGROUPS
 
-/* define this to remove -lldap cache support */
-#undef LDAP_NOCACHE
+/* define this for Reverse Lookup support */
+#undef SLAPD_RLOOKUPS
 
 /* define this for phonetic support */
 #undef SLAPD_PHONETIC
@@ -93,9 +93,6 @@
 
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
-
-/* Define if you have the sched_yield function.  */
-#undef HAVE_SCHED_YIELD
 
 /* Define if you have the select function.  */
 #undef HAVE_SELECT
@@ -121,14 +118,14 @@
 /* Define if you have the strtod function.  */
 #undef HAVE_STRTOD
 
-/* Define if you have the strtok_r function.  */
-#undef HAVE_STRTOK_R
-
 /* Define if you have the strtol function.  */
 #undef HAVE_STRTOL
 
 /* Define if you have the strtoul function.  */
 #undef HAVE_STRTOUL
+
+/* Define if you have the <db.h> header file.  */
+#undef HAVE_DB_H
 
 /* Define if you have the <db_185.h> header file.  */
 #undef HAVE_DB_185_H
@@ -139,11 +136,17 @@
 /* Define if you have the <fcntl.h> header file.  */
 #undef HAVE_FCNTL_H
 
+/* Define if you have the <gdbm.h> header file.  */
+#undef HAVE_GDBM_H
+
 /* Define if you have the <limits.h> header file.  */
 #undef HAVE_LIMITS_H
 
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H
+
+/* Define if you have the <ndbm.h> header file.  */
+#undef HAVE_NDBM_H
 
 /* Define if you have the <ndir.h> header file.  */
 #undef HAVE_NDIR_H
@@ -183,12 +186,6 @@
 
 /* Define if you have the <unistd.h> header file.  */
 #undef HAVE_UNISTD_H
-
-/* Define if you have the c_r library (-lc_r).  */
-#undef HAVE_LIBC_R
-
-/* Define if you have the pthread library (-lpthread).  */
-#undef HAVE_LIBPTHREAD
 
 #ifdef HAVE_STDDEF_H
 #	include <stddef.h>
