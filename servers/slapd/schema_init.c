@@ -64,8 +64,12 @@
 #define protocolInformationMatch		NULL
 #define integerFirstComponentMatch		NULL
 
+#ifdef SLAPD_ACI_ENABLED
 #define OpenLDAPaciMatch				NULL
+#endif
+#ifdef SLAPD_AUTHPASSWD
 #define authPasswordMatch				NULL
+#endif
 
 /* recycled indexing/filtering routines */
 #define dnIndexer				caseExactIgnoreIndexer
@@ -4264,10 +4268,12 @@ static struct syntax_defs_rec {
 #endif
 
 	/* OpenLDAP Experimental Syntaxes */
+#ifdef SLAPD_ACI_ENABLED
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		SLAP_SYNTAX_HIDE,
 		UTF8StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
 		NULL, NULL},
+#endif
 
 #ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
@@ -4580,12 +4586,14 @@ static struct mrule_defs_rec {
 		NULL},
 #endif
 
+#ifdef SLAPD_ACI_ENABLED
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
 		SLAP_MR_EQUALITY,
 		NULL, NULL,
 		OpenLDAPaciMatch, NULL, NULL,
 		NULL},
+#endif
 
 	{"( 1.2.840.113556.1.4.803 NAME 'integerBitAndMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",

@@ -136,7 +136,10 @@ LDAP_BEGIN_DECL
 #define SLAPD_ROLE_ATTR			"roleOccupant"
 #define SLAPD_ROLE_CLASS		"organizationalRole"
 
+#ifdef SLAPD_ACI_ENABLED
 #define SLAPD_ACI_SYNTAX		"1.3.6.1.4.1.4203.666.2.1"
+#endif
+
 #define SLAPD_OCTETSTRING_SYNTAX "1.3.6.1.4.1.1466.115.121.1.40"
 
 /* change this to "OpenLDAPset" */
