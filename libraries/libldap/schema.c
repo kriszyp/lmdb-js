@@ -1658,8 +1658,9 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp, const in
 	savepos = ss;
 	at->at_oid = parse_numericoid(&ss,code,0);
 	if ( !at->at_oid ) {
-		if ( flags & ( LDAP_SCHEMA_ALLOW_NO_OID
-				| LDAP_SCHEMA_ALLOW_OID_MACRO ) ) {
+		if ( ( flags & ( LDAP_SCHEMA_ALLOW_NO_OID
+				| LDAP_SCHEMA_ALLOW_OID_MACRO ) )
+			    && (ss == savepos) ) {
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
@@ -2031,7 +2032,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp, const int 
 	savepos = ss;
 	oc->oc_oid = parse_numericoid(&ss,code,0);
 	if ( !oc->oc_oid ) {
-		if ( flags & LDAP_SCHEMA_ALLOW_ALL ) {
+		if ( (flags & LDAP_SCHEMA_ALLOW_ALL) && (ss == savepos) ) {
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
