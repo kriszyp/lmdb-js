@@ -524,31 +524,38 @@ int main( int argc, char **argv )
 		goto shutdown;
 	}
 
-	{
-		FILE *fp;
-
 #ifdef NEW_LOGGING
-		LDAP_LOG( SLAPD, INFO, "main: slapd starting.\n", 0, 0, 0 );
+	LDAP_LOG( SLAPD, INFO, "main: slapd starting.\n", 0, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
+	Debug( LDAP_DEBUG_ANY, "slapd starting\n", 0, 0, 0 );
 #endif
 
 
-		if (( slapd_pid_file != NULL ) &&
-			(( fp = fopen( slapd_pid_file, "w" )) != NULL ))
-		{
+	if ( slapd_pid_file != NULL ) {
+		FILE *fp = fopen( slapd_pid_file, "w" );
+
+		if( fp != NULL ) {
 			fprintf( fp, "%d\n", (int) getpid() );
 			fclose( fp );
-		}
 
-		if (( slapd_args_file != NULL ) &&
-			(( fp = fopen( slapd_args_file, "w" )) != NULL ))
-		{
+		} else {
+			free(slapd_pid_file);
+			slapd_pid_file = NULL;
+		}
+	}
+
+	if ( slapd_args_file != NULL ) {
+		FILE *fp = fopen( slapd_args_file, "w" );
+
+		if( fp != NULL ) {
 			for ( i = 0; i < g_argc; i++ ) {
 				fprintf( fp, "%s ", g_argv[i] );
 			}
 			fprintf( fp, "\n" );
 			fclose( fp );
+		} else {
+			free(slapd_args_file);
+			slapd_args_file = NULL;
 		}
 	}
 
@@ -606,6 +613,13 @@ stop:
 #ifdef HAVE_TLS
 	ldap_pvt_tls_destroy();
 #endif
+
+	if ( slapd_pid_file != NULL ) {
+		unlink( slapd_pid_file );
+	}
+	if ( slapd_args_file != NULL ) {
+		unlink( slapd_args_file );
+	}
 
 	config_destroy();
 
