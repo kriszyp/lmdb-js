@@ -169,11 +169,13 @@ void connection2anonymous( Connection *c )
 Connection * connection_first( ber_socket_t *b )
 {
 	assert(0);
+	return NULL;
 }
 
 Connection * connection_next( Connection *c, ber_socket_t *b )
 {
 	assert(0);
+	return NULL;
 }
 
 void connection_done( Connection *c )
@@ -184,6 +186,7 @@ void connection_done( Connection *c )
 const char * connection_state2str( int state )
 {
 	assert(0);
+	return NULL;
 }
 
 void replog( Backend *be, Operation *op, char *dn, void *change)
@@ -199,5 +202,6 @@ void slap_mods_free( Modifications *ml )
 int add_replica_info( Backend *be, const char *host )
 {
 	assert(0);
+	return 0;
 }
 	

@@ -72,7 +72,7 @@ struct berelement {
 	struct seqorset	*ber_sos;
 	char		*ber_rwptr;
 };
-#define BER_VALID(ber)	((ber)->ber_valid==LBER_VALID_BERELEMENT)
+#define LBER_VALID(ber)	((ber)->ber_valid==LBER_VALID_BERELEMENT)
 
 #define ber_pvt_ber_remaining(ber)	((ber)->ber_end - (ber)->ber_ptr)
 #define ber_pvt_ber_total(ber)		((ber)->ber_end - (ber)->ber_buf)
@@ -91,8 +91,6 @@ struct sockbuf {
 };
 
 #define SOCKBUF_VALID( sb )	( (sb)->sb_valid == LBER_VALID_SOCKBUF )
-
-#define READBUFSIZ	8192
 
 struct seqorset {
 	BerElement	*sos_ber;

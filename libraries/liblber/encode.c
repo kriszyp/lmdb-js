@@ -73,7 +73,7 @@ ber_put_tag(
 	unsigned char nettag[sizeof(ber_tag_t)];
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	taglen = ber_calc_taglen( tag );
 
@@ -125,7 +125,7 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	unsigned char netlen[sizeof(ber_len_t)];
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	/*
 	 * short len if it's less than 128 - one byte giving the len,
@@ -184,7 +184,7 @@ ber_put_int_or_enum(
 	unsigned char netnum[sizeof(ber_uint_t)];
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	sign = (num < 0);
 	unum = num;	/* Bit fiddling should be done with unsigned values */
@@ -244,7 +244,7 @@ ber_put_enum(
 	ber_tag_t tag )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_ENUMERATED;
@@ -260,7 +260,7 @@ ber_put_int(
 	ber_tag_t tag )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_INTEGER;
@@ -282,7 +282,7 @@ ber_put_ostring(
 	assert( ber != NULL );
 	assert( str != NULL );
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_OCTETSTRING;
@@ -309,7 +309,7 @@ ber_put_berval(
 	ber_tag_t tag )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if( bv == NULL || bv->bv_len == 0 ) {
 		return ber_put_ostring( ber, "", (ber_len_t) 0, tag );
@@ -327,7 +327,7 @@ ber_put_string(
 	assert( ber != NULL );
 	assert( str != NULL );
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	return ber_put_ostring( ber, str, strlen( str ), tag );
 }
@@ -345,7 +345,7 @@ ber_put_bitstring(
 	assert( ber != NULL );
 	assert( str != NULL );
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_BITSTRING;
@@ -379,7 +379,7 @@ ber_put_null( BerElement *ber, ber_tag_t tag )
 	ber_len_t	taglen;
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_NULL;
@@ -407,7 +407,7 @@ ber_put_boolean(
 	unsigned char	falseval = 0;
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT )
 		tag = LBER_BOOLEAN;
@@ -439,7 +439,7 @@ ber_start_seqorset(
 	Seqorset	*new;
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	new = (Seqorset *) LBER_CALLOC( 1, sizeof(Seqorset) );
 
@@ -468,7 +468,7 @@ int
 ber_start_seq( BerElement *ber, ber_tag_t tag )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_SEQUENCE;
@@ -481,7 +481,7 @@ int
 ber_start_set( BerElement *ber, ber_tag_t tag )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( tag == LBER_DEFAULT ) {
 		tag = LBER_SET;
@@ -502,7 +502,7 @@ ber_put_seqorset( BerElement *ber )
 	Seqorset	**sos = &ber->ber_sos;
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	/*
 	 * If this is the toplevel sequence or set, we need to actually
@@ -655,7 +655,7 @@ int
 ber_put_seq( BerElement *ber )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	return ber_put_seqorset( ber );
 }
@@ -664,7 +664,7 @@ int
 ber_put_set( BerElement *ber )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	return ber_put_seqorset( ber );
 }
@@ -686,7 +686,7 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 	assert( ber != NULL );
 	assert( fmt != NULL );
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	va_start( ap, fmt );
 

@@ -53,9 +53,9 @@ struct ber_mem_hdr {
 };
 
 /* Pattern at top of allocated space */
-#define BER_MEM_JUNK 0xdeaddadaU
+#define LLBER_MEM_JUNK 0xdeaddadaU
 
-static const struct ber_mem_hdr ber_int_mem_hdr = { BER_MEM_JUNK, 0, 0 };
+static const struct ber_mem_hdr ber_int_mem_hdr = { LBER_MEM_JUNK, 0, 0 };
 
 /* Note sequence and ber_int_options.lbu_meminuse are counters, but are not
  * thread safe.  If you want to use these values for multithreaded applications,
@@ -140,7 +140,7 @@ ber_memfree( void *p )
 #ifdef LDAP_MEMORY_DEBUG
 		struct ber_mem_hdr *mh = (struct ber_mem_hdr *)
 			((char *)p - sizeof(struct ber_mem_hdr));
-		assert( mh->bm_top == BER_MEM_JUNK);
+		assert( mh->bm_top == LBER_MEM_JUNK);
 		assert( testdatatop( mh));
 		assert( testend( (char *)&mh[1] + mh->bm_length) );
 		ber_int_options.lbo_meminuse -= mh->bm_length;
@@ -204,7 +204,7 @@ ber_memalloc( ber_len_t s )
 		struct ber_mem_hdr *mh = malloc(s + sizeof(struct ber_mem_hdr) + sizeof( ber_int_t));
 		if( mh == NULL ) return NULL;
 
-		mh->bm_top = BER_MEM_JUNK;
+		mh->bm_top = LBER_MEM_JUNK;
 		mh->bm_length = s;
 		setdatatop( mh);
 		setend( (char *)&mh[1] + mh->bm_length );
@@ -256,7 +256,7 @@ ber_memcalloc( ber_len_t n, ber_len_t s )
 			(n * s) + sizeof(struct ber_mem_hdr) + sizeof(ber_int_t) );
 		if( mh == NULL ) return NULL;
 
-		mh->bm_top = BER_MEM_JUNK;
+		mh->bm_top = LBER_MEM_JUNK;
 		mh->bm_length = n*s;
 		setdatatop( mh);
 		setend( (char *)&mh[1] + mh->bm_length );
@@ -310,7 +310,7 @@ ber_memrealloc( void* p, ber_len_t s )
 		ber_int_t oldlen;
 		struct ber_mem_hdr *mh = (struct ber_mem_hdr *)
 			((char *)p - sizeof(struct ber_mem_hdr));
-		assert( mh->bm_top == BER_MEM_JUNK);
+		assert( mh->bm_top == LBER_MEM_JUNK);
 		assert( testdatatop( mh));
 		assert( testend( (char *)&mh[1] + mh->bm_length) );
 		oldlen = mh->bm_length;
@@ -329,7 +329,7 @@ ber_memrealloc( void* p, ber_len_t s )
 			memset( (char *)&mh[1] + oldlen, 0xff, s - oldlen);
 		}
 
-		assert( mh->bm_top == BER_MEM_JUNK);
+		assert( mh->bm_top == LBER_MEM_JUNK);
 		assert( testdatatop( mh));
 
 		ber_int_options.lbo_meminuse += s - oldlen;

@@ -368,7 +368,7 @@ try_read1msg(
     }
 
 	ber = lc->lconn_ber;
-	assert( BER_VALID (ber) );
+	assert( LBER_VALID (ber) );
 
 	/* get the next message */
 	errno = 0;

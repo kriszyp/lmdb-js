@@ -34,7 +34,7 @@
 
 #include "lber-int.h"
 
-#define EXBUFSIZ	1024
+#define LBER_EXBUFSIZ	1024
 
 static ber_slen_t
 BerRead(
@@ -75,7 +75,7 @@ ber_read(
 	assert( ber != NULL );
 	assert( buf != NULL );
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	nleft = ber_pvt_ber_remaining( ber );
 	actuallen = nleft < len ? nleft : len;
@@ -97,7 +97,7 @@ ber_write(
 	assert( ber != NULL );
 	assert( buf != NULL );
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( nosos || ber->ber_sos == NULL ) {
 		if ( ber->ber_ptr + len > ber->ber_end ) {
@@ -131,12 +131,12 @@ ber_realloc( BerElement *ber, ber_len_t len )
 	assert( ber != NULL );
 	assert( len > 0 );
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	total = ber_pvt_ber_total( ber );
-	have = total / EXBUFSIZ;
-	need = (len < EXBUFSIZ ? 1 : (len + (EXBUFSIZ - 1)) / EXBUFSIZ);
-	total = have * EXBUFSIZ + need * EXBUFSIZ;
+	have = total / LBER_EXBUFSIZ;
+	need = len < LBER_EXBUFSIZ ? 1 : (len + (LBER_EXBUFSIZ - 1)) / LBER_EXBUFSIZ;
+	total = have * LBER_EXBUFSIZ + need * LBER_EXBUFSIZ;
 
 	oldbuf = ber->ber_buf;
 
@@ -181,7 +181,7 @@ ber_free( BerElement *ber, int freebuf )
 		return;
 	}
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( freebuf ) {
 		Seqorset *s, *next;
@@ -210,7 +210,7 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	assert( ber != NULL );
 
 	assert( SOCKBUF_VALID( sb ) );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( ber->ber_rwptr == NULL ) {
 		ber->ber_rwptr = ber->ber_buf;
@@ -269,7 +269,7 @@ ber_alloc_t( int options )
 	ber->ber_options = options;
 	ber->ber_debug = ber_int_debug;
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 	return ber;
 }
 
@@ -291,7 +291,7 @@ ber_dup( BerElement *ber )
 	BerElement	*new;
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( (new = ber_alloc_t( ber->ber_options )) == NULL ) {
 		return NULL;
@@ -299,7 +299,7 @@ ber_dup( BerElement *ber )
 
 	*new = *ber;
 
-	assert( BER_VALID( new ) );
+	assert( LBER_VALID( new ) );
 	return( new );
 }
 
@@ -318,7 +318,7 @@ ber_init_w_nullc( BerElement *ber, int options )
 	ber->ber_options = (char) options;
 	ber->ber_debug = ber_int_debug;
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 }
 
 /* New C-API ber_init() */
@@ -410,7 +410,7 @@ void
 ber_reset( BerElement *ber, int was_writing )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( was_writing ) {
 		ber->ber_end = ber->ber_ptr;
@@ -440,7 +440,7 @@ ber_get_next(
 	assert( ber != NULL );
 
 	assert( SOCKBUF_VALID( sb ) );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "liblber", LDAP_LEVEL_ENTRY, "ber_get_next: enter\n" ));

@@ -12,6 +12,7 @@
 /*
  * ldap-schema.h - Header for basic schema handling functions that can be
  *		used by both clients and servers.
+ * these routines should be renamed ldap_x_...
  */
 
 #ifndef _LDAP_SCHEMA_H

@@ -12,6 +12,7 @@
 /*
  * ldap_pvt_uc.h - Header for Unicode functions.
  * These are meant to be used by the OpenLDAP distribution only.
+ * These should be named ldap_pvt_....()
  */
 
 #ifndef _LDAP_PVT_UC_H
@@ -32,18 +33,10 @@ LDAP_BEGIN_DECL
  * UTF-8 (in utf-8.c)
  */
 
-typedef ber_int_t ldap_ucs4_t;
-#define LDAP_UCS4_INVALID (0x80000000U)
-
 typedef short ldap_ucs2_t;
 
 /* UCDATA uses UCS-2 passed in an unsigned long */
 typedef unsigned long ldap_unicode_t;
-
-/* conversion routines  */
-LDAP_F( ldap_ucs4_t ) ldap_utf8_to_ucs4( const char * p );
-LDAP_F( int ) ldap_ucs4_to_utf8( ldap_ucs4_t c, char *buf );
-
 #define ldap_utf8_to_unicode( p ) ldap_utf8_to_ucs4((p))
 #define ldap_unicode_to_utf8( c, buf ) ldap_ucs4_to_ucs4((c),(buf))
 

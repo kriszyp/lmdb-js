@@ -263,7 +263,15 @@ SOURCE=..\..\include\ldap_pvt.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ldap_pvt_uc.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\ldap_schema.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\ldap_utf8.h
 # End Source File
 # Begin Source File
 
@@ -360,6 +368,10 @@ SOURCE=.\unbind.c
 # Begin Source File
 
 SOURCE=.\url.c
+# End Source File
+# Begin Source File
+
+SOURCE=".\utf-8-conv.c"
 # End Source File
 # Begin Source File
 

@@ -305,7 +305,7 @@ ber_log_dump(
 	int inout )
 {
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( !ber_log_check( errlvl, loglvl )) {
 		return 0;
@@ -324,7 +324,7 @@ ber_dump(
 	ber_len_t len;
 
 	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if ( inout == 1 ) {
 		len = ber_pvt_ber_remaining(ber);

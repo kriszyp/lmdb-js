@@ -44,8 +44,8 @@
 #endif
 
 /* use ldap_pvt_strtok instead of strtok or strtok_r! */
-LDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str, const char *delim,
-					   char **pos ));
+LDAP_F(char *) ldap_pvt_strtok LDAP_P(( char *str,
+	const char *delim, char **pos ));
 
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */

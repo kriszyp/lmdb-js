@@ -97,7 +97,7 @@ ldap_sasl_bind(
 		return ld->ld_errno;
 	}
 
-	assert( BER_VALID( ber ) );
+	assert( LBER_VALID( ber ) );
 
 	if( mechanism == LDAP_SASL_SIMPLE ) {
 		/* simple bind */

@@ -132,6 +132,10 @@ SOURCE=..\..\include\ldap_pvt_uc.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\ldap_utf8.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\ucdata\ucdata.c
 # End Source File
 # Begin Source File

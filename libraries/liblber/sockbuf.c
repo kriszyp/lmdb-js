@@ -33,9 +33,15 @@
 
 #include "lber-int.h"
 
-#define MIN_BUFF_SIZE		4096
-#define MAX_BUFF_SIZE		65536
-#define DEFAULT_READAHEAD	16384
+#ifndef LBER_MIN_BUFF_SIZE
+#define LBER_MIN_BUFF_SIZE		4096
+#endif
+#ifndef LBER_MAX_BUFF_SIZE
+#define LBER_MAX_BUFF_SIZE		65536
+#endif
+#ifndef LBER_DEFAULT_READAHEAD
+#define LBER_DEFAULT_READAHEAD	16384
+#endif
 
 Sockbuf *
 ber_sockbuf_alloc( void )
@@ -108,7 +114,7 @@ ber_sockbuf_ctrl( Sockbuf *sb, int opt, void *arg )
 				/* Drain the data source to enable possible errors (e.g.
 				 * TLS) to be propagated to the upper layers
 				 */
-				char buf[MIN_BUFF_SIZE];
+				char buf[LBER_MIN_BUFF_SIZE];
 
 				do {
 					ret = ber_int_sb_read( sb, buf, sizeof( buf ) );
@@ -243,8 +249,8 @@ ber_pvt_sb_grow_buffer( Sockbuf_Buf *buf, ber_len_t minsize )
    
 	assert( buf != NULL );
 
-	for ( pw = MIN_BUFF_SIZE; pw < minsize; pw <<= 1 ) {
-		if (pw > MAX_BUFF_SIZE) return -1;
+	for ( pw = LBER_MIN_BUFF_SIZE; pw < minsize; pw <<= 1 ) {
+		if (pw > LBER_MAX_BUFF_SIZE) return -1;
 	}
 
 	if ( buf->buf_size < pw ) {
@@ -596,7 +602,7 @@ sb_rdahead_setup( Sockbuf_IO_Desc *sbiod, void *arg )
 	ber_pvt_sb_buf_init( p );
 
 	if ( arg == NULL ) {
-		ber_pvt_sb_grow_buffer( p, DEFAULT_READAHEAD );
+		ber_pvt_sb_grow_buffer( p, LBER_DEFAULT_READAHEAD );
 	} else {
 		ber_pvt_sb_grow_buffer( p, *((int *)arg) );
 	}
@@ -859,4 +865,3 @@ Sockbuf_IO ber_sockbuf_io_debug = {
 	sb_debug_write,		/* sbi_write */
 	NULL				/* sbi_close */
 };
-

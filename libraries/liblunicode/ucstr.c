@@ -1,5 +1,7 @@
 #include "portable.h"
 
+#include <ldap_utf8.h>
+
 #include <ldap_pvt_uc.h>
 
 #include <ac/ctype.h>
@@ -183,7 +185,7 @@ char * UTF8normalize(
 					return NULL;
 				}
 			}
-			outpos += ldap_ucs4_to_utf8( ucsout[j], &out[outpos] );
+			outpos += ldap_x_ucs4_to_utf8( ucsout[j], &out[outpos] );
 		}
 		
 		if ( i == len ) {
@@ -243,7 +245,7 @@ int UTF8normcmp(
 	
 	/* convert and normalize 1st string */
 	for ( i = 0, ulen = 0; i < l1; i += len, ulen++ ) {
-                ucs[ulen] = ldap_utf8_to_ucs4( s1 + i );
+                ucs[ulen] = ldap_x_utf8_to_ucs4( s1 + i );
                 if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
 			free( ucs );
                         return -1; /* what to do??? */
@@ -255,7 +257,7 @@ int UTF8normcmp(
 
 	/* convert and normalize 2nd string */
 	for ( i = 0, ulen = 0; i < l2; i += len, ulen++ ) {
-                ucs[ulen] = ldap_utf8_to_ucs4( s2 + i );
+                ucs[ulen] = ldap_x_utf8_to_ucs4( s2 + i );
                 if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
 			free( ucsout1 );
 			free( ucs );

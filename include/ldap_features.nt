@@ -21,6 +21,8 @@
 #define LDAP_VENDOR_VERSION_PATCH	X
 
 /*
+** WORK IN PROGRESS!
+**
 ** OpenLDAP reentrancy/thread-safeness should be dynamically
 ** checked using ldap_get_option().
 **

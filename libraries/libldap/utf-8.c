@@ -25,11 +25,13 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "ldap_utf8.h"
+
 #include "ldap-int.h"
 #include "ldap_defaults.h"
 
-#undef ISASCII
-#define ISASCII(uc)	((uc) < 0x80)
+#undef LDAP_IS_ASCII
+#define LDAP_IS_ASCII(uc)	((uc) < 0x80)
 
 /*
  * Basic UTF-8 routines
@@ -107,7 +109,7 @@ int ldap_utf8_charlen( const char * p )
 }
 
 /* conv UTF-8 to UCS-4, useful for comparisons */
-ldap_ucs4_t ldap_utf8_to_ucs4( const char * p )
+ldap_ucs4_t ldap_x_utf8_to_ucs4( const char * p )
 {
     const unsigned char *c = p;
     ldap_ucs4_t ch;
@@ -134,7 +136,7 @@ ldap_ucs4_t ldap_utf8_to_ucs4( const char * p )
 }
 
 /* conv UCS-4 to UTF-8, not used */
-int ldap_ucs4_to_utf8( ldap_ucs4_t c, char *buf )
+int ldap_x_ucs4_to_utf8( ldap_ucs4_t c, char *buf )
 {
 	int len=0;
 	unsigned char* p = buf;
@@ -270,14 +272,14 @@ int ldap_utf8_copy( char* dst, const char *src )
 int ldap_utf8_isascii( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
-	return ISASCII(c);
+	return LDAP_IS_ASCII(c);
 }
 
 int ldap_utf8_isdigit( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!ISASCII(c)) return 0;
+	if(!LDAP_IS_ASCII(c)) return 0;
 
 	return c >= '0' && c <= '9';
 }
@@ -286,7 +288,7 @@ int ldap_utf8_isxdigit( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!ISASCII(c)) return 0;
+	if(!LDAP_IS_ASCII(c)) return 0;
 
 	return ( c >= '0' && c <= '9' )
 		|| ( c >= 'A' && c <= 'F' )
@@ -297,7 +299,7 @@ int ldap_utf8_isspace( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!ISASCII(c)) return 0;
+	if(!LDAP_IS_ASCII(c)) return 0;
 
 	switch(c) {
 	case ' ':
@@ -321,7 +323,7 @@ int ldap_utf8_isalpha( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!ISASCII(c)) return 0;
+	if(!LDAP_IS_ASCII(c)) return 0;
 
 	return ( c >= 'A' && c <= 'Z' )
 		|| ( c >= 'a' && c <= 'z' );
@@ -331,7 +333,7 @@ int ldap_utf8_isalnum( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!ISASCII(c)) return 0;
+	if(!LDAP_IS_ASCII(c)) return 0;
 
 	return ( c >= '0' && c <= '9' )
 		|| ( c >= 'A' && c <= 'Z' )
@@ -342,7 +344,7 @@ int ldap_utf8_islower( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!ISASCII(c)) return 0;
+	if(!LDAP_IS_ASCII(c)) return 0;
 
 	return ( c >= 'a' && c <= 'z' );
 }
@@ -351,7 +353,7 @@ int ldap_utf8_isupper( const char * p )
 {
 	unsigned c = * (const unsigned char *) p;
 
-	if(!ISASCII(c)) return 0;
+	if(!LDAP_IS_ASCII(c)) return 0;
 
 	return ( c >= 'A' && c <= 'Z' );
 }
@@ -366,7 +368,7 @@ int ldap_utf8_isupper( const char * p )
 char * (ldap_utf8_strchr)( const char *str, const char *chr )
 {
 	for( ; *str != '\0'; LDAP_UTF8_INCR(str) ) {
-		if( ldap_utf8_to_ucs4( str ) == ldap_utf8_to_ucs4( chr ) ) {
+		if( ldap_x_utf8_to_ucs4( str ) == ldap_x_utf8_to_ucs4( chr ) ) {
 			return (char *) str;
 		} 
 	}
@@ -382,7 +384,7 @@ ber_len_t (ldap_utf8_strcspn)( const char *str, const char *set )
 
 	for( cstr = str; *cstr != '\0'; LDAP_UTF8_INCR(cstr) ) {
 		for( cset = set; *cset != '\0'; LDAP_UTF8_INCR(cset) ) {
-			if( ldap_utf8_to_ucs4( cstr ) == ldap_utf8_to_ucs4( cset ) ) {
+			if( ldap_x_utf8_to_ucs4( cstr ) == ldap_x_utf8_to_ucs4( cset ) ) {
 				return cstr - str;
 			} 
 		}
@@ -403,7 +405,7 @@ ber_len_t (ldap_utf8_strspn)( const char *str, const char *set )
 				return cstr - str;
 			}
 
-			if( ldap_utf8_to_ucs4( cstr ) == ldap_utf8_to_ucs4( cset ) ) {
+			if( ldap_x_utf8_to_ucs4( cstr ) == ldap_x_utf8_to_ucs4( cset ) ) {
 				break;
 			} 
 		}
@@ -419,7 +421,7 @@ char *(ldap_utf8_strpbrk)( const char *str, const char *set )
 		const char *cset;
 
 		for( cset = set; *cset != '\0'; LDAP_UTF8_INCR(cset) ) {
-			if( ldap_utf8_to_ucs4( str ) == ldap_utf8_to_ucs4( cset ) ) {
+			if( ldap_x_utf8_to_ucs4( str ) == ldap_x_utf8_to_ucs4( cset ) ) {
 				return (char *) str;
 			} 
 		}
