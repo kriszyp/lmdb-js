@@ -15,6 +15,7 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
+#include "ldap_pvt_uc.h"
 #include "lutil_md5.h"
 
 /* recycled validatation routines */
@@ -46,7 +47,7 @@
 #define objectIdentifierMatch			numericStringMatch
 #define integerMatch					numericStringMatch
 #define telephoneNumberMatch			numericStringMatch
-#define telephoneNumberSubstringsMatch	caseIgnoreIA5SubstringsMatch
+#define telephoneNumberSubstringsMatch	caseIgnoreSubstringsMatch
 #define generalizedTimeMatch			numericStringMatch
 #define generalizedTimeOrderingMatch	numericStringMatch
 #define uniqueMemberMatch				dnMatch
@@ -348,62 +349,6 @@ booleanMatch(
 	return LDAP_SUCCESS;
 }
 
-#if 0
-static int
-UTF8casecmp(
-	struct berval *right,
-	struct berval *left )
-{
-	ber_len_t r, l;
-	int rlen, llen;
-	ldap_unicode_t ru, lu;
-	ldap_unicode_t ruu, luu;
-
-	for( r=0, l=0;
-		r < right->bv_len && l < left->bv_len;
-		r+=rlen, l+=llen )
-	{
-		/*
-		 * XXYYZ: we convert to ucs4 even though -llunicode
-		 * expects ucs2 in an unsigned long
-		 */
-		ru = ldap_utf8_to_ucs4( &right->bv_val[r] );
-		if( ru == LDAP_UCS4_INVALID ) {
-			return 1;
-		}
-
-		lu = ldap_utf8_to_ucs4( &left->bv_val[l] );
-		if( lu == LDAP_UCS4_INVALID ) {
-			return -1;
-		}
-
-		ruu = uctoupper( ru );
-		luu = uctoupper( lu );
-
-		if( ruu > luu ) {
-			return 1;
-		} else if( luu > ruu ) {
-			return -1;
-		}
-
-		rlen = LDAP_UTF8_CHARLEN( &right->bv_val[r] );
-		llen = LDAP_UTF8_CHARLEN( &left->bv_val[l] );
-	}
-
-	if( r < right->bv_len ) {
-		/* less left */
-		return -1;
-	}
-
-	if( l < left->bv_len ) {
-		/* less right */
-		return 1;
-	}
-
-	return 0;
-}
-#endif
-
 static int
 UTF8StringValidate(
 	Syntax *syntax,
@@ -432,80 +377,84 @@ UTF8StringValidate(
 	return LDAP_SUCCESS;
 }
 
+#define UNICODE2LEN(n)	((n)*sizeof(ldap_unicode_t))
+#define LEN2UNICODE(n)	((n)/sizeof(ldap_unicode_t))
+
+#define SLAP_INDEX_SUBSTR_UMINLEN	UNICODE2LEN(SLAP_INDEX_SUBSTR_MINLEN)
+#define SLAP_INDEX_SUBSTR_UMAXLEN	UNICODE2LEN(SLAP_INDEX_SUBSTR_MAXLEN)
+#define SLAP_INDEX_SUBSTR_USTEP		UNICODE2LEN(SLAP_INDEX_SUBSTR_STEP)
+
 static int
 UTF8StringNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval **normalized )
 {
+	ber_len_t bcount;
+	ber_len_t ucount;
+	int len, space;
+	char *u;
 	struct berval *newval;
-	char *p, *q, *s;
+	ldap_unicode_t *uc;
 
-	newval = ch_malloc( sizeof( struct berval ) );
+	if( !val->bv_len ) return LDAP_INVALID_SYNTAX;
 
-	p = val->bv_val;
+	u = val->bv_val;
+	ucount = 0;
+	space = 1;
 
-	/* Ignore initial whitespace */
-	while ( ldap_utf8_isspace( p ) ) {
-		LDAP_UTF8_INCR( p );
+	for( bcount = val->bv_len; bcount > 0; bcount-=len, u+=len ) {
+		/* get the length indicated by the first byte */
+		len = LDAP_UTF8_CHARLEN( u );
+
+		/* should not be zero */
+		if( len == 0 ) return LDAP_INVALID_SYNTAX;
+
+		if( ldap_utf8_isspace( u ) ) {
+			if( space ) continue;
+		} else {
+			space=1;
+		}
+
+		ucount++;
 	}
 
-	if( *p == '\0' ) {
-		ch_free( newval );
+	if( ucount <= 1 ) {
 		return LDAP_INVALID_SYNTAX;
 	}
 
-	newval->bv_val = ch_strdup( p );
-	p = q = newval->bv_val;
-	s = NULL;
+	if( space ) {
+		ucount--;
+	}
 
-	while ( *p ) {
-		int len;
+	newval = ch_malloc( sizeof( struct berval ) );
+	newval->bv_val = ch_malloc( UNICODE2LEN(ucount+1) );
+	uc = (ldap_unicode_t *) newval->bv_val;
 
-		if ( ldap_utf8_isspace( p ) ) {
-			len = LDAP_UTF8_COPY(q,p);
-			s=q;
-			p+=len;
-			q+=len;
+	u = val->bv_val;
+	ucount = 0;
+	space = 1;
 
-			/* Ignore the extra whitespace */
-			while ( ldap_utf8_isspace( p ) ) {
-				LDAP_UTF8_INCR( p );
-			}
+	for( bcount = val->bv_len; bcount > 0; bcount-=len, u+=len ) {
+		/* get the length indicated by the first byte */
+		len = LDAP_UTF8_CHARLEN( u );
+
+		/* should not be zero */
+		if( len == 0 ) return LDAP_INVALID_SYNTAX;
+
+		if( ldap_utf8_isspace( u ) ) {
+			if( space ) continue;
 		} else {
-			len = LDAP_UTF8_COPY(q,p);
-			s=NULL;
-			p+=len;
-			q+=len;
+			space=1;
 		}
+
+		uc[ucount++] = ldap_utf8_to_unicode( u );
 	}
 
-	assert( *newval->bv_val );
-	assert( newval->bv_val < p );
-	assert( p >= q );
+	if( space ) ucount--;
+	uc[ucount] = 0;
 
-	/* cannot start with a space */
-	assert( !ldap_utf8_isspace(newval->bv_val) );
-
-	/*
-	 * If the string ended in space, backup the pointer one
-	 * position.  One is enough because the above loop collapsed
-	 * all whitespace to a single space.
-	 */
-
-	if ( s != NULL ) {
-		q = s;
-	}
-
-	/* cannot end with a space */
-	assert( !ldap_utf8_isspace( LDAP_UTF8_PREV(q) ) );
-
-	/* null terminate */
-	*q = '\0';
-
-	newval->bv_len = q - newval->bv_val;
-	*normalized = newval;
-
+	newval->bv_len = UNICODE2LEN(ucount);
 	return LDAP_SUCCESS;
 }
 
@@ -521,9 +470,9 @@ caseExactMatch(
 	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
 
 	if( match == 0 ) {
-		match = strncmp( value->bv_val,
-			((struct berval *) assertedValue)->bv_val,
-			value->bv_len );
+		match = ucstrncmp( (ldap_unicode_t *) value->bv_val,
+			(ldap_unicode_t *) ((struct berval *) assertedValue)->bv_val,
+			LEN2UNICODE(value->bv_len) );
 	}
 
 	*matchp = match;
@@ -564,8 +513,10 @@ caseExactSubstringsMatch(
 			goto done;
 		}
 
-		match = strncmp( sub->sa_initial->bv_val, left.bv_val,
-			sub->sa_initial->bv_len );
+		match = ucstrncmp(
+			(ldap_unicode_t *) sub->sa_initial->bv_val,
+			(ldap_unicode_t *) left.bv_val,
+			LEN2UNICODE(sub->sa_initial->bv_len) );
 
 		if( match != 0 ) {
 			goto done;
@@ -582,9 +533,10 @@ caseExactSubstringsMatch(
 			goto done;
 		}
 
-		match = strncmp( sub->sa_final->bv_val,
-			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
-			sub->sa_final->bv_len );
+		match = ucstrncmp(
+			(ldap_unicode_t *) sub->sa_final->bv_val,
+			(ldap_unicode_t *) &left.bv_val[left.bv_len - sub->sa_final->bv_len],
+			LEN2UNICODE(sub->sa_final->bv_len) );
 
 		if( match != 0 ) {
 			goto done;
@@ -610,7 +562,11 @@ retry:
 				continue;
 			}
 
-			p = strchr( left.bv_val, *sub->sa_any[i]->bv_val );
+			p = (char *) ucstrnchr(
+				(ldap_unicode_t *) left.bv_val,
+				LEN2UNICODE(left.bv_len),
+				((ldap_unicode_t *) sub->sa_any[i]->bv_val)[0] );
+
 
 			if( p == NULL ) {
 				match = 1;
@@ -634,13 +590,14 @@ retry:
 				goto done;
 			}
 
-			match = strncmp( left.bv_val,
-				sub->sa_any[i]->bv_val,
-				sub->sa_any[i]->bv_len );
+			match = ucstrncmp(
+				(ldap_unicode_t *) left.bv_val,
+				(ldap_unicode_t *) sub->sa_any[i]->bv_val,
+				LEN2UNICODE(sub->sa_any[i]->bv_len) );
 
 			if( match != 0 ) {
-				left.bv_val++;
-				left.bv_len--;
+				left.bv_val += UNICODE2LEN(1);
+				left.bv_len -= UNICODE2LEN(1);
 				goto retry;
 			}
 
@@ -777,31 +734,34 @@ int caseExactSubstringsIndexer(
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
-		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_UMINLEN ) {
 			continue;
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
-			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
-					( SLAP_INDEX_SUBSTR_MINLEN - 1);
+					( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			} else {
-				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += LEN2UNICODE(values[i]->bv_len) -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
-			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
+				nkeys += LEN2UNICODE(values[i]->bv_len) -
+					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
-			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
-					( SLAP_INDEX_SUBSTR_MINLEN - 1);
+					( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			} else {
-				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += LEN2UNICODE(values[i]->bv_len) -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			}
 		}
 	}
@@ -824,21 +784,21 @@ int caseExactSubstringsIndexer(
 		struct berval *value;
 
 		value = values[i];
-		if( value->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+		if( value->bv_len < SLAP_INDEX_SUBSTR_UMINLEN ) continue;
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+			( value->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			max = value->bv_len -
+				( SLAP_INDEX_SUBSTR_UMAXLEN - UNICODE2LEN(1));
 
-			for( j=0; j<max; j++ ) {
+			for( j=0; j<max; j+=UNICODE2LEN(1) ) {
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					lutil_MD5Update( &MD5context,
 						prefix->bv_val, prefix->bv_len );
 				}
-
 				lutil_MD5Update( &MD5context,
 					&pre, sizeof( pre ) );
 				lutil_MD5Update( &MD5context,
@@ -846,18 +806,17 @@ int caseExactSubstringsIndexer(
 				lutil_MD5Update( &MD5context,
 					mr->smr_oid, mlen );
 				lutil_MD5Update( &MD5context,
-					&value->bv_val[j],
-					SLAP_INDEX_SUBSTR_MAXLEN );
+					&value->bv_val[j], SLAP_INDEX_SUBSTR_UMAXLEN );
 				lutil_MD5Final( MD5digest, &MD5context );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 		}
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		max = SLAP_INDEX_SUBSTR_UMAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_UMAXLEN : value->bv_len;
 
-		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
+		for( j=SLAP_INDEX_SUBSTR_UMINLEN; j<=max; j+=UNICODE2LEN(1) ) {
 			char pre;
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
@@ -934,7 +893,7 @@ int caseExactSubstringsFilter(
 	struct berval digest;
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		nkeys++;
 	}
@@ -942,16 +901,16 @@ int caseExactSubstringsFilter(
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i;
 		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				/* don't bother accounting for stepping */
-				nkeys += sa->sa_any[i]->bv_len -
+				nkeys += LEN2UNICODE(sa->sa_any[i]->bv_len) -
 					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		nkeys++;
 	}
@@ -971,13 +930,13 @@ int caseExactSubstringsFilter(
 	nkeys = 0;
 
 	if( flags & SLAP_INDEX_SUBSTR_INITIAL && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 		value = sa->sa_initial;
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_UMAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_UMAXLEN : value->bv_len;
 
 		lutil_MD5Init( &MD5context );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1000,18 +959,18 @@ int caseExactSubstringsFilter(
 	if( flags & SLAP_INDEX_SUBSTR_ANY && sa->sa_any != NULL ) {
 		ber_len_t i, j;
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
-		klen = SLAP_INDEX_SUBSTR_MAXLEN;
+		klen = SLAP_INDEX_SUBSTR_UMAXLEN;
 
 		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				continue;
 			}
 
 			value = sa->sa_any[i];
 
 			for(j=0;
-				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
-				j += SLAP_INDEX_SUBSTR_STEP )
+				j <= value->bv_len - SLAP_INDEX_SUBSTR_UMAXLEN;
+				j += SLAP_INDEX_SUBSTR_USTEP )
 			{
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1025,7 +984,7 @@ int caseExactSubstringsFilter(
 				lutil_MD5Update( &MD5context,
 					mr->smr_oid, mlen );
 				lutil_MD5Update( &MD5context,
-					&value->bv_val[j], klen ); 
+					&value->bv_val[j], klen );
 				lutil_MD5Final( MD5digest, &MD5context );
 
 				keys[nkeys++] = ber_bvdup( &digest );
@@ -1034,13 +993,13 @@ int caseExactSubstringsFilter(
 	}
 
 	if( flags & SLAP_INDEX_SUBSTR_FINAL && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 		value = sa->sa_final;
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_UMAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_UMAXLEN : value->bv_len;
 
 		lutil_MD5Init( &MD5context );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1080,19 +1039,16 @@ caseIgnoreMatch(
 	struct berval *value,
 	void *assertedValue )
 {
-#if 0
-	*matchp = UTF8casecmp( value, (struct berval *) assertedValue );
-#else
 	int match = value->bv_len - ((struct berval *) assertedValue)->bv_len;
 
 	if( match == 0 ) {
-		match = strncasecmp( value->bv_val,
-			((struct berval *) assertedValue)->bv_val,
-			value->bv_len );
+		match = ucstrncasecmp(
+			(ldap_unicode_t *) value->bv_val,
+			(ldap_unicode_t *) ((struct berval *) assertedValue)->bv_val,
+			LEN2UNICODE(value->bv_len) );
 	}
 
 	*matchp = match;
-#endif
 	return LDAP_SUCCESS;
 }
 
@@ -1130,8 +1086,10 @@ caseIgnoreSubstringsMatch(
 			goto done;
 		}
 
-		match = strncasecmp( sub->sa_initial->bv_val, left.bv_val,
-			sub->sa_initial->bv_len );
+		match = ucstrncasecmp(
+			(ldap_unicode_t *) sub->sa_initial->bv_val,
+			(ldap_unicode_t *) left.bv_val,
+			LEN2UNICODE(sub->sa_initial->bv_len) );
 
 		if( match != 0 ) {
 			goto done;
@@ -1148,9 +1106,10 @@ caseIgnoreSubstringsMatch(
 			goto done;
 		}
 
-		match = strncasecmp( sub->sa_final->bv_val,
-			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
-			sub->sa_final->bv_len );
+		match = ucstrncasecmp(
+			(ldap_unicode_t *) sub->sa_final->bv_val,
+			(ldap_unicode_t *) &left.bv_val[left.bv_len - sub->sa_final->bv_len],
+			LEN2UNICODE(sub->sa_final->bv_len) );
 
 		if( match != 0 ) {
 			goto done;
@@ -1176,7 +1135,10 @@ retry:
 				continue;
 			}
 
-			p = strcasechr( left.bv_val, *sub->sa_any[i]->bv_val );
+			p = (char *) ucstrncasechr(
+				(ldap_unicode_t *) left.bv_val,
+				LEN2UNICODE(left.bv_len),
+				((ldap_unicode_t *) sub->sa_any[i]->bv_val)[0] );
 
 			if( p == NULL ) {
 				match = 1;
@@ -1200,13 +1162,14 @@ retry:
 				goto done;
 			}
 
-			match = strncasecmp( left.bv_val,
-				sub->sa_any[i]->bv_val,
-				sub->sa_any[i]->bv_len );
+			match = ucstrncasecmp(
+				(ldap_unicode_t *) left.bv_val,
+				(ldap_unicode_t *) sub->sa_any[i]->bv_val,
+				LEN2UNICODE(sub->sa_any[i]->bv_len) );
 
 			if( match != 0 ) {
-				left.bv_val++;
-				left.bv_len--;
+				left.bv_val += UNICODE2LEN(1);
+				left.bv_len -= UNICODE2LEN(1);
 
 				goto retry;
 			}
@@ -1254,7 +1217,8 @@ int caseIgnoreIndexer(
 
 	for( i=0; values[i] != NULL; i++ ) {
 		struct berval *value = ber_bvdup( values[i] );
-		ldap_pvt_str2upper( value->bv_val );
+		ucstr2upper( (ldap_unicode_t *) value->bv_val,
+			LEN2UNICODE(value->bv_len) );
 
 		lutil_MD5Init( &MD5context );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1270,7 +1234,6 @@ int caseIgnoreIndexer(
 		lutil_MD5Final( MD5digest, &MD5context );
 
 		ber_bvfree( value );
-
 		keys[i] = ber_bvdup( &digest );
 	}
 
@@ -1302,7 +1265,8 @@ int caseIgnoreFilter(
 	mlen = strlen( mr->smr_oid );
 
 	value = ber_bvdup( (struct berval *) assertValue );
-	ldap_pvt_str2upper( value->bv_val );
+	ucstr2upper( (ldap_unicode_t *) value->bv_val,
+		LEN2UNICODE(value->bv_len) );
 
 	keys = ch_malloc( sizeof( struct berval * ) * 2 );
 
@@ -1351,31 +1315,34 @@ int caseIgnoreSubstringsIndexer(
 	nkeys=0;
 	for( i=0; values[i] != NULL; i++ ) {
 		/* count number of indices to generate */
-		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_UMINLEN ) {
 			continue;
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
-			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
 			} else {
-				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += LEN2UNICODE(values[i]->bv_len) -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_ANY ) {
-			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
-				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
+				nkeys += LEN2UNICODE(values[i]->bv_len) -
+					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 
 		if( flags & SLAP_INDEX_SUBSTR_FINAL ) {
-			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				nkeys += SLAP_INDEX_SUBSTR_MAXLEN -
 					( SLAP_INDEX_SUBSTR_MINLEN - 1);
 			} else {
-				nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+				nkeys += LEN2UNICODE(values[i]->bv_len) -
+					( SLAP_INDEX_SUBSTR_MINLEN - 1 );
 			}
 		}
 	}
@@ -1397,24 +1364,25 @@ int caseIgnoreSubstringsIndexer(
 		int j,max;
 		struct berval *value;
 
-		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_UMINLEN ) continue;
 
 		value = ber_bvdup( values[i] );
-		ldap_pvt_str2upper( value->bv_val );
+		ucstr2upper( (ldap_unicode_t *) value->bv_val,
+			LEN2UNICODE(value->bv_len) );
 
 		if( ( flags & SLAP_INDEX_SUBSTR_ANY ) &&
-			( value->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) )
+			( value->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) )
 		{
 			char pre = SLAP_INDEX_SUBSTR_PREFIX;
-			max = value->bv_len - ( SLAP_INDEX_SUBSTR_MAXLEN - 1);
+			max = value->bv_len -
+				( SLAP_INDEX_SUBSTR_UMAXLEN - UNICODE2LEN(1));
 
-			for( j=0; j<max; j++ ) {
+			for( j=0; j<max; j+=UNICODE2LEN(1) ) {
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
 					lutil_MD5Update( &MD5context,
 						prefix->bv_val, prefix->bv_len );
 				}
-
 				lutil_MD5Update( &MD5context,
 					&pre, sizeof( pre ) );
 				lutil_MD5Update( &MD5context,
@@ -1423,17 +1391,17 @@ int caseIgnoreSubstringsIndexer(
 					mr->smr_oid, mlen );
 				lutil_MD5Update( &MD5context,
 					&value->bv_val[j],
-					SLAP_INDEX_SUBSTR_MAXLEN );
+					SLAP_INDEX_SUBSTR_UMAXLEN );
 				lutil_MD5Final( MD5digest, &MD5context );
 
 				keys[nkeys++] = ber_bvdup( &digest );
 			}
 		}
 
-		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		max = SLAP_INDEX_SUBSTR_UMAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_UMAXLEN : value->bv_len;
 
-		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
+		for( j=SLAP_INDEX_SUBSTR_UMINLEN; j<=max; j+=UNICODE2LEN(1) ) {
 			char pre;
 
 			if( flags & SLAP_INDEX_SUBSTR_INITIAL ) {
@@ -1512,7 +1480,7 @@ int caseIgnoreSubstringsFilter(
 	struct berval digest;
 
 	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		nkeys++;
 	}
@@ -1520,16 +1488,16 @@ int caseIgnoreSubstringsFilter(
 	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
 		ber_len_t i;
 		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( sa->sa_any[i]->bv_len >= SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				/* don't bother accounting for stepping */
-				nkeys += sa->sa_any[i]->bv_len -
+				nkeys += LEN2UNICODE(sa->sa_any[i]->bv_len) -
 					( SLAP_INDEX_SUBSTR_MAXLEN - 1 );
 			}
 		}
 	}
 
 	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		nkeys++;
 	}
@@ -1549,14 +1517,15 @@ int caseIgnoreSubstringsFilter(
 	nkeys = 0;
 
 	if((flags & SLAP_INDEX_SUBSTR_INITIAL) && sa->sa_initial != NULL &&
-		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
 		value = ber_bvdup( sa->sa_initial );
-		ldap_pvt_str2upper( value->bv_val );
+		ucstr2upper( (ldap_unicode_t *) value->bv_val,
+			LEN2UNICODE(value->bv_len) );
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_UMAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_UMAXLEN : value->bv_len;
 
 		lutil_MD5Init( &MD5context );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1580,19 +1549,20 @@ int caseIgnoreSubstringsFilter(
 	if((flags & SLAP_INDEX_SUBSTR_ANY) && sa->sa_any != NULL ) {
 		ber_len_t i, j;
 		pre = SLAP_INDEX_SUBSTR_PREFIX;
-		klen = SLAP_INDEX_SUBSTR_MAXLEN;
+		klen = SLAP_INDEX_SUBSTR_UMAXLEN;
 
 		for( i=0; sa->sa_any[i] != NULL; i++ ) {
-			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_MAXLEN ) {
+			if( sa->sa_any[i]->bv_len < SLAP_INDEX_SUBSTR_UMAXLEN ) {
 				continue;
 			}
 
 			value = ber_bvdup( sa->sa_any[i] );
-			ldap_pvt_str2upper( value->bv_val );
+			ucstr2upper( (ldap_unicode_t *) value->bv_val,
+				LEN2UNICODE(value->bv_len) );
 
 			for(j=0;
-				j <= value->bv_len - SLAP_INDEX_SUBSTR_MAXLEN;
-				j += SLAP_INDEX_SUBSTR_STEP )
+				j <= value->bv_len - SLAP_INDEX_SUBSTR_UMAXLEN;
+				j += SLAP_INDEX_SUBSTR_USTEP )
 			{
 				lutil_MD5Init( &MD5context );
 				if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -1617,14 +1587,15 @@ int caseIgnoreSubstringsFilter(
 	}
 
 	if((flags & SLAP_INDEX_SUBSTR_FINAL) && sa->sa_final != NULL &&
-		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_UMINLEN )
 	{
 		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
 		value = ber_bvdup( sa->sa_final );
-		ldap_pvt_str2upper( value->bv_val );
+		ucstr2upper( (ldap_unicode_t *) value->bv_val,
+			LEN2UNICODE(value->bv_len) );
 
-		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
-			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+		klen = SLAP_INDEX_SUBSTR_UMAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_UMAXLEN : value->bv_len;
 
 		lutil_MD5Init( &MD5context );
 		if( prefix != NULL && prefix->bv_len > 0 ) {
@@ -2164,7 +2135,6 @@ int caseExactIA5SubstringsIndexer(
 					lutil_MD5Update( &MD5context,
 						prefix->bv_val, prefix->bv_len );
 				}
-
 				lutil_MD5Update( &MD5context,
 					&pre, sizeof( pre ) );
 				lutil_MD5Update( &MD5context,
@@ -2736,7 +2706,6 @@ int caseIgnoreIA5SubstringsIndexer(
 					lutil_MD5Update( &MD5context,
 						prefix->bv_val, prefix->bv_len );
 				}
-
 				lutil_MD5Update( &MD5context,
 					&pre, sizeof( pre ) );
 				lutil_MD5Update( &MD5context,

@@ -128,11 +128,19 @@ LIB32=link.exe -lib
 # Name "liblunicode - Win32 Single Release"
 # Begin Source File
 
+SOURCE=..\..\include\ldap_pvt_uc.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\ucdata\ucdata.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\ucdata\ucdata.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ucstr.c
 # End Source File
 # Begin Source File
 

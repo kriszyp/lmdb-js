@@ -15,7 +15,7 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
-#include "../libraries/liblunicode/ucdata.h"
+#include "ldap_pvt_uc.h"
 
 int schema_init_done = 0;
 

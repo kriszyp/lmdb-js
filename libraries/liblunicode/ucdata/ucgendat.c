@@ -1,3 +1,4 @@
+/* $OpenLDAP$
 /*
  * Copyright 1999 Computing Research Labs, New Mexico State University
  *
@@ -19,13 +20,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef lint
-#ifdef __GNUC__
-static char rcsid[] __attribute__ ((unused)) = "$Id: ucgendat.c,v 1.3 1999/10/07 20:49:56 mleisher Exp $";
-#else
-static char rcsid[] = "$Id: ucgendat.c,v 1.3 1999/10/07 20:49:56 mleisher Exp $";
-#endif
-#endif
+/* $Id: ucgendat.c,v 1.3 1999/10/07 20:49:56 mleisher Exp $" */
 
 #include "portable.h"
 

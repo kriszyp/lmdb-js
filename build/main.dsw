@@ -128,6 +128,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name passwd
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name ucgendat
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -512,6 +515,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libslapd
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblunicode
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -547,6 +553,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name backldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblunicode
     End Project Dependency
 }}}
 
@@ -587,6 +596,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libslapd
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblunicode
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -623,6 +635,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libslapd
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblunicode
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -638,6 +653,18 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libavl
     End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ucgendat"=..\libraries\liblunicode\ucgetdat.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
 }}}
 
 ###############################################################################

@@ -25,9 +25,7 @@
  * OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef lint
-static char rcsid[] = "$Id: ure.c,v 1.2 1999/09/21 15:47:43 mleisher Exp $";
-#endif
+/* $Id: ure.c,v 1.2 1999/09/21 15:47:43 mleisher Exp $" */
 
 #include "portable.h"
 
