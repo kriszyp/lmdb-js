@@ -1291,6 +1291,7 @@ telephoneNumberNormalize(
 
 	if( normalized->bv_len == 0 ) {
 		sl_free( normalized->bv_val, ctx );
+		normalized->bv_val = NULL;
 		return LDAP_INVALID_SYNTAX;
 	}
 
