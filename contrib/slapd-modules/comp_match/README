@@ -51,7 +51,7 @@ you will get compmatch.la and other necessary files in ./libs
 --component search filter example
 "componentCertificate:componentCertificateMatch:=item:{ component
 \"tbsCertificate.serialNumber\", rule allComponentsMatch, value 2 }"
-You can find more examples in "test031-component-filter", a test script.
+You can find more examples in "test031-component-filter", the test script.
 
 How to add a new ASN.1 syntax other than the example
 
@@ -83,5 +83,5 @@ before using it, don't forget to check following status of development,
 See componentlib.c to check which ASN.1 types are currently supported
 2) Component version of GSER encoders are not supported yet
 3) Not all ComponentId of a component reference are supported yet
-supported : identifier, from-beginning, count, from-end
-not supported :  all, select, content
+supported : identifier, from-beginning, count, from-end, <all>
+not supported :  select, content

@@ -663,7 +663,7 @@ int entry_decode(struct berval *bv, Entry **e)
 		a->a_vals = bptr;
 		a->a_flags = 0;
 #ifdef LDAP_COMP_MATCH
-		a->a_component_values = NULL;
+		a->a_comp_data = NULL;
 #endif
 		count = j = entry_getlen(&ptr);
 

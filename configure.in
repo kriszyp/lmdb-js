@@ -2588,6 +2588,7 @@ if test "$ol_link_modules" != no ; then
 	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
 	BUILD_SLAPD=yes
 	SLAPD_MODULES_LDFLAGS="-dlopen self"
+	WITH_MODULES_ENABLED=yes
 fi
 
 AC_DEFINE(SLAPD_MOD_STATIC,1,[statically linked module])

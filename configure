@@ -1797,9 +1797,11 @@ if test "${enable_modules+set}" = set; then
 		{ echo "configure: error: bad value $enableval for --enable-modules" 1>&2; exit 1; }
 	fi
 	ol_enable_modules="$ol_arg"
+	WITH_MODULES_ENABLED=yes
 
 else
   	ol_enable_modules="no"
+	WITH_MODULES_ENABLED=no
 fi
 # end --enable-modules
 ol_enable_multimaster=${ol_enable_multimaster-no}
@@ -24839,6 +24841,7 @@ EOF
 
 fi
 
+WITH_MODULES_ENABLED=no
 if test "$ol_link_modules" != no ; then
 	cat >> confdefs.h <<\EOF
 #define SLAPD_MODULES 1
@@ -24846,6 +24849,7 @@ EOF
 
 	BUILD_SLAPD=yes
 	SLAPD_MODULES_LDFLAGS="-dlopen self"
+	WITH_MODULES_ENABLED=yes
 fi
 
 cat >> confdefs.h <<\EOF

@@ -1028,6 +1028,13 @@ typedef struct slap_valuesreturnfilter {
 	struct slap_valuesreturnfilter	*vrf_next;
 } ValuesReturnFilter;
 
+#ifdef LDAP_COMP_MATCH
+typedef struct 	slap_component_data {
+	void* cd_mem_op;/* nibble memory handler */
+	void* cd_tree;	/* component tree */
+} ComponentData;
+#endif
+
 /*
  * represents an attribute (description + values)
  */
@@ -1035,13 +1042,13 @@ typedef struct slap_attr {
 	AttributeDescription *a_desc;
 	BerVarray	a_vals;		/* preserved values */
 	BerVarray	a_nvals;	/* normalized values */
+#ifdef LDAP_COMP_MATCH
+	ComponentData	*a_comp_data; /* component values */
+#endif
 	struct slap_attr *a_next;
 	unsigned a_flags;
 #define SLAP_ATTR_IXADD		0x1U
 #define SLAP_ATTR_IXDEL		0x2U
-#ifdef LDAP_COMP_MATCH
-	void* a_component_values; /* component values */
-#endif
 } Attribute;
 
 
@@ -2677,6 +2684,7 @@ typedef struct slap_component_id{
 		ber_int_t	ci_from_beginning;
 		ber_int_t	ci_count;
 		ber_int_t	ci_from_end;
+		ber_int_t	ci_content;
 		BerValue	ci_select_value;
 		char		ci_all;
 	} ci_val;
@@ -2694,7 +2702,7 @@ typedef struct slap_component_assertion {
 	ber_int_t		ca_use_def;
 	MatchingRule		*ca_ma_rule;
 	struct berval		ca_ma_value;
-	void*			ca_component_values;
+	ComponentData		ca_comp_data; /* componentized assertion */
 	struct slap_component_filter	*ca_cf;
 	MatchingRuleAssertion   *ca_mra;
 } ComponentAssertion;
@@ -2730,6 +2738,7 @@ typedef int encoder_func LDAP_P((
 struct slap_component_syntax_info;
 
 typedef int gser_decoder_func LDAP_P((
+	void* mem_op,
 	void* b,
 	struct slap_component_syntax_info** comp_syn_info,
 	int* len,
@@ -2739,6 +2748,7 @@ typedef int comp_free_func LDAP_P((
 	void* b));
 
 typedef int ber_decoder_func LDAP_P((
+	void* mem_op,
 	void* b,
 	int tag,
 	int elmtLen,
@@ -2747,12 +2757,14 @@ typedef int ber_decoder_func LDAP_P((
 	int mode));
 
 typedef int ber_tag_decoder_func LDAP_P((
+	void* mem_op,
 	void* b,
 	struct slap_component_syntax_info* comp_syn_info,
 	int* len,
 	int mode));
 
 typedef void* extract_component_from_id_func LDAP_P((
+	void* mem_op,
 	ComponentReference* cr,
 	void* comp ));
 
@@ -2761,8 +2773,15 @@ typedef void* convert_attr_to_comp_func LDAP_P ((
 	Syntax* syn,
         struct berval* bv ));
 
+typedef void* alloc_nibble_func LDAP_P ((
+	int initial_size,
+	int increment_size ));
+
+typedef void free_nibble_func LDAP_P ((
+	void* nm ));
+
 struct slap_component_syntax_info;                                                                          
-typedef int convert_assert_to_comp_func LDAP_P ((
+typedef void* convert_assert_to_comp_func LDAP_P ((
         struct slap_component_syntax_info* csi_attr,
         struct berval* bv,
         struct slap_component_syntax_info** csi,
@@ -2774,7 +2793,12 @@ typedef int convert_asn_to_ldap_func LDAP_P ((
         struct berval *bv ));
 
 typedef void free_component_func LDAP_P ((
-        struct slap_component_syntax_info* csi ));
+        void* mem_op));
+
+typedef int test_component_func LDAP_P ((
+	void* mem_op,
+        struct slap_component_syntax_info* csi,
+	struct slap_component_assertion* ca));
 
 typedef int allcomponent_matching_func LDAP_P((
 	char* oid,
@@ -2785,6 +2809,7 @@ typedef struct slap_component_desc{
 	int		cd_tag;
 	int		cd_type;
 	int		cd_type_id;
+	int		cd_compref_type;
 	gser_decoder_func	*cd_gser_decoder;
 	ber_decoder_func	*cd_ber_decoder;
 	comp_free_func		*cd_free;

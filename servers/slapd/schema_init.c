@@ -3339,6 +3339,13 @@ static slap_mrule_defs_rec mrule_defs[] = {
                 NULL, NULL , allComponentsMatch,
                 octetStringIndexer, octetStringFilter,
                 NULL },
+
+        {"( 1.2.36.79672281.1.13.7 NAME 'directoryComponentsMatch' "
+                "SYNTAX 1.2.36.79672281.1.5.3 )",
+                SLAP_MR_EQUALITY|SLAP_MR_EXT|SLAP_MR_COMPONENT, NULL,
+                NULL, NULL , directoryComponentsMatch,
+                octetStringIndexer, octetStringFilter,
+                NULL },
 #endif
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "

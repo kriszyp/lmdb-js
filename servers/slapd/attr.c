@@ -50,9 +50,9 @@ attr_free( Attribute *a )
 		ber_bvarray_free( a->a_nvals );
 	ber_bvarray_free( a->a_vals );
 #ifdef LDAP_COMP_MATCH
-	if ( component_destructor && a->a_component_values ) {
-		component_destructor(a->a_component_values);
-		a->a_component_values = NULL;
+	if ( component_destructor && a->a_comp_data &&  a->a_comp_data->cd_mem_op ) {
+		component_destructor( a->a_comp_data->cd_mem_op );
+		free ( a->a_comp_data );
 	}
 #endif
 	free( a );
@@ -118,7 +118,7 @@ attr_dup( Attribute *a )
 	tmp->a_next = NULL;
 	tmp->a_flags = 0;
 #ifdef LDAP_COMP_MATCH
-	tmp->a_component_values = NULL;
+	tmp->a_comp_data = NULL;
 #endif
 
 	return tmp;
@@ -181,7 +181,7 @@ attr_merge(
 		(*a)->a_next = NULL;
 		(*a)->a_flags = 0;
 #ifdef LDAP_COMP_MATCH
-		(*a)->a_component_values = NULL;
+		(*a)->a_comp_data = NULL;
 #endif
 	}
 
@@ -265,7 +265,7 @@ attr_merge_one(
 		(*a)->a_next = NULL;
 		(*a)->a_flags = 0;
 #ifdef LDAP_COMP_MATCH
-		(*a)->a_component_values = NULL;
+		(*a)->a_comp_data = NULL;
 #endif
 	}
 

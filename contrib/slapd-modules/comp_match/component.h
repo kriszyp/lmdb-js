@@ -41,11 +41,10 @@ typedef struct ComponentBits {
 
 #define GASNBITS_PRESENT(abits) ((abits)->value.bits != NULL)
 #define COMPONENTBITS_PRESENT(abits) ((abits)->value.bits != NULL)
-int GDecComponentBits (GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
-int BDecComponentBits (GenBuf *b, AsnTag tagId, AsnLen len, void *result,
-			AsnLen *bytesDecoded, int mode);
+int GDecComponentBits (void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentBits (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentBits (char* oid, ComponentSyntaxInfo *bits1 , ComponentSyntaxInfo* bits2);
-#define ExtractingComponentBits(cr,data) NULL
+#define ExtractingComponentBits( mem_op, cr,data ) NULL
 
 /*
  * BMP String
@@ -58,12 +57,10 @@ typedef struct ComponentBMPString {
 	BMPString value;
 } ComponentBMPString;
 
-int GDecComponentBMPString (GenBuf *b, void *result, 
-				 AsnLen *bytesDecoded, int mode);
-int BDecComponentBMPString (GenBuf *b, AsnTag tagId, AsnLen len, void *result,
-			AsnLen *bytesDecoded, int mode);
+int GDecComponentBMPString (void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentBMPString (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 #define MatchingComponentBMPString MatchingComponentOcts
-#define ExtractingComponentBMPString(cr,data) NULL
+#define ExtractingComponentBMPString( mem_op, cr, data ) NULL
 #define FreeComponentBMPString FreeComponentOcts
 
 /*
@@ -77,12 +74,10 @@ typedef struct ComponentBool {
 	AsnBool value;
 } ComponentBool;
 
-int GDecComponentBool (GenBuf *b, void *result,
-				AsnLen *bytesDecoded, int mode);
-int BDecComponentBool (GenBuf *b, AsnTag tagId, AsnLen len, void *result,
-			AsnLen *bytesDecoded, int mode);
+int GDecComponentBool ( void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentBool ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentBool (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
-#define ExtractingComponentBool(cr,data) NULL
+#define ExtractingComponentBool( mem_op, cr, data ) NULL
 #define FreeComponentBool(v) NULL
 
 /*
@@ -97,11 +92,10 @@ typedef struct ComponentEnum {
 	struct berval value_identifier;/*Why this value is defined here?*/
 } ComponentEnum;
 
-int GDecComponentEnum (GenBuf *a, void *result, AsnLen *bytesDecoded,int mode);
-int BDecComponentEnum (GenBuf *b, AsnTag tagId, AsnLen len, void *result,
-			AsnLen *bytesDecoded, int mode);
+int GDecComponentEnum ( void* mem_op, GenBuf *a, void *result, AsnLen *bytesDecoded,int mode);
+int BDecComponentEnum ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentEnum (char *oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo * b);
-#define ExtractingComponentEnum(cr,data) NULL
+#define ExtractingComponentEnum( mem_op, cr, data ) NULL
 #define FreeComponentEnum FreeComponentInt
 
 /*
@@ -116,10 +110,9 @@ typedef struct ComponentIA5String {
 } ComponentIA5String;
 
 #define GDecComponentIA5String GDecComponentUTF8String
-int BDecComponentIA5String (GenBuf *b, AsnTag tagId, AsnLen len, void *result,
-			AsnLen *bytesDecoded, int mode);
+int BDecComponentIA5String ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 #define MatchingComponentIA5String MatchingComponentOcts
-#define ExtractingComponentIA5String(cr,data)	NULL
+#define ExtractingComponentIA5String(mem_op, cr,data)	NULL
 #define FreeComponentIA5String FreeComponentOcts
 
 
@@ -136,11 +129,10 @@ typedef struct ComponentInt {
 
 #define GNOT_NULL(ptr) ((ptr) != NULL)
 
-int GDecComponentInt (GenBuf *b, void *result, AsnLen *bytesDecoded, int mode );
-int BDecComponentInt (GenBuf *b, AsnTag tagId, AsnLen len, void *result,
-			AsnLen *bytesDecoded, int mode);
+int GDecComponentInt ( void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode );
+int BDecComponentInt ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentInt (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
-#define ExtractingComponentInt(cr,data)	NULL
+#define ExtractingComponentInt(mem_op, cr,data)	NULL
 #define FreeComponentInt(v) NULL
 
 /*
@@ -165,13 +157,11 @@ typedef struct ComponentNull {
 	AsnNull value;
 } ComponentNull;
 
-int GDecComponentNull (GenBuf *b, void *result,
-				AsnLen *bytesDecoded, int mode);
-int BDecComponentNull (GenBuf *b, AsnTag tagId, AsnLen len, void *result,
-			AsnLen *bytesDecoded, int mode);
-int BDecComponentNullTag ( GenBuf *b, void *v, AsnLen *bytesDecoded, int mode );
+int GDecComponentNull ( void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentNull ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentNullTag ( void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int mode );
 int MatchingComponentNull (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
-#define ExtractingComponentNull(cr,data)	NULL
+#define ExtractingComponentNull(mem_op, cr, data)	NULL
 #define FreeComponentNull NULL
 
 /*
@@ -186,10 +176,9 @@ typedef struct ComponentNumericString {
 } ComponentNumericString;
 
 #define GDecComponentNumericString GDecComponentUTF8String
-int BDecComponentNumericString (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentNumericString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 #define MatchingComponentNumericString MatchingComponentOcts
-#define ExtractingComponentNumericString(cr,data)	NULL
+#define ExtractingComponentNumericString(mem_op, cr,data)	NULL
 #define FreeComponentNumericString FreeComponentOcts
 
 /*
@@ -205,12 +194,10 @@ typedef struct ComponentOcts {
 
 #define GASNOCTS_PRESENT(aocts) ((aocts)->value.octs != NULL)
 
-int GDecComponentOcts (GenBuf *b, void *result,
-				AsnLen *bytesDecoded, int mode);
-int BDecComponentOcts (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int GDecComponentOcts (void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentOcts (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentOcts (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
-#define ExtractingComponentOcts(cr,data)	NULL
+#define ExtractingComponentOcts(mem_op,cr,data)	NULL
 void FreeComponentOcts( ComponentOcts* octs );
 
 /*
@@ -226,12 +213,10 @@ typedef struct ComponentOid {
 
 #define GASNOID_PRESENT(aoid) ASNOCTS_PRESENT(aoid)
 
-int GDecComponentOid (GenBuf *b, void *result,
-				AsnLen *bytesDecoded, int mode);
-int BDecComponentOid (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int GDecComponentOid (void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentOid (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentOid (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
-#define ExtractingComponentOid(cr,data)	NULL
+#define ExtractingComponentOid(mem_op, cr, data)	NULL
 #define FreeComponentOid FreeComponentOcts
 
 /*
@@ -246,11 +231,10 @@ typedef struct ComponentPrintableString{
 } ComponentPrintableString;
 
 #define GDecComponentPrintableString GDecComponentUTF8String
-int BDecComponentPrintableString (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
-int BDecComponentPrintableStringTag ( GenBuf *b, void *v, AsnLen *bytesDecoded, int mode );
+int BDecComponentPrintableString (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentPrintableStringTag (void* mem_op, GenBuf *b, void *v, AsnLen *bytesDecoded, int mode );
 #define MatchingComponentPrintableString MatchingComponentOcts
-#define ExtractingComponentPrintableString(cr,data)	NULL
+#define ExtractingComponentPrintableString(mem_op, cr, data)	NULL
 #define FreeComponentPrintableString FreeComponentOcts
 
 /*
@@ -264,12 +248,10 @@ typedef struct ComponentReal{
 	AsnReal value;
 } ComponentReal;
 
-int GDecComponentReal (GenBuf *b, void *result,
-				AsnLen *bytesDecoded, int mode);
-int BDecComponentReal (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int GDecComponentReal (void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentReal (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentReal (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
-#define ExtractingComponentReal(cr,data)	NULL
+#define ExtractingComponentReal( mem_op, cr, data )	NULL
 #define FreeComponentReal(v) NULL
 
 /*
@@ -284,12 +266,10 @@ typedef struct ComponentRelativeOid {
 	AsnRelativeOid value;
 } ComponentRelativeOid;
 
-int GDecComponentRelativeOid (GenBuf *b, void *result,
-					  AsnLen *bytesDecoded, int mode);
-int BDecComponentRelativeOid (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int GDecComponentRelativeOid ( void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentRelativeOid ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentRelativeOid (char* oid, ComponentSyntaxInfo *a, ComponentSyntaxInfo *b);
-#define ExtractingComponentRelativeOid(cr,data)	
+#define ExtractingComponentRelativeOid( mem_op, cr, data ) NULL
 #define FreeComponentRelativeOid FreeComponentOid
 
 /*
@@ -303,11 +283,10 @@ typedef struct ComponentTeletexString {
 	TeletexString value;
 } ComponentTeletexString;
 
-int GDecComponentTeletexString (GenBuf *b, void *result,
-				  AsnLen *bytesDecoded, int mode);
+int GDecComponentTeletexString ( void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode );
 #define BDecComponentTeletexString BDecComponentOcts
 #define MatchingComponentTeletexString MatchingComponentOcts
-#define ExtractingComponentTeletexString(cr,data)
+#define ExtractingComponentTeletexString(mem_op,cr,data)
 #define FreeComponentTeletexString FreeComponentOcts
 
 
@@ -322,12 +301,10 @@ typedef struct ComponentUniversalString{
 	UniversalString value;
 } ComponentUniversalString;
 
-int GDecComponentUniversalString (GenBuf *b, void *result,
-					AsnLen *bytesDecoded, int mode);
-int BDecComponentUniversalString (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int GDecComponentUniversalString ( void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentUniversalString ( void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 #define MatchingComponentUniversalString MatchingComponentOcts
-#define ExtractingComponentUniversalString(cr,data)
+#define ExtractingComponentUniversalString(mem_op,cr,data)
 #define FreeComponentUniversalString FreeComponentOcts
 
 /*
@@ -341,12 +318,10 @@ typedef struct ComponentUTF8String{
 	UTF8String value;
 } ComponentUTF8String;
 
-int GDecComponentUTF8String  (GenBuf *b, void *result,
-					AsnLen *bytesDecoded, int mode);
-int BDecComponentUTF8String (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int GDecComponentUTF8String (void* mem_op, GenBuf *b, void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentUTF8String (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 #define MatchingComponentUTF8String MatchingComponentOcts
-#define ExtractingComponentUTF8String(cr,data)
+#define ExtractingComponentUTF8String(mem_op,cr,data)
 #define FreeComponentUTF8String FreeComponentOcts
 
 /*
@@ -361,10 +336,9 @@ typedef struct ComponentVisibleString{
 } ComponentVisibleString;
 
 #define GDecComponentVisibleString GDecComponentUTF8String
-int BDecComponentVisibleString (GenBuf *b, AsnTag tagId, AsnLen len,
-				void *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentVisibleString (void* mem_op, GenBuf *b, AsnTag tagId, AsnLen len, void *result, AsnLen *bytesDecoded, int mode);
 #define MatchingComponentVisibleString MatchingComponentOcts
-#define ExtractingComponentVisibleString(cr,data)
+#define ExtractingComponentVisibleString(mem_op,cr,data)
 #define FreeComponentVisibleString FreeComponentOcts
 
 /*
@@ -372,7 +346,7 @@ int BDecComponentVisibleString (GenBuf *b, AsnTag tagId, AsnLen len,
  */
 
 typedef int (*MatchFcn) (char*, void*, void*);
-typedef void* (*ExtractFcn) (ComponentReference*, void * );
+typedef void* (*ExtractFcn) (void*, ComponentReference*, void * );
 
 typedef struct ComponentAnyInfo
 {
@@ -405,8 +379,8 @@ typedef ComponentAny ComponentAnyDefinedBy;
 #define MatchingComponentAnyDefinedBy MatchingComponentAny
 #define FreeComponentAnyDefinedBy FreeComponentAny
 
-int BDecComponentAny (GenBuf *b, ComponentAny *result, AsnLen *bytesDecoded, int mode);
-int GDecComponentAny (GenBuf *b, ComponentAny *result, AsnLen *bytesDecoded, int mode);
+int BDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesDecoded, int mode);
+int GDecComponentAny ( void* mem_op, GenBuf *b, ComponentAny *result, AsnLen *bytesDecoded, int mode);
 int MatchingComponentAny (char* oid, ComponentAny *a, ComponentAny *b);
 void FreeComponentAny ( ComponentAny*);
 
@@ -422,7 +396,7 @@ typedef ComponentVisibleString ComponentUTCTime;
 #define GDecComponentUTCTime GDecComponentVisibleString
 #define BDecComponentUTCTime BDecComponentOcts
 #define MatchingComponentUTCTime MatchingComponentOcts
-#define ExtractingComponentUTCTime(cr,data)
+#define ExtractingComponentUTCTime(mem_op,cr,data) NULL
 #define FreeComponentUTCTime FreeComponentOcts
 
 /*
@@ -432,7 +406,7 @@ typedef ComponentVisibleString ComponentGeneralizedTime;
 #define GDecComponentGeneralizedTime GDecComponentVisibleString
 #define BDecComponentGeneralizedTime BDecComponentOcts
 #define MatchingComponentGeneralizedTime MatchingComponentOcts
-#define ExtractingComponentGeneralizedTime(cr,data)
+#define ExtractingComponentGeneralizedTime(mem_op,cr,data) NULL
 #define FreeComponentGeneralizedTime FreeComponentOcts
 
 typedef int converter_func LDAP_P ((
@@ -479,7 +453,7 @@ typedef struct OID_Decoder_entry {
 } OD_entry;
 
 void
-m_convert_asn_to_ldap( ComponentSyntaxInfo* csi, struct berval* bv);
+m_convert_asn_to_ldap ( ComponentSyntaxInfo* csi, struct berval* bv);
 int
 m_convert_assert_to_comp ( gser_decoder_func* decoder, struct berval* bv,
                         ComponentSyntaxInfo** csi, int len, int mode );
@@ -510,6 +484,10 @@ m_convert_attr_to_comp ( Attribute* a, struct berval* bv );
 #define DEC_ALLOC_MODE_2	0x04
 #define CALL_TAG_DECODER	0x08
 #define CALL_CONTENT_DECODER	~0x08
+
+#define OID_ALL_COMP_MATCH "1.2.36.79672281.1.13.6"
+#define OID_COMP_FILTER_MATCH "1.2.36.79672281.1.13.2"
+#define MAX_LDAP_STR_LEN 128
 
 MatchingRule*
 retrieve_matching_rule( char* mr_oid, AsnTypeId type );
