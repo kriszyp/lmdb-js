@@ -1395,18 +1395,6 @@ backend database.  Multiple suffix lines can be given and at least one is
 required for each database definition.
 If the suffix of one database is "inside" that of another, the database
 with the inner suffix must come first in the configuration file.
-.TP
-.B subordinate
-Specify that the current backend database is a subordinate of another
-backend database. A subordinate database may have only one suffix. This
-option may be used to glue multiple databases into a single namingContext.
-If the suffix of the current database is within the namingContext of a
-superior database, searches against the superior database will be
-propagated to the subordinate as well. All of the databases
-associated with a single namingContext should have identical rootdns.
-Behavior of other LDAP operations is unaffected by this setting. In
-particular, it is not possible to use moddn to move an entry from
-one subordinate to another subordinate within the namingContext.
 .HP
 .hy 0
 .B syncrepl rid=<replica ID>

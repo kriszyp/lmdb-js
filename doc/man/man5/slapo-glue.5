@@ -1,0 +1,43 @@
+.TH SLAPO-GLUE 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapo-glue \- Backend Glue overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The Backend Glue overlay can be used to glue multiple databases into a
+single namingContext. The overlay must be configured on the root database
+of the context, and any other databases must be explicitly configured
+as subordinates of the root database. All of the participating databases
+should have identical rootdns.
+
+All search and write operations will be intercepted by this overlay. Searches
+against the root database will be propagated to all the subordinates. Write
+operations will pass unaltered to the relevant target database. Note that
+any overlays on the root database configured before this overlay will fail
+to execute. As such, the glue overlay should always be the first overlay
+configured on the root database.
+
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the Backend Glue overlay.
+They should appear after the
+.B overlay
+directive and before any subsequent
+.B database
+directive.
+.TP
+.B glue-sub <suffix-DN> [async]
+Specify the suffix of a database to attach as a subordinate to the root
+database. The specified database must have already been configured. If the
+optional "async" keyword is supplied, searches against this database may
+be spawned in a separate thread to run concurrently with other operations.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5).
