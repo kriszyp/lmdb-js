@@ -188,9 +188,11 @@ int value_find(
 			vals[i], nval == NULL ? val : nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {
+			ber_bvfree( nval );
 			return LDAP_SUCCESS;
 		}
 	}
 
+	ber_bvfree( nval );
 	return LDAP_NO_SUCH_ATTRIBUTE;
 }

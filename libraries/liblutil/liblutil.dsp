@@ -172,6 +172,10 @@ SOURCE=..\..\include\lutil.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\include\lutil_ldap.h
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\include\lutil_lockf.h
 # End Source File
 # Begin Source File
@@ -197,6 +201,10 @@ SOURCE=.\passwd.c
 # Begin Source File
 
 SOURCE=..\..\include\portable.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\sasl.c
 # End Source File
 # Begin Source File
 

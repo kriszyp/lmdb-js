@@ -135,7 +135,7 @@ set_chase (SET_GATHER gatherer, void *cookie, char **set, char *attr, int attrle
 		set_dispose(set);
 		return(NULL);
 	}
-	memcpy(attrstr, attr, attrlen);
+	AC_MEMCPY(attrstr, attr, attrlen);
 	attrstr[attrlen] = 0;
 
 	nset = ch_calloc(1, sizeof(char *));
@@ -197,12 +197,12 @@ set_samedn (char *dn1, char *dn2)
 int
 set_filter (SET_GATHER gatherer, void *cookie, char *filter, char *user, char *this, char ***results)
 {
-	#define IS_SET(x)	( (long)(x) >= 256 )
-	#define IS_OP(x)	( (long)(x) < 256 )
-	#define SF_ERROR(x)	{ rc = -1; goto _error; }
-	#define SF_TOP()	(char **)( (stp < 0) ? 0 : stack[stp] )
-	#define SF_POP()	(char **)( (stp < 0) ? 0 : stack[stp--] )
-	#define SF_PUSH(x)	{ if (stp >= 63) SF_ERROR(overflow); stack[++stp] = (char **)(long)(x); }
+#	define IS_SET(x)	( (long)(x) >= 256 )
+#	define IS_OP(x)	( (long)(x) < 256 )
+#	define SF_ERROR(x)	{ rc = -1; goto _error; }
+#	define SF_TOP()	(char **)( (stp < 0) ? 0 : stack[stp] )
+#	define SF_POP()	(char **)( (stp < 0) ? 0 : stack[stp--] )
+#	define SF_PUSH(x)	{ if (stp >= 63) SF_ERROR(overflow); stack[++stp] = (char **)(long)(x); }
 	char c;
 	char **set, **lset;
 	int len, op, rc, stp;
@@ -287,7 +287,7 @@ set_filter (SET_GATHER gatherer, void *cookie, char *filter, char *user, char *t
 			*set = ch_calloc(len + 1, sizeof(char));
 			if (*set == NULL)
 				SF_ERROR(memory);
-			memcpy(*set, &filter[-len - 1], len);
+			AC_MEMCPY(*set, &filter[-len - 1], len);
 			SF_PUSH(set);
 			set = NULL;
 			break;

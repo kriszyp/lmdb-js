@@ -135,7 +135,7 @@ next_line( char **bufp, ber_len_t *blenp, char **linep )
 	return( -1 );	/* fatal error */
     }
 
-    (void) memcpy( line, linestart, p - linestart );
+    AC_MEMCPY( line, linestart, p - linestart );
     line[ p - linestart - 1 ] = '\0';
     *linep = line;
     return( strlen( line ));

@@ -136,29 +136,22 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 
 ber_tag_t
 ber_peek_tag(
-	BerElement *ber_in,
+	BerElement *ber,
 	ber_len_t *len )
 {
+	/*
+	 * This implementation assumes ber_skip_tag() only
+	 * modifies ber_ptr field of the BerElement.
+	 */
+
+	char *save;
 	ber_tag_t	tag;
-	BerElement *ber;
 
-	assert( ber_in != NULL );
-	assert( BER_VALID( ber_in ) );
-
-	*len = 0;
-
-	ber = ber_dup( ber_in );
-
-	if( ber == NULL ) {
-		return LBER_ERROR;
-	}
-
-	assert( BER_VALID( ber ) );
-
+	save = ber->ber_ptr;
 	tag = ber_skip_tag( ber, len );
+	ber->ber_ptr = save;
 
-	ber_free( ber, 0 );
-	return( tag );
+	return tag;
 }
 
 static ber_len_t

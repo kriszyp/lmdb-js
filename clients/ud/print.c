@@ -603,7 +603,7 @@ time2text( char *ldtimestr, int dateonly )
 
     timestr[ strlen( timestr ) - 1 ] = zone;	/* replace trailing newline */
     if ( dateonly ) {
-	SAFEMEMCPY( timestr + 11, timestr + 20, strlen( timestr + 20 ) + 1 );
+		AC_MEMCPY( timestr + 11, timestr + 20, strlen( timestr + 20 ) + 1 );
     }
 
     return( strdup( timestr ) );

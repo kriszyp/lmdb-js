@@ -53,6 +53,12 @@
 #define generalizedTimeMatch			numericStringMatch
 #define generalizedTimeOrderingMatch	numericStringMatch
 
+/* approx matching rules */
+#define directoryStringApproxMatchOID	"1.3.6.1.4.1.4203.666.4.4"
+#define directoryStringApproxMatch		NULL
+#define IA5StringApproxMatchOID			"1.3.6.1.4.1.4203.666.4.5"
+#define IA5StringApproxMatch			NULL
+
 /* unimplemented matching routines */
 #define caseIgnoreListMatch				NULL
 #define caseIgnoreListSubstringsMatch	NULL
@@ -64,10 +70,6 @@
 
 #define OpenLDAPaciMatch				NULL
 #define authPasswordMatch				NULL
-
-/* unimplied indexer/filter routines */
-#define caseIgnoreIA5SubstringsIndexer	NULL
-#define caseIgnoreIA5SubstringsFilter	NULL
 
 /* recycled indexing/filtering routines */
 #define caseIgnoreIndexer				caseIgnoreIA5Indexer
@@ -81,8 +83,6 @@
 #define caseIgnoreSubstringsFilter		caseIgnoreIA5SubstringsFilter
 #define caseExactSubstringsIndexer		caseExactIA5SubstringsIndexer
 #define caseExactSubstringsFilter		caseExactIA5SubstringsFilter
-#define caseExactIA5SubstringsFilter	caseIgnoreIA5SubstringsFilter
-#define caseExactIA5SubstringsIndexer	caseIgnoreIA5SubstringsIndexer
 
 
 static int
@@ -867,7 +867,224 @@ int caseExactIA5Filter(
 	*keysp = keys;
 	return LDAP_SUCCESS;
 }
+/* Substrings Index generation function */
+int caseExactIA5SubstringsIndexer(
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i, nkeys, types;
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[16];
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
 
+	types = 0;
+	if( flags & SLAP_MR_SUBSTR_INITIAL ) types++;
+	if( flags & SLAP_MR_SUBSTR_FINAL ) types++;
+	/* no SUBSTR_ANY indexing */
+
+	nkeys=0;
+	for( i=0; values[i] != NULL; i++ ) {
+		/* count number of indices to generate */
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
+			continue;
+		}
+
+		if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			nkeys += SLAP_INDEX_SUBSTR_MAXLEN - ( SLAP_INDEX_SUBSTR_MINLEN - 1);
+		} else {
+			nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+		}
+	}
+	assert( i > 0 );
+
+	if( nkeys == 0 ) {
+		/* no keys to generate */
+		*keysp = NULL;
+		return LDAP_SUCCESS;
+	}
+
+	nkeys *= types; /* We need to generate keys for each type */
+	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	nkeys=0;
+	for( i=0; values[i] != NULL; i++ ) {
+		int j,max;
+		struct berval *value;
+
+		if( value->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+
+		max = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+
+		value = values[i];
+
+		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
+			char pre;
+
+			if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					value->bv_val, j );
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+
+			if( flags & SLAP_MR_SUBSTR_FINAL ) {
+				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					&value->bv_val[value->bv_len-j], j );
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+
+		}
+	}
+
+	keys[nkeys] = NULL;
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+int caseExactIA5SubstringsFilter(
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	SubstringsAssertion *sa = assertValue;
+	char pre;
+	int nkeys = 0;
+	size_t slen, mlen, klen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	struct berval *value;
+	struct berval digest;
+
+	if( sa->sa_initial != NULL &&
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		nkeys++;
+	}
+	if( sa->sa_final != NULL &&
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		nkeys++;
+	}
+
+	if( nkeys == 0 ) {
+		*keysp = NULL;
+		return LDAP_SUCCESS;
+	}
+
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	nkeys = 0;
+
+	if( sa->sa_initial != NULL &&
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
+		value = sa->sa_initial;
+
+		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+
+		lutil_MD5Init( &MD5context );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			lutil_MD5Update( &MD5context,
+				prefix->bv_val, prefix->bv_len );
+		}
+		lutil_MD5Update( &MD5context,
+			&pre, sizeof( pre ) );
+		lutil_MD5Update( &MD5context,
+			syntax->ssyn_oid, slen );
+		lutil_MD5Update( &MD5context,
+			mr->smr_oid, mlen );
+		lutil_MD5Update( &MD5context,
+			value->bv_val, klen );
+		lutil_MD5Final( MD5digest, &MD5context );
+
+		ber_bvfree( value );
+		keys[nkeys++] = ber_bvdup( &digest );
+	}
+
+	if( sa->sa_final != NULL &&
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
+		value = sa->sa_final;
+
+		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+
+		lutil_MD5Init( &MD5context );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			lutil_MD5Update( &MD5context,
+				prefix->bv_val, prefix->bv_len );
+		}
+		lutil_MD5Update( &MD5context,
+			&pre, sizeof( pre ) );
+		lutil_MD5Update( &MD5context,
+			syntax->ssyn_oid, slen );
+		lutil_MD5Update( &MD5context,
+			mr->smr_oid, mlen );
+		lutil_MD5Update( &MD5context,
+			&value->bv_val[value->bv_len-klen], klen );
+		lutil_MD5Final( MD5digest, &MD5context );
+
+		ber_bvfree( value );
+		keys[nkeys++] = ber_bvdup( &digest );
+	}
+
+	keys[nkeys] = NULL;
+
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+	
 static int
 caseIgnoreIA5Match(
 	int *matchp,
@@ -1133,6 +1350,229 @@ int caseIgnoreIA5Filter(
 	return LDAP_SUCCESS;
 }
 
+/* Substrings Index generation function */
+int caseIgnoreIA5SubstringsIndexer(
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	struct berval **values,
+	struct berval ***keysp )
+{
+	int i, nkeys, types;
+	size_t slen, mlen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[16];
+	struct berval digest;
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	types = 0;
+	if( flags & SLAP_MR_SUBSTR_INITIAL ) types++;
+	if( flags & SLAP_MR_SUBSTR_FINAL ) types++;
+	/* no SUBSTR_ANY indexing */
+
+	nkeys=0;
+	for( i=0; values[i] != NULL; i++ ) {
+		/* count number of indices to generate */
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) {
+			continue;
+		}
+
+		if( values[i]->bv_len >= SLAP_INDEX_SUBSTR_MAXLEN ) {
+			nkeys += SLAP_INDEX_SUBSTR_MAXLEN - ( SLAP_INDEX_SUBSTR_MINLEN - 1);
+		} else {
+			nkeys += values[i]->bv_len - ( SLAP_INDEX_SUBSTR_MINLEN - 1 );
+		}
+	}
+	assert( i > 0 );
+
+	if( nkeys == 0 ) {
+		/* no keys to generate */
+		*keysp = NULL;
+		return LDAP_SUCCESS;
+	}
+
+	nkeys *= types; /* We need to generate keys for each type */
+	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	nkeys=0;
+	for( i=0; values[i] != NULL; i++ ) {
+		int j,max;
+		struct berval *value;
+
+		if( values[i]->bv_len < SLAP_INDEX_SUBSTR_MINLEN ) continue;
+
+		max = SLAP_INDEX_SUBSTR_MAXLEN < values[i]->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : values[i]->bv_len;
+
+		value = ber_bvdup( values[i] );
+		ldap_pvt_str2upper( value->bv_val );
+
+		for( j=SLAP_INDEX_SUBSTR_MINLEN; j<=max; j++ ) {
+			char pre;
+
+			if( flags & SLAP_MR_SUBSTR_INITIAL ) {
+				pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					value->bv_val, j );
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+
+			if( flags & SLAP_MR_SUBSTR_FINAL ) {
+				pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
+				lutil_MD5Init( &MD5context );
+				if( prefix != NULL && prefix->bv_len > 0 ) {
+					lutil_MD5Update( &MD5context,
+						prefix->bv_val, prefix->bv_len );
+				}
+				lutil_MD5Update( &MD5context,
+					&pre, sizeof( pre ) );
+				lutil_MD5Update( &MD5context,
+					syntax->ssyn_oid, slen );
+				lutil_MD5Update( &MD5context,
+					mr->smr_oid, mlen );
+				lutil_MD5Update( &MD5context,
+					&value->bv_val[value->bv_len-j], j );
+				lutil_MD5Final( MD5digest, &MD5context );
+
+				keys[nkeys++] = ber_bvdup( &digest );
+			}
+
+		}
+
+		ber_bvfree( value );
+	}
+
+	keys[nkeys] = NULL;
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+
+int caseIgnoreIA5SubstringsFilter(
+	unsigned flags,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *prefix,
+	void * assertValue,
+	struct berval ***keysp )
+{
+	SubstringsAssertion *sa = assertValue;
+	char pre;
+	int nkeys = 0;
+	size_t slen, mlen, klen;
+	struct berval **keys;
+	lutil_MD5_CTX   MD5context;
+	unsigned char   MD5digest[LUTIL_MD5_BYTES];
+	struct berval *value;
+	struct berval digest;
+
+	if( sa->sa_initial != NULL &&
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		nkeys++;
+	}
+	if( sa->sa_final != NULL &&
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		nkeys++;
+	}
+
+	if( nkeys == 0 ) {
+		*keysp = NULL;
+		return LDAP_SUCCESS;
+	}
+
+	digest.bv_val = MD5digest;
+	digest.bv_len = sizeof(MD5digest);
+
+	slen = strlen( syntax->ssyn_oid );
+	mlen = strlen( mr->smr_oid );
+
+	keys = ch_malloc( sizeof( struct berval * ) * (nkeys+1) );
+	nkeys = 0;
+
+	if( sa->sa_initial != NULL &&
+		sa->sa_initial->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		pre = SLAP_INDEX_SUBSTR_INITIAL_PREFIX;
+		value = ber_bvdup( sa->sa_initial );
+		ldap_pvt_str2upper( value->bv_val );
+
+		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+
+		lutil_MD5Init( &MD5context );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			lutil_MD5Update( &MD5context,
+				prefix->bv_val, prefix->bv_len );
+		}
+		lutil_MD5Update( &MD5context,
+			&pre, sizeof( pre ) );
+		lutil_MD5Update( &MD5context,
+			syntax->ssyn_oid, slen );
+		lutil_MD5Update( &MD5context,
+			mr->smr_oid, mlen );
+		lutil_MD5Update( &MD5context,
+			value->bv_val, klen );
+		lutil_MD5Final( MD5digest, &MD5context );
+
+		ber_bvfree( value );
+		keys[nkeys++] = ber_bvdup( &digest );
+	}
+
+	if( sa->sa_final != NULL &&
+		sa->sa_final->bv_len >= SLAP_INDEX_SUBSTR_MINLEN )
+	{
+		pre = SLAP_INDEX_SUBSTR_FINAL_PREFIX;
+		value = ber_bvdup( sa->sa_final );
+		ldap_pvt_str2upper( value->bv_val );
+
+		klen = SLAP_INDEX_SUBSTR_MAXLEN < value->bv_len
+			? SLAP_INDEX_SUBSTR_MAXLEN : value->bv_len;
+
+		lutil_MD5Init( &MD5context );
+		if( prefix != NULL && prefix->bv_len > 0 ) {
+			lutil_MD5Update( &MD5context,
+				prefix->bv_val, prefix->bv_len );
+		}
+		lutil_MD5Update( &MD5context,
+			&pre, sizeof( pre ) );
+		lutil_MD5Update( &MD5context,
+			syntax->ssyn_oid, slen );
+		lutil_MD5Update( &MD5context,
+			mr->smr_oid, mlen );
+		lutil_MD5Update( &MD5context,
+			&value->bv_val[value->bv_len-klen], klen );
+		lutil_MD5Final( MD5digest, &MD5context );
+
+		ber_bvfree( value );
+		keys[nkeys++] = ber_bvdup( &digest );
+	}
+
+	keys[nkeys] = NULL;
+
+	*keysp = keys;
+	return LDAP_SUCCESS;
+}
+	
 static int
 numericStringNormalize(
 	Syntax *syntax,
@@ -1226,7 +1666,7 @@ objectIdentifierFirstComponentMatch(
 
 	} else {
 		char *stored = ch_malloc( oid.bv_len + 1 );
-		memcpy( stored, oid.bv_val, oid.bv_len );
+		AC_MEMCPY( stored, oid.bv_val, oid.bv_len );
 		stored[oid.bv_len] = '\0';
 
 		if ( !strcmp( syntax->ssyn_oid, SLAP_SYNTAX_MATCHINGRULES_OID ) ) {
@@ -1664,6 +2104,8 @@ struct mrule_defs_rec {
 	slap_mr_match_func *		mrd_match;
 	slap_mr_indexer_func *		mrd_indexer;
 	slap_mr_filter_func *		mrd_filter;
+
+	char *						mrd_associated;
 };
 
 /*
@@ -1693,170 +2135,256 @@ struct mrule_defs_rec {
  */
 
 struct mrule_defs_rec mrule_defs[] = {
+	/*
+	 * EQUALITY matching rules must be listed after associated APPROX
+	 * matching rules.  So, we list all APPROX matching rules first.
+	 */
+	{"( " directoryStringApproxMatchOID " NAME 'directoryStringApproxMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
+		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		NULL, NULL,
+		directoryStringApproxMatch, NULL, NULL,
+		NULL},
+
+	{"( " IA5StringApproxMatchOID " NAME 'IA5StringApproxMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
+		SLAP_MR_EQUALITY_APPROX | SLAP_MR_EXT,
+		NULL, NULL,
+		IA5StringApproxMatch, NULL, NULL,
+		NULL},
+
+	/*
+	 * Other matching rules
+	 */
+	
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, objectIdentifierMatch,
-		caseIgnoreIA5Indexer, caseIgnoreIA5Filter},
+		NULL, NULL,
+		objectIdentifierMatch, caseIgnoreIA5Indexer, caseIgnoreIA5Filter,
+		NULL},
 
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, dnMatch, dnIndexer, dnFilter},
+		NULL, NULL,
+		dnMatch, dnIndexer, dnFilter,
+		NULL},
 
 	{"( 2.5.13.2 NAME 'caseIgnoreMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreMatch, caseIgnoreIndexer, caseIgnoreFilter},
+		NULL, NULL,
+		caseIgnoreMatch, caseIgnoreIndexer, caseIgnoreFilter,
+		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING,
-		NULL, NULL, caseIgnoreOrderingMatch, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreOrderingMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreSubstringsMatch,
-		caseIgnoreSubstringsIndexer, caseIgnoreSubstringsFilter},
+		NULL, NULL,
+		caseIgnoreSubstringsMatch,
+		caseIgnoreSubstringsIndexer,
+		caseIgnoreSubstringsFilter,
+		NULL},
 
 	{"( 2.5.13.5 NAME 'caseExactMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseExactMatch, caseExactIndexer, caseExactFilter},
+		NULL, NULL,
+		caseExactMatch, caseExactIndexer, caseExactFilter,
+		directoryStringApproxMatchOID },
 
 	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
 		SLAP_MR_ORDERING,
-		NULL, NULL, caseExactOrderingMatch, NULL, NULL},
+		NULL, NULL,
+		caseExactOrderingMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseExactSubstringsMatch,
-		caseExactSubstringsIndexer, caseExactSubstringsFilter},
+		NULL, NULL,
+		caseExactSubstringsMatch,
+		caseExactSubstringsIndexer,
+		caseExactSubstringsFilter,
+		NULL},
 
 	{"( 2.5.13.8 NAME 'numericStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5Match, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreIA5Match, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch,
-		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
+		NULL, NULL,
+		caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer,
+		caseIgnoreIA5SubstringsFilter,
+		NULL},
 
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreListMatch, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreListMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.12 NAME 'caseIgnoreListSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, caseIgnoreListSubstringsMatch, NULL, NULL},
+		NULL, NULL,
+		caseIgnoreListSubstringsMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.13 NAME 'booleanMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.7 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, booleanMatch, NULL, NULL},
+		NULL, NULL,
+		booleanMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.14 NAME 'integerMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, integerMatch, NULL, NULL},
+		NULL, NULL,
+		integerMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.16 NAME 'bitStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.6 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, bitStringMatch, NULL, NULL},
+		NULL, NULL,
+		bitStringMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.17 NAME 'octetStringMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, octetStringMatch, octetStringIndexer, octetStringFilter},
+		NULL, NULL,
+		octetStringMatch, octetStringIndexer, octetStringFilter,
+		NULL},
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.50 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, telephoneNumberMatch, NULL, NULL},
+		NULL, NULL,
+		telephoneNumberMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.21 NAME 'telephoneNumberSubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
 		SLAP_MR_SUBSTR | SLAP_MR_EXT,
-		NULL, NULL, telephoneNumberSubstringsMatch, NULL, NULL},
+		NULL, NULL,
+		telephoneNumberSubstringsMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.22 NAME 'presentationAddressMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.43 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, presentationAddressMatch, NULL, NULL},
+		NULL, NULL,
+		presentationAddressMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.23 NAME 'uniqueMemberMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.34 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, uniqueMemberMatch, NULL, NULL},
+		NULL, NULL,
+		uniqueMemberMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.24 NAME 'protocolInformationMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.42 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, protocolInformationMatch, NULL, NULL},
+		NULL, NULL,
+		protocolInformationMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.27 NAME 'generalizedTimeMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, generalizedTimeMatch, NULL, NULL},
+		NULL, NULL,
+		generalizedTimeMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )",
 		SLAP_MR_ORDERING,
-		NULL, NULL, generalizedTimeOrderingMatch, NULL, NULL},
+		NULL, NULL,
+		generalizedTimeOrderingMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, integerFirstComponentMatch, NULL, NULL},
+		NULL, NULL,
+		integerFirstComponentMatch, NULL, NULL,
+		NULL},
 
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
-		NULL, NULL, objectIdentifierFirstComponentMatch, NULL, NULL},
+		NULL, NULL,
+		objectIdentifierFirstComponentMatch, NULL, NULL,
+		NULL},
 
 	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		caseExactIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
+		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_EQUALITY | SLAP_MR_EXT,
 		NULL, NULL,
-		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter},
+		caseIgnoreIA5Match, caseExactIA5Indexer, caseExactIA5Filter,
+		IA5StringApproxMatchOID },
 
 	{"( 1.3.6.1.4.1.1466.109.114.3 NAME 'caseIgnoreIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
-		NULL, NULL, caseIgnoreIA5SubstringsMatch,
-		caseIgnoreIA5SubstringsIndexer, caseIgnoreIA5SubstringsFilter},
+		NULL, NULL,
+		caseIgnoreIA5SubstringsMatch,
+		caseIgnoreIA5SubstringsIndexer,
+		caseIgnoreIA5SubstringsFilter,
+		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.3 NAME 'caseExactIA5SubstringsMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
 		SLAP_MR_SUBSTR,
-		NULL, NULL, caseExactIA5SubstringsMatch,
-		caseExactIA5SubstringsIndexer, caseExactIA5SubstringsFilter},
+		NULL, NULL,
+		caseExactIA5SubstringsMatch,
+		caseExactIA5SubstringsIndexer,
+		caseExactIA5SubstringsFilter,
+		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.1 NAME 'authPasswordMatch' "
 		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
 		SLAP_MR_EQUALITY,
-		NULL, NULL, authPasswordMatch, NULL, NULL},
+		NULL, NULL,
+		authPasswordMatch, NULL, NULL,
+		NULL},
 
 	{"( 1.3.6.1.4.1.4203.666.4.2 NAME 'OpenLDAPaciMatch' "
 		"SYNTAX 1.3.6.1.4.1.4203.666.2.1 )",
 		SLAP_MR_EQUALITY,
-		NULL, NULL, OpenLDAPaciMatch, NULL, NULL},
+		NULL, NULL,
+		OpenLDAPaciMatch, NULL, NULL,
+		NULL},
 
-	{NULL, SLAP_MR_NONE, NULL, NULL, NULL}
+	{NULL, SLAP_MR_NONE, NULL, NULL, NULL, NULL}
 };
 
 int
@@ -1903,7 +2431,8 @@ schema_init( void )
 			mrule_defs[i].mrd_normalize,
 		    mrule_defs[i].mrd_match,
 			mrule_defs[i].mrd_indexer,
-			mrule_defs[i].mrd_filter );
+			mrule_defs[i].mrd_filter,
+			mrule_defs[i].mrd_associated );
 
 		if ( res ) {
 			fprintf( stderr,

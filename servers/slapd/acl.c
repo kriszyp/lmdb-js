@@ -366,8 +366,8 @@ acl_mask(
 		e->e_dn, attr, 0 );
 
 	Debug( LDAP_DEBUG_ACL,
-		"=> acl_mask: to value \"%s\" by \"%s\", (%s) \n",
-		val ? val->bv_val : "*",
+		"=> acl_mask: to %s by \"%s\", (%s) \n",
+		val ? "value" : "all values",
 		op->o_ndn ?  op->o_ndn : "",
 		accessmask2str( *mask, accessmaskbuf ) );
 
@@ -879,7 +879,7 @@ aci_bvstrdup( struct berval *bv )
 
 	s = (char *)ch_malloc(bv->bv_len + 1);
 	if (s != NULL) {
-		memcpy(s, bv->bv_val, bv->bv_len);
+		AC_MEMCPY(s, bv->bv_val, bv->bv_len);
 		s[bv->bv_len] = 0;
 	}
 	return(s);

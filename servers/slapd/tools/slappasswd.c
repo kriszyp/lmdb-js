@@ -63,7 +63,7 @@ main( int argc, char *argv[] )
 				char* p;
 
 				for( p = optarg; *p == '\0'; p++ ) {
-					*p = '*';
+					*p = '\0';
 				}
 			}
 			break;

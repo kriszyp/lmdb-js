@@ -166,7 +166,7 @@ parse_oc(
     char	**argv
 )
 {
-	LDAP_OBJECT_CLASS *oc;
+	LDAPObjectClass *oc;
 	int		code;
 	const char	*err;
 	char		*oid = NULL;
@@ -257,7 +257,7 @@ parse_at(
     char	**argv
 )
 {
-	LDAP_ATTRIBUTE_TYPE *at;
+	LDAPAttributeType *at;
 	int		code;
 	const char	*err;
 	char		*oid = NULL;

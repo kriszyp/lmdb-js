@@ -148,12 +148,6 @@ ldap_ld_free(
 		ld->ld_options.ldo_tm_net = NULL;
 	}
 
-#ifdef HAVE_CYRUS_SASL
-	if ( ld->ld_sasl_context != NULL ) {
-		sasl_dispose( &ld->ld_sasl_context );
-	}
-#endif 
-
 	ber_sockbuf_free( ld->ld_sb );   
    
 	LDAP_FREE( (char *) ld );

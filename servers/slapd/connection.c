@@ -288,7 +288,9 @@ long connection_init(
 	const char* dnsname,
 	const char* peername,
 	const char* sockname,
-	int use_tls )
+	int use_tls,
+	unsigned ssf,
+	char *authid )
 {
 	unsigned long id;
 	Connection *c;
@@ -376,9 +378,8 @@ long connection_init(
         c->c_pending_ops = NULL;
 
 		c->c_sasl_bind_mech = NULL;
-#ifdef HAVE_CYRUS_SASL
-		c->c_sasl_bind_context = NULL;
-#endif
+		c->c_sasl_context = NULL;
+		c->c_sasl_extra = NULL;
 
         c->c_sb = ber_sockbuf_alloc( );
 		c->c_currentber = NULL;
@@ -404,9 +405,8 @@ long connection_init(
     assert( c->c_ops == NULL );
     assert( c->c_pending_ops == NULL );
 	assert( c->c_sasl_bind_mech == NULL );
-#ifdef HAVE_CYRUS_SASL
-	assert( c->c_sasl_bind_context == NULL );
-#endif
+	assert( c->c_sasl_context == NULL );
+	assert( c->c_sasl_extra == NULL );
 	assert( c->c_currentber == NULL );
 
 	c->c_listener_url = ch_strdup( url  );
@@ -441,6 +441,7 @@ long connection_init(
             s, c->c_peer_name, 0 );
     }
 
+
     id = c->c_connid = conn_nextid++;
 
     c->c_conn_state = SLAP_C_INACTIVE;
@@ -455,6 +456,8 @@ long connection_init(
 	    c->c_needs_tls_accept = 0;
     }
 #endif
+	slap_sasl_open( c );
+	slap_sasl_external( c, ssf, authid );
 
     ldap_pvt_thread_mutex_unlock( &c->c_mutex );
     ldap_pvt_thread_mutex_unlock( &connections_mutex );
@@ -504,7 +507,7 @@ connection_destroy( Connection *c )
 		c->c_peer_domain = NULL;
 	}
 	if(c->c_peer_name != NULL) {
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_lOCAL
 		/*
 		 * If peer was a domain socket, unlink. Mind you,
 		 * they may be un-named. Should we leave this to
@@ -516,7 +519,7 @@ connection_destroy( Connection *c )
 				(void)unlink(path);
 			}
 		}
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 		free(c->c_peer_name);
 		c->c_peer_name = NULL;
@@ -531,12 +534,8 @@ connection_destroy( Connection *c )
 		free(c->c_sasl_bind_mech);
 		c->c_sasl_bind_mech = NULL;
 	}
-#ifdef HAVE_CYRUS_SASL
-	if(c->c_sasl_bind_context != NULL ) {
-		sasl_dispose( &c->c_sasl_bind_context );
-		c->c_sasl_bind_context = NULL;
-	}
-#endif
+
+	slap_sasl_close( c );
 
 	if ( c->c_currentber != NULL ) {
 		ber_free( c->c_currentber, 1 );
@@ -896,8 +895,9 @@ int connection_read(ber_socket_t s)
 			fd_set rfd;
 
 			Debug( LDAP_DEBUG_TRACE,
-			       "connection_read(%d): TLS accept error error=%d id=%ld, closing\n",
-			       s, rc, c->c_connid );
+				"connection_read(%d): TLS accept error "
+				"error=%d id=%ld, closing\n",
+				s, rc, c->c_connid );
 
 			c->c_needs_tls_accept = 0;
 			/* connections_mutex and c_mutex are locked */
@@ -917,12 +917,40 @@ int connection_read(ber_socket_t s)
 				    NULL);
 			}
 			connection_close( c );
+
 		} else if ( rc == 0 ) {
 			c->c_needs_tls_accept = 0;
+
+#if 0
+			/* we need to let SASL know */
+			slap_sasl_external( c, ssf, authid );
+#endif
 		}
 		connection_return( c );
 		ldap_pvt_thread_mutex_unlock( &connections_mutex );
 		return 0;
+	}
+#endif
+
+#ifdef HAVE_CYRUS_SASL
+	if ( c->c_sasl_layers ) {
+		c->c_sasl_layers = 0;
+
+		rc = ldap_pvt_sasl_install( c->c_sb,  c->c_sasl_context );
+
+		if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE,
+				"connection_read(%d): SASL install error "
+				"error=%d id=%ld, closing\n",
+				s, rc, c->c_connid );
+
+			/* connections_mutex and c_mutex are locked */
+			connection_closing( c );
+			connection_close( c );
+			connection_return( c );
+			ldap_pvt_thread_mutex_unlock( &connections_mutex );
+			return 0;
+		}
 	}
 #endif
 
@@ -1093,7 +1121,6 @@ connection_resched( Connection *conn )
 static int connection_op_activate( Connection *conn, Operation *op )
 {
 	struct co_arg *arg;
-	char *tmpdn;
 	int status;
 	ber_tag_t tag = op->o_tag;
 
@@ -1101,17 +1128,11 @@ static int connection_op_activate( Connection *conn, Operation *op )
 		conn->c_conn_state = SLAP_C_BINDING;
 	}
 
-	if ( conn->c_dn != NULL ) {
-		tmpdn = ch_strdup( conn->c_dn );
-	} else {
-		tmpdn = NULL;
-	}
-
 	arg = (struct co_arg *) ch_malloc( sizeof(struct co_arg) );
 	arg->co_conn = conn;
 	arg->co_op = op;
 
-	arg->co_op->o_dn = ch_strdup( tmpdn != NULL ? tmpdn : "" );
+	arg->co_op->o_dn = ch_strdup( conn->c_dn != NULL ? conn->c_dn : "" );
 	arg->co_op->o_ndn = ch_strdup( arg->co_op->o_dn );
 	(void) dn_normalize( arg->co_op->o_ndn );
 
@@ -1124,17 +1145,12 @@ static int connection_op_activate( Connection *conn, Operation *op )
 	
 	slap_op_add( &conn->c_ops, arg->co_op );
 
-	if( tmpdn != NULL ) {
-		free( tmpdn );
-	}
-
 	status = ldap_pvt_thread_pool_submit( &connection_pool,
 		connection_operation, (void *) arg );
 
 	if ( status != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
-		"ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
-
+		"ldap_pvt_thread_pool_submit failed (%d)\n", status, 0, 0 );
 		/* should move op to pending list */
 	}
 

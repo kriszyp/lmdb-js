@@ -171,6 +171,8 @@ test_ava_filter(
 			mr = a->a_desc->ad_type->sat_approx;
 			if( mr != NULL ) break;
 
+			/* use EQUALITY matching rule if no APPROX rule */
+
 		case LDAP_FILTER_EQUALITY:
 			mr = a->a_desc->ad_type->sat_equality;
 			break;

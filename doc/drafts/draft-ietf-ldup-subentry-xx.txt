@@ -1,229 +1,272 @@
-INTERNET-DRAFT
-draft-ietf-ldup-subentry-01.txt
-                                                               Ed Reed
-                                                          Novell, Inc.
-                                                       August 29, 1999
 
-                         LDAP Subentry Schema
 
 
-1. Status of this Memo
 
-This document is an Internet-Draft and is in full conformance with all
-provisions of Section 10 of RFC2026.
 
-Internet-Drafts are working documents of the Internet Engineering Task
-Force (IETF), its areas, and its working groups. Note that other
-groups may also distribute working documents as Internet-Drafts.
 
-Internet-Drafts are draft documents valid for a maximum of six months
-and may be updated, replaced, or obsoleted by other documents at any
-time. It is inappropriate to use Internet-Drafts as reference material
-or to cite them other than as "work in progress."
+INTERNET-DRAFT 
+draft-ietf-ldup-subentry-03.txt 
+                                                    Ed Reed 
+                                        Reed-Matthews, Inc. 
+                                              July 13, 2000 
+                                                            
+LDAP Subentry Schema 
 
-The list of current Internet-Drafts can be accessed at
-http://www.ietf.org/ietf/1id-abstracts.txt.
 
-The list of Internet-Draft Shadow Directories can be accessed at
-http://www.ietf.org/shadow.html.
+1. Status of this Memo 
 
-This Internet-Draft expires on February 29, 1999.
+This document is an Internet-Draft and is in full 
+conformance with all provisions of Section 10 of RFC2026. 
+ 
+Internet-Drafts are working documents of the Internet 
+Engineering Task Force (IETF), its areas, and its working 
+groups. Note that other groups may also distribute working 
+documents as Internet-Drafts.  
+ 
+Internet-Drafts are draft documents valid for a maximum of 
+six months and may be updated, replaced, or obsoleted by 
+other documents at any time. It is inappropriate to use 
+Internet-Drafts as reference material or to cite them other 
+than as "work in progress."  
+ 
+The list of current Internet-Drafts can be accessed at 
+http://www.ietf.org/ietf/1id-abstracts.txt.  
+ 
+The list of Internet-Draft Shadow Directories can be 
+accessed at http://www.ietf.org/shadow.html. 
+ 
+This Internet-Draft expires on January 13, 2001. 
 
 
-2. Abstract
+2. Abstract 
 
-This document describes an object class called ldapSubEntry which MAY
-be used to indicate operations and management related entries in the
-directory, called LDAP Subentries.  This version of this document is
-updated with an assigned OID for the ldapSubEntry object class.
+This document describes an object class called ldapSubEntry 
+which MAY be used to indicate operations and management 
+related entries in the directory, called LDAP Subentries.  
+This version of this document is updated with an assigned 
+OID for the ldapSubEntry object class. 
 
-The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
-"SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and  "OPTIONAL" in this
-document are to be interpreted as described in RFC 2119 [RFC2119]. The
-sections below reiterate these definitions and include some additional
-ones.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", 
+"SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", 
+and  "OPTIONAL" in this document are to be interpreted as 
+described in RFC 2119 [RFC2119]. The sections below 
+reiterate these definitions and include some additional 
+ones. 
 
 
+Reed .                                                       [Page 1] 
+                       Expires January 13, 2001 
 
 
+INTERNET-DRAFT                                           13 July 2000 
+                   LDAP Subentry Schema 
 
+3. Definition 
 
-Reed                                                         [Page 1]
-                      Expires February 29, 2000
 
+3.1 ldapSubEntry Class 
 
-INTERNET-DRAFT                                         29 August 1999
-                         LDAP Subentry Schema
+( 2.16.840.1.113719.2.142.6.1.1 NAME 'ldapSubEntry'  
+   DESC 'LDAP Subentry class, version 1'  
+     SUP top STRUCTURAL  
+     MAY ( cn ) )  
 
-3. Definition
+The class ldapSubEntry is intended to be used as a super- 
+class when defining other structural classes to be used 
+as LDAP Subentries, and as the structural class to which 
+Auxiliary classes may be added for application specific 
+subentry information.  Where possible, the use of Auxiliary 
+classes to extend ldapSubEntries is strongly preferred. 
+ 
+The presence of ldapSubEntry in the list of super-classes 
+of an entry in the directory makes that entry an LDAP 
+Subentry.  Object classes derived from ldapSubEntry are 
+themselves considered ldapSubEntry classes, for the purpose 
+of this discussion. 
 
+LDAP Subentries MAY be named by their commonName attribute 
+[LDAPv3].  Other naming attributes are also permitted. 
 
-3.1 ldapSubEntry Class
+LDAP Subentries MAY be containers, unlike their [X.501] 
+counterparts. 
 
-( 2.16.840.1.113719.2.142.6.1.1 NAME 'ldapSubEntry'
-   DESC 'LDAP Subentry class, version 1'
-     SUP top STRUCTURAL
-     MUST ( cn ) )
+LDAP Subentries MAY be contained by, and will usually be 
+located in the directory information tree immediately 
+subordinate to, administrative points and/or naming 
+contexts.  Further (unlike X.500 subentries), LDAP 
+Subentries MAY be contained by other LDAP Subentries (the 
+way organizational units may be contained by other 
+organizational units).  Deep nestings of LDAP Subentries 
+are discouraged, but not prohibited. 
 
-The class ldapSubEntry is intended to be used as a super class when
-defining other structural classes to be used as LDAP Subentries.  The
-presence of ldapSubEntry in the list of super-classes of an entry in
-the directory makes that entry an LDAP Subentry.  Object classes
-derived from ldapSubEntry are themselves considered ldapSubEntry
-classes, for the purpose of this discussion.
+LDAP Subentries SHOULD be treated as "operational objects" 
+in much the same way that "operational attributes" are not 
+regularly provided in search results and read operations 
+when only user attributes are requested).    
 
-LDAP Subentries MAY be named by their commonName attribute [LDAPv3].
-Other naming attributes are also permitted.
+LDAP servers SHOULD implement the following special 
+handling of ldapSubEntry entries: 
 
-LDAP Subentries MAY be containers, unlike their [X.501] counterparts.
+a) search operations which include a matching criteria 
+"objectclass=ldapSubEntry" MUST include entries derived 
 
-LDAP Subentries MAY be contained by, and will usually be located in
-the directory information tree immediately subordinate to,
-administrative points and/or naming contexts [LDUPINFO].  Further
-(unlike X.500 subentries), LDAP Subentries MAY be contained by other
-LDAP Subentries (the way organizational units may be contained by
-other organizational units).  Deep nestings of LDAP Subentries are
-discouraged, but not prohibited.
+Reed .                                                       [Page 2] 
+                       Expires January 13, 2001 
+ 
 
-LDAP Subentries SHOULD be treated as "operational objects" in much the
-same way that "operational attributes" are not regularly provided in
-search results and read operations when only user attributes are
-requested).
 
-LDAP servers SHOULD implement the following special handling of
-ldapSubEntry entries:
+INTERNET-DRAFT                                           13 July 2000 
+                   LDAP Subentry Schema 
+
+from the ldapSubEntry class in the scope of their 
+operations;   
+
+b) search operations which do not include a matching 
+criteria "objectclass=ldapSubEntry" MUST IGNORE entries 
+derived from the ldapSubEntry class, and exclude them from 
+the scope of their operations. 
+
+The combination of SHOULD and MUST in the special handling 
+instructions, above, are meant to convey this:  Servers 
+SHOULD support this special handling, and if they do they 
+MUST do it as described, and not some other way. 
 
-a) search operations which include a matching criteria
-"objectclass=ldapSubEntry" MUST include entries derived from the
-ldapSubEntry class in the scope of their operations;
+
 
-b) search operations which do not include a matching criteria
-"objectclass=ldapSubEntry" MUST IGNORE entries derived from the
-ldapSubEntry class, and exclude them from the scope of their
-operations.
+4. Security Considerations 
 
+LDAP Subentries will frequently be used to hold data which 
+reflects either the actual or intended behavior of the 
+directory service.  As such, permission to read such 
+entries MAY need to be restricted to authorized users.  
+More importantly, IF a directory service treats the 
+information in an LDAP Subentry as the authoritative source 
+of policy to be used to control the behavior of the 
+directory, then permission to create, modify, or delete 
+such entries MUST be carefully restricted to authorized 
+administrators. 
 
 
-Reed                                                         [Page 2]
-                      Expires February 29, 2000
+
+5. References 
+
+[LDAPv3] S. Kille, M. Wahl, and T. Howes, "Lightweight 
+Directory Access Protocol (v3)", RFC 2251, December 1997 
 
+[X.501] ITU-T Rec. X.501, "The Directory: Models", 1993 
 
-INTERNET-DRAFT                                         29 August 1999
-                         LDAP Subentry Schema
 
-The combination of SHOULD and MUST in the special handling
-instructions, above, are meant to convey this:  Servers SHOULD support
-this special handling, and if they do they MUST do it as described,
-and not some other way.
 
+6. Copyright Notice 
 
+Copyright (C) The Internet Society (1999). All Rights 
+Reserved.  
+ 
+This document and translations of it may be copied and 
+furnished to others, and derivative works that comment on 
+or otherwise explain it or assist in its implementation may 
+be prepared, copied, published and distributed, in whole or 
 
-4. Security Considerations
+Reed .                                                       [Page 3] 
+                       Expires January 13, 2001 
+ 
 
-LDAP Subentries will frequently be used to hold data which reflects
-either the actual or intended behavior of the directory service.  As
-such, permission to read such entries MAY need to be restricted to
-authorized users.  More importantly, IF a directory service treats the
-information in an LDAP Subentry as the authoritative source of policy
-to be used to control the behavior of the directory, then permission
-to create, modify, or delete such entries MUST be carefully restricted
-to authorized administrators.
 
+INTERNET-DRAFT                                           13 July 2000 
+                   LDAP Subentry Schema 
 
+in part, without restriction of any kind, provided that the 
+above copyright notice and this paragraph are included on 
+all such copies and derivative works. However, this 
+document itself may not be modified in any way, such as by 
+removing the copyright notice or references to the Internet 
+Society or other Internet organizations, except as needed 
+for the purpose of developing Internet standards in which 
+case the procedures for copyrights defined in the Internet 
+Standards process must be followed, or as required to 
+translate it into languages other than English. 
+ 
+The limited permissions granted above are perpetual and 
+will not be revoked by the Internet Society or its 
+successors or assigns. 
+ 
+This document and the information contained herein is 
+provided on an "AS IS" basis and THE INTERNET SOCIETY AND 
+THE INTERNET ENGINEERING TASK FORCE DISCLAIMS ALL 
+WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED 
+TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL 
+NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF 
+MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE." 
 
-5. References
 
-[LDUPINFO] _ E. Reed, "LDUP Replication Information Model", draft-
-ietf-ldup-infomod-01.txt
+7. Acknowledgements 
 
-[LDAPv3] S. Kille, M. Wahl, and T. Howes, "Lightweight Directory
-Access Protocol (v3)", RFC 2251, December 1997
+The use of subEntry object class to store Replica and 
+Replication Agreement information is due primarily to the 
+lucid explanation by Mark Wahl, Innosoft, of how they could 
+be used and extended. 
+ 
+The IETF takes no position regarding the validity or scope 
+of any intellectual property or other rights that might be 
+claimed to pertain to the implementation or use of the 
+technology described in this document or the extent to 
+which any license under such rights might or might not be 
+available; neither does it represent that it has made any 
+effort to identify any such rights. Information on the 
+IETF's procedures with respect to rights in standards-track 
+and standards-related documentation can be found in BCP-11. 
+Copies of claims of rights made available for publication 
+and any assurances of licenses to be made available, or the 
+result of an attempt made to obtain a general license or 
+permission for the use of such proprietary rights by 
+implementors or users of this specification can be obtained 
+from the IETF Secretariat. 
+ 
 
-[X.501] ITU-T Rec. X.501, "The Directory: Models", 1993
 
+Reed .                                                       [Page 4] 
+                       Expires January 13, 2001 
+ 
 
 
-6. Copyright Notice
+INTERNET-DRAFT                                           13 July 2000 
+                   LDAP Subentry Schema 
 
-Copyright (C) The Internet Society (1999). All Rights Reserved.
+The IETF invites any interested party to bring to its 
+attention any copyrights, patents or patent applications, 
+or other proprietary rights which may cover technology that 
+may be required to practice this standard. Please address 
+the information to the IETF Executive Director. 
 
-This document and translations of it may be copied and furnished to
-others, and derivative works that comment on or otherwise explain it
-or assist in its implementation may be prepared, copied, published and
-distributed, in whole or in part, without restriction of any kind,
-provided that the above copyright notice and this paragraph are
-included on all such copies and derivative works. However, this
-document itself may not be modified in any way, such as by removing
-the copyright notice or references to the Internet Society or other
-Internet organizations, except as needed for the purpose of developing
-Internet standards in which case the procedures for copyrights defined
-in the Internet Standards process must be followed, or as required to
-translate it into languages other than English.
 
-Reed                                                         [Page 3]
-                      Expires February 29, 2000
+8. Author's Address 
 
+     Edwards E. Reed 
+     Reed-Matthews, Inc. 
+     1064 E 140 North 
+     Lindon, UT  84042 
+     USA 
+     E-mail: eer@oncalldba.com  
+      
+     LDUP Mailing List: ietf-ldup@imc.org  
+     LDAPEXT Mailing List: ietf-ldapext@netscape.com 
 
-INTERNET-DRAFT                                         29 August 1999
-                         LDAP Subentry Schema
 
 
-The limited permissions granted above are perpetual and will not be
-revoked by the Internet Society or its successors or assigns.
 
-This document and the information contained herein is provided on an
-"AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
-TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN
-WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
-MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE."
 
 
-7. Acknowledgements
 
-The use of subEntry object class to store Replica and Replication
-Agreement information is due primarily to the lucid explanation by
-Mark Wahl, Innosoft, of how they could be used and extended.
 
-The IETF takes no position regarding the validity or scope of any
-intellectual property or other rights that might be claimed to pertain
-to the implementation or use of the technology described in this
-document or the extent to which any license under such rights might or
-might not be available; neither does it represent that it has made any
-effort to identify any such rights. Information on the IETF's
-procedures with respect to rights in standards-track and standards-
-related documentation can be found in BCP-11. Copies of claims of
-rights made available for publication and any assurances of licenses
-to be made available, or the result of an attempt made to obtain a
-general license or permission for the use of such proprietary rights
-by implementors or users of this specification can be obtained from
-the IETF Secretariat.
 
-The IETF invites any interested party to bring to its attention any
-copyrights, patents or patent applications, or other proprietary
-rights which may cover technology that may be required to practice
-this standard. Please address the information to the IETF Executive
-Director.
 
 
-8. Author's Address
 
-     Edwards E. Reed
-     Novell, Inc.
-     122 E 1700 S
-     Provo, UT   84606
-     USA
-     E-mail: Ed_Reed@Novell.com
 
 
-Reed                                                         [Page 4]
-                      Expires February 29, 2000
 
 
-INTERNET-DRAFT                                         29 August 1999
-                         LDAP Subentry Schema
 
-     LDUP Mailing List: ietf-ldup@imc.org
 
 
 
@@ -238,39 +281,6 @@ INTERNET-DRAFT                                         29 August 1999
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Reed                                                         [Page 5]
-                      Expires February 29, 2000
+Reed .                                                       [Page 5] 
+                       Expires January 13, 2001 
+ 

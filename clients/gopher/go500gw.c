@@ -176,11 +176,12 @@ main (int  argc, char **argv )
 #ifdef GO500GW_HOSTNAME
 	strcpy( myhost, GO500GW_HOSTNAME );
 #else
-	if ( myhost[0] == '\0' && gethostname( myhost, sizeof(myhost) )
+	if ( myhost[0] == '\0' && gethostname( myhost, sizeof(myhost)-1 )
 	    == -1 ) {
 		perror( "gethostname" );
 		exit( EXIT_FAILURE );
 	}
+	myhost[sizeof(myhost)-1] = '\0';
 #endif
 
 	/* detach if stderr is redirected or no debugging */
@@ -236,7 +237,7 @@ main (int  argc, char **argv )
 			}
 
 #ifdef LDAP_PROCTITLE
-			setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
+			setproctitle( "%s", hp == NULL ? inet_ntoa( from.sin_addr ) :
 			    hp->h_name );
 #endif
 		}
@@ -370,7 +371,7 @@ wait4child( int sig )
 		;	/* NULL */
 #endif
 
-	(void) SIGNAL( SIGCHLD, wait4child );
+	(void) SIGNAL_REINSTALL ( SIGCHLD, wait4child );
 }
 
 static void

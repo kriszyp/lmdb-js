@@ -23,7 +23,7 @@ rm -f $DBDIR/[!C]*
 rm -f $REPLDIR/[!C]*
 
 echo "Running slapadd to build slapd database..."
-$LDIF2LDBM -f $CONF -l $LDIF
+$SLAPADD -f $CONF -l $LDIF
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
@@ -113,7 +113,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-$CMP $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT > $CMPOUT
 
 if test $? != 0 ; then
 	echo "Comparison failed"

@@ -370,7 +370,7 @@ ldap_build_filter(
 				    *f++ = ' ';
 				}
 				slen = strlen( valwords[ i ] );
-				SAFEMEMCPY( f, valwords[ i ], slen );
+				AC_MEMCPY( f, valwords[ i ], slen );
 				f += slen;
 			    }
 			}
@@ -379,17 +379,17 @@ ldap_build_filter(
 			if ( wordcount > 0 ) {
 			    wordnum = wordcount - 1;
 			    slen = strlen( valwords[ wordnum ] );
-			    SAFEMEMCPY( f, valwords[ wordnum ], slen );
+			    AC_MEMCPY( f, valwords[ wordnum ], slen );
 			    f += slen;
 			}
 		    } else if ( value != NULL ) {
 			slen = strlen( value );
-			SAFEMEMCPY( f, value, slen );
+			AC_MEMCPY( f, value, slen );
 			f += slen;
 		    }
 		} else if ( *p == 'a' && attr != NULL ) {
 		    slen = strlen( attr );
-		    SAFEMEMCPY( f, attr, slen );
+		    AC_MEMCPY( f, attr, slen );
 		    f += slen;
 		} else {
 		    *f++ = *p;

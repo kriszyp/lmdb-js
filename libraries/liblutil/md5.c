@@ -110,10 +110,10 @@ lutil_MD5Update(
 
 		t = 64-t;
 		if (len < t) {
-			memcpy(p, buf, len);
+			AC_MEMCPY(p, buf, len);
 			return;
 		}
-		memcpy(p, buf, t);
+		AC_MEMCPY(p, buf, t);
 		lutil_MD5Transform(ctx->buf, ctx->in);
 		buf += t;
 		len -= t;
@@ -122,7 +122,7 @@ lutil_MD5Update(
 	/* Process data in 64-byte chunks */
 
 	while (len >= 64) {
-		memcpy(ctx->in, buf, 64);
+		AC_MEMCPY(ctx->in, buf, 64);
 		lutil_MD5Transform(ctx->buf, ctx->in);
 		buf += 64;
 		len -= 64;
@@ -130,7 +130,7 @@ lutil_MD5Update(
 
 	/* Handle any remaining bytes of data. */
 
-	memcpy(ctx->in, buf, len);
+	AC_MEMCPY(ctx->in, buf, len);
 }
 
 /*

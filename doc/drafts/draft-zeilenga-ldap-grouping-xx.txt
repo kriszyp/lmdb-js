@@ -1,0 +1,507 @@
+
+
+
+
+
+
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Standard Track                   OpenLDAP Foundation
+Expires: 4 January 2001                             4 July 2000
+
+
+                  LDAPv3: Grouping of Related Operations
+                  <draft-zeilenga-ldap-grouping-00.txt>
+
+
+Status of Memo
+
+  This document is an Internet-Draft and is in full conformance with all
+  provisions of Section 10 of RFC2026.
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as a Standard Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extension Working Group
+  mailing list <ietf-ldapext@netscape.com>.  Please send editorial
+  comments directly to the author <Kurt@OpenLDAP.org>.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups.  Note that other
+  groups may also distribute working documents as Internet-Drafts.
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time.  It is inappropriate to use Internet-Drafts as reference
+  material or to cite them other than as ``work in progress.''
+
+  The list of current Internet-Drafts can be accessed at
+  http://www.ietf.org/ietf/1id-abstracts.txt The list of Internet-Draft
+  Shadow Directories can be accessed at http://www.ietf.org/shadow.html.
+
+  Copyright 2000, The Internet Society.  All Rights Reserved.
+
+  Please see the Copyright section near the end of this document for
+  more information.
+
+
+1. Abstract
+
+  This document provides a general mechanisms for grouping related LDAP
+  operations.  Grouping of operations may be used to support
+  replication, proxies, and higher level operations such as
+  transactions.  This document describes a set of LDAP [RFC2251]
+  extended operations and other protocol and schema elements to support
+  grouping of related operations.
+
+
+
+
+Zeilenga                                                        [Page 1]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+2. Overview
+
+  This document provides a mechanism to allow clients to group
+  operations.
+
+  A group of operations is defined as a set of operations upon a common
+  session identified by a unique cookie.  All requests which are
+  initiated with the same cookie belong to same grouping.  The cookie is
+  obtained using the create group operation and is normally valid until
+  the end group operation is issued.  A group may be ended by a server
+  prematurely as noted described below.
+
+  Operations regardless of their grouping (or lack of grouping) may be
+  intermixed.  Groups may be nested.
+
+  Each group is of a particular type.  This type defines the semantics
+  of the group and is specified when the group is created.
+
+  The key words "SHALL", "SHALL NOT", "MUST", "MUST NOT", "SHOULD",
+  "SHOULD NOT", "MAY" and "MAY NOT" used in this document are to be
+  interpreted as described in [RFC2119].
+
+
+3. Protocol Elements
+
+  This document describes two extended operations, one unsolicited
+  notification, and one control.  Extended operations and controls are
+  described by LDAP [RFC2251] as follows:
+
+    ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
+      requestName    [0] LDAPOID,
+      requestValue   [1] OCTET STRING OPTIONAL
+    }
+
+    ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+      COMPONENTS of LDAPResult,
+      responseName   [10] LDAPOID OPTIONAL,
+      response       [11] OCTET STRING OPTIONAL
+    }
+
+    Control ::= SEQUENCE {
+      controlType    LDAPOID,
+      criticality    BOOLEAN DEFAULT FALSE,
+      controlValue   OCTET STRING OPTIONAL
+    }
+
+
+  Editor's Note:
+
+
+
+Zeilenga                                                        [Page 2]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+    OID which appear in this document are fictious.  Actual OIDs will be
+    assigned before this document is progressed.
+
+3.1 Common Protocol Elements
+
+    groupCookie :== OCTET STRING
+
+  A groupCookie is an arbitrary octet string uniquely identify a
+  grouping of related operations within the session.
+
+  A groupCookie is a notational convenience.
+
+
+
+3.2 createGrouping Operation
+
+  The createGrouping extended operation is used to create or start a
+  grouping of related operations.  The operation consists of the
+  createGroupingRequest and the createGroupingResponse.  The OID
+  createGroupingOID identifies this operation and SHOULD be listed as a
+  value of supportedExtensions in the root DSE of servers which support
+  this operation.
+
+    createGroupingOID ::= "1.1.1"
+
+
+3.2.1 createGroupingRequest
+
+  The client initiates this operation by sending a
+  createGroupingRequest.  This request is an ExtendedRequest where the
+  requestName is the value createGroupOID and requestValue is BER
+  encoded createGroupingRequestValue
+
+    createGroupingRequestValue ::= SEQUENCE {
+      createGroupType     [0] LDAPOID,
+      createGroupValue    [1] OCTET STRING OPTIONAL
+    }
+
+  where createGroupType is an OID that describes the specific type of
+  grouping and createGroupValue contains a type specific payload.
+
+
+3.2.1 createGroupingResponse
+
+  The createGroupingResponse is sent in response to a
+  createGroupingRequest.  This response is an ExtendedResponse where the
+  responseName MUST be the value of the requestName provided in request
+  and the response is a BER encoded createGroupingResponseValue.
+
+
+
+Zeilenga                                                        [Page 3]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+    createGroupingResponseValue ::= SEQUENCE {
+      createGroupCookie [0] groupCookie,
+      createGroupValue  [1] OCTET STRING OPTIONAL
+    }
+
+  where createGroupCookie is a cookie uniquely identifying the grouping
+  and createGroupValue is a type specific payload.
+
+
+3.3 endGrouping Operation
+
+  The endGrouping extended operation is used to end or stop a grouping
+  of related operations.  The operation consists of the
+  endGroupingRequest and the endGroupingResponse.  The OID
+  endGroupingOID identifies this operation and SHOULD be listed as a
+  value of supportedExtensions in the root DSE of servers which support
+  this operation.
+
+    endGroupingOID ::= "1.1.2"
+
+
+3.3.1 endGroupingRequest
+
+  The client initiates this operation by sending an endGroupingRequest.
+  This request is an ExtendedRequest where the requestName is the value
+  endGroupOID and requestValue is BER encoded endGroupingRequestValue
+
+    endGroupingRequestValue ::= SEQUENCE {
+      endGroupCookie  [0] groupCookie,
+      groupValue [1] OCTET STRING OPTIONAL
+    }
+
+  where endGroupCookie is an cookie identifying the grouping and
+  groupValue contains a type specific payload.
+
+
+3.3.2 endGroupingResponse
+
+  The endGroupingResponse is sent in response to a endGroupingRequest.
+  This response is an ExtendedResponse where the responseName MUST be
+  the value of the requestName provided in request and the response is a
+  BER encoded endGroupingResponseValue
+
+    endGroupingResponseValue ::= SEQUENCE {
+      groupValue  [1] OCTET STRING OPTIONAL
+    }
+
+  where groupValue is a type specific payload.
+
+
+
+Zeilenga                                                        [Page 4]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+3.4 endGroupingNotice
+
+  The endGroupingNotice is an LDAP unsolicited notification.  The
+  notification may be sent to the client to end a grouping which the
+  server is unable or unwilling to continue to process.  The notice is
+  an extendedResponse where the responseName is the OID
+  endGroupingNoticeOID and the response is a BER encoded
+  endGroupingNoticeValue
+
+    endGroupingNoticeOID ::= "1.1.3"
+
+    endGroupingNoticeValue ::= SEQUENCE {
+      endGroupingCookie [0] groupCookie,
+      groupValue        [1] OCTET STRING OPTIONAL
+    }
+
+  where endGroupingCookie is a cookie uniquely identifying the grouping
+  and groupingValue contains a type specific payload.
+
+
+3.5 groupingControl
+
+  The groupingControl is used to identify requests and responses as
+  belonging to grouping of operations.  The groupingControl is a Control
+  where the controlType is the OID groupingControlOID and the
+  criticalValue is a BER encoded groupingControlValue
+
+    groupingControlOID ::= "1.1.4"
+
+    groupingControlValue ::= SEQUENCE {
+      groupingCookie   [0] groupCookie,
+      groupValue       [1] OCTET STRING OPTIONAL
+    }
+
+  where groupingCookie is a cookie uniquely identifying the grouping,
+  the critical is TRUE, and groupingValue contains a type specific
+  payload.
+
+  The value groupingControlOID SHOULD be listed as a value of
+  supportedControls in the root DSE by servers which support this
+  control.
+
+  The control MAY be present on add, compare, delete, moddn, modify, and
+  search requests and responses.  The control SHALL NOT be present on a
+  abandon, bind, unbind.  The control SHALL NOT be present on any
+  extended operation which affects the behavior of the session such as
+  the Start TLS [RFC2830] operation.  The control SHALL NOT be present
+  if the operation includes any control which likewise causes the
+
+
+
+Zeilenga                                                        [Page 5]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+  operation to affects the behavior of the session.
+
+  The control SHALL NOT appear multiple times in the same LDAP PDU and.
+  If multiple occurrences of the control are detected, the PDU MUST be
+  treated as a protocol error.
+
+4. Schema Elements
+
+4.1. supportedGroupingTypes
+
+  Servers SHOULD publish grouping types they support listing their OID
+  as values of the supportedGrouping attribute type in the root DSE.
+  The supportedGrouping attribute type is defined as:
+
+    ( 1.1.5 NAME 'supportedGroupingTypes'
+      DESC 'supported types of groupings of operations'
+      EQUALITY objectIdentifierMatch
+      SYNTAX ObjectIdentifierSyntax )
+
+
+5. Operational Semantics
+
+  This section needs work.
+
+
+5.1 Grouping Operations
+
+
+5.1.1 createGrouping
+
+  To group related operations, the client MUST request a groupCookie
+  from the server by sending a createGroupingRequest as described in
+  3.2.1.  The client SHALL provide type specific payload in
+  createGroupValue if so required by the grouping type.
+
+  The server SHALL respond with a createGroupingResponse as described in
+  3.2.2.  If the server is willing and able to create the grouping as
+  requested (and per type requirements), it SHALL respond with success,
+  provide a session-unique groupCookie and, if appropriate, a type
+  specific payload.  Otherwise the server SHALL respond with a non-
+  successful response and provide no groupCookie, but MAY, if
+  appropriate, provide a type specific payload.
+
+
+5.1.2 endGrouping
+
+  When the client wishes to end the grouping, the client SHALL send a
+  endGroupingRequest as described in 3.3.1.  The client SHALL provide
+
+
+
+Zeilenga                                                        [Page 6]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+  the groupCookie of the grouping to be ended and MAY provided a type
+  specific payload.
+
+  The server SHALL respond with an endGroupingResponse as described in
+  3.3.2.
+
+
+5.1.3 endGroupNotice
+
+  The server MAY end a group without solicitation for any reason but
+  MUST send a endGrouping Notice, as described in 3.4, indicating this
+  action.  The server SHALL provide the groupCookie of the group it
+  terminated and MAY provide a type specific payload.  The notice SHALL
+  have a non-success resultCode.
+
+
+5.1.4 grouped operations
+
+  Operations with a group are carry a groupingControl as described in
+  3.5.
+
+  Group type specifications MAY restrict the types and/or number of
+  operations which may be related.  Servers MAY also place restrictions
+  upon groupings.  Clients SHOULD NOT assume arbitrary support for
+  grouping.
+
+
+5.1.5 nested groupings
+
+  Groups of the same or different types may be nested.  A nested group
+  is instantiated by providing a groupingControl containing the parent
+  group with the createGroupingRequest.
+
+  Group type specifications MAY restrict the types of groupings which
+  may be nested.  Servers MAY also place restrictions upon nesting.
+  Clients SHOULD NOT assume arbitrary support for nesting.
+
+
+5.3 Other Operations
+
+  Upon issuing of any grouping operation, semantics of non-grouping
+  operations listed is modified as described below.
+
+5.3.1 bind
+
+  The client SHOULD end all outstanding groupings before issuing a bind
+  request.
+
+
+
+
+Zeilenga                                                        [Page 7]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+  The bind operation MUST, in addition to the behavior described in RFC
+  2251, must abandon all outstanding groups.
+
+
+5.3.2 unbind
+
+  The unbind operation MUST, in addition to the behavior described in
+  RFC 2251, must abandon all outstanding groups.
+
+
+5.3.3 Start TLS
+
+  The client SHALL end all outstanding groupings before issuing a Start
+  TLS request.
+
+  The Start TLS operation MUST, in addition to the behavior described in
+  RFC 2830, return operationsError if there are any outstanding
+  groupings.
+
+
+7. Security Considerations
+
+  This mechanism may be used to support complex groupings of related
+  operations for arbitrary purposes.  This document places no
+  restrictions on how the grouped operations relate to each other.
+
+  It is conceived that different groups of operations may have different
+  authorization and/or access controls associated with them (when used
+  to multiplex proxied directory sessions).  Authors of specifications
+  for such groupings take special care in addressing security issues.
+
+  It is conceived that different groups of operations may form complex
+  super-operations such as transactions.  Authors of specifications for
+  such groupings should take special care to address denial of service
+  issues.
+
+
+8. References
+
+  [RFC2119] S. Bradner, "Key Words for use in RFCs to Indicate
+            Requirement Levels", Harvard University, RFC 2119, March
+            1997.
+
+  [RFC2251] M. Wahl, S. Kille, T. Howes, "Lightweight Directory Access
+            Protocol (v3)", RFC 2251, December 1997.
+
+
+9. Acknowledgments
+
+
+
+Zeilenga                                                        [Page 8]
+
+INTERNET-DRAFT       draft-zeilenga-ldap-grouping-00         4 July 2000
+
+
+  The author gratefully acknowledge the contributions of the IETF LDUP
+  and LDAPext working group.
+
+
+10. Additional Information
+
+  Discussions regarding these suggestions may directed to the author:
+
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+  <Kurt@OpenLDAP.org>
+
+  or the LDAPext Working Group mailing list:
+
+  <ietf-ldapext@netscape.com>
+
+
+Copyright 2000, The Internet Society.  All Rights Reserved.
+
+  This document and translations of it may be copied and furnished
+  to others, and derivative works that comment on or otherwise explain
+  it or assist in its implementation may be prepared, copied, published
+  and distributed, in whole or in part, without restriction of any
+  kind, provided that the above copyright notice and this paragraph
+  are included on all such copies and derivative works.  However,
+  this document itself may not be modified in any way, such as by
+  removing the copyright notice or references to the Internet Society
+  or other Internet organizations, except as needed for the  purpose
+  of developing Internet standards in which case the procedures for
+  copyrights defined in the Internet Standards process must be
+  followed, or as required to translate it into languages other than
+  English.
+
+  The limited permissions granted above are perpetual and will not
+  be revoked by the Internet Society or its successors or assigns.
+
+  This document and the information contained herein is provided on
+  an "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE
+  INTERNET ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS
+  OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE
+  OF THE INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY
+  IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR
+  PURPOSE.
+
+
+
+
+
+
+
+
+Zeilenga                                                        [Page 9]
+

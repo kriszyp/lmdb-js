@@ -26,8 +26,10 @@ struct ldapoptions ldap_int_global_options =
 #define ATTR_INT	2
 #define ATTR_KV		3
 #define ATTR_STRING	4
-#define ATTR_TLS	5
-#define ATTR_URIS	6
+#define ATTR_URIS	5
+
+#define ATTR_SASL	6
+#define ATTR_TLS	7
 
 struct ol_keyvalue {
 	const char *		key;
@@ -59,26 +61,35 @@ static const struct ol_attribute {
 		offsetof(struct ldapoptions, ldo_defbinddn)},
 	{0, ATTR_STRING,	"BASE",			NULL,
 		offsetof(struct ldapoptions, ldo_defbase)},
-	{0, ATTR_INT,		"PORT",			NULL,
+	{0, ATTR_INT,		"PORT",			NULL,		/* deprecated */
 		offsetof(struct ldapoptions, ldo_defport)},
-	/* **** keep this around for backward compatibility */
-	{0, ATTR_URIS,		"HOST",			NULL,	1},
-	/* **** */
-	{0, ATTR_URIS,		"URI",			NULL,	0},
+	{0, ATTR_URIS,		"HOST",			NULL,	1},	/* deprecated */
+	{0, ATTR_URIS,		"URI",			NULL,	0}, /* replaces HOST/URI */
 	{0, ATTR_BOOL,		"REFERRALS",	NULL,	LDAP_BOOL_REFERRALS},
 	{0, ATTR_BOOL,		"RESTART",		NULL,	LDAP_BOOL_RESTART},
+
+#ifdef HAVE_CYRUS_SASL
+	{1, ATTR_STRING,	"SASL_MECH",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_mech)},
+	{1, ATTR_STRING,	"SASL_REALM",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_realm)},
+	{1, ATTR_STRING,	"SASL_AUTHCID",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_authcid)},
+	{1, ATTR_STRING,	"SASL_AUTHZID",		NULL,
+		offsetof(struct ldapoptions, ldo_def_sasl_authzid)},
+	{0, ATTR_SASL,		"SASL_SECPROPS",	NULL,	LDAP_OPT_X_SASL_SECPROPS},
+#endif
+
+#ifdef HAVE_TLS
   	{0, ATTR_TLS,		"TLS",			NULL,	LDAP_OPT_X_TLS},
-	{0, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
-	{0, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
+	{1, ATTR_TLS,		"TLS_CERT",		NULL,	LDAP_OPT_X_TLS_CERTFILE},
+	{1, ATTR_TLS,		"TLS_KEY",		NULL,	LDAP_OPT_X_TLS_KEYFILE},
   	{0, ATTR_TLS,		"TLS_CACERT",	NULL,	LDAP_OPT_X_TLS_CACERTFILE},
   	{0, ATTR_TLS,		"TLS_CACERTDIR",NULL,	LDAP_OPT_X_TLS_CACERTDIR},
-  	{0, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
-#ifdef HAVE_CYRUS_SASL
-	{0, ATTR_INT,		"SASL_MINSSF",	NULL,
-		offsetof(struct ldapoptions, ldo_sasl_minssf)},
-	{0, ATTR_INT,		"SASL_MAXSSF",	NULL,
-		offsetof(struct ldapoptions, ldo_sasl_maxssf)},
+  	{1, ATTR_TLS,		"TLS_REQCERT",	NULL,	LDAP_OPT_X_TLS_REQUIRE_CERT},
+	{1, ATTR_TLS,		"TLS_RANDFILE",	NULL,	LDAP_OPT_X_TLS_RANDOM_FILE},
 #endif
+
 	{0, ATTR_NONE,		NULL,		NULL,	0}
 };
 
@@ -200,11 +211,6 @@ static void openldap_ldap_init_w_conf(
 				if (* (char**) p != NULL) LDAP_FREE(* (char**) p);
 				* (char**) p = LDAP_STRDUP(opt);
 				break;
-			case ATTR_TLS:
-#ifdef HAVE_TLS
-			   	ldap_pvt_tls_config( gopts, attrs[i].offset, opt );
-#endif
-				break;
 			case ATTR_URIS:
 				if (attrs[i].offset == 0) {
 					ldap_set_option( NULL, LDAP_OPT_URI, opt );
@@ -212,7 +218,18 @@ static void openldap_ldap_init_w_conf(
 					ldap_set_option( NULL, LDAP_OPT_HOST_NAME, opt );
 				}
 				break;
+			case ATTR_SASL:
+#ifdef HAVE_CYRUS_SASL
+			   	ldap_int_sasl_config( gopts, attrs[i].offset, opt );
+#endif
+				break;
+			case ATTR_TLS:
+#ifdef HAVE_TLS
+			   	ldap_int_tls_config( gopts, attrs[i].offset, opt );
+#endif
+				break;
 			}
+
 			break;
 		}
 	}
@@ -334,11 +351,6 @@ static void openldap_ldap_init_w_env(
 				* (char**) p = LDAP_STRDUP(value);
 			}
 			break;
-		case ATTR_TLS:
-#ifdef HAVE_TLS
-		   	ldap_pvt_tls_config( gopts, attrs[i].offset, value );
-#endif			 	
-		   	break;
 		case ATTR_URIS:
 			if (attrs[i].offset == 0) {
 				ldap_set_option( NULL, LDAP_OPT_URI, value );
@@ -346,6 +358,16 @@ static void openldap_ldap_init_w_env(
 				ldap_set_option( NULL, LDAP_OPT_HOST_NAME, value );
 			}
 			break;
+		case ATTR_SASL:
+#ifdef HAVE_CYRUS_SASL
+		   	ldap_int_sasl_config( gopts, attrs[i].offset, value );
+#endif			 	
+		   	break;
+		case ATTR_TLS:
+#ifdef HAVE_TLS
+		   	ldap_int_tls_config( gopts, attrs[i].offset, value );
+#endif			 	
+		   	break;
 		}
 	}
 }
@@ -381,12 +403,21 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
 
 	LDAP_BOOL_SET(gopts, LDAP_BOOL_REFERRALS);
 
+#ifdef HAVE_CYRUS_SASL
+	gopts->ldo_def_sasl_mech = NULL;
+	gopts->ldo_def_sasl_realm = NULL;
+	gopts->ldo_def_sasl_authcid = NULL;
+	gopts->ldo_def_sasl_authzid = NULL;
+
+	memset( &gopts->ldo_sasl_secprops, '\0', sizeof(gopts->ldo_sasl_secprops) );
+
+	gopts->ldo_sasl_secprops.max_ssf = INT_MAX;
+	gopts->ldo_sasl_secprops.maxbufsize = 65536;
+	gopts->ldo_sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
+#endif
+
 #ifdef HAVE_TLS
    	gopts->ldo_tls_ctx = NULL;
-#endif
-#ifdef HAVE_CYRUS_SASL
-	gopts->ldo_sasl_minssf = 0;
-	gopts->ldo_sasl_maxssf = INT_MAX;
 #endif
 
 	gopts->ldo_valid = LDAP_INITIALIZED;
@@ -394,11 +425,27 @@ void ldap_int_initialize_global_options( struct ldapoptions *gopts, int *dbglvl 
    	return;
 }
 
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
+	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+char * ldap_int_hostname = "localhost";
+#endif
+
 void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 {
 	if ( gopts->ldo_valid == LDAP_INITIALIZED ) {
 		return;
 	}
+
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) \
+	|| defined(HAVE_TLS) || defined(HAVE_CYRUS_SASL)
+	{
+		char hostbuf[MAXHOSTNAMELEN+1];
+		if( gethostname( hostbuf, MAXHOSTNAMELEN ) == 0 ) {
+			hostbuf[MAXHOSTNAMELEN] = '\0';
+			ldap_int_hostname = hostbuf;
+		}
+	}
+#endif
 
 	ldap_int_utils_init();
 
@@ -406,9 +453,7 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
    	ldap_pvt_tls_init();
 #endif
 
-#ifdef HAVE_CYRUS_SASL
-	ldap_pvt_sasl_init();
-#endif
+	ldap_int_sasl_init();
 
 	if ( ldap_int_tblsize == 0 )
 		ldap_int_ip_init();
@@ -418,6 +463,21 @@ void ldap_int_initialize( struct ldapoptions *gopts, int *dbglvl )
 	if( getenv("LDAPNOINIT") != NULL ) {
 		return;
 	}
+
+#ifdef HAVE_CYRUS_SASL
+	{
+		/* set authentication identity to current user name */
+		char *user = getenv("USER");
+
+		if( user == NULL ) user = getenv("USERNAME");
+		if( user == NULL ) user = getenv("LOGNAME");
+
+		if( user != NULL ) {
+			/* this value is leaked, need at_exit() handler */
+			gopts->ldo_def_sasl_authcid = LDAP_STRDUP( user );
+		}
+    }
+#endif
 
 	openldap_ldap_init_w_sysconf(LDAP_CONF_FILE);
 	openldap_ldap_init_w_userconf(LDAP_USERRC_FILE);

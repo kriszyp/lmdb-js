@@ -109,13 +109,14 @@ mr_insert(
 
 int
 mr_add(
-    LDAP_MATCHING_RULE		*mr,
+    LDAPMatchingRule		*mr,
 	unsigned usage,
 	slap_mr_convert_func *convert,
 	slap_mr_normalize_func *normalize,
     slap_mr_match_func	*match,
 	slap_mr_indexer_func *indexer,
     slap_mr_filter_func	*filter,
+	MatchingRule	*amr,
     const char		**err
 )
 {
@@ -124,7 +125,7 @@ mr_add(
 	int		code;
 
 	smr = (MatchingRule *) ch_calloc( 1, sizeof(MatchingRule) );
-	memcpy( &smr->smr_mrule, mr, sizeof(LDAP_MATCHING_RULE));
+	AC_MEMCPY( &smr->smr_mrule, mr, sizeof(LDAPMatchingRule));
 
 	smr->smr_usage = usage;
 	smr->smr_convert = convert;
@@ -132,6 +133,7 @@ mr_add(
 	smr->smr_match = match;
 	smr->smr_indexer = indexer;
 	smr->smr_filter = filter;
+	smr->smr_associated = amr;
 
 	if ( smr->smr_syntax_oid ) {
 		if ( (syn = syn_find(smr->smr_syntax_oid)) ) {
@@ -157,9 +159,11 @@ register_matching_rule(
 	slap_mr_normalize_func *normalize,
 	slap_mr_match_func *match,
 	slap_mr_indexer_func *indexer,
-	slap_mr_filter_func *filter )
+	slap_mr_filter_func *filter,
+	const char* associated )
 {
-	LDAP_MATCHING_RULE *mr;
+	LDAPMatchingRule *mr;
+	MatchingRule *amr = NULL;
 	int		code;
 	const char	*err;
 
@@ -167,6 +171,22 @@ register_matching_rule(
 		Debug( LDAP_DEBUG_ANY, "register_matching_rule: not usable %s\n",
 		    desc, 0, 0 );
 		return -1;
+	}
+
+	if( associated != NULL ) {
+		amr = mr_find( associated );
+
+#if 0
+		/* ignore for now */
+
+		if( amr == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "register_matching_rule: could not locate "
+				"associated matching rule %s for %s\n",
+				associated, desc, 0 );
+			return -1;
+		}
+#endif
+
 	}
 
 	mr = ldap_str2matchingrule( desc, &code, &err, LDAP_SCHEMA_ALLOW_ALL);
@@ -177,8 +197,10 @@ register_matching_rule(
 	}
 
 	code = mr_add( mr, usage,
-		convert, normalize, match, indexer, filter,
+		convert, normalize, match, indexer, filter, amr,
 		&err );
+
+	ldap_memfree( mr );
 
 	if ( code ) {
 		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",

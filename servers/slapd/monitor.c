@@ -49,7 +49,6 @@ monitor_info(
 	vals[1] = NULL;
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
-	/* initialize reader/writer lock */
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
 	e->e_ndn = ch_strdup(SLAPD_MONITOR_DN);

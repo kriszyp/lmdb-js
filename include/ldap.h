@@ -122,6 +122,7 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS			0x6007
 #define LDAP_OPT_X_TLS_PROTOCOL		0x6008
 #define LDAP_OPT_X_TLS_CIPHER_SUITE	0x6009
+#define LDAP_OPT_X_TLS_RANDOM_FILE	0x600a
 
 #define LDAP_OPT_X_TLS_NEVER		0
 #define LDAP_OPT_X_TLS_HARD		1
@@ -130,9 +131,17 @@ LDAP_BEGIN_DECL
 #define LDAP_OPT_X_TLS_TRY		4
 
 /* OpenLDAP SASL options */
-#define LDAP_OPT_X_SASL_MINSSF		0x6100
-#define LDAP_OPT_X_SASL_MAXSSF		0x6101
-#define LDAP_OPT_X_SASL_ACTSSF		0x6102
+#define LDAP_OPT_X_SASL_MECH			0x6100
+#define LDAP_OPT_X_SASL_REALM			0x6101
+#define LDAP_OPT_X_SASL_AUTHCID			0x6102
+#define LDAP_OPT_X_SASL_AUTHZID			0x6103
+#define LDAP_OPT_X_SASL_SSF				0x6104 /* read-only */
+#define LDAP_OPT_X_SASL_SSF_EXTERNAL	0x6105 /* write-only */
+#define LDAP_OPT_X_SASL_SECPROPS		0x6106 /* write-only */
+#define LDAP_OPT_X_SASL_SSF_MIN			0x6107
+#define LDAP_OPT_X_SASL_SSF_MAX			0x6108
+#define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
+
 
 /* on/off values */
 #define LDAP_OPT_ON		((void *) 1)
@@ -192,7 +201,7 @@ typedef struct ldapcontrol {
 /* LDAP Extended Operations */
 #define LDAP_EXOP_START_TLS "1.3.6.1.4.1.1466.20037"
 
-#define LDAP_EXOP_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.666.6.1"
+#define LDAP_EXOP_X_MODIFY_PASSWD "1.3.6.1.4.1.4203.1.11.1"
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID	((ber_tag_t) 0x80U)
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD	((ber_tag_t) 0x81U)
 #define LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW	((ber_tag_t) 0x82U)
@@ -244,9 +253,9 @@ typedef struct ldapcontrol {
 #define LDAP_REQ_MODIFY			((ber_tag_t) 0x66U)	/* application + constructed */
 #define LDAP_REQ_ADD			((ber_tag_t) 0x68U)	/* application + constructed */
 #define LDAP_REQ_DELETE			((ber_tag_t) 0x4aU)	/* application + primitive   */
-#define LDAP_REQ_MODRDN			((ber_tag_t) 0x6cU)	/* application + constructed */
-#define LDAP_REQ_MODDN			LDAP_REQ_MODRDN	
-#define LDAP_REQ_RENAME			LDAP_REQ_MODRDN	
+#define LDAP_REQ_MODDN			((ber_tag_t) 0x6cU)	/* application + constructed */
+#define LDAP_REQ_MODRDN			LDAP_REQ_MODDN	
+#define LDAP_REQ_RENAME			LDAP_REQ_MODDN	
 #define LDAP_REQ_COMPARE		((ber_tag_t) 0x6eU)	/* application + constructed */
 #define LDAP_REQ_ABANDON		((ber_tag_t) 0x50U)	/* application + primitive   */
 #define LDAP_REQ_EXTENDED		((ber_tag_t) 0x77U)	/* application + constructed */
@@ -259,9 +268,9 @@ typedef struct ldapcontrol {
 #define LDAP_RES_MODIFY			((ber_tag_t) 0x67U)	/* application + constructed */
 #define LDAP_RES_ADD			((ber_tag_t) 0x69U)	/* application + constructed */
 #define LDAP_RES_DELETE			((ber_tag_t) 0x6bU)	/* application + constructed */
-#define LDAP_RES_MODRDN			((ber_tag_t) 0x6dU)	/* application + constructed */
-#define LDAP_RES_MODDN			LDAP_RES_MODRDN	/* application + constructed */
-#define LDAP_RES_RENAME			LDAP_RES_MODRDN	/* application + constructed */
+#define LDAP_RES_MODDN			((ber_tag_t) 0x6dU)	/* application + constructed */
+#define LDAP_RES_MODRDN			LDAP_RES_MODDN	/* application + constructed */
+#define LDAP_RES_RENAME			LDAP_RES_MODDN	/* application + constructed */
 #define LDAP_RES_COMPARE		((ber_tag_t) 0x6fU)	/* application + constructed */
 #define LDAP_RES_EXTENDED		((ber_tag_t) 0x78U)	/* V3: application + constructed */
 #define LDAP_RES_EXTENDED_PARTIAL	((ber_tag_t) 0x79U)	/* V3+: application + constructed */
@@ -271,7 +280,8 @@ typedef struct ldapcontrol {
 
 
 /* sasl methods */
-#define LDAP_SASL_SIMPLE			NULL
+#define LDAP_SASL_SIMPLE		((char*)0)
+
 
 /* authentication methods available */
 #define LDAP_AUTH_NONE		((ber_tag_t) 0x00U)	/* no authentication		  */
@@ -559,6 +569,13 @@ ldap_set_rebind_proc LDAP_P((
 /*
  * in controls.c:
  */
+LDAP_F( int ) 
+ldap_create_control LDAP_P(( 
+	const char *requestOID, 
+	BerElement *ber, 
+	int iscritical,
+	LDAPControl **ctrlp ));
+
 LDAP_F( void )
 ldap_control_free LDAP_P((
 	LDAPControl *ctrl ));
@@ -686,16 +703,35 @@ ldap_sasl_bind LDAP_P((
 	LDAPControl		**clientctrls,
 	int				*msgidp ));
 
+/* Interaction flags (should be passed about in a control)
+ *  Automatic (default): use defaults, prompt otherwise
+ *  Interactive: prompt always
+ *  Quiet: never prompt
+ */
+#define LDAP_SASL_AUTOMATIC		0U
+#define LDAP_SASL_INTERACTIVE	1U
+#define LDAP_SASL_QUIET			2U
+
+/*
+ * V3 SASL Interaction Function Callback Prototype
+ *	when using Cyrus SASL, interact is pointer to sasl_interact_t
+ *  should likely passed in a control (and provided controls)
+ */
+typedef int (LDAP_SASL_INTERACT_PROC) LDAP_P((
+	LDAP *ld, unsigned flags, void* defaults, void *interact ));
+
 LDAP_F( int )
-ldap_negotiated_sasl_bind_s LDAP_P((
+ldap_sasl_interactive_bind_s LDAP_P((
 	LDAP *ld,
 	LDAP_CONST char *dn, /* usually NULL */
-	LDAP_CONST char *authenticationId, 
-	LDAP_CONST char *authorizationId, /* usually NULL */
 	LDAP_CONST char *saslMechanism,
-	struct berval *passPhrase,
 	LDAPControl **serverControls,
-	LDAPControl **clientControls ));
+	LDAPControl **clientControls,
+
+	/* should be client controls */
+	unsigned flags,
+	LDAP_SASL_INTERACT_PROC *proc,
+	void *defaults ));
 
 LDAP_F( int )
 ldap_sasl_bind_s LDAP_P((

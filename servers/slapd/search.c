@@ -159,7 +159,7 @@ do_search(
 		Entry *entry = NULL;
 
 		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
-			rc = root_dse_info( &entry, &text );
+			rc = root_dse_info( conn, &entry, &text );
 		}
 
 #if defined( SLAPD_MONITOR_DN )

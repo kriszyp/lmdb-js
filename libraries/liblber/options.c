@@ -124,7 +124,7 @@ ber_set_option(
 			return LBER_OPT_ERROR;
 		}
 
-		memcpy(ber_int_memory_fns, f, sizeof(BerMemoryFunctions));
+		AC_MEMCPY(ber_int_memory_fns, f, sizeof(BerMemoryFunctions));
 
 		ber_int_options.lbo_valid = LBER_INITIALIZED;
 		return LBER_OPT_SUCCESS;

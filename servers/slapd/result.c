@@ -49,7 +49,7 @@ static char *v2ref( struct berval **ref, const char *text )
 	for( i=0; ref[i] != NULL; i++ ) {
 		v2 = ch_realloc( v2, len + ref[i]->bv_len + 1 );
 		v2[len-1] = '\n';
-		memcpy(&v2[len], ref[i]->bv_val, ref[i]->bv_len );
+		AC_MEMCPY(&v2[len], ref[i]->bv_val, ref[i]->bv_len );
 		len += ref[i]->bv_len;
 		if (ref[i]->bv_val[ref[i]->bv_len-1] != '/')
 			++len;
@@ -488,8 +488,8 @@ send_ldap_sasl(
 	ber_tag_t tag;
 	ber_int_t msgid;
 
-	Debug( LDAP_DEBUG_TRACE, "send_ldap_sasl %ld\n",
-		(long) err, NULL, NULL );
+	Debug( LDAP_DEBUG_TRACE, "send_ldap_sasl: err=%ld len=%ld\n",
+		(long) err, cred ? cred->bv_len : -1, NULL );
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;

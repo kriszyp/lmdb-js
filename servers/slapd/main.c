@@ -13,7 +13,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-#include <ac/signal.h>
 #include <ac/errno.h>
 
 #include "slap.h"
@@ -516,7 +515,7 @@ wait4child( int sig )
 #else
     (void) wait( NULL );
 #endif
-    (void) SIGNAL( sig, wait4child );
+    (void) SIGNAL_REINSTALL( sig, wait4child );
     errno = save_errno;
 }
 

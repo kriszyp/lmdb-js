@@ -118,8 +118,8 @@ ldap_create_vlv_control( LDAP *ld,
 	tag = ber_printf(ber, /*{*/ "N}"); 
 	if( tag == LBER_ERROR ) goto exit;
 
-	ld->ld_errno = ldap_int_create_control(
-		LDAP_CONTROL_VLVREQUEST, ber, 1, ctrlp);
+	ld->ld_errno = ldap_create_control(	LDAP_CONTROL_VLVREQUEST,
+		ber, 1, ctrlp);
 
 	ber_free(ber, 1);
 	return(ld->ld_errno);

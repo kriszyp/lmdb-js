@@ -27,9 +27,9 @@ int allow_severity = LOG_INFO;
 int deny_severity = LOG_NOTICE;
 #endif /* TCP Wrappers */
 
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_LOCAL
 #include <sys/stat.h>
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 /* globals */
 time_t starttime;
@@ -41,7 +41,7 @@ typedef union slap_sockaddr {
 #ifdef LDAP_PF_INET6
 	struct sockaddr_in6 sa_in6_addr;
 #endif
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_LOCAL
 	struct sockaddr_un sa_un_addr;
 #endif
 } Sockaddr;
@@ -244,7 +244,7 @@ static Listener * open_listener( const char* url )
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
-#  ifdef LDAP_PF_UNIX
+#  ifdef LDAP_PF_LOCAL
 	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
 			err = getaddrinfo(NULL, LDAPI_SOCK, &hints, &res);
@@ -256,7 +256,7 @@ static Listener * open_listener( const char* url )
 				unlink( lud->lud_host );
 		}
 	} else
-#  endif /* LDAP_PF_UNIX */
+#  endif /* LDAP_PF_LOCAL */
 	{
 		snprintf(serv, sizeof serv, "%d", lud->lud_port);
 		if( lud->lud_host == NULL || lud->lud_host[0] == '\0'
@@ -286,15 +286,15 @@ static Listener * open_listener( const char* url )
 			continue;
 		}
 
-		if ( sai->ai_family != AF_UNIX ) {
+		if ( sai->ai_family != AF_LOCAL ) {
 #else
 
 	if ( ldap_pvt_url_scheme2proto(lud->lud_scheme) == LDAP_PROTO_IPC ) {
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_LOCAL
 		port = 0;
 		(void) memset( (void *)&l.sl_sa.sa_un_addr, '\0', sizeof(l.sl_sa.sa_un_addr) );
 
-		l.sl_sa.sa_un_addr.sun_family = AF_UNIX;
+		l.sl_sa.sa_un_addr.sun_family = AF_LOCAL;
 
 		/* hack: overload the host to be the path */
 		if ( lud->lud_host == NULL || lud->lud_host[0] == '\0' ) {
@@ -321,7 +321,7 @@ static Listener * open_listener( const char* url )
 			url, 0, 0);
 		ldap_free_urldesc( lud );
 		return NULL;
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 	} else {
 
 	port = lud->lud_port;
@@ -348,7 +348,7 @@ static Listener * open_listener( const char* url )
 				return NULL;
 			}
 
-			memcpy( &l.sl_addr.sin_addr, he->h_addr,
+			AC_MEMCPY( &l.sl_addr.sin_addr, he->h_addr,
 			       sizeof( l.sl_addr.sin_addr ) );
 		}
 	}
@@ -375,10 +375,10 @@ static Listener * open_listener( const char* url )
 	}
 #endif
 
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_LOCAL
 	/* for IP sockets only */
 	if ( l.sl_sa.sa_addr.sa_family == AF_INET ) {
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 #endif /* HAVE_GETADDRINFO */
 
 #ifdef SO_REUSEADDR
@@ -419,7 +419,7 @@ static Listener * open_listener( const char* url )
 #endif
 
 #ifdef HAVE_GETADDRINFO
-		} /* sai->ai_family != AF_UNIX */
+		} /* sai->ai_family != AF_LOCAL */
 		if (!bind(l.sl_sd, sai->ai_addr, sai->ai_addrlen))
 			break;
 		err = sock_errno();
@@ -435,8 +435,8 @@ static Listener * open_listener( const char* url )
 	}
 
 	switch ( sai->ai_family ) {
-#  ifdef LDAP_PF_UNIX
-	case AF_UNIX:
+#  ifdef LDAP_PF_LOCAL
+	case AF_LOCAL:
 		if ( chmod( (char *)sai->ai_addr, S_IRWXU ) < 0 ) {
 			int err = sock_errno();
 			Debug( LDAP_DEBUG_ANY, "daemon: fchmod(%ld) failed errno=%d (%s)",
@@ -447,7 +447,7 @@ static Listener * open_listener( const char* url )
 		l.sl_name = ch_malloc( strlen((char *)sai->ai_addr) + sizeof("PATH=") );
 		sprintf( l.sl_name, "PATH=%s", sai->ai_addr );
 		break;
-#  endif /* LDAP_PF_UNIX */
+#  endif /* LDAP_PF_LOCAL */
 
 	case AF_INET: {
 		char addr[INET_ADDRSTRLEN];
@@ -475,14 +475,14 @@ static Listener * open_listener( const char* url )
 		break;
 	}
 #else
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_LOCAL
 	/* close conditional */
 	}
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 	switch ( l.sl_sa.sa_addr.sa_family ) {
-#ifdef LDAP_PF_UNIX
-		case AF_UNIX:
+#ifdef LDAP_PF_LOCAL
+		case AF_LOCAL:
 			rc = bind( l.sl_sd, (struct sockaddr *)&l.sl_sa,
 				sizeof(l.sl_sa.sa_un_addr) );
 			break;
@@ -508,8 +508,8 @@ static Listener * open_listener( const char* url )
 	}
 
 	switch ( l.sl_sa.sa_addr.sa_family ) {
-#ifdef LDAP_PF_UNIX
-		case AF_UNIX:
+#ifdef LDAP_PF_LOCAL
+		case AF_LOCAL:
 			if ( chmod( l.sl_sa.sa_un_addr.sun_path, S_IRWXU ) < 0 ) {
 				int err = sock_errno();
 				Debug( LDAP_DEBUG_ANY,
@@ -523,7 +523,7 @@ static Listener * open_listener( const char* url )
 				+ sizeof("PATH=") );
 			sprintf( l.sl_name, "PATH=%s", l.sl_sa.sa_un_addr.sun_path );
 			break;
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 		case AF_INET:
 			l.sl_name = ch_malloc( sizeof("IP=255.255.255.255:65336") );
@@ -689,7 +689,7 @@ slapd_daemon_task(
 		int ns;
 		int at;
 		ber_socket_t nfds;
-#define SLAPD_EBADF_LIMIT 10
+#define SLAPD_EBADF_LIMIT 16
 		int ebadf = 0;
 
 #define SLAPD_IDLE_CHECK_LIMIT 4
@@ -731,8 +731,8 @@ slapd_daemon_task(
 			}
 		}
 #else
-		memcpy( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
-		memcpy( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
+		AC_MEMCPY( &readfds, &slap_daemon.sd_readers, sizeof(fd_set) );
+		AC_MEMCPY( &writefds, &slap_daemon.sd_writers, sizeof(fd_set) );
 #endif
 		assert(!FD_ISSET(wake_sds[0], &readfds));
 		FD_SET( wake_sds[0], &readfds );
@@ -783,8 +783,9 @@ slapd_daemon_task(
 				int err = sock_errno();
 
 				if( err == EBADF 
-#ifdef HAVE_WINSOCK
-					|| err == WSAENOTSOCK	/* you'd think this would be EBADF */
+#ifdef WSAENOTSOCK
+					/* you'd think this would be EBADF */
+					|| err == WSAENOTSOCK
 #endif
 				) {
 					if (++ebadf < SLAPD_EBADF_LIMIT)
@@ -828,16 +829,18 @@ slapd_daemon_task(
 			ber_int_t s;
 			socklen_t len = sizeof(from);
 			long id;
+			unsigned ssf = 0;
+			char *authid = NULL;
 
 			char	*dnsname;
 			char	*peeraddr;
-#ifdef LDAP_PF_UNIX
+#ifdef LDAP_PF_LOCAL
 			char	peername[MAXPATHLEN + sizeof("PATH=")];
 #elif defined(LDAP_PF_INET6)
 			char	peername[sizeof("IP=ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff 65535")];
 #else
 			char	peername[sizeof("IP=255.255.255.255:65336")];
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 			peername[0] = '\0';
 
@@ -896,11 +899,12 @@ slapd_daemon_task(
 			}
 
 			switch ( from.sa_addr.sa_family ) {
-#  ifdef LDAP_PF_UNIX
-			case AF_UNIX:
+#  ifdef LDAP_PF_LOCAL
+			case AF_LOCAL:
 				sprintf( peername, "PATH=%s", from.sa_un_addr.sun_path );
+				ssf = LDAP_PVT_SASL_LOCAL_SSF;
 				break;
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 
 #  ifdef LDAP_PF_INET6
 			case AF_INET6: {
@@ -955,7 +959,7 @@ slapd_daemon_task(
 				{
 					/* DENY ACCESS */
 					Statslog( LDAP_DEBUG_ANY,
-						"fd=%ld connection from %s (%s) denied.\n",
+						"fd=%ld host access from %s (%s) denied.\n",
 						(long) s,
 						dnsname != NULL ? dnsname : "unknown",
 						peeraddr != NULL ? peeraddr : "unknown",
@@ -966,18 +970,22 @@ slapd_daemon_task(
 #endif /* HAVE_TCPD */
 			}
 
-			if( (id = connection_init(s,
+			id = connection_init(s,
 				slap_listeners[l]->sl_url,
 				dnsname != NULL ? dnsname : "unknown",
 				peername,
 				slap_listeners[l]->sl_name,
 #ifdef HAVE_TLS
-				slap_listeners[l]->sl_is_tls
+				slap_listeners[l]->sl_is_tls,
 #else
-				0
+				0,
 #endif
-				)) < 0 )
-			{
+				ssf,
+				authid );
+
+			if( authid ) ch_free(authid);
+
+			if( id < 0 ) {
 				Debug( LDAP_DEBUG_ANY,
 					"daemon: connection_init(%ld, %s, %s) failed.\n",
 					(long) s,
@@ -1147,11 +1155,11 @@ slapd_daemon_task(
 
 	for ( l = 0; slap_listeners[l] != NULL; l++ ) {
 		if ( slap_listeners[l]->sl_sd != AC_SOCKET_INVALID ) {
-#ifdef LDAP_PF_UNIX
-			if ( slap_listeners[l]->sl_sa.sa_addr.sa_family == AF_UNIX ) {
+#ifdef LDAP_PF_LOCAL
+			if ( slap_listeners[l]->sl_sa.sa_addr.sa_family == AF_LOCAL ) {
 				unlink( slap_listeners[l]->sl_sa.sa_un_addr.sun_path );
 			}
-#endif /* LDAP_PF_UNIX */
+#endif /* LDAP_PF_LOCAL */
 			slapd_close( slap_listeners[l]->sl_sd );
 			break;
 		}
@@ -1198,9 +1206,9 @@ int slapd_daemon( void )
 
 }
 
-#ifdef HAVE_WINSOCK2
 int sockinit(void)
 {
+#if defined( HAVE_WINSOCK2 )
     WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
@@ -1230,40 +1238,22 @@ int sockinit(void)
 	}
 
 	/* The WinSock DLL is acceptable. Proceed. */
+#elif defined( HAVE_WINSOCK )
+	WSADATA wsaData;
+	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
+	    return -1;
+	}
+#endif
 	return 0;
 }
 
 int sockdestroy(void)
 {
+#if defined( HAVE_WINSOCK2 ) || defined( HAVE_WINSOCK )
 	WSACleanup();
-	return 0;
-}
-
-#elif HAVE_WINSOCK
-static int sockinit(void)
-{
-	WSADATA wsaData;
-	if ( WSAStartup( 0x0101, &wsaData ) != 0 ) {
-	    return -1;
-	}
-	return 0;
-}
-static int sockdestroy(void)
-{
-	WSACleanup();
-	return 0;
-}
-
-#else
-static int sockinit(void)
-{
-	return 0;
-}
-static int sockdestroy(void)
-{
-	return 0;
-}
 #endif
+	return 0;
+}
 
 RETSIGTYPE
 slap_sig_shutdown( int sig )
@@ -1287,7 +1277,7 @@ slap_sig_shutdown( int sig )
 	WAKE_LISTENER(1);
 
 	/* reinstall self */
-	(void) SIGNAL( sig, slap_sig_shutdown );
+	(void) SIGNAL_REINSTALL( sig, slap_sig_shutdown );
 }
 
 RETSIGTYPE
@@ -1296,5 +1286,5 @@ slap_sig_wake( int sig )
 	WAKE_LISTENER(1);
 
 	/* reinstall self */
-	(void) SIGNAL( sig, slap_sig_wake );
+	(void) SIGNAL_REINSTALL( sig, slap_sig_wake );
 }

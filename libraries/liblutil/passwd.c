@@ -351,8 +351,8 @@ static struct berval * pw_string(
 		return NULL;
 	}
 
-	memcpy( pw->bv_val, sc->name.bv_val, sc->name.bv_len );
-	memcpy( &pw->bv_val[sc->name.bv_len], passwd->bv_val, passwd->bv_len );
+	AC_MEMCPY( pw->bv_val, sc->name.bv_val, sc->name.bv_len );
+	AC_MEMCPY( &pw->bv_val[sc->name.bv_len], passwd->bv_val, passwd->bv_len );
 
 	pw->bv_val[pw->bv_len] = '\0';
 	return pw;
@@ -380,9 +380,9 @@ static struct berval * pw_string64(
 			return NULL;
 		}
 
-		memcpy( string.bv_val, hash->bv_val,
+		AC_MEMCPY( string.bv_val, hash->bv_val,
 			hash->bv_len );
-		memcpy( &string.bv_val[hash->bv_len], salt->bv_val,
+		AC_MEMCPY( &string.bv_val[hash->bv_len], salt->bv_val,
 			salt->bv_len );
 		string.bv_val[string.bv_len] = '\0';
 
@@ -400,7 +400,7 @@ static struct berval * pw_string64(
 		return NULL;
 	}
 
-	memcpy(b64->bv_val, sc->name.bv_val, sc->name.bv_len);
+	AC_MEMCPY(b64->bv_val, sc->name.bv_val, sc->name.bv_len);
 
 	rc = lutil_b64_ntop(
 		string.bv_val, string.bv_len,
@@ -726,13 +726,15 @@ static int chk_kerberos(
 		}
 
 		{
-			char host[MAXHOSTNAMELEN];
+			char host[MAXHOSTNAMELEN+1];
 
 			if( gethostname( host, MAXHOSTNAMELEN ) != 0 ) {
 				krb5_free_principal( context, client );
 				krb5_free_context( context );
 				return 1;
 			}
+
+			host[MAXHOSTNAMELEN] = '\0';
 
 			ret = krb5_sname_to_principal( context,
 				host, "ldap", KRB5_NT_SRV_HST, &server );

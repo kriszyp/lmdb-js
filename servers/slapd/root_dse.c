@@ -18,13 +18,17 @@
 #include "slap.h"
 
 int
-root_dse_info( Entry **entry, const char **text )
+root_dse_info(
+	Connection *conn,
+	Entry **entry,
+	const char **text )
 {
 	char buf[BUFSIZ];
 	Entry		*e;
 	struct berval	val;
 	struct berval	*vals[2];
 	int		i, j;
+	char ** supportedSASLMechanisms;
 
 	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
 	AttributeDescription *ad_namingContexts = slap_schema.si_ad_namingContexts;
@@ -85,6 +89,8 @@ root_dse_info( Entry **entry, const char **text )
 	}
 
 	/* supportedSASLMechanism */
+	supportedSASLMechanisms = slap_sasl_mechs( conn );
+
 	if( supportedSASLMechanisms != NULL ) {
 		for ( i=0; supportedSASLMechanisms[i] != NULL; i++ ) {
 			val.bv_val = supportedSASLMechanisms[i];

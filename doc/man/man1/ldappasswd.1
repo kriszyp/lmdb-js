@@ -1,4 +1,4 @@
-.TH LDAPPASSWD 1 "20 April 2000" "LDAPPasswd"
+.TH LDAPPASSWD 1 "12 July 2000" "LDAPPasswd"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
@@ -33,11 +33,15 @@ ldappasswd \- change the password of an LDAP entry
 [\c
 .BI \-w \ passwd\fR]
 [\c
-.BR \-E[E] ]
+.BR \-O \ security-properties ]
 [\c
-.BR \-I[I] ]
+.BR \-I ]
+[\c
+.BR \-Q ]
 [\c
 .BI \-U \ username\fR]
+[\c
+.BR \-x ]
 [\c
 .BI \-X \ authzid\fR]
 [\c
@@ -47,15 +51,17 @@ ldappasswd \- change the password of an LDAP entry
 .SH DESCRIPTION
 .B ldappasswd
 is a tool to set the password of an LDAP user.
-It is neither designed nor intended to be a replacement for
-.BR passwd (1)
-and should not be installed as such.
 .LP
 .B ldappasswd
 sets the password of associated with the user.  If the new
 password is not specified on the command line or the user
 doesn't enable prompting, the server will be asked to generate
 a password for the user.
+.LP
+.B ldappasswd
+is neither designed nor intended to be a replacement for
+.BR passwd (1)
+and should not be installed as such.
 .SH OPTIONS
 .TP
 .BI \-A
@@ -67,6 +73,9 @@ Set the old password to \fIoldPasswd\fP.
 .TP
 .B \-C
 Automatically chase referrals.
+.TP
+.B \-x 
+Use simple authentication instead of SASL.
 .TP
 .BI \-D \ binddn
 Use \fIbinddn\fP to bind to the LDAP directory. \fIbinddn\fP should
@@ -107,24 +116,15 @@ This is used instead of specifying the password on the command line.
 .BI \-w \ passwd
 Use \fIpasswd\fP as the password to bind with.
 .TP
-.B \-E[E]
-Requset the use of SASL privacy (encryption). If the server allows it, data
-sent between the client and the server will be encrypted. If the server
-requires the use of encryption and this flag is not specified, the command
-will fail. If you use
-.B \-EE\c
-, the command will fail if the server does not support encryption.
-.B \-E[E]
-implies
-.B \-I[I]
+.BI \-O \ security-properties
+Specify SASL security properties.
 .TP
-.B \-I[I]
-Request the use of SASL integrity checking. It protects data sent between the
-client and the server from being modified along the way, but it does not
-prevent sniffing. If the server requires the use of integrity checking and
-this flag is not specified, the command will fail.If you use
-.B \-II\c
-, the command will fail if the server does not support this function. 
+.B \-I
+Enable SASL Interactive mode.  Always prompt.  Default is to prompt
+only as needed.
+.TP
+.B \-Q
+Enable SASL Quiet mode.  Never prompt.
 .TP
 .BI \-U \ username
 Specify the username for SASL bind. The syntax of the username depends on the
@@ -134,11 +134,9 @@ actual SASL mechanism used.
 Specify the requested authorization ID for SASL bind.
 .I authzid
 must be one of the following formats:
-.B dn:\c
-.I <distinguished name>
+.BI dn: <distinguished name>
 or
-.B u:\c
-.I <username>
+.BI u: <username>\fP.
 .TP
 .BI \-Y \ mech
 Specify the SASL mechanism to be used for authentication. If it's not
@@ -146,10 +144,14 @@ specified, the program will choose the best mechanism the server knows.
 .TP
 .B \-Z[Z]
 Issue StartTLS (Transport Layer Security) extended operation. If you use
-.B \-ZZ\c
-, the command will require the operation to be successful.
+.BR \-ZZ ,
+the command will require the operation to be successful
 .SH SEE ALSO
-.BR ldap_bind (3)
+.BR ldap_sasl_bind (3)
+.BR ldap_extended_operation (3)
+.BR ldap_start_tls (3)
+.SH AUTHOR
+The OpenLDAP Project <http://www.openldap.org/>
 .SH ACKNOWLEDGEMENTS
 .B	OpenLDAP
 is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).

@@ -19,10 +19,6 @@
 #include <ac/time.h>
 #include <ac/param.h>
 
-#ifdef HAVE_CYRUS_SASL
-#include <sasl.h>
-#endif
-
 #include "avl.h"
 
 #ifndef ldap_debug
@@ -141,10 +137,8 @@ LDAP_SLAPD_F (int) slap_debug;
 #define SLAP_INDEX_SUBSTR_DEFAULT ( SLAP_INDEX_SUBSTR \
 	| SLAP_INDEX_SUBSTR_INITIAL | SLAP_INDEX_SUBSTR_FINAL )
 
-#define SLAP_INDEX_SUBSTR_INITIAL_MIN_LEN	2
-#define SLAP_INDEX_SUBSTR_INITIAL_MAX_LEN	4
-#define SLAP_INDEX_SUBSTR_FINAL_MIN_LEN		2
-#define SLAP_INDEX_SUBSTR_FINAL_MAX_LEN		4
+#define SLAP_INDEX_SUBSTR_MINLEN	2
+#define SLAP_INDEX_SUBSTR_MAXLEN	4
 
 #define SLAP_INDEX_FLAGS          0xF000UL
 #define SLAP_INDEX_SUBTYPES       0x1000UL /* use index with subtypes */
@@ -161,6 +155,8 @@ typedef long slap_index;
 #define SLAP_INDEX_EQUALITY_PREFIX	'=' 	/* prefix for equality keys     */
 #define SLAP_INDEX_APPROX_PREFIX	'~'		/* prefix for approx keys       */
 #define SLAP_INDEX_SUBSTR_PREFIX	'*'		/* prefix for substring keys    */
+#define SLAP_INDEX_SUBSTR_INITIAL_PREFIX '^'
+#define SLAP_INDEX_SUBSTR_FINAL_PREFIX '$'
 #define SLAP_INDEX_CONT_PREFIX		'.'		/* prefix for continuation keys */
 #define SLAP_INDEX_UNKNOWN_PREFIX	'?'		/* prefix for unknown keys */
 
@@ -204,7 +200,7 @@ typedef int slap_syntax_transform_func LDAP_P((
 	struct berval ** out));
 
 typedef struct slap_syntax {
-	LDAP_SYNTAX			ssyn_syn;
+	LDAPSyntax			ssyn_syn;
 #define ssyn_oid		ssyn_syn.syn_oid
 #define ssyn_desc		ssyn_syn.syn_desc
 #define ssyn_extensions		ssyn_syn.syn_extensions
@@ -277,7 +273,7 @@ typedef int slap_mr_filter_func LDAP_P((
 	struct berval ***keys ));
 
 typedef struct slap_matching_rule {
-	LDAP_MATCHING_RULE		smr_mrule;
+	LDAPMatchingRule		smr_mrule;
 	unsigned				smr_usage;
 
 #define SLAP_MR_TYPE_MASK		0xFF00U
@@ -305,7 +301,10 @@ typedef struct slap_matching_rule {
 	slap_mr_match_func		*smr_match;
 	slap_mr_indexer_func	*smr_indexer;
 	slap_mr_filter_func		*smr_filter;
+
+	struct slap_matching_rule	*smr_associated;
 	struct slap_matching_rule	*smr_next;
+
 #define smr_oid				smr_mrule.mr_oid
 #define smr_names			smr_mrule.mr_names
 #define smr_desc			smr_mrule.mr_desc
@@ -316,7 +315,7 @@ typedef struct slap_matching_rule {
 
 typedef struct slap_attribute_type {
 	char					*sat_cname;
-	LDAP_ATTRIBUTE_TYPE		sat_atype;
+	LDAPAttributeType		sat_atype;
 	struct slap_attribute_type	*sat_sup;
 	struct slap_attribute_type	**sat_subtypes;
 	MatchingRule			*sat_equality;
@@ -347,7 +346,7 @@ typedef struct slap_attribute_type {
 #define is_at_no_user_mod(at)	((at)->sat_no_user_mod)
 
 typedef struct slap_object_class {
-	LDAP_OBJECT_CLASS		soc_oclass;
+	LDAPObjectClass		soc_oclass;
 	struct slap_object_class	**soc_sups;
 	AttributeType			**soc_required;
 	AttributeType			**soc_allowed;
@@ -791,17 +790,10 @@ struct slap_backend_db {
 #define		be_entry_close bd_info->bi_tool_entry_close
 #define		be_entry_first bd_info->bi_tool_entry_first
 #define		be_entry_next bd_info->bi_tool_entry_next
+#define		be_entry_reindex bd_info->bi_tool_entry_reindex
 #define		be_entry_get bd_info->bi_tool_entry_get
 #define		be_entry_put bd_info->bi_tool_entry_put
-#define		be_index_attr bd_info->bi_tool_index_attr
-#define		be_index_change bd_info->bi_tool_index_change
 #define		be_sync bd_info->bi_tool_sync
-#endif
-
-#ifdef HAVE_CYRUS_SASL
-#define		be_sasl_authorize bd_info->bi_sasl_authorize
-#define		be_sasl_getsecret bd_info->bi_sasl_getsecret
-#define		be_sasl_putsecret bd_info->bi_sasl_putsecret
 #endif
 
 	/* these should be renamed from be_ to bd_ */
@@ -970,24 +962,8 @@ struct slap_backend_info {
 	ID (*bi_tool_entry_next) LDAP_P(( BackendDB *be ));
 	Entry* (*bi_tool_entry_get) LDAP_P(( BackendDB *be, ID id ));
 	ID (*bi_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e ));
-	int (*bi_tool_index_attr) LDAP_P(( BackendDB *be,
-		AttributeDescription *desc ));
-	int (*bi_tool_index_change) LDAP_P(( BackendDB *be,
-		AttributeDescription *desc,
-		struct berval **bv, ID id, int op ));
+	int (*bi_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
 	int (*bi_tool_sync) LDAP_P(( BackendDB *be ));
-
-#ifdef HAVE_CYRUS_SASL
-	int (*bi_sasl_authorize) LDAP_P(( BackendDB *be,
-		const char *authnid, const char *authzid,
-		const char **canon_authzid, const char **errstr ));
-	int (*bi_sasl_getsecret) LDAP_P(( BackendDB *be,
-		const char *mechanism, const char *authzid,
-		const char *realm, sasl_secret_t **secret ));
-	int (*bi_sasl_putsecret) LDAP_P(( BackendDB *be,
-		const char *mechanism, const char *auth_identity,
-		const char *realm, const sasl_secret_t *secret ));
-#endif /* HAVE_CYRUS_SASL */
 
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002
@@ -998,6 +974,23 @@ struct slap_backend_info {
 	void	*bi_private;	/* anything the backend type needs */
 };
 
+typedef struct slap_authz_info {
+	unsigned	sai_ssf;		/* Security Strength Factor */
+	ber_tag_t	sai_method;		/* LDAP_AUTH_* from <ldap.h> */
+	char *		sai_mech;		/* SASL Mechanism */
+	char *		sai_dn;			/* DN for reporting purposes */
+	char *		sai_ndn;		/* Normalized DN */
+} AuthorizationInformation;
+
+#define c_authtype	c_authz.sai_method
+#define c_authmech	c_authz.sai_mech
+#define c_dn		c_authz.sai_dn
+
+#define o_authtype	o_authz.sai_method
+#define o_authmech	o_authz.sai_mech
+#define o_dn		o_authz.sai_dn
+#define o_ndn		o_authz.sai_ndn
+
 /*
  * represents an operation pending from an ldap client
  */
@@ -1005,31 +998,16 @@ typedef struct slap_op {
 	ber_int_t	o_opid;		/* id of this operation		  */
 	ber_int_t	o_msgid;	/* msgid of the request		  */
 
-	ldap_pvt_thread_t	o_tid;		/* thread handling this op	  */
+	ldap_pvt_thread_t	o_tid;	/* thread handling this op	  */
 
 	BerElement	*o_ber;		/* ber of the request		  */
 
 	ber_tag_t	o_tag;		/* tag of the request		  */
 	time_t		o_time;		/* time op was initiated	  */
 
-#ifdef SLAP_AUTHZID
-	/* should only be used for reporting purposes */
-	char	*o_authc_dn;	/* authentication DN */
-
-	/* should be used as the DN of the User */
-	char	*o_authz_dn;	/* authorization DN */
-	char	*o_authz_ndn;	/* authorizaiton NDN */
-
-#else
-	char		*o_dn;		/* dn bound when op was initiated */
-	char		*o_ndn;		/* normalized dn bound when op was initiated */
-#endif
+	AuthorizationInformation o_authz;
 
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
-	ber_tag_t	o_authtype;	/* auth method used to bind dn	  */
-					/* values taken from ldap.h	  */
-					/* LDAP_AUTH_*			  */
-	char		*o_authmech; /* SASL mechanism used to bind dn */
 
 	LDAPControl	**o_ctrls;	 /* controls */
 
@@ -1071,9 +1049,7 @@ typedef struct slap_conn {
 	/* only can be changed by binding thread */
 	int		c_sasl_bind_in_progress;	/* multi-op bind in progress */
 	char	*c_sasl_bind_mech;			/* mech in progress */
-#ifdef HAVE_CYRUS_SASL
-	sasl_conn_t	*c_sasl_bind_context;	/* Cyrus SASL state data */
-#endif
+	char	*c_cdn;
 
 	/* authentication backend */
 	Backend *c_authc_backend;
@@ -1081,23 +1057,9 @@ typedef struct slap_conn {
 	/* authorization backend - normally same as c_authc_backend */
 	Backend *c_authz_backend;
 
-#ifdef SLAP_AUTHZID
-	/* authentication backend */
-	/* should only be used for reporting purposes */
-	char	*c_authc_dn;	/* authentication DN */
-
-	/* should be used as the DN of the User */
-	char	*c_authz_dn;	/* authorization DN */
-	char	*c_authz_ndn;	/* authorization NDN */
-
-#else
-	char	*c_cdn;		/* DN provided by the client */
-	char	*c_dn;		/* DN bound to this conn  */
-#endif
+	AuthorizationInformation c_authz;
 
 	ber_int_t	c_protocol;	/* version of the LDAP protocol used by client */
-	ber_tag_t	c_authtype;/* auth method used to bind c_dn  */
-	char	*c_authmech;	/* SASL mechanism used to bind c_dn */
 
 	Operation	*c_ops;			/* list of operations being processed */
 	Operation	*c_pending_ops;	/* list of pending operations */
@@ -1112,6 +1074,9 @@ typedef struct slap_conn {
 	int	c_is_tls;		/* true if this LDAP over raw TLS */
 	int	c_needs_tls_accept;	/* true if SSL_accept should be called */
 #endif
+	int		c_sasl_layers;	 /* true if we need to install SASL i/o handlers */
+	void	*c_sasl_context;	/* SASL session context */
+	void	*c_sasl_extra;		/* SASL session extra stuff */
 
 	long	c_n_ops_received;		/* num of ops received (next op_id) */
 	long	c_n_ops_executing;	/* num of ops currently executing */

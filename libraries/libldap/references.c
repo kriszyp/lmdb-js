@@ -105,7 +105,7 @@ ldap_parse_reference(
 	}
 
 	/* make a private copy of BerElement */
-	SAFEMEMCPY(&be, ref->lm_ber, sizeof(be));
+	AC_MEMCPY(&be, ref->lm_ber, sizeof(be));
 	
 	if ( ber_scanf( &be, "{v" /*}*/, &refs ) == LBER_ERROR ) {
 		rc = LDAP_DECODING_ERROR;

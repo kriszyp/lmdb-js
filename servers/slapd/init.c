@@ -107,7 +107,11 @@ slap_init( int mode, const char *name )
 			ldap_pvt_thread_mutex_init( &crypt_mutex );
 #endif
 
-			rc = backend_init( );
+			rc = slap_sasl_init();
+
+			if( rc == 0 ) {
+				rc = backend_init( );
+			}
 			break;
 
 		default:
@@ -130,10 +134,6 @@ int slap_startup( Backend *be )
 
 	rc = backend_startup( be );
 
-	if( rc == 0 ) {
-		rc = sasl_init();
-	}
-
 	return rc;
 }
 
@@ -145,7 +145,7 @@ int slap_shutdown( Backend *be )
 		"%s shutdown: initiated\n",
 		slap_name, 0, 0 );
 
-	sasl_destroy();
+	slap_sasl_destroy();
 
 	/* let backends do whatever cleanup they need to do */
 	rc = backend_shutdown( be ); 

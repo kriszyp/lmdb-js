@@ -1,7 +1,7 @@
 INTERNET-DRAFT                                         Michael P. Armijo
-<draft-ietf-ldapext-locate-02.txt>                          Levon Esibov
-April, 2000                                                   Paul Leach
-Expires: October, 2000                             Microsoft Corporation
+<draft-ietf-ldapext-locate-03.txt>                          Levon Esibov
+July, 2000                                                    Paul Leach
+Expires: January, 2001                             Microsoft Corporation
 							     R.L. Morgan
 						University of Washington
 
@@ -29,7 +29,7 @@ Status of this Memo
    http://www.ietf.org/shadow.html.
 
    Distribution of this memo is unlimited.  It is filed as <draft-
-   ietf-ldapext-locate-02.txt>, and expires on October 15, 2000.  
+   ietf-ldapext-locate-03.txt>, and expires on January 14, 2001.  
    Please send comments to the authors.
 
 
@@ -89,17 +89,31 @@ Status of this Memo
 
    This section defines a method of converting a DN into a DNS domain
    name for use in the server location method described below.  Some
-   DNs cannot be converted into a domain name.
+   DNs cannot be converted into a domain name.  Converted DNs result 
+   in a fully qualified domain name.
 
    The output domain name is initially empty.  For each RDN component
-   of the DN, beginning with the first, if the attribute type is "DC",
-   then the attribute value is used as a domain name component (label).
+   of the DN, beginning with the rightmost and working left, if the 
+   attribute type is "DC", then the attribute value is used as a domain 
+   name component (label).
    The first such value becomes the most significant (i.e., rightmost)
    domain name component, and successive values occupy less significant
    positions (i.e., extending leftward), in order.  If the attribute
-   type is not "DC", then processing stops.  If the first RDN component
+   type is not "DC", then processing stops.  If the final RDN component
    of the DN is not of type "DC" then the DN cannot be converted to a
-   domain name.
+   domain name. 
+
+   For DN:
+
+   cn=John Doe,ou=accounting,dc=example,dc=net
+
+   The client would convert the DC components as defined above into 
+   DNS name:
+
+   example.net.
+
+   The determined DNS name will be submitted as a DNS query using the 
+   algorithm defined in section 4.
 
 
 4. Locating LDAP servers through DNS
@@ -114,11 +128,13 @@ Status of this Memo
       _<Service>._<Proto>.<Domain>
 
    where <Service> is always "ldap", and <Proto> is a protocol that can
-   be either "udp" or "tcp".  <Domain> is the domain name formed by
-   converting the DN of a naming context mastered by the LDAP Server
-   into a domain name using the algorithm in Section 2.  Note that
-   "ldap" is the symbolic name for the LDAP service in Assigned
-   Numbers[6], as required by [5].
+   be either "udp" or "tcp".  "_ldap._tcp" applies to services 
+   compatible with LDAPv2 [7] or LDAPv3 [1].  "_ldap._udp" 
+   applies to services compatible with CLDAP [8].  <Domain> is 
+   the domain name formed by converting the DN of a naming context 
+   mastered by the LDAP Server into a domain name using the algorithm in 
+   Section 3.  Note that "ldap" is the symbolic name for the LDAP service 
+   in Assigned Numbers[6], as required by [5].
 
    Presence of such records enables clients to find the LDAP servers
    using standard DNS query [4].  A client (or server) seeking an LDAP
@@ -139,8 +155,10 @@ Status of this Memo
       _ldap._tcp.example.net.   IN	  SRV  0 0 389 phoenix.example.net.
 
    The set of returned records may contain multiple records in the case
-   where multiple LDAP servers serve the same domain.
-
+   where multiple LDAP servers serve the same domain.  If there are no 
+   matching SRV records available for the converted DN the client SHOULD 
+   NOT attempt to 'walk the tree' by removing the least significant 
+   portion of the constructed fully qualified domain name.
 
 
 5. Security Considerations
@@ -173,8 +191,14 @@ Status of this Memo
    [6]  Reynolds, J. and J. Postel, "Assigned Numbers", STD 2, RFC
         1700, October 1994.
 
+   [7]  Yeong, W., Howes, T. and Kille, S.,  "Lightweight Directory Access 
+        Protocol",  RFC 1777, March 1995
 
-6. Authors' Addresses
+   [8]  Young, A., "Connection-less Lightweight Directory Access Protocol",
+        RFC 1798, June 1995
+
+
+7. Authors' Addresses
 
    Michael P. Armijo
    One Microsoft Way
@@ -201,5 +225,7 @@ Status of this Memo
    EMail: rlmorgan@washington.edu
    URI:   http://staff.washington.edu/rlmorgan/
 
-   Expires October, 2000
+   Expires January, 2001
+
+
 

@@ -15,41 +15,115 @@
 #include <lber.h>
 #include <ldap_log.h>
 
-char **supportedSASLMechanisms = NULL;
-char *sasl_host = NULL;
-
 #ifdef HAVE_CYRUS_SASL
+#include <limits.h>
+#include <sasl.h>
+
+#include <ldap_pvt.h>
 
 #ifdef SLAPD_SPASSWD
 #include <lutil.h>
 #endif
 
-static void *slap_sasl_mutex_new(void)
-{
-	ldap_pvt_thread_mutex_t *mutex;
+static char *sasl_host = NULL;
+static sasl_security_properties_t sasl_secprops;
 
-	mutex = (ldap_pvt_thread_mutex_t *) ch_malloc( sizeof(ldap_pvt_thread_mutex_t) );
-	if ( ldap_pvt_thread_mutex_init( mutex ) == 0 ) {
-		return mutex;
+
+static int
+slap_sasl_log(
+	void *context,
+	int priority,
+	const char *message) 
+{
+	Connection *conn = context;
+	int level;
+	const char * label;
+
+	if ( message == NULL ) {
+		return SASL_BADPARAM;
 	}
-	return NULL;
+
+	switch (priority) {
+	case SASL_LOG_ERR:
+		level = LDAP_DEBUG_ANY;
+		label = "Error";
+		break;
+	case SASL_LOG_WARNING:
+		level = LDAP_DEBUG_TRACE;
+		label = "Warning";
+		break;
+	case SASL_LOG_INFO:
+		level = LDAP_DEBUG_TRACE;
+		label = "Info";
+		break;
+	default:
+		return SASL_BADPARAM;
+	}
+
+	Debug( level, "SASL [conn=%d] %s: %s\n",
+		conn ? conn->c_connid: -1,
+		label, message );
+
+	return SASL_OK;
 }
 
-static int slap_sasl_mutex_lock(void *mutex)
+static int
+slap_sasl_authorize(
+	void *context,
+	const char *authcid,
+	const char *authzid,
+	const char **user,
+	const char **errstr)
 {
-	return ldap_pvt_thread_mutex_lock( (ldap_pvt_thread_mutex_t *)mutex );
+	Connection *conn = context;
+
+	*user = NULL;
+
+	if ( authcid == NULL || *authcid == '\0' ) {
+		*errstr = "empty authentication identity";
+
+		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+			"empty authentication identity\n",
+			(long) (conn ? conn->c_connid : -1),
+			0, 0 );
+		return SASL_BADAUTH;
+	}
+
+	Debug( LDAP_DEBUG_ARGS, "SASL Authorize [conn=%ld]: "
+		"authcid=\"%s\" authzid=\"%s\"\n",
+		(long) (conn ? conn->c_connid : -1),
+		authcid ? authcid : "<empty>",
+		authcid ? authcid : "<empty>" );
+
+	if ( authzid == NULL || *authzid == '\0' ||
+		strcmp( authcid, authzid ) == 0 )
+	{
+		char* cuser;
+		size_t len = sizeof("u:") + strlen( authcid );
+
+		cuser = ch_malloc( len );
+		strcpy( cuser, "u:" );
+		strcpy( &cuser[sizeof("u:")-1], authcid );
+
+		*user = cuser;
+
+		Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+			"\"%s\" as \"%s\"\n", 
+			(long) (conn ? conn->c_connid : -1),
+			authcid, cuser );
+
+		return SASL_OK;
+	}
+
+	Debug( LDAP_DEBUG_TRACE, "SASL Authorize [conn=%ld]: "
+		"\"%s\" as \"%s\" disallowed. No policy.\n", 
+		(long) (conn ? conn->c_connid : -1),
+		authcid, authzid );
+
+	*errstr = "no proxy policy";
+    return SASL_NOAUTHZ;
 }
 
-static int slap_sasl_mutex_unlock(void *mutex)
-{
-	return ldap_pvt_thread_mutex_unlock( (ldap_pvt_thread_mutex_t *)mutex );
-}
-
-static void slap_sasl_mutex_dispose(void *mutex)
-{
-	(void) ldap_pvt_thread_mutex_destroy( (ldap_pvt_thread_mutex_t *)mutex );
-	free( mutex );
-}
 
 static int
 slap_sasl_err2ldap( int saslerr )
@@ -59,9 +133,6 @@ slap_sasl_err2ldap( int saslerr )
 	switch (saslerr) {
 		case SASL_CONTINUE:
 			rc = LDAP_SASL_BIND_IN_PROGRESS;
-			break;
-		case SASL_OK:
-			rc = LDAP_SUCCESS;
 			break;
 		case SASL_FAIL:
 			rc = LDAP_OTHER;
@@ -89,24 +160,34 @@ slap_sasl_err2ldap( int saslerr )
 
 	return rc;
 }
+#endif
 
 
-int sasl_init( void )
+int slap_sasl_init( void )
 {
+#ifdef HAVE_CYRUS_SASL
 	int rc;
-	char *mechs;
 	sasl_conn_t *server = NULL;
+	static sasl_callback_t server_callbacks[] = {
+		{ SASL_CB_LOG, &slap_sasl_log, NULL },
+		{ SASL_CB_LIST_END, NULL, NULL }
+	};
 
-	sasl_set_alloc( ch_malloc, ch_calloc, ch_realloc, ch_free ); 
+	sasl_set_alloc(
+		ch_malloc,
+		ch_calloc,
+		ch_realloc,
+		ch_free ); 
 
 	sasl_set_mutex(
-		slap_sasl_mutex_new,
-		slap_sasl_mutex_lock,
-		slap_sasl_mutex_unlock,
-		slap_sasl_mutex_dispose );
+		ldap_pvt_sasl_mutex_new,
+		ldap_pvt_sasl_mutex_lock,
+		ldap_pvt_sasl_mutex_unlock,
+		ldap_pvt_sasl_mutex_dispose );
 
+	/* should provide callbacks for logging */
 	/* server name should be configurable */
-	rc = sasl_server_init( NULL, "slapd" );
+	rc = sasl_server_init( server_callbacks, "slapd" );
 
 	if( rc != SASL_OK ) {
 		Debug( LDAP_DEBUG_ANY, "sasl_server_init failed\n",
@@ -123,48 +204,15 @@ int sasl_init( void )
 		}
 	}
 
-	rc = sasl_server_new( "ldap", sasl_host, NULL, NULL,
-		SASL_SECURITY_LAYER, 
-		&server );
+	Debug( LDAP_DEBUG_TRACE,
+		"slap_sasl_init: %s initialized!\n",
+		sasl_host, 0, 0 );
 
-	if( rc != SASL_OK ) {
-		Debug( LDAP_DEBUG_ANY, "sasl_server_new failed\n",
-			0, 0, 0 );
-		return -1;
-	}
-
-#ifndef SLAPD_IGNORE_RFC2829
-	{
-		/* security flags should be configurable */
-		sasl_security_properties_t secprops;
-		memset(&secprops, '\0', sizeof(secprops));
-		secprops.security_flags = SASL_SEC_NOPLAINTEXT | SASL_SEC_NOANONYMOUS;
-		secprops.property_names = NULL;
-		secprops.property_values = NULL;
-	
-		rc = sasl_setprop( server, SASL_SEC_PROPS, &secprops );
-
-		if( rc != SASL_OK ) {
-			Debug( LDAP_DEBUG_ANY, "sasl_setprop failed\n",
-				0, 0, 0 );
-			return -1;
-		}
-	}
-#endif
-
-	rc = sasl_listmech( server, NULL, NULL, ",", NULL,
-		&mechs, NULL, NULL);
-
-	if( rc != SASL_OK ) {
-		Debug( LDAP_DEBUG_ANY, "sasl_listmech failed: %d\n",
-			rc, 0, 0 );
-		return -1;
-	}
-
-	Debug( LDAP_DEBUG_TRACE, "SASL mechanisms: %s\n",
-		mechs, 0, 0 );
-
-	supportedSASLMechanisms = str2charray( mechs, "," );
+	/* default security properties */
+	memset( &sasl_secprops, '\0', sizeof(sasl_secprops) );
+    sasl_secprops.max_ssf = UINT_MAX;
+    sasl_secprops.maxbufsize = 65536;
+    sasl_secprops.security_flags = SASL_SEC_NOPLAINTEXT|SASL_SEC_NOANONYMOUS;
 
 #ifdef SLAPD_SPASSWD
 	lutil_passwd_sasl_conn = server;
@@ -172,176 +220,324 @@ int sasl_init( void )
 	sasl_dispose( &server );
 #endif
 
+#endif
 	return 0;
 }
 
-int sasl_destroy( void )
+int slap_sasl_destroy( void )
 {
+#ifdef HAVE_CYRUS_SASL
 #ifdef SLAPD_SPASSWD
 	sasl_dispose( &lutil_passwd_sasl_conn );
 #endif
-	charray_free( supportedSASLMechanisms );
+	sasl_done();
+#endif
 	return 0;
 }
 
+int slap_sasl_open( Connection *conn )
+{
+	int sc = LDAP_SUCCESS;
+
 #ifdef HAVE_CYRUS_SASL
-int sasl_bind(
+	sasl_conn_t *ctx = NULL;
+	sasl_callback_t *session_callbacks;
+
+	assert( conn->c_sasl_context == NULL );
+	assert( conn->c_sasl_extra == NULL );
+
+	conn->c_sasl_layers = 0;
+
+	session_callbacks =
+		ch_calloc( 3, sizeof(sasl_callback_t));
+	conn->c_sasl_extra = session_callbacks;
+
+	session_callbacks[0].id = SASL_CB_LOG;
+	session_callbacks[0].proc = &slap_sasl_log;
+	session_callbacks[0].context = conn;
+
+	session_callbacks[1].id = SASL_CB_PROXY_POLICY;
+	session_callbacks[1].proc = &slap_sasl_authorize;
+	session_callbacks[1].context = conn;
+
+	session_callbacks[2].id = SASL_CB_LIST_END;
+	session_callbacks[2].proc = NULL;
+	session_callbacks[2].context = NULL;
+
+	/* create new SASL context */
+	sc = sasl_server_new( "ldap", sasl_host, global_realm,
+		session_callbacks, SASL_SECURITY_LAYER, &ctx );
+
+	if( sc != SASL_OK ) {
+		Debug( LDAP_DEBUG_ANY, "sasl_server_new failed: %d\n",
+			sc, 0, 0 );
+		return -1;
+	}
+
+	conn->c_sasl_context = ctx;
+
+	if( sc == SASL_OK ) {
+		sc = sasl_setprop( ctx,
+			SASL_SEC_PROPS, &sasl_secprops );
+
+		if( sc != SASL_OK ) {
+			Debug( LDAP_DEBUG_ANY, "sasl_setprop failed: %d\n",
+				sc, 0, 0 );
+			slap_sasl_close( conn );
+			return -1;
+		}
+	}
+
+	sc = slap_sasl_err2ldap( sc );
+#endif
+	return sc;
+}
+
+int slap_sasl_external(
+	Connection *conn,
+	unsigned ssf,
+	char *auth_id )
+{
+#ifdef HAVE_CYRUS_SASL
+	int sc;
+	sasl_conn_t *ctx = conn->c_sasl_context;
+	sasl_external_properties_t extprops;
+
+	if ( ctx == NULL ) {
+		return LDAP_UNAVAILABLE;
+	}
+
+	memset( &extprops, 0L, sizeof(extprops) );
+	extprops.ssf = ssf;
+	extprops.auth_id = auth_id;
+
+	sc = sasl_setprop( ctx, SASL_SSF_EXTERNAL,
+		(void *) &extprops );
+
+	if ( sc != SASL_OK ) {
+		return LDAP_OTHER;
+	}
+#endif
+
+	return LDAP_SUCCESS;
+}
+
+int slap_sasl_reset( Connection *conn )
+{
+#ifdef HAVE_CYRUS_SASL
+	sasl_conn_t *ctx = conn->c_sasl_context;
+
+	if( ctx != NULL ) {
+	}
+#endif
+	/* must return "anonymous" */
+	return LDAP_SUCCESS;
+}
+
+char ** slap_sasl_mechs( Connection *conn )
+{
+	char **mechs = NULL;
+
+#ifdef HAVE_CYRUS_SASL
+	sasl_conn_t *ctx = conn->c_sasl_context;
+
+	if( ctx != NULL ) {
+		int sc;
+		char *mechstr;
+
+		sc = sasl_listmech( ctx,
+			NULL, NULL, ",", NULL,
+			&mechstr, NULL, NULL );
+
+		if( sc != SASL_OK ) {
+			Debug( LDAP_DEBUG_ANY, "slap_sasl_listmech failed: %d\n",
+				sc, 0, 0 );
+			return NULL;
+		}
+
+		mechs = str2charray( mechstr, "," );
+
+		ch_free( mechstr );
+	}
+#endif
+
+	return mechs;
+}
+
+int slap_sasl_close( Connection *conn )
+{
+#ifdef HAVE_CYRUS_SASL
+	sasl_conn_t *ctx = conn->c_sasl_context;
+
+	if( ctx != NULL ) {
+		sasl_dispose( &ctx );
+	}
+
+	conn->c_sasl_context = NULL;
+
+	free( conn->c_sasl_extra );
+	conn->c_sasl_extra = NULL;
+#endif
+
+	return LDAP_SUCCESS;
+}
+
+int slap_sasl_bind(
     Connection          *conn,
     Operation           *op,  
     const char          *dn,  
     const char          *ndn,
     const char          *mech,
     struct berval       *cred,
-	char				**edn )
+	char				**edn,
+	unsigned long		*ssfp )
 {
-	struct berval response;
-	const char *errstr;
-	int sc;
 	int rc = 1;
 
+#ifdef HAVE_CYRUS_SASL
+	sasl_conn_t *ctx = conn->c_sasl_context;
+	struct berval response;
+	unsigned reslen;
+	const char *errstr;
+	int sc;
+
 	Debug(LDAP_DEBUG_ARGS,
-		"==> sasl_bind: dn=\"%s\" mech=%s cred->bv_len=%d\n",
-		dn, mech, cred ? cred->bv_len : 0 );
+		"==> sasl_bind: dn=\"%s\" mech=%s datalen=%d\n",
+		dn, mech ? mech : "<continuing>", cred ? cred->bv_len : 0 );
 
-	if ( conn->c_sasl_bind_context == NULL ) {
-		sasl_callback_t callbacks[4];
-		int cbnum = 0;
+	if( ctx == NULL ) {
+		send_ldap_result( conn, op, LDAP_UNAVAILABLE,
+			NULL, "SASL unavailable on this session", NULL, NULL );
+		return rc;
+	}
 
-#if 0
-		if (be->be_sasl_authorize) {
-			callbacks[cbnum].id = SASL_CB_PROXY_POLICY;
-			callbacks[cbnum].proc = be->be_sasl_authorize;
-			callbacks[cbnum].context = be;
-			++cbnum;
-		}
+	if ( mech != NULL ) {
+		sc = sasl_server_start( ctx,
+			mech,
+			cred->bv_val, cred->bv_len,
+			(char **)&response.bv_val, &reslen, &errstr );
 
-		if (be->be_sasl_getsecret) {
-			callbacks[cbnum].id = SASL_CB_SERVER_GETSECRET;
-			callbacks[cbnum].proc = be->be_sasl_getsecret;
-			callbacks[cbnum].context = be;
-			++cbnum;
-		}
+	} else {
+		sc = sasl_server_step( ctx,
+			cred->bv_val, cred->bv_len,
+			(char **)&response.bv_val, &reslen, &errstr );
+	}
 
-		if (be->be_sasl_putsecret) {
-			callbacks[cbnum].id = SASL_CB_SERVER_PUTSECRET;
-			callbacks[cbnum].proc = be->be_sasl_putsecret;
-			callbacks[cbnum].context = be;
-			++cbnum;
-		}
-#endif
+	response.bv_len = reslen;
 
-		callbacks[cbnum].id = SASL_CB_LIST_END;
-		callbacks[cbnum].proc = NULL;
-		callbacks[cbnum].context = NULL;
+	if ( sc == SASL_OK ) {
+		char *username = NULL;
 
-		/* create new SASL context */
-		sc = sasl_server_new( "ldap", sasl_host, global_realm,
-			callbacks, SASL_SECURITY_LAYER, &conn->c_sasl_bind_context );
+		sc = sasl_getprop( ctx,
+			SASL_USERNAME, (void **)&username );
 
-		if( sc != SASL_OK ) {
+		if ( sc != SASL_OK ) {
+			Debug(LDAP_DEBUG_TRACE,
+				"slap_sasl_bind: getprop(USERNAME) failed!\n",
+				0, 0, 0);
+
 			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
-				NULL, "could not create new SASL context", NULL, NULL );
+				NULL, "no SASL username", NULL, NULL );
+
+		} else if ( username == NULL || *username == '\0' ) {
+			Debug(LDAP_DEBUG_TRACE,
+				"slap_sasl_bind: getprop(USERNAME) returned NULL!\n",
+				0, 0, 0);
+
+			send_ldap_result( conn, op, rc = LDAP_INSUFFICIENT_ACCESS,
+				NULL, "no SASL username", NULL, NULL );
 
 		} else {
-			unsigned reslen;
-			conn->c_authmech = ch_strdup( mech );
+			char *realm = NULL;
+			sasl_ssf_t *ssf = NULL;
 
-			sc = sasl_server_start( conn->c_sasl_bind_context,
-				conn->c_authmech,
-				cred->bv_val, cred->bv_len,
-				(char **)&response.bv_val, &reslen, &errstr );
+			(void) sasl_getprop( ctx,
+				SASL_REALM, (void **)&realm );
 
-			response.bv_len = reslen;
-			
-			if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
-				send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
+			(void) sasl_getprop( ctx,
+				SASL_SSF, (void *)&ssf );
+
+			Debug(LDAP_DEBUG_TRACE,
+				"slap_sasl_bind: username=\"%s\" realm=\"%s\" ssf=%lu\n",
+				username ? username : "",
+				realm ? realm : "",
+				(unsigned long) ( ssf ? *ssf : 0 ) );
+
+			*ssfp = ssf ? *ssf : 0;
+
+			rc = LDAP_SUCCESS;
+
+			if( username == NULL || (
+				!strncasecmp( username, "anonymous", sizeof("anonyous")-1 ) &&
+				( ( username[sizeof("anonymous")] == '\0' ) ||
+				  ( username[sizeof("anonymous")] == '@' ) ) ) )
+			{
+				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: anonymous\n",
+					0, 0, 0);
+
+			} else if ( username[0] == 'u' && username[1] == ':'
+				&& username[2] != '\0'
+				&& strpbrk( &username[2], "=,;\"\\") == NULL )
+			{
+				*edn = ch_malloc( sizeof( "uid= + realm=" )
+					+ strlen( &username[2] )
+					+ ( realm ? strlen( realm ) : 0 ) );
+
+				strcpy( *edn, "uid=" );
+				strcat( *edn, &username[2] );
+
+				if( realm && *realm ) {
+					strcat( *edn, " + realm=" );
+					strcat( *edn, realm );
+				}
+
+				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: authzdn: \"%s\"\n",
+					*edn, 0, 0);
+
+			} else {
+				rc = LDAP_INAPPROPRIATE_AUTH;
+				errstr = "authorization disallowed";
+				Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: %s\n",
+					errstr, 0, 0);
+			}
+
+			if( rc == LDAP_SUCCESS ) {
+				send_ldap_sasl( conn, op, rc,
+					NULL, NULL, NULL, NULL,
+					response.bv_len ? &response : NULL );
+
+			} else {
+				send_ldap_result( conn, op, rc,
 					NULL, errstr, NULL, NULL );
 			}
 		}
 
-	} else {
-		unsigned reslen;
-		sc = sasl_server_step( conn->c_sasl_bind_context,
-			cred->bv_val, cred->bv_len,
-			(char **)&response.bv_val, &reslen, &errstr );
-
-		response.bv_len = reslen;
-	
-		if ( (sc != SASL_OK) && (sc != SASL_CONTINUE) ) {
-			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
-				NULL, errstr, NULL, NULL );
-		}
-	}
-
-	if ( sc == SASL_OK ) {
-		char *authzid;
-
-		sc = sasl_getprop( conn->c_sasl_bind_context, SASL_USERNAME,
-			(void **)&authzid );
-
-		if ( sc != SASL_OK ) {
-			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
-				NULL, "no SASL username", NULL, NULL );
-
-		} else {
-			Debug(LDAP_DEBUG_TRACE, "sasl_bind: username=%s\n",
-				authzid, 0, 0);
-
-			if( !strncasecmp( authzid, "anonymous", sizeof("anonyous")-1 ) &&
-				( ( authzid[sizeof("anonymous")] == '\0' ) ||
-				  ( authzid[sizeof("anonymous")] == '@' ) ) )
-			{
-				Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: anonymous\n",
-					0, 0, 0);
-
-			} else {
-				*edn = ch_malloc( sizeof( "authzid=" ) + strlen( authzid ) );
-				strcpy( *edn, "authzid=" );
-				strcat( *edn, authzid );
-
-				Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: authzdn: \"%s\"\n",
-					*edn, 0, 0);
-			}
-
-			send_ldap_sasl( conn, op, rc = LDAP_SUCCESS,
-				NULL, NULL, NULL, NULL, &response );
-		}
-
 	} else if ( sc == SASL_CONTINUE ) {
 		send_ldap_sasl( conn, op, rc = LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, NULL, NULL, NULL,  &response );
-	} 
+			NULL, NULL, NULL, NULL, &response );
 
-	if ( sc != SASL_CONTINUE && conn->c_sasl_bind_context != NULL ) {
-		sasl_dispose( &conn->c_sasl_bind_context );
-		conn->c_sasl_bind_context = NULL;
+	} else {
+		send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
+			NULL, errstr, NULL, NULL );
 	}
 
-	Debug(LDAP_DEBUG_TRACE, "<== sasl_bind: rc=%d\n", rc, 0, 0);
-
-	return rc;
-}
-#endif /* HAVE_CYRUS_SASL */
+	Debug(LDAP_DEBUG_TRACE, "<== slap_sasl_bind: rc=%d\n", rc, 0, 0);
 
 #else
-/* no SASL support */
-int sasl_bind(
-    Connection          *conn,
-    Operation           *op,  
-    const char          *dn,  
-    const char          *ndn,
-    const char          *mech,
-    struct berval       *cred,
-	char				**edn )
-{
-	int rc;
-
-	send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		NULL, "SASL unavailable", NULL, NULL );
+	send_ldap_result( conn, op, rc = LDAP_UNAVAILABLE,
+		NULL, "SASL not supported", NULL, NULL );
+#endif
 
 	return rc;
 }
 
-int sasl_init( void ) { return 0; }
-int sasl_destroy( void ) { return 0; }
+char* slap_sasl_secprops( const char *in )
+{
+#ifdef HAVE_CYRUS_SASL
+	int rc = ldap_pvt_sasl_secprops( in, &sasl_secprops );
+
+	return rc == LDAP_SUCCESS ? NULL : "Invalid security properties";
+#else
+	return "SASL not supported";
 #endif
+}

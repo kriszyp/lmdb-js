@@ -84,7 +84,7 @@ ID ldbm_tool_entry_first(
 		return NOID;
 	}
 
-	memcpy( &id, key.dptr, key.dsize );
+	AC_MEMCPY( &id, key.dptr, key.dsize );
 
 	ldbm_datum_free( id2entry->dbc_db, key );
 
@@ -109,7 +109,7 @@ ID ldbm_tool_entry_next(
 		return NOID;
 	}
 
-	memcpy( &id, key.dptr, key.dsize );
+	AC_MEMCPY( &id, key.dptr, key.dsize );
 
 	ldbm_datum_free( id2entry->dbc_db, key );
 
@@ -136,6 +136,10 @@ Entry* ldbm_tool_entry_get( BackendDB *be, ID id )
 
 	e = str2entry( data.dptr );
 	ldbm_datum_free( id2entry->dbc_db, data );
+
+	if( e != NULL ) {
+		e->e_id = id;
+	}
 
 	return e;
 }
@@ -192,48 +196,40 @@ ID ldbm_tool_entry_put(
 	return e->e_id;
 }
 
-int ldbm_tool_index_attr(
+int ldbm_tool_entry_reindex(
 	BackendDB *be,
-	AttributeDescription *desc
-)
+	ID id )
 {
-	static DBCache *db = NULL;
-	slap_index indexmask;
-	char *at_cname;
+	int rc;
+	Entry *e;
 
-	assert( slapMode & SLAP_TOOL_MODE );
+	Debug( LDAP_DEBUG_ARGS, "=> ldbm_tool_entry_reindex( %ld )\n",
+		(long) id, 0, 0 );
 
-	at_cname = desc->ad_cname->bv_val;
+	e = ldbm_tool_entry_get( be, id );
 
-	assert( desc != NULL );
-	attr_mask( be->be_private, at_cname, &indexmask );
-
-	if ( (db = ldbm_cache_open( be, at_cname, LDBM_SUFFIX, LDBM_NEWDB ))
-	    == NULL )
-	{
+	if( e == NULL ) {
 		Debug( LDAP_DEBUG_ANY,
-		    "<= index_attr NULL (could not open %s%s)\n", at_cname,
-		    LDBM_SUFFIX, 0 );
-		return 0;
+			"ldbm_tool_entry_reindex:: could not locate id=%ld\n",
+			(long) id, 0, 0 );
+		return -1;
 	}
 
-	ldbm_cache_close( be, db );
+	/*
+	 * just (re)add them for now
+	 * assume that some other routine (not yet implemented)
+	 * will zap index databases
+	 *
+	 */
 
-	return indexmask != 0;
-}
+	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_reindex( %ld, \"%s\" )\n",
+		id, e->e_dn, 0 );
 
-int ldbm_tool_index_change(
-	BackendDB *be,
-	AttributeDescription *desc,
-	struct berval **bv,
-	ID id,
-	int op )
-{
-	assert( slapMode & SLAP_TOOL_MODE );
+	rc = index_entry_add( be, e, e->e_attrs );
 
-	index_values( be, desc, bv, id, op );
+	entry_free( e );
 
-	return 0;
+	return rc;
 }
 
 int ldbm_tool_sync( BackendDB *be )

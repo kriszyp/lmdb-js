@@ -1,0 +1,221 @@
+INTERNET-DRAFT                                      Kurt D. Zeilenga
+Intended Category: Standard Track                   OpenLDAP Foundation
+Expires: 29 December 2000                           29 June 2000
+
+
+                    LDAPv3: All Operational Attributes
+                <draft-zeilenga-ldapv3bis-opattrs-00.txt>
+
+
+1.      Status of this Memo
+
+  This document is an Internet-Draft and is in full conformance with all
+  provisions of Section 10 of RFC2026.
+
+  This document is intended to be, after appropriate review and
+  revision, submitted to the RFC Editor as a Standard Track document.
+  Distribution of this memo is unlimited.  Technical discussion of this
+  document will take place on the IETF LDAP Extension Working Group
+  mailing list <ietf-ldapext@netscape.com>.  Please send editorial
+  comments directly to the author <Kurt@OpenLDAP.org>.
+
+  Internet-Drafts are working documents of the Internet Engineering Task
+  Force (IETF), its areas, and its working groups.  Note that other
+  groups may also distribute working documents as Internet-Drafts.
+  Internet-Drafts are draft documents valid for a maximum of six months
+  and may be updated, replaced, or obsoleted by other documents at any
+  time.  It is inappropriate to use Internet-Drafts as reference
+  material or to cite them other than as ``work in progress.''
+
+  The list of current Internet-Drafts can be accessed at
+  http://www.ietf.org/ietf/1id-abstracts.txt The list of Internet-Draft
+  Shadow Directories can be accessed at http://www.ietf.org/shadow.html.
+
+  Copyright 2000, The Internet Society.  All Rights Reserved.
+
+  Please see the Copyright section near the end of this document for
+  more information.
+
+
+2.      Overview
+
+  X.500 provides a mechanism for clients to request all operational
+  attributes be returned with entries provided in response to a search
+  operation.   LDAP [RFC2251] does not provide a similar mechanism to
+  clients to request the return of operational attributes.  The lack of
+  such a mechanisms hinders discovery of operational attributes present
+  in an entry.
+
+
+
+
+Zeilenga                                                        [Page 1]
+
+INTERNET-DRAFT     draft-zeilenga-ldapv3bis-opattrs-00      13 June 2000
+
+
+  This document defines a simple mechanism which clients may use to
+  request all operation attributes.  This document updates RFC 2251 as
+  detailed below.
+
+  The key words ``MUST'', ``MUST NOT'', ``REQUIRED'', ``SHALL'', ``SHALL
+  NOT'', ``SHOULD'', ``SHOULD NOT'', ``RECOMMENDED'',  and ``MAY'' in
+  this document are to be interpreted as described in RFC 2119
+  [RFC2119].
+
+
+3.      Changes to RFC 2251
+
+  This document updates RFC 2251 as follows:
+
+  In Section 3.2.1, Attributes of Entries, the paragraph:
+      Some attributes, termed operational attributes, are used by
+      servers for administering the directory system itself.  They are
+      not returned in search results unless explicitly requested by
+      name.  Attributes which are not operational, such as "mail", will
+      have their schema and syntax constraints enforced by servers, but
+      servers will generally not make use of their values.
+
+  is replaced with:
+      Some attributes, termed operational attributes, are used by
+      servers for administering the directory system itself.  They are
+      not returned in search results unless explicitly requested.
+      Attributes which are not operational, such as "mail", will have
+      their schema and syntax constraints enforced by servers, but
+      servers will generally not make use of their values.
+
+  In Section 4.5.1, Search Request, the paragraph:
+      - attributes: A list of the attributes to be returned from each
+      entry which matches the search filter. There are two special
+      values which may be used: an empty list with no attributes, and
+      the attribute description string "*".  Both of these signify that
+      all user attributes are to be returned.  (The "*" allows the
+      client to request all user attributes in addition to specific
+      operational attributes).
+
+  is replaced with:
+      - attributes: A list of the attributes to be returned from each
+      entry which matches the search filter. There are three special
+      values which may be used.  An empty list with no attributes
+      signifies that all user attributes are to be returned.  An
+      attribute list containing the attribute description string "*"
+      signifies that all user attributes are to be returned.   An
+      attribute list containing the attribute description string "+"
+      signifies that all operational attributes are to be returned.
+
+
+
+Zeilenga                                                        [Page 2]
+
+INTERNET-DRAFT     draft-zeilenga-ldapv3bis-opattrs-00      13 June 2000
+
+
+      (The "*" allows the client to request all user attributes in
+      addition to any requested operational attributes.  The "+" allows
+      the client to request all operational attributes in addition to
+      requested user attributes.  A client may list both "*" and "+" to
+      request all attributes.)
+
+  and the paragraph:
+      Client implementors should note that even if all user attributes
+      are requested, some attributes of the entry may not be included in
+      search results due to access control or other restrictions.
+      Furthermore, servers will not return operational attributes, such
+      as objectClasses or attributeTypes, unless they are listed by
+      name, since there may be extremely large number of values for
+      certain operational attributes. (A list of operational attributes
+      for use in LDAP is given in [5].)
+
+  is replaced with:
+      Client implementors should note that results may not include all
+      requested attributes due to access controls or other restrictions.
+      In addition, client implementors should request types only be
+      returned when discovering operational attributes as certain
+      operational attributes may have extremely large number of values.
+      Furthermore, servers will not return operational attributes, such
+      as objectClasses or attributeTypes, unless they are requested,
+      since there may be extremely large number of values for certain
+      operational attributes. (A list of operational attributes for use
+      in LDAP is given in [5].)
+
+
+5.      Interoperability Considerations
+
+  The addition of this mechanism to LDAPv3 is not believed to cause
+  significant interoperability problems.  A server which does not
+  support the "+" should ignore the attribute description per RFC 2251,
+  section 4.5.1 and only return the attributes for the attribute
+  descriptions strings they do recognize.   From the client's
+  perspective, this is one possible "other restriction" noted above.
+
+
+5.      Security Considerations
+
+  This document provides a mechanism which clients may use to discover
+  operational attributes.  Access controls should be used to restrict
+  access to operational attributes per local policy.
+
+
+6.      Copyright
+
+
+
+
+Zeilenga                                                        [Page 3]
+
+INTERNET-DRAFT     draft-zeilenga-ldapv3bis-opattrs-00      13 June 2000
+
+
+  Copyright 2000, The Internet Society.  All Rights Reserved.
+
+  This document and translations of it may be copied and furnished to
+  others, and derivative works that comment on or otherwise explain it
+  or assist in its implementation may be prepared, copied, published and
+  distributed, in whole or in part, without restriction of any kind,
+  provided that the above copyright notice and this paragraph are
+  included on all such copies and derivative works.  However, this
+  document itself may not be modified in any way, such as by removing
+  the copyright notice or references to the Internet Society or other
+  Internet organizations, except as needed for the  purpose of
+  developing Internet standards in which case the procedures for
+  copyrights defined in the Internet Standards process must be followed,
+  or as required to translate it into languages other than English.
+
+  The limited permissions granted above are perpetual and will not be
+  revoked by the Internet Society or its successors or assigns.
+
+  This document and the information contained herein is provided on an
+  "AS IS" basis and THE AUTHORS, THE INTERNET SOCIETY, AND THE INTERNET
+  ENGINEERING TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE
+  INFORMATION HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED
+  WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+7.      Bibliography
+
+  [RFC2219]       S. Bradner, "Key words for use in RFCs to Indicate
+                  Requirement Levels", RFC 2119, March 1997.
+
+  [RFC2251]       M. Wahl, T. Howes, S. Kille, "Lightweight
+                  Directory Access Protocol (v3)", RFC 2251,
+                  December 1997.
+
+  [X.500]         ITU-T Rec. X.500, "The Directory: Overview of
+                  Concepts, Models and Service",  1993.
+
+
+8.     Author's Address
+
+  Kurt D. Zeilenga
+  OpenLDAP Foundation
+  <Kurt@OpenLDAP.org>
+
+
+
+
+
+
+
+
+Zeilenga                                                        [Page 4]
+

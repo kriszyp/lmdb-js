@@ -13,7 +13,8 @@ if test "$BACKEND" = "bdb2" ; then
 	REFSLAVECONF=$DATADIR/slapd-bdb2-ref-slave.conf
 	TIMING="-t"
 else
-	CONF=$DATADIR/slapd-master.conf
+	CONF=$DATADIR/slapd.conf
+	MCONF=$DATADIR/slapd-master.conf
 	PWCONF=$DATADIR/slapd-pw.conf
 	ACLCONF=$DATADIR/slapd-acl.conf
 	MASTERCONF=$DATADIR/slapd-repl-master.conf
@@ -21,26 +22,27 @@ else
 	REFSLAVECONF=$DATADIR/slapd-ref-slave.conf
 fi
 
-if test "$LDAP_PROTO" ; then
-	PROTO="-P $LDAP_PROTO"
-fi
+TOOLARGS="-x $LDAP_TOOLARGS"
+TOOLPROTO="-P 3"
 
 PASSWDCONF=$DATADIR/slapd-passwd.conf
 
 CLIENTDIR=../clients/tools
 #CLIENTDIR=/usr/local/bin
 
-LDIF2LDBM="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
+SLAPADD="../servers/slapd/tools/slapadd $LDAP_VERBOSE"
+SLAPCAT="../servers/slapd/tools/slapcat $LDAP_VERBOSE"
+SLAPINDEX="../servers/slapd/tools/slapindex $LDAP_VERBOSE"
 
-#CMP=cmp
-CMP="diff -i -q"
+CMP="diff -i"
+CMPOUT=/dev/null
 SLAPD=../servers/slapd/slapd
 SLURPD=../servers/slurpd/slurpd
-LDAPPASSWD="$CLIENTDIR/ldappasswd"
-LDAPSEARCH="$CLIENTDIR/ldapsearch $PROTO -LLL"
-LDAPMODIFY="$CLIENTDIR/ldapmodify $PROTO"
-LDAPADD="$CLIENTDIR/ldapadd $PROTO"
-LDAPMODRDN="$CLIENTDIR/ldapmodrdn $PROTO"
+LDAPPASSWD="$CLIENTDIR/ldappasswd $TOOLARGS"
+LDAPSEARCH="$CLIENTDIR/ldapsearch $TOOLPROTO $TOOLARGS -LLL"
+LDAPMODIFY="$CLIENTDIR/ldapmodify $TOOLPROTO $TOOLARGS"
+LDAPADD="$CLIENTDIR/ldapadd $TOOLPROTO $TOOLARGS"
+LDAPMODRDN="$CLIENTDIR/ldapmodrdn $TOOLPROTO $TOOLARGS"
 SLAPDTESTER=$PROGDIR/slapd-tester
 LVL=${SLAPD_DEBUG-5}
 ADDR=127.0.0.1

@@ -301,7 +301,7 @@ static int slap_mods2entry(
 				sizeof( struct berval * ) * (i+j) );
 
 			/* should check for duplicates */
-			memcpy( &attr->a_vals[i], mods->sml_bvalues,
+			AC_MEMCPY( &attr->a_vals[i], mods->sml_bvalues,
 				sizeof( struct berval * ) * j );
 
 			/* trim the mods array */

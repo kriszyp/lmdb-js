@@ -74,23 +74,12 @@ at_find(
     const char		*name
 )
 {
-	struct aindexrec	*air;
-	char			*tmpname;
+	struct aindexrec *air;
 
-	{
-		tmpname = (char *)name;
-	}
+	air = (struct aindexrec *) avl_find( attr_index, name,
+            (AVL_CMP) attr_index_name_cmp );
 
-	if ( (air = (struct aindexrec *) avl_find( attr_index, tmpname,
-            (AVL_CMP) attr_index_name_cmp )) != NULL ) {
-		if ( tmpname != name )
-			ldap_memfree( tmpname );
-		return( air->air_at );
-	}
-
-	if ( tmpname != name )
-		ldap_memfree( tmpname );
-	return( NULL );
+	return air != NULL ? air->air_at : NULL;
 }
 
 int
@@ -239,7 +228,7 @@ at_insert(
 
 int
 at_add(
-    LDAP_ATTRIBUTE_TYPE	*at,
+    LDAPAttributeType	*at,
     const char		**err
 )
 {
@@ -258,7 +247,7 @@ at_add(
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 	sat = (AttributeType *) ch_calloc( 1, sizeof(AttributeType) );
-	memcpy( &sat->sat_atype, at, sizeof(LDAP_ATTRIBUTE_TYPE));
+	AC_MEMCPY( &sat->sat_atype, at, sizeof(LDAPAttributeType));
 
 	sat->sat_cname = cname;
 
@@ -306,6 +295,7 @@ at_add(
 	if ( sat->sat_equality_oid ) {
 		if ( (mr = mr_find(sat->sat_equality_oid)) ) {
 			sat->sat_equality = mr;
+			sat->sat_approx = mr->smr_associated;
 		} else {
 			*err = sat->sat_equality_oid;
 			return SLAP_SCHERR_MR_NOT_FOUND;

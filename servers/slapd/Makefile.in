@@ -268,8 +268,8 @@ install-conf: FORCE
 	@-$(MKDIR) $(DESTDIR)$(sysconfdir)
 	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-ldbm
 	$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf.default
-	if test ! -f $(DESTDIR)$(sysconfdir)/$$cf; then \
-		echo "installing $$cf in $(sysconfdir)"; \
+	if test ! -f $(DESTDIR)$(sysconfdir)/slapd.conf; then \
+		echo "installing slapd.conf in $(sysconfdir)"; \
 		echo "$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf"; \
 		$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf; \
 	else \

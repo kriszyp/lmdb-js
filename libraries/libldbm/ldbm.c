@@ -51,7 +51,7 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 	}
 	dup.dsize = data.dsize;
 	if ( (dup.dptr = (char *) malloc( data.dsize )) != NULL )
-		memcpy( dup.dptr, data.dptr, data.dsize );
+		AC_MEMCPY( dup.dptr, data.dptr, data.dsize );
 
 	return( dup );
 }
@@ -811,7 +811,7 @@ ldbm_fetch( LDBM ldbm, Datum key )
 	k.key.dsize = key.dsize + 1;			
 	k.key.dptr = malloc(k.key.dsize);
 	*(k.key.dptr) = 'l';
-	memcpy( (void *)(k.key.dptr + 1), key.dptr, key.dsize );	
+	AC_MEMCPY( (void *)(k.key.dptr + 1), key.dptr, key.dsize );	
 #else
 	k.key = key;
 #endif	
@@ -879,7 +879,7 @@ ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
 	int_key.dsize = key.dsize + 1;
 	int_key.dptr = malloc( int_key.dsize );
 	*(int_key.dptr) = 'l';	/* Must not be NULL !*/
-	memcpy( (void *)(int_key.dptr + 1), key.dptr, key.dsize );
+	AC_MEMCPY( (void *)(int_key.dptr + 1), key.dptr, key.dsize );
 #else
 	int_key = key;
 #endif
@@ -918,7 +918,7 @@ ldbm_delete( LDBM ldbm, Datum key )
 	int_key.dsize = key.dsize + 1;
 	int_key.dptr = malloc(int_key.dsize);
 	*(int_key.dptr) = 'l';
-	memcpy( (void *)(int_key.dptr + 1), key.dptr, key.dsize );	
+	AC_MEMCPY( (void *)(int_key.dptr + 1), key.dptr, key.dsize );	
 #else
 	int_key = key;
 #endif
@@ -974,7 +974,7 @@ ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) )
 
 	    } else {
 
-		memcpy(ret.dptr, (void *)(out.key.dptr + delta),
+		AC_MEMCPY(ret.dptr, (void *)(out.key.dptr + delta),
 		       ret.dsize );
 
 	    }

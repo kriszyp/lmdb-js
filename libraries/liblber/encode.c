@@ -533,7 +533,7 @@ ber_put_seqorset( BerElement *ber )
 				 * the length field.  Move the data if
 				 * we don't actually need that much
 				 */
-				SAFEMEMCPY( (*sos)->sos_first + taglen +
+				AC_MEMCPY( (*sos)->sos_first + taglen +
 				    lenlen, (*sos)->sos_first + taglen +
 				    FOUR_BYTE_LEN, len );
 			}
@@ -583,7 +583,7 @@ ber_put_seqorset( BerElement *ber )
 			tmptag >>= 8;
 		}
 
-		SAFEMEMCPY( (*sos)->sos_first,
+		AC_FMEMCPY( (*sos)->sos_first,
 			&nettag[sizeof(ber_tag_t) - taglen],
 			taglen );
 
@@ -594,12 +594,12 @@ ber_put_seqorset( BerElement *ber )
 		}
 
 		/* one byte of length length */
-		SAFEMEMCPY( (*sos)->sos_first + 1, &ltag, 1 );
+		(*sos)->sos_first[1] = ltag;
 
 		if ( ber->ber_options & LBER_USE_DER ) {
 			if (lenlen > 1) {
 				/* Write the length itself */
-				SAFEMEMCPY( (*sos)->sos_first + 2,
+				AC_FMEMCPY( (*sos)->sos_first + 2,
 				    &netlen[sizeof(ber_len_t) - (lenlen - 1)],
 					lenlen - 1 );
 			}
@@ -609,13 +609,13 @@ ber_put_seqorset( BerElement *ber )
 				 * the length field.  Move the data if
 				 * we don't actually need that much
 				 */
-				SAFEMEMCPY( (*sos)->sos_first + taglen +
+				AC_FMEMCPY( (*sos)->sos_first + taglen +
 				    lenlen, (*sos)->sos_first + taglen +
 				    FOUR_BYTE_LEN, len );
 			}
 		} else {
 			/* the length itself */
-			SAFEMEMCPY( (*sos)->sos_first + taglen + 1,
+			AC_FMEMCPY( (*sos)->sos_first + taglen + 1,
 			    &netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN - 1)],
 				FOUR_BYTE_LEN - 1 );
 		}

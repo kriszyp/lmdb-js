@@ -334,7 +334,7 @@ explode_name( const char *name, int notypes, int is_type )
 				if (( parts[ count-1 ] = (char *)LDAP_CALLOC( 1,
 				    len + 1 )) != NULL )
 				{
-				   	SAFEMEMCPY( parts[ count-1 ], rdn, len );
+				   	AC_MEMCPY( parts[ count-1 ], rdn, len );
 
 					if( !endquote ) {
 						/* skip trailing spaces */

@@ -727,7 +727,7 @@ attn( int sig )
 	fflush(stdout);
 	printf("\n\n  INTERRUPTED!\n");
 
-	(void) SIGNAL (SIGINT, attn);
+	(void) SIGNAL_REINSTALL (SIGINT, attn);
 
 	longjmp(env, 1);
 }
@@ -746,6 +746,6 @@ chwinsz( int sig )
 			col_size = win.ws_col;
 	}
 
-	(void) SIGNAL (SIGWINCH, chwinsz);
+	(void) SIGNAL_REINSTALL (SIGWINCH, chwinsz);
 }
 #endif
