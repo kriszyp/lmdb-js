@@ -15,8 +15,11 @@ OpenLDAP 2.2.16 Engineering
 	Fixed slapd permissive modify bug
 	Fixed back-bdb CSN CTX bug (ITS#3301)
 	Fixed back-bdb id2entry bug
+	Fixed back-bdb syncrepl psearch delete bug (ITS#3309)
 	Fixed back-ldap/meta known controls bugs (ITS#3291)
+	Fixed back-monitor syncrepl bug (ITS#3265)
 	Fixed slurpd replog error message bug (ITS#3275)
+	Added slapd syncrepl exattrs
 	Updated LDAP C++ library
 	Documentation
 		Updated provided RFCs and I-Ds

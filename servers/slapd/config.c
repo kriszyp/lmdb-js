@@ -1324,7 +1324,7 @@ read_config( const char *fname, int depth )
 		} else if ( strcasecmp( cargv[0], "allows" ) == 0 ||
 			strcasecmp( cargv[0], "allow" ) == 0 )
 		{
-			slap_mask_t	allows;
+			slap_mask_t	allows = 0;
 
 			if ( be != NULL ) {
 #ifdef NEW_LOGGING
@@ -1353,8 +1353,6 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			allows = 0;
-
 			for( i=1; i < cargc; i++ ) {
 				if( strcasecmp( cargv[i], "bind_v2" ) == 0 ) {
 					allows |= SLAP_ALLOW_BIND_V2;
@@ -1368,7 +1366,7 @@ read_config( const char *fname, int depth )
 				} else if( strcasecmp( cargv[i], "update_anon" ) == 0 ) {
 					allows |= SLAP_ALLOW_UPDATE_ANON;
 
-				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
+				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, "%s: line %d: "
 						"unknown feature %s in \"allow <features>\" line.\n",
@@ -1379,17 +1377,17 @@ read_config( const char *fname, int depth )
 						fname, lineno, cargv[i] );
 #endif
 
-					return( 1 );
+					return 1;
 				}
 			}
 
-			global_allows = allows;
+			global_allows |= allows;
 
 		/* disallow these features */
 		} else if ( strcasecmp( cargv[0], "disallows" ) == 0 ||
 			strcasecmp( cargv[0], "disallow" ) == 0 )
 		{
-			slap_mask_t	disallows;
+			slap_mask_t	disallows = 0; 
 
 			if ( be != NULL ) {
 #ifdef NEW_LOGGING
@@ -1418,8 +1416,6 @@ read_config( const char *fname, int depth )
 				return( 1 );
 			}
 
-			disallows = 0;
-
 			for( i=1; i < cargc; i++ ) {
 				if( strcasecmp( cargv[i], "bind_anon" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_BIND_ANON;
@@ -1436,7 +1432,7 @@ read_config( const char *fname, int depth )
 				} else if( strcasecmp( cargv[i], "tls_authc" ) == 0 ) {
 					disallows |= SLAP_DISALLOW_TLS_AUTHC;
 
-				} else if( strcasecmp( cargv[i], "none" ) != 0 ) {
+				} else {
 #ifdef NEW_LOGGING
 					LDAP_LOG( CONFIG, CRIT, 
 						"%s: line %d: unknown feature %s in "
@@ -1448,17 +1444,17 @@ read_config( const char *fname, int depth )
 					    fname, lineno, cargv[i] );
 #endif
 
-					return( 1 );
+					return 1;
 				}
 			}
 
-			global_disallows = disallows;
+			global_disallows |= disallows;
 
 		/* require these features */
 		} else if ( strcasecmp( cargv[0], "requires" ) == 0 ||
 			strcasecmp( cargv[0], "require" ) == 0 )
 		{
-			slap_mask_t	requires;
+			slap_mask_t	requires = 0; 
 
 			if ( cargc < 2 ) {
 #ifdef NEW_LOGGING
@@ -1473,8 +1469,6 @@ read_config( const char *fname, int depth )
 
 				return( 1 );
 			}
-
-			requires = 0;
 
 			for( i=1; i < cargc; i++ ) {
 				if( strcasecmp( cargv[i], "bind" ) == 0 ) {
@@ -2965,6 +2959,8 @@ add_syncrepl(
 	si->si_attrsonly = 0;
 	si->si_attrs = (char **) ch_calloc( 1, sizeof( char * ));
 	si->si_attrs[0] = NULL;
+	si->si_exattrs = (char **) ch_calloc( 1, sizeof( char * ));
+	si->si_exattrs[0] = NULL;
 	si->si_type = LDAP_SYNC_REFRESH_ONLY;
 	si->si_interval = 86400;
 	si->si_retryinterval = 0;
@@ -3023,6 +3019,14 @@ add_syncrepl(
 				}
 				ch_free( si_entry->si_attrs );
 			}
+			if ( si_entry->si_exattrs ) {
+				int i = 0;
+				while ( si_entry->si_exattrs[i] != NULL ) {
+					ch_free( si_entry->si_exattrs[i] );
+					i++;
+				}
+				ch_free( si_entry->si_exattrs );
+			}
 		}
 
 		while ( !LDAP_STAILQ_EMPTY( &be->be_syncinfo )) {
@@ -3076,6 +3080,7 @@ add_syncrepl(
 #define SCOPESTR		"scope"
 #define ATTRSSTR		"attrs"
 #define ATTRSONLYSTR	"attrsonly"
+#define EXATTRSSTR		"exattrs"
 #define TYPESTR			"type"
 #define INTERVALSTR		"interval"
 #define LASTMODSTR		"lastmod"
@@ -3257,6 +3262,11 @@ parse_syncrepl_line(
 		{
 			val = cargv[ i ] + sizeof( ATTRSSTR );
 			str2clist( &si->si_attrs, val, "," );
+		} else if ( !strncasecmp( cargv[ i ],
+			EXATTRSSTR, sizeof( EXATTRSSTR ) - 1 ) )
+		{
+			val = cargv[ i ] + sizeof( EXATTRSSTR );
+			str2clist( &si->si_exattrs, val, "," );
 		} else if ( !strncasecmp( cargv[ i ],
 			TYPESTR, sizeof( TYPESTR ) - 1 ) )
 		{
