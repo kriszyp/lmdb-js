@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.334 2000/09/24 23:11:48 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.335 2000/09/24 23:13:28 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -5788,7 +5788,7 @@ if (eval "$ac_cpp conftest.$ac_ext") 2>&5 |
   ol_cv_inet6_addrslen=yes
 else
   rm -rf conftest*
-  ol_cv_inet6_addrslen
+  ol_cv_inet6_addrslen=no
 fi
 rm -f conftest*
 
@@ -5798,7 +5798,7 @@ echo "$ac_t""$ol_cv_inet6_addrslen" 1>&6
 
 	if test $ol_cv_inet6_addrslen = yes ; then
 		ol_link_ipv6=yes
-	elif $ol_enable_ipv6 = yes ; then
+	elif test $ol_enable_ipv6 = yes ; then
 		{ echo "configure: error: IPv6 support requires INET6_ADDRSTRLEN" 1>&2; exit 1; }
 	fi
 fi

@@ -825,11 +825,11 @@ else
 #			ifdef INET6_ADDRSLEN
 				__has_inet6_addrslen__;
 #			endif
-		], ol_cv_inet6_addrslen=yes, ol_cv_inet6_addrslen)])
+		], [ol_cv_inet6_addrslen=yes], [ol_cv_inet6_addrslen=no])])
 
 	if test $ol_cv_inet6_addrslen = yes ; then
 		ol_link_ipv6=yes
-	elif $ol_enable_ipv6 = yes ; then
+	elif test $ol_enable_ipv6 = yes ; then
 		AC_MSG_ERROR([IPv6 support requires INET6_ADDRSTRLEN])
 	fi
 fi
