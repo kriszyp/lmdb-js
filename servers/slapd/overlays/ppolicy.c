@@ -1784,6 +1784,41 @@ ppolicy_db_init(
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 
+	/* Has schema been initialized yet? */
+	if ( !ad_pwdMinAge ) {
+		LDAPAttributeType *at;
+		const char *err;
+		int i, code;
+
+		for (i=0; pwd_OpSchema[i].def; i++) {
+			at = ldap_str2attributetype( pwd_OpSchema[i].def, &code, &err,
+				LDAP_SCHEMA_ALLOW_ALL );
+			if ( !at ) {
+				fprintf( stderr, "AttributeType Load failed %s %s\n",
+					ldap_scherr2str(code), err );
+				return code;
+			}
+			code = at_add( at, &err );
+			if ( !code ) {
+				slap_str2ad( at->at_names[0], pwd_OpSchema[i].ad, &err );
+			}
+			ldap_memfree( at );
+			if ( code ) {
+				fprintf( stderr, "AttributeType Load failed %s %s\n",
+					scherr2str(code), err );
+				return code;
+			}
+		}
+
+		for (i=0; pwd_UsSchema[i].def; i++) {
+			code = slap_str2ad( pwd_UsSchema[i].def, pwd_UsSchema[i].ad, &err );
+			if ( code ) {
+				fprintf( stderr, "User Schema Load failed %d: %s\n", code, err );
+				return code;
+			}
+		}
+	}
+
 	on->on_bi.bi_private = ch_calloc( sizeof(pp_info), 1 );
 
 	if ( dtblsize && !pwcons )
@@ -1856,38 +1891,7 @@ static slap_overinst ppolicy;
 
 int ppolicy_init()
 {
-	LDAPAttributeType *at;
 	int code;
-	const char *err;
-	int i;
-
-	for (i=0; pwd_OpSchema[i].def; i++) {
-		at = ldap_str2attributetype( pwd_OpSchema[i].def, &code, &err,
-			LDAP_SCHEMA_ALLOW_ALL );
-		if ( !at ) {
-			fprintf( stderr, "AttributeType Load failed %s %s\n",
-				ldap_scherr2str(code), err );
-			return code;
-		}
-		code = at_add( at, &err );
-		if ( !code ) {
-			slap_str2ad( at->at_names[0], pwd_OpSchema[i].ad, &err );
-		}
-		ldap_memfree( at );
-		if ( code ) {
-			fprintf( stderr, "AttributeType Load failed %s %s\n",
-				scherr2str(code), err );
-			return code;
-		}
-	}
-
-	for (i=0; pwd_UsSchema[i].def; i++) {
-		code = slap_str2ad( pwd_UsSchema[i].def, pwd_UsSchema[i].ad, &err );
-		if ( code ) {
-			fprintf( stderr, "User Schema Load failed %d: %s\n", code, err );
-			return code;
-		}
-	}
 
 	code = register_supported_control( LDAP_CONTROL_PASSWORDPOLICYREQUEST,
 		SLAP_CTRL_ADD|SLAP_CTRL_BIND|SLAP_CTRL_MODIFY, extops,
