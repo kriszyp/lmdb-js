@@ -278,9 +278,6 @@ is provided ``as is'' without express or implied warranty.
 /* The number of bytes in a short.  */
 #undef SIZEOF_SHORT
 
-/* Define if you have the alarm function.  */
-#undef HAVE_ALARM
-
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
@@ -313,9 +310,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the mkstemp function.  */
 #undef HAVE_MKSTEMP
-
-/* Define if you have the pow function.  */
-#undef HAVE_POW
 
 /* Define if you have the pthread_attr_create function.  */
 #undef HAVE_PTHREAD_ATTR_CREATE
@@ -542,9 +536,6 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the <sys/syslog.h> header file.  */
 #undef HAVE_SYS_SYSLOG_H
 
-/* Define if you have the <sys/time.h> header file.  */
-#undef HAVE_SYS_TIME_H
-
 /* Define if you have the <sys/types.h> header file.  */
 #undef HAVE_SYS_TYPES_H
 
@@ -559,9 +550,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the <thread.h> header file.  */
 #undef HAVE_THREAD_H
-
-/* Define if you have the <unistd.h> header file.  */
-#undef HAVE_UNISTD_H
 
 /* Define if you have the V3 library (-lV3).  */
 #undef HAVE_LIBV3
