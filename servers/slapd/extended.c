@@ -32,6 +32,7 @@
 #include <ac/string.h>
 
 #include "slap.h"
+#include "lber_pvt.h"
 
 static struct extop_list {
 	struct extop_list *next;
@@ -307,12 +308,23 @@ whoami_extop (
 	const char ** text,
 	BerVarray * refs )
 {
+	int rc;
 	struct berval *bv;
 
 	if ( reqdata != NULL ) {
 		/* no request data should be provided */
 		*text = "no request data expected";
 		return LDAP_PROTOCOL_ERROR;
+	}
+
+	{
+		int rc;
+		struct berval whoami = BER_BVC( LDAP_EXOP_X_WHO_AM_I );
+
+		rc = backend_check_restrictions( conn->c_authz_backend,
+			conn, op, &whoami, text );
+
+		if( rc != LDAP_SUCCESS ) return rc;
 	}
 
 	bv = (struct berval *) ch_malloc( sizeof(struct berval) );

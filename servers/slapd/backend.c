@@ -17,6 +17,7 @@
 
 #include "slap.h"
 #include "lutil.h"
+#include "lber_pvt.h"
 
 /*
  * If a module is configured as dynamic, its header should not
@@ -767,7 +768,7 @@ backend_check_restrictions(
 	Backend *be,
 	Connection *conn,
 	Operation *op,
-	const void *opdata,
+	struct berval *opdata,
 	const char **text )
 {
 	int rc;
@@ -776,6 +777,8 @@ backend_check_restrictions(
 	slap_mask_t opflag;
 	slap_ssf_set_t *ssf;
 	int updateop = 0;
+	int starttls = 0;
+	int session = 0;
 
 	if( be ) {
 		rc = backend_check_controls( be, conn, op, text );
@@ -801,6 +804,7 @@ backend_check_restrictions(
 		break;
 	case LDAP_REQ_BIND:
 		opflag = SLAP_RESTRICT_OP_BIND;
+		session++;
 		break;
 	case LDAP_REQ_COMPARE:
 		opflag = SLAP_RESTRICT_OP_COMPARE;
@@ -811,7 +815,35 @@ backend_check_restrictions(
 		break;
 	case LDAP_REQ_EXTENDED:
 		opflag = SLAP_RESTRICT_OP_EXTENDED;
+
+		if( !opdata ) {
+			/* treat unspecified as a modify */
+			opflag = SLAP_RESTRICT_OP_MODIFY;
+			updateop++;
+			break;
+		}
+
+		{
+			struct berval bv = BER_BVC( LDAP_EXOP_START_TLS );
+			if( ber_bvcmp( opdata, &bv ) == 0 ) {
+				session++;
+				starttls++;
+				break;
+			}
+		}
+
+		{
+			struct berval bv = BER_BVC( LDAP_EXOP_X_WHO_AM_I );
+			if( ber_bvcmp( opdata, &bv ) == 0 ) {
+				break;
+			}
+		}
+
+		/* treat everything else as a modify */
+		opflag = SLAP_RESTRICT_OP_MODIFY;
+		updateop++;
 		break;
+
 	case LDAP_REQ_MODIFY:
 		updateop++;
 		opflag = SLAP_RESTRICT_OP_MODIFY;
@@ -824,6 +856,7 @@ backend_check_restrictions(
 		opflag = SLAP_RESTRICT_OP_SEARCH;
 		break;
 	case LDAP_REQ_UNBIND:
+		session++;
 		opflag = 0;
 		break;
 	default:
@@ -831,15 +864,8 @@ backend_check_restrictions(
 		return LDAP_OTHER;
 	}
 
-	if ( op->o_tag != LDAP_REQ_EXTENDED
-		|| strcmp( (const char *) opdata, LDAP_EXOP_START_TLS ) )
-	{
+	if ( !starttls ) {
 		/* these checks don't apply to StartTLS */
-
-		if( op->o_tag == LDAP_REQ_EXTENDED ) {
-			/* threat other extended operations as update ops */
-			updateop++;
-		}
 
 		if( op->o_transport_ssf < ssf->sss_transport ) {
 			*text = "transport confidentiality required";
@@ -893,10 +919,8 @@ backend_check_restrictions(
 		}
 	}
 
-	if ( op->o_tag != LDAP_REQ_BIND && ( op->o_tag != LDAP_REQ_EXTENDED ||
-		strcmp( (const char *) opdata, LDAP_EXOP_START_TLS ) ) )
-	{
-		/* these checks don't apply to Bind or StartTLS */
+	if ( !session ) {
+		/* these checks don't apply to Bind, StartTLS, or Unbind */
 
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */
