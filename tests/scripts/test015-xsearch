@@ -75,6 +75,16 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
+echo "Testing approximate searching..."
+$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
+	'(sn~=jensen)' name >> $SEARCHOUT 2>&1
+RC=$?
+if test $RC != 0 ; then
+	echo "ldapsearch failed ($RC)!"
+	test $KILLSERVERS != no && kill -HUP $KILLPIDS
+	exit $RC
+fi
+
 echo "Testing OR searching..."
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
 	'(|(givenName=XX*YY*Z)(cn=)(undef=*)(objectclass=groupofnames)(objectclass=groupofuniquenames)(sn:caseExactMatch:=Jones))' >> $SEARCHOUT 2>&1
