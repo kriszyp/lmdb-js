@@ -18,6 +18,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 		Support using short as LDAP_INT4
 	Documentation
 		Reference Quick Start Guide in README and INSTALL
+		Update slapd.conf to reflect Quick Start Guide example
 		ldappasswd(1) fix -c vs -H typo (ITS#154)
 
 Changes included in OpenLDAP 1.2.7
