@@ -1,0 +1,90 @@
+.TH SLAPD-MONITOR 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 1998-2003 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapd-monitor \- Monitor backend to slapd
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The monitor backend to
+.BR slapd (8)
+is not an actual database; if enabled, it is automatically generated
+and maintained by slapd with information about the running status of
+the daemon.
+
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the monitor backend database.
+That is, they must follow a "database monitor" line and come before any
+subsequent "backend" or "database" lines.
+As opposed to most databases, the monitor database can be instantiated
+only once, i.e. only one occurrence of "database monitor" can occur
+in the 
+.BR slapd.conf (5)
+file.
+Moreover, the suffix of the database cannot be explicitly set by means
+of the 
+.B suffix
+directive; on the contrary, the suffix is automatically set to
+.BR cn=Monitor .
+
+No specific database directives can be specified.
+The
+.B monitor
+database honors the 
+.B rootdn
+and the
+.B rootpw
+directives, and the usual ACL directives, e.g. the
+.B access
+directive.
+
+Other database options are described in the
+.BR slapd.conf (5)
+manual page.
+
+.SH USAGE
+The usage is:
+1) enable the monitor backend at configure:
+.LP
+.RS
+.nf
+configure --enable-monitor
+.fi
+.RE
+.LP
+2) activate the monitor database in the
+.BR slapd.conf (5)
+file:
+.LP
+.RS
+.nf
+database	monitor
+.fi
+.RE
+.LP
+3) add ACLs as detailed in
+.BR slapd.access (5)
+to control access to the database:
+.LP
+.RS
+.nf
+access to dn.subtree="cn=Monitor"
+	by dn.exact="uid=Admin,dc=my,dc=org" write
+	by users read
+	by * none
+.fi
+.RE
+.LP
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5),
+.BR slapd.access (5),
+.BR slapd (8),
+.BR ldap (3).
+
