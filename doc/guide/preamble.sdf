@@ -94,106 +94,103 @@ ______________<BR>
 
 # OpenLDAP related organization
 !block organisations; data
-Name	 Long						Jump
-OpenLDAP OpenLDAP					http://www.openldap.org/
-OLF	 OpenLDAP Foundation				http://www.openldap.org/foundation/
-OLP	 OpenLDAP Project				http://www.openldap.org/project/
-UM	 University of Michigan				http://www.umich.edu/
-UMLDAP	 University of Michigan LDAP			http://www.umich.edu/~dirsvcs/ldap/
-IANA	 Internet Assigned Numbers Authority		http://www.iana.org/
-IAB	 Internet Architecture Board			http://www.iab.org/
-IETF	 Internet Engineering Task Force		http://www.ietf.org/
-IESG	 Internet Engineering Steering Group		http://www.ietf.org/iesg/
-IRTF	 Internet Research Task Force			http://www.irtf.org/
-ISO	 International Organization for Standardization	http://www.iso.ch/
-ITU	 International Telephone Union			http://www.itu.int/
-RFC	 RFC Editor					http://www.rfc-editor.org/
-OpenSSL  OpenSSL					http://www.openssl.org/
-Cyrus	 Cyrus						http://asg.web.cmu.edu/cyrus/
-Sleepy	 Sleepycat Software				http://www.sleepycat.com/
-FSF	 Free Software Foundation			http://www.fsf.org/
-GNU	 GNU Not Unix 					http://www.gnu.org/
+Name|Long|Jump
+OpenLDAP|OpenLDAP|http://www.openldap.org/
+OLF|OpenLDAP Foundation|http://www.openldap.org/foundation/
+OLP|OpenLDAP Project|http://www.openldap.org/project/
+UM|University of Michigan|http://www.umich.edu/
+UMLDAP|University of Michigan LDAP|http://www.umich.edu/~dirsvcs/ldap/
+IANA|Internet Assigned Numbers Authority|http://www.iana.org/
+IAB|Internet Architecture Board|http://www.iab.org/
+IETF|Internet Engineering Task Force|http://www.ietf.org/
+IESG|Internet Engineering Steering Group|http://www.ietf.org/iesg/
+IRTF|Internet Research Task Force|http://www.irtf.org/
+ISO|International Organization for Standardization|http://www.iso.ch/
+ITU|International Telephone Union|http://www.itu.int/
+RFC|RFC Editor|http://www.rfc-editor.org/
+OpenSSL|OpenSSL|http://www.openssl.org/
+Cyrus|Cyrus|http://asg.web.cmu.edu/cyrus/
+Sleepy|Sleepycat Software|http://www.sleepycat.com/
+FSF|Free Software Foundation|http://www.fsf.org/
+GNU|GNU Not Unix|http://www.gnu.org/
 !endblock
 
 !block products; data
-Name		Jump
-BerkeleyDB	http://www.sleepycat.com/
-CVS		http://www.cyclic.com/
-Cyrus		http://asg.web.cmu.edu/cyrus/
-GNU		http://www.gnu.org/software/
-GDBM		http://www.gnu.org/software/gdbm/
-Heimdal		http://www.pdc.kth.se/heimdal/
-MIT Kerberos	http://web.mit.edu/kerberos/www/
-OpenLDAP	http://www.openldap.org/software/
-OpenSSL		http://www.openssl.org/
-Perl		http://www.perl.com/
-SASL		http://asg.web.cmu.edu/sasl/
-SQL		http://www.sql.com/
-TCL		http://www.tcl.com/
+Name|Jump
+BerkeleyDB|http://www.sleepycat.com/
+CVS|http://www.cyclic.com/
+Cyrus|http://asg.web.cmu.edu/cyrus/
+GNU|http://www.gnu.org/software/
+GDBM|http://www.gnu.org/software/gdbm/
+Heimdal|http://www.pdc.kth.se/heimdal/
+MIT Kerberos|http://web.mit.edu/kerberos/www/
+OpenLDAP|http://www.openldap.org/software/
+OpenSSL|http://www.openssl.org/
+Perl|http://www.perl.com/
+SASL|http://asg.web.cmu.edu/sasl/
+SQL|http://www.sql.com/
+TCL|http://www.tcl.com/
 !endblock
 
 # Internet and X.500 terms
 !block terms; data
-Term	Definition
-API	Application Programming Interface
-ASN	Abstract Syntax Notation
-ASN.1	Abstract Syntax Notation 1
-BCP	Best Common Practice
-BER	Basic Encoding Rules
-BNF	BNF
-C	The C Programming Language
-CLDAP	Connection-less LDAP
-DAP	Directory Access Protocol
-DER	Distinguished Encoding Rules
-DIT	Directory Information Tree
-DN	Distinguished Name
-DNS	Domain Name System
-DS	Draft Standard
-DSA	Directory Service Agent
-DSE	DSA-specific Entry
-DUA	Directory User Agent
-FAQ	Frequently Asked Questions
-FYI	For Your Information
-GSSAPI	Generic Security Services Application Programming Interface
-I-D	Internet Draft
-IP	Internet Protocol
-IPSEC	Internet Protocol Security
-ITS	Issue Tracking System
-LBER	Lightweight BER
-LDAP	Lightweight Directory Access Protocol
-LDIF	LDAP Data Interchange Format
-LDBM	LDAP Database Manager
-MIB	Management Information Base
-OID	Object Identifier
-OSI	OSI
-PS	Proposed Standard
-RDN	Relative Distinguished Name
-RFC	Request for Comments
-TCP	Transmission Control Protocol
-TLS	Transport Layer Security
-SASL	Simple Authentication and Security Layer
-SMTP	Simple Mail Transfer Protocol
-SNMP	Simple Network Management Protocol
-STD	Internet Standard
-UDP	User Datagram Protocol
-UNIX	UNIX
-URI	Uniform Resource Identifier
-URL	Uniform Resource Locator
-WWW	World Wide Web
-X.500	X.500 Directory Services
+Term|Definition
+ASN|Abstract Syntax Notation
+ASN.1|Abstract Syntax Notation 1
+BCP|Best Common Practice
+BER|Basic Encoding Rules
+BNF|BNF
+CLDAP|Connection-less LDAP
+DAP|Directory Access Protocol
+DER|Distinguished Encoding Rules
+DIT|Directory Information Tree
+DN|Distinguished Name
+DNS|Domain Name System
+DS|Draft Standard
+DSA|Directory Service Agent
+DSE|DSA-specific Entry
+DUA|Directory User Agent
+FAQ|Frequently Asked Questions
+FYI|For Your Information
+GSSAPI|Generic Security Services Application Programming Interface
+I-D|Internet Draft
+IP|Internet Protocol
+IPSEC|Internet Protocol Security
+ITS|Issue Tracking System
+LBER|Lightweight BER
+LDAP|Lightweight Directory Access Protocol
+LDIF|LDAP Data Interchange Format
+LDBM|LDAP Database Manager
+MIB|Management Information Base
+OID|Object Identifier
+OSI|OSI
+PS|Proposed Standard
+RDN|Relative Distinguished Name
+RFC|Request for Comments
+TCP|Transmission Control Protocol
+TLS|Transport Layer Security
+SASL|Simple Authentication and Security Layer
+SMTP|Simple Mail Transfer Protocol
+SNMP|Simple Network Management Protocol
+STD|Internet Standard
+UDP|User Datagram Protocol
+URI|Uniform Resource Identifier
+URL|Uniform Resource Locator
+WWW|World Wide Web
+X.500|X.500 Directory Services
 !endblock
 
 !block references; data
-Reference	Status	Document	Jump
-RFC2079		PS	RFC2079		ftp://ftp.isi.edu/in-notes/rfc2079.txt
-RFC2251		PS	RFC2251		ftp://ftp.isi.edu/in-notes/rfc2251.txt
-RFC2252		PS	RFC2252		ftp://ftp.isi.edu/in-notes/rfc2252.txt
-RFC2253		PS	RFC2253		ftp://ftp.isi.edu/in-notes/rfc2253.txt
-RFC2254		PS	RFC2254		ftp://ftp.isi.edu/in-notes/rfc2254.txt
-RFC2255		PS	RFC2255		ftp://ftp.isi.edu/in-notes/rfc2255.txt
-RFC2256		PS	RFC2256		ftp://ftp.isi.edu/in-notes/rfc2256.txt
-RFC2798		PS	RFC2798		ftp://ftp.isi.edu/in-notes/rfc2798.txt
-RFC2829		PS	RFC2829		ftp://ftp.isi.edu/in-notes/rfc2829.txt
-RFC2830		PS	RFC2830		ftp://ftp.isi.edu/in-notes/rfc2830.txt
-RFC2831		PS	RFC2831		ftp://ftp.isi.edu/in-notes/rfc2831.txt
+Reference|Status|Document|Jump
+RFC2079|PS|RFC2079|ftp://ftp.isi.edu/in-notes/rfc2079.txt
+RFC2251|PS|RFC2251|ftp://ftp.isi.edu/in-notes/rfc2251.txt
+RFC2252|PS|RFC2252|ftp://ftp.isi.edu/in-notes/rfc2252.txt
+RFC2253|PS|RFC2253|ftp://ftp.isi.edu/in-notes/rfc2253.txt
+RFC2254|PS|RFC2254|ftp://ftp.isi.edu/in-notes/rfc2254.txt
+RFC2255|PS|RFC2255|ftp://ftp.isi.edu/in-notes/rfc2255.txt
+RFC2256|PS|RFC2256|ftp://ftp.isi.edu/in-notes/rfc2256.txt
+RFC2798|PS|RFC2798|ftp://ftp.isi.edu/in-notes/rfc2798.txt
+RFC2829|PS|RFC2829|ftp://ftp.isi.edu/in-notes/rfc2829.txt
+RFC2830|PS|RFC2830|ftp://ftp.isi.edu/in-notes/rfc2830.txt
+RFC2831|PS|RFC2831|ftp://ftp.isi.edu/in-notes/rfc2831.txt
 !endblock
