@@ -1,6 +1,6 @@
 OpenLDAP 2.0 Change Log
 
-OpenLDAP 2.0.6 Engineering
+OpenLDAP 2.0.6 Release
 	Build Environment
 		Fixed schema install (ITS#802)
 		Added libtool customizations
