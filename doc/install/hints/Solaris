@@ -6,5 +6,6 @@ Sun Solaris Hints
 Latest Solaris hints are available at:
   http://www.openldap.org/faq/index.cgi?file=10
 
-Solaris NDBM and OpenLDAP appears to be incompatible.  Use
-Berkeley DB2 or GDBM.
+Solaris NDBM and OpenLDAP appears to be incompatible.
+Use Berkeley DB2 or GDBM.
+
