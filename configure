@@ -23084,7 +23084,6 @@ EOF
 
 	BUILD_SLAPD=yes
 	BUILD_META=yes
-	BUILD_LDAP=yes
 	BUILD_REWRITE=yes
 	if test "$ol_with_meta_module" != static ; then
 		cat >> confdefs.h <<\EOF

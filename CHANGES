@@ -1,5 +1,11 @@
 OpenLDAP 2.1 Change Log
 
+OpenLDAP 2.1.22 Engineering
+	Fixed slapadd dnfree bug (ITS#2587)
+	Fixed slapd yielding select fix (ITS#2603)
+	Build Environment
+		Fixed back-ldap/meta conflict (ITS#2608)
+
 OpenLDAP 2.1.21 Release
 	Fixed liblber ber_get_next trickle bug (ITS#2490)
 	Fixed ldapsearch -p without -h bug (ITS#2532)
