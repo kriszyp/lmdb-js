@@ -206,8 +206,8 @@ do_bind(
 	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%lu op=%lu BIND dn=\"%s\" method=%ld\n",
-	    op->o_connid, op->o_opid, op->o_req_dn.bv_val, (unsigned long) op->orb_method,
-		0 );
+	    op->o_connid, op->o_opid, op->o_req_dn.bv_val,
+		(unsigned long) op->orb_method, 0 );
 
 	if ( version < LDAP_VERSION_MIN || version > LDAP_VERSION_MAX ) {
 #ifdef NEW_LOGGING
@@ -458,7 +458,9 @@ do_bind(
 		}
 
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
-	} else if ( op->orb_method == LDAP_AUTH_KRBV41 || op->orb_method == LDAP_AUTH_KRBV42 ) {
+	} else if ( op->orb_method == LDAP_AUTH_KRBV41 ||
+		op->orb_method == LDAP_AUTH_KRBV42 )
+	{
 		if ( global_disallows & SLAP_DISALLOW_BIND_KRBV4 ) {
 			/* disallow simple authentication */
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
