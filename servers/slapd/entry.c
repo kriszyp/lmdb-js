@@ -598,10 +598,12 @@ int entry_decode(struct berval *bv, Entry **e)
 	i = entry_getlen(&ptr);
 	x = ch_malloc(i);
 	i = entry_getlen(&ptr);
-	x->e_dn = ptr;
+	x->e_name.bv_val = ptr;
+	x->e_name.bv_len = i;
 	ptr += i+1;
 	i = entry_getlen(&ptr);
-	x->e_ndn = ptr;
+	x->e_nname.bv_val = ptr;
+	x->e_nname.bv_len = i;
 	ptr += i+1;
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "operation", LDAP_LEVEL_DETAIL2,
