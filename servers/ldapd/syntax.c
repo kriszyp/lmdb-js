@@ -439,7 +439,7 @@ put_photo_value( BerElement *ber, AttributeValue av )
 		len = ps_get_abs( pe );
 		Debug( LDAP_DEBUG_ARGS, "put_photo_val: ber_printf %d bytes\n",
 		    len, 0, 0 );
-		if (( phber = der_alloc()) == NULLBER ) {
+		if (( phber = der_alloc()) == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "der_alloc failed\n", 0, 0, 0 );
 			return( -1 );
 		}

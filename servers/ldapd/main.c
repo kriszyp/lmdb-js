@@ -154,7 +154,7 @@ main( int argc, char **argv )
 #ifdef LDAP_DEBUG
 			ldap_debug = atoi( optarg );
 			if ( ldap_debug & LDAP_DEBUG_PACKETS )
-				lber_int_debug = ldap_debug;
+				ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug );
 #else
 			fprintf( stderr, "Not compiled with -DLDAP_DEBUG!\n" );
 #endif

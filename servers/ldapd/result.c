@@ -317,7 +317,7 @@ send_ldap_result(
 		tag = LBER_SEQUENCE;
 #endif
 
-	if ( (ber = der_alloc()) == NULLBER ) {
+	if ( (ber = der_alloc()) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "der_alloc failed\n", 0, 0, 0 );
 		return( -1 );
 	}

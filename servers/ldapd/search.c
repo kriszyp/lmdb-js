@@ -552,7 +552,7 @@ search_result(
 
 #ifdef LDAP_CONNECTIONLESS
 	if ( m->m_cldap ) {
-		if ((ber = der_alloc()) == NULLBER ) {
+		if ((ber = der_alloc()) == NULL ) {
 			send_ldap_msgresult( sb, SEARCHRESTAG, m,
 			    LDAP_OPERATIONS_ERROR, NULL, "der_alloc" );
 			return;
@@ -573,7 +573,7 @@ search_result(
 		if ( !m->m_cldap )
 #endif /* LDAP_CONNECTIONLESS */
 
-			if ( (ber = der_alloc()) == NULLBER ) {
+			if ( (ber = der_alloc()) == NULL ) {
 				send_ldap_msgresult( sb, SEARCHRESTAG, m,
 				    LDAP_OPERATIONS_ERROR, NULL, "der_alloc" );
 				return;
