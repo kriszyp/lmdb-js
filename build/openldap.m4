@@ -401,12 +401,13 @@ main()
 	[ol_cv_berkeley_db_thread=cross])
 
 	LIBS="$ol_LIBS"
+])
 
 	if test $ol_cv_berkeley_db_thread != no ; then
 		AC_DEFINE(HAVE_BERKELEY_DB_THREAD, 1,
 			[define if Berkeley DB has DB_THREAD support])
 	fi
-])])dnl
+])dnl
 dnl
 dnl --------------------------------------------------------------------
 dnl Find any DB
@@ -437,7 +438,7 @@ AC_DEFUN([OL_BDB_COMPAT],
 #if DB_VERSION_MAJOR >= 4 
 	__db_version_compat
 #endif
-	],	[ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
+	], [ol_cv_bdb_compat=yes], [ol_cv_bdb_compat=no])])
 ])
 
 dnl --------------------------------------------------------------------
