@@ -10,6 +10,7 @@
 #include <ac/unistd.h>
 
 #include "lutil.h"
+#include "ldap_config.h"
 
 char *
 (tempnam)( const char *dir, const char *pfx )
