@@ -808,8 +808,8 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 	return 0;
 }
 
-int
-ldap_pvt_put_vrFilter( BerElement *ber, const char *str_in )
+static int
+put_vrFilter( BerElement *ber, const char *str_in )
 {
 	int rc;
 	char	*freeme;
@@ -847,7 +847,7 @@ ldap_pvt_put_vrFilter( BerElement *ber, const char *str_in )
 	 */
 
 #ifdef NEW_LOGGING
-	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, "ldap_pvt_put_vrFilter: \"%s\"\n",
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, "put_vrFilter: \"%s\"\n",
 		str_in ));
 #else
 	Debug( LDAP_DEBUG_TRACE, "put_vrFilter: \"%s\"\n", str_in, 0, 0 );
@@ -893,7 +893,7 @@ ldap_pvt_put_vrFilter( BerElement *ber, const char *str_in )
 			default:
 #ifdef NEW_LOGGING
 				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
-					"ldap_pvt_put_vrFilter: simple\n" ));
+					"put_vrFilter: simple\n" ));
 #else
 				Debug( LDAP_DEBUG_TRACE, "put_vrFilter: simple\n",
 				    0, 0, 0 );
@@ -987,7 +987,7 @@ done:
 }
 
 int
-put_vrFilter( BerElement *ber, const char *str_in )
+ldap_put_vrFilter( BerElement *ber, const char *str_in )
 {
 	int rc =0;
 	
@@ -995,7 +995,7 @@ put_vrFilter( BerElement *ber, const char *str_in )
 		rc = -1;
 	}
 	
-	rc = ldap_pvt_put_vrFilter( ber, str_in );
+	rc = put_vrFilter( ber, str_in );
 
 	if ( ber_printf( ber, /*"{"*/ "N}" ) == -1 ) {
 		rc = -1;
@@ -1031,7 +1031,7 @@ put_vrFilter_list( BerElement *ber, char *str )
 
 		/* now we have "(filter)" with str pointing to it */
 		*next = '\0';
-		if ( ldap_pvt_put_vrFilter( ber, str ) == -1 ) return -1;
+		if ( put_vrFilter( ber, str ) == -1 ) return -1;
 		*next = save;
 		str = next;
 	}

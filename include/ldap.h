@@ -1454,6 +1454,10 @@ LDAP_F( LDAPFiltInfo * )
 ldap_getnextfilter LDAP_P(( /* deprecated */
 	LDAPFiltDesc *lfdp ));
 
+LDAP_F( int )
+ldap_put_vrFilter LDAP_P((
+	BerElement *ber,
+	const char *vrf ));
 
 /*
  * in free.c
@@ -1594,7 +1598,7 @@ ldap_parse_sort_control LDAP_P((
  */
 
 /*
- * structure for virtul list.
+ * structure for virtual list.
  */
 typedef struct ldapvlvinfo {
 	int             ldvlv_version;
