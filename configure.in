@@ -617,8 +617,18 @@ if test $ol_with_threads = auto -o $ol_with_threads = yes \
 		dnl 	pthread_mutex_trylock() in -lpthreads -lexc (OSF/1)
 		dnl
 
+		dnl hack the Pthread detection problem in IRIX 6*
+
+ 		save_LIBS="$LIBS"
+
+		case "$host_os" in
+		irix6*)  AC_CHECK_LIB(pthread, main, [LTHREAD_LIBS="$LTHREAD_LIBS -lpthread" LIBS="-lpthread $LIBS"]);;
+		esac
+
 		dnl pthread_create in $LIBS
 		AC_CHECK_FUNC(pthread_create,[ol_link_threads=yes])
+
+		LIBS="$save_LIBS"
 
 		if test $ol_link_threads = no ; then
 			dnl try -mt
