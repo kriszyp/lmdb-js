@@ -711,6 +711,14 @@ int slap_mods_check(
 				return LDAP_CONSTRAINT_VIOLATION;
 			}
 
+			/* if the type has a normalizer, generate the
+			 * normalized values. otherwise leave them NULL.
+			 *
+			 * this is different from the rule for attributes
+			 * in an entry - in an attribute list, the normalized
+			 * value is set equal to the non-normalized value
+			 * when there is no normalizer.
+			 */
 			if( nvals && ad->ad_type->sat_equality &&
 				ad->ad_type->sat_equality->smr_normalize )
 			{
