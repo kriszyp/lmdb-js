@@ -18,6 +18,7 @@
 #include <sys/file.h>
 #endif
 
+#include <lutil.h>
 #include "slap.h"
 
 FILE *
