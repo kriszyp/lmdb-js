@@ -268,13 +268,13 @@ typedef struct ldapcontrol {
 #define LDAP_FILTER_LE		(ber_tag_t) 0xa6U	/* context specific + constructed */
 #define LDAP_FILTER_PRESENT	(ber_tag_t) 0x87U	/* context specific + primitive   */
 #define LDAP_FILTER_APPROX	(ber_tag_t) 0xa8U	/* context specific + constructed */
-#define LDAP_FILTER_EXTENDED	(ber_tag_t) 0xa9U	/* context specific + constructed */
+#define LDAP_FILTER_EXT		(ber_tag_t) 0xa9U	/* context specific + constructed */
 
 /* extended filter component types */
-#define LDAP_FILTER_EXTENDED_OID	(ber_tag_t) 0x81U	/* context specific */
-#define LDAP_FILTER_EXTENDED_TYPE	(ber_tag_t) 0x82U	/* context specific */
-#define LDAP_FILTER_EXTENDED_VALUE	(ber_tag_t) 0x83U	/* context specific */
-#define LDAP_FILTER_EXTENDED_DNATTRS	(ber_tag_t) 0x84U	/* context specific */
+#define LDAP_FILTER_EXT_OID	(ber_tag_t) 0x81U	/* context specific */
+#define LDAP_FILTER_EXT_TYPE	(ber_tag_t) 0x82U	/* context specific */
+#define LDAP_FILTER_EXT_VALUE	(ber_tag_t) 0x83U	/* context specific */
+#define LDAP_FILTER_EXT_DNATTRS	(ber_tag_t) 0x84U	/* context specific */
 
 /* substring filter component types */
 #define LDAP_SUBSTRING_INITIAL	(ber_tag_t) 0x80U	/* context specific */

@@ -22,10 +22,10 @@
 
 #include "ldap-int.h"
 
-static int ldap_is_attribute LDAP_P((
+static int ldap_is_attr_oid LDAP_P((
 	const char *attr ));
 
-static int ldap_is_attribute_ext LDAP_P((
+static int ldap_is_attr_desc LDAP_P((
 	const char *attr ));
 
 static int hex2value LDAP_P((
@@ -333,33 +333,48 @@ ldap_build_search_req(
 	return( ber );
 }
 
-#ifndef LDAP_UNDERSCORE
-#define LDAP_UNDERSCORE ""
-#endif
-
-static char *spanset =
-	":-.;" LDAP_UNDERSCORE
-	"ABCDEFGHIGKLMNOPQRSTUVWXYZ"
-	"abcdefghijklmnopqrstuvwxyz"
-	"0123456789";
-
-#define ATTR_SPANSET	(spanset)
-#define EXT_SPANSET		(&spanset[1])
-
-static int ldap_is_attribute LDAP_P(( const char *attr ))
+static int ldap_is_attr_oid LDAP_P(( const char *attr ))
 {
-	size_t len = strlen( attr );
-	size_t span = strspn( attr, ATTR_SPANSET );
+	int i, c, digit=0;
 
-	return span == len;
+	for( i=0 ; c = attr[i] ; i++ ) {
+		if( c >= '0' && c <= '9' ) {
+			digit=1;
+
+		} else if ( c != '.' ) {
+			/* not digit nor '.' */
+			return 0;
+
+		} else if ( !digit ) {
+			/* '.' but prev not digit */
+			return 0;
+
+		} else {
+			/* '.' */
+			digit = 0;
+		}
+	}
+
+	return digit;
+
 }
 
-static int ldap_is_attribute_ext LDAP_P(( const char *attr ))
+static int ldap_is_attr_desc LDAP_P(( const char *attr ))
 {
-	size_t len = strlen( attr );
-	size_t span = strspn( attr, EXT_SPANSET );
+	/* cheap attribute description check */
+	int i, c;
 
-	return span == len;
+	for( i=0; c = attr[i]; i++ ) {
+		if (( c >= '0' && c <= '9' )
+			|| ( c >= 'A' && c <= 'Z' )
+			|| ( c >= 'a' && c <= 'z' )
+			|| ( c == '.' || c == '-' )
+			|| ( c == ';' )) continue;
+
+		return 0;
+	}
+
+	return i > 0;
 }
 
 static char *
@@ -706,25 +721,100 @@ put_simple_filter(
 	case '<':
 		ftype = LDAP_FILTER_LE;
 		*s = '\0';
-		if(! ldap_is_attribute( str ) ) goto done;
+		if(! ldap_is_attr_desc( str ) ) goto done;
 		break;
 
 	case '>':
 		ftype = LDAP_FILTER_GE;
 		*s = '\0';
-		if(! ldap_is_attribute( str ) ) goto done;
+		if(! ldap_is_attr_desc( str ) ) goto done;
 		break;
 
 	case '~':
 		ftype = LDAP_FILTER_APPROX;
 		*s = '\0';
-		if(! ldap_is_attribute( str ) ) goto done;
+		if(! ldap_is_attr_desc( str ) ) goto done;
 		break;
 
-	case ':':	/* LDAPv3 extended filter */
-		ftype = LDAP_FILTER_EXTENDED;
-		if(! ldap_is_attribute_ext( str ) ) goto done;
-		goto done; /* XXX not yet implemented */
+	case ':':
+		/* RFC2254 extensible filters are off the form:
+		 *		type [:dn] [:rule] := value
+		 * or	[:dn]:rule := value		
+		 */
+		ftype = LDAP_FILTER_EXT;
+		*s = '\0';
+
+		{
+			char *dn = strchr( str, ':' );
+			char *rule = NULL;
+
+			if( dn == NULL ) {
+				if(! ldap_is_attr_desc( str ) ) goto done;
+				break;
+			}
+
+			*dn++ = '\0';
+			rule = strchr( dn, ':' );
+
+			if( rule == NULL ) {
+				/* one colon */
+				if ( strcmp(dn, "dn") == 0 ) {
+					/* must have attribute */
+					if( !ldap_is_attr_desc( str ) ) {
+						goto done;
+					}
+
+					rule = "";
+
+				} else {
+					rule = dn;
+					dn = NULL;
+				}
+				
+			} else {
+				/* two colons */
+				*rule++ = '\0';
+
+				if ( strcmp(dn, "dn") != 0 ) {
+					/* must have "dn" */
+					goto done;
+				}
+			}
+
+			if ( *str == '\0' && *rule == '\0' ) {
+				/* must have either type or rule */
+				goto done;
+			}
+
+			if ( *str != '\0' && !ldap_is_attr_desc( str ) ) {
+				goto done;
+			}
+
+			if ( *rule != '\0' && !ldap_is_attr_oid( rule ) ) {
+				goto done;
+			}
+
+			rc = ber_printf( ber, "t{" /*}*/, ftype );
+
+			if( rc != -1 && *rule != '\0' ) {
+				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_OID, rule );
+			}
+			if( rc != -1 && *str != '\0' ) {
+				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_TYPE, str );
+			}
+
+			if( rc != -1 ) {
+				ber_slen_t len = filter_value_unescape( value );
+
+				if( len >= 0 ) {
+					rc = ber_printf( ber, "totb}",
+						LDAP_FILTER_EXT_VALUE, value, len,
+						LDAP_FILTER_EXT_DNATTRS, dn != NULL);
+				} else {
+					rc = -1;
+				}
+			}
+		}
 		break;
 
 	default:
