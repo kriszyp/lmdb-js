@@ -652,6 +652,7 @@ bdb2i_db_nextkey( LDBM ldbm, Datum key, DBC *dbcp )
 	int		rc;
 
 	ldbm_datum_init( data );
+	ldbm_datum_free( ldbm, key );
 	key.flags = data.flags = DB_DBT_MALLOC;
 
 	if ( (*dbcp->c_get)( dbcp, &key, &data, DB_NEXT ) == 0 ) {
