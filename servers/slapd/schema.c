@@ -923,6 +923,25 @@ IA5StringValidate(
 }
 
 static int
+IA5StringConvert(
+	Syntax *syntax,
+	struct berval *in,
+	struct berval **out )
+{
+	struct berval *bv = ch_malloc( sizeof(struct berval) );
+	bv->bv_len = (in->bv_len+1) * sizeof( ldap_unicode_t );
+	bv->bv_val = ch_malloc( bv->bv_len );
+
+	for(i=0; i < val->bv_len; i++ ) {
+		/*
+		 * IA5StringValidate should have been called to ensure
+		 * input is limited to IA5.
+		 */
+		bv->bv_val[i] = in->bv_val[i];
+	}
+}
+
+static int
 IA5StringNormalize(
 	Syntax *syntax,
 	MatchingRule *mr,
