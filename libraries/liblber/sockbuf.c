@@ -711,8 +711,10 @@ int ber_pvt_sb_init( Sockbuf *sb )
 #ifdef USE_SASL   
    sb->sb_sec_ready = 0;
 #endif   
-   sb->sb_read_ahead = 0;
+   sb->sb_read_ahead = 1; /* test */
    sb->sb_non_block = 0;
+   sb->sb_trans_needs_read = 0;
+   sb->sb_trans_needs_write = 0;
    sb->sb_fd = -1;
    sb->sb_iodata = NULL;
    sb->sb_io = &sb_IO_None;
@@ -841,7 +843,9 @@ int ber_pvt_sb_clear_io( Sockbuf *sb )
    sb->sb_io = &sb_IO_None;
    
    sb->sb_trans_ready = 0;
-   
+   sb->sb_trans_needs_read = 0;
+   sb->sb_trans_needs_write = 0;
+
    return 0;
 }
 
