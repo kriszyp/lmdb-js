@@ -37,6 +37,14 @@ typedef struct ldap_syntax {
 	char *syn_desc;		/* OPTIONAL */
 } LDAP_SYNTAX;
 
+typedef struct ldap_matchingrule {
+	char *mr_oid;		/* REQUIRED */
+	char **mr_names;	/* OPTIONAL */
+	char *mr_desc;		/* OPTIONAL */
+	int  mr_obsolete;	/* OPTIONAL */
+	char *mr_syntax_oid;	/* REQUIRED */
+} LDAP_MATCHING_RULE;
+
 typedef struct ldap_attributetype {
 	char *at_oid;		/* REQUIRED */
 	char **at_names;	/* OPTIONAL */
@@ -83,6 +91,10 @@ ldap_syntax_free LDAP_P((
 	LDAP_SYNTAX * syn ));
 
 LDAP_F( void )
+ldap_matchingrule_free LDAP_P((
+	LDAP_MATCHING_RULE * mr ));
+
+LDAP_F( void )
 ldap_attributetype_free LDAP_P((
 	LDAP_ATTRIBUTE_TYPE * at ));
 
@@ -108,6 +120,12 @@ ldap_str2syntax LDAP_P((
 	int * code,
 	LDAP_CONST char ** errp ));
 
+LDAP_F( LDAP_MATCHING_RULE * )
+ldap_str2matchingrule LDAP_P((
+	LDAP_CONST char * s,
+	int * code,
+	LDAP_CONST char ** errp ));
+
 LDAP_F( char *)
 ldap_objectclass2str LDAP_P((
 	LDAP_CONST LDAP_OBJECT_CLASS * oc ));
@@ -119,6 +137,10 @@ ldap_attributetype2str LDAP_P((
 LDAP_F( char *)
 ldap_syntax2str LDAP_P((
 	LDAP_CONST LDAP_SYNTAX * syn ));
+
+LDAP_F( char *)
+ldap_matchingrule2str LDAP_P((
+	LDAP_CONST LDAP_MATCHING_RULE * mr ));
 
 LDAP_F( char *)
 ldap_scherr2str LDAP_P((
