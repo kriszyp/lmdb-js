@@ -80,9 +80,8 @@ slap_send_session_log(
 			if ( rs->sr_err != LDAP_SUCCESS )
 				return rs->sr_err;
 
-			if ( e.e_name.bv_val )
-				ch_free( e.e_name.bv_val );
-			ber_dupbv( &e.e_name, &slog_e->sl_name );
+			e.e_name = slog_e->sl_name;
+			e.e_nname = slog_e->sl_nname;
 
 			rs->sr_entry = &e;
 			rs->sr_attrs = uuid_attr;
@@ -112,6 +111,7 @@ slap_add_session_log(
 	a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
 	ber_dupbv( &slog_e->sl_uuid, &a->a_nvals[0] );
 	ber_dupbv( &slog_e->sl_name, &e->e_name );
+	ber_dupbv( &slog_e->sl_nname, &e->e_nname );
 	ber_dupbv( &slog_e->sl_csn,  &op->o_sync_csn );
 	LDAP_STAILQ_INSERT_TAIL( &sop->o_sync_slog_list, slog_e, sl_link );
 	sop->o_sync_slog_len++;
@@ -125,6 +125,7 @@ slap_add_session_log(
 		LDAP_STAILQ_REMOVE_HEAD( &sop->o_sync_slog_list, sl_link );
 		ch_free( slog_e->sl_uuid.bv_val );
 		ch_free( slog_e->sl_name.bv_val );
+		ch_free( slog_e->sl_nname.bv_val );
 		ch_free( slog_e->sl_csn.bv_val );
 		ch_free( slog_e );
 		sop->o_sync_slog_len--;

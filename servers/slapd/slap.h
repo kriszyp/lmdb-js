@@ -1940,6 +1940,7 @@ struct psid_entry {
 struct slog_entry {
 	struct berval sl_uuid;
 	struct berval sl_name;
+	struct berval sl_nname;
 	struct berval sl_csn;
 	LDAP_STAILQ_ENTRY(slog_entry) sl_link;
 };
