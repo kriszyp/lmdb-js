@@ -18,17 +18,17 @@
 
 struct ldaperror {
 	int	e_code;
-	char	*e_reason;
+	char *e_reason;
 };
 
-static const struct ldaperror ldap_errlist[] = {
+static struct ldaperror ldap_builtin_errlist[] = {
 	{LDAP_SUCCESS, 					"Success" },
 	{LDAP_OPERATIONS_ERROR, 		"Operations error" },
 	{LDAP_PROTOCOL_ERROR, 			"Protocol error" },
 	{LDAP_TIMELIMIT_EXCEEDED,		"Time limit exceeded" },
 	{LDAP_SIZELIMIT_EXCEEDED, 		"Size limit exceeded" },
-	{LDAP_COMPARE_FALSE, 			"Compare false" },
-	{LDAP_COMPARE_TRUE, 			"Compare true" },
+	{LDAP_COMPARE_FALSE, 			"Compare False" },
+	{LDAP_COMPARE_TRUE, 			"Compare True" },
 	{LDAP_STRONG_AUTH_NOT_SUPPORTED, "Authentication method not supported" },
 	{LDAP_STRONG_AUTH_REQUIRED, 	"Strong authentication required" },
 	{LDAP_PARTIAL_RESULTS, 			"Partial results and referral received" },
@@ -92,15 +92,47 @@ static const struct ldaperror ldap_errlist[] = {
 	{LDAP_CLIENT_LOOP,				"Client Loop" },
 	{LDAP_REFERRAL_LIMIT_EXCEEDED,	"Referral Limit Exceeded" },
 
-	{-1, NULL }
+	{-1, NULL}
 };
+
+static struct ldaperror *ldap_errlist = ldap_builtin_errlist; 
+
+void ldap_int_error_init( void ) {
+#ifdef LDAP_NLS
+#define LDAP_NLS_SDK_CAT "openldap_sdk"
+#define LDAP_NLS_LIBLDAP_SET (0)
+
+	int	i;
+	nl_catd catd = catopen( LDAP_NLS_SDK_CAT, NL_CAT_LOCALE );
+
+	if( catd == -1 ) {
+		return;
+	}
+
+	for ( i=0; ldap_errlist[i].e_reason != NULL; i++ ) {
+		char *msg = catgets( catd,
+			LDAP_NLS_LIBLDAP_SET,
+			ldap_errlist[i].e_code, NULL );
+
+		if( msg != NULL ) {
+			msg = LDAP_STRDUP( msg );
+
+			if( msg != NULL ) {
+				ldap_errlist[i].e_reason = msg;
+			}
+		}
+	}
+
+	catclose( catd );
+#endif
+}
 
 static const struct ldaperror *
 ldap_int_error( int err )
 {
 	int	i;
 
-	for ( i = 0; ldap_errlist[i].e_code != -1; i++ ) {
+	for ( i=0; ldap_errlist[i].e_reason != NULL; i++ ) {
 		if ( err == ldap_errlist[i].e_code ) {
 			return &ldap_errlist[i];
 		}

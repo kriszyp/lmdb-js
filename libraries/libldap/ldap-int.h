@@ -342,6 +342,11 @@ LDAP_F ( void ) ldap_int_initialize_global_options LDAP_P((
 #define LDAP_STRDUP(s)		(LBER_STRDUP((s)))
 
 /*
+ * in error.c
+ */
+void ldap_int_error_init( void );
+
+/*
  * in unit-int.c
  */
 LDAP_F (void) ldap_int_utils_init LDAP_P(( void ));
