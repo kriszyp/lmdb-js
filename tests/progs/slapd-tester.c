@@ -166,7 +166,7 @@ main( int argc, char **argv )
 	 */
 
 	sanum = 0;
-	sprintf( scmd, "%s%s%s", progdir, DEFAULT_DIRSEP, SEARCHCMD );
+	sprintf( scmd, "%s%s%s", progdir, DIRSEP, SEARCHCMD );
 	sargs[sanum++] = scmd;
 	sargs[sanum++] = "-h";
 	sargs[sanum++] = host;
@@ -185,7 +185,7 @@ main( int argc, char **argv )
 	 */
 
 	ranum = 0;
-	sprintf( rcmd, "%s%s%s", progdir, DEFAULT_DIRSEP, READCMD );
+	sprintf( rcmd, "%s%s%s", progdir, DIRSEP, READCMD );
 	rargs[ranum++] = rcmd;
 	rargs[ranum++] = "-h";
 	rargs[ranum++] = host;
@@ -202,7 +202,7 @@ main( int argc, char **argv )
 	 */
 
 	aanum = 0;
-	sprintf( acmd, "%s%s%s", progdir, DEFAULT_DIRSEP, ADDCMD );
+	sprintf( acmd, "%s%s%s", progdir, DIRSEP, ADDCMD );
 	aargs[aanum++] = acmd;
 	aargs[aanum++] = "-h";
 	aargs[aanum++] = host;
@@ -253,7 +253,7 @@ get_file_name( char *dirname, char *filename )
 {
 	char buf[MAXPATHLEN];
 
-	sprintf( buf, "%s%s%s", dirname, DEFAULT_DIRSEP, filename );
+	sprintf( buf, "%s%s%s", dirname, DIRSEP, filename );
 	return( strdup( buf ));
 }
 
