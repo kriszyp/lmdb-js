@@ -24,7 +24,7 @@ install:	FORCE
 depend:	FORCE
 
 clean:	FORCE
-	$(RM) test-db/[a-z]* test-repl/[a-z]*
+	$(RM) test-db/[^C]* test-repl/[^C]*
 
 veryclean:	clean
 
