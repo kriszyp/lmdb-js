@@ -606,7 +606,7 @@ int bdb_fix_dn(
 	o = bdb_find_id_node(id, bdb->bi_tree);
 	rlen = be->be_suffix[0]->bv_len + 1;
 	nrlen = be->be_nsuffix[0]->bv_len + 1;
-	for (n = o; n; n=n->i_parent) {
+	for (n = o; n && n->i_parent; n=n->i_parent) {
 		rlen += n->i_rdn->rdn.bv_len + 1;
 		nrlen += n->i_rdn->nrdn.bv_len + 1;
 	}
@@ -616,7 +616,7 @@ int bdb_fix_dn(
 	e->e_nname.bv_val = e->e_name.bv_val + rlen;
 	ptr = e->e_name.bv_val;
 	nptr = e->e_nname.bv_val;
-	for (n = o; n; n=n->i_parent) {
+	for (n = o; n && n->i_parent; n=n->i_parent) {
 		ptr = slap_strcopy(ptr, n->i_rdn->rdn.bv_val);
 		*ptr++ = ',';
 		nptr = slap_strcopy(nptr, n->i_rdn->nrdn.bv_val);
@@ -624,8 +624,6 @@ int bdb_fix_dn(
 	}
 	ldap_pvt_thread_rdwr_runlock(&bdb->bi_tree_rdwr);
 
-	ptr--;
-	nptr--;
 	strcpy(ptr, be->be_suffix[0]->bv_val);
 	strcpy(nptr, be->be_nsuffix[0]->bv_val);
 
@@ -665,7 +663,7 @@ bdb_dn2id_add(
 	d->rdn.bv_val -= (long)d;
 	d->nrdn.bv_val -= (long)d;
 
-	if (pdn) {
+	if (pdn->bv_len) {
 		bdb_dn2id(be, txn, pdn, &d->parent);
 	} else {
 		d->parent = 0;

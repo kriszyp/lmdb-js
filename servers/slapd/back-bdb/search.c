@@ -118,10 +118,10 @@ bdb_search(
 		}
 
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
-			matched_dn->bv_val, text, refs, NULL );
+			matched_dn ? matched_dn->bv_val : NULL, text, refs, NULL );
 
-		ber_bvecfree( refs );
-		ber_bvfree( matched_dn );
+		if ( refs ) ber_bvecfree( refs );
+		if ( matched_dn ) ber_bvfree( matched_dn );
 		return rc;
 	}
 
