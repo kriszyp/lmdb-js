@@ -123,6 +123,8 @@ char * dn_rdn LDAP_P(( Backend *be, char *dn ));
 int dn_issuffix LDAP_P(( char *dn, char *suffix ));
 int dn_type LDAP_P(( char *dn ));
 char * dn_upcase LDAP_P(( char *dn ));
+char * rdn_attr_value LDAP_P(( char * rdn ));
+char * rdn_attr_type LDAP_P(( char * rdn ));
 
 /*
  * entry.c
