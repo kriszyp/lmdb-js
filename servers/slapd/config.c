@@ -998,7 +998,7 @@ read_config( const char *fname )
 		} else if ( strcasecmp( cargv[0], "updateref" ) == 0 ) {
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
-		    "%s: line %d: missing dn in \"updateref <ldapurl>\" line\n",
+		    "%s: line %d: missing url in \"updateref <ldapurl>\" line\n",
 				    fname, lineno, 0 );
 				return( 1 );
 			}
