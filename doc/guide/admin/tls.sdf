@@ -1,0 +1,10 @@
+# Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
+# COPYING RESTRICTIONS APPLY, see COPYRIGHT.
+
+H1: Using TLS
+
+OpenLDAP clients and servers are capable of using
+Transport Layer Security {{TERM:TLS}} framework to provide
+integrity and confidentiality protections and to support
+LDAP authentication via SASL EXTERNAL. 
+

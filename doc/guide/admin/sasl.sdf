@@ -3,21 +3,22 @@
 
 H1: Using SASL
 
-This chapter details how to make use of SASL to provide authentication.
-OpenLDAP clients and servers are capable of providing authentication
-via the {{TERM[expand]SASL}} ({{TERM:SASL}}) system, which is
-explained in {{REF:RFC2222}}. There are several industry standard
-authentication mechanisms that can be used with SASL, including
-Kerberos V4, GSSAPI, and some of the Digest mechanisms. The standard
-client tools provided with OpenLDAP, such as {{ldapsearch}}(1) and
-{{ldapmodify}}(1), will by default attempt to authenticate the user
-to the {{slapd}}(8) server using SASL. Basic authentication service
-can be set up by the LDAP administrator with a few steps, allowing
-users to be authenticated to the slapd server as their LDAP entry.
-With a few extra steps, some users and services can be allowed to
-exploit SASL's authorization feature, allowing them to authenticate
-themselves and then switch their identity to that of another user
-or service.
+OpenLDAP clients and servers are capable of authenticating via the
+{{TERM[expand]SASL}} ({{TERM:SASL}}) framework, which is detailed
+in {{REF:RFC2222}}.   This chapter describes how to make use of
+SASL in OpenLDAP.
+
+There are several industry standard authentication mechanisms that
+can be used with SASL, including Kerberos V4, GSSAPI, and some of
+the Digest mechanisms. The standard client tools provided with
+OpenLDAP, such as {{ldapsearch}}(1) and {{ldapmodify}}(1), will by
+default attempt to authenticate the user to the {{slapd}}(8) server
+using SASL. Basic authentication service can be set up by the LDAP
+administrator with a few steps, allowing users to be authenticated
+to the slapd server as their LDAP entry.  With a few extra steps,
+some users and services can be allowed to exploit SASL's authorization
+feature, allowing them to authenticate themselves and then switch
+their identity to that of another user or service.
 
 This chapter assumes you have read {{Cyrus SASL for System
 Administrators}}, provided with the {{PRD:Cyrus}} {{PRD:SASL}}
@@ -33,7 +34,7 @@ uses LDAP operations to access information held in an LDAP server
 is an application entity.
 
 
-H2: Security Considerations
+H2: SASL Security Considerations
 
 SASL offers many different authentication mechanisms.  This section
 briefly outlines security considerations.
@@ -458,8 +459,8 @@ search from an LDAP URL, the authorization request fails with
 authorization DN ready to undergo approval.
 
 If the authorization identity was provided in the second form, with
-a "dn:" prefix, the string after the prefix is already in authorization
-DN form, ready to undergo approval.
+a {EX:"dn:"}} prefix, the string after the prefix is already in
+authorization DN form, ready to undergo approval.
 
 
 H3: Authorization rules
@@ -479,11 +480,11 @@ authorization DN's entry to tell what authenticated DN a person
 must be coming from in order to switch to that authorization DN.
 The choice of which form to use is up to the administrator. Source
 rules are checked first in the person's authentication DN entry,
-and if none of the saslAuthzTo rules specify the authorization is
-permitted, the saslAuthzFrom rules in the authorization DN entry
-are then checked. If neither case specifies that the request be
-honored, the request is denied with an "inappropriate access"
-message. Since the default behaviour is to deny authorization
+and if none of the {{EX:saslAuthzTo}} rules specify the authorization
+is permitted, the {{EX:saslAuthzFrom}} rules in the authorization
+DN entry are then checked. If neither case specifies that the
+request be honored, the request is denied with an "inappropriate
+access" message. Since the default behaviour is to deny authorization
 requests, rules only specify that a request be allowed; there are
 no negative rules telling what authorizations to deny.
 
@@ -491,10 +492,10 @@ The value(s) in the two attributes are of the same form as the
 output of the replacement pattern of a {{EX:saslRegexp}} directive:
 either a DN or an LDAP URL. For example, if a saslAuthzTo value is
 a DN, that DN is one the authenticated user can authorize to. On
-the other hand, if the saslAuthzTo value is an LDAP URL, the URL
-is used as an internal search of the LDAP database, and the
-authenticated user can become ANY DN returned by the search. If an
-LDAP entry looked like:
+the other hand, if the {{EX:saslAuthzTo}} value is an LDAP URL,
+the URL is used as an internal search of the LDAP database, and
+the authenticated user can become ANY DN returned by the search.
+If an LDAP entry looked like:
 
 >	dn: cn=WebUpdate,dc=example,dc=com
 >	saslAuthzTo: ldap://host/dc=example,dc=com??sub?objectclass=Person
@@ -506,15 +507,16 @@ could authorize to any other LDAP entry under the search base
 
 H4: Notes on Authorization rules
 
-An LDAP URL in a saslAuthzTo or saslAuthzFrom attribute will return
-a list of DN's, and that list must be linearly scanned. Searches
-which return a long list can cause the authorization process to
-take an uncomfortably long time. Also, searches should be performed
-on attributes that have been indexed by slapd.
+An LDAP URL in a {{EX:saslAuthzTo}} or {{EX:saslAuthzFrom}} attribute
+will return a set of DNs.  Each DN returned will be checked.
+Searches which return a large set can cause the authorization
+process to take an uncomfortably long time. Also, searches should
+be performed on attributes that have been indexed by slapd.
 
-To help produce more sweeping rules for saslAuthzFrom and saslAuthzTo,
-the values of these attributes are allowed to be DN's with regular
-expression characters in them. This means a source rule like
+To help produce more sweeping rules for {{EX:saslAuthzFrom}} and
+{{EX:saslAuthzTo}}, the values of these attributes are allowed to
+be DNs with regular expression characters in them. This means a
+source rule like
 
 >	saslAuthzTo: uid=.*,dc=example,dc=com
 

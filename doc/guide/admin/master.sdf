@@ -51,6 +51,12 @@ PB:
 !include "schema.sdf"; chapter
 PB:
 
+!include "sasl.sdf"; chapter
+PB:
+
+!include "tls.sdf"; chapter
+PB:
+
 #!include "tuning.sdf"; chapter
 #PB:
 
@@ -58,9 +64,6 @@ PB:
 PB:
 
 !include "replication.sdf"; chapter
-PB:
-
-!include "sasl.sdf"; chapter
 PB:
 
 # Appendices 
