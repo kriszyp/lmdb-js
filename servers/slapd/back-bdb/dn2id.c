@@ -767,23 +767,6 @@ hdb_dn2id(
 	return rc;
 }
 
-static void
-hdb_dn2ei(
-	char	*buf,
-	int	len,
-	EntryInfo	*ei )
-{
-	diskNode *d = (diskNode *)buf;
-	char *ptr;
-
-	AC_MEMCPY( &ei->bei_id, &d->entryID, sizeof(ID) );
-	AC_MEMCPY( &ei->bei_nrdn.bv_len, &d->nrdnlen, sizeof(d->nrdnlen) );
-	ber_str2bv( d->nrdn, ei->bei_nrdn.bv_len, 0, &ei->bei_nrdn );
-	ei->bei_rdn.bv_len = len - sizeof(diskNode) - ei->bei_nrdn.bv_len;
-	ptr = d->nrdn + ei->bei_nrdn.bv_len + 1;
-	ber_str2bv( ptr, ei->bei_rdn.bv_len, 1, &ei->bei_rdn );
-}
-
 int
 hdb_dn2id_parent(
 	Operation *op,
@@ -916,6 +899,9 @@ struct dn2id_cookie {
 	Operation *op;
 };
 
+/* Stuff for iterating over a bei_kids AVL tree and adding the
+ * IDs to an IDL
+ */
 struct apply_arg {
 	ID *idl;
 	EntryInfo **ei;
@@ -955,6 +941,9 @@ hdb_dn2idl_internal(
 #endif
 	BDB_IDL_ZERO( cx->tmp );
 
+	/* If number of kids in the cache differs from on-disk, load
+	 * up all the kids from the database
+	 */
 	if ( cx->ei->bei_ckids+1 != cx->ei->bei_dkids ) {
 		EntryInfo ei;
 		ei.bei_parent = cx->ei;
@@ -973,12 +962,18 @@ hdb_dn2idl_internal(
 		if ( cx->rc == DB_NOTFOUND ) goto saveit;
 		if ( cx->rc ) return cx->rc;
 
+		/* If the on-disk count is zero we've never checked it.
+		 * Count it now.
+		 */
 		if ( !cx->ei->bei_dkids ) {
 			db_recno_t dkids;
 			cx->dbc->c_count( cx->dbc, &dkids, 0 );
 			cx->ei->bei_dkids = dkids;
 		}
 
+		/* If there are kids and this is a subtree search, allocate
+		 * temp storage for the list of kids.
+		 */
 		if ( cx->prefix == DN_SUBTREE_PREFIX && cx->ei->bei_dkids > 1 ) {
 			eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
 			eilist[cx->ei->bei_dkids-1] = NULL;
@@ -999,9 +994,18 @@ hdb_dn2idl_internal(
 				DB_MULTIPLE_NEXT( cx->ptr, &cx->data, j, len );
 				if (j) {
 					EntryInfo *ei2;
-					hdb_dn2ei( j, len, &ei );
+					diskNode *d = (diskNode *)j;
+
+					AC_MEMCPY( &ei.bei_id, &d->entryID, sizeof(ID) );
+					AC_MEMCPY( &ei.bei_nrdn.bv_len, &d->nrdnlen, sizeof(d->nrdnlen) );
+					/* nrdn/rdn are set in-place.
+					 * hdb_cache_load will copy them as needed
+					 */
+					ei.bei_nrdn.bv_val = d->nrdn;
+					ei.bei_rdn.bv_len = len - sizeof(diskNode) - ei.bei_nrdn.bv_len;
+					ei.bei_rdn.bv_val = d->nrdn + ei.bei_nrdn.bv_len + 1;
 					bdb_idl_insert( cx->tmp, ei.bei_id );
-					hdb_entryinfo_load( cx->bdb, &ei, &ei2 );
+					hdb_cache_load( cx->bdb, &ei, &ei2 );
 					if ( eilist )
 						*ptr++ = ei2;
 				}
@@ -1009,12 +1013,21 @@ hdb_dn2idl_internal(
 		}
 		cx->dbc->c_close( cx->dbc );
 	} else {
+		/* The in-memory cache is in sync with the on-disk data.
+		 * do we have any kids?
+		 */
 		if ( cx->ei->bei_ckids > 0 ) {
 			struct apply_arg ap;
+
+			/* Temp storage for subtree search */
 			if ( cx->prefix == DN_SUBTREE_PREFIX ) {
 				eilist = cx->op->o_tmpalloc( sizeof(EntryInfo *) * cx->ei->bei_dkids, cx->op->o_tmpmemctx );
 				eilist[cx->ei->bei_dkids-1] = NULL;
 			}
+
+			/* Walk the kids tree; order is irrelevant since bdb_idl_insert
+			 * will insert in sorted order.
+			 */
 			ap.idl = cx->tmp;
 			ap.ei = eilist;
 			bdb_cache_entryinfo_lock( cx->ei );
@@ -1044,6 +1057,7 @@ gotit:
 				cx->ei = *ptr;
 				cx->id = cx->ei->bei_id;
 				hdb_dn2idl_internal( cx );
+			}
 			cx->op->o_tmpfree( eilist, cx->op->o_tmpmemctx );
 			cx->rc = 0;
 		} else {

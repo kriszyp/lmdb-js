@@ -430,7 +430,10 @@ hdb_cache_find_parent(
 	return rc;
 }
 
-int hdb_entryinfo_load(
+/* Used by hdb_dn2idl when loading the EntryInfo for all the children
+ * of a given node
+ */
+int hdb_cache_load(
 	struct bdb_info *bdb,
 	EntryInfo *ei,
 	EntryInfo **res )
@@ -438,16 +441,25 @@ int hdb_entryinfo_load(
 	EntryInfo *ei2;
 	int rc;
 
+	/* See if we already have this one */
 	bdb_cache_entryinfo_lock( ei->bei_parent );
 	ei2 = (EntryInfo *)avl_find( ei->bei_parent->bei_kids, ei, bdb_rdn_cmp );
 	bdb_cache_entryinfo_unlock( ei->bei_parent );
+
 	if ( !ei2 ) {
+		/* Not found, add it */
+		struct berval bv;
+
+		/* bei_rdn was not malloc'd before, do it now */
+		ber_dupbv( &bv, &ei->bei_rdn );
+		ei->bei_rdn = bv;
+
 		rc = bdb_entryinfo_add_internal( bdb, ei, res );
 		bdb_cache_entryinfo_unlock( ei->bei_parent );
 		ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 	} else {
+		/* Found, return it */
 		*res = ei2;
-		free( ei->bei_rdn.bv_val );
 		return 0;
 	}
 	return rc;
