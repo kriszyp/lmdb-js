@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <ac/stdlib.h>
 #include <ac/string.h>
+#include <ac/unistd.h>
 
 #ifdef SLAPD_LMHASH
 #	include <openssl/des.h>
@@ -38,7 +39,6 @@
 #include <ac/param.h>
 
 #ifdef SLAPD_CRYPT
-#include <ac/unistd.h>
 #include <ac/crypt.h>
 #endif
 
