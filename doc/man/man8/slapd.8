@@ -1,7 +1,7 @@
-.TH SLAPD 8C "20 August 2000" "OpenLDAP LDVERSION"
 .\" $OpenLDAP$
 .\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.TH SLAPD 8C "5 Novemeber 2000" "OpenLDAP LDVERSION"
 .SH NAME
 slapd \- Stand-alone LDAP Daemon
 .SH SYNOPSIS
@@ -108,9 +108,10 @@ The
 option may be used to specify LDAP (and LDAPS) URLs to serve.
 For example, if slapd is given
 .B \-h " ldap://127.0.0.1:9009/ ldaps:/// ldapi:///", 
-It will bind 127.0.0.1:9009 for LDAP, INADDR_ANY:636 for LDAP over TLS,
-and LDAP over IPC (Unix domain sockets).
-A space separated list of URLs is expected.  The URLS should be of
+It will bind 127.0.0.1:9009 for LDAP, 0.0.0.0:636 for LDAP over TLS,
+and LDAP over IPC (Unix domain sockets).  Host 0.0.0.0 represents
+INADDR_ANY.
+A space separated list of URLs is expected.  The URLs should be of
 LDAP (ldap://) or LDAP over TLS (ldaps://) or LDAP over IPC (ldapi://)
 scheme without a DN or other optional parameters.  Support for the
 latter two schemes depends on selected configuration options.  Hosts
