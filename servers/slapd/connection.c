@@ -370,6 +370,7 @@ long connection_init(
 #endif
 
         c->c_sb = ber_sockbuf_alloc( );
+		c->c_currentber = NULL;
 
         /* should check status of thread calls */
         ldap_pvt_thread_mutex_init( &c->c_mutex );
@@ -395,6 +396,7 @@ long connection_init(
 #ifdef HAVE_CYRUS_SASL
 	assert( c->c_sasl_context == NULL );
 #endif
+	assert( c->c_currentber == NULL );
 
 	c->c_listener_url = ch_strdup( url  );
 	c->c_peer_domain = ch_strdup( dnsname  );
@@ -501,6 +503,11 @@ connection_destroy( Connection *c )
 		c->c_sasl_context = NULL;
 	}
 #endif
+
+	if ( c->c_currentber != NULL ) {
+		ber_free( c->c_currentber, 1 );
+		c->c_currentber = NULL;
+	}
 
 	if ( ber_pvt_sb_in_use(c->c_sb) ) {
 		int sd = ber_pvt_sb_get_desc(c->c_sb);

@@ -240,6 +240,8 @@ ber_flush( Sockbuf *sb, BerElement *ber, int freeit )
 	if ( sb->sb_options & (LBER_TO_FILE | LBER_TO_FILE_ONLY) ) {
 		rc = write( sb->sb_fd, ber->ber_rwptr, towrite );
 		if ( sb->sb_options & LBER_TO_FILE_ONLY ) {
+			if ( freeit )
+				ber_free( ber, 1 );
 			return( (int)rc );
 		}
 	}

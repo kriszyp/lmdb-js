@@ -169,10 +169,11 @@ static long send_ldap_ber(
 		if ( connection_state_closing( conn ) ) {
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+
 			return 0;
 		}
 
-		if ( ber_flush( conn->c_sb, ber, 1 ) == 0 ) {
+		if ( ber_flush( conn->c_sb, ber, 0 ) == 0 ) {
 			break;
 		}
 
@@ -193,6 +194,7 @@ static long send_ldap_ber(
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 			ldap_pvt_thread_mutex_unlock( &conn->c_write_mutex );
+
 			return( -1 );
 		}
 
@@ -273,11 +275,13 @@ send_ldap_response(
 
 	if ( rc == -1 ) {
 		Debug( LDAP_DEBUG_ANY, "ber_printf failed\n", 0, 0, 0 );
+		ber_free( ber, 1 );
 		return;
 	}
 
 	/* send BER */
 	bytes = send_ldap_ber( conn, ber );
+	ber_free( ber, 1 );
 
 	if ( bytes < 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -702,6 +706,7 @@ send_search_entry(
 	}
 
 	bytes = send_ldap_ber( conn, ber );
+	ber_free( ber, 1 );
 
 	if ( bytes < 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -801,6 +806,7 @@ send_search_reference(
 	}
 
 	bytes = send_ldap_ber( conn, ber );
+	ber_free( ber, 1 );
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );
 	num_bytes_sent += bytes;
