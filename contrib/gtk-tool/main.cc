@@ -13,29 +13,36 @@ int main(int argc, char **argv) {
 	Gtk_Tree *machine, *machinetree;
 	Gtk_LdapServer *treeitem;
 	Gtk_Viewport *viewport;
-	char *host = NULL;
+	char *host = NULL, *prt = NULL;
 	char *base_dn = NULL;
 	int c, port = 0;
+	G_List<char> *hosts;
+	int host_count = 0;
+	char *pair[2];
 
-	while ((c = getopt(argc, argv, "b:s:p:h")) != -1) {
+	hosts = new G_List<char>();
+	while ((c = getopt(argc, argv, "s:p:h")) != -1) {
 		switch (c) {
-			case 'b':
-				base_dn = optarg; break;
 			case 's':
-				host = strdup(optarg); break;
+			cout << "host" << endl;
+				hosts = hosts->append(strdup(optarg));
+				break;
 			case 'p':
 				port = atoi(optarg); break;
 			case 'h':
 	                default:
-				fprintf(stderr, "Usage: %s [-s server] [-p port] [-b base_dn]\n", argv[0]);
+				fprintf(stderr, "Usage: %s ([-s server[:port]])*\n", argv[0]);
 				exit(-1);
 		}
 	}
-
-//	if (base_dn == NULL) base_dn = "o=University of Michigan, c=US";
-	if (host == NULL) ldap_get_option(NULL, LDAP_OPT_HOST_NAME, host);
-	//host = "localhost";
-	cout << host << endl;
+	cout << hosts->length() << "hosts" << endl;
+	for (int f=0; f<hosts->length(); f++) {
+		debug("%s\n", hosts->nth_data(f));
+	}
+	if (hosts->length() == 0) {
+		ldap_get_option(NULL, LDAP_OPT_HOST_NAME, host);
+		hosts = hosts->append(host);
+	}	
 	if (port == 0) port = LDAP_PORT;
 
 	Gtk_Main m(&argc, &argv);
@@ -43,22 +50,28 @@ int main(int argc, char **argv) {
 	window = new My_Window(GTK_WINDOW_TOPLEVEL);
 
 	tree = new Gtk_Tree();
-	treeitem = new Gtk_LdapServer(window, host, port);
-	tree->append(*treeitem);
-	treeitem->show();
+	for (int f=0; f<hosts->length(); f++) {
+		host = strtok(hosts->nth_data(f), ":");
+		prt = strtok(NULL, "\0");
+		if (prt != NULL) port = atoi(prt);
+		else port = LDAP_PORT;
+		treeitem = new Gtk_LdapServer(window, host, port);
+		subtree = treeitem->getSubtree();
+		tree->append(*treeitem);
+		treeitem->set_subtree(*subtree);
+		treeitem->show();
+	}
 	viewport = new Gtk_Viewport();
 	viewport->add(tree);
 	window->scroller->add(viewport);
 	tree->show();
 	viewport->show();
 	window->scroller->show();
-	treeitem->showDetails();
+//	treeitem->showDetails();
 //	treeitem->select();
-	window->set_title("Hello");
+	window->set_title("gtk-tool");
 	window->activate();
-
 	window->set_usize(600, 500);
-
 	window->show();
 
 	m.run();
