@@ -140,3 +140,9 @@ LDAPControl *ldap_control_dup( LDAPControl *c )
 	new->ldctl_iscritical = c->ldctl_iscritical;
 	return new;
 }
+
+/* get the controls from the BerElement */
+int ldap_get_ber_controls( BerElement *be, LDAPControl ***cp)
+{
+	return LDAP_NOT_SUPPORTED;
+}

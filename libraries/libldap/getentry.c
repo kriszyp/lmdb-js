@@ -73,3 +73,46 @@ ldap_count_entries( LDAP *ld, LDAPMessage *chain )
 
 	return( i );
 }
+
+int
+ldap_get_entry_controls(
+	LDAP *ld,
+	LDAPMessage *entry, 
+	LDAPControl ***serverctrls)
+{
+	int rc;
+	BerElement be;
+
+	if ( ld == NULL || serverctrls == NULL ||
+		entry == NULL || entry->lm_msgtype == LDAP_RES_SEARCH_ENTRY )
+	{
+		return LDAP_PARAM_ERROR;
+	}
+
+	/* make a local copy of the BerElement */
+	SAFEMEMCPY(&be, entry->lm_ber, sizeof(be));
+
+	if ( ber_scanf( &be, "{xx" /*}*/ ) == LBER_ERROR ) {
+		rc = LDAP_DECODING_ERROR;
+		goto cleanup_and_return;
+	}
+
+	rc = ldap_get_ber_controls( &be, serverctrls );
+
+cleanup_and_return:
+	if( rc != LDAP_SUCCESS ) {
+		ld->ld_errno = rc;
+
+		if( ld->ld_matched != NULL )
+			free( ld->ld_matched );
+
+		ld->ld_matched = NULL;
+
+		if( ld->ld_error != NULL )
+			free( ld->ld_error );
+
+		ld->ld_error = NULL;
+	}
+
+	return rc;
+}

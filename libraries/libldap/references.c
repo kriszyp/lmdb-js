@@ -66,3 +66,72 @@ ldap_count_references( LDAP *ld, LDAPMessage *chain )
 
 	return( i );
 }
+
+int
+ldap_parse_reference( 
+	LDAP            *ld,    
+	LDAPMessage     *ref,
+	char            ***referralsp,
+	LDAPControl     ***serverctrls,
+	int             freeit)
+{
+	BerElement be;
+	char **refs = NULL;
+	int rc;
+
+	if( ld == NULL || ref == NULL ||
+		ref->lm_msgtype != LDAP_RES_SEARCH_REFERENCE )
+	{
+		return LDAP_PARAM_ERROR;
+	}
+
+	/* make a private copy of BerElement */
+	SAFEMEMCPY(&be, ref->lm_ber, sizeof(be));
+	
+	if ( ber_scanf( &be, "{v" /*}*/, &refs ) == LBER_ERROR ) {
+		rc = LDAP_DECODING_ERROR;
+		goto free_and_return;
+	}
+
+	if ( serverctrls == NULL ) {
+		rc = LDAP_SUCCESS;
+		goto free_and_return;
+	}
+
+	if ( ber_scanf( &be, /*{*/ "}" ) == LBER_ERROR ) {
+		rc = LDAP_DECODING_ERROR;
+		goto free_and_return;
+	}
+
+	rc = ldap_get_ber_controls( &be, serverctrls );
+
+free_and_return:
+
+	if( referralsp != NULL ) {
+		/* provide references regradless of return code */
+		*referralsp = refs;
+
+	} else {
+		ldap_value_free( refs );
+	}
+
+	if( freeit ) {
+		ldap_msgfree( ref );
+	}
+
+	if( rc != LDAP_SUCCESS ) {
+		ld->ld_errno = rc;
+
+		if( ld->ld_matched != NULL )
+			free( ld->ld_matched );
+
+		ld->ld_matched = NULL;
+
+		if( ld->ld_error != NULL )
+			free( ld->ld_error );
+
+		ld->ld_error = NULL;
+	}
+
+	return rc;
+}
