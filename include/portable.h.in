@@ -920,9 +920,6 @@
 /* define to support crypt(3) passwords */
 #undef SLAPD_CRYPT
 
-/* define to support Kerberos passwords */
-#undef SLAPD_KPASSWD
-
 /* define to support SASL passwords */
 #undef SLAPD_SPASSWD
 
