@@ -68,12 +68,12 @@ static int idl_insert( ID *ids, ID id )
 
 	assert( x > 0 );
 
-	if( x <= 0 ) {
+	if( x < 1 ) {
 		/* internal error */
-		return -1;
+		return -2;
 	}
 
-	if ( ids[x] == id ) {
+	if ( x <= ids[0] && ids[x] == id ) {
 		/* duplicate */
 		return -1;
 	}
@@ -129,6 +129,11 @@ bdb_idl_insert_key(
 	int	rc;
 	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
+
+	/* for printable keys only */
+	Debug( LDAP_DEBUG_ARGS,
+		"=> bdb_idl_insert_key: %s %ld\n",
+		key->data, (long) id, 0 );
 
 	assert( id != NOID );
 
@@ -206,6 +211,11 @@ bdb_idl_delete_key(
 	int	rc;
 	ID ids[BDB_IDL_DB_SIZE];
 	DBT data;
+
+	/* for printable keys only */
+	Debug( LDAP_DEBUG_ARGS,
+		"=> bdb_idl_delete_key: %s %ld\n",
+		key->data, (long) id, 0 );
 
 	assert( id != NOID );
 
