@@ -309,6 +309,7 @@ at_add(
 	AttributeType	*sat;
 	MatchingRule	*mr;
 	Syntax		*syn;
+	int		i;
 	int		code;
 	char	*cname;
 	char	*oid;
@@ -389,7 +390,7 @@ at_add(
 	if ( at->at_sup_oid ) {
 		AttributeType *supsat = at_find(at->at_sup_oid);
 
-		if ( (supsat == NULL ) ) {
+		if ( supsat == NULL ) {
 			*err = at->at_sup_oid;
 			return SLAP_SCHERR_ATTR_NOT_FOUND;
 		}
@@ -425,45 +426,128 @@ at_add(
 	}
 
 	if ( at->at_syntax_oid ) {
-		if ( (syn = syn_find(sat->sat_syntax_oid)) ) {
-			sat->sat_syntax = syn;
-		} else {
+		syn = syn_find(sat->sat_syntax_oid);
+		if ( syn == NULL ) {
 			*err = sat->sat_syntax_oid;
 			return SLAP_SCHERR_SYN_NOT_FOUND;
 		}
 
+		if( sat->sat_syntax != NULL && sat->sat_syntax != syn ) {
+			return SLAP_SCHERR_ATTR_BAD_SUP;
+		}
+
+		sat->sat_syntax = syn;
 
 	} else if ( sat->sat_syntax == NULL ) {
 		return SLAP_SCHERR_ATTR_INCOMPLETE;
 	}
 
 	if ( sat->sat_equality_oid ) {
-		if ( (mr = mr_find(sat->sat_equality_oid)) ) {
-			sat->sat_equality = mr;
-			sat->sat_approx = mr->smr_associated;
-		} else {
+		mr = mr_find(sat->sat_equality_oid);
+
+		if( mr == NULL ) {
 			*err = sat->sat_equality_oid;
 			return SLAP_SCHERR_MR_NOT_FOUND;
 		}
 
+		if(( mr->smr_usage & SLAP_MR_EQUALITY ) != SLAP_MR_EQUALITY ) {
+			*err = sat->sat_equality_oid;
+			return SLAP_SCHERR_ATTR_BAD_MR;
+		}
+
+		if( sat->sat_syntax != mr->smr_syntax ) {
+			if( mr->smr_compat_syntaxes == NULL ) {
+				*err = sat->sat_equality_oid;
+				return SLAP_SCHERR_ATTR_BAD_MR;
+			}
+
+			for(i=0; mr->smr_compat_syntaxes[i]; i++) {
+				if( sat->sat_syntax == mr->smr_compat_syntaxes[i] ) {
+					i = -1;
+					break;
+				}
+			}
+
+			if( i >= 0 ) {
+				*err = sat->sat_equality_oid;
+				return SLAP_SCHERR_ATTR_BAD_MR;
+			}
+		}
+
+		sat->sat_equality = mr;
+		sat->sat_approx = mr->smr_associated;
 	}
 
 	if ( sat->sat_ordering_oid ) {
-		if ( (mr = mr_find(sat->sat_ordering_oid)) ) {
-			sat->sat_ordering = mr;
-		} else {
+		mr = mr_find(sat->sat_ordering_oid);
+
+		if( mr == NULL ) {
 			*err = sat->sat_ordering_oid;
 			return SLAP_SCHERR_MR_NOT_FOUND;
 		}
+
+		if(( mr->smr_usage & SLAP_MR_ORDERING ) != SLAP_MR_ORDERING ) {
+			*err = sat->sat_ordering_oid;
+			return SLAP_SCHERR_ATTR_BAD_MR;
+		}
+
+		if( sat->sat_syntax != mr->smr_syntax ) {
+			if( mr->smr_compat_syntaxes == NULL ) {
+				*err = sat->sat_ordering_oid;
+				return SLAP_SCHERR_ATTR_BAD_MR;
+			}
+
+			for(i=0; mr->smr_compat_syntaxes[i]; i++) {
+				if( sat->sat_syntax == mr->smr_compat_syntaxes[i] ) {
+					i = -1;
+					break;
+				}
+			}
+
+			if( i >= 0 ) {
+				*err = sat->sat_ordering_oid;
+				return SLAP_SCHERR_ATTR_BAD_MR;
+			}
+		}
+
+		sat->sat_ordering = mr;
 	}
 
 	if ( sat->sat_substr_oid ) {
-		if ( (mr = mr_find(sat->sat_substr_oid)) ) {
-			sat->sat_substr = mr;
-		} else {
+		mr = mr_find(sat->sat_substr_oid);
+
+		if( mr == NULL ) {
 			*err = sat->sat_substr_oid;
 			return SLAP_SCHERR_MR_NOT_FOUND;
 		}
+
+		if(( mr->smr_usage & SLAP_MR_SUBSTR ) != SLAP_MR_SUBSTR ) {
+			*err = sat->sat_substr_oid;
+			return SLAP_SCHERR_ATTR_BAD_MR;
+		}
+
+#if 0
+		if( sat->sat_syntax != mr->smr_syntax ) {
+			if( mr->smr_compat_syntaxes == NULL ) {
+				*err = sat->sat_substr_oid;
+				return SLAP_SCHERR_ATTR_BAD_MR;
+			}
+
+			for(i=0; mr->smr_compat_syntaxes[i]; i++) {
+				if( sat->sat_syntax == mr->smr_compat_syntaxes[i] ) {
+					i = -1;
+					break;
+				}
+			}
+
+			if( i >= 0 ) {
+				*err = sat->sat_substr_oid;
+				return SLAP_SCHERR_ATTR_BAD_MR;
+			}
+		}
+#endif
+
+		sat->sat_substr = mr;
 	}
 
 	code = at_insert(sat,err);

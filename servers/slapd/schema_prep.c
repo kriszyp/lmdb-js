@@ -519,7 +519,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_monitorContext) },
 	{ "vendorName", "( 1.3.6.1.1.4 NAME 'vendorName' "
 			"DESC 'RFC3045: name of implementation vendor' "
-			"EQUALITY 1.3.6.1.4.1.1466.109.114.1 "
+			"EQUALITY caseExactMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
 			"SINGLE-VALUE NO-USER-MODIFICATION "
 			"USAGE dSAOperation )",
@@ -528,7 +528,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_vendorName) },
 	{ "vendorVersion", "( 1.3.6.1.1.5 NAME 'vendorVersion' "
 			"DESC 'RFC3045: version of implementation' "
-			"EQUALITY 1.3.6.1.4.1.1466.109.114.1 "
+			"EQUALITY caseExactMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 "
 			"SINGLE-VALUE NO-USER-MODIFICATION "
 			"USAGE dSAOperation )",
@@ -811,7 +811,7 @@ slap_schema_load( void )
 		*synp = syn_find( syn_map[i].sssm_name );
 
 		if( *synp == NULL ) {
-			fprintf( stderr, "slap_schema_load: "
+			fprintf( stderr, "slap_schema_load: Syntax: "
 				"No syntax \"%s\" defined in schema\n",
 				syn_map[i].sssm_name );
 			return LDAP_INVALID_SYNTAX;
@@ -827,7 +827,7 @@ slap_schema_load( void )
 		*mrp = mr_find( mr_map[i].ssmm_name );
 
 		if( *mrp == NULL ) {
-			fprintf( stderr, "slap_schema_load: "
+			fprintf( stderr, "slap_schema_load: MatchingRule: "
 				"No matching rule \"%s\" defined in schema\n",
 				mr_map[i].ssmm_name );
 			return LDAP_INAPPROPRIATE_MATCHING;
@@ -845,22 +845,22 @@ slap_schema_load( void )
 				&code, &err, LDAP_SCHEMA_ALLOW_ALL );
 			if ( !at ) {
 				fprintf( stderr,
-					"slap_schema_load: %s: %s before %s\n",
+					"slap_schema_load: AttributeType \"%s\": %s before %s\n",
 					 ad_map[i].ssam_name, ldap_scherr2str(code), err );
 				return code;
 			}
 
 			if ( at->at_oid == NULL ) {
 				fprintf( stderr, "slap_schema_load: "
-					"attributeType \"%s\" has no OID\n",
+					"AttributeType \"%s\": no OID\n",
 					ad_map[i].ssam_name );
 				return LDAP_OTHER;
 			}
 
 			code = at_add( at, &err );
 			if ( code ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: %s: \"%s\"\n",
+				fprintf( stderr, "slap_schema_load: AttributeType "
+					"\"%s\": %s: \"%s\"\n",
 					 ad_map[i].ssam_name, scherr2str(code), err );
 				return code;
 			}
@@ -877,8 +877,8 @@ slap_schema_load( void )
 
 			rc = slap_str2ad( ad_map[i].ssam_name, adp, &text );
 			if( rc != LDAP_SUCCESS ) {
-				fprintf( stderr, "slap_schema_load: "
-					"No attribute \"%s\" defined in schema\n",
+				fprintf( stderr, "slap_schema_load: AttributeType \"%s\": "
+					"not defined in schema\n",
 					ad_map[i].ssam_name );
 				return rc;
 			}
@@ -930,23 +930,23 @@ slap_schema_load( void )
 			oc = ldap_str2objectclass( oc_map[i].ssom_defn, &code, &err,
 				LDAP_SCHEMA_ALLOW_ALL );
 			if ( !oc ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: %s before %s\n",
+				fprintf( stderr, "slap_schema_load: ObjectClass "
+					"\"%s\": %s before %s\n",
 				 	oc_map[i].ssom_name, ldap_scherr2str(code), err );
 				return code;
 			}
 
 			if ( oc->oc_oid == NULL ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: objectclass has no OID\n",
+				fprintf( stderr, "slap_schema_load: ObjectClass "
+					"\"%s\": no OID\n",
 					oc_map[i].ssom_name );
 				return LDAP_OTHER;
 			}
 
 			code = oc_add(oc,0,&err);
 			if ( code ) {
-				fprintf( stderr, "slap_schema_load: "
-					"%s: %s: \"%s\"\n",
+				fprintf( stderr, "slap_schema_load: ObjectClass "
+					"\"%s\": %s: \"%s\"\n",
 				 	oc_map[i].ssom_name, scherr2str(code), err);
 				return code;
 			}
@@ -962,7 +962,7 @@ slap_schema_load( void )
 			*ocp = oc_find( oc_map[i].ssom_name );
 			if( *ocp == NULL ) {
 				fprintf( stderr, "slap_schema_load: "
-					"No objectClass \"%s\" defined in schema\n",
+					"ObjectClass \"%s\": not defined in schema\n",
 					oc_map[i].ssom_name );
 				return LDAP_OBJECT_CLASS_VIOLATION;
 			}
