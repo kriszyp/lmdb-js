@@ -69,7 +69,7 @@ idl_fetch_one(
 )
 {
 	Datum	data;
-	ID_BLOCK	idl;
+	ID_BLOCK	*idl;
 
 	/* Debug( LDAP_DEBUG_TRACE, "=> idl_fetch_one\n", 0, 0, 0 ); */
 
@@ -79,10 +79,11 @@ idl_fetch_one(
 		return NULL;
 	}
 
-	memcpy( &idl, data.dptr, data.dsize );
+	idl = idl_dup((ID_BLOCK *) data.dptr);
+
 	ldbm_datum_free( db->dbc_db, data );
 
-	return idl_dup( &idl );
+	return idl;
 }
 
 
@@ -674,7 +675,7 @@ idl_delete_key (
 )
 {
 	Datum  data;
-	ID_BLOCK *idl, *tmp;
+	ID_BLOCK *idl;
 	unsigned i;
 	int j, nids;
 	char	*kstr;
@@ -725,6 +726,7 @@ idl_delete_key (
 
 	for ( j = 0; !ID_BLOCK_NOID(idl, j); j++ ) 
 	{
+		ID_BLOCK *tmp;
 		ldbm_datum_init( data );
 		sprintf( kstr, "%c%ld%s", CONT_PREFIX,
 			ID_BLOCK_ID(idl, j), key.dptr );
