@@ -83,7 +83,7 @@ lutil_detach( int debug, int do_close )
 			exit( EXIT_FAILURE );
 		}
 		for ( i = 0;  i < 3;  i++ )
-			if ( sd != i && isatty( i ) )
+			if ( sd != i )
 				(void) dup2( sd, i );
 		if ( sd > 2 )
 			close( sd );
