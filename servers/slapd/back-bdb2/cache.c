@@ -17,20 +17,6 @@ static int	cache_delete_entry_internal(struct cache *cache, Entry *e);
 static void	lru_print(struct cache *cache);
 #endif
 
-/*
- * the cache has three entry points (ways to find things):
- *
- * 	by entry	e.g., if you already have an entry from the cache
- *			and want to delete it. (really by entry ptr)
- *	by dn		e.g., when looking for the base object of a search
- *	by id		e.g., for search candidates
- *
- * these correspond to three different avl trees that are maintained.
- */
-#define cache_entry_cmp entry_cmp
-#define cache_entrydn_cmp entry_dn_cmp
-#define cache_entryid_cmp entry_id_cmp
-
 void
 bdb2i_cache_set_state( struct cache *cache, Entry *e, int state )
 {
@@ -136,7 +122,7 @@ bdb2i_cache_add_entry_lock(
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	if ( avl_insert( &cache->c_dntree, (caddr_t) e,
-		cache_entrydn_cmp, avl_dup_error ) != 0 )
+		entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_TRACE,
 			"====> cache_add_entry lock: entry %20s id %lu already in dn cache\n",
@@ -149,7 +135,7 @@ bdb2i_cache_add_entry_lock(
 
 	/* id tree */
 	if ( avl_insert( &cache->c_idtree, (caddr_t) e,
-		cache_entryid_cmp, avl_dup_error ) != 0 )
+		entry_id_cmp, avl_dup_error ) != 0 )
 	{
 		Debug( LDAP_DEBUG_ANY,
 			"====> entry %20s id %lu already in id cache\n",
@@ -157,7 +143,7 @@ bdb2i_cache_add_entry_lock(
 
 		/* delete from dn tree inserted above */
 		if ( avl_delete( &cache->c_dntree, (caddr_t) e,
-			cache_entrydn_cmp ) == NULL )
+			entry_dn_cmp ) == NULL )
 		{
 			Debug( LDAP_DEBUG_ANY, "====> can't delete from dn cache\n",
 			    0, 0, 0 );
@@ -236,7 +222,7 @@ bdb2i_cache_find_entry_dn2id(
 	e.e_ndn = dn_normalize_case( ch_strdup( dn ) );
 
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
-		cache_entrydn_cmp )) != NULL )
+		entry_dn_cmp )) != NULL )
 	{
 		/*
 		 * ep now points to an unlocked entry
@@ -301,7 +287,7 @@ try_again:
 	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
 
 	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
-		cache_entryid_cmp )) != NULL )
+		entry_id_cmp )) != NULL )
 	{
 		Debug(LDAP_DEBUG_TRACE,
 			"====> cache_find_entry_dn2id: found id: %ld rw: %d\n",
@@ -394,14 +380,14 @@ cache_delete_entry_internal(
 	int rc = 0; 	/* return code */
 
 	/* dn tree */
-	if ( avl_delete( &cache->c_dntree, (caddr_t) e, cache_entrydn_cmp )
+	if ( avl_delete( &cache->c_dntree, (caddr_t) e, entry_dn_cmp )
 		== NULL )
 	{
 		rc = -1;
 	}
 
 	/* id tree */
-	if ( avl_delete( &cache->c_idtree, (caddr_t) e, cache_entryid_cmp )
+	if ( avl_delete( &cache->c_idtree, (caddr_t) e, entry_id_cmp )
 		== NULL )
 	{
 		rc = -1;
