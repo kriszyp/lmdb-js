@@ -1,6 +1,6 @@
 OpenLDAP 2.2 Change Log
 
-OpenLDAP 2.2.24 Release
+OpenLDAP 2.2.24 Engineering
 	Fixed slapd "chldren:" typo (ITS#3560)
 	Fixed slapd syncrepl consumer unclean shutdown (ITS#3546)
 	Fixed slapd syncrepl provider sessionlog (ITS#3571)
