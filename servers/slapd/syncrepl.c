@@ -430,10 +430,8 @@ do_syncrep1(
 			slap_sync_cookie_free( sc, 1 );
 		}
 
-		if ( !BER_BVISNULL( &si->si_syncCookie.ctxcsn )) {
-			slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
-				&si->si_syncCookie.ctxcsn, si->si_syncCookie.rid );
-		}
+		slap_compose_sync_cookie( NULL, &si->si_syncCookie.octet_str,
+			&si->si_syncCookie.ctxcsn, si->si_syncCookie.rid );
 	}
 
 	rc = ldap_sync_search( si, op->o_tmpmemctx );
@@ -1512,11 +1510,6 @@ syncrepl_del_nonpresent(
 	SlapReply	rs_modify = {REP_RESULT};
 	struct nonpresent_entry *np_list, *np_prev;
 	int rc;
-	Modifications *ml;
-	Modifications *mlnext;
-	Modifications *mod;
-	Modifications *modlist = NULL;
-	Modifications **modtail;
 	AttributeName	an[2];
 
 	struct berval pdn = BER_BVNULL;
@@ -1583,6 +1576,9 @@ syncrepl_del_nonpresent(
 	op->o_nocaching = 0;
 
 	if ( !LDAP_LIST_EMPTY( &si->si_nonpresentlist ) ) {
+
+		slap_queue_csn( op, &si->si_syncCookie.ctxcsn );
+
 		np_list = LDAP_LIST_FIRST( &si->si_nonpresentlist );
 		while ( np_list != NULL ) {
 			LDAP_LIST_REMOVE( np_list, npe_link );
@@ -1597,32 +1593,25 @@ syncrepl_del_nonpresent(
 			rc = op->o_bd->be_delete( op, &rs_delete );
 
 			if ( rs_delete.sr_err == LDAP_NOT_ALLOWED_ON_NONLEAF ) {
-				modtail = &modlist;
-				mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-				mod->sml_op = LDAP_MOD_REPLACE;
-				mod->sml_desc = slap_schema.si_ad_objectClass;
-				mod->sml_type = mod->sml_desc->ad_cname;
-				mod->sml_values = &gcbva[0];
-				*modtail = mod;
-				modtail = &mod->sml_next;
+				Modifications mod1, mod2;
+				mod1.sml_op = LDAP_MOD_REPLACE;
+				mod1.sml_desc = slap_schema.si_ad_objectClass;
+				mod1.sml_type = mod1.sml_desc->ad_cname;
+				mod1.sml_values = &gcbva[0];
+				mod1.sml_nvalues = NULL;
+				mod1.sml_next = &mod2;
 
-				mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ));
-				mod->sml_op = LDAP_MOD_REPLACE;
-				mod->sml_desc = slap_schema.si_ad_structuralObjectClass;
-				mod->sml_type = mod->sml_desc->ad_cname;
-				mod->sml_values = &gcbva[1];
-				*modtail = mod;
-				modtail = &mod->sml_next;
+				mod2.sml_op = LDAP_MOD_REPLACE;
+				mod2.sml_desc = slap_schema.si_ad_structuralObjectClass;
+				mod2.sml_type = mod2.sml_desc->ad_cname;
+				mod2.sml_values = &gcbva[1];
+				mod2.sml_nvalues = NULL;
+				mod2.sml_next = NULL;
 
 				op->o_tag = LDAP_REQ_MODIFY;
-				op->orm_modlist = modlist;
+				op->orm_modlist = &mod1;
 
 				rc = be->be_modify( op, &rs_modify );
-
-				for ( ml = modlist; ml != NULL; ml = mlnext ) {
-					mlnext = ml->sml_next;
-					free( ml );
-				}
 			}
 
 			org_managedsait = get_manageDSAit( op );
@@ -1656,6 +1645,8 @@ syncrepl_del_nonpresent(
 			BER_BVZERO( &op->o_req_ndn );
 			ch_free( np_prev );
 		}
+
+		slap_graduate_commit_csn( op );
 	}
 
 	return;
