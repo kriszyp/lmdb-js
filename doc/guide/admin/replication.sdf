@@ -9,7 +9,7 @@ directory service via LDAP. It may become necessary to
 run more than one slapd instance.  Many sites,
 for instance, there are multiple slapd servers, one
 master and one or more slaves.  {{TERM:DNS}} can be setup such that
-a lookup of ldap.example.com returns the {{TERM:IP}} addresses
+a lookup of {{EX:ldap.example.com}} returns the {{TERM:IP}} addresses
 of these servers, distributing the load among them (or
 just the slaves). This master/slave arrangement provides
 a simple and effective way to increase capacity, availability
@@ -18,7 +18,7 @@ and reliability.
 {{slurpd}}(8) provides the capability for a master slapd to
 propagate changes to slave slapd instances,
 implementing the master/slave replication scheme
-described above. Slurpd runs on the same host as the
+described above.  slurpd runs on the same host as the
 master slapd instance.
 
 
@@ -64,7 +64,7 @@ it writes out a file containing {{TERM:LDIF}} change records.
 The replication log gives the replication site(s), a
 timestamp, the DN of the entry being modified, and a series
 of lines which specify the changes to make. In the
-example below, Barbara (bjensen) has replaced the {{EX:description}}
+example below, Barbara ({{EX:uid=bjensen}}) has replaced the {{EX:description}}
 value.  The change is to be propagated
 to the slapd instance running on {{EX:slave.example.net}}
 Changes to various operational attributes, such as {{EX:modifiersName}}
