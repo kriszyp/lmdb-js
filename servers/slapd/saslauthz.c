@@ -136,9 +136,12 @@ is_dn_exact:	bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
 is_dn:		bv.bv_len = uri->bv_len - (bv.bv_val - uri->bv_val);
 
-		ber_dupbv_x( nbase, &bv, op->o_tmpmemctx );
-		*scope = LDAP_X_SCOPE_EXACTREGEX;
-		return LDAP_SUCCESS;
+		rc = dnNormalize( 0, NULL, NULL, &bv, nbase, op->o_tmpmemctx );
+		if( rc == LDAP_SUCCESS ) {
+			*scope = LDAP_X_SCOPE_EXACTREGEX;
+		}
+
+		return( rc );
 
 	/* explicitly set to regex: it will be regcomp'd/regexec'd */
 	} else if ( !strncasecmp( uri->bv_val, "dn.regex:", sizeof("dn.regex:")-1 ) ) {
