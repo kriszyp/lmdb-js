@@ -114,6 +114,10 @@ do_bind(
 
 			if ( tag == LDAP_TAG_LDAPCRED ) { 
 				tag = ber_scanf( ber, "o", &cred );
+			} else {
+				tag = LDAP_TAG_LDAPCRED;
+				cred.bv_val = NULL;
+				cred.bv_len = 0;
 			}
 
 			if ( tag != LBER_ERROR ) {
