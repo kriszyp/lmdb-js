@@ -3734,3 +3734,66 @@ int slapi_notify_condvar( Slapi_CondVar *cvar, int notify_all )
 #endif
 }
 
+int slapi_x_access_allowed( Operation *op,
+	Entry *entry,
+	AttributeDescription *desc,
+	struct berval *val,
+	slap_access_t access,
+	AccessControlState *state )
+{
+#ifdef LDAP_SLAPI
+	int rc, slap_access = 0;
+	slapi_acl_callback_t *pGetPlugin, *tmpPlugin;
+
+	if ( op->o_pb == NULL ) {
+		/* internal operation */
+		return 1;
+	}
+
+	slapi_x_pblock_set_operation( op->o_pb, op );
+
+	switch ( access ) {
+	case ACL_WRITE:
+		slap_access |= SLAPI_ACL_ADD | SLAPI_ACL_DELETE | SLAPI_ACL_WRITE;
+		break;
+	case ACL_READ:
+		slap_access |= SLAPI_ACL_READ;
+		break;
+	case ACL_SEARCH:
+		slap_access |= SLAPI_ACL_SEARCH;
+		break;
+	case ACL_COMPARE:
+                slap_access = ACL_COMPARE;
+		break;
+	default:
+		break;
+        }
+
+	rc = getAllPluginFuncs( NULL, SLAPI_PLUGIN_ACL_ALLOW_ACCESS, (SLAPI_FUNC **)&tmpPlugin );
+	if ( rc != LDAP_SUCCESS || tmpPlugin == NULL ) {
+		/* nothing to do; allowed access */
+		return 1;
+	}
+
+	rc = 1; /* default allow policy */
+
+	for ( pGetPlugin = tmpPlugin; *pGetPlugin != NULL; pGetPlugin++ ) {
+		/*
+		 * 0	access denied
+		 * 1	access granted
+		 */
+		rc = (*pGetPlugin)( op->o_pb, entry, desc->ad_cname.bv_val,
+					val, slap_access, (void *)state );
+		if ( rc == 0 ) {
+			break;
+		}
+	}
+
+	slapi_ch_free( (void **)&tmpPlugin );
+
+	return rc;
+#else
+	return 1;
+#endif /* LDAP_SLAPI */
+}
+

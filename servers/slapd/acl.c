@@ -174,6 +174,14 @@ access_allowed(
 		goto done;
 	}
 
+#ifdef LDAP_SLAPI
+	ret = slapi_x_access_allowed( op, e, desc, val, access, state );
+	if ( ret == 0 ) {
+		/* ACL plugin denied access */
+		goto done;
+	}
+#endif /* LDAP_SLAPI */
+
 	be = op->o_bd;
 	if ( be == NULL ) {
 		be = &backends[0];
