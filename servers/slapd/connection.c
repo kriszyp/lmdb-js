@@ -1462,7 +1462,7 @@ connection_input(
 			return 1;
 		}
 
-		if (conn->c_protocol == LDAP_VERSION2) {
+		if (op->o_protocol == LDAP_VERSION2) {
 			rc = ber_printf(op->o_res_ber, "{is{" /*}}*/, op->o_msgid, "");
 			if (rc == -1) {
 #ifdef NEW_LOGGING
