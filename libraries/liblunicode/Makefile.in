@@ -1,0 +1,34 @@
+# $OpenLDAP$
+##
+## Makefile.in for LDAP -lldap
+##
+LIBRARY = liblunicode.a
+
+XXDIR = */
+XXHEADERS = ucdata.h ure.h
+XXSRCS	= ucdata.c ucgendat.c ure.c urestubs.c
+SRCS	= 
+OBJS	= ucdata.o ure.o urestubs.o
+
+XLIB = -llunicode
+PROGRAMS = ucgendat
+
+LDAP_INCDIR= ../../include       
+LDAP_LIBDIR= ../../libraries
+
+ucgendat: $(LIBRARY) ucgendat.o
+	$(LTLINK) $(LDFLAGS) -o $@ ucgendat.o $(LIBS)
+
+.links :
+	@for i in $(XXSRCS) $(XXHEADERS); do \
+		$(RM) $$i ; \
+		$(LN_S) $(XXDIR)/$$i . ; \
+	done
+	touch .links
+
+$(XXSRCS) : .links
+
+clean-local: FORCE
+	@$(RM) .links
+
+depend-common: .links

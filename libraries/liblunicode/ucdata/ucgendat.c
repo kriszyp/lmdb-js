@@ -1462,7 +1462,7 @@ char *argv[];
             argv++;
             opath = argv[0];
         } else {
-            if (in != stdin)
+            if (in != stdin && in != NULL)
               fclose(in);
             if ((in = fopen(argv[0], "rb")) == 0)
               fprintf(stderr, "%s: unable to open ctype file %s\n",
