@@ -756,10 +756,12 @@ LDAP_SLAPD_F (int) value_match LDAP_P((
 	struct berval *v1,
 	void *v2,
 	const char ** text ));
-LDAP_SLAPD_F (int) value_find LDAP_P((
+LDAP_SLAPD_F (int) value_find_ex LDAP_P((
 	AttributeDescription *ad,
+	unsigned flags,
 	struct berval **values,
 	struct berval *value ));
+#define value_find(ad, values, value)	( value_find_ex(ad,0,values,value ) )
 LDAP_SLAPD_F (int) value_add LDAP_P(( struct berval ***vals, struct berval **addvals ));
 
 /*

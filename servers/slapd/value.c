@@ -168,25 +168,39 @@ value_match(
 }
 
 
-int value_find(
+int value_find_ex(
 	AttributeDescription *ad,
+	unsigned flags,
 	struct berval **vals,
 	struct berval *val )
 {
 	int	i;
 	int rc;
 	struct berval *nval = NULL;
+	struct berval *nval_tmp = NULL;
 	MatchingRule *mr = ad->ad_type->sat_equality;
 
 	if( mr == NULL || !mr->smr_match ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
+	/* Take care of this here or ssyn_normalize later will hurt */
+	if ( !(flags & SLAP_MR_VALUE_IS_IN_MR_SYNTAX) &&
+	     mr->smr_convert ) {
+		rc = (mr->smr_convert)(val,&nval);
+		if ( rc != LDAP_SUCCESS ) {
+			return LDAP_INVALID_SYNTAX;
+		}
+	}
+
 	if( mr->smr_syntax->ssyn_normalize ) {
 		rc = mr->smr_syntax->ssyn_normalize(
-			mr->smr_syntax, val, &nval );
+			mr->smr_syntax, nval == NULL ? val : nval, &nval_tmp );
 
+		ber_bvfree(nval);
+		nval = nval_tmp;
 		if( rc != LDAP_SUCCESS ) {
+			ber_bvfree(nval);
 			return LDAP_INAPPROPRIATE_MATCHING;
 		}
 	}
@@ -195,7 +209,9 @@ int value_find(
 		int match;
 		const char *text;
 
-		rc = value_match( &match, ad, mr, 0,
+		/* We did convert, so keep value_match from trying */
+		rc = value_match( &match, ad, mr,
+			flags & !SLAP_MR_VALUE_IS_IN_MR_SYNTAX,
 			vals[i], nval == NULL ? val : nval, &text );
 
 		if( rc == LDAP_SUCCESS && match == 0 ) {
