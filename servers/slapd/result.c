@@ -455,6 +455,7 @@ close_connection( Connection *conn, int opconnid, int opid )
 		close( conn->c_sb.sb_sd );
 		conn->c_sb.sb_sd = -1;
 		conn->c_version = 0;
+		conn->c_protocol = 0;
 	}
 	pthread_mutex_unlock( &new_conn_mutex );
 }

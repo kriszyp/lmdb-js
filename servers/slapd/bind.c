@@ -135,6 +135,8 @@ do_bind(
 			free( cred.bv_val );
 		}
 
+		conn->c_protocol = version;
+
 		send_ldap_result( conn, op, LDAP_SUCCESS, NULL, NULL );
 		return;
 	}
@@ -152,6 +154,7 @@ do_bind(
 			free( cred.bv_val );
 		}
 		if ( cred.bv_len == 0 ) {
+			conn->c_protocol = version;
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL );
 		} else if ( default_referral && *default_referral ) {
@@ -172,6 +175,8 @@ do_bind(
 
 		if ( (*be->be_bind)( be, conn, op, ndn, method, &cred, &edn ) == 0 ) {
 			pthread_mutex_lock( &conn->c_dnmutex );
+
+			conn->c_protocol = version;
 
 			if ( conn->c_cdn != NULL ) {
 				free( conn->c_cdn );

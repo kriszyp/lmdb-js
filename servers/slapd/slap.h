@@ -319,6 +319,7 @@ typedef struct slap_conn {
 	char		*c_cdn;		/* DN provided by the client */
 	char		*c_dn;		/* DN bound to this conn  */
 	pthread_mutex_t	c_dnmutex;	/* mutex for c_dn field		  */
+	int		c_protocol;	/* version of the LDAP protocol used by client */
 	int		c_authtype;	/* auth method used to bind c_dn  */
 #ifdef LDAP_COMPAT
 	int		c_version;	/* for compatibility w/2.0, 3.0	  */
