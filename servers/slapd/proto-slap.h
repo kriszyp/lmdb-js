@@ -990,8 +990,7 @@ LDAP_SLAPD_F (int) slap_sasl_config(
 	int lineno );
 
 LDAP_SLAPD_F (int) slap_sasl_getdn( Connection *conn, Operation *op,
-	char *id, int len,
-	char *user_realm, struct berval *dn, int flags );
+	struct berval *id, char *user_realm, struct berval *dn, int flags );
 
 /*
  * saslauthz.c
@@ -1011,7 +1010,13 @@ LDAP_SLAPD_F (int) slap_sasl_authorized LDAP_P((
 LDAP_SLAPD_F (int) slap_sasl_regexp_config LDAP_P((
 	const char *match, const char *replace ));
 LDAP_SLAPD_F (int) slap_sasl_setpolicy LDAP_P(( const char * ));
-
+#ifdef SLAP_X_SASL_REWRITE
+LDAP_SLAPD_F (int) slap_sasl_rewrite_config LDAP_P(( 
+	const char *fname,
+	int lineno,
+	int argc, 
+	char **argv ));
+#endif SLAP_X_SASL_REWRITE
 
 /*
  * schema.c
