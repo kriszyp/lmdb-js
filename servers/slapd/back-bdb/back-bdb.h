@@ -40,10 +40,9 @@ LDAP_BEGIN_DECL
 #endif
 
 #define BDB_SUFFIX		".bdb"
-#define BDB_NEXTID		0
-#define BDB_ID2ENTRY	1
-#define BDB_DN2ID		2
-#define BDB_NDB			3
+#define BDB_ID2ENTRY	0
+#define BDB_DN2ID		1
+#define BDB_NDB			2
 
 #define BDB_INDICES		128
 
@@ -80,9 +79,9 @@ struct bdb_info {
 #endif
 
 	ID			bi_lastid;
+	ldap_pvt_thread_mutex_t	bi_lastid_mutex;
 };
 
-#define bi_nextid	bi_databases[BDB_NEXTID]
 #define bi_id2entry	bi_databases[BDB_ID2ENTRY]
 #define bi_dn2id	bi_databases[BDB_DN2ID]
 

@@ -19,7 +19,6 @@ static struct bdbi_database {
 	int type;
 	int flags;
 } bdbi_databases[] = {
-	{ "nextid" BDB_SUFFIX, "nextid", DB_BTREE, 0 },
 	{ "id2entry" BDB_SUFFIX, "id2entry", DB_BTREE, 0 },
 	{ "dn2id" BDB_SUFFIX, "dn2id", DB_BTREE, 0 },
 	{ NULL, NULL, 0, 0 }
@@ -73,6 +72,7 @@ bdb_db_init( BackendDB *be )
 #endif
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 
 	be->be_private = bdb;
 	return 0;
@@ -98,6 +98,19 @@ static void *lock_detect_task( void *arg )
 	return NULL;
 }
 #endif
+
+int
+bdb_bt_compare(
+	DB *db, 
+	DBT *usrkey,
+	DBT *curkey
+)
+{
+	ID usr, cur;
+	memcpy(&usr, usrkey->data, sizeof(ID));
+	memcpy(&cur, curkey->data, sizeof(ID));
+	return usr - cur;
+}
 
 static int
 bdb_db_open( BackendDB *be )
@@ -216,6 +229,10 @@ bdb_db_open( BackendDB *be )
 			return rc;
 		}
 
+		if( i == BDB_ID2ENTRY ) {
+			rc = db->bdi_db->set_bt_compare( db->bdi_db,
+				bdb_bt_compare );
+		}
 		rc = db->bdi_db->open( db->bdi_db,
 			bdbi_databases[i].file,
 			bdbi_databases[i].name,

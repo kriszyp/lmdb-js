@@ -15,160 +15,53 @@
 int bdb_next_id( BackendDB *be, DB_TXN *tid, ID *out )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
-	int rc;
-	ID kid = NOID;
-	ID id;
-	DBT key, data;
-	DB_TXN	*ltid = NULL;
 
-	DBTzero( &key );
-	key.data = (char *) &kid;
-	key.size = sizeof( kid );
+	ldap_pvt_thread_mutex_lock( &bdb->bi_lastid_mutex );
+	*out = ++bdb->bi_lastid;
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_lastid_mutex );
 
-	DBTzero( &data );
-	data.data = (char *) &id;
-	data.ulen = sizeof( id );
-	data.flags = DB_DBT_USERMEM;
-
-	if( 0 ) {
-retry:	if( tid != NULL ) {
-			/* nested transaction, abort and return */
-			(void) txn_abort( ltid );
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_next_id: aborted!\n",
-				0, 0, 0 );
-			return rc;
-		}
-		rc = txn_abort( ltid );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_next_id: txn_abort failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-			return rc;
-		}
-	}
-
-	if( bdb->bi_txn ) {
-		rc = txn_begin( bdb->bi_dbenv, tid, &ltid, 0 );
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_next_id: txn_begin failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-			return rc;
-		}
-	}
-
-	/* get existing value for read/modify/write */
-	rc = bdb->bi_nextid->bdi_db->get( bdb->bi_nextid->bdi_db,
-		ltid, &key, &data, DB_RMW );
-
-	switch(rc) {
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-
-	case DB_NOTFOUND:
-		id = 0;
-		break;
-
-	case 0:
-		if ( data.size != sizeof( id ) ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_next_id: get size mismatch: expected %ld, got %ld\n",
-				(long) sizeof( id ), (long) data.size, 0 );
-			rc = -1;
-			goto done;
-		}
-		break;
-
-	default:
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_next_id: get failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-		goto done;
-	}
-
-	if( bdb->bi_lastid > id ) id = bdb->bi_lastid;
-
-	id++;
-	data.size = sizeof( id );
-
-	/* put new value */
-	rc = bdb->bi_nextid->bdi_db->put( bdb->bi_nextid->bdi_db,
-		ltid, &key, &data, 0 );
-
-	switch(rc) {
-	case DB_LOCK_DEADLOCK:
-	case DB_LOCK_NOTGRANTED:
-		goto retry;
-
-	case 0:
-		*out = id;
-
-		bdb->bi_lastid = id;
-
-		if (bdb->bi_txn) {
-			rc = txn_commit( ltid, 0 );
-			ltid = NULL;
-		}
-
-		if( rc != 0 ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_next_id: commit failed: %s (%d)\n",
-				db_strerror(rc), rc, 0 );
-		}
-		break;
-
-	default:
-		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_next_id: put failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-done:	(void) txn_abort( ltid );
-	}
-
-	return rc;
+	return 0;
 }
 
 int bdb_last_id( BackendDB *be, DB_TXN *tid )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
-	ID kid = NOID;
-	ID id;
+	ID id = 0;
 	DBT key, data;
+	DBC *cursor;
 
 	DBTzero( &key );
-	key.data = (char *) &kid;
-	key.size = sizeof( kid );
+	key.flags = DB_DBT_USERMEM;
+	key.data = (char *) &id;
+	key.ulen = sizeof( id );
 
 	DBTzero( &data );
-	data.data = (char *) &id;
-	data.ulen = sizeof( id );
-	data.flags = DB_DBT_USERMEM;
+	data.flags = DB_DBT_USERMEM | DB_DBT_PARTIAL;
 
-	/* get existing value for read/modify/write */
-	rc = bdb->bi_nextid->bdi_db->get( bdb->bi_nextid->bdi_db,
-		tid, &key, &data, 0 );
+	/* Get a read cursor */
+	rc = bdb->bi_id2entry->bdi_db->cursor( bdb->bi_id2entry->bdi_db,
+		tid, &cursor, 0 );
+
+	while (rc == 0) {
+		rc = cursor->c_get(cursor, &key, &data, DB_LAST);
+		cursor->c_close(cursor);
+		if (rc != 0)
+			break;
+		break;
+	}
 
 	switch(rc) {
 	case DB_NOTFOUND:
 		id = 0;
 		rc = 0;
-		break;
-
+		/* FALLTHROUGH */
 	case 0:
-		if ( data.size != sizeof( id ) ) {
-			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_last_id: get size mismatch: expected %ld, got %ld\n",
-				(long) sizeof( id ), (long) data.size, 0 );
-			rc = -1;
-			goto done;
-		}
 		break;
 
 	default:
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_next_id: get failed: %s (%d)\n",
+			"=> bdb_last_id: get failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		goto done;
 	}
