@@ -504,6 +504,8 @@ ber_put_seqorset( BerElement *ber )
 	assert( ber != NULL );
 	assert( LBER_VALID( ber ) );
 
+	if( *sos == NULL ) return -1;
+
 	/*
 	 * If this is the toplevel sequence or set, we need to actually
 	 * write the stuff out.	 Otherwise, it's already been put in
