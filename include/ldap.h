@@ -1228,6 +1228,13 @@ ldap_dn2str LDAP_P((
 	unsigned flags ));
 
 LDAP_F( int )
+ldap_bv2rdn LDAP_P((
+	struct berval *bv,
+	LDAPRDN **rdn,
+	char **next,
+	unsigned flags ));
+
+LDAP_F( int )
 ldap_str2rdn LDAP_P((
 	LDAP_CONST char *str,
 	LDAPRDN **rdn,

@@ -430,7 +430,7 @@ retry:	/* transaction retry */
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-	if ( ldap_str2rdn( newrdn->bv_val, &new_rdn, (char **)&text,
+	if ( ldap_bv2rdn( newrdn, &new_rdn, (char **)&text,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,
@@ -445,7 +445,7 @@ retry:	/* transaction retry */
 		"bdb_modrdn: new_rdn_type=\"%s\", new_rdn_val=\"%s\"\n",
 		new_rdn[0][0]->la_attr.bv_val, new_rdn[0][0]->la_value.bv_val, 0 );
 
-	if ( ldap_str2rdn( dn->bv_val, &old_rdn, (char **)&text,
+	if ( ldap_bv2rdn( dn, &old_rdn, (char **)&text,
 		LDAP_DN_FORMAT_LDAP ) )
 	{
 		Debug( LDAP_DEBUG_TRACE,

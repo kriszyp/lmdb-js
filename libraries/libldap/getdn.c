@@ -28,7 +28,7 @@
 #define PRETTY_ESCAPE
 
 /* parsing/printing routines */
-static int str2strval( const char *str, struct berval *val, 
+static int str2strval( const char *str, ber_len_t stoplen, struct berval *val, 
 		const char **next, unsigned flags, unsigned *retFlags );
 static int DCE2strval( const char *str, struct berval *val, 
 		const char **next, unsigned flags );
@@ -599,24 +599,19 @@ ldap_dnfree( LDAPDN *dn )
 #define	TMP_RDN_SLOTS	32
 
 int
-ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
+ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 {
-	assert( bv );
-	assert( dn );
-	
-	/* 
-	 * FIXME: ldap_bv2dn() and ldap_str2dn() will be swapped,
-	 * i.e. ldap_str2dn() will become a wrapper for ldap_bv2dn()
-	 */
-	if ( bv->bv_len != strlen( bv->bv_val ) ) {
-		return LDAP_INVALID_DN_SYNTAX;
-	}
+	struct berval	bv = { 0, (char *)str };
 
-	return ldap_str2dn( bv->bv_val, dn, flags );
+	assert( str );
+
+	bv.bv_len = strlen( str );
+	
+	return ldap_bv2dn( &bv, dn, flags );
 }
 
 int
-ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
+ldap_bv2dn( struct berval *bv, LDAPDN **dn, unsigned flags )
 {
 	const char 	*p;
 	int		rc = LDAP_DECODING_ERROR;
@@ -625,8 +620,10 @@ ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 	LDAPDN		*newDN = NULL;
 	LDAPRDN		*newRDN = NULL, *tmpDN_[TMP_RDN_SLOTS], **tmpDN = tmpDN_;
 	int		num_slots = TMP_RDN_SLOTS;
+	char		*str = bv->bv_val;
 	
-	assert( str );
+	assert( bv );
+	assert( bv->bv_val );
 	assert( dn );
 
 	Debug( LDAP_DEBUG_TRACE, "=> ldap_str2dn(%s,%u)\n%s", str, flags, "" );
@@ -684,8 +681,9 @@ ldap_str2dn( LDAP_CONST char *str, LDAPDN **dn, unsigned flags )
 
 	for ( ; p[ 0 ]; p++ ) {
 		int		err;
+		struct berval 	tmpbv = { bv->bv_len - ( p - str ), (char *)p };
 		
-		err = ldap_str2rdn( p, &newRDN, (char **) &p, flags );
+		err = ldap_bv2rdn( &tmpbv, &newRDN, (char **) &p, flags );
 		if ( err != LDAP_SUCCESS ) {
 			goto parsing_error;
 		}
@@ -793,7 +791,7 @@ return_result:;
 		LDAP_FREE( tmpDN );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "<= ldap_str2dn(%s,%u)=%d\n", str, flags, rc );
+	Debug( LDAP_DEBUG_TRACE, "<= ldap_bv2dn(%s,%u)=%d\n", str, flags, rc );
 	*dn = newDN;
 	
 	return( rc );
@@ -811,7 +809,21 @@ int
 ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
 	char **n_in, unsigned flags )
 {
-	const char  **n = (const char **) n_in;
+	struct berval	bv = { 0, (char *)str };
+
+	assert( str );
+	assert( str[ 0 ] != '\0' );	/* FIXME: is this required? */
+
+	bv.bv_len = strlen( str );
+
+	return ldap_bv2rdn( &bv, rdn, n_in, flags );
+}
+
+int
+ldap_bv2rdn( struct berval *bv, LDAPRDN **rdn,
+	char **n_in, unsigned flags )
+{
+	const char  	**n = (const char **) n_in;
 	const char 	*p;
 	int		navas = 0;
 	int 		state = B4AVA;
@@ -825,14 +837,23 @@ ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
 	LDAPRDN		*newRDN = NULL;
 	LDAPAVA		*tmpRDN_[TMP_AVA_SLOTS], **tmpRDN = tmpRDN_;
 	int		num_slots = TMP_AVA_SLOTS;
+
+	char		*str;
+	ber_len_t	stoplen;
 	
-	assert( str );
+	assert( bv );
+	assert( bv->bv_len );
+	assert( bv->bv_val );
 	assert( rdn || flags & LDAP_DN_SKIP );
 	assert( n );
 
 #if 0
-	Debug( LDAP_DEBUG_TRACE, "=> ldap_str2rdn(%s,%u)\n%s", str, flags, "" );
+	Debug( LDAP_DEBUG_TRACE, "=> ldap_bv2rdn(%s,%u)\n%s", 
+			bv->bv_val, flags, "" );
 #endif
+
+	str = bv->bv_val;
+	stoplen = bv->bv_len;
 
 	if ( rdn ) {
 		*rdn = NULL;
@@ -1126,7 +1147,8 @@ ldap_str2rdn( LDAP_CONST char *str, LDAPRDN **rdn,
 			switch ( LDAP_DN_FORMAT( flags ) ) {
 			case LDAP_DN_FORMAT_LDAP:
 			case LDAP_DN_FORMAT_LDAPV3:
-				if ( str2strval( p, &attrValue, &p, flags, 
+				if ( str2strval( p, stoplen - ( p - str ),
+							&attrValue, &p, flags, 
 							&attrValueEncoding ) ) {
 					goto parsing_error;
 				}
@@ -1310,9 +1332,9 @@ return_result:;
  * '\' + HEXPAIR(p) -> unhex(p)
  */
 static int
-str2strval( const char *str, struct berval *val, const char **next, unsigned flags, unsigned *retFlags )
+str2strval( const char *str, ber_len_t stoplen, struct berval *val, const char **next, unsigned flags, unsigned *retFlags )
 {
-	const char 	*p, *startPos, *endPos = NULL;
+	const char 	*p, *end, *startPos, *endPos = NULL;
 	ber_len_t	len, escapes;
 
 	assert( str );
@@ -1320,8 +1342,8 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 	assert( next );
 
 	*next = NULL;
-
-	for ( startPos = p = str, escapes = 0; p[ 0 ]; p++ ) {
+	end = str + stoplen;
+	for ( startPos = p = str, escapes = 0; p < end; p++ ) {
 		if ( LDAP_DN_ESCAPE( p[ 0 ] ) ) {
 			p++;
 			if ( p[ 0 ] == '\0' ) {
@@ -1409,7 +1431,13 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 	val->bv_len = len;
 
 	if ( escapes == 0 ) {
-		val->bv_val = LDAP_STRNDUP( startPos, len );
+		if ( *retFlags == LDAP_AVA_NONPRINTABLE ) {
+			val->bv_val = LDAP_MALLOC( len + 1 );
+			AC_MEMCPY( val->bv_val, startPos, len );
+			val->bv_val[ len ] = '\0';
+		} else {
+			val->bv_val = LDAP_STRNDUP( startPos, len );
+		}
 
 	} else {
 		ber_len_t	s, d;

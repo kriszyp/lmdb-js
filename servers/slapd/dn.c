@@ -479,11 +479,6 @@ dnPrettyNormal(
 		pretty->bv_len = 0;
 		normal->bv_len = 0;
 
-		/* FIXME: str2dn should take a bv and handle this */
-		if( strlen( val->bv_val ) != val->bv_len ) {
-			return LDAP_INVALID_SYNTAX;
-		}
-
 		/* FIXME: should be liberal in what we accept */
 		rc = ldap_bv2dn( val, &dn, LDAP_DN_FORMAT_LDAP );
 		if ( rc != LDAP_SUCCESS ) {
@@ -619,7 +614,7 @@ dnExtractRdn(
 		return LDAP_OTHER;
 	}
 
-	rc = ldap_str2rdn( dn->bv_val, &tmpRDN, (char **)&p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( dn, &tmpRDN, (char **)&p, LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		return rc;
 	}
@@ -698,7 +693,7 @@ rdnValidate( struct berval *rdn )
 	/*
 	 * must be parsable
 	 */
-	rc = ldap_str2rdn( rdn, &RDN, (char **)&p, LDAP_DN_FORMAT_LDAP );
+	rc = ldap_bv2rdn( rdn, &RDN, (char **)&p, LDAP_DN_FORMAT_LDAP );
 	if ( rc != LDAP_SUCCESS ) {
 		return 0;
 	}
