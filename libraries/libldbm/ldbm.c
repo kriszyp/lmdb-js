@@ -61,8 +61,8 @@ ldbm_datum_dup( LDBM ldbm, Datum data )
 static int ldbm_initialized = 0;
 
 #ifdef HAVE_BERKELEY_DB_THREAD
-#define LDBM_LOCK	(void) 0;
-#define LDBM_UNLOCK	(void) 0;
+#define LDBM_LOCK	((void) 0)
+#define LDBM_UNLOCK	((void) 0)
 #else
 static ldap_pvt_thread_mutex_t ldbm_big_mutex;
 #define LDBM_LOCK	(ldap_pvt_thread_mutex_lock(&ldbm_big_mutex))
