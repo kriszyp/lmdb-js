@@ -6,6 +6,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Fixed slapd modify: delete of last attribute value bug (ITS#229)
 	Fixed slapd print in signal handler bug (ITS#230)
 	Fixed slapd index null vals bug (ITS#238)
+	Fixed slapd ldbm modified attrs on failure (ITS#179) (ITS#181)
 	Import password security fix from -devel (ITS#232)
 	Provided slapd workaround for "*" attribute type specifier (ITS#236)
 	Fixed slapd attribute type list/only specifier on cn=monitor/config 

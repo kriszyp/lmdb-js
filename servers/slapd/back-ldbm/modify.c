@@ -108,12 +108,13 @@ int ldbm_internal_modify(
 	int		i, err;
 	LDAPMod		*mod;
 	Attribute	*a;
+	Attribute	*save_attrs;
 
 	if ( ((be->be_lastmod == ON)
 	      || ((be->be_lastmod == UNDEFINED)&&(global_lastmod == ON)))
 	     && (be->be_update_ndn == NULL)) {
 
-	        /* XXX: It may be wrong, it changes mod time even if 
+		/* XXX: It may be wrong, it changes mod time even if 
 		 * mod fails! I also Think this is leaking memory...
 		 */
 		add_lastmods( op, &mods );
@@ -124,6 +125,9 @@ int ldbm_internal_modify(
 		send_ldap_result( conn, op, err, NULL, NULL );
 		return -1;
 	}
+
+	save_attrs = e->e_attrs;
+	e->e_attrs = attrs_dup( e->e_attrs );
 
 	for ( mod = mods; mod != NULL; mod = mod->mod_next ) {
 		switch ( mod->mod_op & ~LDAP_MOD_BVALUES ) {
@@ -136,21 +140,9 @@ int ldbm_internal_modify(
 			break;
 
 		case LDAP_MOD_REPLACE:
-			/* Need to remove all values from indexes before they
-			 * are lost.
-			 */
-		        if( e->e_attrs
-			    && ((a = attr_find( e->e_attrs, mod->mod_type ))
-			   != NULL) ) {
-
-			    (void) index_change_values( be,
-							mod->mod_type,
-							a->a_vals,
-							e->e_id,
-							__INDEX_DEL_OP);
-			}
 			err = replace_values( e, mod, op->o_ndn );
 			break;
+
  		case LDAP_MOD_SOFTADD:
  			/* Avoid problems in index_add_mods()
  			 * We need to add index if necessary.
@@ -167,14 +159,28 @@ int ldbm_internal_modify(
 		}
 
 		if ( err != LDAP_SUCCESS ) {
+			attrs_free( e->e_attrs );
+			e->e_attrs = save_attrs;
 			/* unlock entry, delete from cache */
 			send_ldap_result( conn, op, err, NULL, NULL );
 			return -1;
 		}
 	}
 
+	/* check for abandon */
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+	if ( op->o_abandon ) {
+		attrs_free( e->e_attrs );
+		e->e_attrs = save_attrs;
+		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+		return -1;
+	}
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+
 	/* check that the entry still obeys the schema */
 	if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
+		attrs_free( e->e_attrs );
+		e->e_attrs = save_attrs;
 		Debug( LDAP_DEBUG_ANY, "entry failed schema check\n", 0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OBJECT_CLASS_VIOLATION, NULL, NULL );
 		return -1;
@@ -183,6 +189,8 @@ int ldbm_internal_modify(
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
+		attrs_free( e->e_attrs );
+		e->e_attrs = save_attrs;
 		ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 		return -1;
 	}
@@ -190,8 +198,31 @@ int ldbm_internal_modify(
 
 	/* modify indexes */
 	if ( index_add_mods( be, mods, e->e_id ) != 0 ) {
+		attrs_free( e->e_attrs );
+		e->e_attrs = save_attrs;
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
 		return -1;
+	}
+
+	if( save_attrs != NULL ) {
+		for ( mod = mods; mod != NULL; mod = mod->mod_next ) {
+			if( ( mod->mod_op & ~LDAP_MOD_BVALUES )
+				== LDAP_MOD_REPLACE )
+			{
+				/* Need to remove all values from indexes */
+				a = attr_find( save_attrs, mod->mod_type );
+
+				if( a != NULL ) {
+					(void) index_change_values( be,
+						mod->mod_type,
+						a->a_vals,
+						e->e_id,
+						__INDEX_DEL_OP);
+				}
+
+			}
+		}
+		attrs_free( save_attrs );
 	}
 
 	/* check for abandon */
@@ -203,8 +234,7 @@ int ldbm_internal_modify(
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
 	return 0;
-
-}/* int ldbm_internal_modify() */
+}
 
 
 int

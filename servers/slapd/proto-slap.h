@@ -35,6 +35,7 @@ int str2access LDAP_P(( char *str ));
  */
 
 void attr_free LDAP_P(( Attribute *a ));
+Attribute *attr_dup LDAP_P(( Attribute *a ));
 char * attr_normalize LDAP_P(( char *s ));
 int attr_merge_fast LDAP_P(( Entry *e, char *type, struct berval **vals, int  nvals,
 	int  naddvals, int  *maxvals, Attribute ***a ));
@@ -43,6 +44,9 @@ Attribute * attr_find LDAP_P(( Attribute *a, char *type ));
 int attr_delete LDAP_P(( Attribute **attrs, char *type ));
 int attr_syntax LDAP_P(( char *type ));
 void attr_syntax_config LDAP_P(( char *fname, int lineno, int argc, char **argv ));
+
+void attrs_free LDAP_P(( Attribute *a ));
+Attribute *attrs_dup LDAP_P(( Attribute *a ));
 
 /*
  * ava.c
