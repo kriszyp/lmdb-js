@@ -28,12 +28,12 @@ int slapi_pblock_set( Slapi_PBlock *pb, int arg, void *value );
 Slapi_PBlock *slapi_pblock_new();
 void slapi_pblock_destroy( Slapi_PBlock* );
 
-/*entry/attr/dn routines */
+/* entry/attr/dn routines */
 Slapi_Entry *slapi_str2entry( char *s, int flags );
 char *slapi_entry2str( Slapi_Entry *e, int *len );
 char *slapi_entry_get_dn( Slapi_Entry *e );
-void slapi_entry_set_dn(Slapi_Entry *e, char *dn);
-Slapi_Entry *slapi_entry_dup(Slapi_Entry *e);
+void slapi_entry_set_dn( Slapi_Entry *e, char *dn );
+Slapi_Entry *slapi_entry_dup( Slapi_Entry *e );
 int slapi_entry_attr_delete( Slapi_Entry *e, char *type );
 Slapi_Entry *slapi_entry_alloc();
 void slapi_entry_free( Slapi_Entry *e );
@@ -46,16 +46,18 @@ int slapi_dn_issuffix( char *dn, char *suffix );
 char *slapi_dn_ignore_case( char *dn );
 
 /* char routines */
-char * slapi_ch_malloc( unsigned long size );
+char *slapi_ch_malloc( unsigned long size );
 void slapi_ch_free( void *ptr );
 char *slapi_ch_calloc( unsigned long nelem, unsigned long size );
-char *slapi_ch_realloc(char *block, unsigned long size );
-char *slapi_ch_strdup(char *s );
+char *slapi_ch_realloc( char *block, unsigned long size );
+char *slapi_ch_strdup( char *s );
 
 
 /* LDAP V3 routines */
-int slapi_control_present( LDAPControl **controls, char *oid, struct berval **val, int *iscritical);
-void slapi_register_supported_control(char *controloid, unsigned long controlops);
+int slapi_control_present( LDAPControl **controls, char *oid,
+	struct berval **val, int *iscritical);
+void slapi_register_supported_control(char *controloid,
+	unsigned long controlops);
 #define SLAPI_OPERATION_BIND            0x00000001L
 #define SLAPI_OPERATION_UNBIND          0x00000002L
 #define SLAPI_OPERATION_SEARCH          0x00000004L
@@ -76,10 +78,10 @@ char **slapi_get_supported_extended_ops(void);
 
 
 /* send ldap result back */
-void slapi_send_ldap_result( Slapi_PBlock *pb, int err, char *matched, char *text, 
-					   int nentries, struct berval **urls );
-int slapi_send_ldap_search_entry( Slapi_PBlock *pb, Slapi_Entry *e, LDAPControl **ectrls,
-                                  char **attrs, int attrsonly );
+void slapi_send_ldap_result( Slapi_PBlock *pb, int err, char *matched,
+	char *text, int nentries, struct berval **urls );
+int slapi_send_ldap_search_entry( Slapi_PBlock *pb, Slapi_Entry *e,
+	LDAPControl **ectrls, char **attrs, int attrsonly );
 
 /* filter routines */
 Slapi_Filter *slapi_str2filter( char *str );
@@ -94,11 +96,17 @@ Slapi_PBlock *slapi_search_internal( char *base, int scope, char *filter,
 	LDAPControl **controls, char **attrs, int attrsonly );
 Slapi_PBlock *slapi_modify_internal( char *dn, LDAPMod **mods,
         LDAPControl **controls, int log_change);
-Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e, LDAPControl **controls, int log_change );
-Slapi_PBlock *slapi_add_internal( char * dn, LDAPMod **attrs, LDAPControl **controls, int log_changes );
-Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e, LDAPControl **controls, int log_change );
-Slapi_PBlock *slapi_delete_internal( char * dn,  LDAPControl **controls, int log_change );
-Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn, char *newParent, int deloldrdn, LDAPControl **controls, int log_change);
+Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e,
+	LDAPControl **controls, int log_change );
+Slapi_PBlock *slapi_add_internal( char * dn, LDAPMod **attrs,
+	LDAPControl **controls, int log_changes );
+Slapi_PBlock *slapi_add_entry_internal( Slapi_Entry * e,
+	LDAPControl **controls, int log_change );
+Slapi_PBlock *slapi_delete_internal( char * dn,  LDAPControl **controls,
+	int log_change );
+Slapi_PBlock *slapi_modrdn_internal( char * olddn, char * newrdn,
+	char *newParent, int deloldrdn, LDAPControl **controls,
+	int log_change);
 void slapi_free_search_results_internal(Slapi_PBlock *pb);
 
 /* connection related routines */
@@ -367,4 +375,5 @@ typedef struct slapi_plugindesc {
 #define SLAPI_PLUGIN_VERSION_03         "03"
 #define SLAPI_PLUGIN_CURRENT_VERSION    SLAPI_PLUGIN_VERSION_03
 
-#endif
+#endif /* _SLAPI_PLUGIN_H */
+
