@@ -903,23 +903,25 @@ limits_check( Operation *op, SlapReply *rs )
 		if ( op->ors_tlimit <= 0 ) {
 			op->ors_tlimit = op->ors_limit->lms_t_soft;
 
-		/* if requested limit higher than hard limit, abort */
-		} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
+		} else {
 			/* no hard limit means use soft instead */
-			if ( op->ors_limit->lms_t_hard == 0
-					&& op->ors_limit->lms_t_soft > -1
-					&& op->ors_tlimit > op->ors_limit->lms_t_soft ) {
-				op->ors_tlimit = op->ors_limit->lms_t_soft;
+			if ( op->ors_limit->lms_t_hard == 0 ) {
+				if ( op->ors_limit->lms_t_soft > -1
+						&& op->ors_tlimit > op->ors_limit->lms_t_soft ) {
+					op->ors_tlimit = op->ors_limit->lms_t_soft;
+				}
 
-			/* positive hard limit means abort */
-			} else if ( op->ors_limit->lms_t_hard > 0 ) {
+			/* -1 means no hard limit */
+			} else if ( op->ors_limit->lms_t_hard == -1 ) {
+				op->ors_tlimit = -1;
+		
+			/* error if exceeding hard limit */	
+			} else if ( op->ors_tlimit > op->ors_limit->lms_t_hard ) {
 				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
 				send_ldap_result( op, rs );
 				rs->sr_err = LDAP_SUCCESS;
 				return -1;
 			}
-	
-			/* negative hard limit means no limit */
 		}
 
 		/* don't even get to backend if candidate check is disabled */
@@ -963,7 +965,7 @@ limits_check( Operation *op, SlapReply *rs )
 							slimit2 = -2;
 						}
 
-					} else if ( op->ors_limit->lms_s_soft > 0 && op->ors_slimit > op->ors_limit->lms_s_soft ) {
+					} else if ( op->ors_limit->lms_s_soft > 0 ) {
 						if ( op->ors_slimit > op->ors_limit->lms_s_soft ) {
 							slimit2 = -2;
 						}
@@ -1035,26 +1037,28 @@ limits_check( Operation *op, SlapReply *rs )
 				op->ors_slimit = op->ors_limit->lms_s_hard;
 			}
 
-		/* if requested limit higher than hard limit, abort */
-		} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
-			/* no hard limit means use soft instead */
-			if ( op->ors_limit->lms_s_hard == 0
-					&& op->ors_limit->lms_s_soft > -1
-					&& op->ors_slimit > op->ors_limit->lms_s_soft ) {
-				op->ors_slimit = op->ors_limit->lms_s_soft;
-
-			/* positive hard limit means abort */
-			} else if ( op->ors_limit->lms_s_hard > 0 ) {
-				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
-				send_ldap_result( op, rs );
-				rs->sr_err = LDAP_SUCCESS;	
-				return -1;
-			}
-		
-			/* negative hard limit means no limit */
-
 		} else if ( op->ors_slimit == 0 ) {
 			op->ors_slimit = op->ors_limit->lms_s_soft;
+
+		} else {
+			/* no hard limit means use soft instead */
+			if ( op->ors_limit->lms_s_hard == 0 ) {
+				if ( op->ors_limit->lms_s_soft > -1
+						&& op->ors_slimit > op->ors_limit->lms_s_soft ) {
+					op->ors_slimit = op->ors_limit->lms_s_soft;
+				}
+
+			/* -1 means no hard limit */
+			} else if ( op->ors_limit->lms_s_hard == -1 ) {
+				op->ors_slimit = -1;
+					
+			/* error if exceeding hard limit */	
+			} else if ( op->ors_slimit > op->ors_limit->lms_s_hard ) {
+				rs->sr_err = LDAP_ADMINLIMIT_EXCEEDED;
+				send_ldap_result( op, rs );
+				rs->sr_err = LDAP_SUCCESS;
+				return -1;
+			}
 		}
 	}
 
