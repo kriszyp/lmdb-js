@@ -1,4 +1,6 @@
 # $OpenLDAP$
+## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 
 SRCS	= init.c config.c search.c bind.c other.c \
 		entry-id.c schema-map.c sql-wrap.c modify.c util.c

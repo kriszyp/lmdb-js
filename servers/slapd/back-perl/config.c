@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1999-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  *	 Copyright 1999, John C. Quillan, All rights reserved.
  *	 Portions Copyright 2002, myinternet Limited. All rights reserved.
  *

@@ -1,4 +1,7 @@
 #! /bin/sh
+## Copyright 1998-2003 The OpenLDAP Foundation
+## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
+## of this package for details.
 cc_r -ME $* > /dev/null
 cat *.u
 rm *.u

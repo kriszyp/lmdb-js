@@ -1,4 +1,8 @@
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 #ifndef _BACK_PASSWD_H
 #define _BACK_PASSWD_H
 

@@ -1,4 +1,8 @@
 /* $OpenLDAP$ */
+/*
+ * Copyright 1999-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 #ifndef PERL_BACK_H
 #define PERL_BACK_H 1
 

@@ -1,4 +1,6 @@
 # $OpenLDAP$
+## Copyright 1998-2003 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 
 SRCS	= search.c config.c init.c
 OBJS	= search.lo config.lo init.lo

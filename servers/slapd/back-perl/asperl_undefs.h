@@ -1,3 +1,7 @@
+/*
+ * Copyright 1999-2003 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /* This file is necessary because both PERL headers */
 /* and OpenLDAP define a number of macros without   */
 /* checking wether they're already defined */
