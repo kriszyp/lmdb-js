@@ -168,7 +168,7 @@ ldap_result2error( LDAP *ld, LDAPMessage *r, int freeit )
 	rc = ldap_parse_result( ld, r, &err,
 		NULL, NULL, NULL, NULL, freeit );
 
-	return rc != LDAP_SUCCESS ? err : rc;
+	return err != LDAP_SUCCESS ? err : rc;
 }
 
 /*
@@ -206,9 +206,7 @@ ldap_parse_result(
 	int				freeit )
 {
 	LDAPMessage	*lm;
-	ber_int_t errcode;
-	char* matcheddn;
-	char* errmsg;
+	ber_int_t errcode = LDAP_SUCCESS;
 
 	int rc;
 	ber_tag_t tag;
@@ -224,6 +222,7 @@ ldap_parse_result(
 		return LDAP_PARAM_ERROR;
 	}
 
+	if(errcodep != NULL) *errcodep = LDAP_SUCCESS;
 	if(matcheddnp != NULL) *matcheddnp = NULL;
 	if(errmsgp != NULL) *errmsgp = NULL;
 	if(referralsp != NULL) *referralsp = NULL;
@@ -244,10 +243,6 @@ ldap_parse_result(
 		return ld->ld_errno;
 	}
 
-	errcode = LDAP_SUCCESS;
-	matcheddn = NULL;
-	errmsg = NULL;
-
 	if ( ld->ld_error ) {
 		LDAP_FREE( ld->ld_error );
 		ld->ld_error = NULL;
@@ -263,11 +258,11 @@ ldap_parse_result(
 
 	if ( ld->ld_version < LDAP_VERSION2 ) {
 		tag = ber_scanf( ber, "{ia}",
-			&errcode, &ld->ld_error );
+			&ld->ld_errno, &ld->ld_error );
 	} else {
 		ber_len_t len;
 		tag = ber_scanf( ber, "{iaa" /*}*/,
-			&errcode, &ld->ld_matched, &ld->ld_error );
+			&ld->ld_errno, &ld->ld_matched, &ld->ld_error );
 
 		if( tag != LBER_ERROR ) {
 			/* peek for referrals */
@@ -357,6 +352,5 @@ ldap_parse_result(
 		ldap_msgfree( r );
 	}
 
-	ld->ld_errno = errcode;
-	return( ld->ld_errno );
+	return( errcode );
 }
