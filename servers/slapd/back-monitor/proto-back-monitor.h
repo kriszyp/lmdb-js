@@ -71,6 +71,10 @@ extern monitor_entry_t * monitor_entrypriv_create LDAP_P(( void ));
 extern int monitor_back_register_subsys LDAP_P(( monitor_subsys_t *ms ));
 extern monitor_subsys_t * monitor_back_get_subsys LDAP_P(( const char *name ));
 extern monitor_subsys_t * monitor_back_get_subsys_by_dn LDAP_P(( struct berval *ndn, int sub ));
+extern int monitor_back_register_entry LDAP_P(( Entry *e, monitor_callback_t *cb ));
+extern int monitor_filter2ndn LDAP_P(( struct berval *base, int scope, struct berval *filter, struct berval *ndn ));
+extern int monitor_back_register_entry_attrs LDAP_P(( struct berval *ndn, Attribute *a, monitor_callback_t *cb, struct berval *base, int scope, struct berval *filter ));
+extern int monitor_back_register_entry_callback LDAP_P(( struct berval *ndn, monitor_callback_t *cb, struct berval *base, int scope, struct berval *filter ));
 
 /*
  * listener
