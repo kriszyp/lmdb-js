@@ -24,7 +24,7 @@ static int		emaxsize;/* max size of ebuf			 */
 /*
  * Empty root entry
  */
-const Entry slap_entry_root = { NOID, { 0, "" }, { 0, "" }, NULL, NULL };
+const Entry slap_entry_root = { NOID, { 0, "" }, { 0, "" }, NULL, 0, NULL };
 
 int entry_destroy(void)
 {
@@ -71,7 +71,7 @@ str2entry( char *s )
 #endif
 
 	/* initialize reader/writer lock */
-	e = (Entry *) ch_malloc( sizeof(Entry) );
+	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
 
 	if( e == NULL ) {
 #ifdef NEW_LOGGING
@@ -87,12 +87,6 @@ str2entry( char *s )
 
 	/* initialize entry */
 	e->e_id = NOID;
-	e->e_name.bv_val = NULL;
-	e->e_name.bv_len = 0;
-	e->e_nname.bv_val = NULL;
-	e->e_nname.bv_len = 0;
-	e->e_attrs = NULL;
-	e->e_private = NULL;
 
 	/* dn + attributes */
 	vals[1].bv_val = NULL;
@@ -564,7 +558,7 @@ int entry_decode(struct berval *bv, Entry **e)
 	BerVarray bptr;
 
 	i = entry_getlen(&ptr);
-	x = ch_malloc(i);
+	x = ch_calloc(1, i);
 	i = entry_getlen(&ptr);
 	x->e_name.bv_val = ptr;
 	x->e_name.bv_len = i;
