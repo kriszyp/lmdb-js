@@ -65,9 +65,10 @@ str2entry( char *s )
 	char		*type;
 	struct berval	vals[2];
 	struct berval	nvals[2], *nvalsp;
-	AttributeDescription *ad;
+	AttributeDescription *ad, *ad_prev;
 	const char *text;
 	char	*next;
+	int		attr_cnt;
 
 	/*
 	 * LDIF is used as the string format.
@@ -113,6 +114,9 @@ str2entry( char *s )
 	vals[1].bv_len = 0;
 	vals[1].bv_val = NULL;
 
+	ad = NULL;
+	ad_prev = NULL;
+	attr_cnt = 0;
 	next = s;
 	while ( (s = ldif_getline( &next )) != NULL ) {
 		if ( *s == '\n' || *s == '\0' ) {
@@ -166,6 +170,7 @@ str2entry( char *s )
 			continue;
 		}
 
+		ad_prev = ad;
 		ad = NULL;
 		rc = slap_str2ad( type, &ad, &text );
 
@@ -202,6 +207,10 @@ str2entry( char *s )
 			}
 		}
 
+		if ( ad != ad_prev ) {
+			attr_cnt = 0;
+		}
+
 		if( slapMode & SLAP_TOOL_MODE ) {
 			struct berval pval;
 			slap_syntax_validate_func *validate =
@@ -222,12 +231,16 @@ str2entry( char *s )
 			} else {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, INFO, 
-					"str2entry: no validator for syntax %s\n", 
-					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+					"str2entry: attributeType %s #%d: "
+					"no validator for syntax %s\n", 
+					ad->ad_cname.bv_val, attr_cnt,
+					ad->ad_type->sat_syntax->ssyn_oid );
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"str2entry: no validator for syntax %s\n",
-					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+					"str2entry: attributeType %s #%d: "
+					"no validator for syntax %s\n", 
+					ad->ad_cname.bv_val, attr_cnt,
+					ad->ad_type->sat_syntax->ssyn_oid );
 #endif
 				entry_free( e );
 				free( vals[0].bv_val );
@@ -238,12 +251,16 @@ str2entry( char *s )
 			if( rc != 0 ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( OPERATION, ERR, 
-					"str2entry:  invalid value for attribute %s (syntax %s)\n",
-					ad->ad_cname.bv_val, ad->ad_type->sat_syntax->ssyn_oid, 0 );
+					"str2entry: invalid value "
+					"for attributeType %s #%d (syntax %s)\n",
+					ad->ad_cname.bv_val, attr_cnt,
+					ad->ad_type->sat_syntax->ssyn_oid );
 #else
 				Debug( LDAP_DEBUG_ANY,
-					"str2entry: invalid value for attribute %s (syntax %s)\n",
-					ad->ad_cname.bv_val, ad->ad_type->sat_syntax->ssyn_oid, 0 );
+					"str2entry: invalid value "
+					"for attributeType %s #%d (syntax %s)\n",
+					ad->ad_cname.bv_val, attr_cnt,
+					ad->ad_type->sat_syntax->ssyn_oid );
 #endif
 				entry_free( e );
 				free( vals[0].bv_val );
@@ -308,6 +325,8 @@ str2entry( char *s )
 		free( type );
 		free( vals[0].bv_val );
 		free( nvals[0].bv_val );
+
+		attr_cnt++;
 	}
 
 	/* check to make sure there was a dn: line */
