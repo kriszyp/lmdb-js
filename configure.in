@@ -2420,7 +2420,7 @@ AC_FUNC_VPRINTF
 
 if test $ac_cv_func_vprintf = yes ; then
 	dnl check for vsnprintf
-	AC_CHECK_FUNCS(vsnprintf vsprintf)
+	AC_CHECK_FUNCS(snprintf vsnprintf)
 fi
 
 AC_CHECK_FUNCS(		\
@@ -2484,6 +2484,16 @@ AC_REPLACE_FUNCS(getopt)
 
 if test "$ac_cv_func_getopt" != yes; then
 	LIBSRCS="$LIBSRCS getopt.c"
+fi
+if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then
+	LIBSRCS="$LIBSRCS stdio.c"
+	LIBOBJS="$LIBOBJS stdio.o"
+	if test "$ac_cv_func_snprintf" != yes; then
+		AC_DEFINE(snprintf, lutil_snprintf, [define to snprintf routine])
+	fi
+	if test "$ac_cv_func_vsnprintf" != yes; then
+		AC_DEFINE(vsnprintf, lutil_vsnprintf, [define to snprintf routine])
+	fi
 fi
 
 dnl ----------------------------------------------------------------

@@ -12,7 +12,7 @@
 
 #include <lutil.h>
 
-#ifndef HAVE_VSNPRINTF
+#if !defined(HAVE_VSNPRINTF) && !defined(HAVE_EBCDIC)
 /* Write at most n characters to the buffer in str, return the
  * number of chars written or -1 if the buffer would have been
  * overflowed.
@@ -30,13 +30,12 @@
  * broken pipe, and the write will be terminated.
  * -- hyc, 2002-07-19
  */
-#ifndef HAVE_EBCDIC
 /* This emulation uses vfprintf; on OS/390 we're also emulating
  * that function so it's more efficient just to have a separate
  * version of vsnprintf there.
  */
 #include <ac/signal.h>
-int vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
+int lutil_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 {
 	int fds[2], res;
 	FILE *f;
@@ -62,7 +61,8 @@ int vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 }
 #endif
 
-int snprintf( char *str, size_t n, const char *fmt, ... )
+#ifndef HAVE_SNPRINTF
+int lutil_snprintf( char *str, size_t n, const char *fmt, ... )
 {
 	va_list ap;
 	int res;
@@ -116,7 +116,7 @@ int lutil_fputs( const char *str, FILE *fp )
  * may need to be extended to recognize other qualifiers but so
  * far this seems to be enough.
  */
-int vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
+int lutil_vsnprintf( char *str, size_t n, const char *fmt, va_list ap )
 {
 	char *ptr, *pct, *s2, *f2, *end;
 	char fm2[64];
