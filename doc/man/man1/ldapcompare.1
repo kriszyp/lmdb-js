@@ -25,7 +25,9 @@ ldapcompare \- LDAP compare tool
 [\c
 .BR \-W ]
 [\c
-.BI \-w \ bindpasswd\fR]
+.BI \-w \ passwd\fR]
+[\c
+.BI \-y \ passwdfile\fR]
 [\c
 .BI \-H \ ldapuri\fR]
 [\c
@@ -111,8 +113,12 @@ Use the Distinguished Name \fIbinddn\fP to bind to the LDAP directory.
 Prompt for simple authentication.
 This is used instead of specifying the password on the command line.
 .TP
-.BI \-w \ bindpasswd
-Use \fIbindpasswd\fP as the password for simple authentication.
+.BI \-w \ passwd
+Use \fIpasswd\fP as the password for simple authentication.
+.TP
+.BI \-y \ passwdfile
+Use complete contents of \fIpasswdfile\fP as the password for
+simple authentication.
 .TP
 .BI \-H \ ldapuri
 Specify URI(s) referring to the ldap server(s).
