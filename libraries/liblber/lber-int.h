@@ -21,6 +21,7 @@
 #include "lber.h"
 #include "ldap_log.h"
 #include "lber_pvt.h"
+#include "ldap_queue.h"
 
 LDAP_BEGIN_DECL
 

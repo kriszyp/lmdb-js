@@ -22,8 +22,6 @@
 #include <ldap_pvt_thread.h>
 #endif
 
-#include <ldap_queue.h>
-
 #ifdef HAVE_CYRUS_SASL
 	/* the need for this should be removed */
 #include <sasl.h>
