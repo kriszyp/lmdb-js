@@ -36,7 +36,6 @@
 #include "config.h"
 
 static struct berval config_rdn = BER_BVC("cn=config");
-static struct berval access_rdn = BER_BVC("cn=access");
 
 #ifdef SLAPD_MODULES
 typedef struct modpath_s {
@@ -57,10 +56,24 @@ typedef struct ConfigFile {
 	BerVarray c_dseFiles;
 } ConfigFile;
 
+typedef struct CfOcInfo {
+	struct berval *co_name;
+	ConfigTable *co_table;
+} CfOcInfo;
+
+typedef enum {
+	Cf_Global = 1,
+	Cf_Include,
+	Cf_Backend,
+	Cf_Database,
+	Cf_Overlay
+} CfEtypes;
+
 typedef struct CfEntryInfo {
 	struct CfEntryInfo *ce_sibs;
 	struct CfEntryInfo *ce_kids;
 	Entry *ce_entry;
+	CfEtypes ce_type;
 	BackendInfo *ce_bi;
 	BackendDB *ce_be;
 } CfEntryInfo;
@@ -84,13 +97,16 @@ static BerVarray authz_rewrites;
 
 static struct berval cfdir;
 
+/* Private state */
 static AttributeDescription *cfAd_backend, *cfAd_database, *cfAd_overlay,
 	*cfAd_include;
 
 static ObjectClass *cfOc_global, *cfOc_backend, *cfOc_database,
-	*cfOc_include, *cfOc_overlay, *cfOc_access;
+	*cfOc_include, *cfOc_overlay;
 
 static ConfigFile cf_prv, *cfn = &cf_prv;
+
+static Avlnode *CfOcTree;
 
 static int add_syncrepl LDAP_P(( Backend *, char **, int ));
 static int parse_syncrepl_line LDAP_P(( char **, int, syncinfo_t *));
@@ -604,11 +620,6 @@ static ConfigOCs cf_ocs[] = {
 		"DESC 'OpenLDAP Overlay-specific options' "
 		"SUP olcConfig STRUCTURAL "
 		"MAY ( olcOverlay ) )", &cfOc_overlay },
-	{ "( OLcfgOc:8 "
-		"NAME 'olcACL' "
-		"DESC 'OpenLDAP Access Control List' "
-		"SUP olcConfig STRUCTURAL "
-		"MUST ( olcAccess ) )", &cfOc_access },
 	{ NULL, NULL }
 };
 
@@ -2639,6 +2650,37 @@ config_setup_ldif( BackendDB *be, const char *dir ) {
 	return 0;
 }
 
+static int
+CfOcInfo_cmp( const void *c1, const void *c2 ) {
+	const CfOcInfo *co1 = c1;
+	const CfOcInfo *co2 = c2;
+
+	return ber_bvcmp( co1->co_name, co2->co_name );
+}
+
+int
+config_register_schema(ConfigTable *ct, ConfigOCs *ocs) {
+	int i;
+	CfOcInfo *co;
+
+	i = init_config_attrs( ct );
+	if ( i ) return i;
+
+	/* set up the objectclasses */
+	i = init_config_ocs( ocs );
+	if ( i ) return i;
+
+	for (i=0; ocs[i].def; i++) {
+		if ( ocs[i].oc ) {
+			co = ch_malloc( sizeof(CfOcInfo) );
+			co->co_name = &(*ocs[i].oc)->soc_cname;
+			co->co_table = ct;
+			avl_insert( &CfOcTree, co, CfOcInfo_cmp, avl_dup_error );
+		}
+	}
+	return 0;
+}
+
 int
 read_config(const char *fname, const char *dir) {
 	BackendDB *be;
@@ -2893,6 +2935,8 @@ config_build_includes( ConfigArgs *c, Entry *parent,
 		op->ora_e = e;
 		op->o_bd->be_add( op, rs );
 		ce = e->e_private;
+		ce->ce_type = Cf_Include;
+		ce->ce_bi = c->bi;
 		if ( !ceparent->ce_kids ) {
 			ceparent->ce_kids = ce;
 		} else {
@@ -2951,6 +2995,8 @@ config_back_db_open( BackendDB *be )
 	config_build_entry( &c, e, cfOc_global, &rdn, ct, NO_TABLE );
 	op->ora_e = e;
 	op->o_bd->be_add( op, &rs );
+	ce->ce_type = Cf_Global;
+	ce->ce_bi = c.bi;
 
 	parent = e;
 	ceparent = ce;
@@ -2975,6 +3021,7 @@ config_back_db_open( BackendDB *be )
 		rdn.bv_len = sprintf(rdn.bv_val, "%s=%s", cfAd_backend->ad_cname.bv_val, bi->bi_type);
 		e = config_alloc_entry( &parent->e_nname, &rdn );
 		ce = e->e_private;
+		ce->ce_type = Cf_Backend;
 		ce->ce_bi = bi;
 		c.bi = bi;
 		config_build_entry( &c, e, cfOc_backend, &rdn, ct, BI_TABLE );
@@ -3009,6 +3056,7 @@ config_back_db_open( BackendDB *be )
 		ce = e->e_private;
 		c.be = bptr;
 		c.bi = bi;
+		ce->ce_type = Cf_Database;
 		ce->ce_be = c.be;
 		ce->ce_bi = c.bi;
 		config_build_entry( &c, e, cfOc_database, &rdn, ct, BE_TABLE );
@@ -3035,6 +3083,7 @@ config_back_db_open( BackendDB *be )
 				ce = oe->e_private;
 				c.be = bptr;
 				c.bi = &on->on_bi;
+				ce->ce_type = Cf_Overlay;
 				ce->ce_be = c.be;
 				ce->ce_bi = c.bi;
 				config_build_entry( &c, oe, cfOc_overlay, &rdn, ct, BI_TABLE );
@@ -3140,15 +3189,15 @@ config_back_initialize( BackendInfo *bi )
 		parse_oidm( "slapd", i, 3, argv );
 	}
 
-	i = init_config_attrs( ct );
+	bi->bi_cf_table = ct;
+
+	i = config_register_schema( ct, cf_ocs );
 	if ( i ) return i;
 
 	/* set up the notable AttributeDescriptions */
 	ads[0].sub = slap_schema.si_ad_attributeTypes;
 	ads[3].sub = slap_schema.si_ad_ditContentRules;
 	ads[5].sub = slap_schema.si_ad_objectClasses;
-
-	bi->bi_cf_table = ct;
 
 	i = 0;
 	for (;ct->name;ct++) {
@@ -3162,9 +3211,6 @@ config_back_initialize( BackendInfo *bi )
 		if (!ads[i].name) break;
 	}
 
-	/* set up the objectclasses */
-	i = init_config_ocs( cf_ocs );
-
-	return i;
+	return 0;
 }
 

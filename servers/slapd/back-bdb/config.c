@@ -240,9 +240,8 @@ int bdb_back_init_cf( BackendInfo *bi )
 	int rc;
 	bi->bi_cf_table = bdbcfg;
 
-	rc = init_config_attrs( bdbcfg );
+	rc = config_register_schema( bdbcfg, bdbocs );
 	if ( rc ) return rc;
 	bdbcfg[0].ad = slap_schema.si_ad_objectClass;
-	rc = init_config_ocs( bdbocs );
-	return rc;
+	return 0;
 }

@@ -1026,9 +1026,8 @@ ldif_back_initialize(
 	bi->bi_tool_id2entry_get = 0;
 	bi->bi_tool_entry_modify = 0;
 
-	rc = init_config_attrs( ldifcfg );
+	rc = config_register_schema( ldifcfg, ldifocs );
 	if ( rc ) return rc;
 	ldifcfg[0].ad = slap_schema.si_ad_objectClass;
-	rc = init_config_ocs( ldifocs );
-	return rc;
+	return 0;
 }

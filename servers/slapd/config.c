@@ -72,8 +72,6 @@ int	slap_conn_max_pending_auth = SLAP_CONN_MAX_PENDING_AUTH;
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
 
-char   *strtok_quote_ptr;
-
 int use_reverse_lookup = 0;
 
 #ifdef LDAP_SLAPI
@@ -84,7 +82,7 @@ static int fp_getline(FILE *fp, ConfigArgs *c);
 static void fp_getline_init(ConfigArgs *c);
 static int fp_parse_line(ConfigArgs *c);
 
-static char	*strtok_quote(char *line, char *sep);
+static char	*strtok_quote(char *line, char *sep, char **quote_ptr);
 
 int read_config_file(const char *fname, int depth, ConfigArgs *cf);
 
@@ -458,6 +456,7 @@ read_config_file(const char *fname, int depth, ConfigArgs *cf)
 		snprintf( c->log, sizeof( c->log ), "%s: line %lu",
 				c->fname, c->lineno );
 
+		c->argc = 0;
 		if ( fp_parse_line( c ) ) {
 			goto badline;
 		}
@@ -748,13 +747,13 @@ void bindconf_free( slap_bindconf *bc ) {
 
 
 static char *
-strtok_quote( char *line, char *sep )
+strtok_quote( char *line, char *sep, char **quote_ptr )
 {
 	int		inquote;
 	char		*tmp;
 	static char	*next;
 
-	strtok_quote_ptr = NULL;
+	*quote_ptr = NULL;
 	if ( line != NULL ) {
 		next = line;
 	}
@@ -789,7 +788,7 @@ strtok_quote( char *line, char *sep )
 		default:
 			if ( ! inquote ) {
 				if ( strchr( sep, *next ) != NULL ) {
-					strtok_quote_ptr = next;
+					*quote_ptr = next;
 					*next++ = '\0';
 					return( tmp );
 				}
@@ -877,17 +876,18 @@ fp_parse_line(ConfigArgs *c)
 	char *token;
 	char *tline = ch_strdup(c->line);
 	char *hide[] = { "rootpw", "replica", "bindpw", "pseudorootpw", "dbpasswd", '\0' };
+	char *quote_ptr;
 	int i;
 
-	c->argc = 0;
-	token = strtok_quote(tline, " \t");
+	token = strtok_quote(tline, " \t", &quote_ptr);
 
 	if(token) for(i = 0; hide[i]; i++) if(!strcasecmp(token, hide[i])) break;
-	if(strtok_quote_ptr) *strtok_quote_ptr = ' ';
-	Debug(LDAP_DEBUG_CONFIG, "line %lu (%s%s)\n", c->lineno, hide[i] ? hide[i] : c->line, hide[i] ? " ***" : "");
-	if(strtok_quote_ptr) *strtok_quote_ptr = '\0';
+	if(quote_ptr) *quote_ptr = ' ';
+	Debug(LDAP_DEBUG_CONFIG, "line %lu (%s%s)\n", c->lineno,
+		hide[i] ? hide[i] : c->line, hide[i] ? " ***" : "");
+	if(quote_ptr) *quote_ptr = '\0';
 
-	for(; token; token = strtok_quote(NULL, " \t")) {
+	for(; token; token = strtok_quote(NULL, " \t", &quote_ptr)) {
 		if(c->argc == c->argv_size - 1) {
 			char **tmp;
 			tmp = ch_realloc(c->argv, (c->argv_size + ARGS_STEP) * sizeof(*c->argv));

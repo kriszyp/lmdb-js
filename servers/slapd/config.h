@@ -103,6 +103,7 @@ typedef struct config_args_s {
 
 typedef int (ConfigDriver)(ConfigArgs *c);
 
+int config_register_schema(ConfigTable *ct, ConfigOCs *co);
 int config_get_vals(ConfigTable *ct, ConfigArgs *c);
 int config_add_vals(ConfigTable *ct, ConfigArgs *c);
 ConfigTable * config_find_keyword(ConfigTable *ct, ConfigArgs *c);
