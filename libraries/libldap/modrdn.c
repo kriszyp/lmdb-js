@@ -68,7 +68,11 @@ ldap_rename(
 	BerElement	*ber;
 	int rc;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "modrdn", LDAP_LEVEL_ENTRY, "ldap_rename\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_rename\n", 0, 0, 0 );
+#endif
 
 	/* check client controls */
 	rc = ldap_int_client_controls( ld, cctrls );
@@ -151,7 +155,11 @@ ldap_rename2(
 	int msgid;
 	int rc;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "modrdn", LDAP_LEVEL_ENTRY, "ldap_rename2\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_rename2\n", 0, 0, 0 );
+#endif
 
 	rc = ldap_rename( ld, dn, newrdn, newSuperior,
 		deleteoldrdn, NULL, NULL, &msgid );
