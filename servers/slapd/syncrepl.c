@@ -49,12 +49,12 @@ static void syncrepl_add_glue( LDAP *, Connection*, Operation*, Backend*,
 			       struct berval*, struct berval* );
 static void syncrepl_updateCookie( LDAP *, Backend *, struct berval *,
 				struct berval * );
-int slap_mods_check_syncrepl( Backend *, Modifications **,
-				const char **, char *, size_t );
-int slap_mods_opattrs_syncrepl( Backend *, Operation *, Modifications *,
+static int slap_mods_check_syncrepl( Backend *, Modifications **,
+				const char **, char *, size_t, void *ctx );
+static int slap_mods_opattrs_syncrepl( Backend *, Operation *, Modifications *,
 			Modifications **, const char **, char *, size_t );
-int slap_mods2entry_syncrepl( Modifications *, Entry **, int, const char **,
-				char *, size_t );
+static int slap_mods2entry_syncrepl( Modifications *, Entry **, int,
+				const char **, char *, size_t );
 
 /* callback functions */
 static int cookie_callback( struct slap_op *, struct slap_rep * );
@@ -149,6 +149,9 @@ do_syncrepl(
 	Connection conn;
 	Operation op = {0};
 	slap_callback	cb;
+
+	void *memctx;
+	ber_len_t memsiz;
 	
 	int i, j, k, n;
 
@@ -304,18 +307,17 @@ do_syncrepl(
 	si->conn = &conn;
 	conn.c_send_ldap_result = slap_send_ldap_result;
 	conn.c_send_search_entry = slap_send_search_entry;
-	conn.c_send_search_result = slap_send_search_result;
 	conn.c_send_search_reference = slap_send_search_reference;
 
 	si->ctx = ctx;
 
 	/* get syncrepl cookie of shadow replica from subentry */
 	ber_str2bv( si->base, strlen(si->base), 1, &base_bv ); 
-	dnPrettyNormal(0, &base_bv, &pbase, &nbase);
+	dnPrettyNormal( 0, &base_bv, &pbase, &nbase, op.o_tmpmemctx );
 
 	sprintf( substr, "cn=syncrepl%d", si->id );
 	ber_str2bv( substr, strlen(substr), 1, &sub_bv );
-	dnPrettyNormal( 0, &sub_bv, &psubrdn, &nsubrdn );
+	dnPrettyNormal( 0, &sub_bv, &psubrdn, &nsubrdn, op.o_tmpmemctx );
 
 	build_new_dn( &op.o_req_dn, &pbase, &psubrdn );
 	build_new_dn( &op.o_req_ndn, &nbase, &nsubrdn );
@@ -663,7 +665,7 @@ syncrepl_message_to_entry(
 	Operation op = {0};
 	syncinfo_t *si = ( syncinfo_t * ) be->syncinfo;
 
-	ber_int_t	len;
+	ber_len_t	len;
 	LDAPControl*	rctrlp;
 	LDAPControl**	rctrls = NULL;
 	BerElement*	ctrl_ber;
@@ -698,7 +700,7 @@ syncrepl_message_to_entry(
 	}
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
-	dnPrettyNormal( NULL, &bdn, &e->e_name, &e->e_nname );
+	dnPrettyNormal( NULL, &bdn, &e->e_name, &e->e_nname, NULL );
 
 	e->e_attrs = NULL;
 
@@ -779,7 +781,7 @@ syncrepl_message_to_entry(
 #endif
         }
 
-	rc = slap_mods_check_syncrepl( be, &modlist, &text, txtbuf, textlen );
+	rc = slap_mods_check_syncrepl( be, &modlist, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -875,7 +877,7 @@ syncrepl_entry(
 	}
 
 	if ( !attr_find( e->e_attrs, slap_schema.si_ad_entryUUID )) {
-		attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID );
+		attr_merge_one( e, slap_schema.si_ad_entryUUID, syncUUID, syncUUID );
 	}
 
 	filterstr = (char *) ch_malloc( strlen("entryUUID=") + syncUUID->bv_len + 1 ); 
@@ -889,7 +891,7 @@ syncrepl_entry(
 	ber_str2bv( filterstr, strlen(filterstr), 1, &filterstr_bv );
 	ch_free( filterstr );
 
-	dnPrettyNormal(0, &(e->e_name), &prettydn, &normdn);
+	dnPrettyNormal( 0, &(e->e_name), &prettydn, &normdn, NULL );
 
 	free(e->e_name.bv_val);
 	free(e->e_nname.bv_val);
@@ -899,7 +901,7 @@ syncrepl_entry(
 	op.o_req_ndn = e->e_nname;
 
 	ber_str2bv( si->base, strlen(si->base), 1, &base_bv ); 
-	dnPrettyNormal(0, &base_bv, &pbase, &nbase);
+	dnPrettyNormal( 0, &base_bv, &pbase, &nbase, NULL );
 
 	op.o_protocol = LDAP_VERSION3;
 	ber_dupbv( &op.o_ndn, &be->be_rootndn );
@@ -917,12 +919,12 @@ syncrepl_entry(
 sync_add_retry:
 		op.o_tag = LDAP_REQ_MODIFY;
 		op.orm_modlist = modlist;
-		rc = be->be_modify( op, rs );
+		rc = be->be_modify( &op, &rs );
 		if ( rc != LDAP_SUCCESS ) {
 			if ( rc == LDAP_REFERRAL || rc == LDAP_NO_SUCH_OBJECT || rc == DB_NOTFOUND ) {
 				op.o_tag = LDAP_REQ_ADD;
 				op.ora_e = e;
-				rc = be->be_add( &op, rs );
+				rc = be->be_add( &op, &rs );
 				if ( rc != LDAP_SUCCESS ) {
 					if ( rc == LDAP_ALREADY_EXISTS ) {
 						goto sync_add_retry;
@@ -988,7 +990,7 @@ syncrepl_del_nonpresent(
 	struct berval	filterstr_bv;
 
 	ber_str2bv( si->base, strlen(si->base), 1, &base_bv ); 
-	dnPrettyNormal(0, &base_bv, &op.o_req_dn, &op.o_req_ndn );
+	dnPrettyNormal(0, &base_bv, &op.o_req_dn, &op.o_req_ndn, NULL );
 
 	filter = str2filter( si->filterstr );
 
@@ -1068,9 +1070,9 @@ syncrepl_add_glue(
 			ber_dupbv( &dn, &pdn );
 		}
 
-		dnPrettyNormal(0, &dn, &pdn, &ndn);
-		ber_dupbv( &glue->e_name, &pdn);
-		ber_dupbv( &glue->e_nname, &ndn);
+		dnPrettyNormal( 0, &dn, &pdn, &ndn, NULL );
+		ber_dupbv( &glue->e_name, &pdn );
+		ber_dupbv( &glue->e_nname, &ndn );
 
 		a = ch_calloc( 1, sizeof( Attribute ));
 		a->a_desc = slap_schema.si_ad_objectClass;
@@ -1092,22 +1094,22 @@ syncrepl_add_glue(
 		glue->e_attrs = a;
 
 		if ( !strcmp( e->e_nname.bv_val, glue->e_nname.bv_val )) {
-			op.o_req_dn = e->e_name;
-			op.o_req_ndn = e->e_nname;
-			op.ora_e = e;
+			op->o_req_dn = e->e_name;
+			op->o_req_ndn = e->e_nname;
+			op->ora_e = e;
 			rc = be->be_add ( op, &rs );
 			if ( rc == LDAP_SUCCESS )
-				be_entry_release_w( be, conn, op, e );
+				be_entry_release_w( op, e );
 			else 
 				entry_free( e );
 			entry_free( glue );
 		} else {
-			op.o_req_dn = glue->e_name;
-			op.o_req_ndn = glue->e_nname;
-			op.ora_e = glue;
+			op->o_req_dn = glue->e_name;
+			op->o_req_ndn = glue->e_nname;
+			op->ora_e = glue;
 			rc = be->be_add ( op, &rs );
 			if ( rc == LDAP_SUCCESS )
-				be_entry_release_w( be, conn, op, glue );
+				be_entry_release_w( op, glue );
 			else 
 				entry_free( glue );
 		}
@@ -1213,7 +1215,7 @@ syncrepl_updateCookie(
 	*modtail = mod;
 	modtail = &mod->sml_next;
 
-	rc = slap_mods_check_syncrepl( be, &modlist, &text, txtbuf, textlen );
+	rc = slap_mods_check_syncrepl( be, &modlist, &text, txtbuf, textlen, NULL );
 
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -1240,7 +1242,7 @@ syncrepl_updateCookie(
 	}
 
 	e = ( Entry * ) ch_calloc( 1, sizeof( Entry ));
-	dnPrettyNormal( NULL, pdn, &e->e_name, &e->e_nname );
+	dnPrettyNormal( NULL, pdn, &e->e_name, &e->e_nname, NULL );
 
 	e->e_attrs = NULL;
 
@@ -1327,12 +1329,14 @@ update_cookie_retry:
 }
 
 
+static
 int slap_mods_check_syncrepl(
 	Backend *be,
         Modifications **mlp,
         const char **text,
         char *textbuf,
-        size_t textlen )
+        size_t textlen,
+	void *ctx )
 {
         int rc;
 	syncinfo_t *si = ( syncinfo_t * ) be->syncinfo;
@@ -1434,8 +1438,8 @@ int slap_mods_check_syncrepl(
                         slap_syntax_transform_func *pretty =
                                 ad->ad_type->sat_syntax->ssyn_pretty;
 
-                        if( !pretty && !validate ) {
-                                *text = "no validator for syntax";
+				if( !pretty && !validate ) {
+					*text = "no validator for syntax";
                                 snprintf( textbuf, textlen,
                                         "%s: no validator for syntax %s",
                                         ml->sml_type.bv_val,
@@ -1452,7 +1456,8 @@ int slap_mods_check_syncrepl(
                                 struct berval pval;
                                 if( pretty ) {
                                         rc = pretty( ad->ad_type->sat_syntax,
-                                                &ml->sml_values[nvals], &pval );
+                                                &ml->sml_values[nvals], &pval,
+						ctx );
                                 } else {
                                         rc = validate( ad->ad_type->sat_syntax,
                                                 &ml->sml_values[nvals] );
@@ -1495,7 +1500,8 @@ int slap_mods_check_syncrepl(
                                                 0,
                                                 ad->ad_type->sat_syntax,
                                                 ad->ad_type->sat_equality,
-                                                &ml->sml_values[nvals], &ml->sml_nvalues[nvals] );
+                                                &ml->sml_values[nvals], &ml->sml_nvalues[nvals],
+						ctx );
                                         if( rc ) {
 #ifdef NEW_LOGGING
                                                 LDAP_LOG( OPERATION, DETAIL1,
@@ -1524,6 +1530,7 @@ int slap_mods_check_syncrepl(
         return LDAP_SUCCESS;
 }
 
+static
 int slap_mods_opattrs_syncrepl(
         Backend *be,
         Operation *op,
@@ -1685,8 +1692,8 @@ int slap_mods_opattrs_syncrepl(
 }
 
 
-int
-slap_mods2entry_syncrepl(
+static
+int slap_mods2entry_syncrepl(
 	Modifications *mods,
 	Entry **e,
 	int repl_user,
@@ -1831,7 +1838,7 @@ cookie_callback(
 
 	if ( rs->sr_type != REP_SEARCH ) return LDAP_SUCCESS;
 
-	a = attr_find( e->e_attrs, slap_schema.si_ad_syncreplCookie );
+	a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_syncreplCookie );
 
 	if ( a == NULL ) {
 		si->syncCookie = NULL;
@@ -1858,7 +1865,7 @@ nonpresent_callback(
 		count = avl_free( si->presentlist, avl_ber_bvfree );
 		return LDAP_SUCCESS;
 	} else if ( rs->sr_type == REP_SEARCH ) {
-		a = attr_find( e->e_attrs, slap_schema.si_ad_entryUUID );
+		a = attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_entryUUID );
 
 		if ( a == NULL )
 			return 0;
@@ -1871,9 +1878,9 @@ nonpresent_callback(
 			op->o_callback = &cb;
 			cb.sc_response = null_callback;
 			cb.sc_private = si;
-			op->o_req_dn = e->e_name;
-			op->o_req_ndn = e->e_nname;
-			be->be_delete( op, &rs_cb );
+			op->o_req_dn = rs->sr_entry->e_name;
+			op->o_req_ndn = rs->sr_entry->e_nname;
+			op->o_bd->be_delete( op, &rs_cb );
 		} else {
 			avl_delete( &si->presentlist,
 					&a->a_vals[0], syncuuid_cmp );
@@ -1886,7 +1893,7 @@ nonpresent_callback(
 }
 
 static int
-null_entry_callback(
+null_callback(
 	Operation*	op,
 	SlapReply*	rs
 )
@@ -1898,11 +1905,11 @@ null_entry_callback(
 	     rs->sr_err != DB_NOTFOUND ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
-			"null_entry_callback : error code 0x%x\n",
+			"null_callback : error code 0x%x\n",
 			rs->sr_err, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"null_entry_callback : error code 0x%x\n",
+			"null_callback : error code 0x%x\n",
 		       	rs->sr_err, 0, 0 );
 #endif
 	}
