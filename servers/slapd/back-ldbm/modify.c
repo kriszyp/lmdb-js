@@ -358,17 +358,31 @@ add_values(
 	if ( a != NULL ) {
 		for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+			int rc;
 			int j;
+			const char *text = NULL;
+			struct berval *asserted;
+
+			rc = value_normalize( mod->sm_desc,
+				SLAP_MR_EQUALITY,
+				mod->sm_bvalues[i],
+				&asserted,
+				&text );
+
+			if( rc != LDAP_SUCCESS ) return rc;
+
 			for ( j = 0; a->a_vals[j] != NULL; j++ ) {
 				int match;
-				const char *text = NULL;
 				int rc = value_match( &match, mod->sm_desc, mr,
-					mod->sm_bvalues[i], a->a_vals[j], &text );
+					a->a_vals[j], asserted, &text );
 
 				if( rc == LDAP_SUCCESS && match == 0 ) {
+					ber_bvfree( asserted );
 					return LDAP_TYPE_OR_VALUE_EXISTS;
 				}
 			}
+
+			ber_bvfree( asserted );
 #else
 			if ( value_find( a->a_vals, mod->sm_bvalues[i],
 			    a->a_syntax, 3 ) == 0 ) {
@@ -417,21 +431,35 @@ delete_values(
 
 	/* delete specific values - find the attribute first */
 	if ( (a = attr_find( e->e_attrs, mod->sm_desc )) == NULL ) {
-		Debug( LDAP_DEBUG_ARGS, "could not find attribute %s\n",
+		Debug( LDAP_DEBUG_ARGS, "ldap_modify_delete: "
+			"could not find attribute %s\n",
 		    desc, 0, 0 );
 		return( LDAP_NO_SUCH_ATTRIBUTE );
 	}
 
 	/* find each value to delete */
 	for ( i = 0; mod->sm_bvalues[i] != NULL; i++ ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		int rc;
+		const char *text = NULL;
+
+		struct berval *asserted;
+
+		rc = value_normalize( mod->sm_desc,
+			SLAP_MR_EQUALITY,
+			mod->sm_bvalues[i],
+			&asserted,
+			&text );
+
+		if( rc != LDAP_SUCCESS ) return rc;
+#endif
+
 		found = 0;
 		for ( j = 0; a->a_vals[j] != NULL; j++ ) {
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 			int match;
-			const char *text = NULL;
-			int rc = value_match( &match, mod->sm_desc,
-				mr,
-				mod->sm_bvalues[i], a->a_vals[j], &text );
+			int rc = value_match( &match, mod->sm_desc, mr,
+				a->a_vals[j], asserted, &text );
 
 			if( rc == LDAP_SUCCESS && match != 0 )
 #else
@@ -456,6 +484,9 @@ delete_values(
 					"removing entire attribute %s\n",
 					desc, 0, 0 );
 				if ( attr_delete( &e->e_attrs, mod->sm_desc ) ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+					ber_bvfree( asserted );
+#endif
 					return LDAP_NO_SUCH_ATTRIBUTE;
 				}
 			}
@@ -463,10 +494,14 @@ delete_values(
 			break;
 		}
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		ber_bvfree( asserted );
+#endif
+
 		/* looked through them all w/o finding it */
 		if ( ! found ) {
 			Debug( LDAP_DEBUG_ARGS,
-			    "could not find value for attr %s\n",
+			    "ldbm_modify_delete: could not find value for attr %s\n",
 			    desc, 0, 0 );
 			return LDAP_NO_SUCH_ATTRIBUTE;
 		}

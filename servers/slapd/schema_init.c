@@ -66,24 +66,31 @@ dnNormalize(
 
 static int
 dnMatch(
-	int *match,
+	int *matchp,
 	unsigned use,
 	Syntax *syntax,
 	MatchingRule *mr,
 	struct berval *value,
 	void *assertedValue )
 {
+	int match;
 	struct berval *asserted = (struct berval *) assertedValue;
-	ber_slen_t diff;
 	
-	diff = value->bv_len - asserted->bv_len;
-	if( diff ) return diff;
-	
+	match = value->bv_len - asserted->bv_len;
+
+	if( match == 0 ) {
 #ifdef USE_DN_NORMALIZE
-	return strcmp( value->bv_val, asserted->bv_val );
+		match = strcmp( value->bv_val, asserted->bv_val );
 #else
-	return strcasecmp( value->bv_val, asserted->bv_val );
+		match = strcasecmp( value->bv_val, asserted->bv_val );
 #endif
+	}
+
+	Debug( LDAP_DEBUG_ARGS, "dnMatch %d\n\t\"%s\"\n\t\"%s\"\n",
+	    match, value->bv_val, asserted->bv_val );
+
+	*matchp = match;
+	return LDAP_SUCCESS;
 }
 	
 static int
