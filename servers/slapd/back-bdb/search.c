@@ -770,7 +770,7 @@ dn2entry_retry:
 	}
 
 	/* if not root and candidates exceed to-be-checked entries, abort */
-	if ( sop->ors_limit	/* isroot == TRUE */ &&
+	if ( sop->ors_limit	/* isroot == FALSE */ &&
 		sop->ors_limit->lms_s_unchecked != -1 &&
 		BDB_IDL_N(candidates) > (unsigned) sop->ors_limit->lms_s_unchecked )
 	{
@@ -780,7 +780,7 @@ dn2entry_retry:
 		goto done;
 	}
 
-	if ( sop->ors_limit == NULL	/* isroot == FALSE */ ||
+	if ( sop->ors_limit == NULL	/* isroot == TRUE */ ||
 		!sop->ors_limit->lms_s_pr_hide )
 	{
 		tentries = BDB_IDL_N(candidates);
@@ -1234,6 +1234,7 @@ id2entry_retry:
 								num_ctrls++, 1, &cookie );
 							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 							rs->sr_attrs = attrs;
+							rs->sr_operational_attrs = NULL;
 							rs->sr_ctrls = ctrls;
 							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
@@ -1276,6 +1277,7 @@ id2entry_retry:
 							if ( rs->sr_err != LDAP_SUCCESS ) goto done;
 							rs->sr_ctrls = ctrls;
 							rs->sr_attrs = sop->oq_search.rs_attrs;
+							rs->sr_operational_attrs = NULL;
 							rs->sr_flags = 0;
 							result = send_search_entry( sop, rs );
 							slap_sl_free(
@@ -1320,6 +1322,7 @@ id2entry_retry:
 
 					} else {
 						rs->sr_attrs = sop->oq_search.rs_attrs;
+						rs->sr_operational_attrs = NULL;
 						rs->sr_ctrls = NULL;
 						rs->sr_flags = 0;
 						rs->sr_err = LDAP_SUCCESS;

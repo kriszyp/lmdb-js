@@ -450,7 +450,6 @@ refint_response(
 	BerValue ndn, moddn, pdn;
 	BerVarray b = NULL;
 	int rc, ac, i, j, ksize;
-	AttributeName	an[2];
 
 	id->message = "_refint_response";
 
@@ -556,10 +555,9 @@ refint_response(
 	nop.ors_tlimit	= SLAP_NO_LIMIT;
 
 	/* no attrs! */
-	memset( &an[0], 0, sizeof( AttributeName ) );
-	BER_BVSTR( &an[0].an_name, LDAP_NO_ATTRS );
-	BER_BVZERO( &an[1].an_name );
-	nop.ors_attrs = an;
+	nop.ors_attrs = slap_anlist_no_attrs;
+	nop.ors_attrsonly = 1;
+	nop.o_sync_slog_size = -1;
 
 	nop.o_req_ndn = id->dn;
 	nop.o_req_dn = id->dn;

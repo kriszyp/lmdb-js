@@ -308,9 +308,9 @@ static int unique_add(
 			if(!up) continue;
 		}
 		if((b = a->a_vals) && b[0].bv_val) for(i = 0; b[i].bv_val; i++)
-			ks += b[i].bv_len + a->a_desc->ad_cname.bv_len + 3;
+			ks += b[i].bv_len + a->a_desc->ad_cname.bv_len + STRLENOF( "(=)" );
 		else if(ud->strict)
-			ks += a->a_desc->ad_cname.bv_len + 4;	/* (attr=*) */
+			ks += a->a_desc->ad_cname.bv_len + STRLENOF( "(=*)" );
 	}
 
 	key = ch_malloc(ks);
@@ -350,6 +350,11 @@ static int unique_add(
 	nop.ors_deref	= LDAP_DEREF_NEVER;
 	nop.ors_slimit	= SLAP_NO_LIMIT;
 	nop.ors_tlimit	= SLAP_NO_LIMIT;
+	/* no attrs! */
+	nop.ors_attrs = slap_anlist_no_attrs;
+	nop.ors_attrsonly = 1;
+	nop.o_sync_slog_size = -1;
+
 	nop.o_req_ndn	= ud->dn;
 	nop.o_ndn = op->o_bd->be_rootndn;
 

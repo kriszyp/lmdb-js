@@ -205,7 +205,7 @@ searchit:
 	}
 
 	/* if candidates exceed to-be-checked entries, abort */
-	if ( op->ors_limit	/* isroot == TRUE */
+	if ( op->ors_limit	/* isroot == FALSE */
 			&& op->ors_limit->lms_s_unchecked != -1
 			&& ID_BLOCK_NIDS( candidates ) > (unsigned) op->ors_limit->lms_s_unchecked )
 	{

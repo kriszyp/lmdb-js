@@ -885,11 +885,11 @@ int slap_sasl_match( Operation *opx, struct berval *rule,
 #endif
 
 	rc = slap_parseURI( opx, rule, &op.o_req_dn,
-		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter,
+		&op.o_req_ndn, &op.ors_scope, &op.ors_filter,
 		&op.ors_filterstr );
 	if( rc != LDAP_SUCCESS ) goto CONCLUDED;
 
-	switch ( op.oq_search.rs_scope ) {
+	switch ( op.ors_scope ) {
 	case LDAP_X_SCOPE_EXACT:
 exact_match:
 		if ( dn_match( &op.o_req_ndn, assertDN ) ) {
@@ -907,7 +907,7 @@ exact_match:
 
 		rc = LDAP_INAPPROPRIATE_AUTH;
 
-		if ( d == 0 && op.oq_search.rs_scope == LDAP_X_SCOPE_SUBTREE ) {
+		if ( d == 0 && op.ors_scope == LDAP_X_SCOPE_SUBTREE ) {
 			goto exact_match;
 
 		} else if ( d > 0 ) {
@@ -923,7 +923,7 @@ exact_match:
 			bv.bv_val = assertDN->bv_val + d;
 
 			if ( bv.bv_val[ -1 ] == ',' && dn_match( &op.o_req_ndn, &bv ) ) {
-				switch ( op.oq_search.rs_scope ) {
+				switch ( op.ors_scope ) {
 				case LDAP_X_SCOPE_SUBTREE:
 				case LDAP_X_SCOPE_CHILDREN:
 					rc = LDAP_SUCCESS;
@@ -1013,7 +1013,7 @@ exact_match:
 	}
 
 	/* Must run an internal search. */
-	if ( op.oq_search.rs_filter == NULL ) {
+	if ( op.ors_filter == NULL ) {
 		rc = LDAP_FILTER_ERROR;
 		goto CONCLUDED;
 	}
@@ -1021,11 +1021,11 @@ exact_match:
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, DETAIL1, 
 		"slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-		op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
+		op.o_req_ndn.bv_val, op.ors_scope, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 	   "slap_sasl_match: performing internal search (base=%s, scope=%d)\n",
-	   op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
+	   op.o_req_ndn.bv_val, op.ors_scope, 0 );
 #endif
 
 	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
@@ -1052,8 +1052,10 @@ exact_match:
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
 	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
 	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
-	op.oq_search.rs_slimit = 1;
-	op.oq_search.rs_tlimit = SLAP_NO_LIMIT;
+	op.ors_slimit = 1;
+	op.ors_tlimit = SLAP_NO_LIMIT;
+	op.ors_attrs = slap_anlist_no_attrs;
+	op.ors_attrsonly = 1;
 	op.o_sync_slog_size = -1;
 
 	op.o_bd->be_search( &op, &rs );
@@ -1067,7 +1069,7 @@ exact_match:
 CONCLUDED:
 	if( !BER_BVISNULL( &op.o_req_dn ) ) slap_sl_free( op.o_req_dn.bv_val, opx->o_tmpmemctx );
 	if( !BER_BVISNULL( &op.o_req_ndn ) ) slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
-	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
+	if( op.ors_filter ) filter_free_x( opx, op.ors_filter );
 	if( !BER_BVISNULL( &op.ors_filterstr ) ) ch_free( op.ors_filterstr.bv_val );
 
 #ifdef NEW_LOGGING
@@ -1169,7 +1171,7 @@ void slap_sasl2dn( Operation *opx,
 	}
 
 	rc = slap_parseURI( opx, &regout, &op.o_req_dn,
-		&op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter,
+		&op.o_req_ndn, &op.ors_scope, &op.ors_filter,
 		&op.ors_filterstr );
 	if ( !BER_BVISNULL( &regout ) ) slap_sl_free( regout.bv_val, opx->o_tmpmemctx );
 	if ( rc != LDAP_SUCCESS ) {
@@ -1179,7 +1181,7 @@ void slap_sasl2dn( Operation *opx,
 	/* Must do an internal search */
 	op.o_bd = select_backend( &op.o_req_ndn, 0, 1 );
 
-	switch ( op.oq_search.rs_scope ) {
+	switch ( op.ors_scope ) {
 	case LDAP_X_SCOPE_EXACT:
 		*sasldn = op.o_req_ndn;
 		BER_BVZERO( &op.o_req_ndn );
@@ -1211,11 +1213,11 @@ void slap_sasl2dn( Operation *opx,
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, DETAIL1, 
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
+		op.o_req_ndn.bv_val, op.ors_scope, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE,
 		"slap_sasl2dn: performing internal search (base=%s, scope=%d)\n",
-		op.o_req_ndn.bv_val, op.oq_search.rs_scope, 0 );
+		op.o_req_ndn.bv_val, op.ors_scope, 0 );
 #endif
 
 	if(( op.o_bd == NULL ) || ( op.o_bd->be_search == NULL)) {
@@ -1237,10 +1239,12 @@ void slap_sasl2dn( Operation *opx,
 #ifdef LDAP_SLAPI
 	op.o_pb = opx->o_pb;
 #endif
-	op.oq_search.rs_deref = LDAP_DEREF_NEVER;
-	op.oq_search.rs_slimit = 1;
-	op.oq_search.rs_tlimit = SLAP_NO_LIMIT;
-	op.oq_search.rs_attrsonly = 1;
+	op.ors_deref = LDAP_DEREF_NEVER;
+	op.ors_slimit = 1;
+	op.ors_tlimit = SLAP_NO_LIMIT;
+	op.ors_attrs = slap_anlist_no_attrs;
+	op.ors_attrsonly = 1;
+	op.o_sync_slog_size = -1;
 	/* use req_ndn as req_dn instead of non-pretty base of uri */
 	if( !BER_BVISNULL( &op.o_req_dn ) ) ch_free( op.o_req_dn.bv_val );
 	ber_dupbv_x( &op.o_req_dn, &op.o_req_ndn, op.o_tmpmemctx );
@@ -1257,8 +1261,8 @@ FINISHED:
 	if( !BER_BVISNULL( &op.o_req_ndn ) ) {
 		slap_sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	}
-	if( op.oq_search.rs_filter ) {
-		filter_free_x( opx, op.oq_search.rs_filter );
+	if( op.ors_filter ) {
+		filter_free_x( opx, op.ors_filter );
 	}
 	if( !BER_BVISNULL( &op.ors_filterstr ) ) {
 		ch_free( op.ors_filterstr.bv_val );

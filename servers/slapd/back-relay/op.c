@@ -529,7 +529,7 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 	int			rc = 0;
 
 	bd = relay_back_select_backend( op, rs, LDAP_SUCCESS );
-	if ( bd == NULL ) {
+	if ( bd == NULL || bd == op->o_bd ) {
 		return 0;
 	}
 
@@ -553,8 +553,7 @@ relay_back_chk_referrals( struct slap_op *op, struct slap_rep *rs )
 }
 
 int
-relay_back_operational( struct slap_op *op, struct slap_rep *rs, 
-		int opattrs, Attribute **ap )
+relay_back_operational( struct slap_op *op, struct slap_rep *rs )
 {
 	relay_back_info		*ri = (relay_back_info *)op->o_bd->be_private;
 	BackendDB		*bd;
@@ -575,7 +574,7 @@ relay_back_operational( struct slap_op *op, struct slap_rep *rs,
 		relay_back_add_cb( &cb, op );
 
 		op->o_bd = bd;
-		rc = ( bd->be_operational )( op, rs, opattrs, ap );
+		rc = ( bd->be_operational )( op, rs );
 		op->o_bd = be;
 
 		if ( op->o_callback == &cb ) {

@@ -35,7 +35,7 @@ backsql_compare( Operation *op, SlapReply *rs )
 	backsql_entryID		user_id = BACKSQL_ENTRYID_INIT;
 	SQLHDBC			dbh;
 	Entry			*e = NULL, user_entry;
-	Attribute		*a = NULL, *a_op = NULL;
+	Attribute		*a = NULL;
 	backsql_srch_info	bsi;
 	int			rc;
 	AttributeName		anlist[2];
@@ -79,41 +79,31 @@ backsql_compare( Operation *op, SlapReply *rs )
 		goto return_results;
 	}
 
+	memset( &anlist[0], 0, 2 * sizeof( AttributeName ) );
 	anlist[0].an_name = op->oq_compare.rs_ava->aa_desc->ad_cname;
 	anlist[0].an_desc = op->oq_compare.rs_ava->aa_desc;
-	anlist[1].an_name.bv_val = NULL;
 
 	/*
 	 * Try to get attr as dynamic operational
 	 */
 	if ( is_at_operational( op->oq_compare.rs_ava->aa_desc->ad_type ) ) {
-		AttributeName	*an_old;
-		Entry		*e_old;
+		SlapReply	nrs = { 0 };
 
 		user_entry.e_attrs = NULL;
 		user_entry.e_name = op->o_req_dn;
 		user_entry.e_nname = op->o_req_ndn;
 
-		an_old = rs->sr_attrs;
-		e_old = rs->sr_entry;
+		nrs.sr_attrs = anlist;
+		nrs.sr_entry = &user_entry;
+		nrs.sr_opattrs = SLAP_OPATTRS_NO;
+		nrs.sr_operational_attrs = NULL;
 
-		rs->sr_attrs = anlist;
-		rs->sr_entry = &user_entry;
-		rs->sr_err = backsql_operational( op, rs, 0, &a_op );
-		rs->sr_attrs = an_old;
-		rs->sr_entry = e_old;
-
+		rs->sr_err = backsql_operational( op, &nrs );
 		if ( rs->sr_err != LDAP_SUCCESS ) {
 			goto return_results;
 		}
 		
-	}
-
-	/*
-	 * attr was dynamic operational
-	 */
-	if ( a_op != NULL ) {
-		user_entry.e_attrs = a_op;
+		user_entry.e_attrs = nrs.sr_operational_attrs;
 		e = &user_entry;
 
 	} else {

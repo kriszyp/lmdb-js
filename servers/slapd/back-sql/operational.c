@@ -35,21 +35,21 @@
 int
 backsql_operational(
 	Operation	*op,
-	SlapReply	*rs,
-	int		opattrs,
-	Attribute	**a )
+	SlapReply	*rs )
 {
 
-	backsql_info 		*bi = (backsql_info*)op->o_bd->be_private;
-	SQLHDBC 		dbh = SQL_NULL_HDBC;
-	Attribute		**aa = a;
-	int			rc = 0;
+	backsql_info 	*bi = (backsql_info*)op->o_bd->be_private;
+	SQLHDBC 	dbh = SQL_NULL_HDBC;
+	int		rc = 0;
+	Attribute	**ap;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry \"%s\"\n",
 			rs->sr_entry->e_nname.bv_val, 0, 0 );
 
+	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
+		/* just count */ ;
 
-	if ( ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) 
+	if ( ( rs->sr_opattrs == SLAP_OPATTRS || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) 
 			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL ) {
 		
 		rc = backsql_get_db_conn( op, &dbh );
@@ -65,10 +65,9 @@ backsql_operational(
 		switch( rc ) {
 		case LDAP_COMPARE_TRUE:
 		case LDAP_COMPARE_FALSE:
-			*aa = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
-			if ( *aa != NULL ) {
-				aa = &(*aa)->a_next;
-			}
+			*ap = slap_operational_hasSubordinate( rc == LDAP_COMPARE_TRUE );
+			assert( *ap );
+			ap = &(*ap)->a_next;
 			rc = 0;
 			break;
 

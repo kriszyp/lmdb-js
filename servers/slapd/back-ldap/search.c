@@ -189,6 +189,7 @@ fail:;
 		       if ( rc == LDAP_SUCCESS ) {
 				rs->sr_entry = &ent;
 				rs->sr_attrs = op->ors_attrs;
+				rs->sr_operational_attrs = NULL;
 				rs->sr_flags = 0;
 				abort = send_search_entry( op, rs );
 				while (ent.e_attrs) {

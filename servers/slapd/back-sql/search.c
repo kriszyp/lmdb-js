@@ -1577,11 +1577,13 @@ backsql_search( Operation *op, SlapReply *rs )
 #endif
 			{
 				rs->sr_attrs = op->ors_attrs;
+				rs->sr_operational_attrs = NULL;
 				rs->sr_entry = entry;
 				rs->sr_flags = REP_ENTRY_MODIFIABLE;
 				sres = send_search_entry( op, rs );
 				rs->sr_entry = NULL;
 				rs->sr_attrs = NULL;
+				rs->sr_operational_attrs = NULL;
 			}
 
 			switch ( sres ) {

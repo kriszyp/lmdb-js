@@ -756,11 +756,10 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 {
 	BerElementBuffer berbuf;
 	BerElement	*ber = (BerElement *) &berbuf;
-	Attribute	*a, *aa = NULL;
+	Attribute	*a;
 	int		i, j, rc=-1, bytes;
 	char		*edn;
 	int		userattrs;
-	int		opattrs;
 	AccessControlState acl_state = ACL_STATE_INIT;
 #ifdef LDAP_SLAPI
 	/* Support for computed attribute plugins */
@@ -775,17 +774,24 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	 */
 	char **e_flags = NULL;
 	
+	rs->sr_type = REP_SEARCH;
+
 	/* eventually will loop through generated operational attributes */
 	/* only subschemaSubentry and numSubordinates are implemented */
 	/* NOTE: moved before overlays callback circling because
 	 * they may modify entry and other stuff in rs */
 	/* check for special all operational attributes ("+") type */
-	opattrs = ( rs->sr_attrs == NULL ) ? 0
-		: an_find( rs->sr_attrs, &AllOper );
+	/* FIXME: maybe we could se this flag at the operation level;
+	 * however, in principle the caller of send_search_entry() may
+	 * change the attribute list at each call */
+	rs->sr_opattrs = ( rs->sr_attrs == NULL ) ? SLAP_OPATTRS_NO
+		: ( an_find( rs->sr_attrs, &AllOper ) ? SLAP_OPATTRS : SLAP_OPATTRS_NO );
 
-	aa = backend_operational( op, rs, opattrs );
+	rc = backend_operational( op, rs );
+	if ( rc ) {
+		goto error_return;
+	}
 
-	rs->sr_type = REP_SEARCH;
 	if ( op->o_callback ) {
 		int		first = 1;
 		slap_callback	*sc = op->o_callback,
@@ -961,12 +967,15 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		} else {
 			/* specific attrs requested */
 			if ( is_at_operational( desc->ad_type ) ) {
-				if( !opattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
+				if ( rs->sr_opattrs != SLAP_OPATTRS &&
+						!ad_inlist( desc, rs->sr_attrs ) )
+				{
 					continue;
 				}
 
 			} else {
-				if (!userattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
+				if ( !userattrs && !ad_inlist( desc, rs->sr_attrs ) )
+				{
 					continue;
 				}
 			}
@@ -1089,11 +1098,11 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 
 	/* NOTE: moved before overlays callback circling because
 	 * they may modify entry and other stuff in rs */
-	if ( aa != NULL && op->o_vrFilter != NULL ) {
+	if ( rs->sr_operational_attrs != NULL && op->o_vrFilter != NULL ) {
 		int	k = 0;
 		size_t	size;
 
-		for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
+		for ( a = rs->sr_operational_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
 			for ( j = 0; a->a_vals[j].bv_val != NULL; j++ ) k++;
 		}
 
@@ -1129,12 +1138,12 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 			e_flags = tmp;
 			a_flags = (char *)(e_flags + i);
 			memset( a_flags, 0, k );
-			for ( a = aa, i=0; a != NULL; a = a->a_next, i++ ) {
+			for ( a = rs->sr_operational_attrs, i=0; a != NULL; a = a->a_next, i++ ) {
 				for ( j = 0; a->a_vals[j].bv_val != NULL; j++ );
 				e_flags[i] = a_flags;
 				a_flags += j;
 			}
-			rc = filter_matched_values(op, aa, &e_flags) ; 
+			rc = filter_matched_values(op, rs->sr_operational_attrs, &e_flags) ; 
 		    
 			if ( rc == -1 ) {
 #ifdef NEW_LOGGING
@@ -1156,7 +1165,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		}
 	}
 
-	for (a = aa, j=0; a != NULL; a = a->a_next, j++ ) {
+	for (a = rs->sr_operational_attrs, j=0; a != NULL; a = a->a_next, j++ ) {
 		AttributeDescription *desc = a->a_desc;
 
 		if ( rs->sr_attrs == NULL ) {
@@ -1168,11 +1177,13 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		} else {
 			/* specific attrs requested */
 			if( is_at_operational( desc->ad_type ) ) {
-				if( !opattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
+				if ( rs->sr_opattrs != SLAP_OPATTRS && 
+						!ad_inlist( desc, rs->sr_attrs ) )
+				{
 					continue;
 				}
 			} else {
-				if (!userattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
+				if ( !userattrs && !ad_inlist( desc, rs->sr_attrs ) ) {
 					continue;
 				}
 			}
@@ -1284,7 +1295,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 		ctx.cac_attrs = rs->sr_attrs;
 		ctx.cac_attrsonly = op->ors_attrsonly;
 		ctx.cac_userattrs = userattrs;
-		ctx.cac_opattrs = opattrs;
+		ctx.cac_opattrs = rs->sr_opattrs;
 		ctx.cac_acl_state = acl_state;
 		ctx.cac_private = (void *)ber;
 
@@ -1395,14 +1406,6 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rc = 0;
 
 error_return:;
-	if ( e_flags ) {
-		slap_sl_free( e_flags, op->o_tmpmemctx );
-	}
-
-	if ( aa ) {
-		attrs_free( aa );
-	}
-
 	if ( op->o_callback ) {
 		int		first = 1;
 		slap_callback	*sc = op->o_callback,
@@ -1421,6 +1424,16 @@ error_return:;
 
 		op->o_callback = sc;
 	}
+
+	if ( e_flags ) {
+		slap_sl_free( e_flags, op->o_tmpmemctx );
+	}
+
+	if ( rs->sr_operational_attrs ) {
+		attrs_free( rs->sr_operational_attrs );
+		rs->sr_operational_attrs = NULL;
+	}
+	rs->sr_opattrs = SLAP_OPATTRS_UNDEFINED;
 
 	/* FIXME: I think rs->sr_type should be explicitly set to
 	 * REP_SEARCH here. That's what it was when we entered this

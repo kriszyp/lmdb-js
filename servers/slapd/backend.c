@@ -770,7 +770,6 @@ int
 be_isroot_pw( Operation *op )
 {
 	int result;
-	char *errmsg;
 
 	if ( ! be_isroot_dn( op->o_bd, &op->o_req_ndn ) ) {
 		return 0;
@@ -1488,30 +1487,39 @@ freeit:		if (e != target ) {
 	return rc;
 }
 
-Attribute *backend_operational(
+int backend_operational(
 	Operation *op,
-	SlapReply *rs,
-	int opattrs	)
+	SlapReply *rs )
 {
-	Attribute *a = NULL, **ap = &a;
+	Attribute	**ap;
+	int		rc = 0;
+
+	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
+		/* just count them */ ;
 
 	/*
 	 * If operational attributes (allegedly) are required, 
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-	if ( opattrs || ( op->ors_attrs &&
+	if ( rs->sr_opattrs == SLAP_OPATTRS || ( op->ors_attrs &&
 		ad_inlist( slap_schema.si_ad_subschemaSubentry, op->ors_attrs )) ) {
 		*ap = slap_operational_subschemaSubentry( op->o_bd );
+
 		ap = &(*ap)->a_next;
 	}
 
-	if ( ( opattrs || op->ors_attrs ) && op->o_bd &&
+	if ( ( rs->sr_opattrs == SLAP_OPATTRS || op->ors_attrs ) && op->o_bd &&
 		op->o_bd->be_operational != NULL )
 	{
-		( void )op->o_bd->be_operational( op, rs, opattrs, ap );
+		rs->sr_operational_attrs = NULL;
+		rc = op->o_bd->be_operational( op, rs );
+		*ap = rs->sr_operational_attrs;
+
+		for ( ; *ap; ap = &(*ap)->a_next )
+			/* just count them */ ;
 	}
 
-	return a;
+	return rc;
 }
 

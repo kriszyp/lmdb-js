@@ -1687,6 +1687,11 @@ typedef struct rep_extended_s {
 
 typedef struct rep_search_s {
 	Entry *r_entry;
+	int r_opattrs;
+#define SLAP_OPATTRS_UNDEFINED	(0)
+#define SLAP_OPATTRS_NO		(-1)
+#define SLAP_OPATTRS		(1)
+	Attribute *r_operational_attrs;
 	AttributeName *r_attrs;
 	int r_nentries;
 	BerVarray r_v2ref;
@@ -1716,6 +1721,8 @@ typedef struct slap_rep {
 /* short hands for response members */
 #define	sr_attrs sr_un.sru_search.r_attrs
 #define	sr_entry sr_un.sru_search.r_entry
+#define	sr_operational_attrs sr_un.sru_search.r_operational_attrs
+#define sr_opattrs sr_un.sru_search.r_opattrs
 #define	sr_v2ref sr_un.sru_search.r_v2ref
 #define	sr_nentries sr_un.sru_search.r_nentries
 #define	sr_rspoid sr_un.sru_extended.r_rspoid
@@ -1740,8 +1747,7 @@ typedef int (BI_entry_release_rw)
 	LDAP_P(( struct slap_op *op, Entry *e, int rw ));
 typedef int (BI_entry_get_rw) LDAP_P(( struct slap_op *op, struct berval *ndn,
 	ObjectClass *oc, AttributeDescription *at, int rw, Entry **e ));
-typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs,
-	int opattrs, Attribute **ap ));
+typedef int (BI_operational) LDAP_P(( struct slap_op *op, struct slap_rep *rs ));
 typedef int (BI_has_subordinates) LDAP_P(( struct slap_op *op,
 	Entry *e, int *hasSubs ));
 
@@ -1836,26 +1842,26 @@ struct slap_backend_info {
 	BI_op_extended	*bi_extended;
 
 	/* Auxilary Functions */
+	BI_operational		*bi_operational;
 	BI_chk_referrals	*bi_chk_referrals;
 	BI_entry_get_rw		*bi_entry_get_rw;
 	BI_entry_release_rw	*bi_entry_release_rw;
 
-	BI_operational	*bi_operational;
 	BI_has_subordinates	*bi_has_subordinates;
 
 	BI_connection_init	*bi_connection_init;
 	BI_connection_destroy	*bi_connection_destroy;
 
 	/* hooks for slap tools */
-	BI_tool_entry_open		*bi_tool_entry_open;
-	BI_tool_entry_close		*bi_tool_entry_close;
-	BI_tool_entry_first		*bi_tool_entry_first;
-	BI_tool_entry_next		*bi_tool_entry_next;
-	BI_tool_entry_get		*bi_tool_entry_get;
-	BI_tool_entry_put		*bi_tool_entry_put;
+	BI_tool_entry_open	*bi_tool_entry_open;
+	BI_tool_entry_close	*bi_tool_entry_close;
+	BI_tool_entry_first	*bi_tool_entry_first;
+	BI_tool_entry_next	*bi_tool_entry_next;
+	BI_tool_entry_get	*bi_tool_entry_get;
+	BI_tool_entry_put	*bi_tool_entry_put;
 	BI_tool_entry_reindex	*bi_tool_entry_reindex;
-	BI_tool_sync			*bi_tool_sync;
-	BI_tool_dn2id_get		*bi_tool_dn2id_get;
+	BI_tool_sync		*bi_tool_sync;
+	BI_tool_dn2id_get	*bi_tool_dn2id_get;
 	BI_tool_id2entry_get	*bi_tool_id2entry_get;
 	BI_tool_entry_modify	*bi_tool_entry_modify;
 

@@ -91,23 +91,26 @@ retry:
 int
 bdb_operational(
 	Operation	*op,
-	SlapReply	*rs,
-	int		opattrs,
-	Attribute	**a )
+	SlapReply	*rs )
 {
-	Attribute	**aa = a;
-	
+	Attribute	**ap;
+
 	assert( rs->sr_entry );
 
-	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) {
+	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
+		/* just count */ ;
+
+	if ( rs->sr_opattrs == SLAP_OPATTRS ||
+			ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) )
+	{
 		int	hasSubordinates;
 
 		rs->sr_err = bdb_hasSubordinates( op, rs->sr_entry, &hasSubordinates );
 		if ( rs->sr_err == LDAP_SUCCESS ) {
-			*aa = slap_operational_hasSubordinate( hasSubordinates == LDAP_COMPARE_TRUE );
-			if ( *aa != NULL ) {
-				aa = &(*aa)->a_next;
-			}
+			*ap = slap_operational_hasSubordinate( hasSubordinates == LDAP_COMPARE_TRUE );
+			assert( *ap );
+
+			ap = &(*ap)->a_next;
 		}
 	}
 

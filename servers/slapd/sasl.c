@@ -486,6 +486,8 @@ slap_auxprop_lookup(
 			op.ors_slimit = 1;
 			op.ors_filter = &generic_filter;
 			op.ors_filterstr = generic_filterstr;
+			/* FIXME: we want all attributes, right? */
+			op.ors_attrs = NULL;
 
 			op.o_bd->be_search( &op, &rs );
 		}

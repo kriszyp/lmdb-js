@@ -160,6 +160,7 @@ enum op_which {
 	op_abandon,
 	op_cancel,
 	op_extended,
+	op_aux_operational,
 	op_aux_chk_referrals,
 	op_last
 };
@@ -180,6 +181,7 @@ static int op_rc[] = {
 	LDAP_UNWILLING_TO_PERFORM,	/* abandon */
 	LDAP_UNWILLING_TO_PERFORM,	/* cancel */
 	LDAP_UNWILLING_TO_PERFORM,	/* extended */
+	LDAP_SUCCESS,			/* aux_operational */
 	LDAP_SUCCESS			/* aux_chk_referrals */
 };
 
@@ -292,7 +294,13 @@ over_op_extended( Operation *op, SlapReply *rs )
 }
 
 static int
-over_chk_referrals( Operation *op, SlapReply *rs )
+over_aux_operational( Operation *op, SlapReply *rs )
+{
+	return over_op_func( op, rs, op_aux_operational );
+}
+
+static int
+over_aux_chk_referrals( Operation *op, SlapReply *rs )
 {
 	return over_op_func( op, rs, op_aux_chk_referrals );
 }
@@ -325,7 +333,7 @@ static const char overtype[] = "over";
 int
 overlay_config( BackendDB *be, const char *ov )
 {
-	slap_overinst *on = NULL, *on2 = NULL, *prev = NULL;
+	slap_overinst *on = NULL, *on2 = NULL;
 	slap_overinfo *oi = NULL;
 	BackendInfo *bi = NULL;
 
@@ -380,7 +388,8 @@ overlay_config( BackendDB *be, const char *ov )
 		 * all the hooks to share the same args
 		 * of the operations...
 		 */
-		bi->bi_chk_referrals = over_chk_referrals;
+		bi->bi_operational = over_aux_operational;
+		bi->bi_chk_referrals = over_aux_chk_referrals;
 
 		be->bd_info = bi;
 

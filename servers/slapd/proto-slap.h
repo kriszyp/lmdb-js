@@ -113,6 +113,11 @@ LDAP_SLAPD_F (MatchingRule *) ad_mr(
 	AttributeDescription *ad,
 	unsigned usage );
 
+LDAP_SLAPD_V( AttributeName * ) slap_anlist_no_attrs;
+LDAP_SLAPD_V( AttributeName * ) slap_anlist_all_user_attributes;
+LDAP_SLAPD_V( AttributeName * ) slap_anlist_all_operational_attributes;
+LDAP_SLAPD_V( AttributeName * ) slap_anlist_all_attributes;
+
 /*
  * add.c
  */
@@ -272,10 +277,10 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((
 	BerVarray *vals
 ));
 
-LDAP_SLAPD_F (Attribute *) backend_operational(
+LDAP_SLAPD_F (int) backend_operational LDAP_P((
 	Operation *op,
-	SlapReply *rs,
-	int opattrs );
+	SlapReply *rs 
+));
 
 /*
  * backglue.c

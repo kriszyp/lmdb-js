@@ -274,7 +274,7 @@ rwm_delete( Operation *op, SlapReply *rs )
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "deleteDn massage error" );
-		return rc;
+		return -1;
 	}
 
 	return SLAP_CB_CONTINUE;
@@ -300,7 +300,7 @@ rwm_modify( Operation *op, SlapReply *rs )
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "modifyDn massage error" );
-		return rc;
+		return -1;
 	}
 
 	isupdate = be_shadow_update( op );
@@ -425,7 +425,42 @@ static int
 rwm_modrdn( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+	
 	int			rc;
+
+	if ( op->orr_newSup ) {
+		dncookie	dc;
+		struct berval	nnewSup = BER_BVNULL;
+		struct berval	newSup = BER_BVNULL;
+
+		/*
+		 * Rewrite the new superior, if defined and required
+	 	 */
+		dc.rwmap = rwmap;
+#ifdef ENABLE_REWRITE
+		dc.conn = op->o_conn;
+		dc.rs = rs;
+		dc.ctx = "newSuperiorDN";
+#else
+		dc.tofrom = 0;
+		dc.normalized = 0;
+#endif
+		rc = rwm_dn_massage( &dc, op->orr_newSup, &newSup, &nnewSup );
+		if ( rc != LDAP_SUCCESS ) {
+			op->o_bd->bd_info = (BackendInfo *)on->on_info;
+			send_ldap_error( op, rs, rc, "newSuperiorDN massage error" );
+			return -1;
+		}
+
+		if ( op->orr_newSup->bv_val != newSup.bv_val ) {
+			op->o_tmpfree( op->orr_newSup->bv_val, op->o_tmpmemctx );
+			op->o_tmpfree( op->orr_nnewSup->bv_val, op->o_tmpmemctx );
+			*op->orr_newSup = newSup;
+			*op->orr_nnewSup = nnewSup;
+		}
+	}
 
 #ifdef ENABLE_REWRITE
 	rc = rwm_op_dn_massage( op, rs, "renameDn" );
@@ -436,7 +471,7 @@ rwm_modrdn( Operation *op, SlapReply *rs )
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "renameDn massage error" );
-		return rc;
+		return -1;
 	}
 
 	/* TODO: rewrite attribute types, values of DN-valued attributes ... */
@@ -572,7 +607,7 @@ error_return:;
 	op->o_bd->bd_info = (BackendInfo *)on->on_info;
 	send_ldap_error( op, rs, rc, text );
 
-	return 1;
+	return -1;
 
 }
 
@@ -591,7 +626,7 @@ rwm_extended( Operation *op, SlapReply *rs )
 	if ( rc != LDAP_SUCCESS ) {
 		op->o_bd->bd_info = (BackendInfo *)on->on_info;
 		send_ldap_error( op, rs, rc, "extendedDn massage error" );
-		return rc;
+		return -1;
 	}
 
 	/* TODO: rewrite/map extended data ? ... */
@@ -644,21 +679,15 @@ rwm_matched( Operation *op, SlapReply *rs )
 }
 
 static int
-rwm_send_entry( Operation *op, SlapReply *rs )
+rwm_attrs( Operation *op, SlapReply *rs, Attribute** a_first )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
 			(struct ldaprwmap *)on->on_bi.bi_private;
 
-	Entry		*e = NULL;
-	int		flags;
-	struct berval	dn = BER_BVNULL,
-			ndn = BER_BVNULL;
-	dncookie	dc;
-	int		rc;
-	Attribute	**ap;
-
-	assert( rs->sr_entry );
+	dncookie		dc;
+	int			rc;
+	Attribute		**ap;
 
 	/*
 	 * Rewrite the dn of the result, if needed
@@ -667,62 +696,35 @@ rwm_send_entry( Operation *op, SlapReply *rs )
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = NULL; 
-	dc.ctx = "searchResult";
+	dc.ctx = "searchAttrDN";
 #else
 	dc.tofrom = 0;
 	dc.normalized = 0;
 #endif
 
-	e = rs->sr_entry;
-	flags = rs->sr_flags;
-	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
-		/* FIXME: all we need to duplicate are:
-		 * - dn
-		 * - ndn
-		 * - attributes that are requested
-		 * - no values if attrsonly is set
-		 */
-
-		e = entry_dup( e );
-		if ( e == NULL ) {
-			rc = LDAP_NO_MEMORY;
-			goto fail;
-		}
-
-		flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
-	}
-
-	/*
-	 * Note: this may fail if the target host(s) schema differs
-	 * from the one known to the meta, and a DN with unknown
-	 * attributes is returned.
-	 */
-	rc = rwm_dn_massage( &dc, &e->e_name, &dn, &ndn );
-	if ( rc != LDAP_SUCCESS ) {
-		goto fail;
-	}
-
-	if ( e->e_name.bv_val != dn.bv_val ) {
-		free( e->e_name.bv_val );
-		free( e->e_nname.bv_val );
-
-		e->e_name = dn;
-		e->e_nname = ndn;
-	}
-
-	/* TODO: map entry attribute types, objectclasses 
-	 * and dn-valued attribute values */
-
 	/* FIXME: the entries are in the remote mapping form;
 	 * so we need to select those attributes we are willing
 	 * to return, and remap them accordingly */
 
-	for ( ap = &e->e_attrs; *ap; ) {
+	/* FIXME: in principle, one could map an attribute
+	 * on top of another, which already exists.
+	 * As such, in the end there might exist more than
+	 * one instance of an attribute.
+	 * We should at least check if this occurs, and issue
+	 * an error (because multiple instances of attrs in 
+	 * response are not valid), or merge the values (what
+	 * about duplicate values?) */
+	for ( ap = a_first; *ap; ) {
 		struct ldapmapping	*m;
 		int			drop_missing;
 		int			last;
 
-		if ( op->ors_attrs != NULL && !ad_inlist( (*ap)->a_desc, op->ors_attrs ) ) {
+		if ( rs->sr_opattrs == SLAP_OPATTRS && is_at_operational( (*ap)->a_desc->ad_type ) )
+		{
+			/* go on */ ;
+			
+		} else if ( op->ors_attrs != NULL && !ad_inlist( (*ap)->a_desc, op->ors_attrs ) )
+		{
 			Attribute	*a;
 
 			a = *ap;
@@ -820,6 +822,82 @@ next_attr:;
 		ap = &(*ap)->a_next;
 	}
 
+	return 0;
+}
+
+static int
+rwm_send_entry( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	struct ldaprwmap	*rwmap = 
+			(struct ldaprwmap *)on->on_bi.bi_private;
+
+	Entry			*e = NULL;
+	int			flags;
+	struct berval		dn = BER_BVNULL,
+				ndn = BER_BVNULL;
+	dncookie		dc;
+	int			rc;
+
+	assert( rs->sr_entry );
+
+	/*
+	 * Rewrite the dn of the result, if needed
+	 */
+	dc.rwmap = rwmap;
+#ifdef ENABLE_REWRITE
+	dc.conn = op->o_conn;
+	dc.rs = NULL; 
+	dc.ctx = "searchResult";
+#else
+	dc.tofrom = 0;
+	dc.normalized = 0;
+#endif
+
+	e = rs->sr_entry;
+	flags = rs->sr_flags;
+	if ( !( rs->sr_flags & REP_ENTRY_MODIFIABLE ) ) {
+		/* FIXME: all we need to duplicate are:
+		 * - dn
+		 * - ndn
+		 * - attributes that are requested
+		 * - no values if attrsonly is set
+		 */
+
+		e = entry_dup( e );
+		if ( e == NULL ) {
+			rc = LDAP_NO_MEMORY;
+			goto fail;
+		}
+
+		flags |= ( REP_ENTRY_MODIFIABLE | REP_ENTRY_MUSTBEFREED );
+	}
+
+	/*
+	 * Note: this may fail if the target host(s) schema differs
+	 * from the one known to the meta, and a DN with unknown
+	 * attributes is returned.
+	 */
+	rc = rwm_dn_massage( &dc, &e->e_name, &dn, &ndn );
+	if ( rc != LDAP_SUCCESS ) {
+		goto fail;
+	}
+
+	if ( e->e_name.bv_val != dn.bv_val ) {
+		free( e->e_name.bv_val );
+		free( e->e_nname.bv_val );
+
+		e->e_name = dn;
+		e->e_nname = ndn;
+	}
+
+	/* TODO: map entry attribute types, objectclasses 
+	 * and dn-valued attribute values */
+
+	/* FIXME: the entries are in the remote mapping form;
+	 * so we need to select those attributes we are willing
+	 * to return, and remap them accordingly */
+	rwm_attrs( op, rs, &e->e_attrs );
 
 	rs->sr_entry = e;
 	rs->sr_flags = flags;
@@ -840,6 +918,19 @@ fail:;
 	}
 
 	return rc;
+}
+
+static int
+rwm_operational( Operation *op, SlapReply *rs )
+{
+	/* FIXME: the entries are in the remote mapping form;
+	 * so we need to select those attributes we are willing
+	 * to return, and remap them accordingly */
+	if ( rs->sr_operational_attrs ) {
+		rwm_attrs( op, rs, &rs->sr_operational_attrs );
+	}
+
+	return SLAP_CB_CONTINUE;
 }
 
 static int
@@ -1138,6 +1229,7 @@ rwm_init(void)
 	rwm.on_bi.bi_op_delete = rwm_delete;
 	rwm.on_bi.bi_op_unbind = rwm_unbind;
 	rwm.on_bi.bi_extended = rwm_extended;
+	rwm.on_bi.bi_operational = rwm_operational;
 
 	rwm.on_response = rwm_response;
 

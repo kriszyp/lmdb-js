@@ -1148,6 +1148,9 @@ syncrepl_entry(
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = 1;
 
+	op->ors_attrs = slap_anlist_no_attrs;
+	op->ors_attrsonly = 1;
+
 	/* set callback function */
 	op->o_callback = &cb;
 	cb.sc_response = dn_callback;
@@ -1366,6 +1369,7 @@ syncrepl_del_nonpresent(
 	Modifications *modlist = NULL;
 	Modifications **modtail = &modlist;
 	Attribute	*attr;
+	AttributeName	an[2];
 
 	struct berval pdn = BER_BVNULL;
 	struct berval org_req_dn = BER_BVNULL;
@@ -1387,8 +1391,13 @@ syncrepl_del_nonpresent(
 	op->o_time = slap_get_time();
 	op->ors_tlimit = SLAP_NO_LIMIT;
 	op->ors_slimit = SLAP_NO_LIMIT;
+
+	memset( &an[0], 0, 2 * sizeof( AttributeName ) );
+	an[0].an_name = slap_schema.si_ad_entryUUID->ad_cname;
+	an[0].an_desc = slap_schema.si_ad_entryUUID;
+	op->ors_attrs = an;
+
 	op->ors_attrsonly = 0;
-	op->ors_attrs = NULL;
 	op->ors_filter = str2filter_x( op, si->si_filterstr.bv_val );
 	op->ors_filterstr = si->si_filterstr;
 

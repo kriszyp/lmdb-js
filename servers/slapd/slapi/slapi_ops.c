@@ -1174,6 +1174,7 @@ slapi_search_internal(
 				rs.sr_type = REP_SEARCH;
 				rs.sr_err = LDAP_SUCCESS;
 				rs.sr_attrs = an;
+				rs.sr_operational_attrs = NULL;
 				rs.sr_flags = REP_ENTRY_MODIFIABLE;
 
 				send_search_entry( op, &rs );

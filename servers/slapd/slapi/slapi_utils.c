@@ -1629,6 +1629,7 @@ slapi_send_ldap_search_entry(
 	rs.sr_ref = NULL;
 	rs.sr_ctrls = ectrls;
 	rs.sr_attrs = an;
+	rs.sr_operational_attrs = NULL;
 	rs.sr_entry = e;
 	rs.sr_v2ref = NULL;
 	rs.sr_flags = 0;
@@ -1668,6 +1669,7 @@ slapi_send_ldap_search_reference(
 
 	rs.sr_ctrls = ectrls;
 	rs.sr_attrs = NULL;
+	rs.sr_operational_attrs = NULL;
 	rs.sr_entry = e;
 
 	if ( v2refs != NULL ) {

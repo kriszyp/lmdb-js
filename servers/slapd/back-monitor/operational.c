@@ -37,16 +37,18 @@
 int
 monitor_back_operational(
 	Operation	*op,
-	SlapReply	*rs,
-	int		opattrs,
-	Attribute	**a )
+	SlapReply	*rs )
 {
-	Attribute	**aa = a;
+	Attribute	**ap;
 
 	assert( rs->sr_entry );
 
-	if ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates,
-				rs->sr_attrs ) ) {
+	for ( ap = &rs->sr_operational_attrs; *ap; ap = &(*ap)->a_next )
+		/* just count */ ;
+
+	if ( rs->sr_opattrs == SLAP_OPATTRS ||
+			ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) )
+	{
 		int			hs;
 		struct monitorentrypriv	*mp;
 
@@ -55,10 +57,9 @@ monitor_back_operational(
 		assert( mp );
 
 		hs = MONITOR_HAS_CHILDREN( mp );
-		*aa = slap_operational_hasSubordinate( hs );
-		if ( *aa != NULL ) {
-			aa = &(*aa)->a_next;
-		}
+		*ap = slap_operational_hasSubordinate( hs );
+		assert( *ap );
+		ap = &(*ap)->a_next;
 	}
 	
 	return 0;

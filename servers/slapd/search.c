@@ -331,8 +331,10 @@ do_search(
 			if( rs->sr_err == LDAP_COMPARE_TRUE ) {
 				rs->sr_entry = entry;
 				rs->sr_attrs = op->ors_attrs;
+				rs->sr_operational_attrs = NULL;
 				send_search_entry( op, rs );
 				rs->sr_entry = NULL;
+				rs->sr_operational_attrs = NULL;
 			}
 			entry_free( entry );
 
