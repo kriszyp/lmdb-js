@@ -5,6 +5,7 @@ Changes included in OpenLDAP 1.2.9
 	Fixed lutil/password bogus crypt password bug (ITS#423)
 	Fixed slapd/back-ldbm indexing bug (ITS#402)
 	Added UD support for creators/modifiers attributes (ITS#422)
+	Added modify* attributes on add to workaround client issue (ITS#424)
 	Build Environment
 		Rebuild configure
 		Added support for db1 vs db2 with glibc 2.1

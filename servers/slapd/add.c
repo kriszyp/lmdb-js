@@ -180,6 +180,7 @@ add_created_attrs( Operation *op, Entry *e )
 		bv.bv_len = strlen( bv.bv_val );
 	}
 	attr_merge( e, "creatorsname", bvals );
+	attr_merge( e, "modifiersname", bvals );
 
 	ldap_pvt_thread_mutex_lock( &currenttime_mutex );
 #ifndef LDAP_LOCALTIME
@@ -194,4 +195,5 @@ add_created_attrs( Operation *op, Entry *e )
 	bv.bv_val = buf;
 	bv.bv_len = strlen( bv.bv_val );
 	attr_merge( e, "createtimestamp", bvals );
+	attr_merge( e, "modifytimestamp", bvals );
 }
