@@ -4,17 +4,16 @@ Making and Installing the OpenLDAP Distribution
 This file provides brief instructions on how to build and install
 OpenLDAP on UNIX (and UNIX-like) system.  More detailed information
 and instructions can be found in The OpenLDAP Administrator's Guide
-(http://www.openldap.org/doc/admin/).
+(available from http://www.openldap.org/doc/).
 
 It is recommended that you read, or at least skim through, ALL of the
 instructions in this file before attempting to build the software.
 
-It is also recommended you review Frequently Asked Questions
+It is also recommended you review the Frequently Asked Questions
 (http://www.openldap.org/faq/) pages, in particular the Installation
 section (http://www.openldap.org/faq/index.cgi?file=8) and Platform
 Hints (http://www.openldap.org/faq/index.cgi?file=9) should be
 examined.
-
 
 Making and Installing the OpenLDAP Distribution
 -----------------------------------------------
@@ -98,9 +97,8 @@ configuration directory (normally /usr/local/etc/openldap).
         slapd.conf              Standalone LDAP daemon
         schema/*.schema         Schema Definitions
 
-
 End of OpenLDAP INSTALL file.
 
-$OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.12 2000/09/09
-21:16:09 kurt Exp $
+$OpenLDAP: pkg/openldap-guide/release/install.sdf,v 1.15 2002/02/18
+17:05:11 kurt Exp $
 

@@ -1,5 +1,10 @@
 OpenLDAP 2.0 Change Log
+
+OpenLDAP 2.0.24 Engineering
+	Fixed slapd acl group/dnaddr bug (ITS#1607)
 	Fixed ber_bvstrdup() empty string ("") bug (ITS#1662)
+	Documentation
+		Updated release documents
 
 OpenLDAP 2.0.23 Release
 	Fixed slapd moddn acl bug (ITS#1562) (ITS#1582)
