@@ -21,7 +21,7 @@ AttributeName uuid_attr[2];
 int
 build_uuid_attr()
 {
-        const char* text;
+	const char* text;
 
 	uuid_attr[0].an_name.bv_len = 9;
 	uuid_attr[0].an_name.bv_val = "entryUUID";

@@ -440,7 +440,7 @@ static struct slap_schema_ad_map {
 		offsetof(struct slap_internal_schema, si_ad_collectiveExclusions) },
 
 	{ "entryUUID", "( 1.3.6.1.4.1.4203.666.1.6 NAME 'entryUUID' "   
-			"DESC 'LCUP/LDUP: universally unique identifier' "
+			"DESC 'LCUP/LDUP: UUID of the entry' "
 			"EQUALITY octetStringMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
 			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
@@ -448,7 +448,7 @@ static struct slap_schema_ad_map {
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryUUID) },
 	{ "entryCSN", "( 1.3.6.1.4.1.4203.666.1.7 NAME 'entryCSN' "
-			"DESC 'LCUP/LDUP: change sequence number' "
+			"DESC 'LCUP/LDUP: change sequence number of the entry' "
 			"EQUALITY octetStringMatch "
 			"ORDERING octetStringOrderingMatch "
 			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
@@ -456,6 +456,15 @@ static struct slap_schema_ad_map {
 		NULL, SLAP_AT_HIDE,
 		NULL, NULL, NULL, NULL, NULL,
 		offsetof(struct slap_internal_schema, si_ad_entryCSN) },
+
+	{ "superiorUUID", "( 1.3.6.1.4.1.4203.666.1.11 NAME 'superiorUUID' "   
+			"DESC 'LCUP/LDUP: UUID of the superior entry' "
+			"EQUALITY octetStringMatch "
+			"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40{64} "
+			"SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation )",
+		NULL, SLAP_AT_HIDE,
+		NULL, NULL, NULL, NULL, NULL,
+		offsetof(struct slap_internal_schema, si_ad_superiorUUID) },
 
 	/* root DSE attributes */
 	{ "altServer", "( 1.3.6.1.4.1.1466.101.120.6 NAME 'altServer' "
