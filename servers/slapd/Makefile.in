@@ -343,7 +343,7 @@ install-local-srv: install-slapd install-conf install-schema install-tools
 
 install-slapd: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
-	-$(MKDIR) $(DESTDIR)$(localstatedir)/run/openldap
+	-$(MKDIR) $(DESTDIR)$(localstatedir)/run
 	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
 		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@for i in $(SUBDIRS); do \
