@@ -5,45 +5,29 @@
  *  open.c
  */
 
+#include "portable.h"
+
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1995 Regents of the University of Michigan.\nAll rights reserved.\n";
 #endif
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 
-#ifdef MACOS
-#include "macos.h"
-#endif /* MACOS */
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
-#if defined( DOS ) || defined( _WIN32 )
-#include "msdos.h"
-#endif /* DOS */
-
-#if !defined(MACOS) && !defined(DOS) && !defined( _WIN32 )
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#ifndef VMS
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-#include <netinet/in.h>
-#endif
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldap-int.h"
 
 #ifdef LDAP_DEBUG
 int	ldap_debug;
-#endif
-
-#ifndef INADDR_LOOPBACK
-#define INADDR_LOOPBACK	((unsigned long) 0x7f000001)
-#endif
-
-#ifndef MAXHOSTNAMELEN
-#define MAXHOSTNAMELEN  64
 #endif
 
 
@@ -119,14 +103,51 @@ ldap_init( char *defhost, int defport )
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_init\n", 0, 0, 0 );
 
+#ifdef HAVE_WINSOCK2
+{	WORD wVersionRequested;
+	WSADATA wsaData;
+	int err;
+ 
+	wVersionRequested = MAKEWORD( 2, 0 );
+ 
+	err = WSAStartup( wVersionRequested, &wsaData );
+	if ( err != 0 ) {
+		/* Tell the user that we couldn't find a usable */
+		/* WinSock DLL.                                  */
+		return NULL;
+	}
+ 
+	/* Confirm that the WinSock DLL supports 2.0.*/
+	/* Note that if the DLL supports versions greater    */
+	/* than 2.0 in addition to 2.0, it will still return */
+	/* 2.0 in wVersion since that is the version we      */
+	/* requested.                                        */
+ 
+	if ( LOBYTE( wsaData.wVersion ) != 2 ||
+		HIBYTE( wsaData.wVersion ) != 0 )
+	{
+	    /* Tell the user that we couldn't find a usable */
+	    /* WinSock DLL.                                  */
+	    WSACleanup( );
+	    return NULL; 
+	}
+}	/* The WinSock DLL is acceptable. Proceed. */
+
+#elif HAVE_WINSOCK
+	if ( WSAStartup( 0x0101, &wsadata ) != 0 ) {
+	    return( NULL );
+	}
+#endif
 
 	if ( (ld = (LDAP *) calloc( 1, sizeof(LDAP) )) == NULL ) {
+	    WSACleanup( );
 		return( NULL );
 	}
 
 #ifdef LDAP_REFERRALS
 	if (( ld->ld_selectinfo = ldap_new_select_info()) == NULL ) {
 		free( (char*)ld );
+	    WSACleanup( );
 		return( NULL );
 	}
 	ld->ld_options = LDAP_OPT_REFERRALS;
@@ -138,6 +159,7 @@ ldap_init( char *defhost, int defport )
 		ldap_free_select_info( ld->ld_selectinfo );
 #endif /* LDAP_REFERRALS */
 		free( (char*)ld );
+	    WSACleanup( );
 		return( NULL );
 	}
 
@@ -173,7 +195,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 
 	Debug( LDAP_DEBUG_TRACE, "open_ldap_connection\n", 0, 0, 0 );
 
-	defport = htons( defport );
+	defport = htons( (short) defport );
 
 	if ( host != NULL ) {
 		for ( p = host; p != NULL && *p != '\0'; p = q ) {
@@ -196,7 +218,7 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 				curhost = hostname;
 			    }
 			    *r++ = '\0';
-			    port = htons( (short)atoi( r ));
+			    port = htons( (short) atoi( r ) );
 			} else {
 			    port = defport;   
 			}
@@ -216,14 +238,14 @@ open_ldap_connection( LDAP *ld, Sockbuf *sb, char *host, int defport,
 	}
 
 	if ( krbinstancep != NULL ) {
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		if (( *krbinstancep = ldap_host_connected_to( sb )) != NULL &&
 		    ( p = strchr( *krbinstancep, '.' )) != NULL ) {
 			*p = '\0';
 		}
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 		krbinstancep = NULL;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 	}
 
 	return( 0 );
