@@ -1,0 +1,47 @@
+.TH SLAPO-SYNCPROV 5 "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.\" $OpenLDAP$
+.SH NAME
+slapo-syncprov \- Syncrepl Provider overlay
+.SH SYNOPSIS
+ETCDIR/slapd.conf
+.SH DESCRIPTION
+The Syncrepl Provider overlay implements the provider-side support for
+syncrepl replication, including persistent search functionality. The overlay
+can be used with any backend that maintains entryCSN and entryUUID
+attributes for its entries. It also creates a contextCSN attribute in
+the root entry of the database.
+
+The contextCSN is updated for every write operation performed against the
+database. To reduce database contention, the contextCSN is only updated in
+memory. The value is written to the detabase on server shutdown and read into
+memory on startup, and maintained in memory thereafter. Checkpoints may be
+configured to write the contextCSN into the underlying database to minimize
+recovery time after an unclean shutdown.
+
+Note that due to deadlock constraints in the LDBM database, this overlay
+will only work in RefreshOnly mode, and cannot perform checkpoints, on LDBM.
+
+On databases that support inequality indexing, it is helpful to set an
+eq index on the entryCSN attribute when using this overlay.
+.SH CONFIGURATION
+These
+.B slapd.conf
+options apply to the Syncrepl Provider overlay.
+They should appear after the
+.B overlay
+directive and before any subsequent
+.B database
+directive.
+.TP
+.B syncprov-checkpoint <ops> <minutes>
+After a write operation has succeeded, write the contextCSN to the underlying
+database if <ops> write operations or more than <minutes> time have passed
+since the last checkpoint. Checkpointing is disabled by default.
+.SH FILES
+.TP
+ETCDIR/slapd.conf
+default slapd configuration file
+.SH SEE ALSO
+.BR slapd.conf (5).
