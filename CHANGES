@@ -21,6 +21,7 @@ Changes included in OpenLDAP 1.2
 		Fixed openldap.m4 to "protect" shell variable
 		Fixed HAVE_PHREAD_FINAL typo
 		Fixed pthread detection on Digital UNIX
+		Fixed KerberosV build bug
 		Updated to Autoconf 1.3 with aclocal from automake 1.4
 		Removed autoconf dependencies from main makefile
 

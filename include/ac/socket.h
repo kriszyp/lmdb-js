@@ -27,10 +27,18 @@
 
 #include <netinet/in.h>
 #include <arpa/inet.h>
+
+#ifdef HAVE_ARPA_NAMESER_H
 #include <arpa/nameser.h>
+#endif
+
 #include <netdb.h>
+
+#ifdef HAVE_RESOLV_H
 #include <resolv.h>
 #endif
+
+#endif /* HAVE_SYS_SOCKET_H */
 
 #ifdef HAVE_WINSOCK2
 #include <winsock2.h>
