@@ -165,7 +165,7 @@ static int test_mra_filter(
 
 #ifdef LDAP_COMP_MATCH
 	/* Component Matching */
-	if( mra->cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
+	if( mra->ma_cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
 		return test_comp_filter_entry( op, e, mra );
 	}
 #endif

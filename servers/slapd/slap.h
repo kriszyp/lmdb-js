@@ -29,10 +29,6 @@
 
 #include "ldap_defaults.h"
 
-#ifdef HAVE_GMP
-#include <gmp.h>
-#endif /* HAVE_GMP */
-
 #include <stdio.h>
 #include <ac/stdlib.h>
 
@@ -43,6 +39,10 @@
 #include <ac/socket.h>
 #include <ac/time.h>
 #include <ac/param.h>
+
+#ifdef HAVE_GMP
+#include <gmp.h>
+#endif /* HAVE_GMP */
 
 #include "avl.h"
 
@@ -383,7 +383,7 @@ typedef struct slap_syntax {
 #endif
 #ifdef LDAP_COMP_MATCH
 	slap_component_transform_func *ssyn_attr2comp;
-	struct ComponentDesc* comp_syntax;
+	struct ComponentDesc* ssync_comp_syntax;
 #endif
 
 	LDAP_SLIST_ENTRY(slap_syntax) ssyn_next;
@@ -923,7 +923,7 @@ typedef struct slap_mr_assertion {
 	int						ma_dnattrs; /* boolean */
 	struct berval		ma_value;	/* required */
 #ifdef LDAP_COMP_MATCH
-	struct slap_component_filter* cf;
+	struct slap_component_filter* ma_cf; /* component filter */
 #endif
 } MatchingRuleAssertion;
 
@@ -1050,7 +1050,7 @@ typedef struct slap_attr {
 #define SLAP_ATTR_IXADD		0x1U
 #define SLAP_ATTR_IXDEL		0x2U
 #ifdef LDAP_COMP_MATCH
-	void* component_values;
+	void* a_component_values; /* component values */
 #endif
 } Attribute;
 

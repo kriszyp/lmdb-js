@@ -762,7 +762,7 @@ test_comp_filter_entry(
 	Attribute *a;
 	void	*memctx;
 
-	mra->cf->cf_ca->ca_mra = mra;
+	mra->ma_cf->cf_ca->ca_mra = mra;
 
 	Debug( LDAP_DEBUG_FILTER, "test_comp_filter_entry\n", 0, 0, 0 );
 	if ( mra->ma_desc ) {
@@ -785,7 +785,7 @@ test_comp_filter_entry(
 			for ( ; bv->bv_val != NULL ; bv++ ) {
 				int ret, rc;
 				const char *text;
-				rc = test_comp_filter_attr( op, a, bv, mra->cf );
+				rc = test_comp_filter_attr( op, a, bv, mra->ma_cf );
 				if ( rc == LDAP_COMPARE_TRUE ) return rc;
 			}
 		}
@@ -816,7 +816,7 @@ test_comp_filter_entry(
 			for ( ; bv->bv_val != NULL ; bv++ ) {
 				int ret, rc;
 				const char *text;
-				rc = test_comp_filter_attr( op, a, bv, mra->cf );
+				rc = test_comp_filter_attr( op, a, bv, mra->ma_cf );
 				if ( rc == LDAP_COMPARE_TRUE ) break;
 			}
                         if ( rc != LDAP_SUCCESS ) return rc;
