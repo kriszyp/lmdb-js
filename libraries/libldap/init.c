@@ -42,7 +42,7 @@ struct ol_attribute {
 	void*		data;
 	size_t		offset;
 } attrs[] = {
-	{ATTR_KV,		"DEREF",		&deref_kv,
+	{ATTR_KV,		"DEREF",	deref_kv, /* or &deref_kv[0] */
 		offsetof(struct ldapoptions, ldo_deref)},
 	{ATTR_INT,		"SIZELIMIT",	NULL,
 		offsetof(struct ldapoptions, ldo_sizelimit)},
@@ -57,7 +57,7 @@ struct ol_attribute {
 	{ATTR_BOOL,		"REFERRALS",	(void *) LDAP_BOOL_REFERRALS, 0},
 	{ATTR_BOOL,		"RESTART",		(void *) LDAP_BOOL_RESTART, 0},
 	{ATTR_BOOL,		"DNS",			(void *) LDAP_BOOL_DNS, 0},
-	{ATTR_NONE,	NULL, 0}
+	{ATTR_NONE,		NULL,		NULL,	0}
 };
 
 #define MAX_LDAP_ATTR_LEN  sizeof("SIZELIMIT")
