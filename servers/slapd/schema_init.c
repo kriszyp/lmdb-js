@@ -2315,7 +2315,7 @@ struct syntax_defs_rec syntax_defs[] = {
 
 struct mrule_defs_rec {
 	char *						mrd_desc;
-	unsigned					mrd_usage;
+	slap_mask_t					mrd_usage;
 	slap_mr_convert_func *		mrd_convert;
 	slap_mr_normalize_func *	mrd_normalize;
 	slap_mr_match_func *		mrd_match;
