@@ -338,11 +338,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_CHECK_LIB(pthread, pthread_create, [
 				AC_DEFINE(HAVE_DCE)
 				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"
 				if test $ol_with_preemptive = auto ; then
 					ol_with_preemptive=yes
 				fi
-				[-lmach -lexc -lc])
+				],,[-lmach -lexc -lc])
 			LIBS="$save_LIBS"
 		fi
 
@@ -557,7 +557,7 @@ if test $ol_link_threads = no ; then
 
 	if test $ol_with_threads = auto ; then
 		AC_MSG_WARN([no suitable thread support, disabling threads])
-		ol_with_threads = no
+		ol_with_threads=no
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
