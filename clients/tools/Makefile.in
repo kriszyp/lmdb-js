@@ -8,7 +8,10 @@ OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o ldappasswd.o
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XLIBS =  -lldif -lldap -llber -llutil
+NT_DYN_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_DEFS)
+
+XLIBS =  -llutil -lldif -lldap -llber
 XXLIBS	= $(SECURITY_LIBS) $(LDIF_LIBS) $(LUTIL_LIBS)
 
 XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c ldpversion.c
@@ -56,10 +59,12 @@ ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
 
 install-local:	FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapsearch $(DESTDIR)$(bindir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapmodify $(DESTDIR)$(bindir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(DESTDIR)$(bindir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(DESTDIR)$(bindir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldappasswd $(DESTDIR)$(bindir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(bindir);				\
+	    done							\
+	)
 	$(RM) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
 	$(LN) $(DESTDIR)$(bindir)/ldapmodify$(EXEEXT) $(DESTDIR)$(bindir)/ldapadd$(EXEEXT)
+

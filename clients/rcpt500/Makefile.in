@@ -1,6 +1,8 @@
 # $OpenLDAP$
 
-PROGRAMS= rcpt500
+UNIX_PRGS = rcpt500
+PROGRAMS = $(@PLAT@_PRGS)
+
 SRCS= main.c cmds.c help.c query.c
 XSRCS= version.c
 OBJS= main.o cmds.o help.o query.o
@@ -21,6 +23,12 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 
 install-local: $(PROGRAMS) rcpt500.help FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir) $(DESTDIR)$(datadir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(DESTDIR)$(libexecdir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(libexecdir);				\
+	    done							\
+	)
 	-$(MV) $(DESTDIR)$(datadir)/rcpt500.help $(DESTDIR)$(datadir)/rcpt500.help-
 	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/rcpt500.help $(DESTDIR)$(datadir)
+

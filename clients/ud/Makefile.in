@@ -11,7 +11,10 @@ PROGRAMS= ud
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XLIBS =  -lldif -lldap -llber -llutil
+NT_DYN_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_DEFS)
+
+XLIBS =  -llutil -lldif -lldap -llber
 XXLIBS	= $(TERMCAP_LIBS) $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 ud : version.o
@@ -24,4 +27,10 @@ version.c: ${OBJS} $(LDAP_LIBDEPEND)
 install-local: FORCE
 	-$(MKDIR) $(DESTDIR)$(bindir)
 	-mv -f $(DESTDIR)$(bindir)/ud $(DESTDIR)$(bindir)/ud-
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ud $(DESTDIR)$(bindir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(bindir);				\
+	    done							\
+	)
+

@@ -3,7 +3,9 @@
 ## Makefile.in for slurpd
 ##
 
-PROGRAMS = slurpd
+UNIX_PRGS = slurpd
+
+PROGRAMS = $(@PLAT@_PRGS)
 XPROGRAMS = sslurpd
 
 XSRCS	= version.c
@@ -21,7 +23,7 @@ LDAP_LIBDIR= ../../libraries
 BUILD_OPT = "--enable-slurpd"
 BUILD_SRV = @BUILD_SLURPD@
 
-all-local-srv: 	slurpd
+all-local-srv: 	$(PROGRAMS)
 
 # $(LTHREAD_LIBS) must be last!
 XLIBS = -lldif -lldap_r -llber -llutil
@@ -41,4 +43,10 @@ version.c: $(OBJS) $(LDAP_LIBDEPEND) $(LDAP_LIBTHREAD_DEPEND)
 
 install-local-srv: FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slurpd $(DESTDIR)$(libexecdir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(libexecdir);				\
+	    done							\
+	)
+

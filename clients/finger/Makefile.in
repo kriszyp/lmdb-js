@@ -3,7 +3,9 @@
 SRCS=	main.c
 XSRCS=	version.c
 OBJS=	main.o
-PROGRAMS= in.xfingerd
+
+UNIX_PRGS = in.xfingerd
+PROGRAMS = $(@PLAT@_PRGS)
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
@@ -20,4 +22,10 @@ version.c: ${OBJS} ${LDAP_LIBDEPEND}
 
 install-local: $(PROGRAMS) FORCE
 	-$(MKDIR) $(DESTDIR)$(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 in.xfingerd $(DESTDIR)$(libexecdir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(libexecdir);				\
+	    done							\
+	)
+
