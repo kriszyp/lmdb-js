@@ -121,3 +121,9 @@ string LDAPObjClass::getName () {
     else
 	return *(names.begin());
 }
+
+int LDAPObjClass::getKind () {
+     return kind;
+}
+
+
