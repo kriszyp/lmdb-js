@@ -747,20 +747,15 @@ be_isroot_pw( Operation *op )
 		return 0;
 	}
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
-	ldap_pvt_thread_mutex_lock( &passwd_mutex );
 #ifdef SLAPD_SPASSWD
-	lutil_passwd_sasl_conn = op->o_conn->c_sasl_authctx;
-#endif
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind,
+		op->o_conn->c_sasl_authctx, NULL );
 #endif
 
 	result = lutil_passwd( &op->o_bd->be_rootpw, &op->orb_cred, NULL, NULL );
 
-#if defined( SLAPD_CRYPT ) || defined( SLAPD_SPASSWD )
 #ifdef SLAPD_SPASSWD
-	lutil_passwd_sasl_conn = NULL;
-#endif
-	ldap_pvt_thread_mutex_unlock( &passwd_mutex );
+	ldap_pvt_thread_pool_setkey( op->o_threadctx, slap_sasl_bind, NULL, NULL );
 #endif
 
 	return result == 0;

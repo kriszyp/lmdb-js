@@ -768,7 +768,66 @@ slap_sasl_err2ldap( int saslerr )
 
 	return rc;
 }
-#endif
+
+#ifdef SLAPD_SPASSWD
+
+static struct berval sasl_pwscheme = BER_BVC("{SASL}");
+
+static int chk_sasl(
+	const struct berval *sc,
+	const struct berval * passwd,
+	const struct berval * cred,
+	const char **text )
+{
+	unsigned int i;
+	int rtn;
+	void *ctx, *sconn = NULL;
+
+	for( i=0; i<cred->bv_len; i++) {
+		if(cred->bv_val[i] == '\0') {
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
+		}
+	}
+
+	if( cred->bv_val[i] != '\0' ) {
+		return LUTIL_PASSWD_ERR;	/* cred must behave like a string */
+	}
+
+	for( i=0; i<passwd->bv_len; i++) {
+		if(passwd->bv_val[i] == '\0') {
+			return LUTIL_PASSWD_ERR;	/* NUL character in password */
+		}
+	}
+
+	if( passwd->bv_val[i] != '\0' ) {
+		return LUTIL_PASSWD_ERR;	/* passwd must behave like a string */
+	}
+
+	rtn = LUTIL_PASSWD_ERR;
+
+	ctx = ldap_pvt_thread_pool_context();
+	ldap_pvt_thread_pool_getkey( ctx, slap_sasl_bind, &sconn, NULL );
+
+	if( sconn != NULL ) {
+		int sc;
+# if SASL_VERSION_MAJOR < 2
+		sc = sasl_checkpass( sconn,
+			passwd->bv_val, passwd->bv_len,
+			cred->bv_val, cred->bv_len,
+			text );
+# else
+		sc = sasl_checkpass( sconn,
+			passwd->bv_val, passwd->bv_len,
+			cred->bv_val, cred->bv_len );
+# endif
+		rtn = ( sc != SASL_OK ) ? LUTIL_PASSWD_ERR : LUTIL_PASSWD_OK;
+	}
+
+	return rtn;
+}
+#endif /* SLAPD_SPASSWD */
+
+#endif /* HAVE_CYRUS_SASL */
 
 int slap_sasl_init( void )
 {
@@ -839,6 +898,10 @@ int slap_sasl_init( void )
 
 		return -1;
 	}
+
+#ifdef SLAPD_SPASSWD
+	lutil_passwd_add( &sasl_pwscheme, chk_sasl, NULL );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "slap_sasl_init: initialized!\n",
 		0, 0, 0 );
