@@ -30,7 +30,7 @@ dnssrv_back_request(
 	char **hosts = NULL;
 	struct berval **urls = NULL;
 
-	if( ndn == NULL && *ndn == '\0' ) {
+	if( ndn == NULL || *ndn == '\0' ) {
 		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 			NULL, "operation upon null (empty) DN disallowed",
 			NULL, NULL );
@@ -52,7 +52,7 @@ dnssrv_back_request(
 		Debug( LDAP_DEBUG_TRACE, "DNSSRV: domain2hostlist returned %d\n",
 			rc, 0, 0 );
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
-			NULL, "no DNS SRV available for DN", NULL, NULL );
+			NULL, "no DNS SRV RR available for DN", NULL, NULL );
 		goto done;
 	}
 
