@@ -7,6 +7,8 @@
 #include "StringList.h"
 #include "LDAPSchema.h"
 
+#include <ctype.h>
+
 using namespace std;
 
 LDAPSchema::LDAPSchema(){
@@ -28,7 +30,12 @@ void LDAPSchema::setObjectClasses (const StringList &ocs) {
 	StringList names = oc.getNames();
 	// there could be more names for one object...
 	for (j = names.begin(); j != names.end(); j++) {
-	    object_classes [(*j)] = LDAPObjClass (oc);
+            string lc_name = *j;
+            string::iterator k;
+            for ( k = lc_name.begin(); k != lc_name.end(); k++ ) {
+                (*k) = tolower(*k); 
+            }
+	    object_classes [lc_name] = LDAPObjClass (oc);
 	}
     }
 }
@@ -43,17 +50,31 @@ void LDAPSchema::setAttributeTypes (const StringList &ats) {
 	StringList names = at.getNames();
 	// there could be more names for one object...
 	for (j = names.begin(); j != names.end(); j++) {
-	    attr_types [(*j)] = LDAPAttrType (at);
+            string lc_name = *j;
+            string::iterator k;
+            for ( k = lc_name.begin(); k != lc_name.end(); k++ ) {
+                (*k) = tolower(*k); 
+            }
+	    attr_types [lc_name] = LDAPAttrType (at);
 	}
     }
 }
 
 LDAPObjClass LDAPSchema::getObjectClassByName (string name) {
-
-    return object_classes [name];
+    string lc_name = name;
+    string::iterator k;
+    for ( k = lc_name.begin(); k != lc_name.end(); k++ ) {
+        (*k) = tolower(*k); 
+    }
+    return object_classes [lc_name];
 }
 
 LDAPAttrType LDAPSchema::getAttributeTypeByName (string name) {
+    string lc_name = name;
+    string::iterator k;
+    for ( k = lc_name.begin(); k != lc_name.end(); k++ ) {
+        (*k) = tolower(*k); 
+    }
 
-    return attr_types [name];
+    return attr_types [lc_name];
 }
