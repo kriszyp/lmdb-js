@@ -226,7 +226,7 @@ dn2id_delete(
 		}
 	}
 
-#if 1
+#if 0
 	{
 		char **subtree = dn_subtree( NULL, dn );
 
