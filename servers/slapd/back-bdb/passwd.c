@@ -216,6 +216,7 @@ retry:	/* transaction retry */
 			*text = NULL;
 			goto retry;
 		case 0:
+			*text = NULL;
 			break;
 		default:
 			rc = LDAP_OTHER;
