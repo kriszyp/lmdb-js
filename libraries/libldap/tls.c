@@ -361,6 +361,11 @@ sb_tls_ctrl( Sockbuf_IO_Desc *sbiod, int opt, void *arg )
 	if ( opt == LBER_SB_OPT_GET_SSL ) {
 		*((SSL **)arg) = p->ssl;
 		return 1;
+
+	} else if ( opt == LBER_SB_OPT_DATA_READY ) {
+		if( SSL_pending( p->ssl ) > 0 ) {
+			return 1;
+		}
 	}
 	
 	return LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg );

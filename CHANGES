@@ -1,6 +1,7 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.X Engineering
+	Fixed -lldap TLS data ready bug (ITS#821)
 	Fixed slapd spasswd mutex bug
 	Fixed slapd ACL nameuid bug
 	Fixed slapd SASL layerring bug
