@@ -37,7 +37,7 @@ typedef struct avlnode Avlnode;
 #ifdef AVL_INTERNAL
 struct avlnode {
 	void*		avl_data;
-	signed char		avl_bf;
+	signed int		avl_bf;
 	struct avlnode	*avl_left;
 	struct avlnode	*avl_right;
 };
@@ -48,11 +48,12 @@ struct avlnode {
 #define LH 	(-1)
 #define EH 	0
 #define RH 	1
-#endif
 
 /* avl routines */
 #define avl_getone(x)	((x) == 0 ? 0 : (x)->avl_data)
 #define avl_onenode(x)	((x) == 0 || ((x)->avl_left == 0 && (x)->avl_right == 0))
+
+#endif /* AVL_INTERNALS */
 
 typedef int		(*AVL_APPLY) LDAP_P((void *, void*));
 typedef int		(*AVL_CMP) LDAP_P((void*, void*));
