@@ -253,12 +253,20 @@ over_op_func(
 	enum op_which which
 )
 {
-	slap_overinfo *oi = op->o_bd->bd_info->bi_private;
-	slap_overinst *on = oi->oi_list;
+	slap_overinfo *oi;
+	slap_overinst *on;
 	BI_op_bind **func;
 	BackendDB *be = op->o_bd, db;
 	slap_callback cb = {NULL, over_back_response, NULL, NULL};
 	int rc = SLAP_CB_CONTINUE;
+
+	if ( op->o_bd == NULL ) {
+		/* FIXME: happens for instance during abandon... */
+		return 0;
+	}
+
+	oi = op->o_bd->bd_info->bi_private;
+	on = oi->oi_list;
 
  	if ( !SLAP_ISOVERLAY( op->o_bd )) {
  		db = *op->o_bd;
