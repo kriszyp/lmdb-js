@@ -54,10 +54,14 @@ glue_back_select (
 )
 {
 	glueinfo *gi = (glueinfo *) be->be_private;
+	struct berval bv;
 	int i;
 
+	bv.bv_len = strlen(dn);
+	bv.bv_val = dn;
+
 	for (i = 0; be->be_nsuffix[i]; i++) {
-		if (dn_issuffix (dn, be->be_nsuffix[i]->bv_val))
+		if (dn_issuffixbv (&bv, be->be_nsuffix[i]))
 			return gi->n[i].be;
 	}
 	return NULL;
@@ -236,7 +240,6 @@ glue_back_response (
 		j = gs->nrefs;
 		if (!j) {
 			new = ch_malloc ((i+1)*sizeof(struct berval *));
-			gs->nrefs = i;
 		} else {
 			new = ch_realloc(gs->refs,
 				(j+i+1)*sizeof(struct berval *));
@@ -291,6 +294,7 @@ glue_back_search (
 	int i, rc, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
 	glue_state gs = {0};
+	struct berval bv;
 
 
 	if (tlimit)
@@ -312,64 +316,18 @@ glue_back_search (
 		return rc;
 
 	case LDAP_SCOPE_ONELEVEL:
-		op->o_glue = &gs;
-		op->o_sresult = glue_back_sresult;
-		op->o_response = glue_back_response;
-
-		/*
-		 * Execute in reverse order, most general first 
-		 */
-		for (i = gi->nodes-1; i >= 0; i--) {
-			if (!gi->n[i].be->be_search)
-				continue;
-			if (tlimit) {
-				t2limit = stoptime - slap_get_time ();
-				if (t2limit <= 0)
-					break;
-			}
-			if (slimit) {
-				s2limit = slimit - gs.nentries;
-				if (s2limit <= 0)
-					break;
-			}
-			/*
-			 * check for abandon 
-			 */
-			ldap_pvt_thread_mutex_lock (&op->o_abandonmutex);
-			rc = op->o_abandon;
-			ldap_pvt_thread_mutex_unlock (&op->o_abandonmutex);
-			if (rc) {
-				rc = 0;
-				goto done;
-			}
-			if (!strcmp (gi->n[i].pdn, ndn)) {
-				be = gi->n[i].be;
-				rc = be->be_search (be, conn, op,
-						    b0->be_suffix[i],
-						  b0->be_nsuffix[i]->bv_val,
-						    LDAP_SCOPE_BASE, deref,
-					s2limit, t2limit, filter, filterstr,
-						    attrs, attrsonly);
-			} else if (dn_issuffix (ndn, b0->be_nsuffix[i]->bv_val)) {
-				be = gi->n[i].be;
-				rc = be->be_search (be, conn, op,
-						    dn, ndn, scope, deref,
-					s2limit, t2limit, filter, filterstr,
-						    attrs, attrsonly);
-			}
-		}
-		break;
-
 	case LDAP_SCOPE_SUBTREE:
 		op->o_glue = &gs;
 		op->o_sresult = glue_back_sresult;
 		op->o_response = glue_back_response;
+		bv.bv_len = strlen(ndn);
+		bv.bv_val = ndn;
 
 		/*
 		 * Execute in reverse order, most general first 
 		 */
 		for (i = gi->nodes-1; i >= 0; i--) {
-			if (!gi->n[i].be->be_search)
+			if (!gi->n[i].be || !gi->n[i].be->be_search)
 				continue;
 			if (tlimit) {
 				t2limit = stoptime - slap_get_time ();
@@ -391,18 +349,26 @@ glue_back_search (
 				rc = 0;
 				goto done;
 			}
-			if (dn_issuffix (ndn, b0->be_nsuffix[i]->bv_val)) {
-				be = gi->n[i].be;
-				rc = be->be_search (be, conn, op,
-						    dn, ndn, scope, deref,
-					s2limit, t2limit, filter, filterstr,
-						    attrs, attrsonly);
-			} else if (dn_issuffix (b0->be_nsuffix[i]->bv_val, ndn)) {
-				be = gi->n[i].be;
+			be = gi->n[i].be;
+			if (scope == LDAP_SCOPE_ONELEVEL && 
+				!strcmp (gi->n[i].pdn, ndn)) {
 				rc = be->be_search (be, conn, op,
 						    b0->be_suffix[i],
-						  b0->be_nsuffix[i]->bv_val,
+						    b0->be_nsuffix[i]->bv_val,
+						    LDAP_SCOPE_BASE, deref,
+					s2limit, t2limit, filter, filterstr,
+						    attrs, attrsonly);
+			} else if (scope == LDAP_SCOPE_SUBTREE &&
+				dn_issuffixbv (b0->be_nsuffix[i], &bv)) {
+				rc = be->be_search (be, conn, op,
+						    b0->be_suffix[i],
+						    b0->be_nsuffix[i]->bv_val,
 						    scope, deref,
+					s2limit, t2limit, filter, filterstr,
+						    attrs, attrsonly);
+			} else if (dn_issuffix (&bv, b0->be_nsuffix[i])) {
+				rc = be->be_search (be, conn, op,
+						    dn, ndn, scope, deref,
 					s2limit, t2limit, filter, filterstr,
 						    attrs, attrsonly);
 			}
