@@ -171,7 +171,7 @@ select_backend( char * dn )
 					"select_backend: use default backend\n", 0, 0, 0 );
 				return (&backends[i]);
 			}
-#endif /* LDAP_ALLOW_NULL_SEARCH_BASE
+#endif /* LDAP_ALLOW_NULL_SEARCH_BASE */
 
 			len = strlen( backends[i].be_suffix[j] );
 
