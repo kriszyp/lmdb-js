@@ -15,6 +15,7 @@ install-common: FORCE
 	for page in *.$(MANSECT); do \
 		$(SED) -e "s%LDVERSION%$$VERSION%" \
 			-e 's%ETCDIR%$(sysconfdir)%' \
+			-e 's%LOCALSTATEDIR%$(localstatedir)%' \
 			-e 's%SYSCONFDIR%$(sysconfdir)%' \
 			-e 's%DATADIR%$(datadir)%' \
 			-e 's%SBINDIR%$(sbindir)%' \
