@@ -26,10 +26,8 @@
 #  include <sys/uuid.h>
 #else
 #  include <ac/socket.h>
-#  include <sys/sockio.h>
-#  include <net/if_types.h>
 #  include <net/if.h>
-#  include <net/if_dl.h>
+#  include <sys/time.h>
 #  ifdef HAVE_SYS_SYSCTL_H
 #    include <sys/sysctl.h>
 #    include <net/route.h>
