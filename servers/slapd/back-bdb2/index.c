@@ -248,7 +248,8 @@ bdb2i_index_add_values(
 		return( -1 );
 	}
 
-	for ( i = 0; vals[i] != NULL; i++ ) {
+	if( vals != NULL ) {
+	  for ( i = 0; vals[i] != NULL; i++ ) {
 		/*
 		 * presence index entry
 		 */
@@ -340,6 +341,7 @@ bdb2i_index_add_values(
 		if ( bigbuf != NULL ) {
 			free( bigbuf );
 		}
+	  }
 	}
 	bdb2i_cache_close( be, db );
 

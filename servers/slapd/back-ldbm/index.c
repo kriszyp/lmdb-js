@@ -306,7 +306,8 @@ index_change_values(
 	}
 
 
-	for ( i = 0; vals[i] != NULL; i++ ) {
+	if ( vals != NULL ) {
+	  for ( i = 0; vals[i] != NULL; i++ ) {
 		/*
 		 * presence index entry
 		 */
@@ -416,7 +417,9 @@ index_change_values(
 		if ( bigbuf != NULL ) {
 			free( bigbuf );
 		}
+	  }
 	}
+
 	ldbm_cache_close( be, db );
 
 	return( 0 );
