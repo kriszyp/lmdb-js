@@ -47,7 +47,9 @@ MKDEP = $(top_srcdir)/build/mkdep $(MKDEPFLAG) -d "$(srcdir)" -c "$(CC)"
 
 LIBTOOL = @LIBTOOL@
 LIBVERSION = 0:0:0
-LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION)
+LTVERSION = --version-info $LIBVERSION
+LTLIBLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION)
+LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
 # Misc UNIX commands used in build environment
