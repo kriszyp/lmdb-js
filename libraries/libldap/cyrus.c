@@ -194,10 +194,6 @@ sb_sasl_pkt_length( const unsigned char *buf, unsigned max, int debuglevel )
 			"sb_sasl_pkt_length: received illegal packet length "
 			"of %lu bytes\n", (unsigned long)size );      
 		size = 16; /* this should lead to an error. */
-	} else if ( size > max ) {
-		ber_log_printf( LDAP_DEBUG_ANY, debuglevel,
-			"sb_sasl_pkt_length: received packet length "
-			"of %lu exceeds negotiated max of %lu bytes\n", (unsigned long)size, (unsigned long)max );
 	}
 
 	return size + 4; /* include the size !!! */
@@ -344,11 +340,14 @@ sb_sasl_write( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 	/* now encode the next packet. */
 #if SASL_VERSION_MAJOR >= 2
 	ber_pvt_sb_buf_init( &p->buf_out );
+	/* sasl v2 makes sure this number is correct */
+	if ( len > *p->sasl_maxbuf )
+		len = *p->sasl_maxbuf;
 #else
 	ber_pvt_sb_buf_destroy( &p->buf_out );
-#endif
 	if ( len > *p->sasl_maxbuf - 100 )
 		len = *p->sasl_maxbuf - 100;	/* For safety margin */
+#endif
 	ret = sasl_encode( p->sasl_context, buf, len,
 		(SASL_CONST char **)&p->buf_out.buf_base,
 		(unsigned *)&p->buf_out.buf_size );
