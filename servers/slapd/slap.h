@@ -723,6 +723,32 @@ typedef struct slap_filter {
 /* compare routines can return undefined */
 #define SLAPD_COMPARE_UNDEFINED	((ber_int_t) -1)
 
+typedef struct slap_valuesreturnfilter {
+	ber_tag_t	f_choice;
+
+	union vrf_un_u {
+		/* precomputed result */
+		ber_int_t f_un_result;
+
+		/* DN */
+		char *f_un_dn;
+
+		/* present */
+		AttributeDescription *f_un_desc;
+
+		/* simple value assertion */
+		AttributeAssertion *f_un_ava;
+
+		/* substring assertion */
+		SubstringsAssertion *f_un_ssa;
+
+		/* matching rule assertion */
+		MatchingRuleAssertion *f_un_mra;
+	} f_un;
+
+	struct slap_valuesreturnfilter	*f_next;
+} ValuesReturnFilter;
+
 /*
  * represents an attribute (description + values)
  */
@@ -1453,6 +1479,7 @@ typedef struct slap_op {
 	char o_noop;
 	char o_subentries;
 	char o_subentries_visibility;
+	char o_valuesreturnfilter;
 
 	char o_pagedresults;
 	ber_int_t o_pagedresults_size;
@@ -1470,6 +1497,7 @@ typedef struct slap_op {
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
+	ValuesReturnFilter *vrFilter; /* Structure represents ValuesReturnFilter */
 } Operation;
 
 #define get_manageDSAit(op)				((int)(op)->o_managedsait)

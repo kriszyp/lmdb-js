@@ -22,6 +22,14 @@
 
 #include "ldap-int.h"
 
+static int put_simple_vrFilter LDAP_P((
+	BerElement *ber,
+	char *str ));
+
+static int put_vrFilter_list LDAP_P((
+	BerElement *ber,
+	char *str ));
+
 static char *put_complex_filter LDAP_P((
 	BerElement *ber,
 	char *str,
@@ -799,3 +807,387 @@ put_substring_filter( BerElement *ber, char *type, char *val )
 
 	return 0;
 }
+
+int
+ldap_pvt_put_vrFilter( BerElement *ber, const char *str_in )
+{
+	int rc;
+	char	*freeme;
+	char	*str;
+	char	*next;
+	int	parens, balance, escape;
+
+	/*
+	 * A ValuesReturnFilter looks like this:
+	 *
+	 *	ValuesReturnFilter ::= SEQUENCE OF SimpleFilterItem
+	 *      SimpleFilterItem ::= CHOICE {
+	 *              equalityMatch   [3]     AttributeValueAssertion,
+	 *              substrings      [4]     SubstringFilter,
+	 *              greaterOrEqual  [5]     AttributeValueAssertion,
+	 *              lessOrEqual     [6]     AttributeValueAssertion,
+	 *              present         [7]     AttributeType,
+	 *              approxMatch     [8]     AttributeValueAssertion,
+	 *		extensibleMatch [9]	SimpleMatchingAssertion -- LDAPv3
+	 *      }
+	 *
+	 *      SubstringFilter ::= SEQUENCE {
+	 *              type               AttributeType,
+	 *              SEQUENCE OF CHOICE {
+	 *                      initial          [0] IA5String,
+	 *                      any              [1] IA5String,
+	 *                      final            [2] IA5String
+	 *              }
+	 *      }
+	 *
+	 *	SimpleMatchingAssertion ::= SEQUENCE {	-- LDAPv3
+	 *		matchingRule    [1] MatchingRuleId OPTIONAL,
+	 *		type            [2] AttributeDescription OPTIONAL,
+	 *		matchValue      [3] AssertionValue }
+	 */
+
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, "ldap_pvt_put_vrFilter: \"%s\"\n",
+		str_in ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "put_vrFilter: \"%s\"\n", str_in, 0, 0 );
+#endif
+
+	freeme = LDAP_STRDUP( str_in );
+	if( freeme == NULL ) return LDAP_NO_MEMORY;
+	str = freeme;
+
+	parens = 0;
+	while ( *str ) {
+		switch ( *str ) {
+		case '(': /*')'*/
+			str++;
+			parens++;
+
+			/* skip spaces */
+			while( LDAP_SPACE( *str ) ) str++;
+
+			switch ( *str ) {
+			case '(':
+				if ( (next = find_right_paren( str )) == NULL ) {
+					rc = -1;
+					goto done;
+				}
+
+				*next = '\0';
+
+				if ( put_vrFilter_list( ber, str ) == -1 ) {
+					rc = -1;
+					goto done;
+				}
+
+				/* close the '(' */
+				*next++ = ')';
+
+				str = next;
+
+				parens--;
+				break;
+
+
+			default:
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+					"ldap_pvt_put_vrFilter: simple\n" ));
+#else
+				Debug( LDAP_DEBUG_TRACE, "put_vrFilter: simple\n",
+				    0, 0, 0 );
+#endif
+
+				balance = 1;
+				escape = 0;
+				next = str;
+
+				while ( *next && balance ) {
+					if ( escape == 0 ) {
+						if ( *next == '(' ) {
+							balance++;
+						} else if ( *next == ')' ) {
+							balance--;
+						}
+					}
+
+					if ( *next == '\\' && ! escape ) {
+						escape = 1;
+					} else {
+						escape = 0;
+					}
+
+					if ( balance ) next++;
+				}
+
+				if ( balance != 0 ) {
+					rc = -1;
+					goto done;
+				}
+
+				*next = '\0';
+
+				if ( put_simple_vrFilter( ber, str ) == -1 ) {
+					rc = -1;
+					goto done;
+				}
+
+				*next++ = /*'('*/ ')';
+
+				str = next;
+				parens--;
+				break;
+			}
+			break;
+
+		case /*'('*/ ')':
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+				"ldap_pvt_put_filter: end\n" ));
+#else
+			Debug( LDAP_DEBUG_TRACE, "put_filter: end\n",
+				0, 0, 0 );
+#endif
+			if ( ber_printf( ber, /*"["*/ "]" ) == -1 ) {
+				rc = -1;
+				goto done;
+			}
+			str++;
+			parens--;
+			break;
+
+		case ' ':
+			str++;
+			break;
+
+		default:	/* assume it's a simple type=value filter */
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "filter", LDAP_LEVEL_DETAIL1, 
+				"ldap_pvt_put_filter: default\n" ));
+#else
+			Debug( LDAP_DEBUG_TRACE, "put_filter: default\n",
+				0, 0, 0 );
+#endif
+			next = strchr( str, '\0' );
+			if ( put_simple_filter( ber, str ) == -1 ) {
+				rc = -1;
+				goto done;
+			}
+			str = next;
+			break;
+		}
+	}
+
+	rc = parens ? -1 : 0;
+
+done:
+	LDAP_FREE( freeme );
+	return rc;
+}
+
+int
+put_vrFilter( BerElement *ber, const char *str_in )
+{
+	int rc =0;
+	
+	if ( ber_printf( ber, "{" /*"}"*/ ) == -1 ) {
+		rc = -1;
+	}
+	
+	rc = ldap_pvt_put_vrFilter( ber, str_in );
+
+	if ( ber_printf( ber, /*"{"*/ "N}" ) == -1 ) {
+		rc = -1;
+	}
+	
+	return rc;
+}
+
+static int
+put_vrFilter_list( BerElement *ber, char *str )
+{
+	char	*next = NULL;
+	char	save;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, 
+		"put_vrFilter_list \"%s\"\n", str ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "put_vrFilter_list \"%s\"\n",
+		str, 0, 0 );
+#endif
+
+	while ( *str ) {
+		while ( *str && LDAP_SPACE( (unsigned char) *str ) ) {
+			str++;
+		}
+		if ( *str == '\0' ) break;
+
+		if ( (next = find_right_paren( str + 1 )) == NULL ) {
+			return -1;
+		}
+		save = *++next;
+
+		/* now we have "(filter)" with str pointing to it */
+		*next = '\0';
+		if ( ldap_pvt_put_vrFilter( ber, str ) == -1 ) return -1;
+		*next = save;
+		str = next;
+	}
+
+	return 0;
+}
+
+static int
+put_simple_vrFilter(
+	BerElement *ber,
+	char *str )
+{
+	char		*s;
+	char		*value;
+	ber_tag_t	ftype;
+	int		rc = -1;
+
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "filter", LDAP_LEVEL_ARGS, 
+		"put_simple_vrFilter: \"%s\"\n", str ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "put_simple_vrFilter: \"%s\"\n",
+		str, 0, 0 );
+#endif
+
+	str = LDAP_STRDUP( str );
+	if( str == NULL ) return -1;
+
+	if ( (s = strchr( str, '=' )) == NULL ) {
+		goto done;
+	}
+
+	value = s + 1;
+	*s-- = '\0';
+
+	switch ( *s ) {
+	case '<':
+		ftype = LDAP_FILTER_LE;
+		*s = '\0';
+		break;
+
+	case '>':
+		ftype = LDAP_FILTER_GE;
+		*s = '\0';
+		break;
+
+	case '~':
+		ftype = LDAP_FILTER_APPROX;
+		*s = '\0';
+		break;
+
+	case ':':
+		/* According to ValuesReturnFilter control definition
+		 * extensible filters are off the form:
+		 *		type [:rule] := value
+		 * or	:rule := value		
+		 */
+		ftype = LDAP_FILTER_EXT;
+		*s = '\0';
+
+		{
+			char *rule = strchr( str, ':' );
+			*rule++ = '\0';
+
+			if( rule == NULL ) {
+				/* must have attribute */
+				if( !ldap_is_desc( str ) ) {
+					goto done;
+				}
+				rule = "";
+			
+			} else {
+				*rule++ = '\0';
+			}
+
+
+			if ( *str == '\0' && ( !rule || *rule == '\0' ) ) {
+				/* must have either type or rule */
+				goto done;
+			}
+
+			if ( *str != '\0' && !ldap_is_desc( str ) ) {
+				goto done;
+			}
+
+			if ( rule && *rule != '\0' && !ldap_is_oid( rule ) ) {
+				goto done;
+			}
+
+			rc = ber_printf( ber, "t{" /*"}"*/, ftype );
+
+			if( rc != -1 && rule && *rule != '\0' ) {
+				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_OID, rule );
+			}
+
+			if( rc != -1 && *str != '\0' ) {
+				rc = ber_printf( ber, "ts", LDAP_FILTER_EXT_TYPE, str );
+			}
+
+			if( rc != -1 ) {
+				ber_slen_t len = ldap_pvt_filter_value_unescape( value );
+
+				if( len >= 0 ) {
+					rc = ber_printf( ber, "to",
+						LDAP_FILTER_EXT_VALUE, value, len );
+				} else {
+					rc = -1;
+				}
+			}
+
+			if( rc != -1 ) { 
+				rc = ber_printf( ber, /*"{"*/ "N}" );
+			}
+		}
+		goto done;
+
+	default:
+		if( !ldap_is_desc( str ) ) {
+			goto done;
+
+		} else {
+			char *nextstar = ldap_pvt_find_wildcard( value );
+
+			if ( nextstar == NULL ) {
+				goto done;
+
+			} else if ( *nextstar == '\0' ) {
+				ftype = LDAP_FILTER_EQUALITY;
+
+			} else if ( strcmp( value, "*" ) == 0 ) {
+				ftype = LDAP_FILTER_PRESENT;
+
+			} else {
+				rc = put_substring_filter( ber, str, value );
+				goto done;
+			}
+		} break;
+	}
+
+	if( !ldap_is_desc( str ) ) goto done;
+
+	if ( ftype == LDAP_FILTER_PRESENT ) {
+		rc = ber_printf( ber, "ts", ftype, str );
+
+	} else {
+		ber_slen_t len = ldap_pvt_filter_value_unescape( value );
+
+		if( len >= 0 ) {
+			rc = ber_printf( ber, "t{soN}",
+				ftype, str, value, len );
+		}
+	}
+
+done:
+	if( rc != -1 ) rc = 0;
+	LDAP_FREE( str );
+	return rc;
+}
+

@@ -464,6 +464,14 @@ LDAP_SLAPD_F (int) get_filter LDAP_P((
 LDAP_SLAPD_F (void) filter_free LDAP_P(( Filter *f ));
 LDAP_SLAPD_F (void) filter2bv LDAP_P(( Filter *f, struct berval *bv ));
 
+LDAP_SLAPD_F (int) get_vrFilter( Connection *conn, BerElement *ber,
+	ValuesReturnFilter **f,
+	const char **text );
+
+LDAP_SLAPD_F (void) vrFilter_free( ValuesReturnFilter *f );
+LDAP_SLAPD_F (void) vrFilter2bv( ValuesReturnFilter *f, struct berval *fstr );
+
+
 /*
  * filterentry.c
  */
@@ -510,6 +518,16 @@ LDAP_SLAPD_F (int) parse_limit LDAP_P(( const char *arg,
 LDAP_SLAPD_F (FILE *) lock_fopen LDAP_P(( const char *fname,
 	const char *type, FILE **lfp ));
 LDAP_SLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
+
+/*
+ * matchedValues.c
+ */
+LDAP_SLAPD_F (int) filter_matched_values( 
+	Backend		*be,
+	Connection	*conn,
+	Operation	*op,
+	Entry		*e,
+	char		***e_flags );
 
 /*
  * modify.c
