@@ -42,11 +42,6 @@
 #include "back-monitor.h"
 
 /*
- * database monitor can be defined once only
- */
-static int monitor_defined = 0;
-
-/*
  * used by many functions to add description to entries
  */
 AttributeDescription *monitor_ad_desc = NULL;
@@ -206,8 +201,14 @@ monitor_back_db_init(
 	Entry 			*e, *e_tmp;
 	struct monitorentrypriv	*mp;
 	int			i;
-	char 			buf[1024], *ndn;
+	char 			buf[1024], *ndn, *end_of_line;
 	const char 		*text;
+	struct berval		val, *bv[2] = { &val, NULL };
+
+	/*
+	 * database monitor can be defined once only
+	 */
+	static int 		monitor_defined = 0;
 
 	if ( monitor_defined ) {
 #ifdef NEW_LOGGING
@@ -226,7 +227,6 @@ monitor_back_db_init(
 	charray_add( &be->be_suffix, ndn );
 	dn_normalize( ndn );
 	ber_bvecadd( &be->be_nsuffix, ber_bvstr( ndn ) );
-	ch_free( ndn );
 
 	mi = ( struct monitorinfo * )ch_calloc( sizeof( struct monitorinfo ), 1 );
 	ldap_pvt_thread_mutex_init( &mi->mi_cache_mutex );
@@ -242,10 +242,14 @@ monitor_back_db_init(
 #endif
 		return( -1 );
 	}
-	
+
+	/*	
+	 * Create all the subsystem specific entries
+	 */
 	e_tmp = NULL;
 	for ( i = 0; monitor_subsys[ i ].mss_name != NULL; i++ ) {
 		int len = strlen( monitor_subsys[ i ].mss_name );
+
 		monitor_subsys[ i ].mss_rdn = ch_calloc( sizeof( char ), 
 				4 + len );
 		strcpy( monitor_subsys[ i ].mss_rdn, "cn=" );
@@ -316,7 +320,6 @@ monitor_back_db_init(
 
 	/*
 	 * creates the "cn=Monitor" entry 
-	 * and all the subsystem specific entries
 	 */
 	snprintf( buf, sizeof( buf ), 
 			"dn: %s\n"
@@ -327,10 +330,8 @@ monitor_back_db_init(
 #else /* !SLAPD_MONITORSUBENTRY */
 			"objectClass: extensibleObject\n"
 #endif /* !SLAPD_MONITORSUBENTRY */
-			"cn: Monitor\n"
-			"description: %s",
-			SLAPD_MONITOR_DN,
-			/* (char *) Versionstr */ "slapd 2.0"
+			"cn: Monitor",
+			SLAPD_MONITOR_DN
 			);
 	e = str2entry( buf );
 	if ( e == NULL) {
@@ -341,6 +342,25 @@ monitor_back_db_init(
 #else
 		Debug( LDAP_DEBUG_ANY,
 			"unable to create '%s' entry\n%s%s",
+			SLAPD_MONITOR_DN, "", "" );
+#endif
+		return( -1 );
+	}
+	val.bv_val = (char *) Versionstr;
+	end_of_line = strchr( Versionstr, '\n' );
+	if ( end_of_line ) {
+		val.bv_len = end_of_line - Versionstr;
+	} else {
+		val.bv_len = strlen( Versionstr );
+	}
+	if ( attr_merge( e, monitor_ad_desc, bv ) ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "operation", LDAP_LEVEL_CRIT,
+			"unable to add description to '%s' entry\n",
+			SLAPD_MONITOR_DN ));
+#else
+		Debug( LDAP_DEBUG_ANY,
+			"unable to add description to '%s' entry\n%s%s",
 			SLAPD_MONITOR_DN, "", "" );
 #endif
 		return( -1 );
