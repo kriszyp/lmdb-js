@@ -1714,7 +1714,7 @@ IA5StringNormalize(
 	void *ctx )
 {
 	char *p, *q;
-	int casefold = SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
+	int casefold = !SLAP_MR_ASSOCIATED(mr, slap_schema.si_mr_caseExactIA5Match);
 
 	assert( val->bv_len );
 
