@@ -1904,6 +1904,7 @@ typedef struct slap_op {
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
 	ber_tag_t	o_tag;		/* tag of the request */
 	time_t		o_time;		/* time op was initiated */
+	long		o_tseq;		/* time/sequence number */
 
 	struct berval	o_req_dn;	/* DN of target of request */
 	struct berval	o_req_ndn;

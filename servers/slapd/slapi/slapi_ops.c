@@ -559,6 +559,7 @@ slapi_delete_internal(
 	if ( op->o_bd->be_delete ) {
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
+			if ( log_change ) repstamp( op );
 			if ( (*op->o_bd->be_delete)( op, &rs ) == 0 ) {
 				if ( log_change ) {
 					replog( op );
@@ -640,6 +641,7 @@ slapi_add_entry_internal_locked(
 	if ( op->o_bd->be_add ) {
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
+			if ( log_changes ) repstamp( op );
 			if ( (*op->o_bd->be_add)( op, &rs ) == 0 ) {
 				if ( log_changes ) {
 					replog( op );
@@ -832,6 +834,7 @@ slapi_modrdn_internal(
 	if ( op->o_bd->be_modrdn ) {
 		int repl_user = be_isupdate( op->o_bd, &op->o_ndn );
 		if ( !op->o_bd->be_update_ndn.bv_len || repl_user ) {
+			if ( log_change ) repstamp( op );
 			if ( (*op->o_bd->be_modrdn)( op, &rs ) == 0 ) {
 				if ( log_change ) {
 					replog( op );
@@ -1044,6 +1047,7 @@ slapi_modify_internal(
 					goto cleanup;
 				}
 			}
+			if ( log_change ) repstamp( op );
 			if ( (*op->o_bd->be_modify)( op, &rs ) == 0 ) {
 				if ( log_change ) {
 					replog( op );

@@ -213,6 +213,7 @@ do_delete(
 				slap_get_csn( op, csnbuf, sizeof(csnbuf), &csn, 1 );
 			}
 
+			repstamp( op );
 			if ( (op->o_bd->be_delete)( op, rs ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if ( !op->o_bd->be_update_ndn.bv_len || !repl_user )

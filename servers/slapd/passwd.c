@@ -166,6 +166,7 @@ int passwd_extop(
 		NULL, 0 );
 	
 	if ( rs->sr_err == LDAP_SUCCESS ) {
+		repstamp( op );
 		rs->sr_err = op2.o_bd->be_modify( &op2, rs );
 	}
 	if ( rs->sr_err == LDAP_SUCCESS ) {

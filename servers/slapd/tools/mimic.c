@@ -194,6 +194,11 @@ const char * connection_state2str( int state )
 	return NULL;
 }
 
+void repstamp( Operation *op )
+{
+	assert(0);
+}
+
 void replog( Operation *op )
 {
 	assert(0);

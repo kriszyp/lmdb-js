@@ -363,6 +363,7 @@ do_modrdn(
 #endif
 		{
 			op->orr_deleteoldrdn = deloldrdn;
+			repstamp( op );
 			if ( (op->o_bd->be_modrdn)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( !op->o_bd->be_update_ndn.bv_len || !repl_user )

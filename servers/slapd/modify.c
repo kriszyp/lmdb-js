@@ -498,6 +498,7 @@ do_modify(
 			}
 
 			op->orm_modlist = modlist;
+			repstamp( op );
 			if ( (op->o_bd->be_modify)( op, rs ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& !repl_user
