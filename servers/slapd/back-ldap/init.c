@@ -121,7 +121,8 @@ ldap_back_db_open( BackendDB *be )
 	struct ldapinfo	*li = (struct ldapinfo *)be->be_private;
 
 	Debug( LDAP_DEBUG_TRACE,
-		"ldap_back_db_open: URI=%s\n", li->url, 0, 0 );
+		"ldap_back_db_open: URI=%s\n",
+		li->url != NULL ? li->url : "", 0, 0 );
 
 #ifdef LDAP_BACK_PROXY_AUTHZ
 	/* by default, use proxyAuthz control on each operation */
@@ -200,7 +201,7 @@ ldap_back_db_destroy(
 
 		ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 
-		if ( li->url ) {
+		if ( li->url != NULL ) {
 			ch_free( li->url );
 			li->url = NULL;
 		}

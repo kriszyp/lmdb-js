@@ -344,12 +344,14 @@ monitor_subsys_database_init(
 
 #if defined(SLAPD_LDAP) 
 		if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
-			struct ldapinfo		*li = (struct ldapinfo *)be->be_private;
+			struct ldapinfo		*li =
+				(struct ldapinfo *)be->be_private;
 			struct berval		bv;
 
-			bv.bv_val = li->url;
-			bv.bv_len = strlen( bv.bv_val );
-			attr_merge_normalize_one( e, slap_schema.si_ad_labeledURI,
+			ber_str2bv( li->url, 0, 0, &bv );
+
+			attr_merge_normalize_one( e,
+					slap_schema.si_ad_labeledURI,
 					&bv, NULL );
 		}
 #endif /* defined(SLAPD_LDAP) */

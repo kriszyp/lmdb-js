@@ -70,7 +70,7 @@ ldap_back_bind( Operation *op, SlapReply *rs )
 	rc = ldap_back_op_result( lc, op, rs, msgid, 1 );
 
 	if ( rc == LDAP_SUCCESS ) {
-#ifdef LDAP_BACK_PROXY_AUTHZ
+#if defined(LDAP_BACK_PROXY_AUTHZ)
 		if ( li->idassert_flags & LDAP_BACK_AUTH_OVERRIDE ) {
 			ldap_back_proxy_authz_bind( lc, op, rs );
 			if ( lc->lc_bound == 0 ) {

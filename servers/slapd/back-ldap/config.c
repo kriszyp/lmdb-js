@@ -74,6 +74,7 @@ ldap_back_db_config(
 		if ( li->url != NULL ) {
 			ch_free( li->url );
 		}
+
 		l = strlen( argv[1] ) + STRLENOF( "ldap:///") + 1;
 		li->url = ch_calloc( l, sizeof( char ) );
 		if ( li->url == NULL ) {
