@@ -1,19 +1,21 @@
-dn: o=University of Michigan, c=US
+dn: dc=example, dc=com
 objectClass: top
 objectClass: organization
-o: University of Michigan
+objectClass: dcObject
+o: Example
+dc: example
 
-dn: ou=People, o=University of Michigan, c=US
+dn: ou=People, dc=example, dc=com
 objectClass: top
 objectClass: organizationalUnit
 ou: People
 
-dn: ou=Policies, o=University of Michigan, c=US
+dn: ou=Policies, dc=example, dc=com
 objectClass: top
 objectClass: organizationalUnit
 ou: Policies
 
-dn: cn=Standard Policy, ou=Policies, o=University of Michigan, c=US
+dn: cn=Standard Policy, ou=Policies, dc=example, dc=com
 objectClass: top
 objectClass: device
 objectClass: pwdPolicy
@@ -32,7 +34,7 @@ pwdMaxFailure: 3
 pwdFailureCountInterval: 120
 pwdSafeModify: TRUE
 
-dn: uid=nd, ou=People, o=University of Michigan, c=US
+dn: uid=nd, ou=People, dc=example, dc=com
 objectClass: top
 objectClass: person
 objectClass: inetOrgPerson
@@ -42,7 +44,7 @@ sn: Dunbar
 givenName: Neil
 userPassword: testpassword
 
-dn: uid=ndadmin, ou=People, o=University of Michigan, c=US
+dn: uid=ndadmin, ou=People, dc=example, dc=com
 objectClass: top
 objectClass: person
 objectClass: inetOrgPerson
@@ -52,7 +54,7 @@ sn: Dunbar
 givenName: Neil
 userPassword: testpw
 
-dn: uid=test, ou=People, o=University of Michigan, c=US
+dn: uid=test, ou=People, dc=example, dc=com
 objectClass: top
 objectClass: person
 objectClass: inetOrgPerson
@@ -61,5 +63,5 @@ uid: test
 sn: Test
 givenName:  Test
 userPassword: kfhgkjhfdgkfd
-pwdPolicySubEntry: cn=No Policy, ou=Policies, o=University of Michigan, c=US
+pwdPolicySubEntry: cn=No Policy, ou=Policies, dc=example, dc=com
 
