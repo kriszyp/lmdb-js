@@ -114,7 +114,7 @@ int sasl_init( void )
 	}
 
 	if( sasl_host == NULL ) {
-		char hostname[MAXHOSTNAMELEN+1];
+		static char hostname[MAXHOSTNAMELEN+1];
 
 		if( gethostname( hostname, MAXHOSTNAMELEN ) == 0 ) {
 			hostname[MAXHOSTNAMELEN] = '\0';
