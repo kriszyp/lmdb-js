@@ -243,7 +243,8 @@ send_ldap_response(
     const char	*text,
 	struct berval	**ref,
 	const char	*resoid,
-	struct berval	*data,
+	struct berval	*resdata,
+	struct berval	*sasldata,
 	LDAPControl **ctrls
 )
 {
@@ -279,12 +280,19 @@ send_ldap_response(
 			rc = ber_printf( ber, "{V}", ref );
 		}
 
-		if( rc != -1 && resoid != NULL ) {
-			rc = ber_printf( ber, "s", resoid );
+		if( rc != -1 && sasldata != NULL ) {
+			rc = ber_printf( ber, "tO",
+				LDAP_TAG_SASL_RES_CREDS, sasldata );
 		}
 
-		if( rc != -1 && data != NULL ) {
-			rc = ber_printf( ber, "O", data );
+		if( rc != -1 && resoid != NULL ) {
+			rc = ber_printf( ber, "ts",
+				LDAP_TAG_EXOP_RES_OID, resoid );
+		}
+
+		if( rc != -1 && resdata != NULL ) {
+			rc = ber_printf( ber, "tO",
+				LDAP_TAG_EXOP_RES_VALUE, resdata );
 		}
 
 		if( rc != -1 ) {
@@ -361,9 +369,10 @@ send_ldap_disconnect(
 		    0 );
 	}
 #endif
+
 	send_ldap_response( conn, op, tag, msgid,
 		err, NULL, text, NULL,
-		reqoid, NULL, NULL );
+		reqoid, NULL, NULL, NULL );
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld DISCONNECT err=%ld tag=%lu text=%s\n",
@@ -429,7 +438,7 @@ send_ldap_result(
 
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, ref,
-		NULL, NULL, ctrls );
+		NULL, NULL, NULL, ctrls );
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld RESULT tag=%lu err=%ld text=%s\n",
@@ -448,6 +457,7 @@ send_ldap_sasl(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
+	LDAPControl **ctrls,
 	struct berval *cred
 )
 {
@@ -473,7 +483,7 @@ send_ldap_sasl(
 
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, NULL,
-		NULL, cred, NULL );
+		NULL, NULL, cred, ctrls  );
 }
 
 void
@@ -484,15 +494,18 @@ send_ldap_extended(
     const char	*matched,
     const char	*text,
     char		*rspoid,
-	struct berval *rspdata
+	struct berval *rspdata,
+	LDAPControl **ctrls
 )
 {
 	ber_tag_t tag;
 	ber_int_t msgid;
 
 	Debug( LDAP_DEBUG_TRACE,
-		"send_ldap_extended %ld:%s\n",
-		(long) err, rspoid ? rspoid : "", NULL );
+		"send_ldap_extended %ld:%s (%ld)\n",
+		(long) err,
+		rspoid ? rspoid : "",
+		rspdata != NULL ? (long) rspdata->bv_len : (long) 0 );
 
 	tag = req2res( op->o_tag );
 	msgid = (tag != LBER_SEQUENCE) ? op->o_msgid : 0;
@@ -507,9 +520,10 @@ send_ldap_extended(
 		    0 );
 	}
 #endif
+
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, NULL,
-		rspoid, rspdata, NULL );
+		rspoid, rspdata, NULL, ctrls );
 }
 
 
@@ -572,7 +586,7 @@ send_search_result(
 
 	send_ldap_response( conn, op, tag, msgid,
 		err, matched, text, refs,
-		NULL, NULL, ctrls );
+		NULL, NULL, NULL, ctrls );
 
 	Statslog( LDAP_DEBUG_STATS,
 	    "conn=%ld op=%ld SEARCH RESULT tag=%lu err=%ld text=%s\n",

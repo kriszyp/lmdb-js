@@ -24,6 +24,7 @@ ldbm_back_exop_passwd(
 	char		*oid,
     struct berval	*reqdata,
     struct berval	**rspdata,
+	LDAPControl *** rspctrls,
 	char**	text
 )
 {
@@ -51,15 +52,21 @@ ldbm_back_exop_passwd(
 	}
 
 	if( new == NULL || new->bv_len == 0 ) {
-		*text = ch_strdup("no password provided");
-		rc = LDAP_OPERATIONS_ERROR;
-		goto done;
+		new = slap_passwd_generate();
+
+		if( new == NULL || new->bv_len == 0 ) {
+			*text = ch_strdup("password generation failed.");
+			rc = LDAP_OPERATIONS_ERROR;
+			goto done;
+		}
+		
+		*rspdata = slap_passwd_return( new );
 	}
 
-	hash = slap_passwd_generate( new );
+	hash = slap_passwd_hash( new );
 
 	if( hash == NULL || hash->bv_len == 0 ) {
-		*text = ch_strdup("password generation failed");
+		*text = ch_strdup("password hash failed");
 		rc = LDAP_OPERATIONS_ERROR;
 		goto done;
 	}
@@ -75,9 +82,7 @@ ldbm_back_exop_passwd(
 		goto done;
 	}
 
-	e = dn2entry_w( be,
-		id ? id->bv_val : op->o_dn,
-		NULL );
+	e = dn2entry_w( be, dn, NULL );
 
 	if( e == NULL ) {
 		*text = ch_strdup("could not locate authorization entry");

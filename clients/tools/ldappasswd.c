@@ -34,6 +34,7 @@ usage(const char *s)
 		"  -n\t\tmake no modifications\n"
 		"  -p port\tldap port\n"
 		"  -s secret\tnew password\n"
+		"  -S\t\tprompt for new password\n"
 		"  -v\t\tincrease verbosity\n"
 		"  -W\t\tprompt for bind password\n"
 		"  -w passwd\tbind password (for simple authentication)\n"
@@ -46,20 +47,26 @@ int
 main( int argc, char *argv[] )
 {
 	int rc;
+	char	*ldaphost = NULL;
+
 	char	*dn = NULL;
 	char	*binddn = NULL;
+
 	char	*bindpw = NULL;
-	char	*ldaphost = NULL;
 	char	*newpw = NULL;
+	char	*oldpw = NULL;
+
+	int		want_bindpw = 0;
+	int		want_newpw = 0;
+	int		want_oldpw = 0;
+
 	int		noupdates = 0;
 	int		i;
 	int		ldapport = 0;
 	int		debug = 0;
 	int		version = -1;
-	int		want_bindpw = 0;
 	LDAP	       *ld;
 	struct berval *bv = NULL;
-	BerElement *ber;
 
 	char	*retoid;
 	struct berval *retdata;
@@ -68,9 +75,23 @@ main( int argc, char *argv[] )
 		usage (argv[0]);
 
 	while( (i = getopt( argc, argv,
-		"D:d:h:np:s:vWw:" )) != EOF )
+		"Aa:D:d:h:np:Ss:vWw:" )) != EOF )
 	{
 		switch (i) {
+		case 'A':	/* prompt for oldr password */
+			want_oldpw++;
+			break;
+		case 'a':	/* old password (secret) */
+			oldpw = strdup (optarg);
+
+			{
+				char* p;
+
+				for( p = optarg; *p == '\0'; p++ ) {
+					*p = '*';
+				}
+			}
+			break;
 		case 'D':	/* bind distinguished name */
 			binddn = strdup (optarg);
 			break;
@@ -91,8 +112,20 @@ main( int argc, char *argv[] )
 			ldapport = strtol( optarg, NULL, 10 );
 			break;
 
+		case 'S':	/* prompt for user password */
+			want_newpw++;
+			break;
+
 		case 's':	/* new password (secret) */
 			newpw = strdup (optarg);
+
+			{
+				char* p;
+
+				for( p = optarg; *p == '\0'; p++ ) {
+					*p = '*';
+				}
+			}
 			break;
 
 		case 'v':	/* verbose */
@@ -105,6 +138,7 @@ main( int argc, char *argv[] )
 
 		case 'w':	/* bind password */
 			bindpw = strdup (optarg);
+
 			{
 				char* p;
 
@@ -126,7 +160,19 @@ main( int argc, char *argv[] )
 
 	dn = strdup( argv[optind] );
 
-	if( newpw == NULL ) {
+	if( want_oldpw && oldpw == NULL ) {
+		/* prompt for old password */
+		char *ckoldpw;
+		newpw = strdup(getpass("Old password: "));
+		ckoldpw = getpass("Re-enter old password: ");
+
+		if( strncmp( oldpw, ckoldpw, strlen(oldpw) )) {
+			fprintf( stderr, "passwords do not match\n" );
+			return EXIT_FAILURE;
+		}
+	}
+
+	if( want_newpw && newpw == NULL ) {
 		/* prompt for new password */
 		char *cknewpw;
 		newpw = strdup(getpass("New password: "));
@@ -138,13 +184,15 @@ main( int argc, char *argv[] )
 		}
 	}
 
-	if( binddn == NULL ) {
+	if( binddn == NULL && dn != NULL ) {
 		binddn = dn;
 		dn = NULL;
+
+		if( bindpw == NULL ) bindpw = oldpw;
 	}
 
-	/* handle bind password */
-	if (want_bindpw) {
+	if (want_bindpw && bindpw == NULL ) {
+		/* handle bind password */
 		fprintf( stderr, "Bind DN: %s\n", binddn );
 		bindpw = strdup( getpass("Enter bind password: "));
 	}
@@ -186,38 +234,44 @@ main( int argc, char *argv[] )
 		return EXIT_FAILURE;
 	}
 
-	/* build change password control */
-	ber = ber_alloc_t( LBER_USE_DER );
+	if( dn != NULL || oldpw != NULL || newpw != NULL ) {
+		/* build change password control */
+		BerElement *ber = ber_alloc_t( LBER_USE_DER );
 
-	if( ber == NULL ) {
-		perror( "ber_alloc_t" );
-		ldap_unbind( ld );
-		return EXIT_FAILURE;
+		if( ber == NULL ) {
+			perror( "ber_alloc_t" );
+			ldap_unbind( ld );
+			return EXIT_FAILURE;
+		}
+
+		if( dn != NULL ) {
+			ber_printf( ber, "ts",
+				LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID, dn );
+			free(dn);
+		}
+
+		if( oldpw != NULL ) {
+			ber_printf( ber, "ts",
+				LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, oldpw );
+			free(oldpw);
+		}
+
+		if( newpw != NULL ) {
+			ber_printf( ber, "ts",
+				LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, newpw );
+			free(newpw);
+		}
+
+		rc = ber_flatten( ber, &bv );
+
+		if( rc < 0 ) {
+			perror( "ber_flatten" );
+			ldap_unbind( ld );
+			return EXIT_FAILURE;
+		}
+
+		ber_free( ber, 1 );
 	}
-
-	if( dn != NULL ) {
-		ber_printf( ber, "{tsts}",
-			LDAP_TAG_EXOP_X_MODIFY_PASSWD_ID, dn,
-			LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, newpw );
-
-		free(dn);
-
-	} else {
-		ber_printf( ber, "{ts}",
-			LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, newpw );
-	}
-
-	free(newpw);
-
-	rc = ber_flatten( ber, &bv );
-
-	if( rc < 0 ) {
-		perror( "ber_flatten" );
-		ldap_unbind( ld );
-		return EXIT_FAILURE;
-	}
-
-	ber_free( ber, 1 );
 
 	rc = ldap_extended_operation_s( ld,
 		LDAP_EXOP_X_MODIFY_PASSWD, bv, 
@@ -225,6 +279,30 @@ main( int argc, char *argv[] )
 		&retoid, &retdata );
 
 	ber_bvfree( bv );
+
+	if( retdata != NULL ) {
+		ber_tag_t tag;
+		char *s;
+		BerElement *ber = ber_init( retdata );
+
+		if( ber == NULL ) {
+			perror( "ber_init" );
+			ldap_unbind( ld );
+			return EXIT_FAILURE;
+		}
+
+		/* we should check the tag */
+		tag = ber_scanf( ber, "a", &s);
+
+		if( tag == LBER_ERROR ) {
+			perror( "ber_scanf" );
+		} else {
+			printf("New password: %s\n", s);
+			free( s );
+		}
+
+		ber_free( ber, 1 );
+	}
 
 	if ( rc != LDAP_SUCCESS ) {
 		ldap_perror( ld, "ldap_extended_operation" );

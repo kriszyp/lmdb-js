@@ -65,7 +65,10 @@ lutil_passwd LDAP_P((
 	const char **methods ));
 
 LIBLUTIL_F( struct berval * )
-lutil_passwd_generate LDAP_P((
+lutil_passwd_generate LDAP_P(( int ));
+
+LIBLUTIL_F( struct berval * )
+lutil_passwd_hash LDAP_P((
 	const struct berval *passwd,
 	const char *method ));
 

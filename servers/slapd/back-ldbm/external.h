@@ -27,6 +27,7 @@ extern int ldbm_back_extended LDAP_P(( BackendDB *bd,
 	char *reqoid,
 	struct berval *reqdata,
 	struct berval **rspdata,
+	LDAPControl *** rspctrls,
 	char **text ));
 
 extern int ldbm_back_bind LDAP_P(( BackendDB *bd,

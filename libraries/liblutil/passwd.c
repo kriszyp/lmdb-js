@@ -35,6 +35,9 @@
 #	include <pwd.h>
 #endif
 
+static const unsigned char crypt64[] =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./";
+
 struct pw_scheme;
 
 typedef int (*PASSWD_CHK_FUNC)(
@@ -42,14 +45,14 @@ typedef int (*PASSWD_CHK_FUNC)(
 	const struct berval *passwd,
 	const struct berval *cred );
 
-typedef struct berval * (*PASSWD_GEN_FUNC) (
+typedef struct berval * (*PASSWD_HASH_FUNC) (
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
 
 struct pw_scheme {
 	struct berval name;
 	PASSWD_CHK_FUNC chk_fn;
-	PASSWD_GEN_FUNC gen_fn;
+	PASSWD_HASH_FUNC hash_fn;
 };
 
 /* password check routines */
@@ -84,38 +87,38 @@ static int chk_unix(
 	const struct berval *cred );
 
 
-/* password generation routines */
-static struct berval *gen_sha1(
+/* password hash routines */
+static struct berval *hash_sha1(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
 
-static struct berval *gen_ssha1(
+static struct berval *hash_ssha1(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
 
-static struct berval *gen_smd5(
+static struct berval *hash_smd5(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
 
-static struct berval *gen_md5(
+static struct berval *hash_md5(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
 
-static struct berval *gen_crypt(
+static struct berval *hash_crypt(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd );
 
 
 static const struct pw_scheme pw_schemes[] =
 {
-	{ {sizeof("{SSHA}")-1, "{SSHA}"},	chk_ssha1, gen_ssha1 },
-	{ {sizeof("{SHA}")-1, "{SHA}"},		chk_sha1, gen_sha1 },
+	{ {sizeof("{SSHA}")-1, "{SSHA}"},	chk_ssha1, hash_ssha1 },
+	{ {sizeof("{SHA}")-1, "{SHA}"},		chk_sha1, hash_sha1 },
 
-	{ {sizeof("{SMD5}")-1, "{SMD5}"},	chk_smd5, gen_smd5 },
-	{ {sizeof("{MD5}")-1, "{MD5}"},		chk_md5, gen_md5 },
+	{ {sizeof("{SMD5}")-1, "{SMD5}"},	chk_smd5, hash_smd5 },
+	{ {sizeof("{MD5}")-1, "{MD5}"},		chk_md5, hash_md5 },
 
 #ifdef SLAPD_CRYPT
-	{ {sizeof("{CRYPT}")-1, "{CRYPT}"},	chk_crypt, gen_crypt },
+	{ {sizeof("{CRYPT}")-1, "{CRYPT}"},	chk_crypt, hash_crypt },
 #endif
 # if defined( HAVE_GETSPNAM ) \
   || ( defined( HAVE_GETPWNAM ) && defined( HAVE_PW_PASSWD ) )
@@ -247,16 +250,48 @@ lutil_passwd(
 
 }
 
-struct berval * lutil_passwd_generate(
+struct berval * lutil_passwd_generate( int len )
+{
+	struct berval *pw;
+
+	if( len < 1 ) return NULL;
+
+	pw = ber_memalloc( sizeof( struct berval ) );
+	if( pw == NULL ) return NULL;
+
+	pw->bv_len = len;
+	pw->bv_val = ber_memalloc( len + 1 );
+
+	if( pw->bv_val == NULL ) {
+		ber_memfree( pw );
+		return NULL;
+	}
+
+	if( lutil_entropy( pw->bv_val, pw->bv_len) < 0 ) {
+		ber_bvfree( pw );
+		return NULL; 
+	}
+
+	for( len = 0; len < pw->bv_len; len++ ) {
+		pw->bv_val[len] = crypt64[
+			pw->bv_val[len] % (sizeof(crypt64)-1) ];
+	}
+
+	pw->bv_val[len] = '\0';
+	
+	return pw;
+}
+
+struct berval * lutil_passwd_hash(
 	const struct berval * passwd,
 	const char * method )
 {
 	const struct pw_scheme *sc = get_scheme( method );
 
 	if( sc == NULL ) return NULL;
-	if( ! sc->gen_fn ) return NULL;
+	if( ! sc->hash_fn ) return NULL;
 
-	return (sc->gen_fn)( sc, passwd );
+	return (sc->hash_fn)( sc, passwd );
 }
 
 static struct berval * pw_string(
@@ -579,7 +614,7 @@ static int chk_unix(
 #endif
 
 /* PASSWORD CHECK ROUTINES */
-static struct berval *gen_ssha1(
+static struct berval *hash_ssha1(
 	const struct pw_scheme *scheme,
 	const struct berval  *passwd )
 {
@@ -608,7 +643,7 @@ static struct berval *gen_ssha1(
 	return pw_string64( scheme, &digest, &salt);
 }
 
-static struct berval *gen_sha1(
+static struct berval *hash_sha1(
 	const struct pw_scheme *scheme,
 	const struct berval  *passwd )
 {
@@ -626,7 +661,7 @@ static struct berval *gen_sha1(
 	return pw_string64( scheme, &digest, NULL);
 }
 
-static struct berval *gen_smd5(
+static struct berval *hash_smd5(
 	const struct pw_scheme *scheme,
 	const struct berval  *passwd )
 {
@@ -655,7 +690,7 @@ static struct berval *gen_smd5(
 	return pw_string64( scheme, &digest, &salt );
 }
 
-static struct berval *gen_md5(
+static struct berval *hash_md5(
 	const struct pw_scheme *scheme,
 	const struct berval  *passwd )
 {
@@ -677,13 +712,10 @@ static struct berval *gen_md5(
 }
 
 #ifdef SLAPD_CRYPT
-static struct berval *gen_crypt(
+static struct berval *hash_crypt(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd )
 {
-	static const unsigned char crypt64[] =
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890./";
-
 	struct berval hash;
 	unsigned char salt[3];
 	int i;

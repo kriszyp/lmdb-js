@@ -202,7 +202,7 @@ ldap_parse_extended_result (
 	}
 
 	rc = ber_scanf( ber, "{iaa" /*}*/, &errcode,
-		&ld->ld_matched, &ld->ld_matched );
+		&ld->ld_matched, &ld->ld_error );
 
 	if( rc == LBER_ERROR ) {
 		ld->ld_errno = LDAP_DECODING_ERROR;
@@ -237,7 +237,7 @@ ldap_parse_extended_result (
 
 	if( tag == LDAP_TAG_EXOP_RES_VALUE ) {
 		/* we have a resdata */
-		if( ber_scanf( ber, "O", &resoid ) == LBER_ERROR ) {
+		if( ber_scanf( ber, "O", &resdata ) == LBER_ERROR ) {
 			ld->ld_errno = LDAP_DECODING_ERROR;
 			ber_free( ber, 0 );
 			if( resoid != NULL ) LDAP_FREE( resoid );

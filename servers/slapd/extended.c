@@ -93,6 +93,7 @@ do_extended(
 	extop_list_t *ext;
 	char *text;
 	struct berval *rspdata;
+	LDAPControl **rspctrls;
 
 	Debug( LDAP_DEBUG_TRACE, "do_extended\n", 0, 0, 0 );
 
@@ -144,14 +145,15 @@ do_extended(
 	Debug( LDAP_DEBUG_ARGS, "do_extended: oid=%s\n", oid, 0 ,0 );
 
 	rspdata = NULL;
+	rspctrls = NULL;
 	text = NULL;
 
 	rc = (ext->ext_main)( extop_callback, conn, op,
-		oid, reqdata, &rspdata, &text );
+		oid, reqdata, &rspdata, &rspctrls, &text );
 
 	if( rc != SLAPD_ABANDON ) {
 		send_ldap_extended( conn, op, rc, NULL, text,
-			oid, rspdata );
+			oid, rspdata, rspctrls );
 	}
 
 	if ( rspdata != NULL )

@@ -47,7 +47,8 @@ send_ldap_extended(
     const char	*matched,
     const char	*text,
     char	*rspoid,
-	struct berval *rspdata
+	struct berval *rspdata,
+	LDAPControl **ctrls
 )
 {
 	assert(0);
@@ -60,6 +61,7 @@ send_ldap_sasl(
     ber_int_t	err,
     const char	*matched,
     const char	*text,
+	LDAPControl **ctrls,
 	struct berval *cred
 )
 {

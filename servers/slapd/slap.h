@@ -538,6 +538,7 @@ typedef int (*SLAP_EXTENDED_FN) LDAP_P((
 	char		*oid,
     struct berval * reqdata,
     struct berval ** rspdata,
+	LDAPControl ***rspctrls,
 	char**	text ));
 
 struct slap_backend_info {

@@ -26,6 +26,7 @@ starttls_extop (
 	char * oid,
 	struct berval * reqdata,
 	struct berval ** rspdata,
+	LDAPControl ***rspctrls,
 	char ** text )
 {
 	if ( reqdata != NULL ) {
@@ -62,6 +63,7 @@ starttls_extop (
 
     conn->c_is_tls = 1;
     conn->c_needs_tls_accept = 1;
+
     return(LDAP_SUCCESS);
 }
 

@@ -151,6 +151,7 @@ extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
 	char *oid,
 	struct berval *reqdata,
 	struct berval **rspdata,
+	LDAPControl ***rspctrls,
 	char **text ));
  
 

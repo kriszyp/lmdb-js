@@ -259,6 +259,7 @@ typedef int (*SLAP_EXTOP_MAIN_FN) LDAP_P((
 	char * oid,
 	struct berval * reqdata,
 	struct berval ** rspdata,
+	LDAPControl *** rspctrls,
 	char ** text ));
 
 typedef int (*SLAP_EXTOP_GETOID_FN) LDAP_P((
@@ -376,6 +377,7 @@ LIBSLAPD_F (void) send_ldap_sasl LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text,
+	LDAPControl **ctrls,
 	struct berval *cred ));
 
 LIBSLAPD_F (void) send_ldap_disconnect LDAP_P((
@@ -386,7 +388,8 @@ LIBSLAPD_F (void) send_ldap_extended LDAP_P((
 	Connection *conn, Operation *op,
 	ber_int_t err, const char *matched,
 	const char *text,
-	char *rspoid, struct berval *rspdata ));
+	char *rspoid, struct berval *rspdata,
+	LDAPControl **ctrls ));
 
 LIBSLAPD_F (void) send_search_result LDAP_P((
 	Connection *conn, Operation *op,
@@ -465,6 +468,7 @@ LIBSLAPD_F (int) starttls_extop LDAP_P((
 	char * oid,
 	struct berval * reqdata,
 	struct berval ** rspdata,
+	LDAPControl ***rspctrls,
 	char ** text ));
 
 
@@ -505,13 +509,19 @@ LIBSLAPD_F (int) passwd_extop LDAP_P((
 	char * oid,
 	struct berval * reqdata,
 	struct berval ** rspdata,
+	LDAPControl *** rspctrls,
 	char ** text ));
 
 LIBSLAPD_F (int) slap_passwd_check(
 	Attribute			*attr,
 	struct berval		*cred );
 
-LIBSLAPD_F (struct berval *) slap_passwd_generate(
+LIBSLAPD_F (struct berval *) slap_passwd_generate( void );
+
+LIBSLAPD_F (struct berval *) slap_passwd_hash(
+	struct berval		*cred );
+
+LIBSLAPD_F (struct berval *) slap_passwd_return(
 	struct berval		*cred );
 
 LIBSLAPD_F (int) slap_passwd_parse(

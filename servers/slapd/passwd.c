@@ -21,7 +21,10 @@
 int passwd_extop(
 	SLAP_EXTOP_CALLBACK_FN ext_callback,
 	Connection *conn, Operation *op, char *oid,
-	struct berval *reqdata, struct berval **rspdata, char **text )
+	struct berval *reqdata,
+	struct berval **rspdata,
+	LDAPControl ***rspctrls,
+	char **text )
 {
 	int rc;
 
@@ -33,17 +36,12 @@ int passwd_extop(
 		return LDAP_STRONG_AUTH_REQUIRED;
 	}
 
-	if( reqdata == NULL || reqdata->bv_len == 0 ) {
-		*text = ch_strdup("request data missing");
-		return LDAP_PROTOCOL_ERROR;
-	}
-
 	if( conn->c_authz_backend != NULL &&
 		conn->c_authz_backend->be_extended )
 	{
 		rc = conn->c_authz_backend->be_extended(
 			conn->c_authz_backend,
-			conn, op, oid, reqdata, rspdata, text );
+			conn, op, oid, reqdata, rspdata, rspctrls, text );
 
 	} else {
 		*text = ch_strdup("operation not supported for current user");
@@ -64,7 +62,9 @@ int slap_passwd_parse( struct berval *reqdata,
 	ber_len_t len;
 	BerElement *ber;
 
-	assert( reqdata != NULL );
+	if( reqdata == NULL ) {
+		return LDAP_SUCCESS;
+	}
 
 	ber = ber_init( reqdata );
 
@@ -73,12 +73,6 @@ int slap_passwd_parse( struct berval *reqdata,
 			0, 0, 0 );
 		*text = ch_strdup("password decoding error");
 		return LDAP_PROTOCOL_ERROR;
-	}
-
-	tag = ber_scanf(ber, "{" /*}*/);
-
-	if( tag == LBER_ERROR ) {
-		goto decoding_error;
 	}
 
 	tag = ber_peek_tag( ber, &len );
@@ -175,6 +169,35 @@ done:
 	return rc;
 }
 
+struct berval * slap_passwd_return(
+	struct berval		*cred )
+{
+	int rc;
+	struct berval *bv;
+	BerElement *ber = ber_alloc_t(LBER_USE_DER);
+
+	assert( cred != NULL );
+
+	Debug( LDAP_DEBUG_TRACE, "slap_passwd_return: %ld\n",
+		(long) cred->bv_len, 0, 0 );
+
+	if( ber == NULL ) return NULL;
+	
+	rc = ber_printf( ber, "tO",
+		LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, cred );
+
+	if( rc == -1 ) {
+		ber_free( ber, 1 );
+		return NULL;
+	}
+
+	(void) ber_flatten( ber, &bv );
+
+	ber_free( ber, 1 );
+
+	return bv;
+}
+
 int
 slap_passwd_check(
 	Attribute *a,
@@ -200,7 +223,13 @@ slap_passwd_check(
 	return( 1 );
 }
 
-struct berval * slap_passwd_generate(
+struct berval * slap_passwd_generate( void )
+{
+	Debug( LDAP_DEBUG_TRACE, "slap_passwd_generate\n", 0, 0, 0 );
+	return lutil_passwd_generate( 8 );
+}
+
+struct berval * slap_passwd_hash(
 	struct berval * cred )
 {
 	char* hash = default_passwd_hash ? default_passwd_hash : "{SSHA}";
@@ -211,7 +240,7 @@ struct berval * slap_passwd_generate(
 	ldap_pvt_thread_mutex_lock( &crypt_mutex );
 #endif
 
-	new = lutil_passwd_generate( cred , hash );
+	new = lutil_passwd_hash( cred , hash );
 	
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_unlock( &crypt_mutex );

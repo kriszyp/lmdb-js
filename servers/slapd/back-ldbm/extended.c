@@ -32,6 +32,7 @@ ldbm_back_extended(
 	char		*oid,
     struct berval	*reqdata,
     struct berval	**rspdata,
+	LDAPControl *** rspctrls,
 	char**	text
 )
 {
@@ -40,8 +41,8 @@ ldbm_back_extended(
 	for( i=0; exop_table[i].oid != NULL; i++ ) {
 		if( strcmp( exop_table[i].oid, oid ) == 0 ) {
 			return (exop_table[i].extended)(
-				be, conn, op,
-				oid, reqdata, rspdata, text );
+				be, conn, op, oid,
+				reqdata, rspdata, rspctrls, text );
 		}
 	}
 
