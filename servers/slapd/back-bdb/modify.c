@@ -312,7 +312,7 @@ retry:	/* transaction retry */
 		text = "commit failed";
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_modify: updated id=%08x dn=\"%s\"\n",
+			"bdb_modify: updated id=%08lx dn=\"%s\"\n",
 			e->e_id, e->e_dn, 0 );
 		rc = LDAP_SUCCESS;
 		text = NULL;

@@ -275,7 +275,7 @@ bdb_idl_insert_key(
 	/* for printable keys only */
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_idl_insert_key: %s %ld\n",
-		key->data, (long) id, 0 );
+		(char *)key->data, (long) id, 0 );
 
 	assert( id != NOID );
 
@@ -359,7 +359,7 @@ bdb_idl_delete_key(
 	/* for printable keys only */
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_idl_delete_key: %s %ld\n",
-		key->data, (long) id, 0 );
+		(char *)key->data, (long) id, 0 );
 
 	assert( id != NOID );
 

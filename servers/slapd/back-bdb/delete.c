@@ -295,7 +295,7 @@ retry:	/* transaction retry */
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_add: added id=%08x dn=\"%s\"\n",
+			"bdb_add: added id=%08lx dn=\"%s\"\n",
 			e->e_id, e->e_dn, 0 );
 		rc = LDAP_SUCCESS;
 		text = NULL;
