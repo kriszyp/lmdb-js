@@ -308,11 +308,9 @@ do_bind(
 				ber_dupbv( &op->o_conn->c_ndn, &op->o_conn->c_dn );
 			}
 			op->o_tmpfree( op->orb_edn.bv_val, op->o_tmpmemctx );
-			op->orb_edn.bv_val = NULL;
-			op->orb_edn.bv_len = 0;
+			BER_BVZERO( &op->orb_edn );
 			op->o_conn->c_authmech = op->o_conn->c_sasl_bind_mech;
-			op->o_conn->c_sasl_bind_mech.bv_val = NULL;
-			op->o_conn->c_sasl_bind_mech.bv_len = 0;
+			BER_BVZERO( &op->o_conn->c_sasl_bind_mech );
 			op->o_conn->c_sasl_bind_in_progress = 0;
 
 			op->o_conn->c_sasl_ssf = op->orb_ssf;
