@@ -253,6 +253,9 @@
 /* define this if sig_atomic_t isn't defined in signal.h */
 #undef sig_atomic_t
 
+/* define this if socklen_t isn't defined in sys/types.h or sys/socket.h */
+#undef socklen_t
+
 /* These are defined in ldap_features.h */
 /*
 	LDAP_API_FEATURE_X_OPENLDAP_REENTRANT

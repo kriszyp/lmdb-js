@@ -745,6 +745,24 @@ AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
  ])dnl
 dnl
 dnl ====================================================================
+dnl Define socklen_t if not defined in signal.h
+AC_DEFUN(OL_TYPE_SOCKLEN_T,
+ [AC_CACHE_CHECK(for socklen_t, ol_cv_type_socklen_t,
+    [AC_TRY_COMPILE([
+#ifdef HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
+#ifdef HAVE_SYS_SOCKET
+#include <sys/socket.h>
+#endif
+], [socklen_t len;],
+		ol_cv_type_socklen_t=yes, ol_cv_type_socklen_t=no)])
+  if test $ol_cv_type_socklen_t = no; then
+    AC_DEFINE(socklen_t, int)
+  fi
+ ])dnl
+dnl
+dnl ====================================================================
 dnl check no of arguments for ctime_r
 AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
  [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,
