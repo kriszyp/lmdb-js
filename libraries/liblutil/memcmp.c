@@ -6,10 +6,10 @@
  * Memory Compare
  */
 int
-memcmp(const void *v1, const void *v2, int n) 
+(memcmp)(const void *v1, const void *v2, int n) 
 {
     if (n != 0) {
-		register const unsigned char *s1=v1, *s2=v2;
+		const unsigned char *s1=v1, *s2=v2;
         do {
             if (*s1++ != *s2++)
                 return (*--s1 - *--s2);

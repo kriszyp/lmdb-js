@@ -6,7 +6,7 @@
 #include <ac/string.h>
 #include "lutil.h"
 
-char *strdup( const char *s )
+char *(strdup)( const char *s )
 {
         char    *p;
 
