@@ -825,21 +825,27 @@ ldap_negotiated_sasl_bind_s(
 	LDAPControl **serverControls,
 	LDAPControl **clientControls)
 {
+	int n;
 	sasl_callback_t callbacks[4];
 	int rc;
 
-	callbacks[0].id = SASL_CB_USER;
-	callbacks[0].proc = ldap_pvt_sasl_getsimple;
-	callbacks[1].context = (void *)authenticationId;
-	callbacks[1].id = SASL_CB_AUTHNAME;
-	callbacks[1].proc = ldap_pvt_sasl_getsimple;
-	callbacks[0].context = (void *)authorizationId;
-	callbacks[2].id = SASL_CB_PASS;
-	callbacks[2].proc = ldap_pvt_sasl_getsecret;
-	callbacks[2].context = (void *)passPhrase;
-	callbacks[3].id = SASL_CB_LIST_END;
-	callbacks[3].proc = NULL;
-	callbacks[3].context = NULL;
+	callbacks[n=0].id = SASL_CB_USER;
+	callbacks[n].proc = ldap_pvt_sasl_getsimple;
+	callbacks[n].context = (void *)authenticationId;
+
+	if( authorizationId != NULL ) {
+		callbacks[++n].id = SASL_CB_AUTHNAME;
+		callbacks[n].proc = ldap_pvt_sasl_getsimple;
+		callbacks[n].context = (void *)authorizationId;
+	}
+
+	callbacks[++n].id = SASL_CB_PASS;
+	callbacks[n].proc = ldap_pvt_sasl_getsecret;
+	callbacks[n].context = (void *)passPhrase;
+
+	callbacks[++n].id = SASL_CB_LIST_END;
+	callbacks[n].proc = NULL;
+	callbacks[n].context = NULL;
 
 	rc = ldap_pvt_sasl_bind(ld, dn, saslMechanism, callbacks,
 		serverControls, clientControls);
