@@ -45,7 +45,7 @@ printbase( char *lead, char *s )
 		printf("->printbase(%s, %s)\n", lead, s);
 #endif
 	if (lead == NULL) {
-		printf("root");
+		printf("root\n");
 		return;
 	}
 	if (s == NULL) {
