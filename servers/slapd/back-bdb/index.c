@@ -39,12 +39,7 @@ static slap_mask_t index_mask(
 		/* has language tag */
 		bdb_attr_mask( be->be_private, desc->ad_type->sat_ad, &mask );
 
-		if( mask & SLAP_INDEX_AUTO_LANG ) {
-			*atname = desc->ad_cname;
-			*dbname = desc->ad_type->sat_cname.bv_val;
-			return mask;
-		}
-		if( mask & SLAP_INDEX_LANG ) {
+		if (! ( mask & SLAP_INDEX_NOLANG ) ) {
 			*atname = desc->ad_type->sat_cname;
 			*dbname = desc->ad_type->sat_cname.bv_val;
 			return mask;
@@ -54,8 +49,7 @@ static slap_mask_t index_mask(
 	/* see if supertype defined mask for its subtypes */
 	for( at = desc->ad_type; at != NULL ; at = at->sat_sup ) {
 		/* If no AD, we've never indexed this type */
-		if (!at->sat_ad)
-			continue;
+		if ( !at->sat_ad ) continue;
 
 		bdb_attr_mask( be->be_private, at->sat_ad, &mask );
 
@@ -64,7 +58,8 @@ static slap_mask_t index_mask(
 			*dbname = at->sat_cname.bv_val;
 			return mask;
 		}
-		if( mask & SLAP_INDEX_SUBTYPES ) {
+
+		if( !( mask & SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = at->sat_cname;
 			*dbname = at->sat_cname.bv_val;
 			return mask;
@@ -101,7 +96,7 @@ int bdb_index_param(
 		return rc;
 	}
 
-	switch(ftype) {
+	switch( ftype ) {
 	case LDAP_FILTER_PRESENT:
 		if( IS_SLAP_INDEX( mask, SLAP_INDEX_PRESENT ) ) {
 			goto done;
@@ -276,12 +271,13 @@ static int index_at_values(
 	}
 
 	/* If this type has no AD, we've never used it before */
-	if (type->sat_ad)
+	if( type->sat_ad ) {
 		bdb_attr_mask( be->be_private, type->sat_ad, &mask );
+	}
 
 	if( mask ) {
 		*dbnamep = type->sat_cname.bv_val;
-	} else if ( tmpmask & SLAP_INDEX_AUTO_SUBTYPES ) {
+	} else if ( !( tmpmask & SLAP_INDEX_AUTO_SUBTYPES ) ) {
 		mask = tmpmask;
 	}
 
@@ -303,21 +299,14 @@ static int index_at_values(
 		lname.bv_val = NULL;
 
 		desc = ad_find_lang( type, lang );
-		if (desc)
+		if( desc ) {
 			bdb_attr_mask( be->be_private, desc, &tmpmask );
+		}
 
 		if( tmpmask ) {
 			dbname = desc->ad_cname.bv_val;
 			lname = desc->ad_cname;
 			mask = tmpmask;
-		} else if ( mask & SLAP_INDEX_AUTO_LANG ) {
-			dbname = *dbnamep;
-			lname.bv_len = type->sat_cname.bv_len+lang->bv_len + 1;
-			lname.bv_val = ch_malloc( lname.bv_len + 1 );
-			strcpy(lname.bv_val, type->sat_cname.bv_val);
-			lname.bv_val[type->sat_cname.bv_len] = ';';
-			strcpy(lname.bv_val+type->sat_cname.bv_len+1,
-				lang->bv_val);
 		}
 
 		if( dbname != NULL ) {
@@ -325,8 +314,9 @@ static int index_at_values(
 				vals, id, op,
 				mask );
 
-			if (!tmpmask)
+			if( !tmpmask ) {
 				ch_free( lname.bv_val );
+			}
 			if( rc ) {
 				return rc;
 			}

@@ -177,11 +177,10 @@ typedef struct slap_ssf_set {
 #define SLAP_INDEX_SUBSTR_MAXLEN	4
 #define SLAP_INDEX_SUBSTR_STEP	2
 
-#define SLAP_INDEX_FLAGS          0xF000UL
-#define SLAP_INDEX_SUBTYPES       0x1000UL /* use index with subtypes */
-#define SLAP_INDEX_AUTO_SUBTYPES  0x2000UL /* use mask with subtypes */
-#define SLAP_INDEX_LANG           0x4000UL /* use index with lang subtypes */
-#define SLAP_INDEX_AUTO_LANG      0x8000UL /* use mask with lang subtypes */
+#define SLAP_INDEX_FLAGS         0xF000UL
+#define SLAP_INDEX_NOSUBTYPES    0x1000UL /* don't use index w/ subtypes */
+#define SLAP_INDEX_NOLANG        0x2000UL /* don't use index w/ lang */
+#define SLAP_INDEX_AUTO_SUBTYPES 0x4000UL /* use mask with lang subtypes */
 
 /*
  * there is a single index for each attribute.  these prefixes ensure

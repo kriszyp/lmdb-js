@@ -10,20 +10,16 @@ ldap_friendly_name, ldap_free_friendlymap \- LDAP unfriendly to friendly name ma
 #include <ldap.h>
 .LP
 .ft B
-typedef struct ldap_friendly {
-        char *lf_unfriendly;
-        char *lf_friendly;
-} LDAPFriendlyMap;
+typedef struct ldap_friendly LDAPFriendlyMap;
 .LP
 .ft B
-char *ldap_friendly_name(filename, name, map)
-.ft
-char *filename;
-char *name;
-LDAPFriendlyMap **map;
+const char *ldap_friendly_name(
+	const char *filename,
+	const char *name,
+	LDAPFriendlyMap **map)
 .LP
 .ft B
-void ldap_free_friendlymap(map)
+void ldap_free_friendlymap( LDAPFriendlyMap **map )
 .ft
 LDAPFriendlyMap **map;
 .SH DESCRIPTION
