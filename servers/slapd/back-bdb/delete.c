@@ -33,11 +33,12 @@ bdb_delete(
 	DB_TXN		*ltid = NULL;
 	struct bdb_op_info opinfo;
 
-	Debug(LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n", dn, 0, 0);
+	Debug( LDAP_DEBUG_ARGS, "==> bdb_delete: %s\n", dn, 0, 0 );
 
 	if (0) {
-		/* transaction retry */
-retry:	rc = txn_abort( ltid );
+retry:	/* transaction retry */
+		Debug( LDAP_DEBUG_TRACE, "==> bdb_delete: retrying...\n", 0, 0, 0 );
+		rc = txn_abort( ltid );
 		ltid = NULL;
 		op->o_private = NULL;
 		if( rc != 0 ) {

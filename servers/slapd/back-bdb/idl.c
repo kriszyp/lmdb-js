@@ -107,7 +107,7 @@ static int idl_delete( ID *ids, ID id )
 
 	if( x <= 0 ) {
 		/* internal error */
-		return -1;
+		return -2;
 	}
 
 	if( x > ids[0] || ids[x] != id ) {
@@ -116,7 +116,7 @@ static int idl_delete( ID *ids, ID id )
 
 	} else if ( --ids[0] == 0 ) {
 		if( x != 1 ) {
-			return -1;
+			return -3;
 		}
 
 	} else {
@@ -268,7 +268,7 @@ bdb_idl_delete_key(
 
 		if( rc != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
-				"=> bdb_idl_insert_key: idl_insert failed (%d)\n",
+				"=> bdb_idl_delete_key: idl_delete failed (%d)\n",
 				rc, 0, 0 );
 			return rc;
 		}

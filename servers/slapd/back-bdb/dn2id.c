@@ -213,7 +213,7 @@ bdb_dn2id(
 	rc = db->get( db, txn, &key, &data, 0 );
 
 	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id: id=0x%08lx: %s (%d)\n",
-		id, db_strerror( rc ), rc );
+		*id, db_strerror( rc ), rc );
 
 	ch_free( key.data );
 	return rc;
@@ -336,9 +336,9 @@ bdb_dn2id_children(
 
 	rc = db->get( db, txn, &key, &data, 0 );
 
-	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %s (%d)\n",
+	Debug( LDAP_DEBUG_TRACE, "<= bdb_dn2id_children( %s ): %schildren (%d)\n",
 		dn,
-		rc == 0 ? "yes" : ( rc == DB_NOTFOUND ? "no" :
+		rc == 0 ? "" : ( rc == DB_NOTFOUND ? "no " :
 			db_strerror(rc) ), rc );
 
 	return rc;
