@@ -1,11 +1,11 @@
 # $OpenLDAP$
 # Copyright 1999-2000, The OpenLDAP Foundation, All Rights Reserved.
 # COPYING RESTRICTIONS APPLY, see COPYRIGHT.
-H1: Building and Installing slapd & slurpd
+H1: Building and Installing OpenLDAP Software
 
-Slapd and Slurpd form the heart of OpenLDAP.  Slapd is the actual LDAP server
-and slurpd provides a data replication system.  For the rest of this chapter
-we'll just refer to Slapd and Slurpd as OpenLDAP. 
+This chapter details how to build and install the OpenLDAP Software
+package including {{slapd}}(8), the stand-alone LDAP daemon and
+{{slurpd}}(8), the stand-alone update replication daemon.
 
 Building and installing OpenLDAP requires several steps: installing
 prerequisite software, configuring OpenLDAP itself, making, and finally
@@ -16,44 +16,91 @@ location: {{URL: ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release.tgz}}
 
 The OpenLDAP Project also maintains an extensive site on the World Wide Web.
 The site contains the latest OpenLDAP news, release announcements, and 
-pointers to many other resources.  You can access the site at: {{URL: http://www.OpenLDAP.org/}}
+pointers to many other resources.  You can access the site at:
+{{URL: http://www.OpenLDAP.org/}}
 
 H2: Prerequisite software
 
-In order to use the LDBM backend with OpenLDAP some extra software may
-be needed.  
+OpenLDAP relies a number of software packages distributed by third
+parties.  Depending on the features you intend to use, you may have
+to download and install a number of additional software packages.
+This section details commonly needed third party software packages
+you might have to install.  Note that some of these third party
+packages may depend on additional software packages.  Install each
+package per installation instructions provided with it.
 
-In addition to the database software needed by the LDBM backend, you can
-also install several other optional software packages that will add additional 
-features.  See the appendix detailing all of the configuration options for
-a complete list of options (and what extra software may be needed.)
+H3: TLS Software
+
+OpenLDAP clients and servers require installation of OpenSSL TLS
+libraries to provide {{TERM[expand]TLS}} services.  Though
+some operating systems may provide these libraries as part of the
+base system or as an optional software component, OpenSSL often
+requires separate installation.
+
+OpenSSL is available from {{URL: http://www.openssl.org/}}.
+
+OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
+configure detects a usable OpenSSL installation.
+
+H3: Kerberos Software
+
+OpenLDAP clients and servers support Kerberos based authentication
+services.  In particular, OpenLDAP supports SASL/GSSAPI based
+authentication using either Heimdal or MIT Kerberos V packages.
+If you desire to use Kerberos based authentication, you should
+install either Heimdal or MIT Kerberos V.
+
+Heimdal Kerberos is available from {{http://}}.
+MIT Kerberos is available from {{http://}}.
+
+H3: SASL Software
+
+OpenLDAP clients and servers require installation of Cyrus SASL
+libraries to provide {{TERM[expand]SASL}} services.  Though
+some operating sytems may provide this library as part of the
+base system or as an optional software component, Cyrus SASL
+often requires separate installation.
+
+Cyrus SASL is available from {{URL:: }}.   Cyrus SASL will
+make use of Kerberos libraries if preinstalled.
+
+OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
+configure detects a usable Cyrus SASL installation.
 
 H3: Database software
 
-OpenLDAP's LDBM backend requires a database package to store its data in.
-Your operating system may already have this software installed, or you
-may need to obtain the software and install it yourself.
+OpenLDAP's {{slapd}}(8) primary database backend, {{TERM:LDBM}},
+requires that a compatible database package for entry storage.  LDBM
+is compatible with Sleepycat Software's BerkeleyDB (recommended)
+or the Free Software Foundation's GNU Database Manager (GDBM).
+If neither of these packages are available at configure time,
+you will not be able build slapd(8) with primary database backend.
 
-Ether the GNU Project's GDBM or Sleepycat Software's BerkeleyDB
-package is recommended.  Many UNIX like operating systems already
-have one or both of these packages installed.
+Your operating system may provide one of these two packages in
+in base system or as an optional software component.  You may
+need may need to obtain the software and install it yourself.
 
-GDBM is available from GNU's ftp {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm}}
+BerkeleyDB is available from Sleepycat's web site
+{{URL: http://www.sleepycat.com/download.html}}.  There are
+several versions available.  At the time of this writing,
+version 3.1, the latest release, is recommended. 
 
-BerkeleyDB is available from Sleepycat's web site {{URL: http://www.sleepycat.com/download.html}}.  There are several versions available.  Version 3.1 is recommended since Sleepycat has indicated that older versions will not be supported
-in the near future.
-
-Follow the instructions included with the database package for building and
-installing the software.  Once the database software is installed proceed
-to with Configuring OpenLDAP.
+GDBM is available from GNU's ftp {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}
+At the time of this writing, version 1.8 is the latest release.
 
 H2: Configuring OpenLDAP
 
-If you haven't already done so, untar the distribution and cd to the top:
+If you haven't already done so, extra the distribution for the
+compressed archive file and change directory to the top of the
+distribution:
+
 .{{EX:gunzip -c openldap-VERSION.tgz | tar xf -}}
 .{{EX:cd openldap-VERSION}}
 
-Now you should probably run the configure script with the --help option.
+Replacing {{EX:VERSION}} with the appropriate version string.
+
+Now you should probably run the {{EX:configure}} script with the
+{{EX:--help}} option.
 This will give you a list of options that you can change when building
 OpenLDAP.  Many of the features of OpenLDAP can be enabled or disabled
 using this method.  Please see the appendix for a more detailed list
@@ -73,7 +120,7 @@ LIBS     	What libraries to include
 
 Now run the configure script with any desired configure options or
 environment variables.
-.{{EX: [env settings] ./configure [options] }}
+.{{EX: [[env] settings] ./configure [options] }}
 
 As an example, lets assume that we want a copy of OpenLDAP configured to use the
 LDBM backend, and the shell backend.  The LDBM backend is turned on by default, so we don't need to do anything special to enable it.
@@ -127,7 +174,7 @@ H2: Installing the Software
 Once the software has been properly configured and successfully
 made, you are ready to install it. You will need to have write permission
 to the installation directories you specified when you ran configure.
-By default OpenLDAP is installed in /usr/local.  If you changed this
+By default OpenLDAP is installed in {{F:/usr/local}}.  If you changed this
 setting with the --prefix configure option, it will be installed
 in the location you provided.
 
@@ -138,7 +185,7 @@ source directory, type
 
 You should examine the output of this command carefully to make sure
 everything is installed correctly. You will find the configuration files
-for slapd in /usr/local/etc/openldap by default.  See chapter 5 for more
+for slapd in {{F:/usr/local/etc/openldap}} by default.  See chapter 5 for more
 information on the configuration files.
 
 
