@@ -488,11 +488,13 @@ ldap_build_entry(
 			 * later, the local subschemaSubentry is
 			 * added.
 			 */
-			( void )ber_scanf( &ber, "[W]", &vals );
-			for ( bv = vals; bv->bv_val; bv++ ) {
-				LBER_FREE( bv->bv_val );
+			if ( ber_scanf( &ber, "[W]", &vals ) != LBER_ERROR
+					&& vals != NULL ) {
+				for ( bv = vals; bv->bv_val; bv++ ) {
+					LBER_FREE( bv->bv_val );
+				}
+				LBER_FREE( vals );
 			}
-			LBER_FREE( vals );
 
 			ch_free(attr);
 			continue;
