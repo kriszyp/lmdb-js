@@ -17,28 +17,23 @@
 
 static int presence_candidates(
 	Backend *be,
-	ID *range,
 	AttributeDescription *desc,
 	ID *ids );
 static int equality_candidates(
 	Backend *be,
-	ID *range,
 	AttributeAssertion *ava,
 	ID *ids );
 static int approx_candidates(
 	Backend *be,
-	ID *range,
 	AttributeAssertion *ava,
 	ID *ids );
 static int substring_candidates(
 	Backend *be,
-	ID *range,
 	SubstringsAssertion *sub,
 	ID *ids );
 
 static int list_candidates(
 	Backend *be,
-	ID *range,
 	Filter *flist,
 	int ftype,
 	ID *ids );
@@ -47,7 +42,6 @@ static int list_candidates(
 int
 bdb_filter_candidates(
 	Backend	*be,
-	ID *range,
 	Filter	*f,
 	ID *ids )
 {
@@ -67,34 +61,34 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_PRESENT:
 		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
-		rc = presence_candidates( be, range, f->f_desc, ids );
+		rc = presence_candidates( be, f->f_desc, ids );
 		break;
 
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
-		rc = equality_candidates( be, range, f->f_ava, ids );
+		rc = equality_candidates( be, f->f_ava, ids );
 		break;
 
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );
-		rc = approx_candidates( be, range, f->f_ava, ids );
+		rc = approx_candidates( be, f->f_ava, ids );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
 		Debug( LDAP_DEBUG_FILTER, "\tSUBSTRINGS\n", 0, 0, 0 );
-		rc = substring_candidates( be, range, f->f_sub, ids );
+		rc = substring_candidates( be, f->f_sub, ids );
 		break;
 
 	case LDAP_FILTER_GE:
 		/* no GE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
-		rc = presence_candidates( be, range, f->f_desc, ids );
+		rc = presence_candidates( be, f->f_desc, ids );
 		break;
 
 	case LDAP_FILTER_LE:
 		/* no LE index, use pres */
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
-		rc = presence_candidates( be, range, f->f_desc, ids );
+		rc = presence_candidates( be, f->f_desc, ids );
 		break;
 
 	case LDAP_FILTER_NOT:
@@ -104,13 +98,13 @@ bdb_filter_candidates(
 
 	case LDAP_FILTER_AND:
 		Debug( LDAP_DEBUG_FILTER, "\tAND\n", 0, 0, 0 );
-		rc = list_candidates( be, range,
+		rc = list_candidates( be, 
 			f->f_and, LDAP_FILTER_AND, ids );
 		break;
 
 	case LDAP_FILTER_OR:
 		Debug( LDAP_DEBUG_FILTER, "\tOR\n", 0, 0, 0 );
-		rc = list_candidates( be, range,
+		rc = list_candidates( be, 
 			f->f_or, LDAP_FILTER_OR, ids );
 		break;
 
@@ -119,69 +113,73 @@ bdb_filter_candidates(
 			f->f_choice, 0, 0 );
 	}
 
-	if( rc ) {
-		BDB_IDL_CPY( ids, range );
-	}
-
 	Debug( LDAP_DEBUG_FILTER,
 		"<= bdb_filter_candidates: id=%ld first=%ld last=%ld\n",
 		(long) ids[0],
 		(long) BDB_IDL_FIRST( ids ),
 		(long) BDB_IDL_LAST( ids ) );
 
-	return 0;
+	return rc;
 }
 
 static int
 list_candidates(
 	Backend	*be,
-	ID *range,
 	Filter	*flist,
 	int		ftype,
 	ID *ids )
 {
 	int rc = 0;
 	Filter	*f;
+	ID tmp[BDB_IDL_UM_SIZE];
+	ID save[BDB_IDL_UM_SIZE];
+	ID *i1, *i2, *i3, *t;
 
 	Debug( LDAP_DEBUG_FILTER, "=> bdb_list_candidates 0x%x\n", ftype, 0, 0 );
 
-	if( ftype == LDAP_FILTER_AND ) {
-		BDB_IDL_CPY( ids, range );
-	} else {
-		BDB_IDL_ZERO( ids );
-	}
+	/* Swap i1/i2/i3 pointers around to avoid a bunch of BDB_IDL_CPYs
+	 * inside the loop
+	 */
+	i1 = ids;
+	i2 = save;
+	i3 = tmp;
 
 	for ( f = flist; f != NULL; f = f->f_next ) {
-		ID tmp[BDB_IDL_UM_SIZE];
-		ID result[BDB_IDL_UM_SIZE];
-		rc = bdb_filter_candidates( be, range, f, tmp );
+		BDB_IDL_ZERO( i1 );
+		rc = bdb_filter_candidates( be, f, i2 );
 
 		if ( rc != 0 ) {
 			/* Error: treat as undefined */
-			if( ftype == LDAP_FILTER_AND ) {
-				continue;
-			}
-			BDB_IDL_CPY( ids, range );
-			break;
+			continue;
+		}
+		
+		if ( f == flist ) {
+			/* We're just starting out... */
+			t = i3;
+			i3 = i2;
+			i2 = t;
+			continue;
 		}
 
+		t = i1;
+		i1 = i3;
+		i3 = t;
 
 		if ( ftype == LDAP_FILTER_AND ) {
-			bdb_idl_intersection( tmp, ids, result );
-			if( BDB_IDL_IS_ZERO( result ) ) {
-				BDB_IDL_ZERO( ids );
+			bdb_idl_intersection( i1, i2, i3 );
+			if( BDB_IDL_IS_ZERO( i3 ) ) {
+				if ( i3 != ids ) {
+					BDB_IDL_ZERO( ids );
+					i3 = ids;
+				}
 				break;
 			}
 		} else {
-			bdb_idl_union( tmp, ids, result );
-			if( BDB_IDL_IS_ALL( range, result ) ) {
-				BDB_IDL_CPY( ids, range );
-				break;
-			}
+			bdb_idl_union( i1, i2, i3 );
 		}
-
-		BDB_IDL_CPY( ids, result );
 	}
+	if (i3 != ids)
+		BDB_IDL_CPY(ids, i3);
 
 	Debug( LDAP_DEBUG_FILTER,
 		"<= bdb_list_candidates: id=%ld first=%ld last=%ld\n",
@@ -194,7 +192,6 @@ list_candidates(
 static int
 presence_candidates(
 	Backend	*be,
-	ID *range,
 	AttributeDescription *desc,
 	ID *ids )
 {
@@ -258,7 +255,6 @@ done:
 static int
 equality_candidates(
 	Backend	*be,
-	ID *range,
 	AttributeAssertion *ava,
 	ID *ids )
 {
@@ -269,10 +265,12 @@ equality_candidates(
 	struct berval prefix = {0};
 	struct berval **keys = NULL;
 	MatchingRule *mr;
+	ID tmp[BDB_IDL_UM_SIZE];
+	ID save[BDB_IDL_UM_SIZE];
+	ID *i1, *i2, *i3, *t;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_equality_candidates\n", 0, 0, 0 );
-
-	BDB_IDL_CPY( range, ids );
+	BDB_IDL_ZERO( ids );
 
 	rc = bdb_index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
@@ -322,11 +320,14 @@ equality_candidates(
 		return 0;
 	}
 
+	/* Swap i1/i2/i3 pointers around to avoid a bunch of BDB_IDL_CPYs
+	 * inside the loop
+	 */
+	i1 = ids;
+	i2 = save;
+	i3 = tmp;
 	for ( i= 0; keys[i] != NULL; i++ ) {
-		ID save[BDB_IDL_UM_SIZE];
-		ID tmp[BDB_IDL_UM_SIZE];
-
-		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
+		rc = bdb_key_read( be, db, NULL, keys[i], i2 );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
@@ -335,18 +336,49 @@ equality_candidates(
 			break;
 		}
 
-		if( tmp[0] == 0 ) {
+		if( BDB_IDL_IS_ZERO( i2 ) ) {
 			Debug( LDAP_DEBUG_TRACE,
 				"<= bdb_equality_candidates NULL\n",
 				0, 0, 0 );
+			if (i3 != ids)
+				BDB_IDL_ZERO( ids );
+			i3 = ids;
 			break;
 		}
 
-		memcpy(save, ids, sizeof(save));
-		bdb_idl_intersection( save, tmp, ids );
+		/* We've only gotten one set of IDs, nothing to intersect
+		 * with yet. Just go back and get another set of IDs.
+		 */
+		if (i == 0)
+		{
+			t = i3;
+			i3 = i2;
+			i2 = t;
+			continue;
+		}
 
-		if( ids[0] == 0 ) break;
+		/* Swap ids and save every time we get a new intersection.
+		 * This avoids multiple copies... The result is always
+		 * pointed to by i3.
+		 */
+
+		t = i1;
+		i1 = i3;
+		i3 = t;
+
+		bdb_idl_intersection( i1, i2, i3 );
+
+		if( BDB_IDL_IS_ZERO( i3 ) ) {
+			if ( i3 != ids ) {
+				BDB_IDL_ZERO( ids );
+				i3 = ids;
+			}
+			break;
+		}
 	}
+	/* If we didn't end up with the result in ids, copy it now. */
+	if (i3 != ids)
+		BDB_IDL_CPY(ids, i3);
 
 	ber_bvecfree( keys );
 
@@ -362,7 +394,6 @@ equality_candidates(
 static int
 approx_candidates(
 	Backend	*be,
-	ID *range,
 	AttributeAssertion *ava,
 	ID *ids )
 {
@@ -373,8 +404,12 @@ approx_candidates(
 	struct berval prefix = {0};
 	struct berval **keys = NULL;
 	MatchingRule *mr;
+	ID tmp[BDB_IDL_UM_SIZE];
+	ID save[BDB_IDL_UM_SIZE];
+	ID *i1, *i2, *i3, *t;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_approx_candidates\n", 0, 0, 0 );
+	BDB_IDL_ZERO( ids );
 
 	rc = bdb_index_param( be, ava->aa_desc, LDAP_FILTER_APPROX,
 		&db, &mask, &prefix );
@@ -429,11 +464,14 @@ approx_candidates(
 		return 0;
 	}
 
+	/* Swap i1/i2/i3 pointers around to avoid a bunch of BDB_IDL_CPYs
+	 * inside the loop
+	 */
+	i1 = ids;
+	i2 = save;
+	i3 = tmp;
 	for ( i= 0; keys[i] != NULL; i++ ) {
-		ID save[BDB_IDL_UM_SIZE];
-		ID tmp[BDB_IDL_UM_SIZE];
-
-		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
+		rc = bdb_key_read( be, db, NULL, keys[i], i2 );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_approx_candidates key read failed (%d)\n",
@@ -441,17 +479,39 @@ approx_candidates(
 			break;
 		}
 
-		if( tmp[0] == 0 ) {
+		if( BDB_IDL_IS_ZERO( i2 ) ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_approx_candidates NULL\n",
 				0, 0, 0 );
+			if (i3 != ids)
+				BDB_IDL_ZERO( ids );
+			i3 = ids;
 			break;
 		}
 
-		memcpy(save, ids, sizeof(save));
-		bdb_idl_intersection( save, tmp, ids );
+		if (i == 0)
+		{
+			t = i3;
+			i3 = i2;
+			i2 = t;
+			continue;
+		}
 
-		if( ids[0] == 0 ) break;
+		t = i1;
+		i1 = i3;
+		i3 = t;
+
+		bdb_idl_intersection( i1, i2, i3 );
+
+		if( BDB_IDL_IS_ZERO( i3 ) ) {
+			if ( i3 != ids ) {
+				BDB_IDL_ZERO( ids );
+				i3 = ids;
+			}
+			break;
+		}
 	}
+	if (i3 != ids)
+		BDB_IDL_CPY(ids, i3);
 
 	ber_bvecfree( keys );
 
@@ -466,7 +526,6 @@ approx_candidates(
 static int
 substring_candidates(
 	Backend	*be,
-	ID *range,
 	SubstringsAssertion	*sub,
 	ID *ids )
 {
@@ -477,8 +536,12 @@ substring_candidates(
 	struct berval prefix = {0};
 	struct berval **keys = NULL;
 	MatchingRule *mr;
+	ID tmp[BDB_IDL_UM_SIZE];
+	ID save[BDB_IDL_UM_SIZE];
+	ID *i1, *i2, *i3, *t;
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_substring_candidates\n", 0, 0, 0 );
+	BDB_IDL_ZERO( ids );
 
 	rc = bdb_index_param( be, sub->sa_desc, LDAP_FILTER_SUBSTRINGS,
 		&db, &mask, &prefix );
@@ -530,11 +593,14 @@ substring_candidates(
 		return 0;
 	}
 
+	/* Swap i1/i2/i3 pointers around to avoid a bunch of BDB_IDL_CPYs
+	 * inside the loop
+	 */
+	i1 = ids;
+	i2 = save;
+	i3 = tmp;
 	for ( i= 0; keys[i] != NULL; i++ ) {
-		ID save[BDB_IDL_UM_SIZE];
-		ID tmp[BDB_IDL_UM_SIZE];
-
-		rc = bdb_key_read( be, db, NULL, keys[i], tmp );
+		rc = bdb_key_read( be, db, NULL, keys[i], i2 );
 
 		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_substring_candidates key read failed (%d)\n",
@@ -542,17 +608,39 @@ substring_candidates(
 			break;
 		}
 
-		if( tmp[0] == 0 ) {
+		if( BDB_IDL_IS_ZERO( i2 ) ) {
 			Debug( LDAP_DEBUG_TRACE, "<= bdb_substring_candidates NULL\n",
 				0, 0, 0 );
+			if (i3 != ids)
+				BDB_IDL_ZERO( ids );
+			i3 = ids;
 			break;
 		}
 
-		memcpy(save, ids, sizeof(save));
-		bdb_idl_intersection( save, tmp, ids );
+		if (i == 0)
+		{
+			t = i3;
+			i3 = i2;
+			i2 = t;
+			continue;
+		}
 
-		if( ids[0] == 0 ) break;
+		t = i1;
+		i1 = i3;
+		i3 = t;
+
+		bdb_idl_intersection( i1, i2, i3 );
+
+		if( BDB_IDL_IS_ZERO( i3 ) ) {
+			if ( i3 != ids ) {
+				BDB_IDL_ZERO( ids );
+				i3 = ids;
+			}
+			break;
+		}
 	}
+	if (i3 != ids)
+		BDB_IDL_CPY(ids, i3);
 
 	ber_bvecfree( keys );
 

@@ -118,7 +118,6 @@ void bdb_errcall( const char *pfx, char * msg );
  */
 int bdb_filter_candidates(
 	Backend	*be,
-	ID *range,
 	Filter	*f,
 	ID *ids );
 
