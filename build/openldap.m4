@@ -265,6 +265,23 @@ AC_DEFUN([OL_BERKELEY_DB_TRY],
 #define NULL ((void*)0)
 #endif
 ],[
+#if DB_VERSION_MAJOR > 1
+	{
+		char *version;
+		int major, minor, patch;
+
+		version = db_version( &major, &minor, &patch );
+
+		if( major != DB_VERSION_MAJOR ||
+			minor < DB_VERSION_MINOR )
+		{
+			printf("Berkeley DB version mismatch\n"
+				"\texpected: %s\n\tgot: %s\n",
+				DB_VERSION, version);
+			return 1;
+		}
+	}
+
 #if DB_VERSION_MAJOR > 2
 	db_env_create( NULL, 0 );
 #elif DB_VERSION_MAJOR > 1
