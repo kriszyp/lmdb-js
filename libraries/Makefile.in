@@ -3,6 +3,6 @@
 ##
 ## Libraries Makefile for OpenLDAP
 
-SUBDIRS= libavl liblber libldap libldif libldbm liblthread \
-	liblutil # libldap_r
+SUBDIRS= liblutil libavl libldif liblber libldap libldbm \
+	liblthread # libldap_r
 
