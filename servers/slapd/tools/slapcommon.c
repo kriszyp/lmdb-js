@@ -286,6 +286,10 @@ void slap_tool_destroy( void )
 	slap_shutdown( be );
 	slap_destroy();
 #ifdef SLAPD_MODULES
+	if ( slapMode == SLAP_SERVER_MODE ) {
+	/* always false. just pulls in necessary symbol references. */
+		lutil_uuidstr(NULL, 0);
+	}
 	module_kill();
 #endif
 	schema_destroy();
