@@ -372,9 +372,17 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 #else
 				Debug( LDAP_DEBUG_TRACE, "Call application rebind_proc\n", 0, 0, 0);
 #endif
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+		ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 				err = (*ld->ld_rebind_proc)( ld,
 					bind->ri_url, bind->ri_request, bind->ri_msgid,
 					ld->ld_rebind_params );
+#ifdef LDAP_R_COMPILE
+		ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 
 				ld->ld_defconn = savedefconn;
 				--lc->lconn_refcnt;
@@ -398,9 +406,17 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 #else
 			Debug( LDAP_DEBUG_TRACE, "anonymous rebind via ldap_bind_s\n", 0, 0, 0);
 #endif
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
+			ldap_pvt_thread_mutex_unlock( &ld->ld_res_mutex );
+#endif
 			if ( ldap_bind_s( ld, "", "", LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
 				err = -1;
 			}
+#ifdef LDAP_R_COMPILE
+			ldap_pvt_thread_mutex_lock( &ld->ld_res_mutex );
+			ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
+#endif
 			ld->ld_defconn = savedefconn;
 			--lc->lconn_refcnt;
 
@@ -701,7 +717,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 	BerElement	*ber;
 	char		**refarray = NULL;
 	LDAPConn	*lc;
-	int			 rc, count, i, j;
+	int			 rc, count, i, j, id;
 	LDAPreqinfo  rinfo;
 
 	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
@@ -840,8 +856,8 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 			srv->lud_dn = LDAP_STRDUP( "" );
 		}
 
-		LDAP_NEXT_MSGID( ld, rc );
-		ber = re_encode_request( ld, origreq->lr_ber, rc,
+		LDAP_NEXT_MSGID( ld, id );
+		ber = re_encode_request( ld, origreq->lr_ber, id,
 			sref, srv, &rinfo.ri_request );
 
 		if( ber == NULL ) {
@@ -866,7 +882,7 @@ ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, int sref, char *
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
-		rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
+		rc = ldap_send_server_request( ld, ber, id,
 		    	origreq, srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
 		ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
@@ -950,7 +966,7 @@ ldap_chase_referrals( LDAP *ld,
 	int sref,
 	int *hadrefp )
 {
-	int		rc, count;
+	int		rc, count, id;
 	unsigned	len;
 	char		*p, *ref, *unfollowed;
 	LDAPRequest	*origreq;
@@ -1046,9 +1062,9 @@ ldap_chase_referrals( LDAP *ld,
 
 		*hadrefp = 1;
 
-		LDAP_NEXT_MSGID( ld, rc );
+		LDAP_NEXT_MSGID( ld, id );
 		ber = re_encode_request( ld, origreq->lr_ber,
-		    rc, sref, srv, &rinfo.ri_request );
+		    id, sref, srv, &rinfo.ri_request );
 
 		if( ber == NULL ) {
 			return -1 ;
@@ -1062,7 +1078,7 @@ ldap_chase_referrals( LDAP *ld,
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_lock( &ld->ld_req_mutex );
 #endif
-		rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
+		rc = ldap_send_server_request( ld, ber, id,
 		    lr, srv, NULL, &rinfo );
 #ifdef LDAP_R_COMPILE
 	ldap_pvt_thread_mutex_unlock( &ld->ld_req_mutex );
