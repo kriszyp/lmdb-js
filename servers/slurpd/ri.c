@@ -62,7 +62,13 @@ Ri_process(
     rq->rq_lock( rq );
     while ( !sglob->slurpd_shutdown &&
 	    (( re = rq->rq_gethead( rq )) == NULL )) {
-	/* No work - wait on condition variable */
+	/* No work */
+	if ( sglob->one_shot_mode ) {
+	    /* give up if in one shot mode */
+	    rq->rq_unlock( rq );
+	    return 0;
+	}
+	/* wait on condition variable */
 	ldap_pvt_thread_cond_wait( &rq->rq_more, &rq->rq_mutex );
     }
 

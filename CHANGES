@@ -6,6 +6,7 @@ OpenLDAP 2.0.X Engineering
 	Fixed slapd idletimeout lock bug (ITS#767)
 	Fixed slapd caseIgnoreIA5string indexing bug (ITS#786)
 	Fixed slurpd TLS initialization bug (ITS#768)
+	Fixed slurpd empty one shot hang (ITS#798)
 	Fixed -lldap SASL ctx close bug (ITS#790)
 	Fixed -lldap first/next attribute bug (ITS#778)
 	Fixed -lldap (v2) rebind URL bug
