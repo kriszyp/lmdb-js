@@ -249,9 +249,6 @@ fi
 LIBTERMCAP="-ltermcap"
 AC_SUBST(LIBTERMCAP)
 
-# FreeBSD has obsoleted re_comp(3) from -lc, needs -lcompat
-AC_CHECK_LIB(compat, re_comp) 
-
 # FreeBSD (and others) have crypt(3) in -lcrypt
 LIBCRYPT=
 AC_CHECK_FUNC(crypt, AC_DEFINE(HAVE_CRYPT), [
@@ -320,7 +317,6 @@ AC_REPLACE_FUNCS(strdup)
 
 # Check Configuration
 CF_SYS_ERRLIST
-
 
 AC_SUBST(BUILD_LDAPD)
 
