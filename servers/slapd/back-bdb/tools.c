@@ -265,6 +265,10 @@ static int bdb_tool_next_id(
 	} else if ( !hole ) {
 		unsigned i;
 
+		if ( e->e_id == NOID ) {
+			return DB_KEYEXIST;
+		}
+
 		for ( i=0; i<nholes; i++) {
 			if ( holes[i].id == e->e_id ) {
 				int j;
