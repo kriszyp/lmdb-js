@@ -29,7 +29,7 @@ test tests:
 
 bdb test-bdb:	bdb-$(BUILD_BDB)
 bdb-no:
-	@echo "run configure with --enable-bdb"
+	@echo "run configure with --enable-bdb to run BDB tests"
 
 bdb-yes bdb-mod: FORCE
 	@echo "Initiating LDAP tests for BDB..."
@@ -37,7 +37,7 @@ bdb-yes bdb-mod: FORCE
 
 hdb test-hdb:	hdb-$(BUILD_HDB)
 hdb-no:
-	@echo "run configure with --enable-hdb"
+	@echo "run configure with --enable-hdb to run HDB tests"
 
 hdb-yes hdb-mod: FORCE
 	@echo "Initiating LDAP tests for HDB..."
@@ -45,7 +45,7 @@ hdb-yes hdb-mod: FORCE
 
 ldbm test-ldbm:	ldbm-$(BUILD_LDBM)
 ldbm-no:
-	@echo "run configure with --enable-ldbm"
+	@echo "run configure with --enable-ldbm to run LDBM tests"
 
 ldbm-yes ldbm-mod:	FORCE
 	@echo "Initiating LDAP tests for LDBM..."
@@ -53,7 +53,7 @@ ldbm-yes ldbm-mod:	FORCE
 
 sql test-sql:	sql-$(BUILD_SQL)
 sql-no:
-	@echo "run configure with --enable-sql"
+	@echo "run configure with --enable-sql to run SQL tests"
 
 sql-yes sql-mod:	FORCE
 	@echo "Initiating LDAP tests for SQL..."
