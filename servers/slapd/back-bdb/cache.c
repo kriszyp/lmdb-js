@@ -655,20 +655,22 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
 			rc = DB_NOTFOUND;
 		} else {
-			rc = bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, *eip, 0, 0, lock );
-			/* entry is protected now, we don't need to hold the entryinfo */
 			if ( islocked ) {
 				bdb_cache_entryinfo_unlock( *eip );
 				islocked = 0;
 			}
-			if ( rc == 0 ) {
+			rc = bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, *eip, 0, 0, lock );
+			if ( (*eip)->bei_state & CACHE_ENTRY_DELETED ) {
+				rc = DB_NOTFOUND;
+				bdb_cache_entry_db_unlock( bdb->bi_dbenv, lock );
+			} else if ( rc == 0 ) {
 				if ( !(*eip)->bei_e ) {
+					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
+						*eip, 1, 0, lock );
 					if (!ep) {
 						rc = bdb_id2entry( op->o_bd, tid, id, &ep );
 					}
 					if ( rc == 0 ) {
-						bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
-							*eip, 1, 0, lock );
 						/* Make sure no other modifier beat us to it */
 						if ( (*eip)->bei_e ) {
 							bdb_entry_return( ep );
@@ -708,6 +710,9 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 			}
 		}
 	}
+	if ( islocked ) {
+		bdb_cache_entryinfo_unlock( *eip );
+	}
 	if ( rc == 0 ) {
 		/* set lru mutex */
 		ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
@@ -722,9 +727,6 @@ again:	ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 		bdb_cache_lru_add( bdb, locker, *eip );
 	}
 
-	if ( islocked ) {
-		bdb_cache_entryinfo_unlock( *eip );
-	}
 	return rc;
 }
 
