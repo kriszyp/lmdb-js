@@ -205,7 +205,8 @@ hash_md5 (const char *pw_in, Salt * salt)
 	unsigned char	MD5digest[16];
 
 	lutil_MD5Init (&MD5context);
-	lutil_MD5Update (&MD5context, pw_in, strlen(pw_in));
+	lutil_MD5Update (&MD5context,
+			 (const unsigned char *)pw_in, strlen(pw_in));
 	if (salt && salt->salt && salt->len)
 		lutil_MD5Update (&MD5context, salt->salt, salt->len);
 	lutil_MD5Final (MD5digest, &MD5context);
@@ -220,7 +221,8 @@ hash_sha1 (const char *pw_in, Salt * salt)
 	unsigned char	SHA1digest[20];
 
 	lutil_SHA1Init (&SHA1context);
-	lutil_SHA1Update (&SHA1context, pw_in, strlen(pw_in));
+	lutil_SHA1Update (&SHA1context,
+			  (const unsigned char *)pw_in, strlen(pw_in));
 	if (salt && salt->salt && salt->len)
 		lutil_SHA1Update (&SHA1context, salt->salt, salt->len);
 	lutil_SHA1Final (SHA1digest, &SHA1context);
