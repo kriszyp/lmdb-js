@@ -21,6 +21,9 @@ echo "### ODBC and a database poulated with data from the applicable"
 echo "### servers/slapd/back-sql/rdbms_depend/* files."
 echo "### Set SLAPD_USE_SQL to the desired RDBMS to enable this test;"
 echo "### Supported RDBMSes are: mysql,postgres"
+echo "### Set SLAPD_USE_SQLWRITE=yes to enable the write test"
+echo "### See servers/slapd/back-sql/rdbms_depend/README for more "
+echo "### details on how to set up the RDBMS and the ODBC"
 
 if test $BACKSQL = "sqlno" ; then 
 	echo "SQL backend not available, test skipped"
@@ -219,8 +222,11 @@ if test $? != 0 ; then
 fi
 
 echo "Testing modify, add, and delete..."
-case ${RDBMS} in
-	# list here the RDBMSes whose mapping allows writes
+if test "${RDBMSWRITE}" != "yes"; then
+	echo "write test disabled; set SLAPD_USE_SQLWRITE=yes to enable"
+else
+	case ${RDBMS} in
+		# list here the RDBMSes whose mapping allows writes
 	postgres)
 		MANAGERDN="cn=Manager,${BASEDN}"
 		$LDAPMODIFY -v -c -D "$MANAGERDN" -w $PASSWD \
@@ -228,10 +234,7 @@ case ${RDBMS} in
 			$TESTOUT 2>&1 << EOMODS
 version: 1
 
-# LEADING COMMENT AND WHITE SPACE
-
 dn: cn=Mitya Kovalev,${BASEDN}
-# EMBEDDED COMMENT
 changetype: modify
 add: telephoneNumber
 telephoneNumber: +1 800 123 4567
@@ -239,13 +242,21 @@ telephoneNumber: +1 800 123 4567
 
 dn: cn=Pierangelo Masarati,${BASEDN}
 changetype: add
-# EMBEDDED COMMENT
- CONTINUED
 objectClass: inetOrgPerson
 cn: Pierangelo Masarati
 sn: Masarati
 givenName: Pierangelo
 telephoneNumber: +39 02 XXXX YYYY
+telephoneNumber: +39 02 XXXX ZZZZ
+
+dn: cn=Pierangelo Masarati,${BASEDN}
+changetype: modify
+delete: telephoneNumber
+telephoneNumber: +39 02 XXXX YYYY
+-
+add: telephoneNumber
+telephoneNumber: +39 333 ZZZ 1234
+-
 
 dn: cn=Torvlobnor Puzdoy,${BASEDN}
 changetype: delete
@@ -287,7 +298,8 @@ EOMODS
 	*)
 		echo "apparently ${RDBMS} does not support writes; skipping..."
 		;;
-esac
+	esac
+fi
 
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 

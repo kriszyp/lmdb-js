@@ -18,6 +18,7 @@ BACKLDAP=${AC_ldap-ldapno}
 BACKRELAY=${AC_relay-relayno}
 BACKSQL=${AC_sql-sqlno}
 RDBMS=${SLAPD_USE_SQL-rdbmsno}
+RDBMSWRITE=${SLAPD_USE_SQLWRITE-no}
 PROXYCACHE=${AC_pcache-pcacheno}
 PPOLICY=${AC_ppolicy-ppolicyno}
 REFINT=${AC_refint-refintno}

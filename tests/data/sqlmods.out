@@ -1,18 +1,21 @@
-# refldap://localhost/o=example,c=ru??sub
-
-dn: cn=Torvlobnor Puzdoy,o=Example,c=RU
+dn: cn=Pierangelo Masarati,o=Example,c=RU
 objectClass: inetOrgPerson
-cn: Torvlobnor Puzdoy
-telephoneNumber: 545-4563
-sn: Torvlobnor Puzdoy
-documentIdentifier: documentTitle=book1,o=Example,c=RU
+cn: Pierangelo Masarati
+telephoneNumber: +39 333 ZZZ 1234
+givenName: Pierangelo
+sn: Masarati
+
+# refldap://localhost/o=Example,c=RU??sub
 
 dn: cn=Mitya Kovalev,o=Example,c=RU
 objectClass: inetOrgPerson
+objectClass: posixAccount
 cn: Mitya Kovalev
 telephoneNumber: 332-2334
 telephoneNumber: 222-3234
-sn: Mitya Kovalev
+telephoneNumber: +1 800 123 4567
+givenName: Mitya
+sn: Kovalev
 documentIdentifier: documentTitle=book1,o=Example,c=RU
 documentIdentifier: documentTitle=book2,o=Example,c=RU
 
@@ -27,7 +30,6 @@ objectClass: document
 description: abstract1
 documentTitle: book1
 documentAuthor: cn=Mitya Kovalev,o=Example,c=RU
-documentAuthor: cn=Torvlobnor Puzdoy,o=Example,c=RU
 
 dn: o=Example,c=RU
 objectClass: organization
