@@ -2,11 +2,11 @@ Internet-Draft                                      David Chadwick
 LDAPExt WG                       		   University of Salford      
 Intended Category: Standards Track                     Sean Mullan
 								  Sun Microsystems
-Expires: 15 April 2001                             16 October 2000
+Expires: 11 June 2001                             11 December 2000
 
 
 Returning Matched Values with LDAPv3
-<draft-ietf-ldapext-matchedval-04.txt>
+<draft-ietf-ldapext-matchedval-05.txt>
 
 
 STATUS OF THIS MEMO
@@ -29,7 +29,7 @@ http://www.ietf.org/ietf/1id-abstracts.txt.
 The list of Internet-Draft Shadow Directories can be accessed at
 http://www.ietf.org/shadow.html.
 
-This Internet-Draft expires on 15 April 2001. 
+This Internet-Draft expires on 11 June 2001. 
 
 Comments and suggestions on this document are encouraged. Comments on 
 this document should be sent to the LDAPEXT working group discussion 
@@ -207,7 +207,12 @@ the number and ordering of SearchResultEntrys.
 All entries are provided in LDIF format [8].
 
 The string representation of the valuesReturnFilter in the examples 
-below uses the notation defined in RFC 2254 [11].
+below uses the following ABNF notation:
+
+ valuesReturnFilter = "(" 1*simpleFilterItem ")"
+ simpleFilterItem = "(" item ")"
+
+where item is as defined by RFC2254 [11].  
 
 (1) The first example shows how the control can be set to return all 
 attribute values from one attribute type (e.g. telephoneNumber) and a 
@@ -292,7 +297,7 @@ The user creates an LDAP search operation with a baseObject set to
 cn=subschema subentry, o=myorg, a scope of base, a filter set to 
 (objectClass=subschema), the list of attributes to be returned set to 
 "attributeTypes", and the ValuesReturnFilter set to 
-(attributeTypes=1.2.3.4.5)
+((attributeTypes=1.2.3.4.5))
 
 The search result returned by the server would consist of the 
 following entry:
@@ -334,7 +339,7 @@ An LDAP search operation is specified with a baseObject set to
 o=University of Salford, c=gb, a subtree scope, a filter set to 
 (sn=chadwick) and the list of attributes to be returned set to 
 "userCertificate;binary". In addition, a ValuesReturnFilter control 
-is set to (userCertificate:2.5.13.35:=USE'001'B)
+is set to ((userCertificate:2.5.13.35:=(USE'001'B)))
 
 The search result returned by the server would consist of the 
 following entry:
@@ -419,7 +424,7 @@ Levels", RFC 2119, March 1997.
 Abstract Service Definition.
 [7] J. Sermersheim. "LDAP Control for a Duplicate Entry 
 Representation of Search Results", Internet Draft <draft-ietf-
-ldapext-ldapv3-dupent-04.txt>, July 2000.
+ldapext-ldapv3-dupent-06.txt>, October 2000.
 [8] G. Good. "The LDAP Data Interchange Format (LDIF) - Technical 
 Specification". RFC 2849, June 2000.
 [9] D. Chadwick, S.Legg. "Internet X.509 Public Key Infrastructure - 
@@ -465,4 +470,7 @@ simpleMatchingAssertion be present
 ii) Fixed LDIF mistakes in the examples
 iii) Additional minor editorials only
 
+Changes since version 4
+
+i) corrected the ABNF for single items of valuesReturnFilter
 
