@@ -1548,9 +1548,8 @@ static struct berval ext_bv = BER_BVC( "EXTERNAL" );
 int slap_sasl_getdn( Connection *conn, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
-	char *c1;
 	int rc, is_dn = SET_NONE, do_norm = 1;
-	struct berval dn2;
+	struct berval dn2, *mech;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -1576,14 +1575,20 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		len = 0;
 	}
 
+	if ( conn->c_sasl_bind_mech.bv_len ) {
+		mech = &conn->c_sasl_bind_mech;
+	} else {
+		mech = &conn->c_authmech;
+	}
+
 	/* An authcID needs to be converted to authzID form. Set the
 	 * values directly into *dn; they will be normalized later. (and
 	 * normalizing always makes a new copy.) An ID from a TLS certificate
 	 * is already normalized, so copy it and skip normalization.
 	 */
 	if( flags & SLAP_GETDN_AUTHCID ) {
-		if( conn->c_sasl_bind_mech.bv_len == ext_bv.bv_len &&
-			strcasecmp( ext_bv.bv_val, conn->c_sasl_bind_mech.bv_val ) == 0 )
+		if( mech->bv_len == ext_bv.bv_len &&
+			strcasecmp( ext_bv.bv_val, mech->bv_val ) == 0 )
 		{
 			/* EXTERNAL DNs are already normalized */
 			do_norm = 0;
@@ -1618,23 +1623,32 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 
 	/* Username strings */
 	if( is_dn == SET_U ) {
-		char *p, *realm;
+		char *p;
+		struct berval realm = { 0, NULL }, c1 = *dn;
 		len = dn->bv_len + sizeof("uid=")-1 + sizeof(",cn=auth")-1;
 
-		/* username may have embedded realm name */
+#if 0
+		/* userids can legally have embedded '@' chars;
+		 * the realm should be set by those mechanisms
+		 * that support it by means of the user_realm
+		 * variable
+		 */
 		if( ( realm = strchr( dn->bv_val, '@') ) ) {
 			*realm++ = '\0';
 			len += sizeof(",cn=")-2;
-		} else if( user_realm && *user_realm ) {
- 			len += strlen( user_realm ) + sizeof(",cn=")-1;
+		} else
+#endif
+		if( user_realm && *user_realm ) {
+			realm.bv_val = user_realm;
+			realm.bv_len = strlen( user_realm );
+ 			len += realm.bv_len + sizeof(",cn=")-1;
 		}
 
-		if( conn->c_sasl_bind_mech.bv_len ) {
-			len += conn->c_sasl_bind_mech.bv_len + sizeof(",cn=")-1;
+		if( mech->bv_len ) {
+			len += mech->bv_len + sizeof(",cn=")-1;
 		}
 
 		/* Build the new dn */
-		c1 = dn->bv_val;
 		dn->bv_val = SLAP_MALLOC( len+1 );
 		if( dn->bv_val == NULL ) {
 #ifdef NEW_LOGGING
@@ -1647,21 +1661,16 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 			return LDAP_OTHER;
 		}
 		p = lutil_strcopy( dn->bv_val, "uid=" );
-		p = lutil_strncopy( p, c1, dn->bv_len );
+		p = lutil_strncopy( p, c1.bv_val, dn->bv_len );
 
-		if( realm ) {
-			int rlen = dn->bv_len - ( realm - c1 );
+		if( realm.bv_len ) {
 			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strncopy( p, realm, rlen );
-			realm[-1] = '@';
-		} else if( user_realm && *user_realm ) {
-			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strcopy( p, user_realm );
+			p = lutil_strncopy( p, realm.bv_val, realm.bv_len );
 		}
 
-		if( conn->c_sasl_bind_mech.bv_len ) {
+		if( mech->bv_len ) {
 			p = lutil_strcopy( p, ",cn=" );
-			p = lutil_strcopy( p, conn->c_sasl_bind_mech.bv_val );
+			p = lutil_strcopy( p, mech->bv_val );
 		}
 		p = lutil_strcopy( p, ",cn=auth" );
 		dn->bv_len = p - dn->bv_val;
@@ -1670,7 +1679,7 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 		LDAP_LOG( TRANSPORT, ENTRY, 
 			"slap_sasl_getdn: u:id converted to %s.\n", dn->bv_val, 0, 0 );
 #else
-		Debug( LDAP_DEBUG_TRACE, "getdn: u:id converted to %s\n", dn->bv_val,0,0 );
+		Debug( LDAP_DEBUG_TRACE, "slap_sasl_getdn: u:id converted to %s\n", dn->bv_val,0,0 );
 #endif
 	} else {
 		

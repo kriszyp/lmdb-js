@@ -131,7 +131,7 @@ do_bind(
 		tag = ber_scanf( ber, /*{*/ "m}", &cred );
 
 	} else {
-		tag = ber_scanf( ber, "{o" /*}*/, &mech );
+		tag = ber_scanf( ber, "{m" /*}*/, &mech );
 
 		if ( tag != LBER_ERROR ) {
 			ber_len_t len;
@@ -298,9 +298,7 @@ do_bind(
 				slap_sasl_reset(conn);
 			}
 		} else {
-			conn->c_sasl_bind_mech = mech;
-			mech.bv_val = NULL;
-			mech.bv_len = 0;
+			ber_dupbv( &conn->c_sasl_bind_mech, &mech );
 		}
 		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
@@ -383,6 +381,7 @@ do_bind(
 	}
 
 	if ( method == LDAP_AUTH_SIMPLE ) {
+		ber_str2bv( "SIMPLE", sizeof("SIMPLE")-1, 0, &mech );
 		/* accept "anonymous" binds */
 		if ( cred.bv_len == 0 || ndn.bv_len == 0 ) {
 			rc = LDAP_SUCCESS;
@@ -465,6 +464,7 @@ do_bind(
 #endif
 			goto cleanup;
 		}
+		ber_str2bv( "KRBV4", sizeof("KRBV4")-1, 0, &mech );
 #endif
 
 	} else {
@@ -564,9 +564,9 @@ do_bind(
 			}
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu BIND dn=\"%s\" mech=simple (SLAPI) ssf=0\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s (SLAPI) ssf=0\n",
 				op->o_connid, op->o_opid,
-				conn->c_dn.bv_val, 0, 0 );
+				conn->c_dn.bv_val, mech.bv_val, 0 );
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 		}
 #ifdef NEW_LOGGING
@@ -614,9 +614,9 @@ do_bind(
 
 			/* log authorization identity */
 			Statslog( LDAP_DEBUG_STATS,
-				"conn=%lu op=%lu BIND dn=\"%s\" mech=simple ssf=0\n",
+				"conn=%lu op=%lu BIND dn=\"%s\" mech=%s ssf=0\n",
 				op->o_connid, op->o_opid,
-				conn->c_dn.bv_val, conn->c_authmech.bv_val, 0 );
+				conn->c_dn.bv_val, mech.bv_val, 0 );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG( OPERATION, DETAIL1, 
@@ -657,6 +657,13 @@ do_bind(
 #endif /* defined( LDAP_SLAPI ) */
 
 cleanup:
+	if ( rc == LDAP_SUCCESS ) {
+		if ( method != LDAP_AUTH_SASL ) {
+			ber_dupbv( &conn->c_authmech, &mech );
+		}
+		conn->c_authtype = method;
+	}
+
 	conn->c_sasl_bindop = NULL;
 
 	if( pdn.bv_val != NULL ) {
@@ -664,9 +671,6 @@ cleanup:
 	}
 	if( ndn.bv_val != NULL ) {
 		free( ndn.bv_val );
-	}
-	if ( mech.bv_val != NULL ) {
-		free( mech.bv_val );
 	}
 
 	return rc;
