@@ -444,7 +444,7 @@ ldap_set_option(
 				/* not supported */
 				break;
 			}
-			ld->ld_version = vers;
+			lo->ldo_version = vers;
 		} return LDAP_OPT_SUCCESS;
 
 
