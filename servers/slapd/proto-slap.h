@@ -1052,16 +1052,6 @@ LDAP_SLAPD_F (int) value_add_one LDAP_P((
 	BerVarray *vals,
 	struct berval *addval ));
 
-#ifdef LDAP_CLIENT_UPDATE
-/*
- * lcup.c
- */
-
-extern AttributeName uuid_attr[2];
-
-LDAP_SLAPD_F (int) build_uuid_attr LDAP_P ((void));
-#endif
-
 /*
  * Other...
  */

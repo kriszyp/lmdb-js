@@ -395,10 +395,6 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
-#ifdef LDAP_CLIENT_UPDATE
-	build_uuid_attr();
-#endif
-
 #ifdef HAVE_TLS
 	/* Library defaults to full certificate checking. This is correct when
 	 * a client is verifying a server because all servers should have a

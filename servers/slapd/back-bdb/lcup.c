@@ -1,4 +1,5 @@
 /* lcup.c - lcup operations */
+/* $OpenLDAP$ */
 /*
  * Copyright 1998-2002 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
@@ -123,14 +124,21 @@ bdb_psearch(
 	Filter		*filter    = LDAP_LIST_FIRST(&ps_op->psearch_spec)->filter;
 	struct berval *filterstr = LDAP_LIST_FIRST(&ps_op->psearch_spec)->filterstr;
 	int		attrsonly  = LDAP_LIST_FIRST(&ps_op->psearch_spec)->attrsonly;
-	AttributeName	*attrs;
+	AttributeName	uuid_attr[2];
+	AttributeName	*attrs = uuid_attr;
 
 	if ( psearch_type != LCUP_PSEARCH_BY_DELETE &&
 		psearch_type != LCUP_PSEARCH_BY_SCOPEOUT )
 	{
 		attrs = LDAP_LIST_FIRST(&ps_op->psearch_spec)->attrs;
 	} else {
-		attrs = uuid_attr;
+		attrs[0].an_desc = slap_schema.si_ad_entryUUID;
+		attrs[0].an_oc = NULL;
+		ber_dupbv( &attrs[0].an_name, &attrs[0].an_desc->ad_cname );
+		attrs[1].an_desc = NULL;
+		attrs[1].an_oc = NULL;
+		attrs[1].an_name.bv_len = 0;
+		attrs[1].an_name.bv_val = NULL;
 	}
 
 #ifdef NEW_LOGGING
@@ -149,6 +157,9 @@ bdb_psearch(
 	default:
 		send_ldap_result( ps_conn, ps_op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
+		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
+		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+			ch_free( attrs[0].an_name.bv_val );
 		return rc;
 	}
 
@@ -185,6 +196,9 @@ dn2entry_retry:
 		send_ldap_result( ps_conn, ps_op, LDAP_BUSY,
 			NULL, "ldap server busy", NULL, NULL );
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
+		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
+		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+			ch_free( attrs[0].an_name.bv_val );
 		return LDAP_BUSY;
 	case DB_LOCK_DEADLOCK:
 	case DB_LOCK_NOTGRANTED:
@@ -201,6 +215,9 @@ dn2entry_retry:
 		send_ldap_result( ps_conn, ps_op, rc=LDAP_OTHER,
 			NULL, "internal error", NULL, NULL );
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
+		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
+		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+			ch_free( attrs[0].an_name.bv_val );
 		return rc;
 	}
 
@@ -237,6 +254,9 @@ dn2entry_retry:
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 		if ( refs ) ber_bvarray_free( refs );
 		if ( matched_dn.bv_val ) ber_memfree( matched_dn.bv_val );
+		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
+		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+			ch_free( attrs[0].an_name.bv_val );
 		return rc;
 	}
 
@@ -274,6 +294,9 @@ dn2entry_retry:
 		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 		ber_bvarray_free( refs );
 		ber_memfree( matched_dn.bv_val );
+		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
+		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+			ch_free( attrs[0].an_name.bv_val );
 		return 1;
 	}
 
@@ -735,88 +758,91 @@ dn2entry_retry:
 						ber_dupbv( &ctrls[0]->ldctl_value, bv );
 						
 						result = send_search_entry( be, ps_conn, ps_op,
-							e, attrs, attrsonly, ctrls);
+								e, attrs, attrsonly, ctrls);
 
-						ch_free( ctrls[0]->ldctl_value.bv_val );
-						ch_free( ctrls[0] );
-						ber_free( ber, 1 );
-						ber_bvfree( bv );
+							ch_free( ctrls[0]->ldctl_value.bv_val );
+							ch_free( ctrls[0] );
+							ber_free( ber, 1 );
+							ber_bvfree( bv );
 
-						if ( psearch_type == LCUP_PSEARCH_BY_MODIFY ) {
-							struct psid_entry* psid_e;
-							LDAP_LIST_FOREACH( psid_e, &op->premodify_list,
-								link)
-							{
-								if( psid_e->ps ==
-									LDAP_LIST_FIRST(&ps_op->psearch_spec))
+							if ( psearch_type == LCUP_PSEARCH_BY_MODIFY ) {
+								struct psid_entry* psid_e;
+								LDAP_LIST_FOREACH( psid_e, &op->premodify_list,
+									link)
 								{
-									LDAP_LIST_REMOVE(psid_e, link);
-									break;
+									if( psid_e->ps ==
+										LDAP_LIST_FIRST(&ps_op->psearch_spec))
+									{
+										LDAP_LIST_REMOVE(psid_e, link);
+										break;
+									}
 								}
+								if (psid_e != NULL) free (psid_e);
 							}
-							if (psid_e != NULL) free (psid_e);
+
+						} else if ( psearch_type == LCUP_PSEARCH_BY_PREMODIFY ) {
+							struct psid_entry* psid_e;
+							psid_e = (struct psid_entry *) calloc (1,
+								sizeof(struct psid_entry));
+							psid_e->ps = LDAP_LIST_FIRST(&ps_op->psearch_spec);
+							LDAP_LIST_INSERT_HEAD( &op->premodify_list,
+								psid_e, link );
+
+						} else {
+							printf("Error !\n");
 						}
+					}
 
-					} else if ( psearch_type == LCUP_PSEARCH_BY_PREMODIFY ) {
-						struct psid_entry* psid_e;
-						psid_e = (struct psid_entry *) calloc (1,
-							sizeof(struct psid_entry));
-						psid_e->ps = LDAP_LIST_FIRST(&ps_op->psearch_spec);
-						LDAP_LIST_INSERT_HEAD( &op->premodify_list,
-							psid_e, link );
-
-					} else {
-						printf("Error !\n");
+					switch (result) {
+					case 0:		/* entry sent ok */
+						nentries++;
+						break;
+					case 1:		/* entry not sent */
+						break;
+					case -1:	/* connection closed */
+						rc = LDAP_OTHER;
+						goto done;
 					}
 				}
-
-				switch (result) {
-				case 0:		/* entry sent ok */
-					nentries++;
-					break;
-				case 1:		/* entry not sent */
-					break;
-				case -1:	/* connection closed */
-					rc = LDAP_OTHER;
-					goto done;
-				}
+			} else {
+#ifdef NEW_LOGGING
+				LDAP_LOG ( OPERATION, RESULTS,
+					"bdb_search: %ld scope not okay\n", (long) id, 0, 0);
+#else
+				Debug( LDAP_DEBUG_TRACE,
+					"bdb_search: %ld scope not okay\n", (long) id, 0, 0 );
+#endif
 			}
 		} else {
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, RESULTS,
-				"bdb_search: %ld scope not okay\n", (long) id, 0, 0);
+				"bdb_search: %ld does match filter\n", (long) id, 0, 0);
 #else
 			Debug( LDAP_DEBUG_TRACE,
-				"bdb_search: %ld scope not okay\n", (long) id, 0, 0 );
+				"bdb_search: %ld does match filter\n",
+				(long) id, 0, 0 );
 #endif
 		}
-	} else {
-#ifdef NEW_LOGGING
-		LDAP_LOG ( OPERATION, RESULTS,
-			"bdb_search: %ld does match filter\n", (long) id, 0, 0);
-#else
-		Debug( LDAP_DEBUG_TRACE,
-			"bdb_search: %ld does match filter\n",
-			(long) id, 0, 0 );
-#endif
-	}
 
-test_done:
-	rc = LDAP_SUCCESS;
+	test_done:
+		rc = LDAP_SUCCESS;
 
-done:
-	if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
-		ch_free( csnfeq.f_av_value.bv_val );
-	}
-	
-	if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
-		ch_free( csnfge.f_av_value.bv_val );
-	}
+	done:
+		if ( csnfeq.f_ava != NULL && csnfeq.f_av_value.bv_val != NULL ) {
+			ch_free( csnfeq.f_av_value.bv_val );
+		}
+		
+		if ( csnfge.f_ava != NULL && csnfge.f_av_value.bv_val != NULL ) {
+			ch_free( csnfge.f_av_value.bv_val );
+		}
 
-	LOCK_ID_FREE( bdb->bi_dbenv, locker );
+		LOCK_ID_FREE( bdb->bi_dbenv, locker );
 
-	if( v2refs ) ber_bvarray_free( v2refs );
-	if( realbase.bv_val ) ch_free( realbase.bv_val );
+		if( v2refs ) ber_bvarray_free( v2refs );
+		if( realbase.bv_val ) ch_free( realbase.bv_val );
+		if ( psearch_type == LCUP_PSEARCH_BY_DELETE ||
+		     psearch_type == LCUP_PSEARCH_BY_SCOPEOUT )
+			ch_free( attrs[0].an_name.bv_val );
 
 	return rc;
 }
