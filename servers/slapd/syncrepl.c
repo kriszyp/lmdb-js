@@ -701,6 +701,8 @@ do_syncrepl(
 			ch_free( si->si_syncCookie.bv_val );
 			si->si_syncCookie.bv_val = NULL;
 			si->si_syncCookie.bv_len = 0;
+			/* Session closed due to receipt of search result */
+			if ( rc == -2 ) rc = 0;
 		}
 	}
 
