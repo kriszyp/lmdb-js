@@ -1216,8 +1216,9 @@ LDAP server.
 .TP
 .B meta
 This backend performs basic LDAP proxying with respect to a set of
-remote LDAP servers.
-It is an enhancement of the ldap backend.
+remote LDAP servers. It is an enhancement of the ldap backend. The
+proxy cache extension of meta backend provides answering of search
+requests from the proxy using results of previously cached requests.
 .TP
 .B monitor
 This backend provides information about the running status of the slapd
