@@ -548,8 +548,8 @@ glue_back_group (
 	Connection *conn,
 	Operation *op,
 	Entry *target,
-	const char *ndn,
-	const char *ondn,
+	struct berval *ndn,
+	struct berval *ondn,
 	ObjectClass *oc,
 	AttributeDescription * ad
 )
@@ -557,7 +557,7 @@ glue_back_group (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_group) {
 		rc = be->be_group (be, conn, op, target, ndn, ondn, oc, ad);
@@ -573,7 +573,7 @@ glue_back_attribute (
 	Connection *conn,
 	Operation *op,
 	Entry *target,
-	const char *ndn,
+	struct berval *ndn,
 	AttributeDescription *ad,
 	struct berval ***vals
 )
@@ -581,7 +581,7 @@ glue_back_attribute (
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_attribute) {
 		rc = be->be_attribute (be, conn, op, target, ndn, ad, vals);

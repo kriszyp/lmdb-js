@@ -26,7 +26,7 @@ ldbm_back_attribute(
 	Connection *conn,
 	Operation *op,
 	Entry	*target,
-	const char	*entry_ndn,
+	struct berval	*entry_ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals )
 {
@@ -58,23 +58,23 @@ ldbm_back_attribute(
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
-	if (target != NULL && strcmp(target->e_ndn, entry_ndn) == 0) {
+	if (target != NULL && strcmp(target->e_ndn, entry_ndn->bv_val) == 0) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			"ldbm_back_attribute: target is LOCKED (%s)\n",
-			entry_ndn ));
+			entry_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"=> ldbm_back_attribute: target is entry: \"%s\"\n",
-			entry_ndn, 0, 0 );
+			entry_ndn->bv_val, 0, 0 );
 #endif
 
 
 	} else {
 		/* can we find entry with reader lock */
-		if ((e = dn2entry_r(be, entry_ndn, NULL )) == NULL) {
+		if ((e = dn2entry_r(be, entry_ndn->bv_val, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"ldbm_back_attribute: cannot find entry (%s)\n",
@@ -90,11 +90,12 @@ ldbm_back_attribute(
 		
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"ldbm_back_attribute: found entry (%s)\n", entry_ndn ));
+			"ldbm_back_attribute: found entry (%s)\n",
+			entry_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> ldbm_back_attribute: found entry: \"%s\"\n",
-			entry_ndn, 0, 0 ); 
+			entry_ndn->bv_val, 0, 0 ); 
 #endif
 
     }
@@ -104,7 +105,7 @@ ldbm_back_attribute(
 	if( is_entry_alias( e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_attribute: entry (%s) is an alias\n", e->e_dn ));
+			"ldbm_back_attribute: entry (%s) is an alias\n", e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_attribute: entry is an alias\n", 0, 0, 0 );
@@ -117,7 +118,7 @@ ldbm_back_attribute(
 	if( is_entry_referral( e ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_attribute: entry (%s) is a referral.\n", e->e_dn ));
+			"ldbm_back_attribute: entry (%s) is a referral.\n", e->e_dn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_attribute: entry is an referral\n", 0, 0, 0 );
@@ -138,7 +139,7 @@ ldbm_back_attribute(
 	if ((attr = attr_find(e->e_attrs, entry_at)) == NULL) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_attribute: failed to find %s.\n", entry_at_name ));
+			"ldbm_back_attribute: failed to find %s.\n", entry_at_name ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_attribute: failed to find %s\n",

@@ -1018,7 +1018,7 @@ backend_group(
 
 	if( be->be_group ) {
 		int res = be->be_group( be, conn, op,
-			target, gr_ndn->bv_val, op_ndn->bv_val,
+			target, gr_ndn, op_ndn,
 			group_oc, group_at );
 		
 		if (op->o_tag != LDAP_REQ_BIND) {
@@ -1066,7 +1066,7 @@ backend_attribute(
 	} 
 
 	if( be->be_attribute ) {
-		return be->be_attribute( be, conn, op, target, edn->bv_val,
+		return be->be_attribute( be, conn, op, target, edn,
 			entry_at, vals );
 	}
 

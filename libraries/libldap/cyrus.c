@@ -214,7 +214,7 @@ sb_sasl_read( Sockbuf_IO_Desc *sbiod, void *buf, ber_len_t len)
 		sbiod->sbiod_sb->sb_debug );
 
 	/* Grow the packet buffer if neccessary */
-	if ( ( p->sec_buf_in.buf_size < ret ) && 
+	if ( ( p->sec_buf_in.buf_size < (ber_len_t) ret ) && 
 		ber_pvt_sb_grow_buffer( &p->sec_buf_in, ret ) < 0 )
 	{
 		errno = ENOMEM;

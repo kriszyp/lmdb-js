@@ -1095,13 +1095,15 @@ typedef int (BI_chk_referrals) LDAP_P((BackendDB *bd,
 
 typedef int (BI_acl_group)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
-		Entry *e, const char *bdn, const char *edn,
+		Entry *e,
+		struct berval *bdn,
+		struct berval *edn,
 		ObjectClass *group_oc,
 		AttributeDescription *group_at ));
 
 typedef int (BI_acl_attribute)  LDAP_P((Backend *bd,
 		struct slap_conn *c, struct slap_op *o,
-		Entry *e, const char *edn,
+		Entry *e, struct berval *edn,
 		AttributeDescription *entry_at,
 		struct berval ***vals ));
 

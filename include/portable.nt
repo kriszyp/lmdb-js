@@ -955,7 +955,7 @@
 /* #undef SLAPD_META_DYNAMIC */
 
 /* define to support cn=Monitor backend */
-/* #undef SLAPD_MONITOR */
+#define SLAPD_MONITOR 1
 
 /* define to support dynamic cn=Monitor backend */
 /* #undef SLAPD_MONITOR_DYNAMIC */

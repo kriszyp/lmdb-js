@@ -26,7 +26,7 @@ bdb_attribute(
 	Connection *conn,
 	Operation *op,
 	Entry *target,
-	const char *entry_ndn,
+	struct berval *entry_ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals )
 {
@@ -39,7 +39,7 @@ bdb_attribute(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		"bdb_attribute: gr dn: \"%s\"\n", entry_ndn ));
+		"bdb_attribute: gr dn: \"%s\"\n", entry_ndn->bv_val ));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
 		"bdb_attribute: at: \"%s\"\n", entry_at_name));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
@@ -48,7 +48,7 @@ bdb_attribute(
 #else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_attribute: gr dn: \"%s\"\n",
-		entry_ndn, 0, 0 ); 
+		entry_ndn->bv_val, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_attribute: at: \"%s\"\n", 
 		entry_at_name, 0, 0 ); 
@@ -58,17 +58,17 @@ bdb_attribute(
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
-	if (target != NULL && strcmp(target->e_ndn, entry_ndn) == 0) {
+	if (target != NULL && strcmp(target->e_ndn, entry_ndn->bv_val) == 0) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			"bdb_attribute: target is LOCKED (%s)\n",
-			entry_ndn ));
+			entry_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"=> bdb_attribute: target is entry: \"%s\"\n",
-			entry_ndn, 0, 0 );
+			entry_ndn->bv_val, 0, 0 );
 #endif
 
 
@@ -86,22 +86,23 @@ bdb_attribute(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"bdb_attribute: cannot find entry (%s)\n",
-				entry_ndn ));
+				entry_ndn->bv_val ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"=> bdb_attribute: cannot find entry: \"%s\"\n",
-					entry_ndn, 0, 0 ); 
+					entry_ndn->bv_val, 0, 0 ); 
 #endif
 			return LDAP_NO_SUCH_OBJECT; 
 		}
 		
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			"bdb_attribute: found entry (%s)\n", e_ndn ));
+			"bdb_attribute: found entry (%s)\n",
+			entry_ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> bdb_attribute: found entry: \"%s\"\n",
-			entry_ndn, 0, 0 ); 
+			entry_ndn->bv_val, 0, 0 ); 
 #endif
 	}
 
