@@ -44,6 +44,7 @@ Redesign slapd memory allocation fault handling
 Schema Repository
 Modify -lldap to be session-level thread support (ldap_dup)
 Slapd-DB2 - Berkeley DB backend w/ transaction support <ksp@openldap.org>
+Perform a security audit (and fix any hole found)
 
 
 Medium projects
