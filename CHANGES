@@ -5,6 +5,10 @@ OpenLDAP 2.0.13 Engineering
 	Fixed slapd suffix check bug
 	Fixed ldapdelete -c handling (ITS#1071)
 	Fixed -lldbm BDB3.0 support (ITS#1306)
+	Fixed back-ldbm dbhandle cache bug
+	Fixed back-shell fgets handling
+	Added slapd access to dn.base="" support
+	Added slapd extensible matching support (ITS#1302)
 	Added -lldap improved TLS certificate checking
 
 OpenLDAP 2.0.12 Release
