@@ -151,7 +151,8 @@ main( int argc, char **argv )
     /* Print usage when no parameters */
     if( argc < 2 ) usage( prog );
 
-    ldapadd = ( strcmp( prog, "ldapadd" ) == 0 );
+	/* strncmp instead of strcmp since NT binaries carry .exe extension */
+    ldapadd = ( strncmp( prog, "ldapadd", 7 ) == 0 );
 
     infile = NULL;
     not = verbose = want_bindpw = debug = manageDSAit = referrals = 0;
