@@ -845,6 +845,11 @@ LDAP_SLAPD_F (Attribute *) slap_operational_subschemaSubentry( Backend *be );
 LDAP_SLAPD_F (Attribute *) slap_operational_hasSubordinate( int has );
 
 /*
+ * overlays.c
+ */
+LDAP_SLAPD_F (int) overlay_init( void );
+
+/*
  * passwd.c
  */
 LDAP_SLAPD_F (SLAP_EXTOP_MAIN_FN) passwd_extop;

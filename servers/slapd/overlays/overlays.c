@@ -50,7 +50,9 @@ static struct {
 	{ NULL, NULL }
 };
 
-int overlay_init() {
+int
+overlay_init(void)
+{
 	int i, rc = 0;
 
 	for ( i=0; funcs[i].name; i++ ) {
