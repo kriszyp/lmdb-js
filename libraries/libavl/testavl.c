@@ -92,7 +92,7 @@ static void ravl_print( Avlnode *root, int depth )
 
 	for ( i = 0; i < depth; i++ )
 		printf( "   " );
-	printf( "%s %d\n", root->avl_data, root->avl_bf );
+	printf( "%s %d\n", (char *) root->avl_data, root->avl_bf );
 
 	ravl_print( root->avl_left, depth+1 );
 }
