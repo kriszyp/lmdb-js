@@ -33,8 +33,8 @@ void backsql_PrintErrors( SQLHENV henv, SQLHDBC hdbc, SQLHSTMT sth, int rc );
 
 int backsql_init_db_env( backsql_info *si );
 int backsql_free_db_env( backsql_info *si );
-int backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh );
-int backsql_free_db_conn( Backend *be, Connection *ldapc );
+int backsql_get_db_conn( Operation *op, SQLHDBC *dbh );
+int backsql_free_db_conn( Operation *op );
 
 #endif /* __BACKSQL_SQL_WRAP_H__ */
 

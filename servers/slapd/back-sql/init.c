@@ -161,11 +161,12 @@ backsql_db_open(
 	BackendDB 	*bd )
 {
 	backsql_info 	*si = (backsql_info*)bd->be_private;
-	Connection 	tmp;
 	SQLHDBC 	dbh;
 	ber_len_t	idq_len;
 	struct berval	bv;
 
+	Operation	otmp;
+		
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_db_open(): "
 		"testing RDBMS connection\n", 0, 0, 0 );
 	if ( si->dbname == NULL ) {
@@ -362,9 +363,9 @@ backsql_db_open(
 		si->delentry_query = ch_strdup( backsql_def_delentry_query );
 	}
 
-
-	tmp.c_connid =- 1;
-	if ( backsql_get_db_conn( bd, &tmp, &dbh ) != LDAP_SUCCESS ) {
+	otmp.o_connid = -1;
+	otmp.o_bd = bd;
+	if ( backsql_get_db_conn( &otmp, &dbh ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"connection failed, exiting\n", 0, 0, 0 );
 		return 1;
@@ -418,7 +419,7 @@ backsql_db_open(
 			&si->children_cond );
 	si->has_children_query = bv.bv_val;
  
-	backsql_free_db_conn( bd, &tmp );
+	backsql_free_db_conn( &otmp );
 	if ( !BACKSQL_SCHEMA_LOADED( si ) ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_db_open(): "
 			"test failed, schema map not loaded - exiting\n",
@@ -441,12 +442,14 @@ backsql_db_close(
 }
 
 int
-backsql_connection_destroy(
-	BackendDB 	*be,
-	Connection 	*conn )
+backsql_connection_destroy( Backend *bd, Connection *c )
 {
+	Operation o;
+	o.o_bd = bd;
+	o.o_connid = c->c_connid;
+
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_connection_destroy()\n", 0, 0, 0 );
-	backsql_free_db_conn( be, conn );
+	backsql_free_db_conn( &o );
 	Debug( LDAP_DEBUG_TRACE, "<==backsql_connection_destroy()\n", 0, 0, 0 );
 	return 0;
 }

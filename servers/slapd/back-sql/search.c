@@ -1038,7 +1038,7 @@ backsql_search( Operation *op, SlapReply *rs )
 		return 1;
 	}
 
-	sres = backsql_get_db_conn( op->o_bd, op->o_conn, &dbh );
+	sres = backsql_get_db_conn( op, &dbh );
 	if ( sres != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "backsql_search(): "
 			"could not get connection handle - exiting\n", 

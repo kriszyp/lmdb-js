@@ -21,13 +21,6 @@
 
 int
 backsql_compare( Operation *op, SlapReply *rs )
-	/*
-	BackendDB	*bd,
-	Connection	*conn,
-	Operation	*op,
-	struct berval	*dn,
-	struct berval	*ndn,
-	AttributeAssertion *ava ) */
 {
 	backsql_info		*bi = (backsql_info*)op->o_bd->be_private;
 	backsql_entryID		user_id;
@@ -40,7 +33,7 @@ backsql_compare( Operation *op, SlapReply *rs )
  
  	Debug( LDAP_DEBUG_TRACE, "==>backsql_compare()\n", 0, 0, 0 );
 
-	rs->sr_err = backsql_get_db_conn( op->o_bd, op->o_conn, &dbh );
+	rs->sr_err = backsql_get_db_conn( op, &dbh );
 	if (!dbh) {
      		Debug( LDAP_DEBUG_TRACE, "backsql_compare(): "
 			"could not get connection handle - exiting\n",
@@ -123,33 +116,33 @@ return_results:;
 
 int
 backsql_operational(
-	BackendDB	*be,
-	Connection	*conn, 
 	Operation	*op,
-	Entry		*e,
-	AttributeName	*attrs,
+	SlapReply	*rs,
 	int		opattrs,
 	Attribute	**a )
 {
 
-	backsql_info 		*bi = (backsql_info*)be->be_private;
+	backsql_info 		*bi = (backsql_info*)op->o_bd->be_private;
 	SQLHDBC 		dbh = SQL_NULL_HDBC;
 	Attribute		**aa = a;
 	int			rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_operational(): entry '%s'\n",
-			e->e_nname.bv_val, 0, 0 );
+			rs->sr_entry->e_nname.bv_val, 0, 0 );
 
 
-	if ( ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, attrs ) ) 
-			&& attr_find( e->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL ) {
+	if ( ( opattrs || ad_inlist( slap_schema.si_ad_hasSubordinates, rs->sr_attrs ) ) 
+			&& attr_find( rs->sr_entry->e_attrs, slap_schema.si_ad_hasSubordinates ) == NULL ) {
 		
-		rc = backsql_get_db_conn( be, conn, &dbh );
+		rc = backsql_get_db_conn( op, &dbh );
 		if ( rc != LDAP_SUCCESS ) {
-			goto no_connection;
+			Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
+				"could not get connection handle - exiting\n", 
+				0, 0, 0 );
+			return 1;
 		}
 		
-		rc = backsql_has_children( bi, dbh, &e->e_nname );
+		rc = backsql_has_children( bi, dbh, &rs->sr_entry->e_nname );
 
 		switch( rc ) {
 		case LDAP_COMPARE_TRUE:
@@ -172,15 +165,6 @@ backsql_operational(
 	}
 
 	return rc;
-
-no_connection:;
-	Debug( LDAP_DEBUG_TRACE, "backsql_operational(): "
-		"could not get connection handle - exiting\n", 
-		0, 0, 0 );
-	send_ldap_result( conn, op, rc, "", 
-			rc == LDAP_OTHER ? "SQL-backend error" : "",
-			NULL, NULL );
-	return 1;
 }
 
 #endif /* SLAPD_SQL */

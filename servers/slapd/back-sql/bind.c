@@ -52,7 +52,7 @@ backsql_bind( Operation *op, SlapReply *rs )
 	/*
 	 * method = LDAP_AUTH_SIMPLE
 	 */
-	rs->sr_err = backsql_get_db_conn( op->o_bd, op->o_conn, &dbh );
+	rs->sr_err = backsql_get_db_conn( op, &dbh );
 	if (!dbh) {
      		Debug( LDAP_DEBUG_TRACE, "backsql_bind(): "
 			"could not get connection handle - exiting\n",

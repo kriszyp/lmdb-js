@@ -401,13 +401,13 @@ backsql_open_db_conn( backsql_info *si, int ldap_cid, backsql_db_conn **pdbc )
 }
 
 int
-backsql_free_db_conn( Backend *be, Connection *ldapc )
+backsql_free_db_conn( Operation *op )
 {
-	backsql_info		*si = (backsql_info *)be->be_private;
+	backsql_info		*si = (backsql_info *)op->o_bd->be_private;
 	backsql_db_conn		tmp, *conn;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_free_db_conn()\n", 0, 0, 0 );
-	tmp.ldap_cid = ldapc->c_connid;
+	tmp.ldap_cid = op->o_connid;
 	ldap_pvt_thread_mutex_lock( &si->dbconn_mutex );
 	conn = avl_delete( &si->db_conns, &tmp, backsql_cmp_connid );
 	ldap_pvt_thread_mutex_unlock( &si->dbconn_mutex );
@@ -426,9 +426,9 @@ backsql_free_db_conn( Backend *be, Connection *ldapc )
 }
 
 int
-backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh )
+backsql_get_db_conn( Operation *op, SQLHDBC *dbh )
 {
-	backsql_info		*si = (backsql_info *)be->be_private;
+	backsql_info		*si = (backsql_info *)op->o_bd->be_private;
 	backsql_db_conn		*dbc;
 	backsql_db_conn		tmp;
 	int			rc = LDAP_SUCCESS;
@@ -438,7 +438,7 @@ backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh )
 	assert( dbh );
 	*dbh = SQL_NULL_HDBC;
 
-	tmp.ldap_cid = ldapc->c_connid;
+	tmp.ldap_cid = op->o_connid;
 
 	/*
 	 * we have one thread per connection, as I understand -- 
@@ -446,7 +446,7 @@ backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh )
 	 */
 	dbc = avl_find( si->db_conns, &tmp, backsql_cmp_connid );
 	if ( !dbc ) {
-		rc = backsql_open_db_conn( si, ldapc->c_connid, &dbc );
+		rc = backsql_open_db_conn( si, op->o_connid, &dbc );
 		if ( rc != LDAP_SUCCESS) {
 			Debug( LDAP_DEBUG_TRACE, "backsql_get_db_conn(): "
 				"could not get connection handle "
@@ -462,7 +462,7 @@ backsql_get_db_conn( Backend *be, Connection *ldapc, SQLHDBC *dbh )
 		rc = backsql_load_schema_map( si, dbc->dbh );
 		if ( rc != LDAP_SUCCESS ) {
 			ldap_pvt_thread_mutex_unlock( &si->schema_mutex );
-			backsql_free_db_conn( be, ldapc );
+			backsql_free_db_conn( op );
 			return rc;
 		}
 	}
