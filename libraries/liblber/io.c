@@ -548,6 +548,15 @@ ber_get_next(
 		}
 
 		if (ber->ber_buf==NULL) {
+			ber_len_t l = ber->ber_rwptr - ber->ber_ptr;
+			/* ber->ber_ptr is always <= ber->ber->ber_rwptr.
+			 * make sure ber->ber_len agrees with what we've
+			 * already read.
+			 */
+			if ( ber->ber_len < i + l ) {
+				errno = ERANGE;
+				return LBER_DEFAULT;
+			}
 			ber->ber_buf = (char *) LBER_MALLOC( ber->ber_len + 1 );
 			if (ber->ber_buf==NULL) {
 				return LBER_DEFAULT;
@@ -556,10 +565,9 @@ ber_get_next(
 			if (i) {
 				AC_MEMCPY(ber->ber_buf, buf, i);
 			}
-			if (ber->ber_ptr < ber->ber_rwptr) {
-				AC_MEMCPY(ber->ber_buf + i, ber->ber_ptr, ber->ber_rwptr-
-					ber->ber_ptr);
-				i += ber->ber_rwptr - ber->ber_ptr;
+			if (l > 0) {
+				AC_MEMCPY(ber->ber_buf + i, ber->ber_ptr, l);
+				i += l;
 			}
 			ber->ber_ptr = ber->ber_buf;
 			ber->ber_usertag = 0;
