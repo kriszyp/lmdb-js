@@ -13,7 +13,6 @@
 # To generate pages for web
 #	sdf -2topics index.sdf
 #
-
 !include "../preamble.sdf"; plain
 
 # title information
@@ -27,24 +26,34 @@ PB:
 # Chapters
 !include "intro.sdf"; chapter
 PB:
+
 !include "quickstart.sdf"; chapter
 PB:
+
 !include "config.sdf"; chapter
 PB:
+
 !include "install.sdf"; chapter
 PB:
+
 !include "slapdconfig.sdf"; chapter
 PB:
+
 !include "runningslapd.sdf"; chapter
 PB:
-!include "monitoringslapd.sdf"; chapter
-PB:
+
+#!include "monitoringslapd.sdf"; chapter
+#PB:
+
 !include "dbtools.sdf"; chapter
 PB:
-!include "tuning.sdf"; chapter
-PB:
+
+#!include "tuning.sdf"; chapter
+#PB:
+
 !include "referrals.sdf"; chapter
 PB:
+
 !include "replication.sdf"; chapter
 PB:
 
@@ -55,4 +64,5 @@ PB:
 # Software Copyright/License
 !include "../release/copyright.sdf"; appendix
 PB:
+
 !include "../release/license.sdf"; appendix
