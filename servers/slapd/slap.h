@@ -340,7 +340,6 @@ typedef struct slap_syntax_defs_rec {
 	char *sd_desc;
 	int sd_flags;
 	slap_syntax_validate_func *sd_validate;
-	slap_syntax_transform_func *sd_normalizeXXX; /* to be deleted */
 	slap_syntax_transform_func *sd_pretty;
 #ifdef SLAPD_BINARY_CONVERSION
 	slap_syntax_transform_func *sd_ber2str;

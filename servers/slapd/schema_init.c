@@ -33,15 +33,6 @@
 #define SLAP_MR_ASSOCIATED(mr, with) \
 	((mr) == (with) || (mr)->smr_associated == (with))
 
-#define xUTF8StringNormalize NULL
-#define xIA5StringNormalize NULL
-#define xtelephoneNumberNormalize NULL
-#define xgeneralizedTimeNormalize NULL
-#define xintegerNormalize NULL
-#define xnumericStringNormalize NULL
-#define xnameUIDNormalize NULL
-#define xdnNormalize NULL
-
 /* (new) normalization routines */
 #define caseExactIA5Normalize						IA5StringNormalize
 #define caseIgnoreIA5Normalize						IA5StringNormalize
@@ -2769,128 +2760,128 @@ bootParameterValidate(
 static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.2 DESC 'Access Point' " X_NOT_H_R ")",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.3 DESC 'Attribute Type Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.4 DESC 'Audio' "
 		X_NOT_H_R ")",
-		SLAP_SYNTAX_BLOB, blobValidate, NULL, NULL},
+		SLAP_SYNTAX_BLOB, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.5 DESC 'Binary' "
 		X_NOT_H_R ")",
-		SLAP_SYNTAX_BER, berValidate, NULL, NULL},
+		SLAP_SYNTAX_BER, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.6 DESC 'Bit String' )",
-		0, bitStringValidate, NULL, NULL },
+		0, bitStringValidate, NULL },
 	{"( 1.3.6.1.4.1.1466.115.121.1.7 DESC 'Boolean' )",
-		0, booleanValidate, NULL, NULL},
+		0, booleanValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.8 DESC 'Certificate' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.9 DESC 'Certificate List' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.10 DESC 'Certificate Pair' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.11 DESC 'Country String' )",
-		0, countryStringValidate, xIA5StringNormalize, NULL},
+		0, countryStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.12 DESC 'Distinguished Name' )",
-		0, dnValidate, xdnNormalize, dnPretty2},
+		0, dnValidate, dnPretty2},
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.14 DESC 'Delivery Method' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.15 DESC 'Directory String' )",
-		0, UTF8StringValidate, xUTF8StringNormalize, NULL},
+		0, UTF8StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.16 DESC 'DIT Content Rule Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.17 DESC 'DIT Structure Rule Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.19 DESC 'DSA Quality' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.20 DESC 'DSE Type' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.21 DESC 'Enhanced Guide' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.22 DESC 'Facsimile Telephone Number' )",
-		0, printablesStringValidate, xtelephoneNumberNormalize, NULL},
+		0, printablesStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.23 DESC 'Fax' " X_NOT_H_R ")",
-		SLAP_SYNTAX_BLOB, NULL, NULL, NULL},
+		SLAP_SYNTAX_BLOB, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.24 DESC 'Generalized Time' )",
-		0, generalizedTimeValidate, xgeneralizedTimeNormalize, NULL},
+		0, generalizedTimeValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.25 DESC 'Guide' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.26 DESC 'IA5 String' )",
-		0, IA5StringValidate, xIA5StringNormalize, NULL},
+		0, IA5StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.27 DESC 'Integer' )",
-		0, integerValidate, xintegerNormalize, NULL},
+		0, integerValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.28 DESC 'JPEG' " X_NOT_H_R ")",
-		SLAP_SYNTAX_BLOB, blobValidate, NULL, NULL},
+		SLAP_SYNTAX_BLOB, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.29 DESC 'Master And Shadow Access Points' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.30 DESC 'Matching Rule Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.31 DESC 'Matching Rule Use Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.32 DESC 'Mail Preference' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.33 DESC 'MHS OR Address' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.34 DESC 'Name And Optional UID' )",
-		0, nameUIDValidate, xnameUIDNormalize, NULL},
+		0, nameUIDValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.35 DESC 'Name Form Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.36 DESC 'Numeric String' )",
-		0, numericStringValidate, xnumericStringNormalize, NULL},
+		0, numericStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.37 DESC 'Object Class Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.38 DESC 'OID' )",
-		0, oidValidate, NULL, NULL},
+		0, oidValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.39 DESC 'Other Mailbox' )",
-		0, IA5StringValidate, xIA5StringNormalize, NULL},
+		0, IA5StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.40 DESC 'Octet String' )",
-		0, blobValidate, NULL, NULL},
+		0, blobValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.41 DESC 'Postal Address' )",
-		0, UTF8StringValidate, xUTF8StringNormalize, NULL},
+		0, UTF8StringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.42 DESC 'Protocol Information' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.43 DESC 'Presentation Address' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.44 DESC 'Printable String' )",
-		0, printableStringValidate, xIA5StringNormalize, NULL},
+		0, printableStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.45 DESC 'SubtreeSpecification' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.49 DESC 'Supported Algorithm' "
 		X_BINARY X_NOT_H_R ")",
-		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL, NULL},
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, berValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.50 DESC 'Telephone Number' )",
-		0, printableStringValidate, xtelephoneNumberNormalize, NULL},
+		0, printableStringValidate, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
-		0, printablesStringValidate, xIA5StringNormalize, NULL},
+		0, printablesStringValidate, NULL},
 #ifdef SUPPORT_OBSOLETE_UTC_SYNTAX
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
-		0, utcTimeValidate, xutcTimeNormalize, NULL},
+		0, utcTimeValidate, NULL},
 #endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.55 DESC 'Modify Rights' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.56 DESC 'LDAP Schema Definition' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.57 DESC 'LDAP Schema Description' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.58 DESC 'Substring Assertion' )",
-		0, NULL, NULL, NULL},
+		0, NULL, NULL},
 
 	/* RFC 2307 NIS Syntaxes */
 	{"( 1.3.6.1.1.1.0.0  DESC 'RFC2307 NIS Netgroup Triple' )",
-		0, nisNetgroupTripleValidate, NULL, NULL},
+		0, nisNetgroupTripleValidate, NULL},
 	{"( 1.3.6.1.1.1.0.1  DESC 'RFC2307 Boot Parameter' )",
-		0, bootParameterValidate, NULL, NULL},
+		0, bootParameterValidate, NULL},
 
 #ifdef HAVE_TLS
 	/* From PKIX */
@@ -2899,7 +2890,7 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	 * Chadwick in private mail.
 	 */
 	{"( 1.2.826.0.1.3344810.7.1 DESC 'Serial Number and Issuer' )",
-		0, UTF8StringValidate, NULL, NULL},
+		0, UTF8StringValidate, NULL},
 #endif
 
 	/* OpenLDAP Experimental Syntaxes */
@@ -2907,19 +2898,19 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
 		SLAP_SYNTAX_HIDE,
 		UTF8StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
-		NULL, NULL},
+		NULL},
 #endif
 
 #ifdef SLAPD_AUTHPASSWD
 	/* needs updating */
 	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
-		SLAP_SYNTAX_HIDE, NULL, NULL, NULL},
+		SLAP_SYNTAX_HIDE, NULL, NULL},
 #endif
 
 	/* OpenLDAP Void Syntax */
 	{"( 1.3.6.1.4.1.4203.1.1.1 DESC 'OpenLDAP void' )" ,
-		SLAP_SYNTAX_HIDE, inValidate, NULL, NULL},
-	{NULL, 0, NULL, NULL, NULL}
+		SLAP_SYNTAX_HIDE, inValidate, NULL},
+	{NULL, 0, NULL, NULL}
 };
 
 #ifdef HAVE_TLS
