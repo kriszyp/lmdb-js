@@ -6,6 +6,7 @@ Changes included in OpenLDAP 1.2
 	Update ldap_open(3) man page to note ldap_init() is preferred.
 	Build environment
 		Fixed mkdep to handle multiple dependent files on one line
+		Fixed openldap.m4 to "protect" shell variable
 
 Changes included in OpenLDAP 1.2
 	CVS Tag: OPENLDAP_REL_ENG_1_2_BETA
