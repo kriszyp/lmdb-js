@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.223.2.14 2000/09/08 15:02:52 kurt Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.223.2.15 2000/09/13 00:42:32 kurt Exp  
 
 # Copyright 1998-2000 The OpenLDAP Foundation.  All Rights Reserved.
 # 
