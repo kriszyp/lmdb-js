@@ -3,16 +3,19 @@ OpenLDAP 2.0 Change Log
 OpenLDAP 2.0.19 Engineering
 	Fixed -lldap cacertfile bug
 	Fixed back-ldbm not filter indexing
-	Fixed back-passwd e_ndn bug
+	Fixed back-passwd e_ndn bug (ITS#1467)
 	Fixed slapd suffix "" bugs (ITS#1430)
-	Fixed slapd zero length replace bug
+	Fixed slapd zero length replace bug (ITS#1364)
+	Fixed lber realloc bug (ITS#1410)
 	Fixed various memory leaks
 	Updated slapd emfile/enfile handling
 	Build environment
-		Fixed Kerberos build bug
-		Updated CThread detection
-		Updated MAXPATHLEN handling
-		Added GNU ar support
+		Fixed passwd-search port bug (ITS#1461)
+		Fixed Kerberos build bug (ITS#1468)
+		Updated CThread detection (ITS#1440)
+		Updated MAXPATHLEN handling (ITS#1440)
+		Fixed TLS build (ITS#1412)
+		Added GNU ar support (ITS#1460)
 
 OpenLDAP 2.0.18 Release
 	Fixed -llber ber_bvecadd bug (ITS#1398)
