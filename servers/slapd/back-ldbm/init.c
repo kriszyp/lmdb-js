@@ -171,7 +171,6 @@ ldbm_back_db_destroy(
 )
 {
 	/* should free/destroy every in be_private */
-#ifdef SLAP_CLEANUP
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	free( li->li_directory );
 	attr_index_destroy( li->li_attrs );
@@ -182,8 +181,9 @@ ldbm_back_db_destroy(
 	ldap_pvt_thread_mutex_destroy( &li->li_nextid_mutex );
 	ldap_pvt_thread_mutex_destroy( &li->li_dbcache_mutex );
 	ldap_pvt_thread_cond_destroy( &li->li_dbcache_cv );
-#endif /* SLAP_CLEANUP */
+
 	free( be->be_private );
 	be->be_private = NULL;
+
 	return 0;
 }

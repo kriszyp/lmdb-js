@@ -672,8 +672,6 @@ cache_delete_entry_internal(
 	return( 0 );
 }
 
-#ifdef SLAP_CLEANUP
-
 void
 cache_release_all( Cache *cache )
 {
@@ -702,8 +700,6 @@ cache_release_all( Cache *cache )
 	/* free cache mutex */
 	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
 }
-
-#endif /* SLAP_CLEANUP */
 
 #ifdef LDAP_DEBUG
 

@@ -172,8 +172,6 @@ attr_index_config(
 }
 
 
-#ifdef SLAP_CLEANUP
-
 static void
 ainfo_free( void *attr )
 {
@@ -188,4 +186,3 @@ attr_index_destroy( Avlnode *tree )
 	avl_free( tree, ainfo_free );
 }
 
-#endif /* SLAP_CLEANUP */

@@ -36,9 +36,7 @@ void attr_masks LDAP_P(( struct ldbminfo *li, char *type, int *indexmask,
  int *syntaxmask ));
 void attr_index_config LDAP_P(( struct ldbminfo *li, char *fname, int lineno,
  int argc, char **argv, int init ));
-#ifdef SLAP_CLEANUP
 void attr_index_destroy LDAP_P(( Avlnode *tree ));
-#endif
 
 /*
  * cache.c
@@ -53,9 +51,7 @@ void cache_return_entry_rw LDAP_P(( Cache *cache, Entry *e, int rw ));
 ID cache_find_entry_dn2id LDAP_P(( Backend *be, Cache *cache, char *dn ));
 Entry * cache_find_entry_id LDAP_P(( Cache *cache, ID id, int rw ));
 int cache_delete_entry LDAP_P(( Cache *cache, Entry *e ));
-#ifdef SLAP_CLEANUP
 void cache_release_all LDAP_P(( Cache *cache ));
-#endif
 
 /*
  * dbcache.c
