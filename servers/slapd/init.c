@@ -113,8 +113,6 @@ slap_init( int mode, const char *name )
 
 		slap_name = name;
 
-		(void) ldap_pvt_thread_initialize();
-
 		ldap_pvt_thread_pool_init( &connection_pool,
 				connection_pool_max, 0);
 
