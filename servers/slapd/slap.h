@@ -1857,8 +1857,8 @@ typedef struct slap_overinst {
 
 typedef struct slap_overinfo {
 	BackendInfo oi_bi;
-	BackendDB oi_bd;
-	slap_overinst *oi_list;
+	BackendInfo *oi_orig;
+	struct slap_overinst *oi_list;
 } slap_overinfo;
 
 /* Should successive callbacks in a chain be processed? */

@@ -73,13 +73,15 @@ monitor_subsys_database_init(
 		char		buf[ BACKMONITOR_BUFSIZE ];
 		int		j;
 		slap_overinfo	*oi = NULL;
+		BackendInfo	*bi;
 
 		be = &backendDB[i];
 
+		bi = be->bd_info;
+
 		if ( strcmp( be->bd_info->bi_type, "over" ) == 0 ) {
 			oi = (slap_overinfo *)be->bd_info;
-
-			be = &oi->oi_bd;
+			bi = oi->oi_orig;
 		}
 
 		/* Subordinates are not exposed as their own naming context */
@@ -102,7 +104,7 @@ monitor_subsys_database_init(
 				mi->mi_oc_monitoredObject->soc_cname.bv_val,
 				i,
 				mi->mi_ad_monitoredInfo->ad_cname.bv_val,
-				be->bd_info->bi_type,
+				bi->bi_type,
 				mi->mi_startTime.bv_val,
 				mi->mi_startTime.bv_val );
 		
@@ -166,7 +168,7 @@ monitor_subsys_database_init(
 		}
 
 #if defined(SLAPD_LDAP) 
-		if ( strcmp( be->bd_info->bi_type, "ldap" ) == 0 ) {
+		if ( strcmp( bi->bi_type, "ldap" ) == 0 ) {
 			struct ldapinfo		*li = (struct ldapinfo *)be->be_private;
 			struct berval		bv;
 
@@ -178,7 +180,7 @@ monitor_subsys_database_init(
 #endif /* defined(SLAPD_LDAP) */
 
 		for ( j = nBackendInfo; j--; ) {
-			if ( backendInfo[ j ].bi_type == be->bd_info->bi_type ) {
+			if ( backendInfo[ j ].bi_type == bi->bi_type ) {
 				struct berval 		bv;
 
 				snprintf( buf, sizeof( buf ), 
