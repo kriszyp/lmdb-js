@@ -409,6 +409,9 @@ long connection_init(
 	c->c_n_read = 0;
 	c->c_n_write = 0;
 
+	/* assume LDAPv3 until bind */
+	c->c_protocol = LDAP_VERSION3;
+
     c->c_activitytime = c->c_starttime = slap_get_time();
 
     ber_pvt_sb_set_desc( c->c_sb, s );
