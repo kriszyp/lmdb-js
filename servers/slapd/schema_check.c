@@ -42,9 +42,9 @@ entry_schema_check(
 	if ( (aoc = attr_find( e->e_attrs, ad_objectClass )) == NULL ) {
 #ifdef NEW_LOGGING
             LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-                       "entry_schema_check: No object class for entry (%s).\n", e->e_dn ));
+                       "entry_schema_check: No objectClass for entry (%s).\n", e->e_dn ));
 #else
-		Debug( LDAP_DEBUG_ANY, "No object class for entry (%s)\n",
+		Debug( LDAP_DEBUG_ANY, "No objectClass for entry (%s)\n",
 		    e->e_dn, 0, 0 );
 #endif
 
@@ -57,11 +57,11 @@ entry_schema_check(
 		if ( (oc = oc_find( aoc->a_vals[i]->bv_val )) == NULL ) {
 #ifdef NEW_LOGGING
                     LDAP_LOG(( "schema", LDAP_LEVEL_INFO,
-                               "entry_schema_check: dn (%s), objectclass \"%s\" not recognized\n",
+                               "entry_schema_check: dn (%s), objectClass \"%s\" not recognized\n",
                                e->e_dn, aoc->a_vals[i]->bv_val ));
 #else
 			Debug( LDAP_DEBUG_ANY,
-				"entry_check_schema(%s): objectclass \"%s\" not recognized\n",
+				"entry_check_schema(%s): objectClass \"%s\" not recognized\n",
 				e->e_dn, aoc->a_vals[i]->bv_val, 0 );
 #endif
 
@@ -133,11 +133,11 @@ oc_check_required( Entry *e, struct berval *ocname )
 
 #ifdef NEW_LOGGING
         LDAP_LOG(( "schema", LDAP_LEVEL_ENTRY,
-                   "oc_check_required: dn (%s), objectclass \"%s\"\n",
+                   "oc_check_required: dn (%s), objectClass \"%s\"\n",
                    e->e_dn, ocname->bv_val ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	       "oc_check_required entry (%s), objectclass \"%s\"\n",
+	       "oc_check_required entry (%s), objectClass \"%s\"\n",
 	       e->e_dn, ocname->bv_val, 0 );
 #endif
 
@@ -187,8 +187,8 @@ int oc_check_allowed(
 #endif
 
 
-	/* always allow objectclass attribute */
-	if ( strcasecmp( at->sat_cname, "objectclass" ) == 0 ) {
+	/* always allow objectClass attribute */
+	if ( strcasecmp( at->sat_cname, "objectClass" ) == 0 ) {
 		return LDAP_SUCCESS;
 	}
 
