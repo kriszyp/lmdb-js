@@ -120,15 +120,29 @@ To do this just run slapd.
 .{{EX:/usr/local/libexec/slapd}}
 
 .At this point the LDAP server is up and running, but there isn't any data
-in the directory.  We can use ldapadd to populate the directory.
+in the directory.
+You can check to see if the server is running and your naming context
+(the {{EX:suffix}} you specified above) by searching it with
+{{I:ldapsearch}}(1).
+By default ldapsearch is installed as {{FILE:/usr/local/bin/ldapsearch}}.
+
+.{{EX:ldapsearch -x -b "" -s base '(objectclass=*)' namingContexts
+
+This should return:
+
+.{{EX:dn:}}
+.{{EX:namingContexts: dc=example, dc=net}}
+
+.We can use {{I:ldapadd}}(1) to populate the directory.
 Again remember to replace dc=example,dc=net with the correct values for your
-site.  By default ldapadd is installed as /usr/local/bin/ldapadd.
+site.  By default ldapadd is installed as {{FILE:/usr/local/bin/ldapadd}}.
 
 .{{EX:ldapadd -x -D"cn=Manager,dc=example,dc=net" -w secret -f myldif}}
 
 .Where myldif is the file you made in step 7A above. By default, the database
-files will be created in /usr/local/var/openldap-ldbm. You may specify an
-alternate directory via the directory option in the slapd.conf file.
+files will be created in {{FILE:/usr/local/var/openldap-ldbm}}.
+You may specify an alternate directory via the directory option in the
+{{FILE:slapd.conf}} file.
 
 + {{B:See if it works}}.
 . Now we're ready to try everything out.  
@@ -137,7 +151,7 @@ alternate directory via the directory option in the slapd.conf file.
 example uses the ldapsearch tool.  Remember to replace dc=example,dc=net with
 the correct values for your site.
 
-.{{EX:ldapsearch -b 'dc=example,dc=net' '(objectclass=*)'}}
+.{{EX:ldapsearch -x -b 'dc=example,dc=net' '(objectclass=*)'}}
 
 . This command will search for and retrieve every entry in the database.
 Note the use of single quotes around the filter, which prevents the "*"
@@ -150,7 +164,6 @@ grants {{EX:READ}} access to everybody. So if you want to add or modify
 entries over LDAP, you will have to bind as the rootdn specified in the
 config file (see Section 5.2.2), or change the default access control
 (see Section 5.3).
-
 
 The following sections provide more detailed information on making,
 installing, and running slapd.
