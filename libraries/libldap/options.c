@@ -16,6 +16,8 @@
 
 #include "ldap-int.h"
 
+#define LDAP_OPT_REBIND_PROC 0x4e814d
+
 static const LDAPAPIFeatureInfo features[] = {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP
 	{	/* OpenLDAP Extensions API Feature */
@@ -420,6 +422,11 @@ ldap_set_option(
 				return LDAP_OPT_ERROR;
 			}
 		} return LDAP_OPT_SUCCESS;
+
+	/* Only accessed from inside this function by ldap_set_rebind_proc() */
+	case LDAP_OPT_REBIND_PROC: {
+			lo->ldo_rebindproc = (LDAP_REBIND_PROC *)invalue;		
+		} return LDAP_OPT_SUCCESS;
 	}
 
 	if(invalue == NULL) {
@@ -587,4 +594,10 @@ ldap_set_option(
 		break;
 	}
 	return LDAP_OPT_ERROR;
+}
+
+LIBLDAP_F(int)
+ldap_set_rebind_proc( LDAP *ld, LDAP_REBIND_PROC *rebind_proc)
+{
+	return( ldap_set_option( ld, LDAP_OPT_REBIND_PROC, (void *)rebind_proc));
 }

@@ -229,38 +229,35 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 
 
 static int
-bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
-	int freeit )
+bind_prompt( LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid)
 {
 	static char	dn[256], passwd[256];
+	char *dnp;
+	int	authmethod;
 
-	if ( !freeit ) {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		getline( dn, sizeof(dn), stdin,
 		    "re-bind method (0->simple, 1->krbv41, 2->krbv42, 3->krbv41&2)? " );
-		if (( *authmethodp = atoi( dn )) == 3 ) {
-			*authmethodp = LDAP_AUTH_KRBV4;
+	if (( authmethod = atoi( dn )) == 3 ) {
+		authmethod = LDAP_AUTH_KRBV4;
 		} else {
-			*authmethodp |= 0x80;
+		authmethod |= 0x80;
 		}
 #else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
-		*authmethodp = LDAP_AUTH_SIMPLE;
+	authmethod = LDAP_AUTH_SIMPLE;
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 		getline( dn, sizeof(dn), stdin, "re-bind dn? " );
 		strcat( dn, dnsuffix );
-		*dnp = dn;
 
-		if ( *authmethodp == LDAP_AUTH_SIMPLE && dn[0] != '\0' ) {
+	if ( authmethod == LDAP_AUTH_SIMPLE && dn[0] != '\0' ) {
 			getline( passwd, sizeof(passwd), stdin,
 			    "re-bind password? " );
 		} else {
 			passwd[0] = '\0';
 		}
-		*passwdp = passwd;
-	}
 
-	return( LDAP_SUCCESS );
+	return ldap_bind_s( ld, dn, passwd, authmethod);
 }
 
 

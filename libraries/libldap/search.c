@@ -173,6 +173,10 @@ ldap_search_ext_s(
 		return( ld->ld_errno );
 	}
 
+	if( rc == LDAP_RES_SEARCH_REFERENCE) {
+		return( ld->ld_errno );
+	}
+
 	return( ldap_result2error( ld, *res, 0 ) );
 }
 

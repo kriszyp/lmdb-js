@@ -162,7 +162,7 @@ cldap_open( LDAP_CONST char *host, int port )
     }
 
     if ( ld->ld_cldapaddrs == NULL
-	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,0 )) == NULL
+	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,NULL )) == NULL
 	    ) {
 	ldap_ld_free( ld, 0, NULL, NULL );
 	DO_RETURN( NULL );

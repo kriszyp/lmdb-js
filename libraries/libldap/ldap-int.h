@@ -119,6 +119,9 @@ struct ldapoptions {
 	/* LDAPv3 server and client controls */
 	LDAPControl	**ldo_sctrls;
 	LDAPControl **ldo_cctrls;
+	/* LDAPV3 rebind callback function
+	*/
+	LDAP_REBIND_PROC		*ldo_rebindproc;
 
 #ifdef HAVE_TLS
    	/* tls context */
@@ -152,6 +155,8 @@ typedef struct ldap_conn {
 	Sockbuf			*lconn_sb;
 	int			lconn_refcnt;
 	time_t		lconn_lastused;	/* time */
+	int			lconn_rebind_inprogress;	/* set if rebind in progress */
+	char		***lconn_rebind_queue;		/* used if rebind in progress */
 	int			lconn_status;
 #define LDAP_CONNST_NEEDSOCKET		1
 #define LDAP_CONNST_CONNECTING		2
@@ -169,6 +174,7 @@ typedef struct ldap_conn {
 typedef struct ldapreq {
 	ber_int_t		lr_msgid;	/* the message id */
 	int		lr_status;	/* status of request */
+#define LDAP_REQST_COMPLETED	0
 #define LDAP_REQST_INPROGRESS	1
 #define LDAP_REQST_CHASINGREFS	2
 #define LDAP_REQST_NOTCONNECTED	3
@@ -205,6 +211,15 @@ typedef struct ldapcache {
 }  LDAPCache;
 
 /*
+ * structure containing referral request info for rebind procedure
+ */
+typedef struct ldapreqinfo {
+	ber_len_t	ri_msgid;
+	int			ri_request;
+	char 		*ri_url;
+} LDAPreqinfo;
+
+/*
  * handy macro for checking if handle is connectionless
  */
 
@@ -237,6 +252,7 @@ struct ldap {
 
 #define ld_sctrls		ld_options.ldo_sctrls
 #define ld_cctrls		ld_options.ldo_cctrls
+#define ld_rebindproc	ld_options.ldo_rebindproc
 
 #define ld_version		ld_options.ldo_version	
 	char	*ld_host;
@@ -272,9 +288,6 @@ struct ldap {
 	LDAPConn	*ld_defconn;	/* default connection */
 	LDAPConn	*ld_conns;	/* list of server connections */
 	void		*ld_selectinfo;	/* platform specifics for select */
-	int		(*ld_rebindproc)( struct ldap *ld, char **dnp,
-				char **passwdp, int *authmethodp, int freeit );
-				/* routine to get info needed for re-bind */
 #ifdef HAVE_CYRUS_SASL
 	sasl_conn_t		*ld_sasl_context;
 #endif /* HAVE_CYRUS_SASL */
@@ -409,14 +422,15 @@ LIBLDAP_F (ber_int_t) ldap_send_initial_request( LDAP *ld, ber_tag_t msgtype,
 LIBLDAP_F (BerElement *) ldap_alloc_ber_with_options( LDAP *ld );
 LIBLDAP_F (void) ldap_set_ber_options( LDAP *ld, BerElement *ber );
 
-LIBLDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc *srvlist, LDAPConn *lc, int bind );
-LIBLDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb, int connect, int bind );
+LIBLDAP_F (int) ldap_send_server_request( LDAP *ld, BerElement *ber, ber_int_t msgid, LDAPRequest *parentreq, LDAPURLDesc *srvlist, LDAPConn *lc, LDAPreqinfo *bind );
+LIBLDAP_F (LDAPConn *) ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb, int connect, LDAPreqinfo *bind );
 LIBLDAP_F (LDAPRequest *) ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid );
 LIBLDAP_F (void) ldap_free_request( LDAP *ld, LDAPRequest *lr );
 LIBLDAP_F (void) ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind );
 LIBLDAP_F (void) ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all );
 LIBLDAP_F (void) ldap_dump_requests_and_responses( LDAP *ld );
 LIBLDAP_F (int) ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp );
+LIBLDAP_F (int) ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **referralsp, int *hadrefp );
 LIBLDAP_F (int) ldap_append_referral( LDAP *ld, char **referralsp, char *s );
 
 /*

@@ -274,6 +274,36 @@ ldap_url_parse( LDAP_CONST char *url_in, LDAPURLDesc **ludpp )
 		return LDAP_URL_ERR_MEM;
 	}
 
+	/*
+	 * Kluge.  ldap://111.222.333.444:389??cn=abc,o=company
+	 *
+	 * On early Novell releases, search references/referrals were returned
+	 * in this format, i.e., the dn was kind of in the scope position,
+	 * but the required slash is missing. The whole thing is illegal syntax,
+	 * but we need to account for it. Fortunately it can't be confused with
+	 * anything real.
+	 */
+	if( (p == NULL) && ((q = strchr( q, '?')) != NULL)) {
+		q++;		
+		/* ? immediately followed by question */
+		if( *q == '?') {
+			q++;
+			if( *q != '\0' ) {
+				/* parse dn part */
+				ldap_pvt_hex_unescape( q );
+				ludp->lud_dn = LDAP_STRDUP( q );
+			} else {
+				ludp->lud_dn = LDAP_STRDUP( "" );
+			}
+
+			if( ludp->lud_dn == NULL ) {
+				LDAP_FREE( url );
+				ldap_free_urldesc( ludp );
+				return LDAP_URL_ERR_MEM;
+			}
+		}
+	}
+
 	if( p == NULL ) {
 		LDAP_FREE( url );
 		*ludpp = ludp;
@@ -721,6 +751,7 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 	int		err;
 	LDAPURLDesc	*ludp;
 	BerElement	*ber;
+	LDAPreqinfo  bind;
 
 	if ( ldap_url_parse( url, &ludp ) != 0 ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
@@ -734,11 +765,14 @@ ldap_url_search( LDAP *ld, LDAP_CONST char *url, int attrsonly )
 	if ( ber == NULL ) {
 		err = -1;
 	} else {
+		bind.ri_request = LDAP_REQ_SEARCH;
+		bind.ri_msgid = ld->ld_msgid;
+		bind.ri_url = (char *)url;
 		err = ldap_send_server_request(
 					ld, ber, ld->ld_msgid, NULL,
 					(ludp->lud_host != NULL || ludp->lud_port != 0)
 						? ludp : NULL,
-					NULL, 1 );
+					NULL, &bind );
 	}
 
 	ldap_free_urldesc( ludp );

@@ -6,6 +6,23 @@
 /*  Portions
  *  Copyright (c) 1995 Regents of the University of Michigan.
  *  All rights reserved.
+ ******************************************************************************
+ * This notice applies to changes, created by or for Novell, Inc.,
+ * to preexisting works for which notices appear elsewhere in this file.
+ *
+ * Copyright (C) 1999, 2000 Novell, Inc. All Rights Reserved.
+ *
+ * THIS WORK IS SUBJECT TO U.S. AND INTERNATIONAL COPYRIGHT LAWS AND TREATIES.
+ * USE, MODIFICATION, AND REDISTRIBUTION OF THIS WORK IS SUBJECT TO VERSION
+ * 2.0.1 OF THE OPENLDAP PUBLIC LICENSE, A COPY OF WHICH IS AVAILABLE AT
+ * HTTP://WWW.OPENLDAP.ORG/LICENSE.HTML OR IN THE FILE "LICENSE" IN THE
+ * TOP-LEVEL DIRECTORY OF THE DISTRIBUTION. ANY USE OR EXPLOITATION OF THIS
+ * WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP PUBLIC
+ * LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT THE
+ * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY. 
+ ******************************************************************************
+ * Modification to OpenLDAP source by Novell, Inc.
+ * April 2000 sfs  Added code to chase V3 referrals
  *
  *  request.c - sending of ldap requests; handling of referrals
  */
@@ -36,7 +53,8 @@ static BerElement *re_encode_request LDAP_P((
 	LDAP *ld,
 	BerElement *origber,
     ber_int_t msgid,
-	char **dnp ));
+	char **dnp,
+	int	 *type));
 
 
 BerElement *
@@ -132,7 +150,7 @@ ldap_send_initial_request(
 	}	
 
 	rc = ldap_send_server_request( ld, ber, ld->ld_msgid, NULL,
-									servers, NULL, 0 );
+									servers, NULL, NULL );
 	if (servers)
 		ldap_free_urllist(servers);
 	return(rc);
@@ -148,7 +166,7 @@ ldap_send_server_request(
 	LDAPRequest *parentreq,
 	LDAPURLDesc *srvlist,
 	LDAPConn *lc,
-	int bind )
+	LDAPreqinfo *bind )
 {
 	LDAPRequest	*lr;
 	int incparent;
@@ -164,7 +182,7 @@ ldap_send_server_request(
 		} else {
 			if (( lc = find_connection( ld, srvlist, 1 )) ==
 			    NULL ) {
-				if ( bind && (parentreq != NULL) ) {
+				if ( (bind != NULL) && (parentreq != NULL) ) {
 					/* Remember the bind in the parent */
 					incparent = 1;
 					++parentreq->lr_outrefcnt;
@@ -255,12 +273,13 @@ ldap_send_server_request(
 
 LDAPConn *
 ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
-	int connect, int bind )
+	int connect, LDAPreqinfo *bind )
 {
 	LDAPConn	*lc;
 	LDAPURLDesc	*srv;
 	Sockbuf		*sb;
 
+	Debug( LDAP_DEBUG_TRACE, "ldap_new_connection\n", 0, 0, 0 );
 	/*
 	 * make a new LDAP server connection
 	 * XXX open connection synchronously for now
@@ -305,49 +324,57 @@ ldap_new_connection( LDAP *ld, LDAPURLDesc *srvlist, int use_ldsb,
 	 * XXX for now, we always do a synchronous bind.  This will have
 	 * to change in the long run...
 	 */
-	if ( bind ) {
-		int		err, freepasswd, authmethod;
-		char		*binddn, *passwd;
+	if ( bind != NULL) {
+		int		err = 0;
 		LDAPConn	*savedefconn;
 
-		freepasswd = err = 0;
-
-		if ( ld->ld_rebindproc == 0 ) {
-			binddn = passwd = "";
-			authmethod = LDAP_AUTH_SIMPLE;
-		} else {
-			if (( err = (*ld->ld_rebindproc)( ld, &binddn, &passwd,
-			    &authmethod, 0 )) == LDAP_SUCCESS ) {
-				freepasswd = 1;
+		/* Set flag to prevent additional referrals from being processed on this
+		 * connection until the bind has completed
+		 */
+		lc->lconn_rebind_inprogress = 1;
+		/* V3 rebind function */
+		if ( ld->ld_rebindproc != NULL) {
+			LDAPURLDesc	*srvfunc;
+			if( ( srvfunc = ldap_url_dup( srvlist)) == NULL) {
+				ld->ld_errno = LDAP_NO_MEMORY;
+				err = -1;
 			} else {
-				ld->ld_errno = err;
+				savedefconn = ld->ld_defconn;
+				++lc->lconn_refcnt;	/* avoid premature free */
+				ld->ld_defconn = lc;
+
+				Debug( LDAP_DEBUG_TRACE, "Call application rebindproc\n", 0, 0, 0);
+				err = (*ld->ld_rebindproc)( ld, bind->ri_url, bind->ri_request, bind->ri_msgid);
+
+				ld->ld_defconn = savedefconn;
+				--lc->lconn_refcnt;
+
+				if( err != 0) {
 				err = -1;
+					ldap_free_connection( ld, lc, 1, 0 );
+					lc = NULL;
 			}
+				ldap_free_urldesc( srvfunc);
 		}
-
-
-		if ( err == 0 ) {
+		} else {
 			savedefconn = ld->ld_defconn;
-			ld->ld_defconn = lc;
 			++lc->lconn_refcnt;	/* avoid premature free */
+			ld->ld_defconn = lc;
 
-			if ( ldap_bind_s( ld, binddn, passwd, authmethod ) !=
-			    LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "anonymous rebind via ldap_bind_s\n", 0, 0, 0);
+			if ( ldap_bind_s( ld, "", "", LDAP_AUTH_SIMPLE ) != LDAP_SUCCESS ) {
 				err = -1;
 			}
-			--lc->lconn_refcnt;
 			ld->ld_defconn = savedefconn;
-		}
-
-		if ( freepasswd ) {
-			(*ld->ld_rebindproc)( ld, &binddn, &passwd,
-				&authmethod, 1 );
-		}
+			--lc->lconn_refcnt;
 
 		if ( err != 0 ) {
 			ldap_free_connection( ld, lc, 1, 0 );
 			lc = NULL;
 		}
+	}
+		if( lc != NULL)
+			lc->lconn_rebind_inprogress = 0;
 	}
 
 	return( lc );
@@ -434,6 +461,13 @@ ldap_free_connection( LDAP *ld, LDAPConn *lc, int force, int unbind )
 		if ( lc->lconn_sb != &ld->ld_sb ) {
 			ber_sockbuf_free( lc->lconn_sb );
 		}
+		if( lc->lconn_rebind_queue != NULL) {
+			int i;
+			for( i = 0; lc->lconn_rebind_queue[i] != NULL; i++) {
+				free_strarray(lc->lconn_rebind_queue[i]);
+			}
+			LDAP_FREE( lc->lconn_rebind_queue);
+		}
 		LDAP_FREE( lc );
 		Debug( LDAP_DEBUG_TRACE, "ldap_free_connection: actually freed\n",
 		    0, 0, 0 );
@@ -465,8 +499,24 @@ ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 		    ( lc->lconn_status == LDAP_CONNST_NEEDSOCKET ) ?
 		    "NeedSocket" : ( lc->lconn_status ==
 		    LDAP_CONNST_CONNECTING ) ? "Connecting" : "Connected" );
-		fprintf( stderr, "  last used: %s\n",
+		fprintf( stderr, "  last used: %s",
 		    ldap_pvt_ctime( &lc->lconn_lastused, timebuf ));
+		if( lc->lconn_rebind_inprogress ) {
+			fprintf( stderr, "  rebind in progress\n");
+			if( lc->lconn_rebind_queue != NULL) {
+				int i = 0;
+				for( ;lc->lconn_rebind_queue[i] != NULL; i++) {
+					int j = 0;
+					for( ;lc->lconn_rebind_queue[i][j] != 0; j++) {
+						fprintf( stderr, "    queue %d entry %d - %s\n",
+							i, j, lc->lconn_rebind_queue[i][j]);
+					}
+				}
+			} else {
+				fprintf( stderr, "    queue is empty\n");
+			}
+		}
+		fprintf(stderr, "\n");
 		if ( !all ) {
 			break;
 		}
@@ -486,11 +536,12 @@ ldap_dump_requests_and_responses( LDAP *ld )
 	}
 	for ( ; lr != NULL; lr = lr->lr_next ) {
 	    fprintf( stderr, " * msgid %d,  origid %d, status %s\n",
-		lr->lr_msgid, lr->lr_origid, ( lr->lr_status ==
-		LDAP_REQST_INPROGRESS ) ? "InProgress" :
+		lr->lr_msgid, lr->lr_origid,
+		( lr->lr_status == LDAP_REQST_INPROGRESS ) ? "InProgress" :
 		( lr->lr_status == LDAP_REQST_CHASINGREFS ) ? "ChasingRefs" :
 		( lr->lr_status == LDAP_REQST_NOTCONNECTED ) ? "NotConnected" :
-		"Writing" );
+		( lr->lr_status == LDAP_REQST_WRITING) ? "Writing" :
+		( lr->lr_status == LDAP_REQST_COMPLETED ? "Request Completed" : "Invalid Status"));
 	    fprintf( stderr, "   outstanding referrals %d, parent count %d\n",
 		    lr->lr_outrefcnt, lr->lr_parentcnt );
 	}
@@ -559,6 +610,197 @@ ldap_free_request( LDAP *ld, LDAPRequest *lr )
 	LDAP_FREE( lr );
 }
 
+/*
+ * Chase v3 referrals
+ *
+ * Parameters:
+ *  (IN) ld = LDAP connection handle
+ *  (IN) lr = LDAP Request structure
+ *  (IN) refs = array of pointers to referral strings that we will chase
+ *              The array will be free'd by this function when no longer needed
+ *  (OUT) errstrp = Place to return a string of referrals which could not be followed
+ *  (OUT) hadrefp = 1 if sucessfully followed referral
+ *
+ * Return value - number of referrals followed
+ */
+LIBLDAP_F(int)
+ldap_chase_v3referrals( LDAP *ld, LDAPRequest *lr, char **refs, char **errstrp, int *hadrefp )
+{
+	char		*unfollowed;
+	int			 unfollowedcnt = 0;
+	LDAPRequest	*origreq;
+	LDAPURLDesc	*srv = NULL;
+	BerElement	*ber;
+	char		**refarray = NULL;
+	LDAPConn	*lc;
+	int			 rc, count, i, j;
+	LDAPreqinfo  rinfo;
+
+	ld->ld_errno = LDAP_SUCCESS;	/* optimistic */
+	*hadrefp = 0;
+
+	Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referrals\n", 0, 0, 0 );
+
+	unfollowed = NULL;
+	rc = count = 0;
+
+	/* If no referrals in array, return */
+	if ( (refs == NULL) || ( (refs)[0] == NULL) ) {
+		rc = 0;
+		goto done;
+	}
+
+	/* Check for hop limit exceeded */
+	if ( lr->lr_parentcnt >= ld->ld_refhoplimit ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "more than %d referral hops (dropping)\n", ld->ld_refhoplimit, 0, 0 );
+		ld->ld_errno = LDAP_REFERRAL_LIMIT_EXCEEDED;
+	    rc = -1;
+		goto done;
+	}
+
+	/* find original request */
+	for ( origreq = lr; origreq->lr_parent != NULL; origreq = origreq->lr_parent ) {
+		;
+	}
+
+	refarray = refs;
+	refs = NULL;
+	/* parse out & follow referrals */
+	for( i=0; refarray[i] != NULL; i++) {
+
+		/* Parse the referral URL */
+		if (( rc = ldap_url_parse( refarray[i], &srv)) != LDAP_SUCCESS) {
+			ld->ld_errno = rc;
+			rc = -1;
+			goto done;
+		}
+
+		/* check connection for re-bind in progress */
+		if (( lc = find_connection( ld, srv, 1 )) != NULL ) {
+			if( lc->lconn_rebind_inprogress) {
+				/* We are already chasing a referral or search reference and a
+				 * bind on that connection is in progress.  We must queue
+				 * referrals on that connection, so we don't get a request
+				 * going out before the bind operation completes. This happens
+				 * if two search references come in one behind the other
+				 * for the same server with different contexts.
+				 */
+				Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referrals: queue referral \"%s\"\n",
+					refarray[i], 0, 0);
+				if( lc->lconn_rebind_queue == NULL ) {
+					/* Create a referral list */
+					if( (lc->lconn_rebind_queue = (char ***)LDAP_MALLOC( sizeof(void *) * 2)) == NULL) {
+						ld->ld_errno = LDAP_NO_MEMORY;
+						rc = -1;
+						goto done;
+					}
+					lc->lconn_rebind_queue[0] = refarray;
+					lc->lconn_rebind_queue[1] = NULL;
+					refarray = NULL;
+				} else {
+					/* Count how many referral arrays we already have */
+					for( j = 0; lc->lconn_rebind_queue[j] != NULL; j++) {
+						;
+					}
+					/* Add the new referral to the list */
+					if( (lc->lconn_rebind_queue = (char ***)LDAP_REALLOC(
+							lc->lconn_rebind_queue, sizeof(void *) * (j + 2))) == NULL) {
+						ld->ld_errno = LDAP_NO_MEMORY;
+						rc = -1;
+						goto done;
+					}
+					lc->lconn_rebind_queue[j] = refarray;
+					lc->lconn_rebind_queue[j+1] = NULL;
+					refarray = NULL;
+				}
+				/* We have queued the referral/reference, now just return */
+				rc = 0;
+				*hadrefp = 1;
+				count = 1; /* Pretend we already followed referral */
+				goto done;
+			}
+		} 
+		/* Re-encode the request with the new starting point of the search.
+		 * Note: In the future we also need to replace the filter if one
+		 * was provided with the search reference
+		 */
+		if (( ber = re_encode_request( ld, origreq->lr_ber,
+			    ++ld->ld_msgid, &srv->lud_dn, &rinfo.ri_request )) == NULL ) {
+			ld->ld_errno = LDAP_ENCODING_ERROR;
+			rc = -1;
+			goto done;
+		}
+
+		Debug( LDAP_DEBUG_TRACE, "ldap_chase_v3referral: msgid %d, url \"%s\"\n",
+			lr->lr_msgid, refarray[i], 0);
+
+		/* Send the new request to the server - may require a bind */
+		rinfo.ri_msgid = origreq->lr_origid;
+		rinfo.ri_url = refarray[i];
+		if ( (rc = ldap_send_server_request( ld, ber, ld->ld_msgid,
+		    	origreq, srv, NULL, &rinfo )) < 0 ) {
+			/* Failure, try next referral in the list */
+			Debug( LDAP_DEBUG_ANY, "Unable to chase referral \"%s\" (%s)\n", 
+				refarray[i], ldap_err2string( ld->ld_errno ), 0);
+			unfollowedcnt += ldap_append_referral( ld, &unfollowed, refarray[i]);
+			ldap_free_urllist(srv);
+			srv = NULL;
+		} else {
+			/* Success, no need to try this referral list further */
+			rc = 0;
+			++count;
+			*hadrefp = 1;
+
+			/* check if there is a queue of referrals that came in during bind */
+			if( lc == NULL) {
+				if (( lc = find_connection( ld, srv, 1 )) == NULL ) {
+					ld->ld_errno = LDAP_OPERATIONS_ERROR;
+					rc = -1;
+					goto done;
+				}
+			}
+
+			if( lc->lconn_rebind_queue != NULL) {
+				/* Release resources of previous list */
+				free_strarray(refarray);
+				refarray = NULL;
+				ldap_free_urllist(srv);
+				srv = NULL;
+
+				/* Pull entries off end of queue so list always null terminated */
+				for( j = 0; lc->lconn_rebind_queue[j] != NULL; j++) {
+					;
+				}
+				refarray = lc->lconn_rebind_queue[j-1];
+				lc->lconn_rebind_queue[j-1] = NULL;
+				/* we pulled off last entry from queue, free queue */
+				if ( j == 1 ) {
+					LDAP_FREE( lc->lconn_rebind_queue);
+					lc->lconn_rebind_queue = NULL;
+				}
+				/* restart the loop the with new referral list */
+				i = -1;
+				continue;
+			}
+			break; /* referral followed, break out of for loop */
+		}
+	} /* end for loop */
+done:
+	free_strarray(refarray);
+	ldap_free_urllist(srv);
+	LDAP_FREE( *errstrp );
+	
+	if( rc == 0) {
+		*errstrp = NULL;
+		LDAP_FREE( unfollowed );
+		return count;
+	} else {
+		ld->ld_errno = LDAP_REFERRAL;
+		*errstrp = unfollowed;
+		return rc;
+	}
+}
 
 /*
  * XXX merging of errors in this routine needs to be improved
@@ -574,6 +816,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 	LDAPRequest	*origreq;
 	LDAPURLDesc	*srv;
 	BerElement	*ber;
+	LDAPreqinfo  rinfo;
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_chase_referrals\n", 0, 0, 0 );
 
@@ -665,7 +908,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		}
 
 		if (( ber = re_encode_request( ld, origreq->lr_ber,
-		    ++ld->ld_msgid, &refdn )) == NULL ) {
+		    ++ld->ld_msgid, &refdn, &rinfo.ri_request )) == NULL ) {
 			return( -1 );
 		}
 
@@ -698,8 +941,9 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 		}
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
+		rinfo.ri_msgid = origreq->lr_origid;
 		if ( srv != NULL && ldap_send_server_request( ld, ber, ld->ld_msgid,
-		    lr, srv, NULL, 1 ) >= 0 ) {
+		    lr, srv, NULL, &rinfo ) >= 0 ) {
 			++count;
 		} else {
 			Debug( LDAP_DEBUG_ANY,
@@ -707,6 +951,7 @@ ldap_chase_referrals( LDAP *ld, LDAPRequest *lr, char **errstrp, int *hadrefp )
 			    ldap_err2string( ld->ld_errno ), 0, 0 );
 			rc = ldap_append_referral( ld, &unfollowed, ref );
 		}
+		LDAP_FREE( rinfo.ri_url);
 
 		if (srv != NULL)
 			ldap_free_urllist(srv);
@@ -756,7 +1001,7 @@ ldap_append_referral( LDAP *ld, char **referralsp, char *s )
 
 
 static BerElement *
-re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp )
+re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, int *type )
 {
 /*
  * XXX this routine knows way too much about how the lber library works!
@@ -787,6 +1032,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp )
 		return( NULL );
 	}
 
+	assert( tag != 0);
 	if ( tag == LDAP_REQ_BIND ) {
 		/* bind requests have a version number before the DN & other stuff */
 		rc = ber_scanf( &tmpber, "{ia" /*}*/, &ver, &orig_dn );
@@ -846,6 +1092,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp )
 	}
 #endif /* LDAP_DEBUG */
 
+	*type = tag;	/* return request type */
 	return( ber );
 }
 
@@ -856,6 +1103,9 @@ ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
     	LDAPRequest	*lr;
 
 	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
+		if( lr->lr_status == LDAP_REQST_COMPLETED ) {
+			continue;	/* Skip completed requests */
+		}
 		if ( msgid == lr->lr_msgid ) {
 			break;
 		}

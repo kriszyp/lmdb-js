@@ -25,7 +25,7 @@
 
 int ldap_open_defconn( LDAP *ld )
 {
-	if (( ld->ld_defconn = ldap_new_connection( ld, ld->ld_options.ldo_defludp, 1,1,0 )) == NULL )
+	if (( ld->ld_defconn = ldap_new_connection( ld, ld->ld_options.ldo_defludp, 1,1,NULL )) == NULL )
 	{
 		ld->ld_errno = LDAP_SERVER_DOWN;
 		return -1;
