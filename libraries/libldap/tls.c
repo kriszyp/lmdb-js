@@ -15,6 +15,7 @@
 #include <ac/errno.h>
 #include <ac/socket.h>
 #include <ac/string.h>
+#include <ac/ctype.h>
 #include <ac/time.h>
 #include <ac/unistd.h>
 #include <ac/param.h>
@@ -1016,8 +1017,8 @@ ldap_pvt_tls_check_hostname( LDAP *ld, void *s, const char *name_in )
 		ex = X509_get_ext(x, i);
 		alt = X509V3_EXT_d2i(ex);
 		if (alt) {
-			int n, len1, len2 = 0;
-			char *domain;
+			int n, len1 = 0, len2 = 0;
+			char *domain = NULL;
 			GENERAL_NAME *gn;
 
 			if (ntype == IS_DNS) {
@@ -1422,7 +1423,7 @@ tls_info_cb( const SSL *ssl, int where, int ret )
 {
 	int w;
 	char *op;
-	char *state = (char *) SSL_state_string_long( ssl );
+	char *state = (char *) SSL_state_string_long( (SSL *)ssl );
 
 	w = where & ~SSL_ST_MASK;
 	if ( w & SSL_ST_CONNECT ) {
