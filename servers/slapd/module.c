@@ -6,7 +6,7 @@
 
 #include <ltdl.h>
 
-int load_module(const char* file_name, int argc, char *argv[]) {
+int module_load(const char* file_name, int argc, char *argv[]) {
     lt_dlhandle* module = NULL;
     int (*initialize) LDAP_P((int argc, char *argv[]));
 
@@ -31,5 +31,14 @@ int load_module(const char* file_name, int argc, char *argv[]) {
     return -1;
 }
 
+int module_path(const char *path) {
+
+    if (lt_dlinit()) {
+	Debug(LDAP_DEBUG_ANY, "lt_dlinit failed: %s\n", lt_dlerror(), 0, 0);
+	return -1;
+    }
+
+    return lt_dlsetsearchpath( path );
+}
 #endif /* SLAPD_MODULES */
 

@@ -654,16 +654,29 @@ read_config( char *fname )
 			ldap_srvtab = ch_strdup( cargv[1] );
 
 #ifdef SLAPD_MODULES
-                } else if (strcasecmp( cargv[0], "loadmodule") == 0 ) {
+                } else if (strcasecmp( cargv[0], "moduleload") == 0 ) {
                    if ( cargc < 2 ) {
                       Debug( LDAP_DEBUG_ANY,
-                             "%s: line %d: missing filename in \"loadmodule <filename>\" line\n",
+                             "%s: line %d: missing filename in \"moduleload <filename>\" line\n",
                              fname, lineno, 0 );
                       exit( EXIT_FAILURE );
                    }
-                   if (load_module(cargv[1], cargc - 2, (cargc > 2) ? cargv + 2 : NULL)) {
+                   if (module_load(cargv[1], cargc - 2, (cargc > 2) ? cargv + 2 : NULL)) {
                       Debug( LDAP_DEBUG_ANY,
                              "%s: line %d: failed to load or initialize module %s\n",
+                             fname, lineno, cargv[1]);
+                      exit( EXIT_FAILURE );
+                   }
+                } else if (strcasecmp( cargv[0], "modulepath") == 0 ) {
+                   if ( cargc != 2 ) {
+                      Debug( LDAP_DEBUG_ANY,
+                             "%s: line %d: missing path in \"modulepath <path>\" line\n",
+                             fname, lineno, 0 );
+                      exit( EXIT_FAILURE );
+                   }
+                   if (module_path( cargv[1] )) {
+                      Debug( LDAP_DEBUG_ANY,
+                             "%s: line %d: failed to set module search path to %s\n",
                              fname, lineno, cargv[1]);
                       exit( EXIT_FAILURE );
                    }
