@@ -440,7 +440,7 @@ bdb_idl_intersection(
 	ID *ids )
 {
 	ID ida, idb;
-	ID cursora, cursorb;
+	ID cursora = 0, cursorb = 0;
 
 	if ( BDB_IDL_IS_ZERO( a ) || BDB_IDL_IS_ZERO( b ) ) {
 		ids[0] = 0;
@@ -505,7 +505,7 @@ bdb_idl_union(
 	ID *ids )
 {
 	ID ida, idb;
-	ID cursora, cursorb;
+	ID cursora = 0, cursorb = 0;
 
 	if ( BDB_IDL_IS_ZERO( a ) ) {
 		BDB_IDL_CPY( ids, b );
@@ -524,7 +524,7 @@ bdb_idl_union(
 		return 0;
 	}
 
-	ida = bdb_idl_first( a, &cursora ),
+	ida = bdb_idl_first( a, &cursora );
 	idb = bdb_idl_first( b, &cursorb );
 
 	ids[0] = 0;
@@ -566,7 +566,7 @@ bdb_idl_notin(
 	ID *ids )
 {
 	ID ida, idb;
-	ID cursora, cursorb;
+	ID cursora = 0, cursorb = 0;
 
 	if( BDB_IDL_IS_ZERO( a ) ||
 		BDB_IDL_IS_ZERO( b ) ||
@@ -625,7 +625,10 @@ ID bdb_idl_first( ID *ids, ID *cursor )
 		return *cursor;
 	}
 
-	pos = bdb_idl_search( ids, *cursor );
+	if ( *cursor == 0 )
+		pos = 1;
+	else
+		pos = bdb_idl_search( ids, *cursor );
 
 	if( pos > ids[0] ) {
 		return NOID;
@@ -644,10 +647,9 @@ ID bdb_idl_next( ID *ids, ID *cursor )
 		return *cursor;
 	}
 
-	if ( *cursor < ids[0] ) {
-		return ids[(*cursor)++];
+	if ( ++(*cursor) <= ids[0] ) {
+		return ids[*cursor];
 	}
 
 	return NOID;
 }
-
