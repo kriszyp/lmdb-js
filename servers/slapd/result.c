@@ -477,6 +477,24 @@ cleanup:
 	 */
 	rc = SLAP_CB_CONTINUE;
 
+clean2:;
+	if ( op->o_callback ) {
+		int		first = 1;
+		slap_callback	*sc = op->o_callback, *sc_next;
+
+		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+			sc_next = op->o_callback->sc_next;
+			if ( op->o_callback->sc_cleanup ) {
+				(void)op->o_callback->sc_cleanup( op, rs );
+				if ( first && op->o_callback != sc ) {
+					sc = op->o_callback;
+				}
+			}
+			first = 0;
+		}
+		op->o_callback = sc;
+	}
+
 	if ( rs->sr_matched && rs->sr_flags & REP_MATCHED_MUSTBEFREED ) {
 		free( (char *)rs->sr_matched );
 		rs->sr_matched = NULL;
@@ -485,17 +503,6 @@ cleanup:
 	if ( rs->sr_ref && rs->sr_flags & REP_REF_MUSTBEFREED ) {
 		ber_bvarray_free( rs->sr_ref );
 		rs->sr_ref = NULL;
-	}
-
-clean2:
-	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
-		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
-			if ( op->o_callback->sc_cleanup ) {
-				op->o_callback->sc_cleanup( op, rs );
-			}
-		}
-		op->o_callback = sc;
 	}
 
 	return rc;
@@ -1340,6 +1347,27 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	rc = 0;
 
 error_return:;
+	if ( op->o_callback ) {
+		int		first = 1;
+		slap_callback	*sc = op->o_callback, *sc_next;
+
+		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next) {
+			sc_next = op->o_callback->sc_next;
+			if ( op->o_callback->sc_cleanup ) {
+				(void)op->o_callback->sc_cleanup( op, rs );
+				if ( first && op->o_callback != sc ) {
+					sc = op->o_callback;
+				}
+			}
+			first = 0;
+		}
+		op->o_callback = sc;
+	}
+
+	if ( e_flags ) {
+		slap_sl_free( e_flags, op->o_tmpmemctx );
+	}
+
 	/* FIXME: I think rs->sr_type should be explicitly set to
 	 * REP_SEARCH here. That's what it was when we entered this
 	 * function. send_ldap_error may have changed it, but we
@@ -1355,17 +1383,6 @@ error_return:;
 		rs->sr_flags &= ~REP_ENTRY_MUSTBEFREED;
 	}
 
-	if ( e_flags ) sl_free( e_flags, op->o_tmpmemctx );
-
-	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
-		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
-			if ( op->o_callback->sc_cleanup ) {
-				op->o_callback->sc_cleanup( op, rs );
-			}
-		}
-		op->o_callback = sc;
-	}
 	return( rc );
 }
 
@@ -1545,12 +1562,19 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #endif
 
 rel:
-	if (op->o_callback) {
-		slap_callback *sc = op->o_callback;
-		for ( ; op->o_callback; op->o_callback = op->o_callback->sc_next ) {
+	if ( op->o_callback ) {
+		int		first = 1;
+		slap_callback *sc = op->o_callback, *sc_next;
+
+		for ( sc_next = op->o_callback; sc_next; op->o_callback = sc_next ) {
+			sc_next = op->o_callback->sc_next;
 			if ( op->o_callback->sc_cleanup ) {
-				op->o_callback->sc_cleanup( op, rs );
+				(void)op->o_callback->sc_cleanup( op, rs );
+				if ( first && op->o_callback != sc ) {
+					sc = op->o_callback;
+				}
 			}
+			first = 0;
 		}
 		op->o_callback = sc;
 	}
