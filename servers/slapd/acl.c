@@ -1396,13 +1396,13 @@ aci_list_has_attr(
 		if (aci_get_part(&bv, 0, '=', &left) < 0
 			|| aci_get_part(&bv, 1, '=', &right) < 0)
 		{
-			if (ber_casecmp(attr, &bv) == 0)
+			if (ber_bvstrcasecmp(attr, &bv) == 0)
 				return(1);
 		} else if (val == NULL) {
-			if (ber_casecmp(attr, &left) == 0)
+			if (ber_bvstrcasecmp(attr, &left) == 0)
 				return(1);
 		} else {
-			if (ber_casecmp(attr, &left) == 0) {
+			if (ber_bvstrcasecmp(attr, &left) == 0) {
 				/* this is experimental code that implements a
 				 * simple (prefix) match of the attribute value.
 				 * the ACI draft does not provide for aci's that
@@ -1420,7 +1420,7 @@ aci_list_has_attr(
 				if (aci_get_part(&right, 0, '*', &left) < 0
 					|| right.bv_len <= left.bv_len)
 				{
-					if (ber_casecmp(val, &right) == 0)
+					if (ber_bvstrcasecmp(val, &right) == 0)
 						return(1);
 				} else if (val->bv_len >= left.bv_len) {
 					if (strncasecmp( val->bv_val, left.bv_val, left.bv_len ) == 0)
@@ -1467,7 +1467,7 @@ aci_list_get_rights(
     int i, found;
 
 	if (attr == NULL || attr->bv_len == 0 
-			|| ber_casecmp( attr, &aci_bv_entry ) == 0) {
+			|| ber_bvstrcasecmp( attr, &aci_bv_entry ) == 0) {
 		attr = &aci_bv_br_entry;
 	}
 
@@ -1478,9 +1478,9 @@ aci_list_get_rights(
 	for (i = 0; aci_get_part(list, i, '$', &perm) >= 0; i++) {
 		if (aci_get_part(&perm, 0, ';', &actn) < 0)
 			continue;
-		if (ber_casecmp( &aci_bv_grant, &actn ) == 0) {
+		if (ber_bvstrcasecmp( &aci_bv_grant, &actn ) == 0) {
 			mask = grant;
-		} else if (ber_casecmp( &aci_bv_deny, &actn ) == 0) {
+		} else if (ber_bvstrcasecmp( &aci_bv_deny, &actn ) == 0) {
 			mask = deny;
 		} else {
 			continue;
@@ -1606,7 +1606,7 @@ aci_mask(
 
 	/* check that the scope is "entry" */
 	if (aci_get_part(aci, 1, '#', &bv) < 0
-		|| ber_casecmp( &aci_bv_entry, &bv ) != 0)
+		|| ber_bvstrcasecmp( &aci_bv_entry, &bv ) != 0)
 	{
 		return(0);
 	}
@@ -1626,7 +1626,7 @@ aci_mask(
 	if (aci_get_part(aci, 4, '#', &sdn) < 0)
 		return(0);
 
-	if (ber_casecmp( &aci_bv_access_id, &bv ) == 0) {
+	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
 		rc = 1;
 		if ( dnNormalize2(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
@@ -1637,11 +1637,11 @@ aci_mask(
 		return(rc);
 	}
 
-	if (ber_casecmp( &aci_bv_self, &bv ) == 0) {
+	if (ber_bvstrcasecmp( &aci_bv_self, &bv ) == 0) {
 		if (dn_match(&op->o_ndn, &e->e_nname))
 			return(1);
 
-	} else if (ber_casecmp( &aci_bv_dnattr, &bv ) == 0) {
+	} else if (ber_bvstrcasecmp( &aci_bv_dnattr, &bv ) == 0) {
 		Attribute *at;
 		AttributeDescription *ad = NULL;
 		const char *text;
@@ -1669,19 +1669,19 @@ aci_mask(
 		return rc;
 
 
-	} else if (ber_casecmp( &aci_bv_group, &bv ) == 0) {
+	} else if (ber_bvstrcasecmp( &aci_bv_group, &bv ) == 0) {
 		if (aci_group_member(&sdn, &GroupClass, &GroupAttr, be, e, conn, op, matches))
 			return(1);
 
-	} else if (ber_casecmp( &aci_bv_role, &bv ) == 0) {
+	} else if (ber_bvstrcasecmp( &aci_bv_role, &bv ) == 0) {
 		if (aci_group_member(&sdn, &RoleClass, &RoleAttr, be, e, conn, op, matches))
 			return(1);
 
-	} else if (ber_casecmp( &aci_bv_set, &bv ) == 0) {
+	} else if (ber_bvstrcasecmp( &aci_bv_set, &bv ) == 0) {
 		if (aci_match_set(&sdn, be, e, conn, op, 0))
 			return(1);
 
-	} else if (ber_casecmp( &aci_bv_set_ref, &bv ) == 0) {
+	} else if (ber_bvstrcasecmp( &aci_bv_set_ref, &bv ) == 0) {
 		if (aci_match_set(&sdn, be, e, conn, op, 1))
 			return(1);
 

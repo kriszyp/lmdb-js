@@ -470,7 +470,11 @@ node_rdn_cmp(
 	idNode *b
 )
 {
+#if 0
 	return strcmp(a->i_rdn->nrdn.bv_val, b->i_rdn->nrdn.bv_val);
+#endif
+	/* should be slightly better without ordering drawbacks */
+	return ber_bvcmp(&a->i_rdn->nrdn, &b->i_rdn->nrdn);
 }
 
 idNode * bdb_find_id_node(
