@@ -109,11 +109,8 @@ install: $(LDAP_SBINDIR) $(LDAP_SBINDIR)/edb2ldif $(LDAP_SBINDIR)/ldif2ldbm \
 	$(LDAP_SBINDIR)/centipede $(LDAP_SBINDIR)/ldbmtest \
 	$(LDAP_SBINDIR)/ldif
 
-$(LDAP_SBINDIR): FORCE
-
 $(LDAP_SBINDIR)/edb2ldif:	build-edb2ldif
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-		@$(MKDIR) $(LDAP_SBINDIR); \
 		$(INSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(LDAP_SBINDIR); \
 	else \
 		exit 0; \
@@ -121,42 +118,33 @@ $(LDAP_SBINDIR)/edb2ldif:	build-edb2ldif
 
 $(LDAP_SBINDIR)/chlog2replog:	build-chlog2replog
 	@if [ "$(HAVEISODE)" = "yes" ]; then \
-		@$(MKDIR) $(LDAP_SBINDIR); \
 		$(INSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(LDAP_SBINDIR); \
 	else \
 		exit 0; \
 	fi
 
 $(LDAP_SBINDIR)/ldif2ldbm:	ldif2ldbm
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2ldbm $(LDAP_SBINDIR)
 
 $(LDAP_SBINDIR)/ldif2index:	ldif2index
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2index $(LDAP_SBINDIR)
 
 $(LDAP_SBINDIR)/ldif2id2entry:	ldif2id2entry
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2entry $(LDAP_SBINDIR)
 
 $(LDAP_SBINDIR)/ldif2id2children:	ldif2id2children
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif2id2children $(LDAP_SBINDIR)
 
 $(LDAP_SBINDIR)/ldbmcat:	ldbmcat
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmcat $(LDAP_SBINDIR)
 
 $(LDAP_SBINDIR)/ldif:	ldif
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldif $(LDAP_SBINDIR)
 
 $(LDAP_SBINDIR)/centipede:	centipede
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 centipede $(LDAP_SBINDIR)
 
 $(LDAP_SBINDIR)/ldbmtest:	ldbmtest
-	@$(MKDIR) $(LDAP_SBINDIR)
 	$(INSTALL) $(INSTALLFLAGS) -m 755 ldbmtest $(LDAP_SBINDIR)
 
 lint:	FORCE
