@@ -186,7 +186,7 @@ main( int argc, char **argv )
 	LDAP		*ld = NULL;
 	int		valuesReturnFilter;
 	BerElement	*ber;
-	struct berval 	*bvalp;
+	struct berval 	*bvalp = NULL;
 	char	*vrFilter  = NULL, *control  = NULL, *s;
 
 
@@ -890,7 +890,6 @@ main( int argc, char **argv )
 		}
 
 		if ( valuesReturnFilter ) {
-			struct berval *bvalp;
 			ctrls[i++]=&c2;
 			ctrls[i] = NULL;
 
