@@ -1851,11 +1851,12 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 	LDAPURLDesc		*ludp = NULL;
 	Operation		op2 = { 0 };
 	SlapReply		rs = {REP_RESULT};
-	AttributeName		*anlist = NULL;
+	AttributeName		anlist[ 2 ], *anlistp = NULL;
 	int			nattrs = 0;
 	slap_callback		cb = { NULL, aci_set_cb_gather, NULL, NULL };
 	aci_set_gather_t	p = { 0 };
 	const char		*text = NULL;
+	static struct berval	defaultFilter_bv = BER_BVC( "(objectClass=*)" );
 
 	/* this routine needs to return the bervals instead of
 	 * plain strings, since syntax is not known.  It should
@@ -1879,57 +1880,14 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 		goto url_done;
 	}
 
-	/* Grab the filter */
-	if ( ludp->lud_filter ) {
-		op2.ors_filter = str2filter_x( cp->op, ludp->lud_filter );
-		if ( op2.ors_filter == NULL ) {
-			rc = LDAP_PROTOCOL_ERROR;
-			goto url_done;
-		}
-		ber_str2bv( ludp->lud_filter, 0, 0, &op2.ors_filterstr );
-	}
-
-	/* Grab the searchbase */
+	/* Grab the searchbase and see if an appropriate database can be found */
 	ber_str2bv( ludp->lud_dn, 0, 0, &op2.o_req_dn );
-
-	/* Grab the scope */
-	op2.ors_scope = ludp->lud_scope;
-
-	if ( ludp->lud_attrs && ludp->lud_attrs[0] ) {
-		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ )
-			;
-		anlist = slap_sl_malloc( sizeof( AttributeName ) * ( nattrs + 2 ),
-				cp->op->o_tmpmemctx );
-
-		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ ) {
-			ber_str2bv( ludp->lud_attrs[ nattrs ], 0, 0, &anlist[ nattrs ].an_name );
-			anlist[ nattrs ].an_desc = NULL;
-			rc = slap_bv2ad( &anlist[ nattrs ].an_name,
-					&anlist[ nattrs ].an_desc, &text );
-			if ( rc != LDAP_SUCCESS ) {
-				goto url_done;
-			}
-		}
-
-	} else {
-		anlist = slap_sl_malloc( sizeof( AttributeName ) * 2,
-				cp->op->o_tmpmemctx );
-	}
-
-	anlist[ nattrs ].an_name = *attr;
-	anlist[ nattrs ].an_desc = NULL;
-	rc = slap_bv2ad( &anlist[ nattrs ].an_name,
-			&anlist[ nattrs ].an_desc, &text );
+	rc = dnNormalize( 0, NULL, NULL, &op2.o_req_dn,
+			&op2.o_req_ndn, cp->op->o_tmpmemctx );
+	BER_BVZERO( &op2.o_req_dn );
 	if ( rc != LDAP_SUCCESS ) {
 		goto url_done;
 	}
-
-	BER_BVZERO( &anlist[ nattrs + 1 ].an_name );
-	
-	p.cookie = cookie;
-	
-	rc = dnNormalize( 0, NULL, NULL, &op2.o_req_dn,
-			&op2.o_req_ndn, cp->op->o_tmpmemctx );
 
 	op2.o_bd = select_backend( &op2.o_req_ndn, 0, 1 );
 	if ( ( op2.o_bd == NULL ) || ( op2.o_bd->be_search == NULL ) ) {
@@ -1937,6 +1895,58 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 		goto url_done;
 	}
 
+	/* Grab the filter */
+	if ( ludp->lud_filter ) {
+		ber_str2bv_x( ludp->lud_filter, 0, 0, &op2.ors_filterstr,
+				cp->op->o_tmpmemctx );
+		
+	} else {
+		op2.ors_filterstr = defaultFilter_bv;
+	}
+
+	op2.ors_filter = str2filter_x( cp->op, op2.ors_filterstr.bv_val );
+	if ( op2.ors_filter == NULL ) {
+		rc = LDAP_PROTOCOL_ERROR;
+		goto url_done;
+	}
+
+	/* Grab the scope */
+	op2.ors_scope = ludp->lud_scope;
+
+	/* Grap the attributes */
+	if ( ludp->lud_attrs ) {
+		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ )
+			;
+
+		anlistp = slap_sl_malloc( sizeof( AttributeName ) * ( nattrs + 2 ),
+				cp->op->o_tmpmemctx );
+
+		for ( ; ludp->lud_attrs[ nattrs ]; nattrs++ ) {
+			ber_str2bv( ludp->lud_attrs[ nattrs ], 0, 0, &anlistp[ nattrs ].an_name );
+			anlistp[ nattrs ].an_desc = NULL;
+			rc = slap_bv2ad( &anlistp[ nattrs ].an_name,
+					&anlistp[ nattrs ].an_desc, &text );
+			if ( rc != LDAP_SUCCESS ) {
+				goto url_done;
+			}
+		}
+
+	} else {
+		anlistp = anlist;
+	}
+
+	anlistp[ nattrs ].an_name = *attr;
+	anlistp[ nattrs ].an_desc = NULL;
+	rc = slap_bv2ad( &anlistp[ nattrs ].an_name,
+			&anlistp[ nattrs ].an_desc, &text );
+	if ( rc != LDAP_SUCCESS ) {
+		goto url_done;
+	}
+
+	BER_BVZERO( &anlistp[ nattrs + 1 ].an_name );
+	
+	p.cookie = cookie;
+	
 	op2.o_tag = LDAP_REQ_SEARCH;
 	op2.o_protocol = LDAP_VERSION3;
 	op2.o_ndn = op2.o_bd->be_rootndn;
@@ -1955,7 +1965,7 @@ aci_set_gather( SetCookie *cookie, struct berval *name, struct berval *attr )
 	ber_dupbv_x( &op2.o_req_dn, &op2.o_req_ndn, cp->op->o_tmpmemctx );
 	op2.ors_slimit = SLAP_NO_LIMIT;
 	op2.ors_tlimit = SLAP_NO_LIMIT;
-	op2.ors_attrs = anlist;
+	op2.ors_attrs = anlistp;
 	op2.ors_attrsonly = 0;
 	op2.o_sync_slog_size = -1;
 
@@ -1973,11 +1983,14 @@ url_done:;
 	if ( !BER_BVISNULL( &op2.o_req_ndn ) ) {
 		slap_sl_free( op2.o_req_ndn.bv_val, cp->op->o_tmpmemctx );
 	}
+	if ( !BER_BVISNULL( &op2.o_req_dn ) ) {
+		slap_sl_free( op2.o_req_dn.bv_val, cp->op->o_tmpmemctx );
+	}
 	if ( ludp ) {
 		ldap_free_urldesc( ludp );
 	}
-	if ( anlist ) {
-		slap_sl_free( anlist, cp->op->o_tmpmemctx );
+	if ( anlistp && anlistp != anlist ) {
+		slap_sl_free( anlistp, cp->op->o_tmpmemctx );
 	}
 
 	return p.bvals;
