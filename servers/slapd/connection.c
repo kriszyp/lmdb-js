@@ -435,10 +435,10 @@ long connection_init(
 #ifdef LDAP_DEBUG
     ber_sockbuf_add_io( c->c_sb, &ber_sockbuf_io_debug, INT_MAX, NULL );
 #endif
-    if( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_NONBLOCK, ~ NULL ) < 0 ) {
+    if( ber_sockbuf_ctrl( c->c_sb, LBER_SB_OPT_SET_NONBLOCK, c /* non-NULL */ ) < 0 ) {
         Debug( LDAP_DEBUG_ANY,
             "connection_init(%d, %s): set nonblocking failed\n",
-            s, c->c_peer_name,0 );
+            s, c->c_peer_name, 0 );
     }
 
     id = c->c_connid = conn_nextid++;
