@@ -385,8 +385,11 @@ static int is_ad_sublang(
 			subdelimp = strchrlen( subp, ';', &sublen );
 			if( subdelimp ) subdelimp++;
 
-			if ((( suplen < sublen && supp[suplen-1] == '-' ) ||
-				suplen == sublen ) && strncmp( supp, subp, suplen ) == 0 )
+			if ( suplen > sublen
+				 ? ( suplen-1 == sublen && supp[suplen-1] == '-'
+					 && strncmp( supp, subp, sublen ) == 0 )
+				 : ( ( suplen == sublen || supp[suplen-1] == '-' )
+					 && strncmp( supp, subp, suplen ) == 0 ) )
 			{
 				goto match;
 			}
