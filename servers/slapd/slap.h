@@ -190,6 +190,7 @@ typedef int slap_mr_indexer_func LDAP_P((
 	struct berval **keys ));
 
 struct slap_filter; 	/* forward declaration */
+
 /* Filter index function */
 typedef int slap_mr_filter_func LDAP_P((
 	unsigned use,

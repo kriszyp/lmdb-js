@@ -71,6 +71,30 @@ LIBSLAPD_F (char *) accessmask2str LDAP_P(( slap_access_mask_t mask, char* ));
 LIBSLAPD_F (slap_access_mask_t) str2accessmask LDAP_P(( const char *str ));
 
 /*
+ * at.c
+ */
+
+LIBSLAPD_F (void) at_config LDAP_P(( const char *fname, int lineno, int argc, char **argv ));
+LIBSLAPD_F (AttributeType *) at_find LDAP_P(( const char *name ));
+LIBSLAPD_F (int) at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **list ));
+LIBSLAPD_F (int) at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
+LIBSLAPD_F (int) at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
+LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));
+LIBSLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
+LIBSLAPD_F (int) at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F (int) is_at_subtype LDAP_P((
+	AttributeType *sub,
+	AttributeType *super ));
+
+#	define at_canonical_name(at) ((at)->sat_cname)	
+#else
+LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
+#endif
+
+
+/*
  * attr.c
  */
 
@@ -92,24 +116,8 @@ LIBSLAPD_F (int) attr_delete LDAP_P(( Attribute **attrs, const char *type ));
 LIBSLAPD_F (int) attr_syntax LDAP_P(( const char *type ));
 #endif
 
-
-LIBSLAPD_F (void) at_config LDAP_P(( const char *fname, int lineno, int argc, char **argv ));
-LIBSLAPD_F (AttributeType *) at_find LDAP_P(( const char *name ));
-LIBSLAPD_F (int) at_find_in_list LDAP_P(( AttributeType *sat, AttributeType **list ));
-LIBSLAPD_F (int) at_append_to_list LDAP_P(( AttributeType *sat, AttributeType ***listp ));
-LIBSLAPD_F (int) at_delete_from_list LDAP_P(( int pos, AttributeType ***listp ));
-LIBSLAPD_F (int) at_fake_if_needed LDAP_P(( const char *name ));
-LIBSLAPD_F (int) at_schema_info LDAP_P(( Entry *e ));
-LIBSLAPD_F (int) at_add LDAP_P(( LDAP_ATTRIBUTE_TYPE *at, const char **err ));
-
 LIBSLAPD_F (void) attrs_free LDAP_P(( Attribute *a ));
 LIBSLAPD_F (Attribute *) attrs_dup LDAP_P(( Attribute *a ));
-
-#ifdef SLAPD_SCHEMA_NOT_COMPAT
-#	define at_canonical_name(at) ((at)->sat_cname)	
-#else
-LIBSLAPD_F (char *) at_canonical_name LDAP_P(( const char * a_type ));
-#endif
 
 
 /*
@@ -357,6 +365,28 @@ LIBSLAPD_F (int) test_filter LDAP_P(( Backend *be, Connection *conn, Operation *
 
 LIBSLAPD_F (FILE *) lock_fopen LDAP_P(( const char *fname, const char *type, FILE **lfp ));
 LIBSLAPD_F (int) lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
+
+
+/*
+ * modify.c
+ *	should be relocated to separate file
+ */
+LIBSLAPD_F( void ) slap_mod_free LDAP_P(( Modification *mod, int freeit ));
+LIBSLAPD_F( void ) slap_mods_free LDAP_P(( Modifications *mods ));
+LIBSLAPD_F( void ) slap_modlist_free LDAP_P(( LDAPModList *ml ));
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+LIBSLAPD_F( int ) slap_modlist2mods(
+	LDAPModList *ml,
+	int update,
+	Modifications **mods,
+	char **text );
+
+LIBSLAPD_F( int ) slap_mods_opattrs(
+	Operation *op,
+	Modifications **modlist,
+	char **text );
+#endif
 
 /*
  * module.c

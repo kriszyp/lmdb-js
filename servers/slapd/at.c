@@ -173,7 +173,16 @@ at_fake_if_needed(
 
 #endif
 
+int is_at_subtype(
+	AttributeType *sub,
+	AttributeType *sup )
+{
+	for( ; sub != NULL; sub = sub->sat_sup ) {
+		if( sub == sup ) return 1;
+	}
 
+	return 0;
+}
 
 struct aindexrec {
 	char		*air_name;

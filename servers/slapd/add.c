@@ -26,7 +26,14 @@
 #include "ldap_pvt.h"
 #include "slap.h"
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static int slap_mods2entry(
+	Modifications *mods,
+	Entry **e,
+	char **text );
+#else
 static int	add_created_attrs(Operation *op, Entry *e);
+#endif
 
 int
 do_add( Connection *conn, Operation *op )
@@ -37,6 +44,12 @@ do_add( Connection *conn, Operation *op )
 	ber_tag_t	tag;
 	Entry		*e;
 	Backend		*be;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	LDAPModList	*modlist = NULL;
+	LDAPModList	**modtail = &modlist;
+	Modifications *mods = NULL;
+	char *text;
+#endif
 	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
@@ -91,29 +104,48 @@ do_add( Connection *conn, Operation *op )
 	/* get the attrs */
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
 	    tag = ber_next_element( ber, &len, last ) ) {
-		char		*type;
-		struct berval	**vals;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		LDAPModList *mod = (LDAPModList *) ch_malloc( sizeof(LDAPModList) );
+#else
+		LDAPModList tmpmod;
+		LDAPModList *mod = &tmpmod;
+#endif
+		mod->ml_op = LDAP_MOD_ADD;
+		mod->ml_next = NULL;
 
-		if ( ber_scanf( ber, "{a{V}}", &type, &vals ) == LBER_ERROR ) {
+		rc = ber_scanf( ber, "{a{V}}", &mod->ml_type, &mod->ml_bvalues );
+
+		if ( rc == LBER_ERROR ) {
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
 			rc = -1;
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			free( mod );
+#endif
 			goto done;
 		}
 
-		if ( vals == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "no values for type %s\n", type,
-			    0, 0 );
+		if ( mod->ml_bvalues == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
+				mod->ml_type, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 				NULL, "no values for type", NULL, NULL );
-			free( type );
+			free( mod->ml_type );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			free( mod );
+#endif
 			goto done;
 		}
 
-		attr_merge( e, type, vals );
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+		(*modtail)->ml_next = mod;
+		modtail = &mod->ml_next;
+#else
+		attr_merge( e, mod->ml_type, mod->ml_bvalues );
 
-		free( type );
-		ber_bvecfree( vals );
+		free( mod->ml_type );
+		ber_bvecfree( mod->ml_bvalues );
+#endif
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
@@ -129,6 +161,17 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	} 
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	if ( modlist == NULL )
+#else
+	if ( e->e_attrs == NULL )
+#endif
+	{
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
+			NULL, "No attributes provided", NULL, NULL );
+		goto done;
+	}
+
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, e->e_ndn, 0, 0 );
 
@@ -139,8 +182,8 @@ do_add( Connection *conn, Operation *op )
 	 */
 	be = select_backend( e->e_ndn );
 	if ( be == NULL ) {
-		send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL,
-		    NULL, default_referral, NULL );
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+			NULL, NULL, default_referral, NULL );
 		goto done;
 	}
 
@@ -157,7 +200,7 @@ do_add( Connection *conn, Operation *op )
 		Debug( LDAP_DEBUG_ANY, "do_add: database is read-only\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "database is read-only", NULL, NULL );
+			NULL, "database is read-only", NULL, NULL );
 		goto done;
 	}
 
@@ -178,20 +221,44 @@ do_add( Connection *conn, Operation *op )
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
+			int update = be->be_update_ndn != NULL;
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			rc = slap_modlist2mods( modlist, update, &mods, &text );
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto done;
+			}
+
+#endif
 #ifndef SLAPD_MULTIMASTER
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && be->be_update_ndn == NULL )
+				global_lastmod == ON)) && !update )
 #endif
 			{
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+				rc = slap_mods_opattrs( op, &mods, &text );
+#else
+				char *text = "no-user-modification attribute type";
 				rc = add_created_attrs( op, e );
-
+#endif
 				if( rc != LDAP_SUCCESS ) {
 					send_ldap_result( conn, op, rc,
-						NULL, "no-user-modification attribute type",
+						NULL, text,
 						NULL, NULL );
 					goto done;
 				}
 			}
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+			rc = slap_mods2entry( mods, &e, &text );
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto done;
+			}
+#endif
 
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
@@ -218,13 +285,32 @@ do_add( Connection *conn, Operation *op )
 	}
 
 done:
-	if( e ) {
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+	if( modlist != NULL ) {
+		slap_modlist_free( modlist );
+	}
+	if( mods != NULL ) {
+		slap_mods_free( mods );
+	}
+#endif
+	if( e != NULL ) {
 		entry_free( e );
 	}
 
 	return rc;
 }
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static int slap_mods2entry(
+	Modifications *mods,
+	Entry **e,
+	char **text )
+{
+	*text = "Not yet implemented";
+	return LDAP_NOT_SUPPORTED;
+}
+
+#else
 static int
 add_created_attrs( Operation *op, Entry *e )
 {
@@ -276,3 +362,4 @@ add_created_attrs( Operation *op, Entry *e )
 
 	return LDAP_SUCCESS;
 }
+#endif

@@ -19,6 +19,16 @@
 #include "slap.h"
 
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
+void
+ad_free( AttributeDescription *ad, int freeit )
+{
+	if( ad == NULL ) return;
+
+	ber_bvfree( ad->ad_cname );
+	free( ad->ad_lang );
+
+	if( freeit ) free( ad );
+}
 
 static int ad_keystring(
 	struct berval *bv )
@@ -148,7 +158,10 @@ int slap_bv2ad(
 		strcat( desc.ad_cname->bv_val, desc.ad_lang );
 	}
 
-	*ad = ch_malloc( sizeof( AttributeDescription ) );
+	if( *ad == NULL ) {
+		*ad = ch_malloc( sizeof( AttributeDescription ) );
+	}
+
 	**ad = desc;
 
 	rtn = LDAP_SUCCESS;
@@ -158,15 +171,42 @@ done:
 	return rtn;
 }
 
-void
-ad_free( AttributeDescription *ad, int freeit )
+int ad_inlist(
+	AttributeDescription *desc,
+	char **attrs )
 {
-	if( ad == NULL ) return;
+	int i;
+	for( i=0; attrs[i] != NULL; i++ ) {
+		AttributeDescription *ad = NULL;
+		char *text;
+		int rc = slap_str2ad( attrs[i], &ad, &text );
 
-	ber_bvfree( ad->ad_cname );
-	free( ad->ad_lang );
+		if( rc != LDAP_SUCCESS ) {
+			goto cont;
+		}
 
-	if( freeit ) free( ad );
+		if( !is_at_subtype( desc->ad_type, ad->ad_type ) ) {
+			goto cont;
+		}
+
+		if( ad->ad_flags && ( ad->ad_flags == desc->ad_flags )) {
+			goto cont;
+		}
+
+		if( ad->ad_lang != NULL && ( desc->ad_lang == NULL
+			|| strcasecmp( ad->ad_lang, desc->ad_lang )))
+		{
+			goto cont;
+		}
+
+		ad_free( ad, 1 );
+		return 1;
+
+cont:
+		ad_free( ad, 1 );
+	}
+
+	return 0;
 }
 
 #endif
