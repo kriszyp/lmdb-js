@@ -252,6 +252,15 @@ dn.regex clause by using the form
 with 
 .B digit
 ranging from 1 to 9.
+Since the dollar character is used to indicate a substring replacement,
+the dollar character that is used to indicate match up to the end of
+the string must be escaped by a second dollar character, e.g.
+.LP
+.nf
+        access to dn.regex="^(.*,)?uid=([^,]+),dc=example,dc=com$"
+                by dn.regex="^uid=$1,dc=example,dc=com$$" write
+.fi
+.LP
 The style qualifier
 allows an optional
 .BR modifier .
@@ -262,11 +271,15 @@ even if
 .B dnstyle
 is not 
 .BR regex .
+.LP
 It is perfectly useless to give any access privileges to a DN 
 that exactly matches the
 .B rootdn
 of the database the ACLs apply to, because it implicitly
 possesses write privileges for the entire tree of that database.
+Actually, access control is bypassed for the
+.BR rootdn ,
+to solve the intrinsic chicken-and-egg problem.
 .LP
 The statement
 .B dnattr=<attrname>
@@ -676,29 +689,34 @@ access to the attribute holding the referral information
 .B ref
 attribute).
 .LP
-Some
+Some internal operations and some
 .B controls
 require specific access privileges.
 The
+.B authzID
+mapping and the 
 .B proxyAuthz
-control requires
+control require
 .B auth (=x)
 privileges on all the attributes that are present in the search filter
 of the URI regexp maps (the right-hand side of the
 .B authz-regexp
 directives).
-It also requires
-.B auth (=x)
-privileges on the
+.B Auth (=x)
+privileges are also required on the
 .B authzTo
 attribute of the authorizing identity and/or on the 
 .B authzFrom
 attribute of the authorized identity.
 .SH CAVEATS
 It is strongly recommended to explicitly use the most appropriate
-.BR <dnstyle> ,
-to avoid possible incorrect specifications of the access rules as well
-as for performance (avoid unrequired regex matching when an exact
+.B <dnstyle>
+in
+.B <what>
+and
+.B <who>
+clauses, to avoid possible incorrect specifications of the access rules 
+as well as for performance (avoid unrequired regex matching when an exact
 match suffices) reasons.
 .LP
 An administrator might create a rule of the form:
@@ -717,7 +735,7 @@ To match the desired subtree, the rule would be more precisely
 written:
 .LP
 .nf
-	access to dn.regex="^(.+,)?dc=example,dc=com$$"
+	access to dn.regex="^(.+,)?dc=example,dc=com$"
 		by ...
 .fi
 .LP
@@ -737,7 +755,7 @@ that matches the
 clause, one could use
 .LP
 .nf
-	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$$"
+	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$"
 		by dn.regex="^uid=$1,dc=example,dc=com$$" write
 		by ...
 .fi
@@ -747,7 +765,7 @@ However, since all that is required in the
 clause is substring expansion, a more efficient solution is
 .LP
 .nf
-	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$$"
+	access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$"
 		by dn.exact,expand="uid=$1,dc=example,dc=com" write
 		by ...
 .fi
