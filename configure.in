@@ -1917,6 +1917,7 @@ dnl
 dnl Check for Cyrus SASL
 dnl
 ol_link_sasl=no
+ol_link_spasswd=no
 if test $ol_with_cyrus_sasl != no ; then
 	AC_CHECK_HEADER(sasl.h)
 
