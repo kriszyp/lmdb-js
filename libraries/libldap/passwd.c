@@ -90,17 +90,17 @@ ldap_passwd( LDAP *ld,
 		ber_printf( ber, "{" /*}*/ );
 
 		if( user != NULL ) {
-			ber_printf( ber, "ts",
+			ber_printf( ber, "tO",
 				LDAP_TAG_EXOP_MODIFY_PASSWD_ID, user );
 		}
 
 		if( oldpw != NULL ) {
-			ber_printf( ber, "ts",
+			ber_printf( ber, "tO",
 				LDAP_TAG_EXOP_MODIFY_PASSWD_OLD, oldpw );
 		}
 
 		if( newpw != NULL ) {
-			ber_printf( ber, "ts",
+			ber_printf( ber, "tO",
 				LDAP_TAG_EXOP_MODIFY_PASSWD_NEW, newpw );
 		}
 
