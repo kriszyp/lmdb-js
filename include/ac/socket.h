@@ -1,5 +1,5 @@
 /* Generic socket.h */
-/* $Id$ */
+/* $Id: socket.h,v 1.28 1999/08/29 18:35:22 kdz Exp $ */
 /*
  * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
@@ -66,8 +66,10 @@
 #define MAXHOSTNAMELEN  64
 #endif
 
-#define SOCK_ERR(num, str) \
-	num = errno; str = STRERROR(errno)
+#undef	sock_errno
+#undef	sock_errstr
+#define sock_errno()	errno
+#define sock_errstr(e)	STRERROR(e)
 
 #ifdef HAVE_WINSOCK
 #	define tcp_close( s )		closesocket( s )
@@ -81,9 +83,10 @@
 #define EINPROGRESS WSAEINPROGRESS
 #define ETIMEDOUT	WSAETIMEDOUT
 
-#undef	SOCK_ERR
-#define	SOCK_ERR(num, str) \
-	num = WSAGetLastError(); str = WSAGetLastErrorString()
+#undef	sock_errno
+#undef	sock_errstr
+#define	sock_errno()	WSAGetLastError()
+#define	sock_errstr(e)	WSAGetErrorString(e)
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
