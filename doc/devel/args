@@ -14,8 +14,8 @@ ldapwhoami		 * DE *HI*   *O QR  U*WXYZ   def*h**  *n*p*    vwx
 * General flags:
 	-C Chase Referrals
 	-D Bind DN
-	-E CommandSpecific Extensions	(e.g., -E <[!]oid[=options]>*)
-	-e General Extensions			(e.g., -e <[!]oid[=options]>*)
+	-E Tool-specific Extensions	(e.g., -E <[!]oid[=options]>*)
+	-e General Extensions		(e.g., -e <[!]oid[=options]>*)
 	-H URI
 	-P protocol version
 	-V version information
@@ -25,6 +25,7 @@ ldapwhoami		 * DE *HI*   *O QR  U*WXYZ   def*h**  *n*p*    vwx
 	-n no-op
 	-p port
 	-v verbose
+	-x simple bind
 	-y Bind password-file
 	-w Bind password
 	-4 IPv4 only
@@ -32,9 +33,6 @@ ldapwhoami		 * DE *HI*   *O QR  U*WXYZ   def*h**  *n*p*    vwx
 
 
 * LDAPv3 Only 
-	-x simple bind (not recommended excepting for
-		anonymous access, w/ -ZZ, or with ldaps://.
-
 	-M ManageDSAIT
 	-Z StartTLS
 
