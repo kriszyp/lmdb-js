@@ -14,8 +14,8 @@
 
 #include "slap.h"
 #include "back-bdb.h"
+#include "idl.h"
 
-#ifdef BDB_FILTER_INDICES
 /* read a key */
 int
 bdb_key_read(
@@ -26,7 +26,8 @@ bdb_key_read(
 	ID *ids
 )
 {
-	DBT		key;
+	int rc;
+	DBT key;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
@@ -35,10 +36,10 @@ bdb_key_read(
 	Debug( LDAP_DEBUG_TRACE, "=> key_read\n", 0, 0, 0 );
 #endif
 
-	DBzero( &key );
+	DBTzero( &key );
 	bv2DBT(k,&key);
 
-	rc = bdb_idl_fetch_key( be, db, txn, key, ids );
+	rc = bdb_idl_fetch_key( be, db, txn, &key, ids );
 
 	if( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -52,19 +53,16 @@ bdb_key_read(
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "index", LDAP_LEVEL_ENTRY,
-			"bdb_key_read: %ld candidates\n",
-			idl ? ID_BLOCK_NIDS(idl) : 0 ));
+			"bdb_key_read: %ld candidates\n", BDB_IDL_N(ids) );
 #else
 		Debug( LDAP_DEBUG_TRACE, "<= bdb_index_read %ld candidates\n",
-	    	idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
+	    	BDB_IDL_N(ids), 0, 0 );
 #endif
 	}
 
 	return rc;
 }
-#endif
 
-#ifdef BDB_INDEX
 /* Add or remove stuff from index files */
 int
 bdb_key_change(
@@ -109,4 +107,3 @@ bdb_key_change(
 
 	return rc;
 }
-#endif

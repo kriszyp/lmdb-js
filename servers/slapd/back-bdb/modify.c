@@ -127,14 +127,13 @@ int bdb_modify_internal(
 		return rc;
 	}
 
-#ifdef BDB_INDEX
 	/* delete indices for old attributes */
 	rc = bdb_index_entry_del( be, tid, e, save_attrs);
 	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
-		Debug( LDAP_DEBUG_ANY, "entry index delete failed: %s\n",
-			*text, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "entry index delete failed!\n",
+			0, 0, 0 );
 		return rc;
 	}
 
@@ -143,11 +142,10 @@ int bdb_modify_internal(
 	if ( rc != LDAP_SUCCESS ) {
 		attrs_free( e->e_attrs );
 		e->e_attrs = save_attrs;
-		Debug( LDAP_DEBUG_ANY, "entry index add failed: %s\n",
-			*text, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "entry index add failed!\n",
+			0, 0, 0 );
 		return rc;
 	}
-#endif
 
 	attrs_free( save_attrs );
 	return rc;

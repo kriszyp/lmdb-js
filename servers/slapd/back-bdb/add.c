@@ -238,7 +238,6 @@ retry:	rc = txn_abort( ltid );
 		goto return_results;
 	}
 
-#ifdef BDB_INDEX
 	/* attribute indexes */
 	if ( bdb_index_entry_add( be, ltid, e, e->e_attrs ) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_TRACE, "bdb_add: index_entry_add failed\n",
@@ -253,7 +252,6 @@ retry:	rc = txn_abort( ltid );
 		text = "index generation failed";
 		goto return_results;
 	}
-#endif
 
 	rc = txn_commit( ltid, 0 );
 	ltid = NULL;

@@ -15,8 +15,6 @@
 #include "slap.h"
 #include "back-bdb.h"
 
-#if BDB_CONFIG_INDICES
-
 /* for the cache of attribute information (which are indexed, etc.) */
 typedef struct bdb_attrinfo {
 #ifdef SLAPD_USE_AD
@@ -258,4 +256,3 @@ bdb_attr_index_destroy( Avlnode *tree )
 	avl_free( tree, ainfo_free );
 }
 
-#endif

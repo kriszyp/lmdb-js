@@ -32,14 +32,26 @@ bdb_db_cache(
 
 	*dbout = NULL;
 
-	for( i=BDB_NDB; bdb->bi_databases[i]->bdi_name; i++ ) {
+	for( i=BDB_NDB; bdb->bi_databases[i]; i++ ) {
 		if( !strcmp( bdb->bi_databases[i]->bdi_name, name) ) {
 			*dbout = bdb->bi_databases[i]->bdi_db;
 			return 0;
 		}
 	}
 
+	ldap_pvt_thread_mutex_lock( &bdb->bi_database_mutex );
+
+	/* check again! may have been added by another thread */
+	for( i=BDB_NDB; bdb->bi_databases[i]; i++ ) {
+		if( !strcmp( bdb->bi_databases[i]->bdi_name, name) ) {
+			*dbout = bdb->bi_databases[i]->bdi_db;
+			ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
+			return 0;
+		}
+	}
+
 	if( i >= BDB_INDICES ) {
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 		return -1;
 	}
 
@@ -52,6 +64,7 @@ bdb_db_cache(
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_cache: db_create(%s) failed: %s (%d)\n",
 			bdb->bi_dbenv_home, db_strerror(rc), rc );
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 		return rc;
 	}
 
@@ -69,12 +82,15 @@ bdb_db_cache(
 		Debug( LDAP_DEBUG_ANY,
 			"bdb_db_cache: db_open(%s) failed: %s (%d)\n",
 			name, db_strerror(rc), rc );
+		ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 		return rc;
 	}
 
+	bdb->bi_databases[i+1] = NULL;
 	bdb->bi_databases[i] = db;
 
 	*dbout = db->bdi_db;
 
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_database_mutex );
 	return 0;
 }

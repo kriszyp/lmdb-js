@@ -156,7 +156,6 @@ ID bdb_tool_entry_put(
 		goto done;
 	}
 
-#ifdef BDB_INDEX
 	rc = bdb_index_entry_add( be, tid, e, e->e_attrs );
 	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_ANY,
@@ -164,7 +163,6 @@ ID bdb_tool_entry_put(
 			db_strerror(rc), rc, 0 );
 		goto done;
 	}
-#endif
 
 done:
 	if( rc == 0 ) {
@@ -187,7 +185,6 @@ done:
 	return e->e_id;
 }
 
-#if BDB_REINDEX
 int bdb_tool_entry_reindex(
 	BackendDB *be,
 	ID id )
@@ -250,4 +247,3 @@ done:
 	entry_free( e );
 	return rc;
 }
-#endif

@@ -15,8 +15,6 @@
 #include "slap.h"
 #include "back-bdb.h"
 
-#ifdef BDB_INDEX
-
 static slap_mask_t index_mask(
 	Backend *be,
 	AttributeDescription *desc,
@@ -399,5 +397,3 @@ bdb_index_entry(
 
 	return LDAP_SUCCESS;
 }
-
-#endif
