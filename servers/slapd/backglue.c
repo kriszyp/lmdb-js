@@ -766,7 +766,7 @@ glue_tool_sync (
 	int i;
 
 	/* just sync everyone */
-	for (i = 0; b0->be_nsuffix[i]; i++)
+	for (i = 0; i<gi->nodes; i++)
 		if (gi->n[i].be->be_sync)
 			gi->n[i].be->be_sync (gi->n[i].be);
 	return 0;
