@@ -53,10 +53,10 @@ ldbm_back_init(
 	argv[ 2 ] = NULL;
 	attr_syntax_config( "ldbm dn initialization", 0, 2, argv );
 	argv[ 0 ] = "dn";
-	argv[ 1 ] = "sub";
-	argv[ 2 ] = "eq";
+	argv[ 1 ] = ch_strdup( "sub,eq" );
 	argv[ 3 ] = NULL;
-	attr_index_config( li, "ldbm dn initialization", 0, 3, argv, 1 );
+	attr_index_config( li, "ldbm dn initialization", 0, 2, argv, 1 );
+	free( argv[ 1 ] );
 	argv[ 0 ] = "id2children";
 	argv[ 1 ] = "eq";
 	argv[ 2 ] = NULL;
