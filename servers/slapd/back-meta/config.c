@@ -88,13 +88,13 @@ new_target( void )
 		return NULL;
 	}
 
-	lt->rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( lt->rwinfo == NULL ) {
+	lt->rwmap.rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( lt->rwmap.rwm_rw == NULL ) {
 		free( lt );
                 return NULL;
 	}
 
-	ldap_back_map_init( &lt->at_map, &mapping );
+	ldap_back_map_init( &lt->rwmap.rwm_at, &mapping );
 
 	return lt;
 }
@@ -499,7 +499,7 @@ meta_back_db_config(
 		 * FIXME: no extra rewrite capabilities should be added
 		 * to the database
 		 */
-	 	return suffix_massage_config( li->targets[ i ]->rwinfo,
+	 	return suffix_massage_config( li->targets[ i ]->rwmap.rwm_rw,
 				&pvnc, &nvnc, &prnc, &nrnc );
 		
 	/* rewrite stuff ... */
@@ -520,7 +520,7 @@ meta_back_db_config(
 #endif /* LDAP_CACHING */
 		}
 		
- 		return rewrite_parse( li->targets[ i ]->rwinfo, fname, lineno,
+ 		return rewrite_parse( li->targets[ i ]->rwmap.rwm_rw, fname, lineno,
 				argc, argv );
 
 	/* objectclass/attribute mapping */
@@ -534,8 +534,8 @@ meta_back_db_config(
 			return 1;
 		}
 
-		return ldap_back_map_config( &li->targets[ i ]->oc_map, 
-				&li->targets[ i ]->at_map,
+		return ldap_back_map_config( &li->targets[ i ]->rwmap.rwm_oc, 
+				&li->targets[ i ]->rwmap.rwm_at,
 				fname, lineno, argc, argv );
 	/* anything else */
 	} else {

@@ -85,6 +85,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	Attribute *a;
 	LDAPMod **attrs;
 	struct berval mdn = { 0, NULL }, mapped;
+	dncookie dc;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_META, ENTRY, "meta_back_add: %s\n",
@@ -113,36 +114,13 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"addDn", op->o_req_dn.bv_val, op->o_conn,
-				&mdn.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
-			mdn.bv_len = strlen( mdn.bv_val );
-		} else {
-			mdn = op->o_req_dn;
-		}
+	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "addDn";
 
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] addDn: \"%s\" -> \"%s\"\n",
-				op->o_req_dn.bv_val, mdn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n", 
-				op->o_req_dn.bv_val, mdn.bv_val, 0 );
-#endif /* !NEW_LOGGING */
-		break;
- 		
- 	case REWRITE_REGEXEC_UNWILLING:
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-		rs->sr_text = "Operation not allowed";
- 		send_ldap_result( op, rs );
-		return -1;
-	       	
-	case REWRITE_REGEXEC_ERR:
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "Rewrite error";
- 		send_ldap_result( op, rs );
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		send_ldap_result( op, rs );
 		return -1;
 	}
 
@@ -159,7 +137,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 			continue;
 		}
 
-		ldap_back_map( &li->targets[ candidate ]->at_map,
+		ldap_back_map( &li->targets[ candidate ]->rwmap.rwm_at,
 				&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
 			continue;
@@ -179,8 +157,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 		 */
 		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
-			ldap_dnattr_rewrite( li->targets[ candidate ]->rwinfo,
-					a->a_vals, op->o_conn );
+			(void)ldap_dnattr_rewrite( &dc, a->a_vals );
 		}
 
 		for ( j = 0; a->a_vals[ j ].bv_val; j++ );

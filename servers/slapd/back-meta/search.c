@@ -111,6 +111,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 	int i, last = 0, candidates = 0;
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
+	dncookie dc;
 
 #ifdef LDAP_CACHING
 	cache_manager*  cm = li->cm;
@@ -205,15 +206,19 @@ meta_back_search( Operation *op, SlapReply *rs )
 		/* negative hard limit means no limit */
 	}
 
+
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+
 	/*
 	 * Inits searches
 	 */
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
-		char		*realbase = ( char * )op->o_req_dn.bv_val;
+		struct berval	realbase = op->o_req_dn;
 		int		realscope = op->oq_search.rs_scope;
 		ber_len_t	suffixlen = 0;
-		char		*mbase = NULL; 
-		struct berval	mfilter = { 0L, NULL };
+		struct berval	mbase = { 0, NULL }; 
+		struct berval	mfilter = { 0, NULL };
 		char		**mapped_attrs = NULL;
 
 		if ( lsc->candidate != META_CANDIDATE ) {
@@ -235,6 +240,8 @@ meta_back_search( Operation *op, SlapReply *rs )
 					( void * )&op->oq_search.rs_slimit);
 		}
 
+		dc.rwmap = &li->targets[ i ]->rwmap;
+
 		/*
 		 * modifies the base according to the scope, if required
 		 */
@@ -250,7 +257,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 				 */
 				if ( dnIsSuffix( &li->targets[ i ]->suffix,
 						&op->o_req_ndn ) ) {
-					realbase = li->targets[ i ]->suffix.bv_val;
+					realbase = li->targets[ i ]->suffix;
 				} else {
 					/*
 					 * this target is no longer candidate
@@ -269,7 +276,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 					 * make the target suffix the new
 					 * base, and make scope "base"
 					 */
-					realbase = li->targets[ i ]->suffix.bv_val;
+					realbase = li->targets[ i ]->suffix;
 					realscope = LDAP_SCOPE_BASE;
 					break;
 				} /* else continue with the next case */
@@ -287,24 +294,11 @@ meta_back_search( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the search base, if required
 		 */
-	 	switch ( rewrite_session( li->targets[ i ]->rwinfo,
-					"searchBase",
- 					realbase, op->o_conn, &mbase ) ) {
-		case REWRITE_REGEXEC_OK:
-		if ( mbase == NULL ) {
-			mbase = realbase;
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-			"[rw] searchBase [%d]: \"%s\" -> \"%s\"\n",
-			i, op->o_req_dn.bv_val, mbase );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS,
-			"rw> searchBase [%d]: \"%s\" -> \"%s\"\n",
-				i, op->o_req_dn.bv_val, mbase );
-#endif /* !NEW_LOGGING */
-		break;
-		
+		dc.ctx = "searchBase";
+		switch ( ldap_back_dn_massage( &dc, &realbase, &mbase ) ) {
+		default:
+			break;
+
 		case REWRITE_REGEXEC_UNWILLING:
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
 			rs->sr_text = "Operation not allowed";
@@ -331,10 +325,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		/*
 		 * Maps filter
 		 */
-		rc = ldap_back_filter_map_rewrite_( li->targets[ i ]->rwinfo,
-				op->o_conn,
-				&li->targets[ i ]->at_map,
-				&li->targets[ i ]->oc_map, 
+		rc = ldap_back_filter_map_rewrite( &dc,
 				op->oq_search.rs_filter,
 				&mfilter, BACKLDAP_MAP );
 		if ( rc != 0 ) {
@@ -348,7 +339,7 @@ meta_back_search( Operation *op, SlapReply *rs )
 		/*
 		 * Maps required attributes
 		 */
-		rc = ldap_back_map_attrs( &li->targets[ i ]->at_map,
+		rc = ldap_back_map_attrs( &li->targets[ i ]->rwmap.rwm_at,
 				op->oq_search.rs_attrs, BACKLDAP_MAP,
 				&mapped_attrs );
 		if ( rc != LDAP_SUCCESS ) {
@@ -359,22 +350,10 @@ meta_back_search( Operation *op, SlapReply *rs )
 			goto new_candidate;
 		}
 
-#if 0
-		if ( mapped_attrs == NULL && op->oq_search.rs_attrs) {
-			int	count;
-			for ( count = 0; op->oq_search.rs_attrs[ count ].an_name.bv_val; count++ );
-			mapped_attrs = ch_malloc( ( count + 1 ) * sizeof(char *));
-			for ( count = 0; op->oq_search.rs_attrs[ count ].an_name.bv_val; count++ ) {
-				mapped_attrs[ count ] = op->oq_search.rs_attrs[ count ].an_name.bv_val;
-			}
-			mapped_attrs[ count ] = NULL;
-		}
-#endif
-
 		/*
 		 * Starts the search
 		 */
-		msgid[ i ] = ldap_search( lsc->ld, mbase, realscope,
+		msgid[ i ] = ldap_search( lsc->ld, mbase.bv_val, realscope,
 				mfilter.bv_val, mapped_attrs,
 				op->oq_search.rs_attrsonly ); 
 		if ( mapped_attrs ) {
@@ -385,9 +364,9 @@ meta_back_search( Operation *op, SlapReply *rs )
 			free( mfilter.bv_val );
 			mfilter.bv_val = NULL;
 		}
-		if ( mbase != realbase ) {
-			free( mbase );
-			mbase = NULL;
+		if ( mbase.bv_val != realbase.bv_val ) {
+			free( mbase.bv_val );
+			mbase.bv_val = NULL;
 		}
 
 		if ( msgid[ i ] == -1 ) {
@@ -592,7 +571,7 @@ new_candidate:;
 	 * FIXME: only the last one gets caught!
 	 */
 	if ( match != NULL ) {
-		switch ( rewrite_session( li->targets[ last ]->rwinfo,
+		switch ( rewrite_session( li->targets[ last ]->rwmap.rwm_rw,
 					"matchedDn", match, op->o_conn,
 					&mmatch ) ) {
 		case REWRITE_REGEXEC_OK:
@@ -673,6 +652,7 @@ meta_send_entry(
 	struct berval 		dummy = { 0, NULL };
 	struct berval 		*bv, bdn;
 	const char 		*text;
+	dncookie		dc;
 
 	if ( ber_scanf( &ber, "{m{", &bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;
@@ -681,32 +661,14 @@ meta_send_entry(
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
-	switch ( rewrite_session( li->targets[ target ]->rwinfo,
-				"searchResult", bdn.bv_val, lc->conn,
-				&ent.e_name.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( ent.e_name.bv_val == NULL ) {
-			ent.e_name = bdn;
+	dc.rwmap = &li->targets[ target ]->rwmap;
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "searchResult";
 
-		} else {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] searchResult[%d]: \"%s\" -> \"%s\"\n",
-				target, bdn.bv_val, ent.e_name.bv_val );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS, "rw> searchResult[%d]: \"%s\""
- 					" -> \"%s\"\n", target, bdn.bv_val,
-					ent.e_name.bv_val );
-#endif /* !NEW_LOGGING */
-			ent.e_name.bv_len = strlen( ent.e_name.bv_val );
-		}
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		return LDAP_UNWILLING_TO_PERFORM;
-
-	case REWRITE_REGEXEC_ERR:
-		return LDAP_OTHER;
+	rs->sr_err = ldap_back_dn_massage( &dc, &bdn, &ent.e_name );
+	if ( rs->sr_err != LDAP_SUCCESS) {
+		return rs->sr_err;
 	}
 
 	/*
@@ -725,8 +687,7 @@ meta_send_entry(
 	 */
 	if ( li->cache.ttl != META_DNCACHE_DISABLED ) {
 		( void )meta_dncache_update_entry( &li->cache,
-						   &ent.e_nname,
-						   target );
+				&ent.e_nname, target );
 	}
 
 	ent.e_id = 0;
@@ -735,7 +696,7 @@ meta_send_entry(
 	attrp = &ent.e_attrs;
 
 	while ( ber_scanf( &ber, "{m", &a ) != LBER_ERROR ) {
-		ldap_back_map( &li->targets[ target ]->at_map, 
+		ldap_back_map( &li->targets[ target ]->rwmap.rwm_at, 
 				&a, &mapped, BACKLDAP_REMAP );
 		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
 			continue;
@@ -781,7 +742,7 @@ meta_send_entry(
 			for ( last = 0; attr->a_vals[ last ].bv_val; ++last );
 
 			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
-				ldap_back_map( &li->targets[ target]->oc_map,
+				ldap_back_map( &li->targets[ target ]->rwmap.rwm_oc,
 						bv, &mapped, BACKLDAP_REMAP );
 				if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {
 					free( bv->bv_val );
@@ -818,7 +779,7 @@ meta_send_entry(
 			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
 				char *newval;
 
-				switch ( rewrite_session( li->targets[ target ]->rwinfo,
+				switch ( rewrite_session( li->targets[ target ]->rwmap.rwm_rw,
 							"searchResult",
 							bv->bv_val,
 							lc->conn, &newval )) {

@@ -125,10 +125,13 @@ struct metatarget {
 	struct berval           pseudorootdn;
 	struct berval           pseudorootpw;
 
+#if 0
 	struct rewrite_info	*rwinfo;
 
 	struct ldapmap		oc_map;
 	struct ldapmap		at_map;
+#endif
+	struct ldaprwmap	rwmap;
 };
 
 struct metadncache {

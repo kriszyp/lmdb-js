@@ -256,7 +256,7 @@ init_one_conn(
 	/*
 	 * Sets a cookie for the rewrite session
 	 */
-	( void )rewrite_session_init( lt->rwinfo, op->o_conn );
+	( void )rewrite_session_init( lt->rwmap.rwm_rw, op->o_conn );
 
 	/*
 	 * If the connection dn is not null, an attempt to rewrite it is made
@@ -267,7 +267,7 @@ init_one_conn(
 		 * Rewrite the bind dn if needed
 		 */
 		lsc->bound_dn.bv_val = NULL;
-		switch ( rewrite_session( lt->rwinfo, "bindDn",
+		switch ( rewrite_session( lt->rwmap.rwm_rw, "bindDn",
 					op->o_conn->c_dn.bv_val, op->o_conn, 
 					&lsc->bound_dn.bv_val ) ) {
 		case REWRITE_REGEXEC_OK:

@@ -81,8 +81,8 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	struct metainfo *li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc;
 	int candidate = -1;
-
-	char *mdn = NULL;
+	struct berval mdn = { 0, NULL };
+	dncookie dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
 			&op->o_req_ndn, &candidate );
@@ -101,40 +101,20 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"deleteDn", op->o_req_dn.bv_val,
-				op->o_conn, &mdn ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = ( char * )op->o_req_dn.bv_val;
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] deleteDn: \"%s\" -> \"%s\"\n",
-				op->o_req_dn.bv_val, mdn, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n",
-				op->o_req_dn.bv_val, mdn, 0 );
-#endif /* !NEW_LOGGING */
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-		rs->sr_text = "Operation not allowed";
-		send_ldap_result( op, rs );
-		return -1;
+	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "deleteDn";
 
-	case REWRITE_REGEXEC_ERR:
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "Rewrite error";
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		send_ldap_result( op, rs );
 		return -1;
 	}
-	
-	ldap_delete_s( lc->conns[ candidate ].ld, mdn );
 
-	if ( mdn != op->o_req_dn.bv_val ) {
-		free( mdn );
+	ldap_delete_s( lc->conns[ candidate ].ld, mdn.bv_val );
+
+	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
+		free( mdn.bv_val );
 	}
 	
 	return meta_back_op_result( lc, op, rs );

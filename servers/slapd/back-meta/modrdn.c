@@ -141,7 +141,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */
-		switch ( rewrite_session( li->targets[ nsCandidate ]->rwinfo,
+		switch ( rewrite_session( li->targets[ nsCandidate ]->rwmap.rwm_rw,
 					"newSuperiorDn",
 					op->oq_modrdn.rs_newSup->bv_val, 
 					op->o_conn, 
@@ -179,7 +179,7 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
+	switch ( rewrite_session( li->targets[ candidate ]->rwmap.rwm_rw,
 				"modrDn", op->o_req_dn.bv_val,
 				op->o_conn, &mdn ) ) {
 	case REWRITE_REGEXEC_OK:

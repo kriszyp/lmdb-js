@@ -121,7 +121,7 @@ meta_back_conn_destroy(
 				continue;
 			}
 
-			rewrite_session_delete( li->targets[ i ]->rwinfo, conn );
+			rewrite_session_delete( li->targets[ i ]->rwmap.rwm_rw, conn );
 			meta_clear_one_candidate( &lc->conns[ i ], 1 );
 		}
 

@@ -81,10 +81,12 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct metaconn *lc;
 	struct metasingleconn *lsc;
-	char *match = NULL, *err = NULL, *mmatch = NULL;
+	char *match = NULL, *err = NULL;
+	struct berval mmatch = { 0, NULL };
 	int candidates = 0, last = 0, i, count, rc;
        	int cres = LDAP_SUCCESS, rres = LDAP_SUCCESS;
 	int *msgid;
+	dncookie dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_ALLOW_MULTIPLE,
 			&op->o_req_ndn, NULL );
@@ -107,8 +109,12 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	/*
 	 * start an asynchronous compare for each candidate target
 	 */
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "compareDn";
+
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
-		char *mdn = NULL;
+		struct berval mdn = { 0, NULL };
 		struct berval mapped_attr = op->oq_compare.rs_ava->aa_desc->ad_cname;
 		struct berval mapped_value = op->oq_compare.rs_ava->aa_value;
 
@@ -120,42 +126,22 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		/*
 		 * Rewrite the compare dn, if needed
 		 */
-		switch ( rewrite_session( li->targets[ i ]->rwinfo,
-					"compareDn", 
-					op->o_req_dn.bv_val, op->o_conn, &mdn ) ) {
-		case REWRITE_REGEXEC_OK:
-			if ( mdn == NULL ) {
-				mdn = ( char * )op->o_req_dn.bv_val;
-			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] compareDn: \"%s\" -> \"%s\"\n",
-				op->o_req_dn.bv_val, mdn, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS,
-				     	"rw> compareDn: \"%s\" -> \"%s\"\n",
-					op->o_req_dn.bv_val, mdn, 0 );
-#endif /* !NEW_LOGGING */
+		dc.rwmap = &li->targets[ i ]->rwmap;
+
+		switch ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		case LDAP_UNWILLING_TO_PERFORM:
+			rc = 1;
+			goto finish;
+
+		default:
 			break;
-		
-		case REWRITE_REGEXEC_UNWILLING:
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			rs->sr_text = "Operation not allowed";
-			send_ldap_result( op, rs );
-			return -1;
-			
-		case REWRITE_REGEXEC_ERR:
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "Rewrite error";
-			send_ldap_result( op, rs );
-			return -1;
 		}
 
 		/*
 		 * if attr is objectClass, try to remap the value
 		 */
 		if ( op->oq_compare.rs_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-			ldap_back_map( &li->targets[ i ]->oc_map,
+			ldap_back_map( &li->targets[ i ]->rwmap.rwm_oc,
 					&op->oq_compare.rs_ava->aa_value,
 					&mapped_value, BACKLDAP_MAP );
 
@@ -166,7 +152,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * else try to remap the attribute
 		 */
 		} else {
-			ldap_back_map( &li->targets[ i ]->at_map,
+			ldap_back_map( &li->targets[ i ]->rwmap.rwm_at,
 				&op->oq_compare.rs_ava->aa_desc->ad_cname,
 				&mapped_attr, BACKLDAP_MAP );
 			if ( mapped_attr.bv_val == NULL || mapped_attr.bv_val[0] == '\0' ) {
@@ -179,10 +165,11 @@ meta_back_compare( Operation *op, SlapReply *rs )
 		 * that returns determines the result; a constraint on unicity
 		 * of the result ought to be enforced
 		 */
-		msgid[ i ] = ldap_compare( lc->conns[ i ].ld, mdn,
+		msgid[ i ] = ldap_compare( lc->conns[ i ].ld, mdn.bv_val,
 				mapped_attr.bv_val, mapped_value.bv_val );
-		if ( mdn != op->o_req_dn.bv_val ) {
-			free( mdn );
+		if ( mdn.bv_val != op->o_req_dn.bv_val ) {
+			free( mdn.bv_val );
+			mdn.bv_val = NULL;
 		}
 		if ( mapped_attr.bv_val != op->oq_compare.rs_ava->aa_desc->ad_cname.bv_val ) {
 			free( mapped_attr.bv_val );
@@ -301,56 +288,28 @@ finish:;
 		 */
 		rres = cres;
 		
-	} else if ( match != NULL ) {
-		
 		/*
 		 * At least one compare failed with matched portion,
 		 * and none was successful
 		 */
-		switch ( rewrite_session( li->targets[ last ]->rwinfo,
-					"matchedDn", match, op->o_conn,
-					&mmatch ) ) {
-		case REWRITE_REGEXEC_OK:
-			if ( mmatch == NULL ) {
-				mmatch = ( char * )match;
-			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_META, DETAIL1,
-					"[rw] matchedDn: \"%s\" -> \"%s\"\n",
-					match, mmatch, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
-					" \"%s\" -> \"%s\"\n",
-					match, mmatch, 0 );
-#endif /* !NEW_LOGGING */
-			break;
-			
-		
-		case REWRITE_REGEXEC_UNWILLING:
-			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-			rs->sr_text = "Operation not allowed";
-			send_ldap_result( op, rs );
-			rc = -1;
-			goto cleanup;
-			
-		case REWRITE_REGEXEC_ERR:
-			rs->sr_err = LDAP_OTHER;
-			rs->sr_text = "Rewrite error";
-			send_ldap_result( op, rs );
-			rc = -1;
-			goto cleanup;
-		}
+	} else if ( match != NULL &&  match[0] != '\0' ) {
+		struct berval matched;
+
+		matched.bv_val = match;
+		matched.bv_len = strlen( match );
+
+		dc.ctx = "matchedDn";
+		ldap_back_dn_massage( &dc, &matched, &mmatch );
 	}
 
 	rs->sr_err = rres;
-	rs->sr_matched = mmatch;
+	rs->sr_matched = mmatch.bv_val;
 	send_ldap_result( op, rs );
 	rs->sr_matched = NULL;
 
-cleanup:;
 	if ( match != NULL ) {
-		if ( mmatch != match ) {
-			free( mmatch );
+		if ( mmatch.bv_val != match ) {
+			free( mmatch.bv_val );
 		}
 		free( match );
 	}

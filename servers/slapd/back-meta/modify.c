@@ -85,8 +85,9 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	LDAPMod			*mods = NULL;
 	Modifications		*ml;
 	int			candidate = -1, i;
-	char			*mdn;
+	struct berval		mdn = { 0, NULL };
 	struct berval		mapped;
+	dncookie		dc;
 
 	lc = meta_back_getconn( op, rs, META_OP_REQUIRE_SINGLE,
 			&op->o_req_ndn, &candidate );
@@ -105,32 +106,12 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
-	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"modifyDn", op->o_req_dn.bv_val,
-				op->o_conn, &mdn ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn == NULL ) {
-			mdn = ( char * )op->o_req_dn.bv_val;
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] modifyDn: \"%s\" -> \"%s\"\n",
-				op->o_req_dn.bv_val, mdn, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n",
-				op->o_req_dn.bv_val, mdn, 0 );
-#endif /* !NEW_LOGGING */
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-		rs->sr_text = "Operation not allowed";
-		rc = -1;
-		goto cleanup;
+	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "modifyDn";
 
-	case REWRITE_REGEXEC_ERR:
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "Rewrite error";
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rc = -1;
 		goto cleanup;
 	}
@@ -151,6 +132,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
+	dc.ctx = "modifyAttrDN";
 	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
 		int j;
 
@@ -158,7 +140,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 			continue;
 		}
 
-		ldap_back_map( &li->targets[ candidate ]->at_map,
+		ldap_back_map( &li->targets[ candidate ]->rwmap.rwm_at,
 				&ml->sml_desc->ad_cname, &mapped,
 				BACKLDAP_MAP );
 		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
@@ -176,9 +158,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		 */
 		if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
 					SLAPD_DN_SYNTAX ) == 0 ) {
-			ldap_dnattr_rewrite(
-				li->targets[ candidate ]->rwinfo,
-				ml->sml_bvalues, op->o_conn );
+			( void )ldap_dnattr_rewrite( &dc, ml->sml_bvalues );
 		}
 
 		if ( ml->sml_bvalues != NULL ){
@@ -197,11 +177,11 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 	modv[ i ] = 0;
 
-	ldap_modify_s( lc->conns[ candidate ].ld, mdn, modv );
+	ldap_modify_s( lc->conns[ candidate ].ld, mdn.bv_val, modv );
 
 cleanup:;
-	if ( mdn != op->o_req_dn.bv_val ) {
-		free( mdn );
+	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
+		free( mdn.bv_val );
 	}
 	if ( modv != NULL ) {
 		for ( i = 0; modv[ i ]; i++) {

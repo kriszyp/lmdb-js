@@ -236,35 +236,19 @@ meta_back_do_single_bind(
 	struct metainfo	*li = ( struct metainfo * )op->o_bd->be_private;
 	struct berval	mdn = { 0, NULL };
 	ber_int_t	msgid;
+	dncookie	dc;
 	
 	/*
 	 * Rewrite the bind dn if needed
 	 */
-	switch ( rewrite_session( li->targets[ candidate ]->rwinfo,
-				"bindDn", op->o_req_dn.bv_val,
-				lc->conn, &mdn.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn.bv_val == NULL ) {
-			mdn = op->o_req_dn;
-		} else {
-			mdn.bv_len = strlen( mdn.bv_val );
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-				"[rw] bindDn: \"%s\" -> \"%s\"\n",
-				op->o_req_dn.bv_val, mdn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS,
-				"rw> bindDn: \"%s\" -> \"%s\"\n%s",
-				op->o_req_dn.bv_val, mdn.bv_val, "" );
-#endif /* !NEW_LOGGING */
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		return LDAP_UNWILLING_TO_PERFORM;
+	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "bindDn";
 
-	case REWRITE_REGEXEC_ERR:
-		return LDAP_OTHER;
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		send_ldap_result( op, rs );
+		return -1;
 	}
 
 	if ( op->o_ctrls ) {

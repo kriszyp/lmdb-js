@@ -257,13 +257,13 @@ target_free(
 	if ( lt->pseudorootpw.bv_val ) {
 		free( lt->pseudorootpw.bv_val );
 	}
-	if ( lt->rwinfo ) {
-		rewrite_info_delete( lt->rwinfo );
+	if ( lt->rwmap.rwm_rw ) {
+		rewrite_info_delete( lt->rwmap.rwm_rw );
 	}
-	avl_free( lt->oc_map.remap, NULL );
-	avl_free( lt->oc_map.map, mapping_free );
-	avl_free( lt->at_map.remap, NULL );
-	avl_free( lt->at_map.map, mapping_free );
+	avl_free( lt->rwmap.rwm_oc.remap, NULL );
+	avl_free( lt->rwmap.rwm_oc.map, mapping_free );
+	avl_free( lt->rwmap.rwm_at.remap, NULL );
+	avl_free( lt->rwmap.rwm_at.map, mapping_free );
 }
 
 int
