@@ -2,17 +2,17 @@ Internet-Draft                                      David Chadwick
 LDAPExt WG                       		   University of Salford      
 Intended Category: Standards Track                     Sean Mullan
 								  Sun Microsystems
-Expires: 1 January 2001                             1 July 2000
+Expires: 15 April 2001                             16 October 2000
 
 
 Returning Matched Values with LDAPv3
-<draft-ietf-ldapext-matchedval-02.txt>
+<draft-ietf-ldapext-matchedval-04.txt>
 
 
 STATUS OF THIS MEMO
 
 This document is an Internet-Draft and is in full conformance with 
-all the provisions of Section 10 of RFC2026.
+all the provisions of Section 10 of RFC2026 [1].
 
 Internet-Drafts are working documents of the Internet Engineering 
 Task Force (IETF), its areas, and its working groups. Note that other
@@ -29,10 +29,13 @@ http://www.ietf.org/ietf/1id-abstracts.txt.
 The list of Internet-Draft Shadow Directories can be accessed at
 http://www.ietf.org/shadow.html.
 
-This Internet-Draft expires on 1 January 2001. Comments and 
-suggestions on this document are encouraged. Comments on this 
-document should be sent to the LDAPExt working group discussion list:
+This Internet-Draft expires on 15 April 2001. 
+
+Comments and suggestions on this document are encouraged. Comments on 
+this document should be sent to the LDAPEXT working group discussion 
+list:
                 ietf-ldapext@netscape.com
+
 or directly to the authors.
 
 
@@ -48,28 +51,28 @@ values locally.
 
 1. Introduction
 
-When reading an attribute from an entry using LDAP v2 [1] or LDAPv3 
-[2], it is normally only possible to read either the attribute type, 
-or the attribute type and all its values. It is not possible to 
-selectively read just a few of the attribute values. If an attribute 
-holds many values, for example, the userCertificate attribute, or the 
-subschema publishing operational attributes objectClasses and 
-attributeTypes [3], then it may be desirable for the user to be able 
-to selectively retrieve a subset of the values, specifically, those 
-attribute values that match some user defined selection criteria. 
-Without the control specified in this [ID/standard] a client must 
-read all of the attribute's values and filter out the unwanted 
-values, necessitating the client to implement the matching rules. It 
-also requires the client to potentially read and process many 
-irrelevant values, which can be inefficient if the values are large 
-or complex, or there are many values stored per attribute.
+When reading an attribute from an entry using LDAPv3 [2], it is 
+normally only possible to read either the attribute type, or the 
+attribute type and all its values. It is not possible to selectively 
+read just a few of the attribute values. If an attribute holds many 
+values, for example, the userCertificate attribute, or the subschema 
+publishing operational attributes objectClasses and attributeTypes 
+[3], then it may be desirable for the user to be able to selectively 
+retrieve a subset of the values, specifically, those attribute values 
+that match some user defined selection criteria. Without the control 
+specified in this [ID/standard/document] a client must read all of 
+the attribute's values and filter out the unwanted values, 
+necessitating the client to implement the matching rules. It also 
+requires the client to potentially read and process many irrelevant 
+values, which can be inefficient if the values are large or complex, 
+or there are many values stored per attribute.
 
-This Internet Draft specifies an LDAPv3 control to enable a user to 
-return only those values that matched (i.e. returned TRUE to) one or 
-more elements of a newly defined "values return" filter. This control 
-can be especially useful when used in conjunction with extensible 
-matching rules that match on one or more components of complex binary 
-attribute values.
+This [ID/Standard/document] specifies an LDAPv3 control to enable a 
+user to return only those values that matched (i.e. returned TRUE to) 
+one or more elements of a newly defined "values return" filter. This 
+control can be especially useful when used in conjunction with 
+extensible matching rules that match on one or more components of 
+complex binary attribute values.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",  
 "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this 
@@ -79,14 +82,24 @@ document are to be interpreted as described in RFC 2119 [5].
 2. The valuesReturnFilter Control
 
 The valuesReturnFilter control MAY be critical or non-critical as 
-determined by the user. It is only applicable to the Search 
-operation, and SHALL be ignored by the server if it is present on any 
-other LDAP operation (even if marked critical on such operations).
+determined by the user. It only has meaning for the Search operation, 
+and SHOULD only be added to the Search operation by the client. If 
+the server supports the control and it is present on a Search 
+operation, the server MUST obey the control regardless of the value 
+of the criticality flag. 
+
+If the control is marked as critical, and either the server does not  
+support the control or the control is applied to an operation other 
+than Search, then the server MUST return an 
+unavailableCriticalExtension error.  If the control is not marked as 
+critical, and either the server does not support the control or the 
+control is applied to an operation other than Search, then the server
+MUST ignore the control.
 
 The object identifier for this control is 1.2.826.0.1.3344810.2.3
 
-
-The controlValue is 
+The controlValue is an OCTET STRING, whose value is the BER encoding 
+of a value of the type ValuesReturnFilter.
 
         ValuesReturnFilter ::= SEQUENCE OF SimpleFilterItem
 
@@ -102,6 +115,7 @@ The controlValue is
          SimpleMatchingAssertion ::= SEQUENCE {
                 matchingRule    [1] MatchingRuleId OPTIONAL,
                 type            [2] AttributeDescription OPTIONAL,
+--- at least one of the above must be present
                 matchValue      [3] AssertionValue}
 
 All the above data types have their standard meanings as defined in 
@@ -111,8 +125,8 @@ If the server supports this control, the server MUST make use of the
 control as follows:
 
 (1) The Search Filter is first executed in order to determine 
-which entries satisfy the Search criteria. The control has no 
-impact on this step.
+which entries satisfy the Search criteria (these are the 
+filtered entries). The control has no impact on this step.
 
 (2) If the typesOnly parameter of the Search Request is TRUE, 
 the control has no effect and the Search Request SHOULD be 
@@ -125,213 +139,241 @@ has no effect and the Search Request SHOULD be processed as if
 the control had not been specified.
 
 (4) For each attribute listed in the attributes parameter of the 
-Search Request, the server MUST apply the control as follows:
+Search Request, the server MUST apply the control as follows to 
+each entry in the set of filtered entries:
 
 i) Every attribute value that evaluates TRUE against one or 
 more elements of the ValuesReturnFilter is placed in the 
-SearchResultEntry.
+corresponding SearchResultEntry.
 ii) Every attribute value that evaluates FALSE or undefined 
 against all elements of the ValuesReturnFilter is not 
-placed in the SearchResultEntry. An attribute that has no 
-values selected is returned with an empty set of vals.
+placed in the corresponding SearchResultEntry. An 
+attribute that has no values selected is returned with an 
+empty set of vals.
 
-Editor's Note. There is possibly a more efficient but slightly more 
-complex way of achieving the value filtering. An alternative is to 
-remove the 'present' SimpleFilterItem (which obviously evaluates true 
-for every attribute value of the 'present' attribute description), 
-and to say that any attribute whose type is not mentioned in the 
-ValuesReturnFilter is not filtered and has all its attribute values 
-returned. Comments please.
+Note. If the AttributeDescriptionList is empty or comprises "*" 
+then the control MUST be applied against every attribute.
 
 
 3. Relationship to X.500
 
-The control is a superset of the matchedValuesOnly boolean of the 
-X.500 DAP [4] Search argument, as amended in the latest version [6].
-Close examination of the matchedValuesOnly boolean by the LDAPExt 
-group revealed ambiguities and complexities in the MVO boolean that 
-could not easily be resolved. For example, are only those attribute 
-values that contributed to the overall truth of the filter governed 
-by the MVO boolean, or all values of attributes in the filter 
-governed by the MVO boolean, even if the filter item containing the 
-attribute evaluated to false. For this reason the LDAP group decided 
-to replace the MVO boolean with a simple filter that removes any 
+The control is a superset of the matchedValuesOnly (MVO) boolean of 
+the X.500 DAP [4] Search argument, as amended in the latest version 
+[6]. Close examination of the matchedValuesOnly boolean by the 
+LDAPEXT group revealed ambiguities and complexities in the MVO 
+boolean that could not easily be resolved. For example, it was not 
+clear if the MVO boolean governed only those attribute values that 
+contributed to the overall truth of the filter, or all of the 
+attribute values even if the filter item containing the attribute 
+evaluated to false. For this reason the LDAPEXT group decided to 
+replace the MVO boolean with a simple filter that removes any 
 uncertainty as to whether an attribute value has been selected or 
 not. 
 
 
-4. Examples
+4. Relationship to other LDAP Controls
 
-(1) The first example simply shows how the control can be used to 
-selectively read a subset of attribute values. 
+The purpose of this control is to select zero, one or more attribute 
+values from each requested attribute in a filtered entry, and to 
+discard the remainder. Once the attribute values have been discarded 
+by this control they MUST NOT be re-instated into the Search results 
+by other controls. 
 
-The entry below represents a groupOfNames object class containing 
-several members from different organizations.
+This control acts independently of other LDAP controls such as server 
+side sorting [10] and duplicate entries [7]. However, there might be 
+interactions between this control and other controls so that a 
+different set of Search Result Entries are returned, or the entries 
+are returned in a different order, depending upon the sequencing of 
+this control and other controls in the LDAP request. For example, 
+with server side sorting, if sorting is done first, and value return 
+filtering second, the set of Search Results may appear to be in the 
+wrong order since the value filtering may remove the attribute values 
+upon which the ordering was done. (The sorting document specifies 
+that entries without any sort key attribute values should be treated 
+as coming after all other attribute values.) Similarly with duplicate 
+entries, if duplication is performed before value filtering, the set 
+of Search Result Entries may contain identical duplicate entries, 
+each with an empty set of attribute values, because the value 
+filtering removed the attribute values that were used to duplicate 
+the results.
 
-cn: Cross Organizational Standards Body
-member: cn=joe,o=acme
-member: cn=alice,o=acme
-member: cn=bob,o=foo
-member: cn=sue,o=bar
+For these reasons it is recommended that the ValuesReturnFilter 
+control in a SearchRequest SHOULD precede other controls that affect 
+the number and ordering of SearchResultEntrys.
+
+
+5. Examples
+
+All entries are provided in LDIF format [8].
+
+The string representation of the valuesReturnFilter in the examples 
+below uses the notation defined in RFC 2254 [11].
+
+(1) The first example shows how the control can be set to return all 
+attribute values from one attribute type (e.g. telephoneNumber) and a 
+subset of values from another attribute type (e.g. mail).
+
+The entries below represent organizationalPerson object classes 
+located somewhere beneath the distinguished name dc=ac, dc=uk.
+
+dn: cn=Sean Mullan, ou=people, dc=sun, dc=ac, dc=uk
+cn: Sean Mullan
+sn: Mullan
+objectClass: organizationalPerson
+objectClass: person
+objectClass: inetOrgPerson
+mail: sean.mullan@hotmail.com
+mail: mullan@east.sun.com
+telephoneNumber: + 781 442 0926
+telephoneNumber: 555-9999
+
+dn: cn=David Chadwick, ou=isi, o=salford, dc=ac, dc=uk 
+cn: David Chadwick
+sn: Chadwick
+objectClass: organizationalPerson
+objectClass: person
+objectClass: inetOrgPerson
+mail: d.w.chadwick@salford.ac.uk
 
 An LDAP search operation is specified with a baseObject set to the
-DN of the entry, a baseObject scope, a filter set to 
-"member=*o=acme", and the list of attributes to be returned set to 
-"member". In addition, a ValuesReturnFilter control is set to 
-"member=*o=acme".
+DN of the search base (i.e. dc=ac, dc=uk), a subtree scope, a filter 
+set to (sn=mullan), and the list of attributes to be returned set to 
+"mail, telephoneNumber". In addition, a ValuesReturnFilter control is 
+set to ((mail=*hotmail.com)(telephoneNumber=*))
 
 The search results returned by the server would consist of the 
 following entry:
 
-cn: Cross Organizational Standards Body
-member: cn=joe, o=acme
-member: cn=alice, o=acme
-
-
-(2) The second example shows how the control can be set to match on 
-attributes that are (mail) and are not (telephoneNumber) part of the 
-search filter. It also shows how a user can filter some attribute 
-values (mail) and not others (telephoneNumber).
-
-The entries below represent inetOrgPerson [7] object classes located
-below some distinguished name in the directory.
-
-cn: Sean Mullan
-mail: sean.mullan@sun.com
-mail: mullan@east.sun.com
-telephoneNumber: +1 781 442 0926
+dn: cn=Sean Mullan, ou=people, dc=sun, dc=ac, dc=uk
+mail: sean.mullan@hotmail.com
+telephoneNumber: + 781 442 0926
 telephoneNumber: 555-9999
-
-cn: David Chadwick
-mail: d.w.chadwick@salford.ac.uk
-
-An LDAP search operation is specified with a baseObject set to the
-DN of the entry, a subtree scope, a filter set to 
-"(|(mail=sean.mullan@sun.com)(mail=d.w.chadwick@salford.ac.uk))", and 
-the list of attributes to be returned set to "mail telephoneNumber". 
-In addition, a ValuesReturnFilter control is set to 
-"mail=sean.mullan@sun.com, mail=d.w.chadwick@salford.ac.uk, 
-telephoneNumber=*"
-
-The search results returned by the server would consist of the 
-following entries:
-
-cn: Sean Mullan
-mail: sean.mullan@sun.com
-telephoneNumber: +1 781 442 0926
-telephoneNumber: 555-9999
-
-cn: David Chadwick
-mail: d.w.chadwick@salford.ac.uk
 
 Note that the control has no effect on the values returned for the 
 "telephoneNumber" attribute (all of the values are returned), since 
 the control specified that all values should be returned.
 
-(3) The third example shows how one might retrieve a single attribute 
-type schema definition for the "gunk" attribute with OID 1.2.3.4.5
 
-Assume the subschema subentry is held somewhere below the root entry 
-with RDN "subschema subentry", and this holds an attributeTypes 
+(2) The second example shows how one might retrieve a single 
+attribute type subschema definition for the "gunk" attribute with OID 
+1.2.3.4.5 from the subschema subentry 
+
+Assume the subschema subentry is held below the root entry with DN 
+cn=subschema subentry, o=myorg and this holds an attributeTypes 
 operational attribute holding the descriptions of the 35 attributes 
 known to this server (each description is held as a single attribute 
 value of the attributeTypes attribute). 
 
+dn: cn=subschema subentry, o=myorg
 cn: subschema subentry
 objectClass: subschema
 attributeTypes: ( 2.5.4.3 NAME 'cn' SUP name )
 attributeTypes: ( 2.5.4.6 NAME 'c' SUP name SINGLE-VALUE )
-attributeTypes: ( 2.5.4.0 NAME 'objectClass' EQUALITY 
-objectIdentifierMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
-attributeTypes: ( 2.5.18.2 NAME 'modifyTimestamp' EQUALITY 
-generalizedTimeMatch ORDERING generalizedTimeOrderingMatch
-SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE NO-USER-
-MODIFICATION USAGE directoryOperation )
-attributeTypes: ( 2.5.21.6 NAME 'objectClasses' EQUALITY 
-objectIdentifierFirstComponentMatch SYNTAX 
-1.3.6.1.4.1.1466.115.121.1.37 USAGE directoryOperation )
-attributeTypes: ( 1.2.3.4.5 NAME 'gunk' EQUALITY caseIgnoreMatch  
-SUBSTR caseIgnoreSubstringsMatch SYNTAX 
-1.3.6.1.4.1.1466.115.121.1.44{64} )
-attributeTypes: ( 2.5.21.5 NAME 'attributeTypes' EQUALITY 
-objectIdentifierFirstComponentMatch SYNTAX 
-1.3.6.1.4.1.1466.115.121.1.3 USAGE directoryOperation )
+attributeTypes: ( 2.5.4.0 NAME 'objectClass' EQUALITY
+ objectIdentifierMatch SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )
+attributeTypes: ( 2.5.18.2 NAME 'modifyTimestamp' EQUALITY
+ generalizedTimeMatch ORDERING generalizedTimeOrderingMatch
+ SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 SINGLE-VALUE NO-USER-
+ MODIFICATION USAGE directoryOperation )
+attributeTypes: ( 2.5.21.6 NAME 'objectClasses' EQUALITY
+ objectIdentifierFirstComponentMatch SYNTAX
+ 1.3.6.1.4.1.1466.115.121.1.37 USAGE directoryOperation )
+attributeTypes: ( 1.2.3.4.5 NAME 'gunk' EQUALITY caseIgnoreMatch
+ SUBSTR caseIgnoreSubstringsMatch SYNTAX
+ 1.3.6.1.4.1.1466.115.121.1.44{64} )
+attributeTypes: ( 2.5.21.5 NAME 'attributeTypes' EQUALITY
+ objectIdentifierFirstComponentMatch SYNTAX
+ 1.3.6.1.4.1.1466.115.121.1.3 USAGE directoryOperation )
 
 plus another 28 - you get the idea.
 
 
 The user creates an LDAP search operation with a baseObject set to 
-root, a subtree scope, a filter set to "objectClass=subschema", the 
-list of attributes to be returned set to "attributeTypes", and the 
-ValuesReturnFilter set to "attributeTypes=1.2.3.4.5"
+cn=subschema subentry, o=myorg, a scope of base, a filter set to 
+(objectClass=subschema), the list of attributes to be returned set to 
+"attributeTypes", and the ValuesReturnFilter set to 
+(attributeTypes=1.2.3.4.5)
 
 The search result returned by the server would consist of the 
 following entry:
 
-cn: subschema subentry
-attributeTypes: ( 1.2.3.4.5 NAME 'gunk' EQUALITY caseIgnoreMatch  
-SUBSTR caseIgnoreSubstringsMatch SYNTAX 
-1.3.6.1.4.1.1466.115.121.1.44{64} )
+dn: cn=subschema subentry, o=myorg
+attributeTypes: ( 1.2.3.4.5 NAME 'gunk' EQUALITY caseIgnoreMatch
+ SUBSTR caseIgnoreSubstringsMatch SYNTAX
+ 1.3.6.1.4.1.1466.115.121.1.44{64} )
 
-(4) The final example shows how the control can be set to match on 
-attributes that are not part of the search filter. For example, 
-searching for all entries that have an email address in the
-sun.com domain, and returning the telephone number for any attribute
-values that start with "555". 
 
-The entries below represent inetOrgPerson [7] object classes located
-below some distinguished name in the directory.
+(3) The final example shows how the control can be used to match on a 
+userCertificate attribute value with a particular key usage bit set 
+(in this case the key encipherment bit). Note that this example 
+requires the LDAP server to support the certificateMatch matching 
+rule defined in [9] and extensible matching.
 
-cn: Sean Mullan
-mail: sean.mullan@sun.com
-mail: mullan@east.sun.com
-telephoneNumber: +1 781 442 0926
-telephoneNumber: 555-9999
+The entry below represent a pkiUser object class stored in the 
+directory.
 
-cn: David Chadwick
+dn: cn=David Chadwick + serialNumber=123456, ou=people, o=University
+ of Salford, c=gb
+cn: David Chadwick + serialNumber=123456
+objectClass: person 
+objectClass: organizationalPerson 
+objectClass: pkiUser 
+objectClass: inetOrgPerson
+sn: Chadwick
 mail: d.w.chadwick@salford.ac.uk
+userCertificate: {binary representation of certificate including key 
+usage bit of digitalSignature (0)}
+userCertificate: {binary representation of certificate including key 
+usage bit of nonRepudiation (1)}
+userCertificate: {binary representation of certificate including key 
+usage bit of key encipherment (2)}
+userCertificate: {binary representation of certificate including key 
+usage bit of data encipherment (3)}
 
-An LDAP search operation is specified with a baseObject set to the
-DN of the entry, a subtree scope, a filter set to "mail=*sun.com", 
-and the list of attributes to be returned set to "telephoneNumber". 
-In addition, a ValuesReturnFilter control is set to
-"telephoneNumber=555*"
+An LDAP search operation is specified with a baseObject set to 
+o=University of Salford, c=gb, a subtree scope, a filter set to 
+(sn=chadwick) and the list of attributes to be returned set to 
+"userCertificate;binary". In addition, a ValuesReturnFilter control 
+is set to (userCertificate:2.5.13.35:=USE'001'B)
 
-The search results returned by the server would consist of the 
+The search result returned by the server would consist of the 
 following entry:
 
-cn: Sean Mullan
-telephoneNumber: 555-9999
+dn: cn=David Chadwick + serialNumber=123456, ou=people, o=University
+ of Salford, c=gb
+userCertificate;binary: {binary representation of certificate with 
+key usage bit of key encipherment (2)}
 
 
-5. Security Considerations
+6. Security Considerations
 
-This Internet Draft does not discuss security issues at all. 
+This [ID/standard/document] does not primarily discuss security 
+issues. 
 
-Note that attribute values MUST only be returned if the access 
-controls applied by the LDAP server allow them to be returned, and in 
-this respect the effect of the ValuesReturnFilter control is of no 
-consequence.
+Note however that attribute values MUST only be returned if the 
+access controls applied by the LDAP server allow them to be returned, 
+and in this respect the effect of the ValuesReturnFilter control is 
+of no consequence.
 
 Note that the ValuesReturnFilter control may have a positive effect 
 on the deployment of public key infrastructures. Certain PKI 
 operations, like searching for specific certificates, become more 
-practical (when combined with X.509 certificate matching rules at the 
-server) and more scalable, since the control avoids the downloading 
+practical when combined with X.509 certificate matching rules at the 
+server, and more scalable, since the control avoids the downloading 
 of potentially large numbers of irrelevant certificates which would 
 have to be processed and filtered locally (which in some cases is 
 very difficult to perform).
 
 
-6. Acknowledgements
+7. Acknowledgements
 
 The authors would like to thank members of the LDAPExt list for their 
-constructive comments on earlier versions of this draft, and in 
-particular to Harald Alvestrand who first suggested having an 
-attribute return filter and Bruce Greenblatt who first proposed a 
-syntax for this control.
+constructive comments on earlier versions of this 
+[ID/standard/document], and in particular to Harald Alvestrand who 
+first suggested having an attribute return filter and Bruce 
+Greenblatt who first proposed a syntax for this control.
 
-7. Copyright
+8. Copyright
 
 Copyright (C) The Internet Society (date). All Rights Reserved.
 
@@ -360,10 +402,10 @@ HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
 MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 
-8. References
+9. References
 
-[1] Yeong, W., Howes, T., and Kille, S. "Lightweight Directory Access 
-Protocol", RFC 1777, March 1995.
+[1] S. Bradner. "The Internet Standards Process -- Revision 3", RFC 
+2026, October 1996.
 [2] M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access  
 Protocol (v3)", Dec. 1997, RFC 2251
 [3] M. Wahl, A. Coulbeck, T. Howes, S. Kille, "Lightweight Directory 
@@ -373,13 +415,22 @@ Access Protocol (v3): Attribute Syntax Definitions", RFC 2252, Dec
 1993.
 [5] S.Bradner. "Key words for use in RFCs to Indicate Requirement 
 Levels", RFC 2119, March 1997.
-[6] ISO/IEC 9594 / ITU-T Rec X.511 (2000) The Directory: Abstract 
-Service Definition.
-[7] M. Smith. "Definition of the inetOrgPerson LDAP Object Class", 
-Internet Draft <draft-smith-ldap-inetorgperson-03.txt>, April 1999.
+[6] Draft ISO/IEC 9594 / ITU-T Rec X.511 (2001) The Directory: 
+Abstract Service Definition.
+[7] J. Sermersheim. "LDAP Control for a Duplicate Entry 
+Representation of Search Results", Internet Draft <draft-ietf-
+ldapext-ldapv3-dupent-04.txt>, July 2000.
+[8] G. Good. "The LDAP Data Interchange Format (LDIF) - Technical 
+Specification". RFC 2849, June 2000.
+[9] D. Chadwick, S.Legg. "Internet X.509 Public Key Infrastructure - 
+Additional LDAP Schema for PKIs and PMIs", Internet Draft <draft-
+pkix-ldap-schema-01.txt>, September 2000
+[10] T. Howes, M. Wahl, A. Anantha, "LDAP Control Extension for 
+Server Side Sorting of Search Results", RFC 2891, August 2000
+[11] T. Howes. "The String Representation of LDAP Search Filters". 
+RFC 2254, December 1997.
 
-
-9. Authors Addresses
+10. Authors Addresses
 
 David Chadwick
 IS Institute
@@ -388,7 +439,7 @@ Salford M5 4WT
 England
 
 Email: d.w.chadwick@salford.ac.uk
-
+Tel: +44 161 295 5351
 
 Sean Mullan			
 Sun Microsystems
@@ -398,8 +449,20 @@ Ireland
 Tel: +353 1 853 0655
 Email: sean.mullan@sun.com
 
-Internet-Draft   Returning Matched Values with LDAPv3     1 July 2000
 
+11. Changes since version 2
 
-1
+i) Revised the examples to be more appropriate
+ii) Section on interactions with other LDAP controls added
+iii) Removed Editor's note concerning present filter
+iv) Tightened wording about its applicability to other operations 
+and use of criticality field
+
+Changes since version 3
+
+i) Mandated that at least one of type and matchingRule in 
+simpleMatchingAssertion be present
+ii) Fixed LDIF mistakes in the examples
+iii) Additional minor editorials only
+
 
