@@ -25,7 +25,7 @@
 /* extension to UFN that turns trailing "dc=value" rdns in DNS style,
  * e.g. "ou=People,dc=openldap,dc=org" => "People, openldap.org" */
 #define DC_IN_UFN
-/* #define PRETTY_ESCAPE */
+#define PRETTY_ESCAPE
 
 /* parsing/printing routines */
 static int str2strval( const char *str, struct berval *val, 
@@ -1255,11 +1255,6 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 				hexstr2bin( p, &c );
 				escapes += 2;
 
-				if ( c == 0 ) {
-					/* do not accept zero, right? */
-					return( 1 );
-				}
-
 				if ( !LDAP_DN_ASCII_PRINTABLE( c ) ) {
 
 					/*
@@ -1362,7 +1357,7 @@ str2strval( const char *str, struct berval *val, const char **next, unsigned fla
 		}
 
 		val->bv_val[ d ] = '\0';
-		assert( strlen( val->bv_val ) == len );
+		assert( d == len );
 	}
 
 	return( 0 );
@@ -1832,7 +1827,17 @@ strval2strlen( struct berval *val, unsigned flags, ber_len_t *len )
 		return( 0 );
 	}
 
-	for ( l = 0, p = val->bv_val; p[ 0 ]; p += cl ) {
+	for ( l = 0, p = val->bv_val; p < val->bv_val + val->bv_len; p += cl ) {
+
+		/* 
+		 * escape '%x00' 
+		 */
+		if ( p[ 0 ] == '\0' ) {
+			cl = 1;
+			l += 3;
+			continue;
+		}
+
 		cl = LDAP_UTF8_CHARLEN( p );
 		if ( cl == 0 ) {
 			/* illegal utf-8 char! */
@@ -1901,7 +1906,21 @@ strval2str( struct berval *val, char *str, unsigned flags, ber_len_t *len )
 	 * of the value
 	 */
 	for ( s = 0, d = 0, end = val->bv_len - 1; s < val->bv_len; ) {
-		ber_len_t	cl = LDAP_UTF8_CHARLEN( &val->bv_val[ s ] );
+		ber_len_t	cl;
+
+		/* 
+		 * escape '%x00' 
+		 */
+		if ( val->bv_val[ s ] == '\0' ) {
+			cl = 1;
+			str[ d++ ] = '\\';
+			str[ d++ ] = '0';
+			str[ d++ ] = '0';
+			s++;
+			continue;
+		}
+		
+		cl = LDAP_UTF8_CHARLEN( &val->bv_val[ s ] );
 		
 		/* 
 		 * there might be some chars we want to escape in form
