@@ -191,3 +191,8 @@ void replog( Backend *be, Operation *op, char *dn, void *change)
 	assert(0);
 }
 
+void slap_mods_free( Modifications *ml )
+{
+	assert(0);
+}
+
