@@ -22,7 +22,11 @@
 #include "slap.h"
 #include "back-bdb.h"
 
+#if DB_VERSION_FULL < 0x04030000
 void bdb_errcall( const char *pfx, char * msg )
+#else
+void bdb_errcall( DB_ENV *env, const char *pfx, const char * msg )
+#endif
 {
 #ifdef HAVE_EBCDIC
 	if ( msg[0] > 0x7f )

@@ -139,7 +139,11 @@ int bdb_fix_dn( Entry *e, int checkit );
  */
 #define bdb_errcall					BDB_SYMBOL(errcall)
 
+#if DB_VERSION_FULL < 0x04030000
 void bdb_errcall( const char *pfx, char * msg );
+#else
+void bdb_errcall( DB_ENV *env, const char *pfx, const char * msg );
+#endif
 
 #ifdef HAVE_EBCDIC
 #define ebcdic_dberror				BDB_SYMBOL(ebcdic_dberror)

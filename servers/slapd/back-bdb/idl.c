@@ -724,14 +724,9 @@ bdb_idl_insert_key(
 				}
 			}
 			if ( id < lo || id > hi ) {
-				/* Delete the current lo/hi */
-				rc = cursor->c_del( cursor, 0 );
-				if ( rc != 0 ) {
-					err = "c_del";
-					goto fail;
-				}
+				/* Replace the current lo/hi */
 				data.data = &id;
-				rc = cursor->c_put( cursor, key, &data, DB_KEYFIRST );
+				rc = cursor->c_put( cursor, key, &data, DB_CURRENT );
 				if ( rc != 0 ) {
 					err = "c_put lo/hi";
 					goto fail;
