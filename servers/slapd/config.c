@@ -282,7 +282,7 @@ read_config( char *fname, Backend **bep, FILE *pfp )
 				    fname, lineno, 0 );
 				exit( 1 );
 			}
-			default_referral = (char *) malloc( strlen( cargv[1] )
+			default_referral = (char *) ch_malloc( strlen( cargv[1] )
 			    + sizeof("Referral:\n") + 1 );
 			strcpy( default_referral, "Referral:\n" );
 			strcat( default_referral, cargv[1] );

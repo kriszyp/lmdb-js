@@ -358,9 +358,9 @@ slapd_daemon(
 				    "signaling write waiter on %d\n", i, 0, 0 );
 
 				ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-				ldap_pvt_thread_cond_signal( &c[i].c_wcv );
-				c[i].c_writewaiter = 0;
 				active_threads++;
+				c[i].c_writewaiter = 0;
+				ldap_pvt_thread_cond_signal( &c[i].c_wcv );
 				ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 			}
 

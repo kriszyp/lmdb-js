@@ -89,9 +89,13 @@ connection_operation( void *arg_v )
 
 	ldap_pvt_thread_mutex_lock( &arg->co_conn->c_opsmutex );
 	arg->co_conn->c_opscompleted++;
+
 	slap_op_delete( &arg->co_conn->c_ops, arg->co_op );
+	arg->co_op = NULL;
+
 	ldap_pvt_thread_mutex_unlock( &arg->co_conn->c_opsmutex );
 
+	arg->co_conn = NULL;
 	free( (char *) arg );
 
 	ldap_pvt_thread_mutex_lock( &ops_mutex );
@@ -195,12 +199,12 @@ connection_activity(
 		free( tmpdn );
 	}
 
+	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
+	active_threads++;
+	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+
 	if ( status = ldap_pvt_thread_create( &arg->co_op->o_tid, 1,
 	    connection_operation, (void *) arg ) != 0 ) {
 		Debug( LDAP_DEBUG_ANY, "ldap_pvt_thread_create failed (%d)\n", status, 0, 0 );
-	} else {
-		ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-		active_threads++;
-		ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
 	}
 }

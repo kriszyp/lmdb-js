@@ -13,15 +13,20 @@
 void
 slap_op_free( Operation *op )
 {
-	if ( op->o_ber != NULL )
+	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
+
+	if ( op->o_ber != NULL ) {
 		ber_free( op->o_ber, 1 );
+	}
 	if ( op->o_dn != NULL ) {
 		free( op->o_dn );
 	}
 	if ( op->o_ndn != NULL ) {
 		free( op->o_ndn );
 	}
-	/* ldap_pvt_thread_mutex_destroy( &op->o_abandonmutex ); */
+
+	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
+	ldap_pvt_thread_mutex_destroy( &op->o_abandonmutex );
 	free( (char *) op );
 }
 
@@ -41,7 +46,8 @@ slap_op_add(
 	for ( tmp = olist; *tmp != NULL; tmp = &(*tmp)->o_next )
 		;	/* NULL */
 
-	*tmp = (Operation *) calloc( 1, sizeof(Operation) );
+	*tmp = (Operation *) ch_calloc( 1, sizeof(Operation) );
+
 	ldap_pvt_thread_mutex_init( &(*tmp)->o_abandonmutex );
 	(*tmp)->o_ber = ber;
 	(*tmp)->o_msgid = msgid;
@@ -72,6 +78,7 @@ slap_op_delete( Operation **olist, Operation *op )
 	if ( *tmp == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "op_delete: can't find op %ld\n",
 		    op->o_msgid, 0, 0 );
+		slap_op_free( op );
 		return; 
 	}
 
