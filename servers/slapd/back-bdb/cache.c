@@ -197,93 +197,15 @@ bdb_entryinfo_add_internal(
 	u_int32_t locker
 )
 {
-	Cache *cache = &bdb->bi_cache;
-	DB_ENV *env = bdb->bi_dbenv;
 	EntryInfo *ei2 = NULL;
-	int incr = 1;
-	int addkid = 1;
-	int rc;
-	DB_LOCK lock;
 
 	*res = NULL;
+
+	ei2 = bdb_cache_entryinfo_new();
 
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
 	bdb_cache_entryinfo_lock( ei->bei_parent );
 
-	/* if parent was previously considered a leaf node,
-	 * it was on the LRU list. Now it's going to have
-	 * kids, take it off the LRU list.
-	 */
-	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
-	if ( ei->bei_parent->bei_id && !ei->bei_parent->bei_kids ) {
-		LRU_DELETE( cache, ei->bei_parent );
-		incr = 0;
-	}
-
-	cache->c_cursize += incr;
-
-	/* See if we're above the cache size limit */
-	if ( cache->c_cursize > cache->c_maxsize ) {
-		EntryInfo *elru, *elprev;
-		int i = 0;
-
-		/* Look for an unused entry to remove */
-		for (elru = cache->c_lrutail; elru; elru = elprev, i++ ) {
-			elprev = elru->bei_lruprev;
-
-			/* Too many probes, not enough idle, give up */
-			if (i > 10) break;
-
-			/* If we can successfully writelock it, then
-			 * the object is idle.
-			 */
-			if ( bdb_cache_entry_db_lock( env, locker, elru, 1, 1,
-				&lock ) == 0 ) {
-				/* If there's no entry, or this node is in
-				 * the process of linking into the cache,
-				 * skip it.
-				 */
-				if ( !elru->bei_e || (elru->bei_state & CACHE_ENTRY_NOT_LINKED) ) {
-					bdb_cache_entry_db_unlock( env, &lock );
-					continue;
-				}
-				/* Need to lock parent to delete child */
-				if ( ldap_pvt_thread_mutex_trylock(
-					&elru->bei_parent->bei_kids_mutex )) {
-					bdb_cache_entry_db_unlock( env, &lock );
-					continue;
-				}
-				bdb_cache_delete_internal( cache, elru );
-				bdb_cache_entryinfo_unlock( elru->bei_parent );
-				elru->bei_e->e_private = NULL;
-				bdb_entry_return( elru->bei_e );
-				bdb_cache_entry_db_unlock( env, &lock );
-				if (ei2) {
-					bdb_cache_entryinfo_destroy( elru );
-				} else {
-					/* re-use this one */
-					ch_free(elru->bei_nrdn.bv_val);
-					elru->bei_nrdn.bv_val = NULL;
-					elru->bei_e = NULL;
-					elru->bei_kids = NULL;
-					elru->bei_lrunext = NULL;
-					elru->bei_lruprev = NULL;
-					elru->bei_state = 0;
-#ifdef BDB_HIER
-					ch_free(elru->bei_rdn.bv_val);
-					elru->bei_rdn.bv_val = NULL;
-					elru->bei_modrdns = 0;
-#endif
-					ei2 = elru;
-				}
-				if (cache->c_cursize < cache->c_maxsize)
-					break;
-			}
-		}
-	}
-	if (!ei2) {
-		ei2 = bdb_cache_entryinfo_new();
-	}
 	ei2->bei_id = ei->bei_id;
 	ei2->bei_parent = ei->bei_parent;
 #ifdef BDB_HIER
@@ -291,13 +213,11 @@ bdb_entryinfo_add_internal(
 #endif
 
 	/* Add to cache ID tree */
-	if (avl_insert( &cache->c_idtree, ei2, bdb_id_cmp, avl_dup_error )) {
+	if (avl_insert( &bdb->bi_cache.c_idtree, ei2, bdb_id_cmp, avl_dup_error )) {
 		EntryInfo *eix;
-		eix = avl_find( cache->c_idtree, ei2, bdb_id_cmp );
+		eix = avl_find( bdb->bi_cache.c_idtree, ei2, bdb_id_cmp );
 		bdb_cache_entryinfo_destroy( ei2 );
 		ei2 = eix;
-		addkid = 0;
-		cache->c_cursize -= incr;
 #ifdef BDB_HIER
 		/* It got freed above because its value was
 		 * assigned to ei2.
@@ -305,16 +225,10 @@ bdb_entryinfo_add_internal(
 		ei->bei_rdn.bv_val = NULL;
 #endif
 	} else {
-		LRU_ADD( cache, ei2 );
 		ber_dupbv( &ei2->bei_nrdn, &ei->bei_nrdn );
-	}
-
-	if ( addkid ) {
 		avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
 			avl_dup_error );
 	}
-
-	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
 	*res = ei2;
 	return 0;
@@ -517,6 +431,58 @@ hdb_cache_find_parent(
 }
 #endif
 
+/* caller must have lru_mutex locked. mutex
+ * will be unlocked on return.
+ */
+static void
+bdb_cache_lru_add(
+	struct bdb_info *bdb,
+	u_int32_t	locker,
+	EntryInfo *ei
+)
+{
+	DB_LOCK		lock;
+
+	/* See if we're above the cache size limit */
+	if ( bdb->bi_cache.c_cursize > bdb->bi_cache.c_maxsize ) {
+		EntryInfo *elru, *elprev;
+		int i = 0;
+
+		/* Look for an unused entry to remove */
+		for (elru = bdb->bi_cache.c_lrutail; elru; elru = elprev, i++ ) {
+			elprev = elru->bei_lruprev;
+
+			/* Too many probes, not enough idle, give up */
+			if (i > 10) break;
+
+			/* If we can successfully writelock it, then
+			 * the object is idle.
+			 */
+			if ( bdb_cache_entry_db_lock( bdb->bi_dbenv, locker, elru, 1, 1,
+				&lock ) == 0 ) {
+				/* If there's no entry, or this node is in
+				 * the process of linking into the cache,
+				 * skip it.
+				 */
+				if ( !elru->bei_e || (elru->bei_state & CACHE_ENTRY_NOT_LINKED) ) {
+					bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
+					continue;
+				}
+				LRU_DELETE( &bdb->bi_cache, elru );
+				elru->bei_e->e_private = NULL;
+				bdb_entry_return( elru->bei_e );
+				elru->bei_e = NULL;
+				bdb_cache_entry_db_unlock( bdb->bi_dbenv, &lock );
+				--bdb->bi_cache.c_cursize;
+				if (bdb->bi_cache.c_cursize < bdb->bi_cache.c_maxsize)
+					break;
+			}
+		}
+	}
+	LRU_ADD( &bdb->bi_cache, ei );
+	ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
+}
+
 /*
  * cache_find_id - find an entry in the cache, given id.
  * The entry is locked for Read upon return. Call with islocked TRUE if
@@ -538,6 +504,7 @@ bdb_cache_find_id(
 	Entry	*ep = NULL;
 	int	rc = 0;
 	EntryInfo ei;
+	int lru_del = 0;
 
 	ei.bei_id = id;
 
@@ -624,9 +591,12 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 					bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
 						*eip, 0, 0, lock );
 				}
-			}
+			} else {
+				/* If we had the entry already, this item
+				 * is on the LRU list.
+				 */
+				lru_del = 1;
 #ifdef BDB_HIER
-			else {
 				rc = bdb_fix_dn( (*eip)->bei_e, 1 );
 				if ( rc ) {
 					bdb_cache_entry_db_relock( bdb->bi_dbenv,
@@ -637,16 +607,22 @@ again:		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
 					bdb_cache_entry_db_relock( bdb->bi_dbenv,
 						locker, *eip, 0, 0, lock );
 				}
-			}
 #endif
+			}
 		}
 	}
-	if ( rc == 0 && (*eip)->bei_kids == NULL ) {
+	if ( rc == 0 ) {
 		/* set lru mutex */
 		ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
-		LRU_DELETE( &bdb->bi_cache, *eip );
-		LRU_ADD( &bdb->bi_cache, *eip );
-		ldap_pvt_thread_mutex_unlock( &bdb->bi_cache.lru_mutex );
+		/* if entry is old, remove from old spot on LRU list */
+		if ( lru_del ) {
+			LRU_DELETE( &bdb->bi_cache, *eip );
+		} else {
+		/* if entry is new, bump cache size */
+			bdb->bi_cache.c_cursize++;
+		}
+		/* lru_mutex is unlocked for us */
+		bdb_cache_lru_add( bdb, locker, *eip );
 	}
 
 	if ( islocked ) {
@@ -706,6 +682,13 @@ bdb_cache_add(
 	e->e_private = new;
 	new->bei_state = CACHE_ENTRY_NO_KIDS;
 	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
+
+	/* set lru mutex */
+	ldap_pvt_thread_mutex_lock( &bdb->bi_cache.lru_mutex );
+	++bdb->bi_cache.c_cursize;
+	/* lru_mutex is unlocked for us */
+	bdb_cache_lru_add( bdb, locker, new );
+
 	bdb_cache_entryinfo_unlock( eip );
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 	return rc;
@@ -892,12 +875,6 @@ bdb_cache_delete_internal(
 	if ( avl_delete( &e->bei_parent->bei_kids, (caddr_t) e, bdb_rdn_cmp ) == NULL )
 	{
 		rc = -1;
-	}
-
-	/* If parent has no more kids, put in on LRU list */
-	if ( e->bei_parent->bei_kids == NULL ) {
-		LRU_ADD( cache, e->bei_parent );
-		cache->c_cursize++;
 	}
 
 	/* id tree */
