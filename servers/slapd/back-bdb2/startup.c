@@ -6,6 +6,11 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/unistd.h>
+
+#ifdef HAVE_DIRECT_H
+#include <direct.h>
+#endif
 
 #include "ldapconfig.h"
 #include "slap.h"

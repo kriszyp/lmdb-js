@@ -31,9 +31,13 @@
 #define strdup		_strdup
 #define vsnprintf	_vsnprintf
 #define vsprintf	_vsprintf
+#define sleep _sleep
 
 /* define type for caddr_t */
 typedef char * caddr_t;
+
+/* we have NT threads */
+#define HAVE_NT_THREADS 1
 
 /* we have spawnlp instead of fork/execlp */
 #define HAVE_SPAWNLP 1
@@ -47,11 +51,19 @@ typedef char * caddr_t;
 /* we have <conio.h> */
 #define HAVE_CONIO_H 1
 
+/* we have <direct.h> */
+#define HAVE_DIRECT_H 1
+
 /* we have <io.h> */
 #define HAVE_IO_H 1
 
 /* we have <process.h> */
 #define HAVE_PROCESS_H 1
+
+#define LDAP_SIGUSR1	SIGILL
+#define LDAP_SIGUSR2	SIGTERM
+
+#define MAXPATHLEN _MAX_PATH
 
 /* end of MSVC5 specific entries */
 /* --------------------------------------------------- */
@@ -164,7 +176,7 @@ typedef char * caddr_t;
 /* #undef HAVE_BERKELEY_DB */
 
 /* define if you have berkeley db2 */
-/* #undef HAVE_BERKELEY_DB2 */
+#define HAVE_BERKELEY_DB2 1
 
 /* define if you have crypt */
 /* #undef HAVE_CRYPT */
@@ -209,25 +221,25 @@ typedef char * caddr_t;
 /* #undef LDAP_SYSLOG */
 
 /* define this to use DBBTREE w/ LDBM backend */
-/* #undef LDBM_USE_DBBTREE */
+#define LDBM_USE_DBBTREE 1
 
 /* define this to use DBHASH w/ LDBM backend */
 /* #undef LDBM_USE_DBHASH */
 
 /* define this for ACL Group support */
-/* #undef SLAPD_ACLGROUPS */
+#define SLAPD_ACLGROUPS 1
 
 /* define this to use SLAPD Berkeley DB2 backend */
-/* #undef SLAPD_BDB2 */
+#define SLAPD_BDB2 1 
 
 /* define this for ClearText password support */
-/* #undef SLAPD_CLEARTEXT */
+#define SLAPD_CLEARTEXT 1
 
 /* define this for crypt(3) password support */
 /* #undef SLAPD_CRYPT */
 
 /* define this to use SLAPD LDBM backend */
-/* #undef SLAPD_LDBM */
+/* #define SLAPD_LDBM 1 */
 
 /* define this to use SLAPD passwd backend */
 /* #undef SLAPD_PASSWD */
@@ -412,7 +424,7 @@ typedef char * caddr_t;
 /* #undef HAVE_CRYPT_H */
 
 /* Define if you have the <db.h> header file.  */
-/* #undef HAVE_DB_H */
+#define HAVE_DB_H 1
 
 /* Define if you have the <db_185.h> header file.  */
 /* #undef HAVE_DB_185_H */
@@ -455,9 +467,6 @@ typedef char * caddr_t;
 
 /* Define if you have the <limits.h> header file.  */
 #define HAVE_LIMITS_H 1
-
-/* Define if you have the <locale.h> header file.  */
-#define HAVE_LOCALE_H 1
 
 /* Define if you have the <lwp/lwp.h> header file.  */
 /* #undef HAVE_LWP_LWP_H */

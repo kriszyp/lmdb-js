@@ -72,19 +72,20 @@ update_status( Sockbuf *sb )
 static int 
 status_is_ok( Sockbuf *sb )
 {
-   int obr;
-   int osr;
-   obr = sb->sb_buf_ready;
+   int obr = sb->sb_buf_ready;
 #ifdef USE_SASL
-   osr = sb->sb_sec_ready;
+   int osr = sb->sb_sec_ready;
 #endif
+
    update_status(sb);
    if (obr!=sb->sb_buf_ready)
      return 0;
+
 #ifdef USE_SASL
    if (osr!=sb->sb_sec_ready)
      return 0;
 #endif
+
    return 1;
 }
 #endif
@@ -538,6 +539,8 @@ long lber_pvt_sb_write( Sockbuf *sb, void *buf, long len_arg )
 #ifdef USE_SASL      
    }
 #endif
+
+   return ret;
 }
      
 int lber_pvt_sb_close( Sockbuf *sb )
@@ -561,6 +564,7 @@ int lber_pvt_sb_set_readahead( Sockbuf *sb, int rh )
    return 0;
 }
 
+#ifdef USE_NONBLOCK
 int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
 {
    assert( status_is_ok(sb) );
@@ -583,6 +587,7 @@ int lber_pvt_sb_set_nonblock( Sockbuf *sb, int nb )
    }
    return 0;
 }
+#endif
 	 
 #define sockbuf_buf_init( bb ) \
 (bb)->buf_base=NULL;\

@@ -20,7 +20,6 @@ bdb2i_index_add_entry(
 )
 {
 	Attribute	*ap;
-	char		*dnval;
 	struct berval	bv;
 	struct berval	*bvals[2];
 

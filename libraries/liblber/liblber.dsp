@@ -122,5 +122,9 @@ SOURCE=.\options.c
 
 SOURCE=..\..\include\portable.h
 # End Source File
+# Begin Source File
+
+SOURCE=.\sockbuf.c
+# End Source File
 # End Target
 # End Project

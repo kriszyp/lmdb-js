@@ -25,7 +25,7 @@ bdb2i_back_modify_internal(
 	char		*matched;
 	LDAPModList	*ml;
 	Entry		*e;
-	int		i, err;
+	int		err;
 
 	Debug(LDAP_DEBUG_ARGS, "bdb2i_back_modify:\n", 0, 0, 0);
 

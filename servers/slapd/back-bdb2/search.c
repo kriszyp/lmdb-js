@@ -6,6 +6,7 @@
 
 #include <ac/string.h>
 #include <ac/socket.h>
+#include <ac/time.h>
 
 #include "slap.h"
 #include "back-bdb2.h"
@@ -51,7 +52,7 @@ bdb2i_back_search_internal(
 	Attribute	*ref;
 	char		*matched = NULL;
 	int		rmaxsize, nrefs;
-	char		*rbuf, *rcur, *r;
+	char		*rbuf, *rcur;
 	int		nentries = 0;
 	char		*realBase;
 
@@ -186,7 +187,7 @@ bdb2i_back_search_internal(
 			strncmp( e->e_ndn, "REF=", 4 ) == 0 &&
 			(ref = attr_find( e->e_attrs, "ref" )) != NULL )
 		{
-			int	i, len;
+			int	i;
 
 			if ( ref->a_vals == NULL ) {
 				Debug( LDAP_DEBUG_ANY, "null ref in (%s)\n", 
@@ -368,8 +369,6 @@ base_candidates(
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
-	int		rc;
-	ID		id;
 	ID_BLOCK		*idl;
 	Entry		*e;
 
