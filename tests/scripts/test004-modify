@@ -9,6 +9,10 @@ BACKEND=bdb
 if test $# -ge 1 ; then
 	BACKEND=$1; shift
 fi
+MONITORDB=no
+if test $# -ge 1 ; then
+	MONITORDB=$1; shift
+fi
 WAIT=0
 if test $# -ge 1 ; then
 	WAIT=1; shift
@@ -25,7 +29,7 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 
 echo "Running slapadd to build slapd database..."
-. $CONFFILTER $BACKEND < $CONF > $DBCONF
+. $CONFFILTER $BACKEND $MONITORDB < $CONF > $DBCONF
 $SLAPADD -f $DBCONF -l $LDIFORDERED
 RC=$?
 if test $RC != 0 ; then
