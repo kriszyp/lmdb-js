@@ -525,6 +525,8 @@ bdb_do_search( Operation *op, SlapReply *rs, Operation *sop,
 		ei_root.bei_parent = &ei_root;
 		e_root.e_private = &ei_root;
 		e_root.e_id = 1;
+		e_root.e_nname.bv_val="";
+		e_root.e_name.bv_val="";
 		ei = &ei_root;
 		rs->sr_err = LDAP_SUCCESS;
 	} else {
