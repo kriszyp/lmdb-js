@@ -1,5 +1,2 @@
 #!/bin/sh
-grep -v "modifiersname" | \
-grep -v "modifytimestamp" |  \
-grep -v "creatorsname" | \
-grep -v "createtimestamp"  
+egrep -iv '^modifiersname:|^modifytimestamp:|^creatorsname:|^createtimestamp'

@@ -4,22 +4,13 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#ifdef sunos5
-#include "regexpr.h"
-#else
-#include "regex.h"
-#endif
+#include <regex.h>
 #include "slap.h"
 
 extern Attribute	*attr_find();
 extern char		*first_word();
 extern char		*next_word();
 extern char		*phonetic();
-extern char		*re_comp();
-
-#ifndef sunos5
-extern pthread_mutex_t	regex_mutex;
-#endif
 
 static int	test_filter_list();
 static int	test_substring_filter();
@@ -323,6 +314,7 @@ test_substring_filter(
 	char		pat[BUFSIZ];
 	char		buf[BUFSIZ];
 	struct berval	*val;
+	regex_t		re;
 
 	Debug( LDAP_DEBUG_FILTER, "begin test_substring_filter\n", 0, 0, 0 );
 
@@ -390,19 +382,16 @@ test_substring_filter(
 	}
 
 	/* compile the regex */
-#ifdef sunos5
-	if ( (p = compile( pat, NULL, NULL )) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "compile failed (%s)\n", p, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "test_substring_filter: regcomp pat: %s\n",
+		pat, 0, 0 );
+	if ((rc = regcomp(&re, pat, 0))) {
+		char error[512];
+
+		regerror(rc, &re, error, sizeof(error));
+		Debug( LDAP_DEBUG_ANY, "regcomp failed (%s) %s\n",
+			p, error, 0 );
 		return( -1 );
 	}
-#else /* sunos5 */
-	pthread_mutex_lock( &regex_mutex );
-	if ( (p = re_comp( pat )) != 0 ) {
-		Debug( LDAP_DEBUG_ANY, "re_comp failed (%s)\n", p, 0, 0 );
-		pthread_mutex_unlock( &regex_mutex );
-		return( -1 );
-	}
-#endif /* sunos5 */
 
 	/* for each value in the attribute see if regex matches */
 	for ( i = 0; a->a_vals[i] != NULL; i++ ) {
@@ -418,29 +407,18 @@ test_substring_filter(
 		}
 		value_normalize( realval, a->a_syntax );
 
-#ifdef sunos5
-		rc = step( realval, p );
-#else /* sunos5 */
-		rc = re_exec( realval );
-#endif /* sunos5 */
+		rc = !regexec(&re, realval, 0, NULL, 0);
 
 		if ( tmp != NULL ) {
 			free( tmp );
 		}
 		if ( rc == 1 ) {
-#ifdef sunos5
-			free( p );
-#else /* sunos5 */
-			pthread_mutex_unlock( &regex_mutex );
-#endif /* sunos5 */
+			regfree(&re);
 			return( 0 );
 		}
 	}
-#ifdef sunos5
-	free( p );
-#else /* sunos5 */
-	pthread_mutex_unlock( &regex_mutex );
-#endif /* sunos5 */
+
+	regfree(&re);
 
 	Debug( LDAP_DEBUG_FILTER, "end test_substring_filter 1\n", 0, 0, 0 );
 	return( 1 );

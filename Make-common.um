@@ -20,38 +20,33 @@
 #############################################################################
 ## LDAP install paths                                                      ##
 #############################################################################
+#
 # by default, everything is installed below INSTROOT
-# config files, etc. are put in ETCDIR
+# servers, config files, etc. are put in ETCDIR
 # include files get put in INCLUDEDIR
 # libraries are put in LIBDIR
 # man pages are put under MANDIR
 # programs end-users will run are put in BINDIR
-# programs sysadmins will run are put in SBINDIR
-# servers are put in LIBEXECDIR
-# pid/args files are put in RUNDIR
 #
-# Per platform defaults override these.
+INSTROOT=/usr/local
+ETCDIR= $(INSTROOT)/etc
+INCLUDEDIR= $(INSTROOT)/include
+LIBDIR= $(INSTROOT)/lib
+MANDIR= $(INSTROOT)/man
+BINDIR= $(INSTROOT)/bin
 #
-LDAP_PREFIX?= /usr/local
-LDAP_INSTROOT?= $(LDAP_PREFIX)
-LDAP_ETCDIR?= $(LDAP_INSTROOT)/etc/ldap
-LDAP_INCDIR?= $(LDAP_INSTROOT)/include
-LDAP_LIBDIR?= $(LDAP_INSTROOT)/lib
-LDAP_MANDIR?= $(LDAP_INSTROOT)/man
-LDAP_BINDIR?= $(LDAP_INSTROOT)/bin
-LDAP_SBINDIR?=$(LDAP_INSTROOT)/sbin
-LDAP_LIBEXECDIR?= $(LDAP_INSTROOT)/libexec
-LDAP_RUNDIR?= $(LDAP_ETCDIR)
+# if you want things to run in a different directory from where they
+# are installed, set this accordingly (this path gets compiled into a
+# few binaries). otherwise, leave it alone.
+RUNTIMEETCDIR= $(ETCDIR)
 
 #############################################################################
 ## General compiler options                                                ##
 #############################################################################
 # Passed to every compile (cc or gcc).  This is where you put -O or -g, etc.
-#EXTRACFLAGS=-O -g
-#EXTRACFLAGS=-O
-EXTRACFLAGS?=-g
+EXTRACFLAGS=-g
 # Passed to every link (ld).  Include -g here if you did in EXTRACFLAGS.
-EXTRALDFLAGS?=-g
+EXTRALDFLAGS=-g
 
 #############################################################################
 ## If you are NOT using Kerberos authentication, you can skip this section.##
@@ -62,11 +57,11 @@ EXTRALDFLAGS?=-g
 # uncomment and change the various KRB* lines to point to where the
 # kerberos libraries and include files are installed at your site.
 #
-#KERBEROS=-DKERBEROS
-#AFSKERBEROS=-DAFSKERBEROS
-#KRBINCLUDEFLAG	= -I/usr/local/kerberos/include
-#KRBLIBFLAG	= -L/usr/local/kerberos/lib
-#KRBLIBS		= -lkrb -ldes
+KERBEROS=-DKERBEROS
+AFSKERBEROS=-DAFSKERBEROS
+KRBINCLUDEFLAG	= -I/usr/local/kerberos/include
+KRBLIBFLAG	= -L/usr/local/kerberos/lib
+KRBLIBS		= -lkrb -ldes
 
 #############################################################################
 ## ISODE is required ONLY to build the ldap <-> X.500 server (ldapd)       ##
@@ -76,12 +71,12 @@ EXTRALDFLAGS?=-g
 # To build the ldap server, uncomment the HAVEISODE line,
 # and the section describing build settings for your version of isode.
 #
-#HAVEISODE = yes
+HAVEISODE = yes
 # If you compiled ISODE with TURBO_DISK defined, uncomment this
 #ISODETURBOLIBS	= -lgdbm
 # uncomment these to have ldapd "pretty print" protocol elements w/debugging
-#PEPSY_DUMP=-DPEPSY_DUMP
-#PEPSY=/usr/local/ic/bin/pepsy
+PEPSY_DUMP=-DPEPSY_DUMP
+PEPSY=/usr/local/ic/bin/pepsy
 # uncommment this line to have ldapd load PP syntax handlers
 # you'll also need to add -lpp to ISODEBASELIBS below
 #LDAP_USE_PP=-DLDAP_USE_PP
@@ -92,11 +87,11 @@ EXTRALDFLAGS?=-g
 # You should change the next line so that ICRELEASE matches the (integer)
 # version number of whatever IC release you have, e.g. 1, 2, or 3 and
 # also uncomment the next 5 lines.
-#ICRELEASE=-DICRELEASE=1
-#ISODEPACKAGE=-DISODEPACKAGE=IC
-#ISODEINCLUDEFLAG= -I/usr/local/ic/include/isode -I/usr/local/ic/include
-#ISODELIBFLAG	= -L/usr/local/ic/lib
-#ISODEBASELIBS	= -lisode
+ICRELEASE=-DICRELEASE=2
+ISODEPACKAGE=-DISODEPACKAGE=IC
+ISODEINCLUDEFLAG= -I/usr/local/ic/include
+ISODELIBFLAG	= -L/usr/local/ic/lib
+ISODEBASELIBS	= -lisode
 #
 # Freely available ISODE 8.0 release build settings (uncomment the next 4 lines)
 #ISODEPACKAGE=-DISODEPACKAGE
@@ -125,53 +120,25 @@ SLAPD_BACKENDS= -DLDAP_LDBM -DLDAP_SHELL -DLDAP_PASSWD
 # If you have included -DLDAP_LDBM in the SLAPD_BACKENDS line you need
 # to specify which low-level database package to use.  There are
 # four choices: Berkeley db b-tree, Berkeley db hash, GNU dbm, or ndbm.
-# You will also need to edit the include and lib strings appropriately.
 #
 # berkeley db btree package
-#LDBMLIB=-ldb
-#LDBMBACKEND?=-DLDBM_USE_DBBTREE
-#LDBMINCLUDE?=-I/usr/local/db/include
-#LDBMLIB?=-ldb
+LDBMBACKEND=-DLDBM_USE_DBBTREE
+LDBMINCLUDE=-I/usr/local/include
+LDBMLIB=-ldb
 # berkeley db hash package
-#LDBMBACKEND?=-DLDBM_USE_DBHASH
-#LDBMINCLUDE?=-I/usr/local/db/include
-#LDBMLIB?=-ldb
-# gnu dbm (gdbm)
-#LDBMBACKEND?=-DLDBM_USE_GDBM
-#LDBMINCLUDE?=-I/usr/local/gdbm/include
-#LDBMLIB?=-lgdbm
-# standard unix ndbm
-LDBMBACKEND?=-DLDBM_USE_NDBM
-LDBMINCLUDE?=
-LDBMLIB?=
-
-#undef these if you have SLEEPYCAT DB2 installed
-#LDBMBACKEND=-DLDBM_USE_DBBTREE -DHAVE_SLEEPYCAT_DB2
+#LDBMBACKEND=-DLDBM_USE_DBHASH
 #LDBMINCLUDE=-I/usr/local/include
-#LDBMLIB=-L/usr/local/lib -ldb
-
-# if you want to use a non-default threads package change the defines below
-# to one of:
-#	-DPOSIX_THREADS         (draft 10 or standard)
-#	-DTHREAD_MIT_PTHREADS   (draft 4)
-#	-DTHREAD_NEXT_CTHREADS
-#	-DTHREAD_DCE_PTHREADS
-#	-DTHREAD_SUNOS4_LWP
-#	-DTHREAD_SUNOS5_LWP
-# and select the appropriate library.
-#THREADS?=-DNO_THREADS
-#THREADSLIB?=
-
-# Locations of auxilary programs
-# (excepts to below are generally defined in Make-platform)
-LDAP_SENDMAIL?=/usr/lib/sendmail
-LDAP_EDITOR?=/usr/ucb/vi
-LDAP_FINGER?=/usr/ucb/finger
-
-# For generation of compressed man pages
-# (excepts to below are generally defined in Make-platform)
-MANCOMPRESS?=cat
-MANCOMPRESSSUFFIX?=
+#LDBMLIB=-ldb
+# gnu dbm (gdbm)
+#LDBMBACKEND=-DLDBM_USE_GDBM
+#LDBMINCLUDE=-I/usr/local/include
+#LDBMLIB=-lgdbm
+# standard unix ndbm
+#LDBMBACKEND=-DLDBM_USE_NDBM
+#
+# if you want to use a non-default threads package change these lines
+#THREADS=-DNO_THREADS
+#THREADSLIB=
 
 #############################################################################
 ## The following options are used by the xax500 client.  If you haven't    ##
@@ -180,10 +147,10 @@ MANCOMPRESSSUFFIX?=
 #############################################################################
 #
 # location of your X include files
-#XINCLUDES= -I/usr/X11/include
+#XINCLUDES= -I/usr/local/X11/include
 #
 # location of your X libraries
-#XLIBDIRS=-L/usr/X11/lib
+#XLIBDIRS=-L/usr/local/X11/lib
 #
 # include any extra X libraries you need here
 # the following works with sunos 4 and X11R5
@@ -214,37 +181,19 @@ MANCOMPRESSSUFFIX?=
 LDAP_DEBUG=-DLDAP_DEBUG
 
 # uncomment this line to turn on a few U of Michigan specific things
-#UOFM=-DUOFM
+UOFM=-DUOFM
 
 # uncomment this line to delete a few printfs in the lber and ldap libraries.
 #NO_USERINTERFACE=-DNO_USERINTERFACE
 
 # uncomment this line to include Connectionless LDAP support
-#CLDAP=-DCLDAP
+CLDAP=-DCLDAP
 
 # uncomment this line to eliminate local caching support in the libldap
 #NO_CACHE=-DNO_CACHE
 
-# uncomment this line to do reverse lookups (useful for doing ACLs
-# by host/domain names)
-LDAP_REVERSE_LOOKUP=-DREVERSE_LOOKUP
-
 # uncomment this line to enable support for LDAP referrals in libldap
 LDAP_REFERRALS=-DLDAP_REFERRALS
-
-# uncomment this line to enable ACL by groups
-# LDAP_ACLGROUP=-DACLGROUP
-
-# uncomment these lines to enable support for CRYPT passwords in LDBM.
-# LDAP_CRYPT=-DLDAP_CRYPT
-# LDAP_CRYPT_LIB?=
-# and comment this line out
-LDAP_CRYPT_LIB=
-
-# uncomment these lines to enable support fro tcp_wrappers in servers.
-# Requires tcp_wrappers.
-# LDAP_TCP_WRAPPERS=-DTCP_WRAPPERS -I/usr/local/include
-# LDAP_TCP_WRAPPERS_LIB=-L/usr/local/lib -lwrap
 
 # uncomment this line to use soundex for approximate matches in slapd.
 # the default is to use the metaphone algorithm.

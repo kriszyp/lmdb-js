@@ -50,6 +50,7 @@ echo "Filtering original ldif used to create database..."
 . scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
 cmp $SEARCHFLT $LDIFFLT
+
 if [ $? != 0 ]; then
 	echo "comparison failed - database was not created correctly"
 	exit 1

@@ -24,7 +24,7 @@ OBJS2	= ../config.o ../ch_malloc.o ../backend.o ../charray.o \
 		../aclparse.o ../schema.o ../result.o ../filterentry.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
-		../schemaparse.o ../regex.o ../strdup.o
+		../schemaparse.o ../strdup.o
 
 INCLUDES= -I. -I$(HDIR) $(EXINCLUDES)
 DEFINES = $(DEFS) $(LDAP_CRYPT) $(SERVERDEFS) $(THREADS)

@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include "slap.h"
 #include "ldapconfig.h"
 #include "back-ldbm.h"
@@ -175,7 +174,6 @@ idl_store(
 	
 	flags = LDBM_REPLACE;
 	if( li->li_flush_wrt ) flags |= LDBM_SYNC;
-
 	rc = ldbm_cache_store( db, key, data, flags );
 
 	/* Debug( LDAP_DEBUG_TRACE, "<= idl_store %d\n", rc, 0, 0 ); */

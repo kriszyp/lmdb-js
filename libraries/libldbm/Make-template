@@ -21,7 +21,7 @@ OBJS	= ldbm.o
 HDIR	= ../../include
 
 INCLUDES= -I$(HDIR)
-DEFINES	= $(DEFS)
+DEFINES	= $(DEFS) $(LDBMDEFS)
 
 CFLAGS	= $(INCLUDES) $(DEFINES) $(ACFLAGS)
 

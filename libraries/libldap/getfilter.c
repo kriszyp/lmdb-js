@@ -10,13 +10,13 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#if defined(NeXT)
+#include <sys/types.h>
 #include <regex.h>
-#endif
+
 #ifdef MACOS
-#include <stdlib.h>
 #include "macos.h"
 #else /* MACOS */
 #ifdef DOS
@@ -25,7 +25,6 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 #else /* DOS */
 #include <sys/types.h>
 #include <sys/file.h>
-#include <stdlib.h>
 #include <sys/errno.h>
 #ifndef VMS
 #include <unistd.h>
@@ -35,7 +34,6 @@ static char copyright[] = "@(#) Copyright (c) 1993 Regents of the University of 
 
 #include "lber.h"
 #include "ldap.h"
-#include "regex.h"
 
 #ifdef NEEDPROTOS
 static int break_into_words( char *str, char *delims, char ***wordsp );
@@ -49,7 +47,6 @@ void free_strarray();
 
 #if !defined( MACOS ) && !defined( DOS )
 extern int	errno;
-extern char	*re_comp();
 #endif
 
 #define FILT_MAX_LINE_LEN	1024
@@ -107,8 +104,10 @@ ldap_init_getfilter_buf( char *buf, long buflen )
     LDAPFiltDesc	*lfdp;
     LDAPFiltList	*flp, *nextflp;
     LDAPFiltInfo	*fip, *nextfip;
-    char		*tag, **tok;
-    int			tokcnt, i;
+    char			*tag, **tok;
+    int				tokcnt, i;
+	int				rc;
+	regex_t			re;
 
     if (( lfdp = (LDAPFiltDesc *)calloc( 1, sizeof( LDAPFiltDesc))) == NULL ) {
 	return( NULL );
@@ -138,11 +137,13 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 	    }
 	    nextflp->lfl_tag = strdup( tag );
 	    nextflp->lfl_pattern = tok[ 0 ];
-	    if ( re_comp( nextflp->lfl_pattern ) != NULL ) {
+	    if ( (rc = regcomp( &re, nextflp->lfl_pattern, 0 )) != 0 ) {
 #ifndef NO_USERINTERFACE
+		char error[512];
+		regerror(rc, &re, error, sizeof(error));
 		ldap_getfilter_free( lfdp );
-		fprintf( stderr, "bad regular expresssion %s\n",
-			nextflp->lfl_pattern );
+		fprintf( stderr, "bad regular expresssion %s, %s\n",
+			nextflp->lfl_pattern, error );
 #if !defined( MACOS ) && !defined( DOS )
 		errno = EINVAL;
 #endif
@@ -150,6 +151,7 @@ ldap_init_getfilter_buf( char *buf, long buflen )
 		free_strarray( tok );
 		return( NULL );
 	    }
+		regfree(&re);
 		
 	    nextflp->lfl_delims = tok[ 1 ];
 	    nextflp->lfl_ilist = NULL;
@@ -247,6 +249,8 @@ LDAPFiltInfo *
 ldap_getfirstfilter( LDAPFiltDesc *lfdp, char *tagpat, char *value )
 {
     LDAPFiltList	*flp;
+	int				rc;
+	regex_t			re;
 
     if ( lfdp->lfd_curvalcopy != NULL ) {
 	free( lfdp->lfd_curvalcopy );
@@ -256,13 +260,30 @@ ldap_getfirstfilter( LDAPFiltDesc *lfdp, char *tagpat, char *value )
     lfdp->lfd_curval = value;
     lfdp->lfd_curfip = NULL;
 
-    for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = flp->lfl_next ) {
-	if ( re_comp( tagpat ) == NULL && re_exec( flp->lfl_tag ) == 1
-		&& re_comp( flp->lfl_pattern ) == NULL
-		&& re_exec( lfdp->lfd_curval ) == 1 ) {
-	    lfdp->lfd_curfip = flp->lfl_ilist;
-	    break;
-	}
+	for ( flp = lfdp->lfd_filtlist; flp != NULL; flp = flp->lfl_next ) {
+		/* compile tagpat, continue if we fail */
+		if (regcomp(&re, tagpat, 0) != 0)
+			continue;
+
+		/* match tagpatern and tag, continue if we fail */
+		rc = regexec(&re, flp->lfl_tag, 0, NULL, 0);
+		regfree(&re);
+		if (rc != 0)
+			continue;
+
+		/* compile flp->ifl_pattern, continue if we fail */
+		if (regcomp(&re, flp->lfl_pattern, 0) != 0)
+			continue;
+
+		/* match ifl_pattern and lfd_curval, continue if we fail */
+		rc = regexec(&re, lfdp->lfd_curval, 0, NULL, 0);
+		regfree(&re);
+		if (rc != 0)
+			continue;
+
+		/* we successfully compiled both patterns and matched both values */
+		lfdp->lfd_curfip = flp->lfl_ilist;
+		break;
     }
 
     if ( lfdp->lfd_curfip == NULL ) {

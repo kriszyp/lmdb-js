@@ -21,6 +21,7 @@ extern int	ldbm_back_abandon();
 extern int	ldbm_back_config();
 extern int	ldbm_back_init();
 extern int	ldbm_back_close();
+extern int      ldbm_back_group();
 #endif
 
 #ifdef LDAP_PASSWD
@@ -86,6 +87,9 @@ new_backend(
 		be->be_config = ldbm_back_config;
 		be->be_init = ldbm_back_init;
 		be->be_close = ldbm_back_close;
+#ifdef ACLGROUP
+		be->be_group = ldbm_back_group;
+#endif
 		be->be_type = "ldbm";
 		foundit = 1;
 	}
@@ -105,6 +109,9 @@ new_backend(
 		be->be_config = passwd_back_config;
 		be->be_init = NULL;
 		be->be_close = NULL;
+#ifdef ACLGROUP
+		be->be_group = NULL;
+#endif
 		be->be_type = "passwd";
 		foundit = 1;
 	}
@@ -124,6 +131,9 @@ new_backend(
 		be->be_config = shell_back_config;
 		be->be_init = shell_back_init;
 		be->be_close = NULL;
+#ifdef ACLGROUP
+		be->be_group = NULL;
+#endif
 		be->be_type = "shell";
 		foundit = 1;
 	}
@@ -150,14 +160,6 @@ select_backend( char * dn )
 	for ( i = 0; i < nbackends; i++ ) {
 		for ( j = 0; backends[i].be_suffix != NULL &&
 		    backends[i].be_suffix[j] != NULL; j++ ) {
-			/* Add greg@greg.rim.or.jp
-			 * It's quick hack for cheep client
-			 * Some browser offer a NULL base at ldap_search
-			 */
-			if(dnlen == 0) {
-				Debug( LDAP_DEBUG_TRACE, "select_backend: use default backend\n", 0, 0, 0 );
-				return (&backends[i]);
-			}
 			len = strlen( backends[i].be_suffix[j] );
 
 			if ( len > dnlen ) {
@@ -239,3 +241,14 @@ be_unbind(
 		}
 	}
 }
+
+#ifdef ACLGROUP
+int 
+be_group(Backend *be, char *bdn, char *edn)
+{
+        if (be->be_group)
+                return(be->be_group(be, bdn, edn));
+        else
+                return(1);
+}
+#endif

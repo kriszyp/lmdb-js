@@ -21,8 +21,6 @@ multilinedescription: Outstanding
 title: Mad Cow Researcher, UM Alumni Association
 pager: +1 313 555 3923
 mail: jaj@mail.alumni.umich.edu
-modifytimestamp: 960404171231Z
-modifiersname: cn=Manager,o=University of Michigan,c=US
 facsimiletelephonenumber: +1 313 555 4332
 telephonenumber: +1 313 555 0895
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
@@ -180,7 +178,6 @@ member: cn=John Doe, ou=Information Technology Division, ou=People, o=Universi
 member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of 
  Michigan, c=US
 labeledurl: http://www.itd.umich.edu ITD Home Page
- University of Michigan,c=US
 telephonenumber: +1 810 555 1212
 
 dn: cn=James A Jones 2, ou=Information Technology Division, ou=People, o=Unive

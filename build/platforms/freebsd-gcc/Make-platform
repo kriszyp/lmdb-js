@@ -44,4 +44,3 @@ LDAP_CRYPT_LIB= -lcrypt
 # -------------------------------------------------------------------------
 CC	= gcc
 PLATFORMCFLAGS=	-Dfreebsd
-PLATFORMLIBS=-lcompat

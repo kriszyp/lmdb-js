@@ -20,14 +20,14 @@ VERSIONFILE = $(LDAPSRC)/build/version
 SRCS	= idl.c add.c search.c cache.c dbcache.c dn2id.c id2entry.c \
 		index.c id2children.c nextid.c abandon.c compare.c \
 		modify.c modrdn.c delete.c init.c config.c bind.c attr.c \
-		filterindex.c unbind.c kerberos.c close.c
+		filterindex.c unbind.c kerberos.c close.c group.c
 OBJS	= idl.o add.o search.o cache.o dbcache.o dn2id.o id2entry.o \
 		index.o id2children.o nextid.o abandon.o compare.o \
 		modify.o modrdn.o delete.o init.o config.o bind.o attr.o \
-		filterindex.o unbind.o kerberos.o close.o
+		filterindex.o unbind.o kerberos.o close.o group.o
 
 INCLUDES= -I. -I.. -I$(HDIR) $(KRBINCLUDEFLAG)
-DEFINES = $(DEFS) $(LDAP_CRYPT) $(THREADS)
+DEFINES = $(DEFS) $(SERVERDEFS) $(THREADS)
 CFLAGS	= $(INCLUDES) $(THREADSINCLUDE) $(DEFINES) $(ACFLAGS)
 LDFLAGS	= -L$(LDIR) $(KRBLIBFLAG) $(LDAP_CRYPT_LIB)
 

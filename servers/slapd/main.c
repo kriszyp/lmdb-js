@@ -56,9 +56,6 @@ pthread_mutex_t	num_sent_mutex;
  */
 pthread_mutex_t	entry2str_mutex;
 pthread_mutex_t	replog_mutex;
-#ifndef sunos5
-pthread_mutex_t	regex_mutex;
-#endif
 
 static
 usage( name )
