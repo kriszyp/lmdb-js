@@ -38,6 +38,9 @@ main(
 
     int			i;
 
+    /* initialize thread package */
+    ldap_pvt_thread_initialize();
+
     /* 
      * Create and initialize globals.  init_globals() also initializes
      * the main replication queue.
@@ -91,9 +94,6 @@ main(
     if ( !sglob->one_shot_mode )
 #endif /* LDAP_DEBUG */
 	lutil_detach( 0, 0 );
-
-	/* initialize thread package */
-	ldap_pvt_thread_initialize();
 
     /*
      * Start threads - one thread for each replica
