@@ -765,7 +765,12 @@ stream_read( Sockbuf *sb, void *buf, long len )
 /*
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
-   return recv( lber_pvt_sb_get_desc(sb), buf, len, 0 );
+   int rc;
+   rc = recv( lber_pvt_sb_get_desc(sb), buf, len, 0 );
+#ifdef HAVE_WINSOCK
+   if ( rc < 0 ) errno = WSAGetLastError();
+#endif
+   return rc;
 
 #elif defined( HAVE_NCSA )
 /*
@@ -801,7 +806,12 @@ stream_write( Sockbuf *sb, void *buf, long len )
 /*
  * 32-bit Windows Socket API (under Windows NT or Windows 95)
  */
-   return send( lber_pvt_sb_get_desc(sb), buf, len, 0 );
+   int rc;
+   rc = send( lber_pvt_sb_get_desc(sb), buf, len, 0 );
+#ifdef HAVE_WINSOCK
+   if ( rc < 0 ) errno = WSAGetLastError();
+#endif
+   return rc;
 
 #elif defined(HAVE_NCSA)
    return netwrite( lber_pvt_sb_get_desc(sb), buf, len );
