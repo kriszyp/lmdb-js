@@ -602,17 +602,26 @@ slap_sasl_authorize(
 		"authcid=\"%s\" authzid=\"%s\"\n",
 		conn ? conn->c_connid : -1, auth_identity, requested_user );
 #endif
+	if ( conn->c_sasl_dn.bv_val ) {
+		ch_free( conn->c_sasl_dn.bv_val );
+		conn->c_sasl_dn.bv_val = NULL;
+		conn->c_sasl_dn.bv_len = 0;
+	}
 
 	prop_getnames( props, slap_propnames, auxvals );
 	
-	/* Nothing to do if no authzID was given */
-	if ( !auxvals[1].name || !auxvals[1].values )
-		return SASL_OK;
-	
 	AC_MEMCPY( &authcDN, auxvals[0].values[0], sizeof(authcDN) );
+
+	/* Nothing to do if no authzID was given */
+	if ( !auxvals[1].name || !auxvals[1].values ) {
+		conn->c_sasl_dn = authcDN;
+		return SASL_OK;
+	}
+	
 	AC_MEMCPY( &authzDN, auxvals[1].values[0], sizeof(authzDN) );
 
 	rc = slap_sasl_authorized( &authcDN, &authzDN );
+	ch_free( authcDN.bv_val );
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
@@ -625,8 +634,11 @@ slap_sasl_authorize(
 #endif
 
 		sasl_seterror( sconn, 0, "not authorized" );
+		ch_free( authzDN.bv_val );
 		return SASL_NOAUTHZ;
 	}
+
+	conn->c_sasl_sdn = authzDN;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -654,6 +666,11 @@ slap_sasl_authorize(
 	char *realm;
 
 	*user = NULL;
+	if ( conn->c_sasl_dn.bv_val ) {
+		ch_free( conn->c_sasl_dn.bv_val );
+		conn->c_sasl_dn.bv_val = NULL;
+		conn->c_sasl_dn.bv_len = 0;
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "sasl", LDAP_LEVEL_ENTRY,
@@ -700,7 +717,7 @@ slap_sasl_authorize(
 		 "Using authcDN=%s\n", (long) (conn ? conn->c_connid : -1), authcDN.bv_val,0 );
 #endif
 
-		*user = authcDN.bv_val;
+		conn->c_sasl_dn = authcDN;
 		*errstr = NULL;
 		return SASL_OK;
 	}
@@ -712,6 +729,7 @@ slap_sasl_authorize(
 	}
 
 	rc = slap_sasl_authorized( &authcDN, &authzDN );
+	ch_free( authcDN.bv_val );
 	if( rc ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "sasl", LDAP_LEVEL_INFO,
@@ -724,7 +742,6 @@ slap_sasl_authorize(
 #endif
 
 		*errstr = "not authorized";
-		ch_free( authcDN.bv_val );
 		ch_free( authzDN.bv_val );
 		return SASL_NOAUTHZ;
 	}
@@ -739,9 +756,7 @@ slap_sasl_authorize(
 		(long) (conn ? conn->c_connid : -1), 0, 0 );
 #endif
 
-
-	ch_free( authcDN.bv_val );
-	*user = authzDN.bv_val;
+	conn->c_sasl_dn = authzDN;
 	*errstr = NULL;
 	return SASL_OK;
 }
@@ -1169,18 +1184,11 @@ int slap_sasl_bind(
 	response.bv_len = reslen;
 
 	if ( sc == SASL_OK ) {
-#if SASL_VERSION_MAJOR >= 2
-		struct propctx *props = sasl_auxprop_getctx( ctx );
-		struct propval vals[3];
 		sasl_ssf_t *ssf = NULL;
 
-		prop_getnames( props, slap_propnames, vals );
-
-		AC_MEMCPY( edn, vals[0].values[0], sizeof(*edn) );
-		if ( vals[1].name && vals[1].values ) {
-			ch_free( edn->bv_val );
-			AC_MEMCPY( edn, vals[1].values[0], sizeof(*edn) );
-		}
+		*edn = conn->c_sasl_dn;
+		conn->c_sasl_dn.bv_val = NULL;
+		conn->c_sasl_dn.bv_len = 0;
 
 		rc = LDAP_SUCCESS;
 
@@ -1196,46 +1204,6 @@ int slap_sasl_bind(
 		send_ldap_sasl( conn, op, rc,
 			NULL, NULL, NULL, NULL,
 			response.bv_len ? &response : NULL );
-#else
-		char *username = NULL;
-
-		sc = sasl_getprop( ctx,
-			SASL_USERNAME, (SASL_CONST void **)&username );
-
-		if ( sc != SASL_OK ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
-				"slap_sasl_bind: getprop(USERNAME) failed: %d\n", sc ));
-#else
-			Debug(LDAP_DEBUG_TRACE,
-				"slap_sasl_bind: getprop(USERNAME) failed!\n",
-				0, 0, 0);
-#endif
-
-
-			send_ldap_result( conn, op, rc = slap_sasl_err2ldap( sc ),
-				NULL, "no SASL username", NULL, NULL );
-
-		} else {
-			sasl_ssf_t *ssf = NULL;
-
-			rc = LDAP_SUCCESS;
-			ber_str2bv( username, 0, 1, edn );
-
-			(void) sasl_getprop( ctx, SASL_SSF, (void *)&ssf );
-			*ssfp = ssf ? *ssf : 0;
-
-			if( *ssfp ) {
-				ldap_pvt_thread_mutex_lock( &conn->c_mutex );
-				conn->c_sasl_layers++;
-				ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-			}
-
-			send_ldap_sasl( conn, op, rc,
-				NULL, NULL, NULL, NULL,
-				response.bv_len ? &response : NULL );
-		}
-#endif
 
 	} else if ( sc == SASL_CONTINUE ) {
 		send_ldap_sasl( conn, op, rc = LDAP_SASL_BIND_IN_PROGRESS,
@@ -1297,13 +1265,18 @@ slap_sasl_setpass(
 	int rc;
 	struct berval id = { 0, NULL };	/* needs to come from connection */
 	struct berval new = { 0, NULL };
+	struct berval old = { 0, NULL };
 
 	assert( reqoid != NULL );
 	assert( strcmp( LDAP_EXOP_MODIFY_PASSWD, reqoid ) == 0 );
 
-	if( id.bv_len == 0 ) {
-		*text = "not yet implemented";
+	rc = sasl_getprop( conn->c_sasl_context, SASL_USERNAME,
+		(SASL_CONST void **)&id.bv_val );
+
+	if( rc != SASL_OK ) {
+		*text = "unable to retrieve SASL username";
 		rc = LDAP_OTHER;
+		goto done;
 	}
 
 #ifdef NEW_LOGGING
@@ -1316,7 +1289,7 @@ slap_sasl_setpass(
 #endif
 
 	rc = slap_passwd_parse( reqdata,
-		NULL, NULL, &new, text );
+		NULL, &old, &new, text );
 
 	if( rc != LDAP_SUCCESS ) {
 		goto done;
@@ -1334,10 +1307,16 @@ slap_sasl_setpass(
 		*rspdata = slap_passwd_return( &new );
 	}
 
+#if SASL_VERSION_MAJOR < 2
 	rc = sasl_setpass( conn->c_sasl_context,
-		id.bv_val, new.bv_val, new.bv_len, SASL_SET_CREATE,
-		text );
-
+		id.bv_val, new.bv_val, new.bv_len, 0, text );
+#else
+	rc = sasl_setpass( conn->c_sasl_context, id.bv_val,
+		old.bv_val, old.bv_len, new.bv_val, new.bv_len, 0 );
+	if( rc != SASL_OK ) {
+		*text = sasl_errdetail( conn->c_sasl_context );
+	}
+#endif
 	switch(rc) {
 		case SASL_OK:
 			rc = LDAP_SUCCESS;
