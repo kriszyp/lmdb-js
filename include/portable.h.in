@@ -414,6 +414,9 @@
 /* Define if you have the <malloc.h> header file.  */
 #undef HAVE_MALLOC_H
 
+/* Define if you have the <mdbm.h> header file.  */
+#undef HAVE_MDBM_H
+
 /* Define if you have the <memory.h> header file.  */
 #undef HAVE_MEMORY_H
 
@@ -633,11 +636,11 @@
 /* define if Berkeley DB is available */
 #undef HAVE_BERKELEY_DB
 
-/* define if GNU DBM is available */
-#undef HAVE_GDBM
-
 /* define if MDBM is available */
 #undef HAVE_MDBM
+
+/* define if GNU DBM is available */
+#undef HAVE_GDBM
 
 /* define if NDBM is available */
 #undef HAVE_NDBM
