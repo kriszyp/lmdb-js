@@ -504,6 +504,20 @@ slap_sasl_authorize(
 		authzid ? authzid : "<empty>" );
 #endif
 
+	/* Figure out how much data we have for the dn */
+	rc = sasl_getprop( conn->c_sasl_context, SASL_REALM, (void **)&realm );
+	if( rc != SASL_OK && rc != SASL_NOTDONE ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "sasl", LDAP_LEVEL_ERR,
+			"slap_sasl_authorize: getprop(REALM) failed.\n" ));
+#else
+		Debug(LDAP_DEBUG_TRACE,
+			"authorize: getprop(REALM) failed!\n", 0,0,0);
+#endif
+		*errstr = "Could not extract realm";
+		return SASL_NOAUTHZ;
+	}
+
 	/* Convert the identities to DN's. If no authzid was given, client will
 	   be bound as the DN matching their username */
 	rc = slap_sasl_getdn( conn, (char *)authcid, realm, &authcDN, FLAG_GETDN_AUTHCID );
