@@ -34,6 +34,31 @@
 
 #include "slapcommon.h"
 
+static int
+print_access(
+	Operation		*op,
+	Entry			*e,
+	AttributeDescription	*desc,
+	struct berval		*val,
+	struct berval		*nval )
+{
+	int			rc;
+	slap_mask_t		mask;
+	char			accessmaskbuf[ACCESSMASK_MAXLEN];
+	slap_access_t		access = ACL_AUTH;
+
+	rc = access_allowed_mask( op, e, desc, nval, ACL_AUTH, NULL, &mask );
+
+	fprintf( stderr, "%s%s%s: %s\n",
+			desc->ad_cname.bv_val,
+			( val && !BER_BVISNULL( val ) ) ? "=" : "",
+			( val && !BER_BVISNULL( val ) ) ?
+				( desc == slap_schema.si_ad_userPassword ? "****" : val->bv_val ) : "",
+			accessmask2str( mask, accessmaskbuf, 1 ) );
+
+	return rc;
+}
+
 int
 slapacl( int argc, char **argv )
 {
@@ -111,11 +136,6 @@ slapacl( int argc, char **argv )
 		op->o_ndn = authcDN;
 	}
 
-	if ( argc == 0 ) {
-		argc = 1;
-		attr = slap_schema.si_ad_entry->ad_cname.bv_val;
-	}
-
 	if ( !dryrun ) {
 		ID	id;
 
@@ -153,12 +173,28 @@ slapacl( int argc, char **argv )
 			goto destroy;
 
 		}
+
+		if ( argc == 0 ) {
+			Attribute	*a;
+
+			(void)print_access( op, ep, slap_schema.si_ad_entry, NULL, NULL );
+			(void)print_access( op, ep, slap_schema.si_ad_children, NULL, NULL );
+
+			for ( a = ep->e_attrs; a; a = a->a_next ) {
+				int	i;
+
+				for ( i = 0; !BER_BVISNULL( &a->a_nvals[ i ] ); i++ ) {
+					(void)print_access( op, ep, a->a_desc,
+							&a->a_vals[ i ],
+							&a->a_nvals[ i ] );
+				}
+			}
+		}
 	}
 
 	for ( ; argc--; argv++ ) {
 		slap_mask_t		mask;
 		AttributeDescription	*desc = NULL;
-		int			rc;
 		struct berval		val = BER_BVNULL,
 					*valp = NULL;
 		const char		*text;
