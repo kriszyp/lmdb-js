@@ -12,6 +12,7 @@
 #include <ac/string.h>
 #include <ac/ctype.h>
 #include <ac/socket.h>
+#include <ac/errno.h>
 
 #include "lutil.h"
 #include "ldap_pvt.h"
@@ -85,16 +86,21 @@ read_config( const char *fname )
 
 	if ( (fp = fopen( fname, "r" )) == NULL ) {
 		ldap_syslog = 1;
+#ifdef NEW_LOGGING
+		LDAP_LOG(( "config", LDAP_LEVEL_ENTRY, "read_config: "
+			"could not open config file \"%s\": %s (%d)\n",
+		    fname, strerror(errno), errno ));
+#else
 		Debug( LDAP_DEBUG_ANY,
-		    "could not open config file \"%s\" - absolute path?\n",
-		    fname, 0, 0 );
-		perror( fname );
+		    "could not open config file \"%s\": %s (%d)\n",
+		    fname, strerror(errno), errno );
+#endif
 		return 1;
 	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "config", LDAP_LEVEL_ENTRY,
-		   "read_config: reading config file %s\n", fname ));
+		"read_config: reading config file %s\n", fname ));
 #else
 	Debug( LDAP_DEBUG_CONFIG, "reading config file %s\n", fname, 0, 0 );
 #endif
