@@ -96,6 +96,7 @@ bdb_db_init( BackendDB *be )
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
 
 	be->be_private = bdb;
@@ -363,13 +364,15 @@ bdb_db_open( BackendDB *be )
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
 				BDB_ID2ENTRY_PAGESIZE );
 		} else {
-#ifdef BDB_HIER
-			rc = db->bdi_db->set_bt_compare( db->bdi_db,
-				bdb_bt_compare );
-#else
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
+#ifndef BDB_HIER
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,
+				bdb_bt_compare );
+#else
+			rc = db->bdi_db->set_dup_compare( db->bdi_db,
+				hdb_dup_compare );
+			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
 #endif
 			rc = db->bdi_db->set_pagesize( db->bdi_db,
@@ -519,6 +522,7 @@ bdb_db_destroy( BackendDB *be )
 
 	ldap_pvt_thread_rdwr_destroy ( &bdb->bi_cache.c_rwlock );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.lru_mutex );
+	ldap_pvt_thread_mutex_destroy( &bdb->bi_cache.c_dntree.bei_kids_mutex );
 	ldap_pvt_thread_mutex_destroy( &bdb->bi_lastid_mutex );
 #ifdef SLAP_IDL_CACHE
 	if ( bdb->bi_idl_cache_max_size ) {

@@ -50,6 +50,8 @@ bdb_cache_entry_db_relock(
 	DBT	lockobj;
 	DB_LOCKREQ list[2];
 
+	if ( !lock ) return 0;
+
 	lockobj.data = ei;
 	lockobj.size = sizeof(ei->bei_parent) + sizeof(ei->bei_id);
 
@@ -88,6 +90,8 @@ bdb_cache_entry_db_lock
 	int       rc;
 	DBT       lockobj;
 	int       db_rw;
+
+	if ( !lock ) return 0;
 
 	if (rw)
 		db_rw = DB_LOCK_WRITE;
@@ -184,9 +188,7 @@ bdb_id_cmp( const void *v_e1, const void *v_e2 )
 int
 bdb_entryinfo_add_internal(
 	struct bdb_info *bdb,
-	EntryInfo *eip,
-	ID id,
-	struct berval *nrdn,
+	EntryInfo *ei,
 	EntryInfo **res,
 	u_int32_t locker
 )
@@ -202,15 +204,15 @@ bdb_entryinfo_add_internal(
 	*res = NULL;
 
 	ldap_pvt_thread_rdwr_wlock( &bdb->bi_cache.c_rwlock );
-	bdb_cache_entryinfo_lock( eip );
+	bdb_cache_entryinfo_lock( ei->bei_parent );
 
 	/* if parent was previously considered a leaf node,
 	 * it was on the LRU list. Now it's going to have
 	 * kids, take it off the LRU list.
 	 */
 	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
-	if ( eip->bei_id && !eip->bei_kids ) {
-		LRU_DELETE( cache, eip );
+	if ( ei->bei_parent->bei_id && !ei->bei_parent->bei_kids ) {
+		LRU_DELETE( cache, ei->bei_parent );
 		incr = 0;
 	}
 
@@ -265,32 +267,31 @@ bdb_entryinfo_add_internal(
 	if (!ei2) {
 		ei2 = bdb_cache_entryinfo_new();
 	}
-	ei2->bei_id = id;
-	ei2->bei_parent = eip;
+	ei2->bei_id = ei->bei_id;
+	ei2->bei_parent = ei->bei_parent;
+	ei2->bei_rdn = ei->bei_rdn;
 
 	/* Add to cache ID tree */
 	if (avl_insert( &cache->c_idtree, ei2, bdb_id_cmp, avl_dup_error )) {
-		EntryInfo *ei;
-		ei = avl_find( cache->c_idtree, ei2, bdb_id_cmp );
+		EntryInfo *eix;
+		eix = avl_find( cache->c_idtree, ei2, bdb_id_cmp );
 		bdb_cache_entryinfo_destroy( ei2 );
-		ei2 = ei;
+		ei2 = eix;
 		addkid = 0;
 		cache->c_cursize -= incr;
+		if ( ei->bei_rdn.bv_val )
+			ber_memfree_x( ei->bei_rdn.bv_val, NULL );
 	} else {
 		LRU_ADD( cache, ei2 );
-		ber_dupbv( &ei2->bei_nrdn, nrdn );
+		ber_dupbv( &ei2->bei_nrdn, &ei->bei_nrdn );
 	}
 
 	if ( addkid ) {
-		avl_insert( &eip->bei_kids, ei2, bdb_rdn_cmp, avl_dup_error );
+		avl_insert( &ei->bei_parent->bei_kids, ei2, bdb_rdn_cmp,
+			avl_dup_error );
 	}
 
 	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
-
-#if 0 /* caller must do these frees */
-	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
-	bdb_cache_entryinfo_unlock( eip );
-#endif
 
 	*res = ei2;
 	return 0;
@@ -332,6 +333,7 @@ bdb_cache_find_entry_ndn2id(
 	}
 	
 	for ( bdb_cache_entryinfo_lock( eip ); eip; ) {
+		ei.bei_parent = eip;
 		ei2 = (EntryInfo *)avl_find( eip->bei_kids, &ei, bdb_rdn_cmp );
 		if ( !ei2 ) {
 			int len = ei.bei_nrdn.bv_len;
@@ -348,8 +350,8 @@ bdb_cache_find_entry_ndn2id(
 
 			/* DN exists but needs to be added to cache */
 			ei.bei_nrdn.bv_len = len;
-			rc = bdb_entryinfo_add_internal( bdb,
-				eip, ei.bei_id, &ei.bei_nrdn, &ei2, locker );
+			rc = bdb_entryinfo_add_internal( bdb, &ei, &ei2,
+				locker );
 			/* add_internal left eip and c_rwlock locked */
 			ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 			if ( rc ) {
@@ -387,6 +389,99 @@ bdb_cache_find_entry_ndn2id(
 
 	return rc;
 }
+
+#ifdef BDB_HIER
+/* Walk up the tree from a child node, looking for an ID that's already
+ * been linked into the cache.
+ */
+int
+bdb_cache_find_parent(
+	Backend *be,
+	DB_TXN *txn,
+	ID id,
+	EntryInfo **res,
+	void *ctx
+)
+{
+	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
+	EntryInfo ei, eip, *ei2 = NULL, *ein = NULL, *eir = NULL;
+	ID parent;
+	int rc;
+
+	ei.bei_id = id;
+	ei.bei_kids = NULL;
+
+	for (;;) {
+		rc = bdb_dn2id_parent( be, txn, &ei, &eip.bei_id, ctx );
+		if ( rc ) break;
+
+		/* Save the previous node, if any */
+		ei2 = ein;
+
+		/* Create a new node for the current ID */
+		ein = bdb_cache_entryinfo_new();
+		ein->bei_id = ei.bei_id;
+		ein->bei_nrdn = ei.bei_nrdn;
+		ein->bei_rdn = ei.bei_rdn;
+		ein->bei_kids = ei.bei_kids;
+		
+		/* This node is not fully connected yet */
+		ein->bei_state = CACHE_ENTRY_NOT_LINKED;
+
+		/* If this is the first time, save this node
+		 * to be returned later.
+		 */
+		if ( eir == NULL ) eir = ein;
+
+		/* Insert this node into the ID tree */
+		ldap_pvt_thread_rdwr_rlock( &bdb->bi_cache.c_rwlock );
+		if ( avl_insert( &bdb->bi_cache.c_idtree, (caddr_t)ein,
+			bdb_id_cmp, avl_dup_error ) ) {
+
+			/* Hm, can this really happen? */
+			bdb_cache_entryinfo_destroy( ein );
+			ein = (EntryInfo *)avl_find( bdb->bi_cache.c_idtree,
+				(caddr_t) &ei, bdb_id_cmp );
+			bdb_cache_entryinfo_lock( ein );
+			avl_insert( &ein->bei_kids, (caddr_t)ei2, bdb_rdn_cmp,
+				avl_dup_error );
+			bdb_cache_entryinfo_unlock( ein );
+		}
+
+		/* If there was a previous node, link it to this one */
+		if ( ei2 ) ei2->bei_parent = ein;
+
+		if ( eip.bei_id ) {
+			ei2 = (EntryInfo *) avl_find( bdb->bi_cache.c_idtree,
+					(caddr_t) &eip, bdb_id_cmp );
+		} else {
+			ei2 = &bdb->bi_cache.c_dntree;
+		}
+
+		if ( ei2 ) {
+			ein->bei_parent = ei2;
+			bdb_cache_entryinfo_lock( ei2 );
+			avl_insert( &ei2->bei_kids, (caddr_t)ein, bdb_rdn_cmp,
+				avl_dup_error);
+			bdb_cache_entryinfo_unlock( ei2 );
+			*res = eir;
+			bdb_cache_entryinfo_lock( eir );
+		}
+		ldap_pvt_thread_rdwr_runlock( &bdb->bi_cache.c_rwlock );
+		if ( ei2 ) {
+			/* Found a link. Reset all the state info */
+			for (ein = eir; ein != ei2; ein=ein->bei_parent)
+				ein->bei_state &= ~CACHE_ENTRY_NOT_LINKED;
+			break;
+		}
+		ei.bei_kids = NULL;
+		ei.bei_id = eip.bei_id;
+		avl_insert( &ei.bei_kids, (caddr_t)ein, bdb_rdn_cmp,
+			avl_dup_error );
+	}
+	return rc;
+}
+#endif
 
 /*
  * cache_find_entry_id - find an entry in the cache, given id.
@@ -427,6 +522,7 @@ bdb_cache_find_entry_id(
 
 	/* See if the ID exists in the database; add it to the cache if so */
 	if ( !*eip ) {
+#ifndef BDB_HIER
 		rc = bdb_id2entry( be, tid, id, &ep );
 		if ( rc == 0 ) {
 			rc = bdb_cache_find_entry_ndn2id( be, tid,
@@ -438,6 +534,11 @@ bdb_cache_find_entry_id(
 				ep = NULL;
 			}
 		}
+#else
+		rc = bdb_cache_find_parent(be, tid, id, eip, ctx );
+		if ( rc == 0 && *eip )
+			islocked = 1;
+#endif
 	}
 
 	/* Ok, we found the info, do we have the entry? */
@@ -451,8 +552,11 @@ bdb_cache_find_entry_id(
 			if ( rc == 0 ) {
 				bdb_cache_entry_db_lock( bdb->bi_dbenv, locker,
 					*eip, 1, 0, lock );
-				(*eip)->bei_e = ep;
 				ep->e_private = *eip;
+#ifdef BDB_HIER
+				hdb_fix_dn( ep );
+#endif
+				(*eip)->bei_e = ep;
 				bdb_cache_entry_db_relock( bdb->bi_dbenv, locker,
 					*eip, 0, 0, lock );
 			}
@@ -501,21 +605,30 @@ bdb_cache_children(
 int
 bdb_cache_add(
 	struct bdb_info *bdb,
-	EntryInfo *ei,
+	EntryInfo *eip,
 	Entry *e,
 	struct berval *nrdn,
 	u_int32_t locker
 )
 {
-	EntryInfo *new;
+	EntryInfo *new, ei;
+	struct berval rdn = e->e_name;
 	int rc;
 
-	rc = bdb_entryinfo_add_internal( bdb, ei, e->e_id, nrdn, &new, locker );
+	ei.bei_id = e->e_id;
+	ei.bei_parent = eip;
+	ei.bei_nrdn = *nrdn;
+	if ( nrdn->bv_len != e->e_nname.bv_len ) {
+		char *ptr = strchr( rdn.bv_val, ',' );
+		rdn.bv_len = ptr - rdn.bv_val;
+	}
+	ber_dupbv( &ei.bei_rdn, &rdn );
+	rc = bdb_entryinfo_add_internal( bdb, &ei, &new, locker );
 	new->bei_e = e;
 	e->e_private = new;
 	new->bei_state = CACHE_ENTRY_NO_KIDS;
-	ei->bei_state &= ~CACHE_ENTRY_NO_KIDS;
-	bdb_cache_entryinfo_unlock( ei );
+	eip->bei_state &= ~CACHE_ENTRY_NO_KIDS;
+	bdb_cache_entryinfo_unlock( eip );
 	ldap_pvt_thread_rdwr_wunlock( &bdb->bi_cache.c_rwlock );
 	return rc;
 }
@@ -560,6 +673,7 @@ bdb_cache_modrdn(
 )
 {
 	EntryInfo *ei = BEI(e), *pei;
+	struct berval rdn;
 	int rc = 0;
 
 	/* Get write lock on data */
@@ -589,7 +703,15 @@ bdb_cache_modrdn(
 	bdb_cache_entryinfo_lock( pei );
 	avl_delete( &pei->bei_kids, (caddr_t) ei, bdb_rdn_cmp );
 	free( ei->bei_nrdn.bv_val );
+	free( ei->bei_rdn.bv_val );
 	ber_dupbv( &ei->bei_nrdn, nrdn );
+	rdn = e->e_name;
+	if ( nrdn->bv_len != e->e_nname.bv_len ) {
+		char *ptr = strchr(rdn.bv_val, ',');
+		rdn.bv_len = ptr - rdn.bv_val;
+	}
+	ber_dupbv( &ei->bei_rdn, &rdn );
+
 	if (!ein) {
 		ein = ei->bei_parent;
 	} else {
@@ -702,7 +824,9 @@ static void
 bdb_entryinfo_release( void *data )
 {
 	EntryInfo *ei = (EntryInfo *)data;
-	avl_free( ei->bei_kids, NULL );
+	if ( ei->bei_kids ) {
+		avl_free( ei->bei_kids, NULL );
+	}
 	if ( ei->bei_e ) {
 		ei->bei_e->e_private = NULL;
 		bdb_entry_return( ei->bei_e );

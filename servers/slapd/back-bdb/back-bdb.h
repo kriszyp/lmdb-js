@@ -14,8 +14,6 @@
 
 LDAP_BEGIN_DECL
 
-/* #define BDB_HIER		1 */
-
 #define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
 #define DN_ONE_PREFIX	 	'%'
 #define DN_SUBTREE_PREFIX 	'@'
@@ -40,11 +38,7 @@ LDAP_BEGIN_DECL
 
 #define BDB_SUFFIX		".bdb"
 #define BDB_ID2ENTRY	0
-#ifdef BDB_HIER
-#define BDB_ID2PARENT		1
-#else
 #define BDB_DN2ID		1
-#endif
 #define BDB_NDB			2
 
 /* The bdb on-disk entry format is pretty space-inefficient. Average
@@ -90,6 +84,7 @@ typedef struct bdb_entry_info {
 	int bei_state;
 #define	CACHE_ENTRY_DELETED	1
 #define	CACHE_ENTRY_NO_KIDS	2
+#define	CACHE_ENTRY_NOT_LINKED	4
 
 	/*
 	 * remaining fields require backend cache lock to access
@@ -146,11 +141,6 @@ struct bdb_info {
 	Avlnode		*bi_attrs;
 	void		*bi_search_stack;
 	int		bi_search_stack_depth;
-#ifdef BDB_HIER
-	Avlnode		*bi_tree;
-	ldap_pvt_thread_rdwr_t	bi_tree_rdwr;
-	void		*bi_troot;
-#endif
 
 	int			bi_txn_cp;
 	u_int32_t	bi_txn_cp_min;
@@ -158,6 +148,8 @@ struct bdb_info {
 
 	int			bi_lock_detect;
 	long		bi_shm_key;
+
+	int		bi_is_hier;
 
 	ID			bi_lastid;
 	ldap_pvt_thread_mutex_t	bi_lastid_mutex;

@@ -113,6 +113,7 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	assert( slapMode & SLAP_TOOL_MODE );
 	assert( data.data != NULL );
 
+#ifndef BDB_HIER
 	DBT2bv( &data, &bv );
 
 	rc = entry_decode( &bv, &e );
@@ -120,11 +121,15 @@ Entry* bdb_tool_entry_get( BackendDB *be, ID id )
 	if( rc == LDAP_SUCCESS ) {
 		e->e_id = id;
 	}
-
-#ifdef BDB_HIER
-	bdb_fix_dn(be, id, e);
+#else
+	{
+		EntryInfo *ei = NULL;
+		rc = bdb_cache_find_entry_id( be, NULL, id, &ei, 0, 0,
+			NULL, NULL );
+		if ( rc == LDAP_SUCCESS )
+			e = ei->bei_e;
+	}
 #endif
-
 	return e;
 }
 

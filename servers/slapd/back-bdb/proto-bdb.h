@@ -93,6 +93,15 @@ bdb_dn2idl(
 	ID *ids,
 	void *ctx );
 
+#ifdef BDB_HIER
+int hdb_dup_compare(
+	DB *db,
+	const DBT *usrkey,
+	const DBT *curkey );
+
+int hdb_fix_dn( Entry *e );
+#endif
+
 /*
  * entry.c
  */
