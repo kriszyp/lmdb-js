@@ -859,6 +859,51 @@ If specified multiple times, each url is provided.
 Options in this category only apply to the BDB databases. That is,
 they must follow "database bdb" line and come before any subsequent
 "backend" or "database" lines.
+.TP
+.B cachesize <integer>
+Specify the size in entries of the in-memory cache maintained 
+by the BDB backend database instance.  The default is 1000 entries.
+.TP
+.B checkpoint <kbyte> <min>
+Specify the frequency for checkpointing the database transaction log.
+A checkpoint operation flushes the database buffers to disk and writes
+a checkpoint record in the log. The checkpoint will occur if either
+<kbyte> data has been written or <min> minutes have passed since the
+last checkpoint. Both arguments default to zero, in which case they are ignored.
+See the Berkeley DB reference guide for more details.
+.TP
+.B dbnosync
+Specify that on-disk database contents should not be immediately
+synchronized with in memory changes.  Enabling this option may improve
+performance at the expense of data security.
+.TP
+.B directory <directory>
+Specify the directory where the BDB files containing this database and
+associated indexes live.  A separate directory must be specified for
+each database.  The default is
+.BR LOCALSTATEDIR/openldap-data .
+.TP
+.B dirtyread
+Allow reads of modified but not yet committed data. Usually transactions
+are isolated to prevent other operations from accessing uncommitted data.
+This option may improve performance, but may also return inconsistent
+results if the data comes from a transaction that is later aborted. In
+this case, the modified data is discarded and a subsequent search will
+return a different result.
+.TP
+.B
+index {<attrlist>|default} [pres,eq,approx,sub,<special>]
+See the description for LDBM.
+.TP
+.B lockdetect {oldest|youngest|fewest|random|default}
+Specify which transaction to abort when a deadlock is detected. The
+default is the same as
+.BR random .
+.TP
+.B mode <integer>
+Specify the file protection mode that newly created database 
+index files should have.  The default is 0600.
+
 .SH LDBM DATABASE-SPECIFIC OPTIONS
 Options in this category only apply to the LDBM databases. That is,
 they must follow "database ldbm" line and come before any subsequent
