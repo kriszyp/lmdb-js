@@ -273,8 +273,8 @@ struct syntax_defs_rec {
 	slap_syntax_transform_func *sd_str2ber;
 };
 
-#define X_BINARY "X-BINARY 'on' "
-#define X_NOT_H_R "X-NOT-H-R 'on' "
+#define X_BINARY "X-BINARY-TRANSFER-REQUIRED 'TRUE' "
+#define X_NOT_H_R "X-NOT-HUMAN-READABLE 'TRUE' "
 
 struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.1 DESC 'ACI Item' " X_BINARY X_NOT_H_R ")",

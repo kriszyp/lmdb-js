@@ -145,7 +145,7 @@ str2entry( char *s )
 
 		ad_free( ad, 1 );
 #else
-		rc = attr_merge_fast( e, type, vals, nvals, 1, &maxvals, &a )
+		rc = attr_merge_fast( e, type, vals, nvals, 1, &maxvals, &a );
 #endif
 
 		if( rc != 0 ) {
