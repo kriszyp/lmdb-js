@@ -16,22 +16,15 @@ LDAP_BEGIN_DECL
 
 int access_allowed LDAP_P(( Backend *be, Connection *conn,
 	Operation *op, Entry *e,
-	char *attr, struct berval *val, int access ));
-
-AccessControl * acl_get_applicable LDAP_P(( Backend *be,
-	Operation *op, Entry *e,
-	char *attr, int nmatches, regmatch_t *matches ));
-
-int acl_access_allowed LDAP_P((
-	AccessControl *a, char *attr, Backend *be, Connection *conn, Entry *e,
-	struct berval *val, Operation *op, int  access, char *edn,
-	regmatch_t *matches ));
+	char *attr, struct berval *val, slap_access_t access ));
 
 int acl_check_modlist LDAP_P(( Backend *be,
 	Connection *conn,
 	Operation *op,
 	Entry *e,
 	LDAPModList *ml ));
+
+void acl_append( AccessControl **l, AccessControl *a );
 
 /*
  * aclparse.c
@@ -41,8 +34,12 @@ void parse_acl LDAP_P(( Backend *be,
 	const char *fname,
 	int lineno,
 	int argc, char **argv ));
-char * access2str LDAP_P(( int access ));
-int str2access LDAP_P(( char *str ));
+
+char * access2str LDAP_P(( slap_access_t access ));
+slap_access_t str2access LDAP_P(( const char *str ));
+
+char * accessmask2str LDAP_P(( slap_access_mask_t mask ));
+slap_access_mask_t str2accessmask LDAP_P(( const char *str ));
 
 /*
  * attr.c
@@ -432,7 +429,7 @@ extern int		active_threads;
 extern int		defsize;
 extern int		deftime;
 extern int		g_argc;
-extern int		global_default_access;
+extern slap_access_t		global_default_access;
 extern int		global_readonly;
 extern int		global_lastmod;
 extern int		global_idletimeout;

@@ -572,12 +572,11 @@ send_search_entry(
 			}
 		}
 
-		acl = acl_get_applicable( be, op, e, a->a_type,
-			MAXREMATCHES, matches );
-
-		if ( ! acl_access_allowed( acl, a->a_type, be, conn, e,
-			NULL, op, ACL_READ, edn, matches ) ) 
+		if ( ! access_allowed( be, conn, op, e,
+			a->a_type, NULL, ACL_READ ) )
 		{
+			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
+			    a->a_type, 0, 0 );
 			continue;
 		}
 
@@ -591,10 +590,12 @@ send_search_entry(
 
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-				if ( a->a_syntax & SYNTAX_DN && 
-					! acl_access_allowed( acl, a->a_type, be, conn, e, a->a_vals[i], op,
-						ACL_READ, edn, matches) )
+				if ( ! access_allowed( be, conn, op, e,
+					a->a_type, a->a_vals[i], ACL_READ ) )
 				{
+					Debug( LDAP_DEBUG_ACL,
+						"acl: access to attribute %s, value %d not allowed\n",
+			    		a->a_type, i, 0 );
 					continue;
 				}
 
@@ -647,12 +648,11 @@ send_search_entry(
 			}
 		}
 
-		acl = acl_get_applicable( be, op, e, a->a_type,
-			MAXREMATCHES, matches );
-
-		if ( ! acl_access_allowed( acl, a->a_type, be, conn, e,
-			NULL, op, ACL_READ, edn, matches ) ) 
+		if ( ! access_allowed( be, conn, op, e,
+			a->a_type, NULL, ACL_READ ) )
 		{
+			Debug( LDAP_DEBUG_ACL, "acl: access to attribute %s not allowed\n",
+			    a->a_type, 0, 0 );
 			continue;
 		}
 
@@ -666,12 +666,15 @@ send_search_entry(
 
 		if ( ! attrsonly ) {
 			for ( i = 0; a->a_vals[i] != NULL; i++ ) {
-				if ( a->a_syntax & SYNTAX_DN && 
-					! acl_access_allowed( acl, a->a_type, be, conn, e, a->a_vals[i], op,
-						ACL_READ, edn, matches) )
+				if ( ! access_allowed( be, conn, op, e,
+					a->a_type, a->a_vals[i], ACL_READ ) )
 				{
+					Debug( LDAP_DEBUG_ACL,
+						"acl: access to attribute %s, value %d not allowed\n",
+			    		a->a_type, i, 0 );
 					continue;
 				}
+
 
 				if (( rc = ber_printf( ber, "O", a->a_vals[i] )) == -1 ) {
 					Debug( LDAP_DEBUG_ANY,

@@ -38,10 +38,8 @@ int ldbm_modify_internal(
 	Attribute	*a;
 	Attribute	*save_attrs;
 
-	if ( (err = acl_check_modlist( be, conn, op, e, modlist ))
-	     != LDAP_SUCCESS )
-	{
-		send_ldap_result( conn, op, err,
+	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			NULL, NULL, NULL, NULL );
 		return -1;
 	}

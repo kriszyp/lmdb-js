@@ -27,7 +27,7 @@
 int		defsize = SLAPD_DEFAULT_SIZELIMIT;
 int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
-int		global_default_access = ACL_AUTH;
+slap_access_t		global_default_access = ACL_READ;
 int		global_readonly = 0;
 char		*replogfile;
 int		global_lastmod = ON;
@@ -478,31 +478,29 @@ read_config( const char *fname )
 
 		/* specify default access control info */
 		} else if ( strcasecmp( cargv[0], "defaultaccess" ) == 0 ) {
+			slap_access_t access;
+
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing limit in \"defaultaccess <access>\" line\n",
 				    fname, lineno, 0 );
 				return( 1 );
 			}
+
+			access = str2access( cargv[1] );
+
+			if ( access == ACL_INVALID_ACCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: bad access level \"%s\", "
+					"expecting none|auth|compare|search|read|write\n",
+				    fname, lineno, cargv[1] );
+				return( 1 );
+			}
+
 			if ( be == NULL ) {
-				if ( ACL_IS_INVALID(ACL_SET(global_default_access,
-						str2access(cargv[1]))) )
-				{
-					Debug( LDAP_DEBUG_ANY,
-"%s: line %d: bad access \"%s\" expecting [self]{none|auth|compare|search|read|write}\n",
-					    fname, lineno, cargv[1] );
-					return( 1 );
-				}
+				global_default_access = access;
 			} else {
-				if ( ACL_IS_INVALID(ACL_SET(be->be_dfltaccess,
-						str2access(cargv[1]))) )
-				{
-					Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: bad access \"%s\", "
-						"expecting [self]{none|auth|compare|search|read|write}\n",
-					    fname, lineno, cargv[1] );
-					return( 1 );
-				}
+				be->be_dfltaccess = access;
 			}
 
 		/* debug level to log things to syslog */

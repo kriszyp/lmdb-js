@@ -222,6 +222,9 @@ int backend_startup(Backend *be)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
+		/* append global access controls */
+		acl_append( &backendDB[i].be_acl, global_acl );
+
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
 				&backendDB[i] );
@@ -376,6 +379,7 @@ backend_db_init(
 	be->bd_info = bi;
 	be->be_sizelimit = defsize;
 	be->be_timelimit = deftime;
+	be->be_dfltaccess = global_default_access;
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 

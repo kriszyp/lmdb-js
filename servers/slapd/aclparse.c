@@ -18,11 +18,11 @@
 #include "slap.h"
 
 static void		split(char *line, int splitchar, char **left, char **right);
-static void		acl_append(AccessControl **l, AccessControl *a);
 static void		access_append(Access **l, Access *a);
 static void		acl_usage(void) LDAP_GCCATTR((noreturn));
+
 #ifdef LDAP_DEBUG
-static void		print_acl(AccessControl *a);
+static void		print_acl(Backend *be, AccessControl *a);
 static void		print_access(Access *b);
 #endif
 
@@ -179,11 +179,14 @@ parse_acl(
 				    fname, lineno );
 				acl_usage();
 			}
+
 			/*
 			 * by clause consists of <who> and <access>
 			 */
 
 			b = (Access *) ch_calloc( 1, sizeof(Access) );
+
+			ACL_INVALIDATE( b->a_mask );
 
 			if ( ++i == argc ) {
 				fprintf( stderr,
@@ -344,16 +347,92 @@ parse_acl(
 				}
 #endif
 
-				/* get <access> */
-				if ( ACL_IS_INVALID(ACL_SET(b->a_access, str2access( left ))) ) {
-					fprintf( stderr,
-					"%s: line %d: expecting <access> got \"%s\"\n",
-						fname, lineno, left );
-					acl_usage();
+				if( right != NULL ) {
+					/* unsplit */
+					right[-1] = '=';
 				}
-				access_append( &a->acl_access, b );
 				break;
 			}
+
+			if( i == argc || ( strcasecmp( left, "stop" ) == 0 )) { 
+				/* out of arguments or plain stop */
+
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				b->a_type = ACL_STOP;
+
+				access_append( &a->acl_access, b );
+				continue;
+			}
+
+			if( strcasecmp( left, "continue" ) == 0 ) {
+				/* plain continue */
+
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				b->a_type = ACL_CONTINUE;
+
+				access_append( &a->acl_access, b );
+				continue;
+			}
+
+			if( strcasecmp( left, "break" ) == 0 ) {
+				/* plain continue */
+
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				b->a_type = ACL_BREAK;
+
+				access_append( &a->acl_access, b );
+				continue;
+			}
+
+			if ( strcasecmp( left, "by" ) == 0 ) {
+				/* we've gone too far */
+				--i;
+				ACL_PRIV_ASSIGN(b->a_mask, ACL_NONE);
+				b->a_type = ACL_STOP;
+
+				access_append( &a->acl_access, b );
+				continue;
+			}
+
+			/* get <access> */
+			if( strncasecmp( left, "self", 4 ) == 0 ) {
+				b->a_dn_self = 1;
+				ACL_PRIV_ASSIGN( b->a_mask, str2accessmask( &left[4] ) );
+
+			} else {
+				ACL_PRIV_ASSIGN( b->a_mask, str2accessmask( left ) );
+			}
+
+			if( ACL_IS_INVALID( b->a_mask ) ) {
+				fprintf( stderr,
+					"%s: line %d: expecting <access> got \"%s\"\n",
+					fname, lineno, left );
+				acl_usage();
+			}
+
+			b->a_type = ACL_STOP;
+
+			if( ++i == argc ) {
+				/* out of arguments or plain stop */
+				access_append( &a->acl_access, b );
+				continue;
+			}
+
+			if( strcasecmp( argv[i], "continue" ) == 0 ) {
+				/* plain continue */
+				b->a_type = ACL_CONTINUE;
+
+			} else if( strcasecmp( argv[i], "break" ) == 0 ) {
+				/* plain continue */
+				b->a_type = ACL_BREAK;
+
+			} else if ( strcasecmp( argv[i], "stop" ) != 0 ) {
+				/* gone to far */
+				i--;
+			}
+
+			access_append( &a->acl_access, b );
+
 		} else {
 			fprintf( stderr,
 		    "%s: line %d: expecting \"to\" or \"by\" got \"%s\"\n",
@@ -372,7 +451,7 @@ parse_acl(
 
 #ifdef LDAP_DEBUG
                 if (ldap_debug & LDAP_DEBUG_ACL)
-                    print_acl(a);
+                    print_acl(be, a);
 #endif
 	
 		if ( a->acl_access == NULL ) {
@@ -390,72 +469,165 @@ parse_acl(
 }
 
 char *
-access2str( int access )
+accessmask2str( slap_access_mask_t mask )
 {
-	static char	buf[12];
+	static char	buf[sizeof("unknown (+wrsca0)")]; 
+	int none=1;
 
-	if ( ACL_IS_SELF( access ) ) {
-		strcpy( buf, "self" );
-	} else {
-		buf[0] = '\0';
+	if ( ACL_IS_INVALID( mask ) ) {
+		return "invalid";
 	}
 
-	if ( ACL_IS_NONE(access) ) {
-		strcat( buf, "none" );
-	} else if ( ACL_IS_AUTH(access) ) {
-		strcat( buf, "auth" );
-	} else if ( ACL_IS_COMPARE(access) ) {
-		strcat( buf, "compare" );
-	} else if ( ACL_IS_SEARCH(access) ) {
-		strcat( buf, "search" );
-	} else if ( ACL_IS_READ(access) ) {
-		strcat( buf, "read" );
-	} else if ( ACL_IS_WRITE(access) ) {
-		strcat( buf, "write" );
+	buf[0] = '\0';
 
-	} else {
-		strcat( buf, "unknown" );
+	if ( ACL_IS_LEVEL( mask ) ) {
+		if ( ACL_LVL_IS_NONE(mask) ) {
+			strcat( buf, "none" );
+
+		} else if ( ACL_LVL_IS_AUTH(mask) ) {
+			strcat( buf, "auth" );
+
+		} else if ( ACL_LVL_IS_COMPARE(mask) ) {
+			strcat( buf, "compare" );
+
+		} else if ( ACL_LVL_IS_SEARCH(mask) ) {
+			strcat( buf, "search" );
+
+		} else if ( ACL_LVL_IS_READ(mask) ) {
+			strcat( buf, "read" );
+
+		} else if ( ACL_LVL_IS_WRITE(mask) ) {
+			strcat( buf, "write" );
+		} else {
+			strcat( buf, "unknown" );
+		}
+		
+		strcat(buf, " (");
 	}
 
-	return( buf );
+	if( ACL_IS_ADDITIVE( mask ) ) {
+		strcat( buf, "+" );
+
+	} else if( ACL_IS_SUBTRACTIVE( mask ) ) {
+		strcat( buf, "-" );
+
+	} else {
+		strcat( buf, "=" );
+	}
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_WRITE) ) {
+		none = 0;
+		strcat( buf, "w" );
+	} 
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_READ) ) {
+		none = 0;
+		strcat( buf, "r" );
+	} 
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_SEARCH) ) {
+		none = 0;
+		strcat( buf, "s" );
+	} 
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_COMPARE) ) {
+		none = 0;
+		strcat( buf, "c" );
+	} 
+
+	if ( ACL_PRIV_ISSET(mask, ACL_PRIV_AUTH) ) {
+		none = 0;
+		strcat( buf, "x" );
+	} 
+
+	if ( none && ACL_PRIV_ISSET(mask, ACL_PRIV_NONE) ) {
+		strcat( buf, "0" );
+	} 
+
+	if ( ACL_IS_LEVEL( mask ) ) {
+		strcat(buf, ")");
+	} 
+	return buf;
 }
 
-int
-str2access( char *str )
+slap_access_mask_t
+str2accessmask( const char *str )
 {
-	int	access;
+	slap_access_mask_t	mask;
 
-	ACL_CLR(access);
+	if( !isalpha(str[0]) ) {
+		int i;
 
-	if ( strncasecmp( str, "self", 4 ) == 0 ) {
-		ACL_SET_SELF(access);
-		str += 4;
+		if ( str[0] == '=' ) {
+			ACL_INIT(mask);
+
+		} else if( str[0] == '+' ) {
+			ACL_PRIV_ASSIGN(mask, ACL_PRIV_ADDITIVE);
+
+		} else if( str[0] == '-' ) {
+			ACL_PRIV_ASSIGN(mask, ACL_PRIV_SUBSTRACTIVE);
+
+		} else {
+			ACL_INVALIDATE(mask);
+			return mask;
+		}
+
+		for( i=1; str[i] != '\0'; i++ ) {
+			if( TOLOWER(str[i]) == 'w' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_WRITE);
+
+			} else if( TOLOWER(str[0]) == 'r' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_READ);
+
+			} else if( TOLOWER(str[0]) == 's' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_SEARCH);
+
+			} else if( TOLOWER(str[0]) == 'c' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_COMPARE);
+
+			} else if( TOLOWER(str[0]) == 'x' ) {
+				ACL_PRIV_SET(mask, ACL_PRIV_AUTH);
+
+			} else {
+				ACL_INVALIDATE(mask);
+				return mask;
+			}
+		}
+
+		return mask;
 	}
 
 	if ( strcasecmp( str, "none" ) == 0 ) {
-		ACL_SET_NONE(access);
+		ACL_LVL_ASSIGN_NONE(mask);
+
 	} else if ( strcasecmp( str, "auth" ) == 0 ) {
-		ACL_SET_AUTH(access);
+		ACL_LVL_ASSIGN_AUTH(mask);
+
 	} else if ( strcasecmp( str, "compare" ) == 0 ) {
-		ACL_SET_COMPARE(access);
+		ACL_LVL_ASSIGN_COMPARE(mask);
+
 	} else if ( strcasecmp( str, "search" ) == 0 ) {
-		ACL_SET_SEARCH(access);
+		ACL_LVL_ASSIGN_SEARCH(mask);
+
 	} else if ( strcasecmp( str, "read" ) == 0 ) {
-		ACL_SET_READ(access);
+		ACL_LVL_ASSIGN_READ(mask);
+
 	} else if ( strcasecmp( str, "write" ) == 0 ) {
-		ACL_SET_WRITE(access);
+		ACL_LVL_ASSIGN_WRITE(mask);
+
 	} else {
-		ACL_SET_INVALID(access);
+		ACL_INVALIDATE( mask );
 	}
 
-	return( access );
+	return mask;
 }
 
 static void
 acl_usage( void )
 {
 	fprintf( stderr, "\n"
-		"<access clause> ::= access to <what> [ by <who> <access> ]+ \n"
+		"<access clause> ::= access to <what> "
+				"[ by <who> <access> <control> ]+ \n"
 		"<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
@@ -467,7 +639,10 @@ acl_usage( void )
 #ifdef SLAPD_ACI_ENABLED
 			"\t[aci=<attrname>]\n"
 #endif
-		"<access> ::= [self]{none|auth|compare|search|read|write}\n"
+		"<access> ::= [self]{<level>|<priv>}\n"
+		"<level> ::= none | auth | compare | search | read | write\n"
+		"<priv> ::= {=|+|-}{w|r|s|c|x}+\n"
+		"<control> ::= [ stop | continue | break ]\n"
 		);
 	exit( EXIT_FAILURE );
 }
@@ -495,7 +670,7 @@ access_append( Access **l, Access *a )
 	*l = a;
 }
 
-static void
+void
 acl_append( AccessControl **l, AccessControl *a )
 {
 	for ( ; *l != NULL; l = &(*l)->acl_next )
@@ -542,6 +717,7 @@ print_access( Access *b )
 	if ( b->a_peername_pat != NULL ) {
 		fprintf( stderr, " peername=%s", b->a_peername_pat );
 	}
+
 	if ( b->a_sockname_pat != NULL ) {
 		fprintf( stderr, " sockname=%s", b->a_sockname_pat );
 	}
@@ -560,31 +736,91 @@ print_access( Access *b )
 	}
 #endif
 
+	fprintf( stderr, " %s%s",
+		b->a_dn_self ? "self" : "",
+		accessmask2str( b->a_mask ) );
+
 	fprintf( stderr, "\n" );
 }
 
-static void
-print_acl( AccessControl *a )
+char *
+access2str( slap_access_t access )
 {
-	int		i;
+	if ( access == ACL_NONE ) {
+		return "none";
+
+	} else if ( access == ACL_AUTH ) {
+		return "auth";
+
+	} else if ( access == ACL_COMPARE ) {
+		return "compare";
+
+	} else if ( access == ACL_SEARCH ) {
+		return "search";
+
+	} else if ( access == ACL_READ ) {
+		return "read";
+
+	} else if ( access == ACL_WRITE ) {
+		return "write";
+	}
+
+	return "unknown";
+}
+
+slap_access_t
+str2access( const char *str )
+{
+	if ( strcasecmp( str, "none" ) == 0 ) {
+		return ACL_NONE;
+
+	} else if ( strcasecmp( str, "auth" ) == 0 ) {
+		return ACL_AUTH;
+
+	} else if ( strcasecmp( str, "compare" ) == 0 ) {
+		return ACL_COMPARE;
+
+	} else if ( strcasecmp( str, "search" ) == 0 ) {
+		return ACL_SEARCH;
+
+	} else if ( strcasecmp( str, "read" ) == 0 ) {
+		return ACL_READ;
+
+	} else if ( strcasecmp( str, "write" ) == 0 ) {
+		return ACL_WRITE;
+	}
+
+	return( ACL_INVALID_ACCESS );
+}
+
+
+static void
+print_acl( Backend *be, AccessControl *a )
+{
+	int		to = 0;
 	Access	*b;
 
-	if ( a == NULL ) {
-		fprintf( stderr, "NULL\n" );
-	}
-	fprintf( stderr, "ACL: access to" );
-	if ( a->acl_filter != NULL ) {
-		fprintf(  stderr," filter=" );
-		filter_print( a->acl_filter );
-	}
-	if ( a->acl_dn_pat != NULL ) {
-		fprintf( stderr, " dn=" );
-		fprintf( stderr, a->acl_dn_pat );
-	}
-	if ( a->acl_attrs != NULL ) {
-		int	first = 1;
+	fprintf( stderr, "%s ACL: access to",
+		be == NULL ? "Global" : "Backend" );
 
-		fprintf( stderr, "\n attrs=" );
+	if ( a->acl_dn_pat != NULL ) {
+		to++;
+		fprintf( stderr, " dn=%s\n",
+			a->acl_dn_pat );
+	}
+
+	if ( a->acl_filter != NULL ) {
+		to++;
+		fprintf( stderr, " filter=" );
+		filter_print( a->acl_filter );
+		fprintf( stderr, "\n" );
+	}
+
+	if ( a->acl_attrs != NULL ) {
+		int	i, first = 1;
+		to++;
+
+		fprintf( stderr, " attrs=" );
 		for ( i = 0; a->acl_attrs[i] != NULL; i++ ) {
 			if ( ! first ) {
 				fprintf( stderr, "," );
@@ -592,11 +828,17 @@ print_acl( AccessControl *a )
 			fprintf( stderr, a->acl_attrs[i] );
 			first = 0;
 		}
+		fprintf(  stderr, "\n" );
 	}
-	fprintf( stderr, "\n" );
+
+	if( !to ) {
+		fprintf( stderr, " *\n" );
+	}
+
 	for ( b = a->acl_access; b != NULL; b = b->a_next ) {
 		print_access( b );
 	}
+
 	fprintf( stderr, "\n" );
 }
 

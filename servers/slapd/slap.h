@@ -226,49 +226,91 @@ typedef struct slap_entry {
  * represents an access control list
  */
 
+typedef enum slap_access_e {
+	ACL_INVALID_ACCESS = -1,
+	ACL_NONE = 0,
+	ACL_AUTH,
+	ACL_COMPARE,
+	ACL_SEARCH,
+	ACL_READ,
+	ACL_WRITE
+} slap_access_t;
+
+typedef enum slap_control_e {
+	ACL_INVALID_CONTROL	= 0,
+	ACL_STOP,
+	ACL_CONTINUE,
+	ACL_BREAK
+} slap_control_t;
+
+typedef unsigned long slap_access_mask_t;
+
 /* the "by" part */
 typedef struct slap_access {
+	slap_control_t a_type;
 
-#define ACL_NONE		0x0001
-#define ACL_AUTH		0x0004
-#define ACL_COMPARE		0x0008
-#define ACL_SEARCH		0x0010
-#define ACL_READ		0x0020
-#define ACL_WRITE		0x0040
-#define ACL_PRIV_MASK	0x00ff
+#define ACL_ACCESS2PRIV(access)	(0x01U << (access))
 
-#define ACL_SELF		0x4000
-#define ACL_INVALID		(-1)
+#define ACL_PRIV_NONE			ACL_ACCESS2PRIV( ACL_NONE )
+#define ACL_PRIV_AUTH			ACL_ACCESS2PRIV( ACL_AUTH )
+#define ACL_PRIV_COMPARE		ACL_ACCESS2PRIV( ACL_COMPARE )
+#define ACL_PRIV_SEARCH			ACL_ACCESS2PRIV( ACL_SEARCH )
+#define ACL_PRIV_READ			ACL_ACCESS2PRIV( ACL_READ )
+#define ACL_PRIV_WRITE			ACL_ACCESS2PRIV( ACL_WRITE )
 
-#define ACL_IS(a,lvl)	(((a) & (lvl)) == (lvl))
+#define ACL_PRIV_MASK			0x00ffUL
 
-#define ACL_IS_NONE(a)		ACL_IS((a),ACL_SELF)
-#define ACL_IS_AUTH(a)		ACL_IS((a),ACL_AUTH)
-#define ACL_IS_COMPARE(a)	ACL_IS((a),ACL_COMPARE)
-#define ACL_IS_SEARCH(a)	ACL_IS((a),ACL_SEARCH)
-#define ACL_IS_READ(a)		ACL_IS((a),ACL_READ)
-#define ACL_IS_WRITE(a)		ACL_IS((a),ACL_WRITE)
-#define ACL_IS_SELF(a)		ACL_IS((a),ACL_SELF)
-#define ACL_IS_INVALID(a)	((a) == ACL_INVALID)
+/* priv flags */
+#define ACL_PRIV_LEVEL			0x1000UL
+#define ACL_PRIV_ADDITIVE		0x2000UL
+#define ACL_PRIV_SUBSTRACTIVE	0x4000UL
 
-#define ACL_CLR(a)			((a) = 0)
-#define ACL_SET(a,lvl)		((a) |= (lvl))
-#define ACL_SET_NONE(a)		ACL_SET((a),ACL_SELF)
-#define ACL_SET_AUTH(a)		ACL_SET((a),ACL_AUTH)
-#define ACL_SET_COMPARE(a)	ACL_SET((a),ACL_COMPARE)
-#define ACL_SET_SEARCH(a)	ACL_SET((a),ACL_SEARCH)
-#define ACL_SET_READ(a)		ACL_SET((a),ACL_READ)
-#define ACL_SET_WRITE(a)	ACL_SET((a),ACL_WRITE)
-#define ACL_SET_SELF(a)		ACL_SET((a),ACL_SELF)
-#define ACL_SET_INVALID(a)	((a) = ACL_INVALID)
+/* invalid privs */
+#define ACL_PRIV_INVALID		0x0UL
 
-#define	ACL_PRIV(a)			((a) & ACL_PRIV_MASK)
-#define ACL_GRANT(a,lvl)	(ACL_PRIV(a) >= (lvl))
+#define ACL_PRIV_ISSET(m,p)		(((m) & (p)) == (p))
+#define ACL_PRIV_ASSIGN(m,p)	do { (m)  =  (p); } while(0)
+#define ACL_PRIV_SET(m,p)		do { (m) |=  (p); } while(0)
+#define ACL_PRIV_CLR(m,p)		do { (m) &= ~(p); } while(0)
 
-	int			a_access;
+#define ACL_INIT(m)				ACL_PRIV_ASSIGN(m, ACL_PRIV_NONE)
+#define ACL_INVALIDATE(m)		ACL_PRIV_ASSIGN(m, ACL_PRIV_INVALID)
+
+#define ACL_GRANT(m,a)			ACL_PRIV_ISSET((m),ACL_ACCESS2PRIV(a))
+
+#define ACL_IS_INVALID(m)		((m) == ACL_PRIV_INVALID)
+
+#define ACL_IS_LEVEL(m)			ACL_PRIV_ISSET((m),ACL_PRIV_LEVEL)
+#define ACL_IS_ADDITIVE(m)		ACL_PRIV_ISSET((m),ACL_PRIV_ADDITIVE)
+#define ACL_IS_SUBTRACTIVE(m)	ACL_PRIV_ISSET((m),ACL_PRIV_SUBSTRACTIVE)
+
+#define ACL_LVL_NONE			(ACL_PRIV_NONE|ACL_PRIV_LEVEL)
+#define ACL_LVL_AUTH			(ACL_PRIV_AUTH|ACL_LVL_NONE)
+#define ACL_LVL_COMPARE			(ACL_PRIV_COMPARE|ACL_LVL_AUTH)
+#define ACL_LVL_SEARCH			(ACL_PRIV_SEARCH|ACL_LVL_COMPARE)
+#define ACL_LVL_READ			(ACL_PRIV_READ|ACL_LVL_SEARCH)
+#define ACL_LVL_WRITE			(ACL_PRIV_WRITE|ACL_LVL_READ)
+
+#define ACL_LVL(m,l)			(((m)&ACL_PRIV_MASK) == ((l)&ACL_PRIV_MASK))
+#define ACL_LVL_IS_NONE(m)		ACL_LVL((m),ACL_LVL_NONE)
+#define ACL_LVL_IS_AUTH(m)		ACL_LVL((m),ACL_LVL_AUTH)
+#define ACL_LVL_IS_COMPARE(m)	ACL_LVL((m),ACL_LVL_COMPARE)
+#define ACL_LVL_IS_SEARCH(m)	ACL_LVL((m),ACL_LVL_SEARCH)
+#define ACL_LVL_IS_READ(m)		ACL_LVL((m),ACL_LVL_READ)
+#define ACL_LVL_IS_WRITE(m)		ACL_LVL((m),ACL_LVL_WRITE)
+
+#define ACL_LVL_ASSIGN_NONE(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_NONE)
+#define ACL_LVL_ASSIGN_AUTH(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_AUTH)
+#define ACL_LVL_ASSIGN_COMPARE(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_COMPARE)
+#define ACL_LVL_ASSIGN_SEARCH(m)	ACL_PRIV_ASSIGN((m),ACL_LVL_SEARCH)
+#define ACL_LVL_ASSIGN_READ(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_READ)
+#define ACL_LVL_ASSIGN_WRITE(m)		ACL_PRIV_ASSIGN((m),ACL_LVL_WRITE)
+
+	slap_access_mask_t	a_mask;
 
 	char		*a_dn_pat;
 	char		*a_dn_at;
+	int			a_dn_self;
 
 	char		*a_peername_pat;
 	char		*a_sockname_pat;
@@ -469,7 +511,7 @@ struct slap_backend_db {
 	int	be_sizelimit;	/* size limit for this backend   	   */
 	int	be_timelimit;	/* time limit for this backend       	   */
 	AccessControl *be_acl;	/* access control list for this backend	   */
-	int	be_dfltaccess;	/* access given if no acl matches	   */
+	slap_access_t	be_dfltaccess;	/* access given if no acl matches	   */
 	char	**be_replica;	/* replicas of this backend (in master)	   */
 	char	*be_replogfile;	/* replication log file (in master)	   */
 	char	*be_update_ndn;	/* allowed to make changes (in replicas)   */

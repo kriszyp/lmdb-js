@@ -67,13 +67,11 @@ overridden in a backend definition. Arguments that should be replaced by
 actual text are shown in brackets <>.
 .TP
 .B
-access to <what> [ by <who> <accesslevel> ]+
-Grant access (specified by <accesslevel>) to a set of entries and/or
+access to <what> [ by <who> <access> <control> ]+
+Grant access (specified by <access>) to a set of entries and/or
 attributes (specified by <what>) by one or more requestors (specified
-by <who>).  Refer to "The SLAPD and SLURPD Administrator's Guide" for
-information on using the
-.B slapd
-access-control mechanisms.
+by <who>).
+See Developer's FAQ (http://www.openldap.org/faq/) for details.
 .TP
 .B
 attributetype ( <oid> [NAME <name>] [DESC <description>] [OBSOLETE] \
@@ -136,9 +134,13 @@ distinguished name
 .RE
 .TP
 .B
-defaultaccess [self]{ none | compare | search | read | write }
-Specify the default access to grant requestors not matched by 
-any other access line.  The default behavior is to grant read access.
+defaultaccess { none | auth | compare | search | read | write }
+Specify the default access level to grant requestors when
+no access directives were provided for the database.
+The default behavior is to grant 'read' access.  It is
+recommended that
+.B access
+directives be used instead.
 .TP
 .B idletimeout <integer>
 Specify the number of seconds to wait before forcibly closing

@@ -28,8 +28,8 @@ bdb2i_back_modify_internal(
 
 	Debug(LDAP_DEBUG_ARGS, "bdb2i_back_modify:\n", 0, 0, 0);
 
-	if ( (err = acl_check_modlist( be, conn, op, e, modlist )) != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, err,
+	if ( !acl_check_modlist( be, conn, op, e, modlist )) {
+		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			NULL, NULL, NULL, NULL );
 		goto error_return;
 	}
