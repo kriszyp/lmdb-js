@@ -31,7 +31,7 @@
  */
 
 LDAP_F(void) ber_pvt_assert LDAP_P((
-	char* file, int line, char* test));
+	LDAP_CONST char *file, int line, LDAP_CONST char *test));
 
 /* Can't use LDAP_STRING(test), that'd expand to "test" */
 #if defined(__STDC__) || defined(__cplusplus)
