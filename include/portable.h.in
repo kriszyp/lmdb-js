@@ -281,6 +281,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
+/* Define if you have the des_string_to_key function.  */
+#undef HAVE_DES_STRING_TO_KEY
+
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
 

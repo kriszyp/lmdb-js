@@ -3,7 +3,7 @@
 #if defined(HAVE_KERBEROS) && !defined(openbsd)
 /*
  * $Source: /repo/OpenLDAP/pkg/ldap/clients/ud/string_to_key.c,v $
- * $Author: hallvard $
+ * $Author: kdz $
  *
  * Copyright 1985, 1986, 1987, 1988, 1989 by the Massachusetts Institute
  * of Technology.
@@ -42,7 +42,7 @@ extern void des_fixup_key_parity();
 /*
  * convert an arbitrary length string to a DES key
  */
-int
+void
 des_string_to_key( char *str, register des_cblock *key )
 {
     register char *in_str;
