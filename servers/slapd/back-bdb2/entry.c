@@ -19,12 +19,11 @@ bdb2_back_entry_release_rw(
 	int     rw
 )
 {
-#if 0
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	/* free entry and reader or writer lock */
 	bdb2i_cache_return_entry_rw( &li->li_cache, e, rw ); 
-#endif
+	bdb2i_release_add_lock();
 
 	return 0;
 }

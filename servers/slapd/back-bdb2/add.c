@@ -11,6 +11,9 @@
 #include "back-bdb2.h"
 #include "proto-back-bdb2.h"
 
+static DB_LOCK         lock;
+
+
 static int
 bdb2i_back_add_internal(
     BackendDB	*be,
@@ -217,7 +220,7 @@ return_results:;
 		bdb2i_cache_return_entry_w( &li->li_cache, p ); 
 	}
 
-	if ( 1 || rc ) {
+	if ( rc ) {
 		/* free entry and writer lock */
 		bdb2i_cache_return_entry_w( &li->li_cache, e );
 	}
@@ -234,9 +237,8 @@ bdb2_back_add(
     Entry	*e
 )
 {
-	DB_LOCK         lock;
 	struct ldbminfo	*li  = (struct ldbminfo *) be->be_private;
-	struct timeval  time1, time2;
+	struct timeval  time1;
 	int             ret;
 
 	bdb2i_start_timing( be->bd_info, &time1 );
@@ -247,8 +249,6 @@ bdb2_back_add(
 		return( -1 );
 
 	}
-
-	bdb2i_start_timing( be->bd_info, &time2 );
 
 	/*  check, if a new default attribute index will be created,
 		in which case we have to open the index file BEFORE TP  */
@@ -262,11 +262,22 @@ bdb2_back_add(
 	}
 
 	ret = bdb2i_back_add_internal( be, conn, op, e );
-	bdb2i_stop_timing( be->bd_info, time2, "ADD-INTERN", conn, op );
-	(void) bdb2i_leave_backend_w( lock );
+
+	/*  if the operation was successful, we will delay the unlock  */
+	if ( ret )
+		(void) bdb2i_leave_backend_w( lock );
+
 	bdb2i_stop_timing( be->bd_info, time1, "ADD", conn, op );
 
 	return( ret );
+}
+
+
+int
+bdb2i_release_add_lock( void )
+{
+	(void) bdb2i_leave_backend_w( lock );
+	return 0;
 }
 
 

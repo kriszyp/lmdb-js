@@ -10,6 +10,11 @@
 LDAP_BEGIN_DECL
 
 /*
+ * add.c
+ */
+int bdb2i_release_add_lock LDAP_P(());
+
+/*
  * alias.c
  */
 Entry *bdb2i_derefAlias_r LDAP_P((
