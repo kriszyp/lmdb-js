@@ -286,7 +286,6 @@ int ad_inlist(
 {
 	for( ; attrs; attrs=attrs->an_next ) {
 		ObjectClass *oc;
-		const char *text;
 		int rc;
 		
 		if ( attrs->an_desc ) {
@@ -324,6 +323,16 @@ int ad_inlist(
 						oc->soc_allowed[i] );
 					if( rc ) return 1;
 				}
+			}
+		} else {
+			/* short-circuit this search next time around */
+			if (!slap_schema.si_at_undefined->sat_ad) {
+				const char *text;
+				slap_bv2undef_ad(&attrs->an_name,
+					&attrs->an_desc, &text);
+			} else {
+				attrs->an_desc =
+					slap_schema.si_at_undefined->sat_ad;
 			}
 		}
 	}
