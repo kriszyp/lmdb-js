@@ -54,6 +54,20 @@ main( int argc, char **argv )
 			continue;
 		}
 
+		if ( retrieve_ctxcsn == 0 ) {
+			if ( is_entry_syncProviderSubentry( e ) ) {
+				be_entry_release_r( &op, e );
+				continue;
+			}
+		}
+
+		if ( retrieve_synccookie == 0 ) {
+			if ( is_entry_syncConsumerSubentry( e ) ) {
+				be_entry_release_r( &op, e );
+				continue;
+			}
+		}
+
 		if( verbose ) {
 			printf( "# id=%08lx\n", (long) id );
 		}

@@ -219,6 +219,9 @@ monitor_back_initialize(
 	bi->bi_tool_entry_put = 0;
 	bi->bi_tool_entry_reindex = 0;
 	bi->bi_tool_sync = 0;
+	bi->bi_tool_dn2id_get = 0;
+	bi->bi_tool_id2entry_get = 0;
+	bi->bi_tool_entry_modify = 0;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

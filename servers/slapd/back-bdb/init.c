@@ -694,6 +694,9 @@ bdb_initialize(
 	bi->bi_tool_entry_put = bdb_tool_entry_put;
 	bi->bi_tool_entry_reindex = bdb_tool_entry_reindex;
 	bi->bi_tool_sync = 0;
+	bi->bi_tool_dn2id_get = bdb_tool_dn2id_get;
+	bi->bi_tool_id2entry_get = bdb_tool_id2entry_get;
+	bi->bi_tool_entry_modify = bdb_tool_entry_modify;
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

@@ -208,28 +208,6 @@ slap_modrdn2mods(
 	return 0;
 }
 
-int
-slap_mods2entry(
-	Modifications *mods,
-	Entry **e,
-	int repl_user,
-	int dup,
-	const char **text,
-	char *textbuf, size_t textlen )
-{
-	return 0;
-}
-
-int
-slap_entry2mods(
-	Entry *e,
-	Modifications **mods,
-	const char **text
-)
-{
-	return 0;
-}
-
 int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 	char *user_realm, struct berval *dn, int flags )
 {
@@ -238,19 +216,6 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 
 int slap_sasl_authorized( Operation *op,
 	struct berval *authcDN, struct berval *authzDN )
-{
-	return -1;
-}
-
-int slap_mods_check( Modifications *ml, int update, const char **text,
-	char *textbuf, size_t textlen, void *ctx )
-{
-	return -1;
-}
-
-int slap_mods_opattrs( Operation *op, Modifications *mods,
-	Modifications **modtail, const char **text,
-	char *textbuf, size_t textlen )
 {
 	return -1;
 }
@@ -283,25 +248,3 @@ void syncrepl_add_glue( syncinfo_t *si, LDAP *ld, Operation *op, Entry *e,
 {
 	return;
 }
-
-#if 0
-struct berval *slap_get_commit_csn( Operation *op )
-{
-	return NULL;
-}
-
-void slap_rewind_commit_csn( Operation *op )
-{
-	return;
-}
-
-void slap_graduate_commit_csn( Operation *op )
-{
-	return;
-}
-
-Entry *slap_create_context_csn_entry( Backend *be, struct berval *context_csn )
-{
-	return NULL;
-}
-#endif

@@ -20,6 +20,8 @@
 
 #include "slapcommon.h"
 
+static char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
+
 int
 main( int argc, char **argv )
 {
@@ -32,6 +34,7 @@ main( int argc, char **argv )
 	char textbuf[SLAP_TEXT_BUFLEN] = { '\0' };
 	size_t textlen = sizeof textbuf;
 
+	struct berval csn;
 #ifdef NEW_LOGGING
 	lutil_log_initialize(argc, argv );
 #endif
@@ -161,12 +164,11 @@ main( int argc, char **argv )
 			char uuidbuf[ LDAP_LUTIL_UUIDSTR_BUFSIZE ];
 			struct berval vals[ 2 ];
 
-			struct berval name, timestamp, csn;
+			struct berval name, timestamp;
 
 			struct berval nvals[ 2 ];
 			struct berval nname;
 			char timebuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
-			char csnbuf[ LDAP_LUTIL_CSNSTR_BUFSIZE ];
 
 			vals[1].bv_len = 0;
 			vals[1].bv_val = NULL;
@@ -249,7 +251,7 @@ main( int argc, char **argv )
 				if( continuemode ) continue;
 				break;
 			}
-		
+
 			if ( verbose ) {
 				fprintf( stderr, "added: \"%s\" (%08lx)\n",
 					e->e_dn, (long) id );
@@ -261,6 +263,54 @@ main( int argc, char **argv )
 		}
 
 		entry_free( e );
+	}
+
+	if ( SLAP_LASTMOD(be) && update_ctxcsn == SLAP_TOOL_CTXCSN_BATCH && csn.bv_len > 0 ) {
+		Entry *ctxcsn_e;
+		ID	ctxcsn_id;
+		struct berval	ctxcsn_rdn = { 0, NULL };
+		struct berval	ctxcsn_ndn = { 0, NULL };
+		int ret;
+		struct berval bvtext;
+		Attribute *attr;
+
+		bvtext.bv_len = textlen;
+		bvtext.bv_val = textbuf;
+		bvtext.bv_val[0] = '\0';
+
+		ber_str2bv( "cn=ldapsync", strlen( "cn=ldapsync" ), 0, &ctxcsn_rdn );
+		build_new_dn( &ctxcsn_ndn, &be->be_nsuffix[0], &ctxcsn_rdn );
+		ctxcsn_id = be->be_dn2id_get( be, &ctxcsn_ndn );
+		
+		if ( ctxcsn_id == NOID ) {
+			ctxcsn_e = slap_create_context_csn_entry( be, &csn );
+			ctxcsn_id = be->be_entry_put( be, ctxcsn_e, &bvtext );
+			if( ctxcsn_id == NOID ) {
+				fprintf( stderr, "%s: could not add ctxcsn subentry\n", progname);
+				rc = EXIT_FAILURE;
+			}
+			if ( verbose ) {
+				fprintf( stderr, "added: \"%s\" (%08lx)\n", ctxcsn_e->e_dn, (long) ctxcsn_id );
+			}
+			entry_free( ctxcsn_e );
+		} else {
+			ret = be->be_id2entry_get( be, ctxcsn_id, &ctxcsn_e );
+			if ( ret == LDAP_SUCCESS ) {
+				attr = attr_find( ctxcsn_e->e_attrs, slap_schema.si_ad_contextCSN );
+				attr->a_vals[0] = csn;
+				ctxcsn_id = be->be_entry_modify( be, ctxcsn_e, &bvtext );
+				if( ctxcsn_id == NOID ) {
+					fprintf( stderr, "%s: could not modify ctxcsn subentry\n", progname);
+					rc = EXIT_FAILURE;
+				}
+				if ( verbose ) {
+					fprintf( stderr, "modified: \"%s\" (%08lx)\n", ctxcsn_e->e_dn, (long) ctxcsn_id );
+				}
+			} else {
+				fprintf( stderr, "%s: could not modify ctxcsn subentry\n", progname);
+				rc = EXIT_FAILURE;
+			}
+		}
 	}
 
 	ch_free( buf );

@@ -18,12 +18,18 @@ enum slaptool {
 	SLAPTEST	/* database testing tool */
 };
 
+#define SLAP_TOOL_CTXCSN_NONE	0
+#define SLAP_TOOL_CTXCSN_ENTRY	1
+#define SLAP_TOOL_CTXCSN_BATCH	2
 
 extern	char	*progname;
 extern	char	*conffile;
 extern	Backend *be;
 extern	int		appendmode;
 extern	int		verbose;
+extern	int		update_ctxcsn;
+extern	int		retrieve_ctxcsn;
+extern	int		retrieve_synccookie;
 extern	int		continuemode;
 extern	int		nosubordinates;
 extern	int		dryrun;

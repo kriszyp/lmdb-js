@@ -309,10 +309,10 @@ bdb_index_values LDAP_P((
 
 int bdb_index_entry LDAP_P(( Operation *op, DB_TXN *t, int r, Entry *e ));
 
-#define bdb_index_entry_add(be,t,e) \
-	bdb_index_entry((be),(t),SLAP_INDEX_ADD_OP,(e))
-#define bdb_index_entry_del(be,t,e) \
-	bdb_index_entry((be),(t),SLAP_INDEX_DELETE_OP,(e))
+#define bdb_index_entry_add(op,t,e) \
+	bdb_index_entry((op),(t),SLAP_INDEX_ADD_OP,(e))
+#define bdb_index_entry_del(op,t,e) \
+	bdb_index_entry((op),(t),SLAP_INDEX_DELETE_OP,(e))
 
 /*
  * init.c

@@ -235,14 +235,14 @@ static struct slap_schema_oc_map {
 			"DESC 'Persistent Info for SyncRepl Consumer' "
 			"AUXILIARY "
 			"MAY syncreplCookie )",
-		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		0, SLAP_OC_SYNCCONSUMERSUBENTRY|SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_syncConsumerSubentry) },
 	{ "syncProviderSubentry", "( 1.3.6.1.4.1.4203.666.3.6 "
 			"NAME 'syncProviderSubentry' "
 			"DESC 'Persistent Info for SyncRepl Producer' "
 			"AUXILIARY "
 			"MAY contextCSN )",
-		0, SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
+		0, SLAP_OC_SYNCPROVIDERSUBENTRY|SLAP_OC_OPERATIONAL|SLAP_OC_HIDE,
 		offsetof(struct slap_internal_schema, si_oc_syncProviderSubentry) },
 
 	{ NULL, NULL, NULL, 0, 0 }

@@ -84,6 +84,10 @@ ldbm_back_initialize(
 	bi->bi_tool_entry_reindex = ldbm_tool_entry_reindex;
 	bi->bi_tool_sync = ldbm_tool_sync;
 
+	bi->bi_tool_dn2id_get = 0;
+	bi->bi_tool_id2entry_get = 0;
+	bi->bi_tool_entry_modify = 0;
+
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
 

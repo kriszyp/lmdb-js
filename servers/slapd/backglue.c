@@ -587,6 +587,10 @@ glue_sub_init( )
 				bi->bi_tool_entry_put = glue_tool_entry_put;
 				bi->bi_tool_entry_reindex = glue_tool_entry_reindex;
 				bi->bi_tool_sync = glue_tool_sync;
+				/* FIXME : will support later */
+				bi->bi_tool_dn2id_get = 0;
+				bi->bi_tool_id2entry_get = 0;
+				bi->bi_tool_entry_modify = 0;
 			} else {
 				gi = (glueinfo *)ch_realloc(gi,
 					sizeof(glueinfo) +

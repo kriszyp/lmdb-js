@@ -642,8 +642,10 @@ typedef struct slap_object_class {
 #define	SLAP_OC_DYNAMICOBJECT	0x0008
 #define	SLAP_OC_COLLECTIVEATTRIBUTESUBENTRY	0x0010
 #define SLAP_OC_GLUE		0x0020
-#define	SLAP_OC__MASK		0x003F
-#define	SLAP_OC__END		0x0040
+#define SLAP_OC_SYNCPROVIDERSUBENTRY		0x0040
+#define SLAP_OC_SYNCCONSUMERSUBENTRY		0x0080
+#define	SLAP_OC__MASK		0x00FF
+#define	SLAP_OC__END		0x0100
 #define SLAP_OC_OPERATIONAL	0x4000
 #ifdef LDAP_DEVEL
 #define SLAP_OC_HIDE		0x0000
@@ -1375,6 +1377,9 @@ struct slap_backend_db {
 #define		be_entry_get bd_info->bi_tool_entry_get
 #define		be_entry_put bd_info->bi_tool_entry_put
 #define		be_sync bd_info->bi_tool_sync
+#define		be_dn2id_get bd_info->bi_tool_dn2id_get
+#define		be_id2entry_get bd_info->bi_tool_id2entry_get
+#define		be_entry_modify	bd_info->bi_tool_entry_modify
 #endif
 
 #define SLAP_BFLAG_NOLASTMOD		0x0001U
@@ -1630,6 +1635,10 @@ typedef ID (BI_tool_entry_put) LDAP_P(( BackendDB *be, Entry *e,
 			struct berval *text ));
 typedef int (BI_tool_entry_reindex) LDAP_P(( BackendDB *be, ID id ));
 typedef int (BI_tool_sync) LDAP_P(( BackendDB *be ));
+typedef ID (BI_tool_dn2id_get) LDAP_P(( BackendDB *be, struct berval *dn ));
+typedef int (BI_tool_id2entry_get) LDAP_P(( BackendDB *be, ID id, Entry **e ));
+typedef ID (BI_tool_entry_modify) LDAP_P(( BackendDB *be, Entry *e, 
+			struct berval *text ));
 
 struct slap_backend_info {
 	char	*bi_type; /* type of backend */
@@ -1714,14 +1723,17 @@ struct slap_backend_info {
 	BI_connection_destroy	*bi_connection_destroy;
 
 	/* hooks for slap tools */
-	BI_tool_entry_open	*bi_tool_entry_open;
-	BI_tool_entry_close	*bi_tool_entry_close;
-	BI_tool_entry_first	*bi_tool_entry_first;
-	BI_tool_entry_next	*bi_tool_entry_next;
-	BI_tool_entry_get	*bi_tool_entry_get;
-	BI_tool_entry_put	*bi_tool_entry_put;
+	BI_tool_entry_open		*bi_tool_entry_open;
+	BI_tool_entry_close		*bi_tool_entry_close;
+	BI_tool_entry_first		*bi_tool_entry_first;
+	BI_tool_entry_next		*bi_tool_entry_next;
+	BI_tool_entry_get		*bi_tool_entry_get;
+	BI_tool_entry_put		*bi_tool_entry_put;
 	BI_tool_entry_reindex	*bi_tool_entry_reindex;
-	BI_tool_sync		*bi_tool_sync;
+	BI_tool_sync			*bi_tool_sync;
+	BI_tool_dn2id_get		*bi_tool_dn2id_get;
+	BI_tool_id2entry_get	*bi_tool_id2entry_get;
+	BI_tool_entry_modify	*bi_tool_entry_modify;
 
 #define SLAP_INDEX_ADD_OP		0x0001
 #define SLAP_INDEX_DELETE_OP	0x0002

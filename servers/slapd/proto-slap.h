@@ -736,6 +736,14 @@ LDAP_SLAPD_F (int) is_entry_objectclass LDAP_P((
 	(((e)->e_ocflags & SLAP_OC__END) \
 	 ? (((e)->e_ocflags & SLAP_OC_GLUE) != 0) \
 	 : is_entry_objectclass((e), slap_schema.si_oc_glue, 1))
+#define is_entry_syncProviderSubentry(e)	\
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_SYNCPROVIDERSUBENTRY) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_syncProviderSubentry, 1))
+#define is_entry_syncConsumerSubentry(e)	\
+	(((e)->e_ocflags & SLAP_OC__END) \
+	 ? (((e)->e_ocflags & SLAP_OC_SYNCCONSUMERSUBENTRY) != 0) \
+	 : is_entry_objectclass((e), slap_schema.si_oc_syncConsumerSubentry, 1))
 
 LDAP_SLAPD_F (int) oc_schema_info( Entry *e );
 
