@@ -177,7 +177,7 @@ static void add_single_to( char ***list, char *new );
 static int  isgroup( LDAPMessage *e );
 static void add_error( Error **err, int *nerr, int code, char *addr, LDAPMessage *msg );
 static void unbind_and_exit( int rc ) LDAP_GCCATTR((noreturn));
-static void send_group( Group *group, int ngroup );
+static void send_group( Group **group, int ngroup );
 
 static int  connect_to_x500( void );
 
@@ -393,7 +393,7 @@ main ( int argc, char **argv )
 			syslog( LOG_ALERT, "sending to groups with errorsto" );
 		}
 		(void) rewind( stdin );
-		send_group( *togroups, ngroups );
+		send_group( togroups, ngroups );
 	}
 
 	/* send to expanded aliases and groups w/o errorsTo */
@@ -1383,7 +1383,7 @@ send_message( char **to )
 }
 
 static void
-send_group( Group *group, int ngroup )
+send_group( Group **group, int ngroup )
 {
 	int	i, pid;
 	char	**argv;
@@ -1398,7 +1398,7 @@ send_group( Group *group, int ngroup )
 
 		iargv[0] = MAIL500_SENDMAIL;
 		iargv[1] = "-f";
-		iargv[2] = group[i].g_errorsto;
+		iargv[2] = group[i]->g_errorsto;
 		iargv[3] = "-oMrX.500";
 		iargv[4] = "-odi";
 		iargv[5] = "-oi";
@@ -1407,7 +1407,7 @@ send_group( Group *group, int ngroup )
 		argv = NULL;
 		argc = 0;
 		add_to( &argv, &argc, iargv );
-		add_to( &argv, &argc, group[i].g_members );
+		add_to( &argv, &argc, group[i]->g_members );
 
 		if ( debug ) {
 			char	buf[1024];
