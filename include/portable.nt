@@ -916,7 +916,7 @@
 /* #undef SLAPD_PHONETIC */
 
 /* define to support reverse lookups */
-#define SLAPD_RLOOKUPS 1
+/* #undef SLAPD_RLOOKUPS */
 
 /* define to support per-object ACIs */
 /* #undef SLAPD_ACI_ENABLED */
@@ -1020,8 +1020,6 @@
 /* #define LDAP_MEMORY_DEBUG 1 */
 #define LDAP_DEBUG 1
 #endif
-
-#define MAXPATHLEN _MAX_PATH
 
 #define strcasecmp	stricmp
 #define strncasecmp	strnicmp
