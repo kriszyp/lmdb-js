@@ -1255,7 +1255,7 @@ slap_send_search_entry( Operation *op, SlapReply *rs )
 	}
 
 	if ( op->o_res_ber == NULL ) {
-		bytes = op->o_noop ? 0 : send_ldap_ber( op->o_conn, ber );
+		bytes = send_ldap_ber( op->o_conn, ber );
 		ber_free_buf( ber );
 
 		if ( bytes < 0 ) {
@@ -1476,7 +1476,7 @@ slap_send_search_reference( Operation *op, SlapReply *rs )
 #ifdef LDAP_CONNECTIONLESS
 	if (!op->o_conn || op->o_conn->c_is_udp == 0) {
 #endif
-	bytes = op->o_noop ? 0 : send_ldap_ber( op->o_conn, ber );
+	bytes = send_ldap_ber( op->o_conn, ber );
 	ber_free_buf( ber );
 
 	ldap_pvt_thread_mutex_lock( &num_sent_mutex );

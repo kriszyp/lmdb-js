@@ -480,6 +480,9 @@ typedef struct ldapcontrol {
 /* for the LDAP Sync operation */
 #define LDAP_SYNC_REFRESH_REQUIRED		0x4100
 
+/* for the LDAP No-Op control */
+#define LDAP_NO_OPERATION				0x410e
+
 /* for the Assertion control */
 #define LDAP_ASSERTION_FAILED			0x410f
 

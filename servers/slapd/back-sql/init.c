@@ -55,8 +55,10 @@ sql_back_initialize(
 	BackendInfo	*bi )
 { 
 	static char *controls[] = {
+#if 0 /* needs updating */
 #ifdef LDAP_CONTROL_NOOP
 		LDAP_CONTROL_NOOP,
+#endif
 #endif
 #ifdef LDAP_CONTROL_VALUESRETURNFILTER
  		LDAP_CONTROL_VALUESRETURNFILTER,

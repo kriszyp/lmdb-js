@@ -1212,11 +1212,6 @@ id2entry_retry:
 				/* safe default */
 				int result = -1;
 				
-#if 0	/* noop is masked SLAP_CTRL_UPDATE */
-				if( op->o_noop ) {
-					result = 0;
-				} else
-#endif
 				if (IS_PSEARCH) {
 					int premodify_found = 0;
 					int entry_sync_state;
