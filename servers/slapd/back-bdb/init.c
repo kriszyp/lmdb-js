@@ -364,7 +364,7 @@ bdb_db_open( BackendDB *be )
 #ifdef BDB_HIER
 			rc = db->bdi_db->set_bt_compare( db->bdi_db,
 				bdb_bt_compare );
-#elif defined(BDB_IDL_MULTI)
+#else
 			rc = db->bdi_db->set_flags( db->bdi_db, 
 				DB_DUP | DB_DUPSORT );
 			rc = db->bdi_db->set_dup_compare( db->bdi_db,

@@ -254,21 +254,22 @@ bdb_idl_fetch_key(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int rc;
 	DBT data;
-#ifdef BDB_IDL_MULTI
-	/* buf must be large enough to grab the entire IDL in one
-	 * get(), otherwise BDB 4 will leak resources on subsequent
-	 * get's. We can safely call get() twice - once for the data,
-	 * and once to get the DB_NOTFOUND result meaning there's
-	 * no more data. See ITS#2040 for details.
-	 */
-	ID buf[BDB_IDL_DB_SIZE*5];
 	DBC *cursor;
 	ID *i;
 	void *ptr;
 	size_t len;
 	int rc2;
 	int flags = bdb->bi_db_opflags | DB_MULTIPLE;
-#endif
+
+	/* buf must be large enough to grab the entire IDL in one
+	 * get(), otherwise BDB 4 will leak resources on subsequent
+	 * get's. We can safely call get() twice - once for the data,
+	 * and once to get the DB_NOTFOUND result meaning there's
+	 * no more data. See ITS#2040 for details. This bug is fixed
+	 * in BDB 4.1 so a smaller buffer will work if stack space is
+	 * too limited.
+	 */
+	ID buf[BDB_IDL_DB_SIZE*5];
 
 	{
 		char buf[16];
@@ -286,7 +287,6 @@ bdb_idl_fetch_key(
 
 	DBTzero( &data );
 
-#ifdef BDB_IDL_MULTI
 	data.data = buf;
 	data.ulen = sizeof(buf);
 	data.flags = DB_DBT_USERMEM;
@@ -356,14 +356,6 @@ bdb_idl_fetch_key(
 #endif
 		return rc2;
 	}
-#else /* BDB_IDL_MULTI */
-	data.data = ids;
-	data.ulen = BDB_IDL_UM_SIZEOF;
-	data.flags = DB_DBT_USERMEM;
-	/* fetch it */
-	rc = db->get( db, tid, key, &data, bdb->bi_db_opflags );
-#endif /* BDB_IDL_MULTI */
-
 	if( rc == DB_NOTFOUND ) {
 		return rc;
 
@@ -421,13 +413,9 @@ bdb_idl_insert_key(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int	rc;
 	DBT data;
-#ifdef BDB_IDL_MULTI
 	DBC *cursor;
 	ID lo, hi, tmp;
 	char *err;
-#else
-	ID ids[BDB_IDL_DB_SIZE];
-#endif
 
 	{
 		char buf[16];
@@ -445,7 +433,6 @@ bdb_idl_insert_key(
 	assert( id != NOID );
 
 	DBTzero( &data );
-#ifdef BDB_IDL_MULTI
 	data.size = sizeof( ID );
 	data.ulen = data.size;
 	data.flags = DB_DBT_USERMEM;
@@ -593,104 +580,14 @@ fail:
 		return rc;
 	}
 	rc = cursor->c_close( cursor );
-#else	/* !BDB_IDL_MULTI */
-	data.data = ids;
-	data.ulen = sizeof ids;
-	data.flags = DB_DBT_USERMEM;
-
-	/* fetch the key for read/modify/write */
-	rc = db->get( db, tid, key, &data, DB_RMW | bdb->bi_db_opflags );
-
-	if( rc == DB_NOTFOUND ) {
-		ids[0] = 1;
-		ids[1] = id;
-		data.size = 2 * sizeof( ID );
-
-	} else if ( rc != 0 ) {
+	if( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, "bdb_idl_insert_key: get failed: %s (%d)\n", 
+		LDAP_LOG( INDEX, ERR, 
+			"bdb_idl_insert_key: c_close failed: %s (%d)\n", 
 			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-			"get failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-#endif
-		return rc;
-
-	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
-		/* size not multiple of ID size */
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_insert_key: odd size: expected %ld multiple, got %ld\n", 
-			(long) sizeof( ID ), (long) data.size, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-			"odd size: expected %ld multiple, got %ld\n",
-			(long) sizeof( ID ), (long) data.size, 0 );
-#endif
-		return -1;
-	
-	} else if ( data.size != BDB_IDL_SIZEOF(ids) ) {
-		/* size mismatch */
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_insert_key: odd size: expected %ld multiple, got %ld\n", 
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-			"get size mismatch: expected %ld, got %ld\n",
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-#endif
-		return -1;
-
-	} else if ( BDB_IDL_IS_RANGE(ids) ) {
-		if( id < ids[1] ) {
-			ids[1] = id;
-		} else if ( ids[2] > id ) {
-			ids[2] = id;
-		} else {
-			return 0;
-		}
-
-	} else {
-		rc = bdb_idl_insert( ids, id );
-
-		if( rc == -1 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( INDEX, DETAIL1, "bdb_idl_insert_key: dup\n", 0, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_TRACE, "=> bdb_idl_insert_key: dup\n",
-				0, 0, 0 );
-#endif
-			return 0;
-		}
-		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( INDEX, ERR, 
-				"bdb_idl_insert_key: insert failed: (%d)\n", rc, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-				"bdb_idl_insert failed (%d)\n",
-				rc, 0, 0 );
-#endif
-			
-			return rc;
-		}
-
-		data.size = BDB_IDL_SIZEOF( ids );
-	}
-
-	/* store the key */
-	rc = db->put( db, tid, key, &data, 0 );
-#endif
-	if( rc != 0 && rc != DB_KEYEXIST ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_insert_key: put failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_insert_key: "
-			"put failed: %s (%d)\n",
+			"c_close failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 #endif
 	}
@@ -708,13 +605,9 @@ bdb_idl_delete_key(
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 	int	rc;
 	DBT data;
-#ifdef BDB_IDL_MULTI
 	DBC *cursor;
 	ID lo, hi, tmp;
 	char *err;
-#else
-	ID ids[BDB_IDL_DB_SIZE];
-#endif
 
 	{
 		char buf[16];
@@ -731,8 +624,6 @@ bdb_idl_delete_key(
 	assert( id != NOID );
 
 	DBTzero( &data );
-
-#ifdef BDB_IDL_MULTI
 	data.data = &tmp;
 	data.size = sizeof( id );
 	data.ulen = data.size;
@@ -841,103 +732,13 @@ fail:
 		return rc;
 	}
 	rc = cursor->c_close( cursor );
-
-#else	/* BDB_IDL_MULTI */
-
-	data.data = ids;
-	data.ulen = sizeof( ids );
-	data.flags = DB_DBT_USERMEM;
-
-	/* fetch the key for read/modify/write */
-	rc = db->get( db, tid, key, &data, DB_RMW | bdb->bi_db_opflags );
-
-	if ( rc != 0 ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, "bdb_idl_delete_key: get failed: %s (%d)\n", 
-			db_strerror(rc), rc, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
-			"get failed: %s (%d)\n",
-			db_strerror(rc), rc, 0 );
-#endif
-		return rc;
-
-	} else if ( data.size == 0 || data.size % sizeof( ID ) ) {
-		/* size not multiple of ID size */
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_delete_key: odd size: expected: %ld multiple, got %ld\n", 
-			(long) sizeof( ID ), (long) data.size, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
-			"odd size: expected %ld multiple, got %ld\n",
-			(long) sizeof( ID ), (long) data.size, 0 );
-#endif
-		return -1;
-	
-	} else if ( BDB_IDL_IS_RANGE(ids) ) {
-		return 0;
-
-	} else if ( data.size != (1 + ids[0]) * sizeof( ID ) ) {
-		/* size mismatch */
-#ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, 
-			"bdb_idl_delete_key: get size mismatch: expected: %ld, got %ld\n", 
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
-			"get size mismatch: expected %ld, got %ld\n",
-			(long) ((1 + ids[0]) * sizeof( ID )), (long) data.size, 0 );
-#endif
-		return -1;
-
-	} else {
-		rc = idl_delete( ids, id );
-
-		if( rc != 0 ) {
-#ifdef NEW_LOGGING
-			LDAP_LOG( INDEX, ERR, 
-				"bdb_idl_delete_key: delete failed: (%d)\n", rc, 0, 0 );
-#else
-			Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
-				"idl_delete failed (%d)\n",
-				rc, 0, 0 );
-#endif
-			return rc;
-		}
-
-		if( ids[0] == 0 ) {
-			/* delete the key */
-			rc = db->del( db, tid, key, 0 );
-			if( rc != 0 ) {
-#ifdef NEW_LOGGING
-				LDAP_LOG( INDEX, ERR, 
-					"bdb_idl_delete_key: delete failed: %s (%d)\n",
-					db_strerror(rc), rc, 0 );
-#else
-				Debug( LDAP_DEBUG_ANY, "=> bdb_idl_delete_key: "
-					"delete failed: %s (%d)\n",
-					db_strerror(rc), rc, 0 );
-#endif
-			}
-			return rc;
-		}
-
-		data.size = (ids[0]+1) * sizeof( ID );
-	}
-
-	/* store the key */
-	rc = db->put( db, tid, key, &data, 0 );
-
-#endif /* BDB_IDL_MULTI */
-
 	if( rc != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( INDEX, ERR, "bdb_idl_delete_key: put failed: %s (%d)\n", 
+		LDAP_LOG( INDEX, ERR, "bdb_idl_delete_key: c_close failed: %s (%d)\n", 
 			db_strerror(rc), rc, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"=> bdb_idl_delete_key: put failed: %s (%d)\n",
+			"=> bdb_idl_delete_key: c_close failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 #endif
 	}
