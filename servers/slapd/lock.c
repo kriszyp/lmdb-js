@@ -84,9 +84,11 @@ lock_fopen( const char *fname, const char *type, FILE **lfp )
 int
 lock_fclose( FILE *fp, FILE *lfp )
 {
+	int rc = fclose( fp );
+
 	/* unlock */
 	ldap_unlockf( fileno(lfp) );
 	fclose( lfp );
 
-	return( fclose( fp ) );
+	return( rc );
 }
