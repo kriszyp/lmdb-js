@@ -1,4 +1,4 @@
-dnl Copyright 2000, OpenLDAP Foundation, All Rights Reserved.
+dnl Copyright 2000-2003, OpenLDAP Foundation, All Rights Reserved.
 dnl COPYING RESTRICTIONS APPLY, see COPYRIGHT file
   
   
@@ -8,7 +8,7 @@ dnl disable config.cache
 dnl define([AC_CACHE_LOAD], )
 dnl define([AC_CACHE_SAVE], )
 
-AC_INIT(src/main.cpp)
+AC_INIT(examples/main.cpp)
 AM_INIT_AUTOMAKE(main, 0.0.1)
 AM_CONFIG_HEADER(src/config.h)
 
@@ -91,4 +91,4 @@ dnl Checks for typedefs, structures, and compiler characteristics.
 
 dnl Checks for library functions.
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_OUTPUT(Makefile src/Makefile examples/Makefile)

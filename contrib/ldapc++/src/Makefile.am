@@ -80,10 +80,4 @@ noinst_HEADERS = LDAPAddRequest.h \
 
 libldapcpp_la_LIBADD = -lldap -llber
 libldapcpp_la_LDFLAGS = -version-info 0:1:0
-			
-noinst_PROGRAMS = main
-
-main_SOURCES = main.cpp
-main_LDADD = ./libldapcpp.la 
-
 
