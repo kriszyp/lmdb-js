@@ -91,7 +91,7 @@ meta_back_attribute(
 	} /* else */
 
 	candidate = meta_back_select_unique_candidate( li, ndn );
-	if ( candidate == -1 ) {
+	if ( candidate == META_TARGET_NONE ) {
 		return 1;
 	}
 

@@ -49,8 +49,11 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
+	assert( candidate != META_TARGET_NONE );
+
 	if ( !meta_back_dobind( lc, op ) 
-			|| !meta_back_is_valid( lc, candidate ) ) {
+			|| !meta_back_is_valid( lc, candidate ) )
+	{
 		rs->sr_err = LDAP_OTHER;
 		rc = -1;
 		goto cleanup;
@@ -59,11 +62,11 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 
-	if ( op->oq_modrdn.rs_newSup ) {
+	if ( op->orr_newSup ) {
 		int nsCandidate, version = LDAP_VERSION3;
 
 		nsCandidate = meta_back_select_unique_candidate( li,
-				op->oq_modrdn.rs_nnewSup );
+				op->orr_nnewSup );
 
 		if ( nsCandidate != candidate ) {
 			/*
@@ -79,19 +82,20 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 			 * FIXME: is this the correct return code?
 			 */
 			rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			rs->sr_text = "cross-target rename not supported";
 			rc = -1;
 			goto cleanup;
 		}
 
-		ldap_set_option( lc->conns[ nsCandidate ].ld,
+		ldap_set_option( lc->mc_conns[ nsCandidate ].msc_ld,
 				LDAP_OPT_PROTOCOL_VERSION, &version );
 
 		/*
 		 * Rewrite the new superior, if defined and required
 	 	 */
-		dc.rwmap = &li->targets[ nsCandidate ]->rwmap;
+		dc.rwmap = &li->targets[ nsCandidate ]->mt_rwmap;
 		dc.ctx = "newSuperiorDN";
-		if ( ldap_back_dn_massage( &dc, op->oq_modrdn.rs_newSup, &mnewSuperior ) ) {
+		if ( ldap_back_dn_massage( &dc, op->orr_newSup, &mnewSuperior ) ) {
 			rc = -1;
 			goto cleanup;
 		}
@@ -100,26 +104,30 @@ meta_back_modrdn( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modrdn dn, if required
 	 */
-	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
 	dc.ctx = "modrDN";
 	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
 		rc = -1;
 		goto cleanup;
 	}
 
-	ldap_rename2_s( lc->conns[ candidate ].ld, mdn.bv_val,
-			op->oq_modrdn.rs_newrdn.bv_val,
+	rc = ldap_rename_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			op->orr_newrdn.bv_val,
 			mnewSuperior.bv_val,
-			op->oq_modrdn.rs_deleteoldrdn );
+			op->orr_deleteoldrdn,
+			NULL, NULL ) != LDAP_SUCCESS;
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
+		BER_BVZERO( &mdn );
 	}
 	
-	if ( mnewSuperior.bv_val != NULL 
-			&& mnewSuperior.bv_val != op->oq_modrdn.rs_newSup->bv_val ) {
+	if ( !BER_BVISNULL( &mnewSuperior )
+			&& mnewSuperior.bv_val != op->orr_newSup->bv_val )
+	{
 		free( mnewSuperior.bv_val );
+		BER_BVZERO( &mnewSuperior );
 	}
 
 	if ( rc == 0 ) {
@@ -128,7 +136,7 @@ cleanup:;
 	} /* else */
 
 	send_ldap_result( op, rs );
-	return rc;
 
+	return rc;
 }
 

@@ -53,7 +53,8 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 	
 	if ( !meta_back_dobind( lc, op )
-			|| !meta_back_is_valid( lc, candidate ) ) {
+			|| !meta_back_is_valid( lc, candidate ) )
+	{
 		rs->sr_err = LDAP_OTHER;
 		rc = -1;
 		goto cleanup;
@@ -62,7 +63,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
-	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "modifyDN";
@@ -72,7 +73,7 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		goto cleanup;
 	}
 
-	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; i++ ,ml = ml->sml_next )
+	for ( i = 0, ml = op->orm_modlist; ml; i++ ,ml = ml->sml_next )
 		;
 
 	mods = ch_malloc( sizeof( LDAPMod )*i );
@@ -89,17 +90,17 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 
 	dc.ctx = "modifyAttrDN";
-	for ( i = 0, ml = op->oq_modify.rs_modlist; ml; ml = ml->sml_next ) {
+	for ( i = 0, ml = op->orm_modlist; ml; ml = ml->sml_next ) {
 		int j;
 
 		if ( ml->sml_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map( &li->targets[ candidate ]->rwmap.rwm_at,
+		ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_at,
 				&ml->sml_desc->ad_cname, &mapped,
 				BACKLDAP_MAP );
-		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
+		if ( BER_BVISNULL( &mapped ) || mapped.bv_val[0] == '\0' ) {
 			continue;
 		}
 
@@ -113,16 +114,20 @@ meta_back_modify( Operation *op, SlapReply *rs )
 		 * level.
 		 */
 		if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
+					SLAPD_DN_SYNTAX ) == 0 )
+		{
 			( void )ldap_dnattr_rewrite( &dc, ml->sml_values );
 		}
 
-		if ( ml->sml_values != NULL ){
-			for (j = 0; ml->sml_values[ j ].bv_val; j++);
-			mods[ i ].mod_bvalues = (struct berval **)ch_malloc((j+1) *
-				sizeof(struct berval *));
-			for (j = 0; ml->sml_values[ j ].bv_val; j++)
-				mods[ i ].mod_bvalues[ j ] = &ml->sml_values[j];
+		if ( ml->sml_values != NULL ) {
+			for ( j = 0; ml->sml_values[ j ].bv_val; j++ )
+				;
+			mods[ i ].mod_bvalues =
+				(struct berval **)ch_malloc( ( j + 1 ) *
+				sizeof(struct berval *) );
+			for ( j = 0; ml->sml_values[ j ].bv_val; j++ ) {
+				mods[ i ].mod_bvalues[ j ] = &ml->sml_values[ j ];
+			}
 			mods[ i ].mod_bvalues[ j ] = NULL;
 
 		} else {
@@ -133,14 +138,16 @@ meta_back_modify( Operation *op, SlapReply *rs )
 	}
 	modv[ i ] = 0;
 
-	ldap_modify_s( lc->conns[ candidate ].ld, mdn.bv_val, modv );
+	rc = ldap_modify_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			modv, NULL, NULL ) != LDAP_SUCCESS;
 
 cleanup:;
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
+		BER_BVZERO( &mdn );
 	}
 	if ( modv != NULL ) {
-		for ( i = 0; modv[ i ]; i++) {
+		for ( i = 0; modv[ i ]; i++ ) {
 			free( modv[ i ]->mod_bvalues );
 		}
 	}

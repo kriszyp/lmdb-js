@@ -45,8 +45,8 @@ new_target( void )
 		return NULL;
 	}
 
-	lt->rwmap.rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
-	if ( lt->rwmap.rwm_rw == NULL ) {
+	lt->mt_rwmap.rwm_rw = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
+	if ( lt->mt_rwmap.rwm_rw == NULL ) {
 		free( lt );
                 return NULL;
 	}
@@ -62,17 +62,17 @@ new_target( void )
 		rargv[ 0 ] = "rewriteContext";
 		rargv[ 1 ] = "searchFilter";
 		rargv[ 2 ] = NULL;
-		rewrite_parse( lt->rwmap.rwm_rw, "<suffix massage>", 
+		rewrite_parse( lt->mt_rwmap.rwm_rw, "<suffix massage>", 
 				1, 2, rargv );
 
 		rargv[ 0 ] = "rewriteContext";
 		rargv[ 1 ] = "default";
 		rargv[ 2 ] = NULL;
-		rewrite_parse( lt->rwmap.rwm_rw, "<suffix massage>", 
+		rewrite_parse( lt->mt_rwmap.rwm_rw, "<suffix massage>", 
 				1, 2, rargv );
 	}
 
-	ldap_back_map_init( &lt->rwmap.rwm_at, &mapping );
+	ldap_back_map_init( &lt->mt_rwmap.rwm_at, &mapping );
 
 	return lt;
 }
@@ -161,8 +161,8 @@ meta_back_db_config(
 		dn.bv_val = ludp->lud_dn;
 		dn.bv_len = strlen( ludp->lud_dn );
 
-		rc = dnPrettyNormal( NULL, &dn, &li->targets[ i ]->psuffix,
-			&li->targets[ i ]->suffix, NULL );
+		rc = dnPrettyNormal( NULL, &dn, &li->targets[ i ]->mt_psuffix,
+			&li->targets[ i ]->mt_nsuffix, NULL );
 		if( rc != LDAP_SUCCESS ) {
 			fprintf( stderr, "%s: line %d: "
 					"target '%s' DN is invalid\n",
@@ -183,9 +183,9 @@ meta_back_db_config(
 			}
 		}
 
-		li->targets[ i ]->uri = ldap_url_list2urls( ludp );
+		li->targets[ i ]->mt_uri = ldap_url_list2urls( ludp );
 		ldap_free_urllist( ludp );
-		if ( li->targets[ i ]->uri == NULL) {
+		if ( li->targets[ i ]->mt_uri == NULL) {
 			fprintf( stderr, "%s: line %d: no memory?\n",
 					fname, lineno );
 			return( 1 );
@@ -206,7 +206,7 @@ meta_back_db_config(
 		/*
 		 * uri MUST be a branch of a suffix!
 		 */
-		if ( select_backend( &li->targets[ i ]->suffix, 0, 0 ) == NULL ) {
+		if ( select_backend( &li->targets[ i ]->mt_nsuffix, 0, 0 ) == NULL ) {
 			fprintf( stderr,
 	"%s: line %d: <naming context> of URI does not resolve to a backend"
 	" in \"uri <protocol>://<server>[:port]/<naming context>\" line\n",
@@ -322,7 +322,7 @@ meta_back_db_config(
 
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
-		if ( dnNormalize( 0, NULL, NULL, &dn, &li->targets[ i ]->binddn,
+		if ( dnNormalize( 0, NULL, NULL, &dn, &li->targets[ i ]->mt_binddn,
 			NULL ) != LDAP_SUCCESS )
 		{
 			fprintf( stderr, "%s: line %d: "
@@ -348,7 +348,7 @@ meta_back_db_config(
 			    fname, lineno );
 			return 1;
 		}
-		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->bindpw );
+		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->mt_bindpw );
 		
 	/* save bind creds for referral rebinds? */
 	} else if ( strcasecmp( argv[0], "rebind-as-user" ) == 0 ) {
@@ -382,7 +382,7 @@ meta_back_db_config(
 		dn.bv_val = argv[ 1 ];
 		dn.bv_len = strlen( argv[ 1 ] );
 		if ( dnNormalize( 0, NULL, NULL, &dn,
-			&li->targets[ i ]->pseudorootdn, NULL ) != LDAP_SUCCESS )
+			&li->targets[ i ]->mt_pseudorootdn, NULL ) != LDAP_SUCCESS )
 		{
 			fprintf( stderr, "%s: line %d: "
 					"pseudoroot DN '%s' is invalid\n",
@@ -407,7 +407,7 @@ meta_back_db_config(
 			    fname, lineno );
 			return 1;
 		}
-		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->pseudorootpw );
+		ber_str2bv( argv[ 1 ], 0L, 1, &li->targets[ i ]->mt_pseudorootpw );
 	
 	/* dn massaging */
 	} else if ( strcasecmp( argv[ 0 ], "suffixmassage" ) == 0 ) {
@@ -492,7 +492,7 @@ meta_back_db_config(
 		 * FIXME: no extra rewrite capabilities should be added
 		 * to the database
 		 */
-	 	return suffix_massage_config( li->targets[ i ]->rwmap.rwm_rw,
+	 	return suffix_massage_config( li->targets[ i ]->mt_rwmap.rwm_rw,
 				&pvnc, &nvnc, &prnc, &nrnc );
 		
 	/* rewrite stuff ... */
@@ -503,12 +503,12 @@ meta_back_db_config(
  			if ( strcasecmp( argv[0], "rewriteEngine" ) == 0 ) {
 				li->rwinfo = rewrite_info_init( REWRITE_MODE_USE_DEFAULT );
 			}
-			return rewrite_parse(li->rwinfo, fname, lineno,
-					argc, argv); 
+			return rewrite_parse( li->rwinfo, fname, lineno,
+					argc, argv ); 
 		}
 		
- 		return rewrite_parse( li->targets[ i ]->rwmap.rwm_rw, fname, lineno,
-				argc, argv );
+ 		return rewrite_parse( li->targets[ i ]->mt_rwmap.rwm_rw,
+				fname, lineno, argc, argv );
 
 	/* objectclass/attribute mapping */
 	} else if ( strcasecmp( argv[ 0 ], "map" ) == 0 ) {
@@ -521,8 +521,8 @@ meta_back_db_config(
 			return 1;
 		}
 
-		return ldap_back_map_config( &li->targets[ i ]->rwmap.rwm_oc, 
-				&li->targets[ i ]->rwmap.rwm_at,
+		return ldap_back_map_config( &li->targets[ i ]->mt_rwmap.rwm_oc, 
+				&li->targets[ i ]->mt_rwmap.rwm_at,
 				fname, lineno, argc, argv );
 	/* anything else */
 	} else {

@@ -38,13 +38,14 @@ meta_back_conn_destroy(
 )
 {
 	struct metainfo	*li = ( struct metainfo * )be->be_private;
-	struct metaconn *lc, lc_curr;
+	struct metaconn *lc,
+			lc_curr = { 0 };
 
 	Debug( LDAP_DEBUG_TRACE,
-		"=>meta_back_conn_destroy: fetching conn %ld\n%s%s",
-		conn->c_connid, "", "" );
+		"=>meta_back_conn_destroy: fetching conn %ld\n",
+		conn->c_connid, 0, 0 );
 	
-	lc_curr.conn = conn;
+	lc_curr.mc_conn = conn;
 	
 	ldap_pvt_thread_mutex_lock( &li->conn_mutex );
 	lc = avl_delete( &li->conntree, ( caddr_t )&lc_curr,
@@ -55,22 +56,22 @@ meta_back_conn_destroy(
 		int i;
 		
 		Debug( LDAP_DEBUG_TRACE,
-			"=>meta_back_conn_destroy: destroying conn %ld\n%s%s",
-			lc->conn->c_connid, "", "" );
+			"=>meta_back_conn_destroy: destroying conn %ld\n",
+			lc->mc_conn->c_connid, 0, 0 );
 		
 		/*
 		 * Cleanup rewrite session
 		 */
 		for ( i = 0; i < li->ntargets; ++i ) {
-			if ( lc->conns[ i ].ld == NULL ) {
+			if ( lc->mc_conns[ i ].msc_ld == NULL ) {
 				continue;
 			}
 
-			rewrite_session_delete( li->targets[ i ]->rwmap.rwm_rw, conn );
-			meta_clear_one_candidate( &lc->conns[ i ], 1 );
+			rewrite_session_delete( li->targets[ i ]->mt_rwmap.rwm_rw, conn );
+			meta_clear_one_candidate( &lc->mc_conns[ i ], 1 );
 		}
 
-		free( lc->conns );
+		free( lc->mc_conns );
 		free( lc );
 	}
 

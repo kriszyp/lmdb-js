@@ -110,22 +110,23 @@ conn_free(
 	void *v_lc
 )
 {
-	struct metaconn *lc = v_lc;
-	struct metasingleconn *lsc;
+	struct metaconn		*lc = v_lc;
+	struct metasingleconn	*lsc;
 
-	for ( lsc = lc->conns; !META_LAST(lsc); lsc++ ) {
-		if ( lsc->ld != NULL ) {
-			ldap_unbind( lsc->ld );
+	for ( lsc = lc->mc_conns; !META_LAST( lsc ); lsc++ ) {
+		if ( lsc->msc_ld != NULL ) {
+			ldap_unbind_ext_s( lsc->msc_ld, NULL, NULL );
 		}
-		if ( lsc->bound_dn.bv_val ) {
-			ber_memfree( lsc->bound_dn.bv_val );
+		if ( !BER_BVISNULL( &lsc->msc_bound_ndn ) ) {
+			ber_memfree( lsc->msc_bound_ndn.bv_val );
 		}
-		if ( lsc->cred.bv_val ) {
-			memset( lsc->cred.bv_val, 0, lsc->cred.bv_len );
-			ber_memfree( lsc->cred.bv_val );
+		if ( !BER_BVISNULL( &lsc->msc_cred ) ) {
+			/* destroy sensitive data */
+			memset( lsc->msc_cred.bv_val, 0, lsc->msc_cred.bv_len );
+			ber_memfree( lsc->msc_cred.bv_val );
 		}
 	}
-	free( lc->conns );
+	free( lc->mc_conns );
 	free( lc );
 }
 
@@ -143,34 +144,34 @@ target_free(
 		struct metatarget *lt
 )
 {
-	if ( lt->uri ) {
-		free( lt->uri );
+	if ( lt->mt_uri ) {
+		free( lt->mt_uri );
 	}
-	if ( lt->psuffix.bv_val ) {
-		free( lt->psuffix.bv_val );
+	if ( !BER_BVISNULL( &lt->mt_psuffix ) ) {
+		free( lt->mt_psuffix.bv_val );
 	}
-	if ( lt->suffix.bv_val ) {
-		free( lt->suffix.bv_val );
+	if ( !BER_BVISNULL( &lt->mt_nsuffix ) ) {
+		free( lt->mt_nsuffix.bv_val );
 	}
-	if ( lt->binddn.bv_val ) {
-		free( lt->binddn.bv_val );
+	if ( !BER_BVISNULL( &lt->mt_binddn ) ) {
+		free( lt->mt_binddn.bv_val );
 	}
-	if ( lt->bindpw.bv_val ) {
-		free( lt->bindpw.bv_val );
+	if ( !BER_BVISNULL( &lt->mt_bindpw ) ) {
+		free( lt->mt_bindpw.bv_val );
 	}
-	if ( lt->pseudorootdn.bv_val ) {
-		free( lt->pseudorootdn.bv_val );
+	if ( !BER_BVISNULL( &lt->mt_pseudorootdn ) ) {
+		free( lt->mt_pseudorootdn.bv_val );
 	}
-	if ( lt->pseudorootpw.bv_val ) {
-		free( lt->pseudorootpw.bv_val );
+	if ( !BER_BVISNULL( &lt->mt_pseudorootpw ) ) {
+		free( lt->mt_pseudorootpw.bv_val );
 	}
-	if ( lt->rwmap.rwm_rw ) {
-		rewrite_info_delete( &lt->rwmap.rwm_rw );
+	if ( lt->mt_rwmap.rwm_rw ) {
+		rewrite_info_delete( &lt->mt_rwmap.rwm_rw );
 	}
-	avl_free( lt->rwmap.rwm_oc.remap, NULL );
-	avl_free( lt->rwmap.rwm_oc.map, mapping_free );
-	avl_free( lt->rwmap.rwm_at.remap, NULL );
-	avl_free( lt->rwmap.rwm_at.map, mapping_free );
+	avl_free( lt->mt_rwmap.rwm_oc.remap, NULL );
+	avl_free( lt->mt_rwmap.rwm_oc.map, mapping_free );
+	avl_free( lt->mt_rwmap.rwm_at.remap, NULL );
+	avl_free( lt->mt_rwmap.rwm_at.map, mapping_free );
 }
 
 int

@@ -96,7 +96,7 @@ meta_dncache_get_target(
 {
 	struct metadncacheentry tmp_entry, *entry;
 	time_t curr_time;
-	int target = -1;
+	int target = META_TARGET_NONE;
 
 	assert( cache );
 	assert( ndn );
@@ -115,6 +115,7 @@ meta_dncache_get_target(
 		 */
 		if ( cache->ttl < 0 ) { 
 			target = entry->target;
+
 		} else {
 
 			/*

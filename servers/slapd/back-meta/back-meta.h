@@ -151,54 +151,48 @@ extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 /* (end of) from back-ldap.h before rwm removal */
 
 struct metasingleconn {
-	int			candidate;
+	int			msc_candidate;
 #define	META_NOT_CANDIDATE	0
 #define	META_CANDIDATE		1
 #define	META_LAST_CONN		-1
 	
-	LDAP            	*ld;
-	struct berval          	bound_dn;
-	struct berval		cred;
-	int             	bound;
+	LDAP            	*msc_ld;
+	struct berval          	msc_bound_ndn;
+	struct berval		msc_cred;
+	int             	msc_bound;
 #define META_UNBOUND		0
 #define META_BOUND		1
 #define META_ANONYMOUS		2
 };
 
-#define META_LAST(lsc)		((lsc)->candidate == META_LAST_CONN)
+#define META_LAST(lsc)		((lsc)->msc_candidate == META_LAST_CONN)
 
 struct metaconn {
-	struct slap_conn	*conn;
-	struct rewrite_info	*rwinfo;
+	struct slap_conn	*mc_conn;
+	struct rewrite_info	*mc_rwinfo;
 	
 	/*
 	 * means that the connection is bound; 
 	 * of course only one target actually is ...
 	 */
-	int             bound_target;
+	int             	mc_bound_target;
 #define META_BOUND_NONE		-1
 #define META_BOUND_ALL		-2
 	/* supersedes the connection stuff */
-	struct metasingleconn *conns;
+	struct metasingleconn	*mc_conns;
 };
 
 struct metatarget {
-	char			*uri;
-	struct berval		psuffix;	/* pretty suffix */
-	struct berval		suffix;		/* normalized suffix */
-	struct berval		binddn;
-	struct berval		bindpw;
+	char			*mt_uri;
+	struct berval		mt_psuffix;		/* pretty suffix */
+	struct berval		mt_nsuffix;		/* normalized suffix */
+	struct berval		mt_binddn;
+	struct berval		mt_bindpw;
 
-	struct berval           pseudorootdn;
-	struct berval           pseudorootpw;
+	struct berval           mt_pseudorootdn;
+	struct berval           mt_pseudorootpw;
 
-#if 0
-	struct rewrite_info	*rwinfo;
-
-	struct ldapmap		oc_map;
-	struct ldapmap		at_map;
-#endif
-	struct ldaprwmap	rwmap;
+	struct ldaprwmap	mt_rwmap;
 };
 
 struct metadncache {
@@ -333,6 +327,7 @@ meta_dncache_dup(
 		void			*c2
 );
 
+#define META_TARGET_NONE	(-1)
 extern int
 meta_dncache_get_target(
 		struct metadncache	*cache,

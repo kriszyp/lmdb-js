@@ -112,7 +112,7 @@ meta_back_group(
 	} /* else: do the search */
 
 	candidate = meta_back_select_unique_candidate( li, gr_ndn );
-	if ( candidate == -1 ) {
+	if ( candidate == META_TARGET_NONE ) {
 		goto cleanup;
 	}
 

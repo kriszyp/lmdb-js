@@ -65,7 +65,7 @@ meta_back_add( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the add dn, if needed
 	 */
-	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "addDN";
@@ -76,19 +76,19 @@ meta_back_add( Operation *op, SlapReply *rs )
 	}
 
 	/* Count number of attributes in entry */
-	for ( i = 1, a = op->oq_add.rs_e->e_attrs; a; i++, a = a->a_next );
+	for ( i = 1, a = op->ora_e->e_attrs; a; i++, a = a->a_next );
 	
 	/* Create array of LDAPMods for ldap_add() */
 	attrs = ch_malloc( sizeof( LDAPMod * )*i );
 
-	for ( i = 0, a = op->oq_add.rs_e->e_attrs; a; a = a->a_next ) {
+	for ( i = 0, a = op->ora_e->e_attrs; a; a = a->a_next ) {
 		int j;
 
 		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
 
-		ldap_back_map( &li->targets[ candidate ]->rwmap.rwm_at,
+		ldap_back_map( &li->targets[ candidate ]->mt_rwmap.rwm_at,
 				&a->a_desc->ad_cname, &mapped, BACKLDAP_MAP );
 		if ( mapped.bv_val == NULL || mapped.bv_val[0] == '\0' ) {
 			continue;
@@ -121,15 +121,18 @@ meta_back_add( Operation *op, SlapReply *rs )
 	}
 	attrs[ i ] = NULL;
 
-	ldap_add_s( lc->conns[ candidate ].ld, mdn.bv_val, attrs );
+	(void)ldap_add_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			      attrs, NULL, NULL );
 	for ( --i; i >= 0; --i ) {
 		free( attrs[ i ]->mod_vals.modv_bvals );
 		free( attrs[ i ] );
 	}
 	free( attrs );
-	if ( mdn.bv_val != op->oq_add.rs_e->e_dn ) {
+	if ( mdn.bv_val != op->ora_e->e_dn ) {
 		free( mdn.bv_val );
+		BER_BVZERO( &mdn );
 	}
+
 	return meta_back_op_result( lc, op, rs );
 }
 

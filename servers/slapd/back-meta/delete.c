@@ -57,7 +57,7 @@ meta_back_delete( Operation *op, SlapReply *rs )
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
-	dc.rwmap = &li->targets[ candidate ]->rwmap;
+	dc.rwmap = &li->targets[ candidate ]->mt_rwmap;
 	dc.conn = op->o_conn;
 	dc.rs = rs;
 	dc.ctx = "deleteDN";
@@ -67,10 +67,12 @@ meta_back_delete( Operation *op, SlapReply *rs )
 		return -1;
 	}
 
-	ldap_delete_s( lc->conns[ candidate ].ld, mdn.bv_val );
+	(void)ldap_delete_ext_s( lc->mc_conns[ candidate ].msc_ld, mdn.bv_val,
+			NULL, NULL );
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );
+		BER_BVZERO( &mdn );
 	}
 	
 	return meta_back_op_result( lc, op, rs );
