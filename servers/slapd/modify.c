@@ -376,7 +376,7 @@ do_modify(
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, pdn->bv_val, ndn->bv_val, mods ) == 0
+			if ( (*be->be_modify)( be, conn, op, pdn, ndn, mods ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& !repl_user
 #endif

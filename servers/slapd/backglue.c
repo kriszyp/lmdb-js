@@ -252,8 +252,8 @@ glue_back_search (
 	BackendDB *b0,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	int scope,
 	int deref,
 	int slimit,
@@ -272,12 +272,13 @@ glue_back_search (
 	struct berval bv;
 
 
-	if (tlimit)
+	if (tlimit) {
 		stoptime = slap_get_time () + tlimit;
+	}
 
 	switch (scope) {
 	case LDAP_SCOPE_BASE:
-		be = glue_back_select (b0, ndn);
+		be = glue_back_select (b0, ndn->bv_val);
 
 		if (be && be->be_search) {
 			rc = be->be_search (be, conn, op, dn, ndn, scope,
@@ -295,8 +296,6 @@ glue_back_search (
 		op->o_glue = &gs;
 		op->o_sresult = glue_back_sresult;
 		op->o_response = glue_back_response;
-		bv.bv_len = strlen(ndn);
-		bv.bv_val = (char *) ndn;
 
 		/*
 		 * Execute in reverse order, most general first 
@@ -326,26 +325,26 @@ glue_back_search (
 			}
 			be = gi->n[i].be;
 			if (scope == LDAP_SCOPE_ONELEVEL && 
-				!strcmp (gi->n[i].pdn, ndn)) {
+				!strcmp (gi->n[i].pdn, ndn->bv_val)) {
 				rc = be->be_search (be, conn, op,
-						    be->be_suffix[0]->bv_val,
-						    be->be_nsuffix[0]->bv_val,
-						    LDAP_SCOPE_BASE, deref,
+					be->be_suffix[0], be->be_nsuffix[0],
+					LDAP_SCOPE_BASE, deref,
 					s2limit, t2limit, filter, filterstr,
-						    attrs, attrsonly);
+					attrs, attrsonly);
+
 			} else if (scope == LDAP_SCOPE_SUBTREE &&
-				dnIsSuffix(be->be_nsuffix[0], &bv)) {
+				dnIsSuffix(be->be_nsuffix[0], ndn)) {
 				rc = be->be_search (be, conn, op,
-						    be->be_suffix[0]->bv_val,
-						    be->be_nsuffix[0]->bv_val,
-						    scope, deref,
+					be->be_suffix[0], be->be_nsuffix[0],
+					scope, deref,
 					s2limit, t2limit, filter, filterstr,
-						    attrs, attrsonly);
+					attrs, attrsonly);
+
 			} else if (dnIsSuffix(&bv, be->be_nsuffix[0])) {
-				rc = be->be_search (be, conn, op,
-						    dn, ndn, scope, deref,
+				rc = be->be_search (be, conn, op, dn, ndn,
+					scope, deref,
 					s2limit, t2limit, filter, filterstr,
-						    attrs, attrsonly);
+					attrs, attrsonly);
 			}
 		}
 		break;
@@ -354,8 +353,9 @@ glue_back_search (
 	op->o_response = NULL;
 	op->o_glue = NULL;
 
-	send_search_result (conn, op, gs.err, gs.matched, NULL, gs.refs,
-			    NULL, gs.nentries);
+	send_search_result (conn, op, gs.err, gs.matched, NULL,
+		gs.refs, NULL, gs.nentries);
+
 done:
 	if (gs.matched)
 		free (gs.matched);
@@ -422,22 +422,22 @@ glue_back_modify (
 	BackendDB *b0,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn,
+	struct berval *dn,
+	struct berval *ndn,
 	Modifications *mod
 )
 {
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_modify) {
 		rc = be->be_modify (be, conn, op, dn, ndn, mod);
 	} else {
 		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL, "No modify target found",
-				  NULL, NULL);
+		send_ldap_result (conn, op, rc, NULL,
+			"No modify target found", NULL, NULL);
 	}
 	return rc;
 }
@@ -447,24 +447,27 @@ glue_back_modrdn (
 	BackendDB *b0,
 	Connection *conn,
 	Operation *op,
-	const char *dn,
-	const char *ndn,
-	const char *newrdn,
+	struct berval *dn,
+	struct berval *ndn,
+	struct berval *newrdn,
+	struct berval *nnewrdn,
 	int del,
-	const char *newsup
+	struct berval *newsup,
+	struct berval *nnewsup
 )
 {
 	BackendDB *be;
 	int rc;
 
-	be = glue_back_select (b0, ndn);
+	be = glue_back_select (b0, ndn->bv_val);
 
 	if (be && be->be_modrdn) {
-		rc = be->be_modrdn (be, conn, op, dn, ndn, newrdn, del, newsup);
+		rc = be->be_modrdn (be, conn, op, dn, ndn,
+			newrdn, nnewrdn, del, newsup, nnewsup );
 	} else {
 		rc = LDAP_UNWILLING_TO_PERFORM;
-		send_ldap_result (conn, op, rc, NULL, "No modrdn target found",
-				  NULL, NULL);
+		send_ldap_result (conn, op, rc, NULL,
+			"No modrdn target found", NULL, NULL);
 	}
 	return rc;
 }

@@ -245,8 +245,8 @@ ldbm_back_modify(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*dn,
-    const char	*ndn,
+    struct berval	*dn,
+    struct berval	*ndn,
     Modifications	*modlist
 )
 {
@@ -268,7 +268,7 @@ ldbm_back_modify(
 
 
 	/* acquire and lock entry */
-	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn->bv_val, &matched )) == NULL ) {
 		char* matched_dn = NULL;
 		struct berval **refs;
 
@@ -276,12 +276,12 @@ ldbm_back_modify(
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
@@ -297,11 +297,11 @@ ldbm_back_modify(
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modify: entry (%s) is referral\n", ndn ));
+			   "ldbm_back_modify: entry (%s) is referral\n", ndn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
@@ -317,7 +317,7 @@ ldbm_back_modify(
 	}
 	
 	/* Modify the entry */
-	rc = ldbm_modify_internal( be, conn, op, ndn, modlist, e,
+	rc = ldbm_modify_internal( be, conn, op, ndn->bv_val, modlist, e,
 		&text, textbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {

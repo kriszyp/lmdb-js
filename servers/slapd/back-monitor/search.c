@@ -139,18 +139,18 @@ monitor_send_children(
 int
 monitor_back_search(
 	Backend		*be,
-    	Connection	*conn,
-    	Operation	*op,
-    	const char	*base,
-    	const char	*nbase,
-    	int		scope,
-    	int		deref,
-    	int		slimit,
-    	int		tlimit,
-    	Filter		*filter,
-    	const char	*filterstr,
-    	struct berval		**attrs,
-    	int		attrsonly 
+	Connection	*conn,
+	Operation	*op,
+	struct berval	*base,
+	struct berval	*nbase,
+	int		scope,
+	int		deref,
+	int		slimit,
+	int		tlimit,
+	Filter		*filter,
+	const char	*filterstr,
+	struct berval		**attrs,
+	int		attrsonly 
 )
 {
 	struct monitorinfo	*mi = (struct monitorinfo *) be->be_private;
@@ -167,7 +167,7 @@ monitor_back_search(
 
 
 	/* get entry with reader lock */
-	monitor_cache_dn2entry( mi, nbase, &e, &matched );
+	monitor_cache_dn2entry( mi, nbase->bv_val, &e, &matched );
 	if ( e == NULL ) {
 		send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
 			matched ? matched->e_dn : NULL, 

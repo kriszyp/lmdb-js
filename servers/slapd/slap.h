@@ -1020,15 +1020,17 @@ struct slap_op;
 
 /* Backend function typedefs */
 typedef int (BI_init) LDAP_P((BackendInfo *bi));
-typedef int (BI_config) LDAP_P((BackendInfo *bi, const char *fname,
-	int lineno, int argc, char **argv));
+typedef int (BI_config) LDAP_P((BackendInfo *bi,
+	const char *fname, int lineno,
+	int argc, char **argv));
 typedef int (BI_open) LDAP_P((BackendInfo *bi));
 typedef int (BI_close) LDAP_P((BackendInfo *bi));
 typedef int (BI_destroy) LDAP_P((BackendInfo *bi));
 
 typedef int (BI_db_init) LDAP_P((Backend *bd));
-typedef int (BI_db_config) LDAP_P((Backend *bd, const char *fname,
-	int lineno, int argc, char **argv));
+typedef int (BI_db_config) LDAP_P((Backend *bd,
+	const char *fname, int lineno,
+	int argc, char **argv));
 typedef int (BI_db_open) LDAP_P((Backend *bd));
 typedef int (BI_db_close) LDAP_P((Backend *bd));
 typedef int (BI_db_destroy) LDAP_P((Backend *bd));
@@ -1041,7 +1043,7 @@ typedef int (BI_op_unbind) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o ));
 typedef int (BI_op_search) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		const char *base, const char *nbase,
+		struct berval *base, struct berval *nbase,
 		int scope, int deref,
 		int slimit, int tlimit,
 		Filter *f, const char *filterstr,
@@ -1052,12 +1054,14 @@ typedef int (BI_op_compare)LDAP_P((BackendDB *bd,
 		AttributeAssertion *ava));
 typedef int (BI_op_modify) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		const char *dn, const char *ndn, Modifications *m));
+		struct berval *dn, struct berval *ndn,
+		Modifications *m));
 typedef int (BI_op_modrdn) LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
-		const char *dn, const char *ndn,
-		const char *newrdn, int deleteoldrdn,
-		const char *newSuperior));
+		struct berval *dn, struct berval *ndn,
+		struct berval *newrdn, struct berval *nnewrdn,
+		int deleteoldrdn,
+		struct berval *newSup, struct berval *nnewSup ));
 typedef int (BI_op_add)    LDAP_P((BackendDB *bd,
 		struct slap_conn *c, struct slap_op *o,
 		Entry *e));
@@ -1241,13 +1245,14 @@ struct slap_backend_info {
 struct slap_op;
 struct slap_conn;
 
-typedef void (slap_response)(struct slap_conn *, struct slap_op *, ber_tag_t,
-	ber_int_t, ber_int_t, const char *, const char *, struct berval **,
-	const char *, struct berval *, struct berval *, LDAPControl **);
+typedef void (slap_response)( struct slap_conn *, struct slap_op *,
+	ber_tag_t, ber_int_t, ber_int_t, const char *, const char *,
+	struct berval **, const char *, struct berval *,
+	struct berval *, LDAPControl ** );
 
-typedef void (slap_sresult)(struct slap_conn *, struct slap_op *, ber_int_t,
-	const char *, const char *, struct berval **, LDAPControl **,
-	int nentries);
+typedef void (slap_sresult)( struct slap_conn *, struct slap_op *,
+	ber_int_t, const char *, const char *, struct berval **,
+	LDAPControl **, int nentries);
 
 /*
  * represents an operation pending from an ldap client

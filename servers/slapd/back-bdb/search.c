@@ -32,8 +32,8 @@ bdb_search(
 	BackendDB	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*base,
-	const char	*nbase,
+	struct berval	*base,
+	struct berval	*nbase,
 	int		scope,
 	int		deref,
 	int		slimit,
@@ -65,7 +65,7 @@ bdb_search(
 
 	manageDSAit = get_manageDSAit( op );
 
-	if ( *nbase == '\0' ) {
+	if ( nbase->bv_len == 0 ) {
 		/* DIT root special case */
 		e = (Entry *) &slap_entry_root;
 		rc = 0;
@@ -73,12 +73,12 @@ bdb_search(
 #ifdef BDB_ALIASES
 	/* get entry with reader lock */
 	if ( deref & LDAP_DEREF_FINDING ) {
-		e = deref_dn_r( be, nbase, &err, &matched, &text );
+		e = deref_dn_r( be, nbase->bv_val, &err, &matched, &text );
 
 	} else
 #endif
 	{
-		rc = bdb_dn2entry( be, NULL, nbase, &e, &matched, 0 );
+		rc = bdb_dn2entry( be, NULL, nbase->bv_val, &e, &matched, 0 );
 	}
 
 	switch(rc) {
@@ -101,7 +101,7 @@ bdb_search(
 
 			erefs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					base, scope )
+					base->bv_val, scope )
 				: NULL;
 
 			bdb_entry_return( be, matched );
@@ -109,13 +109,13 @@ bdb_search(
 
 			if( erefs ) {
 				refs = referral_rewrite( erefs, matched_dn,
-					base, scope );
+					base->bv_val, scope );
 				ber_bvecfree( erefs );
 			}
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, base, scope );
+				NULL, base->bv_val, scope );
 		}
 
 		send_ldap_result( conn, op,	rc=LDAP_REFERRAL ,
@@ -131,7 +131,7 @@ bdb_search(
 		/* entry is a referral, don't allow add */
 		char *matched_dn = ch_strdup( e->e_dn );
 		struct berval **erefs = get_entry_referrals( be,
-			conn, op, e, base, scope );
+			conn, op, e, base->bv_val, scope );
 		struct berval **refs = NULL;
 
 		bdb_entry_return( be, e );
@@ -139,7 +139,7 @@ bdb_search(
 
 		if( erefs ) {
 			refs = referral_rewrite( erefs, matched_dn,
-				base, scope );
+				base->bv_val, scope );
 			ber_bvecfree( erefs );
 		}
 

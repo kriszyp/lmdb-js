@@ -29,8 +29,8 @@ ldbm_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*base,
-    const char	*nbase,
+    struct berval	*base,
+    struct berval	*nbase,
     int		scope,
     int		deref,
     int		slimit,
@@ -59,13 +59,13 @@ ldbm_back_search(
 		
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
-		   "ldbm_back_search: enter\n" ));
+		"ldbm_back_search: enter\n" ));
 #else
 	Debug(LDAP_DEBUG_TRACE, "=> ldbm_back_search\n", 0, 0, 0);
 #endif
 
 
-	if ( *nbase == '\0' ) {
+	if ( nbase->bv_len == 0 ) {
 		/* DIT root special case */
 		e = (Entry *) &slap_entry_root;
 
@@ -79,13 +79,13 @@ ldbm_back_search(
 		
 	} else if ( deref & LDAP_DEREF_FINDING ) {
 		/* deref dn and get entry with reader lock */
-		e = deref_dn_r( be, nbase, &err, &matched, &text );
+		e = deref_dn_r( be, nbase->bv_val, &err, &matched, &text );
 
 		if( err == LDAP_NO_SUCH_OBJECT ) err = LDAP_REFERRAL;
 
 	} else {
 		/* get entry with reader lock */
-		e = dn2entry_r( be, nbase, &matched );
+		e = dn2entry_r( be, nbase->bv_val, &matched );
 		err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
 		text = NULL;
 	}
@@ -100,21 +100,21 @@ ldbm_back_search(
 
 			erefs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					base, scope )
+					base->bv_val, scope )
 				: NULL;
 
 			cache_return_entry_r( &li->li_cache, matched );
 
 			if( erefs ) {
 				refs = referral_rewrite( erefs, matched_dn,
-					base, scope );
+					base->bv_val, scope );
 
 				ber_bvecfree( erefs );
 			}
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, base, scope );
+				NULL, base->bv_val, scope );
 		}
 
 		send_ldap_result( conn, op, err,
@@ -129,7 +129,7 @@ ldbm_back_search(
 		/* entry is a referral, don't allow add */
 		char *matched_dn = ch_strdup( e->e_dn );
 		struct berval **erefs = get_entry_referrals( be,
-			conn, op, e, base, scope );
+			conn, op, e, base->bv_val, scope );
 		struct berval **refs = NULL;
 
 		cache_return_entry_r( &li->li_cache, e );
@@ -146,7 +146,7 @@ ldbm_back_search(
 
 		if( erefs ) {
 			refs = referral_rewrite( erefs, matched_dn,
-				base, scope );
+				base->bv_val, scope );
 
 			ber_bvecfree( erefs );
 		}

@@ -37,11 +37,13 @@ ldbm_back_modrdn(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    const char	*dn,
-    const char	*ndn,
-    const char	*newrdn,
+    struct berval	*dn,
+    struct berval	*ndn,
+    struct berval	*newrdn,
+    struct berval	*nnewrdn,
     int		deleteoldrdn,
-    const char	*newSuperior
+    struct berval	*newSuperior,
+    struct berval	*nnewSuperior
 )
 {
 	AttributeDescription *children = slap_schema.si_ad_children;
@@ -79,15 +81,17 @@ ldbm_back_modrdn(
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ENTRY,
 		"ldbm_back_modrdn: dn: %s newSuperior=%s\n", 
-		dn ? dn : "NULL", newSuperior ? newSuperior : "NULL" ));
+		dn->bv_len ? dn->bv_val : "NULL",
+		newSuperior->bv_len ? newSuperior->bv_val : "NULL" ));
 #else
-	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",
-	    (newSuperior ? newSuperior : "NULL"),
-	    0, 0 );
+	Debug( LDAP_DEBUG_TRACE,
+		"==>ldbm_back_modrdn: dn: %s newSuperior=%s\n", 
+		dn->bv_len ? dn->bv_val : "NULL",
+		newSuperior->bv_len ? newSuperior->bv_val : "NULL", 0 );
 #endif
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn->bv_val, &matched )) == NULL ) {
 		char* matched_dn = NULL;
 		struct berval** refs;
 
@@ -95,12 +99,12 @@ ldbm_back_modrdn(
 			matched_dn = strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			cache_return_entry_r( &li->li_cache, matched );
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, LDAP_REFERRAL,
@@ -116,7 +120,7 @@ ldbm_back_modrdn(
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
@@ -276,7 +280,7 @@ ldbm_back_modrdn(
 			newSuperior, 0, 0 );
 #endif
 
-		np_dn = ch_strdup( newSuperior );
+		np_dn = ch_strdup( newSuperior->bv_val );
 		np_ndn = ch_strdup( np_dn );
 		(void) dn_normalize( np_ndn );
 
@@ -300,8 +304,7 @@ ldbm_back_modrdn(
 		/* newSuperior == entry being moved?, if so ==> ERROR */
 		/* Get Entry with dn=newSuperior. Does newSuperior exist? */
 
-		if ( newSuperior[ 0 ] != '\0' ) {
-
+		if ( nnewSuperior->bv_len ) {
 			if( (np = dn2entry_w( be, np_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "backend", LDAP_LEVEL_ERR,
@@ -444,9 +447,9 @@ ldbm_back_modrdn(
 	}
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
-	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn ); 
+	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn->bv_val ); 
 
-	new_ndn = ch_strdup(new_dn);
+	new_ndn = ch_strdup( new_dn );
 	(void) dn_normalize( new_ndn );
 
 #ifdef NEW_LOGGING
@@ -475,25 +478,25 @@ ldbm_back_modrdn(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-		   "ldbm_back_modrdn: new ndn (%s) does not exist\n", new_ndn ));
+		"ldbm_back_modrdn: new ndn (%s) does not exist\n", new_ndn ));
 #else
 	Debug( LDAP_DEBUG_TRACE,
-	       "ldbm_back_modrdn: new ndn=%s does not exist\n",
-	       new_ndn, 0, 0 );
+	    "ldbm_back_modrdn: new ndn=%s does not exist\n",
+	    new_ndn, 0, 0 );
 #endif
 
 
 	/* Get attribute types and values of our new rdn, we will
 	 * need to add that to our new entry
 	 */
-	if ( rdn_attrs( newrdn, &new_rdn_types, &new_rdn_vals ) ) {
+	if ( rdn_attrs( newrdn->bv_val, &new_rdn_types, &new_rdn_vals ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-			   "ldbm_back_modrdn: can't figure out type(s)/value(s) of newrdn\n" ));
+			"ldbm_back_modrdn: can't figure out type(s)/value(s) of newrdn\n" ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: can't figure out type(s)/value(s) of newrdn\n",
-		       0, 0, 0 );
+		    "ldbm_back_modrdn: can't figure out type(s)/value(s) of newrdn\n",
+		    0, 0, 0 );
 #endif
 
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
@@ -512,11 +515,11 @@ ldbm_back_modrdn(
 #endif
 
 	/* Retrieve the old rdn from the entry's dn */
-	if ( (old_rdn = dn_rdn( be, dn )) == NULL ) {
+	if ( (old_rdn = dn_rdn( be, dn->bv_val )) == NULL ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 			   "ldbm_back_modrdn: can't figure out old_rdn from dn (%s)\n",
-			   dn ));
+			   dn->bv_val ));
 #else
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out old_rdn from dn\n",
@@ -750,7 +753,7 @@ ldbm_back_modrdn(
 	}
 
 	/* modify memory copy of entry */
-	rc = ldbm_modify_internal( be, conn, op, dn, &mod[0], e,
+	rc = ldbm_modify_internal( be, conn, op, dn->bv_val, &mod[0], e,
 		&text, textbuf, textlen );
 
 	if( rc != LDAP_SUCCESS ) {

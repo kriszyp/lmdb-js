@@ -156,8 +156,8 @@ bdb_modify(
 	BackendDB	*be,
 	Connection	*conn,
 	Operation	*op,
-	const char	*dn,
-	const char	*ndn,
+	struct berval	*dn,
+	struct berval	*ndn,
 	Modifications	*modlist )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -208,7 +208,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry( be, ltid, ndn->bv_val, &e, &matched, 0 );
 
 	if ( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -236,14 +236,14 @@ retry:	/* transaction retry */
 			matched_dn = ch_strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			bdb_entry_return( be, matched );
 			matched = NULL;
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
@@ -259,7 +259,7 @@ retry:	/* transaction retry */
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modify: entry is referral\n",

@@ -15,14 +15,16 @@
 
 int
 bdb_modrdn(
-	Backend	*be,
-	Connection	*conn,
-	Operation	*op,
-	const char	*dn,
-	const char	*ndn,
-	const char	*newrdn,
-	int		deleteoldrdn,
-	const char	*newSuperior
+    Backend	*be,
+    Connection	*conn,
+    Operation	*op,
+    struct berval	*dn,
+    struct berval	*ndn,
+    struct berval	*newrdn,
+    struct berval	*nnewrdn,
+    int		deleteoldrdn,
+    struct berval	*newSuperior,
+    struct berval	*nnewSuperior
 )
 {
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
@@ -58,7 +60,8 @@ bdb_modrdn(
 	int		manageDSAit = get_manageDSAit( op );
 
 	Debug( LDAP_DEBUG_TRACE, "==>bdb_modrdn(%s,%s,%s)\n",
-		dn, newrdn, (newSuperior ? newSuperior : "NULL") );
+		dn->bv_val, newrdn->bv_val,
+		newSuperior ? newSuperior->bv_val : "NULL" );
 
 #if 0
 	if( newSuperior != NULL ) {
@@ -102,7 +105,7 @@ retry:	/* transaction retry */
 	op->o_private = &opinfo;
 
 	/* get entry */
-	rc = bdb_dn2entry( be, ltid, ndn, &e, &matched, 0 );
+	rc = bdb_dn2entry( be, ltid, ndn->bv_val, &e, &matched, 0 );
 
 	switch( rc ) {
 	case 0:
@@ -125,14 +128,14 @@ retry:	/* transaction retry */
 			matched_dn = strdup( matched->e_dn );
 			refs = is_entry_referral( matched )
 				? get_entry_referrals( be, conn, op, matched,
-					dn, LDAP_SCOPE_DEFAULT )
+					dn->bv_val, LDAP_SCOPE_DEFAULT )
 				: NULL;
 			bdb_entry_return( be, matched );
 			matched = NULL;
 
 		} else {
 			refs = referral_rewrite( default_referral,
-				NULL, dn, LDAP_SCOPE_DEFAULT );
+				NULL, dn->bv_val, LDAP_SCOPE_DEFAULT );
 		}
 
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
@@ -148,7 +151,7 @@ retry:	/* transaction retry */
 		/* parent is a referral, don't allow add */
 		/* parent is an alias, don't allow add */
 		struct berval **refs = get_entry_referrals( be,
-			conn, op, e, dn, LDAP_SCOPE_DEFAULT );
+			conn, op, e, dn->bv_val, LDAP_SCOPE_DEFAULT );
 
 		Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: entry %s is referral\n",
 			e->e_dn, 0, 0 );
@@ -261,10 +264,10 @@ retry:	/* transaction retry */
 	if ( newSuperior != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, 
 			"bdb_modrdn: new parent \"%s\" requested...\n",
-			newSuperior, 0, 0 );
+			newSuperior->bv_val, 0, 0 );
 
-		if ( newSuperior[ 0 ] != '\0' ) {
-			np_dn = ch_strdup( newSuperior );
+		if ( newSuperior->bv_len ) {
+			np_dn = ch_strdup( newSuperior->bv_val );
 			np_ndn = ch_strdup( np_dn );
 			(void) dn_normalize( np_ndn );
 
@@ -382,9 +385,9 @@ retry:	/* transaction retry */
 	}
 	
 	/* Build target dn and make sure target entry doesn't exist already. */
-	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn ); 
+	build_new_dn( &new_dn, e->e_dn, new_parent_dn, newrdn->bv_val ); 
 
-	new_ndn = ch_strdup(new_dn);
+	new_ndn = ch_strdup( new_dn );
 	(void) dn_normalize( new_ndn );
 
 	Debug( LDAP_DEBUG_TRACE, "bdb_modrdn: new ndn=%s\n",
@@ -414,7 +417,7 @@ retry:	/* transaction retry */
 	 * need to add that to our new entry
 	 */
 
-	if ( rdn_attrs( newrdn, &new_rdn_types, &new_rdn_vals ) ) {
+	if ( rdn_attrs( newrdn->bv_val, &new_rdn_types, &new_rdn_vals ) ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: can't figure out type(s)/values(s) "
 			"of newrdn\n", 0, 0, 0 );
@@ -425,10 +428,10 @@ retry:	/* transaction retry */
 
 	Debug( LDAP_DEBUG_TRACE,
 		"bdb_modrdn: new_rdn_val=\"%s\", new_rdn_type=\"%s\"\n",
-		new_rdn_vals[ 0 ], new_rdn_types[ 0 ], 0 );
+		new_rdn_vals[0], new_rdn_types[0], 0 );
 
 	/* Retrieve the old rdn from the entry's dn */
-	if ( ( old_rdn = dn_rdn( be, dn ) ) == NULL ) {
+	if ( ( old_rdn = dn_rdn( be, dn->bv_val ) ) == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
 			"bdb_modrdn: can't figure out old_rdn from dn\n",
 			0, 0, 0 );

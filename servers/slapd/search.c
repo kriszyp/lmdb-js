@@ -327,7 +327,7 @@ do_search(
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
-		(*be->be_search)( be, conn, op, pbase->bv_val, nbase->bv_val,
+		(*be->be_search)( be, conn, op, pbase, nbase,
 			scope, deref, sizelimit,
 		    timelimit, filter, fstr.bv_val, attrs, attrsonly );
 	} else {
