@@ -192,18 +192,17 @@ command option.
 For the purposes of authentication and authorization, {{slapd}}(8)
 associates a non-mapped authentication request DN of the form:
 
->	uid=<principal>,cn=<realm>,cn=gssapi,cn=auth
+>	uid=<primary[/instance]>,cn=<realm>,cn=gssapi,cn=auth
 
-Continuing our example, a user
-with the Kerberos principal {{EX:kurt@EXAMPLE.COM}} would have
-the associated DN:
+Continuing our example, a user with the Kerberos principal
+{{EX:kurt@EXAMPLE.COM}} would have the associated DN:
 
 >	uid=kurt,cn=example.com,cn=gssapi,cn=auth
 
-and the principal {{EX:ursula@FOREIGN.REALM}} would have the
+and the principal {{EX:ursula/admin@FOREIGN.REALM}} would have the
 associated DN:
 
->	uid=ursula,cn=foreign.realm,cn=gssapi,cn=auth
+>	uid=ursula/admin,cn=foreign.realm,cn=gssapi,cn=auth
 
 
 H3: DIGEST-MD5
