@@ -252,12 +252,8 @@ dnNormalize(
 
 	if ( val->bv_len != 0 ) {
 		char *dn;
-#ifdef USE_DN_NORMALIZE
 		out = ber_bvstr( UTF8normalize( val->bv_val, UTF8_CASEFOLD ) );
-#else
-		out = ber_bvdup( val );
-		ldap_pvt_str2upper( out->bv_val );
-#endif
+
 		dn = dn_validate( out->bv_val );
 
 		if( dn == NULL ) {
