@@ -430,7 +430,6 @@ H4: syncrepl
 >		[sizelimit=<limit>]
 >		[timelimit=<limit>]
 >		[schemachecking=on|off]
->		[updatedn=<DN>]
 >		[bindmethod=simple|sasl]
 >		[binddn=<DN>]
 >		[saslmech=<mech>]
@@ -506,15 +505,6 @@ Every entry in the replica should contain those attributes
 required by the schema definition.
 If it is turned off, entries will be stored without checking
 schema conformance. The default is off.
-
-The {{EX:updatedn}} parameter specifies the DN in the consumer site
-which is allowed to make changes to the replica. This DN is used
-locally by the syncrepl engine when updating the replica with the
-entries received from the provider site by using the internal
-operation mechanism. The update of the replica content is subject
-to the access control privileges of the DN.  The DN should have
-read/write access to the replica database.  Generally, this DN
-{{should not}} be the same as {{EX:rootdn}}.
 
 The {{EX:binddn}} parameter gives the DN to bind as for the
 syncrepl searches to the provider slapd. It should be a DN
@@ -595,33 +585,6 @@ containing the database and associated indices live.
 \Default:
 
 >	directory /usr/local/var/openldap-data
-
-
-H4: sessionlog <sid> <limit>
-
-This directive specifies a session log store in the syncrepl 
-replication provider server which contains information on
-the entries that have been scoped out of the replication
-content identified by {{EX:<sid>}}.
-The first syncrepl search request having the same {{EX:<sid>}} value
-in the cookie establishes the session log store in the provider server.
-The number of the entries in the session log store is limited
-by {{EX:<limit>}}. Excessive entries are removed from the store
-in the FIFO order. Both {{EX:<sid>}} and {{EX:<limit>}} are
-non-negative integers. {{EX:<sid>}} has no more than three decimal digits.
-
-The LDAP Content Synchronization operation that falls into a pre-existing
-session can use the session log store in order to reduce the amount
-of synchronization traffic. If the replica is not so outdated that
-it can be made up-to-date by the information in the session store,
-the provider slapd will send the consumer slapd the identities of the
-scoped-out entries together with the in-scope entries added to or
-modified within the replication content. If the replica status is
-outdated too much and beyond the coverage of the history store,
-then the provider slapd will send the identities of the unchanged
-in-scope entries along with the changed in-scope entries.
-The consumer slapd will then remove those entries in the replica
-which are not identified as present in the provider content.
 
 
 H3: LDBM Database Directives
