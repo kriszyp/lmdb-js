@@ -45,6 +45,8 @@
 /* protected by connections_mutex */
 static ldap_pvt_thread_mutex_t connections_mutex;
 static Connection *connections = NULL;
+
+static ldap_pvt_thread_mutex_t conn_nextid_mutex;
 static unsigned long conn_nextid = 0;
 
 /* structure state (protected by connections_mutex) */
@@ -109,6 +111,7 @@ int connections_init(void)
 
 	/* should check return of every call */
 	ldap_pvt_thread_mutex_init( &connections_mutex );
+	ldap_pvt_thread_mutex_init( &conn_nextid_mutex );
 
 	connections = (Connection *) ch_calloc( dtblsize, sizeof(Connection) );
 
@@ -176,6 +179,7 @@ int connections_destroy(void)
 	connections = NULL;
 
 	ldap_pvt_thread_mutex_destroy( &connections_mutex );
+	ldap_pvt_thread_mutex_destroy( &conn_nextid_mutex );
 	return 0;
 }
 
@@ -607,7 +611,9 @@ long connection_init(
 #endif
 	}
 
+	ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
 	id = c->c_connid = conn_nextid++;
+	ldap_pvt_thread_mutex_unlock( &conn_nextid_mutex );
 
 	c->c_conn_state = SLAP_C_INACTIVE;
 	c->c_struct_state = SLAP_C_USED;
@@ -1187,7 +1193,7 @@ operations_error:
 	return NULL;
 }
 
-static const Listener dummy_list = { {0, ""}, {0, ""} };
+static const Listener dummy_list = { BER_BVC(""), BER_BVC("") };
 
 int connection_client_setup(
 	ber_socket_t s,
@@ -1892,6 +1898,7 @@ connection_fake_init(
 	conn->c_send_search_entry = slap_send_search_entry;
 	conn->c_send_search_reference = slap_send_search_reference;
 	conn->c_listener = (Listener *)&dummy_list;
+	conn->c_peer_domain = slap_empty_bv;
 	conn->c_peer_name = slap_empty_bv;
 
 	/* set memory context */
@@ -1904,3 +1911,12 @@ connection_fake_init(
 
 	op->o_time = slap_get_time();
 }
+
+void
+connection_assign_nextid( Connection *conn )
+{
+	ldap_pvt_thread_mutex_lock( &conn_nextid_mutex );
+	conn->c_connid = conn_nextid++;
+	ldap_pvt_thread_mutex_unlock( &conn_nextid_mutex );
+}
+

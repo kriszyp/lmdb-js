@@ -398,6 +398,18 @@ do_modify(
 
 		rs->sr_err = slapi_int_call_plugins( op->o_bd,
 			SLAPI_PLUGIN_PRE_MODIFY_FN, pb );
+
+		/*
+		 * It's possible that the preoperation plugin changed the
+		 * modification array, so we need to convert it back to
+		 * a Modification list.
+		 *
+		 * Calling slapi_int_modifications2ldapmods() destroyed modlist so
+		 * we don't need to free it.
+		 */
+		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
+		modlist = slapi_int_ldapmods2modifications( modv );
+
 		if ( rs->sr_err < 0 ) {
 			/*
 			 * A preoperation plugin failure will abort the
@@ -421,17 +433,6 @@ do_modify(
 			modv = NULL;
 			goto cleanup;
 		}
-
-		/*
-		 * It's possible that the preoperation plugin changed the
-		 * modification array, so we need to convert it back to
-		 * a Modification list.
-		 *
-		 * Calling slapi_int_modifications2ldapmods() destroyed modlist so
-		 * we don't need to free it.
-		 */
-		slapi_pblock_get( pb, SLAPI_MODIFY_MODS, (void **)&modv );
-		modlist = slapi_int_ldapmods2modifications( modv );
 	}
 
 	/*
@@ -445,10 +446,6 @@ do_modify(
 	 * However, the post-operation plugin should still be 
 	 * called.
 	 */
-	if ( modlist == NULL ) {
-		rs->sr_err = LDAP_SUCCESS;
-		send_ldap_result( op, rs );
-	} else {
 #endif /* defined( LDAP_SLAPI ) */
 
 	/*
@@ -535,8 +532,6 @@ do_modify(
 	}
 
 #if defined( LDAP_SLAPI )
-	} /* modlist != NULL */
-
 	if ( pb != NULL && slapi_int_call_plugins( op->o_bd,
 		SLAPI_PLUGIN_POST_MODIFY_FN, pb ) < 0 )
 	{

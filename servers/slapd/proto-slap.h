@@ -379,6 +379,7 @@ LDAP_SLAPD_F (void) connection_fake_init LDAP_P((
 	Connection *conn,
 	Operation *op,
 	void *threadctx ));
+LDAP_SLAPD_F (void) connection_assign_nextid LDAP_P((Connection *));
 
 /*
  * cr.c
@@ -463,6 +464,8 @@ LDAP_SLAPD_F (int) dnMatch LDAP_P((
 LDAP_SLAPD_F (int) dnIsSuffix LDAP_P((
 	const struct berval *dn, const struct berval *suffix ));
 
+LDAP_SLAPD_F (int) dnIsOneLevelRDN LDAP_P(( struct berval *rdn ));
+
 LDAP_SLAPD_F (int) dnExtractRdn LDAP_P((
 	struct berval *dn, struct berval *rdn, void *ctx ));
 
@@ -504,6 +507,7 @@ LDAP_SLAPD_F (void) entry_flatsize LDAP_P((
 LDAP_SLAPD_F (int) entry_decode LDAP_P(( struct berval *bv, Entry **e ));
 LDAP_SLAPD_F (int) entry_encode LDAP_P(( Entry *e, struct berval *bv ));
 
+LDAP_SLAPD_F (void) entry_clean LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (void) entry_free LDAP_P(( Entry *e ));
 LDAP_SLAPD_F (int) entry_cmp LDAP_P(( Entry *a, Entry *b ));
 LDAP_SLAPD_F (int) entry_dn_cmp LDAP_P(( const void *v_a, const void *v_b ));
@@ -949,6 +953,7 @@ LDAP_SLAPD_F (int) slap_read_controls LDAP_P(( Operation *op, SlapReply *rs,
 LDAP_SLAPD_F (int) str2result LDAP_P(( char *s,
 	int *code, char **matched, char **info ));
 LDAP_SLAPD_F (int) slap_map_api2result LDAP_P(( SlapReply *rs ));
+LDAP_SLAPD_F (slap_mask_t) slap_attr_flags LDAP_P(( AttributeName *an ));
 
 /*
  * root_dse.c
