@@ -3,7 +3,7 @@ Microsoft Developer Studio Workspace File, Format Version 5.00
 
 ###############################################################################
 
-Project: "apitest"=..\libraries\libldap\apitest.dsp - Package Owner=<4>
+Project: "apitest"="..\libraries\libldap\apitest.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -18,7 +18,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "apitest_r"=..\libraries\libldap_r\apitest_r.dsp - Package Owner=<4>
+Project: "apitest_r"="..\libraries\libldap_r\apitest_r.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -41,17 +41,11 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name libslapd
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "build"=.\build.dsp - Package Owner=<4>
+Project: "build"=".\build.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -120,7 +114,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "dtest"=..\libraries\liblber\dtest.dsp - Package Owner=<4>
+Project: "dtest"="..\libraries\liblber\dtest.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -135,7 +129,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "etest"=..\libraries\liblber\etest.dsp - Package Owner=<4>
+Project: "etest"="..\libraries\liblber\etest.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -150,52 +144,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldapdelete"=..\clients\tools\ldapdelete.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libldap
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "ldapmodify"=..\clients\tools\ldapmodify.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libldap
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "ldapmodrdn"=..\clients\tools\ldapmodrdn.dsp - Package Owner=<4>
+Project: "ldapdelete"="..\clients\tools\ldapdelete.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -216,28 +165,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldappasswd"=..\clients\tools\ldappasswd.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name libldap
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "ldapsearch"=..\clients\tools\ldapsearch.dsp - Package Owner=<4>
+Project: "ldapmodify"="..\clients\tools\ldapmodify.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -261,7 +189,73 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldbmcat"=..\servers\slapd\tools\ldbmcat.dsp - Package Owner=<4>
+Project: "ldapmodrdn"="..\clients\tools\ldapmodrdn.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ldappasswd"="..\clients\tools\ldappasswd.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ldapsearch"="..\clients\tools\ldapsearch.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name libldap
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldif
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "ldbmcat"="..\servers\slapd\tools\ldbmcat.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -276,7 +270,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldbmtest"=..\servers\slapd\tools\ldbmtest.dsp - Package Owner=<4>
+Project: "ldbmtest"="..\servers\slapd\tools\ldbmtest.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -288,7 +282,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldif"=..\servers\slapd\tools\ldif.dsp - Package Owner=<4>
+Project: "ldif"="..\servers\slapd\tools\ldif.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -303,7 +297,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldif2id2children"=..\servers\slapd\tools\ldif2id2children.dsp - Package Owner=<4>
+Project: "ldif2id2children"="..\servers\slapd\tools\ldif2id2children.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -326,11 +320,20 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name liblutil
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "ldif2id2entry"=..\servers\slapd\tools\ldif2id2entry.dsp - Package Owner=<4>
+Project: "ldif2id2entry"="..\servers\slapd\tools\ldif2id2entry.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -353,11 +356,20 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name liblutil
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "ldif2index"=..\servers\slapd\tools\ldif2index.dsp - Package Owner=<4>
+Project: "ldif2index"="..\servers\slapd\tools\ldif2index.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -380,11 +392,20 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name libldif
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "ldif2ldbm"=..\servers\slapd\tools\ldif2ldbm.dsp - Package Owner=<4>
+Project: "ldif2ldbm"="..\servers\slapd\tools\ldif2ldbm.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -407,65 +428,20 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name liblutil
     End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "libavl"=..\libraries\libavl\libavl.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "liblber"=..\libraries\liblber\liblber.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-}}}
-
-###############################################################################
-
-Project: "libldap"=..\libraries\libldap\libldap.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
     Begin Project Dependency
     Project_Dep_Name liblber
     End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "libldap_r"=..\libraries\libldap_r\libldap_r.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
     Begin Project Dependency
-    Project_Dep_Name liblber
+    Project_Dep_Name libslapd
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
     End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "libldbm"=..\libraries\libldbm\libldbm.dsp - Package Owner=<4>
+Project: "libavl"="..\libraries\libavl\libavl.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -477,22 +453,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libldif"=..\libraries\libldif\libldif.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-}}}
-
-###############################################################################
-
-Project: "liblutil"=..\libraries\liblutil\liblutil.dsp - Package Owner=<4>
+Project: "liblber"="..\libraries\liblber\liblber.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -504,7 +465,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "libslapd"=..\servers\slapd\libslapd.dsp - Package Owner=<4>
+Project: "libldap"="..\libraries\libldap\libldap.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -512,23 +473,71 @@ Package=<5>
 
 Package=<4>
 {{{
-    Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "ltest"=..\libraries\libldap\ltest.dsp - Package Owner=<4>
+Project: "libldap_r"="..\libraries\libldap_r\libldap_r.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libldbm"="..\libraries\libldbm\libldbm.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libldif"="..\libraries\libldif\libldif.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "liblutil"="..\libraries\liblutil\liblutil.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "libslapd"="..\servers\slapd\libslapd.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "ltest"="..\libraries\libldap\ltest.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -542,11 +551,14 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name liblutil
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "ltest_r"=..\libraries\libldap_r\ltest_r.dsp - Package Owner=<4>
+Project: "ltest_r"="..\libraries\libldap_r\ltest_r.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -564,7 +576,19 @@ Package=<4>
 
 ###############################################################################
 
-Project: "slapd"=..\servers\slapd\slapd.dsp - Package Owner=<4>
+Project: "setup"="..\include\setup.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "slapd"="..\servers\slapd\slapd.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -587,11 +611,23 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name liblutil
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libldbm
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name libslapd
+    End Project Dependency
 }}}
 
 ###############################################################################
 
-Project: "testavl"=..\libraries\libavl\testavl.dsp - Package Owner=<4>
+Project: "testavl"="..\libraries\libavl\testavl.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -606,7 +642,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ud"=..\clients\ud\ud.dsp - Package Owner=<4>
+Project: "ud"="..\clients\ud\ud.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
