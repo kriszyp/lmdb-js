@@ -3789,7 +3789,7 @@ struct syntax_defs_rec syntax_defs[] = {
 	{"( 1.3.6.1.4.1.1466.115.121.1.51 DESC 'Teletex Terminal Identifier' )",
 		0, NULL, NULL, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.52 DESC 'Telex Number' )",
-		0, printableStringValidate, IA5StringNormalize, NULL},
+		0, printablesStringValidate, IA5StringNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.53 DESC 'UTC Time' )",
 		0, utcTimeValidate, utcTimeNormalize, NULL},
 	{"( 1.3.6.1.4.1.1466.115.121.1.54 DESC 'LDAP Syntax Description' )",
