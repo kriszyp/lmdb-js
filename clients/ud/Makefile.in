@@ -1,0 +1,25 @@
+SRCS=	main.c find.c mod.c print.c auth.c util.c help.c \
+	string_to_key.c group.c edit.c globals.c
+XSRCS= version.c
+OBJS=	main.o find.o mod.o print.o auth.o util.o help.o \
+	string_to_key.o group.o globals.o edit.o
+HDRS=	ud.h
+PROGRAMS= ud
+
+XLIBS = $(LIBTERMCAP)
+
+ud : version.o
+	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)
+
+version.c: ${OBJS} $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	    -e "s|%VERSION%|$${v}|" \
+	    < Version.c > $@)
+
+install: $(PROGRAMS) FORCE
+	-$(MKDIR) -p $(bindir)
+	-mv -f $(bindir)/ud $(bindir)/ud-
+	$(INSTALL) $(INSTALLFLAGS) -m 775 ud $(bindir)

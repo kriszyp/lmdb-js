@@ -1,0 +1,67 @@
+##
+## Makefile for LDAP tools
+##
+SRCS	= ldapsearch.c ldapmodify.c ldapdelete.c ldapmodrdn.c
+OBJS	= ldapsearch.o ldapmodify.o ldapdelete.o ldapmodrdn.o
+XLIBS	= -llber -lldap
+
+XSRCS	= ldsversion.c ldmversion.c lddversion.c ldrversion.c
+
+PROGRAMS = ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd
+
+ldapsearch:	ldsversion.o
+	$(CC) $(LDFLAGS) -o $@ ldapsearch.o ldsversion.o $(LIBS)
+
+ldapmodify:	ldmversion.o
+	$(CC) $(LDFLAGS) -o $@ ldapmodify.o ldmversion.o $(LIBS)
+
+ldapdelete:	lddversion.o
+	$(CC) $(LDFLAGS) -o $@ ldapdelete.o lddversion.o $(LIBS)
+
+ldapmodrdn:	ldrversion.o
+	$(CC) $(LDFLAGS) -o $@ ldapmodrdn.o ldrversion.o $(LIBS)
+
+ldapadd:	ldapmodify
+	$(RM) $@
+	$(LN) ldapmodify ldapadd
+
+ldsversion.c: ldapsearch.o $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< Versionlds.c > $@)
+
+ldmversion.c: ldapmodify.o $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< Versionldm.c > $@)
+
+lddversion.c: ldapdelete.o $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< Versionldd.c > $@)
+
+ldrversion.c: ldapmodrdn.o $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	-e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	-e "s|%VERSION%|$${v}|" \
+	< Versionldr.c > $@)
+
+installlocal:	ldapsearch ldapmodify ldapdelete ldapmodrdn ldapadd FORCE
+	-$(MKDIR) -p $(bindir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapsearch $(bindir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodify $(bindir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapdelete $(bindir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 ldapmodrdn $(bindir)
+	$(RM) $(BINDIR)/ldapadd
+	$(LN) $(BINDIR)/ldapmodify $(bindir)/ldapadd

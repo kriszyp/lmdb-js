@@ -333,13 +333,6 @@ AC_SUBST(LDBM_DEFS)
 AC_SUBST(LDBM_LIBS)
 
 dnl AC_OUTPUT( \
-dnl clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
-dnl clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
-dnl clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
-dnl clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
-dnl clients/gopher/Makefile:build/top.mk:clients/gopher/Makefile.in:build/rules.mk \
-dnl clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
-dnl clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rules.mk \
 dnl contrib/Makefile:build/top.mk:contrib/Makefile.in:build/dir.mk \
 dnl contrib/saucer/Makefile:build/top.mk:contrib/saucer/Makefile.in:build/rules.mk \
 dnl contrib/whois++/Makefile:build/top.mk:contrib/whois++/Makefile.in:build/rules.mk \
@@ -356,6 +349,13 @@ dnl [date > stamp-h])
 
 AC_OUTPUT( \
 clients/Makefile:build/top.mk:clients/Makefile.in:build/dir.mk \
+clients/finger/Makefile:build/top.mk:clients/finger/Makefile.in:build/rules.mk \
+clients/fax500/Makefile:build/top.mk:clients/fax500/Makefile.in:build/rules.mk \
+clients/gopher/Makefile:build/top.mk:clients/gopher/Makefile.in:build/rules.mk \
+clients/mail500/Makefile:build/top.mk:clients/mail500/Makefile.in:build/rules.mk \
+clients/rcpt500/Makefile:build/top.mk:clients/rcpt500/Makefile.in:build/rules.mk \
+clients/ud/Makefile:build/top.mk:clients/ud/Makefile.in:build/rules.mk \
+clients/tools/Makefile:build/top.mk:clients/tools/Makefile.in:build/rules.mk \
 include/Makefile:build/top.mk:include/Makefile.in \
 libraries/Makefile:build/top.mk:libraries/Makefile.in:build/dir.mk 	\
 libraries/libavl/Makefile:build/top.mk:libraries/libavl/Makefile.in:build/lib.mk \

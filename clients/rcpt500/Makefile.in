@@ -1,0 +1,21 @@
+PROGRAMS= rcpt500
+SRCS= main.c cmds.c help.c query.c
+XSRCS= version.c
+OBJS= main.o cmds.o help.o query.o
+HDRS= rcpt500.h
+
+rcpt500 : version.o
+	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)
+
+version.c: ${OBJS} $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	    -e "s|%VERSION%|$${v}|" \
+	    < Version.c > $@)
+
+install: $(PROGRAMS) rcpt500.help FORCE
+	-$(MKDIR) -p $(libexecdir) $(sysconfdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 rcpt500 $(libexecdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 644 rcpt500.help $(sysconfdir)

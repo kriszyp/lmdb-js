@@ -1,0 +1,38 @@
+##
+## Makefile for gopher clients
+##
+PROGRAMS= go500gw go500
+
+SRCS=	detach.c go500.c go500gw.c setproctitle.c
+XSRCS= gwversion.o goversion.o
+GOOBJS =  go500.o detach.o setproctitle.o
+GWOBJS =  go500gw.o detach.o setproctitle.o
+
+go500 : goversion.o
+	$(CC) $(LDFLAGS) -o $@ $(GOOBJS) goversion.o $(LIBS)
+
+go500gw : gwversion.o
+	$(CC) $(LDFLAGS) -o $@ $(GWOBJS) gwversion.o $(LIBS)
+
+goversion.c: ${GOOBJS} $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	    -e "s|%VERSION%|$${v}|" \
+	    < Version.c > $@)
+
+gwversion.c: ${GWOBJS} $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	    -e "s|%VERSION%|$${v}|" \
+	    < Versiongw.c > $@)
+
+install: $(PROGRAMS) go500gw.help FORCE
+	-$(MKDIR) -p $(libexecdir) $(sysconfdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 go500	$(libexecdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 go500gw $(libexecdir)
+	-$(MV) $(sysconfdir)/go500gw.help $(sysconfdir)/go500gw.help-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 go500gw.help $(sysconfdir)

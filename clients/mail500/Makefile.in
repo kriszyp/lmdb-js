@@ -1,0 +1,20 @@
+PROGRAMS= mail500
+
+SRCS=	main.c
+XSRCS= version.c
+OBJS=	main.o
+
+mail500 : version.o
+	$(CC) $(LDFLAGS) -o $@ version.o $(OBJS) $(LIBS)
+
+version.c: ${OBJS} $(LDAP_LIBDEPEND)
+	$(RM) $@
+	(u=$${USER-root} v=`$(CAT) $(VERSIONFILE)` d=`$(PWD)` h=`$(HOSTNAME)` \
+	    t=`$(DATE)`; $(SED) -e "s|%WHEN%|$${t}|" \
+	    -e "s|%WHOANDWHERE%|$${u}@$${h}:$${d}|" \
+	    -e "s|%VERSION%|$${v}|" \
+	    < Version.c > $@)
+
+install: $(PROGRAMS) FORCE
+	-$(MKDIR) -p $(libexecdir)
+	$(INSTALL) $(INSTALLFLAGS) -m 755 mail500 $(libexecdir)
