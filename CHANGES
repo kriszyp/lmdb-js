@@ -2,10 +2,15 @@ OpenLDAP Change Log
 
 Changes included in OpenLDAP 1.1.4
 	CVS Tag: OPENLDAP_REL_ENG_1_1
-	Fixed slapd/add entry rwlock race fix.
-	Fixed slapd/nextid race fix.
+	Updated docs
+	Fixed slapd/back-ldbm/add entry rwlock race bug
+	Fixed slapd/back-ldbm/nextid race bug
+	Fixed slapd/back-ldbm -DSLAPD_ALIAS_DEREF bug
+	Fixed slapd/dn_parent unnormalized bug
+	Fixed slapd/tcpd statslog bug
 	Build environment
-		Removed wait3 test.
+		Removed wait3 test
+		Added FreeBSD 4 support
 
 Changes included in OpenLDAP 1.1.3
 	CVS Tag: OPENLDAP_REL_ENG_1_1_3
