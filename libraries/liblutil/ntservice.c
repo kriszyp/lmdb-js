@@ -150,6 +150,57 @@ int srv_remove(LPCTSTR lpszServiceName, LPCTSTR lpszBinaryPathName)
 }
 
 
+DWORD
+svc_installed (LPTSTR lpszServiceName, LPTSTR lpszBinaryPathName)
+{
+	char buf[256];
+	HKEY key;
+	DWORD rc;
+	DWORD type;
+	long len;
+
+	strcpy(buf, TEXT("SYSTEM\\CurrentControlSet\\Services\\"));
+	strcat(buf, lpszServiceName);
+	if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, buf, 0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS)
+		return(-1);
+
+	rc = 0;
+	if (lpszBinaryPathName) {
+		len = sizeof(buf);
+		if (RegQueryValueEx(key, "ImagePath", NULL, &type, buf, &len) == ERROR_SUCCESS) {
+			if (strcmp(lpszBinaryPathName, buf))
+				rc = -1;
+		}
+	}
+	RegCloseKey(key);
+	return(rc);
+}
+
+
+DWORD
+svc_running (LPTSTR lpszServiceName)
+{
+	SC_HANDLE service;
+	SC_HANDLE scm;
+	DWORD rc;
+	SERVICE_STATUS ss;
+
+	if (!(scm = OpenSCManager(NULL, NULL, GENERIC_READ)))
+		return(GetLastError());
+
+	rc = 1;
+	service = OpenService(scm, lpszServiceName, SERVICE_QUERY_STATUS);
+	if (service) {
+		if (!QueryServiceStatus(service, &ss))
+			rc = GetLastError();
+		else if (ss.dwCurrentState != SERVICE_STOPPED)
+			rc = 0;
+		CloseServiceHandle(service);
+	}
+	CloseServiceHandle(scm);
+	return(rc);
+}
+
 
 static void *start_status_routine( void *ptr )
 {
