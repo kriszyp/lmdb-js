@@ -54,8 +54,12 @@ bdb_modrdn( Operation	*op, SlapReply *rs )
 	int		num_retries = 0;
 
 #ifdef LDAP_SYNC
-        Operation *ps_list;
+	Operation *ps_list;
 	struct psid_entry *pm_list, *pm_prev;
+	int	rc;
+	EntryInfo	*suffix_ei;
+	Entry		*ctxcsn_e;
+	int			ctxcsn_added = 0;
 #endif
 
 #ifdef NEW_LOGGING
@@ -89,13 +93,13 @@ retry:	/* transaction retry */
 #endif
 
 #ifdef LDAP_SYNC
-                pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
-                while ( pm_list != NULL ) {
-                        LDAP_LIST_REMOVE ( pm_list, ps_link );
+		pm_list = LDAP_LIST_FIRST(&op->o_pm_list);
+		while ( pm_list != NULL ) {
+			LDAP_LIST_REMOVE ( pm_list, ps_link );
 			pm_prev = pm_list;
-                        pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
+			pm_list = LDAP_LIST_NEXT ( pm_list, ps_link );
 			ch_free( pm_prev );
-                }
+		}
 #endif
 
 		rs->sr_err = TXN_ABORT( ltid );
@@ -911,6 +915,16 @@ retry:	/* transaction retry */
 		goto return_results;
 	}
 
+#ifdef LDAP_SYNC
+	rc = bdb_csn_commit( op, rs, ltid, ei, &suffix_ei, &ctxcsn_e, &ctxcsn_added, locker );
+	switch ( rc ) {
+	case BDB_CSN_ABORT :
+		goto return_results;
+	case BDB_CSN_RETRY :
+		goto retry;
+	}
+#endif
+
 	if( op->o_noop ) {
 		if(( rs->sr_err=TXN_ABORT( ltid )) != 0 ) {
 			rs->sr_text = "txn_abort (no-op) failed";
@@ -928,8 +942,21 @@ retry:	/* transaction retry */
 		if(( rs->sr_err=TXN_PREPARE( ltid, gid )) != 0 ) {
 			rs->sr_text = "txn_prepare failed";
 		} else {
+#ifdef LDAP_SYNC
+			struct berval ctx_nrdn;
+#endif
+
 			bdb_cache_modrdn( save, &op->orr_nnewrdn, e, neip,
 				bdb->bi_dbenv, locker, &lock );
+
+#ifdef LDAP_SYNC
+			if ( ctxcsn_added ) {
+				ctx_nrdn.bv_val = "cn=ldapsync";
+				ctx_nrdn.bv_len = strlen( ctx_nrdn.bv_val );
+				bdb_cache_add( bdb, suffix_ei, ctxcsn_e, &ctx_nrdn, locker );
+			}
+#endif
+
 			if(( rs->sr_err=TXN_COMMIT( ltid, 0 )) != 0 ) {
 				rs->sr_text = "txn_commit failed";
 			} else {
