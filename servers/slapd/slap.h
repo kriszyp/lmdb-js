@@ -1508,6 +1508,7 @@ typedef struct slap_paged_state {
 typedef struct slap_op {
 	unsigned long o_opid;	/* id of this operation */
 	unsigned long o_connid; /* id of conn initiating this op */
+	struct slap_conn *o_conn;	/* connection spawning this op */
 
 	ber_int_t	o_msgid;	/* msgid of the request */
 	ber_int_t	o_protocol;	/* version of the LDAP protocol used by client */
