@@ -22,7 +22,6 @@ static struct berval presence_key = {LUTIL_HASH_BYTES, presence_keyval};
 static slap_mask_t index_mask(
 	Backend *be,
 	AttributeDescription *desc,
-	char **dbname,
 	struct berval *atname )
 {
 	AttributeType *at;
@@ -32,7 +31,6 @@ static slap_mask_t index_mask(
 
 	if( mask ) {
 		*atname = desc->ad_cname;
-		*dbname = desc->ad_cname.bv_val;
 		return mask;
 	}
 
@@ -45,7 +43,6 @@ static slap_mask_t index_mask(
 
 		if ( mask && ( mask ^ SLAP_INDEX_NOTAGS ) ) {
 			*atname = desc->ad_type->sat_cname;
-			*dbname = desc->ad_type->sat_cname.bv_val;
 			return mask;
 		}
 	}
@@ -59,7 +56,6 @@ static slap_mask_t index_mask(
 
 		if ( mask && ( mask ^ SLAP_INDEX_NOSUBTYPES ) ) {
 			*atname = at->sat_cname;
-			*dbname = at->sat_cname.bv_val;
 			return mask;
 		}
 	}
@@ -72,10 +68,9 @@ int bdb_index_is_indexed(
 	AttributeDescription *desc )
 {
 	slap_mask_t mask;
-	char *dbname;
 	struct berval prefix;
 
-	mask = index_mask( be, desc, &dbname, &prefix );
+	mask = index_mask( be, desc, &prefix );
 
 	if( mask == 0 ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
@@ -95,15 +90,14 @@ int bdb_index_param(
 	int rc;
 	slap_mask_t mask;
 	DB *db;
-	char *dbname;
 
-	mask = index_mask( be, desc, &dbname, prefixp );
+	mask = index_mask( be, desc, prefixp );
 
 	if( mask == 0 ) {
 		return LDAP_INAPPROPRIATE_MATCHING;
 	}
 
-	rc = bdb_db_cache( be, NULL, dbname, &db );
+	rc = bdb_db_cache( be, NULL, prefixp->bv_val, &db );
 
 	if( rc != LDAP_SUCCESS ) {
 		return rc;
@@ -150,7 +144,6 @@ done:
 static int indexer(
 	Backend *be,
 	DB_TXN *txn,
-	char *dbname,
 	struct berval *atname,
 	BerVarray vals,
 	ID id,
@@ -165,16 +158,17 @@ static int indexer(
 
 	assert( mask );
 
-	rc = bdb_db_cache( be, txn, dbname, &db );
+	rc = bdb_db_cache( be, txn, atname->bv_val, &db );
 	
 	if ( rc != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( INDEX, ERR, 
-			"bdb_index_read: Could not open DB %s\n", dbname, 0, 0 );
+			"bdb_index_read: Could not open DB %s\n",
+			atname->bv_val, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_ANY,
-			"<= bdb_index_read NULL (could not open %s)\n",
-			dbname, 0, 0 );
+			"bdb_index_read: Could not open DB %s\n",
+			atname->bv_val, 0, 0 );
 #endif
 		return LDAP_OTHER;
 	}
@@ -285,8 +279,7 @@ static int index_at_values(
 	}
 
 	if( mask ) {
-		rc = indexer( be, txn, type->sat_cname.bv_val,
-			&type->sat_cname,
+		rc = indexer( be, txn, &type->sat_cname,
 			vals, id, op,
 			mask );
 
@@ -304,8 +297,7 @@ static int index_at_values(
 		}
 
 		if( mask ) {
-			rc = indexer( be, txn, desc->ad_cname.bv_val,
-				&desc->ad_cname,
+			rc = indexer( be, txn, &desc->ad_cname,
 				vals, id, op,
 				mask );
 

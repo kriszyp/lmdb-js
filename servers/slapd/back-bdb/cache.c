@@ -19,7 +19,9 @@
 
 /* BDB backend specific entry info -- visible only to the cache */
 typedef struct bdb_entry_info {
+#if 0
 	ldap_pvt_thread_rdwr_t	bei_rdwr;	/* reader/writer lock */
+#endif
 
 	/*
 	 * remaining fields require backend cache lock to access
@@ -101,6 +103,7 @@ bdb_cache_entry_rdwr_unlock(Entry *e, int rw)
 }
 #endif	/* unused */
 
+#if 0
 static int
 bdb_cache_entry_rdwr_init(Entry *e)
 {
@@ -112,6 +115,7 @@ bdb_cache_entry_rdwr_destroy(Entry *e)
 {
 	return ldap_pvt_thread_rdwr_destroy( &BEI(e)->bei_rdwr );
 }
+#endif
 
 static int
 bdb_cache_entry_private_init( Entry *e )
@@ -125,11 +129,13 @@ bdb_cache_entry_private_init( Entry *e )
 
 	e->e_private = ch_calloc(1, sizeof(struct bdb_entry_info));
 
+#if 0
 	if( bdb_cache_entry_rdwr_init( e ) != 0 ) {
 		free( BEI(e) );
 		e->e_private = NULL;
 		return 1;
 	} 
+#endif
 
 	return 0;
 }
@@ -205,7 +211,9 @@ bdb_cache_entry_private_destroy( Entry *e )
 {
 	assert( e->e_private );
 
+#if 0
 	bdb_cache_entry_rdwr_destroy( e );
+#endif
 
 	free( e->e_private );
 	e->e_private = NULL;

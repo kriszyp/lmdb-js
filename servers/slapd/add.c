@@ -455,13 +455,9 @@ slap_mods2entry(
 
 			} else {
 				int		rc;
-				const char	*text = NULL;
-				char		textbuf[ SLAP_TEXT_BUFLEN ]  = { '\0' };
-				
 				rc = modify_check_duplicates( mods->sml_desc, mr,
 						NULL, mods->sml_bvalues, 0,
-						&text, textbuf, sizeof( textbuf ) );
-
+						text, textbuf, textlen );
 				if ( rc != LDAP_SUCCESS ) {
 					return rc;
 				}
