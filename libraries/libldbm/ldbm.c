@@ -526,11 +526,358 @@ ldbm_errno( LDBM ldbm )
 	return( err );
 }
 
+#elif HAVE_MDBM
+
+/* MMAPED DBM HASHING DATABASE */
+
+#include <alloca.h>
+#include <string.h>
+
+/* #define MDBM_DEBUG */
+
+#ifdef MDBM_DEBUG
+#include <stdio.h>
+#endif
+
+#define NO_NULL_KEY
+/* #define MDBM_CHAIN */
+
+#ifdef MDBM_CHAIN
+
+/* Use chaining */
+
+
+#define mdbm_store	mdbm_chain_store
+#define mdbm_fetch	mdbm_chain_fetch
+#define mdbm_delete	mdbm_chain_delete
+#define mdbm_first	mdbm_chain_first
+#define mdbm_next	mdbm_chain_next
+
+#endif
+
+#define MDBM_PG_SZ	(4*1024)
+
+/*****************************************************************
+ *                                                               *
+ * use mdbm                                                      *
+ *                                                               *
+ *****************************************************************/
+
+LDBM
+ldbm_open( char *name, int rw, int mode, int dbcachesize )
+{
+	LDBM		db;
+
+#ifdef MDBM_DEBUG
+	fprintf( stdout,
+		 "==>(mdbm)ldbm_open(name=%s,rw=%x,mode=%x,cachesize=%d)\n",
+		 name ? name : "NULL", rw, mode, dbcachesize );
+	fflush( stdout );
+#endif
+
+	LDBM_LOCK;	/* We need locking here, this is the only non-thread
+			 * safe function we have.
+			 */
+
+	if ( (db =  mdbm_open( name, rw, mode, MDBM_PG_SZ )) == NULL ) {
+
+		LDBM_UNLOCK;
+#ifdef MDBM_DEBUG
+		fprintf( stdout, "<==(mdbm)ldbm_open(db=NULL)\n" );
+		fflush( stdout );
+#endif
+		return( NULL );
+
+	}
+
+#ifdef MDBM_CHAIN
+	(void)mdbm_set_chain(db);
+#endif
+
+	LDBM_UNLOCK;
+
+#ifdef MDBM_DEBUG
+	fprintf( stdout, "<==(mdbm)ldbm_open(db=%p)\n", db );
+	fflush( stdout );
+#endif
+
+	return( db );
+
+}/* LDBM ldbm_open() */
+
+
+
+
+void
+ldbm_close( LDBM ldbm )
+{
+
+	/* Open and close are not reentrant so we need to use locks here */
+
+#ifdef MDBM_DEBUG
+	fprintf( stdout,
+		 "==>(mdbm)ldbm_close(db=%p)\n", ldbm );
+	fflush( stdout );
+#endif
+
+	LDBM_LOCK;
+	mdbm_close( ldbm );
+	LDBM_UNLOCK;
+
+#ifdef MDBM_DEBUG
+	fprintf( stdout, "<==(mdbm)ldbm_close()\n" );
+	fflush( stdout );
+#endif
+
+}/* void ldbm_close() */
+
+
+
+
+void
+ldbm_sync( LDBM ldbm )
+{
+
+	/* XXX: Not sure if this is re-entrant need to check code, if so
+	 * you can leave LOCKS out.
+	 */
+
+	LDBM_LOCK;
+	mdbm_sync( ldbm );
+        LDBM_UNLOCK;
+
+}/* void ldbm_sync() */
+
+
+#define MAX_MDBM_RETRY	5
+
+Datum
+ldbm_fetch( LDBM ldbm, Datum key )
+{
+	Datum	d;
+	kvpair	k;
+	int	retry = 0;
+
+	/* This hack is needed because MDBM does not take keys
+	 * which begin with NULL when working in the chaining
+	 * mode.
+	 */
+
+	/* LDBM_LOCK; */
+
+#ifdef NO_NULL_KEY
+	k.key.dsize = key.dsize + 1;			
+	k.key.dptr = alloca(k.key.dsize);
+	*(k.key.dptr) = 'l';
+	memcpy( (void *)(k.key.dptr + 1), key.dptr, key.dsize );	
+#else
+	k.key = key;
+#endif	
+
+	k.val.dptr = NULL;
+	k.val.dsize = 0;
+
+	do {
+
+		d = mdbm_fetch( ldbm, k );
+
+		if ( d.dsize > 0 ) {
+
+			if ( k.val.dptr != NULL ) {
+			    
+			    free( k.val.dptr );
+
+			}
+
+			if ( (k.val.dptr = malloc( d.dsize )) != NULL ) {
+		
+				k.val.dsize = d.dsize;
+				d = mdbm_fetch( ldbm, k );
+
+			} else { 
+
+				d.dsize = 0;
+				break;
+			
+			}
+
+		}/* if ( d.dsize > 0 ) */
+
+	} while ((d.dsize > k.val.dsize) && (++retry < MAX_MDBM_RETRY));
+
+	/* LDBM_UNLOCK; */
+
+	return d;
+
+}/* Datum ldbm_fetch() */
+
+
+
+
+int
+ldbm_store( LDBM ldbm, Datum key, Datum data, int flags )
+{
+	int	rc;
+	Datum	int_key;	/* Internal key */
+
+#ifdef MDBM_DEBUG
+	fprintf( stdout,
+		 "==>(mdbm)ldbm_store(db=%p, key(dptr=%p,sz=%d), data(dptr=%p,sz=%d), flags=%x)\n",
+		 ldbm, key.dptr, key.dsize, data.dptr, data.dsize, flags );
+	fflush( stdout );
+#endif
+
+	/* LDBM_LOCK; */
+
+#ifdef NO_NULL_KEY
+	int_key.dsize = key.dsize + 1;
+	int_key.dptr = alloca( int_key.dsize );
+	*(int_key.dptr) = 'l';	/* Must not be NULL !*/
+	memcpy( (void *)(int_key.dptr + 1), key.dptr, key.dsize );
+#else
+	int_key = key;
+#endif
+
+	rc = mdbm_store( ldbm, int_key, data, flags );
+	if ( flags & LDBM_SYNC ) {
+		mdbm_sync( ldbm );
+	}
+
+	/* LDBM_UNLOCK; */
+
+#ifdef MDBM_DEBUG
+	fprintf( stdout, "<==(mdbm)ldbm_store(rc=%d)\n", rc );
+	fflush( stdout );
+#endif
+
+	return( rc );
+
+}/* int ldbm_store() */
+
+
+
+
+int
+ldbm_delete( LDBM ldbm, Datum key )
+{
+	int	rc;
+	Datum	int_key;
+
+	/* LDBM_LOCK; */
+
+#ifdef NO_NULL_KEY
+	int_key.dsize = key.dsize + 1;
+	int_key.dptr = alloca(int_key.dsize);
+	*(int_key.dptr) = 'l';
+	memcpy( (void *)(int_key.dptr + 1), key.dptr, key.dsize );	
+#else
+	int_key = key;
+#endif
+	
+	rc = mdbm_delete( ldbm, int_key );
+
+	/* LDBM_UNLOCK; */
+
+	return( rc );
+
+}/* int ldbm_delete() */
+
+
+
+
+static Datum
+ldbm_get_next( LDBM ldbm, kvpair (*fptr)(MDBM *, kvpair) ) 
+{
+
+	kvpair	out;
+	kvpair	in;
+	Datum	ret;
+	size_t	sz = MDBM_PAGE_SIZE(ldbm);
+#ifdef NO_NULL_KEY
+	int	delta = 1;
+#else
+	int	delta = 0;
+#endif
+
+	/* LDBM_LOCK; */
+
+	in.key.dsize = sz;	/* Assume first key in one pg */
+	in.key.dptr = alloca(sz);
+	
+	in.val.dptr = NULL;	/* Don't need data just key */ 
+	in.val.dsize = 0;
+
+	ret.dptr = NULL;
+	ret.dsize = NULL;
+
+	out = fptr( ldbm, in );
+
+	if (out.key.dsize > 0) {
+
+	    ret.dsize = out.key.dsize - delta;
+	    if ((ret.dptr = (char *)malloc(ret.dsize)) == NULL) { 
+
+		ret.dsize = 0;
+		ret.dptr = NULL;
+
+	    } else {
+
+		memcpy(ret.dptr, (void *)(out.key.dptr + delta),
+		       ret.dsize );
+
+	    }
+
+	}
+
+	/* LDBM_UNLOCK; */
+
+	return ret;
+
+}/* static Datum ldbm_get_next() */
+
+
+
+
+Datum
+ldbm_firstkey( LDBM ldbm )
+{
+
+	return ldbm_get_next( ldbm, mdbm_first );
+
+}/* Datum ldbm_firstkey() */
+
+
+
+
+Datum
+ldbm_nextkey( LDBM ldbm, Datum key )
+{
+
+	/* XXX:
+	 * don't know if this will affect the LDAP server opertaion 
+	 * but mdbm cannot take and input key.
+	 */
+
+	return ldbm_get_next( ldbm, mdbm_next );
+
+}/* Datum ldbm_nextkey() */
+
+int
+ldbm_errno( LDBM ldbm )
+{
+	/* XXX: best we can do with current  mdbm interface */
+	return( errno );
+
+}/* int ldbm_errno() */
+
+
+
+
 #elif defined( HAVE_NDBM )
 
 /*****************************************************************
  *                                                               *
- * if no gdbm, fall back to using ndbm, the standard unix thing  *
+ * if no gdbm or mdbm, fall back to using ndbm, the standard unix thing  *
  *                                                               *
  *****************************************************************/
 
