@@ -595,9 +595,11 @@ attributetype ( 1.3.6.1.4.1.4203.1.3.2
 	SYNTAX 1.3.6.1.4.1.4203.1.1.1
 	SINGLE-VALUE NO-USER-MODIFICATION USAGE dSAOperation )
 
-attributetype ( 1.3.6.1.4.1.4203.666.1.5
-	NAME 'OpenLDAPaci'
-	DESC 'OpenLDAP access control information'
-	EQUALITY OpenLDAPaciMatch
-	SYNTAX 1.3.6.1.4.1.4203.666.2.1
-	USAGE directoryOperation )
+# Experimental ( subject to change )
+#	this really shouldn't be published!
+#attributetype ( 1.3.6.1.4.1.4203.666.1.5
+#	NAME 'OpenLDAPaci'
+#	DESC 'OpenLDAP access control information'
+#	EQUALITY OpenLDAPaciMatch
+#	SYNTAX 1.3.6.1.4.1.4203.666.2.1
+#	USAGE directoryOperation )
