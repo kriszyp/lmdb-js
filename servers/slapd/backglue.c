@@ -189,6 +189,8 @@ typedef struct glue_state {
 	int nentries;
 	int matchlen;
 	char *matched;
+	int nrefs;
+	struct berval **refs;
 } glue_state;
 
 void
@@ -224,6 +226,27 @@ glue_back_response (
 			gs->matched = ch_strdup (matched);
 			gs->matchlen = len;
 		}
+	}
+	if (ref) {
+		int i, j, k;
+		struct berval **new;
+
+		for (i=0; ref[i]; i++);
+
+		j = gs->nrefs;
+		if (!j) {
+			new = ch_malloc ((i+1)*sizeof(struct berval *));
+			gs->nrefs = i;
+		} else {
+			new = ch_realloc(gs->refs,
+				(j+i+1)*sizeof(struct berval *));
+		}
+		for (k=0; k<i; j++,k++) {
+			new[j] = ber_bvdup(ref[k]);
+		}
+		new[j] = NULL;
+		gs->nrefs = j;
+		gs->refs = new;
 	}
 }
 
@@ -267,8 +290,7 @@ glue_back_search (
 	BackendDB *be;
 	int i, rc, t2limit = 0, s2limit = 0;
 	long stoptime = 0;
-	glue_state gs =
-	{0};
+	glue_state gs = {0};
 
 
 	if (tlimit)
@@ -391,11 +413,13 @@ glue_back_search (
 	op->o_response = NULL;
 	op->o_glue = NULL;
 
-	send_search_result (conn, op, gs.err, gs.matched, NULL, NULL,
+	send_search_result (conn, op, gs.err, gs.matched, NULL, gs.refs,
 			    NULL, gs.nentries);
-      done:
+done:
 	if (gs.matched)
 		free (gs.matched);
+	if (gs.refs)
+		ber_bvecfree(gs.refs);
 	return rc;
 }
 
