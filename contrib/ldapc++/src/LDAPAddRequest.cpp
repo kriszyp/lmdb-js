@@ -35,6 +35,8 @@ LDAPAddRequest::LDAPAddRequest(const LDAPEntry* entry,
 LDAPAddRequest::~LDAPAddRequest(){
     DEBUG(LDAP_DEBUG_DESTROY, "LDAPAddRequest::~LDAPAddRequest()" << endl);
     delete m_entry;
+    // flush the cache, as the add may affect searches
+    m_connection->flush_cache();
 }
 
 LDAPMessageQueue* LDAPAddRequest::sendRequest(){

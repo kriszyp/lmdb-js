@@ -37,6 +37,8 @@ LDAPModifyRequest::~LDAPModifyRequest(){
     DEBUG(LDAP_DEBUG_DESTROY, 
             "LDAPModifyRequest::~LDAPModifyRequest()" << endl);
     delete m_modList;
+    // flush this entry from cache.
+    m_connection->uncache_entry(m_dn);
 }
 
 LDAPMessageQueue* LDAPModifyRequest::sendRequest(){

@@ -18,17 +18,17 @@ typedef list<LDAPAttribute> AttrList;
  * This container class is used to store multiple LDAPAttribute-objects.
  */
 class LDAPAttributeList{
-	private :
-		AttrList m_attrs;
+    private :
+        AttrList m_attrs;
 
-	public :
-	        typedef AttrList::const_iterator const_iterator;
+    public :
+        typedef AttrList::const_iterator const_iterator;
 
 
         /**
          * Copy-constructor
          */
-		LDAPAttributeList(const LDAPAttributeList& al);
+        LDAPAttributeList(const LDAPAttributeList& al);
         
         /**
          * For internal use only
@@ -37,12 +37,12 @@ class LDAPAttributeList{
          * list of attributes from a LDAPMessage-struct that was return by
          * the C-API
          */
-		LDAPAttributeList(const LDAPAsynConnection *ld, LDAPMessage *msg);
+        LDAPAttributeList(const LDAPAsynConnection *ld, LDAPMessage *msg);
 
         /**
          * Constructs an empty list.
          */   
-		LDAPAttributeList();
+        LDAPAttributeList();
 
         /**
          * Destructor
@@ -70,19 +70,19 @@ class LDAPAttributeList{
          * Adds one element to the end of the list.
          * @param attr The attribute to add to the list.
          */
-		void addAttribute(const LDAPAttribute& attr);
+        void addAttribute(const LDAPAttribute& attr);
 
         /**
          * Translates the list of Attributes to a 0-terminated array of
          * LDAPMod-structures as needed by the C-API
          */
-		LDAPMod** toLDAPModArray() const;
-		
+        LDAPMod** toLDAPModArray() const;
+        
         /**
          * This method can be used to dump the data of a LDAPResult-Object.
          * It is only useful for debugging purposes at the moment
          */
-		friend ostream& operator << (ostream& s, const LDAPAttributeList& al);
+        friend ostream& operator << (ostream& s, const LDAPAttributeList& al);
 };
 #endif // LDAP_ATTRIBUTE_LIST_H
 
