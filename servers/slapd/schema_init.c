@@ -776,7 +776,6 @@ approxIndexer(
 
 
 	for( j=0; values[j] != NULL; j++ ) {
-
 		/* Isolate how many words there are. There will be a key for each */
 		val = ch_strdup( values[j]->bv_val );
 		for( wordcount=0,c=val;	 *c;  c++) {
@@ -827,7 +826,6 @@ approxFilter(
 	char *val, *c;
 	int i, count, len;
 	struct berval **keys;
-
 
 	/* Isolate how many words there are. There will be a key for each */
 	val = ch_strdup( ((struct berval *)assertValue)->bv_val );
@@ -899,7 +897,6 @@ approxIndexer(
 	int i;
 	struct berval **keys;
 
-
 	for( i=0; values[i] != NULL; i++ ) {
 		/* just count them */
 	}
@@ -931,7 +928,6 @@ approxFilter(
 	struct berval ***keysp )
 {
 	struct berval **keys;
-
 
 	keys = (struct berval **)ch_malloc( sizeof( struct berval * ) * 2 );
 
@@ -3623,8 +3619,8 @@ numericStringNormalize(
 		}
 	}
 
-	assert( newval->bv_val <= p );
-	assert( q <= p );
+	/* we should have copied no more then is in val */
+	assert( (q - newval->bv_val) <= (p - val->bv_val) );
 
 	/* null terminate */
 	*q = '\0';
