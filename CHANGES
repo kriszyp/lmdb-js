@@ -11,6 +11,8 @@ OpenLDAP 2.1.23 Engineering
 	Fixed NS-MTA-MD5 buffer size bug (ITS#2662)
 	Added replica uri keyword (ITS#2594)
 	Added replica-pidfile, replica-argsfile keywords
+	Build Environment
+		Fix <saslplug.h> inclusion (ITS#2762)
 
 OpenLDAP 2.1.22 Release
 	Fixed slapd yielding select fix (ITS#2603)
