@@ -14,7 +14,6 @@
 ## <http://www.OpenLDAP.org/license.html>.
 
 SRCS = overlays.c \
-	chain.c \
 	denyop.c \
 	dyngroup.c \
 	glue.c \
@@ -26,7 +25,6 @@ SRCS = overlays.c \
 	syncprov.c \
 	unique.c
 OBJS = overlays.lo \
-	chain.lo \
 	denyop.lo \
 	dyngroup.lo \
 	glue.lo \
@@ -52,9 +50,6 @@ PROGRAMS = @SLAPD_DYNAMIC_OVERLAYS@
 
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
-
-chain.la : chain.lo $(@PLAT@_LINK_LIBS)
-	$(LTLINK_MOD) -module -o $@ chain.lo version.lo $(LINK_LIBS)
 
 denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)

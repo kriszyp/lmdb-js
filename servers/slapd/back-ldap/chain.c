@@ -21,17 +21,13 @@
 
 #include "portable.h"
 
-#if defined(SLAPD_LDAP) 
-
-#ifdef SLAPD_OVER_CHAIN
-
 #include <stdio.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "../back-ldap/back-ldap.h"
+#include "back-ldap.h"
 
 static BackendInfo *lback;
 
@@ -388,7 +384,7 @@ end_of_searchref:;
 }
 
 static int
-ldap_chain_config(
+ldap_chain_db_config(
 	BackendDB	*be,
 	const char	*fname,
 	int		lineno,
@@ -416,13 +412,21 @@ ldap_chain_config(
 }
 
 static int
-ldap_chain_init(
+ldap_chain_db_init(
 	BackendDB *be
 )
 {
 	slap_overinst *on = (slap_overinst *) be->bd_info;
 	void *private = be->be_private;
 	int rc;
+
+	if ( lback == NULL ) {
+		lback = backend_info( "ldap" );
+
+		if ( lback == NULL ) {
+			return -1;
+		}
+	}
 
 	be->be_private = NULL;
 	rc = lback->bi_db_init( be );
@@ -433,7 +437,7 @@ ldap_chain_init(
 }
 
 static int
-ldap_chain_destroy(
+ldap_chain_db_destroy(
 	BackendDB *be
 )
 {
@@ -451,18 +455,12 @@ ldap_chain_destroy(
 static slap_overinst ldapchain;
 
 int
-chain_init()
+chain_init( void )
 {
-	lback = backend_info( "ldap" );
-
-	if ( !lback ) {
-		return -1;
-	}
-
 	ldapchain.on_bi.bi_type = "chain";
-	ldapchain.on_bi.bi_db_init = ldap_chain_init;
-	ldapchain.on_bi.bi_db_config = ldap_chain_config;
-	ldapchain.on_bi.bi_db_destroy = ldap_chain_destroy;
+	ldapchain.on_bi.bi_db_init = ldap_chain_db_init;
+	ldapchain.on_bi.bi_db_config = ldap_chain_db_config;
+	ldapchain.on_bi.bi_db_destroy = ldap_chain_db_destroy;
 	
 	/* ... otherwise the underlying backend's function would be called,
 	 * likely passing an invalid entry; on the contrary, the requested
@@ -483,12 +481,3 @@ chain_init()
 	return overlay_register( &ldapchain );
 }
 
-#if SLAPD_OVER_CHAIN == SLAPD_MOD_DYNAMIC
-int init_module(int argc, char *argv[]) {
-	return chain_init();
-}
-#endif /* SLAPD_OVER_CHAIN == SLAPD_MOD_DYNAMIC */
-
-#endif /* SLAPD_OVER_CHAIN */
-
-#endif /* ! defined(SLAPD_LDAP) */
