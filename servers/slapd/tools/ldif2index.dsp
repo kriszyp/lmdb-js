@@ -61,8 +61,8 @@ LINK32=link.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "ldif2ind"
-# PROP Intermediate_Dir "ldif2ind"
+# PROP Output_Dir "Debug"
+# PROP Intermediate_Dir "Debug"
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /Zi /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
@@ -74,7 +74,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 kernel32.lib shell32.lib hs_regexd.lib libdbs.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /out:"Debug/ldif2index.exe" /pdbtype:sept
+# ADD LINK32 kernel32.lib shell32.lib hs_regexd.lib libdbs.lib ws2_32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 
 !ENDIF 
 
@@ -85,6 +85,10 @@ LINK32=link.exe
 # Begin Source File
 
 SOURCE=.\ldif2index.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\mimic.c
 # End Source File
 # End Target
 # End Project

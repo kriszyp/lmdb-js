@@ -86,5 +86,9 @@ LINK32=link.exe
 
 SOURCE=.\ldif2id2children.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\mimic.c
+# End Source File
 # End Target
 # End Project
