@@ -3073,8 +3073,13 @@ static slap_syntax_defs_rec syntax_defs[] = {
 	{"( 1.2.36.79672281.1.5.0 DESC 'RDN' )",
 		0, rdnValidate, rdnPretty},
 #ifdef LDAP_COMP_MATCH
- 	{"( 1.2.36.79672281.1.5.2 DESC 'ComponentFilter' )",
+        {"( 1.2.36.79672281.1.5.3 DESC 'allComponents' )",
+                0, allComponentsValidate, NULL},
+ 	{"( 1.2.36.79672281.1.5.2 DESC 'componentFilter') ",
 		0, componentFilterValidate, NULL},
+ 	{"( 1.3.6.1.4.1.4203.666.2.7 DESC 'componentCertificate' "
+		X_BINARY X_NOT_H_R ")",
+		SLAP_SYNTAX_BINARY|SLAP_SYNTAX_BER, componentCertificateValidate, NULL},
 #endif
 	{"( 1.3.6.1.4.1.1466.115.121.1.13 DESC 'Data Quality' )",
 		0, NULL, NULL},
@@ -3320,8 +3325,21 @@ static slap_mrule_defs_rec mrule_defs[] = {
 #ifdef LDAP_COMP_MATCH
 	{"( 1.2.36.79672281.1.13.2 NAME 'componentFilterMatch' "
 		"SYNTAX 1.2.36.79672281.1.5.2 )",
-		SLAP_MR_EQUALITY|SLAP_MR_EXT|SLAP_MR_COMPONENT, NULL,
+		SLAP_MR_EXT|SLAP_MR_COMPONENT, NULL,
 		NULL, NULL , componentFilterMatch,
+		octetStringIndexer, octetStringFilter,
+		NULL },
+
+        {"( 1.2.36.79672281.1.13.6 NAME 'allComponentsMatch' "
+                "SYNTAX 1.2.36.79672281.1.5.3 )",
+                SLAP_MR_EQUALITY|SLAP_MR_EXT|SLAP_MR_COMPONENT, NULL,
+                NULL, NULL , allComponentsMatch,
+                octetStringIndexer, octetStringFilter,
+                NULL },
+	{"( 1.3.6.1.4.1.4203.666.4.12 NAME 'componentCertificateMatch' "
+		"SYNTAX 1.3.6.1.4.1.4203.666.2.7 )",
+		SLAP_MR_EXT|SLAP_MR_COMPONENT, NULL,
+		NULL, NULL , componentCertificateMatch,
 		octetStringIndexer, octetStringFilter,
 		NULL },
 #endif

@@ -342,9 +342,28 @@ LDAP_SLAPD_F (int) componentFilterMatch LDAP_P((
 	struct berval *value, 
 	void *assertedValue ));
 
+#define componentCertificateMatch componentFilterMatch
+
+LDAP_SLAPD_F (int) componentCertificateValidate LDAP_P(( 
+	Syntax *syntax,
+	struct berval* bv ));
+
+LDAP_SLAPD_F (int) allComponentsMatch LDAP_P((
+        int *matchp,
+        slap_mask_t flags,
+        Syntax *syntax,
+        MatchingRule *mr,
+        struct berval *value,
+        void *assertedValue ));
+                                                                          
 LDAP_SLAPD_F (int) componentFilterValidate LDAP_P(( 
 	Syntax *syntax,
 	struct berval* bv ));
+
+LDAP_SLAPD_F (int) allComponentsValidate LDAP_P((
+        Syntax *syntax,
+        struct berval* bv ));
+
 #endif
 
 /*

@@ -1,64 +1,153 @@
-dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: cn=beta,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
 objectClass: extensibleObject
-uid: sangseoklim
-cn: Sang Seok Lim
-sn: Lim
-componentTest: component1
-
-dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
-objectClass: OpenLDAPperson
-objectClass: extensibleObject
-uid: seotaejee
-cn: Seo Tae Jee
+uid:: Y2hhcmxpZSA=
+cn: beta
 sn: Jee
-componentTest: component2
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
 
-dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: cn=charlie,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
 objectClass: extensibleObject
-uid: sangseoklim
-cn: Sang Seok Lim
-sn: Lim
-componentTest: component1
-
-dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
-objectClass: OpenLDAPperson
-objectClass: extensibleObject
-uid: seotaejee
-cn: Seo Tae Jee
+uid:: Y2hhcmxpZSA=
+cn: charlie
 sn: Jee
-componentTest: component2
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
 
-dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: cn=beta,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
 objectClass: extensibleObject
-uid: sangseoklim
-cn: Sang Seok Lim
-sn: Lim
-componentTest: component1
-
-dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
-objectClass: OpenLDAPperson
-objectClass: extensibleObject
-uid: seotaejee
-cn: Seo Tae Jee
+uid:: Y2hhcmxpZSA=
+cn: beta
 sn: Jee
-componentTest: component2
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
 
-dn: uid=sangseoklim,ou=Alumni Association,ou=People,dc=example,dc=com
+dn: cn=charlie,ou=Alumni Association,ou=People,dc=example,dc=com
 objectClass: OpenLDAPperson
 objectClass: extensibleObject
-uid: sangseoklim
-cn: Sang Seok Lim
-sn: Lim
-componentTest: component1
-
-dn: uid=seotaejee,ou=Alumni Association,ou=People,dc=example,dc=com
-objectClass: OpenLDAPperson
-objectClass: extensibleObject
-uid: seotaejee
-cn: Seo Tae Jee
+uid:: Y2hhcmxpZSA=
+cn: charlie
 sn: Jee
-componentTest: component2
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
+
+dn: cn=beta,ou=Alumni Association,ou=People,dc=example,dc=com
+objectClass: OpenLDAPperson
+objectClass: extensibleObject
+uid:: Y2hhcmxpZSA=
+cn: beta
+sn: Jee
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
+
+dn: cn=charlie,ou=Alumni Association,ou=People,dc=example,dc=com
+objectClass: OpenLDAPperson
+objectClass: extensibleObject
+uid:: Y2hhcmxpZSA=
+cn: charlie
+sn: Jee
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
+
+dn: cn=beta,ou=Alumni Association,ou=People,dc=example,dc=com
+objectClass: OpenLDAPperson
+objectClass: extensibleObject
+uid:: Y2hhcmxpZSA=
+cn: beta
+sn: Jee
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
+
+dn: cn=charlie,ou=Alumni Association,ou=People,dc=example,dc=com
+objectClass: OpenLDAPperson
+objectClass: extensibleObject
+uid:: Y2hhcmxpZSA=
+cn: charlie
+sn: Jee
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
+
+dn: cn=charlie,ou=Alumni Association,ou=People,dc=example,dc=com
+objectClass: OpenLDAPperson
+objectClass: extensibleObject
+uid:: Y2hhcmxpZSA=
+cn: charlie
+sn: Jee
+componentCertificate;binary:: MIIB9jCCAV+gAwIBAgIBADANBgkqhkiG9w0BAQQFADANMQsw
+ CQYDVQQGEwJVUzAeFw0wNDEwMTIwMDAxNTBaFw0wNDExMTEwMDAxNTBaMA0xCzAJBgNVBAYTAlVTM
+ IGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCQcTs4uD+gAoQ1XkYN4woLtZaEi7XVEVIJQ6Rsn2
+ QP3MONBT9jvrhVcnUJQtvEEkfnsNANKeYntUTvih76jErFNTmg7zl0govFSkiuS+tfrZnn/Ebix3+
+ tTMnAKUQXkYi5Mr+x3U44yYo1EPLpZlcV1Caafc30EMRQ/Gv/PdrqYwIDAQABo2YwZDAdBgNVHQ4E
+ FgQUAzNnruNiI38IPf39ZJGFx8mDsxgwNQYDVR0jBC4wLIAUAzNnruNiI38IPf39ZJGFx8mDsxihE
+ aQPMA0xCzAJBgNVBAYTAlVTggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAf44lao
+ KcTySuz3yQb/lfOBVDh6oMxysal0eEij+nypQJ1H+rsZ+ebUlKMiTYhrTk3n3H6moHaxICENIu4P5
+ rD5UedAWtMjWq2ZJIa26bbvB4enGOF66KH5S823ZdKa0Kr2JcHAAYFpf+TQoGg5JO7TD3AECd7Qo9
+ a+4XrEkBJ/Q=
 

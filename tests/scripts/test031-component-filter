@@ -18,21 +18,27 @@ echo "running defines.sh"
 
 ## If you use this script then
 ## Make sure that you turn on LDAP_COMP_MATCH in slapd source codes
-## To disable, set "WITH_COMP_MATCH=no" in source_root/openldap/tests/run.in
-if test "$AC_WITH_COMP_MATCH" != "yes" ; then
-        echo "test disabled "
+## and --enable-modules  is configured yes
+if test "$AC_WITH_MODULES_ENABLED" != "yes" ; then
+        echo "dynamic module disabled "
         exit
 fi
 
 mkdir -p $TESTDIR $DBDIR1
 
+## Make sure that you set a proper path to component matching 
+## module directory in $COMPCONF
+## moduleload path/to/component/library/compmatch.la
+## otherwise it fails to execute slapd
 echo "Running slapadd to build slapd database..."
 . $CONFFILTER $BACKEND $MONITORDB < $COMPCONF > $ADDCONF
 $SLAPADD -f $ADDCONF -l $LDIFCOMPMATCH
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
-	exit $RC
+	echo "Be sure to have a certificate module in tests/data/comp_libs "
+	echo "The module is in openldap/contrib/slapd-modules/comp_match"
+	exit 
 fi
 
 echo "Running slapindex to index slapd database..."
@@ -73,10 +79,10 @@ fi
 
 cat /dev/null > $SEARCHOUT
 
-echo "Testing Component Filter Match RFC3687 searching:"
-echo "# Testing Component Filter Match RFC3687 searching:" >> $SEARCHOUT
+echo "Testing Component Filter Match RFC3687 Certificate searching:"
+echo "# Testing Component Filter Match RFC3687 Certificate searching:" >> $SEARCHOUT
 
-FILTER="(componentTest:componentFilterMatch:=item:{ component \"id\", rule caseExactMatch, value \"worldcup\" )"
+FILTER="(componentCertificate:componentCertificateMatch:=item:{ component \"tbsCertificate.serialNumber\", rule allComponentsMatch, value 0 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -89,7 +95,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(componentTest:componentFilterMatch:=not:item:{ component \"id2\", rule caseExactMatch, value \"worldcup\" )"
+FILTER="(componentCertificate:componentCertificateMatch:=item:{ component \"tbsCertificate.version\", rule allComponentsMatch, value 2 })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -102,7 +108,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(componentTest:componentFilterMatch:=not:item:{ component \"id2\", rule componentFilterMatch, value not:item:{ component \"id.0\", rule integerMatch, value 5 }})"
+FILTER="(componentCertificate:componentCertificateMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence.1.1.value\", rule octetStringMatch, value \"US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -115,7 +121,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(componentTest:componentFilterMatch:=and:{item:{ component \"100\", rule caseIgnoreMatch, value "foobar" },item:{ component \"id2.rr.kk\", rule componentFilterMatch, value item:{ component \"id3\", rule integerMatch, value 1 }}})"
+FILTER="(componentCertificate:componentCertificateMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence.1.1.value\", rule allComponentsMatch, value \"US\" })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -128,7 +134,7 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(componentTest:componentFilterMatch:=and:{not:item:{ component \"100\", rule caseIgnoreMatch, value "foobar" },not:item:{ component \"id2.rr.kk\", rule componentFilterMatch, value item:{ component \"id3\", rule integerMatch, value 1 }}})"
+FILTER="(componentCertificate:componentCertificateMatch:=item:{ component \"tbsCertificate.issuer.rdnSequence\", rule allComponentsMatch, value { { { type 2.5.4.6 , value \"US\" } } } })"
 echo "        f=$FILTER ..."
 echo "#         f=$FILTER ..." >> $SEARCHOUT
 $LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
@@ -141,18 +147,8 @@ if test $RC != 0 ; then
 	exit $RC
 fi
 
-FILTER="(componentTest:componentFilterMatch:=or:{not:item:{ component \"100\", rule caseIgnoreMatch, value "foobar" },not:item:{ component \"id2.rr.kk\", rule componentFilterMatch, value item:{ component \"id3\", rule integerMatch, value 1 }}})"
-echo "        f=$FILTER ..."
-echo "#         f=$FILTER ..." >> $SEARCHOUT
-$LDAPSEARCH -S "" -b "$BASEDN" -h $LOCALHOST -p $PORT1 \
-	"$FILTER" >> $SEARCHOUT 2>&1
 
-RC=$?
-if test $RC != 0 ; then
-	echo "ldapsearch failed ($RC)!"
-	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
-fi
+
 test $KILLSERVERS != no && kill -HUP $KILLPIDS
 
 echo "Filtering ldapsearch results..."

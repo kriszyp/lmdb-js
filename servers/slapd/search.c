@@ -147,7 +147,7 @@ do_search(
 		goto return_results;
 	}
 	filter2bv_x( op, op->ors_filter, &op->ors_filterstr );
-
+	
 	Debug( LDAP_DEBUG_ARGS, "    filter: %s\n",
 		!BER_BVISEMPTY( &op->ors_filterstr ) ? op->ors_filterstr.bv_val : "empty", 0, 0 );
 

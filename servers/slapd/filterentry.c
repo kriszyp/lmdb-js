@@ -163,13 +163,6 @@ static int test_mra_filter(
 		memfree = op->o_tmpfree;
 	}
 
-#ifdef LDAP_COMP_MATCH
-	/* Component Matching */
-	if( mra->ma_cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
-		return test_comp_filter_entry( op, e, mra );
-	}
-#endif
-
 	if ( mra->ma_desc ) {
 		/*
 		 * if ma_desc is available, then we're filtering for
@@ -188,6 +181,7 @@ static int test_mra_filter(
 
 			rc = value_match( &ret, slap_schema.si_ad_entryDN, mra->ma_rule,
 				0, &e->e_nname, &mra->ma_value, &text );
+	
 	
 			if( rc != LDAP_SUCCESS ) return rc;
 			if ( ret == 0 ) return LDAP_COMPARE_TRUE;
@@ -213,9 +207,19 @@ static int test_mra_filter(
 				int rc;
 				const char *text;
 	
+#ifdef LDAP_COMP_MATCH
+	/* Component Matching */
+		if( mra->ma_cf && mra->ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+					(struct berval *)a,(void*) mra , &text );
+		}
+		else {
+#endif
 				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
 					bv, &mra->ma_value, &text );
-	
+#ifdef LDAP_COMP_MATCH
+		}
+#endif
 				if( rc != LDAP_SUCCESS ) return rc;
 				if ( ret == 0 ) return LDAP_COMPARE_TRUE;
 			}
@@ -258,9 +262,21 @@ static int test_mra_filter(
 			for ( ; bv->bv_val != NULL; bv++ ) {
 				int ret;
 	
+#ifdef LDAP_COMP_MATCH
+	/* Component Matching */
+			if( mra->ma_cf &&
+					mra->ma_rule->smr_usage & SLAP_MR_COMPONENT) {
+				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
+					(struct berval*)a, (void*)mra, &text );
+			}
+			else {
+#endif
 				rc = value_match( &ret, a->a_desc, mra->ma_rule, 0,
 					bv, &value, &text );
 	
+#ifdef LDAP_COMP_MATCH
+			}
+#endif
 				if( rc != LDAP_SUCCESS ) break;
 	
 				if ( ret == 0 ) {
@@ -333,7 +349,6 @@ static int test_mra_filter(
 				/* check match */
 				rc = value_match( &ret, ad, mra->ma_rule, 0,
 					bv, &value, &text );
-
 				if ( value.bv_val != mra->ma_value.bv_val ) {
 					memfree( value.bv_val, memctx );
 				}

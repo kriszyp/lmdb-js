@@ -29,6 +29,11 @@ mra_free(
 	MatchingRuleAssertion *mra,
 	int	freeit )
 {
+#ifdef LDAP_COMP_MATCH
+	/* free component assertion */
+	if ( mra->ma_rule->smr_usage & SLAP_MR_COMPONENT )
+		component_free( mra->ma_cf );
+#endif
 	/* op->o_tmpfree( mra->ma_value.bv_val, op->o_tmpmemctx ); */
 	ch_free( mra->ma_value.bv_val );
 	if ( freeit ) op->o_tmpfree( (char *) mra, op->o_tmpmemctx );
@@ -186,7 +191,6 @@ get_mra(
 	/* Matching Rule for Component Matching */
 	Debug( LDAP_DEBUG_FILTER, "matchingrule %s\n",
 		ma.ma_rule->smr_mrule.mr_oid, 0, 0);
-
 	if( ma.ma_rule && ma.ma_rule->smr_usage & SLAP_MR_COMPONENT ) {
 		rc = get_comp_filter( op, &ma.ma_value, &ma.ma_cf, text );
 		if ( rc != LDAP_SUCCESS ) return rc;

@@ -1,30 +1,21 @@
-/* asn.h -- Component Filter Match Routines */
-/* $OpenLDAP$ */
-/* This work is part of OpenLDAP Software <http://www.openldap.org/>.
- *
- * Copyright 2003-2004 The OpenLDAP Foundation.
- * Portions Copyright 2004 by IBM Corporation.
+/* Copyright 2004 IBM Corporation
  * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted only as authorized by the OpenLDAP
+ * Redisribution and use in source and binary forms, with or without
+ * modification, are permitted only as  authorizd by the OpenLADP
  * Public License.
- *
- * A copy of this license is available in the file LICENSE in the
- * top-level directory of the distribution or, alternatively, at
- * <http://www.OpenLDAP.org/license.html>.
  */
+/* ACKNOWLEDGEMENTS
+ * This work originally developed by Sang Seok Lim
+ * 2004/06/18	03:20:00	slim@OpenLDAP.org
+ */
+#ifndef _H_ASN_MODULE
+#define _H_ASN_MODULE
 
-#ifdef LDAP_COMP_MATCH
-#ifndef _H_ASN
-#define _H_ASN
-
-#define NUM_ENCODING_TYPE 2
-
+typedef enum { BER, GSER } EncRulesType;
 typedef enum { ASN_BASIC, ASN_COMPOSITE } AsnType;
 
 typedef enum AsnTypeId {
-	BASICTYPE_BOOLEAN,	/* 1 */
+	BASICTYPE_BOOLEAN,
 	BASICTYPE_INTEGER, 
 	BASICTYPE_BITSTRING,
 	BASICTYPE_OCTETSTRING,
@@ -49,19 +40,19 @@ typedef enum AsnTypeId {
 	BASICTYPE_OCTETCONTAINING,
 	BASICTYPE_BITCONTAINING,
 	BASICTYPE_RELATIVE_OID,	/* 25 */
-	BASICTYPE_ANY,	/* 25 */
+	BASICTYPE_ANY,
 	/* Embedded Composite Types*/
 	COMPOSITE_ASN1_TYPE,
 	/* A New ASN.1 types including type reference */
 	RDNSequence,
 	RelativeDistinguishedName,
 	TelephoneNumber,
-	FacsimileTelephoneNumber_telephoneNumber,
+	FacsimileTelephoneNumber__telephoneNumber,
 	DirectoryString,
 	/* Newly Defined ASN.1 Type, Manually registered */
 	ASN_COMP_CERTIFICATE,
 	/* ASN.1 Type End */
 	ASNTYPE_END
 } AsnTypeId;
-#endif
+
 #endif

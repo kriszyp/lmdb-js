@@ -1,0 +1,60 @@
+# $OpenLDAP$
+# This work is part of OpenLDAP Software <http://www.openldap.org/>.
+#
+# Copyright 2003-2004 The OpenLDAP Foundation.
+# Portions Copyright 2004 by IBM Corporation.
+# All rights reserved.
+
+# Copyright 2004 Sang Seok Lim, IBM Corp. All Rights Reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted only as authorized by the OpenLDAP
+# Public License.
+#
+# A copy of this license is available in the file LICENSE in the
+# top-level directory of the distribution or, alternatively, at
+# <http://www.OpenLDAP.org/license.html>.
+
+topbuilddir = ../../../../build
+topsrcdir = ../../..
+snaccdir = /home/slim/snacc
+
+LIBTOOL=$(topbuilddir)/libtool
+OPT=-g -finstrument-functions -DLDAP_COMPONENT
+CC=gcc
+
+SNACC_INC=-I$(snaccdir) -I$(snaccdir)/c-lib/inc
+
+LDAP_INC=-I$(topsrcdir)/include -I$(topsrcdir)/servers/slapd -I$(topbuilddir)/include
+INCS=$(LDAP_INC) $(SNACC_INC)
+
+SNACC_LIB=$(snaccdir)/c-lib/libcasn1.a
+SSL_LIB=-lcrypto
+LDAP_LIB=-lldap_r -llber
+LIBS=$(LDAP_LIB) $(SNACC_LIB) $(SSL_LIB) /home/slim/local/lib/libfnccheck.a
+
+all:	compmatch.la
+
+
+componentlib.lo:	componentlib.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
+
+certificate.lo:	certificate.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
+
+asn_to_syn_mr.lo:	asn_to_syn_mr.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
+
+init.lo:	init.c
+	$(LIBTOOL) --mode=compile $(CC) $(OPT) $(INCS) -c $?
+
+compmatch.la:	componentlib.lo init.lo certificate.lo asn_to_syn_mr.lo
+	$(LIBTOOL) --mode=link $(CC) $(OPT) $(LIBS) -version-info 0:0:0 \
+	-rpath /home/slim/ldap/local/libexec/openldap -module -o $@ $? $(LIBS)
+
+clean:
+	\rm compmatch.la componentlib.lo certificate.lo asn_to_syn_mr.lo\
+		init.o init.lo componentlib.o certificate.o asn_to_syn_mr.o
+install:
+	cp -r .libs $(topsrcdir)/tests/data/comp_libs
+	cp compmatch.la  $(topsrcdir)/tests/data/comp_libs
