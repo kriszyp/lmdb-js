@@ -339,8 +339,10 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 	int			rc = 0;
 
 	Debug( LDAP_DEBUG_TRACE, "==>backsql_process_filter()\n", 0, 0, 0 );
-	if ( f == NULL || f->f_choice == SLAPD_FILTER_COMPUTED ) {
-		return 0;
+	if ( f->f_choice == SLAPD_FILTER_COMPUTED ) {
+		Debug( LDAP_DEBUG_TRACE, "backsql_process_filter(): "
+			"invalid filter\n", 0, 0, 0 );
+		goto impossible;
 	}
 
 	switch( f->f_choice ) {
@@ -402,6 +404,11 @@ backsql_process_filter( backsql_srch_info *bsi, Filter *f )
 			ObjectClass	*oc = oc_bvfind( &f->f_av_value );
 
 			if ( oc == NULL ) {
+				Debug( LDAP_DEBUG_TRACE,
+						"backsql_process_filter(): "
+						"unknown objectClass \"%s\" "
+						"in filter\n",
+						f->f_av_value.bv_val, 0, 0 );
 				bsi->bsi_status = LDAP_OTHER;
 				goto impossible;
 			}
@@ -426,6 +433,11 @@ filter_oc_success:;
 			goto done;
 			
 		default:
+			Debug( LDAP_DEBUG_TRACE,
+					"backsql_process_filter(): "
+					"illegal/unhandled filter "
+					"on objectClass attribute",
+					0, 0, 0 );
 			bsi->bsi_status = LDAP_OTHER;
 			goto impossible;
 		}
@@ -472,10 +484,19 @@ filter_oc_success:;
 		Debug( LDAP_DEBUG_TRACE, "backsql_process_filter(): "
 			"attribute '%s' is not defined for objectclass '%s'\n",
 			ad->ad_cname.bv_val, BACKSQL_OC_NAME( bsi->bsi_oc ), 0 );
+
+#if 0
 		backsql_strfcat( &bsi->bsi_flt_where, "l",
 				(ber_len_t)sizeof( "1=0" ) - 1, "1=0" );
 		bsi->bsi_status = LDAP_UNDEFINED_TYPE;
 		goto impossible;
+#else
+		/* search anyway; other parts of the filter may succeeed */
+		backsql_strfcat( &bsi->bsi_flt_where, "l",
+				(ber_len_t)sizeof( "1=1" ) - 1, "1=1" );
+		bsi->bsi_status = LDAP_SUCCESS;
+		goto done;
+#endif
 	}
 
 	backsql_strfcat( &bsi->bsi_flt_where, "c", '(' );
