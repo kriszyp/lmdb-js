@@ -155,6 +155,10 @@ bdb_db_config(
 		}
 		bdb->bi_cache.c_maxsize = atoi( argv[1] );
 
+		/* default IDL cache to 10x entry cache */
+		if ( bdb->bi_idl_cache_max_size == 0 )
+			bdb->bi_idl_cache_max_size = 10 * bdb->bi_cache.c_maxsize;
+
 	/* depth of search stack cache in units of (IDL)s */
 	} else if ( strcasecmp( argv[0], "searchstack" ) == 0 ) {
 		if ( argc < 2 ) {
@@ -180,8 +184,7 @@ bdb_db_config(
 				fname, lineno );
 			return( 1 );
 		}
-		if ( !( slapMode & SLAP_TOOL_MODE ) )
-			bdb->bi_idl_cache_max_size = atoi( argv[1] );
+		bdb->bi_idl_cache_max_size = atoi( argv[1] );
 
 	} else if ( strcasecmp( argv[0], "sessionlog" ) == 0 ) {
 		int se_id = 0, se_size = 0;
