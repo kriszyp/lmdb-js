@@ -803,24 +803,37 @@ int x = errno;
 		LTHREAD_LIBS=""
 	fi
 
-	dnl check for reentrant/threadsafe functions
-	dnl
-	dnl note: these should only be used when linking
-	dnl       with $LTHREAD_LIBS
-	dnl
-	save_CPPFLAGS="$CPPFLAGS"
-	save_LIBS="$LIBS"
-	LIBS="$LTHREAD_LIBS $LIBS"
-	AC_CHECK_FUNCS(	\
-		strtok_r \
-		gmtime_r \
-		gethostbyaddr_r gethostbyname_r \
-		feof_unlocked unlocked_feof \
-		putc_unlocked unlocked_putc \
-		flockfile ftrylockfile \
-	)
-	CPPFLAGS="$save_CPPFLAGS"
-	LIBS="$save_LIBS"
+dnl When in thread environment, use 
+dnl		#if defined( HAVE_REENTRANT_FUNCTIONS ) \ 
+dnl			|| defined( HAVE_FUNC_R )
+dnl			func_r(...);
+dnl		#else
+dnl			func(...);
+dnl		#endif
+dnl
+dnl HAVE_REENTRANT_FUNCTIONS is derived from:
+dnl		_POSIX_REENTRANT_FUNCTIONS
+dnl		_POSIX_THREAD_SAFE_FUNCTIONS
+dnl		_POSIX_THREADSAFE_FUNCTIONS
+dnl		
+dnl	dnl check for reentrant/threadsafe functions
+dnl	dnl
+dnl	dnl note: these should only be used when linking
+dnl	dnl       with $LTHREAD_LIBS
+dnl	dnl
+dnl	save_CPPFLAGS="$CPPFLAGS"
+dnl	save_LIBS="$LIBS"
+dnl	LIBS="$LTHREAD_LIBS $LIBS"
+dnl	AC_CHECK_FUNCS(	\
+dnl		strtok_r \
+dnl		gmtime_r \
+dnl		gethostbyaddr_r gethostbyname_r \
+dnl		feof_unlocked unlocked_feof \
+dnl		putc_unlocked unlocked_putc \
+dnl		flockfile ftrylockfile \
+dnl	)
+dnl	CPPFLAGS="$save_CPPFLAGS"
+dnl	LIBS="$save_LIBS"
 fi  
 
 dnl ----------------------------------------------------------------
@@ -1103,9 +1116,11 @@ AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
 	bcopy			\
+	ctime_r			\
 	flock			\
 	getdtablesize	\
 	gethostname		\
+	gethostbyaddr_r gethostbyname_r	\
 	getpwuid		\
 	gettimeofday	\
 	lockf			\
@@ -1126,6 +1141,7 @@ AC_CHECK_FUNCS(		\
 	strsep			\
 	strstr			\
 	strtok			\
+	strtok_r		\
 	strtol			\
 	strtoul			\
 	sysconf			\

@@ -874,6 +874,7 @@ time2text( char *ldtimestr, int dateonly )
     struct tm		t;
     char		*p, *timestr, zone, *fmterr = "badly formatted time";
     time_t		gmttime;
+    char		timebuf[32];
 
     memset( (char *)&t, 0, sizeof( struct tm ));
     if ( (int) strlen( ldtimestr ) < 13 ) {
@@ -899,8 +900,9 @@ time2text( char *ldtimestr, int dateonly )
     }
 
     gmttime = gtime( &t );
-    timestr = ctime( &gmttime );
 
+    timestr = ldap_int_ctime( &gmttime, timebuf );
+   
     timestr[ strlen( timestr ) - 1 ] = zone;	/* replace trailing newline */
     if ( dateonly ) {
 	strcpy( timestr + 11, timestr + 20 );

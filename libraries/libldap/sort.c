@@ -27,9 +27,9 @@
 struct entrything {
 	char		**et_vals;
 	LDAPMessage	*et_msg;
+	int 		(*et_cmp_fn) LDAP_P((const char *a, const char *b));
 };
 
-static int	(*et_cmp_fn) LDAP_P(( const char *a, const char *b ));
 static int	et_cmp LDAP_P(( const void *aa, const void *bb));
 
 
@@ -60,8 +60,7 @@ et_cmp(
 		return( 1 );
 
 	for ( i = 0; a->et_vals[i] && b->et_vals[i]; i++ ) {
-		if ( (rc = (*et_cmp_fn)( a->et_vals[i], b->et_vals[i] ))
-		    != 0 ) {
+		if ( (rc = a->et_cmp_fn( a->et_vals[i], b->et_vals[i] )) != 0 ) {
 			return( rc );
 		}
 	}
@@ -96,6 +95,7 @@ ldap_sort_entries(
 
 	e = *chain;
 	for ( i = 0; i < count; i++ ) {
+		et[i].et_cmp_fn = cmp;
 		et[i].et_msg = e;
 		if ( attr == NULL ) {
 			char	*dn;
@@ -111,7 +111,6 @@ ldap_sort_entries(
 	}
 	last = e;
 
-	et_cmp_fn = cmp;
 	qsort( et, count, sizeof(struct entrything), et_cmp );
 
 	ep = chain;

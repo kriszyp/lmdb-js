@@ -279,17 +279,11 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the bcopy function.  */
 #undef HAVE_BCOPY
 
-/* Define if you have the feof_unlocked function.  */
-#undef HAVE_FEOF_UNLOCKED
+/* Define if you have the ctime_r function.  */
+#undef HAVE_CTIME_R
 
 /* Define if you have the flock function.  */
 #undef HAVE_FLOCK
-
-/* Define if you have the flockfile function.  */
-#undef HAVE_FLOCKFILE
-
-/* Define if you have the ftrylockfile function.  */
-#undef HAVE_FTRYLOCKFILE
 
 /* Define if you have the getdtablesize function.  */
 #undef HAVE_GETDTABLESIZE
@@ -311,9 +305,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the gettimeofday function.  */
 #undef HAVE_GETTIMEOFDAY
-
-/* Define if you have the gmtime_r function.  */
-#undef HAVE_GMTIME_R
 
 /* Define if you have the lockf function.  */
 #undef HAVE_LOCKF
@@ -353,9 +344,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the pthread_yield function.  */
 #undef HAVE_PTHREAD_YIELD
-
-/* Define if you have the putc_unlocked function.  */
-#undef HAVE_PUTC_UNLOCKED
 
 /* Define if you have the res_search function.  */
 #undef HAVE_RES_SEARCH
@@ -422,12 +410,6 @@ is provided ``as is'' without express or implied warranty.
 
 /* Define if you have the thr_setconcurrency function.  */
 #undef HAVE_THR_SETCONCURRENCY
-
-/* Define if you have the unlocked_feof function.  */
-#undef HAVE_UNLOCKED_FEOF
-
-/* Define if you have the unlocked_putc function.  */
-#undef HAVE_UNLOCKED_PUTC
 
 /* Define if you have the vsnprintf function.  */
 #undef HAVE_VSNPRINTF

@@ -405,14 +405,15 @@ break_into_words( char *str, char *delims, char ***wordsp )
 {
     char	*word, **words;
     int		count;
-	
+    char        *tok_r;	
+
     if (( words = (char **)calloc( 1, sizeof( char * ))) == NULL ) {
 	return( -1 );
     }
     count = 0;
     words[ count ] = NULL;
 
-    word = strtok( str, delims );
+    word = ldap_int_strtok( str, delims, &tok_r );
     while ( word != NULL ) {
 	if (( words = (char **)realloc( words,
 		( count + 2 ) * sizeof( char * ))) == NULL ) {
@@ -421,7 +422,7 @@ break_into_words( char *str, char *delims, char ***wordsp )
 
 	words[ count ] = word;
 	words[ ++count ] = NULL;
-	word = strtok( NULL, delims );
+	word = ldap_int_strtok( NULL, delims, &tok_r );
     }
 	
     *wordsp = words;

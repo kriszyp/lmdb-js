@@ -11,6 +11,8 @@
 #include "../liblber/lber-int.h"
 #include "ldap_log.h"
 #include "ldap.h"
+#include <time.h>
+#include <netdb.h>
 
 LDAP_BEGIN_DECL
 
@@ -272,6 +274,28 @@ extern
 int ldap_8859_to_t61( char **bufp, unsigned long *buflenp, int free_input );
 #endif /* LDAP_CHARSET_8859 == LDAP_DEFAULT_CHARSET */
 #endif /* STR_TRANSLATION && LDAP_DEFAULT_CHARSET */
+
+/*
+ * in util_r.c
+ * 
+ */
+
+extern char *ldap_int_strtok( char *str, const char *delim, char **pos );
+extern char *ldap_int_ctime( const time_t *tp, char *buf );
+extern int ldap_int_gethostbyname_a(
+	const char *name, 
+	struct hostent *resbuf,
+	char **buf,
+	struct hostent **result,
+	int *herrno_ptr );
+extern int ldap_int_gethostbyaddr_a(
+	const char *addr,
+	int len,
+	int type,
+	struct hostent *resbuf,
+	char **buf,
+	struct hostent **result,
+	int *herrno_ptr );
 
 LDAP_END_DECL
 

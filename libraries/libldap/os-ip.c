@@ -48,7 +48,13 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	int			status;	/* for ioctl call */
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 #endif /* notyet */
-
+   
+   	/* buffers for ldap_int_gethostbyname_a */
+   	struct hostent		he_buf;
+   	int			local_h_errno;
+   	char   			*ha_buf=NULL;
+#define DO_RETURN(x) if (ha_buf) free(ha_buf); return (x);
+   
 	Debug( LDAP_DEBUG_TRACE, "ldap_connect_to_host: %s:%d\n",
 	    ( host == NULL ) ? "(by address)" : host, (int) ntohs( (short) port ), 0 );
 
@@ -59,13 +65,15 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	    /* This was just a test for -1 until OSF1 let inet_addr return
 	       unsigned int, which is narrower than 'unsigned long address' */
 	    if ( address == 0xffffffff || address == (unsigned long) -1 ) {
-		if ( (hp = gethostbyname( host )) == NULL ) {
+		if ( ( ldap_int_gethostbyname_a( host, &he_buf, &ha_buf,
+			&hp, &local_h_errno) < 0) || (hp==NULL))
+		{
 #ifdef HAVE_WINSOCK
 			errno = WSAGetLastError();
 #else
 			errno = EHOSTUNREACH;	/* not exactly right, but... */
 #endif
-			return( -1 );
+			DO_RETURN( -1 );
 		}
 		use_hp = 1;
 	    }
@@ -74,7 +82,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 	rc = -1;
 	for ( i = 0; !use_hp || ( hp->h_addr_list[ i ] != 0 ); i++ ) {
 		if (( s = socket( AF_INET, SOCK_STREAM, 0 )) < 0 ) {
-			return( -1 );
+			DO_RETURN( -1 );
 		}
 #ifdef notyet
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
@@ -99,7 +107,7 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 			break;
 		} else {
 #ifdef HAVE_WINSOCK
-			errno = WSAGetLastError();
+		        errno = WSAGetLastError();
 #endif
 #ifdef notyet
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
@@ -145,8 +153,12 @@ ldap_connect_to_host( Sockbuf *sb, char *host, unsigned long address,
 		    s, (char *) inet_ntoa( sin.sin_addr ), 0 );
 	}
 
-	return( rc );
+	DO_RETURN( rc );
+	
+	
 }
+   
+#undef DO_RETURN
 
 
 void
@@ -165,6 +177,12 @@ ldap_host_connected_to( Sockbuf *sb )
 	int			len;
 	struct sockaddr_in	sin;
 
+   	/* buffers for gethostbyaddr_r */
+   	struct hostent		he_buf;
+        int			local_h_errno;
+   	char			*ha_buf=NULL;
+#define DO_RETURN(x) if (ha_buf) free(ha_buf); return (x);
+   
 	(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
 	len = sizeof( sin );
 	if ( getpeername( sb->sb_sd, (struct sockaddr *)&sin, &len ) == -1 ) {
@@ -176,15 +194,20 @@ ldap_host_connected_to( Sockbuf *sb )
 	 * this is necessary for kerberos to work right, since the official
 	 * hostname is used as the kerberos instance.
 	 */
-	if (( hp = gethostbyaddr( (char *) &sin.sin_addr,
-	    sizeof( sin.sin_addr ), AF_INET )) != NULL ) {
+	if ((ldap_int_gethostbyaddr_a( (char *) &sin.sin_addr,
+		sizeof( sin.sin_addr ), 
+		AF_INET, &he_buf, &ha_buf,
+		&hp,&local_h_errno ) ==0 ) && (hp != NULL) )
+	{
 		if ( hp->h_name != NULL ) {
-			return( ldap_strdup( hp->h_name ));
+			DO_RETURN( ldap_strdup( hp->h_name ));
 		}
 	}
 
-	return( NULL );
+	DO_RETURN( NULL );
 }
+#undef DO_RETURN   
+   
 #endif /* HAVE_KERBEROS */
 
 

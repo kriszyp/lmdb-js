@@ -124,6 +124,7 @@ ldap_explode_dns( char *dn )
 	int	ncomps, maxcomps;
 	char	*s;
 	char	**rdns;
+   	char    *tok_r;
 
 	if ( (rdns = (char **) malloc( 8 * sizeof(char *) )) == NULL ) {
 		return( NULL );
@@ -131,7 +132,8 @@ ldap_explode_dns( char *dn )
 
 	maxcomps = 8;
 	ncomps = 0;
-	for ( s = strtok( dn, "@." ); s != NULL; s = strtok( NULL, "@." ) ) {
+	for ( s = ldap_int_strtok( dn, "@.", &tok_r ); s != NULL; 
+	      s = ldap_int_strtok( NULL, "@.", &tok_r ) ) {
 		if ( ncomps == maxcomps ) {
 			maxcomps *= 2;
 			if ( (rdns = (char **) realloc( rdns, maxcomps *

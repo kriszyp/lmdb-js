@@ -3,6 +3,7 @@
 ##
 
 LIBRARY = liblber.la
+XLIBRARY = ../liblber.a
 
 SRCS= decode.c encode.c io.c bprint.c
 OBJS= decode.lo encode.lo io.lo bprint.lo

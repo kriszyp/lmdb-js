@@ -64,6 +64,13 @@ cldap_open( char *host, int port )
     char		*p;
     int			i;
 
+    /* buffers for ldap_int_gethostbyname_a ... */
+    struct hostent      he_buf;
+    int                 local_h_errno;
+    char		*ha_buf=NULL;
+
+#define DO_RETURN(x) if (ha_buf) free(ha_buf); return (x);
+   
     Debug( LDAP_DEBUG_TRACE, "ldap_open\n", 0, 0, 0 );
 
     if ( (s = socket( AF_INET, SOCK_DGRAM, 0 )) < 0 ) {
@@ -110,9 +117,11 @@ cldap_open( char *host, int port )
 	    /* This was just a test for -1 until OSF1 let inet_addr return
 	       unsigned int, which is narrower than 'unsigned long address' */
 	    if ( address == 0xffffffff || address == (unsigned long) -1 ) {
-		if ( (hp = gethostbyname( host )) == NULL ) {
-		    errno = EHOSTUNREACH;
-		    continue;
+	        if ((ldap_int_gethostbyname_a( host, &he_buf, &ha_buf,
+					      &hp,&local_h_errno)<0) || 
+		    (hp==NULL)) {
+		   errno = EHOSTUNREACH;
+		   continue;
 		}
 
 		for ( i = 0; hp->h_addr_list[ i ] != 0; ++i ) {
@@ -121,7 +130,7 @@ cldap_open( char *host, int port )
 			    sizeof(sock.sin_addr.s_addr));
 		    if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
 			ldap_ld_free( ld, 1 );
-			return( NULL );
+			DO_RETURN( NULL );
 		    }
 		}
 
@@ -129,7 +138,7 @@ cldap_open( char *host, int port )
 		sock.sin_addr.s_addr = address;
 		if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
 		    ldap_ld_free( ld, 1 );
-		    return( NULL );
+		    DO_RETURN( NULL );
 		}
 	    }
 
@@ -137,13 +146,12 @@ cldap_open( char *host, int port )
 		    ld->ld_host = ldap_strdup( host );
 	    }
 	}
-
     } else {
 	address = INADDR_LOOPBACK;
 	sock.sin_addr.s_addr = htonl( address );
 	if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
 	    ldap_ld_free( ld, 1 );
-	    return( NULL );
+	    DO_RETURN( NULL );
 	}
     }
 
@@ -153,7 +161,7 @@ cldap_open( char *host, int port )
 #endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS */
 	    ) {
 	ldap_ld_free( ld, 0 );
-	return( NULL );
+	DO_RETURN( NULL );
     }
 
     ld->ld_sb.sb_useaddr = ld->ld_sb.sb_addrs[ 0 ];
@@ -168,10 +176,10 @@ cldap_open( char *host, int port )
     }
 #endif
 
-    return( ld );
+    DO_RETURN( ld );
 }
 
-
+#undef DO_RETURN
 
 void
 cldap_close( LDAP *ld )

@@ -442,6 +442,7 @@ void
 ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 {
 	LDAPConn	*lc;
+   	char		timebuf[32];
 
 	fprintf( stderr, "** Connection%s:\n", all ? "s" : "" );
 	for ( lc = lconns; lc != NULL; lc = lc->lconn_next ) {
@@ -457,7 +458,7 @@ ldap_dump_connection( LDAP *ld, LDAPConn *lconns, int all )
 		    "NeedSocket" : ( lc->lconn_status ==
 		    LDAP_CONNST_CONNECTING ) ? "Connecting" : "Connected" );
 		fprintf( stderr, "  last used: %s\n",
-		    ctime( &lc->lconn_lastused ));
+		    ldap_int_ctime( &lc->lconn_lastused, timebuf ));
 		if ( !all ) {
 			break;
 		}
