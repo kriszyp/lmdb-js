@@ -30,10 +30,6 @@
 
 #include "ldap_pvt.h"
 
-#ifdef HAVE_CYRUS_SASL
-#include <sasl.h>
-#endif /* HAVE_CYRUS_SASL */
-
 LDAP_BEGIN_DECL
 
 #define LDAP_URL_PREFIX         "ldap://"
