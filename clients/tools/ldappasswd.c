@@ -669,7 +669,7 @@ main( int argc, char *argv[] )
 
 		if( oldpw != NULL ) {
 			ber_printf( ber, "ts",
-				LDAP_TAG_EXOP_X_MODIFY_PASSWD_NEW, oldpw );
+				LDAP_TAG_EXOP_X_MODIFY_PASSWD_OLD, oldpw );
 			free(oldpw);
 		}
 
