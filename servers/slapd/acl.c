@@ -1746,10 +1746,10 @@ aci_mask(
 
 	if (ber_bvstrcasecmp( &aci_bv_access_id, &bv ) == 0) {
 		struct berval ndn;
-		rc = 1;
+		rc = 0;
 		if ( dnNormalize2(NULL, &sdn, &ndn) == LDAP_SUCCESS ) {
-			if (!dn_match( &op->o_ndn, &ndn))
-				rc = 0;
+			if (dn_match( &op->o_ndn, &ndn))
+				rc = 1;
 			free(ndn.bv_val);
 		}
 		return (rc);
