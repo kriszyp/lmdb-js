@@ -37,6 +37,7 @@ int bdb_modify_internal(
 	Modifications	*ml;
 	Attribute	*save_attrs;
 	Attribute 	*ap;
+	int			glue_attr_delete = 0;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, ENTRY, "bdb_modify_internal: 0x%08lx: %s\n", 
@@ -53,6 +54,33 @@ int bdb_modify_internal(
 	/* save_attrs will be disposed of by bdb_cache_modify */
 	save_attrs = e->e_attrs;
 	e->e_attrs = attrs_dup( e->e_attrs );
+
+	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
+		mod = &ml->sml_mod;
+		switch( mod->sm_op ) {
+		case LDAP_MOD_ADD:
+		case LDAP_MOD_REPLACE:
+			if ( mod->sm_desc == slap_schema.si_ad_structuralObjectClass ) {
+			/* sc modify is internally allowed only to make an entry a glue */
+				glue_attr_delete = 1;
+			}
+		}
+		if ( glue_attr_delete )
+			break;
+	}
+
+	if ( glue_attr_delete ) {
+		Attribute	**app = &e->e_attrs;
+		while ( *app != NULL ) {
+			if ( !is_at_operational( (*app)->a_desc->ad_type )) {
+				Attribute *save = *app;
+				*app = (*app)->a_next;
+				attr_free( save );
+				continue;
+			}
+			app = &(*app)->a_next;
+		}
+	}
 
 	for ( ml = modlist; ml != NULL; ml = ml->sml_next ) {
 		mod = &ml->sml_mod;
@@ -78,6 +106,8 @@ int bdb_modify_internal(
 			break;
 
 		case LDAP_MOD_DELETE:
+			if ( glue_attr_delete )
+				break;
 #ifdef NEW_LOGGING
 			LDAP_LOG ( OPERATION, DETAIL1, 
 				"bdb_modify_internal: delete\n", 0, 0, 0 );
@@ -200,6 +230,10 @@ int bdb_modify_internal(
 
 		/* If objectClass was modified, reset the flags */
 		if ( mod->sm_desc == slap_schema.si_ad_objectClass ) {
+			e->e_ocflags = 0;
+		}
+
+		if ( glue_attr_delete ) {
 			e->e_ocflags = 0;
 		}
 
