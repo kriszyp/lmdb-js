@@ -144,7 +144,7 @@ LDAP_BEGIN_DECL
 #define	LDAP_OPT_X_SASL_MAXBUFSIZE		0x6109
 
 /* on/off values */
-#define LDAP_OPT_ON		((void *) 1)
+#define LDAP_OPT_ON		((void *) &ber_pvt_opt_on)
 #define LDAP_OPT_OFF	((void *) 0)
 
 /*

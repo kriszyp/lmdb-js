@@ -10,6 +10,8 @@
 #include <ac/stdarg.h>
 #include "lber-int.h"
 
+char ber_pvt_opt_on;	/* used to get a non-NULL address for *_OPT_ON */
+
 struct lber_options ber_int_options = {
 	LBER_UNINITIALIZED, 0, 0, 0 };
 
