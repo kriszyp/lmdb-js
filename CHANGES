@@ -2,6 +2,7 @@ OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.X Engineering
 	Fixed slapd spasswd mutex bug
+	Fixed slapd ACL nameuid bug
 	Updated -lldap SASL error reporting
 	Updated -lldap TLS error reporting
 	Build Environment

@@ -203,7 +203,7 @@ register_matching_rule(
 	ldap_memfree( mr );
 
 	if ( code ) {
-		Debug( LDAP_DEBUG_ANY, "Error in register_syntax: %s for %s in %s\n",
+		Debug( LDAP_DEBUG_ANY, "Error in register_matching_rule: %s for %s in %s\n",
 		    scherr2str(code), err, desc );
 		return( -1 );
 	}

@@ -103,6 +103,7 @@ LDAP_BEGIN_DECL
 
 /* must match in schema_init.c */
 #define SLAPD_DN_SYNTAX			"1.3.6.1.4.1.1466.115.121.1.12"
+#define SLAPD_NAMEUID_SYNTAX		"1.3.6.1.4.1.1466.115.121.1.34"
 #define SLAPD_GROUP_ATTR		"member"
 #define SLAPD_GROUP_CLASS		"groupOfNames"
 #define SLAPD_ROLE_ATTR			"roleOccupant"
@@ -527,7 +528,7 @@ typedef struct slap_filter {
 #define f_mr_rule		f_un.f_un_mra->ma_rule
 #define f_mr_desc		f_un.f_un_mra->ma_desc
 #define f_mr_value		f_un.f_un_mra->ma_value
-#define	f_mr_dnaddrs	f_un.f_un_mra->ma_dnattrs
+#define	f_mr_dnattrs	f_un.f_un_mra->ma_dnattrs
 
 		/* and, or, not */
 		struct slap_filter *f_un_complex;

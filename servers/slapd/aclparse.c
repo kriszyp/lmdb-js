@@ -508,7 +508,9 @@ parse_acl(
 					}
 
 					if( !is_at_syntax( b->a_group_at->ad_type,
-						SLAPD_DN_SYNTAX ) )
+						SLAPD_DN_SYNTAX ) &&
+					    !is_at_syntax( b->a_group_at->ad_type,
+						SLAPD_NAMEUID_SYNTAX ) )
 					{
 						fprintf( stderr,
 							"%s: line %d: group \"%s\": inappropriate syntax: %s\n",
