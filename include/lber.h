@@ -238,18 +238,6 @@ ber_scanf LDAP_P((
 	... ));
 
 LDAP_F( void )
-ber_bvfree LDAP_P((
-	struct berval *bv ));
-
-LDAP_F( void )
-ber_bvecfree LDAP_P((
-	struct berval **bv ));
-
-LDAP_F( struct berval * )
-ber_bvdup LDAP_P((
-	LDAP_CONST struct berval *bv ));
-
-LDAP_F( void )
 ber_set_string_translators LDAP_P((
 	BerElement *ber,
 	BERTranslateProc encode_proc,
@@ -453,6 +441,22 @@ ber_memcalloc LDAP_P((
 LDAP_F( void )
 ber_memfree LDAP_P((
 	void* p ));
+
+LDAP_F( void )
+ber_memvfree LDAP_P((
+	void** vector ));
+
+LDAP_F( void )
+ber_bvfree LDAP_P((
+	struct berval *bv ));
+
+LDAP_F( void )
+ber_bvecfree LDAP_P((
+	struct berval **bv ));
+
+LDAP_F( struct berval * )
+ber_bvdup LDAP_P((
+	LDAP_CONST struct berval *bv ));
 
 LDAP_END_DECL
 
