@@ -12,7 +12,7 @@ SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
-XLIBS    = -lldap -llber
+XLIBS    = -lldap -llber -llutil
 XXLIBS	= $(SECURITY_LIBS) $(LUTIL_LIBS)
 
 # build-tools: FORCE

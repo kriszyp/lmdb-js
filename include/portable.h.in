@@ -169,6 +169,9 @@
 /* Define if you have the gethostname function.  */
 #undef HAVE_GETHOSTNAME
 
+/* Define if you have the getopt function.  */
+#undef HAVE_GETOPT
+
 /* Define if you have the getpass function.  */
 #undef HAVE_GETPASS
 

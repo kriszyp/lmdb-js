@@ -2108,6 +2108,9 @@ AC_CHECK_FUNCS(		\
 	sendto			\
 )
 
+dnl We actually may need to replace more than this.
+AC_REPLACE_FUNCS(getopt)
+
 if test "$ac_cv_func_getopt" != yes; then
     LIBSRCS="$LIBSRCS getopt.c"
 fi

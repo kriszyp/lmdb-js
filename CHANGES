@@ -1,5 +1,9 @@
 OpenLDAP 2.0 Change Log
 
+OpenLDAP 2.0.27 Engineering
+	Build environment
+		Fix getopt(3) detection
+
 OpenLDAP 2.0.26 Release
 	Fixed slapd ACL buffer size bug (ITS#1963)
 	Fixed slapd ACL filters w/substrings bug (ITS#2023, ITS#2027)
