@@ -803,8 +803,9 @@ static void cache_replacement(query_manager* qm, struct berval *result)
 }
 
 struct query_info {
-	struct berval*		uuid;
-	int			deleted;
+	struct query_info *next;
+	struct berval xdn;
+	int del;
 };
 
 static int
@@ -813,18 +814,11 @@ remove_func (
 	SlapReply	*rs
 )
 {
-	struct query_info	*info = op->o_callback->sc_private;
-	int			count = 0;
-	Modifications		mod;
-	struct berval vals[2];
+	Attribute *attr;
+	struct query_info *qi;
+	int count = 0;
 
-	Attribute		*attr;
-	Operation		op_tmp = *op;
-
-	SlapReply 		sreply = {REP_RESULT};
-
-	if (rs->sr_type == REP_RESULT)
-		return 0;
+	if ( rs->sr_type != REP_SEARCH ) return 0;
 
 	for (attr = rs->sr_entry->e_attrs; attr!= NULL; attr = attr->a_next) {
 		if (attr->a_desc == ad_queryid) {
@@ -833,51 +827,12 @@ remove_func (
 			break;
 		}
 	}
-
-	if (count == 0) {
-		return 0;
-	}
-	if (count == 1) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_META, DETAIL1,
-				"DELETING ENTRY TEMPLATE=%s\n",
-				attr->a_vals[0].bv_val, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY, "DELETING ENTRY TEMPLATE=%s\n",
-				attr->a_vals[0].bv_val, 0, 0 );
-#endif
-
-		op_tmp.o_req_dn = rs->sr_entry->e_name;
-		op_tmp.o_req_ndn = rs->sr_entry->e_nname;
-
-		if (op->o_bd->be_delete(&op_tmp, rs) == LDAP_SUCCESS) {
-			info->deleted++;
-		}
-		return 0;
-	}
-
-	vals[0] = *info->uuid;
-	vals[1].bv_val = NULL;
-	vals[1].bv_len = 0;
-	mod.sml_op = LDAP_MOD_DELETE;
-	mod.sml_desc = ad_queryid;
-	mod.sml_type = ad_queryid->ad_cname;
-	mod.sml_bvalues = vals;
-	mod.sml_next = NULL;
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_META, DETAIL1,
-			"REMOVING TEMP ATTR : TEMPLATE=%s\n",
-			attr->a_vals[0].bv_val, 0, 0 );
-#else
-	Debug( LDAP_DEBUG_ANY, "REMOVING TEMP ATTR : TEMPLATE=%s\n",
-			attr->a_vals[0].bv_val, 0, 0 );
-#endif
-
-	op_tmp.o_req_dn = rs->sr_entry->e_name;
-	op_tmp.o_req_ndn = rs->sr_entry->e_nname;
-	op_tmp.orm_modlist = &mod;
-
-	op->o_bd->be_modify( &op_tmp, &sreply );
+	if ( count == 0 ) return 0;
+	qi = op->o_tmpalloc( sizeof( struct query_info ), op->o_tmpmemctx );
+	qi->next = op->o_callback->sc_private;
+	op->o_callback->sc_private = qi;
+	ber_dupbv_x( &qi->xdn, &rs->sr_entry->e_nname, op->o_tmpmemctx );
+	qi->del = ( count == 1 );
 
 	return 0;
 }
@@ -888,12 +843,13 @@ remove_query_data (
 	SlapReply	*rs,
 	struct berval* query_uuid)
 {
-	struct query_info	info;
+	struct query_info	*qi, *qnext;
 	char			filter_str[64];
 	AttributeAssertion	ava;
 	Filter			filter = {LDAP_FILTER_EQUALITY};
 	SlapReply 		sreply = {REP_RESULT};
 	slap_callback cb = { NULL, remove_func, NULL, NULL };
+	int deleted = 0;
 
 	sreply.sr_entry = NULL;
 	sreply.sr_nentries = 0;
@@ -902,9 +858,6 @@ remove_query_data (
 	filter.f_ava = &ava;
 	filter.f_av_desc = ad_queryid;
 	filter.f_av_value = *query_uuid;
-	info.uuid = query_uuid;
-	info.deleted = 0;
-	cb.sc_private = &info;
 
 	op->o_tag = LDAP_REQ_SEARCH;
 	op->o_protocol = LDAP_VERSION3;
@@ -926,7 +879,57 @@ remove_query_data (
 
 	op->o_bd->be_search( op, &sreply );
 
-	return info.deleted;
+	for ( qi=cb.sc_private; qi; qi=qnext ) {
+		qnext = qi->next;
+
+		op->o_req_dn = qi->xdn;
+		op->o_req_ndn = qi->xdn;
+
+		if ( qi->del) {
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"DELETING ENTRY TEMPLATE=%s\n",
+				query_uuid->bv_val, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY, "DELETING ENTRY TEMPLATE=%s\n",
+				query_uuid->bv_val, 0, 0 );
+#endif
+
+			op->o_tag = LDAP_REQ_DELETE;
+
+			if (op->o_bd->be_delete(op, &sreply) == LDAP_SUCCESS) {
+				deleted++;
+			}
+		} else {
+			Modifications mod;
+			struct berval vals[2];
+
+			vals[0] = *query_uuid;
+			vals[1].bv_val = NULL;
+			vals[1].bv_len = 0;
+			mod.sml_op = LDAP_MOD_DELETE;
+			mod.sml_desc = ad_queryid;
+			mod.sml_type = ad_queryid->ad_cname;
+			mod.sml_bvalues = vals;
+			mod.sml_next = NULL;
+#ifdef NEW_LOGGING
+			LDAP_LOG( BACK_META, DETAIL1,
+				"REMOVING TEMP ATTR : TEMPLATE=%s\n",
+				query_uuid->bv_val, 0, 0 );
+#else
+			Debug( LDAP_DEBUG_ANY,
+				"REMOVING TEMP ATTR : TEMPLATE=%s\n",
+				query_uuid->bv_val, 0, 0 );
+#endif
+
+			op->orm_modlist = &mod;
+
+			op->o_bd->be_modify( op, &sreply );
+		}
+		op->o_tmpfree( qi->xdn.bv_val, op->o_tmpmemctx );
+		op->o_tmpfree( qi, op->o_tmpmemctx );
+	}
+	return deleted;
 }
 
 static int
