@@ -1,6 +1,6 @@
 OpenLDAP 2.1 Change Log
 
-OpenLDAP 2.1.18 Engineering
+OpenLDAP 2.1.18 Release
 	Fixed slapd slave update when updateref missing bug (ITS#2435)
 	Fixed slapd SLP reg/dereg bugs (ITS#2438) (ITS#2442)
 	Fixed slapd crash on uniqueMember= filter (ITS#2447)
