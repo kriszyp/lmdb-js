@@ -1147,8 +1147,9 @@ expand_decomp(void)
 }
 
 static int
-cmpcomps(_comp_t *comp1, _comp_t *comp2)
+cmpcomps(const void *v_comp1, const void *v_comp2)
 {
+	const _comp_t *comp1 = v_comp1, *comp2 = v_comp2;
     long diff = comp1->code1 - comp2->code1;
 
     if (!diff)
@@ -1212,8 +1213,7 @@ create_comps(void)
 	cu++;
     }
     comps_used = cu;
-    qsort(comps, comps_used, sizeof(_comp_t),
-	  (int (*)(const void *, const void *)) cmpcomps);
+    qsort(comps, comps_used, sizeof(_comp_t), cmpcomps);
 }
 
 static void
