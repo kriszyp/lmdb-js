@@ -184,8 +184,6 @@ extern int suffix_massage_config( struct rewrite_info *info,
 extern int ldap_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
 extern int ldap_dnattr_result_rewrite( dncookie *dc, BerVarray a_vals );
 
-extern int ldap_chain_setup();
-
 #ifdef LDAP_BACK_PROXY_AUTHZ
 extern int
 ldap_back_proxy_authz_ctrl(

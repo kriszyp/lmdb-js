@@ -12,7 +12,7 @@ running in the same
 instance into a virtual naming context, with attributeType
 and objectClass manipulation, if required.
 It requires the
-.B rewrite-remap
+.B rwm
 .BR overlay .
 .LP
 This backend and the above mentioned overlay are experimental.
@@ -32,7 +32,7 @@ under a virtual naming context.
 The presence of the directive implies that one single database
 will be presented under a virtual naming context.
 This directive automatically instantiates the 
-.B rewrite-remap
+.B rwm
 .BR overlay .
 If the optional
 .B massage
@@ -60,7 +60,7 @@ e.g. groups on one database and persons on another.
 .LP
 .SH Caveats
 The
-.B rewrite-remap overlay
+.B rwm overlay
 is far from complete.
 .LP
 .SH EXAMPLES
@@ -79,7 +79,7 @@ that looks up the real naming context for each operation, use
 .nf
   database        relay
   suffix          "dc=virtual,dc=naming,dc=context"
-  overlay         rewrite-remap
+  overlay         rwm
   suffixmassage   "dc=virtual,dc=naming,dc=context"
           "dc=real,dc=naming,dc=context"
 .fi
@@ -104,7 +104,7 @@ back from the real to the virtual naming context, use
 .LP
 Note that the virtual database is bound to a single real database,
 so the 
-.B rewrite-remap overlay
+.B rwm overlay
 is automatically instantiated, but the rewrite rules 
 are written explicitly to map all the virtual to real 
 naming context data flow, but none of the real to virtual.

@@ -244,6 +244,10 @@ dnl ----------------------------------------------------------------
 dnl SLAPD Overlay Options
 AC_ARG_WITH(xxslapoverlays,[
 SLAPD Overlay Options:])
+OL_ARG_WITH(chain,[    --with-chain   	  LDAP Chain Response no|yes|mod], no,
+	[no yes mod])
+OL_ARG_WITH(denyop,[    --with-denyop  	  Deny Operation overlay no|yes|mod], no,
+	[no yes mod])
 OL_ARG_WITH(dyngroup,[    --with-dyngroup	  Dynamic Group overlay no|yes|mod], no,
 	[no yes mod])
 OL_ARG_WITH(proxycache,[    --with-proxycache	  Proxy Cache overlay no|yes|mod], no,
@@ -377,6 +381,13 @@ if test $ol_enable_slapd = no ; then
 	if test $ol_enable_rewrite = yes ; then
 		AC_MSG_WARN([slapd disabled, ignoring --enable-rewrite argument])
 	fi
+	dnl overlays
+	if test $ol_with_chain != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-chain argument])
+	fi
+	if test $ol_with_denyop != no ; then
+		AC_MSG_WARN([slapd disabled, ignoring --with-denyop argument])
+	fi
 	if test $ol_with_dyngroup != no ; then
 		AC_MSG_WARN([slapd disabled, ignoring --with-dyngroup argument])
 	fi
@@ -430,6 +441,8 @@ if test $ol_enable_slapd = no ; then
 
 	ol_enable_rewrite=no
 
+	ol_with_chain=no
+	ol_with_denyop=no
 	ol_with_dyngroup=no
 	ol_with_proxycache=no
 	ol_with_rwm=no
@@ -594,6 +607,8 @@ BUILD_RELAY_DYNAMIC=static
 BUILD_SHELL_DYNAMIC=static
 BUILD_SQL_DYNAMIC=static
 
+BUILD_CHAIN=no
+BUILD_DENYOP=no
 BUILD_DYNGROUP=no
 BUILD_PROXYCACHE=no
 BUILD_RWM=no
@@ -826,6 +841,14 @@ else
 	ol_with_relay_module=static
 	ol_with_shell_module=static
 	ol_with_sql_module=static
+	if test $ol_with_chain = mod ; then
+		AC_MSG_WARN([building static chain overlay])
+		ol_with_chain=yes
+	fi
+	if test $ol_with_denyop = mod ; then
+		AC_MSG_WARN([building static denyop overlay])
+		ol_with_denyop=yes
+	fi
 	if test $ol_with_dyngroup = mod ; then
 		AC_MSG_WARN([building static dyngroup overlay])
 		ol_with_dyngroup=yes
@@ -2767,6 +2790,28 @@ if test "$ol_link_sql" != no ; then
 	fi
 fi
 
+if test "$ol_with_chain" != no ; then
+	BUILD_CHAIN=$ol_with_chain
+	if test "$ol_with_chain" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS chain.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_CHAIN,$MFLAG,[define for Dynamic Group overlay])
+fi
+
+if test "$ol_with_denyop" != no ; then
+	BUILD_DENYOP=$ol_with_denyop
+	if test "$ol_with_denyop" = mod ; then
+		MFLAG=SLAPD_MOD_DYNAMIC
+		SLAPD_DYNAMIC_OVERLAYS="$SLAPD_DYNAMIC_OVERLAYS denyop.la"
+	else
+		MFLAG=SLAPD_MOD_STATIC
+	fi
+	AC_DEFINE_UNQUOTED(SLAPD_OVER_DENYOP,$MFLAG,[define for Dynamic Group overlay])
+fi
+
 if test "$ol_with_dyngroup" != no ; then
 	BUILD_DYNGROUP=$ol_with_dyngroup
 	if test "$ol_with_dyngroup" = mod ; then
@@ -2843,8 +2888,10 @@ AC_SUBST(WITH_TLS)
 AC_SUBST(BUILD_LIBS_DYNAMIC)
 
 AC_SUBST(BUILD_SLAPD)
+dnl slapi
   AC_SUBST(BUILD_SLAPI)
   AC_SUBST(SLAPD_SLAPI_DEPEND)
+dnl backends
   AC_SUBST(BUILD_BDB)
   AC_SUBST(BUILD_DNSSRV)
   AC_SUBST(BUILD_HDB)
@@ -2858,6 +2905,7 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_PERL)
   AC_SUBST(BUILD_SHELL)
   AC_SUBST(BUILD_SQL)
+dnl backend modules
   AC_SUBST(BUILD_BDB_DYNAMIC)
   AC_SUBST(BUILD_DNSSRV_DYNAMIC)
   AC_SUBST(BUILD_HDB_DYNAMIC)
@@ -2871,6 +2919,9 @@ AC_SUBST(BUILD_SLAPD)
   AC_SUBST(BUILD_RELAY_DYNAMIC)
   AC_SUBST(BUILD_SHELL_DYNAMIC)
   AC_SUBST(BUILD_SQL_DYNAMIC)
+dnl overlays
+  AC_SUBST(BUILD_CHAIN)
+  AC_SUBST(BUILD_DENYOP)
   AC_SUBST(BUILD_DYNGROUP)
   AC_SUBST(BUILD_PROXYCACHE)
   AC_SUBST(BUILD_RWM)

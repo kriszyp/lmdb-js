@@ -13,10 +13,18 @@
 ## top-level directory of the distribution or, alternatively, at
 ## <http://www.OpenLDAP.org/license.html>.
 
-SRCS = overlays.c dyngroup.c pcache.c \
-	rwm.c rwmconf.c rwmdn.c rwmmap.c denyop.c
-OBJS = overlays.lo dyngroup.lo pcache.lo \
-	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo denyop.lo
+SRCS = overlays.c \
+	chain.c \
+	denyop.c \
+	dyngroup.c \
+	pcache.c \
+	rwm.c rwmconf.c rwmdn.c rwmmap.c
+OBJS = overlays.lo \
+	chain.c \
+	denyop.lo \
+	dyngroup.lo \
+	pcache.lo \
+	rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries
@@ -33,6 +41,12 @@ PROGRAMS = @SLAPD_DYNAMIC_OVERLAYS@
 XINCPATH = -I.. -I$(srcdir)/..
 XDEFS = $(MODULES_CPPFLAGS)
 
+chain.la : chain.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ chain.lo version.lo $(LINK_LIBS)
+
+denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
+	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
+
 dyngroup.la : dyngroup.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ dyngroup.lo version.lo $(LINK_LIBS)
 
@@ -41,9 +55,6 @@ pcache.la : pcache.lo $(@PLAT@_LINK_LIBS)
 
 rwm.la : rwm.lo $(@PLAT@_LINK_LIBS)
 	$(LTLINK_MOD) -module -o $@ rwm.lo rwmconf.lo rwmdn.lo rwmmap.lo version.lo $(LINK_LIBS)
-
-denyop.la : denyop.lo $(@PLAT@_LINK_LIBS)
-	$(LTLINK_MOD) -module -o $@ denyop.lo version.lo $(LINK_LIBS)
 
 install-local:	$(PROGRAMS)
 	@if test -n "$?" ; then \

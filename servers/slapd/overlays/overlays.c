@@ -24,6 +24,12 @@
 #include "slap.h"
 
 
+#if SLAPD_OVER_CHAIN == SLAPD_MOD_STATIC
+extern int chain_init();
+#endif
+#if SLAPD_OVER_DENYOP == SLAPD_MOD_STATIC
+extern int denyop_init();
+#endif
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 extern int dyngroup_init();
 #endif
@@ -38,6 +44,12 @@ static struct {
 	char *name;
 	int (*func)();
 } funcs[] = {
+#if SLAPD_OVER_CHAIN == SLAPD_MOD_STATIC
+	{ "LDAP Chain Response", chain_init },
+#endif
+#if SLAPD_OVER_DENYOP == SLAPD_MOD_STATIC
+	{ "Deny Operation", denyop_init },
+#endif
 #if SLAPD_OVER_DYNGROUP == SLAPD_MOD_STATIC
 	{ "Dynamic Group", dyngroup_init },
 #endif

@@ -15,10 +15,10 @@
 
 SRCS	= init.c config.c search.c bind.c unbind.c add.c compare.c \
 		delete.c modify.c modrdn.c \
-		suffixmassage.c map.c extended.c chain.c
+		suffixmassage.c map.c extended.c
 OBJS	= init.lo config.lo search.lo bind.lo unbind.lo add.lo compare.lo \
 		delete.lo modify.lo modrdn.lo \
-		suffixmassage.lo map.lo extended.lo chain.lo
+		suffixmassage.lo map.lo extended.lo
 
 LDAP_INCDIR= ../../../include       
 LDAP_LIBDIR= ../../../libraries

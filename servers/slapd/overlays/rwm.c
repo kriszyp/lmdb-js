@@ -738,7 +738,7 @@ rwm_init(void)
 {
 	memset( &rwm, 0, sizeof(slap_overinst) );
 
-	rwm.on_bi.bi_type = "rewrite-remap";
+	rwm.on_bi.bi_type = "rwm";
 	rwm.on_bi.bi_db_init = rwm_over_init;
 	rwm.on_bi.bi_db_config = rwm_config;
 	rwm.on_bi.bi_db_destroy = rwm_destroy;

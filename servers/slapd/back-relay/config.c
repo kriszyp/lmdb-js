@@ -91,10 +91,9 @@ relay_back_db_config(
 
 		ri->ri_realsuffix = ndn;
 
-		if ( overlay_config( be, "rewrite-remap" ) ) {
+		if ( overlay_config( be, "rwm" ) ) {
 			fprintf( stderr, "%s: line %d: unable to install "
-					"rewrite-remap overlay "
-					"in back-relay "
+					"rwm overlay "
 					"in \"relay <dn> [massage]\" line\n",
 					fname, lineno );
 			return 1;

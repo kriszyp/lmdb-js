@@ -21,13 +21,17 @@
 
 #include "portable.h"
 
+#if defined(SLAPD_LDAP) 
+
+#ifdef SLAPD_OVER_CHAIN
+
 #include <stdio.h>
 
 #include <ac/string.h>
 #include <ac/socket.h>
 
 #include "slap.h"
-#include "back-ldap.h"
+#include "../back-ldap/back-ldap.h"
 
 static int
 ldap_chain_response( Operation *op, SlapReply *rs )
@@ -143,12 +147,21 @@ static int ldap_chain_config(
     char	**argv
 )
 {
-	slap_overinst *on = (slap_overinst *) be->bd_info;
-	void *private = be->be_private;
-	int rc;
+	slap_overinst	*on = (slap_overinst *) be->bd_info;
+	void		*private = be->be_private;
+	char		*argv0 = NULL;
+	int		rc;
 
 	be->be_private = on->on_bi.bi_private;
+	if ( strncasecmp( argv[ 0 ], "chain-", sizeof( "chain-" ) - 1 ) == 0 ) {
+		argv0 = argv[ 0 ];
+		argv[ 0 ] = &argv[ 0 ][ sizeof( "chain-" ) - 1 ];
+	}
 	rc = ldap_back_db_config( be, fname, lineno, argc, argv );
+	if ( argv0 ) {
+		argv[ 0 ] = argv0;
+	}
+	
 	be->be_private = private;
 	return rc;
 }
@@ -185,7 +198,7 @@ static int ldap_chain_destroy(
 
 static slap_overinst ldapchain;
 
-int ldap_chain_setup()
+int chain_init()
 {
 	ldapchain.on_bi.bi_type = "chain";
 	ldapchain.on_bi.bi_db_init = ldap_chain_init;
@@ -195,3 +208,13 @@ int ldap_chain_setup()
 
 	return overlay_register( &ldapchain );
 }
+
+#if SLAPD_OVER_CHAIN == SLAPD_MOD_DYNAMIC
+int init_module(int argc, char *argv[]) {
+	return chain_init();
+}
+#endif /* SLAPD_OVER_CHAIN == SLAPD_MOD_DYNAMIC */
+
+#endif /* SLAPD_OVER_CHAIN */
+
+#endif /* ! defined(SLAPD_LDAP) */
