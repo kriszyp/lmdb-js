@@ -101,6 +101,8 @@ int lutil_sasl_interact(
 {
 	sasl_interact_t *interact = in;
 
+	fputs( "SASL Interaction\n", stderr );
+
 	while( interact->id != SASL_CB_LIST_END ) {
 		int rc = interaction( interact );
 

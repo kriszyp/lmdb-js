@@ -523,9 +523,7 @@ ldap_int_sasl_bind(
 		}
 
 		if( saslrc == SASL_INTERACT ) {
-			fprintf(stderr, "SASL Interacting\n");
 			if( !ld->ld_options.ldo_sasl_interact ) break;
-
 			rc = (ld->ld_options.ldo_sasl_interact)( ld, prompts );
 			if( rc != LDAP_SUCCESS ) {
 				break;
@@ -574,9 +572,7 @@ ldap_int_sasl_bind(
 
 			if( saslrc == SASL_INTERACT ) {
 				int res;
-				fprintf(stderr, "SASL Interacting\n");
 				if( !ld->ld_options.ldo_sasl_interact ) break;
-
 				res = (ld->ld_options.ldo_sasl_interact)( ld, prompts );
 				if( res != LDAP_SUCCESS ) {
 					break;
