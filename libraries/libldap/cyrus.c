@@ -663,6 +663,7 @@ ldap_int_sasl_bind(
 int
 ldap_int_sasl_external(
 	LDAP *ld,
+	LDAPConn *conn,
 	const char * authid,
 	ber_len_t ssf )
 {
@@ -670,11 +671,7 @@ ldap_int_sasl_external(
 	sasl_conn_t *ctx;
 	sasl_external_properties_t extprops;
 
-	if( ld->ld_defconn == NULL ) {
-		return LDAP_LOCAL_ERROR;
-	}
-
-	ctx = ld->ld_defconn->lconn_sasl_ctx;
+	ctx = conn->lconn_sasl_ctx;
 
 	if ( ctx == NULL ) {
 		return LDAP_LOCAL_ERROR;
