@@ -581,6 +581,8 @@ static int slap_open_listener(
 		return rc;
 	}
 
+	l.sl_url = NULL;
+
 #ifndef HAVE_TLS
 	if( ldap_pvt_url_scheme2tls( lud->lud_scheme ) ) {
 #ifdef NEW_LOGGING
@@ -859,10 +861,21 @@ static int slap_open_listener(
 
 	slap_free_listener_addresses(psal);
 
+	if ( l.sl_url == NULL )
+	{
+#ifdef NEW_LOGGING
+		LDAP_LOG( CONNECTION, RESULTS, 
+			"slap_open_listener: failed on %s\n", url, 0, 0 );
+#else
+		Debug( LDAP_DEBUG_TRACE,
+			"slap_open_listener: failed on %s\n", url, 0, 0 );
+#endif
+		return -1;
+	}
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( CONNECTION, RESULTS, 
-			"slap_open_listener: daemon initialzed %s\n", l.sl_url, 0, 0 );
+		"slap_open_listener: daemon initialized %s\n", l.sl_url, 0, 0 );
 #else
 	Debug( LDAP_DEBUG_TRACE, "daemon: initialized %s\n",
 		l.sl_url, 0, 0 );
