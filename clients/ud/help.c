@@ -75,7 +75,7 @@ print_help( char *s )
 		printf("\n  Type \"help <command-name>\" to get help about a particular command.");
 		printf("\n  Type \"help options\" to get help about options in brackets above.\n");
 #ifdef UOFM
-		printf("\n  Bugs in ud should be reported via e-mail to:  ud-bugs@umich.edu\n" );
+		printf("\n  Bugs in ud should be reported via e-mail to:  OpenLDAP-its@OpenLDAP.org\n" );
 		printf("\n  For more assistance with ud, contact the ITD Consultants by phoning\n" );
 		printf("      764-HELP or by sending e-mail to:  consulting.help@umich.edu\n" );
 #endif /* UOFM */
