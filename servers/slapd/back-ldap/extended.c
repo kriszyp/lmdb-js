@@ -117,12 +117,12 @@ ldap_back_exop_passwd(
 		op->o_req_dn.bv_val, isproxy ? " (proxy)" : "", 0 );
 #endif
 
-	if (isproxy) {
+	if ( isproxy ) {
 		dc.rwmap = &li->rwmap;
 #ifdef ENABLE_REWRITE
 		dc.conn = op->o_conn;
 		dc.rs = rs;
-		dc.ctx = "modifyPwd";
+		dc.ctx = "exopPasswdDN";
 #else
 		dc.tofrom = 1;
 		dc.normalized = 0;

@@ -495,7 +495,7 @@ new_candidate:;
 	 */
 	if ( candidate_match == initial_candidates
 			&& match.bv_val != NULL && *match.bv_val ) {
-		dc.ctx = "matchedDn";
+		dc.ctx = "matchedDN";
 		dc.rwmap = &li->targets[ last ]->rwmap;
 
 		if ( ldap_back_dn_massage( &dc, &match, &mmatch ) ) {

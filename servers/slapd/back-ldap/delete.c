@@ -60,7 +60,7 @@ ldap_back_delete(
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "deleteDn";
+	dc.ctx = "deleteDN";
 #else
 	dc.tofrom = 1;
 	dc.normalized = 0;

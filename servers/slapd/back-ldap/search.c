@@ -275,7 +275,7 @@ fail:;
 		struct berval mdn;
 
 #ifdef ENABLE_REWRITE
-		dc.ctx = "matchedDn";
+		dc.ctx = "matchedDN";
 #else
 		dc.tofrom = 0;
 		dc.normalized = 0;

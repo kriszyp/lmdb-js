@@ -60,7 +60,7 @@ ldap_back_compare(
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "compareDn";
+	dc.ctx = "compareDN";
 #else
 	dc.tofrom = 1;
 	dc.normalized = 0;

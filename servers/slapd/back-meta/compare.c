@@ -67,7 +67,7 @@ meta_back_compare( Operation *op, SlapReply *rs )
 	 */
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "compareDn";
+	dc.ctx = "compareDN";
 
 	for ( i = 0, lsc = lc->conns; !META_LAST(lsc); ++i, ++lsc ) {
 		struct berval mdn = { 0, NULL };
@@ -254,7 +254,7 @@ finish:;
 		matched.bv_val = match;
 		matched.bv_len = strlen( match );
 
-		dc.ctx = "matchedDn";
+		dc.ctx = "matchedDN";
 		ldap_back_dn_massage( &dc, &matched, &mmatch );
 	}
 

@@ -118,6 +118,21 @@ ldap_back_db_init(
  		ch_free( li );
  		return -1;
  	}
+
+	{
+		char	*rargv[3];
+
+		/*
+		 * the filter rewrite as a string must be disabled
+		 * by default; it can be re-enabled by adding rules;
+		 * this creates an empty rewriteContext
+		 */
+		rargv[ 0 ] = "rewriteContext";
+		rargv[ 1 ] = "searchFilter";
+		rargv[ 2 ] = NULL;
+		rewrite_parse( li->rwmap.rwm_rw, "<suffix massage>", 
+				1, 2, rargv );
+	}
 #endif /* ENABLE_REWRITE */
 
 	ldap_pvt_thread_mutex_init( &li->conn_mutex );

@@ -180,7 +180,7 @@ map_attr_value(
 		dncookie fdc = *dc;
 
 #ifdef ENABLE_REWRITE
-		fdc.ctx = "searchFilter";
+		fdc.ctx = "searchFilterAttrDN";
 #endif
 
 		switch ( ldap_back_dn_massage( &fdc, value, &vtmp ) ) {
@@ -214,8 +214,8 @@ map_attr_value(
 	return LDAP_SUCCESS;
 }
 
-int
-ldap_back_filter_map_rewrite(
+static int
+ldap_int_back_filter_map_rewrite(
 		dncookie		*dc,
 		Filter			*f,
 		struct berval		*fstr,
@@ -390,7 +390,7 @@ ldap_back_filter_map_rewrite(
 		for ( p = f->f_list; p != NULL; p = p->f_next ) {
 			len = fstr->bv_len;
 
-			rc = ldap_back_filter_map_rewrite( dc, p, &vtmp, remap );
+			rc = ldap_int_back_filter_map_rewrite( dc, p, &vtmp, remap );
 			if ( rc != LDAP_SUCCESS ) {
 				return rc;
 			}
@@ -456,6 +456,73 @@ ldap_back_filter_map_rewrite(
 	}
 
 	return LDAP_SUCCESS;
+}
+
+int
+ldap_back_filter_map_rewrite(
+		dncookie		*dc,
+		Filter			*f,
+		struct berval		*fstr,
+		int			remap )
+{
+	int		rc;
+	dncookie 	fdc;
+	struct berval	ftmp;
+
+	rc = ldap_int_back_filter_map_rewrite( dc, f, fstr, remap );
+
+#ifdef ENABLE_REWRITE
+	if ( rc != LDAP_SUCCESS ) {
+		return rc;
+	}
+
+	fdc = *dc;
+	ftmp = *fstr;
+
+	fdc.ctx = "searchFilter";
+
+	switch ( rewrite_session( fdc.rwmap->rwm_rw, fdc.ctx, 
+				( ftmp.bv_len ? ftmp.bv_val : "" ), 
+				fdc.conn, &fstr->bv_val )) {
+	case REWRITE_REGEXEC_OK:
+		if ( fstr->bv_val != NULL ) {
+			fstr->bv_len = strlen( fstr->bv_val );
+			free( ftmp.bv_val );
+		} else {
+			*fstr = ftmp;
+		}
+
+#ifdef NEW_LOGGING
+		LDAP_LOG( BACK_LDAP, DETAIL1, 
+			"[rw] %s: \"%s\" -> \"%s\"\n",
+			dc->ctx, ftmp.bv_val, fstr->bv_val );		
+#else /* !NEW_LOGGING */
+		Debug( LDAP_DEBUG_ARGS,
+			"[rw] %s: \"%s\" -> \"%s\"\n",
+			dc->ctx, ftmp.bv_val, fstr->bv_val );		
+#endif /* !NEW_LOGGING */
+		rc = LDAP_SUCCESS;
+		break;
+ 		
+ 	case REWRITE_REGEXEC_UNWILLING:
+		if ( fdc.rs ) {
+			fdc.rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
+			fdc.rs->sr_text = "Operation not allowed";
+		}
+		rc = LDAP_UNWILLING_TO_PERFORM;
+		break;
+	       	
+	case REWRITE_REGEXEC_ERR:
+		if ( fdc.rs ) {
+			fdc.rs->sr_err = LDAP_OTHER;
+			fdc.rs->sr_text = "Rewrite error";
+		}
+		rc = LDAP_OTHER;
+		break;
+	}
+
+#endif /* ENABLE_REWRITE */
+	return rc;
 }
 
 /*

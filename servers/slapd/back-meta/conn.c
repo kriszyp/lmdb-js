@@ -243,7 +243,7 @@ init_one_conn(
 		dc.rwmap = &lt->rwmap;
 		dc.conn = op->o_conn;
 		dc.rs = rs;
-		dc.ctx = "bindDn";
+		dc.ctx = "bindDN";
 		
 		/*
 		 * Rewrite the bind dn if needed

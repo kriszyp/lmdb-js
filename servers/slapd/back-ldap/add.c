@@ -69,7 +69,7 @@ ldap_back_add(
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "addDn";
+	dc.ctx = "addDN";
 #else
 	dc.tofrom = 1;
 	dc.normalized = 0;
@@ -87,7 +87,7 @@ ldap_back_add(
 	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
 
 #ifdef ENABLE_REWRITE
-	dc.ctx = "addDnAttr";
+	dc.ctx = "addAttrDN";
 #endif
 
 	isupdate = be_isupdate( op->o_bd, &op->o_ndn );

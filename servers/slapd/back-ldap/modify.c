@@ -63,7 +63,7 @@ ldap_back_modify(
 #ifdef ENABLE_REWRITE
 	dc.conn = op->o_conn;
 	dc.rs = rs;
-	dc.ctx = "modifyDn";
+	dc.ctx = "modifyDN";
 #else
 	dc.tofrom = 1;
 	dc.normalized = 0;
