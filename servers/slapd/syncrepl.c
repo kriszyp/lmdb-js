@@ -478,11 +478,11 @@ do_syncrepl(
 				if ( syncCookie.bv_len ) {
 					syncrepl_updateCookie( si, ld, &op, &psub, &syncCookie );
 				}
-				if ( rc_efree )
+				if ( modlist ) {
+					slap_mods_free( modlist );
+				}
+				if ( rc_efree ) {
 					entry_free( entry );
-				for ( ml = modlist; ml != NULL; ml = mlnext ) {
-					mlnext = ml->sml_next;
-					ber_memfree( ml );
 				}
 				break;
 
@@ -625,6 +625,10 @@ do_syncrepl(
 				break;
 
 			}
+			if ( syncCookie.bv_val )
+				ch_free( syncCookie.bv_val );
+			if ( syncUUID.bv_val )
+				ch_free( syncUUID.bv_val );
 		}
 		ldap_msgfree( res );
 	}
@@ -807,6 +811,7 @@ syncrepl_message_to_entry(
 			ber_scanf( ctrl_ber, "o}", syncCookie );
 		}
 		ber_free( ctrl_ber, 1 );
+		ldap_controls_free( rctrls );
 	} else {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,"syncrepl_message_to_entry : "
@@ -817,10 +822,7 @@ syncrepl_message_to_entry(
 #endif
 	}
 
-	if ( *syncstate == LDAP_SYNC_PRESENT ) {
-		e = NULL;
-		goto done;
-	} else if ( *syncstate == LDAP_SYNC_DELETE ) {
+	if ( *syncstate == LDAP_SYNC_PRESENT || *syncstate == LDAP_SYNC_DELETE ) {
 		goto done;
 	}
 
@@ -927,10 +929,11 @@ syncrepl_entry(
 	}
 
 	if ( syncstate == LDAP_SYNC_PRESENT ) {
-		if ( e )
+		if ( e ) {
 			return 1;
-		else
+		} else {
 			return 0;
+		}
 	}
 
 	filterstr = (char *) sl_malloc( strlen("entryUUID=") + syncUUID->bv_len + 1,
@@ -939,7 +942,6 @@ syncrepl_entry(
 	strcat( filterstr, syncUUID->bv_val );
 
 	si->e = e;
-	si->syncUUID = syncUUID;
 	si->syncUUID_ndn = NULL;
 
 	filter = str2filter( filterstr );
@@ -1016,9 +1018,8 @@ syncrepl_entry(
 							"syncrepl_entry : be_modify failed (%d)\n",
 							rc, 0, 0 );
 #endif
-						return 1;
 					}
-					return 0;
+					return 1;
 				} else if ( rc == LDAP_REFERRAL ||
 							rc == LDAP_NO_SUCH_OBJECT ) {
 					syncrepl_add_glue( si, ld, op, e,
@@ -1286,7 +1287,7 @@ syncrepl_updateCookie(
 	Modifications *ml;
 	Modifications *mlnext;
 	Modifications *mod;
-	Modifications *modlist;
+	Modifications *modlist = NULL;
 	Modifications **modtail = &modlist;
 
 	struct berval* ocbva = NULL;
@@ -1300,7 +1301,7 @@ syncrepl_updateCookie(
 	char txtbuf[SLAP_TEXT_BUFLEN];
 	size_t textlen = sizeof txtbuf;
 
-	Entry* e;
+	Entry* e = NULL;
 	int rc;
 
 	struct berval sub_bv = { 0, NULL };
@@ -1470,14 +1471,14 @@ update_cookie_retry:
 		}
 	}
 
-	if ( e != NULL )
-		entry_free( e );
-
 done :
 
-	for ( ml = modlist; ml != NULL; ml = mlnext ) {
-		mlnext = ml->sml_next;
-		free( ml );
+	if ( e != NULL ) {
+		entry_free( e );
+	}
+
+	if ( modlist ) {
+		slap_mods_free( modlist );
 	}
 
 	return;
@@ -1490,9 +1491,9 @@ avl_ber_bvfree( void *bv )
 		return;
 	}
 	if ( ((struct berval *)bv)->bv_val != NULL ) {
-		ber_memfree ( ((struct berval *)bv)->bv_val );
+		ch_free ( ((struct berval *)bv)->bv_val );
 	}
-	ber_memfree ( (char *) bv );
+	ch_free ( (char *) bv );
 }
 
 static int
@@ -1580,6 +1581,8 @@ nonpresent_callback(
 		} else {
 			avl_delete( &si->presentlist,
 					&a->a_vals[0], syncuuid_cmp );
+			ch_free( present_uuid->bv_val );
+			ch_free( present_uuid );
 		}
 		return LDAP_SUCCESS;
 	} else {
