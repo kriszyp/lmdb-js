@@ -195,7 +195,12 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
-	read_config( conffile );
+	rc = read_config( conffile );
+
+	if ( rc != 0 ) {
+		fprintf( stderr, "%s: bad configuration file!\n", progname );
+		exit( EXIT_FAILURE );
+	}
 
 	if ( !nbackends ) {
 		fprintf( stderr, "No databases found in config file\n" );
