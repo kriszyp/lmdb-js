@@ -66,11 +66,7 @@ char   *slapd_args_file = NULL;
 
 char   *strtok_quote_ptr;
 
-#ifdef SLAPD_RLOOKUPS
-int use_reverse_lookup = 1;
-#else /* !SLAPD_RLOOKUPS */
 int use_reverse_lookup = 0;
-#endif /* !SLAPD_RLOOKUPS */
 
 static char	*fp_getline(FILE *fp, int *lineno);
 static void	fp_getline_init(int *lineno);

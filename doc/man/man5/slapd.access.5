@@ -266,6 +266,12 @@ pattern, or its trailing part, after a
 exactly matches the 
 .BR domain
 pattern.
+The
+.B domain
+of the contacting host is determined by performing a DNS reverse lookup.
+As this lookup can easily be spoofed, use of the
+.B domain
+statement is strongly discouraged.  By default, reverse lookups are disabled.
 .LP
 The statement
 .B set=<pattern>
