@@ -175,7 +175,7 @@ ldbm_back_modrdn(
 	} else {
 		/* no parent, must be root to modify rdn */
 		isroot = be_isroot( be, op->o_ndn );
-		if ( ! be_isroot ) {
+		if ( ! isroot ) {
 			if ( be_issuffix( be, "" )
 					|| be_isupdate( be, op->o_ndn ) ) {
 				static const Entry rootp = { NOID, "", "", NULL, NULL };
@@ -296,7 +296,7 @@ ldbm_back_modrdn(
 				isroot = be_isroot( be, op->o_ndn );
 			}
 
-			if ( ! be_isroot ) {
+			if ( ! isroot ) {
 				if ( be_issuffix( be, "" )
 						|| be_isupdate( be, op->o_ndn ) ) {
 					static const Entry rootp = { NOID, "", "", NULL, NULL };

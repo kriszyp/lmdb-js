@@ -4,6 +4,7 @@ OpenLDAP 2.0.24 Engineering
 	Fixed slapd acl group/dnaddr bug (ITS#1607)
 	Fixed ber_bvstrdup() empty string ("") bug (ITS#1662)
 	Fixed back-ldbm dn normalization bug in onelevel searches (ITS#1654)
+	Fixed back-ldbm modrdn root dn check (ITS#1761)
 	Documentation
 		Updated release documents
 
