@@ -66,9 +66,9 @@ static ldap_pvt_thread_mutex_t	tls_mutexes[CRYPTO_NUM_LOCKS];
 static void tls_locking_cb( int mode, int type, const char *file, int line )
 {
 	if ( mode & CRYPTO_LOCK ) {
-		ldap_pvt_thread_mutex_lock( tls_mutexes+type );
+		ldap_pvt_thread_mutex_lock( &tls_mutexes[type] );
 	} else {
-		ldap_pvt_thread_mutex_unlock( tls_mutexes+type );
+		ldap_pvt_thread_mutex_unlock( &tls_mutexes[type] );
 	}
 }
 
@@ -83,7 +83,7 @@ static void tls_init_threads( void )
 	int i;
 
 	for( i=0; i< CRYPTO_NUM_LOCKS ; i++ ) {
-		ldap_pvt_thread_mutex_init( tls_mutexes+i );
+		ldap_pvt_thread_mutex_init( &tls_mutexes[i] );
 	}
 	CRYPTO_set_locking_callback( tls_locking_cb );
 	/* FIXME: the thread id should be added somehow... */

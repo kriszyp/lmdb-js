@@ -127,6 +127,12 @@ ldap_int_thread_mutex_lock( ldap_int_thread_mutex_t *mutex )
 }
 
 int 
+ldap_int_thread_mutex_trylock( ldap_int_thread_mutex_t *mutex )
+{
+	return 0;
+}
+
+int 
 ldap_int_thread_mutex_unlock( ldap_int_thread_mutex_t *mutex )
 {
 	return 0;
