@@ -70,7 +70,7 @@ get_filter(
 	 *		lessOrEqual	[6]	AttributeValueAssertion,
 	 *		present		[7]	AttributeType,,
 	 *		approxMatch	[8]	AttributeValueAssertion
-	 *		extensibleMatch [9] MatchingRuleAssertion
+	 *		extensibleMatch [9]	MatchingRuleAssertion
 	 *	}
 	 *
 	 *	SubstringFilter ::= SEQUENCE {
