@@ -59,7 +59,7 @@ idl_fetch_one(
 	IDList	*idl;
 
 #ifdef HAVE_BERKELEY_DB2
-	datum	k2;
+	Datum	k2;
 	memset( &k2, 0, sizeof( k2 ) );
 	memset( &data, 0, sizeof( data ) );
 #endif
