@@ -24,11 +24,8 @@ ldap_first_message( LDAP *ld, LDAPMessage *chain )
 {
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
+	assert( chain != NULL );
 
-	if ( ld == NULL || chain == NULL ) {
-		return NULL;
-	}
-	
   	return chain;
 }
 
@@ -37,12 +34,9 @@ ldap_next_message( LDAP *ld, LDAPMessage *msg )
 {
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
+	assert( msg != NULL );
 
-	if ( ld == NULL || msg == NULL || msg->lm_chain == NULL ) {
-		return NULL;
-	}
-
-	return( msg->lm_chain );
+	return msg->lm_chain;
 }
 
 int
@@ -52,10 +46,6 @@ ldap_count_messages( LDAP *ld, LDAPMessage *chain )
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-
-	if ( ld == NULL ) {
-		return -1;
-	}
 
 	for ( i = 0; chain != NULL; chain = chain->lm_chain ) {
 		i++;

@@ -131,6 +131,8 @@ ldap_compare(
 	int msgid;
 	struct berval bvalue;
 
+	assert( value != NULL );
+
 	bvalue.bv_val = (char *) value;
 	bvalue.bv_len = (value == NULL) ? 0 : strlen( value );
 
@@ -170,6 +172,8 @@ ldap_compare_s(
 	LDAP_CONST char *value )
 {
 	struct berval bvalue;
+
+	assert( value != NULL );
 
 	bvalue.bv_val = (char *) value;
 	bvalue.bv_len = (value == NULL) ? 0 : strlen( value );

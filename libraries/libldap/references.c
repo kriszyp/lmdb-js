@@ -24,7 +24,7 @@ ldap_first_reference( LDAP *ld, LDAPMessage *chain )
 {
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( chain !=  NULL );
+	assert( chain != NULL );
 
 	return chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE
 		? chain
@@ -36,7 +36,7 @@ ldap_next_reference( LDAP *ld, LDAPMessage *ref )
 {
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( ref !=  NULL );
+	assert( ref != NULL );
 
 	for (
 		ref = ref->lm_chain;
@@ -58,13 +58,7 @@ ldap_count_references( LDAP *ld, LDAPMessage *chain )
 
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
-	assert( chain !=  NULL );
 
-	if ( ld == NULL ) {
-		return -1;
-	}
-
-	
 	for ( i = 0; chain != NULL; chain = chain->lm_chain ) {
 		if( chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE ) {
 			i++;

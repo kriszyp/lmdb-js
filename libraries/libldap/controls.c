@@ -38,6 +38,7 @@ ldap_int_put_controls(
 	LDAPControl *const *c;
 
 	assert( ld != NULL );
+	assert( LDAP_VALID(ld) );
 	assert( ber != NULL );
 
 	if( ctrls == NULL ) {
@@ -414,6 +415,7 @@ ldap_create_control(
 	struct berval *bvalp;
 
 	assert( requestOID != NULL );
+	assert( ber != NULL );
 	assert( ctrlp != NULL );
 
 	ctrl = (LDAPControl *) LDAP_MALLOC( sizeof(LDAPControl) );
@@ -452,6 +454,7 @@ int ldap_int_client_controls( LDAP *ld, LDAPControl **ctrls )
 	LDAPControl *const *c;
 
 	assert( ld != NULL );
+	assert( LDAP_VALID(ld) );
 
 	if( ctrls == NULL ) {
 		/* use default server controls */
