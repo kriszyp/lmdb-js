@@ -10,25 +10,29 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/ds_search.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
 
-static get_filter();
-static get_filter_list();
-static get_substring_filter();
+static int	get_filter();
+static int	get_filter_list();
+static int	get_substring_filter();
 
-#ifdef COMPAT
+#ifdef LDAP_COMPAT
 extern int	version;
 extern int 	ldap_compat;
 #define SEARCHRESTAG	(ldap_compat == 20 ? OLD_LDAP_RES_SEARCH_RESULT : LDAP_RES_SEARCH_RESULT)
@@ -182,11 +186,11 @@ do_search(
 
 	rc = initiate_dap_operation( OP_SEARCH, m, &sa );
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if (  m->m_cldap )
 		m->m_searchbase = sa.sra_baseobject;
 	else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		dn_free( sa.sra_baseobject );
 
 	filter_free( sa.sra_filter );
@@ -201,7 +205,8 @@ do_search(
 	return( 1 );
 }
 
-static get_filter( BerElement *ber, Filter *filt )
+static int
+get_filter( BerElement *ber, Filter *filt )
 {
 	unsigned long	tag, len;
 	int		err;
@@ -240,14 +245,14 @@ static get_filter( BerElement *ber, Filter *filt )
 
 	err = 0;
 	switch (tag = ber_peek_tag( ber, &len )) {
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_EQUALITY:
 #endif
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_ARGS, "EQUALITY\n", 0, 0, 0 );
 		f->flt_type = FILTER_ITEM;
 		f->FUITEM.fi_type = FILTERITEM_EQUALITY;
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 )
 			(void) ber_skip_tag( ber, &len );
 #endif
@@ -258,7 +263,7 @@ static get_filter( BerElement *ber, Filter *filt )
 		}
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_SUBSTRINGS:
 #endif
 	case LDAP_FILTER_SUBSTRINGS:
@@ -266,14 +271,14 @@ static get_filter( BerElement *ber, Filter *filt )
 		err = get_substring_filter( ber, f );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_GE:
 #endif
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_ARGS, "GE\n", 0, 0, 0 );
 		f->flt_type = FILTER_ITEM;
 		f->FUITEM.fi_type = FILTERITEM_GREATEROREQUAL;
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 )
 			(void) ber_skip_tag( ber, &len );
 #endif
@@ -283,14 +288,14 @@ static get_filter( BerElement *ber, Filter *filt )
 		}
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_LE:
 #endif
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_ARGS, "LE\n", 0, 0, 0 );
 		f->flt_type = FILTER_ITEM;
 		f->FUITEM.fi_type = FILTERITEM_LESSOREQUAL;
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 )
 			(void) ber_skip_tag( ber, &len );
 #endif
@@ -301,10 +306,10 @@ static get_filter( BerElement *ber, Filter *filt )
 		}
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_PRESENT:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_FILTER_PRESENT_30:
 #endif
 	case LDAP_FILTER_PRESENT:
@@ -312,7 +317,7 @@ static get_filter( BerElement *ber, Filter *filt )
 		f->flt_type = FILTER_ITEM;
 		f->FUITEM.fi_type = FILTERITEM_PRESENT;
 		len = sizeof(typestr);
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 )
 			(void) ber_skip_tag( ber, &len );
 #endif
@@ -323,14 +328,14 @@ static get_filter( BerElement *ber, Filter *filt )
 			return( LDAP_UNDEFINED_TYPE );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_APPROX:
 #endif
 	case LDAP_FILTER_APPROX:
 		Debug( LDAP_DEBUG_ARGS, "APPROX\n", 0, 0, 0 );
 		f->flt_type = FILTER_ITEM;
 		f->FUITEM.fi_type = FILTERITEM_APPROX;
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 )
 			(void) ber_skip_tag( ber, &len );
 #endif
@@ -341,7 +346,7 @@ static get_filter( BerElement *ber, Filter *filt )
 		}
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_AND:
 #endif
 	case LDAP_FILTER_AND:
@@ -350,7 +355,7 @@ static get_filter( BerElement *ber, Filter *filt )
 		err = get_filter_list( ber, f );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_OR:
 #endif
 	case LDAP_FILTER_OR:
@@ -359,7 +364,7 @@ static get_filter( BerElement *ber, Filter *filt )
 		err = get_filter_list( ber, f );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_FILTER_NOT:
 #endif
 	case LDAP_FILTER_NOT:
@@ -370,7 +375,7 @@ static get_filter( BerElement *ber, Filter *filt )
 		break;
 
 	default:
-		Debug( LDAP_DEBUG_ANY, "unknown filter type %d\n", tag, 0, 0 );
+		Debug( LDAP_DEBUG_ANY, "unknown filter type %lu\n", tag, 0, 0 );
 		free( f );
 		return( LDAP_PROTOCOL_ERROR );
 		break;
@@ -380,7 +385,8 @@ static get_filter( BerElement *ber, Filter *filt )
 	return( err );
 }
 
-static get_filter_list( BerElement *ber, Filter f )
+static int
+get_filter_list( BerElement *ber, Filter f )
 {
 	Filter		new, tail;
 	int		err;
@@ -389,7 +395,7 @@ static get_filter_list( BerElement *ber, Filter f )
 
 	Debug( LDAP_DEBUG_TRACE, "get_filter_list\n", 0, 0, 0 );
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( ldap_compat == 30 )
 		(void) ber_skip_tag( ber, &len );
 #endif
@@ -411,7 +417,8 @@ static get_filter_list( BerElement *ber, Filter f )
 	return( 0 );
 }
 
-static get_substring_filter( BerElement *ber, Filter f )
+static int
+get_substring_filter( BerElement *ber, Filter f )
 {
 	unsigned long	tag, len;
 	char		typestr[64];
@@ -422,7 +429,7 @@ static get_substring_filter( BerElement *ber, Filter f )
 
 	Debug( LDAP_DEBUG_TRACE, "get_substring_filter\n", 0, 0, 0 );
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( ldap_compat == 30 )
 		(void) ber_skip_tag( ber, &len );
 #endif
@@ -444,7 +451,7 @@ static get_substring_filter( BerElement *ber, Filter f )
 	    tag = ber_next_element( ber, &len, last ) ) {
 		AV_Sequence	avs, any_end;
 
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 ) {
 			if ( ber_scanf( ber, "{a}", &valstr ) == LBER_ERROR ) {
 				return( LDAP_PROTOCOL_ERROR );
@@ -466,10 +473,10 @@ static get_substring_filter( BerElement *ber, Filter f )
 			return( LDAP_OPERATIONS_ERROR );
 
 		switch ( tag ) {
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		case OLD_LDAP_SUBSTRING_INITIAL:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_INITIAL_30:
 #endif
 		case LDAP_SUBSTRING_INITIAL:
@@ -482,10 +489,10 @@ static get_substring_filter( BerElement *ber, Filter f )
 			f->FUITEM.UNSUB.fi_sub_initial = avs;
 			break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		case OLD_LDAP_SUBSTRING_ANY:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_ANY_30:
 #endif
 		case LDAP_SUBSTRING_ANY:
@@ -500,10 +507,10 @@ static get_substring_filter( BerElement *ber, Filter f )
 			any_end = avs;
 			break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		case OLD_LDAP_SUBSTRING_FINAL:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		case LDAP_SUBSTRING_FINAL_30:
 #endif
 		case LDAP_SUBSTRING_FINAL:
@@ -546,7 +553,7 @@ search_result(
 		correlate_search_results( sr );
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( m->m_cldap ) {
 		if ((ber = der_alloc()) == NULLBER ) {
 			send_ldap_msgresult( sb, SEARCHRESTAG, m,
@@ -565,9 +572,9 @@ search_result(
 	for ( e = sr->CSR_entries; e != NULLENTRYINFO; e = e->ent_next ) {
 		Debug( LDAP_DEBUG_ARGS, "\tentry:\n", 0, 0, 0 );
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if ( !m->m_cldap )
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 			if ( (ber = der_alloc()) == NULLBER ) {
 				send_ldap_msgresult( sb, SEARCHRESTAG, m,
@@ -575,7 +582,7 @@ search_result(
 				return;
 			}
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		if ( version == 1 ) {
 			if ( ber_printf( ber, "t{it{", OLD_LBER_SEQUENCE,
 			    m->m_msgid, OLD_LDAP_RES_SEARCH_ENTRY ) == -1 ) {
@@ -585,7 +592,7 @@ search_result(
 			}
 		} else
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 ) {
 			if ( ber_printf( ber, "{it{{", m->m_msgid,
 			    LDAP_RES_SEARCH_ENTRY ) == -1 ) {
@@ -595,11 +602,11 @@ search_result(
 			}
 		} else
 #endif
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if ( m->m_cldap )
 			rc = ber_printf( ber, "t{", LDAP_RES_SEARCH_ENTRY );
 		else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 			rc = ber_printf( ber, "{it{", m->m_msgid,
 			    LDAP_RES_SEARCH_ENTRY );
 
@@ -609,10 +616,10 @@ search_result(
 			return;
 		}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if (  m->m_cldap )
 			rc = encode_dn( ber, e->ent_dn, m->m_searchbase );
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		else
 			rc = encode_dn( ber, e->ent_dn, NULLDN );
 
@@ -628,7 +635,7 @@ search_result(
 			return;
 		}
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		if ( version == 1 ) {
 			if ( ber_printf( ber, "}}" ) == -1 ) {
 				send_ldap_msgresult( sb, SEARCHRESTAG, m,
@@ -638,7 +645,7 @@ search_result(
 			}
 		} else
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 		if ( ldap_compat == 30 ) {
 			if ( ber_printf( ber, "}}}" ) == -1 ) {
 				send_ldap_msgresult( sb, SEARCHRESTAG, m,
@@ -648,11 +655,11 @@ search_result(
 			}
 		} else
 #endif
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if ( m->m_cldap )
 			rc = ber_printf( ber, "}" );
 		else
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 			rc = ber_printf( ber, "}}" );
 
 		if ( rc == -1 ) {
@@ -667,7 +674,7 @@ search_result(
 			    ber->ber_buf, stderr, 0, 0 );
 #endif
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if ( !m->m_cldap )
 #endif
 			(void) ber_flush( sb, ber, 1 );
@@ -688,7 +695,7 @@ search_result(
 
 	Debug( LDAP_DEBUG_ARGS, "\tresult:\n", 0, 0, 0 );
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( m->m_cldap ) {
 		if ( ber_printf( ber, "t{ess}}}", SEARCHRESTAG, rc, "", "" )
 		    == -1 ) {

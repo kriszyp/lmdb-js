@@ -10,17 +10,21 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/ds_search.h>
 #include <quipu/dap2.h>
 #include <quipu/dua.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
@@ -52,7 +56,8 @@ short	ldap_dLSubmitPermission_syntax;
 static void	de_t61( char *s, int t61mark );
 static int	syntax_is_string( short syntax );
 
-static get_one_syntax( char *attrib, int required )
+static int
+get_one_syntax( char *attrib, int required )
 {
 	oid_table_attr	*p, *name2attr();
 
@@ -332,7 +337,8 @@ encode_dn(
 	return( rc );
 }
 
-static put_jpeg_value( BerElement *ber, AttributeValue av )
+static int
+put_jpeg_value( BerElement *ber, AttributeValue av )
 {
 	PE	pe;
 	int	len;
@@ -375,7 +381,8 @@ static put_jpeg_value( BerElement *ber, AttributeValue av )
 	return( 0 );
 }
 
-static put_audio_value( BerElement *ber, AttributeValue av )
+static int
+put_audio_value( BerElement *ber, AttributeValue av )
 {
 	struct qbuf	*qb, *p;
 	int		rc, len;
@@ -412,7 +419,8 @@ static put_audio_value( BerElement *ber, AttributeValue av )
 	return( rc );
 }
 
-static put_photo_value( BerElement *ber, AttributeValue av )
+static int
+put_photo_value( BerElement *ber, AttributeValue av )
 {
 	PE		pe;
 	PS		ps;
@@ -474,7 +482,8 @@ static put_photo_value( BerElement *ber, AttributeValue av )
 	return( 0 );
 }
 
-static put_values(
+static int
+put_values(
     BerElement	*ber,
     PS		ps,
     short	syntax,
@@ -544,7 +553,7 @@ int
 encode_attrs( BerElement *ber, Attr_Sequence as )
 {
 	PS		ps;
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	extern int	ldap_compat;
 #endif
 
@@ -555,7 +564,7 @@ encode_attrs( BerElement *ber, Attr_Sequence as )
 	if ( str_setup( ps, NULLCP, 0, 0 ) == NOTOK )
 		return( -1 );
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	if ( ber_printf( ber, "t{", ldap_compat == 20 ? OLD_LBER_SEQUENCE :
 	    LBER_SEQUENCE ) == -1 ) {
 #else
@@ -570,7 +579,7 @@ encode_attrs( BerElement *ber, Attr_Sequence as )
 		AttrT_print( ps, as->attr_type, EDBOUT );
 		*ps->ps_ptr = '\0';
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 		if ( ber_printf( ber, "t{st[", ldap_compat == 20 ?
 		    OLD_LBER_SEQUENCE : LBER_SEQUENCE, ps->ps_base,
 		    ldap_compat == 20 ? OLD_LBER_SET : LBER_SET ) == -1 ) {

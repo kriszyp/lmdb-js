@@ -14,45 +14,41 @@
  * ldap_op.c - routines to perform LDAP operations
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
+#include "portable.h"
 
-#ifdef KERBEROS
-#include <krb.h>
-#endif /* KERBEROS */
+#include <stdio.h>
+
+#include <ac/errno.h>
+#include <ac/string.h>
+#include <ac/ctype.h>
+#include <ac/time.h>
+
+#include <ac/krb.h>
 
 #include <lber.h>
 #include <ldap.h>
 
-#include "portable.h"
 #include "slurp.h"
 
 /* Forward references */
-static int get_changetype( char * );
-static struct berval **make_singlevalued_berval( char	*, int );
-static int op_ldap_add( Ri *, Re *, char ** );
-static int op_ldap_modify( Ri *, Re *, char ** );
-static int op_ldap_delete( Ri *, Re *, char ** );
-static int op_ldap_modrdn( Ri *, Re *, char ** );
-static LDAPMod *alloc_ldapmod();
-static void free_ldapmod( LDAPMod * );
-static void free_ldmarr( LDAPMod ** );
-static int getmodtype( char * );
-static void dump_ldm_array( LDAPMod ** );
-static char **read_krbnames( Ri * );
-static void upcase( char * );
-static int do_bind( Ri *, int * );
-static int do_unbind( Ri * );
+static struct berval **make_singlevalued_berval LDAP_P(( char	*, int ));
+static int op_ldap_add LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modify LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_delete LDAP_P(( Ri *, Re *, char ** ));
+static int op_ldap_modrdn LDAP_P(( Ri *, Re *, char ** ));
+static LDAPMod *alloc_ldapmod LDAP_P(());
+static void free_ldapmod LDAP_P(( LDAPMod * ));
+static void free_ldmarr LDAP_P(( LDAPMod ** ));
+static int getmodtype LDAP_P(( char * ));
+static void dump_ldm_array LDAP_P(( LDAPMod ** ));
+static char **read_krbnames LDAP_P(( Ri * ));
+static void upcase LDAP_P(( char * ));
+static int do_bind LDAP_P(( Ri *, int * ));
+static int do_unbind LDAP_P(( Ri * ));
 
 
 /* External references */
-#ifndef SYSERRLIST_IN_STDIO
-extern char *sys_errlist[];
-#endif /* SYSERRLIST_IN_STDIO */
-
-extern char *ch_malloc( unsigned long );
+extern char *ch_malloc LDAP_P(( unsigned long ));
 
 static char *kattrs[] = {"kerberosName", NULL };
 static struct timeval kst = {30L, 0L};
@@ -79,7 +75,6 @@ do_ldap(
     int	rc = 0;
     int	lderr = LDAP_SUCCESS;
     int	retry = 2;
-    char *msg;
 
     *errmsg = NULL;
 
@@ -226,7 +221,7 @@ op_ldap_modify(
     int		state;	/* This code is a simple-minded state machine */
     int		nvals;	/* Number of values we're modifying */
     int		nops;	/* Number of LDAPMod structs in ldmarr */
-    LDAPMod	*ldm, *nldm, **ldmarr;
+    LDAPMod	*ldm, **ldmarr;
     int		i, len;
     char	*type, *value;
     int		rc = 0;
@@ -583,10 +578,9 @@ do_bind(
     int	*lderr
 )
 {
-    int		rc;
     int		ldrc;
-    char	msgbuf[ 1024];
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
+    int rc;
     int retval = 0;
     int kni, got_tgt;
     char **krbnames;
@@ -594,7 +588,7 @@ do_bind(
     char realm[ REALM_SZ ];
     char name[ ANAME_SZ ];
     char instance[ INST_SZ ];
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 
     *lderr = 0;
 
@@ -633,12 +627,12 @@ do_bind(
 
     switch ( ri->ri_bind_method ) {
     case AUTH_KERBEROS:
-#ifndef KERBEROS
+#ifndef HAVE_KERBEROS
 	Debug( LDAP_DEBUG_ANY,
 	    "Error: Kerberos bind for %s:%d, but not compiled w/kerberos\n",
 	    ri->ri_hostname, ri->ri_port, 0 );
 	return( BIND_ERR_KERBEROS_FAILED );
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 	/*
 	 * Bind using kerberos.
 	 * If "bindprincipal" was given in the config file, then attempt
@@ -714,7 +708,7 @@ kexit:	if ( krbnames != NULL ) {
 	}
 	return( retval);
 	break;
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
     case AUTH_SIMPLE:
 	/*
 	 * Bind with a plaintext password.
@@ -771,7 +765,7 @@ LDAPMod **ldmarr )
 	if ( ldm->mod_bvalues != NULL ) {
 	    for ( j = 0; ( b = ldm->mod_bvalues[ j ] ) != NULL; j++ ) {
 		msgbuf = ch_malloc( b->bv_len + 512 );
-		sprintf( msgbuf, "***** bv[ %d ] len = %d, val = <%s>",
+		sprintf( msgbuf, "***** bv[ %d ] len = %ld, val = <%s>",
 			j, b->bv_len, b->bv_val );
 		Debug( LDAP_DEBUG_TRACE,
 			"Trace (%d):%s\n", getpid(), msgbuf, 0 );
@@ -851,8 +845,6 @@ char *s )
     char *p;
 
     for ( p = s; ( p != NULL ) && ( *p != '\0' ); p++ ) {
-	if ( islower( *p )) {
-	    *p = toupper( *p );
-	}
+	    *p = TOUPPER( (unsigned char) *p );
     }
 }

@@ -10,27 +10,32 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+
+#include <ac/errno.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>
-#include <sys/errno.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <sys/time.h>
 #include "lber.h"
 #include "ldap.h"
+
 #if ISODEPACKAGE == IC
 #include <ll/isoaddrs.h>
 #else
 #include <isoaddrs.h>
 #endif
 #include "common.h"
-#ifdef SVR4
-#if !defined(_AIX) && !defined(__osf__)
-#include <sys/filio.h>
+
+#ifdef HAVE_SYS_IOCTL_H 
+#include <sys/ioctl.h>
 #endif
+#ifdef HAVE_SYS_FILIO_H 
+#include <sys/filio.h>
 #endif
 
 #ifdef __hpux
@@ -215,7 +220,8 @@ conn_add( struct conn *new )
 	conns = new;
 }
 
-static psap_cmp( struct PSAPaddr *a, struct PSAPaddr *b )
+static int
+psap_cmp( struct PSAPaddr *a, struct PSAPaddr *b )
 {
 	return( bcmp( (char *) a, (char *) b, sizeof(struct PSAPaddr) ) );
 }

@@ -34,20 +34,21 @@ extern int		sanity();
 extern void		start_lwp_scheduler();
 #endif /* HAVE_LWP */
 
+int
 main(
     int		argc,
     char	**argv
 )
 {
+#ifdef NO_THREADS
+    /* Haven't yet written the non-threaded version */
+    fputs( "slurpd currently requires threads support\n", stderr );
+    return( 1 );
+#else
+
     pthread_attr_t	attr;
     int			status;
     int			i;
-
-#ifdef NO_THREADS
-    /* Haven't yet written the non-threaded version */
-    fprintf( stderr, "slurpd currently requires threads support\n" );
-    exit( 1 );
-#else
 
     /* 
      * Create and initialize globals.  init_globals() also initializes

@@ -39,6 +39,7 @@
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
+#include "lutil.h"		/* Get lutil_detach() */
 
 #ifdef HAVE_TCPD
 #include <tcpd.h>
@@ -48,11 +49,11 @@ int deny_severity = LOG_NOTICE;
 #endif /* TCP_WRAPPERS */
 
 void log_and_exit();
-static set_socket();
-static do_queries();
+static int	set_socket();
+static void	do_queries();
 static RETSIGTYPE wait4child();
 #ifdef LDAP_CONNECTIONLESS
-static udp_init();
+static int	udp_init();
 #endif
 
 #ifdef LDAP_DEBUG
@@ -83,8 +84,8 @@ int	RunFromInetd = 0;
 
 extern char Versionstr[];
 
-static usage( name )
-char	*name;
+static void
+usage( char *name )
 {
 	fprintf( stderr, "usage: %s [-d debuglvl] [-p port] [-l] [-c dsa] [-r referraltimeout]", name );
 #ifdef LDAP_CONNECTIONLESS
@@ -99,6 +100,7 @@ char	*name;
 	fprintf( stderr, "\n" );
 }
 
+int
 main (argc, argv)
 int	argc;
 char	**argv;
@@ -305,7 +307,7 @@ char	**argv;
 	(void) get_syntaxes();
 	if (RunFromInetd) {
 		len = sizeof( socktype );
-		getsockopt( ns, SOL_SOCKET, SO_TYPE, &socktype, &len );
+		getsockopt( ns, SOL_SOCKET, SO_TYPE, (char *)&socktype, &len );
 		if ( socktype == SOCK_DGRAM ) {
 #ifdef LDAP_CONNECTIONLESS
 			Debug( LDAP_DEBUG_ARGS,
@@ -488,14 +490,14 @@ char	**argv;
 	/* NOT REACHED */
 }
 
-static
+static void
 do_queries(
     int	clientsock,
     int	udp		/* is this a UDP (CLDAP) request? */
 )
 {
 	fd_set		readfds;
-	int		rc, i;
+	int		rc;
 	struct timeval	timeout;
 	Sockbuf		sb;
 #ifdef LDAP_CONNECTIONLESS
@@ -544,6 +546,7 @@ do_queries(
 
 #ifdef LDAP_DEBUG
 		if ( ldap_debug & LDAP_DEBUG_CONNS ) {
+			int i;
 			Debug( LDAP_DEBUG_CONNS, "FDLIST:", 0, 0, 0 );
 			for ( i = 0; i < dtblsize; i++ ) {
 				if ( FD_ISSET( i, &readfds ) ) {
@@ -602,7 +605,8 @@ do_queries(
 	/* NOT REACHED */
 }
 
-static set_socket(
+static int
+set_socket(
     int	port,
     int	udp	/* UDP port? */
 )

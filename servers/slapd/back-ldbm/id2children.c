@@ -1,8 +1,11 @@
 /* id2children.c - routines to deal with the id2children index */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/socket.h>
+
 #include "slap.h"
 #include "back-ldbm.h"
 
@@ -18,10 +21,16 @@ id2children_add(
 )
 {
 	struct dbcache	*db;
-	Datum		key, data;
+	Datum		key;
 	int		len, rc;
 	IDList		*idl;
 	char		buf[20];
+
+#ifdef HAVE_BERKELEY_DB2
+	Datum		data;
+	memset( &key, 0, sizeof( key ) );
+	memset( &data, 0, sizeof( data ) );
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "=> id2children_add( %d, %d )\n", p ? p->e_id
 	    : 0, e->e_id, 0 );
@@ -34,7 +43,7 @@ id2children_add(
 		return( -1 );
 	}
 
-	sprintf( buf, "%c%d", EQ_PREFIX, p ? p->e_id : 0 );
+	sprintf( buf, "%c%ld", EQ_PREFIX, p ? p->e_id : 0 );
 	key.dptr = buf;
 	key.dsize = strlen( buf ) + 1;
 
@@ -63,6 +72,10 @@ has_children(
 	IDList		*idl;
 	char		buf[20];
 
+#ifdef HAVE_BERKELEY_DB2
+	memset( &key, 0, sizeof( key ) );
+#endif
+
 	Debug( LDAP_DEBUG_TRACE, "=> has_children( %d )\n", p->e_id , 0, 0 );
 
 	if ( (db = ldbm_cache_open( be, "id2children", LDBM_SUFFIX,
@@ -73,7 +86,7 @@ has_children(
 		return( 0 );
 	}
 
-	sprintf( buf, "%c%d", EQ_PREFIX, p->e_id );
+	sprintf( buf, "%c%ld", EQ_PREFIX, p->e_id );
 	key.dptr = buf;
 	key.dsize = strlen( buf ) + 1;
 

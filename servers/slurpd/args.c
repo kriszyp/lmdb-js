@@ -14,8 +14,12 @@
  * args.c - process command-line arguments, and set appropriate globals.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
+
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include <lber.h>
 #include <ldap.h>
@@ -24,16 +28,16 @@
 #include "globals.h"
 
 
-static int
+static void
 usage( char *name )
 {
     fprintf( stderr, "usage: %s\t[-d debug-level] [-s syslog-level]\n", name );
     fprintf( stderr, "\t\t[-f slapd-config-file] [-r replication-log-file]\n" );
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     fprintf( stderr, "\t\t[-t tmp-dir] [-o] [-k srvtab-file]\n" );
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
     fprintf( stderr, "\t\t[-t tmp-dir] [-o]\n" );
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 }
 
 
@@ -103,11 +107,11 @@ doargs(
 	    g->slurpd_rdir = strdup( optarg );
 	    break;
 	case 'k':	/* name of kerberos srvtab file */
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	    g->default_srvtab = strdup( optarg );
-#else /* KERBEROS */
+#else /* HAVE_KERBEROS */
 	    fprintf( stderr, "must compile with KERBEROS to use -k option\n" );
-#endif /* KERBEROS */
+#endif /* HAVE_KERBEROS */
 	    break;
 	case 'h':
 	    usage( g->myname );

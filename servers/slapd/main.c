@@ -8,6 +8,7 @@
 
 #include "slap.h"
 #include "ldapconfig.h"
+#include "lutil.h"			/* Get lutil_detach() */
 
 extern void	slapd_daemon();
 extern int	lber_debug;
@@ -56,13 +57,14 @@ pthread_mutex_t	num_sent_mutex;
 pthread_mutex_t	entry2str_mutex;
 pthread_mutex_t	replog_mutex;
 
-static
+static void
 usage( name )
     char	*name;
 {
 	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]\n", name );
 }
 
+int
 main( argc, argv )
     int		argc;
     char	**argv;
@@ -267,7 +269,7 @@ main( argc, argv )
 				/* log and send error */
 				Debug( LDAP_DEBUG_ANY,
 				    "ber_get_int returns 0x%x\n", tag, 0, 0 );
-				return;
+				return 1;
 			}
 
 			if ( (tag = ber_peek_tag( &ber, &len ))
@@ -278,7 +280,7 @@ main( argc, argv )
 				ber_free( &ber, 1 );
 				close( c.c_sb.sb_sd );
 				c.c_sb.sb_sd = -1;
-				return;
+				return 1;
 			}
 
 			connection_activity( &c );
@@ -286,4 +288,5 @@ main( argc, argv )
 			ber_free( &ber, 1 );
 		}
 	}
+	return 1;
 }

@@ -1,10 +1,13 @@
 /* entry.c - routines for dealing with entries */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/ctype.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+
 #include "slap.h"
 
 void	entry_free();
@@ -43,9 +46,12 @@ str2entry( char	*s )
 	 * or newline.
 	 */
 
-	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n", s, 0, 0 );
+	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
+		s ? s : "NULL", 0, 0 );
 
 	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	/* initialize reader/writer lock */
+	entry_rdwr_init(e);
 
 	/* check to see if there's an id included */
 	next = s;
@@ -112,6 +118,7 @@ str2entry( char	*s )
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "<= str2entry 0x%x\n", e, 0, 0 );
+
 	return( e );
 }
 
@@ -187,6 +194,12 @@ entry_free( Entry *e )
 	int		i;
 	Attribute	*a, *next;
 
+	/* XXX check that no reader/writer locks exist */
+#ifdef LDAP_DEBUG
+	assert( !pthread_rdwr_wchk_np(&e->e_rdwr) &&
+		!pthread_rdwr_rchk_np(&e->e_rdwr) );
+#endif
+
 	if ( e->e_dn != NULL ) {
 		free( e->e_dn );
 	}
@@ -196,3 +209,56 @@ entry_free( Entry *e )
 	}
 	free( e );
 }
+
+int
+entry_rdwr_lock(Entry *e, int rw)
+{
+	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%slock: ID: %ld\n",
+		rw ? "w" : "r", e->e_id, 0);
+	if (rw)
+		return pthread_rdwr_wlock_np(&e->e_rdwr);
+	else
+		return pthread_rdwr_rlock_np(&e->e_rdwr);
+}
+
+int
+entry_rdwr_rlock(Entry *e)
+{
+	return entry_rdwr_lock( e, 0 );
+}
+
+int
+entry_rdwr_wlock(Entry *e)
+{
+	return entry_rdwr_lock( e, 1 );
+}
+
+int
+entry_rdwr_unlock(Entry *e, int rw)
+{
+	Debug( LDAP_DEBUG_ARGS, "entry_rdwr_%sunlock: ID: %ld\n",
+		rw ? "w" : "r", e->e_id, 0);
+	if (rw)
+		return pthread_rdwr_wunlock_np(&e->e_rdwr);
+	else
+		return pthread_rdwr_runlock_np(&e->e_rdwr);
+}
+
+int
+entry_rdwr_runlock(Entry *e)
+{
+	return entry_rdwr_unlock( e, 0 );
+}
+
+int
+entry_rdwr_wunlock(Entry *e)
+{
+	return entry_rdwr_unlock( e, 1 );
+}
+
+int
+entry_rdwr_init(Entry *e)
+{
+	return pthread_rdwr_init_np(&e->e_rdwr, NULL);
+}
+

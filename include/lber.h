@@ -13,13 +13,9 @@
 #ifndef _LBER_H
 #define _LBER_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <ldap_cdefs.h>
 
-#if !defined( NEEDPROTOS ) && defined(__STDC__)
-#define NEEDPROTOS	1
-#endif
+LDAP_BEGIN_DECL
 
 /* BER classes and mask */
 #define LBER_CLASS_UNIVERSAL	0x00
@@ -58,12 +54,9 @@ extern "C" {
 #define OLD_LBER_SEQUENCE	0x10L	/* w/o constructed bit - broken */
 #define OLD_LBER_SET		0x11L	/* w/o constructed bit - broken */
 
-#ifdef NEEDPROTOS
-typedef int (*BERTranslateProc)( char **bufp, unsigned long *buflenp,
-	int free_input );
-#else /* NEEDPROTOS */
-typedef int (*BERTranslateProc)();
-#endif /* NEEDPROTOS */
+typedef int (*BERTranslateProc) LDAP_P(( char **bufp,
+	unsigned long *buflenp,
+	int free_input ));
 
 typedef struct berelement {
 	char		*ber_buf;
@@ -123,62 +116,80 @@ struct berval {
 	char		*bv_val;
 };
 
-#ifndef NEEDPROTOS
-extern BerElement *ber_alloc();
-extern BerElement *der_alloc();
-extern BerElement *ber_alloc_t();
-extern BerElement *ber_dup();
+#ifdef LDAP_DEBUG
 extern int lber_debug;
-extern void ber_bvfree();
-extern void ber_bvecfree();
-extern struct berval *ber_bvdup();
-extern void ber_dump();
-extern void ber_sos_dump();
-extern void lber_bprint();
-extern void ber_reset();
-extern void ber_init();
-#else /* NEEDPROTOS */
-#if defined(WINSOCK)
-#include "proto-lb.h"
-#else
-#include "proto-lber.h"
 #endif
-#endif /* NEEDPROTOS */
-
-#if !defined(__alpha) || defined(VMS)
-
-#define LBER_HTONL( l )	htonl( l )
-#define LBER_NTOHL( l )	ntohl( l )
-
-#else /* __alpha */
-/*
- * htonl and ntohl on the DEC Alpha under OSF 1 seem to only swap the
- * lower-order 32-bits of a (64-bit) long, so we define correct versions
- * here.
- */
-#define LBER_HTONL( l )	(((long)htonl( (l) & 0x00000000FFFFFFFF )) << 32 \
-    			| htonl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
-
-#define LBER_NTOHL( l )	(((long)ntohl( (l) & 0x00000000FFFFFFFF )) << 32 \
-    			| ntohl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
-#endif /* __alpha */
-
 
 /*
- * SAFEMEMCPY is an overlap-safe copy from s to d of n bytes
+ * in bprint.c:
  */
-#ifdef MACOS
-#define SAFEMEMCPY( d, s, n )	BlockMoveData( (Ptr)s, (Ptr)d, n )
-#else /* MACOS */
-#ifdef sunos4
-#define SAFEMEMCPY( d, s, n )	bcopy( s, d, n )
-#else /* sunos4 */
-#define SAFEMEMCPY( d, s, n )	memmove( d, s, n )
-#endif /* sunos4 */
-#endif /* MACOS */
+LDAP_F void lber_bprint LDAP_P(( char *data, int len ));
 
+/*
+ * in decode.c:
+ */
+LDAP_F unsigned long ber_get_tag LDAP_P(( BerElement *ber ));
+LDAP_F unsigned long ber_skip_tag LDAP_P(( BerElement *ber, unsigned long *len ));
+LDAP_F unsigned long ber_peek_tag LDAP_P(( BerElement *ber, unsigned long *len ));
+LDAP_F unsigned long ber_get_int LDAP_P(( BerElement *ber, long *num ));
+LDAP_F unsigned long ber_get_stringb LDAP_P(( BerElement *ber, char *buf,
+	unsigned long *len ));
+LDAP_F unsigned long ber_get_stringa LDAP_P(( BerElement *ber, char **buf ));
+LDAP_F unsigned long ber_get_stringal LDAP_P(( BerElement *ber, struct berval **bv ));
+LDAP_F unsigned long ber_get_bitstringa LDAP_P(( BerElement *ber, char **buf,
+	unsigned long *len ));
+LDAP_F unsigned long ber_get_null LDAP_P(( BerElement *ber ));
+LDAP_F unsigned long ber_get_boolean LDAP_P(( BerElement *ber, int *boolval ));
+LDAP_F unsigned long ber_first_element LDAP_P(( BerElement *ber, unsigned long *len,
+	char **last ));
+LDAP_F unsigned long ber_next_element LDAP_P(( BerElement *ber, unsigned long *len,
+	char *last ));
+LDAP_F unsigned long ber_scanf LDAP_P(( BerElement *ber, char *fmt, ... ));
+LDAP_F void ber_bvfree LDAP_P(( struct berval *bv ));
+LDAP_F void ber_bvecfree LDAP_P(( struct berval **bv ));
+LDAP_F struct berval *ber_bvdup LDAP_P(( struct berval *bv ));
+LDAP_F void ber_set_string_translators LDAP_P(( BerElement *ber,
+	BERTranslateProc encode_proc, BERTranslateProc decode_proc ));
 
-#ifdef __cplusplus
-}
-#endif
+/*
+ * in encode.c
+ */
+LDAP_F int ber_put_enum LDAP_P(( BerElement *ber, long num, unsigned long tag ));
+LDAP_F int ber_put_int LDAP_P(( BerElement *ber, long num, unsigned long tag ));
+LDAP_F int ber_put_ostring LDAP_P(( BerElement *ber, char *str, unsigned long len,
+	unsigned long tag ));
+LDAP_F int ber_put_string LDAP_P(( BerElement *ber, char *str, unsigned long tag ));
+LDAP_F int ber_put_bitstring LDAP_P(( BerElement *ber, char *str,
+	unsigned long bitlen, unsigned long tag ));
+LDAP_F int ber_put_null LDAP_P(( BerElement *ber, unsigned long tag ));
+LDAP_F int ber_put_boolean LDAP_P(( BerElement *ber, int boolval,
+	unsigned long tag ));
+LDAP_F int ber_start_seq LDAP_P(( BerElement *ber, unsigned long tag ));
+LDAP_F int ber_start_set LDAP_P(( BerElement *ber, unsigned long tag ));
+LDAP_F int ber_put_seq LDAP_P(( BerElement *ber ));
+LDAP_F int ber_put_set LDAP_P(( BerElement *ber ));
+LDAP_F int ber_printf LDAP_P(( BerElement *ber, char *fmt, ... ));
+
+/*
+ * in io.c:
+ */
+
+LDAP_F long ber_read LDAP_P(( BerElement *ber, char *buf, unsigned long len ));
+LDAP_F long ber_write LDAP_P(( BerElement *ber, char *buf, unsigned long len,
+	int nosos ));
+LDAP_F void ber_free LDAP_P(( BerElement *ber, int freebuf ));
+LDAP_F int ber_flush LDAP_P(( Sockbuf *sb, BerElement *ber, int freeit ));
+LDAP_F BerElement *ber_alloc LDAP_P(( void ));
+LDAP_F BerElement *der_alloc LDAP_P(( void ));
+LDAP_F BerElement *ber_alloc_t LDAP_P(( int options ));
+LDAP_F BerElement *ber_dup LDAP_P(( BerElement *ber ));
+LDAP_F void ber_dump LDAP_P(( BerElement *ber, int inout ));
+LDAP_F void ber_sos_dump LDAP_P(( Seqorset *sos ));
+LDAP_F unsigned long ber_get_next LDAP_P(( Sockbuf *sb, unsigned long *len,
+	BerElement *ber ));
+LDAP_F void ber_init LDAP_P(( BerElement *ber, int options ));
+LDAP_F void ber_reset LDAP_P(( BerElement *ber, int was_writing ));
+
+LDAP_END_DECL
+
 #endif /* _LBER_H */
