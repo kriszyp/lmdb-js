@@ -557,13 +557,14 @@ ber_get_next(
 		/* Now look for the length */
 		if (*ber->ber_ptr & 0x80) {	/* multi-byte */
 			ber_len_t i;
-			int llen = *(unsigned char *)ber->ber_ptr++ & 0x7f;
+			unsigned char *p = (unsigned char *)ber->ber_ptr;
+			int llen = *p++ & 0x7f;
 			if (llen > (int)sizeof(ber_len_t)) {
 				errno = ERANGE;
 				return LBER_DEFAULT;
 			}
 			/* Not enough bytes? */
-			if (ber->ber_rwptr - ber->ber_ptr < llen) {
+			if (ber->ber_rwptr - (char *)p < llen) {
 #if defined( EWOULDBLOCK )
 				errno = EWOULDBLOCK;
 #elif defined( EAGAIN )
@@ -571,13 +572,12 @@ ber_get_next(
 #endif			
 				return LBER_DEFAULT;
 			}
-			for (i=0;
-				i<llen && ber->ber_ptr<ber->ber_rwptr;
-				i++,ber->ber_ptr++)
+			for (i=0; i<llen; i++)
 			{
 				tlen <<=8;
-				tlen |= *(unsigned char *)ber->ber_ptr;
+				tlen |= *p++;
 			}
+			ber->ber_ptr = p;
 		} else {
 			tlen = *(unsigned char *)ber->ber_ptr++;
 		}
