@@ -17,7 +17,7 @@ int
 bdb_delete( Operation *op, SlapReply *rs )
 {
 	struct bdb_info *bdb = (struct bdb_info *) op->o_bd->be_private;
-	Entry	*matched;
+	Entry	*matched = NULL;
 	struct berval	pdn = {0, NULL};
 	Entry	*e = NULL;
 	Entry	*p = NULL;
@@ -223,7 +223,11 @@ retry:	/* transaction retry */
 		}
 	}
 
+#ifdef LDAP_SYNCREPL
+	if ( e == NULL || ( !manageDSAit && is_entry_glue( e ))) {
+#else
 	if ( e == NULL ) {
+#endif
 #ifdef NEW_LOGGING
 		LDAP_LOG ( OPERATION, ARGS, 
 			"<=- bdb_delete: no such object %s\n", op->o_req_dn.bv_val, 0, 0);
@@ -233,7 +237,11 @@ retry:	/* transaction retry */
 			op->o_req_dn.bv_val, 0, 0);
 #endif
 
+#ifdef LDAP_SYNCREPL
+		if ( e == NULL && matched != NULL && !is_entry_glue( matched )) {
+#else
 		if ( matched != NULL ) {
+#endif
 			rs->sr_matched = ch_strdup( matched->e_dn );
 			rs->sr_ref = is_entry_referral( matched )
 				? get_entry_referrals( op, matched )
@@ -242,8 +250,13 @@ retry:	/* transaction retry */
 			matched = NULL;
 
 		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+#ifdef LDAP_SYNCREPL
+			BerVarray deref = op->o_bd->syncinfo ?
+							  op->o_bd->syncinfo->masteruri_bv : default_referral;
+#else
+			BerVarray deref = default_referral;
+#endif
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
@@ -297,8 +310,7 @@ retry:	/* transaction retry */
 			"<=- bdb_delete: entry is referral\n", 0, 0, 0 );
 #else
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_delete: entry is referral\n",
-			0, 0, 0 );
+			"bdb_delete: entry is referral\n", 0, 0, 0 );
 #endif
 
 		rs->sr_err = LDAP_REFERRAL;

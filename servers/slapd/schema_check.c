@@ -214,13 +214,22 @@ entry_schema_check(
 			aoc->a_vals[0].bv_val );
 		return LDAP_OBJECT_CLASS_VIOLATION;
 
+#ifdef LDAP_SYNCREPL
+	} else if ( sc != slap_schema.si_oc_glue && sc != oc ) {
+#else
 	} else if ( sc != oc ) {
+#endif
 		snprintf( textbuf, textlen, 
 			"structural object class modification "
 			"from '%s' to '%s' not allowed",
 			asc->a_vals[0].bv_val, nsc.bv_val );
 		return LDAP_NO_OBJECT_CLASS_MODS;
 	}
+#ifdef LDAP_SYNCREPL
+	else if ( sc == slap_schema.si_oc_glue ) {
+		sc = oc;
+	}
+#endif
 
 	/* naming check */
 #ifdef LDAP_SYNCREPL

@@ -408,8 +408,14 @@ retry:	/* transaction retry */
 
 	e = ei->bei_e;
 	/* acquire and lock entry */
+#ifdef LDAP_SYNCREPL
+	if ( rs->sr_err == DB_NOTFOUND || !e ||
+			( !manageDSAit && is_entry_glue( e ))) {
+		if ( e != NULL && !is_entry_glue( e )) {
+#else
 	if ( rs->sr_err == DB_NOTFOUND ) {
 		if ( e != NULL ) {
+#endif
 			rs->sr_matched = ch_strdup( e->e_dn );
 			rs->sr_ref = is_entry_referral( e )
 				? get_entry_referrals( op, e )
@@ -418,8 +424,13 @@ retry:	/* transaction retry */
 			e = NULL;
 
 		} else {
-			rs->sr_ref = referral_rewrite( default_referral,
-				NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
+#ifdef LDAP_SYNCREPL
+			BerVarray deref = op->o_bd->syncinfo ?
+							  op->o_bd->syncinfo->masteruri_bv : default_referral;
+#else
+			BerVarray deref = default_referral;
+#endif
+			rs->sr_ref = referral_rewrite( deref, NULL, &op->o_req_dn, LDAP_SCOPE_DEFAULT );
 		}
 
 		rs->sr_err = LDAP_REFERRAL;
