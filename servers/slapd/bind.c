@@ -327,7 +327,7 @@ do_bind(
 			}
 
 			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d bind: \"%s\" to \"%s\"\n",
-	    		version, conn->c_cdn, conn->c_dn, );
+	    		version, conn->c_cdn, conn->c_dn );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
