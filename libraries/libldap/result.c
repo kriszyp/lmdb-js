@@ -144,8 +144,11 @@ ldap_result(
 		lastlm->lm_next = (all == 0 && lm->lm_chain != NULL
 		    ? lm->lm_chain : lm->lm_next);
 	}
-	if ( all == 0 )
+	if ( all == 0 && lm->lm_chain != NULL )
+	{
+		lm->lm_chain->lm_next = lm->lm_next;
 		lm->lm_chain = NULL;
+	}
 	lm->lm_next = NULL;
 
 	*result = lm;
