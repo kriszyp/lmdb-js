@@ -76,7 +76,8 @@ typedef struct bdb_cache {
         Avlnode         *c_idtree;
         Entry           *c_lruhead;     /* lru - add accessed entries here */
         Entry           *c_lrutail;     /* lru - rem lru entries from here */
-        ldap_pvt_thread_mutex_t c_mutex;
+        ldap_pvt_thread_rdwr_t c_rwlock;
+        ldap_pvt_thread_mutex_t lru_mutex;
 } Cache;
  
 #define CACHE_READ_LOCK                0

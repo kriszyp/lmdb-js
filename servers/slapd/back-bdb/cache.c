@@ -168,7 +168,7 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 	int refcnt, freeit = 1;
 
 	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
 
 	assert( e->e_private );
 
@@ -183,7 +183,9 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 	 * for instance)
 	 */
 	if (  BEI(e)->bei_state == CACHE_ENTRY_CREATING ) {
+		ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 		bdb_cache_delete_entry_internal( cache, e );
+		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 		freeit = 0;
 		/* now the entry is in DELETED state */
 	}
@@ -192,7 +194,7 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 		BEI(e)->bei_state = CACHE_ENTRY_READY;
 
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
@@ -208,7 +210,7 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 	} else if ( BEI(e)->bei_state == CACHE_ENTRY_DELETED ) {
 		if( refcnt > 0 ) {
 			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
@@ -227,7 +229,7 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 			}
 
 			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
@@ -242,7 +244,7 @@ bdb_cache_return_entry_rw( Cache *cache, Entry *e, int rw )
 
 	} else {
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
@@ -303,13 +305,13 @@ bdb_cache_add_entry_rw(
 		   e->e_dn, rw ? "w" : "r" ));
 #endif
 	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
 
 	assert( e->e_private == NULL );
 
 	if( bdb_cache_entry_private_init(e) != 0 ) {
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_ERR,
@@ -329,7 +331,7 @@ bdb_cache_add_entry_rw(
 		(AVL_CMP) entry_dn_cmp, avl_dup_error ) != 0 )
 	{
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
@@ -377,7 +379,7 @@ bdb_cache_add_entry_rw(
 		bdb_cache_entry_private_destroy(e);
 
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 		return( -1 );
 	}
 
@@ -388,6 +390,7 @@ bdb_cache_add_entry_rw(
 	BEI(e)->bei_state = CACHE_ENTRY_CREATING;
 	BEI(e)->bei_refcnt = 1;
 
+	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 	/* lru */
 	LRU_ADD( cache, e );
 	if ( ++cache->c_cursize > cache->c_maxsize ) {
@@ -427,7 +430,8 @@ bdb_cache_add_entry_rw(
 	}
 
 	/* free cache mutex */
-	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
+	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 	return( 0 );
 }
 
@@ -447,7 +451,7 @@ bdb_cache_update_entry(
 	Entry	*ee;
 
 	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
 
 	assert( e->e_private );
 
@@ -465,7 +469,7 @@ bdb_cache_update_entry(
 #endif
 
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 		return( 1 );
 	}
 
@@ -498,7 +502,7 @@ bdb_cache_update_entry(
 		}
 
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 		return( -1 );
 	}
 
@@ -507,6 +511,7 @@ bdb_cache_update_entry(
 	/* will be marked after when entry is returned */
 	BEI(e)->bei_state = CACHE_ENTRY_CREATING;
 
+	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 	/* lru */
 	LRU_ADD( cache, e );
 	if ( ++cache->c_cursize > cache->c_maxsize ) {
@@ -546,7 +551,8 @@ bdb_cache_update_entry(
 	}
 
 	/* free cache mutex */
-	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
+	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 	return( 0 );
 }
 
@@ -566,7 +572,7 @@ bdb_cache_find_entry_ndn2id(
 
 try_again:
 	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_rlock( &cache->c_rwlock );
 
 	if ( (ep = (Entry *) avl_find( cache->c_dntree, (caddr_t) &e,
 		(AVL_CMP) entry_dn_cmp )) != NULL )
@@ -593,7 +599,7 @@ try_again:
 			assert(state != CACHE_ENTRY_UNDEFINED);
 
 			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
@@ -610,12 +616,16 @@ try_again:
 			goto try_again;
 		}
 
+		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
+
+		ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
+
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
 		
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
@@ -629,7 +639,7 @@ try_again:
 
 	} else {
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 		id = NOID;
 	}
@@ -656,7 +666,7 @@ bdb_cache_find_entry_id(
 
 try_again:
 	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_rlock( &cache->c_rwlock );
 
 	if ( (ep = (Entry *) avl_find( cache->c_idtree, (caddr_t) &e,
 		(AVL_CMP) entry_id_cmp )) != NULL )
@@ -679,7 +689,7 @@ try_again:
 			assert(state != CACHE_ENTRY_UNDEFINED);
 
 			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
@@ -704,7 +714,7 @@ try_again:
 			 */
 
 			/* free cache mutex */
-			ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+			ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "cache", LDAP_LEVEL_INFO,
@@ -720,6 +730,8 @@ try_again:
 			goto try_again;
 		}
 
+		ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
+		ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 		/* lru */
 		LRU_DELETE( cache, ep );
 		LRU_ADD( cache, ep );
@@ -727,7 +739,7 @@ try_again:
 		BEI(ep)->bei_refcnt++;
 
 		/* free cache mutex */
-		ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+		ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "cache", LDAP_LEVEL_DETAIL1,
@@ -744,7 +756,7 @@ try_again:
 	}
 
 	/* free cache mutex */
-	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_runlock( &cache->c_rwlock );
 
 	return( NULL );
 }
@@ -769,7 +781,7 @@ bdb_cache_delete_entry(
 	int	rc;
 
 	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
 
 	assert( e->e_private );
 
@@ -781,10 +793,12 @@ bdb_cache_delete_entry(
 		e->e_id, 0, 0 );
 #endif
 
+	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 	rc = bdb_cache_delete_entry_internal( cache, e );
+	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
 
 	/* free cache mutex */
-	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 	return( rc );
 }
 
@@ -833,7 +847,8 @@ bdb_cache_release_all( Cache *cache )
 	int rc;
 
 	/* set cache mutex */
-	ldap_pvt_thread_mutex_lock( &cache->c_mutex );
+	ldap_pvt_thread_rdwr_wlock( &cache->c_rwlock );
+	ldap_pvt_thread_mutex_lock( &cache->lru_mutex );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "cache", LDAP_LEVEL_ENTRY,
@@ -865,7 +880,8 @@ bdb_cache_release_all( Cache *cache )
 	}
 
 	/* free cache mutex */
-	ldap_pvt_thread_mutex_unlock( &cache->c_mutex );
+	ldap_pvt_thread_mutex_unlock( &cache->lru_mutex );
+	ldap_pvt_thread_rdwr_wunlock( &cache->c_rwlock );
 }
 
 #ifdef LDAP_DEBUG

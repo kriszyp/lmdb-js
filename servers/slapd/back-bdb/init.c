@@ -98,7 +98,8 @@ bdb_db_init( BackendDB *be )
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
-	ldap_pvt_thread_mutex_init( &bdb->bi_cache.c_mutex );
+	ldap_pvt_thread_mutex_init( &bdb->bi_cache.lru_mutex );
+	ldap_pvt_thread_rdwr_init ( &bdb->bi_cache.c_rwlock );
 #ifdef BDB_HIER
 	ldap_pvt_thread_rdwr_init( &bdb->bi_tree_rdwr );
 #endif
