@@ -181,7 +181,7 @@ ldap_parse_extended_result (
 		return ld->ld_errno;
 	}
 
-	if( res->lm_msgtype == LDAP_RES_EXTENDED ) {
+	if( res->lm_msgtype != LDAP_RES_EXTENDED ) {
 		ld->ld_errno = LDAP_PARAM_ERROR;
 		return ld->ld_errno;
 	}
