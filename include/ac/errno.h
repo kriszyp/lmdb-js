@@ -27,7 +27,7 @@ extern int      sys_nerr;
 extern char     *sys_errlist[];
 #endif
 #endif
-    
-/* use _POSIX_VERSION for POSIX.1 code */
 
+extern char* strerror_r();
+    
 #endif /* _AC_ERRNO_H */
