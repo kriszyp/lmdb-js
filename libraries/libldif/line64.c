@@ -93,18 +93,18 @@ str_parse_line(
 		s++;
 	}
 
-	/* if no value is present, error out */
-	if ( *s == '\0' ) {
-		Debug( LDAP_DEBUG_PARSE, "parse_line missing value\n", 0,0,0 );
-		return( -1 );
-	}
-
 	/* check for continued line markers that should be deleted */
 	for ( p = s, d = s; *p; p++ ) {
 		if ( *p != CONTINUED_LINE_MARKER )
 			*d++ = *p;
 	}
 	*d = '\0';
+
+	/* if no value is present, error out */
+	if ( *s == '\0' ) {
+		Debug( LDAP_DEBUG_PARSE, "parse_line missing value\n", 0,0,0 );
+		return( -1 );
+	}
 
 	*value = s;
 	if ( b64 ) {
