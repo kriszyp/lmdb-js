@@ -1,0 +1,79 @@
+Coding rules and hints for OpenLDAP developers.
+===============================================
+
+
+Please add to this file when new points come up.
+
+
+C source
+--------
+
+We require ISO C support, or at least prototypes, to *build* OpenLDAP,
+but .h files that will be installed should support K&R C.
+
+.c files in the OpenLDAP source tree MUST #include "portable.h" before
+any other include file, even system includes.  portable.h may control
+aspects of system includes, such as whether or not thread-safe library
+functions are used.  (Separate applications can't use portable.h, since
+it is not installed.  They can use ldap_features.h, though.)
+
+.h files that are NOT INSTALLED may depend on features from portable.h.
+.h files that *are* installed (from include/) should not depend on it.
+
+Avoid unnecessary changes, like reindenting code, even if that leaves
+the code a little more ugly.  Unnecessary changes make it harder to
+maintain and merge different CVS branches of the source.
+
+Use feature-specific #if tests (like #ifdef HAVE_LWP) which configure
+can figure out, not system-specific test (like #ifdef __SunOS_5_6).
+
+When available, use include files from ldap/include/ac/ to get system
+features or functions.  The <ac/xxx.h> files try to fix crippled system
+includes, and to hide #ifdef messes that portable programs need in order
+to find a feature.  Note that a file <ac/xxx.h> is not necessarily
+designed to be equivalent to standard C's <xxx.h> file.
+
+Nonstatic function and variable definitions in .c files should be
+preceded by their declarations in .h files.  Avoid implicit function
+declarations.
+
+When a function returns non-void, it should return a meaningful value.
+Avoid implicit int.
+
+
+
+CVS updating
+------------
+
+<URL:http://www.openldap.org/repo.html> describes how to check out
+-stable.  To get the -devel (HEAD) branch, omit `-r OPENLDAP_STABLE'.
+
+Core members should subscribe to the private -core mailinglist and
+coordinate activities there.
+
+Do not commit a patch, however small, without at least testing that it
+compiles.
+
+In general, the patch/bugfix should be applied to -devel and tested.
+When the patch is considered stable, then it can be merged into -stable.
+Same goes for other release engineering branches (like
+OPENLDAP_REL_ENG_1_1).  (-stable is rel eng 1.0).
+Specific procjects may get their own branches, to be merged later.
+
+Log messages: Just describe the change and reason.  CVS adds your name,
+date, etc.
+
+
+Various tips and hints
+----------------------
+
+How to correct a CVS log message:
+Commit the unchanged files again with the `-f' flag and with a log
+message stating how the previous log was in error:
+	cvs commit -f cldap.c os-ip.c
+Preferably, prepend a line something like this to the message:
+"Forced commit to correct previous log, files were not changed."
+
+Modify ldapconfig.h instead of ldapconfig.h.edit.  Then `cvs commit'
+from the include directory won't accidentally commit your private
+ldapconfig.h.edit.
