@@ -97,7 +97,7 @@ main( int argc, char *argv[] )
 		newpw = strdup(getpassphrase("New password: "));
 		cknewpw = getpassphrase("Re-enter new password: ");
 
-		if( strncmp( newpw, cknewpw, strlen(newpw) )) {
+		if( strcmp( newpw, cknewpw )) {
 			fprintf( stderr, "Password values do not match\n" );
 			return EXIT_FAILURE;
 		}

@@ -510,7 +510,7 @@ main( int argc, char *argv[] )
 		ckoldpw = getpassphrase("Re-enter old password: ");
 
 		if( oldpw== NULL || ckoldpw == NULL ||
-			strncmp( oldpw, ckoldpw, strlen(oldpw) ))
+			strcmp( oldpw, ckoldpw ))
 		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
@@ -524,7 +524,7 @@ main( int argc, char *argv[] )
 		cknewpw = getpassphrase("Re-enter new password: ");
 
 		if( newpw== NULL || cknewpw == NULL ||
-			strncmp( newpw, cknewpw, strlen(newpw) ))
+			strcmp( newpw, cknewpw ))
 		{
 			fprintf( stderr, "passwords do not match\n" );
 			return EXIT_FAILURE;
