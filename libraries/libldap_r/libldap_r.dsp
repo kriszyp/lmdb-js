@@ -352,6 +352,10 @@ SOURCE=..\libldap\url.c
 # End Source File
 # Begin Source File
 
+SOURCE="..\libldap\utf-8.c"
+# End Source File
+# Begin Source File
+
 SOURCE="..\libldap\util-int.c"
 # End Source File
 # End Target

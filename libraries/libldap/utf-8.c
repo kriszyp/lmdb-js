@@ -418,8 +418,6 @@ ber_len_t (ldap_utf8_strspn)( const char *str, const char *set )
 /* like strpbrk(), replaces strchr() as well */
 char *(ldap_utf8_strpbrk)( const char *str, const char *set )
 {
-	int len;
-
 	for( ; *str != '\0'; LDAP_UTF8_INCR(str) ) {
 		const char *cset;
 

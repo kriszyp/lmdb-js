@@ -359,6 +359,10 @@ SOURCE=.\url.c
 # End Source File
 # Begin Source File
 
+SOURCE=".\utf-8.c"
+# End Source File
+# Begin Source File
+
 SOURCE=".\util-int.c"
 # End Source File
 # End Target
