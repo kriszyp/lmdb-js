@@ -45,7 +45,7 @@ void bdb_attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 int
 bdb_attribute LDAP_P(( Backend *be, Connection *conn, Operation *op,
-	Entry *target, const char *e_ndn, AttributeDescription *entry_at,
+	Entry *target, const char *entry_ndn, AttributeDescription *entry_at,
 	struct berval ***vals ));
 
 /*

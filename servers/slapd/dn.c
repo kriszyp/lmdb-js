@@ -1078,21 +1078,22 @@ rdn_validate( const char * rdn )
 
 void
 build_new_dn( char ** new_dn,
-	const char *e_dn,
-	const char * p_dn,
+	const char * entry_dn,
+	const char * parent_dn,
 	const char * newrdn )
 {
 
-	if ( p_dn == NULL ) {
+	if ( parent_dn == NULL ) {
 		*new_dn = ch_strdup( newrdn );
 		return;
 	}
 
-	*new_dn = (char *) ch_malloc( strlen( p_dn ) + strlen( newrdn ) + 3 );
+	*new_dn = (char *) ch_malloc(
+		strlen( parent_dn ) + strlen( newrdn ) + 3 );
 
 	strcpy( *new_dn, newrdn );
 	strcat( *new_dn, "," );
-	strcat( *new_dn, p_dn );
+	strcat( *new_dn, parent_dn );
 }
 
 #endif /* SLAP_DN_MIGRATION */

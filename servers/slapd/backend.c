@@ -1057,15 +1057,17 @@ backend_attribute(
 	Connection *conn,
 	Operation *op,
 	Entry	*target,
-	const char	*e_ndn,
+	const char	*entry_ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals
 )
 {
-	if( target == NULL || strcmp( target->e_ndn, e_ndn ) != 0 ) {
+	if( target == NULL ||
+		strcmp( target->e_ndn, entry_ndn ) != 0 )
+	{
 		/* we won't attempt to send it to a different backend */
 		
-		be = select_backend(e_ndn, 0,
+		be = select_backend(entry_ndn, 0,
 			(be->be_glueflags & SLAP_GLUE_INSTANCE));
 
 		if (be == NULL) {
@@ -1074,7 +1076,7 @@ backend_attribute(
 	} 
 
 	if( be->be_attribute ) {
-		return be->be_attribute( be, conn, op, target, e_ndn,
+		return be->be_attribute( be, conn, op, target, entry_ndn,
 			entry_at, vals );
 	}
 

@@ -26,7 +26,7 @@ ldbm_back_attribute(
 	Connection *conn,
 	Operation *op,
 	Entry	*target,
-	const char	*e_ndn,
+	const char	*entry_ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals )
 {
@@ -39,16 +39,16 @@ ldbm_back_attribute(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		   "ldbm_back_attribute: gr dn: \"%s\"\n", e_ndn ));
+		"ldbm_back_attribute: gr dn: \"%s\"\n", entry_ndn ));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		   "ldbm_back_attribute: at: \"%s\"\n", entry_at_name));
+		"ldbm_back_attribute: at: \"%s\"\n", entry_at_name));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		   "ldbm_back_attribute: tr dn: \"%s\"\n",
-		   target ? target->e_ndn : "" ));
+		"ldbm_back_attribute: tr dn: \"%s\"\n",
+		target ? target->e_ndn : "" ));
 #else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_attribute: gr dn: \"%s\"\n",
-		e_ndn, 0, 0 ); 
+		entry_ndn, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_attribute: at: \"%s\"\n", 
 		entry_at_name, 0, 0 ); 
@@ -58,31 +58,31 @@ ldbm_back_attribute(
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
-	if (target != NULL && strcmp(target->e_ndn, e_ndn) == 0) {
+	if (target != NULL && strcmp(target->e_ndn, entry_ndn) == 0) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "ldbm_back_attribute: target is LOCKED (%s)\n",
-			   e_ndn ));
+			"ldbm_back_attribute: target is LOCKED (%s)\n",
+			entry_ndn ));
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"=> ldbm_back_attribute: target is entry: \"%s\"\n",
-			e_ndn, 0, 0 );
+			entry_ndn, 0, 0 );
 #endif
 
 
 	} else {
 		/* can we find entry with reader lock */
-		if ((e = dn2entry_r(be, e_ndn, NULL )) == NULL) {
+		if ((e = dn2entry_r(be, entry_ndn, NULL )) == NULL) {
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
-				   "ldbm_back_attribute: cannot find entry (%s)\n",
-				   e_ndn ));
+				"ldbm_back_attribute: cannot find entry (%s)\n",
+				entry_ndn ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"=> ldbm_back_attribute: cannot find entry: \"%s\"\n",
-					e_ndn, 0, 0 ); 
+					entry_ndn, 0, 0 ); 
 #endif
 
 			return LDAP_NO_SUCH_OBJECT; 
@@ -90,11 +90,11 @@ ldbm_back_attribute(
 		
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
-			   "ldbm_back_attribute: found entry (%s)\n", e_ndn ));
+			"ldbm_back_attribute: found entry (%s)\n", entry_ndn ));
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> ldbm_back_attribute: found entry: \"%s\"\n",
-			e_ndn, 0, 0 ); 
+			entry_ndn, 0, 0 ); 
 #endif
 
     }

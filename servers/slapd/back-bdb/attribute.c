@@ -26,7 +26,7 @@ bdb_attribute(
 	Connection *conn,
 	Operation *op,
 	Entry *target,
-	const char *e_ndn,
+	const char *entry_ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals )
 {
@@ -39,7 +39,7 @@ bdb_attribute(
 
 #ifdef NEW_LOGGING
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
-		"bdb_attribute: gr dn: \"%s\"\n", e_ndn ));
+		"bdb_attribute: gr dn: \"%s\"\n", entry_ndn ));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
 		"bdb_attribute: at: \"%s\"\n", entry_at_name));
 	LDAP_LOG(( "backend", LDAP_LEVEL_ARGS,
@@ -48,7 +48,7 @@ bdb_attribute(
 #else
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_attribute: gr dn: \"%s\"\n",
-		e_ndn, 0, 0 ); 
+		entry_ndn, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> bdb_attribute: at: \"%s\"\n", 
 		entry_at_name, 0, 0 ); 
@@ -58,23 +58,23 @@ bdb_attribute(
 		target ? target->e_ndn : "", 0, 0 ); 
 #endif
 
-	if (target != NULL && strcmp(target->e_ndn, e_ndn) == 0) {
+	if (target != NULL && strcmp(target->e_ndn, entry_ndn) == 0) {
 		/* we already have a LOCKED copy of the entry */
 		e = target;
 #ifdef NEW_LOGGING
 		LDAP_LOG(( "backend", LDAP_LEVEL_DETAIL1,
 			"bdb_attribute: target is LOCKED (%s)\n",
-			e_ndn ));
+			entry_ndn ));
 #else
 		Debug( LDAP_DEBUG_ARGS,
 			"=> bdb_attribute: target is entry: \"%s\"\n",
-			e_ndn, 0, 0 );
+			entry_ndn, 0, 0 );
 #endif
 
 
 	} else {
 		/* can we find entry */
-		rc = bdb_dn2entry( be, NULL, e_ndn, &e, NULL, 0 );
+		rc = bdb_dn2entry( be, NULL, entry_ndn, &e, NULL, 0 );
 		switch( rc ) {
 		case DB_NOTFOUND:
 		case 0:
@@ -86,11 +86,11 @@ bdb_attribute(
 #ifdef NEW_LOGGING
 			LDAP_LOG(( "backend", LDAP_LEVEL_INFO,
 				"bdb_attribute: cannot find entry (%s)\n",
-				e_ndn ));
+				entry_ndn ));
 #else
 			Debug( LDAP_DEBUG_ACL,
 				"=> bdb_attribute: cannot find entry: \"%s\"\n",
-					e_ndn, 0, 0 ); 
+					entry_ndn, 0, 0 ); 
 #endif
 			return LDAP_NO_SUCH_OBJECT; 
 		}
@@ -101,7 +101,7 @@ bdb_attribute(
 #else
 		Debug( LDAP_DEBUG_ACL,
 			"=> bdb_attribute: found entry: \"%s\"\n",
-			e_ndn, 0, 0 ); 
+			entry_ndn, 0, 0 ); 
 #endif
 	}
 

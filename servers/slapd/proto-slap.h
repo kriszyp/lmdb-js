@@ -201,7 +201,7 @@ LDAP_SLAPD_F (int) backend_attribute LDAP_P((BackendDB *be,
 	Connection *conn,
 	Operation *op,
 	Entry *target,
-	const char *e_ndn,
+	const char *entry_ndn,
 	AttributeDescription *entry_at,
 	struct berval ***vals
 ));
@@ -365,8 +365,8 @@ LDAP_SLAPD_F (char *) rdn_attr_type LDAP_P(( const char * rdn ));
 LDAP_SLAPD_F (int) rdn_attrs LDAP_P(( const char * rdn, char ***ptypes, char ***pvals ));
 
 LDAP_SLAPD_F (void) build_new_dn LDAP_P(( char ** new_dn,
-	const char *e_dn,
-	const char * p_dn,
+	const char * entry_dn,
+	const char * parent_dn,
 	const char * newrdn ));
 #endif
 

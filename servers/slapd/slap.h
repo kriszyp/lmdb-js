@@ -637,8 +637,13 @@ typedef struct slap_entry {
 	 */
 	ID		e_id;
 
-	char		*e_dn;		/* DN of this entry */
-	char		*e_ndn;		/* normalized DN of this entry */
+	struct berval e_name;	/* name (DN) of this entry */
+	struct berval e_nname;	/* normalized name (DN) of this entry */
+
+	/* for migration purposes */
+#define e_dn e_name.bv_val
+#define e_ndn e_name.bv_val
+
 	Attribute	*e_attrs;	/* list of attributes + values */
 
 	/* for use by the backend for any purpose */
