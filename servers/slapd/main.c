@@ -197,7 +197,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:h:p:s:u"
+			     "d:f:h:p:s:"
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
