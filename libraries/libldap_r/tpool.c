@@ -170,6 +170,10 @@ ldap_pvt_thread_pool_init (
 	return(0);
 }
 
+#define	TID_HASH(tid, hash) do { int i; \
+	unsigned char *ptr = (unsigned char *)&(tid); \
+	for (i=0, hash=0; i<sizeof(tid); i++) hash += ptr[i]; } while(0)
+
 int
 ldap_pvt_thread_pool_submit (
 	ldap_pvt_thread_pool_t *tpool,
@@ -237,13 +241,15 @@ ldap_pvt_thread_pool_submit (
 		rc = ldap_pvt_thread_create( &thr, 1,
 			ldap_int_thread_pool_wrapper, pool );
 		if (rc == 0) {
+			int hash;
 			pool->ltp_starting--;
 
 			/* assign this thread ID to a key slot; start
 			 * at the thread ID itself (mod MAXTHREADS) and
 			 * look for an empty slot.
 			 */
-			for (rc = thr & (MAXTHREADS-1); thread_keys[rc].id;
+			TID_HASH(thr, hash);
+			for (rc = hash & (MAXTHREADS-1); thread_keys[rc].id;
 				rc = (rc+1) & (MAXTHREADS-1));
 			thread_keys[rc].id = thr;
 		} else {
@@ -387,7 +393,7 @@ ldap_int_thread_pool_wrapper (
 	ldap_int_thread_ctx_t *ctx;
 	ldap_int_thread_key_t ltc_key[MAXKEYS];
 	ldap_pvt_thread_t tid;
-	int i, keyslot;
+	int i, keyslot, hash;
 
 	if (pool == NULL)
 		return NULL;
@@ -401,7 +407,8 @@ ldap_int_thread_pool_wrapper (
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 
 	/* store pointer to our keys */
-	for (i = tid & (MAXTHREADS-1); thread_keys[i].id != tid;
+	TID_HASH(tid, hash);
+	for (i = hash & (MAXTHREADS-1); thread_keys[i].id != tid;
 				i = (i+1) & (MAXTHREADS-1));
 	thread_keys[i].ctx = ltc_key;
 	keyslot = i;
@@ -533,11 +540,12 @@ int ldap_pvt_thread_pool_setkey(
 void *ldap_pvt_thread_pool_context( )
 {
 	ldap_pvt_thread_t tid;
-	int i;
+	int i, hash;
 
 	tid = ldap_pvt_thread_self();
 
-	for (i = tid & (MAXTHREADS-1); thread_keys[i].id &&
+	TID_HASH( tid, hash );
+	for (i = hash & (MAXTHREADS-1); thread_keys[i].id &&
 		thread_keys[i].id != tid; i = (i+1) & (MAXTHREADS-1));
 
 	return thread_keys[i].ctx;
