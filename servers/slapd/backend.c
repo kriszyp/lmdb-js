@@ -859,17 +859,9 @@ backend_check_controls(
 					assert( 0 );
 				}
 
-			} else if (
-#ifdef SLAP_CONTROL_AVAILABILITY_KLUDGE
-				/* KLUDGE: ldctl_iscritical munged by controls.c:get_ctrls()
-				 * to ensure this check is enabled/disabled appropriately.
-				 */
-				(*ctrls)->ldctl_iscritical &&
-#else
-				!slap_global_control( op, (*ctrls)->ldctl_oid ) &&
-#endif
+			} else if ( !slap_global_control( op, (*ctrls)->ldctl_oid ) &&
 				!ldap_charray_inlist( op->o_bd->be_controls,
-				(*ctrls)->ldctl_oid ) )
+					(*ctrls)->ldctl_oid ) )
 			{
 				/* Per RFC 2251 (and LDAPBIS discussions), if the control
 				 * is recognized and appropriate for the operation (which

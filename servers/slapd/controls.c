@@ -640,24 +640,6 @@ int get_ctrls(
 					goto return_results;
 				}
 
-#ifdef SLAP_CONTROL_AVAILABILITY_KLUDGE
-				/* backend_check_controls() kludge */
-				if ( sc->sc_mask & SLAP_CTRL_GLOBAL ) {
-					/* KLUDGE: disable backend_control() check */
-					c->ldctl_iscritical = 0;
-
-				} else if ( tagmask == SLAP_CTRL_SEARCH &&
-					sc->sc_mask & SLAP_CTRL_GLOBAL_SEARCH )
-				{
-					/* KLUDGE: disable backend_control() check */
-					c->ldctl_iscritical = 0;
-
-				} else {
-					/* KLUDGE: enable backend_control() check */
-					c->ldctl_iscritical = 1;
-				}
-#endif
-
 			} else if( c->ldctl_iscritical ) {
 				/* unavailable CRITICAL control */
 				rs->sr_err = LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
