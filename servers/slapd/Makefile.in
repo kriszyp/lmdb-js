@@ -163,6 +163,7 @@ sslapd: version.o
 		if [ -d $$i ]; then \
 			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
 			( cd $$i; $(MAKE) $(MFLAGS) all ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done; \
 	echo " "
@@ -199,6 +200,7 @@ depend-local-srv: FORCE
 		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
 	@echo ""
@@ -211,6 +213,7 @@ clean-local-srv: FORCE
 		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
 	rm -f *.tmp all-cffiles
@@ -235,6 +238,7 @@ install-slapd: FORCE
 		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 			( cd $$i; $(MAKE) $(MFLAGS) install ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	    done; \
 	fi

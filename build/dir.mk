@@ -13,6 +13,7 @@ all-common: FORCE
 	@for i in $(SUBDIRS) $(ALLDIRS); do 		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) all );		\
+		if test $$? != 0 ; then exit 1; fi ;	\
 		echo " ";								\
 	done
 
@@ -21,6 +22,7 @@ install-common: FORCE
 	@for i in $(SUBDIRS) $(INSTALLDIRS); do 	\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) install );	\
+		if test $$? != 0 ; then exit 1; fi ;	\
 		echo " ";								\
 	done
 
@@ -29,6 +31,7 @@ clean-common: FORCE
 	@for i in $(SUBDIRS) $(CLEANDIRS); do		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) clean );	\
+		if test $$? != 0 ; then exit 1; fi ;	\
 		echo " ";								\
 	done
 
@@ -37,6 +40,7 @@ veryclean-common: FORCE
 	@for i in $(SUBDIRS) $(CLEANDIRS); do		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) veryclean );	\
+		if test $$? != 0 ; then exit 1; fi ;	\
 		echo " ";								\
 	done
 
@@ -45,6 +49,7 @@ depend-common: FORCE
 	@for i in $(SUBDIRS) $(DEPENDDIRS); do		\
 		echo "  Entering subdirectory $$i";		\
 		( cd $$i; $(MAKE) $(MFLAGS) depend );	\
+		if test $$? != 0 ; then exit 1; fi ;	\
 		echo " ";								\
 	done
 
