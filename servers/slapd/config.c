@@ -2086,14 +2086,14 @@ read_config( const char *fname, int depth )
 #endif
 				return 1;
 
-			} else if ( !be->be_update_ndn.bv_len ) {
+			} else if ( !SLAP_SHADOW(be) ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( CONFIG, INFO, "%s: line %d: "
-					"updateref line must come after updatedn.\n",
+					"updateref line must come after syncrepl or updatedn.\n",
 					fname, lineno , 0 );
 #else
 				Debug( LDAP_DEBUG_ANY, "%s: line %d: "
-					"updateref line must after updatedn.\n",
+					"updateref line must after syncrepl or updatedn.\n",
 				    fname, lineno, 0 );
 #endif
 				return 1;
