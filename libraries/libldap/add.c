@@ -99,7 +99,11 @@ ldap_add_ext(
 	BerElement	*ber;
 	int		i, rc;
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_add\n", 0, 0, 0 );
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "add", LDAP_LEVEL_ENTRY, "ldap_add_ext\n" ));
+#else
+	Debug( LDAP_DEBUG_TRACE, "ldap_add_ext\n", 0, 0, 0 );
+#endif
 	assert( ld != NULL );
 	assert( LDAP_VALID( ld ) );
 	assert( dn != NULL );

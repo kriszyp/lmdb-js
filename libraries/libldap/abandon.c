@@ -57,7 +57,11 @@ ldap_abandon_ext(
 	LDAPControl **cctrls )
 {
 	int rc;
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "abandon", LDAP_LEVEL_ARGS, "ldap_abandon_ext %d\n", msgid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon_ext %d\n", msgid, 0, 0 );
+#endif
 
 	/* check client controls */
 	rc = ldap_int_client_controls( ld, cctrls );
@@ -81,7 +85,11 @@ ldap_abandon_ext(
 int
 ldap_abandon( LDAP *ld, int msgid )
 {
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "abandon", LDAP_LEVEL_ARGS, "ldap_abandon %d\n", msgid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_abandon %d\n", msgid, 0, 0 );
+#endif
 	return ldap_abandon_ext( ld, msgid, NULL, NULL ) == LDAP_SUCCESS
 		? 0 : -1;
 }
@@ -101,8 +109,13 @@ do_abandon(
 	Sockbuf		*sb;
 	LDAPRequest	*lr;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "abandon", LDAP_LEVEL_ARGS, "do_abandon %d, msgid %d\n", 
+		origid, msgid ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "do_abandon origid %d, msgid %d\n",
 		origid, msgid, 0 );
+#endif
 
 	sendabandon = 1;
 

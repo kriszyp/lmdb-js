@@ -102,7 +102,11 @@ ldap_flush_cache( LDAP *ld )
 	int		i;
 	LDAPMessage	*m, *next;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_ENTRY, "ldap_flush_cache\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_flush_cache\n", 0, 0, 0 );
+#endif
 
 	if ( ld->ld_cache != NULL ) {
 		/* delete all requests in the queue */
@@ -131,8 +135,14 @@ void
 ldap_uncache_request( LDAP *ld, int msgid )
 {
 #ifndef LDAP_NOCACHE
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_ARGS, 
+		"ldap_uncache_request %d ld_cache %lx\n",
+		msgid, (long) ld->ld_cache ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_request %d ld_cache %lx\n",
 	    msgid, (long) ld->ld_cache, 0 );
+#endif
 
 	uncache_entry_or_req( ld, NULL, msgid );
 #endif
@@ -143,8 +153,14 @@ void
 ldap_uncache_entry( LDAP *ld, LDAP_CONST char *dn )
 {
 #ifndef LDAP_NOCACHE
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_ARGS, 
+		"ldap_uncache_entry %s ld_cache %lx\n",
+		dn, (long) ld->ld_cache ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_uncache_entry %s ld_cache %lx\n",
 	    dn, (long) ld->ld_cache, 0 );
+#endif
 
 	uncache_entry_or_req( ld, dn, 0 );
 #endif
@@ -161,9 +177,15 @@ uncache_entry_or_req( LDAP *ld,
 	int		i;
 	LDAPMessage	*m, *prev, *next;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_ARGS, 
+		"uncache_entry_or_req dn %s msgid %ld ld_cache %lx\n",
+		dn, (long) msgid, (long) ld->ld_cache ));
+#else
 	Debug( LDAP_DEBUG_TRACE,
 	    "ldap_uncache_entry_or_req  dn %s  msgid %ld  ld_cache %lx\n",
 	    dn, (long) msgid, (long) ld->ld_cache );
+#endif
 
 	if ( ld->ld_cache == NULL ) {
 	    return;
@@ -218,7 +240,11 @@ ldap_add_request_to_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 	LDAPMessage	*new;
 	ber_len_t	len;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_ENTRY, "ldap_add_request_to_cache\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_add_request_to_cache\n", 0, 0, 0 );
+#endif
 
 	ld->ld_errno = LDAP_SUCCESS;
 	if ( ld->ld_cache == NULL ||
@@ -262,12 +288,23 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 	LDAPMessage	*m, **mp, *req, *new, *prev;
 	int		err, keep;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_ARGS, 
+		"ldap_add_result_to_cache: id %ld, type %ld\n",
+		(long) result->lm_msgid, (long) result->lm_msgtype ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_add_result_to_cache: id %ld, type %ld\n", 
 		(long) result->lm_msgid, (long) result->lm_msgtype, 0 );
+#endif
 
 	if ( ld->ld_cache == NULL ||
 	    ( ld->ld_cache->lc_enabled == 0 )) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+		"ldap_add_result_to_cache: cache disabled\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "artc: cache disabled\n", 0, 0, 0 );
+#endif
 		return;
 	}
 
@@ -278,8 +315,14 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 		/*
 		 * only cache search and compare operations
 		 */
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+		"ldap_add_result_to_cache: "
+		"only caching search & compare operations\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE,
 		    "artc: only caching search & compare operations\n", 0, 0, 0 );
+#endif
 		return;
 	}
 
@@ -303,9 +346,15 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 		if (( new = msg_dup( result )) != NULL ) {
 			new->lm_chain = NULL;
 			m->lm_chain = new;
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "cache", LDAP_LEVEL_RESULTS, 
+				"ldap_add_result_to_cache: "
+				"result added to cache request chain\n" ));
+#else
 			Debug( LDAP_DEBUG_TRACE,
 			    "artc: result added to cache request chain\n",
 			    0, 0, 0 );
+#endif
 		}
 		if ( result->lm_msgtype == LDAP_RES_SEARCH_RESULT ||
 		    result->lm_msgtype == LDAP_RES_COMPARE ) {
@@ -339,9 +388,15 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 			}
 
 			if ( !keep ) {
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "cache", LDAP_LEVEL_RESULTS, 
+					"ldap_add_result_to_cache: "
+					"not caching result with error\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 				    "artc: not caching result with error %d\n",
 				    err, 0, 0 );
+#endif
 				ldap_msgfree( req );
 			} else {
 				mp = &ld->ld_cache->lc_buckets[
@@ -351,14 +406,26 @@ ldap_add_result_to_cache( LDAP *ld, LDAPMessage *result )
 				req->lm_time = (long) time( NULL );
 				ld->ld_cache->lc_memused += msg_size( req );
 				check_cache_memused( ld->ld_cache );
+#ifdef NEW_LOGGING
+				LDAP_LOG (( "cache", LDAP_LEVEL_RESULTS, 
+					"ldap_add_result_to_cache: "
+					"cached result with error\n" ));
+#else
 				Debug( LDAP_DEBUG_TRACE,
 				    "artc: cached result with error %d\n",
 				    err, 0, 0 );
+#endif
 			}
 		}
 	} else {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "cache", LDAP_LEVEL_RESULTS, 
+			"ldap_add_result_to_cache: "
+			"msgid not in request list\n" ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "artc: msgid not in request list\n",
 		    0, 0, 0 );
+#endif
 	}
 #endif
 }
@@ -380,7 +447,11 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 	int		first, hash;
 	time_t	c_time;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_ENTRY, "ldap_check_cache\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ldap_check_cache\n", 0, 0, 0 );
+#endif
 
 	if ( ld->ld_cache == NULL ||
 	    ( ld->ld_cache->lc_enabled == 0 )) {
@@ -398,8 +469,14 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 	prev = NULL;
 	hash = cache_hash( &reqber );
 	for ( m = ld->ld_cache->lc_buckets[ hash ]; m != NULL; m = next ) {
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+			"ldap_check_cache: examining id %ld, type %ld\n",
+			(long) m->lm_msgid, (long) m->lm_msgtype ));
+#else
 		Debug( LDAP_DEBUG_TRACE,"cc: examining id %ld,type %ld\n",
 		    (long) m->lm_msgid, (long) m->lm_msgtype, 0 );
+#endif
 		if ( difftime(c_time, m->lm_time) > ld->ld_cache->lc_timeout ) {
 			/* delete expired message */
 			next = m->lm_next;
@@ -408,8 +485,14 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 			} else {
 				prev->lm_next = next;
 			}
+#ifdef NEW_LOGGING
+			LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+				"ldap_check_cache: expired id %ld\n",
+				(long) m->lm_msgid ));
+#else
 			Debug( LDAP_DEBUG_TRACE, "cc: expired id %d\n",
 			    m->lm_msgid, 0, 0 );
+#endif
 			ld->ld_cache->lc_memused -= msg_size( m );
 			ldap_msgfree( m );
 		} else {
@@ -445,11 +528,22 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 			prev->lm_chain = new;
 		}
 		prev = new;
+#ifdef NEW_LOGGING
+		LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+			"ldap_check_cache: added type %ld\n",
+			(long) m->lm_msgtype ));
+#else
 		Debug( LDAP_DEBUG_TRACE, "cc: added type %ld\n",
 		    (long) new->lm_msgtype, 0, 0 );
+#endif
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_RESULTS, 
+		"ldap_check_cache: result returned from cache\n" ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "cc: result returned from cache\n", 0, 0, 0 );
+#endif
 	return( 0 );
 #else
 	return( -1 );
@@ -475,8 +569,14 @@ cache_hash( BerElement *ber )
 	    len = bercpy.ber_end - bercpy.ber_ptr;
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_RESULTS, 
+		"cache_hash: len is %ld, returning %ld\n",
+		 len, len % LDAP_CACHE_BUCKETS ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "cache_hash: len is %ld, returning %ld\n",
 	    len, len % LDAP_CACHE_BUCKETS, 0 );
+#endif
 	return( (int) ( len % LDAP_CACHE_BUCKETS ));
 }
 
@@ -626,8 +726,14 @@ check_cache_memused( LDAPCache *lc )
 	time_t c_time;
 	LDAPMessage	*m, *prev, *next;
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+		"check_cache_memused: %ld bytes in use (%ld max)\n",
+		 lc->lc_memused, lc->lc_maxmem ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "check_cache_memused: %ld bytes in use (%ld max)\n",
 	    lc->lc_memused, lc->lc_maxmem, 0 );
+#endif
 
 	if ( (unsigned) lc->lc_maxmem <= sizeof( LDAPCache )
 	    || lc->lc_memused <= lc->lc_maxmem * SIZE_FACTOR ) {
@@ -649,9 +755,15 @@ check_cache_memused( LDAPCache *lc )
 						prev->lm_next = next;
 					}
 					lc->lc_memused -= msg_size( m );
+#ifdef NEW_LOGGING
+					LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+						"check_cache_memused: removed %ld\n",
+		 				m->lm_msgid ));
+#else
 					Debug( LDAP_DEBUG_TRACE,
 					    "ccm: removed %d\n",
 					    m->lm_msgid, 0, 0 );
+#endif
 					ldap_msgfree( m );
 				} else {
 					prev = m;
@@ -661,8 +773,14 @@ check_cache_memused( LDAPCache *lc )
 		remove_threshold *= THRESHOLD_FACTOR;
 	}
 
+#ifdef NEW_LOGGING
+	LDAP_LOG (( "cache", LDAP_LEVEL_DETAIL1, 
+		"check_cache_memused: reduced usage to %ld bytes\n",
+		lc->lm_memused ));
+#else
 	Debug( LDAP_DEBUG_TRACE, "ccm: reduced usage to %ld bytes\n",
 	    lc->lc_memused, 0, 0 );
+#endif
 }
 
 #endif /* !NO_CACHE */
