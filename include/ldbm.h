@@ -37,7 +37,9 @@
 #	endif
 #	ifdef HAVE_BERKELEY_DB2
 #		define R_NOOVERWRITE DB_NOOVERWRITE
-#		define DEFAULT_DB_PAGE_SIZE 1024
+#		ifndef DEFAULT_DB_PAGE_SIZE
+#			define DEFAULT_DB_PAGE_SIZE 4096
+#		endif
 #	endif
 #endif
 
