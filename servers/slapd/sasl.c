@@ -1563,7 +1563,7 @@ int slap_sasl_getdn( Connection *conn, Operation *op, char *id, int len,
 			/* EXTERNAL DNs are already normalized */
 			do_norm = 0;
 			is_dn = SET_DN;
-			ber_str2bv( id, len, 1, dn );
+			ber_str2bv_x( id, len, 1, dn, op->o_tmpmemctx );
 
 		} else {
 			/* convert to u:<username> form */

@@ -228,7 +228,8 @@ static void slap_sasl_rx_exp(
 	const int *off,
 	regmatch_t *str,
 	const char *saslname,
-	struct berval *out )
+	struct berval *out,
+	void *ctx )
 {
 	int i, n, len, insert;
 
@@ -247,7 +248,7 @@ static void slap_sasl_rx_exp(
 		len += str[i].rm_eo - str[i].rm_so;
 		n++;
 	}
-	out->bv_val = ch_malloc( len + 1 );
+	out->bv_val = sl_malloc( len + 1, ctx );
 	out->bv_len = len;
 
 	/* Fill in URI with replace string, replacing $i as we go */
@@ -277,7 +278,7 @@ static void slap_sasl_rx_exp(
    LDAP URI to find the matching LDAP entry, using the pattern matching
    strings given in the saslregexp config file directive(s) */
 
-static int slap_sasl_regexp( struct berval *in, struct berval *out )
+static int slap_sasl_regexp( struct berval *in, struct berval *out, void *ctx )
 {
 	char *saslname = in->bv_val;
 	SaslRegexp_t *reg;
@@ -312,7 +313,7 @@ static int slap_sasl_regexp( struct berval *in, struct berval *out )
 	 * to replace the $1,$2 with the strings that matched (b.*) and (d.*)
 	 */
 	slap_sasl_rx_exp( reg->sr_replace, reg->sr_offset,
-		reg->sr_strings, saslname, out );
+		reg->sr_strings, saslname, out, ctx );
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( TRANSPORT, ENTRY, 
@@ -336,7 +337,7 @@ static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 
 	/* We only want to be called once */
 	if( ndn->bv_val ) {
-		free(ndn->bv_val);
+		o->o_tmpfree(ndn->bv_val, o->o_tmpmemctx);
 		ndn->bv_val = NULL;
 
 #ifdef NEW_LOGGING
@@ -349,7 +350,7 @@ static int sasl_sc_sasl2dn( Operation *o, SlapReply *rs )
 		return -1;
 	}
 
-	ber_dupbv(ndn, &rs->sr_entry->e_nname);
+	ber_dupbv_x(ndn, &rs->sr_entry->e_nname, o->o_tmpmemctx);
 	return 0;
 }
 
@@ -465,7 +466,7 @@ int slap_sasl_match(Operation *opx, struct berval *rule, struct berval *assertDN
 	}
 
 CONCLUDED:
-	if( op.o_req_ndn.bv_len ) ch_free( op.o_req_ndn.bv_val );
+	if( op.o_req_ndn.bv_len ) sl_free( op.o_req_ndn.bv_val, opx->o_tmpmemctx );
 	if( op.oq_search.rs_filter ) filter_free_x( opx, op.oq_search.rs_filter );
 
 #ifdef NEW_LOGGING
@@ -567,12 +568,12 @@ void slap_sasl2dn( Operation *opx,
 	cb.sc_private = sasldn;
 
 	/* Convert the SASL name into a minimal URI */
-	if( !slap_sasl_regexp( saslname, &regout ) ) {
+	if( !slap_sasl_regexp( saslname, &regout, opx->o_tmpmemctx ) ) {
 		goto FINISHED;
 	}
 
 	rc = slap_parseURI( opx, &regout, &op.o_req_ndn, &op.oq_search.rs_scope, &op.oq_search.rs_filter );
-	if( regout.bv_val ) ch_free( regout.bv_val );
+	if( regout.bv_val ) sl_free( regout.bv_val, opx->o_tmpmemctx );
 	if( rc != LDAP_SUCCESS ) {
 		goto FINISHED;
 	}

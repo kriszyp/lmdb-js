@@ -919,7 +919,7 @@ connection_operation( void *ctx, void *arg_v )
 	memsiz = ber_len( op->o_ber ) * 32;
 	if ( SLAB_SIZE > memsiz ) memsiz = SLAB_SIZE;
 
-	if ( tag == LDAP_REQ_SEARCH ) {
+	if ( tag == LDAP_REQ_SEARCH || tag == LDAP_REQ_BIND ) {
 		memctx = sl_mem_create( memsiz, ctx );
 		ber_set_option( op->o_ber, LBER_OPT_BER_MEMCTX, memctx );
 		op->o_tmpmemctx = memctx;

@@ -1424,9 +1424,9 @@ aci_get_part(
 }
 
 BerVarray
-aci_set_gather (void *cookie, struct berval *name, struct berval *attr)
+aci_set_gather (SetCookie *cookie, struct berval *name, struct berval *attr)
 {
-	AciSetCookie *cp = cookie;
+	AciSetCookie *cp = (AciSetCookie *)cookie;
 	BerVarray bvals = NULL;
 	struct berval ndn;
 
@@ -1435,14 +1435,14 @@ aci_set_gather (void *cookie, struct berval *name, struct berval *attr)
 	 * also return the syntax or some "comparison cookie".
 	 */
 
-	if (dnNormalize2(NULL, name, &ndn, cp->op->o_tmpmemctx ) == LDAP_SUCCESS) {
+	if (dnNormalize2(NULL, name, &ndn, cp->op->o_tmpmemctx) == LDAP_SUCCESS) {
 		const char *text;
 		AttributeDescription *desc = NULL;
 		if (slap_bv2ad(attr, &desc, &text) == LDAP_SUCCESS) {
 			backend_attribute(cp->op,
 				cp->e, &ndn, desc, &bvals);
 		}
-		free(ndn.bv_val);
+		sl_free(ndn.bv_val, cp->op->o_tmpmemctx);
 	}
 	return(bvals);
 }
@@ -1460,7 +1460,7 @@ aci_match_set (
 	AciSetCookie cookie;
 
 	if (setref == 0) {
-		ber_dupbv( &set, subj );
+		ber_dupbv_x( &set, subj, op->o_tmpmemctx );
 	} else {
 		struct berval subjdn, ndn = { 0, NULL };
 		struct berval setat;
@@ -1497,7 +1497,7 @@ aci_match_set (
 						bvals[0].bv_val = bvals[i-1].bv_val;
 						bvals[i-1].bv_val = NULL;
 					}
-					ber_bvarray_free(bvals);
+					ber_bvarray_free_x(bvals, op->o_tmpmemctx);
 				}
 			}
 			if (ndn.bv_val)
@@ -1508,9 +1508,9 @@ aci_match_set (
 	if (set.bv_val != NULL) {
 		cookie.op = op;
 		cookie.e = e;
-		rc = (slap_set_filter(aci_set_gather, &cookie, &set,
+		rc = (slap_set_filter(aci_set_gather, (SetCookie *)&cookie, &set,
 			&op->o_ndn, &e->e_nname, NULL) > 0);
-		ch_free(set.bv_val);
+		sl_free(set.bv_val, op->o_tmpmemctx);
 	}
 	return(rc);
 }

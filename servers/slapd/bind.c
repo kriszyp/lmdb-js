@@ -161,6 +161,10 @@ do_bind(
 		goto cleanup;
 	} 
 
+	/* We use the tmpmemctx here because it speeds up normalization.
+	 * However, we must dup with regular malloc when storing any
+	 * resulting DNs in the op or conn structures.
+	 */
 	rs->sr_err = dnPrettyNormal( NULL, &dn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
@@ -292,11 +296,14 @@ do_bind(
 
 		ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
 		if( rs->sr_err == LDAP_SUCCESS ) {
-			op->o_conn->c_dn = op->orb_edn;
+			ber_dupbv(&op->o_conn->c_dn, &op->orb_edn);
 			if( op->orb_edn.bv_len != 0 ) {
 				/* edn is always normalized already */
 				ber_dupbv( &op->o_conn->c_ndn, &op->o_conn->c_dn );
 			}
+			op->o_tmpfree( op->orb_edn.bv_val, op->o_tmpmemctx );
+			op->orb_edn.bv_val = NULL;
+			op->orb_edn.bv_len = 0;
 			op->o_conn->c_authmech = op->o_conn->c_sasl_bind_mech;
 			op->o_conn->c_sasl_bind_mech.bv_val = NULL;
 			op->o_conn->c_sasl_bind_mech.bv_len = 0;
@@ -428,7 +435,7 @@ do_bind(
 		{
 			rs->sr_err = LDAP_CONFIDENTIALITY_REQUIRED;
 			rs->sr_text = "unwilling to perform simple authentication "
-				"without confidentilty protection";
+				"without confidentiality protection";
 
 			send_ldap_result( op, rs );
 
@@ -542,13 +549,16 @@ do_bind(
 			/* Set the new connection DN. */
 			if ( rs->sr_err != SLAPI_BIND_ANONYMOUS ) {
 				slapi_pblock_get( pb, SLAPI_CONN_DN, (void *)&op->orb_edn.bv_val );
+				if ( op->orb_edn.bv_val ) op->orb_edn.bv_len = strlen( op->orb_edn.bv_val );
 			}
 			rs->sr_err = dnPrettyNormal( NULL, &op->orb_edn, &op->o_req_dn, &op->o_req_ndn, op->o_tmpmemctx );
 			ldap_pvt_thread_mutex_lock( &op->o_conn->c_mutex );
-			op->o_conn->c_dn = op->o_req_dn;
-			op->o_conn->c_ndn = op->o_req_ndn;
+			ber_dupbv(&op->o_conn->c_dn, &op->o_req_dn);
+			ber_dupbv(&op->o_conn->c_ndn, &op->o_req_ndn);
+			op->o_tmpfree( op->o_req_dn.bv_val, op->o_tmpmemctx );
 			op->o_req_dn.bv_val = NULL;
 			op->o_req_dn.bv_len = 0;
+			op->o_tmpfree( op->o_req_ndn.bv_val, op->o_tmpmemctx );
 			op->o_req_ndn.bv_val = NULL;
 			op->o_req_ndn.bv_len = 0;
 			if ( op->o_conn->c_dn.bv_len != 0 ) {
@@ -585,6 +595,7 @@ do_bind(
 				op->o_conn->c_authz_backend = op->o_bd;
 			}
 
+			/* be_bind returns regular/global edn */
 			if(op->orb_edn.bv_len) {
 				op->o_conn->c_dn = op->orb_edn;
 			} else {

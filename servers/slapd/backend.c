@@ -1206,7 +1206,7 @@ backend_attribute(
 
 			for ( i=0; a->a_vals[i].bv_val; i++ ) ;
 			
-			v = ch_malloc( sizeof(struct berval) * (i+1) );
+			v = op->o_tmpalloc( sizeof(struct berval) * (i+1), op->o_tmpmemctx );
 			for ( i=0,j=0; a->a_vals[i].bv_val; i++ ) {
 				if ( op->o_conn && access_allowed( op,
 					e, entry_at,
@@ -1214,13 +1214,12 @@ backend_attribute(
 					ACL_AUTH, &acl_state ) == 0 ) {
 					continue;
 				}
-				ber_dupbv( &v[j],
-					&a->a_nvals[i]
-					);
+				ber_dupbv_x( &v[j],
+					&a->a_nvals[i], op->o_tmpmemctx );
 				if (v[j].bv_val ) j++;
 			}
 			if (j == 0) {
-				ch_free( v );
+				op->o_tmpfree( v, op->o_tmpmemctx );
 				*vals = NULL;
 				rc = LDAP_INSUFFICIENT_ACCESS;
 			} else {
