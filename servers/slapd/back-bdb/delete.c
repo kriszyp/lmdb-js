@@ -284,16 +284,16 @@ retry:	/* transaction retry */
 	ltid = NULL;
 	op->o_private = NULL;
 
-	if( rc == 0 ) {
+	if( rc != 0 ) {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_add: txn_commit failed: %s (%d)\n",
+			"bdb_delete: txn_commit failed: %s (%d)\n",
 			db_strerror(rc), rc, 0 );
 		rc = LDAP_OTHER;
 		text = "commit failed";
 
 	} else {
 		Debug( LDAP_DEBUG_TRACE,
-			"bdb_add: added id=%08lx dn=\"%s\"\n",
+			"bdb_delete: deleted id=%08lx dn=\"%s\"\n",
 			e->e_id, e->e_dn, 0 );
 		rc = LDAP_SUCCESS;
 		text = NULL;
