@@ -909,7 +909,7 @@ backend_check_restrictions(
 
 			if( op->o_ndn.bv_len == 0 ) {
 				*text = "modifications require authentication";
-				return LDAP_OPERATIONS_ERROR;
+				return LDAP_STRONG_AUTH_REQUIRED;
 			}
 		}
 	}
