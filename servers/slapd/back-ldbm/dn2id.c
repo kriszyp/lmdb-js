@@ -133,11 +133,14 @@ dn2id_delete(
 		return( -1 );
 	}
 
+	dn = ch_strdup( dn );
 	dn_normalize_case( dn );
 	key.dptr = dn;
 	key.dsize = strlen( dn ) + 1;
 
 	rc = ldbm_cache_delete( db, key );
+
+	free( dn );
 
 	ldbm_cache_close( be, db );
 
