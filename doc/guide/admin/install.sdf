@@ -19,14 +19,14 @@ The {{ORG[expand]OLP}} also maintains an extensive site
 makes available a number of resources which you may utilize to
 properly install OpenLDAP Software.  This includes:
 
-!block table; align=center
+!block table; align=Center; coltags="N,URL"
 Resource			URL
-Documentation Catalog		{{URL:http://www.OpenLDAP.org/doc/}}
-Frequently Asked Questions	{{URL:http://www.OpenLDAP.org/faq/}}
-Issue Tracking System		{{URL:http://www.OpenLDAP.org/its/}}
-Mailing Lists			{{URL:http://www.OpenLDAP.org/lists/}}
-Software Pages 			{{URL:http://www.OpenLDAP.org/software/}}
-Support Page 			{{URL:http://www.OpenLDAP.org/support/}}
+Documentation Catalog		http://www.OpenLDAP.org/doc/
+Frequently Asked Questions	http://www.OpenLDAP.org/faq/
+Issue Tracking System		http://www.OpenLDAP.org/its/
+Mailing Lists			http://www.OpenLDAP.org/lists/
+Software Pages 			http://www.OpenLDAP.org/software/
+Support Page 			http://www.OpenLDAP.org/support/
 !endblock
  
 H2: Prerequisite software
@@ -39,7 +39,7 @@ you might have to install.  Note that some of these third party
 packages may depend on additional software packages.  Install each
 package per installation instructions provided with it.
 
-H3: TLS Software
+H3: {{TERM[expand]TLS}}
 
 OpenLDAP clients and servers require installation of {{PRD:OpenSSL}}
 {{TERM:TLS}} libraries to provide {{TERM[expand]TLS}} services.  Though
@@ -50,20 +50,25 @@ requires separate installation.
 OpenSSL is available from {{URL: http://www.openssl.org/}}.
 
 OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
-configure detects a usable OpenSSL installation.
+{{EX:configure}} detects a usable OpenSSL installation.
 
-H3: Kerberos Software
+H3: Kerberos Authentication Services
 
 OpenLDAP clients and servers support Kerberos based authentication
-services.  In particular, OpenLDAP supports SASL/GSSAPI based
-authentication using either Heimdal or MIT Kerberos V packages.
+services.
+In particular, OpenLDAP supports {{TERM:SASL}}/{{TERM:GSSAPI}} based
+authentication using either {{PRD:Heimdal}} or {{PRD:MIT Kerberos}}
+V packages.
 If you desire to use Kerberos based authentication, you should
 install either Heimdal or MIT Kerberos V.
 
-Heimdal Kerberos is available from {{URL:http://kth.se/}}.
-MIT Kerberos is available from {{URL:http://mit.edu/}}.
+Heimdal Kerberos is available from {{URL:http://www.pdc.kth.se/heimdal/}}.
+MIT Kerberos is available from {{URL:http://web.mit.edu/kerberos/www/}}.
 
-H3: SASL Software
+Use of strong authentication services, such as those provided by
+Kerberos, is highly recommended.
+
+H3: {{TERM[expand]SASL}}
 
 OpenLDAP clients and servers require installation of {{PRD:Cyrus}}
 SASL libraries to provide {{TERM[expand]SASL}} services.  Though
@@ -72,7 +77,8 @@ base system or as an optional software component, Cyrus SASL
 often requires separate installation.
 
 Cyrus SASL is available from {{URL:http://asg.cmu.edu/cyrus/sasl/}}.
-Cyrus SASL will make use of Kerberos libraries if preinstalled.
+Cyrus SASL will make use of OpenSSL and Kerberos/GSSAPI libraries
+if preinstalled.
 
 OpenLDAP will not be fully LDAPv3 compliant unless OpenLDAP's
 configure detects a usable Cyrus SASL installation.
@@ -93,11 +99,28 @@ need may need to obtain the software and install it yourself.
 {{PRD:BerkeleyDB}} is available from {{ORG[expand]Sleepy}}'s
 download page {{URL: http://www.sleepycat.com/download.html}}.
 There are several versions available.  At the time of this writing,
-version 3.1, the latest release, is recommended. 
+the latest release, version 3.1, is recommended. 
 
 {{PRD:GDBM}} is available from {{ORG:FSF}}'s download site
 {{URL: ftp://ftp.gnu.org/pub/gnu/gdbm/}}.
 At the time of this writing, version 1.8 is the latest release.
+
+H3: Threads
+
+OpenLDAP is designed to take advantage of threads.  OpenLDAP
+supports POSIX {{pthreads}}, Mach {{CThreads}}, and a number of
+other varieties.  {{EX:configure}} will complain if it cannot
+find a suitable thread subsystem.   If this occurs, please
+consult the {{F:Software|Installation|Platform Hints}} section
+of the OpenLDAP FAQ {{URL: http://www.openldap.org/faq/}}.
+
+H3: TCP Wrappers
+
+{{slapd}}(8) supports TCP wrappers (IP level access control filters)
+if preinstalled.  Use of TCP wrappers or other IP level access
+filters (such as those provided by IP firewalls) is recommended
+for servers containing non-public information.
+
 
 H2: Configuring OpenLDAP
 
@@ -110,6 +133,10 @@ distribution:
 
 Replacing {{EX:VERSION}} with the appropriate version string.
 
+Note: If you intend to build OpenLDAP for multiple platforms from a
+single source tree you should consult the {{F: INSTALL}} file in the
+top level distribution directory before running {{EX:configure}}.
+
 Now you should probably run the {{EX:configure}} script with the
 {{EX:--help}} option.
 This will give you a list of options that you can change when building
@@ -121,13 +148,13 @@ of configure options, and their usage.
 The {{EX:configure}} script will also look at certain environment variables
 for certain settings.  These environment variables are:
 
-!block table; align=center
+!block table; align=Center; coltags="EX,N"; title="Table 4.1: Environment Variables"
 Variable	Description
-{{EX:CC}}      	Specify alternative C Compiler
-{{EX:CFLAGS}}  	Specify additional compiler flags
-{{EX:CPPFLAGS}}	Specify C Preprocessor flags
-{{EX:LDFLAGS}} 	Specify linker flags
-{{EX:LIBS}}    	Specify additional libraries
+CC      	Specify alternative C Compiler
+CFLAGS  	Specify additional compiler flags
+CPPFLAGS	Specify C Preprocessor flags
+LDFLAGS 	Specify linker flags
+LIBS    	Specify additional libraries
 !endblock
 
 Now run the configure script with any desired configure options or
@@ -153,7 +180,7 @@ entered on a single line (it has been split onto seperate lines for clarity.)
 ..{{EX: LDFLAGS="-L/usr/local/BerkeleyDB.3.1/lib" \ }}
 ..{{EX: ./configure --enable-dnssrv}}
 
-Note: that some shells, such as those derived from the Bourne {{sh}}(1),
+Note: Some shells, such as those derived from the Bourne {{sh}}(1),
 do not require use of the {{env}}(1) command.  In some cases, environmental
 variables have to be specified using alternative syntaxes.
 
@@ -172,19 +199,15 @@ should be:
 If the last line of output does not match, {{EX:configure}} has failed.
 You should not proceed until {{EX:configure}} completes sucessfuly.
 
-Now run make depend.
+To build dependencies, run:
 .{{EX: make depend}}
 
-Now run make, this step will actually compile OpenLDAP.
+Now build the software, this step will actually compile OpenLDAP.
 .{{EX: make}}
 
 You should examine the output of this command carefully to make sure
 everything is built correctly. Note that this command builds the LDAP
 libraries and associated clients as well as {{slapd}}(8) and {{slurpd}}(8).
-
-Note that the OpenLDAP distribution can support building for multiple
-platforms from a single source tree. If you want to do this, consult the
-{{F: INSTALL}} file in the top level distribution directory.
 
 H2: Testing the Software
 

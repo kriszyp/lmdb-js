@@ -46,6 +46,7 @@ OpenSSL  OpenSSL				http://www.openssl.org/
 Cyrus	 Cyrus					http://asg.cmu.edu/cyrus/
 Sleepy	 Sleepycat Software			http://www.sleepycat.com/
 FSF	 Free Software Foundation		http://www.fsf.org/
+GNU	 Gnu Not Unix 				http://www.gnu.org/
 !endblock
 
 !block products; data
@@ -55,6 +56,8 @@ CVS		http://www.cyclic.com/
 Cyrus		http://asg.cmu.edu/cyrus/sasl/
 GNU		http://www.gnu.org/software/
 GDBM		http://www.gnu.org/software/gdbm/
+Heimdal		http://www.pdc.kth.se/heimdal/
+MIT Kerberos	http://web.mit.edu/kerberos/www/
 OpenLDAP	http://www.openldap.org/software/
 OpenSSL		http://www.openssl.org/
 Perl		http://www.perl.com/
@@ -78,6 +81,7 @@ DSA	Directory System Agent
 DUA	Directory User Agent
 FAQ	Frequently Asked Questions
 FYI	For Your Information
+GSSAPI	Generic Security Services Application Programming Interface
 I-D	Internet Draft
 IP	Internet Protocol
 IPSEC	Internet Protocol Security
