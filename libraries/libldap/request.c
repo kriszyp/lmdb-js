@@ -953,9 +953,9 @@ ldap_append_referral( LDAP *ld, char **referralsp, char *s )
 static BerElement *
 re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, int *type )
 {
-/*
- * XXX this routine knows way too much about how the lber library works!
- */
+	/*
+	 * XXX this routine knows way too much about how the lber library works!
+	 */
 	ber_int_t	along;
 	ber_tag_t	tag;
 	ber_int_t	ver;
@@ -1050,7 +1050,7 @@ re_encode_request( LDAP *ld, BerElement *origber, ber_int_t msgid, char **dnp, i
 LDAPRequest *
 ldap_find_request_by_msgid( LDAP *ld, ber_int_t msgid )
 {
-    	LDAPRequest	*lr;
+	LDAPRequest	*lr;
 
 	for ( lr = ld->ld_requests; lr != NULL; lr = lr->lr_next ) {
 		if( lr->lr_status == LDAP_REQST_COMPLETED ) {
