@@ -137,10 +137,8 @@ LDAP_SLAPD_F (int) slap_debug;
 #define SLAP_INDEX_SUBSTR_DEFAULT ( SLAP_INDEX_SUBSTR \
 	| SLAP_INDEX_SUBSTR_INITIAL | SLAP_INDEX_SUBSTR_FINAL )
 
-#define SLAP_INDEX_SUBSTR_INITIAL_MIN_LEN	2
-#define SLAP_INDEX_SUBSTR_INITIAL_MAX_LEN	4
-#define SLAP_INDEX_SUBSTR_FINAL_MIN_LEN		2
-#define SLAP_INDEX_SUBSTR_FINAL_MAX_LEN		4
+#define SLAP_INDEX_SUBSTR_MINLEN	2
+#define SLAP_INDEX_SUBSTR_MAXLEN	4
 
 #define SLAP_INDEX_FLAGS          0xF000UL
 #define SLAP_INDEX_SUBTYPES       0x1000UL /* use index with subtypes */
@@ -157,6 +155,8 @@ typedef long slap_index;
 #define SLAP_INDEX_EQUALITY_PREFIX	'=' 	/* prefix for equality keys     */
 #define SLAP_INDEX_APPROX_PREFIX	'~'		/* prefix for approx keys       */
 #define SLAP_INDEX_SUBSTR_PREFIX	'*'		/* prefix for substring keys    */
+#define SLAP_INDEX_SUBSTR_INITIAL_PREFIX '^'
+#define SLAP_INDEX_SUBSTR_FINAL_PREFIX '$'
 #define SLAP_INDEX_CONT_PREFIX		'.'		/* prefix for continuation keys */
 #define SLAP_INDEX_UNKNOWN_PREFIX	'?'		/* prefix for unknown keys */
 
