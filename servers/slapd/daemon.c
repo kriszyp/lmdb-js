@@ -376,8 +376,8 @@ static Listener * open_listener( const char* url )
 #endif
 
 #ifdef LDAP_PF_LOCAL
-	/* for IP sockets only */
-	if ( l.sl_sa.sa_addr.sa_family == AF_INET ) {
+	/* for IPv4 and IPv6 sockets only */
+	if ( l.sl_sa.sa_addr.sa_family != AF_LOCAL ) {
 #endif /* LDAP_PF_LOCAL */
 #endif /* HAVE_GETADDRINFO */
 
