@@ -482,6 +482,7 @@ modify the database will return an "unwilling to perform" error.  By
 default, readonly is off.
 .HP
 .B replica host=<hostname>[:port] [tls=yes|critical]
+.B [suffix=<suffix> [...]]
 .B bindmethod=simple|sasl [binddn=<simple DN>] [credentials=<simple password>]
 .B [saslmech=<SASL mech>] [secopts=<options>] [realm=<realm>]
 .B [authcId=<authentication ID>] [authcId=<authentication ID>]
@@ -489,7 +490,10 @@ default, readonly is off.
 Specify a replication site for this database.  Refer to the "OpenLDAP 
 Administrator's Guide" for detailed information on setting up a replicated
 .B slapd
-directory service. A
+directory service. Zero or more
+.B suffix
+instances can be used to select the subtrees that will be replicated
+(defaults to all the database). A
 .B bindmethod
 of
 .B simple
