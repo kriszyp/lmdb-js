@@ -641,7 +641,7 @@ Attribute *backend_operational(
 #ifdef SLAPD_SCHEMA_NOT_COMPAT
 	/* not yet implemented */
 #else
-	a->a_type = "subschemasubentry";
+	a->a_type = ch_strdup("subschemasubentry");
 	a->a_syntax = SYNTAX_DN | SYNTAX_CIS;
 #endif
 
