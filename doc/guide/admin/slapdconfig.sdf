@@ -622,9 +622,8 @@ separate RDN components.
 
 Other control factors are also supported.
 For example, a {{EX:<what>}} can be restricted by a
-regular expression matching the client's IP address or domain name:
+regular expression matching the client's domain name:
 
->	addr=<regular expression>
 >	domain=<regular expression>
 
 or by an entry listed in a DN-valued attribute in the entry to
