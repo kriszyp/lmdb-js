@@ -1,6 +1,7 @@
 OpenLDAP 2.2 Change Log
 
 OpenLDAP 2.2.6 Engineering
+	Fixed numericStringsMatch mis-definition bug (ITS#2938)
 	Build Environment
 		Fixed test021 portable echo bug (ITS#2933, ITS#2879)
 
