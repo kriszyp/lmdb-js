@@ -314,7 +314,7 @@ acl_get(
 	for ( ; a != NULL; a = a->acl_next ) {
 		(*count) ++;
 
-		if (a->acl_dn_pat != NULL) {
+		if (a->acl_dn_pat.bv_len != 0) {
 			if ( a->acl_dn_style == ACL_STYLE_REGEX ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
@@ -336,7 +336,7 @@ acl_get(
 				Debug( LDAP_DEBUG_ACL, "=> dn: [%d] %s\n", 
 					*count, a->acl_dn_pat, 0 );
 #endif
-				patlen = strlen( a->acl_dn_pat );
+				patlen = a->acl_dn_pat.bv_len;
 				if ( dnlen < patlen )
 					continue;
 
@@ -369,7 +369,7 @@ acl_get(
 						continue;
 				}
 
-				if ( strcmp( a->acl_dn_pat, e->e_ndn + dnlen - patlen ) != 0 )
+				if ( strcmp( a->acl_dn_pat.bv_val, e->e_ndn + dnlen - patlen ) != 0 )
 					continue;
 			}
 
@@ -771,12 +771,8 @@ acl_mask(
 			}
 		}
 
-		if ( b->a_set_pat != NULL ) {
-			struct berval bv;
-
-			bv.bv_val = b->a_set_pat;
-			bv.bv_len = strlen(b->a_set_pat);
-			if (aci_match_set( &bv, be, e, conn, op, 0 ) == 0) {
+		if ( b->a_set_pat.bv_len != 0 ) {
+			if (aci_match_set( &b->a_set_pat, be, e, conn, op, 0 ) == 0) {
 				continue;
 			}
 		}

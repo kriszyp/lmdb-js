@@ -111,11 +111,6 @@ parse_acl(
 				acl_usage();
 			}
 			a = (AccessControl *) ch_calloc( 1, sizeof(AccessControl) );
-			a->acl_filter = NULL;
-			a->acl_dn_pat = NULL;
-			a->acl_attrs  = NULL;
-			a->acl_access = NULL;
-			a->acl_next   = NULL;
 			for ( ++i; i < argc; i++ ) {
 				if ( strcasecmp( argv[i], "by" ) == 0 ) {
 					i--;
@@ -123,7 +118,7 @@ parse_acl(
 				}
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
-					if( a->acl_dn_pat != NULL ) {
+					if( a->acl_dn_pat.bv_len != 0 ) {
 						fprintf( stderr,
 							"%s: line %d: dn pattern"
 							" already specified in to clause.\n",
@@ -131,7 +126,8 @@ parse_acl(
 						acl_usage();
 					}
 
-					a->acl_dn_pat = ch_strdup( "*" );
+					a->acl_dn_pat.bv_val = ch_strdup( "*" );
+					a->acl_dn_pat.bv_len = 1;
 					continue;
 				}
 
@@ -146,7 +142,7 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "dn" ) == 0 ) {
-					if( a->acl_dn_pat != NULL ) {
+					if( a->acl_dn_pat.bv_len != 0 ) {
 						fprintf( stderr,
 							"%s: line %d: dn pattern"
 							" already specified in to clause.\n",
@@ -166,26 +162,32 @@ parse_acl(
 							|| strcmp(right, ".*$$") == 0 
 							|| strcmp(right, "^.*$$") == 0 )
 						{
-							a->acl_dn_pat = ch_strdup( "*" );
+							a->acl_dn_pat.bv_val = ch_strdup( "*" );
+							a->acl_dn_pat.bv_len = 1;
 
 						} else {
-							a->acl_dn_pat = acl_regex_normalized_dn( right );
+							a->acl_dn_pat.bv_val = acl_regex_normalized_dn( right );
+							a->acl_dn_pat.bv_len = strlen( a->acl_dn_pat.bv_val );
 						}
 					} else if ( strcasecmp( style, "base" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_BASE;
-						a->acl_dn_pat = ch_strdup( right );
+						a->acl_dn_pat.bv_val = ch_strdup( right );
+						a->acl_dn_pat.bv_len = strlen( right );
 
 					} else if ( strcasecmp( style, "one" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_ONE;
-						a->acl_dn_pat = ch_strdup( right );
+						a->acl_dn_pat.bv_val = ch_strdup( right );
+						a->acl_dn_pat.bv_len = strlen( right );
 
 					} else if ( strcasecmp( style, "subtree" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_SUBTREE;
-						a->acl_dn_pat = ch_strdup( right );
+						a->acl_dn_pat.bv_val = ch_strdup( right );
+						a->acl_dn_pat.bv_len = strlen( right );
 
 					} else if ( strcasecmp( style, "children" ) == 0 ) {
 						a->acl_dn_style = ACL_STYLE_CHILDREN;
-						a->acl_dn_pat = ch_strdup( right );
+						a->acl_dn_pat.bv_val = ch_strdup( right );
+						a->acl_dn_pat.bv_len = strlen( right );
 
 					} else {
 						fprintf( stderr,
@@ -221,18 +223,22 @@ parse_acl(
 				}
 			}
 
-			if ( a->acl_dn_pat != NULL && strcmp(a->acl_dn_pat, "*") == 0) {
-				free( a->acl_dn_pat );
-				a->acl_dn_pat = NULL;
+			if ( a->acl_dn_pat.bv_len != 0 && strcmp(a->acl_dn_pat.bv_val, "*") == 0) {
+				free( a->acl_dn_pat.bv_val );
+				a->acl_dn_pat.bv_val = NULL;
+				a->acl_dn_pat.bv_len = 0;
 			}
 			
-			if( a->acl_dn_pat != NULL ) {
+			if( a->acl_dn_pat.bv_len != 0 ) {
 				if ( a->acl_dn_style != ACL_STYLE_REGEX )
 				{
-					dn_normalize(a->acl_dn_pat);
-
+					struct berval *bv;
+					dnNormalize( NULL, &a->acl_dn_pat, &bv);
+					free( a->acl_dn_pat.bv_val );
+					a->acl_dn_pat = *bv;
+					free( bv );
 				} else {
-					int e = regcomp( &a->acl_dn_re, a->acl_dn_pat,
+					int e = regcomp( &a->acl_dn_re, a->acl_dn_pat.bv_val,
 					                 REG_EXTENDED | REG_ICASE );
 					if ( e ) {
 						char buf[512];
@@ -670,7 +676,7 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "set" ) == 0 ) {
-					if( b->a_set_pat != NULL ) {
+					if( b->a_set_pat.bv_len != 0 ) {
 						fprintf( stderr,
 							"%s: line %d: set attribute already specified.\n",
 							fname, lineno );
@@ -685,7 +691,8 @@ parse_acl(
 					}
 
 					b->a_set_style = sty;
-					b->a_set_pat = ch_strdup(right);
+					b->a_set_pat.bv_val = ch_strdup(right);
+					b->a_set_pat.bv_len = strlen(right);
 
 					continue;
 				}
@@ -1231,8 +1238,8 @@ access_free( Access *a )
 		free ( a->a_domain_pat );
 	if ( a->a_sockurl_pat )
 		free ( a->a_sockurl_pat );
-	if ( a->a_set_pat )
-		free ( a->a_set_pat );
+	if ( a->a_set_pat.bv_len )
+		free ( a->a_set_pat.bv_val );
 	if ( a->a_group_pat )
 		free ( a->a_group_pat );
 	free( a );
@@ -1245,8 +1252,8 @@ acl_free( AccessControl *a )
 
 	if ( a->acl_filter )
 		filter_free( a->acl_filter );
-	if ( a->acl_dn_pat )
-		free ( a->acl_dn_pat );
+	if ( a->acl_dn_pat.bv_len )
+		free ( a->acl_dn_pat.bv_val );
 	if ( a->acl_attrs )
 		charray_free( a->acl_attrs );
 	for (; a->acl_access; a->acl_access = n) {
@@ -1439,10 +1446,10 @@ print_acl( Backend *be, AccessControl *a )
 	fprintf( stderr, "%s ACL: access to",
 		be == NULL ? "Global" : "Backend" );
 
-	if ( a->acl_dn_pat != NULL ) {
+	if ( a->acl_dn_pat.bv_len != 0 ) {
 		to++;
 		fprintf( stderr, " dn.%s=%s\n",
-			style_strings[a->acl_dn_style], a->acl_dn_pat );
+			style_strings[a->acl_dn_style], a->acl_dn_pat.bv_val );
 	}
 
 	if ( a->acl_filter != NULL ) {

@@ -796,7 +796,7 @@ typedef struct slap_access {
 	slap_style_t a_sockurl_style;
 	char		*a_sockurl_pat;
 	slap_style_t a_set_style;
-	char		*a_set_pat;
+	struct berval	a_set_pat;
 
 #ifdef SLAPD_ACI_ENABLED
 	AttributeDescription	*a_aci_at;
@@ -817,7 +817,7 @@ typedef struct slap_acl {
 	Filter		*acl_filter;
 	slap_style_t acl_dn_style;
 	regex_t		acl_dn_re;
-	char		*acl_dn_pat;
+	struct berval	acl_dn_pat;
 	char		**acl_attrs;
 
 	/* "by" part: list of who has what access to the entries */
