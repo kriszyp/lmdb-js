@@ -223,6 +223,7 @@ oc_check_allowed( char *type, struct berval **ocl )
 	AttributeType	*at;
 	int		i, j;
 	char		**pp;
+	char		*p, *t;
 
 	Debug( LDAP_DEBUG_TRACE,
 	       "oc_check_allowed type \"%s\"\n", type, 0, 0 );
@@ -241,6 +242,23 @@ oc_check_allowed( char *type, struct berval **ocl )
 		return( 0 );
 	}
 
+	/*
+	 * The "type" we have received is actually an AttributeDescription.
+	 * Let's find out the corresponding type.
+	 */
+	p = strchr( type, ';' );
+	if ( p ) {
+		t = ch_malloc( p-type+1 );
+		strncpy( t, type, p-type );
+		t[p-type] = '\0';
+		Debug( LDAP_DEBUG_TRACE,
+		       "oc_check_allowed type \"%s\" from \"%s\"\n",
+		       t, type, 0 );
+
+	} else {
+		t = type;
+	}
+
 	/* check that the type appears as req or opt in at least one oc */
 	for ( i = 0; ocl[i] != NULL; i++ ) {
 		/* if we know about the oc */
@@ -250,14 +268,18 @@ oc_check_allowed( char *type, struct berval **ocl )
 				oc->soc_required[j] != NULL; j++ ) {
 				at = oc->soc_required[j];
 				if ( at->sat_oid &&
-				     strcmp(at->sat_oid, type ) == 0 ) {
+				     strcmp(at->sat_oid, t ) == 0 ) {
+					if ( t != type )
+						ldap_memfree( t );
 					return( 0 );
 				}
 				pp = at->sat_names;
 				if ( pp == NULL )
 					continue;
 				while ( *pp ) {
-					if ( strcasecmp( *pp, type ) == 0 ) {
+					if ( strcasecmp( *pp, t ) == 0 ) {
+						if ( t != type )
+							ldap_memfree( t );
 						return( 0 );
 					}
 					pp++;
@@ -268,15 +290,19 @@ oc_check_allowed( char *type, struct berval **ocl )
 				oc->soc_allowed[j] != NULL; j++ ) {
 				at = oc->soc_allowed[j];
 				if ( at->sat_oid &&
-				     strcmp(at->sat_oid, type ) == 0 ) {
+				     strcmp( at->sat_oid, t ) == 0 ) {
+					if ( t != type )
+						ldap_memfree( t );
 					return( 0 );
 				}
 				pp = at->sat_names;
 				if ( pp == NULL )
 					continue;
 				while ( *pp ) {
-					if ( strcasecmp( *pp, type ) == 0 ||
+					if ( strcasecmp( *pp, t ) == 0 ||
 					     strcmp( *pp, "*" ) == 0 ) {
+						if ( t != type )
+							ldap_memfree( t );
 						return( 0 );
 					}
 					pp++;
@@ -286,10 +312,14 @@ oc_check_allowed( char *type, struct berval **ocl )
 
 		/* we don't know about the oc. assume it allows it */
 		} else {
+			if ( t != type )
+				ldap_memfree( t );
 			return( 0 );
 		}
 	}
 
+	if ( t != type )
+		ldap_memfree( t );
 	/* not allowed by any oc */
 	return( 1 );
 }
