@@ -161,15 +161,19 @@ int slap_sasl_getdn( Connection *conn, char *id, int len,
 	dn->bv_val = NULL;
 	dn->bv_len = 0;
 
-	/* Blatantly anonymous ID */
-	if( id &&
-		( id[sizeof( "anonymous" )-1] == '\0'
-			|| id[sizeof( "anonymous" )-1] == '@' ) &&
-		!strncasecmp( id, "anonymous", sizeof( "anonymous" )-1) ) {
-		return( LDAP_SUCCESS );
+	if ( id ) {
+		if ( len == 0 ) len = strlen( id );
+
+		/* Blatantly anonymous ID */
+		if ( len == sizeof("anonymous") - 1 &&
+			!strcasecmp( id, "anonymous" ) ) {
+			return( LDAP_SUCCESS );
+		}
+	} else {
+		len = 0;
 	}
+
 	ctx = conn->c_sasl_context;
-	if ( len == 0 ) len = strlen( id );
 
 	/* An authcID needs to be converted to authzID form */
 	if( flags & FLAG_GETDN_AUTHCID ) {
