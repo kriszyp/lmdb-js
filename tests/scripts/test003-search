@@ -18,12 +18,21 @@ echo "Cleaning up in $DBDIR..."
 rm -f $DBDIR/[!C]*
 
 echo "Running slapadd to build slapd database..."
+# $SLAPADD -f $MCONF -l $LDIF
 $SLAPADD -f $CONF -l $LDIF
 RC=$?
 if test $RC != 0 ; then
 	echo "slapadd failed ($RC)!"
 	exit $RC
 fi
+
+# echo "Running slapindex to index slapd database..."
+# $SLAPINDEX -f $CONF
+# RC=$?
+# if test $RC != 0 ; then
+#	echo "slapindex failed ($RC)!"
+#	exit $RC
+# fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
 $SLAPD -f $CONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &

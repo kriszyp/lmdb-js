@@ -13,7 +13,8 @@ if test "$BACKEND" = "bdb2" ; then
 	REFSLAVECONF=$DATADIR/slapd-bdb2-ref-slave.conf
 	TIMING="-t"
 else
-	CONF=$DATADIR/slapd-master.conf
+	CONF=$DATADIR/slapd.conf
+	MCONF=$DATADIR/slapd-master.conf
 	PWCONF=$DATADIR/slapd-pw.conf
 	ACLCONF=$DATADIR/slapd-acl.conf
 	MASTERCONF=$DATADIR/slapd-repl-master.conf
