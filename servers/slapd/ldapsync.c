@@ -25,6 +25,7 @@
 #include "ldap_pvt.h"
 #include "lutil.h"
 #include "slap.h"
+#include "../../libraries/liblber/lber-int.h" /* get ber_strndup() */
 #include "lutil_ldap.h"
 
 int
@@ -386,7 +387,7 @@ slap_parse_sync_cookie(
 		return -1;
 
 	if (( csn_ptr = strstr( cookie->octet_str[0].bv_val, "csn=" )) != NULL ) {
-		csn_str = (char *) SLAP_STRNDUP( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
+		csn_str = SLAP_STRNDUP( csn_ptr, LDAP_LUTIL_CSNSTR_BUFSIZE );
 		if ( cval = strchr( csn_str, ',' )) {
 			*cval = '\0';
 			csn_str_len = cval - csn_str - (sizeof("csn=") - 1);
@@ -405,7 +406,7 @@ slap_parse_sync_cookie(
 	}
 
 	if (( sid_ptr = strstr( cookie->octet_str->bv_val, "sid=" )) != NULL ) {
-		sid_str = (char *) SLAP_STRNDUP( sid_ptr,
+		sid_str = SLAP_STRNDUP( sid_ptr,
 							SLAP_SYNC_SID_SIZE + sizeof("sid=") - 1 );
 		if ( cval = strchr( sid_str, ',' )) {
 			*cval = '\0';
@@ -417,7 +418,7 @@ slap_parse_sync_cookie(
 	}
 
 	if (( rid_ptr = strstr( cookie->octet_str->bv_val, "rid=" )) != NULL ) {
-		rid_str = (char *) SLAP_STRNDUP( rid_ptr,
+		rid_str = SLAP_STRNDUP( rid_ptr,
 							SLAP_SYNC_RID_SIZE + sizeof("rid=") - 1 );
 		if ( cval = strchr( rid_str, ',' )) {
 			*cval = '\0';
