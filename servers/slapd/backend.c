@@ -682,10 +682,8 @@ backend_check_restrictions(
 		return LDAP_OTHER;
 	}
 
-	if( ( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) )
-		&& op->o_tag != LDAP_REQ_BIND )
-	{
-		/* these checks don't apply to bind nor StartTLS */
+	if (( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) ) ) {
+		/* these checks don't apply to StartTLS */
 
 		if( op->o_tag == LDAP_REQ_EXTENDED ) {
 			/* threat other extended operations as update ops */
@@ -727,6 +725,12 @@ backend_check_restrictions(
 				return LDAP_CONFIDENTIALITY_REQUIRED;
 			}
 		}
+	}
+
+	if (( extoid == NULL || strcmp( extoid, LDAP_EXOP_START_TLS ) )
+		|| op->o_tag == LDAP_REQ_BIND )
+	{
+		/* these checks don't apply to StartTLS or Bind */
 
 		if( requires & SLAP_REQUIRE_STRONG ) {
 			/* should check mechanism */
@@ -777,9 +781,7 @@ backend_check_restrictions(
 	}
 
 	if( restrictops & opflag ) {
-		if( (restrictops & SLAP_RESTRICT_OP_READS)
-			== SLAP_RESTRICT_OP_READS )
-		{
+		if( restrictops == SLAP_RESTRICT_OP_READS ) {
 			*text = "read operations restricted";
 		} else {
 			*text = "operation restricted";

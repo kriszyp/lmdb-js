@@ -346,33 +346,6 @@ do_bind(
 		goto cleanup;
 	}
 
-	if( op->o_ssf < be->be_ssf_set.sss_ssf ) {
-		text = "confidentiality required";
-		rc = LDAP_CONFIDENTIALITY_REQUIRED;
-
-	} else if( op->o_transport_ssf < be->be_ssf_set.sss_transport ) {
-		text = "transport confidentiality required";
-		rc = LDAP_CONFIDENTIALITY_REQUIRED;
-
-	} else if( op->o_tls_ssf < be->be_ssf_set.sss_tls ) {
-		text = "TLS confidentiality required";
-		rc = LDAP_CONFIDENTIALITY_REQUIRED;
-
-	} else if( op->o_sasl_ssf < be->be_ssf_set.sss_sasl ) {
-		text = "SASL confidentiality required";
-		rc = LDAP_CONFIDENTIALITY_REQUIRED;
-
-	} else if( be->be_restrictops & SLAP_RESTRICT_OP_BIND ) {
-		text = "bind operation restricted";
-		rc = LDAP_UNWILLING_TO_PERFORM;
-	}
-
-	if( rc != LDAP_SUCCESS ) {
-		send_ldap_result( conn, op, rc,
-			NULL, text, NULL, NULL );
-		goto cleanup;
-	}
-
 	conn->c_authz_backend = be;
 
 	if ( be->be_bind ) {
