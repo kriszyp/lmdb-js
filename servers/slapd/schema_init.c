@@ -549,12 +549,12 @@ caseExactIA5SubstringsMatch(
 		inlen += sub->sa_final->bv_len;
 	}
 
-	if( inlen > left.bv_len ) {
-		match = 1;
-		goto done;
-	}
-
 	if( sub->sa_initial ) {
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
+
 		match = strncmp( sub->sa_initial->bv_val, left.bv_val,
 			sub->sa_initial->bv_len );
 
@@ -565,14 +565,14 @@ caseExactIA5SubstringsMatch(
 		left.bv_val += sub->sa_initial->bv_len;
 		left.bv_len -= sub->sa_initial->bv_len;
 		inlen -= sub->sa_initial->bv_len;
+	}
 
+	if( sub->sa_final ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
-	}
 
-	if( sub->sa_final ) {
 		match = strncmp( sub->sa_final->bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
 			sub->sa_final->bv_len );
@@ -583,11 +583,6 @@ caseExactIA5SubstringsMatch(
 
 		left.bv_len -= sub->sa_final->bv_len;
 		inlen -= sub->sa_final->bv_len;
-
-		if( inlen > left.bv_len ) {
-			match = 1;
-			goto done;
-		}
 	}
 
 	if( sub->sa_any ) {
@@ -596,6 +591,12 @@ caseExactIA5SubstringsMatch(
 			char *p;
 
 retry:
+			if( inlen > left.bv_len ) {
+				/* not enough length */
+				match = 1;
+				goto done;
+			}
+
 			if( sub->sa_any[i]->bv_len == 0 ) {
 				continue;
 			}
@@ -629,18 +630,14 @@ retry:
 				sub->sa_any[i]->bv_len );
 
 			if( match != 0 ) {
+				left.bv_val++;
+				left.bv_len--;
 				goto retry;
 			}
 
 			left.bv_val += sub->sa_any[i]->bv_len;
 			left.bv_len -= sub->sa_any[i]->bv_len;
 			inlen -= sub->sa_any[i]->bv_len;
-
-			if( inlen > left.bv_len ) {
-				/* not enough length */
-				match = 1;
-				goto done;
-			}
 		}
 	}
 
@@ -705,12 +702,12 @@ caseIgnoreIA5SubstringsMatch(
 		inlen += sub->sa_final->bv_len;
 	}
 
-	if( inlen > left.bv_len ) {
-		match = 1;
-		goto done;
-	}
-
 	if( sub->sa_initial ) {
+		if( inlen > left.bv_len ) {
+			match = 1;
+			goto done;
+		}
+
 		match = strncasecmp( sub->sa_initial->bv_val, left.bv_val,
 			sub->sa_initial->bv_len );
 
@@ -721,14 +718,14 @@ caseIgnoreIA5SubstringsMatch(
 		left.bv_val += sub->sa_initial->bv_len;
 		left.bv_len -= sub->sa_initial->bv_len;
 		inlen -= sub->sa_initial->bv_len;
+	}
 
+	if( sub->sa_final ) {
 		if( inlen > left.bv_len ) {
 			match = 1;
 			goto done;
 		}
-	}
 
-	if( sub->sa_final ) {
 		match = strncasecmp( sub->sa_final->bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
 			sub->sa_final->bv_len );
@@ -739,11 +736,6 @@ caseIgnoreIA5SubstringsMatch(
 
 		left.bv_len -= sub->sa_final->bv_len;
 		inlen -= sub->sa_final->bv_len;
-
-		if( inlen > left.bv_len ) {
-			match = 1;
-			goto done;
-		}
 	}
 
 	if( sub->sa_any ) {
@@ -752,6 +744,12 @@ caseIgnoreIA5SubstringsMatch(
 			char *p;
 
 retry:
+			if( inlen > left.bv_len ) {
+				/* not enough length */
+				match = 1;
+				goto done;
+			}
+
 			if( sub->sa_any[i]->bv_len == 0 ) {
 				continue;
 			}
@@ -785,18 +783,15 @@ retry:
 				sub->sa_any[i]->bv_len );
 
 			if( match != 0 ) {
+				left.bv_val++;
+				left.bv_len--;
+
 				goto retry;
 			}
 
 			left.bv_val += sub->sa_any[i]->bv_len;
 			left.bv_len -= sub->sa_any[i]->bv_len;
 			inlen -= sub->sa_any[i]->bv_len;
-
-			if( inlen > left.bv_len ) {
-				/* not enough length */
-				match = 1;
-				goto done;
-			}
 		}
 	}
 
