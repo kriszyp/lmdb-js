@@ -540,6 +540,11 @@ ber_get_next(
 				}
 				/* Did we run out of bytes? */
 				if ((char *)p == ber->ber_rwptr) {
+#if defined( EWOULDBLOCK )
+					errno = EWOULDBLOCK;
+#elif defined( EAGAIN )
+					errno = EAGAIN;
+#endif			
 					return LBER_DEFAULT;
 				}
 			}
