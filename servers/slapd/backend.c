@@ -302,7 +302,7 @@ int backend_startup(Backend *be)
 		be->be_pending_csn_list = (struct be_pcl *)
 			ch_calloc( 1, sizeof( struct be_pcl ));
 		build_new_dn( &be->be_context_csn, be->be_nsuffix,
-			&slap_ldapsync_cn_bv, NULL );
+			(struct berval *)&slap_ldapsync_cn_bv, NULL );
 
 		LDAP_TAILQ_INIT( be->be_pending_csn_list );
 
@@ -401,8 +401,8 @@ int backend_startup(Backend *be)
 				i, backendDB[i].bd_info->bi_type, 0 );
 #endif
 		}
-		build_new_dn( &be->be_context_csn, be->be_nsuffix,
-			&slap_ldapsync_cn_bv, NULL );
+		build_new_dn( &backendDB[i].be_context_csn, backendDB[i].be_nsuffix,
+			(struct berval *)&slap_ldapsync_cn_bv, NULL );
 
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
@@ -541,6 +541,7 @@ int backend_destroy(void)
 		if ( bd->be_rootdn.bv_val ) free( bd->be_rootdn.bv_val );
 		if ( bd->be_rootndn.bv_val ) free( bd->be_rootndn.bv_val );
 		if ( bd->be_rootpw.bv_val ) free( bd->be_rootpw.bv_val );
+		if ( bd->be_context_csn.bv_val ) free( bd->be_context_csn.bv_val );
 		acl_destroy( bd->be_acl, global_acl );
 	}
 	free( backendDB );
