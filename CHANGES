@@ -10,6 +10,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 	Added TCP_NODELAY support
 	Change slapd to apply ACL to lastmod attributes
 	Change slapd.conf default referral
+	Disable DN subtree indexing
 	Build Environment
 		Support using short as LDAP_INT4
 	Documentation

@@ -54,8 +54,16 @@ ldbm_back_init(
 	argv[ 2 ] = NULL;
 	attr_syntax_config( "ldbm dn initialization", 0, 2, argv );
 	argv[ 0 ] = "dn";
+#ifdef SLAPD_DN_SUBSTRING_INDEX
+	/*
+	 * this is generally too expensive on larger servers and not
+	 * effective on small servers.
+	 */
 	argv[ 1 ] = ch_strdup( "sub,eq" );
-	argv[ 3 ] = NULL;
+#else
+	argv[ 1 ] = ch_strdup( "eq" );
+#endif
+	argv[ 2 ] = NULL;
 	attr_index_config( li, "ldbm dn initialization", 0, 2, argv, 1 );
 	free( argv[ 1 ] );
 	argv[ 0 ] = "id2children";
@@ -64,7 +72,7 @@ ldbm_back_init(
 	attr_index_config( li, "ldbm id2children initialization", 0, 2, argv,
 	    1 );
 	argv[ 0 ] = "objectclass";
-	argv[ 1 ] = ch_strdup( "pres,eq" );
+	argv[ 1 ] = ch_strdup( "eq" );
 	argv[ 2 ] = NULL;
 	attr_index_config( li, "ldbm objectclass initialization", 0, 2, argv,
 	    1 );
