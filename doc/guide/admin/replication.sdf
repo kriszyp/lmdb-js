@@ -146,8 +146,8 @@ section for  a discussion of this mode.
 
 >	-t <directory>
 
-Specify an alternate directory for slurpd's temporary
-copies of replication logs. The default location is /usr/tmp.
+Specify an alternate directory for slurpd's temporary copies of
+replication logs. The default location is {{F:/usr/tmp}}.
 
 
 H2: Configuring slurpd and a slave slapd instance
@@ -222,23 +222,11 @@ error to clients that attempt to modify data.
 
 H3: Copy the master slapd's database to the slave
 
-Copy the master's database(s) to the slave. For an
-{{TERM:LDBM}}-based database, you must copy all database
-files located in the database {{EX:directory}} specified in
-{{slapd.conf}}(5).  Database files will have a different
-suffix depending on the underlying database package used.
-The current possibilities are
-
-!block table; align=Center; \
-	title="Table 10.2: Database File Suffixes"
-Suffix		Database
-{{EX:dbb}}	Berkeley DB B-tree backend
-{{EX:dbh}}	Berkeley DB hash backend
-{{EX:gdbm}}	GNU DBM backend
-!endblock
-
-In general, you should copy each file found in the database
-{{EX: directory}} unless you know it is not used by {{slapd}}(8).
+Copy the master's database(s) to the slave. For an {{TERM:BDB}} and
+{{TERM:LDBM}} databases, you must copy all database files located
+in the database {{EX:directory}} specified in {{slapd.conf}}(5).
+In general, you should copy each file found in the database {{EX:
+directory}} unless you know it is not used by {{slapd}}(8).
 
 Note: This copy process assumes homogeneous servers with
 identically configured OpenLDAP installations. Alternatively,
