@@ -106,7 +106,9 @@ doargs(
 	    g->slapd_configfile = strdup( optarg );
 	    break;
 	case 'r':	/* slapd replog file */
-	    strcpy( g->slapd_replogfile, optarg );
+	    strncpy( g->slapd_replogfile, optarg,
+			sizeof(g->slapd_replogfile)-1 );
+		g->slapd_replogfile[sizeof(g->slapd_replogfile)-1] = '\0';
 	    rflag++;
 	    break;
 	case 't':	/* dir to use for our copies of replogs */
@@ -150,7 +152,4 @@ doargs(
 #endif
 
     return 0;
-
 }
-
-
