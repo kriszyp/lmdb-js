@@ -37,8 +37,10 @@
 
 #include <ac/param.h>
 
+#ifdef SLAPD_CRYPT
 #include <ac/unistd.h>
 #include <ac/crypt.h>
+#endif
 
 #ifdef HAVE_SHADOW_H
 #	include <shadow.h>
@@ -1104,24 +1106,27 @@ static struct berval *hash_md5(
  *    }
  */
 
+static void lmPasswd_to_key(
+	const unsigned char *lmPasswd,
+	des_cblock *key)
+{
+	/* make room for parity bits */
+	((char *)key)[0] = lmPasswd[0];
+	((char *)key)[1] = ((lmPasswd[0]&0x01)<<7) | (lmPasswd[1]>>1);
+	((char *)key)[2] = ((lmPasswd[1]&0x03)<<6) | (lmPasswd[2]>>2);
+	((char *)key)[3] = ((lmPasswd[2]&0x07)<<5) | (lmPasswd[3]>>3);
+	((char *)key)[4] = ((lmPasswd[3]&0x0F)<<4) | (lmPasswd[4]>>4);
+	((char *)key)[5] = ((lmPasswd[4]&0x1F)<<3) | (lmPasswd[5]>>5);
+	((char *)key)[6] = ((lmPasswd[5]&0x3F)<<2) | (lmPasswd[6]>>6);
+	((char *)key)[7] = ((lmPasswd[6]&0x7F)<<1);
+		
+	des_set_odd_parity( key );
+}	
+
 static struct berval *hash_lanman(
 	const struct pw_scheme *scheme,
 	const struct berval *passwd )
 {
-	static void lmPasswd_to_key(const unsigned char *lmPasswd, des_cblock *key)
-	{
-		/* make room for parity bits */
-		((char *)key)[0] = lmPasswd[0];
-		((char *)key)[1] = ((lmPasswd[0]&0x01)<<7) | (lmPasswd[1]>>1);
-		((char *)key)[2] = ((lmPasswd[1]&0x03)<<6) | (lmPasswd[2]>>2);
-		((char *)key)[3] = ((lmPasswd[2]&0x07)<<5) | (lmPasswd[3]>>3);
-		((char *)key)[4] = ((lmPasswd[3]&0x0F)<<4) | (lmPasswd[4]>>4);
-		((char *)key)[5] = ((lmPasswd[4]&0x1F)<<3) | (lmPasswd[5]>>5);
-		((char *)key)[6] = ((lmPasswd[5]&0x3F)<<2) | (lmPasswd[6]>>6);
-		((char *)key)[7] = ((lmPasswd[6]&0x7F)<<1);
-		
-		des_set_odd_parity( key );
-	}	
 
 	int i;
 	char UcasePassword[15];
