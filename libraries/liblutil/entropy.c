@@ -10,9 +10,6 @@
 #include <ac/time.h>
 #include <ac/unistd.h>
 
-#ifdef HAVE_WINCRYPT_H
-#include <wincrypt.h>
-#endif
 #ifdef HAVE_PROCESS_H
 #include <process.h>
 #endif
@@ -39,21 +36,27 @@ int lutil_entropy( unsigned char *buf, ber_len_t nbytes )
 	if( nbytes == 0 ) return 0;
 
 #ifdef URANDOM_DEVICE
+#define URANDOM_NREADS 4
 	/* Linux and *BSD offer a urandom device */
 	{
-		int rc, fd;
+		int rc, fd, n=0;
 
 		fd = open( URANDOM_DEVICE, O_RDONLY );
 
 		if( fd < 0 ) return -1;
 
-		rc = read( fd, buf, nbytes );
+		do {
+			rc = read( fd, buf, nbytes );
+			if( rc <= 0 ) break;
+
+			buf+=rc;
+			nbytes-=rc;
+
+			if( ++n >= URANDOM_NREADS ) break;
+		} while( nbytes > 0 );
+
 		close(fd);
-
-		/* should return nbytes */
-		if( rc < nbytes ) return -1;
-
-		return 0;
+		return nbytes > 0 ? -1 : 0;
 	}
 #elif PROV_RSA_FULL
 	{

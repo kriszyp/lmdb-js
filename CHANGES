@@ -1,11 +1,17 @@
 OpenLDAP 2.0 Change Log
 
 OpenLDAP 2.0.24 Engineering
+	Fixed slapd max incoming macro bug (ITS#1828)
 	Fixed slapd acl group/dnaddr bug (ITS#1607)
-	Fixed ber_bvstrdup() empty string ("") bug (ITS#1662)
+	Fixed slapd connection management bug (ITS#1655)
+	Fixed slapd PF_lOCAL typo (ITS#1660)
+	Fixed slurpd tls init bug (ITS#1613)
 	Fixed back-ldbm dn normalization bug in onelevel searches (ITS#1654)
 	Fixed back-ldbm modrdn root dn check (ITS#1761)
-	Fixed replog logging without replica (ITS#1335)
+	Fixed back-ldbm idl overrun bug (ITS1570)
+	Fixed slapd replog logging without replica (ITS#1335)
+	Fixed ber_bvstrdup() empty string ("") bug (ITS#1662)
+	Fixed ldapsearch filter bug (ITS#1649)
 	Documentation
 		Updated release documents
 
