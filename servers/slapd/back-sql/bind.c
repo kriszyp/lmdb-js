@@ -30,7 +30,6 @@ int backsql_bind(BackendDB *be,Connection *conn,Operation *op,
 int backsql_unbind(BackendDB *be,Connection *conn,Operation *op)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_unbind()\n",0,0,0);
- backsql_free_db_conn(be,conn);
  send_ldap_result(conn,op,LDAP_SUCCESS,NULL,NULL,NULL,0);
  Debug(LDAP_DEBUG_TRACE,"<==backsql_unbind()\n",0,0,0);
  return 0;

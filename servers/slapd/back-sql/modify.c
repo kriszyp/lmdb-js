@@ -22,7 +22,7 @@
 #include "util.h"
 
 int backsql_modify(BackendDB *be,Connection *conn,Operation *op,
-	const char *dn,const char *ndn,LDAPModList *modlist)
+	const char *dn,const char *ndn,Modifications *modlist)
 {
  backsql_info *bi=(backsql_info*)be->be_private;
  SQLHDBC dbh;
@@ -30,7 +30,8 @@ int backsql_modify(BackendDB *be,Connection *conn,Operation *op,
  RETCODE rc;
  backsql_oc_map_rec *oc=NULL;
  backsql_entryID e_id,*res;
- LDAPModList *c_mod;
+ Modification *c_mod;
+ Modifications *ml;
  backsql_at_map_rec *at=NULL;
  struct berval *at_val;
  int i;
@@ -64,17 +65,18 @@ int backsql_modify(BackendDB *be,Connection *conn,Operation *op,
  SQLAllocStmt(dbh, &sth);
 
  Debug(LDAP_DEBUG_TRACE,"backsql_modify(): traversing modifications list\n",0,0,0);
- for(c_mod=modlist;c_mod!=NULL;c_mod=c_mod->ml_next)
+ for(ml=modlist;ml!=NULL;ml=ml->sml_next)
  {
-  Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute '%s'\n",c_mod->ml_type,0,0);
-  at=backsql_at_with_name(oc,c_mod->ml_type);
+  c_mod=&ml->sml_mod;
+  Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute '%s'\n",c_mod->sm_desc->ad_cname->bv_val,0,0);
+  at=backsql_at_with_name(oc,c_mod->sm_desc->ad_cname->bv_val);
   if (at==NULL)
   {
-   Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute provided is not registered in this objectclass ('%s')\n",c_mod->ml_type,0,0);
+   Debug(LDAP_DEBUG_TRACE,"backsql_modify(): attribute provided is not registered in this objectclass ('%s')\n",c_mod->sm_desc->ad_cname->bv_val,0,0);
    continue;
   }
   
-  switch(c_mod->ml_op)
+  switch(c_mod->sm_op)
   {
    case LDAP_MOD_REPLACE:
 			{
@@ -148,13 +150,13 @@ del_all:
 			 Debug(LDAP_DEBUG_TRACE,"backsql_modify(): add procedure is not defined for this attribute ('%s')\n",at->name,0,0);
 			 break;
 			}
-			if (c_mod->ml_bvalues==NULL)
+			if (c_mod->sm_bvalues==NULL)
 			{
 			 Debug(LDAP_DEBUG_TRACE,"backsql_modify(): no values given to add for attribute '%s'\n",at->name,0,0);
 			 break;
 			}
 			Debug(LDAP_DEBUG_TRACE,"backsql_modify(): adding new values for attribute '%s'\n",at->name,0,0);
-			for(i=0,at_val=c_mod->ml_bvalues[0];at_val!=NULL;i++,at_val=c_mod->ml_bvalues[i])
+			for(i=0,at_val=c_mod->sm_bvalues[0];at_val!=NULL;i++,at_val=c_mod->sm_bvalues[i])
 			{
 			 if (at->expect_return & BACKSQL_ADD)
 			 {
@@ -183,13 +185,13 @@ del_all:
 			 Debug(LDAP_DEBUG_TRACE,"backsql_modify(): delete procedure is not defined for this attribute ('%s')\n",at->name,0,0);
 			 break;
 			}
-			if (c_mod->ml_bvalues==NULL)
+			if (c_mod->sm_bvalues==NULL)
 			{
 			 Debug(LDAP_DEBUG_TRACE,"backsql_modify(): no values given to delete for attribute '%s' -- deleting all values\n",at->name,0,0);
 			 goto del_all;
 			}
             Debug(LDAP_DEBUG_TRACE,"backsql_modify(): deleting values for attribute '%s'\n",at->name,0,0);
-			for(i=0,at_val=c_mod->ml_bvalues[0];at_val!=NULL;i++,at_val=c_mod->ml_bvalues[i])
+			for(i=0,at_val=c_mod->sm_bvalues[0];at_val!=NULL;i++,at_val=c_mod->sm_bvalues[i])
 			{
 			 if (at->expect_return & BACKSQL_DEL)
 			  {
@@ -225,7 +227,122 @@ del_all:
 int backsql_modrdn(BackendDB *be,Connection *conn,Operation *op,
 	const char *dn,const char *ndn,const char *newrdn,int deleteoldrdn,const char *newSuperior)
 {
- Debug(LDAP_DEBUG_TRACE,"==>backsql_modrdn()\n",0,0,0);
+ backsql_info *bi=(backsql_info*)be->be_private;
+ SQLHDBC dbh;
+ SQLHSTMT sth;
+ RETCODE rc;
+ backsql_oc_map_rec *oc=NULL;
+ backsql_entryID e_id,pe_id,new_pid,*res;
+ backsql_at_map_rec *at=NULL;
+ char *p_dn=NULL,*new_pdn=NULL, *new_dn;
+ 
+ 
+ Debug(LDAP_DEBUG_TRACE,"==>backsql_modrdn() renaming entry '%s', newrdn='%s', newSuperior='%s'\n",dn,newrdn,newSuperior);
+ dbh=backsql_get_db_conn(be,conn);
+ if (!dbh)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): could not get connection handle - exiting\n",0,0,0);
+  send_ldap_result(conn,op,LDAP_OTHER,"","SQL-backend error",NULL,NULL);
+  return 1;
+ }
+ res=backsql_dn2id(bi,&e_id,dbh,(char*)ndn);
+ if (res==NULL)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): could not lookup entry id\n",0,0,0);
+  send_ldap_result(conn,op,LDAP_NO_SUCH_OBJECT,"",NULL,NULL,NULL);
+  return 1;
+ }
+ Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): entry id is %d\n",e_id.id,0,0);
+
+ p_dn=dn_parent(be,ndn);
+
+ if (newSuperior)
+  new_pdn=dn_validate(ch_strdup(newSuperior));
+ else
+   new_pdn=p_dn;
+
+ SQLAllocStmt(dbh, &sth);
+
+ if (newSuperior && !strcasecmp(p_dn,new_pdn))
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): newSuperior is equal to old parent - aborting\n",0,0,0);
+  send_ldap_result(conn,op,LDAP_OTHER,"",NULL,NULL,NULL);
+  goto modrdn_return;
+ }
+
+ if (newSuperior && !strcasecmp(ndn,new_pdn))
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): newSuperior is equal to entry being moved - aborting\n",0,0,0);
+  send_ldap_result(conn,op,LDAP_OTHER,"",NULL,NULL,NULL);
+  goto modrdn_return;
+ }
+
+ build_new_dn( &new_dn, dn, new_pdn, newrdn ); 
+ if (!dn_validate(new_dn))
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): new dn is invalid ('%s') - aborting\n",new_dn,0,0);
+  send_ldap_result(conn,op,LDAP_OTHER,"",NULL,NULL,NULL);
+  goto modrdn_return;
+ }
+ Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): new entry dn is '%s'\n",new_dn,0,0);
+
+ res=backsql_dn2id(bi,&pe_id,dbh,(char*)p_dn);
+ if (res==NULL)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): could not lookup old parent entry id\n",0,0,0);
+  send_ldap_result(conn,op,LDAP_NO_SUCH_OBJECT,"",NULL,NULL,NULL);
+  goto modrdn_return;
+ }
+ Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): old parent entry id is %d\n",pe_id.id,0,0);
+
+ res=backsql_dn2id(bi,&new_pid,dbh,(char*)new_pdn);
+ if (res==NULL)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): could not lookup new parent entry id\n",0,0,0);
+  send_ldap_result(conn,op,LDAP_NO_SUCH_OBJECT,"",NULL,NULL,NULL);
+  goto modrdn_return;
+ }
+ Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): new parent entry id is %d\n",new_pid.id,0,0);
+
+ Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): executing delentry_query\n",0,0,0);
+ SQLBindParameter(sth,1,SQL_PARAM_INPUT,SQL_C_ULONG,SQL_INTEGER,0,0,&e_id.id,0,0);
+ rc=SQLExecDirect(sth,bi->delentry_query,SQL_NTS);
+ if (rc != SQL_SUCCESS)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): failed to delete record from ldap_entries\n",0,0,0);
+  backsql_PrintErrors(bi->db_env,dbh,sth,rc);
+  send_ldap_result(conn,op,LDAP_OTHER,"","SQL-backend error",NULL,NULL);
+  goto modrdn_return;
+ }
+
+ SQLFreeStmt(sth,SQL_RESET_PARAMS);
+
+ Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): executing insentry_query\n",0,0,0);
+ backsql_BindParamStr(sth,1,new_dn,BACKSQL_MAX_DN_LEN);
+ SQLBindParameter(sth,2,SQL_PARAM_INPUT,SQL_C_LONG,SQL_INTEGER,0,0,&e_id.oc_id,0,0);
+ SQLBindParameter(sth,3,SQL_PARAM_INPUT,SQL_C_LONG,SQL_INTEGER,0,0,&new_pid.id,0,0);
+ SQLBindParameter(sth,4,SQL_PARAM_INPUT,SQL_C_LONG,SQL_INTEGER,0,0,&e_id.keyval,0,0);
+ rc=SQLExecDirect(sth,bi->insentry_query,SQL_NTS);
+ if (rc != SQL_SUCCESS)
+ {
+  Debug(LDAP_DEBUG_TRACE,"backsql_modrdn(): could not insert ldap_entries record\n",0,0,0);
+  backsql_PrintErrors(bi->db_env,dbh,sth,rc);
+  send_ldap_result(conn,op,LDAP_OTHER,"","SQL-backend error",NULL,NULL);
+  goto modrdn_return;
+ }
+
+ //should process deleteoldrdn here...
+
+ send_ldap_result(conn,op,LDAP_SUCCESS,"",NULL,NULL,NULL);
+modrdn_return:
+ SQLFreeStmt(sth,SQL_DROP);
+ if (p_dn)
+  ch_free(p_dn);
+ if (newSuperior && new_pdn)
+  ch_free(new_pdn);
+ if (new_dn)
+  ch_free(new_dn);
+ Debug(LDAP_DEBUG_TRACE,"<==backsql_modrdn()\n",0,0,0);
  return 0;
 }
 
@@ -254,7 +371,7 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
  for(at=e->e_attrs;at!=NULL;at=at->a_next)
  {
   //Debug(LDAP_DEBUG_TRACE,"backsql_add(): scanning entry -- %s\n",at->a_type,0,0);
-  if (!strcasecmp(at->a_type,"objectclass"))
+  if (!strcasecmp(at->a_desc->ad_cname->bv_val,"objectclass"))
   {
    oc=backsql_oc_with_name(bi,at->a_vals[0]->bv_val);
    break;
@@ -300,15 +417,16 @@ int backsql_add(BackendDB *be,Connection *conn,Operation *op,Entry *e)
 
  for(at=e->e_attrs;at!=NULL;at=at->a_next)
  {
-  at_rec=backsql_at_with_name(oc,at->a_type);
+  at_rec=backsql_at_with_name(oc,at->a_desc->ad_cname->bv_val); 
+  
   if (at_rec==NULL)
   {
-   Debug(LDAP_DEBUG_TRACE,"backsql_add(): attribute provided is not registered in this objectclass ('%s')\n",at->a_type,0,0);
+   Debug(LDAP_DEBUG_TRACE,"backsql_add(): attribute provided is not registered in this objectclass ('%s')\n",at->a_desc->ad_cname->bv_val,0,0);
    continue;
   }
   if (at_rec->add_proc==NULL)
   {
-   Debug(LDAP_DEBUG_TRACE,"backsql_add(): add procedure is not defined for this attribute ('%s')\n",at->a_type,0,0);
+   Debug(LDAP_DEBUG_TRACE,"backsql_add(): add procedure is not defined for this attribute ('%s')\n",at->a_desc->ad_cname->bv_val,0,0);
    continue;
   }
   

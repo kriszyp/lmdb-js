@@ -106,7 +106,7 @@ int backsql_get_attr_vals(backsql_at_map_rec *at,backsql_srch_info *bsi)
 
  if ((rc=SQLExecute(sth)) != SQL_SUCCESS && rc!= SQL_SUCCESS_WITH_INFO)
   {
-   Debug(LDAP_DEBUG_TRACE,"backsql_get_attr_values(): error executing query\n",0,0,0);
+   Debug(LDAP_DEBUG_TRACE,"backsql_get_attr_values(): error executing attribute query '%s'\n",at->query,0,0);
    backsql_PrintErrors(bsi->bi->db_env,bsi->dbh,sth,rc);
    SQLFreeStmt(sth,SQL_DROP);
    return 1;
@@ -145,8 +145,13 @@ Entry* backsql_id2entry(backsql_srch_info *bsi,Entry* e,backsql_entryID* eid)
  bsi->e=e;
  bsi->c_eid=eid;
  e->e_attrs=NULL;
- if (bsi->base_dn != NULL)
-  e->e_dn=ch_strdup(bsi->c_eid->dn);
+ e->e_private=NULL;
+ 
+// if (bsi->base_dn != NULL)???
+
+ e->e_id=eid->id;
+ e->e_dn=ch_strdup(bsi->c_eid->dn);
+ e->e_ndn=dn_normalize(ch_strdup(bsi->c_eid->dn));
  
  if (bsi->attrs!=NULL)
  {

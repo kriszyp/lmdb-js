@@ -70,7 +70,7 @@ int sql_back_initialize(
 	bi->bi_chk_referrals = 0;
  
 	bi->bi_connection_init = 0;
-	bi->bi_connection_destroy = 0;
+	bi->bi_connection_destroy = backsql_connection_destroy;
 	
 	Debug(LDAP_DEBUG_TRACE,"<==backsql_initialize()\n",0,0,0);
 	return 0;
@@ -209,6 +209,14 @@ int backsql_db_close(BackendDB *bd)
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_db_close()\n",0,0,0);
  Debug(LDAP_DEBUG_TRACE,"<==backsql_db_close()\n",0,0,0);
+ return 0;
+}
+
+int backsql_connection_destroy(BackendDB *be,Connection *conn)
+{
+ Debug(LDAP_DEBUG_TRACE,"==>backsql_connection_destroy()\n",0,0,0);
+ backsql_free_db_conn(be,conn);
+ Debug(LDAP_DEBUG_TRACE,"<==backsql_connection_destroy()\n",0,0,0);
  return 0;
 }
 

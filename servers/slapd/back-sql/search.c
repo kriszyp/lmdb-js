@@ -80,6 +80,8 @@ int backsql_process_filter_list(backsql_srch_info *bsi,Filter *f,int op)
  char *sub_clause=NULL;
  int len=0,res;
 
+ if (!f)
+  return 0;
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",NULL);
  while(1)
  {
@@ -108,8 +110,10 @@ int backsql_process_filter_list(backsql_srch_info *bsi,Filter *f,int op)
 int backsql_process_sub_filter(backsql_srch_info *bsi,Filter *f)
 {
  int i;
-
- backsql_at_map_rec *at=backsql_at_with_name(bsi->oc,f->f_sub_type);
+ backsql_at_map_rec *at=backsql_at_with_name(bsi->oc,f->f_sub_desc->ad_cname->bv_val);
+ 
+ if (!f)
+  return 0;
 
  bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",NULL);
 
@@ -154,6 +158,11 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
  int done=0,len=0;
 
  Debug(LDAP_DEBUG_TRACE,"==>backsql_process_filter()\n",0,0,0);
+ if (f==NULL)
+  {
+   return 0;
+  }
+  
  switch(f->f_choice)
  {
   case LDAP_FILTER_OR:
@@ -171,10 +180,10 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
 			done=1;
 			break;
   case LDAP_FILTER_PRESENT:
-			at_name=f->f_type;
+			at_name=f->f_desc->ad_cname->bv_val;
 			break;
   default:
-			at_name=f->f_avtype;
+			 at_name=f->f_av_desc->ad_cname->bv_val;
 			break;
  }
  
@@ -214,20 +223,22 @@ int backsql_process_filter(backsql_srch_info *bsi,Filter *f)
 			//upper_func stuff is made for Oracle, where UPPER is
 			//safely applicable to NUMBER etc.
 			if (bsi->bi->upper_func)
-			 bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
+			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",
 					bsi->bi->upper_func,"(",at->sel_expr,")='",
-											f->f_avvalue.bv_val,"')",NULL);
+						f->f_av_value->bv_val,"')",NULL);
 			else
 			 bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,"='",
-											f->f_avvalue.bv_val,"')",NULL);
+							f->f_av_value->bv_val,"')",NULL);
+
 			break;
   case LDAP_FILTER_GE:
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,">=",
-															f->f_avvalue.bv_val,")",NULL);
+							f->f_av_value->bv_val,")",NULL);
+
 			break;
   case LDAP_FILTER_LE:
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"(",at->sel_expr,"<=",
-															f->f_avvalue.bv_val,")",NULL);
+							f->f_av_value->bv_val,")",NULL);
 			break;
   case LDAP_FILTER_PRESENT:
 			bsi->flt_where=backsql_strcat(bsi->flt_where,&bsi->fwhere_len,"NOT (",at->sel_expr,
@@ -265,7 +276,7 @@ char* backsql_srch_query(backsql_srch_info *bsi)
  bsi->from=backsql_strcat(bsi->from,&bsi->from_len," FROM ldap_entries,",bsi->oc->keytbl,NULL);
  bsi->join_where=backsql_strcat(bsi->join_where,&bsi->jwhere_len," WHERE ",
 	 bsi->oc->keytbl,".",bsi->oc->keycol,"=ldap_entries.keyval AND ",
-	 "ldap_entries.objclass=? AND ",NULL);
+	 "ldap_entries.oc_map_id=? AND ",NULL);
 
  switch(bsi->scope)
  {
@@ -415,7 +426,7 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
  SQLHDBC dbh;
  int sres;
  int nentries;
- Entry entry,*res;
+ Entry *entry,*res;
  int manageDSAit = get_manageDSAit( op );
  struct berval **v2refs = NULL;
  time_t	stoptime;
@@ -490,7 +501,8 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
    Debug(LDAP_DEBUG_TRACE,"backsql_search(): loading data for entry id=%d, oc_id=%d, keyval=%d\n",
                eid->id,eid->oc_id,eid->keyval);
    
-   res=backsql_id2entry(&srch_info,&entry,eid);
+   entry=(Entry *)ch_calloc(sizeof(Entry),1);
+   res=backsql_id2entry(&srch_info,entry,eid);
    if (res==NULL)
     {
      Debug(LDAP_DEBUG_TRACE,"backsql_search(): error in backsql_id2entry() - skipping entry\n",0,0,0);
@@ -498,24 +510,25 @@ int backsql_search(BackendDB *be,Connection *conn,Operation *op,
     }
 
    if ( !manageDSAit && scope != LDAP_SCOPE_BASE &&
-			is_entry_referral( &entry ) )
+			is_entry_referral( entry ) )
     {
-     struct berval **refs = get_entry_referrals(be,conn,op,&entry);
+     struct berval **refs = get_entry_referrals(be,conn,op,entry);
 
-     send_search_reference( be, conn, op, &entry, refs, scope, NULL, &v2refs );
+     send_search_reference( be, conn, op, entry, refs, scope, NULL, &v2refs );
      ber_bvecfree( refs );
      continue;
     }
 
-  // if (test_filter(be,conn,op,&entry,filter)==0)
+   if (test_filter(be,conn,op,entry,filter)==LDAP_COMPARE_TRUE)
     {
-     if ((sres=send_search_entry(be,conn,op,&entry,attrs,attrsonly,NULL))==-1)
+     if ((sres=send_search_entry(be,conn,op,entry,attrs,attrsonly,NULL))==-1)
       {
        Debug(LDAP_DEBUG_TRACE,"backsql_search(): connection lost\n",0,0,0);
        break;
       }
      nentries+=!sres;					
     }
+   entry_free(entry);
   }
 
  for(eid=srch_info.id_list;eid!=NULL;eid=backsql_free_entryID(eid));

@@ -17,16 +17,16 @@
 #include <stdarg.h>
 #include "slap.h"
 #include "back-sql.h"
+#include "schema-map.h"
 #include "util.h"
 
 
-char backsql_def_oc_query[]="SELECT id,name,keytbl,keycol,create_proc,delete_proc,expect_return FROM ldap_objclasses";
-char backsql_def_at_query[]="SELECT name,sel_expr,from_tbls,join_where,add_proc,modify_proc,delete_proc,param_order,expect_return FROM ldap_attrs WHERE oc_id=?";
+char backsql_def_oc_query[]="SELECT id,name,keytbl,keycol,create_proc,delete_proc,expect_return FROM ldap_oc_mappings";
+char backsql_def_at_query[]="SELECT name,sel_expr,from_tbls,join_where,add_proc,delete_proc,param_order,expect_return FROM ldap_attr_mappings WHERE oc_map_id=?";
 char backsql_def_delentry_query[]="DELETE FROM ldap_entries WHERE id=?";
-char backsql_def_insentry_query[]="INSERT INTO ldap_entries (dn,objclass,parent,keyval) VALUES (?,?,?,?)";
+char backsql_def_insentry_query[]="INSERT INTO ldap_entries (dn,oc_map_id,parent,keyval) VALUES (?,?,?,?)";
 char backsql_def_subtree_cond[]="ldap_entries.dn LIKE CONCAT('%',?)";
-char backsql_id_query[]="SELECT id,keyval,objclass FROM ldap_entries WHERE ";
-
+char backsql_id_query[]="SELECT id,keyval,oc_map_id FROM ldap_entries WHERE ";
 
 char* backsql_strcat(char* dest,int *buflen, ...)
 {
@@ -69,43 +69,35 @@ char* backsql_strcat(char* dest,int *buflen, ...)
 int backsql_entry_addattr(Entry *e,char *at_name,char *at_val,unsigned int at_val_len)
 {
  Attribute *c_at=e->e_attrs;
- struct berval **cval;
- int nvals;
+ struct berval* add_val[2];
+ struct berval cval;
+ AttributeDescription *ad;
+ int rc;
+ const char *text;
  
  Debug(LDAP_DEBUG_TRACE,"backsql_entry_addattr(): at_name='%s', at_val='%s'\n",at_name,at_val,0);
- while (c_at!=NULL && strcasecmp(c_at->a_type,at_name))
-  c_at=c_at->a_next;
- if (c_at == NULL)
+ cval.bv_val=at_val;
+ cval.bv_len=at_val_len;
+ add_val[0]=&cval;
+ add_val[1]=NULL;
+ 
+ ad=NULL;
+ rc = slap_str2ad( at_name, &ad, &text );
+ if( rc != LDAP_SUCCESS ) 
   {
-   //Debug(LDAP_DEBUG_TRACE,"backsql_addattr(): creating new attribute\n",0,0,0);
-   c_at=(Attribute *)ch_calloc(sizeof(Attribute),1);
-   c_at->a_type=ch_strdup(at_name);
-   c_at->a_syntax=SYNTAX_CIS;
-   c_at->a_vals=(struct berval**)ch_calloc(sizeof(struct berval *),1);
-   c_at->a_vals[0]=NULL;
-   c_at->a_next=e->e_attrs;
-   e->e_attrs=c_at;
+   Debug(LDAP_DEBUG_TRACE,"backsql_entry_addattr(): failed to find AttributeDescription for '%s'\n",at_name,0,0);
+   return 0;
   }
- //Debug(LDAP_DEBUG_TRACE,"backsql_addattr(): checking attribute values\n",0,0,0);
- //should use different comparison methods for different attributes
- //for now, uses memcmp
- for (cval=c_at->a_vals,nvals=0;*cval != NULL &&
-      memcmp((*cval)->bv_val,at_val,BACKSQL_MIN((*cval)->bv_len,at_val_len));cval++,nvals++);
-     
- if (*cval==NULL)
+  
+ rc = attr_merge(e,ad,add_val);
+ ad_free( ad, 1 );
+
+ if( rc != 0 )
   {
-   //Debug(LDAP_DEBUG_TRACE,"backsql_addattr(): nvals=%d; adding new value\n",nvals,0,0);
-   c_at->a_vals=(struct berval **)realloc(c_at->a_vals,sizeof(struct berval *)*(nvals+2));
-   c_at->a_vals[nvals]=(struct berval*)ch_calloc(sizeof(struct berval),1);
-   c_at->a_vals[nvals]->bv_val=(char*)ch_calloc(sizeof(char),at_val_len);
-   strncpy(c_at->a_vals[nvals]->bv_val,at_val,at_val_len);
-   c_at->a_vals[nvals]->bv_len=at_val_len;
-   c_at->a_vals[nvals+1]=NULL;
+   Debug(LDAP_DEBUG_TRACE,"backsql_entry_addattr(): failed to merge value '%s' for attribute '%s'\n",at_val,at_name,0);
+   return 0;
   }
- else
- {
-  //Debug(LDAP_DEBUG_TRACE,"backsql_addattr(): value already exists\n",0,0,0);
- }
+ 
  Debug(LDAP_DEBUG_TRACE,"<==backsql_query_addattr()\n",0,0,0);
  return 1;
 }

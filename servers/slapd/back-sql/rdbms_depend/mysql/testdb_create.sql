@@ -1,24 +1,29 @@
+drop table if exists persons;
 CREATE TABLE persons (
 	id int NOT NULL,
 	name varchar(255) NOT NULL
 );
 
+drop table if exists institutes;
 CREATE TABLE institutes (
 	id int NOT NULL,
 	name varchar(255)
 );
 
+drop table if exists documents;
 CREATE TABLE documents (
 	id int NOT NULL,
 	title varchar(255) NOT NULL,
 	abstract varchar(255)
 );
 
+drop table if exists authors_docs;
 CREATE TABLE authors_docs (
 	pers_id int NOT NULL,
 	doc_id int NOT NULL
 );
 
+drop table if exists phones;
 CREATE TABLE phones (
 	id int NOT NULL ,
 	phone varchar(255) NOT NULL ,

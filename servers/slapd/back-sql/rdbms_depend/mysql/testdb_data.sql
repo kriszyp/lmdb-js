@@ -14,21 +14,3 @@ insert into documents (id,abstract,title) values (2,'abstract2','book2');
 insert into authors_docs (pers_id,doc_id) values (1,1);
 insert into authors_docs (pers_id,doc_id) values (1,2);
 insert into authors_docs (pers_id,doc_id) values (2,1);
-
-insert into ldap_entries (id,dn,objclass,parent,keyval)
-values (1,'o=sql,c=RU',3,0,1);
-
-insert into ldap_entries (id,dn,objclass,parent,keyval)
-values (2,'cn=Mitya Kovalev,o=sql,c=RU',1,1,1);
-
-insert into ldap_entries (id,dn,objclass,parent,keyval)
-values (3,'cn=Torvlobnor Puzdoy,o=sql,c=RU',1,1,2);
-
-insert into ldap_entries (id,dn,objclass,parent,keyval)
-values (4,'cn=Akakiy Zinberstein,o=sql,c=RU',1,1,3);
-
-insert into ldap_entries (id,dn,objclass,parent,keyval)
-values (5,'documentTitle=book1,o=sql,c=RU',2,1,1);
-
-insert into ldap_entries (id,dn,objclass,parent,keyval)
-values (6,'documentTitle=book2,o=sql,c=RU',2,1,2);

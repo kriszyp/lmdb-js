@@ -41,6 +41,67 @@ int backsql_cmp_attr(backsql_at_map_rec *m1,backsql_at_map_rec *m2)
  return strcasecmp(m1->name,m2->name);
 }
 
+char* backsql_make_attr_query(backsql_oc_map_rec *oc_map,backsql_at_map_rec *at_map)
+{
+ char *tmps;
+ int tmpslen;
+
+ tmps=NULL;tmpslen=0;
+ tmps=backsql_strcat(tmps,&tmpslen,"SELECT ",at_map->sel_expr," AS ",at_map->name,
+			" FROM ",at_map->from_tbls,
+			" WHERE ",oc_map->keytbl,".",oc_map->keycol,"=?",NULL);
+ if (at_map->join_where!=NULL && at_map->join_where[0]!='\0')
+  tmps=backsql_strcat(tmps,&tmpslen," AND ",at_map->join_where,NULL);
+ at_map->query=ch_strdup(tmps);
+ ch_free(tmps);
+ return at_map->query;
+}
+
+
+int backsql_add_sysmaps(backsql_oc_map_rec *oc_map)
+{
+ backsql_at_map_rec *at_map;
+ long len;
+ char s[30]; 
+
+ sprintf(s,"%d",oc_map->id);
+ at_map=(backsql_at_map_rec*)ch_calloc(1,sizeof(backsql_at_map_rec));
+ at_map->name=ch_strdup("objectClass");
+ at_map->sel_expr=ch_strdup("ldap_entry_objclasses.oc_name");
+ at_map->from_tbls=ch_strdup("ldap_entry_objclasses,ldap_entries");
+ len=strlen(at_map->from_tbls);
+ backsql_merge_from_clause(&at_map->from_tbls,&len,oc_map->keytbl);
+ at_map->join_where=NULL; len=0;
+ at_map->join_where=backsql_strcat(at_map->join_where,&len,
+			"ldap_entries.id=ldap_entry_objclasses.entry_id and ldap_entries.keyval=",
+			oc_map->keytbl,".",oc_map->keycol," and ldap_entries.oc_map_id=",s,NULL);
+ at_map->add_proc=NULL;
+ at_map->delete_proc=NULL;
+ at_map->param_order=0;
+ at_map->expect_return=0;
+ backsql_make_attr_query(oc_map,at_map);
+ avl_insert(&oc_map->attrs,at_map,(AVL_CMP)backsql_cmp_attr,backsql_dummy);
+
+ at_map=(backsql_at_map_rec*)ch_calloc(1,sizeof(backsql_at_map_rec));
+ at_map->name=ch_strdup("ref");
+ at_map->sel_expr=ch_strdup("ldap_referrals.url");
+ at_map->from_tbls=ch_strdup("ldap_referrals,ldap_entries");
+ len=strlen(at_map->from_tbls);
+ backsql_merge_from_clause(&at_map->from_tbls,&len,oc_map->keytbl);
+ at_map->join_where=NULL; len=0;
+ at_map->join_where=backsql_strcat(at_map->join_where,&len,
+			"ldap_entries.id=ldap_referrals.entry_id and ldap_entries.keyval=",
+			oc_map->keytbl,".",oc_map->keycol," and ldap_entries.oc_map_id=",s,NULL);
+ at_map->add_proc=NULL;
+ at_map->delete_proc=NULL;
+ at_map->param_order=0;
+ at_map->expect_return=0;
+ backsql_make_attr_query(oc_map,at_map);
+ avl_insert(&oc_map->attrs,at_map,(AVL_CMP)backsql_cmp_attr,backsql_dummy);
+
+ return 1;
+}
+
 int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
 {
  SQLHSTMT oc_sth,at_sth;
@@ -99,6 +160,8 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
 	   oc_map->name,oc_map->keytbl,oc_map->keycol);
    Debug(LDAP_DEBUG_TRACE,"create_proc='%s' delete_proc='%s' expect_return=%d; attributes:\n",
        oc_map->create_proc,oc_map->delete_proc,oc_map->expect_return);
+   Debug(LDAP_DEBUG_TRACE,"load_schema_map(): autoadding 'objectClass' and 'ref' mappings\n",0,0,0);
+   backsql_add_sysmaps(oc_map);
    if ((rc=SQLExecute(at_sth)) != SQL_SUCCESS)
     {
      Debug(LDAP_DEBUG_TRACE,"load_schema_map(): error executing at_query: \n",0,0,0);
@@ -111,9 +174,9 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
      Debug(LDAP_DEBUG_TRACE,"********'%s'\n",at_row.cols[0],0,0);
      Debug(LDAP_DEBUG_TRACE,"name='%s',sel_expr='%s' from='%s' ",at_row.cols[0],
              at_row.cols[1],at_row.cols[2]);
-	 Debug(LDAP_DEBUG_TRACE,"join_where='%s',add_proc='%s' modify_proc='%s' ",at_row.cols[3],
-             at_row.cols[4],at_row.cols[5]);
-	 Debug(LDAP_DEBUG_TRACE,"delete_proc='%s'\n",at_row.cols[6],0,0);
+	 Debug(LDAP_DEBUG_TRACE,"join_where='%s',add_proc='%s' ",at_row.cols[3],
+             at_row.cols[4],0);
+	 Debug(LDAP_DEBUG_TRACE,"delete_proc='%s'\n",at_row.cols[5],0,0);
      at_map=(backsql_at_map_rec*)ch_calloc(1,sizeof(backsql_at_map_rec));
      at_map->name=ch_strdup(at_row.cols[0]);
      at_map->sel_expr=ch_strdup(at_row.cols[1]);
@@ -123,18 +186,10 @@ int backsql_load_schema_map(backsql_info *si,SQLHDBC dbh)
 	 ch_free(tmps);
 	 at_map->join_where=ch_strdup((at_row.is_null[3]<0)?"":at_row.cols[3]);
 	 at_map->add_proc=(at_row.is_null[4]<0)?NULL:ch_strdup(at_row.cols[4]);
-	 at_map->modify_proc=(at_row.is_null[5]<0)?NULL:ch_strdup(at_row.cols[5]);
-	 at_map->delete_proc=(at_row.is_null[6]<0)?NULL:ch_strdup(at_row.cols[6]);
-	 at_map->param_order=atoi(at_row.cols[7]);
-	 at_map->expect_return=atoi(at_row.cols[8]);
-	 tmps=NULL;tmpslen=0;
-	 tmps=backsql_strcat(tmps,&tmpslen,"SELECT ",at_map->sel_expr," AS ",at_map->name,
-			" FROM ",at_map->from_tbls,
-			" WHERE ",oc_map->keytbl,".",oc_map->keycol,"=?",NULL);
-     if (at_map->join_where!=NULL && at_map->join_where[0]!='\0')
-       tmps=backsql_strcat(tmps,&tmpslen," AND ",at_map->join_where,NULL);
-	 at_map->query=ch_strdup(tmps);
-	 ch_free(tmps);
+	 at_map->delete_proc=(at_row.is_null[5]<0)?NULL:ch_strdup(at_row.cols[5]);
+	 at_map->param_order=atoi(at_row.cols[6]);
+	 at_map->expect_return=atoi(at_row.cols[7]);
+	 backsql_make_attr_query(oc_map,at_map);
 	 Debug(LDAP_DEBUG_TRACE,"load_schema_map(): preconstructed query '%s'\n",at_map->query,0,0);
      avl_insert(&oc_map->attrs,at_map,(AVL_CMP)backsql_cmp_attr,backsql_dummy);
     }
@@ -204,8 +259,6 @@ int backsql_free_attr(backsql_at_map_rec *at)
   ch_free(at->join_where);
  if (at->add_proc!=NULL)
   ch_free(at->add_proc);
- if (at->modify_proc!=NULL)
-  ch_free(at->modify_proc);
  if (at->delete_proc!=NULL)
   ch_free(at->delete_proc);
  if (at->query)

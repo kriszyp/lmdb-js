@@ -22,8 +22,10 @@ int backsql_dummy()
  return 0;
 }
 
-int backsql_compare(BackendDB *be,Connection *conn,Operation *op,
-	const char *dn,const char *ndn,Ava *ava)
+int	backsql_compare(BackendDB *bd,
+	Connection *conn, Operation *op,
+	const char *dn, const char *ndn,
+	AttributeAssertion *ava )
 {
  Debug(LDAP_DEBUG_TRACE,"==>backsql_compare()\n",0,0,0);
  return 0;

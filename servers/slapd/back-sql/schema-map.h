@@ -29,8 +29,7 @@ typedef struct
  char *from_tbls;
  char *join_where;
  char *sel_expr;
- char *add_proc; //supposed to expect 2 binded values: entry keyval and attr. value to add, like "add_name(?,?)"
- char *modify_proc; //supposed to expect two binded values: entry keyval and old and new values of attr
+ char *add_proc; //supposed to expect 2 binded values: entry keyval and attr. value to add, like "add_name(?,?,?)"
  char *delete_proc; //supposed to expect 2 binded values: entry keyval and attr. value to delete
  char *query; //for optimization purposes attribute load query is preconstructed from parts on schemamap load time
  //following flags are bitmasks (first bit used for add_proc, second - for modify, third - for delete_proc)

@@ -43,12 +43,12 @@ extern int	backsql_search LDAP_P(( BackendDB *bd,
 extern int	backsql_compare LDAP_P((BackendDB *bd,
 	Connection *conn, Operation *op,
 	const char *dn, const char *ndn,
-	Ava *ava ));
+	AttributeAssertion *ava ));
 
 extern int	backsql_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
 	const char *dn, const char *ndn,
-	LDAPModList *ml ));
+	Modifications *ml ));
 
 extern int	backsql_modrdn LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
@@ -65,6 +65,9 @@ extern int	backsql_delete LDAP_P(( BackendDB *bd,
 
 extern int	backsql_abandon LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, int msgid ));
+
+extern int	backsql_connection_destroy LDAP_P(( BackendDB *bd,
+	Connection *conn));
 
 LDAP_END_DECL
 
