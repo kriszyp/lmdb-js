@@ -409,7 +409,7 @@ process_ldif_rec( char *rbuf, int count )
 		}
 		expect_ct = 1;
 	    }
-	    continue;	/* skip all lines until we see "dn:" */
+	    goto end_line;	/* skip all lines until we see "dn:" */
 	}
 
 	if ( expect_ct ) {
@@ -419,6 +419,8 @@ process_ldif_rec( char *rbuf, int count )
 			"\t(LDAP host/port does not match replica: lines)\n",
 			prog, dn );
 		free( dn );
+		ber_memfree( type );
+		ber_memfree( value );
 		return( 0 );
 	    }
 
@@ -441,7 +443,7 @@ process_ldif_rec( char *rbuf, int count )
 			    prog, T_CHANGETYPESTR, value, linenum, dn );
 		    rc = LDAP_PARAM_ERROR;
 		}
-		continue;
+		goto end_line;
 	    } else if ( new ) {		/*  missing changetype => add */
 		new_entry = 1;
 		modop = LDAP_MOD_ADD;
@@ -455,14 +457,14 @@ process_ldif_rec( char *rbuf, int count )
 	    expect_sep = 1;
 	    if ( strcasecmp( type, T_MODOPADDSTR ) == 0 ) {
 		modop = LDAP_MOD_ADD;
-		continue;
+		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPREPLACESTR ) == 0 ) {
 		modop = LDAP_MOD_REPLACE;
-		continue;
+		goto end_line;
 	    } else if ( strcasecmp( type, T_MODOPDELETESTR ) == 0 ) {
 		modop = LDAP_MOD_DELETE;
 		addmodifyop( &pmods, modop, value, NULL, 0 );
-		continue;
+		goto end_line;
 	    } else {	/* no modify op:  use default */
 		modop = replace ? LDAP_MOD_REPLACE : LDAP_MOD_ADD;
 	    }
@@ -512,6 +514,10 @@ process_ldif_rec( char *rbuf, int count )
 	} else {
 	    addmodifyop( &pmods, modop, type, value, vlen );
 	}
+
+end_line:
+	ber_memfree( type );
+	ber_memfree( value );
     }
 
 	if( linenum == 0 ) {
