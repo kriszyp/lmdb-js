@@ -1,0 +1,61 @@
+.TH SLAPDN 8C "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+slapdn \- Check a list of string-represented DNs based on schema syntax.
+.SH SYNOPSIS
+.B SBINDIR/slapdn
+.B [\-v]
+.B [\-d level]
+.B [\-f slapd.conf]
+.B DN [...]
+.LP
+.SH DESCRIPTION
+.LP
+.B Slapdn
+is used to check the conformance of a DN based on the schema
+defined in
+.BR slapd (8)
+and that loaded via 
+.BR slapd.conf (5).
+It opens the
+.BR slapd.conf (5)
+configuration file, reads in the schema definitions, and then
+parses the 
+.B DN
+list given on the command-line.
+.LP
+.SH OPTIONS
+.TP
+.B \-v
+enable verbose mode.
+.TP
+.BI \-d " level"
+enable debugging messages as defined by the specified
+.IR level .
+.TP
+.BI \-f " slapd.conf"
+specify an alternative
+.BR slapd.conf (5)
+file.
+.SH EXAMPLES
+To check a
+.B DN
+give the command:
+.LP
+.nf
+.ft tt
+	SBINDIR/slapdn -f /ETCDIR/slapd.conf -v DN
+.ft
+.fi
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR slapd (8)
+.BR slaptest (8)
+.LP
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
+.SH ACKNOWLEDGEMENTS
+.B OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

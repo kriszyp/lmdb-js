@@ -1,0 +1,56 @@
+.TH SLAPTEST 8C "RELEASEDATE" "OpenLDAP LDVERSION"
+.\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
+.SH NAME
+slaptest \- Check the suitability of the slapd.conf file.
+.SH SYNOPSIS
+.B SBINDIR/slaptest
+.B [\-v]
+.B [\-d level]
+.B [\-f slapd.conf]
+.LP
+.SH DESCRIPTION
+.LP
+.B Slaptest
+is used to check the conformance of the
+.BR slapd.conf (5)
+configurtion file.
+It opens the
+.BR slapd.conf (5)
+configuration file, and parses it according to the general 
+and the backend-specific rules, checking its sanity.
+.LP
+.SH OPTIONS
+.TP
+.B \-v
+enable verbose mode.
+.TP
+.BI \-d " level"
+enable debugging messages as defined by the specified
+.IR level .
+.TP
+.BI \-f " slapd.conf"
+specify an alternative
+.BR slapd.conf (5)
+file.
+.SH EXAMPLES
+To check a 
+.BR slapd.conf (5)
+give the command:
+.LP
+.nf
+.ft tt
+	SBINDIR/slaptest -f /ETCDIR/slapd.conf -v
+.ft
+.fi
+.SH "SEE ALSO"
+.BR ldap (3),
+.BR slapd (8)
+.BR slapdn (8)
+.LP
+"OpenLDAP Administrator's Guide" (http://www.OpenLDAP.org/doc/admin/)
+.SH ACKNOWLEDGEMENTS
+.B OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  
