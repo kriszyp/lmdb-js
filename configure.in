@@ -672,264 +672,44 @@ int main(argc, argv)
 
 		if test $ol_cv_pthread_create != no ; then
 			ol_link_threads=posix
+			ol_link_pthreads=""
 		fi
+		
+		OL_PTHREAD_TRY_LINK([-mt],		[ol_cv_pthread_mt])
+		OL_PTHREAD_TRY_LINK([-kthread],	[ol_cv_pthread_kthread])
+		OL_PTHREAD_TRY_LINK([-pthread],	[ol_cv_pthread_pthread])
+		OL_PTHREAD_TRY_LINK([-pthreads],[ol_cv_pthread_pthreads])
+		OL_PTHREAD_TRY_LINK([-thread],	[ol_cv_pthread_thread])
 
-		if test $ol_link_threads = no ; then
-			dnl try -mt
-			AC_CACHE_CHECK([for pthread_create with -mt],
-				[ol_cv_pthread_mt_flag], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-mt $LIBS"
-				AC_TRY_LINK([char pthread_create();],
-					[pthread_create();],
-					[ol_cv_pthread_mt_flag=yes], [ol_cv_pthread_mt_flag=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
+		OL_PTHREAD_TRY_LINK([-lpthread -lmach -lexc -lc_r],
+			[ol_cv_pthread_lpthread_lmach_lexc_lc_r])
+		OL_PTHREAD_TRY_LINK([-lpthread -lmach -lexc],
+			[ol_cv_pthread_lpthread_lmach_lexc])
+		OL_PTHREAD_TRY_LINK([-lpthread -lexc],
+			[ol_cv_pthread_lpthread_lexc])
 
-			if test $ol_cv_pthread_mt_flag = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -mt"
-				ol_link_threads=posix
-			fi
-		fi
+		OL_PTHREAD_TRY_LINK([-lpthread -Wl,-woff,85],
+			[ol_cv_pthread_lib_lpthread_woff])
 
-		if test $ol_link_threads = no ; then
-			dnl try -kthread
-			AC_CACHE_CHECK([for pthread_create with -kthread],
-				[ol_cv_kthread_flag], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-kthread $LIBS"
-				AC_TRY_LINK([#include <pthread.h>],[
-#if HAVE_PTHREADS_D4
-	pthread_create(NULL,pthread_attr_default,NULL,NULL);
-#else
-	pthread_t t;
-	pthread_create(&t,NULL,NULL,NULL);
-	pthread_detach(t);
-#endif
-],
-					[ol_cv_kthread_flag=yes], [ol_cv_kthread_flag=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
+		OL_PTHREAD_TRY_LINK([-lpthread],[ol_cv_pthread_lpthread])
+		OL_PTHREAD_TRY_LINK([-lc_r],	[ol_cv_pthread_lc_r])
 
-			if test $ol_cv_kthread_flag = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -kthread"
-				ol_link_threads=posix
-			fi
-		fi
+		OL_PTHREAD_TRY_LINK([-threads],	[ol_cv_pthread_pthread])
 
-		if test $ol_link_threads = no ; then
-			dnl try -pthread
-			AC_CACHE_CHECK([for pthread_create with -pthread],
-				[ol_cv_pthread_flag], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-pthread $LIBS"
-				AC_TRY_LINK([#include <pthread.h>],[
-#if HAVE_PTHREADS_D4
-	pthread_create(NULL,pthread_attr_default,NULL,NULL);
-#else
-	pthread_create(NULL,NULL,NULL,NULL);
-#endif
-],
-					[ol_cv_pthread_flag=yes], [ol_cv_pthread_flag=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
+		OL_PTHREAD_TRY_LINK([-lpthreads -lmach -lexc -lc_r],
+			[ol_cv_pthread_lpthreads_lmach_lexc_lc_r])
+		OL_PTHREAD_TRY_LINK([-lpthreads -lmach -lexc],
+			[ol_cv_pthread_lpthreads_lmach_lexc])
+		OL_PTHREAD_TRY_LINK([-lpthreads -lexc],
+			[ol_cv_pthread_lpthreads_lexc])
 
-			if test $ol_cv_pthread_flag = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -pthread"
-				ol_link_threads=posix
-			fi
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -pthreads
-			AC_CACHE_CHECK([for pthread_create with -pthreads],
-				[ol_cv_pthreads_flag], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-pthreads $LIBS"
-				AC_TRY_LINK([#include <pthread.h>],[
-#if HAVE_PTHREADS_D4
-	pthread_create(NULL,pthread_attr_default,NULL,NULL);
-#else
-	pthread_create(NULL,NULL,NULL,NULL);
-#endif
-],
-					[ol_cv_pthreads_flag=yes], [ol_cv_pthreads_flag=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
-
-			if test $ol_cv_pthreads_flag = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -pthreads"
-				ol_link_threads=posix
-			fi
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -thread
-			AC_CACHE_CHECK([for pthread_create with -thread],
-				[ol_cv_thread_flag], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-thread $LIBS"
-				AC_TRY_LINK([char pthread_create();],
-					[pthread_create();],
-					[ol_cv_thread_flag=yes], [ol_cv_thread_flag=no])
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
-
-			if test $ol_cv_thread_flag = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -thread"
-				ol_link_threads=posix
-			fi
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads -lpthread -lmach -lexc -lc_r
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_mutex_unlock, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc_r"
-dnl				if test $ol_with_yielding_select = auto ; then
-dnl					ol_with_yielding_select=yes
-dnl				fi
-				],:,[-lmach -lexc -lc_r])
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads -lpthread -lmach -lexc
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_mutex_lock, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc"
-dnl				if test $ol_with_yielding_select = auto ; then
-dnl					ol_with_yielding_select=yes
-dnl				fi
-				],:,[-lmach -lexc])
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads -lpthread -lexc
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_mutex_trylock, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lexc"
-dnl				if test $ol_with_yielding_select = auto ; then
-dnl					ol_with_yielding_select=yes
-dnl				fi
-				],:,[-lexc])
-			LIBS="$save_LIBS"
-		fi
-
-		dnl IRIX Pthread check
-		if test $ol_link_threads = no ; then
-			dnl try IRIX Pthreads -Wl,-woff,85 -lpthread
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_join, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"
-				],:,[-Wl,-woff,85])
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -lpthread
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthread, pthread_create, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread"],:)
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -lc_r
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(c_r, pthread_create, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lc_r"],:)
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -threads
-			AC_CACHE_CHECK([for pthread_create with -threads],
-				[ol_cv_threads_flag], [
-				dnl save the flags
-				save_LIBS="$LIBS"
-				LIBS="-threads $LIBS"
-				AC_TRY_LINK([char pthread_create();],[
-					pthread_create();
-					], ol_cv_threads_flag=yes, ol_cv_threads_flag=no)
-				dnl restore the LIBS
-				LIBS="$save_LIBS"
-			])
-
-			if test $ol_cv_threads_flag = yes ; then
-				LTHREAD_LIBS="$LTHREAD_LIBS -threads"
-				ol_link_threads=posix
-			fi
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads -lpthreads -lmach -lexc -lc_r
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_mutex_unlock, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc -lc_r"
-dnl				if test $ol_with_yielding_select = auto ; then
-dnl					ol_with_yielding_select=yes
-dnl				fi
-				],:,[-lmach -lexc -lc_r])
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads -lpthreads -lmach -lexc
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_mutex_lock, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lmach -lexc"
-dnl				if test $ol_with_yielding_select = auto ; then
-dnl					ol_with_yielding_select=yes
-dnl				fi
-				],:,[-lmach -lexc])
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try DEC Threads -lpthreads -lexc
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_mutex_trylock, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads -lexc"
-dnl				if test $ol_with_yielding_select = auto ; then
-dnl					ol_with_yielding_select=yes
-dnl				fi
-				],:,[-lexc])
-			LIBS="$save_LIBS"
-		fi
-
-		if test $ol_link_threads = no ; then
-			dnl try -lpthreads
-			save_LIBS="$LIBS"
-			AC_CHECK_LIB(pthreads, pthread_create, [
-				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthreads"],:)
-			LIBS="$save_LIBS"
-		fi
+		OL_PTHREAD_TRY_LINK([-lpthreads],	[ol_cv_pthread_lib_lpthreads])
 
 		if test $ol_link_threads != no ; then
 			AC_DEFINE(HAVE_PTHREADS,1,
 				[define if you have POSIX Threads])
+
+			LTHREAD_LIBS="$LTHREAD_LIBS $ol_link_pthreads"
 
 			dnl save flags
 			save_CPPFLAGS="$CPPFLAGS"
@@ -999,8 +779,8 @@ dnl				fi
 			OL_SYS_LINUX_THREADS
 			OL_LINUX_THREADS
 
-			if test $ol_cv_linux_threads = error ; then
-				AC_MSG_ERROR([LinuxThreads header/library mismatch])
+			if test $ol_cv_linux_threads = error; then
+				AC_MSG_ERROR([LinuxThreads header/library mismatch]);
 			fi
 
 			AC_MSG_CHECKING([if pthread_create() works])
@@ -1242,7 +1022,7 @@ if test $ol_with_threads = manual ; then
 
 	AC_CHECK_HEADERS(pthread.h sched.h)
 	AC_CHECK_FUNCS(sched_yield pthread_yield)
-	OL_LINUX_THREADS
+	OL_HEADER_LINUX_THREADS
 
 	AC_CHECK_HEADERS(mach/cthreads.h)
 	AC_CHECK_HEADERS(lwp/lwp.h)

@@ -627,14 +627,14 @@
 /* define if pthreads API compatible with draft4 spec */
 #undef HAVE_PTHREADS_D4
 
+/* if you have LinuxThreads */
+#undef HAVE_LINUX_THREADS
+
 /* define if you have POSIX Threads */
 #undef HAVE_PTHREADS
 
 /* define if you have pthread_detach function */
 #undef HAVE_PTHREAD_DETACH
-
-/* define if you have LinuxThreads */
-#undef HAVE_LINUX_THREADS
 
 /* define if you have Mach Cthreads */
 #undef HAVE_MACH_CTHREADS
@@ -648,7 +648,7 @@
 /* define if select implicitly yields */
 #undef HAVE_YIELDING_SELECT
 
-/* define if you have LinuxThreads */
+/* if you have LinuxThreads */
 #undef HAVE_LINUX_THREADS
 
 /* define if you have (or want) no threads */

@@ -472,8 +472,48 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 ])
 ])dnl
 dnl
+dnl --------------------------------------------------------------------
+AC_DEFUN([OL_PTHREAD_TRY_LINK], [# Pthread try link: $1 ($2)
+	if test "$ol_link_threads" = no ; then
+		# try $1
+		AC_CACHE_CHECK([for pthread link with $1], [$2], [
+			# save the flags
+			save_LIBS="$LIBS"
+			LIBS="$1 $LIBS"
+
+			AC_TRY_LINK([
+#include <pthread.h>
+#ifndef NULL
+#define NULL (void*)0
+#endif
+],[
+	pthread_t t;
+
+#if HAVE_PTHREADS_D4
+	pthread_create(&t, pthread_attr_default, NULL, NULL);
+	pthread_detach( &t );
+#else
+	pthread_create(&t, NULL, NULL, NULL);
+	pthread_detach( t );
+#endif
+#ifdef HAVE_LINUX_THREADS
+	pthread_kill_other_threads_np();
+#endif
+], [$2=yes], [$2=no])
+
+		# restore the LIBS
+		LIBS="$save_LIBS"
+		])
+
+		if test $$2 = yes ; then
+			ol_link_pthreads="$1"
+			ol_link_threads=posix
+		fi
+	fi
+])
+dnl
 dnl ====================================================================
-dnl Check LinuxThread Header
+dnl Check LinuxThreads Header
 dnl
 dnl defines ol_cv_header linux_threads to 'yes' or 'no'
 dnl		'no' implies pthreads.h is not LinuxThreads or pthreads.h
@@ -482,19 +522,21 @@ dnl		checked.
 dnl 
 AC_DEFUN([OL_HEADER_LINUX_THREADS], [
 	AC_CACHE_CHECK([for LinuxThreads pthread.h],
-	[ol_cv_header_linux_threads],
-	[
-		AC_EGREP_CPP(pthread_kill_other_threads_np,
-		[#include <pthread.h>],
-		[ol_cv_header_linux_threads=yes],
-		[ol_cv_header_linux_threads=no])
-	])])dnl
-dnl
+		[ol_cv_header_linux_threads],
+		[AC_EGREP_CPP(pthread_kill_other_threads_np,
+			[#include <pthread.h>],
+			[ol_cv_header_linux_threads=yes],
+			[ol_cv_header_linux_threads=no])
+		])
+	if test $ol_cv_header_linux_threads = yes; then
+		AC_DEFINE(HAVE_LINUX_THREADS,1,[if you have LinuxThreads])
+	fi
+])dnl
 dnl --------------------------------------------------------------------
-dnl Check LinuxThread Implementation
+dnl	Check LinuxThreads Implementation
 dnl
-dnl defines ol_cv_sys_linux_threads to 'yes' or 'no'
-dnl		'no' implies pthreads implementation is not LinuxThreads.
+dnl	defines ol_cv_sys_linux_threads to 'yes' or 'no'
+dnl	'no' implies pthreads implementation is not LinuxThreads.
 dnl 
 AC_DEFUN([OL_SYS_LINUX_THREADS], [
 	AC_CHECK_FUNC(pthread_kill_other_threads_np)
@@ -504,25 +546,21 @@ AC_DEFUN([OL_SYS_LINUX_THREADS], [
 ])dnl
 dnl
 dnl --------------------------------------------------------------------
-dnl
+dnl Check LinuxThreads consistency
 AC_DEFUN([OL_LINUX_THREADS], [
 	AC_REQUIRE([OL_HEADER_LINUX_THREADS])
 	AC_REQUIRE([OL_SYS_LINUX_THREADS])
 	AC_CACHE_CHECK([for LinuxThreads consistency], [ol_cv_linux_threads], [
 		if test $ol_cv_header_linux_threads = yes -a \
- 			$ol_cv_sys_linux_threads = yes; then
+			$ol_cv_sys_linux_threads = yes; then
 			ol_cv_linux_threads=yes
- 		elif test $ol_cv_header_linux_threads = no -a \
- 			$ol_cv_sys_linux_threads = no; then
+		elif test $ol_cv_header_linux_threads = no -a \
+			$ol_cv_sys_linux_threads = no; then
 			ol_cv_linux_threads=no
- 		else
+		else
 			ol_cv_linux_threads=error
- 		fi
+		fi
 	])
-	if test $ol_cv_linux_threads = yes; then
-		AC_DEFINE(HAVE_LINUX_THREADS,1,
-			[define if you have LinuxThreads])
-	fi
 ])dnl
 dnl
 dnl ====================================================================
