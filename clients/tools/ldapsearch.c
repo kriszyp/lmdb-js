@@ -1036,7 +1036,7 @@ main( int argc, char **argv )
 			"# filter%s: %s\n"
 			"# requesting: ",
 			version,
-			base, (scope == LDAP_SCOPE_BASE) ? "base"
+			base ? base : "", (scope == LDAP_SCOPE_BASE) ? "base"
 				: ((scope == LDAP_SCOPE_ONELEVEL) ? "one" : "sub"),
 			infile != NULL ? " pattern" : "",
 			filtpattern );
