@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+#include <ac/ctype.h>
 #include <ac/string.h>
 #include <ac/socket.h>
 
@@ -655,6 +656,56 @@ mr_add(
 	return code;
 }
 
+static int
+case_exact_normalize(
+	struct berval *val,
+	struct berval **normalized
+)
+{
+	struct berval *newval;
+
+	newval = ber_bvdup( val );
+	normalized = &newval;
+
+	return 0;
+}
+
+static int
+case_exact_compare(
+	struct berval *val1,
+	struct berval *val2
+)
+{
+	return strcmp( val1->bv_val, val2->bv_val );
+}
+
+static int
+case_ignore_normalize(
+	struct berval *val,
+	struct berval **normalized
+)
+{
+	struct berval *newval;
+	char *p;
+
+	newval = ber_bvdup( val );
+	for ( p = newval->bv_val; *p; p++ ) {
+		*p = TOUPPER( *p );
+	}
+	normalized = &newval;
+
+	return 0;
+}
+
+static int
+case_ignore_compare(
+	struct berval *val1,
+	struct berval *val2
+)
+{
+	return strcasecmp( val1->bv_val, val2->bv_val );
+}
+
 int
 register_syntax(
 	char * desc,
@@ -790,13 +841,19 @@ struct mrule_defs_rec {
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
 	{"( 2.5.13.1 NAME 'distinguishedNameMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )", NULL, NULL},
-	{"( 2.5.13.2 NAME 'caseIgnoreMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
-	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
-	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
+	{"( 2.5.13.2 NAME 'caseIgnoreMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
+	 case_ignore_normalize, case_ignore_compare},
+	{"( 2.5.13.3 NAME 'caseIgnoreOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
+	 case_ignore_normalize, case_ignore_compare},
+	{"( 2.5.13.4 NAME 'caseIgnoreSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+	 case_ignore_normalize, case_ignore_compare},
 	/* Next three are not in the RFC's, but are needed for compatibility */
-	{"( 2.5.13.5 NAME 'caseExactMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
-	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )", NULL, NULL},
-	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
+	{"( 2.5.13.5 NAME 'caseExactMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
+	 case_exact_normalize, case_exact_compare},
+	{"( 2.5.13.6 NAME 'caseExactOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )",
+	 case_exact_normalize, case_exact_compare},
+	{"( 2.5.13.7 NAME 'caseExactSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )",
+	 case_exact_normalize, case_exact_compare},
 	{"( 2.5.13.8 NAME 'numericStringMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.36 )", NULL, NULL},
 	{"( 2.5.13.10 NAME 'numericStringSubstringsMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.58 )", NULL, NULL},
 	{"( 2.5.13.11 NAME 'caseIgnoreListMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.41 )", NULL, NULL},
@@ -812,8 +869,10 @@ struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.28 NAME 'generalizedTimeOrderingMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )", NULL, NULL},
 	{"( 2.5.13.29 NAME 'integerFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )", NULL, NULL},
 	{"( 2.5.13.30 NAME 'objectIdentifierFirstComponentMatch' SYNTAX 1.3.6.1.4.1.1466.115.121.1.38 )", NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )", NULL, NULL},
-	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )", NULL, NULL},
+	{"( 1.3.6.1.4.1.1466.109.114.1 NAME 'caseExactIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
+	 case_exact_normalize, case_exact_compare},
+	{"( 1.3.6.1.4.1.1466.109.114.2 NAME 'caseIgnoreIA5Match' SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )",
+	 case_ignore_normalize, case_ignore_compare},
 	{NULL, NULL, NULL}
 };
 
@@ -840,8 +899,10 @@ schema_init( void )
 	}
 	for ( i=0; mrule_defs[i].mrd_desc != NULL; i++ ) {
 		res = register_matching_rule( mrule_defs[i].mrd_desc,
-		    mrule_defs[i].mrd_normalize,
-		    mrule_defs[i].mrd_compare );
+		    ( mrule_defs[i].mrd_normalize ?
+		      mrule_defs[i].mrd_normalize : case_ignore_normalize ),
+		    ( mrule_defs[i].mrd_compare ?
+		      mrule_defs[i].mrd_compare : case_ignore_compare ) );
 		if ( res ) {
 			fprintf( stderr, "schema_init: Error registering matching rule %s\n",
 				 mrule_defs[i].mrd_desc );
