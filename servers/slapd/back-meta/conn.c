@@ -224,6 +224,7 @@ init_one_conn(
 	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
 			&& !ldap_is_ldaps_url( lt->mt_uri ) )
 	{
+#if 0
 		int		rc, msgid;
 		LDAPMessage	*res;
 		int		retries = 1;
@@ -268,6 +269,9 @@ retry:;
 				}
 			}
 		}
+#else
+		rs->sr_err = ldap_start_tls_s( lsc->msc_ld, NULL, NULL );
+#endif
 
 		/* if StartTLS is requested, only attempt it if the URL
 		 * is not "ldaps://"; this may occur not only in case

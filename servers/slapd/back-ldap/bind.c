@@ -249,15 +249,16 @@ ldap_back_prepare_conn( struct ldapconn **lcp, Operation *op, SlapReply *rs, lda
 	/* start TLS ("start-tls"/"try-start-tls" statements) */
 	if ( ( LDAP_BACK_USE_TLS( li ) || ( op->o_conn->c_is_tls && LDAP_BACK_PROPAGATE_TLS( li ) ) )
 				&& !ldap_is_ldaps_url( li->url ) ) {
+#if 0
 		int		rc, msgid;
 		LDAPMessage	*res;
 		int		retries = 1;
 
-retry:;
 		rc = ldap_start_tls( ld, NULL, NULL, &msgid );
 		if ( rc == LDAP_SUCCESS ) {
 			struct timeval	tv = { 0, 0 };
 
+retry:;
 			rc = ldap_result( ld, msgid, LDAP_MSG_ALL, &tv, &res );
 			if ( rc < 0 ) {
 				rs->sr_err = LDAP_OTHER;
@@ -293,6 +294,10 @@ retry:;
 				}
 			}
 		}
+#else
+
+#endif
+		rs->sr_err = ldap_start_tls_s( ld, NULL, NULL );
 
 		/* if StartTLS is requested, only attempt it if the URL
 		 * is not "ldaps://"; this may occur not only in case
