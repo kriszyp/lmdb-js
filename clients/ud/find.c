@@ -227,7 +227,7 @@ int quiet;
 		} else if (matches == 1) {
 			if (ldap_search_s(ld, ldap_get_dn(ld, ldap_first_entry(ld, res)), LDAP_SCOPE_BASE, "objectClass=*", read_attrs, FALSE, &res) != LDAP_SUCCESS) {
 				if (ld->ld_errno == LDAP_UNAVAILABLE)
-					printf("  Could not contact the X.500 server to find \"%s\".\n", who);
+					printf("  Could not contact the LDAP server to find \"%s\".\n", who);
 				else
 					ldap_perror(ld, "ldap_search_s");
 				return(NULL);

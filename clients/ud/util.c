@@ -85,7 +85,7 @@ char *prompt;
 #endif
 	/*
 	 *  Stolen from the getpass() routine.  Can't use the plain
-	 *  getpass() for two reasons.  One is that X.500 passwords
+	 *  getpass() for two reasons.  One is that LDAP passwords
 	 *  can be really, really long - much longer than 8 chars.
 	 *  The second is that we like to make this client available
 	 *  out of inetd via a Merit asynch port, and we need to be
