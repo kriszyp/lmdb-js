@@ -19,6 +19,7 @@ public:
 	Gtk_Entry *urlfield;
 	Gtk_Button *display_button;
 	Gtk_Paned *pane;
+	Gtk_MenuBar *menubar;
 	My_Window(GtkWindowType t);
 	~My_Window();
 	void do_display();

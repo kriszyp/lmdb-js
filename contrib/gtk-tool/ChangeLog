@@ -1,5 +1,15 @@
 ChangeLog for gtk-tool
 
+29/11/1998 - Pele
+	* Added Gtk_LdapServer class
+	* Started using cn=config, ldap_get_option (not sure about get_option
+	though, cn=config looks much nicer for the future-proofing)
+	* Can traverse, display and serve two (or possibly/hopefully) more
+	databases on the local machine - remote machines also possible - 
+	need to use "-s hostname"
+	* The program needs the "-s" switch! Without it it won't run (temporary
+	"feature")
+
 28/11/1998 - Pele
 	* Fixes, enhancements, started using ldap utility api
 	* It now traverses the whole tree at startup, not sure if it's smart

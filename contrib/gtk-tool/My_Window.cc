@@ -4,6 +4,8 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	cout << "My_Window(t)" << endl;
 	Gtk_VBox *main_hbox;
 	Gtk_HBox *top_hbox;
+	Gtk_Menu *menu;
+	Gtk_MenuItem *file_menu, *menuitem;
 
 	pane = new Gtk_HPaned();
 	this->scroller = new Gtk_ScrolledWindow();
@@ -21,6 +23,18 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	this->scroller2->show();
 
 	top_hbox = new Gtk_HBox();
+	menu = new Gtk_Menu();
+	menuitem = new Gtk_MenuItem("Quit");
+	menu->append(*menuitem);
+	this->menubar = new Gtk_MenuBar();
+	file_menu = new Gtk_MenuItem("File");
+	file_menu->set_submenu(menu);
+	this->menubar->append(*file_menu);
+	menuitem->show();
+	menu->show();
+	file_menu->show();
+//	top_hbox->pack_start(*this->menubar, TRUE, TRUE, 1);
+	this->menubar->show();
 	this->urlfield = new Gtk_Entry();
 	top_hbox->pack_start(*this->urlfield, TRUE, TRUE, 1);
 	this->urlfield->show();
@@ -30,6 +44,7 @@ My_Window::My_Window(GtkWindowType t) : Gtk_Window(t) {
 	this->display_button->show();
 
 	main_hbox = new Gtk_VBox();
+	main_hbox->pack_start(*this->menubar, FALSE, FALSE, 1);
 	main_hbox->pack_start(*top_hbox, FALSE, TRUE, 1);
 	main_hbox->pack_end(*pane, TRUE, TRUE, 1);
 	top_hbox->show();
@@ -54,7 +69,7 @@ void My_Window::expand(Gtk_TreeItem *t) {
 	g_print("%s selected\n", name);
 }
 
-gint My_Window::delete_event_impl(GdkEventAny *) {
+gint My_Window::delete_event_impl(GdkEventAny*) {
 	Gtk_Main::instance()->quit();
 	return 0;
 }

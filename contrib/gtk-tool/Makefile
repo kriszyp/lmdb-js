@@ -8,8 +8,8 @@ LIBS=-lXext -lgtkmm -lX11 -lXt -lXxf86dga
 
 .EXPORT_ALL_VARIABLES:
 
-SOURCES=	My_Window.cc Gtk_LdapTreeItem.cc main.cc
-OBJECTS=	My_Window.o Gtk_LdapTreeItem.o main.o
+SOURCES=	My_Window.cc Gtk_LdapTreeItem.cc Gtk_LdapServer.cc main.cc
+OBJECTS=	My_Window.o Gtk_LdapTreeItem.o Gtk_LdapServer.o main.o
 
 ################################################################################
 

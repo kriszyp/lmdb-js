@@ -2,7 +2,7 @@
 #define GTK_LDAPSERVER_H
 #include "gtk.h"
 #include <My_Window.h>
-#include <LdapOpts.h>
+/*#include <LdapOpts.h>*/
 #include <Gtk_LdapItem.h>
 #include <Gtk_LdapTreeItem.h>
 #include <lber.h>
