@@ -121,7 +121,7 @@ access_allowed(
 {
 	int				ret = 1;
 	int				count;
-	AccessControl	*a;
+	AccessControl			*a = NULL;
 
 #ifdef LDAP_DEBUG
 	char accessmaskbuf[ACCESSMASK_MAXLEN];
@@ -867,7 +867,8 @@ dn_match_cleanup:;
 				at != NULL;
 				at = attrs_find( at->a_next, b->a_dn_at ) )
 			{
-				if( value_find( b->a_dn_at, at->a_vals, &bv ) == 0 ) {
+				if( value_find_ex( b->a_dn_at,
+					SLAP_MR_VALUE_NORMALIZED_MATCH, at->a_vals, &bv ) == 0 ) {
 					/* found it */
 					match = 1;
 					break;
@@ -1784,7 +1785,7 @@ aci_mask(
 			at != NULL;
 			at = attrs_find( at->a_next, ad ) )
 		{
-			if (value_find( ad, at->a_vals, &bv) == 0 ) {
+			if (value_find_ex( ad, SLAP_MR_VALUE_NORMALIZED_MATCH, at->a_vals, &bv) == 0 ) {
 				rc = 1;
 				break;
 			}

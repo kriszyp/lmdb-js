@@ -178,7 +178,8 @@ ldbm_back_group(
 #endif
 
 
-	if( value_find( group_at, attr->a_vals, op_ndn ) != LDAP_SUCCESS ) {
+	if( value_find_ex( group_at, SLAP_MR_VALUE_NORMALIZED_MATCH,
+		attr->a_vals, op_ndn ) != LDAP_SUCCESS ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( BACK_LDBM, DETAIL1, 
 			"ldbm_back_group: \"%s\" not in \"%s\": %s\n",

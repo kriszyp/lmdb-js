@@ -391,7 +391,8 @@ int value_find_ex(
 		flags |= SLAP_MR_VALUE_SYNTAX_CONVERTED_MATCH;
 	}
 
-	if( mr->smr_syntax->ssyn_normalize ) {
+	if( !(flags & SLAP_MR_VALUE_NORMALIZED_MATCH) &&
+		mr->smr_syntax->ssyn_normalize ) {
 		struct berval nval_tmp = { 0, NULL };
 
 		rc = mr->smr_syntax->ssyn_normalize(
