@@ -77,7 +77,7 @@ ber_read(
 
 	assert( BER_VALID( ber ) );
 
-	nleft = ber->ber_end - ber->ber_ptr;
+	nleft = ber_pvt_ber_remaining( ber );
 	actuallen = nleft < len ? nleft : len;
 
 	AC_MEMCPY( buf, ber->ber_ptr, actuallen );
