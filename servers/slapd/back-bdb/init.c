@@ -44,7 +44,8 @@ bdb_back_initialize(
 		int major, minor, patch;
 		char *version = db_version( &major, &minor, &patch );
 
-		if( major != DB_VERSION_MAJOR || minor != DB_VERSION_MINOR ||
+		if( major != DB_VERSION_MAJOR ||
+			minor != DB_VERSION_MINOR ||
 			patch < DB_VERSION_PATCH )
 		{
 			Debug( LDAP_DEBUG_ANY,
