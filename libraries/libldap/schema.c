@@ -1977,6 +1977,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp, const int 
 		*code = LDAP_SCHERR_OUTOFMEM;
 		return NULL;
 	}
+	oc->oc_kind = LDAP_SCHEMA_STRUCTURAL;
 
 	kind = get_token(&ss,&sval);
 	if ( kind != TK_LEFTPAREN ) {
