@@ -114,6 +114,7 @@ str2charray( char *str, char *brkstr )
 {
 	char	**res;
 	char	*s;
+	char	*lasts;
 	int	i;
 
 	/* protect the input string from strtok */
@@ -129,14 +130,12 @@ str2charray( char *str, char *brkstr )
 	res = (char **) ch_malloc( (i + 1) * sizeof(char *) );
 	i = 0;
 
-	pthread_mutex_lock(&strtok_mutex);
-
-	for ( s = strtok( str, brkstr ); s != NULL; s = strtok( NULL,
-	    brkstr ) ) {
+	for ( s = strtok_r( str, brkstr, &lasts );
+		s != NULL;
+		s = strtok_r( NULL, brkstr, &lasts ) )
+	{
 		res[i++] = ch_strdup( s );
 	}
-
-	pthread_mutex_unlock(&strtok_mutex);
 
 	res[i] = NULL;
 

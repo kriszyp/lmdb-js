@@ -45,7 +45,6 @@ pthread_mutex_t	new_conn_mutex;
 #ifdef SLAPD_CRYPT
 pthread_mutex_t	crypt_mutex;
 #endif
-pthread_mutex_t	strtok_mutex;
 
 int				num_conns;
 long			ops_initiated;
@@ -70,7 +69,6 @@ init( void )
 
 	pthread_mutex_init( &new_conn_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &currenttime_mutex, pthread_mutexattr_default );
-	pthread_mutex_init( &strtok_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &entry2str_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &replog_mutex, pthread_mutexattr_default );
 	pthread_mutex_init( &ops_mutex, pthread_mutexattr_default );

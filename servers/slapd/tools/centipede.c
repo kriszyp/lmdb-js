@@ -519,8 +519,10 @@ generate_new_centroids(
 
 				/* generate a word-based centroid */
 				} else {
-					for ( w = strtok( val[j], WORD_BREAKS ); w != NULL;
-					  w = strtok( NULL, WORD_BREAKS ) ) {
+					char *lasts;
+					for ( w = strtok_r( val[j], WORD_BREAKS, &lasts );
+					  w != NULL;
+					  w = strtok_r( NULL, WORD_BREAKS, &lasts ) ) {
 						key.dptr = w;
 						key.dsize = strlen( key.dptr ) + 1;
 						(void) ldbm_store( ldbm[i], key, data, LDBM_INSERT );
