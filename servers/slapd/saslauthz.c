@@ -175,7 +175,7 @@ static int slap_sasl_rx_off(char *rep, int *off)
 			if ( n == SASLREGEX_REPLACE ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG( TRANSPORT, ERR, 
-					"slap_sasl_regexp_config: \"%s\" has too many $n "
+					"slap_sasl_rx_off: \"%s\" has too many $n "
 					"placeholders (max %d)\n", rep, SASLREGEX_REPLACE, 0  );
 #else
 				Debug( LDAP_DEBUG_ANY,
@@ -184,7 +184,7 @@ static int slap_sasl_rx_off(char *rep, int *off)
 					rep, SASLREGEX_REPLACE, 0 );
 #endif
 
-				return( LDAP_OPERATIONS_ERROR );
+				return( LDAP_OTHER );
 			}
 			off[n] = c - rep;
 			n++;
@@ -203,27 +203,14 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 	const char *c;
 	int rc, n;
 	SaslRegexp_t *reg;
-	struct berval bv, nbv;
+	struct berval bv;
 	Filter *filter;
 
 	SaslRegexp = (SaslRegexp_t *) ch_realloc( (char *) SaslRegexp,
 	  (nSaslRegexp + 1) * sizeof(SaslRegexp_t) );
 	reg = &( SaslRegexp[nSaslRegexp] );
 	ber_str2bv( match, 0, 0, &bv );
-	rc = dnNormalize2( NULL, &bv, &nbv );
-	if ( rc ) {
-#ifdef NEW_LOGGING
-		LDAP_LOG( TRANSPORT, ERR, 
-			"slap_sasl_regexp_config: \"%s\" could not be normalized.\n",
-			match, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-		"SASL match pattern %s could not be normalized.\n",
-		match, 0, 0 );
-#endif
-		return( rc );
-	}
-	reg->sr_match = nbv.bv_val;
+	reg->sr_match = bv.bv_val;
 
 	ber_str2bv( replace, 0, 0, &bv );
 	rc = slap_parseURI( &bv, &reg->sr_replace.dn, &reg->sr_replace.scope,
@@ -255,7 +242,7 @@ int slap_sasl_regexp_config( const char *match, const char *replace )
 		reg->sr_match, 0, 0 );
 #endif
 
-		return( LDAP_OPERATIONS_ERROR );
+		return( LDAP_OTHER );
 	}
 
 	rc = slap_sasl_rx_off( reg->sr_replace.dn.bv_val, reg->sr_dn_offset );
