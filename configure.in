@@ -883,6 +883,10 @@ dnl check to see if system call automatically restart
 dnl AC_SYS_RESTARTABLE_SYSCALLS
 
 dnl ----------------------------------------------------------------
+# strerror checks
+OL_STRERROR
+
+dnl ----------------------------------------------------------------
 dnl require POSIX regex
 AC_CHECK_HEADERS( regex.h )
 if test "$ac_cv_header_regex_h" != yes ; then
@@ -2346,7 +2350,6 @@ AC_CHECK_FUNCS(		\
 	signal			\
 	sigset			\
 	strdup			\
-	strerror		\
 	strpbrk			\
 	strrchr			\
 	strsep			\
@@ -2385,10 +2388,6 @@ if test "$ac_cv_func_snprintf" != yes -o "$ac_cv_func_vsnprintf" != yes; then
 		AC_DEFINE(vsnprintf, ber_pvt_vsnprintf, [define to snprintf routine])
 	fi
 fi
-
-dnl ----------------------------------------------------------------
-# Check Configuration
-OL_SYS_ERRLIST
 
 dnl ----------------------------------------------------------------
 dnl Sort out defines

@@ -971,6 +971,8 @@ fi
 ])
 dnl
 dnl ====================================================================
+dnl Error string checks
+dnl
 dnl Check for declaration of sys_errlist in one of stdio.h and errno.h.
 dnl Declaration of sys_errlist on BSD4.4 interferes with our declaration.
 dnl Reported by Keith Bostic.
@@ -1004,7 +1006,44 @@ if test $ol_cv_have_sys_errlist = yes ; then
 		[define if you actually have sys_errlist in your libs])
 fi
 ])dnl
+AC_DEFUN([OL_NONPOSIX_STRERROR_R],
+[AC_CACHE_CHECK([non-posix strerror_r],ol_cv_nonposix_strerror_r,[
+	AC_EGREP_CPP(strerror_r,[#include <string.h>],
+		ol_decl_strerror_r=yes, ol_decl_strerror_r=no)dnl
+
+	if test $ol_decl_strerror_r = yes ; then
+		AC_TRY_COMPILE([#include <string.h>],
+			[   /* from autoconf 2.59 */
+				char buf[100];
+				char x = *strerror_r (0, buf, sizeof buf);
+				char *p = strerror_r (0, buf, sizeof buf);
+			], ol_cv_nonposix_strerror_r=yes, ol_cv_nonposix_strerror_r=no)
+	else
+		AC_TRY_RUN([
+			main() {
+				char buf[100];
+				buf[0] = 0;
+				strerror_r( 1, buf, sizeof buf );
+				exit( buf[0] == 0 );
+			}
+			], ol_cv_nonposix_strerror_r=yes, ol_cv_nonposix_strerror=no)
+	fi
+	])
+if test $ol_cv_nonposix_strerror_r = yes ; then
+	AC_DEFINE(HAVE_NONPOSIX_STRERROR_R,1,
+		[define if strerror_r returns char* instead of int])
+fi
+])dnl
 dnl
+AC_DEFUN([OL_STRERROR],
+[AC_CHECK_FUNCS(strerror strerror_r)
+ol_cv_func_strerror_r=no
+if test "${ac_cv_func_strerror_r}" = yes ; then
+	OL_NONPOSIX_STRERROR_R
+elif test "${ac_cv_func_strerror}" = no ; then
+	OL_SYS_ERRLIST
+fi
+])dnl
 dnl ====================================================================
 dnl Early MIPS compilers (used in Ultrix 4.2) don't like
 dnl "int x; int *volatile a = &x; *a = 0;"

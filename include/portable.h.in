@@ -284,6 +284,9 @@
 /* Define if you have the strerror function.  */
 #undef HAVE_STRERROR
 
+/* Define if you have the strerror_r function.  */
+#undef HAVE_STRERROR_R
+
 /* Define if you have the strpbrk function.  */
 #undef HAVE_STRPBRK
 
@@ -671,6 +674,15 @@
 /* define if you have winsock2 */
 #undef HAVE_WINSOCK2
 
+/* define if strerror_r returns char* instead of int */
+#undef HAVE_NONPOSIX_STRERROR_R
+
+/* define if sys_errlist is not declared in stdio.h or errno.h */
+#undef DECL_SYS_ERRLIST
+
+/* define if you actually have sys_errlist in your libs */
+#undef HAVE_SYS_ERRLIST
+
 /* define if you have uuid_to_str() */
 #undef HAVE_UUID_TO_STR
 
@@ -889,12 +901,6 @@
 
 /* define to snprintf routine */
 #undef vsnprintf
-
-/* define if sys_errlist is not declared in stdio.h or errno.h */
-#undef DECL_SYS_ERRLIST
-
-/* define if you actually have sys_errlist in your libs */
-#undef HAVE_SYS_ERRLIST
 
 /* define if you have libtool -ltdl */
 #undef HAVE_LIBLTDL
