@@ -75,7 +75,7 @@ static LDAP_SLIST_HEAD(ControlsList, slap_control) controls_list
 /*
  * all known request control OIDs should be added to this list
  */
-char **slap_known_controls = NULL;
+char *slap_known_controls[SLAP_MAX_CIDS+1];
 static int num_known_controls;
 
 static char *proxy_authz_extops[] = {
@@ -175,6 +175,13 @@ register_supported_control(const char *controloid,
 {
 	struct slap_control *sc;
 
+	if ( num_known_controls >= SLAP_MAX_CIDS ) {
+		Debug( LDAP_DEBUG_ANY, "Too many controls registered."
+			" Recompile slapd with SLAP_MAX_CIDS defined > %d\n",
+		SLAP_MAX_CIDS, 0, 0 );
+		return LDAP_OTHER;
+	}
+
 	if ( controloid == NULL ) return LDAP_PARAM_ERROR;
 
 	sc = (struct slap_control *)SLAP_MALLOC( sizeof( *sc ) );
@@ -193,35 +200,11 @@ register_supported_control(const char *controloid,
 	}
 	sc->sc_parse = controlparsefn;
 
-	/* Update slap_known_controls, too. */
-	if ( slap_known_controls == NULL ) {
-		slap_known_controls = (char **)SLAP_MALLOC( 2 * sizeof(char *) );
-		if ( slap_known_controls == NULL ) {
-			if ( sc->sc_extendedops != NULL ) {
-				ldap_charray_free( sc->sc_extendedops );
-			}
-			ch_free( sc );
-			return LDAP_NO_MEMORY;
-		}
-
-	} else {
-		char **new_known_controls;
-
-		new_known_controls = (char **)SLAP_REALLOC(
-			slap_known_controls, (num_known_controls + 2) * sizeof(char *) );
-
-		if ( new_known_controls == NULL ) {
-			if ( sc->sc_extendedops != NULL ) {
-				ldap_charray_free( sc->sc_extendedops );
-			}
-			ch_free( sc );
-			return LDAP_NO_MEMORY;
-		}
-		slap_known_controls = new_known_controls;
-	}
 	if ( controlcid ) *controlcid = num_known_controls;
 	sc->sc_cid = num_known_controls;
-	slap_known_controls[num_known_controls++] = ch_strdup( sc->sc_oid );
+
+	/* Update slap_known_controls, too. */
+	slap_known_controls[num_known_controls++] = sc->sc_oid;
 	slap_known_controls[num_known_controls] = NULL;
 
 	LDAP_SLIST_NEXT( sc, sc_next ) = NULL;
@@ -269,7 +252,6 @@ controls_destroy( void )
 		}
 		ch_free( sc );
 	}
-	ldap_charray_free( slap_known_controls );
 }
 
 /*
