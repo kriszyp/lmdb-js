@@ -6,7 +6,7 @@ OpenLDAP 2.0.13 Release
 	Fixed ldapdelete -c handling (ITS#1071)
 	Fixed ldapsearch -S handling
 	Fixed ldbm BerkeleyDB 3.0 support (ITS#1306)
-	Fixed ldbm dbhandle cache bug
+	Fixed ldbm dbhandle cache bug (ITS#1164)
 	Fixed shell fgets handling
 	Fixed -lldap TLS ldap.conf handling
 	Added -lldap improved TLS certificate checking
