@@ -11,7 +11,7 @@
 
 #define __RETSTR( x ) case x: return #x;
 
-char *WSAGetErrorString( int err )
+char *ber_pvt_wsa_err2string( int err )
 {
 	switch( err )
 	{
@@ -84,12 +84,13 @@ char *WSAGetErrorString( int err )
 	return "unknown";
 }
 
-char *WSAGetLastErrorString( void )
-{
-	return WSAGetErrorString( WSAGetLastError() );
-}
-
 #undef __RETSTR
+
+#if 0	/* No one seems to be using these */
+char *ber_pvt_wsa_last_errstring( void )
+{
+	return ber_pvt_wsa_err2string( WSAGetLastError() );
+}
 
 char *GetErrorString( int err )
 {
@@ -108,6 +109,4 @@ char *GetLastErrorString( void )
 {
 	return GetErrorString( GetLastError() );
 }
-
-
-
+#endif

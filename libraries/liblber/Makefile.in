@@ -8,10 +8,13 @@
 LIBRARY = liblber.la
 XLIBRARY = ../liblber.a
 
+NT_SRCS = nt_err.c
+NT_OBJS = nt_err.lo
+
 SRCS= assert.c decode.c encode.c io.c bprint.c \
-	memory.c options.c sockbuf.c
+	memory.c options.c sockbuf.c $(@PLAT@_SRCS)
 OBJS= assert.lo decode.lo encode.lo io.lo bprint.lo \
-	memory.lo options.lo sockbuf.lo
+	memory.lo options.lo sockbuf.lo $(@PLAT@_OBJS)
 XSRCS= version.c
 
 PROGRAMS= dtest etest idtest

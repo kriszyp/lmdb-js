@@ -90,9 +90,9 @@
 #undef	sock_errno
 #undef	sock_errstr
 #define	sock_errno()	WSAGetLastError()
-#define	sock_errstr(e)	WSAGetErrorString(e)
+#define	sock_errstr(e)	ber_pvt_wsa_err2string(e)
 
-LIBLUTIL_F (char *) WSAGetErrorString LDAP_P((int));
+LIBLBER_F (char *) ber_pvt_wsa_err2string LDAP_P((int));
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )

@@ -5,8 +5,8 @@
 
 LIBRARY	= liblutil.a
 
-NT_SRCS = nt_err.c ntservice.c
-NT_OBJS = nt_err.o ntservice.o slapdmsg.res
+NT_SRCS = ntservice.c
+NT_OBJS = ntservice.o slapdmsg.res
 
 UNIX_SRCS = detach.c
 UNIX_OBJS = detach.o
