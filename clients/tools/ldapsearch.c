@@ -1070,13 +1070,9 @@ print_entry(
 						tmpdir, a );
 					tmpfp = NULL;
 
-					if ( mktemp( tmpfname ) == NULL ) {
-						perror( tmpfname );
-						continue;
-					}
+					tmpfd = mkstemp( tmpfname );
 
-					tmpfd = open( tmpfname, O_WRONLY|O_CREAT|O_EXCL, 0600 );
-					if ( tmpfd == -1 ) {
+					if ( tmpfd < 0  ) {
 						perror( tmpfname );
 						continue;
 					}

@@ -83,26 +83,42 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *arg)
 {
 	int rtn;
-#if defined(HAVE_PTHREADS_FINAL) && defined(PTHREAD_CREATE_UNDETACHED)
+#if defined( HAVE_PTHREADS_FINAL )
 	pthread_attr_t attr;
 
 	pthread_attr_init(&attr);
-	if (!detach)
+
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if (!detach) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+#else
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
+#endif
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+#endif
 
 	rtn = pthread_create( thread, &attr, start_routine, arg );
+
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		(void) pthread_detach( *thread );
+	}
+#endif
+
 #else
 	rtn = pthread_create( thread, LDAP_INT_THREAD_ATTR_DEFAULT,
 				  start_routine, arg );
-#endif
 
 	if( detach ) {
-#ifdef HAVE_PTHREADS_FINAL
-		pthread_detach( *thread );
-#else
 		pthread_detach( thread );
-#endif
 	}
+#endif
+
 	return rtn;
 }
 

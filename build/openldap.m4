@@ -651,44 +651,65 @@ AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
 	/* pthread test function */
 	pthread_t t;
 	int status;
-#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
-	/* This system (e.g. AIX) defaults detached; must override */
+	int detach = 1;
+
+#ifdef HAVE_PTHREADS_FINAL
+	/* Final pthreads */
 	pthread_attr_t attr;
 
 	status = pthread_attr_init(&attr);
-	if( status ) exit( status );
+	if( status ) return status;
 
-	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
-	if( status ) exit( status );
-
-#	define	ATTR	&attr
-#elif defined( HAVE_PTHREADS_D4 )
-#	define	ATTR	pthread_attr_default
+#if defined( PTHREAD_CREATE_JOINABLE ) || defined( PTHREAD_UNDETACHED )
+	if( !detach ) {
+#if defined( PTHREAD_CREATE_JOINABLE )
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 #else
-#	define	ATTR	NULL
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
 #endif
 
-	/* make sure pthread_create() isn't just a stub */
-	status = pthread_create(&t, ATTR, task, NULL);
-	if( status ) exit( status );
+#ifdef PTHREAD_CREATE_DETACHED
+	} else {
+		status = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+#endif
+	}
+	if( status ) return status;
+#endif
 
-	/* give the thread a chance to complete...
-     * it should remain joinable and hence detachable
-	 */
-	sleep( 1 );
+	status = pthread_create( &t, &attr, task, NULL );
+	if( status ) return status;
 
-	/* make sure pthread_detach() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_detach( &t );
+#if !defined( PTHREAD_CREATE_JOINABLE ) && !defined( PTHREAD_UNDETACHED )
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( t );
+		if( status ) return status;
+	}
+#endif
+
 #else
-	status = pthread_detach( t );
+	/* Draft 4 pthreads */
+	status = pthread_create( &t, pthread_attr_default, task, NULL );
+	if( status ) return status;
+
+	if( detach ) {
+		/* give thread a chance to complete */
+		/* it should remain joinable and hence detachable */
+		sleep( 1 );
+
+		status = pthread_detach( &t );
+		if( status ) return status;
+	}
 #endif
 
 #ifdef HAVE_LINUX_THREADS
 	pthread_kill_other_threads_np();
 #endif
 
-	exit( status );
+	return 0;
 ])
 
 AC_DEFUN([OL_PTHREAD_TEST_PROGRAM],

@@ -2204,7 +2204,6 @@ AC_CHECK_FUNCS(		\
 	lockf			\
 	memcpy			\
 	memmove			\
-	mkstemp			\
 	pipe			\
 	read			\
 	recv			\
@@ -2237,7 +2236,7 @@ AC_CHECK_FUNCS(		\
 )
 
 dnl We actually may need to replace more than this.
-AC_REPLACE_FUNCS(getopt tempnam)
+AC_REPLACE_FUNCS(getopt)
 
 if test "$ac_cv_func_getopt" != yes; then
     LIBSRCS="$LIBSRCS getopt.c"

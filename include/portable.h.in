@@ -205,9 +205,6 @@
 /* Define if you have the memmove function.  */
 #undef HAVE_MEMMOVE
 
-/* Define if you have the mkstemp function.  */
-#undef HAVE_MKSTEMP
-
 /* Define if you have the pipe function.  */
 #undef HAVE_PIPE
 
@@ -306,9 +303,6 @@
 
 /* Define if you have the sysconf function.  */
 #undef HAVE_SYSCONF
-
-/* Define if you have the tempnam function.  */
-#undef HAVE_TEMPNAM
 
 /* Define if you have the thr_getconcurrency function.  */
 #undef HAVE_THR_GETCONCURRENCY
