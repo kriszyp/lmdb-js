@@ -1180,7 +1180,7 @@ void connection_client_stop(
 	c->c_conn_state = SLAP_C_INVALID;
 	c->c_struct_state = SLAP_C_UNUSED;
 	connection_return( c );
-	slapd_remove( s, 0, 0 );
+	slapd_remove( s, 0, 1 );
 }
 
 int connection_read(ber_socket_t s)

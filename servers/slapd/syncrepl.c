@@ -586,11 +586,10 @@ do_syncrep2(
 	}
 
 	if ( rc == -1 ) {
-		int errno;
 		const char *errstr;
 
-		ldap_get_option( si->si_ld, LDAP_OPT_ERROR_NUMBER, &errno );
-		errstr = ldap_err2string( errno );
+		ldap_get_option( si->si_ld, LDAP_OPT_ERROR_NUMBER, &rc );
+		errstr = ldap_err2string( rc );
 		
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
@@ -607,9 +606,6 @@ done:
 	if ( rc && si->si_ld ) {
 		ldap_unbind( si->si_ld );
 		si->si_ld = NULL;
-		/* just close and report success */
-		if ( rc == -2 )
-			rc = 0;
 	}
 
 	return rc;
@@ -626,6 +622,8 @@ do_syncrepl(
 	Operation op = {0};
 	int rc = LDAP_SUCCESS;
 	int first = 0;
+	int dostop = 0;
+	ber_socket_t s;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG ( OPERATION, DETAIL1, "do_syncrepl\n", 0, 0, 0 );
@@ -641,6 +639,14 @@ do_syncrepl(
 	case LDAP_SYNC_REFRESH_AND_PERSIST:
 		break;
 	default:
+		return NULL;
+	}
+
+	if ( slapd_abrupt_shutdown && si->si_ld ) {
+		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
+		connection_client_stop( s );
+		ldap_unbind( si->si_ld );
+		si->si_ld = NULL;
 		return NULL;
 	}
 
@@ -673,7 +679,6 @@ do_syncrepl(
 
 	/* Process results */
 	if ( rc == LDAP_SUCCESS ) {
-		ber_socket_t s;
 		ldap_get_option( si->si_ld, LDAP_OPT_DESC, &s );
 
 		rc = do_syncrep2( &op, si );
@@ -690,7 +695,7 @@ do_syncrepl(
 					connection_client_enable( s );
 				}
 			} else {
-				connection_client_stop( s );
+				dostop = 1;
 			}
 		} else {
 			ch_free( si->si_syncCookie.bv_val );
@@ -710,15 +715,21 @@ do_syncrepl(
 		ldap_pvt_runqueue_stoptask( &syncrepl_rq, rtask );
 	}
 
+	if ( dostop ) {
+		connection_client_stop( s );
+	}
+
 	if ( rc && rc != LDAP_SERVER_DOWN ) {
 		ldap_pvt_runqueue_remove( &syncrepl_rq, rtask );
-	} else if ( rc == LDAP_SERVER_DOWN ||
-		si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
-		rc = 0;
 	} else {
-		rc = 1;
+		if ( rc == LDAP_SERVER_DOWN ||
+			si->si_type == LDAP_SYNC_REFRESH_ONLY ) {
+			rc = 0;
+		} else {
+			rc = 1;
+		}
+		ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, rc );
 	}
-	ldap_pvt_runqueue_resched( &syncrepl_rq, rtask, rc );
 	ldap_pvt_thread_mutex_unlock( &syncrepl_rq.rq_mutex );
 
 	return NULL;
