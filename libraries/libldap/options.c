@@ -316,12 +316,6 @@ ldap_set_option(
 	case LDAP_OPT_ERROR_NUMBER: {
 			int err = * (int *) invalue;
 
-			if (err != 0 ) {
-				/* not supported */
-				/* we only allow ld_errno to be cleared. */
-				break;
-			}
-
 			if(ld == NULL) {
 				/* need a struct ldap */
 				break;
@@ -333,18 +327,16 @@ ldap_set_option(
 	case LDAP_OPT_ERROR_STRING: {
 			char* err = * (char **) invalue;
 
-			if (err != NULL ) {
-				/* not supported */
-				/* we only allow ld_error to be cleared. */
-				break;
-			}
-
 			if(ld == NULL) {
 				/* need a struct ldap */
 				break;
 			}
 
-			ld->ld_error = err;
+			if( ld->ld_error ) {
+				free(ld->ld_error);
+			}
+
+			ld->ld_error = strdup(err);
 		} return 0;
 
 	case LDAP_OPT_API_FEATURE_INFO:
