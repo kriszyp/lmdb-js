@@ -68,7 +68,7 @@ SHTOOL = $(top_srcdir)/build/shtool
 
 LIBTOOL = @LIBTOOL@
 LIBVERSION = @OPENLDAP_LIBVERSION@
-LTVERSION = -version-info $(LIBVERSION)
+LTVERSION = -release $(LIBVERSION)
 
 # libtool --only flag for libraries: platform specific
 NT_LTONLY_LIB = # --only-$(BUILD_LIBS_DYNAMIC)
