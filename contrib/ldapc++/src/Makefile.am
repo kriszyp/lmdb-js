@@ -6,48 +6,52 @@
 lib_LTLIBRARIES = libldapcpp.la
 
 libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
-			LDAPAsynConnection.cpp \
-			LDAPAttribute.cpp \
-			LDAPAttributeList.cpp \
-			LDAPBindRequest.cpp \
-			LDAPCompareRequest.cpp \
-            LDAPConnection.cpp \
-			LDAPConstraints.cpp \
-			LDAPControl.cpp \
-			LDAPControlSet.cpp \
-			LDAPDeleteRequest.cpp \
-			LDAPEntry.cpp \
-			LDAPEntryList.cpp \
-			LDAPException.cpp \
-			LDAPExtRequest.cpp \
-			LDAPExtResult.cpp \
-			LDAPMessage.cpp \
-			LDAPMessageQueue.cpp \
-			LDAPModDNRequest.cpp \
-			LDAPModification.cpp \
-			LDAPModifyRequest.cpp \
-			LDAPModList.cpp \
-			LDAPRebind.cpp \
-			LDAPRebindAuth.cpp \
-			LDAPReferralException.cpp \
-            LDAPReferenceList.cpp \
-            LDAPRequest.cpp \
-			LDAPResult.cpp \
-			LDAPSearchReference.cpp \
-			LDAPSearchRequest.cpp \
-			LDAPSearchResult.cpp \
-			LDAPSearchResults.cpp \
-			LDAPUrl.cpp \
-			LDAPUrlList.cpp \
-			StringList.cpp 
+                        LDAPAsynConnection.cpp \
+                        LDAPAttribute.cpp \
+                        LDAPAttributeList.cpp \
+                        LDAPAttrType.cpp \
+                        LDAPBindRequest.cpp \
+                        LDAPCompareRequest.cpp \
+                        LDAPConnection.cpp \
+                        LDAPConstraints.cpp \
+                        LDAPControl.cpp \
+                        LDAPControlSet.cpp \
+                        LDAPDeleteRequest.cpp \
+                        LDAPEntry.cpp \
+                        LDAPEntryList.cpp \
+                        LDAPException.cpp \
+                        LDAPExtRequest.cpp \
+                        LDAPExtResult.cpp \
+                        LDAPMessage.cpp \
+                        LDAPMessageQueue.cpp \
+                        LDAPModDNRequest.cpp \
+                        LDAPModification.cpp \
+                        LDAPModifyRequest.cpp \
+                        LDAPModList.cpp \
+                        LDAPObjClass.cpp \
+                        LDAPRebind.cpp \
+                        LDAPRebindAuth.cpp \
+                        LDAPReferralException.cpp \
+                        LDAPReferenceList.cpp \
+                        LDAPRequest.cpp \
+                        LDAPResult.cpp \
+                        LDAPSchema.cpp \
+                        LDAPSearchReference.cpp \
+                        LDAPSearchRequest.cpp \
+                        LDAPSearchResult.cpp \
+                        LDAPSearchResults.cpp \
+                        LDAPUrl.cpp \
+                        LDAPUrlList.cpp \
+                        StringList.cpp 
 
 include_HEADERS = LDAPAsynConnection.h \
                         LDAPAttribute.h \
                         LDAPAttributeList.h \
+                        LDAPAttrType.h \
                         LDAPConnection.h \
                         LDAPConstraints.h \
                         LDAPControl.h \
-			LDAPControlSet.h \
+                        LDAPControlSet.h \
                         LDAPEntry.h \
                         LDAPEntryList.h \
                         LDAPException.h \
@@ -56,11 +60,13 @@ include_HEADERS = LDAPAsynConnection.h \
                         LDAPMessageQueue.h \
                         LDAPModification.h \
                         LDAPModList.h \
+                        LDAPObjClass.h \
                         LDAPRebind.h \
                         LDAPRebindAuth.h \
                         LDAPReferralException.h \
                         LDAPReferenceList.h \
                         LDAPResult.h \
+                        LDAPSchema.h \
                         LDAPSearchReference.h \
                         LDAPSearchResult.h \
                         LDAPSearchResults.h \

@@ -129,49 +129,53 @@ target_alias = @target_alias@
 lib_LTLIBRARIES = libldapcpp.la
 
 libldapcpp_la_SOURCES = LDAPAddRequest.cpp \
-			LDAPAsynConnection.cpp \
-			LDAPAttribute.cpp \
-			LDAPAttributeList.cpp \
-			LDAPBindRequest.cpp \
-			LDAPCompareRequest.cpp \
-            LDAPConnection.cpp \
-			LDAPConstraints.cpp \
-			LDAPControl.cpp \
-			LDAPControlSet.cpp \
-			LDAPDeleteRequest.cpp \
-			LDAPEntry.cpp \
-			LDAPEntryList.cpp \
-			LDAPException.cpp \
-			LDAPExtRequest.cpp \
-			LDAPExtResult.cpp \
-			LDAPMessage.cpp \
-			LDAPMessageQueue.cpp \
-			LDAPModDNRequest.cpp \
-			LDAPModification.cpp \
-			LDAPModifyRequest.cpp \
-			LDAPModList.cpp \
-			LDAPRebind.cpp \
-			LDAPRebindAuth.cpp \
-			LDAPReferralException.cpp \
-            LDAPReferenceList.cpp \
-            LDAPRequest.cpp \
-			LDAPResult.cpp \
-			LDAPSearchReference.cpp \
-			LDAPSearchRequest.cpp \
-			LDAPSearchResult.cpp \
-			LDAPSearchResults.cpp \
-			LDAPUrl.cpp \
-			LDAPUrlList.cpp \
-			StringList.cpp 
+                        LDAPAsynConnection.cpp \
+                        LDAPAttribute.cpp \
+                        LDAPAttributeList.cpp \
+                        LDAPAttrType.cpp \
+                        LDAPBindRequest.cpp \
+                        LDAPCompareRequest.cpp \
+                        LDAPConnection.cpp \
+                        LDAPConstraints.cpp \
+                        LDAPControl.cpp \
+                        LDAPControlSet.cpp \
+                        LDAPDeleteRequest.cpp \
+                        LDAPEntry.cpp \
+                        LDAPEntryList.cpp \
+                        LDAPException.cpp \
+                        LDAPExtRequest.cpp \
+                        LDAPExtResult.cpp \
+                        LDAPMessage.cpp \
+                        LDAPMessageQueue.cpp \
+                        LDAPModDNRequest.cpp \
+                        LDAPModification.cpp \
+                        LDAPModifyRequest.cpp \
+                        LDAPModList.cpp \
+                        LDAPObjClass.cpp \
+                        LDAPRebind.cpp \
+                        LDAPRebindAuth.cpp \
+                        LDAPReferralException.cpp \
+                        LDAPReferenceList.cpp \
+                        LDAPRequest.cpp \
+                        LDAPResult.cpp \
+                        LDAPSchema.cpp \
+                        LDAPSearchReference.cpp \
+                        LDAPSearchRequest.cpp \
+                        LDAPSearchResult.cpp \
+                        LDAPSearchResults.cpp \
+                        LDAPUrl.cpp \
+                        LDAPUrlList.cpp \
+                        StringList.cpp 
 
 
 include_HEADERS = LDAPAsynConnection.h \
                         LDAPAttribute.h \
                         LDAPAttributeList.h \
+                        LDAPAttrType.h \
                         LDAPConnection.h \
                         LDAPConstraints.h \
                         LDAPControl.h \
-			LDAPControlSet.h \
+                        LDAPControlSet.h \
                         LDAPEntry.h \
                         LDAPEntryList.h \
                         LDAPException.h \
@@ -180,11 +184,13 @@ include_HEADERS = LDAPAsynConnection.h \
                         LDAPMessageQueue.h \
                         LDAPModification.h \
                         LDAPModList.h \
+                        LDAPObjClass.h \
                         LDAPRebind.h \
                         LDAPRebindAuth.h \
                         LDAPReferralException.h \
                         LDAPReferenceList.h \
                         LDAPResult.h \
+                        LDAPSchema.h \
                         LDAPSearchReference.h \
                         LDAPSearchResult.h \
                         LDAPSearchResults.h \
@@ -214,15 +220,16 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 
 libldapcpp_la_DEPENDENCIES =
 am_libldapcpp_la_OBJECTS = LDAPAddRequest.lo LDAPAsynConnection.lo \
-	LDAPAttribute.lo LDAPAttributeList.lo LDAPBindRequest.lo \
-	LDAPCompareRequest.lo LDAPConnection.lo LDAPConstraints.lo \
-	LDAPControl.lo LDAPControlSet.lo LDAPDeleteRequest.lo \
-	LDAPEntry.lo LDAPEntryList.lo LDAPException.lo \
-	LDAPExtRequest.lo LDAPExtResult.lo LDAPMessage.lo \
-	LDAPMessageQueue.lo LDAPModDNRequest.lo LDAPModification.lo \
-	LDAPModifyRequest.lo LDAPModList.lo LDAPRebind.lo \
-	LDAPRebindAuth.lo LDAPReferralException.lo LDAPReferenceList.lo \
-	LDAPRequest.lo LDAPResult.lo LDAPSearchReference.lo \
+	LDAPAttribute.lo LDAPAttributeList.lo LDAPAttrType.lo \
+	LDAPBindRequest.lo LDAPCompareRequest.lo LDAPConnection.lo \
+	LDAPConstraints.lo LDAPControl.lo LDAPControlSet.lo \
+	LDAPDeleteRequest.lo LDAPEntry.lo LDAPEntryList.lo \
+	LDAPException.lo LDAPExtRequest.lo LDAPExtResult.lo \
+	LDAPMessage.lo LDAPMessageQueue.lo LDAPModDNRequest.lo \
+	LDAPModification.lo LDAPModifyRequest.lo LDAPModList.lo \
+	LDAPObjClass.lo LDAPRebind.lo LDAPRebindAuth.lo \
+	LDAPReferralException.lo LDAPReferenceList.lo LDAPRequest.lo \
+	LDAPResult.lo LDAPSchema.lo LDAPSearchReference.lo \
 	LDAPSearchRequest.lo LDAPSearchResult.lo LDAPSearchResults.lo \
 	LDAPUrl.lo LDAPUrlList.lo StringList.lo
 libldapcpp_la_OBJECTS = $(am_libldapcpp_la_OBJECTS)
@@ -232,6 +239,7 @@ depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
 @AMDEP_TRUE@DEP_FILES = ./$(DEPDIR)/LDAPAddRequest.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPAsynConnection.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/LDAPAttrType.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPAttribute.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPAttributeList.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPBindRequest.Plo \
@@ -252,12 +260,14 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPModList.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPModification.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPModifyRequest.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/LDAPObjClass.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPRebind.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPRebindAuth.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPReferenceList.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPReferralException.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPRequest.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPResult.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/LDAPSchema.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPSearchReference.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPSearchRequest.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/LDAPSearchResult.Plo \
@@ -345,6 +355,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPAddRequest.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPAsynConnection.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPAttrType.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPAttribute.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPAttributeList.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPBindRequest.Plo@am__quote@
@@ -365,12 +376,14 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPModList.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPModification.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPModifyRequest.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPObjClass.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPRebind.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPRebindAuth.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPReferenceList.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPReferralException.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPRequest.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPResult.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPSchema.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPSearchReference.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPSearchRequest.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/LDAPSearchResult.Plo@am__quote@
