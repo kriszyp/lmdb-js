@@ -1,10 +1,10 @@
-.TH SLAPSASLAUTH 8C "RELEASEDATE" "OpenLDAP LDVERSION"
+.TH SLAPAUTH 8C "RELEASEDATE" "OpenLDAP LDVERSION"
 .\" Copyright 2004 The OpenLDAP Foundation All Rights Reserved.
 .\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-slapsaslauth \- Check a list of string-represented IDs for authc/authz.
+slapauth \- Check a list of string-represented IDs for authc/authz.
 .SH SYNOPSIS
-.B SBINDIR/slapsaslauth
+.B SBINDIR/slapauth
 .B [\-v]
 .B [\-d level]
 .B [\-f slapd.conf]
@@ -14,16 +14,16 @@ slapsaslauth \- Check a list of string-represented IDs for authc/authz.
 .LP
 .SH DESCRIPTION
 .LP
-.B Slapsaslauth
+.B Slapauth
 is used to check the behavior of the slapd in mapping identities 
 for authentication and authorization purposes, as specified in 
 .BR slapd.conf (5).
 It opens the
 .BR slapd.conf (5)
 configuration file, reads in the 
-.B sasl-authz-policy
+.B authz-policy
 and
-.B sasl-regexp
+.B authz-regexp
 directives, and then parses the 
 .B ID
 list given on the command-line.
@@ -69,7 +69,7 @@ The command
 .LP
 .nf
 .ft tt
-	SBINDIR/slapsaslauth -f /ETCDIR/slapd.conf -v \\
+	SBINDIR/slapauth -f /ETCDIR/slapd.conf -v \\
             -U bjorn -X u:bjensen
 
 .ft
@@ -82,9 +82,9 @@ provided the directives
 .LP
 .nf
 .ft tt
-	sasl-authz-policy from
-	sasl-regexp "^uid=([^,]+).*,cn=auth$"
-		"ldap:///o=University of Michigan,c=US??sub?uid=$1"
+	authz-policy from
+	authz-regexp "^uid=([^,]+).*,cn=auth$"
+		"ldap:///dc=example,dc=net??sub?uid=$1"
 
 .ft
 .fi
