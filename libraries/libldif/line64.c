@@ -114,13 +114,7 @@ ldif_parse_line(
 	url = 0;
 	b64 = 0;
 
-	if ( *s == '\0' ) {
-		/* no value */
-		value = "";
-		vlen = 0;
-		goto done;
-
-	} else if ( *s == '<' ) {
+	if ( *s == '<' ) {
 		s++;
 		url = 1;
 
@@ -226,8 +220,7 @@ done:
 	if( type == NULL ) {
 		ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 			"ldif_parse_line: type malloc failed\n");
-		if( url )
-			ber_memfree( value );
+		if( url ) ber_memfree( value );
 		ber_memfree( freeme );
 		return( -1 );
 	}
