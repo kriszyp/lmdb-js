@@ -698,25 +698,3 @@ ber_bvarray_add( BerVarray *a, BerValue *bv )
 	return n;
 }
 
-char *
-ber_bvchr( struct berval *bv, char c )
-{
-	ber_len_t	p;
-
-	assert( bv );
-	
-	if ( bv->bv_len == 0 ) {
-		return NULL;
-	}
-
-	assert( bv->bv_val );
-	
-	for ( p = 0; p < bv->bv_len; p++ ) {
-		if ( bv->bv_val[ p ] == c ) {
-			return &bv->bv_val[ p ];
-		}
-	}
-
-	return NULL;
-}
-

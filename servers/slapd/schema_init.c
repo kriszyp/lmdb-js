@@ -17,6 +17,7 @@
 
 #include "slap.h"
 #include "ldap_pvt.h"
+#include "lber_pvt.h"
 
 #include "ldap_utf8.h"
 
@@ -1124,7 +1125,6 @@ retry:
 			}
 
 			p = ber_bvchr( &left, *sub->sa_any[i].bv_val );
-
 			if ( p == NULL ) {
 				match = 1;
 				goto done;
