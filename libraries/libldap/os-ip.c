@@ -325,19 +325,22 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	const char *host, int port,
 	int async )
 {
+	int	rc;
+	int	socktype;
 	ber_socket_t		s = AC_SOCKET_INVALID;
-	int			rc, i, use_hp = 0;
-	struct hostent		*hp = NULL;
+
 #if defined( HAVE_GETADDRINFO ) && defined( HAVE_INET_NTOP )
 	char serv[7];
 	int err;
 	struct addrinfo hints, *res, *sai;
 #else
+	int i;
+	int use_hp = 0;
+	struct hostent		*hp = NULL;
 	struct hostent he_buf;
 	struct in_addr in;
-#endif
 	char   	*ha_buf=NULL, *p, *q;
-	int		socktype;
+#endif
 
 	if( host == NULL ) host = "localhost";
 	

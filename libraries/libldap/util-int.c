@@ -539,7 +539,8 @@ char * ldap_pvt_get_fqdn( char *name )
 	return fqdn;
 }
 
-#if defined( HAVE_GETADDRINFO ) && !defined( HAVE_GAI_STRERROR )
+#if ( defined( HAVE_GETADDRINFO ) || defined( HAVE_GETNAMEINFO ) ) \
+	&& !defined( HAVE_GAI_STRERROR )
 char *ldap_pvt_gai_strerror (int code) {
 	static struct {
 		int code;

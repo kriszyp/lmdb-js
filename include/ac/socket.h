@@ -192,7 +192,7 @@ LDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #	define INET6_ADDRSTRLEN 46
 #endif
 
-#ifdef HAVE_GETADDRINFO
+#if defined( HAVE_GETADDRINFO ) || defined( HAVE_GETNAMEINFO )
 #	ifdef HAVE_GAI_STRERROR
 #		define AC_GAI_STRERROR(x)	(gai_strerror((x)))
 #	else
