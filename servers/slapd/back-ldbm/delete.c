@@ -105,7 +105,7 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS, "<=- ldbm_back_delete: non leaf %s\n",
 			dn, 0, 0);
 		send_ldap_result( conn, op, LDAP_NOT_ALLOWED_ON_NONLEAF,
-			NULL, NULL, NULL, NULL );
+			NULL, "subtree delete not supported", NULL, NULL );
 		goto return_results;
 	}
 
@@ -115,8 +115,8 @@ ldbm_back_delete(
 			Debug( LDAP_DEBUG_TRACE,
 				"<=- ldbm_back_delete: parent does not exist\n",
 				0, 0, 0);
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-				NULL, NULL, NULL, NULL );
+			send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "could not locate parent of entry", NULL, NULL );
 			goto return_results;
 		}
 
@@ -152,8 +152,8 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "DN index delete failed", NULL, NULL );
 		goto return_results;
 	}
 
@@ -162,8 +162,8 @@ ldbm_back_delete(
 		Debug(LDAP_DEBUG_ARGS,
 			"<=- ldbm_back_delete: operations error %s\n",
 			dn, 0, 0);
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "entry delete failed", NULL, NULL );
 		goto return_results;
 	}
 

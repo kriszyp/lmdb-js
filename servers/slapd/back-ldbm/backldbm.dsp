@@ -42,6 +42,7 @@ CPP=cl.exe
 # PROP Output_Dir "..\..\..\Release"
 # PROP Intermediate_Dir "..\..\..\Release\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\\" /I "..\..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -63,6 +64,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "..\..\..\Debug"
 # PROP Intermediate_Dir "..\..\..\Debug\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\\" /I "..\..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -84,6 +86,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "..\..\..\SDebug"
 # PROP Intermediate_Dir "..\..\..\SDebug\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\\" /I "..\..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\\" /I "..\..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -105,6 +108,7 @@ LIB32=link.exe -lib
 # PROP Output_Dir "..\..\..\SRelease"
 # PROP Intermediate_Dir "..\..\..\SRelease\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\\" /I "..\..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\\" /I "..\..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe

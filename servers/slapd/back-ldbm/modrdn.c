@@ -296,7 +296,7 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: can't figure out type of newrdn\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+			NULL, "unknown type used in RDN", NULL, NULL );
 		goto return_results;		
 
 	}
@@ -307,7 +307,7 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: can't figure out val of newrdn\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+			NULL, "could not parse RDN value", NULL, NULL );
 		goto return_results;		
 
 	}
@@ -323,8 +323,8 @@ ldbm_back_modrdn(
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out old_rdn from dn\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "could not parse old DN", NULL, NULL );
 		goto return_results;		
 
 	}
@@ -334,8 +334,8 @@ ldbm_back_modrdn(
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out the old_rdn type\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "count parse RDN from old DN", NULL, NULL );
 		goto return_results;		
 		
 	}
@@ -381,8 +381,8 @@ ldbm_back_modrdn(
 				Debug( LDAP_DEBUG_TRACE,
 				       "ldbm_back_modrdn: can't figure out old_rdn_val from old_rdn\n",
 				       0, 0, 0 );
-				send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-					NULL, NULL, NULL, NULL );
+				send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "cound not parse value from old RDN", NULL, NULL );
 				goto return_results;		
 			}
 
@@ -423,7 +423,7 @@ ldbm_back_modrdn(
 	/* delete old one */
 	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, NULL, NULL, NULL );
+			NULL, "DN index delete fail", NULL, NULL );
 		goto return_results;
 	}
 
@@ -441,7 +441,7 @@ ldbm_back_modrdn(
 	/* add new one */
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, NULL, NULL, NULL );
+			NULL, "DN index add failed", NULL, NULL );
 		goto return_results;
 	}
 
@@ -467,7 +467,7 @@ ldbm_back_modrdn(
 	if ( id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
 		send_ldap_result( conn, op, LDAP_OTHER,
-			NULL, NULL, NULL, NULL );
+			NULL, "entry update failed", NULL, NULL );
 		goto return_results;
 	}
 

@@ -64,7 +64,7 @@ ldbm_back_exop_passwd(
 
 		if( new == NULL || new->bv_len == 0 ) {
 			*text = "password generation failed.";
-			rc = LDAP_OPERATIONS_ERROR;
+			rc = LDAP_OTHER;
 			goto done;
 		}
 		
@@ -75,7 +75,7 @@ ldbm_back_exop_passwd(
 
 	if( hash == NULL || hash->bv_len == 0 ) {
 		*text = "password hash failed";
-		rc = LDAP_OPERATIONS_ERROR;
+		rc = LDAP_OTHER;
 		goto done;
 	}
 
@@ -148,7 +148,8 @@ ldbm_back_exop_passwd(
 	if( rc == LDAP_SUCCESS ) {
 		/* change the entry itself */
 		if( id2entry_add( be, e ) != 0 ) {
-			rc = LDAP_OPERATIONS_ERROR;
+			*text = "entry update failed";
+			rc = LDAP_OTHER;
 		}
 	}
 	
