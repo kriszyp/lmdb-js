@@ -176,7 +176,11 @@ ldap_pvt_is_socket_ready(LDAP *ld, int s)
 #else
 {
 	/* error slippery */
+#ifdef LDAP_PF_INET6
+	struct sockaddr_storage sin;
+#else
 	struct sockaddr_in sin;
+#endif
 	char ch;
 	socklen_t dummy = sizeof(sin);
 	if ( getpeername( s, (struct sockaddr *) &sin, &dummy )
@@ -321,7 +325,6 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 	const char *host,
 	unsigned long address, int port, int async )
 {
-	struct sockaddr_in	sin;
 	ber_socket_t		s = AC_SOCKET_INVALID;
 	int			rc, i, use_hp = 0;
 	struct hostent		*hp = NULL;
@@ -436,6 +439,8 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 
 	rc = s = -1;
 	for ( i = 0; !use_hp || (hp->h_addr_list[i] != 0); ++i, rc = -1 ) {
+		struct sockaddr_in	sin;
+
 		s = ldap_int_socket( ld, PF_INET, socktype );
 		if ( s == AC_SOCKET_INVALID ) {
 			/* use_hp ? continue : break; */
@@ -447,7 +452,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb,
 			break;
 		}
 
-		(void)memset((char *)&sin, '\0', sizeof(struct sockaddr_in));
+		(void)memset((char *)&sin, '\0', sizeof sin);
 		sin.sin_family = AF_INET;
 		sin.sin_port = htons((short) port);
 		p = (char *)&sin.sin_addr;
