@@ -12,7 +12,7 @@
 
 #include "portable.h"
 
-#ifndef SLAPD_ALIAS_DEREF
+#ifdef SLAPD_ALIAS_DEREF
 
 #include <stdio.h>
 #include <string.h>
