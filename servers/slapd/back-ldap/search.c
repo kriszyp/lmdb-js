@@ -498,7 +498,8 @@ ldap_back_entry_get(
 {
 	struct ldapconn *lc;
 	int		rc = 1,
-			is_oc;
+			is_oc,
+			do_not_cache;
 	struct berval	bdn;
 	LDAPMessage	*result = NULL,
 			*e = NULL;
@@ -509,17 +510,17 @@ ldap_back_entry_get(
 	int		do_retry = 1;
 
 	/* Tell getconn this is a privileged op */
-	is_oc = op->o_do_not_cache;
+	do_not_cache = op->o_do_not_cache;
 	op->o_do_not_cache = 1;
 	lc = ldap_back_getconn( op, &rs );
 	oconn = op->o_conn;
 	op->o_conn = NULL;
 	if ( !lc || !ldap_back_dobind( lc, op, &rs ) ) {
-		op->o_do_not_cache = is_oc;
+		op->o_do_not_cache = do_not_cache;
 		op->o_conn = oconn;
 		return 1;
 	}
-	op->o_do_not_cache = is_oc;
+	op->o_do_not_cache = do_not_cache;
 	op->o_conn = oconn;
 
 	if ( at ) {

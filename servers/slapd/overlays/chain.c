@@ -114,6 +114,13 @@ ldap_chain_response( Operation *op, SlapReply *rs )
 	op->o_callback = NULL;
 
 	if ( lip->url == NULL ) {
+		/* if we parse the URI then by no means 
+		 * we can cache stuff or reuse connections, 
+		 * because in back-ldap there's no caching
+		 * based on the URI value, which is supposed
+		 * to be set once for all (correct?) */
+		op->o_do_not_cache = 1;
+
 		/* FIXME: we're setting the URI of the first referral;
 		 * what if there are more?  Is this something we should
 		 * worry about? */
