@@ -59,7 +59,7 @@ monitor_subsys_time_init(
 	struct monitorentrypriv	*mp;
 	char			buf[1024];
 	struct tm		*tms;
-	char			tmbuf[20];
+	char			tmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 
 	/*
 	 * Note: ltmbuf, ltm are used only if HACK_LOCAL_TIME is defined
@@ -220,7 +220,8 @@ monitor_subsys_time_update(
 	Entry                   *e
 )
 {
-	char		stmbuf[20], ctmbuf[20];
+	char		stmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ],
+			ctmbuf[ LDAP_LUTIL_GENTIME_BUFSIZE ];
 	struct tm	*stm, *ctm;
 	Attribute	*a;
 	ber_len_t	len;
