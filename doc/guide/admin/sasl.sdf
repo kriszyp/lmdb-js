@@ -501,7 +501,7 @@ and the authenticated user can become ANY DN returned by the search.
 If an LDAP entry looked like:
 
 >	dn: cn=WebUpdate,dc=example,dc=com
->	saslAuthzTo: ldap:///dc=example,dc=com??sub?objectclass=Person
+>	saslAuthzTo: ldap:///dc=example,dc=com??sub?(objectclass=Person)
 
 then any user who authenticated as cn=WebUpdate,dc=example,dc=com
 could authorize to any other LDAP entry under the search base
