@@ -42,6 +42,12 @@ typedef struct ldap_int_thread_key_s {
  */
 #define	MAXKEYS	32
 
+#ifdef HAVE_PTHREADS
+#define	TID_EQ(a,b)	pthread_equal((a),(b))
+#else
+#define	TID_EQ(a,b)	((a) == (b))
+#endif
+
 typedef struct ldap_int_thread_ctx_s {
 	union {
 	LDAP_STAILQ_ENTRY(ldap_int_thread_ctx_s) q;
@@ -521,8 +527,8 @@ void *ldap_pvt_thread_pool_context( ldap_pvt_thread_pool_t *tpool )
 
 	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
 	LDAP_SLIST_FOREACH(ptr, &pool->ltp_active_list, ltc_next.al)
-		if (ptr != NULL && ptr->ltc_thread_id == tid) break;
-	if (ptr != NULL && ptr->ltc_thread_id != tid) {
+		if (ptr != NULL && TID_EQ(ptr->ltc_thread_id, tid)) break;
+	if (ptr != NULL && !TID_EQ(ptr->ltc_thread_id, tid)) {
 		ptr = NULL;
 	}
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
