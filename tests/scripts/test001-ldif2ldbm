@@ -1,11 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
-if [ $# -eq 1 ]; then
+if test $# -eq 1 ; then
 	BACKEND=$1; shift
 fi
 
@@ -22,7 +22,7 @@ rm -f $DBDIR/[!C]*
 echo "Running ldif2ldbm to build slapd database..."
 $LDIF2LDBM -f $CONF -i $LDIF -e ../servers/slapd/tools
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldif2ldbm failed!"
 	exit $RC
 fi
@@ -36,7 +36,7 @@ for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
 		'objectClass=*' > $SEARCHOUT 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
@@ -44,14 +44,14 @@ done
 
 kill -HUP $PID
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	exit $RC
 fi
 
 echo "Comparing retrieved entries to LDIF file used to create database"
 cmp $SEARCHOUT $LDIF
-if [ $? != 0 ]; then
+if test $? != 0 ; then
 	echo "comparison failed - database was not created correctly"
 	exit 1
 fi

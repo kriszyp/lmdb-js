@@ -1,11 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
-if [ $# -eq 1 ]; then
+if test $# -eq 1 ; then
 	BACKEND=$1; shift
 fi
 
@@ -19,7 +19,7 @@ rm -f $DBDIR/[!C]*
 echo "Running ldif2ldbm to build slapd database..."
 $LDIF2LDBM -f $CONF -i $LDIF -e ../servers/slapd/tools
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldif2ldbm failed!"
 	exit $RC
 fi
@@ -34,13 +34,13 @@ for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
 		'cn=Manager' > /dev/null 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
 done
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	kill -HUP $PID
 	exit $RC
@@ -56,7 +56,7 @@ $LDAPMODRDN -v -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD > \
 	/dev/null 2>&1 'cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Michigan, c=US' 'cn=James A Jones III'
 
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapmodrdn failed!"
 	kill -HUP $PID
 	exit $RC
@@ -67,7 +67,7 @@ $LDAPMODRDN -v -D "$MANAGERDN" -r -h localhost -p $PORT -w $PASSWD > \
 	/dev/null 2>&1 'cn=James A Jones 2, ou=Information Technology Division, ou=People, o=University of Michigan, c=US' 'cn=James A Jones II'
 
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapmodrdn failed!"
 	kill -HUP $PID
 	exit $RC
@@ -79,14 +79,14 @@ $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
 	    > $SEARCHOUT 2>&1
 RC=$?
 kill -HUP $PID
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	exit $RC
 fi
 
 echo "Comparing database to reference file"
 cmp $SEARCHOUT $MODRDNOUTMASTER
-if [ $? != 0 ]; then
+if test $? != 0 ; then
 	echo "comparison failed - modrdn operations did not complete correctly"
 	exit 1
 fi

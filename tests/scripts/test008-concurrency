@@ -1,11 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
-if [ $# -eq 1 ]; then
+if test $# -eq 1 ; then
 	BACKEND=$1; shift
 fi
 
@@ -17,12 +17,12 @@ echo "Datadir is $DATADIR"
 
 echo "Cleaning up in $DBDIR..."
 
-rm -f $DBDIR/[!C]*
+rm -f $DBDIR/[!C*
 
 echo "Running ldif2ldbm to build slapd database..."
 $LDIF2LDBM -f $CONF -i $LDIF -e ../servers/slapd/tools
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldif2ldbm failed!"
 	exit $RC
 fi
@@ -41,7 +41,7 @@ echo "Using tester for concurrent server access..."
 $SLAPDTESTER -b "$BASEDN" -P "$PROGDIR" -d "$DATADIR" -h localhost -p $PORT -D "$MANAGERDN" -w $PASSWD -l 50
 RC=$?
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "slapd-tester failed!"
 	exit $RC
 fi 
@@ -53,14 +53,14 @@ RC=$?
 
 kill -HUP $PID
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	exit $RC
 fi
 
 echo "Comparing retrieved entries to LDIF file used to create database"
 cmp $SEARCHOUT $LDIF
-if [ $? != 0 ]; then
+if test $? != 0 ; then
 	echo "comparison failed - database was not created correctly"
 	exit 1
 fi

@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 
 # disable LDAP initialization
 LDAPNOINIT=true; export LDAPNOINIT
@@ -25,7 +25,7 @@ for CMD in $SRCDIR/scripts/test*; do
 	echo ">>>>> Starting `basename $CMD` ..."
 	$CMD $SRCDIR $BACKEND
 	RC=$?
-	if [ $RC -eq 0 ]; then
+	if test $RC -eq 0 ; then
 		echo ">>>>> $CMD completed OK."
 	else
 		echo ">>>>> $CMD failed (exit $RC)"

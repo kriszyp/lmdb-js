@@ -1,11 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
-if [ $# -eq 1 ]; then
+if test $# -eq 1 ; then
 	BACKEND=$1; shift
 fi
 
@@ -25,7 +25,7 @@ for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $PORT \
 		'cn=Monitor' > /dev/null 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
@@ -35,7 +35,7 @@ echo "Using ldapmodify to populate the database..."
 $LDAPMODIFY -a -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapmodify failed!"
 	kill -HUP $PID
 	exit $RC
@@ -48,7 +48,7 @@ $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
 
 kill -HUP $PID
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	exit $RC
 fi
@@ -60,7 +60,7 @@ echo "Filtering original ldif used to create database..."
 echo "Comparing filter output..."
 cmp $SEARCHFLT $LDIFFLT
 
-if [ $? != 0 ]; then
+if test $? != 0 ; then
 	echo "comparison failed - database was not created correctly"
 	exit 1
 fi

@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 
 #
 # Test replication:
@@ -10,12 +10,12 @@
 # - retrieve database over ldap and compare against expected results
 #
 
-if [ $# -eq 0 ]; then
+if test $# -eq 0 ; then
 	SRCDIR="."
 else
 	SRCDIR=$1; shift
 fi
-if [ $# -eq 1 ]; then
+if test $# -eq 1 ; then
 	BACKEND=$1; shift
 fi
 
@@ -46,7 +46,7 @@ for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $PORT \
 		'cn=Monitor' > /dev/null 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
@@ -57,7 +57,7 @@ for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -L -b "$BASEDN" -h localhost -p $SLAVEPORT \
 		'cn=Monitor' > /dev/null 2>&1
 	RC=$?
-	if [ $RC = 1 ]; then
+	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."
 		sleep 5
 	fi
@@ -71,7 +71,7 @@ echo "Using ldapmodify to populate the database..."
 $LDAPMODIFY -a -D "$MANAGERDN" -h localhost -p $PORT -w $PASSWD < \
 	$LDIFORDERED > /dev/null 2>&1
 RC=$?
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapmodify failed!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
@@ -146,7 +146,7 @@ echo "Using ldapsearch to read all the entries from the master..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $PORT \
 	'objectclass=*' > $MASTEROUT 2>&1
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
@@ -156,7 +156,7 @@ echo "Using ldapsearch to read all the entries from the slave..."
 $LDAPSEARCH -L -S "" -b "$BASEDN" -h localhost -p $SLAVEPORT \
 	'objectclass=*' > $SLAVEOUT 2>&1
 
-if [ $RC != 0 ]; then
+if test $RC != 0 ; then
 	echo "ldapsearch failed!"
 	kill -HUP $PID $SLAVEPID $SLURPPID
 	exit $RC
@@ -166,7 +166,7 @@ kill -HUP $PID $SLAVEPID $SLURPPID
 
 echo "Comparing retrieved entries from master and slave..."
 cmp $MASTEROUT $SLAVEOUT
-if [ $? != 0 ]; then
+if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"
 	exit 1
 fi
