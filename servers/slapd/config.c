@@ -1979,6 +1979,9 @@ read_config( const char *fname, int depth )
 				}
 			}
 
+		} else if ( strcasecmp( cargv[0], "replicationInterval" ) == 0 ) {
+			/* ignore */
+
 		/* dn of slave entity allowed to write to replica */
 		} else if ( strcasecmp( cargv[0], "updatedn" ) == 0 ) {
 			if ( cargc < 2 ) {
