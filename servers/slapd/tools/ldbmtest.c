@@ -51,7 +51,7 @@ main( int argc, char **argv )
 	char		buf[256];
 	Datum		savekey, key, data, last;
 	char		*fname;
-	ID		id;
+	ID		id, cursor;
 	ID_BLOCK		*idl;
 	Backend		*tbe;
 	int		i;
@@ -279,8 +279,8 @@ main( int argc, char **argv )
 			get_keydata( stdin, buf[1], &key, &data );
 
 			idl = (ID_BLOCK *) data.dptr;
-			for ( id = idl_firstid( idl ); id != NOID;
-			    id = idl_nextid( idl, id ) ) {
+			for ( id = idl_firstid( idl, &cursor ); id != NOID;
+			    id = idl_nextid( idl, &cursor ) ) {
 				if ( idl_insert_key( be, dbc, key, id )
 				    != 0 ) {
 					fprintf( stderr,

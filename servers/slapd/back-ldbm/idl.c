@@ -1004,10 +1004,14 @@ idl_notin(
  *		NIDS > 1 return 1
  *		otherwise return NOID 
  *	otherwise return first ID
+ *
+ *	cursor is set to 1
  */         
 ID
-idl_firstid( ID_BLOCK *idl )
+idl_firstid( ID_BLOCK *idl, ID *cursor )
 {
+	*cursor = 1;
+
 	if ( idl == NULL || ID_BLOCK_NIDS(idl) == 0 ) {
 		return( NOID );
 	}
@@ -1019,28 +1023,29 @@ idl_firstid( ID_BLOCK *idl )
 	return( ID_BLOCK_ID(idl, 0) );
 }
 
-/*	return next ID after id
- *	if ALLIDS block, increment id. 
+/*	return next ID
+ *	if ALLIDS block, cursor is id.
+ *		increment id
  *		if id < NIDS return id
  *		otherwise NOID.
- *	otherwise SEARCH for next id (ugh!)
+ *	otherwise cursor is index into block
+ *		if index < nids
+ *			return id at index then increment
  */ 
 ID
-idl_nextid( ID_BLOCK *idl, ID id )
+idl_nextid( ID_BLOCK *idl, ID *cursor )
 {
-	unsigned int	i;
-
 	if ( ID_BLOCK_ALLIDS( idl ) ) {
-		return( ++id < ID_BLOCK_NIDS(idl) ? id : NOID );
+		if( ++(*cursor) < ID_BLOCK_NIDS(idl) ) {
+			return *cursor;
+		} else {
+			return NOID;
+		}
 	}
 
-	for ( i = 0; i < ID_BLOCK_NIDS(idl) && ID_BLOCK_ID(idl, i) <= id; i++ ) {
-		;	/* NULL */
+	if ( *cursor < ID_BLOCK_NIDS(idl) ) {
+		return( ID_BLOCK_ID(idl, (*cursor)++) );
 	}
 
-	if ( i >= ID_BLOCK_NIDS(idl) ) {
-		return( NOID );
-	} else {
-		return( ID_BLOCK_ID(idl, i) );
-	}
+	return( NOID );
 }

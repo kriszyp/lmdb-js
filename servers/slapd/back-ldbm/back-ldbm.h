@@ -25,7 +25,7 @@ LDAP_BEGIN_DECL
 #define SUBLEN			3
 
 /*
- * there is a single index for each attribute.  these prefixes insure
+ * there is a single index for each attribute.  these prefixes ensure
  * that there is no collision among keys.
  */
 #define EQ_PREFIX	'='	/* prefix for equality keys     */
@@ -116,7 +116,7 @@ typedef struct ldbm_attrinfo {
 */
 } AttrInfo;
 
-#define MAXDBCACHE	10
+#define MAXDBCACHE	16
 
 /* this could be made an option */
 #ifndef SLAPD_NEXTID_CHUNK

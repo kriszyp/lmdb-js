@@ -44,7 +44,7 @@ ldbm_back_search(
 	char *text;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
-	ID		id;
+	ID		id, cursor;
 	Entry		*e;
 	struct berval **v2refs = NULL;
 	Entry	*matched = NULL;
@@ -151,8 +151,8 @@ ldbm_back_search(
 		goto done;
 	}
 
-	for ( id = idl_firstid( candidates ); id != NOID;
-	    id = idl_nextid( candidates, id ) )
+	for ( id = idl_firstid( candidates, &cursor ); id != NOID;
+	    id = idl_nextid( candidates, &cursor ) )
 	{
 		int		scopeok = 0;
 
