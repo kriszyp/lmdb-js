@@ -214,7 +214,9 @@ ldap_pvt_thread_pool_submit (
 	LDAP_STAILQ_INSERT_TAIL(&pool->ltp_pending_list, ctx, ltc_next.q);
 	ldap_pvt_thread_cond_signal(&pool->ltp_cond);
 	if ((pool->ltp_open_count <= 0
+#if 0
 			|| pool->ltp_pending_count > 1
+#endif
 			|| pool->ltp_open_count == pool->ltp_active_count)
 		&& (pool->ltp_max_count <= 0
 			|| pool->ltp_open_count < pool->ltp_max_count))
@@ -346,14 +348,8 @@ ldap_pvt_thread_pool_destroy ( ldap_pvt_thread_pool_t *tpool, int run_pending )
 	pool->ltp_state = run_pending
 		? LDAP_INT_THREAD_POOL_FINISHING
 		: LDAP_INT_THREAD_POOL_STOPPING;
-	waiting = pool->ltp_open_count;
 
-	/* broadcast could be used here, but only after
-	 * it is fixed in the NT thread implementation
-	 */
-	while (--waiting >= 0) {
-		ldap_pvt_thread_cond_signal(&pool->ltp_cond);
-	}
+	ldap_pvt_thread_cond_broadcast(&pool->ltp_cond);
 	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 	do {
@@ -437,7 +433,10 @@ ldap_int_thread_pool_wrapper (
 		ctx->ltc_start_routine(ctx, ctx->ltc_arg);
 
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+		LDAP_SLIST_REMOVE(&pool->ltp_active_list, ctx,
+			ldap_int_thread_ctx_s, ltc_next.al);
 		LDAP_SLIST_INSERT_HEAD(&pool->ltp_free_list, ctx, ltc_next.l);
+		pool->ltp_active_count--;
 		ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
 
 		ldap_pvt_thread_yield();
@@ -447,11 +446,6 @@ ldap_int_thread_pool_wrapper (
 		 */
 
 		ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
-		pool->ltp_active_count--;
-		ctx = LDAP_SLIST_FIRST(&pool->ltp_active_list);
-		if (ctx) {
-			LDAP_SLIST_REMOVE_HEAD(&pool->ltp_active_list, ltc_next.al);
-		}
 	}
 
 	pool->ltp_open_count--;
