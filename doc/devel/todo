@@ -30,17 +30,19 @@ Redesign slapd threading (thread pooling)
 Modify -lldap to be session-level multithreaded
 Port slapd (incl back-ldbm & tools) to NT
 MajorLDAP - Design and implement an LDAP aware mailing list manager
+Slapd-DB2 - Design and implement a backend to take full advantage
+	of the latest DB2 features. 
 
 
 Medium projects
 ---------------
-Modify -lldap to be reentrant/threadsafe
-Modify -llthread to hide thread implementation
+Modify -lldap to be reentrant/threadsafe <bart@openldap.org>
+Modify -llthread to hide thread implementation <bart@openldap.org>
 Modify libraries to use application specified logging routines
 Modify libraries to use application specified memory allocation routines
 Extend configure.in to support autodetect of ISODE features.
 Port slurpd to NT
-Update manual page
+Update SLAPD/SLURD Admin Guide
 
 
 Small projects
@@ -50,3 +52,6 @@ Extend ldap clients to have -P(rotocol) version flag (2 or 3)
 Create ldapurl (from ldapsearch?) to support searching by URL
 Extend configure.in to support autodetect of Kerberos features.
 Extend mail500 (and other daemons) to use ldap filters.
+Update libldbm to support DB 2.4 
+Update any manual page
+Add useful information to our FAQ http://www.openldap.org/faq/
