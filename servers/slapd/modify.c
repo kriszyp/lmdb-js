@@ -244,8 +244,7 @@ add_lastmods( Operation *op, LDAPModList **modlist )
 	tmp = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
 	tmp->ml_type = ch_strdup( "modifiersname" );
 	tmp->ml_op = LDAP_MOD_REPLACE;
-	tmp->ml_bvalues = (struct berval **) ch_calloc( 1,
-	    2 * sizeof(struct berval *) );
+	tmp->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
 	tmp->ml_bvalues[0] = ber_bvdup( &bv );
 	tmp->ml_next = *modlist;
 	*modlist = tmp;
@@ -264,7 +263,7 @@ add_lastmods( Operation *op, LDAPModList **modlist )
 	tmp = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
 	tmp->ml_type = ch_strdup( "modifytimestamp" );
 	tmp->ml_op = LDAP_MOD_REPLACE;
-	tmp->ml_bvalues = (struct berval **) ch_calloc( 1, 2 * sizeof(struct berval *) );
+	tmp->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
 	tmp->ml_bvalues[0] = ber_bvdup( &bv );
 	tmp->ml_next = *modlist;
 	*modlist = tmp;

@@ -74,7 +74,7 @@ slapd_daemon(
 	}
 #endif	/* !FD_SETSIZE */
 
-	c = (Connection *) ch_calloc( 1, dtblsize * sizeof(Connection) );
+	c = (Connection *) ch_calloc( (size_t) dtblsize, sizeof(Connection) );
 
 	for ( i = 0; i < dtblsize; i++ ) {
 		c[i].c_dn = NULL;

@@ -181,8 +181,7 @@ parse_acl(
 			 * by clause consists of <who> and <access>
 			 */
 
-			b = (struct access *) ch_calloc( 1,
-			    sizeof(struct access) );
+			b = (struct access *) ch_calloc( 1, sizeof(struct access) );
 
 			if ( ++i == argc ) {
 				fprintf( stderr,
