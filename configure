@@ -1,6 +1,6 @@
 #! /bin/sh
 # $OpenLDAP$
-# from OpenLDAP: pkg/ldap/configure.in,v 1.263 1999/09/28 22:56:43 bcollins Exp  
+# from OpenLDAP: pkg/ldap/configure.in,v 1.264 1999/10/01 03:11:40 kdz Exp  
 
 # Copyright 1998,1999 The OpenLDAP Foundation.  All Rights Reserved.
 # 
@@ -5849,7 +5849,7 @@ if test $ol_link_kerberos = yes ; then
 EOF
 
 
-else if test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
+elif test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
 	{ echo "configure: error: Kerberos detection failed." 1>&2; exit 1; }
 fi
 

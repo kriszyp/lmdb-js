@@ -856,7 +856,7 @@ fi
 if test $ol_link_kerberos = yes ; then
 	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
 
-else if test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
+elif test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
 	AC_ERROR([Kerberos detection failed.])
 fi
 
