@@ -190,10 +190,24 @@ dereferenced when searching, or dereferenced only when locating the
 base object for the search.  The default is to never dereference aliases.
 .TP
 .BI \-l \ timelimit
-wait at most \fItimelimit\fP seconds for a search to complete.
+wait at most \fItimelimit\fP seconds for a search to complete.  A
+timelimit of
+.I 0
+(zero) removes the
+.B ldap.conf
+limit.
+A server may impose a maximal timelimit which only
+the root user may override.
 .TP
 .BI \-z \ sizelimit
-retrieve at most \fIsizelimit\fP entries for a search.
+retrieve at most \fIsizelimit\fP entries for a search.  A sizelimit
+of 
+.I 0
+(zero) removes the 
+.B ldap.conf
+limit.
+A server may impose a maximal sizelimit which only
+the root user may override.
 .SH OUTPUT FORMAT
 If one or more entries are found, each entry is written to standard output
 in the form:
