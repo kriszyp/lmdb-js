@@ -1567,7 +1567,7 @@ elif test $ol_enable_ldbm = no ; then
 	fi
 
 	if test $ol_enable_passwd = no -a \
-		$ol_enable_perl = no -a
+		$ol_enable_perl = no -a \
 		$ol_enable_shell = no ; then
 		{ echo "configure: error: slapd requires a backend" 1>&2; exit 1; }
 	fi
