@@ -32,24 +32,30 @@
 #	endif
 
 #	ifndef HAVE_STRRCHR
+#		undef strchr
 #		define strchr index
+#		undef strrchr
 #		define strrchr rindex
 #	endif
 
 #	ifndef HAVE_MEMCPY
+#		undef memcpy
 #		define memcpy(d, s, n)		((void) bcopy ((s), (d), (n)))
+#		undef memmove
 #		define memmove(d, s, n)		((void) bcopy ((s), (d), (n)))
 #	endif
 #endif
 
 extern char *ldap_pvt_strtok( char *str, const char *delim, char **pos );
 #ifndef HAVE_STRTOK_R
+#	undef strtok_r
 #	define strtok_r(s, d, p) ldap_pvt_strtok((s),(d),(p))
 #endif
 
 extern char *ldap_pvt_strdup( const char * s );
 #ifndef HAVE_STRDUP
 	/* strdup() is missing, declare our own version */
+#	undef strdup
 #	define strdup(s) ldap_pvt_strdup(s)
 #else
 	/* some systems fail to declare strdup */
