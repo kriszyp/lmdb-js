@@ -2889,21 +2889,23 @@ char *objectIdentifierFirstComponentMatchSyntaxes[] = {
 /*
  * Other matching rules in X.520 that we do not use (yet):
  *
- * 2.5.13.9		numericStringOrderingMatch
+ * 2.5.13.9*	numericStringOrderingMatch
  * 2.5.13.25	uTCTimeMatch
  * 2.5.13.26	uTCTimeOrderingMatch
- * 2.5.13.31	directoryStringFirstComponentMatch
- * 2.5.13.32	wordMatch
- * 2.5.13.33	keywordMatch
+ * 2.5.13.31*	directoryStringFirstComponentMatch
+ * 2.5.13.32*	wordMatch
+ * 2.5.13.33*	keywordMatch
  * 2.5.13.36	certificatePairExactMatch
  * 2.5.13.37	certificatePairMatch
  * 2.5.13.38	certificateListExactMatch
  * 2.5.13.39	certificateListMatch
  * 2.5.13.40	algorithmIdentifierMatch
- * 2.5.13.41	storedPrefixMatch
+ * 2.5.13.41*	storedPrefixMatch
  * 2.5.13.42	attributeCertificateMatch
  * 2.5.13.43	readerAndKeyIDMatch
  * 2.5.13.44	attributeIntegrityMatch
+ *
+ * (*) described in RFC 3698 (LDAP: Additional Matching Rules)
  */
 static slap_mrule_defs_rec mrule_defs[] = {
 	/*
