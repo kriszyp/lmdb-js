@@ -42,5 +42,5 @@ clean-local:	FORCE
 
 veryclean-local: FORCE
 	@-$(RM) data schema
-	$(RM) -r test-db test-repl
+	-$(RM) -r test-db test-repl
 
