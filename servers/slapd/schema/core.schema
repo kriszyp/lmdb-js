@@ -810,13 +810,3 @@ attributetype ( 1.3.6.1.4.1.4203.666.1.5
 	EQUALITY OpenLDAPaciMatch
 	SYNTAX 1.3.6.1.4.1.4203.666.2.1
 	USAGE directoryOperation )
-
-# monitorSubEntry
-#   Notes: in 'cn' (inherited from 'LDAPsubEntry') it holds the name
-#   of the subsystem it is monitoring
-#	Experimental!
-#objectclass ( 1.3.6.1.4.1.4203.666.X.Y.Z
-#	NAME 'monitorSubEntry'
-# 	DESC 'OpenLDAP ancestor class for system monitoring'
-#	SUP LDAPsubEntry STRUCTURAL )
-
