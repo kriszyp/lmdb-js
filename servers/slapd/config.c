@@ -161,6 +161,27 @@ read_config( const char *fname )
 
 			ldap_pvt_thread_set_concurrency( c );
 
+		/* set maximum threads in thread pool */
+		} else if ( strcasecmp( cargv[0], "threads" ) == 0 ) {
+			int c;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing count in \"threads <count>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			c = atoi( cargv[1] );
+
+			if( c < 0 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: invalid level (%d) in \"threads <count>\" line\n",
+				    fname, lineno, c );
+				return( 1 );
+			}
+
+			ldap_pvt_thread_pool_maxthreads( &connection_pool, c );
+
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
 			if ( cargc < 2 ) {

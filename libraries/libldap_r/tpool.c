@@ -85,7 +85,7 @@ ldap_int_thread_pool_shutdown ( void )
 int
 ldap_pvt_thread_pool_init (
 	ldap_pvt_thread_pool_t *tpool,
-	int max_concurrency,
+	int max_threads,
 	int max_pending )
 {
 	ldap_pvt_thread_pool_t pool;
@@ -104,7 +104,7 @@ ldap_pvt_thread_pool_init (
 	if (rc != 0)
 		return(rc);
 	pool->ltp_state = LDAP_INT_THREAD_POOL_RUNNING;
-	pool->ltp_max_count = max_concurrency;
+	pool->ltp_max_count = max_threads;
 	pool->ltp_max_pending = max_pending;
 	ldap_pvt_thread_mutex_lock(&ldap_pvt_thread_pool_mutex);
 	ldap_int_thread_enlist(&ldap_int_thread_pool_list, pool);
@@ -236,6 +236,25 @@ ldap_pvt_thread_pool_submit (
 }
 
 int
+ldap_pvt_thread_pool_maxthreads ( ldap_pvt_thread_pool_t *tpool, int max_threads )
+{
+	struct ldap_int_thread_pool_s *pool;
+
+	if (tpool == NULL)
+		return(-1);
+
+	pool = *tpool;
+
+	if (pool == NULL)
+		return(-1);
+
+	ldap_pvt_thread_mutex_lock(&pool->ltp_mutex);
+	pool->ltp_max_count = max_threads;
+	ldap_pvt_thread_mutex_unlock(&pool->ltp_mutex);
+	return(0);
+}
+
+int
 ldap_pvt_thread_pool_backload ( ldap_pvt_thread_pool_t *tpool )
 {
 	struct ldap_int_thread_pool_s *pool;
@@ -325,6 +344,17 @@ ldap_int_thread_pool_wrapper (
 		if (ctx == NULL) {
 			if (pool->ltp_state == LDAP_INT_THREAD_POOL_FINISHING)
 				break;
+			if (pool->ltp_max_count > 0
+				&& pool->ltp_open_count > pool->ltp_max_count)
+			{
+				/* too many threads running (can happen if the
+				 * maximum threads value is set during ongoing
+				 * operation using ldap_pvt_thread_pool_maxthreads)
+				 * so let this thread die.
+				 */
+				break;
+			}
+
 			/* we could check an idle timer here, and let the
 			 * thread die if it has been inactive for a while.
 			 * only die if there are other open threads (i.e.,
