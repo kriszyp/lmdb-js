@@ -69,14 +69,14 @@ do_bind(
 
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
-	if ( op->o_ndn != NULL ) {
-		free( op->o_ndn );
-		op->o_ndn = NULL;
-	}
-
 	if ( op->o_dn != NULL ) {
 		free( op->o_dn );
-		op->o_dn = NULL;
+		op->o_dn = ch_strdup( "" );
+	}
+
+	if ( op->o_ndn != NULL ) {
+		free( op->o_ndn );
+		op->o_ndn = ch_strdup( "" );
 	}
 
 	/*

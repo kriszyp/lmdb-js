@@ -194,6 +194,8 @@ parse_acl(
 			split( argv[i], '=', &left, &right );
 			if ( strcasecmp( argv[i], "*" ) == 0 ) {
 				b->a_dnpat = ch_strdup( ".*" );
+			} else if ( strcasecmp( argv[i], "anonymous" ) == 0 ) {
+				b->a_dnpat = ch_strdup( "anonymous" );
 			} else if ( strcasecmp( argv[i], "self" ) == 0 ) {
 				b->a_dnpat = ch_strdup( "self" );
 			} else if ( strcasecmp( left, "dn" ) == 0 ) {
@@ -263,7 +265,7 @@ parse_acl(
 
 			/* get <access> */
 			split( argv[i], '=', &left, &right );
-			if ( ACL_IS_INVALID(ACL_SET(str2access( left ),b->a_access)) ) {
+			if ( ACL_IS_INVALID(ACL_SET(b->a_access,str2access( left ))) ) {
 				fprintf( stderr,
 			    "%s: line %d: expecting <access> got \"%s\"\n",
 				    fname, lineno, left );
@@ -379,7 +381,7 @@ acl_usage( void )
 		"<what> ::= * | [dn=<regex>] [filter=<ldapfilter>] [attrs=<attrlist>]\n"
 		"<attrlist> ::= <attr> | <attr> , <attrlist>\n"
 		"<attr> ::= <attrname> | entry | children\n"
-		"<who> ::= * | self | dn=<regex> | addr=<regex>\n"
+		"<who> ::= * | anonymous | self | dn=<regex> | addr=<regex>\n"
 			"\t| domain=<regex> | dnattr=<dnattrname>\n"
 #ifdef SLAPD_ACLGROUPS
 			"\t| group[/<objectclass>[/<attrname>]]=<regex>\n"
@@ -433,7 +435,13 @@ print_access( struct access *b )
 	fprintf( stderr, "\tby" );
 
 	if ( b->a_dnpat != NULL ) {
-		fprintf( stderr, " dn=%s", b->a_dnpat );
+		if( strcmp(b->a_dnpat, "anonymous") == 0 ) {
+			fprintf( stderr, " anonymous" );
+		} else if( strcmp(b->a_dnpat, "self") == 0 ) {
+			fprintf( stderr, " self" );
+		} else {
+			fprintf( stderr, " dn=%s", b->a_dnpat );
+		}
 	} else if ( b->a_addrpat != NULL ) {
 		fprintf( stderr, " addr=%s", b->a_addrpat );
 	} else if ( b->a_domainpat != NULL ) {

@@ -260,7 +260,17 @@ acl_access_allowed(
 			 * user is bound as somebody in the same namespace as
 			 * the entry, OR the given dn matches the dn pattern
 			 */
-			if ( strcasecmp( b->a_dnpat, "self" ) == 0 && 
+			if ( strcasecmp( b->a_dnpat, "anonymous" ) == 0 && 
+				(op->o_ndn == NULL || *(op->o_ndn) == '\0' ) ) 
+			{
+				Debug( LDAP_DEBUG_ACL,
+				"<= acl_access_allowed: matched by clause #%d access %s\n",
+				    i, ACL_GRANT(b->a_access, access)
+						? "granted" : "denied", 0 );
+
+				return ACL_GRANT(b->a_access, access );
+
+			} else if ( strcasecmp( b->a_dnpat, "self" ) == 0 && 
 				op->o_ndn != NULL && *(op->o_ndn) && e->e_dn != NULL ) 
 			{
 				if ( strcmp( edn, op->o_ndn ) == 0 ) {
@@ -511,6 +521,8 @@ regex_matches(
 	regex_t re;
 	char newbuf[512];
 	int	rc;
+
+	if(str == NULL) str = "";
 
 	string_expand(newbuf, sizeof(newbuf), pat, buf, matches);
 	if (( rc = regcomp(&re, newbuf, REG_EXTENDED|REG_ICASE))) {
