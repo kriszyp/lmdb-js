@@ -22,15 +22,13 @@ Please read:
 OpenLDAP 2.0 Projects
 ---------------------
 	client API update
-		schema parsing
 		TLS/SSL support
-		implement LDAP errno draft
+		Implement LDAP errno draft
 	SASL support
-		DIGEST-MD5/Cyrus SASL Integration
+		Cyrus SASL Integration
 	SLAPD
-		schema rules
+		Schema Publishing / Enforcement
 	clients
-		use ldap_*_ext routines
 		don't use deprecated routines
 		-C/-CC/-R referral chasing options
 	SLAPD/SLURD Admin Guide
