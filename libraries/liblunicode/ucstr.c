@@ -207,3 +207,75 @@ char * UTF8normalize(
 	out[outpos] = '\0';
 	return out;
 }
+
+/* compare UTF8-strings, optionally ignore casing, string pointers must not be NULL */
+/* slow, should be optimized */
+int UTF8normcmp(
+	const char *s1,
+	const char *s2,
+	char casefold )
+{
+	int i, l1, l2, len, ulen, res;
+	unsigned long *ucs, *ucsout1, *ucsout2;
+
+	l1 = strlen( s1 );
+	l2 = strlen( s2 );
+
+	if ( ( l1 == 0 ) || ( l2 == 0 ) ) {
+		if ( l1 == l2 ) {
+			return 0;
+		}
+		return *s1 - *s2 > 0 ? 1 : -1;
+	}
+	
+	ucs = (long *) malloc( ( l1 > l2 ? l1 : l2 ) * sizeof(*ucs) );
+	if ( ucs == NULL ) {
+		return l1 > l2 ? 1 : -1; /* what to do??? */
+	}
+	
+	/*
+	 * XXYYZ: we convert to ucs4 even though -llunicode
+	 * expects ucs2 in an unsigned long
+	 */
+	
+	/* convert and normalize 1st string */
+	for ( i = 0, ulen = 0; i < l1; i += len, ulen++ ) {
+                ucs[ulen] = ldap_utf8_to_ucs4( s1 + i );
+                if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
+			free( ucs );
+                        return -1; /* what to do??? */
+                }
+		len = LDAP_UTF8_CHARLEN( s1 + i );
+	}
+	uccanondecomp( ucs, ulen, &ucsout1, &l1 );
+	l1 = uccanoncomp( ucsout1, l1 );
+
+	/* convert and normalize 2nd string */
+	for ( i = 0, ulen = 0; i < l2; i += len, ulen++ ) {
+                ucs[ulen] = ldap_utf8_to_ucs4( s2 + i );
+                if ( ucs[ulen] == LDAP_UCS4_INVALID ) {
+			free( ucsout1 );
+			free( ucs );
+                        return 1; /* what to do??? */
+                }
+		len = LDAP_UTF8_CHARLEN( s2 + i );
+	}
+	uccanondecomp( ucs, ulen, &ucsout2, &l2 );
+	l2 = uccanoncomp( ucsout2, l2 );
+
+	free( ucs );
+
+	res = casefold
+		? ucstrncasecmp( ucsout1, ucsout2, l1 < l2 ? l1 : l2 )
+		: ucstrncmp( ucsout1, ucsout2, l1 < l2 ? l1 : l2 );
+	free( ucsout1 );
+	free( ucsout2 );
+
+	if ( res != 0 ) {
+		return res;
+	}
+	if ( l1 == l2 ) {
+		return 0;
+	}
+	return l1 > l2 ? 1 : -1;
+}
