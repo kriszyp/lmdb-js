@@ -14,6 +14,7 @@ Changes included in OpenLDAP 1.2 Release Engineering
 		Added -n option to ldif2ldbm(8) (ITS#59)
 		Added server-side maximal limits note to ldapsearch(1) (ITS#180)
 		Fix misplaced paragraph tag in ldap.conf(5)  (ITS#234)
+		Removed non-functional -i (inetd) option from slapd(8) (ITS#122)
 
 Changes included in OpenLDAP 1.2.4
 	CVS Tag: OPENLDAP_REL_ENG_1_2_4
