@@ -56,7 +56,6 @@
 #define objectIdentifierNormalize					NULL
 #define objectIdentifierFirstComponentNormalize		NULL
 #define generalizedTimeNormalize					NULL
-#define uniqueMemberNormalize						NULL
 #define bitStringNormalize							NULL
 #define telephoneNumberNormalize					NULL
 
@@ -65,7 +64,7 @@
 #define distinguishedNameIndexer	octetStringIndexer
 #define distinguishedNameFilter		octetStringFilter
 
-#define uniqueMemberMatch				dnMatch
+#define uniqueMemberMatch			dnMatch
 
 #define objectIdentifierMatch	octetStringMatch
 #define objectIdentifierIndexer	octetStringIndexer
@@ -90,7 +89,7 @@
 #define caseIgnoreIndexer	octetStringIndexer
 #define caseIgnoreFilter	octetStringFilter
 
-#define caseIgnoreSubstringsMatch		SubstringsMatch
+#define caseIgnoreSubstringsMatch		octetStringSubstringsMatch
 #define caseIgnoreSubstringsIndexer		NULL
 #define caseIgnoreSubstringsFilter		NULL
 
@@ -99,7 +98,7 @@
 #define caseExactIndexer	octetStringIndexer
 #define caseExactFilter		octetStringFilter
 
-#define caseExactSubstringsMatch		NULL
+#define caseExactSubstringsMatch		octetStringSubstringsMatch
 #define caseExactSubstringsIndexer		NULL
 #define caseExactSubstringsFilter		NULL
 
@@ -107,7 +106,7 @@
 #define caseExactIA5Indexer		octetStringIndexer
 #define caseExactIA5Filter		octetStringFilter
 
-#define caseExactIA5SubstringsMatch			NULL
+#define caseExactIA5SubstringsMatch			octetStringSubstringsMatch
 #define caseExactIA5SubstringsIndexer		NULL
 #define caseExactIA5SubstringsFilter		NULL
 
@@ -191,7 +190,8 @@
 #define objectIdentifierIndexer			caseIgnoreIA5Indexer
 #define objectIdentifierFilter			caseIgnoreIA5Filter
 
-#define OpenLDAPaciMatch						NULL
+#define octetStringSubstringsMatch		NULL
+#define OpenLDAPaciMatch				NULL
 
 #define generalizedTimeMatch			caseIgnoreIA5Match
 #define generalizedTimeOrderingMatch	caseIgnoreIA5Match
@@ -486,13 +486,21 @@ nameUIDValidate(
 	return rc;
 }
 
-#ifndef SLAP_NVALUES
-
+#ifdef SLAP_NVALUES
+static int
+uniqueMemberNormalize(
+	slap_mask_t usage,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *val,
+	struct berval *normalized )
+#else
 static int
 xnameUIDNormalize(
 	Syntax *syntax,
 	struct berval *val,
 	struct berval *normalized )
+#endif
 {
 	struct berval out;
 	int rc;
@@ -548,7 +556,6 @@ xnameUIDNormalize(
 	return LDAP_SUCCESS;
 }
 
-#endif
 /*
  * Handling boolean syntax and matching is quite rigid.
  * A more flexible approach would be to allow a variety
@@ -2497,7 +2504,7 @@ static int
 caseExactIA5SubstringsMatch
 #else
 static int
-SubstringsMatch
+octetStringSubstringsMatch
 #endif
 (
 	int *matchp,
@@ -2532,7 +2539,7 @@ SubstringsMatch
 			goto done;
 		}
 
-		match = strncmp( sub->sa_initial.bv_val, left.bv_val,
+		match = memcmp( sub->sa_initial.bv_val, left.bv_val,
 			sub->sa_initial.bv_len );
 
 		if( match != 0 ) {
@@ -2550,7 +2557,7 @@ SubstringsMatch
 			goto done;
 		}
 
-		match = strncmp( sub->sa_final.bv_val,
+		match = memcmp( sub->sa_final.bv_val,
 			&left.bv_val[left.bv_len - sub->sa_final.bv_len],
 			sub->sa_final.bv_len );
 
@@ -2578,7 +2585,7 @@ retry:
 				continue;
 			}
 
-			p = strchr( left.bv_val, *sub->sa_any[i].bv_val );
+			p = memchr( left.bv_val, *sub->sa_any[i].bv_val, left.bv_len );
 
 			if( p == NULL ) {
 				match = 1;
@@ -2601,7 +2608,7 @@ retry:
 				goto done;
 			}
 
-			match = strncmp( left.bv_val,
+			match = memcmp( left.bv_val,
 				sub->sa_any[i].bv_val,
 				sub->sa_any[i].bv_len );
 
@@ -4749,7 +4756,6 @@ char *objectIdentifierFirstComponentMatchSyntaxes[] = {
  * Other matching rules in X.520 that we do not use (yet):
  *
  * 2.5.13.9		numericStringOrderingMatch
- * 2.5.13.19	octetStringSubstringsMatch
  * 2.5.13.25	uTCTimeMatch
  * 2.5.13.26	uTCTimeOrderingMatch
  * 2.5.13.31	directoryStringFirstComponentMatch
@@ -4918,6 +4924,13 @@ static slap_mrule_defs_rec mrule_defs[] = {
 		SLAP_MR_ORDERING, NULL,
 		NULL, NULL,
 		octetStringOrderingMatch, NULL, NULL,
+		NULL},
+
+	{"( 2.5.13.19 NAME 'octetStringSubstringsMatch' "
+		"SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )",
+		SLAP_MR_SUBSTR, NULL,
+		NULL, NULL,
+		octetStringSubstringsMatch, NULL, NULL,
 		NULL},
 
 	{"( 2.5.13.20 NAME 'telephoneNumberMatch' "
