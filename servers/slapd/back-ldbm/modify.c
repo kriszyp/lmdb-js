@@ -373,7 +373,7 @@ delete_values(
 				mod->sm_desc->ad_type->sat_equality,
 				mod->sm_bvalues[i], a->a_vals[j], &text );
 
-			if( rc == LDAP_SUCCESS && match == 0 )
+			if( rc == LDAP_SUCCESS && match != 0 )
 #else
 			if ( value_cmp( mod->mod_bvalues[i], a->a_vals[j],
 			    a->a_syntax, 3 ) != 0 )
