@@ -195,6 +195,7 @@ glue_back_response (
 		gs->err = err;
 	if (gs->err == LDAP_SUCCESS && gs->matched) {
 		free (gs->matched);
+		gs->matched = NULL;
 		gs->matchlen = 0;
 	}
 	if (gs->err != LDAP_SUCCESS && matched) {
