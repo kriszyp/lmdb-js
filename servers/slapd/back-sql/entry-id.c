@@ -563,6 +563,20 @@ next:;
 				bsi, 0, AVL_INORDER );
 	}
 
+	if ( bsi->bsi_flags & BSQL_SF_RETURN_ENTRYUUID ) {
+		Attribute	*a_entryUUID,
+				**ap;
+
+		a_entryUUID = backsql_operational_entryUUID( bi, eid );
+		if ( a_entryUUID != NULL ) {
+			for ( ap = &bsi->bsi_e->e_attrs; 
+					*ap; 
+					ap = &(*ap)->a_next );
+
+			*ap = a_entryUUID;
+		}
+	}
+
 	if ( global_schemacheck ) {
 		const char	*text = NULL;
 		char		textbuf[ 1024 ];
