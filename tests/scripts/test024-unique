@@ -1,4 +1,4 @@
-#! /bin/sh -xv
+#! /bin/sh
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
@@ -107,10 +107,10 @@ givenName: Bill
 EOTUNIQ2
 
 RC=$?
-if test $RC != 0 ; then
-	echo "ldapadd failed ($RC)!"
+if test $RC != 19 ; then
+	echo "unique check failed ($RC)!"
 	test $KILLSERVERS != no && kill -HUP $KILLPIDS
-	exit $RC
+	exit -1
 fi
 
 

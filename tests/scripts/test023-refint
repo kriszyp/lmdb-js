@@ -1,4 +1,4 @@
-#! /bin/sh -xv
+#! /bin/sh
 # $OpenLDAP$
 ## This work is part of OpenLDAP Software <http://www.openldap.org/>.
 ##
@@ -44,8 +44,7 @@ KILLPIDS="$PID"
 echo "Testing slapd referential integrity operations..."
 for i in 0 1 2 3 4 5; do
 	$LDAPSEARCH -s base -b "$MONITOR" -h $LOCALHOST -p $PORT1 \
-		'objectclass=*' 
-#> /dev/null 2>&1
+		'objectclass=*' > /dev/null 2>&1
 	RC=$?
 	if test $RC = 0 ; then
 		break
