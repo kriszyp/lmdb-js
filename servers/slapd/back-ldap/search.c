@@ -88,7 +88,7 @@ ldap_back_search(
 	if ( be_isroot( be, &op->o_ndn ) ) {
 		isroot = 1;
 	} else {
-		( void ) get_limits( be, op->o_ndn.bv_val, &limit );
+		( void ) get_limits( be, &op->o_ndn, &limit );
 	}
 	
 	/* if no time limit requested, rely on remote server limits */

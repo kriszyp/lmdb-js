@@ -16,7 +16,7 @@
 int
 get_limits( 
 	Backend			*be, 
-	const char		*ndn, 
+	struct berval		*ndn, 
 	struct slap_limits_set 	**limit
 )
 {
@@ -37,10 +37,10 @@ get_limits(
 	for ( lm = be->be_limits; lm[0] != NULL; lm++ ) {
 		switch ( lm[0]->lm_type ) {
 		case SLAP_LIMITS_EXACT:
-			if ( ndn == NULL || ndn[0] == '\0' ) {
+			if ( ndn->bv_len == 0 ) {
 				break;
 			}
-			if ( strcmp( lm[0]->lm_dn_pat->bv_val, ndn ) == 0 ) {
+			if ( strcmp( lm[0]->lm_dn_pat->bv_val, ndn->bv_val ) == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
@@ -51,11 +51,11 @@ get_limits(
 		case SLAP_LIMITS_CHILDREN: {
 			size_t d;
 			
-			if ( ndn == NULL || ndn[0] == '\0' ) {
+			if ( ndn->bv_len == 0 ) {
 				break;
 			}
 
-			d = strlen( ndn ) - lm[0]->lm_dn_pat->bv_len;
+			d = ndn->bv_len - lm[0]->lm_dn_pat->bv_len;
 			/* ndn shorter than dn_pat */
 			if ( d < 0 ) {
 				break;
@@ -68,20 +68,20 @@ get_limits(
 				}
 			} else {
 				/* check for unescaped rdn separator */
-				if ( !DN_SEPARATOR( ndn[d-1] ) || DN_ESCAPE( ndn[d-2] ) ) {
+				if ( !DN_SEPARATOR( ndn->bv_val[d-1] ) || DN_ESCAPE( ndn->bv_val[d-2] ) ) {
 					break;
 				}
 			}
 
 			/* in case of (sub)match ... */
-			if ( strcmp( lm[0]->lm_dn_pat->bv_val, &ndn[d] ) == 0 ) {
+			if ( strcmp( lm[0]->lm_dn_pat->bv_val, &ndn->bv_val[d] ) == 0 ) {
 				/* check for exactly one rdn in case of ONE */
 				if ( lm[0]->lm_type == SLAP_LIMITS_ONE ) {
 					/*
 					 * if ndn is more that one rdn
 					 * below dn_pat, continue
 					 */
-					if ( (size_t) dn_rdnlen( NULL, ndn ) != d - 1 ) {
+					if ( (size_t) dn_rdnlen( NULL, ndn->bv_val ) != d - 1 ) {
 						break;
 					}
 				}
@@ -94,24 +94,24 @@ get_limits(
 		}
 
 		case SLAP_LIMITS_REGEX:
-			if ( ndn == NULL || ndn[0] == '\0' ) {
+			if ( ndn->bv_len == 0 ) {
 				break;
 			}
-			if ( regexec( &lm[0]->lm_dn_regex, ndn, 0, NULL, 0 ) == 0 ) {
+			if ( regexec( &lm[0]->lm_dn_regex, ndn->bv_val, 0, NULL, 0 ) == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
 			break;
 
 		case SLAP_LIMITS_ANONYMOUS:
-			if ( ndn == NULL || ndn[0] == '\0' ) {
+			if ( ndn->bv_len == 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
 			break;
 
 		case SLAP_LIMITS_USERS:
-			if ( ndn != NULL && ndn[0] != '\0' ) {
+			if ( ndn->bv_len != 0 ) {
 				*limit = &lm[0]->lm_limits;
 				return( 0 );
 			}
