@@ -274,6 +274,10 @@ monitor_subsys_database_init(
 		{
 			struct berval	bv;
 			ber_len_t	pathlen = 0, len = 0;
+/* FIXME: need a cleaner solution */
+#ifndef PATH_MAX
+#define PATH_MAX	4095
+#endif /* ! PATH_MAX */
 			char		path[ PATH_MAX ] = { '\0' };
 			char		*fname = NULL;
 
