@@ -165,7 +165,7 @@ do_add( Operation *op, SlapReply *rs )
 	}
 
 	rs->sr_err = slap_mods_check( modlist, &rs->sr_text,
-			  textbuf, textlen, NULL );
+		textbuf, textlen, NULL );
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 		send_ldap_result( op, rs );

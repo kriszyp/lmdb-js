@@ -1002,7 +1002,6 @@ dnRelativeMatch(
 
 		*matchp = match;
 		return LDAP_SUCCESS;
-
 	}
 
 	if( mr == slap_schema.si_mr_dnSuperiorMatch ) {
