@@ -248,6 +248,9 @@ is provided ``as is'' without express or implied warranty.
 /* Define if you have the memmove function.  */
 #undef HAVE_MEMMOVE
 
+/* Define if you have the mkstemp function.  */
+#undef HAVE_MKSTEMP
+
 /* Define if you have the mktime function.  */
 #undef HAVE_MKTIME
 

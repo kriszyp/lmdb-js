@@ -13,10 +13,12 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <dirent.h>
 #include <stdlib.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/dirent.h>
+#include <ac/string.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 

@@ -3,11 +3,14 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include <ldapconfig.h>
 #include <ldbm.h>
 
@@ -558,10 +561,10 @@ diff_centroids(
 	int		amax, acur, dmax, dcur;
 	char	**vals;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	DBC	*ocursorp;
 	DBC	*ncursorp;
-#endif /* LDBM_USE_DB2 */
+#endif /* HAVE_BERKELEY_DB2 */
 
 	if ( verbose ) {
 		printf( "Generating mods for differential %s centroid...", attr );
@@ -607,7 +610,7 @@ diff_centroids(
 
 	olast.dptr = NULL;
 	nlast.dptr = NULL;
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	for ( okey = ldbm_firstkey( oldbm, &ocursorp ),
 			nkey = ldbm_firstkey( nldbm, &ncursorp );
 	      okey.dptr != NULL && nkey.dptr != NULL; )
@@ -629,7 +632,7 @@ diff_centroids(
 			}
 			nlast = nkey;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 			okey = ldbm_nextkey( oldbm, olast, ocursorp );
 			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
 #else
@@ -648,7 +651,7 @@ diff_centroids(
 			}
 			nlast = nkey;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
 #else
 			nkey = ldbm_nextkey( nldbm, nlast );
@@ -665,7 +668,7 @@ diff_centroids(
 			}
 			olast = okey;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 			okey = ldbm_nextkey( oldbm, olast, ocursorp );
 #else
 			okey = ldbm_nextkey( oldbm, olast );
@@ -679,7 +682,7 @@ diff_centroids(
 			return( NULL );
 		}
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 		okey = ldbm_nextkey( oldbm, olast, ocursorp );
 #else
 		okey = ldbm_nextkey( oldbm, olast );
@@ -698,7 +701,7 @@ diff_centroids(
 			return( NULL );
 		}
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 		nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
 #else
 		nkey = ldbm_nextkey( nldbm, nlast );
@@ -723,7 +726,7 @@ diff_centroids(
 
 	/* generate list of values to add */
 	lastkey.dptr = NULL;
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	for ( key = ldbm_firstkey( nldbm, &ncursorp ); key.dptr != NULL;
 	  key = ldbm_nextkey( nldbm, lastkey, ncursorp ) )
 #else
@@ -754,7 +757,7 @@ diff_centroids(
 
 	/* generate list of values to delete */
 	lastkey.dptr = NULL;
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	for ( key = ldbm_firstkey( oldbm, &ocursorp ); key.dptr != NULL;
 	  key = ldbm_nextkey( oldbm, lastkey, ocursorp ) )
 #else
@@ -821,7 +824,7 @@ full_centroid(
 	char	**vals;
 	int		vcur, vmax;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	DBC *cursorp;
 #endif
 
@@ -852,7 +855,7 @@ full_centroid(
 	lastkey.dptr = NULL;
 	vals = NULL;
 	vcur = vmax = 0;
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	for ( key = ldbm_firstkey( ldbm, &cursorp ); key.dptr != NULL;
 	  key = ldbm_nextkey( ldbm, lastkey, cursorp ) )
 #else

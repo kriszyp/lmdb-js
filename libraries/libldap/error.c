@@ -80,7 +80,7 @@ ldap_err2string( int err )
 	return( "Unknown error" );
 }
 
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 void
 ldap_perror( LDAP *ld, char *s )
 {
@@ -119,7 +119,7 @@ ldap_perror( LDAP *ld, char *s )
 {
 }
 
-#endif /* NO_USERINTERFACE */
+#endif /* !LDAP_LIBUI */
 
 
 int

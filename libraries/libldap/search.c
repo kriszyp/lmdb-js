@@ -117,19 +117,19 @@ ldap_build_search_req( LDAP *ld, char *base, int scope, char *filter,
 	    base = "";
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( ld->ld_sb.sb_naddr > 0 ) {
 	    err = ber_printf( ber, "{ist{seeiib", ++ld->ld_msgid,
 		ld->ld_cldapdn, LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
 		ld->ld_sizelimit, ld->ld_timelimit, attrsonly );
 	} else {
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 		err = ber_printf( ber, "{it{seeiib", ++ld->ld_msgid,
 		    LDAP_REQ_SEARCH, base, scope, ld->ld_deref,
 		    ld->ld_sizelimit, ld->ld_timelimit, attrsonly );
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	}
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 	if ( err == -1 ) {
 		ld->ld_errno = LDAP_ENCODING_ERROR;

@@ -38,7 +38,7 @@ static void merge_error_info LDAP_P(( LDAP *ld, LDAPRequest *parentr, LDAPReques
 static int read1msg LDAP_P(( LDAP *ld, int msgid, int all, Sockbuf *sb,
 	LDAPMessage **result ));
 #endif /* LDAP_REFERRALS */
-#if defined( CLDAP ) || !defined( LDAP_REFERRALS )
+#if defined( LDAP_CONNECTIONLESS ) || !defined( LDAP_REFERRALS )
 static int ldap_select1 LDAP_P(( LDAP *ld, struct timeval *timeout ));
 #endif
 
@@ -588,7 +588,7 @@ merge_error_info( LDAP *ld, LDAPRequest *parentr, LDAPRequest *lr )
 
 
 
-#if defined( CLDAP ) || !defined( LDAP_REFERRALS )
+#if defined( LDAP_CONNECTIONLESS ) || !defined( LDAP_REFERRALS )
 #if !defined( MACOS ) && !defined( DOS ) && !defined( _WIN32 )
 static int
 ldap_select1( LDAP *ld, struct timeval *timeout )
@@ -597,11 +597,13 @@ ldap_select1( LDAP *ld, struct timeval *timeout )
 	static int	tblsize;
 
 	if ( tblsize == 0 ) {
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 		tblsize = sysconf( _SC_OPEN_MAX );
-#else /* !USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 		tblsize = getdtablesize();
-#endif /* !USE_SYSCONF */
+#else
+		tblsize = FD_SETSIZE;
+#endif
 #ifdef FD_SETSIZE
 		if ( tblsize > FD_SETSIZE ) {
 			tblsize = FD_SETSIZE;
@@ -782,7 +784,7 @@ ldap_mark_abandoned( LDAP *ld, int msgid )
 }
 
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 int
 cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 {
@@ -808,4 +810,4 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 
 	return( tag );
 }
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */

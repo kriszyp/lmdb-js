@@ -1,17 +1,22 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ac/string.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/time.h>
+#include <limits.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
 #include <sys/resource.h>
-#include <sys/wait.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <limits.h>
+
+#ifdef HAVE_FCNTL_H
+#include <fcntl.h>
+#endif
 
 #include "ldapconfig.h"
 #include "../slap.h"
@@ -66,7 +71,7 @@ main( argc, argv )
 	int		i;
 	extern char	*optarg;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 	DBC	*cursorp;
 #endif
 
@@ -157,7 +162,7 @@ main( argc, argv )
 			}
 
 			savekey.dptr = NULL;
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 			for ( key = ldbm_firstkey( dbc->dbc_db, &cursorp );
 			    key.dptr != NULL;
 			    key = ldbm_nextkey( dbc->dbc_db, key, cursorp ) )
@@ -327,7 +332,7 @@ main( argc, argv )
 
 			last.dptr = NULL;
 
-#ifdef LDBM_USE_DB2
+#ifdef HAVE_BERKELEY_DB2
 			for ( key = ldbm_firstkey( dbp, &cursorp );
 				key.dptr != NULL;
 				key = ldbm_nextkey( dbp, last, cursorp ) )
@@ -520,10 +525,12 @@ edit_entry( c, data )
 	int		fd, pid;
 	char		tmpname[20];
 	FILE		*fp;
+#ifndef HAVE_WAITPID
 	WAITSTATUSTYPE	status;
+#endif
 
 	strcpy( tmpname, "/tmp/dbtestXXXXXX" );
-#ifdef ultrix
+#ifndef HAVE_MKSTEMP
 	if ( (fd = open( mktemp( tmpname ), O_RDWR, 0600 )) == -1 ) {
 		perror( tmpname );
 		return;
@@ -557,8 +564,8 @@ edit_entry( c, data )
 
 	fclose( fp );
  
-#ifdef USE_WAITPID
-	if ( waitpid( (pid_t) -1, 0, WAIT_FLAGS ) < 0 ) {
+#ifdef HAVE_WAITPID
+	if ( waitpid( (pid_t) -1, NULL, WAIT_FLAGS ) < 0 ) {
 #else
 	if ( wait3( &status, WAIT_FLAGS, 0 ) < 0 ) {
 #endif

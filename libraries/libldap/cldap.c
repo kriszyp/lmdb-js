@@ -7,7 +7,7 @@
 
 #include "portable.h"
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 
 #ifndef lint 
 static char copyright[] = "@(#) Copyright (c) 1990, 1994 Regents of the University of Michigan.\nAll rights reserved.\n";
@@ -40,17 +40,14 @@ struct cldap_retinfo {
 	long		cri_timeout;
 };
 
-#ifdef NEEDPROTOS
-static int add_addr( LDAP *ld, struct sockaddr *sap );
-static int cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
-	struct cldap_retinfo *crip, char *base );
-static int cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
-	LDAPMessage **res, char *base );
-#else /* NEEDPROTOS */
-static int add_addr();
-static int cldap_result();
-static int cldap_parsemsg();
-#endif /* NEEDPROTOS */
+static int add_addr LDAP_P((
+	LDAP *ld, struct sockaddr *sap ));
+static int cldap_result LDAP_P((
+	LDAP *ld, int msgid, LDAPMessage **res,
+	struct cldap_retinfo *crip, char *base ));
+static int cldap_parsemsg LDAP_P((
+	LDAP *ld, int msgid, BerElement *ber,
+	LDAPMessage **res, char *base ));
 
 /*
  * cldap_open - initialize and connect to an ldap server.  A magic cookie to
@@ -525,4 +522,4 @@ cldap_parsemsg( LDAP *ld, int msgid, BerElement *ber,
     *res = chain;
     return(( *res == NULLMSG ) ? rc : ldap_result2error( ld, *res, 0 ));
 }
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */

@@ -255,10 +255,10 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 	Debug( LDAP_DEBUG_TRACE, "ldap_get_kerberosv4_credentials\n", 0, 0, 0 );
 
 	if ( (err = krb_get_tf_realm( tkt_string(), realm )) != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_get_tf_realm failed (%s)\n",
 		    krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
 		return( NULL );
 	}
@@ -271,9 +271,9 @@ ldap_get_kerberosv4_credentials( LDAP *ld, char *who, char *service, int *len )
 
 	if ( (err = krb_mk_req( &ktxt, service, krbinstance, realm, 0 ))
 	    != KSUCCESS ) {
-#ifndef NO_USERINTERFACE
+#ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_mk_req failed (%s)\n", krb_err_txt[err] );
-#endif /* NO_USERINTERFACE */
+#endif /* LDAP_LIBUI */
 		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
 		return( NULL );
 	}

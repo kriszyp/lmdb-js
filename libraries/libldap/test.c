@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#ifdef MACOS
 #include <stdlib.h>
+
+#ifdef MACOS
 #ifdef THINK_C
 #include <console.h>
 #include <unix.h>
@@ -31,21 +32,20 @@
 #include "lber.h"
 #include "ldap.h"
 
+/* including the "internal" defs is legit and nec. since this test routine has 
+ * a-priori knowledge of libldap internal workings.
+ * hodges@stanford.edu 5-Feb-96
+ */
+#include "ldap-int.h"
+
 #if !defined( PCNFS ) && !defined( WINSOCK ) && !defined( MACOS )
 #define MOD_USE_BVALS
 #endif /* !PCNFS && !WINSOCK && !MACOS */
 
-#ifdef NEEDPROTOS
-static void handle_result( LDAP *ld, LDAPMessage *lm );
-static void print_ldap_result( LDAP *ld, LDAPMessage *lm, char *s );
-static void print_search_entry( LDAP *ld, LDAPMessage *res );
-static void free_list( char **list );
-#else
-static void handle_result();
-static void print_ldap_result();
-static void print_search_entry();
-static void free_list();
-#endif /* NEEDPROTOS */
+static void handle_result LDAP_P(( LDAP *ld, LDAPMessage *lm ));
+static void print_ldap_result LDAP_P(( LDAP *ld, LDAPMessage *lm, char *s ));
+static void print_search_entry LDAP_P(( LDAP *ld, LDAPMessage *res ));
+static void free_list LDAP_P(( char **list ));
 
 #define NOCACHEERRMSG	"don't compile with -DNO_CACHE if you desire local caching"
 
@@ -281,7 +281,7 @@ main(
 #endif /* WINSOCK */
 	int argc, char **argv )
 {
-	LDAP		*ld;
+	LDAP		*ld = NULL;
 	int		i, c, port, cldapflg, errflg, method, id, msgtype;
 	char		line[256], command1, command2, command3;
 	char		passwd[64], dn[256], rdn[64], attr[64], value[256];
@@ -316,11 +316,11 @@ main(
 	while (( c = getopt( argc, argv, "uh:d:s:p:t:T:" )) != -1 ) {
 		switch( c ) {
 		case 'u':
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			cldapflg++;
-#else /* CLDAP */
-			printf( "Compile with -DCLDAP for UDP support\n" );
-#endif /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
+			printf( "Compile with -DLDAP_CONNECTIONLESS for UDP support\n" );
+#endif /* LDAP_CONNECTIONLESS */
 			break;
 
 		case 'd':
@@ -377,9 +377,9 @@ main(
 		host == NULL ? "(null)" : host, port );
 
 	if ( cldapflg ) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		ld = cldap_open( host, port );
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 	} else {
 		ld = ldap_open( host, port );
 	}
@@ -567,10 +567,10 @@ main(
 			break;
 
 		case 'q':	/* quit */
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			if ( cldapflg )
 				cldap_close( ld );
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 #ifdef LDAP_REFERRALS
 			if ( !cldapflg )
 #else /* LDAP_REFERRALS */
@@ -636,7 +636,7 @@ main(
 			attrsonly = atoi( line );
 
 			if ( cldapflg ) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			    getline( line, sizeof(line), stdin,
 				"Requestor DN (for logging)? " );
 			    if ( cldap_search_s( ld, dn, scope, filter, types,
@@ -648,7 +648,7 @@ main(
 				handle_result( ld, res );
 				res = NULLMSG;
 			    }
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 			} else {
 			    if (( id = ldap_search( ld, dn, scope, filter,
 				    types, attrsonly  )) == -1 ) {

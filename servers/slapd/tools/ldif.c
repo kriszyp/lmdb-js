@@ -1,10 +1,10 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <string.h>
-#include <memory.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <ac/string.h>
+#include <ac/socket.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "ldif.h"

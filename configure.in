@@ -740,6 +740,7 @@ AC_CHECK_FUNCS(		\
 	lockf			\
 	memcpy			\
 	memmove			\
+	mkstemp			\
 	mktime			\
 	select			\
 	setpwfile		\
