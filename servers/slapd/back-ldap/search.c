@@ -58,7 +58,6 @@ ldap_back_search(
 	struct berval mbase;
 	struct berval mfilter = BER_BVNULL;
 	int dontfreetext = 0;
-	int freeconn = 0;
 	int do_retry = 1;
 	dncookie dc;
 #ifdef LDAP_BACK_PROXY_AUTHZ
@@ -160,12 +159,18 @@ retry:
 
 	if ( rs->sr_err != LDAP_SUCCESS ) {
 fail:;
-		rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
-		if ( freeconn ) {
+		if ( rs->sr_err == LDAP_SERVER_DOWN ) {
+			if ( do_retry ) {
+				do_retry = 0;
+				if ( ldap_back_retry( lc, op, rs ) ) {
+					goto retry;
+				}
+			}
+			rc = ldap_back_op_result( lc, op, rs, msgid, 0 );
 			ldap_back_freeconn( op, lc );
 			lc = NULL;
+			goto finish;
 		}
-		goto finish;
 	}
 
 	/* We pull apart the ber result, stuff it into a slapd entry, and
@@ -291,7 +296,6 @@ fail:;
 		}
 		/* FIXME: invalidate the connection? */
 		rs->sr_err = LDAP_SERVER_DOWN;
-		freeconn = 1;
 		goto fail;
 	}
 
