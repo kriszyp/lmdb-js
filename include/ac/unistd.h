@@ -1,7 +1,7 @@
 /* Generic unistd.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -21,17 +21,23 @@
 #	include <unistd.h>
 #endif
 
-/* crypt() may be defined in a separate include file */
-#if HAVE_CRYPT_H
-#	include <crypt.h>
-#else
-	extern char *(crypt)();
+#if HAVE_PROCESS_H
+#	include <process.h>
 #endif
 
-#ifndef HAVE_GETPASS
-LDAP_F(char*)(getpass) LDAP_P((const char *getpass));
+/* note: callers of crypt(3) should include <ac/crypt.h> */
+
+#if defined(HAVE_GETPASSPHRASE)
+LIBC_F(char*)(getpassphrase)();
+
+#elif defined(HAVE_GETPASS)
+#define getpassphrase(p) getpass(p)
+LIBC_F(char*)(getpass)();
+
 #else
-LDAP_F(char*)(getpass)();
+#define NEED_GETPASSPHRASE 1
+#define getpassphrase(p) lutil_getpass(p)
+LIBLUTIL_F(char*)(lutil_getpass) LDAP_P((const char *getpass));
 #endif
 
 /* getopt() defines may be in separate include file */
@@ -44,17 +50,13 @@ LDAP_F(char*)(getpass)();
 
 #else
 	/* assume we need to declare these externs */
-	extern char *optarg;
-	extern int optind, opterr, optopt;
+	LIBC_F (char *) optarg;
+	LIBC_F (int) optind, opterr, optopt;
 #endif
 
 #ifndef HAVE_TEMPNAM
-	LDAP_F(char *)(tempnam) LDAP_P((
-		const char *tmpdir,
-		const char *prefix));
-#endif
-#ifndef HAVE_MKTEMP
-	LDAP_F(char *)(mktemp) LDAP_P((char *));
+	LIBLUTIL_F(char *)(tempnam) LDAP_P(( const char *tmpdir,
+					     const char *prefix));
 #endif
 
 /* use lutil file locking */

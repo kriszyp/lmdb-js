@@ -1,7 +1,7 @@
 /* ldbmcache.c - maintain a cache of open ldbm files */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -13,12 +13,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/time.h>
-
 #include <sys/stat.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #include "slap.h"
 #include "back-ldbm.h"
@@ -26,8 +21,8 @@
 DBCache *
 ldbm_cache_open(
     Backend	*be,
-    char	*name,
-    char	*suffix,
+    const char	*name,
+    const char	*suffix,
     int		flags
 )
 {
@@ -42,6 +37,18 @@ ldbm_cache_open(
 	sprintf( buf, "%s" LDAP_DIRSEP "%s%s",
 		li->li_directory, name, suffix );
 
+	if( li->li_dblocking ) {
+		flags |= LDBM_LOCKING;
+	} else {
+		flags |= LDBM_NOLOCKING;
+	}
+	
+	if( li->li_dbwritesync ) {
+		flags |= LDBM_SYNC;
+	} else {
+		flags |= LDBM_NOSYNC;
+	}
+	
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_cache_open( \"%s\", %d, %o )\n", buf,
 	    flags, li->li_mode );
 
@@ -108,6 +115,7 @@ ldbm_cache_open(
 	li->li_dbcache[i].dbc_name = ch_strdup( buf );
 	li->li_dbcache[i].dbc_refcnt = 1;
 	li->li_dbcache[i].dbc_lastref = curtime;
+	li->li_dbcache[i].dbc_dirty = 0;
 #ifdef HAVE_ST_BLKSIZE
 	if ( stat( buf, &st ) == 0 ) {
 		li->li_dbcache[i].dbc_blksize = st.st_blksize;
@@ -118,8 +126,10 @@ ldbm_cache_open(
 	}
 	li->li_dbcache[i].dbc_maxids = (li->li_dbcache[i].dbc_blksize /
 	    sizeof(ID)) - ID_BLOCK_IDS_OFFSET;
-	li->li_dbcache[i].dbc_maxindirect = (SLAPD_LDBM_MIN_MAXIDS /
-	    li->li_dbcache[i].dbc_maxids) + 1;
+	li->li_dbcache[i].dbc_maxindirect = ( SLAPD_LDBM_MIN_MAXIDS /
+	    li->li_dbcache[i].dbc_maxids ) + 1;
+
+	assert( li->li_dbcache[i].dbc_maxindirect < 256 );
 
 	Debug( LDAP_DEBUG_ARGS,
 	    "ldbm_cache_open (blksize %ld) (maxids %d) (maxindirect %d)\n",
@@ -134,6 +144,11 @@ void
 ldbm_cache_close( Backend *be, DBCache *db )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
+
+	if( li->li_dbwritesync && db->dbc_dirty ) {
+		ldbm_sync( db->dbc_db );
+		db->dbc_dirty = 0;
+	}
 
 	ldap_pvt_thread_mutex_lock( &li->li_dbcache_mutex );
 	if ( --db->dbc_refcnt == 0 ) {
@@ -169,6 +184,7 @@ ldbm_cache_flush_all( Backend *be )
 			Debug( LDAP_DEBUG_TRACE, "ldbm flushing db (%s)\n",
 			    li->li_dbcache[i].dbc_name, 0, 0 );
 			ldbm_sync( li->li_dbcache[i].dbc_db );
+			li->li_dbcache[i].dbc_dirty = 0;
 			if ( li->li_dbcache[i].dbc_refcnt != 0 ) {
 				Debug( LDAP_DEBUG_TRACE,
 				       "refcnt = %d, couldn't close db (%s)\n",
@@ -229,6 +245,7 @@ ldbm_cache_store(
 		flags, 0, 0, 0, 0 );
 #endif /* LDBM_DEBUG */
 
+	db->dbc_dirty = 1;
 	rc = ldbm_store( db->dbc_db, key, data, flags );
 
 	return( rc );
@@ -242,6 +259,7 @@ ldbm_cache_delete(
 {
 	int	rc;
 
+	db->dbc_dirty = 1;
 	rc = ldbm_delete( db->dbc_db, key );
 
 	return( rc );

@@ -37,8 +37,9 @@ ldap_back_compare(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    Ava		*ava
+    const char	*dn,
+    const char	*ndn,
+	AttributeAssertion *ava
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
@@ -54,6 +55,6 @@ ldap_back_compare(
 			return( -1 );
 	}
 
-	ldap_compare_s( lc->ld, dn, ava->ava_type, ava->ava_value.bv_val );
+	ldap_compare_s( lc->ld, dn, ava->aa_desc->ad_cname->bv_val, ava->aa_value->bv_val );
 	return( ldap_back_op_result( lc, op ) );
 }

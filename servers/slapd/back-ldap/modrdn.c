@@ -37,10 +37,11 @@ ldap_back_modrdn(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*newrdn,
+    const char	*dn,
+    const char	*ndn,
+    const char	*newrdn,
     int		deleteoldrdn,
-    char	*newSuperior
+    const char	*newSuperior
 )
 {
 	struct ldapinfo	*li = (struct ldapinfo *) be->be_private;
@@ -61,6 +62,6 @@ ldap_back_modrdn(
 			return( -1 );
 	}
 
-	ldap_rename2_s( lc->ld, dn, newrdn, deleteoldrdn, newSuperior );
+	ldap_rename2_s( lc->ld, dn, newrdn, newSuperior, deleteoldrdn );
 	return( ldap_back_op_result( lc, op ) );
 }

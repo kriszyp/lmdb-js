@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1992, 1993  Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -100,7 +104,7 @@ fatal( char *s )
 {
 	if (errno != 0)
 		perror(s);
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	destroy_tickets();
 #endif
 	exit( EXIT_FAILURE );
@@ -405,15 +409,19 @@ isadn( char *s )
 char *
 my_ldap_dn2ufn( char *s )
 {
+#ifdef UD_BASE
 	register char **cpp;
 	static char short_DN[BUFSIZ];
 
-	if (strstr(s, NULL) == NULL)
+	if (strstr(s, UD_BASE) == NULL)
 		return(ldap_dn2ufn(s));
 	cpp = ldap_explode_dn(s, TRUE);
 	sprintf(short_DN, "%s, %s", *cpp, *(cpp + 1));
 	ldap_value_free(cpp);
 	return(short_DN);
+#else
+	return(ldap_dn2ufn(s));
+#endif
 }
 
 /* return TRUE if this attribute should be printed as a URL */

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1999-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -20,7 +20,6 @@
 #include "ldap-int.h"
 
 #include <ldap_schema.h>
-
 
 static LDAP_CONST char *
 choose_name( char *names[], LDAP_CONST char *fallback )
@@ -212,9 +211,9 @@ print_qdescrs(safe_string *ss, char **sa)
 	 */
 	if ( !sa[0] || ( sa[0] && sa[1] ) ) {
 		print_whsp(ss);
-		print_literal(ss,"(");
+		print_literal(ss,"("/*)*/);
 		print_qdescrlist(ss,sa);
-		print_literal(ss,")");
+		print_literal(ss,/*(*/")");
 		return(print_whsp(ss));
 	} else {
 	  return(print_qdescr(ss,*sa));
@@ -245,10 +244,10 @@ static int
 print_oids(safe_string *ss, char **sa)
 {
 	if ( sa[0] && sa[1] ) {
-		print_literal(ss,"(");
+		print_literal(ss,"("/*)*/);
 		print_oidlist(ss,sa);
 		print_whsp(ss);
-		return(print_literal(ss,")"));
+		return(print_literal(ss,/*(*/")"));
 	} else {
 		return(print_woid(ss,*sa));
 	}
@@ -268,6 +267,25 @@ print_noidlen(safe_string *ss, char *s, int l)
 	return(ret);
 }
 
+static int
+print_extensions(safe_string *ss, LDAP_SCHEMA_EXTENSION_ITEM **extensions)
+{
+	LDAP_SCHEMA_EXTENSION_ITEM **ext;
+
+	if ( extensions ) {
+		print_whsp(ss);
+		for ( ext = extensions; *ext != NULL; ext++ ) {
+			print_literal(ss, (*ext)->lsei_name);
+			print_whsp(ss);
+			/* Should be print_qdstrings */
+			print_qdescrs(ss, (*ext)->lsei_values);
+			print_whsp(ss);
+		}
+	}
+
+	return 0;
+}
+
 char *
 ldap_syntax2str( const LDAP_SYNTAX * syn )
 {
@@ -278,7 +296,7 @@ ldap_syntax2str( const LDAP_SYNTAX * syn )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"("/*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, syn->syn_oid);
@@ -290,7 +308,10 @@ ldap_syntax2str( const LDAP_SYNTAX * syn )
 	}
 
 	print_whsp(ss);
-	print_literal(ss,")");
+
+	print_extensions(ss, syn->syn_extensions);
+
+	print_literal(ss,/*(*/ ")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -307,7 +328,7 @@ ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"(" /*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, mr->mr_oid);
@@ -336,7 +357,10 @@ ldap_matchingrule2str( const LDAP_MATCHING_RULE * mr )
 	}
 
 	print_whsp(ss);
-	print_literal(ss,")");
+
+	print_extensions(ss, mr->mr_extensions);
+
+	print_literal(ss,/*(*/")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -353,7 +377,7 @@ ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"("/*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, oc->oc_oid);
@@ -412,7 +436,10 @@ ldap_objectclass2str( const LDAP_OBJECT_CLASS * oc )
 	}
 
 	print_whsp(ss);
-	print_literal(ss,")");
+
+	print_extensions(ss, oc->oc_extensions);
+
+	print_literal(ss, /*(*/")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -429,7 +456,7 @@ ldap_attributetype2str( const LDAP_ATTRIBUTE_TYPE * at )
 	if ( !ss )
 		return NULL;
 
-	print_literal(ss,"(");
+	print_literal(ss,"("/*)*/);
 	print_whsp(ss);
 
 	print_numericoid(ss, at->at_oid);
@@ -512,7 +539,10 @@ ldap_attributetype2str( const LDAP_ATTRIBUTE_TYPE * at )
 	}
 	
 	print_whsp(ss);
-	print_literal(ss,")");
+
+	print_extensions(ss, at->at_extensions);
+
+	print_literal(ss,/*(*/")");
 
 	retstring = LDAP_STRDUP(safe_string_val(ss));
 	safe_string_free(ss);
@@ -649,7 +679,7 @@ parse_whsp(const char **sp)
 
 /* Parse a sequence of dot-separated decimal strings */
 static char *
-parse_numericoid(const char **sp, int *code, const int allow_quoted)
+parse_numericoid(const char **sp, int *code, const int flags)
 {
 	char * res;
 	const char * start = *sp;
@@ -657,7 +687,7 @@ parse_numericoid(const char **sp, int *code, const int allow_quoted)
 	int quoted = 0;
 
 	/* Netscape puts the SYNTAX value in quotes (incorrectly) */
-	if ( allow_quoted && **sp == '\'' ) {
+	if ( flags & LDAP_SCHEMA_ALLOW_QUOTED && **sp == '\'' ) {
 		quoted = 1;
 		(*sp)++;
 		start++;
@@ -689,7 +719,7 @@ parse_numericoid(const char **sp, int *code, const int allow_quoted)
 	}
 	strncpy(res,start,len);
 	res[len] = '\0';
-	if ( allow_quoted && quoted ) {
+	if ( flags & LDAP_SCHEMA_ALLOW_QUOTED && quoted ) {
 		if ( **sp == '\'' ) {
 			(*sp)++;
 		} else {
@@ -805,12 +835,12 @@ parse_noidlen(const char **sp, int *code, int *len, int allow_quoted)
 	if ( !sval ) {
 		return NULL;
 	}
-	if ( **sp == '{' ) {
+	if ( **sp == '{' /*}*/ ) {
 		(*sp)++;
 		*len = atoi(*sp);
 		while ( isdigit(**sp) )
 			(*sp)++;
-		if ( **sp != '}' ) {
+		if ( **sp != /*{*/ '}' ) {
 			*code = LDAP_SCHERR_UNEXPTOKEN;
 			LDAP_FREE(sval);
 			return NULL;
@@ -936,23 +966,73 @@ parse_oids(const char **sp, int *code, const int allow_quoted)
 	}
 }
 
+static int
+add_extension(LDAP_SCHEMA_EXTENSION_ITEM ***extensions,
+	      char * name, char ** values)
+{
+	int n;
+	LDAP_SCHEMA_EXTENSION_ITEM **tmp, *ext;
+
+	ext = LDAP_CALLOC(1, sizeof(LDAP_SCHEMA_EXTENSION_ITEM));
+	if ( !ext )
+		return 1;
+	ext->lsei_name = name;
+	ext->lsei_values = values;
+
+	if ( !*extensions ) {
+		*extensions =
+		  LDAP_CALLOC(2, sizeof(LDAP_SCHEMA_EXTENSION_ITEM *));
+		if ( !*extensions )
+		  return 1;
+		n = 0;
+	} else {
+		for ( n=0; (*extensions)[n] != NULL; n++ )
+	  		;
+		tmp = LDAP_REALLOC(*extensions,
+				   (n+2)*sizeof(LDAP_SCHEMA_EXTENSION_ITEM *));
+		if ( !tmp )
+			return 1;
+		*extensions = tmp;
+	}
+	(*extensions)[n] = ext;
+	(*extensions)[n+1] = NULL;
+	return 0;
+}
+
+static void
+free_extensions(LDAP_SCHEMA_EXTENSION_ITEM **extensions)
+{
+	LDAP_SCHEMA_EXTENSION_ITEM **ext;
+
+	if ( extensions ) {
+		for ( ext = extensions; *ext != NULL; ext++ ) {
+			LDAP_FREE((*ext)->lsei_name);
+			LDAP_VFREE((*ext)->lsei_values);
+			LDAP_FREE(*ext);
+		}
+		LDAP_FREE(extensions);
+	}
+}
+
 void
 ldap_syntax_free( LDAP_SYNTAX * syn )
 {
 	LDAP_FREE(syn->syn_oid);
 	LDAP_FREE(syn->syn_desc);
+	free_extensions(syn->syn_extensions);
 	LDAP_FREE(syn);
 }
 
 LDAP_SYNTAX *
-ldap_str2syntax( const char * s, int * code, const char ** errp )
+ldap_str2syntax( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
 	const char * ss = s;
 	char * sval;
+	int seen_name = 0;
 	int seen_desc = 0;
 	LDAP_SYNTAX * syn;
-	char ** ssdummy;
+	char ** ext_vals;
 
 	if ( !s ) {
 		*code = LDAP_SCHERR_EMPTY;
@@ -1000,7 +1080,24 @@ ldap_str2syntax( const char * s, int * code, const char ** errp )
 		case TK_RIGHTPAREN:
 			return syn;
 		case TK_BAREWORD:
-			if ( !strcmp(sval,"DESC") ) {
+			if ( !strcmp(sval,"NAME") ) {
+				LDAP_FREE(sval);
+				if ( seen_name ) {
+					*code = LDAP_SCHERR_DUPOPT;
+					*errp = ss;
+					ldap_syntax_free(syn);
+					return(NULL);
+				}
+				seen_name = 1;
+				syn->syn_names = parse_qdescrs(&ss,code);
+				if ( !syn->syn_names ) {
+					if ( *code != LDAP_SCHERR_OUTOFMEM )
+						*code = LDAP_SCHERR_BADNAME;
+					*errp = ss;
+					ldap_syntax_free(syn);
+					return NULL;
+				}
+			} else if ( !strcmp(sval,"DESC") ) {
 				LDAP_FREE(sval);
 				if ( seen_desc ) {
 					*code = LDAP_SCHERR_DUPOPT;
@@ -1021,11 +1118,18 @@ ldap_str2syntax( const char * s, int * code, const char ** errp )
 				syn->syn_desc = sval;
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_syntax_free(syn);
+					return NULL;
+				}
+				if ( add_extension(&syn->syn_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_syntax_free(syn);
 					return NULL;
 				}
@@ -1054,22 +1158,22 @@ ldap_matchingrule_free( LDAP_MATCHING_RULE * mr )
 	LDAP_VFREE(mr->mr_names);
 	LDAP_FREE(mr->mr_desc);
 	LDAP_FREE(mr->mr_syntax_oid);
+	free_extensions(mr->mr_extensions);
 	LDAP_FREE(mr);
 }
 
 LDAP_MATCHING_RULE *
-ldap_str2matchingrule( const char * s, int * code, const char ** errp )
+ldap_str2matchingrule( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
 	const char * ss = s;
 	char * sval;
-	int be_liberal = 1;	/* Future additional argument */
 	int seen_name = 0;
 	int seen_desc = 0;
 	int seen_obsolete = 0;
 	int seen_syntax = 0;
 	LDAP_MATCHING_RULE * mr;
-	char ** ssdummy;
+	char ** ext_vals;
 	const char * savepos;
 
 	if ( !s ) {
@@ -1096,9 +1200,9 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp )
 
 	parse_whsp(&ss);
 	savepos = ss;
-	mr->mr_oid = parse_numericoid(&ss,code,be_liberal);
+	mr->mr_oid = parse_numericoid(&ss,code,flags);
 	if ( !mr->mr_oid ) {
-		if ( be_liberal ) {
+		if ( flags & LDAP_SCHEMA_ALLOW_NO_OID ) {
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
@@ -1197,7 +1301,7 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp )
 				seen_syntax = 1;
 				parse_whsp(&ss);
 				mr->mr_syntax_oid =
-					parse_numericoid(&ss,code,be_liberal);
+					parse_numericoid(&ss,code,flags);
 				if ( !mr->mr_syntax_oid ) {
 					*errp = ss;
 					ldap_matchingrule_free(mr);
@@ -1205,11 +1309,18 @@ ldap_str2matchingrule( const char * s, int * code, const char ** errp )
 				}
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_matchingrule_free(mr);
+					return NULL;
+				}
+				if ( add_extension(&mr->mr_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_matchingrule_free(mr);
 					return NULL;
 				}
@@ -1242,16 +1353,16 @@ ldap_attributetype_free(LDAP_ATTRIBUTE_TYPE * at)
 	LDAP_FREE(at->at_ordering_oid);
 	LDAP_FREE(at->at_substr_oid);
 	LDAP_FREE(at->at_syntax_oid);
+	free_extensions(at->at_extensions);
 	LDAP_FREE(at);
 }
 
 LDAP_ATTRIBUTE_TYPE *
-ldap_str2attributetype( const char * s, int * code, const char ** errp )
+ldap_str2attributetype( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
 	const char * ss = s;
 	char * sval;
-	int be_liberal = 1;	/* Future additional argument */
 	int seen_name = 0;
 	int seen_desc = 0;
 	int seen_obsolete = 0;
@@ -1262,7 +1373,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 	int seen_syntax = 0;
 	int seen_usage = 0;
 	LDAP_ATTRIBUTE_TYPE * at;
-	char ** ssdummy;
+	char ** ext_vals;
 	const char * savepos;
 
 	if ( !s ) {
@@ -1298,7 +1409,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 	savepos = ss;
 	at->at_oid = parse_numericoid(&ss,code,0);
 	if ( !at->at_oid ) {
-		if ( be_liberal ) {
+		if ( flags & LDAP_SCHEMA_ALLOW_NO_OID ) {
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
@@ -1468,7 +1579,7 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 					parse_noidlen(&ss,
 						      code,
 						      &at->at_syntax_len,
-						      be_liberal);
+						      flags);
 				if ( !at->at_syntax_oid ) {
 					*errp = ss;
 					ldap_attributetype_free(at);
@@ -1545,11 +1656,18 @@ ldap_str2attributetype( const char * s, int * code, const char ** errp )
 				LDAP_FREE(sval);
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_attributetype_free(at);
+					return NULL;
+				}
+				if ( add_extension(&at->at_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_attributetype_free(at);
 					return NULL;
 				}
@@ -1580,16 +1698,16 @@ ldap_objectclass_free(LDAP_OBJECT_CLASS * oc)
 	LDAP_VFREE(oc->oc_sup_oids);
 	LDAP_VFREE(oc->oc_at_oids_must);
 	LDAP_VFREE(oc->oc_at_oids_may);
+	free_extensions(oc->oc_extensions);
 	LDAP_FREE(oc);
 }
 
 LDAP_OBJECT_CLASS *
-ldap_str2objectclass( const char * s, int * code, const char ** errp )
+ldap_str2objectclass( const char * s, int * code, const char ** errp, const int flags )
 {
 	int kind;
 	const char * ss = s;
 	char * sval;
-	int be_liberal = 1;	/* Future additional argument */
 	int seen_name = 0;
 	int seen_desc = 0;
 	int seen_obsolete = 0;
@@ -1598,7 +1716,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 	int seen_must = 0;
 	int seen_may = 0;
 	LDAP_OBJECT_CLASS * oc;
-	char ** ssdummy;
+	char ** ext_vals;
 	const char * savepos;
 
 	if ( !s ) {
@@ -1634,7 +1752,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 	savepos = ss;
 	oc->oc_oid = parse_numericoid(&ss,code,0);
 	if ( !oc->oc_oid ) {
-		if ( be_liberal ) {
+		if ( flags & LDAP_SCHEMA_ALLOW_ALL ) {
 			/* Backtracking */
 			ss = savepos;
 			kind = get_token(&ss,&sval);
@@ -1737,7 +1855,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 				seen_sup = 1;
 				oc->oc_sup_oids = parse_oids(&ss,
 							     code,
-							     be_liberal);
+							     flags);
 				if ( !oc->oc_sup_oids ) {
 					*errp = ss;
 					ldap_objectclass_free(oc);
@@ -1809,11 +1927,18 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 				}
 				parse_whsp(&ss);
 			} else if ( sval[0] == 'X' && sval[1] == '-' ) {
-				LDAP_FREE(sval);
 				/* Should be parse_qdstrings */
-				ssdummy = parse_qdescrs(&ss, code);
-				if ( !ssdummy ) {
+				ext_vals = parse_qdescrs(&ss, code);
+				if ( !ext_vals ) {
 					*errp = ss;
+					ldap_objectclass_free(oc);
+					return NULL;
+				}
+				if ( add_extension(&oc->oc_extensions,
+						    sval, ext_vals) ) {
+					*code = LDAP_SCHERR_OUTOFMEM;
+					*errp = ss;
+					LDAP_FREE(sval);
 					ldap_objectclass_free(oc);
 					return NULL;
 				}
@@ -1836,7 +1961,7 @@ ldap_str2objectclass( const char * s, int * code, const char ** errp )
 }
 
 static char *const err2text[] = {
-	"",
+	"Success",
 	"Out of memory",
 	"Unexpected token",
 	"Missing opening parenthesis",
@@ -1852,7 +1977,7 @@ static char *const err2text[] = {
 char *
 ldap_scherr2str(int code)
 {
-	if ( code < 1 || code >= (sizeof(err2text)/sizeof(char *)) ) {
+	if ( code < 0 || code >= (sizeof(err2text)/sizeof(char *)) ) {
 		return "Unknown error";
 	} else {
 		return err2text[code];

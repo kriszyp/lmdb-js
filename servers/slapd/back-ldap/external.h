@@ -17,7 +17,7 @@ extern int	ldap_back_db_config LDAP_P(( BackendDB *bd,
 
 extern int ldap_back_bind LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, int method, char* mech,
+	const char *dn, const char *ndn, int method,
 	struct berval *cred, char** edn ));
 
 extern int	ldap_back_conn_destroy LDAP_P(( BackendDB *bd,
@@ -25,30 +25,42 @@ extern int	ldap_back_conn_destroy LDAP_P(( BackendDB *bd,
 
 extern int	ldap_back_search LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *base, int scope, int deref, int sizelimit, int timelimit,
-	Filter *filter, char *filterstr, char **attrs, int attrsonly ));
+	const char *base, const char *nbase,
+	int scope, int deref, int sizelimit, int timelimit,
+	Filter *filter, const char *filterstr,
+	char **attrs, int attrsonly ));
 
-extern int	ldap_back_compare LDAP_P((BackendDB *bd,
+extern int	ldap_back_compare LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, Ava 	*ava ));
+	const char *dn, const char *ndn,
+	AttributeAssertion *ava ));
 
 extern int	ldap_back_modify LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, LDAPModList *ml ));
+	const char *dn, const char *ndn, Modifications *ml ));
 
 extern int	ldap_back_modrdn LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op,
-	char *dn, char*newrdn, int deleteoldrdn,
-        char *newSuperior ));
+	const char *dn, const char *ndn,
+	const char *newrdn, int deleteoldrdn,
+	const char *newSuperior ));
 
 extern int	ldap_back_add LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, Entry *e ));
 
 extern int	ldap_back_delete LDAP_P(( BackendDB *bd,
-	Connection *conn, Operation *op, char *dn ));
+	Connection *conn, Operation *op,
+	const char *dn, const char *ndn ));
 
 extern int	ldap_back_abandon LDAP_P(( BackendDB *bd,
 	Connection *conn, Operation *op, int msgid ));
+
+extern int	ldap_back_group LDAP_P(( BackendDB *bd,
+	Entry *target,
+	const char* gr_ndn,
+	const char* op_ndn,
+	ObjectClass* group_oc,
+	AttributeDescription* group_at));
 
 LDAP_END_DECL
 

@@ -19,6 +19,7 @@
 
 #include <ac/ctype.h>
 #include <ac/errno.h>
+#include <ac/param.h>
 #include <ac/signal.h>
 #include <ac/socket.h>
 #include <ac/string.h>
@@ -28,9 +29,6 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
@@ -191,7 +189,7 @@ main ( int argc, char **argv )
 
 #ifdef LOG_MAIL
 	openlog( myname, OPENLOG_OPTIONS, LOG_MAIL );
-#else
+#elif LOG_DEBUG
 	openlog( myname, OPENLOG_OPTIONS );
 #endif
 
@@ -832,7 +830,7 @@ add_member(
 
 	timeout.tv_sec = FAX_TIMEOUT;
 	timeout.tv_usec = 0;
-	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "(objectclass=*)",
+	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, NULL,
 	    attrs, 0, &timeout, &res )) != LDAP_SUCCESS ) {
 		if ( rc == LDAP_NO_SUCH_OBJECT ) {
 			add_error( err, nerr, E_BADMEMBER, dn, NULL );
@@ -1466,7 +1464,7 @@ get_attributes_mail_dn( LDAPMessage *e, char *attr1, char *attr2 )
 
 		for ( i = 0; dnlist[i] != NULL; i++ ) {
 			if ( (rc = ldap_search_st( ld, dnlist[i],
-			    LDAP_SCOPE_BASE, "(objectclass=*)", attrs, 0,
+			    LDAP_SCOPE_BASE, NULL, attrs, 0,
 			    &timeout, &res )) != LDAP_SUCCESS ) {
 				if ( rc != LDAP_NO_SUCH_OBJECT ) {
 					unbind_and_exit( EX_TEMPFAIL );

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -27,12 +27,10 @@
 
 #if defined( SLAPD_MONITOR_DN )
 
-void
+int
 monitor_info(
-	Connection *conn,
-	Operation *op,
-	char ** attrs,
-	int attrsonly )
+	Entry **entry,
+	const char **text )
 {
 	Entry		*e;
 	char		buf[BUFSIZ];
@@ -55,8 +53,20 @@ monitor_info(
 	e->e_attrs = NULL;
 	e->e_dn = ch_strdup( SLAPD_MONITOR_DN );
 	e->e_ndn = ch_strdup(SLAPD_MONITOR_DN);
-	(void) dn_normalize_case( e->e_ndn );
+	(void) dn_normalize( e->e_ndn );
 	e->e_private = NULL;
+
+	val.bv_val = "top";
+	val.bv_len = sizeof("top")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, "objectClass", vals );
+
+	val.bv_val = "extensibleObject";
+	val.bv_len = sizeof("extensibleObject")-1;
+	attr_merge( e, "objectClass", vals );
 
 	{
 		char *rdn = ch_strdup( SLAPD_MONITOR_DN );
@@ -80,9 +90,8 @@ monitor_info(
 	}
 	attr_merge( e, "version", vals );
 
-	ldap_pvt_thread_mutex_lock( &active_threads_mutex );
-	sprintf( buf, "%d", active_threads );
-	ldap_pvt_thread_mutex_unlock( &active_threads_mutex );
+	sprintf( buf, "%d",
+		ldap_pvt_thread_pool_backload( &connection_pool) );
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "threads", vals );
@@ -105,19 +114,12 @@ monitor_info(
 		}
 
 		ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
+
 		ltm = gmtime( &c->c_starttime );
 		strftime( buf2, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
 
 		ltm = gmtime( &c->c_activitytime );
 		strftime( buf3, sizeof(buf2), "%Y%m%d%H%M%SZ", ltm );
-#else
-		ltm = localtime( &c->.c_starttime );
-		strftime( buf2, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
-
-		ltm = localtime( &c->c_activitytime );
-		strftime( buf3, sizeof(buf2), "%y%m%d%H%M%SZ", ltm );
-#endif
 
 		ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
@@ -143,9 +145,9 @@ monitor_info(
 		    c->c_ops != NULL ? "x" : "",
 		    c->c_pending_ops != NULL ? "p" : "",
 			connection_state2str( c->c_conn_state ),
-			c->c_bind_in_progress ? "S" : "",
+			c->c_sasl_bind_in_progress ? "S" : "",
 
-		    c->c_cdn ? c->c_cdn : "<anonymous>",
+		    c->c_cdn ? c->c_cdn : SLAPD_ANONYMOUS,
 
 			c->c_listener_url,
 		    c->c_peer_domain,
@@ -232,24 +234,14 @@ monitor_info(
 	currenttime = slap_get_time();
 
 	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
 	ltm = gmtime( &currenttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &currenttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
 	val.bv_val = buf;
 	val.bv_len = strlen( buf );
 	attr_merge( e, "currenttime", vals );
 
-#ifndef LDAP_LOCALTIME
 	ltm = gmtime( &starttime );
 	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &starttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
 	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
 
 	val.bv_val = buf;
@@ -268,24 +260,8 @@ monitor_info(
 	attr_merge( e, "concurrency", vals );
 #endif
 
-	val.bv_val = "top";
-	val.bv_len = sizeof("top")-1;
-	attr_merge( e, "objectClass", vals );
-
-	val.bv_val = "LDAPsubentry";
-	val.bv_len = sizeof("LDAPsubentry")-1;
-	attr_merge( e, "objectClass", vals );
-
-	val.bv_val = "extensibleObject";
-	val.bv_len = sizeof("extensibleObject")-1;
-	attr_merge( e, "objectClass", vals );
-
-	send_search_entry( &backends[0], conn, op, e,
-		attrs, attrsonly, NULL );
-	send_search_result( conn, op, LDAP_SUCCESS,
-		NULL, NULL, NULL, NULL, 1 );
-
-	entry_free( e );
+	*entry = e;
+	return LDAP_SUCCESS;
 }
 
 #endif /* slapd_monitor_dn */

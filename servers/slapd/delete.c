@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -22,6 +22,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 int
@@ -30,19 +31,12 @@ do_delete(
     Operation	*op
 )
 {
-	char	*ndn;
+	char *dn, *ndn = NULL;
+	const char *text;
 	Backend	*be;
 	int rc;
 
 	Debug( LDAP_DEBUG_TRACE, "do_delete\n", 0, 0, 0 );
-
-	if( op->o_bind_in_progress ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: SASL bind in progress.\n",
-			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, "SASL bind in progress", NULL, NULL );
-		return LDAP_SASL_BIND_IN_PROGRESS;
-	}
 
 	/*
 	 * Parse the delete request.  It looks like this:
@@ -50,29 +44,29 @@ do_delete(
 	 *	DelRequest := DistinguishedName
 	 */
 
-	if ( ber_scanf( op->o_ber, "a", &ndn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "a", &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
-	}
-
-	if(	dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", ndn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		free( ndn );
-		return rc;
+		return SLAPD_DISCONNECT;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 ) ) != LDAP_SUCCESS ) {
-		free( ndn );
-		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		Debug( LDAP_DEBUG_ANY, "do_delete: get_ctrls failed\n", 0, 0, 0 );
+		goto cleanup;
 	} 
 
-	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", ndn, 0, 0 );
-	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", ndn, 0, 0 );
+	ndn = ch_strdup( dn );
+
+	if(	dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_delete: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
+
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
+		op->o_connid, op->o_opid, dn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -82,17 +76,24 @@ do_delete(
 	if ( (be = select_backend( ndn )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		free( ndn );
-		return rc;
+		goto cleanup;
+	}
+
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op, &text ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto cleanup;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_delete: database is read-only\n",
 		       0, 0, 0 );
-		free( ndn );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "database is read-only", NULL, NULL );
-		return LDAP_UNWILLING_TO_PERFORM;
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+		                  NULL, "directory is read-only", NULL, NULL );
+		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
@@ -111,13 +112,13 @@ do_delete(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
-			if ( (*be->be_delete)( be, conn, op, ndn ) == 0 ) {
+			if ( (*be->be_delete)( be, conn, op, dn, ndn ) == 0 ) {
 #ifdef SLAPD_MULTIMASTER
 				if (be->be_update_ndn == NULL ||
 					strcmp( be->be_update_ndn, op->o_ndn ))
 #endif
 				{
-					replog( be, op, ndn, NULL );
+					replog( be, op, dn, NULL );
 				}
 			}
 #ifndef SLAPD_MULTIMASTER
@@ -129,9 +130,10 @@ do_delete(
 
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
-
-	free( ndn );
+cleanup:
+	if( ndn != NULL ) free( ndn );
+	free( dn );
 	return rc;
 }

@@ -1,16 +1,21 @@
-OpenLDAP Release README
-	For a description of what this distribution contains, see the
-	ANNOUNCEMENT file in this directory.  For a description of
-	changes from previous releases, see the CHANGES file in this
-	directory.
+OpenLDAP 2.0 Alpha README
+	This is an alpha release of OpenLDAP 2.0.  It is provided
+	for reference purposes only.  It is not for general use.
+
+	The OpenLDAP Developer's FAQ is available at:
+		http://www.openldap.org/faq/index.cgi?file=4
+
+	Developer's and early testers should provide feedback regarding
+	this release to the openldap-devel@openldap.org mailing list.
+	As this release is not intended for general use, no general
+	use questions will be answered.   Developer's wishing to
+	contribute changes should work with latest devel codes, this
+	snapshot is for reference purposes only.
 
 	For a more detailed description of how to make an install the
 	distribution, see the INSTALL file in this directory.  Additional
-	installation information, such as per platform hints can be found
-	in the doc/install directory.
-
-	For more information:
-		http://www.OpenLDAP.org/software/
+	installation information can be found on the OpenLDAP website:
+		http://www.openldap.org/
 
 
 REQUIRED SOFTWARE
@@ -26,7 +31,7 @@ REQUIRED SOFTWARE
 
 	SLURPD:
 		LTHREAD compatible thread package
-			(POSIX pthreads, MIT pthreads, Mach Cthreads or Sun LWP)
+			(POSIX threads, Mach Cthreads, Sun LWP, or GNU Pth)
 
 	CLIENTS/CONTRIB ware:
 		Depends on package.  See per package README.
@@ -52,21 +57,21 @@ DOCUMENTATION
 	etc..  It is located at:
 		http://www.OpenLDAP.org/
 
+	The OpenLDAP Quick Start Guide is available at:
+		http://www.openldap.org/faq/index.cgi?file=172
+
 	The OpenLDAP Software FAQ is available at:
 		http://www.openldap.org/faq/index.cgi?file=2
 
 
-FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
-	We would appreciate any feedback you can provide.  If you have
-	problems, report them using our Issue Tracking System:
+SUPPORT / FEEDBACK / PROBLEM REPORTS / DISCUSSIONS
+	OpenLDAP is user supported.  If you have problems, please
+	review the OpenLDAP FAQ <http://www.openldap.org/faq/> and
+	archives of the OpenLDAP-software and OpenLDAP-bugs mailing
+	lists <http://www.openldap.org/lists/>.
 
-		http://www.OpenLDAP.com/its/
-
-	or by sending e-mail to:
-
-		OpenLDAP-its@OpenLDAP.org
-
-	Additional mailing lists are available.  Please see:
-
-		http://www.OpenLDAP.com/lists/
-
+	Issues, such as bug reports, should be reported using our
+	our Issue Tracking System <http://www.OpenLDAP.com/its/> or
+	by sending mail to OpenLDAP-its@OpenLDAP.org.  Do not use
+	this system for general or software equiries.  Please direct
+	these to the appropriate mailing list.

@@ -50,7 +50,7 @@ init_globals( void )
     g->slurpd_shutdown = 0;
     g->num_replicas = 0;
     g->replicas = NULL;
-    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR;
+    g->slurpd_rdir = DEFAULT_SLURPD_REPLICA_DIR "/replica";
     strcpy( g->slurpd_status_file, DEFAULT_SLURPD_STATUS_FILE );
     g->slapd_replogfile[ 0 ] = '\0';
     g->slurpd_replogfile[ 0 ] = '\0';
@@ -68,9 +68,9 @@ init_globals( void )
 	fprintf( stderr, "Cannot initialize queue\n" );
 	exit( EXIT_FAILURE );
     }
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
     g->default_srvtab = SRVTAB;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
     return g;
 }

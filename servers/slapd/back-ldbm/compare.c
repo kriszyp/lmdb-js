@@ -1,7 +1,7 @@
 /* compare.c - ldbm backend compare routine */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -21,8 +21,9 @@ ldbm_back_compare(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    Ava		*ava
+    const char	*dn,
+    const char	*ndn,
+	AttributeAssertion *ava
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
@@ -33,7 +34,7 @@ ldbm_back_compare(
 	int		manageDSAit = get_manageDSAit( op );
 
 	/* get entry with reader lock */
-	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
+	if ( (e = dn2entry_r( be, ndn, &matched )) == NULL ) {
 		char *matched_dn = NULL;
 		struct berval **refs = NULL;
 
@@ -76,7 +77,7 @@ ldbm_back_compare(
 	}
 
 	if ( ! access_allowed( be, conn, op, e,
-		ava->ava_type, &ava->ava_value, ACL_COMPARE ) )
+		ava->aa_desc, ava->aa_value, ACL_COMPARE ) )
 	{
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			NULL, NULL, NULL, NULL );
@@ -84,21 +85,29 @@ ldbm_back_compare(
 		goto return_results;
 	}
 
-	if ( (a = attr_find( e->e_attrs, ava->ava_type )) == NULL ) {
-		send_ldap_result( conn, op, LDAP_NO_SUCH_ATTRIBUTE,
-			NULL, NULL, NULL, NULL );
-		rc = 1;
-		goto return_results;
+	rc = LDAP_NO_SUCH_ATTRIBUTE;
+
+	for(a = attrs_find( e->e_attrs, ava->aa_desc );
+		a != NULL;
+		a = attrs_find( a->a_next, ava->aa_desc ))
+	{
+		rc = LDAP_COMPARE_FALSE;
+
+		if ( value_find( ava->aa_desc, a->a_vals, ava->aa_value ) == 0 )
+		{
+			rc = LDAP_COMPARE_TRUE;
+			break;
+		}
+
 	}
 
-	if ( value_find( a->a_vals, &ava->ava_value, a->a_syntax, 1 ) == 0 ) 
-		send_ldap_result( conn, op, LDAP_COMPARE_TRUE,
-			NULL, NULL, NULL, NULL );
-	else
-		send_ldap_result( conn, op, LDAP_COMPARE_FALSE,
-			NULL, NULL, NULL, NULL );
+	send_ldap_result( conn, op, rc,
+		NULL, NULL, NULL, NULL );
 
-	rc = 0;
+	if( rc != LDAP_NO_SUCH_ATTRIBUTE ) {
+		rc = 0;
+	}
+
 
 return_results:;
 	cache_return_entry_r( &li->li_cache, e );

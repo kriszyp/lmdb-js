@@ -1,7 +1,7 @@
 /* line64.c - routines for dealing with the slapd line format */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -135,6 +135,13 @@ ldif_parse_line(
 		s++;
 	}
 
+	/* check for continued line markers that should be deleted */
+	for ( p = s, d = s; *p; p++ ) {
+		if ( *p != CONTINUED_LINE_MARKER )
+			*d++ = *p;
+	}
+	*d = '\0';
+
 	/* if no value is present, error out */
 	if ( *s == '\0' ) {
 		ber_pvt_log_printf( LDAP_DEBUG_PARSE, ldif_debug,
@@ -144,13 +151,6 @@ ldif_parse_line(
 		vlen = 0;
 		goto done;
 	}
-
-	/* check for continued line markers that should be deleted */
-	for ( p = s, d = s; *p; p++ ) {
-		if ( *p != CONTINUED_LINE_MARKER )
-			*d++ = *p;
-	}
-	*d = '\0';
 
 	if ( b64 ) {
 		char *byte = s;
@@ -223,14 +223,17 @@ done:
 	}
 
 	if( !url && value != NULL ) {
-		value = ber_strdup( value );
-		if( value == NULL ) {
+		p = ber_memalloc( vlen + 1 );
+		if( p == NULL ) {
 			ber_pvt_log_printf( LDAP_DEBUG_ANY, ldif_debug,
 				"ldif_parse_line: value malloc failed\n");
 			ber_memfree( type );
 			ber_memfree( freeme );
 			return( -1 );
 		}
+		memcpy( p, value, vlen );
+		p[vlen] = '\0';
+		value = p;
 	}
 
 	ber_memfree( freeme );
@@ -349,6 +352,11 @@ ldif_sput(
 	}
 #endif
 
+	if( vlen == 0 ) {
+		*(*out)++ = '\n';
+		return;
+	}
+
 	switch( type ) {
 	case LDIF_PUT_NOVALUE:
 		*(*out)++ = '\n';
@@ -395,18 +403,18 @@ ldif_sput(
 	*(*out)++ = ' ';
 	len++;
 
-	if( vlen == 0 ) {
-		*(*out)++ = '\n';
-		return;
-	}
-
 	stop = (const unsigned char *) (val + vlen);
 
 	if ( type == LDIF_PUT_VALUE
 		&& isgraph( val[0] ) && val[0] != ':' && val[0] != '<'
 		&& isgraph( val[vlen-1] )
+#ifndef LDAP_BINARY_DEBUG
+		&& strstr( name, ";binary" ) == NULL
+#endif
+#ifndef LDAP_PASSWD_DEBUG
 		&& strcasecmp( name, "userPassword" ) != 0	/* encode userPassword */
 		&& strcasecmp( name, "2.5.4.35" ) != 0		/* encode userPassword */
+#endif
 	) {
 		int b64 = 0;
 

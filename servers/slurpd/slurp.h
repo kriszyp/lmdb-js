@@ -21,13 +21,11 @@
 #endif
 
 #include <ac/errno.h>
+#include <ac/param.h>
 #include <ac/signal.h>
 #include <ac/syslog.h>
 #include <ac/time.h>
 
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 #include <sys/types.h>
 
 #include <ldap.h>

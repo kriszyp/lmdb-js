@@ -1,10 +1,12 @@
 # $OpenLDAP$
-## Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+## Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
 ## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 ## tests Makefile.in for OpenLDAP
 
-PROGRAMS = slapd-tester slapd-search slapd-read slapd-addel
+UNIX_PRGS = slapd-tester slapd-search slapd-read slapd-addel
+PROGRAMS = $(@PLAT@_PRGS)
+
 SRCS     = slapd-tester.c slapd-search.c slapd-read.c slapd-addel.c
 
 LDAP_INCDIR= ../../include

@@ -1,5 +1,9 @@
 /* delete.c - shell backend delete function */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 
@@ -16,7 +20,8 @@ shell_back_delete(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn
+    const char	*dn,
+    const char	*ndn
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;

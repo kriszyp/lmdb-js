@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+## Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms are permitted only
@@ -22,18 +22,18 @@ prefix = @prefix@
 exec_prefix = @exec_prefix@
 ldap_subdir = @ldap_subdir@
 
-bindir = $(TMPROOT)@bindir@
-datadir = $(TMPROOT)@datadir@$(ldap_subdir)
-includedir = $(TMPROOT)@includedir@
-infodir = $(TMPROOT)@infodir@
-libdir = $(TMPROOT)@libdir@
-libexecdir = $(TMPROOT)@libexecdir@
-localstatedir = $(TMPROOT)@localstatedir@
-mandir = $(TMPROOT)@mandir@
-moduledir = $(TMPROOT)@libexecdir@$(ldap_subdir)
-sbindir = $(TMPROOT)@sbindir@
-sharedstatedir = $(TMPROOT)@sharedstatedir@
-sysconfdir = $(TMPROOT)@sysconfdir@$(ldap_subdir)
+bindir = @bindir@
+datadir = @datadir@$(ldap_subdir)
+includedir = @includedir@
+infodir = @infodir@
+libdir = @libdir@
+libexecdir = @libexecdir@
+localstatedir = @localstatedir@
+mandir = @mandir@
+moduledir = @libexecdir@$(ldap_subdir)
+sbindir = @sbindir@
+sharedstatedir = @sharedstatedir@
+sysconfdir = @sysconfdir@$(ldap_subdir)
 
 EXEEXT = @EXEEXT@
 OBJEXT = @OBJEXT@
@@ -54,9 +54,8 @@ MKDEP_CFLAGS = @OL_MKDEP_FLAGS@
 MKVERSION = $(top_srcdir)/build/mkversion -v "$(VERSION)"
 
 LIBTOOL = @LIBTOOL@
-LIBVERSION = 2:0:0
+LIBVERSION = 0:0:0
 LTVERSION = -version-info $(LIBVERSION)
-LTLIBLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) $(LTVERSION)
 LTLINK  = $(LIBTOOL) --mode=link $(CC) $(CFLAGS) $(LDFLAGS)
 LTINSTALL = $(LIBTOOL) --mode=install $(INSTALL) 
 
@@ -114,6 +113,7 @@ LDAP_LIBDEPEND = $(LDAP_LIBLDAP_DEPEND) $(LDAP_LIBLBER_DEPEND) \
 SLAPD_LIBDEPEND = $(LDAP_LIBDEPEND) $(LDAP_LIBAVL_DEPEND) \
 	$(LDAP_LIBLDBM_DEPEND) $(LDAP_LIBLTHREAD_DEPEND)
 
+WRAP_LIBS = @WRAP_LIBS@
 # AutoConfig generated 
 AC_CC	= @CC@
 AC_CFLAGS = @CFLAGS@
@@ -121,18 +121,21 @@ AC_DEFS = @CPPFLAGS@ # @DEFS@
 AC_LDFLAGS = @LDFLAGS@
 AC_LIBS = @LIBS@
 
-KRB_LIBS = @KRB_LIBS@
+KRB4_LIBS = @KRB4_LIBS@
+KRB5_LIBS = @KRB5_LIBS@
+KRB_LIBS = @KRB4_LIBS@ @KRB5_LIBS@
 SASL_LIBS = @SASL_LIBS@
 TLS_LIBS = @TLS_LIBS@
-SECURITY_LIBS = @SASL_LIBS@ @KRB_LIBS@ @TLS_LIBS@
+AUTH_LIBS = @AUTH_LIBS@
+SECURITY_LIBS = $(SASL_LIBS) $(KRB_LIBS) $(TLS_LIBS) $(AUTH_LIBS)
 
 MODULES_CPPFLAGS = @SLAPD_MODULES_CPPFLAGS@
 MODULES_LDFLAGS = @SLAPD_MODULES_LDFLAGS@
 MODULES_LIBS = @MODULES_LIBS@
-PERL_CPPFLAGS = @SLAPD_PERL_CPPFLAGS@
-PERL_LDFLAGS = @SLAPD_PERL_LDFLAGS@
 TERMCAP_LIBS = @TERMCAP_LIBS@
+LINK_BINS_DYNAMIC = @LINK_BINS_DYNAMIC@
 
+QUIPU_LIBS = @QUIPU_LIBS@
 SLAPD_LIBS = @SLAPD_LIBS@
 SLURPD_LIBS = @SLURPD_LIBS@
 
@@ -177,3 +180,4 @@ Makefile: Makefile.in $(top_srcdir)/build/top.mk
 FORCE:
 
 ##---------------------------------------------------------------------------
+

@@ -1,7 +1,7 @@
 /* dtest.c - lber decoding test program */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* Portions
@@ -47,6 +47,7 @@ main( int argc, char **argv )
 
 	BerElement	*ber;
 	Sockbuf		*sb;
+	int		fd;
 
 	/* enable debugging */
 	int ival = -1;
@@ -62,7 +63,10 @@ main( int argc, char **argv )
 	cshow( stdout );
 #endif
 
-	sb = ber_sockbuf_alloc_fd( fileno(stdin) );
+	sb = ber_sockbuf_alloc();
+	fd = fileno( stdin );
+	ber_sockbuf_add_io( sb, &ber_sockbuf_io_fd, LBER_SBIOD_LEVEL_PROVIDER,
+		(void *)&fd );
 
 	if( (ber = ber_alloc_t(LBER_USE_DER)) == NULL ) {
 		perror( "ber_alloc_t" );

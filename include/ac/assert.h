@@ -1,7 +1,7 @@
 /* Generic assert.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1999-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -31,8 +31,8 @@
  * create a replacement and hope it works
  */
 
-LDAP_F(void) ber_pvt_assert LDAP_P((
-	const char *file, int line, const char *test ));
+LIBLBER_F (void) ber_pvt_assert LDAP_P(( const char *file, int line,
+					 const char *test ));
 
 /* Can't use LDAP_STRING(test), that'd expand to "test" */
 #if defined(__STDC__) || defined(__cplusplus)

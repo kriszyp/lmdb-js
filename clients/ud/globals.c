@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1992, 1993, 1994  Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -14,8 +18,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <ac/time.h>		/* portable.h+ldap.h needs time_t */
-#include <lber.h>
+#include <ac/time.h>		/* ldap.h needs time_t */
 #include <ldap.h>
 #include "ud.h"
 
@@ -41,7 +44,7 @@ struct attribute attrlist[] = {
 #ifdef UOFM
 	{ "multiLineDescription", "Description", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ  | ATTR_FLAG_PERSON_MOD | ATTR_FLAG_GROUP_MOD | ATTR_FLAG_IS_MULTILINE },
 #endif
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	{ "krbName", "Kerberos name", 0, ATTR_FLAG_PERSON | ATTR_FLAG_READ },
 #endif
 	{ "description", "Brief description", 0, ATTR_FLAG_PERSON | ATTR_FLAG_GROUP | ATTR_FLAG_READ },
@@ -66,5 +69,9 @@ struct attribute attrlist[] = {
 	{ "drink", "Favorite Beverage", change_field, ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_PERSON_MOD },
 	{ "lastModifiedBy", "Last modified by", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
 	{ "lastModifiedTime", "Last modified at", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
+	{ "modifiersname", "Modifier's Name", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
+	{ "modifytimestamp", "Modify Timestamp", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
+	{ "creatorsname", "Creator's Name", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_IS_A_DN | ATTR_FLAG_READ },
+	{ "createtimestamp", "Create Timestamp", 0, ATTR_FLAG_GROUP | ATTR_FLAG_PERSON | ATTR_FLAG_READ | ATTR_FLAG_IS_A_DATE },
 	{ NULL, NULL, 0, ATTR_FLAG_NONE }
 };

@@ -16,20 +16,26 @@
 *            Creation date:                Z   D  D   V   V                *
 *            April 24 1996                Z    D   D   V V                 *
 *            Last modification:          Z     D  D    V V                 *
-*            December 14 1996           ZZZZ   DDD      V                  *
+*            September 13 1999          ZZZZ   DDD      V                  *
 *                                                                          *
 _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 
 /*
- * $Id: dn.c,v 1.6 1999/09/10 15:01:16 zrnsk01 Exp $
+ * $Id: dn.c,v 1.8 1999/09/13 13:47:44 zrnsk01 Exp $
  *
  */
 
 /* dn.c - routines for dealing with distinguished names */
 
 #include "tgeneral.h"
+#include "tglobal.h"
 #include "strng_exp.h"
 #include "dn.h"
+
+#if OL_LDAPV == 2
+#define LDAP_DEBUG_ANY  0xffff
+#endif
+
 
 /*
  * dn_normalize - put dn into a canonical format.  the dn is
@@ -119,10 +125,7 @@ char *dn;
 			break;
 		default:
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
-
-#    define LDAP_DEBUG_ANY  0xffff
+#if OL_LDAPV >= 2
 
             if ( ldap_debug & LDAP_DEBUG_ANY )
                 fprintf( stderr, "dn_normalize - unknown state %d\n", state );
@@ -131,7 +134,6 @@ char *dn;
                 syslog( ldap_syslog_level,
                              "dn_normalize - unknown state %d\n", state );
 
-#  endif
 #else
 			Debug( LDAP_DEBUG_ANY,
 			    "dn_normalize - unknown state %d\n", state, 0, 0 );

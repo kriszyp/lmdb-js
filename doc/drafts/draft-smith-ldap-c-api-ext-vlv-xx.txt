@@ -1,0 +1,468 @@
+Network Working Group                                           M. Smith
+INTERNET-DRAFT                             Netscape Communications Corp.
+Intended Category: Standards Track
+Expires: 18 April 2000
+
+                                                          18 October 1999
+
+                 LDAP C API Virtual List View Extension
+                <draft-smith-ldap-c-api-ext-vlv-00.txt>
+
+1.  Status of this Memo
+
+This document is an Internet-Draft and is in full conformance with all
+provisions of Section 10 of RFC2026.  Internet-Drafts are working docu-
+ments of the Internet Engineering Task Force (IETF), its areas, and its
+working groups.  Note that other groups may also distribute working
+documents as Internet-Drafts.
+
+Internet-Drafts are draft documents valid for a maximum of six months
+and may be updated, replaced, or obsoleted by other documents at any
+time.  It is inappropriate to use Internet-Drafts as reference material
+or to cite them other than as "work in progress."
+
+The list of current Internet-Drafts can be accessed at
+http://www.ietf.org/ietf/1id-abstracts.txt.
+
+The list of Internet-Draft Shadow Directories can be accessed at
+http://www.ietf.org/shadow.html.
+
+This draft document will be submitted to the RFC Editor as a Standards
+Track document. Distribution of this memo is unlimited.  Technical dis-
+cussion of this document will take place on the IETF LDAP Extension
+Working Group mailing list <ietf-ldapext@netscape.com>.  Please send
+editorial comments directly to the author <mcs@netscape.com>.
+
+Copyright (C) The Internet Society (1998-1999). All Rights Reserved.
+
+Please see the Copyright section near the end of this document for more
+information.
+
+Expires: 18 April 2000                                          [Page 1]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+2.  Introduction
+
+This document defines a virtual list view extension for the LDAP C API
+to support the LDAP protocol extensions for scrolling view browsing of
+search results.  More specifically, this document defines functions to
+create virtual list view request controls and to parse virtual list view
+response controls.
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+"SHOULD", "SHOULD NOT", "RECOMMENDED",  and "MAY" in this document are
+to be interpreted as described in RFC 2119 [KEYWORDS].
+
+3.  Table of Contents
+
+1.     Status of this Memo............................................1
+2.     Introduction...................................................2
+3.     Table of Contents..............................................2
+4.     Background and Intended Usage..................................2
+5.     Advertising the Virtual List View C LDAP API Extension.........3
+6.     Creating a Virtual List View Request Control...................3
+7.     Parsing a Virtual List View Response Control...................6
+8.     Example Code...................................................8
+9.     Security Considerations........................................8
+10.    Copyright......................................................8
+11.    Bibliography...................................................9
+12.    Author's Address...............................................9
+13.    Appendix A - Summary of Additions to the C LDAP API............9
+
+4.  Background and Intended Usage
+
+The LDAP C API [CAPI] defines a C language application programming
+interface (API) to the Lightweight Directory Access Protocol [LDAP].
+This document defines an extension to that API to support an optional
+LDAP protocol extension for scrolling view browsing of search results,
+also known as Virtual List View [VLV].
+
+The scrolling view browsing LDAP extension itself is designed to allow a
+"virtual list box" feature to be supported efficiently by LDAP servers
+and clients.  The protocol extension consists of two LDAP controls:  a
+Virtual List View (VLV) Request control which is sent by a client to a
+server along with an LDAP search request and a Virtual List View
+Response control which is returned by the server to send back status
+information about the VLV request.
+
+LDAP clients that wish to use the "virtual list box" feature SHOULD
+first check the supportedControls attribute in a server's rootDSE to
+
+Expires: 18 April 2000                                          [Page 2]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+determine if a value identical to the Virtual List View Request
+control's OID is present.  If the OID is present and the client chooses
+to use the VLV feature, it MUST construct a Virtual List View Request
+control and a Server Side Sorting Control [SSS] and send both controls
+to the server within an LDAP searchRequest message.  Both controls
+SHOULD be marked critical.  Client applications MAY use the
+ldap_create_vlv_control() function described in this document to create
+a Virtual List View Request control.
+
+At the end of the search request processing, the server SHOULD return a
+Virtual List View Response control in the LDAP searchResultDone message.
+A Virtual List View Response control MAY be parsed to extract its con-
+tents by using the ldap_parse_vlv_control() function described in this
+document.
+
+5.  Advertising the Virtual List View C LDAP API Extension
+
+To conform with the requirements defined in the C LDAP API specification
+[CAPI], implementations that support this extension SHOULD advertise the
+existence of this extension as follows:
+
+   Define the macro LDAP_API_FEATURE_VIRTUAL_LIST_VIEW as a value that
+   corresponds to the "level" or revision of this specification.  When
+   this document is published as an RFC, the value to use for
+   LDAP_API_FEATURE_VIRTUAL_LIST_VIEW is the RFC number itself.  While
+   this document is an Internet Draft, the value to use is 1000 plus the
+   revision number of this draft, i.e., 1000 for the -00 revision of
+   this draft, 1001 for the -01 version, and so on.
+
+   Return the text string VIRTUAL_LIST_VIEW in the ldapai_extensions
+   array of the LDAPAPIInfo structure following a successful call to
+   ldap_get_option() with an option parameter value of
+   LDAP_OPT_API_INFO.
+
+   Return information about the extension when the ldapaif_name field in
+   the LDAPAPIFeatureInfo structure is set to the text string
+   VIRTUAL_LIST_VIEW and a call to ldap_get_option() with an option
+   parameter value of LDAP_OPT_API_FEATURE_INFO is made.
+
+6.  Creating a Virtual List View Request Control
+
+The LDAPVLVInfo structure describes a Virtual List View Request control
+and is passed to the ldap_create_vlv_control() function to create a Vir-
+tualListViewRequest control.  The resulting control SHOULD be passed to
+
+Expires: 18 April 2000                                          [Page 3]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+the ldap_search_ext() or ldap_search_ext_s() functions described in
+[CAPI] to send them to the server.  The ldap_create_sort_control() func-
+tion described in [SSSAPI] MAY be used to create a Sort control that is
+be passed to the server along with the VirtualListViewRequest control.
+
+The LDAPVLVInfo structure MAY also be used by applications to manage the
+state information associated with a series of virtual list view
+client/server interactions.
+
+    /* LDAPVLVInfo structure: */
+    typedef struct ldapvlvinfo {
+        int             ldvlv_version;    /* version of this struct (1) */
+        unsigned long   ldvlv_before_count;
+        unsigned long   ldvlv_after_count;
+        unsigned long   ldvlv_offset;     /* used if ldvlv_attrvalue is NULL
+*/
+        unsigned long   ldvlv_count;      /* used if ldvlv_attrvalue is NULL
+*
+        struct berval   *ldvlv_attrvalue;
+        struct berval   *ldvlv_context;
+        void            *ldvlv_extradata; /* for use by application */
+    } LDAPVLVInfo;
+
+    /* value for the ldvlv_version field of the LDAPVLVInfo structure: */
+    #define LDAP_VLVINFO_VERSION        1
+
+    /* function used to create a VirtualListViewRequest control: */
+    int ldap_create_vlv_control(
+        LDAP            *ld,
+        LDAPVLVInfo     *vlvinfop,
+        LDAPControl     **ctrlp
+    );
+
+    /* OID of the VirtualListViewRequest control: */
+    #define LDAP_CONTROL_VLVREQUEST     "2.16.840.1.113730.3.4.9"
+
+The parameters to the ldap_create_vlv_control() function are:
+
+ld                  An LDAP session handle, as obtained from a call to
+                    ldap_init().
+
+vlvinfop            The address of an LDAPVLVInfo structure whose con-
+                    tents are used to construct the value of the control
+                    that is created.
+
+ctrlp               A result parameter that will be assigned the address
+                    of an LDAPControl structure that contains the Virtu-
+                    alListViewRequest control created by this function.
+                    The memory occupied by the LDAPControl structure
+                    SHOULD be freed when it is no longer in use by
+
+Expires: 18 April 2000                                          [Page 4]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+                    calling ldap_control_free().
+
+The ldap_create_vlv_control() function returns a C LDAP API error code
+to indicate success or failure (LDAP_SUCCESS if all goes well).
+
+The members of the LDAPVLVInfo structure are:
+
+ldvlv_version       A number that identifies the version of the
+                    LDAPVLVInfo structure.  This SHOULD always be set to
+                    the value LDAP_VLVINFO_VERSION (1).
+
+ldvlv_before_count  A count of the number of entries before the target
+                    entry the client wants the server to send back.
+                    This field corresponds to the beforeCount element of
+                    the BER-encoded VirtualListViewRequest control value
+                    itself.
+
+ldvlv_after_count   A count of the number of entries after the target
+                    entry the client wants the server to send back.
+                    This field corresponds to the afterCount element of
+                    the BER-encoded VirtualListViewRequest control value
+                    itself.
+
+ldvlv_offset        This field is only used if ldvlv_attrvalue is NULL,
+                    i.e, if the byoffset choice within the VirtualList-
+                    ViewRequest control is to be used.  ldvlv_offset is
+                    used along with the ldvlv_count value by the server
+                    to determine the target entry.  This field
+                    corresponds to the offset element within the BER-
+                    encoded VirtualListViewRequest control value itself.
+
+ldvlv_count         This field is only used if ldvlv_attrvalue is NULL,
+                    i.e., if the byIndex choice within the VirtualList-
+                    ViewRequest control is to be used.  ldvlv_count is
+                    used along with the ldvlv_offset value by the server
+                    to determine the target entry.  This field
+                    corresponds to the contentCount element within the
+                    BER-encoded VirtualListViewRequest control value
+                    itself.
+
+ldvlv_attrvalue     If this is not NULL, it indicates that the
+                    greaterThanOrEqual choice within the VirtualList-
+                    ViewRequest is to be used.  ldvlv_attrvalue
+                    corresponds to the assertionValue element of the
+                    BER-encoded VirtualListViewRequest control value
+                    itself.  This value is compared by the server with
+                    the values of the attribute specified by the primary
+                    sort key to determine the target entry.
+
+Expires: 18 April 2000                                          [Page 5]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+ldvlv_context       If this is not NULL, it is included as the context
+                    identifier in the VirtualListViewRequest control;
+                    ldvlv_context corresponds to the contextID element
+                    within the BER-encoded VirtualListViewRequest con-
+                    trol value itself.  If ldvlv_context is NULL, no
+                    context identifier is included in the VirtualList-
+                    ViewRequest control.
+
+ldvlv_extradata     This field is reserved for application-specific use
+                    and is not used by the ldap_create_vlv_control()
+                    function; it has no effect on the control that is
+                    created.
+
+7.  Parsing a Virtual List View Response Control
+
+When an application receives the result from a VLV search, it SHOULD use
+the ldap_parse_vlv_control() function to look for and parse the Virtual
+List View Response control returned by the server.
+
+    /* function used to look for and parse a VirtualListViewResponse
+control: */
+    int ldap_parse_vlv_control(
+        LDAP            *ld,
+        LDAPControl     **ctrls,
+        unsigned long   *target_posp,
+        unsigned long   *list_countp,
+        struct berval   **contextp,
+        int             *errcodep
+    );
+
+    /* OID of the VirtualListViewResponse control: */
+    #define LDAP_CONTROL_VLVRESPONSE        "2.16.840.1.113730.3.4.10"
+
+    /* new error codes: */
+    #define LDAP_SORT_CONTROL_MISSING       0x3C    /* 60 */
+    #define LDAP_INDEX_RANGE_ERROR          0x3D    /* 61 */
+
+The parameters to the ldap_parse_vlv_control() function are:
+
+ld                  An LDAP session handle.
+
+ctrls               The address of a NULL-terminated array of LDAPCon-
+                    trol structures, typically obtained by a call to
+                    ldap_parse_result().
+
+target_posp         This result parameter is filled in with the list
+                    index of the target entry.  If this parameter is
+                    NULL, the target position is not returned.  The
+
+Expires: 18 April 2000                                          [Page 6]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+                    value for this result parameter is pulled from the
+                    targetPosition element of the BER-encoded Virtual-
+                    ListViewResponse control value itself.
+
+list_countp         This result parameter is filled in with the server's
+                    estimate of the size of the list.  If this parameter
+                    is NULL, the size is not returned.  The value for
+                    this result parameter is pulled from the con-
+                    tentCount element of the BER-encoded VirtualList-
+                    ViewResponse control value itself.
+
+contextp            This result parameter is filled in with the address
+                    of a struct berval that contains the server-
+                    generated context identifier if one was returned by
+                    the server.  If the server did not return a context
+                    identifier, this parameter will be set to NULL.  The
+                    struct berval returned SHOULD be disposed of by cal-
+                    ling ber_bvfree() when it is no longer needed.  If
+                    NULL is passed for contextp, the context identifier
+                    is not returned.
+
+errcodep            This result parameter is filled in with the VLV
+                    result code.  If this parameter is NULL, the result
+                    code is not returned.  The value for this result
+                    parameter is pulled from the virtualListViewResult
+                    element of the BER-encoded VirtualListViewResponse
+                    control value itself.  As specified in the VLV pro-
+                    tocol extension [VLV], it will have one of the fol-
+                    lowing values:
+
+                       LDAP_SUCCESS                (0);  defined in [CAPI]
+                       LDAP_OPERATIONS_ERROR       (1);  defined in [CAPI]
+                       LDAP_UNWILLING_TO_PERFORM   (53); defined in [CAPI]
+                       LDAP_INSUFFICIENT_ACCESS    (50); defined in [CAPI]
+                       LDAP_BUSY                   (51); defined in [CAPI]
+                       LDAP_TIMELIMIT_EXCEEDED     (3);  defined in [CAPI]
+                       LDAP_ADMINLIMIT_EXCEEDED    (11); defined in [CAPI]
+                       LDAP_SORT_CONTROL_MISSING   (60); defined above
+                       LDAP_INDEX_RANGE_ERROR      (61); defined above
+                       LDAP_OTHER                  (80); defined in [CAPI]
+
+The ldap_parse_vlv_control() function returns an LDAP error code that
+indicates whether a VLV Result control was found and whether the parsing
+was successful.  LDAP_SUCCESS is returned if all goes well,
+LDAP_CONTROL_NOT_FOUND is returned if the ctrls array does not include a
+VirtualListViewResponse control, and another LDAP error code that is
+defined in [CAPI] is returned if a parsing error or other problem
+occurs.
+
+Expires: 18 April 2000                                          [Page 7]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+8.  Example Code
+
+To be provided.
+
+9.  Security Considerations
+
+Most servers will be configured to restrict access to the Virtual List
+View feature since poorly-behaved or malicious clients may cause many
+resources to be consumed on the server, or allow users to retrieve too
+many entries, or allow users to get an accurate count of the number of
+entries present in a portion of the DIT.  Clients should take care to
+not abuse the VLV feature and should be prepared for servers to refuse
+to service a particular VLV request due to access control or other
+site-defined policies.
+
+Please see the protocol extension document [VLV] for a discussion of
+related security considerations.
+
+10.  Copyright
+
+Copyright (C) The Internet Society (1998-1999). All Rights Reserved.
+
+This document and translations of it may be copied and furnished to oth-
+ers, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published and dis-
+tributed, in whole or in part, without restriction of any kind, provided
+that the above copyright notice and this paragraph are included on all
+such copies and derivative works.  However, this document itself may not
+be modified in any way, such as by removing the copyright notice or
+references to the Internet Society or other Internet organizations,
+except as needed for the  purpose of developing Internet standards in
+which case the procedures for copyrights defined in the Internet Stan-
+dards process must be followed, or as required to translate it into
+languages other than English.
+
+The limited permissions granted above are perpetual and will not be
+revoked by the Internet Society or its successors or assigns.
+
+This document and the information contained herein is provided on an "AS
+IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK
+FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
+INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FIT-
+NESS FOR A PARTICULAR PURPOSE.
+
+Expires: 18 April 2000                                          [Page 8]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+11.  Bibliography
+
+[CAPI]      M. Smith, T. Howes, A. Herron, M. Wahl, A. Anantha, "The C
+            LDAP Application Program Interface", INTERNET-DRAFT,
+            <draft-ietf-ldapext-ldap-c-api-04.txt>, 8 October 1999.
+
+[KEYWORDS]  S. Bradner, "Key words for use in RFCs to Indicate Require-
+            ment Levels", RFC 2119, March 1997.
+
+[LDAP]      M. Wahl, T. Howes, S. Kille, "Lightweight Directory Access
+            Protocol (v3)", RFC 2251, December 1997.
+
+[SSS]       A. Herron, T. Howes, M. Wahl, A. Anantha, "LDAP Control
+            Extension for Server Side Sorting of Search Results",
+            INTERNET-DRAFT, April 1999.
+
+[SSSAPI]    C. Weider, A. Herron, T. Howes, M. Smith, M. Wahl, "LDAP API
+            Extensions for Sort and Simple Paged Results", INTERNET-
+            DRAFT, <draft-ietf-asid-ldapv3-api-ext-00.txt>, July 1997.
+
+[VLV]       D. Boreham, J. Sermersheim, A. Anantha, M. Armijo, "LDAP
+            Extensions for Scrolling View Browsing of Search Results",
+            INTERNET-DRAFT <draft-ietf-ldapext-ldapv3-vlv-03.txt>, 11
+            June 1999.
+
+12.  Author's Address
+
+   Mark Smith
+   Netscape Communications Corp.
+   501 E. Middlefield Rd., Mailstop MV068
+   Mountain View, CA 94043
+   USA
+   +1 650 937-3477
+   mcs@netscape.com
+
+13.  Appendix A - Summary of Additions to the C LDAP API
+
+This extension introduces the following macros:
+
+   LDAP_API_FEATURE_VIRTUAL_LIST_VIEW
+   LDAP_VLVINFO_VERSION
+   LDAP_CONTROL_VLVREQUEST
+   LDAP_CONTROL_VLVRESPONSE
+   LDAP_SORT_CONTROL_MISSING
+   LDAP_INDEX_RANGE_ERROR
+
+Expires: 18 April 2000                                          [Page 9]
+
+INTERNET-DRAFT   LDAP C API Virtual List View Extension  18 October 1999
+
+This extension introduces the following structures and typedefs:
+
+   ldapvlvinfo
+   LDAPVLVInfo
+
+This extension introduces the following functions:
+
+   ldap_create_vlv_control()
+   ldap_parse_vlv_control()
+
+Expires: 18 April 2000                                         [Page 10]

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -10,14 +10,11 @@
 #include <ac/stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/param.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #include <ldap.h>
 

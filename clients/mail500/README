@@ -38,6 +38,8 @@ R$+%$+<@umich.edu>                 $>10$1%$2<@>
 R$+!$+<@umich.edu>                 $>10$1!$2<@>
 
 See the sample sendmail.cf in this directory for more details.
+For sendmail 8.9 (and later) users can use MAILER(mail500) if
+mail500.m4 is placed within sendmail's cf/mailer directory.
 
 The mail500 mailer should be defined similar to this in the
 sendmail.cf file:
@@ -76,11 +78,11 @@ by changing the base array in main.c.  For example, the configuration
 we use at U-M is like this:
 
 	Base    base[] =
-		{ "ou=People, o=University of Michigan, c=US", 0
+		{ "ou=People, dc=OpenLDAP, dc=org", 0
 			"uid=%s", "cn=%s", NULL,
-		  "ou=System Groups, ou=Groups, o=University of Michigan, c=US", 1
+		  "ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org", 1
 			"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
-		  "ou=User Groups, ou=Groups, o=University of Michigan, c=US", 1
+		  "ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org", 1
 			"(&(cn=%s)(associatedDomain=%h))", NULL, NULL,
 		  NULL
 		};
@@ -88,16 +90,16 @@ we use at U-M is like this:
 which means that in delivering mail to "name" mail500 would do the
 the following searches, stopping if it found anything at any step:
 
-	Search (18) [2]: c=US@o=University of Michigan@ou=People
+	Search (18) [2]: dc=org@dc=OpenLDAP@ou=People
 	Search subtree (uid=name)
-	Search (18) [3]: c=US@o=University of Michigan@ou=People
+	Search (18) [3]: dc=org@dc=OpenLDAP@ou=People
 	Search subtree (cn=name)
 
-	Search (18) [4]: c=US@o=University of Michigan@ou=Groups@ou=System Groups
-	Search subtree & ((cn=name)(associatedDomain=umich.edu))
+	Search (18) [4]: dc=org@dc=OpenLDAP@ou=Groups@ou=System Groups
+	Search subtree & ((cn=name)(associatedDomain=OpenLDAP.org))
 
-	Search (18) [5]: c=US@o=University of Michigan@ou=Groups@ou=User Groups
-	Search subtree & ((cn=name)(associatedDomain=umich.edu))
+	Search (18) [5]: dc=org@dc=OpenLDAP@ou=Groups@ou=User Groups
+	Search subtree & ((cn=name)(associatedDomain=OpenLDAP.org))
 
 Notice that when specifying a filter %s is replaced by the name,
 or user portion of the address while %h is replaced by whatever is

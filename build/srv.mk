@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998,1999 The OpenLDAP Foundation
+## Copyright 1998-2000 The OpenLDAP Foundation
 ## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
 ## of this package for details.
 ##---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ lint-yes: lint-local-srv FORCE
 
 clean-local-srv:
 clean-srv: 	clean-local-srv FORCE
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core .libs/*
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o a.out core .libs/* *.exe
 
 depend-local-srv:
 depend-yes: depend-local-srv FORCE

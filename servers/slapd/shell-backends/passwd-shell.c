@@ -112,8 +112,8 @@ pwdfile_search( struct ldop *op, FILE *ofp )
 		    write_entry( op, entry, ofp );
 		    break;
 		}
-	    } else if ( test_filter( op, entry )) {
-		write_entry( op, entry, ofp );
+	    } else if ( test_filter( op, entry ) == LDAP_COMPARE_TRUE ) {
+			write_entry( op, entry, ofp );
 	    }
 	    free_entry( entry );
 	}

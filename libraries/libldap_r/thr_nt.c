@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -18,13 +18,13 @@
 #include "ldap_pvt_thread.h"
 
 int
-ldap_pvt_thread_initialize( void )
+ldap_int_thread_initialize( void )
 {
 	return 0;
 }
 
 int
-ldap_pvt_thread_destroy( void )
+ldap_int_thread_destroy( void )
 {
 	return 0;
 }
@@ -93,18 +93,18 @@ ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
-			  ldap_pvt_thread_mutex_t *mutex )
+	ldap_pvt_thread_mutex_t *mutex )
 {
 	ReleaseMutex( *mutex );
-	WaitForSingleObject( *cond, INFINITE );
+	SignalObjectAndWait( *mutex, *cond, INFINITE, FALSE );
 	WaitForSingleObject( *mutex, INFINITE );
 	return( 0 );
 }
 
 int
-ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cv )
+ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 {
-	SetEvent( *cv );
+	SetEvent( *cond );
 	return( 0 );
 }
 

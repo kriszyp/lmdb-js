@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -47,10 +47,16 @@
 /* is threadsafe version of -lldap (ie: -lldap_r) *available* or not */
 #undef LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
 
-/* LDAP v2 DNS */
-#undef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+/* LDAP v2 Kerberos Bind */
+#undef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 /* LDAP v2 Referrals */
 #undef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
+
+/* LDAP Server Side Sort. */
+#define LDAP_API_FEATURE_SERVER_SIDE_SORT 1000
+
+/* LDAP Virtual List View. */ 
+#define LDAP_API_FEATURE_VIRTUAL_LIST_VIEW 1000
 
 #endif /* LDAP_FEATURES */

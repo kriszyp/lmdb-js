@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -40,10 +40,41 @@ send_ldap_disconnect(
 }
 
 void
+send_ldap_extended(
+    Connection	*conn,
+    Operation	*op,
+    ber_int_t	err,
+    const char	*matched,
+    const char	*text,
+	struct berval **refs,
+    const char	*rspoid,
+	struct berval *rspdata,
+	LDAPControl **ctrls
+)
+{
+	assert(0);
+}
+
+void
+send_ldap_sasl(
+    Connection	*conn,
+    Operation	*op,
+    ber_int_t	err,
+    const char	*matched,
+    const char	*text,
+	struct berval **refs,
+	LDAPControl **ctrls,
+	struct berval *cred
+)
+{
+	assert(0);
+}
+
+void
 send_ldap_result(
 	Connection  *conn, 
 	Operation   *op,
-	int     err,
+	ber_int_t     err,
 	const char    *matched,
 	const char    *text,
 	struct berval **refs,
@@ -57,7 +88,7 @@ void
 send_search_result(
 	Connection  *conn, 
 	Operation   *op,
-	int     err,
+	ber_int_t     err,
 	const char    *matched,
 	const char    *text,
 	struct berval **refs,
@@ -112,3 +143,17 @@ int sasl_init(void) {
 int sasl_destroy(void) {
 	return 0;
 }
+
+#ifdef HAVE_CYRUS_SASL
+int sasl_bind(
+    Connection          *conn,
+    Operation           *op,
+    const char          *dn,
+    const char          *ndn,
+    const char          *mech,
+    struct berval       *cred,
+    char                **edn)
+{
+	return -1;
+}
+#endif

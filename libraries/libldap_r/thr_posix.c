@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -22,27 +22,24 @@
 
 
 #if HAVE_PTHREADS_D4
-#  define LDAP_PVT_THREAD_ATTR_DEFAULT		pthread_attr_default
-#  define LDAP_PVT_THREAD_CONDATTR_DEFAULT	pthread_condattr_default
-#  define LDAP_PVT_THREAD_MUTEXATTR_DEFAULT	pthread_mutexattr_default
+#  define LDAP_INT_THREAD_ATTR_DEFAULT		pthread_attr_default
+#  define LDAP_INT_THREAD_CONDATTR_DEFAULT	pthread_condattr_default
+#  define LDAP_INT_THREAD_MUTEXATTR_DEFAULT	pthread_mutexattr_default
 #else
-#  define LDAP_PVT_THREAD_ATTR_DEFAULT		NULL
-#  define LDAP_PVT_THREAD_CONDATTR_DEFAULT	NULL
-#  define LDAP_PVT_THREAD_MUTEXATTR_DEFAULT	NULL
+#  define LDAP_INT_THREAD_ATTR_DEFAULT		NULL
+#  define LDAP_INT_THREAD_CONDATTR_DEFAULT	NULL
+#  define LDAP_INT_THREAD_MUTEXATTR_DEFAULT	NULL
 #endif
 
 
 int
-ldap_pvt_thread_initialize( void )
+ldap_int_thread_initialize( void )
 {
-#if defined( LDAP_THREAD_CONCURRENCY ) && HAVE_PTHREAD_SETCONCURRENCY
-	ldap_pvt_thread_set_concurrency( LDAP_THREAD_CONCURRENCY );
-#endif
 	return 0;
 }
 
 int
-ldap_pvt_thread_destroy( void )
+ldap_int_thread_destroy( void )
 {
 	return 0;
 }
@@ -81,8 +78,19 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	void *(*start_routine)( void * ),
 	void *arg)
 {
-	int rtn = pthread_create( thread, LDAP_PVT_THREAD_ATTR_DEFAULT,
+	int rtn;
+#if defined(HAVE_PTHREADS_FINAL) && defined(PTHREAD_CREATE_UNDETACHED)
+	pthread_attr_t attr;
+
+	pthread_attr_init(&attr);
+	if (!detach)
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_UNDETACHED);
+
+	rtn = pthread_create( thread, &attr, start_routine, arg );
+#else
+	rtn = pthread_create( thread, LDAP_INT_THREAD_ATTR_DEFAULT,
 				  start_routine, arg );
+#endif
 
 	if( detach ) {
 #ifdef HAVE_PTHREADS_FINAL
@@ -149,7 +157,7 @@ ldap_pvt_thread_yield( void )
 int 
 ldap_pvt_thread_cond_init( ldap_pvt_thread_cond_t *cond )
 {
-	return pthread_cond_init( cond, LDAP_PVT_THREAD_CONDATTR_DEFAULT );
+	return pthread_cond_init( cond, LDAP_INT_THREAD_CONDATTR_DEFAULT );
 }
 
 int 
@@ -180,7 +188,7 @@ ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond,
 int 
 ldap_pvt_thread_mutex_init( ldap_pvt_thread_mutex_t *mutex )
 {
-	return pthread_mutex_init( mutex, LDAP_PVT_THREAD_MUTEXATTR_DEFAULT );
+	return pthread_mutex_init( mutex, LDAP_INT_THREAD_MUTEXATTR_DEFAULT );
 }
 
 int 
@@ -196,10 +204,62 @@ ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 }
 
 int 
+ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
+{
+	return pthread_mutex_trylock( mutex );
+}
+
+int 
 ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return pthread_mutex_unlock( mutex );
 }
 
+#ifdef LDAP_THREAD_HAVE_RDWR
+#ifdef HAVE_PTHREAD_RWLOCK_DESTROY
+int 
+ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_init( rw, NULL );
+}
+
+int 
+ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_destroy( rw );
+}
+
+int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_rdlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_tryrdlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_unlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_wrlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_trywrlock( rw );
+}
+
+int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pthread_rwlock_unlock( rw );
+}
+
+#endif /* HAVE_PTHREAD_RDLOCK_DESTROY */
+#endif /* LDAP_THREAD_HAVE_RDWR */
 #endif /* HAVE_PTHREADS */
 

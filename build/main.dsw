@@ -87,9 +87,6 @@ Package=<4>
     Project_Dep_Name ldapsearch
     End Project Dependency
     Begin Project Dependency
-    Project_Dep_Name ldbmtest
-    End Project Dependency
-    Begin Project Dependency
     Project_Dep_Name ldif
     End Project Dependency
     Begin Project Dependency
@@ -127,6 +124,9 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name ltest_r
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name passwd
     End Project Dependency
 }}}
 
@@ -273,42 +273,6 @@ Package=<4>
 
 ###############################################################################
 
-Project: "ldbmtest"=..\servers\slapd\tools\ldbmtest.dsp - Package Owner=<4>
-
-Package=<5>
-{{{
-}}}
-
-Package=<4>
-{{{
-    Begin Project Dependency
-    Project_Dep_Name backldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblber
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldap_r
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldbm
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name liblutil
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libslapd
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libavl
-    End Project Dependency
-    Begin Project Dependency
-    Project_Dep_Name libldif
-    End Project Dependency
-}}}
-
-###############################################################################
-
 Project: "ldif"=..\servers\slapd\tools\ldif.dsp - Package Owner=<4>
 
 Package=<5>
@@ -341,6 +305,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -353,6 +320,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -365,6 +335,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -377,6 +350,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -389,6 +365,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -401,6 +380,24 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "liblunicode"=..\libraries\liblunicode\liblunicode.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -413,6 +410,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -425,6 +425,9 @@ Package=<5>
 
 Package=<4>
 {{{
+    Begin Project Dependency
+    Project_Dep_Name setup
+    End Project Dependency
 }}}
 
 ###############################################################################
@@ -466,6 +469,24 @@ Package=<4>
     End Project Dependency
     Begin Project Dependency
     Project_Dep_Name liblber
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "passwd"=..\libraries\liblutil\passwd.dsp - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name liblber
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name liblutil
     End Project Dependency
 }}}
 

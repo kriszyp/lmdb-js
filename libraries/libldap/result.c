@@ -1,11 +1,29 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
  *  Copyright (c) 1990 Regents of the University of Michigan.
  *  All rights reserved.
+ */
+/*---
+ * This notice applies to changes, created by or for Novell, Inc.,
+ * to preexisting works for which notices appear elsewhere in this file.
+ *
+ * Copyright (C) 1999, 2000 Novell, Inc. All Rights Reserved.
+ *
+ * THIS WORK IS SUBJECT TO U.S. AND INTERNATIONAL COPYRIGHT LAWS AND TREATIES.
+ * USE, MODIFICATION, AND REDISTRIBUTION OF THIS WORK IS SUBJECT TO VERSION
+ * 2.0.1 OF THE OPENLDAP PUBLIC LICENSE, A COPY OF WHICH IS AVAILABLE AT
+ * HTTP://WWW.OPENLDAP.ORG/LICENSE.HTML OR IN THE FILE "LICENSE" IN THE
+ * TOP-LEVEL DIRECTORY OF THE DISTRIBUTION. ANY USE OR EXPLOITATION OF THIS
+ * WORK OTHER THAN AS AUTHORIZED IN VERSION 2.0.1 OF THE OPENLDAP PUBLIC
+ * LICENSE, OR OTHER PRIOR WRITTEN CONSENT FROM NOVELL, COULD SUBJECT THE
+ * PERPETRATOR TO CRIMINAL AND CIVIL LIABILITY. 
+ *---
+ * Modification to OpenLDAP source by Novell, Inc.
+ * April 2000 sfs Add code to process V3 referrals and search results
  *
  *  result.c - wait for an ldap result
  */
@@ -114,7 +132,7 @@ ldap_result(
 		if ( msgid == LDAP_RES_ANY || lm->lm_msgid == msgid ) {
 			LDAPMessage	*tmp;
 
-			if ( all == 0
+			if ( all == LDAP_MSG_ONE
 			    || (lm->lm_msgtype != LDAP_RES_SEARCH_RESULT
 			    && lm->lm_msgtype != LDAP_RES_SEARCH_REFERENCE	/* LDAPv3 */
 			    && lm->lm_msgtype != LDAP_RES_SEARCH_ENTRY) )
@@ -138,14 +156,17 @@ ldap_result(
 	}
 
 	if ( lastlm == NULL ) {
-		ld->ld_responses = (all == 0 && lm->lm_chain != NULL
+		ld->ld_responses = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
 		    ? lm->lm_chain : lm->lm_next);
 	} else {
-		lastlm->lm_next = (all == 0 && lm->lm_chain != NULL
+		lastlm->lm_next = (all == LDAP_MSG_ONE && lm->lm_chain != NULL
 		    ? lm->lm_chain : lm->lm_next);
 	}
-	if ( all == 0 )
+	if ( all == LDAP_MSG_ONE && lm->lm_chain != NULL )
+	{
+		lm->lm_chain->lm_next = lm->lm_next;
 		lm->lm_chain = NULL;
+	}
 	lm->lm_next = NULL;
 
 	*result = lm;
@@ -197,7 +218,8 @@ wait4msg(
 		}
 #endif /* LDAP_DEBUG */
 		for ( lc = ld->ld_conns; lc != NULL; lc = lc->lconn_next ) {
-			if ( ber_pvt_sb_data_ready(lc->lconn_sb) ) {
+			if ( ber_sockbuf_ctrl( lc->lconn_sb,
+					LBER_SB_OPT_DATA_READY, NULL ) ) {
 				rc = try_read1msg( ld, msgid, all, lc->lconn_sb,
 				    lc, result );
 				break;
@@ -276,10 +298,15 @@ try_read1msg(
 	ber_tag_t	tag;
 	ber_len_t	len;
 	int		foundit = 0;
-	LDAPRequest	*lr;
+	LDAPRequest	*lr, *tmplr;
 	BerElement	tmpber;
 	int		rc, refer_cnt, hadref, simple_request;
 	ber_int_t	lderr;
+	/*
+	 * v3ref = flag for V3 referral / search reference
+	 * 0 = not a ref, 1 = sucessfully chased ref, -1 = pass ref to application
+	 */
+	int     v3ref;
 
 	assert( ld != NULL );
 	assert( lc != NULL );
@@ -335,6 +362,7 @@ try_read1msg(
 	/* if it's been abandoned, toss it */
 	if ( ldap_abandoned( ld, id ) ) {
 		ber_free( ber, 1 );
+		Debug( LDAP_DEBUG_ANY, "abandoned\n", 0, 0, 0);
 		return( -2 );	/* continue looking */
 	}
 
@@ -353,10 +381,10 @@ try_read1msg(
 		return( -1 );
 	}
 
-	Debug( LDAP_DEBUG_TRACE, "ldap_read: %s msgid %ld, original id %ld\n",
+	Debug( LDAP_DEBUG_TRACE, "ldap_read: message type %s msgid %ld, original id %ld\n",
 	    ( tag == LDAP_RES_SEARCH_ENTRY ) ? "entry" : 
 		( tag == LDAP_RES_SEARCH_REFERENCE ) ? "reference" : "result",
-		(long) id, (long) lr->lr_origid );
+		(long) lr->lr_msgid, (long) lr->lr_origid );
 
 	id = lr->lr_origid;
 	refer_cnt = 0;
@@ -364,12 +392,96 @@ try_read1msg(
 	rc = -2;	/* default is to keep looking (no response found) */
 	lr->lr_res_msgtype = tag;
 
-	if ( tag != LDAP_RES_SEARCH_ENTRY ) {
+	/*
+	 * This code figures out if we are going to chase a
+	 * referral / search reference, or pass it back to the application
+	 */
+	v3ref = 0;	/* Assume not a V3 search reference or referral */
+	if( (tag != LDAP_RES_SEARCH_ENTRY) && (ld->ld_version > LDAP_VERSION2) ) {
+		BerElement	tmpber = *ber; 	/* struct copy */
+		char **refs = NULL;
+
+		if( tag == LDAP_RES_SEARCH_REFERENCE) {
+			/* This is a V3 search reference */
+			/* Assume we do not chase the reference, but pass it to application */
+			v3ref = -1;
+			if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ||
+					(lr->lr_parent != NULL) )
+			{
+				/* Get the referral list */
+				if ( ber_scanf( &tmpber, "{v}", &refs ) == LBER_ERROR ) {
+					rc = LDAP_DECODING_ERROR;
+				} else {
+					/* Note: refs arrary is freed by ldap_chase_v3referrals */
+					refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
+					    &lr->lr_res_error, &hadref );
+					if ( refer_cnt > 0 ) {	/* sucessfully chased reference */
+						/* If haven't got end search, set chasing referrals */
+						if( lr->lr_status != LDAP_REQST_COMPLETED) {
+							lr->lr_status = LDAP_REQST_CHASINGREFS;
+							Debug( LDAP_DEBUG_TRACE,
+							    "read1msg:  search ref chased, mark request chasing refs, id = %d\n",
+							    lr->lr_msgid, 0, 0);
+						}
+						v3ref = 1;	/* We sucessfully chased the reference */
+					}
+				}
+			}
+		} else {
+			/* Check for V3 referral */
+			ber_len_t len;
+			if ( ber_scanf( &tmpber, "{iaa",/*}*/ &lderr,
+				    &lr->lr_res_matched, &lr->lr_res_error )
+				    != LBER_ERROR ) {
+				/* Check if V3 referral */
+				if( ber_peek_tag( &tmpber, &len) == LDAP_TAG_REFERRAL ) {
+					/* We have a V3 referral, assume we cannot chase it */
+					v3ref = -1;
+					if( LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS)
+							 || (lr->lr_parent != NULL) )
+					{
+						v3ref = -1;  /* Assume referral not chased and return it to app */
+						/* Get the referral list */
+						if( ber_scanf( &tmpber, "{v}", &refs) == LBER_ERROR) {
+							rc = LDAP_DECODING_ERROR;
+							lr->lr_status = LDAP_REQST_COMPLETED;
+							Debug( LDAP_DEBUG_TRACE,
+							    "read1msg: referral decode error, mark request completed, id = %d\n",
+								    lr->lr_msgid, 0, 0);
+						} else {
+							/* Chase the referral 
+							 * Note: refs arrary is freed by ldap_chase_v3referrals
+							 */
+							refer_cnt = ldap_chase_v3referrals( ld, lr, refs,
+							    &lr->lr_res_error, &hadref );
+							lr->lr_status = LDAP_REQST_COMPLETED;
+							Debug( LDAP_DEBUG_TRACE,
+							    "read1msg:  referral chased, mark request completed, id = %d\n",
+							    lr->lr_msgid, 0, 0);
+							if( refer_cnt > 0) {
+								v3ref = 1;  /* Referral successfully chased */
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	/* All results that just return a status, i.e. don't return data
+	 * go through the following code.  This code also chases V2 referrals
+	 * and checks if all referrals have been chased.
+	 */
+	if ( (tag != LDAP_RES_SEARCH_ENTRY) && (v3ref > -1) ) {
+		/* For a v3 search referral/reference, only come here if already chased it */
 		if ( ld->ld_version >= LDAP_VERSION2 &&
 			( lr->lr_parent != NULL ||
 			LDAP_BOOL_GET(&ld->ld_options, LDAP_BOOL_REFERRALS) ) )
 		{
 			tmpber = *ber;	/* struct copy */
+			if ( v3ref == 1 ) {
+				; /* V3 search reference or V3 referral sucessfully chased */
+			} else
 			if ( ber_scanf( &tmpber, "{iaa}", &lderr,
 			    &lr->lr_res_matched, &lr->lr_res_error )
 			    != LBER_ERROR ) {
@@ -377,6 +489,9 @@ try_read1msg(
 					/* referrals are in error string */
 					refer_cnt = ldap_chase_referrals( ld, lr,
 					    &lr->lr_res_error, &hadref );
+					lr->lr_status = LDAP_REQST_COMPLETED;
+					Debug( LDAP_DEBUG_TRACE,
+					    "read1msg:  V2 referral chased, mark request completed, id = %d\n", lr->lr_msgid, 0, 0);
 				}
 
 				/* save errno, message, and matched string */
@@ -405,7 +520,7 @@ Debug( LDAP_DEBUG_TRACE,
 			if ( refer_cnt < 0 ) {
 				return( -1 );	/* fatal error */
 			}
-			lr->lr_status = LDAP_REQST_CHASINGREFS;
+			lr->lr_res_errno = LDAP_SUCCESS; /* sucessfully chased referral */
 		} else {
 			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL ) {
 				/* request without any referrals */
@@ -416,6 +531,9 @@ Debug( LDAP_DEBUG_TRACE,
 				ber = NULL;
 			}
 
+			lr->lr_status = LDAP_REQST_COMPLETED; /* declare this request done */
+			Debug( LDAP_DEBUG_TRACE,
+			    "read1msg:  mark request completed, id = %d\n", lr->lr_msgid, 0, 0);
 			while ( lr->lr_parent != NULL ) {
 				merge_error_info( ld, lr->lr_parent, lr );
 
@@ -425,7 +543,15 @@ Debug( LDAP_DEBUG_TRACE,
 				}
 			}
 
-			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL ) {
+			/* Check if all requests are finished, lr is now parent */
+			for(tmplr=lr ; tmplr != NULL; tmplr=tmplr->lr_refnext) {
+				if( tmplr->lr_status != LDAP_REQST_COMPLETED) {
+					break;
+				}
+			}
+
+			/* This is the parent request if the request has referrals */
+			if ( lr->lr_outrefcnt <= 0 && lr->lr_parent == NULL && tmplr == NULL ) {
 				id = lr->lr_msgid;
 				tag = lr->lr_res_msgtype;
 				Debug( LDAP_DEBUG_ANY, "request %ld done\n",
@@ -474,9 +600,10 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 
 	/* is this the one we're looking for? */
 	if ( msgid == LDAP_RES_ANY || id == msgid ) {
-		if ( all == 0
+		if ( all == LDAP_MSG_ONE
 		    || (new->lm_msgtype != LDAP_RES_SEARCH_RESULT
-		    && new->lm_msgtype != LDAP_RES_SEARCH_ENTRY) ) {
+		    && new->lm_msgtype != LDAP_RES_SEARCH_ENTRY
+		    && new->lm_msgtype != LDAP_RES_SEARCH_REFERENCE) ) {
 			*result = new;
 			ld->ld_errno = LDAP_SUCCESS;
 			return( tag );
@@ -515,8 +642,9 @@ lr->lr_res_matched ? lr->lr_res_matched : "" );
 	    (long) new->lm_msgid, (long) new->lm_msgtype, 0 );
 
 	/* part of a search response - add to end of list of entries */
-	for ( tmp = l; tmp->lm_chain != NULL &&
-	    tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY;
+	for ( tmp = l; (tmp->lm_chain != NULL) &&
+	    	((tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_ENTRY) ||
+	    	 (tmp->lm_chain->lm_msgtype == LDAP_RES_SEARCH_REFERENCE));
 	    tmp = tmp->lm_chain )
 		;	/* NULL */
 	tmp->lm_chain = new;
@@ -643,7 +771,7 @@ int
 ldap_msgtype( LDAPMessage *lm )
 {
 	assert( lm != NULL );
-	return ( lm == NULL ) ? lm->lm_msgtype : -1;
+	return ( lm != NULL ) ? lm->lm_msgtype : -1;
 }
 
 
@@ -652,7 +780,7 @@ ldap_msgid( LDAPMessage *lm )
 {
 	assert( lm != NULL );
 
-	return ( lm == NULL ) ? lm->lm_msgid : -1;
+	return ( lm != NULL ) ? lm->lm_msgid : -1;
 }
 
 
@@ -761,14 +889,16 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 	int	rc;
 	ber_tag_t	tag;
 	ber_len_t	len;
+	ber_socket_t	sd;
 
-	if ( ! ber_pvt_sb_data_ready(&ld->ld_sb) ) {
+	ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( sd != AC_SOCKET_INVALID ) {
 		/* restored from ldap_select1() in result.c version 1.24 */
 		fd_set	readfds;
 		if ( ldap_int_tblsize == 0 )
 			ldap_int_ip_init();
 		FD_ZERO( &readfds );
-		FD_SET( ber_pvt_sb_get_desc(&ld->ld_sb), &readfds );
+		FD_SET( sd, &readfds );
 		rc = select( ldap_int_tblsize, &readfds, 0, 0, timeout );
 
 		if ( rc == -1 || rc == 0 ) {
@@ -779,7 +909,7 @@ cldap_getmsg( LDAP *ld, struct timeval *timeout, BerElement *ber )
 	}
 
 	/* get the next message */
-	if ( (tag = ber_get_next( &ld->ld_sb, &len, ber ))
+	if ( (tag = ber_get_next( ld->ld_sb, &len, ber ))
 	    != LDAP_TAG_MESSAGE ) {
 		ld->ld_errno = (tag == LBER_DEFAULT ? LDAP_SERVER_DOWN :
 		    LDAP_LOCAL_ERROR);

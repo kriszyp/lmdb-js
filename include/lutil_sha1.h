@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -24,11 +24,10 @@ LDAP_BEGIN_DECL
  * SHA-1 in C
  * By Steve Reid <steve@edmweb.com>
  */
+#define LUTIL_SHA1_BYTES 20
 
-#ifndef LDAP_UINT32
-#define LDAP_UINT32 1
+/* This code assumes char are 8-bits and uint32 are 32-bits */
 typedef ac_uint4 uint32;
-#endif
 
 typedef struct {
     uint32 state[5];
@@ -36,31 +35,31 @@ typedef struct {
     unsigned char buffer[64];
 } lutil_SHA1_CTX;
   
-LDAP_F( void )
+LIBLUTIL_F( void )
 lutil_SHA1Transform
 	LDAP_P((uint32 state[5], const unsigned char buffer[64]));
 
-LDAP_F( void  )
+LIBLUTIL_F( void  )
 lutil_SHA1Init
 	LDAP_P((lutil_SHA1_CTX *context));
 
-LDAP_F( void  )
+LIBLUTIL_F( void  )
 lutil_SHA1Update
 	LDAP_P((lutil_SHA1_CTX *context, const unsigned char *data, uint32 len));
 
-LDAP_F( void  )
+LIBLUTIL_F( void  )
 lutil_SHA1Final
 	LDAP_P((unsigned char digest[20], lutil_SHA1_CTX *context));
 
-LDAP_F( char * )
+LIBLUTIL_F( char * )
 lutil_SHA1End
 	LDAP_P((lutil_SHA1_CTX *, char *));
 
-LDAP_F( char * )
+LIBLUTIL_F( char * )
 lutil_SHA1File
 	LDAP_P((char *, char *));
 
-LDAP_F( char * )
+LIBLUTIL_F( char * )
 lutil_SHA1Data
 	LDAP_P((const unsigned char *, size_t, char *));
 

@@ -1,10 +1,12 @@
-.TH LDAP_BIND 3  "28 March 1996" "U-M LDAP LDVERSION"
+.TH LDAP_BIND 3 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_bind, ldap_bind_s, ldap_simple_bind, ldap_simple_bind_s, ldap_kerberos_bind_s, ldap_kerberos_bind1, ldap_kerberos_bind1_s, ldap_kerberos_bind2, ldap_kerberos_bind2_s, ldap_unbind, ldap_unbind_s, ldap_set_rebind_proc \- LDAP bind routines
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 .LP
 .ft B
@@ -194,3 +196,8 @@ for more information.
 .BR ldap(3),
 .BR ldap_error(3),
 .BR ldap_open(3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

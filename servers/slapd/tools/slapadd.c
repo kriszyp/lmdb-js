@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -57,21 +57,22 @@ main( int argc, char **argv )
 			break;
 		}
 
-		if( !noschemacheck ) {
-			/* make sure the DN is valid */
-			if( dn_normalize_case( e->e_ndn ) == NULL ) {
-				fprintf( stderr, "%s: bad dn=\"%s\" (line=%d)\n",
-					progname, e->e_dn, lineno );
-				rc = EXIT_FAILURE;
-				entry_free( e );
-				if( continuemode ) continue;
-				break;
-			}
+		/* make sure the DN is valid */
+		if( dn_normalize( e->e_ndn ) == NULL ) {
+			fprintf( stderr, "%s: bad dn=\"%s\" (line=%d)\n",
+				progname, e->e_dn, lineno );
+			rc = EXIT_FAILURE;
+			entry_free( e );
+			if( continuemode ) continue;
+			break;
+		}
 
+		if( !noschemacheck ) {
 			/* check schema */
-			if ( global_schemacheck && oc_schema_check( e ) != 0 ) {
-				fprintf( stderr, "%s: schema violation in entry dn=\"%s\" (line=%d)\n",
-					progname, e->e_dn, lineno );
+			const char *text;
+			if ( entry_schema_check( e, NULL, &text ) != LDAP_SUCCESS ) {
+				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
+					progname, e->e_dn, lineno, text );
 				rc = EXIT_FAILURE;
 				entry_free( e );
 				if( continuemode ) continue;
@@ -107,7 +108,7 @@ main( int argc, char **argv )
 		entry_free( e );
 	}
 
-	free( buf );
+	ch_free( buf );
 
 	be->be_entry_close( be );
 

@@ -1,7 +1,7 @@
 /* filterindex.c - generate the list of candidate entries from a filter */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -15,19 +15,20 @@
 #include "slap.h"
 #include "back-ldbm.h"
 
-static ID_BLOCK	*ava_candidates( Backend *be, Ava *ava, int type );
-static ID_BLOCK	*presence_candidates( Backend *be, char *type );
-static ID_BLOCK	*approx_candidates( Backend *be, Ava *ava );
-static ID_BLOCK	*list_candidates( Backend *be, Filter *flist, int ftype );
-static ID_BLOCK	*substring_candidates( Backend *be, Filter *f );
-static ID_BLOCK	*substring_comp_candidates( Backend *be, char *type, char *val, int prepost );
-
-/*
- * test_filter - test a filter against a single entry.
- * returns	0	filter matched
- *		-1	filter did not match
- *		>0	an ldap error code
- */
+static ID_BLOCK	*presence_candidates(
+	Backend *be,
+	AttributeDescription *desc );
+static ID_BLOCK	*equality_candidates(
+	Backend *be, AttributeAssertion *ava );
+static ID_BLOCK	*approx_candidates(
+	Backend *be, AttributeAssertion *ava );
+static ID_BLOCK	*substring_candidates(
+	Backend *be,
+	Filter *f );
+static ID_BLOCK	*list_candidates(
+	Backend *be,
+	Filter *flist,
+	int ftype );
 
 ID_BLOCK *
 filter_candidates(
@@ -51,9 +52,19 @@ filter_candidates(
 		result = dn2idl( be, f->f_dn, DN_SUBTREE_PREFIX );
 		break;
 
+	case LDAP_FILTER_PRESENT:
+		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
+		result = presence_candidates( be, f->f_desc );
+		break;
+
 	case LDAP_FILTER_EQUALITY:
 		Debug( LDAP_DEBUG_FILTER, "\tEQUALITY\n", 0, 0, 0 );
-		result = ava_candidates( be, &f->f_ava, LDAP_FILTER_EQUALITY );
+		result = equality_candidates( be, f->f_ava );
+		break;
+
+	case LDAP_FILTER_APPROX:
+		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );
+		result = approx_candidates( be, f->f_ava );
 		break;
 
 	case LDAP_FILTER_SUBSTRINGS:
@@ -63,22 +74,12 @@ filter_candidates(
 
 	case LDAP_FILTER_GE:
 		Debug( LDAP_DEBUG_FILTER, "\tGE\n", 0, 0, 0 );
-		result = ava_candidates( be, &f->f_ava, LDAP_FILTER_GE );
+		result = idl_allids( be );
 		break;
 
 	case LDAP_FILTER_LE:
 		Debug( LDAP_DEBUG_FILTER, "\tLE\n", 0, 0, 0 );
-		result = ava_candidates( be, &f->f_ava, LDAP_FILTER_LE );
-		break;
-
-	case LDAP_FILTER_PRESENT:
-		Debug( LDAP_DEBUG_FILTER, "\tPRESENT\n", 0, 0, 0 );
-		result = presence_candidates( be, f->f_type );
-		break;
-
-	case LDAP_FILTER_APPROX:
-		Debug( LDAP_DEBUG_FILTER, "\tAPPROX\n", 0, 0, 0 );
-		result = approx_candidates( be, &f->f_ava );
+		result = idl_allids( be );
 		break;
 
 	case LDAP_FILTER_AND:
@@ -107,47 +108,61 @@ filter_candidates(
 }
 
 static ID_BLOCK *
-ava_candidates(
-    Backend	*be,
-    Ava		*ava,
-    int		type
-)
-{
-	ID_BLOCK	*idl;
-
-	Debug( LDAP_DEBUG_TRACE, "=> ava_candidates 0x%x\n", type, 0, 0 );
-
-	switch ( type ) {
-	case LDAP_FILTER_EQUALITY:
-		idl = index_read( be, ava->ava_type, INDEX_EQUALITY,
-		    ava->ava_value.bv_val );
-		break;
-
-	case LDAP_FILTER_GE:
-		idl = idl_allids( be );
-		break;
-
-	case LDAP_FILTER_LE:
-		idl = idl_allids( be );
-		break;
-	}
-
-	Debug( LDAP_DEBUG_TRACE, "<= ava_candidates %ld\n",
-	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
-	return( idl );
-}
-
-static ID_BLOCK *
 presence_candidates(
     Backend	*be,
-    char	*type
+	AttributeDescription *desc
 )
 {
 	ID_BLOCK	*idl;
+	DBCache	*db;
+	int rc;
+	char *dbname;
+	slap_index mask;
+	struct berval *prefix;
 
 	Debug( LDAP_DEBUG_TRACE, "=> presence_candidates\n", 0, 0, 0 );
 
-	idl = index_read( be, type, 0, "*" );
+	idl = idl_allids( be );
+
+	rc = index_param( be, desc, LDAP_FILTER_PRESENT,
+		&dbname, &mask, &prefix );
+
+	if( rc != LDAP_SUCCESS ) {
+		return idl;
+	}
+
+	if( dbname == NULL ) {
+		/* not indexed */
+		return idl;
+	}
+
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= presense_candidates db open failed (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
+		return idl;
+	}
+
+	if( prefix != NULL ) {
+		idl_free( idl );
+		idl = NULL;
+
+		rc = key_read( be, db, prefix, &idl );
+
+		if( rc != LDAP_SUCCESS ) {
+			Debug( LDAP_DEBUG_TRACE, "<= presense_candidates key read failed (%d)\n",
+			    rc, 0, 0 );
+
+		} else if( idl == NULL ) {
+			Debug( LDAP_DEBUG_TRACE, "<= presense_candidates NULL\n",
+			    0, 0, 0 );
+		}
+	}
+
+	ldbm_cache_close( be, db );
+
 
 	Debug( LDAP_DEBUG_TRACE, "<= presence_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -155,36 +170,207 @@ presence_candidates(
 }
 
 static ID_BLOCK *
-approx_candidates(
+equality_candidates(
     Backend	*be,
-    Ava		*ava
+	AttributeAssertion *ava
 )
 {
-	char	*w, *c;
-	ID_BLOCK	*idl, *tmp;
+	ID_BLOCK	*idl;
+	DBCache	*db;
+	int i;
+	int rc;
+	char *dbname;
+	slap_index mask;
+	struct berval *prefix;
+	struct berval **keys = NULL;
+	MatchingRule *mr;
+
+	Debug( LDAP_DEBUG_TRACE, "=> equality_candidates\n", 0, 0, 0 );
+
+	idl = idl_allids( be );
+
+	rc = index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
+		&dbname, &mask, &prefix );
+
+	if( rc != LDAP_SUCCESS ) {
+		return idl;
+	}
+
+	if( dbname == NULL ) {
+		/* not indexed */
+		return idl;
+	}
+
+	mr = ava->aa_desc->ad_type->sat_equality;
+	if( !mr ) {
+		/* return LDAP_INAPPROPRIATE_MATCHING; */
+		return idl;
+	}
+
+	if( !mr->smr_filter ) {
+		return idl;
+	}
+
+	rc = (mr->smr_filter)(
+		LDAP_FILTER_EQUALITY,
+		ava->aa_desc->ad_type->sat_syntax,
+		mr,
+		prefix,
+		ava->aa_value,
+		&keys );
+
+	if( rc != LDAP_SUCCESS ) {
+		return idl;
+	}
+
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= equality_candidates db open failed (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
+		return idl;
+	}
+
+	for ( i= 0; keys[i] != NULL; i++ ) {
+		ID_BLOCK *save;
+		ID_BLOCK *tmp;
+
+		rc = key_read( be, db, keys[i], &tmp );
+
+		if( rc != LDAP_SUCCESS ) {
+			idl_free( idl );
+			idl = NULL;
+			Debug( LDAP_DEBUG_TRACE, "<= equality_candidates key read failed (%d)\n",
+			    rc, 0, 0 );
+			break;
+		}
+
+		if( tmp == NULL ) {
+			idl_free( idl );
+			idl = NULL;
+			Debug( LDAP_DEBUG_TRACE, "<= equality_candidates NULL\n",
+			    0, 0, 0 );
+			break;
+		}
+
+		save = idl;
+		idl = idl_intersection( be, idl, tmp );
+		idl_free( save );
+
+		if( idl == NULL ) break;
+	}
+
+	ber_bvecfree( keys );
+
+	ldbm_cache_close( be, db );
+
+
+	Debug( LDAP_DEBUG_TRACE, "<= equality_candidates %ld\n",
+	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
+	return( idl );
+}
+
+static ID_BLOCK *
+approx_candidates(
+    Backend	*be,
+	AttributeAssertion *ava
+)
+{
+	ID_BLOCK *idl;
+	DBCache	*db;
+	int i;
+	int rc;
+	char *dbname;
+	slap_index mask;
+	struct berval *prefix;
+	struct berval **keys = NULL;
+	MatchingRule *mr;
 
 	Debug( LDAP_DEBUG_TRACE, "=> approx_candidates\n", 0, 0, 0 );
 
-	idl = NULL;
-	for ( w = first_word( ava->ava_value.bv_val ); w != NULL;
-	    w = next_word( w ) ) {
-		c = phonetic( w );
-		if ( (tmp = index_read( be, ava->ava_type, INDEX_APPROX, c ))
-		    == NULL ) {
-			free( c );
+	idl = idl_allids( be );
+
+	rc = index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
+		&dbname, &mask, &prefix );
+
+	if( rc != LDAP_SUCCESS ) {
+		return idl;
+	}
+
+	if( dbname == NULL ) {
+		/* not indexed */
+		return idl;
+	}
+
+	mr = ava->aa_desc->ad_type->sat_approx;
+	if( mr == NULL ) {
+		/* no approx matching rule, try equality matching rule */
+		mr = ava->aa_desc->ad_type->sat_equality;
+	}
+
+	if( !mr ) {
+		/* return LDAP_INAPPROPRIATE_MATCHING; */
+		return idl;
+	}
+
+	if( !mr->smr_filter ) {
+		return idl;
+	}
+
+	rc = (mr->smr_filter)(
+		LDAP_FILTER_EQUALITY,
+		ava->aa_desc->ad_type->sat_syntax,
+		mr,
+		prefix,
+		ava->aa_value,
+		&keys );
+
+	if( rc != LDAP_SUCCESS ) {
+		return idl;
+	}
+
+	db = ldbm_cache_open( be, dbname, LDBM_SUFFIX, LDBM_READER );
+	
+	if ( db == NULL ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "<= approx_candidates db open failed (%s%s)\n",
+			dbname, LDBM_SUFFIX, 0 );
+		return idl;
+	}
+
+	for ( i= 0; keys[i] != NULL; i++ ) {
+		ID_BLOCK *save;
+		ID_BLOCK *tmp;
+
+		rc = key_read( be, db, keys[i], &tmp );
+
+		if( rc != LDAP_SUCCESS ) {
 			idl_free( idl );
+			idl = NULL;
+			Debug( LDAP_DEBUG_TRACE, "<= approx_candidates key read failed (%d)\n",
+			    rc, 0, 0 );
+			break;
+		}
+
+		if( tmp == NULL ) {
+			idl_free( idl );
+			idl = NULL;
 			Debug( LDAP_DEBUG_TRACE, "<= approx_candidates NULL\n",
 			    0, 0, 0 );
-			return( NULL );
+			break;
 		}
-		free( c );
 
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			idl = idl_intersection( be, idl, tmp );
-		}
+		save = idl;
+		idl = idl_intersection( be, idl, tmp );
+		idl_free( save );
+
+		if( idl == NULL ) break;
 	}
+
+	ber_bvecfree( keys );
+
+	ldbm_cache_close( be, db );
 
 	Debug( LDAP_DEBUG_TRACE, "<= approx_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
@@ -238,136 +424,13 @@ substring_candidates(
     Filter	*f
 )
 {
-	int	i;
-	ID_BLOCK	*idl, *tmp, *tmp2;
+	ID_BLOCK *idl;
 
 	Debug( LDAP_DEBUG_TRACE, "=> substring_candidates\n", 0, 0, 0 );
 
-	idl = NULL;
-
-	/* initial */
-	if ( f->f_sub_initial != NULL ) {
-		if ( (int) strlen( f->f_sub_initial ) < SUBLEN - 1 ) {
-			idl = idl_allids( be );
-		} else if ( (idl = substring_comp_candidates( be, f->f_sub_type,
-		    f->f_sub_initial, '^' )) == NULL ) {
-			return( NULL );
-		}
-	}
-
-	/* final */
-	if ( f->f_sub_final != NULL ) {
-		if ( (int) strlen( f->f_sub_final ) < SUBLEN - 1 ) {
-			tmp = idl_allids( be );
-		} else if ( (tmp = substring_comp_candidates( be, f->f_sub_type,
-		    f->f_sub_final, '$' )) == NULL ) {
-			idl_free( idl );
-			return( NULL );
-		}
-
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			tmp2 = idl;
-			idl = idl_intersection( be, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
-		}
-	}
-
-	for ( i = 0; f->f_sub_any != NULL && f->f_sub_any[i] != NULL; i++ ) {
-		if ( (int) strlen( f->f_sub_any[i] ) < SUBLEN ) {
-			tmp = idl_allids( be );
-		} else if ( (tmp = substring_comp_candidates( be, f->f_sub_type,
-		    f->f_sub_any[i], 0 )) == NULL ) {
-			idl_free( idl );
-			return( NULL );
-		}
-
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			tmp2 = idl;
-			idl = idl_intersection( be, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
-		}
-	}
-
+	idl = idl_allids( be );
 	Debug( LDAP_DEBUG_TRACE, "<= substring_candidates %ld\n",
 	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
 	return( idl );
 }
 
-static ID_BLOCK *
-substring_comp_candidates(
-    Backend	*be,
-    char	*type,
-    char	*val,
-    int		prepost
-)
-{
-	int	i, len;
-	ID_BLOCK	*idl, *tmp, *tmp2;
-	char	*p;
-	char	buf[SUBLEN + 1];
-
-	Debug( LDAP_DEBUG_TRACE, "=> substring_comp_candidates\n", 0, 0, 0 );
-
-	len = strlen( val );
-	idl = NULL;
-
-	/* prepend ^ for initial substring */
-	if ( prepost == '^' ) {
-		buf[0] = '^';
-		for ( i = 0; i < SUBLEN - 1; i++ ) {
-			buf[i + 1] = val[i];
-		}
-		buf[SUBLEN] = '\0';
-
-		if ( (idl = index_read( be, type, INDEX_SUB, buf )) == NULL ) {
-			return( NULL );
-		}
-	} else if ( prepost == '$' ) {
-		p = val + len - SUBLEN + 1;
-		for ( i = 0; i < SUBLEN - 1; i++ ) {
-			buf[i] = p[i];
-		}
-		buf[SUBLEN - 1] = '$';
-		buf[SUBLEN] = '\0';
-
-		if ( (idl = index_read( be, type, INDEX_SUB, buf )) == NULL ) {
-			return( NULL );
-		}
-	}
-
-	for ( p = val; p < (val + len - SUBLEN + 1); p++ ) {
-		for ( i = 0; i < SUBLEN; i++ ) {
-			buf[i] = p[i];
-		}
-		buf[SUBLEN] = '\0';
-
-		if ( (tmp = index_read( be, type, INDEX_SUB, buf )) == NULL ) {
-			idl_free( idl );
-			return( NULL );
-		}
-
-		if ( idl == NULL ) {
-			idl = tmp;
-		} else {
-			tmp2 = idl;
-			idl = idl_intersection( be, idl, tmp );
-			idl_free( tmp );
-			idl_free( tmp2 );
-		}
-
-		/* break if no candidates */
-		if( idl == NULL ) {
-			break;
-		}
-	}
-
-	Debug( LDAP_DEBUG_TRACE, "<= substring_comp_candidates %ld\n",
-	    idl ? ID_BLOCK_NIDS(idl) : 0, 0, 0 );
-	return( idl );
-}

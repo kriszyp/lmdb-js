@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998,1999 The OpenLDAP Foundation
+## Copyright 1998-2000 The OpenLDAP Foundation
 ## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
 ## of this package for details.
 ##---------------------------------------------------------------------------
@@ -24,7 +24,8 @@ lint5: lint5-local FORCE
 clean-common: 	FORCE
 	$(RM) $(LIBRARY) ../$(LIBRARY) $(XLIBRARY) \
 		$(PROGRAMS) $(XPROGRAMS) $(XSRCS) $(XXSRCS) \
-		*.o *.lo a.out core version.c .libs/*
+		*.o *.lo a.out *.exe core version.c .libs/* \
+		../`$(BASENAME) $(LIBRARY) .la`{.a,.so*,*.dll}
 
 depend-common: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $(XXSRCS)

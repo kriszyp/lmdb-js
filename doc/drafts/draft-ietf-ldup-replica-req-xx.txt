@@ -1,0 +1,1035 @@
+         INTERNET-DRAFT                                     Russel F. Weiser
+         Informational Draft                     Digital Signature Trust Co.
+         Expires 21 April 2000                                  Ellen Stokes
+                                                                         IBM
+                                                             21 October 1999
+
+
+
+
+
+                        LDAP V3 Replication Requirements
+
+                        <draft-ietf-ldup-replica-req-02.txt>
+
+
+
+  Status of this Memo
+
+
+
+      This document is am Internet-Draft and is in full conformance with
+      all provisions of Section 10 of RFC2026.
+
+
+      Internet-Drafts are working documents of the Internet Engineering
+      Task Force (IETF), its areas, and its working groups.  Note that
+      other groups may also distribute working documents as Internet-
+      Drafts.
+
+
+      Internet-Drafts are draft documents valid for a maximum of six
+      months and may be updated, replaced, or obsoleted by other documents
+      at any time.  It is inappropriate to use Internet-Drafts as
+      reference material or to cite them other than as ``work in
+      progress.''
+
+
+      The list of current Internet-Drafts can be accessed at
+      http://www.ietf.org/ietf/lid-abstracts.txt
+
+
+      The list of Internet-Drafts Shadow Directories can be accessed at
+      http://www.ietf.org/shadow.html.
+
+
+
+
+  Abstract
+
+
+      This document discusses the fundamental requirements for replication
+      of data accessible via the LDAPv3 [RFC2251] protocol. It is intended
+      to be a gathering place for general replication requirements needed
+      to provide interoperability between informational directories.
+
+
+      The key words MUST, MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+      SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+      document are to be interpreted as described in [RFC2119].
+
+
+
+
+
+
+
+         Weiser & Stokes       21 April   2000                    [PAGE 1]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+
+
+                             Table of Contents
+
+
+      1.Introduction.....................................................3
+      2. Terminology.....................................................3
+      3. Objective.......................................................5
+      4. Applicability Statement.........................................5
+      5. Replication Model..............................................10
+      6. Replication Protocol...........................................12
+      7. Schema.........................................................13
+      8. Administration and Management Considerations...................13
+      9. Acknowledgement................................................14
+      10. References....................................................15
+      11. Author's Address..............................................15
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 2]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+
+
+
+
+  1. Introduction
+
+
+      The ability to distribute directory information throughout the
+      network provides a two fold benefit to the network: (1) increasing
+      the reliability of the directory through fault tolerance, and
+      (2) brings the directory content closer to the clients using the
+      data. LDAPÆs acceptance as an access protocol for directory
+      information is driving the need to distribute LDAP directory content
+      among servers within enterprise and Internet.  Currently LDAP does
+      not define a replication mechanism and only generally mentions LDAP
+      shadow servers (see [RFC2251] and [Changelog]) in passing. The
+      requirements for replication are critical to the successful
+      deployment and acceptance of LDAP in the market place.
+
+
+
+  2.  Terminology
+
+
+      For the purposes of this document, the following terminology
+      definitions are used:
+
+
+      Area of replication - A whole or portion of a directory tree(DIT)
+      making up a distinct unit of data to be replicated. This may also be
+      known as "unit of replication".
+
+      Atomic operation - The ability to treat and contain several updates
+      or attribute changes as a single operation for replication purposes
+      to guarantee that the several updates or attribute changes are
+      propagated to a replica as a single unit.
+
+      Authoritative Master Replica - The Primary updateable replica of the
+      replicated information.
+
+
+      Conflict resolution - Deterministic procedures within replication
+      protocols, utilized to resolve change information conflicts that may
+      arise due to conflicting changes affecting a directory entry.
+
+
+      Fractional replication - The capability to replicate a subset of
+      attributes of any given entry.
+
+      Incremental Update - The process of updating a replica, or copy, of
+      a naming context, by updating only those fields or objects which
+      have changed.
+
+
+      Master Slave, or Single Master Replication - Replication model that
+      assumes only one server, the master, allows write access to the
+      replicated data. Note that Master-Slave replication can be
+      considered a proper subset of multi-master replication.
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 3]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+
+
+      Multi-Master Replication - A replication model where entries can be
+      written and updated on any of several updateable replica copies
+      without requiring communication with other updateable replicas
+      before the write or update is performed.
+
+
+      Naming Context - Suffix of a Sub-tree. A sub-tree of entries held in
+      a single server [X.500].
+
+
+      One-way Replication  - The process of synchronization in a single
+      direction where the authoritative source information is provided to
+      a replica.
+
+
+      Partial Replication - The capability to replicate some subset of
+      entries in a naming context.
+
+
+      Propagation behavior - The general behavior of the actual
+      synchronization process between a consumer and a provider of
+      replication information.
+
+      Read-only Replica - A read-only copy of a replicated directory. A
+      read-only replica is assumed to be a slave replica of master slave
+      or single master replication definition.
+
+
+      Replica - A single instance of a whole or portion of the Directory
+      tree (DIT) as defined by area of replication.
+
+
+      Replica Ring - A set of servers, which hold in common the same DIT
+      information as, defined by ôArea of replicationö. These servers may
+      be managed under a single replication agreement that handles all
+      members of the set of servers as a group.
+
+
+      Replica Cycle - When a change or groups of changes need to be
+      propagated to the other member of a replica ring. The process of
+      contacting a replica member would be considered the beginning of a
+      replication cycle; the termination of communications with a replica
+      is the end of the cycle whether its due to an error or successful
+      exchange of update records.
+
+
+      Replication - The process of copying portions of naming context
+      information and content between multiple LDAP servers, such that
+      certain predefined portions of the information are available from
+      different servers. Replication can occur between either homogeneous
+      implementations across heterogeneous platforms (operating systems)
+      or heterogeneous implementations supporting identical replication
+      across heterogeneous platforms (operating systems).
+
+
+      Sparse Replica - A incomplete copy of a sub-tree which maybe
+      inclusive with updateable, or Read-only. See Partial replication and
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 4]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      Fractional replication.
+
+
+      Topology - Refers to the shape of the directed graph describing the
+      relationships between replicas, as in the replicated directory
+      topology.
+
+
+      Two-way Replication  - The process of synchronization where change
+      information may flow bi-directionally between two replica.
+
+      Update Propagation - Protocol-based process by which directory
+      replicas are reconciled.
+
+
+      Updateable Replica - A Non-authoritative read-writeable copy of the
+      replicated information. Such that during conflict resolution a
+      authoritative master takes precedents in resolving conflicts.
+
+
+
+  3.  Objective
+
+
+      The major objective is to provide an interoperable LDAP V3 directory
+      synchronization protocol which is simple, highly efficient and
+      flexible enough to support both multi-master and master-slave
+      replication operations to meet the needs of both the internet and
+      enterprise environments.
+
+
+  4.  Applicability Statement
+
+
+      Generally replication can be characterized by looking at data
+      consistency models across existing technologies. This may provide
+      insight to LDAP v3 replication requirements. The following is a
+      brief examination of the following data models.
+
+
+      Model 1: Tight Consistency -- Includes environments where all
+      replicas must always contain exactly the same directory content. Two
+      phase commit transaction models may be used to preserve transaction
+      consistency.
+
+
+      Model 2: Eventual Consistency or Transient Consistency -- Includes
+      X.500 Directories, Bayou [XEROX], and NDS (Novell Directory
+      Services) names service where definite knowledge of the global
+      replica topology is provided through predetermined replication
+      agreements. Such that every update propagates to every replica that
+      it can reach via a path of stepwise eventual connectivity.
+      Transaction consistency is preserved for transactions directed at
+      the master server in X.500 implementations. NDS additionally
+      provides deterministic consistency over time to all replicas due to
+      its inherent replication policies.
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 5]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      Model 3: Limited Effort Eventual Consistency -- Includes Xerox
+      Clearinghouse [XEROX] that provides a statistical probability of
+      convergence with global knowledge of replica topology. Similar to
+      "Eventual Consistency", except where replicas may purge updates
+      therefore dropping propagation changes when some replica time
+      boundary is exceeded, thus leaving some changes replicated to a
+      portion of the replica topology. Transactional consistency is not
+      preserved, though some weaker constraints on consistency are
+      available.
+
+      Model 4: Loosest Consistency -- Includes opportunistic or simple
+      cache where information is provided from the cache until stale.
+
+
+      Model 5: Ad hoc -- A copy of a date store where no follow up checks
+      are made for the accuracy/freshness of the data.
+
+
+      Consistency models 2, and 3 involve the use of prearranged
+      replication agreements or "Predefined Replication Agreements"
+      between cooperating servers. The complexity of Model 1's use of 2-
+      phase commit adds additional overhead that should not considered at
+      this time. Models 4 and 5 involve unregistered replicas which
+      "pull" updates from another directory server without that server's
+      knowledge. These models can be considered to violate a directory's
+      security policies. Therefore models 1, 4, and 5 are declared to be
+      out of scope of this working group.
+
+
+      So through further review of these consistency models two
+      application areas can then be derived with even further
+      characterizations of the data types usages.
+
+      Eventual Consistency or Transient Consistency (Model 2) - This model
+      provides policy configuration through security management
+      parameters; the data is more dynamic and utilizes dynamic address
+      information.
+
+      Limited Effort Eventual Consistency (Model 3) - This model matches a
+      white-pages environment which contains fairly static data and
+      address information. This model mainly replicates message
+      attributes.
+
+      Therefore it is believed an LDAP replication should be flexible
+      enough to cover the above range of capabilities. The generalized use
+      of LDUP replication environment is to provide for the distribution
+      of LDAP directory information in order to improve accessibility and
+      consistency of the information held by the directory.
+
+
+
+      4.1 Replication Scenarios
+
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 6]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      The following directory deployment examples are intended to
+      substantiate and validate our replication requirements. It is
+      assumed in all cases that directory implementations from different
+      vendors are involved.
+
+      4.1.1 Extranet Example
+
+
+      A company has a trading partner to whom it wishes to provide
+      directory information.  This information may be as simple as a
+      corporate telephone directory, or as complex as an extranet work
+      flow application.  For performance reasons the company may wish to
+      have a replica of its directory within the Partner Company, rather
+      than simply exposed beyond its firewall.
+
+
+       The requirements, which follow from this scenario, are:
+
+      - One-way replication, single mastered.
+      - Authentication of clients.
+      - Common access control and access control identification.
+      - Secure transmission of updates.
+      - Selective attribute replication (Fractional Replication), so that
+        only partial entries can be replicated.
+
+
+
+        4.1.2 Consolidation Example
+
+
+      Company A acquires company B. In the transition period, whilst the
+      organizations are merged, both directory services must coexist.
+      Company A may wish to attach company B's directory to its own.
+
+      The requirements, which follow from this scenario, are:
+
+      - Multi-Master replication.
+      - Common access control model. Access control model identification.
+      - Secure transmission of updates.
+      - Replication between DITs with potentially differing schema.
+
+
+        4.1.3 Replication Heterogeneous Deployment Example
+
+      An organization may deliberately deploy multiple directory services
+      within their enterprise to employ the differing benefits of each
+      service.  In this case multi-master replication will be required to
+      ensure that the multiple updateable replicas of the DIT are
+      synchronized. Some vendors may provide directory clients, which are
+      tied to their own directory service.
+
+
+      The requirements, which follow from this scenario, are:
+
+
+      - Multi-Master replication
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 7]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      - Common access control model and Access control model
+      identification.
+      - Secure transmission of updates.
+      - Replication between DITs with potentially differing schemas.
+
+      4.1.4 Shared Name Space Example
+
+
+      Two organizations may choose to cooperate on some venture and need a
+      shared name space to manage their operation.  Both organizations
+      will require administrative rights over the shared name space.
+
+      The requirements, which follow from this scenario, are:
+
+      - Multi-Master replication.
+      - Common access control model and Access control model
+      identification.
+      - Secure transmission of updates.
+
+      4.1.5 Supplier Initiated Replication
+
+      A single master environment, which maintains a number of replicas of
+      the DIT by pushing changes, based on a defined schedule.
+
+
+      The requirements, which follow from this scenario, are:
+
+      - Single-master environment.
+      - Supplier-initiated replication.
+      - Secure transmission of updates.
+
+
+      4.1.6 Consumer Initiated Replication
+
+
+      Again a single mastered replication topology, but the replica
+      initiates the replication exchange rather than the master. An
+      example of this is a replica that resides on a laptop computer that
+      may run disconnected for a period of time.
+
+
+      The requirements, which follow from this scenario, are:
+
+      - Single-master environment.
+      - Consumer initiated replication.
+      - Open scheduling (anytime).
+
+      4.1.7 Prioritized attribute replication
+
+
+      The password attribute can provide an example of the requirement for
+      prioritized attribute replication. A user is working in Utah and the
+      administrator resides in California. The user has forgotten his
+      password. So the user calls or emails the administrator to request a
+      new password. The administrator provides the updated password (a
+      change). Policy states that this attribute is critical and must be
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 8]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      available to the user for login immediately (e.g. shortly) after the
+      administrator changed it. Replication needs to occur immediately for
+      critical attributes/objects.
+
+
+      The requirements, which follow from this scenario, are:
+
+      - Incremental replication of changes.
+      - Automatic replication on change of certain attributes.
+      - Replicate based on time/attribute semantics.
+
+      4.1.8 Bandwidth issues
+
+
+      The replication of Server (A) R/W replica (a) in Katmandu is handled
+      via a dial up phone link to Paris where server (B) R/W replica of
+      (a) resides. Server (C) R/W replica of(a) is connected by a T1
+      connection to server (B). Each connection has a different
+      performance characteristic.
+
+
+      The requirements, which follow from this scenario, are:
+            
+      - Minimize repetitive updates when replicating from multiple
+        replication paths.
+      - Incremental replication of changes.
+      - Provide replication cycles to delay and/or retry when connections
+        can not be reached.
+      - Allowances for consumer initiated or supplier initiated
+        replication.
+
+
+      4.1.9 Interoperable Administration and Management
+
+      The administrator with administrative authority of the corporate
+      directory which is replicated by numerous geographically dispersed
+      LDAP servers from different vendors notices that the replication
+      process is not completing correctly as the change log is continuing
+      to grow and/or error message informs him. The administrator uses his
+      $19.95 RepCo LDAP directory replication diagnostics tools to look at
+      Root DSE replica knowledge on server 17 and determines that server
+      42 made by LDAPÆRUS Inc. is not replicating properly due to an
+      Object conflict. Using his Repco Remote repair tools he connects to
+      server 42 and resolves the conflict on the remote server.
+
+
+      The requirements, which follow from this scenario, are:
+
+      - Provides replication audit history.
+      - Provisions for managing conflict resolution.
+      - Provide LDAP access to predetermined agreements, topology and
+        policy attributes.
+      - Provide operations for comparing replicaÆs content for validity.
+      - Provide LDAP access to status and audit information.
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 9]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      4.1.10 Enterprise Directory Replication Mesh
+
+
+      A Corporation builds a mesh of directory servers within the
+      enterprise utilizing LDAP servers from various vendors. Five servers
+      are holding the same area of replication. The predetermined
+      replication agreement(s) for the enterprise mesh are under a single
+      management, and the security domain allows a single predetermined
+      replication agreement to manage the 5 servers replication.
+
+
+      The requirements, which follow from this scenario, are:
+
+      - Predefined replication agreements that manage more than a single
+        area of replication that is held on numerous servers.
+      - Common support of replication management knowledge across vendor
+        implementation.
+      - Rescheduling and continuation of a replication cycle when one
+        server in a replica ring is busy and/or unavailable.  
+
+  5. Replication Model
+
+
+      5.1  LDAP Replication MUST be allowed to span different vendors
+           directory services in order to provide interoperability.
+
+      5.2  All replicas MUST eventually be updated with the changed
+           information, if specified by the replication policy.
+
+
+      5.3  Replication schedules MUST be configurable to allow for
+           periodic replication, with the replication period determined by
+           administrator of the replicated system.
+
+
+      5.4  Replication Model MUST enable replication cycle to be initiated
+           on change or based on the number of pending changes.
+
+      5.5  The replication model MUST allow for administrative
+           initiation of replication cycle for any replica that may have
+           just come back online or was unavailable during previous 
+           replication cycles.
+
+      5.6  The replication model MUST support both master-slave and
+           authoritative multi-updateable replica relationships.
+
+
+      5.7  All replicated information between the master database and its
+	   replica databases MUST be identical including all non-user
+           modify operational attributes such as time stamps. Note this
+           does not imply that the entire database is identical from
+           replica to replica, but that the subset of data, chosen to
+           replicate is identical from replica to replica. Some
+           operational attributes may be dynamically evaluated; these
+           attributes will not necessarily appear to be identical.
+
+
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 10]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      5.8  In distributed multi-vendor environment, LDAP replication MUST
+           NOT require all copies of the replicated information be
+           complete copies of the replicated object.
+
+
+      5.9  LDAP replication MUST encompass common schema objects and
+           attributes, access control, and name space information.
+
+
+      5.10 Sub-tree Replication MUST be defined to allow for greater
+           flexibility in replication topologies of the DIT as defined by
+           the area of replication called partial replication.
+
+
+      5.11 Replication of critical values MUST be synchronized and have
+           priority over non-critical values. An example of a critical
+           value might be a password or certificate value.
+
+      5.12 Replication activities MUST occur within the context of a
+           predefined replication agreement that addresses proper
+           knowledge of access requirements and credentials between the
+           synchronizing directories. Currently X.525 DISP [X.525]
+           discusses this as a shadowing agreement including such
+           information as unit of replication, update mode, and access
+           point defining many of the policies between the master and a
+           replica.
+
+
+      5.13 The acceptance and usage of the Internet requires that LDAP
+           replication be available across disparate vendor directory
+           services.
+
+
+      5.14 LDAP replication MUST provide scalability to both enterprise
+           and Internet environments, e.g. an LDAP server may provide
+           replication services to replicas within an enterprise as well
+           as across the Internet.
+
+
+      5.15 The replication model MUST define deterministic policy such
+           that replication cycle startup time conflicts between two or
+           more competing master replicas may be resolved
+           programmatically. An example might be automatic submission and
+           rescheduling by one of the masters.  In such a case, these
+           replication "conflicts" MUST be resolved by the replication
+           policy.
+
+
+      5.16 Any replication capable LDAP server MUST allow replication
+           where the 2 replicating servers agree they can replicate. This
+           may be accomplished through administrative agreements assuming
+           compatible access control model and common schema are provided.
+
+
+      5.17 The replication model MUST be able to handle convergence and
+           resurrection of attributes and objects. This is a consequence
+           of delete and move with respect to the replication process.
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 11]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+      5.18 It is not realistic to assume that all vendors have cooperating
+           schemas, but that replication may be allowed between diverse
+           schema. The Model MAY allow for replication between divergent
+           schema of objects.
+
+
+  6. Replication Protocol
+
+
+      6.1  The act of replication SHOULD have minimal impact on both the
+           system and network performance.
+
+      6.2  The replica synchronization SHOULD be handled in such a manner
+           as to not saturate network with repetitive entry replication
+           from multiple synchronization providers points.
+
+
+      6.3  Replication MUST only be allowed after the authentication and
+           verification of authorization of both the replica and the
+           source directory.
+
+
+      6.4  The transport for LDAP synchronization MUST allow for the
+           integrity and confidentiality of each replicated server.
+
+
+      6.5  Replicated data MUST be transferable in a secure manner.
+
+
+      6.6  Replication protocol MUST provide for recovery and rescheduling
+           of a replication cycle due to a replication initiation
+           conflicts (e.g. consumer busy replicating with other servers)
+           and or loss of connection(e.g. supplier cannot reach a
+           replica). The replication protocol MUST include restarting at
+           the last acknowledged update prior to interruption rather than
+           re-sending updates it had already sent to a consuming replica.
+
+
+      6.7  LDAP replication MUST allow for full update to facilitate
+           replica initialization and reset loading utilizing a
+           standardized format such as LDIF [LDIF] format.
+
+      6.8  The replication standard SHOULD NOT limit the size of a
+           replica. The area of replication is defined to be a whole or
+           portion of a DIT, also allowing a portion of a naming context
+           to be replicated. Incremental replication SHOULD be allowed.
+
+      6.9 The replication agreements MUST accommodate multiple servers
+           receiving the same replica under a single predefined agreement.
+
+
+      6.10 The replication protocol MUST allow either a master or replica
+           to initiate the replication process.
+
+
+      6.11 Additionally the initiator MUST be allowed to determine
+           whether it will become a consumer or supplier during the
+           synchronization startup process. This would allow a replica to
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 12]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+           be periodically connected and synchronized from remote sites at
+           the local administrator's discretion.
+
+
+      6.12 Multiple LDAP changes to a single server: If transactional
+           consistency is propagated during replication, then multiple LDAP
+           changes submitted to a single server SHOULD BE treated as a 
+           single 'atomic unit of work'.
+
+
+      6.13 An LDAP Replication Standard SHOULD NOT limit the transaction
+           rate of a replication session.
+
+
+      6.14 Entry change information MUST be purged or discarded in a
+           timely manner when change information becomes outdated due to
+           propagated to all replica members.
+
+
+
+
+      7. Schema
+
+
+      7.1  Replica knowledge MUST be provided as DSE attributes.
+
+      7.2  The Replication Protocol documents MUST define standard schema
+           for representing replication agreements, and MUST define the
+           semantics associated with modifying the attributes of
+           replication agreements. The documents MUST also define a
+           standard method for determining the location of these
+           agreements accessible utilizing LDAP.
+
+
+      7.3  The Replication Protocol documents MUST define standard schema
+           for publishing state information about a given replica, and
+           MUST define a standard method for determining the location of
+           this information.
+
+
+      7.4  A location independent management point MUST be defined to
+           provide authorized administrators with well known access to the
+           replication policies, regardless of network location.
+
+
+      7.5  Replication agreements of all servers containing replicated
+           information MUST be accessible via LDAP.
+
+
+      7.6  All objects MUST be uniquely identifiable throughout the object
+           lifetime .
+
+
+
+
+  8. Administration and Management Considerations
+
+
+
+      8.1  Replication policies MUST allow replication of changed
+           information to be administratively postponed to a more
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 13]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+           convenient period.
+
+
+      8.2  Allowance for non-scheduled replication of a replica MUST be
+           provided upon request such that the replica server has been
+           down or unconnected for a period of time.
+
+
+      8.3  Each copy of a replica MUST maintain audit history information
+           of which servers it has replicated with and which servers have
+           replicated with it.
+
+      8.4  A replica MUST store conflicted versions of the replicated
+           object to allow optional human review and intervention.
+
+
+      8.5  Access to replication predetermined agreements, topologies, and
+           policies attributes MUST be provided through LDAP access.
+
+
+      8.6  The capability to check the differences between two replicas
+           for the same information SHOULD be provided for. This should
+           entail a client invoking an operation at some server, which
+           causes that server to extract the contents from some other
+           server it has a replication agreement with and report the
+           differences back to the client as the result.
+
+
+      8.7  Authenticated access SHOULD be provided so that Administrative
+           LDAP clients may query a server for the current state and
+           replication history for each replica that the server maintains
+           replication agreements with.
+
+
+      8.8  The ability to view replication conflicts, and override the
+           resolution derived by the replication policy MUST be provided.
+
+
+      8.9  The deletion of sensitive data MUST be handled in an orderly
+           manner so that at no time will that data be available without
+           proper access control. That is, access control information
+           (ACI) associated with sensitive data must be deleted after or
+           simultaneously with the delete of the sensitive data. Likewise,
+           when adding sensitive data, ACI MUST be added first or
+           simultaneously with the addition of that data.
+
+
+
+
+  9. Acknowledgement
+
+
+      This document is based on input from IETF members interested in LDUP
+      Replication.
+
+
+
+
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 14]
+
+
+         INTERNET-DRAFT     LDAP Replication Requirements     21 October 1999
+
+
+
+
+
+  10. References
+
+
+
+      [RFC2251]  M. Wahl, T. Howes, S. Kille "Lightweight Directory Access
+      Protocal", RFC 2251.
+
+
+      [RFC2119]  S.Bradner, " Key words for use in RFCs to indicate
+      Requirement Levels", RFC 2119.
+
+
+      [LDIF]  Gordon Good, "The LDAP Data Interchange Format (LDIF)",
+      Internet draft,  draft-ietf-asid-ldif-00.txt, November 1996.
+
+
+      [Changelog]  Gordon Good, "Definitions of an Object Class to Hold
+      LDAP Change records", Internet Draft, draft-ietf-asid-changelog-
+      00.txt,  November  1996.
+
+
+      [X.501] ITU-T Recommendation X.501 (1993), | ISO/IEC 9594-2: 1993,
+      Information Technology - Open Systems Interconnection - The
+      Directory: Models
+
+      [XEROX] Hauser, C. "Managing update conflicts in Bayou, a weakly
+      connected replicated storage system". Palo Alto, CA: Xerox PARC,
+      Computer Science Laboratory; 1995 August; CSL-95-4. [CSL-95-04]
+
+
+
+   11. Author's Address
+
+
+      Russel F. Weiser
+      Digital Signature Trust Co.
+      One South Main Street
+      Salt Lake City, Utah 84111
+      USA
+
+
+      E-mail: rweiser@digsigtrust.com
+      Telephone: +1-801-983-4415
+      Fax +1-801-983-4408
+
+
+
+      Ellen J. Stokes
+      IBM
+      11400 Burnet Rd.
+      Austin, Texas 78758
+      USA
+
+      E-mail: stokes@austin.ibm.com
+      Telephone: +1-512-838-3725
+      Fax: +1-512-838-0156
+
+
+
+
+
+         Weiser & Stokes       21 April 2000                   [Page 15]

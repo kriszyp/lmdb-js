@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1991,1993  Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -393,7 +397,7 @@ get_value( char *id, char *prompt )
 	 *  Other attributes may not.
 	 */
 	count = 1;
-	(void) memset(buffer, 0, sizeof(buffer));
+	(void) memset(buffer, '\0', sizeof(buffer));
 #ifdef UOFM
 	if (!strcmp(id, "postalAddress") || !strcmp(id, "homePostalAddress") || !strcmp(id, "multiLineDescription") || !strcmp(id, "vacationMessage")) 
 #else
@@ -784,23 +788,22 @@ check_URL( char *url )
 void
 mod_perror( LDAP *ld )
 {
-	int ld_errno = 0;
+	int ld_errno = LDAP_SUCCESS;
+	char *ld_errtext = NULL;
 
-	if(ld != NULL) {
-		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
+	ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno );
+
+	if( ld_errno != LDAP_SUCCESS ) {
+		ldap_get_option(ld, LDAP_OPT_ERROR_STRING, &ld_errtext );
+	}	
+
+	fprintf( stderr, "  modify failed: %s (%d)\n",
+		ldap_err2string( ld_errno ), ld_errno );
+
+	if( ld_errtext != NULL ) {
+		fprintf( stderr, "    additional information: %s\n",
+			ld_errtext );
 	}
 
-	if (( ld == NULL ) || ( ld_errno != LDAP_UNAVAILABLE &&
-	    ld_errno != LDAP_UNWILLING_TO_PERFORM ))
-	{
-		ldap_perror( ld, "modify" );
-		return;
-	}
-
-	fprintf( stderr, "\n  modify: failed because part of the online directory is not able\n" );
-	fprintf( stderr, "  to be modified right now" );
-	if ( ld_errno == LDAP_UNAVAILABLE ) {
-		fprintf( stderr, " or is temporarily unavailable" );
-	}
-	fprintf( stderr, ".\n  Please try again later.\n" );
+	fprintf( stderr, "  Please try again later.\n" );
 }

@@ -36,7 +36,7 @@
 int back_ldap_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "ldap";
     bi.bi_init = ldap_back_initialize;
 
@@ -72,7 +72,15 @@ ldap_back_initialize(
 	bi->bi_op_delete = ldap_back_delete;
 	bi->bi_op_abandon = 0;
 
-	bi->bi_acl_group = 0;
+	bi->bi_extended = 0;
+
+	bi->bi_acl_group = ldap_back_group;
+
+#ifdef HAVE_CYRUS_SASL
+	bi->bi_sasl_authorize = 0;
+	bi->bi_sasl_getsecret = 0;
+	bi->bi_sasl_putsecret = 0;
+#endif /* HAVE_CYRUS_SASL */
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = ldap_back_conn_destroy;
@@ -104,9 +112,17 @@ ldap_back_db_destroy(
 
 	if (be->be_private) {
 		li = (struct ldapinfo *)be->be_private;
-		if (li->host) {
-			free(li->host);
-			li->host = NULL;
+		if (li->url) {
+			free(li->url);
+			li->url = NULL;
+		}
+		if (li->binddn) {
+			free(li->binddn);
+			li->binddn = NULL;
+		}
+		if (li->bindpw) {
+			free(li->bindpw);
+			li->bindpw = NULL;
 		}
 		ldap_pvt_thread_mutex_destroy( &li->conn_mutex );
 	}

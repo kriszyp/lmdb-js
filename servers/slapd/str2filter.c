@@ -1,7 +1,7 @@
 /* str2filter.c - parse an rfc 1588 string filter */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -16,13 +16,13 @@
 #include "slap.h"
 #include <ldap_pvt.h>
 
-static char	*find_matching_paren(char *s);
-static Filter	*str2list(char *str, long unsigned int ftype);
-static Filter	*str2simple(char *str);
-static int	str2subvals(char *val, Filter *f);
+static char	*find_matching_paren( const char *s );
+static Filter	*str2list( const char *str, long unsigned int ftype);
+static Filter	*str2simple( const char *str);
+static int	str2subvals( const char *val, Filter *f);
 
 Filter *
-str2filter( char *str )
+str2filter( const char *str )
 {
 	Filter	*f = NULL;
 	char	*end, *freeme;
@@ -97,7 +97,7 @@ str2filter( char *str )
  */
 
 static Filter *
-str2list( char *str, unsigned long ftype )
+str2list( const char *str, unsigned long ftype )
 {
 	Filter	*f;
 	Filter	**fp;
@@ -140,19 +140,22 @@ str2list( char *str, unsigned long ftype )
 }
 
 static Filter *
-str2simple( char *str )
+str2simple( const char *str )
 {
 	Filter		*f;
 	char		*s;
 	char		*value, savechar;
+	int			rc;
+	const char		*text;
 
 	Debug( LDAP_DEBUG_FILTER, "str2simple \"%s\"\n", str, 0, 0 );
 
 	if ( (s = strchr( str, '=' )) == NULL ) {
 		return( NULL );
 	}
-	value = s + 1;
-	*s-- = '\0';
+	value = &s[1];
+
+	*s-- = '\0';	/* we shouldn't be mucking with str */
 	savechar = *s;
 
 	f = (Filter *) ch_calloc( 1, sizeof(Filter) );
@@ -170,6 +173,12 @@ str2simple( char *str )
 		f->f_choice = LDAP_FILTER_APPROX;
 		*s = '\0';
 		break;
+	case ':':
+		f->f_choice = LDAP_FILTER_EXT;
+		*s = '\0';
+		return NULL;
+		break;
+
 	default:
 		if ( ldap_pvt_find_wildcard( value ) == NULL ) {
 			f->f_choice = LDAP_FILTER_EQUALITY;
@@ -177,7 +186,13 @@ str2simple( char *str )
 			f->f_choice = LDAP_FILTER_PRESENT;
 		} else {
 			f->f_choice = LDAP_FILTER_SUBSTRINGS;
-			f->f_sub_type = ch_strdup( str );
+			f->f_sub = ch_calloc( 1, sizeof( SubstringsAssertion ) );
+			rc = slap_str2ad( str, &f->f_sub_desc, &text );
+			if( rc != LDAP_SUCCESS ) {
+				filter_free( f );
+				*(value-1) = '=';
+				return NULL;
+			}
 			if ( str2subvals( value, f ) != 0 ) {
 				filter_free( f );
 				*(value-1) = '=';
@@ -190,40 +205,62 @@ str2simple( char *str )
 	}
 
 	if ( f->f_choice == LDAP_FILTER_PRESENT ) {
-		f->f_type = ch_strdup( str );
+		rc = slap_str2ad( str, &f->f_desc, &text );
+		if( rc != LDAP_SUCCESS ) {
+			filter_free( f );
+			*(value-1) = '=';
+			return NULL;
+		}
 	} else {
-		f->f_avtype = ch_strdup( str );
-		f->f_avvalue.bv_val = ch_strdup( value );
-		ldap_pvt_filter_value_unescape( f->f_avvalue.bv_val );
-		f->f_avvalue.bv_len = strlen( value );
+		char *tmp;
+
+		f->f_ava = ch_calloc( 1, sizeof( AttributeAssertion ) );
+		f->f_av_desc = NULL;
+		rc = slap_str2ad( str, &f->f_av_desc, &text );
+		if( rc != LDAP_SUCCESS ) {
+			filter_free( f );
+			*(value-1) = '=';
+			return NULL;
+		}
+
+		tmp = ch_strdup( value );
+		ldap_pvt_filter_value_unescape( tmp );
+		f->f_av_value = ber_bvstr( tmp );
 	}
 
 	*s = savechar;
 	*(value-1) = '=';
+
 	return( f );
 }
 
 static int
-str2subvals( char *val, Filter *f )
+str2subvals( const char *in, Filter *f )
 {
-	char	*nextstar, *freeme;
+	char	*nextstar, *val, *freeme;
 	int	gotstar;
 
-	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", val, 0, 0 );
+	Debug( LDAP_DEBUG_FILTER, "str2subvals \"%s\"\n", in, 0, 0 );
 
-	val = freeme = ch_strdup( val );
+	if( in == NULL ) return 0;
+
+	val = freeme = ch_strdup( in );
 	gotstar = 0;
-	while ( val != NULL && *val ) {
+
+	while ( *val ) {
 		if ( (nextstar = ldap_pvt_find_wildcard( val )) != NULL )
 			*nextstar++ = '\0';
 
 		ldap_pvt_filter_value_unescape( val );
+
 		if ( gotstar == 0 ) {
-			f->f_sub_initial = ch_strdup( val );
+			f->f_sub_initial = ber_bvstrdup( val );
+
 		} else if ( nextstar == NULL ) {
-			f->f_sub_final = ch_strdup( val );
+			f->f_sub_final = ber_bvstrdup( val );
+
 		} else {
-			charray_add( &f->f_sub_any, val );
+			charray_add( (char ***) &f->f_sub_any, (char *) ber_bvstrdup( val ) );
 		}
 
 		gotstar = 1;
@@ -240,7 +277,7 @@ str2subvals( char *val, Filter *f )
  */
 
 static char *
-find_matching_paren( char *s )
+find_matching_paren( const char *s )
 {
 	int	balance, escape;
 
@@ -254,7 +291,7 @@ find_matching_paren( char *s )
 				balance--;
 		}
 		if ( balance == 0 ) {
-			return( s );
+			return (char *) s;
 		}
 		if ( *s == '\\' && ! escape )
 			escape = 1;
@@ -262,5 +299,5 @@ find_matching_paren( char *s )
 			escape = 0;
 	}
 
-	return( NULL );
+	return NULL;
 }

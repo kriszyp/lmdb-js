@@ -1,7 +1,7 @@
 /* bind.c - decode an ldap bind operation and pass it to a backend db */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -24,6 +24,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 int
@@ -40,6 +41,7 @@ do_bind(
 	char *ndn;
 	ber_tag_t	tag;
 	int			rc = LDAP_SUCCESS;
+	const char	*text;
 	struct berval	cred;
 	Backend		*be;
 
@@ -52,9 +54,8 @@ do_bind(
 
 	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-	/* Force to connection to "anonymous" until bind succeeds.
-	 * This may need to be relocated or done on a case by case basis
-	 * to handle certain SASL mechanisms.
+	/*
+	 * Force to connection to "anonymous" until bind succeeds.
 	 */
 
 	if ( conn->c_cdn != NULL ) {
@@ -66,6 +67,9 @@ do_bind(
 		free( conn->c_dn );
 		conn->c_dn = NULL;
 	}
+
+	conn->c_authc_backend = NULL;
+	conn->c_authz_backend = NULL;
 
 	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
@@ -109,15 +113,6 @@ do_bind(
 		goto cleanup;
 	}
 
-	ndn = ch_strdup( dn );
-
-	if ( dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		goto cleanup;
-	}
-
 	op->o_protocol = version;
 
 	if( method != LDAP_AUTH_SASL ) {
@@ -144,7 +139,7 @@ do_bind(
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR,
     		"decoding error" );
-		rc = -1;
+		rc = SLAPD_DISCONNECT;
 		goto cleanup;
 	}
 
@@ -152,6 +147,15 @@ do_bind(
 		Debug( LDAP_DEBUG_ANY, "do_bind: get_ctrls failed\n", 0, 0, 0 );
 		goto cleanup;
 	} 
+
+	ndn = ch_strdup( dn );
+
+	if ( dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "bind: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
 
 	if( method == LDAP_AUTH_SASL ) {
 		Debug( LDAP_DEBUG_TRACE, "do_sasl_bind: dn (%s) mech %s\n",
@@ -168,17 +172,26 @@ do_bind(
 		Debug( LDAP_DEBUG_ANY, "do_bind: unknown version=%ld\n",
 			(unsigned long) version, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
-			NULL, "version not supported", NULL, NULL );
+			NULL, "requested protocol version not supported", NULL, NULL );
 		goto cleanup;
 	}
 
+	/* we set connection version regardless of whether bind succeeds
+	 * or not.
+	 */
+	ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+	conn->c_protocol = version;
+	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
 	if ( method == LDAP_AUTH_SASL ) {
+		char *edn;
+
 		if ( version < LDAP_VERSION3 ) {
 			Debug( LDAP_DEBUG_ANY, "do_bind: sasl with LDAPv%ld\n",
 				(unsigned long) version, 0, 0 );
 			send_ldap_disconnect( conn, op,
-				LDAP_PROTOCOL_ERROR, "sasl bind requires LDAPv3" );
-			rc = -1;
+				LDAP_PROTOCOL_ERROR, "SASL bind requires LDAPv3" );
+			rc = SLAPD_DISCONNECT;
 			goto cleanup;
 		}
 
@@ -187,7 +200,7 @@ do_bind(
 				"do_bind: no sasl mechanism provided\n",
 				0, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, "no sasl mechanism provided", NULL, NULL );
+				NULL, "no SASL mechanism provided", NULL, NULL );
 			goto cleanup;
 		}
 
@@ -196,63 +209,94 @@ do_bind(
 				"do_bind: sasl mechanism=\"%s\" not supported.\n",
 				mech, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_AUTH_METHOD_NOT_SUPPORTED,
-				NULL, "sasl mechanism not supported", NULL, NULL );
+				NULL, "SASL mechanism not supported", NULL, NULL );
 			goto cleanup;
 		}
 
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-		if ( conn->c_authmech != NULL ) {
-			assert( conn->c_bind_in_progress );
-
-			if((strcmp(conn->c_authmech, mech) != 0)) {
+		if ( conn->c_sasl_bind_mech != NULL ) {
+			if((strcmp(conn->c_sasl_bind_mech, mech) != 0)) {
 				/* mechanism changed, cancel in progress bind */
-				conn->c_bind_in_progress = 0;
-				if( conn->c_authstate != NULL ) {
-					free(conn->c_authstate);
-					conn->c_authstate = NULL;
-				}
-				free(conn->c_authmech);
-				conn->c_authmech = NULL;
+#ifdef HAVE_CYRUS_SASL
+				sasl_dispose(&conn->c_sasl_bind_context);
+				conn->c_sasl_bind_context = NULL;
+#endif
 			}
+			free( conn->c_sasl_bind_mech );
+			conn->c_sasl_bind_mech = NULL;
 
 #ifdef LDAP_DEBUG
+#ifdef HAVE_CYRUS_SASL
 		} else {
-			assert( !conn->c_bind_in_progress );
-			assert( conn->c_authmech == NULL );
-			assert( conn->c_authstate == NULL );
+			assert( conn->c_sasl_bind_context == NULL );
+#endif
 #endif
 		}
 
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+		edn = NULL;
+		rc = sasl_bind( conn, op, dn, ndn, mech, &cred, &edn );
+
+		if( rc == LDAP_SUCCESS ) {
+			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context == NULL );
+#endif
+			conn->c_dn = edn;
+			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
+
+		} else if ( rc == LDAP_SASL_BIND_IN_PROGRESS ) {
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context != NULL );
+#endif
+			conn->c_sasl_bind_mech = mech;
+			mech = NULL;
+
+#ifdef HAVE_CYRUS_SASL
+		} else {
+			assert( conn->c_sasl_bind_context != NULL );
+#endif
+		}
+
+		goto cleanup;
+
 	} else {
+		/* Not SASL, cancel any in-progress bind */
 		ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
-		if ( conn->c_authmech != NULL ) {
-			assert( conn->c_bind_in_progress );
+		if ( conn->c_sasl_bind_mech != NULL ) {
+			assert( conn->c_sasl_bind_in_progress );
 
-			/* cancel in progress bind */
-			conn->c_bind_in_progress = 0;
+			free(conn->c_sasl_bind_mech);
+			conn->c_sasl_bind_mech = NULL;
 
-			if( conn->c_authstate != NULL ) {
-				free(conn->c_authstate);
-				conn->c_authstate = NULL;
-			}
-			free(conn->c_authmech);
-			conn->c_authmech = NULL;
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context != NULL );
+			sasl_dispose(&conn->c_sasl_bind_context);
+			conn->c_sasl_bind_context = NULL;
+#endif
+		} else {
+			assert( !conn->c_sasl_bind_in_progress );
+#ifdef HAVE_CYRUS_SASL
+			assert( conn->c_sasl_bind_context == NULL );
+#endif
 		}
+
+		ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 	}
 
-	conn->c_protocol = version;
-	ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
-
-	/* accept null binds */
-	if ( ndn == NULL || *ndn == '\0' ) {
+	/* accept "anonymous" binds */
+	if ( cred.bv_len == 0 || ndn == NULL || *ndn == '\0' ) {
 		/*
-		 * we already forced connection to "anonymous", we just
-		 * need to send success
+		 * we already forced connection to "anonymous",
+		 * just need to send success
 		 */
 		send_ldap_result( conn, op, LDAP_SUCCESS,
 			NULL, NULL, NULL, NULL );
+		Debug( LDAP_DEBUG_TRACE, "do_bind: v%d anonymous bind\n",
+	   		version, 0, 0 );
 		goto cleanup;
 	}
 
@@ -263,15 +307,12 @@ do_bind(
 	 */
 
 	if ( (be = select_backend( ndn )) == NULL ) {
-		if ( cred.bv_len == 0 ) {
-			send_ldap_result( conn, op, LDAP_SUCCESS,
-				NULL, NULL, NULL, NULL );
-
-		} else if ( default_referral ) {
+		if ( default_referral ) {
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 				NULL, NULL, default_referral, NULL );
 
 		} else {
+			/* noSuchObject is not allowed to be returned by bind */
 			send_ldap_result( conn, op, rc = LDAP_INVALID_CREDENTIALS,
 				NULL, NULL, NULL, NULL );
 		}
@@ -279,14 +320,29 @@ do_bind(
 		goto cleanup;
 	}
 
+	conn->c_authz_backend = be;
+
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op, &text ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto cleanup;
+	}
+
 	if ( be->be_bind ) {
+		int ret;
 		/* alias suffix */
-		char *edn;
+		char *edn = NULL;
 
 		/* deref suffix alias if appropriate */
 		ndn = suffix_alias( be, ndn );
 
-		if ( (*be->be_bind)( be, conn, op, ndn, method, mech, &cred, &edn ) == 0 ) {
+		ret = (*be->be_bind)( be, conn, op, dn, ndn,
+			method, &cred, &edn );
+
+		if ( ret == 0 ) {
 			ldap_pvt_thread_mutex_lock( &conn->c_mutex );
 
 			conn->c_cdn = dn;
@@ -299,8 +355,8 @@ do_bind(
 				ndn = NULL;
 			}
 
-			Debug( LDAP_DEBUG_TRACE, "do_bind: bound \"%s\" to \"%s\"\n",
-	    		conn->c_cdn, conn->c_dn, method );
+			Debug( LDAP_DEBUG_TRACE, "do_bind: v%d bind: \"%s\" to \"%s\"\n",
+	    		version, conn->c_cdn, conn->c_dn );
 
 			ldap_pvt_thread_mutex_unlock( &conn->c_mutex );
 
@@ -314,7 +370,7 @@ do_bind(
 
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
 cleanup:

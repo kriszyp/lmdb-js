@@ -1,4 +1,6 @@
 # $OpenLDAP$
+## Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 ## Makefile for -lldif
 ##
@@ -9,4 +11,7 @@ OBJS	= line64.o fetch.o
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
+
+NT_DYN_LIB_DEFS = -DLIBLDAP_DECL=dllimport -DLIBLBER_DECL=dllimport
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
 

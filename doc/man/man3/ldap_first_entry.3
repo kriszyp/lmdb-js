@@ -1,10 +1,12 @@
-.TH LDAP_FIRST_ENTRY 3  "25 November 1994" "U-M LDAP LDVERSION"
+.TH LDAP_FIRST_ENTRY 3 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_first_entry, ldap_next_entry, ldap_count_entries \- LDAP result entry parsing and counting routines
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 .LP
 .ft B
@@ -81,3 +83,8 @@ for a description of possible error codes.
 .BR ldap_first_attribute(3),
 .BR ldap_get_values(3),
 .BR ldap_get_dn(3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

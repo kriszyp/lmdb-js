@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1991, 1993 
  * Regents of the University of Michigan.  All rights reserved.
  *
@@ -52,6 +56,8 @@ static char *person_attr_print_order[] = {
 	"memberOfGroup",
 	"lastModifiedBy",
 	"lastModifiedTime",
+	"modifiersname",
+	"modifytimestamp",
 	NULL
 };
 
@@ -74,6 +80,10 @@ static char *group_attr_print_order[] = {
 	"labeledURL",
 	"lastModifiedBy",
 	"lastModifiedTime",
+	"modifiersname",
+	"modifytimestamp",
+	"creatorsname",
+	"createtimestamp",
 	NULL
 };
 
@@ -195,6 +205,12 @@ print_an_entry( void )
 	if (debug & D_TRACE)
 		printf("->print_an_entry()\n");
 #endif
+
+	if( Entry.name == NULL ) {
+		printf(" No Entry found.\n");
+		return;
+	}
+
 	printf(" \"%s\"\n", Entry.name);
 	
 	/*
@@ -559,7 +575,7 @@ time2text( char *ldtimestr, int dateonly )
 	    return( fmterr );
 	}
 	
-    memset( (char *)&t, 0, sizeof( struct tm ));
+    memset( (char *)&t, '\0', sizeof( struct tm ));
 
     p = ldtimestr;
 
@@ -568,8 +584,10 @@ time2text( char *ldtimestr, int dateonly )
 		/* POSIX says tm_year should be year - 1900 */
     	t.tm_year = 100 * GET2BYTENUM( p ) - 1900;
 		p += 2;
+	} else {
+    	t.tm_year = 0;
 	}
-    t.tm_year = GET2BYTENUM( p ); p += 2;
+    t.tm_year += GET2BYTENUM( p ); p += 2;
 
     t.tm_mon = GET2BYTENUM( p ) - 1; p += 2;
     t.tm_mday = GET2BYTENUM( p ); p += 2;

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* backend.c - routines for dealing with back-end databases */
@@ -18,6 +18,9 @@
 #include "slap.h"
 #include "lutil.h"
 
+#ifdef SLAPD_DNSSRV
+#include "back-dnssrv/external.h"
+#endif
 #ifdef SLAPD_LDAP
 #include "back-ldap/external.h"
 #endif
@@ -39,8 +42,17 @@
 #ifdef SLAPD_TCL
 #include "back-tcl/external.h"
 #endif
+#ifdef SLAPD_NTDOMAIN
+#include "back-domain/external.h"
+#endif
+#ifdef SLAPD_SQL
+#include "back-sql/external.h"
+#endif
 
 static BackendInfo binfo[] = {
+#if defined(SLAPD_DNSSRV) && !defined(SLAPD_DNSSRV_DYNAMIC)
+	{"dnssrv",	dnssrv_back_initialize},
+#endif
 #if defined(SLAPD_LDAP) && !defined(SLAPD_LDAP_DYNAMIC)
 	{"ldap",	ldap_back_initialize},
 #endif
@@ -59,8 +71,14 @@ static BackendInfo binfo[] = {
 #if defined(SLAPD_SHELL) && !defined(SLAPD_SHELL_DYNAMIC)
 	{"shell",	shell_back_initialize},
 #endif
-#if defined(SLAPD_TCL) && !defined(SLAPD_LDAP_TCL)
+#if defined(SLAPD_TCL) && !defined(SLAPD_TCL_DYNAMIC)
 	{"tcl",		tcl_back_initialize},
+#endif
+#if defined(SLAPD_NTDOMAIN) && !defined(SLAPD_NTDOMAIN_DYNAMIC)
+	{"ntdom",	domain_back_initialize},
+#endif
+#if defined(SLAPD_SQL) && !defined(SLAPD_SQL_DYNAMIC)
+	{"sql",		sql_back_initialize},
 #endif
 	{NULL}
 };
@@ -222,6 +240,9 @@ int backend_startup(Backend *be)
 
 	/* open each backend database */
 	for( i = 0; i < nBackendDB; i++ ) {
+		/* append global access controls */
+		acl_append( &backendDB[i].be_acl, global_acl );
+
 		if ( backendDB[i].bd_info->bi_db_open ) {
 			rc = backendDB[i].bd_info->bi_db_open(
 				&backendDB[i] );
@@ -376,6 +397,7 @@ backend_db_init(
 	be->bd_info = bi;
 	be->be_sizelimit = defsize;
 	be->be_timelimit = deftime;
+	be->be_dfltaccess = global_default_access;
 
  	/* assign a default depth limit for alias deref */
 	be->be_max_deref_depth = SLAPD_DEFAULT_MAXDEREFDEPTH; 
@@ -432,20 +454,6 @@ select_backend( const char * dn )
 		}
 	}
 
-#ifdef LDAP_ALLOW_NULL_SEARCH_BASE
-	/* Add greg@greg.rim.or.jp
-	 * It's quick hack for cheap client
-	 * Some browser offer a NULL base at ldap_search
-	 *
-	 * Should only be used as a last resort. -Kdz
-	 */
-	if(dnlen == 0) {
-		Debug( LDAP_DEBUG_TRACE,
-			"select_backend: use default backend\n", 0, 0, 0 );
-		return( &backends[0] );
-	}
-#endif /* LDAP_ALLOW_NULL_SEARCH_BASE */
-
 	return( NULL );
 }
 
@@ -471,7 +479,11 @@ be_isroot( Backend *be, const char *ndn )
 {
 	int rc;
 
-	if ( ndn == NULL || be->be_root_ndn == NULL ) {
+	if ( ndn == NULL || *ndn == '\0' ) {
+		return( 0 );
+	}
+
+	if ( be->be_root_ndn == NULL || *be->be_root_ndn == '\0' ) {
 		return( 0 );
 	}
 
@@ -496,14 +508,18 @@ be_isroot_pw( Backend *be, const char *ndn, struct berval *cred )
 	int result;
 
 	if ( ! be_isroot( be, ndn ) ) {
-		return( 0 );
+		return 0;
+	}
+
+	if( be->be_root_pw.bv_len == 0 ) {
+		return 0;
 	}
 
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_lock( &crypt_mutex );
 #endif
 
-	result = lutil_passwd( cred->bv_val, be->be_root_pw, NULL );
+	result = lutil_passwd( &be->be_root_pw, cred, NULL );
 
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_unlock( &crypt_mutex );
@@ -574,38 +590,76 @@ backend_connection_destroy(
 	return 0;
 }
 
+int
+backend_check_controls(
+	Backend *be,
+	Connection *conn,
+	Operation *op,
+	const char **text )
+{
+	LDAPControl **ctrls;
+	ctrls = op->o_ctrls;
+	if( ctrls == NULL ) {
+		return LDAP_SUCCESS;
+	}
+
+	for( ; *ctrls != NULL ; ctrls++ ) {
+		if( (*ctrls)->ldctl_iscritical &&
+			!charray_inlist( be->be_controls, (*ctrls)->ldctl_oid ) )
+		{
+			*text = "control unavailable in NamingContext";
+			return LDAP_UNAVAILABLE_CRITICAL_EXTENSION;
+		}
+	}
+
+	return LDAP_SUCCESS;
+}
+
 int 
 backend_group(
 	Backend	*be,
 	Entry	*target,
 	const char	*gr_ndn,
 	const char	*op_ndn,
-	const char	*objectclassValue,
-	const char	*groupattrName
+	ObjectClass *group_oc,
+	AttributeDescription *group_at
 )
 {
-	if (be->be_group)
-		return( be->be_group(be, target, gr_ndn, op_ndn,
-			objectclassValue, groupattrName) );
-	else
-		return(1);
+	if( strcmp( target->e_ndn, gr_ndn ) != 0 ) {
+		/* we won't attempt to send it to a different backend */
+		
+		be = select_backend(gr_ndn);
+
+		if (be == NULL) {
+			return LDAP_NO_SUCH_OBJECT;
+		}
+	} 
+
+	if( be->be_group ) {
+		return be->be_group( be, target, gr_ndn, op_ndn,
+			group_oc, group_at );
+	}
+
+	return LDAP_UNWILLING_TO_PERFORM;
 }
+
+Attribute *backend_operational(
+	Backend *be,
+	Entry *e )
+{
+	Attribute *a = NULL;
 
 #ifdef SLAPD_SCHEMA_DN
-Attribute *backend_subschemasubentry( Backend *be )
-{
-	/* should be backend specific */
-	static struct berval ss_val = {
-		sizeof(SLAPD_SCHEMA_DN)-1,
-		SLAPD_SCHEMA_DN };
-	static struct berval *ss_vals[2] = { &ss_val, NULL };
-	static Attribute ss_attr = {
-		"subschemasubentry",
-		ss_vals,
-		SYNTAX_DN | SYNTAX_CIS,
-		NULL
-	};
+	a = ch_malloc( sizeof( Attribute ) );
+	a->a_desc = ad_dup( slap_schema.si_ad_subschemaSubentry );
 
-	return &ss_attr;
-}
+	/* Should be backend specific */
+	a->a_vals = ch_malloc( 2 * sizeof( struct berval * ) );
+	a->a_vals[0] = ber_bvstrdup( SLAPD_SCHEMA_DN );
+	a->a_vals[1] = NULL;
+
+	a->a_next = NULL;
 #endif
+
+	return a;
+}

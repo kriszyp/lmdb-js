@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -19,10 +19,10 @@
 
 LDAP_BEGIN_DECL
 
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_lockf LDAP_P(( int fd ));
 
-LDAP_F( int )
+LIBLUTIL_F( int )
 lutil_unlockf LDAP_P(( int fd ));
 
 LDAP_END_DECL

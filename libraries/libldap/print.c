@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -26,7 +26,7 @@ static int ldap_log_check( LDAP *ld, int loglvl )
 	if(ld == NULL) {
 		errlvl = ldap_debug;
 	} else {
-		errlvl = ld->ld_errno;
+		errlvl = ld->ld_debug;
 	}
 
 	return errlvl & loglvl ? 1 : 0;

@@ -174,7 +174,7 @@ filecheck(
     char		*p;
     unsigned int	ret = 0;
 
-    strcpy( dir, sglob->slapd_replogfile );
+    strcpy( dir, f );
     p = strrchr( dir, '/' );
     if ( p != NULL ) {
 	*p = '\0';

@@ -1,7 +1,7 @@
 /* repl.c - log modifications for replication purposes */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -28,7 +28,7 @@ replog(
     void	*change
 )
 {
-	LDAPModList	*ml;
+	Modifications	*ml;
 	Entry	*e;
 	struct replog_moddn *moddn;
 	char *tmp;
@@ -57,35 +57,37 @@ replog(
 	case LDAP_REQ_MODIFY:
 		fprintf( fp, "changetype: modify\n" );
 		ml = change;
-		for ( ; ml != NULL; ml = ml->ml_next ) {
-			switch ( ml->ml_op & ~LDAP_MOD_BVALUES ) {
+		for ( ; ml != NULL; ml = ml->sml_next ) {
+			char *type;
+			type = ml->sml_desc->ad_cname->bv_val;
+			switch ( ml->sml_op ) {
 			case LDAP_MOD_ADD:
-				fprintf( fp, "add: %s\n", ml->ml_type );
+				fprintf( fp, "add: %s\n", type );
 				break;
 
 			case LDAP_MOD_DELETE:
-				fprintf( fp, "delete: %s\n", ml->ml_type );
+				fprintf( fp, "delete: %s\n", type );
 				break;
 
 			case LDAP_MOD_REPLACE:
-				fprintf( fp, "replace: %s\n", ml->ml_type );
+				fprintf( fp, "replace: %s\n", type );
 				break;
 			}
 
-			for ( i = 0; ml->ml_bvalues != NULL &&
-			    ml->ml_bvalues[i] != NULL; i++ ) {
+			for ( i = 0; ml->sml_bvalues != NULL &&
+			    ml->sml_bvalues[i] != NULL; i++ ) {
 				char	*buf, *bufp;
 
-				len = strlen( ml->ml_type );
+				len = strlen( type );
 				len = LDIF_SIZE_NEEDED( len,
-				    ml->ml_bvalues[i]->bv_len ) + 1;
+				    ml->sml_bvalues[i]->bv_len ) + 1;
 				buf = (char *) ch_malloc( len );
 
 				bufp = buf;
 				ldif_sput( &bufp, LDIF_PUT_VALUE,
-					ml->ml_type,
-				    ml->ml_bvalues[i]->bv_val,
-				    ml->ml_bvalues[i]->bv_len );
+					type,
+				    ml->sml_bvalues[i]->bv_val,
+				    ml->sml_bvalues[i]->bv_len );
 				*bufp = '\0';
 
 				fputs( buf, fp );

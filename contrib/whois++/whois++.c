@@ -53,6 +53,7 @@ char	**argv;
 	struct hostent		*hp;
 	static struct sockaddr	sa;
 	struct sockaddr_in	*sin = (struct sockaddr_in *) (&sa);
+	/* #### length should be socklen_t when we include portable.h #### */
 	int			length = sizeof(sa);
 	static char		options[] = "[-b searchbase] [-d debug ] \
 [-h ldaphost ] [-i] [-l] [-s sizelimit] [-t timelimit] [-T tailorfile ] \
@@ -178,10 +179,10 @@ char	**argv;
 		}
 	}
 
-	if ( (ld = ldap_open( ldaphost, LDAP_PORT )) == NULL ) {
+	if ( (ld = ldap_init( ldaphost, LDAP_PORT )) == NULL ) {
 		printFormatted( lineLength, TRUE, stdout,
 			"Connection to LDAP port on %s has failed", ldaphost );
-		syslog( LOG_ERR, "Connection to LDAP port on %s has failed",
+		syslog( LOG_ERR, "Initialization of LDAP session (%s)",
 			ldaphost );
 		exit( 1 );
 	}
@@ -193,13 +194,6 @@ char	**argv;
 	switch ( ld->ld_errno ) {
 	case LDAP_SUCCESS:
 		break;
-
-	case LDAP_UNAVAILABLE:
-		printFormatted( lineLength, TRUE, stdout,
-			"Sorry, the X.500 service is temporarily unavailable. \
-Please try again later." );
-		syslog( LOG_NOTICE, "X.500 service temporarily unavailable" );
-		exit( 1 );
 
 	default:
 		printFormatted( lineLength, TRUE, stdout,
@@ -220,7 +214,7 @@ Please try again later." );
 		exit( 1 );
 	}
 	entry = ldap_first_entry( ld, result );
-	organisation = strdup( ldap_dn2ufn( ldap_get_dn( ld, entry ) ) );
+	organisation = ldap_dn2ufn( ldap_get_dn( ld, entry ) );
 	category = ldap_get_values( ld, entry, "businessCategory" );
 
 	printFormatted( lineLength, FALSE, stdout,

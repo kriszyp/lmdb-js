@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -24,31 +24,32 @@
  *******************/
 
 int
-ldap_pvt_thread_initialize( void )
+ldap_int_thread_initialize( void )
 {
-#ifdef LDAP_THREAD_CONCURRENCY
-	thr_setconcurrency( LDAP_THREAD_CONCURRENCY );
-#endif
 	return 0;
 }
 
 int
-ldap_pvt_thread_destroy( void )
+ldap_int_thread_destroy( void )
 {
 	return 0;
 }
 
+#ifdef LDAP_THREAD_HAVE_SETCONCURRENCY
 int
 ldap_pvt_thread_set_concurrency(int n)
 {
 	return thr_setconcurrency( n );
 }
+#endif
 
+#ifdef LDAP_THREAD_HAVE_GETCONCURRENCY
 int
 ldap_pvt_thread_get_concurrency(void)
 {
 	return thr_getconcurrency();
 }
+#endif
 
 int 
 ldap_pvt_thread_create( ldap_pvt_thread_t * thread, 
@@ -107,7 +108,7 @@ ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cv )
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
-			  ldap_pvt_thread_mutex_t *mutex )
+	ldap_pvt_thread_mutex_t *mutex )
 {
 	return( cond_wait( cond, mutex ) );
 }

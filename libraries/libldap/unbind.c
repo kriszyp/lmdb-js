@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -35,6 +35,15 @@ ldap_unbind_ext(
 	LDAPControl **cctrls )
 {
 	return ldap_ld_free( ld, 1, sctrls, cctrls );
+}
+
+int
+ldap_unbind_ext_s(
+	LDAP *ld,
+	LDAPControl **sctrls,
+	LDAPControl **cctrls )
+{
+	return ldap_unbind_ext( ld, sctrls, cctrls );
 }
 
 int
@@ -124,14 +133,9 @@ ldap_ld_free(
 		ld->ld_selectinfo = NULL;
 	}
 
-	if ( ld->ld_options.ldo_defbase != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_defbase );
-		ld->ld_options.ldo_defbase = NULL;
-	}
-
-	if ( ld->ld_options.ldo_defhost != NULL ) {
-		LDAP_FREE( ld->ld_options.ldo_defhost );
-		ld->ld_options.ldo_defhost = NULL;
+	if ( ld->ld_options.ldo_defludp != NULL ) {
+		ldap_free_urllist( ld->ld_options.ldo_defludp );
+		ld->ld_options.ldo_defludp = NULL;
 	}
 
 	if ( ld->ld_options.ldo_tm_api != NULL ) {
@@ -144,7 +148,13 @@ ldap_ld_free(
 		ld->ld_options.ldo_tm_net = NULL;
 	}
 
-	ber_pvt_sb_destroy( &(ld->ld_sb) );   
+#ifdef HAVE_CYRUS_SASL
+	if ( ld->ld_sasl_context != NULL ) {
+		sasl_dispose( &ld->ld_sasl_context );
+	}
+#endif 
+
+	ber_sockbuf_free( ld->ld_sb );   
    
 	LDAP_FREE( (char *) ld );
    

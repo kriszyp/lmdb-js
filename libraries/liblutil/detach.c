@@ -72,21 +72,37 @@ lutil_detach( int debug, int do_close )
 			break;
 		}
 
-		if ( do_close )
-			for ( i = 3; i < nbits; i++ )
-				close( i );
-
-		(void) chdir( "/" );
-
 		if ( (sd = open( "/dev/null", O_RDWR )) == -1 ) {
-			perror( "/dev/null" );
-			exit( EXIT_FAILURE );
+			perror("/dev/null");
 		}
-		for ( i = 0;  i < 3;  i++ )
-			if ( sd != i && isatty( i ) )
-				(void) dup2( sd, i );
-		if ( sd > 2 )
-			close( sd );
+
+		/* close stdin, stdout, stderr */
+		close( STDIN_FILENO );
+		close( STDOUT_FILENO );
+		close( STDERR_FILENO );
+
+		/* redirect stdin, stdout, stderr to /dev/null */
+		dup2( sd, STDIN_FILENO );
+		dup2( sd, STDOUT_FILENO );
+		dup2( sd, STDERR_FILENO );
+
+		close( sd );
+
+		if ( do_close ) {
+			/* close everything else */
+			for ( i = 0; i < nbits; i++ ) {
+				if( i != STDIN_FILENO &&
+					i != STDOUT_FILENO && 
+					i != STDERR_FILENO )
+				{
+					close( i );
+				}
+			}
+		}
+
+#ifdef CHDIR_TO_ROOT
+		(void) chdir( "/" );
+#endif
 
 #ifdef HAVE_SETSID
 		(void) setsid();

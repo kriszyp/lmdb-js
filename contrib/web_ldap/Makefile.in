@@ -13,6 +13,6 @@ web_ldap: ${OBJS} $(LDAP_LIBDEPEND)
 	$(LTLINK) -o $@ $(OBJS) $(LIBS)
 
 install-local: $(PROGRAMS) FORCE
-	-test -d $(libexecdir) || $(MKDIR) $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 web_ldap $(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 web_ldap $(DESTDIR)$(libexecdir)
 	@echo ">> You must copy and edit web_ldap.cfg and web_ldap.html as needed. <<"

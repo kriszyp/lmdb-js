@@ -35,11 +35,11 @@ echo "Cleaning up in $REPLDIR..."
 rm -f $REPLDIR/[!C]*
 
 echo "Starting master slapd on TCP/IP port $PORT..."
-$SLAPD -f $MASTERCONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -f $MASTERCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Starting slave slapd on TCP/IP port $SLAVEPORT..."
-$SLAPD -f $SLAVECONF -p $SLAVEPORT -d $LVL $TIMING > $SLAVELOG 2>&1 &
+$SLAPD -f $SLAVECONF -h $SLAVEURI -d $LVL $TIMING > $SLAVELOG 2>&1 &
 SLAVEPID=$!
 
 echo "Using ldapsearch to check that master slapd is running..."
@@ -122,18 +122,14 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Gern Jensen
+sn: Jensen
 title: Chief Investigator, ITD
 postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: gjensen
-krbname: gjensen@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 drink: Coffee
 homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
-multilinedescription: Very odd
+description: Very odd
 facsimiletelephonenumber: +1 313 555 7557
 telephonenumber: +1 313 555 8343
 mail: gjensen@mailgw.umich.edu
@@ -178,7 +174,7 @@ echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 
 echo "Comparing retrieved entries from master and slave..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 if test $? != 0 ; then
 	echo "test failed - master and slave databases differ"

@@ -51,8 +51,7 @@ ldap_back_conn_destroy(
 	ldap_pvt_thread_mutex_unlock( &li->conn_mutex );
 
 	if (lc) {
-		if (lc->bound)
-			ldap_unbind(lc->ld);
+		ldap_unbind(lc->ld);
 		free(lc);
 	}
 

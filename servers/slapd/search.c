@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/* Portions
  * Copyright (c) 1995 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -18,6 +22,7 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 
@@ -27,24 +32,17 @@ do_search(
     Operation	*op	/* info about the op to which we're responding */
 )
 {
-	int		i, err;
+	int		i;
 	ber_int_t		scope, deref, attrsonly;
 	ber_int_t		sizelimit, timelimit;
-	char		*base = NULL, *fstr = NULL;
+	char		*base = NULL, *nbase = NULL, *fstr = NULL;
 	Filter		*filter = NULL;
 	char		**attrs = NULL;
 	Backend		*be;
 	int			rc;
+	const char		*text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_search\n", 0, 0, 0 );
-
-	if( op->o_bind_in_progress ) {
-		Debug( LDAP_DEBUG_ANY, "do_search: SASL bind in progress.\n",
-			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, "SASL bind in progress", NULL, NULL );
-		return LDAP_SASL_BIND_IN_PROGRESS;
-	}
 
 	/*
 	 * Parse the search request.  It looks like this:
@@ -71,12 +69,12 @@ do_search(
 	 */
 
 	/* baseObject, scope, derefAliases, sizelimit, timelimit, attrsOnly */
-	if ( ber_scanf( op->o_ber, "{aiiiib",
+	if ( ber_scanf( op->o_ber, "{aiiiib" /*}*/,
 		&base, &scope, &deref, &sizelimit,
 	    &timelimit, &attrsonly ) == LBER_ERROR ) {
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		rc = -1;
+		rc = SLAPD_DISCONNECT;
 		goto return_results;
 	}
 
@@ -86,9 +84,8 @@ do_search(
 	case LDAP_SCOPE_SUBTREE:
 		break;
 	default:
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "invalid scope", NULL, NULL );
-		rc = -1;
 		goto return_results;
 	}
 
@@ -99,16 +96,16 @@ do_search(
 	case LDAP_DEREF_ALWAYS:
 		break;
 	default:
-		send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
 			NULL, "invalid deref", NULL, NULL );
-		rc = -1;
 		goto return_results;
 	}
 
-	if( dn_normalize_case( base ) == NULL ) {
-		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX,
+	nbase = ch_strdup( base );
+
+	if( dn_normalize( nbase ) == NULL ) {
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX,
 			NULL, "invalid DN", NULL, NULL );
-		rc = -1;
 		goto return_results;
 	}
 
@@ -117,15 +114,15 @@ do_search(
 	    attrsonly);
 
 	/* filter - returns a "normalized" version */
-	if ( (err = get_filter( conn, op->o_ber, &filter, &fstr )) != 0 ) {
-		if( err == -1 ) {
+	rc = get_filter( conn, op->o_ber, &filter, &fstr, &text );
+	if( rc != LDAP_SUCCESS ) {
+		if( rc == SLAPD_DISCONNECT ) {
 			send_ldap_disconnect( conn, op,
-				LDAP_PROTOCOL_ERROR, "decode error" );
+				LDAP_PROTOCOL_ERROR, text );
 		} else {
-			send_ldap_result( conn, op, err,
-				NULL, "Bad search filter", NULL, NULL );
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
 		}
-		rc = -1;
 		goto return_results;
 	}
 
@@ -134,8 +131,8 @@ do_search(
 	/* attributes */
 	if ( ber_scanf( op->o_ber, /*{*/ "{v}}", &attrs ) == LBER_ERROR ) {
 		send_ldap_disconnect( conn, op,
-			LDAP_PROTOCOL_ERROR, "decoding error" );
-		rc = -1;
+			LDAP_PROTOCOL_ERROR, "decoding attrs error" );
+		rc = SLAPD_DISCONNECT;
 		goto return_results;
 	}
 
@@ -150,7 +147,6 @@ do_search(
 
 	if ( attrs != NULL ) {
 		for ( i = 0; attrs[i] != NULL; i++ ) {
-			attr_normalize( attrs[i] );
 			Debug( LDAP_DEBUG_ARGS, " %s", attrs[i], 0, 0 );
 		}
 	}
@@ -162,29 +158,48 @@ do_search(
 	    op->o_connid, op->o_opid, base, scope, fstr );
 
 	if ( scope == LDAP_SCOPE_BASE ) {
+		Entry *entry = NULL;
+
+		if ( strcasecmp( nbase, LDAP_ROOT_DSE ) == 0 ) {
+			rc = root_dse_info( &entry, &text );
+		}
+
 #if defined( SLAPD_MONITOR_DN )
-		if ( strcmp( base, SLAPD_MONITOR_DN ) == 0 ) {
-			monitor_info( conn, op, attrs, attrsonly );
-			goto return_results;
+		else if ( strcasecmp( nbase, SLAPD_MONITOR_DN ) == 0 ) {
+			rc = monitor_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_CONFIG_DN )
-		if ( strcmp( base, SLAPD_CONFIG_DN ) == 0 ) {
-			config_info( conn, op, attrs, attrsonly );
-			goto return_results;
+		else if ( strcasecmp( nbase, SLAPD_CONFIG_DN ) == 0 ) {
+			rc = config_info( &entry, &text );
 		}
 #endif
 
 #if defined( SLAPD_SCHEMA_DN )
-		if ( strcmp( base, SLAPD_SCHEMA_DN ) == 0 ) {
-			schema_info( conn, op, attrs, attrsonly );
-			goto return_results;
+		else if ( strcasecmp( nbase, SLAPD_SCHEMA_DN ) == 0 ) {
+			rc= schema_info( &entry, &text );
 		}
 #endif
 
-		if ( strcmp( base, LDAP_ROOT_DSE ) == 0 ) {
-			root_dse_info( conn, op, attrs, attrsonly );
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+			goto return_results;
+
+		} else if ( entry != NULL ) {
+			rc = test_filter( NULL, conn, op,
+				entry, filter );
+
+			if( rc == LDAP_COMPARE_TRUE ) {
+				send_search_entry( &backends[0], conn, op,
+					entry, attrs, attrsonly, NULL );
+			}
+			entry_free( entry );
+
+			send_ldap_result( conn, op, LDAP_SUCCESS,
+				NULL, NULL, NULL, NULL );
+
 			goto return_results;
 		}
 	}
@@ -194,27 +209,37 @@ do_search(
 	 * appropriate one, or send a referral to our "referral server"
 	 * if we don't hold it.
 	 */
-	if ( (be = select_backend( base )) == NULL ) {
+	if ( (be = select_backend( nbase )) == NULL ) {
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 
 		goto return_results;
 	}
 
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op, &text ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto return_results;
+	}
+
 	/* deref the base if needed */
-	base = suffix_alias( be, base );
+	nbase = suffix_alias( be, nbase );
 
 	/* actually do the search and send the result(s) */
 	if ( be->be_search ) {
-		(*be->be_search)( be, conn, op, base, scope, deref, sizelimit,
+		(*be->be_search)( be, conn, op, base, nbase, scope, deref, sizelimit,
 		    timelimit, filter, fstr, attrs, attrsonly );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
 return_results:;
 	if( base != NULL) free( base );
+	if( nbase != NULL) free( nbase );
 	if( fstr != NULL) free( fstr );
 	if( filter != NULL) filter_free( filter );
 	if ( attrs != NULL ) {

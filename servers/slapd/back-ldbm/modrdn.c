@@ -1,7 +1,7 @@
 /* modrdn.c - ldbm backend modrdn routine */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -37,12 +37,14 @@ ldbm_back_modrdn(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*newrdn,
+    const char	*dn,
+    const char	*ndn,
+    const char	*newrdn,
     int		deleteoldrdn,
-    char	*newSuperior
+    const char	*newSuperior
 )
 {
+	AttributeDescription *children = slap_schema.si_ad_children;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	char		*p_dn = NULL, *p_ndn = NULL;
 	char		*new_dn = NULL, *new_ndn = NULL;
@@ -50,6 +52,7 @@ ldbm_back_modrdn(
 	Entry		*matched;
 	int			rootlock = 0;
 	int			rc = -1;
+	const char *text = NULL;
 	/* Added to support LDAP v2 correctly (deleteoldrdn thing) */
 	char		*new_rdn_val = NULL;	/* Val of new rdn */
 	char		*new_rdn_type = NULL;	/* Type of new rdn */
@@ -66,7 +69,7 @@ ldbm_back_modrdn(
 	struct berval	*add_bvals[2];		/* Stores new rdn att */
 	struct berval	del_bv;			/* Stores old rdn att */
 	struct berval	*del_bvals[2];		/* Stores old rdn att */
-	LDAPModList	mod[2];			/* Used to delete old rdn */
+	Modifications	mod[2];			/* Used to delete old rdn */
 	int		manageDSAit = get_manageDSAit( op );
 
 	Debug( LDAP_DEBUG_TRACE, "==>ldbm_back_modrdn(newSuperior=%s)\n",
@@ -74,7 +77,7 @@ ldbm_back_modrdn(
 	       0, 0 );
 
 	/* get entry with writer lock */
-	if ( (e = dn2entry_w( be, dn, &matched )) == NULL ) {
+	if ( (e = dn2entry_w( be, ndn, &matched )) == NULL ) {
 		char* matched_dn = NULL;
 		struct berval** refs = NULL;
 
@@ -137,14 +140,14 @@ ldbm_back_modrdn(
 		if( (p = dn2entry_w( be, p_ndn, NULL )) == NULL) {
 			Debug( LDAP_DEBUG_TRACE, "parent does not exist\n",
 				0, 0, 0);
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
 
 		/* check parent for "children" acl */
 		if ( ! access_allowed( be, conn, op, p,
-			"children", NULL, ACL_WRITE ) )
+			children, NULL, ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE, "no access to parent\n", 0,
 				0, 0 );
@@ -184,13 +187,14 @@ ldbm_back_modrdn(
 
 	new_parent_dn = p_dn;	/* New Parent unless newSuperior given */
 
-	if ( (np_dn = newSuperior) != NULL) {
+	if ( newSuperior != NULL ) {
 		Debug( LDAP_DEBUG_TRACE, 
-		       "ldbm_back_modrdn: new parent requested...\n",
-		       0, 0, 0 );
+			"ldbm_back_modrdn: new parent \"%s\" requested...\n",
+			newSuperior, 0, 0 );
 
+		np_dn = ch_strdup( newSuperior );
 		np_ndn = ch_strdup( np_dn );
-		(void) dn_normalize_case( np_ndn );
+		(void) dn_normalize( np_ndn );
 
 		/* newSuperior == oldParent?, if so ==> ERROR */
 		/* newSuperior == entry being moved?, if so ==> ERROR */
@@ -200,7 +204,7 @@ ldbm_back_modrdn(
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: newSup(ndn=%s) not here!\n",
 			       np_ndn, 0, 0);
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, NULL, NULL, NULL );
 			goto return_results;
 		}
@@ -210,7 +214,7 @@ ldbm_back_modrdn(
 		       np, np->e_id, 0 );
 	    
 		/* check newSuperior for "children" acl */
-		if ( !access_allowed( be, conn, op, np, "children", NULL,
+		if ( !access_allowed( be, conn, op, np, children, NULL,
 				      ACL_WRITE ) )
 		{
 			Debug( LDAP_DEBUG_TRACE,
@@ -257,7 +261,7 @@ ldbm_back_modrdn(
 
 
 	new_ndn = ch_strdup(new_dn);
-	(void) dn_normalize_case( new_ndn );
+	(void) dn_normalize( new_ndn );
 
 	Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: new ndn=%s\n",
 	       new_ndn, 0, 0 );
@@ -290,7 +294,7 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: can't figure out type of newrdn\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+			NULL, "unknown type used in RDN", NULL, NULL );
 		goto return_results;		
 
 	}
@@ -301,7 +305,7 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: can't figure out val of newrdn\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+			NULL, "could not parse RDN value", NULL, NULL );
 		goto return_results;		
 
 	}
@@ -313,39 +317,29 @@ ldbm_back_modrdn(
 	/* Retrieve the old rdn from the entry's dn */
 
 	if ( (old_rdn = dn_rdn( be, dn )) == NULL ) {
-
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out old_rdn from dn\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "could not parse old DN", NULL, NULL );
 		goto return_results;		
-
 	}
 
 	if ( (old_rdn_type = rdn_attr_type( old_rdn )) == NULL ) {
-	    
 		Debug( LDAP_DEBUG_TRACE,
 		       "ldbm_back_modrdn: can't figure out the old_rdn type\n",
 		       0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "count parse RDN from old DN", NULL, NULL );
 		goto return_results;		
-		
 	}
 	
 	if ( strcasecmp( old_rdn_type, new_rdn_type ) != 0 ) {
-
 	    /* Not a big deal but we may say something */
 	    Debug( LDAP_DEBUG_TRACE,
 		   "ldbm_back_modrdn: old_rdn_type=%s, new_rdn_type=%s!\n",
 		   old_rdn_type, new_rdn_type, 0 );
-	    
 	}		
-
-#ifdef DNS_DN
-	if ( dn_type( old_rdn ) == DN_X500 ) {
-#endif
 
 		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DN_X500\n",
 		       0, 0, 0 );
@@ -359,10 +353,24 @@ ldbm_back_modrdn(
 		add_bv.bv_val = new_rdn_val;
 		add_bv.bv_len = strlen(new_rdn_val);
 		
-		mod[0].ml_type = new_rdn_type;	
-		mod[0].ml_bvalues = add_bvals;
-		mod[0].ml_op = LDAP_MOD_SOFTADD;
-		mod[0].ml_next = NULL;
+		{
+			int rc;
+
+			mod[0].sml_desc = NULL;
+			rc = slap_str2ad( new_rdn_type, &mod[0].sml_desc, &text );
+
+			if( rc != LDAP_SUCCESS ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"ldbm_back_modrdn: %s: %s (new)\n",
+					text, new_rdn_type, 0 );
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto return_results;		
+			}
+		}
+		mod[0].sml_bvalues = add_bvals;
+		mod[0].sml_op = SLAP_MOD_SOFTADD;
+		mod[0].sml_next = NULL;
 
 		/* Remove old rdn value if required */
 
@@ -375,8 +383,8 @@ ldbm_back_modrdn(
 				Debug( LDAP_DEBUG_TRACE,
 				       "ldbm_back_modrdn: can't figure out old_rdn_val from old_rdn\n",
 				       0, 0, 0 );
-				send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-					NULL, NULL, NULL, NULL );
+				send_ldap_result( conn, op, LDAP_OTHER,
+					NULL, "could not parse value from old RDN", NULL, NULL );
 				goto return_results;		
 			}
 
@@ -388,36 +396,31 @@ ldbm_back_modrdn(
 			del_bv.bv_val = old_rdn_val;
 			del_bv.bv_len = strlen(old_rdn_val);
 
-			/* No need to normalize old_rdn_type, delete_values()
-			 * does that for us
-			 */
-			mod[0].ml_next = &mod[1];
-			mod[1].ml_type = old_rdn_type;	
-			mod[1].ml_bvalues = del_bvals;
-			mod[1].ml_op = LDAP_MOD_DELETE;
-			mod[1].ml_next = NULL;
+			{
+				int rc;
+
+				mod[1].sml_desc = NULL;
+				rc = slap_str2ad( old_rdn_type, &mod[1].sml_desc, &text );
+
+				if( rc != LDAP_SUCCESS ) {
+					Debug( LDAP_DEBUG_TRACE,
+						"ldbm_back_modrdn: %s: %s (old)\n",
+						text, old_rdn_type, 0 );
+					send_ldap_result( conn, op, rc,
+						NULL, text, NULL, NULL );
+					goto return_results;		
+				}
+			}
+			mod[0].sml_next = &mod[1];
+			mod[1].sml_bvalues = del_bvals;
+			mod[1].sml_op = LDAP_MOD_DELETE;
+			mod[1].sml_next = NULL;
 
 			Debug( LDAP_DEBUG_TRACE,
 			       "ldbm_back_modrdn: removing old_rdn_val=%s\n",
 			       old_rdn_val, 0, 0 );
 		}
 	
-#ifdef DNS_DN
-	} else {
-		Debug( LDAP_DEBUG_TRACE, "ldbm_back_modrdn: DNS DN\n",
-		       0, 0, 0 );
-		/* XXXV3: not sure of what to do here */
-		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: not fully implemented...\n",
-		       0, 0, 0 );
-  
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
-		goto return_results;
-
-	}
-#endif
-
 	/* check for abandon */
 	ldap_pvt_thread_mutex_lock( &op->o_abandonmutex );
 	if ( op->o_abandon ) {
@@ -428,8 +431,8 @@ ldbm_back_modrdn(
 
 	/* delete old one */
 	if ( dn2id_delete( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "DN index delete fail", NULL, NULL );
 		goto return_results;
 	}
 
@@ -446,14 +449,19 @@ ldbm_back_modrdn(
 
 	/* add new one */
 	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "DN index add failed", NULL, NULL );
 		goto return_results;
 	}
 
 	/* modify memory copy of entry */
-	if ( ldbm_modify_internal( be, conn, op, dn, &mod[0], e )
-	     != 0 ) {
+	rc = ldbm_modify_internal( be, conn, op, dn, &mod[0], e, &text );
+
+	if( rc != LDAP_SUCCESS ) {
+		if( rc != SLAPD_ABANDON ) {
+			send_ldap_result( conn, op, rc,
+				NULL, text, NULL, NULL );
+		}
 	    
 	    goto return_results;
 	}
@@ -467,8 +475,8 @@ ldbm_back_modrdn(
 	/* id2entry index */
 	if ( id2entry_add( be, e ) != 0 ) {
 		entry_free( e );
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
-			NULL, NULL, NULL, NULL );
+		send_ldap_result( conn, op, LDAP_OTHER,
+			NULL, "entry update failed", NULL, NULL );
 		goto return_results;
 	}
 

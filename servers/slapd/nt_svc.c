@@ -1,31 +1,41 @@
 /* $OpenLDAP$ */
-// nt_main.c
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
 #include "portable.h"
 #include <stdio.h>
-
 #include <ac/string.h>
-
 #include "slap.h"
 
-ldap_pvt_thread_cond_t	started_event,		stopped_event;
-ldap_pvt_thread_t		start_status_tid,	stop_status_tid;
-
+#ifdef HAVE_NT_SERVICE_MANAGER
 
 /* in main.c */
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv );
 
 /* in ntservice.c */
-int srv_install( char* service, char* filename );
+int srv_install( char* service, char * displayName, char* filename,
+		 BOOL auto_start );
 int srv_remove ( char* service, char* filename );
 
-int main( DWORD argc, LPTSTR *argv )
+int main( int argc, LPTSTR *argv )
 {
 	int		length;
 	char	filename[MAX_PATH], *fname_start;
 	extern int is_NT_Service;
 
+	/*
+	 * Because the service was registered as SERVICE_WIN32_OWN_PROCESS,
+	 * the lpServiceName element of the SERVICE_TABLE_ENTRY will be
+	 * ignored. Since we don't even know the name of the service at
+	 * this point (since it could have been installed under a name
+	 * different than SERVICE_NAME), we might as well just provide
+	 * the parameter as "".
+	 */
+
 	SERVICE_TABLE_ENTRY		DispatchTable[] = {
-		{	SERVICE_NAME,	(LPSERVICE_MAIN_FUNCTION) ServiceMain	},
+		{	"",	(LPSERVICE_MAIN_FUNCTION) ServiceMain	},
 		{	NULL,			NULL	}
 	};
 
@@ -42,14 +52,24 @@ int main( DWORD argc, LPTSTR *argv )
 		if ( _stricmp( "install", argv[1] ) == 0 ) 
 		{
 			char *svcName = SERVICE_NAME;
+			char *displayName = "OpenLDAP Directory Service";
+			BOOL auto_start = FALSE;
+
 			if ( (argc > 2) && (argv[2] != NULL) )
 				svcName = argv[2];
+
+			if ( argc > 3 && argv[3])
+				displayName = argv[3];
+
+			if ( argc > 4 && stricmp(argv[4], "auto") == 0)
+				auto_start = TRUE;
+
 			if ( (length = GetModuleFileName(NULL, filename, sizeof( filename ))) == 0 ) 
 			{
 				fputs( "unable to retrieve file name for the service.\n", stderr  );
 				return EXIT_FAILURE;
 			}
-			if ( !srv_install(svcName, filename) ) 
+			if ( !srv_install(svcName, displayName, filename, auto_start) ) 
 			{
 				fputs( "service failed installation ...\n", stderr  );
 				return EXIT_FAILURE;
@@ -87,3 +107,5 @@ int main( DWORD argc, LPTSTR *argv )
 
 	return EXIT_SUCCESS;
 }
+
+#endif

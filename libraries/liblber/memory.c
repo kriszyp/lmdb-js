@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -8,12 +8,20 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
 
 #if LDAP_MEMORY_DEBUG
+/*
+ * LDAP_MEMORY_DEBUG should only be enabled for the purposes of
+ * debugging memory management within OpenLDAP libraries and slapd.
+ * It should only be enabled by an experienced developer as it
+ * causes the inclusion of numerous assert()'s, many of which may
+ * be triggered by a prefectly valid program.
+ *
+ * The code behind this macro is subject to change as needed to
+ * support this testing.
+ */
+
 struct ber_mem_hdr {
 	union bmu_align_u {
 		ber_len_t	bmu_len_t;
@@ -30,13 +38,14 @@ struct ber_mem_hdr {
 #define bm_junk	ber_align.bmu_len_t
 #define bm_data	ber_align.bmu_char[1]
 };
-#define BER_MEM_JUNK 0xddeeddeeU
+#define BER_MEM_JUNK 0xdeaddadaU
 static const struct ber_mem_hdr ber_int_mem_hdr = { BER_MEM_JUNK };
 #define BER_MEM_BADADDR	((void *) &ber_int_mem_hdr.bm_data)
 #define BER_MEM_VALID(p)	do { \
 		assert( (p) != BER_MEM_BADADDR );	\
 		assert( (p) != (void *) &ber_int_mem_hdr );	\
 	} while(0)
+
 #else
 #define BER_MEM_VALID(p)	/* no-op */
 #endif
@@ -83,7 +92,6 @@ ber_memfree( void *p )
 
 	assert( ber_int_memory_fns->bmf_free );
 
-		
 	(*ber_int_memory_fns->bmf_free)( p );
 }
 
@@ -112,6 +120,7 @@ ber_memvfree( void **vec )
 void *
 ber_memalloc( ber_len_t s )
 {
+	void *new;
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
@@ -131,21 +140,26 @@ ber_memalloc( ber_len_t s )
 		mh->bm_junk = BER_MEM_JUNK;
 
 		BER_MEM_VALID( &mh[1] );
-		return &mh[1];
+		new = &mh[1];
 #else
-		return malloc( s );
+		new = malloc( s );
 #endif
+	} else {
+		new = (*ber_int_memory_fns->bmf_malloc)( s );
 	}
 
-	assert( ber_int_memory_fns->bmf_malloc );
+	if( new == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+	}
 
-	return (*ber_int_memory_fns->bmf_malloc)( s );
+	return new;
 }
 
 
 void *
 ber_memcalloc( ber_len_t n, ber_len_t s )
 {
+	void *new;
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 #ifdef LDAP_MEMORY_DEBUG
@@ -164,21 +178,27 @@ ber_memcalloc( ber_len_t n, ber_len_t s )
 		mh->bm_junk = BER_MEM_JUNK;
 
 		BER_MEM_VALID( &mh[1] );
-		return &mh[1];
+		new = &mh[1];
 #else
-		return calloc( n, s );
+		new = calloc( n, s );
 #endif
+
+	} else {
+		new = (*ber_int_memory_fns->bmf_calloc)( n, s );
 	}
 
-	assert( ber_int_memory_fns->bmf_calloc );
+	if( new == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+	}
 
-	return (*ber_int_memory_fns->bmf_calloc)( n, s );
+	return new;
 }
 
 
 void *
 ber_memrealloc( void* p, ber_len_t s )
 {
+	void *new = NULL;
     ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	/* realloc(NULL,s) -> malloc(s) */
@@ -202,22 +222,26 @@ ber_memrealloc( void* p, ber_len_t s )
 
 		p = realloc( mh, s + sizeof(struct ber_mem_hdr) );
 
-		if( p == NULL ) return NULL;
+		if( p != NULL ) {
+			mh = p;
 
-		mh = p;
+			assert( mh->bm_junk == BER_MEM_JUNK );
 
-		assert( mh->bm_junk == BER_MEM_JUNK );
-
-		BER_MEM_VALID( &mh[1] );
-		return &mh[1];
+			BER_MEM_VALID( &mh[1] );
+			new = &mh[1];
+		}
 #else
-		return realloc( p, s );
+		new = realloc( p, s );
 #endif
+	} else {
+		new = (*ber_int_memory_fns->bmf_realloc)( p, s );
 	}
 
-	assert( ber_int_memory_fns->bmf_realloc );
+	if( new == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+	}
 
-	return (*ber_int_memory_fns->bmf_realloc)( p, s );
+	return new;
 }
 
 
@@ -258,6 +282,57 @@ ber_bvecfree( struct berval **bv )
 	LBER_FREE( (char *) bv );
 }
 
+int
+ber_bvecadd( struct berval ***bvec, struct berval *bv )
+{
+	ber_len_t i;
+	struct berval **new;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if( bvec == NULL ) {
+		if( bv == NULL ) {
+			/* nothing to add */
+			return 0;
+		}
+
+		*bvec = ber_memalloc( 2 * sizeof(struct berval *) );
+
+		if( *bvec == NULL ) {
+			return -1;
+		}
+
+		(*bvec)[0] = bv;
+		(*bvec)[1] = NULL;
+
+		return 1;
+	}
+
+	BER_MEM_VALID( bvec );
+
+	/* count entries */
+	for ( i = 0; bvec[i] != NULL; i++ ) {
+		/* EMPTY */;
+	}
+
+	if( bv == NULL ) {
+		return i;
+	}
+
+	new = ber_memrealloc( *bvec, (i+2) * sizeof(struct berval *));
+
+	if( new == NULL ) {
+		return -1;
+	}
+
+	*bvec = new;
+
+	(*bvec)[i++] = bv;
+	(*bvec)[i] = NULL;
+
+	return i;
+}
+
 
 struct berval *
 ber_bvdup(
@@ -268,10 +343,12 @@ ber_bvdup(
 	ber_int_options.lbo_valid = LBER_INITIALIZED;
 
 	if( bv == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
 		return NULL;
 	}
 
 	if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
 		return NULL;
 	}
 
@@ -282,6 +359,7 @@ ber_bvdup(
 	}
 
 	if(( new->bv_val = LBER_MALLOC( bv->bv_len + 1 )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
 		LBER_FREE( new );
 		return NULL;
 	}
@@ -289,6 +367,66 @@ ber_bvdup(
 	SAFEMEMCPY( new->bv_val, bv->bv_val, bv->bv_len );
 	new->bv_val[bv->bv_len] = '\0';
 	new->bv_len = bv->bv_len;
+
+	return( new );
+}
+
+struct berval *
+ber_bvstr(
+	LDAP_CONST char *s )
+{
+	struct berval *new;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if( s == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
+		return NULL;
+	}
+
+	if(( new = LBER_MALLOC( sizeof(struct berval) )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+		return NULL;
+	}
+
+	if ( *s == '\0' ) {
+		new->bv_val = NULL;
+		new->bv_len = 0;
+		return new;
+	}
+
+	new->bv_val = (char *) s;
+	new->bv_len = strlen( s );
+
+	return( new );
+}
+
+struct berval *
+ber_bvstrdup(
+	LDAP_CONST char *s )
+{
+	struct berval *new;
+	char *p;
+
+	ber_int_options.lbo_valid = LBER_INITIALIZED;
+
+	if( s == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
+		return NULL;
+	}
+
+	p = LBER_STRDUP( s );
+
+	if( p == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
+		return NULL;
+	}
+
+	new = ber_bvstr( p );
+
+	if( new == NULL || *p == '\0' ) {
+		LBER_FREE( p );
+	}
 
 	return( new );
 }
@@ -306,12 +444,14 @@ ber_strdup( LDAP_CONST char *s )
 #endif
 
 	if( s == NULL ) {
+		ber_errno = LBER_ERROR_PARAM;
 		return( NULL );
 	}
 
 	len = strlen( s ) + 1;
 
 	if ( (p = LBER_MALLOC( len )) == NULL ) {
+		ber_errno = LBER_ERROR_MEMORY;
 		return( NULL );
 	}
 

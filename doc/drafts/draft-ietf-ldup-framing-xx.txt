@@ -1,0 +1,340 @@
+
+Extended Operations for Framing LDAP Operations
+Internet-Draft
+Intended Category: Standards Track
+Expires: September 10, 2000
+
+
+                                                            Ellen Stokes
+                                                         IBM Corporation
+
+                                                          Roger Harrison
+                                                            Novell, Inc.
+
+                                                             Gordon Good
+                                           Netscape Communications Corp.
+
+                                                          March 10, 2000
+
+            Extended Operations for Framing LDAP Operations
+                Filename: draft-ietf-ldup-framing-00.txt
+
+Table of Contents
+
+1.    Status of this Memo.............................................2
+2.    Abstract........................................................2
+3.    Overview........................................................2
+4.    Protocol element definitions....................................3
+4.1   StartFramedProtocolRequest Extended Operation...................3
+4.2   StartFramedProtocolResponse Extended Operation..................3
+4.3   EndFramedProtocolRequest Extended Operation.....................4
+4.4   EndFramedProtocolResponse Extended Operation....................4
+5.    Acknowledgments.................................................5
+6.    References......................................................5
+7.    Author's Addresses..............................................5
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Stokes, Harrison and Good                                       [Page 1]
+
+Internet-Draft               LDUP Workgroup               March 10, 2000
+
+
+1. Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups. Note that other
+   groups may also distribute working documents as Internet-Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet- Drafts as reference
+   material or to cite them other than as "work in progress."
+
+    The list of current Internet-Drafts can be accessed at
+     http://www.ietf.org/ietf/1id-abstracts.txt
+
+     The list of Internet-Draft Shadow Directories can be accessed at
+     http://www.ietf.org/shadow.html.
+
+.
+
+   This Internet Draft expires September 10, 2000.
+
+
+2. Abstract
+
+   Certain types of LDAP applications can benefit from the ability to
+   specify the beginning and end of a related group of operations.  For
+   example, the LDUP multimaster update protocol [ARCHITECTURE] requires
+   that two servers agree to begin a session to transfer pending
+   replication updates. This document provides a framework for
+   constructing protocols that feature a framed set of related
+   operations.  It defines a pair of LDAPv3 extended operations that
+   provide begin-end framing, and a pair of extended operations used to
+   respond the begin-end framing operations. The nature of the actual
+   LDAP operations carried inside these framing operations is not
+   specified in this document.
+
+   All protocol elements described here are LDAP Version 3 extended
+   operations. LDAP Version 3 is described in RFC 2251 [LDAPv3].
+
+   Certain terms used in this document are defined in the document "LDAP
+   Replication Architecture" [ARCHITECTURE].
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", and "MAY" in this document are
+   to be interpreted as described in RFC 2119 [KEYWORDS].
+
+3. Overview
+
+   This document describes two LDAPv3 Extended Operations that are used
+   to signal the beginning and end of a set of grouped operations, and
+
+
+
+Stokes, Harrison and Good                                       [Page 2]
+
+Internet-Draft               LDUP Workgroup               March 10, 2000
+
+
+   two LDAPv3 extended operations that are used to respond to these
+   operations. These extended operations provide a framework that may be
+   used when developing a protocol that requires begin-end framing.
+
+4. Protocol element definitions
+
+4.1 StartFramedProtocolRequest Extended Operation
+
+   The StartFramedProtocolRequest extended operation indicates that the
+   initiator wishes to begin transmission of a set of related LDAP
+   operations. The requestValue of the StartFramedProtocolRequest
+   extended operation contains an OID that describes the specific framed
+   protocol being initiated, and a protocol-specific payload.
+
+   An LDAPv3 Extended Request is defined in [LDAPv3] as follows:
+
+      ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
+          requestName    [0] LDAPOID,
+          requestValue   [1] OCTET STRING OPTIONAL
+      }
+
+   The requestName portion of the StartFramedProtocolRequest must be the
+   OID "2.16.840.1.113719.1.142.100.1".
+
+   The requestValue of the StartFramedProtocolRequest must be set to the
+   BER-encoding of the following:
+
+      StartFramedProtocolRequestValue ::= SEQUENCE {
+                framedProtocolOID LDAPOID,
+                framedProtocolPayload OPTIONAL OCTET STRING
+      }
+
+   The parameters in the requestValue of the StartFramedProtocolRequest
+   are:
+
+      - framedProtocolOID: An OID that uniquely identifies the protocol
+        framed by this operation.  - framedProtocolPayload: An octet
+      string that contains protocol-specific
+        information.
+
+
+4.2 StartFramedProtocolResponse Extended Operation
+
+   The StartFramedProtocolResponse extended operation is sent in
+   response to a StartFramedProtocolResponse extended operation.
+
+   An LDAPv3 Extended Response is defined in [LDAPv3] as follows:
+
+
+
+
+Stokes, Harrison and Good                                       [Page 3]
+
+Internet-Draft               LDUP Workgroup               March 10, 2000
+
+
+      ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+          COMPONENTS of LDAPResult,
+          responseName  [10] LDAPOID OPTIONAL,
+          response      [11] OCTET STRING OPTIONAL
+      }
+
+   The responseName of the StartFramedProtocolResponse must be the OID
+   "2.16.840.1.113719.1.142.100.2".
+
+   The response of the StartFramedProtocolResponse is set to the BER-
+   encoding of a protocol-specific response.
+
+4.3 EndFramedProtocolRequest Extended Operation
+
+   The EndFramedProtocolRequest extended operation indicates the end a
+   set of related LDAP operations. The requestValue of the
+   EndFramedProtocolRequest extended operation contains a protocol-
+   specific payload.
+
+   An LDAPv3 Extended Request is defined in [LDAPv3] as follows:
+
+      ExtendedRequest ::= [APPLICATION 23] SEQUENCE {
+          requestName    [0] LDAPOID,
+          requestValue   [1] OCTET STRING OPTIONAL
+      }
+
+   The requestName of the EndFramedProtocolRequest must be the OID
+   "2.16.840.1.113719.1.142.100.4".
+
+   The requestValue of the EndFramedProtocolRequest is set to the BER-
+   encoding of a protocol-specific response.
+
+4.4 EndFramedProtocolResponse Extended Operation
+
+   The EndFramedProtocolResponse extended operation is sent in response
+   to an EndFramedProtocolRequest.
+
+   An LDAPv3 Extended Response is defined in [LDAPv3] as follows:
+
+      ExtendedResponse ::= [APPLICATION 24] SEQUENCE {
+          COMPONENTS of LDAPResult,
+          responseName  [10] LDAPOID OPTIONAL,
+          response      [11] OCTET STRING OPTIONAL
+      }
+
+   The responseName of the EndFramedProtocolResponse must be the OID
+   "2.16.840.1.113719.1.142.100.5".
+
+
+
+
+Stokes, Harrison and Good                                       [Page 4]
+
+Internet-Draft               LDUP Workgroup               March 10, 2000
+
+
+   The response of the EndFramedProtocolResponse is set to the BER-
+   encoding of a protocol-specific response.
+
+5. Acknowledgments
+
+The authors gratefully acknowledge the contributions of the IETF LDUP
+working group.
+
+6. References
+
+
+[KEYWORDS]
+     S. Bradner, "Key Words for use in RFCs to Indicate Requirement Lev-
+     els", Harvard University, RFC 2119, March 1997.
+
+
+[ARCHITECTURE]
+     J. Merrells, E. Reed, U. Srinivasan, "LDAP Replication Architec-
+     ture", Internet-Draft, draft-ietf-ldup-model-02.txt, October 1999.
+
+
+[LDAPv3]
+     M. Wahl, S. Kille, T. Howes, "Lightweight Directory Access Protocol
+     (v3)", RFC 2251, December 1997.
+
+7. Author's Addresses
+
+   Ellen Stokes
+   IBM
+   11400 Burnet Rd
+   Austin, TX 78758
+   USA
+   EMail: stokes@austin.ibm.com
+   phone: +1 512 838 3725
+   fax:   +1 512 838 0156
+
+   Roger Harrison
+   Novell, Inc.
+   122 E. 1700 S.
+   Provo, UT 84606
+   USA
+   EMail: roger_harrison@novell.com
+   Phone: +1 801 861 2642
+
+   Gordon Good
+   Netscape Communications Corp.
+   501 E. Middlefield Rd.
+   Mailstop MV068
+
+
+
+Stokes, Harrison and Good                                       [Page 5]
+
+Internet-Draft               LDUP Workgroup               March 10, 2000
+
+
+   Mountain View, CA 94043
+   USA
+   EMail:  ggood@netscape.com
+   Phone:  +1 650 937-3825
+
+
+Appendix A - Complete ASN.1 Definition
+
+StartFramedProtocolRequest ::= ExtendedRequest
+
+StartFramedProtocolRequestValue ::= SEQUENCE {
+          framedProtocolOID LDAPOID,
+          framedProtocolPayload OPTIONAL OCTET STRING
+}
+
+StartFramedProtocolResponse ::= ExtendedResponse
+
+EndFramedProtocolRequest ::= ExtendedRequest
+
+EndFramedProtocolResponse ::= ExtendedResponse
+
+Full Copyright Statement
+
+Copyright (C) The Internet Society (1999).  All Rights Reserved.
+
+This document and translations of it may be copied and furnished to oth-
+ers, and derivative works that comment on or otherwise explain it or
+assist in its implementation may be prepared, copied, published and dis-
+tributed, in whole or in part, without restriction of any kind, provided
+that the above copyright notice and this paragraph are included on all
+such copies and derivative works.  However, this document itself may not
+be modified in any way, such as by removing the copyright notice or
+references to the Internet Society or other Internet organizations,
+except as needed for the purpose of developing Internet standards in
+which case the procedures for copyrights defined in the Internet Stan-
+dards process must be followed, or as required to translate it into
+languages other than English.
+
+The limited permissions granted above are perpetual and will not be
+revoked by the Internet Society or its successors or assigns.
+
+This document and the information contained herein is provided on an "AS
+IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING TASK
+FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN WILL NOT
+INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF MERCHANTABILITY OR FIT-
+NESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+Stokes, Harrison and Good                                       [Page 6]

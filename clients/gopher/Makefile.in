@@ -2,9 +2,12 @@
 ##
 ## Makefile for gopher clients
 ##
-PROGRAMS= go500gw go500
+
+UNIX_PRGS= go500gw go500
+PROGRAMS = $(@PLAT@_PRGS)
 
 SRCS=	go500.c go500gw.c 
+
 XSRCS= gwversion.c goversion.c
 GOOBJS =  go500.o
 GWOBJS =  go500gw.o
@@ -30,8 +33,13 @@ gwversion.c: ${GWOBJS} $(LDAP_LIBDEPEND)
 	$(MKVERSION) go500gw > $@
 
 install-local: $(PROGRAMS) go500gw.help FORCE
-	-$(MKDIR) $(libexecdir) $(datadir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500	$(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 go500gw $(libexecdir)
-	-$(MV) $(datadir)/go500gw.help $(datadir)/go500gw.help-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/go500gw.help $(datadir)
+	-$(MKDIR) $(DESTDIR)$(libexecdir) $(DESTDIR)$(datadir)
+	@(								\
+	    for prg in $(PROGRAMS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(libexecdir);				\
+	    done							\
+	)
+	-$(MV) $(DESTDIR)$(datadir)/go500gw.help $(DESTDIR)$(datadir)/go500gw.help-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/go500gw.help $(DESTDIR)$(datadir)
+

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -19,10 +19,10 @@ LDAP_BEGIN_DECL
 Entry *deref_internal_r LDAP_P((
 	Backend *be,
 	Entry *e,
-	char *dn,
+	const char *dn,
 	int *err,
 	Entry **matched,
-	char **text ));
+	const char **text ));
 
 #define deref_entry_r( be, e, err, matched, text ) \
 	deref_internal_r( be, e, NULL, err, matched, text )
@@ -33,11 +33,13 @@ Entry *deref_internal_r LDAP_P((
  * attr.c
  */
 
-void attr_masks LDAP_P(( struct ldbminfo *li, char *type, int *indexmask,
- int *syntaxmask ));
-void attr_index_config LDAP_P(( struct ldbminfo *li,
+void attr_mask LDAP_P(( struct ldbminfo *li,
+	const char *desc,
+	slap_index *indexmask ));
+
+int attr_index_config LDAP_P(( struct ldbminfo *li,
 	const char *fname, int lineno,
-	int argc, char **argv, int init ));
+	int argc, char **argv ));
 void attr_index_destroy LDAP_P(( Avlnode *tree ));
 
 /*
@@ -60,7 +62,7 @@ void cache_release_all LDAP_P(( Cache *cache ));
  */
 
 DBCache * ldbm_cache_open LDAP_P(( Backend *be,
-	char *name, char *suffix, int flags ));
+	const char *name, const char *suffix, int flags ));
 void ldbm_cache_close LDAP_P(( Backend *be, DBCache *db ));
 void ldbm_cache_really_close LDAP_P(( Backend *be, DBCache *db ));
 void ldbm_cache_flush_all LDAP_P(( Backend *be ));
@@ -131,26 +133,59 @@ ID idl_nextid LDAP_P(( ID_BLOCK *idl, ID *cursor ));
 /*
  * index.c
  */
+extern int
+index_param LDAP_P((
+	Backend *be,
+	AttributeDescription *desc,
+	int ftype,
+	char **dbname,
+	slap_index *mask,
+	struct berval **prefix ));
 
-int index_add_entry LDAP_P(( Backend *be, Entry *e ));
-int index_add_mods LDAP_P(( Backend *be, LDAPModList *ml, ID id ));
-ID_BLOCK * index_read LDAP_P(( Backend *be,
-	char *type, int indextype, char *val ));
-/* Possible operations supported (op) by index_change_values() */
-int index_change_values LDAP_P(( Backend *be,
-				 char *type,
-				 struct berval **vals,
-				 ID  id,
-				 unsigned int op ));
+extern int
+index_values LDAP_P((
+	Backend *be,
+	AttributeDescription *desc,
+	struct berval **vals,
+	ID id,
+	int op ));
+
+int index_entry LDAP_P(( Backend *be, int r, Entry *e, Attribute *ap ));
+#define index_entry_add(be,e,ap) index_entry((be),SLAP_INDEX_ADD_OP,(e),(ap))
+#define index_entry_del(be,e,ap) index_entry((be),SLAP_INDEX_DELETE_OP,(e),(ap))
+
 
 /*
- * kerberos.c
+ * key.c
  */
+extern int
+key_change LDAP_P((
+    Backend		*be,
+    DBCache	*db,
+    struct berval *k,
+    ID			id,
+    int			op ));
+extern int
+key_read LDAP_P((
+    Backend	*be,
+	DBCache *db,
+    struct berval *k,
+	ID_BLOCK **idout ));
 
-#ifdef HAVE_KERBEROS
-/* krbv4_ldap_auth LDAP_P(( Backend *be, struct berval *cred, AUTH_DAT *ad )); */
-#endif
+/*
+ * passwd.c
+ */
+extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
+	Connection *conn, Operation *op,
+	const char *reqoid,
+	struct berval *reqdata,
+	char **rspoid,
+	struct berval **rspdata,
+	LDAPControl ***rspctrls,
+	const char **text,
+	struct berval *** refs ));
  
+
 /*
  * modify.c
  * These prototypes are placed here because they are used by modify and
@@ -163,12 +198,35 @@ int index_change_values LDAP_P(( Backend *be,
  * 
  */
 
-int add_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int delete_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
-int replace_values LDAP_P(( Entry *e, LDAPMod *mod, char *dn ));
+/* returns LDAP error code indicating error OR SLAPD_ABANDON */
 int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,
-	char *dn, LDAPModList *mods, Entry *e));
+	const char *dn, Modifications *mods, Entry *e,
+	const char ** ));
+
+#ifdef HAVE_CYRUS_SASL
+/*
+ * sasl.c
+ */
+int ldbm_sasl_authorize LDAP_P((
+        BackendDB *be,
+        const char *auth_identity,
+        const char *requested_user,
+        const char **user,
+        const char **errstring ));
+int ldbm_sasl_getsecret LDAP_P((
+        Backend *be,
+        const char *mechanism,
+        const char *auth_identity,
+        const char *realm,
+        sasl_secret_t **secret ));
+int ldbm_sasl_putsecret LDAP_P((
+        Backend *be,
+        const char *mechanism,
+        const char *auth_identity,
+        const char *realm,
+        const sasl_secret_t *secret ));
+#endif /* HAVE_CYRUS_SASL */
 
 /*
  * nextid.c

@@ -1,7 +1,7 @@
 /* Generic socket.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -19,6 +19,10 @@
 
 #ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
+
+#ifdef HAVE_SYS_UN_H
+#include <sys/un.h>
+#endif
 
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
@@ -86,9 +90,9 @@
 #undef	sock_errno
 #undef	sock_errstr
 #define	sock_errno()	WSAGetLastError()
-#define	sock_errstr(e)	WSAGetErrorString(e)
+#define	sock_errstr(e)	ber_pvt_wsa_err2string(e)
 
-extern char* WSAGetErrorString LDAP_P((int));
+LIBLBER_F (char *) ber_pvt_wsa_err2string LDAP_P((int));
 
 #elif MACOS
 #	define tcp_close( s )		tcpclose( s )
@@ -109,6 +113,11 @@ extern char* WSAGetErrorString LDAP_P((int));
 
 #elif HAVE_CLOSESOCKET
 #	define tcp_close( s )		closesocket( s )
+
+#	ifdef __BEOS__
+#		define tcp_read( s, buf, len )	recv( s, buf, len, 0 )
+#		define tcp_write( s, buf, len )	send( s, buf, len, 0 )
+#	endif
 
 #else
 #	define tcp_close( s )		close( s )
@@ -139,31 +148,19 @@ extern char* WSAGetErrorString LDAP_P((int));
 #if !defined( HAVE_INET_ATON ) && !defined( inet_aton )
 #define inet_aton ldap_pvt_inet_aton
 struct in_addr;
-int ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
+LIBLDAP_F (int) ldap_pvt_inet_aton LDAP_P(( const char *, struct in_addr * ));
 #endif
 
 #if	defined(__WIN32) && defined(_ALPHA)
 /* NT on Alpha is hosed. */
-#define AC_HTONL( l ) \
-        ((((l)&0xff)<<24) + (((l)&0xff00)<<8) + \
-         (((l)&0xff0000)>>8) + (((l)&0xff000000)>>24))
-#define AC_NTOHL(l) AC_HTONL(l)
-
-#elif defined(__alpha) && !defined(VMS)
-/*
- * htonl and ntohl on the DEC Alpha under OSF 1 seem to only swap the
- * lower-order 32-bits of a (64-bit) long, so we define correct versions
- * here.
- */ 
-#define AC_HTONL( l )	(((long)htonl( (l) & 0x00000000FFFFFFFF )) << 32 \
-	| htonl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
-
-#define AC_NTOHL( l ) (((long)ntohl( (l) & 0x00000000FFFFFFFF )) << 32 \
-	| ntohl( ( (l) & 0xFFFFFFFF00000000 ) >> 32 ))
+#	define AC_HTONL( l ) \
+        ((((l)&0xffU)<<24) + (((l)&0xff00U)<<8) + \
+         (((l)&0xff0000U)>>8) + (((l)&0xff000000U)>>24))
+#	define AC_NTOHL(l) AC_HTONL(l)
 
 #else
-#define AC_HTONL( l ) htonl( l )
-#define AC_NTOHL( l ) ntohl( l )
+#	define AC_HTONL( l ) htonl( l )
+#	define AC_NTOHL( l ) ntohl( l )
 #endif
 
 /* htons()/ntohs() may be broken much like htonl()/ntohl() */

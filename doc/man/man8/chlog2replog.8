@@ -1,9 +1,12 @@
-.TH CHLOG2REPLOG 8C "26 April 1996" "U-M LDAP LDVERSION"
+.TH CHLOG2REPLOG 8C "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 chlog2replog \- convert an X.500 DSA-style changelog to an LDAP-style
 replication log
 .SH SYNOPSIS
-.B ETCDIR/chlog2replog
+.B SBINDIR/chlog2replog
 .B \-r hostname:port [\-r hostname:port ...]
 .B \-d dn\-suffix [\-o output\-file] < input\-file
 .LP
@@ -64,7 +67,7 @@ DNs, and including a replica: entry for host "ldapserver," port
 .LP
 .nf
 .ft tt
-	ETCDIR/chlog2replog -d ", o=University of Michigan, c=US"
+	SBINDIR/chlog2replog -d ", o=University of Michigan, c=US"
 	-r ldapserver:389 < changelog
 .ft
 .fi
@@ -75,7 +78,7 @@ give this command:
 .LP
 .nf
 .ft tt
-	ETCDIR/chlog2replog -d ", o=University of Michigan, c=US"
+	SBINDIR/chlog2replog -d ", o=University of Michigan, c=US"
 	-r ldapserver:389 -o replog < changelog
 .ft
 .fi
@@ -86,7 +89,7 @@ give this command:
 .LP
 .nf
 .ft tt
-	tail +0f changelog  | ETCDIR/chlog2replog
+	tail +0f changelog  | SBINDIR/chlog2replog
 	-d ", o=University of Michigan, c=US"
 	-r ldapserver:389 -o replog < changelog
 .ft
@@ -100,3 +103,8 @@ give this command:
 .BR slapd (8),
 .LP
 "The SLAPD and SLURPD Administrator's Guide"
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

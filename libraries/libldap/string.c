@@ -1,7 +1,12 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+
+/*
+ * Locale-specific 1-byte character versions
+ * See utf-8.c for UTF-8 versions
  */
 
 #include "portable.h"
@@ -90,20 +95,6 @@ char *(ldap_pvt_strtok)( char *str, const char *delim, char **pos )
 	}
 
 	return str;
-}
-
-char *
-(ldap_pvt_strdup)( const char *s )
-{
-	char    *p;
-	size_t	len = strlen( s ) + 1;
-
-	if ( (p = (char *) malloc( len )) == NULL ) {
-		return( NULL );
-	}
-
-	memcpy( p, s, len );
-	return( p );
 }
 
 char *

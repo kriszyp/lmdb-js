@@ -36,11 +36,11 @@ usage( char *name )
 {
     fprintf( stderr, "usage: %s\t[-d debug-level] [-s syslog-level]\n", name );
     fprintf( stderr, "\t\t[-f slapd-config-file] [-r replication-log-file]\n" );
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
     fprintf( stderr, "\t\t[-t tmp-dir] [-o] [-k srvtab-file]\n" );
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
     fprintf( stderr, "\t\t[-t tmp-dir] [-o]\n" );
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 }
 
 
@@ -111,14 +111,15 @@ doargs(
 	    rflag++;
 	    break;
 	case 't':	/* dir to use for our copies of replogs */
-	    g->slurpd_rdir = strdup( optarg );
+	    g->slurpd_rdir = (char *)malloc (strlen(optarg) + strlen("/replica") + 1);
+	    sprintf(g->slurpd_rdir, "%s/replica", optarg);
 	    break;
 	case 'k':	/* name of kerberos srvtab file */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	    g->default_srvtab = strdup( optarg );
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    fprintf( stderr, "must compile with KERBEROS to use -k option\n" );
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 	    break;
 	case 'h':
 	    usage( g->myname );
@@ -152,7 +153,7 @@ doargs(
 
 #ifdef LOG_LOCAL4
     openlog( g->myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
-#else
+#elif LOG_DEBUG
     openlog( g->myname, OPENLOG_OPTIONS );
 #endif
 

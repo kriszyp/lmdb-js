@@ -1,6 +1,6 @@
 dnl $OpenLDAP$
 dnl
-dnl Copyright 1998-1999 The OpenLDAP Foundation,  All Rights Reserved.
+dnl Copyright 1998-2000 The OpenLDAP Foundation,  All Rights Reserved.
 dnl COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 dnl
 dnl OpenLDAP Autoconf Macros
@@ -55,6 +55,33 @@ dnl AC_VERBOSE(OpenLDAP --with-$1 $ol_with_$1)
 # end --with-$1
 ])dnl
 dnl
+dnl ====================================================================
+dnl
+AC_DEFUN(AC_COMPILE_CHECK_SIZEOF,
+[changequote(<<, >>)dnl 
+dnl The name to #define. 
+define(<<AC_TYPE_NAME>>, translit(sizeof_$1, [a-z *], [A-Z_P]))dnl 
+dnl The cache variable name. 
+define(<<AC_CV_NAME>>, translit(ac_cv_sizeof_$1, [ *], [_p]))dnl 
+changequote([, ])dnl 
+AC_MSG_CHECKING(size of $1) 
+AC_CACHE_VAL(AC_CV_NAME, 
+[for ac_size in 4 8 1 2 16 $2 ; do # List sizes in rough order of prevalence. 
+  AC_TRY_COMPILE([#include "confdefs.h" 
+#include <sys/types.h> 
+$2 
+], [switch (0) case 0: case (sizeof ($1) == $ac_size):;], AC_CV_NAME=$ac_size) 
+  if test x$AC_CV_NAME != x ; then break; fi 
+done 
+]) 
+if test x$AC_CV_NAME = x ; then 
+  AC_MSG_ERROR([cannot determine a size for $1]) 
+fi 
+AC_MSG_RESULT($AC_CV_NAME) 
+AC_DEFINE_UNQUOTED(AC_TYPE_NAME, $AC_CV_NAME, [The number of bytes in type $1]) 
+undefine([AC_TYPE_NAME])dnl 
+undefine([AC_CV_NAME])dnl 
+])
 dnl ====================================================================
 dnl check if hard links are supported.
 dnl
@@ -211,141 +238,166 @@ fi
 ])
 dnl
 dnl ====================================================================
-dnl Check if db.h is Berkeley DB2
-dnl
-dnl defines ol_cv_header_db2 to 'yes' or 'no'
-dnl
-dnl uses:
-dnl		AC_CHECK_HEADERS(db.h)
-dnl
-AC_DEFUN([OL_HEADER_BERKELEY_DB2],
-[AC_CHECK_HEADERS(db.h)
-if test $ac_cv_header_db_h = yes ; then
-	AC_CACHE_CHECK([if db.h is DB2], [ol_cv_header_db2],[
-		AC_EGREP_CPP(__db_version_2,[
-#			include <db.h>
-			/* this check could be improved */
-#			ifdef DB_VERSION_MAJOR
-#				if DB_VERSION_MAJOR == 2
-					__db_version_2
-#				endif
-#			endif
-		], ol_cv_header_db2=yes, ol_cv_header_db2=no)])
-else
-	ol_cv_header_db2=no
-fi
-])dnl
-dnl --------------------------------------------------------------------
-dnl Check if Berkeley DB2 library exists
-dnl Check for dbopen in standard libraries or -ldb
-dnl
-dnl defines ol_cv_lib_db2 to '-ldb' or 'no'
-dnl
-dnl uses:
-dnl		AC_CHECK_LIB(db,db_open)
-dnl
-AC_DEFUN([OL_LIB_BERKELEY_DB2],
-[AC_CACHE_CHECK([for DB2 library], [ol_cv_lib_db2],
-[	ol_LIBS="$LIBS"
-	AC_CHECK_LIB(db,db_open,[ol_cv_lib_db2=-ldb],[ol_cv_lib_db2=no])
-	LIBS="$ol_LIBS"
-])
-])dnl
+dnl Berkeley DB macros
 dnl
 dnl --------------------------------------------------------------------
-dnl Check if Berkeley db2 exists
-dnl
-dnl defines ol_cv_berkeley_db2 to 'yes' or 'no'
-dnl 
-dnl uses:
-dnl		OL_LIB_BERKELEY_DB2
-dnl		OL_HEADER_BERKELEY_DB2
-dnl
-AC_DEFUN([OL_BERKELEY_DB2],
-[AC_REQUIRE([OL_LIB_BERKELEY_DB2])
- AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
- AC_CACHE_CHECK([for Berkeley DB2], [ol_cv_berkeley_db2], [
-	if test "$ol_cv_lib_db2" = no -o "$ol_cv_header_db2" = no ; then
-		ol_cv_berkeley_db2=no
-	else
-		ol_cv_berkeley_db2=yes
-	fi
-])
- if test $ol_cv_berkeley_db2 = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB2,1, [define if Berkeley DBv2 is available])
- fi
-])dnl
-dnl
-dnl ====================================================================
-dnl Check for db.h/db_185.h is Berkeley DB
-dnl
-dnl defines ol_cv_header_db to 'yes' or 'no'
-dnl
-dnl uses:
-dnl		OL_HEADER_BERKELEY_DB2
-dnl		AC_CHECK_HEADERS(db_185.h)
-dnl
-AC_DEFUN([OL_HEADER_BERKELEY_DB],
-[AC_REQUIRE([OL_HEADER_BERKELEY_DB2])
-AC_CHECK_HEADERS(db_185.h)
-if test "$ol_cv_header_db2" = yes ; then
-	dnl db.h is db2! 
-
-	ol_cv_header_db=$ac_cv_header_db_185_h
-else
-	ol_cv_header_db=$ac_cv_header_db_h
-fi
-])dnl
-dnl
-dnl --------------------------------------------------------------------
-dnl Check if Berkeley DB library exists
-dnl Check for dbopen in standard libraries or -ldb
-dnl
-dnl defines ol_cv_lib_db to 'yes' or '-ldb' or 'no'
-dnl		'yes' implies dbopen is in $LIBS
-dnl
-dnl uses:
-dnl		AC_CHECK_FUNC(dbopen)
-dnl		AC_CHECK_LIB(db,dbopen)
-dnl
-AC_DEFUN([OL_LIB_BERKELEY_DB],
-[AC_CACHE_CHECK([for Berkeley DB library], [ol_cv_lib_db],
+dnl Try to link
+AC_DEFUN([OL_BERKELEY_DB_TRY],
+[if test $ol_cv_lib_db = no ; then
+	AC_CACHE_CHECK([for Berkeley DB link (]ifelse($2,,default,$2)[)],[$1],
 [
-	AC_CHECK_HEADERS(db1/db.h)
-	ol_LIBS="$LIBS"
-	AC_CHECK_FUNC(dbopen,[ol_cv_lib_db=yes], [
-		AC_CHECK_LIB(db1,dbopen,[ol_cv_lib_db=-ldb1],[
-			AC_CHECK_LIB(db,dbopen,[ol_cv_lib_db=-ldb],
-			[ol_cv_lib_db=no])
-		])
-	])
+	ol_DB_LIB=ifelse($2,,,$2)
+	ol_LIBS=$LIBS
+	LIBS="$ol_DB_LIB $LIBS"
+
+	AC_TRY_LINK([
+#ifdef HAVE_DB_185_H
+# include <db_185.h>
+#else
+# include <db.h>
+#endif
+
+#ifndef DB_VERSION_MAJOR
+# define DB_VERSION_MAJOR 1
+#endif
+
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+],[
+#if DB_VERSION_MAJOR > 2
+	db_env_create( NULL, 0 );
+#elif DB_VERSION_MAJOR > 1
+	db_appexit( NULL );
+#else
+	(void) dbopen( NULL, 0, 0, 0, NULL);
+#endif
+],[$1=yes],[$1=no])
+
 	LIBS="$ol_LIBS"
 ])
-])dnl
+
+	if test $$1 = yes ; then
+		ol_cv_lib_db=ifelse($2,,yes,$2)
+	fi
+fi
+])
 dnl
 dnl --------------------------------------------------------------------
-dnl Check if Berkeley DB exists
-dnl
-dnl defines ol_cv_berkeley_db to 'yes' or 'no'
-dnl 
-dnl uses:
-dnl		OL_LIB_BERKELEY_DB
-dnl		OL_HEADER_BERKELEY_DB
-dnl
-AC_DEFUN([OL_BERKELEY_DB],
-[AC_REQUIRE([OL_LIB_BERKELEY_DB])
- AC_REQUIRE([OL_HEADER_BERKELEY_DB])
- AC_CACHE_CHECK([for Berkeley DB], [ol_cv_berkeley_db], [
-	if test "$ol_cv_lib_db" = no -o "$ol_cv_header_db" = no ; then
-		ol_cv_berkeley_db=no
-	else
-		ol_cv_berkeley_db=yes
-	fi
+dnl Try to locate appropriate library
+AC_DEFUN([OL_BERKELEY_DB_LINK],
+[ol_cv_lib_db=no
+OL_BERKELEY_DB_TRY(ol_cv_db_none)
+OL_BERKELEY_DB_TRY(ol_cv_db_db,[-ldb])
+OL_BERKELEY_DB_TRY(ol_cv_db_db3,[-ldb3])
+OL_BERKELEY_DB_TRY(ol_cv_db_db2,[-ldb2])
+OL_BERKELEY_DB_TRY(ol_cv_db_db1,[-ldb1])
 ])
- if test $ol_cv_berkeley_db = yes ; then
-	AC_DEFINE(HAVE_BERKELEY_DB,1, [define if Berkeley DB is available])
- fi
-])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Check if Berkeley DB supports DB_THREAD
+AC_DEFUN([OL_BERKELEY_DB_THREAD],
+[AC_CACHE_CHECK([for Berkeley DB thread support], [ol_cv_berkeley_db_thread], [
+	ol_LIBS="$LIBS"
+	if test $ol_cv_lib_db != yes ; then
+		LIBS="$ol_cv_lib_db"
+	fi
+
+	AC_TRY_RUN([
+#ifdef HAVE_DB_185_H
+	choke me;
+#else
+#include <db.h>
+#endif
+#ifndef NULL
+#define NULL ((void *)0)
+#endif
+main()
+{
+	int rc;
+	u_int32_t flags = DB_CREATE | DB_THREAD;
+
+
+#if DB_VERSION_MAJOR > 2
+	DB_ENV *env = NULL;
+
+	rc = db_env_create( &env, 0 );
+
+	if( rc == 0 ) {
+		rc = env->open( env, NULL, NULL, flags, 0 );
+	}
+
+#else
+	DB_ENV env;
+	memset( &env, '\0', sizeof(env) );
+
+	rc = db_appinit( NULL, NULL, &env, flags );
+
+	if( rc == 0 ) {
+		db_appexit( &env );
+	}
+#endif
+
+	return rc;
+}],
+	[ol_cv_berkeley_db_thread=yes],
+	[ol_cv_berkeley_db_thread=no],
+	[ol_cv_berkeley_db_thread=cross])
+
+	LIBS="$ol_LIBS"
+
+	if test $ol_cv_berkeley_db_thread != no ; then
+		AC_DEFINE(HAVE_BERKELEY_DB_THREAD, 1,
+			[define if Berkeley DB has DB_THREAD support])
+	fi
+])])dnl
+dnl
+dnl --------------------------------------------------------------------
+dnl Find any DB
+AC_DEFUN([OL_BERKELEY_DB],
+[ol_cv_berkeley_db=no
+AC_CHECK_HEADERS(db.h)
+if test $ac_cv_header_db_h = yes; then
+	OL_BERKELEY_DB_LINK
+	if test "$ol_cv_lib_db" != no ; then
+		ol_cv_berkeley_db=yes
+		OL_BERKELEY_DB_THREAD
+	fi
+fi
+])
+dnl
+dnl --------------------------------------------------------------------
+dnl Find old Berkeley DB 1.85/1.86
+AC_DEFUN([OL_BERKELEY_COMPAT_DB],
+[ol_cv_berkeley_db=no
+AC_CHECK_HEADERS(db_185.h db.h)
+if test $ac_cv_header_db_185_h = yes -o $ac_cv_header_db_h = yes; then
+	AC_CACHE_CHECK([if Berkeley DB header compatibility], [ol_cv_header_db1],[
+		AC_EGREP_CPP(__db_version_1,[
+#if HAVE_DB_185_H
+#	include <db_185.h>
+#else
+#	include <db.h>
+#endif
+
+ /* this check could be improved */
+#ifndef DB_VERSION_MAJOR
+#	define DB_VERSION_MAJOR 1
+#endif
+
+#if DB_VERSION_MAJOR == 1 
+	__db_version_1
+#endif
+],	[ol_cv_header_db1=yes], [ol_cv_header_db1=no])])
+
+	if test ol_cv_header_db1=yes ; then
+		OL_BERKELEY_DB_LINK
+		if test "$ol_cv_lib_db" != no ; then
+			ol_cv_berkeley_db=yes
+		fi
+	fi
+fi
+])
 dnl
 dnl ====================================================================
 dnl Check if GDBM library exists
@@ -507,7 +559,7 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef PTHREAD_ONCE_INIT
-			pthread_version_final
+			pthread_version_final;
 #		endif
 	], ol_pthread_final=yes, ol_pthread_final=no)
 
@@ -515,7 +567,7 @@ AC_DEFUN([OL_POSIX_THREAD_VERSION],
 #		include <pthread.h>
 		/* this check could be improved */
 #		ifdef pthread_once_init
-			pthread_version_draft4
+			pthread_version_draft4;
 #		endif
 	], ol_pthread_draft4=yes, ol_pthread_draft4=no)
 
@@ -547,14 +599,26 @@ AC_DEFUN([OL_PTHREAD_TEST_FUNCTION],[
 	/* pthread test function */
 	pthread_t t;
 	int status;
+#if HAVE_PTHREADS_FINAL && defined(PTHREAD_CREATE_UNDETACHED)
+	/* This system (e.g. AIX) defaults detached; must override */
+	pthread_attr_t attr;
 
-	/* make sure pthread_create() isn't just a stub */
-#if HAVE_PTHREADS_D4
-	status = pthread_create(&t, pthread_attr_default, task, NULL);
+	status = pthread_attr_init(&attr);
+	if( status ) exit( status );
+
+	status = pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_UNDETACHED);
+	if( status ) exit( status );
+
+#define	ATTR	&attr
 #else
-	status = pthread_create(&t, NULL, task, NULL);
+#if HAVE_PTHREADS_D4
+#define	ATTR	pthread_attr_default
+#else
+#define	ATTR	NULL
 #endif
-
+#endif
+	/* make sure pthread_create() isn't just a stub */
+	status = pthread_create(&t, ATTR, task, NULL);
 	if( status ) exit( status );
 
 	/* make sure pthread_detach() isn't just a stub */
@@ -620,13 +684,26 @@ AC_DEFUN([OL_HEADER_GNU_PTH_PTHREAD_H], [
 		[AC_EGREP_CPP(__gnu_pth__,
 			[#include <pthread.h>
 #ifdef _POSIX_THREAD_IS_GNU_PTH
-	__gnu_pth__
+	__gnu_pth__;
 #endif
 ],
 			[ol_cv_header_gnu_pth_pthread_h=yes],
 			[ol_cv_header_gnu_pth_pthread_h=no])
 		])
 ])dnl
+dnl ====================================================================
+dnl Check for NT Threads
+AC_DEFUN([OL_NT_THREADS], [
+  	AC_CACHE_CHECK([for NT Threads], [ol_cv_nt_threads], [
+		AC_CHECK_FUNC(_beginthread,
+			[ol_cv_nt_threads=yes],
+			[ol_cv_nt_threads=no])
+	])
+
+	if test $ol_cv_nt_threads = yes ; then
+		AC_DEFINE(HAVE_NT_THREADS,1,[if you have NT Threads])
+	fi
+])
 dnl ====================================================================
 dnl Check LinuxThreads Header
 dnl
@@ -740,7 +817,10 @@ AC_DEFUN([OL_SYS_ERRLIST],
 	AC_TRY_COMPILE([
 #include <stdio.h>
 #include <sys/types.h>
-#include <errno.h> ],
+#include <errno.h>
+#ifdef WINNT
+#include <stdlib.h>
+#endif ],
 	[char *c = (char *) *sys_errlist],
 	[ol_cv_dcl_sys_errlist=yes
 	ol_cv_have_sys_errlist=yes],
@@ -783,7 +863,7 @@ dnl
 dnl ====================================================================
 dnl Look for fetch(3)
 AC_DEFUN([OL_LIB_FETCH],
-[ol=$LIBS
+[ol_LIBS=$LIBS
 LIBS="-lfetch -lcom_err $LIBS"
 AC_CACHE_CHECK([fetch(3) library],ol_cv_lib_fetch,[
 	AC_TRY_LINK([
@@ -865,13 +945,31 @@ AC_DEFUN(OL_FUNC_CTIME_R_NARGS,
  [AC_CACHE_CHECK(number of arguments of ctime_r, ol_cv_func_ctime_r_nargs,
    [AC_TRY_COMPILE([#include <time.h>],
 		[time_t ti; char *buffer; ctime_r(&ti,buffer,32);],
-			ol_cv_func_ctime_r_nargs=3,
-			[AC_TRY_COMPILE([#include <time.h>],
-				[time_t ti; char *buffer; ctime_r(&ti,buffer);],
-					ol_cv_func_ctime_r_nargs=2,
-					ol_cv_func_ctime_r_nargs=0)])])
+			ol_cv_func_ctime_r_nargs3=yes,
+			ol_cv_func_ctime_r_nargs3=no)
+
+	AC_TRY_COMPILE([#include <time.h>],
+		[time_t ti; char *buffer; ctime_r(&ti,buffer);],
+			ol_cv_func_ctime_r_nargs2=yes,
+			ol_cv_func_ctime_r_nargs2=no)
+
+	if test $ol_cv_func_ctime_r_nargs3 = yes -a \
+		$ol_cv_func_ctime_r_nargs2 = no ; then
+
+		ol_cv_func_ctime_r_nargs=3
+
+	elif test $ol_cv_func_ctime_r_nargs3 = no -a \
+		$ol_cv_func_ctime_r_nargs2 = yes ; then
+
+		ol_cv_func_ctime_r_nargs=2
+
+	else
+		ol_cv_func_ctime_r_nargs=0
+	fi
+  ])
+
   if test $ol_cv_func_ctime_r_nargs -gt 1 ; then
-    AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs,
+ 	AC_DEFINE_UNQUOTED(CTIME_R_NARGS, $ol_cv_func_ctime_r_nargs,
 		[set to the number of arguments ctime_r() expects])
   fi
 ])dnl
@@ -902,19 +1000,36 @@ AC_DEFUN(OL_FUNC_GETHOSTBYNAME_R_NARGS,
 		int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyname_r("segovia.cs.purdue.edu", &hent,
 			buffer, bufsize, &h_errno);],
-		ol_cv_func_gethostbyname_r_nargs=5, 
- 		[AC_TRY_COMPILE([#include <sys/types.h>
+		ol_cv_func_gethostbyname_r_nargs5=yes, 
+		ol_cv_func_gethostbyname_r_nargs5=no)
+
+	AC_TRY_COMPILE([#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #define BUFSIZE (sizeof(struct hostent)+10)],
-			[struct hostent hent;struct hostent *rhent;
-			char buffer[BUFSIZE];
-			int bufsize=BUFSIZE;int h_errno;
-			(void)gethostbyname_r("localhost", &hent, buffer, bufsize,
-				&rhent, &h_errno);],
-			ol_cv_func_gethostbyname_r_nargs=6,
-			ol_cv_func_gethostbyname_r_nargs=0)])])
+		[struct hostent hent;struct hostent *rhent;
+		char buffer[BUFSIZE];
+		int bufsize=BUFSIZE;int h_errno;
+		(void)gethostbyname_r("localhost", &hent, buffer, bufsize,
+			&rhent, &h_errno);],
+		ol_cv_func_gethostbyname_r_nargs6=yes,
+		ol_cv_func_gethostbyname_r_nargs6=no)
+
+	if test $ol_cv_func_gethostbyname_r_nargs5 = yes -a \
+		$ol_cv_func_gethostbyname_r_nargs6 = no ; then
+
+		ol_cv_func_gethostbyname_r_nargs=5
+
+	elif test $ol_cv_func_gethostbyname_r_nargs5 = no -a \
+		$ol_cv_func_gethostbyname_r_nargs6 = yes ; then
+
+		ol_cv_func_gethostbyname_r_nargs=6
+
+	else
+		ol_cv_func_gethostbyname_r_nargs=0
+	fi
+  ])
   if test $ol_cv_func_gethostbyname_r_nargs -gt 1 ; then
 	AC_DEFINE_UNQUOTED(GETHOSTBYNAME_R_NARGS,
 		$ol_cv_func_gethostbyname_r_nargs,
@@ -937,22 +1052,39 @@ AC_DEFUN(OL_FUNC_GETHOSTBYADDR_R_NARGS,
 	    int bufsize=BUFSIZE;int h_errno;
 		(void)gethostbyaddr_r( (void *)&(add.s_addr),
 			alen, AF_INET, &hent, buffer, bufsize, &h_errno);],
-		ol_cv_func_gethostbyaddr_r_nargs=7,
-		[AC_TRY_COMPILE([#include <sys/types.h>
+		ol_cv_func_gethostbyaddr_r_nargs7=yes,
+		ol_cv_func_gethostbyaddr_r_nargs7=no)
+
+	AC_TRY_COMPILE([#include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #define BUFSIZE (sizeof(struct hostent)+10)],
-			[struct hostent hent;
-			struct hostent *rhent; char buffer[BUFSIZE]; 
-			struct in_addr add;
-			size_t alen=sizeof(struct in_addr);
-			int bufsize=BUFSIZE;int h_errno;
-			(void)gethostbyaddr_r( (void *)&(add.s_addr),
-				alen, AF_INET, &hent, buffer, bufsize, 
-				&rhent, &h_errno);],
-			ol_cv_func_gethostbyaddr_r_nargs=8,
-			ol_cv_func_gethostbyaddr_r_nargs=0)])])
+		[struct hostent hent;
+		struct hostent *rhent; char buffer[BUFSIZE]; 
+		struct in_addr add;
+		size_t alen=sizeof(struct in_addr);
+		int bufsize=BUFSIZE;int h_errno;
+		(void)gethostbyaddr_r( (void *)&(add.s_addr),
+			alen, AF_INET, &hent, buffer, bufsize, 
+			&rhent, &h_errno);],
+		ol_cv_func_gethostbyaddr_r_nargs8=yes,
+		ol_cv_func_gethostbyaddr_r_nargs8=no)
+
+	if test $ol_cv_func_gethostbyaddr_r_nargs7 = yes -a \
+		$ol_cv_func_gethostbyaddr_r_nargs8 = no ; then
+
+		ol_cv_func_gethostbyaddr_r_nargs=7
+
+	elif test $ol_cv_func_gethostbyaddr_r_nargs7 = no -a \
+		$ol_cv_func_gethostbyaddr_r_nargs8 = yes ; then
+
+		ol_cv_func_gethostbyaddr_r_nargs=8
+
+	else
+		ol_cv_func_gethostbyaddr_r_nargs=0
+	fi
+  ])
   if test $ol_cv_func_gethostbyaddr_r_nargs -gt 1 ; then
     AC_DEFINE_UNQUOTED(GETHOSTBYADDR_R_NARGS,
 		$ol_cv_func_gethostbyaddr_r_nargs,

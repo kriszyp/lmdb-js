@@ -130,14 +130,14 @@ main( int argc, char **argv )
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL4
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
-#else
+#elif LOG_DEBUG
 		openlog( myname, OPENLOG_OPTIONS );
 #endif
 	}
 
 	if ( dosyslog && !interactive ) {
-		hp = gethostbyaddr( (char *) &peername.sin_addr.s_addr,
-				    sizeof(peername.sin_addr.s_addr), AF_INET );
+		hp = gethostbyaddr( (char *) &peername.sin_addr,
+				    sizeof(peername.sin_addr), AF_INET );
 		syslog( LOG_INFO, "connection from %s (%s)",
 			(hp == NULL) ? "unknown" : hp->h_name,
 			inet_ntoa( peername.sin_addr ) );

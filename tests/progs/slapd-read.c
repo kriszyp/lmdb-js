@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -10,14 +10,11 @@
 #include <ac/stdlib.h>
 
 #include <ac/ctype.h>
+#include <ac/param.h>
 #include <ac/socket.h>
 #include <ac/string.h>
 #include <ac/unistd.h>
 #include <ac/wait.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #include <ldap.h>
 
@@ -89,8 +86,7 @@ do_read( char *host, int port, char *entry, int maxloop )
 {
 	LDAP	*ld;
 	int  	i;
-	char	*attrs[] = { "cn", "sn", NULL };
-	char	*filter = "(objectclass=*)";
+	char	*attrs[] = { "1.1", NULL };
 	pid_t	pid = getpid();
 
 	if (( ld = ldap_init( host, port )) == NULL ) {
@@ -112,7 +108,7 @@ do_read( char *host, int port, char *entry, int maxloop )
 		int         rc;
 
 		if (( rc = ldap_search_s( ld, entry, LDAP_SCOPE_BASE,
-				filter, attrs, 0, &res )) != LDAP_SUCCESS ) {
+				NULL, attrs, 1, &res )) != LDAP_SUCCESS ) {
 
 			ldap_perror( ld, "ldap_read" );
 			if ( rc != LDAP_NO_SUCH_OBJECT ) break;

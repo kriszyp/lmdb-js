@@ -38,9 +38,10 @@ CPP=cl.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\Release"
-# PROP Intermediate_Dir "Release\libldap"
+# PROP Output_Dir "..\..\Release"
+# PROP Intermediate_Dir "..\..\Release\libldap"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -48,7 +49,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Release\oldap32.lib"
+# ADD LIB32 /nologo /out:"..\..\Release\oldap32.lib"
 
 !ELSEIF  "$(CFG)" == "libldap - Win32 Debug"
 
@@ -59,9 +60,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\Debug"
-# PROP Intermediate_Dir "Debug\libldap"
+# PROP Output_Dir "..\..\Debug"
+# PROP Intermediate_Dir "..\..\Debug\libldap"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -69,7 +71,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Debug\oldap32.lib"
+# ADD LIB32 /nologo /out:"..\..\Debug\oldap32.lib"
 
 !ELSEIF  "$(CFG)" == "libldap - Win32 Single Debug"
 
@@ -80,9 +82,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\SDebug"
-# PROP Intermediate_Dir "SDebug\libldap"
+# PROP Output_Dir "..\..\SDebug"
+# PROP Intermediate_Dir "..\..\SDebug\libldap"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -90,7 +93,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\oldap32.lib"
-# ADD LIB32 /nologo /out:"..\SDebug\oldap32.lib"
+# ADD LIB32 /nologo /out:"..\..\SDebug\oldap32.lib"
 
 !ELSEIF  "$(CFG)" == "libldap - Win32 Single Release"
 
@@ -101,9 +104,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\SRelease"
-# PROP Intermediate_Dir "SRelease\libldap"
+# PROP Output_Dir "..\..\SRelease"
+# PROP Intermediate_Dir "..\..\SRelease\libldap"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -111,7 +115,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\oldap32.lib"
-# ADD LIB32 /nologo /out:"..\SRelease\oldap32.lib"
+# ADD LIB32 /nologo /out:"..\..\SRelease\oldap32.lib"
 
 !ENDIF 
 
@@ -147,10 +151,6 @@ SOURCE=.\charray.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\charset.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\cldap.c
 # End Source File
 # Begin Source File
@@ -167,10 +167,6 @@ SOURCE=.\delete.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\digest.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\disptmpl.c
 # End Source File
 # Begin Source File
@@ -180,6 +176,10 @@ SOURCE=..\..\include\disptmpl.h
 # Begin Source File
 
 SOURCE=.\dn.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\dnssrv.c
 # End Source File
 # Begin Source File
 
@@ -208,10 +208,6 @@ SOURCE=.\getattr.c
 # Begin Source File
 
 SOURCE=.\getdn.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\getdxbyname.c
 # End Source File
 # Begin Source File
 
@@ -335,6 +331,10 @@ SOURCE=.\sort.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\sortctrl.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\srchpref.c
 # End Source File
 # Begin Source File
@@ -344,6 +344,10 @@ SOURCE=..\..\include\srchpref.h
 # Begin Source File
 
 SOURCE=.\string.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\tls.c
 # End Source File
 # Begin Source File
 
@@ -359,7 +363,15 @@ SOURCE=.\url.c
 # End Source File
 # Begin Source File
 
+SOURCE=".\utf-8.c"
+# End Source File
+# Begin Source File
+
 SOURCE=".\util-int.c"
+# End Source File
+# Begin Source File
+
+SOURCE=.\vlvctrl.c
 # End Source File
 # End Target
 # End Project

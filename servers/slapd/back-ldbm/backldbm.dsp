@@ -39,9 +39,10 @@ CPP=cl.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\Release"
-# PROP Intermediate_Dir "..\Release\backldbm"
+# PROP Output_Dir "..\..\..\Release"
+# PROP Intermediate_Dir "..\..\..\Release\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\\" /I "..\..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -60,9 +61,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\Debug"
-# PROP Intermediate_Dir "..\Debug\backldbm"
+# PROP Output_Dir "..\..\..\Debug"
+# PROP Intermediate_Dir "..\..\..\Debug\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\\" /I "..\..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -81,9 +83,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\SDebug"
-# PROP Intermediate_Dir "..\SDebug\backldbm"
+# PROP Output_Dir "..\..\..\SDebug"
+# PROP Intermediate_Dir "..\..\..\SDebug\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\\" /I "..\..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\\" /I "..\..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -102,9 +105,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\SRelease"
-# PROP Intermediate_Dir "..\SRelease\backldbm"
+# PROP Output_Dir "..\..\..\SRelease"
+# PROP Intermediate_Dir "..\..\..\SRelease\backldbm"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\\" /I "..\..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\\" /I "..\..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -180,6 +184,10 @@ SOURCE=.\entry.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\extended.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\external.h
 # End Source File
 # Begin Source File
@@ -212,7 +220,7 @@ SOURCE=.\init.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\kerberos.c
+SOURCE=.\key.c
 # End Source File
 # Begin Source File
 
@@ -228,15 +236,15 @@ SOURCE=.\nextid.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\passwd.c
+# End Source File
+# Begin Source File
+
 SOURCE=".\proto-back-ldbm.h"
 # End Source File
 # Begin Source File
 
 SOURCE=.\search.c
-# End Source File
-# Begin Source File
-
-SOURCE=.\startup.c
 # End Source File
 # Begin Source File
 

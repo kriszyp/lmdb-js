@@ -1,5 +1,5 @@
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -12,6 +12,12 @@
 #define _LDAP_PORTABLE_H
 
 /* end of preamble */
+
+#if !defined(SLAPD_SCHEMA_COMPAT) && !defined(SLAPD_SCHEMA_NOT_COMPAT)
+	/* define SLAPD_SCHEMA_COMPAT if you want old schema codes */
+#define SLAPD_SCHEMA_NOT_COMPAT 1
+#endif
+
 @TOP@
 
 /* define this if needed to get reentrant functions */
@@ -47,7 +53,7 @@
 /*
 	LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
 	LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
-	LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
+	LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 */
 
@@ -59,11 +65,23 @@
 	LBER_TAG_T
 */
 
+/* define to character address type */
+#undef caddr_t
+
+/* define to signed size type */
+#undef ssize_t
+
 
 /* Leave that blank line there!!  Autoheader needs it. */
 
 @BOTTOM@
+
 /* begin of postamble */
+
+#ifdef _WIN32
+	/* don't suck in all of the win32 api */
+#	define WIN32_LEAN_AND_MEAN 1
+#endif
 
 #ifndef __NEED_PROTOTYPES
 /* force LDAP_P to always include prototypes */

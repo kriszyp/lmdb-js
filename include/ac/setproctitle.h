@@ -1,7 +1,7 @@
 /* Generic setproctitle.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -19,10 +19,10 @@
 #	include <libutil.h>
 #else
 	/* use lutil version */
-	LDAP_F(void) (setproctitle) LDAP_P((const char *fmt, ...)) \
+	LIBLUTIL_F (void) (setproctitle) LDAP_P((const char *fmt, ...)) \
 	                            LDAP_GCCATTR((format(printf, 1, 2)));
-	LDAP_F(int) Argc;
-	LDAP_F(char) **Argv;
+	LIBLUTIL_F (int) Argc;
+	LIBLUTIL_F (char) **Argv;
 #endif
 
 #endif /* LDAP_PROCTITLE */

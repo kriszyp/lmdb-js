@@ -1,5 +1,9 @@
 /* result.c - shell backend result reading function */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 
@@ -43,8 +47,10 @@ read_and_send_results(
 		}
 		len = strlen( line );
 		while ( bp + len - buf > bsize ) {
+			size_t offset = bp - buf;
 			bsize += BUFSIZ;
 			buf = (char *) ch_realloc( buf, bsize );
+			bp = &buf[offset];
 		}
 		strcpy( bp, line );
 		bp += len;

@@ -1,7 +1,7 @@
 # $OpenLDAP$
 # Master Makefile for OpenLDAP
 ##
-## Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+## Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
 ## All rights reserved.
 ##
 ## Redistribution and use in source and binary forms are permitted only
@@ -28,3 +28,6 @@ veryclean-local: FORCE
 	$(RM) config.cache config.status libtool stamp-h stamp-h.in
 
 distclean: veryclean FORCE
+
+test: FORCE
+	cd tests; make test

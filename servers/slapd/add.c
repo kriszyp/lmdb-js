@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -23,9 +23,13 @@
 #include <ac/time.h>
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
-static int	add_created_attrs(Operation *op, Entry *e);
+static int slap_mods2entry(
+	Modifications *mods,
+	Entry **e,
+	const char **text );
 
 int
 do_add( Connection *conn, Operation *op )
@@ -36,16 +40,13 @@ do_add( Connection *conn, Operation *op )
 	ber_tag_t	tag;
 	Entry		*e;
 	Backend		*be;
+	LDAPModList	*modlist = NULL;
+	LDAPModList	**modtail = &modlist;
+	Modifications *mods = NULL;
+	const char *text;
 	int			rc = LDAP_SUCCESS;
 
 	Debug( LDAP_DEBUG_TRACE, "do_add\n", 0, 0, 0 );
-
-	if( op->o_bind_in_progress ) {
-		Debug( LDAP_DEBUG_ANY, "do_add: SASL bind in progress.\n", 0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS, NULL,
-		    "SASL bind in progress", NULL, NULL );
-		return LDAP_SASL_BIND_IN_PROGRESS;
-	}
 
 	/*
 	 * Parse the add request.  It looks like this:
@@ -69,7 +70,7 @@ do_add( Connection *conn, Operation *op )
 
 	ndn = ch_strdup( dn );
 
-	if ( dn_normalize_case( ndn ) == NULL ) {
+	if ( dn_normalize( ndn ) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: invalid dn (%s)\n", dn, 0, 0 );
 		send_ldap_result( conn, op, LDAP_INVALID_DN_SYNTAX, NULL,
 		    "invalid DN", NULL, NULL );
@@ -82,53 +83,63 @@ do_add( Connection *conn, Operation *op )
 
 	e->e_dn = dn;
 	e->e_ndn = ndn;
+	e->e_attrs = NULL;
 	e->e_private = NULL;
 
 	Debug( LDAP_DEBUG_ARGS, "    do_add: ndn (%s)\n", e->e_ndn, 0, 0 );
 
 	/* get the attrs */
-	e->e_attrs = NULL;
 	for ( tag = ber_first_element( ber, &len, &last ); tag != LBER_DEFAULT;
-	    tag = ber_next_element( ber, &len, last ) ) {
-		char		*type;
-		struct berval	**vals;
+	    tag = ber_next_element( ber, &len, last ) )
+	{
+		LDAPModList *mod = (LDAPModList *) ch_malloc( sizeof(LDAPModList) );
+		mod->ml_op = LDAP_MOD_ADD;
+		mod->ml_next = NULL;
 
-		if ( ber_scanf( ber, "{a{V}}", &type, &vals ) == LBER_ERROR ) {
+		rc = ber_scanf( ber, "{a{V}}", &mod->ml_type, &mod->ml_bvalues );
+
+		if ( rc == LBER_ERROR ) {
+			Debug( LDAP_DEBUG_ANY, "do_add: decoding error\n", 0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
-			entry_free( e );
-			return -1;
+			rc = -1;
+			free( mod );
+			goto done;
 		}
 
-		if ( vals == NULL ) {
-			Debug( LDAP_DEBUG_ANY, "no values for type %s\n", type,
-			    0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-				NULL, "no values for type", NULL, NULL );
-			free( type );
-			entry_free( e );
-			return LDAP_PROTOCOL_ERROR;
+		if ( mod->ml_bvalues == NULL ) {
+			Debug( LDAP_DEBUG_ANY, "no values for type %s\n",
+				mod->ml_type, 0, 0 );
+			send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
+				NULL, "no values for attribute type", NULL, NULL );
+			free( mod->ml_type );
+			free( mod );
+			goto done;
 		}
 
-		attr_merge( e, type, vals );
-
-		free( type );
-		ber_bvecfree( vals );
+		*modtail = mod;
+		modtail = &mod->ml_next;
 	}
 
 	if ( ber_scanf( ber, /*{*/ "}") == LBER_ERROR ) {
-		entry_free( e );
 		Debug( LDAP_DEBUG_ANY, "do_add: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		rc = -1;
+		goto done;
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		entry_free( e );
 		Debug( LDAP_DEBUG_ANY, "do_add: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		goto done;
 	} 
+
+	if ( modlist == NULL )
+	{
+		send_ldap_result( conn, op, rc = LDAP_PROTOCOL_ERROR,
+			NULL, "no attributes provided", NULL, NULL );
+		goto done;
+	}
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d ADD dn=\"%s\"\n",
 	    op->o_connid, op->o_opid, e->e_ndn, 0, 0 );
@@ -140,19 +151,26 @@ do_add( Connection *conn, Operation *op )
 	 */
 	be = select_backend( e->e_ndn );
 	if ( be == NULL ) {
-		entry_free( e );
-		send_ldap_result( conn, op, LDAP_REFERRAL, NULL,
-		    NULL, default_referral, NULL );
-		return rc;
+		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
+			NULL, NULL, default_referral, NULL );
+		goto done;
+	}
+
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op, &text ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto done;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_add: database is read-only\n",
 		       0, 0, 0 );
-		entry_free( e );
-		send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "database is read-only", NULL, NULL );
-		return LDAP_UNWILLING_TO_PERFORM;
+		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
+			NULL, "directory is read-only", NULL, NULL );
+		goto done;
 	}
 
 	/*
@@ -172,20 +190,41 @@ do_add( Connection *conn, Operation *op )
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
+			int update = be->be_update_ndn != NULL;
+
+			rc = slap_modlist2mods( modlist, update, &mods, &text );
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto done;
+			}
+
 #ifndef SLAPD_MULTIMASTER
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && be->be_update_ndn == NULL )
+				global_lastmod == ON)) && !update )
 #endif
 			{
-				rc = add_created_attrs( op, e );
-
-				if( rc != LDAP_SUCCESS ) {
-					entry_free( e );
-					send_ldap_result( conn, op, rc,
-						NULL, "no-user-modification attribute type",
-						NULL, NULL );
-					return rc;
+				Modifications **modstail;
+				for( modstail = &mods;
+					*modstail != NULL;
+					modstail = &(*modstail)->sml_next )
+				{
+					assert( (*modstail)->sml_op == LDAP_MOD_ADD );
+					assert( (*modstail)->sml_desc != NULL );
 				}
+				rc = slap_mods_opattrs( op, modstail, &text );
+				if( rc != LDAP_SUCCESS ) {
+					send_ldap_result( conn, op, rc,
+						NULL, text, NULL, NULL );
+					goto done;
+				}
+			}
+
+			rc = slap_mods2entry( mods, &e, &text );
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto done;
 			}
 
 			if ( (*be->be_add)( be, conn, op, e ) == 0 ) {
@@ -197,70 +236,71 @@ do_add( Connection *conn, Operation *op )
 					replog( be, op, e->e_dn, e );
 				}
 				be_entry_release_w( be, e );
+				e = NULL;
 			}
 
 #ifndef SLAPD_MULTIMASTER
 		} else {
-			entry_free( e );
 			send_ldap_result( conn, op, rc = LDAP_REFERRAL, NULL, NULL,
 				be->be_update_refs ? be->be_update_refs : default_referral, NULL );
 #endif
 		}
 	} else {
-	    Debug( LDAP_DEBUG_ARGS, "    do_add: HHH\n", 0, 0, 0 );
-		entry_free( e );
+	    Debug( LDAP_DEBUG_ARGS, "    do_add: no backend support\n", 0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
+	}
+
+done:
+	if( modlist != NULL ) {
+		slap_modlist_free( modlist );
+	}
+	if( mods != NULL ) {
+		slap_mods_free( mods );
+	}
+	if( e != NULL ) {
+		entry_free( e );
 	}
 
 	return rc;
 }
 
-static int
-add_created_attrs( Operation *op, Entry *e )
+static int slap_mods2entry(
+	Modifications *mods,
+	Entry **e,
+	const char **text )
 {
-	char		buf[22];
-	struct berval	bv;
-	struct berval	*bvals[2];
-	Attribute	*a;
-	struct tm	*ltm;
-	time_t		currenttime;
+	Attribute **tail = &(*e)->e_attrs;
+	assert( *tail == NULL );
 
-	Debug( LDAP_DEBUG_TRACE, "add_created_attrs\n", 0, 0, 0 );
+	for( ; mods != NULL; mods = mods->sml_next ) {
+		Attribute *attr;
 
-	bvals[0] = &bv;
-	bvals[1] = NULL;
+		assert( mods->sml_op == LDAP_MOD_ADD );
+		assert( mods->sml_desc != NULL );
 
-	/* return error on any attempts by the user to add these attrs */
-	for ( a = e->e_attrs; a != NULL; a = a->a_next ) {
-		if ( oc_check_no_usermod_attr( a->a_type ) ) {
-			return LDAP_CONSTRAINT_VIOLATION;
+		attr = attr_find( (*e)->e_attrs, mods->sml_desc );
+
+		if( attr != NULL ) {
+			*text = "attribute provided more than once";
+			return LDAP_OPERATIONS_ERROR;
 		}
+
+		attr = ch_calloc( 1, sizeof(Attribute) );
+
+		/* move ad to attr structure */
+		attr->a_desc = mods->sml_desc;
+		mods->sml_desc = NULL;
+
+		/* move values to attr structure */
+		/*	should check for duplicates */
+		attr->a_vals = mods->sml_bvalues;
+		mods->sml_bvalues = NULL;
+
+		*tail = attr;
+		tail = &attr->a_next;
 	}
-
-	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = "<anonymous>";
-		bv.bv_len = strlen( bv.bv_val );
-	} else {
-		bv.bv_val = op->o_dn;
-		bv.bv_len = strlen( bv.bv_val );
-	}
-	attr_merge( e, "creatorsname", bvals );
-
-	currenttime = slap_get_time();
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
-	ltm = gmtime( &currenttime );
-	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &currenttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
-	bv.bv_val = buf;
-	bv.bv_len = strlen( bv.bv_val );
-	attr_merge( e, "createtimestamp", bvals );
 
 	return LDAP_SUCCESS;
 }
+

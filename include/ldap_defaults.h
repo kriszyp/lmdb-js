@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -22,7 +22,7 @@
 
 /*
  * This file controls defaults for OpenLDAP package.
- * You should not change any of these settings.
+ * You probably do not need to edit the defaults provided by this file.
  */
 
 #ifndef _LDAP_DEFAULTS_H
@@ -35,12 +35,6 @@
 #define LDAP_USERRC_FILE "ldaprc"
 #define LDAP_ENV_PREFIX "LDAP"
 
-
-/*********************************************************************
- *                                                                   *
- * You probably do not need to edit anything below this point        *
- *                                                                   *
- *********************************************************************/
 
 /*
  * SHARED DEFINITIONS - other things you can change
@@ -208,14 +202,16 @@ Please try again later.\r\n"
 	/* default timelimit to spend on a search */
 #define SLAPD_DEFAULT_TIMELIMIT		3600
 	/* minimum max ids that a single index entry can map to in ldbm */
-#define SLAPD_LDBM_MIN_MAXIDS		4000
+#define SLAPD_LDBM_MIN_MAXIDS		(8192-4)
 
-/* the following DNs must be normalized and in uppercase! */
-	/* dn of the special "monitor" entry */
-#define SLAPD_MONITOR_DN		"CN=MONITOR"
-	/* dn of the special "config" entry */
-#define SLAPD_CONFIG_DN			"CN=CONFIG"
+/* the following DNs must be normalized! */
 	/* dn of the special "schema" entry */
-#define SLAPD_SCHEMA_DN			"CN=SCHEMA"
+#define SLAPD_SCHEMA_DN			"cn=Schema"
+#if 0
+	/* dn of the special "monitor" entry */
+#define SLAPD_MONITOR_DN		"cn=Monitor"
+	/* dn of the special "config" entry */
+#define SLAPD_CONFIG_DN			"cn=Config"
+#endif
 
 #endif /* _LDAP_CONFIG_H */

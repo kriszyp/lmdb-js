@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -23,33 +23,36 @@
 static RETSIGTYPE wait4child( int sig );
 #endif
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 #define MAIN_RETURN(x) return
 struct sockaddr_in	bind_addr;
 
 /* in nt_main.c */
-extern SERVICE_STATUS			SLAPDServiceStatus;
-extern SERVICE_STATUS_HANDLE	hSLAPDServiceStatus;
+LIBLUTIL_F (SERVICE_STATUS)		SLAPDServiceStatus;
+LIBLUTIL_F (SERVICE_STATUS_HANDLE)	hSLAPDServiceStatus;
 extern ldap_pvt_thread_cond_t	started_event,		stopped_event;
 extern int	  is_NT_Service;
 
-void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls );
-void LogSlapdStoppedEvent( char *svc );
-
-void CommenceStartupProcessing( LPCTSTR serviceName,
+void CommenceStartupProcessing( LPCTSTR serverName,
 							   void(*stopper)(int));
 void ReportSlapdShutdownComplete( void );
 void *getRegParam( char *svc, char *value );
 
-#define SERVICE_EXIT( e, n ) \
-		if ( is_NT_Service ) \
-{ \
-			SLAPDServiceStatus.dwWin32ExitCode				= e; \
-			SLAPDServiceStatus.dwServiceSpecificExitCode	= n; \
-} 
+#define SERVICE_EXIT( e, n )	do { \
+	if ( is_NT_Service ) { \
+		SLAPDServiceStatus.dwWin32ExitCode				= (e); \
+		SLAPDServiceStatus.dwServiceSpecificExitCode	= (n); \
+	} \
+} while ( 0 )
+
 #else
 #define SERVICE_EXIT( e, n )
 #define MAIN_RETURN(x) return(x)
+#endif
+
+#ifdef HAVE_NT_EVENT_LOG
+void LogSlapdStartedEvent( char *svc, int slap_debug, char *configfile, char *urls );
+void LogSlapdStoppedEvent( char *svc );
 #endif
 
 /*
@@ -109,14 +112,7 @@ usage( char *name )
 #ifdef LOG_LOCAL4
 		"\t-l sysloguser\tSyslog User (default: LOCAL4)\n"
 #endif
-#ifdef HAVE_WINSOCK
-		"\t-n NTserviceName\tNT service name\n"
-#endif
-
-		"\t-p port\tLDAP Port\n"
-#ifdef HAVE_TLS
-		"\t-P port\tLDAP over TLS Port\n"
-#endif
+		"\t-n serverName\tservice name\n"
 		"\t-s level\tSyslog Level\n"
 #ifdef SLAPD_BDB2
 		"\t-t\t\tEnable BDB2 timing\n"
@@ -127,7 +123,7 @@ usage( char *name )
     );
 }
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 void WINAPI ServiceMain( DWORD argc, LPTSTR *argv )
 #else
 int main( int argc, char **argv )
@@ -140,24 +136,20 @@ int main( int argc, char **argv )
 	char *username = NULL;
 	char *groupname = NULL;
 #endif
+#if defined(HAVE_CHROOT)
+	char *sandbox = NULL;
+#endif
 #ifdef LOG_LOCAL4
     int     syslogUser = DEFAULT_SYSLOG_USER;
 #endif
-#ifdef HAVE_WINSOCK
-	char        *NTservice  = SERVICE_NAME;
+
+#ifdef HAVE_NT_SERVICE_MANAGER
 	char		*configfile = ".\\slapd.conf";
 #else
 	char		*configfile = SLAPD_DEFAULT_CONFIGFILE;
 #endif
-	char        *serverName;
+	char        *serverName = NULL;
 	int         serverMode = SLAP_SERVER_MODE;
-
-	int port = LDAP_PORT;
-#ifdef HAVE_TLS
-	int tls_port = LDAPS_PORT;
-#else
-	int tls_port = 0;
-#endif
 
 #ifdef CSRIMALLOC
 	FILE *leakfile;
@@ -169,36 +161,39 @@ int main( int argc, char **argv )
 	g_argc = argc;
 	g_argv = argv;
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 	{
 		int *i;
 		char *newConfigFile;
+		char *newUrls;
+		char *regService = NULL;
 
 		if ( is_NT_Service ) {
-			CommenceStartupProcessing( NTservice, slap_sig_shutdown );
+			serverName = argv[0];
+			CommenceStartupProcessing( serverName, slap_sig_shutdown );
+			if ( strcmp(serverName, SERVICE_NAME) )
+			    regService = serverName;
 		}
 
-		i = (int*)getRegParam( NULL, "Port" );
-		if ( i != NULL )
-		{
-			port = *i;
-			Debug ( LDAP_DEBUG_ANY, "new port from registry is: %d\n", port, 0, 0 );
-		}
-#ifdef HAVE_TLS
-		i = (int*)getRegParam( NULL, "TLSPort" );
-		if ( i != NULL )
-		{
-			tls_port = *i;
-			Debug ( LDAP_DEBUG_ANY, "new TLS port from registry is: %d\n", tls_port, 0, 0 );
-		}
-#endif
-		i = (int*)getRegParam( NULL, "DebugLevel" );
+		i = (int*)getRegParam( regService, "DebugLevel" );
 		if ( i != NULL ) 
 		{
 			slap_debug = *i;
 			Debug( LDAP_DEBUG_ANY, "new debug level from registry is: %d\n", slap_debug, 0, 0 );
 		}
-		newConfigFile = (char*)getRegParam( NULL, "ConfigFile" );
+
+		newUrls = (char *) getRegParam(regService, "Urls");
+		if (newUrls)
+		{
+		    if (urls)
+			ch_free(urls);
+
+		    urls = ch_strdup(newUrls);
+		    Debug(LDAP_DEBUG_ANY, "new urls from registry: %s\n",
+			  urls, 0, 0);
+		}
+
+		newConfigFile = (char*)getRegParam( regService, "ConfigFile" );
 		if ( newConfigFile != NULL ) 
 		{
 			configfile = newConfigFile;
@@ -208,7 +203,10 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "d:f:h:p:s:"
+			     "d:f:h:s:n:"
+#ifdef HAVE_CHROOT
+				"r:"
+#endif
 #ifdef LOG_LOCAL4
 			     "l:"
 #endif
@@ -220,12 +218,6 @@ int main( int argc, char **argv )
 #endif
 #ifdef LDAP_CONNECTIONLESS
 				 "c"
-#endif
-#ifdef HAVE_WINSOCK
-				 "n:"
-#endif
-#ifdef HAVE_TLS
-			     "P:"
 #endif
 			     )) != EOF ) {
 		switch ( i ) {
@@ -248,30 +240,6 @@ int main( int argc, char **argv )
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );
 			break;
-
-		case 'p': {	/* port on which to listen */
-				int p = atoi( optarg );
-				if(! p ) {
-					fprintf(stderr, "-p %s must be numeric\n", optarg);
-				} else if( p < 0 || p >= 1<<16) {
-					fprintf(stderr, "-p %s invalid\n", optarg);
-				} else {
-					port = p;
-				}
-			} break;
-
-#ifdef HAVE_TLS
-		case 'P': {	/* port on which to listen for TLS */
-				int p = atoi( optarg );
-				if(! p ) {
-					fprintf(stderr, "-P %s must be numeric\n", optarg);
-				} else if( p < 0 || p >= 1<<16) {
-					fprintf(stderr, "-P %s invalid\n", optarg);
-				} else {
-					tls_port = p;
-				}
-			} break;
-#endif
 
 		case 's':	/* set syslog level */
 			ldap_syslog = atoi( optarg );
@@ -298,6 +266,13 @@ int main( int argc, char **argv )
 			break;
 #endif
 
+#ifdef HAVE_CHROOT
+		case 'r':
+			if( sandbox ) free(sandbox);
+			sandbox = ch_strdup( optarg );
+			break;
+#endif
+
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		case 'u':	/* user name */
 			if( username ) free(username);
@@ -310,11 +285,11 @@ int main( int argc, char **argv )
 			break;
 #endif /* SETUID && GETUID */
 
-#ifdef HAVE_WINSOCK
 		case 'n':  /* NT service name */
-			NTservice = ch_strdup( optarg );
+			if( serverName != NULL ) free( serverName );
+			serverName = ch_strdup( optarg );
 			break;
-#endif
+
 		default:
 			usage( argv[0] );
 			rc = 1;
@@ -329,27 +304,47 @@ int main( int argc, char **argv )
 
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 
-	if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
-		serverName = ch_strdup( argv[0] );
-	} else {
-		serverName = ch_strdup( serverName + 1 );
+	if( serverName == NULL ) {
+		if ( (serverName = strrchr( argv[0], *LDAP_DIRSEP )) == NULL ) {
+			serverName = ch_strdup( argv[0] );
+		} else {
+			serverName = ch_strdup( serverName + 1 );
+		}
 	}
 
 #ifdef LOG_LOCAL4
 	openlog( serverName, OPENLOG_OPTIONS, syslogUser );
-#else
+#elif LOG_DEBUG
 	openlog( serverName, OPENLOG_OPTIONS );
 #endif
 
-	if( slapd_daemon_init( urls, port, tls_port ) != 0 ) {
+	if( slapd_daemon_init( urls ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 16 );
 		goto stop;
 	}
 
+#if defined(HAVE_CHROOT)
+	if ( sandbox && chroot( sandbox ) ) {
+		perror("chroot");
+		rc = 1;
+		goto stop;
+	}
+#endif
+
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 	if ( username != NULL || groupname != NULL ) {
 		slap_init_user( username, groupname );
+	}
+#endif
+
+	extops_init();
+
+#ifdef SLAPD_MODULES
+	if ( module_init() != 0 ) {
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 17 );
+		goto destroy;
 	}
 #endif
 
@@ -359,15 +354,35 @@ int main( int argc, char **argv )
 		goto destroy;
 	}
 
+	if ( schema_init( ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "schema initialization error\n",
+		    0, 0, 0 );
+		goto destroy;
+	}
+
 	if ( read_config( configfile ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );
 		goto destroy;
 	}
 
+	if ( schema_prep( ) != 0 ) {
+		Debug( LDAP_DEBUG_ANY,
+		    "schema prep error\n",
+		    0, 0, 0 );
+		goto destroy;
+	}
+
 #ifdef HAVE_TLS
 	ldap_pvt_tls_init();
-	ldap_pvt_tls_init_def_ctx();
+
+	if (ldap_pvt_tls_init_def_ctx() != 0)
+	{
+		rc = 1;
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+		goto destroy;
+	}
 #endif
 
 	(void) SIGNAL( LDAP_SIGUSR1, slap_sig_wake );
@@ -390,7 +405,7 @@ int main( int argc, char **argv )
 #endif
 
 #ifndef HAVE_WINSOCK
-		lutil_detach( no_detach, 0 );
+	lutil_detach( no_detach, 0 );
 #endif /* HAVE_WINSOCK */
 
 #ifdef CSRIMALLOC
@@ -399,7 +414,7 @@ int main( int argc, char **argv )
 
 	if ( slap_startup( NULL )  != 0 ) {
 		rc = 1;
-		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 20 );
+		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 21 );
 		goto shutdown;
 	}
 
@@ -426,13 +441,14 @@ int main( int argc, char **argv )
 		}
 	}
 
-#ifdef HAVE_WINSOCK
-	LogSlapdStartedEvent( NTservice, slap_debug, configfile, urls );
+#ifdef HAVE_NT_EVENT_LOG
+	if (is_NT_Service)
+	LogSlapdStartedEvent( serverName, slap_debug, configfile, urls );
 #endif
 
 	rc = slapd_daemon();
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 	/* Throw away the event that we used during the startup process. */
 	if ( is_NT_Service )
 		ldap_pvt_thread_cond_destroy( &started_event );
@@ -446,18 +462,27 @@ destroy:
 	/* remember an error during destroy */
 	rc |= slap_destroy();
 
+#ifdef SLAPD_MODULES
+	module_kill();
+#endif
+
+	extops_kill();
+
 stop:
-#ifdef HAVE_WINSOCK
-	LogSlapdStoppedEvent( NTservice );
+#ifdef HAVE_NT_EVENT_LOG
+	if (is_NT_Service)
+	LogSlapdStoppedEvent( serverName );
 #endif
 
 	Debug( LDAP_DEBUG_ANY, "slapd stopped.\n", 0, 0, 0 );
 
-#ifdef HAVE_WINSOCK
+#ifdef HAVE_NT_SERVICE_MANAGER
 	ReportSlapdShutdownComplete();
 #endif
 
+#ifdef LOG_DEBUG
     closelog();
+#endif
 	slapd_daemon_destroy();
 
 #ifdef CSRIMALLOC

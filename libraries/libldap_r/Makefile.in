@@ -1,4 +1,6 @@
 # $OpenLDAP$
+## Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 ## Makefile.in for LDAP -lldap
 ##
@@ -14,30 +16,52 @@ XXSRCS	= apitest.c test.c tmpltest.c extended.c \
 	getfilter.c sasl.c sbind.c kbind.c unbind.c friendly.c cldap.c \
 	free.c disptmpl.c srchpref.c dsparse.c tmplout.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
-	request.c getdxbyname.c os-ip.c url.c charset.c \
+	request.c os-ip.c url.c sortctrl.c vlvctrl.c \
 	init.c options.c print.c string.c util-int.c schema.c \
-	charray.c digest.c tls.c dn.c
-SRCS	= thr_posix.c thr_cthreads.c thr_thr.c thr_lwp.c thr_nt.c \
-	thr_pth.c thr_sleep.c thr_stub.c rdwr.c
-OBJS	= extended.lo \
+	charray.c tls.c dn.c os-local.c dnssrv.c \
+	utf-8.c
+SRCS	= threads.c rdwr.c tpool.c \
+	thr_posix.c thr_cthreads.c thr_thr.c thr_lwp.c thr_nt.c \
+	thr_pth.c thr_stub.c
+OBJS	= threads.lo rdwr.lo tpool.lo  \
+	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
+	thr_pth.lo thr_stub.lo \
+	extended.lo \
 	bind.lo controls.lo open.lo result.lo error.lo compare.lo search.lo \
 	modify.lo add.lo modrdn.lo delete.lo abandon.lo ufn.lo cache.lo \
 	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
 	free.lo disptmpl.lo srchpref.lo dsparse.lo tmplout.lo sort.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
-	request.lo getdxbyname.lo os-ip.lo url.lo charset.lo \
+	request.lo os-ip.lo url.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
-	thr_posix.lo thr_cthreads.lo thr_thr.lo thr_lwp.lo thr_nt.lo \
-	thr_pth.lo thr_sleep.lo thr_stub.lo rdwr.lo \
-	charray.lo digest.lo tls.lo dn.lo
+	charray.lo tls.lo dn.lo os-local.lo dnssrv.lo \
+	utf-8.lo
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
 XDEFS = -DLDAP_R_COMPILE -I$(XXDIR)
-XLIBS = -lldap_r -llber
+XLIBS = -lldap_r -llber -llutil
 XXLIBS = $(SECURITY_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS)
+
+LINKAGE = @LT_LIB_LINKAGE@
+
+NT_DYN_LIB_LIBS  = -llber -llutil $(AC_LIBS)
+NT_DYN_LIB_DEFS  = -DLIBLBER_DECL=dllimport
+NT_DYN_TEST_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+
+NT_XXLIBS = $(SECURITY_LIBS)
+
+UNIX_DYN_LIB_LIBS  = -llber $(AC_LIBS)
+UNIX_XXLIBS = $(SECURITY_LIBS)
+
+# Extras for building the library
+EXTRA_DEFS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
+EXTRA_LIBS = $(@PLAT@_@LIB_LINKAGE@_LIB_LIBS) $(@PLAT@_XXLIBS)
+
+# Only the test programs will pick up these defs.
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
 
 .links :
 	@for i in $(XXSRCS); do \
@@ -61,5 +85,5 @@ ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ tmpltest.o $(LIBS)
 
 install-local: $(CFFILES) FORCE
-	-$(MKDIR) $(libdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
+	-$(MKDIR) $(DESTDIR)$(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)

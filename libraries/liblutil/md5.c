@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -44,12 +44,12 @@
 #include <lutil_md5.h>
 
 /* Little-endian byte-swapping routines.  Note that these do not
-   depend on the size of datatypes such as uint32, nor do they require
+   depend on the size of datatypes such as ber_uint_t, nor do they require
    us to detect the endianness of the machine we are running on.  It
    is possible they should be macros for speed, but I would be
    surprised if they were a performance bottleneck for MD5.  */
 
-static uint32
+static ber_uint_t
 getu32( const unsigned char *addr )
 {
 	return (((((unsigned long)addr[3] << 8) | addr[2]) << 8)
@@ -57,7 +57,7 @@ getu32( const unsigned char *addr )
 }
 
 static void
-putu32( uint32 data, unsigned char *addr )
+putu32( ber_uint_t data, unsigned char *addr )
 {
 	addr[0] = (unsigned char)data;
 	addr[1] = (unsigned char)(data >> 8);
@@ -89,15 +89,15 @@ void
 lutil_MD5Update(
     struct lutil_MD5Context	*ctx,
     const unsigned char		*buf,
-    unsigned int		len
+    ber_len_t		len
 )
 {
-	uint32 t;
+	ber_uint_t t;
 
 	/* Update bitcount */
 
 	t = ctx->bits[0];
-	if ((ctx->bits[0] = (t + ((uint32)len << 3)) & 0xffffffff) < t)
+	if ((ctx->bits[0] = (t + ((ber_uint_t)len << 3)) & 0xffffffff) < t)
 		ctx->bits[1]++;	/* Carry from low to high */
 	ctx->bits[1] += len >> 29;
 
@@ -157,14 +157,14 @@ lutil_MD5Final( unsigned char *digest, struct lutil_MD5Context *ctx )
 	/* Pad out to 56 mod 64 */
 	if (count < 8) {
 		/* Two lots of padding:  Pad the first block to 64 bytes */
-		memset(p, 0, count);
+		memset(p, '\0', count);
 		lutil_MD5Transform(ctx->buf, ctx->in);
 
 		/* Now fill the next block with 56 bytes */
-		memset(ctx->in, 0, 56);
+		memset(ctx->in, '\0', 56);
 	} else {
 		/* Pad block to 56 bytes */
-		memset(p, 0, count-8);
+		memset(p, '\0', count-8);
 	}
 
 	/* Append length in bits and transform */
@@ -176,7 +176,7 @@ lutil_MD5Final( unsigned char *digest, struct lutil_MD5Context *ctx )
 	putu32(ctx->buf[1], digest + 4);
 	putu32(ctx->buf[2], digest + 8);
 	putu32(ctx->buf[3], digest + 12);
-	memset(ctx, 0, sizeof(ctx));	/* In case it's sensitive */
+	memset(ctx, '\0', sizeof(ctx));	/* In case it's sensitive */
 }
 
 #ifndef ASM_MD5
@@ -199,10 +199,10 @@ lutil_MD5Final( unsigned char *digest, struct lutil_MD5Context *ctx )
  * the data and converts bytes into longwords for this routine.
  */
 void
-lutil_MD5Transform( uint32 *buf, const unsigned char *inraw )
+lutil_MD5Transform( ber_uint_t *buf, const unsigned char *inraw )
 {
-	register uint32 a, b, c, d;
-	uint32 in[16];
+	register ber_uint_t a, b, c, d;
+	ber_uint_t in[16];
 	int i;
 
 	for (i = 0; i < 16; ++i)
@@ -297,7 +297,7 @@ int
 main (int  argc, char **argv )
 {
 	struct lutil_MD5Context context;
-	unsigned char checksum[16];
+	unsigned char checksum[LUTIL_MD5_BYTES];
 	int i;
 	int j;
 
@@ -312,7 +312,7 @@ main (int  argc, char **argv )
 		lutil_MD5Init (&context);
 		lutil_MD5Update (&context, argv[j], strlen (argv[j]));
 		lutil_MD5Final (checksum, &context);
-		for (i = 0; i < 16; i++)
+		for (i = 0; i < LUTIL_MD5_BYTES; i++)
 		{
 			printf ("%02x", (unsigned int) checksum[i]);
 		}

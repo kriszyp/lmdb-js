@@ -26,11 +26,8 @@
 #include <ac/unistd.h>
 #include <ac/wait.h>
 
+#include <ac/param.h>
 #include <ac/setproctitle.h>
-
-#ifdef HAVE_SYS_PARAM_H
-#include <sys/param.h>
-#endif
 
 #ifdef HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
@@ -184,7 +181,7 @@ main( int argc, char **argv )
 	if ( dosyslog ) {
 #ifdef LOG_LOCAL3
 		openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL3 );
-#else
+#elif LOG_DEBUG
 		openlog( myname, OPENLOG_OPTIONS );
 #endif
 	}
@@ -203,8 +200,8 @@ main( int argc, char **argv )
 		fromlen = sizeof(from);
 		if ( getpeername( 0, (struct sockaddr *) &from, &fromlen )
 		    == 0 ) {
-			hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-			    sizeof(from.sin_addr.s_addr), AF_INET );
+			hp = gethostbyaddr( (char *) &(from.sin_addr),
+			    sizeof(from.sin_addr), AF_INET );
 			Debug( LDAP_DEBUG_ARGS, "connection from %s (%s)\n",
 			    (hp == NULL) ? "unknown" : hp->h_name,
 			    inet_ntoa( from.sin_addr ), 0 );
@@ -247,8 +244,8 @@ main( int argc, char **argv )
 			exit( EXIT_FAILURE );
 		}
 
-		hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
-		    sizeof(from.sin_addr.s_addr), AF_INET );
+		hp = gethostbyaddr( (char *) &(from.sin_addr),
+		    sizeof(from.sin_addr), AF_INET );
 
 		if ( dosyslog ) {
 			syslog( LOG_INFO, "TCP connection from %s (%s)",

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -26,15 +26,17 @@
 static pth_attr_t detach_attr;
 
 int
-ldap_pvt_thread_initialize( void )
+ldap_int_thread_initialize( void )
 {
+	if( !pth_init() ) {
+		return -1;
+	}
 	detach_attr = pth_attr_new();
-	pth_attr_set( detach_attr, PTH_ATTR_JOINABLE, FALSE );
-	return pth_init();
+	return pth_attr_set( detach_attr, PTH_ATTR_JOINABLE, FALSE );
 }
 
 int
-ldap_pvt_thread_destroy( void )
+ldap_int_thread_destroy( void )
 {
 	pth_attr_destroy(detach_attr);
 	pth_kill();
@@ -99,7 +101,7 @@ ldap_pvt_thread_cond_broadcast( ldap_pvt_thread_cond_t *cond )
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
-			  ldap_pvt_thread_mutex_t *mutex )
+	ldap_pvt_thread_mutex_t *mutex )
 {
 	return( pth_cond_await( cond, mutex, NULL ) );
 }
@@ -140,4 +142,48 @@ ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
 	return( pth_mutex_acquire( mutex, 1, NULL ) );
 }
 
+#ifdef LDAP_THREAD_HAVE_RDWR
+int 
+ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_init( rw );
+}
+
+int 
+ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
+{
+	return 0;
+}
+
+int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 0, NULL );
+}
+
+int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RD, 1, NULL );
+}
+
+int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_release( rw );
+}
+
+int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 0, NULL );
+}
+
+int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_acquire( rw, PTH_RWLOCK_RW, 1, NULL );
+}
+
+int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
+{
+	return pth_rwlock_release( rw );
+}
+
+#endif /* LDAP_THREAD_HAVE_RDWR */
 #endif /* HAVE_GNU_PTH */

@@ -1,7 +1,7 @@
 /* entry.c - routines for dealing with entries */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -29,19 +29,19 @@ int entry_destroy(void)
 	return 0;
 }
 
+
 Entry *
 str2entry( char *s )
 {
+	int rc;
 	Entry		*e;
-	Attribute	**a;
+	Attribute	**a = NULL;
 	char		*type;
-	char		*value;
-	char		*next;
-	ber_len_t	vlen;
-	int		nvals, maxvals;
-	struct berval	bval;
+	struct berval value;
 	struct berval	*vals[2];
-	char		ptype[64];
+	AttributeDescription *ad;
+	const char *text;
+	char	*next;
 
 	/*
 	 * LDIF is used as the string format.
@@ -61,10 +61,8 @@ str2entry( char *s )
 	Debug( LDAP_DEBUG_TRACE, "=> str2entry\n",
 		s ? s : "NULL", 0, 0 );
 
-	next = s;
-
 	/* initialize reader/writer lock */
-	e = (Entry *) ch_calloc( 1, sizeof(Entry) );
+	e = (Entry *) ch_malloc( sizeof(Entry) );
 
 	if( e == NULL ) {
 		Debug( LDAP_DEBUG_TRACE,
@@ -73,30 +71,27 @@ str2entry( char *s )
 		return( NULL );
 	}
 
+	/* initialize entry */
 	e->e_id = NOID;
+	e->e_dn = NULL;
+	e->e_ndn = NULL;
+	e->e_attrs = NULL;
 	e->e_private = NULL;
 
 	/* dn + attributes */
-	e->e_attrs = NULL;
-	vals[0] = &bval;
+	vals[0] = &value;
 	vals[1] = NULL;
-	ptype[0] = '\0';
+
+	next = s;
 	while ( (s = ldif_getline( &next )) != NULL ) {
 		if ( *s == '\n' || *s == '\0' ) {
 			break;
 		}
 
-		if ( ldif_parse_line( s, &type, &value, &vlen ) != 0 ) {
+		if ( ldif_parse_line( s, &type, &value.bv_val, &value.bv_len ) != 0 ) {
 			Debug( LDAP_DEBUG_TRACE,
 			    "<= str2entry NULL (parse_line)\n", 0, 0, 0 );
 			continue;
-		}
-
-		if ( strcasecmp( type, ptype ) != 0 ) {
-			strncpy( ptype, type, sizeof(ptype) - 1 );
-			nvals = 0;
-			maxvals = 0;
-			a = NULL;
 		}
 
 		if ( strcasecmp( type, "dn" ) == 0 ) {
@@ -106,39 +101,42 @@ str2entry( char *s )
 				Debug( LDAP_DEBUG_ANY,
  "str2entry: entry %ld has multiple dns \"%s\" and \"%s\" (second ignored)\n",
 				    e->e_id, e->e_dn,
-					value != NULL ? value : NULL );
-				if( value != NULL ) free( value );
+					value.bv_val != NULL ? value.bv_val : "" );
+				if( value.bv_val != NULL ) free( value.bv_val );
 				continue;
 			}
-			e->e_dn = value != NULL ? value : ch_strdup( "" );
 
-			if ( e->e_ndn != NULL ) {
-				Debug( LDAP_DEBUG_ANY,
- "str2entry: entry %ld already has a normalized dn \"%s\" for \"%s\" (first ignored)\n",
-				    e->e_id, e->e_ndn,
-					value != NULL ? value : NULL );
-				free( e->e_ndn );
-			}
-			e->e_ndn = ch_strdup( e->e_dn );
-			(void) dn_normalize_case( e->e_ndn );
+			e->e_dn = value.bv_val != NULL ? value.bv_val : ch_strdup( "" );
 			continue;
 		}
 
-		bval.bv_val = value;
-		bval.bv_len = vlen;
-		if ( attr_merge_fast( e, type, vals, nvals, 1, &maxvals, &a )
-		    != 0 ) {
+		ad = NULL;
+		rc = slap_str2ad( type, &ad, &text );
+
+		if( rc != LDAP_SUCCESS ) {
 			Debug( LDAP_DEBUG_TRACE,
-			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
+				"<= str2entry NULL (str2ad=%s)\n", text, 0, 0 );
 			entry_free( e );
-			free( value );
+			free( value.bv_val );
 			free( type );
 			return( NULL );
 		}
 
-		free( value );
+		rc = attr_merge( e, ad, vals );
+
+		ad_free( ad, 1 );
+
+		if( rc != 0 ) {
+			Debug( LDAP_DEBUG_TRACE,
+			    "<= str2entry NULL (attr_merge)\n", 0, 0, 0 );
+			entry_free( e );
+			free( value.bv_val );
+			free( type );
+			return( NULL );
+		}
+
 		free( type );
-		nvals++;
+		free( value.bv_val );
 	}
 
 	/* check to make sure there was a dn: line */
@@ -149,13 +147,9 @@ str2entry( char *s )
 		return( NULL );
 	}
 
-	if ( e->e_ndn == NULL ) {
-		Debug( LDAP_DEBUG_ANY,
-			"str2entry: entry %ld (\"%s\") has no normalized dn\n",
-		    e->e_id, e->e_dn, 0 );
-		entry_free( e );
-		return( NULL );
-	}
+	/* generate normalized dn */
+	e->e_ndn = ch_strdup( e->e_dn );
+	(void) dn_normalize( e->e_ndn );
 
 	Debug(LDAP_DEBUG_TRACE, "<= str2entry(%s) -> %ld (0x%lx)\n",
 		e->e_dn, e->e_id, (unsigned long)e );
@@ -163,18 +157,19 @@ str2entry( char *s )
 	return( e );
 }
 
+
 #define GRABSIZE	BUFSIZ
 
 #define MAKE_SPACE( n )	{ \
 		while ( ecur + (n) > ebuf + emaxsize ) { \
-			int	offset; \
+			ptrdiff_t	offset; \
 			offset = (int) (ecur - ebuf); \
 			ebuf = (unsigned char *) ch_realloc( (char *) ebuf, \
 			    emaxsize + GRABSIZE ); \
 			emaxsize += GRABSIZE; \
 			ecur = ebuf + offset; \
 		} \
-}
+	}
 
 char *
 entry2str(
@@ -187,7 +182,6 @@ entry2str(
 
 	/*
 	 * In string format, an entry looks like this:
-	 *	<id>\n
 	 *	dn: <dn>\n
 	 *	[<attr>: <value>\n]*
 	 */
@@ -207,9 +201,10 @@ entry2str(
 		/* put "<type>:[:] <value>" line for each value */
 		for ( i = 0; a->a_vals[i] != NULL; i++ ) {
 			bv = a->a_vals[i];
-			tmplen = strlen( a->a_type );
+			tmplen = a->a_desc->ad_cname->bv_len;
 			MAKE_SPACE( LDIF_SIZE_NEEDED( tmplen, bv->bv_len ));
-			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE, a->a_type,
+			ldif_sput( (char **) &ecur, LDIF_PUT_VALUE,
+				a->a_desc->ad_cname->bv_val,
 			    bv->bv_val, bv->bv_len );
 		}
 	}

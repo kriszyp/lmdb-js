@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -98,12 +98,21 @@ ldap_search_ext(
 	Debug( LDAP_DEBUG_TRACE, "ldap_search_ext\n", 0, 0, 0 );
 
 	/*
-	 * if timeout is provided, use only tv_sec as timelimit.
-	 * otherwise, use default.
+	 * if timeout is provided, both tv_sec and tv_usec must
+	 * be non-zero
 	 */
-	timelimit = (timeout != NULL)
-			?  timeout->tv_sec
-			: -1;
+	if( timeout != NULL ) {
+		if( timeout->tv_sec == 0 && timeout->tv_usec == 0 ) {
+			return LDAP_PARAM_ERROR;
+		}
+
+		/* timelimit must be non-zero if timeout is provided */
+		timelimit = timeout->tv_sec != 0 ? timeout->tv_sec : 1;
+
+	} else {
+		/* no timeout, no timelimit */
+		timelimit = -1;
+	}
 
 	ber = ldap_build_search_req( ld, base, scope, filter, attrs,
 	    attrsonly, sctrls, cctrls, timelimit, sizelimit ); 
@@ -157,8 +166,16 @@ ldap_search_ext_s(
 		return( rc );
 	}
 
-	if ( ldap_result( ld, msgid, 1, timeout, res ) == -1 )
+	rc = ldap_result( ld, msgid, 1, timeout, res );
+
+	if( rc <= 0 ) {
+		/* error(-1) or timeout(0) */
 		return( ld->ld_errno );
+	}
+
+	if( rc == LDAP_RES_SEARCH_REFERENCE) {
+		return( ld->ld_errno );
+	}
 
 	return( ldap_result2error( ld, *res, 0 ) );
 }
@@ -294,7 +311,11 @@ ldap_build_search_req(
 		return( NULL );
 	}
 
-	filter = LDAP_STRDUP( filter_in );
+	if( filter_in != NULL ) {
+		filter = LDAP_STRDUP( filter_in );
+	} else {
+		filter = LDAP_STRDUP( "(objectclass=*)" );
+	}
 	err = put_filter( ber, filter );
 	LDAP_FREE( filter );
 
@@ -348,7 +369,6 @@ static int ldap_is_attr_oid ( const char *attr )
 	}
 
 	return digit;
-
 }
 
 static int ldap_is_attr_desc ( const char *attr )
@@ -412,12 +432,12 @@ static int hex2value( int c )
 }
 
 char *
-ldap_pvt_find_wildcard( char *s )
+ldap_pvt_find_wildcard( const char *s )
 {
 	for( ; *s != '\0' ; s++ ) {
 		switch( *s ) {
 		case '*':	/* found wildcard */
-			return s;
+			return (char *) s;
 
 		case '\\':
 			s++; /* skip over escape */
@@ -556,6 +576,10 @@ put_filter( BerElement *ber, char *str )
 		case '(':
 			str++;
 			parens++;
+
+			/* skip spaces */
+			while( isspace( *str ) ) str++;
+
 			switch ( *str ) {
 			case '&':
 				Debug( LDAP_DEBUG_TRACE, "put_filter: AND\n",

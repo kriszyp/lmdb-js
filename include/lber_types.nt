@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -10,18 +10,23 @@
  */
 
 /*
- * LBER types for Windows NT
+ * LBER types for Windows NT (and Win32)
+ * copied by setup.mak to lber_types.h (when confingure is not used).
  */
 
-#ifndef _LBER_TYPES_H_NT
-#define _LBER_TYPES_H_NT
+#ifndef _LBER_TYPES_H
+#define _LBER_TYPES_H
+
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
 
 /*
  * NT types:
  *
  *	bitsof(short) == 2
  *	bitsof(int)	== 4
- *	bitsof(long) == 4
+ *	bitsof(long) == 4	(or larger)
  *
  *  typedef unsigned int size_t;
  *	typedef unsigned int SOCKET;
@@ -39,6 +44,29 @@
 #define LBER_SOCKET_T	unsigned int
 
 /* LBER lengths - 32 bits or larger*/
-#define LBER_LEN_T		int
+#define LBER_LEN_T		long
 
-#endif /* _LBER_TYPES_H_NT */
+/* ------------------------------------------------------------ */
+
+/* booleans, enumerations, and integers */
+typedef LBER_INT_T ber_int_t;
+
+/* signed and unsigned versions */
+typedef signed LBER_INT_T ber_sint_t;
+typedef unsigned LBER_INT_T ber_uint_t;
+
+/* tags */
+typedef unsigned LBER_TAG_T ber_tag_t;
+
+/* "socket" descriptors */
+typedef LBER_SOCKET_T ber_socket_t;
+
+/* lengths */
+typedef unsigned LBER_LEN_T ber_len_t;
+
+/* signed lengths */
+typedef signed LBER_LEN_T ber_slen_t;
+
+LDAP_END_DECL
+
+#endif /* _LBER_TYPES_H */

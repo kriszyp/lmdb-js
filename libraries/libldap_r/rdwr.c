@@ -7,13 +7,10 @@
 **
 ** Does not support cancellation nor does any status checking.
 */
-
-/********************************************************
- * Adapted from:
+/* Adapted from publically available examples for:
  *	"Programming with Posix Threads"
- *		by David R Butenhof
- *		Addison-Wesley 
- ********************************************************
+ *		by David R Butenhof, Addison-Wesley 
+ *		http://cseng.aw.com/bookpage.taf?ISBN=0-201-63392-2
  */
 
 #include "portable.h"
@@ -22,15 +19,39 @@
 
 #include <ac/errno.h>
 #include <ac/string.h>
+#include <ac/time.h>
 
+#include "ldap-int.h"
 #include "ldap_pvt_thread.h"
 
-int 
-ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
-{
-	assert( rw != NULL );
+/*
+ * implementations that provide their own compatible 
+ * reader/writer locks define LDAP_THREAD_HAVE_RDWR
+ * in ldap_pvt_thread.h
+ */
+#ifndef LDAP_THREAD_HAVE_RDWR
 
-	memset( rw, 0, sizeof(ldap_pvt_thread_rdwr_t) );
+struct ldap_int_thread_rdwr_s {
+	ldap_pvt_thread_mutex_t ltrw_mutex;
+	ldap_pvt_thread_cond_t ltrw_read;       /* wait for read */
+	ldap_pvt_thread_cond_t ltrw_write;      /* wait for write */
+	int ltrw_valid;
+#define LDAP_PVT_THREAD_RDWR_VALID 0x0bad
+	int ltrw_r_active;
+	int ltrw_w_active;
+	int ltrw_r_wait;
+	int ltrw_w_wait;
+};
+
+int 
+ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rwlock )
+{
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+
+	rw = (struct ldap_int_thread_rdwr_s *) LDAP_CALLOC( 1,
+		sizeof( struct ldap_int_thread_rdwr_s ) );
 
 	/* we should check return results */
 	ldap_pvt_thread_mutex_init( &rw->ltrw_mutex );
@@ -38,12 +59,19 @@ ldap_pvt_thread_rdwr_init( ldap_pvt_thread_rdwr_t *rw )
 	ldap_pvt_thread_cond_init( &rw->ltrw_write );
 
 	rw->ltrw_valid = LDAP_PVT_THREAD_RDWR_VALID;
+
+	*rwlock = rw;
 	return 0;
 }
 
 int 
-ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
+ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rwlock )
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -53,7 +81,7 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
 	/* active threads? */
-	if( rw->ltrw_r_active > 0 || rw->ltrw_w_active > 1) {
+	if( rw->ltrw_r_active > 0 || rw->ltrw_w_active > 0) {
 		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
 		return LDAP_PVT_THREAD_EBUSY;
 	}
@@ -72,11 +100,18 @@ ldap_pvt_thread_rdwr_destroy( ldap_pvt_thread_rdwr_t *rw )
 	ldap_pvt_thread_cond_destroy( &rw->ltrw_read );
 	ldap_pvt_thread_cond_destroy( &rw->ltrw_write );
 
+	LDAP_FREE(rw);
+	*rwlock = NULL;
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
+int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rwlock )
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -85,7 +120,7 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
-	if( rw->ltrw_w_active > 1 ) {
+	if( rw->ltrw_w_active > 0 ) {
 		/* writer is active */
 
 		rw->ltrw_r_wait++;
@@ -93,7 +128,7 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 		do {
 			ldap_pvt_thread_cond_wait(
 				&rw->ltrw_read, &rw->ltrw_mutex );
-		} while( rw->ltrw_w_active > 1 );
+		} while( rw->ltrw_w_active > 0 );
 
 		rw->ltrw_r_wait--;
 	}
@@ -105,8 +140,13 @@ int ldap_pvt_thread_rdwr_rlock( ldap_pvt_thread_rdwr_t *rw )
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
+int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rwlock )
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -115,7 +155,7 @@ int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 
 	ldap_pvt_thread_mutex_lock( &rw->ltrw_mutex );
 
-	if( rw->ltrw_w_active > 1) {
+	if( rw->ltrw_w_active > 0) {
 		ldap_pvt_thread_mutex_unlock( &rw->ltrw_mutex );
 		return LDAP_PVT_THREAD_EBUSY;
 	}
@@ -127,8 +167,13 @@ int ldap_pvt_thread_rdwr_rtrylock( ldap_pvt_thread_rdwr_t *rw )
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
+int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rwlock )
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -148,8 +193,13 @@ int ldap_pvt_thread_rdwr_runlock( ldap_pvt_thread_rdwr_t *rw )
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
+int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rwlock )
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -176,8 +226,13 @@ int ldap_pvt_thread_rdwr_wlock( ldap_pvt_thread_rdwr_t *rw )
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
+int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rwlock )
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -198,8 +253,13 @@ int ldap_pvt_thread_rdwr_wtrylock( ldap_pvt_thread_rdwr_t *rw )
 	return 0;
 }
 
-int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
+int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rwlock )
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -222,7 +282,7 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
 	return 0;
 }
 
-#ifdef LDAP_DEBUG
+#ifdef LDAP_RDWR_DEBUG
 
 /* just for testing, 
  * return 0 if false, suitable for assert(ldap_pvt_thread_rdwr_Xchk(rdwr))
@@ -234,24 +294,39 @@ int ldap_pvt_thread_rdwr_wunlock( ldap_pvt_thread_rdwr_t *rw )
  * a lock are caught.
  */
 
-int ldap_pvt_thread_rdwr_readers(ldap_pvt_thread_rdwr_t *rw)
+int ldap_pvt_thread_rdwr_readers(ldap_pvt_thread_rdwr_t *rwlock)
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
 	return( rw->ltrw_r_active );
 }
 
-int ldap_pvt_thread_rdwr_writers(ldap_pvt_thread_rdwr_t *rw)
+int ldap_pvt_thread_rdwr_writers(ldap_pvt_thread_rdwr_t *rwlock)
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
 	return( rw->ltrw_w_active );
 }
 
-int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rw)
+int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rwlock)
 {
+	struct ldap_int_thread_rdwr_s *rw;
+
+	assert( rwlock != NULL );
+	rw = *rwlock;
+
 	assert( rw != NULL );
 	assert( rw->ltrw_valid == LDAP_PVT_THREAD_RDWR_VALID );
 
@@ -260,3 +335,5 @@ int ldap_pvt_thread_rdwr_active(ldap_pvt_thread_rdwr_t *rw)
 }
 
 #endif /* LDAP_DEBUG */
+
+#endif /* LDAP_THREAD_HAVE_RDWR */

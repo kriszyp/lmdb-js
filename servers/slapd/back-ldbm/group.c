@@ -1,7 +1,7 @@
 /* group.c - ldbm backend acl group routine */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -27,16 +27,25 @@ ldbm_back_group(
 	Entry	*target,
 	const char	*gr_ndn,
 	const char	*op_ndn,
-	const char	*objectclassValue,
-	const char	*groupattrName
+	ObjectClass *group_oc,
+	AttributeDescription *group_at
 )
 {
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;    
 	Entry        *e;
 	int          rc = 1;
-
 	Attribute   *attr;
 	struct berval bv;
+
+	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
+	const char *group_oc_name = NULL;
+	const char *group_at_name = group_at->ad_cname->bv_val;
+
+	if( group_oc->soc_names && group_oc->soc_names[0] ) {
+		group_oc_name = group_oc->soc_names[0];
+	} else {
+		group_oc_name = group_oc->soc_oid;
+	}
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_group: gr dn: \"%s\"\n",
@@ -45,8 +54,8 @@ ldbm_back_group(
 		"=> ldbm_back_group: op dn: \"%s\"\n",
 		op_ndn, 0, 0 ); 
 	Debug( LDAP_DEBUG_ARGS,
-		"=> ldbm_back_group: objectClass: \"%s\" attrName: \"%s\"\n", 
-		objectclassValue, groupattrName, 0 ); 
+		"=> ldbm_back_group: oc: \"%s\" at: \"%s\"\n", 
+		group_oc_name, group_at_name, 0 ); 
 
 	Debug( LDAP_DEBUG_ARGS,
 		"=> ldbm_back_group: tr dn: \"%s\"\n",
@@ -80,66 +89,52 @@ ldbm_back_group(
         
 	rc = 1;
         
-	if ((attr = attr_find(e->e_attrs, "objectclass")) == NULL)  {
-		Debug( LDAP_DEBUG_ACL,
-			"<= ldbm_back_group: failed to find objectClass\n", 0, 0, 0 );
-		goto return_results;
-	}
 	
-	bv.bv_val = "ALIAS";
-	bv.bv_len = sizeof("ALIAS")-1;
-
-	if ( value_find(attr->a_vals, &bv, attr->a_syntax, 1) == 0) {
+	if( is_entry_alias( e ) ) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: group is an alias\n", 0, 0, 0 );
 		goto return_results;
 	}
 
-	bv.bv_val = "REFERRAL";
-	bv.bv_len = sizeof("REFERRAL")-1;
-
-	if ( value_find(attr->a_vals, &bv, attr->a_syntax, 1) == 0) {
+	if( is_entry_referral( e ) ) {
 		Debug( LDAP_DEBUG_ACL,
-			"<= ldbm_back_group: group is a referral\n",
-			0, 0, 0 );
+			"<= ldbm_back_group: group is an referral\n", 0, 0, 0 );
 		goto return_results;
 	}
 
-	bv.bv_val = (char *) objectclassValue;
-	bv.bv_len = strlen( bv.bv_val );         
-
-	if (value_find(attr->a_vals, &bv, attr->a_syntax, 1) != 0) {
+	if( is_entry_objectclass( e, group_oc ) ) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find %s in objectClass\n", 
-				objectclassValue, 0, 0 ); 
+				group_oc_name, 0, 0 ); 
 		goto return_results;
 	}
 
-	if ((attr = attr_find(e->e_attrs, groupattrName)) == NULL) {
+	if ((attr = attr_find(e->e_attrs, group_at)) == NULL) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: failed to find %s\n",
-			groupattrName, 0, 0 ); 
+			group_at_name, 0, 0 ); 
 		goto return_results;
 	}
 
 	Debug( LDAP_DEBUG_ACL,
 		"<= ldbm_back_group: found objectClass %s and %s\n",
-		objectclassValue, groupattrName, 0 ); 
+		group_oc_name, group_at_name, 0 ); 
 
 	bv.bv_val = (char *) op_ndn;
 	bv.bv_len = strlen( op_ndn );         
 
-	if( value_find( attr->a_vals, &bv, attr->a_syntax, 1) != 0 )
-	{
+	if( value_find( group_at, attr->a_vals, &bv ) == 0 ) {
 		Debug( LDAP_DEBUG_ACL,
 			"<= ldbm_back_group: \"%s\" not in \"%s\": %s\n", 
-			op_ndn, gr_ndn, groupattrName ); 
+			op_ndn, gr_ndn, group_at_name ); 
 		goto return_results;
 	}
 
+
+
 	Debug( LDAP_DEBUG_ACL,
 		"<= ldbm_back_group: \"%s\" is in \"%s\": %s\n", 
-		op_ndn, gr_ndn, groupattrName ); 
+		op_ndn, gr_ndn, group_at_name ); 
 
 	rc = 0;
 

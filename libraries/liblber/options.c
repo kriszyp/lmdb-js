@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -8,17 +8,16 @@
 #include <ac/stdlib.h>
 #include <ac/string.h>
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
+
+extern void * ber_pvt_err_file;	/* bprint.c */
 
 struct lber_options ber_int_options = {
 	LBER_UNINITIALIZED, 0, 0 };
 
 int
 ber_get_option(
-	LDAP_CONST void	*item,
+	void	*item,
 	int		option,
 	void	*outvalue)
 {
@@ -29,6 +28,7 @@ ber_get_option(
 
 	if(outvalue == NULL) {
 		/* no place to get to */
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -38,6 +38,7 @@ ber_get_option(
 			return LBER_OPT_SUCCESS;
 		}
 
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -55,8 +56,21 @@ ber_get_option(
 		* (int *) outvalue = ber->ber_debug;
 		return LBER_OPT_SUCCESS;
 
+	case LBER_OPT_BER_REMAINING_BYTES:
+		*((ber_len_t *) outvalue) = ber->ber_end - ber->ber_ptr;
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_TOTAL_BYTES:
+		*((ber_len_t *) outvalue) = ber->ber_end - ber->ber_buf;
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_BYTES_TO_WRITE:
+		*((ber_len_t *) outvalue) = ber->ber_ptr - ber->ber_buf;
+		return LBER_OPT_SUCCESS;
+
 	default:
 		/* bad param */
+		ber_errno = LBER_ERROR_PARAM;
 		break;
 	}
 
@@ -84,6 +98,7 @@ ber_set_option(
 		if(!( f->bmf_malloc && f->bmf_calloc
 			&& f->bmf_realloc && f->bmf_free ))
 		{
+			ber_errno = LBER_ERROR_PARAM;
 			return LBER_OPT_ERROR;
 		}
 
@@ -91,6 +106,7 @@ ber_set_option(
 			(*(f->bmf_malloc))(sizeof(BerMemoryFunctions));
 
 		if ( ber_int_memory_fns == NULL ) {
+			ber_errno = LBER_ERROR_MEMORY;
 			return LBER_OPT_ERROR;
 		}
 
@@ -104,6 +120,7 @@ ber_set_option(
 
 	if(invalue == NULL) {
 		/* no place to set from */
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -115,8 +132,12 @@ ber_set_option(
 		} else if(option == LBER_OPT_LOG_PRINT_FN) {
 			ber_pvt_log_print = (BER_LOG_PRINT_FN) invalue;
 			return LBER_OPT_SUCCESS;
+		} else if(option == LBER_OPT_LOG_PRINT_FILE) {
+			ber_pvt_err_file = (void *) invalue;
+			return LBER_OPT_SUCCESS;
 		}
 
+		ber_errno = LBER_ERROR_PARAM;
 		return LBER_OPT_ERROR;
 	}
 
@@ -134,8 +155,21 @@ ber_set_option(
 		ber->ber_debug = * (const int *) invalue;
 		return LBER_OPT_SUCCESS;
 
+	case LBER_OPT_BER_REMAINING_BYTES:
+		ber->ber_end = &ber->ber_ptr[* (const ber_len_t *) invalue];
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_TOTAL_BYTES:
+		ber->ber_end = &ber->ber_buf[* (const ber_len_t *) invalue];
+		return LBER_OPT_SUCCESS;
+
+	case LBER_OPT_BER_BYTES_TO_WRITE:
+		ber->ber_ptr = &ber->ber_buf[* (const ber_len_t *) invalue];
+		return LBER_OPT_SUCCESS;
+
 	default:
 		/* bad param */
+		ber_errno = LBER_ERROR_PARAM;
 		break;
 	}
 

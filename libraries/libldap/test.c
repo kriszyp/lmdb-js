@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -229,38 +229,37 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 
 
 static int
-bind_prompt( LDAP *ld, char **dnp, char **passwdp, int *authmethodp,
-	int freeit )
+bind_prompt( LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid)
 {
 	static char	dn[256], passwd[256];
+	int	authmethod;
 
-	if ( !freeit ) {
-#ifdef HAVE_KERBEROS
+	printf("rebind for request=%d msgid=%ld url=%s\n",
+		request, (long) msgid, url );
+
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		getline( dn, sizeof(dn), stdin,
 		    "re-bind method (0->simple, 1->krbv41, 2->krbv42, 3->krbv41&2)? " );
-		if (( *authmethodp = atoi( dn )) == 3 ) {
-			*authmethodp = LDAP_AUTH_KRBV4;
+	if (( authmethod = atoi( dn )) == 3 ) {
+		authmethod = LDAP_AUTH_KRBV4;
 		} else {
-			*authmethodp |= 0x80;
+		authmethod |= 0x80;
 		}
-#else /* HAVE_KERBEROS */
-		*authmethodp = LDAP_AUTH_SIMPLE;
-#endif /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
+	authmethod = LDAP_AUTH_SIMPLE;
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 
 		getline( dn, sizeof(dn), stdin, "re-bind dn? " );
 		strcat( dn, dnsuffix );
-		*dnp = dn;
 
-		if ( *authmethodp == LDAP_AUTH_SIMPLE && dn[0] != '\0' ) {
+	if ( authmethod == LDAP_AUTH_SIMPLE && dn[0] != '\0' ) {
 			getline( passwd, sizeof(passwd), stdin,
 			    "re-bind password? " );
 		} else {
 			passwd[0] = '\0';
 		}
-		*passwdp = passwd;
-	}
 
-	return( LDAP_SUCCESS );
+	return ldap_bind_s( ld, dn, passwd, authmethod);
 }
 
 
@@ -324,12 +323,12 @@ main( int argc, char **argv )
 
 		case 't':	/* copy ber's to given file */
 			copyfname = strdup( optarg );
-			copyoptions = LBER_TO_FILE;
+/*			copyoptions = LBER_TO_FILE; */
 			break;
 
 		case 'T':	/* only output ber's to given file */
 			copyfname = strdup( optarg );
-			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY);
+/*			copyoptions = (LBER_TO_FILE | LBER_TO_FILE_ONLY); */
 			break;
 
 		default:
@@ -365,12 +364,12 @@ main( int argc, char **argv )
 	}
 
 	if ( copyfname != NULL ) {
-		if ( (ld->ld_sb.sb_fd = open( copyfname, O_WRONLY | O_CREAT,
+		if ( ( ld->ld_sb->sb_fd = open( copyfname, O_WRONLY | O_CREAT,
 		    0600 ))  == -1 ) {
 			perror( copyfname );
 			exit ( EXIT_FAILURE );
 		}
-		ld->ld_sb.sb_options = copyoptions;
+		ld->ld_sb->sb_options = copyoptions;
 	}
 
 	bound = 0;
@@ -413,13 +412,13 @@ main( int argc, char **argv )
 			break;
 
 		case 'b':	/* asynch bind */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			getline( line, sizeof(line), stdin,
 			    "method (0->simple, 1->krbv41, 2->krbv42)? " );
 			method = atoi( line ) | 0x80;
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -439,7 +438,7 @@ main( int argc, char **argv )
 			break;
 
 		case 'B':	/* synch bind */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			getline( line, sizeof(line), stdin,
 			    "method 0->simple 1->krbv41 2->krbv42 3->krb? " );
 			method = atoi( line );
@@ -447,9 +446,9 @@ main( int argc, char **argv )
 				method = LDAP_AUTH_KRBV4;
 			else
 				method = method | 0x80;
-#else /* HAVE_KERBEROS */
+#else /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			method = LDAP_AUTH_SIMPLE;
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */
 			getline( dn, sizeof(dn), stdin, "dn? " );
 			strcat( dn, dnsuffix );
 
@@ -763,33 +762,6 @@ main( int argc, char **argv )
 			ld->ld_sizelimit = atoi( line );
 
 			LDAP_BOOL_ZERO(&ld->ld_options);
-
-#ifdef STR_TRANSLATION
-			getline( line, sizeof(line), stdin,
-				"Automatic translation of T.61 strings (0=no, 1=yes)?" );
-			if ( atoi( line ) == 0 ) {
-				ld->ld_lberoptions &= ~LBER_TRANSLATE_STRINGS;
-			} else {
-				ld->ld_lberoptions |= LBER_TRANSLATE_STRINGS;
-#ifdef LDAP_CHARSET_8859
-				getline( line, sizeof(line), stdin,
-					"Translate to/from ISO-8859 (0=no, 1=yes?" );
-				if ( atoi( line ) != 0 ) {
-					ldap_set_string_translators( ld,
-					    ldap_8859_to_t61,
-					    ldap_t61_to_8859 );
-				}
-#endif /* LDAP_CHARSET_8859 */
-			}
-#endif /* STR_TRANSLATION */
-
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-			getline( line, sizeof(line), stdin,
-				"Use DN & DNS to determine where to send requests (0=no, 1=yes)?" );
-			if ( atoi( line ) != 0 ) {
-				LDAP_BOOL_SET(&ld->ld_options, LDAP_BOOL_DNS);
-			}
-#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_DNS */
 
 			getline( line, sizeof(line), stdin,
 				"Recognize and chase referrals (0=no, 1=yes)?" );

@@ -1,4 +1,7 @@
-.TH LDAP_CHARSET 3  "28 March 1996" "U-M LDAP LDVERSION"
+.TH LDAP_CHARSET 3 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_set_string_translators,
 ldap_t61_to_8859,
@@ -9,7 +12,6 @@ ldap_enable_translation \- LDAP character set translation routines
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 .ft
 .LP
@@ -95,7 +97,7 @@ to be translated and \fI*lenp\fP should contain the number of bytes to
 translate.  If \fIfree_input\fP is non-zero, the input buffer will be
 freed if translation is a success.  If the translation is a success,
 LDAP_SUCCESS will be returned, \fI*bufp\fP will point to a newly
-malloc'd buffer that contains the translated characters, and
+dynamically allocated buffer that contains the translated characters, and
 \fI*lenp\fP will contain the length of the result.  If translation
 fails, an LDAP error code will be returned.
 
@@ -125,3 +127,8 @@ For example, you would not want to translate a binary attributes such as
 jpegPhoto.
 .SH SEE ALSO
 .BR ldap (3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

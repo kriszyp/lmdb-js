@@ -1,10 +1,12 @@
-.TH LDAP_GET_VALUES 3  "25 November 1994" "U-M LDAP LDVERSION"
+.TH LDAP_GET_VALUES 3 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_get_values, ldap_get_values_len, ldap_count_values \- LDAP attribute value handling routines
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 
 typedef struct berval {
@@ -91,9 +93,15 @@ indicate the error.  See
 .BR ldap_error (3)
 for a description of possible error codes.
 .SH NOTES
-These routines malloc memory that the caller must free.
+These routines dynamically allocate memory which the caller must free
+using the supplied routines.
 .SH SEE ALSO
 .BR ldap(3),
 .BR ldap_first_entry(3),
 .BR ldap_first_attribute(3),
 .BR ldap_error(3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

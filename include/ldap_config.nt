@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -10,7 +10,7 @@
  */
 
 /*
- * This file works in confunction with OpenLDAP configure system.
+ * This file works in confunction with OpenLDAP setup.mak system.
  * If you do no like the values below, adjust your configure options.
  */
 

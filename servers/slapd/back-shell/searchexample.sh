@@ -1,4 +1,7 @@
-#!/bin/sh
+#! /bin/sh
+# $OpenLDAP$
+## Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 
 while [ 1 ]; do
 	read TAG VALUE
@@ -25,6 +28,8 @@ sleep 60
 if [ $? = 0 ]; then
 	echo $PWLINE | awk -F: '{
 		printf("dn: cn=%s,%s\n", $1, base);
+		printf("objectclass: top\n");
+		printf("objectclass: person\n");
 		printf("cn: %s\n", $1);
 		printf("cn: %s\n", $5);
 		printf("sn: %s\n", $1);

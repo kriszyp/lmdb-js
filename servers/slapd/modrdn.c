@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -35,6 +35,7 @@
 #include <ac/socket.h>
 #include <ac/string.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 int
@@ -43,7 +44,7 @@ do_modrdn(
     Operation	*op
 )
 {
-	char	*ndn, *newrdn;
+	char	*dn, *ndn = NULL, *newrdn;
 	ber_int_t	deloldrdn;
 	Backend	*be;
 	/* Vars for LDAP v3 newSuperior support */
@@ -52,16 +53,9 @@ do_modrdn(
 	Backend	*newSuperior_be = NULL;
 	ber_len_t	length;
 	int rc;
+	const char *text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modrdn\n", 0, 0, 0 );
-
-	if( op->o_bind_in_progress ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: SASL bind in progress.\n",
-			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, "SASL bind in progress", NULL, NULL );
-		return LDAP_SASL_BIND_IN_PROGRESS;
-	}
 
 	/*
 	 * Parse the modrdn request.  It looks like this:
@@ -74,30 +68,12 @@ do_modrdn(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{aab", &ndn, &newrdn, &deloldrdn )
+	if ( ber_scanf( op->o_ber, "{aab", &dn, &newrdn, &deloldrdn )
 	    == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
-	}
-
-	if( dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", ndn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		free( ndn );
-		free( newrdn );
-		return rc;
-	}
-
-	if( !rdn_validate( newrdn ) ) {
-		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid RDN", NULL, NULL );
-		free( ndn );
-		free( newrdn );
-		return rc;
+		return SLAPD_DISCONNECT;
 	}
 
 	/* Check for newSuperior parameter, if present scan it */
@@ -112,59 +88,70 @@ do_modrdn(
 			       0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "newSuperior requires LDAPv3" );
-			free( ndn );
-			free( newrdn );
-			return -1;
+			rc = SLAPD_DISCONNECT;
+			goto cleanup;
 		}
 
 		if ( ber_scanf( op->o_ber, "a", &newSuperior ) 
 		     == LBER_ERROR ) {
 
-		    Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
+			Debug( LDAP_DEBUG_ANY, "ber_scanf(\"a\") failed\n",
 			   0, 0, 0 );
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
-			free( ndn );
-			free( newrdn );
-		    return -1;
+			rc = SLAPD_DISCONNECT;
+			goto cleanup;
 		}
 
 		nnewSuperior = ch_strdup( newSuperior );
 
-		if( dn_normalize_case( nnewSuperior ) == NULL ) {
+		if( dn_normalize( nnewSuperior ) == NULL ) {
 			Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid new superior (%s)\n",
 				newSuperior, 0, 0 );
 			send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-				"invalid (new superior) DN", NULL, NULL );
-			goto done;
+				"invalid new superior DN", NULL, NULL );
+			goto cleanup;
 		}
 
 	}
 
 	Debug( LDAP_DEBUG_ARGS,
 	    "do_modrdn: dn (%s) newrdn (%s) newsuperior (%s)\n",
-		ndn, newrdn,
+		dn, newrdn,
 		newSuperior != NULL ? newSuperior : "" );
 
 	if ( ber_scanf( op->o_ber, /*{*/ "}") == LBER_ERROR ) {
-		free( ndn );
-		free( newrdn );	
-		free( newSuperior );
-		free( nnewSuperior );
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		rc = SLAPD_DISCONNECT;
+		goto cleanup;
 	}
 
 	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
 		Debug( LDAP_DEBUG_ANY, "do_modrdn: get_ctrls failed\n", 0, 0, 0 );
 		/* get_ctrls has sent results.  Now clean up. */
-		goto done;
+		goto cleanup;
 	} 
 
+	ndn = ch_strdup( dn );
+
+	if( dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
+
+	if( !rdn_validate( newrdn ) ) {
+		Debug( LDAP_DEBUG_ANY, "do_modrdn: invalid rdn (%s)\n", newrdn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid RDN", NULL, NULL );
+		goto cleanup;
+	}
+
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MODRDN dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, ndn, 0, 0 );
+	    op->o_connid, op->o_opid, dn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -173,13 +160,18 @@ do_modrdn(
 	 */
 
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( ndn );
-		free( newrdn );	
-		free( newSuperior );
-		free( nnewSuperior );
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		return rc;
+		goto cleanup;
+	}
+
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op, &text ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto cleanup;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
@@ -187,7 +179,7 @@ do_modrdn(
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
 		                  NULL, "database is read-only", NULL, NULL );
-		goto done;
+		goto cleanup;
 	}
 
 	/* Make sure that the entry being changed and the newSuperior are in 
@@ -201,14 +193,9 @@ do_modrdn(
 			rc = LDAP_AFFECTS_MULTIPLE_DSAS;
 
 			send_ldap_result( conn, op, rc,
-				NULL, NULL, NULL, NULL );
+				NULL, "cannot rename between DSAa", NULL, NULL );
 
-			free( ndn );
-			free( newrdn );
-			free( newSuperior );
-			free( nnewSuperior );
-
-			return rc;
+			goto cleanup;
 		}
 
 		/* deref suffix alias if appropriate */
@@ -231,7 +218,7 @@ do_modrdn(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
-			if ( (*be->be_modrdn)( be, conn, op, ndn, newrdn,
+			if ( (*be->be_modrdn)( be, conn, op, dn, ndn, newrdn,
 			    deloldrdn, newSuperior ) == 0
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL ||
@@ -243,7 +230,7 @@ do_modrdn(
 				moddn.deloldrdn = deloldrdn;
 				moddn.newsup = newSuperior;
 
-				replog( be, op, ndn, &moddn );
+				replog( be, op, dn, &moddn );
 			}
 #ifndef SLAPD_MULTIMASTER
 		} else {
@@ -253,13 +240,16 @@ do_modrdn(
 		}
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
-done:
-	free( ndn );
+cleanup:
+	free( dn );
+	if( ndn != NULL ) free( ndn );
 	free( newrdn );	
-	free( newSuperior );
-	free( nnewSuperior );
+	if ( newSuperior != NULL )
+		free( newSuperior );
+	if ( nnewSuperior != NULL )
+		free( nnewSuperior );
 	return rc;
 }

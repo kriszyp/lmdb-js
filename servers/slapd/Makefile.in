@@ -5,36 +5,46 @@
 PROGRAMS=slapd
 XPROGRAMS=sslapd libbackends.a .backend
 XSRCS=version.c
+
+NT_SRCS = nt_svc.c
+NT_OBJS = nt_svc.o ../../libraries/liblutil/slapdmsg.res
+
 SRCS	= main.c daemon.c connection.c search.c filter.c add.c charray.c \
 		attr.c entry.c config.c backend.c result.c operation.c \
 		dn.c compare.c modify.c delete.c modrdn.c ch_malloc.c \
 		value.c ava.c bind.c unbind.c abandon.c filterentry.c \
 		phonetic.c acl.c str2filter.c aclparse.c init.c user.c \
-		repl.c lock.c controls.c extended.c \
-		schema.c schemaparse.c monitor.c configinfo.c \
-		root_dse.c sasl.c module.c suffixalias.c
+		repl.c lock.c controls.c extended.c kerberos.c passwd.c \
+		schema.c schema_check.c schema_init.c schema_prep.c \
+		schemaparse.c ad.c at.c mr.c syntax.c oc.c \
+		monitor.c configinfo.c starttls.c index.c \
+		root_dse.c sasl.c module.c suffixalias.c $(@PLAT@_SRCS)
+
 OBJS	= main.o daemon.o connection.o search.o filter.o add.o charray.o \
 		attr.o entry.o config.o backend.o result.o operation.o \
 		dn.o compare.o modify.o delete.o modrdn.o ch_malloc.o \
 		value.o ava.o bind.o unbind.o abandon.o filterentry.o \
 		phonetic.o acl.o str2filter.o aclparse.o init.o user.o \
-		repl.o lock.o controls.o extended.o \
-		schema.o schemaparse.o monitor.o configinfo.o \
-		root_dse.o sasl.o module.o suffixalias.o
+		repl.o lock.o controls.o extended.o kerberos.o passwd.o \
+		schema.o schema_check.o schema_init.o schema_prep.o \
+		schemaparse.o ad.o at.o mr.o syntax.o oc.o \
+		monitor.o configinfo.o starttls.o index.o \
+		root_dse.o sasl.o module.o suffixalias.o $(@PLAT@_OBJS)
 
 LDAP_INCDIR= ../../include
 LDAP_LIBDIR= ../../libraries
 
 SLAP_DIR=
 SLAPD_MODULES=@SLAPD_MODULES_LIST@
+
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
 # $(LTHREAD_LIBS) must be last
-XLIBS = libbackends.a -lavl -lldbm -lldif -lldap_r -llber -llutil
+XLIBS = libbackends.a -lavl -lldbm -lldif -llutil -lldap_r -llber
 XXLIBS = $(LDBM_LIBS) $(SLAPD_LIBS) \
-	$(PERL_LDFLAGS) $(SECURITY_LIBS) \
-	$(LDIF_LIBS) $(LUTIL_LIBS)
+	 $(SECURITY_LIBS) \
+	 $(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
 BUILD_OPT = "--enable-slapd"
@@ -42,18 +52,118 @@ BUILD_SRV = @BUILD_SLAPD@
 
 all-local-srv: all-cffiles
 
-slapd: libbackends.a version.o
-	$(LTLINK) -o $@ $(OBJS) version.o $(LIBS)
+NT_DYN_DEFS  = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+
+DEFINES = $(@PLAT@_@LIB_LINKAGE@_DEFS)
+
+# The tricky part about building slapd in NT is that it will export symbols
+# like a DLL. The symbols that it exports should be representative of all
+# of the static symbols that it knows about.
+
+NT_EXP = slapd.exp
+NT_IMPLIB = libslapd.a
+NT_DUMMY  = symdummy.o
+
+# Add extra def targets here
+EXTRA_DEFS =
+
+# NT needs this if libltdl is built statically. You'll have to fix the path
+# to point to where libltdl was built, then put ltdl.def in EXTRA_DEFS
+ltdl.def: ../../../libtool/libltdl/*.o
+	dlltool --export-all-symbols --output-def $@ $^
+
+DYNAMIC_DEFS = liblber.def libldap_r.def
+
+STATIC_DEFS = libavl.def libldbm.def libldif.def liblutil.def slapd.def \
+	      $(EXTRA_DEFS)
+
+libavl.def: $(LDAP_LIBDIR)/libavl/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+liblber.def: $(LDAP_LIBDIR)/liblber/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+libldap_r.def: $(LDAP_LIBDIR)/libldap_r/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+libldbm.def: $(LDAP_LIBDIR)/libldbm/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+libldif.def: $(LDAP_LIBDIR)/libldif/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+liblutil.def: $(LDAP_LIBDIR)/liblutil/*.o
+	dlltool --export-all-symbols --output-def $@ `ls $^ | grep -v test`
+
+slapd.def: $(OBJS) version.o
+	dlltool --export-all-symbols --exclude-symbols main,ServiceMain@8 --output-def $@ `ls $^ | grep -v test`
+
+# We don't want to include symbols from dynamic libraries.
+all.def: $(STATIC_DEFS) $(DYNAMIC_DEFS)
+	cat $(STATIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' > $@
+	if [ "@LIB_LINKAGE@" != "DYN" ] ; \
+	then \
+	    cat $(DYNAMIC_DEFS) | grep " @ " | sed -e 's/ @ [0-9]*//' >> $@; \
+	fi
+	echo EXPORTS > tmp.def
+	sort $@ >> tmp.def
+	rm -f $@
+	dlltool --input-def tmp.def --output-def $@
+	rm -f tmp.def
+
+DUMMYTMP = symdummytmp.c
+
+symdummy.c: all.def $(ALL_DEFS)
+	rm -f $@
+	echo "static void never_called() {" > $(DUMMYTMP)
+	cat $< | grep " @ " | while read line; \
+	do \
+	    set dummy $$line; \
+	    case $$# in \
+		5) \
+		    echo "int $$2();" >> $@; \
+		    echo "$$2();" >> $(DUMMYTMP); \
+		    ;; \
+		6) \
+		    echo "extern int $$2;" >> $@; \
+		    echo "$$2 = 0;" >> $(DUMMYTMP); \
+		    ;; \
+	    esac; \
+	done
+	echo "" >> $@
+	echo "}" >> $(DUMMYTMP)
+	cat $(DUMMYTMP) >> $@
+	rm -f $(DUMMYTMP)
+
+symdummy.o: symdummy.c
+	$(CC) $(CFLAGS) -c $<
+
+SLAPD_OBJS = $(OBJS) version.o symdummy.o
+
+slapd.exp: libbackends.a all.def $(SLAPD_OBJS)
+	$(LTLINK) -o slapd $(SLAPD_OBJS) $(LIBS) $(WRAP_LIBS) -Wl,--base-file,slapd.base
+	rm -f slapd.exe
+	dlltool --dllname slapd.exe --input-def all.def --base-file slapd.base --output-exp $@
+	$(LTLINK) -o slapd $(SLAPD_OBJS) $(LIBS) $(WRAP_LIBS) $@ -Wl,--base-file,slapd.base
+	rm -f slapd.exe
+	dlltool --dllname slapd.exe --input-def all.def --base-file slapd.base --output-exp $@
+
+libslapd.a: all.def
+	dlltool --dllname slapd.exe --input-def $< --output-lib $@
+
+slapd: libbackends.a version.o $(@PLAT@_EXP) $(@PLAT@_DUMMY)
+	$(LTLINK) -o $@ $(@PLAT@_EXP) $(@PLAT@_DUMMY) $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 	(cd tools; $(MAKE) $(MFLAGS) all)
 
 sslapd: version.o
-	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS)
+	$(LTLINK) -static -o $@ $(OBJS) version.o $(LIBS) $(WRAP_LIBS)
 
-.backend: FORCE
+.backend: $(@PLAT@_IMPLIB) FORCE
 	@for i in back-*; do \
 		if [ -d $$i ]; then \
 			echo " "; echo "  cd $$i; $(MAKE) $(MFLAGS) all"; \
 			( cd $$i; $(MAKE) $(MFLAGS) all ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done; \
 	echo " "
@@ -70,7 +180,7 @@ libbackends.a: .backend
 			mv $$j $${pre}$$j; \
 		  done; \
 		  $(AR) ruv libbackends.a *.o 2>&1 | grep -v truncated; \
-		  $(RM) *.o __.SYMDEF; \
+		  $(RM) *.o __.SYMDEF  ________64ELEL_ ; \
 		  echo "added backend library $$i"; \
 		); \
 	done
@@ -81,7 +191,7 @@ libbackends.a: .backend
 	fi
 	@ls -l libbackends.a
 
-version.c: libbackends.a $(OBJS) $(SLAPD_LIBDEPEND) 
+version.c: $(OBJS) $(SLAPD_LIBDEPEND) 
 	@-$(RM) $@
 	$(MKVERSION) -s -n Versionstr slapd > $@
 
@@ -90,14 +200,20 @@ depend-local-srv: FORCE
 		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) depend"; \
 			( cd $$i; $(MAKE) $(MFLAGS) depend ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
+	@echo ""
+
+clean-local:
+	rm -f *.exp *.def *.base *.a *.objs symdummy.c
 
 clean-local-srv: FORCE
 	@for i in back-* shell-backends tools; do \
 		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) clean"; \
 			( cd $$i; $(MAKE) $(MFLAGS) clean ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	done
 	rm -f *.tmp all-cffiles
@@ -110,53 +226,57 @@ veryclean-local-srv: FORCE
 		fi; \
 	done
 
-install-local-srv: install-slapd install-conf install-tools
+install-local-srv: install-slapd install-conf install-schema install-tools
 
 install-slapd: FORCE
-	@-$(MKDIR) $(libexecdir)
-	@-$(MKDIR) $(localstatedir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapd $(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	-$(MKDIR) $(DESTDIR)$(localstatedir)
+	$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+		slapd$(EXEEXT) $(DESTDIR)$(libexecdir)
 	@if [ ! -z "$(SLAPD_MODULES)" ]; then \
 	    for i in back-* shell-backends tools; do \
 		if [ -d $$i ]; then \
 			echo; echo "  cd $$i; $(MAKE) $(MFLAGS) install"; \
 			( cd $$i; $(MAKE) $(MFLAGS) install ); \
+			if test $$? != 0 ; then exit 1; fi ; \
 		fi; \
 	    done; \
 	fi
 
-
-CFFILES=slapd.conf slapd.at.conf slapd.oc.conf
-
 all-cffiles: slapd
-	@for i in $(CFFILES); do \
-		tmpcf=$$i.tmp; \
-		$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
-			-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
-			$(srcdir)/$$i > $$tmpcf ; \
-	done
+	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
+		-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
+		-e 's;%MODULEDIR%;$(moduledir);' \
+		$(srcdir)/slapd.conf > slapd.conf.tmp ; \
 	touch all-cffiles
 
-install-conf: FORCE
-	@-$(MKDIR) $(sysconfdir)
-	@for i in $(CFFILES); do \
-		tmpcf=$$i.tmp ; \
-		if test $$i = slapd.conf ; then \
-			mode=600 ; \
-		else \
-			mode=644 ; \
-		fi ; \
-		if test ! -f $(sysconfdir)/$$i; then \
+install-schema: FORCE
+	@-$(MKDIR) $(DESTDIR)$(sysconfdir)/schema
+	@cd $(srcdir) ; \
+	for i in schema/*.schema ; do \
+		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i; \
+			echo $(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(sysconfdir)/$$i; \
+			$(INSTALL) $(INSTALLFLAGS) -m 444 $$i $(DESTDIR)$(sysconfdir)/$$i; \
 		else \
-			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
+			echo "PRESERVING EXISTING SCHEMA FILE $(DESTDIR)$(sysconfdir)/$$i"; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m $$mode $$tmpcf $(sysconfdir)/$$i.default ; \
+		$(INSTALL) $(INSTALLFLAGS) $$i $(DESTDIR)$(sysconfdir)/$$i.default ; \
 	done
 
+install-conf: FORCE
+	@-$(MKDIR) $(DESTDIR)$(sysconfdir)
+	@-$(INSTALL) -m 700 -d $(DESTDIR)$(localstatedir)/openldap-ldbm
+	$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf.default
+	if test ! -f $(DESTDIR)$(sysconfdir)/$$cf; then \
+		echo "installing $$cf in $(sysconfdir)"; \
+		echo "$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf"; \
+		$(INSTALL) $(INSTALLFLAGS) -m 600 slapd.conf.tmp $(DESTDIR)$(sysconfdir)/slapd.conf; \
+	else \
+		echo "PRESERVING EXISTING CONFIGURATION FILE $(DESTDIR)$(sysconfdir)/slapd.conf" ; \
+	fi
+
 install-tools: FORCE
-	@-$(MKDIR) $(sbindir)
+	@-$(MKDIR) $(DESTDIR)$(sbindir)
 	(cd tools; $(MAKE) $(MFLAGS) install)
 

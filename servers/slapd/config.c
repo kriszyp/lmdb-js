@@ -1,7 +1,7 @@
 /* config.c - configuration file handling routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -27,13 +27,14 @@
 int		defsize = SLAPD_DEFAULT_SIZELIMIT;
 int		deftime = SLAPD_DEFAULT_TIMELIMIT;
 AccessControl	*global_acl = NULL;
-int		global_default_access = ACL_READ;
+slap_access_t		global_default_access = ACL_READ;
 int		global_readonly = 0;
 char		*replogfile;
 int		global_lastmod = ON;
 int		global_idletimeout = 0;
 char	*global_realm = NULL;
 char		*ldap_srvtab = "";
+char		*default_passwd_hash;
 
 char   *slapd_pid_file  = NULL;
 char   *slapd_args_file = NULL;
@@ -74,13 +75,6 @@ read_config( const char *fname )
 	}
 
 	Debug( LDAP_DEBUG_CONFIG, "reading config file %s\n", fname, 0, 0 );
-
-	if ( schema_init( ) != 0 ) {
-		Debug( LDAP_DEBUG_ANY,
-		    "error initializing the schema\n",
-		    0, 0, 0 );
-		return( 1 );
-	}
 
 	fp_getline_init( &lineno );
 
@@ -123,6 +117,13 @@ read_config( const char *fname )
 
 			bi = backend_info( cargv[1] );
 
+			if( bi == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"backend %s initialization failed.n",
+				    cargv[1], 0, 0 );
+				return( 1 );
+			}
+
 		/* start of a new database definition */
 		} else if ( strcasecmp( cargv[0], "database" ) == 0 ) {
 			if ( cargc < 2 ) {
@@ -131,8 +132,37 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 				return( 1 );
 			}
+
 			bi = NULL;
 			be = backend_db_init( cargv[1] );
+
+			if( be == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"database %s initialization failed.n",
+				    cargv[1], 0, 0 );
+				return( 1 );
+			}
+
+		/* set thread concurrency */
+		} else if ( strcasecmp( cargv[0], "concurrency" ) == 0 ) {
+			int c;
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing level in \"concurrency <level>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+
+			c = atoi( cargv[1] );
+
+			if( c < 1 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: invalid level (%d) in \"concurrency <level>\" line\n",
+				    fname, lineno, c );
+				return( 1 );
+			}
+
+			ldap_pvt_thread_set_concurrency( c );
 
 		/* get pid file name */
 		} else if ( strcasecmp( cargv[0], "pidfile" ) == 0 ) {
@@ -155,6 +185,24 @@ read_config( const char *fname )
 			}
 
 			slapd_args_file = ch_strdup( cargv[1] );
+
+		/* default password hash */
+		} else if ( strcasecmp( cargv[0], "password-hash" ) == 0 ) {
+			if ( cargc < 2 ) {
+				Debug( LDAP_DEBUG_ANY,
+	    "%s: line %d: missing realm in \"password-hash <hash>\" line\n",
+				    fname, lineno, 0 );
+				return( 1 );
+			}
+			if ( default_passwd_hash != NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: already set default password_hash!\n",
+					fname, lineno, 0 );
+				return 1;
+
+			} else {
+				default_passwd_hash = ch_strdup( cargv[1] );
+			}
 
 		/* set DIGEST realm */
 		} else if ( strcasecmp( cargv[0], "digest-realm" ) == 0 ) {
@@ -232,7 +280,7 @@ read_config( const char *fname )
 				    fname, lineno, tmp_be->be_suffix[0] );
 			} else {
 				char *dn = ch_strdup( cargv[1] );
-				(void) dn_normalize( dn );
+				(void) dn_validate( dn );
 				charray_add( &be->be_suffix, dn );
 				(void) ldap_pvt_str2upper( dn );
 				charray_add( &be->be_nsuffix, dn );
@@ -284,8 +332,6 @@ read_config( const char *fname )
 				aliased_dn = ch_strdup( cargv[2] );
 				(void) dn_normalize( aliased_dn );
 
-				(void) dn_normalize_case( alias );
-				(void) dn_normalize_case( aliased_dn );
 				charray_add( &be->be_suffixAlias, alias );
 				charray_add( &be->be_suffixAlias, aliased_dn );
 
@@ -332,7 +378,7 @@ read_config( const char *fname )
 				be->be_root_dn = ch_strdup( cargv[1] );
 				be->be_root_ndn = ch_strdup( cargv[1] );
 
-				if( dn_normalize_case( be->be_root_ndn ) == NULL ) {
+				if( dn_normalize( be->be_root_ndn ) == NULL ) {
 					free( be->be_root_dn );
 					free( be->be_root_ndn );
 					Debug( LDAP_DEBUG_ANY,
@@ -355,7 +401,8 @@ read_config( const char *fname )
 "%s: line %d: rootpw line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_root_pw = ch_strdup( cargv[1] );
+				be->be_root_pw.bv_val = ch_strdup( cargv[1] );
+				be->be_root_pw.bv_len = strlen( be->be_root_pw.bv_val );
 			}
 
 		/* make this database read-only */
@@ -421,6 +468,7 @@ read_config( const char *fname )
 		/* specify an Object Identifier macro */
 		} else if ( strcasecmp( cargv[0], "objectidentifier" ) == 0 ) {
 			parse_oidm( fname, lineno, cargc, cargv );
+
 		/* specify an objectclass */
 		} else if ( strcasecmp( cargv[0], "objectclass" ) == 0 ) {
 			if ( *cargv[1] == '(' ) {
@@ -428,18 +476,23 @@ read_config( const char *fname )
 				p = strchr(saveline,'(');
 				parse_oc( fname, lineno, p, cargv );
 			} else {
-				parse_oc_old( be, fname, lineno, cargc, cargv );
+				Debug( LDAP_DEBUG_ANY,
+    "%s: line %d: old objectclass format not supported.\n",
+				    fname, lineno, 0 );
 			}
 
-		/* specify an attribute */
-		} else if ( strcasecmp( cargv[0], "attribute" ) == 0 ) {
+		/* specify an attribute type */
+		} else if (( strcasecmp( cargv[0], "attributetype" ) == 0 )
+			|| ( strcasecmp( cargv[0], "attribute" ) == 0 ))
+		{
 			if ( *cargv[1] == '(' ) {
 				char * p;
 				p = strchr(saveline,'(');
 				parse_at( fname, lineno, p, cargv );
 			} else {
-				attr_syntax_config( fname, lineno, cargc - 1,
-				    &cargv[1] );
+				Debug( LDAP_DEBUG_ANY,
+    "%s: line %d: old attribute type format not supported.\n",
+				    fname, lineno, 0 );
 			}
 
 		/* turn on/off schema checking */
@@ -462,31 +515,29 @@ read_config( const char *fname )
 
 		/* specify default access control info */
 		} else if ( strcasecmp( cargv[0], "defaultaccess" ) == 0 ) {
+			slap_access_t access;
+
 			if ( cargc < 2 ) {
 				Debug( LDAP_DEBUG_ANY,
 	    "%s: line %d: missing limit in \"defaultaccess <access>\" line\n",
 				    fname, lineno, 0 );
 				return( 1 );
 			}
+
+			access = str2access( cargv[1] );
+
+			if ( access == ACL_INVALID_ACCESS ) {
+				Debug( LDAP_DEBUG_ANY,
+					"%s: line %d: bad access level \"%s\", "
+					"expecting none|auth|compare|search|read|write\n",
+				    fname, lineno, cargv[1] );
+				return( 1 );
+			}
+
 			if ( be == NULL ) {
-				if ( ACL_IS_INVALID(ACL_SET(global_default_access,
-						str2access(cargv[1]))) )
-				{
-					Debug( LDAP_DEBUG_ANY,
-"%s: line %d: bad access \"%s\" expecting [self]{none|auth|compare|search|read|write}\n",
-					    fname, lineno, cargv[1] );
-					return( 1 );
-				}
+				global_default_access = access;
 			} else {
-				if ( ACL_IS_INVALID(ACL_SET(be->be_dfltaccess,
-						str2access(cargv[1]))) )
-				{
-					Debug( LDAP_DEBUG_ANY,
-						"%s: line %d: bad access \"%s\", "
-						"expecting [self]{none|auth|compare|search|read|write}\n",
-					    fname, lineno, cargv[1] );
-					return( 1 );
-				}
+				be->be_dfltaccess = access;
 			}
 
 		/* debug level to log things to syslog */
@@ -541,7 +592,7 @@ read_config( const char *fname )
 				    fname, lineno, 0 );
 			} else {
 				be->be_update_ndn = ch_strdup( cargv[1] );
-				if( dn_normalize_case( be->be_update_ndn ) == NULL ) {
+				if( dn_normalize( be->be_update_ndn ) == NULL ) {
 					Debug( LDAP_DEBUG_ANY,
 "%s: line %d: updatedn DN is invalid\n",
 					    fname, lineno, 0 );

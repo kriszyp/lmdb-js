@@ -1,10 +1,12 @@
-.TH LDAP 3  "13 November 1995" "U-M LDAP LDVERSION"
+.TH LDAP 3 "13 May 2000" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap - Lightweight Directory Access Protocol package
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 .ft
 .fi
@@ -12,10 +14,8 @@ ldap - Lightweight Directory Access Protocol package
 .LP
 The Lightweight Directory Access Protocol provides TCP/IP access to
 the X.500 Directory or to a stand-alone LDAP server.
-The University of Michigan LDAP package includes a stand-alone server in
+The OpenLDAP LDAP package includes a stand-alone server in
 .BR slapd (8),
-an LDAP to X.500 gateway in
-.BR ldapd (8),
 various LDAP clients, and an LDAP client library used to provide
 programmatic access to the LDAP protocol. This man page gives an
 overview of the LDAP library routines.
@@ -192,10 +192,7 @@ equivalent to
 .BR ldap_unbind (3)
 .TP
 .SM ldap_memfree (3)
-dispose of memory allocated by LDAP routines (this is only used on the
-Microsoft Windows platforms; use
-.BR free (3)
-on all other platforms).
+dispose of memory allocated by LDAP routines.
 .TP
 .SM ldap_enable_cache(3)
 enable LDAP client caching
@@ -326,6 +323,9 @@ extract the DN from an entry
 .SM ldap_explode_dn(3)
 convert a DN into its component parts
 .TP
+.SM ldap_explode_rdn(3)
+convert a RDN into its component parts
+.TP
 .SM ldap_explode_dns(3)
 convert a DNS-style DN into its component parts (experimental)
 .TP
@@ -397,6 +397,12 @@ depreciated - use ldap_modrdn2_s(3)
 .TP
 .SM ldap_msgfree(3)
 free results allocated by ldap_result(3)
+.TP
+.SM ldap_msgtype(3)
+return the message type of a message from ldap_result(3)
+.TP
+.SM ldap_msgid(3)
+return the message id of a message from ldap_result(3)
 .TP
 .SM ldap_search(3)
 asynchronously search the directory
@@ -494,8 +500,12 @@ set retry and timeout information using connectionless LDAP
 .SM cldap_close(3)
 terminate a connectionless LDAP session
 .SH SEE ALSO
-.BR ldapd (8),
 .BR slapd (8)
 .SH AUTHORS
 Tim Howes, Mark Smith, Gordon Good, Lance Sloan, and Steve Rothwell from
 the University of Michigan, along with help from lots of others.
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

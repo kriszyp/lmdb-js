@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -180,7 +180,7 @@ do_abandon(
 				if ( lr != NULL ) {
 					sb = lr->lr_conn->lconn_sb;
 				} else {
-					sb = &ld->ld_sb;
+					sb = ld->ld_sb;
 				}
 
 				if ( ber_flush( sb, ber, 1 ) != 0 ) {

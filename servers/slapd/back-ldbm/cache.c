@@ -1,7 +1,7 @@
 /* cache.c - routines to maintain an in-core cache of entries */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -36,6 +36,7 @@ typedef struct ldbm_entry_info {
 	Entry	*lei_lrunext;	/* for cache lru list */
 	Entry	*lei_lruprev;
 } EntryInfo;
+#undef LEI
 #define LEI(e)	((EntryInfo *) ((e)->e_private))
 
 static int	cache_delete_entry_internal(Cache *cache, Entry *e);
@@ -445,7 +446,7 @@ cache_find_entry_dn2id(
 
 	e.e_dn = (char *) dn;
 	e.e_ndn = ch_strdup( dn );
-	(void) dn_normalize_case( e.e_ndn );
+	(void) dn_normalize( e.e_ndn );
 
 try_again:
 	/* set cache mutex */
@@ -685,7 +686,9 @@ cache_release_all( Cache *cache )
 	Debug( LDAP_DEBUG_TRACE, "====> cache_release_all\n", 0, 0, 0 );
 
 	while ( (e = cache->c_lrutail) != NULL && LEI(e)->lei_refcnt == 0 ) {
+#ifdef LDAP_RDWR_DEBUG
 		assert(!ldap_pvt_thread_rdwr_active(&LEI(e)->lei_rdwr));
+#endif
 
 		/* delete from cache and lru q */
 		/* XXX do we need rc ? */

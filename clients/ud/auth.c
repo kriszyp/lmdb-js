@@ -1,5 +1,9 @@
 /* $OpenLDAP$ */
 /*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
+/*
  * Copyright (c) 1991, 1992 Regents of the University of Michigan.
  * All rights reserved.
  *
@@ -33,7 +37,7 @@
 #include "ldap_defaults.h"
 #include "ud.h"
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 static char tktpath[20];	/* ticket file path */
 static int kinit();
 static int valid_tgt();
@@ -46,7 +50,7 @@ int
 auth( char *who, int implicit )
 {
 	int rc;			/* return code from ldap_bind() */
-	char *passwd = NULL;	/* returned by getpass() */
+	char *passwd = NULL;	/* returned by getpassphrase() */
 	char **rdns;		/* for fiddling with the DN */
 	int authmethod;
 	int name_provided;	/* was a name passed in? */
@@ -56,7 +60,7 @@ auth( char *who, int implicit )
 	char *user;
 #endif
 	char uidname[20];
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char **krbnames;	/* for kerberos names */
 	int kinited, ikrb;
 	char buf[5];
@@ -144,7 +148,7 @@ auth( char *who, int implicit )
 	rdns = ldap_explode_dn(Entry.DN, TRUE);
 	printf("  Authenticating to the directory as \"%s\"...\n", *rdns );
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	/*
 	 * First, if the user has a choice of auth methods, ask which
 	 * one they want to use.  if they want kerberos, ask which
@@ -237,13 +241,13 @@ auth( char *who, int implicit )
 		authmethod = LDAP_AUTH_SIMPLE;
 		sprintf(prompt, "  Enter your LDAP password: ");
 		do {
-			passwd = getpass(prompt);
+			passwd = getpassphrase(prompt);
 		} while (passwd != NULL && *passwd == '\0');
 		if (passwd == NULL) {
 			(void) ldap_value_free(rdns);
 			return(0);
 		}
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	}
 	(void) ldap_value_free(krbnames);
 #endif
@@ -255,13 +259,13 @@ auth( char *who, int implicit )
 		if (ld_errno == LDAP_NO_SUCH_ATTRIBUTE)
 			fprintf(stderr, "  Entry has no password\n");
 		else if (ld_errno == LDAP_INVALID_CREDENTIALS)
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			if ( authmethod == LDAP_AUTH_KRBV4 ) {
 				fprintf(stderr, "  The Kerberos credentials are invalid.\n");
 			} else {
 #endif
 				fprintf(stderr, "  The password you provided is incorrect.\n");
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 			}
 #endif
 		else
@@ -290,7 +294,7 @@ auth( char *who, int implicit )
 	return(0);
 }
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 #define FIVEMINS	( 5 * 60 )
 #define TGT		"krbtgt"
@@ -334,6 +338,8 @@ valid_tgt( char **names )
 
 static char *kauth_name;
 
+#ifndef HAVE_KTH_KERBEROS
+
 /*ARGSUSED*/
 int
 krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
@@ -346,7 +352,7 @@ krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 	sprintf(prompt, "  Enter Kerberos password for %s: ", kauth_name );
 #endif
 	do {
-		passwd = getpass(prompt);
+		passwd = getpassphrase(prompt);
 	} while (passwd != NULL && *passwd == '\0');
 	if (passwd == NULL) {
 		return(-1);
@@ -365,6 +371,7 @@ krbgetpass( char *user, char *inst, char *realm, char *pw, C_Block key )
 
 	return( 0 );
 }
+#endif /* HAVE_KTH_KERBEROS */
 
 static int
 kinit( char *kname )
@@ -382,14 +389,18 @@ kinit( char *kname )
 	}
 
 #ifdef HAVE_AFS_KERBEROS
-	/*
-	 * realm must be uppercase for krb_ routines
-	 */
+	/* realm must be uppercase for AFS krb_ routines */
 	ldap_pvt_str2upper( realm );
 #endif /* HAVE_AFS_KERBEROS */
 
+#ifdef HAVE_KTH_KERBEROS
+	/* Kth kerberos knows how to do both string to keys */
+	rc = krb_get_pw_in_tkt( name, inst, realm, TGT, realm,
+		DEFAULT_TKT_LIFE, 0 );
+#else
 	rc = krb_get_in_tkt( name, inst, realm, TGT, realm,
 	    DEFAULT_TKT_LIFE, krbgetpass, NULL, NULL );
+#endif
 
 	if ( rc != KSUCCESS ) {
 		switch ( rc ) {

@@ -1,7 +1,7 @@
 /* dn2id.c - routines to deal with the dn2id index */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -48,8 +48,6 @@ dn2id_add(
 	data.dsize = sizeof(ID);
 
 	flags = LDBM_INSERT;
-	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
-
 	rc = ldbm_cache_store( db, key, data, flags );
 
 	free( key.dptr );

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -18,14 +18,17 @@
 
 LDAP_BEGIN_DECL
 
-extern char *optarg;
-extern int optind, opterr, optopt;
+/* change symbols to avoid clashing */
+#define optarg lutil_optarg
+#define optind lutil_optind
+#define opterr lutil_opterr
+#define optopt lutil_optopt
+#define getopt lutil_getopt
 
-LDAP_F( int )
-getopt LDAP_P((
-	int,
-	char * const [],
-	const char *));
+LIBLUTIL_F (char *) optarg;
+LIBLUTIL_F (int) optind, opterr, optopt;
+
+LIBLUTIL_F (int) getopt LDAP_P(( int, char * const [], const char *));
 
 LDAP_END_DECL
 

@@ -22,21 +22,21 @@
 # The spec says "leading zero is significant".  Is this really a
 # numeric string?
 
-attribute ( 2.6.6.5.2.4.1 NAME 'fipsStateNumericCode'
+attributetype ( 2.6.6.5.2.4.1 NAME 'fipsStateNumericCode'
 	EQUALITY numericStringMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{2} )
 
 # It is probably inconvenient to give this attribute that syntax
 # (Printable String) instead of Directory String.
 
-attribute ( 2.6.6.5.2.4.2 NAME 'fipsStateAlphaCode'
+attributetype ( 2.6.6.5.2.4.2 NAME 'fipsStateAlphaCode'
 	EQUALITY caseIgnoreMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.44{2} )
 
 # The spec says "leading zeros are significant".  Is this really a
 # numeric string?
 
-attribute ( 2.6.6.5.2.4.3 NAME 'fipsCountyNumericCode'
+attributetype ( 2.6.6.5.2.4.3 NAME 'fipsCountyNumericCode'
 	EQUALITY numericStringMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{5} )
 
@@ -45,34 +45,34 @@ attribute ( 2.6.6.5.2.4.3 NAME 'fipsCountyNumericCode'
 # The spec says "leading zeros are significant".  Is this really a
 # numeric string?
 
-attribute ( 2.6.6.5.2.4.4 NAME ( 'fipsPlaceNumericCode' 'fips55' )
+attributetype ( 2.6.6.5.2.4.4 NAME ( 'fipsPlaceNumericCode' 'fips55' )
 	EQUALITY numericStringMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.36{5} )
 
-attribute ( 2.6.6.5.2.4.5 NAME 'ansiOrgNumericCode'
+attributetype ( 2.6.6.5.2.4.5 NAME 'ansiOrgNumericCode'
 	EQUALITY integerMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 
 # Apparently, 'ad' is an alias for 'addmdName'
 
-attribute ( 2.6.6.5.2.4.6 NAME ( 'addmdName' 'ad' )
+attributetype ( 2.6.6.5.2.4.6 NAME ( 'addmdName' 'ad' )
 	EQUALITY caseIgnoreMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
 # I don't know what syntax to give this.  I will use binary for the
 # time being.
 
-attribute ( 2.6.6.5.2.4.7 NAME 'nadfSearchGuide'
+attributetype ( 2.6.6.5.2.4.7 NAME 'nadfSearchGuide'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.5 )
 
-attribute ( 2.6.6.5.2.4.8 NAME 'supplementaryInformation'
+attributetype ( 2.6.6.5.2.4.8 NAME 'supplementaryInformation'
 	EQUALITY caseIgnoreMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{76} )
 
-attribute ( 2.6.6.5.2.4.9 NAME 'namingLink'
+attributetype ( 2.6.6.5.2.4.9 NAME 'namingLink'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12 )
 
-attribute ( 2.6.6.5.2.4.10 NAME 'reciprocalNamingLink'
+attributetype ( 2.6.6.5.2.4.10 NAME 'reciprocalNamingLink'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
 	SINGLE-VALUE )
 
@@ -83,11 +83,11 @@ attribute ( 2.6.6.5.2.4.10 NAME 'reciprocalNamingLink'
 # define the string with IA5 syntax and we don't have a
 # clear base for this.
 
-attribute ( 2.6.6.5.2.4.15 NAME 'logicalDSAReference'
+attributetype ( 2.6.6.5.2.4.15 NAME 'logicalDSAReference'
 	EQUALITY caseIgnoreMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
-attribute ( 2.6.6.5.2.4.16 NAME 'multiMediaInformation'
+attributetype ( 2.6.6.5.2.4.16 NAME 'multiMediaInformation'
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.5 )
 
 # Number 17, 18 and 19 are EDI-related attributes for the nadfEDIUser

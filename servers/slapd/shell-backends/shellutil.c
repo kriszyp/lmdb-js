@@ -89,7 +89,8 @@ write_entry( struct ldop *op, struct ldentry *entry, FILE *ofp )
 int
 test_filter( struct ldop *op, struct ldentry *entry )
 {
-    return (( random() & 0x07 ) == 0x07 );	/* XXX random for now */
+    return ((random() & 0x07 ) == 0x07) /* XXX random for now */
+		? LDAP_COMPARE_TRUE : LDAP_COMPARE_FALSE;
 }
 
 

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* Portions
@@ -40,8 +40,8 @@ static int	et_cmp LDAP_P(( const void *aa, const void *bb));
 
 int
 ldap_sort_strcasecmp(
-	const void	*a,
-	const void	*b
+	LDAP_CONST void	*a,
+	LDAP_CONST void	*b
 )
 {
 	return( strcasecmp( *(char *const *)a, *(char *const *)b ) );
@@ -135,7 +135,7 @@ ldap_sort_entries(
 		*ep = et[i].et_msg;
 		ep = &(*ep)->lm_chain;
 
-		ldap_value_free( et[i].et_vals );
+		LDAP_VFREE( et[i].et_vals );
 	}
 	*ep = last;
 	LDAP_FREE( (char *) et );
@@ -147,7 +147,7 @@ int
 ldap_sort_values(
     LDAP	*ld,
     char	**vals,
-    int		(*cmp) (const void *, const void *)
+    int		(*cmp) (LDAP_CONST void *, LDAP_CONST void *)
 )
 {
 	int	nel;

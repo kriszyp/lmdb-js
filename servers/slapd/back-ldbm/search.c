@@ -1,7 +1,7 @@
 /* search.c - ldbm backend search function */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -29,20 +29,21 @@ ldbm_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*base,
+    const char	*base,
+    const char	*nbase,
     int		scope,
     int		deref,
     int		slimit,
     int		tlimit,
     Filter	*filter,
-    char	*filterstr,
+    const char	*filterstr,
     char	**attrs,
     int		attrsonly
 )
 {
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	int		rc, err;
-	char *text;
+	const char *text = NULL;
 	time_t		stoptime;
 	ID_BLOCK		*candidates;
 	ID		id, cursor;
@@ -57,10 +58,10 @@ ldbm_back_search(
 
 	/* get entry with reader lock */
 	if ( deref & LDAP_DEREF_FINDING ) {
-		e = deref_dn_r( be, base, &err, &matched, &text );
+		e = deref_dn_r( be, nbase, &err, &matched, &text );
 
 	} else {
-		e = dn2entry_r( be, base, &matched );
+		e = dn2entry_r( be, nbase, &matched );
 		err = e != NULL ? LDAP_SUCCESS : LDAP_REFERRAL;
 		text = NULL;
 	}
@@ -127,7 +128,7 @@ ldbm_back_search(
 		    be->be_sizelimit : slimit;
 	}
 
-	if ( scope == LDAP_SCOPE_BASE) {
+	if ( scope == LDAP_SCOPE_BASE ) {
 		candidates = base_candidate( be, e );
 
 	} else {
@@ -137,6 +138,7 @@ ldbm_back_search(
 
 	/* need normalized dn below */
 	realbase = ch_strdup( e->e_ndn );
+
 	cache_return_entry_r( &li->li_cache, e );
 
 	if ( candidates == NULL ) {
@@ -189,7 +191,7 @@ ldbm_back_search(
 		if ( deref & LDAP_DEREF_SEARCHING && is_entry_alias( e ) ) {
 			Entry *matched;
 			int err;
-			char *text;
+			const char *text;
 			
 			e = deref_entry_r( be, e, &err, &matched, &text );
 
@@ -244,13 +246,13 @@ ldbm_back_search(
 		}
 
 		/* if it matches the filter and scope, send it */
-		if ( test_filter( be, conn, op, e, filter ) == 0 ) {
+		if ( test_filter( be, conn, op, e, filter ) == LDAP_COMPARE_TRUE ) {
 			char	*dn;
 
 			/* check scope */
 			if ( !scopeok && scope == LDAP_SCOPE_ONELEVEL ) {
 				if ( (dn = dn_parent( be, e->e_ndn )) != NULL ) {
-					(void) dn_normalize_case( dn );
+					(void) dn_normalize( dn );
 					scopeok = (dn == realbase)
 						? 1
 						: (strcmp( dn, realbase ) ? 0 : 1 );
@@ -281,8 +283,52 @@ ldbm_back_search(
 				}
 
 				if (e) {
-					switch ( send_search_entry( be, conn, op, e,
-						attrs, attrsonly, NULL ) ) {
+					int result;
+#ifdef BROKEN_NUM_SUBORDINATES
+					/* Tack on subordinates attr */
+					ID_BLOCK *idl = NULL;
+					char CATTR_SUBS[] = "numsubordinates";
+
+					if (attrs &&
+					    charray_inlist(attrs,
+							   CATTR_SUBS))
+					{
+					    idl = dn2idl(be, e->e_ndn,
+							 DN_ONE_PREFIX);
+					    if (idl)
+					    {
+						char buf[30];
+						struct berval val, *vals[2];
+
+						vals[0] = &val;
+						vals[1] = NULL;
+
+						sprintf(buf, "%lu",
+							ID_BLOCK_NIDS(idl));
+
+						val.bv_val = buf;
+						val.bv_len = strlen(buf);
+
+						attr_merge(e, CATTR_SUBS,
+							   vals);
+					    }
+					}
+#endif
+
+					result = send_search_entry(be, conn, op,
+						e, attrs, attrsonly, NULL);
+
+#ifdef BROKEN_NUM_SUBORDINATES
+					if (idl)
+					{
+					    idl_free(idl);
+					    attr_delete(&e->e_attrs,
+							CATTR_SUBS);
+					}
+#endif
+
+					switch (result)
+					{
 					case 0:		/* entry sent ok */
 						nentries++;
 						break;
@@ -355,91 +401,7 @@ search_candidates(
 )
 {
 	ID_BLOCK		*candidates;
-	Filter		*f, *rf, *af, *lf;
-
-	Debug(LDAP_DEBUG_TRACE, "search_candidates: base=\"%s\" s=%d d=%d\n",
-		e->e_ndn, scope, deref );
-
-	f = NULL;
-
-	if( !manageDSAit ) {
-		/* match referrals */
-		rf = (Filter *) ch_malloc( sizeof(Filter) );
-		rf->f_next = NULL;
-		rf->f_choice = LDAP_FILTER_OR;
-		rf->f_or = (Filter *) ch_malloc( sizeof(Filter) );
-		rf->f_or->f_choice = LDAP_FILTER_EQUALITY;
-		rf->f_or->f_avtype = ch_strdup( "objectclass" );
-		rf->f_or->f_avvalue.bv_val = ch_strdup( "REFERRAL" );
-		rf->f_or->f_avvalue.bv_len = sizeof("REFERRAL")-1;
-		rf->f_or->f_next = filter;
-		f = rf;
-	} else {
-		rf = NULL;
-		f = filter;
-	}
-
-	if( deref & LDAP_DEREF_SEARCHING ) {
-		/* match aliases */
-		af = (Filter *) ch_malloc( sizeof(Filter) );
-		af->f_next = NULL;
-		af->f_choice = LDAP_FILTER_OR;
-		af->f_or = (Filter *) ch_malloc( sizeof(Filter) );
-		af->f_or->f_choice = LDAP_FILTER_EQUALITY;
-		af->f_or->f_avtype = ch_strdup( "objectclass" );
-		af->f_or->f_avvalue.bv_val = ch_strdup( "ALIAS" );
-		af->f_or->f_avvalue.bv_len = sizeof("ALIAS")-1;
-		af->f_or->f_next = f;
-		f = af;
-	} else {
-		af = NULL;
-	}
-
-	if ( scope == LDAP_SCOPE_SUBTREE ) {
-		lf = (Filter *) ch_malloc( sizeof(Filter) );
-		lf->f_next = NULL;
-		lf->f_choice = LDAP_FILTER_AND;
-		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
-
-		lf->f_and->f_choice = SLAPD_FILTER_DN_SUBTREE;
-		lf->f_and->f_dn = e->e_ndn;
-
-		lf->f_and->f_next = f;
-		f = lf;
-
-	} else if ( scope == LDAP_SCOPE_ONELEVEL ) {
-		lf = (Filter *) ch_malloc( sizeof(Filter) );
-		lf->f_next = NULL;
-		lf->f_choice = LDAP_FILTER_AND;
-		lf->f_and = (Filter *) ch_malloc( sizeof(Filter) );
-
-		lf->f_and->f_choice = SLAPD_FILTER_DN_ONE;
-		lf->f_and->f_dn = e->e_ndn;
-
-		lf->f_and->f_next = f;
-		f = lf;
-
-	} else {
-		lf = NULL;
-	}
-
-	candidates = filter_candidates( be, f );
-
-	/* free up filter additions we allocated above */
-	if( lf != NULL ) {
-		free( lf->f_and );
-		free( lf );
-	}
-
-	if( af != NULL ) {
-		af->f_or->f_next = NULL;
-		filter_free( af );
-	}
-
-	if( rf != NULL ) {
-		rf->f_or->f_next = NULL;
-		filter_free( rf );
-	}
+	candidates = filter_candidates( be, filter );
 
 	return( candidates );
 }

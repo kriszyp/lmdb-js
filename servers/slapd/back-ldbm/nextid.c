@@ -1,7 +1,7 @@
 /* nextid.c - keep track of the next id to be given out */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -77,8 +77,6 @@ next_id_write( Backend *be, ID id )
 	data.dsize = sizeof(ID);
 
 	flags = LDBM_REPLACE;
-	if( li->li_dbcachewsync ) flags |= LDBM_SYNC;
-
 	if ( ldbm_cache_store( db, key, data, flags ) != 0 ) {
 		id = NOID;
 	}

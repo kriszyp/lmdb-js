@@ -1,7 +1,7 @@
 /* bind.c - ldbm backend bind and unbind routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -18,59 +18,14 @@
 #include "back-ldbm.h"
 #include "proto-back-ldbm.h"
 
-#include <lutil.h>
-
-#ifdef HAVE_KERBEROS
-extern int	krbv4_ldap_auth();
-#endif
-
-static int
-crypted_value_find(
-	struct berval       **vals,
-	struct berval       *v,
-	int                 syntax,
-	int                 normalize,
-	struct berval		*cred
-)
-{
-	int     i;
-	for ( i = 0; vals[i] != NULL; i++ ) {
-		if ( syntax != SYNTAX_BIN ) {
-			int result;
-
-#ifdef SLAPD_CRYPT
-			ldap_pvt_thread_mutex_lock( &crypt_mutex );
-#endif
-
-			result = lutil_passwd(
-				(char*) cred->bv_val,
-				(char*) vals[i]->bv_val,
-				NULL );
-
-#ifdef SLAPD_CRYPT
-			ldap_pvt_thread_mutex_unlock( &crypt_mutex );
-#endif
-
-			return result;
-
-		} else {
-                if ( value_cmp( vals[i], v, syntax, normalize ) == 0 ) {
-                        return( 0 );
-                }
-        }
-	}
-
-	return( 1 );
-}
-
 int
 ldbm_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    char		*dn,
+    const char		*dn,
+    const char		*ndn,
     int			method,
-	char		*mech,
     struct berval	*cred,
 	char**	edn
 )
@@ -80,14 +35,18 @@ ldbm_back_bind(
 	Attribute	*a;
 	int		rc;
 	Entry		*matched;
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	char		krbname[MAX_K_NAME_SZ + 1];
 	AUTH_DAT	ad;
 #endif
 
+	AttributeDescription *password = slap_schema.si_ad_userPassword;
+	AttributeDescription *entry = slap_schema.si_ad_entry;
+
 	Debug(LDAP_DEBUG_ARGS, "==> ldbm_back_bind: dn: %s\n", dn, 0, 0);
 
 	*edn = NULL;
+	dn = ndn;
 
 	/* get entry with reader lock */
 	if ( (e = dn2entry_r( be, dn, &matched )) == NULL ) {
@@ -109,34 +68,26 @@ ldbm_back_bind(
 		/* allow noauth binds */
 		rc = 1;
 		if ( method == LDAP_AUTH_SIMPLE ) {
-			if( cred->bv_len == 0 ) {
-				/* SUCCESS */
-				send_ldap_result( conn, op, LDAP_SUCCESS,
-					NULL, NULL, NULL, NULL );
-
-			} else if ( be_isroot_pw( be, dn, cred ) ) {
+			if ( be_isroot_pw( be, dn, cred ) ) {
 				*edn = ch_strdup( be_root_dn( be ) );
 				rc = 0; /* front end will send result */
 
-			} else {
+			} else if ( refs != NULL ) {
 				send_ldap_result( conn, op, LDAP_REFERRAL,
 					matched_dn, NULL, refs, NULL );
-			}
 
-		} else if ( method == LDAP_AUTH_SASL ) {
-			if( mech != NULL && strcasecmp(mech,"DIGEST-MD5") == 0 ) {
-				/* insert DIGEST calls here */
-				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
-					NULL, NULL, NULL, NULL );
-				
 			} else {
-				send_ldap_result( conn, op, LDAP_AUTH_METHOD_NOT_SUPPORTED,
+				send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 					NULL, NULL, NULL, NULL );
 			}
 
-		} else {
+		} else if ( refs != NULL ) {
 			send_ldap_result( conn, op, LDAP_REFERRAL,
 				matched_dn, NULL, refs, NULL );
+
+		} else {
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, NULL, NULL, NULL );
 		}
 
 		if ( matched != NULL ) {
@@ -151,7 +102,7 @@ ldbm_back_bind(
 	/* check for deleted */
 
 	if ( ! access_allowed( be, conn, op, e,
-		"entry", NULL, ACL_AUTH ) )
+		entry, NULL, ACL_AUTH ) )
 	{
 		send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 			NULL, NULL, NULL, NULL );
@@ -165,7 +116,7 @@ ldbm_back_bind(
 		    0, 0 );
 
 		send_ldap_result( conn, op, LDAP_ALIAS_PROBLEM,
-		    NULL, NULL, NULL, NULL );
+		    NULL, "entry is alias", NULL, NULL );
 
 		rc = 1;
 		goto return_results;
@@ -179,8 +130,14 @@ ldbm_back_bind(
 		Debug( LDAP_DEBUG_TRACE, "entry is referral\n", 0,
 		    0, 0 );
 
-		send_ldap_result( conn, op, LDAP_REFERRAL,
-		    e->e_dn, NULL, refs, NULL );
+		if( refs != NULL ) {
+			send_ldap_result( conn, op, LDAP_REFERRAL,
+				e->e_dn, NULL, refs, NULL );
+
+		} else {
+			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
+				NULL, NULL, NULL, NULL );
+		}
 
 		ber_bvecfree( refs );
 
@@ -190,15 +147,6 @@ ldbm_back_bind(
 
 	switch ( method ) {
 	case LDAP_AUTH_SIMPLE:
-		if ( cred->bv_len == 0 ) {
-			send_ldap_result( conn, op, LDAP_SUCCESS,
-				NULL, NULL, NULL, NULL );
-
-			/* stop front end from sending result */
-			rc = 1;
-			goto return_results;
-		} 
-
 		/* check for root dn/passwd */
 		if ( be_isroot_pw( be, dn, cred ) ) {
 			/* front end will send result */
@@ -209,7 +157,7 @@ ldbm_back_bind(
 		}
 
 		if ( ! access_allowed( be, conn, op, e,
-			"userpassword", NULL, ACL_AUTH ) )
+			password, NULL, ACL_AUTH ) )
 		{
 			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
 				NULL, NULL, NULL, NULL );
@@ -217,7 +165,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( (a = attr_find( e->e_attrs, "userpassword" )) == NULL ) {
+		if ( (a = attr_find( e->e_attrs, password )) == NULL ) {
 			send_ldap_result( conn, op, LDAP_INAPPROPRIATE_AUTH,
 			    NULL, NULL, NULL, NULL );
 
@@ -226,8 +174,7 @@ ldbm_back_bind(
 			goto return_results;
 		}
 
-		if ( crypted_value_find( a->a_vals, cred, a->a_syntax, 0, cred ) != 0 )
-		{
+		if ( slap_passwd_check( a, cred ) != 0 ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 				NULL, NULL, NULL, NULL );
 			/* stop front end from sending result */
@@ -238,17 +185,8 @@ ldbm_back_bind(
 		rc = 0;
 		break;
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	case LDAP_AUTH_KRBV41:
-		if ( ! access_allowed( be, conn, op, e,
-			"krbname", NULL, ACL_AUTH ) )
-		{
-			send_ldap_result( conn, op, LDAP_INSUFFICIENT_ACCESS,
-				NULL, NULL, NULL, NULL );
-			rc = 1;
-			goto return_results;
-		}
-
 		if ( krbv4_ldap_auth( be, cred, &ad ) != LDAP_SUCCESS ) {
 			send_ldap_result( conn, op, LDAP_INVALID_CREDENTIALS,
 			    NULL, NULL, NULL, NULL );
@@ -268,10 +206,9 @@ ldbm_back_bind(
 		sprintf( krbname, "%s%s%s@%s", ad.pname, *ad.pinst ? "."
 		    : "", ad.pinst, ad.prealm );
 
-
 		if ( (a = attr_find( e->e_attrs, "krbname" )) == NULL ) {
 			/*
-			 * no krbName values present:  check against DN
+			 * no krbname values present:  check against DN
 			 */
 			if ( strcasecmp( dn, krbname ) == 0 ) {
 				rc = 0;
@@ -282,7 +219,7 @@ ldbm_back_bind(
 			rc = 1;
 			goto return_results;
 
-		} else {	/* look for krbName match */
+		} else {	/* look for krbname match */
 			struct berval	krbval;
 
 			krbval.bv_val = krbname;
@@ -307,12 +244,9 @@ ldbm_back_bind(
 		goto return_results;
 #endif
 
-	case LDAP_AUTH_SASL:
-		/* insert SASL code here */
-
 	default:
 		send_ldap_result( conn, op, LDAP_STRONG_AUTH_NOT_SUPPORTED,
-		    NULL, "auth method not supported", NULL, NULL );
+		    NULL, "authentication method not supported", NULL, NULL );
 		rc = 1;
 		goto return_results;
 	}

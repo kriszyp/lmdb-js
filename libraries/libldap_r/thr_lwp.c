@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -47,7 +47,7 @@
  * Initialize LWP by spinning of a schedular
  */
 int
-ldap_pvt_thread_initialize( void )
+ldap_int_thread_initialize( void )
 {
 	thread_t		tid;
 	stkalign_t		*stack;
@@ -62,7 +62,7 @@ ldap_pvt_thread_initialize( void )
 }
 
 int
-ldap_pvt_thread_destroy( void )
+ldap_int_thread_destroy( void )
 {
 	/* need to destory lwp_scheduler thread and clean up private
 		variables */
@@ -76,7 +76,7 @@ struct stackinfo {
 
 static struct stackinfo	*stacks;
 
-static stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
+static stkalign_t * ldap_int_thread_get_stack( int *stacknop )
 {
 	int	i;
 
@@ -122,7 +122,7 @@ static stkalign_t * ldap_pvt_thread_get_stack( int *stacknop )
 }
 
 static void
-ldap_pvt_thread_free_stack( int	stackno )
+ldap_int_thread_free_stack( int	stackno )
 {
 	if ( stackno < 0 || stackno > MAX_THREADS ) {
 		Debug( LDAP_DEBUG_ANY, "free_stack of bogus stack %d\n",
@@ -137,7 +137,7 @@ lwp_create_stack( void *(*func)(), void *arg, int stackno )
 {
 	(*func)( arg );
 
-	ldap_pvt_thread_free_stack( stackno );
+	ldap_int_thread_free_stack( stackno );
 }
 
 int 
@@ -149,7 +149,7 @@ ldap_pvt_thread_create( ldap_pvt_thread_t * thread,
 	stkalign_t	*stack;
 	int		stackno;
 
-	if ( (stack = ldap_pvt_thread_get_stack( &stackno )) == NULL ) {
+	if ( (stack = ldap_int_thread_get_stack( &stackno )) == NULL ) {
 		return( -1 );
 	}
 	return( lwp_create( thread, lwp_create_stack, MINPRIO, 0, 
@@ -308,7 +308,7 @@ ldap_pvt_thread_cond_signal( ldap_pvt_thread_cond_t *cond )
 
 int 
 ldap_pvt_thread_cond_wait( ldap_pvt_thread_cond_t *cond, 
-		      ldap_pvt_thread_mutex_t *mutex )
+	ldap_int_thread_mutex_t *mutex )
 {
 	if ( ! cond->lcv_created ) {
 		cv_create( &cond->lcv_cv, *mutex );

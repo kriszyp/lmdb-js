@@ -1,5 +1,9 @@
 /* search.c - shell backend search function */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 
@@ -16,13 +20,14 @@ shell_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*base,
+    const char	*base,
+    const char	*nbase,
     int		scope,
     int		deref,
     int		size,
     int		time,
     Filter	*filter,
-    char	*filterstr,
+    const char	*filterstr,
     char	**attrs,
     int		attrsonly
 )

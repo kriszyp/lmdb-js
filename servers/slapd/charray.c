@@ -1,7 +1,7 @@
 /* charray.c - routines for dealing with char * arrays */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -86,6 +86,8 @@ charray_inlist(
 {
 	int	i;
 
+	if( a == NULL ) return 0;
+
 	for ( i = 0; a[i] != NULL; i++ ) {
 		if ( strcasecmp( s, a[i] ) == 0 ) {
 			return( 1 );
@@ -112,34 +114,6 @@ charray_dup( char **a )
 	new[i] = NULL;
 
 	return( new );
-}
-
-
-char *
-charray2str( char **a )
-{
-	char *s;
-	int i;
-	size_t cur, len = 0;
-
-	if( a == NULL ) return NULL;
-
-	for( i=0 ; a[i] != NULL ; i++ ) {
-		len += strlen( a[i] );
-	}
-
-	if( len == 0 ) return NULL;
-
-	s = ch_malloc( len + 1 );
-
-	cur = 0;
-	for( i=0 ; a[i] != NULL ; i++ ) {
-		len = strlen( a[i] );
-		strncpy( &s[cur], a[i], len );
-		cur += len;
-	}
-	s[len] = '\0';
-	return s;
 }
 
 

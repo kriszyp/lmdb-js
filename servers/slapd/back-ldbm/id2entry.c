@@ -1,7 +1,7 @@
 /* id2entry.c - routines to deal with the id2entry index */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -49,7 +49,6 @@ id2entry_add( Backend *be, Entry *e )
 
 	/* store it */
 	flags = LDBM_REPLACE;
-	if ( li->li_dbcachewsync ) flags |= LDBM_SYNC;
 	rc = ldbm_cache_store( db, key, data, flags );
 
 	ldap_pvt_thread_mutex_unlock( &entry2str_mutex );
@@ -73,7 +72,7 @@ id2entry_delete( Backend *be, Entry *e )
 	    e->e_dn, 0 );
 
 #ifdef notdef
-#ifdef LDAP_DEBUG
+#ifdef LDAP_RDWR_DEBUG
 	/* check for writer lock */
 	assert(ldap_pvt_thread_rdwr_writers(&e->e_rdwr) == 1);
 #endif

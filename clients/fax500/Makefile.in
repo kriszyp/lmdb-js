@@ -1,6 +1,8 @@
 # $OpenLDAP$
 
-PROGRAMS= rp500 fax500 xrpcomp.tmp
+UNIX_PRGS = rp500 fax500
+EXEPRGS = $(@PLAT@_PRGS)
+PROGRAMS = xrpcomp.tmp $(EXEPRGS)
 
 SRCS= main.c faxtotpc.c rp500.c
 XSRCS=fax5version.c rpversion.c
@@ -32,7 +34,12 @@ xrpcomp.tmp: xrpcomp
 	$(SED) -e 's|%LIBEXECDIR%|$(libexecdir)|' $(srcdir)/xrpcomp > xrpcomp.tmp
 
 install-local: $(PROGRAMS) FORCE
-	-$(MKDIR) $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 rp500 $(libexecdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 fax500 $(libexecdir)
-	$(INSTALL) $(INSTALLFLAGS) -m 755 xrpcomp.tmp $(libexecdir)/xrpcomp
+	-$(MKDIR) $(DESTDIR)$(libexecdir)
+	@(								\
+	    for prg in $(EXEPRGS); do					\
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 $$prg$(EXEEXT)	\
+		    $(DESTDIR)$(libexecdir);				\
+	    done							\
+	)
+	$(INSTALL_SCRIPT) $(INSTALLFLAGS) xrpcomp.tmp	\
+		$(DESTDIR)$(libexecdir)/xrpcomp

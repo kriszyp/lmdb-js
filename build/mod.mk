@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998,1999 The OpenLDAP Foundation
+## Copyright 1998-2000 The OpenLDAP Foundation
 ## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
 ## of this package for details.
 ##---------------------------------------------------------------------------
@@ -9,7 +9,19 @@
 
 LIBRARY = $(LIBBASE).la
 LIBSTAT = lib$(LIBBASE).a
+
 LTFLAGS = --only-$(LINKAGE)
+
+COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) $(MODDEFS) -c
+LTLIBLINK = $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) $(CFLAGS) $(LDFLAGS) \
+		$(LTVERSION) $(LT_NO_UNDEF)
+
+MKDEPFLAG = -l
+
+.SUFFIXES: .c .o .lo
+
+.c.lo:
+	$(COMPILE) $<
 
 all-no lint-no 5lint-no depend-no install-no: FORCE
 	@echo "run configure with $(BUILD_OPT) to make $(LIBBASE)"
@@ -20,8 +32,9 @@ version.c: $(OBJS)
 	$(RM) $@
 	$(MKVERSION) $(LIBBASE) > $@
 
-$(LIBRARY): version.lo
-	$(LTLIBLINK) -module -rpath $(moduledir) -o $@ $(OBJS) version.lo
+$(LIBRARY): $(MODDEPS) version.lo
+	$(LTLIBLINK) -module -rpath $(moduledir) -o $@ $(OBJS) version.lo \
+	    $(MODLIBS)
 
 $(LIBSTAT): version.lo
 	$(AR) ruv $@ `echo $(OBJS) | sed 's/\.lo/.o/g'` version.o
@@ -46,8 +59,8 @@ all-local-lib:
 all-yes: $(LIBSTAT) all-local-lib FORCE
 
 install-mod: $(LIBRARY)
-	@-$(MKDIR) $(moduledir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 $(LIBRARY) $(moduledir)
+	@-$(MKDIR) $(DESTDIR)$(moduledir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 755 $(LIBRARY) $(DESTDIR)$(moduledir)
 
 install-local-lib:
 install-yes: install-local-lib FORCE
@@ -71,12 +84,5 @@ depend-yes depend-mod: depend-local-lib FORCE
 veryclean-local-lib:
 veryclean-lib: 	clean-lib veryclean-local-lib
 
-COMPILE = $(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) $(CFLAGS) -c
-MKDEPFLAG = -l
-
-.SUFFIXES: .c .o .lo
-
-.c.lo:
-	$(COMPILE) $<
-
 Makefile: $(top_srcdir)/build/mod.mk
+

@@ -1,7 +1,7 @@
 /* init.c - initialize various things */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -27,7 +27,10 @@ int		ldap_syslog = LDAP_DEBUG_STATS;
 int		ldap_syslog;
 #endif
 
+#ifdef LOG_DEBUG
 int		ldap_syslog_level = LOG_DEBUG;
+#endif
+
 struct berval **default_referral = NULL;
 int		g_argc;
 char		**g_argv;
@@ -35,10 +38,7 @@ char		**g_argv;
 /*
  * global variables that need mutex protection
  */
-int				active_threads;
-ldap_pvt_thread_mutex_t	active_threads_mutex;
-ldap_pvt_thread_cond_t	active_threads_cond;
-
+ldap_pvt_thread_pool_t	connection_pool;
 ldap_pvt_thread_mutex_t	gmtime_mutex;
 #ifdef SLAPD_CRYPT
 ldap_pvt_thread_mutex_t	crypt_mutex;
@@ -61,13 +61,13 @@ ldap_pvt_thread_mutex_t	num_sent_mutex;
 ldap_pvt_thread_mutex_t	entry2str_mutex;
 ldap_pvt_thread_mutex_t	replog_mutex;
 
-static char* slap_name;
+static const char* slap_name = NULL;
 int slapMode = SLAP_UNDEFINED_MODE;
 
 static ldap_pvt_thread_mutex_t	currenttime_mutex;
 
 int
-slap_init( int mode, char *name )
+slap_init( int mode, const char *name )
 {
 	int rc;
 
@@ -86,15 +86,15 @@ slap_init( int mode, char *name )
 		case SLAP_SERVER_MODE:
 		case SLAP_TOOL_MODE:
 			Debug( LDAP_DEBUG_TRACE,
-				"%s init: initiated %s.\n",
-				name, ( mode & SLAP_TOOL_MODE ) ? "tool" : "server", 0 );
+				"%s init: initiated %s.\n",	name,
+				(mode & SLAP_MODE) == SLAP_TOOL_MODE ? "tool" : "server",
+				0 );
 
 			slap_name = name;
 	
 			(void) ldap_pvt_thread_initialize();
 
-			ldap_pvt_thread_mutex_init( &active_threads_mutex );
-			ldap_pvt_thread_cond_init( &active_threads_cond );
+			ldap_pvt_thread_pool_init(&connection_pool, 0, 0);
 
 			ldap_pvt_thread_mutex_init( &currenttime_mutex );
 			ldap_pvt_thread_mutex_init( &entry2str_mutex );

@@ -1,7 +1,7 @@
 /* Generic bytes.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -15,32 +15,41 @@
 
 /* cross compilers should define both AC_INT{2,4}_TYPE in CPPFLAGS */
 
-#if !defined( AC_INT4_TYPE ) || !defined( AC_INT2_TYPE )
+#if !defined( AC_INT4_TYPE ) 
 	/* use autoconf defines to provide sized typedefs */
 #	if SIZEOF_LONG == 4
 #		define AC_INT4_TYPE long
 #	elif SIZEOF_INT == 4
 #		define AC_INT4_TYPE int
+#	elif SIZEOF_SHORT == 4
+#		define AC_INT4_TYPE short
 #	else
 #		error "AC_INT4_TYPE?"
 #	endif
-
-#	if SIZEOF_SHORT == 2
-#		define AC_INT2_TYPE short
-#	elif SIZEOF_INT == 2
-#		define AC_INT2_TYPE int
-#	else
-#		error "AC_INT2_TYPE?"
-#	endif
 #endif
-    
+
 typedef AC_INT4_TYPE ac_int4;
 typedef signed AC_INT4_TYPE ac_sint4;
 typedef unsigned AC_INT4_TYPE ac_uint4;
 
+#if !defined( AC_INT2_TYPE ) 
+#	if SIZEOF_SHORT == 2
+#		define AC_INT2_TYPE short
+#	elif SIZEOF_INT == 2
+#		define AC_INT2_TYPE int
+#	elif SIZEOF_LONG == 2
+#		define AC_INT2_TYPE long
+#	else
+/* not used, no error */
+/* #	error "AC_INT2_TYPE?" */
+#	endif
+#endif
+    
+#if defined( AC_INT2_TYPE ) 
 typedef AC_INT2_TYPE ac_int2;
 typedef signed AC_INT2_TYPE ac_sint2;
 typedef unsigned AC_INT2_TYPE ac_uint2;
+#endif
 
 #ifndef BYTE_ORDER
 /* cross compilers should define BYTE_ORDER in CPPFLAGS */

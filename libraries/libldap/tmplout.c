@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 
+#include <ac/socket.h>
 #include <ac/stdlib.h>
 
 #include <ac/ctype.h>
@@ -477,11 +478,11 @@ do_entry2text_search(
 #ifdef LDAP_CONNECTIONLESS
 	    if ( LDAP_IS_CLDAP( ld ))
 		    err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE,
-			"objectClass=*", ocattrs, 0, &ldmp, NULL );
+			NULL, ocattrs, 0, &ldmp, NULL );
 	    else
 #endif /* LDAP_CONNECTIONLESS */
 		    err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE,
-			    "objectClass=*", ocattrs, 0, &timeout, &ldmp );
+			    NULL, ocattrs, 0, &timeout, &ldmp );
 
 	    if ( err == LDAP_SUCCESS ) {
 		entry = ldap_first_entry( ld, ldmp );
@@ -510,11 +511,11 @@ do_entry2text_search(
 
 #ifdef LDAP_CONNECTIONLESS
     if ( LDAP_IS_CLDAP( ld ))
-	err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
+	err = cldap_search_s( ld, dn, LDAP_SCOPE_BASE, NULL,
 		fetchattrs, 0, &ldmp, NULL );
     else
 #endif /* LDAP_CONNECTIONLESS */
-	err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, "objectClass=*",
+	err = ldap_search_st( ld, dn, LDAP_SCOPE_BASE, NULL,
 		fetchattrs, 0, &timeout, &ldmp );
 
     if ( freedn ) {
@@ -900,7 +901,7 @@ time2text( char *ldtimestr, int dateonly )
 	    return( fmterr );
 	}
 	
-    memset( (char *)&t, 0, sizeof( struct tm ));
+    memset( (char *)&t, '\0', sizeof( struct tm ));
 
     p = ldtimestr;
 
@@ -909,8 +910,17 @@ time2text( char *ldtimestr, int dateonly )
 		/* POSIX says tm_year should be year - 1900 */
     	t.tm_year = 100 * GET2BYTENUM( p ) - 1900;
 		p += 2;
+		t.tm_year += GET2BYTENUM( p ); p += 2;
+
+	} else {
+		/* came without a century */
+		t.tm_year = GET2BYTENUM( p ); p += 2;
+
+		/* Y2K hack - 2 digit years < 70 are 21st century */
+		if( t.tm_year < 70 ) {
+			t.tm_year += 100;
+		}
 	}
-    t.tm_year = GET2BYTENUM( p ); p += 2;
 
     t.tm_mon = GET2BYTENUM( p ) - 1; p += 2;
     t.tm_mday = GET2BYTENUM( p ); p += 2;

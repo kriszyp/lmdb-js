@@ -1,5 +1,9 @@
 /* init.c - initialize shell backend */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 
@@ -15,7 +19,7 @@
 int back_shell_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "shell";
     bi.bi_init = shell_back_initialize;
 
@@ -51,7 +55,15 @@ shell_back_initialize(
 	bi->bi_op_delete = shell_back_delete;
 	bi->bi_op_abandon = shell_back_abandon;
 
+	bi->bi_extended = 0;
+
 	bi->bi_acl_group = 0;
+
+#ifdef HAVE_CYRUS_SASL
+	bi->bi_sasl_authorize = 0;
+	bi->bi_sasl_getsecret = 0;
+	bi->bi_sasl_putsecret = 0;
+#endif /* HAVE_CYRUS_SASL */
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;

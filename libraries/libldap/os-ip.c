@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -46,7 +46,7 @@ int ldap_int_tblsize = 0;
 
 #define osip_debug(ld,fmt,arg1,arg2,arg3) \
 do { \
-	ldap_log_printf(ld, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
+	ldap_log_printf(NULL, LDAP_DEBUG_TRACE, fmt, arg1, arg2, arg3); \
 } while(0)
 
 static void
@@ -67,7 +67,7 @@ ldap_int_timeval_dup( struct timeval **dest, const struct timeval *src )
 		return 0;
 	}
 
-	new = (struct timeval *) malloc(sizeof(struct timeval));
+	new = (struct timeval *) LDAP_MALLOC(sizeof(struct timeval));
 
 	if( new == NULL ) {
 		*dest = NULL;
@@ -117,8 +117,13 @@ ldap_pvt_prepare_socket(LDAP *ld, int fd)
 #ifdef TCP_NODELAY
 {
 	int dummy = 1;
-	if ( setsockopt( fd, IPPROTO_TCP, TCP_NODELAY, (char*) &dummy, sizeof(dummy) ) == -1 )
-		return -1;
+	if ( setsockopt( fd, IPPROTO_TCP, TCP_NODELAY,
+		(char*) &dummy, sizeof(dummy) ) == AC_SOCKET_ERROR )
+	{
+		osip_debug(ld, "ldap_prepare_socket: "
+			"setsockopt(%d, TCP_NODELAY) failed (ignored).\n",
+			fd, 0, 0);
+	}
 }
 #endif
 	return 0;
@@ -127,10 +132,10 @@ ldap_pvt_prepare_socket(LDAP *ld, int fd)
 #undef TRACE
 #define TRACE do { \
 	osip_debug(ld, \
-		"ldap_is_socket_ready: errror on socket %d: errno: %d (%s)\n", \
+		"ldap_is_socket_ready: error on socket %d: errno: %d (%s)\n", \
 		s, \
 		errno, \
-		strerror(errno) ); \
+		sock_errstr(errno) ); \
 } while( 0 )
 
 /*
@@ -182,6 +187,9 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
 {
 	struct timeval	tv, *opt_tv=NULL;
 	fd_set		wfds, *z=NULL;
+#ifdef HAVE_WINSOCK
+	fd_set		efds;
+#endif
 
 	if ( (opt_tv = ld->ld_options.ldo_tm_net) != NULL ) {
 		tv.tv_usec = opt_tv->tv_usec;
@@ -216,9 +224,30 @@ ldap_pvt_connect(LDAP *ld, ber_socket_t s, struct sockaddr_in *sin, int async)
 	FD_ZERO(&wfds);
 	FD_SET(s, &wfds );
 
-	if ( select(ldap_int_tblsize, z, &wfds, z, opt_tv ? &tv : NULL) == -1)
+#ifdef HAVE_WINSOCK
+	FD_ZERO(&efds);
+	FD_SET(s, &efds );
+#endif
+
+	if ( select(ldap_int_tblsize, z, &wfds,
+#ifdef HAVE_WINSOCK
+		    &efds,
+#else
+		    z,
+#endif
+		    opt_tv ? &tv : NULL) == -1)
 		return ( -1 );
 
+#ifdef HAVE_WINSOCK
+	/* This means the connection failed */
+	if (FD_ISSET(s, &efds))
+	{
+	    ldap_pvt_set_errno(WSAECONNREFUSED);
+	    osip_debug(ld, "ldap_pvt_connect: error on socket %d: "
+		       "errno: %d (%s)\n", s, errno, sock_errstr(errno));
+	    return -1;
+	}
+#endif
 	if ( FD_ISSET(s, &wfds) ) {
 		if ( ldap_pvt_is_socket_ready(ld, s) == -1 )
 			return ( -1 );
@@ -295,12 +324,12 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 			break;
 		}
 
-		(void)memset((char *)&sin, 0, sizeof(struct sockaddr_in));
+		(void)memset((char *)&sin, '\0', sizeof(struct sockaddr_in));
 		sin.sin_family = AF_INET;
 		sin.sin_port = port;
-		p = (char *)&sin.sin_addr.s_addr;
+		p = (char *)&sin.sin_addr;
 		q = use_hp ? (char *)hp->h_addr_list[i] : (char *)&address;
-		SAFEMEMCPY(p, q, sizeof(p) );
+		SAFEMEMCPY(p, q, sizeof(sin.sin_addr) );
 
 		osip_debug(ld, "ldap_connect_to_host: Trying %s:%d\n", 
 				inet_ntoa(sin.sin_addr),ntohs(sin.sin_port),0);
@@ -308,7 +337,7 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 		rc = ldap_pvt_connect(ld, s, &sin, async);
    
 		if ( (rc == 0) || (rc == -2) ) {
-			ber_pvt_sb_set_desc( sb, s );
+			ber_sockbuf_ctrl( sb, LBER_SB_OPT_SET_FD, &s );
 			break;
 		}
 
@@ -321,19 +350,11 @@ ldap_connect_to_host(LDAP *ld, Sockbuf *sb, const char *host,
 	return rc;
 }
 
-void
-ldap_close_connection( Sockbuf *sb )
-{
-	ber_pvt_sb_close( sb );
-}
-
-
-#if defined( HAVE_KERBEROS ) || defined( HAVE_TLS )
+#if defined( LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND ) || defined( HAVE_TLS ) || defined( HAVE_CYRUS_SASL )
 char *
 ldap_host_connected_to( Sockbuf *sb )
 {
 	struct hostent		*hp;
-	char			*p;
 	socklen_t         	len;
 	struct sockaddr_in	sin;
 
@@ -341,12 +362,14 @@ ldap_host_connected_to( Sockbuf *sb )
    	struct hostent		he_buf;
         int			local_h_errno;
    	char			*ha_buf=NULL;
+	ber_socket_t		sd;
 #define DO_RETURN(x) if (ha_buf) LDAP_FREE(ha_buf); return (x);
    
-	(void)memset( (char *)&sin, 0, sizeof( struct sockaddr_in ));
+	(void)memset( (char *)&sin, '\0', sizeof( struct sockaddr_in ));
 	len = sizeof( sin );
 
-	if ( getpeername( ber_pvt_sb_get_desc(sb), (struct sockaddr *)&sin, &len ) == -1 ) {
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( getpeername( sd, (struct sockaddr *)&sin, &len ) == -1 ) {
 		return( NULL );
 	}
 
@@ -370,7 +393,7 @@ ldap_host_connected_to( Sockbuf *sb )
 }
 #undef DO_RETURN   
    
-#endif /* HAVE_KERBEROS || HAVE_TLS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND || HAVE_TLS */
 
 
 /* for UNIX */
@@ -386,11 +409,13 @@ void
 ldap_mark_select_write( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 	
-	if ( !FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_writefds )) {
-		FD_SET( (u_int) sb->sb_sd, &sip->si_writefds );
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( !FD_ISSET( sd, &sip->si_writefds )) {
+		FD_SET( sd, &sip->si_writefds );
 	}
 }
 
@@ -399,11 +424,13 @@ void
 ldap_mark_select_read( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	if ( !FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_readfds )) {
-		FD_SET( (u_int) sb->sb_sd, &sip->si_readfds );
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	if ( !FD_ISSET( sd, &sip->si_readfds )) {
+		FD_SET( sd, &sip->si_readfds );
 	}
 }
 
@@ -412,11 +439,13 @@ void
 ldap_mark_select_clear( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	FD_CLR( (u_int) ber_pvt_sb_get_desc(sb), &sip->si_writefds );
-	FD_CLR( (u_int) ber_pvt_sb_get_desc(sb), &sip->si_readfds );
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	FD_CLR( sd, &sip->si_writefds );
+	FD_CLR( sd, &sip->si_readfds );
 }
 
 
@@ -424,10 +453,12 @@ int
 ldap_is_write_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	return( FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_use_writefds ));
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	return( FD_ISSET( sd, &sip->si_use_writefds ));
 }
 
 
@@ -435,10 +466,12 @@ int
 ldap_is_read_ready( LDAP *ld, Sockbuf *sb )
 {
 	struct selectinfo	*sip;
+	ber_socket_t		sd;
 
 	sip = (struct selectinfo *)ld->ld_selectinfo;
 
-	return( FD_ISSET( ber_pvt_sb_get_desc(sb), &sip->si_use_readfds ));
+	ber_sockbuf_ctrl( sb, LBER_SB_OPT_GET_FD, &sd );
+	return( FD_ISSET( sd, &sip->si_use_readfds ));
 }
 
 

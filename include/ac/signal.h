@@ -1,7 +1,7 @@
 /* Generic signal.h */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -26,7 +26,11 @@
 #undef LDAP_SIGUSR1
 #undef LDAP_SIGUSR2
 
-#	ifndef HAVE_LINUX_THREADS
+#	if defined(WINNT) || defined(_WINNT) || defined(_WIN32)
+#		define LDAP_SIGUSR1	SIGILL
+#		define LDAP_SIGUSR2	SIGTERM
+
+#	elif !defined(HAVE_LINUX_THREADS)
 #		define LDAP_SIGUSR1	SIGUSR1
 #		define LDAP_SIGUSR2	SIGUSR2
 

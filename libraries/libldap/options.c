@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -15,6 +15,8 @@
 #include <ac/time.h>
 
 #include "ldap-int.h"
+
+#define LDAP_OPT_REBIND_PROC 0x4e814d
 
 static const LDAPAPIFeatureInfo features[] = {
 #ifdef LDAP_API_FEATURE_X_OPENLDAP
@@ -61,13 +63,6 @@ static const LDAPAPIFeatureInfo features[] = {
 		LDAP_API_FEATURE_X_OPENLDAP_THREAD_SAFE
 	},
 #endif
-#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	{	/* DNS */
-		LDAP_FEATURE_INFO_VERSION,
-		"X_OPENLDAP_V2_DNS",
-		LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
-	},
-#endif
 #ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 	{	/* V2 Referrals */
 		LDAP_FEATURE_INFO_VERSION,
@@ -80,20 +75,23 @@ static const LDAPAPIFeatureInfo features[] = {
 
 int
 ldap_get_option(
-	LDAP_CONST LDAP	*ld,
+	LDAP	*ld,
 	int		option,
 	void	*outvalue)
 {
-	LDAP_CONST struct ldapoptions *lo;
+	struct ldapoptions *lo;
 
-	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize();
+	/* Get pointer to global option structure */
+	lo = LDAP_INT_GLOBAL_OPT();   
+	if (NULL == lo)	{
+		return LDAP_NO_MEMORY;
 	}
 
-	if(ld == NULL) {
-		lo = &ldap_int_global_options;
+	if( lo->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(lo, NULL);
+	}
 
-	} else {
+	if(ld != NULL) {
 		assert( LDAP_VALID( ld ) );
 
 		if( !LDAP_VALID( ld ) ) {
@@ -149,12 +147,12 @@ ldap_get_option(
 		} break;
 
 	case LDAP_OPT_DESC:
-		if(ld == NULL) {
+		if( ld == NULL || ld->ld_sb == NULL ) {
 			/* bad param */
 			break;
 		} 
 
-		* (ber_socket_t *) outvalue = ber_pvt_sb_get_desc( &(ld->ld_sb) );
+		ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, outvalue );
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_TIMEOUT:
@@ -193,16 +191,8 @@ ldap_get_option(
 		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_RESTART);
 		return LDAP_OPT_SUCCESS;
 
-	case LDAP_OPT_DNS:	/* LDAPv2 */
-		* (int *) outvalue = (int) LDAP_BOOL_GET(lo, LDAP_BOOL_DNS);
-		return LDAP_OPT_SUCCESS;
-
 	case LDAP_OPT_PROTOCOL_VERSION:
-		if ((ld != NULL) && ld->ld_version) {
-			* (int *) outvalue = ld->ld_version;
-		} else { 
-			* (int *) outvalue = lo->ldo_version;
-		}
+		* (int *) outvalue = lo->ldo_version;
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_SERVER_CONTROLS:
@@ -218,7 +208,11 @@ ldap_get_option(
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_HOST_NAME:
-		* (char **) outvalue = LDAP_STRDUP(lo->ldo_defhost);
+		* (char **) outvalue = ldap_url_list2hosts(lo->ldo_defludp);
+		return LDAP_OPT_SUCCESS;
+
+	case LDAP_OPT_URI:
+		* (char **) outvalue = ldap_url_list2urls(lo->ldo_defludp);
 		return LDAP_OPT_SUCCESS;
 
 	case LDAP_OPT_ERROR_NUMBER:
@@ -287,7 +281,11 @@ ldap_get_option(
 
 	default:
 #ifdef HAVE_TLS
-	   	if ( ldap_pvt_tls_get_option(lo, option, outvalue ) == 0 )
+	   	if ( ldap_pvt_tls_get_option((struct ldapoptions *)lo, option, outvalue ) == 0 )
+	     		return LDAP_OPT_SUCCESS;
+#endif
+#ifdef HAVE_CYRUS_SASL
+	   	if ( ldap_pvt_sasl_get_option(ld, option, outvalue ) == 0 )
 	     		return LDAP_OPT_SUCCESS;
 #endif
 		/* bad param */
@@ -304,15 +302,27 @@ ldap_set_option(
 	LDAP_CONST void	*invalue)
 {
 	struct ldapoptions *lo;
+	int *dbglvl = NULL;
 
-	if( ldap_int_global_options.ldo_valid != LDAP_INITIALIZED ) {
-		ldap_int_initialize();
+	/* Get pointer to global option structure */
+	lo = LDAP_INT_GLOBAL_OPT();
+	if (lo == NULL)	{
+		return LDAP_NO_MEMORY;
 	}
 
-	if(ld == NULL) {
-		lo = &ldap_int_global_options;
+	/*
+	 * The architecture to turn on debugging has a chicken and egg
+	 * problem. Thus, we introduce a fix here.
+	 */
 
-	} else {
+	if (option == LDAP_OPT_DEBUG_LEVEL)
+	    dbglvl = (int *) invalue;
+
+	if( lo->ldo_valid != LDAP_INITIALIZED ) {
+		ldap_int_initialize(lo, dbglvl);
+	}
+
+	if(ld != NULL) {
 		assert( LDAP_VALID( ld ) );
 
 		if( !LDAP_VALID( ld ) ) {
@@ -407,6 +417,11 @@ ldap_set_option(
 				return LDAP_OPT_ERROR;
 			}
 		} return LDAP_OPT_SUCCESS;
+
+	/* Only accessed from inside this function by ldap_set_rebind_proc() */
+	case LDAP_OPT_REBIND_PROC: {
+			lo->ldo_rebindproc = (LDAP_REBIND_PROC *)invalue;		
+		} return LDAP_OPT_SUCCESS;
 	}
 
 	if(invalue == NULL) {
@@ -440,39 +455,77 @@ ldap_set_option(
 				/* not supported */
 				break;
 			}
-			ld->ld_version = vers;
+			lo->ldo_version = vers;
 		} return LDAP_OPT_SUCCESS;
 
 
 	case LDAP_OPT_HOST_NAME: {
 			const char *host = (const char *) invalue;
-
-			if(lo->ldo_defhost != NULL) {
-				LDAP_FREE(lo->ldo_defhost);
-				lo->ldo_defhost = NULL;
-			}
+			LDAPURLDesc *ludlist = NULL;
+			int rc = LDAP_OPT_SUCCESS;
 
 			if(host != NULL) {
-				lo->ldo_defhost = LDAP_STRDUP(host);
-				return LDAP_OPT_SUCCESS;
-			}
+				rc = ldap_url_parsehosts(&ludlist, host);
 
-			if(ld == NULL) {
+			} else if(ld == NULL) {
 				/*
 				 * must want global default returned
 				 * to initial condition.
 				 */
-				lo->ldo_defhost = LDAP_STRDUP("localhost");
+				rc = ldap_url_parselist(&ludlist, "ldap://localhost/");
 
 			} else {
 				/*
 				 * must want the session default
 				 *   updated to the current global default
 				 */
-				lo->ldo_defhost = LDAP_STRDUP(
-					ldap_int_global_options.ldo_defhost);
+				ludlist = ldap_url_duplist(
+					ldap_int_global_options.ldo_defludp);
+				if (ludlist == NULL)
+					rc = LDAP_NO_MEMORY;
 			}
-		} return LDAP_OPT_SUCCESS;
+
+			if (rc == LDAP_OPT_SUCCESS) {
+				if (lo->ldo_defludp != NULL)
+					ldap_free_urllist(lo->ldo_defludp);
+				lo->ldo_defludp = ludlist;
+			}
+			return rc;
+		}
+
+	case LDAP_OPT_URI: {
+			const char *urls = (const char *) invalue;
+			LDAPURLDesc *ludlist = NULL;
+			int rc = LDAP_OPT_SUCCESS;
+
+			if(urls != NULL) {
+				rc = ldap_url_parselist(&ludlist, urls);
+
+			} else if(ld == NULL) {
+				/*
+				 * must want global default returned
+				 * to initial condition.
+				 */
+				rc = ldap_url_parselist(&ludlist, "ldap://localhost/");
+
+			} else {
+				/*
+				 * must want the session default
+				 *   updated to the current global default
+				 */
+				ludlist = ldap_url_duplist(
+					ldap_int_global_options.ldo_defludp);
+				if (ludlist == NULL)
+					rc = LDAP_NO_MEMORY;
+			}
+
+			if (rc == LDAP_OPT_SUCCESS) {
+				if (lo->ldo_defludp != NULL)
+					ldap_free_urllist(lo->ldo_defludp);
+				lo->ldo_defludp = ludlist;
+			}
+			return rc;
+		}
 
 	case LDAP_OPT_ERROR_NUMBER: {
 			int err = * (const int *) invalue;
@@ -525,11 +578,21 @@ ldap_set_option(
 
 	default:
 #ifdef HAVE_TLS
-		if ( ldap_pvt_tls_set_option( lo, option, invalue ) == 0 )
-	     		return LDAP_OPT_SUCCESS;
+		if ( ldap_pvt_tls_set_option( lo, option, (void	*)invalue ) == 0 )
+	     	return LDAP_OPT_SUCCESS;
+#endif
+#ifdef HAVE_CYRUS_SASL
+		if ( ldap_pvt_sasl_set_option( ld, option, (void *)invalue ) == 0 )
+			return LDAP_OPT_SUCCESS;
 #endif
 		/* bad param */
 		break;
 	}
 	return LDAP_OPT_ERROR;
+}
+
+LIBLDAP_F(int)
+ldap_set_rebind_proc( LDAP *ld, LDAP_REBIND_PROC *rebind_proc)
+{
+	return( ldap_set_option( ld, LDAP_OPT_REBIND_PROC, (void *)rebind_proc));
 }

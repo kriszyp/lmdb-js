@@ -1,10 +1,12 @@
-.TH LDAP_GET_DN 3  "16 June 1995" "U-M LDAP LDVERSION"
+.TH LDAP_GET_DN 3 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
-ldap_get_dn, ldap_explode_dn, ldap_dn2ufn, ldap_is_dns_dn, ldap_explode_dns \- LDAP DN handling routines
+ldap_get_dn, ldap_explode_dn, ldap_explode_rdn, ldap_dn2ufn, ldap_is_dns_dn, ldap_explode_dns \- LDAP DN handling routines
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 .LP
 .ft B
@@ -17,6 +19,12 @@ LDAPMessage *entry;
 char **ldap_explode_dn(dn, notypes)
 .ft
 char *dn;
+int notypes;
+.LP
+.ft B
+char **ldap_explode_rdn(rdn, notypes)
+.ft
+char *rdn;
 int notypes;
 .LP
 .ft B
@@ -47,10 +55,9 @@ routine takes an \fIentry\fP as returned by
 or
 .BR ldap_next_entry (3)
 and returns a copy of
-the entry's DN.  Space for the DN will have been obtained via
-.BR malloc (3),
-and should be freed by the caller by a call to
-.BR free (3).
+the entry's DN.  Space for the DN will be obtained dynamically
+and should be freed by the caller using 
+.BR ldap_memfree (3).
 .LP
 The
 .B ldap_explode_dn()
@@ -68,16 +75,24 @@ c=US" would return as either { "cn=Bob", "c=US", NULL } or { "Bob",
 The result can be freed by calling
 .BR ldap_value_free (3).
 .LP
+Similarly, the
+.B ldap_explode_rdn()
+routine takes an RDN as returned by
+.B ldap_explode_dn(dn,0)
+and breaks it up into its "type=value" component parts (or just "value",
+if the \fInotypes\fP parameter is set).  The result can be freed by
+calling
+.BR ldap_value_free (3).
+.LP
 .B ldap_dn2ufn()
 is used to turn a DN as returned by
 .B ldap_get_dn()
 into a more user-friendly form, stripping off type names.  See
 RFC 1781 "Using the Directory to Achieve User Friendly Naming"
 for more details on the UFN format.  The space for the UFN returned
-is obtained by a call to
-.BR malloc (3),
-and the user is responsible for freeing it via a call to
-.BR free (3).
+is obtained dynamically and the user is responsible for freeing it
+via a call to
+.BR ldap_memfree (3).
 .LP
 .B ldap_is_dns_dn()
 returns non-zero if the dn string is an experimental
@@ -101,6 +116,7 @@ field in the \fIld\fP parameter is set to indicate the error.  See
 .BR ldap_error (3)
 for a description of possible error codes.
 .BR ldap_explode_dn() ,
+.BR ldap_explode_rdn() ,
 .B ldap_explode_dns()
 and
 .B ldap_dn2ufn()
@@ -108,9 +124,15 @@ will return NULL with
 .BR errno (3)
 set appropriately in case of trouble.
 .SH NOTES
-These routines malloc memory that the caller must free.
+These routines dyanamically allocate memory that the caller must free.
 .SH SEE ALSO
 .BR ldap(3),
-.BR ldap_first_entry(3),
 .BR ldap_error(3),
+.BR ldap_first_entry(3),
+.BR ldap_memfree(3),
 .BR ldap_value_free(3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

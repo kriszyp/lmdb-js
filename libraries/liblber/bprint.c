@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -12,21 +12,51 @@
 #include <ac/stdarg.h>
 #include <ac/string.h>
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
+
+/*
+ * We don't just set ber_pvt_err_file to stderr here, because in NT,
+ * stderr is a symbol imported from a DLL. As such, the compiler
+ * doesn't recognize the symbol as having a constant address. Thus
+ * we set ber_pvt_err_file to stderr later, when it first gets
+ * referenced.
+ */
+FILE *ber_pvt_err_file;
+
+/*
+ * ber errno
+ */
+BER_ERRNO_FN ber_int_errno_fn;
+
+int * ber_errno_addr(void)
+{
+	static int ber_int_errno = LBER_ERROR_NONE;
+
+	if( ber_int_errno_fn ) {
+		return (*ber_int_errno_fn)();
+	}
+
+	return &ber_int_errno;
+}
 
 /*
  * Print stuff
  */
-static void
-ber_error_print( char *data )
+void ber_error_print( LDAP_CONST char *data )
 {
 	assert( data != NULL );
 
-	fputs( data, stderr );
-	fflush( stderr );
+	if (!ber_pvt_err_file) ber_pvt_err_file = stderr;
+
+	fputs( data, ber_pvt_err_file );
+
+	/* Print to both streams */
+	if (ber_pvt_err_file != stderr) {
+		fputs( data, stderr );
+		fflush( stderr );
+	}
+
+	fflush( ber_pvt_err_file );
 }
 
 BER_LOG_PRINT_FN ber_pvt_log_print = ber_error_print;
@@ -114,7 +144,7 @@ ber_bprint(
 
 	assert( data != NULL );
 
-    memset( out, 0, BPLEN );
+    memset( out, '\0', BPLEN );
     for ( ;; ) {
 	if ( len < 1 ) {
 	    sprintf( buf, "\t%s\n", ( i == 0 ) ? "(end)" : out );
@@ -141,7 +171,7 @@ ber_bprint(
 		char data[128 + BPLEN];
 	    sprintf( data, "\t%s\n", out );
 		(*ber_pvt_log_print)(data);
-	    memset( out, 0, BPLEN );
+	    memset( out, '\0', BPLEN );
 	    i = 0;
 	    continue;
 	}
@@ -153,7 +183,7 @@ int
 ber_log_dump(
 	int errlvl,
 	int loglvl,
-	const BerElement *ber,
+	BerElement *ber,
 	int inout )
 {
 	assert( ber != NULL );
@@ -169,7 +199,7 @@ ber_log_dump(
 
 void
 ber_dump(
-	LDAP_CONST BerElement *ber,
+	BerElement *ber,
 	int inout )
 {
 	char buf[132];
@@ -201,7 +231,7 @@ int
 ber_log_sos_dump(
 	int errlvl,
 	int loglvl,
-	const Seqorset *sos )
+	Seqorset *sos )
 {
 	assert( sos != NULL );
 
@@ -215,7 +245,7 @@ ber_log_sos_dump(
 
 void
 ber_sos_dump(
-	LDAP_CONST Seqorset *sos )
+	Seqorset *sos )
 {
 	char buf[132];
 

@@ -14,7 +14,7 @@
 *            Creation date:                Z   D  D   V   V                *
 *            September 14 1995            Z    D   D   V V                 *
 *            Last modification:          Z     D  D    V V                 *
-*            January 19 1999            ZZZZ   DDD      V                  *
+*            September 13 1999          ZZZZ   DDD      V                  *
 *                                                                          *
 _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/*/
 
@@ -68,6 +68,19 @@ INSTALLATION
    you should have a look to file FEATURE-LIST to learn about the 
    several configuration parameters TWEB provides for runtime
    configuration of the program.
+
+   SINCE THE CODE IS ONLY THE CORE GATEWAY, WITH SOME PRIVATE EXTENSIONS
+   NOT INCLUDED INTO THAT DISTRIBUTION, DO NOT DELETE CODE BETWEEN
+
+      #ifdef TUE_TEL
+      #endif
+
+   AND
+
+     #ifdef AMBIXGW
+     #endif
+
+   IN ANY OF THE SUPPORTED FILES !!!
 
 
 SUPPORT

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -25,13 +25,13 @@
  ***********************************************************************/
 
 int
-ldap_pvt_thread_initialize( void )
+ldap_int_thread_initialize( void )
 {
 	return 0;
 }
 
 int
-ldap_pvt_thread_destroy( void )
+ldap_int_thread_destroy( void )
 {
 	return 0;
 }
@@ -127,9 +127,51 @@ ldap_pvt_thread_mutex_lock( ldap_pvt_thread_mutex_t *mutex )
 }
 
 int 
+ldap_pvt_thread_mutex_trylock( ldap_pvt_thread_mutex_t *mutex )
+{
+	return 0;
+}
+
+int 
 ldap_pvt_thread_mutex_unlock( ldap_pvt_thread_mutex_t *mutex )
 {
 	return 0;
+}
+
+/*
+ * NO_THREADS requires a separate tpool implementation since
+ * generic ldap_pvt_thread_pool_wrapper loops forever.
+ */
+int
+ldap_pvt_thread_pool_init (
+	ldap_pvt_thread_pool_t *pool_out,
+	int max_concurrency, int max_pending )
+{
+	*pool_out = NULL;
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_submit (
+	ldap_pvt_thread_pool_t *pool,
+	void *(*start_routine)( void * ), void *arg )
+{
+	(start_routine)(arg);
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_backload (
+	ldap_pvt_thread_pool_t *pool )
+{
+	return(0);
+}
+
+int
+ldap_pvt_thread_pool_destroy (
+	ldap_pvt_thread_pool_t *pool, int run_pending )
+{
+	return(0);
 }
 
 #endif /* NO_THREADS */

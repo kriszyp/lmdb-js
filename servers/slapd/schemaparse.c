@@ -1,7 +1,7 @@
 /* schemaparse.c - routines to parse config file objectclass definitions */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -18,22 +18,21 @@
 
 int	global_schemacheck = 1; /* schemacheck on is default */
 
-static void		oc_usage_old(void) LDAP_GCCATTR((noreturn));
 static void		oc_usage(void)     LDAP_GCCATTR((noreturn));
 static void		at_usage(void)     LDAP_GCCATTR((noreturn));
 
 static char *const err2text[] = {
-	"",
+	"Success",
 	"Out of memory",
-	"Objectclass not found",
-	"Attribute type not found",
-	"Duplicate objectclass",
-	"Duplicate attributetype",
-	"Duplicate syntax",
-	"Duplicate matchingrule",
+	"ObjectClass not found",
+	"AttributeType not found",
+	"Duplicate objectClass",
+	"Duplicate attributeType",
+	"Duplicate ldapSyntax",
+	"Duplicate matchingRule",
 	"OID or name required",
-	"Syntax or superior required",
-	"Matchingrule not found",
+	"SYNTAX or SUPerior required",
+	"MatchingRule not found",
 	"Syntax not found",
 	"Syntax required"
 };
@@ -41,109 +40,13 @@ static char *const err2text[] = {
 char *
 scherr2str(int code)
 {
-	if ( code < 1 || code >= (sizeof(err2text)/sizeof(char *)) ) {
+	if ( code < 0 || code >= (sizeof(err2text)/sizeof(char *)) ) {
 		return "Unknown error";
 	} else {
 		return err2text[code];
 	}
 }
 
-void
-parse_oc_old(
-    Backend	*be,
-    const char	*fname,
-    int		lineno,
-    int		argc,
-    char	**argv
-)
-{
-	int		i;
-	char		last;
-	LDAP_OBJECT_CLASS	*oc;
-	int		code;
-	const char	*err;
-	char		**namep;
-
-	oc = (LDAP_OBJECT_CLASS *) ch_calloc( 1, sizeof(LDAP_OBJECT_CLASS) );
-	oc->oc_names = ch_calloc( 2, sizeof(char *) );
-	oc->oc_names[0] = ch_strdup( argv[1] );
-	oc->oc_names[1] = NULL;
-	if ( strcasecmp( oc->oc_names[0], "top" ) ) {
-		oc->oc_kind = LDAP_SCHEMA_STRUCTURAL;
-	}
-	for ( i = 2; i < argc; i++ ) {
-		/* required attributes */
-		if ( strcasecmp( argv[i], "requires" ) == 0 ) {
-			do {
-				i++;
-				if ( i < argc ) {
-					char **s = str2charray( argv[i], "," );
-					last = argv[i][strlen( argv[i] ) - 1];
-					charray_merge( &oc->oc_at_oids_must, s );
-					charray_free( s );
-				}
-			} while ( i < argc && last == ',' );
-
-		/* optional attributes */
-		} else if ( strcasecmp( argv[i], "allows" ) == 0 ) {
-			do {
-				i++;
-				if ( i < argc ) {
-					char **s = str2charray( argv[i], "," );
-					last = argv[i][strlen( argv[i] ) - 1];
-					
-					charray_merge( &oc->oc_at_oids_may, s );
-					charray_free( s );
-				}
-			} while ( i < argc && last == ',' );
-
-		} else {
-			fprintf( stderr,
-	    "%s: line %d: expecting \"requires\" or \"allows\" got \"%s\"\n",
-			    fname, lineno, argv[i] );
-			oc_usage_old();
-		}
-	}
-
-	/*
-	 * There was no requirement in the old schema that all attributes
-	 * types were defined before use and they would just default to
-	 * SYNTAX_CIS.  To support this, we need to make attribute types
-	 * out of thin air.
-	 */
-	if ( oc->oc_at_oids_must ) {
-		namep = oc->oc_at_oids_must;
-		while ( *namep ) {
-			code = at_fake_if_needed( *namep );
-			if ( code ) {
-				fprintf( stderr, "%s: line %d: %s %s\n",
-					 fname, lineno, scherr2str(code), *namep);
-				exit( EXIT_FAILURE );
-			}
-			namep++;
-		}
-	}
-	if ( oc->oc_at_oids_may ) {
-		namep = oc->oc_at_oids_may;
-		while ( *namep ) {
-			code = at_fake_if_needed( *namep );
-			if ( code ) {
-				fprintf( stderr, "%s: line %d: %s %s\n",
-					 fname, lineno, scherr2str(code), *namep);
-				exit( EXIT_FAILURE );
-			}
-			namep++;
-		}
-	}
-	
-	code = oc_add(oc,&err);
-	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s %s\n",
-			 fname, lineno, scherr2str(code), err);
-		exit( EXIT_FAILURE );
-	}
-	ldap_memfree(oc);
-}
 
 /* OID Macros */
 
@@ -173,31 +76,38 @@ static char *
 find_oidm(char *oid)
 {
 	OidMacro *om;
-	char *new;
-	int pos, suflen;
 
 	/* OID macros must start alpha */
-	if ( !isdigit( *oid ) )
-	{
-	    for (om = om_list; om; om=om->next)
-	    {
-		if ((pos = dscompare(om->name, oid, ':')))
-		{
-			suflen = strlen(oid + pos);
-			new = ch_calloc(1, om->oidlen + suflen + 1);
-			strcpy(new, om->oid);
-			if (suflen)
-			{
-				suflen = om->oidlen;
-				new[suflen++] = '.';
-				strcpy(new+suflen, oid+pos+1);
-			}
-			return new;
-		}
-	    }
-	    return NULL;
+	if ( isdigit( *oid ) )	{
+		return oid;
 	}
-	return oid;
+
+    for (om = om_list; om; om=om->som_next) {
+		char **names = om->som_names;
+
+		if( names == NULL ) {
+			continue;
+		}
+
+		for( ; *names != NULL ; names++ ) {
+			int pos = dscompare(*names, oid, ':');
+
+			if( pos ) {
+				int suflen = strlen(oid + pos);
+				char *new = ch_calloc(1,
+					om->som_oid.bv_len + suflen + 1);
+				strcpy(new, om->som_oid.bv_val);
+
+				if( suflen ) {
+					suflen = om->som_oid.bv_len;
+					new[suflen++] = '.';
+					strcpy(new+suflen, oid+pos+1);
+				}
+				return new;
+			}
+		}
+	}
+	return NULL;
 }
 
 void
@@ -208,26 +118,43 @@ parse_oidm(
     char 	**argv
 )
 {
+	char *oid;
 	OidMacro *om;
 
-	if (argc != 3)
-	{
-usage:		fprintf( stderr, "ObjectIdentifier <name> <oid>\n");
+	if (argc != 3) {
+		fprintf( stderr, "%s: line %d: too many arguments\n",
+			fname, lineno );
+usage:	fprintf( stderr, "\tObjectIdentifier <name> <oid>\n");
 		exit( EXIT_FAILURE );
 	}
+
+	oid = find_oidm( argv[1] );
+	if( oid != NULL ) {
+		fprintf( stderr,
+			"%s: line %d: "
+			"ObjectIdentifier \"%s\" previously defined \"%s\"",
+			fname, lineno, argv[1], oid );
+		exit( EXIT_FAILURE );
+	}
+
 	om = (OidMacro *) ch_malloc( sizeof(OidMacro) );
-	om->name = ch_strdup( argv[1] );
-	om->oid = find_oidm( argv[2] );
-	if (!om->oid)
-	{
+
+	om->som_names = NULL;
+	charray_add( &om->som_names, argv[1] );
+	om->som_oid.bv_val = find_oidm( argv[2] );
+
+	if (!om->som_oid.bv_val) {
 		fprintf( stderr, "%s: line %d: OID %s not recognized\n",
 			fname, lineno, argv[2] );
 		goto usage;
 	}
-	if (om->oid == argv[2])
-		om->oid = ch_strdup( argv[2] );
-	om->oidlen = strlen( om->oid );
-	om->next = om_list;
+
+	if (om->som_oid.bv_val == argv[2]) {
+		om->som_oid.bv_val = ch_strdup( argv[2] );
+	}
+
+	om->som_oid.bv_len = strlen( om->som_oid.bv_val );
+	om->som_next = om_list;
 	om_list = om;
 }
 
@@ -244,39 +171,32 @@ parse_oc(
 	const char	*err;
 	char		*oid = NULL;
 
-	/* Kludge for OIDmacros. If the numericOid field starts nonnumeric
-	 * look for and expand a macro. The macro's place in the input line
-	 * will be replaced with a field of '0's to keep ldap_str2objectclass
-	 * happy. The actual oid will be swapped into place afterward.
-	 */
-	if ( !isdigit( *argv[2] ))
-	{
-		oid = find_oidm(argv[2]);
-		if (!oid)
-		{
-			fprintf(stderr, "%s: line %d: OID %s not recognized\n",
-				fname, lineno, argv[2]);
-			exit( EXIT_FAILURE );
-		}
-		if (oid != argv[2])
-			memset(strstr(line, argv[2]), '0', strlen(argv[2]));
-		else
-			oid = NULL;
-	}
-	oc = ldap_str2objectclass(line,&code,&err);
+	oc = ldap_str2objectclass(line,&code,&err,LDAP_SCHEMA_ALLOW_ALL);
 	if ( !oc ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
 		oc_usage();
 	}
-	if (oid)
-	{
-		ldap_memfree(oc->oc_oid);
-		oc->oc_oid = oid;
+	if ( oc->oc_oid ) {
+		if ( !isdigit( oc->oc_oid[0] )) {
+			/* Expand OID macros */
+			oid = find_oidm( oc->oc_oid );
+			if ( !oid ) {
+				fprintf(stderr,
+					"%s: line %d: OID %s not recognized\n",
+					fname, lineno, oc->oc_oid);
+				exit( EXIT_FAILURE );
+			}
+			if ( oid != oc->oc_oid ) {
+				ldap_memfree( oc->oc_oid );
+				oc->oc_oid = oid;
+			}
+		}
 	}
+	/* oc->oc_oid == NULL will be an error someday */
 	code = oc_add(oc,&err);
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s %s\n",
+		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
 		exit( EXIT_FAILURE );
 	}
@@ -286,52 +206,46 @@ parse_oc(
 static void
 oc_usage( void )
 {
-	fprintf( stderr, "ObjectClassDescription = \"(\" whsp\n");
-	fprintf( stderr, "  numericoid whsp      ; ObjectClass identifier\n");
-	fprintf( stderr, "  [ \"NAME\" qdescrs ]\n");
-	fprintf( stderr, "  [ \"DESC\" qdstring ]\n");
-	fprintf( stderr, "  [ \"OBSOLETE\" whsp ]\n");
-	fprintf( stderr, "  [ \"SUP\" oids ]       ; Superior ObjectClasses\n");
-	fprintf( stderr, "  [ ( \"ABSTRACT\" / \"STRUCTURAL\" / \"AUXILIARY\" ) whsp ]\n");
-	fprintf( stderr, "                       ; default structural\n");
-	fprintf( stderr, "  [ \"MUST\" oids ]      ; AttributeTypes\n");
-	fprintf( stderr, "  [ \"MAY\" oids ]       ; AttributeTypes\n");
-	fprintf( stderr, "whsp \")\"\n");
+	fprintf( stderr,
+		"ObjectClassDescription = \"(\" whsp\n"
+		"  numericoid whsp                 ; ObjectClass identifier\n"
+		"  [ \"NAME\" qdescrs ]\n"
+		"  [ \"DESC\" qdstring ]\n"
+		"  [ \"OBSOLETE\" whsp ]\n"
+		"  [ \"SUP\" oids ]                ; Superior ObjectClasses\n"
+		"  [ ( \"ABSTRACT\" / \"STRUCTURAL\" / \"AUXILIARY\" ) whsp ]\n"
+		"                                  ; default structural\n"
+		"  [ \"MUST\" oids ]               ; AttributeTypes\n"
+		"  [ \"MAY\" oids ]                ; AttributeTypes\n"
+		"  whsp \")\"\n" );
 	exit( EXIT_FAILURE );
 }
 
-static void
-oc_usage_old( void )
-{
-	fprintf( stderr, "<oc clause> ::= objectclass <ocname>\n" );
-	fprintf( stderr, "                [ requires <attrlist> ]\n" );
-	fprintf( stderr, "                [ allows <attrlist> ]\n" );
-	exit( EXIT_FAILURE );
-}
 
 static void
 at_usage( void )
 {
-	fprintf( stderr, "AttributeTypeDescription = \"(\" whsp\n");
-	fprintf( stderr, "  numericoid whsp      ; AttributeType identifier\n");
-	fprintf( stderr, "  [ \"NAME\" qdescrs ]             ; name used in AttributeType\n");
-	fprintf( stderr, "  [ \"DESC\" qdstring ]            ; description\n");
-	fprintf( stderr, "  [ \"OBSOLETE\" whsp ]\n");
-	fprintf( stderr, "  [ \"SUP\" woid ]                 ; derived from this other\n");
-	fprintf( stderr, "                                 ; AttributeType\n");
-	fprintf( stderr, "  [ \"EQUALITY\" woid ]            ; Matching Rule name\n");
-        fprintf( stderr, "  [ \"ORDERING\" woid ]            ; Matching Rule name\n");
-	fprintf( stderr, "  [ \"SUBSTR\" woid ]              ; Matching Rule name\n");
-	fprintf( stderr, "  [ \"SYNTAX\" whsp noidlen whsp ] ; see section 4.3\n");
-	fprintf( stderr, "  [ \"SINGLE-VALUE\" whsp ]        ; default multi-valued\n");
-	fprintf( stderr, "  [ \"COLLECTIVE\" whsp ]          ; default not collective\n");
-	fprintf( stderr, "  [ \"NO-USER-MODIFICATION\" whsp ]; default user modifiable\n");
-	fprintf( stderr, "  [ \"USAGE\" whsp AttributeUsage ]; default userApplications\n");
-	fprintf( stderr, "                                 ; userApplications\n");
-	fprintf( stderr, "                                 ; directoryOperation\n");
-	fprintf( stderr, "                                 ; distributedOperation\n");
-	fprintf( stderr, "                                 ; dSAOperation\n");
-	fprintf( stderr, "whsp \")\"\n");
+	fprintf( stderr,
+		"AttributeTypeDescription = \"(\" whsp\n"
+		"  numericoid whsp      ; AttributeType identifier\n"
+		"  [ \"NAME\" qdescrs ]             ; name used in AttributeType\n"
+		"  [ \"DESC\" qdstring ]            ; description\n"
+		"  [ \"OBSOLETE\" whsp ]\n"
+		"  [ \"SUP\" woid ]                 ; derived from this other\n"
+		"                                   ; AttributeType\n"
+		"  [ \"EQUALITY\" woid ]            ; Matching Rule name\n"
+		"  [ \"ORDERING\" woid ]            ; Matching Rule name\n"
+		"  [ \"SUBSTR\" woid ]              ; Matching Rule name\n"
+		"  [ \"SYNTAX\" whsp noidlen whsp ] ; see section 4.3\n"
+		"  [ \"SINGLE-VALUE\" whsp ]        ; default multi-valued\n"
+		"  [ \"COLLECTIVE\" whsp ]          ; default not collective\n"
+		"  [ \"NO-USER-MODIFICATION\" whsp ]; default user modifiable\n"
+		"  [ \"USAGE\" whsp AttributeUsage ]; default userApplications\n"
+		"                                   ; userApplications\n"
+		"                                   ; directoryOperation\n"
+		"                                   ; distributedOperation\n"
+		"                                   ; dSAOperation\n"
+		"  whsp \")\"\n");
 	exit( EXIT_FAILURE );
 }
 
@@ -349,25 +263,12 @@ parse_at(
 	char		*oid = NULL;
 	char		*soid = NULL;
 
-	/* Kludge for OIDmacros. If the numericOid field starts nonnumeric
-	 * look for and expand a macro. The macro's place in the input line
-	 * will be replaced with a field of '0's to keep ldap_str2attr
-	 * happy. The actual oid will be swapped into place afterward.
-	 */
-	if ( !isdigit( *argv[2] ))
-	{
-		oid = find_oidm(argv[2]);
-		if (!oid)
-		{
-			fprintf(stderr, "%s: line %d: OID %s not recognized\n",
-				fname, lineno, argv[2]);
-			exit( EXIT_FAILURE );
-		}
-		if (oid != argv[2])
-			memset(strstr(line, argv[2]), '0', strlen(argv[2]));
-		else
-			oid = NULL;
-	}
+ 	/* Kludge for OIDmacros for syntaxes. If the syntax field starts
+	 * nonnumeric, look for and expand a macro. The macro's place in
+	 * the input line will be replaced with a field of '0's to keep
+	 * ldap_str2attributetype happy. The actual oid will be swapped
+	 * into place afterwards.
+ 	 */
 	for (; argv[3]; argv++)
 	{
 		if (!strcasecmp(argv[3], "syntax") &&
@@ -387,17 +288,29 @@ parse_at(
 			break;
 		}
 	}
-	at = ldap_str2attributetype(line,&code,&err);
+	at = ldap_str2attributetype(line,&code,&err,LDAP_SCHEMA_ALLOW_ALL);
 	if ( !at ) {
 		fprintf( stderr, "%s: line %d: %s before %s\n",
 			 fname, lineno, ldap_scherr2str(code), err );
 		at_usage();
 	}
-	if (oid)
-	{
-		ldap_memfree(at->at_oid);
-		at->at_oid = oid;
+	if ( at->at_oid ) {
+		if ( !isdigit( at->at_oid[0] )) {
+			/* Expand OID macros */
+			oid = find_oidm( at->at_oid );
+			if ( !oid ) {
+				fprintf(stderr,
+					"%s: line %d: OID %s not recognized\n",
+					fname, lineno, at->at_oid);
+				exit( EXIT_FAILURE );
+			}
+			if ( oid != at->at_oid ) {
+				ldap_memfree( at->at_oid );
+				at->at_oid = oid;
+			}
+		}
 	}
+	/* at->at_oid == NULL will be an error someday */
 	if (soid)
 	{
 		ldap_memfree(at->at_syntax_oid);
@@ -405,7 +318,7 @@ parse_at(
 	}
 	code = at_add(at,&err);
 	if ( code ) {
-		fprintf( stderr, "%s: line %d: %s %s\n",
+		fprintf( stderr, "%s: line %d: %s: \"%s\"\n",
 			 fname, lineno, scherr2str(code), err);
 		exit( EXIT_FAILURE );
 	}

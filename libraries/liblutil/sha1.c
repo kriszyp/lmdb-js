@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*	Acquired from:
@@ -20,6 +20,9 @@
  *   34AA973C D4C4DAA4 F61EEB2B DBAD2731 6534016F
  */
 
+/*
+ * This code assumes uint32 is 32 bits and char is 8 bits
+ */
 
 #include "portable.h"
 #include <ac/string.h>
@@ -27,12 +30,11 @@
 /* include socket.h to get sys/types.h and/or winsock2.h */
 #include <ac/socket.h>
 
-#if defined(HAVE_SYS_PARAM_H)
-#include <sys/param.h>
-#endif
+#include <ac/param.h>
 
 #include "lutil_sha1.h"
 
+/* undefining this will cause pointer alignment errors */
 #define SHA1HANDSOFF		/* Copies data before messing with it. */
 #define rol(value, bits) (((value) << (bits)) | ((value) >> (32 - (bits))))
 
@@ -67,13 +69,11 @@ lutil_SHA1Transform( uint32 *state, const unsigned char *buffer )
 {
     uint32 a, b, c, d, e;
 
-	/* Assumes u_int is 32 bits and char 8 bits.
-	 * I don't know why uint32 isn't used (or what the difference is). */
 #ifdef SHA1HANDSOFF
-    u_int block[16];
+    uint32 block[16];
     (void)memcpy(block, buffer, 64);
 #else
-    u_int *block = (u_int *)buffer;
+    uint32 *block = (u_int32 *) buffer;
 #endif
 
     /* Copy context->state[] to working vars */

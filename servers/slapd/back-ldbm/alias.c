@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -17,25 +17,26 @@
 static char* get_alias_dn(
 	Entry *e,
 	int *err,
-	char **errmsg );
+	const char **errmsg );
 
 static char* new_superior(
-	char *dn,
-	char *oldSup,
-	char *newSup );
+	const char *dn,
+	const char *oldSup,
+	const char *newSup );
 
 static int dnlist_subordinate(
 	char** dnlist,
-	char *dn );
+	const char *dn );
 
 Entry *deref_internal_r(
 	Backend*	be,
 	Entry*		alias,
-	char*		dn,
+	const char*		dn_in,
 	int*		err,
 	Entry**		matched,
-	char**		text )
+	const char**		text )
 {
+	char *dn;
 	struct ldbminfo *li = (struct ldbminfo *) be->be_private;
 	Entry *entry;
 	Entry *sup;
@@ -49,7 +50,7 @@ Entry *deref_internal_r(
 	*text = NULL;
 
 	if( alias == NULL ) {
-		dn = ch_strdup( dn );
+		dn = ch_strdup( dn_in );
 		entry = dn2entry_r( be, dn, &sup );
 
 	} else {
@@ -205,6 +206,7 @@ Entry *deref_internal_r(
 	}
 
 	free( dn );
+	charray_free( dnlist );
 	return entry;
 }
 
@@ -212,9 +214,12 @@ Entry *deref_internal_r(
 static char* get_alias_dn(
 	Entry *e,
 	int *err,
-	char **errmsg )
+	const char **errmsg )
 {	
-	Attribute *a = attr_find( e->e_attrs, "aliasedobjectname" );
+	Attribute *a;
+	AttributeDescription *aliasedObjectName = slap_schema.si_ad_aliasedObjectName;
+
+	a = attr_find( e->e_attrs, aliasedObjectName );
 
 	if( a == NULL ) {
 		/*
@@ -247,9 +252,9 @@ static char* get_alias_dn(
 }
 
 char* new_superior(
-	char *dn,
-	char *oldSup,
-	char *newSup )
+	const char *dn,
+	const char *oldSup,
+	const char *newSup )
 {
 	char *newDN;
 	size_t dnlen, olen, nlen;
@@ -270,7 +275,7 @@ char* new_superior(
 
 static int dnlist_subordinate(
 	char** dnlist,
-	char *dn )
+	const char *dn )
 {
 	int i;
 	assert( dnlist );

@@ -1,8 +1,11 @@
-.TH GO500 8C "27 November 1994" "U-M LDAP LDVERSION"
+.TH GO500 8C "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 go500 \- Local Gopher index search to X.500 search gateway
 .SH SYNOPSIS
-.B ETCDIR/go500 [\-b searchbase] [\-d level] [\-l]
+.B LIBEXECDIR/go500 [\-b searchbase] [\-d level] [\-l]
 .B [\-x hostname] [\-c rdncount] [\-f filterfile]
 .B [\-t templatefile]
 .B [\-p port] [\-I]
@@ -27,7 +30,7 @@ as a stand-alone server, simply start it with no arguments
 .LP
 .nf
 .ft tt
-	ETCDIR/go500
+	LIBEXECDIR/go500
 .ft
 .fi
 .LP
@@ -38,8 +41,8 @@ or equivalent file:
 .LP
 .nf
 .ft tt
-	if [ -f ETCDIR/go500 ]; then
-		ETCDIR/go500; echo ' go500'
+	if [ -f LIBEXECDIR/go500 ]; then
+		LIBEXECDIR/go500; echo ' go500'
 	fi
 .ft
 .fi
@@ -65,7 +68,7 @@ file, or the equivalent:
 .LP
 .nf
 .ft tt
-    go500   stream  tcp     nowait  nobody  ETCDIR/go500    go500 -I
+    go500   stream  tcp     nowait  nobody  LIBEXECDIR/go500    go500 -I
 .ft
 .fi
 .LP
@@ -168,3 +171,8 @@ include file.
 .BR inetd (8),
 .BR gopherd (8),
 .BR go500gw (8)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

@@ -1,5 +1,9 @@
 /* modrdn.c - shell backend modrdn function */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 /*
  * LDAP v3 newSuperior support.
@@ -29,10 +33,11 @@ shell_back_modrdn(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*dn,
-    char	*newrdn,
+    const char	*dn,
+    const char	*ndn,
+    const char	*newrdn,
     int		deleteoldrdn,
-    char	*newSuperior
+    const char	*newSuperior
 )
 {
 	struct shellinfo	*si = (struct shellinfo *) be->be_private;

@@ -39,9 +39,10 @@ CPP=cl.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\Release"
-# PROP Intermediate_Dir "Release\liblutil"
+# PROP Output_Dir "..\..\Release"
+# PROP Intermediate_Dir "..\..\Release\liblutil"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -49,7 +50,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Release\olutil32.lib"
+# ADD LIB32 /nologo /out:"..\..\Release\olutil32.lib"
 
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Debug"
 
@@ -60,9 +61,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\Debug"
-# PROP Intermediate_Dir "Debug\liblutil"
+# PROP Output_Dir "..\..\Debug"
+# PROP Intermediate_Dir "..\..\Debug\liblutil"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -70,7 +72,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Debug\olutil32.lib"
+# ADD LIB32 /nologo /out:"..\..\Debug\olutil32.lib"
 
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Single Debug"
 
@@ -81,9 +83,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\SDebug"
-# PROP Intermediate_Dir "SDebug\liblutil"
+# PROP Output_Dir "..\..\SDebug"
+# PROP Intermediate_Dir "..\..\SDebug\liblutil"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -91,7 +94,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\olutil32.lib"
-# ADD LIB32 /nologo /out:"..\SDebug\olutil32.lib"
+# ADD LIB32 /nologo /out:"..\..\SDebug\olutil32.lib"
 
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Single Release"
 
@@ -102,9 +105,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\SRelease"
-# PROP Intermediate_Dir "SRelease\liblutil"
+# PROP Output_Dir "..\..\SRelease"
+# PROP Intermediate_Dir "..\..\SRelease\liblutil"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -112,7 +116,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\olutil32.lib"
-# ADD LIB32 /nologo /out:"..\SRelease\olutil32.lib"
+# ADD LIB32 /nologo /out:"..\..\SRelease\olutil32.lib"
 
 !ENDIF 
 
@@ -124,6 +128,10 @@ LIB32=link.exe -lib
 # Name "liblutil - Win32 Single Release"
 # Begin Source File
 
+SOURCE=.\authpasswd.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\base64.c
 # End Source File
 # Begin Source File
@@ -133,6 +141,10 @@ SOURCE=..\..\include\ac\bytes.h
 # Begin Source File
 
 SOURCE=.\debug.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\entropy.c
 # End Source File
 # Begin Source File
 
@@ -176,10 +188,6 @@ SOURCE=.\md5.c
 # End Source File
 # Begin Source File
 
-SOURCE=.\nt_err.c
-# End Source File
-# Begin Source File
-
 SOURCE=.\ntservice.c
 # End Source File
 # Begin Source File
@@ -201,7 +209,7 @@ SOURCE=.\slapdmsg.mc
 !IF  "$(CFG)" == "liblutil - Win32 Release"
 
 # Begin Custom Build - Building slapd message file
-IntDir=.\Release\liblutil
+IntDir=.\..\..\Release\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -214,7 +222,7 @@ InputPath=.\slapdmsg.mc
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Debug"
 
 # Begin Custom Build - Building slapd message file
-IntDir=.\Debug\liblutil
+IntDir=.\..\..\Debug\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -227,7 +235,7 @@ InputPath=.\slapdmsg.mc
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Single Debug"
 
 # Begin Custom Build - Building slapd message file
-IntDir=.\SDebug\liblutil
+IntDir=.\..\..\SDebug\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -240,7 +248,7 @@ InputPath=.\slapdmsg.mc
 !ELSEIF  "$(CFG)" == "liblutil - Win32 Single Release"
 
 # Begin Custom Build - Building slapd message file
-IntDir=.\SRelease\liblutil
+IntDir=.\..\..\SRelease\liblutil
 InputPath=.\slapdmsg.mc
 
 "slapdmsg.h" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"

@@ -1,7 +1,7 @@
 /* encode.c - ber output encoding routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* Portions
@@ -25,9 +25,6 @@
 #include <ac/stdarg.h>
 #include <ac/socket.h>
 #include <ac/string.h>
-
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
 
 #include "lber-int.h"
 
@@ -73,17 +70,21 @@ ber_put_tag(
 {
 	int rc;
 	ber_len_t	taglen;
-	ber_tag_t	ntag;
+	ber_len_t	i;
+	unsigned char nettag[sizeof(ber_tag_t)];
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
 
 	taglen = ber_calc_taglen( tag );
 
-	ntag = LBER_TAG_HTON( tag );
+	for( i=0; i<taglen; i++ ) {
+		nettag[(sizeof(ber_tag_t)-1) - i] = (unsigned char)(tag & 0xffU);
+		tag >>= 8;
+	}
 
 	rc = ber_write( ber,
-		((char *) &ntag) + sizeof(ber_tag_t) - taglen,
+		&nettag[sizeof(ber_tag_t) - taglen],
 	    taglen, nosos );
 
 	return rc;
@@ -118,10 +119,11 @@ ber_calc_lenlen( ber_len_t len )
 static int
 ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 {
-	int		i;
+	int rc;
+	int		i,j;
 	char		lenlen;
 	ber_len_t	mask;
-	ber_len_t	netlen;
+	unsigned char netlen[sizeof(ber_len_t)];
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -151,19 +153,24 @@ ber_put_len( BerElement *ber, ber_len_t len, int nosos )
 	lenlen = (unsigned char) ++i;
 	if ( lenlen > 4 )
 		return( -1 );
+
 	lenlen |= 0x80UL;
 
 	/* write the length of the length */
 	if ( ber_write( ber, &lenlen, 1, nosos ) != 1 )
 		return( -1 );
 
-	/* write the length itself */
-	netlen = LBER_LEN_HTON( len );
-	if ( ber_write( ber, (char *) &netlen + (sizeof(ber_len_t) - i), i, nosos )
-	    != i )
-		return( -1 );
+	for( j=0; j<i; j++) {
+		netlen[(sizeof(ber_len_t)-1) - j] = (unsigned char)(len & 0xffU);
+		len >>= 8;
+	}
 
-	return( i + 1 );
+	/* write the length itself */
+	rc = ber_write( ber,
+		&netlen[sizeof(ber_len_t)-i],
+		i, nosos );
+
+	return rc == i ?  i+1 : -1;
 }
 
 static int
@@ -172,9 +179,11 @@ ber_put_int_or_enum(
 	ber_int_t num,
 	ber_tag_t tag )
 {
-	int	i, sign;
+	int rc;
+	int	i, j, sign;
 	ber_len_t	len, lenlen, taglen;
-	ber_uint_t	unum, netnum, mask;
+	ber_uint_t	unum, mask;
+	unsigned char netnum[sizeof(ber_uint_t)];
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -216,13 +225,18 @@ ber_put_int_or_enum(
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 )
 		return( -1 );
 	i++;
-	netnum = LBER_INT_HTON( unum );
-	if ( ber_write( ber, (char *) &netnum + (sizeof(ber_int_t) - i), i, 0 )
-	   != i )
-		return( -1 );
+
+	for( j=0; j<i; j++ ) {
+		netnum[(sizeof(ber_int_t)-1) - j] = (unsigned char)(unum & 0xffU);
+		unum >>= 8;
+	}
+
+	rc = ber_write( ber,
+		&netnum[sizeof(ber_int_t) - i],
+		i, 0 );
 
 	/* length of tag + length + contents */
-	return( taglen + lenlen + i );
+	return rc == i ? taglen + lenlen + i : -1;
 }
 
 int
@@ -264,9 +278,6 @@ ber_put_ostring(
 {
 	ber_len_t	taglen, lenlen;
 	int rc;
-#ifdef STR_TRANSLATION
-	int	free_str;
-#endif /* STR_TRANSLATION */
 
 	assert( ber != NULL );
 	assert( str != NULL );
@@ -279,19 +290,6 @@ ber_put_ostring(
 	if ( (taglen = ber_put_tag( ber, tag, 0 )) == -1 )
 		return( -1 );
 
-#ifdef STR_TRANSLATION
-	if ( len > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0 &&
-	    ber->ber_encode_translate_proc ) {
-		if ( (*(ber->ber_encode_translate_proc))( &str, &len, 0 )
-		    != 0 ) {
-			return( -1 );
-		}
-		free_str = 1;
-	} else {
-		free_str = 0;
-	}
-#endif /* STR_TRANSLATION */
-
 	if ( (lenlen = ber_put_len( ber, len, 0 )) == -1 ||
 		(ber_len_t) ber_write( ber, str, len, 0 ) != len ) {
 		rc = -1;
@@ -299,12 +297,6 @@ ber_put_ostring(
 		/* return length of tag + length + contents */
 		rc = taglen + lenlen + len;
 	}
-
-#ifdef STR_TRANSLATION
-	if ( free_str ) {
-		LBER_FREE( str );
-	}
-#endif /* STR_TRANSLATION */
 
 	return( rc );
 }
@@ -402,8 +394,8 @@ ber_put_boolean(
 	ber_tag_t tag )
 {
 	ber_len_t		taglen;
-	unsigned char	trueval = 0xFFU;
-	unsigned char	falseval = 0x00U;
+	unsigned char	trueval = (unsigned char) -1;
+	unsigned char	falseval = 0;
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -484,7 +476,9 @@ ber_start_set( BerElement *ber, ber_tag_t tag )
 static int
 ber_put_seqorset( BerElement *ber )
 {
-	ber_len_t	len, netlen;
+	int rc;
+	ber_len_t	len;
+	unsigned char netlen[sizeof(ber_len_t)];
 	ber_len_t	taglen, lenlen;
 	unsigned char	ltag = 0x80U + FOUR_BYTE_LEN - 1;
 	Seqorset	*next;
@@ -502,14 +496,25 @@ ber_put_seqorset( BerElement *ber )
 	 */
 
 	len = (*sos)->sos_clen;
-	netlen = LBER_LEN_HTON( len );
+
 	if ( sizeof(ber_len_t) > 4 && len > 0xffffffffUL )
 		return( -1 );
 
 	if ( ber->ber_options & LBER_USE_DER ) {
 		lenlen = ber_calc_lenlen( len );
+
 	} else {
 		lenlen = FOUR_BYTE_LEN;
+	}
+
+	if( lenlen > 1 ) {
+		ber_len_t i;
+		for( i=0; i < lenlen-1; i++ ) {
+			netlen[(sizeof(ber_len_t)-1) - i] = 
+				(unsigned char)((len >> i*8) & 0xffU);
+		}
+	} else {
+		netlen[sizeof(ber_len_t)-1] = (unsigned char)(len & 0x7fU);
 	}
 
 	if ( (next = (*sos)->sos_next) == NULL ) {
@@ -539,21 +544,48 @@ ber_put_seqorset( BerElement *ber )
 				return( -1 );
 
 			/* the length itself */
-			if ( ber_write( ber, (char *) (&netlen + 1)
-			    - (FOUR_BYTE_LEN - 1), FOUR_BYTE_LEN - 1, 1 )
-			    != FOUR_BYTE_LEN - 1 )
+			rc  = ber_write( ber,
+				&netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN-1)],
+				FOUR_BYTE_LEN-1, 1 );
+
+			if( rc != FOUR_BYTE_LEN - 1 ) {
 				return( -1 );
+			}
 		}
 		/* The ber_ptr is at the set/seq start - move it to the end */
 		(*sos)->sos_ber->ber_ptr += len;
+
 	} else {
-		ber_tag_t	ntag;
+		ber_len_t i;
+		unsigned char nettag[sizeof(ber_tag_t)];
+		ber_tag_t tmptag = (*sos)->sos_tag;
+
+		if( ber->ber_sos->sos_ptr > ber->ber_end ) {
+			/* The sos_ptr exceeds the end of the BerElement
+			 * this can happen, for example, when the sos_ptr
+			 * is near the end and no data was written for the
+			 * 'V'.  We must realloc the BerElement to ensure
+			 * we don't overwrite the buffer when writing
+			 * the tag and length fields.
+			 */
+			ber_len_t ext = ber->ber_sos->sos_ptr - ber->ber_end;
+
+			if( ber_realloc( ber,  ext ) != 0 ) {
+				return -1;
+			}
+		}
 
 		/* the tag */
-		taglen = ber_calc_taglen( (*sos)->sos_tag );
-		ntag = LBER_TAG_HTON( (*sos)->sos_tag );
-		SAFEMEMCPY( (*sos)->sos_first, (char *) &ntag +
-		    sizeof(ber_tag_t) - taglen, taglen );
+		taglen = ber_calc_taglen( tmptag );
+
+		for( i = 0; i < taglen; i++ ) {
+			nettag[(sizeof(ber_tag_t)-1) - i] = (unsigned char)(tmptag & 0xffU);
+			tmptag >>= 8;
+		}
+
+		SAFEMEMCPY( (*sos)->sos_first,
+			&nettag[sizeof(ber_tag_t) - taglen],
+			taglen );
 
 		if ( ber->ber_options & LBER_USE_DER ) {
 			ltag = (lenlen == 1)
@@ -568,9 +600,8 @@ ber_put_seqorset( BerElement *ber )
 			if (lenlen > 1) {
 				/* Write the length itself */
 				SAFEMEMCPY( (*sos)->sos_first + 2,
-				    (char *)&netlen + sizeof(ber_len_t) -
-				    (lenlen - 1),
-				    lenlen - 1 );
+				    &netlen[sizeof(ber_len_t) - (lenlen - 1)],
+					lenlen - 1 );
 			}
 			if (lenlen != FOUR_BYTE_LEN) {
 				/*
@@ -585,8 +616,8 @@ ber_put_seqorset( BerElement *ber )
 		} else {
 			/* the length itself */
 			SAFEMEMCPY( (*sos)->sos_first + taglen + 1,
-			    (char *) &netlen + sizeof(ber_len_t) -
-			    (FOUR_BYTE_LEN - 1), FOUR_BYTE_LEN - 1 );
+			    &netlen[sizeof(ber_len_t) - (FOUR_BYTE_LEN - 1)],
+				FOUR_BYTE_LEN - 1 );
 		}
 
 		next->sos_clen += (taglen + lenlen + len);
@@ -685,6 +716,7 @@ ber_printf( BerElement *ber, LDAP_CONST char *fmt, ... )
 			break;
 
 		case 'B':	/* bit string */
+		case 'X':	/* bit string (deprecated) */
 			s = va_arg( ap, char * );
 			len = va_arg( ap, int );	/* in bits */
 			rc = ber_put_bitstring( ber, s, len, ber->ber_tag );

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* ldapmodrdn.c - generic program to modify an entry's RDN using LDAP.
@@ -32,24 +32,69 @@
 #include <ldap.h>
 
 static char	*binddn = NULL;
-static char	*passwd = NULL;
+static struct berval passwd = { 0, NULL};
 static char	*ldaphost = NULL;
 static int	ldapport = 0;
+#ifdef HAVE_CYRUS_SASL
+static char	*sasl_authc_id = NULL;
+static char	*sasl_authz_id = NULL;
+static char	*sasl_mech = NULL;
+static int	sasl_integrity = 0;
+static int	sasl_privacy = 0;
+#endif
+static int	use_tls = 0;
 static int	not, verbose, contoper;
 static LDAP	*ld;
 
-static int domodrdn LDAP_P((
+static int domodrdn(
     LDAP	*ld,
     char	*dn,
     char	*rdn,
-    int		remove,		/* flag: remove old RDN */
-    char	*newSuperior));
+    char	*newSuperior,
+    int		remove );	/* flag: remove old RDN */
+
+static void
+usage( const char *s )
+{
+	fprintf( stderr,
+"Rename LDAP entries\n\n"
+"usage: %s [options] [dn rdn]\n"
+"	dn rdn: If given, rdn will replace the RDN of the entry specified by DN\n"
+"		If not given, the list of modifications is read from stdin or\n"
+"		from the file specified by \"-f file\" (see man page).\n"
+"options:\n"
+"	-c\t\tcontinuous operation mode (do not stop on errors)\n"
+"	-d level\tset LDAP debugging level to `level'\n"
+"	-D binddn\tbind DN\n"
+"	-E\t\trequest SASL privacy (-EE to make it critical)\n"
+"	-f file\t\tdo renames listed in `file'\n"
+"	-h host\t\tLDAP server\n"
+"	-I\t\trequest SASL integrity checking (-II to make it\n"
+"		\tcritical)\n"
+"	-k\t\tuse Kerberos authentication\n"
+"	-K\t\tlike -k, but do only step 1 of the Kerberos bind\n"
+"	-M\t\tenable Manage DSA IT control (-MM to make it critical)\n"
+"	-n\t\tshow what would be done but don't actually do it\n"
+"	-p port\t\tport on LDAP server\n"
+"	-P version\tprocotol version (2 or 3)\n"
+"	-r\t\tremove old RDN\n"
+"	-s newsuperior\tnew superior entry\n"
+"	-U user\t\tSASL authentication identity (username)\n"
+"	-v\t\trun in verbose mode (diagnostics to standard output)\n"
+"	-w passwd\tbind passwd (for simple authentication)\n"
+"	-W\t\tprompt for bind passwd\n"
+"	-X id\t\tSASL authorization identity (\"dn:<dn>\" or \"u:<user>\")\n"
+"	-Y mech\t\tSASL mechanism\n"
+"	-Z\t\trequest the use of TLS (-ZZ to make it critical)\n"
+,		s );
+
+	exit( EXIT_FAILURE );
+}
 
 int
 main(int argc, char **argv)
 {
-	char		*usage = "usage: %s [-nvkWc] [-M[M]] [-d debug-level] [-h ldaphost] [-P version] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ] [-s newSuperior]\n";
-    char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
+    char		*myname,*infile, *entrydn = NULL, *rdn = NULL, buf[ 4096 ];
     FILE		*fp;
 	int		rc, i, remove, havedn, authmethod, version, want_bindpw, debug, manageDSAit;
     char	*newSuperior=NULL;
@@ -61,24 +106,24 @@ main(int argc, char **argv)
 
     myname = (myname = strrchr(argv[0], '/')) == NULL ? argv[0] : ++myname;
 
-    while (( i = getopt( argc, argv, "WkKMcnvrh:P:p:D:w:d:f:s:" )) != EOF ) {
+    while (( i = getopt( argc, argv, "cD:d:Ef:h:IKkMnP:p:rs:U:vWw:X:Y:Z" )) != EOF ) {
 	switch( i ) {
 	case 'k':	/* kerberos bind */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV4;
 #else
-		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		fprintf( stderr, "%s was not compiled with Kerberos support\n", argv[0] );
 		return( EXIT_FAILURE );
 #endif
-	    break;
+		break;
 	case 'K':	/* kerberos bind, part one only */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 		authmethod = LDAP_AUTH_KRBV41;
 #else
-		fprintf (stderr, "%s was not compiled with Kerberos support\n", argv[0]);
+		fprintf( stderr, "%s was not compiled with Kerberos support\n", argv[0] );
 		return( EXIT_FAILURE );
 #endif
-	    break;
+		break;
 	case 'c':	/* continuous operation mode */
 	    ++contoper;
 	    break;
@@ -93,7 +138,7 @@ main(int argc, char **argv)
 	    version = LDAP_VERSION3;	/* This option => force V3 */
 	    break;
 	case 'w':	/* password */
-	    passwd = strdup( optarg );
+	    passwd.bv_val = strdup( optarg );
 		{
 			char* p;
 
@@ -101,6 +146,7 @@ main(int argc, char **argv)
 				*p = '*';
 			}
 		}
+		passwd.bv_len = strlen( passwd.bv_val );
 	    break;
 	case 'd':
 	    debug |= atoi( optarg );
@@ -138,26 +184,117 @@ main(int argc, char **argv)
 			break;
 		default:
 			fprintf( stderr, "protocol version should be 2 or 3\n" );
-		    fprintf( stderr, usage, argv[0] );
-		    return( EXIT_FAILURE );
+			usage( argv[0] );
+			return( EXIT_FAILURE );
 		}
 		break;
+	case 'I':
+#ifdef HAVE_CYRUS_SASL
+		sasl_integrity++;
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'E':
+#ifdef HAVE_CYRUS_SASL
+		sasl_privacy++;
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'Y':
+#ifdef HAVE_CYRUS_SASL
+		if ( strcasecmp( optarg, "any" ) && strcmp( optarg, "*" ) ) {
+			sasl_mech = strdup( optarg );
+		}
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'U':
+#ifdef HAVE_CYRUS_SASL
+		sasl_authc_id = strdup( optarg );
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'X':
+#ifdef HAVE_CYRUS_SASL
+		sasl_authz_id = strdup( optarg );
+		authmethod = LDAP_AUTH_SASL;
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
+	case 'Z':
+#ifdef HAVE_TLS
+		use_tls++;
+#else
+		fprintf( stderr, "%s was not compiled with TLS support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+		break;
 	default:
-	    fprintf( stderr, usage, argv[0] );
+	    usage( argv[0] );
 	    return( EXIT_FAILURE );
 	}
     }
+
+	if ( ( authmethod == LDAP_AUTH_KRBV4 ) || ( authmethod ==
+			LDAP_AUTH_KRBV41 ) ) {
+		if( version > LDAP_VERSION2 ) {
+			fprintf( stderr, "Kerberos requires LDAPv2\n" );
+			return( EXIT_FAILURE );
+		}
+		version = LDAP_VERSION2;
+	}
+	else if ( authmethod == LDAP_AUTH_SASL ) {
+		if( version != -1 && version != LDAP_VERSION3 ) {
+			fprintf( stderr, "SASL requires LDAPv3\n" );
+			return( EXIT_FAILURE );
+		}
+		version = LDAP_VERSION3;
+	}
+
+	if( manageDSAit ) {
+		if( version != -1 && version != LDAP_VERSION3 ) {
+			fprintf(stderr, "manage DSA control requires LDAPv3\n");
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION3;
+	}
+
+	if( use_tls ) {
+		if( version != -1 && version != LDAP_VERSION3 ) {
+			fprintf(stderr, "Start TLS requires LDAPv3\n");
+			return EXIT_FAILURE;
+		}
+		version = LDAP_VERSION3;
+	}
 
     if (newSuperior != NULL) {
 		if (version == LDAP_VERSION2) {
 			fprintf( stderr,
 				"%s: version conflict!, -s newSuperior requires LDAPv3\n",
 				myname);
-			fprintf( stderr, usage, argv[0] );
+			usage( argv[0] );
 			return( EXIT_FAILURE );
 		}
-
-		/* promote to LDAPv3 */
 		version = LDAP_VERSION3;
     }
     
@@ -174,7 +311,7 @@ main(int argc, char **argv)
 	++havedn;
     } else if ( argc - optind != 0 ) {
 	fprintf( stderr, "%s: invalid number of arguments, only two allowed\n", myname);
-	fprintf( stderr, usage, argv[0] );
+	usage( argv[0] );
 	return( EXIT_FAILURE );
     }
 
@@ -214,19 +351,71 @@ main(int argc, char **argv)
 	ldap_set_option( ld, LDAP_OPT_REFERRALS, LDAP_OPT_OFF );
 
 
-	if (want_bindpw)
-		passwd = getpass("Enter LDAP Password: ");
-
 	if (version != -1 &&
 		ldap_set_option( ld, LDAP_OPT_PROTOCOL_VERSION, &version ) != LDAP_OPT_SUCCESS)
 	{
 		fprintf( stderr, "Could not set LDAP_OPT_PROTOCOL_VERSION %d\n", version );
 	}
 
-    if ( ldap_bind_s( ld, binddn, passwd, authmethod ) != LDAP_SUCCESS ) {
-	ldap_perror( ld, "ldap_bind" );
-	return( EXIT_FAILURE );
-    }
+	if ( use_tls && ldap_start_tls( ld, NULL, NULL ) != LDAP_SUCCESS ) {
+		if ( use_tls > 1 ) {
+			ldap_perror( ld, "ldap_start_tls" );
+			return( EXIT_FAILURE );
+		}
+	}
+
+	if (want_bindpw)
+		passwd.bv_val = getpassphrase("Enter LDAP Password: ");
+		passwd.bv_len = strlen( passwd.bv_val );
+
+	if ( authmethod == LDAP_AUTH_SASL ) {
+#ifdef HAVE_CYRUS_SASL
+		int	minssf = 0, maxssf = 0;
+
+		if ( sasl_integrity > 0 )
+			maxssf = 1;
+		if ( sasl_integrity > 1 )
+			minssf = 1;
+		if ( sasl_privacy > 0 )
+			maxssf = 100000; /* Something big value */
+		if ( sasl_privacy > 1 )
+			minssf = 56;
+		
+		if ( ldap_set_option( ld, LDAP_OPT_X_SASL_MINSSF,
+			(void *)&minssf ) != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_MINSSF"
+				"%d\n", minssf);
+			return( EXIT_FAILURE );
+		}
+		if ( ldap_set_option( ld, LDAP_OPT_X_SASL_MAXSSF,
+			(void *)&maxssf ) != LDAP_OPT_SUCCESS ) {
+			fprintf( stderr, "Could not set LDAP_OPT_X_SASL_MAXSSF"
+				"%d\n", maxssf);
+			return( EXIT_FAILURE );
+		}
+		
+		rc = ldap_negotiated_sasl_bind_s( ld, binddn, sasl_authc_id,
+				sasl_authz_id, sasl_mech,
+				passwd.bv_len ? &passwd : NULL,
+				NULL, NULL );
+
+		if( rc != LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_negotiated_sasl_bind_s" );
+			return( EXIT_FAILURE );
+		}
+#else
+		fprintf( stderr, "%s was not compiled with SASL support\n",
+			argv[0] );
+		return( EXIT_FAILURE );
+#endif
+	}
+	else {
+		if ( ldap_bind_s( ld, binddn, passwd.bv_val, authmethod )
+				!= LDAP_SUCCESS ) {
+			ldap_perror( ld, "ldap_bind" );
+			return( EXIT_FAILURE );
+		}
+	}
 
 	if ( manageDSAit ) {
 		int err;
@@ -252,7 +441,7 @@ main(int argc, char **argv)
 
     rc = 0;
     if (havedn)
-	rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
+	rc = domodrdn( ld, entrydn, rdn, newSuperior, remove );
     else while ((rc == 0 || contoper) && fgets(buf, sizeof(buf), fp) != NULL) {
 	if ( *buf != '\0' ) {	/* blank lines optional, skip */
 	    buf[ strlen( buf ) - 1 ] = '\0';	/* remove nl */
@@ -262,7 +451,7 @@ main(int argc, char **argv)
                     perror( "strdup" );
                     return( EXIT_FAILURE );
 		}
-		rc = domodrdn(ld, entrydn, rdn, remove, newSuperior);
+		rc = domodrdn(ld, entrydn, rdn, newSuperior, remove );
 		havedn = 0;
 	    } else if ( !havedn ) {	/* don't have DN yet */
 	        if (( entrydn = strdup( buf )) == NULL ) {
@@ -284,8 +473,8 @@ static int domodrdn(
     LDAP	*ld,
     char	*dn,
     char	*rdn,
-    int		remove,		/* flag: remove old RDN */
-    char	*newSuperior)
+    char	*newSuperior,
+    int		remove ) /* flag: remove old RDN */
 {
     int	i;
 
@@ -299,7 +488,7 @@ static int domodrdn(
 	}
 
     if ( !not ) {
-	i = ldap_rename2_s( ld, dn, rdn, remove, newSuperior );
+	i = ldap_rename2_s( ld, dn, rdn, newSuperior, remove );
 	if ( i != LDAP_SUCCESS ) {
 	    ldap_perror( ld, "ldap_rename2_s" );
 	} else if ( verbose ) {

@@ -1,7 +1,7 @@
 /* back-ldbm.h - ldap ldbm back-end header file */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -14,37 +14,26 @@ LDAP_BEGIN_DECL
 
 #define DEFAULT_CACHE_SIZE	1000
 
-#ifdef HAVE_BERKELEY_DB2
+#if defined(HAVE_BERKELEY_DB) && DB_VERSION_MAJOR >= 2
 #	define DEFAULT_DBCACHE_SIZE (100 * DEFAULT_DB_PAGE_SIZE)
 #else
 #	define DEFAULT_DBCACHE_SIZE 100000
 #endif
 
-#define DEFAULT_DB_DIRECTORY	"/usr/tmp"
+#define DEFAULT_DB_DIRECTORY	LDAP_RUNDIR LDAP_DIRSEP "openldap-ldbm"
 #define DEFAULT_MODE		0600
 
-#define SUBLEN			3
-
-#define DN_BASE_PREFIX		'='
-#define DN_ONE_PREFIX	 	'@'
-#define DN_SUBTREE_PREFIX 	'?'
-
-#define SLAPD_FILTER_DN_ONE		((ber_tag_t) -2)
-#define SLAPD_FILTER_DN_SUBTREE	((ber_tag_t) -3)
+#define DN_BASE_PREFIX		SLAP_INDEX_EQUALITY_PREFIX
+#define DN_ONE_PREFIX	 	'%'
+#define DN_SUBTREE_PREFIX 	'@'
 
 /*
  * there is a single index for each attribute.  these prefixes ensure
  * that there is no collision among keys.
  */
-#define EQ_PREFIX	'='	/* prefix for equality keys     */
-#define APPROX_PREFIX	'~'	/* prefix for approx keys       */
-#define SUB_PREFIX	'*'	/* prefix for substring keys    */
-#define CONT_PREFIX	'\\'	/* prefix for continuation keys */
 
-/* allow 3 characters per byte + PREFIX + EOS */
-#define CONT_SIZE ( sizeof(long)*3 + 1 + 1 )
-
-#define UNKNOWN_PREFIX	'?'	/* prefix for unknown keys    */
+/* allow PREFIX + byte for continuate number */
+#define SLAP_INDEX_CONT_SIZE ( sizeof(SLAP_INDEX_CONT_PREFIX) + sizeof(unsigned char) )
 
 #define DEFAULT_BLOCKSIZE	8192
 
@@ -102,32 +91,14 @@ typedef struct ldbm_dbcache {
 	int		dbc_refcnt;
 	int		dbc_maxids;
 	int		dbc_maxindirect;
+	int		dbc_dirty;
 	time_t	dbc_lastref;
 	long	dbc_blksize;
 	char	*dbc_name;
 	LDBM	dbc_db;
 } DBCache;
 
-/* for the cache of attribute information (which are indexed, etc.) */
-typedef struct ldbm_attrinfo {
-	char	*ai_type;	/* type name (cn, sn, ...)	*/
-	int	ai_indexmask;	/* how the attr is indexed	*/
-#define INDEX_PRESENCE		0x0001
-#define INDEX_EQUALITY		0x0002
-#define INDEX_APPROX		0x0004
-#define INDEX_SUB			0x0008
-#define INDEX_UNKNOWN		0x0010
-#define INDEX_FROMINIT		0x1000
-	int	ai_syntaxmask;	/* what kind of syntax		*/
-/* ...from slap.h...
-#define SYNTAX_CIS      0x01
-#define SYNTAX_CES      0x02
-#define SYNTAX_BIN      0x04
-   ... etc. ...
-*/
-} AttrInfo;
-
-#define MAXDBCACHE	16
+#define MAXDBCACHE	128
 
 struct ldbminfo {
 	ID			li_nextid;
@@ -135,17 +106,16 @@ struct ldbminfo {
 	ldap_pvt_thread_mutex_t		li_root_mutex;
 	ldap_pvt_thread_mutex_t		li_add_mutex;
 	int			li_mode;
+	slap_index	li_defaultmask;
 	char			*li_directory;
 	Cache		li_cache;
 	Avlnode			*li_attrs;
+	int			li_dblocking;	/* lock databases */
+	int			li_dbwritesync;	/* write sync */
 	int			li_dbcachesize;
-	int			li_dbcachewsync;
 	DBCache		li_dbcache[MAXDBCACHE];
 	ldap_pvt_thread_mutex_t		li_dbcache_mutex;
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
-#ifdef HAVE_BERKELEY_DB2
-	DB_ENV                      li_db_env;
-#endif
 };
 
 LDAP_END_DECL

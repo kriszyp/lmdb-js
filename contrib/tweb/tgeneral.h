@@ -14,12 +14,12 @@
 *            Creation date:                Z   D  D   V   V                *
 *            August 16 1995               Z    D   D   V V                 *
 *            Last modification:          Z     D  D    V V                 *
-*            May 14 1999                ZZZZ   DDD      V                  *
+*            September 13 1999          ZZZZ   DDD      V                  *
 *                                                                          *
 _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 
 /*
- * $Id: tgeneral.h,v 1.6 1999/09/10 15:01:20 zrnsk01 Exp $
+ * $Id: tgeneral.h,v 1.8 1999/09/13 13:47:47 zrnsk01 Exp $
  *
  */
 
@@ -67,6 +67,24 @@ _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+/*  Support of LDAP API versions */
+#if LDAP_API_VERSION >= 2003 && LDAP_API_VERSION <= 2010
+#define OL_LDAPV		3
+#else
+#  if LDAP_API_VERSION >= 2001 && LDAP_API_VERSION <= 2010
+#  define OL_LDAPV		2
+#  else
+#    define OL_LDAPV	0
+#  endif
+#endif
+
+#  define ldap_debug debug
+
+#if OL_LDAPV > 2
+#  include "portable.h"
+#  include "ldap_log.h"
+#endif
 
 extern   int   errno;
 

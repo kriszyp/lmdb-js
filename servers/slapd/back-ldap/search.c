@@ -41,13 +41,14 @@ ldap_back_search(
     Backend	*be,
     Connection	*conn,
     Operation	*op,
-    char	*base,
+    const char	*base,
+    const char	*nbase,
     int		scope,
     int		deref,
     int		size,
     int		time,
     Filter	*filter,
-    char	*filterstr,
+    const char	*filterstr,
     char	**attrs,
     int		attrsonly
 )
@@ -144,21 +145,25 @@ ldap_send_entry(
 	BerElement *ber = NULL;
 	Attribute *attr, **attrp;
 	struct berval *dummy = NULL;
+	const char *text;
 
 	ent.e_dn = ldap_get_dn(lc->ld, e);
 	ent.e_ndn = ch_strdup( ent.e_dn);
-	(void) dn_normalize_case( ent.e_ndn );
+	(void) dn_normalize( ent.e_ndn );
 	ent.e_id = 0;
 	ent.e_attrs = 0;
 	ent.e_private = 0;
 	attrp = &ent.e_attrs;
 
-	for (a = ldap_first_attribute(lc->ld, e, &ber); a;
-		a = ldap_next_attribute(lc->ld, e, ber)) {
+	for (	a = ldap_first_attribute(lc->ld, e, &ber);
+			a != NULL;
+			a = ldap_next_attribute(lc->ld, e, ber))
+	{
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
+		if (attr == NULL)
+			continue;
 		attr->a_next = 0;
-		attr->a_type = ch_strdup(a);
-		attr->a_syntax = attr_syntax(a);
+		slap_str2ad(a, &attr->a_desc, &text);
 		attr->a_vals = ldap_get_values_len(lc->ld, e, a);
 		if (!attr->a_vals)
 			attr->a_vals = &dummy;
@@ -169,7 +174,7 @@ ldap_send_entry(
 	for (;ent.e_attrs;) {
 		attr=ent.e_attrs;
 		ent.e_attrs = attr->a_next;
-		free(attr->a_type);
+		ad_free(attr->a_desc, 1);
 		if (attr->a_vals != &dummy)
 			ber_bvecfree(attr->a_vals);
 		free(attr);

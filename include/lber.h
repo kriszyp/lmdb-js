@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -23,30 +23,9 @@
 #ifndef _LBER_H
 #define _LBER_H
 
-#include <ldap_cdefs.h>
 #include <lber_types.h>
 
 LDAP_BEGIN_DECL
-
-/* boolean, enumerations, and integers */
-typedef LBER_INT_T ber_int_t;
-
-/* signed and unsigned versions */
-typedef signed LBER_INT_T ber_sint_t;
-typedef unsigned LBER_INT_T ber_uint_t;
-
-/* tags */
-typedef LBER_TAG_T ber_tag_t;
-
-/* "socket" descriptors */
-typedef LBER_SOCKET_T ber_socket_t;
-
-/* lengths */
-typedef unsigned LBER_LEN_T ber_len_t;
-
-/* signed lengths */
-typedef LBER_LEN_T ber_slen_t;
-
 
 /* Overview of LBER tag construction
  *
@@ -66,62 +45,65 @@ typedef LBER_LEN_T ber_slen_t;
  */
 
 /* BER classes and mask */
-#define LBER_CLASS_UNIVERSAL	(ber_tag_t) 0x00U
-#define LBER_CLASS_APPLICATION	(ber_tag_t) 0x40U
-#define LBER_CLASS_CONTEXT	(ber_tag_t) 0x80U
-#define LBER_CLASS_PRIVATE	(ber_tag_t) 0xc0U
-#define LBER_CLASS_MASK		(ber_tag_t) 0xc0U
+#define LBER_CLASS_UNIVERSAL	((ber_tag_t) 0x00U)
+#define LBER_CLASS_APPLICATION	((ber_tag_t) 0x40U)
+#define LBER_CLASS_CONTEXT		((ber_tag_t) 0x80U)
+#define LBER_CLASS_PRIVATE		((ber_tag_t) 0xc0U)
+#define LBER_CLASS_MASK			((ber_tag_t) 0xc0U)
 
 /* BER encoding type and mask */
-#define LBER_PRIMITIVE		(ber_tag_t) 0x00U
-#define LBER_CONSTRUCTED	(ber_tag_t) 0x20U
-#define LBER_ENCODING_MASK	(ber_tag_t) 0x20U
+#define LBER_PRIMITIVE			((ber_tag_t) 0x00U)
+#define LBER_CONSTRUCTED		((ber_tag_t) 0x20U)
+#define LBER_ENCODING_MASK		((ber_tag_t) 0x20U)
 
-#define LBER_BIG_TAG_MASK	(ber_tag_t) 0x1fU
-#define LBER_MORE_TAG_MASK	(ber_tag_t) 0x80U
+#define LBER_BIG_TAG_MASK		((ber_tag_t) 0x1fU)
+#define LBER_MORE_TAG_MASK		((ber_tag_t) 0x80U)
 
 /*
  * Note that LBER_ERROR and LBER_DEFAULT are values that can never appear
  * as valid BER tags, and so it is safe to use them to report errors.  In
  * fact, any tag for which the following is true is invalid:
  */
-#define LBER_INVALID(t)     (((t) & 0x080) && (((t) & (ber_tag_t) ~ 0x0FF))
-#define LBER_ERROR			((ber_tag_t) ~ 0x0)
-#define LBER_DEFAULT		((ber_tag_t) ~ 0x0)
+#define LBER_INVALID(t)     (((t) & (ber_tag_t) 0x080UL) \
+	&& (((t) & (ber_tag_t) ~ 0x0FF))
+
+#define LBER_ERROR			((ber_tag_t) -1)
+#define LBER_DEFAULT		((ber_tag_t) -1)
 
 /* general BER types we know about */
-#define LBER_BOOLEAN		(ber_tag_t) 0x01UL
-#define LBER_INTEGER		(ber_tag_t) 0x02UL
-#define LBER_BITSTRING		(ber_tag_t) 0x03UL
-#define LBER_OCTETSTRING	(ber_tag_t) 0x04UL
-#define LBER_NULL			(ber_tag_t) 0x05UL
-#define LBER_ENUMERATED		(ber_tag_t) 0x0aUL
-#define LBER_SEQUENCE		(ber_tag_t) 0x30UL	/* constructed */
-#define LBER_SET			(ber_tag_t) 0x31UL	/* constructed */
-
-#define OLD_LBER_SEQUENCE	(ber_tag_t) 0x10UL	/* w/o constructed bit - broken */
-#define OLD_LBER_SET		(ber_tag_t) 0x11UL	/* w/o constructed bit - broken */
-
-typedef int (*BERTranslateProc) LDAP_P((
-	char **bufp,
-	ber_len_t *buflenp,
-	int free_input ));
+#define LBER_BOOLEAN		((ber_tag_t) 0x01UL)
+#define LBER_INTEGER		((ber_tag_t) 0x02UL)
+#define LBER_BITSTRING		((ber_tag_t) 0x03UL)
+#define LBER_OCTETSTRING	((ber_tag_t) 0x04UL)
+#define LBER_NULL			((ber_tag_t) 0x05UL)
+#define LBER_ENUMERATED		((ber_tag_t) 0x0aUL)
+#define LBER_SEQUENCE		((ber_tag_t) 0x30UL)	/* constructed */
+#define LBER_SET			((ber_tag_t) 0x31UL)	/* constructed */
 
 /* LBER BerElement options */
 #define LBER_USE_DER		0x01
 #define LBER_USE_INDEFINITE_LEN	0x02
-#define LBER_TRANSLATE_STRINGS	0x04
 
 /* get/set options for BerElement */
-#define LBER_OPT_BER_OPTIONS	0x01
-#define LBER_OPT_BER_DEBUG		0x02
+#define LBER_OPT_BER_OPTIONS			0x01
+#define LBER_OPT_BER_DEBUG				0x02
+#define LBER_OPT_BER_REMAINING_BYTES	0x03
+#define LBER_OPT_BER_TOTAL_BYTES		0x04
+#define LBER_OPT_BER_BYTES_TO_WRITE		0x05
 
 #define LBER_OPT_DEBUG_LEVEL	LBER_OPT_BER_DEBUG
+#define LBER_OPT_REMAINING_BYTES	LBER_OPT_BER_REMAINING_BYTES
+#define LBER_OPT_TOTAL_BYTES		LBER_OPT_BER_TOTAL_BYTES
+#define LBER_OPT_BYTES_TO_WRITE		LBER_OPT_BER_BYTES_TO_WRITE
 
 #define LBER_OPT_LOG_PRINT_FN	0x8001
 #define LBER_OPT_MEMORY_FNS		0x8002
+#define LBER_OPT_ERROR_FN		0x8003
+#define LBER_OPT_LOG_PRINT_FILE		0x8004
 
-typedef void (*BER_LOG_PRINT_FN) LDAP_P(( char *buf ));
+typedef int* (*BER_ERRNO_FN) LDAP_P(( void ));
+
+typedef void (*BER_LOG_PRINT_FN) LDAP_P(( LDAP_CONST char *buf ));
 
 typedef void* (*BER_MEMALLOC_FN)	LDAP_P(( ber_len_t size ));
 typedef void* (*BER_MEMCALLOC_FN)	LDAP_P(( ber_len_t n, ber_len_t size ));
@@ -135,11 +117,26 @@ typedef struct lber_memory_fns {
 	BER_MEMFREE_FN bmf_free;
 } BerMemoryFunctions;
 
-/* LBER Sockbuf options */ 
-#define LBER_TO_FILE           0x01	/* to a file referenced by sb_fd   */
-#define LBER_TO_FILE_ONLY      0x02	/* only write to file, not network */
-#define LBER_MAX_INCOMING_SIZE 0x04	/* impose limit on incoming stuff  */
-#define LBER_NO_READ_AHEAD     0x08	/* read only as much as requested  */
+/* LBER Sockbuf_IO options */ 
+#define LBER_SB_OPT_GET_FD		1
+#define LBER_SB_OPT_SET_FD		2
+#define LBER_SB_OPT_HAS_IO		3
+#define LBER_SB_OPT_SET_NONBLOCK	4
+#define LBER_SB_OPT_UDP_GET_SRC		5
+#define LBER_SB_OPT_UDP_SET_DST		6
+#define LBER_SB_OPT_GET_SSL		7
+#define LBER_SB_OPT_DATA_READY		8
+#define LBER_SB_OPT_SET_READAHEAD	9
+#define LBER_SB_OPT_DRAIN		10
+#define LBER_SB_OPT_NEEDS_READ		11
+#define LBER_SB_OPT_NEEDS_WRITE		12
+/* Largest option used by the library */
+#define LBER_SB_OPT_OPT_MAX		12
+
+/* LBER IO operations stacking levels */
+#define LBER_SBIOD_LEVEL_PROVIDER	10
+#define LBER_SBIOD_LEVEL_TRANSPORT	20
+#define LBER_SBIOD_LEVEL_APPLICATION	30
 
 /* get/set options for Sockbuf */
 #define LBER_OPT_SOCKBUF_DESC		0x1000
@@ -150,12 +147,49 @@ typedef struct lber_memory_fns {
 #define LBER_OPT_ON		((void *) 1)
 #define LBER_OPT_OFF	((void *) 0)
 
-#define LBER_OPT_SUCCESS	0
+#define LBER_OPT_SUCCESS	(0)
 #define LBER_OPT_ERROR		(-1)
 
 typedef struct berelement BerElement;
 typedef struct sockbuf Sockbuf;
 typedef struct seqorset Seqorset;
+
+typedef struct sockbuf_io Sockbuf_IO;
+
+/* Structure for LBER IO operarion descriptor */
+typedef struct sockbuf_io_desc {
+	int			sbiod_level;
+	Sockbuf			*sbiod_sb;
+	Sockbuf_IO		*sbiod_io;
+	void 			*sbiod_pvt;
+	struct sockbuf_io_desc	*sbiod_next;
+} Sockbuf_IO_Desc;
+
+/* Structure for LBER IO operation functions */
+struct sockbuf_io {
+	int (*sbi_setup)( Sockbuf_IO_Desc *sbiod, void *arg );
+	int (*sbi_remove)( Sockbuf_IO_Desc *sbiod );
+	int (*sbi_ctrl)( Sockbuf_IO_Desc *sbiod, int opt, void *arg);
+	
+	ber_slen_t (*sbi_read)( Sockbuf_IO_Desc *sbiod, void *buf,
+		ber_len_t len );
+	ber_slen_t (*sbi_write)( Sockbuf_IO_Desc *sbiod, void *buf,
+		ber_len_t len );
+	
+	int (*sbi_close)( Sockbuf_IO_Desc *sbiod );
+};
+
+/* Helper macros for LBER IO functions */
+#define LBER_SBIOD_READ_NEXT( sbiod, buf, len ) \
+	( (sbiod)->sbiod_next->sbiod_io->sbi_read( (sbiod)->sbiod_next, \
+		buf, len ) )
+#define LBER_SBIOD_WRITE_NEXT( sbiod, buf, len ) \
+	( (sbiod)->sbiod_next->sbiod_io->sbi_write( (sbiod)->sbiod_next, \
+		buf, len ) )
+#define LBER_SBIOD_CTRL_NEXT( sbiod, opt, arg ) \
+	( (sbiod)->sbiod_next ? \
+		( (sbiod)->sbiod_next->sbiod_io->sbi_ctrl( \
+		(sbiod)->sbiod_next, opt, arg ) ) : 0 )
 
 /* structure for returning a sequence of octet strings + length */
 typedef struct berval {
@@ -163,24 +197,26 @@ typedef struct berval {
 	char		*bv_val;
 } BerValue;
 
+/* this should be moved to lber-int.h */
+
 /*
  * in bprint.c:
  */
-LDAP_F( void )
-ber_print_error LDAP_P((
+LIBLBER_F( void )
+ber_error_print LDAP_P((
 	LDAP_CONST char *data ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_bprint LDAP_P((
 	LDAP_CONST char *data, ber_len_t len ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_dump LDAP_P((
-	LDAP_CONST BerElement *ber, int inout ));
+	BerElement *ber, int inout ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_sos_dump LDAP_P((
-	LDAP_CONST Seqorset *sos ));
+	Seqorset *sos ));
 
 
 /*
@@ -191,79 +227,78 @@ typedef int (*BERDecodeCallback) LDAP_P((
 	void *data,
 	int mode ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_tag LDAP_P((
 	BerElement *ber ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_skip_tag LDAP_P((
 	BerElement *ber,
 	ber_len_t *len ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_peek_tag LDAP_P((
-	LDAP_CONST BerElement *ber,
+	BerElement *ber,
 	ber_len_t *len ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_int LDAP_P((
 	BerElement *ber,
 	ber_int_t *num ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
+ber_get_enum LDAP_P((
+	BerElement *ber,
+	ber_int_t *num ));
+
+LIBLBER_F( ber_tag_t )
 ber_get_stringb LDAP_P((
 	BerElement *ber,
 	char *buf,
 	ber_len_t *len ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_stringa LDAP_P((
 	BerElement *ber,
 	char **buf ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_stringal LDAP_P((
 	BerElement *ber,
 	struct berval **bv ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_bitstringa LDAP_P((
 	BerElement *ber,
 	char **buf,
 	ber_len_t *len ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_null LDAP_P((
 	BerElement *ber ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_boolean LDAP_P((
 	BerElement *ber,
 	ber_int_t *boolval ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_first_element LDAP_P((
 	BerElement *ber,
 	ber_len_t *len,
 	char **last ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_next_element LDAP_P((
 	BerElement *ber,
 	ber_len_t *len,
-	char *last ));
+	LDAP_CONST char *last ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_scanf LDAP_P((								  
 	BerElement *ber,
 	LDAP_CONST char *fmt,
 	... ));
-
-LDAP_F( void )
-ber_set_string_translators LDAP_P((
-	BerElement *ber,
-	BERTranslateProc encode_proc,
-	BERTranslateProc decode_proc ));
 
 /*
  * in encode.c
@@ -272,74 +307,74 @@ typedef int (*BEREncodeCallback) LDAP_P((
 	BerElement *ber,
 	void *data ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_enum LDAP_P((
 	BerElement *ber,
 	ber_int_t num,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_int LDAP_P((
 	BerElement *ber,
 	ber_int_t num,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_ostring LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *str,
 	ber_len_t len,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_berval LDAP_P((
 	BerElement *ber,
 	LDAP_CONST struct berval *bv,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_string LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *str,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_bitstring LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *str,
 	ber_len_t bitlen,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_null LDAP_P((
 	BerElement *ber,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_boolean LDAP_P((
 	BerElement *ber,
 	ber_int_t boolval,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_start_seq LDAP_P((
 	BerElement *ber,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_start_set LDAP_P((
 	BerElement *ber,
 	ber_tag_t tag ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_seq LDAP_P((
 	BerElement *ber ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_put_set LDAP_P((
 	BerElement *ber ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_printf LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *fmt,
@@ -350,80 +385,80 @@ ber_printf LDAP_P((
  * in io.c:
  */
 
-LDAP_F( ber_slen_t )
+LIBLBER_F( ber_slen_t )
 ber_read LDAP_P((
 	BerElement *ber,
 	char *buf,
 	ber_len_t len ));
 
-LDAP_F( ber_slen_t )
+LIBLBER_F( ber_slen_t )
 ber_write LDAP_P((
 	BerElement *ber,
 	LDAP_CONST char *buf,
 	ber_len_t len,
 	int nosos ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_free LDAP_P((
 	BerElement *ber,
 	int freebuf ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_flush LDAP_P((
 	Sockbuf *sb,
 	BerElement *ber,
 	int freeit ));
 
-LDAP_F( BerElement * )
+LIBLBER_F( BerElement * )
 ber_alloc LDAP_P(( void )); /* DEPRECATED */
 
-LDAP_F( BerElement * )
+LIBLBER_F( BerElement * )
 der_alloc LDAP_P(( void )); /* DEPRECATED */
 
-LDAP_F( BerElement * )
+LIBLBER_F( BerElement * )
 ber_alloc_t LDAP_P((
 	int beroptions ));
 
-LDAP_F( BerElement * )
+LIBLBER_F( BerElement * )
 ber_dup LDAP_P((
-	LDAP_CONST BerElement *ber ));
+	BerElement *ber ));
 
-LDAP_F( ber_tag_t )
+LIBLBER_F( ber_tag_t )
 ber_get_next LDAP_P((
 	Sockbuf *sb,
 	ber_len_t *len,
 	BerElement *ber ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_init_w_nullc LDAP_P((
 	BerElement *ber,
 	int options ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_reset LDAP_P((
 	BerElement *ber,
 	int was_writing ));
 
-LDAP_F( BerElement * )
+LIBLBER_F( BerElement * )
 ber_init LDAP_P((
 	struct berval *bv ));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_flatten LDAP_P((
-	LDAP_CONST BerElement *ber,
+	BerElement *ber,
 	struct berval **bvPtr ));
 
 /*
  * LBER ber accessor functions
  */
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_get_option LDAP_P((
-	LDAP_CONST void *item,
+	void *item,
 	int option,
 	void *outvalue));
 
-LDAP_F( int )
+LIBLBER_F( int )
 ber_set_option LDAP_P((
 	void *item,
 	int option,
@@ -433,57 +468,102 @@ ber_set_option LDAP_P((
  * LBER sockbuf.c
  */
 
-LDAP_F( Sockbuf * )
-ber_sockbuf_alloc( void );
+LIBLBER_F( Sockbuf *  )
+ber_sockbuf_alloc LDAP_P((
+	void ));
 
-LDAP_F( Sockbuf *  )
-ber_sockbuf_alloc_fd(
-	ber_socket_t fd );
+LIBLBER_F( void )
+ber_sockbuf_free LDAP_P((
+	Sockbuf *sb ));
 
-LDAP_F( void )
-ber_sockbuf_free(
-	Sockbuf *sb );
+LIBLBER_F( int )
+ber_sockbuf_add_io LDAP_P((
+	Sockbuf *sb,
+	Sockbuf_IO *sbio,
+	int layer,
+	void *arg ));
+
+LIBLBER_F( int )
+ber_sockbuf_remove_io LDAP_P((
+	Sockbuf *sb,
+	Sockbuf_IO *sbio,
+	int layer ));
+
+LIBLBER_F( int )
+ber_sockbuf_ctrl LDAP_P((
+	Sockbuf *sb,
+	int opt,
+	void *arg ));
+
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_tcp;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_udp;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_readahead;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_fd;
+LIBLBER_F( Sockbuf_IO ) ber_sockbuf_io_debug;
 
 /*
  * LBER memory.c
  */
-LDAP_F( void * )
+LIBLBER_F( void * )
 ber_memalloc LDAP_P((
 	ber_len_t s ));
 
-LDAP_F( void * )
+LIBLBER_F( void * )
 ber_memrealloc LDAP_P((
 	void* p,
 	ber_len_t s ));
 
-LDAP_F( void * )
+LIBLBER_F( void * )
 ber_memcalloc LDAP_P((
 	ber_len_t n,
 	ber_len_t s ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_memfree LDAP_P((
 	void* p ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_memvfree LDAP_P((
 	void** vector ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_bvfree LDAP_P((
 	struct berval *bv ));
 
-LDAP_F( void )
+LIBLBER_F( void )
 ber_bvecfree LDAP_P((
 	struct berval **bv ));
 
-LDAP_F( struct berval * )
+LIBLBER_F( int )
+ber_bvecadd LDAP_P((
+	struct berval ***bvec,
+	struct berval *bv ));
+
+LIBLBER_F( struct berval * )
 ber_bvdup LDAP_P((
 	LDAP_CONST struct berval *bv ));
 
-LDAP_F( char * )
+LIBLBER_F( struct berval * )
+ber_bvstr LDAP_P((
+	LDAP_CONST char * ));
+
+LIBLBER_F( struct berval * )
+ber_bvstrdup LDAP_P((
+	LDAP_CONST char * ));
+
+LIBLBER_F( char * )
 ber_strdup LDAP_P((
 	LDAP_CONST char * ));
+
+/*
+ * error.c
+ */
+LIBLBER_F( int * ) ber_errno_addr LDAP_P((void));
+#define ber_errno (*(ber_errno_addr)())
+
+#define LBER_ERROR_NONE		0
+#define LBER_ERROR_PARAM	0x1
+#define LBER_ERROR_MEMORY	0x2
 
 LDAP_END_DECL
 

@@ -38,9 +38,10 @@ CPP=cl.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\Release"
-# PROP Intermediate_Dir "Release\libldif"
+# PROP Output_Dir "..\..\Release"
+# PROP Intermediate_Dir "..\..\Release\libldif"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -48,7 +49,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Release\oldif32.lib"
+# ADD LIB32 /nologo /out:"..\..\Release\oldif32.lib"
 
 !ELSEIF  "$(CFG)" == "libldif - Win32 Debug"
 
@@ -59,9 +60,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\Debug"
-# PROP Intermediate_Dir "Debug\libldif"
+# PROP Output_Dir "..\..\Debug"
+# PROP Intermediate_Dir "..\..\Debug\libldif"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -69,7 +71,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
-# ADD LIB32 /nologo /out:"..\Debug\oldif32.lib"
+# ADD LIB32 /nologo /out:"..\..\Debug\oldif32.lib"
 
 !ELSEIF  "$(CFG)" == "libldif - Win32 Single Debug"
 
@@ -80,9 +82,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "..\SDebug"
-# PROP Intermediate_Dir "SDebug\libldif"
+# PROP Output_Dir "..\..\SDebug"
+# PROP Intermediate_Dir "..\..\SDebug\libldif"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -90,7 +93,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Debug\oldif32.lib"
-# ADD LIB32 /nologo /out:"..\SDebug\oldif32.lib"
+# ADD LIB32 /nologo /out:"..\..\SDebug\oldif32.lib"
 
 !ELSEIF  "$(CFG)" == "libldif - Win32 Single Release"
 
@@ -101,9 +104,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "..\SRelease"
-# PROP Intermediate_Dir "SRelease\libldif"
+# PROP Output_Dir "..\..\SRelease"
+# PROP Intermediate_Dir "..\..\SRelease\libldif"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -111,7 +115,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo /out:"..\Release\oldif32.lib"
-# ADD LIB32 /nologo /out:"..\SRelease\oldif32.lib"
+# ADD LIB32 /nologo /out:"..\..\SRelease\oldif32.lib"
 
 !ENDIF 
 

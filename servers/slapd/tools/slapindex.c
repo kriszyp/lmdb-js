@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -20,6 +20,8 @@ int
 main( int argc, char **argv )
 {
 	char		*type;
+	AttributeDescription *desc;
+	const char *text;
 	ID id;
 	int rc = EXIT_SUCCESS;
 
@@ -38,9 +40,17 @@ main( int argc, char **argv )
 		exit( EXIT_FAILURE );
 	}
 
-	type = attr_normalize( argv[argc - 1] );
+	type = argv[argc - 1];
 
-	if ( !be->be_index_attr( be, type ) ) {
+	rc = slap_str2ad( type, &desc, &text );
+
+	if( rc != LDAP_SUCCESS ) {
+		fprintf( stderr, "%s: unrecognized attribute type: %s\n",
+			progname, text );
+		exit( EXIT_FAILURE );
+	}
+
+	if ( !be->be_index_attr( be, desc ) ) {
 		fprintf( stderr, "attribute type \"%s\": no indices to generate\n",
 			type );
 		exit( EXIT_FAILURE );
@@ -56,10 +66,7 @@ main( int argc, char **argv )
 		id != NOID;
 		id = be->be_entry_next( be ) )
 	{
-		struct berval **values;
 		Entry* e = be->be_entry_get( be, id );
-		struct berval bv;
-		struct berval *bvals[2];
 
 		if ( e == NULL ) {
 			fprintf( stderr,
@@ -74,39 +81,31 @@ main( int argc, char **argv )
 				id, e->e_dn );
 		}
 
-		if( strcasecmp( type, "dn" ) == 0 ) {
-			bv.bv_val = e->e_ndn;
-			bv.bv_len = strlen( bv.bv_val );
-			bvals[0] = &bv;
-			bvals[1] = NULL;
-
-			values = bvals;
-
-		} else {
-			Attribute *attr = attr_find( e->e_attrs, type );
-
-			if( attr == NULL ) {
-				entry_free( e );
-				continue;
-			}
-
-			values = attr->a_vals;
-		}
-
-		if ( be->be_index_change( be,
-			type, values, id, SLAP_INDEX_ADD_OP ) )
 		{
-			rc = EXIT_FAILURE;
+			Attribute *attr;
+			
+			for( attr = attrs_find( e->e_attrs, desc );
+				attr != NULL;
+				attr = attrs_find( attr->a_next, desc ) )
+			{
 
-			if( !continuemode ) {
-				entry_free( e );
-				break;
+				if ( be->be_index_change( be,
+					desc, attr->a_vals, id, SLAP_INDEX_ADD_OP ) )
+				{
+					rc = EXIT_FAILURE;
+
+					if( !continuemode ) {
+						entry_free( e );
+						goto done;
+					}
+				}
 			}
 		}
 
 		entry_free( e );
 	}
 
+done:
 	(void) be->be_entry_close( be );
 
 	slap_tool_destroy();

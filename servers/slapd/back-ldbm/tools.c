@@ -1,7 +1,7 @@
 /* tools.c - tools for slap tools */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -42,7 +42,7 @@ int ldbm_tool_entry_open(
 		flags = LDBM_READER;
 	}
 
-	li->li_dbcachewsync = 0;
+	li->li_dbwritesync = 0;
 
 	if ( (id2entry = ldbm_cache_open( be, "id2entry", LDBM_SUFFIX, flags ))
 	    == NULL ) {
@@ -63,7 +63,7 @@ int ldbm_tool_entry_close(
 	assert( id2entry != NULL );
 
 	ldbm_cache_close( be, id2entry );
-	li->li_dbcachewsync = 1;
+	li->li_dbwritesync = 1;
 	id2entry = NULL;
 
 	return 0;
@@ -160,7 +160,7 @@ ID ldbm_tool_entry_put(
 	Debug( LDAP_DEBUG_TRACE, "=> ldbm_tool_entry_put( %ld, \"%s\" )\n",
 		e->e_id, e->e_dn, 0 );
 
-	rc = index_add_entry( be, e );
+	rc = index_entry_add( be, e, e->e_attrs );
 
 	if( rc != 0 ) {
 		return NOID;
@@ -194,23 +194,25 @@ ID ldbm_tool_entry_put(
 
 int ldbm_tool_index_attr(
 	BackendDB *be,
-	char* type )
+	AttributeDescription *desc
+)
 {
 	static DBCache *db = NULL;
-	int indexmask, syntaxmask;
-	char * at_cn;
+	slap_index indexmask;
+	char *at_cname;
 
 	assert( slapMode & SLAP_TOOL_MODE );
 
-	attr_masks( be->be_private, type, &indexmask, &syntaxmask );
+	at_cname = desc->ad_cname->bv_val;
 
-	attr_normalize( type );
-	at_cn = at_canonical_name( type );
+	assert( desc != NULL );
+	attr_mask( be->be_private, at_cname, &indexmask );
 
-	if ( (db = ldbm_cache_open( be, at_cn, LDBM_SUFFIX, LDBM_NEWDB ))
-	    == NULL ) {
+	if ( (db = ldbm_cache_open( be, at_cname, LDBM_SUFFIX, LDBM_NEWDB ))
+	    == NULL )
+	{
 		Debug( LDAP_DEBUG_ANY,
-		    "<= index_read NULL (could not open %s%s)\n", at_cn,
+		    "<= index_attr NULL (could not open %s%s)\n", at_cname,
 		    LDBM_SUFFIX, 0 );
 		return 0;
 	}
@@ -222,15 +224,14 @@ int ldbm_tool_index_attr(
 
 int ldbm_tool_index_change(
 	BackendDB *be,
-	char* type,
+	AttributeDescription *desc,
 	struct berval **bv,
 	ID id,
 	int op )
 {
 	assert( slapMode & SLAP_TOOL_MODE );
 
-	index_change_values( be,
-		type, bv, id, op );
+	index_values( be, desc, bv, id, op );
 
 	return 0;
 }

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -94,10 +94,20 @@ cldap_open( LDAP_CONST char *host, int port )
     ld->ld_cldapnaddr = 0;
     ld->ld_cldapaddrs = NULL;
 
-    if (ber_pvt_sb_set_io( &(ld->ld_sb), &ber_pvt_sb_io_udp, NULL )<0) {
+    if ( ber_sockbuf_add_io( ld->ld_sb, &ber_sockbuf_io_udp,
+	    LBER_SBIOD_LEVEL_PROVIDER, (void *)&s ) < 0 ) {
        ldap_ld_free(ld, 1, NULL, NULL );
+	tcp_close( s );
        return NULL;
     }
+    if ( ber_sockbuf_add_io( ld->ld_sb, &ber_sockbuf_io_readahead,
+	    LBER_SBIOD_LEVEL_PROVIDER, NULL ) < 0 ) {
+	ldap_ld_free( ld, 1, NULL, NULL );
+	return NULL;
+    }
+#ifdef LDAP_DEBUG
+    ber_sockbuf_add_io( ld->ld_sb, &ber_sockbuf_io_debug, INT_MAX, NULL );
+#endif
 	
     ld->ld_version = LDAP_VERSION2;
 
@@ -129,9 +139,9 @@ cldap_open( LDAP_CONST char *host, int port )
 		}
 
 		for ( i = 0; hp->h_addr_list[ i ] != 0; ++i ) {
-		    SAFEMEMCPY( (char *)&sock.sin_addr.s_addr,
+		    SAFEMEMCPY( (char *)&sock.sin_addr,
 			    (char *)hp->h_addr_list[ i ],
-			    sizeof(sock.sin_addr.s_addr));
+			    sizeof(sock.sin_addr));
 		    if ( add_addr( ld, (struct sockaddr *)&sock ) < 0 ) {
 			ldap_ld_free( ld, 1, NULL, NULL );
 			LDAP_FREE( host_dup );
@@ -162,13 +172,14 @@ cldap_open( LDAP_CONST char *host, int port )
     }
 
     if ( ld->ld_cldapaddrs == NULL
-	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,0 )) == NULL
+	    || ( ld->ld_defconn = ldap_new_connection( ld, NULL, 1,0,NULL )) == NULL
 	    ) {
 	ldap_ld_free( ld, 0, NULL, NULL );
 	DO_RETURN( NULL );
     }
 
-    ber_pvt_sb_udp_set_dst( &ld->ld_sb, ld->ld_cldapaddrs[0] );
+    ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_UDP_SET_DST,
+	ld->ld_cldapaddrs[0] );
 
     cldap_setretryinfo( ld, 0, 0 );
 
@@ -216,7 +227,7 @@ cldap_search_s( LDAP *ld,
 
     *res = NULL;
 
-    (void) memset( &cri, 0, sizeof( cri ));
+    (void) memset( &cri, '\0', sizeof( cri ));
 
     if ( logdn != NULL ) {
 	ld->ld_cldapdn = logdn;
@@ -229,8 +240,8 @@ cldap_search_s( LDAP *ld,
 		--ld->ld_msgid;	/* use same id as before */
 	}
 	    
-	ber_pvt_sb_udp_set_dst( &(ld->ld_sb), 
-			ld->ld_cldapaddrs[ cri.cri_useaddr ] );
+	ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_UDP_SET_DST,
+	    (void *)ld->ld_cldapaddrs[cri.cri_useaddr] );
 
 	Debug( LDAP_DEBUG_TRACE, "cldap_search_s try %d (to %s)\n",
 	    cri.cri_try, inet_ntoa( ((struct sockaddr_in *)
@@ -287,7 +298,6 @@ static int
 cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	struct cldap_retinfo *crip, const char *base )
 {
-    Sockbuf 		*sb = &ld->ld_sb;
     BerElement		ber;
     char		*logdn;
     int			ret, fromaddr, i;
@@ -365,7 +375,7 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	     * got a result: determine which server it came from
 	     * decode into ldap message chain
 	     */
-	    src = (struct sockaddr_in *) ber_pvt_sb_udp_get_src( sb );
+	    ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_UDP_GET_SRC, (void *)&src );
 		
 	    for ( fromaddr = 0; fromaddr < ld->ld_cldapnaddr; ++fromaddr ) {
 		    if ( memcmp( &((struct sockaddr_in *)
@@ -401,7 +411,8 @@ cldap_result( LDAP *ld, int msgid, LDAPMessage **res,
 	    if ( i == fromaddr ) {
 		continue;
 	    }
-	    ber_pvt_sb_udp_set_dst( sb, ld->ld_cldapaddrs[i] );
+	    ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_UDP_SET_DST,
+		(void *)ld->ld_cldapaddrs[i] );
 
 	    Debug( LDAP_DEBUG_TRACE, "cldap_result abandoning id %d (to %s)\n",
 		msgid, inet_ntoa( ((struct sockaddr_in *)

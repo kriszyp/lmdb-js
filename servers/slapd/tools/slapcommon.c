@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* slapcommon.c - common routine for the slap tools */
@@ -188,6 +188,13 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	rc = schema_init();
+
+	if (rc != 0 ) {
+		fprintf( stderr, "%s: slap_schema_init failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+
 	read_config( conffile );
 
 	if ( !nbackends ) {
@@ -195,10 +202,17 @@ slap_tool_init(
 		exit( EXIT_FAILURE );
 	}
 
+	rc = schema_prep();
+
+	if (rc != 0 ) {
+		fprintf( stderr, "%s: slap_schema_prep failed!\n", progname );
+		exit( EXIT_FAILURE );
+	}
+
 	if( base != NULL ) {
 		char *tbase = ch_strdup( base );
 
-		if( dn_normalize_case( tbase ) == NULL ) {
+		if( dn_normalize( tbase ) == NULL ) {
 			fprintf( stderr, "%s: slap_init invalid suffix (\"%s\")\n",
 				progname, base );
 			exit( EXIT_FAILURE );

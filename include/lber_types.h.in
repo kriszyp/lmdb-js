@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
+ * Copyright 1998-2000 The OpenLDAP Foundation, Redwood City, California, USA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -16,16 +16,43 @@
 #ifndef _LBER_TYPES_H
 #define _LBER_TYPES_H
 
-/* LBER boolean, enum, integers - 32 bits or larger*/
+#include <ldap_cdefs.h>
+
+LDAP_BEGIN_DECL
+
+/* LBER boolean, enum, integers (32 bits or larger) */
 #undef LBER_INT_T
 
-/* LBER tags - 32 bits or larger */
+/* LBER tags (32 bits or larger) */
 #undef LBER_TAG_T
 
 /* LBER socket descriptor */
 #undef LBER_SOCKET_T
 
-/* LBER lengths - 32 bits or larger*/
+/* LBER lengths (32 bits or larger) */
 #undef LBER_LEN_T
+
+/* ------------------------------------------------------------ */
+
+/* booleans, enumerations, and integers */
+typedef LBER_INT_T ber_int_t;
+
+/* signed and unsigned versions */
+typedef signed LBER_INT_T ber_sint_t;
+typedef unsigned LBER_INT_T ber_uint_t;
+
+/* tags */
+typedef unsigned LBER_TAG_T ber_tag_t;
+
+/* "socket" descriptors */
+typedef LBER_SOCKET_T ber_socket_t;
+
+/* lengths */
+typedef unsigned LBER_LEN_T ber_len_t;
+
+/* signed lengths */
+typedef signed LBER_LEN_T ber_slen_t;
+
+LDAP_END_DECL
 
 #endif /* _LBER_TYPES_H */

@@ -1,0 +1,1554 @@
+INTERNET-DRAFT                                                S. Legg
+draft-ietf-ldup-urp-02.txt                                    Telstra
+                                                             A. Payne
+                                               PricewaterhouseCoopers
+                                                     October 22, 1999
+
+
+                 LDUP Update Reconciliation Procedures
+
+    Copyright (C) The Internet Society (1999). All Rights Reserved.
+
+   Status of this Memo
+
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress".
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   This draft is published by the IETF LDUP Working Group.  Distribution
+   of this document is unlimited.  Comments should be sent to the LDUP
+   Replication mailing list <ldup@imc.org> or to the authors.
+
+   This Internet-Draft expires on 22 April 2000.
+
+   1. Abstract
+
+   This document describes the procedures used by directory servers to
+   reconcile updates performed by autonomously operating directory
+   servers in a distributed, replicated directory service.
+
+
+
+
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 1]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   2. Table of Contents
+
+   1. Abstract                                                          1
+   2. Table of Contents                                                 2
+   3. Introduction                                                      2
+   4. Model Extensions                                                  3
+   4.1  Unique Identifier                                               3
+   4.2  Timestamps & Existence                                          3
+   4.3  Replication Primitives                                          4
+   4.4  Lost & Found                                                    5
+   5. Replication Procedures                                            6
+   5.1  Processing LDAP, DAP or DSP Operations on the DIT               6
+   5.1.1  Add Entry                                                     7
+   5.1.2  Remove Entry                                                  7
+   5.1.3  Modify Entry                                                  7
+   5.1.4  Modify DN                                                     9
+   5.2  Generating Replication Primitives                               9
+   5.3  Processing Replication Primitives on the DIT                   11
+   5.3.1  Saving Deletion Records                                      12
+   5.3.2  Glue Entries                                                 13
+   5.3.3  Generating Change Sequence Numbers                           13
+   5.3.4  Comparison of Attribute Values                               14
+   5.3.5  Entry Naming                                                 14
+   5.3.6  Processing Add Attribute Value Primitive                     17
+   5.3.7  Processing Remove Attribute Value Primitive                  17
+   5.3.8  Processing Remove Attribute Primitive                        19
+   5.3.9  Processing Add Entry Primitive                               19
+   5.3.10  Processing Remove Entry Primitive                           20
+   5.3.11  Processing Move Entry Primitive                             21
+   5.3.12  Processing Rename Entry Primitive                           22
+   6. Security Considerations                                          23
+   7. Acknowledgements                                                 23
+   8. References                                                       23
+   9. Intellectual Property Notice                                     23
+   10. Copyright Notice                                                24
+   11. Authors' Address                                                25
+   12. Appendix A - Changes From Previous Drafts                       25
+   12.1 Changes in Draft 01                                            25
+   12.2 Changes in Draft 02                                            26
+   13. Appendix B - Open Issues                                        26
+
+
+   3. Introduction
+
+   Each DAP, LDAP or DSP operation successfully performed by a DSA is
+   subsequently reported to other DSAs with which it has a replication
+   agreement as a set of one or more simple timestamped replication
+   primitives.  These primitives reflect the intended final state of an
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 2]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   update operation rather than the specific changes required to achieve
+   that state.
+
+   A DSA will receive replication primitives from its various agreement
+   partners according to the agreement schedules. Those primitives must
+   be reconciled with the current DSA contents.  In broad outline,
+   received replication primitives are compared to the timestamp
+   information associated with the directory data item being operated
+   on. If the primitive has a more recent timestamp a change in the
+   directory contents is made (which may involve only the revision of
+   the timestamp). If the DSA has other replication agreements then the
+   change will be reflected in primitives sent during replication
+   sessions for those other agreements.  If the primitive has an older
+   timestamp it is no longer relevant and is simply ignored.
+
+   The update reconciliation procedures are designed to produce a
+   consistent outcome at all participating DSAs regardless of the order
+   in which the primitives are received. The primitives can also be
+   safely replayed in the event that an exchange of replication
+   information with another DSA is interrupted. This greatly simplifies
+   the recovery mechanisms required in the replication protocol.
+
+   4. Model Extensions
+
+   This section describes the extensions to the data model required to
+   effect multiple master replication.
+
+   4.1 Unique Identifier
+
+   A Unique Identifier is associated with each entry in the global DIT.
+   This Unique Identifier must be globally unique for all time in the
+   Directory. This can be achieved by defining a unique DSA prefix for
+   each DSA and then ensuring that the suffix of the Unique Identifier
+   is locally unique.
+
+   Some pre-allocated global Unique Identifier values will be used to
+   indicate the X.500 global root entry, and the Lost & Found entry (see
+   Section 4.4).
+
+   4.2 Timestamps & Existence
+
+   The timestamp for a replication primitive or directory data item is
+   in the form of a Change Sequence Number (CSN). The components of the
+   CSN are, from most significant to least significant, a time in
+   seconds, a change count, a Replica Identifier and a modification
+   number.  Notionally a CSN is associated with an entry's Relative
+   Distinguished Name (the Name CSN), the reference to its superior
+   entry (the Parent CSN) and each of its attribute values (including
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 3]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   the distinguished values), to record the time of the most recent
+   action on that part of the entry.
+
+   The entry itself has a CSN (the Entry CSN) asserting the most recent
+   time at which the entry was added.  An entry is permitted to be
+   removed and then re-added at one or more DSAs.  In this context re-
+   adding an entry means reusing the Unique Identifier of a removed
+   entry and does not refer to the case of reusing the RDN of a removed
+   entry. The reuse of a Unique Identifier can arise by the explicit
+   action of a directory administrator to restore an entry that was
+   mistakenly removed.  The mechanism by which an administrator adds an
+   entry with a reused Unique Identifier is outside the scope of the
+   X.500 and LDAP standards since the Unique Identifier of an entry is
+   not a user modifiable attribute. Note that from the perspective of a
+   consumer DSA of a partial area of replication an entry may appear to
+   be removed and added several times because modifications to the entry
+   change whether the entry satisfies the replication agreement
+   specification for the area of replication.
+
+   Additionally, a deletion record is kept for each of the recently
+   deleted entries, attributes, or attribute values. The deletion record
+   contains a CSN and asserts that the associated directory object no
+   longer existed at the particular time.
+
+   4.3 Replication Primitives
+
+   Each update operation performed on an entry in a part of the DIT
+   subject to one or more replication agreements must be subsequently
+   reported as replication primitives to the replication partner DSAs of
+   those agreements.  The collection of primitives sent by a DSA to a
+   replication partner may reflect both the results of locally processed
+   user update requests and also of replicated updates received from
+   other DSAs.  A single update operation will decompose in one or more
+   primitives.
+
+   Common to all update primitives is an entry identifier argument, uid,
+   containing the Unique Identifier of the target entry of the change,
+   and a CSN argument, csn, to indicate the time of the change.  In the
+   case of adding a new entry, the Unique Identifier for the entry is
+   allocated by the DSA in the course of processing the operation.
+   Additional arguments are present depending on the type of replication
+   primitive.
+
+   The p-add-entry(uid, csn, superior, rdn) primitive is used to add a
+   new entry with minimal contents.  The superior argument contains the
+   Unique Identifier of the immediate superior entry of the added entry.
+   The rdn argument contains the Relative Distinguished Name of the
+   added entry.
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 4]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   The p-move-entry(uid, csn, superior) primitive is used to change the
+   immediate superior of an entry.  The superior argument contains the
+   Unique Identifier of the new superior entry.
+
+   The p-rename-entry(uid, csn, rdn) primitive is used to change the
+   Relative Distinguished Name of an entry.  The rdn argument contains
+   the new RDN for the entry.
+
+   The p-remove-entry(uid, csn) primitive is used to remove an entry.
+
+   The p-add-attribute-value(uid, csn, type, value) primitive is used to
+   add a single attribute value to an entry.  The type argument contains
+   the attribute type of the value and the value argument contains the
+   attribute value.
+
+   The p-remove-attribute-value(uid, csn, type, value) primitive is used
+   to remove a single attribute value from an entry.  The type argument
+   contains the attribute type of the value and the value argument
+   contains the attribute value.
+
+   The p-remove-attribute(uid, csn, type) primitive is used to remove
+   all values of an attribute from an entry.  The type argument contains
+   the attribute type to be removed.
+
+   These primitives reflect the intended final state of an update
+   operation rather than the specific changes required to achieve that
+   state.
+
+   4.4 Lost & Found
+
+   Each connected set of mastering DSAs have a Lost & Found entry
+   nominated. As a result of conflicting updates at two or more master
+   DSAs, an entry may be left with a reference to a non-existent
+   superior entry.  Such an entry is called an orphaned entry. When this
+   situation arises, the DSA creates a glue entry for the missing
+   superior entry. This glue entry is made a subordinate of the Lost &
+   Found entry and the orphaned entry becomes a subordinate of the glue
+   superior entry (see Section 5.3.2).  Entries that exist in the Lost &
+   Found subtree may still be modified by actions of the replication
+   protocol since entries are identified by Unique Identifiers in the
+   protocol, independent of their positioning in the global DIT.
+
+   Entries will also be explicitly moved to become immediate
+   subordinates of the Lost & Found entry to prevent the formation of a
+   loop in the superior-subordinate relationships in the DIT. This
+   situation can only arise through conflicting move entry operations at
+   two or more master DSAs.
+
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 5]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   Entries that exist under the Lost & Found entry may be returned to a
+   suitable position in the DIT by an administrator or user with
+   appropriate access rights.
+
+   5. Replication Procedures
+
+   The procedures defined in this section ensure the consistent and
+   correct application of the results of DAP, LDAP or DSP operations
+   across all multi-master replication DSAs.
+
+   5.1 Processing LDAP, DAP or DSP Operations on the DIT
+
+   A successful DAP, LDAP or DSP operation applied to a part of the DIT
+   subject to a replication agreement will create or replace one or more
+   CSNs on an entry or its contents, and create zero, one or more
+   deletion records referencing the entry or its contents.  The CSNs and
+   deletion records generated from an operation are atomic with that
+   operation. That is, either the operation succeeds, the CSNS are
+   revised and the deletion records are stored, or the operation fails,
+   no CSNs are revised and no deletion records are stored.  In all
+   cases, all current error conditions (i.e. reasons for rejecting an
+   LDAP, DAP or DSP update operation) remain.
+
+   At some later time, possibly immediately following the update or
+   concurrently with it, the CSNs on entry contents and deletion records
+   are used to generate the replication primitives that will report the
+   update to other DSAs via a replication session.
+
+   All the CSNs generated from a single update operation must use the
+   same time, change count and Replica Identifier.  The modification
+   number is permitted to vary but must be assigned such that when the
+   CSNs resulting from the operation, including those in the deletion
+   records, are compared to the CSNs resulting from any other operation
+   they are all strictly greater than or all strictly less than those
+   other CSNs (i.e.  in a global CSN ordering of the primitives
+   resulting from all operations the primitives of each operation must
+   be contiguous in that ordering).  In order for the update to be
+   consistently applied when replicated to other DSAs the CSNs generated
+   during that update must generally be greater than any pre-existing
+   CSNs on the updated entry's contents. It is expected that DSAs will
+   normally use the current time according to their system clocks in
+   generating the CSNs for an operation. However in an environment where
+   DSA clocks are not necessarily synchronized the current time may be
+   older than existing CSNs on entry contents. The constraints the new
+   CSNs must satisfy with respect to pre-existing CSNs on entry data are
+   covered in the sections on each type of update operation. The current
+   LDUP architecture draft [LDUP Model] requires client update
+   operations to be rejected if the current time does not satisfy the
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 6]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   constraints on the generation of the CSNs.  As written, URP allows a
+   DSA to generate CSNs in advance of its current time to satisfy the
+   constraints and proceed with the update.
+
+   The LDUP Update Vector mechanism imposes the additional constraint
+   that the CSN generated for an update operation must also be greater
+   than the highest CSN generated by the DSA that has already been seen
+   by any other DSA. An implementation that generates successively
+   greater CSNs for each operation will satisfy this constraint.
+
+   The following sections describe the additional actions to support
+   replication carried out in processing each particular type of update
+   operation.
+
+   5.1.1 Add Entry
+
+   The LDAP Add operation or DAP addEntry operation is used to add a
+   leaf entry to the DIT.  A successful request will generate a CSN for
+   the entry.  The CSN on the entry's RDN, the CSN on the entry's
+   superior reference, and the CSN on each distinguished and non-
+   distinguished value added to the entry by the add entry operation are
+   set to this same value.  The affected values include any operational
+   attributes automatically generated by the DSA.
+
+   The Unique Identifier generated for an entry created by a user
+   request is required to be globally unique for all time, so there
+   cannot be a pre-existing entry deletion record for the same Unique
+   Identifier.  However it is recognized that, in practice, Directory
+   administrators may need to restore a deleted entry using its original
+   Unique Identifier (the mechanism used to achieve this is undefined
+   and outside the scope of this specification). In this case the CSN
+   for the entry must be generated such that it is greater than or equal
+   to the CSN of any existing entry, attribute or value deletion records
+   and greater than any of the CSNs contained in an existing glue entry,
+   for the same Unique Identifier.
+
+   5.1.2 Remove Entry
+
+   The LDAP Delete operation or DAP removeEntry operation is used to
+   remove a leaf entry from the DIT. If the request succeeds then an
+   entry deletion record is stored containing the Unique Identifier of
+   the removed entry.  The CSN for the entry deletion record must be
+   generated such that it is greater than the entry CSN of the removed
+   entry.
+
+   5.1.3 Modify Entry
+
+   The LDAP Modify operation (ModifyRequest) or DAP modifyEntry
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 7]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   operation is used to perform a series of one or more modifications to
+   an entry.  If the request succeeds then zero, one or more new values
+   with CSNs are added to the entry contents, and zero, one or more
+   value or attribute deletion records are stored.
+
+   The modifications described by the modification argument of the LDAP
+   ModifyRequest have the following additional effects:
+
+      a) The add alternative associates a CSN with each of the added
+      attribute values.
+
+      b) The delete alternative with no listed values generates an
+      attribute deletion record for the removed attribute type.
+
+      c) The delete alternative with listed values generates a value
+      deletion record for each of the removed values.
+
+      d) The replace alternative first generates an attribute deletion
+      record for the removed attribute type.  A CSN is then associated
+      with each of the added values.
+
+   The modifications described by the changes argument of the X.500
+   modifyEntry operation have the following additional effects:
+
+      a) The addAttribute and addValues alternatives associate a CSN
+      with each of the added attribute values. These two alternatives
+      are equivalent from the point of view of URP since there is no CSN
+      associated specifically with the attribute type.
+
+      b) The removeAttribute alternative generates an attribute deletion
+      record for the removed attribute type.
+
+      c) The removeValues alternative generates a value deletion record
+      for each of the removed values.
+
+      d) The alterValues alternative first generates a value deletion
+      record for each of the old values.  Secondly, a CSN is associated
+      with each of the new values.
+
+      e) The resetValues alternative generates a value deletion record
+      for each value actually removed.
+
+   The CSNs generated by a modify operation must be greater than the CSN
+   of any pre-existing attribute value that is removed, greater than or
+   equal to the CSN of any pre-existing attribute deletion record or
+   value deletion record applying to an added attribute value, and
+   greater than or equal to the CSN of the entry.
+
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 8]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   A further constraint applies to the modification number component of
+   the CSNs generated by a single modify operation.  The CSN generated
+   for an added attribute value must be greater than or equal to the CSN
+   on any applicable value deletion record or attribute deletion record
+   already created by this same operation.  This constraint is satisfied
+   if the same modification number is used in all the CSNs generated by
+   a single modify operation, or if the CSNs generated as the sequence
+   of modifications in the operation are applied in order use
+   monotonically increasing modification numbers.  The modification
+   numbers need not be consecutive in this case.
+
+   Whenever a new value is added to the entry contents any value
+   deletion record for the same entry, attribute type and attribute
+   value may be discarded.
+
+   5.1.4 Modify DN
+
+   The LDAP Modify DN operation and DAP modifyDN operation are used to
+   change the Relative Distinguished Name of an entry and/or to move an
+   entry to a new superior in the DIT.  If the entry is moved to a new
+   superior in the DIT then the CSN on the entry's superior reference is
+   replaced.  If the entry's RDN is changed then the CSN on the entry's
+   RDN is replaced.  A value deletion record is stored for each of the
+   formally distinguished attribute values removed from the entry as a
+   consequence of the deleteOldRDN (modifyDN) flag or deleteoldrdn
+   (ModifyDNRequest) flag being set.
+
+   If the CSN on the entry's superior reference is revised then the new
+   value must be greater than the previous value.  If the CSN on the
+   entry's RDN is revised then the new value must be greater than the
+   previous value of the CSN on the RDN.  The CSNs for any value
+   deletion records must be greater than the CSNs on the removed
+   attribute values.
+
+   5.2 Generating Replication Primitives
+
+   Each time a replication session is invoked, the supplier DSA must
+   generate and send replication primitives for updates known to the
+   supplier but not yet known to the consumer DSA. The supplier uses the
+   Update Vector of the consumer to determine what to send.
+   Conceptually, the supplier scans all the glue and non-glue entries
+   and deletion records covered by the replication agreement with the
+   consumer and generates primitives where the CSNs held by the supplier
+   are greater than the CSN for the corresponding identified replica in
+   the consumer's Update Vector.
+
+   A p-add-entry primitive is generated for each entry whose entry CSN
+   is greater than the Update Vector CSN for the same replica.  The
+
+
+
+Legg & Payne             Expires 22 April 2000                  [Page 9]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   superior argument of the p-add-entry primitive contains the Unique
+   Identifier of the immediate superior entry of the added entry.  The
+   rdn argument of the p-add-entry primitive contains the Relative
+   Distinguished Name of the created entry except that the Unique
+   Identifier, if distinguished, is always omitted from the RDN.  The
+   superior and rdn arguments are provided even if the CSN on the
+   superior reference or the RDN are greater than the CSN on the entry.
+
+   A p-add-attribute-value primitive is generated for each distinguished
+   value that has a CSN greater than the Update Vector CSN for the same
+   replica and greater than the CSN on the RDN of its entry, and for
+   each non-distinguished value that has a CSN greater than the Update
+   Vector CSN for the same replica.  The p-add-attribute-value primitive
+   uses the CSN of the corresponding value.  There are no separate
+   primitives generated for the distinguished values that have the same
+   CSN as the CSN on their entry's RDN.
+
+   If the CSN on an entry's RDN is greater than the Update Vector CSN
+   for the same replica and greater than the CSN on the entry then a p-
+   rename-entry primitive is generated.  The CSN for this primitive is
+   the CSN on the entry's RDN and the rdn argument contains the Relative
+   Distinguished Name of the entry.
+
+   If the CSN on the entry's superior reference is greater than the
+   Update Vector CSN for the same replica and greater than the CSN on
+   the entry then a p-move-entry primitive is generated.  The CSN for
+   this primitive is the CSN on the entry's superior reference and the
+   superior argument of the contains the Unique Identifier of the
+   immediate superior entry.
+
+   A p-remove-attribute-value primitive is generated for each value
+   deletion record having a CSN greater than the Update Vector CSN for
+   the same replica.  The primitive uses exactly the same arguments as
+   the value deletion record.
+
+   A p-remove-attribute primitive is generated for each attribute
+   deletion record having a CSN greater than the Update Vector CSN for
+   the same replica.  The primitive uses exactly the same arguments as
+   the attribute deletion record.
+
+   A p-remove-entry primitive is generated for each entry deletion
+   record having a CSN greater than the Update Vector CSN for the same
+   replica.  The primitive uses exactly the same arguments as the entry
+   deletion record.
+
+   Rather than scanning the DIT, an implementation may choose to
+   generate replication primitives as the user update requests are being
+   processed and put these primitives into a replication log in
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 10]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   preparation for sending during the next replication session.  Any
+   replication primitives generated from an operation in this way MUST
+   be atomic with that operation. That is, either the operation
+   succeeds, and primitives are added to the replication log, or the
+   operation fails, and no primitives are added to the log.  The
+   replication log may be filtered prior to sending to eliminate any
+   primitives that are superseded by later primitives in the log, and
+   any primitives having CSNs less than or equal to the relevant CSNs
+   contained in a consumer DSA's Update Vector.
+
+   In a log based implementation, the p-add-attribute-value primitive
+   supersedes a p-remove-attribute-value primitive for the same entry,
+   attribute type, attribute value and equal or older CSN. It supersedes
+   another p-add-attribute-value primitive for the same entry, attribute
+   type, attribute value and older CSN.
+
+   The p-remove-attribute-value primitive supersedes a p-add-attribute-
+   value primitive for the same entry, attribute type, attribute value
+   and older CSN. It supersedes another p-remove-attribute-value
+   primitive for the same entry, attribute type, attribute value and
+   equal or older CSN.
+
+   The p-remove-attribute primitive supersedes a p-add-attribute-value
+   primitive for the same entry, attribute type and older CSN. It
+   supersedes a p-remove-attribute-value or another p-remove-attribute
+   primitive for the same entry, attribute type and equal or older CSN.
+
+   The p-remove-entry primitive supersedes a p-add-attribute-value, p-
+   add-entry, p-move-entry or p-rename-entry primitive for the same
+   entry and older CSN. It supersedes a p-remove-attribute-value or p-
+   remove-attribute or another p-remove-entry primitive for the same
+   entry and equal or older CSN.
+
+   The p-move-entry primitive supersedes another p-move-entry primitive
+   for the same entry and older CSN.
+
+   5.3 Processing Replication Primitives on the DIT
+
+   Each replication primitive received from another DSA during a
+   replication session is processed against the DIT.
+
+   This section defines some commonly used sub-procedures and the
+   algorithms for processing each of the primitives. Components of
+   primitives, entries, attributes and values are referenced with the .
+   operator. In particular the notation X.csn refers to the CSN of the
+   directory object X. The operators, < and > when applied to CSNs, use
+   the convention of CSNs becoming greater with the progression of time,
+   so older CSNs are less than younger CSNs.  In the case where the CSN
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 11]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   for object X has been discarded through the purging mechanism, X.csn
+   is assumed to have the least possible CSN value. In some of the
+   procedures a CSN will be explicitly purged. An implementation may
+   instead keep the CSN but set it to some value that is old enough for
+   it to be eligible for purging (e.g. the least possible CSN value)
+   without affecting the correctness of the procedures.
+
+   For an entry, E, the notation E.rdn refers to the entry's Relative
+   Distinguished Name, E.dn refers to the entry's Distinguished Name,
+   and E.superior refers to the Unique Identifier of the entry's
+   superior in the DIT.
+
+
+   5.3.1 Saving Deletion Records
+
+   It is necessary for a DSA to remember that some entry, attribute or
+   attribute value has been deleted, for a period after the processing
+   of the update operation or primitive causing the deletion. These
+   records are called deletion records in the sections that follow and
+   are of three kinds: entry deletion records, attribute deletion
+   records and value deletion records.
+
+   Value deletion records result from, and have the same parameters as,
+   the p-remove-attribute-value primitive. The StoreValueDeletion
+   procedure creates a value deletion record from the actual arguments
+   and stores it for later access by the various primitive processing
+   procedures. When an attribute value is added to an entry, a value
+   deletion record for the same entry, attribute type and value, and
+   with an older CSN, may be discarded.
+
+   Attribute deletion records result from, and have the same parameters
+   as, the p-remove-attribute primitive. The StoreAttributeDeletion
+   procedure creates an attribute deletion record from the actual
+   arguments and stores it for later access. When an attribute deletion
+   record is stored any value deletion records for the same entry and
+   attribute type, and with equal or older CSNs, may be discarded.
+
+   Entry deletion records result from, and have the same parameters as,
+   the p-remove-entry primitive. The StoreEntryDeletion procedure
+   creates an entry deletion record from the actual arguments and stores
+   it for later access. When an entry deletion record is stored any
+   value deletion records and attribute deletion records for the same
+   entry, and with equal or older CSNs, may be discarded.
+
+   Since the deletion records have the same components as their
+   associated remove primitives an implementation may choose to use the
+   same internal structures for both.
+
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 12]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   5.3.2 Glue Entries
+
+   Entries are permitted to be re-added and this can lead to situations
+   where applicable primitives are received in the period after an entry
+   is removed but before the arrival of the notification of it being
+   re-added.  In these cases a glue entry is created for the Unique
+   Identifier to preserve relevant updates in the event that a p-add-
+   entry primitive with an older CSN is later received for the same
+   entry. A glue entry is upgraded to a normal entry by a subsequent p-
+   add-entry primitive.
+
+   A glue entry with no subordinate entries and containing only CSNs (on
+   itself or its component parts) that are eligible to be purged
+   (according to the Purge Vector in LDUP, or the Oldest Time in DMRP)
+   may be removed. A glue entry is discarded if its contents are
+   completely superseded by another p-remove-entry primitive.
+
+   The CreateGlueEntry function is called when required to create a glue
+   entry as a subordinate of Lost & Found. CreateGlueEntry takes a
+   single parameter which is the Unique Identifier for the glue entry.
+   The Unique Identifier also becomes the RDN for the glue entry. No
+   CSNs are associated with the entry, the entry's superior reference,
+   or the entry's name (or equivalently they are set to the least
+   possible CSN value).
+
+   5.3.3 Generating Change Sequence Numbers
+
+   There are circumstances where conflicts arise in the processing of a
+   replication primitive. It is necessary in these cases for the DSA
+   processing the primitives to make corrective changes and emit
+   additional primitives to ensure that all other DSAs reach the same
+   consistent state. The GenerateNextCSN function is used to obtain a
+   CSN for the corrective change.  An implementation that generates
+   replication primitives as the user update requests are being
+   processed and puts them into a replication log must take the
+   additional step of creating a primitive to convey the corrective
+   change to other DSAs. Implementations that generate primitives by
+   scanning entries will pick up the corrective change automatically.
+
+   As is the case for CSNs generated from DAP, DSP or LDAP operations, a
+   CSN is typically generated from the current clock time of the DSA.
+   The conditions imposed for the correct operation of the LDUP Update
+   Vector must also be satisfied.
+
+   GenerateNextCSN takes a single CSN parameter. In addition to all
+   other conditions the CSN generated by the function must be greater
+   than this parameter. Since the CSN parameter passed to
+   GenerateNextCSN is always an actual CSN from some directory object
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 13]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   stored in the local DSA, an implementation may choose to allocate
+   CSNs from an incrementing internal CSN register that is reset after
+   each replication session to a value greater than the largest CSN seen
+   so far, and thereby be safely able to disregard the parameter to
+   GenerateNextCSN.
+
+   5.3.4 Comparison of Attribute Values
+
+   Values in primitives, in deletion records or in entries are compared
+   using the equality matching rule for the associated attribute type
+   where that type is permitted to be multi-valued. This means that two
+   values that are considered equal may nonetheless have minor
+   differences. For example, two commonName values may be equal, but use
+   different letter case and have different numbers of leading or
+   trailing spaces. Whenever a CSN for some value is refreshed the value
+   is also refreshed using the exact value from the primitive so that
+   all DSAs use exactly the same representation for the value.
+
+   Compared values for a single-valued attribute type are all considered
+   to be equal even though they may be significantly different according
+   to that attribute type's equality matching rule. In effect the
+   equality operator, '=', in the following procedures is
+   unconditionally true when used to compare values of a single-valued
+   attribute type.  Whenever a CSN for the value of a single-valued
+   attribute is refreshed the value is also refreshed using the value
+   from the primitive. One significant consequence is that an entry
+   whose RDN contains a value of a single-valued attribute type is
+   effectively renamed by a p-add-attribute-value primitive with a more
+   recent value for the attribute type.
+
+   A value in an entry that is replaced by the exact representation from
+   a primitive retains its distinguished or non-distinguished status.
+   This includes replaced values of single-valued attribute types.
+
+   5.3.5 Entry Naming
+
+   Independent changes at two or more DSAs can lead to the situation of
+   two distinct entries having the same name. The procedure,
+   CheckUniqueness(E, S, R), takes an entry and determines whether it is
+   uniquely named.  If not, it disambiguates the names of the entries by
+   adding the Unique Identifier of each of the conflicting entries to
+   their own RDN.
+
+   The procedure CheckUniqueness is called in each circumstance where
+   the Relative Distinguished Name of an entry might conflict with
+   another entry, either because the entry has been renamed or because
+   it has been moved to a new superior.  An entry can be renamed
+   directly by a p-rename-entry primitive, or as a side-effect of other
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 14]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   primitives causing changes to distinguished values.  While each move
+   or rename of an entry potentially causes a conflict with some other
+   entry already having the new Distinguished Name, it also potentially
+   removes a previous conflict on the old Distinguished Name.  The
+   enable the CheckUniqueness function to remove the Unique Identifier
+   from an entry's RDN when it is no longer needed the old name for an
+   entry is passed through the second and third parameters. The
+   parameter, S, is the Unique Identifier of the old superior entry of
+   E, and the parameter, R, is the old RDN of E. CheckUniqueness needs
+   to ignore distinguished UniqueIdentifiers when comparing entry RDNs.
+   The function BaseRDN(rdn) returns its argument minus any
+   distinguished UniqueIdentifiers to support these comparisons.
+
+   CheckUniqueness(E, S, R)
+      {
+      make E.uid non-distinguished
+      IF there exists exactly one subordinate entry, C, of S
+            where BaseRDN(C.rdn) = BaseRDN(R)
+         make C.uid non-distinguished
+      IF E.rdn is empty
+         make C.uid distinguished
+      ELSE IF there exists a subordinate entry, C, of E.superior
+            where E <> C AND BaseRDN(C.rdn) = BaseRDN(E.rdn)
+         {
+         make C.uid distinguished
+         make E.uid distinguished
+         }
+      }
+
+   Because updates are performed in isolation at multiple DSAs in a
+   multimaster configuration it is possible to encounter a situation
+   where there is a request to delete a distinguished value in an entry.
+   The recommended practice in these circumstances is to remove the
+   distinguished value and call CheckUniqueness to correct any resulting
+   name conflicts.  An implementation may instead reassert the existence
+   of the distinguished value with a more recent CSN to avoid altering
+   the entry's RDN. This option is only available to updatable replicas.
+   Read-only replicas MUST remove the distinguished value.  The function
+   ProtectDistinguished() returns true for an updatable part of the DIT
+   in an DSA that implements this option, and false otherwise.  DSAs
+   exercising this option must generate p-add-attribute-value primitive
+   so that other DSAs are guaranteed to also reassert the distinguished
+   value.  DSAs that implement the option will correctly interwork with
+   servers that do not.
+
+   The primitives p-add-entry and p-rename-entry contain common elements
+   that are applied to the Relative Distinguished Name of an entry in
+   the same way. This common processing is described in the RenameEntry
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 15]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   procedure. The parameters to this procedure are the entry, E, and the
+   p-add-entry or p-rename-entry primitive specifying the new RDN. The
+   procedure assumes that the entry does not currently contain any
+   distinguished values. It is the responsibility of the calling
+   procedure to first reset any pre-existing distinguished values to
+   non-distinguished.  The procedure then resets the CSNs and sets the
+   distinguished flags for existing values and adds distinguished values
+   if necessary. The CSN for the entry's RDN, as distinct from the CSNs
+   on each of the distinguished values making up the RDN, is also set.
+
+   RenameEntry(E, P)
+      {
+      FOREACH AttributeTypeAndValue, N, in P.rdn
+         IF there exists an attribute value, V, in E of type N.type
+            where V = N.value
+            {
+            IF P.csn > V.csn
+               {
+               replace V with N.value if they are not identical
+               V.csn := P.csn
+               }
+            make V distinguished
+            }
+         ELSE IF ProtectDistinguished()
+            {
+            V := N.value
+            add V to E as a distinguished value
+            V.csn := P.csn
+            FOREACH attribute deletion record (uid, type, csn)
+                  where (uid = P.uid AND type = N.type)
+               IF csn > V.csn
+                  V.csn := csn
+            FOREACH value deletion record (uid, type, value, csn)
+                  where (uid = P.uid AND type = N.type AND value = N.value)
+               IF csn > V.csn
+                  V.csn := csn
+            V.csn := GenerateNextCSN(V.csn)
+            }
+         ELSE IF no attribute deletion record (uid, type, csn) exists
+               where (uid = P.uid AND type = N.type AND csn > P.csn)
+            AND no value deletion record (uid, type, value, csn) exists
+               where (uid = P.uid AND type = N.type AND
+                  value = N.value AND csn > P.csn)
+            {
+            V := N.value
+            add V to E as a distinguished value
+            V.csn := P.csn
+            }
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 16]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+      E.rdn.csn := P.csn
+      }
+
+
+   5.3.6 Processing Add Attribute Value Primitive
+
+   This section describes the algorithm for processing the p-add-
+   attribute-value (P.uid, P.type, P.value, P.csn) primitive, which is
+   responsible for adding a single attribute value.
+
+      IF no value deletion record (uid, type, value, csn) exists where
+            (uid = P.uid AND type = P.type
+               AND value = P.value AND csn > P.csn)
+         AND no attribute deletion record (uid, type, csn) exists where
+            (uid = P.uid and type = P.type AND csn > P.csn)
+         AND no entry deletion record (uid, csn) exists where
+            (uid = P.uid AND csn > P.csn)
+         {
+         IF entry, E, with uid = P.uid does not exist
+            E := CreateGlueEntry(P.uid)
+         IF P.csn >= E.csn
+            IF attribute value V, of type P.type
+               where V = P.value exists in E
+               {
+               IF P.csn > V.csn
+                  {
+                  V.csn := P.csn
+                  R := E.rdn
+                  replace V with P.value if they are not identical
+                  IF V is distinguished
+                     AND P.type is a single-valued attribute type
+                     CheckUniqueness(E, E.superior, R)
+                  }
+               }
+            ELSE
+               {
+               V := P.value
+               Add V to E as a non-distinguished attribute value
+               V.csn := P.csn
+               }
+         }
+
+
+   5.3.7 Processing Remove Attribute Value Primitive
+
+   This section describes the algorithm for processing the p-remove-
+   attribute-value (P.uid, P. type, P.value, P.csn) primitive, which is
+   responsible for removing a single attribute value. A value that is
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 17]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   distinguished is tagged as distinguished-not-present rather than
+   being immediately removed. Such a value will be physically removed
+   when it becomes non-distinguished.
+
+      IF no value deletion record (uid, type, value, csn) exists
+            where (uid = P.uid AND type = P.type AND
+               value = P.value AND csn >= P.csn)
+         AND
+            no attribute deletion record (uid, type, csn) exists
+               where (uid = P.uid AND type = P.type AND csn >= P.csn)
+         AND
+            no entry deletion record (uid, csn) exists
+               where (uid = P.uid AND csn >= P.csn)
+         IF entry, E, with uid = P.uid exists
+            {
+            IF P.csn > E.csn
+               IF attribute value, V, of P.type
+                  where V = P.value, exists in E
+                  {
+                  IF P.csn > V.csn
+                     IF V is distinguished
+                        IF ProtectDistinguished()
+                           V.csn := GenerateNextCSN(P.csn)
+                        ELSE
+                           {
+                           R := E.rdn
+                           remove value V
+                           CheckUniqueness(E, E.superior, R)
+                           StoreValueDeletion (P.uid, P.type, P.value, P.csn)
+                           }
+                     ELSE
+                        {
+                        remove value V
+                        StoreValueDeletion (P.uid, P.type, P.value, P.csn)
+                        }
+                  }
+               ELSE
+                  StoreValueDeletion (P.uid, P.type, P.value, P.csn)
+            }
+         ELSE
+            StoreValueDeletion (P.uid, P.type, P.value, P.csn)
+
+   The presence of a younger deletion record for the entry, attribute or
+   value provides a convenient test for whether the p-remove-attribute-
+   value primitive needs to be processed at all. If the value exists to
+   be removed then there cannot be a deletion record affecting it that
+   has a younger CSN. If there is a younger deletion record than the
+   primitive then there cannot be an older value to remove.
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 18]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   5.3.8 Processing Remove Attribute Primitive
+
+   This section describes the algorithm for processing the p-remove-
+   attribute (P.uid, P.type, P.csn) primitive, which is responsible for
+   removing all attribute values of P.type. Values that are
+   distinguished are tagged as distinguished-not-present rather than
+   being immediately removed. Such values will be physically removed
+   when they become non-distinguished.
+
+      IF no attribute deletion record (uid, type, csn) exists
+            where (uid = P.uid AND type = P.type AND csn >= P.csn)
+         AND no entry deletion record (uid, csn) exists where
+            (uid = P.uid AND csn >= P.csn)
+         IF entry, E, with uid = P.uid exists
+            {
+            IF P.csn > E.csn
+               {
+               FOREACH attribute value, V, of type P.type in E (if any)
+                  IF P.csn > V.csn
+                     IF V is distinguished
+                        IF ProtectDistinguished()
+                           V.csn := GenerateNextCSN(P.csn)
+                        ELSE
+                           {
+                           R := E.rdn
+                           remove value V
+                           CheckUniqueness(E, E.superior, R)
+                           }
+                     ELSE
+                        remove value V
+               StoreAttributeDeletion (P.uid, P.type, P.csn)
+               }
+            }
+         ELSE
+            StoreAttributeDeletion (P.uid, P.type, P.csn)
+
+
+   5.3.9 Processing Add Entry Primitive
+
+   This section describes the algorithm for processing the p-add-entry
+   (P.uid, P.superior, P.rdn, P.csn) primitive, which is responsible for
+   adding an entry.  The CSN on an entry records the time of the latest
+   p-add-entry primitive for the Unique Identifier.  In normal
+   circumstances there will only ever be one p-add-entry primitive
+   associated with an entry.  The entry CSN may be discarded when it
+   becomes eligible to be purged according to the Purge Vector.
+
+      IF no entry deletion record (uid, csn) exists where
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 19]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+           (uid = P.uid AND csn > P.csn)
+         IF entry, E, with uid = P.uid exists
+            {
+            IF P.csn > E.csn
+               {
+               E.csn := P.csn
+               FOREACH attribute value, V, in E
+                  IF V.csn < P.csn
+                     remove value V
+               process P according to
+                  p-rename-entry(P.uid, P.rdn, P.csn)
+               process P according to
+                  p-move-entry(P.uid, P.superior, P.csn)
+               }
+            }
+         ELSE
+            {
+            create entry E
+            E.csn := P.csn
+            E.uid := P.uid
+            E.uid.csn := P.csn
+            IF an entry with uid = P.superior does not exist
+               CreateGlueEntry(P.superior)
+            E.superior = P.superior
+            E.superior.csn := P.csn
+            RenameEntry(E, P)
+            CheckUniqueness(E, E.superior, E.rdn)
+            }
+
+
+   5.3.10 Processing Remove Entry Primitive
+
+   This section describes the algorithm for processing the p-remove-
+   entry (P.uid, P.csn) primitive, which is responsible for removing an
+   entry.  If the target entry has attribute values with CSNs greater
+   than the primitive's CSN, a superior reference with a greater CSN, or
+   if it has any subordinate entries, it becomes a glue entry instead of
+   being removed.  Unless it has a CSN for its superior reference that
+   is greater than the CSN of the p-remove-entry it is also moved to
+   Lost & Found.
+
+      IF no entry deletion record (uid, csn) exists
+            where (uid = P.uid AND csn >= P.csn)
+         IF entry, E, with uid = P.uid exists
+            {
+            IF P.csn > E.csn
+               {
+               IF E.superior.csn >= P.csn
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 20]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+                  OR any value, V, with csn >= P.csn exists
+                  OR E has subordinates
+                  {
+                  R := E.rdn
+                  S := E.superior
+                  make E a glue entry
+                  purge E.csn
+                  IF E.superior.csn < P.csn
+                     {
+                     E.superior := LOST_AND_FOUND
+                     purge E.superior.csn
+                     }
+                  IF E.rdn.csn < P.csn
+                     purge E.rdn.csn
+                  FOREACH attribute value, V, in E
+                     IF V.csn < P.csn
+                        remove value V
+                  CheckUniqueness(E, S, R)
+                  }
+               ELSE
+                  remove entry E
+               StoreEntryDeletion (P.uid, P.csn)
+               }
+            }
+         ELSE
+            StoreEntryDeletion (P.uid, P.csn)
+
+
+   5.3.11 Processing Move Entry Primitive
+
+   This section describes the algorithm for processing the p-move-entry
+   (P.uid, P.superior,  P.csn) primitive, which is responsible for
+   moving an entry. If the new superior specified by the primitive does
+   not exist or is a direct or indirect subordinate of the entry being
+   moved then the entry is moved to Lost & Found instead.
+
+      IF no entry deletion record (uid, csn) exists
+            where (uid = P.uid AND csn > P.csn)
+         {
+         IF entry, E, with uid = P.uid does not exist
+            E := CreateGlueEntry(P.uid)
+         IF P.csn > E.superior.csn
+            {
+            R := E.rdn
+            O := E.superior
+            IF entry, S, with uid = P.superior does not exist
+               S := CreateGlueEntry(P.superior)
+            IF S is not in the subtree of E
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 21]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+               {
+               E.superior := P.superior
+               E.superior.csn = P.csn
+               }
+            ELSE
+               {
+               E.superior := LOST_AND_FOUND;
+               E.superior.csn := GenerateNextCSN(P.csn)
+               }
+            CheckUniqueness(E, O, R)
+            }
+         }
+
+
+   5.3.12 Processing Rename Entry Primitive
+
+   This section describes the algorithm for processing the p-rename-
+   entry (P.uid, P.rdn, P.csn) primitive, which changes the Relative
+   Distinguished Name of an entry.  A p-rename-entry primitive that is
+   older than current name of an entry is not simply ignored since it
+   may contain attribute values that would have been added to the entry
+   had the primitives arrived in CSN order.  These extra values would
+   now be non-distinguished.
+
+      IF no entry deletion record (uid, csn) exists
+         where (uid = P.uid AND csn >= P.csn)
+         {
+         IF entry, E, with uid = P.uid does not exist
+            E := CreateGlueEntry(P.uid)
+         IF P.csn > E.rdn.csn
+            {
+            R := E.rdn
+            FOREACH distinguished attribute value, V, in entry E
+               make V non-distinguished
+            RenameEntry(E, P)
+            CheckUniqueness(E, E.superior, R)
+            }
+         ELSE
+            FOREACH AttributeTypeAndValue, N, in P.rdn
+               {
+               IF there exists an attribute value, V, in E of type
+                     N.type AND V = N.value
+                  {
+                  IF P.csn > V.csn
+                     {
+                     replace V with N.value if they are not identical
+                     V.csn := P.csn
+                     }
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 22]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+                  }
+               ELSE
+                  {
+                  IF no value deletion record (uid, type, value, csn)
+                        exists where (uid = P.uid AND type = N.type AND
+                        value = N.value AND csn > P.csn)
+                     AND
+                        no attribute deletion record (uid, type, csn)
+                        exists where (uid = P.uid AND type = N.type AND
+                        csn > P.csn)
+                     {
+                     V := N.value
+                     Add V to E
+                     V.csn := P.csn
+                     }
+                  }
+               }
+         }
+
+
+   6. Security Considerations
+
+   [To be supplied]
+
+
+   7. Acknowledgements
+
+   The authors would like to thank Suellen Faulks, Tony Robertson and
+   Mark Ennis from Telstra Research Laboratories who contributed to the
+   design and verification of the procedures described in this document.
+
+   The authors would also like to thank the members of the LDUP
+   architecture group for their input into the refinement of the design.
+
+
+   8. References
+
+   [LDUP Model] - E. Reed, "LDUP Replication Architecture", Internet
+   Draft, draft-merrells-ldup-model-01.txt, November 1998.
+
+   [BCP-11] - R. Hovey, S. Bradner, "The Organizations Involved in the
+   IETF Standards Process", BCP 11, RFC 2028, October 1996.
+
+
+   9. Intellectual Property Notice
+
+   The IETF takes no position regarding the validity or scope of any
+   intellectual property or other rights that might be claimed to
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 23]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   pertain to the implementation or use of the technology described in
+   this document or the extent to which any license under such rights
+   might or might not be available; neither does it represent that it
+   has made any effort to identify any such rights.  Information on the
+   IETF's procedures with respect to rights in standards-track and
+   standards-related documentation can be found in BCP-11. [BCP-11]
+   Copies of claims of rights made available for publication and any
+   assurances of licenses to be made available, or the result of an
+   attempt made to obtain a general license or permission for the use of
+   such proprietary rights by implementors or users of this
+   specification can be obtained from the IETF Secretariat.
+
+   The IETF invites any interested party to bring to its attention any
+   copyrights, patents or patent applications, or other proprietary
+   rights which may cover technology that may be required to practice
+   this standard.  Please address the information to the IETF Executive
+   Director.
+
+
+   10. Copyright Notice
+
+      Copyright (C) The Internet Society (1999). All Rights Reserved.
+
+   This document and translations of it may be copied and furnished to
+   others, and derivative works that comment on or otherwise explain it
+   or assist in its implementation may be prepared, copied, published
+   and distributed, in whole or in part, without restriction of any
+   kind, provided that the above copyright notice and this paragraph are
+   included on all such copies and derivative works.  However, this
+   document itself may not be modified in any way, such as by removing
+   the copyright notice or references to the Internet Society or other
+   Internet organizations, except as needed for the purpose of
+   developing Internet standards in which case the procedures for
+   copyrights defined in the Internet Standards process must be
+   followed, or as required to translate it into languages other than
+   English.
+
+   The limited permissions granted above are perpetual and will not be
+   revoked by the Internet Society or its successors or assigns.
+
+   This document and the information contained herein is provided on an
+   "AS IS" basis and THE INTERNET SOCIETY AND THE INTERNET ENGINEERING
+   TASK FORCE DISCLAIMS ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING
+   BUT NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION
+   HEREIN WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
+   MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
+
+
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 24]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   11. Authors' Address
+
+   Steven Legg
+   Telstra Research Laboratories
+   770 Blackburn Road
+   Clayton, Victoria 3168
+   AUSTRALIA
+
+   Phone: +61 3 9253 6771
+     Fax: +61 3 9253 6485
+   EMail: s.legg@trl.telstra.com.au
+
+   Alison Payne
+   PricewaterhouseCoopers
+   St Jakobs Strasse 25
+   CH-4002 Basel
+   SWITZERLAND
+
+   Phone: +41-79-458 4177
+   EMail: alison.b.payne@ch.pwcglobal.com
+
+   12. Appendix A - Changes From Previous Drafts
+
+   12.1 Changes in Draft 01
+
+   Some of the terminology has been changed to better align with the
+   terminology used in the LDUP architecture draft.
+
+   Descriptions on the usage of CSNs have been revised to account for
+   the extra modification number component.
+
+   The semantics of re-added entries has been simplified so that only
+   changes after the latest re-add are preserved instead of all those
+   after the earliest re-add. This eliminates the need for Addition CSNs
+   in the entry.  It is anticipated that new replication primitives will
+   be introduced to manage entries that come and go from partial
+   replicas instead of using p-add-entry and p-remove-entry.
+
+   Orphaned entries are no longer moved directly to Lost & Found.
+   Instead a glue entry is created in Lost & Found for the missing
+   superior and the orphaned entry becomes a subordinate of that. This
+   change eliminates the need for explicit propagated primitives for
+   moving orphaned entries to Lost & Found.
+
+   Glue entries have also been used as the mechanism for saving
+   primitives.  There are no longer any references to saved primitives
+   though the functionality is still present.
+
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 25]
+
+
+
+
+
+INTERNET-DRAFT   LDUP Update Reconciliation Procedures  October 22, 1999
+
+
+   The procedures for processing received replication primitives have
+   been rearranged to follow a more consistent pattern where the
+   presence of deletion records is tested first.
+
+   12.2 Changes in Draft 02
+
+   Multimaster replication has been dropped as a work item for the next
+   edition of X.500 so references to the proposed X.500 multimaster
+   replication protocol have been removed.
+
+   The treatment of distinguished values has been simplified. Previously
+   an attempt to remove a distinguished value caused the value to be
+   tagged distinguished-not-present. Now the distinguished value is
+   removed, and if necessary, the Unique Identifier is made
+   distinguished to avoid an empty RDN. Optionally, the value to be
+   removed can be reasserted by emitting an explicit p-add-attribute-
+   value primitive.
+
+   The current draft is more implementation neutral. A replication log
+   no longer figures prominently in the specification.  The previous
+   descriptions had the user updates generating replication primitives,
+   which in turn were used to determine the CSNs and deletion records.
+   The new descriptions have user updates generating CSNs and deletion
+   records and the primitives are subsequently generated from them.
+
+   13. Appendix B - Open Issues
+
+   The precise location of the Lost & Found entry has not yet been
+   decided.
+
+   Extensions to the algorithms to properly deal with partial replicas
+   are still to be decided.
+
+   The draft needs some editing to use MAY, MUST, etc, in the proper
+   way.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Legg & Payne             Expires 22 April 2000                 [Page 26]
+
+

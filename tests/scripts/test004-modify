@@ -26,7 +26,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $CONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -f $CONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Testing slapd modify operations..."
@@ -63,8 +63,8 @@ dn: cn=Bjorn Jensen, ou=Information Technology Division, ou=People, o=University
 changetype: modify
 # EMBEDDED COMMENT
  CONTINUED
-replace: multilinedescription
-multilinedescription: The replaced multiLineDescription $ Blah Woof.
+replace: description
+description: The replaced multiLineDescription $ Blah Woof.
 -
 replace: drink
 drink: Iced Tea
@@ -82,6 +82,9 @@ member: cn=James A Jones 1, ou=Alumni Association, ou=People, o=University of Mi
 dn: cn=All Staff,ou=Groups,o=University of Michigan,c=US
 changetype: modify
 delete: member
+-
+add: member
+member: cn=Dorothy Stevens, ou=Alumni Association, ou=People, o=University of Michigan, c=US
 
 dn: cn=Gern Jensen, ou=Information Technology Division, ou=People, o=University of Michigan, c=US
 changetype: add
@@ -89,18 +92,14 @@ objectclass: top
 objectclass: person
 objectclass: organizationalPerson
 objectclass: newPilotPerson
-objectclass: umichPerson
 cn: Gern Jensen
+sn: Jensen
 title: Chief Investigator, ITD
 postaladdress: ITD $ 535 W. William St $ Ann Arbor, MI 48103
 seealso: cn=All Staff, ou=Groups, o=University of Michigan, c=US
-uid: gjensen
-krbname: gjensen@umich.edu
-nobatchupdates: TRUE
-onvacation: FALSE
 drink: Coffee
 homepostaladdress: 844 Brown St. Apt. 4 $ Ann Arbor, MI 48104
-multilinedescription: Very odd
+description: Very odd
 facsimiletelephonenumber: +1 313 555 7557
 telephonenumber: +1 313 555 8343
 mail: gjensen@mailgw.umich.edu
@@ -136,7 +135,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 if test $? != 0 ; then
 	echo "comparison failed - modify operations did not complete correctly"

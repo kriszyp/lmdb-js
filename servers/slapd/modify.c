@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -23,11 +23,10 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
-static void	modlist_free(LDAPModList *ml);
 
-static int add_modified_attrs( Operation *op, LDAPModList **modlist );
 
 int
 do_modify(
@@ -35,27 +34,21 @@ do_modify(
     Operation	*op
 )
 {
-	char		*ndn;
+	char		*dn, *ndn = NULL;
 	char		*last;
 	ber_tag_t	tag;
 	ber_len_t	len;
-	LDAPModList	*modlist;
-	LDAPModList	**modtail;
+	LDAPModList	*modlist = NULL;
+	LDAPModList	**modtail = &modlist;
 #ifdef LDAP_DEBUG
 	LDAPModList *tmp;
 #endif
+	Modifications *mods = NULL;
 	Backend		*be;
 	int rc;
+	const char	*text;
 
 	Debug( LDAP_DEBUG_TRACE, "do_modify\n", 0, 0, 0 );
-
-	if( op->o_bind_in_progress ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: SASL bind in progress.\n",
-			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, "SASL bind in progress", NULL, NULL );
-		return LDAP_SASL_BIND_IN_PROGRESS;
-	}
 
 	/*
 	 * Parse the modify request.  It looks like this:
@@ -76,26 +69,16 @@ do_modify(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a" /*}*/, &ndn ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		return SLAPD_DISCONNECT;
 	}
 
-	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", ndn, 0, 0 );
-
-	if(	dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", ndn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		free( ndn );
-		return rc;
-	}
+	Debug( LDAP_DEBUG_ARGS, "do_modify: dn (%s)\n", dn, 0, 0 );
 
 	/* collect modifications & save for later */
-	modlist = NULL;
-	modtail = &modlist;
 
 	for ( tag = ber_first_element( op->o_ber, &len, &last );
 	    tag != LBER_DEFAULT;
@@ -111,48 +94,60 @@ do_modify(
 		{
 			send_ldap_disconnect( conn, op,
 				LDAP_PROTOCOL_ERROR, "decoding modlist error" );
-			free( ndn );
-			free( *modtail );
-			*modtail = NULL;
-			modlist_free( modlist );
-			return -1;
+			rc = SLAPD_DISCONNECT;
+			goto cleanup;
+		}
+
+		switch( mop ) {
+		case LDAP_MOD_ADD:
+			if ( (*modtail)->ml_bvalues == NULL ) {
+				Debug( LDAP_DEBUG_ANY,
+					"do_modify: modify/add operation (%ld) requires values\n",
+					(long) mop, 0, 0 );
+				send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+					NULL, "modify/add operation requires values",
+					NULL, NULL );
+				rc = LDAP_PROTOCOL_ERROR;
+				goto cleanup;
+			}
+
+			/* fall through */
+
+		case LDAP_MOD_DELETE:
+		case LDAP_MOD_REPLACE:
+			break;
+
+		default: {
+				Debug( LDAP_DEBUG_ANY,
+					"do_modify: invalid modify operation (%ld)\n",
+					(long) mop, 0, 0 );
+				send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
+					NULL, "unrecognized modify operation", NULL, NULL );
+				rc = LDAP_PROTOCOL_ERROR;
+				goto cleanup;
+			}
 		}
 
 		(*modtail)->ml_op = mop;
 		
-		if ( (*modtail)->ml_op != LDAP_MOD_ADD &&
-		    (*modtail)->ml_op != LDAP_MOD_DELETE &&
-		    (*modtail)->ml_op != LDAP_MOD_REPLACE )
-		{
-			Debug( LDAP_DEBUG_ANY,
-				"do_modify: invalid modify operation (%ld)\n",
-				(long) (*modtail)->ml_op, 0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-			    NULL, "unrecognized modify operation", NULL, NULL );
-			free( ndn );
-			modlist_free( modlist );
-			return LDAP_PROTOCOL_ERROR;
-		}
-
-		if ( (*modtail)->ml_bvalues == NULL && (
-			(*modtail)->ml_op != LDAP_MOD_REPLACE &&
-			(*modtail)->ml_op != LDAP_MOD_DELETE ) )
-		{
-			Debug( LDAP_DEBUG_ANY,
-				"do_modify: invalid modify operation (%ld) without values\n",
-				(long) (*modtail)->ml_op, 0, 0 );
-			send_ldap_result( conn, op, LDAP_PROTOCOL_ERROR,
-			    NULL, "unrecognized modify operation without values",
-				NULL, NULL );
-			free( ndn );
-			modlist_free( modlist );
-			return LDAP_PROTOCOL_ERROR;
-		}
-		attr_normalize( (*modtail)->ml_type );
 
 		modtail = &(*modtail)->ml_next;
 	}
 	*modtail = NULL;
+
+	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
+		goto cleanup;
+	}
+
+	ndn = ch_strdup( dn );
+
+	if(	dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_modify: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
 
 #ifdef LDAP_DEBUG
 	Debug( LDAP_DEBUG_ARGS, "modifications:\n", 0, 0, 0 );
@@ -164,15 +159,9 @@ do_modify(
 	}
 #endif
 
-	if( (rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( ndn );
-		modlist_free( modlist );
-		Debug( LDAP_DEBUG_ANY, "do_modify: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
-	} 
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d MOD dn=\"%s\"\n",
-	    op->o_connid, op->o_opid, ndn, 0, 0 );
+	    op->o_connid, op->o_opid, dn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -180,19 +169,26 @@ do_modify(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( ndn );
-		modlist_free( modlist );
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		return rc;
+		goto cleanup;
+	}
+
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op, &text ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto cleanup;
 	}
 
 	if ( global_readonly || be->be_readonly ) {
 		Debug( LDAP_DEBUG_ANY, "do_modify: database is read-only\n",
 		       0, 0, 0 );
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		                  NULL, "database is read-only", NULL, NULL );
-		goto done;
+		                  NULL, "directory is read-only", NULL, NULL );
+		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
@@ -214,29 +210,44 @@ do_modify(
 			strcmp( be->be_update_ndn, op->o_ndn ) == 0 )
 #endif
 		{
+			int update = be->be_update_ndn != NULL;
+			const char *text;
+			rc = slap_modlist2mods( modlist, update, &mods, &text );
+
+			if( rc != LDAP_SUCCESS ) {
+				send_ldap_result( conn, op, rc,
+					NULL, text, NULL, NULL );
+				goto cleanup;
+			}
+
 			if ( (be->be_lastmod == ON || (be->be_lastmod == UNDEFINED &&
-				global_lastmod == ON)) && be->be_update_ndn == NULL )
+				global_lastmod == ON)) && !update )
 			{
-				rc = add_modified_attrs( op, &modlist );
+				Modifications **modstail;
+				for( modstail = &mods;
+					*modstail != NULL;
+					modstail = &(*modstail)->sml_next )
+				{
+					/* empty */
+				}
+				rc = slap_mods_opattrs( op, modstail, &text );
 
 				if( rc != LDAP_SUCCESS ) {
-					free( ndn );
-					modlist_free( modlist );
 					send_ldap_result( conn, op, rc,
-						NULL, "no-user-modification attribute type",
+						NULL, text,
 						NULL, NULL );
-					return rc;
+					goto cleanup;
 				}
 			}
 
-			if ( (*be->be_modify)( be, conn, op, ndn, modlist ) == 0 
+			if ( (*be->be_modify)( be, conn, op, dn, ndn, mods ) == 0 
 #ifdef SLAPD_MULTIMASTER
 				&& ( be->be_update_ndn == NULL ||
 					strcmp( be->be_update_ndn, op->o_ndn ) != 0 )
 #endif
 			) {
 				/* but we log only the ones not from a replicator user */
-				replog( be, op, ndn, modlist );
+				replog( be, op, dn, mods );
 			}
 
 #ifndef SLAPD_MULTIMASTER
@@ -249,76 +260,237 @@ do_modify(
 		}
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-		    NULL, "Function not implemented", NULL, NULL );
+		    NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
-done:
-	free( ndn );
-	modlist_free( modlist );
+cleanup:
+	free( dn );
+	if( ndn != NULL ) free( ndn );
+	if ( modlist != NULL )
+		slap_modlist_free( modlist );
+	if ( mods != NULL )
+		slap_mods_free( mods );
 	return rc;
 }
 
-static int
-add_modified_attrs( Operation *op, LDAPModList **modlist )
+/*
+ * convert a raw list of modifications to internal format
+ * Do basic attribute type checking and syntax validation.
+ */
+int slap_modlist2mods(
+	LDAPModList *ml,
+	int update,
+	Modifications **mods,
+	const char **text )
 {
-	char		buf[22];
-	struct berval	bv;
-	struct berval	*bvals[2];
-	LDAPModList		*m;
-	struct tm	*ltm;
-	time_t		currenttime;
+	int rc;
+	Modifications **modtail = mods;
 
-	bvals[0] = &bv;
-	bvals[1] = NULL;
+	for( ; ml != NULL; ml = ml->ml_next ) {
+		Modifications *mod;
+		AttributeDescription *ad = NULL;
 
-	/* remove any attempts by the user to modify these attrs */
-	for ( m = *modlist; m != NULL; m = m->ml_next ) {
-		if ( oc_check_no_usermod_attr( m->ml_type ) ) {
+		mod = (Modifications *)
+			ch_calloc( 1, sizeof(Modifications) );
+
+		/* copy the op */
+		mod->sml_op = ml->ml_op;
+
+		/* convert to attribute description */
+		rc = slap_str2ad( ml->ml_type, &mod->sml_desc, text );
+
+		if( rc != LDAP_SUCCESS ) {
+			slap_mods_free( mod );
+			return rc;
+		}
+
+		ad = mod->sml_desc;
+
+		if( slap_syntax_is_binary( ad->ad_type->sat_syntax )
+			&& !slap_ad_is_binary( ad ))
+		{
+			/* attribute requires binary transfer */
+			slap_mods_free( mod );
+			*text = "attribute requires ;binary transfer";
+			return LDAP_UNDEFINED_TYPE;
+		}
+
+		if( !slap_syntax_is_binary( ad->ad_type->sat_syntax )
+			&& slap_ad_is_binary( ad ))
+		{
+			/* attribute requires binary transfer */
+			slap_mods_free( mod );
+			*text = "attribute disallows ;binary transfer";
+			return LDAP_UNDEFINED_TYPE;
+		}
+
+		if (!update && is_at_no_user_mod( ad->ad_type )) {
+			/* user modification disallowed */
+			slap_mods_free( mod );
+			*text = "no user modification allowed";
 			return LDAP_CONSTRAINT_VIOLATION;
 		}
+
+		/*
+		 * check values
+		 */
+		if( ml->ml_bvalues != NULL ) {
+			ber_len_t nvals;
+			slap_syntax_validate_func *validate =
+				ad->ad_type->sat_syntax->ssyn_validate;
+
+			if( !validate ) {
+				Debug( LDAP_DEBUG_TRACE,
+					"modlist2mods: no validator for syntax %s\n",
+					ad->ad_type->sat_syntax->ssyn_oid, 0, 0 );
+				slap_mods_free( mod );
+				*text = "no validator for syntax";
+				return LDAP_INVALID_SYNTAX;
+			}
+
+			/*
+			 * check that each value is valid per syntax
+			 */
+			for( nvals = 0; ml->ml_bvalues[nvals]; nvals++ ) {
+				rc = validate( ad->ad_type->sat_syntax, ml->ml_bvalues[nvals] );
+
+				if( rc != 0 ) {
+					slap_mods_free( mod );
+					*text = "value contains invalid data";
+					return LDAP_INVALID_SYNTAX;
+				}
+			}
+
+			/*
+			 * a rough single value check... an additional check is needed
+			 * to catch add of single value to existing single valued attribute
+			 */
+			if( ( mod->sml_op == LDAP_MOD_ADD || mod->sml_op == LDAP_MOD_REPLACE )
+				&& nvals > 1 && is_at_single_value( ad->ad_type ))
+			{
+				slap_mods_free( mod );
+				*text = "multiple values provided";
+				return LDAP_INVALID_SYNTAX;
+			}
+		}
+
+		mod->sml_bvalues = ml->ml_bvalues;
+		ml->ml_values = NULL;
+
+		*modtail = mod;
+		modtail = &mod->sml_next;
 	}
-
-	if ( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
-		bv.bv_val = "NULLDN";
-		bv.bv_len = strlen( bv.bv_val );
-	} else {
-		bv.bv_val = op->o_dn;
-		bv.bv_len = strlen( bv.bv_val );
-	}
-	m = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
-	m->ml_type = ch_strdup( "modifiersname" );
-	m->ml_op = LDAP_MOD_REPLACE;
-	m->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
-	m->ml_bvalues[0] = ber_bvdup( &bv );
-	m->ml_next = *modlist;
-	*modlist = m;
-
-	currenttime = slap_get_time();
-	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
-#ifndef LDAP_LOCALTIME
-	ltm = gmtime( &currenttime );
-	strftime( buf, sizeof(buf), "%Y%m%d%H%M%SZ", ltm );
-#else
-	ltm = localtime( &currenttime );
-	strftime( buf, sizeof(buf), "%y%m%d%H%M%SZ", ltm );
-#endif
-	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
-
-	bv.bv_val = buf;
-	bv.bv_len = strlen( bv.bv_val );
-	m = (LDAPModList *) ch_calloc( 1, sizeof(LDAPModList) );
-	m->ml_type = ch_strdup( "modifytimestamp" );
-	m->ml_op = LDAP_MOD_REPLACE;
-	m->ml_bvalues = (struct berval **) ch_calloc(2, sizeof(struct berval *));
-	m->ml_bvalues[0] = ber_bvdup( &bv );
-	m->ml_next = *modlist;
-	*modlist = m;
 
 	return LDAP_SUCCESS;
 }
 
-static void
-modlist_free(
+int slap_mods_opattrs(
+	Operation *op,
+	Modifications **modtail,
+	const char **text )
+{
+	struct berval name, timestamp;
+	time_t now = slap_get_time();
+	char timebuf[22];
+	struct tm *ltm;
+	Modifications *mod;
+
+	int mop = op->o_tag == LDAP_REQ_ADD
+		? LDAP_MOD_ADD : LDAP_MOD_REPLACE;
+
+	assert( modtail != NULL );
+	assert( *modtail == NULL );
+
+	ldap_pvt_thread_mutex_lock( &gmtime_mutex );
+	ltm = gmtime( &now );
+	strftime( timebuf, sizeof(timebuf), "%Y%m%d%H%M%SZ", ltm );
+	ldap_pvt_thread_mutex_unlock( &gmtime_mutex );
+	timestamp.bv_val = timebuf;
+	timestamp.bv_len = strlen(timebuf);
+
+	if( op->o_dn == NULL || op->o_dn[0] == '\0' ) {
+		name.bv_val = SLAPD_ANONYMOUS;
+		name.bv_len = sizeof(SLAPD_ANONYMOUS)-1;
+	} else {
+		name.bv_val = op->o_dn;
+		name.bv_len = strlen( op->o_dn );
+	}
+
+	if( op->o_tag == LDAP_REQ_ADD ) {
+		mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
+		mod->sml_op = mop;
+		mod->sml_desc = ad_dup( slap_schema.si_ad_creatorsName );
+		mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+		mod->sml_bvalues[0] = ber_bvdup( &name );
+		mod->sml_bvalues[1] = NULL;
+
+		*modtail = mod;
+		modtail = &mod->sml_next;
+
+		mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
+		mod->sml_op = mop;
+		mod->sml_desc = ad_dup( slap_schema.si_ad_createTimestamp );
+		mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+		mod->sml_bvalues[0] = ber_bvdup( &timestamp );
+		mod->sml_bvalues[1] = NULL;
+		*modtail = mod;
+		modtail = &mod->sml_next;
+	}
+
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
+	mod->sml_op = mop;
+	mod->sml_desc = ad_dup( slap_schema.si_ad_modifiersName );
+	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+	mod->sml_bvalues[0] = ber_bvdup( &name );
+	mod->sml_bvalues[1] = NULL;
+	*modtail = mod;
+	modtail = &mod->sml_next;
+
+	mod = (Modifications *) ch_calloc( 1, sizeof( Modifications ) );
+	mod->sml_op = mop;
+	mod->sml_desc = ad_dup( slap_schema.si_ad_modifyTimestamp );
+	mod->sml_bvalues = (struct berval **) malloc( 2 * sizeof( struct berval * ) );
+	mod->sml_bvalues[0] = ber_bvdup( &timestamp );
+	mod->sml_bvalues[1] = NULL;
+	*modtail = mod;
+	modtail = &mod->sml_next;
+
+	return LDAP_SUCCESS;
+}
+
+
+void
+slap_mod_free(
+	Modification	*mod,
+	int				freeit
+)
+{
+	ad_free( mod->sm_desc, 1 );
+
+	if ( mod->sm_bvalues != NULL )
+		ber_bvecfree( mod->sm_bvalues );
+
+	if( freeit )
+		free( mod );
+}
+
+void
+slap_mods_free(
+    Modifications	*ml
+)
+{
+	Modifications *next;
+
+	for ( ; ml != NULL; ml = next ) {
+		next = ml->sml_next;
+
+		slap_mod_free( &ml->sml_mod, 0 );
+		free( ml );
+	}
+}
+
+void
+slap_modlist_free(
     LDAPModList	*ml
 )
 {
@@ -327,7 +499,9 @@ modlist_free(
 	for ( ; ml != NULL; ml = next ) {
 		next = ml->ml_next;
 
-		free( ml->ml_type );
+		if (ml->ml_type)
+			free( ml->ml_type );
+
 		if ( ml->ml_bvalues != NULL )
 			ber_bvecfree( ml->ml_bvalues );
 

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -16,7 +16,7 @@
  *		name		DistinguishedName,	 -- who
  *		authentication	CHOICE {
  *			simple		[0] OCTET STRING -- passwd
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
  *			krbv42ldap	[1] OCTET STRING
  *			krbv42dsa	[2] OCTET STRING
 #endif
@@ -33,7 +33,7 @@
 
 #include "portable.h"
 
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 
 #include <stdio.h>
 #include <ac/stdlib.h>
@@ -63,9 +63,6 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 	char		*cred;
 	int		rc;
 	ber_len_t credlen;
-#ifdef STR_TRANSLATION
-	int		str_translation_on;
-#endif /* STR_TRANSLATION */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind1\n", 0, 0, 0 );
 
@@ -83,22 +80,9 @@ ldap_kerberos_bind1( LDAP *ld, LDAP_CONST char *dn )
 		return( -1 );
 	}
 
-#ifdef STR_TRANSLATION
-	if (( str_translation_on = (( ber->ber_options &
-	    LBER_TRANSLATE_STRINGS ) != 0 ))) {	/* turn translation off */
-		ber->ber_options &= ~LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
 	/* fill it in */
 	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV41, cred, credlen );
-
-#ifdef STR_TRANSLATION
-	if ( str_translation_on ) {	/* restore translation */
-		ber->ber_options |= LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
 
 	if ( rc == -1 ) {
 		LDAP_FREE( cred );
@@ -157,9 +141,6 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 	char		*cred;
 	int		rc;
 	ber_len_t credlen;
-#ifdef STR_TRANSLATION
-	int		str_translation_on;
-#endif /* STR_TRANSLATION */
 
 	Debug( LDAP_DEBUG_TRACE, "ldap_kerberos_bind2\n", 0, 0, 0 );
 
@@ -177,23 +158,10 @@ ldap_kerberos_bind2( LDAP *ld, LDAP_CONST char *dn )
 		return( -1 );
 	}
 
-#ifdef STR_TRANSLATION
-	if (( str_translation_on = (( ber->ber_options &
-	    LBER_TRANSLATE_STRINGS ) != 0 ))) {	/* turn translation off */
-		ber->ber_options &= ~LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
-
 	/* fill it in */
 	rc = ber_printf( ber, "{it{isto}}", ++ld->ld_msgid, LDAP_REQ_BIND,
 	    ld->ld_version, dn, LDAP_AUTH_KRBV42, cred, credlen );
 
-
-#ifdef STR_TRANSLATION
-	if ( str_translation_on ) {	/* restore translation */
-		ber->ber_options |= LBER_TRANSLATE_STRINGS;
-	}
-#endif /* STR_TRANSLATION */
 
 	LDAP_FREE( cred );
 
@@ -269,8 +237,15 @@ ldap_get_kerberosv4_credentials(
 		fprintf( stderr, "krb_get_tf_realm failed (%s)\n",
 		    krb_err_txt[err] );
 #endif /* LDAP_LIBUI */
-		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
+		ld->ld_errno = LDAP_AUTH_UNKNOWN;
 		return( NULL );
+	}
+
+	if ( ber_sockbuf_ctrl( ld->ld_sb, LBER_SB_OPT_GET_FD, NULL ) == -1 ) {
+		/* not connected yet */
+		int rc = ldap_open_defconn( ld );
+
+		if( rc < 0 ) return NULL;
 	}
 
 	krbinstance = ld->ld_defconn->lconn_krbinstance;
@@ -280,7 +255,7 @@ ldap_get_kerberosv4_credentials(
 #ifdef LDAP_LIBUI
 		fprintf( stderr, "krb_mk_req failed (%s)\n", krb_err_txt[err] );
 #endif /* LDAP_LIBUI */
-		ld->ld_errno = LDAP_INVALID_CREDENTIALS;
+		ld->ld_errno = LDAP_AUTH_UNKNOWN;
 		return( NULL );
 	}
 
@@ -296,4 +271,4 @@ ldap_get_kerberosv4_credentials(
 }
 
 #endif /* !AUTHMAN */
-#endif /* HAVE_KERBEROS */
+#endif /* LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND */

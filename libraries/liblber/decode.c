@@ -1,7 +1,7 @@
 /* decode.c - ber input decoding routines */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /* Portions
@@ -26,9 +26,6 @@
 #include <ac/string.h>
 #include <ac/socket.h>
 
-#undef LDAP_F_PRE
-#define LDAP_F_PRE LDAP_F_EXPORT
-
 #include "lber-int.h"
 
 static ber_len_t ber_getnint LDAP_P((
@@ -42,7 +39,6 @@ ber_get_tag( BerElement *ber )
 {
 	unsigned char	xbyte;
 	ber_tag_t	tag;
-	char		*tagp;
 	unsigned int	i;
 
 	assert( ber != NULL );
@@ -51,16 +47,17 @@ ber_get_tag( BerElement *ber )
 	if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 		return( LBER_DEFAULT );
 
-	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
-		return( (ber_tag_t) xbyte );
+	tag = xbyte;
 
-	tagp = (char *) &tag;
-	tagp[0] = xbyte;
+	if ( (xbyte & LBER_BIG_TAG_MASK) != LBER_BIG_TAG_MASK )
+		return tag;
+
 	for ( i = 1; i < sizeof(ber_tag_t); i++ ) {
 		if ( ber_read( ber, (char *) &xbyte, 1 ) != 1 )
 			return( LBER_DEFAULT );
 
-		tagp[i] = xbyte;
+		tag <<= 8;
+		tag |= 0x00ffUL & (ber_tag_t) xbyte;
 
 		if ( ! (xbyte & LBER_MORE_TAG_MASK) )
 			break;
@@ -70,8 +67,7 @@ ber_get_tag( BerElement *ber )
 	if ( i == sizeof(ber_tag_t) )
 		return( LBER_DEFAULT );
 
-	/* want leading, not trailing 0's */
-	return( tag >> (sizeof(ber_tag_t) - i - 1) );
+	return tag;
 }
 
 ber_tag_t
@@ -79,9 +75,8 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 {
 	ber_tag_t	tag;
 	unsigned char	lc;
-	ber_len_t	noctets;
-	int		diff;
-	ber_len_t	netlen;
+	ber_len_t	i, noctets;
+	unsigned char netlen[sizeof(ber_len_t)];
 
 	assert( ber != NULL );
 	assert( len != NULL );
@@ -97,6 +92,8 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 *	2) primitive encodings used whenever possible
 	 */
 
+	*len = 0;
+
 	/*
 	 * First, we read the tag.
 	 */
@@ -111,18 +108,25 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 	 * greater than what we can hold in a ber_len_t.
 	 */
 
-	*len = netlen = 0;
 	if ( ber_read( ber, (char *) &lc, 1 ) != 1 )
 		return( LBER_DEFAULT );
+
 	if ( lc & 0x80U ) {
 		noctets = (lc & 0x7fU);
-		if ( noctets > sizeof(ber_len_t) )
+
+		if ( noctets > sizeof(ber_len_t) ) {
 			return( LBER_DEFAULT );
-		diff = sizeof(ber_len_t) - noctets;
-		if ( (unsigned) ber_read( ber, (char *) &netlen + diff, noctets )
-		    != noctets )
+		}
+
+		if( (unsigned) ber_read( ber, netlen, noctets ) != noctets ) {
 			return( LBER_DEFAULT );
-		*len = LBER_LEN_NTOH( netlen );
+		}
+
+		for( i = 0; i < noctets; i++ ) {
+			*len <<= 8;
+			*len |= netlen[i];
+		}
+
 	} else {
 		*len = lc;
 	}
@@ -132,7 +136,7 @@ ber_skip_tag( BerElement *ber, ber_len_t *len )
 
 ber_tag_t
 ber_peek_tag(
-	LDAP_CONST BerElement *ber_in,
+	BerElement *ber_in,
 	ber_len_t *len )
 {
 	ber_tag_t	tag;
@@ -140,6 +144,8 @@ ber_peek_tag(
 
 	assert( ber_in != NULL );
 	assert( BER_VALID( ber_in ) );
+
+	*len = 0;
 
 	ber = ber_dup( ber_in );
 
@@ -223,6 +229,14 @@ ber_get_int(
 }
 
 ber_tag_t
+ber_get_enum(
+	BerElement *ber,
+	ber_int_t *num )
+{
+	return ber_get_int( ber, num );
+}
+
+ber_tag_t
 ber_get_stringb(
 	BerElement *ber,
 	char *buf,
@@ -230,10 +244,6 @@ ber_get_stringb(
 {
 	ber_len_t	datalen;
 	ber_tag_t	tag;
-
-#ifdef STR_TRANSLATION
-	char		*transbuf;
-#endif /* STR_TRANSLATION */
 
 	assert( ber != NULL );
 	assert( BER_VALID( ber ) );
@@ -247,25 +257,6 @@ ber_get_stringb(
 		return( LBER_DEFAULT );
 
 	buf[datalen] = '\0';
-
-#ifdef STR_TRANSLATION
-	if ( datalen > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	    && ber->ber_decode_translate_proc ) {
-		transbuf = buf;
-		++datalen;
-		if ( (*(ber->ber_decode_translate_proc))( &transbuf, &datalen,
-		    0 ) != 0 ) {
-			return( LBER_DEFAULT );
-		}
-		if ( datalen > *len ) {
-			LBER_FREE( transbuf );
-			return( LBER_DEFAULT );
-		}
-		SAFEMEMCPY( buf, transbuf, datalen );
-		LBER_FREE( transbuf );
-		--datalen;
-	}
-#endif /* STR_TRANSLATION */
 
 	*len = datalen;
 	return( tag );
@@ -296,19 +287,6 @@ ber_get_stringa( BerElement *ber, char **buf )
 		return( LBER_DEFAULT );
 	}
 	(*buf)[datalen] = '\0';
-
-#ifdef STR_TRANSLATION
-	if ( datalen > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	    && ber->ber_decode_translate_proc ) {
-		++datalen;
-		if ( (*(ber->ber_decode_translate_proc))( buf, &datalen, 1 )
-		    != 0 ) {
-			LBER_FREE( *buf );
-			*buf = NULL;
-			return( LBER_DEFAULT );
-		}
-	}
-#endif /* STR_TRANSLATION */
 
 	return( tag );
 }
@@ -345,20 +323,6 @@ ber_get_stringal( BerElement *ber, struct berval **bv )
 	}
 	((*bv)->bv_val)[len] = '\0';
 	(*bv)->bv_len = len;
-
-#ifdef STR_TRANSLATION
-	if ( len > 0 && ( ber->ber_options & LBER_TRANSLATE_STRINGS ) != 0
-	    && ber->ber_decode_translate_proc ) {
-		++len;
-		if ( (*(ber->ber_decode_translate_proc))( &((*bv)->bv_val),
-		    &len, 1 ) != 0 ) {
-			ber_bvfree( *bv );
-			*bv = NULL;
-			return( LBER_DEFAULT );
-		}
-		(*bv)->bv_len = len - 1;
-	}
-#endif /* STR_TRANSLATION */
 
 	return( tag );
 }
@@ -470,7 +434,7 @@ ber_tag_t
 ber_next_element(
 	BerElement *ber,
 	ber_len_t *len,
-	char *last )
+	LDAP_CONST char *last )
 {
 	assert( ber != NULL );
 	assert( len != NULL );
@@ -764,17 +728,3 @@ ber_scanf ( BerElement *ber,
 
 	return( rc );
 }
-
-
-#ifdef STR_TRANSLATION
-void
-ber_set_string_translators( BerElement *ber, BERTranslateProc encode_proc,
-	BERTranslateProc decode_proc )
-{
-	assert( ber != NULL );
-	assert( BER_VALID( ber ) );
-
-    ber->ber_encode_translate_proc = encode_proc;
-    ber->ber_decode_translate_proc = decode_proc;
-}
-#endif /* STR_TRANSLATION */

@@ -1,12 +1,7 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998,1999 The OpenLDAP Foundation, Redwood City, California, USA
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms are permitted only
- * as authorized by the OpenLDAP Public License.  A copy of this
- * license is available at http://www.OpenLDAP.org/license.html or
- * in file LICENSE in the top-level directory of the distribution.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
  * Copyright (c) 1991, 1992, 1993 
@@ -90,7 +85,7 @@
 /*
  *  Authentication method we will be using.
  */
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 #define UD_AUTH_METHOD		LDAP_AUTH_KRBV4
 #else
 #define UD_AUTH_METHOD		LDAP_AUTH_SIMPLE
@@ -198,7 +193,7 @@ extern char Version[];
 
 /* in auth.c: */
 int  auth	LDAP_P(( char *who, int implicit ));
-#if defined(HAVE_KERBEROS) && defined(_AC_KRB_H)
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) && defined(_AC_KRB_H)
 int  krbgetpass LDAP_P(( char *u, char *in, char *re, char *pw, C_Block key ));
 void destroy_tickets LDAP_P(( void ));
 #endif
@@ -269,7 +264,7 @@ void print_URL	LDAP_P(( struct attribute A ));
 void print_one_URL	LDAP_P(( char *s, int l_lead, char *tag, int u_lead ));
 
 /* in string_to_key.c: */
-#if defined(HAVE_KERBEROS) && !defined(openbsd) && defined(_AC_KRB_H)
+#if defined(LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND) && !defined(openbsd) && defined(_AC_KRB_H)
 #if defined(HAVE_AFS_KERBEROS) || !defined(HAVE_KERBEROS_V)
 void  des_string_to_key	LDAP_P(( char *str, des_cblock *key ));
 #endif

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -280,7 +280,7 @@ do_commands( void )
 	printf(" Thank you!\n");
 	
 	ldap_unbind(ld);
-#ifdef HAVE_KERBEROS
+#ifdef LDAP_API_FEATURE_X_OPENLDAP_V2_KBIND
 	destroy_tickets();
 #endif
 	exit( EXIT_SUCCESS );
@@ -353,7 +353,7 @@ change_base( int type, char **base, char *s )
 	/*
 	 *  If s is NULL we need to prompt the user for an argument.
 	 */
-	while (s == NULL) {
+	if (s == NULL) {
 		if (verbose) {
 			printf("  You need to specify how the base is to be changed.  Valid choices are:\n");
 			printf("     ?       - list the choices immediately below this level\n");
@@ -367,6 +367,8 @@ change_base( int type, char **base, char *s )
 		fetch_buffer(buf, sizeof(buf), stdin);
 		if ((buf != NULL) && (buf[0] != '\0'))
 			s = buf;
+		else
+			return;
 	}
 
 	/* set the output string */
@@ -433,7 +435,7 @@ change_base( int type, char **base, char *s )
 		 *  the user if they want to see more.  They can also just
 		 *  type a number at that point too.
 		 */
-		if (ldap_search_s(ld, *base, LDAP_SCOPE_ONELEVEL, "(|(objectClass=quipuNonLeafObject)(objectClass=externalNonLeafObject))", attrs, FALSE, &mp) != LDAP_SUCCESS) {
+		if (ldap_search_s(ld, *base, LDAP_SCOPE_ONELEVEL, NULL, attrs, FALSE, &mp) != LDAP_SUCCESS) {
 			int ld_errno = 0;
 			ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
 			if ((ld_errno == LDAP_TIMELIMIT_EXCEEDED) ||
@@ -658,12 +660,7 @@ initialize_client( void )
 	}
 	if (ldap_bind_s(ld, (char *) default_bind_object, NULL,
 	    LDAP_AUTH_SIMPLE) != LDAP_SUCCESS) {
-		int ld_errno = 0;
-		ldap_get_option(ld, LDAP_OPT_ERROR_NUMBER, &ld_errno);
-
-		fprintf(stderr, "  The LDAP Directory is temporarily unavailable.  Please try again later.\n");
-		if (ld_errno != LDAP_UNAVAILABLE)
-			ldap_perror(ld, "  ldap_bind_s");
+		ldap_perror(ld, "  ldap_bind_s");
 		exit( EXIT_FAILURE );
 		/* NOTREACHED */
 	}

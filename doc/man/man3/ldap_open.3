@@ -1,10 +1,12 @@
-.TH LDAP_OPEN 3  "28 March 1996" "U-M LDAP LDVERSION"
+.TH LDAP_OPEN 3 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_init, ldap_open \- Initialize the LDAP library and open a connection to an LDAP server
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 .LP
 .ft B
@@ -81,8 +83,8 @@ but does not open a connection
 to the LDAP server.  The actual connection open will occur when the
 first operation is attempted.  At this time,
 .B ldap_init()
-should only
-be used if the LDAP library is compiled with LDAP_REFERRALS defined.
+is preferred.  
+.B ldap_open() will be depreciated in a later release.
 .SH ERRORS
 If an error occurs, these routines will return NULL and errno should be
 set appropriately.
@@ -111,3 +113,8 @@ in the LDAP structure.
 .BR ldap (3),
 .BR ldap_bind (3),
 .BR errno (3)
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

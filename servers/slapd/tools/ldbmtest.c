@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 #include "portable.h"
@@ -298,7 +298,7 @@ main( int argc, char **argv )
 			} else {
 				buf[strlen( buf ) - 1] = '\0';
 			}
-			(void) dn_normalize_case( buf );
+			(void) dn_normalize( buf );
 			if ( (tbe = select_backend( buf )) == NULL ) {
 				fprintf( stderr, "unknown suffix \"%s\"\n",
 				    buf );
@@ -508,7 +508,7 @@ edit_entry( char c, Datum *data )
 
 	strcpy( tmpname, "/tmp/dbtestXXXXXX" );
 #ifndef HAVE_MKSTEMP
-	if ( (fd = open( mktemp( tmpname ), O_RDWR, 0600 )) == -1 ) {
+	if ( (fd = open( mktemp( tmpname ), O_RDWR|O_CREAT|O_EXCL, 0600 )) == -1 ) {
 		perror( tmpname );
 		return;
 	}

@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /* 
- * Copyright 1999 The OpenLDAP Foundation.
+ * Copyright 1999-2000 The OpenLDAP Foundation.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms are permitted only
@@ -48,7 +48,7 @@ int get_ctrls(
 
 	if(( tag = ber_peek_tag( ber, &len )) != LDAP_TAG_CONTROLS ) {
 		if( tag == LBER_ERROR ) {
-			rc = -1;
+			rc = SLAPD_DISCONNECT;
 			errmsg = "unexpected data in PDU";
 		}
 
@@ -58,7 +58,7 @@ int get_ctrls(
 	Debug( LDAP_DEBUG_TRACE, "=> get_ctrls\n", 0, 0, 0 );
 
 	if( op->o_protocol < LDAP_VERSION3 ) {
-		rc = -1;
+		rc = SLAPD_DISCONNECT;
 		errmsg = "controls require LDAPv3";
 		goto return_results;
 	}
@@ -74,7 +74,7 @@ int get_ctrls(
 	}
 #endif
 
-	ctrls[nctrls] = NULL;
+	*ctrls[nctrls] = NULL;
 
 	for( tag = ber_first_element( ber, &len, &opaque );
 		tag != LBER_ERROR;
@@ -120,7 +120,7 @@ int get_ctrls(
 				0, 0, 0 );
 			*ctrls = NULL;
 			ldap_controls_free( tctrls );
-			rc = -1;
+			rc = SLAPD_DISCONNECT;
 			errmsg = "decoding controls error";
 			goto return_results;
 		}
@@ -136,7 +136,7 @@ int get_ctrls(
 					0, 0, 0 );
 				*ctrls = NULL;
 				ldap_controls_free( tctrls );
-				rc = -1;
+				rc = SLAPD_DISCONNECT;
 				errmsg = "decoding controls error";
 				goto return_results;
 			}
@@ -158,7 +158,7 @@ int get_ctrls(
 					0, 0, 0 );
 				*ctrls = NULL;
 				ldap_controls_free( tctrls );
-				rc = -1;
+				rc = SLAPD_DISCONNECT;
 				errmsg = "decoding controls error";
 				goto return_results;
 			}
@@ -180,7 +180,7 @@ return_results:
 		nctrls, rc, errmsg ? errmsg : "");
 
 	if( sendres && rc != LDAP_SUCCESS ) {
-		if( rc == -1 ) {
+		if( rc == SLAPD_DISCONNECT ) {
 			send_ldap_disconnect( conn, op, rc, errmsg );
 		} else {
 			send_ldap_result( conn, op, rc,

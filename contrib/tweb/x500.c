@@ -15,12 +15,12 @@
 *            Creation date:                Z   D  D   V   V                *
 *            August 16 1995               Z    D   D   V V                 *
 *            Last modification:          Z     D  D    V V                 *
-*            September 10 1999          ZZZZZ  DDD      V                  *
+*            September 13 1999          ZZZZZ  DDD      V                  *
 *                                                                          *
 _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 
 /*
- * $Id: x500.c,v 1.8 1999/09/10 15:01:20 zrnsk01 Exp $
+ * $Id: x500.c,v 1.10 1999/09/13 13:47:48 zrnsk01 Exp $
  *
  */
 
@@ -143,6 +143,10 @@ GLOB_STRUCT *glob;
     int count;
     char           *ufn;
 
+#if OL_LDAPV > 0
+	int         ldap_opt;
+#endif
+
     if(!attrs)
         attrs = (char**) charray_dup(sattrs);
 
@@ -162,12 +166,11 @@ GLOB_STRUCT *glob;
         timeout.tv_sec = glob->timeout;
         timeout.tv_usec = 0;
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-        ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+		ldap_opt = LDAP_DEREF_FINDING;
+        ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
         ld->ld_deref = LDAP_DEREF_FINDING;
 #endif
@@ -182,12 +185,11 @@ GLOB_STRUCT *glob;
 
         if (rc == LDAP_SIZELIMIT_EXCEEDED) glob->persRestricted = TRUE;
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-        ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+		ldap_opt = LDAP_DEREF_ALWAYS;
+        ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
         ld->ld_deref = LDAP_DEREF_ALWAYS;
 #endif
@@ -348,6 +350,10 @@ GLOB_STRUCT *glob;
     char               *ufn;
     char title[BUFSIZ], title2[BUFSIZ];
 
+#if OL_LDAPV > 0
+	int         ldap_opt;
+#endif
+
     glob->no_browse = FALSE;
     
 /* query string: base-DN?[OS]=filter 
@@ -384,14 +390,12 @@ GLOB_STRUCT *glob;
     filtertype = (scope == LDAP_SCOPE_ONELEVEL ? "web500gw onelevel" :
         "web500gw subtree");
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-        ldap_set_option( ld, LDAP_OPT_DEREF,
-                          scope == LDAP_SCOPE_ONELEVEL ? LDAP_DEREF_FINDING :
-                                   LDAP_DEREF_ALWAYS );
+		ldap_opt = ( scope == LDAP_SCOPE_ONELEVEL ? LDAP_DEREF_FINDING :
+						 LDAP_DEREF_ALWAYS );
+        ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
     ld->ld_deref = (scope == LDAP_SCOPE_ONELEVEL ? LDAP_DEREF_FINDING :
                                                   LDAP_DEREF_ALWAYS);
@@ -408,8 +412,7 @@ GLOB_STRUCT *glob;
 
             if (dosyslog) {
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
                 int ld_errno;
 
@@ -417,7 +420,6 @@ GLOB_STRUCT *glob;
                 syslog (LOG_INFO, "ldap_search_st(): %s",
                     ldap_err2string ( ld_errno ));
 
-#  endif
 #else
                 syslog (LOG_INFO, "ldap_search_st(): %s",
                     ldap_err2string (ld->ld_errno));
@@ -437,12 +439,11 @@ GLOB_STRUCT *glob;
     }
     items_displayed = count;
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-        ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+		ldap_opt = LDAP_DEREF_ALWAYS;
+        ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
     ld->ld_deref = LDAP_DEREF_ALWAYS;
 #endif
@@ -1660,6 +1661,10 @@ GLOB_STRUCT *glob;
     char *url = NULL;
     char **uri = NULL, *urlnola, raw_string[BUFSIZ];
 
+#if OL_LDAPV > 0
+	int         ldap_opt;
+#endif
+
     oc = ldap_get_values( ld, e, "objectClass" );
 
     if(!(aoc = make_oc_to_string(oc))) return;
@@ -1816,12 +1821,11 @@ GLOB_STRUCT *glob;
             timeout.tv_sec = glob->timeout;
             timeout.tv_usec = 0;
     
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV > 0
 
-        ldap_set_option( ld, LDAP_OPT_DEREF, LDAP_DEREF_ALWAYS );
+		ldap_opt = LDAP_DEREF_ALWAYS;
+        ldap_set_option( ld, LDAP_OPT_DEREF, &ldap_opt );
 
-#  endif
 #else
             ld->ld_deref = LDAP_DEREF_ALWAYS;
 #endif

@@ -14,12 +14,12 @@
 *            Creation date:                Z   D  D   V   V                *
 *            August 16 1995               Z    D   D   V V                 *
 *            Last modification:          Z     D  D    V V                 *
-*            December 31 1998           ZZZZ   DDD      V                  *
+*            September 13 1999          ZZZZ   DDD      V                  *
 *                                                                          *
 _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 
 /*
- * $Id: tweb.h,v 1.6 1999/09/10 15:01:20 zrnsk01 Exp $
+ * $Id: tweb.h,v 1.8 1999/09/13 13:47:47 zrnsk01 Exp $
  *
  */
 
@@ -34,23 +34,20 @@ _/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_*/
 #include "support_exp.h"
 
 PRIVATE void do_child();
-int	debug;
+int	debug                 = 0;
+int ldap_syslog           = 0;
+int ldap_syslog_level     = 0;
+
 int	dosyslog = 0;
 
 GLOB_STRUCT *globP;
 
 int		searchaliases = 1;
 
-#if defined LDAP_VENDOR_NAME && defined LDAP_API_VERSION
-#  if LDAP_API_VERSION > 2001 && LDAP_API_VERSION < 2010
+#if OL_LDAPV >= 2
 
 LDAPFriendlyMap     *fm = NULL;
 
-#  else
-
-LDAPFriendlyMap     *fm = NULL;
-
-#  endif
 #else
 
 FriendlyMap     *fm = NULL;

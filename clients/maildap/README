@@ -1,0 +1,357 @@
+
+*** WARNING:  Preliminary ***
+
+This is the README file for maildap, a mailer that does X.500 lookups
+via LDAP.  It is based on mail500.
+
+If you are planning to run maildap at your site, you need to create a
+configuration file.  Previous versions required modifying the source
+code for configuration.  This is no longer necessary.
+there are several
+
+*** WHAT maildap DOES: ***
+
+maildap is designed to be invoked as a mailer (e.g., from sendmail),
+similar to the way /bin/mail works.  It takes a few required arguments
+and then a list of addresses to deliver to.  It expects to find the
+message to deliver on its standard input.  It looks up the addresses in
+X.500 to figure out where to route the mail, and then execs sendmail to
+do the actual delivery.  It supports simple aliases, groups, and
+mailing lists, the details of which are given below.
+
+*** HOW IT WORKS (from the sendmail side): ***
+
+The idea is that you might have a rule like this in your sendmail.cf
+file somewhere in rule set 0:
+
+R$*<@umich.edu>$*	$#maildap$@umich.edu$:<$1>
+
+This rule says that any address that ends in @umich.edu will cause
+the maildap mailer to be called to deliver the mail.  You probably
+also want to do something to prevent addresses like terminator!tim@umich.edu
+or tim%terminator.rs.itd.umich.edu@umich.edu from being passed to maildap.
+At U-M, we do this by adding rules like this to rule set 9 where we
+strip off our local names:
+
+R<@umich.edu>$*:$*                 $>10<@>$1:$2
+R$+%$+<@umich.edu>                 $>10$1%$2<@>
+R$+!$+<@umich.edu>                 $>10$1!$2<@>
+
+You can also feed complete FQDN addresses to maildap.  For instance,
+you could define a class containing the list of domains you want to
+serve like this:
+
+FQ/etc/mail/maildapdomains
+
+and then use a rule in rule set 0 like this:
+
+R$*<$=Q>$*		$#maildap $@$2 $:<$1@$2>
+
+See the sample sendmail.cf in this directory for more details.
+For sendmail 8.9 (and later) users can use MAILER(maildap) if
+maildap.m4 is placed within sendmail's cf/mailer directory.
+
+The maildap mailer should be defined similar to this in the
+sendmail.cf file:
+
+Mmaildap, P=/usr/local/etc/maildap, F=DFMSmnXuh, A=maildap -f $f -h $h -m $n@$w $u
+
+This defines how maildap will be treated by sendmail and what
+arguments it will have when it's called.  The various flags specified
+by the F=... parameter are explained in your local sendmail book (with
+any luck).  The arguments to maildap are as follows:
+
+	-f	Who the mail is from.  This will be used as the address
+		to which any errors should be sent (unless the address
+		specifies a mailing list - see below).  Normally, sendmail
+		defines the $f macro to be the sender.
+
+	-h	The domain for which the mail is destined.  This is passed
+		in to maildap via the $h macro, which is set by the
+		$@ metasymbol in the rule added to rule set 0 above.
+		It's normally used when searching for groups.
+
+	-m	The mailer-daemon address.  If errors have to be sent,
+		this is the address they will come from.  $n is normally
+		set to mailer-daemon and $w is normally the local host
+		name.
+
+The final argument $u is used to stand for the addresses to which to
+deliver the mail.
+
+*** HOW IT WORKS (from the maildap side): ***
+
+When maildap gets invoked with one or more names to which to deliver
+mail, it searches for each name in X.500.  Where it searches, and what
+kind(s) of search(es) is controlled by a configuration file.  There
+are a number of different approaches to handling mail and no general
+rules can be given.  We will however present some examples of what you
+can do.  The new maildap is designed to be flexible and able to
+accommodate most scenarios.
+
+For instance, if you are following the mail distribution model that
+the old maildap used, you need lines in the configuration file like
+these:
+
+search  ldap:///ou=People, dc=OpenLDAP, dc=org??sub?\
+	(|(uid=%25l)(cn==%25l))
+
+search  ldap:///ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
+	(&(cn=%25l)(associatedDomain==%25h))
+
+search  ldap:///ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
+	(&(cn=%25l)(associatedDomain==%25h))
+
+As you can see, searches are described by using LDAP URLs.  You can
+have as many searches as you want, but the first search that succeeds
+completes the processing for a recipient address.  You can provide an
+attribute list in the URL and it will be honored.  Otherwise, the
+attribute list will default as explained below.
+
+Filters can contain substitutions.  Actually, they *should* contain
+substitutions or the search result would not change with the recipient
+address.  Since the usual substitution character is % and it has
+special meaning in URLs, you have to represent it according to the URL
+syntax, that is, %25, 25 being the hex code of %.  The filter can be
+as complex as you want and you may make as many substitutions as you
+want.  Known substitutions at this time are:
+
+        %m   The recipient address we are considering now, maybe fully
+	     qualified
+	%h   The host, that is, the value of the -h argument to
+	     maildap
+	%l   The local part from %m
+	%d   The domain part from %m
+
+So, in the above example, if the recipient address were
+name@OpenLDAP.org, maildap would do the the following searches,
+stopping if it found anything at any step:
+
+	Search (18) [2]: dc=org@dc=OpenLDAP@ou=People
+	Search subtree (uid=name)
+	Search (18) [3]: dc=org@dc=OpenLDAP@ou=People
+	Search subtree (cn=name)
+
+	Search (18) [4]: dc=org@dc=OpenLDAP@ou=Groups@ou=System Groups
+	Search subtree & ((cn=name)(associatedDomain=OpenLDAP.org))
+
+	Search (18) [5]: dc=org@dc=OpenLDAP@ou=Groups@ou=User Groups
+	Search subtree & ((cn=name)(associatedDomain=OpenLDAP.org))
+
+[Beware: Currently unimplemented]
+You can also specify whether you want search results that matched
+because the entry's RDN matched the search to be given preference
+or not.  At U-M, we only give such preference in the mail group
+portion of the searches.  Beware with this option:  the algorithm
+used to decide whether an entry's RDN matched the search is very
+simple-minded, and may not always be correct.
+
+*** HOW IT WORKS (from the X.500 side): ***
+
+First you need to decide what attributes you will search for and what
+attributes will be used to deliver the message.  In the classical
+maildap, we would search by uid or cn and deliver to the mail
+attribute.  Another model is to search by the mail attribute and
+deliver to something else, such as the uid if determined that the user
+has a local account.
+
+*** THE CONFIGURATION FILE
+
+The configuration file is composed of lines that prescribe the
+operation of maildap.  Blank lines are ignored and lines beginning
+with # are considered comments and ignored.  Outside comments, the
+sequence '\', newline, whitespace is ignored so that long lines can be
+split for readability.
+
+Attribute Definitions
+
+Lines starting with 'attribute' define the semantics of an attribute.
+Notice that attributes will be considered in the order they are
+defined in the configuration file.  This means that the presence of
+some can preempt processing of other attributes and that attributes
+that simply collect needed information must be defined before others
+that use that information.  The format is:
+
+attribute name [multivalued] [final] [multiple-entries] [<syntax>] [<kind>]
+
+If the attribute is "multivalued", all values will be considered.  If
+it is not and several values are found the entry is declared in error.
+
+If the attribute is "final", its presence in an entry prevents further
+analysis of the entry.
+
+If the attribute is "multiple-entries" and it is of an appropriate
+syntax that can point to other entries, all such entries are
+considered, otherwise the entry is in error.
+
+The known kinds are:
+
+recipient		The value(s) of this attribute should be
+			used as the address(es) to deliver the message
+			to if they are in an appropriate syntax.  If
+			they otherwise point at other entries, they
+			should be retrieved and expanded as necessary
+			to complete the resolution of this entry.  The
+			process is recursive and all.
+
+errors			The value(s) of this attribute represent the
+			entities that should receive error messages
+			for mail messages directed to this entry.
+			The presence of an attribute of this kind
+			force a change in the envelope sender address
+			of the message.
+
+The known syntaxes are:
+
+local-native-mailbox	An unqualified mailbox name
+rfc822			A fully qualified RFC822 mail address
+rfc822-extended		Currently identical to rfc822
+dn			The Distinguished Name of some other entry
+url			A URL either of the mailto: or ldap: styles,
+			others styles, notably file:, could be added.
+			No substitutions are supported currently.
+search-with-filter=<filter>	Do a search on all known search bases
+			with the give filter.  The only currenty
+			substitution available is %D, the DN of the
+			current entry.
+
+The default attributes to search
+
+A line starting with "default-attributes" contains a comma-separated
+list of attributes to use in searches everytime a specific list is not
+known.
+
+Search bases
+
+As shown in the example above, lines starting with "search" provide
+the search bases to use to initially try to resolve each entry or when
+using attributes of syntax "search-with-filter".
+
+*** EXAMPLES
+
+A configuration file that approximates the operation of the old
+maildap runs as follows:
+
+attribute errorsTo				errors dn
+attribute rfc822ErrorsTo			errors rfc822
+attribute requestsTo				request dn
+attribute rfc822RequestsTo			request rfc822
+attribute owner					owner dn
+attribute mail			multivalued 	recipient rfc822
+attribute member		multivalued	recipient dn
+attribute joinable	multiple-entries	recipient \
+	  search-with-filter=(memberOfGroup=%D)
+
+default-attributes objectClass,title,postaladdress,telephoneNumber,\
+	mail,description,owner,errorsTo,rfc822ErrorsTo,requestsTo,\
+	rfc822RequestsTo,joinable,cn,member,moderator,onVacation,uid,\
+	suppressNoEmailError
+
+# Objectclasses that, when present, identify an entry as a group
+group-classes mailGroup
+
+search  ldap:///ou=People, dc=OpenLDAP, dc=org??sub?\
+	(|(uid=%25l)(cn==%25l))
+
+search  ldap:///ou=System Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
+	(&(cn=%25l)(associatedDomain==%25h))
+
+search  ldap:///ou=User Groups, ou=Groups, dc=OpenLDAP, dc=org??sub?\
+	(&(cn=%25l)(associatedDomain==%25h))
+
+A configuration that approximates the semantics of the mailRecipient
+and mailGroup classes used by Netscape:
+
+attribute mgrpErrorsTo				errors url
+attribute rfc822ErrorsTo			errors rfc822
+attribute mailRoutingAddress	final		recipient rfc822
+attribute mailHost		final		host forward-to-host
+attribute uid			final		recipient local-native-mailbox
+attribute uniqueMember		multivalued	recipient dn
+attribute mgrpRFC822MailMember	multivalued	recipient rfc822-extended
+attribute mgrpDeliverTo		multivalued multiple-entries recipient url
+
+default-attributes objetcClass,mailRoutingAddress,mailHost,uid,uniqueMember,\
+	mgrpRFC822MailMember,mgrpErrorsTo,rfc822ErrorsTo
+
+# Objectclasses that, when present, identify an entry as a group
+group-classes mailGroup
+
+search  ldap://localhost/dc=OpenLDAP,dc=org?\
+	objectClass,mailRoutingAddress,mailHost,uid?\
+	sub?\
+	(&(|(mail=%25m)(mailAlternateAddress=%25m))(objectClass=mailRecipient))
+
+search  ldap://localhost/dc=OpenLDAP,dc=org?\
+	objectClass,uniqueMember,mgrpRFC822MailMember,mgrpErrorsTo,mgrpDeliverTo,rfc822ErrorsTo?\
+	sub?\
+	(&(|(mail=%25m)(mailAlternateAddress=%25m))(objectClass=mailGroup))
+
+[ The rest is from the original README and I did not rewrite it yet ]
+
+In X.500, there are several new attribute types and one new object
+class defined that maildap makes use of.  At its most basic, for normal
+entries maildap will deliver to the value(s) listed in the
+rfc822Mailbox attribute of the entry.  For example, at U-M my entry has
+the attribute
+
+	mail= tim@terminator.rs.itd.umich.edu
+
+So mail sent to tim@umich.edu will be delivered via maildap to that
+address.  If there were multiple values for the mail attribute, multiple
+copies of the mail would be sent.
+
+A new object class, rfc822MailGroup, and several new attributes have
+been defined to handle email groups/mailing lists.  To use this, you
+will need to add this to your local oidtable.oc:
+
+	# object class for representing rfc 822 mailgroups
+	rfc822MailGroup:        umichObjectClass.2 : \
+		top : \
+		cn : \
+		rfc822Mailbox, member, memberOfGroup, owner, \
+		errorsTo, rfc822ErrorsTo, requestsTo, rfc822RequestsTo,
+		joinable, associatedDomain, \
+		description, multiLineDescription, \
+		userPassword, krbName, \
+		telecommunicationAttributeSet, postalAttributeSet
+
+And you will need to add these to your local oidtable.at:
+
+	# attrs for rfc822mailgroups
+	multiLineDescription:   umichAttributeType.2    : CaseIgnoreList
+	rfc822ErrorsTo:         umichAttributeType.26   : CaseIgnoreIA5String
+	rfc822RequestsTo:       umichAttributeType.27   : CaseIgnoreIA5String
+	joinable:               umichAttributeType.28   : Boolean
+	memberOfGroup:          umichAttributeType.29   : DN
+	errorsTo:		umichAttributeType.30	: DN
+	requestsTo:		umichAttributeType.31	: DN
+
+The idea was to define a kind of hybrid mail group that could handle
+people who were in X.500 or not.  So, for example, members of a group
+can be specified via the member attribute (for X.500 members) or the
+rfc822MailBox attribute (for non-X.500 members).  Similarly for the
+errorsTo and rfc822ErrorsTo, and the requestsTo and rfc822RequestsTo
+attributes.
+
+To create a real mailing list, with a list maintainer, all you have to
+do is create an rfc822MailGroup and fill in the errorsTo or
+rfc822ErrorsTo attributes (or both).  That will cause any errors
+encountered when delivering mail to the group to go to the addresses
+listed (or X.500 entry via it's mail attribute).
+
+If you fill in the requestsTo or rfc822RequestsTo (or both) attributes,
+mail sent to groupname-request will be sent to the addresses listed
+there.  maildap does this automatically, so you don't have to explicitly
+add the groupname-request alias to your group.
+
+To allow users to join a group, there is the joinable flag.  If TRUE,
+maildap will search for entries that have a memberOfGroup attribute
+equal to the DN of the group, using the same algorithm it used to find
+the group in the first place (i.e. the DNs and filters listed in the
+base array).  This allows people to join (or subscribe to) a group
+without having to modify the group entry directly.  If joinable is
+FALSE, the search is not done.
+
+Finally, keep in mind that this is somewhat experimental at the moment.
+We are using it in production at U-M, but your mileage may vary...

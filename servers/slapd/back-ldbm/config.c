@@ -1,7 +1,7 @@
 /* config.c - ldbm backend configuration file routine */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -25,6 +25,7 @@ ldbm_back_db_config(
     char	**argv
 )
 {
+	int rc;
 	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 
 	if ( li == NULL ) {
@@ -67,7 +68,9 @@ ldbm_back_db_config(
 "%s: line %d: extra junk after \"index <attr> [pres,eq,approx,sub]\" line (ignored)\n",
 			    fname, lineno );
 		}
-		attr_index_config( li, fname, lineno, argc - 1, &argv[1], 0 );
+		rc = attr_index_config( li, fname, lineno, argc - 1, &argv[1] );
+
+		if( rc != LDAP_SUCCESS ) return 1;
 
 	/* size of the cache in entries */
 	} else if ( strcasecmp( argv[0], "cachesize" ) == 0 ) {
@@ -89,9 +92,15 @@ ldbm_back_db_config(
 		}
 		li->li_dbcachesize = atoi( argv[1] );
 
-	/* no write sync */
-	} else if ( strcasecmp( argv[0], "dbcachenowsync" ) == 0 ) {
-		li->li_dbcachewsync = 0;
+	/* no locking (not safe) */
+	} else if ( strcasecmp( argv[0], "dbnolocking" ) == 0 ) {
+		li->li_dblocking = 0;
+
+	/* no write sync (not safe) */
+	} else if ( ( strcasecmp( argv[0], "dbnosync" ) == 0 )
+		|| ( strcasecmp( argv[0], "dbcachenowsync" ) == 0 ) )
+	{
+		li->li_dbwritesync = 0;
 
 	/* anything else */
 	} else {

@@ -1,9 +1,12 @@
-.TH UD.CONF 5 "18 March 1993" "U-M LDAP LDVERSION"
+.TH UD.CONF 5 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .UC 6
 .SH NAME
 ud.conf \- ud configuration file
 .SH SYNOPSIS
-/etc/ud.conf
+ETCDIR/ud.conf
 .SH DESCRIPTION
 The
 .I ud
@@ -17,13 +20,13 @@ configuration file.
 .SH OPTIONS
 The different configuration options are:
 .TP 1i
-\fBserver <name>\fP
+\fBHOST <name>\fP
 Used to specify the name of an LDAP server to which 
 .I ud 
 should connect.  There may be only one entry per config file.
 The server's name can be specified as a domain-style name or an IP address.
 .TP 1i
-\fBbase <base>\fP
+\fBBASE <base>\fP
 Used to specify the search base to use when performing search operations.
 The base may be changed by those using
 .I ud
@@ -33,7 +36,7 @@ command.
 There may be only one entry per config file.
 The base must be specified as a Distinguished Name in LDAP format.
 .TP 1i
-\fBgroupbase <base>\fP
+\fBGROUPBASE <base>\fP
 Used to specify the base used when creating groups.
 The base may be changed by those using
 .I ud
@@ -43,7 +46,7 @@ command.
 There may be only one entry per config file.
 The base must be specified as a Distinguished Name in LDAP format.
 .TP 1i
-\fBsearch <algorithm>\fP
+\fBSEARCH <algorithm>\fP
 Used to specify a search algorithm to use when performing searches.  More than
 one algorithm may be specified, and each is tried in turn until a suitable
 response is found.
@@ -88,9 +91,14 @@ For example,
 causes this algorithm to be applied when the number of fields is exactly equal
 to one.  If there is exactly one field, the token is looked up as a UID.
 .SH FILES
-.I  /etc/ud.conf
+.I  ETCDIR/ud.conf
 .SH "SEE ALSO"
 ud(1),
 ldap(3)
 .SH AUTHOR
 Bryan Beecher, University of Michigan
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

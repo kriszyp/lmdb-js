@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998,1999 The OpenLDAP Foundation
+## Copyright 1998-2000 The OpenLDAP Foundation
 ## COPYING RESTRICTIONS APPLY.  See COPYRIGHT File in top level directory
 ## of this package for details.
 ##---------------------------------------------------------------------------
@@ -10,7 +10,8 @@
 all-common: $(PROGRAMS) FORCE
 
 clean-common: 	FORCE
-	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o *.lo a.out core *.core .libs/*
+	$(RM) $(PROGRAMS) $(XPROGRAMS) $(XSRCS) *.o *.lo a.out core *.core \
+		    .libs/* *.exe
 
 depend-common: FORCE
 	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS)

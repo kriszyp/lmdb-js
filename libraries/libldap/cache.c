@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*  Portions
@@ -44,7 +44,7 @@ ldap_enable_cache( LDAP *ld, long timeout, ber_len_t maxmem )
 			ld->ld_errno = LDAP_NO_MEMORY;
 			return( -1 );
 		}
-		(void) memset( ld->ld_cache, 0, sizeof( LDAPCache ));
+		(void) memset( ld->ld_cache, '\0', sizeof( LDAPCache ));
 		ld->ld_cache->lc_memused = sizeof( LDAPCache );
 	}
 
@@ -387,6 +387,7 @@ ldap_check_cache( LDAP *ld, ber_tag_t msgtype, BerElement *request )
 		return( -1 );
 	}
 
+	reqber.ber_valid = LBER_VALID_BERELEMENT;
 	reqber.ber_buf = reqber.ber_ptr = request->ber_buf;
 	reqber.ber_end = request->ber_ptr;
 

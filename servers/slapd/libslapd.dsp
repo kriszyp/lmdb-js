@@ -39,9 +39,10 @@ CPP=cl.exe
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "Release"
-# PROP Intermediate_Dir "Release\libslapd"
+# PROP Output_Dir "..\..\Release"
+# PROP Intermediate_Dir "..\..\Release\libslapd"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -60,9 +61,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "Debug"
-# PROP Intermediate_Dir "Debug\libslapd"
+# PROP Output_Dir "..\..\Debug"
+# PROP Intermediate_Dir "..\..\Debug\libslapd"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /W3 /GX /Z7 /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -81,9 +83,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 1
-# PROP Output_Dir "SDebug"
-# PROP Intermediate_Dir "SDebug\libslapd"
+# PROP Output_Dir "..\..\SDebug"
+# PROP Intermediate_Dir "..\..\SDebug\libslapd"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MTd /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /Z7 /Od /I "..\..\include" /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /FR /YX /FD /c
 BSC32=bscmake.exe
@@ -102,9 +105,10 @@ LIB32=link.exe -lib
 # PROP BASE Target_Dir ""
 # PROP Use_MFC 0
 # PROP Use_Debug_Libraries 0
-# PROP Output_Dir "SRelease"
-# PROP Intermediate_Dir "SRelease\libslapd"
+# PROP Output_Dir "..\..\SRelease"
+# PROP Intermediate_Dir "..\..\SRelease\libslapd"
 # PROP Target_Dir ""
+RSC=rc.exe
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 # ADD CPP /nologo /W3 /GX /O2 /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /YX /FD /c
 BSC32=bscmake.exe
@@ -136,7 +140,15 @@ SOURCE=.\aclparse.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\ad.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\add.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\at.c
 # End Source File
 # Begin Source File
 
@@ -212,7 +224,15 @@ SOURCE=.\filterentry.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\index.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\init.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\kerberos.c
 # End Source File
 # Begin Source File
 
@@ -232,7 +252,19 @@ SOURCE=.\monitor.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\mr.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\oc.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\operation.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\passwd.c
 # End Source File
 # Begin Source File
 
@@ -260,6 +292,18 @@ SOURCE=.\schema.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\schema_check.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\schema_init.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\schema_prep.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\schemaparse.c
 # End Source File
 # Begin Source File
@@ -272,11 +316,19 @@ SOURCE=.\slap.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\starttls.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\str2filter.c
 # End Source File
 # Begin Source File
 
 SOURCE=.\suffixalias.c
+# End Source File
+# Begin Source File
+
+SOURCE=.\syntax.c
 # End Source File
 # Begin Source File
 

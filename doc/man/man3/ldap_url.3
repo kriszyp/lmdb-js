@@ -1,4 +1,7 @@
-.TH LDAP_URL 3  "28 March 1996" "U-M LDAP LDVERSION"
+.TH LDAP_URL 3 "22 September 1998" "OpenLDAP LDVERSION"
+.\" $OpenLDAP$
+.\" Copyright 1998-2000 The OpenLDAP Foundation All Rights Reserved.
+.\" Copying restrictions apply.  See COPYRIGHT/LICENSE.
 .SH NAME
 ldap_is_ldap_url,
 ldap_url_parse,
@@ -9,7 +12,6 @@ ldap_url_search_st \- LDAP Uniform Resource Locator routines
 .SH SYNOPSIS
 .nf
 .ft B
-#include <lber.h>
 #include <ldap.h>
 .ft
 .LP
@@ -71,10 +73,10 @@ LDAP URLs look like this:
 
 where:
   \fIhostport\fP is a host name with an optional ":portnumber"
-  \fIdn\f is the base DN to be used for an LDAP search operation
+  \fIdn\fP is the base DN to be used for an LDAP search operation
   \fIattributes\fP is a comma separated list of attributes to be retrieved
   \fIscope\fP is one of these three strings:  base one sub (default=base)
-  \fIfilter\f is LDAP search filter as used in a call to ldap_search(3)
+  \fIfilter\fP is LDAP search filter as used in a call to ldap_search(3)
 
 e.g.,  ldap://ldap.itd.umich.edu/c=US?o,description?one?o=umich
 .fi
@@ -134,3 +136,8 @@ Currently available at this URL:
 .nf
 ftp://ds.internic.net/internet-drafts/draft-ietf-asid-ldap-format-03.txt
 .fi
+.SH ACKNOWLEDGEMENTS
+.B	OpenLDAP
+is developed and maintained by The OpenLDAP Project (http://www.openldap.org/).
+.B	OpenLDAP
+is derived from University of Michigan LDAP 3.3 Release.  

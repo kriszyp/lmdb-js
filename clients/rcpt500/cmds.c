@@ -12,7 +12,7 @@
 #include <ac/stdlib.h>
 #include "rcpt500.h"
 
-struct command cmds[] = {
+struct command rcpt_cmds[] = {
 	"help",		help_cmd,	/* help must be the first command */
 	"query for",	query_cmd,	/* must come before "query for" */
 	"query",	query_cmd,

@@ -1,7 +1,7 @@
 # $OpenLDAP$
-## Copyright 1998 The OpenLDAP Foundation, All Rights Reserved.
+## Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
 ## COPYING RESTRICTIONS APPLY, See COPYRIGHT file
 ##
 ## Clients Makefile.in for OpenLDAP
 
-SUBDIRS= tools ud finger gopher mail500 fax500 rcpt500
+SUBDIRS= tools ud finger gopher mail500 fax500 rcpt500 maildap

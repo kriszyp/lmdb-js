@@ -1,6 +1,6 @@
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 /*
@@ -21,6 +21,7 @@
 
 #include <ac/socket.h>
 
+#include "ldap_pvt.h"
 #include "slap.h"
 
 int
@@ -29,20 +30,19 @@ do_compare(
     Operation	*op
 )
 {
-	char	*ndn;
-	Ava	ava;
+	char	*dn = NULL, *ndn=NULL;
+	struct berval desc;
+	struct berval value;
+	struct berval *nvalue;
+	AttributeAssertion ava;
 	Backend	*be;
 	int rc = LDAP_SUCCESS;
+	const char *text = NULL;
+
+	desc.bv_val = NULL;
+	value.bv_val = NULL;
 
 	Debug( LDAP_DEBUG_TRACE, "do_compare\n", 0, 0, 0 );
-
-	if( op->o_bind_in_progress ) {
-		Debug( LDAP_DEBUG_ANY, "do_compare: SASL bind in progress.\n",
-			0, 0, 0 );
-		send_ldap_result( conn, op, LDAP_SASL_BIND_IN_PROGRESS,
-			NULL, "SASL bind in progress", NULL, NULL );
-		return LDAP_SASL_BIND_IN_PROGRESS;
-	}
 
 	/*
 	 * Parse the compare request.  It looks like this:
@@ -56,37 +56,75 @@ do_compare(
 	 *	}
 	 */
 
-	if ( ber_scanf( op->o_ber, "{a{ao}}", &ndn, &ava.ava_type,
-	    &ava.ava_value ) == LBER_ERROR ) {
+	if ( ber_scanf( op->o_ber, "{a" /*}*/, &dn ) == LBER_ERROR ) {
 		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
 		send_ldap_disconnect( conn, op,
 			LDAP_PROTOCOL_ERROR, "decoding error" );
-		return -1;
+		return SLAPD_DISCONNECT;
 	}
 
-	if( dn_normalize_case( ndn ) == NULL ) {
-		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", ndn, 0, 0 );
-		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
-		    "invalid DN", NULL, NULL );
-		free( ndn );
-		ava_free( &ava, 0 );
-		return rc;
+	if ( ber_scanf( op->o_ber, "{oo}", &desc, &value ) == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_ANY, "do_compare: get ava failed\n", 0, 0, 0 );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = SLAPD_DISCONNECT;
+		goto cleanup;
+	}
+
+	if ( ber_scanf( op->o_ber, /*{*/ "}" ) == LBER_ERROR ) {
+		Debug( LDAP_DEBUG_ANY, "ber_scanf failed\n", 0, 0, 0 );
+		send_ldap_disconnect( conn, op,
+			LDAP_PROTOCOL_ERROR, "decoding error" );
+		rc = SLAPD_DISCONNECT;
+		goto cleanup;
 	}
 
 	if( ( rc = get_ctrls( conn, op, 1 )) != LDAP_SUCCESS ) {
-		free( ndn );
-		ava_free( &ava, 0 );
 		Debug( LDAP_DEBUG_ANY, "do_compare: get_ctrls failed\n", 0, 0, 0 );
-		return rc;
+		goto cleanup;
 	} 
 
-	value_normalize( ava.ava_value.bv_val, attr_syntax( ava.ava_type ) );
+	ndn = ch_strdup( dn );
+
+	if( dn_normalize( ndn ) == NULL ) {
+		Debug( LDAP_DEBUG_ANY, "do_compare: invalid dn (%s)\n", dn, 0, 0 );
+		send_ldap_result( conn, op, rc = LDAP_INVALID_DN_SYNTAX, NULL,
+		    "invalid DN", NULL, NULL );
+		goto cleanup;
+	}
+
+	ava.aa_desc = NULL;
+	rc = slap_bv2ad( &desc, &ava.aa_desc, &text );
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc, NULL,
+		    text, NULL, NULL );
+		goto cleanup;
+	}
+
+	if( !ava.aa_desc->ad_type->sat_equality ) {
+		/* no equality matching rule */
+		send_ldap_result( conn, op, rc = LDAP_INAPPROPRIATE_MATCHING, NULL,
+		    "no equality matching rule defined", NULL, NULL );
+		goto cleanup;
+	}
+
+	rc = value_normalize( ava.aa_desc, SLAP_MR_EQUALITY, &value, &nvalue, &text );
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc, NULL,
+		    text, NULL, NULL );
+		goto cleanup;
+	}
+
+	ava.aa_value = nvalue;
 
 	Debug( LDAP_DEBUG_ARGS, "do_compare: dn (%s) attr (%s) value (%s)\n",
-	    ndn, ava.ava_type, ava.ava_value.bv_val );
+	    dn, ava.aa_desc->ad_cname->bv_val, ava.aa_value->bv_val );
 
 	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d CMP dn=\"%s\" attr=\"%s\"\n",
-	    op->o_connid, op->o_opid, ndn, ava.ava_type, 0 );
+	    op->o_connid, op->o_opid, dn, ava.aa_desc->ad_cname->bv_val, 0 );
+
+
 
 	/*
 	 * We could be serving multiple database backends.  Select the
@@ -94,26 +132,39 @@ do_compare(
 	 * if we don't hold it.
 	 */
 	if ( (be = select_backend( ndn )) == NULL ) {
-		free( ndn );
-		ava_free( &ava, 0 );
-
 		send_ldap_result( conn, op, rc = LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
-		return 1;
+		rc = 1;
+		goto cleanup;
+	}
+
+	/* make sure this backend recongizes critical controls */
+	rc = backend_check_controls( be, conn, op, &text ) ;
+
+	if( rc != LDAP_SUCCESS ) {
+		send_ldap_result( conn, op, rc,
+			NULL, text, NULL, NULL );
+		goto cleanup;
 	}
 
 	/* deref suffix alias if appropriate */
 	ndn = suffix_alias( be, ndn );
 
 	if ( be->be_compare ) {
-		(*be->be_compare)( be, conn, op, ndn, &ava );
+		(*be->be_compare)( be, conn, op, dn, ndn, &ava );
 	} else {
 		send_ldap_result( conn, op, rc = LDAP_UNWILLING_TO_PERFORM,
-			NULL, "Function not implemented", NULL, NULL );
+			NULL, "operation not supported within namingContext", NULL, NULL );
 	}
 
+cleanup:
+	free( dn );
 	free( ndn );
-	ava_free( &ava, 0 );
+	free( desc.bv_val );
+	free( value.bv_val );
+	if( ava.aa_desc != NULL ) {
+		ad_free( ava.aa_desc, 1 );
+	}
 
 	return rc;
 }

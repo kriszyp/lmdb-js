@@ -1,0 +1,205 @@
+INTERNET-DRAFT                                         Michael P. Armijo
+<draft-ietf-ldapext-locate-02.txt>                          Levon Esibov
+April, 2000                                                   Paul Leach
+Expires: October, 2000                             Microsoft Corporation
+							     R.L. Morgan
+						University of Washington
+
+                Discovering LDAP Services with DNS
+
+Status of this Memo
+
+   This document is an Internet-Draft and is in full conformance with
+   all provisions of Section 10 of RFC2026.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF), its areas, and its working groups.  Note that
+   other groups may also distribute working documents as Internet-
+   Drafts.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet- Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   The list of current Internet-Drafts can be accessed at
+   http://www.ietf.org/ietf/1id-abstracts.txt
+
+   The list of Internet-Draft Shadow Directories can be accessed at
+   http://www.ietf.org/shadow.html.
+
+   Distribution of this memo is unlimited.  It is filed as <draft-
+   ietf-ldapext-locate-02.txt>, and expires on October 15, 2000.  
+   Please send comments to the authors.
+
+
+1. Abstract
+
+   A Lightweight Directory Access Protocol (LDAP) request must be
+   directed to an appropriate server for processing.  This document
+   specifies a method for discovering such servers using information in
+   the Domain Name System. 
+
+
+2. Introduction
+
+   The LDAPv3 protocol [1] is designed to be a lightweight access
+   protocol for directory services supporting X.500 models.  As a
+   distributed directory service, the complete set of directory
+   information (known as the Directory Information Base) is spread
+   across many different servers.  Hence there is the need to
+   determine, when initiating or processing a request, which servers
+   hold the relevant information.  In LDAP, the Search, Modify, Add,
+   Delete, ModifyDN, and Compare operations all specify a Distinguished
+   Name (DN) [2] on which the operation is performed.  A client, or a
+   server acting on behalf of a client, must be able to determine the
+   server(s) that hold the naming context containing that DN, since
+   that server (or one of that set of servers) must receive and process
+   the request.  This determination process is called "server
+   location".  To support dynamic distributed operation, the
+   information needed to support server location must be available via
+   lookups done at request processing time, rather than, for example,
+   as static data configured into each client or server.
+
+   It is possible to maintain the information needed to support server
+   location in the directory itself, and X.500 directory deployments
+   typically do so.  In practice, however, this only permits location
+   of servers within a limited X.500-connected set.  LDAP-specific
+   methods of maintaining server location information in the directory
+   have not yet been standardized.  This document defines an
+   alternative method of managing server location information using the
+   Domain Name System. This method takes advantage of the global
+   deployment of the DNS, by allowing LDAP server location information
+   for any existing DNS domain to be published by creating the records
+   described below.  A full discussion of the benefits and drawbacks of
+   the various directory location and naming methods is beyond the
+   scope of this document.
+
+   RFC 2247[3] defines an algorithm for mapping DNS domain names into
+   DNs.  This document defines the inverse mapping, from DNs to DNS
+   domain names, based on the conventions in [3], for use in this
+   server location method.  The server location method described in
+   this document is only defined for DNs that can be so mapped, i.e.,
+   those DNs that are based on domain names.  In practice this is
+   reasonable because many objects of interest are named with domain
+   names, and use of domain-name-based DNs is becoming common.
+
+
+3. Mapping Distinguished Names into Domain Names
+
+   This section defines a method of converting a DN into a DNS domain
+   name for use in the server location method described below.  Some
+   DNs cannot be converted into a domain name.
+
+   The output domain name is initially empty.  For each RDN component
+   of the DN, beginning with the first, if the attribute type is "DC",
+   then the attribute value is used as a domain name component (label).
+   The first such value becomes the most significant (i.e., rightmost)
+   domain name component, and successive values occupy less significant
+   positions (i.e., extending leftward), in order.  If the attribute
+   type is not "DC", then processing stops.  If the first RDN component
+   of the DN is not of type "DC" then the DN cannot be converted to a
+   domain name.
+
+
+4. Locating LDAP servers through DNS
+
+   LDAP server location information is to be stored using DNS Service
+   Location Record (SRV)[5].  The data in a SRV record contains the DNS
+   name of the server that provides the LDAP service, corresponding
+   Port number, and parameters that enable the client to choose an
+   appropriate server from multiple servers according to the algorithm
+   described in [5].  The name of this record has the following format:
+
+      _<Service>._<Proto>.<Domain>
+
+   where <Service> is always "ldap", and <Proto> is a protocol that can
+   be either "udp" or "tcp".  <Domain> is the domain name formed by
+   converting the DN of a naming context mastered by the LDAP Server
+   into a domain name using the algorithm in Section 2.  Note that
+   "ldap" is the symbolic name for the LDAP service in Assigned
+   Numbers[6], as required by [5].
+
+   Presence of such records enables clients to find the LDAP servers
+   using standard DNS query [4].  A client (or server) seeking an LDAP
+   server for a particular DN converts that DN to a domain name using
+   the algorithm of Section 2, does a SRV record query using the DNS
+   name formed as described in the preceding paragraph, and interprets
+   the response as described in [5] to determine a host (or hosts) to
+   contact. As an example, a client that searches for an LDAP server
+   for the DN "ou=foo,dc=example,dc=net" that supports the TCP protocol
+   will submit a DNS query for a set of SRV records with owner name:
+
+      _ldap._tcp.example.net.
+
+   The client will receive the list of SRV records published in DNS
+   that satisfy the requested criteria.  The following is an example of
+   such a record:
+
+      _ldap._tcp.example.net.   IN	  SRV  0 0 389 phoenix.example.net.
+
+   The set of returned records may contain multiple records in the case
+   where multiple LDAP servers serve the same domain.
+
+
+
+5. Security Considerations
+
+   This document describes a method that uses DNS SRV records to 
+   discover LDAP servers.  All security considerations related to DNS
+   SRV records are inherited by this document.  See the security 
+   considerations section in [6] for more details.
+
+
+6. References
+
+   [1]  Wahl, M., Howes, T. and S. Kille, "Lightweight Directory Access
+        Protocol(v3)", RFC 2251, December 1997.
+
+   [2]  Wahl, M., Kille, S. and T. Howes, "Lightweight Directory Access
+        Protocol (v3):  UTF-8 String Representation of Distinguished
+        Names", RFC 2253, December 1997.
+
+   [3]  Kille, S. and M. Wahl, "Using Domains in LDAP/X.500
+        Distinguished Names", RFC 2247, January 1998.
+
+   [4]  Mockapetris, P., "DOMAIN NAMES - CONCEPTS AND FACILITIES", RFC
+        1034, STD 13, November 1987.
+
+   [5]  Gulbrandsen, A., Vixie, P. and L. Esibov, "A DNS RR for
+        specifying the location of services (DNS SRV)", RFC 2782,
+        February 2000.
+
+   [6]  Reynolds, J. and J. Postel, "Assigned Numbers", STD 2, RFC
+        1700, October 1994.
+
+
+6. Authors' Addresses
+
+   Michael P. Armijo
+   One Microsoft Way
+   Redmond, WA 98052
+   micharm@microsoft.com
+
+   Paul Leach
+   One Microsoft Way
+   Redmond, WA 98052
+   paulle@microsoft.com
+
+   Levon Esibov
+   One Microsoft Way
+   Redmond, WA 98052
+   levone@microsoft.com
+
+   RL "Bob" Morgan
+   University of Washington
+   4545 15th Ave NE
+   Seattle, WA  98105
+   US
+
+   Phone: +1 206 221 3307
+   EMail: rlmorgan@washington.edu
+   URI:   http://staff.washington.edu/rlmorgan/
+
+   Expires October, 2000
+

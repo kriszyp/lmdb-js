@@ -1,6 +1,8 @@
 # $OpenLDAP$
+## Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 #-----------------------------------------------------------------------------
-# Copyright (c) 1995 Regents of the University of Michigan.
+# Portions Copyright (c) 1995 Regents of the University of Michigan.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms are permitted
@@ -14,7 +16,6 @@
 #
 #-----------------------------------------------------------------------------
 BUILD_LDBM = @BUILD_LDBM@
-BUILD_BDB2 = @BUILD_BDB2@
 BUILD_QUIPU = @BUILD_QUIPU@
 
 LDAP_INCDIR= ../../../include       
@@ -25,37 +26,45 @@ SLAPD_MODULES = @SLAPD_MODULES_LIST@
 XDEFS = $(MODULES_CPPFLAGS)
 XLDFLAGS = $(MODULES_LDFLAGS) $(SLAPD_MODULES)
 
-XLIBS = -lavl -lldif -lldbm -lldap_r -llber -llutil
-XXLIBS = $(LDAPD_LIBS) $(SLAPD_LIBS) \
-	$(PERL_LDFLAGS) $(LDBM_LIBS) $(SECURITY_LIBS) \
+XLIBS = -lavl -lldif -lldbm -llutil -lldap_r -llber
+XXLIBS = $(QUIPU_LIBS) $(SLAPD_LIBS) \
+	$(LDBM_LIBS) $(SECURITY_LIBS) \
 	$(LDIF_LIBS) $(LUTIL_LIBS)
 XXXLIBS = $(LTHREAD_LIBS) $(MODULES_LIBS)
 
-PROGRAMS=ldif slapadd slapcat slapindex
+PROGRAMS=ldif slappasswd slapadd slapcat slapindex
 LDBMPROGRAMS=centipede sizecount
-BDB2PROGRAMS=
 QUIPUPROGRAMS=chlog2replog edb2ldif
 
-SRCS = ldif.c mimic.c slapcommon.c
+# CPPFLAGS will include the defines for dynamic libs in Mingw32.
+NT_DYN_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_DEFS)
+
+SRCS = ldif.c mimic.c slapcommon.c slapadd.c slapcat.c slapindex.c
 
 XSRCS = edb2-vers.c
 
-LDBMSRCS = centipede.c sizecount.c
-
-BDB2SRCS =
+# LDBMSRCS = centipede.c sizecount.c
+LDBMSRCS =
 
 QUIPUSRCS	= edb2ldif.c ldapsyntax.c chlog2replog.c
 SLAPD_OBJS = ../config.o ../ch_malloc.o ../backend.o ../charray.o \
-		../module.o ../aclparse.o ../schema.o ../filterentry.o \
+		../module.o ../aclparse.o ../filterentry.o \
+		../schema.o ../schema_check.o ../schema_init.o ../schema_prep.o \
+		../schemaparse.o ../ad.o ../at.o ../mr.o ../oc.o ../syntax.o \
 		../acl.o ../phonetic.o ../attr.o ../value.o ../entry.o \
 		../dn.o ../filter.o ../str2filter.o ../ava.o ../init.o \
-		../controls.o ../schemaparse.o
-SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o 
+		../controls.o ../kerberos.o ../passwd.o ../index.o \
+		../extended.o ../starttls.o
+
+SLAPOBJS = $(SLAPD_OBJS) slapcommon.o mimic.o
 
 EDB2LDIFSRCS    = edb2ldif.c ldapsyntax.c
 EDB2LDIFOBJS    = edb2ldif.o ldapsyntax.o
 
-all-local: build-progs build-ldbm build-bdb2 build-quipu
+UNIX_PRGS = build-ldbm build-quipu
+
+all-local: build-progs $(@PLAT@_PRGS)
 
 build-progs: $(PROGRAMS)
 
@@ -64,12 +73,6 @@ ldbm-tools-no:
 	@echo "run configure with --enable-ldbm to build LDBM tools"
 
 ldbm-tools-yes ldbm-tools-mod: $(LDBMPROGRAMS)
-
-build-bdb2: bdb2-tools-$(BUILD_BDB2)
-bdb2-tools-no:
-	@echo "run configure with --enable-bdb2 to build BDB2 tools"
-
-bdb2-tools-yes bdb2-tools-mod: $(BDB2PROGRAMS)
 
 build-quipu: quipu-tools-$(BUILD_QUIPU)
 quipu-tools-no:
@@ -92,18 +95,17 @@ slapindex:	slapindex.o ../libbackends.a $(SLAPOBJS) $(SLAPD_LIBDEPEND)
 ldif:		ldif.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ ldif.o $(LIBS)
 
+slappasswd:		slappasswd.o $(SLAPD_LIBDEPEND) 
+	$(LTLINK) -o $@ slappasswd.o $(LIBS)
+
 #
 # LDBM Specific Tools
-#
+#	(deprecated)
 centipede:	centipede.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ centipede.o $(LIBS)
 
 sizecount:	sizecount.o ../phonetic.o ../ch_malloc.o $(SLAPD_LIBDEPEND) 
 	$(LTLINK) -o $@ sizecount.o ../phonetic.o ../ch_malloc.o $(LIBS)
-
-#
-# BDBM Specific Tools
-#
 
 #
 # QUIPU Specific Tools
@@ -119,40 +121,34 @@ chlog2replog: chlog2replog.o ../lock.o ../ch_malloc.o $(SLAPD_LIBDEPEND)
 	$(LTLINK) -o $@ chlog2replog.o ../lock.o ../ch_malloc.o $(LIBS)
 
 clean-local: FORCE
-	$(RM) $(PROGRAMS) $(LDBMPROGRAMS) $(BDB2PROGRAMS) $(QUIPUPROGRAMS) \
-		$(XPROGRAMS) $(XSRCS) *.o core .libs/*
+	$(RM) $(PROGRAMS) $(LDBMPROGRAMS) $(QUIPUPROGRAMS) \
+		$(XPROGRAMS) $(XSRCS) *.o core .libs/* *.exe
 
 depend-local: FORCE
-	@DEPEND_LDBM= ; DEPEND_BDB2= ; DEPEND_QUIPU= ; \
+	DEPEND_LDBM= ; DEPEND_QUIPU= ; \
 	if [ "$(BUILD_LDBM)" != "no" ]; then \
 		DEPEND_LDBM="$(LDBMSRCS)"; \
-	fi; \
-	if [ "$(BUILD_BDB2)" != "no" ]; then \
-		DEPEND_BDB2="$(BDBMSRCS)"; \
 	fi; \
 	if [ "$(BUILD_QUIPU)" != "no" ]; then \
 		DEPEND_QUIPU="$(QUIPUINCLUDEFLAG) $(QUIPUSRCS)"; \
 	fi; \
-	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $$DEPEND_QUIPU \
-			$$DEPEND_LDBM $$DEPEND_BDB2
+	$(MKDEP) $(DEFS) $(DEFINES) $(SRCS) $$DEPEND_QUIPU $$DEPEND_LDBM
 
-install-local: install-ldbm-$(BUILD_LDBM) install-bdb2-$(BUILD_BDB2) \
+install-local: install-ldbm-$(BUILD_LDBM) \
 	 install-quipu-$(BUILD_QUIPU)
 
-install-ldbm-no install-bdb2-no install-quipu-no:
+install-ldbm-no install-quipu-no:
 
 install-ldbm-yes install-ldbm-mod: FORCE
-	@-$(MKDIR) $(sbindir) 
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapadd $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapcat $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 slapindex $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 ldif $(sbindir)	; \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 centipede $(sbindir)
-
-install-bdb2-yes install-bdb2-mod: FORCE
-	@-$(MKDIR) $(sbindir) 
+	-$(MKDIR) $(DESTDIR)$(sbindir) 
+	@for bin in $(PROGRAMS); do \
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+			$$bin$(EXEEXT) $(DESTDIR)$(sbindir); \
+	done
 
 install-quipu-yes: FORCE
-	@-$(MKDIR) $(sbindir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 edb2ldif $(sbindir); \
-	$(LTINSTALL) $(INSTALLFLAGS) -m 755 chlog2replog $(sbindir)
+	@-$(MKDIR) $(DESTDIR)$(sbindir)
+	for bin in edb2ldif chlog2replog; do \
+		$(LTINSTALL) $(INSTALLFLAGS) -s -m 755 \
+			$$bin $(DESTDIR)$(sbindir); \
+	done

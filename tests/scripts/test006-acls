@@ -26,7 +26,7 @@ if test $RC != 0 ; then
 fi
 
 echo "Starting slapd on TCP/IP port $PORT..."
-$SLAPD -f $ACLCONF -p $PORT -d $LVL $TIMING > $MASTERLOG 2>&1 &
+$SLAPD -f $ACLCONF -h $MASTERURI -d $LVL $TIMING > $MASTERLOG 2>&1 &
 PID=$!
 
 echo "Testing slapd access control..."
@@ -108,9 +108,9 @@ dn: cn=ITD Staff, ou=Groups, o=University of Michigan, c=US
 # comment
 changetype: modify
 # comment
-add: telephonenumber
+add: ou
 # comment
-telephonenumber: +1 810 555 1212
+ou: Groups
 # comment
 EOMODS4
 
@@ -131,7 +131,7 @@ echo "Filtering ldapsearch results..."
 echo "Filtering original ldif used to create database..."
 . $SRCDIR/scripts/acfilter.sh < $LDIF > $LDIFFLT
 echo "Comparing filter output..."
-cmp $SEARCHFLT $LDIFFLT
+$CMP $SEARCHFLT $LDIFFLT
 
 if test $? != 0 ; then
 	echo "comparison failed - modify operations did not complete correctly"

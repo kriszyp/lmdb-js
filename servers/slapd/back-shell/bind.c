@@ -1,5 +1,9 @@
 /* bind.c - shell backend bind function */
 /* $OpenLDAP$ */
+/*
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 
 #include "portable.h"
 
@@ -16,9 +20,9 @@ shell_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    char		*dn,
+    const char		*dn,
+    const char		*ndn,
     int			method,
-	char		*mech,
     struct berval	*cred,
 	char		**edn
 )

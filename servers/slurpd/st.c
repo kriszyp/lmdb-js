@@ -63,7 +63,7 @@ St_add(
 
     st->st_data[ ind ]->hostname = strdup( ri->ri_hostname );
     st->st_data[ ind ]->port = ri->ri_port;
-    memset( st->st_data[ ind ]->last, 0, sizeof( st->st_data[ ind ]->last )); 
+    memset( st->st_data[ ind ]->last, '\0', sizeof( st->st_data[ ind ]->last )); 
     st->st_data[ ind ]->seq = 0;
 
     ldap_pvt_thread_mutex_unlock( &(st->st_mutex ));

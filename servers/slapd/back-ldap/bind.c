@@ -37,9 +37,9 @@ ldap_back_bind(
     Backend		*be,
     Connection		*conn,
     Operation		*op,
-    char		*dn,
+    const char		*dn,
+    const char		*ndn,
     int			method,
-	char		*mech,
     struct berval	*cred,
 	char		**edn
 )
@@ -74,9 +74,8 @@ ldap_back_getconn(struct ldapinfo *li, Connection *conn, Operation *op)
 
 	/* Looks like we didn't get a bind. Open a new session... */
 	if (!lc) {
-		ld = ldap_init(li->host, li->port);
-		if (!ld) {
-			send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR,
+		if (ldap_initialize(&ld, li->url) != LDAP_SUCCESS) {
+			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "ldap_init failed", NULL, NULL );
 			return( NULL );
 		}

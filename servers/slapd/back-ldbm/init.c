@@ -1,7 +1,7 @@
 /* init.c - initialize ldbm backend */
 /* $OpenLDAP$ */
 /*
- * Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+ * Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
  * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
  */
 
@@ -20,7 +20,7 @@
 int back_ldbm_LTX_init_module(int argc, char *argv[]) {
     BackendInfo bi;
 
-    memset( &bi, 0, sizeof(bi) );
+    memset( &bi, '\0', sizeof(bi) );
     bi.bi_type = "ldbm";
     bi.bi_init = ldbm_back_initialize;
 
@@ -35,6 +35,13 @@ ldbm_back_initialize(
     BackendInfo	*bi
 )
 {
+	static char *controls[] = {
+		LDAP_CONTROL_MANAGEDSAIT,
+		NULL
+	};
+
+	bi->bi_controls = controls;
+
 	bi->bi_open = ldbm_back_open;
 	bi->bi_config = 0;
 	bi->bi_close = ldbm_back_close;
@@ -56,6 +63,8 @@ ldbm_back_initialize(
 	bi->bi_op_delete = ldbm_back_delete;
 	bi->bi_op_abandon = ldbm_back_abandon;
 
+	bi->bi_extended = ldbm_back_extended;
+
 	bi->bi_entry_release_rw = ldbm_back_entry_release_rw;
 	bi->bi_acl_group = ldbm_back_group;
 
@@ -69,8 +78,13 @@ ldbm_back_initialize(
 	bi->bi_tool_entry_get = ldbm_tool_entry_get;
 	bi->bi_tool_entry_put = ldbm_tool_entry_put;
 	bi->bi_tool_index_attr = ldbm_tool_index_attr;
-	bi->bi_tool_index_change = ldbm_tool_index_change;
 	bi->bi_tool_sync = ldbm_tool_sync;
+
+#ifdef HAVE_CYRUS_SASL
+	bi->bi_sasl_authorize = 0;
+	bi->bi_sasl_getsecret = 0;
+	bi->bi_sasl_putsecret = 0;
+#endif /* HAVE_CYRUS_SASL */
 
 	bi->bi_connection_init = 0;
 	bi->bi_connection_destroy = 0;
@@ -116,7 +130,6 @@ ldbm_back_db_init(
 )
 {
 	struct ldbminfo	*li;
-	char		*argv[ 4 ];
 
 	/* allocate backend-database-specific stuff */
 	li = (struct ldbminfo *) ch_calloc( 1, sizeof(struct ldbminfo) );
@@ -130,20 +143,17 @@ ldbm_back_db_init(
 	/* default database cache size */
 	li->li_dbcachesize = DEFAULT_DBCACHE_SIZE;
 
-	/* default cache mode is sync on write */
-	li->li_dbcachewsync = 1;
+	/* default db mode is with locking */ 
+	li->li_dblocking = 1;
+
+	/* default db mode is with write synchronization */ 
+	li->li_dbwritesync = 1;
 
 	/* default file creation mode */
 	li->li_mode = DEFAULT_MODE;
 
 	/* default database directory */
 	li->li_directory = ch_strdup( DEFAULT_DB_DIRECTORY );
-
-	argv[ 0 ] = "objectclass";
-	argv[ 1 ] = "pres,eq";
-	argv[ 2 ] = NULL;
-	attr_index_config( li, "ldbm objectclass initialization",
-		0, 2, argv, 1 );
 
 	/* initialize various mutex locks & condition variables */
 	ldap_pvt_thread_mutex_init( &li->li_root_mutex );

@@ -1,8 +1,8 @@
 INTERNET-DRAFT
-draft-ietf-ldup-subentry-00.txt
+draft-ietf-ldup-subentry-01.txt
                                                                Ed Reed
                                                           Novell, Inc.
-                                                       August 15, 1999
+                                                       August 29, 1999
 
                          LDAP Subentry Schema
 
@@ -27,14 +27,15 @@ http://www.ietf.org/ietf/1id-abstracts.txt.
 The list of Internet-Draft Shadow Directories can be accessed at
 http://www.ietf.org/shadow.html.
 
-This Internet-Draft expires on January 9, 1999.
+This Internet-Draft expires on February 29, 1999.
 
 
 2. Abstract
 
-This document describes an object class called lDAPsubEntry which MAY
+This document describes an object class called ldapSubEntry which MAY
 be used to indicate operations and management related entries in the
-directory, called LDAP Subentries.
+directory, called LDAP Subentries.  This version of this document is
+updated with an assigned OID for the ldapSubEntry object class.
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
 "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and  "OPTIONAL" in this
@@ -47,35 +48,34 @@ ones.
 
 
 
-
 Reed                                                         [Page 1]
-                       Expires January 15, 2000
+                      Expires February 29, 2000
 
 
-INTERNET-DRAFT                                         15 August 1999
+INTERNET-DRAFT                                         29 August 1999
                          LDAP Subentry Schema
 
 3. Definition
 
 
-3.1 LDAPsubEntry Class
+3.1 ldapSubEntry Class
 
-( 1.3.6.1.4.1.1466.115.121.1.?? NAME 'LDAPsubEntry'
-   DESC 'LDAP Subentry class, named by cn'
+( 2.16.840.1.113719.2.142.6.1.1 NAME 'ldapSubEntry'
+   DESC 'LDAP Subentry class, version 1'
      SUP top STRUCTURAL
      MUST ( cn ) )
 
-The class lDAPsubEntry is intended to be used as a super class when
+The class ldapSubEntry is intended to be used as a super class when
 defining other structural classes to be used as LDAP Subentries.  The
-presence of lDAPsubEntry in the list of super-classes of an entry in
+presence of ldapSubEntry in the list of super-classes of an entry in
 the directory makes that entry an LDAP Subentry.  Object classes
-derived from lDAPsubEntry are themselves considered lDAPsubEntry
+derived from ldapSubEntry are themselves considered ldapSubEntry
 classes, for the purpose of this discussion.
 
 LDAP Subentries MAY be named by their commonName attribute [LDAPv3].
 Other naming attributes are also permitted.
 
-LDAP Subentries MAY be containers, unlike their [X.500] counterparts.
+LDAP Subentries MAY be containers, unlike their [X.501] counterparts.
 
 LDAP Subentries MAY be contained by, and will usually be located in
 the directory information tree immediately subordinate to,
@@ -90,11 +90,31 @@ same way that "operational attributes" are not regularly provided in
 search results and read operations when only user attributes are
 requested).
 
-NOTE:  No special treatment of LDAP Subentries by applications is
-required, but it might be worth considering creating an LDAPv3 control
-to indicate when LDAP Subentries are desired to be returned (subject
-to access controls and search filters, of course) for LDAP search
+LDAP servers SHOULD implement the following special handling of
+ldapSubEntry entries:
+
+a) search operations which include a matching criteria
+"objectclass=ldapSubEntry" MUST include entries derived from the
+ldapSubEntry class in the scope of their operations;
+
+b) search operations which do not include a matching criteria
+"objectclass=ldapSubEntry" MUST IGNORE entries derived from the
+ldapSubEntry class, and exclude them from the scope of their
 operations.
+
+
+
+Reed                                                         [Page 2]
+                      Expires February 29, 2000
+
+
+INTERNET-DRAFT                                         29 August 1999
+                         LDAP Subentry Schema
+
+The combination of SHOULD and MUST in the special handling
+instructions, above, are meant to convey this:  Servers SHOULD support
+this special handling, and if they do they MUST do it as described,
+and not some other way.
 
 
 
@@ -103,14 +123,6 @@ operations.
 LDAP Subentries will frequently be used to hold data which reflects
 either the actual or intended behavior of the directory service.  As
 such, permission to read such entries MAY need to be restricted to
-
-Reed                                                         [Page 2]
-                       Expires January 15, 2000
-
-
-INTERNET-DRAFT                                         15 August 1999
-                         LDAP Subentry Schema
-
 authorized users.  More importantly, IF a directory service treats the
 information in an LDAP Subentry as the authoritative source of policy
 to be used to control the behavior of the directory, then permission
@@ -124,10 +136,10 @@ to authorized administrators.
 [LDUPINFO] _ E. Reed, "LDUP Replication Information Model", draft-
 ietf-ldup-infomod-01.txt
 
-[LDAPv3] Kille, S., Wahl, M., and T. Howes, "Lightweight Directory
+[LDAPv3] S. Kille, M. Wahl, and T. Howes, "Lightweight Directory
 Access Protocol (v3)", RFC 2251, December 1997
 
-[X.500] ITU-T Rec. X.501, "The Directory: Models", 1993
+[X.501] ITU-T Rec. X.501, "The Directory: Models", 1993
 
 
 
@@ -148,6 +160,14 @@ Internet standards in which case the procedures for copyrights defined
 in the Internet Standards process must be followed, or as required to
 translate it into languages other than English.
 
+Reed                                                         [Page 3]
+                      Expires February 29, 2000
+
+
+INTERNET-DRAFT                                         29 August 1999
+                         LDAP Subentry Schema
+
+
 The limited permissions granted above are perpetual and will not be
 revoked by the Internet Society or its successors or assigns.
 
@@ -158,14 +178,6 @@ NOT LIMITED TO ANY WARRANTY THAT THE USE OF THE INFORMATION HEREIN
 WILL NOT INFRINGE ANY RIGHTS OR ANY IMPLIED WARRANTIES OF
 MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE."
 
-
-
-Reed                                                         [Page 3]
-                       Expires January 15, 2000
-
-
-INTERNET-DRAFT                                         15 August 1999
-                         LDAP Subentry Schema
 
 7. Acknowledgements
 
@@ -203,6 +215,14 @@ Director.
      USA
      E-mail: Ed_Reed@Novell.com
 
+
+Reed                                                         [Page 4]
+                      Expires February 29, 2000
+
+
+INTERNET-DRAFT                                         29 August 1999
+                         LDAP Subentry Schema
+
      LDUP Mailing List: ietf-ldup@imc.org
 
 
@@ -216,5 +236,41 @@ Director.
 
 
 
-Reed                                                         [Page 4]
-                       Expires January 15, 2000
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reed                                                         [Page 5]
+                      Expires February 29, 2000

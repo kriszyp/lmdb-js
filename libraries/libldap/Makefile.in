@@ -1,5 +1,5 @@
 # $OpenLDAP$
-## Copyright 1998-1999 The OpenLDAP Foundation, All Rights Reserved.
+## Copyright 1998-2000 The OpenLDAP Foundation, All Rights Reserved.
 ## COPYING RESTRICTIONS APPLY, see COPYRIGHT file
 ##
 ## Makefile.in for LDAP -lldap
@@ -15,24 +15,44 @@ SRCS	= bind.c open.c result.c error.c compare.c search.c \
 	getfilter.c sasl.c sbind.c kbind.c unbind.c friendly.c cldap.c \
 	free.c disptmpl.c srchpref.c dsparse.c tmplout.c sort.c \
 	getdn.c getentry.c getattr.c getvalues.c addentry.c \
-	request.c getdxbyname.c os-ip.c url.c charset.c \
+	request.c os-ip.c url.c sortctrl.c vlvctrl.c \
 	init.c options.c print.c string.c util-int.c schema.c \
-	charray.c digest.c tls.c dn.c
+	charray.c tls.c dn.c os-local.c dnssrv.c \
+	utf-8.c
 OBJS	= bind.lo open.lo result.lo error.lo compare.lo search.lo \
 	controls.lo messages.lo references.lo extended.lo \
 	modify.lo add.lo modrdn.lo delete.lo abandon.lo ufn.lo cache.lo \
 	getfilter.lo sasl.lo sbind.lo kbind.lo unbind.lo friendly.lo cldap.lo \
 	free.lo disptmpl.lo srchpref.lo dsparse.lo tmplout.lo sort.lo \
 	getdn.lo getentry.lo getattr.lo getvalues.lo addentry.lo \
-	request.lo getdxbyname.lo os-ip.lo url.lo charset.lo \
+	request.lo os-ip.lo url.lo sortctrl.lo vlvctrl.lo \
 	init.lo options.lo print.lo string.lo util-int.lo schema.lo \
-	charray.lo digest.lo tls.lo dn.lo
+	charray.lo tls.lo dn.lo os-local.lo dnssrv.lo \
+	utf-8.lo
 
 LDAP_INCDIR= ../../include       
 LDAP_LIBDIR= ../../libraries
 
-XLIBS = -lldap -llber
+XLIBS = -lldap -llber -llutil
 XXLIBS = $(SECURITY_LIBS) $(TLS_LIBS)
+
+LINKAGE = @LT_LIB_LINKAGE@
+
+NT_DYN_LIB_LIBS  = -llber -llutil $(AC_LIBS)
+NT_DYN_LIB_DEFS  = -DLIBLBER_DECL=dllimport
+NT_DYN_TEST_DEFS = -DLIBLBER_DECL=dllimport -DLIBLDAP_DECL=dllimport
+
+NT_XXLIBS = $(SECURITY_LIBS)
+
+UNIX_DYN_LIB_LIBS  = -llber $(AC_LIBS)
+UNIX_XXLIBS = $(SECURITY_LIBS)
+
+# Extras for building the library
+EXTRA_DEFS = $(@PLAT@_@LIB_LINKAGE@_LIB_DEFS)
+EXTRA_LIBS = $(@PLAT@_@LIB_LINKAGE@_LIB_LIBS) $(@PLAT@_XXLIBS)
+
+# Only the test programs will pick up these defs.
+CPPFLAGS = $(@PLAT@_@LIB_LINKAGE@_TEST_DEFS)
 
 apitest:	$(LIBRARY) apitest.o $(LDAP_LIBLBER_DEPEND)
 	$(LTLINK) $(LDFLAGS) -o $@ apitest.o $(LIBS)
@@ -44,20 +64,20 @@ ttest:	$(LIBRARY) tmpltest.o $(LDAP_LIBLBER_DEPEND)
 CFFILES=ldap.conf ldapfilter.conf ldaptemplates.conf ldapsearchprefs.conf
 
 install-local: $(CFFILES) FORCE
-	-$(MKDIR) $(libdir)
-	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(libdir)
-	-$(MKDIR) $(sysconfdir)
+	-$(MKDIR) $(DESTDIR)$(libdir)
+	$(LTINSTALL) $(INSTALLFLAGS) -m 644 $(LIBRARY) $(DESTDIR)$(libdir)
+	-$(MKDIR) $(DESTDIR)$(sysconfdir)
 	@for i in $(CFFILES); do \
-		if test ! -f $(sysconfdir)/$$i; then \
+		if test ! -f $(DESTDIR)$(sysconfdir)/$$i; then \
 			echo "installing $$i in $(sysconfdir)"; \
-			echo "$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i"; \
-			$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i; \
+			echo "$(INSTALL) $(INSTALLFLAGS) -m 644  $(srcdir)/$$i $(DESTDIR)$(sysconfdir)/$$i"; \
+			$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(DESTDIR)$(sysconfdir)/$$i; \
 		else \
 			echo "PRESERVING EXISTING CONFIGURATION FILE $(sysconfdir)/$$i" ; \
 		fi; \
-		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(sysconfdir)/$$i.default; \
+		$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/$$i $(DESTDIR)$(sysconfdir)/$$i.default; \
 	done
-	-$(MKDIR) $(datadir)
-	-$(MV) $(datadir)/ldapfriendly $(datadir)/ldapfriendly-
-	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldapfriendly $(datadir)/ldapfriendly
+	-$(MKDIR) $(DESTDIR)$(datadir)
+	-$(MV) $(DESTDIR)$(datadir)/ldapfriendly $(DESTDIR)$(datadir)/ldapfriendly-
+	$(INSTALL) $(INSTALLFLAGS) -m 644 $(srcdir)/ldapfriendly $(DESTDIR)$(datadir)/ldapfriendly
 
