@@ -278,7 +278,7 @@ do_addel(
 		}
 
 		/* wait a second for the add to really complete */
-		/* sleep( 1 ); */
+		sleep( 1 );
 
 		/* now delete the entry again */
 		if ( ldap_delete_s( ld, entry ) != LDAP_SUCCESS ) {
