@@ -2302,7 +2302,8 @@ struct syntax_defs_rec syntax_defs[] = {
 
 	/* OpenLDAP Experimental Syntaxes */
 	{"( 1.3.6.1.4.1.4203.666.2.1 DESC 'OpenLDAP Experimental ACI' )",
-		0, IA5StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */, NULL, NULL},
+		0, IA5StringValidate /* THIS WILL CHANGE FOR NEW ACI SYNTAX */,
+		NULL, NULL},
 	{"( 1.3.6.1.4.1.4203.666.2.2 DESC 'OpenLDAP authPassword' )",
 		0, NULL, NULL, NULL},
 
