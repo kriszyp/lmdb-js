@@ -254,19 +254,83 @@ dnNormalize(
 	if ( val->bv_len != 0 ) {
 		LDAPDN		*dn = NULL;
 		char		*dn_out = NULL;
-		int		rc;
+		int		rc, iRDN;
 
 		rc = ldap_str2dn( val->bv_val, &dn, LDAP_DN_FORMAT_LDAPV3 );
 		if ( rc != LDAP_SUCCESS ) {
 			return( LDAP_INVALID_SYNTAX );
 		}
 
+#if 0
+		/*
+		 * Add schema-aware normalization stuff
+		 */
+		for ( iRDN = 0; dn[ iRDN ]; iRDN++ ) {
+			LDAPRDN		*rdn = dn[ iRDN ][ 0 ];
+			int		iAVA;
+
+			for ( iAVA = 0; rdn[ iAVA ]; iAVA++ ) {
+				LDAPAVA			*ava = rdn[ iAVA ][ 0 ];
+				AttributeDescription	*ad = NULL;
+				const char		*text = NULL;
+				slap_syntax_transform_func *nf = NULL;
+				struct berval		*bv = NULL;
+
+				rc = slap_bv2ad( ava->la_attr, &ad, &text );
+				if ( rc != LDAP_SUCCESS ) {
+					goto error_return;
+				}
+
+				/* 
+				 * FIXME: is this required? 
+				 */
+				if ( isalpha( ava->la_attr->bv_val[0] ) ) {
+					(void) ldap_pvt_str2upper( ava->la_attr->bv_val );
+				}
+				
+				/*
+				 * FIXME: What is this intended for?
+				 */
+				nf = ad->ad_type->sat_syntax->ssyn_normalize;
+				if ( !nf ) {
+					break;
+				}
+				
+				rc = ( *nf )( ad->ad_type->sat_syntax,
+					 ava->la_value, &bv );
+				
+				if ( rc != LDAP_SUCCESS ) {
+					goto error_return;
+				}
+
+				/*
+				 * FIXME: shouldn't this happen inside 
+				 * ssyn_normalize if the syntax is case 
+				 * insensitive?
+				 */
+				if ( !( ava->la_flags & LDAP_AVA_BINARY ) ) {
+					struct berval *s = bv;
+					
+					bv = ber_bvstr( UTF8normalize( bv, 
+							UTF8_CASEFOLD ) );
+					ber_bvfree( s );
+				}
+
+				ber_bvfree( ava->la_value );
+				ava->la_value = bv;
+			}
+		}
+#endif
+
 		rc = ldap_dn2str( dn, &dn_out, LDAP_DN_FORMAT_LDAPV3 );
-		ldapava_free_dn( dn );
 
 		if ( rc != LDAP_SUCCESS ) {
+error_return:;
+			ldapava_free_dn( dn );
 			return( LDAP_INVALID_SYNTAX );
 		}
+
+		ldapava_free_dn( dn );
 
 		out = ber_bvstr( dn_out );
 
