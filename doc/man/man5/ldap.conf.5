@@ -6,8 +6,7 @@
 .SH NAME
 ldap.conf, .ldaprc \- ldap configuration file
 .SH SYNOPSIS
-ETCDIR/ldap.conf
-\fP.ldaprc\fP
+ETCDIR/ldap.conf, .ldaprc
 .SH DESCRIPTION
 The
 .I ldap.conf
@@ -17,122 +16,208 @@ running
 clients.  If the environment variable \fBLDAPNOINIT\fP is defined, all
 defaulting is disabled.
 .LP
-Each user may specify an optional configuration file,
-.IR ldaprc
+Users may create an optional configuration file,
+.I ldaprc
 or
 .IR .ldaprc ,
-in his/her home directory which will be used to override the system-wide
+in their home directory which will be used to override the system-wide
 defaults file.
 The file
-.IR ldaprc
+.I ldaprc
 in the current working directory is also used.
 .LP
 Additional configuration files can be specified using
 the \fBLDAPCONF\fP and \fBLDAPRC\fP environment variables.
-\fBLDAPCONF\fP may be set the path of a configuration file.  This
-path can be absolute or relative to current working directory.
-The \fBLDAPRC\fP, if defined, should be a basename of a file
+\fBLDAPCONF\fP may be set to the path of a configuration file.  This
+path can be absolute or relative to the current working directory.
+The \fBLDAPRC\fP, if defined, should be the basename of a file
 in the current working directory or in the user's home directory.
 .LP
 Environmental variables may also be used to augment the file based defaults.
-The name of the option is the as listed but with a prefix of \fBLDAP\fP.
-For example, to define \fBBASE\fP via the environment, define the variable
-\fBLDAPBASE\fP to desired value.
+The name of the variable is the option name with an added prefix of \fBLDAP\fP.
+For example, to define \fBBASE\fP via the environment, set the variable
+\fBLDAPBASE\fP to the desired value.
 .LP
 Some options are user\-only.  Such options are ignored if present
 in the
-.IR ldap.conf
+.I ldap.conf
 (or file specified by
 .BR LDAPCONF ).
 .SH OPTIONS
 The different configuration options are:
-.TP 1i
-\fBBASE <base>\fP
-Used to specify the default base DN to use when performing ldap operations.
+.TP
+.B BASE <base>
+Specifies the default base DN to use when performing ldap operations.
 The base must be specified as a Distinguished Name in LDAP format.
-.TP 1i
-\fBBINDDN <dn>\fP
-Used to specify the default bind DN to use when performing ldap operations.
+.TP
+.B BINDDN <dn>
+Specifies the default bind DN to use when performing ldap operations.
 The bind DN must be specified as a Distinguished Name in LDAP format.
 This is a user\-only option.
-.TP 1i
-\fBHOST <name[:port] ...>\fP
-Used to specify the name(s) of an LDAP server(s) to which 
+.TP
+.B HOST <name[:port] ...>
+Specifies the name(s) of an LDAP server(s) to which the
 .I ldap 
-library should connect to.  Each server's name can be specified as a
-domain-style name or an IP address and optionally followed a ':' and
+library should connect.  Each server's name can be specified as a
+domain-style name or an IP address and optionally followed by a ':' and
 the port number the ldap server is listening on.  A space separated
-listed of host may be provided.
-.TP 1i
-\fBPORT <port>\fP
-Used to specify the port used with connecting to LDAP servers(s).
+list of hosts may be provided.
+.TP
+.B PORT <port>
+Specifies the default port used when connecting to LDAP servers(s).
 The port may be specified as a number.
-.TP 1i
-\fBSASL_SECPROPS <properties>\fP
-Used to specify Cyrus SASL security properties.
-The
+.TP
+.B SASL_SECPROPS <properties>
+Specifies Cyrus SASL security properties. The 
+.B <properties>
+can be specified as a comma-separated list of the following:
+.RS
+.TP
 .B none
-flag (without any other properities) causes the flag properites
+(without any other properties) causes the properties
 defaults ("noanonymous,noplain") to be cleared.
-The
+.TP
 .B noplain
-flag disables mechanisms susceptible to simple passive attacks.
-The
+disables mechanisms susceptible to simple passive attacks.
+.TP
 .B noactive
-flag disables mechanisms susceptible to active attacks.
-The
+disables mechanisms susceptible to active attacks.
+.TP
 .B nodict
-flag disables mechanisms susceptible to passive dictionary attacks.
-The
-.B noanonyous
-flag disables mechanisms which support anonymous login.
-The
+disables mechanisms susceptible to passive dictionary attacks.
+.TP
+.B noanonymous
+disables mechanisms which support anonymous login.
+.TP
 .B forwardsec
-flag require forward secrecy between sessions.
-The
+requires forward secrecy between sessions.
+.TP
 .B passcred
-require mechanisms which pass client credentials (and allow
+requires mechanisms which pass client credentials (and allows
 mechanisms which can pass credentials to do so).
-The
+.TP
 .B minssf=<factor> 
-property specifies the minimum acceptable
+specifies the minimum acceptable
 .I security strength factor
-as an integer approximate to effective key length used for
+as an integer approximating the effective key length used for
 encryption.  0 (zero) implies no protection, 1 implies integrity
 protection only, 56 allows DES or other weak ciphers, 112
 allows triple DES and other strong ciphers, 128 allows RC4,
 Blowfish and other modern strong ciphers.  The default is 0.
-The
+.TP
 .B maxssf=<factor> 
-property specifies the maximum acceptable
+specifies the maximum acceptable
 .I security strength factor
-as an integer (see minssf description).  The default is INT_MAX.
-The
+as an integer (see
+.B minssf
+description).  The default is
+.BR INT_MAX .
+.TP
 .B maxbufsize=<factor> 
-property specifies the maximum security layer receive buffer
+specifies the maximum security layer receive buffer
 size allowed.  0 disables security layers.  The default is 65536.
-.TP 1i
-\fBSIZELIMIT <integer>\fP
-Used to specify a size limit to use when performing searches.  The
-number should be an non-negative integer.  \fISIZELIMIT\fP of zero (0)
+.RE
+.TP
+.B SIZELIMIT <integer>
+Specifies a size limit to use when performing searches.  The
+number should be a non-negative integer.  \fISIZELIMIT\fP of zero (0)
 specifies unlimited search size.
-.TP 1i
-\fBTIMELIMIT <integer>\fP
-Used to specify a time limit to use when performing searches.  The
-number should be an non-negative integer.  \fITIMELIMIT\fP of zero (0)
+.TP
+.B TIMELIMIT <integer>
+Specifies a time limit to use when performing searches.  The
+number should be a non-negative integer.  \fITIMELIMIT\fP of zero (0)
 specifies unlimited search time to be used.
-.TP 1i
-\fBDEREF <never|searching|finding|always>\fP
-Specify how aliases dereferencing is done.  \fIDEREF\fP should
-be set to one of
-.B never,
-.B always,
-.B search,
-or 
-.B find 
-to specify that aliases are never dereferenced, always dereferenced,
-dereferenced when searching, or dereferenced only when locating the
-base object for the search.  The default is to never dereference aliases.
+.TP
+.B DEREF <when>
+Specifies how alias dereferencing is done when performing a search. The
+.B <when>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+Aliases are never dereferenced. This is the default.
+.TP
+.B searching
+Aliases are dereferenced in subordinates of the base object, but
+not in locating the base object of the search.
+.TP
+.B finding
+Aliases are only dereferenced when locating the base object of the search.
+.TP
+.B always
+Aliases are dereferenced both in searching and in locating the base object
+of the search.
+.SH TLS OPTIONS
+If OpenLDAP is built with support for Transport Layer Security, there
+are more options you can specify.
+.TP
+.B TLS <level>
+Specifies whether client connections should use TLS by default. The
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+This is the default. Connections will be opened in the clear unless
+TLS is explicitly specified (e.g. using an "ldaps://" URL.)
+.TP
+.B hard
+All connections will be established with TLS.
+Note that using this option effectively makes the library open every
+session as an ldaps session and is incompatible with the LDAPv3 StartTLS
+request.
+.RE
+.TP
+.B TLS_CACERT <filename>
+Specifies the file that contains certificates for all of the Certificate
+Authorities the client will recognize.
+.TP
+.B TLS_CACERTDIR <path>
+Specifies the path of a directory that contains Certificate Authority
+certificates in separate individual files. The
+.B TLS_CACERT is always
+used before
+.B TLS_CACERTDIR.
+.TP
+.B TLS_CERT <filename>
+Specifies the file that contains the client certificate.
+.TP
+.B TLS_KEY <filename>
+Specifies the file that contains the private key that matches the certificate
+stored in the
+.B TLS_CERT
+file. Currently, the private key must not be protected with a password, so
+it is of critical importance that the key file is protected carefully.
+.TP
+.B TLS_RANDFILE <filename>
+Specifies the file to obtain random bits from when /dev/[u]random is
+not available. Generally set to the name of the EGD/PRNGD socket.
+The environment variable RANDFILE can also be used to specify the filename.
+.TP
+.B TLS_REQCERT <level>
+Specifies what checks to perform on server certificates in a TLS session,
+if any. The
+.B <level>
+can be specified as one of the following keywords:
+.RS
+.TP
+.B never
+The client will not request or check any server certificate.
+.TP
+.B allow
+The server certificate is requested. If no certificate is provided,
+the session proceeds normally. If a bad certificate is provided, it will
+be ignored and the session proceeds normally.
+.TP
+.B try
+The server certificate is requested. If no certificate is provided,
+the session proceeds normally. If a bad certificate is provided,
+the session is immediately terminated.
+.TP
+.B demand | hard
+These keywords are equivalent. The server certificate is requested. If no
+certificate is provided, or a bad certificate is provided, the session
+is immediately terminated. This is the default setting.
 .SH "ENVIRONMENT VARIABLES"
 .TP
 LDAPNOINIT
