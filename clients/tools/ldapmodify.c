@@ -1,16 +1,24 @@
 /* ldapmodify.c - generic program to modify or add entries using LDAP */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <sys/types.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/socket.h>
+#include <ac/unistd.h>
+
 #include <sys/stat.h>
+
+#ifdef HAVE_SYS_FILE_H
 #include <sys/file.h>
+#endif
+#ifdef HAVE_FCNTL_H
 #include <fcntl.h>
-#ifndef VMS
-#include <unistd.h>
-#endif /* VMS */
+#endif
+
 #include <lber.h>
 #include <ldap.h>
 #include <ldif.h>
@@ -19,7 +27,7 @@
 
 static char	*prog;
 static char	*binddn = LDAPMODIFY_BINDDN;
-static char	*passwd = NULL;
+static char	*passwd = LDAPMODIFY_BIND_CRED;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	new, replace, not, verbose, contoper, force, valsfromfiles;
@@ -50,33 +58,20 @@ extern int ldap_debug, lber_debug;
 #define T_DELETEOLDRDNSTR	"deleteoldrdn"
 
 
-#ifdef NEEDPROTOS
-static int process_ldapmod_rec( char *rbuf );
-static int process_ldif_rec( char *rbuf );
-static void addmodifyop( LDAPMod ***pmodsp, int modop, char *attr,
-	char *value, int vlen );
-static int domodify( char *dn, LDAPMod **pmods, int newentry );
-static int dodelete( char *dn );
-static int domodrdn( char *dn, char *newrdn, int deleteoldrdn );
-static void freepmods( LDAPMod **pmods );
-static int fromfile( char *path, struct berval *bv );
-static char *read_one_record( FILE *fp );
-#else /* NEEDPROTOS */
-static int process_ldapmod_rec();
-static int process_ldif_rec();
-static void addmodifyop();
-static int domodify();
-static int dodelete();
-static int domodrdn();
-static void freepmods();
-static int fromfile();
-static char *read_one_record();
-#endif /* NEEDPROTOS */
+static int process_ldapmod_rec LDAP_P(( char *rbuf ));
+static int process_ldif_rec LDAP_P(( char *rbuf ));
+static void addmodifyop LDAP_P(( LDAPMod ***pmodsp, int modop, char *attr,
+	char *value, int vlen ));
+static int domodify LDAP_P(( char *dn, LDAPMod **pmods, int newentry ));
+static int dodelete LDAP_P(( char *dn ));
+static int domodrdn LDAP_P(( char *dn, char *newrdn, int deleteoldrdn ));
+static void freepmods LDAP_P(( LDAPMod **pmods ));
+static int fromfile LDAP_P(( char *path, struct berval *bv ));
+static char *read_one_record LDAP_P(( FILE *fp ));
 
 
-main( argc, argv )
-    int		argc;
-    char	**argv;
+int
+main( int argc, char **argv )
 {
     char		*infile, *rbuf, *start, *p, *q;
     FILE		*fp;
@@ -612,7 +607,7 @@ domodify( char *dn, LDAPMod **pmods, int newentry )
 		for ( j = 0; pmods[ i ]->mod_bvalues[ j ] != NULL; ++j ) {
 		    bvp = pmods[ i ]->mod_bvalues[ j ];
 		    notascii = 0;
-		    for ( k = 0; k < bvp->bv_len; ++k ) {
+		    for ( k = 0; (unsigned long) k < bvp->bv_len; ++k ) {
 			if ( !isascii( bvp->bv_val[ k ] )) {
 			    notascii = 1;
 			    break;
@@ -760,7 +755,7 @@ fromfile( char *path, struct berval *bv )
 	eof = feof( fp );
 	fclose( fp );
 
-	if ( rlen != bv->bv_len ) {
+	if ( (unsigned long) rlen != bv->bv_len ) {
 		perror( path );
 		free( bv->bv_val );
 		return( -1 );

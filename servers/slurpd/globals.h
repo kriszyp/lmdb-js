@@ -10,12 +10,16 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#ifndef SLURPD_GLOBALS_H
+#define SLURPD_GLOBALS_H 1
 
 /*
  * globals.h - definition of structure holding global data.
  */
 
 #include "slurp.h"
+
+LDAP_BEGIN_DECL
 
 typedef struct globals {
     /* Thread ID for file manager thread */
@@ -50,11 +54,11 @@ typedef struct globals {
     St	*st;
     /* Pointer to replication queue */
     Rq *rq;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
     /* Default name of kerberos srvtab file */
     char *default_srvtab;
-#endif /* KERBEROS */
-#if defined( THREAD_SUNOS4_LWP )
+#endif /* HAVE_KERBEROS */
+#if defined( HAVE_LWP )  && !defined( HAVE_THR )
     tl_t *tsl_list;
     mon_t tsl_mon;
 #endif /* THREAD_SUNOS4_LWP */
@@ -62,3 +66,7 @@ typedef struct globals {
 
 
 extern Globals *sglob;
+
+LDAP_END_DECL
+
+#endif /* SLURPD_GLOBALS_H */

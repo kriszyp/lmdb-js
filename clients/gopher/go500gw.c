@@ -10,32 +10,34 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#include <ac/setproctitle.h>
+
+#include <sys/resource.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
 #include "lber.h"
 #include "ldap.h"
-#include "disptmpl.h"
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#include <signal.h>
-#ifdef aix
-#include <sys/select.h>
-#endif /* aix */
-#include "portable.h"
-#include "ldapconfig.h"
+#include "lutil.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
+#include "disptmpl.h"
+
+#include "ldapconfig.h"
 
 int	debug;
 int	dosyslog;
@@ -52,7 +54,7 @@ char		*friendlyfile = FRIENDLYFILE;
 int		rdncount = GO500GW_RDNCOUNT;
 
 static set_socket();
-static SIG_FN wait4child();
+static RETSIGTYPE wait4child();
 static do_queries();
 static do_menu();
 static do_list();
@@ -85,14 +87,14 @@ char	**argv;
 	struct hostent		*hp;
 	struct sockaddr_in	from;
 	int			fromlen;
-	SIG_FN			wait4child();
+	RETSIGTYPE			wait4child();
 	extern char		*optarg;
-	extern char		**Argv;
-	extern int		Argc;
 
+#if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
-        Argv = argv;
-        Argc = argc;
+	Argv = argv;
+	Argc = argc;
+#endif
 
 	while ( (i = getopt( argc, argv, "P:ad:f:h:lp:t:x:Ic:" )) != EOF ) {
 		switch( i ) {
@@ -150,11 +152,21 @@ char	**argv;
 		}
 	}
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	dtblsize = FD_SETSIZE;
+#endif
+
+#ifdef FD_SETSIZE
+	if ( dtblsize > FD_SETSIZE ) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
+
+
 
 #ifdef GO500GW_HOSTNAME
 	strcpy( myhost, GO500GW_HOSTNAME );
@@ -168,7 +180,7 @@ char	**argv;
 
 	/* detach if stderr is redirected or no debugging */
 	if ( inetd == 0 )
-		(void) detach( debug );
+		lutil_detach( debug && !isatty( 1 ), 1 );
 
 	if ( (myname = strrchr( argv[0], '/' )) == NULL )
 		myname = strdup( argv[0] );
@@ -190,7 +202,7 @@ char	**argv;
 		s = set_socket( port );
 
 		/* arrange to reap children */
-		(void) signal( SIGCHLD, (void *) wait4child );
+		(void) SIGNAL( SIGCHLD, wait4child );
 	}
 
 	if ( inetd ) {
@@ -209,8 +221,10 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
+#ifdef LDAP_PROCTITLE
 			setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 			    hp->h_name );
+#endif
 		}
 
 		do_queries( 0 );
@@ -314,20 +328,24 @@ int	port;
 	return( s );
 }
 
-static SIG_FN
+static RETSIGTYPE
 wait4child()
 {
-        WAITSTATUSTYPE     status;
+#ifndef HAVE_WAITPID
+	WAITSTATUSTYPE     status;
+#endif
 
-        if ( debug ) printf( "parent: catching child status\n" );
-#ifdef USE_WAITPID
-	while (waitpid ((pid_t) -1, 0, WAIT_FLAGS) > 0)
-#else /* USE_WAITPID */
-        while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
-#endif /* USE_WAITPID */
-                ;       /* NULL */
+	if ( debug ) printf( "parent: catching child status\n" );
 
-	(void) signal( SIGCHLD, (void *) wait4child );
+#ifdef HAVE_WAITPID
+	while (waitpid ((pid_t) -1, NULL, WAIT_FLAGS) > 0)
+		;	/* NULL */
+#else 
+	while (wait3( &status, WAIT_FLAGS, 0 ) > 0 )
+		;	/* NULL */
+#endif
+
+	(void) SIGNAL( SIGCHLD, wait4child );
 }
 
 static do_queries( s )
@@ -506,7 +524,9 @@ char	*dn;
 
 		timeout.tv_sec = GO500GW_TIMEOUT;
 		timeout.tv_usec = 0;
+
 		ld->ld_sizelimit = 1;
+
 		if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_ONELEVEL,
 		    "(objectClass=*)", attrs, 0, &timeout, &res ))
 		    == LDAP_SUCCESS || rc == LDAP_SIZELIMIT_EXCEEDED ) {
@@ -570,6 +590,7 @@ char	*dn;
 	timeout.tv_sec = GO500GW_TIMEOUT;
 	timeout.tv_usec = 0;
 	ld->ld_deref = LDAP_DEREF_FINDING;
+
 	if ( (rc = ldap_search_st( ld, dn, LDAP_SCOPE_ONELEVEL,
 	    "(!(objectClass=dSA))", attrs, 0, &timeout, &res )) != LDAP_SUCCESS
 	    && rc != LDAP_SIZELIMIT_EXCEEDED ) {
@@ -577,6 +598,7 @@ char	*dn;
 		    rc, myhost, myport );
 		return;
 	}
+
 	ld->ld_deref = LDAP_DEREF_ALWAYS;
 
 	if ( ldap_count_entries( ld, res ) < 1 ) {
@@ -704,6 +726,7 @@ char	*query;
 		timeout.tv_sec = GO500GW_TIMEOUT;
 		timeout.tv_usec = 0;
 		ldap_ufn_timeout( (void *) &timeout );
+
 		ld->ld_deref = LDAP_DEREF_FINDING;
 
 		if ( (rc = ldap_ufn_search_s( ld, filter, attrs, 0, &res ))
@@ -766,15 +789,16 @@ char	*query;
 
 		e = ldap_first_entry( ld, res );
 		oc = ldap_get_values( ld, e, "objectClass" );
-		if ( isnonleaf( ld, oc, dn ) ) {
-			dn = ldap_get_dn( ld, e );
+		dn = ldap_get_dn( ld, e );
 
+		if ( isnonleaf( ld, oc, dn ) ) {
 			rc = do_menu( ld, fp, dn );
 
 			free( dn );
 			return( rc );
 		}
 
+		free( dn );
 		ldap_value_free( oc );
 	}
 
@@ -828,6 +852,7 @@ char	*dn;
 	if ( ldap_entry2text_search( ld, dn, NULL, NULL, tmpllist, NULL, NULL,
 	    entry2textwrite,(void *) fp, "\r\n", rdncount, 0 )
 	    != LDAP_SUCCESS ) {
+
 		fprintf(fp,
 		    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",
 		    ld->ld_errno, myhost, myport );

@@ -5,6 +5,13 @@
    Leave the following blank line there!!  Autoheader needs it.  */
 
 
+
+/* define this if needed to get reentrant functions */
+#undef _REENTRANT
+
+/* define this if needed to get threadsafe functions */
+#undef _THREAD_SAFE
+
 /* define this if toupper() requires tolower() check */
 #undef C_UPPER_LOWER
 
@@ -56,6 +63,15 @@
 /* define if your POSIX Threads implementation is circa Draft 4 */
 #undef HAVE_PTHREADS_D4
 
+/* define if you have sched_yield() */
+#ifdef __notdef__
+/* see second sched_yield define */
+#undef HAVE_SCHED_YIELD
+#endif
+
+/* define if you have setproctitle() */
+#undef HAVE_SETPROCTITLE
+
 /* define if you have -lwrap */
 #undef HAVE_TCPD
 
@@ -76,6 +92,9 @@
 
 /* define this to remove -lldap cache support */
 #undef LDAP_NOCACHE
+
+/* define this for LDAP process title support */
+#undef LDAP_PROCTITLE
 
 /* define this for LDAP referrals support */
 #undef LDAP_REFERRALS

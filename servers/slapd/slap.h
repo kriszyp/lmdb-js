@@ -20,6 +20,9 @@
 #include "lthread.h"
 #include "lthread_rdwr.h"
 #include "ldif.h"
+#ifdef f_next
+#undef f_next /* name conflict between sys/file.h on SCO and struct filter */
+#endif
 
 #define DN_DNS	0
 #define DN_X500	1

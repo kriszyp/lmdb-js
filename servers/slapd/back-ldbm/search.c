@@ -367,7 +367,7 @@ onelevel_candidates(
 	f->f_and = (Filter *) ch_malloc( sizeof(Filter) );
 	f->f_and->f_choice = LDAP_FILTER_EQUALITY;
 	f->f_and->f_ava.ava_type = strdup( "id2children" );
-	sprintf( buf, "%d", e != NULL ? e->e_id : 0 );
+	sprintf( buf, "%ld", e != NULL ? e->e_id : 0 );
 	f->f_and->f_ava.ava_value.bv_val = strdup( buf );
 	f->f_and->f_ava.ava_value.bv_len = strlen( buf );
 	f->f_and->f_next = filter;

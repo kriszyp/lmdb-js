@@ -17,36 +17,41 @@
  * University of Minnesota Microcomputer Workstation and Networks Center
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/wait.h>
-#include <signal.h>
-#ifdef _AIX
-#include <sys/select.h>
+
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#ifdef LDAP_PROCTITLE
+#include <ac/setproctitle.h>
 #endif
-#include <syslog.h>
+
 #include <quipu/commonarg.h>
 #include <quipu/ds_error.h>
-#include "portable.h"
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
+#ifdef HAVE_TCPD
+#include <tcpd.h>
+
+int allow_severity = LOG_INFO;
+int deny_severity = LOG_NOTICE;
+#endif /* TCP_WRAPPERS */
 
 void log_and_exit();
 static set_socket();
 static do_queries();
-static SIG_FN wait4child();
-#ifdef CLDAP
+static RETSIGTYPE wait4child();
+#ifdef LDAP_CONNECTIONLESS
 static udp_init();
 #endif
 
@@ -54,18 +59,18 @@ static udp_init();
 int	ldap_debug;
 #endif
 int	version;
-#ifdef COMPAT
+#ifdef LDAP_COMPAT
 int	ldap_compat;
 #endif
 int	dosyslog;
 int	do_tcp = 1;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 int	do_udp = 0;
 #endif
 int	idletime = DEFAULT_TIMEOUT;
 int	referral_connection_timeout = DEFAULT_REFERRAL_TIMEOUT;
 struct timeval	conn_start_tv;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 char	*krb_ldap_service = "ldapserver";
 char	*krb_x500_service = "x500dsa";
 char	*krb_x500_instance;
@@ -82,13 +87,13 @@ static usage( name )
 char	*name;
 {
 	fprintf( stderr, "usage: %s [-d debuglvl] [-p port] [-l] [-c dsa] [-r referraltimeout]", name );
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	fprintf( stderr, " [ -U | -t timeout ]" );
 #else
 	fprintf( stderr, " [ -t timeout ]" );
 #endif
 	fprintf( stderr, " [-I]" );
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	fprintf( stderr, " [-i dsainstance]" );
 #endif
 	fprintf( stderr, "\n" );
@@ -99,7 +104,7 @@ int	argc;
 char	**argv;
 {
 	int			tcps, ns;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	int			udps;
 #endif
 	int			myport = LDAP_PORT;
@@ -111,11 +116,9 @@ char	**argv;
 	int			len;
 	int			dsapargc;
 	char			**dsapargv;
-	SIG_FN			wait4child();
-#ifndef NOSETPROCTITLE
+	RETSIGTYPE			wait4child();
+#ifdef LDAP_PROCTITLE
 	char			title[80];
-	extern char		**Argv;
-	extern int		Argc;
 #endif
 	extern char		*optarg;
 	extern int		optind;
@@ -139,7 +142,7 @@ char	**argv;
         dsapargv[2] = 0;
         dsapargv[3] = 0;
         dsapargc = 1;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	kerberos_keyfile = "";
 #endif
 
@@ -178,7 +181,7 @@ char	**argv;
 			idletime = atoi( optarg );
 			break;
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 		case 'f':	/* kerberos key file */
 			kerberos_keyfile = strdup( optarg );
 			break;
@@ -194,7 +197,7 @@ char	**argv;
 			RunFromInetd = 1;
 			break;
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		case 'U':	/* UDP only (no TCP) */
 			do_tcp = 0;
 			do_udp = 1;
@@ -206,7 +209,7 @@ char	**argv;
 			break;
 #endif /* NOTYET */
 
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 		default:
 			usage( argv[0] );
@@ -219,7 +222,7 @@ char	**argv;
 		exit( 1 );
 	}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( do_udp && !do_tcp && idletime != DEFAULT_TIMEOUT ) {
 		usage( argv[ 0 ] );
 		exit( 1 );
@@ -228,13 +231,21 @@ char	**argv;
 
 	Debug( LDAP_DEBUG_TRACE, "%s", Versionstr, 0, 0 );
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	dtblsize = FD_SETSIZE;
+#endif
 
-#ifndef NOSETPROCTITLE
+#ifdef FD_SETSIZE
+	if( dtblsize > FD_SETSIZE ) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif /* FD_SETSIZE */
+
+#if defined(LDAP_PROCTITLE) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
 	Argv = argv;
 	Argc = argc;
@@ -251,11 +262,15 @@ char	**argv;
 	 * that have exited
 	 */
 	if (!RunFromInetd) {
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_PROCTITLE
 		setproctitle( "initializing" );
 #endif
 #ifndef VMS
-		(void) detach();
+#  ifdef LDAP_DEBUG
+		lutil_detach( ldap_debug, 1 );
+#  else
+		lutil_detach( 0, 1 );
+#  endif
 #endif
 		(void) SIGNAL( SIGCHLD, (void *) wait4child );
 		(void) SIGNAL( SIGINT, (void *) log_and_exit );
@@ -292,17 +307,17 @@ char	**argv;
 		len = sizeof( socktype );
 		getsockopt( ns, SOL_SOCKET, SO_TYPE, &socktype, &len );
 		if ( socktype == SOCK_DGRAM ) {
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 			Debug( LDAP_DEBUG_ARGS,
 			    "CLDAP request from unknown (%s)\n",
 			    inet_ntoa( from.sin_addr ), 0, 0 );
 			conn_start_tv.tv_sec = 0;
 			udp_init( 0, 0 );
 			do_queries( ns, 1 );
-#else /* CLDAP */
+#else /* LDAP_CONNECTIONLESS */
 			Debug( LDAP_DEBUG_ARGS,
-			    "Compile with -DCLDAP for UDP support\n",0,0,0 );
-#endif /* CLDAP */
+			    "Compile with -DLDAP_CONNECTIONLESS for UDP support\n",0,0,0 );
+#endif /* LDAP_CONNECTIONLESS */
 			exit( 0 );
 		}
 
@@ -321,7 +336,7 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_PROCTITLE
 			sprintf( title, "%s %d\n", hp == NULL ?
 			    inet_ntoa( from.sin_addr ) : hp->h_name, myport );
 			setproctitle( title );
@@ -336,7 +351,7 @@ char	**argv;
 	if ( do_tcp )
 	    tcps = set_socket( myport, 0 );
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	if ( do_udp )
 		udps = udp_init( myport, 1 );
 #endif
@@ -346,8 +361,8 @@ char	**argv;
 	 * if we are doing CLDAP as well, handle those requests on the fly
 	 */
 
-#ifndef NOSETPROCTITLE
-#ifdef CLDAP
+#ifdef LDAP_PROCTITLE
+#ifdef LDAP_CONNECTIONLESS
         sprintf( title, "listening %s/%s %d", do_tcp ? "tcp" : "",
             do_udp ? "udp" : "", myport );
 #else
@@ -360,7 +375,7 @@ char	**argv;
 		FD_ZERO( &readfds );
 		if ( do_tcp )
 			FD_SET( tcps, &readfds );
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if ( do_udp )
 			FD_SET( udps, &readfds );
 #endif
@@ -372,7 +387,7 @@ char	**argv;
 			continue;
 		}
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 		if ( do_udp && FD_ISSET( udps, &readfds ) ) {
 			do_queries( udps, 1 );
 		}
@@ -393,9 +408,30 @@ char	**argv;
 
 		hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
 		    sizeof(from.sin_addr.s_addr), AF_INET );
+
+#ifdef HAVE_TCPD
+		if ( !hosts_ctl("ldapd", (hp == NULL) ? "unknown" : hp->h_name,
+			inet_ntoa( from.sin_addr ), STRING_UNKNOWN ) {
+
+			Debug( LDAP_DEBUG_ARGS, "connection from %s (%s) denied.\n",
+		   		(hp == NULL) ? "unknown" : hp->h_name,
+		   		inet_ntoa( from.sin_addr ), 0 );
+
+			if ( dosyslog ) {
+				syslog( LOG_NOTICE, "connection from %s (%s) denied.",
+				    (hp == NULL) ? "unknown" : hp->h_name,
+				    inet_ntoa( from.sin_addr ) );
+			}
+
+			close(ns);
+			continue;
+		}
+#endif /* TCP_WRAPPERS */
+
 		Debug( LDAP_DEBUG_ARGS, "connection from %s (%s)\n",
 		    (hp == NULL) ? "unknown" : hp->h_name,
 		    inet_ntoa( from.sin_addr ), 0 );
+
 
 		if ( dosyslog ) {
 			syslog( LOG_INFO, "connection from %s (%s)",
@@ -406,7 +442,7 @@ char	**argv;
 #ifdef VMS
 		/* This is for debug on terminal on VMS */
 		close( tcps );
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_PROCTITLE
 		setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 		    hp->h_name );
 #endif
@@ -420,7 +456,7 @@ char	**argv;
 		switch( pid = fork() ) {
 		case 0:         /* child */
 			close( tcps );
-#ifndef NOSETPROCTITLE
+#ifdef LDAP_PROCTITLE
                         sprintf( title, "%s (%d)\n", hp == NULL ?
 				inet_ntoa( from.sin_addr ) : hp->h_name,
 				myport );
@@ -462,10 +498,10 @@ do_queries(
 	int		rc, i;
 	struct timeval	timeout;
 	Sockbuf		sb;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	struct sockaddr	saddr, faddr;
 	struct sockaddr *saddrlist[ 1 ];
-#endif /* CLDAP */
+#endif /* LDAP_CONNECTIONLESS */
 
 	Debug( LDAP_DEBUG_TRACE, "do_queries%s\n",
 	    udp ? " udp" : "", 0, 0 );
@@ -487,7 +523,7 @@ do_queries(
 	(void) memset( (void *) &sb, '\0', sizeof( sb ) );
 	sb.sb_sd = clientsock;
 	sb.sb_naddr = ( udp ) ? 1 : 0;
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 	sb.sb_addrs = (void **)saddrlist;
 	sb.sb_fromaddr = &faddr;
 	sb.sb_useaddr = saddrlist[ 0 ] = &saddr;
@@ -611,18 +647,20 @@ static set_socket(
 	return( s );
 }
 
-static SIG_FN wait4child()
+static RETSIGTYPE wait4child()
 {
-        WAITSTATUSTYPE     status;
+#ifndef HAVE_WAITPID
+	WAITSTATUSTYPE     status;
+#endif
 
 	Debug( LDAP_DEBUG_TRACE, "parent: catching child status\n", 0, 0, 0 );
 
-#ifdef USE_WAITPID
-	while( waitpid( (pid_t) -1, 0, WAIT_FLAGS ) > 0 )
+#ifdef HAVE_WAITPID
+	while( waitpid( (pid_t) -1, NULL, WAIT_FLAGS ) > 0 )
 		;       /* NULL */
 #else
-        while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
-                ;       /* NULL */
+	while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
+		;       /* NULL */
 #endif
 
 	(void) SIGNAL( SIGCHLD, (void *) wait4child );
@@ -648,7 +686,7 @@ log_and_exit( int exitcode )
 }
 
 
-#ifdef CLDAP
+#ifdef LDAP_CONNECTIONLESS
 static int
 udp_init(
     int	port,

@@ -12,34 +12,27 @@
  * sort.c:  LDAP library entry and value sort routines
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <ctype.h>
-#include <string.h>
 #include <stdlib.h>
-#ifdef MACOS
-#include "macos.h"
-#else /* MACOS */
-#ifdef DOS
-#include <malloc.h>
-#include "msdos.h"
-#endif /* DOS */
-#endif /* MACOS */
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
 
 #include "lber.h"
 #include "ldap.h"
+
 
 struct entrything {
 	char		**et_vals;
 	LDAPMessage	*et_msg;
 };
 
-#ifndef NEEDPROTOS
-static int	(*et_cmp_fn)();
-static int	et_cmp();
-#else /* !NEEDPROTOS */
-static int	(*et_cmp_fn)( char *a, char *b );
-static int	et_cmp( void *aa, void *bb);
-#endif /* !NEEDPROTOS */
+static int	(*et_cmp_fn) LDAP_P(( char *a, char *b ));
+static int	et_cmp LDAP_P(( const void *aa, const void *bb));
+
 
 int
 ldap_sort_strcasecmp(
@@ -52,13 +45,13 @@ ldap_sort_strcasecmp(
 
 static int
 et_cmp(
-	void	*aa,
-	void	*bb
+	const void	*aa,
+	const void	*bb
 )
 {
 	int			i, rc;
-	struct entrything	*a = (struct entrything *)aa;
-	struct entrything	*b = (struct entrything *)bb;
+	const struct entrything	*a = (const struct entrything *)aa;
+	const struct entrything	*b = (const struct entrything *)bb;
 
 	if ( a->et_vals == NULL && b->et_vals == NULL )
 		return( 0 );
@@ -86,7 +79,7 @@ ldap_sort_entries(
     LDAP	*ld,
     LDAPMessage	**chain,
     char	*attr,		/* NULL => sort by DN */
-    int		(*cmp)()
+    int		(*cmp) LDAP_P((char *, char *))
 )
 {
 	int			i, count;
@@ -120,7 +113,7 @@ ldap_sort_entries(
 	last = e;
 
 	et_cmp_fn = cmp;
-	qsort( et, count, sizeof(struct entrything), (void *) et_cmp );
+	qsort( et, count, sizeof(struct entrything), et_cmp );
 
 	ep = chain;
 	for ( i = 0; i < count; i++ ) {
@@ -139,7 +132,7 @@ int
 ldap_sort_values(
     LDAP	*ld,
     char	**vals,
-    int		(*cmp)()
+    int		(*cmp) LDAP_P((const void *, const void *))
 )
 {
 	int	nel;

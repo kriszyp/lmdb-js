@@ -1,25 +1,25 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include "slap.h"
 #include "ldapconfig.h"
 
-extern void	daemon();
+extern void	slapd_daemon();
 extern int	lber_debug;
 
 extern char Versionstr[];
+
 
 /*
  * read-only global variables or variables only written by the listener
  * thread (after they are initialized) - no need to protect them with a mutex.
  */
-int		ldap_debug;
+int		ldap_debug = 0;
 #ifdef LDAP_DEBUG
 int		ldap_syslog = LDAP_DEBUG_STATS;
 #else
@@ -55,15 +55,12 @@ pthread_mutex_t	num_sent_mutex;
  */
 pthread_mutex_t	entry2str_mutex;
 pthread_mutex_t	replog_mutex;
-#ifndef sunos5
-pthread_mutex_t	regex_mutex;
-#endif
 
 static
 usage( name )
     char	*name;
 {
-	fprintf( stderr, "usage: %s [-d debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]\n", name );
+	fprintf( stderr, "usage: %s [-d ?|debuglevel] [-f configfile] [-p portnumber] [-s sysloglevel]\n", name );
 }
 
 main( argc, argv )
@@ -105,19 +102,19 @@ main( argc, argv )
 				    LDAP_DEBUG_CONFIG );
 				printf( "\tLDAP_DEBUG_ACL\t\t%d\n",
 				    LDAP_DEBUG_ACL );
-				printf( "\tLDAP_DEBUG_STATS\t\t%d\n",
+				printf( "\tLDAP_DEBUG_STATS\t%d\n",
 				    LDAP_DEBUG_STATS );
-				printf( "\tLDAP_DEBUG_STATS2\t\t%d\n",
+				printf( "\tLDAP_DEBUG_STATS2\t%d\n",
 				    LDAP_DEBUG_STATS2 );
-				printf( "\tLDAP_DEBUG_SHELL\t\t%d\n",
+				printf( "\tLDAP_DEBUG_SHELL\t%d\n",
 				    LDAP_DEBUG_SHELL );
-				printf( "\tLDAP_DEBUG_PARSE\t\t%d\n",
+				printf( "\tLDAP_DEBUG_PARSE\t%d\n",
 				    LDAP_DEBUG_PARSE );
 				printf( "\tLDAP_DEBUG_ANY\t\t%d\n",
 				    LDAP_DEBUG_ANY );
 				exit( 0 );
 			} else {
-				ldap_debug = atoi( optarg );
+				ldap_debug |= atoi( optarg );
 				lber_debug = (ldap_debug & LDAP_DEBUG_BER);
 			}
 			break;
@@ -165,7 +162,11 @@ main( argc, argv )
 	if ( ! inetd ) {
 		/* pre-open config file before detach in case it is a relative path */
 		fp = fopen( configfile, "r" );
-		detach();
+#ifdef LDAP_DEBUG
+		lutil_detach( ldap_debug, 0 );
+#else
+		lutil_detach( 0, 0 );
+#endif
 	}
 #ifdef LOG_LOCAL4
 	openlog( myname, OPENLOG_OPTIONS, LOG_LOCAL4 );
@@ -184,12 +185,27 @@ main( argc, argv )
 		pthread_attr_init( &attr );
 		pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED );
 
-		if ( pthread_create( &listener_tid, attr, (void *) daemon,
+#if !defined(HAVE_PTHREADS_D4) && !defined(HAVE_DCE)
+		/* POSIX_THREADS or compatible
+		 * This is a draft 10 or standard pthreads implementation
+		 */
+		if ( pthread_create( &listener_tid, &attr, slapd_daemon,
 		    (void *) port ) != 0 ) {
 			Debug( LDAP_DEBUG_ANY,
 			    "listener pthread_create failed\n", 0, 0, 0 );
 			exit( 1 );
 		}
+#else	/* draft4 */
+		/*
+		 * This is a draft 4 or earlier pthreads implementation
+		 */
+		if ( pthread_create( &listener_tid, attr, slapd_daemon,
+		    (void *) port ) != 0 ) {
+			Debug( LDAP_DEBUG_ANY,
+			    "listener pthread_create failed\n", 0, 0, 0 );
+			exit( 1 );
+		}
+#endif	/* !draft4 */
 		pthread_attr_destroy( &attr );
 		pthread_join( listener_tid, (void *) &status );
 		pthread_exit( 0 );
@@ -221,7 +237,7 @@ main( argc, argv )
 #endif
 		flen = sizeof(from);
 		if ( getpeername( 0, (struct sockaddr *) &from, &flen ) == 0 ) {
-#ifdef REVERSE_LOOKUP
+#ifdef SLAPD_RLOOKUPS
 			hp = gethostbyaddr( (char *) &(from.sin_addr.s_addr),
 			    sizeof(from.sin_addr.s_addr), AF_INET );
 #else

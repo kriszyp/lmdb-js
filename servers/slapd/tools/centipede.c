@@ -1,11 +1,16 @@
 /* centipede.c - generate and install indexing information (view w/tabstop=4) */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/time.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
+
 #include <ldapconfig.h>
 #include <ldbm.h>
 
@@ -68,7 +73,7 @@ static void usage( char *name )
 
 main( int argc, char **argv )
 {
-	char		*ldapfilter, *ldapref;
+	char		*ldapfilter;
 	char		*ldapsrcurl, *ldapdesturl;
 	LDAP		*ld;
 	LDAPMod		**mods;
@@ -161,8 +166,7 @@ main( int argc, char **argv )
 				srcldapauthmethod = LDAP_AUTH_KRBV4;
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
-				fprintf( stderr, "expecting \"simple\" or \"kerberos\"\n",
-				    optarg );
+				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
 				exit( 1 );
 			}
 			break;
@@ -174,8 +178,7 @@ main( int argc, char **argv )
 				destldapauthmethod = LDAP_AUTH_KRBV4;
 			} else {
 				fprintf( stderr, "%s: unknown auth method\n", optarg );
-				fprintf( stderr, "expecting \"simple\" or \"kerberos\"\n",
-				    optarg );
+				fputs( "expecting \"simple\" or \"kerberos\"\n", stderr );
 				exit( 1 );
 			}
 			break;
@@ -353,9 +356,11 @@ start_ldap_search(
 	char	*s, *s2;
 	int		i;
 
-	if ( strncmp( ldapsrcurl, "ldap://", 7 ) == 0 ) {
-		s = ldapsrcurl + 7;
+	if ( strncmp( ldapsrcurl, "ldap://", 7 ) != 0 ) {
+		fputs( "Not an LDAP URL", stderr ); /* Should be smarter? */
+		return( NULL );
 	}
+	s = ldapsrcurl + 7;
 	if ( (s2 = strchr( s, '/' )) == NULL ) {
 		ldapbase = strdup( s );
 	} else {
@@ -493,7 +498,7 @@ generate_new_centroids(
 				/* normalize the value */
 				for ( s = val[j]; *s; s++ ) {
 					if ( isascii( *s ) ) {
-						*s = tolower( *s );
+						*s = TOLOWER( *s );
 					}
 					last = *s;
 				}
@@ -556,6 +561,11 @@ diff_centroids(
 	int		amax, acur, dmax, dcur;
 	char	**vals;
 
+#ifdef HAVE_BERKELEY_DB2
+	DBC	*ocursorp;
+	DBC	*ncursorp;
+#endif /* HAVE_BERKELEY_DB2 */
+
 	if ( verbose ) {
 		printf( "Generating mods for differential %s centroid...", attr );
 		fflush( stdout );
@@ -600,8 +610,14 @@ diff_centroids(
 
 	olast.dptr = NULL;
 	nlast.dptr = NULL;
+#ifdef HAVE_BERKELEY_DB2
+	for ( okey = ldbm_firstkey( oldbm, &ocursorp ),
+			nkey = ldbm_firstkey( nldbm, &ncursorp );
+	      okey.dptr != NULL && nkey.dptr != NULL; )
+#else
 	for ( okey = ldbm_firstkey( oldbm ), nkey = ldbm_firstkey( nldbm );
 	      okey.dptr != NULL && nkey.dptr != NULL; )
+#endif
 	{
 		rc = strcmp( okey.dptr, nkey.dptr );
 
@@ -616,8 +632,13 @@ diff_centroids(
 			}
 			nlast = nkey;
 
+#ifdef HAVE_BERKELEY_DB2
+			okey = ldbm_nextkey( oldbm, olast, ocursorp );
+			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
+#else
 			okey = ldbm_nextkey( oldbm, olast );
 			nkey = ldbm_nextkey( nldbm, nlast );
+#endif
 		} else if ( rc > 0 ) {
 			/* new value is not in old centroid - add it */
 			if ( charray_add_dup( &avals, &acur, &amax, nkey.dptr ) == NULL ) {
@@ -629,7 +650,12 @@ diff_centroids(
 				ldbm_datum_free( nldbm, nlast );
 			}
 			nlast = nkey;
+
+#ifdef HAVE_BERKELEY_DB2
+			nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
+#else
 			nkey = ldbm_nextkey( nldbm, nlast );
+#endif
 		} else {
 			/* old value is not in new centroid - delete it */
 			if ( charray_add_dup( &dvals, &dcur, &dmax, okey.dptr ) == NULL ) {
@@ -641,7 +667,12 @@ diff_centroids(
 				ldbm_datum_free( oldbm, olast );
 			}
 			olast = okey;
+
+#ifdef HAVE_BERKELEY_DB2
+			okey = ldbm_nextkey( oldbm, olast, ocursorp );
+#else
 			okey = ldbm_nextkey( oldbm, olast );
+#endif
 		}
 	}
 
@@ -651,7 +682,11 @@ diff_centroids(
 			return( NULL );
 		}
 
+#ifdef HAVE_BERKELEY_DB2
+		okey = ldbm_nextkey( oldbm, olast, ocursorp );
+#else
 		okey = ldbm_nextkey( oldbm, olast );
+#endif
 		if ( olast.dptr != NULL ) {
 			ldbm_datum_free( oldbm, olast );
 		}
@@ -666,7 +701,11 @@ diff_centroids(
 			return( NULL );
 		}
 
+#ifdef HAVE_BERKELEY_DB2
+		nkey = ldbm_nextkey( nldbm, nlast, ncursorp );
+#else
 		nkey = ldbm_nextkey( nldbm, nlast );
+#endif
 		if ( nlast.dptr != NULL ) {
 			ldbm_datum_free( nldbm, nlast );
 		}
@@ -687,8 +726,14 @@ diff_centroids(
 
 	/* generate list of values to add */
 	lastkey.dptr = NULL;
+#ifdef HAVE_BERKELEY_DB2
+	for ( key = ldbm_firstkey( nldbm, &ncursorp ); key.dptr != NULL;
+	  key = ldbm_nextkey( nldbm, lastkey, ncursorp ) )
+#else
 	for ( key = ldbm_firstkey( nldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( nldbm, lastkey ) ) {
+	  key = ldbm_nextkey( nldbm, lastkey ) )
+#endif
+	{
 		/* see if it's in the old one */
 		data = ldbm_fetch( oldbm, key );
 
@@ -712,8 +757,14 @@ diff_centroids(
 
 	/* generate list of values to delete */
 	lastkey.dptr = NULL;
+#ifdef HAVE_BERKELEY_DB2
+	for ( key = ldbm_firstkey( oldbm, &ocursorp ); key.dptr != NULL;
+	  key = ldbm_nextkey( oldbm, lastkey, ocursorp ) )
+#else
 	for ( key = ldbm_firstkey( oldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( oldbm, lastkey ) ) {
+	  key = ldbm_nextkey( oldbm, lastkey ) )
+#endif
+	{
 		/* see if it's in the new one */
 		data = ldbm_fetch( nldbm, key );
 
@@ -773,6 +824,10 @@ full_centroid(
 	char	**vals;
 	int		vcur, vmax;
 
+#ifdef HAVE_BERKELEY_DB2
+	DBC *cursorp;
+#endif
+
 	if ( verbose ) {
 		printf( "Generating mods for full %s centroid...", attr );
 		fflush( stdout );
@@ -800,8 +855,14 @@ full_centroid(
 	lastkey.dptr = NULL;
 	vals = NULL;
 	vcur = vmax = 0;
+#ifdef HAVE_BERKELEY_DB2
+	for ( key = ldbm_firstkey( ldbm, &cursorp ); key.dptr != NULL;
+	  key = ldbm_nextkey( ldbm, lastkey, cursorp ) )
+#else
 	for ( key = ldbm_firstkey( ldbm ); key.dptr != NULL;
-	  key = ldbm_nextkey( ldbm, lastkey ) ) {
+	  key = ldbm_nextkey( ldbm, lastkey ) )
+#endif
+	{
 		if ( charray_add_dup( &vals, &vcur, &vmax, key.dptr ) == NULL ) {
 			ldap_mods_free( mods, 1 );
 			return( NULL );
@@ -862,10 +923,13 @@ bind_to_destination_ldap(
 	/* first, pick out the destination ldap server info */
 	if ( ldapbase != NULL ) {
 		free( ldapbase );
+		ldapbase = NULL;
 	}
-	if ( strncmp( ldapdesturl, "ldap://", 7 ) == 0 ) {
-		s = ldapdesturl + 7;
+	if ( strncmp( ldapdesturl, "ldap://", 7 ) != 0 ) {
+		fputs( "Not an LDAP URL", stderr ); /* Should be smarter? */
+		return( NULL );
 	}
+	s = ldapdesturl + 7;
 	if ( (s2 = strchr( s, '/' )) == NULL ) {
 		ldapbase = strdup( s );
 	} else {

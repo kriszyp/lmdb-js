@@ -1,15 +1,15 @@
 /* lock.c - routines to open and apply an advisory lock to a file */
 
-#include <stdio.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include "portable.h"
-#ifdef USE_LOCKF
-#include <unistd.h>
-#endif
+
+#include <stdio.h>
+
+#include <ac/socket.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+
 #include <sys/file.h>
 #include <sys/param.h>
-#include <sys/socket.h>
 #include "slap.h"
 
 FILE *
@@ -27,10 +27,10 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 	}
 
 	/* acquire the lock */
-#ifdef USE_LOCKF
-	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 ) {
-#else
+#ifdef HAVE_FLOCK
 	while ( flock( fileno( *lfp ), LOCK_EX ) != 0 ) {
+#else
+	while ( lockf( fileno( *lfp ), F_LOCK, 0 ) != 0 ) {
 #endif
 		;	/* NULL */
 	}
@@ -38,10 +38,10 @@ lock_fopen( char *fname, char *type, FILE **lfp )
 	/* open the log file */
 	if ( (fp = fopen( fname, type )) == NULL ) {
 		Debug( LDAP_DEBUG_ANY, "could not open \"%s\"\n", fname, 0, 0 );
-#ifdef USE_LOCKF
-		lockf( fileno( *lfp ), F_ULOCK, 0 );
-#else
+#ifdef HAVE_FLOCK
 		flock( fileno( *lfp ), LOCK_UN );
+#else
+		lockf( fileno( *lfp ), F_ULOCK, 0 );
 #endif
 		return( NULL );
 	}
@@ -53,10 +53,10 @@ int
 lock_fclose( FILE *fp, FILE *lfp )
 {
 	/* unlock */
-#ifdef USE_LOCKF
-	lockf( fileno( lfp ), F_ULOCK, 0 );
-#else
+#ifdef HAVE_FLOCK
 	flock( fileno( lfp ), LOCK_UN );
+#else
+	lockf( fileno( lfp ), F_ULOCK, 0 );
 #endif
 	fclose( lfp );
 

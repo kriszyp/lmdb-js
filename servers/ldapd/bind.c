@@ -10,21 +10,24 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <netinet/in.h>
+
+#include <ac/socket.h>
+#include <ac/string.h>		/* get SAFEMEMCPY */
+
 #include <quipu/commonarg.h>
 #include <quipu/attrvalue.h>
 #include <quipu/ds_error.h>
 #include <quipu/bind.h>
 #include <quipu/compare.h>
+
 #include "lber.h"
 #include "ldap.h"
 #include "common.h"
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 extern int 	ldap_compat;
 #define BINDTAG	(ldap_compat == 20 ? OLD_LDAP_RES_BIND : LDAP_RES_BIND)
 #else
@@ -75,7 +78,7 @@ do_bind(
 		    LDAP_PROTOCOL_ERROR, NULL, "Decoding error" );
 		return( 0 );
 	}
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	if ( ldap_compat == 30 )
 		method = ber_skip_tag( ber, &len );
 	else
@@ -141,7 +144,7 @@ do_bind_real(
 	struct DSError		dse;
 	char			*dn = dsaconn->c_dn;
 	int			err;
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 	u_long			nonce;
 #endif
 	extern DN		ldap_str2dn();
@@ -155,10 +158,10 @@ do_bind_real(
 	}
 
 	switch ( dsaconn->c_method ) {
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_AUTH_SIMPLE:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_AUTH_SIMPLE_30:
 #endif
 	case LDAP_AUTH_SIMPLE:	/* x.500 simple authentication */
@@ -176,11 +179,11 @@ do_bind_real(
 		ba.dba_version = DBA_VERSION_V1988;
 		break;
 
-#ifdef KERBEROS
-#ifdef COMPAT20
+#ifdef HAVE_KERBEROS
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_AUTH_KRBV4:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_AUTH_KRBV41_30:
 #endif
 	case LDAP_AUTH_KRBV41:	/* kerberos authentication to ldap server */
@@ -188,10 +191,10 @@ do_bind_real(
 		    dsaconn->c_credlen ) );
 		break;
 
-#ifdef COMPAT20
+#ifdef LDAP_COMPAT20
 	case OLD_LDAP_AUTH_KRBV42:
 #endif
-#ifdef COMPAT30
+#ifdef LDAP_COMPAT30
 	case LDAP_AUTH_KRBV42_30:
 #endif
 	case LDAP_AUTH_KRBV42:	/* kerberos authentication to x500 dsa */
@@ -254,7 +257,7 @@ do_bind_real(
 
 	Debug( LDAP_DEBUG_TRACE, "dap_bind successful\n", 0, 0, 0 );
 
-#ifdef KERBEROS
+#ifdef HAVE_KERBEROS
 /* XXX why doesn't this work??
 	if ( dsaconn->c_method == LDAP_AUTH_KRBV42 &&
 	    kerberos_check_mutual( &br, nonce ) != 0 ) {

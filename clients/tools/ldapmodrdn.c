@@ -1,17 +1,22 @@
 /* ldapmodrdn.c - generic program to modify an entry's RDN using LDAP */
 
+#include "portable.h"
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
+
+#include <ac/ctype.h>
+#include <ac/string.h>
+#include <ac/time.h>
+
 #include <lber.h>
 #include <ldap.h>
 
 #include "ldapconfig.h"
 
 static char	*binddn = LDAPMODRDN_BINDDN;
+static char	*passwd = LDAPMODRDN_BIND_CRED;
 static char	*base = LDAPMODRDN_BASE;
-static char	*passwd = NULL;
 static char	*ldaphost = LDAPHOST;
 static int	ldapport = LDAP_PORT;
 static int	not, verbose, contoper;
@@ -24,16 +29,20 @@ extern int ldap_debug, lber_debug;
 #define safe_realloc( ptr, size )	( ptr == NULL ? malloc( size ) : \
 					 realloc( ptr, size ))
 
+static int domodrdn LDAP_P((
+    LDAP	*ld,
+    char	*dn,
+    char	*rdn,
+    int		remove));	/* flag: remove old RDN */
 
 main( argc, argv )
     int		argc;
     char	**argv;
 {
     char		*usage = "usage: %s [-nvkc] [-d debug-level] [-h ldaphost] [-p ldapport] [-D binddn] [-w passwd] [ -f file | < entryfile | dn newrdn ]\n";
-    char		*myname,*infile, *p, *entrydn, *rdn, buf[ 4096 ];
+    char		*myname,*infile, *entrydn, *rdn, buf[ 4096 ];
     FILE		*fp;
     int			rc, i, kerberos, remove, havedn, authmethod;
-    LDAPMod		**pmods;
 
     extern char	*optarg;
     extern int	optind;
@@ -165,11 +174,11 @@ main( argc, argv )
     exit( rc );
 }
 
-domodrdn( ld, dn, rdn, remove )
-    LDAP	*ld;
-    char	*dn;
-    char	*rdn;
-    int		remove;	/* flag: remove old RDN */
+static int domodrdn(
+    LDAP	*ld,
+    char	*dn,
+    char	*rdn,
+    int		remove)	/* flag: remove old RDN */
 {
     int	i;
 

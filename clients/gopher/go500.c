@@ -10,32 +10,33 @@
  * is provided ``as is'' without express or implied warranty.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <sys/types.h>
-#include <sys/param.h>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <syslog.h>
-#include <sys/resource.h>
-#include <sys/wait.h>
-#ifdef aix
-#include <sys/select.h>
-#endif /* aix */
-#include <signal.h>
 #include "portable.h"
+
+#include <stdio.h>
+
+#include <ac/ctype.h>
+#include <ac/signal.h>
+#include <ac/socket.h>
+#include <ac/string.h>
+#include <ac/syslog.h>
+#include <ac/time.h>
+#include <ac/unistd.h>
+#include <ac/wait.h>
+
+#include <ac/setproctitle.h>
+
+#ifdef HAVE_SYS_PARAM_H
+#include <sys/param.h>
+#endif
+
+#include <sys/resource.h>
+
 #include "ldapconfig.h"
 #include "lber.h"
 #include "ldap.h"
-#include "disptmpl.h"
+#include "lutil.h"
 
-#ifdef USE_SYSCONF
-#include <unistd.h>
-#endif /* USE_SYSCONF */
+#include "disptmpl.h"
 
 int	debug;
 int	dosyslog;
@@ -52,7 +53,7 @@ char	myhost[MAXHOSTNAMELEN];
 int	myport;
 
 static set_socket();
-static SIG_FN wait4child();
+static RETSIGTYPE wait4child();
 static do_queries();
 static do_error();
 static do_search();
@@ -78,14 +79,14 @@ char	**argv;
 	struct hostent		*hp;
 	struct sockaddr_in	from;
 	int			fromlen;
-	SIG_FN			wait4child();
+	RETSIGTYPE			wait4child();
 	extern char		*optarg;
-	extern char		**Argv;
-	extern int		Argc;
 
+#if defined( LDAP_PROCTITLE ) && !defined( HAVE_SETPROCTITLE )
 	/* for setproctitle */
-        Argv = argv;
-        Argc = argc;
+	Argv = argv;
+ 	Argc = argc;
+#endif
 
 	while ( (i = getopt( argc, argv, "b:d:f:lp:c:t:x:I" )) != EOF ) {
 		switch( i ) {
@@ -140,15 +141,24 @@ char	**argv;
 	}
 #endif
 
-#ifdef USE_SYSCONF
+#ifdef HAVE_SYSCONF
 	dtblsize = sysconf( _SC_OPEN_MAX );
-#else /* USE_SYSCONF */
+#elif HAVE_GETDTABLESIZE
 	dtblsize = getdtablesize();
-#endif /* USE_SYSCONF */
+#else
+	dtblsize = FD_SETSIZE;
+#endif
+
+#ifdef FD_SETSIZE
+	if (dtblsize > FD_SETSIZE) {
+		dtblsize = FD_SETSIZE;
+	}
+#endif	/* FD_SETSIZE*/
+
 
 	/* detach if stderr is redirected or no debugging */
 	if ( inetd == 0 )
-		(void) detach( debug );
+		lutil_detach( debug && !isatty( 1 ), 1 );
 
 	if ( (myname = strrchr( argv[0], '/' )) == NULL )
 		myname = strdup( argv[0] );
@@ -170,7 +180,7 @@ char	**argv;
 		s = set_socket( port );
 
 		/* arrange to reap children */
-		(void) signal( SIGCHLD, (void *) wait4child );
+		(void) SIGNAL( SIGCHLD, wait4child );
 	} else {
 		myport = GO500_PORT;
 
@@ -189,8 +199,10 @@ char	**argv;
 				    inet_ntoa( from.sin_addr ) );
 			}
 
+#ifdef LDAP_PROCTITLE
 			setproctitle( hp == NULL ? inet_ntoa( from.sin_addr ) :
 			    hp->h_name );
+#endif
 		}
 
 		do_queries( 0 );
@@ -292,20 +304,24 @@ int	port;
 	return( s );
 }
 
-static SIG_FN
+static RETSIGTYPE
 wait4child()
 {
+#ifndef HAVE_WAITPID
         WAITSTATUSTYPE     status;
+#endif
 
         if ( debug ) printf( "parent: catching child status\n" );
-#ifdef USE_WAITPID
-	while (waitpid ((pid_t) -1, 0, WAIT_FLAGS) > 0)
-#else /* USE_WAITPID */
-        while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
-#endif /* USE_WAITPID */
-                ;       /* NULL */
 
-	(void) signal( SIGCHLD, (void *) wait4child );
+#ifdef HAVE_WAITPID
+	while (waitpid ((pid_t) -1, 0, WAIT_FLAGS) > 0)
+		;	/* NULL */
+#else
+	while ( wait3( &status, WAIT_FLAGS, 0 ) > 0 )
+		;	/* NULL */
+#endif
+
+	(void) SIGNAL( SIGCHLD, wait4child );
 }
 
 static
@@ -372,7 +388,7 @@ int	s;
 		}
 
 		ld->ld_deref = GO500_DEREF;
-		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, NULL ))
+		if ( (rc = ldap_simple_bind_s( ld, GO500_BINDDN, GO500_BIND_CRED ))
 		    != LDAP_SUCCESS ) {
 			fprintf(fp,
 			    "0An error occurred (explanation)\t@%d\t%s\t%d\r\n",

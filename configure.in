@@ -24,11 +24,14 @@ AC_PREFIX_DEFAULT(/usr/local)
 dnl General "enable" options
 OL_ARG_ENABLE(debug,[  --enable-debug	enable debugging], yes)dnl
 dnl OL_ARG_ENABLE(syslog,[  --enable-syslog	enable syslog support], auto)dnl
+OL_ARG_ENABLE(proctitle,[  --enable-proctitle	enable proctitle support], yes)dnl
 OL_ARG_ENABLE(libui,[  --enable-libui	enable library user interface], yes)dnl
 OL_ARG_ENABLE(cache,[  --enable-cache	enable caching], yes)dnl
-OL_ARG_ENABLE(dns,[  --enable-dns	enable dns support], no)dnl
+OL_ARG_ENABLE(dns,[  --enable-dns		enable dns support], no)dnl
 OL_ARG_ENABLE(referrals,[  --enable-referrals	enable referrals], yes)dnl
 OL_ARG_ENABLE(cldap,[  --enable-cldap	enable connectionless ldap], no)dnl
+OL_ARG_ENABLE(x_compile,[  --enable-x-compile	enable cross compiling],
+	no, [yes no])dnl
 
 dnl General "with" options
 OL_ARG_WITH(kerberos,[  --with-kerberos	use Kerberos],
@@ -199,13 +202,27 @@ AC_PATH_PROG(FINGER, finger, /usr/ucb/finger, $PATH:/usr/ucb)
 
 dnl Checks the compiler and UNIX Variants
 AC_PROG_CC
+
+if test $cross_compiling = yes -a $ol_enable_x_compile = yes; then
+	AC_WARN([cross compiling....  go for it])
+
+elif test $cross_compiling = no -a $ol_enable_x_compile = yes; then
+	AC_WARN([programs compiled here do run here...])
+	AC_ERROR([  if not cross compiling, use --disable-x-compile.])
+
+elif test $cross_compiling = yes -a $ol_enable_x_compile = no; then
+	AC_WARN([programs compiled here do not run here...])
+	AC_ERROR([  if cross compiling,  add --enable-x-compile.])
+fi
+
 AC_PROG_GCC_TRADITIONAL
+AC_PROG_CPP
+
 
 AC_AIX
 AC_ISC_POSIX
 AC_MINIX
 
-dnl ----------------------------------------------------------------
 dnl Checks for libraries
 
 dnl Find socket()
@@ -337,11 +354,11 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 			AC_CHECK_LIB(pthread, pthread_create, [
 				AC_DEFINE(HAVE_DCE)
 				ol_link_threads=posix
-				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"],,
+				LTHREAD_LIBS="$LTHREAD_LIBS -lpthread -lmach -lexc -lc"
 				if test $ol_with_preemptive = auto ; then
 					ol_with_preemptive=yes
 				fi
-				[-lmach -lexc -lc])
+				],,[-lmach -lexc -lc])
 			LIBS="$save_LIBS"
 		fi
 
@@ -360,18 +377,41 @@ if test $ol_with_threads = auto -o $ol_with_threads = posix ; then
 
 			if test $ac_cv_func_sched_yield = no -a \
 				$ac_cv_func_pthread_yield = no ; then
-
+				dnl Digital UNIX has sched_yield() in -lrt
+				AC_CHECK_LIB(rt, sched_yield,
+					[LTHREAD_LIBS="$LTHREAD_LIBS -lrt"
+					AC_DEFINE(HAVE_SCHED_YIELD,1)
+					ac_cv_func_sched_yield=yes],
+					[ac_cv_func_sched_yield=no])
+			fi
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no ; then
+				dnl Solaris has sched_yield() in -lposix4
+				AC_CHECK_LIB(posix4, sched_yield,
+					[LTHREAD_LIBS="$LTHREAD_LIBS -lposix4"
+					AC_DEFINE(HAVE_SCHED_YIELD,1)
+					ac_cv_func_sched_yield=yes],
+					[ac_cv_func_sched_yield=no])
+			fi
+			if test $ac_cv_func_sched_yield = no -a \
+				$ac_cv_func_pthread_yield = no ; then
 				AC_MSG_WARN([could not locate sched_yield() or pthread_yield()])
 				AC_MSG_ERROR([POSIX Threads are not usable])
 			fi
 
 			dnl Check functions for compatibility
 			AC_CHECK_FUNCS(pthread_kill)
-dnl			AC_CHECK_FUNCS(
+dnl			AC_CHECK_FUNCS( \
 dnl				pthread_attr_create pthread_attr_init \
 dnl				pthread_attr_destroy pthread_attr_delete \
 dnl				pthread_attr_setdetachstate pthread_attr_setdetach_np \
 dnl			)
+
+			dnl Check for setconcurreny functions
+			AC_CHECK_FUNCS(	\
+				pthread_setconcurrency \
+				thr_setconcurrency \
+			)
 
 			dnl Check PREEMPTIVE Implementation 
 			if test $ol_with_preemptive = auto ; then
@@ -405,6 +445,14 @@ main(argc, argv)
 int argc; char **argv;
 {
 	pthread_t t;
+
+#ifdef HAVE_PTHREAD_SETCONCURRENCY
+	(void) pthread_setconcurrency(2);
+#elif HAVE_THR_SETCONCURRENCY
+	/* Set Solaris LWP concurrency to 2 */
+	thr_setconcurrency(2);
+#endif
+
 	pthread_create(&t, NULL, (void *) task, NULL);
 
 #if HAVE_SCHED_YIELD
@@ -426,6 +474,17 @@ int argc; char **argv;
 				fi
 			fi
 
+dnl			dnl check for reentrant/threadsafe functions
+dnl			AC_CHECK_FUNCS(	\
+dnl				feof_unlocked \
+dnl				unlocked_feof \
+dnl				ftrylockfile \
+dnl				flockfile \
+dnl				putc_unlocked \
+dnl				gmtime_r \
+dnl				strtok_r \
+dnl			)
+
 			dnl restore DEFS/LIBS
 			CPPFLAGS="$save_CPPFLAGS"
 			LIBS="$save_LIBS"
@@ -439,23 +498,52 @@ int argc; char **argv;
 	fi
 fi
 
-if test $ol_with_threads = auto -o $ol_with_threads = cthreads ; then
+if test $ol_with_threads = auto -o $ol_with_threads = mach ; then
 	dnl check for Mach CThreads
 	AC_CHECK_HEADERS(mach/cthreads.h)
-	if test $ac_cv_header_lwp_lwp_h = yes ; then
-		AC_CHECK_LIB(lwp, cthread_fork, [have_cthreads=yes], [have_cthreads=no])
+	if test $ac_cv_header_mach_cthreads_h = yes ; then
+		ol_with_threads=found
 
-		if test $have_cthreads = yes ; then
-			AC_DEFINE(HAVE_MACH_CTHREADS)
-			LTHREAD_LIBS="$LTHREAD_LIBS -llwp"
+		dnl A few platforms have cthread support in standard libraries
+		AC_CHECK_FUNC(cthread_fork,[ol_link_threads=yes])
+
+		if test $ol_link_threads = no ; then
+			dnl try -all_load
+			dnl this test needs work
+			AC_CACHE_CHECK([for cthread_fork with -all_load],
+				[ol_cv_cthread_all_load], [
+				dnl save the CPPFLAGS
+				save_LIBS="$LIBS"
+				LIBS="-all_load $LIBS"
+				AC_TRY_LINK([#include <mach/cthreads.h>],[
+					cthread_fork((void *)0, (void *)0);
+					], ol_cv_cthread_all_load=yes, ol_cv_cthread_all_load=no)
+				dnl restore the LIBS
+				LIBS="$save_LIBS"
+			])
+
+			if test $ol_cv_cthread_all_load = yes ; then
+				LTHREAD_LIBS="$LTHREAD_LIBS -all_load"
+				ol_link_threads=mach
+			fi
 		fi
+
+		if test $ol_link_threads != no ; then
+			: check for cthread specific functionality here
+		else
+			AC_MSG_ERROR([could not link with Mach CThreads])
+		fi
+	fi
+
+	if test $ol_with_threads = mach ; then
+		AC_MSG_ERROR([could not locate Mach CThreads])
 	fi
 fi
 
 if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 	dnl check for SunOS5 LWP
 	AC_CHECK_HEADERS(thread.h synch.h)
-	if test $ac_cv_header_lwp_lwp_h = yes ; then
+	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
 		AC_CHECK_LIB(thread, thr_create, [have_lwp=yes], [have_lwp=no])
 
 		if test $have_lwp = yes ; then
@@ -470,7 +558,7 @@ if test $ol_with_threads = auto -o $ol_with_threads = lwp ; then
 
 	dnl check for SunOS4 LWP
 	AC_CHECK_HEADERS(lwp/lwp.h)
-	if test $ac_cv_header_thread_h = yes -a $ac_cv_header_synch_h = yes ; then
+	if test $ac_cv_header_lwp_lwp_h = yes ; then
 		AC_CHECK_LIB(lwp, lwp_create, [have_lwp=yes], [have_lwp=no])
 
 		if test $have_lwp = yes ; then
@@ -490,7 +578,7 @@ fi
 
 if test $ol_with_threads = manual ; then
 	dnl User thinks he can manually configure threads.
-	$ol_link_threads=yes
+	ol_link_threads=yes
 
 	AC_MSG_WARN([thread defines and link options must be set manually])
 
@@ -503,6 +591,18 @@ if test $ol_with_threads = manual ; then
 	AC_CHECK_HEADERS(thread.h synch.h)
 fi
 
+if test $ol_with_threads = yes ; then
+	dnl needed to get reentrant/threadsafe versions
+	dnl
+	dnl hopefully this will not cause problems with
+	dnl non-threaded apps
+	dnl
+	AC_DEFINE(_REENTRANT,1)
+	AC_DEFINE(_THREAD_SAFE,1)
+fi
+
+dnl ----------------------------------------------------------------
+
 if test $ol_link_threads = no ; then
 	if test $ol_with_threads = yes ; then
 		AC_MSG_ERROR([no suitable thread support])
@@ -510,7 +610,7 @@ if test $ol_link_threads = no ; then
 
 	if test $ol_with_threads = auto ; then
 		AC_MSG_WARN([no suitable thread support, disabling threads])
-		$ol_with_threads = no
+		ol_with_threads=no
 	fi
 
 	AC_DEFINE(NO_THREADS,1)
@@ -563,7 +663,7 @@ fi
 
 if test $ol_with_ldbm_api = manual ; then
 	dnl User thinks he can manually configure LDBM api.
-	$ol_link_ldbm=yes
+	ol_link_ldbm=yes
 
 	AC_MSG_WARN([LDBM defines and link options must be set manually])
 
@@ -572,7 +672,7 @@ fi
 
 if test $ol_link_ldbm = no -a $ol_with_ldbm_type = btree ; then
 	AC_MSG_WARN(Could not find LDBM with BTREE support)
-	$ol_with_ldbm_api=none
+	ol_with_ldbm_api=none
 fi
 
 if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = gdbm ; then
@@ -612,7 +712,7 @@ if test $ol_link_ldbm = no -a $ol_enable_ldbm != no ; then
 	fi
 
 	AC_MSG_WARN(disabling LDBM)
-	$ol_enable_ldbm=no
+	ol_enable_ldbm=no
 fi
 
 if test $ol_enable_wrappers = yes ; then
@@ -668,7 +768,7 @@ if test $ol_enable_crypt != no ; then
 			have_crypt=yes], [have_crypt=no])])
 
 	if test $have_crypt = yes ; then
-		AC_DEFINE(HAVE_CRYPT)
+		AC_DEFINE(HAVE_CRYPT,1)
 	else
 		AC_MSG_WARN(could not find crypt)
 		if test $ol_enable_crypt = yes ; then
@@ -677,6 +777,20 @@ if test $ol_enable_crypt != no ; then
 
 		AC_MSG_WARN(disabling crypt support)
 		ol_enable_crypt=no
+	fi
+fi
+
+# FreeBSD (and others) have setproctitle(3) in -lutil
+if test $ol_enable_proctitle != no ; then
+	AC_CHECK_FUNC(setproctitle,	[have_setproctitle=yes], [
+		AC_CHECK_LIB(util, setproctitle,
+			[have_setproctitle=yes
+			LUTIL_LIBS="$LUTIL_LIBS -lutil"],
+			[have_setproctitle=no
+			LIBOBJS="$LIBOBJS setproctitle.o"])])
+
+	if test $have_setproctitle = yes ; then
+		AC_DEFINE(HAVE_SETPROCTITLE,1)
 	fi
 fi
 
@@ -691,16 +805,19 @@ fi
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_CHECK_HEADERS(	\
+	stdarg.h		\
 	stddef.h		\
 	errno.h			\
 	fcntl.h			\
 	filio.h			\
 	getopt.h		\
+	libutil.h		\
 	limits.h		\
 	malloc.h		\
 	regex.h			\
 	sgtty.h			\
 	sys/file.h		\
+	sys/filio.h		\
 	sys/errno.h		\
 	sys/ioctl.h		\
 	sys/param.h		\
@@ -738,6 +855,12 @@ dnl Checks for library functions.
 AC_FUNC_MEMCMP
 AC_FUNC_STRFTIME
 AC_FUNC_VPRINTF
+
+if test $ac_cv_func_vprintf = yes ; then
+	dnl check for vsnprintf
+	AC_CHECK_FUNCS(vsnprintf)
+fi
+
 AC_FUNC_WAIT3
 
 AC_CHECK_FUNCS(		\
@@ -757,6 +880,7 @@ AC_CHECK_FUNCS(		\
 	setsid			\
 	signal			\
 	sigset			\
+	snprintf		\
 	socket			\
 	strerror		\
 	strstr			\
@@ -793,6 +917,9 @@ if test $ol_enable_cache = no ; then
 fi
 if test $ol_enable_dns != no ; then
 	AC_DEFINE(LDAP_DNS,1)
+fi
+if test $ol_enable_proctitle != no ; then
+	AC_DEFINE(LDAP_PROCTITLE,1)
 fi
 if test $ol_enable_referrals != no ; then
 	AC_DEFINE(LDAP_REFERRALS,1)
@@ -841,6 +968,10 @@ fi
 if test $ol_enable_slurpd != no -a $ol_link_threads != no -a \
 	$BUILD_SLAPD = yes ; then
 	BUILD_SLURPD=yes
+fi
+
+if test $ol_enable_ldapd != no ; then
+	BUILD_LDAPD=yes
 fi
 
 dnl ----------------------------------------------------------------
@@ -909,4 +1040,7 @@ servers/slapd/shell-backends/Makefile:build/top.mk:servers/slapd/shell-backends/
 servers/slapd/tools/Makefile:build/top.mk:servers/slapd/tools/Makefile.in \
 servers/slurpd/Makefile:build/top.mk:servers/slurpd/Makefile.in:build/srv.mk \
 tests/Makefile:build/top.mk:tests/Makefile.in \
-,[date > stamp-h])
+,[
+date > stamp-h
+echo Please \"make depend\" to build dependencies
+])
