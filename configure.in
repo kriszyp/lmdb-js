@@ -788,27 +788,35 @@ fi
 
 dnl ----------------------------------------------------------------
 dnl Check for resolver routines
-AC_CHECK_FUNC(res_search,:)
-if test $ac_cv_func_res_search = no ; then 
-	AC_CHECK_LIB(bind, res_search)
-	ac_cv_func_res_search=$ac_cv_lib_bind_res_search
+ol_link_dnssrv=no
+AC_CHECK_FUNC(res_query,:)
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(bind, res_query)
+	ac_cv_func_res_query=$ac_cv_lib_bind_res_query
 fi
 
-if test $ac_cv_func_res_search = no ; then 
-	AC_CHECK_LIB(bind, __res_search)
-	ac_cv_func_res_search=$ac_cv_lib_bind___res_search
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(bind, __res_query)
+	ac_cv_func_res_query=$ac_cv_lib_bind___res_query
 fi
 
-if test $ac_cv_func_res_search = no ; then 
-	AC_CHECK_LIB(resolv, res_search)
-	ac_cv_func_res_search=$ac_cv_lib_resolv_res_search
+if test $ac_cv_func_res_query = no ; then 
+	AC_CHECK_LIB(resolv, res_query)
+	ac_cv_func_res_query=$ac_cv_lib_resolv_res_query
 fi
 
-if test "$ac_cv_func_res_search" = yes ; then
-	AC_DEFINE(HAVE_RES_SEARCH,1,
-		[define if you have res_search()])
+if test "$ac_cv_func_res_query" = yes ; then
+	AC_DEFINE(HAVE_RES_QUERY,1,
+		[define if you have res_query()])
+
+	if test $ol_enable_dnssrv != no ; then
+		ol_link_dnssrv=yes
+	fi
 fi
 
+if test "$ol_enable_dnssrv" = yes -a "$ol_link_dnssrv" = no ; then
+	AC_MSG_ERROR([DNSSRV requires res_query()])
+fi
 
 dnl ----------------------------------------------------------------
 dnl QUIPU
@@ -2199,7 +2207,7 @@ if test "$ol_link_bdb2" != no ; then
 	fi
 fi
 
-if test "$ol_enable_dnssrv" != no ; then
+if test "$ol_link_dnssrv" != no ; then
 	AC_DEFINE(SLAPD_DNSSRV,1,[define to support DNS SRV backend])
 	BUILD_SLAPD=yes
 	BUILD_DNSSRV=yes

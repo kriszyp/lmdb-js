@@ -109,10 +109,13 @@ int ldap_dn2domain(
 					return -5;
 				}
 
-				if( domain == NULL ) ndomain[0] = '\0';
+				if( domain == NULL ) {
+					ndomain[0] = '\0';
+				} else {
+					strcat( ndomain, "." );
+				}
 
 				strcat( ndomain, dc );
-				strcat( ndomain, "." );
 
 				domain = ndomain;
 				continue;
@@ -191,7 +194,7 @@ int ldap_domain2hostlist(
 	LDAP_CONST char *domain,
 	char **list )
 {
-#ifdef HAVE_RES_SEARCH
+#ifdef HAVE_RES_QUERY
     char *request;
     char *dn;
     char *hostlist = NULL;
@@ -218,7 +221,7 @@ int ldap_domain2hostlist(
 #endif
 
     rc = LDAP_UNAVAILABLE;
-    len = res_search(request, C_IN, T_SRV, reply, sizeof(reply));
+    len = res_query(request, C_IN, T_SRV, reply, sizeof(reply));
     if (len >= 0) {
 	unsigned char *p;
 	char host[1024];
@@ -300,5 +303,5 @@ int ldap_domain2hostlist(
     return rc;
 #else
     return LDAP_NOT_SUPPORTED;
-#endif				/* HAVE_RES_SEARCH */
+#endif /* HAVE_RES_QUERY */
 }

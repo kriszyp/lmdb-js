@@ -614,8 +614,8 @@
 /* define if you have winsock */
 #undef HAVE_WINSOCK
 
-/* define if you have res_search() */
-#undef HAVE_RES_SEARCH
+/* define if you have res_query() */
+#undef HAVE_RES_QUERY
 
 /* define if you have HEIMDAL Kerberos */
 #undef HAVE_HEIMDAL_KERBEROS

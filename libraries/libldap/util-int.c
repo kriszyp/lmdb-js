@@ -64,7 +64,7 @@
 # ifndef HAVE_GETHOSTBYADDR_R
 	static ldap_pvt_thread_mutex_t ldap_int_gethostbyaddr_mutex;
 # endif
-# ifdef HAVE_RES_SEARCH
+# ifdef HAVE_RES_QUERY
 	ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
 # endif
 #endif /* LDAP_R_COMPILE */
@@ -277,7 +277,7 @@ void ldap_int_utils_init( void )
 	ldap_pvt_thread_mutex_init( &ldap_int_gethostbyaddr_mutex );
 #endif
 
-#ifdef HAVE_RES_SEARCH
+#ifdef HAVE_RES_QUERY
 	ldap_pvt_thread_mutex_init( &ldap_int_resolv_mutex );
 #endif
 

@@ -288,10 +288,10 @@ struct ldap {
 };
 #define LDAP_VALID(ld)	( (ld)->ld_valid == LDAP_VALID_SESSION )
 
-#if defined(HAVE_RES_SEARCH) && defined(LDAP_R_COMPILE)
+#if defined(HAVE_RES_QUERY) && defined(LDAP_R_COMPILE)
 #include <ldap_pvt_thread.h>
 extern ldap_pvt_thread_mutex_t ldap_int_resolv_mutex;
-#endif /* HAVE_RES_SEARCH && LDAP_R_COMPILE */
+#endif /* HAVE_RES_QUERY && LDAP_R_COMPILE */
 
 /*
  * in init.c

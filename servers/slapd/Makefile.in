@@ -245,7 +245,7 @@ all-cffiles: slapd
 	$(SED) -e 's;%SYSCONFDIR%;$(sysconfdir);' \
 		-e 's;%LOCALSTATEDIR%;$(localstatedir);' \
 		-e 's;%MODULEDIR%;$(moduledir);' \
-		$(srcdir)/$$cf > $$tmpcf ; \
+		< $(srcdir)/$$cf > $$tmpcf ; \
 	touch all-cffiles
 
 install-schema: FORCE

@@ -69,15 +69,15 @@ dnssrv_back_request(
 	}
 
 	for( i=0; hosts[i] != NULL; i++) {
-		struct berval *url = ch_malloc( sizeof( struct berval ) );
+		struct berval *url = ch_malloc( sizeof( struct berval ) ); 
 
-		url->bv_len = sizeof("ldap://") + strlen(hosts[i]);
-		url->bv_val = ch_malloc( url->bv_len );
+		url->bv_len = sizeof("ldap://")-1 + strlen(hosts[i]);
+		url->bv_val = ch_malloc( url->bv_len + 1 );
 
 		strcpy( url->bv_val, "ldap://" );
 		strcpy( &url->bv_val[sizeof("ldap://")-1], hosts[i] );
 
-		if( ber_bvecadd( &urls, url ) < 0) {
+		if( ber_bvecadd( &urls, url ) < 0 ) {
 			ber_bvfree( url );
 			send_ldap_result( conn, op, LDAP_OTHER,
 				NULL, "problem processing DNS SRV records for DN",
@@ -96,7 +96,33 @@ dnssrv_back_request(
 		urls[0]->bv_val );
 
 	if( manageDSAit ) {
-		if( op->o_tag != LDAP_REQ_SEARCH ) {
+		char *refdn, *nrefdn;
+		rc = ldap_domain2dn(domain, &refdn);
+
+		if( rc != LDAP_SUCCESS ) {
+			send_ldap_result( conn, op, LDAP_OTHER,
+				NULL, "DNS SRV problem processing manageDSAit control",
+				NULL, NULL );
+			goto done;
+		}
+
+		nrefdn = ch_strdup( refdn );
+		dn_normalize(nrefdn);
+
+		if( strcmp( nrefdn, ndn ) != 0 ) {
+			/* requested dn is subordinate */
+
+			Debug( LDAP_DEBUG_TRACE,
+					"DNSSRV: dn=\"%s\" subordindate to refdn=\"%s\"\n",
+					dn == NULL ? "" : dn,
+					refdn == NULL ? "" : refdn,
+					NULL );
+
+			send_ldap_result( conn, op, LDAP_NO_SUCH_OBJECT,
+				refdn, NULL,
+				NULL, NULL );
+
+		} else if( op->o_tag != LDAP_REQ_SEARCH ) {
 			send_ldap_result( conn, op, LDAP_UNWILLING_TO_PERFORM,
 				dn, "DNS SRV ManageDSAIT control disallowed",
 				NULL, NULL );
@@ -202,6 +228,10 @@ dnssrv_back_request(
 			send_ldap_result( conn, op, LDAP_SUCCESS,
 				NULL, NULL, NULL, NULL );
 		}
+
+		free( refdn );
+		free( nrefdn );
+
 	} else {
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			NULL, "DNS SRV generated referrals", urls, NULL );
