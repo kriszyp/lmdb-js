@@ -267,7 +267,7 @@ static Listener * open_listener( const char* url )
 	}
 
 	if ( err ) {
-		Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed\n", 0, 0, 0);
+		Debug( LDAP_DEBUG_ANY, "daemon: getaddrinfo failed: %s\n", gai_strerror(err), 0, 0);
 		ldap_free_urldesc( lud );
 		return NULL;
 	}

@@ -257,7 +257,7 @@ get_filter(
 	case LDAP_FILTER_EXT:
 		/* not yet implemented */
 		Debug( LDAP_DEBUG_ANY, "extensible match not yet implemented.\n",
-		       f->f_choice, 0, 0 );
+		       0, 0, 0 );
 		(void) ber_skip_tag( ber, &len );
 		f->f_choice = SLAPD_FILTER_COMPUTED;
 		f->f_result = SLAPD_COMPARE_UNDEFINED;
