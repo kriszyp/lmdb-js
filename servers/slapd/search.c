@@ -488,10 +488,10 @@ static int doPreSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
 		 * entire operation.
 		 */
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_search: search preoperation plugin "
+		LDAP_LOG( OPERATION, INFO, "doPreSearchPluginFNs: search preoperation plugin "
 				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_search: search preoperation plugin "
+		Debug(LDAP_DEBUG_TRACE, "doPreSearchPluginFNs: search preoperation plugin "
 				"failed.\n", 0, 0, 0);
 #endif
 		if ( slapi_pblock_get( pb, SLAPI_RESULT_CODE, (void *)&rc ) != 0)
@@ -515,7 +515,7 @@ static int doSearchRewriteFNs( Backend *be, Slapi_PBlock *pb, Filter **filter, s
 		filter2bv( *filter, fstr );
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
-			"do_search: after compute_rewrite_search filter: %s\n", 
+			"doSearchRewriteFNs: after compute_rewrite_search filter: %s\n", 
 			fstr->bv_len ? fstr->bv_val : "empty", 0 );
 #else
 		Debug( LDAP_DEBUG_ARGS, "    after compute_rewrite_search filter: %s\n",
@@ -530,10 +530,10 @@ static int doPostSearchPluginFNs( Backend *be, Slapi_PBlock *pb )
 {
 	if ( doPluginFNs( be, SLAPI_PLUGIN_POST_SEARCH_FN, pb ) != 0 ) {
 #ifdef NEW_LOGGING
-		LDAP_LOG( OPERATION, INFO, "do_search: search postoperation plugins "
+		LDAP_LOG( OPERATION, INFO, "doPostSearchPluginFNs: search postoperation plugins "
 				"failed\n", 0, 0, 0 );
 #else
-		Debug(LDAP_DEBUG_TRACE, "do_search: search postoperation plugins "
+		Debug(LDAP_DEBUG_TRACE, "doPostSearchPluginFNs: search postoperation plugins "
 				"failed.\n", 0, 0, 0);
 #endif
 	}

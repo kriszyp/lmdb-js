@@ -673,7 +673,8 @@ netscape_plugin(
 
 	if ( iType == SLAPI_PLUGIN_PREOPERATION ||
 		  	iType == SLAPI_PLUGIN_EXTENDEDOP ||
-			iType == SLAPI_PLUGIN_POSTOPERATION ) {
+			iType == SLAPI_PLUGIN_POSTOPERATION ||
+			iType == SLAPI_PLUGIN_OBJECT ) {
 		int rc;
 		Slapi_PBlock *pPlugin;
 
