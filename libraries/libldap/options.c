@@ -88,11 +88,6 @@ ldap_get_option(
 		ldap_int_initialize();
 	}
 
-	if(outvalue == NULL) {
-		/* no place to get to */
-		return LDAP_OPT_ERROR;
-	}
-
 	if(ld == NULL) {
 		lo = &ldap_int_global_options;
 
@@ -104,6 +99,11 @@ ldap_get_option(
 		}
 
 		lo = &ld->ld_options;
+	}
+
+	if(outvalue == NULL) {
+		/* no place to get to */
+		return LDAP_OPT_ERROR;
 	}
 
 	switch(option) {
