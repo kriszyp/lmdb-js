@@ -95,6 +95,7 @@ Entry *deref_internal_r(
 
 			/* check if aliasDN is a subordinate of any DN in our list */
 			if( dnlist_subordinate( dnlist, aliasDN ) ) {
+				ch_free( aliasDN );
 				*matched = entry;
 				entry = NULL;
 				*err = LDAP_ALIAS_PROBLEM;
@@ -105,6 +106,7 @@ Entry *deref_internal_r(
 			/* attempt to dereference alias */
 
 			newe = dn2entry_r( be, aliasDN, &sup );
+			ch_free( aliasDN );
 
 			if( newe != NULL ) {
 				free( dn );
@@ -113,7 +115,6 @@ Entry *deref_internal_r(
 				dn = ch_strdup( entry->e_ndn );
 				charray_add( &dnlist, dn );
 				continue;
-
 			}
 			
 			if ( sup != NULL ) {
@@ -157,6 +158,7 @@ Entry *deref_internal_r(
 			}
 
 			aliasDN = new_superior( dn, sup->e_ndn, supDN );
+			free(supDN);
 
 			if( aliasDN == NULL ) {
 				free(aliasDN);
@@ -217,6 +219,7 @@ static char* get_alias_dn(
 	int *err,
 	const char **errmsg )
 {	
+	char *dn;
 	Attribute *a;
 	AttributeDescription *aliasedObjectName = slap_schema.si_ad_aliasedObjectName;
 
@@ -249,7 +252,16 @@ static char* get_alias_dn(
 		return NULL;
 	}
 
-	return a->a_vals[0]->bv_val;
+	dn = ch_strdup( a->a_vals[0]->bv_val );
+
+	if( dn_normalize(dn) == NULL ) {
+		ch_free( dn );
+		*err = LDAP_ALIAS_PROBLEM;
+		*errmsg = "alias aliasedObjectName value is invalid";
+		return NULL;
+	}
+
+	return dn;
 }
 
 char* new_superior(

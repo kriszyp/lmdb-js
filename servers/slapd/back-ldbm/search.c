@@ -113,6 +113,11 @@ ldbm_back_search(
 		return 1;
 	}
 
+	if ( is_entry_alias( e ) ) {
+		/* don't deref */
+		deref = LDAP_DEREF_NEVER;
+	}
+
 	if ( tlimit == 0 && be_isroot( be, op->o_ndn ) ) {
 		tlimit = -1;	/* allow root to set no limit */
 	} else {
