@@ -63,7 +63,7 @@ sl_mem_create(
 	struct slab_heap *sh = NULL;
 	int pad = 2*sizeof(int)-1;
 
-	ldap_pvt_thread_pool_getkey( ctx, sl_mem_init, (void **)&sh, NULL );
+	ldap_pvt_thread_pool_getkey( ctx, (void *)sl_mem_init, (void **)&sh, NULL );
 
 	/* round up to doubleword boundary */
 	size += pad;
@@ -72,7 +72,7 @@ sl_mem_create(
 	if (!sh) {
 		sh = ch_malloc( sizeof(struct slab_heap) );
 		sh->h_base = ch_malloc( size );
-		ldap_pvt_thread_pool_setkey( ctx, sl_mem_init, (void *)sh, sl_mem_destroy );
+		ldap_pvt_thread_pool_setkey( ctx, (void *)sl_mem_init, (void *)sh, sl_mem_destroy );
 	} else if ( size > (char *) sh->h_end - (char *) sh->h_base ) {
 		sh->h_base = ch_realloc( sh->h_base, size );
 	}
@@ -88,7 +88,7 @@ sl_mem_detach(
 )
 {
 	/* separate from context */
-	ldap_pvt_thread_pool_setkey( ctx, sl_mem_init, NULL, NULL );
+	ldap_pvt_thread_pool_setkey( ctx, (void *)sl_mem_init, NULL, NULL );
 }
 
 void *
@@ -214,7 +214,7 @@ sl_context( void *ptr )
 
 	ctx = ldap_pvt_thread_pool_context();
 
-	ldap_pvt_thread_pool_getkey( ctx, sl_mem_init, (void **)&sh, NULL );
+	ldap_pvt_thread_pool_getkey( ctx, (void *)sl_mem_init, (void **)&sh, NULL );
 
 	if ( sh && ptr >= sh->h_base && ptr <= sh->h_end ) {
 		return sh;
