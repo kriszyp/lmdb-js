@@ -325,6 +325,73 @@ caseExactIA5Match(
 	return LDAP_SUCCESS;
 }
 
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static int
+caseExactIA5SubstringsMatch(
+	int *matchp,
+	unsigned use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match = 0;
+	SubstringsAssertion *sub = assertedValue;
+	struct berval left = *value;
+	int i;
+	ber_len_t inlen=0;
+
+	if( sub->sa_initial ) {
+		inlen += sub->sa_initial->bv_len;
+	}
+	if( sub->sa_any ) {
+		for(i=0; sub->sa_any[i]; i++) {
+			inlen += sub->sa_final->bv_len;
+		}
+	}
+	if( sub->sa_final ) {
+		inlen += sub->sa_final->bv_len;
+	}
+
+	if( inlen > value->bv_len ) {
+		match = 1;
+		goto done;
+	}
+
+	if( sub->sa_initial ) {
+		match = strncmp( sub->sa_initial->bv_val, left.bv_val,
+			sub->sa_initial->bv_len );
+
+		if( match != 0 ) {
+			goto done;
+		}
+
+		left.bv_val += sub->sa_initial->bv_len;
+		left.bv_len -= sub->sa_initial->bv_len;
+	}
+
+	if( sub->sa_final ) {
+		match = strncmp( sub->sa_final->bv_val,
+			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
+			sub->sa_final->bv_len );
+
+		if( match != 0 ) {
+			goto done;
+		}
+
+		left.bv_len -= sub->sa_final->bv_len;
+	}
+
+	if( sub->sa_any ) {
+		return LDAP_OTHER;
+	}
+
+done:
+	*matchp = match;
+	return LDAP_SUCCESS;
+}
+#endif
+
 static int
 caseIgnoreIA5Match(
 	int *match,
@@ -338,6 +405,73 @@ caseIgnoreIA5Match(
 		((struct berval *) assertedValue)->bv_val );
 	return LDAP_SUCCESS;
 }
+
+#ifdef SLAPD_SCHEMA_NOT_COMPAT
+static int
+caseIgnoreIA5SubstringsMatch(
+	int *matchp,
+	unsigned use,
+	Syntax *syntax,
+	MatchingRule *mr,
+	struct berval *value,
+	void *assertedValue )
+{
+	int match = 0;
+	SubstringsAssertion *sub = assertedValue;
+	struct berval left = *value;
+	int i;
+	ber_len_t inlen=0;
+
+	if( sub->sa_initial ) {
+		inlen += sub->sa_initial->bv_len;
+	}
+	if( sub->sa_any ) {
+		for(i=0; sub->sa_any[i]; i++) {
+			inlen += sub->sa_final->bv_len;
+		}
+	}
+	if( sub->sa_final ) {
+		inlen += sub->sa_final->bv_len;
+	}
+
+	if( inlen > value->bv_len ) {
+		match = 1;
+		goto done;
+	}
+
+	if( sub->sa_initial ) {
+		match = strncasecmp( sub->sa_initial->bv_val, left.bv_val,
+			sub->sa_initial->bv_len );
+
+		if( match != 0 ) {
+			goto done;
+		}
+
+		left.bv_val += sub->sa_initial->bv_len;
+		left.bv_len -= sub->sa_initial->bv_len;
+	}
+
+	if( sub->sa_final ) {
+		match = strncasecmp( sub->sa_final->bv_val,
+			&left.bv_val[left.bv_len - sub->sa_final->bv_len],
+			sub->sa_final->bv_len );
+
+		if( match != 0 ) {
+			goto done;
+		}
+
+		left.bv_len -= sub->sa_final->bv_len;
+	}
+
+	if( sub->sa_any ) {
+		return LDAP_OTHER;
+	}
+
+done:
+	*matchp = match;
+	return LDAP_SUCCESS;
+}
+#endif
 
 struct syntax_defs_rec {
 	char *sd_desc;
@@ -514,17 +648,22 @@ struct mrule_defs_rec {
  * 2.5.13.44	attributeIntegrityMatch
  */
 
+#ifndef SLAPD_SCHEMA_NOT_COMPAT
+#define caseIgnoreIA5SubstringsMatch NULL
+#define caseExactIA5SubstringsMatch NULL
+#endif
+
 /* recycled matching functions */
 #define caseIgnoreMatch caseIgnoreIA5Match
+#define caseIgnoreOrderingMatch caseIgnoreMatch
+#define caseIgnoreSubstringsMatch caseIgnoreIA5SubstringsMatch
 #define caseExactMatch caseExactIA5Match
+#define caseExactOrderingMatch caseExactMatch
+#define caseExactSubstringsMatch caseExactIA5SubstringsMatch
 
 /* unimplemented matching functions */
 #define objectIdentifierMatch NULL
 #define distinguishedNameMatch NULL
-#define caseIgnoreOrderingMatch NULL
-#define caseIgnoreSubstringsMatch NULL
-#define caseExactOrderingMatch NULL
-#define caseExactSubstringsMatch NULL
 #define numericStringMatch NULL
 #define numericStringSubstringsMatch NULL
 #define caseIgnoreListMatch NULL
@@ -541,7 +680,6 @@ struct mrule_defs_rec {
 #define generalizedTimeOrderingMatch NULL
 #define integerFirstComponentMatch NULL
 #define objectIdentifierFirstComponentMatch NULL
-#define caseIgnoreIA5SubstringsMatch NULL
 
 struct mrule_defs_rec mrule_defs[] = {
 	{"( 2.5.13.0 NAME 'objectIdentifierMatch' "
