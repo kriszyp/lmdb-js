@@ -1,6 +1,7 @@
 OpenLDAP 2.1 Change Log
 
 OpenLDAP 2.1.28 Engineering
+	Fixed back-bdb slapadd crash (ITS#2974)
 
 OpenLDAP 2.1.27 Release
 	Fixed slapd replog ordering bug (ITS#2512)
