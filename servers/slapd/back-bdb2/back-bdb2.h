@@ -82,8 +82,8 @@ struct cache {
 	ldap_pvt_thread_mutex_t	c_mutex;
 };
 
-#define CACHE_READ_LOCK		1
-#define CACHE_WRITE_LOCK	2
+#define CACHE_READ_LOCK		0
+#define CACHE_WRITE_LOCK	1
 
 /* for the cache of open index files (re-used for txn) */
 struct dbcache {

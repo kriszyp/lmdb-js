@@ -3,7 +3,7 @@
 #include "portable.h"
 
 #include <stdio.h>
-#include <errno.h>
+#include <ac/errno.h>
 
 #include <ac/string.h>
 
@@ -91,7 +91,6 @@ bdb2i_leave_backend_rw( DB_LOCK lock, int writer )
 		we must have several return codes that are or'ed at the end  */
 	int   ret_transaction = 0;
 	int   ret_lock        = 0;
-	int   ret_chkp        = 0;
 
 	/*  if we are a writer, finish the transaction  */
 	if ( writer ) {

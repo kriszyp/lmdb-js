@@ -116,7 +116,6 @@ bdb2i_dn2id_delete(
     char	*dn
 )
 {
-	struct ldbminfo	*li = (struct ldbminfo *) be->be_private;
 	struct dbcache	*db;
 	Datum		key;
 	int		rc;

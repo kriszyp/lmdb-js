@@ -167,6 +167,7 @@ add_value(
 {
 	int	rc;
 	Datum   key;
+	/* XXX do we need idl ??? */
 	ID_BLOCK	*idl = NULL;
 	char	*tmpval = NULL;
 	char	*realval = val;
