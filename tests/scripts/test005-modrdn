@@ -31,8 +31,8 @@ echo "Testing slapd modrdn operations..."
 
 # Make sure we can search the database
 for i in 0 1 2 3 4 5; do
-	$LDAPSEARCH -s base -b "$MONITOR" -h localhost -p $PORT \
-		'objectclass=*' > /dev/null 2>&1
+	$LDAPSEARCH -S "" -b "$BASEDN" -h localhost -p $PORT \
+	    'objectClass=*' > $INITOUT 2>&1
 	RC=$?
 	if test $RC = 1 ; then
 		echo "Waiting 5 seconds for slapd to start..."

@@ -184,7 +184,7 @@ ID ldbm_tool_entry_put(
 	rc = ldbm_cache_store( id2entry, key, data, LDBM_REPLACE );
 
 	if( rc != 0 ) {
-		(void) dn2id_delete( be, e->e_ndn );
+		(void) dn2id_delete( be, e->e_ndn, e->e_id );
 		return NOID;
 	}
 

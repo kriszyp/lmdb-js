@@ -317,7 +317,8 @@ loop_continue:
 	rc = 0;
 
 done:
-	idl_free( candidates );
+	if( candidates != NULL )
+		idl_free( candidates );
 
 	ber_bvecfree( v2refs );
 	if( realbase ) free( realbase );

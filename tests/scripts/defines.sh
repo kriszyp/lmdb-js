@@ -60,6 +60,7 @@ LDIFFLT=$DBDIR/ldif.flt
 MASTEROUT=$DBDIR/master.out
 SLAVEOUT=$DBDIR/slave.out
 TESTOUT=$DBDIR/test.out
+INITOUT=$DBDIR/init.out
 SEARCHOUTMASTER=$DATADIR/search.out.master
 MODIFYOUTMASTER=$DATADIR/modify.out.master
 ADDDELOUTMASTER=$DATADIR/adddel.out.master
