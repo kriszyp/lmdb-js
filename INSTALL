@@ -12,16 +12,12 @@ these steps:
 
  1. untar the distribution and cd to the top:
 
-	% tar xfz ldap-stable.tgz
+	% tar xfz openldap-VERSION.tgz
 	% cd ldap
 
     If you are reading this file, you probably have already done this!
 
-
- 2. Type:
-	% make Make-common
-
-	to copy Make-common.dist to Make.common. 
+ 2. copy Make-common.dist or Make-common.gmake to Make.common 
 
  3. edit the files Make-common and include/ldapconfig.h.edit to configure
     the software for your site (the files are well-commented):
