@@ -150,8 +150,7 @@ do_add( Connection *conn, Operation *op )
 		goto done;
 	}
 
-	manageDSAit = get_manageDSAit( op ) &&
-		is_entry_referral( e );
+	manageDSAit = get_manageDSAit( op );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
