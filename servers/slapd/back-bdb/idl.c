@@ -437,123 +437,150 @@ bdb_idl_delete_key(
 
 
 /*
- * idl_intersection - return a intersection b
+ * idl_intersection - return a = a intersection b
  */
 int
 bdb_idl_intersection(
 	ID *a,
-	ID *b,
-	ID *ids )
+	ID *b )
 {
 	ID ida, idb;
-	ID cursora = 0, cursorb = 0;
+	ID idmax, idmin;
+	ID cursora = 0, cursorb = 0, cursorc;
+	int swap = 0;
 
 	if ( BDB_IDL_IS_ZERO( a ) || BDB_IDL_IS_ZERO( b ) ) {
-		ids[0] = 0;
+		a[0] = 0;
+		return 0;
+	}
+
+	idmin = IDL_MAX( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
+	idmax = IDL_MIN( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
+	if ( idmin > idmax ) {
+		a[0] = 0;
+		return 0;
+	} else if ( idmin == idmax ) {
+		a[0] = 1;
+		a[1] = idmin;
 		return 0;
 	}
 
 	if ( BDB_IDL_IS_RANGE( a ) && BDB_IDL_IS_RANGE(b) ) {
-		ids[0] = NOID;
-		ids[1] = IDL_MAX( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
-		ids[2] = IDL_MIN( BDB_IDL_LAST(a), BDB_IDL_FIRST(b) );
-
-		if ( ids[1] == ids[2] ) {
-			ids[0] = 1;
-		} else if( ids[1] > ids[2] ) {
-			ids[0] = 0;
-		}
+		a[1] = idmin;
+		a[2] = idmax;
 		return 0;
 	}
 
-	if( BDB_IDL_IS_RANGE( a ) ) {
+	if ( BDB_IDL_IS_RANGE( a ) ) {
 		ID *tmp = a;
 		a = b;
 		b = tmp;
+		swap = 1;
 	}
 
-	ida = bdb_idl_first( a, &cursora ),
+	if ( BDB_IDL_IS_RANGE( b ) && BDB_IDL_FIRST( b ) <= idmin &&
+		BDB_IDL_LAST( b ) >= idmax) {
+		if (idmax - idmin + 1 == a[0])
+		{
+			a[0] = NOID;
+			a[1] = idmin;
+			a[2] = idmax;
+		}
+		goto done;
+	}
+
+	ida = bdb_idl_first( a, &cursora );
 	idb = bdb_idl_first( b, &cursorb );
+	cursorc = 0;
 
-	ids[0] = 0;
+	while( ida < idmin )
+		ida = bdb_idl_next( a, &cursora );
+	while( idb < idmin )
+		idb = bdb_idl_next( b, &cursorb );
 
-	while( ida != NOID || idb != NOID ) {
+	while( ida <= idmax || idb <= idmax ) {
 		if( ida == idb ) {
-			ids[++ids[0]] = ida;
+			a[++cursorc] = ida;
 			ida = bdb_idl_next( a, &cursora );
 			idb = bdb_idl_next( b, &cursorb );
-			if( BDB_IDL_IS_RANGE( b ) && idb < ida ) {
-				if( ida > BDB_IDL_LAST( b ) ) {
-					idb = NOID;
-				} else {
-					idb = ida;
-					cursorb = ida;
-				}
-			}
 		} else if ( ida < idb ) {
 			ida = bdb_idl_next( a, &cursora );
 		} else {
 			idb = bdb_idl_next( b, &cursorb );
 		}
 	}
+	a[0] = cursorc;
+done:
+	if (swap)
+		BDB_IDL_CPY( b, a );
 
 	return 0;
 }
 
 
 /*
- * idl_union - return a union b
+ * idl_union - return a = a union b
  */
 int
 bdb_idl_union(
 	ID	*a,
-	ID	*b,
-	ID *ids )
+	ID	*b )
 {
 	ID ida, idb;
-	ID cursora = 0, cursorb = 0;
+	ID cursora = 0, cursorb = 0, cursorc;
 
-	if ( BDB_IDL_IS_ZERO( a ) ) {
-		BDB_IDL_CPY( ids, b );
+	if ( BDB_IDL_IS_ZERO( b ) ) {
 		return 0;
 	}
 
-	if ( BDB_IDL_IS_ZERO( b ) ) {
-		BDB_IDL_CPY( ids, a );
+	if ( BDB_IDL_IS_ZERO( a ) ) {
+		BDB_IDL_CPY( a, b );
 		return 0;
 	}
 
 	if ( BDB_IDL_IS_RANGE( a ) || BDB_IDL_IS_RANGE(b) ) {
-		ids[0] = NOID;
-		ids[1] = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
-		ids[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_FIRST(b) );
+over:		a[1] = IDL_MIN( BDB_IDL_FIRST(a), BDB_IDL_FIRST(b) );
+		a[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
 		return 0;
 	}
 
 	ida = bdb_idl_first( a, &cursora );
 	idb = bdb_idl_first( b, &cursorb );
 
-	ids[0] = 0;
+	cursorc = b[0];
 
+	/* The distinct elements of a are cat'd to b */
 	while( ida != NOID || idb != NOID ) {
-		if( ++ids[0] > BDB_IDL_UM_MAX ) {
-			ids[0] = NOID;
-			ids[2] = IDL_MAX( BDB_IDL_LAST(a), BDB_IDL_LAST(b) );
-			break;
-		}
-
 		if ( ida < idb ) {
-			ids[ids[0]] = ida;
+			if( ++cursorc > BDB_IDL_UM_MAX ) {
+				a[0] = NOID;
+				goto over;
+			}
+			b[cursorc] = ida;
 			ida = bdb_idl_next( a, &cursora );
-
-		} else if ( ida > idb ) {
-			ids[ids[0]] = idb;
-			idb = bdb_idl_next( b, &cursorb );
 
 		} else {
-			ids[ids[0]] = ida;
-			ida = bdb_idl_next( a, &cursora );
+			if ( ida == idb )
+				ida = bdb_idl_next( a, &cursora );
 			idb = bdb_idl_next( b, &cursorb );
+		}
+	}
+
+	/* b is copied back to a in sorted order */
+	a[0] = cursorc;
+	cursora = 1;
+	cursorb = 1;
+	cursorc = b[0]+1;
+	while (cursorb <= b[0] || cursorc <= a[0]) {
+		if (cursorc > a[0])
+			idb = NOID;
+		else
+			idb = b[cursorc];
+		if (b[cursorb] < idb)
+			a[cursora++] = b[cursorb++];
+		else {
+			a[cursora++] = idb;
+			cursorc++;
 		}
 	}
 

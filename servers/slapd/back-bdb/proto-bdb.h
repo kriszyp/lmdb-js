@@ -119,7 +119,8 @@ void bdb_errcall( const char *pfx, char * msg );
 int bdb_filter_candidates(
 	Backend	*be,
 	Filter	*f,
-	ID *ids );
+	ID *ids,
+	ID *tmp );
 
 /*
  * group.c
@@ -185,23 +186,23 @@ int bdb_idl_delete_key(
 	DBT *key,
 	ID id );
 
+#if 0
 int
 bdb_idl_notin(
     ID 	*a,
     ID 	*b,
 	ID	*ids );
+#endif
 
 int
 bdb_idl_intersection(
 	ID *a,
-	ID *b,
-	ID *ids );
+	ID *b );
 
 int
 bdb_idl_union(
 	ID *a,
-	ID *b,
-	ID *ids );
+	ID *b );
 
 ID bdb_idl_first( ID *ids, ID *cursor );
 ID bdb_idl_next( ID *ids, ID *cursor );

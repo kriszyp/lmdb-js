@@ -231,6 +231,7 @@ bdb_search(
 		rc = base_candidate( be, e, candidates );
 
 	} else {
+		BDB_IDL_ALL( bdb, candidates );
 		rc = search_candidates( be, e, filter,
 			scope, deref, manageDSAit, candidates );
 	}
@@ -468,6 +469,39 @@ static int base_candidate(
 	return 0;
 }
 
+/* Is "objectClass=xx" mentioned anywhere in this filter? Presence
+ * doesn't count, we're looking for explicit values.
+ */
+static int oc_filter(
+	Filter *f
+)
+{
+	int rc = 0;
+
+	switch(f->f_choice) {
+	case LDAP_FILTER_EQUALITY:
+	case LDAP_FILTER_APPROX:
+		if (f->f_av_desc == slap_schema.si_ad_objectClass)
+			rc = 1;
+		break;
+
+	case LDAP_FILTER_SUBSTRINGS:
+		if (f->f_sub_desc == slap_schema.si_ad_objectClass)
+			rc = 1;
+		break;
+
+	case LDAP_FILTER_AND:
+	case LDAP_FILTER_OR:
+		for (f=f->f_and; f; f=f->f_next)
+			if ((rc = oc_filter(f)))
+				break;
+		break;
+	default:
+		break;
+	}
+	return rc;
+}
+
 static int search_candidates(
 	BackendDB *be,
 	Entry *e,
@@ -479,6 +513,7 @@ static int search_candidates(
 {
 	int rc;
 	Filter		f, fand, rf, xf;
+	ID		tmp[BDB_IDL_UM_SIZE];
 	AttributeAssertion aa_ref;
 	struct bdb_info *bdb = (struct bdb_info *) be->be_private;
 #ifdef BDB_ALIASES
@@ -494,7 +529,11 @@ static int search_candidates(
 	xf.f_choice = LDAP_FILTER_OR;
 	xf.f_next = NULL;
 
-	if( !manageDSAit ) {
+	/* If the user's filter doesn't mention objectClass, or if
+	 * it just uses objectClass=*, these clauses are redundant.
+	 */
+	if (oc_filter(filter)) {
+	    if( !manageDSAit ) {
 		/* match referrals */
 		static struct berval bv_ref = { sizeof("REFERRAL")-1, "REFERRAL" };
 		rf.f_choice = LDAP_FILTER_EQUALITY;
@@ -503,10 +542,10 @@ static int search_candidates(
 		rf.f_av_value = &bv_ref;
 		rf.f_next = xf.f_or;
 		xf.f_or = &rf;
-	}
+	    }
 
 #ifdef BDB_ALIASES
-	if( deref & LDAP_DEREF_SEARCHING ) {
+	    if( deref & LDAP_DEREF_SEARCHING ) {
 		/* match aliases */
 		static struct berval bv_alias = { sizeof("ALIAS")-1, "ALIAS" };
 		af.f_choice = LDAP_FILTER_EQUALITY;
@@ -515,8 +554,9 @@ static int search_candidates(
 		af.f_av_value = &bv_alias;
 		af.f_next = xf.f_or;
 		xf.f_or = &af;
-	}
+	    }
 #endif
+	}
 
 	f.f_next = NULL;
 	f.f_choice = LDAP_FILTER_AND;
@@ -529,7 +569,7 @@ static int search_candidates(
 
 
 #ifdef BDB_FILTER_INDICES
-	rc = bdb_filter_candidates( be, &f, ids );
+	rc = bdb_filter_candidates( be, &f, ids, tmp );
 #else
 	/* FIXME: Original code:
 	BDB_IDL_ID( bdb, ids, e->e_id );
