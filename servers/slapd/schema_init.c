@@ -678,7 +678,7 @@ strip8bitChars(
 	return in;
 }
 
-#if defined(SLAPD_APPROX_MULTISTRING)
+#ifndef SLAPD_APPROX_OLDSINGLESTRING
 
 #if defined(SLAPD_APPROX_INITIALS)
 #define SLAPD_APPROX_DELIMITER "._ "
