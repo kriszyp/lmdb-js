@@ -24,7 +24,6 @@
 #define faxNumberNormalize				numericStringNormalize
 #define phoneNumberNormalize			numericStringNormalize
 #define telexNumberNormalize			numericStringNormalize
-#define nameUIDNormalize				dnNormalize
 
 /* unimplemented normalizers */
 #define bitStringNormalize				NULL
