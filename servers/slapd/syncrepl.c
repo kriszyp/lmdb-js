@@ -1150,6 +1150,8 @@ syncrepl_entry(
 	struct berval pdn = BER_BVNULL;
 	struct berval org_req_dn = BER_BVNULL;
 	struct berval org_req_ndn = BER_BVNULL;
+	struct berval org_dn = BER_BVNULL;
+	struct berval org_ndn = BER_BVNULL;
 	int	org_managedsait;
 	dninfo dni = {0};
 	int	retry = 1;
@@ -1204,12 +1206,13 @@ syncrepl_entry(
 	ava.aa_value = *syncUUID;
 	op->ors_filter = &f;
 
-	op->ors_filterstr.bv_len = STRLENOF( "entryUUID=" ) + syncUUID->bv_len;
+	op->ors_filterstr.bv_len = STRLENOF( "(entryUUID=)" ) + syncUUID->bv_len;
 	op->ors_filterstr.bv_val = (char *) slap_sl_malloc(
 		op->ors_filterstr.bv_len + 1, op->o_tmpmemctx ); 
-	AC_MEMCPY( op->ors_filterstr.bv_val, "entryUUID=", STRLENOF( "entryUUID=" ) );
-	AC_MEMCPY( &op->ors_filterstr.bv_val[STRLENOF( "entryUUID=" )],
+	AC_MEMCPY( op->ors_filterstr.bv_val, "(entryUUID=", STRLENOF( "(entryUUID=" ) );
+	AC_MEMCPY( &op->ors_filterstr.bv_val[STRLENOF( "(entryUUID=" )],
 		syncUUID->bv_val, syncUUID->bv_len );
+	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len - 1] = ')';
 	op->ors_filterstr.bv_val[op->ors_filterstr.bv_len] = '\0';
 
 	op->o_tag = LDAP_REQ_SEARCH;
@@ -1246,7 +1249,16 @@ syncrepl_entry(
 	cb.sc_response = null_callback;
 	cb.sc_private = si;
 
-	if ( entry && entry->e_name.bv_val ) {
+	org_req_dn = op->o_req_dn;
+	org_req_ndn = op->o_req_ndn;
+	org_dn = op->o_dn;
+	org_ndn = op->o_ndn;
+	org_managedsait = get_manageDSAit( op );
+	op->o_dn = op->o_bd->be_rootdn;
+	op->o_ndn = op->o_bd->be_rootndn;
+	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
+
+	if ( entry && !BER_BVISNULL( &entry->e_name ) ) {
 		Debug( LDAP_DEBUG_SYNC,
 				"syncrepl_entry: %s\n",
 				entry->e_name.bv_val, 0, 0 );
@@ -1262,9 +1274,22 @@ syncrepl_entry(
 	op->o_managedsait = SLAP_CONTROL_NONCRITICAL;
 
 	if ( syncstate != LDAP_SYNC_DELETE ) {
-		attr_delete( &entry->e_attrs, slap_schema.si_ad_entryUUID );
-		attr_merge_one( entry, slap_schema.si_ad_entryUUID,
-			&syncUUID_strrep, syncUUID );
+		Attribute	*a = attr_find( entry->e_attrs, slap_schema.si_ad_entryUUID );
+
+		if ( a == NULL ) {
+			/* add if missing */
+			attr_merge_one( entry, slap_schema.si_ad_entryUUID,
+				&syncUUID_strrep, syncUUID );
+
+		} else if ( !bvmatch( &a->a_nvals[0], syncUUID ) ) {
+			/* replace only if necessary */
+			if ( a->a_nvals != a->a_vals ) {
+				ber_memfree( a->a_nvals[0].bv_val );
+				ber_dupbv( &a->a_nvals[0], syncUUID );
+			}
+			ber_memfree( a->a_vals[0].bv_val );
+			ber_dupbv( &a->a_vals[0], &syncUUID_strrep );
+		}
 	}
 
 	switch ( syncstate ) {
