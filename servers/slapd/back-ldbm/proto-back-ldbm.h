@@ -202,7 +202,7 @@ extern int ldbm_back_exop_passwd LDAP_P(( BackendDB *bd,
 int ldbm_modify_internal LDAP_P((Backend *be,
 	Connection *conn, Operation *op,
 	const char *dn, Modifications *mods, Entry *e,
-	const char ** ));
+	const char **text, char *textbuf, size_t textlen ));
 
 /*
  * nextid.c

@@ -119,10 +119,6 @@ struct ldbminfo {
 	ldap_pvt_thread_cond_t		li_dbcache_cv;
 };
 
-struct ldbm_backend_info {
-	char	*lbi_directory;
-};
-
 LDAP_END_DECL
 
 #include "proto-back-ldbm.h"
