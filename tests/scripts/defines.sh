@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 # $OpenLDAP$
 
 DATADIR=$SRCDIR/data
