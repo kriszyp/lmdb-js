@@ -425,6 +425,9 @@ ldap_send_entry(
 
 	while ( ber_scanf( &ber, "{o", &a ) != LBER_ERROR ) {
 		ldap_back_map(&li->at_map, &a, &mapped, 1);
+		if ( mapped.bv_val != a.bv_val) {
+			free( a.bv_val );
+		}
 		if (mapped.bv_val == NULL)
 			continue;
 		attr = (Attribute *)ch_malloc( sizeof(Attribute) );
@@ -444,15 +447,21 @@ ldap_send_entry(
 						"slap_bv2undef_ad(%s):	"
  						"%s\n%s", mapped.bv_val, text, "" );
 #endif /* !NEW_LOGGING */
-				
 				ch_free(attr);
 				continue;
 			}
 		}
-		free( a.bv_val );
+
+		/* no subschemaSubentry */
+		if ( attr->a_desc == slap_schema.si_ad_subschemaSubentry ) {
+			ch_free(attr);
+			continue;
+		}
+		
 		if (ber_scanf( &ber, "[W]", &attr->a_vals ) == LBER_ERROR ) {
 			attr->a_vals = &dummy;
-		} else if ( strcasecmp( mapped.bv_val, "objectclass" ) == 0 ) {
+		} else if ( attr->a_desc == slap_schema.si_ad_objectClass
+				|| attr->a_desc == slap_schema.si_ad_structuralObjectClass ) {
 			int i, last;
 			for ( last = 0; attr->a_vals[last].bv_val; last++ ) ;
 			for ( i = 0, bv = attr->a_vals; bv->bv_val; bv++, i++ ) {
