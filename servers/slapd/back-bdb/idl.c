@@ -657,9 +657,7 @@ fail:
 	/* store the key */
 	rc = db->put( db, tid, key, &data, 0 );
 #endif
-	if( rc == DB_KEYEXIST ) rc = 0;
-
-	if( rc != 0 ) {
+	if( rc != 0 && rc != DB_KEYEXIST ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( INDEX, ERR, 
 			"bdb_idl_insert_key: put failed: %s (%d)\n", 

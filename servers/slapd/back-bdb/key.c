@@ -92,10 +92,11 @@ bdb_key_change(
 	if (op == SLAP_INDEX_ADD_OP) {
 		/* Add values */
 		rc = bdb_idl_insert_key( be, db, txn, &key, id );
-
+		if ( rc == DB_KEYEXIST ) rc = 0;
 	} else {
 		/* Delete values */
 		rc = bdb_idl_delete_key( be, db, txn, &key, id );
+		if ( rc == DB_NOTFOUND ) rc = 0;
 	}
 
 #ifdef NEW_LOGGING
