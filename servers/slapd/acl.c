@@ -740,6 +740,9 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_sockurl_pat.bv_len ) {
+			if ( !conn->c_listener_url.bv_val ) {
+				continue;
+			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_sockurl_pat: %s\n",
@@ -750,15 +753,6 @@ dn_match_cleanup:;
 #endif
 
 			if ( !ber_bvccmp( &b->a_sockurl_pat, '*' ) ) {
-				/*
-				 * FIXME: conn->c_listener can be null
-				 * if the connection is faked (e.g. by
-				 * slapi)
-				 */
-				if ( conn->c_listener == NULL ) {
-					continue;
-				}
-
 				if ( b->a_sockurl_style == ACL_STYLE_REGEX) {
 					if (!regex_matches( &b->a_sockurl_pat, conn->c_listener_url.bv_val,
 							e->e_ndn, matches ) ) 
@@ -773,6 +767,9 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_domain_pat.bv_len ) {
+			if ( !conn->c_peer_domain.bv_val ) {
+				continue;
+			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_domain_pat: %s\n",
@@ -827,9 +824,12 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_peername_pat.bv_len ) {
+			if ( !conn->c_peer_name.bv_val ) {
+				continue;
+			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
-				   "acl_mask: conn %lu  check a_perrname_path: %s\n",
+				   "acl_mask: conn %lu  check a_peername_path: %s\n",
 				   conn->c_connid, b->a_peername_pat.bv_val , 0 );
 #else
 			Debug( LDAP_DEBUG_ACL, "<= check a_peername_path: %s\n",
@@ -850,6 +850,9 @@ dn_match_cleanup:;
 		}
 
 		if ( b->a_sockname_pat.bv_len ) {
+			if ( !conn->c_sock_name.bv_val ) {
+				continue;
+			}
 #ifdef NEW_LOGGING
 			LDAP_LOG( ACL, DETAIL1, 
 				   "acl_mask: conn %lu  check a_sockname_path: %s\n",
