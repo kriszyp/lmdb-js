@@ -92,7 +92,13 @@ typedef struct bdb_entry_info {
 	struct bdb_entry_info *bei_parent;
 	ID bei_id;
 
-	int bei_state;
+	/* we use the bei_id as a lockobj, but we need to make the size != 4
+	 * to avoid conflicting with BDB's internal locks. So add a byte here
+	 * that is always zero.
+	 */
+	char bei_lockpad;
+						
+	short bei_state;
 #define	CACHE_ENTRY_DELETED	1
 #define	CACHE_ENTRY_NO_KIDS	2
 #define	CACHE_ENTRY_NOT_LINKED	4
