@@ -459,7 +459,13 @@ LIBSLAPD_F (int) dscompare LDAP_P(( const char *s1, const char *s2del, char deli
  * starttls.c
  */
 
-LIBSLAPD_F (int) starttls_extop LDAP_P(( SLAP_EXTOP_CALLBACK_FN, Connection *conn, Operation *op, char * oid, struct berval * reqdata, struct berval ** rspdata, char ** text ));
+LIBSLAPD_F (int) starttls_extop LDAP_P((
+	SLAP_EXTOP_CALLBACK_FN,
+	Connection *conn, Operation *op,
+	char * oid,
+	struct berval * reqdata,
+	struct berval ** rspdata,
+	char ** text ));
 
 
 /*
@@ -493,7 +499,13 @@ LIBSLAPD_F (void) slap_init_user LDAP_P(( char *username, char *groupname ));
 /*
  * passwd.c
  */
-LIBSLAPD_F (int) slap_passwd_init( void );
+LIBSLAPD_F (int) passwd_extop LDAP_P((
+	SLAP_EXTOP_CALLBACK_FN,
+	Connection *conn, Operation *op,
+	char * oid,
+	struct berval * reqdata,
+	struct berval ** rspdata,
+	char ** text ));
 
 LIBSLAPD_F (int) slap_passwd_check(
 	Attribute			*attr,

@@ -137,8 +137,6 @@ int slap_startup( Backend *be )
 		rc = sasl_init();
 	}
 
-	slap_passwd_init();
-
 	return rc;
 }
 

@@ -18,7 +18,7 @@
 
 #include <lutil.h>
 
-static int passwd_main(
+int passwd_extop(
 	SLAP_EXTOP_CALLBACK_FN ext_callback,
 	Connection *conn, Operation *op, char *oid,
 	struct berval *reqdata, struct berval **rspdata, char **text )
@@ -173,12 +173,6 @@ done:
 
 	ber_free( ber, 1 );
 	return rc;
-}
-
-int
-slap_passwd_init( void )
-{
-	return load_extop( LDAP_EXOP_X_MODIFY_PASSWD, passwd_main );
 }
 
 int

@@ -54,6 +54,7 @@ struct {
 #ifdef HAVE_TLS
 		{ LDAP_EXOP_START_TLS, starttls_extop },
 #endif
+		{ LDAP_EXOP_X_MODIFY_PASSWD, passwd_extop },
 		{ NULL, NULL }
 	};
 
