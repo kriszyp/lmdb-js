@@ -229,7 +229,10 @@ get_modlist( char *prompt1, char *prompt2, char *prompt3 )
 
 
 static int
-bind_prompt( LDAP *ld, LDAP_CONST char *url, int request, ber_int_t msgid)
+bind_prompt( LDAP *ld,
+	LDAP_CONST char *url,
+	ber_tag_t request, ber_int_t msgid,
+	void *params )
 {
 	static char	dn[256], passwd[256];
 	int	authmethod;
@@ -701,7 +704,7 @@ main( int argc, char **argv )
 				getline( line, sizeof(line), stdin,
 					"Prompt for bind credentials when chasing referrals (0=no, 1=yes)?" );
 				if ( atoi( line ) != 0 ) {
-					ldap_set_rebind_proc( ld, bind_prompt );
+					ldap_set_rebind_proc( ld, bind_prompt, NULL );
 				}
 			}
 			break;

@@ -575,7 +575,7 @@ typedef int (LDAP_REBIND_PROC) LDAP_P((
 LDAP_F( int )
 ldap_set_rebind_proc LDAP_P((
 	LDAP *ld,
-	LDAP_REBIND_PROC *ldap_proc,
+	LDAP_REBIND_PROC *rebind_proc,
 	void *params ));
 
 /*
