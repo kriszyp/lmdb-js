@@ -1022,12 +1022,12 @@ attributetype ( 0.9.2342.19200300.100.1.56 NAME 'documentPublisher'
 #            audio}
 #    ::= {pilotObjectClass 3}
 #
-objectclass ( 0.9.2342.19200300.100.4.3 NAME 'pilotObject'
-	DESC 'RFC1274: pilot object'
-	SUP top AUXILIARY
-	MAY ( info $ photo $ manager $ uniqueIdentifier $
-		lastModifiedTime $ lastModifiedBy $ dITRedirect $ audio )
-	)
+#objectclass ( 0.9.2342.19200300.100.4.3 NAME 'pilotObject'
+#	DESC 'RFC1274: pilot object'
+#	SUP top AUXILIARY
+#	MAY ( info $ photo $ manager $ uniqueIdentifier $
+#		lastModifiedTime $ lastModifiedBy $ dITRedirect $ audio )
+#	)
 
 # 8.3.2.  Pilot Person
 #
