@@ -179,6 +179,7 @@ typedef struct ldapcontrol {
 	char			ldctl_iscritical;
 } LDAPControl;
 
+
 /* LDAP Controls */
 #define LDAP_CONTROL_VALUESRETURNFILTER "1.2.826.0.1.334810.2.3"
 #define LDAP_CONTROL_SUBENTRIES		"1.3.6.1.4.1.4203.1.10.1"
@@ -186,57 +187,16 @@ typedef struct ldapcontrol {
 #define LDAP_CONTROL_MANAGEDSAIT	"2.16.840.1.113730.3.4.2"
 #define LDAP_CONTROL_PROXY_AUTHZ	"2.16.840.1.113730.3.4.18"
 
-#if 0
-#define LDAP_CONTROL_DUPENT_REQUEST		"2.16.840.1.113719.1.27.101.1"
-#define LDAP_CONTROL_DUPENT_RESPONSE	"2.16.840.1.113719.1.27.101.2"
-#define LDAP_CONTROL_DUPENT_ENTRY		"2.16.840.1.113719.1.27.101.3"
-#define LDAP_CONTROL_DUPENT	LDAP_CONTROL_DUPENT_REQUEST
-#endif
-
-#ifdef LDAP_DEVEL
-#define LDAP_CONTROL_PAGEDRESULTS	"1.2.840.113556.1.4.319"
-#endif
-
-#ifdef LDAP_DEVEL
-#define LDAP_CLIENT_UPDATE 1
-#define LDAP_SYNC 2
-#endif
-
-#ifdef LDAP_CLIENT_UPDATE
-#define LDAP_CONTROL_CLIENT_UPDATE		"1.3.6.1.4.1.4203.666.5.3"
-#define LDAP_CONTROL_ENTRY_UPDATE		"1.3.6.1.4.1.4203.666.5.4"
-#define LDAP_CONTROL_CLIENT_UPDATE_DONE	"1.3.6.1.4.1.4203.666.5.5"
-#define LDAP_CUP_COOKIE_OID				"1.3.6.1.4.1.4203.666.10.1"
-#endif
-
-#ifdef LDAP_SYNC
-#define LDAP_CONTROL_SYNC		"1.3.6.1.4.1.4203.666.5.6"
-#define LDAP_CONTROL_SYNC_STATE	"1.3.6.1.4.1.4203.666.5.7"
-#define LDAP_CONTROL_SYNC_DONE	"1.3.6.1.4.1.4203.666.5.8"
-#define LDAP_SYNC_INFO			"1.3.6.1.4.1.4203.666.10.2"
-
-#define LDAP_SYNC_REFRESH_DONE	0
-#define LDAP_SYNC_NEW_COOKIE	1
-
-#define LDAP_SYNC_PRESENT		0
-#define LDAP_SYNC_ADD			1
-#define LDAP_SYNC_MODIFY		2
-#define LDAP_SYNC_DELETE		3
-#endif
-
 #define LDAP_CONTROL_SORTREQUEST    "1.2.840.113556.1.4.473"
 #define LDAP_CONTROL_SORTRESPONSE	"1.2.840.113556.1.4.474"
 #define LDAP_CONTROL_VLVREQUEST    	"2.16.840.1.113730.3.4.9"
 #define LDAP_CONTROL_VLVRESPONSE    "2.16.840.1.113730.3.4.10"
 
-#ifdef LDAP_DEVEL
-#define LDAP_CONTROL_X_DOMAIN_SCOPE "1.2.840.113556.1.4.1339"
-#define LDAP_CONTROL_X_PERMISSIVE_MODIFY "1.2.840.113556.1.4.1413"
-#endif
 
 /* LDAP Unsolicited Notifications */
 #define	LDAP_NOTICE_OF_DISCONNECTION	"1.3.6.1.4.1.1466.20036"
 #define LDAP_NOTICE_DISCONNECT LDAP_NOTICE_OF_DISCONNECTION
+
 
 /* LDAP Extended Operations */
 #define LDAP_EXOP_START_TLS	"1.3.6.1.4.1.1466.20037"
@@ -249,9 +209,6 @@ typedef struct ldapcontrol {
 
 #define LDAP_EXOP_X_WHO_AM_I	"1.3.6.1.4.1.4203.1.11.3"
 
-#ifdef LDAP_DEVEL
-#define LDAP_EXOP_X_CANCEL		"1.3.6.1.4.1.4203.666.6.3"
-#endif
 
 /* LDAP Features */
 #define LDAP_FEATURE_ALL_OPERATIONAL_ATTRS "1.3.6.1.4.1.4203.1.5.1"  /* + */
@@ -300,15 +257,6 @@ typedef struct ldapcontrol {
 
 #define LDAP_TAG_SASL_RES_CREDS	((ber_tag_t) 0x87U)	/* context specific + primitive */
 
-#ifdef LDAP_CLIENT_UPDATE
-#define LDAP_CUP_TAG_INTERVAL	((ber_tag_t) 0x02U)	/* integer */
-#define LDAP_CUP_TAG_COOKIE		((ber_tag_t) 0x30U)	/* sequence */
-#endif
-
-#ifdef LDAP_SYNC
-#define LDAP_SYNC_TAG_COOKIE	((ber_tag_t) 0x04U)	/* octet string */
-#endif
-
 
 /* possible operations a client can invoke */
 #define LDAP_REQ_BIND		((ber_tag_t) 0x60U)	/* application + constructed */
@@ -338,9 +286,6 @@ typedef struct ldapcontrol {
 #define LDAP_RES_COMPARE	((ber_tag_t) 0x6fU)	/* application + constructed */
 #define LDAP_RES_EXTENDED	((ber_tag_t) 0x78U)	/* V3: application + constructed */
 #define LDAP_RES_EXTENDED_PARTIAL	((ber_tag_t) 0x79U)	/* V3+: application + constructed */
-#ifdef LDAP_DEVEL
-#define LDAP_RES_INTERMEDIATE_RESP	((ber_tag_t) 0x7aU)
-#endif
 
 #define LDAP_RES_ANY			(-1)
 #define LDAP_RES_UNSOLICITED	(0)
@@ -486,42 +431,6 @@ typedef struct ldapcontrol {
 #define LDAP_MORE_RESULTS_TO_RETURN		0x5f	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_CLIENT_LOOP				0x60	/* draft-ietf-ldap-c-api-xx */
 #define LDAP_REFERRAL_LIMIT_EXCEEDED	0x61	/* draft-ietf-ldap-c-api-xx */
-
-#ifdef LDAP_CLIENT_UPDATE
-/* resultCode for LCUP */
-#define LDAP_CUP_RESOURCES_EXHAUSTED	0x100
-#define LDAP_CUP_SECURITY_VIOLATION		0x101
-#define LDAP_CUP_INVALID_COOKIE			0x102
-#define LDAP_CUP_UNSUPPORTED_SCHEME		0x103
-#define LDAP_CUP_CLIENT_DISCONNECT		0x104
-#define LDAP_CUP_RELOAD_REQUIRED		0x105
-#endif
-
-#ifdef LDAP_EXOP_X_CANCEL
-/* resultCode for Cancel Response */
-#define LDAP_CANCELLED					0x110
-#define LDAP_NO_SUCH_OPERATION			0x111
-#define LDAP_TOO_LATE					0x112
-#define LDAP_CANNOT_CANCEL				0x113
-#endif
-
-#ifdef LDAP_CLIENT_UPDATE
-/* LCUP update type */
-#define LDAP_CUP_NONE					0x00
-#define LDAP_CUP_SYNC_ONLY				0x01
-#define LDAP_CUP_PERSIST_ONLY			0x02
-#define LDAP_CUP_SYNC_AND_PERSIST		0x03
-
-/* LCUP default cookie interval */
-#define LDAP_CUP_DEFAULT_SEND_COOKIE_INTERVAL	0x01
-#endif /* LDAP_CLIENT_UPDATE */
-
-/* LDAP SYNC request type */
-#ifdef LDAP_SYNC
-#define LDAP_SYNC_NONE					0x00
-#define LDAP_SYNC_REFRESH_ONLY			0x01
-#define LDAP_SYNC_REFRESH_AND_PERSIST	0x03
-#endif
 
 /*
  * This structure represents both ldap messages and ldap responses.
