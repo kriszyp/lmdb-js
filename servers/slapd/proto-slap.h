@@ -261,8 +261,13 @@ int lock_fclose LDAP_P(( FILE *fp, FILE *lfp ));
  */
 
 #ifdef SLAPD_MODULES
+int module_init LDAP_P(( void ));
+int module_kill LDAP_P(( void ));
+
 int module_load LDAP_P(( const char* file_name, int argc, char *argv[] ));
 int module_path LDAP_P(( const char* path ));
+
+void *module_resolve LDAP_P((const void *module, const char *name));
 #endif /* SLAPD_MODULES */
 
 /*
@@ -519,7 +524,7 @@ extern int	do_search LDAP_P((Connection *conn, Operation *op));
 extern int	do_unbind LDAP_P((Connection *conn, Operation *op));
 extern int	do_extended LDAP_P((Connection *conn, Operation *op));
 
-extern int	load_extension LDAP_P((char *oid, char *libpath, int argc, char **argv));
+int load_extension LDAP_P((const void *module, const char *file_name));
 
 
 extern ber_socket_t dtblsize;
