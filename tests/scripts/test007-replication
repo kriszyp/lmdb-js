@@ -95,7 +95,7 @@ RC=$?
 if test $RC != 0 ; then
 	echo "ldapadd failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
-	kill -KILL $SLURPPID
+	kill -HUP $SLURPPID
 	exit $RC
 fi
 
@@ -191,7 +191,7 @@ RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
-	kill -KILL $SLURPPID
+	kill -HUP $SLURPPID
 	exit $RC
 fi
 
@@ -203,12 +203,12 @@ RC=$?
 if test $RC != 0 ; then
 	echo "ldapsearch failed ($RC)!"
 	kill -HUP $PID $SLAVEPID
-	kill -KILL $SLURPPID
+	kill -HUP $SLURPPID
 	exit $RC
 fi
 
 kill -HUP $PID $SLAVEPID
-kill -KILL $SLURPPID
+kill -HUP $SLURPPID
 
 SEARCHOUT=$MASTEROUT
 LDIF=$SLAVEOUT
