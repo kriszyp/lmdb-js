@@ -52,10 +52,8 @@ char	**cargv;
 struct berval default_search_base = { 0, NULL };
 struct berval default_search_nbase = { 0, NULL };
 unsigned		num_subordinates = 0;
-#ifdef SLAPD_SCHEMA_DN
 struct berval global_schemadn = { 0, NULL };
 struct berval global_schemandn = { 0, NULL };
-#endif
 
 ber_len_t sockbuf_max_incoming = SLAP_SB_MAX_INCOMING_DEFAULT;
 ber_len_t sockbuf_max_incoming_auth= SLAP_SB_MAX_INCOMING_AUTH;
@@ -568,7 +566,6 @@ read_config( const char *fname, int depth )
 				return 1;
 #endif /* HAVE_CYRUS_SASL */
 
-#ifdef SLAPD_SCHEMA_DN
 		} else if ( strcasecmp( cargv[0], "schemadn" ) == 0 ) {
 			struct berval dn;
 			if ( cargc < 2 ) {
@@ -603,7 +600,7 @@ read_config( const char *fname, int depth )
 #endif
 				return 1;
 			}
-#endif /* SLAPD_SCHEMA_DN */
+
 		/* set UCDATA path */
 		} else if ( strcasecmp( cargv[0], "ucdata-path" ) == 0 ) {
 			int err;
@@ -2301,13 +2298,11 @@ read_config( const char *fname, int depth )
 
 	if ( depth == 0 ) ch_free( cargv );
 
-#ifdef SLAPD_SCHEMA_DN
 	if ( !global_schemadn.bv_val ) {
 		ber_str2bv( SLAPD_SCHEMA_DN, sizeof(SLAPD_SCHEMA_DN)-1, 1,
 			&global_schemadn );
 		dnNormalize2( NULL, &global_schemadn, &global_schemandn );
 	}
-#endif
 
 	if ( load_ucdata( NULL ) < 0 ) return 1;
 	return( 0 );
@@ -2528,10 +2523,8 @@ void
 config_destroy( )
 {
 	ucdata_unload( UCDATA_ALL );
-#ifdef SLAPD_SCHEMA_DN
 	free( global_schemandn.bv_val );
 	free( global_schemadn.bv_val );
-#endif
 	free( line );
 	if ( slapd_args_file )
 		free ( slapd_args_file );

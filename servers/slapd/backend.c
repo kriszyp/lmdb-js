@@ -1104,13 +1104,12 @@ Attribute *backend_operational(
 	 * and the backend supports specific operational attributes, 
 	 * add them to the attribute list
 	 */
-#ifdef SLAPD_SCHEMA_DN
 	if ( opattrs || ( attrs &&
 		ad_inlist( slap_schema.si_ad_subschemaSubentry, attrs )) ) {
 		*ap = slap_operational_subschemaSubentry( be );
 		ap = &(*ap)->a_next;
 	}
-#endif
+
 	if ( ( opattrs || attrs ) && be && be->be_operational != NULL ) {
 		( void )be->be_operational( be, conn, op, e, attrs, opattrs, ap );
 	}

@@ -204,7 +204,6 @@ do_modify(
 			NULL, "modify upon the root DSE not supported", NULL, NULL );
 		goto cleanup;
 
-#if defined( SLAPD_SCHEMA_DN )
 	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ERR,
@@ -217,7 +216,6 @@ do_modify(
 			NULL, "modification of subschema subentry not supported",
 			NULL, NULL );
 		goto cleanup;
-#endif
 	}
 
 #ifdef LDAP_DEBUG

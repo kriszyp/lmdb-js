@@ -1073,10 +1073,8 @@ LDAP_SLAPD_V (int)		ldap_syslog;
 LDAP_SLAPD_V (struct berval)	default_search_base;
 LDAP_SLAPD_V (struct berval)	default_search_nbase;
 
-#ifdef SLAPD_SCHEMA_DN
 LDAP_SLAPD_V (struct berval)	global_schemadn;
 LDAP_SLAPD_V (struct berval)	global_schemandn;
-#endif
 
 LDAP_SLAPD_V (ldap_pvt_thread_mutex_t)	num_sent_mutex;
 LDAP_SLAPD_V (unsigned long)		num_bytes_sent;

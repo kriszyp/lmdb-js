@@ -45,16 +45,14 @@ dnssrv_back_referrals(
 		return LDAP_OTHER;
 	} 
 
-	if( ldap_dn2domain( dn->bv_val, &domain ) ) {
+	if( ldap_dn2domain( dn->bv_val, &domain ) || domain == NULL ) {
 		send_ldap_result( conn, op, LDAP_REFERRAL,
 			NULL, NULL, default_referral, NULL );
 		return LDAP_REFERRAL;
 	}
 
 	Debug( LDAP_DEBUG_TRACE, "DNSSRV: dn=\"%s\" -> domain=\"%s\"\n",
-		dn->bv_val,
-		domain == NULL ? "" : domain,
-		0 );
+		dn->bv_val, domain, 0 );
 
 	if( ( rc = ldap_domain2hostlist( domain, &hostlist ) ) ) {
 		Debug( LDAP_DEBUG_TRACE,

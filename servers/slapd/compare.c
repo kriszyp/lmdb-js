@@ -169,7 +169,6 @@ do_compare(
 			goto cleanup;
 		}
 
-#ifdef SLAPD_SCHEMA_DN
 	} else if ( bvmatch( &ndn, &global_schemandn ) ) {
 #ifdef NEW_LOGGING
 		LDAP_LOG( OPERATION, ARGS, 
@@ -199,7 +198,6 @@ do_compare(
 			rc = 0;
 			goto cleanup;
 		}
-#endif /* SLAPD_SCHEMA_DN */
 	}
 
 	if( entry ) {

@@ -447,8 +447,6 @@ int mr_usable_with_at(
 	return 0;
 }
 
-#if defined( SLAPD_SCHEMA_DN )
-
 int mr_schema_info( Entry *e )
 {
 	MatchingRule	*mr;
@@ -506,5 +504,3 @@ int mru_schema_info( Entry *e )
 	}
 	return 0;
 }
-
-#endif

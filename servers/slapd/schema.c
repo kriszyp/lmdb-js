@@ -18,8 +18,6 @@
 #include "lutil.h"
 
 
-#if defined( SLAPD_SCHEMA_DN )
-
 int
 schema_info( Entry **entry, const char **text )
 {
@@ -128,4 +126,3 @@ schema_info( Entry **entry, const char **text )
 	*entry = e;
 	return LDAP_SUCCESS;
 }
-#endif

@@ -12,7 +12,6 @@
  * helpers for on-the-fly operational attribute generation
  */
 
-#ifdef SLAPD_SCHEMA_DN
 Attribute *
 slap_operational_subschemaSubentry( Backend *be )
 {
@@ -34,7 +33,6 @@ slap_operational_subschemaSubentry( Backend *be )
 
 	return a;
 }
-#endif /* SLAPD_SCHEMA_DN */
 
 Attribute *
 slap_operational_hasSubordinate( int hs )
