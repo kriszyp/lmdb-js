@@ -911,7 +911,7 @@ static int dosearch(
 		sprintf( filter, filtpatt, value );
 
 		if ( verbose ) {
-			fprintf( stderr, "filter is: (%s)\n", filter );
+			fprintf( stderr, "filter: %s\n", filter );
 		}
 
 		if( ldif < 2 ) {
