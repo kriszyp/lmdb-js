@@ -91,13 +91,7 @@ bdb_db_init( BackendDB *be )
 
 	bdb->bi_cache.c_maxsize = DEFAULT_CACHE_SIZE;
 
-#ifndef NO_THREADS
-#if 0
-	bdb->bi_lock_detect = DB_LOCK_NORUN;
-#else
 	bdb->bi_lock_detect = DB_LOCK_DEFAULT;
-#endif
-#endif
 
 	ldap_pvt_thread_mutex_init( &bdb->bi_database_mutex );
 	ldap_pvt_thread_mutex_init( &bdb->bi_lastid_mutex );
@@ -110,37 +104,6 @@ bdb_db_init( BackendDB *be )
 	be->be_private = bdb;
 	return 0;
 }
-
-#if 0 /* ifndef NO_THREADS */
-static void *lock_detect_task( void *arg )
-{
-	struct bdb_info *bdb = (struct bdb_info *) arg;
-
-	while( bdb->bi_dbenv != NULL ) {
-		int rc;
-		int aborted;
-		sleep( bdb->bi_lock_detect_seconds );
-
-		rc = LOCK_DETECT( bdb->bi_dbenv, 0,
-			bdb->bi_lock_detect, &aborted );
-
-		if( rc != 0 ) {
-			break;
-		}
-
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_BDB, ERR, "bdb_db_init: aborted %d locks\n", 
-			aborted, 0, 0 );
-#else
-		Debug( LDAP_DEBUG_ANY,
-			"bdb_lock_detect: aborted %d locks\n",
-			aborted, 0, 0 );
-#endif
-	}
-
-	return NULL;
-}
-#endif
 
 int
 bdb_bt_compare(
@@ -185,10 +148,6 @@ bdb_db_open( BackendDB *be )
 		"bdb_db_open: %s\n",
 		be->be_suffix[0].bv_val, 0, 0 );
 #endif
-
-	db_env_set_func_free( ber_memfree );
-	db_env_set_func_malloc( ber_memalloc );
-	db_env_set_func_realloc( ber_memrealloc );
 
 	/* we should check existance of dbenv_home and db_directory */
 
@@ -432,14 +391,6 @@ bdb_db_open( BackendDB *be )
 #ifdef BDB_HIER
 	rc = bdb_build_tree( be );
 #endif
-
-#if 0 /* ifndef NO_THREADS */
-	if( bdb->bi_lock_detect != DB_LOCK_NORUN ) {
-		/* listener as a separate THREAD */
-		rc = ldap_pvt_thread_create( &bdb->bi_lock_detect_tid,
-			1, lock_detect_task, bdb );
-	}
-#endif
 	return 0;
 }
 
@@ -463,6 +414,11 @@ bdb_db_close( BackendDB *be )
 
 	bdb_cache_release_all (&bdb->bi_cache);
 
+#if defined(NO_THREADS) && defined(BDB_REUSE_LOCKERS)
+	if ( bdb->bi_locker_id ) {
+		bdb_locker_id_free( bdb->bi_dbenv, bdb->bi_locker_id );
+	}
+#endif
 	return 0;
 }
 
@@ -607,12 +563,9 @@ bdb_initialize(
 #endif
 	}
 
-#if 0
-	db_env_set_func_malloc( ch_malloc );
-	db_env_set_func_realloc( ch_realloc );
-	db_env_set_func_free( ch_free );
-#endif
-
+	db_env_set_func_free( ber_memfree );
+	db_env_set_func_malloc( (db_malloc *)ber_memalloc );
+	db_env_set_func_realloc( (db_realloc *)ber_memrealloc );
 	db_env_set_func_yield( ldap_pvt_thread_yield );
 
 	{

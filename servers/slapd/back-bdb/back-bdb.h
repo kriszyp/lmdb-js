@@ -111,10 +111,9 @@ struct bdb_info {
 	u_int32_t	bi_txn_cp_min;
 	u_int32_t	bi_txn_cp_kbyte;
 
-#ifndef NO_THREADS
 	int			bi_lock_detect;
-	int			bi_lock_detect_seconds;
-	ldap_pvt_thread_t	bi_lock_detect_tid;
+#ifdef NO_THREADS
+	int		bi_locker_id;
 #endif
 
 	ID			bi_lastid;
@@ -172,8 +171,11 @@ struct bdb_op_info {
 #define BDB_REUSE_LOCKERS
 
 #ifdef BDB_REUSE_LOCKERS
+/* Hack - we depend on "op" and "bdb" being the right variable names
+ * in each invoker.
+ */
 #define	LOCK_ID_FREE(env, locker)
-#define	LOCK_ID(env, locker)	bdb_locker_id(op, env, locker)
+#define	LOCK_ID(env, locker)	bdb_locker_id(op, bdb, locker)
 #else
 #define	LOCK_ID_FREE(env, locker)	XLOCK_ID_FREE(env, locker)
 #define	LOCK_ID(env, locker)		XLOCK_ID(env, locker)

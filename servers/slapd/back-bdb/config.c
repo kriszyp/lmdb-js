@@ -68,10 +68,9 @@ bdb_db_config(
 
 	/* lock detect configuration */
 	} else if ( strcasecmp( argv[0], "lockdetect" ) == 0 ) {
-#ifndef NO_THREADS
-		if ( argc < 3 ) {
+		if ( argc < 2 ) {
 			fprintf( stderr, "%s: line %d: "
-				"missing parameters in \"lockDetect <policy> <seconds>\" line\n",
+				"missing parameters in \"lockDetect <policy>\" line\n",
 				fname, lineno );
 			return 1;
 		}
@@ -93,23 +92,10 @@ bdb_db_config(
 
 		} else {
 			fprintf( stderr, "%s: line %d: "
-				"bad policy (%s) in \"lockDetect <policy> <seconds>\" line\n",
+				"bad policy (%s) in \"lockDetect <policy>\" line\n",
 				fname, lineno, argv[1] );
 			return 1;
 		}
-
-		bdb->bi_lock_detect_seconds = strtol( argv[2], NULL, 0 );
-		if( bdb->bi_lock_detect_seconds < 1 ) {
-			fprintf( stderr, "%s: line %d: "
-				"bad seconds (%s) in \"lockDetect <policy> <seconds>\" line\n",
-				fname, lineno, argv[2] );
-			return 1;
-		}
-#else
-		fprintf( stderr, "%s: line %d: "
-			"NO THREADS: lockDetect line ignored\n",
-			fname, lineno );
-#endif
 
 	/* mode with which to create new database files */
 	} else if ( strcasecmp( argv[0], "mode" ) == 0 ) {

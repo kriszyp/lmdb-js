@@ -1123,17 +1123,29 @@ bdb_locker_id_free( void *key, void *data )
 }
 
 int
-bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
+bdb_locker_id( Operation *op, struct bdb_info *bdb, int *locker )
 {
 	int i, rc, lockid;
 	void *data;
+	DB_ENV *env;
 
-	if ( !env || !op || !locker ) return -1;
+	if ( !bdb || !op || !locker ) return -1;
 
-	/* Shouldn't happen unless we're single-threaded */
+	env = bdb->bi_dbenv;
+	if ( !env ) return -1;
+
+#ifdef NO_THREADS
+	if ( !bdb->bi_locker_id ) {
+		rc = XLOCK_ID( env, &bdb->bi_locker_id );
+		if (rc != 0) return rc;
+	}
+	*locker = bdb->bi_locker_id;
+	return 0;
+#else
+	/* Shouldn't happen */
 	if ( !op->o_threadctx ) {
 		*locker = 0;
-		return 0;
+		return -1;
 	}
 
 	if ( ldap_pvt_thread_pool_getkey( op->o_threadctx, env, &data, NULL ) ) {
@@ -1163,5 +1175,6 @@ bdb_locker_id( Operation *op, DB_ENV *env, int *locker )
 	}
 	*locker = lockid;
 	return 0;
+#endif /* NO_THREADS */
 }
 #endif

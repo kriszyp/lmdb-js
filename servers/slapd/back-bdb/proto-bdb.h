@@ -366,7 +366,7 @@ void bdb_cache_release_all( Cache *cache );
 
 #ifdef BDB_REUSE_LOCKERS
 
-int bdb_locker_id( Operation *op, DB_ENV *env, int *locker );
+int bdb_locker_id( Operation *op, struct bdb_info *bdb, int *locker );
 
 #endif
 
