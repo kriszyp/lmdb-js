@@ -548,11 +548,13 @@ AC_CHECK_FUNCS(res_search)
 if test $ac_cv_func_res_search = "no" ; then 
 	AC_CHECK_LIB(bind, res_search)
 	if test "$ac_cv_lib_bind_res_search" = "yes" ; then
-		AC_DEFINE(HAVE_RES_SEARCH,1)
+		AC_DEFINE(HAVE_RES_SEARCH,1,
+			[define if you have res_search()])
 	else
 		AC_CHECK_LIB(resolv, res_search)
 		if test "$ac_cv_lib_resolv_res_search" = "yes" ; then
-			AC_DEFINE(HAVE_RES_SEARCH,1)
+			AC_DEFINE(HAVE_RES_SEARCH,1,
+				[define if you have res_search()])
 		fi
 	fi
 fi
@@ -930,7 +932,8 @@ dnl			[ol_cv_pthread_lpthread_lexc])
 				dnl Digital UNIX has sched_yield() in -lrt
 				AC_CHECK_LIB(rt, sched_yield,
 					[LTHREAD_LIBS="$LTHREAD_LIBS -lrt"
-					AC_DEFINE(HAVE_SCHED_YIELD,1)
+					AC_DEFINE(HAVE_SCHED_YIELD,1,
+						[Define if you have the sched_yield function.])
 					ac_cv_func_sched_yield=yes],
 					[ac_cv_func_sched_yield=no])
 			fi
@@ -1350,9 +1353,11 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db2 ; then
 		ol_with_ldbm_api=db2
 
 		if test $ol_with_ldbm_type = hash ; then
-			AC_DEFINE(LDBM_USE_DBHASH,1)
+			AC_DEFINE(LDBM_USE_DBHASH,1,
+				[define this to use DBHASH w/ LDBM backend])
 		else
-			AC_DEFINE(LDBM_USE_DBBTREE,1)
+			AC_DEFINE(LDBM_USE_DBBTREE,1,
+				[define this to use DBBTREE w/ LDBM backend])
 		fi
 
 		dnl $ol_cv_lib_db2 should be yes or -ldb
@@ -1376,9 +1381,11 @@ if test $ol_with_ldbm_api = auto -o $ol_with_ldbm_api = db ; then
 		ol_with_ldbm_api=db
 
 		if test $ol_with_ldbm_type = hash ; then
-			AC_DEFINE(LDBM_USE_DBHASH,1)
+			AC_DEFINE(LDBM_USE_DBHASH,1,
+				[define this to use DBHASH w/ LDBM backend])
 		else
-			AC_DEFINE(LDBM_USE_DBBTREE,1)
+			AC_DEFINE(LDBM_USE_DBBTREE,1,
+				[define this to use DBBTREE w/ LDBM backend])
 		fi
 
 		dnl $ol_cv_lib_db should be yes or -ldb
@@ -1589,7 +1596,7 @@ if test $ol_enable_crypt != no ; then
 			have_crypt=yes], [have_crypt=no])])
 
 	if test $have_crypt = yes ; then
-		AC_DEFINE(HAVE_CRYPT,1)
+		AC_DEFINE(HAVE_CRYPT,1, [define if crypt(3) is available])
 	else
 		AC_MSG_WARN(could not find crypt)
 		if test $ol_enable_crypt = yes ; then
@@ -1611,7 +1618,8 @@ if test $ol_enable_proctitle != no ; then
 			LIBOBJS="$LIBOBJS setproctitle.o"])])
 
 	if test $have_setproctitle = yes ; then
-		AC_DEFINE(HAVE_SETPROCTITLE,1)
+		AC_DEFINE(HAVE_SETPROCTITLE,1,
+			[define if setproctitle(3) is available])
 	fi
 fi
 
@@ -1796,114 +1804,126 @@ dnl ----------------------------------------------------------------
 dnl Sort out defines
 
 if test "$ol_enable_debug" != no ; then
-	AC_DEFINE(LDAP_DEBUG,1)
+	AC_DEFINE(LDAP_DEBUG,1,
+		[define this to add debugging code])
 fi
 if test "$ol_enable_syslog" = yes ; then
-	AC_DEFINE(LDAP_SYSLOG,1)
+	AC_DEFINE(LDAP_SYSLOG,1,
+		[define this to add syslog code])
 fi
 if test "$ol_enable_libui" = yes ; then
-	AC_DEFINE(LDAP_LIBUI,1)
+	AC_DEFINE(LDAP_LIBUI,1,
+		[define this for LDAP User Interface support])
 fi
 if test "$ol_enable_cache" = no ; then
-	AC_DEFINE(LDAP_NOCACHE,1)
+	AC_DEFINE(LDAP_NOCACHE,1,
+		[define this to remove -lldap cache support])
 fi
 if test "$ol_enable_dns" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_DNS,LDAP_VENDOR_VERSION)
 fi
 if test "$ol_enable_proctitle" != no ; then
-	AC_DEFINE(LDAP_PROCTITLE,1)
+	AC_DEFINE(LDAP_PROCTITLE,1,
+		[define this for LDAP process title support])
 fi
 if test "$ol_enable_referrals" != no ; then
 	AC_DEFINE(LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS,LDAP_VENDOR_VERSION)
 fi
 if test "$ol_enable_cldap" != no ; then
-	AC_DEFINE(LDAP_CONNECTIONLESS,1)
+	AC_DEFINE(LDAP_CONNECTIONLESS,1,[define to support CLDAP])
 fi
 
 if test "$ol_enable_crypt" != no ; then
-	AC_DEFINE(SLAPD_CRYPT,1)
+	AC_DEFINE(SLAPD_CRYPT,1,[define to support crypt(3) passwords])
 fi
 if test "$ol_enable_cleartext" != no ; then
-	AC_DEFINE(SLAPD_CLEARTEXT,1)
+	AC_DEFINE(SLAPD_CLEARTEXT,1,[define to support cleartext passwords])
 fi
 if test "$ol_enable_phonetic" != no ; then
-	AC_DEFINE(SLAPD_PHONETIC,1)
+	AC_DEFINE(SLAPD_PHONETIC,1,[define to support phonetic])
 fi
 if test "$ol_enable_rlookups" != no ; then
-	AC_DEFINE(SLAPD_RLOOKUPS,1)
+	AC_DEFINE(SLAPD_RLOOKUPS,1,[define to support reverse lookups])
 fi
 
 if test "$ol_link_modules" != no ; then
-	AC_DEFINE(SLAPD_MODULES,1)
+	AC_DEFINE(SLAPD_MODULES,1,[define to support modules])
 	BUILD_SLAPD=yes
 fi
 
 if test "$ol_link_bdb2" != no ; then
-	AC_DEFINE(SLAPD_BDB2,1)
+	AC_DEFINE(SLAPD_BDB2,1,[define to support BDB2 backend])
 	BUILD_SLAPD=yes
 	BUILD_BDB2=yes
 	if test "$ol_with_bdb2_module" != static ; then
-		AC_DEFINE(SLAPD_BDB2_DYNAMIC,1)
+		AC_DEFINE(SLAPD_BDB2_DYNAMIC,1,
+			[define to support dynamic BDB2 backend])
 		BUILD_BDB2_DYNAMIC=yes
 	fi
 fi
 
 if test "$ol_enable_ldap" != no ; then
-	AC_DEFINE(SLAPD_LDAP,1)
+	AC_DEFINE(SLAPD_LDAP,1,[define to support LDAP backend])
 	BUILD_SLAPD=yes
 	BUILD_LDAP=yes
 	if test "$ol_with_ldap_module" != static ; then
-		AC_DEFINE(SLAPD_LDAP_DYNAMIC,1)
+		AC_DEFINE(SLAPD_LDAP_DYNAMIC,1,
+			[define to support dynamic LDAP backend])
 		BUILD_LDAP_DYNAMIC=yes
 	fi
 fi
 
 if test "$ol_link_ldbm" != no ; then
-	AC_DEFINE(SLAPD_LDBM,1)
+	AC_DEFINE(SLAPD_LDBM,1,[define to support LDBM backend])
 	BUILD_SLAPD=yes
 	BUILD_LDBM=yes
 	if test "$ol_with_ldbm_module" != static ; then
-		AC_DEFINE(SLAPD_LDBM_DYNAMIC,1)
+		AC_DEFINE(SLAPD_LDBM_DYNAMIC,1,
+			[define to support dynamic LDBM backend])
 		BUILD_LDBM_DYNAMIC=yes
 	fi
 fi
 
 if test "$ol_enable_passwd" != no ; then
-	AC_DEFINE(SLAPD_PASSWD,1)
+	AC_DEFINE(SLAPD_PASSWD,1,[define to support PASSWD backend])
 	BUILD_SLAPD=yes
 	BUILD_PASSWD=yes
 	if test "$ol_with_passwd_module" != static ; then
-		AC_DEFINE(SLAPD_PASSWD_DYNAMIC,1)
+		AC_DEFINE(SLAPD_PASSWD_DYNAMIC,1,
+			[define to support dynamic PASSWD backend])
 		BUILD_PASSWD_DYNAMIC=yes
 	fi
 fi
 
 if test "$ol_link_perl" != no ; then
-	AC_DEFINE(SLAPD_PERL,1)
+	AC_DEFINE(SLAPD_PERL,1,[define to support PERL backend])
 	BUILD_SLAPD=yes
 	BUILD_PERL=yes
 	if test "$ol_with_perl_module" != static ; then
-		AC_DEFINE(SLAPD_PERL_DYNAMIC,1)
+		AC_DEFINE(SLAPD_PERL_DYNAMIC,1,
+			[define to support dynamic PERL backend])
 		BUILD_PERL_DYNAMIC=yes
 	fi
 fi
 
 if test "$ol_enable_shell" != no ; then
-	AC_DEFINE(SLAPD_SHELL,1)
+	AC_DEFINE(SLAPD_SHELL,1,[define to support SHELL backend])
 	BUILD_SLAPD=yes
 	BUILD_SHELL=yes
 	if test "$ol_with_shell_module" != static ; then
-		AC_DEFINE(SLAPD_SHELL_DYNAMIC,1)
+		AC_DEFINE(SLAPD_SHELL_DYNAMIC,1,
+			[define to support dynamic SHELL backend])
 		BUILD_SHELL_DYNAMIC=yes
 	fi
 fi
 
 if test "$ol_enable_tcl" != no ; then
-	AC_DEFINE(SLAPD_TCL,1)
+	AC_DEFINE(SLAPD_TCL,1,[define to support TCL backend])
 	BUILD_SLAPD=yes
 	BUILD_TCL=yes
 	if test "$ol_with_tcl_module" != static; then
-		AC_DEFINE(SLAPD_TCL_DYNAMIC,1)
+		AC_DEFINE(SLAPD_TCL_DYNAMIC,1,
+			[define to support dynamic TCL backend])
 		BUILD_TCL_DYNAMIC=yes
 	fi
 fi

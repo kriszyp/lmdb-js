@@ -122,114 +122,6 @@
 #undef _SGI_MP_SOURCE
 #endif
 
-/* define if you have crypt */
-#undef HAVE_CRYPT
-
-/* define if you have res_search() */
-#ifdef __notdef__
-/* see second res_search define */
-#undef HAVE_RES_SEARCH
-#endif
-
-/* define if you have sched_yield() */
-#ifdef __notdef__
-/* see second sched_yield define */
-#undef HAVE_SCHED_YIELD
-#endif
-
-/* define if you have setproctitle() */
-#undef HAVE_SETPROCTITLE
-
-/* define this for connectionless LDAP support */
-#undef LDAP_CONNECTIONLESS
-
-/* define this to add debugging code */
-#undef LDAP_DEBUG
-
-/* define this to remove -lldap cache support */
-#undef LDAP_NOCACHE
-
-/* define this for LDAP process title support */
-#undef LDAP_PROCTITLE
-
-/* define this for LDAP User Interface support */
-#undef LDAP_LIBUI
-
-/* define this to add syslog code */
-#undef LDAP_SYSLOG
-
-/* define this to use DBBTREE w/ LDBM backend */
-#undef LDBM_USE_DBBTREE
-
-/* define this to use DBHASH w/ LDBM backend */
-#undef LDBM_USE_DBHASH
-
-/* define this to use SLAPD Berkeley DB2 backend */
-#undef SLAPD_BDB2
-
-/* define this to compile SLAPD DB2 backend as a dynamic module*/
-#undef SLAPD_BDB2_DYNAMIC
-
-/* define this for ClearText password support */
-#undef SLAPD_CLEARTEXT
-
-/* define this for crypt(3) password support */
-#undef SLAPD_CRYPT
-
-/* define this to use SLAPD LDAP backend */
-#undef SLAPD_LDAP
-
-/* define this to compile SLAPD LDAP backend as a dynamic module*/
-#undef SLAPD_LDAP_DYNAMIC
-
-/* define this to use SLAPD LDBM backend */
-#undef SLAPD_LDBM
-
-/* define this to compile SLAPD LDBM backend as a dynamic module*/
-#undef SLAPD_LDBM_DYNAMIC
-
-/* define this to use SLAPD Modules */
-#undef SLAPD_MODULES
-
-/* define this to use SLAPD passwd backend */
-#undef SLAPD_PASSWD
-
-/* define this to compile SLAPD passwd backend as a dynamic module*/
-#undef SLAPD_PASSWD_DYNAMIC
-
-/* define this to use SLAPD Perl backend */
-#undef SLAPD_PERL
-
-/* define this to compile SLAPD Perl backend as a dynamic module*/
-#undef SLAPD_PERL_DYNAMIC
-
-/* define this for phonetic support */
-#undef SLAPD_PHONETIC
-
-/* define this for Reverse Lookup support */
-#undef SLAPD_RLOOKUPS
-
-/* define this to use SLAPD shell backend */
-#undef SLAPD_SHELL
-
-/* define this to compile SLAPD shell backend as a dynamic module*/
-#undef SLAPD_SHELL_DYNAMIC
-
-/* define this to use SLAPD TCL backend */
-#undef SLAPD_TCL
-
-/* define this to compile SLAPD TCL backend as a dynamic module*/
-#undef SLAPD_TCL_DYNAMIC
-
-/* define this to be empty if your compiler doesn't support volatile */
-#undef volatile
-
-/* define this if sig_atomic_t isn't defined in signal.h */
-#undef sig_atomic_t
-
-/* define this if socklen_t isn't defined in sys/types.h or sys/socket.h */
-#undef socklen_t
-
 /* These are defined in ldap_features.h */
 /*
  LDAP_API_FEATURE_X_OPENLDAP_REENTRANT
@@ -237,6 +129,7 @@
  LDAP_API_FEATURE_X_OPENLDAP_V2_DNS
  LDAP_API_FEATURE_X_OPENLDAP_V2_REFERRALS
 */
+
 /* These are defined in lber_types.h */
 /*
  LBER_INT_T
@@ -683,6 +576,12 @@
 /* defined to be the EXE extension */
 #undef EXEEXT
 
+/* define if you have res_search() */
+#undef HAVE_RES_SEARCH
+
+/* define if you have res_search() */
+#undef HAVE_RES_SEARCH
+
 /* define if you have -lxttp */
 #undef HAVE_XTPP
 
@@ -731,6 +630,9 @@
 /* define if you have POSIX Threads */
 #undef HAVE_PTHREADS
 
+/* Define if you have the sched_yield function. */
+#undef HAVE_SCHED_YIELD
+
 /* define if you have pthread_detach function */
 #undef HAVE_PTHREAD_DETACH
 
@@ -755,8 +657,20 @@
 /* define if Berkeley DBv2 is available */
 #undef HAVE_BERKELEY_DB2
 
+/* define this to use DBHASH w/ LDBM backend */
+#undef LDBM_USE_DBHASH
+
+/* define this to use DBBTREE w/ LDBM backend */
+#undef LDBM_USE_DBBTREE
+
 /* define if Berkeley DB is available */
 #undef HAVE_BERKELEY_DB
+
+/* define this to use DBHASH w/ LDBM backend */
+#undef LDBM_USE_DBHASH
+
+/* define this to use DBBTREE w/ LDBM backend */
+#undef LDBM_USE_DBBTREE
 
 /* define if MDBM is available */
 #undef HAVE_MDBM
@@ -782,6 +696,12 @@
 /* define if you have -lreadline */
 #undef HAVE_READLINE
 
+/* define if crypt(3) is available */
+#undef HAVE_CRYPT
+
+/* define if setproctitle(3) is available */
+#undef HAVE_SETPROCTITLE
+
 /* define if system uses EBCDIC instead of ASCII */
 #undef HAVE_EBCDIC
 
@@ -794,6 +714,12 @@
 /* Define if system has ptrdiff_t type */
 #undef HAVE_PTRDIFF_T
 
+/* define to atomic type if sig_atomic_t is not available */
+#undef sig_atomic_t
+
+/* define to int if socklen_t is not available */
+#undef socklen_t
+
 /* define if struct passwd has pw_gecos */
 #undef HAVE_PW_GECOS
 
@@ -803,6 +729,9 @@
 /* define if toupper() requires islower() */
 #undef C_UPPER_LOWER
 
+/* define as empty if volatile is not supported */
+#undef volatile
+
 /* define if cross compiling */
 #undef CROSS_COMPILING
 
@@ -811,6 +740,81 @@
 
 /* define if you actually have sys_errlist in your libs */
 #undef HAVE_SYS_ERRLIST
+
+/* define this to add debugging code */
+#undef LDAP_DEBUG
+
+/* define this to add syslog code */
+#undef LDAP_SYSLOG
+
+/* define this for LDAP User Interface support */
+#undef LDAP_LIBUI
+
+/* define this to remove -lldap cache support */
+#undef LDAP_NOCACHE
+
+/* define this for LDAP process title support */
+#undef LDAP_PROCTITLE
+
+/* define to support CLDAP */
+#undef LDAP_CONNECTIONLESS
+
+/* define to support crypt(3) passwords */
+#undef SLAPD_CRYPT
+
+/* define to support cleartext passwords */
+#undef SLAPD_CLEARTEXT
+
+/* define to support phonetic */
+#undef SLAPD_PHONETIC
+
+/* define to support reverse lookups */
+#undef SLAPD_RLOOKUPS
+
+/* define to support modules */
+#undef SLAPD_MODULES
+
+/* define to support BDB2 backend */
+#undef SLAPD_BDB2
+
+/* define to support dynamic BDB2 backend */
+#undef SLAPD_BDB2_DYNAMIC
+
+/* define to support LDAP backend */
+#undef SLAPD_LDAP
+
+/* define to support dynamic LDAP backend */
+#undef SLAPD_LDAP_DYNAMIC
+
+/* define to support LDBM backend */
+#undef SLAPD_LDBM
+
+/* define to support dynamic LDBM backend */
+#undef SLAPD_LDBM_DYNAMIC
+
+/* define to support PASSWD backend */
+#undef SLAPD_PASSWD
+
+/* define to support dynamic PASSWD backend */
+#undef SLAPD_PASSWD_DYNAMIC
+
+/* define to support PERL backend */
+#undef SLAPD_PERL
+
+/* define to support dynamic PERL backend */
+#undef SLAPD_PERL_DYNAMIC
+
+/* define to support SHELL backend */
+#undef SLAPD_SHELL
+
+/* define to support dynamic SHELL backend */
+#undef SLAPD_SHELL_DYNAMIC
+
+/* define to support TCL backend */
+#undef SLAPD_TCL
+
+/* define to support dynamic TCL backend */
+#undef SLAPD_TCL_DYNAMIC
 
 /* begin of postamble */
 

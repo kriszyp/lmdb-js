@@ -729,7 +729,7 @@ AC_DEFUN(OL_C_VOLATILE,
   if test $ol_cv_c_volatile = yes; then
     : 
   else
-    AC_DEFINE(volatile,)
+    AC_DEFINE(volatile,,[define as empty if volatile is not supported])
   fi
  ])dnl
 dnl
@@ -740,7 +740,8 @@ AC_DEFUN(OL_TYPE_SIG_ATOMIC_T,
     [AC_TRY_COMPILE([#include <signal.h>], [sig_atomic_t atomic;],
 		ol_cv_type_sig_atomic_t=yes, ol_cv_type_sig_atomic_t=no)])
   if test $ol_cv_type_sig_atomic_t = no; then
-    AC_DEFINE(sig_atomic_t, int)
+    AC_DEFINE(sig_atomic_t,int,
+		[define to atomic type if sig_atomic_t is not available])
   fi
  ])dnl
 dnl
@@ -758,7 +759,8 @@ AC_DEFUN(OL_TYPE_SOCKLEN_T,
 ], [socklen_t len;],
 		ol_cv_type_socklen_t=yes, ol_cv_type_socklen_t=no)])
   if test $ol_cv_type_socklen_t = no; then
-    AC_DEFINE(socklen_t, int)
+    AC_DEFINE(socklen_t, int,
+		[define to int if socklen_t is not available])
   fi
  ])dnl
 dnl
