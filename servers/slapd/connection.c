@@ -60,6 +60,8 @@ static int connection_resched( Connection *conn );
 static void connection_abandon( Connection *conn );
 static void connection_destroy( Connection *c );
 
+static ldap_pvt_thread_start_t connection_operation;
+
 struct co_arg {
 	Connection	*co_conn;
 	Operation	*co_op;
@@ -904,7 +906,7 @@ void connection_done( Connection *c )
 #endif /* !SLAPD_MONITOR */
 
 static void *
-connection_operation( void *arg_v )
+connection_operation( void *ctx, void *arg_v )
 {
 	int rc;
 	struct co_arg	*arg = arg_v;
@@ -917,6 +919,8 @@ connection_operation( void *arg_v )
 	ldap_pvt_thread_mutex_lock( &num_ops_mutex );
 	num_ops_initiated++;
 	ldap_pvt_thread_mutex_unlock( &num_ops_mutex );
+
+	arg->co_op->o_threadctx = ctx;
 
 	if( conn->c_sasl_bind_in_progress && tag != LDAP_REQ_BIND ) {
 #ifdef NEW_LOGGING

@@ -154,9 +154,9 @@ ldap_pvt_thread_pool_init (
 int
 ldap_pvt_thread_pool_submit (
 	ldap_pvt_thread_pool_t *pool,
-	void *(*start_routine)( void * ), void *arg )
+	ldap_pvt_thread_start_t *start_routine, void *arg )
 {
-	(start_routine)(arg);
+	(start_routine)(NULL, arg);
 	return(0);
 }
 
@@ -180,4 +180,15 @@ ldap_pvt_thread_pool_destroy (
 	return(0);
 }
 
+int ldap_pvt_thread_pool_getkey (
+	void *ctx, void *key, void **data, void **kfree )
+{
+	return(0);
+}
+
+int ldap_pvt_thread_pool_setkey (
+	void *ctx, void *key, void *data, void *kfree )
+{
+	return(0);
+}
 #endif /* NO_THREADS */

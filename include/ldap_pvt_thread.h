@@ -141,6 +141,9 @@ ldap_pvt_thread_rdwr_active LDAP_P((ldap_pvt_thread_rdwr_t *rdwrp));
 
 typedef ldap_int_thread_pool_t ldap_pvt_thread_pool_t;
 
+typedef void * (ldap_pvt_thread_start_t) LDAP_P((void *ctx, void *arg));
+typedef void (ldap_pvt_thread_pool_keyfree_t) LDAP_P((void *key, void *data));
+
 LDAP_F( int )
 ldap_pvt_thread_pool_init LDAP_P((
 	ldap_pvt_thread_pool_t *pool_out,
@@ -150,7 +153,7 @@ ldap_pvt_thread_pool_init LDAP_P((
 LDAP_F( int )
 ldap_pvt_thread_pool_submit LDAP_P((
 	ldap_pvt_thread_pool_t *pool,
-	void *(*start_routine)( void * ),
+	ldap_pvt_thread_start_t *start,
 	void *arg ));
 
 LDAP_F( int )
@@ -166,6 +169,20 @@ LDAP_F( int )
 ldap_pvt_thread_pool_destroy LDAP_P((
 	ldap_pvt_thread_pool_t *pool,
 	int run_pending ));
+
+LDAP_F( int )
+ldap_pvt_thread_pool_getkey LDAP_P((
+	void *ctx,
+	void *key,
+	void **data,
+	ldap_pvt_thread_pool_keyfree_t **kfree ));
+
+LDAP_F( int )
+ldap_pvt_thread_pool_setkey LDAP_P((
+	void *ctx,
+	void *key,
+	void *data,
+	ldap_pvt_thread_pool_keyfree_t *kfree ));
 
 
 LDAP_END_DECL

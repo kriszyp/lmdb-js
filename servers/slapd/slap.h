@@ -1542,6 +1542,7 @@ typedef struct slap_op {
 	slap_callback	*o_callback;	/* callback pointers */
 	LDAPControl	**o_ctrls;	 /* controls */
 
+	void	*o_threadctx;		/* thread pool thread context */
 	void	*o_private;	/* anything the backend needs */
 
 	LDAP_STAILQ_ENTRY(slap_op)	o_next;	/* next operation in list	  */
