@@ -118,7 +118,9 @@ parse_acl(
 				}
 
 				if ( strcasecmp( argv[i], "*" ) == 0 ) {
-					if( a->acl_dn_pat.bv_len != 0 ) {
+					if( a->acl_dn_pat.bv_len ||
+						( a->acl_dn_style != ACL_STYLE_REGEX ) )
+					{
 						fprintf( stderr,
 							"%s: line %d: dn pattern"
 							" already specified in to clause.\n",
@@ -142,7 +144,9 @@ parse_acl(
 				}
 
 				if ( strcasecmp( left, "dn" ) == 0 ) {
-					if( a->acl_dn_pat.bv_len != 0 ) {
+					if( a->acl_dn_pat.bv_len != 0 ||
+						( a->acl_dn_style != ACL_STYLE_REGEX ) )
+					{
 						fprintf( stderr,
 							"%s: line %d: dn pattern"
 							" already specified in to clause.\n",
@@ -230,7 +234,9 @@ parse_acl(
 				a->acl_dn_pat.bv_len = 0;
 			}
 			
-			if( a->acl_dn_pat.bv_len != 0 ) {
+			if( a->acl_dn_pat.bv_len != 0 ||
+				( a->acl_dn_style != ACL_STYLE_REGEX ) )
+			{
 				if ( a->acl_dn_style != ACL_STYLE_REGEX ) {
 					struct berval bv;
 					rc = dnNormalize2( NULL, &a->acl_dn_pat, &bv);
