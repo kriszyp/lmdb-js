@@ -51,7 +51,6 @@ Modify -lldap to be reentrant/threadsafe
 Modify libraries to use application specified logging routines
 Modify servers to use reentrant library functions
 Extend slapd to support identd (RFC1413) information in ACLs
-Extend slapd to support hashed userPassword generation
 Port slapd (incl back-ldbm & tools) to NT <gwilliams@openldap.org>
 Port slurpd to NT
 
