@@ -162,6 +162,12 @@ static struct slap_schema_oc_map {
 			"NAME 'collectiveAttributes' "
 			"AUXILIARY )", subentryObjectClass,
 		offsetof(struct slap_internal_schema, si_oc_collectiveAttributes) },
+	{ "dynamicObject", "( 1.3.6.1.4.1.1466.101.119.2 "
+			"NAME 'dynamicObject' "
+			"DESC 'RFC2589: Dynamic Object' "
+			"SUP top AUXILIARY )",
+		0,
+		offsetof(struct slap_internal_schema, si_oc_dynamicObject) },
 	{ NULL, 0 }
 };
 

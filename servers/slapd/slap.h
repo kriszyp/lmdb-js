@@ -515,6 +515,7 @@ struct slap_internal_schema {
 	ObjectClass *si_oc_subentry;
 	ObjectClass *si_oc_subschema;
 	ObjectClass *si_oc_collectiveAttributes;
+	ObjectClass *si_oc_dynamicObject;
 
 	/* objectClass attribute descriptions */
 	AttributeDescription *si_ad_objectClass;

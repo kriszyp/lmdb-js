@@ -14,12 +14,6 @@
 #
 # select informational schema items:
 #	RFC 2377 (uidObject)
-#
-# select IETF ''work in progress'' LDAPext/LDUP items
-#   ldapSubentry
-#	ldapRootDSE
-#	named referrals
-#	alias draft
 
 #
 # Standard attribute types from RFC 2256
@@ -455,7 +449,6 @@ objectclass ( 2.5.6.20 NAME 'dmd'
 #
 # Object Classes from RFC 2587
 #
-
 objectclass ( 2.5.6.21 NAME 'pkiUser'
 	DESC 'RFC2587: a PKI user'
 	SUP top AUXILIARY
@@ -472,11 +465,9 @@ objectclass ( 2.5.6.23 NAME 'deltaCRL'
 	SUP top AUXILIARY
 	MAY deltaRevocationList )
 
-
 #
 # Standard Track URI label schema from RFC 2079
 #
-
 attributetype ( 1.3.6.1.4.1.250.1.57 NAME 'labeledURI'
 	DESC 'RFC2079: Uniform Resource Identifier with optional label'
 	EQUALITY caseExactMatch
@@ -485,14 +476,6 @@ attributetype ( 1.3.6.1.4.1.250.1.57 NAME 'labeledURI'
 objectclass ( 1.3.6.1.4.1.250.3.15 NAME 'labeledURIObject'
 	DESC 'RFC2079: object that contains the URI attribute type'
 	MAY ( labeledURI )
-	SUP top AUXILIARY )
-
-#
-# Standard Track Dynamic Directory Services from RFC 2589
-#
-
-objectclass ( 1.3.6.1.4.1.1466.101.119.2 NAME 'dynamicObject'
-	DESC 'RFC2589: Dynamic Object'
 	SUP top AUXILIARY )
 
 #
@@ -530,24 +513,12 @@ objectclass ( 1.3.6.1.4.1.1466.344 NAME 'dcObject'
 	DESC 'RFC2247: domain component object'
 	SUP top AUXILIARY MUST dc )
 
-
 # RFC 2377
 objectclass ( 1.3.6.1.1.3.1 NAME 'uidObject'
 	DESC 'RFC2377: uid object'
 	SUP top AUXILIARY MUST uid )
 
-#
-# LDAPsubEntry
-#	deprecated!
-objectclass ( 2.16.840.1.113719.2.142.6.1.1
-	NAME 'LDAPsubEntry'
-	DESC 'LDAP Subentry'
-	OBSOLETE
-	SUP top STRUCTURAL MAY cn )
-
-#
 # From COSINE Pilot
-#
 attributetype ( 0.9.2342.19200300.100.1.37
 	NAME 'associatedDomain'
 	DESC 'RFC1274: domain associated with object'
@@ -555,9 +526,7 @@ attributetype ( 0.9.2342.19200300.100.1.37
 	SUBSTR caseIgnoreIA5SubstringsMatch
 	SYNTAX 1.3.6.1.4.1.1466.115.121.1.26 )
 
-#
 # From U-Mich
-#
 attributetype ( 1.3.6.1.4.1.250.1.32
 	NAME ( 'krbName' 'kerberosName' )
 	DESC 'Kerberos principal associated with object'
