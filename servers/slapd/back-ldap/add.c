@@ -58,6 +58,7 @@ ldap_back_add(
 	struct berval mapped;
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
+	dncookie dc;
 
 #ifdef NEW_LOGGING
 	LDAP_LOG( BACK_LDAP, ENTRY, "ldap_back_add: %s\n", op->o_req_dn.bv_val, 0, 0 );
@@ -73,37 +74,19 @@ ldap_back_add(
 	/*
 	 * Rewrite the add dn, if needed
 	 */
+	dc.li = li;
 #ifdef ENABLE_REWRITE
-	switch (rewrite_session( li->rwinfo, "addDn", op->o_req_dn.bv_val, op->o_conn, 
-				&mdn.bv_val )) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn.bv_val != NULL && mdn.bv_val[ 0 ] != '\0' ) {
-			mdn.bv_len = strlen( mdn.bv_val );
-		} else {
-			mdn = op->o_req_dn;
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] addDn: \"%s\" -> \"%s\"\n", op->o_req_dn.bv_val, mdn.bv_val, 0 );		
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> addDn: \"%s\" -> \"%s\"\n%s", 
-				op->o_req_dn.bv_val, mdn.bv_val, "" );
-#endif /* !NEW_LOGGING */
-		break;
- 		
- 	case REWRITE_REGEXEC_UNWILLING:
- 		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
- 				"Operation not allowed" );
-		return( -1 );
-	       	
-	case REWRITE_REGEXEC_ERR:
- 		send_ldap_error( op, rs, LDAP_OTHER,
- 				"Rewrite error" );
-		return( -1 );
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "addDn";
+#else
+	dc.tofrom = 1;
+	dc.normalized = 0;
+#endif
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		send_ldap_result( op, rs );
+		return -1;
 	}
-#else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
-#endif /* !ENABLE_REWRITE */
 
 	/* Count number of attributes in entry */
 	for (i = 1, a = op->oq_add.rs_e->e_attrs; a; i++, a = a->a_next)
@@ -113,25 +96,6 @@ ldap_back_add(
 	attrs = (LDAPMod **)ch_malloc(sizeof(LDAPMod *)*i);
 
 	for (i=0, a=op->oq_add.rs_e->e_attrs; a; a=a->a_next) {
-		/*
-		 * lastmod should always be <off>, so that
-		 * creation/modification operational attrs
-		 * of the target directory are used, if available
-		 */
-#if 0
-		if ( !strcasecmp( a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_creatorsName->ad_cname.bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_createTimestamp->ad_cname.bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_modifiersName->ad_cname.bv_val )
-			|| !strcasecmp( a->a_desc->ad_cname.bv_val,
-			slap_schema.si_ad_modifyTimestamp->ad_cname.bv_val )
-		) {
-			continue;
-		}
-#endif
-		
 		if ( a->a_desc->ad_type->sat_no_user_mod  ) {
 			continue;
 		}
@@ -150,20 +114,14 @@ ldap_back_add(
 		attrs[i]->mod_op = LDAP_MOD_BVALUES;
 		attrs[i]->mod_type = mapped.bv_val;
 
-#ifdef ENABLE_REWRITE
-		/*
-		 * FIXME: dn-valued attrs should be rewritten
-		 * to allow their use in ACLs at back-ldap level.
-		 */
-		if ( strcmp( a->a_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
+		if ( a->a_desc->ad_type->sat_syntax ==
+			slap_schema.si_syn_distinguishedName ) {
 			/*
 			 * FIXME: rewrite could fail; in this case
 			 * the operation should give up, right?
 			 */
-			(void)ldap_dnattr_rewrite( li->rwinfo, a->a_vals, op->o_conn );
+			(void)ldap_dnattr_rewrite( &dc, a->a_vals );
 		}
-#endif /* ENABLE_REWRITE */
 
 		for (j=0; a->a_vals[j].bv_val; j++);
 		attrs[i]->mod_vals.modv_bvals = ch_malloc((j+1)*sizeof(struct berval *));
@@ -188,59 +146,26 @@ ldap_back_add(
 	return ldap_back_op_result( lc, op, rs, msgid, 1 ) != LDAP_SUCCESS;
 }
 
-#ifdef ENABLE_REWRITE
 int
 ldap_dnattr_rewrite(
-		struct rewrite_info     *rwinfo,
-		BerVarray			a_vals,
-		void                    *cookie
+	dncookie		*dc,
+	BerVarray		a_vals
 )
 {
-	char *mattr;
-	
-	for ( ; a_vals->bv_val != NULL; a_vals++ ) {
-		switch ( rewrite_session( rwinfo, "bindDn", a_vals->bv_val,
-					cookie, &mattr )) {
-		case REWRITE_REGEXEC_OK:
-			if ( mattr == NULL ) {
-				/* no substitution */
-				continue;
-			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDAP, DETAIL1, 
-				"[rw] bindDn (in add of dn-valued"
-				" attr): \"%s\" -> \"%s\"\n", a_vals->bv_val, mattr, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS,
-					"rw> bindDn (in add of dn-valued attr):"
-					" \"%s\" -> \"%s\"\n%s",
-					a_vals->bv_val, mattr, "" );
-#endif /* !NEW_LOGGING */
+	struct berval bv;
 
-			/*
-			 * FIXME: replacing server-allocated memory 
-			 * (ch_malloc) with librewrite allocated memory
-			 * (malloc)
-			 */
+#ifdef ENABLE_REWRITE
+	dc->ctx="dnAttr";
+#endif
+	for ( ; a_vals->bv_val != NULL; a_vals++ ) {
+		ldap_back_dn_massage( dc, a_vals, &bv );
+
+		/* leave attr untouched if massage failed */
+		if ( bv.bv_val && bv.bv_val != a_vals->bv_val ) {
 			ch_free( a_vals->bv_val );
-			a_vals->bv_val = mattr;
-			a_vals->bv_len = strlen( mattr );
-			
-			break;
-			
-		case REWRITE_REGEXEC_UNWILLING:
-			
-		case REWRITE_REGEXEC_ERR:
-			/*
-			 * FIXME: better give up,
-			 * skip the attribute
-			 * or leave it untouched?
-			 */
-			break;
+			*a_vals = bv;
 		}
 	}
 	
 	return 0;
 }
-#endif /* ENABLE_REWRITE */
-

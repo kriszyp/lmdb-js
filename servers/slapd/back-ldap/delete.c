@@ -53,6 +53,7 @@ ldap_back_delete(
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
 	ber_int_t msgid;
+	dncookie dc;
 
 	struct berval mdn = { 0, NULL };
 
@@ -65,34 +66,19 @@ ldap_back_delete(
 	/*
 	 * Rewrite the request dn, if needed
 	 */
+	dc.li = li;
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "deleteDn", op->o_req_dn.bv_val, op->o_conn, &mdn.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-	if ( mdn.bv_val == NULL ) {
-			mdn.bv_val = ( char * )op->o_req_dn.bv_val;
-		}
-#ifdef NEW_LOGGING
-	LDAP_LOG( BACK_LDAP, DETAIL1, 
-		"[rw] deleteDn: \"%s\" -> \"%s\"\n", op->o_req_dn.bv_val, mdn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-	Debug( LDAP_DEBUG_ARGS, "rw> deleteDn: \"%s\" -> \"%s\"\n%s",
-			op->o_req_dn.bv_val, mdn.bv_val, "" );
-#endif /* !NEW_LOGGING */
-	break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"Operation not allowed" );
-		return( -1 );
-
-	case REWRITE_REGEXEC_ERR:
-		send_ldap_error( op, rs, LDAP_OTHER,
-				"Rewrite error" );
-		return( -1 );
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "deleteDn";
+#else
+	dc.tofrom = 1;
+	dc.normalized = 0;
+#endif
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		send_ldap_result( op, rs );
+		return -1;
 	}
-#else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
-#endif /* !ENABLE_REWRITE */
 	
 	rs->sr_err = ldap_delete_ext( lc->ld, mdn.bv_val, op->o_ctrls,
 			NULL, &msgid );

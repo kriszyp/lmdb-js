@@ -55,6 +55,7 @@ ldap_back_exop_passwd(
 	LDAPMessage *res;
 	ber_int_t msgid;
 	int rc;
+	dncookie dc;
 
 	lc = ldap_back_getconn(op, rs);
 	if (!lc || !ldap_back_dobind(lc, op, rs) ) {
@@ -84,35 +85,19 @@ ldap_back_exop_passwd(
 		return LDAP_UNWILLING_TO_PERFORM;
 	}
 	if (id.bv_len) {
+		dc.li = li;
 #ifdef ENABLE_REWRITE
-		switch ( rewrite_session( li->rwinfo, "modifyPwd", dn.bv_val, op->o_conn, &mdn.bv_val ) ) {
-		case REWRITE_REGEXEC_OK:
-			if ( mdn.bv_val == NULL ) {
-				mdn.bv_val = dn.bv_val;
-			}
-			mdn.bv_len = strlen(mdn.bv_val);
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDAP, DETAIL1,
-				"[rw] modifyPwd: \"%s\" -> \"%s\"\n", dn.bv_val, mdn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS, "rw> modifyPwd: \"%s\" -> \"%s\"\n%s",
-					dn.bv_val, mdn.bv_val, "" );
-#endif /* !NEW_LOGGING */
-			break;
-
-		case REWRITE_REGEXEC_UNWILLING:
-			send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-					"Operation not allowed" );
-			return( -1 );
-
-		case REWRITE_REGEXEC_ERR:
-			send_ldap_error( op, rs, LDAP_OTHER,
-					"Rewrite error" );
-			return( -1 );
+		dc.conn = op->o_conn;
+		dc.rs = rs;
+		dc.ctx = "modifyPwd";
+#else
+		dc.tofrom = 1;
+		dc.normalized = 0;
+#endif
+		if ( ldap_back_dn_massage( &dc, &dn, &mdn ) ) {
+			send_ldap_result( op, rs );
+			return -1;
 		}
-#else /* !ENABLE_REWRITE */
-		ldap_back_dn_massage( li, &dn, &mdn, 0, 1 );
-#endif /* !ENABLE_REWRITE */
 	}
 
 	rc = ldap_passwd(lc->ld, id.bv_len ? &mdn : NULL, old.bv_len ? &old : NULL,

@@ -52,9 +52,11 @@ ldap_back_compare(
 {
 	struct ldapinfo	*li = (struct ldapinfo *) op->o_bd->be_private;
 	struct ldapconn *lc;
-	struct berval mapped_oc, mapped_at;
+	struct berval mapped_at, mapped_val;
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
+	int freeval = 0;
+	dncookie dc;
 
 	lc = ldap_back_getconn(op, rs);
 	if (!lc || !ldap_back_dobind( lc, op, rs ) ) {
@@ -64,55 +66,46 @@ ldap_back_compare(
 	/*
 	 * Rewrite the compare dn, if needed
 	 */
+	dc.li = li;
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "compareDn", op->o_req_dn.bv_val, op->o_conn, &mdn.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn.bv_val == NULL ) {
-			mdn.bv_val = ( char * )op->o_req_dn.bv_val;
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] compareDn: \"%s\" -> \"%s\"\n", op->o_req_dn.bv_val, mdn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> compareDn: \"%s\" -> \"%s\"\n%s",
-				op->o_req_dn.bv_val, mdn.bv_val, "" );
-#endif /* !NEW_LOGGING */
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"Operation not allowed" );
-		return( -1 );
-		
-	case REWRITE_REGEXEC_ERR:
-		send_ldap_error( op, rs, LDAP_OTHER,
-				"Rewrite error" );
-		return( -1 );
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "compareDn";
+#else
+	dc.tofrom = 1;
+	dc.normalized = 0;
+#endif
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		send_ldap_result( op, rs );
+		return -1;
 	}
-#else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
- 	if ( mdn.bv_val == NULL ) {
- 		return -1;
-	}
-#endif /* !ENABLE_REWRITE */
 
 	if ( op->oq_compare.rs_ava->aa_desc == slap_schema.si_ad_objectClass ) {
-		ldap_back_map(&li->oc_map, &op->oq_compare.rs_ava->aa_desc->ad_cname, &mapped_oc,
+		ldap_back_map(&li->oc_map, &op->orc_ava->aa_value, &mapped_val,
 				BACKLDAP_MAP);
-		if (mapped_oc.bv_val == NULL || mapped_oc.bv_val[0] == '\0') {
+		if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {
 			return( -1 );
 		}
-		
+		mapped_at = op->orc_ava->aa_desc->ad_cname;
 	} else {
-		ldap_back_map(&li->at_map, &op->oq_compare.rs_ava->aa_value, &mapped_at, 
+		ldap_back_map(&li->at_map, &op->orc_ava->aa_desc->ad_cname, &mapped_at, 
 				BACKLDAP_MAP);
 		if (mapped_at.bv_val == NULL || mapped_at.bv_val[0] == '\0') {
 			return( -1 );
 		}
+		if (op->orc_ava->aa_desc->ad_type->sat_syntax == slap_schema.si_syn_distinguishedName ) {
+#ifdef ENABLE_REWRITE
+			dc.ctx = "dnAttr";
+#endif
+			ldap_back_dn_massage( &dc, &op->orc_ava->aa_value, &mapped_val );
+			if (mapped_val.bv_val == NULL || mapped_val.bv_val[0] == '\0') {
+				mapped_val = op->orc_ava->aa_value;
+			}
+		}
 	}
 
-	rs->sr_err = ldap_compare_ext( lc->ld, mdn.bv_val, mapped_oc.bv_val,
-		&mapped_at, op->o_ctrls, NULL, &msgid );
+	rs->sr_err = ldap_compare_ext( lc->ld, mdn.bv_val, mapped_at.bv_val,
+		&mapped_val, op->o_ctrls, NULL, &msgid );
 
 	if ( mdn.bv_val != op->o_req_dn.bv_val ) {
 		free( mdn.bv_val );

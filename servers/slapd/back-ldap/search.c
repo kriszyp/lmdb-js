@@ -74,6 +74,7 @@ ldap_back_search(
 	struct berval mfilter = { 0, NULL };
 	struct slap_limits_set *limit = NULL;
 	int isroot = 0;
+	dncookie dc;
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc ) {
@@ -146,41 +147,19 @@ ldap_back_search(
 	/*
 	 * Rewrite the search base, if required
 	 */
+	dc.li = li;
 #ifdef ENABLE_REWRITE
- 	switch ( rewrite_session( li->rwinfo, "searchBase",
- 				op->o_req_dn.bv_val, op->o_conn, &mbase.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mbase.bv_val == NULL ) {
-			mbase = op->o_req_dn;
-		} else {
-			mbase.bv_len = strlen( mbase.bv_val );
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] searchBase: \"%s\" -> \"%s\"\n", 
-			op->o_req_dn.bv_val, mbase.bv_val, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n%s",
-				op->o_req_dn.bv_val, mbase.bv_val, "" );
-#endif /* !NEW_LOGGING */
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		rs->sr_err = LDAP_UNWILLING_TO_PERFORM;
-		rs->sr_text = "Operation not allowed";
-		rc = -1;
-		goto finish;
-
-	case REWRITE_REGEXEC_ERR:
-		rs->sr_err = LDAP_OTHER;
-		rs->sr_text = "Rewrite error";
-		rc = -1;
-		goto finish;
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "searchBase";
+#else
+	dc.tofrom = 1;
+	dc.normalized = 0;
+#endif
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mbase ) ) {
+		send_ldap_result( op, rs );
+		return -1;
 	}
-
-#else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->o_req_dn, &mbase, 0, 1 );
-#endif /* !ENABLE_REWRITE */
 
 #ifdef ENABLE_REWRITE
 	rc = ldap_back_filter_map_rewrite_( li->rwinfo, op->o_conn,
@@ -335,44 +314,22 @@ fail:;
 	if (rc == -1)
 		goto fail;
 
-#ifdef ENABLE_REWRITE
 	/*
 	 * Rewrite the matched portion of the search base, if required
 	 */
 	if ( match != NULL ) {
-		switch ( rewrite_session( li->rwinfo, "matchedDn",
-				match, op->o_conn, (char **)&rs->sr_matched ) ) {
-		case REWRITE_REGEXEC_OK:
-			if ( rs->sr_matched == NULL ) {
-				rs->sr_matched = ( char * )match;
-			}
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDAP, DETAIL1, 
-				"[rw]  matchedDn:" " \"%s\" -> \"%s\"\n", match, rs->sr_matched, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS, "rw> matchedDn:"
-					" \"%s\" -> \"%s\"\n%s",
-					match, rs->sr_matched, "" );
-#endif /* !NEW_LOGGING */
-			break;
-			
-		case REWRITE_REGEXEC_UNWILLING:
-			
-		case REWRITE_REGEXEC_ERR:
-			/* FIXME: no error, but no matched ... */
-			rs->sr_matched = NULL;
-			break;
-		}
-	}
-#else /* !ENABLE_REWRITE */
-	if ( match != NULL ) {
 		struct berval dn, mdn;
 
+#ifdef ENABLE_REWRITE
+		dc.ctx = "matchedDn";
+#else
+		dc.tofrom = 0;
+		dc.normalized = 0;
+#endif
 		ber_str2bv(match, 0, 0, &dn);
-		ldap_back_dn_massage(li, &dn, &mdn, 0, 0);
+		ldap_back_dn_massage(&dc, &dn, &mdn);
 		rs->sr_matched = mdn.bv_val;
 	}
-#endif /* !ENABLE_REWRITE */
 	if ( rs->sr_v2ref ) {
 		rs->sr_err = LDAP_REFERRAL;
 	}
@@ -422,6 +379,7 @@ ldap_build_entry(
 	int last;
 	int private = flags & LDAP_BUILD_ENTRY_PRIVATE;
 	int normalize = flags & LDAP_BUILD_ENTRY_NORMALIZE;
+	dncookie dc;
 
 	/* safe assumptions ... */
 	assert( ent );
@@ -430,37 +388,22 @@ ldap_build_entry(
 	if ( ber_scanf( &ber, "{m{", bdn ) == LBER_ERROR ) {
 		return LDAP_DECODING_ERROR;
 	}
-#ifdef ENABLE_REWRITE
 
 	/*
 	 * Rewrite the dn of the result, if needed
 	 */
-	switch ( rewrite_session( li->rwinfo, "searchResult",
-				bdn->bv_val, op->o_conn,
-				&ent->e_name.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( ent->e_name.bv_val == NULL ) {
-			ent->e_name = *bdn;
-		} else {
-#ifdef NEW_LOGGING
-			LDAP_LOG( BACK_LDAP, DETAIL1, 
-				"[rw] searchResult: \"%s\"" " -> \"%s\"\n", 
-				bdn->bv_val, ent->e_dn, 0 );
-#else /* !NEW_LOGGING */
-			Debug( LDAP_DEBUG_ARGS, "rw> searchResult: \"%s\""
- 					" -> \"%s\"\n%s", bdn->bv_val, ent->e_dn, "" );
-#endif /* !NEW_LOGGING */
-			ent->e_name.bv_len = strlen( ent->e_name.bv_val );
-		}
-		break;
-		
-	case REWRITE_REGEXEC_ERR:
-	case REWRITE_REGEXEC_UNWILLING:
+	dc.li = li;
+#ifdef ENABLE_REWRITE
+	dc.conn = op->o_conn;
+	dc.rs = NULL;
+	dc.ctx = "searchResult";
+#else
+	dc.tofrom = 0;
+	dc.normalized = 0;
+#endif
+	if ( ldap_back_dn_massage( &dc, bdn, &ent->e_name ) ) {
 		return LDAP_OTHER;
 	}
-#else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, bdn, &ent->e_name, 0, 0 );
-#endif /* !ENABLE_REWRITE */
 
 	/*
 	 * Note: this may fail if the target host(s) schema differs
@@ -575,63 +518,16 @@ ldap_build_entry(
 		 * ACLs to the target directory server, and letting
 		 * everything pass thru the ldap backend.
 		 */
-		} else if ( strcmp( attr->a_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
+		} else if ( attr->a_desc->ad_type->sat_syntax ==
+				slap_schema.si_syn_distinguishedName ) {
 			for ( bv = attr->a_vals; bv->bv_val; bv++ ) {
-				struct berval	newval;
+				struct berval	newval = {0,NULL};
 				
-#ifdef ENABLE_REWRITE
-				switch ( rewrite_session( li->rwinfo,
-							"searchResult",
-							bv->bv_val,
-							op->o_conn, 
-							&newval.bv_val )) {
-				case REWRITE_REGEXEC_OK:
-					/* left as is */
-					if ( newval.bv_val == NULL ) {
-						break;
-					}
-					newval.bv_len = strlen( newval.bv_val );
-#ifdef NEW_LOGGING
-					LDAP_LOG( BACK_LDAP, DETAIL1, 
-						"[rw] searchResult on attr=%s: \"%s\" -> \"%s\"\n",
-						attr->a_desc->ad_type->sat_cname.bv_val,
-						bv->bv_val, newval.bv_val );
-#else /* !NEW_LOGGING */
-					Debug( LDAP_DEBUG_ARGS,
-		"rw> searchResult on attr=%s: \"%s\" -> \"%s\"\n",
-						attr->a_desc->ad_type->sat_cname.bv_val,
-						bv->bv_val, newval.bv_val );
-#endif /* !NEW_LOGGING */
-					free( bv->bv_val );
-					*bv = newval;
-					break;
-					
-				case REWRITE_REGEXEC_UNWILLING:
-					LBER_FREE(bv->bv_val);
-					bv->bv_val = NULL;
-					if (--last < 0)
-						goto next_attr;
-					*bv = attr->a_vals[last];
-					attr->a_vals[last].bv_val = NULL;
-					bv--;
-					break;
-
-				case REWRITE_REGEXEC_ERR:
-					/*
-					 * FIXME: better give up,
-					 * skip the attribute
-					 * or leave it untouched?
-					 */
-					break;
-				}
-#else /* !ENABLE_REWRITE */
-				ldap_back_dn_massage( li, bv, &newval, 0, 0 );
-				if ( bv->bv_val != newval.bv_val ) {
+				ldap_back_dn_massage( &dc, bv, &newval );
+				if ( newval.bv_val && bv->bv_val != newval.bv_val ) {
 					LBER_FREE( bv->bv_val );
+					*bv = newval;
 				}
-				*bv = newval;
-#endif /* !ENABLE_REWRITE */
 			}
 		}
 
@@ -688,6 +584,7 @@ ldap_back_entry_get(
 	char *filter = NULL;
 	Connection *oconn;
 	SlapReply rs;
+	dncookie dc;
 
 	/* Tell getconn this is a privileged op */
 	is_oc = op->o_do_not_cache;
@@ -706,34 +603,18 @@ ldap_back_entry_get(
 	/*
 	 * Rewrite the search base, if required
 	 */
+	dc.li = li;
 #ifdef ENABLE_REWRITE
- 	switch ( rewrite_session( li->rwinfo, "searchBase",
- 				ndn->bv_val, op->o_conn, &mdn.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn.bv_val == NULL ) {
-			mdn = *ndn;
-		} else {
-			mdn.bv_len = strlen( mdn.bv_val );
-		}
-			
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] searchBase: \"%s\" -> \"%s\"\n", 
-			ndn->bv_val, mdn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> searchBase: \"%s\" -> \"%s\"\n",
-				ndn->bv_val, mdn.bv_val, 0 );
-#endif /* !NEW_LOGGING */
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-	case REWRITE_REGEXEC_ERR:
+	dc.conn = op->o_conn;
+	dc.rs = &rs;
+	dc.ctx = "searchBase";
+#else
+	dc.tofrom = 1;
+	dc.normalized = 1;
+#endif
+	if ( ldap_back_dn_massage( &dc, ndn, &mdn ) ) {
 		return 1;
 	}
-
-#else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, ndn, &mdn, 0, 1 );
-#endif /* !ENABLE_REWRITE */
 
 	ldap_back_map(&li->at_map, &at->ad_cname, &mapped, BACKLDAP_MAP);
 	if (mapped.bv_val == NULL || mapped.bv_val[0] == '\0') {

@@ -98,8 +98,21 @@ int ldap_back_op_result(struct ldapconn *lc, Operation *op, SlapReply *rs,
 	ber_int_t msgid, int sendok);
 int	back_ldap_LTX_init_module(int argc, char *argv[]);
 
-void ldap_back_dn_massage(struct ldapinfo *li, struct berval *dn,
-	struct berval *res, int normalized, int tofrom);
+/* Whatever context ldap_back_dn_massage needs... */
+typedef struct dncookie {
+	struct ldapinfo *li;
+#ifdef ENABLE_REWRITE
+	Connection *conn;
+	char *ctx;
+	SlapReply *rs;
+#else
+	int normalized;
+	int tofrom;
+#endif
+} dncookie;
+
+int ldap_back_dn_massage(dncookie *dc, struct berval *dn,
+	struct berval *res);
 
 extern int ldap_back_conn_cmp( const void *c1, const void *c2);
 extern int ldap_back_conn_dup( void *c1, void *c2 );
@@ -157,8 +170,8 @@ ldap_back_filter_map_rewrite_(
 extern int suffix_massage_config( struct rewrite_info *info,
 		struct berval *pvnc, struct berval *nvnc,
 		struct berval *prnc, struct berval *nrnc);
-extern int ldap_dnattr_rewrite( struct rewrite_info *rwinfo, BerVarray a_vals, void *cookie );
 #endif /* ENABLE_REWRITE */
+extern int ldap_dnattr_rewrite( dncookie *dc, BerVarray a_vals );
 
 LDAP_END_DECL
 

@@ -59,6 +59,7 @@ ldap_back_modify(
 	struct berval mapped;
 	struct berval mdn = { 0, NULL };
 	ber_int_t msgid;
+	dncookie dc;
 
 	lc = ldap_back_getconn(op, rs);
 	if ( !lc || !ldap_back_dobind( lc, op, rs ) ) {
@@ -68,34 +69,19 @@ ldap_back_modify(
 	/*
 	 * Rewrite the modify dn, if needed
 	 */
+	dc.li = li;
 #ifdef ENABLE_REWRITE
-	switch ( rewrite_session( li->rwinfo, "modifyDn", op->o_req_dn.bv_val, op->o_conn, &mdn.bv_val ) ) {
-	case REWRITE_REGEXEC_OK:
-		if ( mdn.bv_val == NULL ) {
-			mdn.bv_val = ( char * )op->o_req_dn.bv_val;
-		}
-#ifdef NEW_LOGGING
-		LDAP_LOG( BACK_LDAP, DETAIL1, 
-			"[rw] modifyDn: \"%s\" -> \"%s\"\n", op->o_req_dn.bv_val, mdn.bv_val, 0 );
-#else /* !NEW_LOGGING */
-		Debug( LDAP_DEBUG_ARGS, "rw> modifyDn: \"%s\" -> \"%s\"\n%s",
-				op->o_req_dn.bv_val, mdn.bv_val, "" );
-#endif /* !NEW_LOGGING */
-		break;
-		
-	case REWRITE_REGEXEC_UNWILLING:
-		send_ldap_error( op, rs, LDAP_UNWILLING_TO_PERFORM,
-				"Operation not allowed" );
-		return( -1 );
-
-	case REWRITE_REGEXEC_ERR:
-		send_ldap_error( op, rs, LDAP_OTHER,
-				"Rewrite error" );
-		return( -1 );
+	dc.conn = op->o_conn;
+	dc.rs = rs;
+	dc.ctx = "modifyDn";
+#else
+	dc.tofrom = 1;
+	dc.normalized = 0;
+#endif
+	if ( ldap_back_dn_massage( &dc, &op->o_req_dn, &mdn ) ) {
+		send_ldap_result( op, rs );
+		return -1;
 	}
-#else /* !ENABLE_REWRITE */
-	ldap_back_dn_massage( li, &op->o_req_dn, &mdn, 0, 1 );
-#endif /* !ENABLE_REWRITE */
 
 	for (i=0, ml=op->oq_modify.rs_modlist; ml; i++,ml=ml->sml_next)
 		;
@@ -126,18 +112,10 @@ ldap_back_modify(
 		mods[i].mod_op = ml->sml_op | LDAP_MOD_BVALUES;
 		mods[i].mod_type = mapped.bv_val;
 
-#ifdef ENABLE_REWRITE
-		/*
-		 * FIXME: dn-valued attrs should be rewritten
-		 * to allow their use in ACLs at the back-ldap
-		 * level.
-		 */
-		if ( strcmp( ml->sml_desc->ad_type->sat_syntax->ssyn_oid,
-					SLAPD_DN_SYNTAX ) == 0 ) {
-			ldap_dnattr_rewrite( li->rwinfo,
-					ml->sml_bvalues, op->o_conn );
+		if ( ml->sml_desc->ad_type->sat_syntax ==
+			slap_schema.si_syn_distinguishedName ) {
+			ldap_dnattr_rewrite( &dc, ml->sml_bvalues );
 		}
-#endif /* ENABLE_REWRITE */
 
 		if ( ml->sml_bvalues != NULL ) {	
 			for (j = 0; ml->sml_bvalues[j].bv_val; j++);
