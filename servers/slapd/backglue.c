@@ -405,7 +405,23 @@ glue_back_search (
 					s2limit, t2limit, filter, filterstr,
 					attrs, attrsonly);
 			}
+
+			switch ( gs.err ) {
+
+			/*
+			 * Add errors that should result in dropping
+			 * the search
+			 */
+			case LDAP_SIZELIMIT_EXCEEDED:
+			case LDAP_TIMELIMIT_EXCEEDED:
+			case LDAP_ADMINLIMIT_EXCEEDED:
+				goto end_of_loop;
+			
+			default:
+				break;
+			}
 		}
+end_of_loop:;
 		break;
 	}
 	op->o_callback = gs.prevcb;
