@@ -415,7 +415,7 @@ typedef char * caddr_t;
 #define HAVE_VSPRINTF 1
 
 /* Define if you have the waitpid function.  */
-#define HAVE_WAITPID 1
+/* #undef HAVE_WAITPID 1 */
 
 /* Define if you have the <arpa/nameser.h> header file.  */
 /* #undef HAVE_ARPA_NAMESER_H */
