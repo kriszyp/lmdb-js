@@ -45,6 +45,7 @@ Perform a security audit (and fix any hole found)
 
 Medium projects
 ---------------
+Add IPv6 and IPSEC support
 Design and Implement a LDAP C++ API
 Modify -lldap to be reentrant/threadsafe
 	implement LDAP concurrency draft
