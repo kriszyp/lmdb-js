@@ -406,7 +406,7 @@ main( int argc, char **argv )
 
 #ifdef HAVE_TCPD
 		if ( !hosts_ctl("ldapd", (hp == NULL) ? "unknown" : hp->h_name,
-			inet_ntoa( from.sin_addr ), STRING_UNKNOWN ) {
+			inet_ntoa( from.sin_addr ), STRING_UNKNOWN) ) {
 
 			Debug( LDAP_DEBUG_ARGS, "connection from %s (%s) denied.\n",
 		   		(hp == NULL) ? "unknown" : hp->h_name,
