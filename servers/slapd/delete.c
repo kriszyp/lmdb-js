@@ -72,8 +72,8 @@ do_delete(
 		goto cleanup;
 	} 
 
-	Debug( LDAP_DEBUG_ARGS, "do_delete: dn (%s)\n", dn, 0, 0 );
-	Debug( LDAP_DEBUG_STATS, "DEL dn=\"%s\"\n", dn, 0, 0 );
+	Statslog( LDAP_DEBUG_STATS, "conn=%ld op=%d DEL dn=\"%s\"\n",
+		op->o_connid, op->o_opid, dn, 0, 0 );
 
 	/*
 	 * We could be serving multiple database backends.  Select the
