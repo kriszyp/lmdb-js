@@ -85,6 +85,8 @@ LDAP_SLAPD_F (AttributeDescription *) ad_find_lang LDAP_P((
 LDAP_SLAPD_F (AttributeName *) str2anlist LDAP_P(( AttributeName *an,
 	char *str, const char *brkstr ));
 LDAP_SLAPD_F (int) an_find LDAP_P(( AttributeName *a, struct berval *s ));
+LDAP_SLAPD_F (int) ad_define_option LDAP_P(( const char *name,
+	const char *fname, int lineno ));
 
 /*
  * add.c

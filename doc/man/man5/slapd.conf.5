@@ -93,6 +93,32 @@ The ( absolute ) name of a file that will hold the
 .B slapd
 server's command line options
 if started without the debugging command line option.
+.TP
+.B attributeoptions [option-name]...
+Define tagging attribute options or option tag/range prefixes.
+Options must not end with `-', prefixes must end with `-'.
+The `lang-' prefix is predefined.
+If you use the
+.B attributeoptions
+directive, `lang-' will no longer be defined and you must specify it
+explicitly if you want it defined.
+
+An attribute description with a tagging option is a subtype of that
+attribute description without the option.
+Except for that, options defined this way have no special semantics.
+Prefixes defined this way work like the `lang-' options:
+They define a prefix for tagging options starting with the prefix.
+That is, if you define the prefix `x-foo-', you can use the option
+`x-foo-bar'.
+Furthermore, in a search or compare, a prefix or range name (with
+a trailing `-') matches all options starting with that name, as well
+as the option with the range name sans the trailing `-'.
+That is, `x-foo-bar-' matches `x-foo-bar' and `x-foo-bar-baz'.
+
+RFC2251 reserves options beginning with `x-' for private experiments.
+Other options should be registered with IANA, see RFC3383 section 3.4.
+OpenLDAP also has the `binary' option built in, but this is a transfer
+option, not a tagging option.
 .HP
 .hy 0
 .B attributetype "(\ <oid> [NAME\ <name>] [OBSOLETE]\
@@ -1061,6 +1087,12 @@ Here is a short example of a configuration file:
 .nf
 include   SYSCONFDIR/schema/core.schema
 pidfile   LOCALSTATEDIR/slapd.pid
+
+# Subtypes of "name" (e.g. "cn" and "ou") with the
+# option ";x-hidden" can be searched for/compared,
+# but are not shown.  See \fBslapd.access\fP(5).
+attributeoptions x-hidden lang-
+access to attr=name;x-hidden by * =cs
 
 database  bdb
 suffix    "dc=our-domain,dc=com"

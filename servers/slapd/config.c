@@ -1691,6 +1691,13 @@ read_config( const char *fname, int depth )
 
 			}
 
+		/* define attribute option(s) */
+		} else if ( strcasecmp( cargv[0], "attributeoptions" ) == 0 ) {
+			ad_define_option( NULL, NULL, 0 );
+			for ( i = 1; i < cargc; i++ )
+				if ( ad_define_option( cargv[i], fname, lineno ) != 0 )
+					return 1;
+
 		/* turn on/off schema checking */
 		} else if ( strcasecmp( cargv[0], "schemacheck" ) == 0 ) {
 			if ( cargc < 2 ) {

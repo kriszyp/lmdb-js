@@ -628,7 +628,9 @@ typedef struct slap_content_rule {
 } ContentRule;
 
 /*
- * represents a recognized attribute description ( type + options )
+ * Represents a recognized attribute description ( type + options ).
+ * Note: Tagging options/ranges are mislabeled "language options",
+ * because language options ("lang-") were implemented first.
  */
 typedef struct slap_attr_desc {
 	struct slap_attr_desc *ad_next;
