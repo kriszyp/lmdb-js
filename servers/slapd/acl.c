@@ -395,7 +395,7 @@ acl_get(
 	for ( ; a != NULL; a = a->acl_next ) {
 		(*count) ++;
 
-		if (a->acl_dn_pat.bv_len != 0) {
+		if ( a->acl_dn_pat.bv_len || ( a->acl_dn_style != ACL_STYLE_REGEX )) {
 			if ( a->acl_dn_style == ACL_STYLE_REGEX ) {
 #ifdef NEW_LOGGING
 				LDAP_LOG(( "acl", LDAP_LEVEL_DETAIL1,
