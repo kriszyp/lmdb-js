@@ -195,30 +195,14 @@ hash_md5 (const char *pw_in, Salt * salt)
 {
 	lutil_MD5_CTX	MD5context;
 	unsigned char	MD5digest[16];
-	unsigned char  *hashing_pw = (unsigned char *)pw_in;
-	char	       *base64digest = NULL;
-	int		tot_len = strlen (pw_in);
-	int		salted = (salt && salt->salt && salt->len);
-
-	/* append salt to password */
-	if (salted)
-	{
-		hashing_pw = (unsigned char *)malloc (tot_len + salt->len);
-		memcpy (hashing_pw, pw_in, tot_len);
-		memcpy (&hashing_pw[tot_len], salt->salt, salt->len);
-		tot_len += salt->len;
-	}
 
 	lutil_MD5Init (&MD5context);
-	lutil_MD5Update (&MD5context, hashing_pw, tot_len);
+	lutil_MD5Update (&MD5context, pw_in, strlen(pw_in));
+	if (salt && salt->salt && salt->len)
+		lutil_MD5Update (&MD5context, salt->salt, salt->len);
 	lutil_MD5Final (MD5digest, &MD5context);
 
-	base64digest = pw_encode (MD5digest, salt, sizeof (MD5digest));
-
-	if (salted)
-		free (hashing_pw);
-
-	return (base64digest);
+	return (pw_encode (MD5digest, salt, sizeof (MD5digest)));
 }
 
 char *
@@ -226,30 +210,14 @@ hash_sha1 (const char *pw_in, Salt * salt)
 {
 	lutil_SHA1_CTX	SHA1context;
 	unsigned char	SHA1digest[20];
-	unsigned char  *hashing_pw = (unsigned char *)pw_in;
-	char	       *base64digest = NULL;
-	int		tot_len = strlen (pw_in);
-	int		salted = (salt && salt->salt);
-
-	/* append salt to password */
-	if (salted)
-	{
-		hashing_pw = (unsigned char *)malloc (tot_len + salt->len);
-		memcpy (hashing_pw, pw_in, tot_len);
-		memcpy (&hashing_pw[tot_len], salt->salt, salt->len);
-		tot_len += salt->len;
-	}
 
 	lutil_SHA1Init (&SHA1context);
-	lutil_SHA1Update (&SHA1context, hashing_pw, tot_len);
+	lutil_SHA1Update (&SHA1context, pw_in, strlen(pw_in));
+	if (salt && salt->salt && salt->len)
+		lutil_SHA1Update (&SHA1context, salt->salt, salt->len);
 	lutil_SHA1Final (SHA1digest, &SHA1context);
 
-	base64digest = pw_encode (SHA1digest, salt, sizeof (SHA1digest));
-
-	if (salted)
-		free (hashing_pw);
-
-	return (base64digest);
+	return (pw_encode (SHA1digest, salt, sizeof (SHA1digest)));
 }
 
 static Hash hashes[] =
