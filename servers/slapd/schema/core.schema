@@ -444,7 +444,7 @@ objectclass ( 1.3.6.1.4.1.1466.101.120.111 NAME 'extensibleObject'
 #	used to represent referrals in the directory
 #
 attribute ( 2.16.840.1.113730.3.1.34 NAME 'ref' DESC 'URL Reference'
-	EQUALITY caseExactIA5Match SYNTAX 1.3.6.1.1466.115.121.1.26
+	EQUALITY caseExactIA5Match SYNTAX 1.3.6.1.4.1.1466.115.121.1.26
 	USAGE distributedOperation )
 
 objectclass ( 2.16.840.1.113730.3.2.6 NAME 'referral'
