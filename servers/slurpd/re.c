@@ -257,7 +257,7 @@ get_repl_hosts(
     char	**r_rp
 )
 {
-    char		buf[ LINE_WIDTH + 1 ];
+    char		buf[ LDIF_LINE_WIDTH + 1 ];
     char		*type, *value, *line, *p;
     Rh			*rh = NULL;
     int			nreplicas, len;
