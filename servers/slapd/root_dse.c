@@ -39,14 +39,24 @@ root_dse_info(
 	int		i, j;
 	char ** supportedSASLMechanisms;
 
-	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
-	AttributeDescription *ad_namingContexts = slap_schema.si_ad_namingContexts;
-	AttributeDescription *ad_supportedControl = slap_schema.si_ad_supportedControl;
-	AttributeDescription *ad_supportedExtension = slap_schema.si_ad_supportedExtension;
-	AttributeDescription *ad_supportedLDAPVersion = slap_schema.si_ad_supportedLDAPVersion;
-	AttributeDescription *ad_supportedSASLMechanisms = slap_schema.si_ad_supportedSASLMechanisms;
-	AttributeDescription *ad_supportedFeatures = slap_schema.si_ad_supportedFeatures;
-	AttributeDescription *ad_ref = slap_schema.si_ad_ref;
+	AttributeDescription *ad_structuralObjectClass
+		= slap_schema.si_ad_structuralObjectClass;
+	AttributeDescription *ad_objectClass
+		= slap_schema.si_ad_objectClass;
+	AttributeDescription *ad_namingContexts
+		= slap_schema.si_ad_namingContexts;
+	AttributeDescription *ad_supportedControl
+		= slap_schema.si_ad_supportedControl;
+	AttributeDescription *ad_supportedExtension
+		= slap_schema.si_ad_supportedExtension;
+	AttributeDescription *ad_supportedLDAPVersion
+		= slap_schema.si_ad_supportedLDAPVersion;
+	AttributeDescription *ad_supportedSASLMechanisms
+		= slap_schema.si_ad_supportedSASLMechanisms;
+	AttributeDescription *ad_supportedFeatures
+		= slap_schema.si_ad_supportedFeatures;
+	AttributeDescription *ad_ref
+		= slap_schema.si_ad_ref;
 
 	Attribute *a;
 
@@ -60,6 +70,10 @@ root_dse_info(
 	e->e_ndn = ch_strdup( LDAP_ROOT_DSE );
 	(void) dn_normalize( e->e_ndn );
 	e->e_private = NULL;
+
+	val.bv_val = "OpenLDAProotDSE";
+	val.bv_len = sizeof("OpenLDAProotDSE")-1;
+	attr_merge( e, ad_structuralObjectClass, vals );
 
 	val.bv_val = "top";
 	val.bv_len = sizeof("top")-1;

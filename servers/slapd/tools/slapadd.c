@@ -81,8 +81,7 @@ main( int argc, char **argv )
 		}
 
 		/* check backend */
-		if( select_backend( e->e_ndn, is_entry_referral(e), nosubs ) != be )
-		{
+		if( select_backend( e->e_ndn, is_entry_referral(e), nosubs ) != be ) {
 			fprintf( stderr, "%s: database (%s) not configured to "
 				"hold dn=\"%s\" (line=%d)\n",
 				progname,
@@ -92,6 +91,45 @@ main( int argc, char **argv )
 			entry_free( e );
 			if( continuemode ) continue;
 			break;
+		}
+
+		{
+			Attribute *sc = attr_find( e->e_attrs,
+				slap_schema.si_ad_structuralObjectClass );
+			Attribute *oc = attr_find( e->e_attrs,
+				slap_schema.si_ad_objectClass );
+
+			if( oc == NULL ) {
+				fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
+					progname, e->e_dn, lineno,
+					"no objectClass attribute");
+				rc = EXIT_FAILURE;
+				entry_free( e );
+				if( continuemode ) continue;
+				break;
+			}
+
+			if( sc == NULL ) {
+				struct berval *vals[2];
+				struct berval scbv;
+				const char *text;
+				int ret = structural_class(
+					oc->a_vals, &scbv, &text );
+
+				if( scbv.bv_len == 0 ) {
+					fprintf( stderr, "%s: dn=\"%s\" (line=%d): %s\n",
+					progname, e->e_dn, lineno, text );
+					rc = EXIT_FAILURE;
+					entry_free( e );
+					if( continuemode ) continue;
+					break;
+				}
+
+				vals[0] = &scbv;
+				vals[1] = NULL;
+				attr_merge( e, slap_schema.si_ad_structuralObjectClass,
+					vals );
+			}
 		}
 
 		if( global_schemacheck ) {

@@ -24,7 +24,7 @@ static char * oc_check_required(
 /*
  * Determine the structural object class from a set of OIDs
  */
-static int structural_class(
+int structural_class(
 	struct berval **ocs,
 	struct berval *scbv,
 	const char **text )
@@ -157,7 +157,6 @@ entry_schema_check(
 
 	if( !global_schemacheck ) return LDAP_SUCCESS;
 
-#if 1
 	/* find the object class attribute - could error out here */
 	asc = attr_find( e->e_attrs, ad_structuralObjectClass );
 	if ( asc == NULL ) {
@@ -215,7 +214,6 @@ entry_schema_check(
 
 		return LDAP_OBJECT_CLASS_VIOLATION;
 	}
-#endif
 
 	/* find the object class attribute */
 	aoc = attr_find( e->e_attrs, ad_objectClass );

@@ -22,7 +22,10 @@
 int
 schema_info( Entry **entry, const char **text )
 {
-	AttributeDescription *ad_objectClass = slap_schema.si_ad_objectClass;
+	AttributeDescription *ad_structuralObjectClass
+		= slap_schema.si_ad_structuralObjectClass;
+	AttributeDescription *ad_objectClass
+		= slap_schema.si_ad_objectClass;
 
 	Entry		*e;
 	struct berval	val;
@@ -38,6 +41,10 @@ schema_info( Entry **entry, const char **text )
 	e->e_ndn = ch_strdup( SLAPD_SCHEMA_DN );
 	(void) dn_normalize( e->e_ndn );
 	e->e_private = NULL;
+
+	val.bv_val = "LDAPsubentry";
+	val.bv_len = sizeof("LDAPsubentry")-1;
+	attr_merge( e, ad_structuralObjectClass, vals );
 
 	val.bv_val = "top";
 	val.bv_len = sizeof("top")-1;
