@@ -133,10 +133,6 @@ init_component_description_table () {
 	Syntax* syn;
 
 	for ( id = BASICTYPE_BOOLEAN; id != ASNTYPE_END ; id++ ) {
-#if 0
-		asntype_to_compType_mapping_tbl[id].ac_comp_type.ct_atype;
-		asntype_to_compType_mapping_tbl[id].ac_comp_type.ct_cname = {0,NULL};
-#endif
 		asntype_to_compType_mapping_tbl[id].ac_comp_type.ct_subtypes = NULL;
 		asntype_to_compType_mapping_tbl[id].ac_comp_type.ct_syntax =  NULL;
 
