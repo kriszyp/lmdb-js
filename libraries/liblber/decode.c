@@ -278,9 +278,13 @@ ber_get_stringb(
 	return tag;
 }
 
-/* Definitions for recursive get_string */
-
-enum bgbvc { ChArray, BvArray, BvVec };
+/* Definitions for recursive get_string
+ *
+ * ChArray, BvArray, and BvVec are self-explanatory.
+ * BvOff is a struct berval embedded in an array of larger structures
+ * of siz bytes at off bytes from the beginning of the struct.
+ */
+enum bgbvc { ChArray, BvArray, BvVec, BvOff };
 
 /* Use this single cookie for state, to keep actual
  * stack use to the absolute minimum.
@@ -291,6 +295,8 @@ typedef struct bgbvr {
 	ber_tag_t tag;
 	ber_len_t len;
 	char *last;
+	ber_len_t siz;
+	ber_len_t off;
 	union {
 		char ***c;
 		BVarray *ba;
@@ -314,6 +320,8 @@ ber_get_stringbvr( bgbvr *b, int n )
 
 	if ( b->tag == LBER_DEFAULT )
 	{
+		b->len = n;
+
 		if ( n == 0 ) {
 			*b->res.c = NULL;
 			return 0;
@@ -337,6 +345,13 @@ ber_get_stringbvr( bgbvr *b, int n )
 			if ( *b->res.bv == NULL )
 				return LBER_DEFAULT;
 			(*b->res.bv)[n] = NULL;
+			break;
+		case BvOff:
+			*b->res.ba = LBER_MALLOC( (n+1) * b->siz );
+			if ( *b->res.ba == NULL )
+				return LBER_DEFAULT;
+			((struct berval *)((long)(*b->res.ba) + n*b->siz +
+				b->off))->bv_val = NULL;
 			break;
 		}
 		return 0;
@@ -369,6 +384,8 @@ ber_get_stringbvr( bgbvr *b, int n )
 			(*b->res.bv)[n] = bvp;
 			*bvp = bv;
 			break;
+		case BvOff:
+			*(BVarray)((long)(*b->res.ba)+n*b->siz+b->off) = bv;
 		}
 	} else {
 		/* Failure will propagate up and free in reverse
@@ -570,10 +587,6 @@ ber_next_element(
 	return ber_peek_tag( ber, len );
 }
 
-/* Hopefully no one sends vectors with more elements than this */
-/* Don't define this! ber_get_stringbvr works much much better! */
-/* #define	TMP_SLOTS	1024 */
-
 /* VARARGS */
 ber_tag_t
 ber_scanf ( BerElement *ber,
@@ -683,113 +696,41 @@ ber_scanf ( BerElement *ber,
 
 		case 'v':	/* sequence of strings */
 		{
-#ifdef TMP_SLOTS
-			char *tmp[TMP_SLOTS];
-			sss = va_arg( ap, char *** );
-			*sss = NULL;
-			j = 0;
-			for ( tag = ber_first_element( ber, &len, &last );
-			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
-			    tag = ber_next_element( ber, &len, last ) )
-			{
-				rc = ber_get_stringa( ber, &tmp[j] );
-				j++;
-				assert(j < TMP_SLOTS);
-			}
-			if (j > 0 && rc != LBER_DEFAULT ) {
-				*sss = (char **)LBER_MALLOC( (j+1) * sizeof(char *));
-				if (*sss == NULL) {
-					rc = LBER_DEFAULT;
-				} else {
-					(*sss)[j] = NULL;
-					for (j--; j>=0; j--)
-						(*sss)[j] = tmp[j];
-				}
-			}
-			if ( rc == LBER_DEFAULT ) {
-				for (j--; j>=0; j--)
-					LBER_FREE(tmp[j]);
-			}
-#else
 			bgbvr cookie = { ber, ChArray };
 			cookie.res.c = va_arg( ap, char *** );
 			rc = ber_get_stringbvr( &cookie, 0 );
-#endif
 			break;
 		}
 
 		case 'V':	/* sequence of strings + lengths */
 		{
-#ifdef TMP_SLOTS
-			struct berval *tmp[TMP_SLOTS];
-			bv = va_arg( ap, struct berval *** );
-			*bv = NULL;
-			j = 0;
-			for ( tag = ber_first_element( ber, &len, &last );
-			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
-			    tag = ber_next_element( ber, &len, last ) )
-			{
-				rc = ber_get_stringal( ber, &tmp[j] );
-				j++;
-				assert( j < TMP_SLOTS);
-			}
-			if (j > 0 && rc != LBER_DEFAULT ) {
-				*bv = (struct berval **)LBER_MALLOC( (j+1) * sizeof(struct berval *));
-				if (*bv == NULL) {
-					rc = LBER_DEFAULT;
-				} else {
-					(*bv)[j] = NULL;
-					for (j--; j>=0; j--)
-						(*bv)[j] = tmp[j];
-				}
-			}
-			if ( rc == LBER_DEFAULT ) {
-				for (j--; j>=0; j--)
-					ber_bvfree(tmp[j]);
-			}
-#else
 			bgbvr cookie = { ber, BvVec };
 			cookie.res.bv = va_arg( ap, struct berval *** );
 			rc = ber_get_stringbvr( &cookie, 0 );
-#endif
 			break;
 		}
 
 		case 'W':	/* bvarray */
 		{
-#ifdef TMP_SLOTS
-			struct berval tmp[TMP_SLOTS];
-			bvp = va_arg( ap, struct berval ** );
-			*bvp = NULL;
-			j = 0;
-			for ( tag = ber_first_element( ber, &len, &last );
-			    tag != LBER_DEFAULT && rc != LBER_DEFAULT;
-			    tag = ber_next_element( ber, &len, last ) )
-			{
-				rc = ber_get_stringbv( ber, &tmp[j] );
-				j++;
-				assert( j < TMP_SLOTS);
-			}
-			if (j > 0 && rc != LBER_DEFAULT ) {
-				*bvp = (struct berval *)LBER_MALLOC( (j+1) * sizeof(struct berval));
-				if (*bvp == NULL) {
-					rc = LBER_DEFAULT;
-				} else {
-					(*bvp)[j].bv_val = NULL;
-					(*bvp)[j].bv_len = 0;
-					for (j--; j>=0; j--)
-						(*bvp)[j] = tmp[j];
-				}
-			}
-			if ( rc == LBER_DEFAULT ) {
-				for (j--; j>=0; j--)
-					LBER_FREE(tmp[j].bv_val);
-			}
-#else
 			bgbvr cookie = { ber, BvArray };
 			cookie.res.ba = va_arg( ap, struct berval ** );
 			rc = ber_get_stringbvr( &cookie, 0 );
-#endif
+			break;
+		}
+
+		case 'w':	/* bvoffarray - must include address of
+				 * a record len, and record offset.
+				 * number of records will be returned thru
+				 * len ptr on finish.
+				 */
+		{
+			bgbvr cookie = { ber, BvOff };
+			cookie.res.ba = va_arg( ap, struct berval ** );
+			l = va_arg( ap, ber_len_t * );
+			cookie.siz = *l;
+			cookie.off = va_arg( ap, ber_len_t );
+			rc = ber_get_stringbvr( &cookie, 0 );
+			*l = cookie.len;
 			break;
 		}
 
@@ -802,7 +743,7 @@ ber_scanf ( BerElement *ber,
 		case '{':	/* begin sequence */
 		case '[':	/* begin set */
 			if ( *(fmt + 1) != 'v' && *(fmt + 1) != 'V'
-				&& *(fmt + 1) != 'W' )
+				&& *(fmt + 1) != 'W' && *(fmt + 1) != 'w' )
 				rc = ber_skip_tag( ber, &len );
 			break;
 
