@@ -80,7 +80,7 @@ bdb2i_back_modrdn_internal(
 		    + 3 );
 		if ( dn_type( e->e_dn ) == DN_X500 ) {
 			strcpy( new_dn, newrdn );
-			strcat( new_dn, ", " );
+			strcat( new_dn, "," );
 			strcat( new_dn, p_dn );
 		} else {
 			char *s;
