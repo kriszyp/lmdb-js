@@ -489,7 +489,7 @@ ber_dupbv(
 
 struct berval *
 ber_str2bv(
-	LDAP_CONST char *s, int dup, struct berval *bv )
+	LDAP_CONST char *s, ber_len_t len, int dup, struct berval *bv)
 {
 	struct berval *new;
 
@@ -509,7 +509,7 @@ ber_str2bv(
 		}
 	}
 
-	new->bv_len = strlen( s );
+	new->bv_len = len ? len : strlen( s );
 	if ( dup ) {
 		if ( (new->bv_val = LBER_MALLOC( new->bv_len+1 )) == NULL ) {
 			ber_errno = LBER_ERROR_MEMORY;

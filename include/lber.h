@@ -552,10 +552,10 @@ ber_dupbv LDAP_P((
 
 LBER_F( struct berval * )
 ber_str2bv LDAP_P((
-	LDAP_CONST char *, int dup, struct berval *bv ));
+	LDAP_CONST char *, ber_len_t len, int dup, struct berval *bv));
 
-#define	ber_bvstr(a)	ber_str2bv(a, 0, NULL)
-#define	ber_bvstrdup(a)	ber_str2bv(a, 1, NULL)
+#define	ber_bvstr(a)	ber_str2bv(a, 0, 0, NULL)
+#define	ber_bvstrdup(a)	ber_str2bv(a, 0, 1, NULL)
 
 LBER_F( char * )
 ber_strdup LDAP_P((
