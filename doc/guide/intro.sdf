@@ -56,7 +56,7 @@ more {{I:values}}.
 The types are typically mnemonic strings, like "{{EX:cn}}" for common
 name, or "{{EX:mail}}" for email address. The values depend on what type of
 attribute it is. For example, a {{EX:mail}} attribute might contain the value
-"{{EX:babs@umich.edu}}". A {{EX:jpegPhoto}} attribute would contain 
+"{{EX:babs@openldap.org}}". A {{EX:jpegPhoto}} attribute would contain 
 a photograph in binary JPEG/JFIF format.
 
 {{I:How is the information arranged?}} In LDAP, directory entries are arranged in
@@ -85,8 +85,8 @@ distinguished name, which is constructed by taking the name of the entry
 itself (called the relative distinguished name, or RDN) and concatenating the
 names of its ancestor entries. For example, the entry for Barbara Jensen in
 the example above has an RDN of "{{EX:cn=Barbara J Jensen}}" and a DN of
-"{{EX:cn=Barbara J Jensen, o=U of M, c=US}}". The full DN format is described in
-RFC 1779, "A String Representation of Distinguished Names."
+"{{EX:cn=Barbara J Jensen, o=OpenLDAP Project, c=US}}". The full DN format is
+described in RFC 1779, "A String Representation of Distinguished Names."
 
 {{I:How is the information accessed?}} LDAP defines operations for interrogating
 and updating the directory. Operations are provided for adding and deleting
@@ -98,7 +98,7 @@ by a search filter. Information can be requested from each entry that matches
 the criteria.
 
 For example, you might want to search the entire directory subtree below the
-University of Michigan for people with the name Barbara Jensen, retrieving
+OpenLDAP Project for people with the name Barbara Jensen, retrieving
 the email address of each entry found. LDAP lets you do this easily. Or you
 might want to search the entries directly below the c=US entry for
 organizations with the string "Acme" in their name, and that have a fax

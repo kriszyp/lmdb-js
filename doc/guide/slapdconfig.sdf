@@ -164,10 +164,10 @@ cannot find a local database to handle a request.
 
 \Example:
 
-E: referral ldap://ldap.itd.umich.edu
+E: referral ldap://ldap.openldap.org
 
 This will refer non-local queries to the LDAP server at the
-University of Michigan. Smart LDAP clients can re-ask their
+OpenLDAP Project. Smart LDAP clients can re-ask their
 query at that server, but note that most of these clients are
 only going to know how to handle simple LDAP URLs that
 contain a host part and optionally a distinguished name part.
@@ -317,7 +317,7 @@ operations on this database.
 
 \Example:
 
-E: rootdn "cn=Manager, o=U of M, c=US"
+E: rootdn "cn=Manager, o=OpenLDAP Project, c=US"
 
 H4: rootkrbname <kerberosname>
 
@@ -329,7 +329,7 @@ to provide replication service (see Section 10).
 
 \Example:
 
-E: rootkrbname admin@umich.edu
+E: rootkrbname admin@openldap.org
 
 H4: rootpw <password>
 
@@ -352,9 +352,9 @@ definition.
 
 \Example:
 
-E: suffix "o=University of Michigan, c=US"
+E: suffix "o=OpenLDAP Project, c=US"
 
-Queries with a DN ending in "o=University of Michigan, c=US"
+Queries with a DN ending in "o=OpenLDAP Project, c=US"
 will be passed to this backend.
 
 Note: when the backend to pass a query to is selected, slapd
@@ -576,9 +576,9 @@ E: dn=<regular expression>
 Note: The DN pattern specified should be "normalized",
 meaning that there should be no extra spaces, and commas
 should be used to separate components. An example
-normalized DN is "cn=Babs Jensen,o=University of
-Michigan,c=US". An example of a non-normalized DN is
-"cn=Babs Jensen; o=University of Michigan, c=US".
+normalized DN is "cn=Babs Jensen,o=OpenLDAP Project,c=US".
+An example of a non-normalized DN is
+"cn=Babs Jensen; o=OpenLDAP Project, c=US".
 
 Or, entries may be selected by a filter matching some
 attribute(s) in the entry:
@@ -705,40 +705,40 @@ The following example shows the use of a regular expression
 to select the entries by DN in two access directives where
 ordering is significant.
 
-E: access to dn=".*, o=U of M, c=US"
+E: access to dn=".*, o=OpenLDAP Project, c=US"
 E: 	by * search
 E: access to dn=".*, c=US"
 E: 	by * read
 
 Read access is granted to entries under the c=US subtree,
-except for those entries under the "o=University of Michigan,
+except for those entries under the "o=OpenLDAP Project,
 c=US" subtree, to which search access is granted. If the
 order of these access directives was reversed, the
-U-M-specific directive would never be matched, since all
-U-M entries are also c=US entries.
+OpenLDAP-specific directive would never be matched, since all
+OpenLDAP entries are also c=US entries.
 
 The next example again shows the importance of ordering,
 both of the access directives and the "by" clauses. It also
 shows the use of an attribute selector to grant access to a
 specific attribute and various <who> selectors.
 
-E:access to dn=".*, o=U of M, c=US" attr=homePhone
+E:access to dn=".*, o=OpenLDAP Project, c=US" attr=homePhone
 E:	by self write
-E:	by dn=".*, o=U of M, c=US" search
-E:	by domain=.*\.umich\.edu read
+E:	by dn=".*, o=OpenLDAP Project, c=US" search
+E:	by domain=.*\.openldap\.org read
 E:	by * compare
-E:access to dn=".*, o=U of M, c=US"
+E:access to dn=".*, o=OpenLDAP Project, c=US"
 E:	by self write
-E:	by dn=".*, o=U of M, c=US" search
+E:	by dn=".*, o=OpenLDAP Project, c=US" search
 E:	by * none
 
-This example applies to entries in the "o=U of M, c=US"
+This example applies to entries in the "o=OpenLDAP Project, c=US"
 subtree. To all attributes except homePhone, the entry itself
-can write them, other U-M entries can search by them,
+can write them, other OpenLDAP entries can search by them,
 anybody else has no access. The homePhone attribute is
-writable by the entry, searchable by other U-M entries,
+writable by the entry, searchable by other OpenLDAP entries,
 readable by clients connecting from somewhere in the
-umich.edu domain, and comparable by everybody else.
+OpenLDAP.org domain, and comparable by everybody else.
 
 Sometimes it is useful to permit a particular DN to add or
 remove itself from an attribute. For example, if you would like to
@@ -820,18 +820,18 @@ E: 1. # example config file - global configuration section
 E: 2. include /usr/local/etc/slapd.at.conf
 E: 3. include /usr/local/etc/slapd.oc.conf
 E: 4. schemacheck on
-E: 5. referral ldap://ldap.itd.umich.edu
+E: 5. referral ldap://ldap.openldap.org
 
 Line 1 is a comment. Lines 2 and 3 include other config files
 containing attribute and object class definitions, respectively.
 Line 4 turns on schema checking. The {{EX: referral}} option on line 5
 means that queries not local to one of the databases defined
 below will be referred to the LDAP server running on the
-standard port (389) at the host {{EX: ldap.itd.umich.edu}}.
+standard port (389) at the host {{EX: ldap.openldap.org}}.
 
 The next section of the configuration file defines an LDBM
 backend that will handle queries for things in the
-"o=University of Michigan, c=US" portion of the tree. The
+"o=OpenLDAP Project, c=US" portion of the tree. The
 database is to be replicated to two slave slapds, one on
 truelies, the other on judgmentday. Indexes are to be
 maintained for several attributes, and the {{EX: userPassword}}
@@ -839,18 +839,18 @@ attribute is to be protected from unauthorized access.
 
 E: 1. # ldbm definition for the U-M database
 E: 2. database ldbm
-E: 3. suffix "o=University of Michigan, c=US"
-E: 4. directory /usr/local/ldbm-umich
-E: 6. rootdn "cn=Manager, o=University of Michigan, c=US"
+E: 3. suffix "o=OpenLDAP Project, c=US"
+E: 4. directory /usr/local/var/openldap
+E: 6. rootdn "cn=Manager, o=OpenLDAP Project, c=US"
 E: 7. rootpw secret
-E: 8. replogfile /usr/local/ldbm-umich/slapd.replog
-E: 9. replica host=truelies.rs.itd.umich.edu:389
-E: 10. binddn="cn=Replicator, o=U of M, c=US"
+E: 8. replogfile /usr/local/var/openldap/slapd.replog
+E: 9. replica host=slave1.openldap.org:389
+E: 10. binddn="cn=Replicator, o=OpenLDAP Project, c=US"
 E: 11. bindmethod=simple credentials=secret
-E: 12.replica host=judgmentday.rs.itd.umich.edu
-E: 13. binddn="cn=Replicator, o=U of M, c=US"
+E: 12.replica host=slave2.openldap.org
+E: 13. binddn="cn=Replicator, o=OpenLDAP Project, c=US"
 E: 14. bindmethod=kerberos
-E: 15. srvtab=/etc/srvtab.judgmentday
+E: 15. srvtab=/etc/srvtab.slave2
 E: 16.# ldbm indexed attribute definitions
 E: 17.index cn,sn,uid pres,eq,approx,sub
 E: 18.index objectclass pres,eq
@@ -859,7 +859,7 @@ E: 20.# ldbm access control definitions
 E: 21.defaultaccess read
 E: 22.access to attr=userpassword
 E: 23. by self write
-E: 24. by dn="cn=Admin, o=University of Michigan, c=US" write
+E: 24. by dn="cn=Admin, o=OpenLDAP Project, c=US" write
 E: 25. by * compare
 
 Line 1 is a comment. The start of the database definition is

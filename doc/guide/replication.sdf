@@ -5,11 +5,11 @@ H1: Replication with slurpd
 In certain configurations, a single slapd instance may be
 insufficient to handle the number of clients requiring
 directory service via LDAP. It may become necessary to
-run more than one slapd instance. At the University of
-Michigan, for instance, there are four slapd servers, one
-master and three slaves. A DNS lookup of the name
-ldap.itd.umich.edu returns the IP addresses of those four
-servers, distributing the load among them. This
+run more than one slapd instance.  Many sites,
+for instance, there are multiple slapd servers, one
+master and one or slaves.  DNS can be setup such that
+a lookup of ldap.openldap.org returns the IP addresses
+of these servers, distributing the load among them. This
 master/slave arrangement provides a simple and effective
 way to increase capacity, availability and reliability.
 
@@ -70,13 +70,13 @@ timestamp, the DN of the entry being modified, and a series
 of lines which specify the changes to make. In the
 example below, "Barbara Jensen" has replaced a line of
 her multiLineDescription. The change is to be propagated
-to the slapd instance running on truelies.rs.itd.umich.edu.
+to the slapd instance running on slave.openldap.org
 The lastModifiedBy and lastModified Time attributes are
 also propagated to the slave slapd.
 
-E: replica: truelies.rs.itd.umich.edu:389
+E: replica: slave.openldap.org:389
 E: time: 809618633
-E: dn: cn=Barbara Jensen, ou=People, o=University of Michigan,c=US
+E: dn: cn=Barbara Jensen, ou=People, o=OpenLDAP Project,c=US
 E: changetype: modify
 E: delete: multiLineDescription
 E: multiLineDescription: I enjoy sailing in my spare time
@@ -87,7 +87,7 @@ E: -
 E: delete: lastModifiedBy
 E: -
 E: add: lastModifiedBy
-E: lastModifiedBy: cn=Barbara Jensen, ou=People, o=University of Michigan, c=US
+E: lastModifiedBy: cn=Barbara Jensen, ou=People, o=OpenLDAP Project, c=US
 E: -
 E: delete: lastModifiedTime
 E: -
@@ -264,16 +264,16 @@ To configure slapd to generate a replication logfile, you
 add a "{{EX: replica}}" configuration option to the master slapd's
 config file. For example, if we wish to propagate changes
 to the slapd instance running on host
-truelies.rs.itd.umich.edu:
+slave.openldap.org:
 
-E: replica host=truelies.rs.itd.umich.edu:389
-E:	binddn="cn=Replicator, o=U of M, c=US"
+E: replica host=slave.openldap.org:389
+E:	binddn="cn=Replicator, o=OpenLDAP Project, c=US"
 E:	bindmethod=simple credentials=secret
 
 In this example, changes will be sent to port 389 (the
 standard LDAP port) on host truelies. The slurpd process
 will bind to the slave slapd as 
-"cn=Replicator, o=U of M, c=US"
+"cn=Replicator, o=OpenLDAP Project, c=US"
 using simple authentication with password "secret".
 Note that the entry given by the binddn= directive must
 exist in the slave slapd's database (or be the rootdn
@@ -312,17 +312,17 @@ error and the replication record to a reject file. The reject
 file is located in the same directory with the per-replica
 replication logfile, and has the same name, but with the
 string ".rej" appended. For example, for a replica running
-on host truelies.rs.itd.umich.edu, port 389, the reject file, if it
+on host slave.openldap.org, port 389, the reject file, if it
 exists, will be named
 
-E: /usr/tmp/truelies.rs.itd.umich.edu:389.
+E: /usr/tmp/replog.slave.openldap.org:389.
 
 A sample rejection log entry follows:
 
 E: ERROR: No such attribute
-E: replica: truelies.rs.itd.umich.edu:389
+E: replica: slave.openldap.org:389
 E: time: 809618633
-E: dn: cn=Barbara Jensen, ou=People, o=University of Michigan, c=US
+E: dn: cn=Barbara Jensen, ou=People, o=OpenLDAP Project, c=US
 E: changetype: modify
 E: delete: multiLineDescription
 E: multiLineDescription: I enjoy sailing in my spare time
@@ -333,7 +333,7 @@ E: -
 E: delete: lastModifiedBy
 E: -
 E: add: lastModifiedBy
-E: lastModifiedBy: cn=Barbara Jensen, ou=People, o=University of Michigan, c=US
+E: lastModifiedBy: cn=Barbara Jensen, ou=People, o=OpenLDAP Project, c=US
 E: -
 E: delete: lastModifiedTime
 E: -
@@ -362,10 +362,10 @@ To use one-shot mode, specify the name of the rejection
 log on the command line as the argument to the -r flag,
 and specify one-shot mode with the -o flag. For example,
 to process the rejection log file
-/usr/tmp/replog.truelies.rs.itd.umich.edu:389 and exit, use the
+/usr/tmp/replog.slave.openldap.org:389 and exit, use the
 command
 
-E: slurpd -r /usr/tmp/truelies.rs.itd.umich.edu:389 -o
+E: slurpd -r /usr/tmp/replog.slave.openldap.org:389 -o
 
 
 H2: Replication from a slapd directory server to an X.500 DSA

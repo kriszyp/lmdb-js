@@ -55,7 +55,7 @@ type:
 .enter the following lines into it. See Section 5 for more details on this
 .file.
 .
-.{{EX:referral ldap://ldap.itd.umich.edu}}
+.{{EX:referral ldap://ldap.openldap.org}}
 .{{EX:database ldbm}}
 .{{EX:suffix "o=<YOUR ORGANIZATION>, c=US"}}
 .{{EX:rootdn "cn=<YOUR NAME>, o=<YOUR ORGANIZATION>, c=US"}}
@@ -101,7 +101,7 @@ type:
 +{{B:See if it works}}.You can use any LDAP client to do this, but our
 .example uses the ldapsearch tool.
 .
-.{{EX:ldapsearch -h 127.0.0.1 'objectclass=*'}}
+.{{EX:ldapsearch -h 127.0.0.1 -b 'o=<YOUR ORGANIZATION>, c=US' 'objectclass=*'}}
 .
 .This command will search for and retrieve every entry in the database.
 .Note the use of single quotes around the filter, which prevents the "*"

@@ -36,7 +36,7 @@ entries are to be held by this database. You should set this
 to the DN of the root of the subtree you are trying to create.
 For example
 
-E: 	suffix "o=University of Michigan, c=US"
+E: 	suffix "dc=OpenLDAP, dc=org"
 
 You should be sure to specify a directory where the index
 files should be created:
@@ -78,28 +78,34 @@ E:	index default none
 See Section 4 on the configuration file for more details on
 this option. Once you have configured things to your liking,
 start up slapd, connect with your LDAP client, and start
-adding entries. For example, to add a the U of M entry
+adding entries. For example, to add a the organizational entry
 followed by a Postmaster entry using the {{I:ldapadd}} tool, you
 could create a file called {{EX:/tmp/newentry}} with the contents:
 
 
-E: o=University of Michigan, c=US
+E: dc=OpenLDAP, dc=org
+E: objectClass=dcObject
 E: objectClass=organization
-E: o=University of Michigan
-E: description=University of Michigan at Ann Arbor
-E: cn=Postmaster, o=University of Michigan, c=US
+E: dc=OpenLDAP
+E: o=OpenLDAP
+E: o=OpenLDAP Project
+E: o=OpenLDAP Foundation
+E: description=The OpenLDAP Foundation
+E: description=The OpenLDAP Project
+E:
+E: cn=Postmaster, dc=OpenLDAP, dc=org
 E: objectClass=organizationalRole
 E: cn=Postmaster
-E: description=U of M postmaster - postmaster@umich.edu
+E: description=OpenLDAP Postmaster <Postmaster@OpenLDAP.org>
 
 and then use a command like this to actually create the
 entry:
 
-E: ldapadd -f /tmp/newentry -D "cn=Manager, o=University of
-E:	Michigan, c=US" -w secret
+E: ldapadd -f /tmp/newentry -D \
+	"cn=Manager, dc=OpenLDAP, dc=org" -w secret
 
 The above command assumes that you have set {{EX: rootdn}} to
-"cn=Manager, o=University of Michigan, c=US" and {{EX: rootpw}}
+"cn=Manager, dc=OpenLDAP, dc=org" and {{EX: rootpw}}
 to "secret".
 
 H2: Creating a database off-line
@@ -122,7 +128,7 @@ entries are to be held by this database. You should set this
 to the DN of the root of the subtree you are trying to create.
 For example
 
-E:	suffix "o=University of Michigan, c=US"
+E:	suffix "dc=OpenLDAP, dc=org"
 
 You should be sure to specify a directory where the index
 files should be created:
@@ -131,7 +137,7 @@ E:	directory <directory>
 
 For example:
 
-E:	directory /usr/local/openldap-slapd
+E:	directory /usr/local/var/openldap
 
 Next, you probably want to increase the size of the in-core
 cache used by each open index file. For best performance
@@ -348,7 +354,7 @@ program, however, produces an LDIF format that includes
 A line may be continued by starting the next line with a
 single space or tab character. e.g.,
 
-E:	dn: cn=Barbara J Jensen, o=University of Michigan, c=US
+E:	dn: cn=Barbara J Jensen, dc=OpenLDAP, dc=org
 
 Multiple attribute values are specified on separate lines. e.g.,
 
@@ -367,20 +373,20 @@ Multiple entries within the same LDIF file are separated by
 blank lines. Here's an example of an LDIF file containing
 three entries.
 
-E:	dn: cn=Barbara J Jensen, o=University of Michigan, c=US
+E:	dn: cn=Barbara J Jensen, dc=OpenLDAP, dc=org
 E:	cn: Barbara J Jensen
 E:	cn: Babs Jensen
 E:	objectclass: person
 E:	sn: Jensen
 E:
 E:
-E:	dn: cn=Bjorn J Jensen, o=University of Michigan, c=US
+E:	dn: cn=Bjorn J Jensen, dc=OpenLDAP, dc=org
 E:	cn: Bjorn J Jensen
 E:	cn: Bjorn Jensen
 E:	objectclass: person
 E:	sn: Jensen
 E:
-E:	dn: cn=Jennifer J Jensen, o=University of Michigan, c=US
+E:	dn: cn=Jennifer J Jensen, dc=OpenLDAP, dc=org
 E:	cn: Jennifer J Jensen
 E:	cn: Jennifer Jensen
 E:	objectclass: person
@@ -502,14 +508,14 @@ data to an LDIF file are:
 .{{EX:	MASTER}}
 .{{EX:	000001}}
 .{{EX:	}}
-.{{EX:	o=University of Michigan}}
+.{{EX:	o=OpenLDAP}}
 .{{EX:	objectClass= top & organization & domainRelatedObject &\}}
 .{{EX:	quipuObject & quipuNonLeafObject}}
-.{{EX:	l= Ann Arbor, Michigan}}
-.{{EX:	st= Michigan}}
-.{{EX:	o= University of Michigan & UMICH & UM & U-M & U of M}}
-.{{EX:	description= The University of Michigan at Ann Arbor}}
-.{{EX:	associatedDomain= umich.edu}}
+.{{EX:	l= Redwood City, California}}
+.{{EX:	st= California}}
+.{{EX:	o=OpenLDAP Project & OpenLDAP Foundation & OpenLDAP}}
+.{{EX:	description=The OpenLDAP Project}}
+.{{EX:	associatedDomain= openldap.org}}
 .{{EX:	masterDSA= c=US@cn=Woolly Monkey}}
 .{{EX:	}}
 
