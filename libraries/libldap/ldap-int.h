@@ -54,6 +54,7 @@ LDAP_BEGIN_DECL
 #define LDAP_BOOL_REFERRALS		0
 #define LDAP_BOOL_RESTART		1
 #define LDAP_BOOL_DNS			2
+#define LDAP_BOOL_TLS			3
 
 #define LDAP_BOOLEANS	unsigned long
 #define LDAP_BOOL(n)	(1 << (n))
@@ -109,7 +110,12 @@ struct ldapoptions {
 	/* LDAPv3 server and client controls */
 	LDAPControl	**ldo_sctrls;
 	LDAPControl **ldo_cctrls;
-	
+
+#ifdef HAVE_TLS
+   	/* tls context */
+   	void		*ldo_tls_ctx;
+   	int		ldo_tls_mode;
+#endif
 	LDAP_BOOLEANS ldo_booleans;	/* boolean options */
 };
 
