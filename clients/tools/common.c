@@ -103,7 +103,7 @@ N_("  -e [!]<ext>[=<extparam>] general extensions (! indicates criticality)\n")
 N_("             [!]assert=<filter>     (an RFC 2254 Filter)\n")
 N_("             [!]authzid=<authzid>   (\"dn:<dn>\" or \"u:<user>\")\n")
 N_("             [!]manageDSAit\n")
-N_("             [!]noop\n"),
+N_("             [!]noop\n")
 N_("             ppolicy\n"),
 N_("             [!]postread[=<attrs>]  (a comma-separated attribute list)\n"),
 N_("             [!]preread[=<attrs>]   (a comma-separated attribute list)\n"),
