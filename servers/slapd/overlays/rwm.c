@@ -83,7 +83,7 @@ rwm_op_dn_massage( Operation *op, SlapReply *rs, void *cookie )
 }
 
 static int
-rwm_add( Operation *op, SlapReply *rs )
+rwm_op_add( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -182,7 +182,7 @@ cleanup_attr:;
 }
 
 static int
-rwm_bind( Operation *op, SlapReply *rs )
+rwm_op_bind( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -208,7 +208,7 @@ rwm_bind( Operation *op, SlapReply *rs )
 }
 
 static int
-rwm_unbind( Operation *op, SlapReply *rs )
+rwm_op_unbind( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -222,7 +222,7 @@ rwm_unbind( Operation *op, SlapReply *rs )
 }
 
 static int
-rwm_compare( Operation *op, SlapReply *rs )
+rwm_op_compare( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -301,7 +301,7 @@ rwm_compare( Operation *op, SlapReply *rs )
 }
 
 static int
-rwm_delete( Operation *op, SlapReply *rs )
+rwm_op_delete( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	int			rc;
@@ -322,7 +322,7 @@ rwm_delete( Operation *op, SlapReply *rs )
 }
 
 static int
-rwm_modify( Operation *op, SlapReply *rs )
+rwm_op_modify( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -460,7 +460,7 @@ cleanup_mod:;
 }
 
 static int
-rwm_modrdn( Operation *op, SlapReply *rs )
+rwm_op_modrdn( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -543,7 +543,7 @@ static int rwm_freeself( Operation *op, SlapReply *rs )
 }
 
 static int
-rwm_search( Operation *op, SlapReply *rs )
+rwm_op_search( Operation *op, SlapReply *rs )
 {
 	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
 	struct ldaprwmap	*rwmap = 
@@ -984,6 +984,32 @@ rwm_operational( Operation *op, SlapReply *rs )
 	return SLAP_CB_CONTINUE;
 }
 
+#if 0
+/* don't use this; it cannot be reverted, and leaves op->o_req_dn
+ * rewritten for subsequent operations; fine for plain suffixmassage,
+ * but destroys everything else */
+static int
+rwm_chk_referrals( Operation *op, SlapReply *rs )
+{
+	slap_overinst		*on = (slap_overinst *) op->o_bd->bd_info;
+	int			rc;
+
+#ifdef ENABLE_REWRITE
+	rc = rwm_op_dn_massage( op, rs, "referralCheckDN" );
+#else /* ! ENABLE_REWRITE */
+	rc = 1;
+	rc = rwm_op_dn_massage( op, rs, &rc );
+#endif /* ! ENABLE_REWRITE */
+	if ( rc != LDAP_SUCCESS ) {
+		op->o_bd->bd_info = (BackendInfo *)on->on_info;
+		send_ldap_error( op, rs, rc, "referralCheckDN massage error" );
+		return -1;
+	}
+
+	return SLAP_CB_CONTINUE;
+}
+#endif
+
 static int
 rwm_rw_config(
     BackendDB	*be,
@@ -1313,16 +1339,18 @@ rwm_init(void)
 	rwm.on_bi.bi_db_config = rwm_db_config;
 	rwm.on_bi.bi_db_destroy = rwm_db_destroy;
 
-	rwm.on_bi.bi_op_bind = rwm_bind;
-	rwm.on_bi.bi_op_search = rwm_search;
-	rwm.on_bi.bi_op_compare = rwm_compare;
-	rwm.on_bi.bi_op_modify = rwm_modify;
-	rwm.on_bi.bi_op_modrdn = rwm_modrdn;
-	rwm.on_bi.bi_op_add = rwm_add;
-	rwm.on_bi.bi_op_delete = rwm_delete;
-	rwm.on_bi.bi_op_unbind = rwm_unbind;
+	rwm.on_bi.bi_op_bind = rwm_op_bind;
+	rwm.on_bi.bi_op_search = rwm_op_search;
+	rwm.on_bi.bi_op_compare = rwm_op_compare;
+	rwm.on_bi.bi_op_modify = rwm_op_modify;
+	rwm.on_bi.bi_op_modrdn = rwm_op_modrdn;
+	rwm.on_bi.bi_op_add = rwm_op_add;
+	rwm.on_bi.bi_op_delete = rwm_op_delete;
+	rwm.on_bi.bi_op_unbind = rwm_op_unbind;
 	rwm.on_bi.bi_extended = rwm_extended;
+
 	rwm.on_bi.bi_operational = rwm_operational;
+	rwm.on_bi.bi_chk_referrals = 0 /* rwm_chk_referrals */ ;
 
 	rwm.on_response = rwm_response;
 
