@@ -261,8 +261,8 @@ the dollar character that is used to indicate match up to the end of
 the string must be escaped by a second dollar character, e.g.
 .LP
 .nf
-        access to dn.regex="^(.*,)?uid=([^,]+),dc=example,dc=com$"
-                by dn.regex="^uid=$1,dc=example,dc=com$$" write
+    access to dn.regex="^(.+,)?uid=([^,]+),dc=[^,]+,dc=com$"
+        by dn.regex="^uid=$2,dc=[^,]+,dc=com$$" write
 .fi
 .LP
 The style qualifier
@@ -275,6 +275,30 @@ even if
 .B dnstyle
 is not 
 .BR regex .
+Note that the 
+.I regex 
+dnstyle in the above example may be of use only if the 
+.B by
+clause needs to be a regex; otherwise, if the
+value of the second (from the right)
+.I dc=
+portion of the DN in the above example were fixed, the form
+.LP
+.nf
+    access to dn.regex="^(.+,)?uid=([^,]+),dc=example,dc=com$"
+        by dn.exact,expand="uid=$2,dc=example,dc=com" write
+.fi
+.LP
+could be used; if it had to match the value in the 
+.B what
+clause, the form
+.LP
+.nf
+    access to dn.regex="^(.+,)?uid=([^,]+),dc=([^,]+),dc=com$"
+        by dn.exact,expand="uid=$2,dc=$3,dc=com" write
+.fi
+.LP
+could be used.
 .LP
 It is perfectly useless to give any access privileges to a DN 
 that exactly matches the
