@@ -121,6 +121,15 @@ rewrite_parse(
 );
 
 /*
+ * process a config file that was already opened. Uses rewrite_parse.
+ */
+LDAP_REWRITE_F (int)
+rewrite_read(
+		FILE *fin,
+		struct rewrite_info *info
+);
+
+/*
  * Rewrites a string according to context.
  * If the engine is off, OK is returned, but the return string will be NULL.
  * In case of 'unwilling to perform', UNWILLING is returned, and the
