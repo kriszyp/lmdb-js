@@ -328,6 +328,28 @@ EOMODS
 			exit $RC
 		fi
 
+		NEWPW="newsecret"
+		echo "Testing passwd change..."
+		$LDAPPASSWD -h $LOCALHOST -p $PORT1 \
+			-D "${BINDDN}" -w ${BINDPW} -s ${NEWPW} \
+			"$BINDDN" >> $TESTOUT 2>&1
+
+		RC=$?
+		if test $RC != 0 ; then
+			echo "ldappasswd failed ($RC)!"
+			test $KILLSERVERS != no && kill -HUP $KILLPIDS
+			exit $RC
+		fi
+
+		echo "Testing bind with new secret..."
+		$LDAPWHOAMI -h $LOCALHOST -p $PORT1 -D "$BINDDN" -w $NEWPW
+		RC=$?
+		if test $RC != 0 ; then
+			echo "ldapwhoami failed ($RC)!"
+			test $KILLSERVERS != no && kill -HUP $KILLPIDS
+			exit $RC
+		fi
+
 		echo "Using ldapsearch to retrieve all the entries..."
 		$LDAPSEARCH -h $LOCALHOST -p $PORT1 -b "$BASEDN" \
 			 "objectClass=*" > $SEARCHOUT 2>&1
