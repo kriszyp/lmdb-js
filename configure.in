@@ -362,12 +362,12 @@ if test $ol_enable_kbind = yes -o $ol_enable_kpasswd = yes ; then
 	if test $ol_with_kerberos = no ; then
 		AC_MSG_ERROR([options require --with-kerberos])
 	fi
+	ol_with_kerberos=yes
 elif test $ol_enable_kbind = no -o $ol_enable_kpasswd = no ; then
-	if test $ol_with_kerberos != auto ; then
+	if test $ol_with_kerberos != no -a $ol_with_kerberos != no ; then
 		AC_MSG_WARN([Kerberos detection enabled unnecessarily]);
-	else
-		ol_with_kerberos=no
 	fi
+	ol_with_kerberos=no
 fi
 
 if test $ol_enable_spasswd = yes ; then
@@ -814,8 +814,9 @@ ol_link_kpasswd=no
 ol_link_krb5=no
 ol_link_krb4=no
 
-if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 \
-	-o $ol_with_kerberos = k5only -o $ol_with_kerberos = k425 ; then
+if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
+	-o $ol_with_kerberos = k5 -o $ol_with_kerberos = k5only \
+	-o $ol_with_kerberos = k425 ; then
 
 	AC_CHECK_HEADERS(krb5.h)
 
@@ -870,8 +871,8 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k5 \
 	fi
 fi
 
-if test $ol_link_krb5 = yes -a \
-	\( $ol_with_kerberos = auto -o $ol_with_kerberos = k425 \) ; then
+if test $ol_link_krb5 = yes -a \( $ol_with_kerberos = yes -o \
+	$ol_with_kerberos = auto -o $ol_with_kerberos = k425 \) ; then
 
 	AC_CHECK_HEADERS(kerberosIV/krb.h kerberosIV/des.h)
 
@@ -930,8 +931,8 @@ if test $ol_link_krb5 = yes ; then
 	ol_with_kerberos=found
 fi
 
-if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 \
-	-o $ol_with_kerberos = kth ; then
+if test $ol_with_kerberos = yes -o $ol_with_kerberos = auto \
+	-o $ol_with_kerberos = k4 -o $ol_with_kerberos = kth ; then
 
 	AC_CHECK_HEADERS(krb.h des.h krb-archaeology.h )
 
@@ -956,14 +957,21 @@ if test $ol_with_kerberos = auto -o $ol_with_kerberos = k4 \
 fi
 
 if test $ol_link_krb4 = yes -a $ol_enable_kpasswd != no ; then
-	ol_link_kpasswd=yes;
+	ol_link_kpasswd=yes
+fi
+
+if test $ol_link_krb4 = yes -a $ol_enable_kbind != no ; then
+	ol_link_kbind=yes
+
+elif test $ol_enable_kbind = yes ; then
+	AC_MSG_ERROR([Kerberos IV detection failed])
 fi
 
 if test $ol_link_krb4 = yes -o $ol_link_krb5 = yes ; then
 	AC_DEFINE(HAVE_KERBEROS, 1, [define if you have Kerberos])
 
 elif test $ol_with_kerberos != auto -a $ol_with_kerberos != no ; then
-	AC_MSG_ERROR([Kerberos detection failed.])
+	AC_MSG_ERROR([Kerberos detection failed])
 fi
 
 dnl ----------------------------------------------------------------
