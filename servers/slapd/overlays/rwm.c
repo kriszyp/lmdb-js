@@ -127,7 +127,7 @@ rwm_add( Operation *op, SlapReply *rs )
 					(*ap)->a_vals );
 #else
 			rc = 1;
-			rc = rwm_op_dn_massage( op, rs, &rc,
+			rc = rwm_dnattr_rewrite( op, rs, &rc,
 					(*ap)->a_vals );
 #endif
 			if ( rc ) {

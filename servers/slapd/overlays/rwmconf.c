@@ -216,7 +216,7 @@ rwm_map_config(
 
 error_return:;
 	if ( mapping ) {
-		mapping_free( mapping );
+		rwm_mapping_free( mapping );
 	}
 
 	return 1;
