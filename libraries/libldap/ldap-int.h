@@ -271,7 +271,7 @@ struct ldap {
  * in init.c
  */
 
-extern struct ldapoptions ldap_int_global_options;
+LDAP_F ( struct ldapoptions ) ldap_int_global_options;
 void ldap_int_initialize LDAP_P((void));
 
 

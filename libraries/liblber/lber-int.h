@@ -105,8 +105,8 @@ typedef struct sockbuf_io Sockbuf_IO;
 typedef struct sockbuf_sec Sockbuf_Sec;
 typedef struct sockbuf_buf Sockbuf_Buf;
 
-extern Sockbuf_IO ber_pvt_sb_io_tcp;
-extern Sockbuf_IO ber_pvt_sb_io_udp;
+LDAP_F( Sockbuf_IO ) ber_pvt_sb_io_tcp;
+LDAP_F( Sockbuf_IO ) ber_pvt_sb_io_udp;
 
 
 struct sockbuf {
@@ -186,6 +186,15 @@ struct seqorset {
  * bprint.c
  */
 #define ber_log_printf ber_pvt_log_printf
+
+#ifdef __MINGW32__
+#   undef LDAP_F_PRE
+#   ifdef LIBLBER_DECL
+#	define LDAP_F_PRE	extern __declspec(LIBLBER_DECL)
+#   else
+#	define LDAP_F_PRE	extern
+#   endif
+#endif
 
 LDAP_F( int )
 ber_log_bprint LDAP_P((
