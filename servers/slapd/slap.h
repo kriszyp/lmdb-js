@@ -1156,6 +1156,43 @@ typedef struct slap_authz_info {
 	slap_ssf_t	sai_sasl_ssf;		/* SASL SSF */
 } AuthorizationInformation;
 
+
+#ifdef LDAP_DEVEL
+#define SLAP_DYNACL
+#endif /* LDAP_DEVEL */
+
+#ifdef SLAP_DYNACL
+struct slap_op;
+
+/*
+ * "dynamic" ACL infrastructure (for ACIs and more)
+ */
+typedef int (*slap_dynacl_parse)( const char *fname, int lineno, slap_style_t, const char *, void **privp );
+typedef int (*slap_dynacl_print)( void *priv );
+typedef int (*slap_dynacl_mask)(
+		void			*priv,
+		struct slap_op		*op,
+		Entry			*e,
+		AttributeDescription	*desc,
+		struct berval		*val,
+		int			nmatch,
+		regmatch_t		*matches,
+		slap_access_t		*grant,
+		slap_access_t		*deny );
+typedef int (*slap_dynacl_destroy)( void *priv );
+
+typedef struct slap_dynacl_t {
+	char			*da_name;
+	slap_dynacl_parse	da_parse;
+	slap_dynacl_print	da_print;
+	slap_dynacl_mask	da_mask;
+	slap_dynacl_destroy	da_destroy;
+	
+	void			*da_private;
+	struct slap_dynacl_t	*da_next;
+} slap_dynacl_t;
+#endif /* SLAP_DYNACL */
+
 /* the "by" part */
 typedef struct slap_access {
 	slap_control_t a_type;
@@ -1245,9 +1282,13 @@ typedef struct slap_access {
 	slap_style_t a_set_style;
 	struct berval	a_set_pat;
 
+#ifdef SLAP_DYNACL
+	slap_dynacl_t		*a_dynacl;
+#else /* ! SLAP_DYNACL */
 #ifdef SLAPD_ACI_ENABLED
 	AttributeDescription	*a_aci_at;
 #endif
+#endif /* SLAP_DYNACL */
 
 	/* ACL Groups */
 	slap_style_t a_group_style;

@@ -620,6 +620,12 @@ unhandled_option:;
 		goto destroy;
 	}
 
+#ifdef SLAP_DYNACL
+	if ( acl_init() ) {
+		goto destroy;
+	}
+#endif /* SLAP_DYNACL */
+
 	if ( read_config( configfile, 0 ) != 0 ) {
 		rc = 1;
 		SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 19 );

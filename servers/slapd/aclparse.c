@@ -67,6 +67,45 @@ static int
 check_scope( BackendDB *be, AccessControl *a );
 #endif /* LDAP_DEVEL */
 
+#ifdef SLAP_DYNACL
+static int
+slap_dynacl_config( const char *fname, int lineno, Access *b, const char *name, slap_style_t sty, const char *right )
+{
+	slap_dynacl_t	*da, *tmp;
+	int		rc = 0;
+
+	for ( da = b->a_dynacl; da; da = da->da_next ) {
+		if ( strcasecmp( da->da_name, name ) == 0 ) {
+			fprintf( stderr,
+				"%s: line %d: dynacl \"%s\" already specified.\n",
+				fname, lineno, name );
+			acl_usage();
+		}
+	}
+
+	da = slap_dynacl_get( name );
+	if ( da == NULL ) {
+		return -1;
+	}
+
+	tmp = ch_malloc( sizeof( slap_dynacl_t ) );
+	*tmp = *da;
+
+	if ( tmp->da_parse ) {
+		rc = ( *tmp->da_parse )( fname, lineno, sty, right, &tmp->da_private );
+		if ( rc ) {
+			ch_free( tmp );
+			return rc;
+		}
+	}
+
+	tmp->da_next = b->a_dynacl;
+	b->a_dynacl = tmp;
+
+	return 0;
+}
+#endif /* SLAP_DYNACL */
+
 static void
 regtest(const char *fname, int lineno, char *pat) {
 	int e;
@@ -1263,6 +1302,30 @@ parse_acl(
 					continue;
 				}
 
+#ifdef SLAP_DYNACL
+				{
+					char		*name = NULL;
+					
+					if ( strcasecmp( left, "aci" ) == 0 ) {
+						name = "aci";
+						
+					} else if ( strncasecmp( left, "dynacl/", STRLENOF( "dynacl/" ) ) == 0 ) {
+						name = &left[ STRLENOF( "dynacl/" ) ];
+					}
+
+					if ( name ) {
+						if ( slap_dynacl_config( fname, lineno, b, name, sty, right ) ) {
+							fprintf( stderr, "%s: line %d: "
+								"unable to configure dynacl \"%s\"\n",
+								fname, lineno, name );
+							acl_usage();
+						}
+
+						continue;
+					}
+				}
+#else /* ! SLAP_DYNACL */
+
 #ifdef SLAPD_ACI_ENABLED
 				if ( strcasecmp( left, "aci" ) == 0 ) {
 					if (sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE) {
@@ -1306,6 +1369,7 @@ parse_acl(
 					continue;
 				}
 #endif /* SLAPD_ACI_ENABLED */
+#endif /* ! SLAP_DYNACL */
 
 				if ( strcasecmp( left, "ssf" ) == 0 ) {
 					if ( sty != ACL_STYLE_REGEX && sty != ACL_STYLE_BASE ) {
@@ -2069,11 +2133,23 @@ print_access( Access *b )
 		fprintf( stderr, " set=\"%s\"", b->a_set_pat.bv_val );
 	}
 
+#ifdef SLAP_DYNACL
+	if ( b->a_dynacl ) {
+		slap_dynacl_t	*da;
+
+		for ( da = b->a_dynacl; da; da = da->da_next ) {
+			if ( da->da_print ) {
+				(void)( *da->da_print )( da->da_private );
+			}
+		}
+	}
+#else /* ! SLAP_DYNACL */
 #ifdef SLAPD_ACI_ENABLED
 	if ( b->a_aci_at != NULL ) {
 		fprintf( stderr, " aci=%s", b->a_aci_at->ad_cname.bv_val );
 	}
 #endif
+#endif /* SLAP_DYNACL */
 
 	/* Security Strength Factors */
 	if ( b->a_authz.sai_ssf ) {
