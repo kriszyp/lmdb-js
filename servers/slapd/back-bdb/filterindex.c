@@ -272,7 +272,7 @@ equality_candidates(
 
 	Debug( LDAP_DEBUG_TRACE, "=> bdb_equality_candidates\n", 0, 0, 0 );
 
-	BDB_IDL_RANGE_CPY( range, ids );
+	BDB_IDL_CPY( range, ids );
 
 	rc = bdb_index_param( be, ava->aa_desc, LDAP_FILTER_EQUALITY,
 		&db, &mask, &prefix );
