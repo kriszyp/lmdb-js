@@ -134,6 +134,41 @@ static int version = 0;
 
 void *slap_tls_ctx;
 
+static int
+slapd_opt_slp( const char *val, void *arg )
+{
+#ifdef HAVE_SLP
+	/* NULL is default */
+	if ( val == NULL || strcasecmp( val, "on" ) == 0 ) {
+		slapd_register_slp = 1;
+
+	} else if ( strcasecmp( val, "off" ) == 0 ) {
+		slapd_register_slp = 0;
+
+	/* NOTE: add support for URL specification? */
+
+	} else {
+		fprintf(stderr, "unrecognized value \"%s\" for SLP option\n", val );
+		return -1;
+	}
+
+	return 0;
+		
+#else
+	fputs( "slapd: SLP support is not available\n", stderr );
+	return 0;
+#endif
+}
+
+struct option_helper {
+	struct berval	oh_name;
+	int		(*oh_fnc)(const char *val, void *arg);
+	void		*oh_arg;
+} option_helpers[] = {
+	{ BER_BVC("slp"),	slapd_opt_slp,	NULL },
+	{ BER_BVNULL }
+};
+
 static void
 usage( char *name )
 {
@@ -155,6 +190,8 @@ usage( char *name )
 		"\t-l facility\tSyslog facility (default: LOCAL4)\n"
 #endif
 		"\t-n serverName\tService name\n"
+		"\t-o <option>[=value]\n"
+		"\t\t\tGeneric means to specify options; see slapd(8) for details\n"
 #ifdef HAVE_CHROOT
 		"\t-r directory\tSandbox directory to chroot to\n"
 #endif
@@ -164,8 +201,8 @@ usage( char *name )
 #endif
 #if defined(HAVE_SETUID) && defined(HAVE_SETGID)
 		"\t-u user\t\tUser (id or name) to run as\n"
-		"\t-V\t\tprint version info (-VV only)\n"
 #endif
+		"\t-V\t\tprint version info (-VV only)\n"
     );
 }
 
@@ -282,7 +319,7 @@ int main( int argc, char **argv )
 #endif
 
 	while ( (i = getopt( argc, argv,
-			     "c:d:f:h:s:n:StT:V"
+			     "c:d:f:h:n:o:s:StT:V"
 #if LDAP_PF_INET6
 				"46"
 #endif
@@ -350,6 +387,35 @@ int main( int argc, char **argv )
 		case 'f':	/* read config file */
 			configfile = ch_strdup( optarg );
 			break;
+
+		case 'o': {
+			char		*val = strchr( optarg, '=' );
+			struct berval	opt;
+			int		i;
+
+			opt.bv_val = optarg;
+			
+			if ( val ) {
+				opt.bv_len = ( val - optarg );
+				val++;
+			
+			} else {
+				opt.bv_len = strlen( optarg );
+			}
+
+			for ( i = 0; !BER_BVISNULL( &option_helpers[i].oh_name ); i++ ) {
+				if ( ber_bvstrcasecmp( &option_helpers[i].oh_name, &opt ) == 0 ) {
+					if ( option_helpers[i].oh_fnc( val, option_helpers[i].oh_arg ) == -1 ) {
+						goto destroy;
+					}
+				}
+			}
+
+			if ( BER_BVISNULL( &option_helpers[i].oh_name ) ) {
+				goto unhandled_option;
+			}
+			break;
+		}
 
 		case 's':	/* set syslog level */
 			ldap_syslog = atoi( optarg );
@@ -429,6 +495,7 @@ int main( int argc, char **argv )
 					"aborting...\n", serverNamePrefix, serverName );
 			/* FALLTHRU */
 		default:
+unhandled_option:;
 			usage( argv[0] );
 			rc = 1;
 			SERVICE_EXIT( ERROR_SERVICE_SPECIFIC_ERROR, 15 );
