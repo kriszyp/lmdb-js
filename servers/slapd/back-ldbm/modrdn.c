@@ -223,12 +223,6 @@ ldbm_back_modrdn(
 	}
 	ldap_pvt_thread_mutex_unlock( &op->o_abandonmutex );
 
-	/* add new one */
-	if ( dn2id_add( be, new_ndn, e->e_id ) != 0 ) {
-		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
-		goto return_results;
-	}
-
 	/* delete old one */
 	if ( dn2id_delete( be, e->e_ndn ) != 0 ) {
 		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
@@ -240,6 +234,14 @@ ldbm_back_modrdn(
 	free( e->e_ndn );
 	e->e_dn = new_dn;
 	e->e_ndn = new_ndn;
+
+	/* add new one */
+	if ( dn2id_add( be, e->e_ndn, e->e_id ) != 0 ) {
+		send_ldap_result( conn, op, LDAP_OPERATIONS_ERROR, NULL, NULL );
+		goto return_results;
+	}
+
+
 
 	/* Get attribute type and attribute value of our new rdn, we will
 	 * need to add that to our new entry
@@ -266,7 +268,7 @@ ldbm_back_modrdn(
 	}
 
 	Debug( LDAP_DEBUG_TRACE,
-	       "ldbm_back_modrdn: new_rdn_val=%s, new_rdn_type=%s\n",
+	       "ldbm_back_modrdn: new_rdn_val=\"%s\", new_rdn_type=\"%s\"\n",
 	       new_rdn_val, new_rdn_type, 0 );
 
 	/* Retrieve the old rdn from the entry's dn */
@@ -307,6 +309,7 @@ ldbm_back_modrdn(
 
 		bvals[0] = &bv;		/* Array of bervals */
 		bvals[1] = NULL;
+		
 
 		/* Remove old rdn value if required */
 
@@ -373,12 +376,16 @@ ldbm_back_modrdn(
 		
 		
 		Debug( LDAP_DEBUG_TRACE,
-		       "ldbm_back_modrdn: adding new rdn attr val =%s\n",
+		       "ldbm_back_modrdn: adding new rdn attr val =\"%s\"\n",
 		       new_rdn_val, 0, 0 );
 		
 		/* No need to normalize new_rdn_type, attr_merge does it */
 
 		attr_merge( e, new_rdn_type, bvals );
+
+		/* Update new_rdn_type if it is an index */
+
+		index_add_values( be, new_rdn_type, bvals, e->e_id );
 	
 	} else {
 	    

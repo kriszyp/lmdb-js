@@ -362,6 +362,10 @@ bdb2i_back_modrdn_internal(
 
 		attr_merge( e, new_rdn_type, bvals );
 	
+		/* Update new_rdn_type if it is an index */
+
+		bdb2i_index_add_values( be, new_rdn_type, bvals, e->e_id );
+	
 	} else {
 	    
 
