@@ -301,7 +301,7 @@ main( int argc, char **argv )
 			ldap_debug = atoi( optarg );
 #ifdef LBER_DEBUG
 			if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
-				lber_debug = ldap_debug;
+				ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug );
 			}
 #endif
 #else
@@ -486,7 +486,7 @@ main( int argc, char **argv )
 			ldap_debug = atoi( line );
 #ifdef LBER_DEBUG
 			if ( ldap_debug & LDAP_DEBUG_PACKETS ) {
-				lber_debug = ldap_debug;
+				ber_set_option( NULL, LBER_OPT_DEBUG_LEVEL, &ldap_debug );
 			}
 #endif
 #else
