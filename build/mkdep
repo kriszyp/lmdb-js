@@ -55,7 +55,7 @@ while :
 
 		# -c allows you to select a compiler to use (default is cc)
 		-c)
-			test -z "$CC_MKDEP" && CC_MKDEP=$2
+			CC_MKDEP=$2
 			shift; shift ;;
 
 		# the -p flag produces "program: program.c" style dependencies
