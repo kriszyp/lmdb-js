@@ -1,3 +1,8 @@
+/* $OpenLDAP$ */
+/*
+ * Copyright 2000 The OpenLDAP Foundation, All Rights Reserved.
+ * COPYING RESTRICTIONS APPLY, see COPYRIGHT file
+ */
 /*
  * Copyright 1997, 1998, 1999 Computing Research Labs,
  * New Mexico State University
