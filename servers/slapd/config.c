@@ -387,7 +387,8 @@ read_config( const char *fname )
 "%s: line %d: rootpw line must appear inside a database definition (ignored)\n",
 				    fname, lineno, 0 );
 			} else {
-				be->be_root_pw = ch_strdup( cargv[1] );
+				be->be_root_pw.bv_val = ch_strdup( cargv[1] );
+				be->be_root_pw.bv_len = strlen( be->be_root_pw.bv_val );
 			}
 
 		/* make this database read-only */

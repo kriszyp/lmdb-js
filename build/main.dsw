@@ -128,6 +128,9 @@ Package=<4>
     Begin Project Dependency
     Project_Dep_Name ltest_r
     End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name passwd
+    End Project Dependency
 }}}
 
 ###############################################################################

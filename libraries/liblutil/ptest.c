@@ -16,7 +16,10 @@
 #include <ac/string.h>
 #include <ac/time.h>
 
+#include <lber.h>
+
 #include "lutil.h"
+
 
 char *hash[] = {
 	"{SMD5}", "{SSHA}",
@@ -24,30 +27,26 @@ char *hash[] = {
 	NULL
 };
 
-struct pwtable {
-	char *pw;
-	size_t pwlen;
-};
-
-static const struct pwtable pw[] = {
-	{ "secret", sizeof("secret")-1 },
-	{ "secret\0binary", sizeof("binary\0secret")-1 },
-	{ NULL }
+static struct berval pw[] = {
+	{ sizeof("secret")-1,			"secret" },
+	{ sizeof("binary\0secret")-1,	"secret\0binary" },
+	{ 0, NULL }
 };
 
 int
 main( int argc, char *argv[] )
 {
 	int i, j, rc;
-	char *passwd;
+	struct berval *passwd;
 
 	for( i= 0; hash[i]; i++ ) {
-		for( j = 0; pw[j].pw; j++ ) {
-			passwd = lutil_passwd_generate( pw[j].pw, hash[i] );
-			rc = lutil_passwd( passwd, pw[j].pw, NULL );
+		for( j = 0; pw[j].bv_len; j++ ) {
+			passwd = lutil_passwd_generate( &pw[j], hash[i] );
+			rc = lutil_passwd( passwd, &pw[j], NULL );
 
-			printf("%s (%d): %s (%d)\n",
-				pw[j].pw, pw[j].pwlen, passwd, rc );
+			printf("%s (%d): %s (%d) %s\n",
+				pw[j].bv_val, pw[j].bv_len, passwd->bv_val, passwd->bv_len,
+				rc == 0 ? "OKAY" : "BAD" );
 		}
 	}
 	return EXIT_SUCCESS;

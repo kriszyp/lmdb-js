@@ -103,10 +103,7 @@ slap_passwd_check(
 		ldap_pvt_thread_mutex_lock( &crypt_mutex );
 #endif
 
-		result = lutil_passwd(
-			a->a_vals[i]->bv_val,
-			cred->bv_val,
-			NULL );
+		result = lutil_passwd( a->a_vals[i], cred, NULL );
 
 #ifdef SLAPD_CRYPT
 		ldap_pvt_thread_mutex_unlock( &crypt_mutex );
@@ -123,26 +120,17 @@ struct berval * slap_passwd_generate(
 {
 	char* hash = default_passwd_hash ? default_passwd_hash : "{SSHA}";
 
-	struct berval *new = ber_memalloc( sizeof(struct berval) );
-
-	if( new == NULL ) return NULL;
+	struct berval *new;
 
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_lock( &crypt_mutex );
 #endif
 
-	new->bv_val = lutil_passwd_generate( cred->bv_val , hash );
+	new = lutil_passwd_generate( cred , hash );
 	
 #ifdef SLAPD_CRYPT
 	ldap_pvt_thread_mutex_unlock( &crypt_mutex );
 #endif
-
-	if( new->bv_val == NULL ) {
-		ber_bvfree( new );
-		return NULL;
-	}
-
-	new->bv_len = strlen( new->bv_val );
 
 	return new;
 }

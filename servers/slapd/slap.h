@@ -513,7 +513,7 @@ struct slap_backend_db {
 	char	**be_suffixAlias; /* pairs of DN suffix aliases and deref values */
 	char	*be_root_dn;	/* the magic "root" dn for this db 	*/
 	char	*be_root_ndn;	/* the magic "root" normalized dn for this db	*/
-	char	*be_root_pw;	/* the magic "root" password for this db	*/
+	struct berval be_root_pw;	/* the magic "root" password for this db	*/
 	int	be_readonly;	/* 1 => db is in "read only" mode	   */
 	unsigned int be_max_deref_depth;       /* limit for depth of an alias deref  */
 	int	be_sizelimit;	/* size limit for this backend   	   */
