@@ -230,7 +230,7 @@ ldbm_back_modrdn(
 		       "ldbm_back_modrdn: adding new rdn attr val =%s\n",
 		       new_rdn_val, 0, 0 );
 
-		attr_merge( e, rdn_type, bvals );
+		attr_merge( e, new_rdn_type, bvals );
 	
 	} else {
 	    
